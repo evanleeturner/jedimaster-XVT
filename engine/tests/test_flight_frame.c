@@ -30,207 +30,214 @@
 
 enum { MS_US = 1000, TICK_US = 4 * MS_US };
 
-static struct XvtFlightMessage g_message;
+static struct xvt_flight_message g_message;
 
-static void Clocks(XvtFlightTimingProfile profile)
+static void clocks(xvt_flight_timing_profile profile)
 {
-	XvtTime_Reset();
-	XvtTime_AdvanceHostClock(5000 * MS_US);
-	Time_ResetElapsedTicks();
-	XvtFlightTiming_BeginSession(profile);
-	XvtFlightNetwork_ResetMission();
-	XvtFlightNetwork_ClearRecoveryRequest();
+	xvt_time_reset();
+	xvt_time_advance_host_clock(5000 * MS_US);
+	time_reset_elapsed_ticks();
+	xvt_flight_timing_begin_session(profile);
+	xvt_flight_network_reset_mission();
+	xvt_flight_network_clear_recovery_request();
 	memset(g_players, 0, sizeof g_players);
-	memset(g_inputHistory, 0, sizeof g_inputHistory);
-	memset(g_inputFrameCount, 0, sizeof g_inputFrameCount);
+	memset(g_input_history, 0, sizeof g_input_history);
+	memset(g_input_frame_count, 0, sizeof g_input_frame_count);
 	for (int i = 0; i < 8; ++i) {
-		g_players[i].objectIndex = -1;
+		g_players[i].object_index = -1;
 	}
-	g_localPlayer = 0;
-	g_gameTime = 0;
-	g_serverTickTime = 0;
-	g_inputTimestamp = 0;
-	XvtFlightFrame_Begin();
+	g_local_player = 0;
+	g_game_time = 0;
+	g_server_tick_time = 0;
+	g_input_timestamp = 0;
+	xvt_flight_frame_begin();
 }
 
-static void QueueReplay(unsigned target)
+static void queue_replay(unsigned target)
 {
 	memset(&g_message, 0, sizeof g_message);
 	g_message.target_flags = target;
 	g_message.participant_mask = 0x01;
 	XVT_ASSERT_INT_EQ(
-		XvtFlightMessages_Enqueue(&g_message, XVT_QUEUE_REPLAY), 1);
+		xvt_flight_messages_enqueue(&g_message, XVT_QUEUE_REPLAY), 1);
 }
 
-static void CheckDelayForTicks(void)
+static void check_delay_for_ticks(void)
 {
 	/* With the frame-delta clock reset its last tick is now: n ticks are n times 4 ms away. */
-	Clocks(XVT_FLIGHT_TIMING_NATIVE);
-	XVT_ASSERT_TRUE(XvtFlightTime_DelayForTicks(0) == 0);
-	XVT_ASSERT_TRUE(XvtFlightTime_DelayForTicks(1) == TICK_US);
-	XVT_ASSERT_TRUE(XvtFlightTime_DelayForTicks(3) == 3 * TICK_US);
-	XVT_ASSERT_TRUE(XvtFlightTime_DelayForTicks(1000) == 1000ull * TICK_US);
+	clocks(XVT_FLIGHT_TIMING_NATIVE);
+	XVT_ASSERT_TRUE(xvt_flight_time_delay_for_ticks(0) == 0);
+	XVT_ASSERT_TRUE(xvt_flight_time_delay_for_ticks(1) == TICK_US);
+	XVT_ASSERT_TRUE(xvt_flight_time_delay_for_ticks(3) == 3 * TICK_US);
+	XVT_ASSERT_TRUE(xvt_flight_time_delay_for_ticks(1000) ==
+			1000ull * TICK_US);
 
 	/* After a tick of the frame-delta clock, time passes on the host clock and the delay shrinks by it. */
-	XVT_ASSERT_INT_EQ(Time_ConsumeElapsedTicks(), 0);
-	XvtTime_AdvanceHostClock(10 * MS_US);
-	XVT_ASSERT_TRUE(XvtFlightTime_DelayForTicks(3) ==
+	XVT_ASSERT_INT_EQ(time_consume_elapsed_ticks(), 0);
+	xvt_time_advance_host_clock(10 * MS_US);
+	XVT_ASSERT_TRUE(xvt_flight_time_delay_for_ticks(3) ==
 			3 * TICK_US - 10 * MS_US);
-	XVT_ASSERT_TRUE(XvtFlightTime_DelayForTicks(5) ==
+	XVT_ASSERT_TRUE(xvt_flight_time_delay_for_ticks(5) ==
 			5 * TICK_US - 10 * MS_US);
-	XvtTime_AdvanceHostClock(MS_US / 2);
-	XVT_ASSERT_TRUE(XvtFlightTime_DelayForTicks(3) ==
+	xvt_time_advance_host_clock(MS_US / 2);
+	XVT_ASSERT_TRUE(xvt_flight_time_delay_for_ticks(3) ==
 			3 * TICK_US - 10 * MS_US - MS_US / 2);
 	/* One tick more is always 4 ms more, while the ticks have not passed. */
-	XVT_ASSERT_TRUE(XvtFlightTime_DelayForTicks(4) -
-				XvtFlightTime_DelayForTicks(3) ==
+	XVT_ASSERT_TRUE(xvt_flight_time_delay_for_ticks(4) -
+				xvt_flight_time_delay_for_ticks(3) ==
 			TICK_US);
 	/* 0 once they have. */
-	XVT_ASSERT_TRUE(XvtFlightTime_DelayForTicks(2) == 0);
-	XVT_ASSERT_TRUE(XvtFlightTime_DelayForTicks(1) == 0);
+	XVT_ASSERT_TRUE(xvt_flight_time_delay_for_ticks(2) == 0);
+	XVT_ASSERT_TRUE(xvt_flight_time_delay_for_ticks(1) == 0);
 }
 
-static void CheckBegin(void)
+static void check_begin(void)
 {
-	Clocks(XVT_FLIGHT_TIMING_NETWORK_125);
-	g_predictedFrameDelta = 99;
-	g_flightLastStepTargetTimestamp = 1234;
-	g_flightPacketDropScore = 7;
+	clocks(XVT_FLIGHT_TIMING_NETWORK_125);
+	g_predicted_frame_delta = 99;
+	g_flight_last_step_target_timestamp = 1234;
+	g_flight_packet_drop_score = 7;
 	for (int i = 0; i < 20; ++i) {
-		g_flightUpdateDurationHistogram[i] = (unsigned)i + 1;
+		g_flight_update_duration_histogram[i] = (unsigned)i + 1;
 	}
-	XvtFlightFrame_Begin();
-	XVT_ASSERT_INT_EQ(g_predictedFrameDelta, XVT_NETWORK_STEP_TICKS);
-	XVT_ASSERT_INT_EQ(g_flightLastStepTargetTimestamp, 0);
-	XVT_ASSERT_INT_EQ(g_flightPacketDropScore, 0);
+	xvt_flight_frame_begin();
+	XVT_ASSERT_INT_EQ(g_predicted_frame_delta, XVT_NETWORK_STEP_TICKS);
+	XVT_ASSERT_INT_EQ(g_flight_last_step_target_timestamp, 0);
+	XVT_ASSERT_INT_EQ(g_flight_packet_drop_score, 0);
 	for (int i = 0; i < 20; ++i) {
-		XVT_ASSERT_INT_EQ(g_flightUpdateDurationHistogram[i], 0);
+		XVT_ASSERT_INT_EQ(g_flight_update_duration_histogram[i], 0);
 	}
 }
 
-static void CheckReplayBuffered(void)
+static void check_replay_buffered(void)
 {
 	/* An empty queue is idle. */
-	Clocks(XVT_FLIGHT_TIMING_NETWORK_125);
-	XVT_ASSERT_INT_EQ(XvtFlightFrame_ReplayBuffered(), XVT_REPLAY_IDLE);
+	clocks(XVT_FLIGHT_TIMING_NETWORK_125);
+	XVT_ASSERT_INT_EQ(xvt_flight_frame_replay_buffered(), XVT_REPLAY_IDLE);
 
 	/* A message at or before the last confirmed tick is dropped: the queue runs empty. */
-	Clocks(XVT_FLIGHT_TIMING_NETWORK_125);
-	g_serverTickTime = 64;
-	QueueReplay(64);
-	QueueReplay(56 | XVT_WORLD_CHECKSUM_FLAG);
-	XVT_ASSERT_INT_EQ(XvtFlightFrame_ReplayBuffered(), XVT_REPLAY_IDLE);
-	XVT_ASSERT_INT_EQ(XvtFlightMessages_Count(XVT_QUEUE_REPLAY), 0);
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_NeedsRecovery(), 0);
-	XVT_ASSERT_INT_EQ(g_serverTickTime, 64);
+	clocks(XVT_FLIGHT_TIMING_NETWORK_125);
+	g_server_tick_time = 64;
+	queue_replay(64);
+	queue_replay(56 | XVT_WORLD_CHECKSUM_FLAG);
+	XVT_ASSERT_INT_EQ(xvt_flight_frame_replay_buffered(), XVT_REPLAY_IDLE);
+	XVT_ASSERT_INT_EQ(xvt_flight_messages_count(XVT_QUEUE_REPLAY), 0);
+	XVT_ASSERT_INT_EQ(xvt_flight_network_needs_recovery(), 0);
+	XVT_ASSERT_INT_EQ(g_server_tick_time, 64);
 
 	/* One that is not exactly a message interval past it requests recovery. */
-	Clocks(XVT_FLIGHT_TIMING_NETWORK_125);
-	g_serverTickTime = 64;
-	QueueReplay(64 + 2 * XVT_WORLD_MESSAGE_TICKS);
-	XVT_ASSERT_INT_EQ(XvtFlightFrame_ReplayBuffered(), XVT_REPLAY_PENDING);
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_NeedsRecovery(), 1);
-	XVT_ASSERT_INT_EQ(g_serverTickTime, 64);
-	Clocks(XVT_FLIGHT_TIMING_NETWORK_125);
-	g_serverTickTime = 64;
-	QueueReplay(64 + XVT_NETWORK_STEP_TICKS);
-	XVT_ASSERT_INT_EQ(XvtFlightFrame_ReplayBuffered(), XVT_REPLAY_PENDING);
-	XVT_ASSERT_INT_EQ(XvtFlightNetwork_NeedsRecovery(), 1);
+	clocks(XVT_FLIGHT_TIMING_NETWORK_125);
+	g_server_tick_time = 64;
+	queue_replay(64 + 2 * XVT_WORLD_MESSAGE_TICKS);
+	XVT_ASSERT_INT_EQ(xvt_flight_frame_replay_buffered(),
+			  XVT_REPLAY_PENDING);
+	XVT_ASSERT_INT_EQ(xvt_flight_network_needs_recovery(), 1);
+	XVT_ASSERT_INT_EQ(g_server_tick_time, 64);
+	clocks(XVT_FLIGHT_TIMING_NETWORK_125);
+	g_server_tick_time = 64;
+	queue_replay(64 + XVT_NETWORK_STEP_TICKS);
+	XVT_ASSERT_INT_EQ(xvt_flight_frame_replay_buffered(),
+			  XVT_REPLAY_PENDING);
+	XVT_ASSERT_INT_EQ(xvt_flight_network_needs_recovery(), 1);
 }
 
-static void CheckResetReplay(void)
+static void check_reset_replay(void)
 {
 	/* ResetReplay resets the flight simulation, which forgets the prediction fallback (flight_sim.h). */
-	Clocks(XVT_FLIGHT_TIMING_NETWORK_125);
-	g_players[1].participationState = 1;
-	struct FlightInputFrameRecord input;
+	clocks(XVT_FLIGHT_TIMING_NETWORK_125);
+	g_players[1].participation_state = 1;
+	struct flight_input_frame_record input;
 	memset(&input, 0, sizeof input);
-	input.axisX = 20;
-	XvtFlightPrediction_Confirm(1, 2, &input);
-	XvtFlightFrame_ResetReplay();
-	XVT_ASSERT_INT_EQ(XvtFlightPrediction_Queue(8), 1);
-	XVT_ASSERT_INT_EQ(g_inputFrameCount[1], 0);
+	input.axis_x = 20;
+	xvt_flight_prediction_confirm(1, 2, &input);
+	xvt_flight_frame_reset_replay();
+	XVT_ASSERT_INT_EQ(xvt_flight_prediction_queue(8), 1);
+	XVT_ASSERT_INT_EQ(g_input_frame_count[1], 0);
 	/* Without the reset the same controls are predicted. */
-	XvtFlightPrediction_Confirm(1, 2, &input);
-	XVT_ASSERT_INT_EQ(XvtFlightPrediction_Queue(8), 1);
-	XVT_ASSERT_INT_EQ(g_inputFrameCount[1], 1);
+	xvt_flight_prediction_confirm(1, 2, &input);
+	XVT_ASSERT_INT_EQ(xvt_flight_prediction_queue(8), 1);
+	XVT_ASSERT_INT_EQ(g_input_frame_count[1], 1);
 }
 
-static void CheckNextWakeNative(void)
+static void check_next_wake_native(void)
 {
 	/* The time until a step's worth of input time, 0 once it has passed. */
-	Clocks(XVT_FLIGHT_TIMING_NATIVE);
-	unsigned step = XvtFlightTiming_StepTicks();
-	g_gameTime = 100;
-	g_inputTimestamp = 100;
-	XVT_ASSERT_TRUE(XvtFlightFrame_NextWakeDelayUs() ==
+	clocks(XVT_FLIGHT_TIMING_NATIVE);
+	unsigned step = xvt_flight_timing_step_ticks();
+	g_game_time = 100;
+	g_input_timestamp = 100;
+	XVT_ASSERT_TRUE(xvt_flight_frame_next_wake_delay_us() ==
 			(uint64_t)step * TICK_US);
-	g_inputTimestamp = 100 + 3;
-	XVT_ASSERT_TRUE(XvtFlightFrame_NextWakeDelayUs() ==
+	g_input_timestamp = 100 + 3;
+	XVT_ASSERT_TRUE(xvt_flight_frame_next_wake_delay_us() ==
 			(uint64_t)(step - 3) * TICK_US);
-	g_inputTimestamp = 100 + (int)step;
-	XVT_ASSERT_TRUE(XvtFlightFrame_NextWakeDelayUs() == 0);
-	g_inputTimestamp = 100 + 10 * (int)step;
-	XVT_ASSERT_TRUE(XvtFlightFrame_NextWakeDelayUs() == 0);
+	g_input_timestamp = 100 + (int)step;
+	XVT_ASSERT_TRUE(xvt_flight_frame_next_wake_delay_us() == 0);
+	g_input_timestamp = 100 + 10 * (int)step;
+	XVT_ASSERT_TRUE(xvt_flight_frame_next_wake_delay_us() == 0);
 }
 
-static void CheckNextWakeNetwork(void)
+static void check_next_wake_network(void)
 {
 	/* Prediction work remains while the game time trails the input clock. */
-	Clocks(XVT_FLIGHT_TIMING_NETWORK_125);
-	g_serverTickTime = g_gameTime = 100;
-	g_inputTimestamp = 100 + 4 * XVT_NETWORK_STEP_TICKS;
-	XVT_ASSERT_TRUE(XvtFlightFrame_NextWakeDelayUs() == 0);
+	clocks(XVT_FLIGHT_TIMING_NETWORK_125);
+	g_server_tick_time = g_game_time = 100;
+	g_input_timestamp = 100 + 4 * XVT_NETWORK_STEP_TICKS;
+	XVT_ASSERT_TRUE(xvt_flight_frame_next_wake_delay_us() == 0);
 
 	/* Caught up: the sooner of the network's next event and the next simulation step. */
-	g_inputTimestamp = 100;
-	uint64_t network = XvtFlightNetwork_NextWakeDelayUs(g_inputTimestamp);
+	g_input_timestamp = 100;
+	uint64_t network =
+		xvt_flight_network_next_wake_delay_us(g_input_timestamp);
 	uint64_t simulation =
-		XvtFlightTime_DelayForTicks(XVT_NETWORK_STEP_TICKS);
+		xvt_flight_time_delay_for_ticks(XVT_NETWORK_STEP_TICKS);
 	XVT_ASSERT_TRUE(network > 0 && simulation > 0);
-	XVT_ASSERT_TRUE(XvtFlightFrame_NextWakeDelayUs() ==
+	XVT_ASSERT_TRUE(xvt_flight_frame_next_wake_delay_us() ==
 			(network < simulation ? network : simulation));
 	/* A pending world message is network work now. */
-	XVT_ASSERT_INT_EQ(XvtFlightMessages_Push(XVT_QUEUE_PENDING, "p", 1), 1);
-	XVT_ASSERT_TRUE(XvtFlightFrame_NextWakeDelayUs() == 0);
-	XvtFlightMessages_Clear(XVT_QUEUE_PENDING);
+	XVT_ASSERT_INT_EQ(xvt_flight_messages_push(XVT_QUEUE_PENDING, "p", 1),
+			  1);
+	XVT_ASSERT_TRUE(xvt_flight_frame_next_wake_delay_us() == 0);
+	xvt_flight_messages_clear(XVT_QUEUE_PENDING);
 
 	/* Prediction stops XVT_PREDICTION_LEAD_TICKS past the last confirmed tick, however far ahead the input
 	 * clock is: there is no work then. */
-	g_inputTimestamp = 100 + 10 * XVT_PREDICTION_LEAD_TICKS;
-	g_gameTime = 100 + XVT_PREDICTION_LEAD_TICKS;
-	XVT_ASSERT_TRUE(XvtFlightFrame_NextWakeDelayUs() != 0);
-	XVT_ASSERT_TRUE(XvtFlightFrame_NextWakeDelayUs() ==
-			XvtFlightNetwork_NextWakeDelayUs(g_inputTimestamp));
-	g_gameTime = 100 + XVT_PREDICTION_LEAD_TICKS - XVT_NETWORK_STEP_TICKS;
-	XVT_ASSERT_TRUE(XvtFlightFrame_NextWakeDelayUs() == 0);
+	g_input_timestamp = 100 + 10 * XVT_PREDICTION_LEAD_TICKS;
+	g_game_time = 100 + XVT_PREDICTION_LEAD_TICKS;
+	XVT_ASSERT_TRUE(xvt_flight_frame_next_wake_delay_us() != 0);
+	XVT_ASSERT_TRUE(
+		xvt_flight_frame_next_wake_delay_us() ==
+		xvt_flight_network_next_wake_delay_us(g_input_timestamp));
+	g_game_time = 100 + XVT_PREDICTION_LEAD_TICKS - XVT_NETWORK_STEP_TICKS;
+	XVT_ASSERT_TRUE(xvt_flight_frame_next_wake_delay_us() == 0);
 }
 
-static void CheckNativeTickWaits(void)
+static void check_native_tick_waits(void)
 {
 	/* Before a step's worth of input time has passed, a native Update only moves the input clock on. */
-	Clocks(XVT_FLIGHT_TIMING_NATIVE);
-	g_gameTime = 100;
-	g_inputTimestamp = 100;
-	XVT_ASSERT_INT_EQ(Time_ConsumeElapsedTicks(), 0);
-	XvtTime_AdvanceHostClock(TICK_US);
-	XVT_ASSERT_INT_EQ(XvtFlightFrame_Update(), 0);
-	XVT_ASSERT_INT_EQ(g_gameTime, 100);
-	XVT_ASSERT_INT_EQ(g_inputTimestamp, 101);
-	XVT_ASSERT_TRUE(XvtFlightFrame_NextWakeDelayUs() ==
-			(uint64_t)(XvtFlightTiming_StepTicks() - 1) * TICK_US);
+	clocks(XVT_FLIGHT_TIMING_NATIVE);
+	g_game_time = 100;
+	g_input_timestamp = 100;
+	XVT_ASSERT_INT_EQ(time_consume_elapsed_ticks(), 0);
+	xvt_time_advance_host_clock(TICK_US);
+	XVT_ASSERT_INT_EQ(xvt_flight_frame_update(), 0);
+	XVT_ASSERT_INT_EQ(g_game_time, 100);
+	XVT_ASSERT_INT_EQ(g_input_timestamp, 101);
+	XVT_ASSERT_TRUE(xvt_flight_frame_next_wake_delay_us() ==
+			(uint64_t)(xvt_flight_timing_step_ticks() - 1) *
+				TICK_US);
 }
 
 int main(void)
 {
-	CheckDelayForTicks();
-	CheckBegin();
-	CheckReplayBuffered();
-	CheckResetReplay();
-	CheckNextWakeNative();
-	CheckNextWakeNetwork();
-	CheckNativeTickWaits();
-	XvtFlightMessages_Reset();
-	XvtFlightTiming_EndSession();
+	check_delay_for_ticks();
+	check_begin();
+	check_replay_buffered();
+	check_reset_replay();
+	check_next_wake_native();
+	check_next_wake_network();
+	check_native_tick_waits();
+	xvt_flight_messages_reset();
+	xvt_flight_timing_end_session();
 	return 0;
 }

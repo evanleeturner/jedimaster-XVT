@@ -15,24 +15,24 @@
 #include <stdio.h>
 #include <string.h>
 
-struct XvtTestAssets {
+struct xvt_test_assets {
 	char folder[XVT_TEST_PATH_CAPACITY];
 	char asset[XVT_TEST_PATH_CAPACITY];
 	AeronVfs *vfs;
 };
 
 /* Makes a fresh folder with empty asset, user and temp folders, and binds storage to them. */
-static inline void XvtTest_OpenAssets(struct XvtTestAssets *assets)
+static inline void xvt_test_open_assets(struct xvt_test_assets *assets)
 {
 	char user[XVT_TEST_PATH_CAPACITY];
 	char temp[XVT_TEST_PATH_CAPACITY];
-	XvtTest_MakeFolder(assets->folder);
-	XvtTest_MakeSubfolder(assets->folder, "asset");
-	XvtTest_MakeSubfolder(assets->folder, "user");
-	XvtTest_MakeSubfolder(assets->folder, "temp");
-	XvtTest_Join(assets->asset, assets->folder, "asset");
-	XvtTest_Join(user, assets->folder, "user");
-	XvtTest_Join(temp, assets->folder, "temp");
+	xvt_test_make_folder(assets->folder);
+	xvt_test_make_subfolder(assets->folder, "asset");
+	xvt_test_make_subfolder(assets->folder, "user");
+	xvt_test_make_subfolder(assets->folder, "temp");
+	xvt_test_join(assets->asset, assets->folder, "asset");
+	xvt_test_join(user, assets->folder, "user");
+	xvt_test_join(temp, assets->folder, "temp");
 	AeronVfsConfig config = {0};
 	config.asset_root = assets->asset;
 	config.resource_root = assets->asset;
@@ -40,13 +40,13 @@ static inline void XvtTest_OpenAssets(struct XvtTestAssets *assets)
 	config.temp_root = temp;
 	assets->vfs = AeronVfs_Create(&config);
 	XVT_ASSERT_TRUE(assets->vfs != NULL);
-	XvtStorage_Bind(assets->vfs);
+	xvt_storage_bind(assets->vfs);
 }
 
 /* Places an empty file at path, relative to the asset folder and written with '/', making the folders on
  * the way that are missing. */
-static inline void XvtTest_AddAsset(struct XvtTestAssets *assets,
-				    const char *path)
+static inline void xvt_test_add_asset(struct xvt_test_assets *assets,
+				      const char *path)
 {
 	char prefix[XVT_TEST_PATH_CAPACITY];
 	size_t length = strlen(path);
@@ -57,24 +57,24 @@ static inline void XvtTest_AddAsset(struct XvtTestAssets *assets,
 			continue;
 		}
 		prefix[i] = 0;
-		if (XvtTest_Kind(assets->asset, prefix) == 0) {
-			XvtTest_MakeSubfolder(assets->asset, prefix);
+		if (xvt_test_kind(assets->asset, prefix) == 0) {
+			xvt_test_make_subfolder(assets->asset, prefix);
 		}
 		prefix[i] = '/';
 	}
-	XvtTest_WriteFile(assets->asset, path, "", 0);
+	xvt_test_write_file(assets->asset, path, "", 0);
 }
 
 /* Unbinds storage and removes the folder. */
-static inline void XvtTest_CloseAssets(struct XvtTestAssets *assets)
+static inline void xvt_test_close_assets(struct xvt_test_assets *assets)
 {
 	if (!assets->vfs) {
 		return;
 	}
-	XvtStorage_Bind(NULL);
+	xvt_storage_bind(NULL);
 	AeronVfs_Destroy(assets->vfs);
 	assets->vfs = NULL;
-	XvtTest_RemoveTree(assets->folder);
+	xvt_test_remove_tree(assets->folder);
 }
 
 #endif

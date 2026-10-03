@@ -3,9 +3,9 @@
 enum {
 	PLAYER_COUNT = sizeof(g_players) / sizeof(g_players[0]),
 	PALETTE_COLOR_COUNT = 256,
-	PALETTE_BYTES = PALETTE_COLOR_COUNT * sizeof(struct RgbTriplet),
+	PALETTE_BYTES = PALETTE_COLOR_COUNT * sizeof(struct rgb_triplet),
 	PALETTE_HALF_BYTES = PALETTE_BYTES / 2,
-	PALETTE_LAST_COLOR_OFFSET = PALETTE_BYTES - sizeof(struct RgbTriplet),
+	PALETTE_LAST_COLOR_OFFSET = PALETTE_BYTES - sizeof(struct rgb_triplet),
 	MISSION_PALETTE_FIRST_COLOR = 64,
 	FLIGHT_RESOURCE_SCRATCH_BYTES = 1024,
 	MISSION_EXTENSION_LENGTH = 3,
@@ -33,383 +33,402 @@ enum {
 	DEFAULT_MODEL_LIGHT_DIRECTION = 18900,
 };
 
-void XvtFlightLoading_Reset(void)
+void xvt_flight_loading_reset(void)
 {
-	g_objectTableHandle = g_mobileObjectPoolHandle =
-		g_mobileObjectCharDataHandle = 0;
-	g_craftDataPoolHandle = g_warheadGuidancePoolHandle = 0;
-	g_stringDataHandle = g_renderObjectListHandle = 0;
-	g_flightSmallFontHandle = g_flightMicroFontHandle =
-		g_flightMediumFontHandle = 0;
-	g_flightScratchScreenBufferHandle = g_flightAuxBufferHandle =
-		g_flightOffscreenBufferHandle = 0;
-	g_hudPanelSpriteDataHandle = g_flightIconFramesHandle =
-		g_messageLogHandle = 0;
-	g_objectTable = NULL;
-	g_mobileObjectPoolBase = NULL;
-	g_mobileObjectCharDataPool = NULL;
-	g_craftDataPoolBase = NULL;
-	g_projectileGuidanceStates = NULL;
+	g_object_table_handle = g_mobile_object_pool_handle =
+		g_mobile_object_char_data_handle = 0;
+	g_craft_data_pool_handle = g_warhead_guidance_pool_handle = 0;
+	g_string_data_handle = g_render_object_list_handle = 0;
+	g_flight_small_font_handle = g_flight_micro_font_handle =
+		g_flight_medium_font_handle = 0;
+	g_flight_scratch_screen_buffer_handle = g_flight_aux_buffer_handle =
+		g_flight_offscreen_buffer_handle = 0;
+	g_hud_panel_sprite_data_handle = g_flight_icon_frames_handle =
+		g_message_log_handle = 0;
+	g_object_table = NULL;
+	g_mobile_object_pool_base = NULL;
+	g_mobile_object_char_data_pool = NULL;
+	g_craft_data_pool_base = NULL;
+	g_projectile_guidance_states = NULL;
 }
 
 /* Copies this flight's game rules from the settings into the mission state. Multiplayer combat
  * engagements always fly at medium difficulty; only multiplayer takes the time limits and the AI
  * choice from the settings; a combat engagement inside a mission sequence has no random variation. */
-static void XvtFlightLoading_MissionRules(void)
+static void xvt_flight_loading_mission_rules(void)
 {
-	if ((unsigned int)g_pilotData.numHumanPlayersLastMission > 1 &&
-	    (unsigned int)g_pilotData.missionDirectoryId >=
+	if ((unsigned int)g_pilot_data.num_human_players_last_mission > 1 &&
+	    (unsigned int)g_pilot_data.mission_directory_id >=
 		    MISSION_DIRECTORY_COMBAT_ENGAGEMENTS) {
-		g_flightMissionState.difficulty = GAME_DIFFICULTY_MEDIUM;
+		g_flight_mission_state.difficulty = GAME_DIFFICULTY_MEDIUM;
 	} else {
-		g_flightMissionState.difficulty = g_gameConfig.difficulty;
-		if (g_flightMissionState.difficulty > GAME_DIFFICULTY_HARD) {
-			g_flightMissionState.difficulty = GAME_DIFFICULTY_EASY;
+		g_flight_mission_state.difficulty = g_game_config.difficulty;
+		if (g_flight_mission_state.difficulty > GAME_DIFFICULTY_HARD) {
+			g_flight_mission_state.difficulty =
+				GAME_DIFFICULTY_EASY;
 		}
 	}
-	g_flightMissionState.collisionsEnabled = g_gameConfig.collisions;
-	g_flightMissionState.craftJumpingEnabled = g_gameConfig.craftJumping;
-	g_flightMissionState.randomVariationEnabled = g_gameConfig.randomSetup;
-	g_flightMissionState.battleLengthIndex = g_gameConfig.battleLengthIndex;
-	g_flightMissionState.locatePlayersEnabled = g_gameConfig.locatePlayers;
-	g_flightMissionState.playerFlightGroupWaveMode =
-		g_gameConfig.craftWaves;
-	if (g_pilotData.numHumanPlayersLastMission > 1) {
-		g_flightMissionState.missionTimeLimitMinutes =
-			g_gameConfig.missionTimeLimit;
-		g_flightMissionState.teamVictoryTimeLimitMinutes =
-			g_gameConfig.lastTeamTimeLimitMinutes;
-		g_flightMissionState.aiOpponentsEnabled =
-			g_gameConfig.aiOpponents;
+	g_flight_mission_state.collisions_enabled = g_game_config.collisions;
+	g_flight_mission_state.craft_jumping_enabled =
+		g_game_config.craft_jumping;
+	g_flight_mission_state.random_variation_enabled =
+		g_game_config.random_setup;
+	g_flight_mission_state.battle_length_index =
+		g_game_config.battle_length_index;
+	g_flight_mission_state.locate_players_enabled =
+		g_game_config.locate_players;
+	g_flight_mission_state.player_flight_group_wave_mode =
+		g_game_config.craft_waves;
+	if (g_pilot_data.num_human_players_last_mission > 1) {
+		g_flight_mission_state.mission_time_limit_minutes =
+			g_game_config.mission_time_limit;
+		g_flight_mission_state.team_victory_time_limit_minutes =
+			g_game_config.last_team_time_limit_minutes;
+		g_flight_mission_state.ai_opponents_enabled =
+			g_game_config.ai_opponents;
 	} else {
-		g_flightMissionState.missionTimeLimitMinutes = UINT8_MAX;
-		g_flightMissionState.teamVictoryTimeLimitMinutes = 0;
-		g_flightMissionState.aiOpponentsEnabled = 1;
+		g_flight_mission_state.mission_time_limit_minutes = UINT8_MAX;
+		g_flight_mission_state.team_victory_time_limit_minutes = 0;
+		g_flight_mission_state.ai_opponents_enabled = 1;
 	}
-	g_flightMissionState.craftImpactBounceEnabled = 1;
-	if ((unsigned int)g_pilotData.missionDirectoryId >=
+	g_flight_mission_state.craft_impact_bounce_enabled = 1;
+	if ((unsigned int)g_pilot_data.mission_directory_id >=
 		    MISSION_DIRECTORY_COMBAT_ENGAGEMENTS &&
-	    g_pilotData.missionSequenceActive == 1) {
-		g_flightMissionState.randomVariationEnabled = 0;
+	    g_pilot_data.mission_sequence_active == 1) {
+		g_flight_mission_state.random_variation_enabled = 0;
 	}
 }
 
-void XvtFlightLoading_Globals(void)
+void xvt_flight_loading_globals(void)
 {
-	int16_t abortPlayerIndex, disconnectPlayerIndex, connectPlayerIndex;
-	XvtFlightLoading_Reset();
-	Flight_PumpWindowMessages();
-	g_packetDropIndicator = 0;
-	g_lagIndicator = 0;
-	g_sw3dSkipOddScanlines = 0;
-	g_flightNetHostAbortReceived = 0;
-	for (abortPlayerIndex = 0; abortPlayerIndex < PLAYER_COUNT;
-	     ++abortPlayerIndex) {
-		g_playerAbortFlags[abortPlayerIndex] = 0;
+	int16_t abort_player_index, disconnect_player_index,
+		connect_player_index;
+	xvt_flight_loading_reset();
+	flight_pump_window_messages();
+	g_packet_drop_indicator = 0;
+	g_lag_indicator = 0;
+	g_sw3d_skip_odd_scanlines = 0;
+	g_flight_net_host_abort_received = 0;
+	for (abort_player_index = 0; abort_player_index < PLAYER_COUNT;
+	     ++abort_player_index) {
+		g_player_abort_flags[abort_player_index] = 0;
 	}
 
-	fsfx_ClearSfxNameTable();
-	FlightSync_ResetRemotePlayerRenderSmoothing();
-	FlightLoading_ResetProgressState();
-	Time_ResetElapsedTicks();
-	g_flightDisplaySurfacesActive = 1;
-	g_flightDrawToHudLayer = 1;
-	if (g_flightViewportInsetX == NO_VIEWPORT_INSET &&
-	    g_surfaceWidth == 320) {
-		g_flightResolutionMode = FLIGHT_RESOLUTION_320X240;
-	} else if (g_flightViewportInsetX == NO_VIEWPORT_INSET &&
-		   g_surfaceWidth == 480) {
-		g_flightResolutionMode = FLIGHT_RESOLUTION_480X360;
+	fsfx_clear_sfx_name_table();
+	flight_sync_reset_remote_player_render_smoothing();
+	flight_loading_reset_progress_state();
+	time_reset_elapsed_ticks();
+	g_flight_display_surfaces_active = 1;
+	g_flight_draw_to_hud_layer = 1;
+	if (g_flight_viewport_inset_x == NO_VIEWPORT_INSET &&
+	    g_surface_width == 320) {
+		g_flight_resolution_mode = FLIGHT_RESOLUTION_320X240;
+	} else if (g_flight_viewport_inset_x == NO_VIEWPORT_INSET &&
+		   g_surface_width == 480) {
+		g_flight_resolution_mode = FLIGHT_RESOLUTION_480X360;
 	} else {
-		g_flightResolutionMode = FLIGHT_RESOLUTION_640X480;
+		g_flight_resolution_mode = FLIGHT_RESOLUTION_640X480;
 	}
 
-	g_flightSimSideEffectsSuppressed = 0;
-	g_unusedFlightSessionResetState = 0;
-	g_unusedFlightTransientResetState = 0;
-	g_localPlayer =
-		NetSession_FindPlayerSlotByDpid(NetSession_GetLocalDplayId());
-	g_activeFlightPlayerCount = NetSession_GetPlayerCount();
-	g_flightPlayerCount = g_activeFlightPlayerCount;
-	memset(g_replayInputs, 0, sizeof(g_replayInputs));
-	memset(g_unusedFlightNetworkBlock, 0,
-	       sizeof(g_unusedFlightNetworkBlock));
-	memset(g_unusedFlightRuntimeBlock, 0,
-	       sizeof(g_unusedFlightRuntimeBlock));
-	memset(&g_currentInputFrame, 0, sizeof(g_currentInputFrame));
-	g_remotePlayerRenderSmoothingEnabled = g_internetPlayEnabled;
-	g_flightMissionState.connectedPlayerCount = g_activeFlightPlayerCount;
-	g_flightMissionState.maxConnectedPlayerCountThisMission =
-		g_activeFlightPlayerCount;
+	g_flight_sim_side_effects_suppressed = 0;
+	g_unused_flight_session_reset_state = 0;
+	g_unused_flight_transient_reset_state = 0;
+	g_local_player = net_session_find_player_slot_by_dpid(
+		net_session_get_local_dplay_id());
+	g_active_flight_player_count = net_session_get_player_count();
+	g_flight_player_count = g_active_flight_player_count;
+	memset(g_replay_inputs, 0, sizeof(g_replay_inputs));
+	memset(g_unused_flight_network_block, 0,
+	       sizeof(g_unused_flight_network_block));
+	memset(g_unused_flight_runtime_block, 0,
+	       sizeof(g_unused_flight_runtime_block));
+	memset(&g_current_input_frame, 0, sizeof(g_current_input_frame));
+	g_remote_player_render_smoothing_enabled = g_internet_play_enabled;
+	g_flight_mission_state.connected_player_count =
+		g_active_flight_player_count;
+	g_flight_mission_state.max_connected_player_count_this_mission =
+		g_active_flight_player_count;
 
-	XvtFlightLoading_MissionRules();
+	xvt_flight_loading_mission_rules();
 
-	if (g_activeFlightPlayerCount != 1) {
-		g_gameRandFeedbackState = (int16_t)g_gameConfig.randomSeed;
+	if (g_active_flight_player_count != 1) {
+		g_game_rand_feedback_state = (int16_t)g_game_config.random_seed;
 	} else {
-		uint16_t randomSeed;
+		uint16_t random_seed;
 
-		randomSeed = (uint16_t)timeGetTime();
-		randomSeed ^= RANDOM_SEED_XOR;
-		g_gameRandFeedbackState = (int16_t)randomSeed;
+		random_seed = (uint16_t)timeGetTime();
+		random_seed ^= RANDOM_SEED_XOR;
+		g_game_rand_feedback_state = (int16_t)random_seed;
 	}
 	{
-		uint32_t randomTime;
+		uint32_t random_time;
 
-		randomTime = timeGetTime();
-		g_asteroidFieldRandSeed = (uint16_t)ASTEROID_FIELD_RANDOM_SEED;
-		g_gameRand2FeedbackState =
-			(uint16_t)(randomTime + g_gameRandFeedbackState);
+		random_time = timeGetTime();
+		g_asteroid_field_rand_seed =
+			(uint16_t)ASTEROID_FIELD_RANDOM_SEED;
+		g_game_rand2_feedback_state =
+			(uint16_t)(random_time + g_game_rand_feedback_state);
 	}
 
 	memset(g_players, 0, sizeof(g_players));
 	{
-		int16_t resetPlayerIndex;
+		int16_t reset_player_index;
 
-		for (resetPlayerIndex = 0; resetPlayerIndex < PLAYER_COUNT;
-		     ++resetPlayerIndex) {
-			g_inputFrameCount[resetPlayerIndex] = 0;
-			g_playerConnected[resetPlayerIndex] = 1;
-			g_flightNetWorldChecksumPeerStatus[resetPlayerIndex] =
-				0;
-			g_players[resetPlayerIndex].lockstepTimestamp = 0;
-			g_players[resetPlayerIndex].nextEngineWashCheckTime = 0;
-			g_players[resetPlayerIndex].field_5B5 = 0;
+		for (reset_player_index = 0; reset_player_index < PLAYER_COUNT;
+		     ++reset_player_index) {
+			g_input_frame_count[reset_player_index] = 0;
+			g_player_connected[reset_player_index] = 1;
+			g_flight_net_world_checksum_peer_status
+				[reset_player_index] = 0;
+			g_players[reset_player_index].lockstep_timestamp = 0;
+			g_players[reset_player_index]
+				.next_engine_wash_check_time = 0;
+			g_players[reset_player_index].field_5b5 = 0;
 		}
 	}
-	for (disconnectPlayerIndex = 0; disconnectPlayerIndex < PLAYER_COUNT;
-	     ++disconnectPlayerIndex) {
-		g_players[disconnectPlayerIndex].participationState = 0;
+	for (disconnect_player_index = 0;
+	     disconnect_player_index < PLAYER_COUNT;
+	     ++disconnect_player_index) {
+		g_players[disconnect_player_index].participation_state = 0;
 	}
-	for (connectPlayerIndex = 0;
-	     connectPlayerIndex < g_activeFlightPlayerCount;
-	     ++connectPlayerIndex) {
-		g_players[connectPlayerIndex].participationState = 1;
+	for (connect_player_index = 0;
+	     connect_player_index < g_active_flight_player_count;
+	     ++connect_player_index) {
+		g_players[connect_player_index].participation_state = 1;
 	}
 
-	g_flightNetBufferWorldMessagesUntilChecksum = 0;
-	g_flightNetWorldChecksumEpoch = 0;
-	g_singleObjectUpdateOverrideIdx = -1;
-	if (g_flightConfNoPilot == 0) {
-		Mission_SyncPilotNetworkPlayersToSessionSlots();
+	g_flight_net_buffer_world_messages_until_checksum = 0;
+	g_flight_net_world_checksum_epoch = 0;
+	g_single_object_update_override_idx = -1;
+	if (g_flight_conf_no_pilot == 0) {
+		mission_sync_pilot_network_players_to_session_slots();
 	}
-	pai_loadplans((char *)g_paiPlanResourceBaseName);
-	pai_cacheBuiltinPlanIds();
-	g_hudCockpitResourcesLoaded = 0;
-	g_flightSwRotSpriteCoeffCacheValid = 0;
-	g_unusedFlightStartupObjectPassState = 0;
-	g_unusedFlightDebugLogFile = NULL;
-	g_flightSwRotSpriteSpanRunsEnabled = 1;
+	pai_loadplans((char *)g_pai_plan_resource_base_name);
+	pai_cache_builtin_plan_ids();
+	g_hud_cockpit_resources_loaded = 0;
+	g_flight_sw_rot_sprite_coeff_cache_valid = 0;
+	g_unused_flight_startup_object_pass_state = 0;
+	g_unused_flight_debug_log_file = NULL;
+	g_flight_sw_rot_sprite_span_runs_enabled = 1;
 }
 
-void XvtFlightLoading_Palette(void)
+void xvt_flight_loading_palette(void)
 {
-	uint8_t resourceScratch[FLIGHT_RESOURCE_SCRATCH_BYTES];
-	int16_t paletteByteOffset, missionExtensionOffset;
-	char savedMissionExtensionPrefix[2], savedMissionExtensionThird;
-	FlightSurface_Lock();
-	FlightDisplay_ConfigureResolutionState();
-	FlightSurface_Unlock();
-	FlightRender_TransitionHookStub();
-	FlightSurface_Lock();
-	FlightSw_InitFramebuffer();
-	FlightSurface_Unlock();
+	uint8_t resource_scratch[FLIGHT_RESOURCE_SCRATCH_BYTES];
+	int16_t palette_byte_offset, mission_extension_offset;
+	char saved_mission_extension_prefix[2], saved_mission_extension_third;
+	flight_surface_lock();
+	flight_display_configure_resolution_state();
+	flight_surface_unlock();
+	flight_render_transition_hook_stub();
+	flight_surface_lock();
+	flight_sw_init_framebuffer();
+	flight_surface_unlock();
 	nullsub_11();
-	FlightDisplay_Flip();
-	FlightRender_ConfigureCallbacksForResolution(3);
-	FeDiskIo_ReadAllBytesOrFatal(g_flightPaletteResourceFileName,
-				     resourceScratch);
-	for (paletteByteOffset = 0; paletteByteOffset < PALETTE_HALF_BYTES;
-	     paletteByteOffset += sizeof(struct RgbTriplet)) {
+	flight_display_flip();
+	flight_render_configure_callbacks_for_resolution(3);
+	fe_disk_io_read_all_bytes_or_fatal(g_flight_palette_resource_file_name,
+					   resource_scratch);
+	for (palette_byte_offset = 0; palette_byte_offset < PALETTE_HALF_BYTES;
+	     palette_byte_offset += sizeof(struct rgb_triplet)) {
 		uint8_t channel;
 
-		channel = resourceScratch[paletteByteOffset +
-					  PALETTE_CHANNEL_RED] >>
+		channel = resource_scratch[palette_byte_offset +
+					   PALETTE_CHANNEL_RED] >>
 			  2;
-		resourceScratch[paletteByteOffset + PALETTE_CHANNEL_RED] =
-			resourceScratch[PALETTE_LAST_COLOR_OFFSET -
-					paletteByteOffset +
-					PALETTE_CHANNEL_RED] >>
+		resource_scratch[palette_byte_offset + PALETTE_CHANNEL_RED] =
+			resource_scratch[PALETTE_LAST_COLOR_OFFSET -
+					 palette_byte_offset +
+					 PALETTE_CHANNEL_RED] >>
 			2;
-		resourceScratch[PALETTE_LAST_COLOR_OFFSET - paletteByteOffset +
-				PALETTE_CHANNEL_RED] = channel;
-		channel = resourceScratch[paletteByteOffset +
-					  PALETTE_CHANNEL_GREEN] >>
+		resource_scratch[PALETTE_LAST_COLOR_OFFSET -
+				 palette_byte_offset + PALETTE_CHANNEL_RED] =
+			channel;
+		channel = resource_scratch[palette_byte_offset +
+					   PALETTE_CHANNEL_GREEN] >>
 			  2;
-		resourceScratch[paletteByteOffset + PALETTE_CHANNEL_GREEN] =
-			resourceScratch[PALETTE_LAST_COLOR_OFFSET -
-					paletteByteOffset +
-					PALETTE_CHANNEL_GREEN] >>
+		resource_scratch[palette_byte_offset + PALETTE_CHANNEL_GREEN] =
+			resource_scratch[PALETTE_LAST_COLOR_OFFSET -
+					 palette_byte_offset +
+					 PALETTE_CHANNEL_GREEN] >>
 			2;
-		resourceScratch[PALETTE_LAST_COLOR_OFFSET - paletteByteOffset +
-				PALETTE_CHANNEL_GREEN] = channel;
-		channel = resourceScratch[paletteByteOffset +
-					  PALETTE_CHANNEL_BLUE] >>
+		resource_scratch[PALETTE_LAST_COLOR_OFFSET -
+				 palette_byte_offset + PALETTE_CHANNEL_GREEN] =
+			channel;
+		channel = resource_scratch[palette_byte_offset +
+					   PALETTE_CHANNEL_BLUE] >>
 			  2;
-		resourceScratch[paletteByteOffset + PALETTE_CHANNEL_BLUE] =
-			resourceScratch[PALETTE_LAST_COLOR_OFFSET -
-					paletteByteOffset +
-					PALETTE_CHANNEL_BLUE] >>
+		resource_scratch[palette_byte_offset + PALETTE_CHANNEL_BLUE] =
+			resource_scratch[PALETTE_LAST_COLOR_OFFSET -
+					 palette_byte_offset +
+					 PALETTE_CHANNEL_BLUE] >>
 			2;
-		resourceScratch[PALETTE_LAST_COLOR_OFFSET - paletteByteOffset +
-				PALETTE_CHANNEL_BLUE] = channel;
+		resource_scratch[PALETTE_LAST_COLOR_OFFSET -
+				 palette_byte_offset + PALETTE_CHANNEL_BLUE] =
+			channel;
 	}
-	g_flightSetPaletteRangeFn((struct RgbTriplet *)resourceScratch, 0,
-				  PALETTE_COLOR_COUNT);
-	FlightPalette_ApplyToDisplay();
-	FlightSurface_Lock();
-	FeDiskIo_InitGlobalBuffers();
-	FlightSurface_Unlock();
-	FlightSurface_ClearToBlack();
+	g_flight_set_palette_range_fn((struct rgb_triplet *)resource_scratch, 0,
+				      PALETTE_COLOR_COUNT);
+	flight_palette_apply_to_display();
+	flight_surface_lock();
+	fe_disk_io_init_global_buffers();
+	flight_surface_unlock();
+	flight_surface_clear_to_black();
 
-	if (g_flightBytesPerPixel == 1) {
-		missionExtensionOffset = (int)strlen(g_currentMissionFile) -
-					 MISSION_EXTENSION_LENGTH;
-		savedMissionExtensionPrefix[MISSION_EXTENSION_FIRST] =
-			g_currentMissionFile[missionExtensionOffset +
-					     MISSION_EXTENSION_FIRST];
-		savedMissionExtensionPrefix[MISSION_EXTENSION_SECOND] =
-			g_currentMissionFile[missionExtensionOffset +
-					     MISSION_EXTENSION_SECOND];
-		savedMissionExtensionThird =
-			g_currentMissionFile[missionExtensionOffset +
-					     MISSION_EXTENSION_THIRD];
-		g_currentMissionFile[missionExtensionOffset +
-				     MISSION_EXTENSION_FIRST] = 'p';
-		g_currentMissionFile[missionExtensionOffset +
-				     MISSION_EXTENSION_SECOND] = 'a';
-		g_currentMissionFile[missionExtensionOffset +
-				     MISSION_EXTENSION_THIRD] = 'l';
-		if (FeDiskIo_OpenGlobalStream(g_currentMissionFile, "rb", 0,
-					      0) == 0) {
-			g_generateMissionPalette = 1;
+	if (g_flight_bytes_per_pixel == 1) {
+		mission_extension_offset = (int)strlen(g_current_mission_file) -
+					   MISSION_EXTENSION_LENGTH;
+		saved_mission_extension_prefix[MISSION_EXTENSION_FIRST] =
+			g_current_mission_file[mission_extension_offset +
+					       MISSION_EXTENSION_FIRST];
+		saved_mission_extension_prefix[MISSION_EXTENSION_SECOND] =
+			g_current_mission_file[mission_extension_offset +
+					       MISSION_EXTENSION_SECOND];
+		saved_mission_extension_third =
+			g_current_mission_file[mission_extension_offset +
+					       MISSION_EXTENSION_THIRD];
+		g_current_mission_file[mission_extension_offset +
+				       MISSION_EXTENSION_FIRST] = 'p';
+		g_current_mission_file[mission_extension_offset +
+				       MISSION_EXTENSION_SECOND] = 'a';
+		g_current_mission_file[mission_extension_offset +
+				       MISSION_EXTENSION_THIRD] = 'l';
+		if (fe_disk_io_open_global_stream(g_current_mission_file, "rb",
+						  0, 0) == 0) {
+			g_generate_mission_palette = 1;
 		} else {
-			g_generateMissionPalette = 0;
-			FeDiskIo_CloseGlobalStream(0);
-			FeDiskIo_ReadAllBytesOrFatal(g_currentMissionFile,
-						     g_flightAuxBuffer);
-			g_flightSetPaletteRangeFn(
-				(struct RgbTriplet *)g_flightAuxBuffer,
+			g_generate_mission_palette = 0;
+			fe_disk_io_close_global_stream(0);
+			fe_disk_io_read_all_bytes_or_fatal(
+				g_current_mission_file, g_flight_aux_buffer);
+			g_flight_set_palette_range_fn(
+				(struct rgb_triplet *)g_flight_aux_buffer,
 				MISSION_PALETTE_FIRST_COLOR,
 				PALETTE_COLOR_COUNT -
 					MISSION_PALETTE_FIRST_COLOR);
 		}
-		g_currentMissionFile[missionExtensionOffset +
-				     MISSION_EXTENSION_FIRST] =
-			savedMissionExtensionPrefix[MISSION_EXTENSION_FIRST];
-		g_currentMissionFile[missionExtensionOffset +
-				     MISSION_EXTENSION_SECOND] =
-			savedMissionExtensionPrefix[MISSION_EXTENSION_SECOND];
-		g_currentMissionFile[missionExtensionOffset +
-				     MISSION_EXTENSION_THIRD] =
-			savedMissionExtensionThird;
+		g_current_mission_file[mission_extension_offset +
+				       MISSION_EXTENSION_FIRST] =
+			saved_mission_extension_prefix[MISSION_EXTENSION_FIRST];
+		g_current_mission_file[mission_extension_offset +
+				       MISSION_EXTENSION_SECOND] =
+			saved_mission_extension_prefix
+				[MISSION_EXTENSION_SECOND];
+		g_current_mission_file[mission_extension_offset +
+				       MISSION_EXTENSION_THIRD] =
+			saved_mission_extension_third;
 	}
 }
 
-void XvtFlightLoading_MissionSetup(void)
+void xvt_flight_loading_mission_setup(void)
 {
-	int16_t mfdIndex;
-	if (g_flightConfTrainCourse != 0) {
-		g_flightMissionState.provingGroundsCraftType =
+	int16_t mfd_index;
+	if (g_flight_conf_train_course != 0) {
+		g_flight_mission_state.proving_grounds_craft_type =
 			PROVING_GROUNDS_DEFAULT_CRAFT;
-		g_flightMissionState.provingGroundsLevel =
+		g_flight_mission_state.proving_grounds_level =
 			PROVING_GROUNDS_DEFAULT_LEVEL;
 	} else {
-		g_flightMissionState.provingGroundsCraftType = 0;
-		g_flightMissionState.provingGroundsLevel = 0;
+		g_flight_mission_state.proving_grounds_craft_type = 0;
+		g_flight_mission_state.proving_grounds_level = 0;
 	}
-	FlightSurface_Lock();
-	FlightInput_ResetRuntimeState();
-	FlightSurface_Unlock();
+	flight_surface_lock();
+	flight_input_reset_runtime_state();
+	flight_surface_unlock();
 	{
-		int16_t noiseIndex;
+		int16_t noise_index;
 
-		for (noiseIndex = 0;
-		     noiseIndex < (int)sizeof(g_flightNoiseTable) - 1;
-		     noiseIndex += 2) {
+		for (noise_index = 0;
+		     noise_index < (int)sizeof(g_flight_noise_table) - 1;
+		     noise_index += 2) {
 			do {
-				g_flightNoiseTable[noiseIndex] =
+				g_flight_noise_table[noise_index] =
 					(uint8_t)(rand() & 0x7F);
-			} while (g_flightNoiseTable[noiseIndex] >
+			} while (g_flight_noise_table[noise_index] >
 				 NOISE_TABLE_VALUE_LIMIT);
-			g_flightNoiseTable[noiseIndex + 1] =
+			g_flight_noise_table[noise_index + 1] =
 				(uint8_t)(rand() & 3);
 		}
 	}
 
-	g_messageLogTotalCount = 0;
-	g_unusedFlightMessageRuntimeState = 0;
-	g_worldLightDirectionX = DEFAULT_MODEL_LIGHT_DIRECTION;
-	g_worldLightDirectionY = DEFAULT_MODEL_LIGHT_DIRECTION;
-	g_worldLightDirectionZ = DEFAULT_MODEL_LIGHT_DIRECTION;
-	g_systemMessageDisplayEnabled = 1;
-	g_readyMessagePaneLeft = -1;
-	g_messageLogWriteIndex = UINT16_MAX;
-	g_mfdActivePage = MFD_PAGE_NONE;
-	g_mfdSecondaryPage = MFD_PAGE_NONE;
-	g_mfdSavedActivePage = MFD_PAGE_NONE;
-	g_mfdSavedSecondaryPage = MFD_PAGE_NONE;
-	for (mfdIndex = 0; mfdIndex < (int)(sizeof(g_mfdPageStates) /
-					    sizeof(g_mfdPageStates[0]));
-	     ++mfdIndex) {
-		g_savedMfdPageStates[mfdIndex] = MFD_PAGE_STATE_CLOSED;
-		g_mfdPageStates[mfdIndex] = MFD_PAGE_STATE_CLOSED;
+	g_message_log_total_count = 0;
+	g_unused_flight_message_runtime_state = 0;
+	g_world_light_direction_x = DEFAULT_MODEL_LIGHT_DIRECTION;
+	g_world_light_direction_y = DEFAULT_MODEL_LIGHT_DIRECTION;
+	g_world_light_direction_z = DEFAULT_MODEL_LIGHT_DIRECTION;
+	g_system_message_display_enabled = 1;
+	g_ready_message_pane_left = -1;
+	g_message_log_write_index = UINT16_MAX;
+	g_mfd_active_page = MFD_PAGE_NONE;
+	g_mfd_secondary_page = MFD_PAGE_NONE;
+	g_mfd_saved_active_page = MFD_PAGE_NONE;
+	g_mfd_saved_secondary_page = MFD_PAGE_NONE;
+	for (mfd_index = 0; mfd_index < (int)(sizeof(g_mfd_page_states) /
+					      sizeof(g_mfd_page_states[0]));
+	     ++mfd_index) {
+		g_saved_mfd_page_states[mfd_index] = MFD_PAGE_STATE_CLOSED;
+		g_mfd_page_states[mfd_index] = MFD_PAGE_STATE_CLOSED;
 	}
-	g_damageMfdCurrentSystemId = 0;
+	g_damage_mfd_current_system_id = 0;
 }
 
-void XvtFlightLoading_Runtime(void)
+void xvt_flight_loading_runtime(void)
 {
-	FlightSurface_Lock();
-	Mission_InitFlightRuntimeState();
-	FlightSurface_Unlock();
-	g_dynamicMusicOutcomeLatched = 0;
-	if (g_gameConfig.musicEnabled != 0 && g_gameConfig.musicVolume != 0 &&
-	    MusicCd_Initialize() != 0) {
-		int musicChoice;
-		uint16_t musicVolume;
-		uint32_t musicUpdateMs;
+	flight_surface_lock();
+	mission_init_flight_runtime_state();
+	flight_surface_unlock();
+	g_dynamic_music_outcome_latched = 0;
+	if (g_game_config.music_enabled != 0 &&
+	    g_game_config.music_volume != 0 && music_cd_initialize() != 0) {
+		int music_choice;
+		uint16_t music_volume;
+		uint32_t music_update_ms;
 
-		musicVolume = UINT16_MAX * g_gameConfig.musicVolume /
-			      MUSIC_VOLUME_MAX_LEVEL;
-		MusicCd_SetAuxVolume(musicVolume);
-		musicChoice = GameRand2() & (MUSIC_START_CHOICE_COUNT - 1);
-		MusicCd_PlayTrackFromTime(
+		music_volume = UINT16_MAX * g_game_config.music_volume /
+			       MUSIC_VOLUME_MAX_LEVEL;
+		music_cd_set_aux_volume(music_volume);
+		music_choice = game_rand2() & (MUSIC_START_CHOICE_COUNT - 1);
+		music_cd_play_track_from_time(
 			MUSIC_TRACK_FLIGHT,
-			g_dynamicMusicInitialStartMinuteChoices[musicChoice],
-			g_dynamicMusicInitialStartSecondChoices[musicChoice]);
-		g_dynamicMusicTrackRemainingMs =
-			MusicCd_GetTrackLengthMs(MUSIC_TRACK_FLIGHT);
-		g_dynamicMusicTrackRemainingMs -=
+			g_dynamic_music_initial_start_minute_choices
+				[music_choice],
+			g_dynamic_music_initial_start_second_choices
+				[music_choice]);
+		g_dynamic_music_track_remaining_ms =
+			music_cd_get_track_length_ms(MUSIC_TRACK_FLIGHT);
+		g_dynamic_music_track_remaining_ms -=
 			MILLISECONDS_PER_MINUTE *
-			g_dynamicMusicInitialStartMinuteChoices[musicChoice];
-		g_dynamicMusicTrackRemainingMs -=
+			g_dynamic_music_initial_start_minute_choices
+				[music_choice];
+		g_dynamic_music_track_remaining_ms -=
 			MILLISECONDS_PER_SECOND *
-			g_dynamicMusicInitialStartSecondChoices[musicChoice];
-		musicUpdateMs = timeGetTime();
-		g_dynamicMusicState = MUSIC_TRACK_FLIGHT;
-		g_dynamicMusicLastUpdateMs = musicUpdateMs;
+			g_dynamic_music_initial_start_second_choices
+				[music_choice];
+		music_update_ms = timeGetTime();
+		g_dynamic_music_state = MUSIC_TRACK_FLIGHT;
+		g_dynamic_music_last_update_ms = music_update_ms;
 	} else {
-		g_dynamicMusicTrackRemainingMs = INT32_MAX;
-		g_dynamicMusicState = 0;
+		g_dynamic_music_track_remaining_ms = INT32_MAX;
+		g_dynamic_music_state = 0;
 	}
 
-	if (g_flightMissionState.provingGroundsModeActive != 0) {
-		ProvingGrounds_InitCourseObjects();
-		ProvingGrounds_StartLevel(
-			g_flightMissionState.provingGroundsLevel);
-		if (g_flightMissionState.provingGroundsModeActive != 0 &&
-		    g_flightMissionState.provingGroundsLevel > 1) {
-			g_msgArgTable[0] =
-				g_flightMissionState.provingGroundsLevel - 1;
-			msg_emitInFlightMessage(
+	if (g_flight_mission_state.proving_grounds_mode_active != 0) {
+		proving_grounds_init_course_objects();
+		proving_grounds_start_level(
+			g_flight_mission_state.proving_grounds_level);
+		if (g_flight_mission_state.proving_grounds_mode_active != 0 &&
+		    g_flight_mission_state.proving_grounds_level > 1) {
+			g_msg_arg_table[0] =
+				g_flight_mission_state.proving_grounds_level -
+				1;
+			msg_emit_in_flight_message(
 				IFMSG_197_ARG_10000_POINTS_AWARDED_FOR_PREVIOUS_LEVELS,
-				g_localPlayer);
-			g_flightMissionState.provingGroundsScore =
+				g_local_player);
+			g_flight_mission_state.proving_grounds_score =
 				PROVING_GROUNDS_SCORE_STEP_POINTS *
 				(PROVING_GROUNDS_SCORE_STEPS_PER_LEVEL *
-					 g_flightMissionState
-						 .provingGroundsLevel -
+					 g_flight_mission_state
+						 .proving_grounds_level -
 				 PROVING_GROUNDS_SCORE_STEPS_PER_LEVEL);
 		}
 	}

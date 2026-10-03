@@ -7,13 +7,13 @@
 #include <string.h>
 
 static struct {
-	XvtFlightTimingProfile profile;
+	xvt_flight_timing_profile profile;
 	int unlocked, active, due, animation_time;
 	unsigned phase;
 	uint64_t serial, animation_serial, dropped, reported;
 } g_timing;
 
-void XvtFlightTiming_BeginSession(XvtFlightTimingProfile profile)
+void xvt_flight_timing_begin_session(xvt_flight_timing_profile profile)
 {
 	memset(&g_timing, 0, sizeof g_timing);
 	g_timing.profile = profile;
@@ -24,18 +24,21 @@ void XvtFlightTiming_BeginSession(XvtFlightTimingProfile profile)
 							      : "native");
 }
 
-void XvtFlightTiming_EndSession(void) { memset(&g_timing, 0, sizeof g_timing); }
-
-int XvtFlightTiming_IsUnlocked(void) { return g_timing.unlocked; }
-
-unsigned XvtFlightTiming_StepTicks(void)
+void xvt_flight_timing_end_session(void)
 {
-	return XvtFlightTiming_IsNetwork125() ? XVT_NETWORK_STEP_TICKS
-	       : g_timing.unlocked	      ? XVT_OFFLINE_STEP_TICKS
-					      : XVT_NATIVE_STEP_TICKS;
+	memset(&g_timing, 0, sizeof g_timing);
 }
 
-void XvtFlightTiming_BeginAdvance(uint16_t elapsed)
+int xvt_flight_timing_is_unlocked(void) { return g_timing.unlocked; }
+
+unsigned xvt_flight_timing_step_ticks(void)
+{
+	return xvt_flight_timing_is_network125() ? XVT_NETWORK_STEP_TICKS
+	       : g_timing.unlocked		 ? XVT_OFFLINE_STEP_TICKS
+						 : XVT_NATIVE_STEP_TICKS;
+}
+
+void xvt_flight_timing_begin_advance(uint16_t elapsed)
 {
 	g_timing.active = elapsed != 0;
 	g_timing.due = 0;
@@ -60,43 +63,44 @@ void XvtFlightTiming_BeginAdvance(uint16_t elapsed)
 	}
 }
 
-void XvtFlightTiming_EndAdvance(void) { g_timing.active = g_timing.due = 0; }
+void xvt_flight_timing_end_advance(void) { g_timing.active = g_timing.due = 0; }
 
-int XvtFlightTiming_ReferenceDue(void)
+int xvt_flight_timing_reference_due(void)
 {
 	return !g_timing.unlocked || (g_timing.active && g_timing.due);
 }
 
-uint16_t XvtFlightTiming_ReferenceElapsed(void)
+uint16_t xvt_flight_timing_reference_elapsed(void)
 {
-	return !g_timing.unlocked		? g_elapsedTicks
-	       : XvtFlightTiming_ReferenceDue() ? XVT_REFERENCE_TICKS
-						: 0;
+	return !g_timing.unlocked		   ? g_elapsed_ticks
+	       : xvt_flight_timing_reference_due() ? XVT_REFERENCE_TICKS
+						   : 0;
 }
 
-uint64_t XvtFlightTiming_AdvanceSerial(void) { return g_timing.serial; }
+uint64_t xvt_flight_timing_advance_serial(void) { return g_timing.serial; }
 
-struct XvtFlightClock XvtFlightTiming_EnterReference(void)
+struct xvt_flight_clock xvt_flight_timing_enter_reference(void)
 {
-	struct XvtFlightClock saved = {g_elapsedTicks, g_simStepsPerSecond};
+	struct xvt_flight_clock saved = {g_elapsed_ticks,
+					 g_sim_steps_per_second};
 	if (g_timing.unlocked) {
-		g_elapsedTicks = XVT_REFERENCE_TICKS;
-		g_simStepsPerSecond =
+		g_elapsed_ticks = XVT_REFERENCE_TICKS;
+		g_sim_steps_per_second =
 			SIMULATION_TICKS_PER_SECOND / XVT_REFERENCE_TICKS;
 	}
 	return saved;
 }
 
-void XvtFlightTiming_RestoreClock(struct XvtFlightClock saved)
+void xvt_flight_timing_restore_clock(struct xvt_flight_clock saved)
 {
-	g_elapsedTicks = saved.elapsed;
-	g_simStepsPerSecond = saved.steps_per_second;
+	g_elapsed_ticks = saved.elapsed;
+	g_sim_steps_per_second = saved.steps_per_second;
 }
 
-void XvtFlightTiming_AnimationEvent(void)
+void xvt_flight_timing_animation_event(void)
 {
-	g_timing.animation_time = g_gameTime + g_elapsedTicks;
-	if (XvtFlightTiming_IsNetwork125()) {
+	g_timing.animation_time = g_game_time + g_elapsed_ticks;
+	if (xvt_flight_timing_is_network125()) {
 		g_timing.animation_serial = (unsigned)g_timing.animation_time /
 						    XVT_COMPONENT_EVENT_TICKS +
 					    1;
@@ -105,39 +109,40 @@ void XvtFlightTiming_AnimationEvent(void)
 	}
 }
 
-uint64_t XvtFlightTiming_AnimationSerial(void)
+uint64_t xvt_flight_timing_animation_serial(void)
 {
 	return g_timing.animation_serial;
 }
 
-int XvtFlightTiming_AnimationTime(void) { return g_timing.animation_time; }
+int xvt_flight_timing_animation_time(void) { return g_timing.animation_time; }
 
-XvtFlightTimingProfile XvtFlightTiming_Profile(void)
+xvt_flight_timing_profile xvt_flight_timing_session_profile(void)
 {
 	return g_timing.profile;
 }
 
-int XvtFlightTiming_IsNetwork125(void)
+int xvt_flight_timing_is_network125(void)
 {
 	return g_timing.profile == XVT_FLIGHT_TIMING_NETWORK_125;
 }
 
-int XvtFlightTiming_MaximumStepTicks(void)
+int xvt_flight_timing_maximum_step_ticks(void)
 {
-	return XvtFlightTiming_IsNetwork125() ? XVT_NETWORK_STEP_TICKS
-					      : g_netUpdateIntervalTicks;
+	return xvt_flight_timing_is_network125() ? XVT_NETWORK_STEP_TICKS
+						 : g_net_update_interval_ticks;
 }
 
-void XvtFlightTiming_RestoreNetworkTick(int tick)
+void xvt_flight_timing_restore_network_tick(int tick)
 {
-	if (!XvtFlightTiming_IsNetwork125() || tick < 0 ||
+	if (!xvt_flight_timing_is_network125() || tick < 0 ||
 	    (tick % XVT_NETWORK_STEP_TICKS)) {
 		return;
 	}
 	g_timing.serial = (unsigned)tick / XVT_NETWORK_STEP_TICKS;
 	g_timing.phase = (unsigned)tick % XVT_REFERENCE_TICKS;
 	g_timing.active = g_timing.due = 0;
-	int timer = g_flightGlobalCountdownTimers.specialBehaviorUpdateTimer;
+	int timer =
+		g_flight_global_countdown_timers.special_behavior_update_timer;
 	int event = (tick - tick % XVT_REFERENCE_TICKS) -
 		    (XVT_COMPONENT_TIMER_TICKS - timer);
 	g_timing.animation_time = event > 0 ? event : 0;

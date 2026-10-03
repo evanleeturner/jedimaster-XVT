@@ -20,79 +20,79 @@
 
 enum { BYPASS = 9, FOREGROUND = 7, BACKGROUND = 4, SHADOW = 5 };
 
-static struct XvtCockpitState g_state;
+static struct xvt_cockpit_state g_state;
 static uint8_t g_framebuffer[16];
 
 /* Every palette entry gets its own color: red is the index's low 6 bits, green the high 2. */
-static void Palette(void)
+static void palette(void)
 {
 	for (unsigned index = 0; index < 256; ++index) {
-		g_swPalette[index] = (struct RgbTriplet){
+		g_sw_palette[index] = (struct rgb_triplet){
 			(uint8_t)(index & 63), (uint8_t)(index >> 6), 7};
 	}
 }
 
 /* Clip (10, 20) to (210, 120), cursor (30, 40), font tier 1, shadow on, wrap on; the framebuffer is not
  * the offscreen buffer. Every field is cleared. */
-static void Start(void)
+static void cockpit_text_start(void)
 {
-	Palette();
-	g_flightClipLeft = 10;
-	g_flightClipTop = 20;
-	g_flightClipRight = 210;
-	g_flightClipBottom = 120;
-	g_flightCursorX = 30;
-	g_flightCursorY = 40;
-	g_flightFontTier = 1;
-	g_flightFontHasLowercase = 0;
-	g_flightTextColorIndex = FOREGROUND;
-	g_flightTextBgColor = BACKGROUND;
-	g_flightTextShadowColor = SHADOW;
-	g_flightTextShadowEnabled = 1;
-	g_flightWordWrapEnabled = 1;
-	g_flightClearLineBgEnabled = 0;
-	g_flightTransparentColorIndex = BYPASS;
-	g_flightDrawCharFn = NULL;
-	g_flightOffscreenBuffer = NULL;
-	g_flightSwFramebufferBase = g_framebuffer;
-	XvtCockpitText_ResetFields();
+	palette();
+	g_flight_clip_left = 10;
+	g_flight_clip_top = 20;
+	g_flight_clip_right = 210;
+	g_flight_clip_bottom = 120;
+	g_flight_cursor_x = 30;
+	g_flight_cursor_y = 40;
+	g_flight_font_tier = 1;
+	g_flight_font_has_lowercase = 0;
+	g_flight_text_color_index = FOREGROUND;
+	g_flight_text_bg_color = BACKGROUND;
+	g_flight_text_shadow_color = SHADOW;
+	g_flight_text_shadow_enabled = 1;
+	g_flight_word_wrap_enabled = 1;
+	g_flight_clear_line_bg_enabled = 0;
+	g_flight_transparent_color_index = BYPASS;
+	g_flight_draw_char_fn = NULL;
+	g_flight_offscreen_buffer = NULL;
+	g_flight_sw_framebuffer_base = g_framebuffer;
+	xvt_cockpit_text_reset_fields();
 	memset(&g_state, 0, sizeof g_state);
 }
 
 /* The fields as CopyFields hands them out, in the forward view with every owner shown. */
-static const struct XvtCockpitTextField *Fields(void)
+static const struct xvt_cockpit_text_field *cockpit_text_fields(void)
 {
 	memset(&g_state, 0, sizeof g_state);
 	g_state.view.hud_state = HUD_VIEW_FORWARD;
-	XvtCockpitText_CopyFields(&g_state);
+	xvt_cockpit_text_copy_fields(&g_state);
 	return g_state.text_fields;
 }
 
-static void CheckResolveColor(void)
+static void check_resolve_color(void)
 {
-	Start();
+	cockpit_text_start();
 	/* Codes from 0x40 go through the table, which has 32 entries. */
 	for (unsigned index = 0; index < 32; ++index) {
-		XVT_ASSERT_INT_EQ(
-			XvtCockpitText_ResolveColor((uint8_t)(0x40 + index), 0),
-			g_flightCharToColorLut[index]);
+		XVT_ASSERT_INT_EQ(xvt_cockpit_text_resolve_color(
+					  (uint8_t)(0x40 + index), 0),
+				  g_flight_char_to_color_lut[index]);
 	}
 	/* The bypass code is returned unchanged, even inside the table's range. */
-	XVT_ASSERT_INT_EQ(XvtCockpitText_ResolveColor(0x41, 0x41), 0x41);
+	XVT_ASSERT_INT_EQ(xvt_cockpit_text_resolve_color(0x41, 0x41), 0x41);
 	/* Any other code is returned unchanged. */
-	XVT_ASSERT_INT_EQ(XvtCockpitText_ResolveColor(0x3F, 0), 0x3F);
-	XVT_ASSERT_INT_EQ(XvtCockpitText_ResolveColor(0x05, 0), 0x05);
-	XVT_ASSERT_INT_EQ(XvtCockpitText_ResolveColor(0x60, 0), 0x60);
-	XVT_ASSERT_INT_EQ(XvtCockpitText_ResolveColor(0xFE, 0), 0xFE);
+	XVT_ASSERT_INT_EQ(xvt_cockpit_text_resolve_color(0x3F, 0), 0x3F);
+	XVT_ASSERT_INT_EQ(xvt_cockpit_text_resolve_color(0x05, 0), 0x05);
+	XVT_ASSERT_INT_EQ(xvt_cockpit_text_resolve_color(0x60, 0), 0x60);
+	XVT_ASSERT_INT_EQ(xvt_cockpit_text_resolve_color(0xFE, 0), 0xFE);
 }
 
-static void CheckRecordFieldTakesLiveState(void)
+static void check_record_field_takes_live_state(void)
 {
-	Start();
-	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_CRAFT_STATUS, "READY",
-				   XVT_COCKPIT_ALIGN_LEFT);
-	const struct XvtCockpitTextField *field =
-		&Fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS];
+	cockpit_text_start();
+	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_CRAFT_STATUS, "READY",
+				      XVT_COCKPIT_ALIGN_LEFT);
+	const struct xvt_cockpit_text_field *field =
+		&cockpit_text_fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS];
 	XVT_ASSERT_INT_EQ(strcmp(field->caption.text, "READY"), 0);
 	XVT_ASSERT_INT_EQ(field->caption.visible, 1);
 	XVT_ASSERT_INT_EQ(field->caption.alignment, XVT_COCKPIT_ALIGN_LEFT);
@@ -111,87 +111,91 @@ static void CheckRecordFieldTakesLiveState(void)
 	XVT_ASSERT_TRUE(field->generation > 0);
 }
 
-static void CheckRecordFieldColorCodes(void)
+static void check_record_field_color_codes(void)
 {
-	Start();
+	cockpit_text_start();
 	/* An inline 0xFE code is resolved, and when it leads the text it sets the foreground. */
-	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_CRAFT_STATUS, "\xFE\x42Z",
-				   XVT_COCKPIT_ALIGN_LEFT);
-	const struct XvtCockpitTextField *field =
-		&Fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS];
+	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_CRAFT_STATUS,
+				      "\xFE\x42Z", XVT_COCKPIT_ALIGN_LEFT);
+	const struct xvt_cockpit_text_field *field =
+		&cockpit_text_fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS];
 	XVT_ASSERT_INT_EQ((uint8_t)field->caption.text[1],
-			  g_flightCharToColorLut[2]);
+			  g_flight_char_to_color_lut[2]);
 	XVT_ASSERT_INT_EQ(field->caption.text[2], 'Z');
-	XVT_ASSERT_INT_EQ(field->caption.foreground, g_flightCharToColorLut[2]);
+	XVT_ASSERT_INT_EQ(field->caption.foreground,
+			  g_flight_char_to_color_lut[2]);
 
 	/* An inline code later in the text is resolved but leaves the foreground alone. */
-	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_CRAFT_STATUS, "ab\xFE\x43",
-				   XVT_COCKPIT_ALIGN_LEFT);
-	field = &Fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS];
+	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_CRAFT_STATUS,
+				      "ab\xFE\x43", XVT_COCKPIT_ALIGN_LEFT);
+	field = &cockpit_text_fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS];
 	XVT_ASSERT_INT_EQ((uint8_t)field->caption.text[3],
-			  g_flightCharToColorLut[3]);
+			  g_flight_char_to_color_lut[3]);
 	XVT_ASSERT_INT_EQ(field->caption.foreground, FOREGROUND);
 
 	/* A leading byte below 0x10 sets the foreground. */
-	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_CRAFT_STATUS,
-				   "\x0B"
-				   "abc",
-				   XVT_COCKPIT_ALIGN_LEFT);
-	XVT_ASSERT_INT_EQ(
-		Fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS].caption.foreground,
-		0x0B);
+	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_CRAFT_STATUS,
+				      "\x0B"
+				      "abc",
+				      XVT_COCKPIT_ALIGN_LEFT);
+	XVT_ASSERT_INT_EQ(cockpit_text_fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS]
+				  .caption.foreground,
+			  0x0B);
 
 	/* The bypass code is not resolved. */
-	g_flightTransparentColorIndex = 0x44;
-	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_CRAFT_STATUS, "\xFE\x44Z",
-				   XVT_COCKPIT_ALIGN_LEFT);
-	field = &Fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS];
+	g_flight_transparent_color_index = 0x44;
+	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_CRAFT_STATUS,
+				      "\xFE\x44Z", XVT_COCKPIT_ALIGN_LEFT);
+	field = &cockpit_text_fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS];
 	XVT_ASSERT_INT_EQ((uint8_t)field->caption.text[1], 0x44);
 	XVT_ASSERT_INT_EQ(field->caption.foreground, 0x44);
 }
 
-static void CheckRecordFieldGeneration(void)
+static void check_record_field_generation(void)
 {
-	Start();
-	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_CRAFT_STATUS, "AB",
-				   XVT_COCKPIT_ALIGN_LEFT);
-	uint64_t first = Fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS].generation;
+	cockpit_text_start();
+	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_CRAFT_STATUS, "AB",
+				      XVT_COCKPIT_ALIGN_LEFT);
+	uint64_t first =
+		cockpit_text_fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS].generation;
 
 	/* The same text in the same state changes nothing. */
-	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_CRAFT_STATUS, "AB",
-				   XVT_COCKPIT_ALIGN_LEFT);
-	XVT_ASSERT_INT_EQ(Fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS].generation,
-			  first);
+	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_CRAFT_STATUS, "AB",
+				      XVT_COCKPIT_ALIGN_LEFT);
+	XVT_ASSERT_INT_EQ(
+		cockpit_text_fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS].generation,
+		first);
 
 	/* New text, or the same text at a new cursor, is a change. */
-	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_CRAFT_STATUS, "AC",
-				   XVT_COCKPIT_ALIGN_LEFT);
-	uint64_t second = Fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS].generation;
+	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_CRAFT_STATUS, "AC",
+				      XVT_COCKPIT_ALIGN_LEFT);
+	uint64_t second =
+		cockpit_text_fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS].generation;
 	XVT_ASSERT_TRUE(second > first);
-	g_flightCursorY = 41;
-	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_CRAFT_STATUS, "AC",
-				   XVT_COCKPIT_ALIGN_LEFT);
-	XVT_ASSERT_TRUE(Fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS].generation >
-			second);
+	g_flight_cursor_y = 41;
+	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_CRAFT_STATUS, "AC",
+				      XVT_COCKPIT_ALIGN_LEFT);
+	XVT_ASSERT_TRUE(cockpit_text_fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS]
+				.generation > second);
 }
 
-static void CheckRecordFieldRefusals(void)
+static void check_record_field_refusals(void)
 {
-	Start();
-	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_CRAFT_STATUS, "KEEP",
-				   XVT_COCKPIT_ALIGN_LEFT);
+	cockpit_text_start();
+	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_CRAFT_STATUS, "KEEP",
+				      XVT_COCKPIT_ALIGN_LEFT);
 	uint64_t generation =
-		Fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS].generation;
+		cockpit_text_fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS].generation;
 
 	/* NULL text and an out-of-range field are ignored. */
-	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_CRAFT_STATUS, NULL,
-				   XVT_COCKPIT_ALIGN_LEFT);
-	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_FIELD_COUNT, "X",
-				   XVT_COCKPIT_ALIGN_LEFT);
-	XvtCockpitText_RecordField((XvtCockpitTextFieldId)-1, "X",
-				   XVT_COCKPIT_ALIGN_LEFT);
-	const struct XvtCockpitTextField *field =
-		&Fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS];
+	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_CRAFT_STATUS, NULL,
+				      XVT_COCKPIT_ALIGN_LEFT);
+	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_FIELD_COUNT, "X",
+				      XVT_COCKPIT_ALIGN_LEFT);
+	xvt_cockpit_text_record_field((xvt_cockpit_text_field_id)-1, "X",
+				      XVT_COCKPIT_ALIGN_LEFT);
+	const struct xvt_cockpit_text_field *field =
+		&cockpit_text_fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS];
 	XVT_ASSERT_INT_EQ(strcmp(field->caption.text, "KEEP"), 0);
 	XVT_ASSERT_INT_EQ(field->generation, generation);
 
@@ -199,64 +203,70 @@ static void CheckRecordFieldRefusals(void)
 	char text[257];
 	memset(text, 'w', 256);
 	text[256] = 0;
-	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_CRAFT_STATUS, text,
-				   XVT_COCKPIT_ALIGN_LEFT);
-	field = &Fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS];
+	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_CRAFT_STATUS, text,
+				      XVT_COCKPIT_ALIGN_LEFT);
+	field = &cockpit_text_fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS];
 	XVT_ASSERT_INT_EQ(strcmp(field->caption.text, "KEEP"), 0);
 	XVT_ASSERT_INT_EQ(field->generation, generation);
 	text[255] = 0;
-	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_CRAFT_STATUS, text,
-				   XVT_COCKPIT_ALIGN_LEFT);
+	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_CRAFT_STATUS, text,
+				      XVT_COCKPIT_ALIGN_LEFT);
 	XVT_ASSERT_INT_EQ(
-		strlen(Fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS].caption.text),
+		strlen(cockpit_text_fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS]
+			       .caption.text),
 		255);
 
 	/* Empty text records an invisible field. */
-	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_CRAFT_STATUS, "",
-				   XVT_COCKPIT_ALIGN_LEFT);
-	XVT_ASSERT_INT_EQ(
-		Fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS].caption.visible, 0);
+	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_CRAFT_STATUS, "",
+				      XVT_COCKPIT_ALIGN_LEFT);
+	XVT_ASSERT_INT_EQ(cockpit_text_fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS]
+				  .caption.visible,
+			  0);
 }
 
-static void CheckClearField(void)
+static void check_clear_field(void)
 {
-	Start();
-	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_CRAFT_STATUS, "SHOWN",
-				   XVT_COCKPIT_ALIGN_LEFT);
-	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_RESOURCE_NAME, "",
-				   XVT_COCKPIT_ALIGN_LEFT);
-	uint64_t shown = Fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS].generation;
-	uint64_t hidden = Fields()[XVT_COCKPIT_TEXT_RESOURCE_NAME].generation;
+	cockpit_text_start();
+	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_CRAFT_STATUS, "SHOWN",
+				      XVT_COCKPIT_ALIGN_LEFT);
+	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_RESOURCE_NAME, "",
+				      XVT_COCKPIT_ALIGN_LEFT);
+	uint64_t shown =
+		cockpit_text_fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS].generation;
+	uint64_t hidden = cockpit_text_fields()[XVT_COCKPIT_TEXT_RESOURCE_NAME]
+				  .generation;
 
 	/* A visible field is cleared and its generation rises. */
-	XvtCockpitText_ClearField(XVT_COCKPIT_TEXT_CRAFT_STATUS);
-	const struct XvtCockpitTextField *field =
-		&Fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS];
+	xvt_cockpit_text_clear_field(XVT_COCKPIT_TEXT_CRAFT_STATUS);
+	const struct xvt_cockpit_text_field *field =
+		&cockpit_text_fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS];
 	XVT_ASSERT_INT_EQ(field->caption.visible, 0);
 	XVT_ASSERT_INT_EQ(field->caption.text[0], 0);
 	XVT_ASSERT_TRUE(field->generation > shown);
 
 	/* An invisible field and an out-of-range one are left alone. */
-	XvtCockpitText_ClearField(XVT_COCKPIT_TEXT_RESOURCE_NAME);
-	XvtCockpitText_ClearField(XVT_COCKPIT_TEXT_FIELD_COUNT);
-	XVT_ASSERT_INT_EQ(Fields()[XVT_COCKPIT_TEXT_RESOURCE_NAME].generation,
+	xvt_cockpit_text_clear_field(XVT_COCKPIT_TEXT_RESOURCE_NAME);
+	xvt_cockpit_text_clear_field(XVT_COCKPIT_TEXT_FIELD_COUNT);
+	XVT_ASSERT_INT_EQ(cockpit_text_fields()[XVT_COCKPIT_TEXT_RESOURCE_NAME]
+				  .generation,
 			  hidden);
 }
 
-static void CheckClearTargetFields(void)
+static void check_clear_target_fields(void)
 {
-	Start();
-	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_TARGET_NAME, "TIE",
-				   XVT_COCKPIT_ALIGN_LEFT);
-	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_CMD_TIME_UNKNOWN, "--",
-				   XVT_COCKPIT_ALIGN_LEFT);
-	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_CRAFT_STATUS, "OK",
-				   XVT_COCKPIT_ALIGN_LEFT);
-	uint64_t status = Fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS].generation;
+	cockpit_text_start();
+	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_TARGET_NAME, "TIE",
+				      XVT_COCKPIT_ALIGN_LEFT);
+	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_CMD_TIME_UNKNOWN, "--",
+				      XVT_COCKPIT_ALIGN_LEFT);
+	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_CRAFT_STATUS, "OK",
+				      XVT_COCKPIT_ALIGN_LEFT);
+	uint64_t status =
+		cockpit_text_fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS].generation;
 
 	/* The range ends at CMD_TIME_UNKNOWN; the field after it keeps its text. */
-	XvtCockpitText_ClearTargetFields();
-	const struct XvtCockpitTextField *fields = Fields();
+	xvt_cockpit_text_clear_target_fields();
+	const struct xvt_cockpit_text_field *fields = cockpit_text_fields();
 	XVT_ASSERT_INT_EQ(fields[XVT_COCKPIT_TEXT_TARGET_NAME].caption.text[0],
 			  0);
 	XVT_ASSERT_INT_EQ(
@@ -269,21 +279,21 @@ static void CheckClearTargetFields(void)
 			  status);
 }
 
-static void CheckResetFields(void)
+static void check_reset_fields(void)
 {
-	Start();
-	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_CRAFT_STATUS, "OK",
-				   XVT_COCKPIT_ALIGN_LEFT);
-	XvtCockpitText_ResetFields();
-	const struct XvtCockpitTextField *field =
-		&Fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS];
+	cockpit_text_start();
+	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_CRAFT_STATUS, "OK",
+				      XVT_COCKPIT_ALIGN_LEFT);
+	xvt_cockpit_text_reset_fields();
+	const struct xvt_cockpit_text_field *field =
+		&cockpit_text_fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS];
 	XVT_ASSERT_INT_EQ(field->generation, 0);
 	XVT_ASSERT_INT_EQ(field->caption.visible, 0);
 	XVT_ASSERT_INT_EQ(field->caption.text[0], 0);
 }
 
 /* A state that shows every field's owner: readouts, target panel, course, map, shields and warning. */
-static void ShowEveryOwner(struct XvtCockpitState *state)
+static void show_every_owner(struct xvt_cockpit_state *state)
 {
 	memset(state, 0, sizeof *state);
 	state->view.hud_state = HUD_VIEW_FORWARD;
@@ -305,28 +315,29 @@ static void ShowEveryOwner(struct XvtCockpitState *state)
 	state->systems.critical_warning.visible = 1;
 }
 
-static int ShownIn(const struct XvtCockpitState *prepared,
-		   XvtCockpitTextFieldId id)
+static int shown_in(const struct xvt_cockpit_state *prepared,
+		    xvt_cockpit_text_field_id id)
 {
 	g_state = *prepared;
-	XvtCockpitText_CopyFields(&g_state);
+	xvt_cockpit_text_copy_fields(&g_state);
 	return g_state.text_fields[id].caption.visible;
 }
 
-static void CheckCopyFieldsHidesWithOwner(void)
+static void check_copy_fields_hides_with_owner(void)
 {
-	Start();
-	static struct XvtCockpitState shown, hidden;
+	cockpit_text_start();
+	static struct xvt_cockpit_state shown, hidden;
 	for (unsigned id = 0; id < XVT_COCKPIT_TEXT_FIELD_COUNT; ++id) {
-		XvtCockpitText_RecordField((XvtCockpitTextFieldId)id, "text",
-					   XVT_COCKPIT_ALIGN_LEFT);
+		xvt_cockpit_text_record_field((xvt_cockpit_text_field_id)id,
+					      "text", XVT_COCKPIT_ALIGN_LEFT);
 	}
-	ShowEveryOwner(&shown);
+	show_every_owner(&shown);
 
-	XVT_ASSERT_INT_EQ(ShownIn(&shown, XVT_COCKPIT_TEXT_CLOCK_SEPARATOR), 1);
+	XVT_ASSERT_INT_EQ(shown_in(&shown, XVT_COCKPIT_TEXT_CLOCK_SEPARATOR),
+			  1);
 	hidden = shown;
 	hidden.readouts.clock_seconds.visible = 0;
-	XVT_ASSERT_INT_EQ(ShownIn(&hidden, XVT_COCKPIT_TEXT_CLOCK_SEPARATOR),
+	XVT_ASSERT_INT_EQ(shown_in(&hidden, XVT_COCKPIT_TEXT_CLOCK_SEPARATOR),
 			  0);
 	/* A hidden field is still copied: only its visibility changes. */
 	XVT_ASSERT_INT_EQ(
@@ -335,80 +346,80 @@ static void CheckCopyFieldsHidesWithOwner(void)
 		       "text"),
 		0);
 
-	XVT_ASSERT_INT_EQ(ShownIn(&shown, XVT_COCKPIT_TEXT_THROTTLE_PERCENT),
+	XVT_ASSERT_INT_EQ(shown_in(&shown, XVT_COCKPIT_TEXT_THROTTLE_PERCENT),
 			  1);
 	hidden = shown;
 	hidden.readouts.throttle.visible = 0;
-	XVT_ASSERT_INT_EQ(ShownIn(&hidden, XVT_COCKPIT_TEXT_THROTTLE_PERCENT),
+	XVT_ASSERT_INT_EQ(shown_in(&hidden, XVT_COCKPIT_TEXT_THROTTLE_PERCENT),
 			  0);
 
-	XVT_ASSERT_INT_EQ(ShownIn(&shown, XVT_COCKPIT_TEXT_TARGET_NAME), 1);
+	XVT_ASSERT_INT_EQ(shown_in(&shown, XVT_COCKPIT_TEXT_TARGET_NAME), 1);
 	XVT_ASSERT_INT_EQ(
-		ShownIn(&shown, XVT_COCKPIT_TEXT_TARGET_RANGE_SEPARATOR), 1);
+		shown_in(&shown, XVT_COCKPIT_TEXT_TARGET_RANGE_SEPARATOR), 1);
 	hidden = shown;
 	hidden.target.distance.visible = 0;
 	XVT_ASSERT_INT_EQ(
-		ShownIn(&hidden, XVT_COCKPIT_TEXT_TARGET_RANGE_SEPARATOR), 0);
+		shown_in(&hidden, XVT_COCKPIT_TEXT_TARGET_RANGE_SEPARATOR), 0);
 	hidden = shown;
 	hidden.target.visible = 0;
-	XVT_ASSERT_INT_EQ(ShownIn(&hidden, XVT_COCKPIT_TEXT_TARGET_NAME), 0);
+	XVT_ASSERT_INT_EQ(shown_in(&hidden, XVT_COCKPIT_TEXT_TARGET_NAME), 0);
 
-	XVT_ASSERT_INT_EQ(ShownIn(&shown, XVT_COCKPIT_TEXT_COURSE_LABEL_FIRST),
+	XVT_ASSERT_INT_EQ(shown_in(&shown, XVT_COCKPIT_TEXT_COURSE_LABEL_FIRST),
 			  1);
 	hidden = shown;
 	hidden.proving_grounds.visible = 0;
-	XVT_ASSERT_INT_EQ(ShownIn(&hidden, XVT_COCKPIT_TEXT_COURSE_LABEL_FIRST),
-			  0);
+	XVT_ASSERT_INT_EQ(
+		shown_in(&hidden, XVT_COCKPIT_TEXT_COURSE_LABEL_FIRST), 0);
 
-	XVT_ASSERT_INT_EQ(ShownIn(&shown, XVT_COCKPIT_TEXT_MAP_FOLLOWING), 1);
+	XVT_ASSERT_INT_EQ(shown_in(&shown, XVT_COCKPIT_TEXT_MAP_FOLLOWING), 1);
 	hidden = shown;
 	hidden.view.map_active = 0;
-	XVT_ASSERT_INT_EQ(ShownIn(&hidden, XVT_COCKPIT_TEXT_MAP_FOLLOWING), 0);
+	XVT_ASSERT_INT_EQ(shown_in(&hidden, XVT_COCKPIT_TEXT_MAP_FOLLOWING), 0);
 
-	XVT_ASSERT_INT_EQ(ShownIn(&shown, XVT_COCKPIT_TEXT_SHIELD_FORE), 1);
+	XVT_ASSERT_INT_EQ(shown_in(&shown, XVT_COCKPIT_TEXT_SHIELD_FORE), 1);
 	hidden = shown;
 	hidden.systems.shields[0].visible = hidden.systems.shields[1].visible =
 		0;
-	XVT_ASSERT_INT_EQ(ShownIn(&hidden, XVT_COCKPIT_TEXT_SHIELD_FORE), 0);
+	XVT_ASSERT_INT_EQ(shown_in(&hidden, XVT_COCKPIT_TEXT_SHIELD_FORE), 0);
 
-	XVT_ASSERT_INT_EQ(ShownIn(&shown, XVT_COCKPIT_TEXT_CRITICAL_WARNING),
+	XVT_ASSERT_INT_EQ(shown_in(&shown, XVT_COCKPIT_TEXT_CRITICAL_WARNING),
 			  1);
 	hidden = shown;
 	hidden.systems.critical_warning.visible = 0;
-	XVT_ASSERT_INT_EQ(ShownIn(&hidden, XVT_COCKPIT_TEXT_CRITICAL_WARNING),
+	XVT_ASSERT_INT_EQ(shown_in(&hidden, XVT_COCKPIT_TEXT_CRITICAL_WARNING),
 			  0);
 }
 
-static void CheckCopyFieldsViews(void)
+static void check_copy_fields_views(void)
 {
-	Start();
-	static struct XvtCockpitState view;
-	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_CRAFT_STATUS, "OK",
-				   XVT_COCKPIT_ALIGN_LEFT);
-	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_RESOURCE_NAME, "NAME",
-				   XVT_COCKPIT_ALIGN_LEFT);
-	ShowEveryOwner(&view);
+	cockpit_text_start();
+	static struct xvt_cockpit_state view;
+	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_CRAFT_STATUS, "OK",
+				      XVT_COCKPIT_ALIGN_LEFT);
+	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_RESOURCE_NAME, "NAME",
+				      XVT_COCKPIT_ALIGN_LEFT);
+	show_every_owner(&view);
 
 	/* A field with no owner shows in the forward and HUD-only views... */
-	XVT_ASSERT_INT_EQ(ShownIn(&view, XVT_COCKPIT_TEXT_CRAFT_STATUS), 1);
+	XVT_ASSERT_INT_EQ(shown_in(&view, XVT_COCKPIT_TEXT_CRAFT_STATUS), 1);
 	view.view.hud_state = HUD_VIEW_HUD_ONLY;
-	XVT_ASSERT_INT_EQ(ShownIn(&view, XVT_COCKPIT_TEXT_CRAFT_STATUS), 1);
+	XVT_ASSERT_INT_EQ(shown_in(&view, XVT_COCKPIT_TEXT_CRAFT_STATUS), 1);
 	/* ...and in no other, except the resource name. */
 	view.view.hud_state = HUD_VIEW_TARGET_CAMERA;
-	XVT_ASSERT_INT_EQ(ShownIn(&view, XVT_COCKPIT_TEXT_CRAFT_STATUS), 0);
-	XVT_ASSERT_INT_EQ(ShownIn(&view, XVT_COCKPIT_TEXT_RESOURCE_NAME), 1);
+	XVT_ASSERT_INT_EQ(shown_in(&view, XVT_COCKPIT_TEXT_CRAFT_STATUS), 0);
+	XVT_ASSERT_INT_EQ(shown_in(&view, XVT_COCKPIT_TEXT_RESOURCE_NAME), 1);
 	view.view.hud_state = HUD_VIEW_CRAFT_LIST;
-	XVT_ASSERT_INT_EQ(ShownIn(&view, XVT_COCKPIT_TEXT_RESOURCE_NAME), 1);
+	XVT_ASSERT_INT_EQ(shown_in(&view, XVT_COCKPIT_TEXT_RESOURCE_NAME), 1);
 }
 
-static void CheckCopyPlacedField(void)
+static void check_copy_placed_field(void)
 {
-	Start();
-	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_NETWORK_PING, "PING",
-				   XVT_COCKPIT_ALIGN_LEFT);
-	struct XvtCockpitTextField placed;
-	XvtCockpitText_CopyPlacedField(&placed, XVT_COCKPIT_TEXT_NETWORK_PING,
-				       5, 7);
+	cockpit_text_start();
+	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_NETWORK_PING, "PING",
+				      XVT_COCKPIT_ALIGN_LEFT);
+	struct xvt_cockpit_text_field placed;
+	xvt_cockpit_text_copy_placed_field(&placed,
+					   XVT_COCKPIT_TEXT_NETWORK_PING, 5, 7);
 	XVT_ASSERT_INT_EQ(strcmp(placed.caption.text, "PING"), 0);
 	XVT_ASSERT_INT_EQ(placed.x, 30 + 5);
 	XVT_ASSERT_INT_EQ(placed.y, 40 + 7);
@@ -416,30 +427,30 @@ static void CheckCopyPlacedField(void)
 	XVT_ASSERT_INT_EQ(placed.bounds.y, 20 + 7);
 	XVT_ASSERT_INT_EQ(placed.caption.phase, XVT_COCKPIT_AFTER_CRT);
 	XVT_ASSERT_INT_EQ(placed.keyed, 1);
-	XVT_ASSERT_INT_EQ(placed.color_key_argb, XvtRenderDraw_Color(BYPASS));
+	XVT_ASSERT_INT_EQ(placed.color_key_argb, xvt_render_draw_color(BYPASS));
 
 	/* Right-aligned text keeps its x and still moves down by the offset. */
-	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_NETWORK_LAG, "LAG",
-				   XVT_COCKPIT_ALIGN_RIGHT);
-	struct XvtCockpitTextField recorded =
-		Fields()[XVT_COCKPIT_TEXT_NETWORK_LAG];
-	XvtCockpitText_CopyPlacedField(&placed, XVT_COCKPIT_TEXT_NETWORK_LAG, 5,
-				       7);
+	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_NETWORK_LAG, "LAG",
+				      XVT_COCKPIT_ALIGN_RIGHT);
+	struct xvt_cockpit_text_field recorded =
+		cockpit_text_fields()[XVT_COCKPIT_TEXT_NETWORK_LAG];
+	xvt_cockpit_text_copy_placed_field(&placed,
+					   XVT_COCKPIT_TEXT_NETWORK_LAG, 5, 7);
 	XVT_ASSERT_INT_EQ(placed.x, recorded.x);
 	XVT_ASSERT_INT_EQ(placed.y, recorded.y + 7);
 	XVT_ASSERT_INT_EQ(placed.bounds.y, recorded.bounds.y + 7);
 }
 
-static void CheckCaptureGlyph(void)
+static void check_capture_glyph(void)
 {
-	Start();
+	cockpit_text_start();
 	uint32_t palette[256];
 	for (unsigned index = 0; index < 256; ++index) {
 		palette[index] = 0xFF000000u | (index * 0x010203u);
 	}
-	struct XvtCockpitGlyph glyph;
-	XVT_ASSERT_INT_EQ(XvtCockpitText_CaptureGlyph(&glyph, 'Q', 8, 10, 0, 4,
-						      6, palette, 0),
+	struct xvt_cockpit_glyph glyph;
+	XVT_ASSERT_INT_EQ(xvt_cockpit_text_capture_glyph(&glyph, 'Q', 8, 10, 0,
+							 4, 6, palette, 0),
 			  1);
 	XVT_ASSERT_INT_EQ(glyph.character, 'Q');
 	XVT_ASSERT_INT_EQ(glyph.advance, 8);
@@ -451,37 +462,37 @@ static void CheckCaptureGlyph(void)
 	XVT_ASSERT_INT_EQ(glyph.shadow_argb, palette[SHADOW]);
 
 	/* Keyed, a color equal to the bypass color becomes 0; unkeyed it is kept. */
-	g_flightTextColorIndex = BYPASS;
-	g_flightTextBgColor = BYPASS;
-	g_flightTextShadowColor = BYPASS;
-	XVT_ASSERT_INT_EQ(XvtCockpitText_CaptureGlyph(&glyph, 'Q', 8, 10, 0, 0,
-						      0, palette, 1),
+	g_flight_text_color_index = BYPASS;
+	g_flight_text_bg_color = BYPASS;
+	g_flight_text_shadow_color = BYPASS;
+	XVT_ASSERT_INT_EQ(xvt_cockpit_text_capture_glyph(&glyph, 'Q', 8, 10, 0,
+							 0, 0, palette, 1),
 			  1);
 	XVT_ASSERT_INT_EQ(glyph.foreground_argb, 0);
 	XVT_ASSERT_INT_EQ(glyph.background_argb, 0);
 	XVT_ASSERT_INT_EQ(glyph.shadow_argb, 0);
-	XVT_ASSERT_INT_EQ(XvtCockpitText_CaptureGlyph(&glyph, 'Q', 8, 10, 0, 0,
-						      0, palette, 0),
+	XVT_ASSERT_INT_EQ(xvt_cockpit_text_capture_glyph(&glyph, 'Q', 8, 10, 0,
+							 0, 0, palette, 0),
 			  1);
 	XVT_ASSERT_INT_EQ(glyph.foreground_argb, palette[BYPASS]);
 }
 
-static void CheckCaptureGlyphOutsideClip(void)
+static void check_capture_glyph_outside_clip(void)
 {
-	Start();
+	cockpit_text_start();
 	uint32_t palette[256] = {0};
 	static const int16_t cursors[][2] = {
 		{300, 40}, {30, 200}, {-50, 40}, {30, -50}};
 	for (unsigned index = 0; index < sizeof cursors / sizeof cursors[0];
 	     ++index) {
-		g_flightCursorX = cursors[index][0];
-		g_flightCursorY = cursors[index][1];
-		struct XvtCockpitGlyph glyph, before;
+		g_flight_cursor_x = cursors[index][0];
+		g_flight_cursor_y = cursors[index][1];
+		struct xvt_cockpit_glyph glyph, before;
 		memset(&glyph, 0x5A, sizeof glyph);
 		memcpy(&before, &glyph, sizeof before);
-		XVT_ASSERT_INT_EQ(XvtCockpitText_CaptureGlyph(&glyph, 'Q', 8,
-							      10, 0, 0, 0,
-							      palette, 0),
+		XVT_ASSERT_INT_EQ(xvt_cockpit_text_capture_glyph(&glyph, 'Q', 8,
+								 10, 0, 0, 0,
+								 palette, 0),
 				  0);
 		XVT_ASSERT_INT_EQ(memcmp(&glyph, &before, sizeof glyph), 0);
 	}
@@ -489,18 +500,18 @@ static void CheckCaptureGlyphOutsideClip(void)
 
 int main(void)
 {
-	CheckResolveColor();
-	CheckRecordFieldTakesLiveState();
-	CheckRecordFieldColorCodes();
-	CheckRecordFieldGeneration();
-	CheckRecordFieldRefusals();
-	CheckClearField();
-	CheckClearTargetFields();
-	CheckResetFields();
-	CheckCopyFieldsHidesWithOwner();
-	CheckCopyFieldsViews();
-	CheckCopyPlacedField();
-	CheckCaptureGlyph();
-	CheckCaptureGlyphOutsideClip();
+	check_resolve_color();
+	check_record_field_takes_live_state();
+	check_record_field_color_codes();
+	check_record_field_generation();
+	check_record_field_refusals();
+	check_clear_field();
+	check_clear_target_fields();
+	check_reset_fields();
+	check_copy_fields_hides_with_owner();
+	check_copy_fields_views();
+	check_copy_placed_field();
+	check_capture_glyph();
+	check_capture_glyph_outside_clip();
 	return 0;
 }

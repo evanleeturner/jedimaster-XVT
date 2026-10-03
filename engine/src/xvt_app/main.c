@@ -7,8 +7,8 @@
 
 int main(int argc, char *argv[])
 {
-	struct XvtLaunchOptions options;
-	int valid = XvtLaunchOptions_Parse(argc, argv, &options);
+	struct xvt_launch_options options;
+	int valid = xvt_launch_options_parse(argc, argv, &options);
 	if (!valid || options.show_help) {
 		fprintf(valid ? stdout : stderr,
 			"OpenXvT " OPENXVT_VERSION "\n"
@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
 			"  --help                      Show this help\n");
 		return valid ? 0 : 2;
 	}
-	int exit_code = XvtApplication_Run(&options);
-	XvtLogSink_Finish(exit_code);
+	int exit_code = xvt_application_run(&options);
+	xvt_log_sink_finish(exit_code);
 	return exit_code;
 }

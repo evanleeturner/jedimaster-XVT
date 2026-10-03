@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 /* IDs loaded from WAVE\\SFXBLAST.LST, whose first entry occupies slot 4. */
-enum FlightSoundId {
+enum flight_sound_id {
 	FLIGHT_SOUND_BOMB_1 = 15,
 	FLIGHT_SOUND_MAGNETIC_PULSE = 17,
 	FLIGHT_SOUND_CHAFF_TRIGGER = 18,
@@ -65,20 +65,20 @@ enum FlightSoundId {
 	FLIGHT_SOUND_POWER_DOWN = 94,
 };
 
-enum FlightVoiceSpeakerType {
+enum flight_voice_speaker_type {
 	FLIGHT_VOICE_SPEAKER_SPECIAL = 0,
 	FLIGHT_VOICE_SPEAKER_PILOT = 1,
 	FLIGHT_VOICE_SPEAKER_TACTICAL = 2,
 	FLIGHT_VOICE_SPEAKER_COMMANDER = 3,
 };
 
-enum TacticalVoiceCategory {
+enum tactical_voice_category {
 	TACTICAL_VOICE_STATUS = 1,
 	TACTICAL_VOICE_ORDER = 2,
 };
 
 /* Offsets into the tactical-officer voice list loaded at SFX slot 696. */
-enum TacticalMessageId {
+enum tactical_message_id {
 	TACTICAL_MSG_WITHDRAWING = 15,
 	TACTICAL_MSG_SHIELDS_OUT = 16,
 	TACTICAL_MSG_HULL_AT_75_PERCENT = 20,
@@ -107,45 +107,47 @@ enum TacticalMessageId {
 	TACTICAL_MSG_REINFORCEMENTS_ALREADY_SENT = 77,
 };
 
-extern uint8_t g_fsfxLoaded;
+extern uint8_t g_fsfx_loaded;
 
-extern char g_fsfxSfxNameTable[838][24];
-extern uint16_t g_fsfxFalloffDistanceBySfxSlot[96];
-extern uint8_t g_fsfxBaseVolumeBySfxSlot[96];
-extern uint8_t g_playerEngineLoopObjectType;
-extern char g_currentMissionFile[128];
+extern char g_fsfx_sfx_name_table[838][24];
+extern uint16_t g_fsfx_falloff_distance_by_sfx_slot[96];
+extern uint8_t g_fsfx_base_volume_by_sfx_slot[96];
+extern uint8_t g_player_engine_loop_object_type;
+extern char g_current_mission_file[128];
 
-int fsfx_ClearSfxNameTable(void);
-void fsfx_ResetFlightSfxState(void);
-void fsfx_UnloadAllEffects_Thunk(void);
-int fsfx_LoadSfxList(char *fileNameBuffer, uint16_t firstSoundId);
-void fsfx_LoadMissionVoiceSfx(void);
-void fsfx_StopHyperspaceExitSounds(int playerIdx);
-int fsfx_PlaySound(unsigned int soundId, int emitterObjIdx, int playerIdx);
-int fsfx_triggerweaponsfx(unsigned int projectileObjectIndex, int playerIdx);
-unsigned int fsfx_ComputeSourceVolume(int emitterObjIdx, unsigned int soundId);
-int fsfx_ComputeSourcePan(int emitterObjIdx, int *volume);
-int fsfx_UpdateTargetingTone(unsigned int toneState);
-void fsfx_UpdateBeamSystemLoop(int active, int playerIdx);
-void fsfx_UpdateIncomingMissileWarning(int warningState);
-void fsfx_UpdateChaffLoop(void);
-void fsfx_UpdatePlayerEngineLoop(void);
-void fsfx_UpdateBeamEffectLoops(void);
-void fsfx_UpdateFlightSfx(void);
-int fsfx_SpeakWingmanEvent(int playerIdx, int speakerObjIdx, int voiceCategory,
-			   int responseIndex, int targetObjIdx,
-			   uint16_t probability);
-int fsfx_SpeakTacticalOfficerEvent(int voiceCategory, int messageId, int objIdx,
-				   uint16_t probability);
-int fsfx_QueueCommanderVoiceCategory(int voiceCategory, int objectSignature);
-int fsfx_SelectAvailableVoiceVariant(int voiceCategory, int craftOrdinal);
-uint16_t fsfx_RandomIndex(uint16_t count);
-int fsfx_IsVoiceQueueEmpty(void);
-int fsfx_QueueVoiceSfx(int sfxSlot, char speakerType, char voiceCategory,
-		       char chainFlag, uint16_t objectSignature);
-void fsfx_UpdateVoiceQueue(void);
-void fsfx_PruneStaleVoiceQueueEntries(void);
-void fsfx_RemoveVoiceQueueEntryChain(unsigned int queueIndex);
+int fsfx_clear_sfx_name_table(void);
+void fsfx_reset_flight_sfx_state(void);
+void fsfx_unload_all_effects_thunk(void);
+int fsfx_load_sfx_list(char *file_name_buffer, uint16_t first_sound_id);
+void fsfx_load_mission_voice_sfx(void);
+void fsfx_stop_hyperspace_exit_sounds(int player_idx);
+int fsfx_play_sound(unsigned int sound_id, int emitter_obj_idx, int player_idx);
+int fsfx_triggerweaponsfx(unsigned int projectile_object_index, int player_idx);
+unsigned int fsfx_compute_source_volume(int emitter_obj_idx,
+					unsigned int sound_id);
+int fsfx_compute_source_pan(int emitter_obj_idx, int *volume);
+int fsfx_update_targeting_tone(unsigned int tone_state);
+void fsfx_update_beam_system_loop(int active, int player_idx);
+void fsfx_update_incoming_missile_warning(int warning_state);
+void fsfx_update_chaff_loop(void);
+void fsfx_update_player_engine_loop(void);
+void fsfx_update_beam_effect_loops(void);
+void fsfx_update_flight_sfx(void);
+int fsfx_speak_wingman_event(int player_idx, int speaker_obj_idx,
+			     int voice_category, int response_index,
+			     int target_obj_idx, uint16_t probability);
+int fsfx_speak_tactical_officer_event(int voice_category, int message_id,
+				      int obj_idx, uint16_t probability);
+int fsfx_queue_commander_voice_category(int voice_category,
+					int object_signature);
+int fsfx_select_available_voice_variant(int voice_category, int craft_ordinal);
+uint16_t fsfx_random_index(uint16_t count);
+int fsfx_is_voice_queue_empty(void);
+int fsfx_queue_voice_sfx(int sfx_slot, char speaker_type, char voice_category,
+			 char chain_flag, uint16_t object_signature);
+void fsfx_update_voice_queue(void);
+void fsfx_prune_stale_voice_queue_entries(void);
+void fsfx_remove_voice_queue_entry_chain(unsigned int queue_index);
 
 #ifdef __cplusplus
 }

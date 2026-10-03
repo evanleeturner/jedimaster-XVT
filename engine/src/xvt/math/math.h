@@ -10,7 +10,7 @@ extern "C" {
 
 /* Returns a * b >> 15, taken from the full 64-bit product and rounded toward
  * minus infinity; only the low 32 bits of the shifted product are kept. */
-static __inline int Math_MulQ15(int a, int b)
+static __inline int math_mul_q15(int a, int b)
 {
 #ifdef XVT_MODERN
 	return (int)(((int64_t)a * b) >> 15);
@@ -28,43 +28,43 @@ static __inline int Math_MulQ15(int a, int b)
 }
 
 /* Returns the sum of the three products, each shifted down 15 bits as in
- * Math_MulQ15; the sum is 32-bit and may wrap. */
-static __inline int Math_Dot3Q15(int leftX, int leftY, int leftZ, int rightX,
-				 int rightY, int rightZ)
+ * math_mul_q15; the sum is 32-bit and may wrap. */
+static __inline int math_dot3q15(int left_x, int left_y, int left_z,
+				 int right_x, int right_y, int right_z)
 {
 #ifdef XVT_MODERN
-	return (int)(((int64_t)leftX * rightX) >> 15) +
-	       (int)(((int64_t)leftY * rightY) >> 15) +
-	       (int)(((int64_t)leftZ * rightZ) >> 15);
+	return (int)(((int64_t)left_x * right_x) >> 15) +
+	       (int)(((int64_t)left_y * right_y) >> 15) +
+	       (int)(((int64_t)left_z * right_z) >> 15);
 #else
 	__asm {
-		mov eax, leftX
-		imul rightX
+		mov eax, left_x
+		imul right_x
 		shrd eax, edx, 15
 		mov ebx, eax
-		mov eax, leftY
-		imul rightY
+		mov eax, left_y
+		imul right_y
 		shrd eax, edx, 15
 		add ebx, eax
-		mov eax, leftZ
-		imul rightZ
+		mov eax, left_z
+		imul right_z
 		shrd eax, edx, 15
 		add eax, ebx
-		mov leftX, eax
+		mov left_x, eax
 	}
-	return leftX;
+	return left_x;
 #endif
 }
 
-/* Unlike Math_Dot3Q15, the products and their sum are 32-bit and may wrap; the sum is then clamped to
+/* Unlike math_dot3q15, the products and their sum are 32-bit and may wrap; the sum is then clamped to
  * [-0x3FFF0000, 0x3FFFFFFF] before the shift, so the result stays within -32766..32767. */
-static __inline int Math_Dot3Q15Wrapped(int leftX, int leftY, int leftZ,
-					int rightX, int rightY, int rightZ)
+static __inline int math_dot3q15_wrapped(int left_x, int left_y, int left_z,
+					 int right_x, int right_y, int right_z)
 {
 #ifdef XVT_MODERN
-	int32_t value = (int32_t)((uint32_t)leftX * (uint32_t)rightX +
-				  (uint32_t)leftY * (uint32_t)rightY +
-				  (uint32_t)leftZ * (uint32_t)rightZ);
+	int32_t value = (int32_t)((uint32_t)left_x * (uint32_t)right_x +
+				  (uint32_t)left_y * (uint32_t)right_y +
+				  (uint32_t)left_z * (uint32_t)right_z);
 
 	if (value >= 0x40000000) {
 		value = 0x3FFFFFFF;
@@ -75,12 +75,12 @@ static __inline int Math_Dot3Q15Wrapped(int leftX, int leftY, int leftZ,
 	return value >> 15;
 #else
 	__asm {
-		mov eax, leftX
-		mov ebx, leftY
-		mov ecx, leftZ
-		imul eax, rightX
-		imul ebx, rightY
-		imul ecx, rightZ
+		mov eax, left_x
+		mov ebx, left_y
+		mov ecx, left_z
+		imul eax, right_x
+		imul ebx, right_y
+		imul ecx, right_z
 		add eax, ebx
 		add eax, ecx
 		cmp eax, 40000000h
@@ -92,19 +92,19 @@ static __inline int Math_Dot3Q15Wrapped(int leftX, int leftY, int leftZ,
 		mov eax, 0c0010000h
 	dot3WrappedNegativeOk:
 		sar eax, 15
-		mov leftX, eax
+		mov left_x, eax
 	}
-	return leftX;
+	return left_x;
 #endif
 }
 
-/* Two-term form of Math_Dot3Q15Wrapped: 32-bit products and sum, clamped the same way before the shift. */
-static __inline int Math_Dot2Q15Wrapped(int leftX, int leftY, int rightX,
-					int rightY)
+/* Two-term form of math_dot3q15_wrapped: 32-bit products and sum, clamped the same way before the shift. */
+static __inline int math_dot2q15_wrapped(int left_x, int left_y, int right_x,
+					 int right_y)
 {
 #ifdef XVT_MODERN
-	int32_t value = (int32_t)((uint32_t)leftX * (uint32_t)rightX +
-				  (uint32_t)leftY * (uint32_t)rightY);
+	int32_t value = (int32_t)((uint32_t)left_x * (uint32_t)right_x +
+				  (uint32_t)left_y * (uint32_t)right_y);
 
 	if (value >= 0x40000000) {
 		value = 0x3FFFFFFF;
@@ -115,10 +115,10 @@ static __inline int Math_Dot2Q15Wrapped(int leftX, int leftY, int rightX,
 	return value >> 15;
 #else
 	__asm {
-		mov eax, leftX
-		mov ebx, leftY
-		imul eax, rightX
-		imul ebx, rightY
+		mov eax, left_x
+		mov ebx, left_y
+		imul eax, right_x
+		imul ebx, right_y
 		add eax, ebx
 		cmp eax, 40000000h
 		jl dot2WrappedPositiveOk
@@ -129,26 +129,27 @@ static __inline int Math_Dot2Q15Wrapped(int leftX, int leftY, int rightX,
 		mov eax, 0c0010000h
 	dot2WrappedNegativeOk:
 		sar eax, 15
-		mov leftX, eax
+		mov left_x, eax
 	}
-	return leftX;
+	return left_x;
 #endif
 }
 
 /* One term of an axis-angle rotation matrix when the cosine is 0 or more:
- * ((axisA_Q15 * axisB_Q15) >> 15) * oneMinusCos_Q15 + (crossTerm_Q15 << 15),
- * in 32-bit arithmetic that may wrap, clamped as in Math_Dot3Q15Wrapped and
+ * ((axis_a_q15 * axis_b_q15) >> 15) * one_minus_cos_q15 + (cross_term_q15 << 15),
+ * in 32-bit arithmetic that may wrap, clamped as in math_dot3q15_wrapped and
  * shifted down 15 bits. */
-static __inline int Math_RodriguesTermNonnegativeCos(int axisA_Q15,
-						     int axisB_Q15,
-						     int oneMinusCos_Q15,
-						     int crossTerm_Q15)
+static __inline int math_rodrigues_term_nonnegative_cos(int axis_a_q15,
+							int axis_b_q15,
+							int one_minus_cos_q15,
+							int cross_term_q15)
 {
 #ifdef XVT_MODERN
-	int32_t product = (int32_t)((uint32_t)axisA_Q15 * (uint32_t)axisB_Q15);
+	int32_t product =
+		(int32_t)((uint32_t)axis_a_q15 * (uint32_t)axis_b_q15);
 	int32_t value = (int32_t)((uint32_t)(product >> 15) *
-					  (uint32_t)oneMinusCos_Q15 +
-				  ((uint32_t)crossTerm_Q15 << 15));
+					  (uint32_t)one_minus_cos_q15 +
+				  ((uint32_t)cross_term_q15 << 15));
 
 	if (value >= 0x40000000) {
 		value = 0x3FFFFFFF;
@@ -159,11 +160,11 @@ static __inline int Math_RodriguesTermNonnegativeCos(int axisA_Q15,
 	return value >> 15;
 #else
 	__asm {
-		mov eax, axisA_Q15
-		imul eax, axisB_Q15
+		mov eax, axis_a_q15
+		imul eax, axis_b_q15
 		sar eax, 15
-		imul eax, oneMinusCos_Q15
-		mov edx, crossTerm_Q15
+		imul eax, one_minus_cos_q15
+		mov edx, cross_term_q15
 		shl edx, 15
 		add eax, edx
 		cmp eax, 40000000h
@@ -175,25 +176,27 @@ static __inline int Math_RodriguesTermNonnegativeCos(int axisA_Q15,
 		mov eax, 0c0010000h
 	rodriguesNonnegativeNegativeOk:
 		sar eax, 15
-		mov axisA_Q15, eax
+		mov axis_a_q15, eax
 	}
-	return axisA_Q15;
+	return axis_a_q15;
 #endif
 }
 
 /* The same term when the cosine is negative:
- * ((axisA_Q15 * axisB_Q15) >> 15) * absCos_Q15 + axisA_Q15 * axisB_Q15
- * + (crossTerm_Q15 << 15), in 32-bit arithmetic that may wrap, clamped as in
- * Math_Dot3Q15Wrapped and shifted down 15 bits. */
-static __inline int Math_RodriguesTermNegativeCos(int axisA_Q15, int axisB_Q15,
-						  int absCos_Q15,
-						  int crossTerm_Q15)
+ * ((axis_a_q15 * axis_b_q15) >> 15) * abs_cos_q15 + axis_a_q15 * axis_b_q15
+ * + (cross_term_q15 << 15), in 32-bit arithmetic that may wrap, clamped as in
+ * math_dot3q15_wrapped and shifted down 15 bits. */
+static __inline int math_rodrigues_term_negative_cos(int axis_a_q15,
+						     int axis_b_q15,
+						     int abs_cos_q15,
+						     int cross_term_q15)
 {
 #ifdef XVT_MODERN
-	int32_t product = (int32_t)((uint32_t)axisA_Q15 * (uint32_t)axisB_Q15);
+	int32_t product =
+		(int32_t)((uint32_t)axis_a_q15 * (uint32_t)axis_b_q15);
 	int32_t value =
-		(int32_t)((uint32_t)(product >> 15) * (uint32_t)absCos_Q15 +
-			  (uint32_t)product + ((uint32_t)crossTerm_Q15 << 15));
+		(int32_t)((uint32_t)(product >> 15) * (uint32_t)abs_cos_q15 +
+			  (uint32_t)product + ((uint32_t)cross_term_q15 << 15));
 
 	if (value >= 0x40000000) {
 		value = 0x3FFFFFFF;
@@ -204,12 +207,12 @@ static __inline int Math_RodriguesTermNegativeCos(int axisA_Q15, int axisB_Q15,
 	return value >> 15;
 #else
 	__asm {
-		mov eax, axisA_Q15
-		imul eax, axisB_Q15
+		mov eax, axis_a_q15
+		imul eax, axis_b_q15
 		mov ebx, eax
 		sar eax, 15
-		imul eax, absCos_Q15
-		mov edx, crossTerm_Q15
+		imul eax, abs_cos_q15
+		mov edx, cross_term_q15
 		shl edx, 15
 		add eax, ebx
 		add eax, edx
@@ -222,16 +225,16 @@ static __inline int Math_RodriguesTermNegativeCos(int axisA_Q15, int axisB_Q15,
 		mov eax, 0c0010000h
 	rodriguesNegativeNegativeOk:
 		sar eax, 15
-		mov axisA_Q15, eax
+		mov axis_a_q15, eax
 	}
-	return axisA_Q15;
+	return axis_a_q15;
 #endif
 }
 
-void Math_SetFpuSinglePrecisionMode(void);
-void Math_SetFpuExtendedPrecisionMode(void);
-uint16_t Math_DivU16WithFractionQ16(uint16_t dividend, uint16_t divisor);
-unsigned int Math_U16ToQ16(uint16_t value);
+void math_set_fpu_single_precision_mode(void);
+void math_set_fpu_extended_precision_mode(void);
+uint16_t math_div_u16_with_fraction_q16(uint16_t dividend, uint16_t divisor);
+unsigned int math_u16_to_q16(uint16_t value);
 
 #ifdef __cplusplus
 }

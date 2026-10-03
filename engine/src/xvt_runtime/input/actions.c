@@ -2,13 +2,13 @@
 #include "xvt/flight/flight_input.h"
 #include <string.h>
 
-struct XvtActionDefinition {
+struct xvt_action_definition {
 	const char *name, *label;
-	XvtInputActionCategory category;
+	xvt_input_action_category category;
 	uint16_t key;
 };
 
-static const struct XvtActionDefinition g_actions[XVT_INPUT_ACTION_COUNT] = {
+static const struct xvt_action_definition g_actions[XVT_INPUT_ACTION_COUNT] = {
 	{"none", "None", XVT_INPUT_ACTION_CATEGORY_SYSTEM, FLIGHT_KEY_NONE},
 	{"fire_weapon", "Fire Weapon / Warhead",
 	 XVT_INPUT_ACTION_CATEGORY_WEAPONS, FLIGHT_KEY_ALT_2},
@@ -236,40 +236,40 @@ static const struct XvtActionDefinition g_actions[XVT_INPUT_ACTION_COUNT] = {
 	 FLIGHT_KEY_SCREENSHOT},
 };
 
-XvtInputAction XvtInputActions_FromName(const char *name)
+xvt_input_action xvt_input_actions_from_name(const char *name)
 {
 	if (name) {
 		for (int i = 0; i < XVT_INPUT_ACTION_COUNT; ++i) {
 			if (!strcmp(name, g_actions[i].name)) {
-				return (XvtInputAction)i;
+				return (xvt_input_action)i;
 			}
 		}
 	}
 	return XVT_INPUT_ACTION_NONE;
 }
 
-const char *XvtInputActions_ToName(XvtInputAction action)
+const char *xvt_input_actions_to_name(xvt_input_action action)
 {
 	return (unsigned)action < XVT_INPUT_ACTION_COUNT
 		       ? g_actions[action].name
 		       : "none";
 }
 
-const char *XvtInputActions_DisplayName(XvtInputAction action)
+const char *xvt_input_actions_display_name(xvt_input_action action)
 {
 	return (unsigned)action < XVT_INPUT_ACTION_COUNT
 		       ? g_actions[action].label
 		       : "None";
 }
 
-XvtInputActionCategory XvtInputActions_Category(XvtInputAction action)
+xvt_input_action_category xvt_input_actions_category(xvt_input_action action)
 {
 	return (unsigned)action < XVT_INPUT_ACTION_COUNT
 		       ? g_actions[action].category
 		       : XVT_INPUT_ACTION_CATEGORY_SYSTEM;
 }
 
-const char *XvtInputActions_CategoryName(XvtInputActionCategory category)
+const char *xvt_input_actions_category_name(xvt_input_action_category category)
 {
 	static const char *names[] = {
 		"Weapons",     "Targeting", "Throttle",	     "View",
@@ -279,13 +279,13 @@ const char *XvtInputActions_CategoryName(XvtInputActionCategory category)
 		       : "";
 }
 
-uint16_t XvtInputActions_Key(XvtInputAction action)
+uint16_t xvt_input_actions_key(xvt_input_action action)
 {
 	return (unsigned)action < XVT_INPUT_ACTION_COUNT ? g_actions[action].key
 							 : 0;
 }
 
-bool XvtInputActions_KeyboardBindable(XvtInputAction action)
+bool xvt_input_actions_keyboard_bindable(xvt_input_action action)
 {
 	return action > XVT_INPUT_ACTION_NONE &&
 	       action < XVT_INPUT_ACTION_COUNT &&

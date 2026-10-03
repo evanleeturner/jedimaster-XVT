@@ -1,6 +1,6 @@
 /* Checks the render camera shadow (xvt_runtime/snapshot/render_camera.h) against the promises in its header.
  * The live Q15 camera rows are the recovered game's globals, which this file sets itself, or fills by
- * calling the recovered FVIEW_BuildCameraOrient, which builds them and then calls XvtRenderCamera_Build as
+ * calling the recovered fview_build_camera_orient, which builds them and then calls xvt_render_camera_build as
  * the game does. No game data is read.
  *
  * The double-precision basis is compared with the Q15 rows by the angle between matching rows: a mirror of
@@ -14,11 +14,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
-struct Angles {
+struct angles {
 	int16_t roll, pitch, yaw, angle_d, aim_x, aim_y;
 };
 
-static const struct Angles kViews[] = {
+static const struct angles k_views[] = {
 	{0, 0, 0, 0, 0, 0},
 	{0x1000, 0x0800, 0x2000, 0, 0, 0},
 	{-0x2400, 0x3000, -0x6000, 0x0400, 0x0100, -0x0080},
@@ -26,44 +26,45 @@ static const struct Angles kViews[] = {
 };
 
 /* Three made-up Q15 tags. None is a rotation, so the scaled tag can never be mistaken for a basis. */
-static const int32_t kTag1[9] = {1000, 2000, 3000, 4000, 5000,
-				 6000, 7000, 8000, 9000};
-static const int32_t kTag2[9] = {-100, 200,  -300, 400, -500,
-				 600,  -700, 800,  -900};
-static const int32_t kTag3[9] = {11, 22, 33, 44, 55, 66, 77, 88, 99};
+static const int32_t k_tag1[9] = {1000, 2000, 3000, 4000, 5000,
+				  6000, 7000, 8000, 9000};
+static const int32_t k_tag2[9] = {-100, 200,  -300, 400, -500,
+				  600,	-700, 800,  -900};
+static const int32_t k_tag3[9] = {11, 22, 33, 44, 55, 66, 77, 88, 99};
 
-static void SetLiveRows(const int32_t q[9])
+static void set_live_rows(const int32_t q[9])
 {
-	g_camMatR0_X = q[0];
-	g_camMatR0_Y = q[1];
-	g_camMatR0_Z = q[2];
-	g_camMatR1_X = q[3];
-	g_camMatR1_Y = q[4];
-	g_camMatR1_Z = q[5];
-	g_camMatR2_X = q[6];
-	g_camMatR2_Y = q[7];
-	g_camMatR2_Z = q[8];
+	g_cam_mat_r0_x = q[0];
+	g_cam_mat_r0_y = q[1];
+	g_cam_mat_r0_z = q[2];
+	g_cam_mat_r1_x = q[3];
+	g_cam_mat_r1_y = q[4];
+	g_cam_mat_r1_z = q[5];
+	g_cam_mat_r2_x = q[6];
+	g_cam_mat_r2_y = q[7];
+	g_cam_mat_r2_z = q[8];
 }
 
-static void GetLiveRows(int32_t q[9])
+static void get_live_rows(int32_t q[9])
 {
-	const int32_t rows[9] = {g_camMatR0_X, g_camMatR0_Y, g_camMatR0_Z,
-				 g_camMatR1_X, g_camMatR1_Y, g_camMatR1_Z,
-				 g_camMatR2_X, g_camMatR2_Y, g_camMatR2_Z};
+	const int32_t rows[9] = {
+		g_cam_mat_r0_x, g_cam_mat_r0_y, g_cam_mat_r0_z,
+		g_cam_mat_r1_x, g_cam_mat_r1_y, g_cam_mat_r1_z,
+		g_cam_mat_r2_x, g_cam_mat_r2_y, g_cam_mat_r2_z};
 	for (int i = 0; i < 9; ++i) {
 		q[i] = rows[i];
 	}
 }
 
 /* Builds the precise basis for view with tag as the live Q15 rows. */
-static void BuildTagged(const struct Angles *view, const int32_t tag[9])
+static void build_tagged(const struct angles *view, const int32_t tag[9])
 {
-	SetLiveRows(tag);
-	XvtRenderCamera_Build(view->roll, view->pitch, view->yaw, view->angle_d,
-			      view->aim_x, view->aim_y);
+	set_live_rows(tag);
+	xvt_render_camera_build(view->roll, view->pitch, view->yaw,
+				view->angle_d, view->aim_x, view->aim_y);
 }
 
-static void CheckSameRows(const float actual[9], const float expected[9])
+static void check_same_rows(const float actual[9], const float expected[9])
 {
 	for (int i = 0; i < 9; ++i) {
 		XVT_ASSERT_CLOSE(actual[i], expected[i], 1e-7,
@@ -72,7 +73,7 @@ static void CheckSameRows(const float actual[9], const float expected[9])
 }
 
 /* The rows are the live Q15 rows scaled by 1/32768. */
-static void CheckQ15Rows(const float rows[9], const int32_t q[9])
+static void check_q15_rows(const float rows[9], const int32_t q[9])
 {
 	for (int i = 0; i < 9; ++i) {
 		XVT_ASSERT_CLOSE(
@@ -81,7 +82,7 @@ static void CheckQ15Rows(const float rows[9], const int32_t q[9])
 	}
 }
 
-static int SameRows(const float a[9], const float b[9])
+static int same_rows(const float a[9], const float b[9])
 {
 	for (int i = 0; i < 9; ++i) {
 		if (a[i] != b[i]) {
@@ -93,17 +94,17 @@ static int SameRows(const float a[9], const float b[9])
 
 /* After the recovered game builds a camera, the rows are a double-precision mirror of its Q15 rows: each
  * row points where the matching Q15 row points. */
-static void CheckMirrorsGameCamera(void)
+static void check_mirrors_game_camera(void)
 {
-	for (size_t v = 0; v < sizeof kViews / sizeof kViews[0]; ++v) {
-		const struct Angles *view = &kViews[v];
-		FVIEW_BuildCameraOrient(view->roll, view->pitch, view->yaw,
-					view->angle_d, view->aim_x, view->aim_y,
-					NULL);
+	for (size_t v = 0; v < sizeof k_views / sizeof k_views[0]; ++v) {
+		const struct angles *view = &k_views[v];
+		fview_build_camera_orient(view->roll, view->pitch, view->yaw,
+					  view->angle_d, view->aim_x,
+					  view->aim_y, NULL);
 		int32_t q[9];
 		float rows[9];
-		GetLiveRows(q);
-		XvtRenderCamera_CopyRows(rows);
+		get_live_rows(q);
+		xvt_render_camera_copy_rows(rows);
 		for (int r = 0; r < 9; r += 3) {
 			double dot = 0, precise = 0, fixed = 0;
 			for (int c = 0; c < 3; ++c) {
@@ -124,97 +125,98 @@ static void CheckMirrorsGameCamera(void)
 /* The basis comes from the angles alone; the Q15 rows only tag it. While the live rows equal the tag the
  * basis is written; once they differ, the live rows scaled by 1/32768 are; when they match again, the basis
  * is back. */
-static void CheckTagChoosesSource(void)
+static void check_tag_chooses_source(void)
 {
-	const struct Angles *view = &kViews[2];
+	const struct angles *view = &k_views[2];
 	float game[9], tagged[9], rows[9];
-	FVIEW_BuildCameraOrient(view->roll, view->pitch, view->yaw,
-				view->angle_d, view->aim_x, view->aim_y, NULL);
-	XvtRenderCamera_CopyRows(game);
+	fview_build_camera_orient(view->roll, view->pitch, view->yaw,
+				  view->angle_d, view->aim_x, view->aim_y,
+				  NULL);
+	xvt_render_camera_copy_rows(game);
 
-	BuildTagged(view, kTag1);
-	XvtRenderCamera_CopyRows(tagged);
-	CheckSameRows(tagged, game);
+	build_tagged(view, k_tag1);
+	xvt_render_camera_copy_rows(tagged);
+	check_same_rows(tagged, game);
 
 	int32_t moved[9];
 	for (int i = 0; i < 9; ++i) {
-		moved[i] = kTag1[i];
+		moved[i] = k_tag1[i];
 	}
 	moved[4] += 1;
-	SetLiveRows(moved);
-	XvtRenderCamera_CopyRows(rows);
-	CheckQ15Rows(rows, moved);
+	set_live_rows(moved);
+	xvt_render_camera_copy_rows(rows);
+	check_q15_rows(rows, moved);
 
-	SetLiveRows(kTag1);
-	XvtRenderCamera_CopyRows(rows);
-	CheckSameRows(rows, game);
+	set_live_rows(k_tag1);
+	xvt_render_camera_copy_rows(rows);
+	check_same_rows(rows, game);
 }
 
 /* Restore brings the saved copy back, and keeps its basis when the live rows still
  * match its tag. */
-static void CheckRestoreKeepsMatchingBasis(void)
+static void check_restore_keeps_matching_basis(void)
 {
 	float first[9], second[9], rows[9];
-	BuildTagged(&kViews[1], kTag1);
-	XvtRenderCamera_CopyRows(first);
-	XvtRenderCamera_SaveViewport();
-	BuildTagged(&kViews[2], kTag2);
-	XvtRenderCamera_CopyRows(second);
-	XVT_ASSERT_TRUE(!SameRows(first, second));
+	build_tagged(&k_views[1], k_tag1);
+	xvt_render_camera_copy_rows(first);
+	xvt_render_camera_save_viewport();
+	build_tagged(&k_views[2], k_tag2);
+	xvt_render_camera_copy_rows(second);
+	XVT_ASSERT_TRUE(!same_rows(first, second));
 
-	SetLiveRows(kTag1);
-	XvtRenderCamera_RestoreViewport();
-	XvtRenderCamera_CopyRows(rows);
-	CheckSameRows(rows, first);
+	set_live_rows(k_tag1);
+	xvt_render_camera_restore_viewport();
+	xvt_render_camera_copy_rows(rows);
+	check_same_rows(rows, first);
 }
 
 /* Restore drops the copy's basis when the live rows no longer match its tag: the
  * live rows are written, and stay written even after the rows come back to the old tag. */
-static void CheckRestoreDropsStaleBasis(void)
+static void check_restore_drops_stale_basis(void)
 {
 	float rows[9];
-	BuildTagged(&kViews[1], kTag1);
-	XvtRenderCamera_SaveViewport();
-	BuildTagged(&kViews[2], kTag2);
+	build_tagged(&k_views[1], k_tag1);
+	xvt_render_camera_save_viewport();
+	build_tagged(&k_views[2], k_tag2);
 
-	XvtRenderCamera_RestoreViewport();
-	XvtRenderCamera_CopyRows(rows);
-	CheckQ15Rows(rows, kTag2);
+	xvt_render_camera_restore_viewport();
+	xvt_render_camera_copy_rows(rows);
+	check_q15_rows(rows, k_tag2);
 
-	SetLiveRows(kTag1);
-	XvtRenderCamera_CopyRows(rows);
-	CheckQ15Rows(rows, kTag1);
+	set_live_rows(k_tag1);
+	xvt_render_camera_copy_rows(rows);
+	check_q15_rows(rows, k_tag1);
 }
 
 /* A second Save overwrites the first. */
-static void CheckSecondSaveOverwrites(void)
+static void check_second_save_overwrites(void)
 {
 	float second[9], rows[9];
-	BuildTagged(&kViews[1], kTag1);
-	XvtRenderCamera_SaveViewport();
-	BuildTagged(&kViews[2], kTag2);
-	XvtRenderCamera_CopyRows(second);
-	XvtRenderCamera_SaveViewport();
-	BuildTagged(&kViews[3], kTag3);
+	build_tagged(&k_views[1], k_tag1);
+	xvt_render_camera_save_viewport();
+	build_tagged(&k_views[2], k_tag2);
+	xvt_render_camera_copy_rows(second);
+	xvt_render_camera_save_viewport();
+	build_tagged(&k_views[3], k_tag3);
 
-	SetLiveRows(kTag2);
-	XvtRenderCamera_RestoreViewport();
-	XvtRenderCamera_CopyRows(rows);
-	CheckSameRows(rows, second);
+	set_live_rows(k_tag2);
+	xvt_render_camera_restore_viewport();
+	xvt_render_camera_copy_rows(rows);
+	check_same_rows(rows, second);
 
 	/* The first copy is gone: its tag no longer brings a basis back. */
-	SetLiveRows(kTag1);
-	XvtRenderCamera_RestoreViewport();
-	XvtRenderCamera_CopyRows(rows);
-	CheckQ15Rows(rows, kTag1);
+	set_live_rows(k_tag1);
+	xvt_render_camera_restore_viewport();
+	xvt_render_camera_copy_rows(rows);
+	check_q15_rows(rows, k_tag1);
 }
 
 int main(void)
 {
-	CheckMirrorsGameCamera();
-	CheckTagChoosesSource();
-	CheckRestoreKeepsMatchingBasis();
-	CheckRestoreDropsStaleBasis();
-	CheckSecondSaveOverwrites();
+	check_mirrors_game_camera();
+	check_tag_chooses_source();
+	check_restore_keeps_matching_basis();
+	check_restore_drops_stale_basis();
+	check_second_save_overwrites();
 	return 0;
 }

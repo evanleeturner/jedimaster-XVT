@@ -2,18 +2,19 @@
 #include "xvt_runtime/storage/storage.h"
 #include <stdlib.h>
 
-struct XvtOptRelocation {
+struct xvt_opt_relocation {
 	void **visited;
 	size_t count, capacity;
 	intptr_t delta;
 };
 
-static void *XvtOpt_Move(const void *pointer, intptr_t delta)
+static void *xvt_opt_move(const void *pointer, intptr_t delta)
 {
 	return pointer ? (void *)((uintptr_t)pointer + (uintptr_t)delta) : NULL;
 }
 
-static int XvtOpt_TestAndMarkSeen(struct XvtOptRelocation *state, void *pointer)
+static int xvt_opt_test_and_mark_seen(struct xvt_opt_relocation *state,
+				      void *pointer)
 {
 	for (size_t i = 0; i < state->count; ++i) {
 		if (state->visited[i] == pointer) {
@@ -25,7 +26,7 @@ static int XvtOpt_TestAndMarkSeen(struct XvtOptRelocation *state, void *pointer)
 		void **grown =
 			realloc(state->visited, capacity * sizeof(*grown));
 		if (!grown) {
-			XvtStorage_Fatal("Cannot relocate OPT graph", 1);
+			xvt_storage_fatal("Cannot relocate OPT graph", 1);
 			return 1;
 		}
 		state->visited = grown;
@@ -35,71 +36,73 @@ static int XvtOpt_TestAndMarkSeen(struct XvtOptRelocation *state, void *pointer)
 	return 0;
 }
 
-static void XvtOpt_MoveNode(struct XvtOptRelocation *state,
-			    struct OptNode *node, unsigned depth)
+static void xvt_opt_move_node(struct xvt_opt_relocation *state,
+			      struct opt_node *node, unsigned depth)
 {
-	if (!node || XvtOpt_TestAndMarkSeen(state, node)) {
+	if (!node || xvt_opt_test_and_mark_seen(state, node)) {
 		return;
 	}
 	if (depth >= 256) {
-		XvtStorage_Fatal("OPT graph exceeds relocation depth", 1);
+		xvt_storage_fatal("OPT graph exceeds relocation depth", 1);
 		return;
 	}
-	node->pName = XvtOpt_Move(node->pName, state->delta);
-	node->payload = XvtOpt_Move(node->payload, state->delta);
-	if (node->nodeType == OPT_TEXTURE && node->payload &&
-	    !XvtOpt_TestAndMarkSeen(state, node->payload)) {
-		struct OptTextureData *texture = node->payload;
-		if (!texture->inlinePaletteCount) {
+	node->p_name = xvt_opt_move(node->p_name, state->delta);
+	node->payload = xvt_opt_move(node->payload, state->delta);
+	if (node->node_type == OPT_TEXTURE && node->payload &&
+	    !xvt_opt_test_and_mark_seen(state, node->payload)) {
+		struct opt_texture_data *texture = node->payload;
+		if (!texture->inline_palette_count) {
 			texture->palette =
-				XvtOpt_Move(texture->palette, state->delta);
+				xvt_opt_move(texture->palette, state->delta);
 		}
 	}
-	if (node->nodeType == OPT_NODEREF) {
-		node->payloadCount = 0;
+	if (node->node_type == OPT_NODEREF) {
+		node->payload_count = 0;
 	}
-	node->pChildren = XvtOpt_Move(node->pChildren, state->delta);
-	if (node->pChildren &&
-	    !XvtOpt_TestAndMarkSeen(state, node->pChildren)) {
-		for (int i = 0; i < node->childCount; ++i) {
-			node->pChildren[i] =
-				XvtOpt_Move(node->pChildren[i], state->delta);
-			XvtOpt_MoveNode(state, node->pChildren[i], depth + 1);
+	node->p_children = xvt_opt_move(node->p_children, state->delta);
+	if (node->p_children &&
+	    !xvt_opt_test_and_mark_seen(state, node->p_children)) {
+		for (int i = 0; i < node->child_count; ++i) {
+			node->p_children[i] =
+				xvt_opt_move(node->p_children[i], state->delta);
+			xvt_opt_move_node(state, node->p_children[i],
+					  depth + 1);
 		}
 	}
 }
 
-void XvtOpt_RelocateNode(struct OptNode *node, intptr_t delta)
+void xvt_opt_relocate_node(struct opt_node *node, intptr_t delta)
 {
-	struct XvtOptRelocation state = {.delta = delta};
-	XvtOpt_MoveNode(&state, node, 0);
+	struct xvt_opt_relocation state = {.delta = delta};
+	xvt_opt_move_node(&state, node, 0);
 	free(state.visited);
 }
 
-void XvtOpt_Relocate(struct OptimizedPolyObject *model)
+void xvt_opt_relocate(struct optimized_poly_object *model)
 {
-	if (!model || model->selfMarker == model) {
+	if (!model || model->self_marker == model) {
 		return;
 	}
-	struct XvtOptRelocation state = {
+	struct xvt_opt_relocation state = {
 		.delta = (intptr_t)((uintptr_t)model -
-				    (uintptr_t)model->selfMarker)};
-	model->selfMarker = model;
-	model->rootNodes = XvtOpt_Move(model->rootNodes, state.delta);
-	for (int i = 0; i < model->rootNodeCount; ++i) {
-		model->rootNodes[i] =
-			XvtOpt_Move(model->rootNodes[i], state.delta);
-		XvtOpt_MoveNode(&state, model->rootNodes[i], 0);
+				    (uintptr_t)model->self_marker)};
+	model->self_marker = model;
+	model->root_nodes = xvt_opt_move(model->root_nodes, state.delta);
+	for (int i = 0; i < model->root_node_count; ++i) {
+		model->root_nodes[i] =
+			xvt_opt_move(model->root_nodes[i], state.delta);
+		xvt_opt_move_node(&state, model->root_nodes[i], 0);
 	}
 	free(state.visited);
 }
 
-struct OptNode *XvtOpt_ResolveCached(const struct OptimizedPolyObject *model,
-				     struct OptNode *node)
+struct opt_node *
+xvt_opt_resolve_cached(const struct optimized_poly_object *model,
+		       struct opt_node *node)
 {
-	if (!node->payloadCount) {
-		node->payloadCount =
-			(intptr_t)OptModel_ResolveNodeRef(model, node->payload);
+	if (!node->payload_count) {
+		node->payload_count = (intptr_t)opt_model_resolve_node_ref(
+			model, node->payload);
 	}
-	return (struct OptNode *)node->payloadCount;
+	return (struct opt_node *)node->payload_count;
 }

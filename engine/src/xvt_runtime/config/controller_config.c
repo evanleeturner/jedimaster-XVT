@@ -7,8 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-static bool XvtControllerConfig_ConfigError(char *error, size_t capacity,
-					    const char *format, ...)
+static bool xvt_controller_config_config_error(char *error, size_t capacity,
+					       const char *format, ...)
 {
 	va_list arguments;
 	if (error && capacity) {
@@ -20,16 +20,16 @@ static bool XvtControllerConfig_ConfigError(char *error, size_t capacity,
 }
 
 static const AeronConfigNode *
-XvtControllerConfig_RequiredNode(const AeronConfigFile *document,
-				 const char *path, AeronConfigNodeType type,
-				 char *error, size_t capacity)
+xvt_controller_config_required_node(const AeronConfigFile *document,
+				    const char *path, AeronConfigNodeType type,
+				    char *error, size_t capacity)
 {
 	const AeronConfigNode *node = AeronConfigFile_GetNode(document, path);
 	if (!node) {
-		XvtControllerConfig_ConfigError(
+		xvt_controller_config_config_error(
 			error, capacity, "missing required setting '%s'", path);
 	} else if (AeronConfigNode_Type(node) != type) {
-		XvtControllerConfig_ConfigError(
+		xvt_controller_config_config_error(
 			error, capacity, "invalid setting '%s' at %s:%d:%d",
 			path, AeronConfigNode_SourcePath(node),
 			AeronConfigNode_Line(node),
@@ -40,11 +40,11 @@ XvtControllerConfig_RequiredNode(const AeronConfigFile *document,
 	return NULL;
 }
 
-static bool XvtControllerConfig_ReadBool(const AeronConfigFile *document,
-					 const char *path, bool *out,
-					 char *error, size_t capacity)
+static bool xvt_controller_config_read_bool(const AeronConfigFile *document,
+					    const char *path, bool *out,
+					    char *error, size_t capacity)
 {
-	const AeronConfigNode *node = XvtControllerConfig_RequiredNode(
+	const AeronConfigNode *node = xvt_controller_config_required_node(
 		document, path, AERON_CONFIG_BOOL, error, capacity);
 	if (!node) {
 		return false;
@@ -53,25 +53,25 @@ static bool XvtControllerConfig_ReadBool(const AeronConfigFile *document,
 	return true;
 }
 
-static bool XvtControllerConfig_ReadFloat(const AeronConfigFile *document,
-					  const char *path, double minimum,
-					  double maximum, float *out,
-					  char *error, size_t capacity)
+static bool xvt_controller_config_read_float(const AeronConfigFile *document,
+					     const char *path, double minimum,
+					     double maximum, float *out,
+					     char *error, size_t capacity)
 {
 	const AeronConfigNode *node = AeronConfigFile_GetNode(document, path);
 	double value;
 	if (!node) {
-		return XvtControllerConfig_ConfigError(
+		return xvt_controller_config_config_error(
 			error, capacity, "missing required setting '%s'", path);
 	}
 	if (AeronConfigNode_Type(node) != AERON_CONFIG_INT &&
 	    AeronConfigNode_Type(node) != AERON_CONFIG_FLOAT) {
-		return XvtControllerConfig_ConfigError(
+		return xvt_controller_config_config_error(
 			error, capacity, "setting '%s' must be numeric", path);
 	}
 	value = AeronConfigNode_Float(node, NAN);
 	if (!isfinite(value) || value < minimum || value > maximum) {
-		return XvtControllerConfig_ConfigError(
+		return xvt_controller_config_config_error(
 			error, capacity, "setting '%s' is outside [%g, %g]",
 			path, minimum, maximum);
 	}
@@ -79,12 +79,12 @@ static bool XvtControllerConfig_ReadFloat(const AeronConfigFile *document,
 	return true;
 }
 
-static bool XvtControllerConfig_ReadString(const AeronConfigFile *document,
-					   const char *path, char *out,
-					   size_t out_capacity, char *error,
-					   size_t error_capacity)
+static bool xvt_controller_config_read_string(const AeronConfigFile *document,
+					      const char *path, char *out,
+					      size_t out_capacity, char *error,
+					      size_t error_capacity)
 {
-	const AeronConfigNode *node = XvtControllerConfig_RequiredNode(
+	const AeronConfigNode *node = xvt_controller_config_required_node(
 		document, path, AERON_CONFIG_STRING, error, error_capacity);
 	const char *value;
 	if (!node) {
@@ -92,7 +92,7 @@ static bool XvtControllerConfig_ReadString(const AeronConfigFile *document,
 	}
 	value = AeronConfigNode_String(node, "");
 	if (strlen(value) >= out_capacity) {
-		return XvtControllerConfig_ConfigError(
+		return xvt_controller_config_config_error(
 			error, error_capacity, "setting '%s' is too long",
 			path);
 	}
@@ -100,16 +100,16 @@ static bool XvtControllerConfig_ReadString(const AeronConfigFile *document,
 	return true;
 }
 
-static bool XvtControllerConfig_ParseAxisMapping(
+static bool xvt_controller_config_parse_axis_mapping(
 	const AeronConfigFile *document, const char *profile_path, bool gamepad,
-	struct XvtControllerProfile *profile, char *error, size_t capacity)
+	struct xvt_controller_profile *profile, char *error, size_t capacity)
 {
 	static const char *const names[] = {"yaw", "pitch", "roll", "throttle"};
 	size_t index;
 	for (index = 0; index < XVT_INPUT_AXIS_COUNT; ++index) {
 		char path[128];
 		const AeronConfigNode *node;
-		struct XvtInputAxisBinding *binding =
+		struct xvt_input_axis_binding *binding =
 			&profile->mapping.axes[index];
 		int source;
 		snprintf(path, sizeof path, "%s.axes.%s", profile_path,
@@ -119,7 +119,7 @@ static bool XvtControllerConfig_ParseAxisMapping(
 			continue;
 		}
 		if (AeronConfigNode_Type(node) != AERON_CONFIG_MAP) {
-			return XvtControllerConfig_ConfigError(
+			return xvt_controller_config_config_error(
 				error, capacity, "'%s' must be an axis mapping",
 				path);
 		}
@@ -129,7 +129,7 @@ static bool XvtControllerConfig_ParseAxisMapping(
 		if (gamepad) {
 			const char *name = AeronConfigNode_String(node, NULL);
 			if (!name) {
-				return XvtControllerConfig_ConfigError(
+				return xvt_controller_config_config_error(
 					error, capacity,
 					"'%s' must be a gamepad axis name",
 					path);
@@ -139,7 +139,7 @@ static bool XvtControllerConfig_ParseAxisMapping(
 			} else {
 				source = (int)Aeron_GamepadAxisFromName(name);
 				if (source >= AERON_GAMEPAD_AXIS_COUNT) {
-					return XvtControllerConfig_ConfigError(
+					return xvt_controller_config_config_error(
 						error, capacity,
 						"unknown gamepad axis '%s'",
 						name);
@@ -152,30 +152,30 @@ static bool XvtControllerConfig_ParseAxisMapping(
 		} else if (AeronConfigNode_Type(node) == AERON_CONFIG_INT) {
 			int64_t value = AeronConfigNode_Int(node, -1);
 			if (value < 0 || value >= AERON_CONTROLLER_AXIS_MAX) {
-				return XvtControllerConfig_ConfigError(
+				return xvt_controller_config_config_error(
 					error, capacity,
 					"raw axis in '%s' is out of range",
 					path);
 			}
 			source = (int)value;
 		} else {
-			return XvtControllerConfig_ConfigError(
+			return xvt_controller_config_config_error(
 				error, capacity,
 				"'%s' must be an axis index or none", path);
 		}
 		binding->source = (int8_t)source;
 		snprintf(path, sizeof path, "%s.axes.%s.invert", profile_path,
 			 names[index]);
-		if (!XvtControllerConfig_ReadBool(document, path,
-						  &binding->invert, error,
-						  capacity)) {
+		if (!xvt_controller_config_read_bool(document, path,
+						     &binding->invert, error,
+						     capacity)) {
 			return false;
 		}
 		snprintf(path, sizeof path, "%s.axes.%s.deadzone", profile_path,
 			 names[index]);
 		if (index != XVT_INPUT_AXIS_THROTTLE ||
 		    AeronConfigFile_Has(document, path)) {
-			if (!XvtControllerConfig_ReadFloat(
+			if (!xvt_controller_config_read_float(
 				    document, path, 0.0, 1.0,
 				    &binding->deadzone, error, capacity)) {
 				return false;
@@ -183,7 +183,7 @@ static bool XvtControllerConfig_ParseAxisMapping(
 		}
 		if (index == XVT_INPUT_AXIS_THROTTLE &&
 		    binding->deadzone != 0.0f) {
-			return XvtControllerConfig_ConfigError(
+			return xvt_controller_config_config_error(
 				error, capacity,
 				"throttle does not have a deadzone");
 		}
@@ -192,8 +192,8 @@ static bool XvtControllerConfig_ParseAxisMapping(
 }
 
 static bool
-XvtControllerConfig_SameSource(const AeronControllerDigitalSource *left,
-			       const AeronControllerDigitalSource *right)
+xvt_controller_config_same_source(const AeronControllerDigitalSource *left,
+				  const AeronControllerDigitalSource *right)
 {
 	return left->kind == right->kind && left->index == right->index &&
 	       (left->kind != AERON_CONTROLLER_DIGITAL_HAT ||
@@ -203,7 +203,7 @@ XvtControllerConfig_SameSource(const AeronControllerDigitalSource *left,
 /* Reads a {button} source, a joystick button by its raw index, into out.
  * Returns false with the reason in error when the mapping is malformed or
  * the index is out of range. */
-static bool XvtControllerConfig_ParseRawButtonSource(
+static bool xvt_controller_config_parse_raw_button_source(
 	const AeronConfigNode *node, const AeronConfigNode *button,
 	bool gamepad, AeronControllerDigitalSource *out, char *error,
 	size_t capacity)
@@ -211,12 +211,12 @@ static bool XvtControllerConfig_ParseRawButtonSource(
 	int64_t index;
 	if (gamepad || AeronConfigNode_MapCount(node) != 1 ||
 	    AeronConfigNode_Type(button) != AERON_CONFIG_INT) {
-		return XvtControllerConfig_ConfigError(
+		return xvt_controller_config_config_error(
 			error, capacity, "malformed raw button source");
 	}
 	index = AeronConfigNode_Int(button, -1);
 	if (index < 0 || index >= AERON_CONTROLLER_BUTTON_MAX) {
-		return XvtControllerConfig_ConfigError(
+		return xvt_controller_config_config_error(
 			error, capacity, "raw button index is out of range");
 	}
 	out->kind = AERON_CONTROLLER_DIGITAL_BUTTON;
@@ -227,7 +227,7 @@ static bool XvtControllerConfig_ParseRawButtonSource(
 /* Reads an {axis, direction} source and its optional threshold into out:
  * one direction of an axis, read as a button. Returns false with the reason
  * in error when the mapping is malformed or a value is out of range. */
-static bool XvtControllerConfig_ParseAxisSource(
+static bool xvt_controller_config_parse_axis_source(
 	const AeronConfigNode *node, const AeronConfigNode *axis,
 	const AeronConfigNode *direction, const AeronConfigNode *threshold,
 	bool gamepad, AeronControllerDigitalSource *out, char *error,
@@ -237,20 +237,20 @@ static bool XvtControllerConfig_ParseAxisSource(
 	int64_t index;
 	if (!direction || (AeronConfigNode_MapCount(node) != 2 &&
 			   AeronConfigNode_MapCount(node) != 3)) {
-		return XvtControllerConfig_ConfigError(
+		return xvt_controller_config_config_error(
 			error, capacity, "malformed digital axis source");
 	}
 	if (gamepad) {
 		AeronGamepadAxis gamepad_axis;
 		const char *name = AeronConfigNode_String(axis, NULL);
 		if (!name) {
-			return XvtControllerConfig_ConfigError(
+			return xvt_controller_config_config_error(
 				error, capacity,
 				"gamepad axis source must be named");
 		}
 		gamepad_axis = Aeron_GamepadAxisFromName(name);
 		if (gamepad_axis >= AERON_GAMEPAD_AXIS_COUNT) {
-			return XvtControllerConfig_ConfigError(
+			return xvt_controller_config_config_error(
 				error, capacity, "unknown gamepad axis '%s'",
 				name);
 		}
@@ -259,7 +259,7 @@ static bool XvtControllerConfig_ParseAxisSource(
 		index = AeronConfigNode_Int(axis, -1);
 		if (AeronConfigNode_Type(axis) != AERON_CONFIG_INT ||
 		    index < 0 || index >= AERON_CONTROLLER_AXIS_MAX) {
-			return XvtControllerConfig_ConfigError(
+			return xvt_controller_config_config_error(
 				error, capacity,
 				"raw axis index is out of range");
 		}
@@ -271,14 +271,14 @@ static bool XvtControllerConfig_ParseAxisSource(
 	} else if (direction_name && strcmp(direction_name, "negative") == 0) {
 		out->kind = AERON_CONTROLLER_DIGITAL_AXIS_NEGATIVE;
 	} else {
-		return XvtControllerConfig_ConfigError(
+		return xvt_controller_config_config_error(
 			error, capacity,
 			"axis direction must be positive or negative");
 	}
 	if (threshold) {
 		double value = AeronConfigNode_Float(threshold, NAN);
 		if (!isfinite(value) || value <= 0.0 || value > 1.0) {
-			return XvtControllerConfig_ConfigError(
+			return xvt_controller_config_config_error(
 				error, capacity,
 				"axis threshold must be in (0, 1]");
 		}
@@ -290,7 +290,7 @@ static bool XvtControllerConfig_ParseAxisSource(
 /* Reads a {hat, direction} source, one direction of a joystick hat, into
  * out. Returns false with the reason in error when the mapping is malformed
  * or a value is out of range. */
-static bool XvtControllerConfig_ParseHatSource(
+static bool xvt_controller_config_parse_hat_source(
 	const AeronConfigNode *node, const AeronConfigNode *hat,
 	const AeronConfigNode *direction, bool gamepad,
 	AeronControllerDigitalSource *out, char *error, size_t capacity)
@@ -299,12 +299,12 @@ static bool XvtControllerConfig_ParseHatSource(
 	int64_t index;
 	if (gamepad || !direction || AeronConfigNode_MapCount(node) != 2 ||
 	    AeronConfigNode_Type(hat) != AERON_CONFIG_INT) {
-		return XvtControllerConfig_ConfigError(
+		return xvt_controller_config_config_error(
 			error, capacity, "malformed raw hat source");
 	}
 	index = AeronConfigNode_Int(hat, -1);
 	if (index < 0 || index >= AERON_CONTROLLER_HAT_MAX) {
-		return XvtControllerConfig_ConfigError(
+		return xvt_controller_config_config_error(
 			error, capacity, "raw hat index is out of range");
 	}
 	direction_name = AeronConfigNode_String(direction, NULL);
@@ -317,7 +317,7 @@ static bool XvtControllerConfig_ParseHatSource(
 	} else if (direction_name && strcmp(direction_name, "left") == 0) {
 		out->hat_direction = AERON_CONTROLLER_HAT_LEFT;
 	} else {
-		return XvtControllerConfig_ConfigError(
+		return xvt_controller_config_config_error(
 			error, capacity,
 			"hat direction must be up/right/down/left");
 	}
@@ -326,7 +326,7 @@ static bool XvtControllerConfig_ParseHatSource(
 	return true;
 }
 
-static bool XvtControllerConfig_ParseDigitalSource(
+static bool xvt_controller_config_parse_digital_source(
 	const AeronConfigNode *node, bool gamepad,
 	AeronControllerDigitalSource *out, char *error, size_t capacity)
 {
@@ -336,7 +336,7 @@ static bool XvtControllerConfig_ParseDigitalSource(
 		AeronGamepadButton button = Aeron_GamepadButtonFromName(
 			AeronConfigNode_String(node, ""));
 		if (button >= AERON_GAMEPAD_BUTTON_COUNT) {
-			return XvtControllerConfig_ConfigError(
+			return xvt_controller_config_config_error(
 				error, capacity, "unknown gamepad button '%s'",
 				AeronConfigNode_String(node, ""));
 		}
@@ -345,7 +345,7 @@ static bool XvtControllerConfig_ParseDigitalSource(
 		return true;
 	}
 	if (AeronConfigNode_Type(node) != AERON_CONFIG_MAP) {
-		return XvtControllerConfig_ConfigError(
+		return xvt_controller_config_config_error(
 			error, capacity,
 			"controller binding must be a source mapping");
 	}
@@ -361,43 +361,45 @@ static bool XvtControllerConfig_ParseDigitalSource(
 		const AeronConfigNode *threshold =
 			AeronConfigNode_MapGet(node, "threshold");
 		if (button) {
-			return XvtControllerConfig_ParseRawButtonSource(
+			return xvt_controller_config_parse_raw_button_source(
 				node, button, gamepad, out, error, capacity);
 		}
 		if (axis) {
-			return XvtControllerConfig_ParseAxisSource(
+			return xvt_controller_config_parse_axis_source(
 				node, axis, direction, threshold, gamepad, out,
 				error, capacity);
 		}
 		if (hat) {
-			return XvtControllerConfig_ParseHatSource(
+			return xvt_controller_config_parse_hat_source(
 				node, hat, direction, gamepad, out, error,
 				capacity);
 		}
 	}
-	return XvtControllerConfig_ConfigError(
+	return xvt_controller_config_config_error(
 		error, capacity, "unknown controller source form");
 }
 
-static bool XvtControllerConfig_AddBinding(
-	struct XvtInputActionBinding *bindings, size_t *count, size_t maximum,
-	XvtInputAction action, const AeronControllerDigitalSource *source,
-	char *error, size_t capacity)
+static bool
+xvt_controller_config_add_binding(struct xvt_input_action_binding *bindings,
+				  size_t *count, size_t maximum,
+				  xvt_input_action action,
+				  const AeronControllerDigitalSource *source,
+				  char *error, size_t capacity)
 {
 	size_t index;
 	for (index = 0; index < *count; ++index) {
-		if (XvtControllerConfig_SameSource(&bindings[index].source,
-						   source)) {
+		if (xvt_controller_config_same_source(&bindings[index].source,
+						      source)) {
 			if (bindings[index].action == action) {
 				return true;
 			}
-			return XvtControllerConfig_ConfigError(
+			return xvt_controller_config_config_error(
 				error, capacity,
 				"physical source is bound to multiple actions");
 		}
 	}
 	if (*count >= maximum) {
-		return XvtControllerConfig_ConfigError(
+		return xvt_controller_config_config_error(
 			error, capacity,
 			"controller binding capacity exceeded");
 	}
@@ -407,17 +409,17 @@ static bool XvtControllerConfig_AddBinding(
 	return true;
 }
 
-static bool XvtControllerConfig_ParseBindingValue(
-	const AeronConfigNode *node, bool gamepad, XvtInputAction action,
-	struct XvtInputActionBinding *bindings, size_t *count, size_t maximum,
-	char *error, size_t capacity)
+static bool xvt_controller_config_parse_binding_value(
+	const AeronConfigNode *node, bool gamepad, xvt_input_action action,
+	struct xvt_input_action_binding *bindings, size_t *count,
+	size_t maximum, char *error, size_t capacity)
 {
 	const bool sequence =
 		AeronConfigNode_Type(node) == AERON_CONFIG_SEQUENCE;
 	const size_t length =
 		sequence ? AeronConfigNode_SequenceCount(node) : 1;
 	if (length > maximum) {
-		return XvtControllerConfig_ConfigError(
+		return xvt_controller_config_config_error(
 			error, capacity,
 			"controller binding capacity exceeded");
 	}
@@ -425,27 +427,27 @@ static bool XvtControllerConfig_ParseBindingValue(
 		const AeronConfigNode *item =
 			sequence ? AeronConfigNode_SequenceGet(node, i) : node;
 		AeronControllerDigitalSource source;
-		if (!XvtControllerConfig_ParseDigitalSource(
+		if (!xvt_controller_config_parse_digital_source(
 			    item, gamepad, &source, error, capacity) ||
-		    !XvtControllerConfig_AddBinding(bindings, count, maximum,
-						    action, &source, error,
-						    capacity)) {
+		    !xvt_controller_config_add_binding(bindings, count, maximum,
+						       action, &source, error,
+						       capacity)) {
 			return false;
 		}
 	}
 	return true;
 }
 
-static bool XvtControllerConfig_CheckKnownKeys(const AeronConfigNode *node,
-					       const char *const *keys,
-					       size_t count, char *error,
-					       size_t capacity)
+static bool xvt_controller_config_check_known_keys(const AeronConfigNode *node,
+						   const char *const *keys,
+						   size_t count, char *error,
+						   size_t capacity)
 {
 	if (!node) {
 		return true;
 	}
 	if (AeronConfigNode_Type(node) != AERON_CONFIG_MAP) {
-		return XvtControllerConfig_ConfigError(
+		return xvt_controller_config_config_error(
 			error, capacity, "expected controller mapping");
 	}
 	for (size_t i = 0; i < AeronConfigNode_MapCount(node); ++i) {
@@ -457,7 +459,7 @@ static bool XvtControllerConfig_CheckKnownKeys(const AeronConfigNode *node,
 			}
 		}
 		if (!known) {
-			return XvtControllerConfig_ConfigError(
+			return xvt_controller_config_config_error(
 				error, capacity,
 				"unknown controller field '%s'", name);
 		}
@@ -465,13 +467,14 @@ static bool XvtControllerConfig_CheckKnownKeys(const AeronConfigNode *node,
 	return true;
 }
 
-bool XvtControllerConfig_ReadProfile(const AeronConfigFile *document,
-				     const char *path, AeronControllerKind kind,
-				     struct XvtControllerProfile *profile,
-				     char *error, size_t capacity)
+bool xvt_controller_config_read_profile(const AeronConfigFile *document,
+					const char *path,
+					AeronControllerKind kind,
+					struct xvt_controller_profile *profile,
+					char *error, size_t capacity)
 {
-	if (!XvtControllerConfig_RequiredNode(document, path, AERON_CONFIG_MAP,
-					      error, capacity)) {
+	if (!xvt_controller_config_required_node(
+		    document, path, AERON_CONFIG_MAP, error, capacity)) {
 		return false;
 	}
 	static const char *const axis_names[] = {"yaw", "pitch", "roll",
@@ -479,34 +482,34 @@ bool XvtControllerConfig_ReadProfile(const AeronConfigFile *document,
 	static const char *const fields[] = {"source", "invert", "deadzone"};
 	if (kind != AERON_CONTROLLER_KIND_GAMEPAD &&
 	    kind != AERON_CONTROLLER_KIND_JOYSTICK) {
-		return XvtControllerConfig_ConfigError(
+		return xvt_controller_config_config_error(
 			error, capacity, "layout must be gamepad or joystick");
 	}
 	if (!strcmp(path, "input.gamepad_defaults")) {
 		static const char *const keys[] = {"axes", "buttons"};
-		if (!XvtControllerConfig_CheckKnownKeys(
+		if (!xvt_controller_config_check_known_keys(
 			    AeronConfigFile_GetNode(document, path), keys, 2,
 			    error, capacity)) {
 			return false;
 		}
 	}
 	char sub[192];
-	XvtControllerOptions_ClearProfile(profile, kind);
+	xvt_controller_options_clear_profile(profile, kind);
 	snprintf(sub, sizeof sub, "%s.axes", path);
-	if (!XvtControllerConfig_CheckKnownKeys(
+	if (!xvt_controller_config_check_known_keys(
 		    AeronConfigFile_GetNode(document, sub), axis_names, 4,
 		    error, capacity)) {
 		return false;
 	}
 	for (int i = 0; i < 4; ++i) {
 		snprintf(sub, sizeof sub, "%s.axes.%s", path, axis_names[i]);
-		if (!XvtControllerConfig_CheckKnownKeys(
+		if (!xvt_controller_config_check_known_keys(
 			    AeronConfigFile_GetNode(document, sub), fields, 3,
 			    error, capacity)) {
 			return false;
 		}
 	}
-	if (!XvtControllerConfig_ParseAxisMapping(
+	if (!xvt_controller_config_parse_axis_mapping(
 		    document, path, kind == AERON_CONTROLLER_KIND_GAMEPAD,
 		    profile, error, capacity)) {
 		return false;
@@ -514,17 +517,17 @@ bool XvtControllerConfig_ReadProfile(const AeronConfigFile *document,
 	snprintf(sub, sizeof sub, "%s.buttons", path);
 	const AeronConfigNode *map = AeronConfigFile_GetNode(document, sub);
 	if (map && AeronConfigNode_Type(map) != AERON_CONFIG_MAP) {
-		return XvtControllerConfig_ConfigError(
+		return xvt_controller_config_config_error(
 			error, capacity, "'%s' must be a mapping", sub);
 	}
 	for (size_t i = 0; i < AeronConfigNode_MapCount(map); ++i) {
 		const char *name = AeronConfigNode_MapKeyAt(map, i);
-		XvtInputAction action = XvtInputActions_FromName(name);
+		xvt_input_action action = xvt_input_actions_from_name(name);
 		if (action == XVT_INPUT_ACTION_NONE) {
-			return XvtControllerConfig_ConfigError(
+			return xvt_controller_config_config_error(
 				error, capacity, "unknown action '%s'", name);
 		}
-		if (!XvtControllerConfig_ParseBindingValue(
+		if (!xvt_controller_config_parse_binding_value(
 			    AeronConfigNode_MapValueAt(map, i),
 			    kind == AERON_CONTROLLER_KIND_GAMEPAD, action,
 			    profile->bindings, &profile->binding_count,
@@ -532,17 +535,17 @@ bool XvtControllerConfig_ReadProfile(const AeronConfigFile *document,
 			return false;
 		}
 	}
-	return XvtControllerOptions_ValidateProfile(profile, kind, error,
-						    capacity);
+	return xvt_controller_options_validate_profile(profile, kind, error,
+						       capacity);
 }
 
-bool XvtControllerConfig_Parse(const AeronConfigFile *document,
-			       struct XvtControllerOptions *options,
-			       char *error, size_t capacity)
+bool xvt_controller_config_parse(const AeronConfigFile *document,
+				 struct xvt_controller_options *options,
+				 char *error, size_t capacity)
 {
 	static const char *const keys[] = {"guid", "name", "layout", "axes",
 					   "buttons"};
-	const AeronConfigNode *list = XvtControllerConfig_RequiredNode(
+	const AeronConfigNode *list = xvt_controller_config_required_node(
 		document, "input.controllers", AERON_CONFIG_SEQUENCE, error,
 		capacity);
 	if (!list) {
@@ -551,32 +554,32 @@ bool XvtControllerConfig_Parse(const AeronConfigFile *document,
 	memset(options, 0, sizeof *options);
 	options->count = AeronConfigNode_SequenceCount(list);
 	if (options->count > XVT_CONTROLLER_MODEL_CAP) {
-		return XvtControllerConfig_ConfigError(
+		return xvt_controller_config_config_error(
 			error, capacity, "controller model capacity exceeded");
 	}
 	for (size_t i = 0; i < options->count; ++i) {
 		const AeronConfigNode *node =
 			AeronConfigNode_SequenceGet(list, i);
-		if (!XvtControllerConfig_CheckKnownKeys(node, keys, 5, error,
-							capacity)) {
+		if (!xvt_controller_config_check_known_keys(node, keys, 5,
+							    error, capacity)) {
 			return false;
 		}
-		struct XvtControllerModel *m = &options->models[i];
+		struct xvt_controller_model *m = &options->models[i];
 		char path[128], field[160];
 		snprintf(path, sizeof path, "input.controllers[%zu]", i);
 		snprintf(field, sizeof field, "%s.guid", path);
-		if (!XvtControllerConfig_ReadString(document, field, m->guid,
-						    sizeof m->guid, error,
-						    capacity)) {
+		if (!xvt_controller_config_read_string(document, field, m->guid,
+						       sizeof m->guid, error,
+						       capacity)) {
 			return false;
 		}
 		for (size_t j = 0; m->guid[j]; ++j) {
 			m->guid[j] = (char)tolower((unsigned char)m->guid[j]);
 		}
 		snprintf(field, sizeof field, "%s.name", path);
-		if (!XvtControllerConfig_ReadString(document, field, m->name,
-						    sizeof m->name, error,
-						    capacity)) {
+		if (!xvt_controller_config_read_string(document, field, m->name,
+						       sizeof m->name, error,
+						       capacity)) {
 			return false;
 		}
 		const char *layout = AeronConfigNode_String(
@@ -586,16 +589,16 @@ bool XvtControllerConfig_Parse(const AeronConfigFile *document,
 			  : !strcmp(layout, "gamepad")
 				  ? AERON_CONTROLLER_KIND_GAMEPAD
 				  : AERON_CONTROLLER_KIND_NONE;
-		if (!XvtControllerConfig_ReadProfile(document, path, m->kind,
-						     &m->profile, error,
-						     capacity)) {
+		if (!xvt_controller_config_read_profile(document, path, m->kind,
+							&m->profile, error,
+							capacity)) {
 			return false;
 		}
 	}
-	return XvtControllerOptions_Validate(options, error, capacity);
+	return xvt_controller_options_validate(options, error, capacity);
 }
 
-struct XvtControllerYamlScratch {
+struct xvt_controller_yaml_scratch {
 	AeronConfigValue sources[XVT_CONTROLLER_BINDING_CAP];
 	AeronConfigValue fields[XVT_CONTROLLER_BINDING_CAP][3];
 	AeronConfigMapValue source_maps[XVT_CONTROLLER_BINDING_CAP][3];
@@ -603,9 +606,9 @@ struct XvtControllerYamlScratch {
 	AeronConfigMapValue action_map[XVT_INPUT_ACTION_COUNT - 1];
 };
 
-static void XvtControllerConfig_ControllerSourceYaml(
+static void xvt_controller_config_controller_source_yaml(
 	const AeronControllerDigitalSource *source, bool gamepad,
-	struct XvtControllerYamlScratch *scratch, size_t slot)
+	struct xvt_controller_yaml_scratch *scratch, size_t slot)
 {
 	AeronConfigValue *value = &scratch->sources[slot];
 	AeronConfigValue *fields = scratch->fields[slot];
@@ -670,16 +673,16 @@ static void XvtControllerConfig_ControllerSourceYaml(
 	value->value.map.count = 2;
 }
 
-struct ModelYaml {
-	struct XvtControllerYamlScratch digital;
+struct model_yaml {
+	struct xvt_controller_yaml_scratch digital;
 	AeronConfigValue axis_fields[4][3], axes[4], axes_map, buttons;
 	AeronConfigMapValue axis_maps[4][3], axis_entries[4], fields[5];
 	AeronConfigValue guid, name, layout;
 };
 
-static int BindingCompare(const void *left, const void *right)
+static int binding_compare(const void *left, const void *right)
 {
-	const struct XvtInputActionBinding *a = left, *b = right;
+	const struct xvt_input_action_binding *a = left, *b = right;
 	if (a->action != b->action) {
 		return (int)a->action - (int)b->action;
 	}
@@ -692,8 +695,8 @@ static int BindingCompare(const void *left, const void *right)
 	return (int)a->source.hat_direction - (int)b->source.hat_direction;
 }
 
-static void ModelValue(const struct XvtControllerModel *model,
-		       struct ModelYaml *scratch, AeronConfigValue *value)
+static void model_value(const struct xvt_controller_model *model,
+			struct model_yaml *scratch, AeronConfigValue *value)
 {
 	static const char *const names[] = {"yaw", "pitch", "roll", "throttle"};
 	const bool gamepad = model->kind == AERON_CONTROLLER_KIND_GAMEPAD;
@@ -705,7 +708,7 @@ static void ModelValue(const struct XvtControllerModel *model,
 		.type = AERON_CONFIG_STRING,
 		.value.string_value = gamepad ? "gamepad" : "joystick"};
 	for (int i = 0; i < 4; ++i) {
-		const struct XvtInputAxisBinding *b =
+		const struct xvt_input_axis_binding *b =
 			&model->profile.mapping.axes[i];
 		AeronConfigValue *f = scratch->axis_fields[i];
 		f[0].type = b->source < 0 || gamepad ? AERON_CONFIG_STRING
@@ -738,18 +741,18 @@ static void ModelValue(const struct XvtControllerModel *model,
 	scratch->axes_map =
 		(AeronConfigValue){.type = AERON_CONFIG_MAP,
 				   .value.map = {scratch->axis_entries, 4}};
-	struct XvtInputActionBinding bindings[XVT_CONTROLLER_BINDING_CAP];
+	struct xvt_input_action_binding bindings[XVT_CONTROLLER_BINDING_CAP];
 	memcpy(bindings, model->profile.bindings,
 	       model->profile.binding_count * sizeof bindings[0]);
 	qsort(bindings, model->profile.binding_count, sizeof bindings[0],
-	      BindingCompare);
+	      binding_compare);
 	size_t actions = 0, slot = 0;
 	while (slot < model->profile.binding_count) {
 		size_t first = slot;
-		XvtInputAction action = bindings[slot].action;
+		xvt_input_action action = bindings[slot].action;
 		while (slot < model->profile.binding_count &&
 		       bindings[slot].action == action) {
-			XvtControllerConfig_ControllerSourceYaml(
+			xvt_controller_config_controller_source_yaml(
 				&bindings[slot].source, gamepad,
 				&scratch->digital, slot);
 			++slot;
@@ -759,7 +762,7 @@ static void ModelValue(const struct XvtControllerModel *model,
 			.value.sequence = {&scratch->digital.sources[first],
 					   slot - first}};
 		scratch->digital.action_map[actions] = (AeronConfigMapValue){
-			XvtInputActions_ToName(action),
+			xvt_input_actions_to_name(action),
 			&scratch->digital.action_values[actions]};
 		++actions;
 	}
@@ -776,11 +779,11 @@ static void ModelValue(const struct XvtControllerModel *model,
 				    .value.map = {scratch->fields, 5}};
 }
 
-bool XvtControllerConfig_Write(AeronConfigFile *document,
-			       const struct XvtControllerOptions *options,
-			       AeronConfigError *error)
+bool xvt_controller_config_write(AeronConfigFile *document,
+				 const struct xvt_controller_options *options,
+				 AeronConfigError *error)
 {
-	struct ModelYaml *scratch =
+	struct model_yaml *scratch =
 		calloc(options->count ? options->count : 1, sizeof *scratch);
 	if (!scratch) {
 		snprintf(error->message, sizeof error->message,
@@ -789,7 +792,7 @@ bool XvtControllerConfig_Write(AeronConfigFile *document,
 	}
 	AeronConfigValue models[XVT_CONTROLLER_MODEL_CAP];
 	for (size_t i = 0; i < options->count; ++i) {
-		ModelValue(&options->models[i], &scratch[i], &models[i]);
+		model_value(&options->models[i], &scratch[i], &models[i]);
 	}
 	AeronConfigValue list = {.type = AERON_CONFIG_SEQUENCE,
 				 .value.sequence = {models, options->count}};
@@ -799,23 +802,23 @@ bool XvtControllerConfig_Write(AeronConfigFile *document,
 	return ok;
 }
 
-bool XvtConfig_SetController(const struct XvtControllerOptions *options,
-			     char *error, size_t capacity)
+bool xvt_config_set_controller(const struct xvt_controller_options *options,
+			       char *error, size_t capacity)
 {
 	AeronConfigFile *candidate = NULL;
 	AeronConfigError detail;
-	if (!XvtControllerOptions_Validate(options, error, capacity)) {
+	if (!xvt_controller_options_validate(options, error, capacity)) {
 		return false;
 	}
-	if (!AeronConfigFile_Clone(XvtConfig_UserDocument(), &candidate,
+	if (!AeronConfigFile_Clone(xvt_config_user_document(), &candidate,
 				   &detail)) {
-		return XvtSettings_FileError(&detail, error, capacity);
+		return xvt_settings_file_error(&detail, error, capacity);
 	}
-	bool success = XvtControllerConfig_Write(candidate, options, &detail);
+	bool success = xvt_controller_config_write(candidate, options, &detail);
 	if (!success) {
-		XvtSettings_FileError(&detail, error, capacity);
+		xvt_settings_file_error(&detail, error, capacity);
 	} else {
-		success = XvtConfig_UpdateUser(candidate, 0, error, capacity);
+		success = xvt_config_update_user(candidate, 0, error, capacity);
 	}
 	AeronConfigFile_Destroy(candidate);
 	return success;

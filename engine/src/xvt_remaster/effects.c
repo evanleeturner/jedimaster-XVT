@@ -7,15 +7,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-static const float kTau = 6.2831853071795864769f;
+static const float k_tau = 6.2831853071795864769f;
 
-int XvtEffects_Frame(const struct XvtRenderSnapshot *s, unsigned type,
-		     unsigned frame, struct XvtEffectFrame *out)
+int xvt_effects_frame(const struct xvt_render_snapshot *s, unsigned type,
+		      unsigned frame, struct xvt_effect_frame *out)
 {
 	if (type >= XVT_SNAP_TYPES) {
 		return 0;
 	}
-	const AeronRuntimeAtlas *a = XvtRemasterAssets_Image(
+	const AeronRuntimeAtlas *a = xvt_remaster_assets_image(
 		s->types[type].texture_asset_id, NULL, UINT16_MAX, UINT16_MAX);
 	if (!a) {
 		return 0;
@@ -27,7 +27,7 @@ int XvtEffects_Frame(const struct XvtRenderSnapshot *s, unsigned type,
 		const AeronRuntimeAtlasPage *page =
 			&a->pages[a->layout.pages[i]];
 		const AeronSpriteRect *rect = &a->layout.frames[i];
-		*out = (struct XvtEffectFrame){
+		*out = (struct xvt_effect_frame){
 			page->texture,
 			rect->x / page->width,
 			rect->y / page->height,
@@ -40,8 +40,8 @@ int XvtEffects_Frame(const struct XvtRenderSnapshot *s, unsigned type,
 	return 0;
 }
 
-void XvtEffects_Quad(const struct XvtSnapCamera *cam, const float center[3],
-		     float hw, float hh, float angle, float out[4][3])
+void xvt_effects_quad(const struct xvt_snap_camera *cam, const float center[3],
+		      float hw, float hh, float angle, float out[4][3])
 {
 	static const int sx[4] = {1, -1, -1, 1}, sy[4] = {1, 1, -1, -1};
 	float c = cosf(angle), sn = sinf(angle);
@@ -58,9 +58,9 @@ void XvtEffects_Quad(const struct XvtSnapCamera *cam, const float center[3],
 	}
 }
 
-void XvtEffects_SetFrame(AeronSceneBillboardDesc *b,
-			 const struct XvtEffectFrame *f, float strength,
-			 float alpha)
+void xvt_effects_set_frame(AeronSceneBillboardDesc *b,
+			   const struct xvt_effect_frame *f, float strength,
+			   float alpha)
 {
 	b->texture = f->texture;
 	b->blend = AERON_SCENE_BILLBOARD_BLEND_ALPHA;
@@ -73,11 +73,11 @@ void XvtEffects_SetFrame(AeronSceneBillboardDesc *b,
 	}
 }
 
-static float Angle(const struct XvtSnapObject *o,
-		   const struct XvtSnapCamera *cam)
+static float angle(const struct xvt_snap_object *o,
+		   const struct xvt_snap_camera *cam)
 {
 	float m[16], r[2][3];
-	XvtRenderMath_ObjectMatrix(o, cam->world_pos, m);
+	xvt_render_math_object_matrix(o, cam->world_pos, m);
 	for (int col = 0; col < 2; ++col) {
 		for (int row = 0; row < 3; ++row) {
 			r[col][row] = cam->rows[row * 3] * m[col] +
@@ -89,8 +89,8 @@ static float Angle(const struct XvtSnapObject *o,
 	return (v[0] < 0 ? 1.0f : -1.0f) * atan2f(v[1], fabsf(v[0]));
 }
 
-static uint16_t FrameCode(const struct XvtRenderSnapshot *s,
-			  const struct XvtSnapObject *o)
+static uint16_t frame_code(const struct xvt_render_snapshot *s,
+			   const struct xvt_snap_object *o)
 {
 	if (o->object_type >= XVT_SNAP_TYPES) {
 		return XVT_SNAP_INVALID_TEXTURE_FRAME;
@@ -106,24 +106,24 @@ static uint16_t FrameCode(const struct XvtRenderSnapshot *s,
 		return (uint16_t)s->types[XVT_SNAP_TYPE_COMPONENT_FOLLOWUP]
 			.sequence[o->type_specific[1]];
 	}
-	const struct XvtSnapType *t = &s->types[o->object_type];
+	const struct xvt_snap_type *t = &s->types[o->object_type];
 	return o->type_specific[0] < t->sequence_count
 		       ? (uint16_t)t->sequence[o->type_specific[0]]
 		       : XVT_SNAP_INVALID_TEXTURE_FRAME;
 }
 
-static int Corners(const struct XvtRenderSnapshot *s,
-		   const struct XvtSnapObject *o,
-		   const struct XvtSnapCamera *cam, const int32_t origin[3],
+static int corners(const struct xvt_render_snapshot *s,
+		   const struct xvt_snap_object *o,
+		   const struct xvt_snap_camera *cam, const int32_t origin[3],
 		   uint16_t code, unsigned base_size, float roll,
-		   float corners[4][3], struct XvtEffectFrame *frame)
+		   float corners[4][3], struct xvt_effect_frame *frame)
 {
 	if (code < XVT_SNAP_TEXTURE_FRAME_BIT ||
 	    code >= XVT_SNAP_INVALID_TEXTURE_FRAME) {
 		return 0;
 	}
 	unsigned type = (code & 0x7fff) >> 7, index = code & 0x7f;
-	if (!XvtEffects_Frame(s, type, index, frame)) {
+	if (!xvt_effects_frame(s, type, index, frame)) {
 		return 0;
 	}
 	float local[3];
@@ -150,12 +150,13 @@ static int Corners(const struct XvtRenderSnapshot *s,
 		return 0;
 	}
 	AeronWorld_LocalI32(origin, o->world_pos, local);
-	XvtEffects_Quad(cam, local, hw, hh, roll, corners);
+	xvt_effects_quad(cam, local, hw, hh, roll, corners);
 	return 1;
 }
 
-static const struct XvtSnapObject *Previous(const struct XvtRenderSnapshot *p,
-					    const struct XvtSnapObject *o)
+static const struct xvt_snap_object *
+effects_previous(const struct xvt_render_snapshot *p,
+		 const struct xvt_snap_object *o)
 {
 	if (!p) {
 		return NULL;
@@ -170,20 +171,21 @@ static const struct XvtSnapObject *Previous(const struct XvtRenderSnapshot *p,
 	return NULL;
 }
 
-static unsigned BaseSize(const struct XvtSnapObject *o)
+static unsigned base_size(const struct xvt_snap_object *o)
 {
 	unsigned base = o->light_scale ? o->light_scale << 6 : 256;
 	return o->light_scale && base >= 256 ? base + 256 : base;
 }
 
-static uint16_t EngineFlameFrameCode(const struct XvtRenderSnapshot *s,
-				     const struct XvtSnapObject *o, int ordinal)
+static uint16_t engine_flame_frame_code(const struct xvt_render_snapshot *s,
+					const struct xvt_snap_object *o,
+					int ordinal)
 {
 	if (!o->has_craft || o->object_type >= XVT_SNAP_TYPES ||
 	    o->id.slot >= s->sky.craft_slot_end) {
 		return XVT_SNAP_INVALID_TEXTURE_FRAME;
 	}
-	const struct XvtMeshAsset *mesh = XvtRemasterShip_Mesh(
+	const struct xvt_mesh_asset *mesh = xvt_remaster_ship_mesh(
 		s, s->types[o->object_type].model_asset_id);
 	if (!mesh || mesh->component_count >= XVT_SNAP_COMPONENTS) {
 		return XVT_SNAP_INVALID_TEXTURE_FRAME;
@@ -204,22 +206,22 @@ static uint16_t EngineFlameFrameCode(const struct XvtRenderSnapshot *s,
 	return XVT_SNAP_INVALID_TEXTURE_FRAME;
 }
 
-static void SubmitOne(AeronScene3D *scene, const struct XvtRenderSnapshot *s,
-		      const struct XvtRenderSnapshot *p,
-		      const struct XvtSnapObject *o,
-		      const struct XvtSnapCamera *cam,
-		      const struct XvtSnapCamera *pc, uint16_t code,
-		      int flame_ordinal, int regenerate)
+static void submit_one(AeronScene3D *scene, const struct xvt_render_snapshot *s,
+		       const struct xvt_render_snapshot *p,
+		       const struct xvt_snap_object *o,
+		       const struct xvt_snap_camera *cam,
+		       const struct xvt_snap_camera *pc, uint16_t code,
+		       int flame_ordinal, int regenerate)
 {
 	AeronSceneBillboardDesc b = {
 		.stage = AERON_SCENE_BILLBOARD_STAGE_OVERLAY};
-	struct XvtEffectFrame frame;
-	float roll = Angle(o, cam) +
-		     (flame_ordinal
-			      ? flame_ordinal * (float)o->roll * kTau / 65536.0f
-			      : 0);
-	if (!Corners(s, o, cam, cam->world_pos, code,
-		     flame_ordinal ? 256 : BaseSize(o), roll, b.corners,
+	struct xvt_effect_frame frame;
+	float roll = angle(o, cam) + (flame_ordinal
+					      ? flame_ordinal * (float)o->roll *
+							k_tau / 65536.0f
+					      : 0);
+	if (!corners(s, o, cam, cam->world_pos, code,
+		     flame_ordinal ? 256 : base_size(o), roll, b.corners,
 		     &frame)) {
 		return;
 	}
@@ -232,25 +234,25 @@ static void SubmitOne(AeronScene3D *scene, const struct XvtRenderSnapshot *s,
 		alpha = envelope[o->type_specific[0]] / 255.0f;
 	}
 	float strength = o->genus == CRAFT_GENUS_EXPLOSION
-				 ? XvtRemasterConfig_Effective()
+				 ? xvt_remaster_config_effective()
 					   ->explosion_emissive_strength
 				 : 1;
-	XvtEffects_SetFrame(&b, &frame, strength, alpha);
+	xvt_effects_set_frame(&b, &frame, strength, alpha);
 	float previous[4][3];
-	const struct XvtSnapObject *old = Previous(p, o);
+	const struct xvt_snap_object *old = effects_previous(p, o);
 	if (regenerate && old && pc) {
 		uint16_t old_code =
 			flame_ordinal
-				? EngineFlameFrameCode(p, old, flame_ordinal)
-				: FrameCode(p, old);
+				? engine_flame_frame_code(p, old, flame_ordinal)
+				: frame_code(p, old);
 		float old_roll =
-			Angle(old, pc) +
+			angle(old, pc) +
 			(flame_ordinal ? flame_ordinal * (float)old->roll *
-						 kTau / 65536.0f
+						 k_tau / 65536.0f
 				       : 0);
-		struct XvtEffectFrame old_frame;
-		if (Corners(p, old, pc, cam->world_pos, old_code,
-			    flame_ordinal ? 256 : BaseSize(old), old_roll,
+		struct xvt_effect_frame old_frame;
+		if (corners(p, old, pc, cam->world_pos, old_code,
+			    flame_ordinal ? 256 : base_size(old), old_roll,
 			    previous, &old_frame)) {
 			b.prev_corners = previous;
 		}
@@ -258,42 +260,43 @@ static void SubmitOne(AeronScene3D *scene, const struct XvtRenderSnapshot *s,
 	AeronScene_AddBillboard(scene, &b);
 }
 
-struct EffectOrder {
+struct effect_order {
 	unsigned index;
 	float depth;
 };
 
-static int Order(const void *left, const void *right)
+static int effects_order(const void *left, const void *right)
 {
-	const struct EffectOrder *a = left, *b = right;
+	const struct effect_order *a = left, *b = right;
 	if (a->depth != b->depth) {
 		return a->depth > b->depth ? -1 : 1;
 	}
 	return a->index > b->index ? -1 : a->index < b->index;
 }
 
-void XvtEffects_Submit(AeronScene3D *scene, const struct XvtRenderSnapshot *s,
-		       const struct XvtRenderSnapshot *p,
-		       const struct XvtSnapCamera *cam,
-		       const struct XvtSnapCamera *pc, int regenerate,
-		       const struct XvtSnapPreview *crt)
+void xvt_effects_submit(AeronScene3D *scene,
+			const struct xvt_render_snapshot *s,
+			const struct xvt_render_snapshot *p,
+			const struct xvt_snap_camera *cam,
+			const struct xvt_snap_camera *pc, int regenerate,
+			const struct xvt_snap_preview *crt)
 {
 	if (p && (p->world_generation != s->world_generation ||
 		  p->mission_generation != s->mission_generation)) {
 		p = NULL;
 	}
-	struct EffectOrder order[XVT_SNAP_OBJECTS];
+	struct effect_order order[XVT_SNAP_OBJECTS];
 	for (unsigned i = 0; i < s->object_count; ++i) {
 		float pos[3];
 		AeronWorld_LocalI32(cam->world_pos, s->objects[i].world_pos,
 				    pos);
-		order[i] = (struct EffectOrder){
+		order[i] = (struct effect_order){
 			i, pos[0] * cam->rows[6] + pos[1] * cam->rows[7] +
 				   pos[2] * cam->rows[8]};
 	}
-	qsort(order, s->object_count, sizeof order[0], Order);
+	qsort(order, s->object_count, sizeof order[0], effects_order);
 	for (unsigned i = 0; i < s->object_count; ++i) {
-		const struct XvtSnapObject *o = &s->objects[order[i].index];
+		const struct xvt_snap_object *o = &s->objects[order[i].index];
 		if (!crt && o->id.slot == cam->focus.slot && !cam->external &&
 		    !cam->replay_view) {
 			continue;
@@ -312,8 +315,8 @@ void XvtEffects_Submit(AeronScene3D *scene, const struct XvtRenderSnapshot *s,
 		    (o->slot_class == XVT_SLOT_STATIC &&
 		     o->genus >= CRAFT_GENUS_MINE &&
 		     o->genus <= CRAFT_GENUS_SMALL_DEBRIS)) {
-			SubmitOne(scene, s, p, o, cam, pc, FrameCode(s, o), 0,
-				  regenerate);
+			submit_one(scene, s, p, o, cam, pc, frame_code(s, o), 0,
+				   regenerate);
 		}
 		if (!o->has_craft || o->id.slot >= s->sky.craft_slot_end ||
 		    o->object_type >= XVT_SNAP_TYPES) {
@@ -324,7 +327,7 @@ void XvtEffects_Submit(AeronScene3D *scene, const struct XvtRenderSnapshot *s,
 		    o->id.slot != (unsigned)s->sky.checkpoint_slot + 1) {
 			continue;
 		}
-		const struct XvtMeshAsset *mesh = XvtRemasterShip_Mesh(
+		const struct xvt_mesh_asset *mesh = xvt_remaster_ship_mesh(
 			s, s->types[o->object_type].model_asset_id);
 		if (!mesh || mesh->component_count >= XVT_SNAP_COMPONENTS) {
 			continue;
@@ -342,41 +345,41 @@ void XvtEffects_Submit(AeronScene3D *scene, const struct XvtRenderSnapshot *s,
 			}
 		}
 		for (; ordinal > 0; --ordinal) {
-			SubmitOne(scene, s, p, o, cam, pc,
-				  (uint16_t)s->fuselage_sequence[flame],
-				  ordinal, regenerate);
+			submit_one(scene, s, p, o, cam, pc,
+				   (uint16_t)s->fuselage_sequence[flame],
+				   ordinal, regenerate);
 		}
 	}
 }
 
-void XvtEffects_ProjectileMatrix(const struct XvtSnapObject *o,
-				 const int32_t camera[3],
-				 const int32_t origin[3], float out[16])
+void xvt_effects_projectile_matrix(const struct xvt_snap_object *o,
+				   const int32_t camera[3],
+				   const int32_t origin[3], float out[16])
 {
-	struct XvtSnapObject aligned = *o;
+	struct xvt_snap_object aligned = *o;
 	float m[16], delta[3];
-	XvtRenderMath_ObjectMatrix(o, origin, m);
+	xvt_render_math_object_matrix(o, origin, m);
 	AeronWorld_DeltaI32(camera, o->world_pos, delta);
 	float side = m[0] * delta[0] + m[4] * delta[1] + m[8] * delta[2],
 	      up = m[2] * delta[0] + m[6] * delta[1] + m[10] * delta[2];
 	aligned.roll =
-		(uint16_t)(o->roll + (int)(atan2f(up, side) * 65536.0f / kTau) -
-			   0x4000);
+		(uint16_t)(o->roll +
+			   (int)(atan2f(up, side) * 65536.0f / k_tau) - 0x4000);
 	aligned.orient_dirty = 1;
-	XvtRenderMath_ObjectMatrix(&aligned, origin, out);
+	xvt_render_math_object_matrix(&aligned, origin, out);
 }
 
-void XvtEffects_MapObject(AeronScene3D *scene,
-			  const struct XvtRenderSnapshot *s,
-			  const struct XvtSnapObject *o)
+void xvt_effects_map_object(AeronScene3D *scene,
+			    const struct xvt_render_snapshot *s,
+			    const struct xvt_snap_object *o)
 {
-	SubmitOne(scene, s, NULL, o, &s->camera, NULL, FrameCode(s, o), 0, 0);
+	submit_one(scene, s, NULL, o, &s->camera, NULL, frame_code(s, o), 0, 0);
 	for (int ordinal = 1; ordinal <= XVT_SNAP_COMPONENTS; ++ordinal) {
-		uint16_t code = EngineFlameFrameCode(s, o, ordinal);
+		uint16_t code = engine_flame_frame_code(s, o, ordinal);
 		if (code == XVT_SNAP_INVALID_TEXTURE_FRAME) {
 			break;
 		}
-		SubmitOne(scene, s, NULL, o, &s->camera, NULL, code, ordinal,
-			  0);
+		submit_one(scene, s, NULL, o, &s->camera, NULL, code, ordinal,
+			   0);
 	}
 }

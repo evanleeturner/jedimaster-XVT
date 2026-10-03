@@ -5,110 +5,111 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct Std3DUnknown;
+struct std3d_unknown;
 
-struct Std3DUnknownVtbl {
-	void *queryInterface;
-	void *addRef;
-	uint32_t(AERON_DXAPI *release)(struct Std3DUnknown *self);
+struct std3d_unknown_vtbl {
+	void *query_interface;
+	void *add_ref;
+	uint32_t(AERON_DXAPI *release)(struct std3d_unknown *self);
 };
 
-struct Std3DUnknown {
-	const struct Std3DUnknownVtbl *lpVtbl;
+struct std3d_unknown {
+	const struct std3d_unknown_vtbl *lp_vtbl;
 };
 
-/* Render options in the bits of Std3DRenderStateFlags, plus 0x1
+/* Render options in the bits of std3d_render_state_flags, plus 0x1
  * perspective-correct texturing, 0x2 dither, 0x4 specular, 0x8 antialias, and
- * 0x10 and 0x20 subpixel, as std3D_SetInitialRenderState reads them.
- * std3D_Startup sets 0x19B3: perspective, dither, both subpixel bits, linear
+ * 0x10 and 0x20 subpixel, as std3d_set_initial_render_state reads them.
+ * std3d_startup sets 0x19B3: perspective, dither, both subpixel bits, linear
  * filtering both ways, z compare and z write. The only other writer,
- * std3D_SetCapFlags, has no caller. */
+ * std3d_set_cap_flags, has no caller. */
 // GLOBAL: XVT 0x528C50
-unsigned int g_std3DRenderOptionFlags;
-/* Render-state bits last written into the execute buffer; std3D_SetRenderState
+unsigned int g_std3d_render_option_flags;
+/* Render-state bits last written into the execute buffer; std3d_set_render_state
  * writes only the states whose bits differ from them, then stores the new bits.
- * std3D_SetInitialRenderState sets it to g_std3DRenderOptionFlags. */
+ * std3d_set_initial_render_state sets it to g_std3d_render_option_flags. */
 // GLOBAL: XVT 0x528C54
-Std3DRenderStateFlags g_d3dStateFlags = 0;
-/* Devices in g_std3DDevices, 0 to 4: std3D_Startup sets 0 and
- * std3D_EnumDevicesCallback adds each. */
+std3d_render_state_flags g_d3d_state_flags = 0;
+/* Devices in g_std3d_devices, 0 to 4: std3d_startup sets 0 and
+ * std3d_enum_devices_callback adds each. */
 // GLOBAL: XVT 0x528C58
-unsigned int g_std3DNumDevices = 0;
-/* Index in g_std3DDevices of the device std3D_CreateDevice opened. */
+unsigned int g_std3d_num_devices = 0;
+/* Index in g_std3d_devices of the device std3d_create_device opened. */
 // GLOBAL: XVT 0xA90A68
-unsigned int g_std3DCurDeviceIdx = 0;
-/* The device std3D_CreateDevice opened, in g_std3DDevices; NULL before. */
+unsigned int g_std3d_cur_device_idx = 0;
+/* The device std3d_create_device opened, in g_std3d_devices; NULL before. */
 // GLOBAL: XVT 0x528C5C
-struct Std3DDevice *g_pStd3DCurDevice = 0;
-/* Formats in g_std3DTextureFormats, 0 to 8: std3D_CreateDevice sets 0 and
- * std3D_EnumTextureFormats adds each it keeps. */
+struct std3d_device *g_p_std3d_cur_device = 0;
+/* Formats in g_std3d_texture_formats, 0 to 8: std3d_create_device sets 0 and
+ * std3d_enum_texture_formats adds each it keeps. */
 // GLOBAL: XVT 0x528C60
-int g_std3DNumTextureFormats = 0;
+int g_std3d_num_texture_formats = 0;
 /* The texture format closest to the render target's 16-bit RGB, picked by
- * std3D_CreateDevice. */
+ * std3d_create_device. */
 // GLOBAL: XVT 0x528C64
-struct Std3DTexFmt *g_pFmtOpaqueTexture;
-/* Index of g_pFmtOpaqueTexture in g_std3DTextureFormats; only debug prints read
+struct std3d_tex_fmt *g_p_fmt_opaque_texture;
+/* Index of g_p_fmt_opaque_texture in g_std3d_texture_formats; only debug prints read
  * it. */
 // GLOBAL: XVT 0xA90B58
-int g_fmtIdxOpaqueTexture = 0;
+int g_fmt_idx_opaque_texture = 0;
 /* The texture format closest to RGBA with 5, 5, 5 and 1 bits, picked by
- * std3D_CreateDevice when the device has alpha textures; NULL otherwise. */
+ * std3d_create_device when the device has alpha textures; NULL otherwise. */
 // GLOBAL: XVT 0x528C68
-struct Std3DTexFmt *g_pFmtRGBA1555 = 0;
-/* Index of g_pFmtRGBA1555 in g_std3DTextureFormats; only debug prints read
+struct std3d_tex_fmt *g_p_fmt_rgba1555 = 0;
+/* Index of g_p_fmt_rgba1555 in g_std3d_texture_formats; only debug prints read
  * it. */
 // GLOBAL: XVT 0xA91B88
-int g_fmtIdxRGBA1555 = 0;
+int g_fmt_idx_rgba1555 = 0;
 /* The texture format closest to RGBA with 4 bits each, picked by
- * std3D_CreateDevice when the device has alpha textures but no alpha blending;
+ * std3d_create_device when the device has alpha textures but no alpha blending;
  * NULL otherwise. */
 // GLOBAL: XVT 0x528C6C
-struct Std3DTexFmt *g_pFmtRGBA4444 = 0;
-/* Index of g_pFmtRGBA4444 in g_std3DTextureFormats; only debug prints read
+struct std3d_tex_fmt *g_p_fmt_rgba4444 = 0;
+/* Index of g_p_fmt_rgba4444 in g_std3d_texture_formats; only debug prints read
  * it. */
 // GLOBAL: XVT 0xA90A64
-int g_fmtIdxRGBA4444 = 0;
-/* 1 after std3D_Startup succeeds, 0 after std3D_Shutdown; nothing reads it. */
+int g_fmt_idx_rgba4444 = 0;
+/* 1 after std3d_startup succeeds, 0 after std3d_shutdown; nothing reads it. */
 // GLOBAL: XVT 0x528CB8
-static int g_std3DStartupDone = 0;
-/* 1 when the open device draws with a z-buffer: std3D_CreateDevice sets it when
- * asked to, when the device has one, and when g_std3DRenderOptionFlags has a
- * 0x1800 bit. Starts at 1, and std3D_Startup sets 1. */
+static int g_std3d_startup_done = 0;
+/* 1 when the open device draws with a z-buffer: std3d_create_device sets it when
+ * asked to, when the device has one, and when g_std3d_render_option_flags has a
+ * 0x1800 bit. Starts at 1, and std3d_startup sets 1. */
 // GLOBAL: XVT 0x528CB0
-int g_std3DZBufferEnabled = 1;
-/* The DirectDraw object, which std3D_Startup takes from
- * Renderer_GetDirectDraw. */
+int g_std3dz_buffer_enabled = 1;
+/* The DirectDraw object, which std3d_startup takes from
+ * renderer_get_direct_draw. */
 // GLOBAL: XVT 0x528CB4
-IDirectDraw *g_std3DDirectDraw = 0;
+IDirectDraw *g_std3d_direct_draw = 0;
 /* The texture formats the open device offers, filled by
- * std3D_EnumTextureFormats, which skips 4-bit palette formats. */
+ * std3d_enum_texture_formats, which skips 4-bit palette formats. */
 // GLOBAL: XVT 0xA90C00
-struct Std3DTexFmt g_std3DTextureFormats[8] = {0};
-/* Message std3D_Shutdown passes to DebugPrintf, whose calls print nothing. */
+struct std3d_tex_fmt g_std3d_texture_formats[8] = {0};
+/* Message std3d_shutdown passes to debug_printf, whose calls print nothing. */
 // GLOBAL: XVT 0x529168
-static const char g_std3DShutdownSucceededMessage[] = "Shutdown Succeeded.\n";
-/* What std3D_LookupErrorString returns for a code the table lacks. */
+static const char g_std3d_shutdown_succeeded_message[] =
+	"Shutdown Succeeded.\n";
+/* What std3d_lookup_error_string returns for a code the table lacks. */
 // GLOBAL: XVT 0x5293B0
-static const char g_std3DUnknownErrorMessage[] = "Unknown Error";
-/* Format passed to DebugPrintf, whose calls print nothing, when a scene does
+static const char g_std3d_unknown_error_message[] = "Unknown Error";
+/* Format passed to debug_printf, whose calls print nothing, when a scene does
  * not begin. */
 // GLOBAL: XVT 0x529470
-static const char g_std3DBeginSceneErrorFormat[] =
+static const char g_std3d_begin_scene_error_format[] =
 	"Error %s beginning scene.\n";
-/* Format passed to DebugPrintf, whose calls print nothing, when a scene does
+/* Format passed to debug_printf, whose calls print nothing, when a scene does
  * not end. */
 // GLOBAL: XVT 0x52948C
-static const char g_std3DEndSceneErrorFormat[] = "Error %s ending scene.\n";
-/* Format passed to DebugPrintf, whose calls print nothing, when the execute
+static const char g_std3d_end_scene_error_format[] = "Error %s ending scene.\n";
+/* Format passed to debug_printf, whose calls print nothing, when the execute
  * buffer does not lock. */
 // GLOBAL: XVT 0x5294A4
-static const char g_std3DLockExecuteBufferErrorFormat[] =
+static const char g_std3d_lock_execute_buffer_error_format[] =
 	"Error %s locking D3D Execute buffer.\n";
 /* Rows of a result code and its name, for the Direct3D and then the DirectDraw
- * codes, that std3D_LookupErrorString searches. */
+ * codes, that std3d_lookup_error_string searches. */
 // GLOBAL: XVT 0x528CC0
-const struct Std3DErrorStringEntry g_std3DErrorStringTable[121] = {
+const struct std3d_error_string_entry g_std3d_error_string_table[121] = {
 	{0, "D3D_OK"},
 	{-2005531972, "D3DERR_BADMAJORVERSION"},
 	{-2005531971, "D3DERR_BADMINORVERSION"},
@@ -231,566 +232,582 @@ const struct Std3DErrorStringEntry g_std3DErrorStringTable[121] = {
 	{-2005532083, "DDERR_NOTPALETTIZED"},
 	{-2005532082, "DDERR_UNSUPPORTEDMODE"},
 };
-/* Fog table end that std3D_SetRenderState writes when fog turns on. Only
- * std3D_SetFogTableRangeBits writes it, and nothing calls that, so it stays
+/* Fog table end that std3d_set_render_state writes when fog turns on. Only
+ * std3d_set_fog_table_range_bits writes it, and nothing calls that, so it stays
  * 0. */
 // GLOBAL: XVT 0x6644F0
-static unsigned int g_std3DFogTableEndBits;
-/* Blue of the fog color, 0 to 255, that std3D_SetRenderState writes when fog
- * turns on. Only std3D_SetFogColor8 writes it, and nothing calls that, so it
+static unsigned int g_std3d_fog_table_end_bits;
+/* Blue of the fog color, 0 to 255, that std3d_set_render_state writes when fog
+ * turns on. Only std3d_set_fog_color8 writes it, and nothing calls that, so it
  * stays 0. */
 // GLOBAL: XVT 0x6644F4
-static unsigned int g_std3DFogColorBlue8;
-/* Fog table start, written and read as g_std3DFogTableEndBits is; it stays
+static unsigned int g_std3d_fog_color_blue8;
+/* Fog table start, written and read as g_std3d_fog_table_end_bits is; it stays
  * 0. */
 // GLOBAL: XVT 0x664544
-static unsigned int g_std3DFogTableStartBits;
-/* Red of the fog color, written and read as g_std3DFogColorBlue8 is; it stays
+static unsigned int g_std3d_fog_table_start_bits;
+/* Red of the fog color, written and read as g_std3d_fog_color_blue8 is; it stays
  * 0. */
 // GLOBAL: XVT 0x664750
-static unsigned int g_std3DFogColorRed8;
+static unsigned int g_std3d_fog_color_red8;
 /* 16-bit colors of the palette being uploaded in the opaque format:
- * std3D_CopyPaletteToScratch16 copies them in. std3D_AddToTextureCache looks up
+ * std3d_copy_palette_to_scratch16 copies them in. std3d_add_to_texture_cache looks up
  * 8-bit texels through it, and takes entry 0 as the color key when the device
  * has no alpha textures. */
 // GLOBAL: XVT 0x664770
-uint16_t g_std3DPaletteScratch16[256];
+uint16_t g_std3d_palette_scratch16[256];
 /* The palette in the RGBA 4-bit format, for translucent textures. Only
- * std3D_SetPaletteConversionSource fills it, and nothing calls that, so it
+ * std3d_set_palette_conversion_source fills it, and nothing calls that, so it
  * stays 0. */
 // GLOBAL: XVT 0x6642F0
-uint16_t g_texConvBuf4444[256] = {0};
+uint16_t g_tex_conv_buf4444[256] = {0};
 /* The palette in the RGBA 5, 5, 5 and 1 bit format, for color-keyed textures on
- * a device with alpha textures; std3D_ConvertPaletteTo1555 fills it. */
+ * a device with alpha textures; std3d_convert_palette_to1555 fills it. */
 // GLOBAL: XVT 0x664550
-uint16_t g_texConvBuf1555[256] = {0};
-/* A copy of the last palette given to std3D_SetPaletteConversionSource, which
+uint16_t g_tex_conv_buf1555[256] = {0};
+/* A copy of the last palette given to std3d_set_palette_conversion_source, which
  * nothing calls; nothing reads it. */
 // GLOBAL: XVT 0x664980
-static uint8_t g_std3DPaletteConversionSourceRgb[768] = {0};
-/* Green of the fog color, written and read as g_std3DFogColorBlue8 is; it stays
+static uint8_t g_std3d_palette_conversion_source_rgb[768] = {0};
+/* Green of the fog color, written and read as g_std3d_fog_color_blue8 is; it stays
  * 0. */
 // GLOBAL: XVT 0x664978
-static unsigned int g_std3DFogColorGreen8;
-/* The Direct3D interface std3D_Startup gets from the DirectDraw object;
- * std3D_Shutdown releases it, and the modern build then sets it to NULL. */
+static unsigned int g_std3d_fog_color_green8;
+/* The Direct3D interface std3d_startup gets from the DirectDraw object;
+ * std3d_shutdown releases it, and the modern build then sets it to NULL. */
 // GLOBAL: XVT 0x664970
-static IDirect3D *g_lpD3D = 0;
-/* The Direct3D viewport std3D_CreateViewport makes; std3D_Close releases it and
+static IDirect3D *g_lp_d3d = 0;
+/* The Direct3D viewport std3d_create_viewport makes; std3d_close releases it and
  * sets it to NULL. */
 // GLOBAL: XVT 0x664974
-static IDirect3DViewport *g_d3dViewport = 0;
-/* Released by std3D_Close when set, but nothing sets it, so it stays NULL. */
+static IDirect3DViewport *g_d3d_viewport = 0;
+/* Released by std3d_close when set, but nothing sets it, so it stays NULL. */
 // GLOBAL: XVT 0x66497C
-static struct Std3DUnknown *g_d3dViewportMaterial = 0;
-/* The Direct3D device std3D_CreateDevice gets from the render surface;
- * std3D_Close releases it and sets it to NULL. */
+static struct std3d_unknown *g_d3d_viewport_material = 0;
+/* The Direct3D device std3d_create_device gets from the render surface;
+ * std3d_close releases it and sets it to NULL. */
 // GLOBAL: XVT 0x664548
-IDirect3DDevice *g_d3dDevice;
-/* The surface Direct3D draws into, set by std3D_SetRenderSurface;
- * Renderer_InitD3DDevice passes g_flightBackBuffer. */
+IDirect3DDevice *g_d3d_device;
+/* The surface Direct3D draws into, set by std3d_set_render_surface;
+ * renderer_init_d3d_device passes g_flight_back_buffer. */
 // GLOBAL: XVT 0xA91B14
-struct IDirectDrawSurface *g_std3DRenderSurface;
-/* The Direct3D devices std3D_EnumDevicesCallback found, up to 4. */
+struct IDirectDrawSurface *g_std3d_render_surface;
+/* The Direct3D devices std3d_enum_devices_callback found, up to 4. */
 // GLOBAL: XVT 0xA91120
-struct Std3DDevice g_std3DDevices[4] = {{0}};
-/* Red of the full-viewport color overlay. Set by std3D_SetColorOverlayParams,
- * which Renderer_InitD3DDevice calls with 0 and off; read by
- * std3D_DrawColorOverlay, which nothing calls. */
+struct std3d_device g_std3d_devices[4] = {{0}};
+/* Red of the full-viewport color overlay. Set by std3d_set_color_overlay_params,
+ * which renderer_init_d3d_device calls with 0 and off; read by
+ * std3d_draw_color_overlay, which nothing calls. */
 // GLOBAL: XVT 0xA90B10
-float g_std3DColorOverlayRed;
-/* Green of the color overlay, set and read as g_std3DColorOverlayRed is. */
+float g_std3d_color_overlay_red;
+/* Green of the color overlay, set and read as g_std3d_color_overlay_red is. */
 // GLOBAL: XVT 0xA90B14
-float g_std3DColorOverlayGreen;
-/* Blue of the color overlay, set and read as g_std3DColorOverlayRed is. */
+float g_std3d_color_overlay_green;
+/* Blue of the color overlay, set and read as g_std3d_color_overlay_red is. */
 // GLOBAL: XVT 0xA90B18
-float g_std3DColorOverlayBlue;
-/* Nonzero when the color overlay is on; set and read as g_std3DColorOverlayRed
+float g_std3d_color_overlay_blue;
+/* Nonzero when the color overlay is on; set and read as g_std3d_color_overlay_red
  * is. */
 // GLOBAL: XVT 0xA90B1C
-int g_std3DColorOverlayEnabled;
+int g_std3d_color_overlay_enabled;
 /* The z test of the open device: 16 (greater) when its compare caps have the
- * 0x10 bit, else 2 (less); std3D_CreateDevice sets it when the z-buffer is
- * enabled, else it stays 0. With 2, RenderScene_EmitFlightVertex writes 1 minus
+ * 0x10 bit, else 2 (less); std3d_create_device sets it when the z-buffer is
+ * enabled, else it stays 0. With 2, render_scene_emit_flight_vertex writes 1 minus
  * its z value, so that a nearer point has the smaller value. */
 // GLOBAL: XVT 0xA90B20
-int g_std3DZCompareCap = 0;
-/* Two triangles over the viewport quad in g_std3DQuadVerts, alpha-blended with
- * mono off; std3D_BuildViewportQuad sets them and std3D_DrawColorOverlay draws
+int g_std3dz_compare_cap = 0;
+/* Two triangles over the viewport quad in g_std3d_quad_verts, alpha-blended with
+ * mono off; std3d_build_viewport_quad sets them and std3d_draw_color_overlay draws
  * them. */
 // GLOBAL: XVT 0xA90B30
-struct Std3DRenderTri g_std3DViewportQuadTriangles[2] = {{0}};
+struct std3d_render_tri g_std3d_viewport_quad_triangles[2] = {{0}};
 /* The viewport's corners, clockwise from the top left, set by
- * std3D_BuildViewportQuad with every other field 0. */
+ * std3d_build_viewport_quad with every other field 0. */
 // GLOBAL: XVT 0xA90B60
-D3DTLVERTEX g_std3DQuadVerts[4] = {{0}};
-/* The viewport rectangle std3D_BuildViewportQuad was given: 0, 0 and the render
- * target's size. std3D_ClearZBuffer clears this area. */
+D3DTLVERTEX g_std3d_quad_verts[4] = {{0}};
+/* The viewport rectangle std3d_build_viewport_quad was given: 0, 0 and the render
+ * target's size. std3d_clear_z_buffer clears this area. */
 // GLOBAL: XVT 0xA90BF0
-static struct Std3DViewportRect g_std3DQuadRect = {0};
-/* The texture std3D_DrawColorOverlay uploads and removes again each time it
+static struct std3d_viewport_rect g_std3d_quad_rect = {0};
+/* The texture std3d_draw_color_overlay uploads and removes again each time it
  * draws without alpha blending. */
 // GLOBAL: XVT 0xA90A70
-struct Std3DTexCacheNode g_std3DColorOverlayTexNode = {0};
-/* The z-buffer surface and its description, made by std3D_CreateZBuffer. */
+struct std3d_tex_cache_node g_std3d_color_overlay_tex_node = {0};
+/* The z-buffer surface and its description, made by std3d_create_z_buffer. */
 // GLOBAL: XVT 0xA91A34
-struct Std3DZBufferSurfaceBlock g_std3DZBufferSurfaceBlock = {0};
-/* A record of the z-buffer that std3D_CreateZBuffer fills; only its debug print
+struct std3dz_buffer_surface_block g_std3dz_buffer_surface_block = {0};
+/* A record of the z-buffer that std3d_create_z_buffer fills; only its debug print
  * reads it. */
 // GLOBAL: XVT 0xA919D0
-struct Std3DZBufferTarget g_std3DZBufferTarget = {0};
-/* Only std3D_SetTextureSizeCaps writes it, and nothing calls that, so it stays
+struct std3dz_buffer_target g_std3dz_buffer_target = {0};
+/* Only std3d_set_texture_size_caps writes it, and nothing calls that, so it stays
  * 0. */
 // GLOBAL: XVT 0x528C70
-int g_std3DMinTextureWidth;
-/* Only std3D_SetTextureSizeCaps writes it, and nothing calls that, so it stays
+int g_std3d_min_texture_width;
+/* Only std3d_set_texture_size_caps writes it, and nothing calls that, so it stays
  * 0. */
 // GLOBAL: XVT 0x528C74
-int g_std3DMinTextureHeight;
-/* Only std3D_SetTextureSizeCaps writes it, and nothing calls that, so it stays
+int g_std3d_min_texture_height;
+/* Only std3d_set_texture_size_caps writes it, and nothing calls that, so it stays
  * 0. */
 // GLOBAL: XVT 0x528C78
-int g_std3DMaxTextureWidth;
-/* Only std3D_SetTextureSizeCaps writes it, and nothing calls that; nothing
+int g_std3d_max_texture_width;
+/* Only std3d_set_texture_size_caps writes it, and nothing calls that; nothing
  * reads it. */
 // GLOBAL: XVT 0x528C7C
-int g_std3DMaxTextureHeight;
-/* Most vertices one execute buffer takes: the device's maxVertexCount, at most
- * 512, or 512 when it states none; set by std3D_CreateDevice. std3D_AddVertices
+int g_std3d_max_texture_height;
+/* Most vertices one execute buffer takes: the device's max_vertex_count, at most
+ * 512, or 512 when it states none; set by std3d_create_device. std3d_add_vertices
  * refuses more. */
 // GLOBAL: XVT 0x528C80
-unsigned int g_std3DExecBufMaxVerts = 0;
-/* Counter each std3D_LockExecuteBuffer raises; a texture used in the current
- * execute buffer carries it in cacheBatchTag. std3D_CreateDevice and
- * std3D_FlushTextureCache set it to 1. */
+unsigned int g_std3d_exec_buf_max_verts = 0;
+/* Counter each std3d_lock_execute_buffer raises; a texture used in the current
+ * execute buffer carries it in cache_batch_tag. std3d_create_device and
+ * std3d_flush_texture_cache set it to 1. */
 // GLOBAL: XVT 0x528C84
-unsigned int g_std3DTextureBatchTag = 1;
+unsigned int g_std3d_texture_batch_tag = 1;
 /* Textures on the cache list. */
 // GLOBAL: XVT 0x528C88
-int g_texCacheCount = 0;
+int g_tex_cache_count = 0;
 /* Least recently used texture on the cache list; NULL when it is empty. */
 // GLOBAL: XVT 0x528C8C
-struct Std3DTexCacheNode *g_pTexCacheHead = 0;
+struct std3d_tex_cache_node *g_p_tex_cache_head = 0;
 /* Most recently used texture on the cache list; NULL when it is empty. */
 // GLOBAL: XVT 0x528C90
-struct Std3DTexCacheNode *g_pTexCacheTail = 0;
-/* A 32 by 32 buffer in the RGBA 4-bit format, made by std3D_CreateDevice when
- * the device has alpha textures but no alpha blending; std3D_DrawColorOverlay
- * fills it and std3D_Close frees it. */
+struct std3d_tex_cache_node *g_p_tex_cache_tail = 0;
+/* A 32 by 32 buffer in the RGBA 4-bit format, made by std3d_create_device when
+ * the device has alpha textures but no alpha blending; std3d_draw_color_overlay
+ * fills it and std3d_close frees it. */
 // GLOBAL: XVT 0x528C94
-struct Std3DVBuffer *g_pStd3DVBuffer = 0;
-/* The execute buffer every batch is written into; std3D_CreateDevice makes it
- * and std3D_Close releases it. */
+struct std3dv_buffer *g_p_std3dv_buffer = 0;
+/* The execute buffer every batch is written into; std3d_create_device makes it
+ * and std3d_close releases it. */
 // GLOBAL: XVT 0x528C98
-IDirect3DExecuteBuffer *g_d3dExecuteBuffer = 0;
+IDirect3DExecuteBuffer *g_d3d_execute_buffer = 0;
 /* Size of the execute buffer in bytes: the device's maxBufferSize, or 0x10000
  * when it states none. */
 // GLOBAL: XVT 0x528C9C
-unsigned int g_std3DExecBufSize = 0;
-/* Vertices in the execute buffer since std3D_LockExecuteBuffer set it to 0. */
+unsigned int g_std3d_exec_buf_size = 0;
+/* Vertices in the execute buffer since std3d_lock_execute_buffer set it to 0. */
 // GLOBAL: XVT 0x528CA0
-int g_d3dBufVertCount = 0;
+int g_d3d_buf_vert_count = 0;
 /* Triangles added since the last lock; nothing reads it. */
 // GLOBAL: XVT 0x528CA4
-static unsigned int g_std3DExecBufTriCount = 0;
-/* The texture the execute buffer last selected. std3D_LockExecuteBuffer sets it
+static unsigned int g_std3d_exec_buf_tri_count = 0;
+/* The texture the execute buffer last selected. std3d_lock_execute_buffer sets it
  * to 1, which no texture is, so the first triangle group always writes a
  * texture state. */
 // GLOBAL: XVT 0x528CA8
-static struct Std3DTexCacheNode *g_d3dCurTexture =
-	(struct Std3DTexCacheNode *)1;
-/* Points at g_std3DZBufferSurfaceBlock once std3D_CreateZBuffer runs; NULL
+static struct std3d_tex_cache_node *g_d3d_cur_texture =
+	(struct std3d_tex_cache_node *)1;
+/* Points at g_std3dz_buffer_surface_block once std3d_create_z_buffer runs; NULL
  * before. */
 // GLOBAL: XVT 0x528CAC
-struct Std3DZBufferSurfaceBlock *g_pStd3DZBufferState = NULL;
-/* 1 while a device is open: std3D_CreateDevice sets it on success and
- * std3D_Close clears it. */
+struct std3dz_buffer_surface_block *g_p_std3dz_buffer_state = NULL;
+/* 1 while a device is open: std3d_create_device sets it on success and
+ * std3d_close clears it. */
 // GLOBAL: XVT 0x528CBC
-int g_std3DDeviceOpen = 0;
+int g_std3d_device_open = 0;
 /* Start of the locked execute buffer. */
 // GLOBAL: XVT 0x664754
-static uint8_t *g_d3dExecBufBase = 0;
-/* Description of the execute buffer: std3D_CreateDevice sets its size, and each
+static uint8_t *g_d3d_exec_buf_base = 0;
+/* Description of the execute buffer: std3d_create_device sets its size, and each
  * lock fills in where it lies. */
 // GLOBAL: XVT 0x664758
-D3DEXECUTEBUFFERDESC g_d3dExecBufDesc = {0};
+D3DEXECUTEBUFFERDESC g_d3d_exec_buf_desc = {0};
 /* Where the next vertex or instruction goes in the locked execute buffer; all
  * bits set until the first lock. */
 // GLOBAL: XVT 0x664C80
-uint8_t *g_d3dWritePtr = (uint8_t *)(uintptr_t)-1;
+uint8_t *g_d3d_write_ptr = (uint8_t *)(uintptr_t)-1;
 /* Where the instructions start, after the vertices; set by
- * std3D_BeginInstructions. */
+ * std3d_begin_instructions. */
 // GLOBAL: XVT 0x664C84
-static uint8_t *g_d3dInstrStart = 0;
-/* The render target's description, filled by std3D_InitRenderTargetDesc. */
+static uint8_t *g_d3d_instr_start = 0;
+/* The render target's description, filled by std3d_init_render_target_desc. */
 // GLOBAL: XVT 0x6644F8
-struct Std3DRenderTargetDesc g_std3DRenderTargetDesc = {0};
-/* Points at g_std3DRenderTargetDesc once std3D_InitRenderTargetDesc runs; NULL
+struct std3d_render_target_desc g_std3d_render_target_desc = {0};
+/* Points at g_std3d_render_target_desc once std3d_init_render_target_desc runs; NULL
  * before. */
 // GLOBAL: XVT 0xA90BE0
-struct Std3DRenderTargetDesc *g_pStd3DRenderTarget = 0;
+struct std3d_render_target_desc *g_p_std3d_render_target = 0;
 
-/* Copies colorCount 16-bit colors into g_std3DPaletteScratch16. Does not check
+/* Copies colorCount 16-bit colors into g_std3d_palette_scratch16. Does not check
  * colorCount against its 256 entries. */
 // FUNCTION: XVT 0x4B0B60
-void std3D_CopyPaletteToScratch16(const uint16_t *palette, int colorCount)
+void std3d_copy_palette_to_scratch16(const uint16_t *palette, int color_count)
 {
-	memcpy(g_std3DPaletteScratch16, palette,
-	       (size_t)colorCount * sizeof(*palette));
+	memcpy(g_std3d_palette_scratch16, palette,
+	       (size_t)color_count * sizeof(*palette));
 }
 
-/* Fills g_texConvBuf1555 from colorCount colors in the opaque texture format: a
+/* Fills g_tex_conv_buf1555 from colorCount colors in the opaque texture format: a
  * plain copy when that format is the 1555 one; otherwise each channel is taken
  * up to 8 bits and down into the 1555 format, and every entry but 0 gets full
  * alpha, so entry 0 is transparent. Does not check colorCount against 256. */
 // FUNCTION: XVT 0x4B0B90
-void std3D_ConvertPaletteTo1555(const uint16_t *palette, int colorCount)
+void std3d_convert_palette_to1555(const uint16_t *palette, int color_count)
 {
-	int colorIndex;
-	struct ColorInfo *sourceFormat;
-	struct ColorInfo *targetFormat;
+	int color_index;
+	struct color_info *source_format;
+	struct color_info *target_format;
 
-	if (g_pFmtOpaqueTexture == g_pFmtRGBA1555) {
-		memcpy(g_texConvBuf1555, palette,
-		       (size_t)colorCount * sizeof(*palette));
+	if (g_p_fmt_opaque_texture == g_p_fmt_rgba1555) {
+		memcpy(g_tex_conv_buf1555, palette,
+		       (size_t)color_count * sizeof(*palette));
 	} else {
-		sourceFormat = &g_pFmtOpaqueTexture->colorInfo;
-		targetFormat = &g_pFmtRGBA1555->colorInfo;
-		for (colorIndex = 0; colorIndex < colorCount; ++colorIndex) {
+		source_format = &g_p_fmt_opaque_texture->color_info;
+		target_format = &g_p_fmt_rgba1555->color_info;
+		for (color_index = 0; color_index < color_count;
+		     ++color_index) {
 			uint8_t channel;
 
-			channel = (uint8_t)((palette[colorIndex] >>
-					     sourceFormat->redPosShift)
-					    << sourceFormat->redPosShiftRight);
-			g_texConvBuf1555[colorIndex] =
+			channel = (uint8_t)((palette[color_index] >>
+					     source_format->red_pos_shift)
+					    << source_format
+						       ->red_pos_shift_right);
+			g_tex_conv_buf1555[color_index] =
 				(uint16_t)((channel >>
-					    targetFormat->redPosShiftRight)
-					   << targetFormat->redPosShift);
-			channel =
-				(uint8_t)((palette[colorIndex] >>
-					   sourceFormat->greenPosShift)
-					  << sourceFormat->greenPosShiftRight);
-			g_texConvBuf1555[colorIndex] |=
+					    target_format->red_pos_shift_right)
+					   << target_format->red_pos_shift);
+			channel = (uint8_t)((palette[color_index] >>
+					     source_format->green_pos_shift)
+					    << source_format
+						       ->green_pos_shift_right);
+			g_tex_conv_buf1555[color_index] |=
 				(uint16_t)((channel >>
-					    targetFormat->greenPosShiftRight)
-					   << targetFormat->greenPosShift);
-			channel = (uint8_t)((palette[colorIndex] >>
-					     sourceFormat->bluePosShift)
-					    << sourceFormat->bluePosShiftRight);
-			g_texConvBuf1555[colorIndex] |=
+					    target_format
+						    ->green_pos_shift_right)
+					   << target_format->green_pos_shift);
+			channel = (uint8_t)((palette[color_index] >>
+					     source_format->blue_pos_shift)
+					    << source_format
+						       ->blue_pos_shift_right);
+			g_tex_conv_buf1555[color_index] |=
 				(uint16_t)((channel >>
-					    targetFormat->bluePosShiftRight)
-					   << targetFormat->bluePosShift);
-			if (colorIndex != 0) {
+					    target_format->blue_pos_shift_right)
+					   << target_format->blue_pos_shift);
+			if (color_index != 0) {
 				channel = 0xff;
-				g_texConvBuf1555[colorIndex] |=
+				g_tex_conv_buf1555[color_index] |=
 					(uint16_t)((channel >>
-						    targetFormat
-							    ->alphaPosShiftRight)
-						   << targetFormat
-							      ->alphaPosShift);
+						    target_format
+							    ->alpha_pos_shift_right)
+						   << target_format
+							      ->alpha_pos_shift);
 			}
 		}
 	}
 }
 
-/* Takes the DirectDraw object, sets g_std3DRenderOptionFlags to 0x19B3 and
- * g_std3DZBufferEnabled to 1, gets the Direct3D interface into g_lpD3D and
- * enumerates the devices into g_std3DDevices. Returns 1, setting
- * g_std3DStartupDone, when at least one device was found; 0 when there is no
+/* Takes the DirectDraw object, sets g_std3d_render_option_flags to 0x19B3 and
+ * g_std3dz_buffer_enabled to 1, gets the Direct3D interface into g_lp_d3d and
+ * enumerates the devices into g_std3d_devices. Returns 1, setting
+ * g_std3d_startup_done, when at least one device was found; 0 when there is no
  * DirectDraw object, getting the interface or the enumeration fails, or no
  * device is found. */
 // FUNCTION: XVT 0x4B0DB0
-int std3D_Startup(void)
+int std3d_startup(void)
 {
 	int result;
 
-	g_std3DDirectDraw = Renderer_GetDirectDraw();
-	if (g_std3DDirectDraw == NULL) {
-		DebugPrintf("DDraw device not created yet!\n", 0, 0, 0, 0);
+	g_std3d_direct_draw = renderer_get_direct_draw();
+	if (g_std3d_direct_draw == NULL) {
+		debug_printf("DDraw device not created yet!\n", 0, 0, 0, 0);
 		return 0;
 	}
 
-	g_std3DRenderOptionFlags = 0x19b3;
-	g_std3DZBufferEnabled = 1;
-	DebugPrintf("Creating D3D interface object.\n", 0, 0, 0, 0);
-	result = g_std3DDirectDraw->lpVtbl->QueryInterface(
-		g_std3DDirectDraw, &CLSID_IDirect3D, (void **)&g_lpD3D);
+	g_std3d_render_option_flags = 0x19b3;
+	g_std3dz_buffer_enabled = 1;
+	debug_printf("Creating D3D interface object.\n", 0, 0, 0, 0);
+	result = g_std3d_direct_draw->lpVtbl->QueryInterface(
+		g_std3d_direct_draw, &CLSID_IDirect3D, (void **)&g_lp_d3d);
 	if (result != 0) {
-		DebugPrintf("Error %s creating Direct3D interface object.\n",
-			    std3D_LookupErrorString(
-				    result, g_std3DErrorStringTable, 121),
-			    0, 0, 0);
+		debug_printf("Error %s creating Direct3D interface object.\n",
+			     std3d_lookup_error_string(
+				     result, g_std3d_error_string_table, 121),
+			     0, 0, 0);
 		return 0;
 	}
 
-	DebugPrintf("Enumerating D3D devices.\n", 0, 0, 0, 0);
-	g_std3DNumDevices = 0;
-	result = g_lpD3D->lpVtbl->EnumDevices(g_lpD3D,
-					      std3D_EnumDevicesCallback, NULL);
+	debug_printf("Enumerating D3D devices.\n", 0, 0, 0, 0);
+	g_std3d_num_devices = 0;
+	result = g_lp_d3d->lpVtbl->EnumDevices(
+		g_lp_d3d, std3d_enum_devices_callback, NULL);
 	if (result != 0) {
-		DebugPrintf("Error %s when enumerating D3D devices.\n",
-			    std3D_LookupErrorString(
-				    result, g_std3DErrorStringTable, 121),
-			    0, 0, 0);
+		debug_printf("Error %s when enumerating D3D devices.\n",
+			     std3d_lookup_error_string(
+				     result, g_std3d_error_string_table, 121),
+			     0, 0, 0);
 		return 0;
 	}
-	if (g_std3DNumDevices == 0) {
+	if (g_std3d_num_devices == 0) {
 		return 0;
 	}
 
-	DebugPrintf(
-		"%d D3D devices found.\n", g_std3DNumDevices,
-		std3D_LookupErrorString(result, g_std3DErrorStringTable, 121),
-		0, 0);
-	g_std3DStartupDone = 1;
-	DebugPrintf("Startup Succeeded.\n", 0, 0, 0, 0);
+	debug_printf("%d D3D devices found.\n", g_std3d_num_devices,
+		     std3d_lookup_error_string(result,
+					       g_std3d_error_string_table, 121),
+		     0, 0);
+	g_std3d_startup_done = 1;
+	debug_printf("Startup Succeeded.\n", 0, 0, 0, 0);
 	return 1;
 }
 
-/* Fills g_std3DRenderTargetDesc for a 16-bit RGB target (5, 6 and 5 bits) of
- * width by height pixels and pitchBytes per row, with pitchPixels of pitchBytes
- * / 2 and sizeBytes of pitch times height; points g_pStd3DRenderTarget at it
+/* Fills g_std3d_render_target_desc for a 16-bit RGB target (5, 6 and 5 bits) of
+ * width by height pixels and pitch_bytes per row, with pitch_pixels of pitch_bytes
+ * / 2 and size_bytes of pitch times height; points g_p_std3d_render_target at it
  * and returns it. */
 // FUNCTION: XVT 0x4B0EF0
-struct Std3DRenderTargetDesc *std3D_InitRenderTargetDesc(unsigned int width,
-							 unsigned int height,
-							 int pitchBytes)
+struct std3d_render_target_desc *
+std3d_init_render_target_desc(unsigned int width, unsigned int height,
+			      int pitch_bytes)
 {
-	struct Std3DRenderTargetDesc *result;
-	struct Std3DRenderTargetDesc **renderTarget;
+	struct std3d_render_target_desc *result;
+	struct std3d_render_target_desc **render_target;
 
-	memset(&g_std3DRenderTargetDesc, 0, sizeof(g_std3DRenderTargetDesc));
-	renderTarget = &g_pStd3DRenderTarget;
-	*renderTarget = &g_std3DRenderTargetDesc;
-	g_std3DRenderTargetDesc.width = width;
-	(*renderTarget)->height = height;
-	g_pStd3DRenderTarget->pitch = pitchBytes;
-	g_pStd3DRenderTarget->pitchPixels = pitchBytes / 2;
-	g_pStd3DRenderTarget->sizeBytes =
-		g_pStd3DRenderTarget->pitch * g_pStd3DRenderTarget->height;
-	g_pStd3DRenderTarget->colorInfo.colorMode = STDCOLOR_RGB;
-	g_pStd3DRenderTarget->colorInfo.bpp = 16;
-	g_pStd3DRenderTarget->colorInfo.redBPP = 5;
-	g_pStd3DRenderTarget->colorInfo.greenBPP = 6;
-	g_pStd3DRenderTarget->colorInfo.blueBPP = 5;
-	g_pStd3DRenderTarget->colorInfo.redPosShift = 11;
-	g_pStd3DRenderTarget->colorInfo.greenPosShift = 5;
-	g_pStd3DRenderTarget->colorInfo.bluePosShift = 0;
-	g_pStd3DRenderTarget->colorInfo.redPosShiftRight = 3;
-	g_pStd3DRenderTarget->colorInfo.greenPosShiftRight = 2;
-	g_pStd3DRenderTarget->colorInfo.bluePosShiftRight = 3;
-	g_pStd3DRenderTarget->colorInfo.alphaBPP = 0;
-	g_pStd3DRenderTarget->colorInfo.alphaPosShift = 0;
-	result = g_pStd3DRenderTarget;
-	result->colorInfo.alphaPosShiftRight = 0;
+	memset(&g_std3d_render_target_desc, 0,
+	       sizeof(g_std3d_render_target_desc));
+	render_target = &g_p_std3d_render_target;
+	*render_target = &g_std3d_render_target_desc;
+	g_std3d_render_target_desc.width = width;
+	(*render_target)->height = height;
+	g_p_std3d_render_target->pitch = pitch_bytes;
+	g_p_std3d_render_target->pitch_pixels = pitch_bytes / 2;
+	g_p_std3d_render_target->size_bytes = g_p_std3d_render_target->pitch *
+					      g_p_std3d_render_target->height;
+	g_p_std3d_render_target->color_info.color_mode = STDCOLOR_RGB;
+	g_p_std3d_render_target->color_info.bpp = 16;
+	g_p_std3d_render_target->color_info.red_bpp = 5;
+	g_p_std3d_render_target->color_info.green_bpp = 6;
+	g_p_std3d_render_target->color_info.blue_bpp = 5;
+	g_p_std3d_render_target->color_info.red_pos_shift = 11;
+	g_p_std3d_render_target->color_info.green_pos_shift = 5;
+	g_p_std3d_render_target->color_info.blue_pos_shift = 0;
+	g_p_std3d_render_target->color_info.red_pos_shift_right = 3;
+	g_p_std3d_render_target->color_info.green_pos_shift_right = 2;
+	g_p_std3d_render_target->color_info.blue_pos_shift_right = 3;
+	g_p_std3d_render_target->color_info.alpha_bpp = 0;
+	g_p_std3d_render_target->color_info.alpha_pos_shift = 0;
+	result = g_p_std3d_render_target;
+	result->color_info.alpha_pos_shift_right = 0;
 	return result;
 }
 
-/* Releases g_lpD3D when it is set (the modern build then sets it to NULL) and
- * sets g_std3DStartupDone to 0. */
+/* Releases g_lp_d3d when it is set (the modern build then sets it to NULL) and
+ * sets g_std3d_startup_done to 0. */
 // FUNCTION: XVT 0x4B0FF0
-void std3D_Shutdown(void)
+void std3d_shutdown(void)
 {
-	if (g_lpD3D != 0) {
-		g_lpD3D->lpVtbl->Release(g_lpD3D);
+	if (g_lp_d3d != 0) {
+		g_lp_d3d->lpVtbl->Release(g_lp_d3d);
 #ifdef XVT_MODERN
-		g_lpD3D = NULL;
+		g_lp_d3d = NULL;
 #endif
 	}
-	DebugPrintf(g_std3DShutdownSucceededMessage, 0, 0, 0, 0);
-	g_std3DStartupDone = 0;
+	debug_printf(g_std3d_shutdown_succeeded_message, 0, 0, 0, 0);
+	g_std3d_startup_done = 0;
 }
 
-/* Opens device deviceIdx of g_std3DDevices on the render surface. Returns 0
+/* Opens device device_idx of g_std3d_devices on the render surface. Returns 0
  * when a device is already open, the index is out of range, or a step fails:
- * the z-buffer, made when bUseZBuffer is set, the device has one and
- * g_std3DRenderOptionFlags has a 0x1800 bit (it also sets g_std3DZCompareCap);
+ * the z-buffer, made when b_use_z_buffer is set, the device has one and
+ * g_std3d_render_option_flags has a 0x1800 bit (it also sets g_std3dz_compare_cap);
  * the device; the texture formats, none found counting as a failure; the
  * viewport; or the initial render state. Then makes the execute buffer (a
  * failure there is only printed), empties the texture cache, picks the opaque
  * texture format and, with alpha textures, the 1555 format and, without alpha
  * blending, the 4444 format with a 32 by 32 buffer in it, reads the texture
- * memory, sets g_std3DDeviceOpen and returns 1. */
+ * memory, sets g_std3d_device_open and returns 1. */
 // FUNCTION: XVT 0x4B1030
-int std3D_CreateDevice(unsigned int deviceIdx, int bUseZBuffer)
+int std3d_create_device(unsigned int device_idx, int b_use_z_buffer)
 {
-	struct Std3DRasterInfo raster;
-	struct ColorInfo alphaFormat;
-	unsigned int maxBufferSize;
-	unsigned int maxVertexCount;
+	struct std3d_raster_info raster;
+	struct color_info alpha_format;
+	unsigned int max_buffer_size;
+	unsigned int max_vertex_count;
 	HRESULT result;
-	const char *errorString;
+	const char *error_string;
 
-	if (g_std3DDeviceOpen != 0) {
-		DebugPrintf("Error: Multiple Opens Attempted.\n", 0, 0, 0, 0);
+	if (g_std3d_device_open != 0) {
+		debug_printf("Error: Multiple Opens Attempted.\n", 0, 0, 0, 0);
 		return 0;
 	}
-	if (g_std3DNumDevices <= deviceIdx) {
+	if (g_std3d_num_devices <= device_idx) {
 		return 0;
 	}
 
-	g_std3DCurDeviceIdx = deviceIdx;
-	g_pStd3DCurDevice = &g_std3DDevices[deviceIdx];
-	g_std3DZBufferEnabled = bUseZBuffer != 0 &&
-				g_pStd3DCurDevice->caps.bHasZBuffer != 0 &&
-				(g_std3DRenderOptionFlags & 0x1800) != 0;
-	if (g_std3DZBufferEnabled != 0) {
-		if (std3D_CreateZBuffer(g_pStd3DRenderTarget->width,
-					g_pStd3DRenderTarget->height) == 0) {
-			DebugPrintf("Error creating Z buffer.\n", 0, 0, 0, 0);
+	g_std3d_cur_device_idx = device_idx;
+	g_p_std3d_cur_device = &g_std3d_devices[device_idx];
+	g_std3dz_buffer_enabled =
+		b_use_z_buffer != 0 &&
+		g_p_std3d_cur_device->caps.b_has_z_buffer != 0 &&
+		(g_std3d_render_option_flags & 0x1800) != 0;
+	if (g_std3dz_buffer_enabled != 0) {
+		if (std3d_create_z_buffer(g_p_std3d_render_target->width,
+					  g_p_std3d_render_target->height) ==
+		    0) {
+			debug_printf("Error creating Z buffer.\n", 0, 0, 0, 0);
 			return 0;
 		}
-		g_std3DZCompareCap = 16;
-		if ((g_pStd3DCurDevice->caps.zCmpCapsMask & 0x10) == 0) {
-			g_std3DZCompareCap = 2;
+		g_std3dz_compare_cap = 16;
+		if ((g_p_std3d_cur_device->caps.z_cmp_caps_mask & 0x10) == 0) {
+			g_std3dz_compare_cap = 2;
 		}
-		DebugPrintf("Z compare: %s\n",
-			    g_std3DZCompareCap == 16 ? "Greater" : "Less", 0, 0,
-			    0);
+		debug_printf("Z compare: %s\n",
+			     g_std3dz_compare_cap == 16 ? "Greater" : "Less", 0,
+			     0, 0);
 	}
 
-	DebugPrintf("Creating D3D device #%d.\n", g_std3DCurDeviceIdx, 0, 0, 0);
-	result = g_std3DRenderSurface->lpVtbl->QueryInterface(
-		g_std3DRenderSurface, &g_pStd3DCurDevice->guid,
-		(void **)&g_d3dDevice);
+	debug_printf("Creating D3D device #%d.\n", g_std3d_cur_device_idx, 0, 0,
+		     0);
+	result = g_std3d_render_surface->lpVtbl->QueryInterface(
+		g_std3d_render_surface, &g_p_std3d_cur_device->guid,
+		(void **)&g_d3d_device);
 	if (result != 0) {
-		errorString = std3D_LookupErrorString(
-			result, g_std3DErrorStringTable, 121);
-		DebugPrintf("Error %s creating Direct3D device.\n", errorString,
-			    0, 0, 0);
+		error_string = std3d_lookup_error_string(
+			result, g_std3d_error_string_table, 121);
+		debug_printf("Error %s creating Direct3D device.\n",
+			     error_string, 0, 0, 0);
 		return 0;
 	}
 
-	g_std3DNumTextureFormats = 0;
-	result = g_d3dDevice->lpVtbl->EnumTextureFormats(
-		g_d3dDevice, (void *)std3D_EnumTextureFormats, NULL);
+	g_std3d_num_texture_formats = 0;
+	result = g_d3d_device->lpVtbl->EnumTextureFormats(
+		g_d3d_device, (void *)std3d_enum_texture_formats, NULL);
 	if (result != 0) {
-		errorString = std3D_LookupErrorString(
-			result, g_std3DErrorStringTable, 121);
-		DebugPrintf(
+		error_string = std3d_lookup_error_string(
+			result, g_std3d_error_string_table, 121);
+		debug_printf(
 			"Error %s when enumerating D3D device texture formats.\n",
-			errorString, 0, 0, 0);
+			error_string, 0, 0, 0);
 		return 0;
 	}
-	if (g_std3DNumTextureFormats == 0) {
-		DebugPrintf("Error: no texture formats found.\n", 0, 0, 0, 0);
-		return 0;
-	}
-
-	errorString = std3D_LookupErrorString(0, g_std3DErrorStringTable, 121);
-	DebugPrintf("%d texture formats found.\n", g_std3DNumTextureFormats,
-		    errorString, 0);
-	if (std3D_CreateViewport(g_pStd3DRenderTarget->width,
-				 g_pStd3DRenderTarget->height) == 0) {
-		DebugPrintf("Error creating viewport.\n", 0, 0, 0, 0);
-		return 0;
-	}
-	if (std3D_SetInitialRenderState() == 0) {
-		DebugPrintf("Error initializing render state.\n", 0, 0, 0, 0);
+	if (g_std3d_num_texture_formats == 0) {
+		debug_printf("Error: no texture formats found.\n", 0, 0, 0, 0);
 		return 0;
 	}
 
-	DebugPrintf("Creating Execute buffer.\n", 0, 0, 0, 0);
-	maxBufferSize = g_pStd3DCurDevice->caps.maxBufferSize;
-	g_std3DExecBufSize = 0x10000;
-	if (maxBufferSize != 0) {
-		g_std3DExecBufSize = maxBufferSize;
+	error_string =
+		std3d_lookup_error_string(0, g_std3d_error_string_table, 121);
+	debug_printf("%d texture formats found.\n", g_std3d_num_texture_formats,
+		     error_string, 0);
+	if (std3d_create_viewport(g_p_std3d_render_target->width,
+				  g_p_std3d_render_target->height) == 0) {
+		debug_printf("Error creating viewport.\n", 0, 0, 0, 0);
+		return 0;
 	}
-	g_d3dExecBufDesc.dwFlags = 0;
-	g_d3dExecBufDesc.dwCaps = 0;
-	g_d3dExecBufDesc.dwBufferSize = 0;
-	g_d3dExecBufDesc.lpData = NULL;
-	g_d3dExecBufDesc.dwSize = 20;
-	g_d3dExecBufDesc.dwFlags = 1;
-	g_d3dExecBufDesc.dwBufferSize = g_std3DExecBufSize;
-	maxVertexCount = g_pStd3DCurDevice->caps.maxVertexCount;
-	g_std3DExecBufMaxVerts =
-		maxVertexCount == 0
+	if (std3d_set_initial_render_state() == 0) {
+		debug_printf("Error initializing render state.\n", 0, 0, 0, 0);
+		return 0;
+	}
+
+	debug_printf("Creating Execute buffer.\n", 0, 0, 0, 0);
+	max_buffer_size = g_p_std3d_cur_device->caps.max_buffer_size;
+	g_std3d_exec_buf_size = 0x10000;
+	if (max_buffer_size != 0) {
+		g_std3d_exec_buf_size = max_buffer_size;
+	}
+	g_d3d_exec_buf_desc.dwFlags = 0;
+	g_d3d_exec_buf_desc.dwCaps = 0;
+	g_d3d_exec_buf_desc.dwBufferSize = 0;
+	g_d3d_exec_buf_desc.lpData = NULL;
+	g_d3d_exec_buf_desc.dwSize = 20;
+	g_d3d_exec_buf_desc.dwFlags = 1;
+	g_d3d_exec_buf_desc.dwBufferSize = g_std3d_exec_buf_size;
+	max_vertex_count = g_p_std3d_cur_device->caps.max_vertex_count;
+	g_std3d_exec_buf_max_verts =
+		max_vertex_count == 0
 			? 512
-			: (maxVertexCount < 512 ? maxVertexCount : 512);
-	DebugPrintf("Execute buffer size: %d.\n", g_std3DExecBufSize, 0, 0, 0);
-	DebugPrintf("Max vertices: %d.\n", g_std3DExecBufMaxVerts, 0, 0, 0);
-	result = g_d3dDevice->lpVtbl->CreateExecuteBuffer(
-		g_d3dDevice, &g_d3dExecBufDesc, &g_d3dExecuteBuffer, NULL);
+			: (max_vertex_count < 512 ? max_vertex_count : 512);
+	debug_printf("Execute buffer size: %d.\n", g_std3d_exec_buf_size, 0, 0,
+		     0);
+	debug_printf("Max vertices: %d.\n", g_std3d_exec_buf_max_verts, 0, 0,
+		     0);
+	result = g_d3d_device->lpVtbl->CreateExecuteBuffer(
+		g_d3d_device, &g_d3d_exec_buf_desc, &g_d3d_execute_buffer,
+		NULL);
 	if (result != 0) {
-		errorString = std3D_LookupErrorString(
-			result, g_std3DErrorStringTable, 121);
-		DebugPrintf("Error %s creating D3D Execute buffer.\n",
-			    errorString, 0, 0, 0);
+		error_string = std3d_lookup_error_string(
+			result, g_std3d_error_string_table, 121);
+		debug_printf("Error %s creating D3D Execute buffer.\n",
+			     error_string, 0, 0, 0);
 	}
 
-	g_texCacheCount = 0;
-	g_pTexCacheHead = NULL;
-	g_pTexCacheTail = NULL;
-	g_std3DTextureBatchTag = 1;
-	g_fmtIdxOpaqueTexture = std3D_FindClosestFormat(
-		&g_pStd3DRenderTarget->colorInfo, g_std3DTextureFormats,
-		g_std3DNumTextureFormats);
-	g_pFmtOpaqueTexture = &g_std3DTextureFormats[g_fmtIdxOpaqueTexture];
-	if (g_pStd3DCurDevice->caps.bAlphaTexture != 0) {
-		alphaFormat.colorMode = STDCOLOR_RGBA;
-		alphaFormat.bpp = 16;
-		alphaFormat.redBPP = 5;
-		alphaFormat.greenBPP = 5;
-		alphaFormat.blueBPP = 5;
-		alphaFormat.alphaBPP = 1;
-		g_fmtIdxRGBA1555 = std3D_FindClosestFormat(
-			&alphaFormat, g_std3DTextureFormats,
-			g_std3DNumTextureFormats);
-		g_pFmtRGBA1555 = &g_std3DTextureFormats[g_fmtIdxRGBA1555];
-		if (g_pStd3DCurDevice->caps.bAlphaBlend == 0) {
-			alphaFormat.redBPP = 4;
-			alphaFormat.greenBPP = 4;
-			alphaFormat.blueBPP = 4;
-			alphaFormat.alphaBPP = 4;
-			g_fmtIdxRGBA4444 = std3D_FindClosestFormat(
-				&alphaFormat, g_std3DTextureFormats,
-				g_std3DNumTextureFormats);
-			g_pFmtRGBA4444 =
-				&g_std3DTextureFormats[g_fmtIdxRGBA4444];
+	g_tex_cache_count = 0;
+	g_p_tex_cache_head = NULL;
+	g_p_tex_cache_tail = NULL;
+	g_std3d_texture_batch_tag = 1;
+	g_fmt_idx_opaque_texture = std3d_find_closest_format(
+		&g_p_std3d_render_target->color_info, g_std3d_texture_formats,
+		g_std3d_num_texture_formats);
+	g_p_fmt_opaque_texture =
+		&g_std3d_texture_formats[g_fmt_idx_opaque_texture];
+	if (g_p_std3d_cur_device->caps.b_alpha_texture != 0) {
+		alpha_format.color_mode = STDCOLOR_RGBA;
+		alpha_format.bpp = 16;
+		alpha_format.red_bpp = 5;
+		alpha_format.green_bpp = 5;
+		alpha_format.blue_bpp = 5;
+		alpha_format.alpha_bpp = 1;
+		g_fmt_idx_rgba1555 = std3d_find_closest_format(
+			&alpha_format, g_std3d_texture_formats,
+			g_std3d_num_texture_formats);
+		g_p_fmt_rgba1555 = &g_std3d_texture_formats[g_fmt_idx_rgba1555];
+		if (g_p_std3d_cur_device->caps.b_alpha_blend == 0) {
+			alpha_format.red_bpp = 4;
+			alpha_format.green_bpp = 4;
+			alpha_format.blue_bpp = 4;
+			alpha_format.alpha_bpp = 4;
+			g_fmt_idx_rgba4444 = std3d_find_closest_format(
+				&alpha_format, g_std3d_texture_formats,
+				g_std3d_num_texture_formats);
+			g_p_fmt_rgba4444 =
+				&g_std3d_texture_formats[g_fmt_idx_rgba4444];
 			raster.width = 32;
 			raster.height = 32;
-			memcpy(&raster.colorMode, &g_pFmtRGBA4444->colorInfo,
-			       sizeof(g_pFmtRGBA4444->colorInfo));
-			g_pStd3DVBuffer = std3D_AllocVBuffer(&raster, 0, 0, 0);
+			memcpy(&raster.color_mode,
+			       &g_p_fmt_rgba4444->color_info,
+			       sizeof(g_p_fmt_rgba4444->color_info));
+			g_p_std3dv_buffer =
+				std3d_alloc_v_buffer(&raster, 0, 0, 0);
 		}
 	}
 
-	std3D_QueryTextureVidMem(&g_pStd3DCurDevice->totalMemory,
-				 &g_pStd3DCurDevice->availableMemory);
-	DebugPrintf("Texture Ram  Total: %d bytes  Free: %d bytes.\n",
-		    g_pStd3DCurDevice->totalMemory,
-		    g_pStd3DCurDevice->availableMemory, 0, 0);
-	DebugPrintf("Device #%d opened successfully.\n", g_std3DCurDeviceIdx, 0,
-		    0, 0);
-	DebugPrintf("std3D opened.\n", 0, 0, 0, 0);
-	g_std3DDeviceOpen = 1;
+	std3d_query_texture_vid_mem(&g_p_std3d_cur_device->total_memory,
+				    &g_p_std3d_cur_device->available_memory);
+	debug_printf("Texture Ram  Total: %d bytes  Free: %d bytes.\n",
+		     g_p_std3d_cur_device->total_memory,
+		     g_p_std3d_cur_device->available_memory, 0, 0);
+	debug_printf("Device #%d opened successfully.\n",
+		     g_std3d_cur_device_idx, 0, 0, 0);
+	debug_printf("std3D opened.\n", 0, 0, 0, 0);
+	g_std3d_device_open = 1;
 	return 1;
 }
 
-/* Sets g_std3DRenderSurface to surface and returns it. */
+/* Sets g_std3d_render_surface to surface and returns it. */
 // FUNCTION: XVT 0x4B15A0
 struct IDirectDrawSurface *
-std3D_SetRenderSurface(struct IDirectDrawSurface *surface)
+std3d_set_render_surface(struct IDirectDrawSurface *surface)
 {
-	return g_std3DRenderSurface = surface;
+	return g_std3d_render_surface = surface;
 }
 
 /* Sets the color overlay's red, green, blue and on flag; returns enabled. */
 // FUNCTION: XVT 0x4B15B0
-int std3D_SetColorOverlayParams(float red, float green, float blue, int enabled)
+int std3d_set_color_overlay_params(float red, float green, float blue,
+				   int enabled)
 {
-	g_std3DColorOverlayRed = red;
-	g_std3DColorOverlayGreen = green;
-	g_std3DColorOverlayBlue = blue;
-	return g_std3DColorOverlayEnabled = enabled;
+	g_std3d_color_overlay_red = red;
+	g_std3d_color_overlay_green = green;
+	g_std3d_color_overlay_blue = blue;
+	return g_std3d_color_overlay_enabled = enabled;
 }
 
 /* Returns how many times n halves before it is 1 or less: log2 of n rounded
  * down for n of 1 or more, 0 for n under 2. */
 // FUNCTION: XVT 0x4B15E0
-int std3D_Log2Floor(int n)
+int std3d_log2_floor(int n)
 {
 	int result = 0;
 
@@ -801,103 +818,104 @@ int std3D_Log2Floor(int n)
 	return result;
 }
 
-/* Returns the message of the first of entryCount entries whose code is
- * errorCode, or g_std3DUnknownErrorMessage when none is. */
+/* Returns the message of the first of entry_count entries whose code is
+ * errorCode, or g_std3d_unknown_error_message when none is. */
 // FUNCTION: XVT 0x4B1600
-const char *std3D_LookupErrorString(int errorCode,
-				    const struct Std3DErrorStringEntry *entries,
-				    int entryCount)
+const char *
+std3d_lookup_error_string(int error_code,
+			  const struct std3d_error_string_entry *entries,
+			  int entry_count)
 {
 	const char *result;
-	int entryIndex;
-	const struct Std3DErrorStringEntry *entry;
+	int entry_index;
+	const struct std3d_error_string_entry *entry;
 
-	result = g_std3DUnknownErrorMessage;
-	entryIndex = 0;
-	if (entryCount > 0) {
+	result = g_std3d_unknown_error_message;
+	entry_index = 0;
+	if (entry_count > 0) {
 		entry = entries;
 		do {
-			if (entry->code == errorCode) {
-				result = entries[entryIndex].message;
+			if (entry->code == error_code) {
+				result = entries[entry_index].message;
 				break;
 			}
 			++entry;
-			++entryIndex;
-		} while (entryIndex < entryCount);
+			++entry_index;
+		} while (entry_index < entry_count);
 	}
 	return result;
 }
 
-/* Fills 256 16-bit colors in pFmt's format from 256 RGB triples, each channel
+/* Fills 256 16-bit colors in p_fmt's format from 256 RGB triples, each channel
  * shifted down from 8 bits and into place. For a format with alpha bits the
- * alpha is defaultAlpha, or with colorKey 0 for a color that comes out 0 and
+ * alpha is default_alpha, or with color_key 0 for a color that comes out 0 and
  * 0xFF for any other; but a 1-bit format first replaces the value with 0xFF
- * minus it, and without colorKey that change carries into the next entry, so
- * the alpha alternates. With colorKey and 1-bit alpha, a color that comes out 0
+ * minus it, and without color_key that change carries into the next entry, so
+ * the alpha alternates. With color_key and 1-bit alpha, a color that comes out 0
  * is therefore opaque and every other transparent. */
 // FUNCTION: XVT 0x4B1640
-void std3D_BuildColormap16(uint8_t *pRGB888, uint16_t *pOut,
-			   struct ColorInfo *pFmt, uint8_t defaultAlpha,
-			   int colorKey)
+void std3d_build_colormap16(uint8_t *p_rgb888, uint16_t *p_out,
+			    struct color_info *p_fmt, uint8_t default_alpha,
+			    int color_key)
 {
-	uint16_t *output = pOut;
-	struct ColorInfo *format = pFmt;
-	uint8_t *rgb888 = pRGB888;
-	int alphaBPP;
-	int entriesRemaining;
+	uint16_t *output = p_out;
+	struct color_info *format = p_fmt;
+	uint8_t *rgb888 = p_rgb888;
+	int alpha_bpp;
+	int entries_remaining;
 
-	entriesRemaining = 256;
+	entries_remaining = 256;
 	do {
 		*output = (uint16_t)((uint8_t)(rgb888[0] >>
-					       format->redPosShiftRight)
-				     << format->redPosShift);
+					       format->red_pos_shift_right)
+				     << format->red_pos_shift);
 		*output |= (uint16_t)((uint8_t)(rgb888[1] >>
-						format->greenPosShiftRight)
-				      << format->greenPosShift);
+						format->green_pos_shift_right)
+				      << format->green_pos_shift);
 		*output |= (uint16_t)((uint8_t)(rgb888[2] >>
-						format->bluePosShiftRight)
-				      << format->bluePosShift);
-		if ((uint8_t)colorKey != 0) {
-			defaultAlpha = (uint8_t)((*output == 0) - 1);
+						format->blue_pos_shift_right)
+				      << format->blue_pos_shift);
+		if ((uint8_t)color_key != 0) {
+			default_alpha = (uint8_t)((*output == 0) - 1);
 		}
-		alphaBPP = format->alphaBPP;
-		if (alphaBPP == 1) {
-			defaultAlpha = (uint8_t)(0xFF - defaultAlpha);
+		alpha_bpp = format->alpha_bpp;
+		if (alpha_bpp == 1) {
+			default_alpha = (uint8_t)(0xFF - default_alpha);
 		}
-		if (alphaBPP != 0) {
+		if (alpha_bpp != 0) {
 			*output |=
-				(uint16_t)((uint8_t)(defaultAlpha >>
-						     format->alphaPosShiftRight)
-					   << format->alphaPosShift);
+				(uint16_t)((uint8_t)(default_alpha >>
+						     format->alpha_pos_shift_right)
+					   << format->alpha_pos_shift);
 		}
 		rgb888 += 3;
 		++output;
-		--entriesRemaining;
-	} while (entriesRemaining != 0);
+		--entries_remaining;
+	} while (entries_remaining != 0);
 }
 
-/* std3D_BuildColormap16 with alpha 0xFF and no color key. */
+/* std3d_build_colormap16 with alpha 0xFF and no color key. */
 // FUNCTION: XVT 0x4B1710
-void std3D_BuildColormapOpaque(uint8_t *pRGB888, uint16_t *pOut,
-			       struct ColorInfo *pFmt)
+void std3d_build_colormap_opaque(uint8_t *p_rgb888, uint16_t *p_out,
+				 struct color_info *p_fmt)
 {
-	std3D_BuildColormap16(pRGB888, pOut, pFmt, 0xFF, 0);
+	std3d_build_colormap16(p_rgb888, p_out, p_fmt, 0xFF, 0);
 }
 
-/* std3D_BuildColormap16 with alpha 0xFF and the color key. */
+/* std3d_build_colormap16 with alpha 0xFF and the color key. */
 // FUNCTION: XVT 0x4B1730
-void std3D_BuildColormapColorKey(uint8_t *pRGB888, uint16_t *pOut,
-				 struct ColorInfo *pFmt)
+void std3d_build_colormap_color_key(uint8_t *p_rgb888, uint16_t *p_out,
+				    struct color_info *p_fmt)
 {
-	std3D_BuildColormap16(pRGB888, pOut, pFmt, 0xFF, 1);
+	std3d_build_colormap16(p_rgb888, p_out, p_fmt, 0xFF, 1);
 }
 
-/* std3D_BuildColormap16 with alpha and no color key. */
+/* std3d_build_colormap16 with alpha and no color key. */
 // FUNCTION: XVT 0x4B1750
-void std3D_BuildColormapAlpha(uint8_t *pRGB888, uint16_t *pOut,
-			      struct ColorInfo *pFmt, uint8_t alpha)
+void std3d_build_colormap_alpha(uint8_t *p_rgb888, uint16_t *p_out,
+				struct color_info *p_fmt, uint8_t alpha)
 {
-	std3D_BuildColormap16(pRGB888, pOut, pFmt, alpha, 0);
+	std3d_build_colormap16(p_rgb888, p_out, p_fmt, alpha, 0);
 }
 
 /* Allocates a buffer in plain memory with a copy of raster and width * height *
@@ -905,29 +923,30 @@ void std3D_BuildColormapAlpha(uint8_t *pRGB888, uint16_t *pOut,
  * returns it. Does not check either allocation; ignores any further
  * arguments. */
 // FUNCTION: XVT 0x4B1770
-struct Std3DVBuffer *std3D_AllocVBuffer(const struct Std3DRasterInfo *raster,
-					...)
+struct std3dv_buffer *
+std3d_alloc_v_buffer(const struct std3d_raster_info *raster, ...)
 {
-	struct Std3DVBuffer *vbuffer;
+	struct std3dv_buffer *vbuffer;
 
-	vbuffer = (struct Std3DVBuffer *)malloc(sizeof(*vbuffer));
+	vbuffer = (struct std3dv_buffer *)malloc(sizeof(*vbuffer));
 	memset(vbuffer, 0, sizeof(*vbuffer));
-	vbuffer->storageType = 0;
+	vbuffer->storage_type = 0;
 	memcpy(&vbuffer->raster, raster, sizeof(vbuffer->raster));
 	vbuffer->pixels =
 		malloc(raster->width * raster->height * (raster->bpp >> 3));
-	vbuffer->raster.rowPitch = raster->width * (raster->bpp >> 3);
+	vbuffer->raster.row_pitch = raster->width * (raster->bpp >> 3);
 	return vbuffer;
 }
 
-/* Releases a surface buffer's surface (storageType 1) or frees a plain buffer's
+/* Releases a surface buffer's surface (storage_type 1) or frees a plain buffer's
  * pixels, then zeroes and frees the buffer. */
 // FUNCTION: XVT 0x4B17D0
-void std3D_FreeVBuffer(struct Std3DVBuffer *vbuffer)
+void std3d_free_v_buffer(struct std3dv_buffer *vbuffer)
 {
-	if (vbuffer->storageType == 1) {
-		if (vbuffer->ddSurface != NULL) {
-			vbuffer->ddSurface->lpVtbl->Release(vbuffer->ddSurface);
+	if (vbuffer->storage_type == 1) {
+		if (vbuffer->dd_surface != NULL) {
+			vbuffer->dd_surface->lpVtbl->Release(
+				vbuffer->dd_surface);
 		}
 	} else {
 		free(vbuffer->pixels);
@@ -940,183 +959,185 @@ void std3D_FreeVBuffer(struct Std3DVBuffer *vbuffer)
  * surface, waiting, and takes its pixels and pitch; when that fails it returns
  * without counting the lock. */
 // FUNCTION: XVT 0x4B1810
-void std3D_LockVBuffer(struct Std3DVBuffer *vbuffer)
+void std3d_lock_v_buffer(struct std3dv_buffer *vbuffer)
 {
-	DDSURFACEDESC surfaceDesc;
+	DDSURFACEDESC surface_desc;
 	HRESULT result;
 
-	if (vbuffer->storageType == 1 && vbuffer->lockCount == 0) {
-		memset(&surfaceDesc, 0, sizeof(surfaceDesc));
-		surfaceDesc.dwSize = sizeof(surfaceDesc);
-		result = vbuffer->ddSurface->lpVtbl->Lock(vbuffer->ddSurface,
-							  NULL, &surfaceDesc,
-							  DDLOCK_WAIT, NULL);
+	if (vbuffer->storage_type == 1 && vbuffer->lock_count == 0) {
+		memset(&surface_desc, 0, sizeof(surface_desc));
+		surface_desc.dwSize = sizeof(surface_desc);
+		result = vbuffer->dd_surface->lpVtbl->Lock(vbuffer->dd_surface,
+							   NULL, &surface_desc,
+							   DDLOCK_WAIT, NULL);
 		if (result != 0) {
-			DebugPrintf("Error %x locking buffer %x, surface %x\n",
-				    result, vbuffer, vbuffer->ddSurface);
+			debug_printf("Error %x locking buffer %x, surface %x\n",
+				     result, vbuffer, vbuffer->dd_surface);
 			return;
 		}
-		vbuffer->pixels = surfaceDesc.lpSurface;
-		vbuffer->raster.rowPitch = surfaceDesc.lPitch;
+		vbuffer->pixels = surface_desc.lpSurface;
+		vbuffer->raster.row_pitch = surface_desc.lPitch;
 	}
 
-	++vbuffer->lockCount;
+	++vbuffer->lock_count;
 }
 
 /* Undoes a lock; a buffer with none is left alone. On the last lock of a
  * surface buffer it unlocks the surface; when that fails it returns without
  * undoing the count. */
 // FUNCTION: XVT 0x4B1890
-void std3D_UnlockVBuffer(struct Std3DVBuffer *vbuffer)
+void std3d_unlock_v_buffer(struct std3dv_buffer *vbuffer)
 {
-	if ((unsigned int)vbuffer->lockCount < 1) {
-		DebugPrintf("Unlock Warning: buffer %x, not locked\n", vbuffer);
+	if ((unsigned int)vbuffer->lock_count < 1) {
+		debug_printf("Unlock Warning: buffer %x, not locked\n",
+			     vbuffer);
 		return;
 	}
 
-	if (vbuffer->lockCount == 1 && vbuffer->storageType == 1) {
+	if (vbuffer->lock_count == 1 && vbuffer->storage_type == 1) {
 		HRESULT result;
 
-		result = vbuffer->ddSurface->lpVtbl->Unlock(vbuffer->ddSurface,
-							    vbuffer->pixels);
+		result = vbuffer->dd_surface->lpVtbl->Unlock(
+			vbuffer->dd_surface, vbuffer->pixels);
 		if (result != 0) {
-			DebugPrintf(
+			debug_printf(
 				"Error %x unlocking buffer %x, surface %x\n",
-				result, vbuffer, vbuffer->ddSurface);
+				result, vbuffer, vbuffer->dd_surface);
 			return;
 		}
 	}
 
-	--vbuffer->lockCount;
+	--vbuffer->lock_count;
 }
 
-/* Closes the open device: frees g_pStd3DVBuffer, releases the execute buffer,
+/* Closes the open device: frees g_p_std3dv_buffer, releases the execute buffer,
  * empties the texture cache, and releases the viewport, the viewport material,
  * the z-buffer surface and the device, setting each to NULL; then clears
- * g_std3DDeviceOpen. With no device open it only makes a debug print. */
+ * g_std3d_device_open. With no device open it only makes a debug print. */
 // FUNCTION: XVT 0x4B18F0
-void std3D_Close(void)
+void std3d_close(void)
 {
-	if (!g_std3DDeviceOpen) {
-		DebugPrintf("Error: Multiple Closes Attempted.\n", 0, 0, 0, 0);
+	if (!g_std3d_device_open) {
+		debug_printf("Error: Multiple Closes Attempted.\n", 0, 0, 0, 0);
 		return;
 	}
 
-	if (g_pStd3DVBuffer != NULL) {
-		std3D_FreeVBuffer(g_pStd3DVBuffer);
-		g_pStd3DVBuffer = NULL;
+	if (g_p_std3dv_buffer != NULL) {
+		std3d_free_v_buffer(g_p_std3dv_buffer);
+		g_p_std3dv_buffer = NULL;
 	}
 
-	g_d3dExecuteBuffer->lpVtbl->Release(g_d3dExecuteBuffer);
-	std3D_FlushTextureCache();
+	g_d3d_execute_buffer->lpVtbl->Release(g_d3d_execute_buffer);
+	std3d_flush_texture_cache();
 
-	if (g_d3dViewport != NULL) {
-		g_d3dViewport->lpVtbl->Release(g_d3dViewport);
-		g_d3dViewport = NULL;
+	if (g_d3d_viewport != NULL) {
+		g_d3d_viewport->lpVtbl->Release(g_d3d_viewport);
+		g_d3d_viewport = NULL;
 	}
 
-	if (g_d3dViewportMaterial != NULL) {
-		g_d3dViewportMaterial->lpVtbl->release(g_d3dViewportMaterial);
-		g_d3dViewportMaterial = NULL;
+	if (g_d3d_viewport_material != NULL) {
+		g_d3d_viewport_material->lp_vtbl->release(
+			g_d3d_viewport_material);
+		g_d3d_viewport_material = NULL;
 	}
 
-	if (g_std3DZBufferSurfaceBlock.surface != NULL) {
-		g_std3DZBufferSurfaceBlock.surface->lpVtbl->Release(
-			g_std3DZBufferSurfaceBlock.surface);
-		g_std3DZBufferSurfaceBlock.surface = NULL;
+	if (g_std3dz_buffer_surface_block.surface != NULL) {
+		g_std3dz_buffer_surface_block.surface->lpVtbl->Release(
+			g_std3dz_buffer_surface_block.surface);
+		g_std3dz_buffer_surface_block.surface = NULL;
 	}
 
-	if (g_d3dDevice != NULL) {
-		g_d3dDevice->lpVtbl->Release(g_d3dDevice);
-		g_d3dDevice = NULL;
+	if (g_d3d_device != NULL) {
+		g_d3d_device->lpVtbl->Release(g_d3d_device);
+		g_d3d_device = NULL;
 	}
 
-	DebugPrintf("std3D closed.\n", 0, 0, 0, 0);
-	g_std3DDeviceOpen = 0;
+	debug_printf("std3D closed.\n", 0, 0, 0, 0);
+	g_std3d_device_open = 0;
 }
 
-/* Copies all of source into destination with its top left at destinationX,
- * destinationY, row by row, locking both. Ignores sourceX and sourceY and does
+/* Copies all of source into destination with its top left at destination_x,
+ * destination_y, row by row, locking both. Ignores source_x and source_y and does
  * not clip. */
 // FUNCTION: XVT 0x4B19E0
-void std3D_BlitVBuffer(struct Std3DVBuffer *destination,
-		       struct Std3DVBuffer *source, int destinationX,
-		       int destinationY, int sourceX, int sourceY)
+void std3d_blit_v_buffer(struct std3dv_buffer *destination,
+			 struct std3dv_buffer *source, int destination_x,
+			 int destination_y, int source_x, int source_y)
 {
-	uint8_t *sourcePixels;
-	uint8_t *destinationPixels;
-	unsigned int rowBytes;
-	unsigned int rowIndex;
+	uint8_t *source_pixels;
+	uint8_t *destination_pixels;
+	unsigned int row_bytes;
+	unsigned int row_index;
 
-	(void)sourceX;
-	(void)sourceY;
+	(void)source_x;
+	(void)source_y;
 
-	std3D_LockVBuffer(destination);
-	std3D_LockVBuffer(source);
+	std3d_lock_v_buffer(destination);
+	std3d_lock_v_buffer(source);
 
-	sourcePixels = (uint8_t *)source->pixels;
-	destinationPixels = (uint8_t *)destination->pixels +
-			    destinationX * (destination->raster.bpp >> 3) +
-			    destinationY * destination->raster.rowPitch;
-	rowBytes = source->raster.width * (source->raster.bpp >> 3);
-	for (rowIndex = 0; rowIndex < source->raster.height; ++rowIndex) {
-		memcpy(destinationPixels, sourcePixels, rowBytes);
-		destinationPixels += destination->raster.rowPitch;
-		sourcePixels += source->raster.rowPitch;
+	source_pixels = (uint8_t *)source->pixels;
+	destination_pixels = (uint8_t *)destination->pixels +
+			     destination_x * (destination->raster.bpp >> 3) +
+			     destination_y * destination->raster.row_pitch;
+	row_bytes = source->raster.width * (source->raster.bpp >> 3);
+	for (row_index = 0; row_index < source->raster.height; ++row_index) {
+		memcpy(destination_pixels, source_pixels, row_bytes);
+		destination_pixels += destination->raster.row_pitch;
+		source_pixels += source->raster.row_pitch;
 	}
 
-	std3D_UnlockVBuffer(destination);
-	std3D_UnlockVBuffer(source);
+	std3d_unlock_v_buffer(destination);
+	std3d_unlock_v_buffer(source);
 }
 
-/* Returns g_std3DRenderOptionFlags. Nothing calls this. */
+/* Returns g_std3d_render_option_flags. Nothing calls this. */
 // FUNCTION: XVT 0x4B1A80
-unsigned int std3D_GetCapFlags(void) { return g_std3DRenderOptionFlags; }
+unsigned int std3d_get_cap_flags(void) { return g_std3d_render_option_flags; }
 
-/* Fills the whole buffer with packedColor at 8, 16 or 32 bits per pixel,
+/* Fills the whole buffer with packed_color at 8, 16 or 32 bits per pixel,
  * locking it; leaves a buffer of any other depth alone. Ignores fillMode. */
 // FUNCTION: XVT 0x4B1A90
-void std3D_FillVBuffer(struct Std3DVBuffer *vbuffer, unsigned int packedColor,
-		       int fillMode)
+void std3d_fill_v_buffer(struct std3dv_buffer *vbuffer,
+			 unsigned int packed_color, int fill_mode)
 {
-	uint8_t *rowPixels;
-	unsigned int rowIndex;
-	unsigned int columnIndex;
+	uint8_t *row_pixels;
+	unsigned int row_index;
+	unsigned int column_index;
 	uint16_t *destination16;
 
-	(void)fillMode;
-	std3D_LockVBuffer(vbuffer);
-	rowPixels = vbuffer->pixels;
+	(void)fill_mode;
+	std3d_lock_v_buffer(vbuffer);
+	row_pixels = vbuffer->pixels;
 	switch (vbuffer->raster.bpp) {
 	case 8:
-		rowIndex = 0;
-		if (vbuffer->raster.height > rowIndex) {
+		row_index = 0;
+		if (vbuffer->raster.height > row_index) {
 			do {
-				memset(rowPixels, (uint8_t)packedColor,
+				memset(row_pixels, (uint8_t)packed_color,
 				       vbuffer->raster.width);
-				rowPixels += vbuffer->raster.rowPitch;
-				++rowIndex;
-			} while (vbuffer->raster.height > rowIndex);
+				row_pixels += vbuffer->raster.row_pitch;
+				++row_index;
+			} while (vbuffer->raster.height > row_index);
 		}
 		break;
 	case 16:
-		rowIndex = 0;
-		if (vbuffer->raster.height > rowIndex) {
+		row_index = 0;
+		if (vbuffer->raster.height > row_index) {
 			do {
-				columnIndex = 0;
-				if (vbuffer->raster.width > columnIndex) {
-					destination16 = (uint16_t *)rowPixels;
+				column_index = 0;
+				if (vbuffer->raster.width > column_index) {
+					destination16 = (uint16_t *)row_pixels;
 					do {
 						*destination16 =
-							(uint16_t)packedColor;
+							(uint16_t)packed_color;
 						++destination16;
-						++columnIndex;
+						++column_index;
 					} while (vbuffer->raster.width >
-						 columnIndex);
+						 column_index);
 				}
-				rowPixels += vbuffer->raster.rowPitch;
-				++rowIndex;
-			} while (vbuffer->raster.height > rowIndex);
+				row_pixels += vbuffer->raster.row_pitch;
+				++row_index;
+			} while (vbuffer->raster.height > row_index);
 		}
 		break;
 	case 32: {
@@ -1129,15 +1150,15 @@ void std3D_FillVBuffer(struct Std3DVBuffer *vbuffer, unsigned int packedColor,
 			do {
 				column32 = 0;
 				if (vbuffer->raster.width > column32) {
-					destination32 = (uint32_t *)rowPixels;
+					destination32 = (uint32_t *)row_pixels;
 					do {
-						*destination32 = packedColor;
+						*destination32 = packed_color;
 						++destination32;
 						++column32;
 					} while (vbuffer->raster.width >
 						 column32);
 				}
-				rowPixels += vbuffer->raster.rowPitch;
+				row_pixels += vbuffer->raster.row_pitch;
 				++row32;
 			} while (vbuffer->raster.height > row32);
 		}
@@ -1147,516 +1168,522 @@ void std3D_FillVBuffer(struct Std3DVBuffer *vbuffer, unsigned int packedColor,
 		break;
 	}
 
-	std3D_UnlockVBuffer(vbuffer);
+	std3d_unlock_v_buffer(vbuffer);
 }
 
-/* Sets g_std3DRenderOptionFlags and writes the initial render state again.
+/* Sets g_std3d_render_option_flags and writes the initial render state again.
  * Nothing calls this. */
 // FUNCTION: XVT 0x4B1B70
-void std3D_SetCapFlags(unsigned int capFlags)
+void std3d_set_cap_flags(unsigned int cap_flags)
 {
 	int result;
 
-	g_std3DRenderOptionFlags = capFlags;
-	result = std3D_SetInitialRenderState();
+	g_std3d_render_option_flags = cap_flags;
+	result = std3d_set_initial_render_state();
 	if (result == 0) {
-		DebugPrintf("Error initializing render state.\n", 0, 0, 0, 0);
+		debug_printf("Error initializing render state.\n", 0, 0, 0, 0);
 	}
 }
 
 /* Sets the fog color, 0 to 255 for each channel, and returns red8. Nothing
  * calls this. */
 // FUNCTION: XVT 0x4B1BA0
-int std3D_SetFogColor8(unsigned int red8, unsigned int green8,
-		       unsigned int blue8)
+int std3d_set_fog_color8(unsigned int red8, unsigned int green8,
+			 unsigned int blue8)
 {
-	g_std3DFogColorRed8 = red8;
-	g_std3DFogColorGreen8 = green8;
-	g_std3DFogColorBlue8 = blue8;
+	g_std3d_fog_color_red8 = red8;
+	g_std3d_fog_color_green8 = green8;
+	g_std3d_fog_color_blue8 = blue8;
 	return red8;
 }
 
-/* Sets the fog table start and end and returns startBits. Nothing calls
+/* Sets the fog table start and end and returns start_bits. Nothing calls
  * this. */
 // FUNCTION: XVT 0x4B1BC0
-int std3D_SetFogTableRangeBits(unsigned int startBits, unsigned int endBits)
+int std3d_set_fog_table_range_bits(unsigned int start_bits,
+				   unsigned int end_bits)
 {
-	g_std3DFogTableStartBits = startBits;
-	g_std3DFogTableEndBits = endBits;
-	return startBits;
+	g_std3d_fog_table_start_bits = start_bits;
+	g_std3d_fog_table_end_bits = end_bits;
+	return start_bits;
 }
 
 /* Sets the four texture size limits and returns maxHeight. Nothing calls
  * this. */
 // FUNCTION: XVT 0x4B1BE0
-int std3D_SetTextureSizeCaps(int minWidth, int minHeight, int maxWidth,
-			     int maxHeight)
+int std3d_set_texture_size_caps(int min_width, int min_height, int max_width,
+				int max_height)
 {
-	g_std3DMinTextureWidth = minWidth;
-	g_std3DMinTextureHeight = minHeight;
-	g_std3DMaxTextureWidth = maxWidth;
-	return g_std3DMaxTextureHeight = maxHeight;
+	g_std3d_min_texture_width = min_width;
+	g_std3d_min_texture_height = min_height;
+	g_std3d_max_texture_width = max_width;
+	return g_std3d_max_texture_height = max_height;
 }
 
-/* Begins a Direct3D scene on g_d3dDevice; a failure is only printed. */
+/* Begins a Direct3D scene on g_d3d_device; a failure is only printed. */
 // FUNCTION: XVT 0x4B1C10
-void std3D_StartScene(void)
+void std3d_start_scene(void)
 {
 	int result;
 
-	result = g_d3dDevice->lpVtbl->BeginScene(g_d3dDevice);
+	result = g_d3d_device->lpVtbl->BeginScene(g_d3d_device);
 	if (result != 0) {
-		DebugPrintf(g_std3DBeginSceneErrorFormat,
-			    std3D_LookupErrorString(
-				    result, g_std3DErrorStringTable, 121),
-			    0, 0, 0);
+		debug_printf(g_std3d_begin_scene_error_format,
+			     std3d_lookup_error_string(
+				     result, g_std3d_error_string_table, 121),
+			     0, 0, 0);
 	}
 }
 
 /* Ends the Direct3D scene; a failure is only printed. */
 // FUNCTION: XVT 0x4B1C50
-void std3D_EndScene(void)
+void std3d_end_scene(void)
 {
 	int result;
 
-	result = g_d3dDevice->lpVtbl->EndScene(g_d3dDevice);
+	result = g_d3d_device->lpVtbl->EndScene(g_d3d_device);
 	if (result != 0) {
-		DebugPrintf(g_std3DEndSceneErrorFormat,
-			    std3D_LookupErrorString(
-				    result, g_std3DErrorStringTable, 121),
-			    0, 0, 0);
+		debug_printf(g_std3d_end_scene_error_format,
+			     std3d_lookup_error_string(
+				     result, g_std3d_error_string_table, 121),
+			     0, 0, 0);
 	}
 }
 
 /* Starts a batch: sets the vertex and triangle counts to 0, raises
- * g_std3DTextureBatchTag, marks no texture as selected, and locks the execute
- * buffer, pointing g_d3dExecBufBase and g_d3dWritePtr at its start. Returns 1,
+ * g_std3d_texture_batch_tag, marks no texture as selected, and locks the execute
+ * buffer, pointing g_d3d_exec_buf_base and g_d3d_write_ptr at its start. Returns 1,
  * or 0 when the lock fails. */
 // FUNCTION: XVT 0x4B1C90
-int std3D_LockExecuteBuffer(void)
+int std3d_lock_execute_buffer(void)
 {
 	int result;
 
-	g_d3dBufVertCount = 0;
-	g_std3DExecBufTriCount = 0;
-	++g_std3DTextureBatchTag;
-	g_d3dCurTexture = (struct Std3DTexCacheNode *)1;
-	result = g_d3dExecuteBuffer->lpVtbl->Lock(g_d3dExecuteBuffer,
-						  &g_d3dExecBufDesc);
+	g_d3d_buf_vert_count = 0;
+	g_std3d_exec_buf_tri_count = 0;
+	++g_std3d_texture_batch_tag;
+	g_d3d_cur_texture = (struct std3d_tex_cache_node *)1;
+	result = g_d3d_execute_buffer->lpVtbl->Lock(g_d3d_execute_buffer,
+						    &g_d3d_exec_buf_desc);
 	if (result != 0) {
-		DebugPrintf(g_std3DLockExecuteBufferErrorFormat,
-			    std3D_LookupErrorString(
-				    result, g_std3DErrorStringTable, 121),
-			    0, 0, 0);
+		debug_printf(g_std3d_lock_execute_buffer_error_format,
+			     std3d_lookup_error_string(
+				     result, g_std3d_error_string_table, 121),
+			     0, 0, 0);
 		return 0;
 	}
-	g_d3dExecBufBase = (uint8_t *)g_d3dExecBufDesc.lpData;
-	g_d3dWritePtr = g_d3dExecBufBase;
+	g_d3d_exec_buf_base = (uint8_t *)g_d3d_exec_buf_desc.lpData;
+	g_d3d_write_ptr = g_d3d_exec_buf_base;
 	return 1;
 }
 
-/* Copies count vertices to g_d3dWritePtr, unless they are already there, and
- * advances it; returns 1, or 0 without copying when g_d3dBufVertCount would
- * pass g_std3DExecBufMaxVerts. Does not check the buffer's size. */
+/* Copies count vertices to g_d3d_write_ptr, unless they are already there, and
+ * advances it; returns 1, or 0 without copying when g_d3d_buf_vert_count would
+ * pass g_std3d_exec_buf_max_verts. Does not check the buffer's size. */
 // FUNCTION: XVT 0x4B1D10
-int std3D_AddVertices(const D3DTLVERTEX *vertices, int count)
+int std3d_add_vertices(const D3DTLVERTEX *vertices, int count)
 {
-	int previousVertexCount;
-	uint8_t *writePtr;
+	int previous_vertex_count;
+	uint8_t *write_ptr;
 
-	previousVertexCount = g_d3dBufVertCount;
-	if ((unsigned int)(count + g_d3dBufVertCount) >
-	    g_std3DExecBufMaxVerts) {
+	previous_vertex_count = g_d3d_buf_vert_count;
+	if ((unsigned int)(count + g_d3d_buf_vert_count) >
+	    g_std3d_exec_buf_max_verts) {
 		return 0;
 	}
-	writePtr = g_d3dWritePtr;
-	if ((const void *)writePtr != (const void *)vertices) {
-		memcpy(writePtr, vertices, (size_t)count * sizeof(*vertices));
+	write_ptr = g_d3d_write_ptr;
+	if ((const void *)write_ptr != (const void *)vertices) {
+		memcpy(write_ptr, vertices, (size_t)count * sizeof(*vertices));
 	}
-	g_d3dBufVertCount = count + previousVertexCount;
-	g_d3dWritePtr = writePtr + (size_t)count * sizeof(*vertices);
+	g_d3d_buf_vert_count = count + previous_vertex_count;
+	g_d3d_write_ptr = write_ptr + (size_t)count * sizeof(*vertices);
 	return 1;
 }
 
-/* Writes, after the vertices, the instruction to copy all g_d3dBufVertCount of
+/* Writes, after the vertices, the instruction to copy all g_d3d_buf_vert_count of
  * them, records it as the start of the instructions, and returns 1. */
 // FUNCTION: XVT 0x4B1D70
-int std3D_BeginInstructions(void)
+int std3d_begin_instructions(void)
 {
-	g_d3dInstrStart = g_d3dWritePtr;
-	((D3DINSTRUCTION *)g_d3dWritePtr)->bOpcode = D3DOP_PROCESSVERTICES;
-	((D3DINSTRUCTION *)g_d3dWritePtr)->bSize = sizeof(D3DPROCESSVERTICES);
-	((D3DINSTRUCTION *)g_d3dWritePtr)->wCount = 1;
-	g_d3dWritePtr += sizeof(D3DINSTRUCTION);
+	g_d3d_instr_start = g_d3d_write_ptr;
+	((D3DINSTRUCTION *)g_d3d_write_ptr)->bOpcode = D3DOP_PROCESSVERTICES;
+	((D3DINSTRUCTION *)g_d3d_write_ptr)->bSize = sizeof(D3DPROCESSVERTICES);
+	((D3DINSTRUCTION *)g_d3d_write_ptr)->wCount = 1;
+	g_d3d_write_ptr += sizeof(D3DINSTRUCTION);
 
-	((D3DPROCESSVERTICES *)g_d3dWritePtr)->dwFlags =
+	((D3DPROCESSVERTICES *)g_d3d_write_ptr)->dwFlags =
 		D3DPROCESSVERTICES_COPY;
-	((D3DPROCESSVERTICES *)g_d3dWritePtr)->wStart = 0;
-	((D3DPROCESSVERTICES *)g_d3dWritePtr)->wDest = 0;
-	((D3DPROCESSVERTICES *)g_d3dWritePtr)->dwCount =
-		(uint32_t)g_d3dBufVertCount;
-	((D3DPROCESSVERTICES *)g_d3dWritePtr)->dwReserved = 0;
-	g_d3dWritePtr += sizeof(D3DPROCESSVERTICES);
+	((D3DPROCESSVERTICES *)g_d3d_write_ptr)->wStart = 0;
+	((D3DPROCESSVERTICES *)g_d3d_write_ptr)->wDest = 0;
+	((D3DPROCESSVERTICES *)g_d3d_write_ptr)->dwCount =
+		(uint32_t)g_d3d_buf_vert_count;
+	((D3DPROCESSVERTICES *)g_d3d_write_ptr)->dwReserved = 0;
+	g_d3d_write_ptr += sizeof(D3DPROCESSVERTICES);
 	return 1;
 }
 
 /* Writes count triangles as instructions, grouping neighbors with the same
  * texture and flags: for each group the changed render states
- * (std3D_SetRenderState), a texture handle state when the texture differs from
+ * (std3d_set_render_state), a texture handle state when the texture differs from
  * the one last selected (handle 0 for none), then one triangle instruction with
  * every edge enabled. Returns 1. Does not check the buffer's size. */
 // FUNCTION: XVT 0x4B1DE0
-int std3D_AddTriangles(const struct Std3DRenderTri *triangles,
-		       unsigned int count)
+int std3d_add_triangles(const struct std3d_render_tri *triangles,
+			unsigned int count)
 {
-	struct Std3DTexCacheNode *texture;
-	unsigned int groupStart;
-	int groupCount;
-	unsigned int triangleIndex;
+	struct std3d_tex_cache_node *texture;
+	unsigned int group_start;
+	int group_count;
+	unsigned int triangle_index;
 
-	for (groupStart = 0; groupStart < count; groupStart += groupCount) {
-		texture = triangles[groupStart].texture;
-		groupCount = 0;
+	for (group_start = 0; group_start < count; group_start += group_count) {
+		texture = triangles[group_start].texture;
+		group_count = 0;
 		if (texture == NULL) {
-			Std3DRenderStateFlags flags =
-				triangles[groupStart].flags;
+			std3d_render_state_flags flags =
+				triangles[group_start].flags;
 
-			for (triangleIndex = groupStart; triangleIndex < count;
-			     ++triangleIndex) {
-				if (triangles[triangleIndex].texture != NULL ||
-				    triangles[triangleIndex].flags != flags) {
+			for (triangle_index = group_start;
+			     triangle_index < count; ++triangle_index) {
+				if (triangles[triangle_index].texture != NULL ||
+				    triangles[triangle_index].flags != flags) {
 					break;
 				}
-				++groupCount;
+				++group_count;
 			}
 
-			std3D_SetRenderState(flags);
-			if (g_d3dCurTexture != NULL) {
-				((D3DINSTRUCTION *)g_d3dWritePtr)->bOpcode =
+			std3d_set_render_state(flags);
+			if (g_d3d_cur_texture != NULL) {
+				((D3DINSTRUCTION *)g_d3d_write_ptr)->bOpcode =
 					D3DOP_STATERENDER;
-				((D3DINSTRUCTION *)g_d3dWritePtr)->bSize =
+				((D3DINSTRUCTION *)g_d3d_write_ptr)->bSize =
 					sizeof(D3DSTATE);
-				((D3DINSTRUCTION *)g_d3dWritePtr)->wCount = 1;
-				g_d3dWritePtr += sizeof(D3DINSTRUCTION);
-				((D3DSTATE *)g_d3dWritePtr)->dwState =
+				((D3DINSTRUCTION *)g_d3d_write_ptr)->wCount = 1;
+				g_d3d_write_ptr += sizeof(D3DINSTRUCTION);
+				((D3DSTATE *)g_d3d_write_ptr)->dwState =
 					D3DRENDERSTATE_TEXTUREHANDLE;
-				((D3DSTATE *)g_d3dWritePtr)->dwArg = 0;
-				g_d3dCurTexture = NULL;
-				g_d3dWritePtr += sizeof(D3DSTATE);
+				((D3DSTATE *)g_d3d_write_ptr)->dwArg = 0;
+				g_d3d_cur_texture = NULL;
+				g_d3d_write_ptr += sizeof(D3DSTATE);
 			}
 
-			((D3DINSTRUCTION *)g_d3dWritePtr)->bOpcode =
+			((D3DINSTRUCTION *)g_d3d_write_ptr)->bOpcode =
 				D3DOP_TRIANGLE;
-			((D3DINSTRUCTION *)g_d3dWritePtr)->bSize =
+			((D3DINSTRUCTION *)g_d3d_write_ptr)->bSize =
 				sizeof(D3DTRIANGLE);
-			((D3DINSTRUCTION *)g_d3dWritePtr)->wCount =
-				(uint16_t)groupCount;
-			g_d3dWritePtr += sizeof(D3DINSTRUCTION);
-			for (triangleIndex = 0;
-			     triangleIndex < (unsigned int)groupCount;
-			     ++triangleIndex) {
-				((D3DTRIANGLE *)g_d3dWritePtr)->v1 =
-					(uint16_t)triangles[groupStart +
-							    triangleIndex]
-						.vertexIndex0;
-				((D3DTRIANGLE *)g_d3dWritePtr)->v2 =
-					(uint16_t)triangles[groupStart +
-							    triangleIndex]
-						.vertexIndex1;
-				((D3DTRIANGLE *)g_d3dWritePtr)->v3 =
-					(uint16_t)triangles[groupStart +
-							    triangleIndex]
-						.vertexIndex2;
-				((D3DTRIANGLE *)g_d3dWritePtr)->wFlags =
+			((D3DINSTRUCTION *)g_d3d_write_ptr)->wCount =
+				(uint16_t)group_count;
+			g_d3d_write_ptr += sizeof(D3DINSTRUCTION);
+			for (triangle_index = 0;
+			     triangle_index < (unsigned int)group_count;
+			     ++triangle_index) {
+				((D3DTRIANGLE *)g_d3d_write_ptr)->v1 =
+					(uint16_t)triangles[group_start +
+							    triangle_index]
+						.vertex_index0;
+				((D3DTRIANGLE *)g_d3d_write_ptr)->v2 =
+					(uint16_t)triangles[group_start +
+							    triangle_index]
+						.vertex_index1;
+				((D3DTRIANGLE *)g_d3d_write_ptr)->v3 =
+					(uint16_t)triangles[group_start +
+							    triangle_index]
+						.vertex_index2;
+				((D3DTRIANGLE *)g_d3d_write_ptr)->wFlags =
 					D3DTRIFLAG_EDGEENABLE1 |
 					D3DTRIFLAG_EDGEENABLE2 |
 					D3DTRIFLAG_EDGEENABLE3;
-				g_d3dWritePtr += sizeof(D3DTRIANGLE);
+				g_d3d_write_ptr += sizeof(D3DTRIANGLE);
 			}
 		} else {
-			Std3DRenderStateFlags flags =
-				triangles[groupStart].flags;
+			std3d_render_state_flags flags =
+				triangles[group_start].flags;
 
-			for (triangleIndex = groupStart; triangleIndex < count;
-			     ++triangleIndex) {
-				if (triangles[triangleIndex].texture !=
+			for (triangle_index = group_start;
+			     triangle_index < count; ++triangle_index) {
+				if (triangles[triangle_index].texture !=
 					    texture ||
-				    triangles[triangleIndex].flags != flags) {
+				    triangles[triangle_index].flags != flags) {
 					break;
 				}
-				++groupCount;
+				++group_count;
 			}
 
-			std3D_SetRenderState(flags);
-			if (g_d3dCurTexture != texture) {
-				((D3DINSTRUCTION *)g_d3dWritePtr)->bOpcode =
+			std3d_set_render_state(flags);
+			if (g_d3d_cur_texture != texture) {
+				((D3DINSTRUCTION *)g_d3d_write_ptr)->bOpcode =
 					D3DOP_STATERENDER;
-				((D3DINSTRUCTION *)g_d3dWritePtr)->bSize =
+				((D3DINSTRUCTION *)g_d3d_write_ptr)->bSize =
 					sizeof(D3DSTATE);
-				((D3DINSTRUCTION *)g_d3dWritePtr)->wCount = 1;
-				g_d3dWritePtr += sizeof(D3DINSTRUCTION);
-				((D3DSTATE *)g_d3dWritePtr)->dwState =
+				((D3DINSTRUCTION *)g_d3d_write_ptr)->wCount = 1;
+				g_d3d_write_ptr += sizeof(D3DINSTRUCTION);
+				((D3DSTATE *)g_d3d_write_ptr)->dwState =
 					D3DRENDERSTATE_TEXTUREHANDLE;
-				((D3DSTATE *)g_d3dWritePtr)->dwArg =
-					texture->texHandle;
-				g_d3dWritePtr += sizeof(D3DSTATE);
-				g_d3dCurTexture = texture;
+				((D3DSTATE *)g_d3d_write_ptr)->dwArg =
+					texture->tex_handle;
+				g_d3d_write_ptr += sizeof(D3DSTATE);
+				g_d3d_cur_texture = texture;
 			}
 
-			((D3DINSTRUCTION *)g_d3dWritePtr)->bOpcode =
+			((D3DINSTRUCTION *)g_d3d_write_ptr)->bOpcode =
 				D3DOP_TRIANGLE;
-			((D3DINSTRUCTION *)g_d3dWritePtr)->bSize =
+			((D3DINSTRUCTION *)g_d3d_write_ptr)->bSize =
 				sizeof(D3DTRIANGLE);
-			((D3DINSTRUCTION *)g_d3dWritePtr)->wCount =
-				(uint16_t)groupCount;
-			g_d3dWritePtr += sizeof(D3DINSTRUCTION);
-			for (triangleIndex = 0;
-			     triangleIndex < (unsigned int)groupCount;
-			     ++triangleIndex) {
-				((D3DTRIANGLE *)g_d3dWritePtr)->v1 =
-					(uint16_t)triangles[groupStart +
-							    triangleIndex]
-						.vertexIndex0;
-				((D3DTRIANGLE *)g_d3dWritePtr)->v2 =
-					(uint16_t)triangles[groupStart +
-							    triangleIndex]
-						.vertexIndex1;
-				((D3DTRIANGLE *)g_d3dWritePtr)->v3 =
-					(uint16_t)triangles[groupStart +
-							    triangleIndex]
-						.vertexIndex2;
-				((D3DTRIANGLE *)g_d3dWritePtr)->wFlags =
+			((D3DINSTRUCTION *)g_d3d_write_ptr)->wCount =
+				(uint16_t)group_count;
+			g_d3d_write_ptr += sizeof(D3DINSTRUCTION);
+			for (triangle_index = 0;
+			     triangle_index < (unsigned int)group_count;
+			     ++triangle_index) {
+				((D3DTRIANGLE *)g_d3d_write_ptr)->v1 =
+					(uint16_t)triangles[group_start +
+							    triangle_index]
+						.vertex_index0;
+				((D3DTRIANGLE *)g_d3d_write_ptr)->v2 =
+					(uint16_t)triangles[group_start +
+							    triangle_index]
+						.vertex_index1;
+				((D3DTRIANGLE *)g_d3d_write_ptr)->v3 =
+					(uint16_t)triangles[group_start +
+							    triangle_index]
+						.vertex_index2;
+				((D3DTRIANGLE *)g_d3d_write_ptr)->wFlags =
 					D3DTRIFLAG_EDGEENABLE1 |
 					D3DTRIFLAG_EDGEENABLE2 |
 					D3DTRIFLAG_EDGEENABLE3;
-				g_d3dWritePtr += sizeof(D3DTRIANGLE);
+				g_d3d_write_ptr += sizeof(D3DTRIANGLE);
 			}
 		}
 	}
 
-	g_std3DExecBufTriCount += count;
+	g_std3d_exec_buf_tri_count += count;
 	return 1;
 }
 
 /* Ends the instructions, unlocks the execute buffer and executes it, unclipped,
  * on the viewport. Returns 1, or 0 when the unlock or the execute fails. */
 // FUNCTION: XVT 0x4B2020
-int std3D_ExecuteBuffer(void)
+int std3d_execute_buffer(void)
 {
-	D3DEXECUTEDATA executeData;
+	D3DEXECUTEDATA execute_data;
 	int result;
 
-	((D3DINSTRUCTION *)g_d3dWritePtr)->bOpcode = D3DOP_EXIT;
-	((D3DINSTRUCTION *)g_d3dWritePtr)->bSize = 0;
-	((D3DINSTRUCTION *)g_d3dWritePtr)->wCount = 0;
-	g_d3dWritePtr += sizeof(D3DINSTRUCTION);
+	((D3DINSTRUCTION *)g_d3d_write_ptr)->bOpcode = D3DOP_EXIT;
+	((D3DINSTRUCTION *)g_d3d_write_ptr)->bSize = 0;
+	((D3DINSTRUCTION *)g_d3d_write_ptr)->wCount = 0;
+	g_d3d_write_ptr += sizeof(D3DINSTRUCTION);
 
-	result = g_d3dExecuteBuffer->lpVtbl->Unlock(g_d3dExecuteBuffer);
+	result = g_d3d_execute_buffer->lpVtbl->Unlock(g_d3d_execute_buffer);
 	if (result != 0) {
-		DebugPrintf("Error %s unlocking D3D Execute buffer.\n",
-			    std3D_LookupErrorString(
-				    result, g_std3DErrorStringTable, 121),
-			    0, 0, 0);
+		debug_printf("Error %s unlocking D3D Execute buffer.\n",
+			     std3d_lookup_error_string(
+				     result, g_std3d_error_string_table, 121),
+			     0, 0, 0);
 		return 0;
 	}
 
-	memset(&executeData, 0, sizeof(executeData));
-	executeData.dwSize = sizeof(executeData);
-	executeData.dwVertexCount = g_d3dBufVertCount;
-	executeData.dwInstructionOffset =
-		(uint32_t)(g_d3dInstrStart - g_d3dExecBufBase);
-	executeData.dwInstructionLength =
-		(uint32_t)(g_d3dWritePtr - g_d3dInstrStart);
-	g_d3dExecuteBuffer->lpVtbl->SetExecuteData(g_d3dExecuteBuffer,
-						   &executeData);
-	result = g_d3dDevice->lpVtbl->Execute(g_d3dDevice, g_d3dExecuteBuffer,
-					      g_d3dViewport,
-					      D3DEXECUTE_UNCLIPPED);
+	memset(&execute_data, 0, sizeof(execute_data));
+	execute_data.dwSize = sizeof(execute_data);
+	execute_data.dwVertexCount = g_d3d_buf_vert_count;
+	execute_data.dwInstructionOffset =
+		(uint32_t)(g_d3d_instr_start - g_d3d_exec_buf_base);
+	execute_data.dwInstructionLength =
+		(uint32_t)(g_d3d_write_ptr - g_d3d_instr_start);
+	g_d3d_execute_buffer->lpVtbl->SetExecuteData(g_d3d_execute_buffer,
+						     &execute_data);
+	result = g_d3d_device->lpVtbl->Execute(
+		g_d3d_device, g_d3d_execute_buffer, g_d3d_viewport,
+		D3DEXECUTE_UNCLIPPED);
 	if (result != 0) {
-		DebugPrintf("Error %s executing buffer.\n",
-			    std3D_LookupErrorString(
-				    result, g_std3DErrorStringTable, 121),
-			    0, 0, 0);
+		debug_printf("Error %s executing buffer.\n",
+			     std3d_lookup_error_string(
+				     result, g_std3d_error_string_table, 121),
+			     0, 0, 0);
 		return 0;
 	}
 	return 1;
 }
 
 /* Writes render-state instructions for the groups of bits in flags that differ
- * from g_d3dStateFlags, then stores flags there; does nothing when they are
+ * from g_d3d_state_flags, then stores flags there; does nothing when they are
  * equal. Mono is off with STD3D_RS_MONO_DISABLE. With alpha blend or
  * modulate-alpha: source blend 5, destination blend 6, texture blend 4 with
  * modulate-alpha else 2, blending on; with neither: source blend 2, destination
  * blend 1, the same texture blend, blending off. The z compare is
- * std3D_MapZCmpFunc(g_std3DZCompareCap) with STD3D_RS_Z_COMPARE_ENABLE, else 8;
+ * std3d_map_z_cmp_func(g_std3dz_compare_cap) with STD3D_RS_Z_COMPARE_ENABLE, else 8;
  * z writes follow STD3D_RS_Z_WRITE_ENABLE. Each filter is 2 (linear) with its
  * bit, else 1. Fog is on with the fog color, table mode 3 and the table start
  * and end, or off. STD3D_RS_TEXTURE_ADDRESS_CLAMP is not written. */
 // FUNCTION: XVT 0x4B2130
-void std3D_SetRenderState(Std3DRenderStateFlags flags)
+void std3d_set_render_state(std3d_render_state_flags flags)
 {
-	int textureFilter;
+	int texture_filter;
 
-	if (g_d3dStateFlags == flags) {
+	if (g_d3d_state_flags == flags) {
 		return;
 	}
 
-	if (((unsigned int)(flags ^ g_d3dStateFlags) & STD3D_RS_MONO_DISABLE) !=
-	    0) {
-		((D3DINSTRUCTION *)g_d3dWritePtr)->bOpcode = D3DOP_STATERENDER;
-		((D3DINSTRUCTION *)g_d3dWritePtr)->bSize = sizeof(D3DSTATE);
-		((D3DINSTRUCTION *)g_d3dWritePtr)->wCount = 1;
-		g_d3dWritePtr += sizeof(D3DINSTRUCTION);
-		((D3DSTATE *)g_d3dWritePtr)->dwState =
+	if (((unsigned int)(flags ^ g_d3d_state_flags) &
+	     STD3D_RS_MONO_DISABLE) != 0) {
+		((D3DINSTRUCTION *)g_d3d_write_ptr)->bOpcode =
+			D3DOP_STATERENDER;
+		((D3DINSTRUCTION *)g_d3d_write_ptr)->bSize = sizeof(D3DSTATE);
+		((D3DINSTRUCTION *)g_d3d_write_ptr)->wCount = 1;
+		g_d3d_write_ptr += sizeof(D3DINSTRUCTION);
+		((D3DSTATE *)g_d3d_write_ptr)->dwState =
 			D3DRENDERSTATE_MONOENABLE;
 		if ((flags & STD3D_RS_MONO_DISABLE) != 0) {
-			((D3DSTATE *)g_d3dWritePtr)->dwArg = 0;
+			((D3DSTATE *)g_d3d_write_ptr)->dwArg = 0;
 		} else {
-			((D3DSTATE *)g_d3dWritePtr)->dwArg = 1;
+			((D3DSTATE *)g_d3d_write_ptr)->dwArg = 1;
 		}
-		g_d3dWritePtr += sizeof(D3DSTATE);
+		g_d3d_write_ptr += sizeof(D3DSTATE);
 	}
 
-	if (((unsigned int)(flags ^ g_d3dStateFlags) &
+	if (((unsigned int)(flags ^ g_d3d_state_flags) &
 	     (STD3D_RS_ALPHA_BLEND | STD3D_RS_TEXTURE_MODULATE_ALPHA)) != 0) {
-		((D3DINSTRUCTION *)g_d3dWritePtr)->bOpcode = D3DOP_STATERENDER;
-		((D3DINSTRUCTION *)g_d3dWritePtr)->bSize = sizeof(D3DSTATE);
-		((D3DINSTRUCTION *)g_d3dWritePtr)->wCount = 4;
+		((D3DINSTRUCTION *)g_d3d_write_ptr)->bOpcode =
+			D3DOP_STATERENDER;
+		((D3DINSTRUCTION *)g_d3d_write_ptr)->bSize = sizeof(D3DSTATE);
+		((D3DINSTRUCTION *)g_d3d_write_ptr)->wCount = 4;
 		if ((flags & (STD3D_RS_ALPHA_BLEND |
 			      STD3D_RS_TEXTURE_MODULATE_ALPHA)) != 0) {
-			g_d3dWritePtr += sizeof(D3DINSTRUCTION);
-			((D3DSTATE *)g_d3dWritePtr)->dwState =
+			g_d3d_write_ptr += sizeof(D3DINSTRUCTION);
+			((D3DSTATE *)g_d3d_write_ptr)->dwState =
 				D3DRENDERSTATE_SRCBLEND;
-			((D3DSTATE *)g_d3dWritePtr)->dwArg = 5;
-			g_d3dWritePtr += sizeof(D3DSTATE);
-			((D3DSTATE *)g_d3dWritePtr)->dwState =
+			((D3DSTATE *)g_d3d_write_ptr)->dwArg = 5;
+			g_d3d_write_ptr += sizeof(D3DSTATE);
+			((D3DSTATE *)g_d3d_write_ptr)->dwState =
 				D3DRENDERSTATE_DESTBLEND;
-			((D3DSTATE *)g_d3dWritePtr)->dwArg = 6;
-			g_d3dWritePtr += sizeof(D3DSTATE);
-			((D3DSTATE *)g_d3dWritePtr)->dwState =
+			((D3DSTATE *)g_d3d_write_ptr)->dwArg = 6;
+			g_d3d_write_ptr += sizeof(D3DSTATE);
+			((D3DSTATE *)g_d3d_write_ptr)->dwState =
 				D3DRENDERSTATE_TEXTUREMAPBLEND;
 			if ((flags & STD3D_RS_TEXTURE_MODULATE_ALPHA) != 0) {
-				((D3DSTATE *)g_d3dWritePtr)->dwArg = 4;
+				((D3DSTATE *)g_d3d_write_ptr)->dwArg = 4;
 			} else {
-				((D3DSTATE *)g_d3dWritePtr)->dwArg = 2;
+				((D3DSTATE *)g_d3d_write_ptr)->dwArg = 2;
 			}
-			g_d3dWritePtr += sizeof(D3DSTATE);
-			((D3DSTATE *)g_d3dWritePtr)->dwState =
+			g_d3d_write_ptr += sizeof(D3DSTATE);
+			((D3DSTATE *)g_d3d_write_ptr)->dwState =
 				D3DRENDERSTATE_BLENDENABLE;
-			((D3DSTATE *)g_d3dWritePtr)->dwArg = 1;
+			((D3DSTATE *)g_d3d_write_ptr)->dwArg = 1;
 		} else {
-			g_d3dWritePtr += sizeof(D3DINSTRUCTION);
-			((D3DSTATE *)g_d3dWritePtr)->dwState =
+			g_d3d_write_ptr += sizeof(D3DINSTRUCTION);
+			((D3DSTATE *)g_d3d_write_ptr)->dwState =
 				D3DRENDERSTATE_SRCBLEND;
-			((D3DSTATE *)g_d3dWritePtr)->dwArg = 2;
-			g_d3dWritePtr += sizeof(D3DSTATE);
-			((D3DSTATE *)g_d3dWritePtr)->dwState =
+			((D3DSTATE *)g_d3d_write_ptr)->dwArg = 2;
+			g_d3d_write_ptr += sizeof(D3DSTATE);
+			((D3DSTATE *)g_d3d_write_ptr)->dwState =
 				D3DRENDERSTATE_DESTBLEND;
-			((D3DSTATE *)g_d3dWritePtr)->dwArg = 1;
-			g_d3dWritePtr += sizeof(D3DSTATE);
-			((D3DSTATE *)g_d3dWritePtr)->dwState =
+			((D3DSTATE *)g_d3d_write_ptr)->dwArg = 1;
+			g_d3d_write_ptr += sizeof(D3DSTATE);
+			((D3DSTATE *)g_d3d_write_ptr)->dwState =
 				D3DRENDERSTATE_TEXTUREMAPBLEND;
 			if ((flags & STD3D_RS_TEXTURE_MODULATE_ALPHA) != 0) {
-				((D3DSTATE *)g_d3dWritePtr)->dwArg = 4;
+				((D3DSTATE *)g_d3d_write_ptr)->dwArg = 4;
 			} else {
-				((D3DSTATE *)g_d3dWritePtr)->dwArg = 2;
+				((D3DSTATE *)g_d3d_write_ptr)->dwArg = 2;
 			}
-			g_d3dWritePtr += sizeof(D3DSTATE);
-			((D3DSTATE *)g_d3dWritePtr)->dwState =
+			g_d3d_write_ptr += sizeof(D3DSTATE);
+			((D3DSTATE *)g_d3d_write_ptr)->dwState =
 				D3DRENDERSTATE_BLENDENABLE;
-			((D3DSTATE *)g_d3dWritePtr)->dwArg = 0;
+			((D3DSTATE *)g_d3d_write_ptr)->dwArg = 0;
 		}
-		g_d3dWritePtr += sizeof(D3DSTATE);
+		g_d3d_write_ptr += sizeof(D3DSTATE);
 	}
 
-	if (((unsigned int)(flags ^ g_d3dStateFlags) &
+	if (((unsigned int)(flags ^ g_d3d_state_flags) &
 	     (STD3D_RS_Z_COMPARE_ENABLE | STD3D_RS_Z_WRITE_ENABLE)) != 0) {
-		((D3DINSTRUCTION *)g_d3dWritePtr)->bOpcode = D3DOP_STATERENDER;
-		((D3DINSTRUCTION *)g_d3dWritePtr)->bSize = sizeof(D3DSTATE);
-		((D3DINSTRUCTION *)g_d3dWritePtr)->wCount = 2;
-		g_d3dWritePtr += sizeof(D3DINSTRUCTION);
-		((D3DSTATE *)g_d3dWritePtr)->dwState = D3DRENDERSTATE_ZFUNC;
+		((D3DINSTRUCTION *)g_d3d_write_ptr)->bOpcode =
+			D3DOP_STATERENDER;
+		((D3DINSTRUCTION *)g_d3d_write_ptr)->bSize = sizeof(D3DSTATE);
+		((D3DINSTRUCTION *)g_d3d_write_ptr)->wCount = 2;
+		g_d3d_write_ptr += sizeof(D3DINSTRUCTION);
+		((D3DSTATE *)g_d3d_write_ptr)->dwState = D3DRENDERSTATE_ZFUNC;
 		if ((flags & STD3D_RS_Z_COMPARE_ENABLE) != 0) {
-			((D3DSTATE *)g_d3dWritePtr)->dwArg =
-				std3D_MapZCmpFunc(g_std3DZCompareCap);
+			((D3DSTATE *)g_d3d_write_ptr)->dwArg =
+				std3d_map_z_cmp_func(g_std3dz_compare_cap);
 		} else {
-			((D3DSTATE *)g_d3dWritePtr)->dwArg = 8;
+			((D3DSTATE *)g_d3d_write_ptr)->dwArg = 8;
 		}
-		g_d3dWritePtr += sizeof(D3DSTATE);
-		((D3DSTATE *)g_d3dWritePtr)->dwState =
+		g_d3d_write_ptr += sizeof(D3DSTATE);
+		((D3DSTATE *)g_d3d_write_ptr)->dwState =
 			D3DRENDERSTATE_ZWRITEENABLE;
 		if ((flags & STD3D_RS_Z_WRITE_ENABLE) != 0) {
-			((D3DSTATE *)g_d3dWritePtr)->dwArg = 1;
+			((D3DSTATE *)g_d3d_write_ptr)->dwArg = 1;
 		} else {
-			((D3DSTATE *)g_d3dWritePtr)->dwArg = 0;
+			((D3DSTATE *)g_d3d_write_ptr)->dwArg = 0;
 		}
-		g_d3dWritePtr += sizeof(D3DSTATE);
+		g_d3d_write_ptr += sizeof(D3DSTATE);
 	}
 
-	if (((unsigned int)(flags ^ g_d3dStateFlags) &
+	if (((unsigned int)(flags ^ g_d3d_state_flags) &
 	     (STD3D_RS_TEXTURE_MAG_LINEAR | STD3D_RS_TEXTURE_MIN_LINEAR)) !=
 	    0) {
-		((D3DINSTRUCTION *)g_d3dWritePtr)->bOpcode = D3DOP_STATERENDER;
-		((D3DINSTRUCTION *)g_d3dWritePtr)->bSize = sizeof(D3DSTATE);
-		((D3DINSTRUCTION *)g_d3dWritePtr)->wCount = 2;
-		g_d3dWritePtr += sizeof(D3DINSTRUCTION);
-		((D3DSTATE *)g_d3dWritePtr)->dwState =
+		((D3DINSTRUCTION *)g_d3d_write_ptr)->bOpcode =
+			D3DOP_STATERENDER;
+		((D3DINSTRUCTION *)g_d3d_write_ptr)->bSize = sizeof(D3DSTATE);
+		((D3DINSTRUCTION *)g_d3d_write_ptr)->wCount = 2;
+		g_d3d_write_ptr += sizeof(D3DINSTRUCTION);
+		((D3DSTATE *)g_d3d_write_ptr)->dwState =
 			D3DRENDERSTATE_TEXTUREMAG;
-		textureFilter =
+		texture_filter =
 			(flags & STD3D_RS_TEXTURE_MAG_LINEAR) != 0 ? 2 : 1;
-		((D3DSTATE *)g_d3dWritePtr)->dwArg = textureFilter;
-		g_d3dWritePtr += sizeof(D3DSTATE);
-		((D3DSTATE *)g_d3dWritePtr)->dwState =
+		((D3DSTATE *)g_d3d_write_ptr)->dwArg = texture_filter;
+		g_d3d_write_ptr += sizeof(D3DSTATE);
+		((D3DSTATE *)g_d3d_write_ptr)->dwState =
 			D3DRENDERSTATE_TEXTUREMIN;
-		textureFilter =
+		texture_filter =
 			(flags & STD3D_RS_TEXTURE_MIN_LINEAR) != 0 ? 2 : 1;
-		((D3DSTATE *)g_d3dWritePtr)->dwArg = textureFilter;
-		g_d3dWritePtr += sizeof(D3DSTATE);
+		((D3DSTATE *)g_d3d_write_ptr)->dwArg = texture_filter;
+		g_d3d_write_ptr += sizeof(D3DSTATE);
 	}
 
-	if (((unsigned int)(flags ^ g_d3dStateFlags) & STD3D_RS_FOG_ENABLE) !=
+	if (((unsigned int)(flags ^ g_d3d_state_flags) & STD3D_RS_FOG_ENABLE) !=
 	    0) {
-		((D3DINSTRUCTION *)g_d3dWritePtr)->bOpcode = D3DOP_STATERENDER;
-		((D3DINSTRUCTION *)g_d3dWritePtr)->bSize = sizeof(D3DSTATE);
+		((D3DINSTRUCTION *)g_d3d_write_ptr)->bOpcode =
+			D3DOP_STATERENDER;
+		((D3DINSTRUCTION *)g_d3d_write_ptr)->bSize = sizeof(D3DSTATE);
 		if ((flags & STD3D_RS_FOG_ENABLE) != 0) {
-			((D3DINSTRUCTION *)g_d3dWritePtr)->wCount = 5;
-			g_d3dWritePtr += sizeof(D3DINSTRUCTION);
-			((D3DSTATE *)g_d3dWritePtr)->dwState =
+			((D3DINSTRUCTION *)g_d3d_write_ptr)->wCount = 5;
+			g_d3d_write_ptr += sizeof(D3DINSTRUCTION);
+			((D3DSTATE *)g_d3d_write_ptr)->dwState =
 				D3DRENDERSTATE_FOGENABLE;
-			((D3DSTATE *)g_d3dWritePtr)->dwArg = 1;
-			g_d3dWritePtr += sizeof(D3DSTATE);
-			((D3DSTATE *)g_d3dWritePtr)->dwState =
+			((D3DSTATE *)g_d3d_write_ptr)->dwArg = 1;
+			g_d3d_write_ptr += sizeof(D3DSTATE);
+			((D3DSTATE *)g_d3d_write_ptr)->dwState =
 				D3DRENDERSTATE_FOGCOLOR;
-			((D3DSTATE *)g_d3dWritePtr)->dwArg =
-				(g_std3DFogColorGreen8 << 8) |
-				(g_std3DFogColorRed8 << 16) |
-				g_std3DFogColorBlue8;
-			g_d3dWritePtr += sizeof(D3DSTATE);
-			((D3DSTATE *)g_d3dWritePtr)->dwState =
+			((D3DSTATE *)g_d3d_write_ptr)->dwArg =
+				(g_std3d_fog_color_green8 << 8) |
+				(g_std3d_fog_color_red8 << 16) |
+				g_std3d_fog_color_blue8;
+			g_d3d_write_ptr += sizeof(D3DSTATE);
+			((D3DSTATE *)g_d3d_write_ptr)->dwState =
 				D3DRENDERSTATE_FOGTABLEMODE;
-			((D3DSTATE *)g_d3dWritePtr)->dwArg = 3;
-			g_d3dWritePtr += sizeof(D3DSTATE);
-			((D3DSTATE *)g_d3dWritePtr)->dwState =
+			((D3DSTATE *)g_d3d_write_ptr)->dwArg = 3;
+			g_d3d_write_ptr += sizeof(D3DSTATE);
+			((D3DSTATE *)g_d3d_write_ptr)->dwState =
 				D3DRENDERSTATE_FOGTABLESTART;
-			((D3DSTATE *)g_d3dWritePtr)->dwArg =
-				g_std3DFogTableStartBits;
-			g_d3dWritePtr += sizeof(D3DSTATE);
-			((D3DSTATE *)g_d3dWritePtr)->dwState =
+			((D3DSTATE *)g_d3d_write_ptr)->dwArg =
+				g_std3d_fog_table_start_bits;
+			g_d3d_write_ptr += sizeof(D3DSTATE);
+			((D3DSTATE *)g_d3d_write_ptr)->dwState =
 				D3DRENDERSTATE_FOGTABLEEND;
-			((D3DSTATE *)g_d3dWritePtr)->dwArg =
-				g_std3DFogTableEndBits;
-			g_d3dWritePtr += sizeof(D3DSTATE);
+			((D3DSTATE *)g_d3d_write_ptr)->dwArg =
+				g_std3d_fog_table_end_bits;
+			g_d3d_write_ptr += sizeof(D3DSTATE);
 		} else {
-			((D3DINSTRUCTION *)g_d3dWritePtr)->wCount = 1;
-			g_d3dWritePtr += sizeof(D3DINSTRUCTION);
-			((D3DSTATE *)g_d3dWritePtr)->dwState =
+			((D3DINSTRUCTION *)g_d3d_write_ptr)->wCount = 1;
+			g_d3d_write_ptr += sizeof(D3DINSTRUCTION);
+			((D3DSTATE *)g_d3d_write_ptr)->dwState =
 				D3DRENDERSTATE_FOGENABLE;
-			((D3DSTATE *)g_d3dWritePtr)->dwArg = 0;
-			g_d3dWritePtr += sizeof(D3DSTATE);
+			((D3DSTATE *)g_d3d_write_ptr)->dwArg = 0;
+			g_d3d_write_ptr += sizeof(D3DSTATE);
 		}
 	}
 
-	g_d3dStateFlags = flags;
+	g_d3d_state_flags = flags;
 }
 
 /* Copies 768 bytes of RGB palette and builds from it the opaque palette when
@@ -1664,93 +1691,95 @@ void std3D_SetRenderState(Std3DRenderStateFlags flags)
  * palette and, without alpha blending, the 4444 palette with alpha. Returns 1.
  * Nothing calls this. */
 // FUNCTION: XVT 0x4B2540
-int std3D_SetPaletteConversionSource(const void *paletteRgb888, uint8_t alpha)
+int std3d_set_palette_conversion_source(const void *palette_rgb888,
+					uint8_t alpha)
 {
-	memcpy(g_std3DPaletteConversionSourceRgb, paletteRgb888,
-	       sizeof(g_std3DPaletteConversionSourceRgb));
-	if (g_pFmtOpaqueTexture->colorInfo.colorMode == STDCOLOR_RGB &&
-	    g_pFmtOpaqueTexture->colorInfo.bpp == 16) {
-		std3D_BuildColormapOpaque((uint8_t *)paletteRgb888,
-					  g_std3DPaletteScratch16,
-					  &g_pFmtOpaqueTexture->colorInfo);
+	memcpy(g_std3d_palette_conversion_source_rgb, palette_rgb888,
+	       sizeof(g_std3d_palette_conversion_source_rgb));
+	if (g_p_fmt_opaque_texture->color_info.color_mode == STDCOLOR_RGB &&
+	    g_p_fmt_opaque_texture->color_info.bpp == 16) {
+		std3d_build_colormap_opaque(
+			(uint8_t *)palette_rgb888, g_std3d_palette_scratch16,
+			&g_p_fmt_opaque_texture->color_info);
 	}
-	if (g_pStd3DCurDevice->caps.bAlphaTexture != 0) {
-		if (g_pFmtRGBA1555->colorInfo.colorMode == STDCOLOR_RGBA &&
-		    g_pFmtRGBA1555->colorInfo.bpp == 16) {
-			std3D_BuildColormapColorKey((uint8_t *)paletteRgb888,
-						    g_texConvBuf1555,
-						    &g_pFmtRGBA1555->colorInfo);
+	if (g_p_std3d_cur_device->caps.b_alpha_texture != 0) {
+		if (g_p_fmt_rgba1555->color_info.color_mode == STDCOLOR_RGBA &&
+		    g_p_fmt_rgba1555->color_info.bpp == 16) {
+			std3d_build_colormap_color_key(
+				(uint8_t *)palette_rgb888, g_tex_conv_buf1555,
+				&g_p_fmt_rgba1555->color_info);
 		}
-		if (g_pStd3DCurDevice->caps.bAlphaBlend == 0 &&
-		    g_pFmtRGBA4444->colorInfo.colorMode == STDCOLOR_RGBA &&
-		    g_pFmtRGBA4444->colorInfo.bpp == 16) {
-			std3D_BuildColormapAlpha(
-				(uint8_t *)paletteRgb888, g_texConvBuf4444,
-				&g_pFmtRGBA4444->colorInfo, alpha);
+		if (g_p_std3d_cur_device->caps.b_alpha_blend == 0 &&
+		    g_p_fmt_rgba4444->color_info.color_mode == STDCOLOR_RGBA &&
+		    g_p_fmt_rgba4444->color_info.bpp == 16) {
+			std3d_build_colormap_alpha(
+				(uint8_t *)palette_rgb888, g_tex_conv_buf4444,
+				&g_p_fmt_rgba4444->color_info, alpha);
 		}
 	}
 	return 1;
 }
 
 /* Writes the size a texture of srcWidth by srcHeight would get: each side at
- * least 1 and at most g_std3DMaxTextureWidth; then, when under the minimums or
+ * least 1 and at most g_std3d_max_texture_width; then, when under the minimums or
  * not square on a square-only device, both sides made the larger, or each
  * raised to its minimum. With the limits at 0, as they stay, it writes 0 by 0.
  * Nothing calls this. */
 // FUNCTION: XVT 0x4B25E0
-void std3D_ClampTextureDimensions(int srcWidth, int srcHeight, int *outWidth,
-				  int *outHeight)
+void std3d_clamp_texture_dimensions(int src_width, int src_height,
+				    int *out_width, int *out_height)
 {
 	unsigned int width;
 	unsigned int height;
 
-	if ((uint32_t)srcWidth >= 1) {
-		width = (uint32_t)g_std3DMaxTextureWidth;
-		if (width >= (uint32_t)srcWidth) {
-			width = (uint32_t)srcWidth;
+	if ((uint32_t)src_width >= 1) {
+		width = (uint32_t)g_std3d_max_texture_width;
+		if (width >= (uint32_t)src_width) {
+			width = (uint32_t)src_width;
 		}
 	} else {
 		width = 1;
 	}
 
-	if ((uint32_t)srcHeight >= 1) {
-		/* The height is clamped by the width limit, as in the original; g_std3DMaxTextureHeight is never
+	if ((uint32_t)src_height >= 1) {
+		/* The height is clamped by the width limit, as in the original; g_std3d_max_texture_height is never
 		 * read. */
-		height = (uint32_t)g_std3DMaxTextureWidth;
-		if (height >= (uint32_t)srcHeight) {
-			height = (uint32_t)srcHeight;
+		height = (uint32_t)g_std3d_max_texture_width;
+		if (height >= (uint32_t)src_height) {
+			height = (uint32_t)src_height;
 		}
 	} else {
 		height = 1;
 	}
 
-	if (width < (unsigned int)g_std3DMinTextureWidth ||
-	    height < (unsigned int)g_std3DMinTextureHeight ||
-	    (g_pStd3DCurDevice->caps.bSquareOnlyTexture && width != height)) {
-		if (g_pStd3DCurDevice->caps.bSquareOnlyTexture &&
+	if (width < (unsigned int)g_std3d_min_texture_width ||
+	    height < (unsigned int)g_std3d_min_texture_height ||
+	    (g_p_std3d_cur_device->caps.b_square_only_texture &&
+	     width != height)) {
+		if (g_p_std3d_cur_device->caps.b_square_only_texture &&
 		    width != height) {
 			if (height <= width) {
 				height = width;
 			}
 			width = height;
 		} else {
-			unsigned int minWidth;
+			unsigned int min_width;
 
-			minWidth = (unsigned int)g_std3DMinTextureWidth;
-			if (width <= minWidth) {
-				width = minWidth;
+			min_width = (unsigned int)g_std3d_min_texture_width;
+			if (width <= min_width) {
+				width = min_width;
 			}
-			if (height <= (uint32_t)g_std3DMinTextureHeight) {
-				height = (uint32_t)g_std3DMinTextureHeight;
+			if (height <= (uint32_t)g_std3d_min_texture_height) {
+				height = (uint32_t)g_std3d_min_texture_height;
 			}
 		}
-		*outWidth = (int)width;
-		*outHeight = (int)height;
+		*out_width = (int)width;
+		*out_height = (int)height;
 		return;
 	}
 
-	*outWidth = (int)width;
-	*outHeight = (int)height;
+	*out_width = (int)width;
+	*out_height = (int)height;
 }
 
 /* Uploads source as a texture for node and puts the node at the most recently
@@ -1760,42 +1789,42 @@ void std3D_ClampTextureDimensions(int srcWidth, int srcHeight, int *outWidth,
  * a temporary buffer by whole copies, their number rounded to nearest. The
  * format is the 1555 one for a color-keyed texture on a device with alpha
  * textures, the 4444 one for a translucent texture, else the opaque one. It
- * fills a system-memory surface (8-bit texels through g_texConvBuf4444,
- * g_texConvBuf1555 or g_std3DPaletteScratch16; 16-bit rows copied as they are),
+ * fills a system-memory surface (8-bit texels through g_tex_conv_buf4444,
+ * g_tex_conv_buf1555 or g_std3d_palette_scratch16; 16-bit rows copied as they are),
  * sets a color key for a color-keyed texture on a device without alpha textures
- * (palette entry 0, or the buffer's transparentColor), then creates the texture
+ * (palette entry 0, or the buffer's transparent_color), then creates the texture
  * in video memory and loads it. When video memory runs out it releases cached
  * textures from the least recently used end, stopping at the first used in the
  * current batch, until as many texels are freed, and tries again; when that
  * frees too few it fails. Sets the node's handle, size, texel count and batch
  * tag. */
 // FUNCTION: XVT 0x4B2680
-int std3D_AddToTextureCache(struct Std3DVBuffer *source,
-			    struct Std3DTexCacheNode *node, int colorKeyed,
-			    int translucent)
+int std3d_add_to_texture_cache(struct std3dv_buffer *source,
+			       struct std3d_tex_cache_node *node,
+			       int color_keyed, int translucent)
 {
-	IDirectDrawSurface *sourceSurface;
+	IDirectDrawSurface *source_surface;
 	unsigned int width;
 	unsigned int height;
-	unsigned int texelCount;
-	IDirect3DTexture *sourceTexture;
-	IDirect3DTexture *destinationTexture;
-	IDirectDrawSurface *destinationSurface;
-	struct Std3DVBuffer *temporaryBuffer;
-	struct Std3DVBuffer *uploadBuffer;
-	unsigned int textureHandle;
-	DDCOLORKEY colorKey;
-	struct Std3DRasterInfo resizedRaster;
-	DDSURFACEDESC lockedDesc;
-	DDSURFACEDESC surfaceDesc;
+	unsigned int texel_count;
+	IDirect3DTexture *source_texture;
+	IDirect3DTexture *destination_texture;
+	IDirectDrawSurface *destination_surface;
+	struct std3dv_buffer *temporary_buffer;
+	struct std3dv_buffer *upload_buffer;
+	unsigned int texture_handle;
+	DDCOLORKEY color_key;
+	struct std3d_raster_info resized_raster;
+	DDSURFACEDESC locked_desc;
+	DDSURFACEDESC surface_desc;
 	int result;
 
-	sourceSurface = NULL;
-	destinationSurface = NULL;
-	sourceTexture = NULL;
-	destinationTexture = NULL;
-	uploadBuffer = source;
-	temporaryBuffer = NULL;
+	source_surface = NULL;
+	destination_surface = NULL;
+	source_texture = NULL;
+	destination_texture = NULL;
+	upload_buffer = source;
+	temporary_buffer = NULL;
 	width = source->raster.width;
 	if (width >= 1) {
 		if (width >= 256) {
@@ -1813,149 +1842,155 @@ int std3D_AddToTextureCache(struct Std3DVBuffer *source,
 		height = 1;
 	}
 
-	if (width < (unsigned int)g_std3DMinTextureWidth ||
-	    height < (unsigned int)g_std3DMinTextureHeight ||
-	    (g_pStd3DCurDevice->caps.bSquareOnlyTexture && width != height)) {
-		int targetWidth;
-		int targetHeight;
-		unsigned int horizontalCopies;
-		unsigned int verticalCopies;
-		unsigned int destinationX;
-		unsigned int destinationY;
+	if (width < (unsigned int)g_std3d_min_texture_width ||
+	    height < (unsigned int)g_std3d_min_texture_height ||
+	    (g_p_std3d_cur_device->caps.b_square_only_texture &&
+	     width != height)) {
+		int target_width;
+		int target_height;
+		unsigned int horizontal_copies;
+		unsigned int vertical_copies;
+		unsigned int destination_x;
+		unsigned int destination_y;
 
-		resizedRaster = source->raster;
-		if (g_pStd3DCurDevice->caps.bSquareOnlyTexture &&
+		resized_raster = source->raster;
+		if (g_p_std3d_cur_device->caps.b_square_only_texture &&
 		    width != height) {
-			targetWidth = (int)width;
-			if ((unsigned int)targetWidth <= height) {
-				targetWidth = (int)height;
+			target_width = (int)width;
+			if ((unsigned int)target_width <= height) {
+				target_width = (int)height;
 			}
-			targetHeight = targetWidth;
+			target_height = target_width;
 		} else {
-			targetWidth = (int)width;
-			if ((unsigned int)targetWidth <=
-			    (unsigned int)g_std3DMinTextureWidth) {
-				targetWidth = g_std3DMinTextureWidth;
+			target_width = (int)width;
+			if ((unsigned int)target_width <=
+			    (unsigned int)g_std3d_min_texture_width) {
+				target_width = g_std3d_min_texture_width;
 			}
-			targetHeight = g_std3DMinTextureHeight;
-			if ((unsigned int)targetHeight <= height) {
-				targetHeight = (int)height;
+			target_height = g_std3d_min_texture_height;
+			if ((unsigned int)target_height <= height) {
+				target_height = (int)height;
 			}
 		}
-		horizontalCopies =
-			(unsigned int)((double)(unsigned int)targetWidth /
+		horizontal_copies =
+			(unsigned int)((double)(unsigned int)target_width /
 					       (double)width +
 				       0.5);
-		verticalCopies =
-			(unsigned int)((double)(unsigned int)targetHeight /
+		vertical_copies =
+			(unsigned int)((double)(unsigned int)target_height /
 					       (double)height +
 				       0.5);
-		resizedRaster.width = horizontalCopies * resizedRaster.width;
-		resizedRaster.height = verticalCopies * resizedRaster.height;
-		temporaryBuffer = std3D_AllocVBuffer(&resizedRaster, 0, 0, 0);
-		destinationY = 0;
-		while (verticalCopies != 0) {
-			destinationX = 0;
+		resized_raster.width = horizontal_copies * resized_raster.width;
+		resized_raster.height = vertical_copies * resized_raster.height;
+		temporary_buffer =
+			std3d_alloc_v_buffer(&resized_raster, 0, 0, 0);
+		destination_y = 0;
+		while (vertical_copies != 0) {
+			destination_x = 0;
 			/* From here targetWidth counts down the copies left in this row, not a width. */
-			for (targetWidth = horizontalCopies; targetWidth != 0;
-			     --targetWidth) {
-				std3D_BlitVBuffer(temporaryBuffer, source,
-						  (int)destinationX,
-						  (int)destinationY, 0, 1);
-				destinationX += width;
+			for (target_width = horizontal_copies;
+			     target_width != 0; --target_width) {
+				std3d_blit_v_buffer(temporary_buffer, source,
+						    (int)destination_x,
+						    (int)destination_y, 0, 1);
+				destination_x += width;
 			}
-			destinationY += height;
-			--verticalCopies;
+			destination_y += height;
+			--vertical_copies;
 		}
-		uploadBuffer = temporaryBuffer;
-		width = resizedRaster.width;
-		height = resizedRaster.height;
+		upload_buffer = temporary_buffer;
+		width = resized_raster.width;
+		height = resized_raster.height;
 	}
 
-	texelCount = width * height;
-	if (colorKeyed && g_pStd3DCurDevice->caps.bAlphaTexture) {
-		node->usesAlphaFormat = 1;
+	texel_count = width * height;
+	if (color_keyed && g_p_std3d_cur_device->caps.b_alpha_texture) {
+		node->uses_alpha_format = 1;
 		if (translucent) {
-			surfaceDesc = g_pFmtRGBA4444->ddsd;
-			DebugPrintf("Using D3D texture format #%d.\n",
-				    g_fmtIdxRGBA4444, 0, 0, 0);
+			surface_desc = g_p_fmt_rgba4444->ddsd;
+			debug_printf("Using D3D texture format #%d.\n",
+				     g_fmt_idx_rgba4444, 0, 0, 0);
 		} else {
-			surfaceDesc = g_pFmtRGBA1555->ddsd;
-			DebugPrintf("Using D3D texture format #%d.\n",
-				    g_fmtIdxRGBA1555, 0, 0, 0);
+			surface_desc = g_p_fmt_rgba1555->ddsd;
+			debug_printf("Using D3D texture format #%d.\n",
+				     g_fmt_idx_rgba1555, 0, 0, 0);
 		}
 	} else if (translucent) {
-		node->usesAlphaFormat = 1;
-		surfaceDesc = g_pFmtRGBA4444->ddsd;
-		DebugPrintf("Using D3D texture format #%d.\n", g_fmtIdxRGBA4444,
-			    0, 0, 0);
+		node->uses_alpha_format = 1;
+		surface_desc = g_p_fmt_rgba4444->ddsd;
+		debug_printf("Using D3D texture format #%d.\n",
+			     g_fmt_idx_rgba4444, 0, 0, 0);
 	} else {
-		node->usesAlphaFormat = 0;
-		surfaceDesc = g_pFmtOpaqueTexture->ddsd;
-		DebugPrintf("Using D3D texture format #%d.\n",
-			    g_fmtIdxOpaqueTexture, 0, 0, 0);
+		node->uses_alpha_format = 0;
+		surface_desc = g_p_fmt_opaque_texture->ddsd;
+		debug_printf("Using D3D texture format #%d.\n",
+			     g_fmt_idx_opaque_texture, 0, 0, 0);
 	}
-	surfaceDesc.dwWidth = width;
-	surfaceDesc.dwHeight = height;
-	surfaceDesc.dwSize = sizeof(surfaceDesc);
-	surfaceDesc.dwFlags =
+	surface_desc.dwWidth = width;
+	surface_desc.dwHeight = height;
+	surface_desc.dwSize = sizeof(surface_desc);
+	surface_desc.dwFlags =
 		DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT;
-	surfaceDesc.ddsCaps.dwCaps = DDSCAPS_TEXTURE | DDSCAPS_SYSTEMMEMORY;
+	surface_desc.ddsCaps.dwCaps = DDSCAPS_TEXTURE | DDSCAPS_SYSTEMMEMORY;
 	do {
-		result = g_std3DDirectDraw->lpVtbl->CreateSurface(
-			g_std3DDirectDraw, &surfaceDesc, &sourceSurface, NULL);
+		result = g_std3d_direct_draw->lpVtbl->CreateSurface(
+			g_std3d_direct_draw, &surface_desc, &source_surface,
+			NULL);
 		if (result) {
-			DebugPrintf(
+			debug_printf(
 				"Error %s when creating the DirectDraw source surface.\n",
-				std3D_LookupErrorString(
-					result, g_std3DErrorStringTable, 121),
+				std3d_lookup_error_string(
+					result, g_std3d_error_string_table,
+					121),
 				0, 0, 0);
-			sourceSurface = NULL;
+			source_surface = NULL;
 			break;
 		}
 
-		memset(&lockedDesc, 0, sizeof(lockedDesc));
-		lockedDesc.dwSize = sizeof(lockedDesc);
-		result = sourceSurface->lpVtbl->Lock(
-			sourceSurface, NULL, &lockedDesc, DDLOCK_WAIT, NULL);
+		memset(&locked_desc, 0, sizeof(locked_desc));
+		locked_desc.dwSize = sizeof(locked_desc);
+		result = source_surface->lpVtbl->Lock(
+			source_surface, NULL, &locked_desc, DDLOCK_WAIT, NULL);
 		if (result) {
-			DebugPrintf(
+			debug_printf(
 				"Error %s when locking the DDSurface source buffer.\n",
-				std3D_LookupErrorString(
-					result, g_std3DErrorStringTable, 121),
+				std3d_lookup_error_string(
+					result, g_std3d_error_string_table,
+					121),
 				0, 0, 0);
 			break;
 		}
 
-		switch (uploadBuffer->raster.colorMode) {
+		switch (upload_buffer->raster.color_mode) {
 		case STDCOLOR_PAL: {
 			unsigned int row;
 
-			std3D_LockVBuffer(uploadBuffer);
-			if (colorKeyed &&
-			    g_pStd3DCurDevice->caps.bAlphaTexture) {
+			std3d_lock_v_buffer(upload_buffer);
+			if (color_keyed &&
+			    g_p_std3d_cur_device->caps.b_alpha_texture) {
 				if (translucent) {
 					for (row = 0; row < height; ++row) {
-						uint16_t *destinationPixels;
-						uint8_t *sourcePixels;
+						uint16_t *destination_pixels;
+						uint8_t *source_pixels;
 						unsigned int remaining;
 
-						sourcePixels =
-							(uint8_t *)uploadBuffer
+						source_pixels =
+							(uint8_t *)upload_buffer
 								->pixels +
-							row * uploadBuffer
+							row * upload_buffer
 									->raster
-									.rowPitch;
-						destinationPixels =
+									.row_pitch;
+						destination_pixels =
 							(uint16_t
-								 *)((uint8_t *)lockedDesc
+								 *)((uint8_t *)locked_desc
 									    .lpSurface +
-								    row * lockedDesc.lPitch);
+								    row * locked_desc
+										    .lPitch);
 						if (width != 0) {
 							remaining = width;
 							do {
-								*destinationPixels++ = g_texConvBuf4444
-									[*sourcePixels++];
+								*destination_pixels++ = g_tex_conv_buf4444
+									[*source_pixels++];
 								--remaining;
 							} while (remaining !=
 								 0);
@@ -1964,25 +1999,26 @@ int std3D_AddToTextureCache(struct Std3DVBuffer *source,
 				} else {
 					for (row = 0; row < height; ++row) {
 						unsigned int remaining;
-						uint16_t *destinationPixels;
-						uint8_t *sourcePixels;
+						uint16_t *destination_pixels;
+						uint8_t *source_pixels;
 
-						sourcePixels =
-							(uint8_t *)uploadBuffer
+						source_pixels =
+							(uint8_t *)upload_buffer
 								->pixels +
-							row * uploadBuffer
+							row * upload_buffer
 									->raster
-									.rowPitch;
-						destinationPixels =
+									.row_pitch;
+						destination_pixels =
 							(uint16_t
-								 *)((uint8_t *)lockedDesc
+								 *)((uint8_t *)locked_desc
 									    .lpSurface +
-								    row * lockedDesc.lPitch);
+								    row * locked_desc
+										    .lPitch);
 						if (width != 0) {
 							remaining = width;
 							do {
-								*destinationPixels++ = g_texConvBuf1555
-									[*sourcePixels++];
+								*destination_pixels++ = g_tex_conv_buf1555
+									[*source_pixels++];
 								--remaining;
 							} while (remaining !=
 								 0);
@@ -1992,21 +2028,22 @@ int std3D_AddToTextureCache(struct Std3DVBuffer *source,
 			} else if (translucent) {
 				for (row = 0; row < height; ++row) {
 					unsigned int remaining;
-					uint8_t *sourcePixels =
+					uint8_t *source_pixels =
 						(uint8_t *)
-							uploadBuffer->pixels +
-						row * uploadBuffer->raster
-								.rowPitch;
-					uint16_t *destinationPixels =
+							upload_buffer->pixels +
+						row * upload_buffer->raster
+								.row_pitch;
+					uint16_t *destination_pixels =
 						(uint16_t
-							 *)((uint8_t *)lockedDesc
+							 *)((uint8_t *)locked_desc
 								    .lpSurface +
-							    row * lockedDesc.lPitch);
+							    row * locked_desc
+									    .lPitch);
 					if (width != 0) {
 						remaining = width;
 						do {
-							*destinationPixels++ = g_texConvBuf4444
-								[*sourcePixels++];
+							*destination_pixels++ = g_tex_conv_buf4444
+								[*source_pixels++];
 							--remaining;
 						} while (remaining != 0);
 					}
@@ -2014,410 +2051,419 @@ int std3D_AddToTextureCache(struct Std3DVBuffer *source,
 			} else {
 				for (row = 0; row < height; ++row) {
 					unsigned int remaining;
-					uint8_t *sourcePixels =
+					uint8_t *source_pixels =
 						(uint8_t *)
-							uploadBuffer->pixels +
-						row * uploadBuffer->raster
-								.rowPitch;
-					uint16_t *destinationPixels =
+							upload_buffer->pixels +
+						row * upload_buffer->raster
+								.row_pitch;
+					uint16_t *destination_pixels =
 						(uint16_t
-							 *)((uint8_t *)lockedDesc
+							 *)((uint8_t *)locked_desc
 								    .lpSurface +
-							    row * lockedDesc.lPitch);
+							    row * locked_desc
+									    .lPitch);
 					if (width != 0) {
 						remaining = width;
 						do {
-							*destinationPixels++ = g_std3DPaletteScratch16
-								[*sourcePixels++];
+							*destination_pixels++ = g_std3d_palette_scratch16
+								[*source_pixels++];
 							--remaining;
 						} while (remaining != 0);
 					}
 				}
 			}
-			std3D_UnlockVBuffer(uploadBuffer);
+			std3d_unlock_v_buffer(upload_buffer);
 			break;
 		}
 		case STDCOLOR_RGB:
 		case STDCOLOR_RGBA: {
 			unsigned int row;
 
-			std3D_LockVBuffer(uploadBuffer);
+			std3d_lock_v_buffer(upload_buffer);
 			for (row = 0; row < height; ++row) {
-				const uint8_t *sourcePixels =
-					(const uint8_t *)uploadBuffer->pixels +
-					row * uploadBuffer->raster.rowPitch;
-				uint8_t *destinationPixels =
-					(uint8_t *)lockedDesc.lpSurface +
-					row * lockedDesc.lPitch;
-				memcpy(destinationPixels, sourcePixels,
+				const uint8_t *source_pixels =
+					(const uint8_t *)upload_buffer->pixels +
+					row * upload_buffer->raster.row_pitch;
+				uint8_t *destination_pixels =
+					(uint8_t *)locked_desc.lpSurface +
+					row * locked_desc.lPitch;
+				memcpy(destination_pixels, source_pixels,
 				       width * 2);
 			}
-			std3D_UnlockVBuffer(uploadBuffer);
+			std3d_unlock_v_buffer(upload_buffer);
 			break;
 		}
 		default:
 			break;
 		}
 
-		result = sourceSurface->lpVtbl->Unlock(sourceSurface, NULL);
+		result = source_surface->lpVtbl->Unlock(source_surface, NULL);
 		if (result) {
-			DebugPrintf(
+			debug_printf(
 				"Error %s when unlocking the DDSurface source buffer.\n",
-				std3D_LookupErrorString(
-					result, g_std3DErrorStringTable, 121),
+				std3d_lookup_error_string(
+					result, g_std3d_error_string_table,
+					121),
 				0, 0, 0);
 			break;
 		}
 
-		if (colorKeyed && !g_pStd3DCurDevice->caps.bAlphaTexture) {
-			switch (uploadBuffer->raster.colorMode) {
+		if (color_keyed &&
+		    !g_p_std3d_cur_device->caps.b_alpha_texture) {
+			switch (upload_buffer->raster.color_mode) {
 			case STDCOLOR_PAL:
-				colorKey.dwColorSpaceLowValue =
-					g_std3DPaletteScratch16[0];
-				colorKey.dwColorSpaceHighValue =
-					g_std3DPaletteScratch16[0];
+				color_key.dwColorSpaceLowValue =
+					g_std3d_palette_scratch16[0];
+				color_key.dwColorSpaceHighValue =
+					g_std3d_palette_scratch16[0];
 				break;
 			case STDCOLOR_RGB:
-				colorKey.dwColorSpaceLowValue =
-					uploadBuffer->transparentColor;
-				colorKey.dwColorSpaceHighValue =
-					uploadBuffer->transparentColor;
+				color_key.dwColorSpaceLowValue =
+					upload_buffer->transparent_color;
+				color_key.dwColorSpaceHighValue =
+					upload_buffer->transparent_color;
 				break;
 #ifdef XVT_MODERN
 			default:
-				colorKey.dwColorSpaceLowValue = 0;
-				colorKey.dwColorSpaceHighValue = 0;
+				color_key.dwColorSpaceLowValue = 0;
+				color_key.dwColorSpaceHighValue = 0;
 				break;
 #endif
 			}
-			(void)sourceSurface->lpVtbl->SetColorKey(
-				sourceSurface, DDCKEY_SRCBLT, &colorKey);
+			(void)source_surface->lpVtbl->SetColorKey(
+				source_surface, DDCKEY_SRCBLT, &color_key);
 		}
 
-		result = sourceSurface->lpVtbl->QueryInterface(
-			sourceSurface, &CLSID_IDirect3DTexture,
-			(void **)&sourceTexture);
+		result = source_surface->lpVtbl->QueryInterface(
+			source_surface, &CLSID_IDirect3DTexture,
+			(void **)&source_texture);
 		if (result) {
-			DebugPrintf(
+			debug_printf(
 				"Error %s creating Direct3D source texture.\n",
-				std3D_LookupErrorString(
-					result, g_std3DErrorStringTable, 121),
+				std3d_lookup_error_string(
+					result, g_std3d_error_string_table,
+					121),
 				0, 0, 0);
-			sourceTexture = NULL;
+			source_texture = NULL;
 			break;
 		}
-		result = sourceSurface->lpVtbl->GetSurfaceDesc(sourceSurface,
-							       &surfaceDesc);
+		result = source_surface->lpVtbl->GetSurfaceDesc(source_surface,
+								&surface_desc);
 		if (result) {
-			DebugPrintf(
-				"Error %s get surface description.\n",
-				std3D_LookupErrorString(
-					result, g_std3DErrorStringTable, 121),
-				0, 0, 0);
+			debug_printf("Error %s get surface description.\n",
+				     std3d_lookup_error_string(
+					     result, g_std3d_error_string_table,
+					     121),
+				     0, 0, 0);
 #ifndef XVT_MODERN
-			sourceTexture = NULL;
+			source_texture = NULL;
 #endif
 			break;
 		}
 
-		node->ddsd = surfaceDesc;
-		surfaceDesc.dwFlags =
+		node->ddsd = surface_desc;
+		surface_desc.dwFlags =
 			DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT;
-		surfaceDesc.ddsCaps.dwCaps = DDSCAPS_TEXTURE |
-					     DDSCAPS_VIDEOMEMORY |
-					     DDSCAPS_ALLOCONLOAD;
-		result = g_std3DDirectDraw->lpVtbl->CreateSurface(
-			g_std3DDirectDraw, &surfaceDesc, &destinationSurface,
-			NULL);
+		surface_desc.ddsCaps.dwCaps = DDSCAPS_TEXTURE |
+					      DDSCAPS_VIDEOMEMORY |
+					      DDSCAPS_ALLOCONLOAD;
+		result = g_std3d_direct_draw->lpVtbl->CreateSurface(
+			g_std3d_direct_draw, &surface_desc,
+			&destination_surface, NULL);
 		if (result) {
 			if (result != -2005532292) {
-				DebugPrintf(
+				debug_printf(
 					"Error %s creating texture surface.\n",
-					std3D_LookupErrorString(
-						result, g_std3DErrorStringTable,
+					std3d_lookup_error_string(
+						result,
+						g_std3d_error_string_table,
 						121),
 					0, 0, 0);
 				break;
 			}
-			DebugPrintf(
-				"Error %s Creating surface.\n",
-				std3D_LookupErrorString(
-					result, g_std3DErrorStringTable, 121),
-				0, 0, 0);
-			DebugPrintf(
+			debug_printf("Error %s Creating surface.\n",
+				     std3d_lookup_error_string(
+					     result, g_std3d_error_string_table,
+					     121),
+				     0, 0, 0);
+			debug_printf(
 				"Assuming texture ram overflow - PURGING.\n", 0,
 				0, 0, 0);
 			{
 				int created = 0;
-				struct Std3DTexCacheNode *candidate =
-					g_pTexCacheHead;
+				struct std3d_tex_cache_node *candidate =
+					g_p_tex_cache_head;
 
 				while (!created) {
 					unsigned int freed = 0;
 
-					while (freed < texelCount &&
+					while (freed < texel_count &&
 					       candidate != NULL &&
-					       candidate->cacheBatchTag !=
-						       g_std3DTextureBatchTag) {
-						candidate->pCachedSurface
+					       candidate->cache_batch_tag !=
+						       g_std3d_texture_batch_tag) {
+						candidate->p_cached_surface
 							->lpVtbl->Release(
 								candidate
-									->pCachedSurface);
-						candidate->pCachedTexture
+									->p_cached_surface);
+						candidate->p_cached_texture
 							->lpVtbl->Release(
 								candidate
-									->pCachedTexture);
-						candidate->bCached = 0;
-						freed += candidate->texelCount;
-						std3D_CacheListRemove(
+									->p_cached_texture);
+						candidate->b_cached = 0;
+						freed += candidate->texel_count;
+						std3d_cache_list_remove(
 							candidate);
-						candidate = candidate->pNext;
+						candidate = candidate->p_next;
 					}
-					if (freed < texelCount) {
-						DebugPrintf(
+					if (freed < texel_count) {
+						debug_printf(
 							"WARNING: Scene texture overflow occurred!!!.\n",
 							0, 0, 0, 0);
-						destinationSurface = NULL;
+						destination_surface = NULL;
 						break;
 					}
 					result =
-						g_std3DDirectDraw->lpVtbl
+						g_std3d_direct_draw->lpVtbl
 							->CreateSurface(
-								g_std3DDirectDraw,
-								&surfaceDesc,
-								&destinationSurface,
+								g_std3d_direct_draw,
+								&surface_desc,
+								&destination_surface,
 								NULL);
 					if (!result) {
 						created = 1;
-						DebugPrintf(
+						debug_printf(
 							"Success adding new texture after purge.\n",
 							0, 0, 0, 0);
 					} else if (result != -2005532292) {
-						DebugPrintf(
+						debug_printf(
 							"Error %s creating texture surface.\n",
-							std3D_LookupErrorString(
+							std3d_lookup_error_string(
 								result,
-								g_std3DErrorStringTable,
+								g_std3d_error_string_table,
 								121),
 							0, 0, 0);
-						destinationSurface = NULL;
+						destination_surface = NULL;
 						break;
 					}
 				}
 			}
-			if (destinationSurface == NULL) {
+			if (destination_surface == NULL) {
 				break;
 			}
 		}
 
-		result = destinationSurface->lpVtbl->QueryInterface(
-			destinationSurface, &CLSID_IDirect3DTexture,
-			(void **)&destinationTexture);
+		result = destination_surface->lpVtbl->QueryInterface(
+			destination_surface, &CLSID_IDirect3DTexture,
+			(void **)&destination_texture);
 		if (result) {
-			DebugPrintf(
+			debug_printf(
 				"Error %s creating Direct3D dest texture.\n",
-				std3D_LookupErrorString(
-					result, g_std3DErrorStringTable, 121),
+				std3d_lookup_error_string(
+					result, g_std3d_error_string_table,
+					121),
 				0, 0, 0);
-			destinationTexture = NULL;
+			destination_texture = NULL;
 			break;
 		}
-		result = destinationTexture->lpVtbl->Load(destinationTexture,
-							  sourceTexture);
+		result = destination_texture->lpVtbl->Load(destination_texture,
+							   source_texture);
 		if (result) {
-			DebugPrintf(
+			debug_printf(
 				"Error %s loading Direct3D dest texture from source.\n",
-				std3D_LookupErrorString(
-					result, g_std3DErrorStringTable, 121),
+				std3d_lookup_error_string(
+					result, g_std3d_error_string_table,
+					121),
 				0, 0, 0);
 			break;
 		}
-		result = destinationTexture->lpVtbl->GetHandle(
-			destinationTexture, g_d3dDevice, &textureHandle);
+		result = destination_texture->lpVtbl->GetHandle(
+			destination_texture, g_d3d_device, &texture_handle);
 		if (result) {
-			DebugPrintf(
-				"Error %s when getting texture handle.\n",
-				std3D_LookupErrorString(
-					result, g_std3DErrorStringTable, 121),
-				0, 0, 0);
-			textureHandle = 0;
+			debug_printf("Error %s when getting texture handle.\n",
+				     std3d_lookup_error_string(
+					     result, g_std3d_error_string_table,
+					     121),
+				     0, 0, 0);
+			texture_handle = 0;
 		}
 
-		sourceTexture->lpVtbl->Release(sourceTexture);
-		sourceTexture = NULL;
-		sourceSurface->lpVtbl->Release(sourceSurface);
-		sourceSurface = NULL;
-		if (temporaryBuffer != NULL) {
-			std3D_FreeVBuffer(temporaryBuffer);
+		source_texture->lpVtbl->Release(source_texture);
+		source_texture = NULL;
+		source_surface->lpVtbl->Release(source_surface);
+		source_surface = NULL;
+		if (temporary_buffer != NULL) {
+			std3d_free_v_buffer(temporary_buffer);
 		}
-		node->pCachedTexture = destinationTexture;
-		node->pCachedSurface = destinationSurface;
-		node->texHandle = textureHandle;
+		node->p_cached_texture = destination_texture;
+		node->p_cached_surface = destination_surface;
+		node->tex_handle = texture_handle;
 		node->width = width;
 		node->height = height;
-		node->bCached = 1;
-		node->texelCount = texelCount;
-		node->cacheBatchTag = g_std3DTextureBatchTag;
-		std3D_CacheListAppend(node);
+		node->b_cached = 1;
+		node->texel_count = texel_count;
+		node->cache_batch_tag = g_std3d_texture_batch_tag;
+		std3d_cache_list_append(node);
 		return 1;
 	} while (0);
 
-	if (sourceSurface != NULL) {
-		sourceSurface->lpVtbl->Release(sourceSurface);
+	if (source_surface != NULL) {
+		source_surface->lpVtbl->Release(source_surface);
 	}
-	if (sourceTexture != NULL) {
-		sourceTexture->lpVtbl->Release(sourceTexture);
+	if (source_texture != NULL) {
+		source_texture->lpVtbl->Release(source_texture);
 	}
-	if (temporaryBuffer != NULL) {
-		std3D_FreeVBuffer(temporaryBuffer);
+	if (temporary_buffer != NULL) {
+		std3d_free_v_buffer(temporary_buffer);
 	}
-	if (destinationSurface != NULL) {
-		destinationSurface->lpVtbl->Release(destinationSurface);
+	if (destination_surface != NULL) {
+		destination_surface->lpVtbl->Release(destination_surface);
 	}
-	if (destinationTexture != NULL) {
-		destinationTexture->lpVtbl->Release(destinationTexture);
+	if (destination_texture != NULL) {
+		destination_texture->lpVtbl->Release(destination_texture);
 	}
-	node->pCachedTexture = NULL;
-	node->pCachedSurface = NULL;
-	node->texHandle = 0;
-	node->bCached = 0;
-	node->cacheBatchTag = 0;
-	DebugPrintf("Done error exit from std3D_AddToTextureCache.\n", 0, 0, 0,
-		    0);
+	node->p_cached_texture = NULL;
+	node->p_cached_surface = NULL;
+	node->tex_handle = 0;
+	node->b_cached = 0;
+	node->cache_batch_tag = 0;
+	debug_printf("Done error exit from std3D_AddToTextureCache.\n", 0, 0, 0,
+		     0);
 	return 0;
 }
 
-/* Releases every cached texture and unlinks the list; sets g_texCacheCount to 0
- * and g_std3DTextureBatchTag to 1, and sets the device's availableMemory back
- * to its totalMemory. */
+/* Releases every cached texture and unlinks the list; sets g_tex_cache_count to 0
+ * and g_std3d_texture_batch_tag to 1, and sets the device's available_memory back
+ * to its total_memory. */
 // FUNCTION: XVT 0x4B3070
-void std3D_FlushTextureCache(void)
+void std3d_flush_texture_cache(void)
 {
-	struct Std3DTexCacheNode *node;
+	struct std3d_tex_cache_node *node;
 
-	node = g_pTexCacheHead;
+	node = g_p_tex_cache_head;
 	while (node != NULL) {
-		struct Std3DTexCacheNode **nextLink;
-		struct Std3DTexCacheNode *current;
+		struct std3d_tex_cache_node **next_link;
+		struct std3d_tex_cache_node *current;
 
-		if (node->pCachedSurface != NULL) {
-			node->pCachedSurface->lpVtbl->Release(
-				node->pCachedSurface);
-			node->pCachedSurface = NULL;
+		if (node->p_cached_surface != NULL) {
+			node->p_cached_surface->lpVtbl->Release(
+				node->p_cached_surface);
+			node->p_cached_surface = NULL;
 		}
-		if (node->pCachedTexture != NULL) {
-			node->pCachedTexture->lpVtbl->Release(
-				node->pCachedTexture);
-			node->pCachedTexture = NULL;
+		if (node->p_cached_texture != NULL) {
+			node->p_cached_texture->lpVtbl->Release(
+				node->p_cached_texture);
+			node->p_cached_texture = NULL;
 		}
 		current = node;
-		nextLink = &node->pNext;
-		node->bCached = 0;
-		node->cacheBatchTag = 0;
-		node = *nextLink;
-		*nextLink = NULL;
-		current->pPrev = NULL;
+		next_link = &node->p_next;
+		node->b_cached = 0;
+		node->cache_batch_tag = 0;
+		node = *next_link;
+		*next_link = NULL;
+		current->p_prev = NULL;
 	}
 
-	g_pTexCacheHead = NULL;
-	g_pTexCacheTail = NULL;
-	g_texCacheCount = 0;
-	g_pStd3DCurDevice->availableMemory = g_pStd3DCurDevice->totalMemory;
-	g_std3DTextureBatchTag = 1;
+	g_p_tex_cache_head = NULL;
+	g_p_tex_cache_tail = NULL;
+	g_tex_cache_count = 0;
+	g_p_std3d_cur_device->available_memory =
+		g_p_std3d_cur_device->total_memory;
+	g_std3d_texture_batch_tag = 1;
 }
 
 /* Puts node at the most recently used end of the cache list, raises
- * g_texCacheCount, and takes the node's texelCount from availableMemory. */
+ * g_tex_cache_count, and takes the node's texel_count from available_memory. */
 // FUNCTION: XVT 0x4B30F0
-void std3D_CacheListAppend(struct Std3DTexCacheNode *node)
+void std3d_cache_list_append(struct std3d_tex_cache_node *node)
 {
-	struct Std3DTexCacheNode *previousTail;
+	struct std3d_tex_cache_node *previous_tail;
 
-	if (g_pTexCacheHead == 0) {
-		g_pTexCacheTail = node;
-		g_pTexCacheHead = node;
-		node->pPrev = 0;
-		node->pNext = 0;
+	if (g_p_tex_cache_head == 0) {
+		g_p_tex_cache_tail = node;
+		g_p_tex_cache_head = node;
+		node->p_prev = 0;
+		node->p_next = 0;
 	} else {
-		g_pTexCacheTail->pNext = node;
-		previousTail = g_pTexCacheTail;
-		node->pNext = 0;
-		node->pPrev = previousTail;
-		g_pTexCacheTail = node;
+		g_p_tex_cache_tail->p_next = node;
+		previous_tail = g_p_tex_cache_tail;
+		node->p_next = 0;
+		node->p_prev = previous_tail;
+		g_p_tex_cache_tail = node;
 	}
 
-	++g_texCacheCount;
-	g_pStd3DCurDevice->availableMemory -= node->texelCount;
+	++g_tex_cache_count;
+	g_p_std3d_cur_device->available_memory -= node->texel_count;
 }
 
-/* Takes node off the cache list, lowers g_texCacheCount, and gives its
- * texelCount back to availableMemory. Does not check that node is on the
+/* Takes node off the cache list, lowers g_tex_cache_count, and gives its
+ * texel_count back to available_memory. Does not check that node is on the
  * list. */
 // FUNCTION: XVT 0x4B3160
-void std3D_CacheListRemove(struct Std3DTexCacheNode *node)
+void std3d_cache_list_remove(struct std3d_tex_cache_node *node)
 {
-	if (node == g_pTexCacheHead) {
-		g_pTexCacheHead = node->pNext;
-		if (g_pTexCacheHead != NULL) {
-			g_pTexCacheHead->pPrev = NULL;
-			if (g_pTexCacheHead->pNext == NULL) {
-				g_pTexCacheTail = g_pTexCacheHead;
+	if (node == g_p_tex_cache_head) {
+		g_p_tex_cache_head = node->p_next;
+		if (g_p_tex_cache_head != NULL) {
+			g_p_tex_cache_head->p_prev = NULL;
+			if (g_p_tex_cache_head->p_next == NULL) {
+				g_p_tex_cache_tail = g_p_tex_cache_head;
 			}
 		} else {
-			g_pTexCacheTail = NULL;
+			g_p_tex_cache_tail = NULL;
 		}
-	} else if (node == g_pTexCacheTail) {
-		g_pTexCacheTail = node->pPrev;
-		g_pTexCacheTail->pNext = NULL;
+	} else if (node == g_p_tex_cache_tail) {
+		g_p_tex_cache_tail = node->p_prev;
+		g_p_tex_cache_tail->p_next = NULL;
 	} else {
-		node->pPrev->pNext = node->pNext;
-		node->pNext->pPrev = node->pPrev;
+		node->p_prev->p_next = node->p_next;
+		node->p_next->p_prev = node->p_prev;
 	}
 
-	--g_texCacheCount;
-	g_pStd3DCurDevice->availableMemory += node->texelCount;
+	--g_tex_cache_count;
+	g_p_std3d_cur_device->available_memory += node->texel_count;
 }
 
 /* Asks DirectDraw for the total and free texture video memory in bytes. Returns
  * 1, or 0 when it cannot; when only the memory query fails, the IDirectDraw2
  * interface it got is not released. */
 // FUNCTION: XVT 0x4B3210
-int std3D_QueryTextureVidMem(unsigned int *totalBytes, unsigned int *freeBytes)
+int std3d_query_texture_vid_mem(unsigned int *total_bytes,
+				unsigned int *free_bytes)
 {
-	IDirectDraw *directDraw2 = 0;
+	IDirectDraw *direct_draw2 = 0;
 	DDSCAPS caps;
 
-	if (g_std3DDirectDraw->lpVtbl->QueryInterface(
-		    g_std3DDirectDraw, &CLSID_IDirectDraw2,
-		    (void **)&directDraw2) != DX_DD_OK) {
+	if (g_std3d_direct_draw->lpVtbl->QueryInterface(
+		    g_std3d_direct_draw, &CLSID_IDirectDraw2,
+		    (void **)&direct_draw2) != DX_DD_OK) {
 		return 0;
 	}
 
 	caps.dwCaps = DDSCAPS_TEXTURE;
-	if (directDraw2->lpVtbl->GetAvailableVidMem(
-		    directDraw2, &caps, totalBytes, freeBytes) != DX_DD_OK) {
+	if (direct_draw2->lpVtbl->GetAvailableVidMem(
+		    direct_draw2, &caps, total_bytes, free_bytes) != DX_DD_OK) {
 		return 0;
 	}
 
-	directDraw2->lpVtbl->Release(directDraw2);
+	direct_draw2->lpVtbl->Release(direct_draw2);
 	return 1;
 }
 
 /* Marks node as used in the current batch and moves it to the most recently
  * used end of the cache list. */
 // FUNCTION: XVT 0x4B3280
-void std3D_CacheTextureSurface(struct Std3DTexCacheNode *node)
+void std3d_cache_texture_surface(struct std3d_tex_cache_node *node)
 {
-	node->cacheBatchTag = g_std3DTextureBatchTag;
-	std3D_CacheListRemove(node);
-	std3D_CacheListAppend(node);
+	node->cache_batch_tag = g_std3d_texture_batch_tag;
+	std3d_cache_list_remove(node);
+	std3d_cache_list_append(node);
 }
 
-/* Fills g_std3DQuadRect of the z-buffer with 0 when g_std3DZCompareCap is 16,
+/* Fills g_std3d_quad_rect of the z-buffer with 0 when g_std3dz_compare_cap is 16,
  * else 0xFFFF, restoring a lost surface and trying again. Returns 1, or 0 when
  * the fill or the restore fails. */
 // FUNCTION: XVT 0x4B32B0
-int std3D_ClearZBuffer(void)
+int std3d_clear_z_buffer(void)
 {
 	int rect[4];
 	DDBLTFX effects;
@@ -2426,99 +2472,100 @@ int std3D_ClearZBuffer(void)
 	memset(&effects, 0, sizeof(effects));
 	effects.dwSize = sizeof(effects);
 	effects.dwFillDepth = 0;
-	if (g_std3DZCompareCap != 16) {
+	if (g_std3dz_compare_cap != 16) {
 		effects.dwFillDepth = 0xFFFF;
 	}
-	rect[0] = g_std3DQuadRect.x;
-	rect[1] = g_std3DQuadRect.y;
-	rect[2] = g_std3DQuadRect.x + g_std3DQuadRect.width;
-	rect[3] = g_std3DQuadRect.y + g_std3DQuadRect.height;
+	rect[0] = g_std3d_quad_rect.x;
+	rect[1] = g_std3d_quad_rect.y;
+	rect[2] = g_std3d_quad_rect.x + g_std3d_quad_rect.width;
+	rect[3] = g_std3d_quad_rect.y + g_std3d_quad_rect.height;
 
 	for (;;) {
-		result = g_std3DZBufferSurfaceBlock.surface->lpVtbl->Blt(
-			g_std3DZBufferSurfaceBlock.surface, rect, NULL, NULL,
+		result = g_std3dz_buffer_surface_block.surface->lpVtbl->Blt(
+			g_std3dz_buffer_surface_block.surface, rect, NULL, NULL,
 			DDBLT_WAIT | DDBLT_DEPTHFILL, &effects);
 		if (result == DX_DD_OK) {
 			return 1;
 		}
 		if (result == DX_DDERR_SURFACELOST) {
-			result = g_std3DZBufferSurfaceBlock.surface->lpVtbl
-					 ->Restore(g_std3DZBufferSurfaceBlock
+			result = g_std3dz_buffer_surface_block.surface->lpVtbl
+					 ->Restore(g_std3dz_buffer_surface_block
 							   .surface);
 		}
 		if (result != DX_DD_OK) {
-			DebugPrintf(
-				"Error %s clearing zbuffer.\n",
-				std3D_LookupErrorString(
-					result, g_std3DErrorStringTable, 121),
-				0, 0, 0);
+			debug_printf("Error %s clearing zbuffer.\n",
+				     std3d_lookup_error_string(
+					     result, g_std3d_error_string_table,
+					     121),
+				     0, 0, 0);
 			return 0;
 		}
 	}
 }
 
-/* Returns the index of the first device that matches requiredCaps on
+/* Returns the index of the first device that matches required_caps on
  * perspective texturing and z-buffer (each only when required), shares a color
  * model with it and has the same bHardware. Without one, returns the first
  * device that matches the most of those, in that order. Returns 0 when there is
  * no device. */
 // FUNCTION: XVT 0x4B3380
-int std3D_SelectBestDevice(struct Std3DDeviceCaps *requiredCaps)
+int std3d_select_best_device(struct std3d_device_caps *required_caps)
 {
-	int bestMatchQuality;
-	struct Std3DDevice *device;
-	int deviceIndex;
-	int requiredPerspective;
-	int matchQuality;
-	int requiredZBuffer;
-	int bestDeviceIndex;
+	int best_match_quality;
+	struct std3d_device *device;
+	int device_index;
+	int required_perspective;
+	int match_quality;
+	int required_z_buffer;
+	int best_device_index;
 
-	if (g_std3DNumDevices == 0) {
+	if (g_std3d_num_devices == 0) {
 		return 0;
 	}
-	bestMatchQuality = 0;
-	device = g_std3DDevices;
-	deviceIndex = 0;
-	bestDeviceIndex = 0;
-	if (g_std3DNumDevices > (unsigned int)deviceIndex) {
-		requiredPerspective = requiredCaps->bTexturePerspective;
+	best_match_quality = 0;
+	device = g_std3d_devices;
+	device_index = 0;
+	best_device_index = 0;
+	if (g_std3d_num_devices > (unsigned int)device_index) {
+		required_perspective = required_caps->b_texture_perspective;
 		do {
-			matchQuality = 0;
-			if (requiredPerspective == 0 ||
-			    device->caps.bTexturePerspective ==
-				    requiredPerspective) {
-				matchQuality = 1;
-				requiredZBuffer = requiredCaps->bHasZBuffer;
-				if (requiredZBuffer == 0 ||
-				    device->caps.bHasZBuffer ==
-					    requiredZBuffer) {
-					matchQuality = 2;
-					if ((requiredCaps->colorModelFlags &
-					     device->caps.colorModelFlags) !=
+			match_quality = 0;
+			if (required_perspective == 0 ||
+			    device->caps.b_texture_perspective ==
+				    required_perspective) {
+				match_quality = 1;
+				required_z_buffer =
+					required_caps->b_has_z_buffer;
+				if (required_z_buffer == 0 ||
+				    device->caps.b_has_z_buffer ==
+					    required_z_buffer) {
+					match_quality = 2;
+					if ((required_caps->color_model_flags &
+					     device->caps.color_model_flags) !=
 					    0) {
-						matchQuality = 3;
-						if (device->caps.bHardware ==
-						    requiredCaps->bHardware) {
-							DebugPrintf(
+						match_quality = 3;
+						if (device->caps.b_hardware ==
+						    required_caps->b_hardware) {
+							debug_printf(
 								"Found a perfect device match #%d!\n",
-								deviceIndex, 0,
+								device_index, 0,
 								0, 0);
-							return deviceIndex;
+							return device_index;
 						}
 					}
 				}
 			}
-			if (bestMatchQuality < matchQuality) {
-				bestMatchQuality = matchQuality;
-				bestDeviceIndex = deviceIndex;
+			if (best_match_quality < match_quality) {
+				best_match_quality = match_quality;
+				best_device_index = device_index;
 			}
 			++device;
-			++deviceIndex;
-		} while (g_std3DNumDevices > (unsigned int)deviceIndex);
+			++device_index;
+		} while (g_std3d_num_devices > (unsigned int)device_index);
 	}
-	DebugPrintf("Settling for a closest match #%d..\n", bestDeviceIndex, 0,
-		    0, 0);
-	return bestDeviceIndex;
+	debug_printf("Settling for a closest match #%d..\n", best_device_index,
+		     0, 0, 0);
+	return best_device_index;
 }
 
 /* Returns the index of the first format that matches match exactly: the same
@@ -2527,287 +2574,289 @@ int std3D_SelectBestDevice(struct Std3DDeviceCaps *requiredCaps)
  * with the best score: 1 for the mode, 2 for the mode and bpp, 3 for an RGBA
  * mode and bpp. Returns 0 when count is 0. */
 // FUNCTION: XVT 0x4B3450
-int std3D_FindClosestFormat(const struct ColorInfo *match,
-			    struct Std3DTexFmt *formats, unsigned int count)
+int std3d_find_closest_format(const struct color_info *match,
+			      struct std3d_tex_fmt *formats, unsigned int count)
 {
-	int bestFormatIndex;
-	struct Std3DTexFmt *format;
-	int formatIndex;
-	unsigned int matchScore;
-	int bestMatchScore;
+	int best_format_index;
+	struct std3d_tex_fmt *format;
+	int format_index;
+	unsigned int match_score;
+	int best_match_score;
 
 	if (count == 0) {
 		return 0;
 	}
-	bestMatchScore = 0;
-	bestFormatIndex = 0;
+	best_match_score = 0;
+	best_format_index = 0;
 	format = formats;
-	for (formatIndex = 0; (unsigned int)formatIndex < count;
-	     ++formatIndex) {
-		matchScore = 0;
-		if (format->colorInfo.colorMode == match->colorMode) {
-			++matchScore;
-			if (format->colorInfo.bpp == match->bpp) {
-				++matchScore;
-				switch (match->colorMode) {
+	for (format_index = 0; (unsigned int)format_index < count;
+	     ++format_index) {
+		match_score = 0;
+		if (format->color_info.color_mode == match->color_mode) {
+			++match_score;
+			if (format->color_info.bpp == match->bpp) {
+				++match_score;
+				switch (match->color_mode) {
 				case STDCOLOR_RGB:
-					if (format->colorInfo.redBPP ==
-						    match->redBPP &&
-					    format->colorInfo.greenBPP ==
-						    match->greenBPP &&
-					    format->colorInfo.blueBPP ==
-						    match->blueBPP) {
-						DebugPrintf(
+					if (format->color_info.red_bpp ==
+						    match->red_bpp &&
+					    format->color_info.green_bpp ==
+						    match->green_bpp &&
+					    format->color_info.blue_bpp ==
+						    match->blue_bpp) {
+						debug_printf(
 							"Found a perfect mode match #%d!\n",
-							formatIndex, 0, 0, 0);
-						return formatIndex;
+							format_index, 0, 0, 0);
+						return format_index;
 					}
 					break;
 				case STDCOLOR_RGBA:
-					if (format->colorInfo.colorMode ==
+					if (format->color_info.color_mode ==
 					    STDCOLOR_RGBA) {
-						++matchScore;
+						++match_score;
 					}
-					if (format->colorInfo.redBPP ==
-						    match->redBPP &&
-					    format->colorInfo.greenBPP ==
-						    match->greenBPP &&
-					    format->colorInfo.blueBPP ==
-						    match->blueBPP &&
-					    format->colorInfo.alphaBPP ==
-						    match->alphaBPP) {
-						DebugPrintf(
+					if (format->color_info.red_bpp ==
+						    match->red_bpp &&
+					    format->color_info.green_bpp ==
+						    match->green_bpp &&
+					    format->color_info.blue_bpp ==
+						    match->blue_bpp &&
+					    format->color_info.alpha_bpp ==
+						    match->alpha_bpp) {
+						debug_printf(
 							"Found a perfect mode match #%d!\n",
-							formatIndex, 0, 0, 0);
-						return formatIndex;
+							format_index, 0, 0, 0);
+						return format_index;
 					}
 					break;
 				default:
-					DebugPrintf(
+					debug_printf(
 						"Found a perfect mode match #%d!\n",
-						formatIndex, 0, 0, 0);
-					return formatIndex;
+						format_index, 0, 0, 0);
+					return format_index;
 				}
 			}
 		}
-		if ((int)matchScore > bestMatchScore) {
-			bestFormatIndex = formatIndex;
-			bestMatchScore = matchScore;
+		if ((int)match_score > best_match_score) {
+			best_format_index = format_index;
+			best_match_score = match_score;
 		}
 		++format;
 	}
-	DebugPrintf("Settling for a closest match #%d..\n", bestFormatIndex, 0,
-		    0, 0);
-	return bestFormatIndex;
+	debug_printf("Settling for a closest match #%d..\n", best_format_index,
+		     0, 0, 0);
+	return best_format_index;
 }
 
 /* Draws the full-viewport color overlay when it is on and not all 0. Each
  * channel is its share of the largest, times 255; alpha is the largest times
  * 0.736 with stippled alpha, else times 0.9, held to 0 to 255, and an alpha of
  * 0 draws nothing. With alpha blending it draws the quad in that color;
- * without, it fills g_pStd3DVBuffer in the 4444 format, uploads it as a
+ * without, it fills g_p_std3dv_buffer in the 4444 format, uploads it as a
  * translucent texture, draws the quad with it in white, and releases it.
  * Nothing calls this. */
 // FUNCTION: XVT 0x4B3590
-void std3D_DrawColorOverlay(void)
+void std3d_draw_color_overlay(void)
 {
 	float maximum;
 	uint8_t blue;
 	uint8_t green;
 	uint8_t red;
 	uint8_t alpha;
-	uint32_t packedColor;
+	uint32_t packed_color;
 
-	if (g_std3DColorOverlayEnabled == 0 ||
-	    (g_std3DColorOverlayRed == 0.0f &&
-	     g_std3DColorOverlayGreen == 0.0f &&
-	     g_std3DColorOverlayBlue == 0.0f)) {
+	if (g_std3d_color_overlay_enabled == 0 ||
+	    (g_std3d_color_overlay_red == 0.0f &&
+	     g_std3d_color_overlay_green == 0.0f &&
+	     g_std3d_color_overlay_blue == 0.0f)) {
 		return;
 	}
-	maximum = g_std3DColorOverlayRed >= g_std3DColorOverlayGreen
-			  ? g_std3DColorOverlayRed
-			  : g_std3DColorOverlayGreen;
-	maximum = g_std3DColorOverlayBlue >= maximum ? g_std3DColorOverlayBlue
-						     : maximum;
-	red = (uint8_t)(g_std3DColorOverlayRed / maximum * 255.0f);
-	green = (uint8_t)(g_std3DColorOverlayGreen / maximum * 255.0f);
-	blue = (uint8_t)(g_std3DColorOverlayBlue / maximum * 255.0f);
-	if (g_pStd3DCurDevice->caps.bStippledShade != 0) {
-		float alphaScale;
-		float upperClampedAlpha;
+	maximum = g_std3d_color_overlay_red >= g_std3d_color_overlay_green
+			  ? g_std3d_color_overlay_red
+			  : g_std3d_color_overlay_green;
+	maximum = g_std3d_color_overlay_blue >= maximum
+			  ? g_std3d_color_overlay_blue
+			  : maximum;
+	red = (uint8_t)(g_std3d_color_overlay_red / maximum * 255.0f);
+	green = (uint8_t)(g_std3d_color_overlay_green / maximum * 255.0f);
+	blue = (uint8_t)(g_std3d_color_overlay_blue / maximum * 255.0f);
+	if (g_p_std3d_cur_device->caps.b_stippled_shade != 0) {
+		float alpha_scale;
+		float upper_clamped_alpha;
 
-		alphaScale = maximum * 0.736f;
-		if (alphaScale >= 0.0f) {
-			if (alphaScale > 255.0f) {
-				upperClampedAlpha = 255.0f;
+		alpha_scale = maximum * 0.736f;
+		if (alpha_scale >= 0.0f) {
+			if (alpha_scale > 255.0f) {
+				upper_clamped_alpha = 255.0f;
 			} else {
-				upperClampedAlpha = alphaScale;
+				upper_clamped_alpha = alpha_scale;
 			}
-			alphaScale = upperClampedAlpha;
+			alpha_scale = upper_clamped_alpha;
 		} else {
-			alphaScale = 0.0f;
+			alpha_scale = 0.0f;
 		}
-		alpha = (uint8_t)alphaScale;
+		alpha = (uint8_t)alpha_scale;
 	} else {
-		float alphaScale;
-		float upperClampedAlpha;
+		float alpha_scale;
+		float upper_clamped_alpha;
 
-		alphaScale = maximum * 0.9f;
-		if (alphaScale >= 0.0f) {
-			if (alphaScale > 255.0f) {
-				upperClampedAlpha = 255.0f;
+		alpha_scale = maximum * 0.9f;
+		if (alpha_scale >= 0.0f) {
+			if (alpha_scale > 255.0f) {
+				upper_clamped_alpha = 255.0f;
 			} else {
-				upperClampedAlpha = alphaScale;
+				upper_clamped_alpha = alpha_scale;
 			}
-			alphaScale = upperClampedAlpha;
+			alpha_scale = upper_clamped_alpha;
 		} else {
-			alphaScale = 0.0f;
+			alpha_scale = 0.0f;
 		}
-		alpha = (uint8_t)alphaScale;
+		alpha = (uint8_t)alpha_scale;
 	}
 	if (alpha == 0) {
 		return;
 	}
-	if (g_pStd3DCurDevice->caps.bAlphaBlend != 0) {
-		packedColor =
+	if (g_p_std3d_cur_device->caps.b_alpha_blend != 0) {
+		packed_color =
 			(uint32_t)blue | ((uint32_t)red << 16) |
 			(((uint32_t)green | ((uint32_t)alpha << 16)) << 8);
-		g_std3DQuadVerts[0].color = packedColor;
-		g_std3DQuadVerts[1].color = packedColor;
-		g_std3DQuadVerts[2].color = packedColor;
-		g_std3DQuadVerts[3].color = packedColor;
-		std3D_StartScene();
-		std3D_LockExecuteBuffer();
-		std3D_AddVertices(g_std3DQuadVerts, 4);
-		std3D_BeginInstructions();
-		std3D_AddTriangles(g_std3DViewportQuadTriangles, 2);
-		std3D_ExecuteBuffer();
-		std3D_EndScene();
+		g_std3d_quad_verts[0].color = packed_color;
+		g_std3d_quad_verts[1].color = packed_color;
+		g_std3d_quad_verts[2].color = packed_color;
+		g_std3d_quad_verts[3].color = packed_color;
+		std3d_start_scene();
+		std3d_lock_execute_buffer();
+		std3d_add_vertices(g_std3d_quad_verts, 4);
+		std3d_begin_instructions();
+		std3d_add_triangles(g_std3d_viewport_quad_triangles, 2);
+		std3d_execute_buffer();
+		std3d_end_scene();
 	} else {
-		uint16_t blueColor;
+		uint16_t blue_color;
 		uint16_t color;
 
-		color = (uint16_t)(green >>
-				   g_pFmtRGBA4444->colorInfo.greenPosShiftRight)
-			<< g_pFmtRGBA4444->colorInfo.greenPosShift;
-		color |= (uint16_t)(red >>
-				    g_pFmtRGBA4444->colorInfo.redPosShiftRight)
-			 << g_pFmtRGBA4444->colorInfo.redPosShift;
-		color |=
-			(uint16_t)(alpha >>
-				   g_pFmtRGBA4444->colorInfo.alphaPosShiftRight)
-			<< g_pFmtRGBA4444->colorInfo.alphaPosShift;
-		blueColor =
-			(uint16_t)(blue >>
-				   g_pFmtRGBA4444->colorInfo.bluePosShiftRight)
-			<< g_pFmtRGBA4444->colorInfo.bluePosShift;
-		std3D_FillVBuffer(g_pStd3DVBuffer,
-				  (uint16_t)(color | blueColor), 0);
-		std3D_StartScene();
-		std3D_LockExecuteBuffer();
-		std3D_AddToTextureCache(g_pStd3DVBuffer,
-					&g_std3DColorOverlayTexNode, 0, 1);
-		g_std3DQuadVerts[0].color = UINT32_MAX;
-		g_std3DQuadVerts[1].color = UINT32_MAX;
-		g_std3DQuadVerts[2].color = UINT32_MAX;
-		g_std3DQuadVerts[3].color = UINT32_MAX;
-		g_std3DViewportQuadTriangles[0].texture =
-			&g_std3DColorOverlayTexNode;
-		g_std3DViewportQuadTriangles[1].texture =
-			&g_std3DColorOverlayTexNode;
-		std3D_AddVertices(g_std3DQuadVerts, 4);
-		std3D_BeginInstructions();
-		std3D_AddTriangles(g_std3DViewportQuadTriangles, 2);
-		std3D_ExecuteBuffer();
-		std3D_EndScene();
-		g_std3DColorOverlayTexNode.pCachedSurface->lpVtbl->Release(
-			g_std3DColorOverlayTexNode.pCachedSurface);
-		g_std3DColorOverlayTexNode.pCachedTexture->lpVtbl->Release(
-			g_std3DColorOverlayTexNode.pCachedTexture);
-		g_std3DColorOverlayTexNode.bCached = 0;
-		std3D_CacheListRemove(&g_std3DColorOverlayTexNode);
+		color = (uint16_t)(green >> g_p_fmt_rgba4444->color_info
+						    .green_pos_shift_right)
+			<< g_p_fmt_rgba4444->color_info.green_pos_shift;
+		color |= (uint16_t)(red >> g_p_fmt_rgba4444->color_info
+						   .red_pos_shift_right)
+			 << g_p_fmt_rgba4444->color_info.red_pos_shift;
+		color |= (uint16_t)(alpha >> g_p_fmt_rgba4444->color_info
+						     .alpha_pos_shift_right)
+			 << g_p_fmt_rgba4444->color_info.alpha_pos_shift;
+		blue_color = (uint16_t)(blue >> g_p_fmt_rgba4444->color_info
+							.blue_pos_shift_right)
+			     << g_p_fmt_rgba4444->color_info.blue_pos_shift;
+		std3d_fill_v_buffer(g_p_std3dv_buffer,
+				    (uint16_t)(color | blue_color), 0);
+		std3d_start_scene();
+		std3d_lock_execute_buffer();
+		std3d_add_to_texture_cache(g_p_std3dv_buffer,
+					   &g_std3d_color_overlay_tex_node, 0,
+					   1);
+		g_std3d_quad_verts[0].color = UINT32_MAX;
+		g_std3d_quad_verts[1].color = UINT32_MAX;
+		g_std3d_quad_verts[2].color = UINT32_MAX;
+		g_std3d_quad_verts[3].color = UINT32_MAX;
+		g_std3d_viewport_quad_triangles[0].texture =
+			&g_std3d_color_overlay_tex_node;
+		g_std3d_viewport_quad_triangles[1].texture =
+			&g_std3d_color_overlay_tex_node;
+		std3d_add_vertices(g_std3d_quad_verts, 4);
+		std3d_begin_instructions();
+		std3d_add_triangles(g_std3d_viewport_quad_triangles, 2);
+		std3d_execute_buffer();
+		std3d_end_scene();
+		g_std3d_color_overlay_tex_node.p_cached_surface->lpVtbl
+			->Release(g_std3d_color_overlay_tex_node
+					  .p_cached_surface);
+		g_std3d_color_overlay_tex_node.p_cached_texture->lpVtbl
+			->Release(g_std3d_color_overlay_tex_node
+					  .p_cached_texture);
+		g_std3d_color_overlay_tex_node.b_cached = 0;
+		std3d_cache_list_remove(&g_std3d_color_overlay_tex_node);
 	}
 }
 
-/* Stores rect in g_std3DQuadRect, sets g_std3DQuadVerts to its corners and
- * g_std3DViewportQuadTriangles to two untextured alpha-blended triangles over
+/* Stores rect in g_std3d_quad_rect, sets g_std3d_quad_verts to its corners and
+ * g_std3d_viewport_quad_triangles to two untextured alpha-blended triangles over
  * it. Returns 0. */
 // FUNCTION: XVT 0x4B3890
-int std3D_BuildViewportQuad(const struct Std3DViewportRect *rect)
+int std3d_build_viewport_quad(const struct std3d_viewport_rect *rect)
 {
-	g_std3DQuadRect = *rect;
-	memset(g_std3DQuadVerts, 0, sizeof(g_std3DQuadVerts));
+	g_std3d_quad_rect = *rect;
+	memset(g_std3d_quad_verts, 0, sizeof(g_std3d_quad_verts));
 
-	g_std3DQuadVerts[0].sx = (float)g_std3DQuadRect.x;
-	g_std3DQuadVerts[0].sy = (float)g_std3DQuadRect.y;
-	g_std3DQuadVerts[1].sx =
-		(float)(g_std3DQuadRect.x + g_std3DQuadRect.width);
-	g_std3DQuadVerts[1].sy = (float)g_std3DQuadRect.y;
-	g_std3DQuadVerts[2].sx =
-		(float)(g_std3DQuadRect.x + g_std3DQuadRect.width);
-	g_std3DQuadVerts[2].sy =
-		(float)(g_std3DQuadRect.y + g_std3DQuadRect.height);
-	g_std3DQuadVerts[3].sx = (float)g_std3DQuadRect.x;
-	g_std3DQuadVerts[3].sy =
-		(float)(g_std3DQuadRect.y + g_std3DQuadRect.height);
+	g_std3d_quad_verts[0].sx = (float)g_std3d_quad_rect.x;
+	g_std3d_quad_verts[0].sy = (float)g_std3d_quad_rect.y;
+	g_std3d_quad_verts[1].sx =
+		(float)(g_std3d_quad_rect.x + g_std3d_quad_rect.width);
+	g_std3d_quad_verts[1].sy = (float)g_std3d_quad_rect.y;
+	g_std3d_quad_verts[2].sx =
+		(float)(g_std3d_quad_rect.x + g_std3d_quad_rect.width);
+	g_std3d_quad_verts[2].sy =
+		(float)(g_std3d_quad_rect.y + g_std3d_quad_rect.height);
+	g_std3d_quad_verts[3].sx = (float)g_std3d_quad_rect.x;
+	g_std3d_quad_verts[3].sy =
+		(float)(g_std3d_quad_rect.y + g_std3d_quad_rect.height);
 
-	g_std3DViewportQuadTriangles[0].vertexIndex1 = 1;
-	g_std3DViewportQuadTriangles[0].vertexIndex0 = 0;
-	g_std3DViewportQuadTriangles[0].vertexIndex2 = 2;
-	g_std3DViewportQuadTriangles[0].texture = NULL;
-	g_std3DViewportQuadTriangles[0].flags =
+	g_std3d_viewport_quad_triangles[0].vertex_index1 = 1;
+	g_std3d_viewport_quad_triangles[0].vertex_index0 = 0;
+	g_std3d_viewport_quad_triangles[0].vertex_index2 = 2;
+	g_std3d_viewport_quad_triangles[0].texture = NULL;
+	g_std3d_viewport_quad_triangles[0].flags =
 		STD3D_RS_ALPHA_BLEND | STD3D_RS_MONO_DISABLE;
-	g_std3DViewportQuadTriangles[1].vertexIndex0 = 0;
-	g_std3DViewportQuadTriangles[1].vertexIndex1 = 2;
-	g_std3DViewportQuadTriangles[1].texture = NULL;
-	g_std3DViewportQuadTriangles[1].vertexIndex2 = 3;
-	g_std3DViewportQuadTriangles[1].flags =
+	g_std3d_viewport_quad_triangles[1].vertex_index0 = 0;
+	g_std3d_viewport_quad_triangles[1].vertex_index1 = 2;
+	g_std3d_viewport_quad_triangles[1].texture = NULL;
+	g_std3d_viewport_quad_triangles[1].vertex_index2 = 3;
+	g_std3d_viewport_quad_triangles[1].flags =
 		STD3D_RS_ALPHA_BLEND | STD3D_RS_MONO_DISABLE;
 
 	return 0;
 }
 
-/* Writes the starting render states from g_std3DRenderOptionFlags into an
+/* Writes the starting render states from g_std3d_render_option_flags into an
  * execute buffer of its own, 4096 bytes, executes it inside a scene, releases
- * it, and sets g_d3dStateFlags to the flags. The states: perspective, the
- * filters, subpixel, no wrapping, blending (as std3D_SetRenderState sets it for
+ * it, and sets g_d3d_state_flags to the flags. The states: perspective, the
+ * filters, subpixel, no wrapping, blending (as std3d_set_render_state sets it for
  * the 0x600 bits), alpha test with compare 6, stippled alpha when the device
  * stipples, shade mode 2, mono, specular, fog, fill mode 3, dither, antialias,
- * z test and z writes when g_std3DZBufferEnabled is set, the z compare from
- * g_std3DZCompareCap, and cull mode 1. Returns 1; failures are only printed,
+ * z test and z writes when g_std3dz_buffer_enabled is set, the z compare from
+ * g_std3dz_compare_cap, and cull mode 1. Returns 1; failures are only printed,
  * and it goes on when making or locking the buffer fails. */
 // FUNCTION: XVT 0x4B3980
-int std3D_SetInitialRenderState(void)
+int std3d_set_initial_render_state(void)
 {
-	IDirect3DExecuteBuffer *executeBuffer;
+	IDirect3DExecuteBuffer *execute_buffer;
 	D3DEXECUTEBUFFERDESC descriptor;
-	D3DEXECUTEDATA executeData;
+	D3DEXECUTEDATA execute_data;
 	D3DINSTRUCTION *instruction;
 	D3DSTATE *state;
 	uint8_t *base;
 	uint8_t *cursor;
 	int result;
-	int zEnabled;
+	int z_enabled;
 
-	executeBuffer = NULL;
+	execute_buffer = NULL;
 	memset(&descriptor, 0, sizeof(descriptor));
 	descriptor.dwSize = 20;
 	descriptor.dwFlags = 1;
 	descriptor.dwBufferSize = 4096;
-	result = g_d3dDevice->lpVtbl->CreateExecuteBuffer(
-		g_d3dDevice, &descriptor, &executeBuffer, NULL);
+	result = g_d3d_device->lpVtbl->CreateExecuteBuffer(
+		g_d3d_device, &descriptor, &execute_buffer, NULL);
 	if (result != 0) {
-		DebugPrintf("Error %s creating D3D Execute buffer.\n",
-			    std3D_LookupErrorString(
-				    result, g_std3DErrorStringTable, 121),
-			    0, 0, 0);
+		debug_printf("Error %s creating D3D Execute buffer.\n",
+			     std3d_lookup_error_string(
+				     result, g_std3d_error_string_table, 121),
+			     0, 0, 0);
 	}
-	result = executeBuffer->lpVtbl->Lock(executeBuffer, &descriptor);
+	result = execute_buffer->lpVtbl->Lock(execute_buffer, &descriptor);
 	if (result != 0) {
-		DebugPrintf(g_std3DLockExecuteBufferErrorFormat,
-			    std3D_LookupErrorString(
-				    result, g_std3DErrorStringTable, 121),
-			    0, 0, 0);
+		debug_printf(g_std3d_lock_execute_buffer_error_format,
+			     std3d_lookup_error_string(
+				     result, g_std3d_error_string_table, 121),
+			     0, 0, 0);
 	}
 
 	memset(descriptor.lpData, 0, 4096);
@@ -2819,19 +2868,19 @@ int std3D_SetInitialRenderState(void)
 	state = (D3DSTATE *)(instruction + 1);
 
 	state->dwState = D3DRENDERSTATE_TEXTUREPERSPECTIVE;
-	state->dwArg = g_std3DRenderOptionFlags & 1;
+	state->dwArg = g_std3d_render_option_flags & 1;
 	++state;
 	state->dwState = D3DRENDERSTATE_TEXTUREMAG;
-	state->dwArg = (g_std3DRenderOptionFlags & 0x80) != 0 ? 2 : 1;
+	state->dwArg = (g_std3d_render_option_flags & 0x80) != 0 ? 2 : 1;
 	++state;
 	state->dwState = D3DRENDERSTATE_TEXTUREMIN;
-	state->dwArg = (g_std3DRenderOptionFlags & 0x100) != 0 ? 2 : 1;
+	state->dwArg = (g_std3d_render_option_flags & 0x100) != 0 ? 2 : 1;
 	++state;
 	state->dwState = D3DRENDERSTATE_SUBPIXEL;
-	state->dwArg = (g_std3DRenderOptionFlags & 0x10) != 0;
+	state->dwArg = (g_std3d_render_option_flags & 0x10) != 0;
 	++state;
 	state->dwState = D3DRENDERSTATE_SUBPIXELX;
-	state->dwArg = (g_std3DRenderOptionFlags & 0x20) != 0;
+	state->dwArg = (g_std3d_render_option_flags & 0x20) != 0;
 	++state;
 	state->dwState = D3DRENDERSTATE_WRAPU;
 	state->dwArg = 0;
@@ -2840,10 +2889,10 @@ int std3D_SetInitialRenderState(void)
 	state->dwArg = 0;
 	++state;
 	state->dwState = D3DRENDERSTATE_BLENDENABLE;
-	state->dwArg = (g_std3DRenderOptionFlags & 0x600) != 0;
+	state->dwArg = (g_std3d_render_option_flags & 0x600) != 0;
 	++state;
-	if ((g_std3DRenderOptionFlags & 0x600) != 0) {
-		if ((g_std3DRenderOptionFlags & 0x400) != 0) {
+	if ((g_std3d_render_option_flags & 0x600) != 0) {
+		if ((g_std3d_render_option_flags & 0x400) != 0) {
 			state->dwState = D3DRENDERSTATE_TEXTUREMAPBLEND;
 			state->dwArg = 4;
 		} else {
@@ -2874,7 +2923,7 @@ int std3D_SetInitialRenderState(void)
 	state->dwState = D3DRENDERSTATE_ALPHAFUNC;
 	state->dwArg = 6;
 	++state;
-	if (g_pStd3DCurDevice->caps.bStippledShade != 0) {
+	if (g_p_std3d_cur_device->caps.b_stippled_shade != 0) {
 		state->dwState = D3DRENDERSTATE_STIPPLEDALPHA;
 		state->dwArg = 1;
 	} else {
@@ -2885,40 +2934,40 @@ int std3D_SetInitialRenderState(void)
 	state->dwState = D3DRENDERSTATE_SHADEMODE;
 	state->dwArg = 2;
 	++state;
-	zEnabled = 1;
+	z_enabled = 1;
 	state->dwState = D3DRENDERSTATE_MONOENABLE;
-	state->dwArg = (g_std3DRenderOptionFlags & 0x8000) == 0;
+	state->dwArg = (g_std3d_render_option_flags & 0x8000) == 0;
 	++state;
 	state->dwState = D3DRENDERSTATE_SPECULARENABLE;
-	state->dwArg = (g_std3DRenderOptionFlags & 4) != 0;
+	state->dwArg = (g_std3d_render_option_flags & 4) != 0;
 	++state;
 	state->dwState = D3DRENDERSTATE_FOGENABLE;
-	state->dwArg = (g_std3DRenderOptionFlags & 0x40) != 0;
+	state->dwArg = (g_std3d_render_option_flags & 0x40) != 0;
 	++state;
 	state->dwState = D3DRENDERSTATE_FILLMODE;
 	state->dwArg = 3;
 	++state;
 	state->dwState = D3DRENDERSTATE_DITHERENABLE;
-	state->dwArg = (g_std3DRenderOptionFlags & 2) != 0;
+	state->dwArg = (g_std3d_render_option_flags & 2) != 0;
 	++state;
 	state->dwState = D3DRENDERSTATE_ANTIALIAS;
-	state->dwArg = (g_std3DRenderOptionFlags & 8) != 0;
+	state->dwArg = (g_std3d_render_option_flags & 8) != 0;
 	++state;
 
-	if (g_std3DZBufferEnabled != 0) {
-		DebugPrintf("Enabling Z buffer render state.\n", 0, 0, 0, 0);
+	if (g_std3dz_buffer_enabled != 0) {
+		debug_printf("Enabling Z buffer render state.\n", 0, 0, 0, 0);
 	} else {
-		zEnabled = 0;
-		DebugPrintf("Disabling Z buffer render state.\n", 0, 0, 0, 0);
+		z_enabled = 0;
+		debug_printf("Disabling Z buffer render state.\n", 0, 0, 0, 0);
 	}
 	state->dwState = D3DRENDERSTATE_ZENABLE;
-	state->dwArg = zEnabled;
+	state->dwArg = z_enabled;
 	++state;
 	state->dwState = D3DRENDERSTATE_ZWRITEENABLE;
-	state->dwArg = zEnabled;
+	state->dwArg = z_enabled;
 	++state;
 	state->dwState = D3DRENDERSTATE_ZFUNC;
-	state->dwArg = std3D_MapZCmpFunc(g_std3DZCompareCap);
+	state->dwArg = std3d_map_z_cmp_func(g_std3dz_compare_cap);
 	++state;
 	state->dwState = D3DRENDERSTATE_CULLMODE;
 	state->dwArg = 1;
@@ -2929,45 +2978,46 @@ int std3D_SetInitialRenderState(void)
 	instruction->bSize = 0;
 	instruction->wCount = 0;
 	cursor = (uint8_t *)(instruction + 1);
-	result = executeBuffer->lpVtbl->Unlock(executeBuffer);
+	result = execute_buffer->lpVtbl->Unlock(execute_buffer);
 	if (result != 0) {
-		DebugPrintf("Error %s unlocking D3D Execute buffer.\n",
-			    std3D_LookupErrorString(
-				    result, g_std3DErrorStringTable, 121),
-			    0, 0, 0);
+		debug_printf("Error %s unlocking D3D Execute buffer.\n",
+			     std3d_lookup_error_string(
+				     result, g_std3d_error_string_table, 121),
+			     0, 0, 0);
 	}
 
-	memset(&executeData, 0, sizeof(executeData));
-	executeData.dwSize = sizeof(executeData);
-	executeData.dwInstructionOffset = 0;
-	executeData.dwInstructionLength = (uint32_t)(cursor - base);
-	executeBuffer->lpVtbl->SetExecuteData(executeBuffer, &executeData);
-	result = g_d3dDevice->lpVtbl->BeginScene(g_d3dDevice);
+	memset(&execute_data, 0, sizeof(execute_data));
+	execute_data.dwSize = sizeof(execute_data);
+	execute_data.dwInstructionOffset = 0;
+	execute_data.dwInstructionLength = (uint32_t)(cursor - base);
+	execute_buffer->lpVtbl->SetExecuteData(execute_buffer, &execute_data);
+	result = g_d3d_device->lpVtbl->BeginScene(g_d3d_device);
 	if (result != 0) {
-		DebugPrintf(g_std3DBeginSceneErrorFormat,
-			    std3D_LookupErrorString(
-				    result, g_std3DErrorStringTable, 121),
-			    0, 0, 0);
+		debug_printf(g_std3d_begin_scene_error_format,
+			     std3d_lookup_error_string(
+				     result, g_std3d_error_string_table, 121),
+			     0, 0, 0);
 	}
-	result = g_d3dDevice->lpVtbl->Execute(g_d3dDevice, executeBuffer,
-					      g_d3dViewport,
-					      D3DEXECUTE_UNCLIPPED);
+	result = g_d3d_device->lpVtbl->Execute(g_d3d_device, execute_buffer,
+					       g_d3d_viewport,
+					       D3DEXECUTE_UNCLIPPED);
 	if (result != 0) {
-		DebugPrintf("Error %s executing buffer.\n",
-			    std3D_LookupErrorString(
-				    result, g_std3DErrorStringTable, 121),
-			    0, 0, 0);
+		debug_printf("Error %s executing buffer.\n",
+			     std3d_lookup_error_string(
+				     result, g_std3d_error_string_table, 121),
+			     0, 0, 0);
 	}
-	result = g_d3dDevice->lpVtbl->EndScene(g_d3dDevice);
+	result = g_d3d_device->lpVtbl->EndScene(g_d3d_device);
 	if (result != 0) {
-		DebugPrintf(g_std3DEndSceneErrorFormat,
-			    std3D_LookupErrorString(
-				    result, g_std3DErrorStringTable, 121),
-			    0, 0, 0);
+		debug_printf(g_std3d_end_scene_error_format,
+			     std3d_lookup_error_string(
+				     result, g_std3d_error_string_table, 121),
+			     0, 0, 0);
 	}
-	executeBuffer->lpVtbl->Release(executeBuffer);
-	g_d3dStateFlags = (Std3DRenderStateFlags)g_std3DRenderOptionFlags;
-	DebugPrintf("Initial render state set.\n", 0, 0, 0, 0);
+	execute_buffer->lpVtbl->Release(execute_buffer);
+	g_d3d_state_flags =
+		(std3d_render_state_flags)g_std3d_render_option_flags;
+	debug_printf("Initial render state set.\n", 0, 0, 0, 0);
 	return 1;
 }
 
@@ -2975,26 +3025,28 @@ int std3D_SetInitialRenderState(void)
  * height at 0, 0 with scales of half the width and height, then builds the
  * viewport quad. Returns 1, or 0 when a step fails. */
 // FUNCTION: XVT 0x4B3E30
-int std3D_CreateViewport(int width, int height)
+int std3d_create_viewport(int width, int height)
 {
 	int result;
-	struct Std3DViewportRect rect;
+	struct std3d_viewport_rect rect;
 	D3DVIEWPORT viewport;
 
-	result = g_lpD3D->lpVtbl->CreateViewport(g_lpD3D, &g_d3dViewport, NULL);
+	result = g_lp_d3d->lpVtbl->CreateViewport(g_lp_d3d, &g_d3d_viewport,
+						  NULL);
 	if (result != 0) {
-		DebugPrintf("Error %s when creating D3D viewport.\n",
-			    std3D_LookupErrorString(
-				    result, g_std3DErrorStringTable, 121),
-			    0, 0, 0);
+		debug_printf("Error %s when creating D3D viewport.\n",
+			     std3d_lookup_error_string(
+				     result, g_std3d_error_string_table, 121),
+			     0, 0, 0);
 		return 0;
 	}
-	result = g_d3dDevice->lpVtbl->AddViewport(g_d3dDevice, g_d3dViewport);
+	result =
+		g_d3d_device->lpVtbl->AddViewport(g_d3d_device, g_d3d_viewport);
 	if (result != 0) {
-		DebugPrintf(
+		debug_printf(
 			"Error %s when adding the D3D viewport to the device.\n",
-			std3D_LookupErrorString(result, g_std3DErrorStringTable,
-						121),
+			std3d_lookup_error_string(
+				result, g_std3d_error_string_table, 121),
 			0, 0, 0);
 		return 0;
 	}
@@ -3011,12 +3063,12 @@ int std3D_CreateViewport(int width, int height)
 		(float)(unsigned int)width / (viewport.dvScaleX * 2.0f);
 	viewport.dvMaxY =
 		(float)(unsigned int)height / (viewport.dvScaleY * 2.0f);
-	result = g_d3dViewport->lpVtbl->SetViewport(g_d3dViewport, &viewport);
+	result = g_d3d_viewport->lpVtbl->SetViewport(g_d3d_viewport, &viewport);
 	if (result != 0) {
-		DebugPrintf("Error %s when creating D3D viewport.\n",
-			    std3D_LookupErrorString(
-				    result, g_std3DErrorStringTable, 121),
-			    0, 0, 0);
+		debug_printf("Error %s when creating D3D viewport.\n",
+			     std3d_lookup_error_string(
+				     result, g_std3d_error_string_table, 121),
+			     0, 0, 0);
 		return 0;
 	}
 
@@ -3024,389 +3076,409 @@ int std3D_CreateViewport(int width, int height)
 	rect.y = 0;
 	rect.width = width;
 	rect.height = height;
-	std3D_BuildViewportQuad(&rect);
-	DebugPrintf("Viewport created successfully.\n", 0, 0, 0, 0);
+	std3d_build_viewport_quad(&rect);
+	debug_printf("Viewport created successfully.\n", 0, 0, 0, 0);
 	return 1;
 }
 
 /* Makes a z-buffer surface of width by height, in video memory on a hardware
  * device and system memory otherwise, at 32, 16 or 8 bits, the first the
  * device's depth flags allow (0x100, 0x400, 0x800); attaches it to
- * g_std3DRenderSurface and reads back its description. Also fills
- * g_std3DZBufferTarget and points g_pStd3DZBufferState at
- * g_std3DZBufferSurfaceBlock. Returns 1, or 0 when no depth fits or a step
+ * g_std3d_render_surface and reads back its description. Also fills
+ * g_std3dz_buffer_target and points g_p_std3dz_buffer_state at
+ * g_std3dz_buffer_surface_block. Returns 1, or 0 when no depth fits or a step
  * fails. */
 // FUNCTION: XVT 0x4B3FC0
-int std3D_CreateZBuffer(int width, int height)
+int std3d_create_z_buffer(int width, int height)
 {
-	unsigned int zBufferBitDepth;
+	unsigned int z_buffer_bit_depth;
 	HRESULT result;
 
-	g_std3DZBufferTarget.storageType = 1;
-	g_std3DZBufferTarget.bVideoMemory = 0;
-	memcpy(&g_std3DZBufferTarget.raster, g_pStd3DRenderTarget,
-	       sizeof(g_std3DZBufferTarget.raster));
-	g_std3DZBufferTarget.unk58 = 0;
-	g_pStd3DZBufferState = &g_std3DZBufferSurfaceBlock;
-	g_std3DZBufferTarget.pixels = NULL;
+	g_std3dz_buffer_target.storage_type = 1;
+	g_std3dz_buffer_target.b_video_memory = 0;
+	memcpy(&g_std3dz_buffer_target.raster, g_p_std3d_render_target,
+	       sizeof(g_std3dz_buffer_target.raster));
+	g_std3dz_buffer_target.unk58 = 0;
+	g_p_std3dz_buffer_state = &g_std3dz_buffer_surface_block;
+	g_std3dz_buffer_target.pixels = NULL;
 
-	memset(&g_pStd3DZBufferState->desc, 0,
-	       sizeof(g_pStd3DZBufferState->desc));
-	g_pStd3DZBufferState->desc.dwSize = sizeof(g_pStd3DZBufferState->desc);
-	g_pStd3DZBufferState->desc.dwFlags =
+	memset(&g_p_std3dz_buffer_state->desc, 0,
+	       sizeof(g_p_std3dz_buffer_state->desc));
+	g_p_std3dz_buffer_state->desc.dwSize =
+		sizeof(g_p_std3dz_buffer_state->desc);
+	g_p_std3dz_buffer_state->desc.dwFlags =
 		DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | 0x40;
-	g_pStd3DZBufferState->desc.ddsCaps.dwCaps = DDSCAPS_ZBUFFER;
-	g_pStd3DZBufferState->desc.dwWidth = width;
-	g_pStd3DZBufferState->desc.dwHeight = height;
-	if (g_pStd3DCurDevice->caps.bHardware != 0) {
-		g_pStd3DZBufferState->desc.ddsCaps.dwCaps |=
+	g_p_std3dz_buffer_state->desc.ddsCaps.dwCaps = DDSCAPS_ZBUFFER;
+	g_p_std3dz_buffer_state->desc.dwWidth = width;
+	g_p_std3dz_buffer_state->desc.dwHeight = height;
+	if (g_p_std3d_cur_device->caps.b_hardware != 0) {
+		g_p_std3dz_buffer_state->desc.ddsCaps.dwCaps |=
 			DDSCAPS_VIDEOMEMORY;
 	} else {
-		g_pStd3DZBufferState->desc.ddsCaps.dwCaps |=
+		g_p_std3dz_buffer_state->desc.ddsCaps.dwCaps |=
 			DDSCAPS_SYSTEMMEMORY;
 	}
 
-	zBufferBitDepth = g_pStd3DCurDevice->d3dDesc.dwDeviceZBufferBitDepth;
-	if ((zBufferBitDepth & 0x100) != 0) {
-		g_pStd3DZBufferState->desc.dwZBufferBitDepth = 32;
-	} else if ((zBufferBitDepth & 0x400) != 0) {
-		g_pStd3DZBufferState->desc.dwZBufferBitDepth = 16;
-	} else if ((zBufferBitDepth & 0x800) != 0) {
-		g_pStd3DZBufferState->desc.dwZBufferBitDepth = 8;
+	z_buffer_bit_depth =
+		g_p_std3d_cur_device->d3d_desc.dw_device_z_buffer_bit_depth;
+	if ((z_buffer_bit_depth & 0x100) != 0) {
+		g_p_std3dz_buffer_state->desc.dwZBufferBitDepth = 32;
+	} else if ((z_buffer_bit_depth & 0x400) != 0) {
+		g_p_std3dz_buffer_state->desc.dwZBufferBitDepth = 16;
+	} else if ((z_buffer_bit_depth & 0x800) != 0) {
+		g_p_std3dz_buffer_state->desc.dwZBufferBitDepth = 8;
 	} else {
-		DebugPrintf("Error: unsupported zbuffer bit depth!\n", 0, 0, 0,
-			    0);
+		debug_printf("Error: unsupported zbuffer bit depth!\n", 0, 0, 0,
+			     0);
 		return 0;
 	}
-	DebugPrintf("ZBuffer depth: %d.\n",
-		    g_pStd3DZBufferState->desc.dwZBufferBitDepth, 0, 0, 0);
+	debug_printf("ZBuffer depth: %d.\n",
+		     g_p_std3dz_buffer_state->desc.dwZBufferBitDepth, 0, 0, 0);
 
-	result = g_std3DDirectDraw->lpVtbl->CreateSurface(
-		g_std3DDirectDraw, &g_pStd3DZBufferState->desc,
-		&g_pStd3DZBufferState->surface, NULL);
+	result = g_std3d_direct_draw->lpVtbl->CreateSurface(
+		g_std3d_direct_draw, &g_p_std3dz_buffer_state->desc,
+		&g_p_std3dz_buffer_state->surface, NULL);
 	if (result != 0) {
-		DebugPrintf("Error %s when creating zBuffer DDraw surface.\n",
-			    std3D_LookupErrorString(
-				    result, g_std3DErrorStringTable, 121),
-			    0, 0, 0);
-		return 0;
-	}
-
-	result = g_std3DRenderSurface->lpVtbl->AddAttachedSurface(
-		g_std3DRenderSurface, g_pStd3DZBufferState->surface);
-	if (result != 0) {
-		DebugPrintf("Error %s when attaching zbuffer to backbuffer.\n",
-			    std3D_LookupErrorString(
-				    result, g_std3DErrorStringTable, 121),
-			    0, 0, 0);
+		debug_printf("Error %s when creating zBuffer DDraw surface.\n",
+			     std3d_lookup_error_string(
+				     result, g_std3d_error_string_table, 121),
+			     0, 0, 0);
 		return 0;
 	}
 
-	result = g_pStd3DZBufferState->surface->lpVtbl->GetSurfaceDesc(
-		g_pStd3DZBufferState->surface, &g_pStd3DZBufferState->desc);
+	result = g_std3d_render_surface->lpVtbl->AddAttachedSurface(
+		g_std3d_render_surface, g_p_std3dz_buffer_state->surface);
 	if (result != 0) {
-		DebugPrintf(
+		debug_printf("Error %s when attaching zbuffer to backbuffer.\n",
+			     std3d_lookup_error_string(
+				     result, g_std3d_error_string_table, 121),
+			     0, 0, 0);
+		return 0;
+	}
+
+	result = g_p_std3dz_buffer_state->surface->lpVtbl->GetSurfaceDesc(
+		g_p_std3dz_buffer_state->surface,
+		&g_p_std3dz_buffer_state->desc);
+	if (result != 0) {
+		debug_printf(
 			"Error %s when getting zbuffer surface description.\n",
-			std3D_LookupErrorString(result, g_std3DErrorStringTable,
-						121),
+			std3d_lookup_error_string(
+				result, g_std3d_error_string_table, 121),
 			0, 0, 0);
 		return 0;
 	}
 
-	if ((g_pStd3DZBufferState->desc.ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY) !=
-	    0) {
-		g_std3DZBufferTarget.bVideoMemory = 1;
+	if ((g_p_std3dz_buffer_state->desc.ddsCaps.dwCaps &
+	     DDSCAPS_VIDEOMEMORY) != 0) {
+		g_std3dz_buffer_target.b_video_memory = 1;
 	}
-	DebugPrintf("ZBuffer in %s memory.\n",
-		    g_std3DZBufferTarget.bVideoMemory != 0 ? "VIDEO" : "SYSTEM",
-		    0, 0, 0);
-	DebugPrintf("ZBuffer created successfully.\n", 0, 0, 0, 0);
+	debug_printf("ZBuffer in %s memory.\n",
+		     g_std3dz_buffer_target.b_video_memory != 0 ? "VIDEO"
+								: "SYSTEM",
+		     0, 0, 0);
+	debug_printf("ZBuffer created successfully.\n", 0, 0, 0, 0);
 	return 1;
 }
 
-/* Records one enumerated device in g_std3DDevices while fewer than 4 are
+/* Records one enumerated device in g_std3d_devices while fewer than 4 are
  * recorded: its GUID, name and description, its hardware description when that
  * has a color model, else the software one, and the caps read from it (texture
  * sizes 1 to 256). Returns 1 to go on, or 0 once 4 are recorded. */
 // FUNCTION: XVT 0x4B4210
-HRESULT AERON_DXAPI std3D_EnumDevicesCallback(
-	DxGuid *guid, char *deviceDescription, char *deviceName,
-	D3DDEVICEDESC *hardwareDesc, D3DDEVICEDESC *softwareDesc, void *context)
+HRESULT AERON_DXAPI std3d_enum_devices_callback(DxGuid *guid,
+						char *device_description,
+						char *device_name,
+						D3DDEVICEDESC *hardware_desc,
+						D3DDEVICEDESC *software_desc,
+						void *context)
 {
-	struct Std3DDevice *device;
-	unsigned int shadeCaps;
+	struct std3d_device *device;
+	unsigned int shade_caps;
 	(void)context;
 
-	if (g_std3DNumDevices < 4) {
+	if (g_std3d_num_devices < 4) {
 
-		device = &g_std3DDevices[g_std3DNumDevices];
+		device = &g_std3d_devices[g_std3d_num_devices];
 		memcpy(&device->guid, guid, sizeof(device->guid));
-		strncpy(device->deviceDescription, deviceDescription,
-			sizeof(device->deviceDescription));
-		strncpy(device->deviceName, deviceName,
-			sizeof(device->deviceName));
-		if (hardwareDesc->dcmColorModel != 0) {
-			device->caps.bHardware = 1;
-			memcpy(&device->d3dDesc, hardwareDesc,
-			       sizeof(device->d3dDesc));
+		strncpy(device->device_description, device_description,
+			sizeof(device->device_description));
+		strncpy(device->device_name, device_name,
+			sizeof(device->device_name));
+		if (hardware_desc->dcmColorModel != 0) {
+			device->caps.b_hardware = 1;
+			memcpy(&device->d3d_desc, hardware_desc,
+			       sizeof(device->d3d_desc));
 		} else {
-			device->caps.bHardware = 0;
-			memcpy(&device->d3dDesc, softwareDesc,
-			       sizeof(device->d3dDesc));
+			device->caps.b_hardware = 0;
+			memcpy(&device->d3d_desc, software_desc,
+			       sizeof(device->d3d_desc));
 		}
 
-		device->caps.colorModelFlags = 0;
-		if ((device->d3dDesc.dcmColorModel & 2) != 0) {
-			device->caps.colorModelFlags = 2;
+		device->caps.color_model_flags = 0;
+		if ((device->d3d_desc.dcm_color_model & 2) != 0) {
+			device->caps.color_model_flags = 2;
 		}
-		if ((device->d3dDesc.dcmColorModel & 1) != 0) {
-			device->caps.colorModelFlags |= 1;
+		if ((device->d3d_desc.dcm_color_model & 1) != 0) {
+			device->caps.color_model_flags |= 1;
 		}
-		device->caps.bTexturePerspective =
-			device->d3dDesc.dpcTriCaps.dwTextureCaps & 1;
-		device->caps.bHasZBuffer =
-			device->d3dDesc.dwDeviceZBufferBitDepth != 0;
-		device->caps.bSquareOnlyTexture =
-			(device->d3dDesc.dpcTriCaps.dwTextureCaps & 0x20) != 0;
-		device->caps.bAlphaTexture =
-			(device->d3dDesc.dpcTriCaps.dwTextureCaps & 4) != 0;
-		shadeCaps = device->d3dDesc.dpcTriCaps.dwShadeCaps;
-		device->caps.bStippledShade =
-			(shadeCaps & 0x1000) == 0 && (shadeCaps & 0x2000) != 0;
-		device->caps.bAlphaBlend =
-			((device->d3dDesc.dpcTriCaps.dwTextureBlendCaps & 8) !=
-				 0 &&
-			 (device->d3dDesc.dpcTriCaps.dwShadeCaps & 0x4000) !=
+		device->caps.b_texture_perspective =
+			device->d3d_desc.dpc_tri_caps.dwTextureCaps & 1;
+		device->caps.b_has_z_buffer =
+			device->d3d_desc.dw_device_z_buffer_bit_depth != 0;
+		device->caps.b_square_only_texture =
+			(device->d3d_desc.dpc_tri_caps.dwTextureCaps & 0x20) !=
+			0;
+		device->caps.b_alpha_texture =
+			(device->d3d_desc.dpc_tri_caps.dwTextureCaps & 4) != 0;
+		shade_caps = device->d3d_desc.dpc_tri_caps.dwShadeCaps;
+		device->caps.b_stippled_shade = (shade_caps & 0x1000) == 0 &&
+						(shade_caps & 0x2000) != 0;
+		device->caps.b_alpha_blend =
+			((device->d3d_desc.dpc_tri_caps.dwTextureBlendCaps &
+			  8) != 0 &&
+			 (device->d3d_desc.dpc_tri_caps.dwShadeCaps & 0x4000) !=
 				 0) ||
-			device->caps.bStippledShade != 0;
-		device->caps.bColorKeyTexture =
-			(device->d3dDesc.dpcTriCaps.dwTextureCaps & 8) != 0;
-		device->caps.renderBitDepthMask = std3D_PackRenderBitDepths(
-			device->d3dDesc.dwDeviceRenderBitDepth);
-		device->caps.zCmpCapsMask = std3D_MaskZCmpCaps(
-			device->d3dDesc.dpcTriCaps.dwZCmpCaps);
-		device->caps.minTextureWidth = 1;
-		device->caps.minTextureHeight = 1;
-		device->caps.maxTextureWidth = 256;
-		device->caps.maxTextureHeight = 256;
-		device->caps.maxBufferSize = device->d3dDesc.dwMaxBufferSize;
-		device->caps.maxVertexCount = device->d3dDesc.dwMaxVertexCount;
+			device->caps.b_stippled_shade != 0;
+		device->caps.b_color_key_texture =
+			(device->d3d_desc.dpc_tri_caps.dwTextureCaps & 8) != 0;
+		device->caps.render_bit_depth_mask =
+			std3d_pack_render_bit_depths(
+				device->d3d_desc.dw_device_render_bit_depth);
+		device->caps.z_cmp_caps_mask = std3d_mask_z_cmp_caps(
+			device->d3d_desc.dpc_tri_caps.dwZCmpCaps);
+		device->caps.min_texture_width = 1;
+		device->caps.min_texture_height = 1;
+		device->caps.max_texture_width = 256;
+		device->caps.max_texture_height = 256;
+		device->caps.max_buffer_size =
+			device->d3d_desc.dw_max_buffer_size;
+		device->caps.max_vertex_count =
+			device->d3d_desc.dw_max_vertex_count;
 
-		DebugPrintf("Found |%s|%s|%s|%s| D3D Device\n",
-			    device->caps.bHardware != 0 ? "HW" : "SW",
-			    device->caps.colorModelFlags & 1 ? "MONO" : "",
-			    device->caps.colorModelFlags & 2 ? "RGB" : "",
-			    device->caps.bHasZBuffer != 0 ? "Z" : "Non-Z");
-		DebugPrintf(
-			"      |%s|%s|%s| %dbpp\n",
-			device->caps.bAlphaTexture != 0 ? "Alpha" : "No Alpha",
-			device->caps.bStippledShade != 0 ? "Stippled" : "Blend",
-			device->caps.bColorKeyTexture != 0 ? "Colorkey"
-							   : "No Colorkey",
-			device->caps.renderBitDepthMask);
-		DebugPrintf("Description: %s [%s]\n", device->deviceName,
-			    device->deviceDescription, 0, 0);
-		++g_std3DNumDevices;
+		debug_printf("Found |%s|%s|%s|%s| D3D Device\n",
+			     device->caps.b_hardware != 0 ? "HW" : "SW",
+			     device->caps.color_model_flags & 1 ? "MONO" : "",
+			     device->caps.color_model_flags & 2 ? "RGB" : "",
+			     device->caps.b_has_z_buffer != 0 ? "Z" : "Non-Z");
+		debug_printf("      |%s|%s|%s| %dbpp\n",
+			     device->caps.b_alpha_texture != 0 ? "Alpha"
+							       : "No Alpha",
+			     device->caps.b_stippled_shade != 0 ? "Stippled"
+								: "Blend",
+			     device->caps.b_color_key_texture != 0
+				     ? "Colorkey"
+				     : "No Colorkey",
+			     device->caps.render_bit_depth_mask);
+		debug_printf("Description: %s [%s]\n", device->device_name,
+			     device->device_description, 0, 0);
+		++g_std3d_num_devices;
 		return 1;
 	}
 	return 0;
 }
 
-/* Records one enumerated texture format in g_std3DTextureFormats while fewer
+/* Records one enumerated texture format in g_std3d_texture_formats while fewer
  * than 8 are recorded: an 8-bit palette format, or RGB or RGBA with each
  * channel's position, bits and shift from 8 bits read from its mask. Skips a
  * 4-bit palette format (flag 0x8). Returns 1 to go on, or 0 once 8 are
  * recorded. Does not check for an empty mask, on which its bit search never
  * ends. */
 // FUNCTION: XVT 0x4B4490
-int AERON_DXAPI std3D_EnumTextureFormats(DDSURFACEDESC *surfaceDesc,
-					 void *context)
+int AERON_DXAPI std3d_enum_texture_formats(DDSURFACEDESC *surface_desc,
+					   void *context)
 {
-	struct Std3DTexFmt *format;
+	struct std3d_tex_fmt *format;
 	/* Each of these four first counts its mask's trailing zeros (the channel's position), then is reset
 	 * to count the mask's set bits (the channel's width, stored as its BPP). */
-	int redShift;
-	int greenShift;
-	int blueShift;
-	int alphaShift;
+	int red_shift;
+	int green_shift;
+	int blue_shift;
+	int alpha_shift;
 	unsigned int mask;
 
 	(void)context;
-	if ((unsigned int)g_std3DNumTextureFormats < 8) {
-		format = &g_std3DTextureFormats[g_std3DNumTextureFormats];
-		memcpy(&format->ddsd, surfaceDesc, sizeof(format->ddsd));
-		if ((surfaceDesc->ddpfPixelFormat.dwFlags &
+	if ((unsigned int)g_std3d_num_texture_formats < 8) {
+		format = &g_std3d_texture_formats[g_std3d_num_texture_formats];
+		memcpy(&format->ddsd, surface_desc, sizeof(format->ddsd));
+		if ((surface_desc->ddpfPixelFormat.dwFlags &
 		     DDPF_PALETTEINDEXED8) != 0) {
-			format->colorInfo.colorMode = STDCOLOR_PAL;
-			format->colorInfo.bpp = 8;
-			format->colorInfo.redPosShift = 0;
-			format->colorInfo.redPosShiftRight = 0;
-			format->colorInfo.redBPP = 0;
-			format->colorInfo.greenPosShift = 0;
-			format->colorInfo.greenPosShiftRight = 0;
-			format->colorInfo.greenBPP = 0;
-			format->colorInfo.bluePosShift = 0;
-			format->colorInfo.bluePosShiftRight = 0;
-			format->colorInfo.blueBPP = 0;
-			format->colorInfo.alphaPosShift = 0;
-			format->colorInfo.alphaPosShiftRight = 0;
-			format->colorInfo.alphaBPP = 0;
-			DebugPrintf("Found %dbpp palettized tex format.\n",
-				    format->colorInfo.bpp, 0, 0, 0);
-		} else if ((surfaceDesc->ddpfPixelFormat.dwFlags & 8) != 0) {
+			format->color_info.color_mode = STDCOLOR_PAL;
+			format->color_info.bpp = 8;
+			format->color_info.red_pos_shift = 0;
+			format->color_info.red_pos_shift_right = 0;
+			format->color_info.red_bpp = 0;
+			format->color_info.green_pos_shift = 0;
+			format->color_info.green_pos_shift_right = 0;
+			format->color_info.green_bpp = 0;
+			format->color_info.blue_pos_shift = 0;
+			format->color_info.blue_pos_shift_right = 0;
+			format->color_info.blue_bpp = 0;
+			format->color_info.alpha_pos_shift = 0;
+			format->color_info.alpha_pos_shift_right = 0;
+			format->color_info.alpha_bpp = 0;
+			debug_printf("Found %dbpp palettized tex format.\n",
+				     format->color_info.bpp, 0, 0, 0);
+		} else if ((surface_desc->ddpfPixelFormat.dwFlags & 8) != 0) {
 			return 1;
-		} else if ((surfaceDesc->ddpfPixelFormat.dwFlags &
+		} else if ((surface_desc->ddpfPixelFormat.dwFlags &
 			    DDPF_ALPHAPIXELS) != 0) {
-			format->colorInfo.colorMode = STDCOLOR_RGBA;
-			format->colorInfo.bpp =
-				surfaceDesc->ddpfPixelFormat.dwRGBBitCount;
+			format->color_info.color_mode = STDCOLOR_RGBA;
+			format->color_info.bpp =
+				surface_desc->ddpfPixelFormat.dwRGBBitCount;
 
-			redShift = 0;
-			mask = surfaceDesc->ddpfPixelFormat.dwRBitMask;
+			red_shift = 0;
+			mask = surface_desc->ddpfPixelFormat.dwRBitMask;
 			while ((mask & 1) == 0) {
-				++redShift;
+				++red_shift;
 				mask >>= 1;
 			}
-			format->colorInfo.redPosShift = redShift;
-			format->colorInfo.redPosShiftRight = std3D_Log2Floor(
+			format->color_info.red_pos_shift = red_shift;
+			format->color_info
+				.red_pos_shift_right = std3d_log2_floor(
 				0xFFu /
-				(surfaceDesc->ddpfPixelFormat.dwRBitMask >>
-				 redShift));
-			redShift = 0;
+				(surface_desc->ddpfPixelFormat.dwRBitMask >>
+				 red_shift));
+			red_shift = 0;
 			while ((mask & 1) != 0) {
-				++redShift;
+				++red_shift;
 				mask >>= 1;
 			}
-			format->colorInfo.redBPP = redShift;
+			format->color_info.red_bpp = red_shift;
 
-			greenShift = 0;
-			mask = surfaceDesc->ddpfPixelFormat.dwGBitMask;
+			green_shift = 0;
+			mask = surface_desc->ddpfPixelFormat.dwGBitMask;
 			while ((mask & 1) == 0) {
-				++greenShift;
+				++green_shift;
 				mask >>= 1;
 			}
-			format->colorInfo.greenPosShift = greenShift;
-			format->colorInfo.greenPosShiftRight = std3D_Log2Floor(
+			format->color_info.green_pos_shift = green_shift;
+			format->color_info
+				.green_pos_shift_right = std3d_log2_floor(
 				0xFFu /
-				(surfaceDesc->ddpfPixelFormat.dwGBitMask >>
-				 greenShift));
-			greenShift = 0;
+				(surface_desc->ddpfPixelFormat.dwGBitMask >>
+				 green_shift));
+			green_shift = 0;
 			while ((mask & 1) != 0) {
-				++greenShift;
+				++green_shift;
 				mask >>= 1;
 			}
-			format->colorInfo.greenBPP = greenShift;
+			format->color_info.green_bpp = green_shift;
 
-			blueShift = 0;
-			mask = surfaceDesc->ddpfPixelFormat.dwBBitMask;
+			blue_shift = 0;
+			mask = surface_desc->ddpfPixelFormat.dwBBitMask;
 			while ((mask & 1) == 0) {
-				++blueShift;
+				++blue_shift;
 				mask >>= 1;
 			}
-			format->colorInfo.bluePosShift = blueShift;
-			format->colorInfo.bluePosShiftRight = std3D_Log2Floor(
+			format->color_info.blue_pos_shift = blue_shift;
+			format->color_info
+				.blue_pos_shift_right = std3d_log2_floor(
 				0xFFu /
-				(surfaceDesc->ddpfPixelFormat.dwBBitMask >>
-				 blueShift));
-			blueShift = 0;
+				(surface_desc->ddpfPixelFormat.dwBBitMask >>
+				 blue_shift));
+			blue_shift = 0;
 			while ((mask & 1) != 0) {
-				++blueShift;
+				++blue_shift;
 				mask >>= 1;
 			}
-			format->colorInfo.blueBPP = blueShift;
+			format->color_info.blue_bpp = blue_shift;
 
-			alphaShift = 0;
-			mask = surfaceDesc->ddpfPixelFormat.dwRGBAlphaBitMask;
+			alpha_shift = 0;
+			mask = surface_desc->ddpfPixelFormat.dwRGBAlphaBitMask;
 			while ((mask & 1) == 0) {
-				++alphaShift;
+				++alpha_shift;
 				mask >>= 1;
 			}
-			format->colorInfo.alphaPosShift = alphaShift;
-			format->colorInfo.alphaPosShiftRight = std3D_Log2Floor(
-				0xFFu / (surfaceDesc->ddpfPixelFormat
-						 .dwRGBAlphaBitMask >>
-					 alphaShift));
-			alphaShift = 0;
+			format->color_info.alpha_pos_shift = alpha_shift;
+			format->color_info.alpha_pos_shift_right =
+				std3d_log2_floor(0xFFu /
+						 (surface_desc->ddpfPixelFormat
+							  .dwRGBAlphaBitMask >>
+						  alpha_shift));
+			alpha_shift = 0;
 			while ((mask & 1) != 0) {
-				++alphaShift;
+				++alpha_shift;
 				mask >>= 1;
 			}
-			format->colorInfo.alphaBPP = alphaShift;
-			DebugPrintf("Found RGBA tex format (%d:%d:%d:%d).\n",
-				    format->colorInfo.redBPP,
-				    format->colorInfo.greenBPP,
-				    format->colorInfo.blueBPP,
-				    format->colorInfo.alphaBPP);
-			++g_std3DNumTextureFormats;
+			format->color_info.alpha_bpp = alpha_shift;
+			debug_printf("Found RGBA tex format (%d:%d:%d:%d).\n",
+				     format->color_info.red_bpp,
+				     format->color_info.green_bpp,
+				     format->color_info.blue_bpp,
+				     format->color_info.alpha_bpp);
+			++g_std3d_num_texture_formats;
 			return 1;
 		} else {
-			format->colorInfo.colorMode = STDCOLOR_RGB;
-			format->colorInfo.bpp =
-				surfaceDesc->ddpfPixelFormat.dwRGBBitCount;
+			format->color_info.color_mode = STDCOLOR_RGB;
+			format->color_info.bpp =
+				surface_desc->ddpfPixelFormat.dwRGBBitCount;
 
-			redShift = 0;
-			mask = surfaceDesc->ddpfPixelFormat.dwRBitMask;
+			red_shift = 0;
+			mask = surface_desc->ddpfPixelFormat.dwRBitMask;
 			while ((mask & 1) == 0) {
-				++redShift;
+				++red_shift;
 				mask >>= 1;
 			}
-			format->colorInfo.redPosShift = redShift;
-			format->colorInfo.redPosShiftRight = std3D_Log2Floor(
+			format->color_info.red_pos_shift = red_shift;
+			format->color_info
+				.red_pos_shift_right = std3d_log2_floor(
 				0xFFu /
-				(surfaceDesc->ddpfPixelFormat.dwRBitMask >>
-				 redShift));
-			redShift = 0;
+				(surface_desc->ddpfPixelFormat.dwRBitMask >>
+				 red_shift));
+			red_shift = 0;
 			while ((mask & 1) != 0) {
-				++redShift;
+				++red_shift;
 				mask >>= 1;
 			}
-			format->colorInfo.redBPP = redShift;
+			format->color_info.red_bpp = red_shift;
 
-			greenShift = 0;
-			mask = surfaceDesc->ddpfPixelFormat.dwGBitMask;
+			green_shift = 0;
+			mask = surface_desc->ddpfPixelFormat.dwGBitMask;
 			while ((mask & 1) == 0) {
-				++greenShift;
+				++green_shift;
 				mask >>= 1;
 			}
-			format->colorInfo.greenPosShift = greenShift;
-			format->colorInfo.greenPosShiftRight = std3D_Log2Floor(
+			format->color_info.green_pos_shift = green_shift;
+			format->color_info
+				.green_pos_shift_right = std3d_log2_floor(
 				0xFFu /
-				(surfaceDesc->ddpfPixelFormat.dwGBitMask >>
-				 greenShift));
-			greenShift = 0;
+				(surface_desc->ddpfPixelFormat.dwGBitMask >>
+				 green_shift));
+			green_shift = 0;
 			while ((mask & 1) != 0) {
-				++greenShift;
+				++green_shift;
 				mask >>= 1;
 			}
-			format->colorInfo.greenBPP = greenShift;
+			format->color_info.green_bpp = green_shift;
 
-			blueShift = 0;
-			mask = surfaceDesc->ddpfPixelFormat.dwBBitMask;
+			blue_shift = 0;
+			mask = surface_desc->ddpfPixelFormat.dwBBitMask;
 			while ((mask & 1) == 0) {
-				++blueShift;
+				++blue_shift;
 				mask >>= 1;
 			}
-			format->colorInfo.bluePosShift = blueShift;
-			format->colorInfo.bluePosShiftRight = std3D_Log2Floor(
+			format->color_info.blue_pos_shift = blue_shift;
+			format->color_info
+				.blue_pos_shift_right = std3d_log2_floor(
 				0xFFu /
-				(surfaceDesc->ddpfPixelFormat.dwBBitMask >>
-				 blueShift));
-			blueShift = 0;
+				(surface_desc->ddpfPixelFormat.dwBBitMask >>
+				 blue_shift));
+			blue_shift = 0;
 			while ((mask & 1) != 0) {
-				++blueShift;
+				++blue_shift;
 				mask >>= 1;
 			}
-			format->colorInfo.blueBPP = blueShift;
-			format->colorInfo.alphaPosShift = 0;
-			format->colorInfo.alphaPosShiftRight = 0;
-			format->colorInfo.alphaBPP = 0;
-			DebugPrintf("Found RGB tex format (%d:%d:%d).\n",
-				    format->colorInfo.redBPP,
-				    format->colorInfo.greenBPP,
-				    format->colorInfo.blueBPP, 0);
+			format->color_info.blue_bpp = blue_shift;
+			format->color_info.alpha_pos_shift = 0;
+			format->color_info.alpha_pos_shift_right = 0;
+			format->color_info.alpha_bpp = 0;
+			debug_printf("Found RGB tex format (%d:%d:%d).\n",
+				     format->color_info.red_bpp,
+				     format->color_info.green_bpp,
+				     format->color_info.blue_bpp, 0);
 		}
 
-		++g_std3DNumTextureFormats;
+		++g_std3d_num_texture_formats;
 		return 1;
 	}
 	return 0;
@@ -3416,30 +3488,30 @@ int AERON_DXAPI std3D_EnumTextureFormats(DDSURFACEDESC *surfaceDesc,
  * 0x02, 0x1000 to 0x04, 0x800 to 0x08, 0x400 to 0x10, 0x200 to 0x20 and 0x100
  * (32 bits) to 0x40. */
 // FUNCTION: XVT 0x4B47E0
-int std3D_PackRenderBitDepths(int ddbdFlags)
+int std3d_pack_render_bit_depths(int ddbd_flags)
 {
 	int result;
 
 	result = 0;
-	if ((ddbdFlags & 0x4000) != 0) {
+	if ((ddbd_flags & 0x4000) != 0) {
 		result |= 0x01;
 	}
-	if ((ddbdFlags & 0x2000) != 0) {
+	if ((ddbd_flags & 0x2000) != 0) {
 		result |= 0x02;
 	}
-	if ((ddbdFlags & 0x1000) != 0) {
+	if ((ddbd_flags & 0x1000) != 0) {
 		result |= 0x04;
 	}
-	if ((ddbdFlags & 0x0800) != 0) {
+	if ((ddbd_flags & 0x0800) != 0) {
 		result |= 0x08;
 	}
-	if ((ddbdFlags & 0x0400) != 0) {
+	if ((ddbd_flags & 0x0400) != 0) {
 		result |= 0x10;
 	}
-	if ((ddbdFlags & 0x0200) != 0) {
+	if ((ddbd_flags & 0x0200) != 0) {
 		result |= 0x20;
 	}
-	if ((ddbdFlags & 0x0100) != 0) {
+	if ((ddbd_flags & 0x0100) != 0) {
 		result |= 0x40;
 	}
 	return result;
@@ -3448,7 +3520,7 @@ int std3D_PackRenderBitDepths(int ddbdFlags)
 /* Returns d3dpcmpcaps & 0xFF: each of the eight compare caps bits is copied
  * to the same place. */
 // FUNCTION: XVT 0x4B4880
-int std3D_MaskZCmpCaps(unsigned int d3dpcmpcaps)
+int std3d_mask_z_cmp_caps(unsigned int d3dpcmpcaps)
 {
 	int result = 0;
 
@@ -3484,32 +3556,32 @@ int std3D_MaskZCmpCaps(unsigned int d3dpcmpcaps)
  * 0x80 gives 8. With several bits set it ORs their values together; with none
  * it returns 0. */
 // FUNCTION: XVT 0x4B48D0
-unsigned int std3D_MapZCmpFunc(unsigned int capsMask)
+unsigned int std3d_map_z_cmp_func(unsigned int caps_mask)
 {
 	unsigned int result = 0;
 
-	if (capsMask & 1) {
+	if (caps_mask & 1) {
 		result = 1;
 	}
-	if (capsMask & 4) {
+	if (caps_mask & 4) {
 		result |= 3;
 	}
-	if (capsMask & 2) {
+	if (caps_mask & 2) {
 		result |= 2;
 	}
-	if (capsMask & 8) {
+	if (caps_mask & 8) {
 		result |= 4;
 	}
-	if (capsMask & 0x10) {
+	if (caps_mask & 0x10) {
 		result |= 5;
 	}
-	if (capsMask & 0x20) {
+	if (caps_mask & 0x20) {
 		result |= 6;
 	}
-	if (capsMask & 0x40) {
+	if (caps_mask & 0x40) {
 		result |= 7;
 	}
-	if (capsMask & 0x80) {
+	if (caps_mask & 0x80) {
 		result |= 8;
 	}
 	return result;

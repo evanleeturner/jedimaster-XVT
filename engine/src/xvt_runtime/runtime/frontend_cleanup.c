@@ -3,26 +3,26 @@
 #include "xvt/frontend/frontend_mission_list.h"
 #include "xvt/frontend/mission_setup.h"
 
-int XvtFrontendCleanup_MissionResources(int frame)
+int xvt_frontend_cleanup_mission_resources(int frame)
 {
 	(void)frame;
-	return FrontendMissionList_FreeScreenResourcesAndClearInputGate();
+	return frontend_mission_list_free_screen_resources_and_clear_input_gate();
 }
 
-int XvtFrontendCleanup_CurrentMission(int frame)
+int xvt_frontend_cleanup_current_mission(int frame)
 {
 	(void)frame;
-	return MissionSetup_ExitCurrentMission();
+	return mission_setup_exit_current_mission();
 }
 
-int XvtFrontendCleanup_NextMission(int frame)
+int xvt_frontend_cleanup_next_mission(int frame)
 {
 	(void)frame;
-	return MissionSetup_ExitNextMission();
+	return mission_setup_exit_next_mission();
 }
 
-int XvtFrontendCleanup_BattleChoice(int frame)
+int xvt_frontend_cleanup_battle_choice(int frame)
 {
 	(void)frame;
-	return MissionSetup_BattleChoice_Exit();
+	return mission_setup_battle_choice_exit();
 }

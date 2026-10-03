@@ -5,196 +5,199 @@
 #include "xvt/render/flight_palette.h"
 #include "xvt/render/image_quantizer.h"
 
-/* Builds the 16-bit palettes of a loaded texture block (a TexLevelHeader, its
+/* Builds the 16-bit palettes of a loaded texture block (a tex_level_header, its
  * images after it) in the space after its data, at header->dataSize, with
- * FlightPalette_Build16BppRange. Each 24-bit palette, 4 bytes per color of
+ * flight_palette_build16_bpp_range. Each 24-bit palette, 4 bytes per color of
  * which the first three are red, green and blue, each >> 2 to the 0 to 63
  * scale, is converted when it holds under 1024 colors. When the block's own
- * palette is 24-bit it sets header->convertedPaletteOffset to the output first.
+ * palette is 24-bit it sets header->converted_palette_offset to the output first.
  * For every image, found through the offset table, it sets
- * convertedPaletteOffset, counted from the image header, to the next output
+ * converted_palette_offset, counted from the image header, to the next output
  * position and converts a 24-bit image's palette there. Returns
- * header->imageCount. FeDiskIo_LoadResources calls it when
- * g_flightBytesPerPixel is 2. */
+ * header->image_count. fe_disk_io_load_resources calls it when
+ * g_flight_bytes_per_pixel is 2. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x40E6C0
-unsigned int TexLevel_Convert24BppPalettesTo16Bpp(unsigned int *texLevel)
+unsigned int tex_level_convert24_bpp_palettes_to16_bpp(unsigned int *tex_level)
 {
-	struct TexLevelHeader *header;
-	uint16_t *outputPalette16;
-	uint8_t *sourcePaletteRgba;
-	unsigned int paletteColorCount;
-	struct RgbTriplet *rgbCursor;
-	unsigned int entriesRemaining;
-	unsigned int paletteIndex;
-	unsigned int imageIndex;
+	struct tex_level_header *header;
+	uint16_t *output_palette16;
+	uint8_t *source_palette_rgba;
+	unsigned int palette_color_count;
+	struct rgb_triplet *rgb_cursor;
+	unsigned int entries_remaining;
+	unsigned int palette_index;
+	unsigned int image_index;
 	unsigned int result;
-	struct TexLevelImageHeader *image;
-	struct RgbTriplet srcRgb[1024];
+	struct tex_level_image_header *image;
+	struct rgb_triplet src_rgb[1024];
 
-	header = (struct TexLevelHeader *)texLevel;
-	outputPalette16 = (uint16_t *)((uint8_t *)header + header->dataSize);
-	if (header->bitsPerPixel == 24) {
-		sourcePaletteRgba = (uint8_t *)header + header->paletteOffset;
-		header->convertedPaletteOffset =
-			(uint32_t)((uint8_t *)outputPalette16 -
+	header = (struct tex_level_header *)tex_level;
+	output_palette16 = (uint16_t *)((uint8_t *)header + header->data_size);
+	if (header->bits_per_pixel == 24) {
+		source_palette_rgba =
+			(uint8_t *)header + header->palette_offset;
+		header->converted_palette_offset =
+			(uint32_t)((uint8_t *)output_palette16 -
 				   (uint8_t *)header);
-		paletteColorCount = header->paletteColorCount;
-		if (paletteColorCount < 1024) {
-			if (paletteColorCount != 0) {
-				rgbCursor = srcRgb;
-				entriesRemaining = paletteColorCount;
+		palette_color_count = header->palette_color_count;
+		if (palette_color_count < 1024) {
+			if (palette_color_count != 0) {
+				rgb_cursor = src_rgb;
+				entries_remaining = palette_color_count;
 				do {
-					rgbCursor->r =
-						*sourcePaletteRgba++ >> 2;
-					rgbCursor->g =
-						*sourcePaletteRgba++ >> 2;
-					rgbCursor->b =
-						*sourcePaletteRgba++ >> 2;
-					++sourcePaletteRgba;
-					++rgbCursor;
-				} while (--entriesRemaining != 0);
+					rgb_cursor->r =
+						*source_palette_rgba++ >> 2;
+					rgb_cursor->g =
+						*source_palette_rgba++ >> 2;
+					rgb_cursor->b =
+						*source_palette_rgba++ >> 2;
+					++source_palette_rgba;
+					++rgb_cursor;
+				} while (--entries_remaining != 0);
 			}
-			FlightPalette_Build16BppRange(srcRgb, outputPalette16,
-						      0, paletteColorCount);
-			outputPalette16 += header->paletteColorCount;
+			flight_palette_build16_bpp_range(src_rgb,
+							 output_palette16, 0,
+							 palette_color_count);
+			output_palette16 += header->palette_color_count;
 		}
 	}
 
-	imageIndex = 0;
-	result = header->imageCount;
+	image_index = 0;
+	result = header->image_count;
 	if (result != 0) {
 		do {
-			image = (struct TexLevelImageHeader
+			image = (struct tex_level_image_header
 					 *)((uint8_t *)header +
 					    *(uint32_t
 						      *)((uint8_t *)header +
-							 header->imageOffsetTableOffset +
-							 imageIndex *
+							 header->image_offset_table_offset +
+							 image_index *
 								 sizeof(uint32_t)));
-			image->convertedPaletteOffset =
-				(uint32_t)((uint8_t *)outputPalette16 -
+			image->converted_palette_offset =
+				(uint32_t)((uint8_t *)output_palette16 -
 					   (uint8_t *)image);
-			if (image->bitsPerPixel == 24) {
-				paletteColorCount = image->paletteColorCount;
-				sourcePaletteRgba =
-					(uint8_t *)image + image->paletteOffset;
-				if (paletteColorCount < 1024) {
-					paletteIndex = 0;
-					if (paletteColorCount != 0) {
-						rgbCursor = srcRgb;
+			if (image->bits_per_pixel == 24) {
+				palette_color_count =
+					image->palette_color_count;
+				source_palette_rgba = (uint8_t *)image +
+						      image->palette_offset;
+				if (palette_color_count < 1024) {
+					palette_index = 0;
+					if (palette_color_count != 0) {
+						rgb_cursor = src_rgb;
 						do {
-							rgbCursor->r =
-								*sourcePaletteRgba++ >>
+							rgb_cursor->r =
+								*source_palette_rgba++ >>
 								2;
-							rgbCursor->g =
-								*sourcePaletteRgba++ >>
+							rgb_cursor->g =
+								*source_palette_rgba++ >>
 								2;
-							rgbCursor->b =
-								*sourcePaletteRgba++ >>
+							rgb_cursor->b =
+								*source_palette_rgba++ >>
 								2;
-							++sourcePaletteRgba;
-							++rgbCursor;
-							++paletteIndex;
+							++source_palette_rgba;
+							++rgb_cursor;
+							++palette_index;
 						} while (
-							image->paletteColorCount >
-							paletteIndex);
+							image->palette_color_count >
+							palette_index);
 					}
-					FlightPalette_Build16BppRange(
-						srcRgb, outputPalette16, 0,
-						image->paletteColorCount);
-					outputPalette16 +=
-						image->paletteColorCount;
+					flight_palette_build16_bpp_range(
+						src_rgb, output_palette16, 0,
+						image->palette_color_count);
+					output_palette16 +=
+						image->palette_color_count;
 				}
 			}
-			result = imageIndex + 1;
-			imageIndex = result;
-		} while (header->imageCount > result);
+			result = image_index + 1;
+			image_index = result;
+		} while (header->image_count > result);
 	}
 	return result;
 }
 
-/* While a mission palette is being collected (g_generateMissionPalette), this also hands each 24-bit image
- * to ImageQuantizer_ClassifyEncodedTexLevelImage, which counts its colors into the palette being built. */
+/* While a mission palette is being collected (g_generate_mission_palette), this also hands each 24-bit image
+ * to image_quantizer_classify_encoded_tex_level_image, which counts its colors into the palette being built. */
 /* Builds the 8-bit palettes of a loaded texture block in the space after its
  * data, at header->dataSize: each color of a 24-bit palette, read as in
- * TexLevel_Convert24BppPalettesTo16Bpp, becomes the index of the nearest
- * g_swPalette color from 0x40 to 0xFF (Color_FindNearestRgbTripletIndex). Sets
- * header->convertedPaletteOffset when the block's palette is 24-bit and every
- * image's convertedPaletteOffset to the next output position, converting each
+ * tex_level_convert24_bpp_palettes_to16_bpp, becomes the index of the nearest
+ * g_sw_palette color from 0x40 to 0xFF (color_find_nearest_rgb_triplet_index). Sets
+ * header->converted_palette_offset when the block's palette is 24-bit and every
+ * image's converted_palette_offset to the next output position, converting each
  * 24-bit image's palette; there is no limit on the count. Returns the number of
- * images. FeDiskIo_LoadResources calls it when g_flightBytesPerPixel is not
+ * images. fe_disk_io_load_resources calls it when g_flight_bytes_per_pixel is not
  * 2. */
 // FUNCTION: XVT 0x40E7F0
-unsigned int TexLevel_Convert24BppPalettesTo8Bpp(unsigned int *texLevel)
+unsigned int tex_level_convert24_bpp_palettes_to8_bpp(unsigned int *tex_level)
 {
-	struct TexLevelHeader *header;
-	uint8_t *outputPalette8;
-	const uint8_t *sourcePaletteRgba;
-	unsigned int paletteIndex;
-	unsigned int imageIndex;
-	struct TexLevelImageHeader *image;
-	struct RgbTriplet targetRgb;
+	struct tex_level_header *header;
+	uint8_t *output_palette8;
+	const uint8_t *source_palette_rgba;
+	unsigned int palette_index;
+	unsigned int image_index;
+	struct tex_level_image_header *image;
+	struct rgb_triplet target_rgb;
 
-	header = (struct TexLevelHeader *)texLevel;
-	outputPalette8 = (uint8_t *)header + header->dataSize;
-	if (header->bitsPerPixel == 24) {
-		sourcePaletteRgba =
-			(const uint8_t *)header + header->paletteOffset;
-		header->convertedPaletteOffset =
-			(uint32_t)(outputPalette8 - (uint8_t *)header);
-		paletteIndex = 0;
-		while (paletteIndex < header->paletteColorCount) {
-			targetRgb.r = sourcePaletteRgba[0] >> 2;
-			targetRgb.g = sourcePaletteRgba[1] >> 2;
-			targetRgb.b = sourcePaletteRgba[2] >> 2;
-			*outputPalette8 =
-				(uint8_t)Color_FindNearestRgbTripletIndex(
-					(const uint8_t *)&targetRgb,
-					(const uint8_t *)g_swPalette, 0x40,
+	header = (struct tex_level_header *)tex_level;
+	output_palette8 = (uint8_t *)header + header->data_size;
+	if (header->bits_per_pixel == 24) {
+		source_palette_rgba =
+			(const uint8_t *)header + header->palette_offset;
+		header->converted_palette_offset =
+			(uint32_t)(output_palette8 - (uint8_t *)header);
+		palette_index = 0;
+		while (palette_index < header->palette_color_count) {
+			target_rgb.r = source_palette_rgba[0] >> 2;
+			target_rgb.g = source_palette_rgba[1] >> 2;
+			target_rgb.b = source_palette_rgba[2] >> 2;
+			*output_palette8 =
+				(uint8_t)color_find_nearest_rgb_triplet_index(
+					(const uint8_t *)&target_rgb,
+					(const uint8_t *)g_sw_palette, 0x40,
 					0x100);
-			sourcePaletteRgba += 4;
-			++outputPalette8;
-			++paletteIndex;
+			source_palette_rgba += 4;
+			++output_palette8;
+			++palette_index;
 		}
 	}
 
-	imageIndex = 0;
-	while (imageIndex < header->imageCount) {
-		image = (struct TexLevelImageHeader
+	image_index = 0;
+	while (image_index < header->image_count) {
+		image = (struct tex_level_image_header
 				 *)((uint8_t *)header +
 				    *(uint32_t
-					      *)((uint8_t *)&texLevel
-							 [imageIndex] +
-						 header->imageOffsetTableOffset));
-		image->convertedPaletteOffset =
-			(uint32_t)(outputPalette8 - (uint8_t *)image);
-		if (image->bitsPerPixel == 24) {
-			sourcePaletteRgba =
-				(const uint8_t *)image + image->paletteOffset;
-			if (g_generateMissionPalette != 0) {
-				ImageQuantizer_ClassifyEncodedTexLevelImage(
+					      *)((uint8_t *)&tex_level
+							 [image_index] +
+						 header->image_offset_table_offset));
+		image->converted_palette_offset =
+			(uint32_t)(output_palette8 - (uint8_t *)image);
+		if (image->bits_per_pixel == 24) {
+			source_palette_rgba =
+				(const uint8_t *)image + image->palette_offset;
+			if (g_generate_mission_palette != 0) {
+				image_quantizer_classify_encoded_tex_level_image(
 					(const uint8_t *)image +
-						image->encodedImageOffset,
-					sourcePaletteRgba, image->width,
-					image->height, image->packingMode);
+						image->encoded_image_offset,
+					source_palette_rgba, image->width,
+					image->height, image->packing_mode);
 			}
-			paletteIndex = 0;
-			while (paletteIndex < image->paletteColorCount) {
-				targetRgb.r = sourcePaletteRgba[0] >> 2;
-				targetRgb.g = sourcePaletteRgba[1] >> 2;
-				targetRgb.b = sourcePaletteRgba[2] >> 2;
-				*outputPalette8 = (uint8_t)
-					Color_FindNearestRgbTripletIndex(
-						(const uint8_t *)&targetRgb,
-						(const uint8_t *)g_swPalette,
+			palette_index = 0;
+			while (palette_index < image->palette_color_count) {
+				target_rgb.r = source_palette_rgba[0] >> 2;
+				target_rgb.g = source_palette_rgba[1] >> 2;
+				target_rgb.b = source_palette_rgba[2] >> 2;
+				*output_palette8 = (uint8_t)
+					color_find_nearest_rgb_triplet_index(
+						(const uint8_t *)&target_rgb,
+						(const uint8_t *)g_sw_palette,
 						0x40, 0x100);
-				sourcePaletteRgba += 4;
-				++outputPalette8;
-				++paletteIndex;
+				source_palette_rgba += 4;
+				++output_palette8;
+				++palette_index;
 			}
 		}
-		++imageIndex;
+		++image_index;
 	}
-	return imageIndex;
+	return image_index;
 }

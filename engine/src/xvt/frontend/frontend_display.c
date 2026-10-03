@@ -37,69 +37,71 @@
 #else
 struct WNDCLASSA {
 	unsigned int style; /* Class style bits; set to 8, CS_DBLCLKS. */
-	/* The window procedure, FrontendDisplay_WndProc. */
-	int32_t(AERON_DXAPI *lpfnWndProc)(void *hWnd, unsigned int Msg,
-					  uint32_t wParam, int32_t lParam);
-	int cbClsExtra;	     /* Extra bytes per class; set to 0. */
-	int cbWndExtra;	     /* Extra bytes per window; set to 0. */
-	void *hInstance;     /* The module that owns the class. */
-	void *hIcon;	     /* Icon resource 101 of that module. */
-	void *hCursor;	     /* The system arrow cursor, 0x7F00 (IDC_ARROW). */
-	void *hbrBackground; /* Stock object 4, the black brush. */
-	const char *lpszMenuName;  /* No menu; set to NULL. */
-	const char *lpszClassName; /* The class name, g_windowName. */
+	/* The window procedure, frontend_display_wnd_proc. */
+	int32_t(AERON_DXAPI *lpfn_wnd_proc)(void *h_wnd, unsigned int msg,
+					    uint32_t w_param, int32_t l_param);
+	int cb_cls_extra;     /* Extra bytes per class; set to 0. */
+	int cb_wnd_extra;     /* Extra bytes per window; set to 0. */
+	void *h_instance;     /* The module that owns the class. */
+	void *h_icon;	      /* Icon resource 101 of that module. */
+	void *h_cursor;	      /* The system arrow cursor, 0x7F00 (IDC_ARROW). */
+	void *hbr_background; /* Stock object 4, the black brush. */
+	const char *lpsz_menu_name;  /* No menu; set to NULL. */
+	const char *lpsz_class_name; /* The class name, g_window_name. */
 };
 
 /* The system's window message record, filled by GetMessageA and
  * PeekMessageA. */
-struct FrontendDisplayWin32Message {
+struct frontend_display_win32_message {
 	void *window;	  /* The target window; no code here reads it. */
 	uint32_t message; /* The message number; no code here reads it. */
 	/* The first parameter; for the quit message, the exit code the two
 	 * frame loops return. */
-	uint32_t wParam;
-	int32_t lParam; /* The second parameter; no code here reads it. */
-	uint32_t time;	/* When it was posted; no code here reads it. */
-	int32_t pointX; /* Cursor x when posted; no code here reads it. */
-	int32_t pointY; /* Cursor y when posted; no code here reads it. */
+	uint32_t w_param;
+	int32_t l_param; /* The second parameter; no code here reads it. */
+	uint32_t time;	 /* When it was posted; no code here reads it. */
+	int32_t point_x; /* Cursor x when posted; no code here reads it. */
+	int32_t point_y; /* Cursor y when posted; no code here reads it. */
 };
 
 uint32_t GetTickCount(void);
 __declspec(dllimport) int __stdcall
-TranslateMessage(const struct FrontendDisplayWin32Message *message);
+TranslateMessage(const struct frontend_display_win32_message *message);
 __declspec(dllimport) int __stdcall
-GetMessageA(struct FrontendDisplayWin32Message *message, void *hWnd,
-	    unsigned int filterMin, unsigned int filterMax);
+GetMessageA(struct frontend_display_win32_message *message, void *h_wnd,
+	    unsigned int filter_min, unsigned int filter_max);
 __declspec(dllimport) int32_t __stdcall
-DispatchMessageA(const struct FrontendDisplayWin32Message *message);
+DispatchMessageA(const struct frontend_display_win32_message *message);
 __declspec(dllimport) int __stdcall
-PeekMessageA(struct FrontendDisplayWin32Message *message, void *hWnd,
-	     unsigned int filterMin, unsigned int filterMax,
-	     unsigned int removeMessage);
-__declspec(dllimport) void *__stdcall LoadIconA(void *hInstance,
-						uintptr_t iconName);
-__declspec(dllimport) void *__stdcall LoadCursorA(void *hInstance,
-						  uintptr_t cursorName);
+PeekMessageA(struct frontend_display_win32_message *message, void *h_wnd,
+	     unsigned int filter_min, unsigned int filter_max,
+	     unsigned int remove_message);
+__declspec(dllimport) void *__stdcall LoadIconA(void *h_instance,
+						uintptr_t icon_name);
+__declspec(dllimport) void *__stdcall LoadCursorA(void *h_instance,
+						  uintptr_t cursor_name);
 __declspec(dllimport) uint16_t __stdcall
-RegisterClassA(const struct WNDCLASSA *windowClass);
+RegisterClassA(const struct WNDCLASSA *window_class);
 __declspec(dllimport) void *__stdcall
-CreateWindowExA(uint32_t exStyle, const char *className, const char *windowName,
-		uint32_t style, int x, int y, int width, int height,
-		void *parent, void *menu, void *instance, void *param);
-__declspec(dllimport) int __stdcall UpdateWindow(void *hWnd);
-__declspec(dllimport) void *__stdcall SetFocus(void *hWnd);
-__declspec(dllimport) int __stdcall GetKeyboardState(uint8_t *keyState);
-__declspec(dllimport) void *__stdcall FindWindowA(const char *className,
-						  const char *windowName);
-__declspec(dllimport) int __stdcall MessageBoxA(void *hWnd, const char *text,
+CreateWindowExA(uint32_t ex_style, const char *class_name,
+		const char *window_name, uint32_t style, int x, int y,
+		int width, int height, void *parent, void *menu, void *instance,
+		void *param);
+__declspec(dllimport) int __stdcall UpdateWindow(void *h_wnd);
+__declspec(dllimport) void *__stdcall SetFocus(void *h_wnd);
+__declspec(dllimport) int __stdcall GetKeyboardState(uint8_t *key_state);
+__declspec(dllimport) void *__stdcall FindWindowA(const char *class_name,
+						  const char *window_name);
+__declspec(dllimport) int __stdcall MessageBoxA(void *h_wnd, const char *text,
 						const char *caption,
 						unsigned int type);
-__declspec(dllimport) int __stdcall ShowWindowAsync(void *hWnd, int nCmdShow);
+__declspec(dllimport) int __stdcall ShowWindowAsync(void *h_wnd,
+						    int n_cmd_show);
 __declspec(dllimport) void *__stdcall CreateDCA(const char *driver,
 						const char *device,
 						const char *port,
-						void *deviceMode);
-__declspec(dllimport) void *__stdcall GetStockObject(int objectIndex);
+						void *device_mode);
+__declspec(dllimport) void *__stdcall GetStockObject(int object_index);
 __declspec(dllimport) void *__stdcall SelectObject(void *dc, void *object);
 __declspec(dllimport) int __stdcall GetSystemMetrics(int index);
 __declspec(dllimport) int __stdcall Rectangle(void *dc, int left, int top,
@@ -107,10 +109,11 @@ __declspec(dllimport) int __stdcall Rectangle(void *dc, int left, int top,
 __declspec(dllimport) int __stdcall DeleteDC(void *dc);
 __declspec(dllimport) void *__stdcall
 CreateFontA(int height, int width, int escapement, int orientation, int weight,
-	    unsigned int italic, unsigned int underline, unsigned int strikeOut,
-	    unsigned int charSet, unsigned int outPrecision,
-	    unsigned int clipPrecision, unsigned int quality,
-	    unsigned int pitchAndFamily, const char *faceName);
+	    unsigned int italic, unsigned int underline,
+	    unsigned int strike_out, unsigned int char_set,
+	    unsigned int out_precision, unsigned int clip_precision,
+	    unsigned int quality, unsigned int pitch_and_family,
+	    const char *face_name);
 __declspec(dllimport) int __stdcall SetMapMode(void *dc, int mode);
 __declspec(dllimport) int __stdcall SetTextCharacterExtra(void *dc, int extra);
 __declspec(dllimport) uint32_t __stdcall SetTextColor(void *dc, uint32_t color);
@@ -123,24 +126,26 @@ __declspec(dllimport) int __stdcall DeleteObject(void *object);
 __declspec(dllimport) uint32_t __stdcall GetPixel(void *dc, int x, int y);
 __declspec(dllimport) uint32_t __stdcall SetPixel(void *dc, int x, int y,
 						  uint32_t color);
-__declspec(dllimport) int __stdcall DestroyWindow(void *hWnd);
+__declspec(dllimport) int __stdcall DestroyWindow(void *h_wnd);
 __declspec(dllimport) int __stdcall ShowCursor(int show);
 __declspec(dllimport) int __stdcall SetCursorPos(int x, int y);
-__declspec(dllimport) void *__stdcall SetCapture(void *hWnd);
+__declspec(dllimport) void *__stdcall SetCapture(void *h_wnd);
 __declspec(dllimport) int __stdcall ReleaseCapture(void);
 __declspec(dllimport) void *__stdcall SetCursor(void *cursor);
-__declspec(dllimport) int __stdcall
-PostMessageA(void *hWnd, unsigned int message, uint32_t wParam, int32_t lParam);
-__declspec(dllimport) void __stdcall PostQuitMessage(int exitCode);
-__declspec(dllimport) int32_t __stdcall DefWindowProcA(void *hWnd,
+__declspec(dllimport) int __stdcall PostMessageA(void *h_wnd,
+						 unsigned int message,
+						 uint32_t w_param,
+						 int32_t l_param);
+__declspec(dllimport) void __stdcall PostQuitMessage(int exit_code);
+__declspec(dllimport) int32_t __stdcall DefWindowProcA(void *h_wnd,
 						       unsigned int message,
-						       uint32_t wParam,
-						       int32_t lParam);
+						       uint32_t w_param,
+						       int32_t l_param);
 __declspec(dllimport) void *__stdcall
 FindResourceA(void *module, const char *name, uintptr_t type);
 __declspec(dllimport) void *__stdcall LoadResource(void *module,
-						   void *resourceInfo);
-__declspec(dllimport) void *__stdcall LockResource(void *resourceData);
+						   void *resource_info);
+__declspec(dllimport) void *__stdcall LockResource(void *resource_data);
 __declspec(dllimport) int __stdcall _lopen(const char *path, int mode);
 __declspec(dllimport) unsigned int __stdcall _lread(int file, void *buffer,
 						    unsigned int size);
@@ -151,59 +156,59 @@ __declspec(dllimport) int __stdcall _lclose(int file);
 #include <stdlib.h>
 #include <string.h>
 
-typedef HRESULT(AERON_DXAPI *FrontendDisplaySurfaceGetDcFunc)(
+typedef HRESULT(AERON_DXAPI *frontend_display_surface_get_dc_func)(
 	IDirectDrawSurface *surface, void **dc);
-typedef HRESULT(AERON_DXAPI *FrontendDisplaySurfaceReleaseDcFunc)(
+typedef HRESULT(AERON_DXAPI *frontend_display_surface_release_dc_func)(
 	IDirectDrawSurface *surface, void *dc);
 
 #pragma pack(push, 1)
 
-/* A .bmp file's first header, read by FrontendDisplay_LoadPalette only to step
+/* A .bmp file's first header, read by frontend_display_load_palette only to step
  * past it. */
-struct FrontendDisplayBmpFileHeader {
-	uint16_t signature;   /* "BM" in a bitmap; not checked. */
-	uint32_t fileSize;    /* The file's size in bytes; not read. */
-	uint16_t reserved0;   /* Not read. */
-	uint16_t reserved1;   /* Not read. */
-	uint32_t pixelOffset; /* Where the pixels start; not read. */
+struct frontend_display_bmp_file_header {
+	uint16_t signature;    /* "BM" in a bitmap; not checked. */
+	uint32_t file_size;    /* The file's size in bytes; not read. */
+	uint16_t reserved0;    /* Not read. */
+	uint16_t reserved1;    /* Not read. */
+	uint32_t pixel_offset; /* Where the pixels start; not read. */
 };
 
-/* A .bmp file's info header, the 40-byte form; FrontendDisplay_LoadPalette
+/* A .bmp file's info header, the 40-byte form; frontend_display_load_palette
  * reads its palette size from it. */
-struct FrontendDisplayBmpInfoHeader {
-	uint32_t headerSize;   /* Must be 40, this struct's size, to be used. */
-	int32_t width;	       /* Image width in pixels; not read. */
-	int32_t height;	       /* Image height in pixels; not read. */
-	uint16_t planes;       /* Not read. */
-	uint16_t bitsPerPixel; /* Over 8 means no palette is taken. */
-	uint32_t compression;  /* Not read. */
-	uint32_t imageSize;    /* Not read. */
-	int32_t pixelsPerMeterX; /* Not read. */
-	int32_t pixelsPerMeterY; /* Not read. */
+struct frontend_display_bmp_info_header {
+	uint32_t header_size; /* Must be 40, this struct's size, to be used. */
+	int32_t width;	      /* Image width in pixels; not read. */
+	int32_t height;	      /* Image height in pixels; not read. */
+	uint16_t planes;      /* Not read. */
+	uint16_t bits_per_pixel;    /* Over 8 means no palette is taken. */
+	uint32_t compression;	    /* Not read. */
+	uint32_t image_size;	    /* Not read. */
+	int32_t pixels_per_meter_x; /* Not read. */
+	int32_t pixels_per_meter_y; /* Not read. */
 	/* Palette entries in the file; 0 means 1 << bitsPerPixel. */
-	uint32_t colorsUsed;
-	uint32_t colorsImportant; /* Not read. */
+	uint32_t colors_used;
+	uint32_t colors_important; /* Not read. */
 };
 
 #pragma pack(pop)
-typedef char xvt_size_FrontendDisplayBmpFileHeader
-	[(sizeof(struct FrontendDisplayBmpFileHeader) == 14) ? 1 : -1];
-typedef char xvt_size_FrontendDisplayBmpInfoHeader
-	[(sizeof(struct FrontendDisplayBmpInfoHeader) == 40) ? 1 : -1];
+typedef char xvt_size_frontend_display_bmp_file_header
+	[(sizeof(struct frontend_display_bmp_file_header) == 14) ? 1 : -1];
+typedef char xvt_size_frontend_display_bmp_info_header
+	[(sizeof(struct frontend_display_bmp_info_header) == 40) ? 1 : -1];
 
-/* 1 once FrontendDisplay_Shutdown has run, so a second call does nothing. Only
- * Shutdown sets it to 1; FrontendDisplay_Init and, in the modern build,
- * XvtFrontendTask_Init set it to 0. */
+/* 1 once frontend_display_shutdown has run, so a second call does nothing. Only
+ * Shutdown sets it to 1; frontend_display_init and, in the modern build,
+ * xvt_frontend_task_init set it to 0. */
 // GLOBAL: XVT 0x52BA8C
-int g_shutdownComplete = 0;
+int g_shutdown_complete = 0;
 /* The window's title and class name, also the title of the message boxes; never
  * written. */
 // GLOBAL: XVT 0x52BA90
-static char g_windowName[] = "X-Wing vs. TIE Fighter";
-/* Squares: entry n is n * n, for n from 0 to 255. FrontendDisplay_PackRGB sums
+static char g_window_name[] = "X-Wing vs. TIE Fighter";
+/* Squares: entry n is n * n, for n from 0 to 255. frontend_display_pack_rgb sums
  * three of them as the distance between two colors. */
 // GLOBAL: XVT 0x52BB40
-const unsigned int g_colorDistLUT[256] = {
+const unsigned int g_color_dist_lut[256] = {
 	0,     1,     4,     9,	    16,	   25,	  36,	 49,	64,    81,
 	100,   121,   144,   169,   196,   225,	  256,	 289,	324,   361,
 	400,   441,   484,   529,   576,   625,	  676,	 729,	784,   841,
@@ -232,249 +237,251 @@ const unsigned int g_colorDistLUT[256] = {
 	62500, 63001, 63504, 64009, 64516, 65025,
 };
 /* The DirectDraw driver GUID read from video.cfg; only
- * FrontendDisplay_LoadDriverGuid writes it. */
+ * frontend_display_load_driver_guid writes it. */
 // GLOBAL: XVT 0x665420
-static DxGuid g_configuredDirectDrawDriverGuid = {0};
+static DxGuid g_configured_direct_draw_driver_guid = {0};
 
 /* The flight display's pixel format: 8 for 8-bit palette color, 565 or 555 for
- * the two 16-bit layouts. Starts at 8; only FlightDisplay_Init writes it.
- * Display_IsPixelFormat555 reads it while g_flightRenderToFrontend is 0. */
+ * the two 16-bit layouts. Starts at 8; only flight_display_init writes it.
+ * display_is_pixel_format555 reads it while g_flight_render_to_frontend is 0. */
 // GLOBAL: XVT 0x527EB8
-int g_pixelFormatCode = 8;
+int g_pixel_format_code = 8;
 /* 1 while flight-side drawing goes to the frontend's surfaces:
- * FlightSurface_Lock then takes g_drawSurfacePtr and its pitch, and
- * Display_IsPixelFormat555 asks the frontend. Set to 0 while a flight runs and
- * back to 1 after it, by Flight_Main in the original build and by
- * XvtFlightEntry_Prepare and XvtFlightEntry_Cleanup in the modern build. */
+ * flight_surface_lock then takes g_draw_surface_ptr and its pitch, and
+ * display_is_pixel_format555 asks the frontend. Set to 0 while a flight runs and
+ * back to 1 after it, by flight_main in the original build and by
+ * xvt_flight_entry_prepare and xvt_flight_entry_cleanup in the modern build. */
 // GLOBAL: XVT 0x527EA0
-int g_flightRenderToFrontend = 1;
-/* 1 when the command line holds "nopageflip" or "nofullscreen" (GameMain): the
+int g_flight_render_to_frontend = 1;
+/* 1 when the command line holds "nopageflip" or "nofullscreen" (game_main): the
  * frontend then copies a system-memory back buffer to the screen instead of
  * flipping, and drops to normal cooperative level after making its surfaces.
- * The modern build's XvtFrontendTask_Init sets it to 0. */
+ * The modern build's xvt_frontend_task_init sets it to 0. */
 // GLOBAL: XVT 0xB69CB0
-int g_optNoFullscreen = 0;
-/* 1 when the command line holds "nofrontflip" (GameMain), and always in the
- * modern build (XvtFrontendTask_Init): the frontend then draws to a 640 by 480
+int g_opt_no_fullscreen = 0;
+/* 1 when the command line holds "nofrontflip" (game_main), and always in the
+ * modern build (xvt_frontend_task_init): the frontend then draws to a 640 by 480
  * system-memory back buffer and copies it to the primary surface each frame
  * instead of flipping. */
 // GLOBAL: XVT 0xB69CBC
-int g_noPageFlip = 0;
-/* The command line GameMain was given; Frontend_LoadResources hands it to
- * Pilot_ParseCommandLine. The modern build points it at an empty string. */
+int g_no_page_flip = 0;
+/* The command line game_main was given; frontend_load_resources hands it to
+ * pilot_parse_command_line. The modern build points it at an empty string. */
 // GLOBAL: XVT 0xB69CAC
-char *g_cmdLine;
-/* 1 when the command line holds "skipintro": GameMain then starts at the
- * concourse rather than the opening movie and credits. Written by GameMain and,
- * in the modern build, XvtFrontendTask_Init; Concourse_Update reads it. */
+char *g_cmd_line;
+/* 1 when the command line holds "skipintro": game_main then starts at the
+ * concourse rather than the opening movie and credits. Written by game_main and,
+ * in the modern build, xvt_frontend_task_init; concourse_update reads it. */
 // GLOBAL: XVT 0xB69CB8
-int g_optSkipIntro;
-/* 1 when the command line holds "ishost": GameMain then starts at the
- * concourse. Concourse_Update reads it and sets it to 0, as
- * Pilot_ParseCommandLine does. */
+int g_opt_skip_intro;
+/* 1 when the command line holds "ishost": game_main then starts at the
+ * concourse. concourse_update reads it and sets it to 0, as
+ * pilot_parse_command_line does. */
 // GLOBAL: XVT 0xB69CA8
-int g_optIsHost;
-/* 1 when the command line holds "isclient": GameMain then starts at the
- * concourse. Concourse_Update reads it and sets it to 0, as
- * Pilot_ParseCommandLine does. */
+int g_opt_is_host;
+/* 1 when the command line holds "isclient": game_main then starts at the
+ * concourse. concourse_update reads it and sets it to 0, as
+ * pilot_parse_command_line does. */
 // GLOBAL: XVT 0xB69CB4
-int g_optIsClient;
+int g_opt_is_client;
 /* Heap buffer for the screen pixels under the cursor sprite, 2 bytes for each
- * pixel of the "cursor" image: Frontend_LoadResources allocates it and hands it
- * to FrontendCursor_SetImageFromResourceName as the save buffer. Freed by
- * GameMain and, in the modern build, XvtFrontendTask_Shutdown. */
+ * pixel of the "cursor" image: frontend_load_resources allocates it and hands it
+ * to frontend_cursor_set_image_from_resource_name as the save buffer. Freed by
+ * game_main and, in the modern build, xvt_frontend_task_shutdown. */
 // GLOBAL: XVT 0xB6A2AC
-void *g_cursorSaveBuffer;
-/* Set to 1 by Frontend_LoadResources, the main frontend's start, and never set
- * back; GameMain returns 1 when it is still 0. */
+void *g_cursor_save_buffer;
+/* Set to 1 by frontend_load_resources, the main frontend's start, and never set
+ * back; game_main returns 1 when it is still 0. */
 // GLOBAL: XVT 0x52BA5C
-int g_gameMainSkipIntroRelaunchGate;
+int g_game_main_skip_intro_relaunch_gate;
 
 /* Nothing calls this; the original WinMain is not rebuilt. Runs the original
- * frontend: keeps lpCmdLine in g_cmdLine and reads its options, each found
- * anywhere in it: "nofrontflip" into g_noPageFlip, "nopageflip" or
- * "nofullscreen" into g_optNoFullscreen, "skipintro", "ishost" and "isclient"
- * into g_optSkipIntro, g_optIsHost and g_optIsClient. Ends the process with
- * exit(0) when another copy's window exists (Win32_CheckSingleInstance). Then
- * runs FrontendDisplay_Init at 24 frames a second and 16 bits per pixel,
+ * frontend: keeps lpCmdLine in g_cmd_line and reads its options, each found
+ * anywhere in it: "nofrontflip" into g_no_page_flip, "nopageflip" or
+ * "nofullscreen" into g_opt_no_fullscreen, "skipintro", "ishost" and "isclient"
+ * into g_opt_skip_intro, g_opt_is_host and g_opt_is_client. Ends the process with
+ * exit(0) when another copy's window exists (win32_check_single_instance). Then
+ * runs frontend_display_init at 24 frames a second and 16 bits per pixel,
  * starting at the concourse when any of the last three options is set, else
  * with the opening movie and credits. When that returns it frees
- * g_cursorSaveBuffer, g_frontendChatLogBuffer, g_cutsceneTable and
- * g_campaignAwardSprites, saves the pilot, and returns 1 when
- * g_gameMainSkipIntroRelaunchGate is still 0, else 0. */
+ * g_cursor_save_buffer, g_frontend_chat_log_buffer, g_cutscene_table and
+ * g_campaign_award_sprites, saves the pilot, and returns 1 when
+ * g_game_main_skip_intro_relaunch_gate is still 0, else 0. */
 // FUNCTION: XVT 0x4D3600
-int GameMain(void *hInstance, void *hPrevInstance, char *lpCmdLine,
-	     int nShowCmd)
+int game_main(void *h_instance, void *h_prev_instance, char *lp_cmd_line,
+	      int n_show_cmd)
 {
-	FrontendScreenUpdateFn updateFunction;
-	FrontendScreenExitFn exitFunction;
-	int (*initFunction)(void);
+	frontend_screen_update_fn update_function;
+	frontend_screen_exit_fn exit_function;
+	int (*init_function)(void);
 
-	g_cmdLine = lpCmdLine;
-	if (strstr(lpCmdLine, "nofrontflip") != NULL) {
-		g_noPageFlip = 1;
+	g_cmd_line = lp_cmd_line;
+	if (strstr(lp_cmd_line, "nofrontflip") != NULL) {
+		g_no_page_flip = 1;
 	} else {
-		g_noPageFlip = 0;
+		g_no_page_flip = 0;
 	}
-	if (strstr(lpCmdLine, "nopageflip") != NULL ||
-	    strstr(lpCmdLine, "nofullscreen") != NULL) {
-		g_optNoFullscreen = 1;
+	if (strstr(lp_cmd_line, "nopageflip") != NULL ||
+	    strstr(lp_cmd_line, "nofullscreen") != NULL) {
+		g_opt_no_fullscreen = 1;
 	} else {
-		g_optNoFullscreen = 0;
+		g_opt_no_fullscreen = 0;
 	}
-	if (strstr(lpCmdLine, "skipintro") != NULL) {
-		g_optSkipIntro = 1;
+	if (strstr(lp_cmd_line, "skipintro") != NULL) {
+		g_opt_skip_intro = 1;
 	} else {
-		g_optSkipIntro = 0;
+		g_opt_skip_intro = 0;
 	}
-	if (strstr(lpCmdLine, "ishost") != NULL) {
-		g_optIsHost = 1;
+	if (strstr(lp_cmd_line, "ishost") != NULL) {
+		g_opt_is_host = 1;
 	} else {
-		g_optIsHost = 0;
+		g_opt_is_host = 0;
 	}
-	if (strstr(lpCmdLine, "isclient") != NULL) {
-		g_optIsClient = 1;
+	if (strstr(lp_cmd_line, "isclient") != NULL) {
+		g_opt_is_client = 1;
 	} else {
-		g_optIsClient = 0;
+		g_opt_is_client = 0;
 	}
-	if (Win32_CheckSingleInstance() != 0) {
+	if (win32_check_single_instance() != 0) {
 		exit(0);
 	}
-	if (g_optSkipIntro != 0 || g_optIsHost != 0 || g_optIsClient != 0) {
-		updateFunction = Concourse_Update;
-		exitFunction = Concourse_Exit;
-		initFunction = Frontend_LoadResources;
+	if (g_opt_skip_intro != 0 || g_opt_is_host != 0 ||
+	    g_opt_is_client != 0) {
+		update_function = concourse_update;
+		exit_function = concourse_exit;
+		init_function = frontend_load_resources;
 	} else {
-		updateFunction = FrontendBootstrap_PlayOpeningAndEnterCredits;
-		exitFunction = FrontendBootstrap_ExitIntroAndLoadCredits;
-		initFunction = FrontendBootstrap_InitMode;
+		update_function =
+			frontend_bootstrap_play_opening_and_enter_credits;
+		exit_function = frontend_bootstrap_exit_intro_and_load_credits;
+		init_function = frontend_bootstrap_init_mode;
 	}
-	FrontendDisplay_Init(hInstance, hPrevInstance, lpCmdLine, nShowCmd,
-			     updateFunction, exitFunction, initFunction, 24,
-			     16);
-	free(g_cursorSaveBuffer);
-	g_cursorSaveBuffer = NULL;
-	free(g_frontendChatLogBuffer);
-	g_frontendChatLogBuffer = NULL;
-	if (g_cutsceneTable != NULL) {
-		free(g_cutsceneTable);
-		g_cutsceneTable = NULL;
-		g_cutsceneCount = 0;
+	frontend_display_init(h_instance, h_prev_instance, lp_cmd_line,
+			      n_show_cmd, update_function, exit_function,
+			      init_function, 24, 16);
+	free(g_cursor_save_buffer);
+	g_cursor_save_buffer = NULL;
+	free(g_frontend_chat_log_buffer);
+	g_frontend_chat_log_buffer = NULL;
+	if (g_cutscene_table != NULL) {
+		free(g_cutscene_table);
+		g_cutscene_table = NULL;
+		g_cutscene_count = 0;
 	}
-	free(g_campaignAwardSprites);
-	g_campaignAwardSprites = NULL;
-	g_campaignAwardSpriteCount = 0;
-	Pilot_Save(0);
-	return g_gameMainSkipIntroRelaunchGate == 0;
+	free(g_campaign_award_sprites);
+	g_campaign_award_sprites = NULL;
+	g_campaign_award_sprite_count = 0;
+	pilot_save(0);
+	return g_game_main_skip_intro_relaunch_gate == 0;
 }
 
 /* Restores the primary surface and, when that succeeds, the back buffer when
- * g_optNoFullscreen or g_noPageFlip is set, else the offscreen surface. Returns
+ * g_opt_no_fullscreen or g_no_page_flip is set, else the offscreen surface. Returns
  * the last Restore result, the primary's failure when it fails. */
 // FUNCTION: XVT 0x4D37E0
-HRESULT FrontendDisplay_RestoreLostSurfaces(void)
+HRESULT frontend_display_restore_lost_surfaces(void)
 {
 	HRESULT result;
 
-	result = g_frontState.primarySurface->lpVtbl->Restore(
-		g_frontState.primarySurface);
+	result = g_front_state.primary_surface->lpVtbl->Restore(
+		g_front_state.primary_surface);
 	if (result == 0) {
-		if (g_optNoFullscreen != 0 || g_noPageFlip != 0) {
-			return g_frontState.backBufferSurface->lpVtbl->Restore(
-				g_frontState.backBufferSurface);
+		if (g_opt_no_fullscreen != 0 || g_no_page_flip != 0) {
+			return g_front_state.back_buffer_surface->lpVtbl
+				->Restore(g_front_state.back_buffer_surface);
 		}
-		return g_frontState.offscreenSurface->lpVtbl->Restore(
-			g_frontState.offscreenSurface);
+		return g_front_state.offscreen_surface->lpVtbl->Restore(
+			g_front_state.offscreen_surface);
 	}
 	return result;
 }
 
-/* Tears the frontend down once: does nothing when g_shutdownComplete is set,
+/* Tears the frontend down once: does nothing when g_shutdown_complete is set,
  * else sets it, shuts down DirectSound and frees the fonts, the saved pixels of
  * the stacked screens below the top, every registered image, the sound tables,
  * the image table, the offscreen backup buffer and the string table. With
  * DirectDraw it then flips to the GDI surface, restores the display mode,
  * releases the primary surface, the palette, the offscreen surface, the
- * separate back buffer (with g_optNoFullscreen or g_noPageFlip) and DirectDraw
- * itself, and, with bDestroyWindow nonzero and a window, destroys the window;
+ * separate back buffer (with g_opt_no_fullscreen or g_no_page_flip) and DirectDraw
+ * itself, and, with b_destroy_window nonzero and a window, destroys the window;
  * the modern build only forgets its handle. Last it shows the system cursor,
  * which the modern build instead keeps hidden. */
 // FUNCTION: XVT 0x4D3820
-void FrontendDisplay_Shutdown(int bDestroyWindow)
+void frontend_display_shutdown(int b_destroy_window)
 {
-	int screenIndex;
+	int screen_index;
 
-	if (g_shutdownComplete != 0) {
+	if (g_shutdown_complete != 0) {
 		return;
 	}
-	g_shutdownComplete = 1;
-	FrontendSound_ShutdownDirectSound();
-	FrontendText_FreeAllFonts();
-	for (screenIndex = 0; screenIndex < g_frontState.screenStackTop;
-	     screenIndex++) {
-		if (g_frontState.screenStates[screenIndex].savedImage.pixels !=
-		    NULL) {
-			free(g_frontState.screenStates[screenIndex]
-				     .savedImage.pixels);
-			g_frontState.screenStates[screenIndex]
-				.savedImage.pixels = NULL;
-			g_frontState.screenStates[screenIndex]
-				.savedImage.pixelDataBytes = 0;
+	g_shutdown_complete = 1;
+	frontend_sound_shutdown_direct_sound();
+	frontend_text_free_all_fonts();
+	for (screen_index = 0; screen_index < g_front_state.screen_stack_top;
+	     screen_index++) {
+		if (g_front_state.screen_states[screen_index]
+			    .saved_image.pixels != NULL) {
+			free(g_front_state.screen_states[screen_index]
+				     .saved_image.pixels);
+			g_front_state.screen_states[screen_index]
+				.saved_image.pixels = NULL;
+			g_front_state.screen_states[screen_index]
+				.saved_image.pixel_data_bytes = 0;
 		}
 	}
-	FrontImage_FreeAllResources();
-	if (g_frontState.frontendSoundBuffers != NULL) {
-		free(g_frontState.frontendSoundBuffers);
-		g_frontState.frontendSoundBuffers = NULL;
+	front_image_free_all_resources();
+	if (g_front_state.frontend_sound_buffers != NULL) {
+		free(g_front_state.frontend_sound_buffers);
+		g_front_state.frontend_sound_buffers = NULL;
 	}
-	if (g_frontState.frontendSoundVoices != NULL) {
-		free(g_frontState.frontendSoundVoices);
-		g_frontState.frontendSoundVoices = NULL;
+	if (g_front_state.frontend_sound_voices != NULL) {
+		free(g_front_state.frontend_sound_voices);
+		g_front_state.frontend_sound_voices = NULL;
 	}
-	if (g_frontState.resourceTable != NULL) {
-		free(g_frontState.resourceTable);
-		g_frontState.resourceTable = NULL;
+	if (g_front_state.resource_table != NULL) {
+		free(g_front_state.resource_table);
+		g_front_state.resource_table = NULL;
 	}
-	if (g_frontState.offscreenBackupBuffer != NULL) {
-		free(g_frontState.offscreenBackupBuffer);
-		g_frontState.offscreenBackupBuffer = NULL;
+	if (g_front_state.offscreen_backup_buffer != NULL) {
+		free(g_front_state.offscreen_backup_buffer);
+		g_front_state.offscreen_backup_buffer = NULL;
 	}
-	FrontendString_UnloadTable();
-	if (g_frontState.directDraw != NULL) {
-		g_frontState.directDraw->lpVtbl->FlipToGDISurface(
-			g_frontState.directDraw);
-		g_frontState.directDraw->lpVtbl->RestoreDisplayMode(
-			g_frontState.directDraw);
-		if (g_frontState.primarySurface != NULL) {
-			g_frontState.primarySurface->lpVtbl->Release(
-				g_frontState.primarySurface);
-			g_frontState.primarySurface = NULL;
+	frontend_string_unload_table();
+	if (g_front_state.direct_draw != NULL) {
+		g_front_state.direct_draw->lpVtbl->FlipToGDISurface(
+			g_front_state.direct_draw);
+		g_front_state.direct_draw->lpVtbl->RestoreDisplayMode(
+			g_front_state.direct_draw);
+		if (g_front_state.primary_surface != NULL) {
+			g_front_state.primary_surface->lpVtbl->Release(
+				g_front_state.primary_surface);
+			g_front_state.primary_surface = NULL;
 		}
-		if (g_frontState.ddPalette != NULL) {
-			g_frontState.ddPalette->lpVtbl->Release(
-				g_frontState.ddPalette);
-			g_frontState.ddPalette = NULL;
+		if (g_front_state.dd_palette != NULL) {
+			g_front_state.dd_palette->lpVtbl->Release(
+				g_front_state.dd_palette);
+			g_front_state.dd_palette = NULL;
 		}
-		if (g_frontState.offscreenSurface != NULL) {
-			g_frontState.offscreenSurface->lpVtbl->Release(
-				g_frontState.offscreenSurface);
-			g_frontState.offscreenSurface = NULL;
+		if (g_front_state.offscreen_surface != NULL) {
+			g_front_state.offscreen_surface->lpVtbl->Release(
+				g_front_state.offscreen_surface);
+			g_front_state.offscreen_surface = NULL;
 		}
-		if ((g_optNoFullscreen != 0 || g_noPageFlip != 0) &&
-		    g_frontState.backBufferSurface != NULL) {
-			g_frontState.backBufferSurface->lpVtbl->Release(
-				g_frontState.backBufferSurface);
-			g_frontState.backBufferSurface = NULL;
+		if ((g_opt_no_fullscreen != 0 || g_no_page_flip != 0) &&
+		    g_front_state.back_buffer_surface != NULL) {
+			g_front_state.back_buffer_surface->lpVtbl->Release(
+				g_front_state.back_buffer_surface);
+			g_front_state.back_buffer_surface = NULL;
 		}
-		g_frontState.directDraw->lpVtbl->Release(
-			g_frontState.directDraw);
-		g_frontState.directDraw = NULL;
-		if (g_frontState.hWnd != NULL && bDestroyWindow != 0) {
+		g_front_state.direct_draw->lpVtbl->Release(
+			g_front_state.direct_draw);
+		g_front_state.direct_draw = NULL;
+		if (g_front_state.h_wnd != NULL && b_destroy_window != 0) {
 #ifdef XVT_MODERN
-			g_frontState.hWnd = NULL;
+			g_front_state.h_wnd = NULL;
 #else
-			DestroyWindow(g_frontState.hWnd);
-			g_frontState.hWnd = NULL;
+			DestroyWindow(g_front_state.h_wnd);
+			g_front_state.h_wnd = NULL;
 #endif
 		}
 	}
@@ -486,33 +493,35 @@ void FrontendDisplay_Shutdown(int bDestroyWindow)
 #endif
 }
 
-/* Only the original build calls this, through FrontendDisplay_WndProc while the
- * window procedure mode is 0. WM_DESTROY runs FrontendDisplay_Shutdown(1),
+/* Only the original build calls this, through frontend_display_wnd_proc while the
+ * window procedure mode is 0. WM_DESTROY runs frontend_display_shutdown(1),
  * posts the quit message and returns 0. WM_ACTIVATEAPP stores the new state in
- * g_frontState.appActive and, on activation, resumes CD audio, captures the
- * mouse, sets restoreOffscreenOverlayAfterActivate and hides the system cursor,
+ * g_front_state.app_active and, on activation, resumes CD audio, captures the
+ * mouse, sets restore_offscreen_overlay_after_activate and hides the system cursor,
  * or on deactivation suspends CD audio and releases the mouse. WM_SETCURSOR
  * hides the cursor and returns 1. Esc in WM_KEYDOWN posts WM_CLOSE while
- * escapeCloseEnabled is set. WM_KEYUP clears all of keyDownState. WM_CHAR adds
- * the character to charRingBuffer, dropping the oldest when the ring already
+ * escape_close_enabled is set. WM_KEYUP clears all of key_down_state. WM_CHAR adds
+ * the character to char_ring_buffer, dropping the oldest when the ring already
  * holds 1,023. Alt+O, on WM_SYSKEYUP, saves a screenshot and returns 0; Alt+F4
  * returns 0 in both system key messages. WM_MOUSEMOVE stores the position in
- * mouseX and mouseY, each clamped to 640 and 480, and moves the system cursor
- * back when it clamped. The button messages set mouseLeftDown and
- * mouseRightDown and, on a release, the click latches; when the message reports
+ * mouse_x and mouse_y, each clamped to 640 and 480, and moves the system cursor
+ * back when it clamped. The button messages set mouse_left_down and
+ * mouse_right_down and, on a release, the click latches; when the message reports
  * the other button held, that button's state moves the same way. Everything
  * else goes on to DefWindowProcA. The modern build's arms request a quit
  * instead of posting messages and return 0 instead of calling
  * DefWindowProcA. */
 // FUNCTION: XVT 0x4D3A00
-int32_t AERON_DXAPI FrontendDisplay_MainWndProc(void *hWnd, unsigned int Msg,
-						uint32_t wParam, int32_t lParam)
+int32_t AERON_DXAPI frontend_display_main_wnd_proc(void *h_wnd,
+						   unsigned int msg,
+						   uint32_t w_param,
+						   int32_t l_param)
 {
-	int cursorClamped;
+	int cursor_clamped;
 
-	switch (Msg) {
+	switch (msg) {
 	case 0x02:
-		FrontendDisplay_Shutdown(1);
+		frontend_display_shutdown(1);
 #ifdef XVT_MODERN
 		Aeron_RequestQuit();
 #else
@@ -521,18 +530,19 @@ int32_t AERON_DXAPI FrontendDisplay_MainWndProc(void *hWnd, unsigned int Msg,
 		return 0;
 
 	case 0x1C:
-		g_frontState.appActive = (int)wParam;
-		if (wParam != 0) {
-			CDAudio_RequestResumePlayback();
+		g_front_state.app_active = (int)w_param;
+		if (w_param != 0) {
+			cd_audio_request_resume_playback();
 #ifndef XVT_MODERN
-			if (g_frontState.hWnd != NULL) {
-				SetCapture(g_frontState.hWnd);
+			if (g_front_state.h_wnd != NULL) {
+				SetCapture(g_front_state.h_wnd);
 			}
 #endif
-			g_frontState.restoreOffscreenOverlayAfterActivate = 1;
-			FrontendCursor_HideOsCursor();
+			g_front_state.restore_offscreen_overlay_after_activate =
+				1;
+			frontend_cursor_hide_os_cursor();
 		} else {
-			CDAudio_SuspendPlayback();
+			cd_audio_suspend_playback();
 #ifndef XVT_MODERN
 			ReleaseCapture();
 #endif
@@ -548,220 +558,225 @@ int32_t AERON_DXAPI FrontendDisplay_MainWndProc(void *hWnd, unsigned int Msg,
 		return 1;
 
 	case 0x100:
-		if (wParam == 27 && g_frontState.escapeCloseEnabled != 0) {
+		if (w_param == 27 && g_front_state.escape_close_enabled != 0) {
 #ifdef XVT_MODERN
 			Aeron_RequestQuit();
 #else
-			PostMessageA(hWnd, 0x10, 0, 0);
+			PostMessageA(h_wnd, 0x10, 0, 0);
 #endif
 		}
 		break;
 
 	case 0x101:
-		memset(g_frontState.keyDownState, 0,
-		       sizeof(g_frontState.keyDownState));
+		memset(g_front_state.key_down_state, 0,
+		       sizeof(g_front_state.key_down_state));
 		break;
 
 	case 0x102:
-		if ((g_frontState.charReadIdx - g_frontState.charWriteIdx ==
+		if ((g_front_state.char_read_idx -
+				     g_front_state.char_write_idx ==
 			     1 ||
-		     (g_frontState.charWriteIdx == 1023 &&
-		      g_frontState.charReadIdx == 0)) &&
-		    ++g_frontState.charReadIdx == 1024) {
-			g_frontState.charReadIdx = 0;
+		     (g_front_state.char_write_idx == 1023 &&
+		      g_front_state.char_read_idx == 0)) &&
+		    ++g_front_state.char_read_idx == 1024) {
+			g_front_state.char_read_idx = 0;
 		}
-		g_frontState.charRingBuffer[g_frontState.charWriteIdx] =
-			(char)wParam;
-		if (g_frontState.charWriteIdx == 1023) {
-			g_frontState.charWriteIdx = 0;
+		g_front_state.char_ring_buffer[g_front_state.char_write_idx] =
+			(char)w_param;
+		if (g_front_state.char_write_idx == 1023) {
+			g_front_state.char_write_idx = 0;
 		} else {
-			++g_frontState.charWriteIdx;
+			++g_front_state.char_write_idx;
 		}
 		break;
 
 	case 0x105:
-		if (wParam == 79) {
-			FrontendDisplay_CaptureScreenshot();
+		if (w_param == 79) {
+			frontend_display_capture_screenshot();
 			return 0;
 		}
-		if (wParam == 115) {
+		if (w_param == 115) {
 			return 0;
 		}
 		/* fall through */
 	case 0x104:
-		if (wParam == 115) {
+		if (w_param == 115) {
 			return 0;
 		}
 		break;
 
 	case 0x200:
-		g_frontState.mouseX = (uint16_t)lParam;
-		g_frontState.mouseY = (uint16_t)((uint32_t)lParam >> 16);
-		cursorClamped = 0;
-		if (g_frontState.mouseX > 640) {
-			cursorClamped = 1;
-			g_frontState.mouseX = 640;
+		g_front_state.mouse_x = (uint16_t)l_param;
+		g_front_state.mouse_y = (uint16_t)((uint32_t)l_param >> 16);
+		cursor_clamped = 0;
+		if (g_front_state.mouse_x > 640) {
+			cursor_clamped = 1;
+			g_front_state.mouse_x = 640;
 		}
-		if (g_frontState.mouseY > 480) {
-			cursorClamped = 1;
-			g_frontState.mouseY = 480;
+		if (g_front_state.mouse_y > 480) {
+			cursor_clamped = 1;
+			g_front_state.mouse_y = 480;
 		}
-		if (cursorClamped != 0) {
+		if (cursor_clamped != 0) {
 #ifdef XVT_MODERN
-			XvtPresentation_WarpClassic(g_frontState.mouseX,
-						    g_frontState.mouseY);
+			xvt_presentation_warp_classic(g_front_state.mouse_x,
+						      g_front_state.mouse_y);
 #else
-			SetCursorPos(g_frontState.mouseX, g_frontState.mouseY);
+			SetCursorPos(g_front_state.mouse_x,
+				     g_front_state.mouse_y);
 #endif
 		}
 		break;
 
 	case 0x201:
-		g_frontState.mouseLeftDown = 1;
-		if ((wParam & 2) != 0) {
-			g_frontState.mouseRightDown = 1;
+		g_front_state.mouse_left_down = 1;
+		if ((w_param & 2) != 0) {
+			g_front_state.mouse_right_down = 1;
 		}
 		break;
 
 	case 0x202:
-		g_frontState.mouseLeftDown = 0;
-		g_frontState.mouseLeftClickLatch = 1;
-		if ((wParam & 2) != 0) {
-			g_frontState.mouseRightDown = 0;
-			g_frontState.mouseRightClickLatch = 1;
+		g_front_state.mouse_left_down = 0;
+		g_front_state.mouse_left_click_latch = 1;
+		if ((w_param & 2) != 0) {
+			g_front_state.mouse_right_down = 0;
+			g_front_state.mouse_right_click_latch = 1;
 		}
 		break;
 
 	case 0x204:
-		g_frontState.mouseRightDown = 1;
-		if ((wParam & 1) != 0) {
-			g_frontState.mouseLeftDown = 1;
+		g_front_state.mouse_right_down = 1;
+		if ((w_param & 1) != 0) {
+			g_front_state.mouse_left_down = 1;
 		}
 		break;
 
 	case 0x205:
-		g_frontState.mouseRightDown = 0;
-		g_frontState.mouseRightClickLatch = 1;
-		if ((wParam & 1) != 0) {
-			g_frontState.mouseLeftDown = 0;
-			g_frontState.mouseLeftClickLatch = 1;
+		g_front_state.mouse_right_down = 0;
+		g_front_state.mouse_right_click_latch = 1;
+		if ((w_param & 1) != 0) {
+			g_front_state.mouse_left_down = 0;
+			g_front_state.mouse_left_click_latch = 1;
 		}
 		break;
 	}
 
 #ifdef XVT_MODERN
-	(void)hWnd;
-	(void)lParam;
+	(void)h_wnd;
+	(void)l_param;
 	return 0;
 #else
-	return DefWindowProcA(hWnd, Msg, wParam, lParam);
+	return DefWindowProcA(h_wnd, msg, w_param, l_param);
 #endif
 }
 
 /* Only the original build calls this, as the window class's procedure
- * (FrontendDisplay_InitMainWindow). Hands each message to the handler for the
- * window procedure mode: 0 FrontendDisplay_MainWndProc, 1 Flight_WndProc, 2
- * Movie_WindowProc, any other mode DefWindowProcA, or 0 in the modern build.
+ * (frontend_display_init_main_window). Hands each message to the handler for the
+ * window procedure mode: 0 frontend_display_main_wnd_proc, 1 flight_wnd_proc, 2
+ * movie_window_proc, any other mode DefWindowProcA, or 0 in the modern build.
  * Returns the handler's result. */
 // FUNCTION: XVT 0x4D3D20
-int32_t AERON_DXAPI FrontendDisplay_WndProc(void *hWnd, unsigned int Msg,
-					    uint32_t wParam, int32_t lParam)
+int32_t AERON_DXAPI frontend_display_wnd_proc(void *h_wnd, unsigned int msg,
+					      uint32_t w_param, int32_t l_param)
 {
-	switch (FrontendDisplay_GetWndProcMode()) {
+	switch (frontend_display_get_wnd_proc_mode()) {
 	case 0:
-		return FrontendDisplay_MainWndProc(hWnd, Msg, wParam, lParam);
+		return frontend_display_main_wnd_proc(h_wnd, msg, w_param,
+						      l_param);
 	case 1:
-		return Flight_WndProc(hWnd, Msg, wParam, lParam);
+		return flight_wnd_proc(h_wnd, msg, w_param, l_param);
 	case 2:
-		return Movie_WindowProc(
-			hWnd, Msg, XvtPort_WinMessageParamAsPointer(wParam),
-			XvtPort_WinMessageParamAsPointer((uint32_t)lParam));
+		return movie_window_proc(
+			h_wnd, msg,
+			xvt_port_win_message_param_as_pointer(w_param),
+			xvt_port_win_message_param_as_pointer(
+				(uint32_t)l_param));
 	default:
 #ifdef XVT_MODERN
 		return 0;
 #else
-		return DefWindowProcA(hWnd, Msg, wParam, lParam);
+		return DefWindowProcA(h_wnd, msg, w_param, l_param);
 #endif
 	}
 }
 
 /* Shows "DirectDraw Init FAILED at <stage>" in a message box titled
- * g_windowName, shuts the frontend down with FrontendDisplay_Shutdown(1) and
- * returns 0. FrontendDisplay_InitMainWindow and FrontendDisplay_ReinitSurfaces
+ * g_window_name, shuts the frontend down with frontend_display_shutdown(1) and
+ * returns 0. frontend_display_init_main_window and frontend_display_reinit_surfaces
  * pass the failing step, 0 to 6. The modern build shows an error box through
  * Aeron. */
 // FUNCTION: XVT 0x4D3DA0
-int FrontendDisplay_ReportDirectDrawInitFailure(void *hWnd, int stage)
+int frontend_display_report_direct_draw_init_failure(void *h_wnd, int stage)
 {
 	char message[256];
 #ifdef XVT_MODERN
 	AeronMessageBoxButton button = {1, "OK", 1, 1};
 	AeronMessageBoxOptions options;
-	(void)hWnd;
+	(void)h_wnd;
 #endif
 
 	sprintf(message, "DirectDraw Init FAILED at %d", stage);
 #ifdef XVT_MODERN
 	options.kind = AERON_MESSAGE_BOX_ERROR;
-	options.title = g_windowName;
+	options.title = g_window_name;
 	options.message = message;
 	options.buttons = &button;
 	options.button_count = 1;
 	Aeron_ShowMessageBox(&options, NULL);
 #else
-	MessageBoxA(hWnd, message, g_windowName, 0);
+	MessageBoxA(h_wnd, message, g_window_name, 0);
 #endif
-	FrontendDisplay_Shutdown(1);
+	frontend_display_shutdown(1);
 	return 0;
 }
 
-/* Shows text in a warning message box titled g_windowName and returns 1 once it
+/* Shows text in a warning message box titled g_window_name and returns 1 once it
  * is closed. Unlocks the back buffer and, with DirectDraw, flips to the GDI
- * surface first; afterward locks the back buffer into g_drawSurfacePtr again
+ * surface first; afterward locks the back buffer into g_draw_surface_ptr again
  * when it was locked. The modern build shows the box through Aeron. */
 // FUNCTION: XVT 0x4D3DF0
-int FrontendDisplay_ShowGameMessageBox(const char *text)
+int frontend_display_show_game_message_box(const char *text)
 {
-	int wasBackBufferLocked;
+	int was_back_buffer_locked;
 #ifdef XVT_MODERN
 	AeronMessageBoxButton button = {1, "OK", 1, 1};
 	AeronMessageBoxOptions options = {AERON_MESSAGE_BOX_WARNING,
-					  g_windowName, text, &button, 1};
+					  g_window_name, text, &button, 1};
 #endif
 
-	wasBackBufferLocked = g_frontState.backBufferLocked;
-	FrontendDisplay_UnlockBackBuffer();
-	if (g_frontState.directDraw != NULL) {
-		g_frontState.directDraw->lpVtbl->FlipToGDISurface(
-			g_frontState.directDraw);
+	was_back_buffer_locked = g_front_state.back_buffer_locked;
+	frontend_display_unlock_back_buffer();
+	if (g_front_state.direct_draw != NULL) {
+		g_front_state.direct_draw->lpVtbl->FlipToGDISurface(
+			g_front_state.direct_draw);
 	}
 
 #ifdef XVT_MODERN
 	Aeron_ShowMessageBox(&options, NULL);
 #else
-	MessageBoxA(g_frontState.hWnd, text, g_windowName, 0x30);
+	MessageBoxA(g_front_state.h_wnd, text, g_window_name, 0x30);
 #endif
 
-	if (wasBackBufferLocked != 0) {
-		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	if (was_back_buffer_locked != 0) {
+		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
 	return 1;
 }
 
-/* The original build's frontend main loop. Only FrontendDisplay_Init and
- * FrontendDisplay_InitPreservingNetworkSession call it, and nothing calls them.
- * Makes the window and surfaces (FrontendDisplay_InitMainWindow), returning 0
- * when that fails; runs g_frontState.modeInitFn, returning 0 after a shutdown
+/* The original build's frontend main loop. Only frontend_display_init and
+ * frontend_display_init_preserving_network_session call it, and nothing calls them.
+ * Makes the window and surfaces (frontend_display_init_main_window), returning 0
+ * when that fails; runs g_front_state.mode_init_fn, returning 0 after a shutdown
  * when it returns nonzero; and sets the six text color codes again, codes 1 and
- * 4 differently from FrontendDisplay_InitMainWindow. Then, while the
- * application is active, it presents a frame every g_frontState.frameIntervalMs
+ * 4 differently from frontend_display_init_main_window. Then, while the
+ * application is active, it presents a frame every g_front_state.frame_interval_ms
  * milliseconds, polls both joysticks every 100 ms, and after each present runs
- * one frame of the top screen: clears netReadyPlayerLeftThisFrame and, while a
+ * one frame of the top screen: clears net_ready_player_left_this_frame and, while a
  * text fade runs, the fade color cache; pumps network packets; then, when the
  * screen has an update function, reads the keyboard state, locks the back
- * buffer, calls the update with g_frontState.frameCounter, calls the exit
+ * buffer, calls the update with g_front_state.frame_counter, calls the exit
  * function it read before the update when the update returned 1 or
- * screenCallbacksDirty is 1, unlocks, pushes a queued screen, draws the cursor
+ * screen_callbacks_dirty is 1, unlocks, pushes a queued screen, draws the cursor
  * when it is shown, clears the joysticks' released flags, raises the frame
  * counter, lowers the text fade, clears the click latches and services CD
  * audio: resumes suspended playback when due and, at a track's end, replays it
@@ -771,14 +786,14 @@ int FrontendDisplay_ShowGameMessageBox(const char *text)
  * active or not, and the loop returns the quit message's exit code. The modern
  * build returns 0 at once. */
 // FUNCTION: XVT 0x4D3E40
-uint32_t FrontendDisplay_RunMainLoop(void *hInstance, void *hPrevInstance,
-				     char *lpCmdLine, int nShowCmd)
+uint32_t frontend_display_run_main_loop(void *h_instance, void *h_prev_instance,
+					char *lp_cmd_line, int n_show_cmd)
 {
 #ifdef XVT_MODERN
-	(void)hInstance;
-	(void)hPrevInstance;
-	(void)lpCmdLine;
-	(void)nShowCmd;
+	(void)h_instance;
+	(void)h_prev_instance;
+	(void)lp_cmd_line;
+	(void)n_show_cmd;
 	return 0;
 #else
 	enum {
@@ -787,162 +802,172 @@ uint32_t FrontendDisplay_RunMainLoop(void *hInstance, void *hPrevInstance,
 		JOYSTICK_UPDATE_INTERVAL_MS = 100,
 		WINDOW_CLOSE_MESSAGE = 0x10,
 	};
-	struct FrontendDisplayWin32Message message;
-	uint32_t frameStart;
-	uint32_t joystickUpdate;
-	int updateResult;
-	int frameReady;
+	struct frontend_display_win32_message message;
+	uint32_t frame_start;
+	uint32_t joystick_update;
+	int update_result;
+	int frame_ready;
 
-	(void)hPrevInstance;
-	(void)lpCmdLine;
-	updateResult = SCREEN_CONTINUE;
-	frameReady = 0;
-	if (FrontendDisplay_InitMainWindow(hInstance, nShowCmd) == 0) {
+	(void)h_prev_instance;
+	(void)lp_cmd_line;
+	update_result = SCREEN_CONTINUE;
+	frame_ready = 0;
+	if (frontend_display_init_main_window(h_instance, n_show_cmd) == 0) {
 		return 0;
 	}
-	if (g_frontState.modeInitFn != NULL && g_frontState.modeInitFn() != 0) {
-		FrontendDisplay_Shutdown(1);
+	if (g_front_state.mode_init_fn != NULL &&
+	    g_front_state.mode_init_fn() != 0) {
+		frontend_display_shutdown(1);
 		return 0;
 	}
 
-	frameStart = GetTickCount();
-	joystickUpdate = frameStart;
-	g_frontState.textColorCodes[0] = 0xFFFF;
-	g_frontState.textColorCodes[1] =
-		FrontendDisplay_PackRGB(0x40, 0xC4, 0x40);
-	g_frontState.textColorCodes[2] = FrontendDisplay_PackRGB(0xFF, 0, 0);
-	g_frontState.textColorCodes[3] = FrontendDisplay_PackRGB(0xFF, 0xFF, 0);
-	g_frontState.textColorCodes[4] = FrontendDisplay_PackRGB(0, 0, 0xFF);
-	g_frontState.textColorCodes[5] =
-		FrontendDisplay_PackRGB(0x80, 0x80, 0xFF);
+	frame_start = GetTickCount();
+	joystick_update = frame_start;
+	g_front_state.text_color_codes[0] = 0xFFFF;
+	g_front_state.text_color_codes[1] =
+		frontend_display_pack_rgb(0x40, 0xC4, 0x40);
+	g_front_state.text_color_codes[2] =
+		frontend_display_pack_rgb(0xFF, 0, 0);
+	g_front_state.text_color_codes[3] =
+		frontend_display_pack_rgb(0xFF, 0xFF, 0);
+	g_front_state.text_color_codes[4] =
+		frontend_display_pack_rgb(0, 0, 0xFF);
+	g_front_state.text_color_codes[5] =
+		frontend_display_pack_rgb(0x80, 0x80, 0xFF);
 
 	for (;;) {
-		if (g_frontState.appActive != 0) {
-			if (frameReady != 0 &&
-			    updateResult == SCREEN_CONTINUE) {
-				FrontendScreenExitFn exitFn;
+		if (g_front_state.app_active != 0) {
+			if (frame_ready != 0 &&
+			    update_result == SCREEN_CONTINUE) {
+				frontend_screen_exit_fn exit_fn;
 
-				frameReady = 0;
-				g_frontState.netReadyPlayerLeftThisFrame = 0;
-				if (g_frontState.textFadeFramesLeft != 0) {
-					memset(&g_frontState.textFadeColorCache,
+				frame_ready = 0;
+				g_front_state.net_ready_player_left_this_frame =
+					0;
+				if (g_front_state.text_fade_frames_left != 0) {
+					memset(&g_front_state
+							.text_fade_color_cache,
 					       0,
-					       sizeof(g_frontState
-							      .textFadeColorCache));
+					       sizeof(g_front_state
+							      .text_fade_color_cache));
 				}
-				Net_PumpIncomingPackets();
-				if (g_frontState
-					    .screenStates
-						    [g_frontState
-							     .screenStackTop]
-					    .updateFn != NULL) {
-					GetKeyboardState(g_frontState.keyState);
-					g_drawSurfacePtr =
-						FrontendDisplay_LockBackBuffer();
-					exitFn =
-						g_frontState
-							.screenStates
-								[g_frontState
-									 .screenStackTop]
-							.exitFn;
-					updateResult =
-						g_frontState
-							.screenStates
-								[g_frontState
-									 .screenStackTop]
-							.updateFn(
-								g_frontState
-									.frameCounter);
-					if (g_frontState.screenCallbacksDirty ==
+				net_pump_incoming_packets();
+				if (g_front_state
+					    .screen_states
+						    [g_front_state
+							     .screen_stack_top]
+					    .update_fn != NULL) {
+					GetKeyboardState(
+						g_front_state.key_state);
+					g_draw_surface_ptr =
+						frontend_display_lock_back_buffer();
+					exit_fn =
+						g_front_state
+							.screen_states
+								[g_front_state
+									 .screen_stack_top]
+							.exit_fn;
+					update_result =
+						g_front_state
+							.screen_states
+								[g_front_state
+									 .screen_stack_top]
+							.update_fn(
+								g_front_state
+									.frame_counter);
+					if (g_front_state.screen_callbacks_dirty ==
 						    1 ||
-					    updateResult == SCREEN_FINISHED) {
-						g_frontState
-							.screenCallbacksDirty =
+					    update_result == SCREEN_FINISHED) {
+						g_front_state
+							.screen_callbacks_dirty =
 							0;
-						if (exitFn != NULL) {
-							exitFn(g_frontState
-								       .frameCounter);
+						if (exit_fn != NULL) {
+							exit_fn(g_front_state
+									.frame_counter);
 						}
 					}
-					FrontendDisplay_UnlockBackBuffer();
-					if (g_frontState
-						    .pendingScreenUpdateFn !=
+					frontend_display_unlock_back_buffer();
+					if (g_front_state
+						    .pending_screen_update_fn !=
 					    NULL) {
-						FrontendScreen_PushState(
-							g_frontState
-								.pendingScreenUpdateFn,
-							&g_frontState
-								 .pendingScreenRect);
-						g_frontState
-							.pendingScreenUpdateFn =
+						frontend_screen_push_state(
+							g_front_state
+								.pending_screen_update_fn,
+							&g_front_state
+								 .pending_screen_rect);
+						g_front_state
+							.pending_screen_update_fn =
 							NULL;
 					}
-					if (g_frontState.cursorVisible == 1) {
-						FrontendCursor_Draw();
+					if (g_front_state.cursor_visible == 1) {
+						frontend_cursor_draw();
 					}
-					memset(g_frontState
-						       .joystickButtonReleased
+					memset(g_front_state
+						       .joystick_button_released
 							       [0],
 					       0,
-					       sizeof(g_frontState
-							      .joystickButtonReleased
+					       sizeof(g_front_state
+							      .joystick_button_released
 								      [0]));
-					memset(g_frontState
-						       .joystickButtonReleased
+					memset(g_front_state
+						       .joystick_button_released
 							       [1],
 					       0,
-					       sizeof(g_frontState
-							      .joystickButtonReleased
+					       sizeof(g_front_state
+							      .joystick_button_released
 								      [1]));
-					++g_frontState.frameCounter;
-					if (updateResult == SCREEN_FINISHED) {
-						if (g_frontState.cdAudioMciDeviceId !=
+					++g_front_state.frame_counter;
+					if (update_result == SCREEN_FINISHED) {
+						if (g_front_state.cd_audio_mci_device_id !=
 							    0 &&
-						    g_frontState.cdAudioCurrentTrack !=
+						    g_front_state.cd_audio_current_track !=
 							    0 &&
-						    g_frontState.cdAudioPlaybackComplete ==
+						    g_front_state.cd_audio_playback_complete ==
 							    0) {
-							CDAudio_FadeAuxVolume(
-								g_frontState
-									.cdAudioTrackCache
-									.currentAuxVolume,
+							cd_audio_fade_aux_volume(
+								g_front_state
+									.cd_audio_track_cache
+									.current_aux_volume,
 								0x200, 2000);
 						}
-						CDAudio_CloseDevice();
+						cd_audio_close_device();
 						PostMessageA(
-							g_frontState.hWnd,
+							g_front_state.h_wnd,
 							WINDOW_CLOSE_MESSAGE, 0,
 							0);
 					}
-					if (g_frontState.textFadeFramesLeft !=
+					if (g_front_state
+						    .text_fade_frames_left !=
 					    0) {
-						--g_frontState
-							  .textFadeFramesLeft;
+						--g_front_state
+							  .text_fade_frames_left;
 					}
-					g_frontState.mouseLeftClickLatch = 0;
-					g_frontState.mouseRightClickLatch = 0;
-					if (g_frontState.cdAudioSuspendState ==
-						    CDAudio_ResumePending &&
+					g_front_state.mouse_left_click_latch =
+						0;
+					g_front_state.mouse_right_click_latch =
+						0;
+					if (g_front_state.cd_audio_suspend_state ==
+						    CD_AUDIO_RESUME_PENDING &&
 					    GetTickCount() >
-						    g_frontState
-							    .cdAudioResumeDueMs) {
-						CDAudio_ResumeSuspendedPlayback();
+						    g_front_state
+							    .cd_audio_resume_due_ms) {
+						cd_audio_resume_suspended_playback();
 					}
-					if (g_frontState.cdAudioCurrentTrack !=
+					if (g_front_state.cd_audio_current_track !=
 						    0 &&
 					    GetTickCount() >
-						    g_frontState
-							    .cdAudioTrackEndMs) {
-						if (g_frontState
-							    .cdAudioLoopCurrentTrack !=
+						    g_front_state
+							    .cd_audio_track_end_ms) {
+						if (g_front_state
+							    .cd_audio_loop_current_track !=
 						    0) {
-							CDAudio_PlayTrackFromTime(
-								g_frontState
-									.cdAudioCurrentTrack,
+							cd_audio_play_track_from_time(
+								g_front_state
+									.cd_audio_current_track,
 								0, 0);
 						} else {
-							g_frontState
-								.cdAudioPlaybackComplete =
+							g_front_state
+								.cd_audio_playback_complete =
 								1;
 						}
 					}
@@ -951,34 +976,34 @@ uint32_t FrontendDisplay_RunMainLoop(void *hInstance, void *hPrevInstance,
 
 			if (PeekMessageA(&message, NULL, 0, 0, 0) != 0) {
 				if (GetMessageA(&message, NULL, 0, 0) == 0) {
-					return message.wParam;
+					return message.w_param;
 				}
 				TranslateMessage(&message);
 				DispatchMessageA(&message);
 				continue;
 			}
-			if (updateResult == SCREEN_CONTINUE) {
+			if (update_result == SCREEN_CONTINUE) {
 				uint32_t now;
 
 				now = GetTickCount();
-				if ((int32_t)(now - frameStart) >=
-				    g_frontState.frameIntervalMs) {
-					frameReady = 1;
-					frameStart = now;
-					FrontendDisplay_PresentFrame();
+				if ((int32_t)(now - frame_start) >=
+				    g_front_state.frame_interval_ms) {
+					frame_ready = 1;
+					frame_start = now;
+					frontend_display_present_frame();
 				}
-				if ((int32_t)(now - joystickUpdate) >=
+				if ((int32_t)(now - joystick_update) >=
 				    JOYSTICK_UPDATE_INTERVAL_MS) {
-					Joystick_UpdateState(0);
-					Joystick_UpdateState(1);
-					joystickUpdate = now;
+					joystick_update_state(0);
+					joystick_update_state(1);
+					joystick_update = now;
 				}
 			}
 		}
 
 		else if (PeekMessageA(&message, NULL, 0, 0, 0) != 0) {
 			if (GetMessageA(&message, NULL, 0, 0) == 0) {
-				return message.wParam;
+				return message.w_param;
 			}
 			TranslateMessage(&message);
 			DispatchMessageA(&message);
@@ -988,232 +1013,237 @@ uint32_t FrontendDisplay_RunMainLoop(void *hInstance, void *hPrevInstance,
 }
 
 /* Makes the frontend's display and returns 1, or 0 when a step fails, after
- * FrontendDisplay_ReportDirectDrawInitFailure unless the window failed. The
+ * frontend_display_report_direct_draw_init_failure unless the window failed. The
  * original build registers the window class and creates a visible popup window
- * the size of the screen, titled g_windowName, into g_frontState.hWnd; the
+ * the size of the screen, titled g_window_name, into g_front_state.hWnd; the
  * modern build uses the handle the host already stored there. Creates
- * DirectDraw on the video.cfg driver (FrontendDisplay_LoadDriverGuid), else on
- * the default one, setting secondaryDirectDrawActive only when the configured
+ * DirectDraw on the video.cfg driver (frontend_display_load_driver_guid), else on
+ * the default one, setting secondary_direct_draw_active only when the configured
  * driver was used; takes exclusive full-screen mode at 640 by 480 and
- * g_frontState.displayBpp; creates the primary surface and the back buffer, a
- * flip chain with one back buffer unless g_optNoFullscreen or g_noPageFlip is
+ * g_front_state.display_bpp; creates the primary surface and the back buffer, a
+ * flip chain with one back buffer unless g_opt_no_fullscreen or g_no_page_flip is
  * set, else a separate 640 by 480 system-memory surface; and a 640 by 480
- * offscreen surface, recording pixelFormat555 and both pitches. Loads the
- * default palette (FrontendDisplay_LoadPalette) and sets it at 8 bits per
- * pixel, drops to normal cooperative level with g_optNoFullscreen, sets the six
+ * offscreen surface, recording pixel_format555 and both pitches. Loads the
+ * default palette (frontend_display_load_palette) and sets it at 8 bits per
+ * pixel, drops to normal cooperative level with g_opt_no_fullscreen, sets the six
  * text color codes, clears and presents both surfaces, loads the size-20 font,
  * finds the joysticks, sets the default cursor, moves the system cursor to (0,
  * 0), starts DirectSound (showing "Sound not available." when it fails), hides
  * the system cursor and allocates and zeroes
- * g_frontState.offscreenBackupBuffer, 480 rows of the offscreen pitch,
+ * g_front_state.offscreen_backup_buffer, 480 rows of the offscreen pitch,
  * returning 1 even when that allocation fails. */
 // FUNCTION: XVT 0x4D41E0
-int FrontendDisplay_InitMainWindow(void *hInstance, int nShowCmd)
+int frontend_display_init_main_window(void *h_instance, int n_show_cmd)
 {
 #ifndef XVT_MODERN
-	struct WNDCLASSA windowClass;
+	struct WNDCLASSA window_class;
 #endif
-	DDSURFACEDESC surfaceDesc;
-	DDSCAPS attachedSurfaceCaps;
-	const DxGuid *driverGuid;
-	void *windowHandle;
+	DDSURFACEDESC surface_desc;
+	DDSCAPS attached_surface_caps;
+	const DxGuid *driver_guid;
+	void *window_handle;
 	HRESULT result;
-	(void)nShowCmd;
+	(void)n_show_cmd;
 
 #ifdef XVT_MODERN
 	/* The host shell owns the window, so the port keeps the handle it published. */
-	(void)hInstance;
-	windowHandle = g_frontState.hWnd;
+	(void)h_instance;
+	window_handle = g_front_state.h_wnd;
 #else
-	windowClass.style = 8; /* CS_DBLCLKS */
-	windowClass.lpfnWndProc = FrontendDisplay_WndProc;
-	windowClass.cbClsExtra = 0;
-	windowClass.cbWndExtra = 0;
-	windowClass.hInstance = hInstance;
-	windowClass.hIcon = LoadIconA(hInstance, 101);
-	windowClass.hCursor = LoadCursorA(NULL, 0x7F00); /* IDC_ARROW */
-	windowClass.hbrBackground = GetStockObject(4);	 /* BLACK_BRUSH */
-	windowClass.lpszMenuName = NULL;
-	windowClass.lpszClassName = g_windowName;
-	RegisterClassA(&windowClass);
-	windowHandle =
-		CreateWindowExA(0, g_windowName, g_windowName, 0x90000000, 0, 0,
-				GetSystemMetrics(0), GetSystemMetrics(1), NULL,
-				NULL, hInstance, NULL);
-	if (windowHandle == NULL) {
+	window_class.style = 8; /* CS_DBLCLKS */
+	window_class.lpfn_wnd_proc = frontend_display_wnd_proc;
+	window_class.cb_cls_extra = 0;
+	window_class.cb_wnd_extra = 0;
+	window_class.h_instance = h_instance;
+	window_class.h_icon = LoadIconA(h_instance, 101);
+	window_class.h_cursor = LoadCursorA(NULL, 0x7F00); /* IDC_ARROW */
+	window_class.hbr_background = GetStockObject(4);   /* BLACK_BRUSH */
+	window_class.lpsz_menu_name = NULL;
+	window_class.lpsz_class_name = g_window_name;
+	RegisterClassA(&window_class);
+	window_handle =
+		CreateWindowExA(0, g_window_name, g_window_name, 0x90000000, 0,
+				0, GetSystemMetrics(0), GetSystemMetrics(1),
+				NULL, NULL, h_instance, NULL);
+	if (window_handle == NULL) {
 		return 0;
 	}
-	g_frontState.hWnd = windowHandle;
-	UpdateWindow(windowHandle);
-	SetFocus(windowHandle);
+	g_front_state.h_wnd = window_handle;
+	UpdateWindow(window_handle);
+	SetFocus(window_handle);
 #endif
 
-	driverGuid = FrontendDisplay_LoadDriverGuid();
+	driver_guid = frontend_display_load_driver_guid();
 #ifdef XVT_MODERN
-	if (DirectDrawCreate_Compat(driverGuid, &g_frontState.directDraw,
+	if (DirectDrawCreate_Compat(driver_guid, &g_front_state.direct_draw,
 				    NULL) != 0) {
-		if (DirectDrawCreate_Compat(NULL, &g_frontState.directDraw,
+		if (DirectDrawCreate_Compat(NULL, &g_front_state.direct_draw,
 					    NULL) != 0)
 #else
-	if (DirectDrawCreate(driverGuid, &g_frontState.directDraw, NULL) != 0) {
-		if (DirectDrawCreate(NULL, &g_frontState.directDraw, NULL) != 0)
+	if (DirectDrawCreate(driver_guid, &g_front_state.direct_draw, NULL) !=
+	    0) {
+		if (DirectDrawCreate(NULL, &g_front_state.direct_draw, NULL) !=
+		    0)
 #endif
-			return FrontendDisplay_ReportDirectDrawInitFailure(
-				windowHandle, 0);
-		g_frontState.secondaryDirectDrawActive = 0;
+			return frontend_display_report_direct_draw_init_failure(
+				window_handle, 0);
+		g_front_state.secondary_direct_draw_active = 0;
 	} else {
-		g_frontState.secondaryDirectDrawActive = 0;
-		if (driverGuid != NULL) {
-			g_frontState.secondaryDirectDrawActive = 1;
+		g_front_state.secondary_direct_draw_active = 0;
+		if (driver_guid != NULL) {
+			g_front_state.secondary_direct_draw_active = 1;
 		}
 	}
 
-	result = g_frontState.directDraw->lpVtbl->SetCooperativeLevel(
-		g_frontState.directDraw, windowHandle,
+	result = g_front_state.direct_draw->lpVtbl->SetCooperativeLevel(
+		g_front_state.direct_draw, window_handle,
 		DDSCL_FULLSCREEN | DDSCL_EXCLUSIVE | DDSCL_ALLOWMODEX);
 	if (result != 0) {
-		return FrontendDisplay_ReportDirectDrawInitFailure(windowHandle,
-								   1);
+		return frontend_display_report_direct_draw_init_failure(
+			window_handle, 1);
 	}
-	result = g_frontState.directDraw->lpVtbl->SetDisplayMode(
-		g_frontState.directDraw, 640, 480, g_frontState.displayBpp);
+	result = g_front_state.direct_draw->lpVtbl->SetDisplayMode(
+		g_front_state.direct_draw, 640, 480, g_front_state.display_bpp);
 	if (result != 0) {
-		return FrontendDisplay_ReportDirectDrawInitFailure(windowHandle,
-								   2);
+		return frontend_display_report_direct_draw_init_failure(
+			window_handle, 2);
 	}
 
-	if (g_optNoFullscreen == 0 && g_noPageFlip == 0) {
-		memset(&surfaceDesc, 0, sizeof(surfaceDesc));
-		surfaceDesc.dwSize = sizeof(surfaceDesc);
-		surfaceDesc.dwFlags = DDSD_CAPS | DDSD_BACKBUFFERCOUNT;
-		surfaceDesc.ddsCaps.dwCaps =
+	if (g_opt_no_fullscreen == 0 && g_no_page_flip == 0) {
+		memset(&surface_desc, 0, sizeof(surface_desc));
+		surface_desc.dwSize = sizeof(surface_desc);
+		surface_desc.dwFlags = DDSD_CAPS | DDSD_BACKBUFFERCOUNT;
+		surface_desc.ddsCaps.dwCaps =
 			DDSCAPS_PRIMARYSURFACE | DDSCAPS_FLIP | DDSCAPS_COMPLEX;
-		surfaceDesc.dwBackBufferCount = 1;
+		surface_desc.dwBackBufferCount = 1;
 	} else {
-		memset(&surfaceDesc, 0, sizeof(surfaceDesc));
-		surfaceDesc.dwSize = sizeof(surfaceDesc);
-		surfaceDesc.dwFlags = DDSD_CAPS;
-		surfaceDesc.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
+		memset(&surface_desc, 0, sizeof(surface_desc));
+		surface_desc.dwSize = sizeof(surface_desc);
+		surface_desc.dwFlags = DDSD_CAPS;
+		surface_desc.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
 	}
-	result = g_frontState.directDraw->lpVtbl->CreateSurface(
-		g_frontState.directDraw, &surfaceDesc,
-		&g_frontState.primarySurface, NULL);
+	result = g_front_state.direct_draw->lpVtbl->CreateSurface(
+		g_front_state.direct_draw, &surface_desc,
+		&g_front_state.primary_surface, NULL);
 	if (result != 0) {
-		return FrontendDisplay_ReportDirectDrawInitFailure(windowHandle,
-								   3);
+		return frontend_display_report_direct_draw_init_failure(
+			window_handle, 3);
 	}
-	g_frontState.primarySurface->lpVtbl->GetSurfaceDesc(
-		g_frontState.primarySurface, &surfaceDesc);
-	g_frontState.pixelFormat555 =
-		(surfaceDesc.ddpfPixelFormat.dwGBitMask & 0x400) == 0;
+	g_front_state.primary_surface->lpVtbl->GetSurfaceDesc(
+		g_front_state.primary_surface, &surface_desc);
+	g_front_state.pixel_format555 =
+		(surface_desc.ddpfPixelFormat.dwGBitMask & 0x400) == 0;
 
-	if (g_optNoFullscreen == 0 && g_noPageFlip == 0) {
-		attachedSurfaceCaps.dwCaps = DDSCAPS_BACKBUFFER;
-		result =
-			g_frontState.primarySurface->lpVtbl->GetAttachedSurface(
-				g_frontState.primarySurface,
-				&attachedSurfaceCaps,
-				&g_frontState.backBufferSurface);
+	if (g_opt_no_fullscreen == 0 && g_no_page_flip == 0) {
+		attached_surface_caps.dwCaps = DDSCAPS_BACKBUFFER;
+		result = g_front_state.primary_surface->lpVtbl
+				 ->GetAttachedSurface(
+					 g_front_state.primary_surface,
+					 &attached_surface_caps,
+					 &g_front_state.back_buffer_surface);
 	} else {
-		memset(&surfaceDesc, 0, sizeof(surfaceDesc));
-		surfaceDesc.dwSize = sizeof(surfaceDesc);
-		surfaceDesc.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH;
-		surfaceDesc.ddsCaps.dwCaps =
+		memset(&surface_desc, 0, sizeof(surface_desc));
+		surface_desc.dwSize = sizeof(surface_desc);
+		surface_desc.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH;
+		surface_desc.ddsCaps.dwCaps =
 			DDSCAPS_OFFSCREENPLAIN | DDSCAPS_SYSTEMMEMORY;
-		surfaceDesc.dwWidth = 640;
-		surfaceDesc.dwHeight = 480;
-		result = g_frontState.directDraw->lpVtbl->CreateSurface(
-			g_frontState.directDraw, &surfaceDesc,
-			&g_frontState.backBufferSurface, NULL);
+		surface_desc.dwWidth = 640;
+		surface_desc.dwHeight = 480;
+		result = g_front_state.direct_draw->lpVtbl->CreateSurface(
+			g_front_state.direct_draw, &surface_desc,
+			&g_front_state.back_buffer_surface, NULL);
 	}
 	if (result != 0) {
-		return FrontendDisplay_ReportDirectDrawInitFailure(windowHandle,
-								   4);
+		return frontend_display_report_direct_draw_init_failure(
+			window_handle, 4);
 	}
-	g_frontState.backBufferSurface->lpVtbl->GetSurfaceDesc(
-		g_frontState.backBufferSurface, &surfaceDesc);
-	g_frontState.backBufferPitch = surfaceDesc.lPitch;
+	g_front_state.back_buffer_surface->lpVtbl->GetSurfaceDesc(
+		g_front_state.back_buffer_surface, &surface_desc);
+	g_front_state.back_buffer_pitch = surface_desc.lPitch;
 
-	memset(&surfaceDesc, 0, sizeof(surfaceDesc));
-	surfaceDesc.dwSize = sizeof(surfaceDesc);
-	surfaceDesc.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH;
-	if (g_optNoFullscreen == 0 && g_noPageFlip == 0) {
-		surfaceDesc.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;
+	memset(&surface_desc, 0, sizeof(surface_desc));
+	surface_desc.dwSize = sizeof(surface_desc);
+	surface_desc.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH;
+	if (g_opt_no_fullscreen == 0 && g_no_page_flip == 0) {
+		surface_desc.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;
 	} else {
-		surfaceDesc.ddsCaps.dwCaps =
+		surface_desc.ddsCaps.dwCaps =
 			DDSCAPS_OFFSCREENPLAIN | DDSCAPS_SYSTEMMEMORY;
 	}
-	surfaceDesc.dwWidth = 640;
-	surfaceDesc.dwHeight = 480;
-	result = g_frontState.directDraw->lpVtbl->CreateSurface(
-		g_frontState.directDraw, &surfaceDesc,
-		&g_frontState.offscreenSurface, NULL);
+	surface_desc.dwWidth = 640;
+	surface_desc.dwHeight = 480;
+	result = g_front_state.direct_draw->lpVtbl->CreateSurface(
+		g_front_state.direct_draw, &surface_desc,
+		&g_front_state.offscreen_surface, NULL);
 	if (result != 0) {
-		return FrontendDisplay_ReportDirectDrawInitFailure(windowHandle,
-								   5);
+		return frontend_display_report_direct_draw_init_failure(
+			window_handle, 5);
 	}
-	g_frontState.offscreenSurface->lpVtbl->GetSurfaceDesc(
-		g_frontState.offscreenSurface, &surfaceDesc);
-	g_frontState.offscreenSurfacePitch = surfaceDesc.lPitch;
+	g_front_state.offscreen_surface->lpVtbl->GetSurfaceDesc(
+		g_front_state.offscreen_surface, &surface_desc);
+	g_front_state.offscreen_surface_pitch = surface_desc.lPitch;
 
-	g_frontState.ddPalette =
-		FrontendDisplay_LoadPalette(g_frontState.directDraw, NULL);
-	if (g_optNoFullscreen == 0 && g_noPageFlip == 0) {
-		if (g_frontState.ddPalette != NULL &&
-		    g_frontState.displayBpp == 8) {
-			g_frontState.primarySurface->lpVtbl->SetPalette(
-				g_frontState.primarySurface,
-				g_frontState.ddPalette);
+	g_front_state.dd_palette =
+		frontend_display_load_palette(g_front_state.direct_draw, NULL);
+	if (g_opt_no_fullscreen == 0 && g_no_page_flip == 0) {
+		if (g_front_state.dd_palette != NULL &&
+		    g_front_state.display_bpp == 8) {
+			g_front_state.primary_surface->lpVtbl->SetPalette(
+				g_front_state.primary_surface,
+				g_front_state.dd_palette);
 		}
 	} else {
-		if (g_frontState.ddPalette != NULL &&
-		    g_frontState.displayBpp == 8) {
-			g_frontState.primarySurface->lpVtbl->SetPalette(
-				g_frontState.primarySurface,
-				g_frontState.ddPalette);
-			FrontendDisplay_SetPalette();
+		if (g_front_state.dd_palette != NULL &&
+		    g_front_state.display_bpp == 8) {
+			g_front_state.primary_surface->lpVtbl->SetPalette(
+				g_front_state.primary_surface,
+				g_front_state.dd_palette);
+			frontend_display_set_palette();
 		}
-		if (g_optNoFullscreen != 0) {
-			result = g_frontState.directDraw->lpVtbl
+		if (g_opt_no_fullscreen != 0) {
+			result = g_front_state.direct_draw->lpVtbl
 					 ->SetCooperativeLevel(
-						 g_frontState.directDraw,
-						 windowHandle, DDSCL_NORMAL);
+						 g_front_state.direct_draw,
+						 window_handle, DDSCL_NORMAL);
 			if (result != 0) {
-				return FrontendDisplay_ReportDirectDrawInitFailure(
-					windowHandle, 1);
+				return frontend_display_report_direct_draw_init_failure(
+					window_handle, 1);
 			}
 		}
 	}
 
-	g_frontState.textColorCodes[0] = 0xFFFF;
-	g_frontState.textColorCodes[1] = FrontendDisplay_PackRGB(0, 0xFF, 0);
-	g_frontState.textColorCodes[2] = FrontendDisplay_PackRGB(0xFF, 0, 0);
-	g_frontState.textColorCodes[3] = FrontendDisplay_PackRGB(0xFF, 0xFF, 0);
-	g_frontState.textColorCodes[4] =
-		FrontendDisplay_PackRGB(0x32, 0x32, 0xFF);
-	g_frontState.textColorCodes[5] =
-		FrontendDisplay_PackRGB(0x80, 0x80, 0xFF);
+	g_front_state.text_color_codes[0] = 0xFFFF;
+	g_front_state.text_color_codes[1] =
+		frontend_display_pack_rgb(0, 0xFF, 0);
+	g_front_state.text_color_codes[2] =
+		frontend_display_pack_rgb(0xFF, 0, 0);
+	g_front_state.text_color_codes[3] =
+		frontend_display_pack_rgb(0xFF, 0xFF, 0);
+	g_front_state.text_color_codes[4] =
+		frontend_display_pack_rgb(0x32, 0x32, 0xFF);
+	g_front_state.text_color_codes[5] =
+		frontend_display_pack_rgb(0x80, 0x80, 0xFF);
 
 #ifdef XVT_MODERN
-	XvtRenderFrontend_Reset();
+	xvt_render_frontend_reset();
 #endif
-	FrontendDisplay_ClearBackBuffer();
-	FrontendDisplay_ClearOffscreenSurface();
-	FrontendDisplay_PresentFrame();
-	if (FrontendText_LoadFont(20) != 1) {
-		return FrontendDisplay_ReportDirectDrawInitFailure(windowHandle,
-								   6);
+	frontend_display_clear_back_buffer();
+	frontend_display_clear_offscreen_surface();
+	frontend_display_present_frame();
+	if (frontend_text_load_font(20) != 1) {
+		return frontend_display_report_direct_draw_init_failure(
+			window_handle, 6);
 	}
 
-	Joystick_InitDevices();
-	FrontendCursor_Init();
+	joystick_init_devices();
+	frontend_cursor_init();
 #ifdef XVT_MODERN
-	XvtPresentation_WarpClassic(0, 0);
+	xvt_presentation_warp_classic(0, 0);
 #else
 	SetCursorPos(0, 0);
 #endif
-	if (FrontendSound_InitDirectSound(g_frontState.hWnd) == 0) {
-		FrontendDisplay_ShowGameMessageBox("Sound not available.");
+	if (frontend_sound_init_direct_sound(g_front_state.h_wnd) == 0) {
+		frontend_display_show_game_message_box("Sound not available.");
 	}
 #ifdef XVT_MODERN
 	Aeron_SetHostCursorVisible(0);
@@ -1221,210 +1251,211 @@ int FrontendDisplay_InitMainWindow(void *hInstance, int nShowCmd)
 	while (ShowCursor(0) >= 0) {
 	}
 #endif
-	g_frontState.offscreenBackupBuffer =
-		malloc(480 * g_frontState.offscreenSurfacePitch);
-	if (g_frontState.offscreenBackupBuffer != NULL) {
-		memset(g_frontState.offscreenBackupBuffer, 0,
-		       480 * g_frontState.offscreenSurfacePitch);
+	g_front_state.offscreen_backup_buffer =
+		malloc(480 * g_front_state.offscreen_surface_pitch);
+	if (g_front_state.offscreen_backup_buffer != NULL) {
+		memset(g_front_state.offscreen_backup_buffer, 0,
+		       480 * g_front_state.offscreen_surface_pitch);
 	}
 	return 1;
 }
 
-/* The original build's frontend entry; only GameMain calls it, and nothing
- * calls GameMain. Zeroes g_frontState, sets the window procedure mode and
- * g_shutdownComplete to 0, seeds rand with the tick count, finds the game and
+/* The original build's frontend entry; only game_main calls it, and nothing
+ * calls game_main. Zeroes g_front_state, sets the window procedure mode and
+ * g_shutdown_complete to 0, seeds rand with the tick count, finds the game and
  * CD paths, allocates the sound buffer and voice tables (0xB1BC and 0x90 bytes)
  * and the image table (0x8800 bytes), and returns 0 when one of those fails or
  * bpp is not 8 or 16. Then sets the clip to 0 to 639 by 0 to 479, clearing
- * after present on, displayBpp to bpp, the frame interval to 1000 / fps
+ * after present on, display_bpp to bpp, the frame interval to 1000 / fps
  * milliseconds (an fps under 1 counts as 1), the first screen's update and exit
- * functions, modeInitFn and Esc-to-close, and returns
- * FrontendDisplay_RunMainLoop's result. */
+ * functions, mode_init_fn and Esc-to-close, and returns
+ * frontend_display_run_main_loop's result. */
 // FUNCTION: XVT 0x4D4770
-uint32_t FrontendDisplay_Init(void *hInstance, void *hPrevInstance,
-			      char *lpCmdLine, int nShowCmd,
-			      FrontendScreenUpdateFn screenUpdateFn,
-			      FrontendScreenExitFn screenExitFn,
-			      int (*modeInitFn)(void), int fps, int bpp)
+uint32_t frontend_display_init(void *h_instance, void *h_prev_instance,
+			       char *lp_cmd_line, int n_show_cmd,
+			       frontend_screen_update_fn screen_update_fn,
+			       frontend_screen_exit_fn screen_exit_fn,
+			       int (*mode_init_fn)(void), int fps, int bpp)
 {
-	int frameRate;
-	int zeroValue;
+	int frame_rate;
+	int zero_value;
 
-	memset(&g_frontState, 0, sizeof(g_frontState));
-	g_frontState.frontendDisplayWndProcMode = 0;
-	g_shutdownComplete = 0;
+	memset(&g_front_state, 0, sizeof(g_front_state));
+	g_front_state.frontend_display_wnd_proc_mode = 0;
+	g_shutdown_complete = 0;
 	srand(GetTickCount());
-	File_DetectGameAndCdPaths("\\wave\\PBC\\Pb1los07.wav");
-	g_frontState.frontendSoundBuffers = malloc(0xB1BC);
-	if (g_frontState.frontendSoundBuffers == NULL) {
+	file_detect_game_and_cd_paths("\\wave\\PBC\\Pb1los07.wav");
+	g_front_state.frontend_sound_buffers = malloc(0xB1BC);
+	if (g_front_state.frontend_sound_buffers == NULL) {
 		return 0;
 	}
-	g_frontState.frontendSoundVoices = malloc(0x90);
-	if (g_frontState.frontendSoundVoices == NULL) {
-		free(g_frontState.frontendSoundBuffers);
+	g_front_state.frontend_sound_voices = malloc(0x90);
+	if (g_front_state.frontend_sound_voices == NULL) {
+		free(g_front_state.frontend_sound_buffers);
 		return 0;
 	}
-	g_frontState.resourceTable = malloc(0x8800);
-	if (g_frontState.resourceTable == NULL) {
-		free(g_frontState.frontendSoundBuffers);
-		free(g_frontState.frontendSoundVoices);
+	g_front_state.resource_table = malloc(0x8800);
+	if (g_front_state.resource_table == NULL) {
+		free(g_front_state.frontend_sound_buffers);
+		free(g_front_state.frontend_sound_voices);
 		return 0;
 	}
 	if (bpp != 8 && bpp != 16) {
 		return 0;
 	}
 
-	g_frontState.clipMaxX = 639;
-	g_frontState.clipMaxY = 479;
-	g_frontState.clearBackBufferAfterPresent = 1;
-	g_frontState.displayBpp = bpp;
-	zeroValue = 0;
-	g_frontState.pixelFormat555 = zeroValue;
-	g_frontState.clipMinX = zeroValue;
-	g_frontState.clipMinY = zeroValue;
-	g_frontState.charWriteIdx = zeroValue;
-	g_frontState.charReadIdx = zeroValue;
-	g_frontState.resourceCount = zeroValue;
-	g_frontState.cdAudioSavedAuxVolume = -1;
-	frameRate = fps;
-	if (frameRate <= zeroValue) {
-		frameRate = 1;
+	g_front_state.clip_max_x = 639;
+	g_front_state.clip_max_y = 479;
+	g_front_state.clear_back_buffer_after_present = 1;
+	g_front_state.display_bpp = bpp;
+	zero_value = 0;
+	g_front_state.pixel_format555 = zero_value;
+	g_front_state.clip_min_x = zero_value;
+	g_front_state.clip_min_y = zero_value;
+	g_front_state.char_write_idx = zero_value;
+	g_front_state.char_read_idx = zero_value;
+	g_front_state.resource_count = zero_value;
+	g_front_state.cd_audio_saved_aux_volume = -1;
+	frame_rate = fps;
+	if (frame_rate <= zero_value) {
+		frame_rate = 1;
 	}
-	g_frontState.frameIntervalMs = 1000 / frameRate;
-	g_frontState.screenStates[0].updateFn = screenUpdateFn;
-	g_frontState.screenStates[0].exitFn = screenExitFn;
-	g_frontState.modeInitFn = modeInitFn;
-	g_frontState.escapeCloseEnabled = 1;
-	return FrontendDisplay_RunMainLoop(hInstance, hPrevInstance, lpCmdLine,
-					   nShowCmd);
+	g_front_state.frame_interval_ms = 1000 / frame_rate;
+	g_front_state.screen_states[0].update_fn = screen_update_fn;
+	g_front_state.screen_states[0].exit_fn = screen_exit_fn;
+	g_front_state.mode_init_fn = mode_init_fn;
+	g_front_state.escape_close_enabled = 1;
+	return frontend_display_run_main_loop(h_instance, h_prev_instance,
+					      lp_cmd_line, n_show_cmd);
 }
 
 /* Locks the back buffer and returns its pixels, setting
- * g_frontState.drawSurfacePitch to the back buffer's pitch; when
- * backBufferLocked is already set it returns the pointer it holds. Retries
+ * g_front_state.draw_surface_pitch to the back buffer's pitch; when
+ * back_buffer_locked is already set it returns the pointer it holds. Retries
  * while the surface is still drawing, busy or obscured, restoring it when it is
- * lost; on any other failure it still sets backBufferLocked and returns
- * backBufferDesc.lpSurface unchecked. Returns NULL without DirectDraw or a back
- * buffer. Callers store the result in g_drawSurfacePtr; this does not. The
+ * lost; on any other failure it still sets back_buffer_locked and returns
+ * back_buffer_desc.lpSurface unchecked. Returns NULL without DirectDraw or a back
+ * buffer. Callers store the result in g_draw_surface_ptr; this does not. The
  * modern build also selects the back buffer as its renderer's target. */
 // FUNCTION: XVT 0x4D48E0
-uint8_t *FrontendDisplay_LockBackBuffer(void)
+uint8_t *frontend_display_lock_back_buffer(void)
 {
 	enum {
 		FRONTEND_DDERR_SURFACEBUSY = -2005532242,
 		FRONTEND_DDERR_SURFACEISOBSCURED = -2005532232,
 	};
 
-	HRESULT lockResult;
+	HRESULT lock_result;
 
-	if (g_frontState.directDraw == NULL) {
+	if (g_front_state.direct_draw == NULL) {
 		return NULL;
 	}
-	if (g_frontState.backBufferSurface == NULL) {
+	if (g_front_state.back_buffer_surface == NULL) {
 		return NULL;
 	}
 
 #ifdef XVT_MODERN
-	XvtRenderFrontend_Select(XVT_TARGET_FRONT_BACK);
+	xvt_render_frontend_select(XVT_TARGET_FRONT_BACK);
 #endif
-	g_frontState.drawSurfacePitch = g_frontState.backBufferPitch;
-	if (g_frontState.backBufferLocked != 0) {
-		return (uint8_t *)g_frontState.backBufferDesc.lpSurface;
+	g_front_state.draw_surface_pitch = g_front_state.back_buffer_pitch;
+	if (g_front_state.back_buffer_locked != 0) {
+		return (uint8_t *)g_front_state.back_buffer_desc.lpSurface;
 	}
 
-	g_frontState.backBufferDesc.dwSize =
-		sizeof(g_frontState.backBufferDesc);
+	g_front_state.back_buffer_desc.dwSize =
+		sizeof(g_front_state.back_buffer_desc);
 	do {
 		do {
-			lockResult =
-				g_frontState.backBufferSurface->lpVtbl->Lock(
-					g_frontState.backBufferSurface, NULL,
-					&g_frontState.backBufferDesc, 0, NULL);
-			if (lockResult != DX_DDERR_SURFACELOST) {
+			lock_result =
+				g_front_state.back_buffer_surface->lpVtbl->Lock(
+					g_front_state.back_buffer_surface, NULL,
+					&g_front_state.back_buffer_desc, 0,
+					NULL);
+			if (lock_result != DX_DDERR_SURFACELOST) {
 				break;
 			}
-			g_frontState.backBufferSurface->lpVtbl->Restore(
-				g_frontState.backBufferSurface);
+			g_front_state.back_buffer_surface->lpVtbl->Restore(
+				g_front_state.back_buffer_surface);
 		} while (1);
-	} while (lockResult == DX_DDERR_WASSTILLDRAWING ||
-		 lockResult == FRONTEND_DDERR_SURFACEBUSY ||
-		 lockResult == FRONTEND_DDERR_SURFACEISOBSCURED);
+	} while (lock_result == DX_DDERR_WASSTILLDRAWING ||
+		 lock_result == FRONTEND_DDERR_SURFACEBUSY ||
+		 lock_result == FRONTEND_DDERR_SURFACEISOBSCURED);
 
-	g_frontState.backBufferLocked = 1;
-	return (uint8_t *)g_frontState.backBufferDesc.lpSurface;
+	g_front_state.back_buffer_locked = 1;
+	return (uint8_t *)g_front_state.back_buffer_desc.lpSurface;
 }
 
-/* Unlocks the back buffer and clears g_frontState.backBufferLocked when
+/* Unlocks the back buffer and clears g_front_state.back_buffer_locked when
  * DirectDraw and the back buffer exist; does not check that it was locked. */
 // FUNCTION: XVT 0x4D4970
-void FrontendDisplay_UnlockBackBuffer(void)
+void frontend_display_unlock_back_buffer(void)
 {
-	if (g_frontState.directDraw != NULL &&
-	    g_frontState.backBufferSurface != NULL) {
-		g_frontState.backBufferSurface->lpVtbl->Unlock(
-			g_frontState.backBufferSurface, NULL);
-		g_frontState.backBufferLocked = 0;
+	if (g_front_state.direct_draw != NULL &&
+	    g_front_state.back_buffer_surface != NULL) {
+		g_front_state.back_buffer_surface->lpVtbl->Unlock(
+			g_front_state.back_buffer_surface, NULL);
+		g_front_state.back_buffer_locked = 0;
 	}
 }
 
 /* Shows the back buffer. Unlocks it when locked; in page-flip mode
- * (g_optNoFullscreen and g_noPageFlip both 0) waits for the vertical blank,
- * sets the palette at 8 bits per pixel when paletteNeedsSet is 1, which no code
+ * (g_opt_no_fullscreen and g_no_page_flip both 0) waits for the vertical blank,
+ * sets the palette at 8 bits per pixel when palette_needs_set is 1, which no code
  * sets, and flips, retrying while the surface is still drawing or after
  * restoring lost surfaces; otherwise it copies the back buffer to the primary
  * surface at (0, 0) and returns early when that copy fails. With offscreen
  * restore on it then puts the offscreen surface back under the next frame:
- * after an activation it first copies g_frontState.offscreenBackupBuffer into
+ * after an activation it first copies g_front_state.offscreen_backup_buffer into
  * the offscreen surface, then copies the offscreen surface onto the back
- * buffer, in non-flip mode through FrontendDisplay_RestoreBackBuffer, returning
+ * buffer, in non-flip mode through frontend_display_restore_back_buffer, returning
  * early when the flip-mode copy fails. Last it clears the back buffer when
- * clearBackBufferAfterPresent is set. Does nothing without DirectDraw. The
+ * clear_back_buffer_after_present is set. Does nothing without DirectDraw. The
  * modern build also presents its renderer's frame after a successful flip or
  * copy and mirrors the copies in its targets. */
 // FUNCTION: XVT 0x4D49A0
-void FrontendDisplay_PresentFrame(void)
+void frontend_display_present_frame(void)
 {
-	int verticalBlankStatus;
-	struct RECT sourceRect;
-	DDSURFACEDESC surfaceDesc;
+	int vertical_blank_status;
+	struct RECT source_rect;
+	DDSURFACEDESC surface_desc;
 	HRESULT result;
 
-	if (g_frontState.directDraw == NULL) {
+	if (g_front_state.direct_draw == NULL) {
 		return;
 	}
 
-	if (g_frontState.backBufferLocked != 0) {
-		FrontendDisplay_UnlockBackBuffer();
+	if (g_front_state.back_buffer_locked != 0) {
+		frontend_display_unlock_back_buffer();
 	}
 
-	sourceRect.right = 640;
-	sourceRect.bottom = 480;
-	sourceRect.left = 0;
-	sourceRect.top = 0;
+	source_rect.right = 640;
+	source_rect.bottom = 480;
+	source_rect.left = 0;
+	source_rect.top = 0;
 
-	if (g_optNoFullscreen == 0 && g_noPageFlip == 0) {
+	if (g_opt_no_fullscreen == 0 && g_no_page_flip == 0) {
 		do {
-			result = g_frontState.directDraw->lpVtbl
+			result = g_front_state.direct_draw->lpVtbl
 					 ->GetVerticalBlankStatus(
-						 g_frontState.directDraw,
-						 &verticalBlankStatus);
-		} while (result == DX_DD_OK && verticalBlankStatus == 0);
+						 g_front_state.direct_draw,
+						 &vertical_blank_status);
+		} while (result == DX_DD_OK && vertical_blank_status == 0);
 
-		if (g_frontState.paletteNeedsSet == 1 &&
-		    g_frontState.displayBpp == 8) {
-			FrontendDisplay_SetPalette();
-			g_frontState.paletteNeedsSet = 0;
+		if (g_front_state.palette_needs_set == 1 &&
+		    g_front_state.display_bpp == 8) {
+			frontend_display_set_palette();
+			g_front_state.palette_needs_set = 0;
 		}
 
 		for (;;) {
-			result = g_frontState.primarySurface->lpVtbl->Flip(
-				g_frontState.primarySurface,
-				g_frontState.backBufferSurface, 1);
+			result = g_front_state.primary_surface->lpVtbl->Flip(
+				g_front_state.primary_surface,
+				g_front_state.back_buffer_surface, 1);
 			if (result == DX_DD_OK) {
 				break;
 			}
 			if (result == DX_DDERR_SURFACELOST) {
-				if (FrontendDisplay_RestoreLostSurfaces() ==
+				if (frontend_display_restore_lost_surfaces() ==
 				    DX_DD_OK) {
 					continue;
 				}
@@ -1435,14 +1466,15 @@ void FrontendDisplay_PresentFrame(void)
 		}
 	} else {
 		for (;;) {
-			result = g_frontState.primarySurface->lpVtbl->BltFast(
-				g_frontState.primarySurface, 0, 0,
-				g_frontState.backBufferSurface, &sourceRect, 0);
+			result = g_front_state.primary_surface->lpVtbl->BltFast(
+				g_front_state.primary_surface, 0, 0,
+				g_front_state.back_buffer_surface, &source_rect,
+				0);
 			if (result == DX_DD_OK) {
 				break;
 			}
 			if (result == DX_DDERR_SURFACELOST) {
-				if (FrontendDisplay_RestoreLostSurfaces() !=
+				if (frontend_display_restore_lost_surfaces() !=
 				    DX_DD_OK) {
 					return;
 				}
@@ -1454,78 +1486,80 @@ void FrontendDisplay_PresentFrame(void)
 
 #ifdef XVT_MODERN
 	if (result == DX_DD_OK) {
-		XvtRenderFrontend_Present();
+		xvt_render_frontend_present();
 	}
 #endif
 
-	if (g_frontState.offscreenRestoreEnabled != 0) {
-		if (g_frontState.restoreOffscreenOverlayAfterActivate != 0) {
-			g_frontState.restoreOffscreenOverlayAfterActivate = 0;
-			if (g_frontState.offscreenBackupBuffer != NULL &&
-			    g_frontState.offscreenSurface != NULL) {
-				memset(&surfaceDesc, 0, sizeof(surfaceDesc));
-				surfaceDesc.dwSize = sizeof(surfaceDesc);
+	if (g_front_state.offscreen_restore_enabled != 0) {
+		if (g_front_state.restore_offscreen_overlay_after_activate !=
+		    0) {
+			g_front_state.restore_offscreen_overlay_after_activate =
+				0;
+			if (g_front_state.offscreen_backup_buffer != NULL &&
+			    g_front_state.offscreen_surface != NULL) {
+				memset(&surface_desc, 0, sizeof(surface_desc));
+				surface_desc.dwSize = sizeof(surface_desc);
 				for (;;) {
 					result =
-						g_frontState.offscreenSurface
+						g_front_state.offscreen_surface
 							->lpVtbl
-							->Lock(g_frontState
-								       .offscreenSurface,
+							->Lock(g_front_state
+								       .offscreen_surface,
 							       NULL,
-							       &surfaceDesc, 0,
+							       &surface_desc, 0,
 							       NULL);
 					if (result == DX_DD_OK) {
 						break;
 					}
 					if (result == DX_DDERR_SURFACELOST) {
-						g_frontState.offscreenSurface
+						g_front_state.offscreen_surface
 							->lpVtbl->Restore(
-								g_frontState
-									.offscreenSurface);
+								g_front_state
+									.offscreen_surface);
 					} else if (result !=
 						   DX_DDERR_WASSTILLDRAWING) {
 						break;
 					}
 				}
 
-				if (surfaceDesc.lpSurface != NULL) {
+				if (surface_desc.lpSurface != NULL) {
 
 #ifdef XVT_MODERN
-					XvtRenderFrontend_Copy(
+					xvt_render_frontend_copy(
 						XVT_TARGET_FRONT_BACKUP,
 						XVT_TARGET_FRONT_OFFSCREEN);
 #endif
-					memcpy(surfaceDesc.lpSurface,
-					       g_frontState
-						       .offscreenBackupBuffer,
+					memcpy(surface_desc.lpSurface,
+					       g_front_state
+						       .offscreen_backup_buffer,
 					       (size_t)(480 *
-							g_frontState
-								.offscreenSurfacePitch));
-					g_frontState.offscreenSurface->lpVtbl
+							g_front_state
+								.offscreen_surface_pitch));
+					g_front_state.offscreen_surface->lpVtbl
 						->Unlock(
-							g_frontState
-								.offscreenSurface,
+							g_front_state
+								.offscreen_surface,
 							NULL);
 				}
 			}
 		}
 
-		if (g_optNoFullscreen == 0 && g_noPageFlip == 0) {
+		if (g_opt_no_fullscreen == 0 && g_no_page_flip == 0) {
 			for (;;) {
 				result =
-					g_frontState.backBufferSurface->lpVtbl
-						->BltFast(
-							g_frontState
-								.backBufferSurface,
+					g_front_state.back_buffer_surface
+						->lpVtbl->BltFast(
+							g_front_state
+								.back_buffer_surface,
 							0, 0,
-							g_frontState
-								.offscreenSurface,
-							&sourceRect, 0);
+							g_front_state
+								.offscreen_surface,
+							&source_rect, 0);
 				if (result == DX_DD_OK) {
 					break;
 				}
 				if (result == DX_DDERR_SURFACELOST) {
-					if (FrontendDisplay_RestoreLostSurfaces() !=
+					if (frontend_display_restore_lost_surfaces() !=
 					    DX_DD_OK) {
 						return;
 					}
@@ -1534,555 +1568,568 @@ void FrontendDisplay_PresentFrame(void)
 				}
 			}
 #ifdef XVT_MODERN
-			XvtRenderFrontend_Copy(XVT_TARGET_FRONT_OFFSCREEN,
-					       XVT_TARGET_FRONT_BACK);
+			xvt_render_frontend_copy(XVT_TARGET_FRONT_OFFSCREEN,
+						 XVT_TARGET_FRONT_BACK);
 #endif
 
 		} else {
-			FrontendDisplay_RestoreBackBuffer();
+			frontend_display_restore_back_buffer();
 		}
 	}
 
-	if (g_frontState.clearBackBufferAfterPresent != 0) {
-		FrontendDisplay_ClearBackBuffer();
+	if (g_front_state.clear_back_buffer_after_present != 0) {
+		frontend_display_clear_back_buffer();
 	}
 }
 
-/* Sets g_frontState.clearBackBufferAfterPresent to 0, so
- * FrontendDisplay_PresentFrame keeps the back buffer's pixels. */
+/* Sets g_front_state.clear_back_buffer_after_present to 0, so
+ * frontend_display_present_frame keeps the back buffer's pixels. */
 // FUNCTION: XVT 0x4D4BF0
-void FrontendDisplay_DisableClearAfterPresent(void)
+void frontend_display_disable_clear_after_present(void)
 {
-	g_frontState.clearBackBufferAfterPresent = 0;
+	g_front_state.clear_back_buffer_after_present = 0;
 }
 
-/* Sets g_frontState.surfaceClearColor, the display pixel value the two clear
+/* Sets g_front_state.surface_clear_color, the display pixel value the two clear
  * functions fill with. */
 // FUNCTION: XVT 0x4D4C00
-void FrontendDisplay_SetSurfaceClearColor(uint32_t color)
+void frontend_display_set_surface_clear_color(uint32_t color)
 {
-	g_frontState.surfaceClearColor = color;
+	g_front_state.surface_clear_color = color;
 }
 
-/* Fills the back buffer's 640 by 480 pixels with g_frontState.surfaceClearColor
+/* Fills the back buffer's 640 by 480 pixels with g_front_state.surface_clear_color
  * through a DirectDraw color fill, unlocking it first and, when it was locked,
- * locking it into g_drawSurfacePtr again afterward. Retries while the surface
+ * locking it into g_draw_surface_ptr again afterward. Retries while the surface
  * is still drawing or after restoring lost surfaces, and gives up on any other
  * failure. Does nothing without DirectDraw or a back buffer. The modern build
  * also clears its renderer's back target. */
 // FUNCTION: XVT 0x4D4C10
-void FrontendDisplay_ClearBackBuffer(void)
+void frontend_display_clear_back_buffer(void)
 {
 	struct RECT rect;
 	DDBLTFX effects;
-	int wasLocked;
+	int was_locked;
 	HRESULT result;
 
-	if (g_frontState.directDraw == NULL ||
-	    g_frontState.backBufferSurface == NULL) {
+	if (g_front_state.direct_draw == NULL ||
+	    g_front_state.back_buffer_surface == NULL) {
 		return;
 	}
 
-	wasLocked = g_frontState.backBufferLocked;
-	FrontendDisplay_UnlockBackBuffer();
-	FrontendDraw_RectAssign(&rect, 0, 0, 640, 480);
+	was_locked = g_front_state.back_buffer_locked;
+	frontend_display_unlock_back_buffer();
+	frontend_draw_rect_assign(&rect, 0, 0, 640, 480);
 	memset(&effects, 0, sizeof(effects));
 	effects.dwSize = sizeof(effects);
-	effects.dwFillColor = g_frontState.surfaceClearColor;
+	effects.dwFillColor = g_front_state.surface_clear_color;
 	for (;;) {
-		result = g_frontState.backBufferSurface->lpVtbl->Blt(
-			g_frontState.backBufferSurface, &rect, NULL, NULL,
+		result = g_front_state.back_buffer_surface->lpVtbl->Blt(
+			g_front_state.back_buffer_surface, &rect, NULL, NULL,
 			DDBLT_COLORFILL, &effects);
 		if (result == DX_DD_OK) {
 			break;
 		}
 		if (result == DX_DDERR_SURFACELOST) {
-			if (FrontendDisplay_RestoreLostSurfaces() != DX_DD_OK) {
-				if (wasLocked != 0) {
-					g_drawSurfacePtr =
-						FrontendDisplay_LockBackBuffer();
+			if (frontend_display_restore_lost_surfaces() !=
+			    DX_DD_OK) {
+				if (was_locked != 0) {
+					g_draw_surface_ptr =
+						frontend_display_lock_back_buffer();
 				}
 				return;
 			}
 		} else if (result != DX_DDERR_WASSTILLDRAWING) {
-			if (wasLocked != 0) {
-				g_drawSurfacePtr =
-					FrontendDisplay_LockBackBuffer();
+			if (was_locked != 0) {
+				g_draw_surface_ptr =
+					frontend_display_lock_back_buffer();
 			}
 			return;
 		}
 	}
 
 #ifdef XVT_MODERN
-	XvtRenderFrontend_Clear(XVT_TARGET_FRONT_BACK,
-				g_frontState.surfaceClearColor);
+	xvt_render_frontend_clear(XVT_TARGET_FRONT_BACK,
+				  g_front_state.surface_clear_color);
 #endif
 
-	if (wasLocked != 0) {
-		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	if (was_locked != 0) {
+		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
 }
 
-/* Copies the clip bounds into *outRect: clipMinX, clipMinY, clipMaxX and
- * clipMaxY as left, top, right and bottom. */
+/* Copies the clip bounds into *out_rect: clip_min_x, clip_min_y, clip_max_x and
+ * clip_max_y as left, top, right and bottom. */
 // FUNCTION: XVT 0x4D4CF0
-void FrontendDisplay_GetScreenClipRect(struct RECT *outRect)
+void frontend_display_get_screen_clip_rect(struct RECT *out_rect)
 {
-	FrontendDraw_RectAssign(outRect, g_frontState.clipMinX,
-				g_frontState.clipMinY, g_frontState.clipMaxX,
-				g_frontState.clipMaxY);
+	frontend_draw_rect_assign(
+		out_rect, g_front_state.clip_min_x, g_front_state.clip_min_y,
+		g_front_state.clip_max_x, g_front_state.clip_max_y);
 }
 
 /* Sets the clip bounds to *src clamped to 0 to 639 by 0 to 479, leaving them as
  * they were when the clamped rect has right under left or bottom under top. */
 // FUNCTION: XVT 0x4D4D20
-void FrontendDisplay_SetScreenClipRect640x480(const struct RECT *src)
+void frontend_display_set_screen_clip_rect640x480(const struct RECT *src)
 {
-	struct RECT clippedRect;
+	struct RECT clipped_rect;
 
-	FrontendDraw_RectCopy(&clippedRect, src);
-	if (clippedRect.left < 0) {
-		clippedRect.left = 0;
+	frontend_draw_rect_copy(&clipped_rect, src);
+	if (clipped_rect.left < 0) {
+		clipped_rect.left = 0;
 	}
-	if (clippedRect.top < 0) {
-		clippedRect.top = 0;
+	if (clipped_rect.top < 0) {
+		clipped_rect.top = 0;
 	}
-	if (clippedRect.right >= 640) {
-		clippedRect.right = 639;
+	if (clipped_rect.right >= 640) {
+		clipped_rect.right = 639;
 	}
-	if (clippedRect.bottom >= 480) {
-		clippedRect.bottom = 479;
+	if (clipped_rect.bottom >= 480) {
+		clipped_rect.bottom = 479;
 	}
 
-	if (clippedRect.right >= clippedRect.left) {
-		if (clippedRect.top <= clippedRect.bottom) {
-			g_frontState.clipMinX = clippedRect.left;
-			g_frontState.clipMinY = clippedRect.top;
-			g_frontState.clipMaxX = clippedRect.right;
-			g_frontState.clipMaxY = clippedRect.bottom;
+	if (clipped_rect.right >= clipped_rect.left) {
+		if (clipped_rect.top <= clipped_rect.bottom) {
+			g_front_state.clip_min_x = clipped_rect.left;
+			g_front_state.clip_min_y = clipped_rect.top;
+			g_front_state.clip_max_x = clipped_rect.right;
+			g_front_state.clip_max_y = clipped_rect.bottom;
 		}
 	}
 }
 
-/* Sets g_frontState.escapeCloseEnabled to 0, so Esc no longer closes the
+/* Sets g_front_state.escape_close_enabled to 0, so Esc no longer closes the
  * window. */
 // FUNCTION: XVT 0x4D4DD0
-void FrontendDisplay_DisableEscapeClose(void)
+void frontend_display_disable_escape_close(void)
 {
-	g_frontState.escapeCloseEnabled = 0;
+	g_front_state.escape_close_enabled = 0;
 }
 
-/* Returns g_frontState.frameCounter, the frame number of the top screen. */
+/* Returns g_front_state.frame_counter, the frame number of the top screen. */
 // FUNCTION: XVT 0x4D4DE0
-int FrontendDisplay_GetFrameCounter(void) { return g_frontState.frameCounter; }
+int frontend_display_get_frame_counter(void)
+{
+	return g_front_state.frame_counter;
+}
 
-/* Sets g_frontState.frameIntervalMs to 1000 / fps milliseconds and returns it.
+/* Sets g_front_state.frame_interval_ms to 1000 / fps milliseconds and returns it.
  * Does not check fps for 0. */
 // FUNCTION: XVT 0x4D4E00
-int FrontendDisplay_SetFrameRate(int fps)
+int frontend_display_set_frame_rate(int fps)
 {
-	return g_frontState.frameIntervalMs = 1000 / fps;
+	return g_front_state.frame_interval_ms = 1000 / fps;
 }
 
 /* Locks the offscreen surface and makes it the drawing target: sets
- * g_drawSurfacePtr to its pixels and g_frontState.drawSurfacePitch to its
+ * g_draw_surface_ptr to its pixels and g_front_state.draw_surface_pitch to its
  * pitch, and returns 1. Retries while it is still drawing, restoring it when it
  * is lost; returns 0 on another failure or without DirectDraw or the surface.
  * The modern build also selects its renderer's offscreen target. */
 // FUNCTION: XVT 0x4D4E20
-int FrontendDisplay_LockOffscreenSurface(void)
+int frontend_display_lock_offscreen_surface(void)
 {
-	DDSURFACEDESC surfaceDesc;
+	DDSURFACEDESC surface_desc;
 	HRESULT result;
 
-	if (g_frontState.directDraw == NULL) {
+	if (g_front_state.direct_draw == NULL) {
 		return 0;
 	}
-	if (g_frontState.offscreenSurface == NULL) {
+	if (g_front_state.offscreen_surface == NULL) {
 		return 0;
 	}
 
-	memset(&surfaceDesc, 0, sizeof(surfaceDesc));
-	surfaceDesc.dwSize = sizeof(surfaceDesc);
+	memset(&surface_desc, 0, sizeof(surface_desc));
+	surface_desc.dwSize = sizeof(surface_desc);
 	for (;;) {
-		result = g_frontState.offscreenSurface->lpVtbl->Lock(
-			g_frontState.offscreenSurface, NULL, &surfaceDesc, 0,
+		result = g_front_state.offscreen_surface->lpVtbl->Lock(
+			g_front_state.offscreen_surface, NULL, &surface_desc, 0,
 			NULL);
 		if (result == DX_DD_OK) {
 			break;
 		}
 		if (result == DX_DDERR_SURFACELOST) {
-			g_frontState.offscreenSurface->lpVtbl->Restore(
-				g_frontState.offscreenSurface);
+			g_front_state.offscreen_surface->lpVtbl->Restore(
+				g_front_state.offscreen_surface);
 		} else if (result != DX_DDERR_WASSTILLDRAWING) {
 			return 0;
 		}
 	}
 
-	g_frontState.drawSurfacePitch = g_frontState.offscreenSurfacePitch;
-	g_drawSurfacePtr = (uint8_t *)surfaceDesc.lpSurface;
+	g_front_state.draw_surface_pitch =
+		g_front_state.offscreen_surface_pitch;
+	g_draw_surface_ptr = (uint8_t *)surface_desc.lpSurface;
 
 #ifdef XVT_MODERN
-	XvtRenderFrontend_Select(XVT_TARGET_FRONT_OFFSCREEN);
+	xvt_render_frontend_select(XVT_TARGET_FRONT_OFFSCREEN);
 #endif
 	return 1;
 }
 
 /* Unlocks the offscreen surface and makes the back buffer the drawing target
- * again. With saveToBackup nonzero, and g_drawSurfacePtr and the backup buffer
- * set, it first copies 480 rows of the offscreen pitch from g_drawSurfacePtr
- * into g_frontState.offscreenBackupBuffer. Then sets drawSurfacePitch to the
- * back buffer's pitch and g_drawSurfacePtr to the back buffer's pixels, locking
+ * again. With save_to_backup nonzero, and g_draw_surface_ptr and the backup buffer
+ * set, it first copies 480 rows of the offscreen pitch from g_draw_surface_ptr
+ * into g_front_state.offscreen_backup_buffer. Then sets draw_surface_pitch to the
+ * back buffer's pitch and g_draw_surface_ptr to the back buffer's pixels, locking
  * it when it is not locked. Returns 1, or 0 without DirectDraw or the surface.
  * Does not check that the offscreen surface was locked. The modern build
  * mirrors the copy and selects its back target. */
 // FUNCTION: XVT 0x4D4EC0
-int FrontendDisplay_UnlockOffscreenSurface(int saveToBackup)
+int frontend_display_unlock_offscreen_surface(int save_to_backup)
 {
-	if (g_frontState.directDraw == NULL) {
+	if (g_front_state.direct_draw == NULL) {
 		return 0;
 	}
-	if (g_frontState.offscreenSurface == NULL) {
+	if (g_front_state.offscreen_surface == NULL) {
 		return 0;
 	}
 
-	if (g_drawSurfacePtr != NULL &&
-	    g_frontState.offscreenBackupBuffer != NULL && saveToBackup != 0) {
+	if (g_draw_surface_ptr != NULL &&
+	    g_front_state.offscreen_backup_buffer != NULL &&
+	    save_to_backup != 0) {
 
 #ifdef XVT_MODERN
-		XvtRenderFrontend_Copy(XVT_TARGET_FRONT_OFFSCREEN,
-				       XVT_TARGET_FRONT_BACKUP);
+		xvt_render_frontend_copy(XVT_TARGET_FRONT_OFFSCREEN,
+					 XVT_TARGET_FRONT_BACKUP);
 #endif
-		memcpy(g_frontState.offscreenBackupBuffer, g_drawSurfacePtr,
-		       (size_t)(480 * g_frontState.offscreenSurfacePitch));
+		memcpy(g_front_state.offscreen_backup_buffer,
+		       g_draw_surface_ptr,
+		       (size_t)(480 * g_front_state.offscreen_surface_pitch));
 	}
 
-	g_frontState.offscreenSurface->lpVtbl->Unlock(
-		g_frontState.offscreenSurface, NULL);
-	g_frontState.drawSurfacePitch = g_frontState.backBufferPitch;
-	if (g_frontState.backBufferLocked != 0) {
-		g_drawSurfacePtr =
-			(uint8_t *)g_frontState.backBufferDesc.lpSurface;
+	g_front_state.offscreen_surface->lpVtbl->Unlock(
+		g_front_state.offscreen_surface, NULL);
+	g_front_state.draw_surface_pitch = g_front_state.back_buffer_pitch;
+	if (g_front_state.back_buffer_locked != 0) {
+		g_draw_surface_ptr =
+			(uint8_t *)g_front_state.back_buffer_desc.lpSurface;
 	} else {
-		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
 
 #ifdef XVT_MODERN
-	XvtRenderFrontend_Select(XVT_TARGET_FRONT_BACK);
+	xvt_render_frontend_select(XVT_TARGET_FRONT_BACK);
 #endif
 	return 1;
 }
 
-/* Sets g_frontState.offscreenRestoreEnabled to 1 and returns 1. While it is
- * set, FrontendDisplay_PresentFrame copies the offscreen surface onto the back
+/* Sets g_front_state.offscreen_restore_enabled to 1 and returns 1. While it is
+ * set, frontend_display_present_frame copies the offscreen surface onto the back
  * buffer after each present, and the screen stack saves and restores pixels on
  * the offscreen surface. */
 // FUNCTION: XVT 0x4D4F60
-int FrontendDisplay_EnableOffscreenRestore(void)
+int frontend_display_enable_offscreen_restore(void)
 {
-	g_frontState.offscreenRestoreEnabled = 1;
+	g_front_state.offscreen_restore_enabled = 1;
 	return 1;
 }
 
-/* Sets g_frontState.offscreenRestoreEnabled to 0 and returns 0. */
+/* Sets g_front_state.offscreen_restore_enabled to 0 and returns 0. */
 // FUNCTION: XVT 0x4D4F70
-int FrontendDisplay_DisableOffscreenRestore(void)
+int frontend_display_disable_offscreen_restore(void)
 {
-	g_frontState.offscreenRestoreEnabled = 0;
+	g_front_state.offscreen_restore_enabled = 0;
 	return 0;
 }
 
 /* Fills the offscreen surface's 640 by 480 pixels with
- * g_frontState.surfaceClearColor, the way FrontendDisplay_ClearBackBuffer fills
+ * g_front_state.surface_clear_color, the way frontend_display_clear_back_buffer fills
  * the back buffer, unlocking and relocking the back buffer around it. Does
  * nothing without DirectDraw or the offscreen surface. The modern build also
  * clears its renderer's offscreen target. */
 // FUNCTION: XVT 0x4D4F80
-void FrontendDisplay_ClearOffscreenSurface(void)
+void frontend_display_clear_offscreen_surface(void)
 {
 	struct RECT rect;
 	DDBLTFX effects;
-	int wasLocked;
+	int was_locked;
 	HRESULT result;
 
-	if (g_frontState.directDraw == NULL ||
-	    g_frontState.offscreenSurface == NULL) {
+	if (g_front_state.direct_draw == NULL ||
+	    g_front_state.offscreen_surface == NULL) {
 		return;
 	}
 
-	wasLocked = g_frontState.backBufferLocked;
-	FrontendDisplay_UnlockBackBuffer();
-	FrontendDraw_RectAssign(&rect, 0, 0, 640, 480);
+	was_locked = g_front_state.back_buffer_locked;
+	frontend_display_unlock_back_buffer();
+	frontend_draw_rect_assign(&rect, 0, 0, 640, 480);
 	memset(&effects, 0, sizeof(effects));
 	effects.dwSize = sizeof(effects);
-	effects.dwFillColor = g_frontState.surfaceClearColor;
+	effects.dwFillColor = g_front_state.surface_clear_color;
 	for (;;) {
-		result = g_frontState.offscreenSurface->lpVtbl->Blt(
-			g_frontState.offscreenSurface, &rect, NULL, NULL,
+		result = g_front_state.offscreen_surface->lpVtbl->Blt(
+			g_front_state.offscreen_surface, &rect, NULL, NULL,
 			DDBLT_COLORFILL, &effects);
 		if (result == DX_DD_OK) {
 			break;
 		}
 		if (result == DX_DDERR_SURFACELOST) {
-			if (FrontendDisplay_RestoreLostSurfaces() != DX_DD_OK) {
-				if (wasLocked != 0) {
-					g_drawSurfacePtr =
-						FrontendDisplay_LockBackBuffer();
+			if (frontend_display_restore_lost_surfaces() !=
+			    DX_DD_OK) {
+				if (was_locked != 0) {
+					g_draw_surface_ptr =
+						frontend_display_lock_back_buffer();
 				}
 				return;
 			}
 		} else if (result != DX_DDERR_WASSTILLDRAWING) {
-			if (wasLocked != 0) {
-				g_drawSurfacePtr =
-					FrontendDisplay_LockBackBuffer();
+			if (was_locked != 0) {
+				g_draw_surface_ptr =
+					frontend_display_lock_back_buffer();
 			}
 			return;
 		}
 	}
 
 #ifdef XVT_MODERN
-	XvtRenderFrontend_Clear(XVT_TARGET_FRONT_OFFSCREEN,
-				g_frontState.surfaceClearColor);
+	xvt_render_frontend_clear(XVT_TARGET_FRONT_OFFSCREEN,
+				  g_front_state.surface_clear_color);
 #endif
 
-	if (wasLocked != 0) {
-		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	if (was_locked != 0) {
+		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
 }
 
-/* Returns g_frontState.pixelFormat555: 1 when the primary surface's green mask
+/* Returns g_front_state.pixel_format555: 1 when the primary surface's green mask
  * lacks the 0x400 bit, as at 5-5-5 and at 8 bits per pixel, 0 at 5-6-5. */
 // FUNCTION: XVT 0x4D5060
-int FrontendDisplay_GetPixelFormat555(void)
+int frontend_display_get_pixel_format555(void)
 {
-	return g_frontState.pixelFormat555;
+	return g_front_state.pixel_format555;
 }
 
-/* Returns g_frontState.drawSurfacePitch, the byte pitch of the surface
- * g_drawSurfacePtr points into; FlightSurface_Lock uses it while flight draws
+/* Returns g_front_state.draw_surface_pitch, the byte pitch of the surface
+ * g_draw_surface_ptr points into; flight_surface_lock uses it while flight draws
  * to the frontend. */
 // FUNCTION: XVT 0x4D5070
-int FrontendDisplay_GetFrontendOrFlightDrawPitch(void)
+int frontend_display_get_frontend_or_flight_draw_pitch(void)
 {
-	return g_frontState.drawSurfacePitch;
+	return g_front_state.draw_surface_pitch;
 }
 
-/* Nothing calls this. Returns g_frontState.displayBpp / 8. */
+/* Nothing calls this. Returns g_front_state.display_bpp / 8. */
 // FUNCTION: XVT 0x4D5080
-int FrontendDisplay_GetBytesPerPixel(void)
+int frontend_display_get_bytes_per_pixel(void)
 {
-	return g_frontState.displayBpp / 8;
+	return g_front_state.display_bpp / 8;
 }
 
-/* Nothing calls this. Does what FrontendDisplay_Init does, except that it
- * resets g_frontState with
- * FrontendDisplay_ResetGlobalStatePreservingNetworkSession, which keeps the
- * network session, and does not set g_shutdownComplete to 0 or
- * cdAudioSavedAuxVolume to -1. */
+/* Nothing calls this. Does what frontend_display_init does, except that it
+ * resets g_front_state with
+ * frontend_display_reset_global_state_preserving_network_session, which keeps the
+ * network session, and does not set g_shutdown_complete to 0 or
+ * cd_audio_saved_aux_volume to -1. */
 // FUNCTION: XVT 0x4D5090
-uint32_t FrontendDisplay_InitPreservingNetworkSession(
-	void *hInstance, void *hPrevInstance, char *lpCmdLine, int nShowCmd,
-	FrontendScreenUpdateFn screenUpdateFn,
-	FrontendScreenExitFn screenExitFn, int (*modeInitFn)(void), int fps,
-	int bpp)
+uint32_t frontend_display_init_preserving_network_session(
+	void *h_instance, void *h_prev_instance, char *lp_cmd_line,
+	int n_show_cmd, frontend_screen_update_fn screen_update_fn,
+	frontend_screen_exit_fn screen_exit_fn, int (*mode_init_fn)(void),
+	int fps, int bpp)
 {
-	int frameRate;
-	int zeroValue;
+	int frame_rate;
+	int zero_value;
 
-	(void)hPrevInstance;
-	(void)lpCmdLine;
-	(void)nShowCmd;
+	(void)h_prev_instance;
+	(void)lp_cmd_line;
+	(void)n_show_cmd;
 
-	FrontendDisplay_ResetGlobalStatePreservingNetworkSession();
+	frontend_display_reset_global_state_preserving_network_session();
 	srand(GetTickCount());
-	File_DetectGameAndCdPaths("\\wave\\PBC\\Pb1los07.wav");
-	g_frontState.frontendSoundBuffers = malloc(0xB1BC);
-	if (g_frontState.frontendSoundBuffers == NULL) {
+	file_detect_game_and_cd_paths("\\wave\\PBC\\Pb1los07.wav");
+	g_front_state.frontend_sound_buffers = malloc(0xB1BC);
+	if (g_front_state.frontend_sound_buffers == NULL) {
 		return 0;
 	}
-	g_frontState.frontendSoundVoices = malloc(0x90);
-	if (g_frontState.frontendSoundVoices == NULL) {
-		free(g_frontState.frontendSoundBuffers);
+	g_front_state.frontend_sound_voices = malloc(0x90);
+	if (g_front_state.frontend_sound_voices == NULL) {
+		free(g_front_state.frontend_sound_buffers);
 		return 0;
 	}
-	g_frontState.resourceTable = malloc(0x8800);
-	if (g_frontState.resourceTable == NULL) {
-		free(g_frontState.frontendSoundBuffers);
-		free(g_frontState.frontendSoundVoices);
+	g_front_state.resource_table = malloc(0x8800);
+	if (g_front_state.resource_table == NULL) {
+		free(g_front_state.frontend_sound_buffers);
+		free(g_front_state.frontend_sound_voices);
 		return 0;
 	}
 	if (bpp != 8 && bpp != 16) {
 		return 0;
 	}
 
-	g_frontState.clipMaxX = 639;
-	g_frontState.clipMaxY = 479;
-	g_frontState.clearBackBufferAfterPresent = 1;
-	g_frontState.displayBpp = bpp;
-	zeroValue = 0;
-	g_frontState.pixelFormat555 = zeroValue;
-	g_frontState.clipMinX = zeroValue;
-	g_frontState.clipMinY = zeroValue;
-	g_frontState.charWriteIdx = zeroValue;
-	g_frontState.charReadIdx = zeroValue;
-	g_frontState.resourceCount = zeroValue;
-	frameRate = fps;
-	if (frameRate <= g_frontState.resourceCount) {
-		frameRate = 1;
+	g_front_state.clip_max_x = 639;
+	g_front_state.clip_max_y = 479;
+	g_front_state.clear_back_buffer_after_present = 1;
+	g_front_state.display_bpp = bpp;
+	zero_value = 0;
+	g_front_state.pixel_format555 = zero_value;
+	g_front_state.clip_min_x = zero_value;
+	g_front_state.clip_min_y = zero_value;
+	g_front_state.char_write_idx = zero_value;
+	g_front_state.char_read_idx = zero_value;
+	g_front_state.resource_count = zero_value;
+	frame_rate = fps;
+	if (frame_rate <= g_front_state.resource_count) {
+		frame_rate = 1;
 	}
-	g_frontState.frameIntervalMs = 1000 / frameRate;
-	g_frontState.screenStates[0].updateFn = screenUpdateFn;
-	g_frontState.screenStates[0].exitFn = screenExitFn;
-	g_frontState.modeInitFn = modeInitFn;
-	g_frontState.escapeCloseEnabled = 1;
-	return FrontendDisplay_RunMainLoop(hInstance, hPrevInstance, lpCmdLine,
-					   nShowCmd);
+	g_front_state.frame_interval_ms = 1000 / frame_rate;
+	g_front_state.screen_states[0].update_fn = screen_update_fn;
+	g_front_state.screen_states[0].exit_fn = screen_exit_fn;
+	g_front_state.mode_init_fn = mode_init_fn;
+	g_front_state.escape_close_enabled = 1;
+	return frontend_display_run_main_loop(h_instance, h_prev_instance,
+					      lp_cmd_line, n_show_cmd);
 }
 
-/* Only FrontendDisplay_InitPreservingNetworkSession calls this, and nothing
- * calls that. Zeroes g_frontState but keeps its DirectPlay interface, the
+/* Only frontend_display_init_preserving_network_session calls this, and nothing
+ * calls that. Zeroes g_front_state but keeps its DirectPlay interface, the
  * application and joined-session GUIDs, the host and group player ids,
- * netIsHost, the session name and the local player record; then sets
- * frontendPostResetMarker to 1 and netPlayerCount to 1, with the local player
+ * net_is_host, the session name and the local player record; then sets
+ * frontend_post_reset_marker to 1 and net_player_count to 1, with the local player
  * first. With DirectPlay it refreshes the player roster and, when the host's id
- * is no longer listed, makes the host the lowest of the id at netPlayers[32]
+ * is no longer listed, makes the host the lowest of the id at net_players[32]
  * and the nonzero ids of ready players. That entry is one past the array, so it
- * reads the netRuntimeLocalPlayer field that follows. */
+ * reads the net_runtime_local_player field that follows. */
 // FUNCTION: XVT 0x4D51E0
-void FrontendDisplay_ResetGlobalStatePreservingNetworkSession(void)
+void frontend_display_reset_global_state_preserving_network_session(void)
 {
-	IDirectPlay2A *netDirectPlay;
-	GUID netAppGuid;
-	GUID netJoinedSessionGuid;
-	DPID netHostPlayerId;
-	DPID netGroupDplayId;
-	int netIsHost;
-	char netSessionName[32];
-	struct NetPlayerInfo netRuntimeLocalPlayer;
-	int playerIndex;
-	DPID candidateHostPlayerId;
+	IDirectPlay2A *net_direct_play;
+	GUID net_app_guid;
+	GUID net_joined_session_guid;
+	DPID net_host_player_id;
+	DPID net_group_dplay_id;
+	int net_is_host;
+	char net_session_name[32];
+	struct net_player_info net_runtime_local_player;
+	int player_index;
+	DPID candidate_host_player_id;
 
-	netDirectPlay = g_frontState.netDirectPlay;
-	netAppGuid = g_frontState.netAppGuid;
-	netJoinedSessionGuid = g_frontState.netJoinedSessionGuid;
-	netHostPlayerId = g_frontState.netHostPlayerId;
-	netGroupDplayId = g_frontState.netGroupDplayId;
-	netIsHost = g_frontState.netIsHost;
-	memcpy(netSessionName, g_frontState.netSessionName,
-	       sizeof(netSessionName));
-	netRuntimeLocalPlayer = g_frontState.netRuntimeLocalPlayer;
+	net_direct_play = g_front_state.net_direct_play;
+	net_app_guid = g_front_state.net_app_guid;
+	net_joined_session_guid = g_front_state.net_joined_session_guid;
+	net_host_player_id = g_front_state.net_host_player_id;
+	net_group_dplay_id = g_front_state.net_group_dplay_id;
+	net_is_host = g_front_state.net_is_host;
+	memcpy(net_session_name, g_front_state.net_session_name,
+	       sizeof(net_session_name));
+	net_runtime_local_player = g_front_state.net_runtime_local_player;
 
-	memset(&g_frontState, 0, sizeof(g_frontState));
+	memset(&g_front_state, 0, sizeof(g_front_state));
 
-	g_frontState.netDirectPlay = netDirectPlay;
-	g_frontState.netAppGuid = netAppGuid;
-	g_frontState.netJoinedSessionGuid = netJoinedSessionGuid;
-	g_frontState.netHostPlayerId = netHostPlayerId;
-	g_frontState.netGroupDplayId = netGroupDplayId;
-	g_frontState.netIsHost = netIsHost;
-	memcpy(g_frontState.netSessionName, netSessionName,
-	       sizeof(g_frontState.netSessionName));
-	g_frontState.netRuntimeLocalPlayer = netRuntimeLocalPlayer;
-	g_frontState.frontendPostResetMarker = 1;
-	g_frontState.netPlayerCount = 1;
-	g_frontState.netPlayers[0] = netRuntimeLocalPlayer;
+	g_front_state.net_direct_play = net_direct_play;
+	g_front_state.net_app_guid = net_app_guid;
+	g_front_state.net_joined_session_guid = net_joined_session_guid;
+	g_front_state.net_host_player_id = net_host_player_id;
+	g_front_state.net_group_dplay_id = net_group_dplay_id;
+	g_front_state.net_is_host = net_is_host;
+	memcpy(g_front_state.net_session_name, net_session_name,
+	       sizeof(g_front_state.net_session_name));
+	g_front_state.net_runtime_local_player = net_runtime_local_player;
+	g_front_state.frontend_post_reset_marker = 1;
+	g_front_state.net_player_count = 1;
+	g_front_state.net_players[0] = net_runtime_local_player;
 
-	if (g_frontState.netDirectPlay != NULL) {
-		Net_RefreshPlayerRoster();
-		for (playerIndex = 0; playerIndex < 32; ++playerIndex) {
-			if (g_frontState.netPlayers[playerIndex].playerId ==
-			    g_frontState.netHostPlayerId) {
+	if (g_front_state.net_direct_play != NULL) {
+		net_refresh_player_roster();
+		for (player_index = 0; player_index < 32; ++player_index) {
+			if (g_front_state.net_players[player_index].player_id ==
+			    g_front_state.net_host_player_id) {
 				break;
 			}
 		}
-		if (playerIndex == 32) {
-			candidateHostPlayerId =
-				g_frontState.netPlayers[playerIndex].playerId;
-			for (playerIndex = 0; playerIndex < 32; ++playerIndex) {
-				if (g_frontState.netPlayers[playerIndex]
-						    .playerId != 0 &&
-				    g_frontState.netPlayers[playerIndex]
-						    .readyFlag != 0 &&
-				    candidateHostPlayerId >
-					    g_frontState.netPlayers[playerIndex]
-						    .playerId) {
-					candidateHostPlayerId =
-						g_frontState
-							.netPlayers[playerIndex]
-							.playerId;
+		if (player_index == 32) {
+			candidate_host_player_id =
+				g_front_state.net_players[player_index]
+					.player_id;
+			for (player_index = 0; player_index < 32;
+			     ++player_index) {
+				if (g_front_state.net_players[player_index]
+						    .player_id != 0 &&
+				    g_front_state.net_players[player_index]
+						    .ready_flag != 0 &&
+				    candidate_host_player_id >
+					    g_front_state
+						    .net_players[player_index]
+						    .player_id) {
+					candidate_host_player_id =
+						g_front_state
+							.net_players
+								[player_index]
+							.player_id;
 				}
 			}
-			g_frontState.netHostPlayerId = candidateHostPlayerId;
+			g_front_state.net_host_player_id =
+				candidate_host_player_id;
 		}
 	}
 }
 
 /* Saves the back buffer as the first frontscreen<n>.bmp that does not open, n
- * counting from 0, through FrontImage_SaveBmpFile with the display palette, and
- * returns that result. Locks the back buffer into g_drawSurfacePtr and unlocks
- * it. Only FrontendDisplay_MainWndProc calls it, on Alt+O, so only the original
+ * counting from 0, through front_image_save_bmp_file with the display palette, and
+ * returns that result. Locks the back buffer into g_draw_surface_ptr and unlocks
+ * it. Only frontend_display_main_wnd_proc calls it, on Alt+O, so only the original
  * build does. The modern build looks for the names in the user storage root. */
 // FUNCTION: XVT 0x4D5380
-int FrontendDisplay_CaptureScreenshot(void)
+int frontend_display_capture_screenshot(void)
 {
-	char fileName[64];
+	char file_name[64];
 	int sequence;
-	XvtFile *stream;
+	xvt_file *stream;
 	int result;
 
 	sequence = 0;
 	for (;;) {
-		sprintf(fileName, "frontscreen%d.bmp", sequence);
+		sprintf(file_name, "frontscreen%d.bmp", sequence);
 #ifdef XVT_MODERN
-		stream = XvtStorage_OpenRoot(AERON_VFS_ROOT_USER, fileName,
-					     g_fileModeReadBinary);
+		stream = xvt_storage_open_root(AERON_VFS_ROOT_USER, file_name,
+					       g_file_mode_read_binary);
 #else
-		stream = File_RawOpen(fileName, g_fileModeReadBinary);
+		stream = FILE_RAW_OPEN(file_name, g_file_mode_read_binary);
 #endif
 		if (stream == NULL) {
 			break;
 		}
 #ifdef XVT_MODERN
-		File_Close(stream);
+		file_close(stream);
 #else
-		File_RawClose(stream);
+		FILE_RAW_CLOSE(stream);
 #endif
 		++sequence;
 	}
 
-	g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
-	result = FrontImage_SaveBmpFile(
-		fileName, g_drawSurfacePtr, 640, 480,
-		g_frontState.backBufferPitch, g_frontState.displayBpp,
-		g_frontState.pixelFormat555, g_frontState.displayPalette);
-	FrontendDisplay_UnlockBackBuffer();
+	g_draw_surface_ptr = frontend_display_lock_back_buffer();
+	result = front_image_save_bmp_file(
+		file_name, g_draw_surface_ptr, 640, 480,
+		g_front_state.back_buffer_pitch, g_front_state.display_bpp,
+		g_front_state.pixel_format555, g_front_state.display_palette);
+	frontend_display_unlock_back_buffer();
 	return result;
 }
 
-/* Returns g_drawSurfacePtr, where FlightSurface_Lock points flight's drawing
- * while g_flightRenderToFrontend is 1. */
+/* Returns g_draw_surface_ptr, where flight_surface_lock points flight's drawing
+ * while g_flight_render_to_frontend is 1. */
 // FUNCTION: XVT 0x4D5410
-uint8_t *FrontendDisplay_GetDrawSurfaceForFlight(void)
+uint8_t *frontend_display_get_draw_surface_for_flight(void)
 {
-	return g_drawSurfacePtr;
+	return g_draw_surface_ptr;
 }
 
-/* Only the original build calls this, from FrontendScreen_RunModal: runs one
+/* Only the original build calls this, from frontend_screen_run_modal: runs one
  * frame of the modal screen on top. Dispatches window messages until a frame is
  * due, presenting it and polling the joysticks every 100 ms the way
- * FrontendDisplay_RunMainLoop does, and returns 2 when the quit message
+ * frontend_display_run_main_loop does, and returns 2 when the quit message
  * arrives. Then clears the fade color cache while a text fade runs, pumps
  * network packets and, when the top screen has an update function, runs it as
  * the main loop does but pushes no queued screen; returns 1 when the update
  * returned 1, before lowering the text fade and clearing the click latches. At
  * a CD track's end it replays a looping track or marks playback complete.
- * Returns 0 otherwise. The modern build returns XvtFrontendTask_RunFrame's
+ * Returns 0 otherwise. The modern build returns xvt_frontend_task_run_frame's
  * result. */
 // FUNCTION: XVT 0x4D5420
-int FrontendDisplay_RunFrame(void)
+int frontend_display_run_frame(void)
 {
 #ifdef XVT_MODERN
-	return XvtFrontendTask_RunFrame();
+	return xvt_frontend_task_run_frame();
 #else
 	enum {
 		FRAME_CONTINUE = 0,
@@ -2090,19 +2137,19 @@ int FrontendDisplay_RunFrame(void)
 		FRAME_QUIT = 2,
 		JOYSTICK_UPDATE_INTERVAL_MS = 100,
 	};
-	struct FrontendDisplayWin32Message message;
-	uint32_t frameStart;
-	uint32_t joystickUpdate;
-	int frameReady;
+	struct frontend_display_win32_message message;
+	uint32_t frame_start;
+	uint32_t joystick_update;
+	int frame_ready;
 
-	frameStart = GetTickCount();
-	joystickUpdate = frameStart;
-	frameReady = 0;
+	frame_start = GetTickCount();
+	joystick_update = frame_start;
+	frame_ready = 0;
 	for (;;) {
-		if (g_frontState.appActive != 0) {
+		if (g_front_state.app_active != 0) {
 			uint32_t now;
 
-			if (frameReady != 0) {
+			if (frame_ready != 0) {
 				break;
 			}
 			if (PeekMessageA(&message, NULL, 0, 0, 0) != 0) {
@@ -2114,17 +2161,17 @@ int FrontendDisplay_RunFrame(void)
 				continue;
 			}
 			now = GetTickCount();
-			if ((int32_t)(now - frameStart) >=
-			    g_frontState.frameIntervalMs) {
-				frameReady = 1;
-				frameStart = now;
-				FrontendDisplay_PresentFrame();
+			if ((int32_t)(now - frame_start) >=
+			    g_front_state.frame_interval_ms) {
+				frame_ready = 1;
+				frame_start = now;
+				frontend_display_present_frame();
 			}
-			if ((int32_t)(now - joystickUpdate) >=
+			if ((int32_t)(now - joystick_update) >=
 			    JOYSTICK_UPDATE_INTERVAL_MS) {
-				Joystick_UpdateState(0);
-				Joystick_UpdateState(1);
-				joystickUpdate = now;
+				joystick_update_state(0);
+				joystick_update_state(1);
+				joystick_update = now;
 			}
 		} else {
 			if (PeekMessageA(&message, NULL, 0, 0, 0) != 0) {
@@ -2136,299 +2183,310 @@ int FrontendDisplay_RunFrame(void)
 			}
 		}
 	}
-	if (g_frontState.textFadeFramesLeft != 0) {
-		memset(&g_frontState.textFadeColorCache, 0,
-		       sizeof(g_frontState.textFadeColorCache));
+	if (g_front_state.text_fade_frames_left != 0) {
+		memset(&g_front_state.text_fade_color_cache, 0,
+		       sizeof(g_front_state.text_fade_color_cache));
 	}
-	Net_PumpIncomingPackets();
-	if (g_frontState.screenStates[g_frontState.screenStackTop].updateFn !=
-	    NULL) {
-		FrontendScreenExitFn exitFn;
-		int updateResult;
-		GetKeyboardState(g_frontState.keyState);
-		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
-		exitFn = g_frontState.screenStates[g_frontState.screenStackTop]
-				 .exitFn;
-		updateResult =
-			g_frontState.screenStates[g_frontState.screenStackTop]
-				.updateFn(g_frontState.frameCounter);
-		if (g_frontState.screenCallbacksDirty == 1 ||
-		    updateResult == FRAME_FINISHED) {
-			g_frontState.screenCallbacksDirty = 0;
-			if (exitFn != NULL) {
-				exitFn(g_frontState.frameCounter);
+	net_pump_incoming_packets();
+	if (g_front_state.screen_states[g_front_state.screen_stack_top]
+		    .update_fn != NULL) {
+		frontend_screen_exit_fn exit_fn;
+		int update_result;
+		GetKeyboardState(g_front_state.key_state);
+		g_draw_surface_ptr = frontend_display_lock_back_buffer();
+		exit_fn = g_front_state
+				  .screen_states[g_front_state.screen_stack_top]
+				  .exit_fn;
+		update_result =
+			g_front_state
+				.screen_states[g_front_state.screen_stack_top]
+				.update_fn(g_front_state.frame_counter);
+		if (g_front_state.screen_callbacks_dirty == 1 ||
+		    update_result == FRAME_FINISHED) {
+			g_front_state.screen_callbacks_dirty = 0;
+			if (exit_fn != NULL) {
+				exit_fn(g_front_state.frame_counter);
 			}
 		}
-		FrontendDisplay_UnlockBackBuffer();
-		if (g_frontState.cursorVisible == 1) {
-			FrontendCursor_Draw();
+		frontend_display_unlock_back_buffer();
+		if (g_front_state.cursor_visible == 1) {
+			frontend_cursor_draw();
 		}
-		memset(g_frontState.joystickButtonReleased[0], 0,
-		       sizeof(g_frontState.joystickButtonReleased[0]));
-		memset(g_frontState.joystickButtonReleased[1], 0,
-		       sizeof(g_frontState.joystickButtonReleased[1]));
-		++g_frontState.frameCounter;
-		if (updateResult == FRAME_FINISHED) {
+		memset(g_front_state.joystick_button_released[0], 0,
+		       sizeof(g_front_state.joystick_button_released[0]));
+		memset(g_front_state.joystick_button_released[1], 0,
+		       sizeof(g_front_state.joystick_button_released[1]));
+		++g_front_state.frame_counter;
+		if (update_result == FRAME_FINISHED) {
 			return FRAME_FINISHED;
 		}
-		if (g_frontState.textFadeFramesLeft != 0) {
-			--g_frontState.textFadeFramesLeft;
+		if (g_front_state.text_fade_frames_left != 0) {
+			--g_front_state.text_fade_frames_left;
 		}
-		g_frontState.mouseLeftClickLatch = 0;
-		g_frontState.mouseRightClickLatch = 0;
-		if (g_frontState.cdAudioCurrentTrack != 0 &&
-		    GetTickCount() > g_frontState.cdAudioTrackEndMs) {
-			if (g_frontState.cdAudioLoopCurrentTrack != 0) {
-				CDAudio_PlayTrackFromTime(
-					g_frontState.cdAudioCurrentTrack, 0, 0);
+		g_front_state.mouse_left_click_latch = 0;
+		g_front_state.mouse_right_click_latch = 0;
+		if (g_front_state.cd_audio_current_track != 0 &&
+		    GetTickCount() > g_front_state.cd_audio_track_end_ms) {
+			if (g_front_state.cd_audio_loop_current_track != 0) {
+				cd_audio_play_track_from_time(
+					g_front_state.cd_audio_current_track, 0,
+					0);
 				return FRAME_CONTINUE;
 			}
-			g_frontState.cdAudioPlaybackComplete = 1;
+			g_front_state.cd_audio_playback_complete = 1;
 		}
 	}
 	return FRAME_CONTINUE;
 #endif
 }
 
-/* Returns g_frontState.hWnd, the frontend window. */
+/* Returns g_front_state.hWnd, the frontend window. */
 // FUNCTION: XVT 0x4D5690
-void *FrontendDisplay_GetMainWindowHandle(void) { return g_frontState.hWnd; }
-
-/* Returns g_frontState.directDraw, which flight's display code also uses. */
-// FUNCTION: XVT 0x4D56A0
-IDirectDraw *FrontendDisplay_GetDirectDraw(void)
+void *frontend_display_get_main_window_handle(void)
 {
-	return g_frontState.directDraw;
+	return g_front_state.h_wnd;
+}
+
+/* Returns g_front_state.direct_draw, which flight's display code also uses. */
+// FUNCTION: XVT 0x4D56A0
+IDirectDraw *frontend_display_get_direct_draw(void)
+{
+	return g_front_state.direct_draw;
 }
 
 /* Before a flight starts: unlocks the back buffer, unloads every frontend
  * sound, shuts down DirectSound, closes the CD device, and releases the primary
- * surface, the palette, the offscreen surface and, with g_optNoFullscreen or
- * g_noPageFlip, the separate back buffer, setting each pointer to NULL. Keeps
+ * surface, the palette, the offscreen surface and, with g_opt_no_fullscreen or
+ * g_no_page_flip, the separate back buffer, setting each pointer to NULL. Keeps
  * DirectDraw and the window. Returns 1. */
 // FUNCTION: XVT 0x4D56B0
-int FrontendDisplay_ReleaseSurfacesForFlight(void)
+int frontend_display_release_surfaces_for_flight(void)
 {
-	FrontendDisplay_UnlockBackBuffer();
-	FrontendSound_UnloadAllBuffers();
-	FrontendSound_ShutdownDirectSound();
-	CDAudio_CloseDevice();
-	if (g_frontState.primarySurface != NULL) {
-		g_frontState.primarySurface->lpVtbl->Release(
-			g_frontState.primarySurface);
-		g_frontState.primarySurface = NULL;
+	frontend_display_unlock_back_buffer();
+	frontend_sound_unload_all_buffers();
+	frontend_sound_shutdown_direct_sound();
+	cd_audio_close_device();
+	if (g_front_state.primary_surface != NULL) {
+		g_front_state.primary_surface->lpVtbl->Release(
+			g_front_state.primary_surface);
+		g_front_state.primary_surface = NULL;
 	}
-	if (g_frontState.ddPalette != NULL) {
-		g_frontState.ddPalette->lpVtbl->Release(g_frontState.ddPalette);
-		g_frontState.ddPalette = NULL;
+	if (g_front_state.dd_palette != NULL) {
+		g_front_state.dd_palette->lpVtbl->Release(
+			g_front_state.dd_palette);
+		g_front_state.dd_palette = NULL;
 	}
-	if (g_frontState.offscreenSurface != NULL) {
-		g_frontState.offscreenSurface->lpVtbl->Release(
-			g_frontState.offscreenSurface);
-		g_frontState.offscreenSurface = NULL;
+	if (g_front_state.offscreen_surface != NULL) {
+		g_front_state.offscreen_surface->lpVtbl->Release(
+			g_front_state.offscreen_surface);
+		g_front_state.offscreen_surface = NULL;
 	}
-	if ((g_optNoFullscreen != 0 || g_noPageFlip != 0) &&
-	    g_frontState.backBufferSurface != NULL) {
-		g_frontState.backBufferSurface->lpVtbl->Release(
-			g_frontState.backBufferSurface);
-		g_frontState.backBufferSurface = NULL;
+	if ((g_opt_no_fullscreen != 0 || g_no_page_flip != 0) &&
+	    g_front_state.back_buffer_surface != NULL) {
+		g_front_state.back_buffer_surface->lpVtbl->Release(
+			g_front_state.back_buffer_surface);
+		g_front_state.back_buffer_surface = NULL;
 	}
 	return 1;
 }
 
 /* Rebuilds the frontend's surfaces after a flight, on the DirectDraw object and
- * window FrontendDisplay_ReleaseSurfacesForFlight kept: normal cooperative
- * level with g_optNoFullscreen, else exclusive full-screen and the 640 by 480
+ * window frontend_display_release_surfaces_for_flight kept: normal cooperative
+ * level with g_opt_no_fullscreen, else exclusive full-screen and the 640 by 480
  * mode; then the primary surface, back buffer, offscreen surface and palette as
- * FrontendDisplay_InitMainWindow makes them. Sets the text color codes, moves
+ * frontend_display_init_main_window makes them. Sets the text color codes, moves
  * the system cursor to (0, 0), clears both surfaces and presents, restarts
- * DirectSound, locks the back buffer into g_drawSurfacePtr and allocates
- * offscreenBackupBuffer when there is none. Returns 1, or 0 after
- * FrontendDisplay_ReportDirectDrawInitFailure. */
+ * DirectSound, locks the back buffer into g_draw_surface_ptr and allocates
+ * offscreen_backup_buffer when there is none. Returns 1, or 0 after
+ * frontend_display_report_direct_draw_init_failure. */
 // FUNCTION: XVT 0x4D5760
-int FrontendDisplay_ReinitSurfaces(void)
+int frontend_display_reinit_surfaces(void)
 {
-	DDSURFACEDESC surfaceDesc;
-	DDSCAPS attachedSurfaceCaps;
-	void *windowHandle;
+	DDSURFACEDESC surface_desc;
+	DDSCAPS attached_surface_caps;
+	void *window_handle;
 	HRESULT result;
 
-	windowHandle = g_frontState.hWnd;
-	if (g_optNoFullscreen != 0) {
-		result = g_frontState.directDraw->lpVtbl->SetCooperativeLevel(
-			g_frontState.directDraw, windowHandle, DDSCL_NORMAL);
+	window_handle = g_front_state.h_wnd;
+	if (g_opt_no_fullscreen != 0) {
+		result = g_front_state.direct_draw->lpVtbl->SetCooperativeLevel(
+			g_front_state.direct_draw, window_handle, DDSCL_NORMAL);
 		if (result != 0) {
-			return FrontendDisplay_ReportDirectDrawInitFailure(
-				windowHandle, 1);
+			return frontend_display_report_direct_draw_init_failure(
+				window_handle, 1);
 		}
 	} else {
-		result = g_frontState.directDraw->lpVtbl->SetCooperativeLevel(
-			g_frontState.directDraw, windowHandle,
+		result = g_front_state.direct_draw->lpVtbl->SetCooperativeLevel(
+			g_front_state.direct_draw, window_handle,
 			DDSCL_FULLSCREEN | DDSCL_EXCLUSIVE | DDSCL_ALLOWMODEX);
 		if (result != 0) {
-			return FrontendDisplay_ReportDirectDrawInitFailure(
-				windowHandle, 1);
+			return frontend_display_report_direct_draw_init_failure(
+				window_handle, 1);
 		}
-		result = g_frontState.directDraw->lpVtbl->SetDisplayMode(
-			g_frontState.directDraw, 640, 480,
-			g_frontState.displayBpp);
+		result = g_front_state.direct_draw->lpVtbl->SetDisplayMode(
+			g_front_state.direct_draw, 640, 480,
+			g_front_state.display_bpp);
 		if (result != 0) {
-			return FrontendDisplay_ReportDirectDrawInitFailure(
-				windowHandle, 2);
+			return frontend_display_report_direct_draw_init_failure(
+				window_handle, 2);
 		}
 	}
 
-	if (g_optNoFullscreen == 0 && g_noPageFlip == 0) {
-		memset(&surfaceDesc, 0, sizeof(surfaceDesc));
-		surfaceDesc.dwSize = sizeof(surfaceDesc);
-		surfaceDesc.dwFlags = DDSD_CAPS | DDSD_BACKBUFFERCOUNT;
-		surfaceDesc.ddsCaps.dwCaps =
+	if (g_opt_no_fullscreen == 0 && g_no_page_flip == 0) {
+		memset(&surface_desc, 0, sizeof(surface_desc));
+		surface_desc.dwSize = sizeof(surface_desc);
+		surface_desc.dwFlags = DDSD_CAPS | DDSD_BACKBUFFERCOUNT;
+		surface_desc.ddsCaps.dwCaps =
 			DDSCAPS_PRIMARYSURFACE | DDSCAPS_FLIP | DDSCAPS_COMPLEX;
-		surfaceDesc.dwBackBufferCount = 1;
+		surface_desc.dwBackBufferCount = 1;
 	} else {
-		memset(&surfaceDesc, 0, sizeof(surfaceDesc));
-		surfaceDesc.dwSize = sizeof(surfaceDesc);
-		surfaceDesc.dwFlags = DDSD_CAPS;
-		surfaceDesc.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
+		memset(&surface_desc, 0, sizeof(surface_desc));
+		surface_desc.dwSize = sizeof(surface_desc);
+		surface_desc.dwFlags = DDSD_CAPS;
+		surface_desc.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
 	}
-	result = g_frontState.directDraw->lpVtbl->CreateSurface(
-		g_frontState.directDraw, &surfaceDesc,
-		&g_frontState.primarySurface, NULL);
+	result = g_front_state.direct_draw->lpVtbl->CreateSurface(
+		g_front_state.direct_draw, &surface_desc,
+		&g_front_state.primary_surface, NULL);
 	if (result != 0) {
-		return FrontendDisplay_ReportDirectDrawInitFailure(windowHandle,
-								   3);
+		return frontend_display_report_direct_draw_init_failure(
+			window_handle, 3);
 	}
-	g_frontState.primarySurface->lpVtbl->GetSurfaceDesc(
-		g_frontState.primarySurface, &surfaceDesc);
-	g_frontState.pixelFormat555 =
-		(surfaceDesc.ddpfPixelFormat.dwGBitMask & 0x400) == 0;
+	g_front_state.primary_surface->lpVtbl->GetSurfaceDesc(
+		g_front_state.primary_surface, &surface_desc);
+	g_front_state.pixel_format555 =
+		(surface_desc.ddpfPixelFormat.dwGBitMask & 0x400) == 0;
 
-	if (g_optNoFullscreen != 0 || g_noPageFlip != 0) {
-		memset(&surfaceDesc, 0, sizeof(surfaceDesc));
-		surfaceDesc.dwSize = sizeof(surfaceDesc);
-		surfaceDesc.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH;
-		surfaceDesc.ddsCaps.dwCaps =
+	if (g_opt_no_fullscreen != 0 || g_no_page_flip != 0) {
+		memset(&surface_desc, 0, sizeof(surface_desc));
+		surface_desc.dwSize = sizeof(surface_desc);
+		surface_desc.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH;
+		surface_desc.ddsCaps.dwCaps =
 			DDSCAPS_OFFSCREENPLAIN | DDSCAPS_SYSTEMMEMORY;
-		surfaceDesc.dwWidth = 640;
-		surfaceDesc.dwHeight = 480;
-		result = g_frontState.directDraw->lpVtbl->CreateSurface(
-			g_frontState.directDraw, &surfaceDesc,
-			&g_frontState.backBufferSurface, NULL);
+		surface_desc.dwWidth = 640;
+		surface_desc.dwHeight = 480;
+		result = g_front_state.direct_draw->lpVtbl->CreateSurface(
+			g_front_state.direct_draw, &surface_desc,
+			&g_front_state.back_buffer_surface, NULL);
 	} else {
-		attachedSurfaceCaps.dwCaps = DDSCAPS_BACKBUFFER;
-		result =
-			g_frontState.primarySurface->lpVtbl->GetAttachedSurface(
-				g_frontState.primarySurface,
-				&attachedSurfaceCaps,
-				&g_frontState.backBufferSurface);
+		attached_surface_caps.dwCaps = DDSCAPS_BACKBUFFER;
+		result = g_front_state.primary_surface->lpVtbl
+				 ->GetAttachedSurface(
+					 g_front_state.primary_surface,
+					 &attached_surface_caps,
+					 &g_front_state.back_buffer_surface);
 	}
 	if (result != 0) {
-		return FrontendDisplay_ReportDirectDrawInitFailure(windowHandle,
-								   4);
+		return frontend_display_report_direct_draw_init_failure(
+			window_handle, 4);
 	}
-	g_frontState.backBufferSurface->lpVtbl->GetSurfaceDesc(
-		g_frontState.backBufferSurface, &surfaceDesc);
-	g_frontState.backBufferPitch = surfaceDesc.lPitch;
+	g_front_state.back_buffer_surface->lpVtbl->GetSurfaceDesc(
+		g_front_state.back_buffer_surface, &surface_desc);
+	g_front_state.back_buffer_pitch = surface_desc.lPitch;
 
-	memset(&surfaceDesc, 0, sizeof(surfaceDesc));
-	surfaceDesc.dwSize = sizeof(surfaceDesc);
-	surfaceDesc.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH;
-	if (g_optNoFullscreen != 0 || g_noPageFlip != 0) {
-		surfaceDesc.ddsCaps.dwCaps =
+	memset(&surface_desc, 0, sizeof(surface_desc));
+	surface_desc.dwSize = sizeof(surface_desc);
+	surface_desc.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH;
+	if (g_opt_no_fullscreen != 0 || g_no_page_flip != 0) {
+		surface_desc.ddsCaps.dwCaps =
 			DDSCAPS_OFFSCREENPLAIN | DDSCAPS_SYSTEMMEMORY;
 	} else {
-		surfaceDesc.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;
+		surface_desc.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;
 	}
-	surfaceDesc.dwWidth = 640;
-	surfaceDesc.dwHeight = 480;
-	result = g_frontState.directDraw->lpVtbl->CreateSurface(
-		g_frontState.directDraw, &surfaceDesc,
-		&g_frontState.offscreenSurface, NULL);
+	surface_desc.dwWidth = 640;
+	surface_desc.dwHeight = 480;
+	result = g_front_state.direct_draw->lpVtbl->CreateSurface(
+		g_front_state.direct_draw, &surface_desc,
+		&g_front_state.offscreen_surface, NULL);
 	if (result != 0) {
-		return FrontendDisplay_ReportDirectDrawInitFailure(windowHandle,
-								   5);
+		return frontend_display_report_direct_draw_init_failure(
+			window_handle, 5);
 	}
-	g_frontState.offscreenSurface->lpVtbl->GetSurfaceDesc(
-		g_frontState.offscreenSurface, &surfaceDesc);
-	g_frontState.offscreenSurfacePitch = surfaceDesc.lPitch;
+	g_front_state.offscreen_surface->lpVtbl->GetSurfaceDesc(
+		g_front_state.offscreen_surface, &surface_desc);
+	g_front_state.offscreen_surface_pitch = surface_desc.lPitch;
 
-	g_frontState.ddPalette =
-		FrontendDisplay_LoadPalette(g_frontState.directDraw, NULL);
-	if (g_optNoFullscreen == 0 && g_noPageFlip == 0) {
-		if (g_frontState.ddPalette != NULL &&
-		    g_frontState.displayBpp == 8) {
-			g_frontState.primarySurface->lpVtbl->SetPalette(
-				g_frontState.primarySurface,
-				g_frontState.ddPalette);
+	g_front_state.dd_palette =
+		frontend_display_load_palette(g_front_state.direct_draw, NULL);
+	if (g_opt_no_fullscreen == 0 && g_no_page_flip == 0) {
+		if (g_front_state.dd_palette != NULL &&
+		    g_front_state.display_bpp == 8) {
+			g_front_state.primary_surface->lpVtbl->SetPalette(
+				g_front_state.primary_surface,
+				g_front_state.dd_palette);
 		}
-	} else if (g_frontState.ddPalette != NULL &&
-		   g_frontState.displayBpp == 8) {
-		g_frontState.primarySurface->lpVtbl->SetPalette(
-			g_frontState.primarySurface, g_frontState.ddPalette);
-		FrontendDisplay_SetPalette();
+	} else if (g_front_state.dd_palette != NULL &&
+		   g_front_state.display_bpp == 8) {
+		g_front_state.primary_surface->lpVtbl->SetPalette(
+			g_front_state.primary_surface,
+			g_front_state.dd_palette);
+		frontend_display_set_palette();
 	}
 
-	g_frontState.textColorCodes[0] = 0xFFFF;
-	g_frontState.textColorCodes[1] = FrontendDisplay_PackRGB(0, 0xFF, 0);
-	g_frontState.textColorCodes[2] = FrontendDisplay_PackRGB(0xFF, 0, 0);
-	g_frontState.textColorCodes[3] = FrontendDisplay_PackRGB(0xFF, 0xFF, 0);
-	g_frontState.textColorCodes[4] =
-		FrontendDisplay_PackRGB(0x32, 0x32, 0xFF);
-	g_frontState.textColorCodes[5] =
-		FrontendDisplay_PackRGB(0x80, 0x80, 0xFF);
+	g_front_state.text_color_codes[0] = 0xFFFF;
+	g_front_state.text_color_codes[1] =
+		frontend_display_pack_rgb(0, 0xFF, 0);
+	g_front_state.text_color_codes[2] =
+		frontend_display_pack_rgb(0xFF, 0, 0);
+	g_front_state.text_color_codes[3] =
+		frontend_display_pack_rgb(0xFF, 0xFF, 0);
+	g_front_state.text_color_codes[4] =
+		frontend_display_pack_rgb(0x32, 0x32, 0xFF);
+	g_front_state.text_color_codes[5] =
+		frontend_display_pack_rgb(0x80, 0x80, 0xFF);
 #ifdef XVT_MODERN
-	XvtPresentation_WarpClassic(0, 0);
+	xvt_presentation_warp_classic(0, 0);
 #else
 	SetCursorPos(0, 0);
 #endif
 
 #ifdef XVT_MODERN
-	XvtRenderFrontend_Reset();
+	xvt_render_frontend_reset();
 #endif
-	FrontendDisplay_ClearOffscreenSurface();
-	FrontendDisplay_ClearBackBuffer();
-	FrontendDisplay_PresentFrame();
-	if (FrontendSound_InitDirectSound(g_frontState.hWnd) == 0) {
-		FrontendDisplay_ShowGameMessageBox("Sound not available.");
+	frontend_display_clear_offscreen_surface();
+	frontend_display_clear_back_buffer();
+	frontend_display_present_frame();
+	if (frontend_sound_init_direct_sound(g_front_state.h_wnd) == 0) {
+		frontend_display_show_game_message_box("Sound not available.");
 	}
-	g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
-	if (g_frontState.offscreenBackupBuffer == NULL) {
-		g_frontState.offscreenBackupBuffer =
-			malloc(480 * g_frontState.offscreenSurfacePitch);
-		if (g_frontState.offscreenBackupBuffer != NULL) {
-			memset(g_frontState.offscreenBackupBuffer, 0,
-			       480 * g_frontState.offscreenSurfacePitch);
+	g_draw_surface_ptr = frontend_display_lock_back_buffer();
+	if (g_front_state.offscreen_backup_buffer == NULL) {
+		g_front_state.offscreen_backup_buffer =
+			malloc(480 * g_front_state.offscreen_surface_pitch);
+		if (g_front_state.offscreen_backup_buffer != NULL) {
+			memset(g_front_state.offscreen_backup_buffer, 0,
+			       480 * g_front_state.offscreen_surface_pitch);
 		}
 	}
 	return 1;
 }
 
-/* Sets g_frontState.frontendDisplayWndProcMode, which picks
- * FrontendDisplay_WndProc's handler: 0 frontend, 1 flight, 2 movie. */
+/* Sets g_front_state.frontend_display_wnd_proc_mode, which picks
+ * frontend_display_wnd_proc's handler: 0 frontend, 1 flight, 2 movie. */
 // FUNCTION: XVT 0x4D5B70
-void FrontendDisplay_SetWndProcMode(uint8_t mode)
+void frontend_display_set_wnd_proc_mode(uint8_t mode)
 {
-	g_frontState.frontendDisplayWndProcMode = mode;
+	g_front_state.frontend_display_wnd_proc_mode = mode;
 }
 
-/* Returns g_frontState.frontendDisplayWndProcMode. */
+/* Returns g_front_state.frontend_display_wnd_proc_mode. */
 // FUNCTION: XVT 0x4D5B80
-int FrontendDisplay_GetWndProcMode(void)
+int frontend_display_get_wnd_proc_mode(void)
 {
-	return g_frontState.frontendDisplayWndProcMode;
+	return g_front_state.frontend_display_wnd_proc_mode;
 }
 
-/* Only GameMain calls this, and nothing calls GameMain. The original build
- * looks for a window whose class and title are both g_windowName; when one
+/* Only game_main calls this, and nothing calls game_main. The original build
+ * looks for a window whose class and title are both g_window_name; when one
  * exists it restores it (ShowWindowAsync with 9, SW_RESTORE) and returns 1,
  * else 0. The modern build returns 0. */
 // FUNCTION: XVT 0x4D5B90
-int Win32_CheckSingleInstance(void)
+int win32_check_single_instance(void)
 {
 #ifdef XVT_MODERN
 	return 0;
 #else
-	void *window = FindWindowA(g_windowName, g_windowName);
+	void *window = FindWindowA(g_window_name, g_window_name);
 	if (window != NULL) {
 		ShowWindowAsync(window, 9);
 		return 1;
@@ -2439,98 +2497,99 @@ int Win32_CheckSingleInstance(void)
 
 /* Calls FlipToGDISurface on the frontend's DirectDraw object when it exists. */
 // FUNCTION: XVT 0x4D5BC0
-void FrontendDisplay_FlipDirectDrawToGDISurface(void)
+void frontend_display_flip_direct_draw_to_gdi_surface(void)
 {
-	if (g_frontState.directDraw != NULL) {
-		g_frontState.directDraw->lpVtbl->FlipToGDISurface(
-			g_frontState.directDraw);
+	if (g_front_state.direct_draw != NULL) {
+		g_front_state.direct_draw->lpVtbl->FlipToGDISurface(
+			g_front_state.direct_draw);
 	}
 }
 
 /* Reads a DirectDraw driver GUID from the file video.cfg into
- * g_configuredDirectDrawDriverGuid and returns its address, or NULL when the
+ * g_configured_direct_draw_driver_guid and returns its address, or NULL when the
  * file does not open or the read fails, so DirectDraw uses its default
  * driver. */
 // FUNCTION: XVT 0x4D5C20
-const DxGuid *FrontendDisplay_LoadDriverGuid(void)
+const DxGuid *frontend_display_load_driver_guid(void)
 {
-	XvtFile *stream;
-	int readSucceeded;
+	xvt_file *stream;
+	int read_succeeded;
 
-	stream = File_Open("video.cfg", "rb");
+	stream = file_open("video.cfg", "rb");
 	if (stream == NULL) {
 		return NULL;
 	}
-	readSucceeded =
-		File_ReadBytes(stream, &g_configuredDirectDrawDriverGuid,
-			       sizeof(g_configuredDirectDrawDriverGuid));
-	File_Close(stream);
-	return readSucceeded != 0 ? &g_configuredDirectDrawDriverGuid : NULL;
+	read_succeeded =
+		file_read_bytes(stream, &g_configured_direct_draw_driver_guid,
+				sizeof(g_configured_direct_draw_driver_guid));
+	file_close(stream);
+	return read_succeeded != 0 ? &g_configured_direct_draw_driver_guid
+				   : NULL;
 }
 
-/* Only the original build calls this. While secondaryDirectDrawActive is set it
+/* Only the original build calls this. While secondary_direct_draw_active is set it
  * draws text through GDI across the whole desktop, centered (DrawTextA format
- * 0x25), white on black in 12-pixel Times New Roman, then overlayText, when not
+ * 0x25), white on black in 12-pixel Times New Roman, then overlay_text, when not
  * NULL, in red at the top and again at the bottom. Returns 1, or 0 when the
  * flag is clear or a device context or font cannot be made. The modern build
  * returns 0. */
 // FUNCTION: XVT 0x4D5C70
-int FrontendDisplay_DrawGdiTextOnDesktop(const struct RECT *unused,
-					 const char *text,
-					 const char *overlayText)
+int frontend_display_draw_gdi_text_on_desktop(const struct RECT *unused,
+					      const char *text,
+					      const char *overlay_text)
 {
 #ifdef XVT_MODERN
 	(void)unused;
 	(void)text;
-	(void)overlayText;
+	(void)overlay_text;
 	return 0;
 #else
 	void *dc;
 	void *font;
-	void *previousObject;
+	void *previous_object;
 	struct RECT rect;
 
 	(void)unused;
-	if (g_frontState.secondaryDirectDrawActive == 0) {
+	if (g_front_state.secondary_direct_draw_active == 0) {
 		return 0;
 	}
 	dc = CreateDCA("DISPLAY", NULL, NULL, NULL);
 	if (dc == NULL) {
 		return 0;
 	}
-	FrontendDraw_RectAssign(&rect, 0, 0, GetSystemMetrics(0),
-				GetSystemMetrics(1));
+	frontend_draw_rect_assign(&rect, 0, 0, GetSystemMetrics(0),
+				  GetSystemMetrics(1));
 	font = CreateFontA(-12, 0, 0, 0, 400, 0, 0, 0, 0, 4, 0, 3, 0x12,
 			   "times new roman");
 	if (font == NULL) {
 		DeleteDC(dc);
 		return 0;
 	}
-	previousObject = SelectObject(dc, font);
+	previous_object = SelectObject(dc, font);
 	SetMapMode(dc, 1);
 	SetTextCharacterExtra(dc, 0);
 	SetTextColor(dc, 0xFFFFFF);
 	SetBkColor(dc, 0);
 	SetBkMode(dc, 2);
 	DrawTextA(dc, text, strlen(text), &rect, 0x25);
-	if (overlayText != NULL) {
+	if (overlay_text != NULL) {
 		SetTextColor(dc, 0xFF);
-		DrawTextA(dc, overlayText, -1, &rect, 0x21);
-		DrawTextA(dc, overlayText, -1, &rect, 0x29);
+		DrawTextA(dc, overlay_text, -1, &rect, 0x21);
+		DrawTextA(dc, overlay_text, -1, &rect, 0x29);
 	}
-	SelectObject(dc, previousObject);
+	SelectObject(dc, previous_object);
 	DeleteObject(font);
 	DeleteDC(dc);
 	return 1;
 #endif
 }
 
-/* Only the original build calls this. While secondaryDirectDrawActive is set it
+/* Only the original build calls this. While secondary_direct_draw_active is set it
  * fills the whole desktop black through GDI and returns 1; returns 0 when the
  * flag is clear or no device context can be made. The modern build returns
  * 0. */
 // FUNCTION: XVT 0x4D5DC0
-int FrontendDisplay_ClearDesktopGdi(const struct RECT *unused)
+int frontend_display_clear_desktop_gdi(const struct RECT *unused)
 {
 #ifdef XVT_MODERN
 	(void)unused;
@@ -2541,7 +2600,7 @@ int FrontendDisplay_ClearDesktopGdi(const struct RECT *unused)
 
 	(void)unused;
 
-	if (g_frontState.secondaryDirectDrawActive == 0) {
+	if (g_front_state.secondary_direct_draw_active == 0) {
 		return 0;
 	}
 
@@ -2551,184 +2610,185 @@ int FrontendDisplay_ClearDesktopGdi(const struct RECT *unused)
 	}
 
 	SelectObject(dc, GetStockObject(4));
-	FrontendDraw_RectAssign(&rect, 0, 0, GetSystemMetrics(0),
-				GetSystemMetrics(1));
+	frontend_draw_rect_assign(&rect, 0, 0, GetSystemMetrics(0),
+				  GetSystemMetrics(1));
 	Rectangle(dc, rect.left, rect.top, rect.right, rect.bottom);
 	DeleteDC(dc);
 	return 1;
 #endif
 }
 
-/* Returns g_frontState.secondaryDirectDrawActive, 1 when
- * FrontendDisplay_InitMainWindow made DirectDraw on the driver named in
+/* Returns g_front_state.secondary_direct_draw_active, 1 when
+ * frontend_display_init_main_window made DirectDraw on the driver named in
  * video.cfg. */
 // FUNCTION: XVT 0x4D5E60
-int FrontendDisplay_IsSecondaryDirectDrawActive(void)
+int frontend_display_is_secondary_direct_draw_active(void)
 {
-	return g_frontState.secondaryDirectDrawActive;
+	return g_front_state.secondary_direct_draw_active;
 }
 
-/* Loads the 256 entries of g_frontState.displayPalette into the DirectDraw
- * palette; does nothing with g_optNoFullscreen. Does not check that the palette
+/* Loads the 256 entries of g_front_state.display_palette into the DirectDraw
+ * palette; does nothing with g_opt_no_fullscreen. Does not check that the palette
  * exists. */
 // FUNCTION: XVT 0x4D6CA0
-void FrontendDisplay_SetPalette(void)
+void frontend_display_set_palette(void)
 {
-	if (g_optNoFullscreen != 0) {
+	if (g_opt_no_fullscreen != 0) {
 		return;
 	}
-	g_frontState.ddPalette->lpVtbl->SetEntries(
-		g_frontState.ddPalette, 0, 0, 256, g_frontState.displayPalette);
+	g_front_state.dd_palette->lpVtbl->SetEntries(
+		g_front_state.dd_palette, 0, 0, 256,
+		g_front_state.display_palette);
 }
 
 /* Returns the display pixel value for the color r, g, b. At 8 bits per pixel it
  * is the index, 1 to 255, of the display palette entry with the smallest sum of
- * squared channel differences (g_colorDistLUT), the first of equals winning and
+ * squared channel differences (g_color_dist_lut), the first of equals winning and
  * an exact match returned at once; index 0 is never chosen. At 16 bits it packs
- * the high bits of each channel, 5-5-5 or 5-6-5 by g_frontState.pixelFormat555.
- * At any other depth it returns g_frontState.displayBpp. */
+ * the high bits of each channel, 5-5-5 or 5-6-5 by g_front_state.pixel_format555.
+ * At any other depth it returns g_front_state.display_bpp. */
 // FUNCTION: XVT 0x4D6E30
-int FrontendDisplay_PackRGB(uint8_t r, uint8_t g, uint8_t b)
+int frontend_display_pack_rgb(uint8_t r, uint8_t g, uint8_t b)
 {
 	int index;
-	unsigned int bestDistance;
-	int bestIndex;
-	struct FrontendPaletteEntry *entry;
+	unsigned int best_distance;
+	int best_index;
+	struct frontend_palette_entry *entry;
 
-	switch (g_frontState.displayBpp) {
+	switch (g_front_state.display_bpp) {
 	case 8:
-		bestDistance = 0x7FFFFFFFu;
-		bestIndex = 1;
+		best_distance = 0x7FFFFFFFu;
+		best_index = 1;
 		for (index = 1; index < 256; ++index) {
-			int redDelta;
-			int greenDelta;
-			int blueDelta;
+			int red_delta;
+			int green_delta;
+			int blue_delta;
 			unsigned int distance;
 
-			entry = &g_frontState.displayPalette[index];
-			redDelta = (int)entry->red - r;
-			if (redDelta < 0) {
-				redDelta = -redDelta;
+			entry = &g_front_state.display_palette[index];
+			red_delta = (int)entry->red - r;
+			if (red_delta < 0) {
+				red_delta = -red_delta;
 			}
-			greenDelta = (int)entry->green - g;
-			if (greenDelta < 0) {
-				greenDelta = -greenDelta;
+			green_delta = (int)entry->green - g;
+			if (green_delta < 0) {
+				green_delta = -green_delta;
 			}
-			blueDelta = (int)entry->blue - b;
-			if (blueDelta < 0) {
-				blueDelta = -blueDelta;
+			blue_delta = (int)entry->blue - b;
+			if (blue_delta < 0) {
+				blue_delta = -blue_delta;
 			}
-			distance = g_colorDistLUT[blueDelta];
-			distance += g_colorDistLUT[redDelta];
-			distance += g_colorDistLUT[greenDelta];
+			distance = g_color_dist_lut[blue_delta];
+			distance += g_color_dist_lut[red_delta];
+			distance += g_color_dist_lut[green_delta];
 			if (distance == 0) {
 				return index;
 			}
-			if (distance < bestDistance) {
-				bestDistance = distance;
-				bestIndex = index;
+			if (distance < best_distance) {
+				best_distance = distance;
+				best_index = index;
 			}
 		}
-		return bestIndex;
+		return best_index;
 	case 16: {
-		uint8_t redComponent;
-		uint8_t greenComponent;
-		uint8_t blueComponent;
+		uint8_t red_component;
+		uint8_t green_component;
+		uint8_t blue_component;
 
-		if (g_frontState.pixelFormat555 != 0) {
-			redComponent = r >> 3;
-			greenComponent = g >> 3;
-			blueComponent = b >> 3;
-			return 32 * (greenComponent + 32 * redComponent) +
-			       blueComponent;
+		if (g_front_state.pixel_format555 != 0) {
+			red_component = r >> 3;
+			green_component = g >> 3;
+			blue_component = b >> 3;
+			return 32 * (green_component + 32 * red_component) +
+			       blue_component;
 		}
-		redComponent = r >> 3;
-		greenComponent = g >> 2;
-		blueComponent = b >> 3;
-		return 32 * (greenComponent + (redComponent << 6)) +
-		       blueComponent;
+		red_component = r >> 3;
+		green_component = g >> 2;
+		blue_component = b >> 3;
+		return 32 * (green_component + (red_component << 6)) +
+		       blue_component;
 	}
 	default:
-		return g_frontState.displayBpp;
+		return g_front_state.display_bpp;
 	}
 }
 
 /* Copies the back buffer into the offscreen surface: 480 rows of 80 *
- * (displayBpp & 0xFFFFFFF8) bytes, 640 pixels. Locks both, then unlocks the
+ * (display_bpp & 0xFFFFFFF8) bytes, 640 pixels. Locks both, then unlocks the
  * offscreen surface without saving it to the backup buffer, which leaves
- * g_drawSurfacePtr on the back buffer, and unlocks the back buffer when it was
+ * g_draw_surface_ptr on the back buffer, and unlocks the back buffer when it was
  * not locked before. Returns 1. The modern build mirrors the copy in its
  * renderer's targets. */
 // FUNCTION: XVT 0x4DC9B0
-int FrontendDisplay_SaveBackBuffer(void)
+int frontend_display_save_back_buffer(void)
 {
-	int wasBackBufferLocked;
+	int was_back_buffer_locked;
 	uint8_t *source;
 	uint8_t *destination;
 	int row;
 
 #ifdef XVT_MODERN
-	XvtRenderFrontend_Suppress(1);
+	xvt_render_frontend_suppress(1);
 #endif
-	wasBackBufferLocked = g_frontState.backBufferLocked;
-	source = FrontendDisplay_LockBackBuffer();
-	FrontendDisplay_LockOffscreenSurface();
-	destination = g_drawSurfacePtr;
+	was_back_buffer_locked = g_front_state.back_buffer_locked;
+	source = frontend_display_lock_back_buffer();
+	frontend_display_lock_offscreen_surface();
+	destination = g_draw_surface_ptr;
 	for (row = 480; row != 0; --row) {
 		memcpy(destination, source,
-		       (size_t)(80 * (g_frontState.displayBpp & 0xFFFFFFF8)));
-		destination += g_frontState.offscreenSurfacePitch;
-		source += g_frontState.backBufferPitch;
+		       (size_t)(80 * (g_front_state.display_bpp & 0xFFFFFFF8)));
+		destination += g_front_state.offscreen_surface_pitch;
+		source += g_front_state.back_buffer_pitch;
 	}
-	FrontendDisplay_UnlockOffscreenSurface(0);
-	if (wasBackBufferLocked == 0) {
-		FrontendDisplay_UnlockBackBuffer();
+	frontend_display_unlock_offscreen_surface(0);
+	if (was_back_buffer_locked == 0) {
+		frontend_display_unlock_back_buffer();
 	}
 
 #ifdef XVT_MODERN
-	XvtRenderFrontend_Suppress(0);
-	XvtRenderFrontend_Copy(XVT_TARGET_FRONT_BACK,
-			       XVT_TARGET_FRONT_OFFSCREEN);
-	XvtRenderFrontend_Select(XVT_TARGET_FRONT_BACK);
+	xvt_render_frontend_suppress(0);
+	xvt_render_frontend_copy(XVT_TARGET_FRONT_BACK,
+				 XVT_TARGET_FRONT_OFFSCREEN);
+	xvt_render_frontend_select(XVT_TARGET_FRONT_BACK);
 #endif
 	return 1;
 }
 
 /* Copies the offscreen surface into the back buffer: 480 rows of 80 *
- * (displayBpp & 0xFFFFFFF8) bytes, 640 pixels, locking and unlocking as
- * FrontendDisplay_SaveBackBuffer does. Returns 1. The modern build mirrors the
+ * (display_bpp & 0xFFFFFFF8) bytes, 640 pixels, locking and unlocking as
+ * frontend_display_save_back_buffer does. Returns 1. The modern build mirrors the
  * copy in its renderer's targets. */
 // FUNCTION: XVT 0x4DCA20
-int FrontendDisplay_RestoreBackBuffer(void)
+int frontend_display_restore_back_buffer(void)
 {
-	int wasBackBufferLocked;
+	int was_back_buffer_locked;
 	uint8_t *destination;
 	uint8_t *source;
 	int row;
 
 #ifdef XVT_MODERN
-	XvtRenderFrontend_Suppress(1);
+	xvt_render_frontend_suppress(1);
 #endif
-	wasBackBufferLocked = g_frontState.backBufferLocked;
-	destination = FrontendDisplay_LockBackBuffer();
-	FrontendDisplay_LockOffscreenSurface();
-	source = g_drawSurfacePtr;
+	was_back_buffer_locked = g_front_state.back_buffer_locked;
+	destination = frontend_display_lock_back_buffer();
+	frontend_display_lock_offscreen_surface();
+	source = g_draw_surface_ptr;
 	for (row = 480; row != 0; --row) {
 		memcpy(destination, source,
-		       (size_t)(80 * (g_frontState.displayBpp & 0xFFFFFFF8)));
-		source += g_frontState.offscreenSurfacePitch;
-		destination += g_frontState.backBufferPitch;
+		       (size_t)(80 * (g_front_state.display_bpp & 0xFFFFFFF8)));
+		source += g_front_state.offscreen_surface_pitch;
+		destination += g_front_state.back_buffer_pitch;
 	}
-	FrontendDisplay_UnlockOffscreenSurface(0);
-	if (wasBackBufferLocked == 0) {
-		FrontendDisplay_UnlockBackBuffer();
+	frontend_display_unlock_offscreen_surface(0);
+	if (was_back_buffer_locked == 0) {
+		frontend_display_unlock_back_buffer();
 	}
 
 #ifdef XVT_MODERN
-	XvtRenderFrontend_Suppress(0);
-	XvtRenderFrontend_Copy(XVT_TARGET_FRONT_OFFSCREEN,
-			       XVT_TARGET_FRONT_BACK);
-	XvtRenderFrontend_Select(XVT_TARGET_FRONT_BACK);
+	xvt_render_frontend_suppress(0);
+	xvt_render_frontend_copy(XVT_TARGET_FRONT_OFFSCREEN,
+				 XVT_TARGET_FRONT_BACK);
+	xvt_render_frontend_select(XVT_TARGET_FRONT_BACK);
 #endif
 	return 1;
 }
@@ -2741,19 +2801,19 @@ int FrontendDisplay_RestoreBackBuffer(void)
  * then takes the colors of the bitmap resource lpName (original build only) or
  * else the bitmap file lpName, when it has 8 bits per pixel or fewer; both
  * callers pass NULL, so they get the cube. When the returned pointer is not
- * NULL it copies the entries into g_frontState.displayPalette, with entry 0
+ * NULL it copies the entries into g_front_state.display_palette, with entry 0
  * black and entry 255 white. */
 // FUNCTION: XVT 0x4F0E30
-IDirectDrawPalette *FrontendDisplay_LoadPalette(IDirectDraw *pDD,
-						const char *lpName)
+IDirectDrawPalette *frontend_display_load_palette(IDirectDraw *p_dd,
+						  const char *lp_name)
 {
 	IDirectDrawPalette *palette;
-	struct FrontendDisplayBmpFileHeader fileHeader;
-	struct FrontendDisplayBmpInfoHeader infoHeader;
-	struct FrontendPaletteEntry entries[256];
-	struct FrontendPaletteEntry *entry;
+	struct frontend_display_bmp_file_header file_header;
+	struct frontend_display_bmp_info_header info_header;
+	struct frontend_palette_entry entries[256];
+	struct frontend_palette_entry *entry;
 	int index;
-	int colorCount;
+	int color_count;
 
 	entry = entries;
 	index = 0;
@@ -2766,75 +2826,76 @@ IDirectDrawPalette *FrontendDisplay_LoadPalette(IDirectDraw *pDD,
 		++index;
 	} while (entry < entries + 256);
 
-	if (lpName != NULL) {
+	if (lp_name != NULL) {
 #ifndef XVT_MODERN
-		void *resourceInfo;
+		void *resource_info;
 
-		resourceInfo = FindResourceA(NULL, lpName, 2);
-		if (resourceInfo != NULL) {
-			uint8_t *resourceData;
-			uint8_t *sourceEntry;
+		resource_info = FindResourceA(NULL, lp_name, 2);
+		if (resource_info != NULL) {
+			uint8_t *resource_data;
+			uint8_t *source_entry;
 			uint8_t color;
-			uint16_t bitsPerPixel;
+			uint16_t bits_per_pixel;
 
-			resourceData =
-				LockResource(LoadResource(NULL, resourceInfo));
-			sourceEntry = resourceData + *(uint32_t *)resourceData;
-			if (resourceData != NULL &&
-			    *(uint32_t *)resourceData >=
+			resource_data =
+				LockResource(LoadResource(NULL, resource_info));
+			source_entry =
+				resource_data + *(uint32_t *)resource_data;
+			if (resource_data != NULL &&
+			    *(uint32_t *)resource_data >=
 				    sizeof(struct
-					   FrontendDisplayBmpInfoHeader) &&
-			    (bitsPerPixel = *(uint16_t *)(resourceData + 14)) <=
-				    8) {
-				colorCount = *(uint32_t *)(resourceData + 32);
-				if (colorCount == 0) {
-					colorCount = 1 << bitsPerPixel;
+					   frontend_display_bmp_info_header) &&
+			    (bits_per_pixel =
+				     *(uint16_t *)(resource_data + 14)) <= 8) {
+				color_count = *(uint32_t *)(resource_data + 32);
+				if (color_count == 0) {
+					color_count = 1 << bits_per_pixel;
 				}
 			} else {
-				colorCount = 0;
+				color_count = 0;
 			}
-			if (colorCount > 0) {
+			if (color_count > 0) {
 				entry = entries;
 				do {
-					color = sourceEntry[2];
+					color = source_entry[2];
 					entry->red = color;
-					color = sourceEntry[1];
+					color = source_entry[1];
 					entry->green = color;
-					color = sourceEntry[0];
+					color = source_entry[0];
 					entry->blue = color;
 					entry->flags = 0;
 					++entry;
-					sourceEntry += 4;
-					--colorCount;
-				} while (colorCount != 0);
+					source_entry += 4;
+					--color_count;
+				} while (color_count != 0);
 			}
 		} else {
 			int file;
 
-			file = _lopen(lpName, 0);
+			file = _lopen(lp_name, 0);
 			if (file != -1) {
-				_lread(file, &fileHeader, sizeof(fileHeader));
-				_lread(file, &infoHeader, sizeof(infoHeader));
+				_lread(file, &file_header, sizeof(file_header));
+				_lread(file, &info_header, sizeof(info_header));
 				_lread(file, entries, sizeof(entries));
 				_lclose(file);
-				if (infoHeader.headerSize ==
-				    sizeof(infoHeader)) {
-					if (infoHeader.bitsPerPixel <= 8) {
-						colorCount =
-							infoHeader.colorsUsed;
-						if (colorCount == 0) {
-							colorCount =
+				if (info_header.header_size ==
+				    sizeof(info_header)) {
+					if (info_header.bits_per_pixel <= 8) {
+						color_count =
+							info_header.colors_used;
+						if (color_count == 0) {
+							color_count =
 								1
-								<< infoHeader
-									   .bitsPerPixel;
+								<< info_header
+									   .bits_per_pixel;
 						}
 					} else {
-						colorCount = 0;
+						color_count = 0;
 					}
 				} else {
-					colorCount = 0;
+					color_count = 0;
 				}
-				for (index = 0; index < colorCount; ++index) {
+				for (index = 0; index < color_count; ++index) {
 					uint8_t red;
 
 					red = entries[index].red;
@@ -2845,30 +2906,32 @@ IDirectDrawPalette *FrontendDisplay_LoadPalette(IDirectDraw *pDD,
 			}
 		}
 #else
-		XvtFile *stream;
+		xvt_file *stream;
 
-		stream = File_Open(lpName, "rb");
+		stream = file_open(lp_name, "rb");
 		if (stream != NULL) {
-			File_ReadBytes(stream, &fileHeader, sizeof(fileHeader));
-			File_ReadBytes(stream, &infoHeader, sizeof(infoHeader));
-			File_ReadBytes(stream, entries, sizeof(entries));
-			File_Close(stream);
-			if (infoHeader.headerSize == sizeof(infoHeader)) {
-				if (infoHeader.bitsPerPixel <= 8) {
-					colorCount = infoHeader.colorsUsed;
-					if (colorCount == 0) {
-						colorCount =
+			file_read_bytes(stream, &file_header,
+					sizeof(file_header));
+			file_read_bytes(stream, &info_header,
+					sizeof(info_header));
+			file_read_bytes(stream, entries, sizeof(entries));
+			file_close(stream);
+			if (info_header.header_size == sizeof(info_header)) {
+				if (info_header.bits_per_pixel <= 8) {
+					color_count = info_header.colors_used;
+					if (color_count == 0) {
+						color_count =
 							1
-							<< infoHeader
-								   .bitsPerPixel;
+							<< info_header
+								   .bits_per_pixel;
 					}
 				} else {
-					colorCount = 0;
+					color_count = 0;
 				}
 			} else {
-				colorCount = 0;
+				color_count = 0;
 			}
-			for (index = 0; index < colorCount; ++index) {
+			for (index = 0; index < color_count; ++index) {
 				uint8_t red;
 
 				red = entries[index].red;
@@ -2882,22 +2945,22 @@ IDirectDrawPalette *FrontendDisplay_LoadPalette(IDirectDraw *pDD,
 #ifdef XVT_MODERN
 	palette = NULL;
 #endif
-	pDD->lpVtbl->CreatePalette(pDD, DDPCAPS_8BIT | DDPCAPS_ALLOW256,
-				   entries, &palette, NULL);
+	p_dd->lpVtbl->CreatePalette(p_dd, DDPCAPS_8BIT | DDPCAPS_ALLOW256,
+				    entries, &palette, NULL);
 	if (palette != NULL) {
-		memcpy(g_frontState.displayPalette, entries,
-		       sizeof(g_frontState.displayPalette));
-		g_frontState.displayPalette[0].red = 0;
-		g_frontState.displayPalette[0].green = 0;
-		g_frontState.displayPalette[0].blue = 0;
-		g_frontState.displayPalette[255].red = 255;
-		g_frontState.displayPalette[255].green = 255;
-		g_frontState.displayPalette[255].blue = 255;
+		memcpy(g_front_state.display_palette, entries,
+		       sizeof(g_front_state.display_palette));
+		g_front_state.display_palette[0].red = 0;
+		g_front_state.display_palette[0].green = 0;
+		g_front_state.display_palette[0].blue = 0;
+		g_front_state.display_palette[255].red = 255;
+		g_front_state.display_palette[255].green = 255;
+		g_front_state.display_palette[255].blue = 255;
 	}
 	return palette;
 }
 
-/* Only FrontendDisplay_SetSurfaceColorKey calls this, and nothing calls that.
+/* Only frontend_display_set_surface_color_key calls this, and nothing calls that.
  * Returns the surface's pixel value for the COLORREF color, or for color
  * 0xFFFFFFFF the surface's first pixel; 0xFFFFFFFF when the lock fails. The
  * original build has GDI set the first pixel to color, reads it back through a
@@ -2905,122 +2968,125 @@ IDirectDrawPalette *FrontendDisplay_LoadPalette(IDirectDraw *pDD,
  * build computes the value from the surface's channel masks. */
 // FUNCTION: XVT 0x4F1070
 uint32_t
-FrontendDisplay_ConvertColorRefToSurfacePixel(IDirectDrawSurface *surface,
-					      uint32_t color)
+frontend_display_convert_color_ref_to_surface_pixel(IDirectDrawSurface *surface,
+						    uint32_t color)
 {
 #ifdef XVT_MODERN
-	uint32_t surfacePixel;
+	uint32_t surface_pixel;
 	uint32_t red;
 	uint32_t green;
 	uint32_t blue;
-	uint32_t redMask;
-	uint32_t greenMask;
-	uint32_t blueMask;
-	uint32_t redShift;
-	uint32_t greenShift;
-	uint32_t blueShift;
-	uint32_t redMax;
-	uint32_t greenMax;
-	uint32_t blueMax;
-	HRESULT lockResult;
-	DDSURFACEDESC surfaceDesc;
+	uint32_t red_mask;
+	uint32_t green_mask;
+	uint32_t blue_mask;
+	uint32_t red_shift;
+	uint32_t green_shift;
+	uint32_t blue_shift;
+	uint32_t red_max;
+	uint32_t green_max;
+	uint32_t blue_max;
+	HRESULT lock_result;
+	DDSURFACEDESC surface_desc;
 
-	surfacePixel = UINT32_MAX;
-	surfaceDesc.dwSize = sizeof(surfaceDesc);
+	surface_pixel = UINT32_MAX;
+	surface_desc.dwSize = sizeof(surface_desc);
 	do {
-		lockResult = surface->lpVtbl->Lock(surface, NULL, &surfaceDesc,
-						   0, NULL);
-	} while (lockResult == DX_DDERR_WASSTILLDRAWING);
-	if (lockResult != 0) {
-		return surfacePixel;
+		lock_result = surface->lpVtbl->Lock(surface, NULL,
+						    &surface_desc, 0, NULL);
+	} while (lock_result == DX_DDERR_WASSTILLDRAWING);
+	if (lock_result != 0) {
+		return surface_pixel;
 	}
 	if (color == UINT32_MAX) {
-		surfacePixel = *(uint32_t *)surfaceDesc.lpSurface;
+		surface_pixel = *(uint32_t *)surface_desc.lpSurface;
 	} else {
 		red = color & 0xFF;
 		green = (color >> 8) & 0xFF;
 		blue = (color >> 16) & 0xFF;
-		redMask = surfaceDesc.ddpfPixelFormat.dwRBitMask;
-		greenMask = surfaceDesc.ddpfPixelFormat.dwGBitMask;
-		blueMask = surfaceDesc.ddpfPixelFormat.dwBBitMask;
-		redShift = 0;
-		greenShift = 0;
-		blueShift = 0;
-		while (redMask != 0 && ((redMask >> redShift) & 1) == 0) {
-			++redShift;
+		red_mask = surface_desc.ddpfPixelFormat.dwRBitMask;
+		green_mask = surface_desc.ddpfPixelFormat.dwGBitMask;
+		blue_mask = surface_desc.ddpfPixelFormat.dwBBitMask;
+		red_shift = 0;
+		green_shift = 0;
+		blue_shift = 0;
+		while (red_mask != 0 && ((red_mask >> red_shift) & 1) == 0) {
+			++red_shift;
 		}
-		while (greenMask != 0 && ((greenMask >> greenShift) & 1) == 0) {
-			++greenShift;
+		while (green_mask != 0 &&
+		       ((green_mask >> green_shift) & 1) == 0) {
+			++green_shift;
 		}
-		while (blueMask != 0 && ((blueMask >> blueShift) & 1) == 0) {
-			++blueShift;
+		while (blue_mask != 0 && ((blue_mask >> blue_shift) & 1) == 0) {
+			++blue_shift;
 		}
-		redMax = redMask >> redShift;
-		greenMax = greenMask >> greenShift;
-		blueMax = blueMask >> blueShift;
-		surfacePixel =
-			(((red * redMax / 255) << redShift) & redMask) |
-			(((green * greenMax / 255) << greenShift) & greenMask) |
-			(((blue * blueMax / 255) << blueShift) & blueMask);
+		red_max = red_mask >> red_shift;
+		green_max = green_mask >> green_shift;
+		blue_max = blue_mask >> blue_shift;
+		surface_pixel =
+			(((red * red_max / 255) << red_shift) & red_mask) |
+			(((green * green_max / 255) << green_shift) &
+			 green_mask) |
+			(((blue * blue_max / 255) << blue_shift) & blue_mask);
 	}
-	if (surfaceDesc.ddpfPixelFormat.dwRGBBitCount < 32) {
-		surfacePixel &=
-			(1u << surfaceDesc.ddpfPixelFormat.dwRGBBitCount) - 1;
+	if (surface_desc.ddpfPixelFormat.dwRGBBitCount < 32) {
+		surface_pixel &=
+			(1u << surface_desc.ddpfPixelFormat.dwRGBBitCount) - 1;
 	}
 	surface->lpVtbl->Unlock(surface, NULL);
-	return surfacePixel;
+	return surface_pixel;
 #else
-	uint32_t surfacePixel;
-	uint32_t originalColor;
-	HRESULT lockResult;
+	uint32_t surface_pixel;
+	uint32_t original_color;
+	HRESULT lock_result;
 	void *dc;
-	DDSURFACEDESC surfaceDesc;
+	DDSURFACEDESC surface_desc;
 
-	surfacePixel = UINT32_MAX;
+	surface_pixel = UINT32_MAX;
 	if (color != UINT32_MAX &&
-	    ((FrontendDisplaySurfaceGetDcFunc)surface->lpVtbl->GetDC)(
+	    ((frontend_display_surface_get_dc_func)surface->lpVtbl->GetDC)(
 		    surface, &dc) == 0) {
-		originalColor = GetPixel(dc, 0, 0);
+		original_color = GetPixel(dc, 0, 0);
 		SetPixel(dc, 0, 0, color);
-		((FrontendDisplaySurfaceReleaseDcFunc)
+		((frontend_display_surface_release_dc_func)
 			 surface->lpVtbl->ReleaseDC)(surface, dc);
 	} else {
-		originalColor = surfaceDesc.dwSize;
+		original_color = surface_desc.dwSize;
 	}
-	surfaceDesc.dwSize = sizeof(surfaceDesc);
+	surface_desc.dwSize = sizeof(surface_desc);
 	do {
-		lockResult = surface->lpVtbl->Lock(surface, NULL, &surfaceDesc,
-						   0, NULL);
-	} while (lockResult == DX_DDERR_WASSTILLDRAWING);
-	if (lockResult == 0) {
-		surfacePixel = *(uint32_t *)surfaceDesc.lpSurface &
-			       ((1u << (int8_t)surfaceDesc.ddpfPixelFormat
-					       .dwRGBBitCount) -
-				1);
+		lock_result = surface->lpVtbl->Lock(surface, NULL,
+						    &surface_desc, 0, NULL);
+	} while (lock_result == DX_DDERR_WASSTILLDRAWING);
+	if (lock_result == 0) {
+		surface_pixel = *(uint32_t *)surface_desc.lpSurface &
+				((1u << (int8_t)surface_desc.ddpfPixelFormat
+						.dwRGBBitCount) -
+				 1);
 		surface->lpVtbl->Unlock(surface, NULL);
 	}
 	if (color != UINT32_MAX &&
-	    ((FrontendDisplaySurfaceGetDcFunc)surface->lpVtbl->GetDC)(
+	    ((frontend_display_surface_get_dc_func)surface->lpVtbl->GetDC)(
 		    surface, &dc) == 0) {
-		SetPixel(dc, 0, 0, originalColor);
-		((FrontendDisplaySurfaceReleaseDcFunc)
+		SetPixel(dc, 0, 0, original_color);
+		((frontend_display_surface_release_dc_func)
 			 surface->lpVtbl->ReleaseDC)(surface, dc);
 	}
-	return surfacePixel;
+	return surface_pixel;
 #endif
 }
 
 /* Nothing calls this. Sets the surface's source color key to the pixel value
- * FrontendDisplay_ConvertColorRefToSurfacePixel gives for the COLORREF color
+ * frontend_display_convert_color_ref_to_surface_pixel gives for the COLORREF color
  * and returns SetColorKey's result. */
 // FUNCTION: XVT 0x4F1160
-HRESULT FrontendDisplay_SetSurfaceColorKey(IDirectDrawSurface *surface,
-					   uint32_t color)
+HRESULT frontend_display_set_surface_color_key(IDirectDrawSurface *surface,
+					       uint32_t color)
 {
-	DDCOLORKEY colorKey;
+	DDCOLORKEY color_key;
 
-	colorKey.dwColorSpaceLowValue =
-		FrontendDisplay_ConvertColorRefToSurfacePixel(surface, color);
-	colorKey.dwColorSpaceHighValue = colorKey.dwColorSpaceLowValue;
-	return surface->lpVtbl->SetColorKey(surface, DDCKEY_SRCBLT, &colorKey);
+	color_key.dwColorSpaceLowValue =
+		frontend_display_convert_color_ref_to_surface_pixel(surface,
+								    color);
+	color_key.dwColorSpaceHighValue = color_key.dwColorSpaceLowValue;
+	return surface->lpVtbl->SetColorKey(surface, DDCKEY_SRCBLT, &color_key);
 }

@@ -3,16 +3,17 @@
 #include "xvt_runtime/config/config.h"
 
 static struct {
-	struct XvtVideoSettings defaults, requested, accepted, persisted;
-	XvtVideoApplyFn apply;
+	struct xvt_video_settings defaults, requested, accepted, persisted;
+	xvt_video_apply_fn apply;
 	bool pending, restore;
 	int observed_fullscreen;
 } g_video;
 
-void XvtVideoOptions_Configure(XvtVideoApplyFn apply)
+void xvt_video_options_configure(xvt_video_apply_fn apply)
 {
-	XvtVideoSettings_Read(XvtConfig_DefaultSettings(), &g_video.defaults);
-	XvtVideoSettings_Read(XvtConfig_Settings(), &g_video.requested);
+	xvt_video_settings_read(xvt_config_default_settings(),
+				&g_video.defaults);
+	xvt_video_settings_read(xvt_config_settings(), &g_video.requested);
 	if (g_video.requested.fsr_mode != AERON_TEMPORAL_OFF) {
 		g_video.requested.msaa_samples = 1;
 	}
@@ -25,32 +26,33 @@ void XvtVideoOptions_Configure(XvtVideoApplyFn apply)
 	g_video.observed_fullscreen = Aeron_Fullscreen();
 }
 
-void XvtVideoOptions_Get(struct XvtVideoSettings *out)
+void xvt_video_options_get(struct xvt_video_settings *out)
 {
 	*out = g_video.requested;
 }
 
-bool XvtVideoOptions_Request(const struct XvtVideoSettings *options,
-			     char *error, size_t capacity)
+bool xvt_video_options_request(const struct xvt_video_settings *options,
+			       char *error, size_t capacity)
 {
-	if (!XvtVideoSettings_Validate(options, error, capacity)) {
+	if (!xvt_video_settings_validate(options, error, capacity)) {
 		return false;
 	}
 	g_video.requested = *options;
-	g_video.pending = !XvtVideoSettings_Equals(options, &g_video.accepted);
+	g_video.pending =
+		!xvt_video_settings_equals(options, &g_video.accepted);
 	g_video.restore = false;
 	return true;
 }
 
-void XvtVideoOptions_RestoreDefaults(void)
+void xvt_video_options_restore_defaults(void)
 {
 	g_video.requested = g_video.defaults;
-	g_video.pending =
-		!XvtVideoSettings_Equals(&g_video.defaults, &g_video.accepted);
+	g_video.pending = !xvt_video_settings_equals(&g_video.defaults,
+						     &g_video.accepted);
 	g_video.restore = true;
 }
 
-bool XvtVideoOptions_ApplyPending(char *error, size_t capacity)
+bool xvt_video_options_apply_pending(char *error, size_t capacity)
 {
 	int fullscreen = Aeron_Fullscreen();
 	if (fullscreen != g_video.observed_fullscreen && !g_video.pending) {
@@ -74,17 +76,17 @@ bool XvtVideoOptions_ApplyPending(char *error, size_t capacity)
 	return true;
 }
 
-bool XvtVideoOptions_Flush(bool exiting, char *error, size_t capacity)
+bool xvt_video_options_flush(bool exiting, char *error, size_t capacity)
 {
-	const struct XvtVideoSettings *options =
+	const struct xvt_video_settings *options =
 		exiting ? &g_video.requested : &g_video.accepted;
 	if (!g_video.restore &&
-	    XvtVideoSettings_Equals(options, &g_video.persisted)) {
+	    xvt_video_settings_equals(options, &g_video.persisted)) {
 		return true;
 	}
-	bool success = XvtVideoSettings_Equals(options, &g_video.defaults)
-			       ? XvtConfig_RestoreVideo(error, capacity)
-			       : XvtConfig_SetVideo(options, error, capacity);
+	bool success = xvt_video_settings_equals(options, &g_video.defaults)
+			       ? xvt_config_restore_video(error, capacity)
+			       : xvt_config_set_video(options, error, capacity);
 	if (success) {
 		g_video.persisted = *options;
 		g_video.restore = false;

@@ -11,405 +11,405 @@
  * translate between the two forms. */
 #pragma pack(push, 1)
 
-struct XvtSnapshotMobileObjectProximityList {
+struct xvt_snapshot_mobile_object_proximity_list {
 	uint8_t count;
-	int32_t contactTicks[16];
-	uint16_t objIdx[16];
-	int32_t rebuildTicks;
+	int32_t contact_ticks[16];
+	uint16_t obj_idx[16];
+	int32_t rebuild_ticks;
 };
 
-struct XvtSnapshotAiController {
-	uint8_t currentOrderSlot;
-	struct AiOrderProgress orderProgress;
-	uint8_t skippedToOrder4;
-	uint8_t runningPlanId;
-	uint8_t currentPlanId;
-	uint8_t waypointIndex;
-	uint8_t savedPlanId;
-	int32_t thinkInterval;
-	int32_t thinkTimer;
-	int16_t savedRandSeed;
-	uint16_t targetObjIdx;
-	uint16_t targetSignature;
-	uint16_t targetComponent;
-	uint8_t hasLiveTarget;
-	int32_t aimPointX;
-	int32_t aimPointY;
-	int32_t aimPointZ;
-	uint16_t candidateTargetIdx;
-	uint8_t escortTargetFG;
-	uint16_t targetZAngle;
-	uint16_t targetRoll;
-	uint16_t targetXYAngle;
-	AiManeuverMode maneuverMode;
-	uint8_t maneuverPhase;
-	int32_t maneuverTimer;
-	int16_t secondaryManeuverTimer;
+struct xvt_snapshot_ai_controller {
+	uint8_t current_order_slot;
+	struct ai_order_progress order_progress;
+	uint8_t skipped_to_order4;
+	uint8_t running_plan_id;
+	uint8_t current_plan_id;
+	uint8_t waypoint_index;
+	uint8_t saved_plan_id;
+	int32_t think_interval;
+	int32_t think_timer;
+	int16_t saved_rand_seed;
+	uint16_t target_obj_idx;
+	uint16_t target_signature;
+	uint16_t target_component;
+	uint8_t has_live_target;
+	int32_t aim_point_x;
+	int32_t aim_point_y;
+	int32_t aim_point_z;
+	uint16_t candidate_target_idx;
+	uint8_t escort_target_fg;
+	uint16_t target_z_angle;
+	uint16_t target_roll;
+	uint16_t target_xy_angle;
+	ai_maneuver_mode maneuver_mode;
+	uint8_t maneuver_phase;
+	int32_t maneuver_timer;
+	int16_t secondary_maneuver_timer;
 };
 
-struct XvtSnapshotAiFlightState {
-	uint16_t threatObjIdx;
-	uint16_t impactObjIdx;
-	uint8_t goHomeFlag;
-	uint8_t missionAbortedFlag;
-	uint8_t departTimerFlag;
-	uint8_t departClockHours;
-	uint8_t departClockMinutes;
-	uint8_t departClockSeconds;
-	uint8_t warheadsFiredThisManeuver;
-	uint8_t hitsThisManeuver;
-	uint8_t boardedAccountingDone;
-	uint8_t timesBoarded;
-	uint8_t dockingAccountingDone;
-	uint8_t dockedTargetCount;
-	uint16_t dockedTargetSignatures[10];
-	int16_t maxSpeedCache;
-	int16_t motionScale;
-	uint8_t climbState;
-	uint8_t diveState;
-	int16_t pitchRate;
-	int16_t pitchAccel;
-	uint8_t pitchState;
-	uint8_t pitchThroughLoop;
-	uint16_t pitchStepScale;
-	int16_t rollRate;
-	int16_t rollAccel;
-	uint8_t rollState;
-	uint16_t rollStep;
-	int16_t turnRate;
-	int16_t turnAccel;
-	uint8_t turnState;
-	int16_t turnStep;
-	uint8_t formationType;
+struct xvt_snapshot_ai_flight_state {
+	uint16_t threat_obj_idx;
+	uint16_t impact_obj_idx;
+	uint8_t go_home_flag;
+	uint8_t mission_aborted_flag;
+	uint8_t depart_timer_flag;
+	uint8_t depart_clock_hours;
+	uint8_t depart_clock_minutes;
+	uint8_t depart_clock_seconds;
+	uint8_t warheads_fired_this_maneuver;
+	uint8_t hits_this_maneuver;
+	uint8_t boarded_accounting_done;
+	uint8_t times_boarded;
+	uint8_t docking_accounting_done;
+	uint8_t docked_target_count;
+	uint16_t docked_target_signatures[10];
+	int16_t max_speed_cache;
+	int16_t motion_scale;
+	uint8_t climb_state;
+	uint8_t dive_state;
+	int16_t pitch_rate;
+	int16_t pitch_accel;
+	uint8_t pitch_state;
+	uint8_t pitch_through_loop;
+	uint16_t pitch_step_scale;
+	int16_t roll_rate;
+	int16_t roll_accel;
+	uint8_t roll_state;
+	uint16_t roll_step;
+	int16_t turn_rate;
+	int16_t turn_accel;
+	uint8_t turn_state;
+	int16_t turn_step;
+	uint8_t formation_type;
 	uint8_t separation;
 };
 
-struct XvtSnapshotCraftDamageStats {
-	uint16_t lastSystemHitTime;
-	int32_t damageReceivedTotal;
-	int32_t damageReceivedByPlayerOwnedCraft;
-	int32_t damageFromCollision;
-	int32_t damageFromStarship;
-	int32_t damageFromMine;
-	int32_t damageFromFlightGroupAmount[48];
-	int32_t damageFromPlayer[8];
-	int32_t damageFromAiSkill[6];
-	uint16_t installedHudFeatureMask;
-	uint16_t activeHudFeatureMask;
+struct xvt_snapshot_craft_damage_stats {
+	uint16_t last_system_hit_time;
+	int32_t damage_received_total;
+	int32_t damage_received_by_player_owned_craft;
+	int32_t damage_from_collision;
+	int32_t damage_from_starship;
+	int32_t damage_from_mine;
+	int32_t damage_from_flight_group_amount[48];
+	int32_t damage_from_player[8];
+	int32_t damage_from_ai_skill[6];
+	uint16_t installed_hud_feature_mask;
+	uint16_t active_hud_feature_mask;
 };
 
-struct XvtSnapshotPlayerViewState {
-	int32_t cameraWorldX;
-	int32_t cameraWorldY;
-	int32_t cameraWorldZ;
-	uint16_t cameraFocusObjIdx;
-	uint16_t aimTargetIdx;
-	int16_t viewPitch;
-	int16_t viewYaw;
-	int16_t viewRoll;
-	int16_t viewAngleD;
-	int16_t hudAimX;
-	int16_t hudAimY;
-	uint8_t hudStateLive;
-	uint8_t hudStateMirror;
-	uint8_t hudAimXSnapState;
-	uint8_t savedHudStateByte;
+struct xvt_snapshot_player_view_state {
+	int32_t camera_world_x;
+	int32_t camera_world_y;
+	int32_t camera_world_z;
+	uint16_t camera_focus_obj_idx;
+	uint16_t aim_target_idx;
+	int16_t view_pitch;
+	int16_t view_yaw;
+	int16_t view_roll;
+	int16_t view_angle_d;
+	int16_t hud_aim_x;
+	int16_t hud_aim_y;
+	uint8_t hud_state_live;
+	uint8_t hud_state_mirror;
+	uint8_t hud_aim_x_snap_state;
+	uint8_t saved_hud_state_byte;
 	uint8_t unused20;
-	int16_t savedHudAimX;
-	int16_t savedHudAimY;
-	int16_t playerInputBlocked;
-	int16_t cameraDistanceStep;
-	uint16_t externalCameraActive;
-	int32_t cameraDistance;
-	int16_t targetCameraActive;
-	int16_t cameraRollHistory[60];
-	int16_t cameraPitchHistory[60];
-	int16_t cameraYawHistory[60];
+	int16_t saved_hud_aim_x;
+	int16_t saved_hud_aim_y;
+	int16_t player_input_blocked;
+	int16_t camera_distance_step;
+	uint16_t external_camera_active;
+	int32_t camera_distance;
+	int16_t target_camera_active;
+	int16_t camera_roll_history[60];
+	int16_t camera_pitch_history[60];
+	int16_t camera_yaw_history[60];
 	uint16_t unused199;
 };
 
-struct XvtSnapshotPlayerNetworkRuntimeTail {
-	uint16_t flightResolutionMode;
-	int32_t directPlayId;
+struct xvt_snapshot_player_network_runtime_tail {
+	uint16_t flight_resolution_mode;
+	int32_t direct_play_id;
 };
 
-struct XvtSnapshotObjectRecord {
-	uint16_t objectSignature;
-	uint8_t genusId;
-	uint8_t objectType;
+struct xvt_snapshot_object_record {
+	uint16_t object_signature;
+	uint8_t genus_id;
+	uint8_t object_type;
 	int32_t world_x;
 	int32_t world_y;
 	int32_t world_z;
 	int16_t yaw;
 	int16_t pitch;
 	int16_t roll;
-	uint8_t flightGroupIdx;
-	uint16_t typeSpecificWord;
-	uint8_t typeSpecificByte[2];
-	int32_t playerOwnerIdx;
+	uint8_t flight_group_idx;
+	uint16_t type_specific_word;
+	uint8_t type_specific_byte[2];
+	int32_t player_owner_idx;
 	uint32_t mobj;
 };
 
-struct XvtSnapshotMobileObject {
+struct xvt_snapshot_mobile_object {
 	uint8_t family;
-	uint8_t effectSize;
-	int32_t simStateTimestamp;
-	int32_t prevWorldX;
-	int32_t prevWorldY;
-	int32_t prevWorldZ;
-	struct XvtSnapshotMobileObjectProximityList proximityList;
-	int16_t rollImpulseRate;
+	uint8_t effect_size;
+	int32_t sim_state_timestamp;
+	int32_t prev_world_x;
+	int32_t prev_world_y;
+	int32_t prev_world_z;
+	struct xvt_snapshot_mobile_object_proximity_list proximity_list;
+	int16_t roll_impulse_rate;
 	uint16_t speed;
-	uint16_t speedRemainder;
-	uint32_t damageAmount;
-	uint16_t lifetimeTimer;
-	uint16_t secondsAlive;
-	uint16_t sourceObjIdx;
-	uint8_t sourceObjectType;
+	uint16_t speed_remainder;
+	uint32_t damage_amount;
+	uint16_t lifetime_timer;
+	uint16_t seconds_alive;
+	uint16_t source_obj_idx;
+	uint8_t source_object_type;
 	uint8_t iff;
 	uint8_t team;
-	uint8_t nodeSwitchIndex;
-	uint8_t moveVectorDirty;
-	int16_t moveX;
-	int16_t moveY;
-	int16_t moveZ;
-	uint8_t orientMatrixDirty;
-	int16_t cachedFwdX;
-	int16_t cachedFwdY;
-	int16_t cachedFwdZ;
-	int16_t cachedSideX;
-	int16_t cachedSideY;
-	int16_t cachedSideZ;
-	int16_t cachedUpX;
-	int16_t cachedUpY;
-	int16_t cachedUpZ;
-	uint32_t pWarheadGuidance;
-	uint32_t pCraft;
-	uint32_t pCharData;
+	uint8_t node_switch_index;
+	uint8_t move_vector_dirty;
+	int16_t move_x;
+	int16_t move_y;
+	int16_t move_z;
+	uint8_t orient_matrix_dirty;
+	int16_t cached_fwd_x;
+	int16_t cached_fwd_y;
+	int16_t cached_fwd_z;
+	int16_t cached_side_x;
+	int16_t cached_side_y;
+	int16_t cached_side_z;
+	int16_t cached_up_x;
+	int16_t cached_up_y;
+	int16_t cached_up_z;
+	uint32_t p_warhead_guidance;
+	uint32_t p_craft;
+	uint32_t p_char_data;
 };
 
-struct XvtSnapshotCraftData {
-	int32_t craftIndexInGroup;
-	uint8_t modelIndex;
+struct xvt_snapshot_craft_data {
+	int32_t craft_index_in_group;
+	uint8_t model_index;
 	uint8_t leader_obj_idx;
 	uint8_t unused006;
-	CraftObjectKind objectKind;
-	uint8_t missionAccountingDone;
-	uint16_t aiSkill;
-	uint8_t unused00B[2];
+	craft_object_kind object_kind;
+	uint8_t mission_accounting_done;
+	uint16_t ai_skill;
+	uint8_t unused00b[2];
 	uint16_t pitch;
 	uint16_t yaw;
-	int16_t breakupPitchRate;
-	int16_t breakupYawRate;
-	int32_t beamEffectAccum[5];
-	uint8_t sFoilState;
-	struct XvtSnapshotAiController aiController;
-	uint16_t carriedObjectIndex;
-	uint16_t carrierObjIdx;
-	uint16_t lastAttackerObjIdx;
-	uint16_t lastHitMissionSecond;
-	struct XvtSnapshotAiFlightState aiFlight;
-	uint8_t craftOrdinal;
-	int32_t pushAccumX;
-	int32_t pushAccumY;
-	int32_t pushAccumZ;
-	uint16_t throttleSpeed;
-	uint16_t engineOverdriveOff;
-	int16_t commandedSpeed;
-	uint32_t hullDamage;
-	uint32_t systemDamageHullThreshold;
-	uint32_t hullMax;
-	int16_t subsystemDamage;
-	struct XvtSnapshotCraftDamageStats damageStats;
-	CraftSubsystemFlag systemFlags;
-	CraftSubsystemFlag workingSubsystems;
-	int16_t weaponFireInhibitTimer;
-	uint8_t unusedMissionFlag;
-	uint8_t notDisabledAccountingSuppress;
-	uint8_t capturedByFlightGroup;
-	int8_t attackedByTeam[10];
-	uint8_t identifiedOrderByTeam[10];
-	uint8_t boardingState;
-	char specialCargoName[16];
-	int32_t shieldEnergy[2];
-	PowerRechargeLevel shieldRechargeLevel;
-	ShieldDistributionMode shieldDistribMode;
-	uint8_t cannonGroupCount;
-	PowerRechargeLevel laserRechargeLevel;
-	uint8_t laserSlotCount;
-	struct CraftLaserState laserState;
-	uint8_t warheadLauncherCount;
-	uint8_t warheadSlotTypeIds[2];
-	int8_t warheadLauncherFlags[2];
-	int16_t warheadLauncherCooldownTicks[2];
-	int16_t warheadLockTicks;
-	BeamType beamTypeId;
-	PowerRechargeLevel beamRechargeLevel;
-	uint16_t beamCharge;
-	uint8_t beamActive;
-	int16_t beamOutput;
-	int16_t beamTargetObjIdx;
-	CountermeasureType cmTypeId;
-	uint8_t cmAmmoCount;
-	uint16_t chaffActiveSeconds;
-	uint16_t cmFireCooldownTimer;
-	struct CraftWeaponStats weaponStats;
+	int16_t breakup_pitch_rate;
+	int16_t breakup_yaw_rate;
+	int32_t beam_effect_accum[5];
+	uint8_t s_foil_state;
+	struct xvt_snapshot_ai_controller ai_controller;
+	uint16_t carried_object_index;
+	uint16_t carrier_obj_idx;
+	uint16_t last_attacker_obj_idx;
+	uint16_t last_hit_mission_second;
+	struct xvt_snapshot_ai_flight_state ai_flight;
+	uint8_t craft_ordinal;
+	int32_t push_accum_x;
+	int32_t push_accum_y;
+	int32_t push_accum_z;
+	uint16_t throttle_speed;
+	uint16_t engine_overdrive_off;
+	int16_t commanded_speed;
+	uint32_t hull_damage;
+	uint32_t system_damage_hull_threshold;
+	uint32_t hull_max;
+	int16_t subsystem_damage;
+	struct xvt_snapshot_craft_damage_stats damage_stats;
+	craft_subsystem_flag system_flags;
+	craft_subsystem_flag working_subsystems;
+	int16_t weapon_fire_inhibit_timer;
+	uint8_t unused_mission_flag;
+	uint8_t not_disabled_accounting_suppress;
+	uint8_t captured_by_flight_group;
+	int8_t attacked_by_team[10];
+	uint8_t identified_order_by_team[10];
+	uint8_t boarding_state;
+	char special_cargo_name[16];
+	int32_t shield_energy[2];
+	power_recharge_level shield_recharge_level;
+	shield_distribution_mode shield_distrib_mode;
+	uint8_t cannon_group_count;
+	power_recharge_level laser_recharge_level;
+	uint8_t laser_slot_count;
+	struct craft_laser_state laser_state;
+	uint8_t warhead_launcher_count;
+	uint8_t warhead_slot_type_ids[2];
+	int8_t warhead_launcher_flags[2];
+	int16_t warhead_launcher_cooldown_ticks[2];
+	int16_t warhead_lock_ticks;
+	beam_type beam_type_id;
+	power_recharge_level beam_recharge_level;
+	uint16_t beam_charge;
+	uint8_t beam_active;
+	int16_t beam_output;
+	int16_t beam_target_obj_idx;
+	countermeasure_type cm_type_id;
+	uint8_t cm_ammo_count;
+	uint16_t chaff_active_seconds;
+	uint16_t cm_fire_cooldown_timer;
+	struct craft_weapon_stats weapon_stats;
 	uint8_t unused256[73];
-	uint16_t field_29F;
-	uint8_t systemDisplaySlotBySystem[DAMAGE_SYSTEM_ID_COUNT];
-	uint16_t systemHealth[DAMAGE_SYSTEM_ID_COUNT];
-	uint16_t systemRepairSeconds[DAMAGE_SYSTEM_ID_COUNT];
-	uint8_t componentState[50];
-	uint8_t meshRotation[50];
-	uint8_t componentHp[50];
-	uint16_t playerCommandAvoidTargetObjIdx;
-	struct CraftWeaponSlot weaponSlots[16];
-	uint16_t effectiveAiObjectSignature;
-	struct TurretTargetState turretTargetStates[16];
-	uint8_t unused3F2[44];
-	uint32_t turretObjectLinks[16];
-	uint32_t effectiveAiObjectLink;
+	uint16_t field_29f;
+	uint8_t system_display_slot_by_system[DAMAGE_SYSTEM_ID_COUNT];
+	uint16_t system_health[DAMAGE_SYSTEM_ID_COUNT];
+	uint16_t system_repair_seconds[DAMAGE_SYSTEM_ID_COUNT];
+	uint8_t component_state[50];
+	uint8_t mesh_rotation[50];
+	uint8_t component_hp[50];
+	uint16_t player_command_avoid_target_obj_idx;
+	struct craft_weapon_slot weapon_slots[16];
+	uint16_t effective_ai_object_signature;
+	struct turret_target_state turret_target_states[16];
+	uint8_t unused3f2[44];
+	uint32_t turret_object_links[16];
+	uint32_t effective_ai_object_link;
 };
 
-struct XvtSnapshotMobileObjectCharData {
-	uint16_t skillValue;
+struct xvt_snapshot_mobile_object_char_data {
+	uint16_t skill_value;
 	uint8_t unused02[2];
-	struct XvtSnapshotAiController aiController;
+	struct xvt_snapshot_ai_controller ai_controller;
 	uint8_t unused40[12];
 };
 
-struct XvtSnapshotPlayerData {
-	int32_t objectIndex;
-	uint32_t boundObjectSignature;
-	uint16_t pilotRating;
+struct xvt_snapshot_player_data {
+	int32_t object_index;
+	uint32_t bound_object_signature;
+	uint16_t pilot_rating;
 	int16_t iff;
 	int16_t team;
-	uint16_t boundFlightGroupIdx;
-	uint8_t participationState;
-	uint8_t awaitingNewCraft;
-	uint8_t boundCraftEngineGlowCount;
-	uint8_t mapCameraState;
-	uint8_t hyperspacePhase;
-	struct PlayerHyperspaceRuntime hyperspaceRuntime;
-	uint8_t targetBoxEnabled;
-	int16_t currentTargetObjectIdx;
-	int16_t targetCycleStart;
-	int16_t targetPresetSlot[4];
-	uint8_t missileLockState;
-	uint8_t selectedWeaponBank;
-	uint8_t selectedWeaponMode;
-	int16_t selectedTargetComponent;
-	int16_t targetingState;
-	int16_t engineWashSourceObjIdx;
-	uint16_t engineWashStrength;
-	int16_t throttlePreset[2];
-	PowerRechargeLevel laserPreset[2];
-	PowerRechargeLevel shieldPreset[2];
-	PowerRechargeLevel beamPreset[2];
-	struct PlayerSavedCraftSettings savedCraftSettings;
-	uint8_t savedHudViewState;
-	uint8_t pendingActionId;
-	int16_t pendingActionParam;
-	uint16_t pendingActionIssuerPlayerIdx;
-	int16_t yawRollSwap;
-	int16_t smoothedInputYaw;
-	int16_t smoothedInputPitch;
-	uint16_t savedKeyMods;
-	uint16_t keyModsHoldTimer;
-	int32_t hardpointWorldX;
-	int32_t hardpointWorldY;
-	int32_t hardpointWorldZ;
-	int32_t prevHardpointWorldX;
-	int32_t prevHardpointWorldY;
-	int32_t prevHardpointWorldZ;
-	struct PlayerMissionRuntimeStats missionStats;
-	uint16_t warheadsFired;
-	struct PerMissionKills perMissionKills;
-	char msgText[50];
-	uint8_t msgLength;
-	FlightChatRecipientMode chatRecipientMode;
-	struct XvtSnapshotPlayerViewState viewState;
-	struct XvtSnapshotPlayerNetworkRuntimeTail network;
-	int32_t lockstepTimestamp;
-	int32_t savedX;
-	int32_t savedY;
-	int32_t savedZ;
-	int16_t savedRoll;
-	int16_t savedPitch;
-	int16_t savedYaw;
-	uint16_t savedLifetimeTimer;
-	int16_t savedSpeed;
-	int16_t savedSpeedRemainder;
-	int16_t savedRollImpulseRate;
-	uint16_t savedObjectSignature;
-	uint8_t savedAwaitingNewCraft;
-	int32_t pendingActionTimer;
-	int32_t beamFireCooldownTimer;
-	int32_t field_5B5;
-	int32_t nextEngineWashCheckTime;
+	uint16_t bound_flight_group_idx;
+	uint8_t participation_state;
+	uint8_t awaiting_new_craft;
+	uint8_t bound_craft_engine_glow_count;
+	uint8_t map_camera_state;
+	uint8_t hyperspace_phase;
+	struct player_hyperspace_runtime hyperspace_runtime;
+	uint8_t target_box_enabled;
+	int16_t current_target_object_idx;
+	int16_t target_cycle_start;
+	int16_t target_preset_slot[4];
+	uint8_t missile_lock_state;
+	uint8_t selected_weapon_bank;
+	uint8_t selected_weapon_mode;
+	int16_t selected_target_component;
+	int16_t targeting_state;
+	int16_t engine_wash_source_obj_idx;
+	uint16_t engine_wash_strength;
+	int16_t throttle_preset[2];
+	power_recharge_level laser_preset[2];
+	power_recharge_level shield_preset[2];
+	power_recharge_level beam_preset[2];
+	struct player_saved_craft_settings saved_craft_settings;
+	uint8_t saved_hud_view_state;
+	uint8_t pending_action_id;
+	int16_t pending_action_param;
+	uint16_t pending_action_issuer_player_idx;
+	int16_t yaw_roll_swap;
+	int16_t smoothed_input_yaw;
+	int16_t smoothed_input_pitch;
+	uint16_t saved_key_mods;
+	uint16_t key_mods_hold_timer;
+	int32_t hardpoint_world_x;
+	int32_t hardpoint_world_y;
+	int32_t hardpoint_world_z;
+	int32_t prev_hardpoint_world_x;
+	int32_t prev_hardpoint_world_y;
+	int32_t prev_hardpoint_world_z;
+	struct player_mission_runtime_stats mission_stats;
+	uint16_t warheads_fired;
+	struct per_mission_kills per_mission_kills;
+	char msg_text[50];
+	uint8_t msg_length;
+	flight_chat_recipient_mode chat_recipient_mode;
+	struct xvt_snapshot_player_view_state view_state;
+	struct xvt_snapshot_player_network_runtime_tail network;
+	int32_t lockstep_timestamp;
+	int32_t saved_x;
+	int32_t saved_y;
+	int32_t saved_z;
+	int16_t saved_roll;
+	int16_t saved_pitch;
+	int16_t saved_yaw;
+	uint16_t saved_lifetime_timer;
+	int16_t saved_speed;
+	int16_t saved_speed_remainder;
+	int16_t saved_roll_impulse_rate;
+	uint16_t saved_object_signature;
+	uint8_t saved_awaiting_new_craft;
+	int32_t pending_action_timer;
+	int32_t beam_fire_cooldown_timer;
+	int32_t field_5b5;
+	int32_t next_engine_wash_check_time;
 };
 
-struct XvtSnapshotMissionFlightRuntimeState {
-	int32_t teamScores[2][10];
-	uint16_t teamKillStats[4][10];
-	uint16_t teamFgInspectedCapturedCounts[2][10][48];
-	uint8_t teamFgDesignationCode[10][48];
-	uint8_t globalPrimaryGoalStatus;
-	uint16_t globalGoalStatusUnused;
-	uint8_t globalBonusGoalStatus;
-	uint8_t teamGlobalGoalState[10][3];
-	uint8_t teamGoalStatus[10][3];
-	uint16_t globalGoalTriggerCounts[2][10][3][4];
-	int32_t teamMissionCompletionTimeSeconds[10];
-	uint8_t teamHasCountableCraft[10];
-	uint8_t teamReinforcementsCalled[10];
+struct xvt_snapshot_mission_flight_runtime_state {
+	int32_t team_scores[2][10];
+	uint16_t team_kill_stats[4][10];
+	uint16_t team_fg_inspected_captured_counts[2][10][48];
+	uint8_t team_fg_designation_code[10][48];
+	uint8_t global_primary_goal_status;
+	uint16_t global_goal_status_unused;
+	uint8_t global_bonus_goal_status;
+	uint8_t team_global_goal_state[10][3];
+	uint8_t team_goal_status[10][3];
+	uint16_t global_goal_trigger_counts[2][10][3][4];
+	int32_t team_mission_completion_time_seconds[10];
+	uint8_t team_has_countable_craft[10];
+	uint8_t team_reinforcements_called[10];
 };
 
-struct XvtSnapshotFlightMissionState {
-	uint8_t missionEndPending;
-	uint8_t provingGroundsModeActive;
-	uint8_t provingGroundsCraftType;
-	uint8_t provingGroundsLevel;
-	uint32_t provingGroundsScore;
+struct xvt_snapshot_flight_mission_state {
+	uint8_t mission_end_pending;
+	uint8_t proving_grounds_mode_active;
+	uint8_t proving_grounds_craft_type;
+	uint8_t proving_grounds_level;
+	uint32_t proving_grounds_score;
 	uint8_t unused08[2];
-	uint16_t provingGroundsCheckpointsPassed;
-	uint8_t unused0C[2];
-	uint16_t provingGroundsCheckpointsRemaining;
-	uint16_t provingGroundsTargetsDestroyed;
-	uint16_t provingGroundsTimeBonus;
+	uint16_t proving_grounds_checkpoints_passed;
+	uint8_t unused0c[2];
+	uint16_t proving_grounds_checkpoints_remaining;
+	uint16_t proving_grounds_targets_destroyed;
+	uint16_t proving_grounds_time_bonus;
 	uint8_t difficulty;
-	uint8_t collisionsEnabled;
-	uint8_t craftJumpingEnabled;
-	uint8_t randomVariationEnabled;
-	uint8_t battleLengthIndex;
-	uint8_t locatePlayersEnabled;
-	uint8_t aiOpponentsEnabled;
-	uint8_t playerFlightGroupWaveMode;
-	uint8_t missionTimeLimitMinutes;
-	uint8_t teamVictoryTimeLimitMinutes;
-	uint8_t teamVictoryTimeLimitStarted;
-	uint8_t craftImpactBounceEnabled;
-	int32_t connectedPlayerCount;
-	int32_t maxConnectedPlayerCountThisMission;
-	struct XvtSnapshotMissionFlightRuntimeState runtime;
-	uint8_t messageTriggered[64];
-	uint8_t messageDelayCountdown[64];
-	int32_t globalUnitCraftCount[11];
+	uint8_t collisions_enabled;
+	uint8_t craft_jumping_enabled;
+	uint8_t random_variation_enabled;
+	uint8_t battle_length_index;
+	uint8_t locate_players_enabled;
+	uint8_t ai_opponents_enabled;
+	uint8_t player_flight_group_wave_mode;
+	uint8_t mission_time_limit_minutes;
+	uint8_t team_victory_time_limit_minutes;
+	uint8_t team_victory_time_limit_started;
+	uint8_t craft_impact_bounce_enabled;
+	int32_t connected_player_count;
+	int32_t max_connected_player_count_this_mission;
+	struct xvt_snapshot_mission_flight_runtime_state runtime;
+	uint8_t message_triggered[64];
+	uint8_t message_delay_countdown[64];
+	int32_t global_unit_craft_count[11];
 };
 
 #pragma pack(pop)
-typedef char xvt_snapshot_size_FlightMissionState
-	[(sizeof(struct XvtSnapshotFlightMissionState) == 3376) ? 1 : -1];
-typedef char xvt_snapshot_size_ObjectRecord
-	[(sizeof(struct XvtSnapshotObjectRecord) == 35) ? 1 : -1];
-typedef char xvt_snapshot_size_MobileObject
-	[(sizeof(struct XvtSnapshotMobileObject) == 177) ? 1 : -1];
-typedef char xvt_snapshot_size_CraftData
-	[(sizeof(struct XvtSnapshotCraftData) == 1122) ? 1 : -1];
-typedef char xvt_snapshot_size_MobileObjectCharData
-	[(sizeof(struct XvtSnapshotMobileObjectCharData) == 76) ? 1 : -1];
-typedef char xvt_snapshot_size_PlayerData
-	[(sizeof(struct XvtSnapshotPlayerData) == 1469) ? 1 : -1];
+typedef char xvt_snapshot_size_flight_mission_state
+	[(sizeof(struct xvt_snapshot_flight_mission_state) == 3376) ? 1 : -1];
+typedef char xvt_snapshot_size_object_record
+	[(sizeof(struct xvt_snapshot_object_record) == 35) ? 1 : -1];
+typedef char xvt_snapshot_size_mobile_object
+	[(sizeof(struct xvt_snapshot_mobile_object) == 177) ? 1 : -1];
+typedef char xvt_snapshot_size_craft_data
+	[(sizeof(struct xvt_snapshot_craft_data) == 1122) ? 1 : -1];
+typedef char xvt_snapshot_size_mobile_object_char_data
+	[(sizeof(struct xvt_snapshot_mobile_object_char_data) == 76) ? 1 : -1];
+typedef char xvt_snapshot_size_player_data
+	[(sizeof(struct xvt_snapshot_player_data) == 1469) ? 1 : -1];
 
 /* Encode fills every byte of record: the listed fields are copied as they are, and each link
  * to a live object or pool entry becomes its byte offset in the matching record array plus 1
@@ -418,38 +418,41 @@ typedef char xvt_snapshot_size_PlayerData
  * Live fields with no record field are left as they are. Decode does not range-check links;
  * a link outside its array yields an out-of-bounds pointer.
  * Links: object record -> mobile pool; mobile record -> guidance, craft and character pools;
- * craft record -> 16 turret objects and one AI object in g_objectTable. Character, player and
+ * craft record -> 16 turret objects and one AI object in g_object_table. Character, player and
  * mission-state records carry no links. */
-void XvtSnapshot_EncodeObjectRecord(struct XvtSnapshotObjectRecord *record,
-				    const struct ObjectRecord *live);
-void XvtSnapshot_DecodeObjectRecord(
-	struct ObjectRecord *live,
-	const struct XvtSnapshotObjectRecord *record);
-void XvtSnapshot_EncodeMobileObject(struct XvtSnapshotMobileObject *record,
-				    const struct MobileObject *live);
-void XvtSnapshot_DecodeMobileObject(
-	struct MobileObject *live,
-	const struct XvtSnapshotMobileObject *record);
-void XvtSnapshot_EncodeCraftData(struct XvtSnapshotCraftData *record,
-				 const struct CraftData *live);
-void XvtSnapshot_DecodeCraftData(struct CraftData *live,
-				 const struct XvtSnapshotCraftData *record);
-void XvtSnapshot_EncodeMobileObjectCharData(
-	struct XvtSnapshotMobileObjectCharData *record,
-	const struct MobileObjectCharData *live);
-void XvtSnapshot_DecodeMobileObjectCharData(
-	struct MobileObjectCharData *live,
-	const struct XvtSnapshotMobileObjectCharData *record);
-void XvtSnapshot_EncodePlayerData(struct XvtSnapshotPlayerData *record,
-				  const struct PlayerData *live);
-void XvtSnapshot_DecodePlayerData(struct PlayerData *live,
-				  const struct XvtSnapshotPlayerData *record);
+void xvt_snapshot_encode_object_record(
+	struct xvt_snapshot_object_record *record,
+	const struct object_record *live);
+void xvt_snapshot_decode_object_record(
+	struct object_record *live,
+	const struct xvt_snapshot_object_record *record);
+void xvt_snapshot_encode_mobile_object(
+	struct xvt_snapshot_mobile_object *record,
+	const struct mobile_object *live);
+void xvt_snapshot_decode_mobile_object(
+	struct mobile_object *live,
+	const struct xvt_snapshot_mobile_object *record);
+void xvt_snapshot_encode_craft_data(struct xvt_snapshot_craft_data *record,
+				    const struct craft_data *live);
+void xvt_snapshot_decode_craft_data(
+	struct craft_data *live, const struct xvt_snapshot_craft_data *record);
+void xvt_snapshot_encode_mobile_object_char_data(
+	struct xvt_snapshot_mobile_object_char_data *record,
+	const struct mobile_object_char_data *live);
+void xvt_snapshot_decode_mobile_object_char_data(
+	struct mobile_object_char_data *live,
+	const struct xvt_snapshot_mobile_object_char_data *record);
+void xvt_snapshot_encode_player_data(struct xvt_snapshot_player_data *record,
+				     const struct player_data *live);
+void xvt_snapshot_decode_player_data(
+	struct player_data *live,
+	const struct xvt_snapshot_player_data *record);
 
-void XvtSnapshot_EncodeFlightMissionState(
-	struct XvtSnapshotFlightMissionState *record,
-	const struct FlightMissionState *live);
-void XvtSnapshot_DecodeFlightMissionState(
-	struct FlightMissionState *live,
-	const struct XvtSnapshotFlightMissionState *record);
+void xvt_snapshot_encode_flight_mission_state(
+	struct xvt_snapshot_flight_mission_state *record,
+	const struct flight_mission_state *live);
+void xvt_snapshot_decode_flight_mission_state(
+	struct flight_mission_state *live,
+	const struct xvt_snapshot_flight_mission_state *record);
 
 #endif

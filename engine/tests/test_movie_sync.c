@@ -19,156 +19,157 @@
 
 enum { LOCAL = 101 };
 
-static void Fresh(void)
+static void fresh(void)
 {
-	memset(&g_frontState, 0, sizeof g_frontState);
-	memset(g_mpRoster, 0, sizeof g_mpRoster);
-	XvtTime_Reset();
+	memset(&g_front_state, 0, sizeof g_front_state);
+	memset(g_mp_roster, 0, sizeof g_mp_roster);
+	xvt_time_reset();
 }
 
 /* Makes count players ready in the session, the first one local, listed in the same order in the roster. */
-static void Players(int count)
+static void players(int count)
 {
 	for (int i = 0; i < count; ++i) {
-		g_frontState.netPlayers[i].playerId = (DPID)(LOCAL + i);
-		g_frontState.netPlayers[i].readyFlag = 1;
-		g_mpRoster[i % 8].playerId = LOCAL + i;
+		g_front_state.net_players[i].player_id = (DPID)(LOCAL + i);
+		g_front_state.net_players[i].ready_flag = 1;
+		g_mp_roster[i % 8].player_id = LOCAL + i;
 	}
-	g_frontState.netPlayerCount = count;
+	g_front_state.net_player_count = count;
 }
 
-static void CheckBegin(void)
+static void check_begin(void)
 {
-	Fresh();
-	Players(3);
-	g_mpRoster[3].playerId = 999;
-	g_frontState.netPlayers[5].playerId = 555;
-	g_frontState.netPlayers[5].readyFlag = 0;
+	fresh();
+	players(3);
+	g_mp_roster[3].player_id = 999;
+	g_front_state.net_players[5].player_id = 555;
+	g_front_state.net_players[5].ready_flag = 0;
 	for (int i = 0; i < 8; ++i) {
-		g_movieMultiplayerSyncPlayers[i].playerId = 7;
-		g_movieMultiplayerSyncPlayers[i].isWaiting = 1;
+		g_movie_multiplayer_sync_players[i].player_id = 7;
+		g_movie_multiplayer_sync_players[i].is_waiting = 1;
 	}
-	g_moviePlaybackCompletionState = 1;
-	g_movieMultiplayerSyncDeadlineMs = 1234;
-	XvtMovieSync_Begin();
+	g_movie_playback_completion_state = 1;
+	g_movie_multiplayer_sync_deadline_ms = 1234;
+	xvt_movie_sync_begin();
 
 	/* The first three roster entries, as three players are ready; none waiting. */
 	for (int i = 0; i < 3; ++i) {
-		XVT_ASSERT_INT_EQ(g_movieMultiplayerSyncPlayers[i].playerId,
+		XVT_ASSERT_INT_EQ(g_movie_multiplayer_sync_players[i].player_id,
 				  LOCAL + i);
-		XVT_ASSERT_INT_EQ(g_movieMultiplayerSyncPlayers[i].isWaiting,
-				  0);
+		XVT_ASSERT_INT_EQ(
+			g_movie_multiplayer_sync_players[i].is_waiting, 0);
 	}
 	for (int i = 3; i < 8; ++i) {
-		XVT_ASSERT_INT_EQ(g_movieMultiplayerSyncPlayers[i].playerId, 0);
-		XVT_ASSERT_INT_EQ(g_movieMultiplayerSyncPlayers[i].isWaiting,
+		XVT_ASSERT_INT_EQ(g_movie_multiplayer_sync_players[i].player_id,
 				  0);
+		XVT_ASSERT_INT_EQ(
+			g_movie_multiplayer_sync_players[i].is_waiting, 0);
 	}
-	XVT_ASSERT_INT_EQ(g_moviePlaybackCompletionState, 0);
-	XVT_ASSERT_INT_EQ(g_movieMultiplayerSyncDeadlineMs, 0);
+	XVT_ASSERT_INT_EQ(g_movie_playback_completion_state, 0);
+	XVT_ASSERT_INT_EQ(g_movie_multiplayer_sync_deadline_ms, 0);
 
 	/* At most 8 entries. */
-	Fresh();
-	Players(10);
-	XvtMovieSync_Begin();
+	fresh();
+	players(10);
+	xvt_movie_sync_begin();
 	for (int i = 0; i < 8; ++i) {
-		XVT_ASSERT_INT_EQ(g_movieMultiplayerSyncPlayers[i].playerId,
-				  g_mpRoster[i].playerId);
+		XVT_ASSERT_INT_EQ(g_movie_multiplayer_sync_players[i].player_id,
+				  g_mp_roster[i].player_id);
 	}
 }
 
-static void CheckReportFinished(void)
+static void check_report_finished(void)
 {
 	for (int host = 0; host < 2; ++host) {
-		Fresh();
-		Players(3);
-		g_frontState.netIsHost = host;
-		XvtMovieSync_Begin();
-		XvtTime_AdvanceHostClock(2000 * 1000);
-		XvtMovieSync_ReportFinished();
+		fresh();
+		players(3);
+		g_front_state.net_is_host = host;
+		xvt_movie_sync_begin();
+		xvt_time_advance_host_clock(2000 * 1000);
+		xvt_movie_sync_report_finished();
 
 		/* The local player waits; the others still watch. */
-		XVT_ASSERT_INT_EQ(g_movieMultiplayerSyncPlayers[0].isWaiting,
-				  1);
-		XVT_ASSERT_INT_EQ(g_movieMultiplayerSyncPlayers[1].isWaiting,
-				  0);
-		XVT_ASSERT_INT_EQ(g_movieMultiplayerSyncPlayers[2].isWaiting,
-				  0);
+		XVT_ASSERT_INT_EQ(
+			g_movie_multiplayer_sync_players[0].is_waiting, 1);
+		XVT_ASSERT_INT_EQ(
+			g_movie_multiplayer_sync_players[1].is_waiting, 0);
+		XVT_ASSERT_INT_EQ(
+			g_movie_multiplayer_sync_players[2].is_waiting, 0);
 		/* 5 s out for the host, 20 s for a client. */
-		XVT_ASSERT_INT_EQ(g_movieMultiplayerSyncDeadlineMs,
+		XVT_ASSERT_INT_EQ(g_movie_multiplayer_sync_deadline_ms,
 				  2000 + (host ? 5000 : 20000));
 
 		/* Later calls do nothing, even with the local player's mark cleared. */
-		g_movieMultiplayerSyncPlayers[0].isWaiting = 0;
-		XvtTime_AdvanceHostClock(1000 * 1000);
-		XvtMovieSync_ReportFinished();
-		XVT_ASSERT_INT_EQ(g_movieMultiplayerSyncPlayers[0].isWaiting,
-				  0);
-		XVT_ASSERT_INT_EQ(g_movieMultiplayerSyncDeadlineMs,
+		g_movie_multiplayer_sync_players[0].is_waiting = 0;
+		xvt_time_advance_host_clock(1000 * 1000);
+		xvt_movie_sync_report_finished();
+		XVT_ASSERT_INT_EQ(
+			g_movie_multiplayer_sync_players[0].is_waiting, 0);
+		XVT_ASSERT_INT_EQ(g_movie_multiplayer_sync_deadline_ms,
 				  2000 + (host ? 5000 : 20000));
 	}
 }
 
-static void CheckTickAnswer(void)
+static void check_tick_answer(void)
 {
-	Fresh();
-	Players(2);
-	XvtMovieSync_Begin();
-	XVT_ASSERT_INT_EQ(XvtMovieSync_Update(), 0);
-	XvtMovieSync_ReportFinished();
-	XVT_ASSERT_INT_EQ(XvtMovieSync_Update(), 0);
+	fresh();
+	players(2);
+	xvt_movie_sync_begin();
+	XVT_ASSERT_INT_EQ(xvt_movie_sync_update(), 0);
+	xvt_movie_sync_report_finished();
+	XVT_ASSERT_INT_EQ(xvt_movie_sync_update(), 0);
 	/* Every listed player waiting. */
-	g_movieMultiplayerSyncPlayers[1].isWaiting = 1;
-	XVT_ASSERT_INT_EQ(XvtMovieSync_Update(), 1);
+	g_movie_multiplayer_sync_players[1].is_waiting = 1;
+	XVT_ASSERT_INT_EQ(xvt_movie_sync_update(), 1);
 
 	/* With only the local player listed, its own ReportFinished completes the sync. */
-	Fresh();
-	Players(1);
-	XvtMovieSync_Begin();
-	XVT_ASSERT_INT_EQ(XvtMovieSync_Update(), 0);
-	XvtMovieSync_ReportFinished();
-	XVT_ASSERT_INT_EQ(XvtMovieSync_Update(), 1);
+	fresh();
+	players(1);
+	xvt_movie_sync_begin();
+	XVT_ASSERT_INT_EQ(xvt_movie_sync_update(), 0);
+	xvt_movie_sync_report_finished();
+	XVT_ASSERT_INT_EQ(xvt_movie_sync_update(), 1);
 
 	/* No listed players: nothing to wait for. */
-	Fresh();
-	XvtMovieSync_Begin();
-	XVT_ASSERT_INT_EQ(XvtMovieSync_Update(), 1);
+	fresh();
+	xvt_movie_sync_begin();
+	XVT_ASSERT_INT_EQ(xvt_movie_sync_update(), 1);
 }
 
-static void CheckDeadlinePassed(void)
+static void check_deadline_passed(void)
 {
-	Fresh();
-	Players(2);
-	g_frontState.netIsHost = 1;
-	XvtMovieSync_Begin();
-	XvtMovieSync_ReportFinished();
-	XVT_ASSERT_INT_EQ(XvtMovieSync_Update(), 0);
-	int waiting = g_moviePlaybackCompletionState;
+	fresh();
+	players(2);
+	g_front_state.net_is_host = 1;
+	xvt_movie_sync_begin();
+	xvt_movie_sync_report_finished();
+	XVT_ASSERT_INT_EQ(xvt_movie_sync_update(), 0);
+	int waiting = g_movie_playback_completion_state;
 	XVT_ASSERT_TRUE(waiting != 0);
 
 	/* At the deadline nothing changes; past it the state marks the deadline passed. */
-	XvtTime_AdvanceHostClock(5000 * 1000);
-	XVT_ASSERT_INT_EQ(XvtMovieSync_Update(), 0);
-	XVT_ASSERT_INT_EQ(g_moviePlaybackCompletionState, waiting);
-	XvtTime_AdvanceHostClock(1000);
-	XVT_ASSERT_INT_EQ(XvtMovieSync_Update(), 0);
-	XVT_ASSERT_TRUE(g_moviePlaybackCompletionState != waiting);
-	XVT_ASSERT_TRUE(g_moviePlaybackCompletionState != 0);
+	xvt_time_advance_host_clock(5000 * 1000);
+	XVT_ASSERT_INT_EQ(xvt_movie_sync_update(), 0);
+	XVT_ASSERT_INT_EQ(g_movie_playback_completion_state, waiting);
+	xvt_time_advance_host_clock(1000);
+	XVT_ASSERT_INT_EQ(xvt_movie_sync_update(), 0);
+	XVT_ASSERT_TRUE(g_movie_playback_completion_state != waiting);
+	XVT_ASSERT_TRUE(g_movie_playback_completion_state != 0);
 
 	/* Before ReportFinished there is no deadline to pass. */
-	Fresh();
-	Players(2);
-	XvtMovieSync_Begin();
-	XvtTime_AdvanceHostClock(60000 * 1000);
-	XvtMovieSync_Update();
-	XVT_ASSERT_INT_EQ(g_moviePlaybackCompletionState, 0);
+	fresh();
+	players(2);
+	xvt_movie_sync_begin();
+	xvt_time_advance_host_clock(60000 * 1000);
+	xvt_movie_sync_update();
+	XVT_ASSERT_INT_EQ(g_movie_playback_completion_state, 0);
 }
 
 int main(void)
 {
-	CheckBegin();
-	CheckReportFinished();
-	CheckTickAnswer();
-	CheckDeadlinePassed();
+	check_begin();
+	check_report_finished();
+	check_tick_answer();
+	check_deadline_passed();
 	return 0;
 }

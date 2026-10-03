@@ -37,7 +37,7 @@ extern "C" {
  * have. SIGABRT, from abort(), is noted with app.crash_signal as on the other systems.
  *
  * The note takes no lock and allocates nothing while it writes: lines are formatted by
- * XvtCrashNote_FormatLine into a buffer on the stack and written with XvtLogFile_Write. Finding the frames
+ * xvt_crash_note_format_line into a buffer on the stack and written with xvt_log_file_write. Finding the frames
  * may still touch the system's loader, so the first line is written before the frames are looked for.
  * Only the first crash is noted; a second thread crashing at the same moment adds no lines. Stack
  * overflow on another thread is not reported: only the installing thread has the spare stack. No minidump
@@ -46,23 +46,23 @@ extern "C" {
 /* Most frames one note writes. */
 #define XVT_CRASH_NOTE_FRAMES 32
 
-/* Writes one crash line, built by XvtCrashNote_FormatLine at the current UTC time, to stderr and to the
- * log file given to XvtCrashNote_Install. Call sites use XVT_LOG_CRASH, which tools/log_catalog_check.py
+/* Writes one crash line, built by xvt_crash_note_format_line at the current UTC time, to stderr and to the
+ * log file given to xvt_crash_note_install. Call sites use XVT_LOG_CRASH, which tools/log_catalog_check.py
  * holds to the catalog like the other log macros, at level C. */
 #if defined(_MSC_VER)
-void XvtCrashNote_Writef(const char *format, ...);
+void xvt_crash_note_writef(const char *format, ...);
 #else
 __attribute__((format(printf, 1, 2))) void
-XvtCrashNote_Writef(const char *format, ...);
+xvt_crash_note_writef(const char *format, ...);
 #endif
-#define XVT_LOG_CRASH(...) XvtCrashNote_Writef(__VA_ARGS__)
+#define XVT_LOG_CRASH(...) xvt_crash_note_writef(__VA_ARGS__)
 
 /* Installs the handlers described above, writing to stderr and to file (XVT_LOG_FILE_NONE: stderr only).
  * Call once, from the thread that starts the program, after the log file is open. A second call changes
  * only the file. */
-void XvtCrashNote_Install(XvtLogFileHandle file);
+void xvt_crash_note_install(xvt_log_file_handle file);
 
-/* Writes one level-C log line into out, as XvtLog_FormatLine would: the time of day as HH:MM:SS.mmm from
+/* Writes one level-C log line into out, as xvt_log_format_line would: the time of day as HH:MM:SS.mmm from
  * ms_of_day (wrapped at 24 hours), " C ", the formatted text, a newline and a terminator. format is a
  * restricted printf format: %s (a NULL string writes "(null)"; a newline, carriage return or tab inside
  * it is written as a space), %d, %u, %llu, %#llx ("0x" and lowercase hex digits, "0x0" for zero) and %%.
@@ -70,8 +70,9 @@ void XvtCrashNote_Install(XvtLogFileHandle file);
  * terminator still fit; capacity 0 writes nothing and capacity 1 only the terminator. Uses no locale, no
  * lock and no allocation, so a signal handler may call it. Returns the bytes written before the
  * terminator. */
-size_t XvtCrashNote_FormatLine(char *out, size_t capacity, uint32_t ms_of_day,
-			       const char *format, va_list args);
+size_t xvt_crash_note_format_line(char *out, size_t capacity,
+				  uint32_t ms_of_day, const char *format,
+				  va_list args);
 
 #ifdef __cplusplus
 }

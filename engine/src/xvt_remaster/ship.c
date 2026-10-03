@@ -3,9 +3,9 @@
 #include <math.h>
 #include <string.h>
 
-int XvtRemasterShip_Select(const struct XvtRenderSnapshot *s,
-			   const struct XvtSnapObject *o,
-			   struct XvtShipSelection *out)
+int xvt_remaster_ship_select(const struct xvt_render_snapshot *s,
+			     const struct xvt_snap_object *o,
+			     struct xvt_ship_selection *out)
 {
 	if (!s || !o || !out || o->object_type >= XVT_SNAP_TYPES) {
 		return 0;
@@ -21,7 +21,7 @@ int XvtRemasterShip_Select(const struct XvtRenderSnapshot *s,
 	} else if ((o->genus >= CRAFT_GENUS_MINE &&
 		    o->genus <= CRAFT_GENUS_SMALL_DEBRIS) ||
 		   o->genus == CRAFT_GENUS_EXPLOSION) {
-		const struct XvtSnapType *t = &s->types[type];
+		const struct xvt_snap_type *t = &s->types[type];
 		if (!t->sequence_count) {
 			if (o->slot_class != XVT_SLOT_STATIC ||
 			    o->type_specific[0]) {
@@ -103,11 +103,11 @@ static void ship_mat3x4_mul(float out[3][4], const float lhs[3][4],
 	memcpy(out, result, sizeof result);
 }
 
-void XvtRemasterShip_BuildMeshTable(const struct XvtMeshAsset *asset,
-				    const struct XvtSnapObject *object,
-				    uint16_t component,
-				    const float *visual_angles,
-				    AeronSceneMeshTable *out)
+void xvt_remaster_ship_build_mesh_table(const struct xvt_mesh_asset *asset,
+					const struct xvt_snap_object *object,
+					uint16_t component,
+					const float *visual_angles,
+					AeronSceneMeshTable *out)
 {
 	memset(out, 0, sizeof *out);
 	float bridge[3][4];
@@ -154,9 +154,9 @@ void XvtRemasterShip_BuildMeshTable(const struct XvtMeshAsset *asset,
 	}
 }
 
-float XvtRemasterShip_Radius(const struct XvtMeshAsset *asset,
-			     const AeronSceneMeshTable *table,
-			     const float m[16])
+float xvt_remaster_ship_radius(const struct xvt_mesh_asset *asset,
+			       const AeronSceneMeshTable *table,
+			       const float m[16])
 {
 	float center[3], r2 = 0;
 	for (int i = 0; i < 3; ++i) {
@@ -191,8 +191,8 @@ float XvtRemasterShip_Radius(const struct XvtMeshAsset *asset,
 	return radius * scale;
 }
 
-int XvtRemasterShip_Visible(const struct XvtRenderView *view, const float m[16],
-			    float radius)
+int xvt_remaster_ship_visible(const struct xvt_render_view *view,
+			      const float m[16], float radius)
 {
 	const float *p = view->view_proj;
 	/* Left/right/top/bottom, near and infinite reversed-Z far planes. */

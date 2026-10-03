@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-void XvtOriginal2d_Free(struct XvtOriginal2d *source)
+void xvt_original2d_free(struct xvt_original2d *source)
 {
 	if (!source) {
 		return;
@@ -23,8 +23,8 @@ void XvtOriginal2d_Free(struct XvtOriginal2d *source)
 	memset(source, 0, sizeof *source);
 }
 
-static int Error(char *error, size_t capacity, const char *label,
-		 const char *reason)
+static int original_2d_error(char *error, size_t capacity, const char *label,
+			     const char *reason)
 {
 	if (error && capacity) {
 		snprintf(error, capacity, "%s: %s", label, reason);
@@ -32,18 +32,18 @@ static int Error(char *error, size_t capacity, const char *label,
 	return 0;
 }
 
-static int Read(const char *path, uint8_t **bytes, size_t *size, char *error,
-		size_t capacity)
+static int read_asset(const char *path, uint8_t **bytes, size_t *size,
+		      char *error, size_t capacity)
 {
 	if (!AeronVfs_ReadAll(Aeron_GetVfs(), AERON_VFS_ROOT_ASSET, path,
 			      64u * 1024u * 1024u, bytes, size)) {
-		return Error(error, capacity, path,
-			     "original resource is unavailable");
+		return original_2d_error(error, capacity, path,
+					 "original resource is unavailable");
 	}
 	return 1;
 }
 
-static int EmptyFrame(AeronIndexedFrame *frame, uint16_t index)
+static int empty_frame(AeronIndexedFrame *frame, uint16_t index)
 {
 	frame->indices = calloc(1, 1);
 	frame->coverage = calloc(1, 1);
@@ -52,9 +52,9 @@ static int EmptyFrame(AeronIndexedFrame *frame, uint16_t index)
 	return frame->indices && frame->coverage;
 }
 
-static int DecodePnl(const struct XvtSnapImageAsset *source, const void *bytes,
-		     size_t size, struct XvtOriginal2d *out,
-		     AeronDecodeError *error)
+static int decode_pnl(const struct xvt_snap_image_asset *source,
+		      const void *bytes, size_t size,
+		      struct xvt_original2d *out, AeronDecodeError *error)
 {
 	if (!source->record_count || source->first_record > 4096 ||
 	    source->record_count > 4096 - source->first_record) {
@@ -111,7 +111,7 @@ static int DecodePnl(const struct XvtSnapImageAsset *source, const void *bytes,
 	return 1;
 }
 
-static int DecodeCursor(struct XvtOriginal2d *out)
+static int decode_cursor(struct xvt_original2d *out)
 {
 	out->images.frames = calloc(1, sizeof *out->images.frames);
 	if (!out->images.frames) {
@@ -130,7 +130,7 @@ static int DecodeCursor(struct XvtOriginal2d *out)
 	/* The classic 16-bit cursor uses 0x001F for mask value one. */
 	frame->palette[1][2] = 255;
 	frame->palette[1][3] = 255;
-	const uint8_t *source = XvtRenderAssets_DefaultCursor();
+	const uint8_t *source = xvt_render_assets_default_cursor();
 	for (unsigned i = 0; i < 100; ++i) {
 		frame->indices[i] = source[i] == 1;
 		frame->coverage[i] = source[i] ? 255 : 0;
@@ -138,10 +138,10 @@ static int DecodeCursor(struct XvtOriginal2d *out)
 	return 1;
 }
 
-int XvtOriginal2d_BuildMapIcons(const struct XvtOriginal2d *source,
-				AeronCommandBuffer *cmd,
-				const uint32_t palette[256], int remap,
-				AeronRuntimeAtlas *out)
+int xvt_original2d_build_map_icons(const struct xvt_original2d *source,
+				   AeronCommandBuffer *cmd,
+				   const uint32_t palette[256], int remap,
+				   AeronRuntimeAtlas *out)
 {
 	unsigned count = source->images.count;
 	AeronRuntimeAtlasFrame *frames = calloc(count, sizeof *frames);
@@ -158,7 +158,7 @@ int XvtOriginal2d_BuildMapIcons(const struct XvtOriginal2d *source,
 		if (frame >= list->count ||
 		    (list->bitmaps[frame].size == 1 &&
 		     list->bitmaps[frame].data[0] == 0xff)) {
-			ok = EmptyFrame(&bitmap, (uint16_t)frame);
+			ok = empty_frame(&bitmap, (uint16_t)frame);
 		} else {
 			ok = AeronPnl_DecodeIndexed(list->bitmaps[frame].data,
 						    list->bitmaps[frame].size,
@@ -202,33 +202,34 @@ int XvtOriginal2d_BuildMapIcons(const struct XvtOriginal2d *source,
 	return ok;
 }
 
-int XvtOriginal2d_LoadAct(const char *path, struct XvtOriginal2d *out,
-			  char *error, size_t capacity)
+int xvt_original2d_load_act(const char *path, struct xvt_original2d *out,
+			    char *error, size_t capacity)
 {
 	memset(out, 0, sizeof *out);
 	uint8_t *bytes = NULL;
 	size_t size = 0;
-	if (!Read(path, &bytes, &size, error, capacity)) {
+	if (!read_asset(path, &bytes, &size, error, capacity)) {
 		return 0;
 	}
 	AeronDecodeError decode = {0};
 	int ok = AeronAct_Decode(bytes, size, &out->images, &decode);
 	free(bytes);
 	if (!ok) {
-		XvtOriginal2d_Free(out);
-		return Error(error, capacity, path, decode.message);
+		xvt_original2d_free(out);
+		return original_2d_error(error, capacity, path, decode.message);
 	}
 	return 1;
 }
 
-int XvtOriginal2d_Load(const struct XvtSnapImageAsset *source,
-		       struct XvtOriginal2d *out, char *error, size_t capacity)
+int xvt_original2d_load(const struct xvt_snap_image_asset *source,
+			struct xvt_original2d *out, char *error,
+			size_t capacity)
 {
 	memset(out, 0, sizeof *out);
 	uint8_t *bytes = NULL;
 	size_t size = 0;
 	if (source->kind != XVT_IMAGE_BUILTIN_CURSOR &&
-	    !Read(source->path, &bytes, &size, error, capacity)) {
+	    !read_asset(source->path, &bytes, &size, error, capacity)) {
 		return 0;
 	}
 	AeronDecodeError decode = {0};
@@ -245,11 +246,11 @@ int XvtOriginal2d_Load(const struct XvtSnapImageAsset *source,
 		}
 		break;
 	case XVT_IMAGE_LFD:
-		ok = XvtCockpitAssets_DecodeLfd(bytes, size, out, &decode);
+		ok = xvt_cockpit_assets_decode_lfd(bytes, size, out, &decode);
 		break;
 	case XVT_IMAGE_PNL:
 	case XVT_IMAGE_ICO:
-		ok = DecodePnl(source, bytes, size, out, &decode);
+		ok = decode_pnl(source, bytes, size, out, &decode);
 		break;
 	case XVT_IMAGE_ABP:
 		ok = AeronAbpFont_Decode(bytes, size, &out->font, &decode);
@@ -268,25 +269,25 @@ int XvtOriginal2d_Load(const struct XvtSnapImageAsset *source,
 					    32, &out->font, &decode);
 		break;
 	case XVT_IMAGE_BUILTIN_CURSOR:
-		ok = DecodeCursor(out);
+		ok = decode_cursor(out);
 		break;
 	}
 	free(bytes);
 	if (!ok) {
-		XvtOriginal2d_Free(out);
-		return Error(error, capacity, source->path,
-			     decode.message[0]
-				     ? decode.message
-				     : "image decode/allocation failed");
+		xvt_original2d_free(out);
+		return original_2d_error(
+			error, capacity, source->path,
+			decode.message[0] ? decode.message
+					  : "image decode/allocation failed");
 	}
 	return 1;
 }
 
-int XvtOriginal2d_BuildAtlas(const struct XvtOriginal2d *source,
-			     AeronCommandBuffer *cmd,
-			     const uint32_t palette[256], uint16_t key,
-			     uint16_t key_alt, int generate_mips,
-			     const char *label, AeronRuntimeAtlas *out)
+int xvt_original2d_build_atlas(const struct xvt_original2d *source,
+			       AeronCommandBuffer *cmd,
+			       const uint32_t palette[256], uint16_t key,
+			       uint16_t key_alt, int generate_mips,
+			       const char *label, AeronRuntimeAtlas *out)
 {
 	unsigned count = source->images.count;
 	AeronRuntimeAtlasFrame *frames = calloc(count, sizeof *frames);
@@ -351,9 +352,9 @@ int XvtOriginal2d_BuildAtlas(const struct XvtOriginal2d *source,
 	return ok;
 }
 
-int XvtOriginal2d_BuildFont(const AeronDecodedFont *source,
-			    AeronCommandBuffer *cmd, int shadow,
-			    const char *label, struct XvtFontAtlas *out)
+int xvt_original2d_build_font(const AeronDecodedFont *source,
+			      AeronCommandBuffer *cmd, int shadow,
+			      const char *label, struct xvt_font_atlas *out)
 {
 	enum { ORIGINAL_FONT_EXPANSION = 4 };
 
@@ -374,7 +375,7 @@ int XvtOriginal2d_BuildFont(const AeronDecodedFont *source,
 	uint8_t *expanded = NULL;
 	AeronFontGlyph *atlas_glyphs =
 		calloc(source->glyph_count, sizeof *atlas_glyphs);
-	struct XvtFontGlyph *layout_glyphs =
+	struct xvt_font_glyph *layout_glyphs =
 		calloc(source->glyph_count, sizeof *layout_glyphs);
 	if (!rgba || !atlas_glyphs || !layout_glyphs) {
 		goto failed;
@@ -400,7 +401,7 @@ int XvtOriginal2d_BuildFont(const AeronDecodedFont *source,
 			glyph->width * ORIGINAL_FONT_EXPANSION,
 			glyph->height * ORIGINAL_FONT_EXPANSION,
 			glyph->advance * ORIGINAL_FONT_EXPANSION};
-		layout_glyphs[i] = (struct XvtFontGlyph){
+		layout_glyphs[i] = (struct xvt_font_glyph){
 			glyph->width, glyph->height, glyph->advance};
 	}
 	int width, height;

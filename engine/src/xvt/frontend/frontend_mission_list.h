@@ -8,8 +8,8 @@
 extern "C" {
 #endif
 
-/* Stored as int32_t in the binary (IDB enum MissionDirectoryId). */
-typedef int32_t MissionDirectoryId;
+/* Stored as int32_t in the binary (IDB enum mission_directory_id). */
+typedef int32_t mission_directory_id;
 
 enum {
 	MISSION_DIRECTORY_TRAINING_EXERCISES = 0x0,
@@ -20,25 +20,25 @@ enum {
 	MISSION_DIRECTORY_CAMPAIGNS = 0x5,
 };
 
-/* One mission of a mission list file, as MissionSetup_LoadMissionList reads
+/* One mission of a mission list file, as mission_setup_load_mission_list reads
  * it: an id line, a file name line and a description line, under the last
  * "[section]" line. */
-struct MissionListEntry {
+struct mission_list_entry {
 	/* Mission file name, lowercased, without a leading '*' or '&' entry
 	 * marker. Some screens read its first character as a player count. */
-	char fileName[64];
+	char file_name[64];
 	char description[128]; /* The mission's title line. */
 	/* Name of the section the entry sits in, without the brackets; empty
 	 * before the first section. */
-	char sectionName[128];
-	int missionIdx; /* Mission id: the number on the entry's first line. */
+	char section_name[128];
+	int mission_idx; /* Mission id: the number on the entry's first line. */
 	/* 1 when the entry is marked '&', or marked '*' and its campaign
 	 * mission has not been flown; such entries are left out of lists. */
-	int isUnavailable;
+	int is_unavailable;
 };
 
-int FrontendMissionList_FreeScreenResources(int frameCounter);
-int FrontendMissionList_FreeScreenResourcesAndClearInputGate(void);
+int frontend_mission_list_free_screen_resources(int frame_counter);
+int frontend_mission_list_free_screen_resources_and_clear_input_gate(void);
 
 #ifdef __cplusplus
 }

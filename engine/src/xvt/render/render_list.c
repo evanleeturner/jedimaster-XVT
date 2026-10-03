@@ -5,277 +5,279 @@
 #include "xvt/flight/player/player.h"
 #include "xvt/flight/transfm2.h"
 
-/* Entries queued in g_renderObjectListEntries since the last RenderList_Reset,
- * 0 to 296; only RenderList_QueueObject and RenderList_Reset write it. */
+/* Entries queued in g_render_object_list_entries since the last render_list_reset,
+ * 0 to 296; only render_list_queue_object and render_list_reset write it. */
 // GLOBAL: XVT 0x9A7B5C
-static int g_renderObjectListCount;
+static int g_render_object_list_count;
 /* First entry of the render list, linked through each entry's next; NULL when
- * the list is empty. RenderList_QueueObject puts each new entry first, the two
- * sorts reorder the list and RenderList_Reset sets NULL;
- * FlightMap_DrawObjectPass walks the list by moving it on and puts it back
+ * the list is empty. render_list_queue_object puts each new entry first, the two
+ * sorts reorder the list and render_list_reset sets NULL;
+ * flight_map_draw_object_pass walks the list by moving it on and puts it back
  * after. */
 // GLOBAL: XVT 0x9A8C1C
-struct RenderObjectListEntry *g_renderListHead;
+struct render_object_list_entry *g_render_list_head;
 /* Storage for the render list, 296 entries (RENDER_OBJECT_LIST_CAPACITY) used
- * in the order they are queued; FeDiskIo_InitGlobalBuffers and
- * FeDiskIo_LockGlobalBuffers lock it from its memory handle. */
+ * in the order they are queued; fe_disk_io_init_global_buffers and
+ * fe_disk_io_lock_global_buffers lock it from its memory handle. */
 // GLOBAL: XVT 0x9EC5F8
-struct RenderObjectListEntry *g_renderObjectListEntries = 0;
+struct render_object_list_entry *g_render_object_list_entries = 0;
 
 /* Adds an object to the front of the render list with its sort depth, taking
  * the next of the 296 entries. Does nothing when all 296 are used. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4362A0
-void RenderList_QueueObject(int objectIdx, int sortDepth)
+void render_list_queue_object(int object_idx, int sort_depth)
 {
-	if (g_renderObjectListCount < 296) {
-		g_renderObjectListEntries[g_renderObjectListCount].sortDepth =
-			sortDepth;
-		g_renderObjectListEntries[g_renderObjectListCount].objectIdx =
-			objectIdx;
-		g_renderObjectListEntries[g_renderObjectListCount].next =
-			g_renderListHead;
-		g_renderListHead =
-			&g_renderObjectListEntries[g_renderObjectListCount];
-		++g_renderObjectListCount;
+	if (g_render_object_list_count < 296) {
+		g_render_object_list_entries[g_render_object_list_count]
+			.sort_depth = sort_depth;
+		g_render_object_list_entries[g_render_object_list_count]
+			.object_idx = object_idx;
+		g_render_object_list_entries[g_render_object_list_count].next =
+			g_render_list_head;
+		g_render_list_head = &g_render_object_list_entries
+					     [g_render_object_list_count];
+		++g_render_object_list_count;
 	}
 }
 
-/* Empties the render list: g_renderObjectListCount to 0 and g_renderListHead to
+/* Empties the render list: g_render_object_list_count to 0 and g_render_list_head to
  * NULL. */
 // FUNCTION: XVT 0x436310
-void RenderList_Reset(void)
+void render_list_reset(void)
 {
-	g_renderObjectListCount = 0;
-	g_renderListHead = 0;
+	g_render_object_list_count = 0;
+	g_render_list_head = 0;
 }
 
 /* Tells whether an object's bounds can be in the view of player
- * playerIdx's camera. Stores the object's offset from the camera in
- * g_camRelWorldX, Y and Z, its view depth in g_viewSpaceDepth and its view
- * X in g_viewSpaceX, and its view Y in g_viewSpaceY once the X test
- * passes. With far = depth + boundsRadius and r the larger of boundsRadius
+ * player_idx's camera. Stores the object's offset from the camera in
+ * g_cam_rel_world_x, Y and Z, its view depth in g_view_space_depth and its view
+ * X in g_view_space_x, and its view Y in g_view_space_y once the X test
+ * passes. With far = depth + bounds_radius and r the larger of bounds_radius
  * and far >> 4, it returns 0 when far is negative, when the size of view X
  * less r exceeds far, or when the size of view Y less r does; else 1. */
 // FUNCTION: XVT 0x436470
-int RenderList_ProjectObjectBoundsForCulling(int objectIdx,
-					     unsigned int boundsRadius,
-					     int playerIdx)
+int render_list_project_object_bounds_for_culling(int object_idx,
+						  unsigned int bounds_radius,
+						  int player_idx)
 {
-	struct ObjectRecord *object;
-	int cameraWorldY;
-	int cameraWorldZ;
-	int absViewCoord;
-	int farZ;
-	int cullRadius;
+	struct object_record *object;
+	int camera_world_y;
+	int camera_world_z;
+	int abs_view_coord;
+	int far_z;
+	int cull_radius;
 
-	object = &g_objectTable[objectIdx];
-	cameraWorldY = g_players[playerIdx].viewState.cameraWorldY;
-	g_camRelWorldX =
-		object->world_x - g_players[playerIdx].viewState.cameraWorldX;
-	cameraWorldZ = g_players[playerIdx].viewState.cameraWorldZ;
-	g_camRelWorldY = object->world_y - cameraWorldY;
-	g_camRelWorldZ = object->world_z - cameraWorldZ;
-	g_viewSpaceDepth = TRANSFM2_CamMatDotRow2(
-		g_camRelWorldX, g_camRelWorldY, g_camRelWorldZ);
-	cullRadius = (int)boundsRadius;
-	farZ = (int)((unsigned int)g_viewSpaceDepth + (unsigned int)cullRadius);
-	if (farZ < 0) {
+	object = &g_object_table[object_idx];
+	camera_world_y = g_players[player_idx].view_state.camera_world_y;
+	g_cam_rel_world_x = object->world_x -
+			    g_players[player_idx].view_state.camera_world_x;
+	camera_world_z = g_players[player_idx].view_state.camera_world_z;
+	g_cam_rel_world_y = object->world_y - camera_world_y;
+	g_cam_rel_world_z = object->world_z - camera_world_z;
+	g_view_space_depth = transfm2_cam_mat_dot_row2(
+		g_cam_rel_world_x, g_cam_rel_world_y, g_cam_rel_world_z);
+	cull_radius = (int)bounds_radius;
+	far_z = (int)((unsigned int)g_view_space_depth +
+		      (unsigned int)cull_radius);
+	if (far_z < 0) {
 		return 0;
 	}
-	if ((unsigned int)(farZ >> 4) > (unsigned int)cullRadius) {
-		cullRadius = farZ >> 4;
+	if ((unsigned int)(far_z >> 4) > (unsigned int)cull_radius) {
+		cull_radius = far_z >> 4;
 	}
 
-	g_viewSpaceX = TRANSFM2_CamMatDotRow0(g_camRelWorldX, g_camRelWorldY,
-					      g_camRelWorldZ);
-	absViewCoord = g_viewSpaceX;
-	if (absViewCoord < 0) {
-		absViewCoord = (int)(0U - (unsigned int)absViewCoord);
+	g_view_space_x = transfm2_cam_mat_dot_row0(
+		g_cam_rel_world_x, g_cam_rel_world_y, g_cam_rel_world_z);
+	abs_view_coord = g_view_space_x;
+	if (abs_view_coord < 0) {
+		abs_view_coord = (int)(0U - (unsigned int)abs_view_coord);
 	}
-	absViewCoord =
-		(int)((unsigned int)absViewCoord - (unsigned int)cullRadius);
-	if (farZ < absViewCoord) {
+	abs_view_coord =
+		(int)((unsigned int)abs_view_coord - (unsigned int)cull_radius);
+	if (far_z < abs_view_coord) {
 		return 0;
 	}
 
-	g_viewSpaceY = TRANSFM2_CamMatDotRow1(g_camRelWorldX, g_camRelWorldY,
-					      g_camRelWorldZ);
-	absViewCoord = g_viewSpaceY;
-	if (absViewCoord < 0) {
-		absViewCoord = (int)(0U - (unsigned int)absViewCoord);
+	g_view_space_y = transfm2_cam_mat_dot_row1(
+		g_cam_rel_world_x, g_cam_rel_world_y, g_cam_rel_world_z);
+	abs_view_coord = g_view_space_y;
+	if (abs_view_coord < 0) {
+		abs_view_coord = (int)(0U - (unsigned int)abs_view_coord);
 	}
-	absViewCoord =
-		(int)((unsigned int)absViewCoord - (unsigned int)cullRadius);
-	return farZ >= absViewCoord;
+	abs_view_coord =
+		(int)((unsigned int)abs_view_coord - (unsigned int)cull_radius);
+	return far_z >= abs_view_coord;
 }
 
-/* Sorts the render list by sortDepth, largest first, merging runs of 1, 2, 4
+/* Sorts the render list by sort_depth, largest first, merging runs of 1, 2, 4
  * and so on in place; entries of equal depth keep their order. Only
- * FlightMap_RenderView calls it. */
+ * flight_map_render_view calls it. */
 // FUNCTION: XVT 0x436580
-void RenderList_SortDepthDescending(void)
+void render_list_sort_depth_descending(void)
 {
-	struct RenderObjectListEntry *left;
-	struct RenderObjectListEntry *right;
-	struct RenderObjectListEntry *previous;
-	struct RenderObjectListEntry *leftTail;
-	int runLength;
-	int leftRunCount;
-	int rightDepth;
-	int rightRunCount;
-	int processedCount;
-	int objectCount;
-	int leftDepth;
+	struct render_object_list_entry *left;
+	struct render_object_list_entry *right;
+	struct render_object_list_entry *previous;
+	struct render_object_list_entry *left_tail;
+	int run_length;
+	int left_run_count;
+	int right_depth;
+	int right_run_count;
+	int processed_count;
+	int object_count;
+	int left_depth;
 
-	objectCount = g_renderObjectListCount;
-	runLength = 1;
-	if (objectCount > runLength) {
+	object_count = g_render_object_list_count;
+	run_length = 1;
+	if (object_count > run_length) {
 		do {
-			right = g_renderListHead;
+			right = g_render_list_head;
 			previous = 0;
-			left = g_renderListHead;
-			processedCount = 0;
-			while (processedCount < g_renderObjectListCount) {
-				leftRunCount = 0;
-				while (leftRunCount < runLength && right != 0) {
-					leftTail = right;
-					++leftRunCount;
+			left = g_render_list_head;
+			processed_count = 0;
+			while (processed_count < g_render_object_list_count) {
+				left_run_count = 0;
+				while (left_run_count < run_length &&
+				       right != 0) {
+					left_tail = right;
+					++left_run_count;
 					right = right->next;
 				}
 				if (right == 0) {
 					break;
 				}
 
-				rightRunCount = 0;
-				while (rightRunCount < runLength) {
-					rightDepth = right->sortDepth;
-					leftDepth = left->sortDepth;
-					while (leftDepth >= rightDepth) {
+				right_run_count = 0;
+				while (right_run_count < run_length) {
+					right_depth = right->sort_depth;
+					left_depth = left->sort_depth;
+					while (left_depth >= right_depth) {
 						previous = left;
 						left = left->next;
-						if (leftTail == previous) {
+						if (left_tail == previous) {
 							break;
 						}
-						leftDepth = left->sortDepth;
+						left_depth = left->sort_depth;
 					}
-					if (leftTail == previous) {
+					if (left_tail == previous) {
 						break;
 					}
 
-					leftTail->next = right->next;
+					left_tail->next = right->next;
 					if (previous != 0) {
 						previous->next = right;
 						previous = right;
 						right->next = left;
 					} else {
-						g_renderListHead = right;
+						g_render_list_head = right;
 						right->next = left;
-						previous = g_renderListHead;
+						previous = g_render_list_head;
 					}
-					right = leftTail->next;
+					right = left_tail->next;
 					if (right == 0) {
 						break;
 					}
-					++rightRunCount;
+					++right_run_count;
 				}
 
-				if (leftTail == previous) {
-					while (rightRunCount < runLength &&
+				if (left_tail == previous) {
+					while (right_run_count < run_length &&
 					       right != 0) {
-						leftTail = right;
-						++rightRunCount;
+						left_tail = right;
+						++right_run_count;
 						right = right->next;
 					}
 				}
 				left = right;
-				previous = leftTail;
+				previous = left_tail;
 				if (right == 0) {
 					break;
 				}
-				processedCount += 2 * runLength;
+				processed_count += 2 * run_length;
 			}
-			runLength *= 2;
-			objectCount = g_renderObjectListCount;
-		} while (objectCount > runLength);
+			run_length *= 2;
+			object_count = g_render_object_list_count;
+		} while (object_count > run_length);
 	}
 }
 
-/* Sorts the render list by sortDepth, smallest first, the same way as
- * RenderList_SortDepthDescending. Only FlightView_Render calls it. */
+/* Sorts the render list by sort_depth, smallest first, the same way as
+ * render_list_sort_depth_descending. Only flight_view_render calls it. */
 // FUNCTION: XVT 0x436680
-void RenderList_SortDepthAscending(void)
+void render_list_sort_depth_ascending(void)
 {
-	int runLength;
-	struct RenderObjectListEntry *leftTail;
-	struct RenderObjectListEntry *right;
-	struct RenderObjectListEntry *previous;
-	struct RenderObjectListEntry *left;
-	int leftRunCount;
-	int rightRunCount;
-	int processedCount;
+	int run_length;
+	struct render_object_list_entry *left_tail;
+	struct render_object_list_entry *right;
+	struct render_object_list_entry *previous;
+	struct render_object_list_entry *left;
+	int left_run_count;
+	int right_run_count;
+	int processed_count;
 
-	for (runLength = 1; runLength < g_renderObjectListCount;
-	     runLength *= 2) {
-		right = g_renderListHead;
+	for (run_length = 1; run_length < g_render_object_list_count;
+	     run_length *= 2) {
+		right = g_render_list_head;
 		previous = 0;
-		left = g_renderListHead;
-		processedCount = 0;
-		while (processedCount < g_renderObjectListCount) {
-			leftRunCount = 0;
-			while (leftRunCount < runLength && right != 0) {
-				leftTail = right;
-				++leftRunCount;
+		left = g_render_list_head;
+		processed_count = 0;
+		while (processed_count < g_render_object_list_count) {
+			left_run_count = 0;
+			while (left_run_count < run_length && right != 0) {
+				left_tail = right;
+				++left_run_count;
 				right = right->next;
 			}
 			if (right == 0) {
 				break;
 			}
 
-			rightRunCount = 0;
-			while (rightRunCount < runLength) {
-				while (left->sortDepth <= right->sortDepth) {
+			right_run_count = 0;
+			while (right_run_count < run_length) {
+				while (left->sort_depth <= right->sort_depth) {
 					previous = left;
 					left = left->next;
-					if (leftTail == previous) {
+					if (left_tail == previous) {
 						break;
 					}
 				}
-				if (leftTail == previous) {
+				if (left_tail == previous) {
 					break;
 				}
 
-				leftTail->next = right->next;
+				left_tail->next = right->next;
 				if (previous != 0) {
 					previous->next = right;
 					previous = right;
 					right->next = left;
 				} else {
-					g_renderListHead = right;
+					g_render_list_head = right;
 					right->next = left;
-					previous = g_renderListHead;
+					previous = g_render_list_head;
 				}
-				right = leftTail->next;
+				right = left_tail->next;
 				if (right == 0) {
 					break;
 				}
-				++rightRunCount;
+				++right_run_count;
 			}
 
-			if (leftTail == previous) {
-				while (rightRunCount < runLength &&
+			if (left_tail == previous) {
+				while (right_run_count < run_length &&
 				       right != 0) {
-					leftTail = right;
-					++rightRunCount;
+					left_tail = right;
+					++right_run_count;
 					right = right->next;
 				}
 			}
 			left = right;
-			previous = leftTail;
+			previous = left_tail;
 			if (right == 0) {
 				break;
 			}
-			processedCount += 2 * runLength;
+			processed_count += 2 * run_length;
 		}
 	}
 }

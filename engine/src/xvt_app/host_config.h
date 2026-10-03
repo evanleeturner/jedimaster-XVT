@@ -11,7 +11,7 @@ extern "C" {
  * Aeron starts with (names, the embedded window icon, the resource and shader folders, a 640x480 logical
  * size) and the resource root the windowless installation check resolves. No state. */
 
-struct XvtLaunchOptions {
+struct xvt_launch_options {
 	const char *resource_root;
 	const char *game_data;
 	const char *import_config;
@@ -36,19 +36,19 @@ struct XvtLaunchOptions {
  * missing, empty or starts with '-'; and after the loop when --pilot-name
  * lacks --import-pilot or --setup is combined with --game-data or --check-installation. On 0, options
  * holds what was parsed before the failure. */
-int XvtLaunchOptions_Parse(int argc, char *argv[],
-			   struct XvtLaunchOptions *options);
+int xvt_launch_options_parse(int argc, char *argv[],
+			     struct xvt_launch_options *options);
 /* Zeroes config and fills it for this host: organization "TotallyOpen", application and window title
  * "OpenXvT", the embedded window icon, the resource root from options (none for NULL options), the
  * "resources" and "shaders" folders, a 640x480 logical size presented aspect-fit, and an opaque black
  * clear color. Every other field stays zero. */
-void XvtHostConfig_FillAeronConfig(const struct XvtLaunchOptions *options,
-				   AeronConfig *config);
+void xvt_host_config_fill_aeron_config(const struct xvt_launch_options *options,
+				       AeronConfig *config);
 /* With a nonempty resource root in options, copies it to out and returns 1, or 0 when it does not fit
  * with its terminator. Otherwise returns Aeron's answer for the "resources" folder beside the executable
  * or bundle resources, written to out. */
-int XvtHostConfig_ResolveResourceRoot(const struct XvtLaunchOptions *options,
-				      char *out, size_t capacity);
+int xvt_host_config_resolve_resource_root(
+	const struct xvt_launch_options *options, char *out, size_t capacity);
 
 #ifdef __cplusplus
 }

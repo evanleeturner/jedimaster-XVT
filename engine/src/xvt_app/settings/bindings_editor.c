@@ -1,18 +1,18 @@
 #include "xvt_app/settings/bindings_editor.h"
 #include <stdio.h>
 
-void XvtBindingsEditor_Init(struct XvtBindingsEditor *editor)
+void xvt_bindings_editor_init(struct xvt_bindings_editor *editor)
 {
-	*editor =
-		(struct XvtBindingsEditor){.highlighted_action_row = SIZE_MAX,
-					   .highlighted_binding_row = SIZE_MAX};
+	*editor = (struct xvt_bindings_editor){
+		.highlighted_action_row = SIZE_MAX,
+		.highlighted_binding_row = SIZE_MAX};
 }
 
-void XvtBindingsEditor_Select(struct XvtBindingsEditor *editor,
-			      XvtInputAction action, bool open_modal)
+void xvt_bindings_editor_select(struct xvt_bindings_editor *editor,
+				xvt_input_action action, bool open_modal)
 {
 	editor->selected_action = action;
-	editor->category = XvtInputActions_Category(action);
+	editor->category = xvt_input_actions_category(action);
 	editor->highlighted_action_row = SIZE_MAX;
 	editor->highlighted_binding_row = SIZE_MAX;
 	if (open_modal) {
@@ -20,8 +20,8 @@ void XvtBindingsEditor_Select(struct XvtBindingsEditor *editor,
 	}
 }
 
-void XvtBindingsEditor_CategorySelector(struct XvtBindingsEditor *editor,
-					AeronUiContext *ui)
+void xvt_bindings_editor_category_selector(struct xvt_bindings_editor *editor,
+					   AeronUiContext *ui)
 {
 	static const char *const categories[] = {
 		"Weapons", "Targets", "Throttle", "View",
@@ -34,9 +34,10 @@ void XvtBindingsEditor_CategorySelector(struct XvtBindingsEditor *editor,
 	}
 }
 
-void XvtBindingsEditor_Actions(struct XvtBindingsEditor *editor,
-			       AeronUiContext *ui, const AeronUiListItem *items,
-			       size_t count, float trailing_height)
+void xvt_bindings_editor_actions(struct xvt_bindings_editor *editor,
+				 AeronUiContext *ui,
+				 const AeronUiListItem *items, size_t count,
+				 float trailing_height)
 {
 	if (editor->highlighted_action_row == SIZE_MAX &&
 	    editor->selected_action != XVT_INPUT_ACTION_NONE) {
@@ -56,32 +57,33 @@ void XvtBindingsEditor_Actions(struct XvtBindingsEditor *editor,
 				&editor->highlighted_action_row, height);
 	if ((result & AERON_UI_LIST_ACTIVATED) &&
 	    editor->highlighted_action_row < count) {
-		XvtBindingsEditor_Select(
+		xvt_bindings_editor_select(
 			editor,
-			(XvtInputAction)items[editor->highlighted_action_row]
+			(xvt_input_action)items[editor->highlighted_action_row]
 				.id,
 			true);
 	}
 }
 
-bool XvtBindingsEditor_BeginDetail(struct XvtBindingsEditor *editor,
-				   AeronUiContext *ui)
+bool xvt_bindings_editor_begin_detail(struct xvt_bindings_editor *editor,
+				      AeronUiContext *ui)
 {
 	if (!editor->binding_modal_open ||
 	    editor->selected_action == XVT_INPUT_ACTION_NONE) {
 		return false;
 	}
 	return AeronUi_BeginModal(
-		       ui, XvtInputActions_DisplayName(editor->selected_action),
+		       ui,
+		       xvt_input_actions_display_name(editor->selected_action),
 		       &editor->binding_modal_open,
 		       &(AeronUiWindowDesc){.width_ref = 720.0f,
 					    .centered = 1}) != 0;
 }
 
-void XvtBindingsEditor_BindingList(struct XvtBindingsEditor *editor,
-				   AeronUiContext *ui,
-				   const AeronUiListItem *items, size_t count,
-				   const char *empty_text)
+void xvt_bindings_editor_binding_list(struct xvt_bindings_editor *editor,
+				      AeronUiContext *ui,
+				      const AeronUiListItem *items,
+				      size_t count, const char *empty_text)
 {
 	AeronUi_Header(ui, "Current Bindings");
 	if (count) {
@@ -93,13 +95,13 @@ void XvtBindingsEditor_BindingList(struct XvtBindingsEditor *editor,
 	}
 }
 
-bool XvtBindingsEditor_RemoveButton(AeronUiContext *ui)
+bool xvt_bindings_editor_remove_button(AeronUiContext *ui)
 {
 	return AeronUi_Button(ui, "Remove Binding") != 0;
 }
 
-void XvtBindingsEditor_EndDetail(struct XvtBindingsEditor *editor,
-				 AeronUiContext *ui)
+void xvt_bindings_editor_end_detail(struct xvt_bindings_editor *editor,
+				    AeronUiContext *ui)
 {
 	if (AeronUi_Button(ui, "Done")) {
 		editor->binding_modal_open = 0;
@@ -107,18 +109,18 @@ void XvtBindingsEditor_EndDetail(struct XvtBindingsEditor *editor,
 	AeronUi_EndModal(ui);
 }
 
-bool XvtBindingsEditor_ConfirmReplace(AeronUiContext *ui, int *open,
-				      const char *source,
-				      XvtInputAction previous,
-				      XvtInputAction replacement)
+bool xvt_bindings_editor_confirm_replace(AeronUiContext *ui, int *open,
+					 const char *source,
+					 xvt_input_action previous,
+					 xvt_input_action replacement)
 {
 	if (!AeronUi_BeginModal(ui, "CONTROL ALREADY BOUND", open, NULL)) {
 		return false;
 	}
 	char text[512];
 	snprintf(text, sizeof text, "%s is assigned to %s. Replace it with %s?",
-		 source, XvtInputActions_DisplayName(previous),
-		 XvtInputActions_DisplayName(replacement));
+		 source, xvt_input_actions_display_name(previous),
+		 xvt_input_actions_display_name(replacement));
 	AeronUi_Error(ui, text);
 	AeronUi_BeginColumns(ui, 2, NULL);
 	bool replace = AeronUi_Button(ui, "Replace") != 0;

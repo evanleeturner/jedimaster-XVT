@@ -12,14 +12,14 @@ extern "C" {
  * both are defined in host_clock.c. */
 
 /* Sets the clock to 0. */
-void XvtTime_Reset(void);
+void xvt_time_reset(void);
 /* Adds delta_us microseconds; zero or a negative delta is ignored. */
-void XvtTime_AdvanceHostClock(int32_t delta_us);
+void xvt_time_advance_host_clock(int32_t delta_us);
 /* Microseconds added since the last Reset. */
-uint64_t XvtTime_GetElapsedUs(void);
+uint64_t xvt_time_get_elapsed_us(void);
 /* Whole milliseconds since the last Reset, cut to 32 bits, so it wraps after about 49.7 days.
  * timeGetTime and GetTickCount return this value. */
-uint32_t XvtTime_GetElapsedMs(void);
+uint32_t xvt_time_get_elapsed_ms(void);
 
 #ifdef __cplusplus
 }

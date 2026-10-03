@@ -8,13 +8,13 @@
 extern "C" {
 #endif
 
-extern int g_flightAlertBoxVerticalOffset;
-extern void *g_flightAlertBoxSavedPixels;
-extern int g_flightAlertBoxSavedBytes;
+extern int g_flight_alert_box_vertical_offset;
+extern void *g_flight_alert_box_saved_pixels;
+extern int g_flight_alert_box_saved_bytes;
 
-void FlightAlert_SaveBoxBackground(void);
-void FlightAlert_RestoreBoxBackground(void);
-void FlightAlert_DrawBox(int textRow, char *text, uint8_t bgColor);
+void flight_alert_save_box_background(void);
+void flight_alert_restore_box_background(void);
+void flight_alert_draw_box(int text_row, char *text, uint8_t bg_color);
 
 #ifdef __cplusplus
 }

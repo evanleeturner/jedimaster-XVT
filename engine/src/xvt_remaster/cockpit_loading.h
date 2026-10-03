@@ -11,8 +11,8 @@
  * and images, marks the cockpit resources prepared for their generation and logs the time at DEBUG.
  * Returns 0 without aborting when no command buffer can be acquired; returns 0, aborting the pending
  * HUD and image assets, when a preparation fails (the buffer cancelled) or submission fails. */
-int XvtCockpitLoading_Prepare(const struct XvtRenderSnapshot *snapshot,
-			      int width, int height);
+int xvt_cockpit_loading_prepare(const struct xvt_render_snapshot *snapshot,
+				int width, int height);
 /* Forgets what was prepared, so the next Prepare does it all again. */
-void XvtCockpitLoading_Reset(void);
+void xvt_cockpit_loading_reset(void);
 #endif

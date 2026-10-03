@@ -6,25 +6,25 @@
 #include "aeron/dialog.h"
 #include "xvt_runtime/input/input_bridge.h"
 #else
-__declspec(dllimport) int __stdcall MessageBoxA(void *hWnd, const char *text,
+__declspec(dllimport) int __stdcall MessageBoxA(void *h_wnd, const char *text,
 						const char *caption,
 						unsigned int type);
 #endif
 
 /* DirectInput's GUID for the system keyboard,
- * {6F1D2B61-D5A0-11CF-BFC7-444553540000}; DInput_Init creates the keyboard
+ * {6F1D2B61-D5A0-11CF-BFC7-444553540000}; dinput_init creates the keyboard
  * device from a copy of it. */
 // GLOBAL: XVT 0x518240
-const DxGuid g_directInputSystemKeyboardGuid = {
+const DxGuid g_direct_input_system_keyboard_guid = {
 	0x6F1D2B61,
 	0xD5A0,
 	0x11CF,
 	{0xBF, 0xC7, 0x44, 0x45, 0x53, 0x54, 0x00, 0x00},
 };
-/* Instance handle DInput_Init passes to DirectInputCreateA. Nothing writes it,
+/* Instance handle dinput_init passes to DirectInputCreateA. Nothing writes it,
  * so it stays NULL. */
 // GLOBAL: XVT 0x66E1F0
-void *g_hInstance = NULL;
+void *g_h_instance = NULL;
 
 /* Game key code for each DirectInput key offset (the DIK scan code), 0 to 255,
  * with no modifier held: ASCII for the keys that type a character and for
@@ -33,7 +33,7 @@ void *g_hInstance = NULL;
  * two shift keys, 0xFE the two control keys and 0xFF the two alt keys; the
  * key-reading functions test those marks in this table only. */
 // GLOBAL: XVT 0x5216D0
-const uint8_t g_dinputKeyCodeTable[256] = {
+const uint8_t g_dinput_key_code_table[256] = {
 	0x00, 0x1b, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30,
 	0x2d, 0x3d, 0x08, 0x09, 0x71, 0x77, 0x65, 0x72, 0x74, 0x79, 0x75, 0x69,
 	0x6f, 0x70, 0x5b, 0x5d, 0x0d, 0xfe, 0x61, 0x73, 0x64, 0x66, 0x67, 0x68,
@@ -60,7 +60,7 @@ const uint8_t g_dinputKeyCodeTable[256] = {
 /* The key codes with a shift key held, indexed the same way: the shifted
  * characters, and 0xCF to 0xD8 for F1 to F10. */
 // GLOBAL: XVT 0x5217D0
-const uint8_t g_dinputShiftKeyCodeTable[256] = {
+const uint8_t g_dinput_shift_key_code_table[256] = {
 	0x00, 0x1b, 0x21, 0x40, 0x23, 0x24, 0x25, 0x5e, 0x26, 0x2a, 0x28, 0x29,
 	0x5f, 0x2b, 0x08, 0x09, 0x51, 0x57, 0x45, 0x52, 0x54, 0x59, 0x55, 0x49,
 	0x4f, 0x50, 0x7b, 0x7d, 0x0d, 0xfe, 0x41, 0x53, 0x44, 0x46, 0x47, 0x48,
@@ -88,7 +88,7 @@ const uint8_t g_dinputShiftKeyCodeTable[256] = {
  * the letters, the shifted symbols for the digit row, 0x0A for Enter and 0xCF
  * to 0xD8 for F1 to F10. */
 // GLOBAL: XVT 0x5218D0
-const uint8_t g_dinputCtrlKeyCodeTable[256] = {
+const uint8_t g_dinput_ctrl_key_code_table[256] = {
 	0x00, 0x1b, 0x21, 0x40, 0x23, 0x24, 0x25, 0x5e, 0x26, 0x2a, 0x28, 0x29,
 	0x5f, 0x2b, 0x08, 0x09, 0x11, 0x17, 0x05, 0x12, 0x14, 0x19, 0x15, 0x09,
 	0x0f, 0x10, 0x1b, 0x1d, 0x0a, 0xfe, 0x01, 0x13, 0x04, 0x06, 0x07, 0x08,
@@ -115,7 +115,7 @@ const uint8_t g_dinputCtrlKeyCodeTable[256] = {
 /* The key codes with an alt key held: 0x80 to 0x99 for the letters A to Z, 0x9A
  * to 0xA3 for the digits 0 to 9 and 0xCF to 0xD8 for F1 to F10. */
 // GLOBAL: XVT 0x5219D0
-const uint8_t g_dinputAltKeyCodeTable[256] = {
+const uint8_t g_dinput_alt_key_code_table[256] = {
 	0x00, 0x1b, 0x9b, 0x9c, 0x9d, 0x9e, 0x9f, 0xa0, 0xa1, 0xa2, 0xa3, 0x9a,
 	0x5f, 0x2b, 0x08, 0x09, 0x90, 0x96, 0x84, 0x91, 0x93, 0x98, 0x94, 0x88,
 	0x8e, 0x8f, 0x7b, 0x7d, 0x0d, 0xfe, 0x80, 0x92, 0x83, 0x85, 0x86, 0x87,
@@ -139,96 +139,98 @@ const uint8_t g_dinputAltKeyCodeTable[256] = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00};
 
-/* The DirectInput object DInput_Init creates, version 0x500 or, when that
- * fails, 0x300. DInput_Shutdown releases it; only the modern build sets it back
+/* The DirectInput object dinput_init creates, version 0x500 or, when that
+ * fails, 0x300. dinput_shutdown releases it; only the modern build sets it back
  * to NULL there. */
 // GLOBAL: XVT 0x556900
-IDirectInputA *g_directInput;
-/* The system keyboard device DInput_Init creates, foreground and non-exclusive
- * with a 32-event buffer. DInput_Shutdown releases it; only the modern build
+IDirectInputA *g_direct_input;
+/* The system keyboard device dinput_init creates, foreground and non-exclusive
+ * with a 32-event buffer. dinput_shutdown releases it; only the modern build
  * sets it back to NULL there. */
 // GLOBAL: XVT 0x556904
-IDirectInputDeviceA *g_dinputKeyboardDevice;
-/* 1 while the keyboard device is acquired: DInput_Init sets 1 when every step
- * worked, DInput_ReacquireKeyboard sets 1 (the modern build: whether Acquire
- * succeeded), and DInput_Shutdown sets 0 after Unacquire. */
+IDirectInputDeviceA *g_dinput_keyboard_device;
+/* 1 while the keyboard device is acquired: dinput_init sets 1 when every step
+ * worked, dinput_reacquire_keyboard sets 1 (the modern build: whether Acquire
+ * succeeded), and dinput_shutdown sets 0 after Unacquire. */
 // GLOBAL: XVT 0x556908
-int g_dinputKeyboardAcquired;
-/* Nonzero while a control key is held. DInput_UpdateKeyboardModifierState sets
- * 1 or 0 from the keyboard state; DInput_SkipToPendingKeyPress and
- * DInput_GetKey set 0x80 or 0 from a control key's buffered event; the modern
- * build's XvtInput_FlushRawKeyboard sets 0. */
+int g_dinput_keyboard_acquired;
+/* Nonzero while a control key is held. dinput_update_keyboard_modifier_state sets
+ * 1 or 0 from the keyboard state; dinput_skip_to_pending_key_press and
+ * dinput_get_key set 0x80 or 0 from a control key's buffered event; the modern
+ * build's xvt_input_flush_raw_keyboard sets 0. */
 // GLOBAL: XVT 0x521AD0
-int g_dinputCtrlDown = 0;
-/* Nonzero while a shift key is held, written like g_dinputCtrlDown. */
+int g_dinput_ctrl_down = 0;
+/* Nonzero while a shift key is held, written like g_dinput_ctrl_down. */
 // GLOBAL: XVT 0x521AD4
-int g_dinputShiftDown = 0;
-/* Nonzero while an alt key is held, written like g_dinputCtrlDown. */
+int g_dinput_shift_down = 0;
+/* Nonzero while an alt key is held, written like g_dinput_ctrl_down. */
 // GLOBAL: XVT 0x521AD8
-int g_dinputAltDown = 0;
+int g_dinput_alt_down = 0;
 
-/* Sets up the DirectInput keyboard for flight: creates g_directInput with
+/* Sets up the DirectInput keyboard for flight: creates g_direct_input with
  * DirectInputCreateA, version 0x500 or, when that fails, 0x300; creates the
- * system keyboard device in g_dinputKeyboardDevice, sets the keyboard data
- * format, foreground non-exclusive use with g_flightMainWindowHandle and a
- * 32-event buffer, and acquires it. Sets g_dinputKeyboardAcquired to 1 and
+ * system keyboard device in g_dinput_keyboard_device, sets the keyboard data
+ * format, foreground non-exclusive use with g_flight_main_window_handle and a
+ * 32-event buffer, and acquires it. Sets g_dinput_keyboard_acquired to 1 and
  * returns 1. At the first step that fails it shows an error box naming the step
- * and returns 0, releasing nothing it already made. Flight_Main calls it in the
- * original build and XvtFlightEntry_CreateDevices in the modern one, both only
- * while g_flightConfDirectInput is set. */
+ * and returns 0, releasing nothing it already made. flight_main calls it in the
+ * original build and xvt_flight_entry_create_devices in the modern one, both only
+ * while g_flight_conf_direct_input is set. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x443330
-int DInput_Init(void)
+int dinput_init(void)
 {
-	DxGuid keyboardGuid;
-	DIPROPDWORD bufferSize;
+	DxGuid keyboard_guid;
+	DIPROPDWORD buffer_size;
 #ifdef XVT_MODERN
-	AeronMessageBoxButton errorButton = {1, "OK", 1, 1};
-	AeronMessageBoxOptions errorOptions = {AERON_MESSAGE_BOX_ERROR, "ERROR",
-					       NULL, &errorButton, 1};
+	AeronMessageBoxButton error_button = {1, "OK", 1, 1};
+	AeronMessageBoxOptions error_options = {
+		AERON_MESSAGE_BOX_ERROR, "ERROR", NULL, &error_button, 1};
 #endif
 
-	keyboardGuid = g_directInputSystemKeyboardGuid;
-	if (DirectInputCreateA(g_hInstance, 0x500, &g_directInput, NULL) != 0 &&
-	    DirectInputCreateA(g_hInstance, 0x300, &g_directInput, NULL) != 0) {
+	keyboard_guid = g_direct_input_system_keyboard_guid;
+	if (DirectInputCreateA(g_h_instance, 0x500, &g_direct_input, NULL) !=
+		    0 &&
+	    DirectInputCreateA(g_h_instance, 0x300, &g_direct_input, NULL) !=
+		    0) {
 #ifdef XVT_MODERN
-		errorOptions.message = "Direct Input Create FAILED";
-		Aeron_ShowMessageBox(&errorOptions, NULL);
+		error_options.message = "Direct Input Create FAILED";
+		Aeron_ShowMessageBox(&error_options, NULL);
 #else
 		MessageBoxA(NULL, "Direct Input Create FAILED", "ERROR", 0);
 #endif
 		return 0;
 	}
 
-	if (g_directInput->lpVtbl->CreateDevice(g_directInput, &keyboardGuid,
-						&g_dinputKeyboardDevice,
-						NULL) != 0) {
+	if (g_direct_input->lpVtbl->CreateDevice(g_direct_input, &keyboard_guid,
+						 &g_dinput_keyboard_device,
+						 NULL) != 0) {
 #ifdef XVT_MODERN
-		errorOptions.message = "Direct Input Keyboard Create FAILED";
-		Aeron_ShowMessageBox(&errorOptions, NULL);
+		error_options.message = "Direct Input Keyboard Create FAILED";
+		Aeron_ShowMessageBox(&error_options, NULL);
 #else
 		MessageBoxA(NULL, "Direct Input Keyboard Create FAILED",
 			    "ERROR", 0);
 #endif
 		return 0;
 	}
-	if (g_dinputKeyboardDevice->lpVtbl->SetDataFormat(
-		    g_dinputKeyboardDevice, &c_dfDIKeyboard) != 0) {
+	if (g_dinput_keyboard_device->lpVtbl->SetDataFormat(
+		    g_dinput_keyboard_device, &c_dfDIKeyboard) != 0) {
 #ifdef XVT_MODERN
-		errorOptions.message = "Direct Input Keyboard Format FAILED";
-		Aeron_ShowMessageBox(&errorOptions, NULL);
+		error_options.message = "Direct Input Keyboard Format FAILED";
+		Aeron_ShowMessageBox(&error_options, NULL);
 #else
 		MessageBoxA(NULL, "Direct Input Keyboard Format FAILED",
 			    "ERROR", 0);
 #endif
 		return 0;
 	}
-	if (g_dinputKeyboardDevice->lpVtbl->SetCooperativeLevel(
-		    g_dinputKeyboardDevice, g_flightMainWindowHandle,
+	if (g_dinput_keyboard_device->lpVtbl->SetCooperativeLevel(
+		    g_dinput_keyboard_device, g_flight_main_window_handle,
 		    DISCL_FOREGROUND | DISCL_NONEXCLUSIVE) != 0) {
 #ifdef XVT_MODERN
-		errorOptions.message = "Direct Input Keyboard SCL FAILED";
-		Aeron_ShowMessageBox(&errorOptions, NULL);
+		error_options.message = "Direct Input Keyboard SCL FAILED";
+		Aeron_ShowMessageBox(&error_options, NULL);
 #else
 		MessageBoxA(NULL, "Direct Input Keyboard SCL FAILED", "ERROR",
 			    0);
@@ -236,29 +238,29 @@ int DInput_Init(void)
 		return 0;
 	}
 
-	bufferSize.diph.dwSize = sizeof(bufferSize);
-	bufferSize.diph.dwHeaderSize = sizeof(bufferSize.diph);
-	bufferSize.diph.dwObj = 0;
-	bufferSize.diph.dwHow = 0;
-	bufferSize.dwData = 32;
-	if (g_dinputKeyboardDevice->lpVtbl->SetProperty(
-		    g_dinputKeyboardDevice, DINPUT_DIPROP_BUFFERSIZE,
-		    &bufferSize.diph) < 0) {
+	buffer_size.diph.dwSize = sizeof(buffer_size);
+	buffer_size.diph.dwHeaderSize = sizeof(buffer_size.diph);
+	buffer_size.diph.dwObj = 0;
+	buffer_size.diph.dwHow = 0;
+	buffer_size.dwData = 32;
+	if (g_dinput_keyboard_device->lpVtbl->SetProperty(
+		    g_dinput_keyboard_device, DINPUT_DIPROP_BUFFERSIZE,
+		    &buffer_size.diph) < 0) {
 #ifdef XVT_MODERN
-		errorOptions.message =
+		error_options.message =
 			"Direct Input Keyboard SetBufferSize FAILED";
-		Aeron_ShowMessageBox(&errorOptions, NULL);
+		Aeron_ShowMessageBox(&error_options, NULL);
 #else
 		MessageBoxA(NULL, "Direct Input Keyboard SetBufferSize FAILED",
 			    "ERROR", 0);
 #endif
 		return 0;
 	}
-	if (g_dinputKeyboardDevice->lpVtbl->Acquire(g_dinputKeyboardDevice) !=
-	    0) {
+	if (g_dinput_keyboard_device->lpVtbl->Acquire(
+		    g_dinput_keyboard_device) != 0) {
 #ifdef XVT_MODERN
-		errorOptions.message = "Direct Input Keyboard Acquire FAILED";
-		Aeron_ShowMessageBox(&errorOptions, NULL);
+		error_options.message = "Direct Input Keyboard Acquire FAILED";
+		Aeron_ShowMessageBox(&error_options, NULL);
 #else
 		MessageBoxA(NULL, "Direct Input Keyboard Acquire FAILED",
 			    "ERROR", 0);
@@ -266,135 +268,137 @@ int DInput_Init(void)
 		return 0;
 	}
 
-	g_dinputKeyboardAcquired = 1;
+	g_dinput_keyboard_acquired = 1;
 	return 1;
 }
 
 /* Tells whether a key press waits in the keyboard's buffer, removing the events
  * before it. It peeks at the oldest buffered event: a shift, control or alt
- * key's event (by the marks in g_dinputKeyCodeTable) sets g_dinputShiftDown,
- * g_dinputCtrlDown or g_dinputAltDown to 0x80 when pressed or 0 when released
+ * key's event (by the marks in g_dinput_key_code_table) sets g_dinput_shift_down,
+ * g_dinput_ctrl_down or g_dinput_alt_down to 0x80 when pressed or 0 when released
  * and is removed; any other release is removed; any other press stays in the
  * buffer and the function returns 1. Returns 0 when the buffer is empty, when
- * the read fails, or when the input is lost and DInput_ReacquireKeyboard
+ * the read fails, or when the input is lost and dinput_reacquire_keyboard
  * returns 0; after a reacquire that returns 1 it peeks again. Does not check
- * that g_dinputKeyboardDevice exists. */
+ * that g_dinput_keyboard_device exists. */
 // FUNCTION: XVT 0x4434F0
-int DInput_SkipToPendingKeyPress(void)
+int dinput_skip_to_pending_key_press(void)
 {
-	DIDEVICEOBJECTDATA keyEvent[2];
-	uint32_t eventCount;
+	DIDEVICEOBJECTDATA key_event[2];
+	uint32_t event_count;
 	HRESULT result;
 	uint8_t code;
 	int pressed;
 
 	while (1) {
 		do {
-			eventCount = 1;
-			result = g_dinputKeyboardDevice->lpVtbl->GetDeviceData(
-				g_dinputKeyboardDevice,
-				(uint32_t)sizeof(DIDEVICEOBJECTDATA), keyEvent,
-				&eventCount, DIGDD_PEEK);
+			event_count = 1;
+			result =
+				g_dinput_keyboard_device->lpVtbl->GetDeviceData(
+					g_dinput_keyboard_device,
+					(uint32_t)sizeof(DIDEVICEOBJECTDATA),
+					key_event, &event_count, DIGDD_PEEK);
 			if (result != DIERR_INPUTLOST) {
 				break;
 			}
-			if (DInput_ReacquireKeyboard() == 0) {
+			if (dinput_reacquire_keyboard() == 0) {
 				return 0;
 			}
 		} while (1);
 		if (result < 0) {
 			return 0;
 		}
-		if (eventCount == 0) {
+		if (event_count == 0) {
 			return 0;
 		}
 
-		pressed = keyEvent[0].dwData & 0x80;
-		code = g_dinputKeyCodeTable[keyEvent[0].dwOfs & 0xff];
+		pressed = key_event[0].dwData & 0x80;
+		code = g_dinput_key_code_table[key_event[0].dwOfs & 0xff];
 		if (code == 0xfd) {
-			g_dinputShiftDown = pressed;
-			eventCount = 1;
-			g_dinputKeyboardDevice->lpVtbl->GetDeviceData(
-				g_dinputKeyboardDevice,
-				(uint32_t)sizeof(DIDEVICEOBJECTDATA), keyEvent,
-				&eventCount, 0);
+			g_dinput_shift_down = pressed;
+			event_count = 1;
+			g_dinput_keyboard_device->lpVtbl->GetDeviceData(
+				g_dinput_keyboard_device,
+				(uint32_t)sizeof(DIDEVICEOBJECTDATA), key_event,
+				&event_count, 0);
 			continue;
 		}
 		if (code == 0xfe) {
-			g_dinputCtrlDown = pressed;
-			eventCount = 1;
-			g_dinputKeyboardDevice->lpVtbl->GetDeviceData(
-				g_dinputKeyboardDevice,
-				(uint32_t)sizeof(DIDEVICEOBJECTDATA), keyEvent,
-				&eventCount, 0);
+			g_dinput_ctrl_down = pressed;
+			event_count = 1;
+			g_dinput_keyboard_device->lpVtbl->GetDeviceData(
+				g_dinput_keyboard_device,
+				(uint32_t)sizeof(DIDEVICEOBJECTDATA), key_event,
+				&event_count, 0);
 			continue;
 		}
 		if (code == 0xff) {
-			g_dinputAltDown = pressed;
-			eventCount = 1;
-			g_dinputKeyboardDevice->lpVtbl->GetDeviceData(
-				g_dinputKeyboardDevice,
-				(uint32_t)sizeof(DIDEVICEOBJECTDATA), keyEvent,
-				&eventCount, 0);
+			g_dinput_alt_down = pressed;
+			event_count = 1;
+			g_dinput_keyboard_device->lpVtbl->GetDeviceData(
+				g_dinput_keyboard_device,
+				(uint32_t)sizeof(DIDEVICEOBJECTDATA), key_event,
+				&event_count, 0);
 			continue;
 		}
 		if (pressed != 0) {
 			return 1;
 		}
 
-		eventCount = 1;
-		g_dinputKeyboardDevice->lpVtbl->GetDeviceData(
-			g_dinputKeyboardDevice,
-			(uint32_t)sizeof(DIDEVICEOBJECTDATA), keyEvent,
-			&eventCount, 0);
+		event_count = 1;
+		g_dinput_keyboard_device->lpVtbl->GetDeviceData(
+			g_dinput_keyboard_device,
+			(uint32_t)sizeof(DIDEVICEOBJECTDATA), key_event,
+			&event_count, 0);
 	}
 }
 
 /* Takes the next key press from the keyboard's buffer and returns its game key
  * code. First refreshes the modifier flags with
- * DInput_UpdateKeyboardModifierState; modifier events on the way set them as
- * DInput_SkipToPendingKeyPress does, and other releases are dropped. The code
- * comes from g_dinputShiftKeyCodeTable while shift is held, else
- * g_dinputCtrlKeyCodeTable for control, else g_dinputAltKeyCodeTable for alt,
- * else g_dinputKeyCodeTable; a key the table maps to 0 returns 0. Returns 0
- * when the read fails or when the input is lost and DInput_ReacquireKeyboard
+ * dinput_update_keyboard_modifier_state; modifier events on the way set them as
+ * dinput_skip_to_pending_key_press does, and other releases are dropped. The code
+ * comes from g_dinput_shift_key_code_table while shift is held, else
+ * g_dinput_ctrl_key_code_table for control, else g_dinput_alt_key_code_table for alt,
+ * else g_dinput_key_code_table; a key the table maps to 0 returns 0. Returns 0
+ * when the read fails or when the input is lost and dinput_reacquire_keyboard
  * returns 0. With the buffer empty the modern build returns 0, while the
  * original build keeps reading until a press arrives. The modern build also
- * returns 0 when g_dinputKeyboardDevice is NULL. */
+ * returns 0 when g_dinput_keyboard_device is NULL. */
 // FUNCTION: XVT 0x443630
-uint8_t DInput_GetKey(void)
+uint8_t dinput_get_key(void)
 {
-	DIDEVICEOBJECTDATA keyEvent[2];
-	uint32_t eventCount;
+	DIDEVICEOBJECTDATA key_event[2];
+	uint32_t event_count;
 	HRESULT result;
-	uint32_t keyOffset;
+	uint32_t key_offset;
 	uint8_t code;
 	int pressed;
 
 #ifdef XVT_MODERN
-	if (!g_dinputKeyboardDevice) {
+	if (!g_dinput_keyboard_device) {
 		return 0;
 	}
 #endif
-	DInput_UpdateKeyboardModifierState();
+	dinput_update_keyboard_modifier_state();
 	while (1) {
 		do {
-			eventCount = 1;
-			result = g_dinputKeyboardDevice->lpVtbl->GetDeviceData(
-				g_dinputKeyboardDevice,
-				(uint32_t)sizeof(DIDEVICEOBJECTDATA), keyEvent,
-				&eventCount, 0);
+			event_count = 1;
+			result =
+				g_dinput_keyboard_device->lpVtbl->GetDeviceData(
+					g_dinput_keyboard_device,
+					(uint32_t)sizeof(DIDEVICEOBJECTDATA),
+					key_event, &event_count, 0);
 			if (result != DIERR_INPUTLOST) {
 				break;
 			}
-			if (DInput_ReacquireKeyboard() == 0) {
+			if (dinput_reacquire_keyboard() == 0) {
 				return 0;
 			}
 		} while (1);
 		if (result < 0) {
 			return 0;
 		}
-		if (eventCount == 0) {
+		if (event_count == 0) {
 #ifdef XVT_MODERN
 			return 0;
 #else
@@ -402,119 +406,123 @@ uint8_t DInput_GetKey(void)
 #endif
 		}
 
-		keyOffset = keyEvent[0].dwOfs;
-		pressed = keyEvent[0].dwData & 0x80;
-		code = g_dinputKeyCodeTable[keyOffset & 0xff];
+		key_offset = key_event[0].dwOfs;
+		pressed = key_event[0].dwData & 0x80;
+		code = g_dinput_key_code_table[key_offset & 0xff];
 		if (code == 0xfd) {
-			g_dinputShiftDown = pressed;
+			g_dinput_shift_down = pressed;
 			continue;
 		}
 		if (code == 0xfe) {
-			g_dinputCtrlDown = pressed;
+			g_dinput_ctrl_down = pressed;
 			continue;
 		}
 		if (code == 0xff) {
-			g_dinputAltDown = pressed;
+			g_dinput_alt_down = pressed;
 			continue;
 		}
 		if (pressed == 0) {
 			continue;
 		}
 
-		if (g_dinputShiftDown != 0) {
-			return g_dinputShiftKeyCodeTable[keyOffset & 0xff];
+		if (g_dinput_shift_down != 0) {
+			return g_dinput_shift_key_code_table[key_offset & 0xff];
 		}
-		if (g_dinputCtrlDown != 0) {
-			return g_dinputCtrlKeyCodeTable[keyOffset & 0xff];
+		if (g_dinput_ctrl_down != 0) {
+			return g_dinput_ctrl_key_code_table[key_offset & 0xff];
 		}
-		if (g_dinputAltDown != 0) {
-			return g_dinputAltKeyCodeTable[keyOffset & 0xff];
+		if (g_dinput_alt_down != 0) {
+			return g_dinput_alt_key_code_table[key_offset & 0xff];
 		}
-		return g_dinputKeyCodeTable[keyOffset & 0xff];
+		return g_dinput_key_code_table[key_offset & 0xff];
 	}
 }
 
-/* Reads the whole keyboard state and sets g_dinputShiftDown, g_dinputCtrlDown
- * and g_dinputAltDown to 1 when either key of the pair is down (DIK codes 42 or
+/* Reads the whole keyboard state and sets g_dinput_shift_down, g_dinput_ctrl_down
+ * and g_dinput_alt_down to 1 when either key of the pair is down (DIK codes 42 or
  * 54, 29 or 157, 56 or 184), else 0. Leaves them as they were when the read
- * fails. Only DInput_GetKey calls it. */
+ * fails. Only dinput_get_key calls it. */
 // FUNCTION: XVT 0x443740
-void DInput_UpdateKeyboardModifierState(void)
+void dinput_update_keyboard_modifier_state(void)
 {
-	uint8_t keyboardState[256];
+	uint8_t keyboard_state[256];
 
-	if (g_dinputKeyboardDevice->lpVtbl->GetDeviceState(
-		    g_dinputKeyboardDevice, sizeof(keyboardState),
-		    keyboardState) == 0) {
-		g_dinputShiftDown =
-			keyboardState[42] != 0 || keyboardState[54] != 0;
-		g_dinputCtrlDown =
-			keyboardState[29] != 0 || keyboardState[157] != 0;
-		g_dinputAltDown =
-			keyboardState[56] != 0 || keyboardState[184] != 0;
+	if (g_dinput_keyboard_device->lpVtbl->GetDeviceState(
+		    g_dinput_keyboard_device, sizeof(keyboard_state),
+		    keyboard_state) == 0) {
+		g_dinput_shift_down =
+			keyboard_state[42] != 0 || keyboard_state[54] != 0;
+		g_dinput_ctrl_down =
+			keyboard_state[29] != 0 || keyboard_state[157] != 0;
+		g_dinput_alt_down =
+			keyboard_state[56] != 0 || keyboard_state[184] != 0;
 	}
 }
 
 /* Reads the whole keyboard state into a local buffer, discards it and returns
  * GetDeviceState's result. Nothing calls this. */
 // FUNCTION: XVT 0x4437F0
-HRESULT DInput_ProbeKeyboardState(void)
+HRESULT dinput_probe_keyboard_state(void)
 {
-	uint8_t keyboardState[256];
+	uint8_t keyboard_state[256];
 
-	return g_dinputKeyboardDevice->lpVtbl->GetDeviceState(
-		g_dinputKeyboardDevice, sizeof(keyboardState), keyboardState);
+	return g_dinput_keyboard_device->lpVtbl->GetDeviceState(
+		g_dinput_keyboard_device, sizeof(keyboard_state),
+		keyboard_state);
 }
 
-/* Unacquires the keyboard and sets g_dinputKeyboardAcquired to 0 when that flag
- * is set, then releases g_dinputKeyboardDevice and g_directInput when they are
+/* Unacquires the keyboard and sets g_dinput_keyboard_acquired to 0 when that flag
+ * is set, then releases g_dinput_keyboard_device and g_direct_input when they are
  * not NULL. The modern build also sets both to NULL; the original build leaves
- * them pointing at the released objects. Flight_Main calls it in the original
- * build, XvtFlightEntry_Cleanup in the modern one. */
+ * them pointing at the released objects. flight_main calls it in the original
+ * build, xvt_flight_entry_cleanup in the modern one. */
 // FUNCTION: XVT 0x443820
-void DInput_Shutdown(void)
+void dinput_shutdown(void)
 {
-	if (g_dinputKeyboardAcquired != 0) {
-		g_dinputKeyboardDevice->lpVtbl->Unacquire(
-			g_dinputKeyboardDevice);
-		g_dinputKeyboardAcquired = 0;
+	if (g_dinput_keyboard_acquired != 0) {
+		g_dinput_keyboard_device->lpVtbl->Unacquire(
+			g_dinput_keyboard_device);
+		g_dinput_keyboard_acquired = 0;
 	}
-	if (g_dinputKeyboardDevice != 0) {
-		g_dinputKeyboardDevice->lpVtbl->Release(g_dinputKeyboardDevice);
+	if (g_dinput_keyboard_device != 0) {
+		g_dinput_keyboard_device->lpVtbl->Release(
+			g_dinput_keyboard_device);
 #ifdef XVT_MODERN
-		g_dinputKeyboardDevice = NULL;
+		g_dinput_keyboard_device = NULL;
 #endif
 	}
-	if (g_directInput != 0) {
-		g_directInput->lpVtbl->Release(g_directInput);
+	if (g_direct_input != 0) {
+		g_direct_input->lpVtbl->Release(g_direct_input);
 #ifdef XVT_MODERN
-		g_directInput = NULL;
+		g_direct_input = NULL;
 #endif
 	}
 }
 
-/* Acquires the keyboard device again; DInput_SkipToPendingKeyPress and
- * DInput_GetKey call it when DirectInput reports the input lost. The original
+/* Acquires the keyboard device again; dinput_skip_to_pending_key_press and
+ * dinput_get_key call it when DirectInput reports the input lost. The original
  * build calls Acquire when the device exists, ignores its result, sets
- * g_dinputKeyboardAcquired to 1 and returns 1, and returns 0 without a device.
+ * g_dinput_keyboard_acquired to 1 and returns 1, and returns 0 without a device.
  * The modern build returns 0 without a device or when
- * XvtInput_ConsumeKeyboardReacquire returns 0; otherwise it sets
- * g_dinputKeyboardAcquired to 1 when Acquire returns 0 or more, else 0, and
+ * xvt_input_consume_keyboard_reacquire returns 0; otherwise it sets
+ * g_dinput_keyboard_acquired to 1 when Acquire returns 0 or more, else 0, and
  * returns that. */
 // FUNCTION: XVT 0x443860
-int DInput_ReacquireKeyboard(void)
+int dinput_reacquire_keyboard(void)
 {
 #ifdef XVT_MODERN
-	if (!g_dinputKeyboardDevice || !XvtInput_ConsumeKeyboardReacquire()) {
+	if (!g_dinput_keyboard_device ||
+	    !xvt_input_consume_keyboard_reacquire()) {
 		return 0;
 	}
-	g_dinputKeyboardAcquired = g_dinputKeyboardDevice->lpVtbl->Acquire(
-					   g_dinputKeyboardDevice) >= 0;
-	return g_dinputKeyboardAcquired;
+	g_dinput_keyboard_acquired = g_dinput_keyboard_device->lpVtbl->Acquire(
+					     g_dinput_keyboard_device) >= 0;
+	return g_dinput_keyboard_acquired;
 #else
-	if (g_dinputKeyboardDevice != 0) {
-		g_dinputKeyboardDevice->lpVtbl->Acquire(g_dinputKeyboardDevice);
-		g_dinputKeyboardAcquired = 1;
+	if (g_dinput_keyboard_device != 0) {
+		g_dinput_keyboard_device->lpVtbl->Acquire(
+			g_dinput_keyboard_device);
+		g_dinput_keyboard_acquired = 1;
 		return 1;
 	}
 	return 0;

@@ -11,124 +11,125 @@
 #include <string.h>
 
 /* Opens the CD audio device through MCI for the front end's music. Returns 0 at
- * once when the window is not up: g_frontState.hWnd NULL in the original build,
- * XvtPort_IsInitialized false in the modern one. Closes a device already open
- * with CDAudio_CloseDevice. Takes the first auxiliary device that is a CD audio
+ * once when the window is not up: g_front_state.hWnd NULL in the original build,
+ * xvt_port_is_initialized false in the modern one. Closes a device already open
+ * with cd_audio_close_device. Takes the first auxiliary device that is a CD audio
  * device with volume control and whose volume reads, and stores the low 16 bits
- * of that volume in g_frontState.cdAudioSavedAuxVolume. Opens "cdaudio" into
- * cdAudioMciDeviceId, sets the time format to tracks, minutes, seconds and
- * frames (MCI_FORMAT_TMSF), and reads the track count into cdAudioTrackCount
+ * of that volume in g_front_state.cd_audio_saved_aux_volume. Opens "cdaudio" into
+ * cd_audio_mci_device_id, sets the time format to tracks, minutes, seconds and
+ * frames (MCI_FORMAT_TMSF), and reads the track count into cd_audio_track_count
  * and each track's length, in minutes, seconds and frames, into
- * cdAudioTrackCache.trackLengthMsfByTrack. Returns 1; 0 when the open fails, or
+ * cd_audio_track_cache.track_length_msf_by_track. Returns 1; 0 when the open fails, or
  * when a later step fails, after closing the device and setting
- * cdAudioMciDeviceId to 0. Does not check the track count against the cache's
+ * cd_audio_mci_device_id to 0. Does not check the track count against the cache's
  * 40 entries. */
 // FUNCTION: XVT 0x4D2E50
-int CDAudio_Initialize(void)
+int cd_audio_initialize(void)
 {
-	uint32_t savedVolume;
-	MCI_STATUS_PARMS statusParameters;
-	MCI_SET_PARMS setParameters;
-	MCI_OPEN_PARMSA openParameters;
-	AUXCAPSA deviceCaps;
-	int deviceCount;
-	int deviceIndex;
+	uint32_t saved_volume;
+	MCI_STATUS_PARMS status_parameters;
+	MCI_SET_PARMS set_parameters;
+	MCI_OPEN_PARMSA open_parameters;
+	AUXCAPSA device_caps;
+	int device_count;
+	int device_index;
 
 #ifdef XVT_MODERN
-	if (!XvtPort_IsInitialized()) {
+	if (!xvt_port_is_initialized()) {
 #else
-	if (g_frontState.hWnd == NULL) {
+	if (g_front_state.h_wnd == NULL) {
 #endif
 		return 0;
 	}
-	if (g_frontState.cdAudioMciDeviceId != 0) {
-		CDAudio_CloseDevice();
+	if (g_front_state.cd_audio_mci_device_id != 0) {
+		cd_audio_close_device();
 	}
 
-	deviceIndex = 0;
-	deviceCount = (int)auxGetNumDevs();
-	if (deviceCount > 0) {
+	device_index = 0;
+	device_count = (int)auxGetNumDevs();
+	if (device_count > 0) {
 		do {
-			memset(&deviceCaps, 0, sizeof(deviceCaps));
-			auxGetDevCapsA(deviceIndex, &deviceCaps,
-				       sizeof(deviceCaps));
-			if (deviceCaps.wTechnology == AUXCAPS_CDAUDIO &&
-			    (deviceCaps.dwSupport & AUXCAPS_VOLUME) != 0 &&
-			    auxGetVolume(deviceIndex, &savedVolume) ==
+			memset(&device_caps, 0, sizeof(device_caps));
+			auxGetDevCapsA(device_index, &device_caps,
+				       sizeof(device_caps));
+			if (device_caps.wTechnology == AUXCAPS_CDAUDIO &&
+			    (device_caps.dwSupport & AUXCAPS_VOLUME) != 0 &&
+			    auxGetVolume(device_index, &saved_volume) ==
 				    MMSYSERR_NOERROR) {
-				g_frontState.cdAudioSavedAuxVolume =
-					savedVolume & UINT16_MAX;
+				g_front_state.cd_audio_saved_aux_volume =
+					saved_volume & UINT16_MAX;
 				break;
 			}
-		} while (++deviceIndex < deviceCount);
+		} while (++device_index < device_count);
 	}
 
-	openParameters.lpstrDeviceType = "cdaudio";
-	if (mciSendCommandA(0, MCI_OPEN, MCI_OPEN_TYPE, &openParameters) !=
+	open_parameters.lpstrDeviceType = "cdaudio";
+	if (mciSendCommandA(0, MCI_OPEN, MCI_OPEN_TYPE, &open_parameters) !=
 	    MMSYSERR_NOERROR) {
-		g_frontState.cdAudioMciDeviceId = 0;
+		g_front_state.cd_audio_mci_device_id = 0;
 		return 0;
 	}
-	g_frontState.cdAudioMciDeviceId = openParameters.wDeviceID;
-	setParameters.dwTimeFormat = MCI_FORMAT_TMSF;
-	if (mciSendCommandA(g_frontState.cdAudioMciDeviceId, MCI_SET,
+	g_front_state.cd_audio_mci_device_id = open_parameters.wDeviceID;
+	set_parameters.dwTimeFormat = MCI_FORMAT_TMSF;
+	if (mciSendCommandA(g_front_state.cd_audio_mci_device_id, MCI_SET,
 			    MCI_SET_TIME_FORMAT,
-			    &setParameters) != MMSYSERR_NOERROR) {
-		mciSendCommandA(g_frontState.cdAudioMciDeviceId, MCI_CLOSE, 0,
-				NULL);
-		g_frontState.cdAudioMciDeviceId = 0;
+			    &set_parameters) != MMSYSERR_NOERROR) {
+		mciSendCommandA(g_front_state.cd_audio_mci_device_id, MCI_CLOSE,
+				0, NULL);
+		g_front_state.cd_audio_mci_device_id = 0;
 		return 0;
 	}
 
-	statusParameters.dwItem = MCI_STATUS_NUMBER_OF_TRACKS;
-	if (mciSendCommandA(g_frontState.cdAudioMciDeviceId, MCI_STATUS,
+	status_parameters.dwItem = MCI_STATUS_NUMBER_OF_TRACKS;
+	if (mciSendCommandA(g_front_state.cd_audio_mci_device_id, MCI_STATUS,
 			    MCI_STATUS_ITEM,
-			    &statusParameters) != MMSYSERR_NOERROR) {
-		mciSendCommandA(g_frontState.cdAudioMciDeviceId, MCI_CLOSE, 0,
-				NULL);
-		g_frontState.cdAudioMciDeviceId = 0;
+			    &status_parameters) != MMSYSERR_NOERROR) {
+		mciSendCommandA(g_front_state.cd_audio_mci_device_id, MCI_CLOSE,
+				0, NULL);
+		g_front_state.cd_audio_mci_device_id = 0;
 		return 0;
 	}
 
-	g_frontState.cdAudioTrackCount = (int)statusParameters.dwReturn;
+	g_front_state.cd_audio_track_count = (int)status_parameters.dwReturn;
 	/* From here deviceCount is no longer a device count: it is the 1-based track number of the loop
 	 * that caches each track's length. */
-	deviceCount = 1;
-	if (g_frontState.cdAudioTrackCount < deviceCount) {
+	device_count = 1;
+	if (g_front_state.cd_audio_track_count < device_count) {
 		return 1;
 	}
 	while (1) {
-		statusParameters.dwItem = MCI_STATUS_LENGTH;
-		statusParameters.dwTrack = deviceCount;
-		if (mciSendCommandA(g_frontState.cdAudioMciDeviceId, MCI_STATUS,
-				    MCI_STATUS_ITEM | MCI_TRACK,
-				    &statusParameters) != MMSYSERR_NOERROR) {
+		status_parameters.dwItem = MCI_STATUS_LENGTH;
+		status_parameters.dwTrack = device_count;
+		if (mciSendCommandA(g_front_state.cd_audio_mci_device_id,
+				    MCI_STATUS, MCI_STATUS_ITEM | MCI_TRACK,
+				    &status_parameters) != MMSYSERR_NOERROR) {
 			break;
 		}
-		g_frontState.cdAudioTrackCache
-			.trackLengthMsfByTrack[deviceCount - 1] =
-			(unsigned int)statusParameters.dwReturn;
-		deviceCount++;
-		if (g_frontState.cdAudioTrackCount < deviceCount) {
+		g_front_state.cd_audio_track_cache
+			.track_length_msf_by_track[device_count - 1] =
+			(unsigned int)status_parameters.dwReturn;
+		device_count++;
+		if (g_front_state.cd_audio_track_count < device_count) {
 			return 1;
 		}
 	}
-	mciSendCommandA(g_frontState.cdAudioMciDeviceId, MCI_CLOSE, 0, NULL);
-	g_frontState.cdAudioMciDeviceId = 0;
+	mciSendCommandA(g_front_state.cd_audio_mci_device_id, MCI_CLOSE, 0,
+			NULL);
+	g_front_state.cd_audio_mci_device_id = 0;
 	return 0;
 }
 
-/* Plays track trackNumber through MCI from startMinute and startSecond to the
+/* Plays track track_number through MCI from start_minute and start_second to the
  * track's end, with MCI_NOTIFY to the front end's window. Returns 0 when the
- * track is not 1 to g_frontState.cdAudioTrackCount, no device is open, or
- * MCI_PLAY fails. Otherwise it sets cdAudioCurrentTrack, cdAudioTrackEndMs to
+ * track is not 1 to g_front_state.cd_audio_track_count, no device is open, or
+ * MCI_PLAY fails. Otherwise it sets cd_audio_current_track, cd_audio_track_end_ms to
  * the track's whole length plus GetTickCount() plus 2000 whatever the start,
- * cdAudioPlaybackComplete to 0 and cdAudioSuspendState to CDAudio_NotSuspended,
- * and returns 1. Does not check startMinute against the 8 bits it fills in the
+ * cd_audio_playback_complete to 0 and cd_audio_suspend_state to CD_AUDIO_NOT_SUSPENDED,
+ * and returns 1. Does not check start_minute against the 8 bits it fills in the
  * position. */
 // FUNCTION: XVT 0x4D3020
-int CDAudio_PlayTrackFromTime(int trackNumber, uint16_t startMinute,
-			      uint8_t startSecond)
+int cd_audio_play_track_from_time(int track_number, uint16_t start_minute,
+				  uint8_t start_second)
 {
 	struct {
 		void *callback; /* Window MCI notifies when the play ends. */
@@ -136,351 +137,364 @@ int CDAudio_PlayTrackFromTime(int trackNumber, uint16_t startMinute,
 		uint32_t to;	/* End, the track's length, the same way. */
 	} parameters;
 
-	unsigned int trackEndMsf;
+	unsigned int track_end_msf;
 
-	if (g_frontState.cdAudioTrackCount < trackNumber || trackNumber <= 0) {
+	if (g_front_state.cd_audio_track_count < track_number ||
+	    track_number <= 0) {
 		return 0;
 	}
-	if (g_frontState.cdAudioMciDeviceId == 0) {
+	if (g_front_state.cd_audio_mci_device_id == 0) {
 		return 0;
 	}
 
 	memset(&parameters, 0, sizeof(parameters));
 	parameters.from =
-		((uint8_t)trackNumber | ((unsigned int)startMinute << 8)) |
-		((unsigned int)startSecond << 16);
-	trackEndMsf = g_frontState.cdAudioTrackCache
-			      .trackLengthMsfByTrack[trackNumber - 1];
-	parameters.to = ((uint8_t)trackNumber |
-			 ((unsigned int)(uint8_t)trackEndMsf << 8)) |
-			(((unsigned int)(uint8_t)((uint16_t)trackEndMsf >> 8) |
-			  ((unsigned int)(uint8_t)(trackEndMsf >> 16) << 8))
-			 << 16);
-	parameters.callback = g_frontState.hWnd;
-	if (mciSendCommandA(g_frontState.cdAudioMciDeviceId, MCI_PLAY,
+		((uint8_t)track_number | ((unsigned int)start_minute << 8)) |
+		((unsigned int)start_second << 16);
+	track_end_msf = g_front_state.cd_audio_track_cache
+				.track_length_msf_by_track[track_number - 1];
+	parameters.to =
+		((uint8_t)track_number |
+		 ((unsigned int)(uint8_t)track_end_msf << 8)) |
+		(((unsigned int)(uint8_t)((uint16_t)track_end_msf >> 8) |
+		  ((unsigned int)(uint8_t)(track_end_msf >> 16) << 8))
+		 << 16);
+	parameters.callback = g_front_state.h_wnd;
+	if (mciSendCommandA(g_front_state.cd_audio_mci_device_id, MCI_PLAY,
 			    MCI_NOTIFY | MCI_FROM | MCI_TO,
 			    &parameters) != MMSYSERR_NOERROR) {
 		return 0;
 	}
 
-	g_frontState.cdAudioCurrentTrack = trackNumber;
-	g_frontState.cdAudioTrackEndMs =
-		CDAudio_GetTrackLengthMs(trackNumber) + GetTickCount() + 2000;
-	g_frontState.cdAudioPlaybackComplete = 0;
-	g_frontState.cdAudioSuspendState = CDAudio_NotSuspended;
+	g_front_state.cd_audio_current_track = track_number;
+	g_front_state.cd_audio_track_end_ms =
+		cd_audio_get_track_length_ms(track_number) + GetTickCount() +
+		2000;
+	g_front_state.cd_audio_playback_complete = 0;
+	g_front_state.cd_audio_suspend_state = CD_AUDIO_NOT_SUSPENDED;
 	return 1;
 }
 
-/* Stops the current track with MCI_STOP, sets g_frontState.cdAudioCurrentTrack
- * and cdAudioPlaybackComplete to 0 and cdAudioSuspendState to
- * CDAudio_NotSuspended, and returns 1. Returns 0 when no device is open or no
+/* Stops the current track with MCI_STOP, sets g_front_state.cd_audio_current_track
+ * and cd_audio_playback_complete to 0 and cd_audio_suspend_state to
+ * CD_AUDIO_NOT_SUSPENDED, and returns 1. Returns 0 when no device is open or no
  * track is current. */
 // FUNCTION: XVT 0x4D3140
-int CDAudio_StopCurrentTrack(void)
+int cd_audio_stop_current_track(void)
 {
 	MCI_GENERIC_PARMS parameters;
 
-	if (g_frontState.cdAudioMciDeviceId == 0) {
+	if (g_front_state.cd_audio_mci_device_id == 0) {
 		return 0;
 	}
-	if (g_frontState.cdAudioCurrentTrack == 0) {
+	if (g_front_state.cd_audio_current_track == 0) {
 		return 0;
 	}
-	mciSendCommandA(g_frontState.cdAudioMciDeviceId, MCI_STOP, 0,
+	mciSendCommandA(g_front_state.cd_audio_mci_device_id, MCI_STOP, 0,
 			&parameters);
-	g_frontState.cdAudioCurrentTrack = 0;
-	g_frontState.cdAudioPlaybackComplete = 0;
-	g_frontState.cdAudioSuspendState = CDAudio_NotSuspended;
+	g_front_state.cd_audio_current_track = 0;
+	g_front_state.cd_audio_playback_complete = 0;
+	g_front_state.cd_audio_suspend_state = CD_AUDIO_NOT_SUSPENDED;
 	return 1;
 }
 
 /* Closes the CD audio device: stops a current track, closes the device and sets
- * g_frontState.cdAudioMciDeviceId to 0, and clears the cached track lengths,
- * cdAudioCurrentTrack, cdAudioPlaybackComplete and cdAudioSuspendState. When
- * cdAudioSavedAuxVolume is not -1 it puts that volume back on both channels of
+ * g_front_state.cd_audio_mci_device_id to 0, and clears the cached track lengths,
+ * cd_audio_current_track, cd_audio_playback_complete and cd_audio_suspend_state. When
+ * cd_audio_saved_aux_volume is not -1 it puts that volume back on both channels of
  * every CD audio auxiliary device with volume control; then it sets
- * cdAudioSavedAuxVolume to -1. Does nothing when no device is open, but the
- * modern build first cancels a volume fade with XvtCdTask_CancelFade. */
+ * cd_audio_saved_aux_volume to -1. Does nothing when no device is open, but the
+ * modern build first cancels a volume fade with xvt_cd_task_cancel_fade. */
 // FUNCTION: XVT 0x4D31A0
-void CDAudio_CloseDevice(void)
+void cd_audio_close_device(void)
 {
 	MCI_GENERIC_PARMS parameters;
-	AUXCAPSA deviceCaps;
-	int deviceIndex;
-	int deviceCount;
-	uint32_t stereoVolume;
-	uint32_t *mciDeviceId;
-	int *savedAuxVolume;
+	AUXCAPSA device_caps;
+	int device_index;
+	int device_count;
+	uint32_t stereo_volume;
+	uint32_t *mci_device_id;
+	int *saved_aux_volume;
 
 #ifdef XVT_MODERN
-	XvtCdTask_CancelFade();
+	xvt_cd_task_cancel_fade();
 #endif
-	if (g_frontState.cdAudioMciDeviceId == 0) {
+	if (g_front_state.cd_audio_mci_device_id == 0) {
 		return;
 	}
-	mciDeviceId = &g_frontState.cdAudioMciDeviceId;
-	savedAuxVolume = &g_frontState.cdAudioSavedAuxVolume;
-	if (g_frontState.cdAudioCurrentTrack != 0) {
-		mciSendCommandA(*mciDeviceId, MCI_STOP, 0, &parameters);
-		g_frontState.cdAudioCurrentTrack = 0;
-		g_frontState.cdAudioPlaybackComplete = 0;
+	mci_device_id = &g_front_state.cd_audio_mci_device_id;
+	saved_aux_volume = &g_front_state.cd_audio_saved_aux_volume;
+	if (g_front_state.cd_audio_current_track != 0) {
+		mciSendCommandA(*mci_device_id, MCI_STOP, 0, &parameters);
+		g_front_state.cd_audio_current_track = 0;
+		g_front_state.cd_audio_playback_complete = 0;
 	}
-	deviceIndex = 0;
-	mciSendCommandA(*mciDeviceId, MCI_CLOSE, 0, NULL);
-	*mciDeviceId = 0;
-	memset(g_frontState.cdAudioTrackCache.trackLengthMsfByTrack, 0,
-	       sizeof(g_frontState.cdAudioTrackCache.trackLengthMsfByTrack));
-	g_frontState.cdAudioCurrentTrack = 0;
-	g_frontState.cdAudioPlaybackComplete = 0;
-	g_frontState.cdAudioSuspendState = CDAudio_NotSuspended;
-	deviceCount = (int)auxGetNumDevs();
-	if (*savedAuxVolume != -1) {
-		stereoVolume = (uint32_t)*savedAuxVolume * 65537;
-		if (deviceCount > 0) {
+	device_index = 0;
+	mciSendCommandA(*mci_device_id, MCI_CLOSE, 0, NULL);
+	*mci_device_id = 0;
+	memset(g_front_state.cd_audio_track_cache.track_length_msf_by_track, 0,
+	       sizeof(g_front_state.cd_audio_track_cache
+			      .track_length_msf_by_track));
+	g_front_state.cd_audio_current_track = 0;
+	g_front_state.cd_audio_playback_complete = 0;
+	g_front_state.cd_audio_suspend_state = CD_AUDIO_NOT_SUSPENDED;
+	device_count = (int)auxGetNumDevs();
+	if (*saved_aux_volume != -1) {
+		stereo_volume = (uint32_t)*saved_aux_volume * 65537;
+		if (device_count > 0) {
 			do {
-				memset(&deviceCaps, 0, sizeof(deviceCaps));
-				auxGetDevCapsA((uintptr_t)deviceIndex,
-					       &deviceCaps, sizeof(deviceCaps));
-				if (deviceCaps.wTechnology == AUXCAPS_CDAUDIO &&
-				    (deviceCaps.dwSupport & AUXCAPS_VOLUME) !=
+				memset(&device_caps, 0, sizeof(device_caps));
+				auxGetDevCapsA((uintptr_t)device_index,
+					       &device_caps,
+					       sizeof(device_caps));
+				if (device_caps.wTechnology ==
+					    AUXCAPS_CDAUDIO &&
+				    (device_caps.dwSupport & AUXCAPS_VOLUME) !=
 					    0) {
-					auxSetVolume((uintptr_t)deviceIndex,
-						     stereoVolume);
+					auxSetVolume((uintptr_t)device_index,
+						     stereo_volume);
 				}
-			} while (++deviceIndex < deviceCount);
+			} while (++device_index < device_count);
 		}
 	}
-	*savedAuxVolume = -1;
+	*saved_aux_volume = -1;
 }
 
-/* Returns g_frontState.cdAudioPlaybackComplete, 1 once the current track ran
+/* Returns g_front_state.cd_audio_playback_complete, 1 once the current track ran
  * out with looping off; 0 when no device is open or no track is current. */
 // FUNCTION: XVT 0x4D32A0
-int CDAudio_IsPlaybackComplete(void)
+int cd_audio_is_playback_complete(void)
 {
-	if (g_frontState.cdAudioMciDeviceId == 0) {
+	if (g_front_state.cd_audio_mci_device_id == 0) {
 		return 0;
 	}
-	if (g_frontState.cdAudioCurrentTrack == 0) {
+	if (g_front_state.cd_audio_current_track == 0) {
 		return 0;
 	}
-	return g_frontState.cdAudioPlaybackComplete;
+	return g_front_state.cd_audio_playback_complete;
 }
 
-/* Returns the cached length of track trackNumber in milliseconds,
+/* Returns the cached length of track track_number in milliseconds,
  * (minutes * 60 + seconds) * 1000 + frames * 1000 / 75, or 0 when no
- * device is open or the track is not 1 to g_frontState.cdAudioTrackCount.
- * Only CDAudio_PlayTrackFromTime and CDAudio_SuspendPlayback call it. */
+ * device is open or the track is not 1 to g_front_state.cd_audio_track_count.
+ * Only cd_audio_play_track_from_time and cd_audio_suspend_playback call it. */
 // FUNCTION: XVT 0x4D32C0
-int CDAudio_GetTrackLengthMs(int trackNumber)
+int cd_audio_get_track_length_ms(int track_number)
 {
-	unsigned int trackEndMsf;
+	unsigned int track_end_msf;
 
-	if (g_frontState.cdAudioMciDeviceId == 0) {
+	if (g_front_state.cd_audio_mci_device_id == 0) {
 		return 0;
 	}
-	if (trackNumber <= 0 || g_frontState.cdAudioTrackCount < trackNumber) {
+	if (track_number <= 0 ||
+	    g_front_state.cd_audio_track_count < track_number) {
 		return 0;
 	}
 
-	trackEndMsf = g_frontState.cdAudioTrackCache
-			      .trackLengthMsfByTrack[trackNumber - 1];
-	return (MCI_MSF_MINUTE(trackEndMsf) * 60 +
-		MCI_MSF_SECOND(trackEndMsf)) *
+	track_end_msf = g_front_state.cd_audio_track_cache
+				.track_length_msf_by_track[track_number - 1];
+	return (MCI_MSF_MINUTE(track_end_msf) * 60 +
+		MCI_MSF_SECOND(track_end_msf)) *
 		       1000 +
-	       MCI_MSF_FRAME(trackEndMsf) * 1000 / 75;
+	       MCI_MSF_FRAME(track_end_msf) * 1000 / 75;
 }
 
-/* Sets g_frontState.cdAudioLoopCurrentTrack to 1, so the front end's frame loop
+/* Sets g_front_state.cd_audio_loop_current_track to 1, so the front end's frame loop
  * plays the current track again from its start when it ends. Returns 1. */
 // FUNCTION: XVT 0x4D3330
-int CDAudio_EnableLoopCurrentTrack(void)
+int cd_audio_enable_loop_current_track(void)
 {
-	g_frontState.cdAudioLoopCurrentTrack = 1;
+	g_front_state.cd_audio_loop_current_track = 1;
 	return 1;
 }
 
-/* Sets g_frontState.cdAudioLoopCurrentTrack to 0, so the frame loop marks the
- * track complete when it ends. Returns 1. Credits_UpdateScreen is its only
+/* Sets g_front_state.cd_audio_loop_current_track to 0, so the frame loop marks the
+ * track complete when it ends. Returns 1. credits_update_screen is its only
  * caller. */
 // FUNCTION: XVT 0x4D3340
-int CDAudio_DisableLoopCurrentTrack(void)
+int cd_audio_disable_loop_current_track(void)
 {
-	g_frontState.cdAudioLoopCurrentTrack = 0;
+	g_front_state.cd_audio_loop_current_track = 0;
 	return 1;
 }
 
 /* Stops the current track and remembers where it was, for
- * CDAudio_ResumeSuspendedPlayback. While not suspended, with a track
+ * cd_audio_resume_suspended_playback. While not suspended, with a track
  * current and not complete, it stores the time left,
- * cdAudioTrackEndMs - GetTickCount() - 2000, in
- * g_frontState.cdAudioSuspendRemainingMs and the track length less
- * that in cdAudioSuspendElapsedMs, both in milliseconds, sends
- * MCI_STOP and sets cdAudioSuspendState to CDAudio_Suspended. A
- * pending resume (CDAudio_ResumePending) goes back to
- * CDAudio_Suspended. Returns 1, or 0 when no device is open. */
+ * cd_audio_track_end_ms - GetTickCount() - 2000, in
+ * g_front_state.cd_audio_suspend_remaining_ms and the track length less
+ * that in cd_audio_suspend_elapsed_ms, both in milliseconds, sends
+ * MCI_STOP and sets cd_audio_suspend_state to CD_AUDIO_SUSPENDED. A
+ * pending resume (CD_AUDIO_RESUME_PENDING) goes back to
+ * CD_AUDIO_SUSPENDED. Returns 1, or 0 when no device is open. */
 // FUNCTION: XVT 0x4D3350
-int CDAudio_SuspendPlayback(void)
+int cd_audio_suspend_playback(void)
 {
-	uint32_t trackEndMs;
+	uint32_t track_end_ms;
 	MCI_GENERIC_PARMS parameters;
 
-	if (g_frontState.cdAudioMciDeviceId == 0) {
+	if (g_front_state.cd_audio_mci_device_id == 0) {
 		return 0;
 	}
 
-	if (g_frontState.cdAudioSuspendState == CDAudio_NotSuspended) {
-		if (g_frontState.cdAudioCurrentTrack != 0 &&
-		    g_frontState.cdAudioPlaybackComplete == 0) {
-			trackEndMs = g_frontState.cdAudioTrackEndMs;
-			g_frontState.cdAudioSuspendRemainingMs =
-				trackEndMs - GetTickCount() - 2000;
-			g_frontState.cdAudioSuspendElapsedMs =
-				(uint32_t)CDAudio_GetTrackLengthMs(
-					g_frontState.cdAudioCurrentTrack) -
-				g_frontState.cdAudioSuspendRemainingMs;
-			mciSendCommandA(g_frontState.cdAudioMciDeviceId,
+	if (g_front_state.cd_audio_suspend_state == CD_AUDIO_NOT_SUSPENDED) {
+		if (g_front_state.cd_audio_current_track != 0 &&
+		    g_front_state.cd_audio_playback_complete == 0) {
+			track_end_ms = g_front_state.cd_audio_track_end_ms;
+			g_front_state.cd_audio_suspend_remaining_ms =
+				track_end_ms - GetTickCount() - 2000;
+			g_front_state.cd_audio_suspend_elapsed_ms =
+				(uint32_t)cd_audio_get_track_length_ms(
+					g_front_state.cd_audio_current_track) -
+				g_front_state.cd_audio_suspend_remaining_ms;
+			mciSendCommandA(g_front_state.cd_audio_mci_device_id,
 					MCI_STOP, 0, &parameters);
-			g_frontState.cdAudioSuspendState = CDAudio_Suspended;
+			g_front_state.cd_audio_suspend_state =
+				CD_AUDIO_SUSPENDED;
 			return 1;
 		}
-	} else if (g_frontState.cdAudioSuspendState == CDAudio_ResumePending) {
-		g_frontState.cdAudioSuspendState = CDAudio_Suspended;
+	} else if (g_front_state.cd_audio_suspend_state ==
+		   CD_AUDIO_RESUME_PENDING) {
+		g_front_state.cd_audio_suspend_state = CD_AUDIO_SUSPENDED;
 	}
 
 	return 1;
 }
 
-/* When playback is suspended, sets g_frontState.cdAudioSuspendState to
- * CDAudio_ResumePending and cdAudioResumeDueMs to GetTickCount() + 1000; the
+/* When playback is suspended, sets g_front_state.cd_audio_suspend_state to
+ * CD_AUDIO_RESUME_PENDING and cd_audio_resume_due_ms to GetTickCount() + 1000; the
  * front end's frame loop resumes the track once that time passes. Returns 1. */
 // FUNCTION: XVT 0x4D3400
-int CDAudio_RequestResumePlayback(void)
+int cd_audio_request_resume_playback(void)
 {
-	if (g_frontState.cdAudioSuspendState == CDAudio_Suspended) {
-		g_frontState.cdAudioSuspendState = CDAudio_ResumePending;
-		g_frontState.cdAudioResumeDueMs = GetTickCount() + 1000;
+	if (g_front_state.cd_audio_suspend_state == CD_AUDIO_SUSPENDED) {
+		g_front_state.cd_audio_suspend_state = CD_AUDIO_RESUME_PENDING;
+		g_front_state.cd_audio_resume_due_ms = GetTickCount() + 1000;
 	}
 	return 1;
 }
 
-/* Plays the current track on from g_frontState.cdAudioSuspendElapsedMs, cut to
- * whole minutes and seconds, with CDAudio_PlayTrackFromTime, then sets
- * cdAudioTrackEndMs to GetTickCount() + cdAudioSuspendRemainingMs + 2000 and
- * cdAudioSuspendState to CDAudio_NotSuspended. Returns 1, also when the play
+/* Plays the current track on from g_front_state.cd_audio_suspend_elapsed_ms, cut to
+ * whole minutes and seconds, with cd_audio_play_track_from_time, then sets
+ * cd_audio_track_end_ms to GetTickCount() + cd_audio_suspend_remaining_ms + 2000 and
+ * cd_audio_suspend_state to CD_AUDIO_NOT_SUSPENDED. Returns 1, also when the play
  * fails. Does not check that playback was suspended. The front end's frame loop
- * calls it: FrontendDisplay_RunMainLoop in the original build, XvtCdTask_Update
+ * calls it: frontend_display_run_main_loop in the original build, xvt_cd_task_update
  * in the modern one. */
 // FUNCTION: XVT 0x4D3430
-int CDAudio_ResumeSuspendedPlayback(void)
+int cd_audio_resume_suspended_playback(void)
 {
-	unsigned int startMinute;
-	unsigned int startSecond;
+	unsigned int start_minute;
+	unsigned int start_second;
 
-	startMinute = g_frontState.cdAudioSuspendElapsedMs / 60000;
-	startSecond = startMinute * 60000;
-	startSecond = g_frontState.cdAudioSuspendElapsedMs - startSecond;
-	startSecond /= 1000;
-	CDAudio_PlayTrackFromTime(g_frontState.cdAudioCurrentTrack,
-				  (uint16_t)startMinute, (uint8_t)startSecond);
-	g_frontState.cdAudioTrackEndMs =
-		GetTickCount() + g_frontState.cdAudioSuspendRemainingMs + 2000;
-	g_frontState.cdAudioSuspendState = CDAudio_NotSuspended;
+	start_minute = g_front_state.cd_audio_suspend_elapsed_ms / 60000;
+	start_second = start_minute * 60000;
+	start_second = g_front_state.cd_audio_suspend_elapsed_ms - start_second;
+	start_second /= 1000;
+	cd_audio_play_track_from_time(g_front_state.cd_audio_current_track,
+				      (uint16_t)start_minute,
+				      (uint8_t)start_second);
+	g_front_state.cd_audio_track_end_ms =
+		GetTickCount() + g_front_state.cd_audio_suspend_remaining_ms +
+		2000;
+	g_front_state.cd_audio_suspend_state = CD_AUDIO_NOT_SUSPENDED;
 	return 1;
 }
 
-/* Sets every CD audio auxiliary device with volume control to volume0To65535,
+/* Sets every CD audio auxiliary device with volume control to volume0_to65535,
  * capped at 65535, on both channels, and stores the capped value in
- * g_frontState.cdAudioTrackCache.currentAuxVolume. Returns 1. Needs no open MCI
+ * g_front_state.cd_audio_track_cache.current_aux_volume. Returns 1. Needs no open MCI
  * device. */
 // FUNCTION: XVT 0x4D34A0
-int CDAudio_SetAuxVolume(unsigned int volume0To65535)
+int cd_audio_set_aux_volume(unsigned int volume0_to65535)
 {
-	unsigned int deviceCount;
-	unsigned int stereoVolume;
-	unsigned int deviceIndex;
-	AUXCAPSA deviceCaps;
+	unsigned int device_count;
+	unsigned int stereo_volume;
+	unsigned int device_index;
+	AUXCAPSA device_caps;
 
-	deviceCount = auxGetNumDevs();
-	if (volume0To65535 > 65535) {
-		volume0To65535 = 65535;
+	device_count = auxGetNumDevs();
+	if (volume0_to65535 > 65535) {
+		volume0_to65535 = 65535;
 	}
-	g_frontState.cdAudioTrackCache.currentAuxVolume = volume0To65535;
-	stereoVolume = volume0To65535 * 65537;
+	g_front_state.cd_audio_track_cache.current_aux_volume = volume0_to65535;
+	stereo_volume = volume0_to65535 * 65537;
 
-	for (deviceIndex = 0; deviceCount > deviceIndex; deviceIndex++) {
-		memset(&deviceCaps, 0, sizeof(deviceCaps));
-		auxGetDevCapsA(deviceIndex, &deviceCaps, sizeof(deviceCaps));
-		if (deviceCaps.wTechnology == AUXCAPS_CDAUDIO &&
-		    (deviceCaps.dwSupport & AUXCAPS_VOLUME) != 0) {
-			auxSetVolume(deviceIndex, stereoVolume);
+	for (device_index = 0; device_count > device_index; device_index++) {
+		memset(&device_caps, 0, sizeof(device_caps));
+		auxGetDevCapsA(device_index, &device_caps, sizeof(device_caps));
+		if (device_caps.wTechnology == AUXCAPS_CDAUDIO &&
+		    (device_caps.dwSupport & AUXCAPS_VOLUME) != 0) {
+			auxSetVolume(device_index, stereo_volume);
 		}
 	}
 
 	return 1;
 }
 
-/* Moves the CD volume from fromVolume to toVolume over about fadeDurationMs
- * milliseconds. The modern build hands the fade to XvtCdTask_BeginFade and
+/* Moves the CD volume from from_volume to to_volume over about fade_duration_ms
+ * milliseconds. The modern build hands the fade to xvt_cd_task_begin_fade and
  * returns its result. The original build returns 0 when no device is open and 1
  * at once when the two volumes are equal; otherwise it waits in a loop, moving
- * the volume 256 toward toVolume with CDAudio_SetAuxVolume, kept within 0 to
- * 65535, each time more than (fadeDurationMs << 8) / the difference
- * milliseconds have passed, until it reaches or passes toVolume, and returns
+ * the volume 256 toward to_volume with cd_audio_set_aux_volume, kept within 0 to
+ * 65535, each time more than (fade_duration_ms << 8) / the difference
+ * milliseconds have passed, until it reaches or passes to_volume, and returns
  * 1. */
 // FUNCTION: XVT 0x4D3520
-int CDAudio_FadeAuxVolume(unsigned int fromVolume, unsigned int toVolume,
-			  int fadeDurationMs)
+int cd_audio_fade_aux_volume(unsigned int from_volume, unsigned int to_volume,
+			     int fade_duration_ms)
 {
 #ifdef XVT_MODERN
-	return XvtCdTask_BeginFade(fromVolume, toVolume, fadeDurationMs);
+	return xvt_cd_task_begin_fade(from_volume, to_volume, fade_duration_ms);
 #else
-	int fadeUp;
-	unsigned int stepDelayMs;
-	uint32_t previousTimeMs;
-	int currentTimeMs;
-	unsigned int nextVolume;
+	int fade_up;
+	unsigned int step_delay_ms;
+	uint32_t previous_time_ms;
+	int current_time_ms;
+	unsigned int next_volume;
 
-	if (g_frontState.cdAudioMciDeviceId == 0) {
+	if (g_front_state.cd_audio_mci_device_id == 0) {
 		return 0;
 	}
-	if (toVolume == fromVolume) {
+	if (to_volume == from_volume) {
 		return 1;
 	}
-	if (toVolume < fromVolume) {
-		fadeUp = 0;
-		stepDelayMs = (fadeDurationMs << 8) / (fromVolume - toVolume);
+	if (to_volume < from_volume) {
+		fade_up = 0;
+		step_delay_ms =
+			(fade_duration_ms << 8) / (from_volume - to_volume);
 	} else {
-		fadeUp = 1;
-		stepDelayMs = (fadeDurationMs << 8) / (toVolume - fromVolume);
+		fade_up = 1;
+		step_delay_ms =
+			(fade_duration_ms << 8) / (to_volume - from_volume);
 	}
 
-	previousTimeMs = GetTickCount();
+	previous_time_ms = GetTickCount();
 	while (1) {
-		currentTimeMs = GetTickCount();
-		if ((int)(previousTimeMs + stepDelayMs) < currentTimeMs) {
-			if (fadeUp != 0) {
-				nextVolume = fromVolume + 256;
-				if (nextVolume > 65535) {
-					fromVolume = 65535;
+		current_time_ms = GetTickCount();
+		if ((int)(previous_time_ms + step_delay_ms) < current_time_ms) {
+			if (fade_up != 0) {
+				next_volume = from_volume + 256;
+				if (next_volume > 65535) {
+					from_volume = 65535;
 				} else {
-					fromVolume = nextVolume;
+					from_volume = next_volume;
 				}
 			} else {
-				if (fromVolume < 256) {
-					fromVolume = 0;
+				if (from_volume < 256) {
+					from_volume = 0;
 				} else {
-					fromVolume -= 256;
+					from_volume -= 256;
 				}
 			}
-			CDAudio_SetAuxVolume(fromVolume);
-			previousTimeMs = currentTimeMs;
+			cd_audio_set_aux_volume(from_volume);
+			previous_time_ms = current_time_ms;
 		}
-		if (fadeUp != 0) {
-			if (toVolume <= fromVolume) {
+		if (fade_up != 0) {
+			if (to_volume <= from_volume) {
 				break;
 			}
-		} else if (toVolume >= fromVolume) {
+		} else if (to_volume >= from_volume) {
 			break;
 		}
 	}

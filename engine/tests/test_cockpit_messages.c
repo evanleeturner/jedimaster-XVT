@@ -38,90 +38,94 @@ enum { BYPASS = 9, FOREGROUND = 7, BACKGROUND = 4 };
 
 enum { READY_ID = 11, SYSTEM_ID = 22, GROUP_ID = 33 };
 
-static struct XvtCockpitState g_state;
+static struct xvt_cockpit_state g_state;
 
 /* The clip runs from (50, 60) to (450, 300), so its corner, a message's origin, is (50, 60); the cursor
  * starts at (70, 80). The screen is 640 by 480. */
-static void Start(void)
+static void cockpit_messages_start(void)
 {
 	for (unsigned index = 0; index < 256; ++index) {
-		g_swPalette[index] = (struct RgbTriplet){
+		g_sw_palette[index] = (struct rgb_triplet){
 			(uint8_t)(index & 63), (uint8_t)(index >> 6), 7};
 	}
-	g_flightClipLeft = 50;
-	g_flightClipTop = 60;
-	g_flightClipRight = 450;
-	g_flightClipBottom = 300;
-	g_flightCursorX = 70;
-	g_flightCursorY = 80;
-	g_flightTextColorIndex = FOREGROUND;
-	g_flightTextBgColor = BACKGROUND;
-	g_flightTextShadowEnabled = 0;
-	g_flightTransparentColorIndex = BYPASS;
-	g_screenWidth = 640;
-	g_screenHeight = 480;
+	g_flight_clip_left = 50;
+	g_flight_clip_top = 60;
+	g_flight_clip_right = 450;
+	g_flight_clip_bottom = 300;
+	g_flight_cursor_x = 70;
+	g_flight_cursor_y = 80;
+	g_flight_text_color_index = FOREGROUND;
+	g_flight_text_bg_color = BACKGROUND;
+	g_flight_text_shadow_enabled = 0;
+	g_flight_transparent_color_index = BYPASS;
+	g_screen_width = 640;
+	g_screen_height = 480;
 
-	memset(g_readyMessagePaneQueue, 0, sizeof g_readyMessagePaneQueue);
-	memset(&g_systemMessagePane, 0, sizeof g_systemMessagePane);
-	memset(&g_flightGroupMessagePane, 0, sizeof g_flightGroupMessagePane);
-	g_readyMessagePaneQueue[0].stateOrMessageId = READY_ID;
-	g_readyMessagePaneQueue[0].ageSeconds = 3;
-	g_systemMessagePane.stateOrMessageId = SYSTEM_ID;
-	g_systemMessagePane.ageSeconds = 4;
-	g_flightGroupMessagePane.stateOrMessageId = GROUP_ID;
-	g_flightGroupMessagePane.ageSeconds = 5;
-	g_localPlayer = 0;
-	memset(g_playerFlightTransientTimers, 0,
-	       sizeof g_playerFlightTransientTimers);
-	g_playerFlightTransientTimers[0].readyMessagePaneTimer = 100;
-	g_playerFlightTransientTimers[0].systemMessagePaneTimer = 200;
-	g_playerFlightTransientTimers[0].flightGroupMessagePaneTimer = 300;
+	memset(g_ready_message_pane_queue, 0,
+	       sizeof g_ready_message_pane_queue);
+	memset(&g_system_message_pane, 0, sizeof g_system_message_pane);
+	memset(&g_flight_group_message_pane, 0,
+	       sizeof g_flight_group_message_pane);
+	g_ready_message_pane_queue[0].state_or_message_id = READY_ID;
+	g_ready_message_pane_queue[0].age_seconds = 3;
+	g_system_message_pane.state_or_message_id = SYSTEM_ID;
+	g_system_message_pane.age_seconds = 4;
+	g_flight_group_message_pane.state_or_message_id = GROUP_ID;
+	g_flight_group_message_pane.age_seconds = 5;
+	g_local_player = 0;
+	memset(g_player_flight_transient_timers, 0,
+	       sizeof g_player_flight_transient_timers);
+	g_player_flight_transient_timers[0].ready_message_pane_timer = 100;
+	g_player_flight_transient_timers[0].system_message_pane_timer = 200;
+	g_player_flight_transient_timers[0].flight_group_message_pane_timer =
+		300;
 
-	XvtCockpitMessages_Reset();
-	XvtCockpitMessages_ClearProgress();
+	xvt_cockpit_messages_reset();
+	xvt_cockpit_messages_clear_progress();
 }
 
-static void Glyphs(unsigned first, unsigned count)
+static void cockpit_messages_glyphs(unsigned first, unsigned count)
 {
 	for (unsigned index = 0; index < count; ++index) {
-		XvtCockpitMessages_RecordGlyph(first + index, 8, 10, 0);
+		xvt_cockpit_messages_record_glyph(first + index, 8, 10, 0);
 	}
 }
 
-static void Message(int pane_type, unsigned first, unsigned count)
+static void cockpit_messages_message(int pane_type, unsigned first,
+				     unsigned count)
 {
-	XvtCockpitMessages_BeginMessage(pane_type);
-	Glyphs(first, count);
-	XvtCockpitMessages_EndMessage();
+	xvt_cockpit_messages_begin_message(pane_type);
+	cockpit_messages_glyphs(first, count);
+	xvt_cockpit_messages_end_message();
 }
 
 /* Latches a pane with its origin as the source point, so its glyphs do not move. */
-static void Latch(XvtCockpitMessageId pane)
+static void latch(xvt_cockpit_message_id pane)
 {
-	XvtCockpitMessages_Latch(pane, 50, 60, 0, 0, 100, 20);
+	xvt_cockpit_messages_latch(pane, 50, 60, 0, 0, 100, 20);
 }
 
-static const struct XvtCockpitState *Exported(void)
+static const struct xvt_cockpit_state *exported(void)
 {
 	memset(&g_state, 0, sizeof g_state);
 	g_state.view.screen_width = 7;
 	g_state.view.screen_height = 7;
-	XvtCockpitMessages_Export(&g_state);
+	xvt_cockpit_messages_export(&g_state);
 	return &g_state;
 }
 
-static void Alert(int mode, unsigned first, unsigned count)
+static void cockpit_messages_alert(int mode, unsigned first, unsigned count)
 {
-	XvtCockpitMessages_BeginAlertLine(mode, 100, 110, 200, 50);
-	Glyphs(first, count);
-	XvtCockpitMessages_EndAlertLine();
+	xvt_cockpit_messages_begin_alert_line(mode, 100, 110, 200, 50);
+	cockpit_messages_glyphs(first, count);
+	xvt_cockpit_messages_end_alert_line();
 }
 
-static void CheckPaneRouting(void)
+static void check_pane_routing(void)
 {
 	static const struct {
 		int pane_type;
-		XvtCockpitMessageId pane;
+		xvt_cockpit_message_id pane;
 		unsigned message_id;
 	} routes[] = {
 		{8, XVT_COCKPIT_MESSAGE_FLIGHT_GROUP, GROUP_ID},
@@ -135,16 +139,16 @@ static void CheckPaneRouting(void)
 
 	for (unsigned route = 0; route < sizeof routes / sizeof routes[0];
 	     ++route) {
-		Start();
-		Message(routes[route].pane_type, 'A', 1);
+		cockpit_messages_start();
+		cockpit_messages_message(routes[route].pane_type, 'A', 1);
 		for (unsigned pane = 0; pane < XVT_COCKPIT_MESSAGE_COUNT;
 		     ++pane) {
-			Latch((XvtCockpitMessageId)pane);
+			latch((xvt_cockpit_message_id)pane);
 		}
-		const struct XvtCockpitState *state = Exported();
+		const struct xvt_cockpit_state *state = exported();
 		for (unsigned pane = 0; pane < XVT_COCKPIT_MESSAGE_COUNT;
 		     ++pane) {
-			const struct XvtCockpitMessage *message =
+			const struct xvt_cockpit_message *message =
 				&state->messages.panes[pane];
 			int expected = pane == (unsigned)routes[route].pane;
 			XVT_ASSERT_INT_EQ(message->visible, expected);
@@ -157,20 +161,20 @@ static void CheckPaneRouting(void)
 	}
 }
 
-static void CheckLatchPlacesPane(void)
+static void check_latch_places_pane(void)
 {
-	Start();
-	XvtCockpitMessages_BeginMessage(0);
-	Glyphs('A', 2);
-	XvtCockpitMessages_RecordReveal(5);
-	XvtCockpitMessages_EndMessage();
+	cockpit_messages_start();
+	xvt_cockpit_messages_begin_message(0);
+	cockpit_messages_glyphs('A', 2);
+	xvt_cockpit_messages_record_reveal(5);
+	xvt_cockpit_messages_end_message();
 
 	/* The live record still holds the message: its live age is used. */
-	g_readyMessagePaneQueue[0].ageSeconds = 9;
-	XvtCockpitMessages_Latch(XVT_COCKPIT_MESSAGE_READY, 40, 55, 300, 400,
-				 120, 30);
-	const struct XvtCockpitState *state = Exported();
-	const struct XvtCockpitMessage *pane =
+	g_ready_message_pane_queue[0].age_seconds = 9;
+	xvt_cockpit_messages_latch(XVT_COCKPIT_MESSAGE_READY, 40, 55, 300, 400,
+				   120, 30);
+	const struct xvt_cockpit_state *state = exported();
+	const struct xvt_cockpit_message *pane =
 		&state->messages.panes[XVT_COCKPIT_MESSAGE_READY];
 	XVT_ASSERT_INT_EQ(pane->visible, 1);
 	XVT_ASSERT_INT_EQ(pane->placement.x, 300);
@@ -182,170 +186,170 @@ static void CheckLatchPlacesPane(void)
 	XVT_ASSERT_INT_EQ(pane->revealed_characters, 5);
 	XVT_ASSERT_INT_EQ(pane->glyph_count, 2);
 	/* A glyph captured relative to the origin (50, 60) moves by the origin minus the source point. */
-	const struct XvtCockpitGlyph *glyph =
+	const struct xvt_cockpit_glyph *glyph =
 		&state->overlay_content.glyphs[pane->first_glyph];
 	XVT_ASSERT_INT_EQ(glyph->character, 'A');
 	XVT_ASSERT_INT_EQ(glyph->x, (70 - 50) + (50 - 40));
 	XVT_ASSERT_INT_EQ(glyph->y, (80 - 60) + (60 - 55));
 
 	/* Once the live record holds another message, the age captured with the message stays. */
-	g_readyMessagePaneQueue[0].stateOrMessageId = READY_ID + 1;
-	g_readyMessagePaneQueue[0].ageSeconds = 15;
-	XvtCockpitMessages_Latch(XVT_COCKPIT_MESSAGE_READY, 40, 55, 300, 400,
-				 120, 30);
-	XVT_ASSERT_INT_EQ(Exported()
+	g_ready_message_pane_queue[0].state_or_message_id = READY_ID + 1;
+	g_ready_message_pane_queue[0].age_seconds = 15;
+	xvt_cockpit_messages_latch(XVT_COCKPIT_MESSAGE_READY, 40, 55, 300, 400,
+				   120, 30);
+	XVT_ASSERT_INT_EQ(exported()
 				  ->messages.panes[XVT_COCKPIT_MESSAGE_READY]
 				  .age_seconds,
 			  3);
 
 	/* Each pane takes its own live timer; an out-of-range pane is ignored. */
-	Message(3, 'S', 1);
-	Latch(XVT_COCKPIT_MESSAGE_SYSTEM);
-	Latch(XVT_COCKPIT_MESSAGE_COUNT);
-	XVT_ASSERT_INT_EQ(Exported()
+	cockpit_messages_message(3, 'S', 1);
+	latch(XVT_COCKPIT_MESSAGE_SYSTEM);
+	latch(XVT_COCKPIT_MESSAGE_COUNT);
+	XVT_ASSERT_INT_EQ(exported()
 				  ->messages.panes[XVT_COCKPIT_MESSAGE_SYSTEM]
 				  .timer_ticks,
 			  200);
 }
 
-static uint64_t ReadyGeneration(void)
+static uint64_t ready_generation(void)
 {
-	Latch(XVT_COCKPIT_MESSAGE_READY);
-	return Exported()->messages.panes[XVT_COCKPIT_MESSAGE_READY].generation;
+	latch(XVT_COCKPIT_MESSAGE_READY);
+	return exported()->messages.panes[XVT_COCKPIT_MESSAGE_READY].generation;
 }
 
-static void CheckMessageGeneration(void)
+static void check_message_generation(void)
 {
-	Start();
-	Message(0, 'A', 1);
-	uint64_t first = ReadyGeneration();
+	cockpit_messages_start();
+	cockpit_messages_message(0, 'A', 1);
+	uint64_t first = ready_generation();
 	XVT_ASSERT_TRUE(first > 0);
 
 	/* The same glyphs at the same origin: no change. */
-	Message(0, 'A', 1);
-	XVT_ASSERT_INT_EQ(ReadyGeneration(), first);
+	cockpit_messages_message(0, 'A', 1);
+	XVT_ASSERT_INT_EQ(ready_generation(), first);
 
 	/* New glyphs raise it; so does a new origin. */
-	Message(0, 'B', 1);
-	uint64_t second = ReadyGeneration();
+	cockpit_messages_message(0, 'B', 1);
+	uint64_t second = ready_generation();
 	XVT_ASSERT_TRUE(second > first);
-	g_flightClipLeft = 51;
-	g_flightCursorX = 71;
-	Message(0, 'B', 1);
-	XVT_ASSERT_TRUE(ReadyGeneration() > second);
+	g_flight_clip_left = 51;
+	g_flight_cursor_x = 71;
+	cockpit_messages_message(0, 'B', 1);
+	XVT_ASSERT_TRUE(ready_generation() > second);
 }
 
-static void CheckMessageLimit(void)
+static void check_message_limit(void)
 {
-	Start();
-	Message(0, 0, XVT_HUD_MESSAGE_GLYPHS);
-	uint64_t generation = ReadyGeneration();
+	cockpit_messages_start();
+	cockpit_messages_message(0, 0, XVT_HUD_MESSAGE_GLYPHS);
+	uint64_t generation = ready_generation();
 	XVT_ASSERT_INT_EQ(
 		g_state.messages.panes[XVT_COCKPIT_MESSAGE_READY].glyph_count,
 		XVT_HUD_MESSAGE_GLYPHS);
 
 	/* One glyph too many discards the capture: the pane keeps what it had. */
-	Message(0, 1, XVT_HUD_MESSAGE_GLYPHS + 1);
-	XVT_ASSERT_INT_EQ(ReadyGeneration(), generation);
-	const struct XvtCockpitMessage *pane =
+	cockpit_messages_message(0, 1, XVT_HUD_MESSAGE_GLYPHS + 1);
+	XVT_ASSERT_INT_EQ(ready_generation(), generation);
+	const struct xvt_cockpit_message *pane =
 		&g_state.messages.panes[XVT_COCKPIT_MESSAGE_READY];
 	XVT_ASSERT_INT_EQ(pane->glyph_count, XVT_HUD_MESSAGE_GLYPHS);
 	XVT_ASSERT_INT_EQ(
 		g_state.overlay_content.glyphs[pane->first_glyph].character, 0);
 }
 
-static void CheckIgnoredGlyphs(void)
+static void check_ignored_glyphs(void)
 {
-	Start();
+	cockpit_messages_start();
 	/* With no capture open, a glyph goes nowhere. */
-	Glyphs('X', 1);
-	XVT_ASSERT_INT_EQ(Exported()->overlay_content.glyph_count, 0);
+	cockpit_messages_glyphs('X', 1);
+	XVT_ASSERT_INT_EQ(exported()->overlay_content.glyph_count, 0);
 	/* Outside the clip, a glyph is not captured. */
-	XvtCockpitMessages_BeginMessage(0);
-	Glyphs('A', 1);
-	g_flightCursorX = 500;
-	Glyphs('Y', 1);
-	XvtCockpitMessages_EndMessage();
-	Latch(XVT_COCKPIT_MESSAGE_READY);
-	XVT_ASSERT_INT_EQ(Exported()
+	xvt_cockpit_messages_begin_message(0);
+	cockpit_messages_glyphs('A', 1);
+	g_flight_cursor_x = 500;
+	cockpit_messages_glyphs('Y', 1);
+	xvt_cockpit_messages_end_message();
+	latch(XVT_COCKPIT_MESSAGE_READY);
+	XVT_ASSERT_INT_EQ(exported()
 				  ->messages.panes[XVT_COCKPIT_MESSAGE_READY]
 				  .glyph_count,
 			  1);
 }
 
-static void CheckClear(void)
+static void check_clear(void)
 {
-	Start();
-	Message(0, 'A', 1);
-	uint64_t shown = ReadyGeneration();
+	cockpit_messages_start();
+	cockpit_messages_message(0, 'A', 1);
+	uint64_t shown = ready_generation();
 
 	/* A visible pane is cleared and its generation rises. */
-	XvtCockpitMessages_Clear(XVT_COCKPIT_MESSAGE_READY);
-	uint64_t cleared = ReadyGeneration();
+	xvt_cockpit_messages_clear(XVT_COCKPIT_MESSAGE_READY);
+	uint64_t cleared = ready_generation();
 	XVT_ASSERT_INT_EQ(
 		g_state.messages.panes[XVT_COCKPIT_MESSAGE_READY].visible, 0);
 	XVT_ASSERT_TRUE(cleared > shown);
 
 	/* A pane that is not visible is left alone. */
-	XvtCockpitMessages_Clear(XVT_COCKPIT_MESSAGE_READY);
-	XVT_ASSERT_INT_EQ(ReadyGeneration(), cleared);
+	xvt_cockpit_messages_clear(XVT_COCKPIT_MESSAGE_READY);
+	XVT_ASSERT_INT_EQ(ready_generation(), cleared);
 }
 
-static void CheckBeginPlacement(void)
+static void check_begin_placement(void)
 {
-	Start();
-	Message(0, 'A', 1);
-	Latch(XVT_COCKPIT_MESSAGE_READY);
+	cockpit_messages_start();
+	cockpit_messages_message(0, 'A', 1);
+	latch(XVT_COCKPIT_MESSAGE_READY);
 	XVT_ASSERT_INT_EQ(
-		Exported()->messages.panes[XVT_COCKPIT_MESSAGE_READY].visible,
+		exported()->messages.panes[XVT_COCKPIT_MESSAGE_READY].visible,
 		1);
-	XvtCockpitMessages_BeginPlacement();
-	const struct XvtCockpitState *state = Exported();
+	xvt_cockpit_messages_begin_placement();
+	const struct xvt_cockpit_state *state = exported();
 	XVT_ASSERT_INT_EQ(
 		state->messages.panes[XVT_COCKPIT_MESSAGE_READY].visible, 0);
 	XVT_ASSERT_INT_EQ(state->overlay_content.glyph_count, 0);
-	Latch(XVT_COCKPIT_MESSAGE_READY);
+	latch(XVT_COCKPIT_MESSAGE_READY);
 	XVT_ASSERT_INT_EQ(
-		Exported()->messages.panes[XVT_COCKPIT_MESSAGE_READY].visible,
+		exported()->messages.panes[XVT_COCKPIT_MESSAGE_READY].visible,
 		1);
 }
 
-static void CheckResets(void)
+static void check_resets(void)
 {
 	/* ResetWorking clears the working panes but not the placed ones. */
-	Start();
-	Message(0, 'A', 1);
-	Latch(XVT_COCKPIT_MESSAGE_READY);
-	XvtCockpitMessages_ResetWorking();
+	cockpit_messages_start();
+	cockpit_messages_message(0, 'A', 1);
+	latch(XVT_COCKPIT_MESSAGE_READY);
+	xvt_cockpit_messages_reset_working();
 	XVT_ASSERT_INT_EQ(
-		Exported()->messages.panes[XVT_COCKPIT_MESSAGE_READY].visible,
+		exported()->messages.panes[XVT_COCKPIT_MESSAGE_READY].visible,
 		1);
-	Latch(XVT_COCKPIT_MESSAGE_READY);
+	latch(XVT_COCKPIT_MESSAGE_READY);
 	XVT_ASSERT_INT_EQ(
-		Exported()->messages.panes[XVT_COCKPIT_MESSAGE_READY].visible,
+		exported()->messages.panes[XVT_COCKPIT_MESSAGE_READY].visible,
 		0);
 
 	/* ResetWorking abandons an open message capture. */
-	XvtCockpitMessages_BeginMessage(0);
-	XvtCockpitMessages_ResetWorking();
-	Glyphs('A', 1);
-	XvtCockpitMessages_EndMessage();
-	Latch(XVT_COCKPIT_MESSAGE_READY);
+	xvt_cockpit_messages_begin_message(0);
+	xvt_cockpit_messages_reset_working();
+	cockpit_messages_glyphs('A', 1);
+	xvt_cockpit_messages_end_message();
+	latch(XVT_COCKPIT_MESSAGE_READY);
 	XVT_ASSERT_INT_EQ(
-		Exported()->messages.panes[XVT_COCKPIT_MESSAGE_READY].visible,
+		exported()->messages.panes[XVT_COCKPIT_MESSAGE_READY].visible,
 		0);
 
 	/* Reset clears the placed panes, the alert and the progress bar, but the loading text survives. */
-	Start();
-	Message(0, 'A', 1);
-	Latch(XVT_COCKPIT_MESSAGE_READY);
-	Alert(1, 'a', 1);
-	XvtCockpitMessages_RecordProgress(1, 0, 0, 10, 2, 5);
-	XvtCockpitMessages_BeginLoadingText();
-	Glyphs('L', 1);
-	XvtCockpitMessages_EndLoadingText();
-	XvtCockpitMessages_Reset();
-	const struct XvtCockpitState *state = Exported();
+	cockpit_messages_start();
+	cockpit_messages_message(0, 'A', 1);
+	latch(XVT_COCKPIT_MESSAGE_READY);
+	cockpit_messages_alert(1, 'a', 1);
+	xvt_cockpit_messages_record_progress(1, 0, 0, 10, 2, 5);
+	xvt_cockpit_messages_begin_loading_text();
+	cockpit_messages_glyphs('L', 1);
+	xvt_cockpit_messages_end_loading_text();
+	xvt_cockpit_messages_reset();
+	const struct xvt_cockpit_state *state = exported();
 	XVT_ASSERT_INT_EQ(
 		state->messages.panes[XVT_COCKPIT_MESSAGE_READY].visible, 0);
 	XVT_ASSERT_INT_EQ(state->alert.active, 0);
@@ -354,29 +358,29 @@ static void CheckResets(void)
 	XVT_ASSERT_INT_EQ(state->loading.glyph_count, 1);
 
 	/* Reset abandons open message and alert captures. */
-	Start();
-	XvtCockpitMessages_BeginMessage(0);
-	XvtCockpitMessages_Reset();
-	Glyphs('A', 1);
-	XvtCockpitMessages_EndMessage();
-	XvtCockpitMessages_BeginAlertLine(1, 100, 110, 200, 50);
-	XvtCockpitMessages_Reset();
-	Glyphs('a', 1);
-	XvtCockpitMessages_EndAlertLine();
-	Latch(XVT_COCKPIT_MESSAGE_READY);
-	state = Exported();
+	cockpit_messages_start();
+	xvt_cockpit_messages_begin_message(0);
+	xvt_cockpit_messages_reset();
+	cockpit_messages_glyphs('A', 1);
+	xvt_cockpit_messages_end_message();
+	xvt_cockpit_messages_begin_alert_line(1, 100, 110, 200, 50);
+	xvt_cockpit_messages_reset();
+	cockpit_messages_glyphs('a', 1);
+	xvt_cockpit_messages_end_alert_line();
+	latch(XVT_COCKPIT_MESSAGE_READY);
+	state = exported();
 	XVT_ASSERT_INT_EQ(
 		state->messages.panes[XVT_COCKPIT_MESSAGE_READY].visible, 0);
 	XVT_ASSERT_INT_EQ(state->alert.active, 0);
 	XVT_ASSERT_INT_EQ(state->overlay_content.glyph_count, 0);
 }
 
-static void CheckAlertLines(void)
+static void check_alert_lines(void)
 {
-	Start();
-	XvtCockpitMessages_BeginAlert();
-	Alert(1, 'a', 2);
-	const struct XvtCockpitAlert *alert = &Exported()->alert;
+	cockpit_messages_start();
+	xvt_cockpit_messages_begin_alert();
+	cockpit_messages_alert(1, 'a', 2);
+	const struct xvt_cockpit_alert *alert = &exported()->alert;
 	XVT_ASSERT_INT_EQ(alert->active, 1);
 	XVT_ASSERT_INT_EQ(alert->placement.x, 100);
 	XVT_ASSERT_INT_EQ(alert->placement.y, 110);
@@ -388,7 +392,7 @@ static void CheckAlertLines(void)
 	/* The first line fills every row below it with the text background color. */
 	for (unsigned row = 0; row < 5; ++row) {
 		XVT_ASSERT_INT_EQ(alert->row_background_argb[row],
-				  XvtRenderDraw_Color(BACKGROUND));
+				  xvt_render_draw_color(BACKGROUND));
 	}
 	/* Mode 1 sets the border. */
 	uint32_t border = alert->border_argb;
@@ -397,9 +401,9 @@ static void CheckAlertLines(void)
 	XVT_ASSERT_TRUE(first > 0);
 
 	/* Modes 2 and 3 build on the active alert, on lines 1 and 2. */
-	Alert(2, 'b', 1);
-	Alert(3, 'c', 3);
-	alert = &Exported()->alert;
+	cockpit_messages_alert(2, 'b', 1);
+	cockpit_messages_alert(3, 'c', 3);
+	alert = &exported()->alert;
 	XVT_ASSERT_INT_EQ(alert->glyph_count[0], 2);
 	XVT_ASSERT_INT_EQ(alert->glyph_count[1], 1);
 	XVT_ASSERT_INT_EQ(alert->glyph_count[2], 3);
@@ -414,8 +418,8 @@ static void CheckAlertLines(void)
 		'c');
 
 	/* A line clears itself and the lines after it, not the ones before. */
-	Alert(2, 'd', 1);
-	alert = &Exported()->alert;
+	cockpit_messages_alert(2, 'd', 1);
+	alert = &exported()->alert;
 	XVT_ASSERT_INT_EQ(alert->glyph_count[0], 2);
 	XVT_ASSERT_INT_EQ(alert->glyph_count[1], 1);
 	XVT_ASSERT_INT_EQ(
@@ -425,8 +429,8 @@ static void CheckAlertLines(void)
 	XVT_ASSERT_INT_EQ(alert->glyph_count[2], 0);
 
 	/* Mode 0 is line 0 too. */
-	Alert(0, 'e', 1);
-	alert = &Exported()->alert;
+	cockpit_messages_alert(0, 'e', 1);
+	alert = &exported()->alert;
 	XVT_ASSERT_INT_EQ(alert->glyph_count[0], 1);
 	XVT_ASSERT_INT_EQ(
 		g_state.overlay_content.glyphs[alert->first_glyph[0]].character,
@@ -434,27 +438,27 @@ static void CheckAlertLines(void)
 	XVT_ASSERT_INT_EQ(alert->line_visible[1], 0);
 }
 
-static void CheckAlertModesAndLimits(void)
+static void check_alert_modes_and_limits(void)
 {
-	Start();
-	Alert(1, 'a', 2);
-	uint64_t generation = Exported()->alert.generation;
+	cockpit_messages_start();
+	cockpit_messages_alert(1, 'a', 2);
+	uint64_t generation = exported()->alert.generation;
 
 	/* Modes outside 0 to 3 are ignored: nothing opens, nothing changes. */
-	Alert(4, 'x', 1);
-	Alert(-1, 'x', 1);
-	const struct XvtCockpitAlert *alert = &Exported()->alert;
+	cockpit_messages_alert(4, 'x', 1);
+	cockpit_messages_alert(-1, 'x', 1);
+	const struct xvt_cockpit_alert *alert = &exported()->alert;
 	XVT_ASSERT_INT_EQ(alert->generation, generation);
 	XVT_ASSERT_INT_EQ(alert->glyph_count[0], 2);
 	XVT_ASSERT_INT_EQ(alert->line_visible[1], 0);
 
 	/* A full line is kept; one glyph more discards the line. */
-	Alert(2, 0, XVT_HUD_ALERT_LINE_GLYPHS);
-	alert = &Exported()->alert;
+	cockpit_messages_alert(2, 0, XVT_HUD_ALERT_LINE_GLYPHS);
+	alert = &exported()->alert;
 	XVT_ASSERT_INT_EQ(alert->glyph_count[1], XVT_HUD_ALERT_LINE_GLYPHS);
 	generation = alert->generation;
-	Alert(2, 1, XVT_HUD_ALERT_LINE_GLYPHS + 1);
-	alert = &Exported()->alert;
+	cockpit_messages_alert(2, 1, XVT_HUD_ALERT_LINE_GLYPHS + 1);
+	alert = &exported()->alert;
 	XVT_ASSERT_INT_EQ(alert->generation, generation);
 	XVT_ASSERT_INT_EQ(alert->glyph_count[1], XVT_HUD_ALERT_LINE_GLYPHS);
 	XVT_ASSERT_INT_EQ(
@@ -462,26 +466,26 @@ static void CheckAlertModesAndLimits(void)
 		0);
 }
 
-static void CheckAlertBeginAndEnd(void)
+static void check_alert_begin_and_end(void)
 {
-	Start();
-	Alert(1, 'a', 1);
-	Alert(2, 'b', 1);
+	cockpit_messages_start();
+	cockpit_messages_alert(1, 'a', 1);
+	cockpit_messages_alert(2, 'b', 1);
 
 	/* EndAlert deactivates and raises the generation; a second one changes nothing. */
-	uint64_t active = Exported()->alert.generation;
-	XvtCockpitMessages_EndAlert();
-	const struct XvtCockpitAlert *alert = &Exported()->alert;
+	uint64_t active = exported()->alert.generation;
+	xvt_cockpit_messages_end_alert();
+	const struct xvt_cockpit_alert *alert = &exported()->alert;
 	XVT_ASSERT_INT_EQ(alert->active, 0);
 	XVT_ASSERT_INT_EQ(alert->glyph_count[0], 0);
 	uint64_t ended = alert->generation;
 	XVT_ASSERT_TRUE(ended > active);
-	XvtCockpitMessages_EndAlert();
-	XVT_ASSERT_INT_EQ(Exported()->alert.generation, ended);
+	xvt_cockpit_messages_end_alert();
+	XVT_ASSERT_INT_EQ(exported()->alert.generation, ended);
 
 	/* A line on an inactive alert builds on an empty one. */
-	Alert(3, 'c', 1);
-	alert = &Exported()->alert;
+	cockpit_messages_alert(3, 'c', 1);
+	alert = &exported()->alert;
 	XVT_ASSERT_INT_EQ(alert->active, 1);
 	XVT_ASSERT_INT_EQ(alert->line_visible[0], 0);
 	XVT_ASSERT_INT_EQ(alert->line_visible[1], 0);
@@ -489,22 +493,22 @@ static void CheckAlertBeginAndEnd(void)
 	XVT_ASSERT_INT_EQ(alert->glyph_count[2], 1);
 
 	/* BeginAlert clears the alert, generation included, and abandons an open line. */
-	XvtCockpitMessages_BeginAlertLine(1, 100, 110, 200, 50);
-	Glyphs('d', 1);
-	XvtCockpitMessages_BeginAlert();
-	Glyphs('e', 1);
-	XvtCockpitMessages_EndAlertLine();
-	alert = &Exported()->alert;
+	xvt_cockpit_messages_begin_alert_line(1, 100, 110, 200, 50);
+	cockpit_messages_glyphs('d', 1);
+	xvt_cockpit_messages_begin_alert();
+	cockpit_messages_glyphs('e', 1);
+	xvt_cockpit_messages_end_alert_line();
+	alert = &exported()->alert;
 	XVT_ASSERT_INT_EQ(alert->active, 0);
 	XVT_ASSERT_INT_EQ(alert->generation, 0);
 	XVT_ASSERT_INT_EQ(g_state.overlay_content.glyph_count, 0);
 }
 
-static void CheckProgress(void)
+static void check_progress(void)
 {
-	Start();
-	XvtCockpitMessages_RecordProgress(3, 10, 20, 300, 8, 120);
-	const struct XvtCockpitLoading *loading = &Exported()->loading;
+	cockpit_messages_start();
+	xvt_cockpit_messages_record_progress(3, 10, 20, 300, 8, 120);
+	const struct xvt_cockpit_loading *loading = &exported()->loading;
 	XVT_ASSERT_INT_EQ(loading->progress_visible, 1);
 	XVT_ASSERT_INT_EQ(loading->progress_placement.x, 10);
 	XVT_ASSERT_INT_EQ(loading->progress_placement.y, 20);
@@ -514,41 +518,41 @@ static void CheckProgress(void)
 	XVT_ASSERT_INT_EQ(loading->filled_width, 120);
 	uint64_t first = loading->generation;
 	XVT_ASSERT_TRUE(first > 0);
-	XvtCockpitMessages_RecordProgress(3, 10, 20, 300, 8, 150);
-	XVT_ASSERT_TRUE(Exported()->loading.generation > first);
+	xvt_cockpit_messages_record_progress(3, 10, 20, 300, 8, 150);
+	XVT_ASSERT_TRUE(exported()->loading.generation > first);
 
 	/* A new flight frame hides the bar and the loading text. */
-	XvtCockpitMessages_BeginLoadingText();
-	Glyphs('L', 1);
-	XvtCockpitMessages_EndLoadingText();
-	XvtCockpitMessages_BeginFlightFrame();
-	loading = &Exported()->loading;
+	xvt_cockpit_messages_begin_loading_text();
+	cockpit_messages_glyphs('L', 1);
+	xvt_cockpit_messages_end_loading_text();
+	xvt_cockpit_messages_begin_flight_frame();
+	loading = &exported()->loading;
 	XVT_ASSERT_INT_EQ(loading->progress_visible, 0);
 	XVT_ASSERT_INT_EQ(loading->text_visible, 0);
 
 	/* ClearProgress hides the bar and clears the loading text. */
-	XvtCockpitMessages_RecordProgress(3, 10, 20, 300, 8, 150);
-	XvtCockpitMessages_BeginLoadingText();
-	Glyphs('L', 1);
-	XvtCockpitMessages_EndLoadingText();
-	XvtCockpitMessages_ClearProgress();
-	loading = &Exported()->loading;
+	xvt_cockpit_messages_record_progress(3, 10, 20, 300, 8, 150);
+	xvt_cockpit_messages_begin_loading_text();
+	cockpit_messages_glyphs('L', 1);
+	xvt_cockpit_messages_end_loading_text();
+	xvt_cockpit_messages_clear_progress();
+	loading = &exported()->loading;
 	XVT_ASSERT_INT_EQ(loading->progress_visible, 0);
 	XVT_ASSERT_INT_EQ(loading->text_visible, 0);
 	XVT_ASSERT_INT_EQ(loading->glyph_count, 0);
 }
 
-static void CheckLoadingText(void)
+static void check_loading_text(void)
 {
-	Start();
-	XvtCockpitMessages_BeginLoadingText();
-	Glyphs('L', 3);
-	XvtCockpitMessages_EndLoadingText();
-	const struct XvtCockpitState *state = Exported();
+	cockpit_messages_start();
+	xvt_cockpit_messages_begin_loading_text();
+	cockpit_messages_glyphs('L', 3);
+	xvt_cockpit_messages_end_loading_text();
+	const struct xvt_cockpit_state *state = exported();
 	XVT_ASSERT_INT_EQ(state->loading.text_visible, 1);
 	XVT_ASSERT_INT_EQ(state->loading.glyph_count, 3);
 	/* Relative to the screen: the glyph sits at the cursor. */
-	const struct XvtCockpitGlyph *glyph =
+	const struct xvt_cockpit_glyph *glyph =
 		&state->overlay_content.glyphs[state->loading.first_glyph];
 	XVT_ASSERT_INT_EQ(glyph->character, 'L');
 	XVT_ASSERT_INT_EQ(glyph->x, 70);
@@ -557,58 +561,58 @@ static void CheckLoadingText(void)
 	XVT_ASSERT_TRUE(first > 0);
 
 	/* With no glyph the text is hidden, and the generation still rises. */
-	XvtCockpitMessages_BeginLoadingText();
-	XvtCockpitMessages_EndLoadingText();
-	state = Exported();
+	xvt_cockpit_messages_begin_loading_text();
+	xvt_cockpit_messages_end_loading_text();
+	state = exported();
 	XVT_ASSERT_INT_EQ(state->loading.text_visible, 0);
 	XVT_ASSERT_TRUE(state->loading.text_generation > first);
 
 	/* The loading text takes a glyph before an open message does. */
-	XvtCockpitMessages_BeginLoadingText();
-	XvtCockpitMessages_BeginMessage(0);
-	Glyphs('M', 1);
-	XvtCockpitMessages_EndMessage();
-	XvtCockpitMessages_EndLoadingText();
-	Latch(XVT_COCKPIT_MESSAGE_READY);
-	state = Exported();
+	xvt_cockpit_messages_begin_loading_text();
+	xvt_cockpit_messages_begin_message(0);
+	cockpit_messages_glyphs('M', 1);
+	xvt_cockpit_messages_end_message();
+	xvt_cockpit_messages_end_loading_text();
+	latch(XVT_COCKPIT_MESSAGE_READY);
+	state = exported();
 	XVT_ASSERT_INT_EQ(state->loading.glyph_count, 1);
 	XVT_ASSERT_INT_EQ(
 		state->messages.panes[XVT_COCKPIT_MESSAGE_READY].glyph_count,
 		0);
 
 	/* A message takes a glyph before an open alert line does. */
-	XvtCockpitMessages_BeginAlertLine(1, 100, 110, 200, 50);
-	XvtCockpitMessages_BeginMessage(0);
-	Glyphs('N', 1);
-	XvtCockpitMessages_EndMessage();
-	XvtCockpitMessages_EndAlertLine();
-	Latch(XVT_COCKPIT_MESSAGE_READY);
-	state = Exported();
+	xvt_cockpit_messages_begin_alert_line(1, 100, 110, 200, 50);
+	xvt_cockpit_messages_begin_message(0);
+	cockpit_messages_glyphs('N', 1);
+	xvt_cockpit_messages_end_message();
+	xvt_cockpit_messages_end_alert_line();
+	latch(XVT_COCKPIT_MESSAGE_READY);
+	state = exported();
 	XVT_ASSERT_INT_EQ(
 		state->messages.panes[XVT_COCKPIT_MESSAGE_READY].glyph_count,
 		1);
 	XVT_ASSERT_INT_EQ(state->alert.glyph_count[0], 0);
 }
 
-static void CheckExportPacking(void)
+static void check_export_packing(void)
 {
-	Start();
-	Message(0, 'r', 1);
-	Message(3, 's', 2);
+	cockpit_messages_start();
+	cockpit_messages_message(0, 'r', 1);
+	cockpit_messages_message(3, 's', 2);
 	for (unsigned pane = 0; pane < XVT_COCKPIT_MESSAGE_COUNT; ++pane) {
-		Latch((XvtCockpitMessageId)pane);
+		latch((xvt_cockpit_message_id)pane);
 	}
-	Alert(1, 'a', 3);
-	XvtCockpitMessages_BeginLoadingText();
-	Glyphs('L', 1);
-	XvtCockpitMessages_EndLoadingText();
+	cockpit_messages_alert(1, 'a', 3);
+	xvt_cockpit_messages_begin_loading_text();
+	cockpit_messages_glyphs('L', 1);
+	xvt_cockpit_messages_end_loading_text();
 
-	const struct XvtCockpitState *state = Exported();
-	const struct XvtCockpitGlyph *glyphs = state->overlay_content.glyphs;
+	const struct xvt_cockpit_state *state = exported();
+	const struct xvt_cockpit_glyph *glyphs = state->overlay_content.glyphs;
 	XVT_ASSERT_INT_EQ(state->overlay_content.glyph_count, 7);
-	const struct XvtCockpitMessage *ready =
+	const struct xvt_cockpit_message *ready =
 		&state->messages.panes[XVT_COCKPIT_MESSAGE_READY];
-	const struct XvtCockpitMessage *system =
+	const struct xvt_cockpit_message *system =
 		&state->messages.panes[XVT_COCKPIT_MESSAGE_SYSTEM];
 	XVT_ASSERT_INT_EQ(glyphs[ready->first_glyph].character, 'r');
 	XVT_ASSERT_INT_EQ(glyphs[system->first_glyph].character, 's');
@@ -621,77 +625,77 @@ static void CheckExportPacking(void)
 	XVT_ASSERT_INT_EQ(glyphs[6].character, 'L');
 }
 
-static void CheckExportScreenSize(void)
+static void check_export_screen_size(void)
 {
 	/* Nothing shown: the view's screen size is left alone. */
-	Start();
-	Message(0, 'A', 1);
-	Latch(XVT_COCKPIT_MESSAGE_READY);
-	XVT_ASSERT_INT_EQ(Exported()->view.screen_width, 7);
+	cockpit_messages_start();
+	cockpit_messages_message(0, 'A', 1);
+	latch(XVT_COCKPIT_MESSAGE_READY);
+	XVT_ASSERT_INT_EQ(exported()->view.screen_width, 7);
 
 	/* The alert, the progress bar or the loading text each set it. */
-	Alert(1, 'a', 1);
-	XVT_ASSERT_INT_EQ(Exported()->view.screen_width, 640);
+	cockpit_messages_alert(1, 'a', 1);
+	XVT_ASSERT_INT_EQ(exported()->view.screen_width, 640);
 	XVT_ASSERT_INT_EQ(g_state.view.screen_height, 480);
-	Start();
-	XvtCockpitMessages_RecordProgress(1, 0, 0, 10, 2, 5);
-	XVT_ASSERT_INT_EQ(Exported()->view.screen_width, 640);
-	Start();
-	XvtCockpitMessages_BeginLoadingText();
-	Glyphs('L', 1);
-	XvtCockpitMessages_EndLoadingText();
-	XVT_ASSERT_INT_EQ(Exported()->view.screen_width, 640);
+	cockpit_messages_start();
+	xvt_cockpit_messages_record_progress(1, 0, 0, 10, 2, 5);
+	XVT_ASSERT_INT_EQ(exported()->view.screen_width, 640);
+	cockpit_messages_start();
+	xvt_cockpit_messages_begin_loading_text();
+	cockpit_messages_glyphs('L', 1);
+	xvt_cockpit_messages_end_loading_text();
+	XVT_ASSERT_INT_EQ(exported()->view.screen_width, 640);
 }
 
-static void CheckSharedCounter(void)
+static void check_shared_counter(void)
 {
-	Start();
-	Message(0, 'A', 1);
-	uint64_t message = ReadyGeneration();
-	Alert(1, 'a', 1);
-	uint64_t alert = Exported()->alert.generation;
-	XvtCockpitMessages_RecordProgress(1, 0, 0, 10, 2, 5);
-	uint64_t progress = Exported()->loading.generation;
+	cockpit_messages_start();
+	cockpit_messages_message(0, 'A', 1);
+	uint64_t message = ready_generation();
+	cockpit_messages_alert(1, 'a', 1);
+	uint64_t alert = exported()->alert.generation;
+	xvt_cockpit_messages_record_progress(1, 0, 0, 10, 2, 5);
+	uint64_t progress = exported()->loading.generation;
 	/* Drawn in turn from one counter: each later part's generation is above the earlier ones. */
 	XVT_ASSERT_TRUE(alert > message);
 	XVT_ASSERT_TRUE(progress > alert);
 }
 
-static void CheckLoadingTextLimit(void)
+static void check_loading_text_limit(void)
 {
-	Start();
-	XvtCockpitMessages_BeginLoadingText();
-	Glyphs(0, XVT_HUD_LOADING_GLYPHS);
+	cockpit_messages_start();
+	xvt_cockpit_messages_begin_loading_text();
+	cockpit_messages_glyphs(0, XVT_HUD_LOADING_GLYPHS);
 	XVT_ASSERT_INT_EQ(Aeron_FatalErrorRequested(), 0);
 #ifdef XVT_TEST_LEAK_CHECKER
 	__lsan_disable();
 #endif
-	Glyphs(0, 1);
+	cockpit_messages_glyphs(0, 1);
 #ifdef XVT_TEST_LEAK_CHECKER
 	__lsan_enable();
 #endif
 	XVT_ASSERT_TRUE(Aeron_FatalErrorRequested() != 0);
-	XvtCockpitMessages_EndLoadingText();
+	xvt_cockpit_messages_end_loading_text();
 }
 
 int main(void)
 {
-	CheckPaneRouting();
-	CheckLatchPlacesPane();
-	CheckMessageGeneration();
-	CheckMessageLimit();
-	CheckIgnoredGlyphs();
-	CheckClear();
-	CheckBeginPlacement();
-	CheckResets();
-	CheckAlertLines();
-	CheckAlertModesAndLimits();
-	CheckAlertBeginAndEnd();
-	CheckProgress();
-	CheckLoadingText();
-	CheckExportPacking();
-	CheckExportScreenSize();
-	CheckSharedCounter();
-	CheckLoadingTextLimit();
+	check_pane_routing();
+	check_latch_places_pane();
+	check_message_generation();
+	check_message_limit();
+	check_ignored_glyphs();
+	check_clear();
+	check_begin_placement();
+	check_resets();
+	check_alert_lines();
+	check_alert_modes_and_limits();
+	check_alert_begin_and_end();
+	check_progress();
+	check_loading_text();
+	check_export_packing();
+	check_export_screen_size();
+	check_shared_counter();
+	check_loading_text_limit();
 	return 0;
 }

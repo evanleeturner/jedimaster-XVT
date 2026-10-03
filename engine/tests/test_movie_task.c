@@ -19,184 +19,185 @@
 #include <string.h>
 #include <time.h>
 
-static struct XvtTestAssets g_assets;
+static struct xvt_test_assets g_assets;
 
-static void Fresh(void)
+static void fresh(void)
 {
-	XvtMovieTask_Shutdown();
-	memset(&g_frontState, 0, sizeof g_frontState);
-	g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_SINGLEPLAYER;
+	xvt_movie_task_shutdown();
+	memset(&g_front_state, 0, sizeof g_front_state);
+	g_frontend_mission_session_mode = FRONTEND_MISSION_SESSION_SINGLEPLAYER;
 }
 
 /* Binds storage to a fresh asset folder holding an empty movies/<name>.smk. */
-static void Movies(const char *name)
+static void movies(const char *name)
 {
 	char path[XVT_TEST_PATH_CAPACITY];
-	XvtTest_OpenAssets(&g_assets);
+	xvt_test_open_assets(&g_assets);
 	snprintf(path, sizeof path, "movies/%s.smk", name);
-	XvtTest_AddAsset(&g_assets, path);
+	xvt_test_add_asset(&g_assets, path);
 }
 
-static void EndMovies(void)
+static void end_movies(void)
 {
-	XvtMovieTask_Shutdown();
-	XvtTest_CloseAssets(&g_assets);
+	xvt_movie_task_shutdown();
+	xvt_test_close_assets(&g_assets);
 }
 
 /* Ticks the movie until it completes; the decoder reports an empty file from its own thread. */
-static void TickUntilComplete(void)
+static void tick_until_complete(void)
 {
 	struct timespec pause = {0, 1000000};
-	for (int i = 0; i < 10000 && XvtMovieTask_IsActive(); ++i) {
-		XvtMovieTask_Update();
+	for (int i = 0; i < 10000 && xvt_movie_task_is_active(); ++i) {
+		xvt_movie_task_update();
 		nanosleep(&pause, NULL);
 	}
-	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 0);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_is_active(), 0);
 }
 
-static void CheckIdle(void)
+static void check_idle(void)
 {
-	Fresh();
+	fresh();
 	int result = 77;
-	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 0);
-	XVT_ASSERT_INT_EQ(XvtMovieTask_ContinuesWithoutFocus(), 0);
-	XVT_ASSERT_INT_EQ(XvtMovieTask_TakeResult(&result), 0);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_is_active(), 0);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_continues_without_focus(), 0);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_take_result(&result), 0);
 	XVT_ASSERT_INT_EQ(result, 77);
-	XVT_ASSERT_INT_EQ(XvtMovieTask_NextWakeDelayUs(), 10000);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_next_wake_delay_us(), 10000);
 	/* With no movie, Update, PausedFrame, Stop and ReapFinished change nothing. */
-	XvtMovieTask_Update();
-	XvtMovieTask_PausedFrame();
-	XvtMovieTask_Stop();
-	XvtMovieTask_ReapFinished();
-	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 0);
-	XVT_ASSERT_INT_EQ(XvtMovieTask_TakeResult(&result), 0);
+	xvt_movie_task_update();
+	xvt_movie_task_paused_frame();
+	xvt_movie_task_stop();
+	xvt_movie_task_reap_finished();
+	XVT_ASSERT_INT_EQ(xvt_movie_task_is_active(), 0);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_take_result(&result), 0);
 }
 
-static void CheckBeginRefusals(void)
+static void check_begin_refusals(void)
 {
 	char long_name[300];
 	memset(long_name, 'm', sizeof long_name - 1);
 	long_name[sizeof long_name - 1] = 0;
-	Fresh();
+	fresh();
 	/* No storage bound: no movie can be found. */
-	XVT_ASSERT_INT_EQ(XvtMovieTask_Begin("intro", 0), 2);
-	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 0);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_begin("intro", 0), 2);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_is_active(), 0);
 
-	Movies("intro");
-	XVT_ASSERT_INT_EQ(XvtMovieTask_Begin(NULL, 0), 2);
-	XVT_ASSERT_INT_EQ(XvtMovieTask_Begin("", 0), 2);
-	XVT_ASSERT_INT_EQ(XvtMovieTask_Begin(long_name, 0), 2);
-	XVT_ASSERT_INT_EQ(XvtMovieTask_Begin("absent", 0), 2);
-	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 0);
+	movies("intro");
+	XVT_ASSERT_INT_EQ(xvt_movie_task_begin(NULL, 0), 2);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_begin("", 0), 2);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_begin(long_name, 0), 2);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_begin("absent", 0), 2);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_is_active(), 0);
 	int result = 77;
-	XVT_ASSERT_INT_EQ(XvtMovieTask_TakeResult(&result), 0);
-	EndMovies();
+	XVT_ASSERT_INT_EQ(xvt_movie_task_take_result(&result), 0);
+	end_movies();
 }
 
-static void CheckLifecycle(void)
+static void check_lifecycle(void)
 {
-	Fresh();
-	Movies("intro");
-	g_frontState.frontendDisplayWndProcMode = 3;
-	g_frontState.offscreenRestoreEnabled = 1;
-	XVT_ASSERT_INT_EQ(XvtMovieTask_Begin("intro", 0), XVT_MOVIE_PENDING);
-	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 1);
-	XVT_ASSERT_INT_EQ(XvtMovieTask_ContinuesWithoutFocus(), 0);
+	fresh();
+	movies("intro");
+	g_front_state.frontend_display_wnd_proc_mode = 3;
+	g_front_state.offscreen_restore_enabled = 1;
+	XVT_ASSERT_INT_EQ(xvt_movie_task_begin("intro", 0), XVT_MOVIE_PENDING);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_is_active(), 1);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_continues_without_focus(), 0);
 
 	/* One movie at a time; no result while it plays. */
 	int result = 77;
-	XVT_ASSERT_INT_EQ(XvtMovieTask_Begin("intro", 0), 2);
-	XVT_ASSERT_INT_EQ(XvtMovieTask_TakeResult(&result), 0);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_begin("intro", 0), 2);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_take_result(&result), 0);
 
 	/* The frontend state Begin saved is changed while the movie plays. */
-	g_frontState.frontendDisplayWndProcMode = 1;
-	g_frontState.offscreenRestoreEnabled = 0;
+	g_front_state.frontend_display_wnd_proc_mode = 1;
+	g_front_state.offscreen_restore_enabled = 0;
 
 	/* The empty file fails: the movie completes with result 2. */
-	TickUntilComplete();
+	tick_until_complete();
 	/* Completed but not reaped: no result yet, and no new movie. */
-	XVT_ASSERT_INT_EQ(XvtMovieTask_TakeResult(&result), 0);
-	XVT_ASSERT_INT_EQ(XvtMovieTask_Begin("intro", 0), 2);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_take_result(&result), 0);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_begin("intro", 0), 2);
 
-	XvtMovieTask_ReapFinished();
-	XVT_ASSERT_INT_EQ(g_frontState.frontendDisplayWndProcMode, 3);
-	XVT_ASSERT_INT_EQ(g_frontState.offscreenRestoreEnabled, 1);
-	XVT_ASSERT_INT_EQ(XvtMovieTask_TakeResult(&result), 1);
+	xvt_movie_task_reap_finished();
+	XVT_ASSERT_INT_EQ(g_front_state.frontend_display_wnd_proc_mode, 3);
+	XVT_ASSERT_INT_EQ(g_front_state.offscreen_restore_enabled, 1);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_take_result(&result), 1);
 	XVT_ASSERT_INT_EQ(result, 2);
-	XVT_ASSERT_INT_EQ(XvtMovieTask_TakeResult(&result), 0);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_take_result(&result), 0);
 
 	/* With the result taken, the next movie can begin. */
-	XVT_ASSERT_INT_EQ(XvtMovieTask_Begin("intro", 0), XVT_MOVIE_PENDING);
-	EndMovies();
+	XVT_ASSERT_INT_EQ(xvt_movie_task_begin("intro", 0), XVT_MOVIE_PENDING);
+	end_movies();
 }
 
-static void CheckStop(void)
+static void check_stop(void)
 {
-	Fresh();
-	Movies("intro");
-	XVT_ASSERT_INT_EQ(XvtMovieTask_Begin("intro", 0), XVT_MOVIE_PENDING);
-	XvtMovieTask_Stop();
+	fresh();
+	movies("intro");
+	XVT_ASSERT_INT_EQ(xvt_movie_task_begin("intro", 0), XVT_MOVIE_PENDING);
+	xvt_movie_task_stop();
 	/* A stopped movie counts as finished and completes on its next tick. Its result is 0, unless the
 	 * decoder has already reported the empty file, which makes it 2. */
-	XvtMovieTask_Update();
-	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 0);
-	XvtMovieTask_ReapFinished();
+	xvt_movie_task_update();
+	XVT_ASSERT_INT_EQ(xvt_movie_task_is_active(), 0);
+	xvt_movie_task_reap_finished();
 	int result = 77;
-	XVT_ASSERT_INT_EQ(XvtMovieTask_TakeResult(&result), 1);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_take_result(&result), 1);
 	XVT_ASSERT_TRUE(result == 0 || result == 2);
-	EndMovies();
+	end_movies();
 }
 
-static void CheckNetworkFallback(void)
+static void check_network_fallback(void)
 {
 	/* In a network session, a synchronized movie that is missing falls back to Flyby1a. */
-	Fresh();
-	Movies("Flyby1a");
-	g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_NET_CLIENT;
-	XVT_ASSERT_INT_EQ(XvtMovieTask_Begin("absent", 1), XVT_MOVIE_PENDING);
-	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 1);
-	XVT_ASSERT_INT_EQ(XvtMovieTask_ContinuesWithoutFocus(), 1);
-	XvtMovieTask_Shutdown();
+	fresh();
+	movies("Flyby1a");
+	g_frontend_mission_session_mode = FRONTEND_MISSION_SESSION_NET_CLIENT;
+	XVT_ASSERT_INT_EQ(xvt_movie_task_begin("absent", 1), XVT_MOVIE_PENDING);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_is_active(), 1);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_continues_without_focus(), 1);
+	xvt_movie_task_shutdown();
 
 	/* Not without synchronize... */
-	XVT_ASSERT_INT_EQ(XvtMovieTask_Begin("absent", 0), 2);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_begin("absent", 0), 2);
 	/* ...and synchronize does nothing outside a network session. */
-	g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_SINGLEPLAYER;
-	XVT_ASSERT_INT_EQ(XvtMovieTask_Begin("absent", 1), 2);
-	XVT_ASSERT_INT_EQ(XvtMovieTask_Begin("Flyby1a", 1), XVT_MOVIE_PENDING);
-	XVT_ASSERT_INT_EQ(XvtMovieTask_ContinuesWithoutFocus(), 0);
-	EndMovies();
+	g_frontend_mission_session_mode = FRONTEND_MISSION_SESSION_SINGLEPLAYER;
+	XVT_ASSERT_INT_EQ(xvt_movie_task_begin("absent", 1), 2);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_begin("Flyby1a", 1),
+			  XVT_MOVIE_PENDING);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_continues_without_focus(), 0);
+	end_movies();
 }
 
-static void CheckShutdownForgets(void)
+static void check_shutdown_forgets(void)
 {
-	Fresh();
-	Movies("intro");
-	XVT_ASSERT_INT_EQ(XvtMovieTask_Begin("intro", 0), XVT_MOVIE_PENDING);
-	TickUntilComplete();
-	XvtMovieTask_ReapFinished();
+	fresh();
+	movies("intro");
+	XVT_ASSERT_INT_EQ(xvt_movie_task_begin("intro", 0), XVT_MOVIE_PENDING);
+	tick_until_complete();
+	xvt_movie_task_reap_finished();
 	/* An untaken result is forgotten. */
-	XvtMovieTask_Shutdown();
+	xvt_movie_task_shutdown();
 	int result = 77;
-	XVT_ASSERT_INT_EQ(XvtMovieTask_TakeResult(&result), 0);
-	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 0);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_take_result(&result), 0);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_is_active(), 0);
 
 	/* So is an active movie. */
-	XVT_ASSERT_INT_EQ(XvtMovieTask_Begin("intro", 0), XVT_MOVIE_PENDING);
-	XvtMovieTask_Shutdown();
-	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 0);
-	XVT_ASSERT_INT_EQ(XvtMovieTask_TakeResult(&result), 0);
-	XVT_ASSERT_INT_EQ(XvtMovieTask_Begin("intro", 0), XVT_MOVIE_PENDING);
-	EndMovies();
+	XVT_ASSERT_INT_EQ(xvt_movie_task_begin("intro", 0), XVT_MOVIE_PENDING);
+	xvt_movie_task_shutdown();
+	XVT_ASSERT_INT_EQ(xvt_movie_task_is_active(), 0);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_take_result(&result), 0);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_begin("intro", 0), XVT_MOVIE_PENDING);
+	end_movies();
 }
 
 int main(void)
 {
-	CheckIdle();
-	CheckBeginRefusals();
-	CheckLifecycle();
-	CheckStop();
-	CheckNetworkFallback();
-	CheckShutdownForgets();
+	check_idle();
+	check_begin_refusals();
+	check_lifecycle();
+	check_stop();
+	check_network_fallback();
+	check_shutdown_forgets();
 	return 0;
 }

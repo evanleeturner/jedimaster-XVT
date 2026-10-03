@@ -8,26 +8,27 @@
 extern "C" {
 #endif
 
-/* One file in a FrontendFileList. */
-struct FrontendFileListNode {
+/* One file in a frontend_file_list. */
+struct frontend_file_list_node {
 	/* Heap copy of the file's name; the modern build puts the wildcard's
 	 * folder in front of it. */
 	char *path;
 	/* Next file in strcmp order of path; NULL after the last. */
-	struct FrontendFileListNode *next;
+	struct frontend_file_list_node *next;
 };
 
-/* Files matching a wildcard, from FrontendFileList_BuildSorted. */
-struct FrontendFileList {
-	struct FrontendFileListNode
-		*head;		    /* First file; NULL when none matched. */
-	int count;		    /* Files in the list. */
+/* Files matching a wildcard, from frontend_file_list_build_sorted. */
+struct frontend_file_list {
+	struct frontend_file_list_node
+		*head; /* First file; NULL when none matched. */
+	int count;     /* Files in the list. */
 };
 
-struct FrontendFileList *FrontendFileList_BuildSorted(const char *wildcard);
-void FrontendFileList_Free(struct FrontendFileList *list);
-void FrontendFileList_InsertNodeSorted(struct FrontendFileList *list,
-				       struct FrontendFileListNode *node);
+struct frontend_file_list *
+frontend_file_list_build_sorted(const char *wildcard);
+void frontend_file_list_free(struct frontend_file_list *list);
+void frontend_file_list_insert_node_sorted(
+	struct frontend_file_list *list, struct frontend_file_list_node *node);
 
 #ifdef __cplusplus
 }

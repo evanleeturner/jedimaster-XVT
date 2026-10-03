@@ -9,39 +9,37 @@
 extern "C" {
 #endif
 
-typedef enum FrontendNavigationSlotState {
+typedef enum frontend_navigation_slot_state {
 	FRONTEND_NAVIGATION_SLOT_INACTIVE = 0,
 	FRONTEND_NAVIGATION_SLOT_ACTIVE = 1,
 	FRONTEND_NAVIGATION_SLOT_SELECTED = 2,
-} FrontendNavigationSlotState;
+} frontend_navigation_slot_state;
 
-extern const char *g_buttonOverlayText;
+extern const char *g_button_overlay_text;
 
-int FrontendButton_HandleTextButton(struct RECT *rect, const char *text,
-				    int fontSize, int unusedColor,
-				    int heldStateSlot,
-				    const char *clickSoundName);
-int FrontendButton_HandleSpriteButton(struct RECT *rect,
-				      const char *normalSprite,
-				      const char *pressedSprite,
-				      const char *tooltipText, int fontSize,
-				      int unusedColor, int heldStateSlot,
-				      const char *pressSoundName);
-int FrontendButton_DrawTextButtonState(struct RECT *rect, const char *text,
-				       int fontSize, int unusedColor,
-				       char isPressed);
-void FrontendButton_DrawSpriteAndTooltip(struct RECT *rect,
-					 const char *spriteName,
-					 const char *tooltipText, int fontSize,
-					 int unusedColor);
-void FrontendButton_DrawEightSlotNavigationState(
-	const FrontendNavigationSlotState *slotStates);
-int FrontendButton_DrawOverlayText(struct RECT *rect, const char *str);
-void FrontendButton_EnableOverlayText(void);
-void FrontendButton_DisableOverlayText(void);
-const char *FrontendButton_SetOverlayText(const char *text);
-void FrontendButton_UsePressedOverlayStyle(void);
-int FrontendButton_IsOverlayTextEnabled(void);
+int frontend_button_handle_text_button(struct RECT *rect, const char *text,
+				       int font_size, int unused_color,
+				       int held_state_slot,
+				       const char *click_sound_name);
+int frontend_button_handle_sprite_button(
+	struct RECT *rect, const char *normal_sprite,
+	const char *pressed_sprite, const char *tooltip_text, int font_size,
+	int unused_color, int held_state_slot, const char *press_sound_name);
+int frontend_button_draw_text_button_state(struct RECT *rect, const char *text,
+					   int font_size, int unused_color,
+					   char is_pressed);
+void frontend_button_draw_sprite_and_tooltip(struct RECT *rect,
+					     const char *sprite_name,
+					     const char *tooltip_text,
+					     int font_size, int unused_color);
+void frontend_button_draw_eight_slot_navigation_state(
+	const frontend_navigation_slot_state *slot_states);
+int frontend_button_draw_overlay_text(struct RECT *rect, const char *str);
+void frontend_button_enable_overlay_text(void);
+void frontend_button_disable_overlay_text(void);
+const char *frontend_button_set_overlay_text(const char *text);
+void frontend_button_use_pressed_overlay_style(void);
+int frontend_button_is_overlay_text_enabled(void);
 
 #ifdef __cplusplus
 }

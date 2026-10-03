@@ -12,211 +12,215 @@ enum {
 
 /* Echoes a peer's clock probe back to it, then moves the allowed clock lead halfway (at least 1
  * tick) toward the lead the probe asks for, halved for a synchronous game or a small session. */
-static void XvtFlightNetwork_AnswerClockProbe(int senderDpid, const int *packet)
+static void xvt_flight_network_answer_clock_probe(int sender_dpid,
+						  const int *packet)
 {
 	int adjustment;
-	int targetLead;
+	int target_lead;
 
-	g_flightNetScratchPacket.packetType = NET_PACKET_CLOCK_PROBE_REPLY;
-	g_flightNetScratchPacket.payloadDwords[0] = packet[1];
+	g_flight_net_scratch_packet.packet_type = NET_PACKET_CLOCK_PROBE_REPLY;
+	g_flight_net_scratch_packet.payload_dwords[0] = packet[1];
 
-	XvtFlightNetwork_SendPacket(senderDpid,
-				    (unsigned int *)&g_flightNetScratchPacket,
-				    PACKET_CLOCK_PROBE_REPLY_SIZE);
-	targetLead = packet[2];
-	if (g_internetPlayEnabled == 0 ||
-	    g_flightNetSmallSessionPlayerThreshold >
-		    g_activeFlightPlayerCount) {
-		targetLead >>= 1;
+	xvt_flight_network_send_packet(
+		sender_dpid, (unsigned int *)&g_flight_net_scratch_packet,
+		PACKET_CLOCK_PROBE_REPLY_SIZE);
+	target_lead = packet[2];
+	if (g_internet_play_enabled == 0 ||
+	    g_flight_net_small_session_player_threshold >
+		    g_active_flight_player_count) {
+		target_lead >>= 1;
 	}
-	if (g_flightNetClockLeadTicks < targetLead) {
-		adjustment = (targetLead - g_flightNetClockLeadTicks) >> 1;
+	if (g_flight_net_clock_lead_ticks < target_lead) {
+		adjustment = (target_lead - g_flight_net_clock_lead_ticks) >> 1;
 		if (adjustment == 0) {
 			adjustment = 1;
 		}
-		g_flightNetClockLeadTicks += adjustment;
-	} else if (g_flightNetClockLeadTicks > targetLead) {
-		adjustment = (g_flightNetClockLeadTicks - targetLead) >> 1;
+		g_flight_net_clock_lead_ticks += adjustment;
+	} else if (g_flight_net_clock_lead_ticks > target_lead) {
+		adjustment = (g_flight_net_clock_lead_ticks - target_lead) >> 1;
 		if (adjustment == 0) {
 			adjustment = 1;
 		}
-		g_flightNetClockLeadTicks -= adjustment;
+		g_flight_net_clock_lead_ticks -= adjustment;
 	}
 }
 
 /* On a client, when a reply carries the probe timestamp last sent, moves the allowed clock lead
  * halfway (at least 1 tick) toward the probe's round trip plus the clock adjustment so far and a
  * 20-tick bias, while that total stays under 472 ticks. A tick is 4 ms. */
-static void XvtFlightNetwork_ApplyClockProbeReply(const int *packet)
+static void xvt_flight_network_apply_clock_probe_reply(const int *packet)
 {
-	if (NetSession_IsLocalHost() == 0 &&
-	    packet[1] == g_flightNetClockProbeTimestamp) {
+	if (net_session_is_local_host() == 0 &&
+	    packet[1] == g_flight_net_clock_probe_timestamp) {
 		int adjustment;
-		int targetLead;
+		int target_lead;
 
-		targetLead = g_flightNetClockAdjustAccumTicks;
-		targetLead += g_inputTimestamp;
-		targetLead -= packet[1];
-		targetLead += CLOCK_PROBE_BIAS_TICKS;
+		target_lead = g_flight_net_clock_adjust_accum_ticks;
+		target_lead += g_input_timestamp;
+		target_lead -= packet[1];
+		target_lead += CLOCK_PROBE_BIAS_TICKS;
 
-		if (targetLead < CLOCK_PROBE_LIMIT_TICKS) {
-			if (g_flightNetClockLeadTicks < targetLead) {
-				adjustment = (targetLead -
-					      g_flightNetClockLeadTicks) >>
+		if (target_lead < CLOCK_PROBE_LIMIT_TICKS) {
+			if (g_flight_net_clock_lead_ticks < target_lead) {
+				adjustment = (target_lead -
+					      g_flight_net_clock_lead_ticks) >>
 					     1;
 				if (adjustment == 0) {
 					adjustment = 1;
 				}
-				g_flightNetClockLeadTicks += adjustment;
-			} else if (g_flightNetClockLeadTicks > targetLead) {
-				adjustment = (g_flightNetClockLeadTicks -
-					      targetLead) >>
+				g_flight_net_clock_lead_ticks += adjustment;
+			} else if (g_flight_net_clock_lead_ticks >
+				   target_lead) {
+				adjustment = (g_flight_net_clock_lead_ticks -
+					      target_lead) >>
 					     1;
 				if (adjustment == 0) {
 					adjustment = 1;
 				}
-				g_flightNetClockLeadTicks -= adjustment;
+				g_flight_net_clock_lead_ticks -= adjustment;
 			}
 		}
 	}
 }
 
-static int XvtFlightNetwork_Control(int senderDpid, int *packet)
+static int xvt_flight_network_control(int sender_dpid, int *packet)
 {
 	switch (packet[0]) {
 	case NET_PACKET_PLAYER_DISCONNECTED: {
-		int playerIndex = packet[1];
+		int player_index = packet[1];
 
-		if (playerIndex >= 0 && playerIndex < PLAYER_COUNT) {
-			g_playerConnected[playerIndex] = 0;
+		if (player_index >= 0 && player_index < PLAYER_COUNT) {
+			g_player_connected[player_index] = 0;
 		}
 		return 0;
 	}
 	case NET_PACKET_WORLD_CHECKSUM:
-		if (g_players[NetSession_FindPlayerSlotByDpid(senderDpid)]
-			    .participationState) {
-			XvtResync_DeferChecksum(senderDpid, packet);
+		if (g_players[net_session_find_player_slot_by_dpid(sender_dpid)]
+			    .participation_state) {
+			xvt_resync_defer_checksum(sender_dpid, packet);
 		}
 		return 0;
 	case NET_PACKET_SESSION_ABORT:
-		g_flightNetHostAbortReceived = 1;
-		g_flightMissionState.missionEndPending = 1;
-		g_players[g_localPlayer].participationState = 0;
+		g_flight_net_host_abort_received = 1;
+		g_flight_mission_state.mission_end_pending = 1;
+		g_players[g_local_player].participation_state = 0;
 		return 1;
 	case NET_PACKET_RESYNC_CHUNK_ACK: {
-		unsigned int chunkIndex;
+		unsigned int chunk_index;
 
-		g_flightNetWorldStateAckReceivedFlag = 1;
-		chunkIndex = (unsigned int)packet[1];
-		if (chunkIndex < WORLD_STATE_CHUNK_COUNT) {
-			g_flightNetWorldStateChunkAcked[chunkIndex] = 1;
+		g_flight_net_world_state_ack_received_flag = 1;
+		chunk_index = (unsigned int)packet[1];
+		if (chunk_index < WORLD_STATE_CHUNK_COUNT) {
+			g_flight_net_world_state_chunk_acked[chunk_index] = 1;
 		}
 		return 0;
 	}
 	case NET_PACKET_PLAYER_ABORT: {
-		int playerIndex = packet[1];
-		if (senderDpid != NetSession_GetHostDplayId() &&
-		    ((unsigned)playerIndex >= XVT_FLIGHT_PLAYERS ||
-		     g_players[playerIndex].network.directPlayId !=
-			     senderDpid)) {
+		int player_index = packet[1];
+		if (sender_dpid != net_session_get_host_dplay_id() &&
+		    ((unsigned)player_index >= XVT_FLIGHT_PLAYERS ||
+		     g_players[player_index].network.direct_play_id !=
+			     sender_dpid)) {
 			return 0;
 		}
-		if (XvtFlightNetwork_PlayerAbort((unsigned)playerIndex)) {
+		if (xvt_flight_network_player_abort((unsigned)player_index)) {
 			return 0;
 		}
 
-		if (playerIndex >= 0 && playerIndex < PLAYER_COUNT) {
-			g_playerAbortFlags[playerIndex] = 1;
+		if (player_index >= 0 && player_index < PLAYER_COUNT) {
+			g_player_abort_flags[player_index] = 1;
 		}
-		if (playerIndex != g_localPlayer) {
+		if (player_index != g_local_player) {
 			return 0;
 		}
-		g_flightMissionState.missionEndPending = 1;
-		g_players[g_localPlayer].participationState = 0;
-		g_playerAbortFlags[g_localPlayer] = 1;
-		FlightNet_MarkPilotNetworkPlayerLeft(g_localPlayer);
+		g_flight_mission_state.mission_end_pending = 1;
+		g_players[g_local_player].participation_state = 0;
+		g_player_abort_flags[g_local_player] = 1;
+		flight_net_mark_pilot_network_player_left(g_local_player);
 		return 1;
 	}
 	case NET_PACKET_RESYNC_NOTICE:
-		g_flightNetResyncPlayerDplayId = packet[1];
+		g_flight_net_resync_player_dplay_id = packet[1];
 		return 0;
 	case NET_PACKET_SERVER_CHECKSUM:
-		FlightSync_HandleServerChecksumPacket((uint8_t *)packet);
-		FlightNet_SendClockProbeToHost();
+		flight_sync_handle_server_checksum_packet((uint8_t *)packet);
+		flight_net_send_clock_probe_to_host();
 		return 0;
 	case NET_PACKET_ACK:
-		if (g_flightNetPendingAckCount != 0) {
-			--g_flightNetPendingAckCount;
-			if (g_flightNetPendingAckCount == 0) {
-				g_flightNetWorldMessageTurnTimestamp = 0;
+		if (g_flight_net_pending_ack_count != 0) {
+			--g_flight_net_pending_ack_count;
+			if (g_flight_net_pending_ack_count == 0) {
+				g_flight_net_world_message_turn_timestamp = 0;
 				return 1;
 			}
 		}
 		return 0;
 	case NET_PACKET_CLOCK_LEAD:
-		g_flightNetClockLeadTicks = packet[1];
+		g_flight_net_clock_lead_ticks = packet[1];
 		return 0;
 	case NET_PACKET_STILL_LOADING:
-		if (NetSession_GetHostDplayId() == senderDpid) {
-			g_flightNetHostTimeoutElapsedTicks = 0;
+		if (net_session_get_host_dplay_id() == sender_dpid) {
+			g_flight_net_host_timeout_elapsed_ticks = 0;
 		} else {
-			int playerIndex =
-				NetSession_FindPlayerSlotByDpid(senderDpid);
+			int player_index = net_session_find_player_slot_by_dpid(
+				sender_dpid);
 
-			if (g_players[playerIndex].participationState != 0 &&
-			    g_flightNetPeerSilenceTicks[playerIndex] > 0) {
-				g_flightNetPeerSilenceTicks[playerIndex] = 0;
+			if (g_players[player_index].participation_state != 0 &&
+			    g_flight_net_peer_silence_ticks[player_index] > 0) {
+				g_flight_net_peer_silence_ticks[player_index] =
+					0;
 			}
 		}
 		return 0;
 	case NET_PACKET_CLOCK_PROBE:
-		XvtFlightNetwork_AnswerClockProbe(senderDpid, packet);
+		xvt_flight_network_answer_clock_probe(sender_dpid, packet);
 		return 0;
 	case NET_PACKET_CLOCK_PROBE_REPLY:
-		XvtFlightNetwork_ApplyClockProbeReply(packet);
+		xvt_flight_network_apply_clock_probe_reply(packet);
 		return 0;
 	default:
 		return 0;
 	}
 }
 
-void XvtFlightNetwork_ProcessPackets(void)
+void xvt_flight_network_process_packets(void)
 {
-	if (!XvtFlightNetwork_Cookie() ||
-	    !g_players[g_localPlayer].participationState) {
+	if (!xvt_flight_network_cookie() ||
+	    !g_players[g_local_player].participation_state) {
 		return;
 	}
-	int currentTimestamp =
-		g_inputTimestamp + (int)Time_ConsumeElapsedTicks();
-	while (XvtFlightNetwork_TakePacketBudget()) {
+	int current_timestamp =
+		g_input_timestamp + (int)time_consume_elapsed_ticks();
+	while (xvt_flight_network_take_packet_budget()) {
 		int sender, size;
-		int *packet = NetSession_ReceiveGamePacket(&sender, &size);
-		currentTimestamp += (int)Time_ConsumeElapsedTicks();
+		int *packet = net_session_receive_game_packet(&sender, &size);
+		current_timestamp += (int)time_consume_elapsed_ticks();
 		if (!packet) {
-			if (!NetSession_IsLocalHost() ||
-			    !XvtFlightNetwork_TakeWorldSendTurn(
-				    g_inputTimestamp)) {
+			if (!net_session_is_local_host() ||
+			    !xvt_flight_network_take_world_send_turn(
+				    g_input_timestamp)) {
 				break;
 			}
-			XvtFlightNetwork_SendWorld();
-			currentTimestamp += (int)Time_ConsumeElapsedTicks();
+			xvt_flight_network_send_world();
+			current_timestamp += (int)time_consume_elapsed_ticks();
 			continue;
 		}
-		if (!XvtFlightNetwork_DecodeControl((const uint8_t *)packet,
-						    &size) ||
-		    (unsigned)NetSession_FindPlayerSlotByDpid(sender) >=
+		if (!xvt_flight_network_decode_control((const uint8_t *)packet,
+						       &size) ||
+		    (unsigned)net_session_find_player_slot_by_dpid(sender) >=
 			    XVT_FLIGHT_PLAYERS) {
 			continue;
 		}
-		if (XvtFlightNetwork_Receive(sender, (const uint8_t *)packet,
-					     size) ||
-		    XvtResync_ReceivePacket(sender, (const uint8_t *)packet,
-					    size)) {
+		if (xvt_flight_network_receive(sender, (const uint8_t *)packet,
+					       size) ||
+		    xvt_resync_receive_packet(sender, (const uint8_t *)packet,
+					      size)) {
 			continue;
 		}
-		if (XvtFlightNetwork_Control(sender, packet)) {
+		if (xvt_flight_network_control(sender, packet)) {
 			return;
 		}
 	}
-	g_inputTimestamp = currentTimestamp + (int)Time_ConsumeElapsedTicks();
+	g_input_timestamp =
+		current_timestamp + (int)time_consume_elapsed_ticks();
 }

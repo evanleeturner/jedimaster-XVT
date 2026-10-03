@@ -12,103 +12,105 @@
 extern "C" {
 #endif
 
-/* One palette color in DirectDraw's entry layout; g_frontState.displayPalette
+/* One palette color in DirectDraw's entry layout; g_front_state.display_palette
  * holds 256 of them. */
-struct FrontendPaletteEntry {
+struct frontend_palette_entry {
 	uint8_t red;   /* Red, 0 to 255. */
 	uint8_t green; /* Green, 0 to 255. */
 	uint8_t blue;  /* Blue, 0 to 255. */
 	/* DirectDraw's entry flags; 0 in every entry
-	 * FrontendDisplay_LoadPalette builds. No code reads the field itself;
+	 * frontend_display_load_palette builds. No code reads the field itself;
 	 * DirectDraw gets it with the entries. */
 	uint8_t flags;
 };
 
-extern int g_pixelFormatCode;
-extern int g_flightRenderToFrontend;
-extern int g_optNoFullscreen;
-extern int g_noPageFlip;
-extern int g_optSkipIntro;
-extern int g_optIsHost;
-extern int g_optIsClient;
-extern char *g_cmdLine;
-extern int g_shutdownComplete;
-extern void *g_cursorSaveBuffer;
-extern int g_gameMainSkipIntroRelaunchGate;
-extern const unsigned int g_colorDistLUT[256];
+extern int g_pixel_format_code;
+extern int g_flight_render_to_frontend;
+extern int g_opt_no_fullscreen;
+extern int g_no_page_flip;
+extern int g_opt_skip_intro;
+extern int g_opt_is_host;
+extern int g_opt_is_client;
+extern char *g_cmd_line;
+extern int g_shutdown_complete;
+extern void *g_cursor_save_buffer;
+extern int g_game_main_skip_intro_relaunch_gate;
+extern const unsigned int g_color_dist_lut[256];
 
-int GameMain(void *hInstance, void *hPrevInstance, char *lpCmdLine,
-	     int nShowCmd);
-HRESULT FrontendDisplay_RestoreLostSurfaces(void);
-void FrontendDisplay_Shutdown(int bDestroyWindow);
-int32_t AERON_DXAPI FrontendDisplay_MainWndProc(void *hWnd, unsigned int Msg,
-						uint32_t wParam,
-						int32_t lParam);
-int32_t AERON_DXAPI FrontendDisplay_WndProc(void *hWnd, unsigned int Msg,
-					    uint32_t wParam, int32_t lParam);
-int FrontendDisplay_ReportDirectDrawInitFailure(void *hWnd, int stage);
-int FrontendDisplay_ShowGameMessageBox(const char *text);
-uint32_t FrontendDisplay_RunMainLoop(void *hInstance, void *hPrevInstance,
-				     char *lpCmdLine, int nShowCmd);
-int FrontendDisplay_InitMainWindow(void *hInstance, int nShowCmd);
-uint32_t FrontendDisplay_Init(void *hInstance, void *hPrevInstance,
-			      char *lpCmdLine, int nShowCmd,
-			      FrontendScreenUpdateFn screenUpdateFn,
-			      FrontendScreenExitFn screenExitFn,
-			      int (*modeInitFn)(void), int fps, int bpp);
-uint8_t *FrontendDisplay_LockBackBuffer(void);
-void FrontendDisplay_UnlockBackBuffer(void);
-void FrontendDisplay_PresentFrame(void);
-void FrontendDisplay_DisableClearAfterPresent(void);
-void FrontendDisplay_SetSurfaceClearColor(uint32_t color);
-void FrontendDisplay_ClearBackBuffer(void);
-void FrontendDisplay_GetScreenClipRect(struct RECT *outRect);
-void FrontendDisplay_SetScreenClipRect640x480(const struct RECT *src);
-void FrontendDisplay_DisableEscapeClose(void);
-int FrontendDisplay_GetFrameCounter(void);
-int FrontendDisplay_SetFrameRate(int fps);
-int FrontendDisplay_LockOffscreenSurface(void);
-int FrontendDisplay_UnlockOffscreenSurface(int saveToBackup);
-int FrontendDisplay_EnableOffscreenRestore(void);
-int FrontendDisplay_DisableOffscreenRestore(void);
-void FrontendDisplay_ClearOffscreenSurface(void);
-int FrontendDisplay_GetPixelFormat555(void);
-int FrontendDisplay_GetFrontendOrFlightDrawPitch(void);
-int FrontendDisplay_GetBytesPerPixel(void);
-uint32_t FrontendDisplay_InitPreservingNetworkSession(
-	void *hInstance, void *hPrevInstance, char *lpCmdLine, int nShowCmd,
-	FrontendScreenUpdateFn screenUpdateFn,
-	FrontendScreenExitFn screenExitFn, int (*modeInitFn)(void), int fps,
-	int bpp);
-void FrontendDisplay_ResetGlobalStatePreservingNetworkSession(void);
-int FrontendDisplay_CaptureScreenshot(void);
-uint8_t *FrontendDisplay_GetDrawSurfaceForFlight(void);
-int FrontendDisplay_RunFrame(void);
-void *FrontendDisplay_GetMainWindowHandle(void);
-IDirectDraw *FrontendDisplay_GetDirectDraw(void);
-int FrontendDisplay_ReleaseSurfacesForFlight(void);
-int FrontendDisplay_ReinitSurfaces(void);
-void FrontendDisplay_SetWndProcMode(uint8_t mode);
-int FrontendDisplay_GetWndProcMode(void);
-int Win32_CheckSingleInstance(void);
-void FrontendDisplay_FlipDirectDrawToGDISurface(void);
-const DxGuid *FrontendDisplay_LoadDriverGuid(void);
-int FrontendDisplay_DrawGdiTextOnDesktop(const struct RECT *unused,
-					 const char *text,
-					 const char *overlayText);
-int FrontendDisplay_ClearDesktopGdi(const struct RECT *unused);
-int FrontendDisplay_IsSecondaryDirectDrawActive(void);
-void FrontendDisplay_SetPalette(void);
-int FrontendDisplay_PackRGB(uint8_t r, uint8_t g, uint8_t b);
-int FrontendDisplay_SaveBackBuffer(void);
-int FrontendDisplay_RestoreBackBuffer(void);
-IDirectDrawPalette *FrontendDisplay_LoadPalette(IDirectDraw *pDD,
-						const char *lpName);
+int game_main(void *h_instance, void *h_prev_instance, char *lp_cmd_line,
+	      int n_show_cmd);
+HRESULT frontend_display_restore_lost_surfaces(void);
+void frontend_display_shutdown(int b_destroy_window);
+int32_t AERON_DXAPI frontend_display_main_wnd_proc(void *h_wnd,
+						   unsigned int msg,
+						   uint32_t w_param,
+						   int32_t l_param);
+int32_t AERON_DXAPI frontend_display_wnd_proc(void *h_wnd, unsigned int msg,
+					      uint32_t w_param,
+					      int32_t l_param);
+int frontend_display_report_direct_draw_init_failure(void *h_wnd, int stage);
+int frontend_display_show_game_message_box(const char *text);
+uint32_t frontend_display_run_main_loop(void *h_instance, void *h_prev_instance,
+					char *lp_cmd_line, int n_show_cmd);
+int frontend_display_init_main_window(void *h_instance, int n_show_cmd);
+uint32_t frontend_display_init(void *h_instance, void *h_prev_instance,
+			       char *lp_cmd_line, int n_show_cmd,
+			       frontend_screen_update_fn screen_update_fn,
+			       frontend_screen_exit_fn screen_exit_fn,
+			       int (*mode_init_fn)(void), int fps, int bpp);
+uint8_t *frontend_display_lock_back_buffer(void);
+void frontend_display_unlock_back_buffer(void);
+void frontend_display_present_frame(void);
+void frontend_display_disable_clear_after_present(void);
+void frontend_display_set_surface_clear_color(uint32_t color);
+void frontend_display_clear_back_buffer(void);
+void frontend_display_get_screen_clip_rect(struct RECT *out_rect);
+void frontend_display_set_screen_clip_rect640x480(const struct RECT *src);
+void frontend_display_disable_escape_close(void);
+int frontend_display_get_frame_counter(void);
+int frontend_display_set_frame_rate(int fps);
+int frontend_display_lock_offscreen_surface(void);
+int frontend_display_unlock_offscreen_surface(int save_to_backup);
+int frontend_display_enable_offscreen_restore(void);
+int frontend_display_disable_offscreen_restore(void);
+void frontend_display_clear_offscreen_surface(void);
+int frontend_display_get_pixel_format555(void);
+int frontend_display_get_frontend_or_flight_draw_pitch(void);
+int frontend_display_get_bytes_per_pixel(void);
+uint32_t frontend_display_init_preserving_network_session(
+	void *h_instance, void *h_prev_instance, char *lp_cmd_line,
+	int n_show_cmd, frontend_screen_update_fn screen_update_fn,
+	frontend_screen_exit_fn screen_exit_fn, int (*mode_init_fn)(void),
+	int fps, int bpp);
+void frontend_display_reset_global_state_preserving_network_session(void);
+int frontend_display_capture_screenshot(void);
+uint8_t *frontend_display_get_draw_surface_for_flight(void);
+int frontend_display_run_frame(void);
+void *frontend_display_get_main_window_handle(void);
+IDirectDraw *frontend_display_get_direct_draw(void);
+int frontend_display_release_surfaces_for_flight(void);
+int frontend_display_reinit_surfaces(void);
+void frontend_display_set_wnd_proc_mode(uint8_t mode);
+int frontend_display_get_wnd_proc_mode(void);
+int win32_check_single_instance(void);
+void frontend_display_flip_direct_draw_to_gdi_surface(void);
+const DxGuid *frontend_display_load_driver_guid(void);
+int frontend_display_draw_gdi_text_on_desktop(const struct RECT *unused,
+					      const char *text,
+					      const char *overlay_text);
+int frontend_display_clear_desktop_gdi(const struct RECT *unused);
+int frontend_display_is_secondary_direct_draw_active(void);
+void frontend_display_set_palette(void);
+int frontend_display_pack_rgb(uint8_t r, uint8_t g, uint8_t b);
+int frontend_display_save_back_buffer(void);
+int frontend_display_restore_back_buffer(void);
+IDirectDrawPalette *frontend_display_load_palette(IDirectDraw *p_dd,
+						  const char *lp_name);
 uint32_t
-FrontendDisplay_ConvertColorRefToSurfacePixel(IDirectDrawSurface *surface,
-					      uint32_t color);
-HRESULT FrontendDisplay_SetSurfaceColorKey(IDirectDrawSurface *surface,
-					   uint32_t color);
+frontend_display_convert_color_ref_to_surface_pixel(IDirectDrawSurface *surface,
+						    uint32_t color);
+HRESULT frontend_display_set_surface_color_key(IDirectDrawSurface *surface,
+					       uint32_t color);
 
 #ifdef __cplusplus
 }

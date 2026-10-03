@@ -19,14 +19,14 @@ extern "C" {
  * line (256 plus the lesser of 32 * speed and 32768, along move_x and move_y); the label and the range text
  * (value / 100 with two decimals) when visible. Lines are clipped at depth 1. Returns 0 when the scene
  * or composite cannot be made or any pass fails. */
-int XvtFlightMap_Render(AeronCommandBuffer *cmd,
-			const struct XvtRenderSnapshot *snapshot,
-			const struct XvtRenderView *view);
+int xvt_flight_map_render(AeronCommandBuffer *cmd,
+			  const struct xvt_render_snapshot *snapshot,
+			  const struct xvt_render_view *view);
 /* Destroys the scene, the composite, the draw list and the mesh tables. */
-void XvtFlightMap_Shutdown(void);
+void xvt_flight_map_shutdown(void);
 /* Creates the map scene and composite at width x height and the current MSAA when they differ,
  * preparing the scene's resources without flight post. Returns 0 on failure. */
-int XvtFlightMap_PrepareResources(int width, int height);
+int xvt_flight_map_prepare_resources(int width, int height);
 #ifdef __cplusplus
 }
 #endif

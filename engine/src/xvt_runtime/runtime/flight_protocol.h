@@ -58,95 +58,94 @@ enum {
 static const uint32_t XVT_WORLD_CHECKSUM_FLAG = UINT32_C(0x80000000);
 
 /* Byte-array scalars keep wire layouts endian-independent and naturally byte aligned. */
-typedef uint8_t XvtWireU16[2];
-typedef uint8_t XvtWireU32[4];
-typedef uint8_t XvtWireU64[8];
+typedef uint8_t xvt_wire_u16[2];
+typedef uint8_t xvt_wire_u32[4];
+typedef uint8_t xvt_wire_u64[8];
 
-struct XvtFlightInputWire {
-	XvtWireU32 tick;
+struct xvt_flight_input_wire {
+	xvt_wire_u32 tick;
 	uint8_t key, axes[3];
-	XvtWireU16 throttle;
+	xvt_wire_u16 throttle;
 };
 
-struct XvtFlightWorldInputWire {
+struct xvt_flight_world_input_wire {
 	uint8_t player;
-	struct XvtFlightInputWire input;
+	struct xvt_flight_input_wire input;
 };
 
-struct XvtFlightBatchHeader {
-	XvtWireU32 opcode, cookie;
-	XvtWireU16 count, reserved;
+struct xvt_flight_batch_header {
+	xvt_wire_u32 opcode, cookie;
+	xvt_wire_u16 count, reserved;
 };
 
-struct XvtFlightWorldHeader {
-	XvtWireU32 opcode, target_flags, cookie;
+struct xvt_flight_world_header {
+	xvt_wire_u32 opcode, target_flags, cookie;
 	uint8_t part_index, part_count, record_count, participant_mask;
 };
 
-struct XvtFlightAgreementWire {
-	XvtWireU32 schema, profile, cookie;
+struct xvt_flight_agreement_wire {
+	xvt_wire_u32 schema, profile, cookie;
 };
 
-struct XvtFlightOptionsWire {
-	XvtWireU32 opcode, resolution, rating, schema;
+struct xvt_flight_options_wire {
+	xvt_wire_u32 opcode, resolution, rating, schema;
 };
 
-struct XvtFlightRosterHeader {
-	XvtWireU32 opcode, new_net;
+struct xvt_flight_roster_header {
+	xvt_wire_u32 opcode, new_net;
 };
 
-struct XvtFlightRosterPlayerWire {
-	XvtWireU32 resolution, rating;
+struct xvt_flight_roster_player_wire {
+	xvt_wire_u32 resolution, rating;
 };
 
-struct XvtFlightSlotWire {
-	XvtWireU32 opcode, player;
+struct xvt_flight_slot_wire {
+	xvt_wire_u32 opcode, player;
 };
 
-struct XvtFlightEpochWire {
-	XvtWireU32 opcode, epoch;
+struct xvt_flight_epoch_wire {
+	xvt_wire_u32 opcode, epoch;
 };
 
-struct XvtFlightClockProbeWire {
-	XvtWireU32 opcode, timestamp, lead;
+struct xvt_flight_clock_probe_wire {
+	xvt_wire_u32 opcode, timestamp, lead;
 };
 
-struct XvtFlightChecksumWire {
-	XvtWireU32 opcode, epoch;
-	XvtWireU32 checksums[XVT_WORLD_CHECKSUM_REGIONS],
+struct xvt_flight_checksum_wire {
+	xvt_wire_u32 opcode, epoch;
+	xvt_wire_u32 checksums[XVT_WORLD_CHECKSUM_REGIONS],
 		lengths[XVT_WORLD_CHECKSUM_REGIONS];
 };
 
-struct XvtFlightChecksumReportWire {
-	struct XvtFlightChecksumWire checksum;
-	XvtWireU32 request_state;
+struct xvt_flight_checksum_report_wire {
+	struct xvt_flight_checksum_wire checksum;
+	xvt_wire_u32 request_state;
 };
 
-struct XvtFlightResyncRequestWire {
-	XvtWireU32 opcode, epoch, image_bytes, completed_tick;
+struct xvt_flight_resync_request_wire {
+	xvt_wire_u32 opcode, epoch, image_bytes, completed_tick;
 };
 
-struct XvtFlightResyncApplyWire {
-	XvtWireU32 opcode, epoch, image_bytes, input_tick;
+struct xvt_flight_resync_apply_wire {
+	xvt_wire_u32 opcode, epoch, image_bytes, input_tick;
 };
 
-struct XvtFlightChunkHeader {
-	XvtWireU32 opcode, epoch, index;
+struct xvt_flight_chunk_header {
+	xvt_wire_u32 opcode, epoch, index;
 };
 
-struct XvtFlightChunkSpan {
-	XvtWireU32 offset, bytes;
+struct xvt_flight_chunk_span {
+	xvt_wire_u32 offset, bytes;
 };
 
-struct XvtFlightChunkAckWire {
-	XvtWireU32 opcode, index;
+struct xvt_flight_chunk_ack_wire {
+	xvt_wire_u32 opcode, index;
 };
 
-typedef char XvtFlightInputWire_layout[(sizeof(struct XvtFlightInputWire) == 10)
-					       ? 1
-					       : -1];
-typedef char XvtFlightWorldInputWire_layout
-	[(sizeof(struct XvtFlightWorldInputWire) == 11) ? 1 : -1];
-typedef char XvtFlightWorldHeader_layout
-	[(sizeof(struct XvtFlightWorldHeader) == 16) ? 1 : -1];
+typedef char xvt_flight_input_wire_layout
+	[(sizeof(struct xvt_flight_input_wire) == 10) ? 1 : -1];
+typedef char xvt_flight_world_input_wire_layout
+	[(sizeof(struct xvt_flight_world_input_wire) == 11) ? 1 : -1];
+typedef char xvt_flight_world_header_layout
+	[(sizeof(struct xvt_flight_world_header) == 16) ? 1 : -1];
 #endif

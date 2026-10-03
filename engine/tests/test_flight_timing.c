@@ -1,7 +1,7 @@
 /* Checks flight timing (xvt_runtime/timing/flight_timing.h) against the promises in its header: what
  * each profile reports, when reference logic is due, the step clock EnterReference installs and
  * RestoreClock puts back, the animation update serials, and the state a network restore rebuilds. The
- * step globals it reads (g_elapsedTicks, g_simStepsPerSecond, g_gameTime, g_netUpdateIntervalTicks and the
+ * step globals it reads (g_elapsed_ticks, g_sim_steps_per_second, g_game_time, g_net_update_interval_ticks and the
  * crew mesh timer) are set by each case; every case starts a fresh session. The dropped-period count is not
  * readable through the header, so it is not checked. */
 #include "test_assert.h"
@@ -12,259 +12,264 @@
 
 #include <stdint.h>
 
-static void Begin(XvtFlightTimingProfile profile)
+static void begin(xvt_flight_timing_profile profile)
 {
-	g_elapsedTicks = 0;
-	g_simStepsPerSecond = 0;
-	g_gameTime = 0;
-	g_netUpdateIntervalTicks = 0;
-	g_flightGlobalCountdownTimers.specialBehaviorUpdateTimer = 0;
-	XvtFlightTiming_BeginSession(profile);
+	g_elapsed_ticks = 0;
+	g_sim_steps_per_second = 0;
+	g_game_time = 0;
+	g_net_update_interval_ticks = 0;
+	g_flight_global_countdown_timers.special_behavior_update_timer = 0;
+	xvt_flight_timing_begin_session(profile);
 }
 
-static void CheckProfiles(void)
+static void check_profiles(void)
 {
-	Begin(XVT_FLIGHT_TIMING_NATIVE);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_Profile(), XVT_FLIGHT_TIMING_NATIVE);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_IsUnlocked(), 0);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_IsNetwork125(), 0);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_StepTicks(), XVT_NATIVE_STEP_TICKS);
+	begin(XVT_FLIGHT_TIMING_NATIVE);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_session_profile(),
+			  XVT_FLIGHT_TIMING_NATIVE);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_is_unlocked(), 0);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_is_network125(), 0);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_step_ticks(),
+			  XVT_NATIVE_STEP_TICKS);
 
-	Begin(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_Profile(),
+	begin(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_session_profile(),
 			  XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_IsUnlocked(), 1);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_IsNetwork125(), 0);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_StepTicks(), XVT_OFFLINE_STEP_TICKS);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_is_unlocked(), 1);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_is_network125(), 0);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_step_ticks(),
+			  XVT_OFFLINE_STEP_TICKS);
 
-	Begin(XVT_FLIGHT_TIMING_NETWORK_125);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_Profile(),
+	begin(XVT_FLIGHT_TIMING_NETWORK_125);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_session_profile(),
 			  XVT_FLIGHT_TIMING_NETWORK_125);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_IsUnlocked(), 1);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_IsNetwork125(), 1);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_StepTicks(), XVT_NETWORK_STEP_TICKS);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_is_unlocked(), 1);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_is_network125(), 1);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_step_ticks(),
+			  XVT_NETWORK_STEP_TICKS);
 
 	/* EndSession reads as the native profile: locked, and reference logic always due. */
-	XvtFlightTiming_EndSession();
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_Profile(), XVT_FLIGHT_TIMING_NATIVE);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_IsUnlocked(), 0);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_IsNetwork125(), 0);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceDue(), 1);
+	xvt_flight_timing_end_session();
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_session_profile(),
+			  XVT_FLIGHT_TIMING_NATIVE);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_is_unlocked(), 0);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_is_network125(), 0);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_reference_due(), 1);
 }
 
-static void CheckSimulationMaximum(void)
+static void check_simulation_maximum(void)
 {
-	Begin(XVT_FLIGHT_TIMING_NETWORK_125);
-	g_netUpdateIntervalTicks = 40;
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_MaximumStepTicks(),
+	begin(XVT_FLIGHT_TIMING_NETWORK_125);
+	g_net_update_interval_ticks = 40;
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_maximum_step_ticks(),
 			  XVT_NETWORK_STEP_TICKS);
-	Begin(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	g_netUpdateIntervalTicks = 40;
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_MaximumStepTicks(), 40);
-	Begin(XVT_FLIGHT_TIMING_NATIVE);
-	g_netUpdateIntervalTicks = 17;
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_MaximumStepTicks(), 17);
+	begin(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	g_net_update_interval_ticks = 40;
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_maximum_step_ticks(), 40);
+	begin(XVT_FLIGHT_TIMING_NATIVE);
+	g_net_update_interval_ticks = 17;
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_maximum_step_ticks(), 17);
 }
 
-static void CheckLockedAlwaysDue(void)
+static void check_locked_always_due(void)
 {
-	Begin(XVT_FLIGHT_TIMING_NATIVE);
-	g_elapsedTicks = 5;
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceDue(), 1);
-	XvtFlightTiming_BeginAdvance(1);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceDue(), 1);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceElapsed(), 5);
-	XvtFlightTiming_EndAdvance();
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceDue(), 1);
-	XvtFlightTiming_BeginAdvance(0);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceDue(), 1);
-	g_elapsedTicks = 9;
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceElapsed(), 9);
+	begin(XVT_FLIGHT_TIMING_NATIVE);
+	g_elapsed_ticks = 5;
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_reference_due(), 1);
+	xvt_flight_timing_begin_advance(1);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_reference_due(), 1);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_reference_elapsed(), 5);
+	xvt_flight_timing_end_advance();
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_reference_due(), 1);
+	xvt_flight_timing_begin_advance(0);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_reference_due(), 1);
+	g_elapsed_ticks = 9;
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_reference_elapsed(), 9);
 }
 
-static void CheckUnlockedReferenceSteps(void)
+static void check_unlocked_reference_steps(void)
 {
-	Begin(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	g_elapsedTicks = 3;
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceDue(), 0);
+	begin(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	g_elapsed_ticks = 3;
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_reference_due(), 0);
 
 	/* A step that ends just short of a reference boundary is not a reference step. */
-	XvtFlightTiming_BeginAdvance(XVT_REFERENCE_TICKS - 1);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceDue(), 0);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceElapsed(), 0);
-	XvtFlightTiming_EndAdvance();
+	xvt_flight_timing_begin_advance(XVT_REFERENCE_TICKS - 1);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_reference_due(), 0);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_reference_elapsed(), 0);
+	xvt_flight_timing_end_advance();
 
 	/* The next tick reaches the boundary: a reference step, which lasts until EndAdvance. */
-	XvtFlightTiming_BeginAdvance(1);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceDue(), 1);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceElapsed(),
+	xvt_flight_timing_begin_advance(1);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_reference_due(), 1);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_reference_elapsed(),
 			  XVT_REFERENCE_TICKS);
-	XvtFlightTiming_EndAdvance();
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceDue(), 0);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceElapsed(), 0);
+	xvt_flight_timing_end_advance();
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_reference_due(), 0);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_reference_elapsed(), 0);
 
 	/* Steps of 3 ticks: over 40 steps, 120 ticks cross 15 boundaries, one reference step each, since no
 	 * step is long enough to cross two. */
-	Begin(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	begin(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	int due = 0;
 	for (int i = 0; i < 40; ++i) {
-		XvtFlightTiming_BeginAdvance(3);
-		due += XvtFlightTiming_ReferenceDue();
-		XvtFlightTiming_EndAdvance();
+		xvt_flight_timing_begin_advance(3);
+		due += xvt_flight_timing_reference_due();
+		xvt_flight_timing_end_advance();
 	}
 	XVT_ASSERT_INT_EQ(due, 120 / XVT_REFERENCE_TICKS);
 
 	/* A step of several periods is one reference step. */
-	Begin(XVT_FLIGHT_TIMING_NETWORK_125);
-	XvtFlightTiming_BeginAdvance(5 * XVT_REFERENCE_TICKS);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceDue(), 1);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceElapsed(),
+	begin(XVT_FLIGHT_TIMING_NETWORK_125);
+	xvt_flight_timing_begin_advance(5 * XVT_REFERENCE_TICKS);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_reference_due(), 1);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_reference_elapsed(),
 			  XVT_REFERENCE_TICKS);
 }
 
-static void CheckZeroStepOpensNone(void)
+static void check_zero_step_opens_none(void)
 {
-	Begin(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	XvtFlightTiming_BeginAdvance(XVT_REFERENCE_TICKS);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceDue(), 1);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_AdvanceSerial(), 1);
+	begin(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	xvt_flight_timing_begin_advance(XVT_REFERENCE_TICKS);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_reference_due(), 1);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_advance_serial(), 1);
 	/* A zero step opens nothing and is not counted. */
-	XvtFlightTiming_BeginAdvance(0);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceDue(), 0);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_AdvanceSerial(), 1);
+	xvt_flight_timing_begin_advance(0);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_reference_due(), 0);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_advance_serial(), 1);
 }
 
-static void CheckAdvanceSerial(void)
+static void check_advance_serial(void)
 {
-	Begin(XVT_FLIGHT_TIMING_NATIVE);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_AdvanceSerial(), 0);
+	begin(XVT_FLIGHT_TIMING_NATIVE);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_advance_serial(), 0);
 	for (int i = 0; i < 5; ++i) {
-		XvtFlightTiming_BeginAdvance((uint16_t)(i + 1));
-		XvtFlightTiming_EndAdvance();
+		xvt_flight_timing_begin_advance((uint16_t)(i + 1));
+		xvt_flight_timing_end_advance();
 	}
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_AdvanceSerial(), 5);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_advance_serial(), 5);
 
 	/* A new session starts the count again. */
-	Begin(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_AdvanceSerial(), 0);
-	XvtFlightTiming_BeginAdvance(2);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_AdvanceSerial(), 1);
-	XvtFlightTiming_EndSession();
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_AdvanceSerial(), 0);
+	begin(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_advance_serial(), 0);
+	xvt_flight_timing_begin_advance(2);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_advance_serial(), 1);
+	xvt_flight_timing_end_session();
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_advance_serial(), 0);
 }
 
-static void CheckEnterReference(void)
+static void check_enter_reference(void)
 {
 	/* Unlocked: the step globals describe one reference period until RestoreClock. */
-	Begin(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	g_elapsedTicks = 3;
-	g_simStepsPerSecond = 77;
-	struct XvtFlightClock saved = XvtFlightTiming_EnterReference();
+	begin(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	g_elapsed_ticks = 3;
+	g_sim_steps_per_second = 77;
+	struct xvt_flight_clock saved = xvt_flight_timing_enter_reference();
 	XVT_ASSERT_INT_EQ(saved.elapsed, 3);
 	XVT_ASSERT_INT_EQ(saved.steps_per_second, 77);
-	XVT_ASSERT_INT_EQ(g_elapsedTicks, XVT_REFERENCE_TICKS);
-	XVT_ASSERT_INT_EQ(g_simStepsPerSecond,
+	XVT_ASSERT_INT_EQ(g_elapsed_ticks, XVT_REFERENCE_TICKS);
+	XVT_ASSERT_INT_EQ(g_sim_steps_per_second,
 			  SIMULATION_TICKS_PER_SECOND / XVT_REFERENCE_TICKS);
-	XvtFlightTiming_RestoreClock(saved);
-	XVT_ASSERT_INT_EQ(g_elapsedTicks, 3);
-	XVT_ASSERT_INT_EQ(g_simStepsPerSecond, 77);
+	xvt_flight_timing_restore_clock(saved);
+	XVT_ASSERT_INT_EQ(g_elapsed_ticks, 3);
+	XVT_ASSERT_INT_EQ(g_sim_steps_per_second, 77);
 
 	/* It does not check ReferenceDue: outside a reference step it still installs the period. */
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceDue(), 0);
-	saved = XvtFlightTiming_EnterReference();
-	XVT_ASSERT_INT_EQ(g_elapsedTicks, XVT_REFERENCE_TICKS);
-	XvtFlightTiming_RestoreClock(saved);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_reference_due(), 0);
+	saved = xvt_flight_timing_enter_reference();
+	XVT_ASSERT_INT_EQ(g_elapsed_ticks, XVT_REFERENCE_TICKS);
+	xvt_flight_timing_restore_clock(saved);
 
 	/* Locked: nothing changes. */
-	Begin(XVT_FLIGHT_TIMING_NATIVE);
-	g_elapsedTicks = 11;
-	g_simStepsPerSecond = 21;
-	saved = XvtFlightTiming_EnterReference();
+	begin(XVT_FLIGHT_TIMING_NATIVE);
+	g_elapsed_ticks = 11;
+	g_sim_steps_per_second = 21;
+	saved = xvt_flight_timing_enter_reference();
 	XVT_ASSERT_INT_EQ(saved.elapsed, 11);
 	XVT_ASSERT_INT_EQ(saved.steps_per_second, 21);
-	XVT_ASSERT_INT_EQ(g_elapsedTicks, 11);
-	XVT_ASSERT_INT_EQ(g_simStepsPerSecond, 21);
+	XVT_ASSERT_INT_EQ(g_elapsed_ticks, 11);
+	XVT_ASSERT_INT_EQ(g_sim_steps_per_second, 21);
 }
 
-static void CheckAnimationEvent(void)
+static void check_animation_event(void)
 {
-	Begin(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_AnimationSerial(), 0);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_AnimationTime(), 0);
-	g_gameTime = 100;
-	g_elapsedTicks = 5;
-	XvtFlightTiming_AnimationEvent();
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_AnimationTime(), 105);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_AnimationSerial(), 1);
-	g_gameTime = 500;
-	XvtFlightTiming_AnimationEvent();
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_AnimationTime(), 505);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_AnimationSerial(), 2);
+	begin(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_animation_serial(), 0);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_animation_time(), 0);
+	g_game_time = 100;
+	g_elapsed_ticks = 5;
+	xvt_flight_timing_animation_event();
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_animation_time(), 105);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_animation_serial(), 1);
+	g_game_time = 500;
+	xvt_flight_timing_animation_event();
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_animation_time(), 505);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_animation_serial(), 2);
 
 	/* In NETWORK_125 the serial follows the time. */
-	Begin(XVT_FLIGHT_TIMING_NETWORK_125);
-	g_gameTime = 3 * XVT_COMPONENT_EVENT_TICKS + 6;
-	g_elapsedTicks = XVT_NETWORK_STEP_TICKS;
-	XvtFlightTiming_AnimationEvent();
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_AnimationTime(),
+	begin(XVT_FLIGHT_TIMING_NETWORK_125);
+	g_game_time = 3 * XVT_COMPONENT_EVENT_TICKS + 6;
+	g_elapsed_ticks = XVT_NETWORK_STEP_TICKS;
+	xvt_flight_timing_animation_event();
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_animation_time(),
 			  3 * XVT_COMPONENT_EVENT_TICKS + 6 +
 				  XVT_NETWORK_STEP_TICKS);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_AnimationSerial(), 3 + 1);
-	XvtFlightTiming_AnimationEvent();
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_AnimationSerial(), 3 + 1);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_animation_serial(), 3 + 1);
+	xvt_flight_timing_animation_event();
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_animation_serial(), 3 + 1);
 }
 
 /* Restores at tick, then reports whether a step of `step` ticks is a reference step. */
-static int DueAfterRestore(int tick, uint16_t step)
+static int due_after_restore(int tick, uint16_t step)
 {
-	Begin(XVT_FLIGHT_TIMING_NETWORK_125);
-	XvtFlightTiming_RestoreNetworkTick(tick);
-	XvtFlightTiming_BeginAdvance(step);
-	return XvtFlightTiming_ReferenceDue();
+	begin(XVT_FLIGHT_TIMING_NETWORK_125);
+	xvt_flight_timing_restore_network_tick(tick);
+	xvt_flight_timing_begin_advance(step);
+	return xvt_flight_timing_reference_due();
 }
 
-static void CheckRestoreNetworkTick(void)
+static void check_restore_network_tick(void)
 {
-	Begin(XVT_FLIGHT_TIMING_NETWORK_125);
-	XvtFlightTiming_RestoreNetworkTick(1000);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_AdvanceSerial(),
+	begin(XVT_FLIGHT_TIMING_NETWORK_125);
+	xvt_flight_timing_restore_network_tick(1000);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_advance_serial(),
 			  1000 / XVT_NETWORK_STEP_TICKS);
 
 	/* The reference phase becomes tick % XVT_REFERENCE_TICKS: from tick 1002 the boundary is 6 ticks on. */
 	const int tick = 1000 + XVT_NETWORK_STEP_TICKS;
 	const int to_boundary =
 		XVT_REFERENCE_TICKS - tick % XVT_REFERENCE_TICKS;
-	XVT_ASSERT_INT_EQ(DueAfterRestore(tick, (uint16_t)(to_boundary - 1)),
+	XVT_ASSERT_INT_EQ(due_after_restore(tick, (uint16_t)(to_boundary - 1)),
 			  0);
-	XVT_ASSERT_INT_EQ(DueAfterRestore(tick, (uint16_t)to_boundary), 1);
+	XVT_ASSERT_INT_EQ(due_after_restore(tick, (uint16_t)to_boundary), 1);
 
 	/* It closes an open step. */
-	Begin(XVT_FLIGHT_TIMING_NETWORK_125);
-	XvtFlightTiming_BeginAdvance(XVT_REFERENCE_TICKS);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceDue(), 1);
-	XvtFlightTiming_RestoreNetworkTick(2000);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceDue(), 0);
+	begin(XVT_FLIGHT_TIMING_NETWORK_125);
+	xvt_flight_timing_begin_advance(XVT_REFERENCE_TICKS);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_reference_due(), 1);
+	xvt_flight_timing_restore_network_tick(2000);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_reference_due(), 0);
 
 	/* Refused: a negative tick, a tick that is not a multiple of the network step, any other profile. */
-	Begin(XVT_FLIGHT_TIMING_NETWORK_125);
-	XvtFlightTiming_BeginAdvance(2);
-	XvtFlightTiming_RestoreNetworkTick(-XVT_NETWORK_STEP_TICKS);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_AdvanceSerial(), 1);
-	XvtFlightTiming_RestoreNetworkTick(1001);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_AdvanceSerial(), 1);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceDue(), 0);
-	XvtFlightTiming_BeginAdvance(XVT_REFERENCE_TICKS);
-	XvtFlightTiming_RestoreNetworkTick(1001);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceDue(), 1);
-	Begin(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	XvtFlightTiming_RestoreNetworkTick(1000);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_AdvanceSerial(), 0);
-	Begin(XVT_FLIGHT_TIMING_NATIVE);
-	XvtFlightTiming_RestoreNetworkTick(1000);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_AdvanceSerial(), 0);
+	begin(XVT_FLIGHT_TIMING_NETWORK_125);
+	xvt_flight_timing_begin_advance(2);
+	xvt_flight_timing_restore_network_tick(-XVT_NETWORK_STEP_TICKS);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_advance_serial(), 1);
+	xvt_flight_timing_restore_network_tick(1001);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_advance_serial(), 1);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_reference_due(), 0);
+	xvt_flight_timing_begin_advance(XVT_REFERENCE_TICKS);
+	xvt_flight_timing_restore_network_tick(1001);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_reference_due(), 1);
+	begin(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	xvt_flight_timing_restore_network_tick(1000);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_advance_serial(), 0);
+	begin(XVT_FLIGHT_TIMING_NATIVE);
+	xvt_flight_timing_restore_network_tick(1000);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_advance_serial(), 0);
 }
 
-static void CheckRestoredAnimation(void)
+static void check_restored_animation(void)
 {
 	/* The rebuilt animation update uses AnimationEvent's network formula, and is all zero when its time is
 	 * not positive. The pairs cover early ticks, where it is not, and later ones, where it is. */
@@ -273,61 +278,62 @@ static void CheckRestoredAnimation(void)
 	for (unsigned i = 0; i < sizeof ticks / sizeof ticks[0]; ++i) {
 		for (unsigned j = 0; j < sizeof timers / sizeof timers[0];
 		     ++j) {
-			Begin(XVT_FLIGHT_TIMING_NETWORK_125);
-			g_flightGlobalCountdownTimers
-				.specialBehaviorUpdateTimer = timers[j];
-			XvtFlightTiming_RestoreNetworkTick(ticks[i]);
-			int time = XvtFlightTiming_AnimationTime();
+			begin(XVT_FLIGHT_TIMING_NETWORK_125);
+			g_flight_global_countdown_timers
+				.special_behavior_update_timer = timers[j];
+			xvt_flight_timing_restore_network_tick(ticks[i]);
+			int time = xvt_flight_timing_animation_time();
 			XVT_ASSERT_TRUE(time >= 0);
 			if (time > 0) {
 				XVT_ASSERT_INT_EQ(
-					XvtFlightTiming_AnimationSerial(),
+					xvt_flight_timing_animation_serial(),
 					time / XVT_COMPONENT_EVENT_TICKS + 1);
 			} else {
 				XVT_ASSERT_INT_EQ(
-					XvtFlightTiming_AnimationSerial(), 0);
+					xvt_flight_timing_animation_serial(),
+					0);
 			}
 		}
 	}
 }
 
-static void CheckSessionClearsState(void)
+static void check_session_clears_state(void)
 {
-	Begin(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	g_gameTime = 40;
-	g_elapsedTicks = 1;
-	XvtFlightTiming_BeginAdvance(XVT_REFERENCE_TICKS - 1);
-	XvtFlightTiming_AnimationEvent();
-	XvtFlightTiming_EndAdvance();
+	begin(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	g_game_time = 40;
+	g_elapsed_ticks = 1;
+	xvt_flight_timing_begin_advance(XVT_REFERENCE_TICKS - 1);
+	xvt_flight_timing_animation_event();
+	xvt_flight_timing_end_advance();
 
 	/* A new session forgets the reference phase, the serials and the animation update. */
-	XvtFlightTiming_BeginSession(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_AdvanceSerial(), 0);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_AnimationSerial(), 0);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_AnimationTime(), 0);
-	XvtFlightTiming_BeginAdvance(1);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_ReferenceDue(), 0);
-	XvtFlightTiming_EndAdvance();
+	xvt_flight_timing_begin_session(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_advance_serial(), 0);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_animation_serial(), 0);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_animation_time(), 0);
+	xvt_flight_timing_begin_advance(1);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_reference_due(), 0);
+	xvt_flight_timing_end_advance();
 
-	XvtFlightTiming_AnimationEvent();
-	XvtFlightTiming_EndSession();
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_AnimationSerial(), 0);
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_AnimationTime(), 0);
+	xvt_flight_timing_animation_event();
+	xvt_flight_timing_end_session();
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_animation_serial(), 0);
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_animation_time(), 0);
 }
 
 int main(void)
 {
-	CheckProfiles();
-	CheckSimulationMaximum();
-	CheckLockedAlwaysDue();
-	CheckUnlockedReferenceSteps();
-	CheckZeroStepOpensNone();
-	CheckAdvanceSerial();
-	CheckEnterReference();
-	CheckAnimationEvent();
-	CheckRestoreNetworkTick();
-	CheckRestoredAnimation();
-	CheckSessionClearsState();
-	XvtFlightTiming_EndSession();
+	check_profiles();
+	check_simulation_maximum();
+	check_locked_always_due();
+	check_unlocked_reference_steps();
+	check_zero_step_opens_none();
+	check_advance_serial();
+	check_enter_reference();
+	check_animation_event();
+	check_restore_network_tick();
+	check_restored_animation();
+	check_session_clears_state();
+	xvt_flight_timing_end_session();
 	return 0;
 }

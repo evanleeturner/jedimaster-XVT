@@ -14,64 +14,65 @@
 
 #include <string.h>
 
-static int Placeholder(int frame) { return frame; }
+static int placeholder(int frame) { return frame; }
 
-static void Fresh(void)
+static void fresh(void)
 {
-	XvtLaunchTask_Shutdown();
-	XvtNetworkSession_Shutdown();
-	memset(&g_frontState, 0, sizeof g_frontState);
-	g_frontState.screenStates[0].updateFn = Placeholder;
-	g_frontState.frameCounter = 4;
-	g_frontState.screenCallbacksDirty = 1;
+	xvt_launch_task_shutdown();
+	xvt_network_session_shutdown();
+	memset(&g_front_state, 0, sizeof g_front_state);
+	g_front_state.screen_states[0].update_fn = placeholder;
+	g_front_state.frame_counter = 4;
+	g_front_state.screen_callbacks_dirty = 1;
 }
 
-static void CheckIdle(void)
+static void check_idle(void)
 {
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtLaunchTask_IsActive(), 0);
-	XVT_ASSERT_INT_EQ(XvtLaunchTask_HasPendingLaunch(), 0);
-	XVT_ASSERT_TRUE(XvtLaunchTask_BeginPendingLaunch() == NULL);
-	XVT_ASSERT_INT_EQ(XvtLaunchTask_IsActive(), 0);
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_launch_task_is_active(), 0);
+	XVT_ASSERT_INT_EQ(xvt_launch_task_has_pending_launch(), 0);
+	XVT_ASSERT_TRUE(xvt_launch_task_begin_pending_launch() == NULL);
+	XVT_ASSERT_INT_EQ(xvt_launch_task_is_active(), 0);
 }
 
-static void CheckCompleteIgnoredWhenIdle(void)
+static void check_complete_ignored_when_idle(void)
 {
 	for (int succeeded = 0; succeeded < 2; ++succeeded) {
-		Fresh();
-		g_frontState.cursorVisible = 0;
-		XvtLaunchTask_Complete(succeeded);
+		fresh();
+		g_front_state.cursor_visible = 0;
+		xvt_launch_task_complete(succeeded);
 		/* No screen switch, no frame reset, no cursor, no session shutdown. */
-		XVT_ASSERT_TRUE(g_frontState.screenStates[0].updateFn ==
-				Placeholder);
-		XVT_ASSERT_INT_EQ(g_frontState.frameCounter, 4);
-		XVT_ASSERT_INT_EQ(g_frontState.screenCallbacksDirty, 1);
-		XVT_ASSERT_INT_EQ(g_frontState.cursorVisible, 0);
-		XVT_ASSERT_INT_EQ(XvtNetworkSession_GetStatus().state,
+		XVT_ASSERT_TRUE(g_front_state.screen_states[0].update_fn ==
+				placeholder);
+		XVT_ASSERT_INT_EQ(g_front_state.frame_counter, 4);
+		XVT_ASSERT_INT_EQ(g_front_state.screen_callbacks_dirty, 1);
+		XVT_ASSERT_INT_EQ(g_front_state.cursor_visible, 0);
+		XVT_ASSERT_INT_EQ(xvt_network_session_get_status().state,
 				  XVT_NETWORK_SESSION_IDLE);
-		XVT_ASSERT_INT_EQ(XvtLaunchTask_IsActive(), 0);
+		XVT_ASSERT_INT_EQ(xvt_launch_task_is_active(), 0);
 	}
 }
 
-static void CheckTickIgnoredWhenIdle(void)
+static void check_tick_ignored_when_idle(void)
 {
-	Fresh();
+	fresh();
 	/* Escape cancels only a fade or a pending launch; idle, it stays in the keyboard buffer. */
-	g_frontState.charRingBuffer[0] = 27;
-	g_frontState.charWriteIdx = 1;
-	XvtLaunchTask_Update();
-	XVT_ASSERT_INT_EQ(g_frontState.charReadIdx, 0);
-	XVT_ASSERT_INT_EQ(g_frontState.charWriteIdx, 1);
-	XVT_ASSERT_TRUE(g_frontState.screenStates[0].updateFn == Placeholder);
-	XVT_ASSERT_INT_EQ(XvtLaunchTask_IsActive(), 0);
-	XVT_ASSERT_INT_EQ(XvtLaunchTask_HasPendingLaunch(), 0);
+	g_front_state.char_ring_buffer[0] = 27;
+	g_front_state.char_write_idx = 1;
+	xvt_launch_task_update();
+	XVT_ASSERT_INT_EQ(g_front_state.char_read_idx, 0);
+	XVT_ASSERT_INT_EQ(g_front_state.char_write_idx, 1);
+	XVT_ASSERT_TRUE(g_front_state.screen_states[0].update_fn ==
+			placeholder);
+	XVT_ASSERT_INT_EQ(xvt_launch_task_is_active(), 0);
+	XVT_ASSERT_INT_EQ(xvt_launch_task_has_pending_launch(), 0);
 }
 
 int main(void)
 {
-	CheckIdle();
-	CheckCompleteIgnoredWhenIdle();
-	CheckTickIgnoredWhenIdle();
-	XvtLaunchTask_Shutdown();
+	check_idle();
+	check_complete_ignored_when_idle();
+	check_tick_ignored_when_idle();
+	xvt_launch_task_shutdown();
 	return 0;
 }

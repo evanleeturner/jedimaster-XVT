@@ -4,7 +4,7 @@ static int g_owner;
 static int g_action;
 
 /* Only the suspended parent can resume an action; new input cannot replace it. */
-int XvtFrontendAction_Trigger(int owner, int action, int pressed)
+int xvt_frontend_action_trigger(int owner, int action, int pressed)
 {
 	if (g_owner) {
 		return g_owner == owner && g_action == action;
@@ -17,19 +17,19 @@ int XvtFrontendAction_Trigger(int owner, int action, int pressed)
 	return 1;
 }
 
-int XvtFrontendAction_Pending(int owner)
+int xvt_frontend_action_pending(int owner)
 {
 	return g_owner == owner ? g_action : 0;
 }
 
-void XvtFrontendAction_Finish(int owner)
+void xvt_frontend_action_finish(int owner)
 {
 	if (g_owner == owner) {
-		XvtFrontendAction_Reset();
+		xvt_frontend_action_reset();
 	}
 }
 
-void XvtFrontendAction_Reset(void)
+void xvt_frontend_action_reset(void)
 {
 	g_owner = 0;
 	g_action = 0;

@@ -8,27 +8,33 @@
 extern "C" {
 #endif
 
-extern char (*g_pilotListDisplayNames)[14];
-extern struct FrontendFileList *g_pilotFileList;
-extern struct MissionListEntry *g_pilotRecordTournamentMissionList;
-extern int g_pilotRecordTournamentMissionCount;
-extern struct MissionListEntry *g_pilotRecordMeleeMissionList;
-extern int g_pilotRecordMeleeMissionCount;
-extern struct MissionListEntry *g_pilotRecordSingleplayerCombatMissionList;
-extern int g_pilotRecordSingleplayerCombatMissionCount;
-extern struct MissionListEntry *g_pilotRecordMultiplayerCombatMissionList;
-extern int g_pilotRecordMultiplayerCombatMissionCount;
-extern struct MissionListEntry *g_pilotRecordSingleplayerCampaignMissionList;
-extern int g_pilotRecordSingleplayerCampaignMissionCount;
-extern struct MissionListEntry *g_pilotRecordMultiplayerCampaignMissionList;
-extern int g_pilotRecordMultiplayerCampaignMissionCount;
-extern struct MissionListEntry *g_pilotRecordSingleplayerTrainingMissionList;
-extern int g_pilotRecordSingleplayerTrainingMissionCount;
-extern struct MissionListEntry *g_pilotRecordMultiplayerTrainingMissionList;
-extern int g_pilotRecordMultiplayerTrainingMissionCount;
+extern char (*g_pilot_list_display_names)[14];
+extern struct frontend_file_list *g_pilot_file_list;
+extern struct mission_list_entry *g_pilot_record_tournament_mission_list;
+extern int g_pilot_record_tournament_mission_count;
+extern struct mission_list_entry *g_pilot_record_melee_mission_list;
+extern int g_pilot_record_melee_mission_count;
+extern struct mission_list_entry
+	*g_pilot_record_singleplayer_combat_mission_list;
+extern int g_pilot_record_singleplayer_combat_mission_count;
+extern struct mission_list_entry
+	*g_pilot_record_multiplayer_combat_mission_list;
+extern int g_pilot_record_multiplayer_combat_mission_count;
+extern struct mission_list_entry
+	*g_pilot_record_singleplayer_campaign_mission_list;
+extern int g_pilot_record_singleplayer_campaign_mission_count;
+extern struct mission_list_entry
+	*g_pilot_record_multiplayer_campaign_mission_list;
+extern int g_pilot_record_multiplayer_campaign_mission_count;
+extern struct mission_list_entry
+	*g_pilot_record_singleplayer_training_mission_list;
+extern int g_pilot_record_singleplayer_training_mission_count;
+extern struct mission_list_entry
+	*g_pilot_record_multiplayer_training_mission_list;
+extern int g_pilot_record_multiplayer_training_mission_count;
 
-int Concourse_Exit(int frameCounter);
-int Concourse_Update(int frameCounter);
+int concourse_exit(int frame_counter);
+int concourse_update(int frame_counter);
 
 #ifdef __cplusplus
 }

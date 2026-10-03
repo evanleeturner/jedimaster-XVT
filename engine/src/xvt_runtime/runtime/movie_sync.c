@@ -12,82 +12,83 @@
 
 #include <stdio.h>
 
-void XvtMovieSync_Begin(void)
+void xvt_movie_sync_begin(void)
 {
-	unsigned int count = Net_CountReadyPlayers();
+	unsigned int count = net_count_ready_players();
 	unsigned int index;
 	for (index = 0; index < 8; ++index) {
-		g_movieMultiplayerSyncPlayers[index].playerId =
-			index < count ? g_mpRoster[index].playerId : 0;
-		g_movieMultiplayerSyncPlayers[index].isWaiting = 0;
+		g_movie_multiplayer_sync_players[index].player_id =
+			index < count ? g_mp_roster[index].player_id : 0;
+		g_movie_multiplayer_sync_players[index].is_waiting = 0;
 	}
-	g_moviePlaybackCompletionState = 0;
-	g_movieMultiplayerSyncDeadlineMs = 0;
+	g_movie_playback_completion_state = 0;
+	g_movie_multiplayer_sync_deadline_ms = 0;
 }
 
-void XvtMovieSync_ReportFinished(void)
+void xvt_movie_sync_report_finished(void)
 {
 	int packet[2] = {NET_PACKET_MOVIE_SYNC, 0};
 	int index;
-	if (g_moviePlaybackCompletionState) {
+	if (g_movie_playback_completion_state) {
 		return;
 	}
-	g_moviePlaybackCompletionState = 1;
+	g_movie_playback_completion_state = 1;
 	for (index = 0; index < 8; ++index) {
-		if (g_movieMultiplayerSyncPlayers[index].playerId ==
-		    Net_GetLocalPlayerId()) {
-			g_movieMultiplayerSyncPlayers[index].isWaiting = 1;
+		if (g_movie_multiplayer_sync_players[index].player_id ==
+		    net_get_local_player_id()) {
+			g_movie_multiplayer_sync_players[index].is_waiting = 1;
 		}
 	}
-	Net_SendPacketAndFlush(0, packet, sizeof(packet));
-	g_movieMultiplayerSyncDeadlineMs =
-		GetTickCount() + (Net_IsHost() ? 5000 : 20000);
+	net_send_packet_and_flush(0, packet, sizeof(packet));
+	g_movie_multiplayer_sync_deadline_ms =
+		GetTickCount() + (net_is_host() ? 5000 : 20000);
 }
 
-int XvtMovieSync_Update(void)
+int xvt_movie_sync_update(void)
 {
 	int index;
 	int still_watching = 0;
-	FrontendNet_ProcessNetworkPackets();
+	frontend_net_process_network_packets();
 	for (index = 0; index < 8; ++index) {
-		if (g_movieMultiplayerSyncPlayers[index].playerId &&
-		    !g_movieMultiplayerSyncPlayers[index].isWaiting) {
+		if (g_movie_multiplayer_sync_players[index].player_id &&
+		    !g_movie_multiplayer_sync_players[index].is_waiting) {
 			++still_watching;
 		}
 	}
-	if (g_moviePlaybackCompletionState == 1 &&
-	    (int32_t)(GetTickCount() - g_movieMultiplayerSyncDeadlineMs) > 0) {
-		g_moviePlaybackCompletionState = 2;
+	if (g_movie_playback_completion_state == 1 &&
+	    (int32_t)(GetTickCount() - g_movie_multiplayer_sync_deadline_ms) >
+		    0) {
+		g_movie_playback_completion_state = 2;
 	}
 	return still_watching == 0;
 }
 
-void XvtMovieSync_Draw(int top_margin, int bottom_margin)
+void xvt_movie_sync_draw(int top_margin, int bottom_margin)
 {
 	int index;
 	int roster_index;
-	int count = Net_CountReadyPlayers();
+	int count = net_count_ready_players();
 	struct RECT rect;
 	char text[128];
-	if (!g_moviePlaybackCompletionState) {
+	if (!g_movie_playback_completion_state) {
 		return;
 	}
 	for (index = 0; index < 8; ++index) {
-		if (!g_movieMultiplayerSyncPlayers[index].playerId) {
+		if (!g_movie_multiplayer_sync_players[index].player_id) {
 			continue;
 		}
 		text[0] = 0;
 		for (roster_index = 0; roster_index < count && roster_index < 8;
 		     ++roster_index) {
-			if (g_mpRoster[roster_index].playerId ==
-			    g_movieMultiplayerSyncPlayers[index].playerId) {
+			if (g_mp_roster[roster_index].player_id ==
+			    g_movie_multiplayer_sync_players[index].player_id) {
 				snprintf(
 					text, sizeof(text), "%s%s",
-					g_mpRoster[roster_index].name,
-					FrontendString_Get(
-						g_movieMultiplayerSyncPlayers
+					g_mp_roster[roster_index].name,
+					frontend_string_get(
+						g_movie_multiplayer_sync_players
 								[index]
-									.isWaiting
+									.is_waiting
 							? FRONTSTR_805_WAITING
 							: FRONTSTR_804_WATCHING));
 				break;
@@ -97,15 +98,15 @@ void XvtMovieSync_Draw(int top_margin, int bottom_margin)
 				     top_margin / 2 * (index >> 2),
 				     32 + 144 * ((index & 3) + 1),
 				     top_margin / 2 * ((index >> 2) + 1)};
-		FrontendText_DrawCentered(12, text, &rect, 0xffff);
+		frontend_text_draw_centered(12, text, &rect, 0xffff);
 	}
-	if (g_moviePlaybackCompletionState == 2 && bottom_margin > 0) {
+	if (g_movie_playback_completion_state == 2 && bottom_margin > 0) {
 		rect = (struct RECT){0, 480 - bottom_margin, 639, 479};
-		FrontendDraw_Rect(&rect, 0, 0, 0, -1);
-		FrontendText_DrawCentered(
+		frontend_draw_rect(&rect, 0, 0, 0, -1);
+		frontend_text_draw_centered(
 			12,
-			FrontendString_Get(
-				Net_IsHost()
+			frontend_string_get(
+				net_is_host()
 					? FRONTSTR_807_STILL_WAITING_FOR_OTHERS_HIT_C_TO_CONTINUE_THE_GAME
 					: FRONTSTR_806_STILL_WAITING_FOR_OTHERS_HIT_E_TO_EXIT_THE_GAME),
 			&rect, 0xffff);

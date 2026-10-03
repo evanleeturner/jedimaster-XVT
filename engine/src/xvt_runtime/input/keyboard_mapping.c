@@ -7,15 +7,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct KeyboardPress {
-	XvtInputAction action;
+struct keyboard_press {
+	xvt_input_action action;
 	bool down;
 	bool ignored;
 };
 
 static struct {
 	uint16_t actions[AERON_KEY_COUNT][16];
-	struct KeyboardPress pressed[AERON_KEY_COUNT];
+	struct keyboard_press pressed[AERON_KEY_COUNT];
 	bool debug_available;
 	bool enabled;
 	uint16_t holds[2];
@@ -25,12 +25,12 @@ static struct {
 	uint16_t observed;
 } g_keyboard;
 
-void XvtKeyboardMapping_SetPolicy(bool debug_available)
+void xvt_keyboard_mapping_set_policy(bool debug_available)
 {
 	g_keyboard.debug_available = debug_available;
 }
 
-XvtKeyboardShortcut XvtKeyboardMapping_Shortcut(AeronKeyChord source)
+xvt_keyboard_shortcut xvt_keyboard_mapping_shortcut(AeronKeyChord source)
 {
 	if (source.key == AERON_KEY_ESCAPE) {
 		return XVT_KEYBOARD_SHORTCUT_SETTINGS;
@@ -49,8 +49,8 @@ XvtKeyboardShortcut XvtKeyboardMapping_Shortcut(AeronKeyChord source)
 	return XVT_KEYBOARD_SHORTCUT_NONE;
 }
 
-int XvtKeyboardMapping_FindShortcutPress(const AeronInputSnapshot *input,
-					 XvtKeyboardShortcut shortcut)
+int xvt_keyboard_mapping_find_shortcut_press(const AeronInputSnapshot *input,
+					     xvt_keyboard_shortcut shortcut)
 {
 	if (!input || !input->has_focus || input->key_events_overflow) {
 		return -1;
@@ -58,21 +58,21 @@ int XvtKeyboardMapping_FindShortcutPress(const AeronInputSnapshot *input,
 	for (uint16_t i = 0; i < input->key_event_count; ++i) {
 		const AeronKeyEvent *event = &input->key_events[i];
 		if (event->down && !event->repeat &&
-		    XvtKeyboardMapping_Shortcut(event->chord) == shortcut) {
+		    xvt_keyboard_mapping_shortcut(event->chord) == shortcut) {
 			return event->chord.key;
 		}
 	}
 	return -1;
 }
 
-bool XvtKeyboardMapping_SourceValid(AeronKeyChord source)
+bool xvt_keyboard_mapping_source_valid(AeronKeyChord source)
 {
 	return source.key > 0 && source.key < AERON_KEY_COUNT &&
 	       source.modifiers < 16 &&
 	       AeronKey_Name((AeronKey)source.key)[0] &&
 	       (!AeronKey_Modifier((AeronKey)source.key) ||
 		source.modifiers == 0) &&
-	       XvtKeyboardMapping_Shortcut(source) ==
+	       xvt_keyboard_mapping_shortcut(source) ==
 		       XVT_KEYBOARD_SHORTCUT_NONE;
 }
 
@@ -82,8 +82,8 @@ bool XvtKeyboardMapping_SourceValid(AeronKeyChord source)
 #define GUI_MODIFIER_LABEL "Super+"
 #endif
 
-void XvtKeyboardMapping_FormatSource(char *text, size_t capacity,
-				     AeronKeyChord source)
+void xvt_keyboard_mapping_format_source(char *text, size_t capacity,
+					AeronKeyChord source)
 {
 	snprintf(text, capacity, "%s%s%s%s%s",
 		 (source.modifiers & AERON_KEY_MOD_CTRL) ? "Ctrl+" : "",
@@ -94,8 +94,8 @@ void XvtKeyboardMapping_FormatSource(char *text, size_t capacity,
 		 AeronKey_Name((AeronKey)source.key));
 }
 
-size_t XvtKeyboardMapping_Find(const struct XvtKeyboardBindings *profile,
-			       AeronKeyChord source)
+size_t xvt_keyboard_mapping_find(const struct xvt_keyboard_bindings *profile,
+				 AeronKeyChord source)
 {
 	for (size_t i = 0; i < profile->count; ++i) {
 		if (profile->bindings[i].source.key == source.key &&
@@ -106,10 +106,10 @@ size_t XvtKeyboardMapping_Find(const struct XvtKeyboardBindings *profile,
 	return SIZE_MAX;
 }
 
-static int BindingCompare(const void *left, const void *right)
+static int binding_compare(const void *left, const void *right)
 {
-	const struct XvtKeyboardBinding *a = left;
-	const struct XvtKeyboardBinding *b = right;
+	const struct xvt_keyboard_binding *a = left;
+	const struct xvt_keyboard_binding *b = right;
 	if (a->action != b->action) {
 		return (int)a->action - (int)b->action;
 	}
@@ -119,28 +119,28 @@ static int BindingCompare(const void *left, const void *right)
 	return (int)a->source.modifiers - (int)b->source.modifiers;
 }
 
-void XvtKeyboardMapping_Sort(struct XvtKeyboardBindings *profile)
+void xvt_keyboard_mapping_sort(struct xvt_keyboard_bindings *profile)
 {
 	qsort(profile->bindings, profile->count, sizeof profile->bindings[0],
-	      BindingCompare);
+	      binding_compare);
 }
 
-bool XvtKeyboardMapping_Equal(const struct XvtKeyboardBindings *a,
-			      const struct XvtKeyboardBindings *b)
+bool xvt_keyboard_mapping_equal(const struct xvt_keyboard_bindings *a,
+				const struct xvt_keyboard_bindings *b)
 {
 	if (a->count != b->count) {
 		return false;
 	}
 	for (size_t i = 0; i < a->count; ++i) {
-		if (BindingCompare(&a->bindings[i], &b->bindings[i])) {
+		if (binding_compare(&a->bindings[i], &b->bindings[i])) {
 			return false;
 		}
 	}
 	return true;
 }
 
-void XvtKeyboardMapping_Remove(struct XvtKeyboardBindings *profile,
-			       size_t index)
+void xvt_keyboard_mapping_remove(struct xvt_keyboard_bindings *profile,
+				 size_t index)
 {
 	if (index >= profile->count) {
 		return;
@@ -150,16 +150,16 @@ void XvtKeyboardMapping_Remove(struct XvtKeyboardBindings *profile,
 	--profile->count;
 }
 
-static uint16_t ButtonBit(XvtInputAction action)
+static uint16_t button_bit(xvt_input_action action)
 {
 	return action == XVT_INPUT_ACTION_FIRE_WEAPON		 ? 1
 	       : action == XVT_INPUT_ACTION_TARGET_ROLL_MODIFIER ? 2
 								 : 0;
 }
 
-static void Dispatch(XvtInputAction action, bool down, bool repeat)
+static void dispatch(xvt_input_action action, bool down, bool repeat)
 {
-	uint16_t bit = ButtonBit(action);
+	uint16_t bit = button_bit(action);
 	if (bit) {
 		if (!repeat) {
 			unsigned index = bit == 1 ? 0 : 1;
@@ -176,7 +176,7 @@ static void Dispatch(XvtInputAction action, bool down, bool repeat)
 		return;
 	}
 	if (action == XVT_INPUT_ACTION_ESCAPE) {
-		XvtPort_RequestSettings();
+		xvt_port_request_settings();
 		return;
 	}
 	unsigned next = (g_keyboard.write + 1) % 256;
@@ -185,11 +185,11 @@ static void Dispatch(XvtInputAction action, bool down, bool repeat)
 		return;
 	}
 	g_keyboard.queue[g_keyboard.write] =
-		(uint8_t)XvtInputActions_Key(action);
+		(uint8_t)xvt_input_actions_key(action);
 	g_keyboard.write = next;
 }
 
-void XvtKeyboardMapping_Suspend(void)
+void xvt_keyboard_mapping_suspend(void)
 {
 	memset(g_keyboard.pressed, 0, sizeof g_keyboard.pressed);
 	memset(g_keyboard.holds, 0, sizeof g_keyboard.holds);
@@ -198,28 +198,28 @@ void XvtKeyboardMapping_Suspend(void)
 	g_keyboard.enabled = false;
 }
 
-static void Compile(uint16_t table[AERON_KEY_COUNT][16],
-		    const struct XvtKeyboardBindings *profile)
+static void compile(uint16_t table[AERON_KEY_COUNT][16],
+		    const struct xvt_keyboard_bindings *profile)
 {
 	memset(table, 0, sizeof g_keyboard.actions);
 	for (size_t i = 0; i < profile->count; ++i) {
-		const struct XvtKeyboardBinding *b = &profile->bindings[i];
+		const struct xvt_keyboard_binding *b = &profile->bindings[i];
 		table[b->source.key][b->source.modifiers] = (uint16_t)b->action;
 	}
 }
 
-void XvtKeyboardMapping_Install(const struct XvtKeyboardBindings *profile)
+void xvt_keyboard_mapping_install(const struct xvt_keyboard_bindings *profile)
 {
-	XvtKeyboardMapping_Suspend();
-	Compile(g_keyboard.actions, profile);
+	xvt_keyboard_mapping_suspend();
+	compile(g_keyboard.actions, profile);
 }
 
-void XvtKeyboardMapping_Enable(bool enabled, const AeronInputSnapshot *input)
+void xvt_keyboard_mapping_enable(bool enabled, const AeronInputSnapshot *input)
 {
 	if (enabled == g_keyboard.enabled) {
 		return;
 	}
-	XvtKeyboardMapping_Suspend();
+	xvt_keyboard_mapping_suspend();
 	g_keyboard.enabled = enabled;
 	if (enabled && input) {
 		for (int key = 0; key < AERON_KEY_COUNT; ++key) {
@@ -229,27 +229,27 @@ void XvtKeyboardMapping_Enable(bool enabled, const AeronInputSnapshot *input)
 	}
 }
 
-void XvtKeyboardMapping_BeginFrame(const AeronInputSnapshot *input)
+void xvt_keyboard_mapping_begin_frame(const AeronInputSnapshot *input)
 {
 	g_keyboard.pending &= (uint16_t)~g_keyboard.observed;
 	g_keyboard.observed = 0;
 	if (input->key_events_overflow && g_keyboard.enabled) {
-		XvtKeyboardMapping_Suspend();
-		XvtKeyboardMapping_Enable(true, input);
+		xvt_keyboard_mapping_suspend();
+		xvt_keyboard_mapping_enable(true, input);
 	}
 }
 
-void XvtKeyboardMapping_Event(const AeronKeyEvent *event, bool suppressed)
+void xvt_keyboard_mapping_event(const AeronKeyEvent *event, bool suppressed)
 {
 	if (!g_keyboard.enabled || event->chord.key >= AERON_KEY_COUNT) {
 		return;
 	}
-	struct KeyboardPress *press = &g_keyboard.pressed[event->chord.key];
+	struct keyboard_press *press = &g_keyboard.pressed[event->chord.key];
 	if (!event->down) {
 		if (press->down && press->action != XVT_INPUT_ACTION_NONE) {
-			Dispatch(press->action, false, false);
+			dispatch(press->action, false, false);
 		}
-		*press = (struct KeyboardPress){0};
+		*press = (struct keyboard_press){0};
 		return;
 	}
 	if (press->ignored) {
@@ -257,9 +257,9 @@ void XvtKeyboardMapping_Event(const AeronKeyEvent *event, bool suppressed)
 	}
 	if (suppressed) {
 		if (press->down && press->action != XVT_INPUT_ACTION_NONE) {
-			Dispatch(press->action, false, false);
+			dispatch(press->action, false, false);
 		}
-		*press = (struct KeyboardPress){.ignored = true};
+		*press = (struct keyboard_press){.ignored = true};
 		return;
 	}
 	if (!press->down) {
@@ -270,25 +270,25 @@ void XvtKeyboardMapping_Event(const AeronKeyEvent *event, bool suppressed)
 		chord.modifiers &=
 			(uint8_t)~AeronKey_Modifier((AeronKey)chord.key);
 		press->down = true;
-		if (XvtKeyboardMapping_Shortcut(event->chord) !=
+		if (xvt_keyboard_mapping_shortcut(event->chord) !=
 		    XVT_KEYBOARD_SHORTCUT_NONE) {
 			return;
 		}
 		press->action =
-			(XvtInputAction)
+			(xvt_input_action)
 				g_keyboard.actions[chord.key][chord.modifiers];
 		if (press->action != XVT_INPUT_ACTION_NONE) {
-			g_keyboard.pending |= ButtonBit(press->action);
+			g_keyboard.pending |= button_bit(press->action);
 		}
 	} else if (!event->repeat) {
 		return;
 	}
 	if (press->action != XVT_INPUT_ACTION_NONE) {
-		Dispatch(press->action, true, event->repeat != 0);
+		dispatch(press->action, true, event->repeat != 0);
 	}
 }
 
-uint16_t XvtKeyboardMapping_ReadKey(void)
+uint16_t xvt_keyboard_mapping_read_key(void)
 {
 	if (g_keyboard.read == g_keyboard.write) {
 		return 0;
@@ -298,7 +298,7 @@ uint16_t XvtKeyboardMapping_ReadKey(void)
 	return key;
 }
 
-uint16_t XvtKeyboardMapping_ReadButtons(void)
+uint16_t xvt_keyboard_mapping_read_buttons(void)
 {
 	g_keyboard.observed |= g_keyboard.pending;
 	return (g_keyboard.holds[0] ? 1 : 0) | (g_keyboard.holds[1] ? 2 : 0) |

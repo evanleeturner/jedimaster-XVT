@@ -21,23 +21,23 @@ static AeronDrawList2D *g_list;
 static AeronSceneMeshTable *g_tables;
 static int g_width, g_height, g_samples;
 
-struct MapOrder {
+struct map_order {
 	unsigned index;
 	float depth;
 };
 
-static struct MapOrder g_order[XVT_SNAP_OBJECTS];
+static struct map_order g_order[XVT_SNAP_OBJECTS];
 
-static int Compare(const void *a, const void *b)
+static int compare(const void *a, const void *b)
 {
-	const struct MapOrder *x = a, *y = b;
+	const struct map_order *x = a, *y = b;
 	return x->depth < y->depth   ? 1
 	       : x->depth > y->depth ? -1
 	       : x->index < y->index ? -1
 				     : 1;
 }
 
-static int Ensure(int w, int h)
+static int ensure(int w, int h)
 {
 	if (!g_list) {
 		g_list = AeronDrawList_Create(32768);
@@ -48,7 +48,7 @@ static int Ensure(int w, int h)
 	if (!g_list || !g_tables) {
 		return 0;
 	}
-	int samples = XvtRemasterConfig_Effective()->msaa_samples;
+	int samples = xvt_remaster_config_effective()->msaa_samples;
 	if (g_scene && w == g_width && h == g_height && samples == g_samples) {
 		return 1;
 	}
@@ -70,7 +70,7 @@ static int Ensure(int w, int h)
 		Aeron_DestroyRenderTarget(target);
 		return 0;
 	}
-	XvtFlightPipeline_ForgetSources();
+	xvt_flight_pipeline_forget_sources();
 	AeronScene_Destroy(g_scene);
 	Aeron_DestroyRenderTarget(g_composite);
 	g_scene = scene;
@@ -82,15 +82,15 @@ static int Ensure(int w, int h)
 	return 1;
 }
 
-int XvtFlightMap_PrepareResources(int width, int height)
+int xvt_flight_map_prepare_resources(int width, int height)
 {
 	AeronScene3D *previous = g_scene;
-	return Ensure(width, height) &&
+	return ensure(width, height) &&
 	       (previous == g_scene ||
-		XvtFlightPipeline_PrepareSceneResources(g_scene, 0));
+		xvt_flight_pipeline_prepare_scene_resources(g_scene, 0));
 }
 
-static void Segment(const struct XvtRenderView *view, const int32_t a[3],
+static void segment(const struct xvt_render_view *view, const int32_t a[3],
 		    const int32_t b[3], uint32_t color)
 {
 	float p[3], q[3], clip[2][4];
@@ -114,7 +114,7 @@ static void Segment(const struct XvtRenderView *view, const int32_t a[3],
 		}
 	}
 	float rgba[4];
-	XvtUi_Color(color, rgba);
+	xvt_ui_color(color, rgba);
 	AeronRectI scissor = {0, 0, g_width, g_height};
 	AeronDrawList_AddLine(g_list,
 			      (clip[0][0] / clip[0][3] + 1) * g_width * .5f,
@@ -125,26 +125,26 @@ static void Segment(const struct XvtRenderView *view, const int32_t a[3],
 			      AERON_BLIT2D_BLEND_PMA, &scissor);
 }
 
-static void Grid(const struct XvtRenderSnapshot *s,
-		 const struct XvtRenderView *view)
+static void grid(const struct xvt_render_snapshot *s,
+		 const struct xvt_render_view *view)
 {
 	for (int i = -16; i <= 16; ++i) {
 		int32_t a[3] = {-1048576, i * 65536, s->map.grid_z},
 			b[3] = {1048576, i * 65536, s->map.grid_z};
-		Segment(view, a, b, s->flight_palette_argb[49]);
+		segment(view, a, b, s->flight_palette_argb[49]);
 		a[0] = b[0] = i * 65536;
 		a[1] = -1048576;
 		b[1] = 1048576;
-		Segment(view, a, b, s->flight_palette_argb[49]);
+		segment(view, a, b, s->flight_palette_argb[49]);
 	}
 }
 
-static void Overlay(const struct XvtRenderSnapshot *s,
-		    const struct XvtRenderView *view,
-		    const struct XvtSnapMapObject *m, float x, float y,
+static void overlay(const struct xvt_render_snapshot *s,
+		    const struct xvt_render_view *view,
+		    const struct xvt_snap_map_object *m, float x, float y,
 		    float depth)
 {
-	const struct XvtSnapObject *o = &s->objects[m->object_index];
+	const struct xvt_snap_object *o = &s->objects[m->object_index];
 	float scale = view->classic_pixel_scale;
 	float extent = fmaxf(
 		s->camera.screen_width / 80.0f,
@@ -155,7 +155,7 @@ static void Overlay(const struct XvtRenderSnapshot *s,
 	float size = (extent + 4) * scale;
 	if (m->box_visible) {
 		float rgba[4];
-		XvtUi_Color(s->flight_palette_argb[m->box_color], rgba);
+		xvt_ui_color(s->flight_palette_argb[m->box_color], rgba);
 		float corner = fmaxf(3 * scale, size / 8);
 		for (int i = 0; i < 2; ++i) {
 			for (int j = 0; j < 2; ++j) {
@@ -173,13 +173,13 @@ static void Overlay(const struct XvtRenderSnapshot *s,
 		}
 	}
 	if (o->id.slot == s->map.target.slot && s->map.endpoint_valid) {
-		Segment(view, o->world_pos, s->map.order_endpoint,
+		segment(view, o->world_pos, s->map.order_endpoint,
 			s->flight_palette_argb[54]);
 	}
 	if (m->overlay_visible) {
 		int32_t base[3] = {o->world_pos[0], o->world_pos[1],
 				   s->map.grid_z};
-		Segment(view, o->world_pos, base, m->line_color_argb);
+		segment(view, o->world_pos, base, m->line_color_argb);
 		if (m->movement_visible) {
 			int32_t end[3];
 			memcpy(end, base, sizeof end);
@@ -199,87 +199,89 @@ static void Overlay(const struct XvtRenderSnapshot *s,
 					   (uint32_t)(((int64_t)m->move_y *
 						       (distance - 256)) >>
 						      15));
-			Segment(view, base, end, m->line_color_argb);
+			segment(view, base, end, m->line_color_argb);
 		}
 	}
-	const struct XvtFontAtlas *font =
-		XvtRemasterAssets_Font(s->map.font_asset_id, 0);
+	const struct xvt_font_atlas *font =
+		xvt_remaster_assets_font(s->map.font_asset_id, 0);
 	float text_height = (font ? font->cell_height : 5) * scale;
 	if (m->label_visible && m->label_offset < s->map.label_bytes) {
-		XvtUi_Text(g_list, s->map.font_asset_id,
-			   s->map.labels + m->label_offset, x,
-			   y - size / 2 - text_height - scale, scale,
-			   m->label_color_argb, 1);
+		xvt_ui_text(g_list, s->map.font_asset_id,
+			    s->map.labels + m->label_offset, x,
+			    y - size / 2 - text_height - scale, scale,
+			    m->label_color_argb, 1);
 	}
 	if (m->range_visible) {
 		char text[16];
 		snprintf(text, sizeof text, "%u.%02u", m->range_value / 100,
 			 m->range_value % 100);
-		XvtUi_Text(g_list, s->map.font_asset_id, text, x,
-			   y + size / 2 + scale, scale, m->label_color_argb, 1);
+		xvt_ui_text(g_list, s->map.font_asset_id, text, x,
+			    y + size / 2 + scale, scale, m->label_color_argb,
+			    1);
 	}
 }
 
-static int Objects(AeronCommandBuffer *cmd, const struct XvtRenderSnapshot *s,
-		   const struct XvtRenderView *view, int above)
+static int objects(AeronCommandBuffer *cmd, const struct xvt_render_snapshot *s,
+		   const struct xvt_render_view *view, int above)
 {
 	if (!AeronScene_Begin(g_scene, &view->camera) ||
 	    !AeronScene_SetMeshSampler(g_scene,
-				       XvtRemasterConfig_MeshSampler())) {
+				       xvt_remaster_config_mesh_sampler())) {
 		return 0;
 	}
-	XvtFlightPipeline_Post(g_scene, 0, 0);
-	if (!XvtLighting_Begin(g_scene, s)) {
+	xvt_flight_pipeline_post(g_scene, 0, 0);
+	if (!xvt_lighting_begin(g_scene, s)) {
 		return 0;
 	}
 	AeronScene_SetDirectionalShadow(g_scene, NULL);
-	XvtRemasterShip_SetEnvironment(g_scene, &s->lighting, NULL,
-				       view->camera.pos);
+	xvt_remaster_ship_set_environment(g_scene, &s->lighting, NULL,
+					  view->camera.pos);
 	AeronDrawList_Begin(g_list, NULL, g_width, g_height,
 			    AERON_DRAWLIST2D_LOAD, NULL);
 	for (unsigned k = 0; k < s->map.object_count; ++k) {
-		const struct XvtSnapMapObject *m =
+		const struct xvt_snap_map_object *m =
 			&s->map.objects[g_order[k].index];
 		if (m->object_index >= s->object_count) {
 			continue;
 		}
-		const struct XvtSnapObject *o = &s->objects[m->object_index];
+		const struct xvt_snap_object *o = &s->objects[m->object_index];
 		if ((o->world_pos[2] >= s->map.grid_z) != above) {
 			continue;
 		}
 		float x, y, z;
-		int projected = XvtRenderMath_ProjectWorld(view, o->world_pos,
-							   &x, &y, &z);
+		int projected = xvt_render_math_project_world(
+			view, o->world_pos, &x, &y, &z);
 		int icon = projected &&
 			   m->render_kind == XVT_MAP_MODEL_OR_ICON &&
 			   s->types[o->object_type].max_extent < z / 16;
 		if (icon) {
-			if (!XvtUi_MapIcon(g_list, cmd, s->map.icon_asset_id,
-					   m->icon_frame, m->effective_iff == 3,
-					   s->flight_palette_argb,
-					   (int)(x / view->classic_pixel_scale -
-						 m->icon_width / 2) *
-						   view->classic_pixel_scale,
-					   (int)(y / view->classic_pixel_scale -
-						 m->icon_height / 2) *
-						   view->classic_pixel_scale,
-					   view->classic_pixel_scale, g_width,
-					   g_height)) {
+			if (!xvt_ui_map_icon(
+				    g_list, cmd, s->map.icon_asset_id,
+				    m->icon_frame, m->effective_iff == 3,
+				    s->flight_palette_argb,
+				    (int)(x / view->classic_pixel_scale -
+					  m->icon_width / 2) *
+					    view->classic_pixel_scale,
+				    (int)(y / view->classic_pixel_scale -
+					  m->icon_height / 2) *
+					    view->classic_pixel_scale,
+				    view->classic_pixel_scale, g_width,
+				    g_height)) {
 				return 0;
 			}
 		} else {
-			struct XvtShipSelection selection;
-			if (XvtRemasterShip_Select(s, o, &selection)) {
-				const struct XvtMeshAsset *asset =
-					XvtRemasterShip_Mesh(
+			struct xvt_ship_selection selection;
+			if (xvt_remaster_ship_select(s, o, &selection)) {
+				const struct xvt_mesh_asset *asset =
+					xvt_remaster_ship_mesh(
 						s, selection.asset_id);
 				if (asset) {
 					AeronSceneMeshTable *table =
 						&g_tables[m->object_index];
 					float visual[XVT_SNAP_COMPONENTS];
-					XvtRemasterShip_BuildMeshTable(
+					xvt_remaster_ship_build_mesh_table(
 						asset, o, selection.component,
-						XvtComponentAnimation_Angles(
+						xvt_component_animation_angles(
 							s, o, asset, visual),
 						table);
 					AeronSceneMeshInstance instance = {
@@ -288,21 +290,21 @@ static int Objects(AeronCommandBuffer *cmd, const struct XvtRenderSnapshot *s,
 						.mesh_table = table,
 						.zero_velocity = 1,
 						.cull_mode = AERON_CULL_BACK};
-					XvtRenderMath_ObjectMatrix(
+					xvt_render_math_object_matrix(
 						o, s->camera.world_pos,
 						instance.transform);
 					if (o->genus ==
 						    CRAFT_GENUS_PLAYER_PROJECTILE ||
 					    o->genus ==
 						    CRAFT_GENUS_OTHER_PROJECTILE) {
-						XvtEffects_ProjectileMatrix(
+						xvt_effects_projectile_matrix(
 							o, s->camera.world_pos,
 							s->camera.world_pos,
 							instance.transform);
 						instance.cull_mode =
 							AERON_CULL_NONE;
 						instance.base_color_emissive_strength =
-							XvtRemasterConfig_Effective()
+							xvt_remaster_config_effective()
 								->models
 								.opt_projectile_emissive_strength;
 					}
@@ -310,10 +312,10 @@ static int Objects(AeronCommandBuffer *cmd, const struct XvtRenderSnapshot *s,
 								   &instance);
 				}
 			}
-			XvtEffects_MapObject(g_scene, s, o);
+			xvt_effects_map_object(g_scene, s, o);
 		}
 		if (projected) {
-			Overlay(s, view, m, x, y, z);
+			overlay(s, view, m, x, y, z);
 		}
 	}
 	if (!AeronDrawList_Prepare(g_list, cmd) ||
@@ -332,7 +334,7 @@ static int Objects(AeronCommandBuffer *cmd, const struct XvtRenderSnapshot *s,
 	return 1;
 }
 
-static int Composite(AeronCommandBuffer *cmd, int clear)
+static int composite(AeronCommandBuffer *cmd, int clear)
 {
 	AeronDrawList_Begin(
 		g_list, g_composite, g_width, g_height,
@@ -350,35 +352,35 @@ static int Composite(AeronCommandBuffer *cmd, int clear)
 	return 1;
 }
 
-int XvtFlightMap_Render(AeronCommandBuffer *cmd,
-			const struct XvtRenderSnapshot *s,
-			const struct XvtRenderView *view)
+int xvt_flight_map_render(AeronCommandBuffer *cmd,
+			  const struct xvt_render_snapshot *s,
+			  const struct xvt_render_view *view)
 {
-	if (!Ensure(view->camera.viewport.width,
+	if (!ensure(view->camera.viewport.width,
 		    view->camera.viewport.height)) {
 		return 0;
 	}
 	for (unsigned i = 0; i < s->map.object_count; ++i) {
 		float local[3];
-		const struct XvtSnapObject *o =
+		const struct xvt_snap_object *o =
 			&s->objects[s->map.objects[i].object_index];
 		AeronWorld_LocalI32(view->origin_world, o->world_pos, local);
-		g_order[i] = (struct MapOrder){
+		g_order[i] = (struct map_order){
 			i, view->view_proj[12] * local[0] +
 				   view->view_proj[13] * local[1] +
 				   view->view_proj[14] * local[2] +
 				   view->view_proj[15]};
 	}
-	qsort(g_order, s->map.object_count, sizeof g_order[0], Compare);
+	qsort(g_order, s->map.object_count, sizeof g_order[0], compare);
 	int camera_below_grid = s->camera.world_pos[2] < s->map.grid_z;
-	if (!Objects(cmd, s, view, camera_below_grid) || !Composite(cmd, 1)) {
+	if (!objects(cmd, s, view, camera_below_grid) || !composite(cmd, 1)) {
 		return 0;
 	}
 	AeronDrawList_Begin(g_list, g_composite, g_width, g_height,
 			    AERON_DRAWLIST2D_LOAD, NULL);
-	Grid(s, view);
+	grid(s, view);
 	AeronDrawList_Render(g_list, cmd);
-	if (!Objects(cmd, s, view, !camera_below_grid) || !Composite(cmd, 0)) {
+	if (!objects(cmd, s, view, !camera_below_grid) || !composite(cmd, 0)) {
 		return 0;
 	}
 	AeronRenderPass *pass = Aeron_BeginRenderPass(&(AeronRenderPassDesc){
@@ -386,16 +388,16 @@ int XvtFlightMap_Render(AeronCommandBuffer *cmd,
 	if (!pass) {
 		return 0;
 	}
-	XvtHudRenderer_Draw(cmd, pass, g_composite);
+	xvt_hud_renderer_draw(cmd, pass, g_composite);
 	Aeron_EndRenderPass(pass);
-	return XvtFlightPipeline_Resolve(
+	return xvt_flight_pipeline_resolve(
 		cmd, Aeron_RenderTargetGetTexture(g_composite), g_width,
 		g_height, 0);
 }
 
-void XvtFlightMap_Shutdown(void)
+void xvt_flight_map_shutdown(void)
 {
-	XvtFlightPipeline_ForgetSources();
+	xvt_flight_pipeline_forget_sources();
 	AeronScene_Destroy(g_scene);
 	Aeron_DestroyRenderTarget(g_composite);
 	AeronDrawList_Destroy(g_list);

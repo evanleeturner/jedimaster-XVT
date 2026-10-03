@@ -4,7 +4,7 @@
  * every call turns the overlay text off and returns 0. The test sets the frontend globals itself; every
  * case starts with a placeholder screen on the stack, overlay text on, and no network session.
  *
- * A session shutdown is seen through the network session: Net_ShutdownDirectPlaySession reports every
+ * A session shutdown is seen through the network session: net_shutdown_direct_play_session reports every
  * shutdown to it, and it then reads as pending until the close completes.
  *
  * Not checked here: the packets HOST_RESTART, DEBRIEF_HOST_ABORT and the leave actions send, which need a
@@ -22,51 +22,52 @@
 
 #include <string.h>
 
-static int Placeholder(int frame) { return frame; }
+static int placeholder(int frame) { return frame; }
 
-static void Fresh(int session_mode)
+static void fresh(int session_mode)
 {
-	XvtNetworkSession_Shutdown();
-	memset(&g_frontState, 0, sizeof g_frontState);
-	g_frontState.screenStates[0].updateFn = Placeholder;
-	g_frontendMissionSessionMode = session_mode;
-	g_frontendSkipScreenEntrySetup = 0;
-	g_frontendQuickStartLaunchFlag = 0;
-	g_frontendGameSessionInProgress = 0;
-	g_missionSetupRosterAuthoritative = 0;
-	memset(g_mpRoster, 0, sizeof g_mpRoster);
-	FrontendButton_EnableOverlayText();
+	xvt_network_session_shutdown();
+	memset(&g_front_state, 0, sizeof g_front_state);
+	g_front_state.screen_states[0].update_fn = placeholder;
+	g_frontend_mission_session_mode = session_mode;
+	g_frontend_skip_screen_entry_setup = 0;
+	g_frontend_quick_start_launch_flag = 0;
+	g_frontend_game_session_in_progress = 0;
+	g_mission_setup_roster_authoritative = 0;
+	memset(g_mp_roster, 0, sizeof g_mp_roster);
+	frontend_button_enable_overlay_text();
 }
 
-static FrontendScreenUpdateFn Screen(void)
+static frontend_screen_update_fn screen(void)
 {
-	return g_frontState.screenStates[g_frontState.screenStackTop].updateFn;
+	return g_front_state.screen_states[g_front_state.screen_stack_top]
+		.update_fn;
 }
 
-static int SessionClosing(void)
+static int session_closing(void)
 {
-	return XvtNetworkSession_GetStatus().state ==
+	return xvt_network_session_get_status().state ==
 	       XVT_NETWORK_SESSION_PENDING;
 }
 
 /* Runs action with result and checks the promise every call keeps. */
-static void Resume(int result, int action)
+static void resume(int result, int action)
 {
-	XVT_ASSERT_INT_EQ(XvtMissionDialogs_Resume(result, action), 0);
-	XVT_ASSERT_INT_EQ(FrontendButton_IsOverlayTextEnabled(), 0);
+	XVT_ASSERT_INT_EQ(xvt_mission_dialogs_resume(result, action), 0);
+	XVT_ASSERT_INT_EQ(frontend_button_is_overlay_text_enabled(), 0);
 }
 
-static void CheckNotice(void)
+static void check_notice(void)
 {
 	for (int result = 0; result < 2; ++result) {
-		Fresh(FRONTEND_MISSION_SESSION_NET_HOST);
-		Resume(result, XVT_MISSION_NOTICE);
-		XVT_ASSERT_TRUE(Screen() == Placeholder);
-		XVT_ASSERT_INT_EQ(SessionClosing(), 0);
+		fresh(FRONTEND_MISSION_SESSION_NET_HOST);
+		resume(result, XVT_MISSION_NOTICE);
+		XVT_ASSERT_TRUE(screen() == placeholder);
+		XVT_ASSERT_INT_EQ(session_closing(), 0);
 	}
 }
 
-static void CheckCancelledActionsIgnoreResult(void)
+static void check_cancelled_actions_ignore_result(void)
 {
 	const int actions[] = {
 		XVT_MISSION_SETUP_CANCELLED, XVT_MISSION_SETUP_BOOTED,
@@ -74,42 +75,43 @@ static void CheckCancelledActionsIgnoreResult(void)
 		XVT_MISSION_BRIEFING_CANCELLED};
 	for (unsigned i = 0; i < sizeof actions / sizeof actions[0]; ++i) {
 		for (int result = 0; result < 2; ++result) {
-			Fresh(FRONTEND_MISSION_SESSION_NET_CLIENT);
-			g_frontState.netIsHost = 0;
-			Resume(result, actions[i]);
-			XVT_ASSERT_TRUE(Screen() == FrontendNet_JoinGameScreen);
+			fresh(FRONTEND_MISSION_SESSION_NET_CLIENT);
+			g_front_state.net_is_host = 0;
+			resume(result, actions[i]);
+			XVT_ASSERT_TRUE(screen() ==
+					frontend_net_join_game_screen);
 		}
 	}
 
 	/* TEAM_CANCELLED also shuts down the session. */
-	Fresh(FRONTEND_MISSION_SESSION_NET_CLIENT);
-	Resume(0, XVT_MISSION_TEAM_CANCELLED);
-	XVT_ASSERT_INT_EQ(SessionClosing(), 1);
+	fresh(FRONTEND_MISSION_SESSION_NET_CLIENT);
+	resume(0, XVT_MISSION_TEAM_CANCELLED);
+	XVT_ASSERT_INT_EQ(session_closing(), 1);
 
 	/* BRIEFING_CANCELLED on the host returns to the concourse instead. */
 	for (int result = 0; result < 2; ++result) {
-		Fresh(FRONTEND_MISSION_SESSION_NET_HOST);
-		g_frontState.netIsHost = 1;
-		Resume(result, XVT_MISSION_BRIEFING_CANCELLED);
-		XVT_ASSERT_TRUE(Screen() == Concourse_Update);
+		fresh(FRONTEND_MISSION_SESSION_NET_HOST);
+		g_front_state.net_is_host = 1;
+		resume(result, XVT_MISSION_BRIEFING_CANCELLED);
+		XVT_ASSERT_TRUE(screen() == concourse_update);
 	}
 }
 
-static void CheckTeamPrevious(void)
+static void check_team_previous(void)
 {
 	/* Solo, either result reopens mission setup. */
 	for (int result = 0; result < 2; ++result) {
-		Fresh(FRONTEND_MISSION_SESSION_SINGLEPLAYER);
-		Resume(result, XVT_MISSION_TEAM_PREVIOUS);
-		XVT_ASSERT_TRUE(Screen() == MissionSetup_Update);
+		fresh(FRONTEND_MISSION_SESSION_SINGLEPLAYER);
+		resume(result, XVT_MISSION_TEAM_PREVIOUS);
+		XVT_ASSERT_TRUE(screen() == mission_setup_update);
 	}
 	/* A network session sends return-to-setup instead of reopening it. */
-	Fresh(FRONTEND_MISSION_SESSION_NET_HOST);
-	Resume(0, XVT_MISSION_TEAM_PREVIOUS);
-	XVT_ASSERT_TRUE(Screen() != MissionSetup_Update);
+	fresh(FRONTEND_MISSION_SESSION_NET_HOST);
+	resume(0, XVT_MISSION_TEAM_PREVIOUS);
+	XVT_ASSERT_TRUE(screen() != mission_setup_update);
 }
 
-static void CheckTailsNeedNonzeroResult(void)
+static void check_tails_need_nonzero_result(void)
 {
 	const int actions[] = {XVT_MISSION_SETUP_HOST_LEAVE,
 			       XVT_MISSION_CLIENT_LEAVE,
@@ -122,86 +124,86 @@ static void CheckTailsNeedNonzeroResult(void)
 			       XVT_MISSION_HOST_RESTART,
 			       XVT_MISSION_DEBRIEF_HOST_ABORT};
 	for (unsigned i = 0; i < sizeof actions / sizeof actions[0]; ++i) {
-		Fresh(FRONTEND_MISSION_SESSION_NET_HOST);
-		g_frontendQuickStartLaunchFlag = 1;
-		g_frontendGameSessionInProgress = 1;
-		g_missionSetupRosterAuthoritative = 1;
-		g_mpRoster[0].playerId = 5;
-		Resume(0, actions[i]);
-		XVT_ASSERT_TRUE(Screen() == Placeholder);
-		XVT_ASSERT_INT_EQ(SessionClosing(), 0);
-		XVT_ASSERT_INT_EQ(g_frontendQuickStartLaunchFlag, 1);
-		XVT_ASSERT_INT_EQ(g_frontendGameSessionInProgress, 1);
-		XVT_ASSERT_INT_EQ(g_missionSetupRosterAuthoritative, 1);
-		XVT_ASSERT_INT_EQ(g_mpRoster[0].playerId, 5);
+		fresh(FRONTEND_MISSION_SESSION_NET_HOST);
+		g_frontend_quick_start_launch_flag = 1;
+		g_frontend_game_session_in_progress = 1;
+		g_mission_setup_roster_authoritative = 1;
+		g_mp_roster[0].player_id = 5;
+		resume(0, actions[i]);
+		XVT_ASSERT_TRUE(screen() == placeholder);
+		XVT_ASSERT_INT_EQ(session_closing(), 0);
+		XVT_ASSERT_INT_EQ(g_frontend_quick_start_launch_flag, 1);
+		XVT_ASSERT_INT_EQ(g_frontend_game_session_in_progress, 1);
+		XVT_ASSERT_INT_EQ(g_mission_setup_roster_authoritative, 1);
+		XVT_ASSERT_INT_EQ(g_mp_roster[0].player_id, 5);
 	}
 }
 
-static void CheckLeaveActions(void)
+static void check_leave_actions(void)
 {
-	Fresh(FRONTEND_MISSION_SESSION_NET_HOST);
-	Resume(1, XVT_MISSION_SETUP_HOST_LEAVE);
-	XVT_ASSERT_TRUE(Screen() == Concourse_Update);
-	XVT_ASSERT_INT_EQ(SessionClosing(), 1);
+	fresh(FRONTEND_MISSION_SESSION_NET_HOST);
+	resume(1, XVT_MISSION_SETUP_HOST_LEAVE);
+	XVT_ASSERT_TRUE(screen() == concourse_update);
+	XVT_ASSERT_INT_EQ(session_closing(), 1);
 
-	Fresh(FRONTEND_MISSION_SESSION_NET_CLIENT);
-	Resume(1, XVT_MISSION_CLIENT_LEAVE);
-	XVT_ASSERT_TRUE(Screen() == FrontendNet_JoinGameScreen);
-	XVT_ASSERT_INT_EQ(SessionClosing(), 1);
+	fresh(FRONTEND_MISSION_SESSION_NET_CLIENT);
+	resume(1, XVT_MISSION_CLIENT_LEAVE);
+	XVT_ASSERT_TRUE(screen() == frontend_net_join_game_screen);
+	XVT_ASSERT_INT_EQ(session_closing(), 1);
 
-	Fresh(FRONTEND_MISSION_SESSION_NET_CLIENT);
-	Resume(7, XVT_MISSION_TEAM_CLIENT_LEAVE);
-	XVT_ASSERT_TRUE(Screen() == FrontendNet_JoinGameScreen);
-	XVT_ASSERT_INT_EQ(SessionClosing(), 1);
+	fresh(FRONTEND_MISSION_SESSION_NET_CLIENT);
+	resume(7, XVT_MISSION_TEAM_CLIENT_LEAVE);
+	XVT_ASSERT_TRUE(screen() == frontend_net_join_game_screen);
+	XVT_ASSERT_INT_EQ(session_closing(), 1);
 
 	/* From the debrief, a leaving client goes to the concourse. */
-	Fresh(FRONTEND_MISSION_SESSION_NET_CLIENT);
-	Resume(1, XVT_MISSION_DEBRIEF_CLIENT_LEAVE);
-	XVT_ASSERT_TRUE(Screen() == Concourse_Update);
-	XVT_ASSERT_INT_EQ(SessionClosing(), 1);
+	fresh(FRONTEND_MISSION_SESSION_NET_CLIENT);
+	resume(1, XVT_MISSION_DEBRIEF_CLIENT_LEAVE);
+	XVT_ASSERT_TRUE(screen() == concourse_update);
+	XVT_ASSERT_INT_EQ(session_closing(), 1);
 }
 
-static void CheckSoloBack(void)
+static void check_solo_back(void)
 {
-	Fresh(FRONTEND_MISSION_SESSION_SINGLEPLAYER);
-	Resume(1, XVT_MISSION_SOLO_BACK_TO_SETUP);
-	XVT_ASSERT_TRUE(Screen() == MissionSetup_Update);
+	fresh(FRONTEND_MISSION_SESSION_SINGLEPLAYER);
+	resume(1, XVT_MISSION_SOLO_BACK_TO_SETUP);
+	XVT_ASSERT_TRUE(screen() == mission_setup_update);
 
-	Fresh(FRONTEND_MISSION_SESSION_SINGLEPLAYER);
-	Resume(1, XVT_MISSION_SOLO_BACK_TO_TEAMS);
-	XVT_ASSERT_TRUE(Screen() == MissionSetup_TeamAssignmentUpdate);
+	fresh(FRONTEND_MISSION_SESSION_SINGLEPLAYER);
+	resume(1, XVT_MISSION_SOLO_BACK_TO_TEAMS);
+	XVT_ASSERT_TRUE(screen() == mission_setup_team_assignment_update);
 }
 
-static void CheckDebriefSoloAbort(void)
+static void check_debrief_solo_abort(void)
 {
 	for (int clear = 0; clear < 2; ++clear) {
-		Fresh(FRONTEND_MISSION_SESSION_SINGLEPLAYER);
-		g_frontendQuickStartLaunchFlag = 1;
-		g_frontendGameSessionInProgress = 1;
-		g_missionSetupRosterAuthoritative = 1;
-		g_mpRoster[0].playerId = 5;
-		g_mpRoster[7].playerId = 9;
-		Resume(1, clear ? XVT_MISSION_DEBRIEF_SOLO_ABORT_CLEAR_ROSTER
+		fresh(FRONTEND_MISSION_SESSION_SINGLEPLAYER);
+		g_frontend_quick_start_launch_flag = 1;
+		g_frontend_game_session_in_progress = 1;
+		g_mission_setup_roster_authoritative = 1;
+		g_mp_roster[0].player_id = 5;
+		g_mp_roster[7].player_id = 9;
+		resume(1, clear ? XVT_MISSION_DEBRIEF_SOLO_ABORT_CLEAR_ROSTER
 				: XVT_MISSION_DEBRIEF_SOLO_ABORT);
-		XVT_ASSERT_TRUE(Screen() == MissionSetup_Update);
-		XVT_ASSERT_INT_EQ(g_frontendQuickStartLaunchFlag, 0);
-		XVT_ASSERT_INT_EQ(g_frontendGameSessionInProgress, 0);
-		XVT_ASSERT_INT_EQ(g_missionSetupRosterAuthoritative, 0);
+		XVT_ASSERT_TRUE(screen() == mission_setup_update);
+		XVT_ASSERT_INT_EQ(g_frontend_quick_start_launch_flag, 0);
+		XVT_ASSERT_INT_EQ(g_frontend_game_session_in_progress, 0);
+		XVT_ASSERT_INT_EQ(g_mission_setup_roster_authoritative, 0);
 		/* Only CLEAR_ROSTER clears the multiplayer roster. */
-		XVT_ASSERT_INT_EQ(g_mpRoster[0].playerId, clear ? 0 : 5);
-		XVT_ASSERT_INT_EQ(g_mpRoster[7].playerId, clear ? 0 : 9);
+		XVT_ASSERT_INT_EQ(g_mp_roster[0].player_id, clear ? 0 : 5);
+		XVT_ASSERT_INT_EQ(g_mp_roster[7].player_id, clear ? 0 : 9);
 	}
 }
 
 int main(void)
 {
-	CheckNotice();
-	CheckCancelledActionsIgnoreResult();
-	CheckTeamPrevious();
-	CheckTailsNeedNonzeroResult();
-	CheckLeaveActions();
-	CheckSoloBack();
-	CheckDebriefSoloAbort();
-	XvtNetworkSession_Shutdown();
+	check_notice();
+	check_cancelled_actions_ignore_result();
+	check_team_previous();
+	check_tails_need_nonzero_result();
+	check_leave_actions();
+	check_solo_back();
+	check_debrief_solo_abort();
+	xvt_network_session_shutdown();
 	return 0;
 }

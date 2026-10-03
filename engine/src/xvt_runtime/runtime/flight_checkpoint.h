@@ -12,24 +12,24 @@ extern "C" {
  * a lockstep tick, and the membership masks, closed by a footer with a CRC-32C of the extension. */
 
 /* Starts a flight: clears every paired record and sets the initial and confirmed masks to mask. */
-void XvtFlightCheckpoint_Begin(uint8_t mask);
+void xvt_flight_checkpoint_begin(uint8_t mask);
 /* The largest extension Append can write, footer included, for the current world. */
-size_t XvtFlightCheckpoint_Maximum(void);
+size_t xvt_flight_checkpoint_maximum(void);
 /* Writes the extension after prefix world bytes in image, which must hold prefix plus Maximum()
  * bytes. The footer records the network125 profile, the session cookie, the current game time and
  * both lengths. Returns the whole image size. */
-size_t XvtFlightCheckpoint_Append(uint8_t *image, size_t prefix);
+size_t xvt_flight_checkpoint_append(uint8_t *image, size_t prefix);
 /* Read without keeping the view: stores the world length and tick and returns 1 when the image is
  * valid, else returns 0. */
-int XvtFlightCheckpoint_Validate(const uint8_t *image, size_t size,
-				 size_t *prefix, int *tick);
+int xvt_flight_checkpoint_validate(const uint8_t *image, size_t size,
+				   size_t *prefix, int *tick);
 
-struct XvtFlightCheckpointView {
+struct xvt_flight_checkpoint_view {
 	size_t prefix;
 	int tick;
 	unsigned object_count;
 	const uint8_t *reference, *integration, *players, *paired;
-	struct XvtMembershipWire membership;
+	struct xvt_membership_wire membership;
 };
 
 /* Checks the extension of image against this session and world without changing any state: the
@@ -37,31 +37,32 @@ struct XvtFlightCheckpointView {
  * the CRC, the shared-slot count, a dry decode of every record, and membership whose initial mask
  * matches this flight and whose confirmed mask stays within it. The world bytes are not checked.
  * On 1, view points into image, which must outlive it. */
-int XvtFlightCheckpoint_Read(const uint8_t *image, size_t size,
-			     struct XvtFlightCheckpointView *view);
+int xvt_flight_checkpoint_read(const uint8_t *image, size_t size,
+			       struct xvt_flight_checkpoint_view *view);
 /* Install only a view validated with Read and the recovered world prefix. */
 /* Replaces every shared motion, integration and player timing record and the paired records,
  * applies the confirmed mask through ApplyConfirmedMask (raising the abort flag of each dropped
  * player), and sets the game time and network tick to the view's tick. */
-void XvtFlightCheckpoint_Restore(const struct XvtFlightCheckpointView *view);
+void xvt_flight_checkpoint_restore(
+	const struct xvt_flight_checkpoint_view *view);
 /* Network125 only: replaces player's paired record with the motion of the player's object, and of
  * the object it carries when that is another live shared slot, tagged with tick. The record stays
  * invalid when the player's object is not a live shared slot. */
-void XvtFlightCheckpoint_SavePlayer(unsigned player, int tick);
+void xvt_flight_checkpoint_save_player(unsigned player, int tick);
 /* Network125 only: restores player's paired motion when the record matches the player's current
  * object slot and signature and was saved at the player's lockstep tick; the carried object's
  * motion is restored when it still matches, else its integration is reset when it is shared. On a
  * mismatch, resets the integration of the player's object and invalidates the record. */
-void XvtFlightCheckpoint_RestorePlayer(unsigned player);
+void xvt_flight_checkpoint_restore_player(unsigned player);
 /* Clears player's paired record; ignored for an out-of-range player. */
-void XvtFlightCheckpoint_InvalidatePlayer(unsigned player);
+void xvt_flight_checkpoint_invalidate_player(unsigned player);
 /* The players present at flight start, one bit each. */
-uint8_t XvtFlightCheckpoint_InitialMask(void);
+uint8_t xvt_flight_checkpoint_initial_mask(void);
 /* The initial players still confirmed present. */
-uint8_t XvtFlightCheckpoint_ConfirmedMask(void);
+uint8_t xvt_flight_checkpoint_confirmed_mask(void);
 /* Sets the confirmed mask to mask within the initial mask, raises the abort flag of each initial
  * player it drops, and clears every other player's abort flag. */
-void XvtFlightCheckpoint_ApplyConfirmedMask(uint8_t mask);
+void xvt_flight_checkpoint_apply_confirmed_mask(uint8_t mask);
 #ifdef __cplusplus
 }
 #endif

@@ -1,10 +1,10 @@
 #include "xvt_app/settings/mouse_page.h"
 #include "xvt_runtime/config/config.h"
 
-void XvtMousePage_Draw(AeronUiContext *ui, const AeronInputSnapshot *input)
+void xvt_mouse_page_draw(AeronUiContext *ui, const AeronInputSnapshot *input)
 {
 	(void)input;
-	struct XvtMouseOptions options = XvtConfig_Settings()->mouse;
+	struct xvt_mouse_options options = xvt_config_settings()->mouse;
 	AeronUi_Header(ui, "Mouse Flight Control");
 	bool changed = AeronUi_Toggle(ui, "Mouse Flight Control",
 				      &options.mouse_flight_enabled);
@@ -23,13 +23,13 @@ void XvtMousePage_Draw(AeronUiContext *ui, const AeronInputSnapshot *input)
 	AeronUi_Help(ui, "Side button: toggle cockpit.");
 	AeronUi_Help(ui, "Ctrl+Alt+M releases or captures the pointer.");
 	if (AeronUi_Button(ui, "Restore Defaults")) {
-		options = XvtConfig_DefaultSettings()->mouse;
+		options = xvt_config_default_settings()->mouse;
 		changed = true;
 	}
 	if (changed) {
 		char error[512];
-		if (!XvtConfig_SetMouse(&options, error, sizeof error)) {
-			XvtSettingsMenu_ReportError(error);
+		if (!xvt_config_set_mouse(&options, error, sizeof error)) {
+			xvt_settings_menu_report_error(error);
 		}
 	}
 }

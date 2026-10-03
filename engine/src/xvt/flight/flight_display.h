@@ -10,41 +10,41 @@
 extern "C" {
 #endif
 
-extern IDirectDrawSurface *g_flightPrimarySurface;
-extern IDirectDrawSurface *g_flightRenderSurface;
-extern IDirectDrawSurface *g_flightBackBuffer;
-extern int g_flightPrimaryPitch[2];
-extern int g_flightConfFlicker;
-extern int g_flightFullscreen;
-extern int g_renderTargetWidth;
-extern int g_requestedFlightBytesPerPixel;
-extern int g_requestedFlightHardware3D;
-extern IDirectDrawPalette *g_flightPalette;
-extern uint8_t g_flightHudStagingBuffer[640 * 480 * 2];
-extern uint8_t g_flightSoftwareFramebuffer[640 * 480 * 2];
-extern char g_hudCockpitResolutionDirectory[7];
+extern IDirectDrawSurface *g_flight_primary_surface;
+extern IDirectDrawSurface *g_flight_render_surface;
+extern IDirectDrawSurface *g_flight_back_buffer;
+extern int g_flight_primary_pitch[2];
+extern int g_flight_conf_flicker;
+extern int g_flight_fullscreen;
+extern int g_render_target_width;
+extern int g_requested_flight_bytes_per_pixel;
+extern int g_requested_flight_hardware3d;
+extern IDirectDrawPalette *g_flight_palette;
+extern uint8_t g_flight_hud_staging_buffer[640 * 480 * 2];
+extern uint8_t g_flight_software_framebuffer[640 * 480 * 2];
+extern char g_hud_cockpit_resolution_directory[7];
 
-void FlightDisplay_ConfigureResolutionState(void);
-int FlightDisplay_ApplyResolutionModeStub(int resolutionMode);
-int FlightDisplay_PostPrimarySurfaceCreateOrRestoreStub(void);
-int FlightDisplay_Init(void);
-uint8_t FlightDisplay_SetPaletteEntries(const uint8_t *rgbData, int firstEntry,
-					int entryCount);
-int FlightDisplay_CleanupAndReportError(int errorCode);
-int FlightDisplay_GetPrimarySurfacePitch(void);
-HRESULT FlightDisplay_Flip(void);
+void flight_display_configure_resolution_state(void);
+int flight_display_apply_resolution_mode_stub(int resolution_mode);
+int flight_display_post_primary_surface_create_or_restore_stub(void);
+int flight_display_init(void);
+uint8_t flight_display_set_palette_entries(const uint8_t *rgb_data,
+					   int first_entry, int entry_count);
+int flight_display_cleanup_and_report_error(int error_code);
+int flight_display_get_primary_surface_pitch(void);
+HRESULT flight_display_flip(void);
 void nullsub_11(void);
-int FlightDisplay_BlitRenderSurface(void);
-void FlightDisplay_ApplyResolutionModeBackendStub(int resolutionMode);
-void FlightDisplay_ClearBackBuffer(void);
-void FlightDisplay_ClearSurface(IDirectDrawSurface *surface);
-int FlightDisplay_RestorePrimarySurface(void);
-int Display_IsPixelFormat555(void);
-int FlightDisplay_ApplyResolutionModeInternalStub(int resolutionMode,
-						  int flags);
-uint8_t FlightDisplay_WriteVgaPaletteEntries(const uint8_t *rgbEntries,
-					     int16_t firstEntry,
-					     int16_t entryCount);
+int flight_display_blit_render_surface(void);
+void flight_display_apply_resolution_mode_backend_stub(int resolution_mode);
+void flight_display_clear_back_buffer(void);
+void flight_display_clear_surface(IDirectDrawSurface *surface);
+int flight_display_restore_primary_surface(void);
+int display_is_pixel_format555(void);
+int flight_display_apply_resolution_mode_internal_stub(int resolution_mode,
+						       int flags);
+uint8_t flight_display_write_vga_palette_entries(const uint8_t *rgb_entries,
+						 int16_t first_entry,
+						 int16_t entry_count);
 
 #ifdef __cplusplus
 }

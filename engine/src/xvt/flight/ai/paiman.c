@@ -26,34 +26,34 @@
  * tables, entries 0 to 26 form a three by three by three grid 3,072 apart and
  * entry 27 is 0 on all three axes. paiman_escortmaneuver, its only reader,
  * multiplies the offset by 16 when the escorted craft's type has a
- * maxBoundsExtent of 3,000 or more. */
+ * max_bounds_extent of 3,000 or more. */
 // GLOBAL: XVT 0x527768
-const int16_t g_aiEscortStationOffsetXByVariable[28] = {
+const int16_t g_ai_escort_station_offset_x_by_variable[28] = {
 	-3072, 0,     3072,  -3072, 0,	   3072,  -3072, 0,    3072,  -3072,
 	0,     3072,  -3072, 0,	    3072,  -3072, 0,	 3072, -3072, 0,
 	3072,  -3072, 0,     3072,  -3072, 0,	  3072,	 0};
 /* Offset along the escorted craft's up axis of each escort station, indexed by
- * the escort order's variable1; see g_aiEscortStationOffsetXByVariable. */
+ * the escort order's variable1; see g_ai_escort_station_offset_x_by_variable. */
 // GLOBAL: XVT 0x5277A0
-const int16_t g_aiEscortStationOffsetYByVariable[28] = {
+const int16_t g_ai_escort_station_offset_y_by_variable[28] = {
 	3072,  3072,  3072,  3072,  3072,  3072,  3072,	 3072, 3072,  0,
 	0,     0,     0,     0,	    0,	   0,	  0,	 0,    -3072, -3072,
 	-3072, -3072, -3072, -3072, -3072, -3072, -3072, 0};
 /* Offset along the escorted craft's forward axis of each escort station,
  * indexed by the escort order's variable1; see
- * g_aiEscortStationOffsetXByVariable. */
+ * g_ai_escort_station_offset_x_by_variable. */
 // GLOBAL: XVT 0x5277D8
-const int16_t g_aiEscortStationOffsetZByVariable[28] = {
+const int16_t g_ai_escort_station_offset_z_by_variable[28] = {
 	3072, 3072, 3072, 0, 0,	    0,	   -3072, -3072, -3072, 3072,
 	3072, 3072, 0,	  0, 0,	    -3072, -3072, -3072, 3072,	3072,
 	3072, 0,    0,	  0, -3072, -3072, -3072, 0};
 
 /* Side offset, in model bound sizes, of each place in each of the 34
- * formations, by craftOrdinal 0 to 5. paiman_calcformation,
- * Mission_InitFlightGroupObjectSlot and Mission_ResolveFormationSlotWorldLoc
+ * formations, by craft_ordinal 0 to 5. paiman_calcformation,
+ * mission_init_flight_group_object_slot and mission_resolve_formation_slot_world_loc
  * read it. */
 // GLOBAL: XVT 0x527970
-const int16_t g_formPosX[34][6] = {
+const int16_t g_form_pos_x[34][6] = {
 	{0, 1, -1, 2, -2, 3},	  {0, 1, -2, -3, 2, 3},
 	{0, 0, 0, 0, 0, 0},	  {0, 1, -1, 2, -2, 3},
 	{1, 2, 3, 4, 5, 6},	  {-1, -2, -3, -4, -5, -6},
@@ -73,9 +73,9 @@ const int16_t g_formPosX[34][6] = {
 	{0, 0, 0, 0, 0, 0},	  {-1, 1, -2, 2, -1, 1},
 };
 /* Forward offset, in model bound sizes, of each place in each of the 34
- * formations, by craftOrdinal 0 to 5; see g_formPosX. */
+ * formations, by craft_ordinal 0 to 5; see g_form_pos_x. */
 // GLOBAL: XVT 0x527B08
-const int16_t g_formPosY[34][6] = {
+const int16_t g_form_pos_y[34][6] = {
 	{0, -1, -1, -2, -2, -3},  {3, 2, 1, 0, -1, -2},
 	{-1, -2, -3, -4, -5, -6}, {0, 0, 0, 0, 0, 0},
 	{0, -1, -2, -3, -4, -5},  {0, -1, -2, -3, -4, -5},
@@ -95,9 +95,9 @@ const int16_t g_formPosY[34][6] = {
 	{2, 2, 0, 0, -2, -2},	  {0, 0, 0, 0, 0, 0},
 };
 /* Up offset, in model bound sizes, of each place in each of the 34 formations,
- * by craftOrdinal 0 to 5; see g_formPosX. */
+ * by craft_ordinal 0 to 5; see g_form_pos_x. */
 // GLOBAL: XVT 0x527CA0
-const int16_t g_formPosZ[34][6] = {
+const int16_t g_form_pos_z[34][6] = {
 	{0, 0, 0, 0, 0, 0},	  {0, 1, -1, -2, 2, 3},
 	{0, 0, 0, 0, 0, 0},	  {0, 0, 0, 0, 0, 0},
 	{0, 1, 2, 3, 4, 5},	  {0, 1, 2, 3, 4, 5},
@@ -118,46 +118,46 @@ const int16_t g_formPosZ[34][6] = {
 };
 /* What each formation's offsets are divided by: 3 for formations 1 and 28 to
  * 30, 2 for 31 to 33, else 1. Read by paiman_calcformation and
- * Mission_InitFlightGroupObjectSlot. */
+ * mission_init_flight_group_object_slot. */
 // GLOBAL: XVT 0x527E38
-const int16_t g_formationDivisor[34] = {1, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-					1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-					1, 1, 1, 1, 3, 3, 3, 2, 2, 2};
+const int16_t g_formation_divisor[34] = {1, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+					 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+					 1, 1, 1, 1, 3, 3, 3, 2, 2, 2};
 
 /* Simulated seconds, by skill tier 0 to 2, between the course updates of the
  * turn-away and turn-inside maneuvers; the readers multiply by
  * SIMULATION_TICKS_PER_SECOND. Entry 3 is 0. Nothing writes it. */
 // GLOBAL: XVT 0x527760
-uint16_t g_aiTurnAwayStateDelayBySkill[4] = {5, 3, 1, 0};
+uint16_t g_ai_turn_away_state_delay_by_skill[4] = {5, 3, 1, 0};
 
 /* Throttle, as a fraction of 65,535, for each mission order throttle setting 0
  * to 10, in tenths; entry 11 is 0. The cruise and rendezvous maneuvers,
- * Mission_InitFlightGroupObjectSlot and Player_UnbindFromCurrentCraft read it.
+ * mission_init_flight_group_object_slot and player_unbind_from_current_craft read it.
  * Nothing writes it. */
 // GLOBAL: XVT 0x527810
-uint16_t g_orderThrottleToCraftThrottleSpeed[12] = {0,	   6553,  13108, 19662,
-						    26216, 32768, 39322, 45876,
-						    52430, 58984, 65535, 0};
+uint16_t g_order_throttle_to_craft_throttle_speed[12] = {
+	0,     6553,  13108, 19662, 26216, 32768,
+	39322, 45876, 52430, 58984, 65535, 0};
 
 /* Simulated seconds, by the flight group's AI level, between the weaves of the
  * avoid-attacker maneuver: 8 down to 1, then 0. */
 // GLOBAL: XVT 0x527950
-const uint16_t g_aiAvoidAttackerDelaySecondsByGroupAI[8] = {8, 6, 5, 3,
-							    2, 1, 0, 0};
+const uint16_t g_ai_avoid_attacker_delay_seconds_by_group_ai[8] = {8, 6, 5, 3,
+								   2, 1, 0, 0};
 
 /* A fraction of a simulated second, by the flight group's AI level, added to
- * g_aiAvoidAttackerDelaySecondsByGroupAI; every entry is 0, so it adds
+ * g_ai_avoid_attacker_delay_seconds_by_group_ai; every entry is 0, so it adds
  * nothing. */
 // GLOBAL: XVT 0x527960
-const uint16_t g_aiAvoidAttackerDelayFracQ16ByGroupAI[8] = {0, 0, 0, 0,
-							    0, 0, 0, 0};
+const uint16_t g_ai_avoid_attacker_delay_frac_q16_by_group_ai[8] = {0, 0, 0, 0,
+								    0, 0, 0, 0};
 
 /* The speed paiman_outofhyperspacemaneuver gives an arriving craft for each
- * maneuverPhase value: 3,600 for 0 to 5, 1,800 for 6 to 8, 900 for 9 and 10, 0
- * for 11. It raises maneuverPhase before it reads, from 1 up to 10, so entries
+ * maneuver_phase value: 3,600 for 0 to 5, 1,800 for 6 to 8, 900 for 9 and 10, 0
+ * for 11. It raises maneuver_phase before it reads, from 1 up to 10, so entries
  * 0 and 11 are never read. */
 // GLOBAL: XVT 0x527938
-const uint16_t g_aiHyperspaceArrivalSpeedByPhase[12] = {
+const uint16_t g_ai_hyperspace_arrival_speed_by_phase[12] = {
 	3600, 3600, 3600, 3600, 3600, 3600, 1800, 1800, 1800, 900, 900, 0,
 };
 
@@ -166,8 +166,8 @@ const uint16_t g_aiHyperspaceArrivalSpeedByPhase[12] = {
  * runs paiorder_nullhandler; rocket attack shares the attack function, stop
  * shares await-board, and evasive shares splits-dive. Nothing writes it. */
 // GLOBAL: XVT 0x527828
-AiCourseOrderManeuverProc g_aiCourseOrderManeuverTable[AI_MANEUVER_MODE_COUNT] =
-	{
+ai_course_order_maneuver_proc
+	g_ai_course_order_maneuver_table[AI_MANEUVER_MODE_COUNT] = {
 		paiorder_nullhandler,
 		paiman_turninsidemaneuver,
 		paiman_splitsmaneuver,
@@ -208,8 +208,8 @@ AiCourseOrderManeuverProc g_aiCourseOrderManeuverTable[AI_MANEUVER_MODE_COUNT] =
  * Mode 0 calls paiorder_nullhandler through this void function type; the pairs
  * that share a step function share a start function too. Nothing writes it. */
 // GLOBAL: XVT 0x5278B0
-AiManeuverInitProc g_maneuverInitTable[AI_MANEUVER_MODE_COUNT] = {
-	(AiManeuverInitProc)paiorder_nullhandler,
+ai_maneuver_init_proc g_maneuver_init_table[AI_MANEUVER_MODE_COUNT] = {
+	(ai_maneuver_init_proc)paiorder_nullhandler,
 	paiman_initturninsidemaneuver,
 	paiman_initsplitsmaneuver,
 	paiman_initimmelmannmaneuver,
@@ -248,134 +248,134 @@ AiManeuverInitProc g_maneuverInitTable[AI_MANEUVER_MODE_COUNT] = {
 /* The step function paiorder_updatecourseorder picked last; only it writes and
  * calls it. */
 // GLOBAL: XVT 0x9993F4
-AiCourseOrderManeuverProc g_aiCurrentManeuverProc;
+ai_course_order_maneuver_proc g_ai_current_maneuver_proc;
 
 /* The start function paiman_initmaneuver picked last; only it writes and calls
  * it. */
 // GLOBAL: XVT 0x9993F8
-AiManeuverInitProc g_aiCurrentManeuverInitProc = 0;
+ai_maneuver_init_proc g_ai_current_maneuver_init_proc = 0;
 
-/* Starts the craft's maneuverMode. Clears its push, hitsThisManeuver,
- * warheadsFiredThisManeuver and warheadLockTicks, sets commandedSpeed to five
- * times the current order's speed, rollState to 4 and maneuverPhase to 0, then
- * runs the mode's start function from g_maneuverInitTable through
- * g_aiCurrentManeuverInitProc. Works on g_curCraft and g_paiContext. Does not
- * check maneuverMode against the table's 34 entries. */
+/* Starts the craft's maneuver_mode. Clears its push, hits_this_maneuver,
+ * warheads_fired_this_maneuver and warhead_lock_ticks, sets commanded_speed to five
+ * times the current order's speed, roll_state to 4 and maneuver_phase to 0, then
+ * runs the mode's start function from g_maneuver_init_table through
+ * g_ai_current_maneuver_init_proc. Works on g_cur_craft and g_pai_context. Does not
+ * check maneuver_mode against the table's 34 entries. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x49F360
 void paiman_initmaneuver(void)
 {
-	g_curCraft->pushAccumX = 0;
-	g_curCraft->pushAccumY = g_curCraft->pushAccumX;
-	g_curCraft->pushAccumZ = g_curCraft->pushAccumY;
-	g_curCraft->aiFlight.hitsThisManeuver = 0;
-	g_curCraft->aiFlight.warheadsFiredThisManeuver = 0;
-	g_curCraft->warheadLockTicks = 0;
-	g_curCraft->commandedSpeed =
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-			.fg.orders[g_paiContext.orderSlot]
+	g_cur_craft->push_accum_x = 0;
+	g_cur_craft->push_accum_y = g_cur_craft->push_accum_x;
+	g_cur_craft->push_accum_z = g_cur_craft->push_accum_y;
+	g_cur_craft->ai_flight.hits_this_maneuver = 0;
+	g_cur_craft->ai_flight.warheads_fired_this_maneuver = 0;
+	g_cur_craft->warhead_lock_ticks = 0;
+	g_cur_craft->commanded_speed =
+		g_mission_flight_groups[g_pai_context.craft_flight_group_index]
+			.fg.orders[g_pai_context.order_slot]
 			.speed;
-	g_curCraft->commandedSpeed *= 5;
-	g_curCraft->aiFlight.rollState = 4;
-	g_paiContext.controller->maneuverPhase = 0;
-	g_aiCurrentManeuverInitProc =
-		g_maneuverInitTable[g_paiContext.controller->maneuverMode];
-	g_aiCurrentManeuverInitProc();
+	g_cur_craft->commanded_speed *= 5;
+	g_cur_craft->ai_flight.roll_state = 4;
+	g_pai_context.controller->maneuver_phase = 0;
+	g_ai_current_maneuver_init_proc =
+		g_maneuver_init_table[g_pai_context.controller->maneuver_mode];
+	g_ai_current_maneuver_init_proc();
 }
 
-/* Starts turn inside: picks a side at random in maneuverPhase, sets the first
- * heading with paiman_UpdateTurnInsideHeading, and runs it for 10 to 17 times
+/* Starts turn inside: picks a side at random in maneuver_phase, sets the first
+ * heading with paiman_update_turn_inside_heading, and runs it for 10 to 17 times
  * SIMULATION_TICKS_PER_SECOND ticks. */
 // FUNCTION: XVT 0x49F450
 void paiman_initturninsidemaneuver(void)
 {
-	g_paiContext.controller->maneuverPhase = GameRand() & 1;
-	paiman_UpdateTurnInsideHeading(g_paiContext.objectIndex);
-	g_paiContext.controller->maneuverTimer =
-		SIMULATION_TICKS_PER_SECOND * ((GameRand() & 7) + 10);
+	g_pai_context.controller->maneuver_phase = game_rand() & 1;
+	paiman_update_turn_inside_heading(g_pai_context.object_index);
+	g_pai_context.controller->maneuver_timer =
+		SIMULATION_TICKS_PER_SECOND * ((game_rand() & 7) + 10);
 }
 
 /* Returns 1 once the maneuver timer has run out, else 0; each time
- * secondaryManeuverTimer runs out it sets a new heading with
- * paiman_UpdateTurnInsideHeading. */
+ * secondary_maneuver_timer runs out it sets a new heading with
+ * paiman_update_turn_inside_heading. */
 // FUNCTION: XVT 0x49F4A0
 int16_t paiman_turninsidemaneuver(void)
 {
-	if (g_paiContext.controller->maneuverTimer == 0) {
+	if (g_pai_context.controller->maneuver_timer == 0) {
 		return 1;
 	}
-	if (g_paiContext.controller->secondaryManeuverTimer == 0) {
-		paiman_UpdateTurnInsideHeading(g_paiContext.objectIndex);
+	if (g_pai_context.controller->secondary_maneuver_timer == 0) {
+		paiman_update_turn_inside_heading(g_pai_context.object_index);
 	}
 	return 0;
 }
 
 /* Turns the craft a quarter turn off its attacker's yaw, or off the yaw of the
  * fallback object when it has no attacker: minus 0x4000 for an odd
- * maneuverPhase, plus for an even one. The turn step is half the effective
- * skill plus 0x8000. Sets secondaryManeuverTimer to the tier's
- * g_aiTurnAwayStateDelayBySkill seconds in ticks. */
+ * maneuver_phase, plus for an even one. The turn step is half the effective
+ * skill plus 0x8000. Sets secondary_maneuver_timer to the tier's
+ * g_ai_turn_away_state_delay_by_skill seconds in ticks. */
 // FUNCTION: XVT 0x49F4E0
-void paiman_UpdateTurnInsideHeading(unsigned int fallbackObjIdx)
+void paiman_update_turn_inside_heading(unsigned int fallback_obj_idx)
 {
 	uint16_t yaw;
-	uint16_t effectiveSkill;
-	unsigned int turnStep;
+	uint16_t effective_skill;
+	unsigned int turn_step;
 
-	if (g_curCraft->lastAttackerObjIdx != UINT16_MAX) {
-		if ((g_paiContext.controller->maneuverPhase & 1) != 0) {
-			yaw = g_objectTable[g_curCraft->lastAttackerObjIdx]
+	if (g_cur_craft->last_attacker_obj_idx != UINT16_MAX) {
+		if ((g_pai_context.controller->maneuver_phase & 1) != 0) {
+			yaw = g_object_table[g_cur_craft->last_attacker_obj_idx]
 				      .yaw -
 			      0x4000;
 		} else {
-			yaw = g_objectTable[g_curCraft->lastAttackerObjIdx]
+			yaw = g_object_table[g_cur_craft->last_attacker_obj_idx]
 				      .yaw +
 			      0x4000;
 		}
 	} else {
-		if ((g_paiContext.controller->maneuverPhase & 1) != 0) {
-			yaw = g_objectTable[fallbackObjIdx].yaw - 0x4000;
+		if ((g_pai_context.controller->maneuver_phase & 1) != 0) {
+			yaw = g_object_table[fallback_obj_idx].yaw - 0x4000;
 		} else {
-			yaw = g_objectTable[fallbackObjIdx].yaw + 0x4000;
+			yaw = g_object_table[fallback_obj_idx].yaw + 0x4000;
 		}
 	}
-	g_paiContext.controller->targetXYAngle = yaw;
-	effectiveSkill = pai_GetEffectiveSkillValue(g_curCraft);
-	turnStep = effectiveSkill >> 1;
-	turnStep += 0x8000;
-	paiman_setturn((uint16_t)turnStep);
-	g_paiContext.controller->secondaryManeuverTimer =
+	g_pai_context.controller->target_xy_angle = yaw;
+	effective_skill = pai_get_effective_skill_value(g_cur_craft);
+	turn_step = effective_skill >> 1;
+	turn_step += 0x8000;
+	paiman_setturn((uint16_t)turn_step);
+	g_pai_context.controller->secondary_maneuver_timer =
 		SIMULATION_TICKS_PER_SECOND *
-		g_aiTurnAwayStateDelayBySkill[g_paiContext.skillTier];
+		g_ai_turn_away_state_delay_by_skill[g_pai_context.skill_tier];
 }
 
 /* Starts splits: no turn, and a pitch through a loop at full step with
- * pitchState 2 until it comes back to targetZAngle 0x4000. It sets targetRoll
- * to 0x8000 and rollStep to full but leaves rollState at 4 from
+ * pitch_state 2 until it comes back to target_z_angle 0x4000. It sets target_roll
+ * to 0x8000 and roll_step to full but leaves roll_state at 4 from
  * paiman_initmaneuver, so no roll starts. */
 // FUNCTION: XVT 0x49F5C0
 void paiman_initsplitsmaneuver(void)
 {
-	g_curCraft->aiFlight.rollStep = 0xFFFFu;
-	g_paiContext.controller->targetRoll = 0x8000;
-	g_curCraft->aiFlight.turnState = 0;
-	g_curCraft->aiFlight.pitchThroughLoop = 1;
-	g_paiContext.controller->targetZAngle = 0x4000;
-	g_curCraft->aiFlight.pitchState = 2;
-	g_curCraft->aiFlight.pitchStepScale = 0xFFFFu;
+	g_cur_craft->ai_flight.roll_step = 0xFFFFu;
+	g_pai_context.controller->target_roll = 0x8000;
+	g_cur_craft->ai_flight.turn_state = 0;
+	g_cur_craft->ai_flight.pitch_through_loop = 1;
+	g_pai_context.controller->target_z_angle = 0x4000;
+	g_cur_craft->ai_flight.pitch_state = 2;
+	g_cur_craft->ai_flight.pitch_step_scale = 0xFFFFu;
 }
 
-/* Returns 1 once the roll and the pitch are done (rollState 4, pitchState 3),
+/* Returns 1 once the roll and the pitch are done (roll_state 4, pitch_state 3),
  * else 0. */
 // FUNCTION: XVT 0x49F620
 int16_t paiman_splitsmaneuver(void)
 {
-	return g_curCraft->aiFlight.rollState == 4 &&
-	       g_curCraft->aiFlight.pitchState == 3;
+	return g_cur_craft->ai_flight.roll_state == 4 &&
+	       g_cur_craft->ai_flight.pitch_state == 3;
 }
 
 /* Starts the Immelmann: full throttle, a roll to 0 at full step, no turn, and a
- * pitch to targetZAngle 0x4000 at full step without a loop, with pitchState set
+ * pitch to target_z_angle 0x4000 at full step without a loop, with pitch_state set
  * by which side of 0x4000 the pitch is on (3 when on it). Sets the maneuver
  * timer to 0. */
 // FUNCTION: XVT 0x49F650
@@ -383,57 +383,57 @@ void paiman_initimmelmannmaneuver(void)
 {
 	uint16_t pitch;
 
-	paiman_setpower(g_paiContext.objectIndex, 0xFFFFu);
-	g_curCraft->aiFlight.rollState = 1;
-	g_curCraft->aiFlight.rollStep = 0xFFFFu;
-	g_paiContext.controller->targetRoll = 0;
-	g_curCraft->aiFlight.turnState = 0;
-	g_paiContext.controller->targetZAngle = 0x4000;
-	g_curCraft->aiFlight.pitchStepScale = 0xFFFFu;
-	g_curCraft->aiFlight.pitchThroughLoop = 0;
-	pitch = g_curCraft->pitch;
+	paiman_setpower(g_pai_context.object_index, 0xFFFFu);
+	g_cur_craft->ai_flight.roll_state = 1;
+	g_cur_craft->ai_flight.roll_step = 0xFFFFu;
+	g_pai_context.controller->target_roll = 0;
+	g_cur_craft->ai_flight.turn_state = 0;
+	g_pai_context.controller->target_z_angle = 0x4000;
+	g_cur_craft->ai_flight.pitch_step_scale = 0xFFFFu;
+	g_cur_craft->ai_flight.pitch_through_loop = 0;
+	pitch = g_cur_craft->pitch;
 	if (pitch < 0x4000u) {
-		g_curCraft->aiFlight.pitchState = 2;
+		g_cur_craft->ai_flight.pitch_state = 2;
 	} else if (pitch > 0x4000u) {
-		g_curCraft->aiFlight.pitchState = 1;
+		g_cur_craft->ai_flight.pitch_state = 1;
 	} else {
-		g_curCraft->aiFlight.pitchState = 3;
+		g_cur_craft->ai_flight.pitch_state = 3;
 	}
-	g_paiContext.controller->maneuverTimer = 0;
+	g_pai_context.controller->maneuver_timer = 0;
 }
 
-/* Steps the Immelmann by maneuverPhase; returns 1 at 2 once the roll and pitch
+/* Steps the Immelmann by maneuver_phase; returns 1 at 2 once the roll and pitch
  * are done, else 0. At 0, once the pitch is at 0x4000, it starts a pitch
- * through a loop with pitchState 1 back to 0x4000 and moves to 1; at 1, once
+ * through a loop with pitch_state 1 back to 0x4000 and moves to 1; at 1, once
  * that ends, a roll to 0 at full step, no turn, and 2. */
 // FUNCTION: XVT 0x49F700
 int16_t paiman_immelmannmaneuver(void)
 {
-	int maneuverPhase;
+	int maneuver_phase;
 
-	maneuverPhase = g_paiContext.controller->maneuverPhase;
-	switch (maneuverPhase) {
+	maneuver_phase = g_pai_context.controller->maneuver_phase;
+	switch (maneuver_phase) {
 	case 0:
-		if (g_curCraft->aiFlight.pitchState == 3) {
-			g_curCraft->aiFlight.pitchState = 1;
-			g_curCraft->aiFlight.pitchStepScale = -1;
-			g_curCraft->aiFlight.pitchThroughLoop = 1;
-			g_paiContext.controller->targetZAngle = 0x4000;
-			g_paiContext.controller->maneuverPhase = 1;
+		if (g_cur_craft->ai_flight.pitch_state == 3) {
+			g_cur_craft->ai_flight.pitch_state = 1;
+			g_cur_craft->ai_flight.pitch_step_scale = -1;
+			g_cur_craft->ai_flight.pitch_through_loop = 1;
+			g_pai_context.controller->target_z_angle = 0x4000;
+			g_pai_context.controller->maneuver_phase = 1;
 		}
 		break;
 	case 1:
-		if (g_curCraft->aiFlight.pitchState == 3) {
-			g_curCraft->aiFlight.rollState = 1;
-			g_curCraft->aiFlight.rollStep = -1;
-			g_paiContext.controller->targetRoll = 0;
-			g_curCraft->aiFlight.turnState = 0;
-			g_paiContext.controller->maneuverPhase = 2;
+		if (g_cur_craft->ai_flight.pitch_state == 3) {
+			g_cur_craft->ai_flight.roll_state = 1;
+			g_cur_craft->ai_flight.roll_step = -1;
+			g_pai_context.controller->target_roll = 0;
+			g_cur_craft->ai_flight.turn_state = 0;
+			g_pai_context.controller->maneuver_phase = 2;
 		}
 		break;
 	case 2:
-		if (g_curCraft->aiFlight.rollState == 4 &&
-		    g_curCraft->aiFlight.pitchState == 3) {
+		if (g_cur_craft->ai_flight.roll_state == 4 &&
+		    g_cur_craft->ai_flight.pitch_state == 3) {
 			return 1;
 		}
 		break;
@@ -445,62 +445,63 @@ int16_t paiman_immelmannmaneuver(void)
 
 /* Starts scissors: a turn to half a circle off the attacker's yaw, or its own
  * when it has none, at half the effective skill plus 0x8000; a roll that does
- * not stop (rollState 3) at full step, its way set by a random targetRoll; a
+ * not stop (roll_state 3) at full step, its way set by a random target_roll; a
  * maneuver timer of 10 to 17 times SIMULATION_TICKS_PER_SECOND and a secondary
  * timer of 472 ticks. */
 // FUNCTION: XVT 0x49F7E0
 void paiman_initscissorsmaneuver(void)
 {
-	uint16_t effectiveSkill;
-	int objectIndex;
-	uint16_t lastAttackerObjIdx;
-	unsigned int turnStep;
+	uint16_t effective_skill;
+	int object_index;
+	uint16_t last_attacker_obj_idx;
+	unsigned int turn_step;
 
-	lastAttackerObjIdx = g_curCraft->lastAttackerObjIdx;
-	if (lastAttackerObjIdx != UINT16_MAX) {
-		objectIndex = lastAttackerObjIdx;
+	last_attacker_obj_idx = g_cur_craft->last_attacker_obj_idx;
+	if (last_attacker_obj_idx != UINT16_MAX) {
+		object_index = last_attacker_obj_idx;
 	} else {
-		objectIndex = g_paiContext.objectIndex;
+		object_index = g_pai_context.object_index;
 	}
-	g_paiContext.controller->targetXYAngle =
-		g_objectTable[objectIndex].yaw + 0x8000;
-	effectiveSkill = pai_GetEffectiveSkillValue(g_curCraft);
-	turnStep = (effectiveSkill >> 1) + 0x8000;
-	paiman_setturn((uint16_t)turnStep);
-	g_curCraft->aiFlight.rollState = 3;
-	g_curCraft->aiFlight.rollStep = -1;
-	g_paiContext.controller->targetRoll = (uint16_t)GameRand();
-	g_paiContext.controller->maneuverTimer =
-		SIMULATION_TICKS_PER_SECOND * ((GameRand() & 7) + 10);
-	g_paiContext.controller->secondaryManeuverTimer = 472;
+	g_pai_context.controller->target_xy_angle =
+		g_object_table[object_index].yaw + 0x8000;
+	effective_skill = pai_get_effective_skill_value(g_cur_craft);
+	turn_step = (effective_skill >> 1) + 0x8000;
+	paiman_setturn((uint16_t)turn_step);
+	g_cur_craft->ai_flight.roll_state = 3;
+	g_cur_craft->ai_flight.roll_step = -1;
+	g_pai_context.controller->target_roll = (uint16_t)game_rand();
+	g_pai_context.controller->maneuver_timer =
+		SIMULATION_TICKS_PER_SECOND * ((game_rand() & 7) + 10);
+	g_pai_context.controller->secondary_maneuver_timer = 472;
 }
 
-/* Returns 1, setting rollState 4, once the maneuver timer has run out; else 0.
- * Each time secondaryManeuverTimer runs out it turns again by half a circle and
+/* Returns 1, setting roll_state 4, once the maneuver timer has run out; else 0.
+ * Each time secondary_maneuver_timer runs out it turns again by half a circle and
  * flips the roll's way, and sets the timer to 472 plus up to 236 ticks at
  * random; a flight group of AI level 3 or more then fires a flare on one draw
- * in four when it has one and cmFireCooldownTimer is 0. */
+ * in four when it has one and cm_fire_cooldown_timer is 0. */
 // FUNCTION: XVT 0x49F8B0
 int16_t paiman_scissorsmaneuver(void)
 {
-	if (g_paiContext.controller->maneuverTimer == 0) {
-		g_curCraft->aiFlight.rollState = 4;
+	if (g_pai_context.controller->maneuver_timer == 0) {
+		g_cur_craft->ai_flight.roll_state = 4;
 		return 1;
 	}
-	if (g_paiContext.controller->secondaryManeuverTimer == 0) {
-		g_curCraft->aiFlight.turnState = 1;
-		g_paiContext.controller->targetXYAngle += 0x8000;
-		g_paiContext.controller->targetRoll ^= 0x8000u;
-		g_paiContext.controller->secondaryManeuverTimer =
-			MATH2_fraction((uint16_t)GameRand(), 0xEC) + 472;
-		if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-				    .fg.groupAI >= 3 &&
-		    (GameRand() & 3) == 3 &&
-		    g_curCraft->cmTypeId == COUNTERMEASURE_TYPE_FLARE &&
-		    g_curCraft->cmAmmoCount != 0 &&
-		    g_curCraft->cmFireCooldownTimer == 0) {
+	if (g_pai_context.controller->secondary_maneuver_timer == 0) {
+		g_cur_craft->ai_flight.turn_state = 1;
+		g_pai_context.controller->target_xy_angle += 0x8000;
+		g_pai_context.controller->target_roll ^= 0x8000u;
+		g_pai_context.controller->secondary_maneuver_timer =
+			math2_fraction((uint16_t)game_rand(), 0xEC) + 472;
+		if (g_mission_flight_groups[g_pai_context
+						    .craft_flight_group_index]
+				    .fg.group_ai >= 3 &&
+		    (game_rand() & 3) == 3 &&
+		    g_cur_craft->cm_type_id == COUNTERMEASURE_TYPE_FLARE &&
+		    g_cur_craft->cm_ammo_count != 0 &&
+		    g_cur_craft->cm_fire_cooldown_timer == 0) {
 			laser_createcountermeasureprojectile(
-				g_paiContext.objectIndex,
+				g_pai_context.object_index,
 				COUNTERMEASURE_PROJECTILE_OBJECT_TYPE);
 		}
 	}
@@ -516,14 +517,14 @@ void paiman_initrendezvousmaneuver(void)
 	uint16_t throttle;
 
 	paiman_setflighttotarget(0, 1);
-	throttle = g_orderThrottleToCraftThrottleSpeed
-		[g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-			 .fg.orders[g_paiContext.orderSlot]
+	throttle = g_order_throttle_to_craft_throttle_speed
+		[g_mission_flight_groups[g_pai_context.craft_flight_group_index]
+			 .fg.orders[g_pai_context.order_slot]
 			 .throttle];
 	if (throttle == 0) {
 		throttle = UINT16_MAX;
 	}
-	paiman_setpower(g_paiContext.objectIndex, throttle);
+	paiman_setpower(g_pai_context.object_index, throttle);
 }
 
 /* Steers at the aim point and sets the throttle as
@@ -534,46 +535,46 @@ int16_t paiman_rendezvousmaneuver(void)
 	uint16_t throttle;
 
 	paiman_setflighttotarget(0, 1);
-	throttle = g_orderThrottleToCraftThrottleSpeed
-		[g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-			 .fg.orders[g_paiContext.orderSlot]
+	throttle = g_order_throttle_to_craft_throttle_speed
+		[g_mission_flight_groups[g_pai_context.craft_flight_group_index]
+			 .fg.orders[g_pai_context.order_slot]
 			 .throttle];
 	if (throttle == 0) {
 		throttle = UINT16_MAX;
 	}
-	paiman_setpower(g_paiContext.objectIndex, throttle);
+	paiman_setpower(g_pai_context.object_index, throttle);
 	return 0;
 }
 
 /* Starts cruise: levels the craft with paiman_initcruiseandrunawaycontrols,
  * steers at the aim point when its roll is below 0x8000, sets the throttle from
- * the order's throttle setting and secondaryManeuverTimer to
+ * the order's throttle setting and secondary_maneuver_timer to
  * SIMULATION_TICKS_PER_SECOND. */
 // FUNCTION: XVT 0x49FA80
 void paiman_initcruisemaneuver(void)
 {
 	paiman_initcruiseandrunawaycontrols();
-	if (g_objectTable[g_paiContext.objectIndex].roll < 0x8000) {
+	if (g_object_table[g_pai_context.object_index].roll < 0x8000) {
 		paiman_setflighttotarget(0, 1);
 	}
 	paiman_setpower(
-		g_paiContext.objectIndex,
-		g_orderThrottleToCraftThrottleSpeed
-			[g_missionFlightGroups[g_paiContext
-						       .craftFlightGroupIndex]
-				 .fg.orders[g_paiContext.orderSlot]
-				 .throttle]);
-	g_paiContext.controller->secondaryManeuverTimer =
+		g_pai_context.object_index,
+		g_order_throttle_to_craft_throttle_speed
+			[g_mission_flight_groups
+				 [g_pai_context.craft_flight_group_index]
+					 .fg.orders[g_pai_context.order_slot]
+					 .throttle]);
+	g_pai_context.controller->secondary_maneuver_timer =
 		SIMULATION_TICKS_PER_SECOND;
 }
 
 /* Flies the order's waypoints; returns 0 on every path. Within 0x1000 world
  * units of the aim point (0x2000 for a starship) it moves to the next waypoint
- * with paiman_AdvanceOrderWaypoint; a starship or freighter whose waypointIndex
+ * with paiman_advance_order_waypoint; a starship or freighter whose waypoint_index
  * came back unchanged then stops: turn done, throttle 0, and a push onto the
- * aim point. Each time secondaryManeuverTimer runs out, when neither climbing
+ * aim point. Each time secondary_maneuver_timer runs out, when neither climbing
  * nor diving and more than 512 off the aim point in Z, it sets a pitch toward
- * it, climbState 1 and throttle 0xC000, which the paiman_setflighttotarget call
+ * it, climb_state 1 and throttle 0xC000, which the paiman_setflighttotarget call
  * right after and the throttle below replace; it steers at the aim point,
  * resets the timer, and rolls level once its turn is done. The throttle is the
  * order's setting; a starship's is 0 while it turns more than 0x1000 off
@@ -581,155 +582,162 @@ void paiman_initcruisemaneuver(void)
 // FUNCTION: XVT 0x49FB20
 int16_t paiman_cruisemaneuver(void)
 {
-	uint8_t waypointIndex;
-	uint8_t genusId;
-	int zDistance;
-	struct ObjectRecord *object;
-	uint16_t yawDifference;
-	uint16_t throttleIndex;
+	uint8_t waypoint_index;
+	uint8_t genus_id;
+	int z_distance;
+	struct object_record *object;
+	uint16_t yaw_difference;
+	uint16_t throttle_index;
 
-	pai_CalcAnglesToAimPoint();
+	pai_calc_angles_to_aim_point();
 	if (trig2_polardistance <
-	    (g_objectTable[g_paiContext.objectIndex].genusId == 4 ? 0x2000
-								  : 0x1000)) {
-		waypointIndex = g_paiContext.controller->waypointIndex;
-		paiman_AdvanceOrderWaypoint(g_paiContext.objectIndex);
-		genusId = g_objectTable[g_paiContext.objectIndex].genusId;
-		if ((genusId == 4 || genusId == 3) &&
-		    g_paiContext.controller->waypointIndex == waypointIndex) {
-			g_curCraft->aiFlight.turnState = 3;
-			paiman_setpower(g_paiContext.objectIndex, 0);
-			g_curCraft->pushAccumX =
-				g_paiContext.controller->aimPointX -
-				g_objectTable[g_paiContext.objectIndex].world_x;
-			g_curCraft->pushAccumY =
-				g_paiContext.controller->aimPointY -
-				g_objectTable[g_paiContext.objectIndex].world_y;
-			g_curCraft->pushAccumZ =
-				g_paiContext.controller->aimPointZ -
-				g_objectTable[g_paiContext.objectIndex].world_z;
+	    (g_object_table[g_pai_context.object_index].genus_id == 4
+		     ? 0x2000
+		     : 0x1000)) {
+		waypoint_index = g_pai_context.controller->waypoint_index;
+		paiman_advance_order_waypoint(g_pai_context.object_index);
+		genus_id = g_object_table[g_pai_context.object_index].genus_id;
+		if ((genus_id == 4 || genus_id == 3) &&
+		    g_pai_context.controller->waypoint_index ==
+			    waypoint_index) {
+			g_cur_craft->ai_flight.turn_state = 3;
+			paiman_setpower(g_pai_context.object_index, 0);
+			g_cur_craft->push_accum_x =
+				g_pai_context.controller->aim_point_x -
+				g_object_table[g_pai_context.object_index]
+					.world_x;
+			g_cur_craft->push_accum_y =
+				g_pai_context.controller->aim_point_y -
+				g_object_table[g_pai_context.object_index]
+					.world_y;
+			g_cur_craft->push_accum_z =
+				g_pai_context.controller->aim_point_z -
+				g_object_table[g_pai_context.object_index]
+					.world_z;
 			return 0;
 		}
 	}
 
-	if (g_paiContext.controller->secondaryManeuverTimer == 0) {
-		if (g_curCraft->aiFlight.diveState != 1 &&
-		    g_curCraft->aiFlight.climbState != 1) {
-			zDistance =
-				g_paiContext.controller->aimPointZ -
-				g_objectTable[g_paiContext.objectIndex].world_z;
-			if (zDistance < 0) {
-				zDistance = -zDistance;
+	if (g_pai_context.controller->secondary_maneuver_timer == 0) {
+		if (g_cur_craft->ai_flight.dive_state != 1 &&
+		    g_cur_craft->ai_flight.climb_state != 1) {
+			z_distance = g_pai_context.controller->aim_point_z -
+				     g_object_table[g_pai_context.object_index]
+					     .world_z;
+			if (z_distance < 0) {
+				z_distance = -z_distance;
 			}
-			if (zDistance > 512) {
-				g_paiContext.controller->targetZAngle =
+			if (z_distance > 512) {
+				g_pai_context.controller->target_z_angle =
 					(uint16_t)trig2_pitch;
-				if (g_paiContext.controller->targetZAngle <=
-				    g_curCraft->pitch) {
-					g_curCraft->aiFlight.pitchState = 1;
+				if (g_pai_context.controller->target_z_angle <=
+				    g_cur_craft->pitch) {
+					g_cur_craft->ai_flight.pitch_state = 1;
 				} else {
-					g_curCraft->aiFlight.pitchState = 2;
+					g_cur_craft->ai_flight.pitch_state = 2;
 				}
-				g_curCraft->aiFlight.climbState = 1;
-				paiman_setpower(g_paiContext.objectIndex,
+				g_cur_craft->ai_flight.climb_state = 1;
+				paiman_setpower(g_pai_context.object_index,
 						0xC000);
 			}
 		}
 
 		paiman_setflighttotarget(0, 1);
-		g_paiContext.controller->secondaryManeuverTimer =
+		g_pai_context.controller->secondary_maneuver_timer =
 			SIMULATION_TICKS_PER_SECOND;
-		if (g_curCraft->aiFlight.turnState == 3 &&
-		    g_objectTable[g_paiContext.objectIndex].roll != 0) {
-			g_curCraft->aiFlight.rollState = 1;
-			g_curCraft->aiFlight.rollStep = UINT16_MAX;
-			g_paiContext.controller->targetRoll = 0;
+		if (g_cur_craft->ai_flight.turn_state == 3 &&
+		    g_object_table[g_pai_context.object_index].roll != 0) {
+			g_cur_craft->ai_flight.roll_state = 1;
+			g_cur_craft->ai_flight.roll_step = UINT16_MAX;
+			g_pai_context.controller->target_roll = 0;
 		}
 	}
 
-	throttleIndex =
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-			.fg.orders[g_paiContext.orderSlot]
+	throttle_index =
+		g_mission_flight_groups[g_pai_context.craft_flight_group_index]
+			.fg.orders[g_pai_context.order_slot]
 			.throttle;
-	object = &g_objectTable[g_paiContext.objectIndex];
-	if (object->genusId != 4) {
-		paiman_setpower(
-			g_paiContext.objectIndex,
-			g_orderThrottleToCraftThrottleSpeed[throttleIndex]);
+	object = &g_object_table[g_pai_context.object_index];
+	if (object->genus_id != 4) {
+		paiman_setpower(g_pai_context.object_index,
+				g_order_throttle_to_craft_throttle_speed
+					[throttle_index]);
 		return 0;
 	}
 
-	yawDifference = (uint16_t)(object->yaw -
-				   g_paiContext.controller->targetXYAngle);
-	if (yawDifference >= 0x8000) {
-		yawDifference = (uint16_t)(0u - yawDifference);
+	yaw_difference = (uint16_t)(object->yaw -
+				    g_pai_context.controller->target_xy_angle);
+	if (yaw_difference >= 0x8000) {
+		yaw_difference = (uint16_t)(0u - yaw_difference);
 	}
-	if (g_curCraft->aiFlight.turnState == 2 && yawDifference >= 0x1000) {
-		paiman_setpower(g_paiContext.objectIndex, 0);
+	if (g_cur_craft->ai_flight.turn_state == 2 &&
+	    yaw_difference >= 0x1000) {
+		paiman_setpower(g_pai_context.object_index, 0);
 		return 0;
 	}
 
-	paiman_setpower(g_paiContext.objectIndex,
-			g_orderThrottleToCraftThrottleSpeed[throttleIndex]);
+	paiman_setpower(
+		g_pai_context.object_index,
+		g_order_throttle_to_craft_throttle_speed[throttle_index]);
 	return 0;
 }
 
 /* Moves the craft to its next waypoint, mission point 4 to 11, and targets it:
  * past 11 or at a point not enabled it goes back to 4, and on formldr1pln,
  * formevadeldr1pln or starshipformpln that adds 1 to the current order slot's
- * goalProgress. Clears the target's signature and live flag and sets the aim
+ * goal_progress. Clears the target's signature and live flag and sets the aim
  * point. The argument is ignored. */
 // FUNCTION: XVT 0x49FE90
-void paiman_AdvanceOrderWaypoint(int objectIndex)
+void paiman_advance_order_waypoint(int object_index)
 {
-	uint8_t currentPlanId;
-	uint8_t waypointIndex;
-	(void)objectIndex;
+	uint8_t current_plan_id;
+	uint8_t waypoint_index;
+	(void)object_index;
 
-	currentPlanId = g_paiContext.controller->currentPlanId;
-	waypointIndex = ++g_paiContext.controller->waypointIndex;
-	if (waypointIndex > 11 ||
-	    g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-			    .fg.missionPointEnabled[waypointIndex] == 0) {
-		g_paiContext.controller->waypointIndex = 4;
-		if (strcmp(g_planTable[currentPlanId].name, "formldr1pln") ==
+	current_plan_id = g_pai_context.controller->current_plan_id;
+	waypoint_index = ++g_pai_context.controller->waypoint_index;
+	if (waypoint_index > 11 ||
+	    g_mission_flight_groups[g_pai_context.craft_flight_group_index]
+			    .fg.mission_point_enabled[waypoint_index] == 0) {
+		g_pai_context.controller->waypoint_index = 4;
+		if (strcmp(g_plan_table[current_plan_id].name, "formldr1pln") ==
 			    0 ||
-		    strcmp(g_planTable[currentPlanId].name,
+		    strcmp(g_plan_table[current_plan_id].name,
 			   "formevadeldr1pln") == 0 ||
-		    strcmp(g_planTable[currentPlanId].name,
+		    strcmp(g_plan_table[current_plan_id].name,
 			   "starshipformpln") == 0) {
-			++g_paiContext.controller->orderProgress
-				  .goalProgress[g_paiContext.orderSlot];
+			++g_pai_context.controller->order_progress
+				  .goal_progress[g_pai_context.order_slot];
 		}
 	}
-	g_paiContext.controller->targetObjIdx =
-		g_paiContext.controller->waypointIndex + 0x8000;
-	g_paiContext.controller->targetSignature = 0;
-	g_paiContext.controller->hasLiveTarget = 0;
-	pai_UpdateAimPointFromOrderTarget();
+	g_pai_context.controller->target_obj_idx =
+		g_pai_context.controller->waypoint_index + 0x8000;
+	g_pai_context.controller->target_signature = 0;
+	g_pai_context.controller->has_live_target = 0;
+	pai_update_aim_point_from_order_target();
 }
 
 /* Starts head toward at full throttle: steers at the aim point and sets
- * secondaryManeuverTimer to SIMULATION_TICKS_PER_SECOND. */
+ * secondary_maneuver_timer to SIMULATION_TICKS_PER_SECOND. */
 // FUNCTION: XVT 0x49FF70
 void paiman_initheadtowardfullmaneuver(void)
 {
 	paiman_setflighttotarget(0, 1);
-	paiman_setpower(g_paiContext.objectIndex, UINT16_MAX);
-	g_paiContext.controller->secondaryManeuverTimer =
+	paiman_setpower(g_pai_context.object_index, UINT16_MAX);
+	g_pai_context.controller->secondary_maneuver_timer =
 		SIMULATION_TICKS_PER_SECOND;
 }
 
-/* Each time secondaryManeuverTimer runs out, moves the aim point to the target
+/* Each time secondary_maneuver_timer runs out, moves the aim point to the target
  * and steers at it at full throttle, then resets the timer. Returns 0. */
 // FUNCTION: XVT 0x49FFA0
 int16_t paiman_headtowardfullmaneuver(void)
 {
-	if (g_paiContext.controller->secondaryManeuverTimer == 0) {
-		pai_UpdateAimPointFromOrderTarget();
+	if (g_pai_context.controller->secondary_maneuver_timer == 0) {
+		pai_update_aim_point_from_order_target();
 		paiman_setflighttotarget(0, 1);
-		paiman_setpower(g_paiContext.objectIndex, UINT16_MAX);
-		g_paiContext.controller->secondaryManeuverTimer =
+		paiman_setpower(g_pai_context.object_index, UINT16_MAX);
+		g_pai_context.controller->secondary_maneuver_timer =
 			SIMULATION_TICKS_PER_SECOND;
 	}
 	return 0;
@@ -742,7 +750,7 @@ int16_t paiman_headtowardfullmaneuver(void)
 void paiman_initrunawaymaneuver(void)
 {
 	paiman_initcruiseandrunawaycontrols();
-	if (g_objectTable[g_paiContext.objectIndex].roll < 0x8000) {
+	if (g_object_table[g_pai_context.object_index].roll < 0x8000) {
 		paiman_setflighttotarget(0x8000, 1);
 	}
 }
@@ -753,28 +761,29 @@ void paiman_initrunawaymaneuver(void)
 int16_t paiman_runawaymaneuver(void)
 {
 	paiman_setflighttotarget(0x8000, 1);
-	paiman_setpower(g_paiContext.objectIndex, UINT16_MAX);
+	paiman_setpower(g_pai_context.object_index, UINT16_MAX);
 	return 0;
 }
 
 /* Starts the head-on attack: targets the last attacker, with its signature, and
- * sets hasLiveTarget to 1 even when there is none (target 0xFFFF); steers at
+ * sets has_live_target to 1 even when there is none (target 0xFFFF); steers at
  * the aim point at full throttle for 1,888 ticks. */
 // FUNCTION: XVT 0x4A0060
 void paiman_initheadonattackmaneuver(void)
 {
-	g_paiContext.controller->targetObjIdx = g_curCraft->lastAttackerObjIdx;
-	if (g_curCraft->lastAttackerObjIdx != UINT16_MAX) {
-		g_paiContext.controller->targetSignature =
-			g_objectTable[g_curCraft->lastAttackerObjIdx]
-				.objectSignature;
+	g_pai_context.controller->target_obj_idx =
+		g_cur_craft->last_attacker_obj_idx;
+	if (g_cur_craft->last_attacker_obj_idx != UINT16_MAX) {
+		g_pai_context.controller->target_signature =
+			g_object_table[g_cur_craft->last_attacker_obj_idx]
+				.object_signature;
 	} else {
-		g_paiContext.controller->targetSignature = 0;
+		g_pai_context.controller->target_signature = 0;
 	}
-	g_paiContext.controller->hasLiveTarget = 1;
+	g_pai_context.controller->has_live_target = 1;
 	paiman_setflighttotarget(0, 1);
-	paiman_setpower(g_paiContext.objectIndex, UINT16_MAX);
-	g_paiContext.controller->maneuverTimer = 1888;
+	paiman_setpower(g_pai_context.object_index, UINT16_MAX);
+	g_pai_context.controller->maneuver_timer = 1888;
 }
 
 /* Returns 1 once the maneuver timer has run out; else steers at the aim point
@@ -782,11 +791,11 @@ void paiman_initheadonattackmaneuver(void)
 // FUNCTION: XVT 0x4A00F0
 int16_t paiman_headonattackmaneuver(void)
 {
-	if (g_paiContext.controller->maneuverTimer == 0) {
+	if (g_pai_context.controller->maneuver_timer == 0) {
 		return 1;
 	}
 	paiman_setflighttotarget(0, 1);
-	paiman_setpower(g_paiContext.objectIndex, UINT16_MAX);
+	paiman_setpower(g_pai_context.object_index, UINT16_MAX);
 	return 0;
 }
 
@@ -801,155 +810,160 @@ void paiman_initfollowleadermaneuver(void) {}
  * the effective skill plus 0x4000; matches a player leader's speed by moving
  * its throttle 50 per unit of speed difference, or copies an AI leader's
  * throttle; matches the leader's pitch and, when the leader has no
- * impactObjIdx, its roll, snapping to them within 0x400. Then it pushes toward
+ * impact_obj_idx, its roll, snapping to them within 0x400. Then it pushes toward
  * its formation place with paiman_calcformation, unless its leader is a
  * player's craft at speed 10 or less, which clears the push. Sets the trig2_
  * globals. */
 // FUNCTION: XVT 0x4A0140
 int16_t paiman_followleadermaneuver(void)
 {
-	uint16_t leaderObjectIdx = (uint8_t)g_curCraft->leader_obj_idx;
-	struct ObjectRecord *object;
-	uint16_t effectiveSkillValue;
+	uint16_t leader_object_idx = (uint8_t)g_cur_craft->leader_obj_idx;
+	struct object_record *object;
+	uint16_t effective_skill_value;
 	int16_t yaw;
-	uint16_t targetAngle;
-	uint16_t angleDifference;
-	uint16_t objectIndex;
+	uint16_t target_angle;
+	uint16_t angle_difference;
+	uint16_t object_index;
 
-	pai_ObjectRefDirectionToObjectRef((uint16_t)leaderObjectIdx,
-					  g_paiContext.objectIndex);
-	object = &g_objectTable[g_paiContext.objectIndex];
-	if ((object->genusId != CRAFT_GENUS_STARSHIP &&
+	pai_object_ref_direction_to_object_ref((uint16_t)leader_object_idx,
+					       g_pai_context.object_index);
+	object = &g_object_table[g_pai_context.object_index];
+	if ((object->genus_id != CRAFT_GENUS_STARSHIP &&
 	     trig2_polardistance > 0x10000) ||
 	    trig2_polardistance > 327680) {
-		g_paiContext.controller->aimPointX =
-			g_objectTable[leaderObjectIdx].world_x;
-		g_paiContext.controller->aimPointY =
-			g_objectTable[leaderObjectIdx].world_y;
-		g_paiContext.controller->aimPointZ =
-			g_objectTable[leaderObjectIdx].world_z;
+		g_pai_context.controller->aim_point_x =
+			g_object_table[leader_object_idx].world_x;
+		g_pai_context.controller->aim_point_y =
+			g_object_table[leader_object_idx].world_y;
+		g_pai_context.controller->aim_point_z =
+			g_object_table[leader_object_idx].world_z;
 		paiman_setflighttotarget(0, 1);
-		paiman_setpower(g_paiContext.objectIndex, UINT16_MAX);
-		g_curCraft->pushAccumX = 0;
-		g_curCraft->pushAccumY = 0;
-		g_curCraft->pushAccumZ = 0;
+		paiman_setpower(g_pai_context.object_index, UINT16_MAX);
+		g_cur_craft->push_accum_x = 0;
+		g_cur_craft->push_accum_y = 0;
+		g_cur_craft->push_accum_z = 0;
 		return 0;
 	}
 
-	if (g_paiContext.leaderOrSelfCraft->aiFlight.turnState == 2) {
-		g_paiContext.controller->targetXYAngle =
-			g_paiContext.leaderOrSelfCraft->aiController
-				.targetXYAngle;
-		effectiveSkillValue = pai_GetEffectiveSkillValue(g_curCraft);
-		paiman_setturn((effectiveSkillValue >> 3) + 0x4000);
+	if (g_pai_context.leader_or_self_craft->ai_flight.turn_state == 2) {
+		g_pai_context.controller->target_xy_angle =
+			g_pai_context.leader_or_self_craft->ai_controller
+				.target_xy_angle;
+		effective_skill_value =
+			pai_get_effective_skill_value(g_cur_craft);
+		paiman_setturn((effective_skill_value >> 3) + 0x4000);
 	} else {
-		yaw = g_objectTable[leaderObjectIdx].yaw;
+		yaw = g_object_table[leader_object_idx].yaw;
 		if (object->yaw != yaw) {
-			g_paiContext.controller->targetXYAngle = yaw;
-			effectiveSkillValue =
-				pai_GetEffectiveSkillValue(g_curCraft);
-			paiman_setturn((effectiveSkillValue >> 3) + 0x4000);
+			g_pai_context.controller->target_xy_angle = yaw;
+			effective_skill_value =
+				pai_get_effective_skill_value(g_cur_craft);
+			paiman_setturn((effective_skill_value >> 3) + 0x4000);
 		}
 	}
 
 	{
-		struct ObjectRecord *leader = &g_objectTable[leaderObjectIdx];
-		if (leader->playerOwnerIdx != -1) {
+		struct object_record *leader =
+			&g_object_table[leader_object_idx];
+		if (leader->player_owner_idx != -1) {
 			uint16_t speed;
-			uint16_t objectSpeed;
+			uint16_t object_speed;
 
-			objectIndex = g_paiContext.objectIndex;
+			object_index = g_pai_context.object_index;
 			speed = leader->mobj->speed;
-			objectSpeed = g_objectTable[objectIndex].mobj->speed;
-			if (speed > objectSpeed) {
-				uint16_t throttleSpeed =
-					g_curCraft->throttleSpeed;
+			object_speed = g_object_table[object_index].mobj->speed;
+			if (speed > object_speed) {
+				uint16_t throttle_speed =
+					g_cur_craft->throttle_speed;
 				paiman_setpower(
-					objectIndex,
-					throttleSpeed +
-						(uint16_t)(50 * (speed -
-								 objectSpeed)));
-				if (g_curCraft->throttleSpeed < throttleSpeed) {
+					object_index,
+					throttle_speed +
+						(uint16_t)(50 *
+							   (speed -
+							    object_speed)));
+				if (g_cur_craft->throttle_speed <
+				    throttle_speed) {
 					paiman_setpower(
-						g_paiContext.objectIndex,
+						g_pai_context.object_index,
 						UINT16_MAX);
 				}
-			} else if (speed < objectSpeed) {
-				uint16_t throttleSpeed =
-					g_curCraft->throttleSpeed;
+			} else if (speed < object_speed) {
+				uint16_t throttle_speed =
+					g_cur_craft->throttle_speed;
 				paiman_setpower(
-					objectIndex,
-					throttleSpeed -
-						(uint16_t)(50 * (objectSpeed -
+					object_index,
+					throttle_speed -
+						(uint16_t)(50 * (object_speed -
 								 speed)));
-				if (g_curCraft->throttleSpeed > throttleSpeed) {
+				if (g_cur_craft->throttle_speed >
+				    throttle_speed) {
 					paiman_setpower(
-						g_paiContext.objectIndex, 0);
+						g_pai_context.object_index, 0);
 				}
 			}
 		} else {
-			paiman_setpower(
-				g_paiContext.objectIndex,
-				g_paiContext.leaderOrSelfCraft->throttleSpeed);
+			paiman_setpower(g_pai_context.object_index,
+					g_pai_context.leader_or_self_craft
+						->throttle_speed);
 		}
 	}
 
 	{
-		uint16_t *craftPitch = &g_curCraft->pitch;
+		uint16_t *craft_pitch = &g_cur_craft->pitch;
 
-		targetAngle = g_paiContext.leaderOrSelfCraft->pitch;
-		angleDifference = *craftPitch - targetAngle;
-		if (angleDifference >= 0x8000) {
-			angleDifference = (uint16_t)-angleDifference;
+		target_angle = g_pai_context.leader_or_self_craft->pitch;
+		angle_difference = *craft_pitch - target_angle;
+		if (angle_difference >= 0x8000) {
+			angle_difference = (uint16_t)-angle_difference;
 		}
-		if (angleDifference < 0x400) {
-			*craftPitch = targetAngle;
-			g_curCraft->aiFlight.pitchState = 0;
+		if (angle_difference < 0x400) {
+			*craft_pitch = target_angle;
+			g_cur_craft->ai_flight.pitch_state = 0;
 		} else {
-			g_paiContext.controller->targetZAngle = targetAngle;
-			if (g_curCraft->pitch >=
-			    g_paiContext.controller->targetZAngle) {
-				g_curCraft->aiFlight.pitchState = 1;
+			g_pai_context.controller->target_z_angle = target_angle;
+			if (g_cur_craft->pitch >=
+			    g_pai_context.controller->target_z_angle) {
+				g_cur_craft->ai_flight.pitch_state = 1;
 			} else {
-				g_curCraft->aiFlight.pitchState = 2;
+				g_cur_craft->ai_flight.pitch_state = 2;
 			}
-			g_curCraft->aiFlight.pitchStepScale = UINT16_MAX;
-			g_curCraft->aiFlight.pitchThroughLoop = 0;
+			g_cur_craft->ai_flight.pitch_step_scale = UINT16_MAX;
+			g_cur_craft->ai_flight.pitch_through_loop = 0;
 		}
 	}
 
-	if (g_paiContext.leaderOrSelfCraft->aiFlight.impactObjIdx ==
+	if (g_pai_context.leader_or_self_craft->ai_flight.impact_obj_idx ==
 	    UINT16_MAX) {
-		uint16_t *objectRoll =
-			&g_objectTable[g_paiContext.objectIndex].roll;
+		uint16_t *object_roll =
+			&g_object_table[g_pai_context.object_index].roll;
 
-		targetAngle =
-			g_objectTable[g_paiContext.leaderObjectIndex].roll;
-		angleDifference = *objectRoll - targetAngle;
-		if (angleDifference >= 0x8000) {
-			angleDifference = (uint16_t)-angleDifference;
+		target_angle =
+			g_object_table[g_pai_context.leader_object_index].roll;
+		angle_difference = *object_roll - target_angle;
+		if (angle_difference >= 0x8000) {
+			angle_difference = (uint16_t)-angle_difference;
 		}
-		if (angleDifference < 0x400) {
-			*objectRoll = targetAngle;
-			g_objectTable[g_paiContext.objectIndex]
-				.mobj->orientMatrixDirty = 1;
-			g_curCraft->aiFlight.rollState = 0;
+		if (angle_difference < 0x400) {
+			*object_roll = target_angle;
+			g_object_table[g_pai_context.object_index]
+				.mobj->orient_matrix_dirty = 1;
+			g_cur_craft->ai_flight.roll_state = 0;
 		} else {
-			g_paiContext.controller->targetRoll = targetAngle;
-			g_curCraft->aiFlight.rollStep = UINT16_MAX;
-			g_curCraft->aiFlight.rollState = 1;
+			g_pai_context.controller->target_roll = target_angle;
+			g_cur_craft->ai_flight.roll_step = UINT16_MAX;
+			g_cur_craft->ai_flight.roll_state = 1;
 		}
 	}
 
-	object = &g_objectTable[(uint8_t)g_curCraft->leader_obj_idx];
-	if (object->playerOwnerIdx == -1) {
+	object = &g_object_table[(uint8_t)g_cur_craft->leader_obj_idx];
+	if (object->player_owner_idx == -1) {
 		paiman_calcformation();
 	} else if (object->mobj->speed > 10) {
 		paiman_calcformation();
 	} else {
-		g_curCraft->pushAccumX = 0;
-		g_curCraft->pushAccumY = 0;
-		g_curCraft->pushAccumZ = 0;
+		g_cur_craft->push_accum_x = 0;
+		g_cur_craft->push_accum_y = 0;
+		g_cur_craft->push_accum_z = 0;
 	}
 	return 0;
 }
@@ -959,7 +973,7 @@ int16_t paiman_followleadermaneuver(void)
 // FUNCTION: XVT 0x4A0550
 void paiman_initsetupattackmaneuver(void)
 {
-	paiman_setpower(g_paiContext.objectIndex, UINT16_MAX);
+	paiman_setpower(g_pai_context.object_index, UINT16_MAX);
 	paiman_attacktarget(0);
 }
 
@@ -968,18 +982,18 @@ void paiman_initsetupattackmaneuver(void)
 // FUNCTION: XVT 0x4A0580
 int16_t paiman_setupattackmaneuver(void)
 {
-	uint16_t objectIndex;
-	uint16_t yawDifference;
+	uint16_t object_index;
+	uint16_t yaw_difference;
 
 	paiman_attacktarget(0);
-	objectIndex = g_paiContext.objectIndex;
-	yawDifference = g_objectTable[objectIndex].yaw -
-			g_paiContext.controller->targetXYAngle;
-	if (yawDifference >= 0x3000 && yawDifference <= 0xD000) {
-		paiman_setpower(objectIndex, 0x8000);
+	object_index = g_pai_context.object_index;
+	yaw_difference = g_object_table[object_index].yaw -
+			 g_pai_context.controller->target_xy_angle;
+	if (yaw_difference >= 0x3000 && yaw_difference <= 0xD000) {
+		paiman_setpower(object_index, 0x8000);
 		return 0;
 	}
-	paiman_setpower(objectIndex, UINT16_MAX);
+	paiman_setpower(object_index, UINT16_MAX);
 	return 0;
 }
 
@@ -988,28 +1002,28 @@ int16_t paiman_setupattackmaneuver(void)
 // FUNCTION: XVT 0x4A05F0
 void paiman_initattackmaneuver(void)
 {
-	paiman_setpower(g_paiContext.objectIndex, UINT16_MAX);
+	paiman_setpower(g_pai_context.object_index, UINT16_MAX);
 	paiman_attacktarget(0);
 }
 
 /* Runs attack and rocket attack; returns 1 when the break-off turn
- * (maneuverPhase 1) has timed out, else 0. Clears the push each think. Before
+ * (maneuver_phase 1) has timed out, else 0. Clears the push each think. Before
  * that it works out a break-off distance: 5,120 for a target outside the craft
  * slots; for a freighter, starship or platform 0x2000, 0xA000 for type 54,
  * 0x8000 more for types 90 and 91, doubled when the bearing to it lies outside
  * 0x2800 to 0x5800 off its yaw; for other craft 1,536 to 5,120 by the flight
  * group's AI level, doubled when the craft's yaw or pitch is more than 0x4000
  * off the target's. The hits it takes before breaking off are the model's
- * reactionThreshold, halved with the front shield below an eighth, or 1 at
- * systemDamageHullThreshold, both only for a craft with shields. While farther
+ * reaction_threshold, halved with the front shield below an eighth, or 1 at
+ * system_damage_hull_threshold, both only for a craft with shields. While farther
  * than that distance and below that many hits it attacks: paiman_attacktarget,
  * throttle 0xC000 in rocket attack, and in attack a throttle by bearing,
  * distance and, from AI level 4, the target's speed; a craft with nonzero
- * craftOrdinal then pushes away from the wingman with the lowest craftOrdinal
+ * craft_ordinal then pushes away from the wingman with the lowest craft_ordinal
  * below its own within a rough 1,000, and returns. Closer or hit enough, it
- * clears warheadsFiredThisManeuver and warheadLockTicks; unless a starfighter
- * in aiFlight.threatObjIdx has hit it enough, it breaks off, setting
- * maneuverPhase 1: a random turn of 0x3000 to 0x6FFF either way, a random
+ * clears warheads_fired_this_maneuver and warhead_lock_ticks; unless a starfighter
+ * in ai_flight.threat_obj_idx has hit it enough, it breaks off, setting
+ * maneuver_phase 1: a random turn of 0x3000 to 0x6FFF either way, a random
  * pitch, full throttle, for 20 to 27 times SIMULATION_TICKS_PER_SECOND against
  * a freighter, starship or platform, else 2 to 5. Else it records that threat
  * as its attacker and starts a maneuver from the under-attack choices at full
@@ -1018,279 +1032,282 @@ void paiman_initattackmaneuver(void)
 // FUNCTION: XVT 0x4A0620
 int16_t paiman_attackmaneuver(void)
 {
-	const int fullThrottle = UINT16_MAX;
-	const int attackDistance = 0x4000;
-	const int maxAngle = 0x4000;
-	const int rearAngle = 0xD000;
-	unsigned int targetDistance;
-	int breakOffDistance = 5120;
-	uint16_t hitsBeforeBreakOff;
+	const int full_throttle = UINT16_MAX;
+	const int attack_distance = 0x4000;
+	const int max_angle = 0x4000;
+	const int rear_angle = 0xD000;
+	unsigned int target_distance;
+	int break_off_distance = 5120;
+	uint16_t hits_before_break_off;
 
-	g_curCraft->pushAccumX = 0;
-	g_curCraft->pushAccumY = g_curCraft->pushAccumX;
-	g_curCraft->pushAccumZ = g_curCraft->pushAccumY;
-	switch (g_paiContext.controller->maneuverPhase) {
+	g_cur_craft->push_accum_x = 0;
+	g_cur_craft->push_accum_y = g_cur_craft->push_accum_x;
+	g_cur_craft->push_accum_z = g_cur_craft->push_accum_y;
+	switch (g_pai_context.controller->maneuver_phase) {
 	case 1:
-		if (g_paiContext.controller->maneuverTimer == 0) {
+		if (g_pai_context.controller->maneuver_timer == 0) {
 			return 1;
 		}
 		break;
 	case 0: {
 
-		pai_ObjectRefDirectionToObjectRef(
-			g_paiContext.objectIndex,
-			g_paiContext.controller->targetObjIdx);
-		targetDistance = trig2_polardistance;
-		if (g_activeRegionCraftObjectSlotEnd <=
-		    g_paiContext.controller->targetObjIdx) {
-			breakOffDistance = 0x1400;
+		pai_object_ref_direction_to_object_ref(
+			g_pai_context.object_index,
+			g_pai_context.controller->target_obj_idx);
+		target_distance = trig2_polardistance;
+		if (g_active_region_craft_object_slot_end <=
+		    g_pai_context.controller->target_obj_idx) {
+			break_off_distance = 0x1400;
 		} else {
-			struct ObjectRecord *target =
-				&g_objectTable[g_paiContext.controller
-						       ->targetObjIdx];
-			if (target->genusId == CRAFT_GENUS_STARSHIP ||
-			    target->genusId == CRAFT_GENUS_PLATFORM ||
-			    target->genusId == CRAFT_GENUS_FREIGHTER) {
-				uint16_t yawDifference;
+			struct object_record *target =
+				&g_object_table[g_pai_context.controller
+							->target_obj_idx];
+			if (target->genus_id == CRAFT_GENUS_STARSHIP ||
+			    target->genus_id == CRAFT_GENUS_PLATFORM ||
+			    target->genus_id == CRAFT_GENUS_FREIGHTER) {
+				uint16_t yaw_difference;
 
-				breakOffDistance = 0x2000;
-				if (target->objectType == 54) {
-					breakOffDistance = 0xA000;
+				break_off_distance = 0x2000;
+				if (target->object_type == 54) {
+					break_off_distance = 0xA000;
 				}
-				if (target->objectType == 91) {
-					breakOffDistance += 0x8000;
+				if (target->object_type == 91) {
+					break_off_distance += 0x8000;
 				}
-				if (target->objectType == 90) {
-					breakOffDistance += 0x8000;
+				if (target->object_type == 90) {
+					break_off_distance += 0x8000;
 				}
-				yawDifference =
+				yaw_difference =
 					(uint16_t)(trig2_xyangle - target->yaw);
-				if (yawDifference >= 0x8000) {
-					yawDifference =
-						(uint16_t)-yawDifference;
+				if (yaw_difference >= 0x8000) {
+					yaw_difference =
+						(uint16_t)-yaw_difference;
 				}
-				if (yawDifference < 0x2800 ||
-				    yawDifference > 0x5800) {
-					breakOffDistance *= 2;
+				if (yaw_difference < 0x2800 ||
+				    yaw_difference > 0x5800) {
+					break_off_distance *= 2;
 				}
 			} else {
-				uint8_t groupAi =
-					g_missionFlightGroups
-						[g_paiContext
-							 .craftFlightGroupIndex]
-							.fg.groupAI;
-				struct ObjectRecord *own;
-				uint16_t yawDifference;
-				uint16_t pitchDifference;
+				uint8_t group_ai =
+					g_mission_flight_groups
+						[g_pai_context
+							 .craft_flight_group_index]
+							.fg.group_ai;
+				struct object_record *own;
+				uint16_t yaw_difference;
+				uint16_t pitch_difference;
 
-				breakOffDistance = groupAi == 5	  ? 1536
-						   : groupAi == 4 ? 2304
-						   : groupAi == 3 ? 3072
-						   : groupAi == 2 ? 4096
-								  : 5120;
-				own = &g_objectTable[g_paiContext.objectIndex];
-				yawDifference =
+				break_off_distance = group_ai == 5   ? 1536
+						     : group_ai == 4 ? 2304
+						     : group_ai == 3 ? 3072
+						     : group_ai == 2 ? 4096
+								     : 5120;
+				own = &g_object_table[g_pai_context
+							      .object_index];
+				yaw_difference =
 					(uint16_t)(own->yaw - target->yaw);
-				if (yawDifference >= 0x8000) {
-					yawDifference =
-						(uint16_t)-yawDifference;
+				if (yaw_difference >= 0x8000) {
+					yaw_difference =
+						(uint16_t)-yaw_difference;
 				}
-				pitchDifference =
+				pitch_difference =
 					(uint16_t)(own->pitch - target->pitch);
-				if (pitchDifference >= 0x8000) {
-					pitchDifference =
-						(uint16_t)-pitchDifference;
+				if (pitch_difference >= 0x8000) {
+					pitch_difference =
+						(uint16_t)-pitch_difference;
 				}
-				if (pitchDifference > maxAngle ||
-				    yawDifference > maxAngle) {
-					breakOffDistance *= 2;
+				if (pitch_difference > max_angle ||
+				    yaw_difference > max_angle) {
+					break_off_distance *= 2;
 				}
 			}
 		}
 
-		hitsBeforeBreakOff =
-			g_modelDefs[g_curCraft->modelIndex].reactionThreshold;
-		if ((g_curCraft->systemFlags & CRAFT_SUBSYSTEM_FLAG_SHIELDS) !=
-		    0) {
-			if (Craft_GetObjectMaxShield(g_paiContext.objectIndex) /
+		hits_before_break_off = g_model_defs[g_cur_craft->model_index]
+						.reaction_threshold;
+		if ((g_cur_craft->system_flags &
+		     CRAFT_SUBSYSTEM_FLAG_SHIELDS) != 0) {
+			if (craft_get_object_max_shield(
+				    g_pai_context.object_index) /
 				    8 >
-			    g_curCraft->shieldEnergy[0]) {
-				hitsBeforeBreakOff >>= 1;
+			    g_cur_craft->shield_energy[0]) {
+				hits_before_break_off >>= 1;
 			}
-			if (g_curCraft->hullDamage >=
-			    g_curCraft->systemDamageHullThreshold) {
-				hitsBeforeBreakOff = 1;
+			if (g_cur_craft->hull_damage >=
+			    g_cur_craft->system_damage_hull_threshold) {
+				hits_before_break_off = 1;
 			}
 		}
-		if (breakOffDistance <= trig2_polardistance &&
-		    g_curCraft->aiFlight.hitsThisManeuver <
-			    hitsBeforeBreakOff) {
+		if (break_off_distance <= trig2_polardistance &&
+		    g_cur_craft->ai_flight.hits_this_maneuver <
+			    hits_before_break_off) {
 			paiman_attacktarget(0);
-			if (g_paiContext.controller->maneuverMode ==
+			if (g_pai_context.controller->maneuver_mode ==
 			    AI_MANEUVER_MODE_ATTACK) {
-				uint16_t ownYaw =
-					g_objectTable[g_paiContext.objectIndex]
+				uint16_t own_yaw =
+					g_object_table[g_pai_context
+							       .object_index]
 						.yaw;
-				uint16_t yawDifference =
-					(uint16_t)(ownYaw -
-						   g_paiContext.controller
-							   ->targetXYAngle);
+				uint16_t yaw_difference =
+					(uint16_t)(own_yaw -
+						   g_pai_context.controller
+							   ->target_xy_angle);
 
-				if (yawDifference >= 0x3000 &&
-				    yawDifference <= rearAngle) {
+				if (yaw_difference >= 0x3000 &&
+				    yaw_difference <= rear_angle) {
 					paiman_setpower(
-						g_paiContext.objectIndex,
+						g_pai_context.object_index,
 						43690);
 				} else {
-					uint16_t targetObjectIndex =
-						g_paiContext.controller
-							->targetObjIdx;
+					uint16_t target_object_index =
+						g_pai_context.controller
+							->target_obj_idx;
 
-					if (targetDistance > 0x8000) {
+					if (target_distance > 0x8000) {
 						paiman_setpower(
-							g_paiContext
-								.objectIndex,
-							fullThrottle);
+							g_pai_context
+								.object_index,
+							full_throttle);
 					} else {
-						struct ObjectRecord *target =
-							&g_objectTable
-								[targetObjectIndex];
+						struct object_record *target =
+							&g_object_table
+								[target_object_index];
 
 						if (target->mobj == NULL) {
 							paiman_setpower(
-								g_paiContext
-									.objectIndex,
+								g_pai_context
+									.object_index,
 								0x8000);
 						} else if (
-							g_missionFlightGroups
-								[g_paiContext
-									 .craftFlightGroupIndex]
+							g_mission_flight_groups
+								[g_pai_context
+									 .craft_flight_group_index]
 									.fg
-									.groupAI >=
+									.group_ai >=
 							4) {
-							uint16_t targetYawDifference =
-								(uint16_t)(ownYaw -
+							uint16_t target_yaw_difference =
+								(uint16_t)(own_yaw -
 									   target->yaw);
 
-							if (targetYawDifference >=
+							if (target_yaw_difference >=
 								    0x3000 &&
-							    targetYawDifference <=
-								    rearAngle) {
+							    target_yaw_difference <=
+								    rear_angle) {
 								paiman_setpower(
-									g_paiContext
-										.objectIndex,
-									fullThrottle);
+									g_pai_context
+										.object_index,
+									full_throttle);
 							} else {
 								uint16_t speed =
 									target->mobj
 										->speed;
 								uint16_t
-									maxSpeed;
+									max_speed;
 
 								speed +=
-									targetDistance >
-											attackDistance
+									target_distance >
+											attack_distance
 										? 20
 										: 0;
-								maxSpeed =
-									g_curCraft
-										->aiFlight
-										.maxSpeedCache;
+								max_speed =
+									g_cur_craft
+										->ai_flight
+										.max_speed_cache;
 
 								if (speed >=
-								    maxSpeed) {
+								    max_speed) {
 									paiman_setpower(
-										g_paiContext
-											.objectIndex,
-										fullThrottle);
+										g_pai_context
+											.object_index,
+										full_throttle);
 								} else {
-									uint16_t throttle = MATH2_ratioQ16(
+									uint16_t throttle = math2_ratio_q16(
 										speed,
-										maxSpeed);
+										max_speed);
 
 									paiman_setpower(
-										g_paiContext
-											.objectIndex,
+										g_pai_context
+											.object_index,
 										throttle);
 								}
 							}
 						} else {
 							paiman_setpower(
-								g_paiContext
-									.objectIndex,
-								fullThrottle);
+								g_pai_context
+									.object_index,
+								full_throttle);
 						}
 					}
 				}
 			} else {
-				paiman_setpower(g_paiContext.objectIndex,
+				paiman_setpower(g_pai_context.object_index,
 						0xC000);
 			}
-			if (g_curCraft->craftOrdinal != 0) {
-				struct CraftData *wingman;
-				unsigned int objectIndex;
-				int nearestWingman = -1;
-				uint8_t nearestWave = UINT8_MAX;
+			if (g_cur_craft->craft_ordinal != 0) {
+				struct craft_data *wingman;
+				unsigned int object_index;
+				int nearest_wingman = -1;
+				uint8_t nearest_wave = UINT8_MAX;
 
-				for (objectIndex =
-					     g_activeRegionObjectSlotStart;
+				for (object_index =
+					     g_active_region_object_slot_start;
 				     (unsigned int)
-					     g_activeRegionCraftObjectSlotEnd >
-				     objectIndex;
-				     ++objectIndex) {
-					if (g_paiContext.objectIndex !=
-						    objectIndex &&
-					    g_objectTable[objectIndex]
-							    .objectType != 0 &&
-					    g_objectTable[objectIndex]
-							    .flightGroupIdx ==
-						    g_paiContext
-							    .craftFlightGroupIndex) {
+					     g_active_region_craft_object_slot_end >
+				     object_index;
+				     ++object_index) {
+					if (g_pai_context.object_index !=
+						    object_index &&
+					    g_object_table[object_index]
+							    .object_type != 0 &&
+					    g_object_table[object_index]
+							    .flight_group_idx ==
+						    g_pai_context
+							    .craft_flight_group_index) {
 						wingman =
-							g_objectTable
-								[objectIndex]
+							g_object_table
+								[object_index]
 									.mobj
-									->pCraft;
-						if (g_curCraft->craftOrdinal >
-						    wingman->craftOrdinal) {
-							pai_ObjectRefUpdateRoughDistance(
-								g_paiContext
-									.objectIndex,
-								objectIndex);
-							if (g_lastRoughDistance <
+									->p_craft;
+						if (g_cur_craft->craft_ordinal >
+						    wingman->craft_ordinal) {
+							pai_object_ref_update_rough_distance(
+								g_pai_context
+									.object_index,
+								object_index);
+							if (g_last_rough_distance <
 								    1000 &&
-							    nearestWave >
-								    wingman->craftOrdinal) {
-								nearestWingman =
-									objectIndex;
-								nearestWave =
-									wingman->craftOrdinal;
+							    nearest_wave >
+								    wingman->craft_ordinal) {
+								nearest_wingman =
+									object_index;
+								nearest_wave =
+									wingman->craft_ordinal;
 							}
 						}
 					}
 				}
-				if (nearestWingman != -1) {
-					g_curCraft->pushAccumX =
-						g_objectTable
-							[g_paiContext
-								 .objectIndex]
+				if (nearest_wingman != -1) {
+					g_cur_craft->push_accum_x =
+						g_object_table
+							[g_pai_context
+								 .object_index]
 								.world_x -
-						g_objectTable[nearestWingman]
+						g_object_table[nearest_wingman]
 							.world_x;
-					g_curCraft->pushAccumY =
-						g_objectTable
-							[g_paiContext
-								 .objectIndex]
+					g_cur_craft->push_accum_y =
+						g_object_table
+							[g_pai_context
+								 .object_index]
 								.world_y -
-						g_objectTable[nearestWingman]
+						g_object_table[nearest_wingman]
 							.world_y;
-					g_curCraft->pushAccumZ =
+					g_cur_craft->push_accum_z =
 						2 *
-						(g_objectTable
-							 [g_paiContext
-								  .objectIndex]
+						(g_object_table
+							 [g_pai_context
+								  .object_index]
 								 .world_z -
-						 g_objectTable[nearestWingman]
+						 g_object_table[nearest_wingman]
 							 .world_z);
 					return 0;
 				}
@@ -1298,112 +1315,116 @@ int16_t paiman_attackmaneuver(void)
 			break;
 		}
 
-		g_curCraft->aiFlight.warheadsFiredThisManeuver = 0;
-		g_curCraft->warheadLockTicks = 0;
-		if (g_curCraft->aiFlight.hitsThisManeuver <
-			    hitsBeforeBreakOff ||
-		    g_curCraft->aiFlight.threatObjIdx == UINT16_MAX ||
-		    g_objectTable[g_curCraft->aiFlight.threatObjIdx].genusId !=
-			    0) {
-			int16_t yawOffset =
-				(int16_t)((GameRand() & 0x3FFF) + 12288);
-			if ((uint16_t)GameRand() >= 0x8000) {
-				yawOffset = (int16_t)-yawOffset;
+		g_cur_craft->ai_flight.warheads_fired_this_maneuver = 0;
+		g_cur_craft->warhead_lock_ticks = 0;
+		if (g_cur_craft->ai_flight.hits_this_maneuver <
+			    hits_before_break_off ||
+		    g_cur_craft->ai_flight.threat_obj_idx == UINT16_MAX ||
+		    g_object_table[g_cur_craft->ai_flight.threat_obj_idx]
+				    .genus_id != 0) {
+			int16_t yaw_offset =
+				(int16_t)((game_rand() & 0x3FFF) + 12288);
+			if ((uint16_t)game_rand() >= 0x8000) {
+				yaw_offset = (int16_t)-yaw_offset;
 			}
-			g_paiContext.controller->targetXYAngle =
-				(uint16_t)(g_objectTable[g_paiContext
-								 .objectIndex]
+			g_pai_context.controller->target_xy_angle =
+				(uint16_t)(g_object_table[g_pai_context
+								  .object_index]
 						   .yaw +
-					   yawOffset);
+					   yaw_offset);
 			paiman_setturn(
-				(pai_GetEffectiveSkillValue(g_curCraft) >> 1) +
+				(pai_get_effective_skill_value(g_cur_craft) >>
+				 1) +
 				0x8000);
-			g_paiContext.controller->targetZAngle =
-				(uint16_t)(GameRand() & 0x7FFF);
-			g_curCraft->aiFlight.climbState = 0;
-			g_curCraft->aiFlight.diveState = 0;
-			if (g_paiContext.controller->targetZAngle <=
-			    g_curCraft->pitch) {
-				g_curCraft->aiFlight.pitchState = 1;
+			g_pai_context.controller->target_z_angle =
+				(uint16_t)(game_rand() & 0x7FFF);
+			g_cur_craft->ai_flight.climb_state = 0;
+			g_cur_craft->ai_flight.dive_state = 0;
+			if (g_pai_context.controller->target_z_angle <=
+			    g_cur_craft->pitch) {
+				g_cur_craft->ai_flight.pitch_state = 1;
 			} else {
-				g_curCraft->aiFlight.pitchState = 2;
+				g_cur_craft->ai_flight.pitch_state = 2;
 			}
-			g_curCraft->aiFlight.pitchThroughLoop = 0;
-			g_curCraft->aiFlight.pitchStepScale = UINT16_MAX;
-			paiman_setpower(g_paiContext.objectIndex, fullThrottle);
-			if (g_activeRegionCraftObjectSlotEnd <=
-			    g_paiContext.controller->targetObjIdx) {
-				g_paiContext.controller->maneuverTimer =
+			g_cur_craft->ai_flight.pitch_through_loop = 0;
+			g_cur_craft->ai_flight.pitch_step_scale = UINT16_MAX;
+			paiman_setpower(g_pai_context.object_index,
+					full_throttle);
+			if (g_active_region_craft_object_slot_end <=
+			    g_pai_context.controller->target_obj_idx) {
+				g_pai_context.controller->maneuver_timer =
 					SIMULATION_TICKS_PER_SECOND *
-					((GameRand() & 3) + 2);
-			} else if (g_objectTable[g_paiContext.controller
-							 ->targetObjIdx]
-						   .genusId ==
+					((game_rand() & 3) + 2);
+			} else if (g_object_table[g_pai_context.controller
+							  ->target_obj_idx]
+						   .genus_id ==
 					   CRAFT_GENUS_STARSHIP ||
-				   g_objectTable[g_paiContext.controller
-							 ->targetObjIdx]
-						   .genusId ==
+				   g_object_table[g_pai_context.controller
+							  ->target_obj_idx]
+						   .genus_id ==
 					   CRAFT_GENUS_PLATFORM ||
-				   g_objectTable[g_paiContext.controller
-							 ->targetObjIdx]
-						   .genusId ==
+				   g_object_table[g_pai_context.controller
+							  ->target_obj_idx]
+						   .genus_id ==
 					   CRAFT_GENUS_FREIGHTER) {
-				g_paiContext.controller->maneuverTimer =
+				g_pai_context.controller->maneuver_timer =
 					SIMULATION_TICKS_PER_SECOND *
-					((GameRand() & 7) + 20);
+					((game_rand() & 7) + 20);
 			} else {
-				g_paiContext.controller->maneuverTimer =
+				g_pai_context.controller->maneuver_timer =
 					SIMULATION_TICKS_PER_SECOND *
-					((GameRand() & 3) + 2);
+					((game_rand() & 3) + 2);
 			}
-			g_paiContext.controller->maneuverPhase = 1;
+			g_pai_context.controller->maneuver_phase = 1;
 			return 0;
 		}
 
 		{
-			struct ObjectRecord *threat =
-				&g_objectTable[g_curCraft->aiFlight
-						       .threatObjIdx];
-			uint16_t pitchDifference;
-			uint16_t yawDifference;
+			struct object_record *threat =
+				&g_object_table[g_cur_craft->ai_flight
+							.threat_obj_idx];
+			uint16_t pitch_difference;
+			uint16_t yaw_difference;
 
-			yawDifference =
-				(uint16_t)(g_objectTable[g_paiContext
-								 .objectIndex]
+			yaw_difference =
+				(uint16_t)(g_object_table[g_pai_context
+								  .object_index]
 						   .yaw -
 					   threat->yaw);
-			if (yawDifference >= 0x8000) {
-				yawDifference = (uint16_t)-yawDifference;
+			if (yaw_difference >= 0x8000) {
+				yaw_difference = (uint16_t)-yaw_difference;
 			}
-			pitchDifference =
-				(uint16_t)(g_objectTable[g_paiContext
-								 .objectIndex]
+			pitch_difference =
+				(uint16_t)(g_object_table[g_pai_context
+								  .object_index]
 						   .pitch -
 					   threat->pitch);
-			if (pitchDifference >= 0x8000) {
-				pitchDifference = (uint16_t)-pitchDifference;
+			if (pitch_difference >= 0x8000) {
+				pitch_difference = (uint16_t)-pitch_difference;
 			}
-			if (yawDifference >= 0x3000 ||
-			    pitchDifference >= 0x3000) {
-				g_paiContext.controller->maneuverMode =
-					g_aiUnderAttackFrontSideManeuverChoices
-						[GameRand() & 3];
+			if (yaw_difference >= 0x3000 ||
+			    pitch_difference >= 0x3000) {
+				g_pai_context.controller->maneuver_mode =
+					g_ai_under_attack_front_side_maneuver_choices
+						[game_rand() & 3];
 			} else {
-				g_paiContext.controller->maneuverMode =
-					g_aiUnderAttackRearManeuverChoices
-						[GameRand() & 7];
-				if (g_curCraft->cmTypeId ==
+				g_pai_context.controller->maneuver_mode =
+					g_ai_under_attack_rear_maneuver_choices
+						[game_rand() & 7];
+				if (g_cur_craft->cm_type_id ==
 					    COUNTERMEASURE_TYPE_FLARE &&
-				    g_curCraft->cmAmmoCount != 0 &&
-				    g_curCraft->cmFireCooldownTimer == 0) {
+				    g_cur_craft->cm_ammo_count != 0 &&
+				    g_cur_craft->cm_fire_cooldown_timer == 0) {
 					laser_createcountermeasureprojectile(
-						g_paiContext.objectIndex, 155);
+						g_pai_context.object_index,
+						155);
 				}
 			}
-			g_curCraft->lastAttackerObjIdx =
-				g_curCraft->aiFlight.threatObjIdx;
+			g_cur_craft->last_attacker_obj_idx =
+				g_cur_craft->ai_flight.threat_obj_idx;
 			paiman_initmaneuver();
-			paiman_setpower(g_paiContext.objectIndex, fullThrottle);
+			paiman_setpower(g_pai_context.object_index,
+					full_throttle);
 		}
 		return 0;
 	}
@@ -1411,7 +1432,7 @@ int16_t paiman_attackmaneuver(void)
 	return 0;
 }
 
-/* Starts zoom: full throttle, a roll that does not stop (rollState 3) its way
+/* Starts zoom: full throttle, a roll that does not stop (roll_state 3) its way
  * set at random, a pitch at full step to 0x1001 to 0x2000 without a loop, no
  * climb or dive, for 3 to 6 times SIMULATION_TICKS_PER_SECOND. */
 // FUNCTION: XVT 0x4A0E00
@@ -1419,30 +1440,31 @@ void paiman_initzoommaneuver(void)
 {
 	uint16_t pitch;
 
-	paiman_setpower(g_paiContext.objectIndex, 0xFFFF);
-	g_curCraft->aiFlight.rollState = 3;
-	g_curCraft->aiFlight.rollStep = 0xFFFFu;
-	g_paiContext.controller->targetRoll = GameRand();
-	g_paiContext.controller->targetZAngle = 0x2000 - (GameRand() & 0x0FFF);
-	g_paiContext.controller->maneuverTimer =
-		SIMULATION_TICKS_PER_SECOND * ((GameRand() & 3) + 3);
-	g_curCraft->aiFlight.climbState = 0;
-	g_curCraft->aiFlight.diveState = 0;
-	pitch = g_curCraft->pitch;
-	if (g_paiContext.controller->targetZAngle <= pitch) {
-		g_curCraft->aiFlight.pitchState = 1;
+	paiman_setpower(g_pai_context.object_index, 0xFFFF);
+	g_cur_craft->ai_flight.roll_state = 3;
+	g_cur_craft->ai_flight.roll_step = 0xFFFFu;
+	g_pai_context.controller->target_roll = game_rand();
+	g_pai_context.controller->target_z_angle =
+		0x2000 - (game_rand() & 0x0FFF);
+	g_pai_context.controller->maneuver_timer =
+		SIMULATION_TICKS_PER_SECOND * ((game_rand() & 3) + 3);
+	g_cur_craft->ai_flight.climb_state = 0;
+	g_cur_craft->ai_flight.dive_state = 0;
+	pitch = g_cur_craft->pitch;
+	if (g_pai_context.controller->target_z_angle <= pitch) {
+		g_cur_craft->ai_flight.pitch_state = 1;
 	} else {
-		g_curCraft->aiFlight.pitchState = 2;
+		g_cur_craft->ai_flight.pitch_state = 2;
 	}
-	g_curCraft->aiFlight.pitchThroughLoop = 0;
-	g_curCraft->aiFlight.pitchStepScale = 0xFFFFu;
+	g_cur_craft->ai_flight.pitch_through_loop = 0;
+	g_cur_craft->ai_flight.pitch_step_scale = 0xFFFFu;
 }
 
 /* Returns 1 once the maneuver timer has run out, else 0. */
 // FUNCTION: XVT 0x4A0EF0
 int16_t paiman_zoommaneuver(void)
 {
-	return g_paiContext.controller->maneuverTimer == 0;
+	return g_pai_context.controller->maneuver_timer == 0;
 }
 
 /* Starts dive: full throttle, a pitch at full step to 0x5800 to 0x67FF without
@@ -1450,84 +1472,86 @@ int16_t paiman_zoommaneuver(void)
 // FUNCTION: XVT 0x4A0F00
 void paiman_initdivemaneuver(void)
 {
-	paiman_setpower(g_paiContext.objectIndex, 0xFFFF);
-	g_paiContext.controller->targetZAngle = (GameRand() & 0x0FFF) + 0x5800;
-	g_curCraft->aiFlight.climbState = 0;
-	if (g_paiContext.controller->targetZAngle <= g_curCraft->pitch) {
-		g_curCraft->aiFlight.pitchState = 1;
+	paiman_setpower(g_pai_context.object_index, 0xFFFF);
+	g_pai_context.controller->target_z_angle =
+		(game_rand() & 0x0FFF) + 0x5800;
+	g_cur_craft->ai_flight.climb_state = 0;
+	if (g_pai_context.controller->target_z_angle <= g_cur_craft->pitch) {
+		g_cur_craft->ai_flight.pitch_state = 1;
 	} else {
-		g_curCraft->aiFlight.pitchState = 2;
+		g_cur_craft->ai_flight.pitch_state = 2;
 	}
-	g_curCraft->aiFlight.pitchThroughLoop = 0;
-	g_curCraft->aiFlight.pitchStepScale = 0xFFFFu;
-	g_paiContext.controller->maneuverTimer = 1180;
+	g_cur_craft->ai_flight.pitch_through_loop = 0;
+	g_cur_craft->ai_flight.pitch_step_scale = 0xFFFFu;
+	g_pai_context.controller->maneuver_timer = 1180;
 }
 
 /* Returns 1 once the maneuver timer has run out, else 0. */
 // FUNCTION: XVT 0x4A0F90
 int16_t paiman_divemaneuver(void)
 {
-	return g_paiContext.controller->maneuverTimer == 0;
+	return g_pai_context.controller->maneuver_timer == 0;
 }
 
 /* Starts splits dive, also used for evasive: a roll to 0x8000 at full step, no
- * turn, and a pitch through a loop with pitchState 2 to 0x4000 to 0x7FFF, its
+ * turn, and a pitch through a loop with pitch_state 2 to 0x4000 to 0x7FFF, its
  * step half the effective skill plus 0x8000. */
 // FUNCTION: XVT 0x4A0FA0
 void paiman_initsplitsdivemaneuver(void)
 {
-	g_curCraft->aiFlight.rollState = 1;
-	g_curCraft->aiFlight.rollStep = 0xFFFFu;
-	g_paiContext.controller->targetRoll = 0x8000u;
-	g_curCraft->aiFlight.turnState = 0;
-	g_curCraft->aiFlight.pitchThroughLoop = 1;
-	g_paiContext.controller->targetZAngle = (GameRand() & 0x3FFF) + 0x4000;
-	g_curCraft->aiFlight.pitchState = 2;
-	g_curCraft->aiFlight.pitchStepScale =
-		(pai_GetEffectiveSkillValue(g_curCraft) >> 1) + 0x8000;
+	g_cur_craft->ai_flight.roll_state = 1;
+	g_cur_craft->ai_flight.roll_step = 0xFFFFu;
+	g_pai_context.controller->target_roll = 0x8000u;
+	g_cur_craft->ai_flight.turn_state = 0;
+	g_cur_craft->ai_flight.pitch_through_loop = 1;
+	g_pai_context.controller->target_z_angle =
+		(game_rand() & 0x3FFF) + 0x4000;
+	g_cur_craft->ai_flight.pitch_state = 2;
+	g_cur_craft->ai_flight.pitch_step_scale =
+		(pai_get_effective_skill_value(g_cur_craft) >> 1) + 0x8000;
 }
 
-/* Returns 1 once the roll and the pitch are done (rollState 4, pitchState 3),
+/* Returns 1 once the roll and the pitch are done (roll_state 4, pitch_state 3),
  * else 0. */
 // FUNCTION: XVT 0x4A1030
 int16_t paiman_splitsdivemaneuver(void)
 {
-	return g_curCraft->aiFlight.rollState == 4 &&
-	       g_curCraft->aiFlight.pitchState == 3;
+	return g_cur_craft->ai_flight.roll_state == 4 &&
+	       g_cur_craft->ai_flight.pitch_state == 3;
 }
 
 /* Starts speed away: full throttle for 4,720 ticks, and the first weave from
- * paiman_SetupSpeedAwayTurn, which replaces the targetXYAngle this function
+ * paiman_setup_speed_away_turn, which replaces the target_xy_angle this function
  * sets just before. */
 // FUNCTION: XVT 0x4A1060
 void paiman_initspeedawaymaneuver(void)
 {
 	uint16_t yaw;
-	uint16_t randomOffset;
+	uint16_t random_offset;
 
-	paiman_setpower(g_paiContext.objectIndex, 0xFFFF);
-	g_paiContext.controller->maneuverTimer = 4720;
-	yaw = g_objectTable[g_paiContext.objectIndex].yaw;
-	randomOffset = GameRand();
-	randomOffset &= 0xFF;
-	yaw += randomOffset;
-	g_paiContext.controller->targetXYAngle = yaw;
-	paiman_SetupSpeedAwayTurn(g_paiContext.objectIndex);
+	paiman_setpower(g_pai_context.object_index, 0xFFFF);
+	g_pai_context.controller->maneuver_timer = 4720;
+	yaw = g_object_table[g_pai_context.object_index].yaw;
+	random_offset = game_rand();
+	random_offset &= 0xFF;
+	yaw += random_offset;
+	g_pai_context.controller->target_xy_angle = yaw;
+	paiman_setup_speed_away_turn(g_pai_context.object_index);
 }
 
 /* Returns 1 once the maneuver timer has run out, else 0. Each time
- * secondaryManeuverTimer runs out it starts the next weave with
- * paiman_SetupSpeedAwayTurn, which replaces the negated targetXYAngle this
+ * secondary_maneuver_timer runs out it starts the next weave with
+ * paiman_setup_speed_away_turn, which replaces the negated target_xy_angle this
  * function sets just before. */
 // FUNCTION: XVT 0x4A10D0
 int16_t paiman_speedawaymaneuver(void)
 {
-	if (g_paiContext.controller->secondaryManeuverTimer == 0) {
-		g_paiContext.controller->targetXYAngle =
-			-g_paiContext.controller->targetXYAngle;
-		paiman_SetupSpeedAwayTurn(g_paiContext.objectIndex);
+	if (g_pai_context.controller->secondary_maneuver_timer == 0) {
+		g_pai_context.controller->target_xy_angle =
+			-g_pai_context.controller->target_xy_angle;
+		paiman_setup_speed_away_turn(g_pai_context.object_index);
 	}
-	return g_paiContext.controller->maneuverTimer == 0;
+	return g_pai_context.controller->maneuver_timer == 0;
 }
 
 /* Starts one weave of speed away: a Z push of 50 to 81 world units and a turn
@@ -1536,75 +1560,76 @@ int16_t paiman_speedawaymaneuver(void)
  * weave in 118 ticks. The push is held in 16 unsigned bits, so the negated one
  * is stored as 65,536 minus it, a large push up. */
 // FUNCTION: XVT 0x4A1110
-void paiman_SetupSpeedAwayTurn(unsigned int objectIdx)
+void paiman_setup_speed_away_turn(unsigned int object_idx)
 {
-	uint16_t pushZ;
-	int16_t yawOffset;
-	uint16_t effectiveSkill;
-	unsigned int turnStep;
+	uint16_t push_z;
+	int16_t yaw_offset;
+	uint16_t effective_skill;
+	unsigned int turn_step;
 
-	pushZ = (GameRand() & 0x1F) + 50;
-	yawOffset = GameRand() & 0xFF;
-	yawOffset += 384;
-	if (g_curCraft->pushAccumZ >= 0) {
-		pushZ = -pushZ;
-		yawOffset = -yawOffset;
+	push_z = (game_rand() & 0x1F) + 50;
+	yaw_offset = game_rand() & 0xFF;
+	yaw_offset += 384;
+	if (g_cur_craft->push_accum_z >= 0) {
+		push_z = -push_z;
+		yaw_offset = -yaw_offset;
 	}
-	g_curCraft->pushAccumZ = pushZ;
-	g_paiContext.controller->targetXYAngle =
-		g_objectTable[objectIdx].yaw + yawOffset;
-	effectiveSkill = pai_GetEffectiveSkillValue(g_curCraft);
-	turnStep = effectiveSkill >> 1;
-	turnStep += 0x8000;
-	paiman_setturn(turnStep);
-	g_paiContext.controller->secondaryManeuverTimer = 118;
+	g_cur_craft->push_accum_z = push_z;
+	g_pai_context.controller->target_xy_angle =
+		g_object_table[object_idx].yaw + yaw_offset;
+	effective_skill = pai_get_effective_skill_value(g_cur_craft);
+	turn_step = effective_skill >> 1;
+	turn_step += 0x8000;
+	paiman_setturn(turn_step);
+	g_pai_context.controller->secondary_maneuver_timer = 118;
 }
 
 /* Starts into hyperspace: steers at the aim point at full throttle, with
- * maneuverPhase 0. */
+ * maneuver_phase 0. */
 // FUNCTION: XVT 0x4A11B0
 void paiman_initintohyperspacemaneuver(void)
 {
 	paiman_setflighttotarget(0, 1);
-	paiman_setpower(g_paiContext.objectIndex, UINT16_MAX);
-	g_paiContext.controller->maneuverPhase = 0;
+	paiman_setpower(g_pai_context.object_index, UINT16_MAX);
+	g_pai_context.controller->maneuver_phase = 0;
 }
 
 /* Takes the craft out through hyperspace; returns 0 on every path. At
- * maneuverPhase 0 it steers at the aim point at full throttle and, within
+ * maneuver_phase 0 it steers at the aim point at full throttle and, within
  * 0x4000 world units, marks the craft entering hyperspace, stops its roll,
  * pitch and turn, and moves to 1 with a maneuver timer of 1,652 ticks and a
  * second one of 944. At 1, once its speed reaches 3,600
- * (Flight_UpdateCraftSteeringAndSpeed speeds it up), it counts the departure in
- * g_missionFgStats and the team goals as its flags call for, emits message
+ * (flight_update_craft_steering_and_speed speeds it up), it counts the departure in
+ * g_mission_fg_stats and the team goals as its flags call for, emits message
  * 0x87, records the left-region outcome and removes the craft, and the object
  * it carries likewise. */
 // FUNCTION: XVT 0x4A11E0
 int16_t paiman_intohyperspacemaneuver(void)
 {
 	unsigned int team;
-	unsigned int otherTeam;
-	uint16_t carriedGroupIdx;
-	uint16_t flightGroupIdx;
-	uint8_t specialCargoCraft;
-	uint8_t otherTeamCount;
-	struct CraftData *carriedCraft;
-	int specialCargo;
+	unsigned int other_team;
+	uint16_t carried_group_idx;
+	uint16_t flight_group_idx;
+	uint8_t special_cargo_craft;
+	uint8_t other_team_count;
+	struct craft_data *carried_craft;
+	int special_cargo;
 
-	switch (g_paiContext.controller->maneuverPhase) {
+	switch (g_pai_context.controller->maneuver_phase) {
 	case 0:
 		paiman_setflighttotarget(0, 1);
 		if (trig2_polardistance < 0x4000) {
-			g_curCraft->objectKind =
+			g_cur_craft->object_kind =
 				CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE;
-			g_curCraft->aiFlight.rollState = 0;
-			g_curCraft->aiFlight.pitchState = 0;
-			g_curCraft->aiFlight.turnState = 0;
-			g_paiContext.controller->maneuverPhase = 1;
-			g_paiContext.controller->secondaryManeuverTimer = 944;
-			g_paiContext.controller->maneuverTimer = 1652;
+			g_cur_craft->ai_flight.roll_state = 0;
+			g_cur_craft->ai_flight.pitch_state = 0;
+			g_cur_craft->ai_flight.turn_state = 0;
+			g_pai_context.controller->maneuver_phase = 1;
+			g_pai_context.controller->secondary_maneuver_timer =
+				944;
+			g_pai_context.controller->maneuver_timer = 1652;
 		}
-		paiman_setpower(g_paiContext.objectIndex, 0xFFFF);
+		paiman_setpower(g_pai_context.object_index, 0xFFFF);
 		return 0;
 	case 1:
 		break;
@@ -1612,211 +1637,222 @@ int16_t paiman_intohyperspacemaneuver(void)
 		return 0;
 	}
 
-	g_curCraft->objectKind = CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE;
-	if (g_objectTable[g_paiContext.objectIndex].mobj->speed >= 0xE10) {
-		if (g_curCraft->capturedByFlightGroup == 0 &&
-		    g_paiContext.controller->skippedToOrder4 == 0 &&
-		    (g_curCraft->aiFlight.goHomeFlag != 0 ||
-		     (g_curCraft->aiFlight.missionAbortedFlag == 0 &&
-		      g_curCraft->aiFlight.departTimerFlag == 0))) {
-			flightGroupIdx = g_paiContext.craftFlightGroupIndex;
-			++g_missionFgStats[flightGroupIdx]
-				  .outcomeCount[FLIGHT_GROUP_OUTCOME_DEPARTED];
-			specialCargo = 0;
-			if (g_missionFlightGroups[flightGroupIdx]
-				    .fg.specialCargoCraft ==
-			    g_curCraft->craftOrdinal) {
-				specialCargo = 1;
-				g_missionFgStats[flightGroupIdx]
-					.specialCargoOutcome
+	g_cur_craft->object_kind = CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE;
+	if (g_object_table[g_pai_context.object_index].mobj->speed >= 0xE10) {
+		if (g_cur_craft->captured_by_flight_group == 0 &&
+		    g_pai_context.controller->skipped_to_order4 == 0 &&
+		    (g_cur_craft->ai_flight.go_home_flag != 0 ||
+		     (g_cur_craft->ai_flight.mission_aborted_flag == 0 &&
+		      g_cur_craft->ai_flight.depart_timer_flag == 0))) {
+			flight_group_idx =
+				g_pai_context.craft_flight_group_index;
+			++g_mission_fg_stats[flight_group_idx]
+				  .outcome_count[FLIGHT_GROUP_OUTCOME_DEPARTED];
+			special_cargo = 0;
+			if (g_mission_flight_groups[flight_group_idx]
+				    .fg.special_cargo_craft ==
+			    g_cur_craft->craft_ordinal) {
+				special_cargo = 1;
+				g_mission_fg_stats[flight_group_idx]
+					.special_cargo_outcome
 						[FLIGHT_GROUP_OUTCOME_DEPARTED] =
 					1;
 			}
-			Mission_ApplyTeamGoalScoreAllEnabledTeams(
-				12, g_paiContext.craftFlightGroupIndex,
-				specialCargo);
+			mission_apply_team_goal_score_all_enabled_teams(
+				12, g_pai_context.craft_flight_group_index,
+				special_cargo);
 		}
-		if (g_curCraft->capturedByFlightGroup == 0 &&
-		    g_paiContext.controller->skippedToOrder4 == 1 &&
-		    g_curCraft->aiFlight.missionAbortedFlag == 0 &&
-		    g_curCraft->aiFlight.departTimerFlag == 0) {
-			flightGroupIdx = g_paiContext.craftFlightGroupIndex;
-			++g_missionFgStats[flightGroupIdx].outcomeCount
+		if (g_cur_craft->captured_by_flight_group == 0 &&
+		    g_pai_context.controller->skipped_to_order4 == 1 &&
+		    g_cur_craft->ai_flight.mission_aborted_flag == 0 &&
+		    g_cur_craft->ai_flight.depart_timer_flag == 0) {
+			flight_group_idx =
+				g_pai_context.craft_flight_group_index;
+			++g_mission_fg_stats[flight_group_idx].outcome_count
 				  [FLIGHT_GROUP_OUTCOME_DEPARTED_WITH_ORDER_INCOMPLETE];
-			if (g_missionFlightGroups[flightGroupIdx]
-				    .fg.specialCargoCraft ==
-			    g_curCraft->craftOrdinal) {
-				g_missionFgStats[flightGroupIdx].specialCargoOutcome
+			if (g_mission_flight_groups[flight_group_idx]
+				    .fg.special_cargo_craft ==
+			    g_cur_craft->craft_ordinal) {
+				g_mission_fg_stats[flight_group_idx].special_cargo_outcome
 					[FLIGHT_GROUP_OUTCOME_DEPARTED_WITH_ORDER_INCOMPLETE] =
 					1;
 			}
 		}
-		if (g_curCraft->capturedByFlightGroup != 0) {
-			team = g_objectTable[g_paiContext.objectIndex]
+		if (g_cur_craft->captured_by_flight_group != 0) {
+			team = g_object_table[g_pai_context.object_index]
 				       .mobj->team;
-			++g_missionFgStats[g_paiContext.craftFlightGroupIndex]
-				  .teamCapturedDepartedCount[team];
-			specialCargo = 0;
-			if (g_missionFlightGroups
-				    [g_paiContext.craftFlightGroupIndex]
-					    .fg.specialCargoCraft ==
-			    g_curCraft->craftOrdinal) {
-				++g_missionFgStats[g_paiContext
-							   .craftFlightGroupIndex]
-					  .teamSpecialCargoCapturedDeparted
-						  [team];
-				specialCargo = 1;
+			++g_mission_fg_stats[g_pai_context
+						     .craft_flight_group_index]
+				  .team_captured_departed_count[team];
+			special_cargo = 0;
+			if (g_mission_flight_groups
+				    [g_pai_context.craft_flight_group_index]
+					    .fg.special_cargo_craft ==
+			    g_cur_craft->craft_ordinal) {
+				++g_mission_fg_stats
+					  [g_pai_context
+						   .craft_flight_group_index]
+						  .team_special_cargo_captured_departed
+							  [team];
+				special_cargo = 1;
 			}
-			Mission_ApplyTeamGoalScoreForTeam(
-				44, g_paiContext.craftFlightGroupIndex,
-				specialCargo, (uint8_t)team);
-			for (otherTeam = 0; otherTeam < 10; ++otherTeam) {
-				if (otherTeam != team &&
-				    g_missionFlightGroups
-						    [g_paiContext
-							     .craftFlightGroupIndex]
+			mission_apply_team_goal_score_for_team(
+				44, g_pai_context.craft_flight_group_index,
+				special_cargo, (uint8_t)team);
+			for (other_team = 0; other_team < 10; ++other_team) {
+				if (other_team != team &&
+				    g_mission_flight_groups
+						    [g_pai_context
+							     .craft_flight_group_index]
 							    .fg.team !=
-					    otherTeam) {
-					++g_missionFgStats
-						  [g_paiContext
-							   .craftFlightGroupIndex]
-							  .teamUncapturedLost
-								  [otherTeam];
-					if (g_missionFlightGroups
-						    [g_paiContext
-							     .craftFlightGroupIndex]
+					    other_team) {
+					++g_mission_fg_stats
+						  [g_pai_context
+							   .craft_flight_group_index]
+							  .team_uncaptured_lost
+								  [other_team];
+					if (g_mission_flight_groups
+						    [g_pai_context
+							     .craft_flight_group_index]
 							    .fg
-							    .specialCargoCraft ==
-					    g_curCraft->craftOrdinal) {
-						g_missionFgStats[g_paiContext
-									 .craftFlightGroupIndex]
-							.teamSpecialCargoUncapturedLost
-								[otherTeam] = 1;
+							    .special_cargo_craft ==
+					    g_cur_craft->craft_ordinal) {
+						g_mission_fg_stats[g_pai_context
+									   .craft_flight_group_index]
+							.team_special_cargo_uncaptured_lost
+								[other_team] =
+							1;
 					}
 				}
 			}
 		}
-		msg_emitCraftMessage(g_paiContext.objectIndex, g_curCraft,
-				     0x87);
-		Mission_RecordCraftOutcome(g_paiContext.objectIndex,
-					   g_paiContext.craftFlightGroupIndex,
-					   FLIGHT_GROUP_OUTCOME_LEFT_REGION);
-		g_objectTable[g_paiContext.objectIndex].objectType = 0;
-		Craft_FreeLinkedObjects(g_curCraft);
+		msg_emit_craft_message(g_pai_context.object_index, g_cur_craft,
+				       0x87);
+		mission_record_craft_outcome(
+			g_pai_context.object_index,
+			g_pai_context.craft_flight_group_index,
+			FLIGHT_GROUP_OUTCOME_LEFT_REGION);
+		g_object_table[g_pai_context.object_index].object_type = 0;
+		craft_free_linked_objects(g_cur_craft);
 		{
-			uint16_t carriedObjectIdx =
-				g_curCraft->carriedObjectIndex;
+			uint16_t carried_object_idx =
+				g_cur_craft->carried_object_index;
 
-			if (carriedObjectIdx != UINT16_MAX) {
-				if (g_objectTable[carriedObjectIdx].mobj !=
+			if (carried_object_idx != UINT16_MAX) {
+				if (g_object_table[carried_object_idx].mobj !=
 				    NULL) {
-					carriedGroupIdx =
-						g_objectTable[carriedObjectIdx]
-							.flightGroupIdx;
-					Mission_RecordCraftOutcome(
-						carriedObjectIdx,
-						carriedGroupIdx,
+					carried_group_idx =
+						g_object_table[carried_object_idx]
+							.flight_group_idx;
+					mission_record_craft_outcome(
+						carried_object_idx,
+						carried_group_idx,
 						FLIGHT_GROUP_OUTCOME_LEFT_REGION);
-					carriedCraft =
-						g_objectTable[carriedObjectIdx]
-							.mobj->pCraft;
-					if (carriedCraft
-						    ->capturedByFlightGroup !=
+					carried_craft =
+						g_object_table
+							[carried_object_idx]
+								.mobj->p_craft;
+					if (carried_craft
+						    ->captured_by_flight_group !=
 					    0) {
-						team = g_objectTable
-							       [carriedObjectIdx]
+						team = g_object_table
+							       [carried_object_idx]
 								       .mobj
 								       ->team;
-						++g_missionFgStats[carriedGroupIdx]
-							  .teamCapturedDepartedCount
-								  [team];
-						specialCargo = 0;
-						if (g_missionFlightGroups
-							    [carriedGroupIdx]
-								    .fg
-								    .specialCargoCraft ==
-						    carriedCraft
-							    ->craftOrdinal) {
-							++g_missionFgStats[carriedGroupIdx]
-								  .teamSpecialCargoCapturedDeparted
+						++g_mission_fg_stats
+							  [carried_group_idx]
+								  .team_captured_departed_count
 									  [team];
-							specialCargo = 1;
+						special_cargo = 0;
+						if (g_mission_flight_groups
+							    [carried_group_idx]
+								    .fg
+								    .special_cargo_craft ==
+						    carried_craft
+							    ->craft_ordinal) {
+							++g_mission_fg_stats[carried_group_idx]
+								  .team_special_cargo_captured_departed
+									  [team];
+							special_cargo = 1;
 						}
-						Mission_ApplyTeamGoalScoreForTeam(
-							44, carriedGroupIdx,
-							specialCargo,
+						mission_apply_team_goal_score_for_team(
+							44, carried_group_idx,
+							special_cargo,
 							(uint8_t)team);
-						for (otherTeam = 0;
-						     otherTeam < 10;
-						     ++otherTeam) {
-							if (otherTeam != team &&
-							    g_missionFlightGroups[carriedGroupIdx]
+						for (other_team = 0;
+						     other_team < 10;
+						     ++other_team) {
+							if (other_team !=
+								    team &&
+							    g_mission_flight_groups[carried_group_idx]
 									    .fg
 									    .team !=
-								    otherTeam) {
-								otherTeamCount =
-									g_missionFgStats[carriedGroupIdx]
-										.teamUncapturedLost
-											[otherTeam];
-								specialCargoCraft =
-									g_missionFlightGroups[carriedGroupIdx]
-										.fg
-										.specialCargoCraft;
-								++otherTeamCount;
-								g_missionFgStats[carriedGroupIdx]
-									.teamUncapturedLost
-										[otherTeam] =
-									otherTeamCount;
-								if (specialCargoCraft ==
-								    carriedCraft
-									    ->craftOrdinal) {
-									g_missionFgStats[carriedGroupIdx]
-										.teamSpecialCargoUncapturedLost
-											[otherTeam] =
+								    other_team) {
+								other_team_count =
+									g_mission_fg_stats[carried_group_idx]
+										.team_uncaptured_lost
+											[other_team];
+								special_cargo_craft =
+									g_mission_flight_groups
+										[carried_group_idx]
+											.fg
+											.special_cargo_craft;
+								++other_team_count;
+								g_mission_fg_stats[carried_group_idx]
+									.team_uncaptured_lost
+										[other_team] =
+									other_team_count;
+								if (special_cargo_craft ==
+								    carried_craft
+									    ->craft_ordinal) {
+									g_mission_fg_stats[carried_group_idx]
+										.team_special_cargo_uncaptured_lost
+											[other_team] =
 										1;
 								}
 							}
 						}
-						specialCargoCraft =
-							g_missionFlightGroups
-								[carriedGroupIdx]
+						special_cargo_craft =
+							g_mission_flight_groups
+								[carried_group_idx]
 									.fg
-									.specialCargoCraft;
-						++g_missionFgStats[carriedGroupIdx]
-							  .outcomeCount
+									.special_cargo_craft;
+						++g_mission_fg_stats[carried_group_idx]
+							  .outcome_count
 								  [FLIGHT_GROUP_OUTCOME_NOT_CAPTURED_BY_DESTINATION];
-						if (specialCargoCraft ==
-						    carriedCraft
-							    ->craftOrdinal) {
-							g_missionFgStats[carriedGroupIdx]
-								.specialCargoOutcome
+						if (special_cargo_craft ==
+						    carried_craft
+							    ->craft_ordinal) {
+							g_mission_fg_stats[carried_group_idx]
+								.special_cargo_outcome
 									[FLIGHT_GROUP_OUTCOME_NOT_CAPTURED_BY_DESTINATION] =
 								1;
 						}
 					} else {
-						++g_missionFgStats[carriedGroupIdx]
-							  .outcomeCount
+						++g_mission_fg_stats[carried_group_idx]
+							  .outcome_count
 								  [FLIGHT_GROUP_OUTCOME_CAPTURED_BY_DESTINATION];
-						specialCargo = 0;
-						if (g_missionFlightGroups
-							    [carriedGroupIdx]
+						special_cargo = 0;
+						if (g_mission_flight_groups
+							    [carried_group_idx]
 								    .fg
-								    .specialCargoCraft ==
-						    carriedCraft
-							    ->craftOrdinal) {
-							specialCargo = 1;
-							g_missionFgStats[carriedGroupIdx]
-								.specialCargoOutcome
+								    .special_cargo_craft ==
+						    carried_craft
+							    ->craft_ordinal) {
+							special_cargo = 1;
+							g_mission_fg_stats[carried_group_idx]
+								.special_cargo_outcome
 									[FLIGHT_GROUP_OUTCOME_CAPTURED_BY_DESTINATION] =
 								1;
 						}
-						Mission_ApplyTeamGoalScoreAllEnabledTeams(
-							46, carriedGroupIdx,
-							specialCargo);
+						mission_apply_team_goal_score_all_enabled_teams(
+							46, carried_group_idx,
+							special_cargo);
 					}
-					g_objectTable[carriedObjectIdx]
-						.objectType = 0;
-					Craft_FreeLinkedObjects(carriedCraft);
+					g_object_table[carried_object_idx]
+						.object_type = 0;
+					craft_free_linked_objects(
+						carried_craft);
 				}
 			}
 		}
@@ -1825,112 +1861,117 @@ int16_t paiman_intohyperspacemaneuver(void)
 }
 
 /* Starts the arrival from hyperspace: marks the craft arriving, sets its speed
- * to 3,600 and maneuverPhase 0, targets the flight group's current mission
+ * to 3,600 and maneuver_phase 0, targets the flight group's current mission
  * point with the aim point there, and sets a maneuver timer of 2,596 ticks and
- * a secondary one of SIMULATION_TICKS_PER_SECOND. Keeps thinkInterval in
- * dockedTargetSignatures[0] and thinks every 59 ticks meanwhile. */
+ * a secondary one of SIMULATION_TICKS_PER_SECOND. Keeps think_interval in
+ * docked_target_signatures[0] and thinks every 59 ticks meanwhile. */
 // FUNCTION: XVT 0x4A1750
 void paiman_initoutofhyperspacemaneuver(void)
 {
-	g_curCraft->objectKind = CRAFT_OBJECT_KIND_ARRIVING_FROM_HYPERSPACE;
-	g_objectTable[g_paiContext.objectIndex].mobj->speed = 3600;
-	g_paiContext.controller->maneuverPhase = 0;
-	g_paiContext.controller->secondaryManeuverTimer =
+	g_cur_craft->object_kind = CRAFT_OBJECT_KIND_ARRIVING_FROM_HYPERSPACE;
+	g_object_table[g_pai_context.object_index].mobj->speed = 3600;
+	g_pai_context.controller->maneuver_phase = 0;
+	g_pai_context.controller->secondary_maneuver_timer =
 		SIMULATION_TICKS_PER_SECOND;
-	g_paiContext.controller->targetObjIdx = 0x8000;
-	g_paiContext.controller->targetSignature = 0;
-	g_paiContext.controller->hasLiveTarget = 0;
-	pai_UpdateAimPointFromOrderTarget();
-	g_paiContext.controller->maneuverTimer = 2596;
+	g_pai_context.controller->target_obj_idx = 0x8000;
+	g_pai_context.controller->target_signature = 0;
+	g_pai_context.controller->has_live_target = 0;
+	pai_update_aim_point_from_order_target();
+	g_pai_context.controller->maneuver_timer = 2596;
 	/* While the craft arrives from hyperspace, the first slot of the docked-target signature list keeps its
 	 * think interval; the arrival maneuver puts it back when it ends. */
-	g_curCraft->aiFlight.dockedTargetSignatures[0] =
-		(uint16_t)g_paiContext.controller->thinkInterval;
-	g_paiContext.controller->thinkInterval = 59;
+	g_cur_craft->ai_flight.docked_target_signatures[0] =
+		(uint16_t)g_pai_context.controller->think_interval;
+	g_pai_context.controller->think_interval = 59;
 }
 
 /* Slows an arriving craft and returns 1 when it has arrived, else 0. Each time
- * secondaryManeuverTimer runs out it raises maneuverPhase by 1, up to 10, and
- * sets the speed from g_aiHyperspaceArrivalSpeedByPhase. A craft with no leader
+ * secondary_maneuver_timer runs out it raises maneuver_phase by 1, up to 10, and
+ * sets the speed from g_ai_hyperspace_arrival_speed_by_phase. A craft with no leader
  * has arrived within 4,096 world units of its aim point or when the maneuver
  * timer runs out; a follower, once its leader no longer runs
  * outofhyperspacepln. On arrival it writes the plan id of the craft's first
  * order, leader or follower, into byte 3 of the shared outofhyperspacepln plan
- * data, the plan its first order switches to; restores thinkInterval; marks the
+ * data, the plan its first order switches to; restores think_interval; marks the
  * craft active; clears its target; and sets its speed to 0 on nullpln or a
  * stationary plan, else 250. */
 // FUNCTION: XVT 0x4A17F0
 int16_t paiman_outofhyperspacemaneuver(void)
 {
-	struct AiController *leaderController;
+	struct ai_controller *leader_controller;
 	uint8_t reached;
 	uint16_t order;
-	uint8_t planId;
-	uint8_t *outOfHyperspacePlan;
+	uint8_t plan_id;
+	uint8_t *out_of_hyperspace_plan;
 
-	leaderController = &g_paiContext.leaderOrSelfCraft->aiController;
-	if (g_paiContext.controller->secondaryManeuverTimer == 0) {
-		++g_paiContext.controller->maneuverPhase;
-		if (g_paiContext.controller->maneuverPhase > 10) {
-			g_paiContext.controller->maneuverPhase = 10;
+	leader_controller = &g_pai_context.leader_or_self_craft->ai_controller;
+	if (g_pai_context.controller->secondary_maneuver_timer == 0) {
+		++g_pai_context.controller->maneuver_phase;
+		if (g_pai_context.controller->maneuver_phase > 10) {
+			g_pai_context.controller->maneuver_phase = 10;
 		}
-		g_objectTable[g_paiContext.objectIndex].mobj->speed =
-			g_aiHyperspaceArrivalSpeedByPhase
-				[g_paiContext.controller->maneuverPhase];
-		g_paiContext.controller->secondaryManeuverTimer =
+		g_object_table[g_pai_context.object_index].mobj->speed =
+			g_ai_hyperspace_arrival_speed_by_phase
+				[g_pai_context.controller->maneuver_phase];
+		g_pai_context.controller->secondary_maneuver_timer =
 			SIMULATION_TICKS_PER_SECOND;
 	}
 
 	reached = 0;
-	if (g_curCraft->leader_obj_idx == UINT8_MAX) {
-		trig2_ctop(
-			g_paiContext.controller->aimPointX -
-				g_objectTable[g_paiContext.objectIndex].world_x,
-			g_paiContext.controller->aimPointY -
-				g_objectTable[g_paiContext.objectIndex].world_y,
-			g_paiContext.controller->aimPointZ -
-				g_objectTable[g_paiContext.objectIndex]
-					.world_z);
+	if (g_cur_craft->leader_obj_idx == UINT8_MAX) {
+		trig2_ctop(g_pai_context.controller->aim_point_x -
+				   g_object_table[g_pai_context.object_index]
+					   .world_x,
+			   g_pai_context.controller->aim_point_y -
+				   g_object_table[g_pai_context.object_index]
+					   .world_y,
+			   g_pai_context.controller->aim_point_z -
+				   g_object_table[g_pai_context.object_index]
+					   .world_z);
 		if (trig2_polardistance < 4096 ||
-		    g_paiContext.controller->maneuverTimer == 0) {
+		    g_pai_context.controller->maneuver_timer == 0) {
 			reached = 1;
 		}
-	} else if (strcmp(g_planTable[leaderController->runningPlanId].name,
+	} else if (strcmp(g_plan_table[leader_controller->running_plan_id].name,
 			  "outofhyperspacepln") != 0) {
 		reached = 1;
 	}
 
 	if (reached != 0) {
-		order = g_missionFlightGroups[g_paiContext
-						      .craftFlightGroupIndex]
-				.fg.orders[0]
-				.order;
-		if (g_curCraft->leader_obj_idx == UINT8_MAX) {
-			planId = g_builtinPlanIdByNameIndex
-				[g_orderLeaderBuiltinPlanNameIndex[order]];
+		order = g_mission_flight_groups
+				[g_pai_context.craft_flight_group_index]
+					.fg.orders[0]
+					.order;
+		if (g_cur_craft->leader_obj_idx == UINT8_MAX) {
+			plan_id = g_builtin_plan_id_by_name_index
+				[g_order_leader_builtin_plan_name_index[order]];
 		} else {
-			planId = g_builtinPlanIdByNameIndex
-				[g_orderFollowerBuiltinPlanNameIndex[order]];
+			plan_id = g_builtin_plan_id_by_name_index
+				[g_order_follower_builtin_plan_name_index
+					 [order]];
 		}
 
-		outOfHyperspacePlan =
+		out_of_hyperspace_plan =
 			pai_getplandataptrbyname("outofhyperspacepln");
-		outOfHyperspacePlan[3] = planId;
-		g_paiContext.controller->thinkInterval =
-			g_curCraft->aiFlight.dockedTargetSignatures[0];
-		g_curCraft->objectKind = CRAFT_OBJECT_KIND_ACTIVE;
-		g_paiContext.controller->targetObjIdx = UINT16_MAX;
-		g_paiContext.controller->targetSignature = 0;
-		g_paiContext.controller->hasLiveTarget = 0;
+		out_of_hyperspace_plan[3] = plan_id;
+		g_pai_context.controller->think_interval =
+			g_cur_craft->ai_flight.docked_target_signatures[0];
+		g_cur_craft->object_kind = CRAFT_OBJECT_KIND_ACTIVE;
+		g_pai_context.controller->target_obj_idx = UINT16_MAX;
+		g_pai_context.controller->target_signature = 0;
+		g_pai_context.controller->has_live_target = 0;
 
-		if (strcmp(g_planTable[planId].name, "nullpln") == 0 ||
-		    strcmp(g_planTable[planId].name, "stationaryldrpln") == 0 ||
-		    strcmp(g_planTable[planId].name, "stationaryflwpln") == 0) {
-			g_objectTable[g_paiContext.objectIndex].mobj->speed = 0;
+		if (strcmp(g_plan_table[plan_id].name, "nullpln") == 0 ||
+		    strcmp(g_plan_table[plan_id].name, "stationaryldrpln") ==
+			    0 ||
+		    strcmp(g_plan_table[plan_id].name, "stationaryflwpln") ==
+			    0) {
+			g_object_table[g_pai_context.object_index].mobj->speed =
+				0;
 			return 1;
 		}
 
-		g_objectTable[g_paiContext.objectIndex].mobj->speed = 250;
+		g_object_table[g_pai_context.object_index].mobj->speed = 250;
 		return 1;
 	}
 
@@ -1943,9 +1984,9 @@ void paiman_initescortmaneuver(void) {}
 
 /* Keeps the craft at its escort station; returns 0 on every path. The escorted
  * craft is the first in the active region's craft slots of flight group
- * escortTargetFG with no leader; one found in slot 255 counts as none. With
+ * escort_target_fg with no leader; one found in slot 255 counts as none. With
  * none, it steers at the aim point at half throttle. Farther than 0x8000 from
- * the escorted craft (0x20000 when its type has a maxBoundsExtent of 3,000 or
+ * the escorted craft (0x20000 when its type has a max_bounds_extent of 3,000 or
  * more) or with the escorted craft disabled, it flies at it, a quarter turn off
  * when disabled, at full throttle beyond 0x10000 else 0x4000, with no push.
  * Otherwise it matches the escorted craft's heading, pitch and roll as
@@ -1958,202 +1999,208 @@ void paiman_initescortmaneuver(void) {}
 // FUNCTION: XVT 0x4A1A50
 int16_t paiman_escortmaneuver(void)
 {
-	uint16_t escortTargetFG = g_paiContext.controller->escortTargetFG;
-	uint16_t objectIndex = g_paiContext.objectIndex;
-	uint16_t targetIdx;
-	uint16_t objectIdx;
-	struct CraftData *targetCraft;
-	struct AiController *targetController;
-	unsigned int escortRange;
+	uint16_t escort_target_fg = g_pai_context.controller->escort_target_fg;
+	uint16_t object_index = g_pai_context.object_index;
+	uint16_t target_idx;
+	uint16_t object_idx;
+	struct craft_data *target_craft;
+	struct ai_controller *target_controller;
+	unsigned int escort_range;
 	int variable1;
 
-	targetIdx = UINT8_MAX;
-	for (objectIdx = (uint16_t)g_activeRegionObjectSlotStart;
-	     objectIdx < g_activeRegionCraftObjectSlotEnd; ++objectIdx) {
-		if (g_objectTable[objectIdx].objectType != 0) {
-			struct CraftData *candidateCraft =
-				g_objectTable[objectIdx].mobj->pCraft;
-			if (g_objectTable[objectIdx].flightGroupIdx ==
-				    escortTargetFG &&
-			    candidateCraft->leader_obj_idx == UINT8_MAX) {
-				targetIdx = objectIdx;
+	target_idx = UINT8_MAX;
+	for (object_idx = (uint16_t)g_active_region_object_slot_start;
+	     object_idx < g_active_region_craft_object_slot_end; ++object_idx) {
+		if (g_object_table[object_idx].object_type != 0) {
+			struct craft_data *candidate_craft =
+				g_object_table[object_idx].mobj->p_craft;
+			if (g_object_table[object_idx].flight_group_idx ==
+				    escort_target_fg &&
+			    candidate_craft->leader_obj_idx == UINT8_MAX) {
+				target_idx = object_idx;
 				break;
 			}
 		}
 	}
-	if (targetIdx != UINT8_MAX) {
-		pai_ObjectRefDirectionToObjectRef(targetIdx, objectIndex);
-		targetCraft = g_objectTable[targetIdx].mobj->pCraft;
-		targetController = &targetCraft->aiController;
-		escortRange =
-			g_objectTypeTable[g_objectTable[targetIdx].objectType]
-						.maxBoundsExtent < 3000
-				? 0x8000
-				: 0x20000;
-		if ((unsigned int)trig2_polardistance > escortRange ||
-		    targetCraft->workingSubsystems == 0) {
-			g_paiContext.controller->aimPointX =
-				g_objectTable[targetIdx].world_x;
-			g_paiContext.controller->aimPointY =
-				g_objectTable[targetIdx].world_y;
-			g_paiContext.controller->aimPointZ =
-				g_objectTable[targetIdx].world_z;
-			if (targetCraft->workingSubsystems == 0) {
+	if (target_idx != UINT8_MAX) {
+		pai_object_ref_direction_to_object_ref(target_idx,
+						       object_index);
+		target_craft = g_object_table[target_idx].mobj->p_craft;
+		target_controller = &target_craft->ai_controller;
+		escort_range = g_object_type_table[g_object_table[target_idx]
+							   .object_type]
+						       .max_bounds_extent < 3000
+				       ? 0x8000
+				       : 0x20000;
+		if ((unsigned int)trig2_polardistance > escort_range ||
+		    target_craft->working_subsystems == 0) {
+			g_pai_context.controller->aim_point_x =
+				g_object_table[target_idx].world_x;
+			g_pai_context.controller->aim_point_y =
+				g_object_table[target_idx].world_y;
+			g_pai_context.controller->aim_point_z =
+				g_object_table[target_idx].world_z;
+			if (target_craft->working_subsystems == 0) {
 				paiman_setflighttotarget(0x4000, 1);
 			} else {
 				paiman_setflighttotarget(0, 1);
 			}
 			if (trig2_polardistance > 0x10000) {
-				paiman_setpower(objectIndex, UINT16_MAX);
+				paiman_setpower(object_index, UINT16_MAX);
 			} else {
-				paiman_setpower(objectIndex, 0x4000);
+				paiman_setpower(object_index, 0x4000);
 			}
-			g_curCraft->pushAccumX = 0;
-			g_curCraft->pushAccumY = 0;
-			g_curCraft->pushAccumZ = 0;
+			g_cur_craft->push_accum_x = 0;
+			g_cur_craft->push_accum_y = 0;
+			g_cur_craft->push_accum_z = 0;
 			return 0;
 		}
-		if (targetCraft->aiFlight.turnState == 2) {
-			g_paiContext.controller->targetXYAngle =
-				targetController->targetXYAngle;
+		if (target_craft->ai_flight.turn_state == 2) {
+			g_pai_context.controller->target_xy_angle =
+				target_controller->target_xy_angle;
 			paiman_setturn(
-				(pai_GetEffectiveSkillValue(g_curCraft) >> 3) +
+				(pai_get_effective_skill_value(g_cur_craft) >>
+				 3) +
 				0x4000);
-		} else if (g_objectTable[objectIndex].yaw !=
-			   g_objectTable[targetIdx].yaw) {
-			g_paiContext.controller->targetXYAngle =
-				g_objectTable[targetIdx].yaw;
+		} else if (g_object_table[object_index].yaw !=
+			   g_object_table[target_idx].yaw) {
+			g_pai_context.controller->target_xy_angle =
+				g_object_table[target_idx].yaw;
 			paiman_setturn(
-				(pai_GetEffectiveSkillValue(g_curCraft) >> 3) +
+				(pai_get_effective_skill_value(g_cur_craft) >>
+				 3) +
 				0x4000);
 		}
-		if (g_objectTable[targetIdx].mobj->speed >
-		    g_objectTable[objectIndex].mobj->speed) {
-			uint16_t throttle = g_curCraft->throttleSpeed;
+		if (g_object_table[target_idx].mobj->speed >
+		    g_object_table[object_index].mobj->speed) {
+			uint16_t throttle = g_cur_craft->throttle_speed;
 			paiman_setpower(
-				objectIndex,
+				object_index,
 				throttle +
 					(uint16_t)(50 *
-						   (g_objectTable[targetIdx]
+						   (g_object_table[target_idx]
 							    .mobj->speed -
-						    g_objectTable[objectIndex]
+						    g_object_table[object_index]
 							    .mobj->speed)));
-			if (g_curCraft->throttleSpeed < throttle) {
-				paiman_setpower(objectIndex, UINT16_MAX);
+			if (g_cur_craft->throttle_speed < throttle) {
+				paiman_setpower(object_index, UINT16_MAX);
 			}
-		} else if (g_objectTable[targetIdx].mobj->speed <
-			   g_objectTable[objectIndex].mobj->speed) {
-			uint16_t throttle = g_curCraft->throttleSpeed;
+		} else if (g_object_table[target_idx].mobj->speed <
+			   g_object_table[object_index].mobj->speed) {
+			uint16_t throttle = g_cur_craft->throttle_speed;
 			paiman_setpower(
-				objectIndex,
+				object_index,
 				throttle -
 					(uint16_t)(50 *
-						   (g_objectTable[objectIndex]
+						   (g_object_table[object_index]
 							    .mobj->speed -
-						    g_objectTable[targetIdx]
+						    g_object_table[target_idx]
 							    .mobj->speed)));
-			if (g_curCraft->throttleSpeed > throttle) {
-				paiman_setpower(objectIndex, 0);
+			if (g_cur_craft->throttle_speed > throttle) {
+				paiman_setpower(object_index, 0);
 			}
 		}
 		{
-			uint16_t pitch = targetCraft->pitch;
-			uint16_t pitchDifference = g_curCraft->pitch - pitch;
-			if (pitchDifference >= 0x8000u) {
-				pitchDifference = -pitchDifference;
+			uint16_t pitch = target_craft->pitch;
+			uint16_t pitch_difference = g_cur_craft->pitch - pitch;
+			if (pitch_difference >= 0x8000u) {
+				pitch_difference = -pitch_difference;
 			}
-			if (pitchDifference < 0x400u) {
-				g_curCraft->pitch = pitch;
-				g_curCraft->aiFlight.pitchState = 0;
+			if (pitch_difference < 0x400u) {
+				g_cur_craft->pitch = pitch;
+				g_cur_craft->ai_flight.pitch_state = 0;
 			} else {
-				g_paiContext.controller->targetZAngle = pitch;
-				if (g_curCraft->pitch >=
-				    g_paiContext.controller->targetZAngle) {
-					g_curCraft->aiFlight.pitchState = 1;
+				g_pai_context.controller->target_z_angle =
+					pitch;
+				if (g_cur_craft->pitch >=
+				    g_pai_context.controller->target_z_angle) {
+					g_cur_craft->ai_flight.pitch_state = 1;
 				} else {
-					g_curCraft->aiFlight.pitchState = 2;
+					g_cur_craft->ai_flight.pitch_state = 2;
 				}
-				g_curCraft->aiFlight.pitchStepScale =
+				g_cur_craft->ai_flight.pitch_step_scale =
 					UINT16_MAX;
-				g_curCraft->aiFlight.pitchThroughLoop = 0;
+				g_cur_craft->ai_flight.pitch_through_loop = 0;
 			}
 		}
 		{
-			uint16_t roll = g_objectTable[targetIdx].roll;
-			uint16_t rollDifference =
-				g_objectTable[objectIndex].roll - roll;
-			if (rollDifference >= 0x8000u) {
-				rollDifference = -rollDifference;
+			uint16_t roll = g_object_table[target_idx].roll;
+			uint16_t roll_difference =
+				g_object_table[object_index].roll - roll;
+			if (roll_difference >= 0x8000u) {
+				roll_difference = -roll_difference;
 			}
-			if (rollDifference < 0x400u) {
-				g_objectTable[objectIndex].roll = roll;
-				g_objectTable[objectIndex]
-					.mobj->orientMatrixDirty = 1;
-				g_curCraft->aiFlight.rollState = 0;
+			if (roll_difference < 0x400u) {
+				g_object_table[object_index].roll = roll;
+				g_object_table[object_index]
+					.mobj->orient_matrix_dirty = 1;
+				g_cur_craft->ai_flight.roll_state = 0;
 			} else {
-				g_paiContext.controller->targetRoll = roll;
-				g_curCraft->aiFlight.rollStep = UINT16_MAX;
-				g_curCraft->aiFlight.rollState = 1;
+				g_pai_context.controller->target_roll = roll;
+				g_cur_craft->ai_flight.roll_step = UINT16_MAX;
+				g_cur_craft->ai_flight.roll_state = 1;
 			}
 		}
-		variable1 =
-			g_missionFlightGroups[g_paiContext
-						      .craftFlightGroupIndex]
-				.fg.orders[g_paiContext.orderSlot]
-				.variable1;
+		variable1 = g_mission_flight_groups
+				    [g_pai_context.craft_flight_group_index]
+					    .fg.orders[g_pai_context.order_slot]
+					    .variable1;
 		pai_calcrotatedpoint(
-			&g_objectTable[targetIdx],
-			g_aiEscortStationOffsetXByVariable[variable1],
-			g_aiEscortStationOffsetYByVariable[variable1],
-			g_aiEscortStationOffsetZByVariable[variable1]);
-		if (g_objectTypeTable[g_objectTable[targetIdx].objectType]
-			    .maxBoundsExtent >= 3000) {
-			g_rotatedX *= 16;
-			g_rotatedY *= 16;
-			g_rotatedZ *= 16;
+			&g_object_table[target_idx],
+			g_ai_escort_station_offset_x_by_variable[variable1],
+			g_ai_escort_station_offset_y_by_variable[variable1],
+			g_ai_escort_station_offset_z_by_variable[variable1]);
+		if (g_object_type_table[g_object_table[target_idx].object_type]
+			    .max_bounds_extent >= 3000) {
+			g_rotated_x *= 16;
+			g_rotated_y *= 16;
+			g_rotated_z *= 16;
 		}
 		{
-			uint16_t leaderIdx =
-				(uint8_t)targetCraft->leader_obj_idx;
-			if (g_objectTable[leaderIdx].playerOwnerIdx == -1 ||
-			    g_objectTable[leaderIdx].mobj->speed > 10) {
-				g_curCraft->pushAccumX =
-					g_objectTable[targetIdx].world_x -
-					g_objectTable[g_paiContext.objectIndex]
+			uint16_t leader_idx =
+				(uint8_t)target_craft->leader_obj_idx;
+			if (g_object_table[leader_idx].player_owner_idx == -1 ||
+			    g_object_table[leader_idx].mobj->speed > 10) {
+				g_cur_craft->push_accum_x =
+					g_object_table[target_idx].world_x -
+					g_object_table[g_pai_context
+							       .object_index]
 						.world_x +
-					g_rotatedX;
-				g_curCraft->pushAccumY =
-					g_objectTable[targetIdx].world_y -
-					g_objectTable[g_paiContext.objectIndex]
+					g_rotated_x;
+				g_cur_craft->push_accum_y =
+					g_object_table[target_idx].world_y -
+					g_object_table[g_pai_context
+							       .object_index]
 						.world_y +
-					g_rotatedY;
-				g_curCraft->pushAccumZ =
-					g_objectTable[targetIdx].world_z -
-					g_objectTable[g_paiContext.objectIndex]
+					g_rotated_y;
+				g_cur_craft->push_accum_z =
+					g_object_table[target_idx].world_z -
+					g_object_table[g_pai_context
+							       .object_index]
 						.world_z +
-					g_rotatedZ;
+					g_rotated_z;
 			} else {
-				g_curCraft->pushAccumX = 0;
-				g_curCraft->pushAccumY = 0;
-				g_curCraft->pushAccumZ = 0;
+				g_cur_craft->push_accum_x = 0;
+				g_cur_craft->push_accum_y = 0;
+				g_cur_craft->push_accum_z = 0;
 			}
 		}
 	} else {
 		paiman_setflighttotarget(0, 1);
-		paiman_setpower(g_paiContext.objectIndex, 0x8000);
+		paiman_setpower(g_pai_context.object_index, 0x8000);
 	}
 	return 0;
 }
 
-/* Starts boarding at maneuverPhase 0. */
+/* Starts boarding at maneuver_phase 0. */
 // FUNCTION: XVT 0x4A2010
 void paiman_initboardmaneuver(void)
 {
-	g_paiContext.controller->maneuverPhase = 0;
+	g_pai_context.controller->maneuver_phase = 0;
 }
 
-/* Boards targetObjIdx, an object or a mission point, in four stages kept in
- * maneuverPhase; returns 1 when the last stage times out, after clearing the
+/* Boards target_obj_idx, an object or a mission point, in four stages kept in
+ * maneuver_phase; returns 1 when the last stage times out, after clearing the
  * target, else 0. Stage 0 flies to an approach point by the target's docking
  * point, worked out from both models' dock offsets, or 2,048 higher in Z for a
  * mission point: half throttle beyond 0x2000 (the full throttle it sets beyond
@@ -2172,7 +2219,7 @@ void paiman_initboardmaneuver(void)
  * name, capture (the target joins its team and flies home or stays), destroy
  * (the target starts selfdestroypln), pick up (it carries the target), contact,
  * or repair. It then counts the target inspected by its team when their IFF
- * match, adds 1 to goalProgress, records the target's signature in its docked
+ * match, adds 1 to goal_progress, records the target's signature in its docked
  * list, counts the docked and boarded outcomes, and goes to stage 3 for 2,360
  * ticks. Stage 3 pushes the craft to a point 0x4000 along its own up axis from
  * the target, or, for a mission point, 500 in Z. */
@@ -2218,899 +2265,929 @@ int16_t paiman_boardmaneuver(void)
 		HUD_TARGET_INVALIDATED = -3,
 	};
 
-	uint16_t targetObjectIndex = g_paiContext.controller->targetObjIdx;
+	uint16_t target_object_index = g_pai_context.controller->target_obj_idx;
 	uint16_t variable1 =
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-			.fg.orders[g_paiContext.orderSlot]
+		g_mission_flight_groups[g_pai_context.craft_flight_group_index]
+			.fg.orders[g_pai_context.order_slot]
 			.variable1;
-	struct MobileObject *targetMobileObject =
-		g_objectTable[targetObjectIndex].mobj;
-	uint8_t *targetFlightGroupIndexPtr =
-		&g_objectTable[targetObjectIndex].flightGroupIdx;
-	struct CraftData *targetCraft = NULL;
-	struct AiController *targetController = NULL;
-	uint16_t targetModelIndex = UINT8_MAX;
-	uint16_t targetFlightGroupIndex = *targetFlightGroupIndexPtr;
-	uint16_t targetSignature =
-		g_objectTable[targetObjectIndex].objectSignature;
+	struct mobile_object *target_mobile_object =
+		g_object_table[target_object_index].mobj;
+	uint8_t *target_flight_group_index_ptr =
+		&g_object_table[target_object_index].flight_group_idx;
+	struct craft_data *target_craft = NULL;
+	struct ai_controller *target_controller = NULL;
+	uint16_t target_model_index = UINT8_MAX;
+	uint16_t target_flight_group_index = *target_flight_group_index_ptr;
+	uint16_t target_signature =
+		g_object_table[target_object_index].object_signature;
 
-	if (targetMobileObject != NULL) {
-		targetCraft = targetMobileObject->pCraft;
-		targetController = &targetCraft->aiController;
-		targetModelIndex = targetCraft->modelIndex;
+	if (target_mobile_object != NULL) {
+		target_craft = target_mobile_object->p_craft;
+		target_controller = &target_craft->ai_controller;
+		target_model_index = target_craft->model_index;
 	}
 
-	switch (g_paiContext.controller->maneuverPhase) {
+	switch (g_pai_context.controller->maneuver_phase) {
 	case BOARD_PHASE_APPROACH: {
-		if (targetMobileObject != NULL) {
-			int16_t initialUpOffset;
-			int16_t additionalUpOffset;
-			int16_t approachUpOffset;
+		if (target_mobile_object != NULL) {
+			int16_t initial_up_offset;
+			int16_t additional_up_offset;
+			int16_t approach_up_offset;
 
-			if (g_objectTable[targetObjectIndex].genusId <
+			if (g_object_table[target_object_index].genus_id <
 			    DOCKING_SMALL_CRAFT_GENUS_LIMIT) {
-				initialUpOffset =
-					g_modelDefs[targetModelIndex]
-						.dockFromUp[0] -
-					g_modelDefs[g_curCraft->modelIndex]
-						.dockToUp[0];
-			} else if (g_objectTable[g_paiContext.objectIndex]
-					   .genusId <
+				initial_up_offset =
+					g_model_defs[target_model_index]
+						.dock_from_up[0] -
+					g_model_defs[g_cur_craft->model_index]
+						.dock_to_up[0];
+			} else if (g_object_table[g_pai_context.object_index]
+					   .genus_id <
 				   DOCKING_SMALL_CRAFT_GENUS_LIMIT) {
-				initialUpOffset =
-					g_modelDefs[targetModelIndex]
-						.dockFromUp[1] +
-					g_modelDefs[targetModelIndex]
-						.dockFromUp[0] -
-					g_modelDefs[g_curCraft->modelIndex]
-						.dockToUp[1];
+				initial_up_offset =
+					g_model_defs[target_model_index]
+						.dock_from_up[1] +
+					g_model_defs[target_model_index]
+						.dock_from_up[0] -
+					g_model_defs[g_cur_craft->model_index]
+						.dock_to_up[1];
 			} else {
-				initialUpOffset =
-					2 * g_modelDefs[targetModelIndex]
-							.dockFromUp[1] -
-					g_modelDefs[g_curCraft->modelIndex]
-						.dockToUp[1];
+				initial_up_offset =
+					2 * g_model_defs[target_model_index]
+							.dock_from_up[1] -
+					g_model_defs[g_cur_craft->model_index]
+						.dock_to_up[1];
 			}
-			additionalUpOffset =
-				g_modelDefs[targetModelIndex].dockFromUp[1] -
-				g_modelDefs[g_curCraft->modelIndex].dockToUp[1];
-			approachUpOffset = additionalUpOffset +
-					   additionalUpOffset + initialUpOffset;
-			if (approachUpOffset < 0) {
-				approachUpOffset = DOCKING_UP_FALLBACK;
+			additional_up_offset =
+				g_model_defs[target_model_index]
+					.dock_from_up[1] -
+				g_model_defs[g_cur_craft->model_index]
+					.dock_to_up[1];
+			approach_up_offset = additional_up_offset +
+					     additional_up_offset +
+					     initial_up_offset;
+			if (approach_up_offset < 0) {
+				approach_up_offset = DOCKING_UP_FALLBACK;
 			}
 			pai_calcrotatedpoint(
-				&g_objectTable[targetObjectIndex], 0,
-				approachUpOffset,
-				g_modelDefs[targetModelIndex].dockForward);
-			g_paiContext.controller->aimPointX =
-				g_rotatedX +
-				g_objectTable[targetObjectIndex].world_x;
-			g_paiContext.controller->aimPointY =
-				g_rotatedY +
-				g_objectTable[targetObjectIndex].world_y;
-			g_paiContext.controller->aimPointZ =
-				g_rotatedZ +
-				g_objectTable[targetObjectIndex].world_z;
+				&g_object_table[target_object_index], 0,
+				approach_up_offset,
+				g_model_defs[target_model_index].dock_forward);
+			g_pai_context.controller->aim_point_x =
+				g_rotated_x +
+				g_object_table[target_object_index].world_x;
+			g_pai_context.controller->aim_point_y =
+				g_rotated_y +
+				g_object_table[target_object_index].world_y;
+			g_pai_context.controller->aim_point_z =
+				g_rotated_z +
+				g_object_table[target_object_index].world_z;
 		} else {
-			Mission_ResolveObjectOrMissionPointWorldLoc(
-				targetObjectIndex, 0);
-			g_paiContext.controller->aimPointX = g_worldLocX;
-			g_paiContext.controller->aimPointY = g_worldLocY;
-			g_paiContext.controller->aimPointZ =
-				g_worldLocZ + MISSION_POINT_APPROACH_Z_OFFSET;
+			mission_resolve_object_or_mission_point_world_loc(
+				target_object_index, 0);
+			g_pai_context.controller->aim_point_x = g_world_loc_x;
+			g_pai_context.controller->aim_point_y = g_world_loc_y;
+			g_pai_context.controller->aim_point_z =
+				g_world_loc_z + MISSION_POINT_APPROACH_Z_OFFSET;
 		}
 
 		paiman_setflighttotarget(0, 1);
 		if (trig2_polardistance > APPROACH_FULL_POWER_DISTANCE) {
-			paiman_setpower(g_paiContext.objectIndex, UINT16_MAX);
+			paiman_setpower(g_pai_context.object_index, UINT16_MAX);
 		}
 		if (trig2_polardistance > APPROACH_HALF_POWER_DISTANCE) {
-			paiman_setpower(g_paiContext.objectIndex,
+			paiman_setpower(g_pai_context.object_index,
 					THROTTLE_HALF);
 			return 0;
 		}
 		if (trig2_polardistance > APPROACH_DOCK_DISTANCE) {
-			paiman_setpower(g_paiContext.objectIndex,
+			paiman_setpower(g_pai_context.object_index,
 					THROTTLE_QUARTER);
 			return 0;
 		}
 		{
-			int targetPlayerIndex =
-				g_objectTable[targetObjectIndex].playerOwnerIdx;
+			int target_player_index =
+				g_object_table[target_object_index]
+					.player_owner_idx;
 
-			if (targetPlayerIndex != -1 &&
-			    g_objectTable[targetObjectIndex].mobj != NULL &&
-			    g_objectTable[targetObjectIndex].mobj->speed != 0) {
-				unsigned int messageSlot;
+			if (target_player_index != -1 &&
+			    g_object_table[target_object_index].mobj != NULL &&
+			    g_object_table[target_object_index].mobj->speed !=
+				    0) {
+				unsigned int message_slot;
 
-				if (targetPlayerIndex != g_localPlayer) {
+				if (target_player_index != g_local_player) {
 					return 0;
 				}
-				for (messageSlot = 0;
-				     messageSlot < READY_MESSAGE_SLOT_COUNT;
-				     ++messageSlot) {
-					if (g_readyMessagePaneQueue[messageSlot]
-						    .stateOrMessageId ==
+				for (message_slot = 0;
+				     message_slot < READY_MESSAGE_SLOT_COUNT;
+				     ++message_slot) {
+					if (g_ready_message_pane_queue
+						    [message_slot]
+							    .state_or_message_id ==
 					    IFMSG_260_SET_YOUR_THROTTLE_TO_0_SO_RELOAD_CRAFT_CAN_DOCK_WITH_YOU) {
 						break;
 					}
 				}
-				if (messageSlot < READY_MESSAGE_SLOT_COUNT) {
+				if (message_slot < READY_MESSAGE_SLOT_COUNT) {
 					return 0;
 				}
-				g_msgSenderIff =
-					g_missionFlightGroups
-						[g_paiContext
-							 .craftFlightGroupIndex]
+				g_msg_sender_iff =
+					g_mission_flight_groups
+						[g_pai_context
+							 .craft_flight_group_index]
 							.fg.iff;
-				msg_emitInFlightMessage(
+				msg_emit_in_flight_message(
 					IFMSG_260_SET_YOUR_THROTTLE_TO_0_SO_RELOAD_CRAFT_CAN_DOCK_WITH_YOU,
-					g_localPlayer);
-				fsfx_PlaySound(FLIGHT_SOUND_GENERAL_WARNING, -1,
-					       g_localPlayer);
+					g_local_player);
+				fsfx_play_sound(FLIGHT_SOUND_GENERAL_WARNING,
+						-1, g_local_player);
 				return 0;
 			}
 		}
-		paiman_setpower(g_paiContext.objectIndex, 0);
-		g_paiContext.controller->maneuverPhase = BOARD_PHASE_ALIGN;
+		paiman_setpower(g_pai_context.object_index, 0);
+		g_pai_context.controller->maneuver_phase = BOARD_PHASE_ALIGN;
 		return 0;
 	}
 
 	case BOARD_PHASE_ALIGN: {
-		int pushX;
-		int pushY;
-		int pushZ;
-		uint16_t targetRoll;
-		uint16_t targetYaw;
-		uint16_t targetPitch;
+		int push_x;
+		int push_y;
+		int push_z;
+		uint16_t target_roll;
+		uint16_t target_yaw;
+		uint16_t target_pitch;
 
-		if (targetMobileObject != NULL) {
-			int16_t dockingUpOffset;
+		if (target_mobile_object != NULL) {
+			int16_t docking_up_offset;
 
-			if (g_objectTable[targetObjectIndex].genusId <
+			if (g_object_table[target_object_index].genus_id <
 			    DOCKING_SMALL_CRAFT_GENUS_LIMIT) {
-				dockingUpOffset =
-					g_modelDefs[targetModelIndex]
-						.dockFromUp[0] -
-					g_modelDefs[g_curCraft->modelIndex]
-						.dockToUp[0];
-			} else if (g_objectTable[g_paiContext.objectIndex]
-					   .genusId <
+				docking_up_offset =
+					g_model_defs[target_model_index]
+						.dock_from_up[0] -
+					g_model_defs[g_cur_craft->model_index]
+						.dock_to_up[0];
+			} else if (g_object_table[g_pai_context.object_index]
+					   .genus_id <
 				   DOCKING_SMALL_CRAFT_GENUS_LIMIT) {
-				dockingUpOffset =
-					g_modelDefs[targetModelIndex]
-						.dockFromUp[0] -
-					g_modelDefs[g_curCraft->modelIndex]
-						.dockToUp[1];
+				docking_up_offset =
+					g_model_defs[target_model_index]
+						.dock_from_up[0] -
+					g_model_defs[g_cur_craft->model_index]
+						.dock_to_up[1];
 			} else {
-				dockingUpOffset =
-					g_modelDefs[targetModelIndex]
-						.dockFromUp[1] -
-					g_modelDefs[g_curCraft->modelIndex]
-						.dockToUp[1];
+				docking_up_offset =
+					g_model_defs[target_model_index]
+						.dock_from_up[1] -
+					g_model_defs[g_cur_craft->model_index]
+						.dock_to_up[1];
 			}
 			pai_calcrotatedpoint(
-				&g_objectTable[targetObjectIndex], 0,
-				dockingUpOffset,
-				g_modelDefs[targetModelIndex].dockForward);
-			g_curCraft->pushAccumX =
-				g_rotatedX +
-				g_objectTable[targetObjectIndex].world_x -
-				g_objectTable[g_paiContext.objectIndex].world_x;
-			pushX = g_curCraft->pushAccumX;
-			g_curCraft->pushAccumY =
-				g_rotatedY +
-				g_objectTable[targetObjectIndex].world_y -
-				g_objectTable[g_paiContext.objectIndex].world_y;
-			pushY = g_curCraft->pushAccumY;
-			g_curCraft->pushAccumZ =
-				g_rotatedZ +
-				g_objectTable[targetObjectIndex].world_z -
-				g_objectTable[g_paiContext.objectIndex].world_z;
-			pushZ = g_curCraft->pushAccumZ;
-			targetRoll = g_objectTable[targetObjectIndex].roll;
-			targetYaw = g_objectTable[targetObjectIndex].yaw;
-			targetPitch = g_objectTable[targetObjectIndex].pitch;
+				&g_object_table[target_object_index], 0,
+				docking_up_offset,
+				g_model_defs[target_model_index].dock_forward);
+			g_cur_craft->push_accum_x =
+				g_rotated_x +
+				g_object_table[target_object_index].world_x -
+				g_object_table[g_pai_context.object_index]
+					.world_x;
+			push_x = g_cur_craft->push_accum_x;
+			g_cur_craft->push_accum_y =
+				g_rotated_y +
+				g_object_table[target_object_index].world_y -
+				g_object_table[g_pai_context.object_index]
+					.world_y;
+			push_y = g_cur_craft->push_accum_y;
+			g_cur_craft->push_accum_z =
+				g_rotated_z +
+				g_object_table[target_object_index].world_z -
+				g_object_table[g_pai_context.object_index]
+					.world_z;
+			push_z = g_cur_craft->push_accum_z;
+			target_roll = g_object_table[target_object_index].roll;
+			target_yaw = g_object_table[target_object_index].yaw;
+			target_pitch =
+				g_object_table[target_object_index].pitch;
 		} else {
-			Mission_ResolveObjectOrMissionPointWorldLoc(
-				targetObjectIndex, 0);
-			g_curCraft->pushAccumX =
-				g_worldLocX -
-				g_objectTable[g_paiContext.objectIndex].world_x;
-			pushX = g_curCraft->pushAccumX;
-			g_curCraft->pushAccumY =
-				g_worldLocY -
-				g_objectTable[g_paiContext.objectIndex].world_y;
-			pushY = g_curCraft->pushAccumY;
-			g_curCraft->pushAccumZ =
-				g_worldLocZ -
-				g_objectTable[g_paiContext.objectIndex]
+			mission_resolve_object_or_mission_point_world_loc(
+				target_object_index, 0);
+			g_cur_craft->push_accum_x =
+				g_world_loc_x -
+				g_object_table[g_pai_context.object_index]
+					.world_x;
+			push_x = g_cur_craft->push_accum_x;
+			g_cur_craft->push_accum_y =
+				g_world_loc_y -
+				g_object_table[g_pai_context.object_index]
+					.world_y;
+			push_y = g_cur_craft->push_accum_y;
+			g_cur_craft->push_accum_z =
+				g_world_loc_z -
+				g_object_table[g_pai_context.object_index]
 					.world_z +
 				MISSION_POINT_DOCK_Z_OFFSET;
-			pushZ = g_curCraft->pushAccumZ;
-			targetRoll = 0;
-			targetYaw = 0;
-			targetPitch = 0x4000;
+			push_z = g_cur_craft->push_accum_z;
+			target_roll = 0;
+			target_yaw = 0;
+			target_pitch = 0x4000;
 		}
-		if (g_objectTable[g_paiContext.objectIndex].roll !=
-		    targetRoll) {
-			g_curCraft->aiFlight.rollState = 1;
-			g_curCraft->aiFlight.rollStep = ALIGNMENT_STEP;
-			g_paiContext.controller->targetRoll = targetRoll;
+		if (g_object_table[g_pai_context.object_index].roll !=
+		    target_roll) {
+			g_cur_craft->ai_flight.roll_state = 1;
+			g_cur_craft->ai_flight.roll_step = ALIGNMENT_STEP;
+			g_pai_context.controller->target_roll = target_roll;
 		}
-		if (g_objectTable[g_paiContext.objectIndex].yaw != targetYaw) {
-			g_curCraft->aiFlight.turnState = 2;
-			g_curCraft->aiFlight.turnStep = (int16_t)ALIGNMENT_STEP;
-			g_paiContext.controller->targetXYAngle = targetYaw;
+		if (g_object_table[g_pai_context.object_index].yaw !=
+		    target_yaw) {
+			g_cur_craft->ai_flight.turn_state = 2;
+			g_cur_craft->ai_flight.turn_step =
+				(int16_t)ALIGNMENT_STEP;
+			g_pai_context.controller->target_xy_angle = target_yaw;
 		}
-		if (g_objectTable[g_paiContext.objectIndex].pitch !=
-		    g_objectTable[targetObjectIndex].pitch) {
-			g_paiContext.controller->targetZAngle = targetPitch;
-			g_curCraft->aiFlight.pitchStepScale = ALIGNMENT_STEP;
-			g_curCraft->aiFlight.pitchThroughLoop = 0;
-			g_curCraft->aiFlight.pitchState =
-				g_paiContext.controller->targetZAngle >
-						g_curCraft->pitch
+		if (g_object_table[g_pai_context.object_index].pitch !=
+		    g_object_table[target_object_index].pitch) {
+			g_pai_context.controller->target_z_angle = target_pitch;
+			g_cur_craft->ai_flight.pitch_step_scale =
+				ALIGNMENT_STEP;
+			g_cur_craft->ai_flight.pitch_through_loop = 0;
+			g_cur_craft->ai_flight.pitch_state =
+				g_pai_context.controller->target_z_angle >
+						g_cur_craft->pitch
 					? 2
 					: 1;
 		}
-		if (pushX < 0) {
-			pushX = -pushX;
+		if (push_x < 0) {
+			push_x = -push_x;
 		}
-		if (pushY < 0) {
-			pushY = -pushY;
+		if (push_y < 0) {
+			push_y = -push_y;
 		}
-		if (pushZ < 0) {
-			pushZ = -pushZ;
+		if (push_z < 0) {
+			push_z = -push_z;
 		}
-		if (pushX + pushY + pushZ >= DOCKING_ALIGNMENT_DISTANCE) {
+		if (push_x + push_y + push_z >= DOCKING_ALIGNMENT_DISTANCE) {
 			return 0;
 		}
 
-		g_curCraft->pushAccumX = 0;
-		g_curCraft->pushAccumY = 0;
-		g_curCraft->pushAccumZ = 0;
-		g_paiContext.controller->maneuverPhase = BOARD_PHASE_TRANSFER;
-		g_paiContext.controller->maneuverTimer =
+		g_cur_craft->push_accum_x = 0;
+		g_cur_craft->push_accum_y = 0;
+		g_cur_craft->push_accum_z = 0;
+		g_pai_context.controller->maneuver_phase = BOARD_PHASE_TRANSFER;
+		g_pai_context.controller->maneuver_timer =
 			DOCKING_DURATION_PER_ORDER_UNIT * variable1;
-		g_paiContext.controller->secondaryManeuverTimer =
+		g_pai_context.controller->secondary_maneuver_timer =
 			SIMULATION_TICKS_PER_SECOND;
-		if (g_objectTable[g_paiContext.objectIndex].mobj != NULL &&
-		    g_curCraft->aiFlight.dockingAccountingDone == 0) {
-			uint16_t flightGroupIndex =
-				g_paiContext.craftFlightGroupIndex;
+		if (g_object_table[g_pai_context.object_index].mobj != NULL &&
+		    g_cur_craft->ai_flight.docking_accounting_done == 0) {
+			uint16_t flight_group_index =
+				g_pai_context.craft_flight_group_index;
 
-			g_curCraft->aiFlight.dockingAccountingDone = 1;
-			++g_missionFgStats[flightGroupIndex].outcomeCount
+			g_cur_craft->ai_flight.docking_accounting_done = 1;
+			++g_mission_fg_stats[flight_group_index].outcome_count
 				  [FLIGHT_GROUP_OUTCOME_FAILED_MISSION];
-			if (g_missionFlightGroups[flightGroupIndex]
-				    .fg.specialCargoCraft ==
-			    g_curCraft->craftOrdinal) {
-				g_missionFgStats[flightGroupIndex].specialCargoOutcome
+			if (g_mission_flight_groups[flight_group_index]
+				    .fg.special_cargo_craft ==
+			    g_cur_craft->craft_ordinal) {
+				g_mission_fg_stats[flight_group_index].special_cargo_outcome
 					[FLIGHT_GROUP_OUTCOME_FAILED_MISSION] =
 					1;
 			}
 		}
-		if (targetMobileObject != NULL &&
-		    targetCraft->aiFlight.boardedAccountingDone == 0) {
-			targetCraft->aiFlight.boardedAccountingDone = 1;
-			++g_missionFgStats[targetFlightGroupIndex].outcomeCount
+		if (target_mobile_object != NULL &&
+		    target_craft->ai_flight.boarded_accounting_done == 0) {
+			target_craft->ai_flight.boarded_accounting_done = 1;
+			++g_mission_fg_stats[target_flight_group_index].outcome_count
 				  [FLIGHT_GROUP_OUTCOME_COMPLETED_MISSION];
-			if (g_missionFlightGroups[targetFlightGroupIndex]
-				    .fg.specialCargoCraft ==
-			    targetCraft->craftOrdinal) {
-				g_missionFgStats[targetFlightGroupIndex].specialCargoOutcome
+			if (g_mission_flight_groups[target_flight_group_index]
+				    .fg.special_cargo_craft ==
+			    target_craft->craft_ordinal) {
+				g_mission_fg_stats[target_flight_group_index].special_cargo_outcome
 					[FLIGHT_GROUP_OUTCOME_COMPLETED_MISSION] =
 					1;
 			}
 		}
-		msg_formatObjectName(g_paiContext.objectIndex, 1,
-				     g_flightTextScratchBuffer);
-		msg_addMessagePtr(0, g_flightTextScratchBuffer);
-		msg_formatObjectName(targetObjectIndex, 1,
-				     g_flightSecondaryObjectNameBuffer);
-		msg_addMessagePtr(1, g_flightSecondaryObjectNameBuffer);
-		g_msgSenderIff =
-			(uint8_t)g_objectTable[g_paiContext.objectIndex]
+		msg_format_object_name(g_pai_context.object_index, 1,
+				       g_flight_text_scratch_buffer);
+		msg_add_message_ptr(0, g_flight_text_scratch_buffer);
+		msg_format_object_name(target_object_index, 1,
+				       g_flight_secondary_object_name_buffer);
+		msg_add_message_ptr(1, g_flight_secondary_object_name_buffer);
+		g_msg_sender_iff =
+			(uint8_t)g_object_table[g_pai_context.object_index]
 				.mobj->iff;
-		msg_emitInFlightMessage(IFMSG_234_ARG_HAS_DOCKED_WITH_ARG,
-					g_localPlayer);
+		msg_emit_in_flight_message(IFMSG_234_ARG_HAS_DOCKED_WITH_ARG,
+					   g_local_player);
 		if (variable1 >= MINIMUM_VOICE_ORDER_TIME) {
-			const char *planName =
-				g_planTable[g_paiContext.controller
-						    ->currentPlanId]
+			const char *plan_name =
+				g_plan_table[g_pai_context.controller
+						     ->current_plan_id]
 					.name;
 
-			if (strcmp(planName, "boardtogivepln") == 0 ||
-			    strcmp(planName, "boardtoexchangepln") == 0 ||
-			    strcmp(planName, "boardtocontactpln") == 0 ||
-			    strcmp(planName, "boardtopickuppln") == 0 ||
-			    strcmp(planName, "boardtorepairpln") == 0) {
-				fsfx_SpeakTacticalOfficerEvent(
+			if (strcmp(plan_name, "boardtogivepln") == 0 ||
+			    strcmp(plan_name, "boardtoexchangepln") == 0 ||
+			    strcmp(plan_name, "boardtocontactpln") == 0 ||
+			    strcmp(plan_name, "boardtopickuppln") == 0 ||
+			    strcmp(plan_name, "boardtorepairpln") == 0) {
+				fsfx_speak_tactical_officer_event(
 					TACTICAL_VOICE_STATUS,
 					TACTICAL_MSG_BOARDING_STARTED_FRIENDLY,
-					g_paiContext.objectIndex, UINT16_MAX);
-			} else if (strcmp(planName, "boardtocapturepln") == 0 ||
-				   strcmp(planName, "boardtotakepln") == 0 ||
-				   strcmp(planName, "boardtodestroypln") == 0) {
-				fsfx_SpeakTacticalOfficerEvent(
+					g_pai_context.object_index, UINT16_MAX);
+			} else if (strcmp(plan_name, "boardtocapturepln") ==
+					   0 ||
+				   strcmp(plan_name, "boardtotakepln") == 0 ||
+				   strcmp(plan_name, "boardtodestroypln") ==
+					   0) {
+				fsfx_speak_tactical_officer_event(
 					TACTICAL_VOICE_STATUS,
 					TACTICAL_MSG_BOARDING_STARTED_HOSTILE,
-					g_paiContext.objectIndex, UINT16_MAX);
+					g_pai_context.object_index, UINT16_MAX);
 			}
 		}
-		fsfx_SpeakTacticalOfficerEvent(
+		fsfx_speak_tactical_officer_event(
 			TACTICAL_VOICE_STATUS,
-			TACTICAL_MSG_BOARDING_STARTED_TARGET, targetObjectIndex,
-			UINT16_MAX);
+			TACTICAL_MSG_BOARDING_STARTED_TARGET,
+			target_object_index, UINT16_MAX);
 		return 0;
 	}
 
 	case BOARD_PHASE_TRANSFER: {
-		const char *planName =
-			g_planTable[g_paiContext.controller->currentPlanId]
+		const char *plan_name =
+			g_plan_table[g_pai_context.controller->current_plan_id]
 				.name;
 
-		if (g_paiContext.controller->maneuverTimer != 0) {
-			uint16_t reloadedOrRepaired = 0;
-			uint16_t launcherIndex;
+		if (g_pai_context.controller->maneuver_timer != 0) {
+			uint16_t reloaded_or_repaired = 0;
+			uint16_t launcher_index;
 
-			if (strcmp(planName, "boardtogivepln") != 0 ||
-			    g_objectTable[targetObjectIndex].playerOwnerIdx ==
-				    -1 ||
-			    g_paiContext.controller->secondaryManeuverTimer !=
-				    0 ||
-			    targetCraft == NULL) {
+			if (strcmp(plan_name, "boardtogivepln") != 0 ||
+			    g_object_table[target_object_index]
+					    .player_owner_idx == -1 ||
+			    g_pai_context.controller
+					    ->secondary_maneuver_timer != 0 ||
+			    target_craft == NULL) {
 				return 0;
 			}
-			for (launcherIndex = 0;
-			     launcherIndex < targetCraft->warheadLauncherCount;
-			     ++launcherIndex) {
-				uint16_t weaponSlotIndex;
-				uint16_t lastWeaponSlot;
+			for (launcher_index = 0;
+			     launcher_index <
+			     target_craft->warhead_launcher_count;
+			     ++launcher_index) {
+				uint16_t weapon_slot_index;
+				uint16_t last_weapon_slot;
 
-				if (targetCraft->warheadSlotTypeIds
-					    [launcherIndex] == 0) {
+				if (target_craft->warhead_slot_type_ids
+					    [launcher_index] == 0) {
 					continue;
 				}
-				lastWeaponSlot =
-					g_modelDefs[targetModelIndex]
-						.warheadLauncherLastSlot
-							[launcherIndex];
-				for (weaponSlotIndex =
-					     g_modelDefs[targetModelIndex]
-						     .warheadLauncherFirstSlot
-							     [launcherIndex];
-				     weaponSlotIndex <= lastWeaponSlot;
-				     ++weaponSlotIndex) {
+				last_weapon_slot =
+					g_model_defs[target_model_index]
+						.warhead_launcher_last_slot
+							[launcher_index];
+				for (weapon_slot_index =
+					     g_model_defs[target_model_index]
+						     .warhead_launcher_first_slot
+							     [launcher_index];
+				     weapon_slot_index <= last_weapon_slot;
+				     ++weapon_slot_index) {
 					uint16_t warhead =
-						g_missionFlightGroups
-							[g_objectTable[targetObjectIndex]
-								 .flightGroupIdx]
+						g_mission_flight_groups
+							[g_object_table[target_object_index]
+								 .flight_group_idx]
 								.fg.warhead;
-					uint16_t desiredCount;
-					uint8_t flightGroupStatus;
+					uint16_t desired_count;
+					uint8_t flight_group_status;
 
-					if (launcherIndex ==
+					if (launcher_index ==
 					    WARHEAD_LAUNCHER_SECONDARY) {
 						warhead =
 							SECONDARY_WARHEAD_TYPE;
 					}
-					desiredCount = MATH2_fraction(
-						g_modelDefs[targetModelIndex]
-							.warheadLauncherCapacity
-								[launcherIndex],
-						g_warheadAmmoFractionQ16
+					desired_count = math2_fraction(
+						g_model_defs[target_model_index]
+							.warhead_launcher_capacity
+								[launcher_index],
+						g_warhead_ammo_fraction_q16
 							[warhead]);
-					if (desiredCount == 0) {
-						desiredCount =
+					if (desired_count == 0) {
+						desired_count =
 							MINIMUM_WARHEAD_COUNT;
 					}
-					flightGroupStatus =
-						g_missionFlightGroups
-							[g_objectTable[targetObjectIndex]
-								 .flightGroupIdx]
+					flight_group_status =
+						g_mission_flight_groups
+							[g_object_table[target_object_index]
+								 .flight_group_idx]
 								.fg.status1;
-					if (flightGroupStatus == 1) {
-						desiredCount *= 2;
-					} else if (flightGroupStatus == 2) {
-						desiredCount >>= 1;
+					if (flight_group_status == 1) {
+						desired_count *= 2;
+					} else if (flight_group_status == 2) {
+						desired_count >>= 1;
 					}
-					if (desiredCount == 0) {
-						desiredCount =
+					if (desired_count == 0) {
+						desired_count =
 							MINIMUM_WARHEAD_COUNT;
 					}
-					if (desiredCount >
+					if (desired_count >
 					    MAXIMUM_WARHEAD_COUNT) {
-						desiredCount =
+						desired_count =
 							MAXIMUM_WARHEAD_COUNT;
 					}
-					if (targetCraft
-						    ->weaponSlots
-							    [weaponSlotIndex]
-						    .ammoCount < desiredCount) {
-						reloadedOrRepaired = 1;
-						++targetCraft
-							  ->weaponSlots
-								  [weaponSlotIndex]
-							  .ammoCount;
+					if (target_craft
+						    ->weapon_slots
+							    [weapon_slot_index]
+						    .ammo_count <
+					    desired_count) {
+						reloaded_or_repaired = 1;
+						++target_craft
+							  ->weapon_slots
+								  [weapon_slot_index]
+							  .ammo_count;
 					}
-					targetCraft
-						->weaponSlots[weaponSlotIndex]
-						.laserCharge =
+					target_craft
+						->weapon_slots
+							[weapon_slot_index]
+						.laser_charge =
 						FULL_WEAPON_CHARGE;
 				}
 			}
-			if (targetCraft->cmTypeId != COUNTERMEASURE_TYPE_NONE) {
-				targetCraft->cmAmmoCount =
-					g_modelDefs[targetModelIndex]
-						.countermeasureCount;
+			if (target_craft->cm_type_id !=
+			    COUNTERMEASURE_TYPE_NONE) {
+				target_craft->cm_ammo_count =
+					g_model_defs[target_model_index]
+						.countermeasure_count;
 			}
 			{
-				uint16_t subsystemMask =
+				uint16_t subsystem_mask =
 					CRAFT_SUBSYSTEM_FLAG_SHIELDS;
-				uint16_t systemIndex;
+				uint16_t system_index;
 
-				for (systemIndex = 0;
-				     systemIndex < CRAFT_SUBSYSTEM_COUNT;
-				     ++systemIndex) {
-					if ((targetCraft->systemFlags &
-					     subsystemMask) != 0 &&
-					    (targetCraft->workingSubsystems &
-					     subsystemMask) == 0) {
-						reloadedOrRepaired = 1;
-						targetCraft
-							->workingSubsystems |=
-							subsystemMask;
+				for (system_index = 0;
+				     system_index < CRAFT_SUBSYSTEM_COUNT;
+				     ++system_index) {
+					if ((target_craft->system_flags &
+					     subsystem_mask) != 0 &&
+					    (target_craft->working_subsystems &
+					     subsystem_mask) == 0) {
+						reloaded_or_repaired = 1;
+						target_craft
+							->working_subsystems |=
+							subsystem_mask;
 						break;
 					}
-					subsystemMask *= 2;
+					subsystem_mask *= 2;
 				}
 			}
-			g_paiContext.controller->secondaryManeuverTimer =
+			g_pai_context.controller->secondary_maneuver_timer =
 				RELOAD_STEP_TICKS;
-			if (reloadedOrRepaired != 0) {
-				g_paiContext.controller->maneuverTimer =
+			if (reloaded_or_repaired != 0) {
+				g_pai_context.controller->maneuver_timer =
 					RELOAD_CONTINUE_DURATION;
 			}
 			return 0;
 		}
 
-		if (strcmp(planName, "boardtogivepln") == 0) {
-			uint16_t cargoIndex;
+		if (strcmp(plan_name, "boardtogivepln") == 0) {
+			uint16_t cargo_index;
 
-			if (targetMobileObject != NULL) {
-				for (cargoIndex = 0;
-				     cargoIndex <
-				     sizeof(targetCraft->specialCargoName);
-				     ++cargoIndex) {
-					targetCraft
-						->specialCargoName[cargoIndex] =
-						g_curCraft->specialCargoName
-							[cargoIndex];
+			if (target_mobile_object != NULL) {
+				for (cargo_index = 0;
+				     cargo_index <
+				     sizeof(target_craft->special_cargo_name);
+				     ++cargo_index) {
+					target_craft->special_cargo_name
+						[cargo_index] =
+						g_cur_craft->special_cargo_name
+							[cargo_index];
 				}
-				targetCraft->boardingState = 2;
+				target_craft->boarding_state = 2;
 			}
-			if (g_missionFlightGroups
-				    [g_paiContext.craftFlightGroupIndex]
+			if (g_mission_flight_groups
+				    [g_pai_context.craft_flight_group_index]
 					    .fg
-					    .orders[g_paiContext.controller
-							    ->currentOrderSlot]
+					    .orders[g_pai_context.controller
+							    ->current_order_slot]
 					    .variable2 <=
-			    g_paiContext.controller->orderProgress.goalProgress
-					    [g_paiContext.controller
-						     ->currentOrderSlot] +
+			    g_pai_context.controller->order_progress.goal_progress
+					    [g_pai_context.controller
+						     ->current_order_slot] +
 				    1) {
-				g_curCraft->specialCargoName[0] = 0;
+				g_cur_craft->special_cargo_name[0] = 0;
 			}
-			g_curCraft->boardingState = 1;
-			if (g_objectTable[targetObjectIndex].playerOwnerIdx !=
-				    -1 &&
-			    targetCraft != NULL) {
-				if (g_objectTable[targetObjectIndex]
-					    .playerOwnerIdx == g_localPlayer) {
-					int playerObjectIndex =
-						g_players[g_localPlayer]
-							.objectIndex;
-					int canRestoreHud = 0;
+			g_cur_craft->boarding_state = 1;
+			if (g_object_table[target_object_index]
+					    .player_owner_idx != -1 &&
+			    target_craft != NULL) {
+				if (g_object_table[target_object_index]
+					    .player_owner_idx ==
+				    g_local_player) {
+					int player_object_index =
+						g_players[g_local_player]
+							.object_index;
+					int can_restore_hud = 0;
 
-					if (playerObjectIndex != -1) {
-						uint8_t playerObjectType =
-							g_objectTable
-								[playerObjectIndex]
-									.objectType;
+					if (player_object_index != -1) {
+						uint8_t player_object_type =
+							g_object_table
+								[player_object_index]
+									.object_type;
 
-						canRestoreHud =
-							playerObjectType ==
+						can_restore_hud =
+							player_object_type ==
 								CRAFT_SPECIES_X_WING ||
-							playerObjectType ==
+							player_object_type ==
 								CRAFT_SPECIES_Y_WING ||
-							playerObjectType ==
+							player_object_type ==
 								CRAFT_SPECIES_A_WING ||
-							playerObjectType ==
+							player_object_type ==
 								CRAFT_SPECIES_Z_95_HEADHUNTER ||
-							playerObjectType ==
+							player_object_type ==
 								CRAFT_SPECIES_B_WING;
 					}
-					if (canRestoreHud) {
-						uint16_t featureMask = 1;
-						int featureIndex;
+					if (can_restore_hud) {
+						uint16_t feature_mask = 1;
+						int feature_index;
 
-						for (featureIndex = 0;
-						     featureIndex <
+						for (feature_index = 0;
+						     feature_index <
 						     HUD_FEATURE_COUNT;
-						     ++featureIndex) {
-							if ((targetCraft
-								     ->damageStats
-								     .installedHudFeatureMask &
-							     featureMask) !=
+						     ++feature_index) {
+							if ((target_craft
+								     ->damage_stats
+								     .installed_hud_feature_mask &
+							     feature_mask) !=
 								    0 &&
-							    (targetCraft
-								     ->damageStats
-								     .activeHudFeatureMask &
-							     featureMask) ==
+							    (target_craft
+								     ->damage_stats
+								     .active_hud_feature_mask &
+							     feature_mask) ==
 								    0) {
-								targetCraft
-									->damageStats
-									.activeHudFeatureMask |=
-									featureMask;
+								target_craft
+									->damage_stats
+									.active_hud_feature_mask |=
+									feature_mask;
 							}
-							featureMask *= 2;
+							feature_mask *= 2;
 						}
-						FlightSurface_Lock();
-						Hud_RebuildDisplayForViewState(
-							g_players[g_localPlayer]
-								.viewState
-								.hudStateLive,
-							g_localPlayer);
-						FlightSurface_Unlock();
+						flight_surface_lock();
+						hud_rebuild_display_for_view_state(
+							g_players[g_local_player]
+								.view_state
+								.hud_state_live,
+							g_local_player);
+						flight_surface_unlock();
 					}
 				}
 				{
-					uint16_t systemIndex;
+					uint16_t system_index;
 
-					for (systemIndex = 0;
-					     systemIndex <
+					for (system_index = 0;
+					     system_index <
 					     CRAFT_SUBSYSTEM_COUNT;
-					     ++systemIndex) {
-						targetCraft
-							->systemDisplaySlotBySystem
-								[systemIndex] =
-							(uint8_t)systemIndex;
-						targetCraft->systemHealth
-							[systemIndex] =
+					     ++system_index) {
+						target_craft
+							->system_display_slot_by_system
+								[system_index] =
+							(uint8_t)system_index;
+						target_craft->system_health
+							[system_index] =
 							SYSTEM_HEALTH_FULL;
-						targetCraft->systemRepairSeconds
-							[systemIndex] = 0;
+						target_craft
+							->system_repair_seconds
+								[system_index] =
+							0;
 					}
 				}
 			}
-			msg_emitCraftMessage(
-				g_paiContext.objectIndex, g_curCraft,
+			msg_emit_craft_message(
+				g_pai_context.object_index, g_cur_craft,
 				IFMSG_156_REPORTS_DOCKING_OPERATION_COMPLETE);
-			fsfx_SpeakTacticalOfficerEvent(
+			fsfx_speak_tactical_officer_event(
 				TACTICAL_VOICE_STATUS,
 				TACTICAL_MSG_TRANSFER_COMPLETE,
-				g_paiContext.objectIndex, UINT16_MAX);
-		} else if (strcmp(planName, "boardtotakepln") == 0) {
-			uint16_t cargoIndex;
+				g_pai_context.object_index, UINT16_MAX);
+		} else if (strcmp(plan_name, "boardtotakepln") == 0) {
+			uint16_t cargo_index;
 
-			if (targetMobileObject != NULL) {
-				for (cargoIndex = 0;
-				     cargoIndex <
-				     sizeof(targetCraft->specialCargoName);
-				     ++cargoIndex) {
-					g_curCraft
-						->specialCargoName[cargoIndex] =
-						targetCraft->specialCargoName
-							[cargoIndex];
+			if (target_mobile_object != NULL) {
+				for (cargo_index = 0;
+				     cargo_index <
+				     sizeof(target_craft->special_cargo_name);
+				     ++cargo_index) {
+					g_cur_craft->special_cargo_name
+						[cargo_index] =
+						target_craft->special_cargo_name
+							[cargo_index];
 				}
-				targetCraft->specialCargoName[0] = 0;
-				targetCraft->boardingState = 1;
+				target_craft->special_cargo_name[0] = 0;
+				target_craft->boarding_state = 1;
 			}
-			g_curCraft->boardingState = 2;
-			msg_emitCraftMessage(
-				g_paiContext.objectIndex, g_curCraft,
+			g_cur_craft->boarding_state = 2;
+			msg_emit_craft_message(
+				g_pai_context.object_index, g_cur_craft,
 				IFMSG_156_REPORTS_DOCKING_OPERATION_COMPLETE);
-			fsfx_SpeakTacticalOfficerEvent(
+			fsfx_speak_tactical_officer_event(
 				TACTICAL_VOICE_STATUS,
 				TACTICAL_MSG_BOARDING_COMPLETE,
-				g_paiContext.objectIndex, UINT16_MAX);
-		} else if (strcmp(planName, "boardtoexchangepln") == 0) {
-			uint16_t cargoIndex;
+				g_pai_context.object_index, UINT16_MAX);
+		} else if (strcmp(plan_name, "boardtoexchangepln") == 0) {
+			uint16_t cargo_index;
 
-			if (targetMobileObject != NULL) {
-				for (cargoIndex = 0;
-				     cargoIndex <
-				     sizeof(targetCraft->specialCargoName);
-				     ++cargoIndex) {
-					char cargoByte =
-						g_curCraft->specialCargoName
-							[cargoIndex];
+			if (target_mobile_object != NULL) {
+				for (cargo_index = 0;
+				     cargo_index <
+				     sizeof(target_craft->special_cargo_name);
+				     ++cargo_index) {
+					char cargo_byte =
+						g_cur_craft->special_cargo_name
+							[cargo_index];
 
-					g_curCraft
-						->specialCargoName[cargoIndex] =
-						targetCraft->specialCargoName
-							[cargoIndex];
-					targetCraft
-						->specialCargoName[cargoIndex] =
-						cargoByte;
+					g_cur_craft->special_cargo_name
+						[cargo_index] =
+						target_craft->special_cargo_name
+							[cargo_index];
+					target_craft->special_cargo_name
+						[cargo_index] = cargo_byte;
 				}
-				targetCraft->boardingState = 2;
+				target_craft->boarding_state = 2;
 			}
-			g_curCraft->boardingState = 2;
-			msg_emitCraftMessage(
-				g_paiContext.objectIndex, g_curCraft,
+			g_cur_craft->boarding_state = 2;
+			msg_emit_craft_message(
+				g_pai_context.object_index, g_cur_craft,
 				IFMSG_156_REPORTS_DOCKING_OPERATION_COMPLETE);
-		} else if (strcmp(planName, "boardtocapturepln") == 0) {
-			if (targetMobileObject != NULL) {
-				struct PaiContext savedContext;
-				struct CraftData *savedCraft;
+		} else if (strcmp(plan_name, "boardtocapturepln") == 0) {
+			if (target_mobile_object != NULL) {
+				struct pai_context saved_context;
+				struct craft_data *saved_craft;
 
-				paiman_TransferObjectToAiTeam(
-					targetObjectIndex, targetCraft,
+				paiman_transfer_object_to_ai_team(
+					target_object_index, target_craft,
 					CAPTURE_OWNER_FLAG);
-				if (targetCraft->capturedByFlightGroup != 0) {
-					if (targetCraft->aiFlight
-						    .maxSpeedCache != 0) {
-						targetController
-							->runningPlanId =
-							pai_FindPlanIdByNameOrZero(
+				if (target_craft->captured_by_flight_group !=
+				    0) {
+					if (target_craft->ai_flight
+						    .max_speed_cache != 0) {
+						target_controller
+							->running_plan_id =
+							pai_find_plan_id_by_name_or_zero(
 								"flyhomeevadepln");
 					} else {
-						targetController
-							->runningPlanId =
-							pai_FindPlanIdByNameOrZero(
+						target_controller
+							->running_plan_id =
+							pai_find_plan_id_by_name_or_zero(
 								"stationaryldrpln");
 					}
-					msg_emitCraftMessage(
-						targetObjectIndex, targetCraft,
+					msg_emit_craft_message(
+						target_object_index,
+						target_craft,
 						IFMSG_139_HAS_BEEN_CAPTURED);
 				} else {
 					int order =
-						g_missionFlightGroups
-							[targetFlightGroupIndex]
+						g_mission_flight_groups
+							[target_flight_group_index]
 								.fg.orders[0]
 								.order;
-					uint8_t planNameIndex =
-						targetCraft->leader_obj_idx ==
+					uint8_t plan_name_index =
+						target_craft->leader_obj_idx ==
 								UINT8_MAX
-							? g_orderLeaderBuiltinPlanNameIndex
+							? g_order_leader_builtin_plan_name_index
 								  [order]
-							: g_orderFollowerBuiltinPlanNameIndex
+							: g_order_follower_builtin_plan_name_index
 								  [order];
 
-					targetController->runningPlanId =
-						g_builtinPlanIdByNameIndex
-							[planNameIndex];
+					target_controller->running_plan_id =
+						g_builtin_plan_id_by_name_index
+							[plan_name_index];
 				}
-				fsfx_SpeakTacticalOfficerEvent(
+				fsfx_speak_tactical_officer_event(
 					TACTICAL_VOICE_STATUS,
 					TACTICAL_MSG_BOARDING_COMPLETE,
-					g_paiContext.objectIndex, UINT16_MAX);
-				fsfx_SpeakTacticalOfficerEvent(
+					g_pai_context.object_index, UINT16_MAX);
+				fsfx_speak_tactical_officer_event(
 					TACTICAL_VOICE_STATUS,
 					TACTICAL_MSG_CAPTURED_TARGET,
-					targetObjectIndex, UINT16_MAX);
-				savedContext = g_paiContext;
-				savedCraft = g_curCraft;
-				g_curCraft = targetCraft;
-				pai_setupcraftcontext(targetObjectIndex);
-				pai_ApplyRunningPlanTargetAndManeuver(
-					targetObjectIndex);
-				g_curCraft = savedCraft;
-				g_paiContext = savedContext;
+					target_object_index, UINT16_MAX);
+				saved_context = g_pai_context;
+				saved_craft = g_cur_craft;
+				g_cur_craft = target_craft;
+				pai_setupcraftcontext(target_object_index);
+				pai_apply_running_plan_target_and_maneuver(
+					target_object_index);
+				g_cur_craft = saved_craft;
+				g_pai_context = saved_context;
 			}
-		} else if (strcmp(planName, "boardtodestroypln") == 0) {
-			if (targetMobileObject != NULL) {
-				struct PaiContext savedContext;
-				struct CraftData *savedCraft;
+		} else if (strcmp(plan_name, "boardtodestroypln") == 0) {
+			if (target_mobile_object != NULL) {
+				struct pai_context saved_context;
+				struct craft_data *saved_craft;
 
-				Mission_CreditDestructionDamageContributors(
-					g_paiContext.objectIndex,
-					targetObjectIndex);
-				if (targetMobileObject->lifetimeTimer != 0) {
-					targetMobileObject->lifetimeTimer =
+				mission_credit_destruction_damage_contributors(
+					g_pai_context.object_index,
+					target_object_index);
+				if (target_mobile_object->lifetime_timer != 0) {
+					target_mobile_object->lifetime_timer =
 						SIMULATION_TICKS_PER_SECOND *
-						((GameRand() &
+						((game_rand() &
 						  SELF_DESTRUCT_RANDOM_MASK) +
 						 SELF_DESTRUCT_RANDOM_BASE);
 				}
-				targetController->runningPlanId =
-					pai_FindPlanIdByNameOrZero(
+				target_controller->running_plan_id =
+					pai_find_plan_id_by_name_or_zero(
 						"selfdestroypln");
-				savedContext = g_paiContext;
-				savedCraft = g_curCraft;
-				g_curCraft = targetCraft;
-				pai_setupcraftcontext(targetObjectIndex);
-				pai_ApplyRunningPlanTargetAndManeuver(
-					targetObjectIndex);
-				g_curCraft = savedCraft;
-				g_paiContext = savedContext;
+				saved_context = g_pai_context;
+				saved_craft = g_cur_craft;
+				g_cur_craft = target_craft;
+				pai_setupcraftcontext(target_object_index);
+				pai_apply_running_plan_target_and_maneuver(
+					target_object_index);
+				g_cur_craft = saved_craft;
+				g_pai_context = saved_context;
 			}
-			fsfx_SpeakTacticalOfficerEvent(
+			fsfx_speak_tactical_officer_event(
 				TACTICAL_VOICE_STATUS,
 				TACTICAL_MSG_BOARDING_COMPLETE,
-				g_paiContext.objectIndex, UINT16_MAX);
-		} else if (strcmp(planName, "boardtopickuppln") == 0) {
-			if (targetMobileObject != NULL) {
-				paiman_TransferObjectToAiTeam(
-					targetObjectIndex, targetCraft,
+				g_pai_context.object_index, UINT16_MAX);
+		} else if (strcmp(plan_name, "boardtopickuppln") == 0) {
+			if (target_mobile_object != NULL) {
+				paiman_transfer_object_to_ai_team(
+					target_object_index, target_craft,
 					CAPTURE_OWNER_FLAG);
-				g_curCraft->carriedObjectIndex =
-					targetObjectIndex;
-				targetCraft->carrierObjIdx =
-					g_paiContext.objectIndex;
-				targetCraft->workingSubsystems = 0;
+				g_cur_craft->carried_object_index =
+					target_object_index;
+				target_craft->carrier_obj_idx =
+					g_pai_context.object_index;
+				target_craft->working_subsystems = 0;
 			} else {
-				++g_missionFgStats[*targetFlightGroupIndexPtr]
-					  .outcomeCount
+				++g_mission_fg_stats[*target_flight_group_index_ptr]
+					  .outcome_count
 						  [FLIGHT_GROUP_OUTCOME_CAPTURED];
-				g_objectTable[targetObjectIndex].objectType = 0;
+				g_object_table[target_object_index]
+					.object_type = 0;
 			}
-			fsfx_SpeakTacticalOfficerEvent(
+			fsfx_speak_tactical_officer_event(
 				TACTICAL_VOICE_STATUS,
 				TACTICAL_MSG_TRANSFER_COMPLETE,
-				g_paiContext.objectIndex, UINT16_MAX);
-		} else if (strcmp(planName, "boardtocontactpln") == 0) {
-			if (targetMobileObject != NULL) {
-				targetCraft->boardingState = 2;
+				g_pai_context.object_index, UINT16_MAX);
+		} else if (strcmp(plan_name, "boardtocontactpln") == 0) {
+			if (target_mobile_object != NULL) {
+				target_craft->boarding_state = 2;
 			}
-			msg_emitCraftMessage(
-				g_paiContext.objectIndex, g_curCraft,
+			msg_emit_craft_message(
+				g_pai_context.object_index, g_cur_craft,
 				IFMSG_156_REPORTS_DOCKING_OPERATION_COMPLETE);
-			fsfx_SpeakTacticalOfficerEvent(
+			fsfx_speak_tactical_officer_event(
 				TACTICAL_VOICE_STATUS,
 				TACTICAL_MSG_BOARDING_COMPLETE,
-				g_paiContext.objectIndex, UINT16_MAX);
-		} else if (strcmp(planName, "boardtorepairpln") == 0) {
-			if (targetMobileObject != NULL) {
-				targetCraft->workingSubsystems =
-					targetCraft->systemFlags;
-				targetCraft->subsystemDamage = 0;
-				targetCraft->objectKind =
+				g_pai_context.object_index, UINT16_MAX);
+		} else if (strcmp(plan_name, "boardtorepairpln") == 0) {
+			if (target_mobile_object != NULL) {
+				target_craft->working_subsystems =
+					target_craft->system_flags;
+				target_craft->subsystem_damage = 0;
+				target_craft->object_kind =
 					CRAFT_OBJECT_KIND_ACTIVE;
-				targetCraft->boardingState = 3;
+				target_craft->boarding_state = 3;
 			}
-			msg_emitCraftMessage(
-				g_paiContext.objectIndex, g_curCraft,
+			msg_emit_craft_message(
+				g_pai_context.object_index, g_cur_craft,
 				IFMSG_156_REPORTS_DOCKING_OPERATION_COMPLETE);
-			fsfx_SpeakTacticalOfficerEvent(
+			fsfx_speak_tactical_officer_event(
 				TACTICAL_VOICE_STATUS,
 				TACTICAL_MSG_BOARDING_COMPLETE,
-				g_paiContext.objectIndex, UINT16_MAX);
-			fsfx_SpeakTacticalOfficerEvent(
+				g_pai_context.object_index, UINT16_MAX);
+			fsfx_speak_tactical_officer_event(
 				TACTICAL_VOICE_STATUS,
-				TACTICAL_MSG_REPAIRED_TARGET, targetObjectIndex,
-				UINT16_MAX);
+				TACTICAL_MSG_REPAIRED_TARGET,
+				target_object_index, UINT16_MAX);
 		}
 
-		if (targetMobileObject != NULL) {
-			struct MobileObject *boardingMobileObject =
-				g_objectTable[g_paiContext.objectIndex].mobj;
+		if (target_mobile_object != NULL) {
+			struct mobile_object *boarding_mobile_object =
+				g_object_table[g_pai_context.object_index].mobj;
 
-			if (boardingMobileObject->iff ==
-			    targetMobileObject->iff) {
-				uint8_t *teamIdentifiedOrder =
-					&targetCraft->identifiedOrderByTeam
-						 [boardingMobileObject->team];
+			if (boarding_mobile_object->iff ==
+			    target_mobile_object->iff) {
+				uint8_t *team_identified_order =
+					&target_craft->identified_order_by_team
+						 [boarding_mobile_object->team];
 
-				if (*teamIdentifiedOrder == 0) {
-					uint16_t teamIndex;
-					uint16_t highestIdentifiedOrder = 0;
+				if (*team_identified_order == 0) {
+					uint16_t team_index;
+					uint16_t highest_identified_order = 0;
 
-					for (teamIndex = 0;
-					     teamIndex < TEAM_COUNT;
-					     ++teamIndex) {
-						if (highestIdentifiedOrder <
-						    targetCraft
-							    ->identifiedOrderByTeam
-								    [teamIndex]) {
-							highestIdentifiedOrder =
-								targetCraft->identifiedOrderByTeam
-									[teamIndex];
+					for (team_index = 0;
+					     team_index < TEAM_COUNT;
+					     ++team_index) {
+						if (highest_identified_order <
+						    target_craft->identified_order_by_team
+							    [team_index]) {
+							highest_identified_order =
+								target_craft->identified_order_by_team
+									[team_index];
 						}
 					}
-					*teamIdentifiedOrder =
-						(uint8_t)(highestIdentifiedOrder +
+					*team_identified_order =
+						(uint8_t)(highest_identified_order +
 							  1);
-					++g_missionFgStats[*targetFlightGroupIndexPtr]
-						  .outcomeCount
+					++g_mission_fg_stats[*target_flight_group_index_ptr]
+						  .outcome_count
 							  [FLIGHT_GROUP_OUTCOME_INSPECTED];
-					if (g_missionFlightGroups
-						    [*targetFlightGroupIndexPtr]
+					if (g_mission_flight_groups
+						    [*target_flight_group_index_ptr]
 							    .fg
-							    .specialCargoCraft ==
-					    targetCraft->craftOrdinal) {
-						g_missionFgStats[*targetFlightGroupIndexPtr]
-							.specialCargoOutcome
+							    .special_cargo_craft ==
+					    target_craft->craft_ordinal) {
+						g_mission_fg_stats[*target_flight_group_index_ptr]
+							.special_cargo_outcome
 								[FLIGHT_GROUP_OUTCOME_INSPECTED] =
 							1;
 					}
 				}
 			} else {
-				fsfx_PlaySound(FLIGHT_SOUND_GENERAL_WARNING, -1,
-					       g_localPlayer);
+				fsfx_play_sound(FLIGHT_SOUND_GENERAL_WARNING,
+						-1, g_local_player);
 			}
 		}
-		++g_paiContext.controller->orderProgress.goalProgress
-			  [g_paiContext.controller->currentOrderSlot];
-		g_curCraft->aiFlight.dockedTargetSignatures
-			[g_curCraft->aiFlight.dockedTargetCount++] =
-			targetSignature;
-		if (g_curCraft->aiFlight.dockedTargetCount >=
+		++g_pai_context.controller->order_progress.goal_progress
+			  [g_pai_context.controller->current_order_slot];
+		g_cur_craft->ai_flight.docked_target_signatures
+			[g_cur_craft->ai_flight.docked_target_count++] =
+			target_signature;
+		if (g_cur_craft->ai_flight.docked_target_count >=
 		    MAX_OBJECT_SIGNATURE_COUNT) {
-			--g_curCraft->aiFlight.dockedTargetCount;
+			--g_cur_craft->ai_flight.docked_target_count;
 		}
-		if (g_curCraft->aiFlight.dockedTargetCount == 1) {
-			uint16_t flightGroupIndex =
-				g_paiContext.craftFlightGroupIndex;
+		if (g_cur_craft->ai_flight.docked_target_count == 1) {
+			uint16_t flight_group_index =
+				g_pai_context.craft_flight_group_index;
 
-			++g_missionFgStats[flightGroupIndex]
-				  .outcomeCount[FLIGHT_GROUP_OUTCOME_DOCKED];
-			if (g_missionFlightGroups[flightGroupIndex]
-				    .fg.specialCargoCraft ==
-			    g_curCraft->craftOrdinal) {
-				g_missionFgStats[flightGroupIndex]
-					.specialCargoOutcome
+			++g_mission_fg_stats[flight_group_index]
+				  .outcome_count[FLIGHT_GROUP_OUTCOME_DOCKED];
+			if (g_mission_flight_groups[flight_group_index]
+				    .fg.special_cargo_craft ==
+			    g_cur_craft->craft_ordinal) {
+				g_mission_fg_stats[flight_group_index]
+					.special_cargo_outcome
 						[FLIGHT_GROUP_OUTCOME_DOCKED] =
 					1;
 			}
 		}
-		if (targetMobileObject != NULL) {
-			++targetCraft->aiFlight.timesBoarded;
-			++g_missionFgStats[targetFlightGroupIndex]
-				  .outcomeCount[FLIGHT_GROUP_OUTCOME_BOARDED];
-			if (g_missionFlightGroups[targetFlightGroupIndex]
-				    .fg.specialCargoCraft ==
-			    targetCraft->craftOrdinal) {
-				g_missionFgStats[targetFlightGroupIndex]
-					.specialCargoOutcome
+		if (target_mobile_object != NULL) {
+			++target_craft->ai_flight.times_boarded;
+			++g_mission_fg_stats[target_flight_group_index]
+				  .outcome_count[FLIGHT_GROUP_OUTCOME_BOARDED];
+			if (g_mission_flight_groups[target_flight_group_index]
+				    .fg.special_cargo_craft ==
+			    target_craft->craft_ordinal) {
+				g_mission_fg_stats[target_flight_group_index]
+					.special_cargo_outcome
 						[FLIGHT_GROUP_OUTCOME_BOARDED] =
 					1;
 			}
 		}
-		g_paiContext.controller->maneuverPhase = BOARD_PHASE_SEPARATE;
-		g_paiContext.controller->maneuverTimer = SEPARATION_DURATION;
-		if (g_players[g_localPlayer].currentTargetObjectIdx ==
-		    targetObjectIndex) {
-			g_hudCachedTargetObjectIdx = HUD_TARGET_INVALIDATED;
+		g_pai_context.controller->maneuver_phase = BOARD_PHASE_SEPARATE;
+		g_pai_context.controller->maneuver_timer = SEPARATION_DURATION;
+		if (g_players[g_local_player].current_target_object_idx ==
+		    target_object_index) {
+			g_hud_cached_target_object_idx = HUD_TARGET_INVALIDATED;
 		}
-		if (g_objectTable[targetObjectIndex].playerOwnerIdx != -1) {
-			g_paiContext.controller->candidateTargetIdx =
+		if (g_object_table[target_object_index].player_owner_idx !=
+		    -1) {
+			g_pai_context.controller->candidate_target_idx =
 				UINT16_MAX;
 		}
 		return 0;
 	}
 
 	case BOARD_PHASE_SEPARATE:
-		if (g_paiContext.controller->maneuverTimer == 0) {
-			g_paiContext.controller->targetObjIdx = UINT16_MAX;
-			g_paiContext.controller->targetSignature = 0;
-			g_paiContext.controller->hasLiveTarget = 0;
+		if (g_pai_context.controller->maneuver_timer == 0) {
+			g_pai_context.controller->target_obj_idx = UINT16_MAX;
+			g_pai_context.controller->target_signature = 0;
+			g_pai_context.controller->has_live_target = 0;
 			return 1;
 		}
-		if (targetMobileObject != NULL) {
+		if (target_mobile_object != NULL) {
 			pai_calcrotatedpoint(
-				&g_objectTable[g_paiContext.objectIndex], 0,
+				&g_object_table[g_pai_context.object_index], 0,
 				0x4000, 0);
-			g_curCraft->pushAccumX =
-				g_rotatedX +
-				g_objectTable[targetObjectIndex].world_x -
-				g_objectTable[g_paiContext.objectIndex].world_x;
-			g_curCraft->pushAccumY =
-				g_rotatedY +
-				g_objectTable[targetObjectIndex].world_y -
-				g_objectTable[g_paiContext.objectIndex].world_y;
-			g_curCraft->pushAccumZ =
-				g_rotatedZ +
-				g_objectTable[targetObjectIndex].world_z -
-				g_objectTable[g_paiContext.objectIndex].world_z;
+			g_cur_craft->push_accum_x =
+				g_rotated_x +
+				g_object_table[target_object_index].world_x -
+				g_object_table[g_pai_context.object_index]
+					.world_x;
+			g_cur_craft->push_accum_y =
+				g_rotated_y +
+				g_object_table[target_object_index].world_y -
+				g_object_table[g_pai_context.object_index]
+					.world_y;
+			g_cur_craft->push_accum_z =
+				g_rotated_z +
+				g_object_table[target_object_index].world_z -
+				g_object_table[g_pai_context.object_index]
+					.world_z;
 		} else {
-			g_curCraft->pushAccumX = 0;
-			g_curCraft->pushAccumY = 0;
-			g_curCraft->pushAccumZ = SEPARATION_MISSION_POINT_PUSH;
+			g_cur_craft->push_accum_x = 0;
+			g_cur_craft->push_accum_y = 0;
+			g_cur_craft->push_accum_z =
+				SEPARATION_MISSION_POINT_PUSH;
 		}
 		return 0;
 
@@ -3119,79 +3196,82 @@ int16_t paiman_boardmaneuver(void)
 	}
 }
 
-/* Gives an object the IFF and team of the craft in g_paiContext, restores its
+/* Gives an object the IFF and team of the craft in g_pai_context, restores its
  * working subsystems, clears its subsystem damage and last attacker, and marks
  * it active. When the teams differed it updates the capture counts: taken back
  * by its own flight group's team, it undoes the FLIGHT_GROUP_OUTCOME_CAPTURED
- * count and clears capturedByFlightGroup; else it counts the capture for the
+ * count and clears captured_by_flight_group; else it counts the capture for the
  * new team, moving it from an earlier captor's team, and sets
- * capturedByFlightGroup to ownerFlag with the capturing flight group. */
+ * captured_by_flight_group to owner_flag with the capturing flight group. */
 // FUNCTION: XVT 0x4A3750
-void paiman_TransferObjectToAiTeam(unsigned int objectIdx,
-				   struct CraftData *craft, uint8_t ownerFlag)
+void paiman_transfer_object_to_ai_team(unsigned int object_idx,
+				       struct craft_data *craft,
+				       uint8_t owner_flag)
 {
-	struct ObjectRecord *object;
-	struct MobileObject **currentMobileObjectPtr;
-	uint8_t objectTeam;
-	int flightGroupIdx;
-	uint8_t missionTeam;
+	struct object_record *object;
+	struct mobile_object **current_mobile_object_ptr;
+	uint8_t object_team;
+	int flight_group_idx;
+	uint8_t mission_team;
 
-	object = &g_objectTable[objectIdx];
-	flightGroupIdx = object->flightGroupIdx;
-	currentMobileObjectPtr = &g_objectTable[g_paiContext.objectIndex].mobj;
-	objectTeam = object->mobj->team;
-	if ((*currentMobileObjectPtr)->team != objectTeam) {
-		missionTeam = g_missionFlightGroups[flightGroupIdx].fg.team;
-		if ((*currentMobileObjectPtr)->team == missionTeam) {
-			g_missionFgStats[flightGroupIdx]
-				.outcomeCount[FLIGHT_GROUP_OUTCOME_CAPTURED]--;
-			if (g_missionFlightGroups[flightGroupIdx]
-				    .fg.specialCargoCraft ==
-			    craft->craftOrdinal) {
-				g_missionFgStats[flightGroupIdx]
-					.specialCargoOutcome
+	object = &g_object_table[object_idx];
+	flight_group_idx = object->flight_group_idx;
+	current_mobile_object_ptr =
+		&g_object_table[g_pai_context.object_index].mobj;
+	object_team = object->mobj->team;
+	if ((*current_mobile_object_ptr)->team != object_team) {
+		mission_team =
+			g_mission_flight_groups[flight_group_idx].fg.team;
+		if ((*current_mobile_object_ptr)->team == mission_team) {
+			g_mission_fg_stats[flight_group_idx]
+				.outcome_count[FLIGHT_GROUP_OUTCOME_CAPTURED]--;
+			if (g_mission_flight_groups[flight_group_idx]
+				    .fg.special_cargo_craft ==
+			    craft->craft_ordinal) {
+				g_mission_fg_stats[flight_group_idx]
+					.special_cargo_outcome
 						[FLIGHT_GROUP_OUTCOME_CAPTURED] =
 					0;
 			}
-			craft->capturedByFlightGroup = 0;
+			craft->captured_by_flight_group = 0;
 		} else {
-			if (objectTeam == missionTeam) {
-				g_missionFgStats[flightGroupIdx].outcomeCount
+			if (object_team == mission_team) {
+				g_mission_fg_stats[flight_group_idx].outcome_count
 					[FLIGHT_GROUP_OUTCOME_CAPTURED]++;
-				if (g_missionFlightGroups[flightGroupIdx]
-					    .fg.specialCargoCraft ==
-				    craft->craftOrdinal) {
-					g_missionFgStats[flightGroupIdx].specialCargoOutcome
+				if (g_mission_flight_groups[flight_group_idx]
+					    .fg.special_cargo_craft ==
+				    craft->craft_ordinal) {
+					g_mission_fg_stats[flight_group_idx].special_cargo_outcome
 						[FLIGHT_GROUP_OUTCOME_CAPTURED] =
 						1;
 				}
 			} else {
-				g_flightMissionState.runtime.teamFgInspectedCapturedCounts
+				g_flight_mission_state.runtime.team_fg_inspected_captured_counts
 					[1]
-					[g_missionFlightGroups
-						 [craft->capturedByFlightGroup &
+					[g_mission_flight_groups
+						 [craft->captured_by_flight_group &
 						  0x7F]
 							 .fg.team]
-					[flightGroupIdx]--;
+					[flight_group_idx]--;
 			}
-			g_flightMissionState.runtime
-				.teamFgInspectedCapturedCounts
-					[1][(*currentMobileObjectPtr)->team]
-					[flightGroupIdx]++;
-			craft->capturedByFlightGroup =
-				ownerFlag |
-				(uint8_t)g_paiContext.craftFlightGroupIndex;
+			g_flight_mission_state.runtime
+				.team_fg_inspected_captured_counts
+					[1][(*current_mobile_object_ptr)->team]
+					[flight_group_idx]++;
+			craft->captured_by_flight_group =
+				owner_flag |
+				(uint8_t)g_pai_context.craft_flight_group_index;
 		}
 	}
 
-	g_objectTable[objectIdx].mobj->iff =
-		g_objectTable[g_paiContext.objectIndex].mobj->iff;
-	g_objectTable[objectIdx].mobj->team =
-		g_objectTable[g_paiContext.objectIndex].mobj->team;
-	craft->workingSubsystems = craft->systemFlags;
-	craft->subsystemDamage = 0;
-	craft->objectKind = CRAFT_OBJECT_KIND_ACTIVE;
-	craft->lastAttackerObjIdx = UINT16_MAX;
+	g_object_table[object_idx].mobj->iff =
+		g_object_table[g_pai_context.object_index].mobj->iff;
+	g_object_table[object_idx].mobj->team =
+		g_object_table[g_pai_context.object_index].mobj->team;
+	craft->working_subsystems = craft->system_flags;
+	craft->subsystem_damage = 0;
+	craft->object_kind = CRAFT_OBJECT_KIND_ACTIVE;
+	craft->last_attacker_obj_idx = UINT16_MAX;
 }
 
 /* Starts await board, also used for stop: stops the roll, pitch and turn and
@@ -3199,20 +3279,20 @@ void paiman_TransferObjectToAiTeam(unsigned int objectIdx,
 // FUNCTION: XVT 0x4A3920
 void paiman_initawaitboardmaneuver(void)
 {
-	g_curCraft->aiFlight.rollState = 0;
-	g_curCraft->aiFlight.pitchState = 0;
-	g_curCraft->aiFlight.turnState = 0;
-	paiman_setpower(g_paiContext.objectIndex, 0);
+	g_cur_craft->ai_flight.roll_state = 0;
+	g_cur_craft->ai_flight.pitch_state = 0;
+	g_cur_craft->ai_flight.turn_state = 0;
+	paiman_setpower(g_pai_context.object_index, 0);
 }
 
 /* Keeps the craft stopped as paiman_initawaitboardmaneuver does; returns 0. */
 // FUNCTION: XVT 0x4A3960
 int16_t paiman_awaitboardmaneuver(void)
 {
-	g_curCraft->aiFlight.rollState = 0;
-	g_curCraft->aiFlight.pitchState = 0;
-	g_curCraft->aiFlight.turnState = 0;
-	paiman_setpower(g_paiContext.objectIndex, 0);
+	g_cur_craft->ai_flight.roll_state = 0;
+	g_cur_craft->ai_flight.pitch_state = 0;
+	g_cur_craft->ai_flight.turn_state = 0;
+	paiman_setpower(g_pai_context.object_index, 0);
 	return 0;
 }
 
@@ -3225,9 +3305,9 @@ void paiman_initheadtowardmaneuver(void) { paiman_setflighttotarget(0, 1); }
 int16_t paiman_headtowardmaneuver(void)
 {
 	paiman_setflighttotarget(0, 1);
-	g_curCraft->aiFlight.rollState = 1;
-	g_curCraft->aiFlight.rollStep = UINT16_MAX;
-	g_paiContext.controller->targetRoll = 0;
+	g_cur_craft->ai_flight.roll_state = 1;
+	g_cur_craft->ai_flight.roll_step = UINT16_MAX;
+	g_pai_context.controller->target_roll = 0;
 	return 0;
 }
 
@@ -3236,47 +3316,47 @@ int16_t paiman_headtowardmaneuver(void)
 // FUNCTION: XVT 0x4A39F0
 void paiman_initturnawaymaneuver(void)
 {
-	paiman_setupturnawaycourse(g_paiContext.objectIndex);
-	g_paiContext.controller->maneuverTimer = 3540;
+	paiman_setupturnawaycourse(g_pai_context.object_index);
+	g_pai_context.controller->maneuver_timer = 3540;
 }
 
 /* Returns 1 once the maneuver timer has run out, else 0; each time
- * secondaryManeuverTimer runs out it sets the course again. */
+ * secondary_maneuver_timer runs out it sets the course again. */
 // FUNCTION: XVT 0x4A3A10
 int16_t paiman_turnawaymaneuver(void)
 {
-	if (g_paiContext.controller->maneuverTimer == 0) {
+	if (g_pai_context.controller->maneuver_timer == 0) {
 		return 1;
 	}
-	if (g_paiContext.controller->secondaryManeuverTimer == 0) {
-		paiman_setupturnawaycourse(g_paiContext.objectIndex);
+	if (g_pai_context.controller->secondary_maneuver_timer == 0) {
+		paiman_setupturnawaycourse(g_pai_context.object_index);
 	}
 	return 0;
 }
 
 /* Turns the craft to its attacker's yaw, or half a circle off the object's own
  * yaw when it has no attacker, at half the effective skill plus 0x8000, and
- * sets secondaryManeuverTimer to the tier's g_aiTurnAwayStateDelayBySkill
+ * sets secondary_maneuver_timer to the tier's g_ai_turn_away_state_delay_by_skill
  * seconds in ticks. */
 // FUNCTION: XVT 0x4A3A50
-void paiman_setupturnawaycourse(unsigned int objectIdx)
+void paiman_setupturnawaycourse(unsigned int object_idx)
 {
 	uint16_t yaw;
-	uint16_t effectiveSkill;
-	unsigned int turnStep;
+	uint16_t effective_skill;
+	unsigned int turn_step;
 
-	if (g_curCraft->lastAttackerObjIdx != UINT16_MAX) {
-		yaw = g_objectTable[g_curCraft->lastAttackerObjIdx].yaw;
+	if (g_cur_craft->last_attacker_obj_idx != UINT16_MAX) {
+		yaw = g_object_table[g_cur_craft->last_attacker_obj_idx].yaw;
 	} else {
-		yaw = g_objectTable[objectIdx].yaw + 0x8000;
+		yaw = g_object_table[object_idx].yaw + 0x8000;
 	}
-	g_paiContext.controller->targetXYAngle = yaw;
-	effectiveSkill = pai_GetEffectiveSkillValue(g_curCraft);
-	turnStep = effectiveSkill >> 1;
-	turnStep += 0x8000;
-	paiman_setturn(turnStep);
-	g_paiContext.controller->secondaryManeuverTimer =
-		g_aiTurnAwayStateDelayBySkill[g_paiContext.skillTier] *
+	g_pai_context.controller->target_xy_angle = yaw;
+	effective_skill = pai_get_effective_skill_value(g_cur_craft);
+	turn_step = effective_skill >> 1;
+	turn_step += 0x8000;
+	paiman_setturn(turn_step);
+	g_pai_context.controller->secondary_maneuver_timer =
+		g_ai_turn_away_state_delay_by_skill[g_pai_context.skill_tier] *
 		SIMULATION_TICKS_PER_SECOND;
 }
 
@@ -3284,7 +3364,7 @@ void paiman_setupturnawaycourse(unsigned int objectIdx)
 // FUNCTION: XVT 0x4A3AF0
 void paiman_initoutofhangarmaneuver(void)
 {
-	g_paiContext.controller->maneuverTimer = 2360;
+	g_pai_context.controller->maneuver_timer = 2360;
 }
 
 /* Returns 1 once the maneuver timer has run out, else 0. At that point it gives
@@ -3294,61 +3374,63 @@ void paiman_initoutofhangarmaneuver(void)
 // FUNCTION: XVT 0x4A3B00
 int16_t paiman_outofhangarmaneuver(void)
 {
-	int maneuverTimer;
+	int maneuver_timer;
 
-	maneuverTimer = g_paiContext.controller->maneuverTimer;
-	if (maneuverTimer == 0) {
-		uint16_t flightGroupIndex;
+	maneuver_timer = g_pai_context.controller->maneuver_timer;
+	if (maneuver_timer == 0) {
+		uint16_t flight_group_index;
 		uint16_t order;
-		uint8_t planId;
-		uint8_t *exitHangarPlan;
+		uint8_t plan_id;
+		uint8_t *exit_hangar_plan;
 
-		flightGroupIndex = g_paiContext.craftFlightGroupIndex;
-		order = g_missionFlightGroups[flightGroupIndex]
+		flight_group_index = g_pai_context.craft_flight_group_index;
+		order = g_mission_flight_groups[flight_group_index]
 				.fg.orders[0]
 				.order;
-		if (g_curCraft->leader_obj_idx == UINT8_MAX) {
-			planId = g_builtinPlanIdByNameIndex
-				[g_orderLeaderBuiltinPlanNameIndex[order]];
+		if (g_cur_craft->leader_obj_idx == UINT8_MAX) {
+			plan_id = g_builtin_plan_id_by_name_index
+				[g_order_leader_builtin_plan_name_index[order]];
 		} else {
-			planId = g_builtinPlanIdByNameIndex
-				[g_orderFollowerBuiltinPlanNameIndex[order]];
+			plan_id = g_builtin_plan_id_by_name_index
+				[g_order_follower_builtin_plan_name_index
+					 [order]];
 		}
-		pai_SetFlightGroupFormation(
-			flightGroupIndex,
-			g_missionFlightGroups[flightGroupIndex].fg.formation,
-			g_missionFlightGroups[flightGroupIndex]
-				.fg.formationSpacing);
-		exitHangarPlan = pai_getplandataptrbyname("exithangarpln");
-		exitHangarPlan[3] = planId;
+		pai_set_flight_group_formation(
+			flight_group_index,
+			g_mission_flight_groups[flight_group_index]
+				.fg.formation,
+			g_mission_flight_groups[flight_group_index]
+				.fg.formation_spacing);
+		exit_hangar_plan = pai_getplandataptrbyname("exithangarpln");
+		exit_hangar_plan[3] = plan_id;
 		return 1;
 	}
 
 	return 0;
 }
 
-/* Starts avoid starship toward the targetXYAngle and targetZAngle the order
+/* Starts avoid starship toward the target_xy_angle and target_z_angle the order
  * set: a turn at half the effective skill plus 0x8000, a pitch at full step
- * without a loop, and secondaryManeuverTimer at 15 to 22 times
+ * without a loop, and secondary_maneuver_timer at 15 to 22 times
  * SIMULATION_TICKS_PER_SECOND. */
 // FUNCTION: XVT 0x4A3BB0
 void paiman_initavoidstarshipmaneuver(void)
 {
-	uint16_t effectiveSkill;
-	unsigned int turnStep;
+	uint16_t effective_skill;
+	unsigned int turn_step;
 
-	g_paiContext.controller->secondaryManeuverTimer =
-		((GameRand() & 7) + 15) * SIMULATION_TICKS_PER_SECOND;
-	effectiveSkill = pai_GetEffectiveSkillValue(g_curCraft);
-	turnStep = effectiveSkill >> 1;
-	turnStep += 0x8000;
-	paiman_setturn(turnStep);
-	g_curCraft->aiFlight.pitchStepScale = UINT16_MAX;
-	g_curCraft->aiFlight.pitchThroughLoop = 0;
-	if (g_paiContext.controller->targetZAngle <= g_curCraft->pitch) {
-		g_curCraft->aiFlight.pitchState = 1;
+	g_pai_context.controller->secondary_maneuver_timer =
+		((game_rand() & 7) + 15) * SIMULATION_TICKS_PER_SECOND;
+	effective_skill = pai_get_effective_skill_value(g_cur_craft);
+	turn_step = effective_skill >> 1;
+	turn_step += 0x8000;
+	paiman_setturn(turn_step);
+	g_cur_craft->ai_flight.pitch_step_scale = UINT16_MAX;
+	g_cur_craft->ai_flight.pitch_through_loop = 0;
+	if (g_pai_context.controller->target_z_angle <= g_cur_craft->pitch) {
+		g_cur_craft->ai_flight.pitch_state = 1;
 	} else {
-		g_curCraft->aiFlight.pitchState = 2;
+		g_cur_craft->ai_flight.pitch_state = 2;
 	}
 }
 
@@ -3361,18 +3443,18 @@ int16_t paiman_avoidstarshipmaneuver(void) { return 0; }
 // FUNCTION: XVT 0x4A3C50
 void paiman_initwaitmaneuver(void)
 {
-	g_paiContext.controller->maneuverTimer =
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-			.fg.orders[g_paiContext.orderSlot]
+	g_pai_context.controller->maneuver_timer =
+		g_mission_flight_groups[g_pai_context.craft_flight_group_index]
+			.fg.orders[g_pai_context.order_slot]
 			.variable1;
-	g_paiContext.controller->maneuverTimer *= 1180;
-	g_curCraft->aiFlight.rollState = 0;
-	g_curCraft->aiFlight.pitchState = 0;
-	g_curCraft->aiFlight.turnState = 0;
-	paiman_setpower(g_paiContext.objectIndex, 0);
+	g_pai_context.controller->maneuver_timer *= 1180;
+	g_cur_craft->ai_flight.roll_state = 0;
+	g_cur_craft->ai_flight.pitch_state = 0;
+	g_cur_craft->ai_flight.turn_state = 0;
+	paiman_setpower(g_pai_context.object_index, 0);
 }
 
-/* Returns 0; pai_IsPlanCompleteForOrderSlot ends waitpln on the timer. */
+/* Returns 0; pai_is_plan_complete_for_order_slot ends waitpln on the timer. */
 // FUNCTION: XVT 0x4A3CF0
 int16_t paiman_waitmaneuver(void) { return 0; }
 
@@ -3380,24 +3462,24 @@ int16_t paiman_waitmaneuver(void) { return 0; }
 // FUNCTION: XVT 0x4A3D00
 void paiman_initdropoffmaneuver(void)
 {
-	g_curCraft->aiFlight.rollState = 0;
-	g_curCraft->aiFlight.pitchState = 0;
-	g_curCraft->aiFlight.turnState = 0;
-	paiman_setpower(g_paiContext.objectIndex, 0);
+	g_cur_craft->ai_flight.roll_state = 0;
+	g_cur_craft->ai_flight.pitch_state = 0;
+	g_cur_craft->ai_flight.turn_state = 0;
+	paiman_setpower(g_pai_context.object_index, 0);
 }
 
 /* Delivers flight group variable2 minus 1 craft by craft; returns 0 on every
- * path. At maneuverPhase 0 it pushes the craft to the formation place
- * waypointIndex names, as Mission_ResolveFormationSlotWorldLoc places it around
+ * path. At maneuver_phase 0 it pushes the craft to the formation place
+ * waypoint_index names, as mission_resolve_formation_slot_world_loc places it around
  * the last craft of that group with no leader, plus in Z the negated minimum Z
  * of the craft's own model bounds, turning to face it when more than 256 away
  * in X plus Y. Within 32 it starts that group's arrival for the place with
- * Mission_StartFlightGroupArrival, setting g_currentFlightGroupIdx and
- * g_spawnLeaderObjIdx, and goes to 1 for 1,180 ticks with a push of 1,500 in Z.
+ * mission_start_flight_group_arrival, setting g_current_flight_group_idx and
+ * g_spawn_leader_obj_idx, and goes to 1 for 1,180 ticks with a push of 1,500 in Z.
  * At 1, once the timer runs out, it goes back to 0 at the next place. Copies
- * waypointIndex into the order slot's goalProgress each think. With no leader
+ * waypoint_index into the order slot's goal_progress each think. With no leader
  * in that group it passes 255 as the basis, where
- * Mission_ResolveFormationSlotWorldLoc tests for 0xFFFF. */
+ * mission_resolve_formation_slot_world_loc tests for 0xFFFF. */
 // FUNCTION: XVT 0x4A3D40
 int16_t paiman_dropoffmaneuver(void)
 {
@@ -3410,100 +3492,104 @@ int16_t paiman_dropoffmaneuver(void)
 		DROPOFF_PUSH_DISTANCE = 1500,
 	};
 
-	if (g_paiContext.controller->maneuverPhase == 0) {
-		uint16_t formationSlotIndex =
-			g_paiContext.controller->waypointIndex;
-		uint16_t destinationFlightGroupIndex =
-			(uint16_t)(g_missionFlightGroups
-					   [g_paiContext.craftFlightGroupIndex]
+	if (g_pai_context.controller->maneuver_phase == 0) {
+		uint16_t formation_slot_index =
+			g_pai_context.controller->waypoint_index;
+		uint16_t destination_flight_group_index =
+			(uint16_t)(g_mission_flight_groups
+					   [g_pai_context
+						    .craft_flight_group_index]
 						   .fg
-						   .orders[g_paiContext
-								   .orderSlot]
+						   .orders[g_pai_context
+								   .order_slot]
 						   .variable2 -
 				   1);
-		uint16_t basisObjectIndex = UINT8_MAX;
-		uint16_t objectIndex;
-		int minZ;
-		int distanceY;
-		int distanceX;
-		int distanceZ;
+		uint16_t basis_object_index = UINT8_MAX;
+		uint16_t object_index;
+		int min_z;
+		int distance_y;
+		int distance_x;
+		int distance_z;
 
-		for (objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
-		     (int)objectIndex < g_activeRegionCraftObjectSlotEnd;
-		     ++objectIndex) {
-			struct ObjectRecord *object =
-				&g_objectTable[objectIndex];
+		for (object_index = (uint16_t)g_active_region_object_slot_start;
+		     (int)object_index < g_active_region_craft_object_slot_end;
+		     ++object_index) {
+			struct object_record *object =
+				&g_object_table[object_index];
 
-			if (object->objectType != 0 &&
-			    object->flightGroupIdx ==
-				    destinationFlightGroupIndex &&
-			    object->mobj->pCraft->leader_obj_idx == UINT8_MAX) {
-				basisObjectIndex = objectIndex;
+			if (object->object_type != 0 &&
+			    object->flight_group_idx ==
+				    destination_flight_group_index &&
+			    object->mobj->p_craft->leader_obj_idx ==
+				    UINT8_MAX) {
+				basis_object_index = object_index;
 			}
 		}
 
-		Mission_ResolveFormationSlotWorldLoc(
-			destinationFlightGroupIndex, formationSlotIndex,
-			basisObjectIndex);
-		minZ = -ModelBounds_GetMinZ(
-			g_objectTable[g_paiContext.objectIndex].objectType);
-		g_curCraft->pushAccumX =
-			g_worldLocX -
-			g_objectTable[g_paiContext.objectIndex].world_x;
-		distanceX = g_curCraft->pushAccumX;
-		g_curCraft->pushAccumY =
-			g_worldLocY -
-			g_objectTable[g_paiContext.objectIndex].world_y;
-		distanceY = g_curCraft->pushAccumY;
-		g_curCraft->pushAccumZ =
-			g_worldLocZ -
-			g_objectTable[g_paiContext.objectIndex].world_z;
-		g_curCraft->pushAccumZ += minZ;
-		distanceZ = g_curCraft->pushAccumZ;
-		trig2_ctop(distanceX, distanceY, distanceZ);
+		mission_resolve_formation_slot_world_loc(
+			destination_flight_group_index, formation_slot_index,
+			basis_object_index);
+		min_z = -model_bounds_get_min_z(
+			g_object_table[g_pai_context.object_index].object_type);
+		g_cur_craft->push_accum_x =
+			g_world_loc_x -
+			g_object_table[g_pai_context.object_index].world_x;
+		distance_x = g_cur_craft->push_accum_x;
+		g_cur_craft->push_accum_y =
+			g_world_loc_y -
+			g_object_table[g_pai_context.object_index].world_y;
+		distance_y = g_cur_craft->push_accum_y;
+		g_cur_craft->push_accum_z =
+			g_world_loc_z -
+			g_object_table[g_pai_context.object_index].world_z;
+		g_cur_craft->push_accum_z += min_z;
+		distance_z = g_cur_craft->push_accum_z;
+		trig2_ctop(distance_x, distance_y, distance_z);
 
-		if (distanceX < 0) {
-			distanceX = -distanceX;
+		if (distance_x < 0) {
+			distance_x = -distance_x;
 		}
-		if (distanceY < 0) {
-			distanceY = -distanceY;
+		if (distance_y < 0) {
+			distance_y = -distance_y;
 		}
-		if (distanceZ < 0) {
-			distanceZ = -distanceZ;
+		if (distance_z < 0) {
+			distance_z = -distance_z;
 		}
 
-		if (distanceX + distanceY > TURN_DISTANCE_THRESHOLD &&
-		    g_objectTable[g_paiContext.objectIndex].yaw !=
+		if (distance_x + distance_y > TURN_DISTANCE_THRESHOLD &&
+		    g_object_table[g_pai_context.object_index].yaw !=
 			    (uint16_t)trig2_xyangle) {
-			g_curCraft->aiFlight.turnState = TURN_STATE_ACTIVE;
-			g_curCraft->aiFlight.turnStep = FULL_TURN_STEP;
-			g_paiContext.controller->targetXYAngle =
+			g_cur_craft->ai_flight.turn_state = TURN_STATE_ACTIVE;
+			g_cur_craft->ai_flight.turn_step = FULL_TURN_STEP;
+			g_pai_context.controller->target_xy_angle =
 				(uint16_t)trig2_xyangle;
 		}
-		if (distanceX + distanceY + distanceZ <
+		if (distance_x + distance_y + distance_z <
 		    ARRIVAL_DISTANCE_THRESHOLD) {
-			struct PaiContext savedContext = g_paiContext;
-			struct CraftData *savedCraft;
+			struct pai_context saved_context = g_pai_context;
+			struct craft_data *saved_craft;
 
-			g_currentFlightGroupIdx = destinationFlightGroupIndex;
-			savedCraft = g_curCraft;
-			g_spawnLeaderObjIdx = (uint8_t)basisObjectIndex;
-			Mission_StartFlightGroupArrival(formationSlotIndex);
-			g_curCraft = savedCraft;
-			g_paiContext = savedContext;
-			++g_paiContext.controller->maneuverPhase;
-			g_paiContext.controller->maneuverTimer =
+			g_current_flight_group_idx =
+				destination_flight_group_index;
+			saved_craft = g_cur_craft;
+			g_spawn_leader_obj_idx = (uint8_t)basis_object_index;
+			mission_start_flight_group_arrival(
+				formation_slot_index);
+			g_cur_craft = saved_craft;
+			g_pai_context = saved_context;
+			++g_pai_context.controller->maneuver_phase;
+			g_pai_context.controller->maneuver_timer =
 				DROPOFF_WAIT_TICKS;
-			g_curCraft->pushAccumZ = DROPOFF_PUSH_DISTANCE;
+			g_cur_craft->push_accum_z = DROPOFF_PUSH_DISTANCE;
 		}
-	} else if (g_paiContext.controller->maneuverTimer == 0) {
-		g_paiContext.controller->maneuverPhase = 0;
-		++g_paiContext.controller->waypointIndex;
+	} else if (g_pai_context.controller->maneuver_timer == 0) {
+		g_pai_context.controller->maneuver_phase = 0;
+		++g_pai_context.controller->waypoint_index;
 	}
 
-	g_paiContext.controller->orderProgress
-		.goalProgress[g_paiContext.orderSlot] =
-		g_paiContext.controller->waypointIndex;
+	g_pai_context.controller->order_progress
+		.goal_progress[g_pai_context.order_slot] =
+		g_pai_context.controller->waypoint_index;
 	return 0;
 }
 
@@ -3512,16 +3598,16 @@ int16_t paiman_dropoffmaneuver(void)
 // FUNCTION: XVT 0x4A4050
 void paiman_initkamikazemaneuver(void)
 {
-	pai_UpdateAimPointFromOrderTarget();
+	pai_update_aim_point_from_order_target();
 	paiman_setflighttotarget(0, 1);
-	paiman_setpower(g_paiContext.objectIndex, UINT16_MAX);
+	paiman_setpower(g_pai_context.object_index, UINT16_MAX);
 }
 
 /* Moves the aim point to the target and steers at it; returns 0. */
 // FUNCTION: XVT 0x4A4080
 int16_t paiman_kamikazemaneuver(void)
 {
-	pai_UpdateAimPointFromOrderTarget();
+	pai_update_aim_point_from_order_target();
 	paiman_setflighttotarget(0, 1);
 	return 0;
 }
@@ -3535,124 +3621,127 @@ int16_t paiman_kamikazemaneuver(void)
 void paiman_initavoidattackermaneuver(void)
 {
 	uint16_t pitch;
-	uint16_t effectiveSkill;
-	unsigned int turnStep;
-	uint16_t groupAI;
+	uint16_t effective_skill;
+	unsigned int turn_step;
+	uint16_t group_ai;
 
-	g_paiContext.controller->maneuverPhase = GameRand() & 1;
-	if (g_paiContext.controller->maneuverPhase) {
-		g_paiContext.controller->targetXYAngle =
-			(uint16_t)(g_objectTable[g_paiContext.objectIndex].yaw +
+	g_pai_context.controller->maneuver_phase = game_rand() & 1;
+	if (g_pai_context.controller->maneuver_phase) {
+		g_pai_context.controller->target_xy_angle =
+			(uint16_t)(g_object_table[g_pai_context.object_index]
+					   .yaw +
 				   0x4000u);
 	} else {
-		g_paiContext.controller->targetXYAngle =
-			(uint16_t)(g_objectTable[g_paiContext.objectIndex].yaw -
+		g_pai_context.controller->target_xy_angle =
+			(uint16_t)(g_object_table[g_pai_context.object_index]
+					   .yaw -
 				   0x4000u);
 	}
 
-	effectiveSkill = pai_GetEffectiveSkillValue(g_curCraft);
-	turnStep = effectiveSkill >> 1;
-	turnStep += 0x8000u;
-	paiman_setturn(turnStep);
+	effective_skill = pai_get_effective_skill_value(g_cur_craft);
+	turn_step = effective_skill >> 1;
+	turn_step += 0x8000u;
+	paiman_setturn(turn_step);
 
-	pitch = g_objectTable[g_paiContext.objectIndex].pitch;
+	pitch = g_object_table[g_pai_context.object_index].pitch;
 	if (pitch < 0x4000u) {
-		g_paiContext.controller->targetZAngle =
+		g_pai_context.controller->target_z_angle =
 			(uint16_t)(pitch + 0x3000u);
-		g_curCraft->aiFlight.pitchState = 2;
+		g_cur_craft->ai_flight.pitch_state = 2;
 	} else {
-		g_paiContext.controller->targetZAngle =
+		g_pai_context.controller->target_z_angle =
 			(uint16_t)(pitch - 0x3000u);
-		g_curCraft->aiFlight.pitchState = 1;
+		g_cur_craft->ai_flight.pitch_state = 1;
 	}
 
-	g_curCraft->aiFlight.pitchStepScale = UINT16_MAX;
-	g_curCraft->aiFlight.pitchThroughLoop = 0;
-	g_curCraft->aiFlight.rollState = 3;
-	g_curCraft->aiFlight.rollStep = UINT16_MAX;
-	g_paiContext.controller->targetRoll = (uint16_t)GameRand();
-	g_paiContext.controller->maneuverTimer =
-		SIMULATION_TICKS_PER_SECOND * ((GameRand() & 7) + 10);
+	g_cur_craft->ai_flight.pitch_step_scale = UINT16_MAX;
+	g_cur_craft->ai_flight.pitch_through_loop = 0;
+	g_cur_craft->ai_flight.roll_state = 3;
+	g_cur_craft->ai_flight.roll_step = UINT16_MAX;
+	g_pai_context.controller->target_roll = (uint16_t)game_rand();
+	g_pai_context.controller->maneuver_timer =
+		SIMULATION_TICKS_PER_SECOND * ((game_rand() & 7) + 10);
 
-	groupAI = g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-			  .fg.groupAI;
-	g_paiContext.controller->secondaryManeuverTimer =
-		(int16_t)((uint16_t)MATH2_fraction(
-				  g_aiAvoidAttackerDelayFracQ16ByGroupAI
-					  [groupAI],
+	group_ai =
+		g_mission_flight_groups[g_pai_context.craft_flight_group_index]
+			.fg.group_ai;
+	g_pai_context.controller->secondary_maneuver_timer =
+		(int16_t)((uint16_t)math2_fraction(
+				  g_ai_avoid_attacker_delay_frac_q16_by_group_ai
+					  [group_ai],
 				  0x00ECu) +
-			  236u * g_aiAvoidAttackerDelaySecondsByGroupAI
-					  [groupAI]);
+			  236u * g_ai_avoid_attacker_delay_seconds_by_group_ai
+					  [group_ai]);
 }
 
-/* Returns 1, setting rollState 4, once the maneuver timer has run out; else 0.
- * Each time secondaryManeuverTimer runs out it weaves the other way: a turn of
+/* Returns 1, setting roll_state 4, once the maneuver timer has run out; else 0.
+ * Each time secondary_maneuver_timer runs out it weaves the other way: a turn of
  * 0x3000 to 0x3FFF off its yaw, a flipped roll, a pitch change of 0x2000 to
  * 0x2FFF (plus from below 0x4000, else minus), and the next weave after the AI
  * level's delay plus up to 236 ticks; from AI level 3 it fires a flare on one
- * draw in eight when it has one and cmFireCooldownTimer is 0. */
+ * draw in eight when it has one and cm_fire_cooldown_timer is 0. */
 // FUNCTION: XVT 0x4A4260
 int16_t paiman_avoidattackermaneuver(void)
 {
-	uint16_t randomAngle;
-	uint16_t groupAi;
+	uint16_t random_angle;
+	uint16_t group_ai;
 	int16_t pitch;
 
-	if (g_paiContext.controller->maneuverTimer == 0) {
-		g_curCraft->aiFlight.rollState = 4;
+	if (g_pai_context.controller->maneuver_timer == 0) {
+		g_cur_craft->ai_flight.roll_state = 4;
 		return 1;
 	}
-	if (g_paiContext.controller->secondaryManeuverTimer == 0) {
-		randomAngle = (uint16_t)(GameRand() & 0x0FFF);
-		g_paiContext.controller->maneuverPhase ^= 1;
-		if (g_paiContext.controller->maneuverPhase != 0) {
-			g_paiContext.controller->targetXYAngle =
-				(uint16_t)(g_objectTable[g_paiContext
-								 .objectIndex]
+	if (g_pai_context.controller->secondary_maneuver_timer == 0) {
+		random_angle = (uint16_t)(game_rand() & 0x0FFF);
+		g_pai_context.controller->maneuver_phase ^= 1;
+		if (g_pai_context.controller->maneuver_phase != 0) {
+			g_pai_context.controller->target_xy_angle =
+				(uint16_t)(g_object_table[g_pai_context
+								  .object_index]
 						   .yaw +
-					   randomAngle + 12288);
+					   random_angle + 12288);
 		} else {
-			g_paiContext.controller->targetXYAngle =
-				(uint16_t)(g_objectTable[g_paiContext
-								 .objectIndex]
+			g_pai_context.controller->target_xy_angle =
+				(uint16_t)(g_object_table[g_pai_context
+								  .object_index]
 						   .yaw -
-					   randomAngle - 12288);
+					   random_angle - 12288);
 		}
 		paiman_setturn(
-			(uint16_t)(pai_GetEffectiveSkillValue(g_curCraft) >>
+			(uint16_t)(pai_get_effective_skill_value(g_cur_craft) >>
 				   1) +
 			0x8000u);
-		g_paiContext.controller->targetRoll ^= 0x8000u;
-		randomAngle = (uint16_t)(GameRand() & 0x0FFF);
-		pitch = g_objectTable[g_paiContext.objectIndex].pitch;
+		g_pai_context.controller->target_roll ^= 0x8000u;
+		random_angle = (uint16_t)(game_rand() & 0x0FFF);
+		pitch = g_object_table[g_pai_context.object_index].pitch;
 		if ((uint16_t)pitch < 0x4000u) {
-			g_paiContext.controller->targetZAngle =
-				(uint16_t)(pitch + randomAngle + 0x2000);
-			g_curCraft->aiFlight.pitchState = 2;
+			g_pai_context.controller->target_z_angle =
+				(uint16_t)(pitch + random_angle + 0x2000);
+			g_cur_craft->ai_flight.pitch_state = 2;
 		} else {
-			g_paiContext.controller->targetZAngle =
-				(uint16_t)(pitch - randomAngle - 0x2000);
-			g_curCraft->aiFlight.pitchState = 1;
+			g_pai_context.controller->target_z_angle =
+				(uint16_t)(pitch - random_angle - 0x2000);
+			g_cur_craft->ai_flight.pitch_state = 1;
 		}
-		groupAi = g_missionFlightGroups[g_paiContext
-							.craftFlightGroupIndex]
-				  .fg.groupAI;
-		g_paiContext.controller->secondaryManeuverTimer =
+		group_ai = g_mission_flight_groups
+				   [g_pai_context.craft_flight_group_index]
+					   .fg.group_ai;
+		g_pai_context.controller->secondary_maneuver_timer =
 			(uint16_t)(SIMULATION_TICKS_PER_SECOND *
-					   g_aiAvoidAttackerDelaySecondsByGroupAI
-						   [groupAi] +
-				   MATH2_fraction(
-					   g_aiAvoidAttackerDelayFracQ16ByGroupAI
-						   [groupAi],
+					   g_ai_avoid_attacker_delay_seconds_by_group_ai
+						   [group_ai] +
+				   math2_fraction(
+					   g_ai_avoid_attacker_delay_frac_q16_by_group_ai
+						   [group_ai],
 					   0xEC));
-		g_paiContext.controller->secondaryManeuverTimer +=
-			MATH2_fraction((uint16_t)GameRand(), 0xEC);
-		if (groupAi >= 3 && (GameRand() & 7) == 7 &&
-		    g_curCraft->cmTypeId == COUNTERMEASURE_TYPE_FLARE &&
-		    g_curCraft->cmAmmoCount != 0 &&
-		    g_curCraft->cmFireCooldownTimer == 0) {
+		g_pai_context.controller->secondary_maneuver_timer +=
+			math2_fraction((uint16_t)game_rand(), 0xEC);
+		if (group_ai >= 3 && (game_rand() & 7) == 7 &&
+		    g_cur_craft->cm_type_id == COUNTERMEASURE_TYPE_FLARE &&
+		    g_cur_craft->cm_ammo_count != 0 &&
+		    g_cur_craft->cm_fire_cooldown_timer == 0) {
 			laser_createcountermeasureprojectile(
-				g_paiContext.objectIndex,
+				g_pai_context.object_index,
 				COUNTERMEASURE_PROJECTILE_OBJECT_TYPE);
 		}
 	}
@@ -3664,9 +3753,9 @@ int16_t paiman_avoidattackermaneuver(void)
 // FUNCTION: XVT 0x4A4480
 void paiman_initkamikazecopymaneuver(void)
 {
-	pai_UpdateAimPointFromOrderTarget();
+	pai_update_aim_point_from_order_target();
 	paiman_setflighttotarget(0, 1);
-	paiman_setpower(g_paiContext.objectIndex, UINT16_MAX);
+	paiman_setpower(g_pai_context.object_index, UINT16_MAX);
 }
 
 /* Does what paiman_kamikazemaneuver does: moves the aim point to the target and
@@ -3674,164 +3763,167 @@ void paiman_initkamikazecopymaneuver(void)
 // FUNCTION: XVT 0x4A44B0
 int16_t paiman_kamikazecopymaneuver(void)
 {
-	pai_UpdateAimPointFromOrderTarget();
+	pai_update_aim_point_from_order_target();
 	paiman_setflighttotarget(0, 1);
 	return 0;
 }
 
-/* Steers the craft at its aim point from its live position: targetXYAngle is
- * the heading there plus yawOffset, with a turn step of half the effective
- * skill plus 0x4000. With steerPitch nonzero it also pitches at full step
+/* Steers the craft at its aim point from its live position: target_xy_angle is
+ * the heading there plus yaw_offset, with a turn step of half the effective
+ * skill plus 0x4000. With steer_pitch nonzero it also pitches at full step
  * toward the pitch there, without a loop, and stops any climb or dive. Sets the
  * trig2_ globals; callers read trig2_polardistance as the distance to the aim
  * point. */
 // FUNCTION: XVT 0x4A44D0
-void paiman_setflighttotarget(uint16_t yawOffset, int steerPitch)
+void paiman_setflighttotarget(uint16_t yaw_offset, int steer_pitch)
 {
-	uint16_t effectiveSkill;
-	int aimX;
-	int aimY;
-	int aimZ;
-	int worldX;
-	int worldY;
-	int worldZ;
+	uint16_t effective_skill;
+	int aim_x;
+	int aim_y;
+	int aim_z;
+	int world_x;
+	int world_y;
+	int world_z;
 	uint16_t pitch;
-	unsigned int turnStep;
-	int updatePitch;
+	unsigned int turn_step;
+	int update_pitch;
 
-	aimX = g_paiContext.controller->aimPointX;
-	aimY = g_paiContext.controller->aimPointY;
-	aimZ = g_paiContext.controller->aimPointZ;
-	worldX = g_objectTable[g_paiContext.objectIndex].world_x;
-	worldY = g_objectTable[g_paiContext.objectIndex].world_y;
-	worldZ = g_objectTable[g_paiContext.objectIndex].world_z;
-	aimX -= worldX;
-	aimY -= worldY;
-	aimZ -= worldZ;
-	trig2_ctop(aimX, aimY, aimZ);
-	g_paiContext.controller->targetXYAngle =
-		(uint16_t)(yawOffset + trig2_xyangle);
-	effectiveSkill = pai_GetEffectiveSkillValue(g_curCraft);
-	effectiveSkill >>= 1;
-	turnStep = effectiveSkill;
-	turnStep += 0x4000;
-	paiman_setturn(turnStep);
-	updatePitch = steerPitch;
-	if (updatePitch != 0) {
-		g_paiContext.controller->targetZAngle = (uint16_t)trig2_pitch;
-		g_curCraft->aiFlight.pitchStepScale = UINT16_MAX;
-		g_curCraft->aiFlight.pitchThroughLoop = 0;
-		pitch = g_curCraft->pitch;
-		if (pitch >= g_paiContext.controller->targetZAngle) {
-			g_curCraft->aiFlight.pitchState = 1;
+	aim_x = g_pai_context.controller->aim_point_x;
+	aim_y = g_pai_context.controller->aim_point_y;
+	aim_z = g_pai_context.controller->aim_point_z;
+	world_x = g_object_table[g_pai_context.object_index].world_x;
+	world_y = g_object_table[g_pai_context.object_index].world_y;
+	world_z = g_object_table[g_pai_context.object_index].world_z;
+	aim_x -= world_x;
+	aim_y -= world_y;
+	aim_z -= world_z;
+	trig2_ctop(aim_x, aim_y, aim_z);
+	g_pai_context.controller->target_xy_angle =
+		(uint16_t)(yaw_offset + trig2_xyangle);
+	effective_skill = pai_get_effective_skill_value(g_cur_craft);
+	effective_skill >>= 1;
+	turn_step = effective_skill;
+	turn_step += 0x4000;
+	paiman_setturn(turn_step);
+	update_pitch = steer_pitch;
+	if (update_pitch != 0) {
+		g_pai_context.controller->target_z_angle =
+			(uint16_t)trig2_pitch;
+		g_cur_craft->ai_flight.pitch_step_scale = UINT16_MAX;
+		g_cur_craft->ai_flight.pitch_through_loop = 0;
+		pitch = g_cur_craft->pitch;
+		if (pitch >= g_pai_context.controller->target_z_angle) {
+			g_cur_craft->ai_flight.pitch_state = 1;
 		} else {
-			g_curCraft->aiFlight.pitchState = 2;
+			g_cur_craft->ai_flight.pitch_state = 2;
 		}
-		g_curCraft->aiFlight.climbState = 0;
-		g_curCraft->aiFlight.diveState = 0;
+		g_cur_craft->ai_flight.climb_state = 0;
+		g_cur_craft->ai_flight.dive_state = 0;
 	}
 }
 
 /* Levels the craft: no climb or dive, a pitch at full step to 0x4000 without a
- * loop (pitchState by which side it is on, 3 when on it), a roll to 0 at full
+ * loop (pitch_state by which side it is on, 3 when on it), a roll to 0 at full
  * step, and no turn. */
 // FUNCTION: XVT 0x4A45E0
 void paiman_initcruiseandrunawaycontrols(void)
 {
 	uint16_t pitch;
 
-	g_curCraft->aiFlight.diveState = 0;
-	g_curCraft->aiFlight.climbState = 0;
-	g_paiContext.controller->targetZAngle = 0x4000;
-	g_curCraft->aiFlight.pitchStepScale = UINT16_MAX;
-	g_curCraft->aiFlight.pitchThroughLoop = 0;
-	pitch = g_curCraft->pitch;
+	g_cur_craft->ai_flight.dive_state = 0;
+	g_cur_craft->ai_flight.climb_state = 0;
+	g_pai_context.controller->target_z_angle = 0x4000;
+	g_cur_craft->ai_flight.pitch_step_scale = UINT16_MAX;
+	g_cur_craft->ai_flight.pitch_through_loop = 0;
+	pitch = g_cur_craft->pitch;
 	if (pitch < 0x4000) {
-		g_curCraft->aiFlight.pitchState = 2;
+		g_cur_craft->ai_flight.pitch_state = 2;
 	} else if (pitch > 0x4000) {
-		g_curCraft->aiFlight.pitchState = 1;
+		g_cur_craft->ai_flight.pitch_state = 1;
 	} else {
-		g_curCraft->aiFlight.pitchState = 3;
+		g_cur_craft->ai_flight.pitch_state = 3;
 	}
-	g_curCraft->aiFlight.rollState = 1;
-	g_curCraft->aiFlight.rollStep = UINT16_MAX;
-	g_paiContext.controller->targetRoll = 0;
-	g_curCraft->aiFlight.turnState = 0;
+	g_cur_craft->ai_flight.roll_state = 1;
+	g_cur_craft->ai_flight.roll_step = UINT16_MAX;
+	g_pai_context.controller->target_roll = 0;
+	g_cur_craft->ai_flight.turn_state = 0;
 }
 
 /* Steers the craft at its target: at the target's position in rocket attack or
  * for a target with no mobile object, else at the point ahead of it that
- * paiman_calcplanelead works out; targetXYAngle is the heading there plus
- * yawOffset. It turns at half the effective skill plus 0x8000, with rollState 2
- * only when 0x2000 or more off course or within 0x10000 (nothing sets rollState
+ * paiman_calcplanelead works out; target_xy_angle is the heading there plus
+ * yaw_offset. It turns at half the effective skill plus 0x8000, with roll_state 2
+ * only when 0x2000 or more off course or within 0x10000 (nothing sets roll_state
  * 2); stops a roll that does not stop; and when the pitch differs, pitches
  * toward it at full step at full throttle, ending any climb, dive or loop. Does
- * not check that targetObjIdx names an object. Sets the trig2_ globals. */
+ * not check that target_obj_idx names an object. Sets the trig2_ globals. */
 // FUNCTION: XVT 0x4A4690
-void paiman_attacktarget(int16_t yawOffset)
+void paiman_attacktarget(int16_t yaw_offset)
 {
-	unsigned int objectIndex;
-	uint16_t targetObjectIndex;
-	uint16_t yawDifference;
-	uint16_t effectiveSkill;
-	int deltaX;
-	int deltaY;
-	int deltaZ;
+	unsigned int object_index;
+	uint16_t target_object_index;
+	uint16_t yaw_difference;
+	uint16_t effective_skill;
+	int delta_x;
+	int delta_y;
+	int delta_z;
 
-	objectIndex = g_paiContext.objectIndex;
-	if (g_paiContext.controller->maneuverMode ==
+	object_index = g_pai_context.object_index;
+	if (g_pai_context.controller->maneuver_mode ==
 		    AI_MANEUVER_MODE_ROCKET_ATTACK ||
-	    (targetObjectIndex = g_paiContext.controller->targetObjIdx,
-	     g_objectTable[targetObjectIndex].mobj == NULL)) {
-		pai_UpdateAimPointFromOrderTarget();
+	    (target_object_index = g_pai_context.controller->target_obj_idx,
+	     g_object_table[target_object_index].mobj == NULL)) {
+		pai_update_aim_point_from_order_target();
 	} else {
-		paiman_calcplanelead(targetObjectIndex);
+		paiman_calcplanelead(target_object_index);
 	}
-	deltaX = g_paiContext.controller->aimPointX -
-		 g_objectTable[objectIndex].world_x;
-	deltaY = g_paiContext.controller->aimPointY -
-		 g_objectTable[objectIndex].world_y;
-	deltaZ = g_paiContext.controller->aimPointZ -
-		 g_objectTable[objectIndex].world_z;
-	trig2_ctop(deltaX, deltaY, deltaZ);
-	g_paiContext.controller->targetXYAngle = yawOffset + trig2_xyangle;
-	if (g_curCraft->aiFlight.rollState == 2) {
-		yawDifference = g_objectTable[objectIndex].yaw -
-				g_paiContext.controller->targetXYAngle;
-		if (yawDifference > 0x8000) {
-			yawDifference = (uint16_t)(0u - yawDifference);
+	delta_x = g_pai_context.controller->aim_point_x -
+		  g_object_table[object_index].world_x;
+	delta_y = g_pai_context.controller->aim_point_y -
+		  g_object_table[object_index].world_y;
+	delta_z = g_pai_context.controller->aim_point_z -
+		  g_object_table[object_index].world_z;
+	trig2_ctop(delta_x, delta_y, delta_z);
+	g_pai_context.controller->target_xy_angle = yaw_offset + trig2_xyangle;
+	if (g_cur_craft->ai_flight.roll_state == 2) {
+		yaw_difference = g_object_table[object_index].yaw -
+				 g_pai_context.controller->target_xy_angle;
+		if (yaw_difference > 0x8000) {
+			yaw_difference = (uint16_t)(0u - yaw_difference);
 		}
-		if (yawDifference >= 0x2000 || trig2_polardistance < 0x10000) {
-			effectiveSkill = pai_GetEffectiveSkillValue(g_curCraft);
-			paiman_setturn((unsigned int)(effectiveSkill >> 1) +
+		if (yaw_difference >= 0x2000 || trig2_polardistance < 0x10000) {
+			effective_skill =
+				pai_get_effective_skill_value(g_cur_craft);
+			paiman_setturn((unsigned int)(effective_skill >> 1) +
 				       0x8000);
 		}
 	} else {
-		effectiveSkill = pai_GetEffectiveSkillValue(g_curCraft);
-		paiman_setturn((unsigned int)(effectiveSkill >> 1) + 0x8000);
+		effective_skill = pai_get_effective_skill_value(g_cur_craft);
+		paiman_setturn((unsigned int)(effective_skill >> 1) + 0x8000);
 	}
-	if (g_curCraft->aiFlight.rollState == 3) {
-		g_curCraft->aiFlight.rollState = 0;
+	if (g_cur_craft->ai_flight.roll_state == 3) {
+		g_cur_craft->ai_flight.roll_state = 0;
 	}
-	if (g_curCraft->pitch != (uint16_t)trig2_pitch) {
-		g_paiContext.controller->targetZAngle = (uint16_t)trig2_pitch;
-		g_curCraft->aiFlight.pitchStepScale = UINT16_MAX;
-		if (g_paiContext.controller->targetZAngle <=
-		    g_curCraft->pitch) {
-			g_curCraft->aiFlight.pitchState = 1;
+	if (g_cur_craft->pitch != (uint16_t)trig2_pitch) {
+		g_pai_context.controller->target_z_angle =
+			(uint16_t)trig2_pitch;
+		g_cur_craft->ai_flight.pitch_step_scale = UINT16_MAX;
+		if (g_pai_context.controller->target_z_angle <=
+		    g_cur_craft->pitch) {
+			g_cur_craft->ai_flight.pitch_state = 1;
 		} else {
-			g_curCraft->aiFlight.pitchState = 2;
+			g_cur_craft->ai_flight.pitch_state = 2;
 		}
-		paiman_setpower(objectIndex, UINT16_MAX);
-		g_curCraft->aiFlight.climbState = 0;
-		g_curCraft->aiFlight.diveState = 0;
-		g_curCraft->aiFlight.pitchThroughLoop = 0;
+		paiman_setpower(object_index, UINT16_MAX);
+		g_cur_craft->ai_flight.climb_state = 0;
+		g_cur_craft->ai_flight.dive_state = 0;
+		g_cur_craft->ai_flight.pitch_through_loop = 0;
 	}
 }
 
 /* Sets the aim point where the target will be when a shot reaches it: the
  * target's position plus its last frame's movement times a number of frames
- * (XvtReferenceMotion_AxisDisplacement in the modern build with unlocked
+ * (xvt_reference_motion_axis_displacement in the modern build with unlocked
  * timing). For a target that is not moving that number is 0; else it is the
  * frames the shot needs to cover trig2_polardistance at the closing speed,
  * scaled by the effective skill. The closing speed adds the shot's speed (ion
@@ -3840,262 +3932,274 @@ void paiman_attacktarget(int16_t yawOffset)
  * heading difference, or adds it when the headings differ by a quarter turn or
  * more. For a moving target it sets the trig2_ globals. */
 // FUNCTION: XVT 0x4A4840
-void paiman_calcplanelead(int targetObjIdx)
+void paiman_calcplanelead(int target_obj_idx)
 {
-	uint16_t leadFrames;
-	int deltaY;
-	int deltaZ;
-	struct MobileObject *targetMobile;
+	uint16_t lead_frames;
+	int delta_y;
+	int delta_z;
+	struct mobile_object *target_mobile;
 
-	if (g_objectTable[targetObjIdx].mobj->speed == 0) {
-		leadFrames = 0;
+	if (g_object_table[target_obj_idx].mobj->speed == 0) {
+		lead_frames = 0;
 	} else {
-		uint16_t projectileType;
-		uint16_t projectileSpeed;
-		uint16_t combinedSpeed;
-		uint16_t targetSpeed;
-		uint16_t yawDifference;
-		uint16_t closingUnitsPerSecond;
-		uint16_t travelFrames;
-		uint16_t effectiveSkill;
-		uint16_t objectIndex;
+		uint16_t projectile_type;
+		uint16_t projectile_speed;
+		uint16_t combined_speed;
+		uint16_t target_speed;
+		uint16_t yaw_difference;
+		uint16_t closing_units_per_second;
+		uint16_t travel_frames;
+		uint16_t effective_skill;
+		uint16_t object_index;
 
-		objectIndex = g_paiContext.objectIndex;
-		pai_ObjectRefDirectionToObjectRef(
-			objectIndex, g_paiContext.controller->targetObjIdx);
-		if (strcmp(g_planTable[g_paiContext.controller->currentPlanId]
+		object_index = g_pai_context.object_index;
+		pai_object_ref_direction_to_object_ref(
+			object_index, g_pai_context.controller->target_obj_idx);
+		if (strcmp(g_plan_table[g_pai_context.controller
+						->current_plan_id]
 				   .name,
 			   "disableldr1pln") == 0 &&
-		    g_paiContext.controller->hasLiveTarget == 1) {
-			projectileType = PROJECTILE_OBJECT_TYPE_ION_LASER;
-		} else if (g_curCraft->laserState.projectileTypeId[0] >
+		    g_pai_context.controller->has_live_target == 1) {
+			projectile_type = PROJECTILE_OBJECT_TYPE_ION_LASER;
+		} else if (g_cur_craft->laser_state.projectile_type_id[0] >
 			   PROJECTILE_OBJECT_TYPE_FIRST) {
-			projectileType =
-				g_curCraft->laserState.projectileTypeId[0];
+			projectile_type =
+				g_cur_craft->laser_state.projectile_type_id[0];
 		} else {
-			projectileType = PROJECTILE_OBJECT_TYPE_FIRST;
+			projectile_type = PROJECTILE_OBJECT_TYPE_FIRST;
 		}
-		projectileSpeed = g_projectileTypeData
-					  .speed[projectileType -
-						 PROJECTILE_OBJECT_TYPE_FIRST];
-		combinedSpeed = projectileSpeed +
-				g_objectTable[objectIndex].mobj->speed;
-		yawDifference = g_objectTable[targetObjIdx].yaw -
-				g_objectTable[objectIndex].yaw;
-		targetSpeed = g_objectTable[targetObjIdx].mobj->speed;
-		if (yawDifference >= 0x8000) {
-			yawDifference = (uint16_t)(0u - yawDifference);
+		projectile_speed = g_projectile_type_data
+					   .speed[projectile_type -
+						  PROJECTILE_OBJECT_TYPE_FIRST];
+		combined_speed = projectile_speed +
+				 g_object_table[object_index].mobj->speed;
+		yaw_difference = g_object_table[target_obj_idx].yaw -
+				 g_object_table[object_index].yaw;
+		target_speed = g_object_table[target_obj_idx].mobj->speed;
+		if (yaw_difference >= 0x8000) {
+			yaw_difference = (uint16_t)(0u - yaw_difference);
 		}
-		if (yawDifference < 0x4000) {
-			combinedSpeed -= trig2_cosinewordmult(targetSpeed,
-							      yawDifference);
+		if (yaw_difference < 0x4000) {
+			combined_speed -= trig2_cosinewordmult(target_speed,
+							       yaw_difference);
 		} else {
-			combinedSpeed += trig2_cosinewordmult(targetSpeed,
-							      yawDifference);
+			combined_speed += trig2_cosinewordmult(target_speed,
+							       yaw_difference);
 		}
-		closingUnitsPerSecond = combinedSpeed / 5u + 18 * combinedSpeed;
-		if (closingUnitsPerSecond == 0) {
-			closingUnitsPerSecond = 19;
+		closing_units_per_second =
+			combined_speed / 5u + 18 * combined_speed;
+		if (closing_units_per_second == 0) {
+			closing_units_per_second = 19;
 		}
-		travelFrames = g_simStepsPerSecond *
-			       (trig2_polardistance / closingUnitsPerSecond);
-		effectiveSkill = pai_GetEffectiveSkillValue(g_curCraft);
-		leadFrames = MATH2_fraction(travelFrames, effectiveSkill);
+		travel_frames =
+			g_sim_steps_per_second *
+			(trig2_polardistance / closing_units_per_second);
+		effective_skill = pai_get_effective_skill_value(g_cur_craft);
+		lead_frames = math2_fraction(travel_frames, effective_skill);
 	}
-	targetMobile = g_objectTable[targetObjIdx].mobj;
-	deltaY =
+	target_mobile = g_object_table[target_obj_idx].mobj;
+	delta_y =
 #ifdef XVT_MODERN
-		(XvtFlightTiming_IsUnlocked()
-			 ? XvtReferenceMotion_AxisDisplacement(targetObjIdx, 1)
-			 : (g_objectTable[targetObjIdx].world_y -
-			    targetMobile->prevWorldY))
+		(xvt_flight_timing_is_unlocked()
+			 ? xvt_reference_motion_axis_displacement(
+				   target_obj_idx, 1)
+			 : (g_object_table[target_obj_idx].world_y -
+			    target_mobile->prev_world_y))
 #else
-		g_objectTable[targetObjIdx].world_y - targetMobile->prevWorldY
+		g_object_table[target_obj_idx].world_y -
+		target_mobile->prev_world_y
 #endif
 		;
-	deltaZ =
+	delta_z =
 #ifdef XVT_MODERN
-		(XvtFlightTiming_IsUnlocked()
-			 ? XvtReferenceMotion_AxisDisplacement(targetObjIdx, 2)
-			 : (g_objectTable[targetObjIdx].world_z -
-			    targetMobile->prevWorldZ))
+		(xvt_flight_timing_is_unlocked()
+			 ? xvt_reference_motion_axis_displacement(
+				   target_obj_idx, 2)
+			 : (g_object_table[target_obj_idx].world_z -
+			    target_mobile->prev_world_z))
 #else
-		g_objectTable[targetObjIdx].world_z - targetMobile->prevWorldZ
+		g_object_table[target_obj_idx].world_z -
+		target_mobile->prev_world_z
 #endif
 		;
-	g_paiContext.controller->aimPointX =
-		g_objectTable[targetObjIdx].world_x +
-		leadFrames *
+	g_pai_context.controller->aim_point_x =
+		g_object_table[target_obj_idx].world_x +
+		lead_frames *
 			(
 #ifdef XVT_MODERN
-				(XvtFlightTiming_IsUnlocked()
-					 ? XvtReferenceMotion_AxisDisplacement(
-						   targetObjIdx, 0)
-					 : (g_objectTable[targetObjIdx]
+				(xvt_flight_timing_is_unlocked()
+					 ? xvt_reference_motion_axis_displacement(
+						   target_obj_idx, 0)
+					 : (g_object_table[target_obj_idx]
 						    .world_x -
-					    targetMobile->prevWorldX))
+					    target_mobile->prev_world_x))
 #else
-				g_objectTable[targetObjIdx].world_x -
-				targetMobile->prevWorldX
+				g_object_table[target_obj_idx].world_x -
+				target_mobile->prev_world_x
 #endif
 			);
-	g_paiContext.controller->aimPointY =
-		g_objectTable[targetObjIdx].world_y + leadFrames * deltaY;
-	g_paiContext.controller->aimPointZ =
-		g_objectTable[targetObjIdx].world_z + leadFrames * deltaZ;
+	g_pai_context.controller->aim_point_y =
+		g_object_table[target_obj_idx].world_y + lead_frames * delta_y;
+	g_pai_context.controller->aim_point_z =
+		g_object_table[target_obj_idx].world_z + lead_frames * delta_z;
 }
 
 /* Pushes the craft toward its formation place around its leader: the offsets
- * g_formPosX, g_formPosY and g_formPosZ give for its craftOrdinal, less those
+ * g_form_pos_x, g_form_pos_y and g_form_pos_z give for its craft_ordinal, less those
  * of place 0, times the leader's separation plus 1 and the model's bound sizes
- * (half a bound more at separation 0), divided by g_formationDivisor, turned to
- * the leader's axes and shifted by the model's boundSizeShift. Does not check
- * formationType below 34 or craftOrdinal below 6. */
+ * (half a bound more at separation 0), divided by g_formation_divisor, turned to
+ * the leader's axes and shifted by the model's bound_size_shift. Does not check
+ * formation_type below 34 or craft_ordinal below 6. */
 // FUNCTION: XVT 0x4A4A10
 void paiman_calcformation(void)
 {
-	uint16_t modelIndex;
-	int16_t boundSizeY;
-	int16_t boundSizeX;
-	int formationType;
-	int formationIndex;
-	int16_t displacementX;
-	int16_t displacementY;
-	int16_t displacementZ;
+	uint16_t model_index;
+	int16_t bound_size_y;
+	int16_t bound_size_x;
+	int formation_type;
+	int formation_index;
+	int16_t displacement_x;
+	int16_t displacement_y;
+	int16_t displacement_z;
 	int16_t divisor;
-	uint16_t boundSizeShift;
-	int16_t boundSizeZ;
-	int16_t offsetX;
-	int16_t offsetZ;
-	int16_t offsetY;
+	uint16_t bound_size_shift;
+	int16_t bound_size_z;
+	int16_t offset_x;
+	int16_t offset_z;
+	int16_t offset_y;
 	int16_t separation;
 
-	modelIndex = g_curCraft->modelIndex;
-	boundSizeY = g_modelDefs[modelIndex].boundSizeY;
-	boundSizeX = g_modelDefs[modelIndex].boundSizeX;
-	formationType = g_curCraft->aiFlight.formationType;
-	boundSizeZ = g_modelDefs[modelIndex].boundSizeZ;
-	separation = g_paiContext.leaderOrSelfCraft->aiFlight.separation + 1;
-	formationIndex = g_curCraft->craftOrdinal;
-	offsetX = g_formPosX[formationType][formationIndex] -
-		  g_formPosX[formationType][0];
-	offsetY = g_formPosY[formationType][formationIndex] -
-		  g_formPosY[formationType][0];
-	offsetZ = g_formPosZ[formationType][formationIndex] -
-		  g_formPosZ[formationType][0];
-	displacementX = (int16_t)(separation * offsetX) * boundSizeX;
-	displacementY = (int16_t)(separation * offsetY) * boundSizeY;
-	displacementZ = (int16_t)(separation * offsetZ) * boundSizeZ;
+	model_index = g_cur_craft->model_index;
+	bound_size_y = g_model_defs[model_index].bound_size_y;
+	bound_size_x = g_model_defs[model_index].bound_size_x;
+	formation_type = g_cur_craft->ai_flight.formation_type;
+	bound_size_z = g_model_defs[model_index].bound_size_z;
+	separation =
+		g_pai_context.leader_or_self_craft->ai_flight.separation + 1;
+	formation_index = g_cur_craft->craft_ordinal;
+	offset_x = g_form_pos_x[formation_type][formation_index] -
+		   g_form_pos_x[formation_type][0];
+	offset_y = g_form_pos_y[formation_type][formation_index] -
+		   g_form_pos_y[formation_type][0];
+	offset_z = g_form_pos_z[formation_type][formation_index] -
+		   g_form_pos_z[formation_type][0];
+	displacement_x = (int16_t)(separation * offset_x) * bound_size_x;
+	displacement_y = (int16_t)(separation * offset_y) * bound_size_y;
+	displacement_z = (int16_t)(separation * offset_z) * bound_size_z;
 	if (separation == 1) {
-		displacementX += offsetX * (boundSizeX / 2);
-		displacementZ += offsetZ * (boundSizeZ / 2);
-		displacementY += offsetY * (boundSizeY / 2);
+		displacement_x += offset_x * (bound_size_x / 2);
+		displacement_z += offset_z * (bound_size_z / 2);
+		displacement_y += offset_y * (bound_size_y / 2);
 	}
-	divisor = g_formationDivisor[formationType];
+	divisor = g_formation_divisor[formation_type];
 	if (divisor != 1) {
-		displacementX /= divisor;
-		displacementY /= divisor;
-		displacementZ /= divisor;
+		displacement_x /= divisor;
+		displacement_y /= divisor;
+		displacement_z /= divisor;
 	}
-	pai_calcrotatedpoint(&g_objectTable[g_paiContext.leaderObjectIndex],
-			     displacementX, displacementZ, displacementY);
-	boundSizeShift = g_modelDefs[modelIndex].boundSizeShift;
-	if (boundSizeShift != 0) {
-		g_rotatedX <<= boundSizeShift;
-		g_rotatedY <<= boundSizeShift;
-		g_rotatedZ <<= boundSizeShift;
+	pai_calcrotatedpoint(&g_object_table[g_pai_context.leader_object_index],
+			     displacement_x, displacement_z, displacement_y);
+	bound_size_shift = g_model_defs[model_index].bound_size_shift;
+	if (bound_size_shift != 0) {
+		g_rotated_x <<= bound_size_shift;
+		g_rotated_y <<= bound_size_shift;
+		g_rotated_z <<= bound_size_shift;
 	}
-	g_curCraft->pushAccumX =
-		g_rotatedX +
-		g_objectTable[g_paiContext.leaderObjectIndex].world_x -
-		g_objectTable[g_paiContext.objectIndex].world_x;
-	g_curCraft->pushAccumY =
-		g_rotatedY +
-		g_objectTable[g_paiContext.leaderObjectIndex].world_y -
-		g_objectTable[g_paiContext.objectIndex].world_y;
-	g_curCraft->pushAccumZ =
-		g_rotatedZ +
-		g_objectTable[g_paiContext.leaderObjectIndex].world_z -
-		g_objectTable[g_paiContext.objectIndex].world_z;
+	g_cur_craft->push_accum_x =
+		g_rotated_x +
+		g_object_table[g_pai_context.leader_object_index].world_x -
+		g_object_table[g_pai_context.object_index].world_x;
+	g_cur_craft->push_accum_y =
+		g_rotated_y +
+		g_object_table[g_pai_context.leader_object_index].world_y -
+		g_object_table[g_pai_context.object_index].world_y;
+	g_cur_craft->push_accum_z =
+		g_rotated_z +
+		g_object_table[g_pai_context.leader_object_index].world_z -
+		g_object_table[g_pai_context.object_index].world_z;
 }
 
-/* Starts a turn to targetXYAngle: within 0x300 of it, snaps the yaw there,
- * marks the move vector and axes for rebuilding and sets turnState 3; else sets
- * turnState 2 with turnStep, cut to 16 bits. */
+/* Starts a turn to target_xy_angle: within 0x300 of it, snaps the yaw there,
+ * marks the move vector and axes for rebuilding and sets turn_state 3; else sets
+ * turn_state 2 with turn_step, cut to 16 bits. */
 // FUNCTION: XVT 0x4A4CB0
-void paiman_setturn(int turnStep)
+void paiman_setturn(int turn_step)
 {
 	uint16_t *yaw;
-	uint16_t targetYaw;
-	uint16_t yawDifference;
-	struct MobileObject *mobileObject;
+	uint16_t target_yaw;
+	uint16_t yaw_difference;
+	struct mobile_object *mobile_object;
 
-	yaw = &g_objectTable[g_paiContext.objectIndex].yaw;
-	targetYaw = g_paiContext.controller->targetXYAngle;
-	yawDifference = *yaw - targetYaw;
-	if (yawDifference >= 0x8000u) {
-		yawDifference = -yawDifference;
+	yaw = &g_object_table[g_pai_context.object_index].yaw;
+	target_yaw = g_pai_context.controller->target_xy_angle;
+	yaw_difference = *yaw - target_yaw;
+	if (yaw_difference >= 0x8000u) {
+		yaw_difference = -yaw_difference;
 	}
-	if (yawDifference <= 0x300u) {
-		*yaw = targetYaw;
-		g_objectTable[g_paiContext.objectIndex]
-			.mobj->orientMatrixDirty = 1;
-		mobileObject = g_objectTable[g_paiContext.objectIndex].mobj;
-		mobileObject->moveVectorDirty = mobileObject->orientMatrixDirty;
-		g_curCraft->aiFlight.turnState = 3;
+	if (yaw_difference <= 0x300u) {
+		*yaw = target_yaw;
+		g_object_table[g_pai_context.object_index]
+			.mobj->orient_matrix_dirty = 1;
+		mobile_object = g_object_table[g_pai_context.object_index].mobj;
+		mobile_object->move_vector_dirty =
+			mobile_object->orient_matrix_dirty;
+		g_cur_craft->ai_flight.turn_state = 3;
 	} else {
-		g_curCraft->aiFlight.turnState = 2;
-		g_curCraft->aiFlight.turnStep = turnStep;
+		g_cur_craft->ai_flight.turn_state = 2;
+		g_cur_craft->ai_flight.turn_step = turn_step;
 	}
 }
 
-/* Sets g_curCraft's throttle, a fraction of 65,535. The object index is
+/* Sets g_cur_craft's throttle, a fraction of 65,535. The object index is
  * ignored. */
 // FUNCTION: XVT 0x4A4D70
-void paiman_setpower(int ignoredObjIdx, int throttle)
+void paiman_setpower(int ignored_obj_idx, int throttle)
 {
-	(void)ignoredObjIdx;
-	g_curCraft->throttleSpeed = throttle;
+	(void)ignored_obj_idx;
+	g_cur_craft->throttle_speed = throttle;
 }
 
-/* Sets the throttle that gives desiredSpeed. The full speed is the object's
- * maxSpeedCache, raised by an eighth for each step the sum of its shield, beam
+/* Sets the throttle that gives desired_speed. The full speed is the object's
+ * max_speed_cache, raised by an eighth for each step the sum of its shield, beam
  * and laser recharge levels falls below 6, or lowered by an eighth for each
- * step above; full throttle when desiredSpeed reaches it, else desiredSpeed
- * over it. The throttle goes to g_curCraft through paiman_setpower, not to the
+ * step above; full throttle when desired_speed reaches it, else desired_speed
+ * over it. The throttle goes to g_cur_craft through paiman_setpower, not to the
  * object's craft. */
 // FUNCTION: XVT 0x4A4D90
-void paiman_setspeed(int objIdx, unsigned int desiredSpeed)
+void paiman_setspeed(int obj_idx, unsigned int desired_speed)
 {
-	uint16_t powerDelta;
-	struct CraftData *craft;
-	int16_t maxSpeedCache;
-	uint16_t adjustedMaxSpeed;
+	uint16_t power_delta;
+	struct craft_data *craft;
+	int16_t max_speed_cache;
+	uint16_t adjusted_max_speed;
 
-	craft = g_objectTable[objIdx].mobj->pCraft;
-	powerDelta = (uint16_t)(6 - (uint8_t)craft->shieldRechargeLevel -
-				(uint8_t)craft->beamRechargeLevel -
-				(uint8_t)craft->laserRechargeLevel);
-	if (powerDelta >= 0x8000u) {
-		powerDelta = (uint16_t)-powerDelta;
-		powerDelta <<= 13;
-		maxSpeedCache = craft->aiFlight.maxSpeedCache;
-		adjustedMaxSpeed = (uint16_t)(maxSpeedCache -
-					      (uint16_t)MATH2_fraction(
-						      powerDelta,
-						      (uint16_t)maxSpeedCache));
+	craft = g_object_table[obj_idx].mobj->p_craft;
+	power_delta = (uint16_t)(6 - (uint8_t)craft->shield_recharge_level -
+				 (uint8_t)craft->beam_recharge_level -
+				 (uint8_t)craft->laser_recharge_level);
+	if (power_delta >= 0x8000u) {
+		power_delta = (uint16_t)-power_delta;
+		power_delta <<= 13;
+		max_speed_cache = craft->ai_flight.max_speed_cache;
+		adjusted_max_speed =
+			(uint16_t)(max_speed_cache -
+				   (uint16_t)math2_fraction(
+					   power_delta,
+					   (uint16_t)max_speed_cache));
 	} else {
-		powerDelta <<= 13;
-		maxSpeedCache = craft->aiFlight.maxSpeedCache;
-		adjustedMaxSpeed = (uint16_t)(maxSpeedCache +
-					      (uint16_t)MATH2_fraction(
-						      powerDelta,
-						      (uint16_t)maxSpeedCache));
+		power_delta <<= 13;
+		max_speed_cache = craft->ai_flight.max_speed_cache;
+		adjusted_max_speed =
+			(uint16_t)(max_speed_cache +
+				   (uint16_t)math2_fraction(
+					   power_delta,
+					   (uint16_t)max_speed_cache));
 	}
-	if (adjustedMaxSpeed <= desiredSpeed) {
-		paiman_setpower(objIdx, 0xFFFF);
+	if (adjusted_max_speed <= desired_speed) {
+		paiman_setpower(obj_idx, 0xFFFF);
 	} else {
-		paiman_setpower(objIdx, MATH2_ratioQ16((uint16_t)desiredSpeed,
-						       adjustedMaxSpeed));
+		paiman_setpower(obj_idx,
+				math2_ratio_q16((uint16_t)desired_speed,
+						adjusted_max_speed));
 	}
 }

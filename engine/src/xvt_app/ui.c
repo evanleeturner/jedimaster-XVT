@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <string.h>
 
-static void XvtAppUi_SetColor(float color[4], float r, float g, float b,
-			      float a)
+static void xvt_app_ui_set_color(float color[4], float r, float g, float b,
+				 float a)
 {
 	color[0] = r;
 	color[1] = g;
@@ -12,23 +12,24 @@ static void XvtAppUi_SetColor(float color[4], float r, float g, float b,
 	color[3] = a;
 }
 
-static void XvtAppUi_ApplyTheme(AeronUiContext *context)
+static void xvt_app_ui_apply_theme(AeronUiContext *context)
 {
 	AeronUiTheme theme = *AeronUi_DefaultTheme();
-	XvtAppUi_SetColor(theme.surface, 0.009f, 0.010f, 0.013f, 0.99f);
-	XvtAppUi_SetColor(theme.surface_border, 0.055f, 0.062f, 0.075f, 1.0f);
-	XvtAppUi_SetColor(theme.title_bar, 0.030f, 0.036f, 0.050f, 1.0f);
-	XvtAppUi_SetColor(theme.title_bar_low, 0.014f, 0.017f, 0.024f, 1.0f);
-	XvtAppUi_SetColor(theme.title_text, 0.90f, 0.91f, 0.94f, 1.0f);
-	XvtAppUi_SetColor(theme.accent, 0.62f, 0.030f, 0.036f, 1.0f);
-	XvtAppUi_SetColor(theme.focus_outline, 0.90f, 0.065f, 0.075f, 1.0f);
-	XvtAppUi_SetColor(theme.row_highlight, 0.90f, 0.10f, 0.11f, 0.05f);
-	XvtAppUi_SetColor(theme.slider_track, 0.034f, 0.038f, 0.048f, 1.0f);
+	xvt_app_ui_set_color(theme.surface, 0.009f, 0.010f, 0.013f, 0.99f);
+	xvt_app_ui_set_color(theme.surface_border, 0.055f, 0.062f, 0.075f,
+			     1.0f);
+	xvt_app_ui_set_color(theme.title_bar, 0.030f, 0.036f, 0.050f, 1.0f);
+	xvt_app_ui_set_color(theme.title_bar_low, 0.014f, 0.017f, 0.024f, 1.0f);
+	xvt_app_ui_set_color(theme.title_text, 0.90f, 0.91f, 0.94f, 1.0f);
+	xvt_app_ui_set_color(theme.accent, 0.62f, 0.030f, 0.036f, 1.0f);
+	xvt_app_ui_set_color(theme.focus_outline, 0.90f, 0.065f, 0.075f, 1.0f);
+	xvt_app_ui_set_color(theme.row_highlight, 0.90f, 0.10f, 0.11f, 0.05f);
+	xvt_app_ui_set_color(theme.slider_track, 0.034f, 0.038f, 0.048f, 1.0f);
 	AeronUi_SetTheme(context, &theme);
 }
 
-bool XvtAppUi_Init(struct XvtAppUi *ui, const char *font, char *error,
-		   size_t error_capacity)
+bool xvt_app_ui_init(struct xvt_app_ui *ui, const char *font, char *error,
+		     size_t error_capacity)
 {
 	if (!ui || !font || !font[0]) {
 		if (error && error_capacity) {
@@ -76,7 +77,7 @@ bool XvtAppUi_Init(struct XvtAppUi *ui, const char *font, char *error,
 		}
 		return false;
 	}
-	XvtAppUi_ApplyTheme(ui->context);
+	xvt_app_ui_apply_theme(ui->context);
 	AeronUi_SetFonts(ui->context, &(AeronUiFontSet){
 					      .regular = &ui->font,
 					      .title = &ui->font,
@@ -84,7 +85,7 @@ bool XvtAppUi_Init(struct XvtAppUi *ui, const char *font, char *error,
 	return true;
 }
 
-void XvtAppUi_Shutdown(struct XvtAppUi *ui)
+void xvt_app_ui_shutdown(struct xvt_app_ui *ui)
 {
 	if (!ui) {
 		return;
@@ -94,7 +95,7 @@ void XvtAppUi_Shutdown(struct XvtAppUi *ui)
 	memset(ui, 0, sizeof *ui);
 }
 
-AeronUiContext *XvtAppUi_Context(struct XvtAppUi *ui)
+AeronUiContext *xvt_app_ui_context(struct xvt_app_ui *ui)
 {
 	return ui ? ui->context : NULL;
 }

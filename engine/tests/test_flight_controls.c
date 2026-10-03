@@ -25,73 +25,73 @@
 
 enum { PLAYER = 3, SLOT = 1, SIGNATURE = 0x0155 };
 
-static struct ObjectRecord g_testObjects[2];
-static struct MobileObject g_testMobiles[2];
-static struct CraftData g_testCraft[1];
+static struct object_record g_test_objects[2];
+static struct mobile_object g_test_mobiles[2];
+static struct craft_data g_test_craft[1];
 
-static AeronInputSnapshot *Host(void)
+static AeronInputSnapshot *flight_controls_host(void)
 {
 	return (AeronInputSnapshot *)Aeron_InputSnapshot();
 }
 
 /* Player PLAYER flies the craft in main slot SLOT, bound to it by signature; nothing is in the way. */
-static void World(void)
+static void flight_controls_world(void)
 {
-	memset(g_testObjects, 0, sizeof g_testObjects);
-	memset(g_testMobiles, 0, sizeof g_testMobiles);
-	memset(g_testCraft, 0, sizeof g_testCraft);
+	memset(g_test_objects, 0, sizeof g_test_objects);
+	memset(g_test_mobiles, 0, sizeof g_test_mobiles);
+	memset(g_test_craft, 0, sizeof g_test_craft);
 	memset(g_players, 0, sizeof g_players);
-	memset(&g_flightMissionState, 0, sizeof g_flightMissionState);
-	g_flightRuntimeStateInitialized = 0;
-	g_dormantFlightRegionSessionEarlyReturnFlag = 0;
-	g_objectTable = g_testObjects;
-	g_regionMainObjectSlotEnd = 2;
-	g_testObjects[SLOT].objectType = 1;
-	g_testObjects[SLOT].objectSignature = SIGNATURE;
-	g_testObjects[SLOT].mobj = &g_testMobiles[SLOT];
-	g_testMobiles[SLOT].pCraft = &g_testCraft[0];
+	memset(&g_flight_mission_state, 0, sizeof g_flight_mission_state);
+	g_flight_runtime_state_initialized = 0;
+	g_dormant_flight_region_session_early_return_flag = 0;
+	g_object_table = g_test_objects;
+	g_region_main_object_slot_end = 2;
+	g_test_objects[SLOT].object_type = 1;
+	g_test_objects[SLOT].object_signature = SIGNATURE;
+	g_test_objects[SLOT].mobj = &g_test_mobiles[SLOT];
+	g_test_mobiles[SLOT].p_craft = &g_test_craft[0];
 	for (int i = 0; i < 8; ++i) {
-		g_players[i].objectIndex = -1;
+		g_players[i].object_index = -1;
 	}
-	g_players[PLAYER].participationState = 1;
-	g_players[PLAYER].objectIndex = SLOT;
-	g_players[PLAYER].boundObjectSignature = SIGNATURE;
-	g_players[PLAYER].chatRecipientMode = FLIGHT_CHAT_RECIPIENT_INACTIVE;
-	g_localPlayer = PLAYER;
-	g_flightPlayerCount = 1;
+	g_players[PLAYER].participation_state = 1;
+	g_players[PLAYER].object_index = SLOT;
+	g_players[PLAYER].bound_object_signature = SIGNATURE;
+	g_players[PLAYER].chat_recipient_mode = FLIGHT_CHAT_RECIPIENT_INACTIVE;
+	g_local_player = PLAYER;
+	g_flight_player_count = 1;
 
-	XvtInput_ResetCapture();
-	AeronInputSnapshot *host = Host();
+	xvt_input_reset_capture();
+	AeronInputSnapshot *host = flight_controls_host();
 	uint64_t frame = host->frame_id;
 	memset(host, 0, sizeof *host);
 	host->frame_id = frame + 1;
 	host->has_focus = 1;
 }
 
-static void SetGameInput(void)
+static void set_game_input(void)
 {
-	g_actionKey = 0x41;
-	g_ctrlAxisX = 12;
-	g_ctrlAxisY = -12;
-	g_xvtControlRoll = 9;
-	g_keyMods = 3;
-	g_mouseButtons = 1;
-	g_flightMouseDeltaX = 4;
-	g_flightMouseDeltaY = -4;
+	g_action_key = 0x41;
+	g_ctrl_axis_x = 12;
+	g_ctrl_axis_y = -12;
+	g_xvt_control_roll = 9;
+	g_key_mods = 3;
+	g_mouse_buttons = 1;
+	g_flight_mouse_delta_x = 4;
+	g_flight_mouse_delta_y = -4;
 }
 
 /* A gamepad model with yaw on the left stick and fire on the west button, and that gamepad connected in
  * Aeron's snapshot with the stick pushed and fire held after a first frame with it released. */
-static void ControllerFiring(void)
+static void controller_firing(void)
 {
-	static struct XvtControllerOptions options;
+	static struct xvt_controller_options options;
 	memset(&options, 0, sizeof options);
-	struct XvtControllerModel *model = &options.models[0];
+	struct xvt_controller_model *model = &options.models[0];
 	memcpy(model->guid, "0123456789abcdef0123456789abcdea",
 	       sizeof model->guid);
 	model->kind = AERON_CONTROLLER_KIND_GAMEPAD;
-	XvtControllerOptions_ClearProfile(&model->profile,
-					  AERON_CONTROLLER_KIND_GAMEPAD);
+	xvt_controller_options_clear_profile(&model->profile,
+					     AERON_CONTROLLER_KIND_GAMEPAD);
 	model->profile.mapping.axes[XVT_INPUT_AXIS_YAW].source =
 		AERON_GAMEPAD_AXIS_LEFTX;
 	model->profile.bindings[0].source.kind =
@@ -101,9 +101,9 @@ static void ControllerFiring(void)
 	model->profile.bindings[0].action = XVT_INPUT_ACTION_FIRE_WEAPON;
 	model->profile.binding_count = 1;
 	options.count = 1;
-	XvtControllerMapping_Init(&options);
+	xvt_controller_mapping_init(&options);
 
-	AeronControllerSnapshot *pad = &Host()->controllers[0];
+	AeronControllerSnapshot *pad = &flight_controls_host()->controllers[0];
 	pad->connected = 1;
 	pad->kind = AERON_CONTROLLER_KIND_GAMEPAD;
 	pad->instance_id = 5;
@@ -111,37 +111,38 @@ static void ControllerFiring(void)
 	pad->gamepad_available_axes = 1u << AERON_GAMEPAD_AXIS_LEFTX;
 	pad->gamepad_available_buttons = 1u << AERON_GAMEPAD_BUTTON_WEST;
 	pad->gamepad_axes[AERON_GAMEPAD_AXIS_LEFTX] = 16384;
-	XvtControllerMapping_Update(Host());
-	++Host()->frame_id;
+	xvt_controller_mapping_update(flight_controls_host());
+	++flight_controls_host()->frame_id;
 	pad->gamepad_buttons = 1u << AERON_GAMEPAD_BUTTON_WEST;
-	XvtControllerMapping_Update(Host());
-	XVT_ASSERT_INT_EQ(XvtControllerMapping_Modifiers(), 1);
-	XVT_ASSERT_TRUE(XvtControllerMapping_Axis(XVT_INPUT_AXIS_YAW) != 0);
+	xvt_controller_mapping_update(flight_controls_host());
+	XVT_ASSERT_INT_EQ(xvt_controller_mapping_modifiers(), 1);
+	XVT_ASSERT_TRUE(xvt_controller_mapping_axis(XVT_INPUT_AXIS_YAW) != 0);
 }
 
-static void CheckEncodeDecode(void)
+static void check_encode_decode(void)
 {
 	for (int axis = -128; axis <= 127; ++axis) {
 		for (int mods = 0; mods < 4; ++mods) {
-			struct FlightInputFrameRecord in, out;
+			struct flight_input_frame_record in, out;
 			memset(&in, 0, sizeof in);
-			in.axisX = (int8_t)axis;
-			in.axisY = (int8_t)(-1 - axis);
-			in.axisR = (int8_t)axis;
-			in.keyMods = (uint8_t)mods;
+			in.axis_x = (int8_t)axis;
+			in.axis_y = (int8_t)(-1 - axis);
+			in.axis_r = (int8_t)axis;
+			in.key_mods = (uint8_t)mods;
 			uint8_t bytes[XVT_FLIGHT_AXIS_BYTES + 1];
 			memset(bytes, 0xC3, sizeof bytes);
-			XvtFlightControls_EncodeAxes(bytes, &in);
+			xvt_flight_controls_encode_axes(bytes, &in);
 			XVT_ASSERT_INT_EQ(bytes[XVT_FLIGHT_AXIS_BYTES], 0xC3);
 			XVT_ASSERT_INT_EQ(bytes[0] & 1, mods & 1);
 			XVT_ASSERT_INT_EQ(bytes[1] & 1, (mods >> 1) & 1);
 
 			memset(&out, 0, sizeof out);
-			XvtFlightControls_DecodeAxes(bytes, &out);
-			XVT_ASSERT_INT_EQ(out.keyMods, mods);
-			const int8_t sent[3] = {in.axisX, in.axisY, in.axisR};
-			const int8_t back[3] = {out.axisX, out.axisY,
-						out.axisR};
+			xvt_flight_controls_decode_axes(bytes, &out);
+			XVT_ASSERT_INT_EQ(out.key_mods, mods);
+			const int8_t sent[3] = {in.axis_x, in.axis_y,
+						in.axis_r};
+			const int8_t back[3] = {out.axis_x, out.axis_y,
+						out.axis_r};
 			for (int i = 0; i < 3; ++i) {
 				/* Axes come back even: an even axis exactly, an odd one off by one. */
 				XVT_ASSERT_INT_EQ(back[i] % 2, 0);
@@ -154,254 +155,257 @@ static void CheckEncodeDecode(void)
 	}
 }
 
-static void CheckThrottleEligible(void)
+static void check_throttle_eligible(void)
 {
-	World();
-	XVT_ASSERT_TRUE(XvtFlightControls_ThrottleEligible(PLAYER));
-	XVT_ASSERT_TRUE(!XvtFlightControls_ThrottleEligible(0));
+	flight_controls_world();
+	XVT_ASSERT_TRUE(xvt_flight_controls_throttle_eligible(PLAYER));
+	XVT_ASSERT_TRUE(!xvt_flight_controls_throttle_eligible(0));
 
-	World();
-	g_players[PLAYER].participationState = 0;
-	XVT_ASSERT_TRUE(!XvtFlightControls_ThrottleEligible(PLAYER));
-	World();
-	g_flightMissionState.missionEndPending = 1;
-	XVT_ASSERT_TRUE(!XvtFlightControls_ThrottleEligible(PLAYER));
-	World();
-	g_players[PLAYER].awaitingNewCraft = 1;
-	XVT_ASSERT_TRUE(!XvtFlightControls_ThrottleEligible(PLAYER));
-	World();
-	g_players[PLAYER].hyperspacePhase = 1;
-	XVT_ASSERT_TRUE(!XvtFlightControls_ThrottleEligible(PLAYER));
-	World();
-	g_players[PLAYER].mapCameraState = 1;
-	XVT_ASSERT_TRUE(!XvtFlightControls_ThrottleEligible(PLAYER));
-	World();
-	g_players[PLAYER].viewState.playerInputBlocked = 1;
-	XVT_ASSERT_TRUE(!XvtFlightControls_ThrottleEligible(PLAYER));
-	World();
-	g_players[PLAYER].chatRecipientMode = FLIGHT_CHAT_RECIPIENT_TEAM;
-	XVT_ASSERT_TRUE(!XvtFlightControls_ThrottleEligible(PLAYER));
+	flight_controls_world();
+	g_players[PLAYER].participation_state = 0;
+	XVT_ASSERT_TRUE(!xvt_flight_controls_throttle_eligible(PLAYER));
+	flight_controls_world();
+	g_flight_mission_state.mission_end_pending = 1;
+	XVT_ASSERT_TRUE(!xvt_flight_controls_throttle_eligible(PLAYER));
+	flight_controls_world();
+	g_players[PLAYER].awaiting_new_craft = 1;
+	XVT_ASSERT_TRUE(!xvt_flight_controls_throttle_eligible(PLAYER));
+	flight_controls_world();
+	g_players[PLAYER].hyperspace_phase = 1;
+	XVT_ASSERT_TRUE(!xvt_flight_controls_throttle_eligible(PLAYER));
+	flight_controls_world();
+	g_players[PLAYER].map_camera_state = 1;
+	XVT_ASSERT_TRUE(!xvt_flight_controls_throttle_eligible(PLAYER));
+	flight_controls_world();
+	g_players[PLAYER].view_state.player_input_blocked = 1;
+	XVT_ASSERT_TRUE(!xvt_flight_controls_throttle_eligible(PLAYER));
+	flight_controls_world();
+	g_players[PLAYER].chat_recipient_mode = FLIGHT_CHAT_RECIPIENT_TEAM;
+	XVT_ASSERT_TRUE(!xvt_flight_controls_throttle_eligible(PLAYER));
 
 	/* Their bound, live craft: another signature, an empty slot or no craft record will not do. */
-	World();
-	g_players[PLAYER].boundObjectSignature = SIGNATURE + 1;
-	XVT_ASSERT_TRUE(!XvtFlightControls_ThrottleEligible(PLAYER));
-	World();
-	g_testObjects[SLOT].objectType = 0;
-	XVT_ASSERT_TRUE(!XvtFlightControls_ThrottleEligible(PLAYER));
-	World();
-	g_testMobiles[SLOT].pCraft = NULL;
-	XVT_ASSERT_TRUE(!XvtFlightControls_ThrottleEligible(PLAYER));
+	flight_controls_world();
+	g_players[PLAYER].bound_object_signature = SIGNATURE + 1;
+	XVT_ASSERT_TRUE(!xvt_flight_controls_throttle_eligible(PLAYER));
+	flight_controls_world();
+	g_test_objects[SLOT].object_type = 0;
+	XVT_ASSERT_TRUE(!xvt_flight_controls_throttle_eligible(PLAYER));
+	flight_controls_world();
+	g_test_mobiles[SLOT].p_craft = NULL;
+	XVT_ASSERT_TRUE(!xvt_flight_controls_throttle_eligible(PLAYER));
 }
 
-static void CheckApplyThrottle(void)
+static void check_apply_throttle(void)
 {
-	struct FlightInputFrameRecord record;
+	struct flight_input_frame_record record;
 	memset(&record, 0, sizeof record);
 	record.flags = XVT_INPUT_THROTTLE_PRESENT;
 	record.throttle = 1234;
 
-	World();
-	g_testCraft[0].throttleSpeed = 7;
-	XvtFlightControls_ApplyThrottle(PLAYER, &record);
-	XVT_ASSERT_INT_EQ(g_testCraft[0].throttleSpeed, 1234);
+	flight_controls_world();
+	g_test_craft[0].throttle_speed = 7;
+	xvt_flight_controls_apply_throttle(PLAYER, &record);
+	XVT_ASSERT_INT_EQ(g_test_craft[0].throttle_speed, 1234);
 
 	/* No lever position recorded: the craft keeps its throttle. */
-	World();
-	g_testCraft[0].throttleSpeed = 7;
+	flight_controls_world();
+	g_test_craft[0].throttle_speed = 7;
 	record.flags = 0;
-	XvtFlightControls_ApplyThrottle(PLAYER, &record);
-	XVT_ASSERT_INT_EQ(g_testCraft[0].throttleSpeed, 7);
+	xvt_flight_controls_apply_throttle(PLAYER, &record);
+	XVT_ASSERT_INT_EQ(g_test_craft[0].throttle_speed, 7);
 
 	/* Not eligible: the same. */
-	World();
-	g_testCraft[0].throttleSpeed = 7;
+	flight_controls_world();
+	g_test_craft[0].throttle_speed = 7;
 	record.flags = XVT_INPUT_THROTTLE_PRESENT;
-	g_players[PLAYER].hyperspacePhase = 1;
-	XvtFlightControls_ApplyThrottle(PLAYER, &record);
-	XVT_ASSERT_INT_EQ(g_testCraft[0].throttleSpeed, 7);
+	g_players[PLAYER].hyperspace_phase = 1;
+	xvt_flight_controls_apply_throttle(PLAYER, &record);
+	XVT_ASSERT_INT_EQ(g_test_craft[0].throttle_speed, 7);
 }
 
-static void CheckSampleThrottleSendsNothing(void)
+static void check_sample_throttle_sends_nothing(void)
 {
-	struct FlightInputFrameRecord record;
+	struct flight_input_frame_record record;
 
 	/* No lever was read: no controller mapping is installed. */
-	World();
-	XvtControllerMapping_Shutdown();
+	flight_controls_world();
+	xvt_controller_mapping_shutdown();
 	memset(&record, 0, sizeof record);
 	record.flags = 0xFF;
-	XvtFlightControls_SampleThrottle(&record);
+	xvt_flight_controls_sample_throttle(&record);
 	XVT_ASSERT_INT_EQ(record.flags & XVT_INPUT_THROTTLE_PRESENT, 0);
 
 	/* The local player is not eligible. */
-	World();
-	g_players[PLAYER].participationState = 0;
+	flight_controls_world();
+	g_players[PLAYER].participation_state = 0;
 	memset(&record, 0, sizeof record);
 	record.flags = 0xFF;
-	XvtFlightControls_SampleThrottle(&record);
+	xvt_flight_controls_sample_throttle(&record);
 	XVT_ASSERT_INT_EQ(record.flags & XVT_INPUT_THROTTLE_PRESENT, 0);
 
 	/* Alt-P in a one-player flight. */
-	World();
+	flight_controls_world();
 	memset(&record, 0, sizeof record);
 	record.key = FLIGHT_KEY_ALT_P;
 	record.flags = 0xFF;
-	XvtFlightControls_SampleThrottle(&record);
+	xvt_flight_controls_sample_throttle(&record);
 	XVT_ASSERT_INT_EQ(record.flags & XVT_INPUT_THROTTLE_PRESENT, 0);
 }
 
-static void CheckRollStep(void)
+static void check_roll_step(void)
 {
 	/* Steps from one tick to one second of ticks, and rates up to twice the unit rate: full deflection
 	 * then fits the 16-bit result. These relationships hold for each. */
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_IsUnlocked(), 0);
-	static const uint16_t kTicks[] = {1, 4, 59,
-					  SIMULATION_TICKS_PER_SECOND};
-	static const uint16_t kRates[] = {0x1C00, 0x3800, 0x5555, 0x7000};
-	static const int16_t kModifiers[] = {-30000, -500, -1,	 0,
-					     1,	     500,  30000};
-	for (size_t t = 0; t < sizeof kTicks / sizeof kTicks[0]; ++t) {
-		for (size_t r = 0; r < sizeof kRates / sizeof kRates[0]; ++r) {
-			g_elapsedTicks = kTicks[t];
-			uint16_t rate = kRates[r];
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_is_unlocked(), 0);
+	static const uint16_t k_ticks[] = {1, 4, 59,
+					   SIMULATION_TICKS_PER_SECOND};
+	static const uint16_t k_rates[] = {0x1C00, 0x3800, 0x5555, 0x7000};
+	static const int16_t k_modifiers[] = {-30000, -500, -1,	  0,
+					      1,      500,  30000};
+	for (size_t t = 0; t < sizeof k_ticks / sizeof k_ticks[0]; ++t) {
+		for (size_t r = 0; r < sizeof k_rates / sizeof k_rates[0];
+		     ++r) {
+			g_elapsed_ticks = k_ticks[t];
+			uint16_t rate = k_rates[r];
 
 			/* With the roll axis at 0 the step is modifier_step, whatever it is. */
-			g_xvtControlRoll = 0;
+			g_xvt_control_roll = 0;
 			for (size_t m = 0;
-			     m < sizeof kModifiers / sizeof kModifiers[0];
+			     m < sizeof k_modifiers / sizeof k_modifiers[0];
 			     ++m) {
 				XVT_ASSERT_INT_EQ(
-					XvtFlightControls_RollStep(
-						0, rate, kModifiers[m]),
-					kModifiers[m]);
+					xvt_flight_controls_roll_step(
+						0, rate, k_modifiers[m]),
+					k_modifiers[m]);
 			}
 
 			/* Full deflection is the limit, in both directions. */
-			g_xvtControlRoll = 127;
-			int full = XvtFlightControls_RollStep(0, rate, 0);
+			g_xvt_control_roll = 127;
+			int full = xvt_flight_controls_roll_step(0, rate, 0);
 			XVT_ASSERT_TRUE(full >= 0);
 			XVT_ASSERT_INT_EQ(
-				XvtFlightControls_RollStep(0, rate, 30000),
+				xvt_flight_controls_roll_step(0, rate, 30000),
 				full);
-			g_xvtControlRoll = -127;
+			g_xvt_control_roll = -127;
 			XVT_ASSERT_INT_EQ(
-				XvtFlightControls_RollStep(0, rate, -30000),
+				xvt_flight_controls_roll_step(0, rate, -30000),
 				-full);
 
 			for (int roll = -127; roll <= 127; roll += 6) {
-				g_xvtControlRoll = (int16_t)roll;
-				int plain =
-					XvtFlightControls_RollStep(0, rate, 0);
+				g_xvt_control_roll = (int16_t)roll;
+				int plain = xvt_flight_controls_roll_step(
+					0, rate, 0);
 				/* The step follows the axis's direction and never passes full deflection. */
 				XVT_ASSERT_TRUE(roll > 0 ? plain >= 0
 							 : plain <= 0);
 				for (size_t m = 0;
 				     m <
-				     sizeof kModifiers / sizeof kModifiers[0];
+				     sizeof k_modifiers / sizeof k_modifiers[0];
 				     ++m) {
-					int step = XvtFlightControls_RollStep(
-						0, rate, kModifiers[m]);
+					int step =
+						xvt_flight_controls_roll_step(
+							0, rate,
+							k_modifiers[m]);
 					XVT_ASSERT_TRUE(step >= -full &&
 							step <= full);
 					/* modifier_step adds on, while the sum stays inside the limit. */
-					if (plain + kModifiers[m] >= -full &&
-					    plain + kModifiers[m] <= full) {
+					if (plain + k_modifiers[m] >= -full &&
+					    plain + k_modifiers[m] <= full) {
 						XVT_ASSERT_INT_EQ(
 							step,
-							plain + kModifiers[m]);
+							plain + k_modifiers[m]);
 					}
 				}
 			}
 		}
 	}
-	g_xvtControlRoll = 0;
+	g_xvt_control_roll = 0;
 }
 
-static void CheckReset(void)
+static void check_reset(void)
 {
-	World();
-	g_xvtControlRoll = -40;
-	XvtFlightControls_Reset();
-	XVT_ASSERT_INT_EQ(g_xvtControlRoll, 0);
+	flight_controls_world();
+	g_xvt_control_roll = -40;
+	xvt_flight_controls_reset();
+	XVT_ASSERT_INT_EQ(g_xvt_control_roll, 0);
 }
 
-static void CheckBlockedReadClears(void)
+static void check_blocked_read_clears(void)
 {
 	/* Without focus the keyboard route blocks: the read returns 0 and clears the game's input, even with
 	 * a controller pushing yaw and holding fire. */
-	World();
-	ControllerFiring();
-	SetGameInput();
-	Host()->has_focus = 0;
-	XVT_ASSERT_INT_EQ(XvtFlightControls_ReadLocal(), 0);
-	XVT_ASSERT_INT_EQ(g_ctrlAxisX, 0);
-	XVT_ASSERT_INT_EQ(g_ctrlAxisY, 0);
-	XVT_ASSERT_INT_EQ(g_xvtControlRoll, 0);
-	XVT_ASSERT_INT_EQ(g_keyMods, 0);
-	XVT_ASSERT_INT_EQ(g_mouseButtons, 0);
-	XVT_ASSERT_INT_EQ(g_actionKey, 0);
-	XVT_ASSERT_INT_EQ(g_flightMouseDeltaX, 0);
-	XVT_ASSERT_INT_EQ(g_flightMouseDeltaY, 0);
+	flight_controls_world();
+	controller_firing();
+	set_game_input();
+	flight_controls_host()->has_focus = 0;
+	XVT_ASSERT_INT_EQ(xvt_flight_controls_read_local(), 0);
+	XVT_ASSERT_INT_EQ(g_ctrl_axis_x, 0);
+	XVT_ASSERT_INT_EQ(g_ctrl_axis_y, 0);
+	XVT_ASSERT_INT_EQ(g_xvt_control_roll, 0);
+	XVT_ASSERT_INT_EQ(g_key_mods, 0);
+	XVT_ASSERT_INT_EQ(g_mouse_buttons, 0);
+	XVT_ASSERT_INT_EQ(g_action_key, 0);
+	XVT_ASSERT_INT_EQ(g_flight_mouse_delta_x, 0);
+	XVT_ASSERT_INT_EQ(g_flight_mouse_delta_y, 0);
 
 	/* Captured input blocks it the same way. */
-	World();
-	ControllerFiring();
-	XvtInput_SetCaptured(true);
-	SetGameInput();
-	XVT_ASSERT_INT_EQ(XvtFlightControls_ReadLocal(), 0);
-	XVT_ASSERT_INT_EQ(g_ctrlAxisX, 0);
-	XVT_ASSERT_INT_EQ(g_keyMods, 0);
-	XVT_ASSERT_INT_EQ(g_actionKey, 0);
-	XvtInput_SetCaptured(false);
-	XvtControllerMapping_Shutdown();
+	flight_controls_world();
+	controller_firing();
+	xvt_input_set_captured(true);
+	set_game_input();
+	XVT_ASSERT_INT_EQ(xvt_flight_controls_read_local(), 0);
+	XVT_ASSERT_INT_EQ(g_ctrl_axis_x, 0);
+	XVT_ASSERT_INT_EQ(g_key_mods, 0);
+	XVT_ASSERT_INT_EQ(g_action_key, 0);
+	xvt_input_set_captured(false);
+	xvt_controller_mapping_shutdown();
 }
 
-static void CheckRecover(void)
+static void check_recover(void)
 {
-	World();
-	ControllerFiring();
+	flight_controls_world();
+	controller_firing();
 
-	static struct XvtKeyboardBindings profile;
+	static struct xvt_keyboard_bindings profile;
 	memset(&profile, 0, sizeof profile);
 	profile.bindings[0].source.key = AERON_KEY_A;
 	profile.bindings[0].action = XVT_INPUT_ACTION_TARGET_NEXT;
 	profile.count = 1;
-	XvtKeyboardMapping_Install(&profile);
-	XvtKeyboardMapping_Enable(true, Host());
+	xvt_keyboard_mapping_install(&profile);
+	xvt_keyboard_mapping_enable(true, flight_controls_host());
 	AeronKeyEvent press;
 	memset(&press, 0, sizeof press);
 	press.chord.key = AERON_KEY_A;
 	press.down = 1;
-	XvtKeyboardMapping_Event(&press, false);
-	Host()->key_down[AERON_KEY_A + 1] = 1;
-	g_actionKey = 0x41;
+	xvt_keyboard_mapping_event(&press, false);
+	flight_controls_host()->key_down[AERON_KEY_A + 1] = 1;
+	g_action_key = 0x41;
 
-	XvtFlightControls_Recover();
-	XVT_ASSERT_INT_EQ(g_actionKey, 0);
+	xvt_flight_controls_recover();
+	XVT_ASSERT_INT_EQ(g_action_key, 0);
 	/* The keyboard is flushed: the queued key is gone and the held key is blocked from the game. */
-	XVT_ASSERT_INT_EQ(XvtKeyboardMapping_ReadKey(), 0);
+	XVT_ASSERT_INT_EQ(xvt_keyboard_mapping_read_key(), 0);
 	XVT_ASSERT_INT_EQ(AeronCompat_IsKeySuppressed(AERON_KEY_A + 1), 1);
 	/* Controller commands are released: fire is no longer held, and stays so while the button is. */
-	XVT_ASSERT_INT_EQ(XvtControllerMapping_Modifiers(), 0);
-	++Host()->frame_id;
-	XvtControllerMapping_Update(Host());
-	XVT_ASSERT_INT_EQ(XvtControllerMapping_Modifiers(), 0);
-	XvtControllerMapping_Shutdown();
-	XvtKeyboardMapping_Suspend();
+	XVT_ASSERT_INT_EQ(xvt_controller_mapping_modifiers(), 0);
+	++flight_controls_host()->frame_id;
+	xvt_controller_mapping_update(flight_controls_host());
+	XVT_ASSERT_INT_EQ(xvt_controller_mapping_modifiers(), 0);
+	xvt_controller_mapping_shutdown();
+	xvt_keyboard_mapping_suspend();
 }
 
 /* Known failure: the header gives roll_rate no upper limit, but above about 0x7866 full deflection no longer
  * fits the 16-bit step, and the limit itself wraps negative. At 0x8000 a left roll comes back as a right
  * roll. The step is the roll axis scaled by positive factors and limited to full deflection, so it must
  * keep the axis's sign. */
-static void KnownFailureRollStepFastRate(void)
+static void known_failure_roll_step_fast_rate(void)
 {
-	XVT_ASSERT_INT_EQ(XvtFlightTiming_IsUnlocked(), 0);
-	g_elapsedTicks = 59;
-	g_xvtControlRoll = -60;
-	int step = XvtFlightControls_RollStep(0, 0x8000, 0);
-	g_xvtControlRoll = 0;
+	XVT_ASSERT_INT_EQ(xvt_flight_timing_is_unlocked(), 0);
+	g_elapsed_ticks = 59;
+	g_xvt_control_roll = -60;
+	int step = xvt_flight_controls_roll_step(0, 0x8000, 0);
+	g_xvt_control_roll = 0;
 	XVT_ASSERT_TRUE(step <= 0);
 }
 
@@ -410,18 +414,18 @@ int main(int argc, char **argv)
 {
 	if (argc == 3 && strcmp(argv[1], "known-failure") == 0) {
 		if (strcmp(argv[2], "roll_step_fast_rate") == 0) {
-			KnownFailureRollStepFastRate();
+			known_failure_roll_step_fast_rate();
 		}
 		return 0;
 	}
-	CheckEncodeDecode();
-	CheckThrottleEligible();
-	CheckApplyThrottle();
-	CheckSampleThrottleSendsNothing();
-	CheckRollStep();
-	CheckReset();
-	CheckBlockedReadClears();
-	CheckRecover();
-	XvtInput_ResetCapture();
+	check_encode_decode();
+	check_throttle_eligible();
+	check_apply_throttle();
+	check_sample_throttle_sends_nothing();
+	check_roll_step();
+	check_reset();
+	check_blocked_read_clears();
+	check_recover();
+	xvt_input_reset_capture();
 	return 0;
 }

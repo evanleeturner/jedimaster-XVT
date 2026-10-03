@@ -8,12 +8,13 @@
 extern "C" {
 #endif
 
-extern const uint32_t g_explosionBillboardColorByFrame[32];
+extern const uint32_t g_explosion_billboard_color_by_frame[32];
 
-void RenderQuad_DrawModelTexture(struct SceneBillboardQueueEntry *quadRecord);
-void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY,
-				  uint16_t screenSize,
-				  const void *textureImage);
+void render_quad_draw_model_texture(
+	struct scene_billboard_queue_entry *quad_record);
+void render_quad_draw_rotated_sprite(int angle, int screen_x, int screen_y,
+				     uint16_t screen_size,
+				     const void *texture_image);
 
 #ifdef __cplusplus
 }

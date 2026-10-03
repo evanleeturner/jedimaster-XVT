@@ -22,26 +22,26 @@ extern "C" {
  * refreshed, with an increment when it changed. Returns 0 when the settings document is unavailable or
  * the apply fails (logged; a refused display change restores the previous vsync and HDR, and a failed
  * HDR restore requests a fatal renderer error), else 1. */
-int XvtRemasterConfig_Sync(void);
+int xvt_remaster_config_sync(void);
 /* Validates requested (error written on failure), switches fullscreen when it differs, applies the
  * document's render section overlaid by requested as Sync does, and on success keeps requested as the
  * override every later Sync re-applies. Returns false, with error written and the fullscreen change
  * undone (a failed undo requests a fatal renderer error), when validation or the apply fails. previous
  * is unused. */
-bool XvtRemasterConfig_ApplyVideo(const struct XvtVideoSettings *previous,
-				  const struct XvtVideoSettings *requested,
-				  char *error, size_t capacity);
+bool xvt_remaster_config_apply_video(const struct xvt_video_settings *previous,
+				     const struct xvt_video_settings *requested,
+				     char *error, size_t capacity);
 /* The settings last applied, or NULL before the first successful Sync or ApplyVideo. */
-const struct XvtRenderSettings *XvtRemasterConfig_Effective(void);
+const struct xvt_render_settings *xvt_remaster_config_effective(void);
 /* 0 before the first apply, then incremented each time the effective settings change, the read-back
  * included. */
-uint64_t XvtRemasterConfig_Generation(void);
+uint64_t xvt_remaster_config_generation(void);
 /* Borrowed until the next settings boundary; bind on every scene begin. */
 /* The anisotropic mesh sampler, or NULL when anisotropy is off or nothing is applied yet. */
-AeronSampler *XvtRemasterConfig_MeshSampler(void);
+AeronSampler *xvt_remaster_config_mesh_sampler(void);
 /* Destroys the sampler and forgets every applied setting and the video override: Effective returns NULL
  * and the generation restarts at 0. */
-void XvtRemasterConfig_Shutdown(void);
+void xvt_remaster_config_shutdown(void);
 
 #ifdef __cplusplus
 }

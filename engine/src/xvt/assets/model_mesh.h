@@ -9,8 +9,8 @@
 extern "C" {
 #endif
 
-/* Stored as int32_t in the binary (IDB enum MeshComponentType). */
-typedef int32_t MeshComponentType;
+/* Stored as int32_t in the binary (IDB enum mesh_component_type). */
+typedef int32_t mesh_component_type;
 
 enum {
 	MESH_COMPONENT_00_DEFAULT = 0x0,    ///< strings.txt line 1734: Hull
@@ -49,107 +49,114 @@ enum {
 	MESH_COMPONENT_32_DASHES = 0x20,   ///< strings.txt line 1766: --------
 };
 
-struct MeshDescriptor {
-	MeshComponentType meshType; /* The mesh's component type. */
-	/* Flags: ModelMesh_HasExplosionTypeBit0 reads the 0x1 bit and
-	 * ModelMesh_IsObjectTypeMeshDamageable the 0x2 bit. */
-	int componentFlags;
-	/* The mesh's size along each axis; ModelMesh_GetComponentMaxExtent
+struct mesh_descriptor {
+	mesh_component_type mesh_type; /* The mesh's component type. */
+	/* Flags: model_mesh_has_explosion_type_bit0 reads the 0x1 bit and
+	 * model_mesh_is_object_type_mesh_damageable the 0x2 bit. */
+	int component_flags;
+	/* The mesh's size along each axis; model_mesh_get_component_max_extent
 	 * takes the largest. */
-	struct OptVector span;
-	struct OptVector center; /* Center of the mesh. */
-	struct OptVector boxMin; /* Smallest corner of the mesh's box. */
-	struct OptVector boxMax; /* Largest corner of the mesh's box. */
-	/* When nonzero, targetPoint replaces center as the point
-	 * ModelMesh_GetComponentFocusX and its two siblings give. */
-	int targetId;
+	struct opt_vector span;
+	struct opt_vector center;  /* Center of the mesh. */
+	struct opt_vector box_min; /* Smallest corner of the mesh's box. */
+	struct opt_vector box_max; /* Largest corner of the mesh's box. */
+	/* When nonzero, target_point replaces center as the point
+	 * model_mesh_get_component_focus_x and its two siblings give. */
+	int target_id;
 	/* The focus point used while targetId is nonzero. */
-	struct OptVector targetPoint;
+	struct opt_vector target_point;
 };
 
-struct ModelMeshObjectTypeCache {
-	int meshCount;	   /* Meshes cached, up to 50. */
-	int meshTypes[50]; /* Each mesh's component type. */
+struct model_mesh_object_type_cache {
+	int mesh_count;	    /* Meshes cached, up to 50. */
+	int mesh_types[50]; /* Each mesh's component type. */
 	/* Each mesh's descriptor inside the loaded model, or NULL. */
-	struct MeshDescriptor *meshDescriptors[50];
+	struct mesh_descriptor *mesh_descriptors[50];
 };
 
-extern struct ModelMeshObjectTypeCache g_objectTypeMeshCache[73];
-extern int g_optHardpointSearchIndex;
-extern uint8_t g_optHardpointWeaponGroupKindByType[32];
+extern struct model_mesh_object_type_cache g_object_type_mesh_cache[73];
+extern int g_opt_hardpoint_search_index;
+extern uint8_t g_opt_hardpoint_weapon_group_kind_by_type[32];
 
-static __inline MeshComponentType
-ModelMesh_GetCachedObjectTypeMeshType(int objectType, int meshIndex)
+static __inline mesh_component_type
+model_mesh_get_cached_object_type_mesh_type(int object_type, int mesh_index)
 {
-	if (meshIndex < 0) {
+	if (mesh_index < 0) {
 		return MESH_COMPONENT_00_DEFAULT;
 	}
-	if (g_objectTypeMeshCache[objectType].meshCount <= meshIndex) {
-		meshIndex = g_objectTypeMeshCache[objectType].meshCount - 1;
+	if (g_object_type_mesh_cache[object_type].mesh_count <= mesh_index) {
+		mesh_index =
+			g_object_type_mesh_cache[object_type].mesh_count - 1;
 	}
-	return g_objectTypeMeshCache[objectType].meshTypes[meshIndex];
+	return g_object_type_mesh_cache[object_type].mesh_types[mesh_index];
 }
 
-void ModelMesh_ApplyAnimatedMeshRotationToPoint(int16_t angleQ16,
-						int objectType, int meshIndex,
-						int localX, int localY,
-						int localZ);
-int ModelMesh_GetObjectTypeMeshCount(int objectType);
-struct OptNode *ModelMesh_FindFirstMeshVertsNode(struct OptNode *node);
-struct OptNode *ModelMesh_FindFirstRotScaleNode(struct OptNode *node);
-struct MeshDescriptor *
-ModelMesh_FindDescriptorNodeRecursive(struct OptNode *node,
-				      struct OptimizedPolyObject *model);
-struct MeshDescriptor *ModelMesh_GetDescriptor(int objectType, int meshIndex);
-MeshComponentType ModelMesh_GetObjectTypeMeshType(int objectType,
-						  int meshIndex);
-int ModelMesh_GetVertexCount(int objectType, int meshIndex);
-int ModelMesh_GetVertexX(int objectType, int meshIndex, int vertexIndex);
-int ModelMesh_GetVertexY(int objectType, int meshIndex, int vertexIndex);
-int ModelMesh_GetVertexZ(int objectType, int meshIndex, int vertexIndex);
-int ModelMesh_GetCenterX(int objectType, int meshIndex);
-int ModelMesh_GetCenterY(int objectType, int meshIndex);
-int ModelMesh_GetCenterZ(int objectType, int meshIndex);
-int ModelMesh_GetBoundsMinX(int objectType, int meshIndex);
-int ModelMesh_GetBoundsMinY(int objectType, int meshIndex);
-int ModelMesh_GetBoundsMinZ(int objectType, int meshIndex);
-int ModelMesh_GetBoundsMaxX(int objectType, int meshIndex);
-int ModelMesh_GetBoundsMaxY(int objectType, int meshIndex);
-int ModelMesh_GetBoundsMaxZ(int objectType, int meshIndex);
-int ModelMesh_GetTargetId(int objectType, int meshIndex);
-int ModelMesh_GetComponentFocusX(int objectType, int meshIndex);
-int ModelMesh_GetComponentFocusY(int objectType, int meshIndex);
-int ModelMesh_GetComponentFocusZ(int objectType, int meshIndex);
-int ModelMesh_GetComponentMaxExtent(int objectType, int meshIndex);
-int ModelMesh_IsObjectTypeMeshDamageable(int objectType, int meshIndex);
-int ModelMesh_HasExplosionTypeBit0(int objectType, int meshIndex);
-float *ModelMesh_GetRotScaleData(int objectType, int meshIndex);
-struct OptNode *
-ModelMesh_FindNthHardpointNodeRecursive(struct OptNode *node,
-					struct OptimizedPolyObject *model,
-					int hardpointIndex);
-struct OptNode *
-ModelMesh_FindNthHardpointNode(struct OptNode *node,
-			       struct OptimizedPolyObject *model,
-			       int hardpointIndex);
-int ModelMesh_CountHardpointNodesRecursive(struct OptNode *node,
-					   struct OptimizedPolyObject *model);
-int ModelMesh_CountHardpoints(int objectType, int meshIndex);
-int ModelMesh_GetHardpointIndex(int objectType, int meshIndex,
-				int hardpointIndex);
-int ModelMesh_GetHardpointX(int objectType, int meshIndex, int hardpointIndex);
-int ModelMesh_GetHardpointY(int objectType, int meshIndex, int hardpointIndex);
-int ModelMesh_GetHardpointZ(int objectType, int meshIndex, int hardpointIndex);
-void ModelMesh_GetHardpoint(int objectType, int meshIndex, int hardpointIndex,
-			    int *outType, int *outX, int *outY, int *outZ);
-int ModelMesh_HasFuselage(int objectType);
-int ModelMesh_FindNearestMainHullByBounds(int objectType, int localX,
-					  int localY, int localZ);
-int ModelMesh_FindNearestVertexForPoint(int objectType, int localX, int localY,
-					int localZ, int meshIndex,
-					int nearestRank);
-int ModelMesh_FindBridgeIndex(struct OptimizedPolyObject *model);
-struct ModelMeshObjectTypeCache *ModelMesh_BuildObjectTypeMeshCache(void);
+void model_mesh_apply_animated_mesh_rotation_to_point(int16_t angle_q16,
+						      int object_type,
+						      int mesh_index,
+						      int local_x, int local_y,
+						      int local_z);
+int model_mesh_get_object_type_mesh_count(int object_type);
+struct opt_node *model_mesh_find_first_mesh_verts_node(struct opt_node *node);
+struct opt_node *model_mesh_find_first_rot_scale_node(struct opt_node *node);
+struct mesh_descriptor *
+model_mesh_find_descriptor_node_recursive(struct opt_node *node,
+					  struct optimized_poly_object *model);
+struct mesh_descriptor *model_mesh_get_descriptor(int object_type,
+						  int mesh_index);
+mesh_component_type model_mesh_get_object_type_mesh_type(int object_type,
+							 int mesh_index);
+int model_mesh_get_vertex_count(int object_type, int mesh_index);
+int model_mesh_get_vertex_x(int object_type, int mesh_index, int vertex_index);
+int model_mesh_get_vertex_y(int object_type, int mesh_index, int vertex_index);
+int model_mesh_get_vertex_z(int object_type, int mesh_index, int vertex_index);
+int model_mesh_get_center_x(int object_type, int mesh_index);
+int model_mesh_get_center_y(int object_type, int mesh_index);
+int model_mesh_get_center_z(int object_type, int mesh_index);
+int model_mesh_get_bounds_min_x(int object_type, int mesh_index);
+int model_mesh_get_bounds_min_y(int object_type, int mesh_index);
+int model_mesh_get_bounds_min_z(int object_type, int mesh_index);
+int model_mesh_get_bounds_max_x(int object_type, int mesh_index);
+int model_mesh_get_bounds_max_y(int object_type, int mesh_index);
+int model_mesh_get_bounds_max_z(int object_type, int mesh_index);
+int model_mesh_get_target_id(int object_type, int mesh_index);
+int model_mesh_get_component_focus_x(int object_type, int mesh_index);
+int model_mesh_get_component_focus_y(int object_type, int mesh_index);
+int model_mesh_get_component_focus_z(int object_type, int mesh_index);
+int model_mesh_get_component_max_extent(int object_type, int mesh_index);
+int model_mesh_is_object_type_mesh_damageable(int object_type, int mesh_index);
+int model_mesh_has_explosion_type_bit0(int object_type, int mesh_index);
+float *model_mesh_get_rot_scale_data(int object_type, int mesh_index);
+struct opt_node *model_mesh_find_nth_hardpoint_node_recursive(
+	struct opt_node *node, struct optimized_poly_object *model,
+	int hardpoint_index);
+struct opt_node *
+model_mesh_find_nth_hardpoint_node(struct opt_node *node,
+				   struct optimized_poly_object *model,
+				   int hardpoint_index);
+int model_mesh_count_hardpoint_nodes_recursive(
+	struct opt_node *node, struct optimized_poly_object *model);
+int model_mesh_count_hardpoints(int object_type, int mesh_index);
+int model_mesh_get_hardpoint_index(int object_type, int mesh_index,
+				   int hardpoint_index);
+int model_mesh_get_hardpoint_x(int object_type, int mesh_index,
+			       int hardpoint_index);
+int model_mesh_get_hardpoint_y(int object_type, int mesh_index,
+			       int hardpoint_index);
+int model_mesh_get_hardpoint_z(int object_type, int mesh_index,
+			       int hardpoint_index);
+void model_mesh_get_hardpoint(int object_type, int mesh_index,
+			      int hardpoint_index, int *out_type, int *out_x,
+			      int *out_y, int *out_z);
+int model_mesh_has_fuselage(int object_type);
+int model_mesh_find_nearest_main_hull_by_bounds(int object_type, int local_x,
+						int local_y, int local_z);
+int model_mesh_find_nearest_vertex_for_point(int object_type, int local_x,
+					     int local_y, int local_z,
+					     int mesh_index, int nearest_rank);
+int model_mesh_find_bridge_index(struct optimized_poly_object *model);
+struct model_mesh_object_type_cache *
+model_mesh_build_object_type_mesh_cache(void);
 
 #ifdef __cplusplus
 }

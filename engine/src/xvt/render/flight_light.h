@@ -8,22 +8,22 @@
 extern "C" {
 #endif
 
-struct ObjectPointLight {
+struct object_point_light {
 	int x; /* Offset along the lit object's side axis, Q15 dot product. */
 	int y; /* Offset along its forward axis, negated. */
 	int z; /* Offset along its up axis. */
 	int intensity; /* Brightness, the explosion's value times 8. */
 };
 
-extern int g_objectPointLightCount;
-extern struct ObjectPointLight g_objectPointLights[10];
+extern int g_object_point_light_count;
+extern struct object_point_light g_object_point_lights[10];
 
-void FlightLight_ResetSoftwareFaceSampleCache(void);
-float FlightLight_ComputeSoftwareFaceSampleIntensity(struct SceneFace *face,
-						     int screenX, int screenY,
-						     float reciprocalDepth);
-void FlightLight_SetupObjectLighting(struct ObjectRecord *object);
-void FlightLight_SetupObjectLightingByIndex(unsigned int objectIndex);
+void flight_light_reset_software_face_sample_cache(void);
+float flight_light_compute_software_face_sample_intensity(
+	struct scene_face *face, int screen_x, int screen_y,
+	float reciprocal_depth);
+void flight_light_setup_object_lighting(struct object_record *object);
+void flight_light_setup_object_lighting_by_index(unsigned int object_index);
 
 #ifdef __cplusplus
 }

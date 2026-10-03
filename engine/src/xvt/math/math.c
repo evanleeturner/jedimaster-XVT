@@ -9,7 +9,7 @@
  * Does nothing in the modern build. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x408110
-void Math_SetFpuSinglePrecisionMode(void)
+void math_set_fpu_single_precision_mode(void)
 {
 #ifdef XVT_MODERN
 	// PORT: supported 64-bit hosts use SSE arithmetic rather than x87 precision control.
@@ -27,7 +27,7 @@ void Math_SetFpuSinglePrecisionMode(void)
  * mantissa) through _control87, leaving its other control bits as they are.
  * Does nothing in the modern build. */
 // FUNCTION: XVT 0x408140
-void Math_SetFpuExtendedPrecisionMode(void)
+void math_set_fpu_extended_precision_mode(void)
 {
 #ifdef XVT_MODERN
 	// PORT: supported 64-bit hosts use SSE arithmetic rather than x87 precision control.
@@ -44,16 +44,16 @@ void Math_SetFpuExtendedPrecisionMode(void)
 /* A placeholder for the 1997 code at this address, which is not rebuilt:
  * returns 0 for every input. Nothing calls this. */
 // FUNCTION: XVT 0x425BE0
-uint16_t Math_DivU16WithFractionQ16(uint16_t dividend, uint16_t divisor)
+uint16_t math_div_u16_with_fraction_q16(uint16_t dividend, uint16_t divisor)
 {
 	(void)dividend;
 	(void)divisor;
 
-	/* TODO: Reimplement Math_DivU16WithFractionQ16 @ 0x425BE0. */
+	/* TODO: Reimplement math_div_u16_with_fraction_q16 @ 0x425BE0. */
 	return 0;
 }
 
 /* Returns value << 16, the value as a 16.16 fixed-point number. Nothing calls
  * this. */
 // FUNCTION: XVT 0x425E00
-unsigned int Math_U16ToQ16(uint16_t value) { return value << 16; }
+unsigned int math_u16_to_q16(uint16_t value) { return value << 16; }

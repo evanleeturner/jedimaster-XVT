@@ -26,10 +26,10 @@
 #include <string.h>
 
 /* Vertex color of an explosion billboard for each frame 0 to 31 of the
- * explosion (its typeSpecificByte[0]): white with the alpha in the high byte,
+ * explosion (its type_specific_byte[0]): white with the alpha in the high byte,
  * rising from 0xD0 to 0xF0, falling back to 0x30 by frame 10, then 0x30. */
 // GLOBAL: XVT 0x51A558
-const uint32_t g_explosionBillboardColorByFrame[32] = {
+const uint32_t g_explosion_billboard_color_by_frame[32] = {
 	0xd0ffffff, 0xe0ffffff, 0xf0ffffff, 0xf0ffffff, 0xe0ffffff, 0xd0ffffff,
 	0xb0ffffff, 0x90ffffff, 0x70ffffff, 0x50ffffff, 0x30ffffff, 0x30ffffff,
 	0x30ffffff, 0x30ffffff, 0x30ffffff, 0x30ffffff, 0x30ffffff, 0x30ffffff,
@@ -40,94 +40,96 @@ const uint32_t g_explosionBillboardColorByFrame[32] = {
 
 /* Draws one queued billboard. The frame, without its 0x8000 bit, names the
  * object type whose resource holds the images (frame >> 7) and the image in its
- * offset table (the low 7 bits). Sets g_flightSwRotSpriteSpanRunsEnabled to 1,
- * g_billboardObjectOrTypeIndex to the record's object, g_camRelWorldX, Y and Z
- * to that object's offset from the local player's camera and g_viewSpaceDepth
- * to depthZ; the size is SceneBillboard_ComputeProjectedSize with the type's
- * maxBoundsExtent. With g_useHardware3D it draws through
- * RenderQuad_DrawRotatedSprite, else through
- * FlightSw_PrepareSpriteRotationTables, FlightSw_LoadSpritePaletteTables and
- * FlightSw_DrawRotatedSpriteQuad. It reads the image after unlocking the type's
- * resource handle. SceneBillboard_RenderQueuedTextured is its only caller. */
+ * offset table (the low 7 bits). Sets g_flight_sw_rot_sprite_span_runs_enabled to 1,
+ * g_billboard_object_or_type_index to the record's object, g_cam_rel_world_x, Y and Z
+ * to that object's offset from the local player's camera and g_view_space_depth
+ * to depth_z; the size is scene_billboard_compute_projected_size with the type's
+ * max_bounds_extent. With g_use_hardware3d it draws through
+ * render_quad_draw_rotated_sprite, else through
+ * flight_sw_prepare_sprite_rotation_tables, flight_sw_load_sprite_palette_tables and
+ * flight_sw_draw_rotated_sprite_quad. It reads the image after unlocking the type's
+ * resource handle. scene_billboard_render_queued_textured is its only caller. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x401450
-void RenderQuad_DrawModelTexture(struct SceneBillboardQueueEntry *quadRecord)
+void render_quad_draw_model_texture(
+	struct scene_billboard_queue_entry *quad_record)
 {
 	uint16_t frame;
-	uint16_t modelType;
-	uint16_t screenSize;
+	uint16_t model_type;
+	uint16_t screen_size;
 	uint16_t handle;
-	int cameraWorldY;
-	struct ObjectRecord *object;
-	const uint8_t *modelData;
-	const struct TexLevelHeader *textureHeader;
-	struct SpritePayload *sprite;
+	int camera_world_y;
+	struct object_record *object;
+	const uint8_t *model_data;
+	const struct tex_level_header *texture_header;
+	struct sprite_payload *sprite;
 
-	frame = (uint16_t)quadRecord->frame & 0x7FFFu;
-	g_flightSwRotSpriteSpanRunsEnabled = 1;
-	modelType = frame >> 7;
-	g_billboardObjectOrTypeIndex = quadRecord->objectOrTypeIndex;
-	object = &g_objectTable[g_billboardObjectOrTypeIndex];
-	cameraWorldY = g_players[g_localPlayer].viewState.cameraWorldY;
-	g_camRelWorldX = object->world_x -
-			 g_players[g_localPlayer].viewState.cameraWorldX;
-	g_camRelWorldY = object->world_y - cameraWorldY;
-	g_camRelWorldZ = object->world_z -
-			 g_players[g_localPlayer].viewState.cameraWorldZ;
-	g_viewSpaceDepth = quadRecord->depthZ;
-	screenSize = (uint16_t)SceneBillboard_ComputeProjectedSize(
-		quadRecord->depthZ,
-		(uint16_t)g_objectTypeTable[modelType].maxBoundsExtent,
-		(uint16_t)quadRecord->screenSize);
-	handle = g_objectTypeTable[modelType].resourceHandle;
-	modelData = (const uint8_t *)Memory_GetHandleBlock(handle);
+	frame = (uint16_t)quad_record->frame & 0x7FFFu;
+	g_flight_sw_rot_sprite_span_runs_enabled = 1;
+	model_type = frame >> 7;
+	g_billboard_object_or_type_index = quad_record->object_or_type_index;
+	object = &g_object_table[g_billboard_object_or_type_index];
+	camera_world_y = g_players[g_local_player].view_state.camera_world_y;
+	g_cam_rel_world_x = object->world_x -
+			    g_players[g_local_player].view_state.camera_world_x;
+	g_cam_rel_world_y = object->world_y - camera_world_y;
+	g_cam_rel_world_z = object->world_z -
+			    g_players[g_local_player].view_state.camera_world_z;
+	g_view_space_depth = quad_record->depth_z;
+	screen_size = (uint16_t)scene_billboard_compute_projected_size(
+		quad_record->depth_z,
+		(uint16_t)g_object_type_table[model_type].max_bounds_extent,
+		(uint16_t)quad_record->screen_size);
+	handle = g_object_type_table[model_type].resource_handle;
+	model_data = (const uint8_t *)memory_get_handle_block(handle);
 	frame &= 0x7Fu;
-	Memory_HandleBlockDoneStub(handle);
-	textureHeader = (const struct TexLevelHeader *)modelData;
-	sprite =
-		(struct SpritePayload
-			 *)(modelData +
-			    *(const uint32_t
-				      *)(modelData +
-					 textureHeader->imageOffsetTableOffset +
-					 frame * sizeof(uint32_t)));
-	if (g_useHardware3D != 0) {
-		RenderQuad_DrawRotatedSprite(
-			quadRecord->rotationAngle, quadRecord->screenX,
-			quadRecord->screenY, screenSize, sprite);
+	memory_handle_block_done_stub(handle);
+	texture_header = (const struct tex_level_header *)model_data;
+	sprite = (struct sprite_payload
+			  *)(model_data +
+			     *(const uint32_t
+				       *)(model_data +
+					  texture_header
+						  ->image_offset_table_offset +
+					  frame * sizeof(uint32_t)));
+	if (g_use_hardware3d != 0) {
+		render_quad_draw_rotated_sprite(
+			quad_record->rotation_angle, quad_record->screen_x,
+			quad_record->screen_y, screen_size, sprite);
 	} else {
-		FlightSw_PrepareSpriteRotationTables(
-			quadRecord->rotationAngle,
+		flight_sw_prepare_sprite_rotation_tables(
+			quad_record->rotation_angle,
 			FLIGHT_SW_16BPP_BYTES_PER_PIXEL);
-		FlightSw_LoadSpritePaletteTables(sprite);
-		FlightSw_DrawRotatedSpriteQuad(quadRecord->screenX,
-					       quadRecord->screenY, screenSize,
-					       sprite);
+		flight_sw_load_sprite_palette_tables(sprite);
+		flight_sw_draw_rotated_sprite_quad(quad_record->screen_x,
+						   quad_record->screen_y,
+						   screen_size, sprite);
 	}
 }
 
 /* Adds a textured, rotated square to the Direct3D batch: the image at
- * textureImage, centered at screenX and screenY (Y counted up from the
- * viewport's bottom), each half side (screenSize * image side) >> 9, turned by
+ * texture_image, centered at screen_x and screen_y (Y counted up from the
+ * viewport's bottom), each half side (screen_size * image side) >> 9, turned by
  * angle. The color is white, or for an explosion in a main object slot
- * (g_billboardObjectOrTypeIndex) g_explosionBillboardColorByFrame at its
- * frame; 0xFEFFFFFF when g_capVertexAlpha is set, which it clears. Its depth
- * is 1 / (g_viewSpaceDepth * g_invDepthProjScale + 1), 1 being
- * g_renderUnitFloat; when g_viewSpaceDepth, read unsigned, is over 0x1000000
+ * (g_billboard_object_or_type_index) g_explosion_billboard_color_by_frame at its
+ * frame; 0xFEFFFFFF when g_cap_vertex_alpha is set, which it clears. Its depth
+ * is 1 / (g_view_space_depth * g_inv_depth_proj_scale + 1), 1 being
+ * g_render_unit_float; when g_view_space_depth, read unsigned, is over 0x1000000
  * it is the fixed value 0.00012205541 and the color is white. With
- * g_std3DZCompareCap 2 the depth is 1 less that. The texture is the image cut
+ * g_std3dz_compare_cap 2 the depth is 1 less that. The texture is the image cut
  * to 256 by 256 and rounded up to powers of two, square when the device needs
- * it, from RenderTexture_GetOrCreateBitmap. The square is clipped to the
+ * it, from render_texture_get_or_create_bitmap. The square is clipped to the
  * viewport (top, bottom, left, right), nothing is drawn below 3 corners, the
  * batch is flushed through std3D first when it would overflow, and the
  * triangles go in as a fan with the sprite flags, the bilinear ones when
- * g_bilinearEnabled is set. The modern build returns at once while classic
+ * g_bilinear_enabled is set. The modern build returns at once while classic
  * flight drawing is suppressed, skips a clipping pass after one that left
  * nothing, and starts the color at white; the original build leaves it unset
  * for an object past the main slots unless the depth is over 0x1000000. */
 // FUNCTION: XVT 0x40BBF0
-void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY,
-				  uint16_t screenSize, const void *textureImage)
+void render_quad_draw_rotated_sprite(int angle, int screen_x, int screen_y,
+				     uint16_t screen_size,
+				     const void *texture_image)
 {
 	enum {
 		EXPLOSION_FRAME_COUNT = 32,
@@ -143,34 +145,34 @@ void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY,
 		SPRITE_ALPHA_RENDER_FLAGS = 512
 	};
 
-	const uint8_t *textureBytes;
-	const struct TexLevelImageHeader *imageHeader;
+	const uint8_t *texture_bytes;
+	const struct tex_level_image_header *image_header;
 	uint32_t color;
-	float computedDepth;
+	float computed_depth;
 	float depth;
-	int sourceWidth;
-	int sourceHeight;
-	int powerOfTwoWidth;
-	int powerOfTwoHeight;
+	int source_width;
+	int source_height;
+	int power_of_two_width;
+	int power_of_two_height;
 	int width;
 	int height;
-	float maxU;
-	float maxV;
-	int halfWidth;
-	int halfHeight;
-	int negativeHalfHeight;
-	int negativeHalfWidth;
-	int xOffset;
-	int yOffset;
-	struct RenderClipVertex vertices[CLIP_VERTEX_CAPACITY];
-	int previousIndex;
-	int vertexIndex;
-	uint32_t vertexColor;
-	uint32_t vertexSpecular;
+	float max_u;
+	float max_v;
+	int half_width;
+	int half_height;
+	int negative_half_height;
+	int negative_half_width;
+	int x_offset;
+	int y_offset;
+	struct render_clip_vertex vertices[CLIP_VERTEX_CAPACITY];
+	int previous_index;
+	int vertex_index;
+	uint32_t vertex_color;
+	uint32_t vertex_specular;
 	uint16_t *palette;
 	const uint8_t *pixels;
-	int rleFormat;
-	struct Std3DTexCacheNode *texture;
+	int rle_format;
+	struct std3d_tex_cache_node *texture;
 
 #ifdef XVT_MODERN
 	/* Suppress before texture lookup so hidden classic draws do not refill the cache. */
@@ -179,23 +181,24 @@ void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY,
 	}
 #endif
 
-	textureBytes = (const uint8_t *)textureImage;
-	imageHeader = (const struct TexLevelImageHeader *)textureImage;
-	screenY = g_flightVpHeight - screenY;
+	texture_bytes = (const uint8_t *)texture_image;
+	image_header = (const struct tex_level_image_header *)texture_image;
+	screen_y = g_flight_vp_height - screen_y;
 #ifdef XVT_MODERN
 	color = UINT32_MAX;
 #endif
-	if (g_billboardObjectOrTypeIndex >= 0 &&
-	    (unsigned int)g_regionMainObjectSlotEnd >
-		    (unsigned int)g_billboardObjectOrTypeIndex) {
-		struct ObjectRecord *object;
+	if (g_billboard_object_or_type_index >= 0 &&
+	    (unsigned int)g_region_main_object_slot_end >
+		    (unsigned int)g_billboard_object_or_type_index) {
+		struct object_record *object;
 		int frame;
 
-		object = &g_objectTable[g_billboardObjectOrTypeIndex];
-		if (object->genusId == CRAFT_GENUS_EXPLOSION) {
-			frame = object->typeSpecificByte[0];
+		object = &g_object_table[g_billboard_object_or_type_index];
+		if (object->genus_id == CRAFT_GENUS_EXPLOSION) {
+			frame = object->type_specific_byte[0];
 			if (frame >= 0 && frame < EXPLOSION_FRAME_COUNT) {
-				color = g_explosionBillboardColorByFrame[frame];
+				color = g_explosion_billboard_color_by_frame
+					[frame];
 			} else {
 				color = UINT32_MAX;
 			}
@@ -204,251 +207,254 @@ void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY,
 		}
 	}
 
-	if ((unsigned int)g_viewSpaceDepth > 0x1000000u) {
+	if ((unsigned int)g_view_space_depth > 0x1000000u) {
 		color = UINT32_MAX;
-		computedDepth = 0.00012205541f;
-		if (g_std3DZCompareCap == 2) {
-			computedDepth = 0.99987793f;
+		computed_depth = 0.00012205541f;
+		if (g_std3dz_compare_cap == 2) {
+			computed_depth = 0.99987793f;
 		}
 	} else {
-		computedDepth = g_renderUnitFloat /
-				((float)g_viewSpaceDepth * g_invDepthProjScale +
-				 g_renderUnitFloat);
-		if (g_std3DZCompareCap == 2) {
-			computedDepth = g_renderUnitFloat - computedDepth;
+		computed_depth =
+			g_render_unit_float /
+			((float)g_view_space_depth * g_inv_depth_proj_scale +
+			 g_render_unit_float);
+		if (g_std3dz_compare_cap == 2) {
+			computed_depth = g_render_unit_float - computed_depth;
 		}
 	}
-	depth = computedDepth;
-	sourceWidth = (int32_t)imageHeader->width;
-	sourceHeight = (int32_t)imageHeader->height;
-	if (sourceWidth > MAX_TEXTURE_DIMENSION) {
-		sourceWidth = MAX_TEXTURE_DIMENSION;
-		DebugPrintf("TRUNCATING BITMAP TO 256 WIDE!!!\n");
+	depth = computed_depth;
+	source_width = (int32_t)image_header->width;
+	source_height = (int32_t)image_header->height;
+	if (source_width > MAX_TEXTURE_DIMENSION) {
+		source_width = MAX_TEXTURE_DIMENSION;
+		debug_printf("TRUNCATING BITMAP TO 256 WIDE!!!\n");
 	}
-	if (sourceHeight > MAX_TEXTURE_DIMENSION) {
-		sourceHeight = MAX_TEXTURE_DIMENSION;
-		DebugPrintf("TRUNCATING BITMAP TO 256 HIGH!!!\n");
+	if (source_height > MAX_TEXTURE_DIMENSION) {
+		source_height = MAX_TEXTURE_DIMENSION;
+		debug_printf("TRUNCATING BITMAP TO 256 HIGH!!!\n");
 	}
-	maxU = (float)sourceWidth;
-	maxV = (float)sourceHeight;
+	max_u = (float)source_width;
+	max_v = (float)source_height;
 
-	/* Until the clip loops below, vertexIndex counts the doubling steps of these two loops, not vertices. */
-	powerOfTwoWidth = 1;
-	vertexIndex = 0;
+	/* Until the clip loops below, vertex_index counts the doubling steps of these two loops, not vertices. */
+	power_of_two_width = 1;
+	vertex_index = 0;
 	do {
-		powerOfTwoWidth *= 2;
-		if (powerOfTwoWidth >= sourceWidth) {
+		power_of_two_width *= 2;
+		if (power_of_two_width >= source_width) {
 			break;
 		}
-		++vertexIndex;
-	} while (vertexIndex < TEXTURE_DIMENSION_STEPS);
-	powerOfTwoHeight = 1;
-	for (vertexIndex = 0; vertexIndex < TEXTURE_DIMENSION_STEPS;
-	     ++vertexIndex) {
-		powerOfTwoHeight *= 2;
-		if (powerOfTwoHeight >= sourceHeight) {
+		++vertex_index;
+	} while (vertex_index < TEXTURE_DIMENSION_STEPS);
+	power_of_two_height = 1;
+	for (vertex_index = 0; vertex_index < TEXTURE_DIMENSION_STEPS;
+	     ++vertex_index) {
+		power_of_two_height *= 2;
+		if (power_of_two_height >= source_height) {
 			break;
 		}
 	}
-	if (g_pStd3DCurDevice->caps.bSquareOnlyTexture != 0) {
-		if (powerOfTwoWidth > powerOfTwoHeight) {
-			powerOfTwoHeight = powerOfTwoWidth;
-		} else if (powerOfTwoHeight > powerOfTwoWidth) {
-			powerOfTwoWidth = powerOfTwoHeight;
+	if (g_p_std3d_cur_device->caps.b_square_only_texture != 0) {
+		if (power_of_two_width > power_of_two_height) {
+			power_of_two_height = power_of_two_width;
+		} else if (power_of_two_height > power_of_two_width) {
+			power_of_two_width = power_of_two_height;
 		}
 	}
-	width = powerOfTwoWidth;
-	height = powerOfTwoHeight;
+	width = power_of_two_width;
+	height = power_of_two_height;
 
-	maxU /= (float)width;
-	maxV /= (float)height;
-	halfWidth = (screenSize * (int32_t)imageHeader->width) >>
-		    TEXTURE_SCALE_SHIFT;
-	halfHeight = (screenSize * (int32_t)imageHeader->height) >>
+	max_u /= (float)width;
+	max_v /= (float)height;
+	half_width = (screen_size * (int32_t)image_header->width) >>
 		     TEXTURE_SCALE_SHIFT;
+	half_height = (screen_size * (int32_t)image_header->height) >>
+		      TEXTURE_SCALE_SHIFT;
 	angle = (uint16_t)angle;
-	xOffset = trig2_cosinedwordmult(halfWidth, angle) +
-		  trig2_sinedwordmult(halfHeight, angle);
-	yOffset = trig2_cosinedwordmult(halfHeight, angle) -
-		  trig2_sinedwordmult(halfWidth, angle);
+	x_offset = trig2_cosinedwordmult(half_width, angle) +
+		   trig2_sinedwordmult(half_height, angle);
+	y_offset = trig2_cosinedwordmult(half_height, angle) -
+		   trig2_sinedwordmult(half_width, angle);
 
-	g_clipCountA = INITIAL_QUAD_VERTEX_COUNT;
-	g_clipVertCursor = INITIAL_QUAD_VERTEX_COUNT;
-	g_clipIdxA[0] = 0;
-	g_clipIdxA[1] = 1;
-	g_clipIdxA[2] = 2;
-	g_clipIdxA[3] = 3;
+	g_clip_count_a = INITIAL_QUAD_VERTEX_COUNT;
+	g_clip_vert_cursor = INITIAL_QUAD_VERTEX_COUNT;
+	g_clip_idx_a[0] = 0;
+	g_clip_idx_a[1] = 1;
+	g_clip_idx_a[2] = 2;
+	g_clip_idx_a[3] = 3;
 
-	vertices[0].x = (float)(screenX + xOffset);
-	vertices[0].y = (float)(screenY + yOffset);
-	vertices[0].scaledInverseDepth = depth;
-	memset(&vertices[0].lightIntensity, 0, sizeof(float) * 3);
-	negativeHalfWidth = -halfWidth;
-	xOffset = trig2_cosinedwordmult(negativeHalfWidth, angle) +
-		  trig2_sinedwordmult(halfHeight, angle);
-	yOffset = trig2_cosinedwordmult(halfHeight, angle) -
-		  trig2_sinedwordmult(negativeHalfWidth, angle);
-	vertices[1].x = (float)(screenX + xOffset);
-	vertices[1].y = (float)(screenY + yOffset);
-	vertices[1].scaledInverseDepth = depth;
-	vertices[1].lightIntensity = 0.0f;
-	vertices[1].u = maxU;
+	vertices[0].x = (float)(screen_x + x_offset);
+	vertices[0].y = (float)(screen_y + y_offset);
+	vertices[0].scaled_inverse_depth = depth;
+	memset(&vertices[0].light_intensity, 0, sizeof(float) * 3);
+	negative_half_width = -half_width;
+	x_offset = trig2_cosinedwordmult(negative_half_width, angle) +
+		   trig2_sinedwordmult(half_height, angle);
+	y_offset = trig2_cosinedwordmult(half_height, angle) -
+		   trig2_sinedwordmult(negative_half_width, angle);
+	vertices[1].x = (float)(screen_x + x_offset);
+	vertices[1].y = (float)(screen_y + y_offset);
+	vertices[1].scaled_inverse_depth = depth;
+	vertices[1].light_intensity = 0.0f;
+	vertices[1].u = max_u;
 	vertices[1].v = 0.0f;
-	negativeHalfHeight = -halfHeight;
-	xOffset = trig2_cosinedwordmult(negativeHalfWidth, angle) +
-		  trig2_sinedwordmult(negativeHalfHeight, angle);
-	yOffset = trig2_cosinedwordmult(negativeHalfHeight, angle) -
-		  trig2_sinedwordmult(negativeHalfWidth, angle);
-	vertices[2].x = (float)(screenX + xOffset);
-	vertices[2].y = (float)(screenY + yOffset);
-	vertices[2].scaledInverseDepth = depth;
-	vertices[2].lightIntensity = 0.0f;
-	vertices[2].u = maxU;
-	vertices[2].v = maxV;
-	xOffset = trig2_cosinedwordmult(halfWidth, angle) +
-		  trig2_sinedwordmult(negativeHalfHeight, angle);
-	yOffset = trig2_cosinedwordmult(negativeHalfHeight, angle) -
-		  trig2_sinedwordmult(halfWidth, angle);
-	vertices[3].x = (float)(screenX + xOffset);
-	vertices[3].y = (float)(screenY + yOffset);
-	vertices[3].scaledInverseDepth = depth;
-	vertices[3].lightIntensity = 0.0f;
+	negative_half_height = -half_height;
+	x_offset = trig2_cosinedwordmult(negative_half_width, angle) +
+		   trig2_sinedwordmult(negative_half_height, angle);
+	y_offset = trig2_cosinedwordmult(negative_half_height, angle) -
+		   trig2_sinedwordmult(negative_half_width, angle);
+	vertices[2].x = (float)(screen_x + x_offset);
+	vertices[2].y = (float)(screen_y + y_offset);
+	vertices[2].scaled_inverse_depth = depth;
+	vertices[2].light_intensity = 0.0f;
+	vertices[2].u = max_u;
+	vertices[2].v = max_v;
+	x_offset = trig2_cosinedwordmult(half_width, angle) +
+		   trig2_sinedwordmult(negative_half_height, angle);
+	y_offset = trig2_cosinedwordmult(negative_half_height, angle) -
+		   trig2_sinedwordmult(half_width, angle);
+	vertices[3].x = (float)(screen_x + x_offset);
+	vertices[3].y = (float)(screen_y + y_offset);
+	vertices[3].scaled_inverse_depth = depth;
+	vertices[3].light_intensity = 0.0f;
 	vertices[3].u = 0.0f;
-	vertices[3].v = maxV;
+	vertices[3].v = max_v;
 
-	g_clipCountB = 0;
-	previousIndex = g_clipIdxA[g_clipCountA - 1];
-	for (vertexIndex = 0; vertexIndex < g_clipCountA; ++vertexIndex) {
-		int currentIndex;
+	g_clip_count_b = 0;
+	previous_index = g_clip_idx_a[g_clip_count_a - 1];
+	for (vertex_index = 0; vertex_index < g_clip_count_a; ++vertex_index) {
+		int current_index;
 
-		currentIndex = g_clipIdxA[vertexIndex];
-		RenderClip_ClipPolyTop(previousIndex, currentIndex, vertices);
-		previousIndex = currentIndex;
+		current_index = g_clip_idx_a[vertex_index];
+		render_clip_clip_poly_top(previous_index, current_index,
+					  vertices);
+		previous_index = current_index;
 	}
-	g_clipCountA = 0;
+	g_clip_count_a = 0;
 	/* A clipping pass can discard every vertex before the next pass. */
 #ifdef XVT_MODERN
-	if (g_clipCountB > 0) {
+	if (g_clip_count_b > 0) {
 #endif
-		previousIndex = g_clipIdxB[g_clipCountB - 1];
-		for (vertexIndex = 0; vertexIndex < g_clipCountB;
-		     ++vertexIndex) {
-			int currentIndex;
+		previous_index = g_clip_idx_b[g_clip_count_b - 1];
+		for (vertex_index = 0; vertex_index < g_clip_count_b;
+		     ++vertex_index) {
+			int current_index;
 
-			currentIndex = g_clipIdxB[vertexIndex];
-			RenderClip_ClipPolyBottom(previousIndex, currentIndex,
-						  vertices);
-			previousIndex = currentIndex;
+			current_index = g_clip_idx_b[vertex_index];
+			render_clip_clip_poly_bottom(previous_index,
+						     current_index, vertices);
+			previous_index = current_index;
 		}
 #ifdef XVT_MODERN
 	}
 #endif
-	g_clipCountB = 0;
+	g_clip_count_b = 0;
 #ifdef XVT_MODERN
-	if (g_clipCountA > 0) {
+	if (g_clip_count_a > 0) {
 #endif
-		previousIndex = g_clipIdxA[g_clipCountA - 1];
-		for (vertexIndex = 0; vertexIndex < g_clipCountA;
-		     ++vertexIndex) {
-			int currentIndex;
+		previous_index = g_clip_idx_a[g_clip_count_a - 1];
+		for (vertex_index = 0; vertex_index < g_clip_count_a;
+		     ++vertex_index) {
+			int current_index;
 
-			currentIndex = g_clipIdxA[vertexIndex];
-			RenderClip_ClipPolyLeft(previousIndex, currentIndex,
-						vertices);
-			previousIndex = currentIndex;
+			current_index = g_clip_idx_a[vertex_index];
+			render_clip_clip_poly_left(previous_index,
+						   current_index, vertices);
+			previous_index = current_index;
 		}
 #ifdef XVT_MODERN
 	}
 #endif
-	g_clipCountA = 0;
+	g_clip_count_a = 0;
 #ifdef XVT_MODERN
-	if (g_clipCountB > 0) {
+	if (g_clip_count_b > 0) {
 #endif
-		previousIndex = g_clipIdxB[g_clipCountB - 1];
-		for (vertexIndex = 0; vertexIndex < g_clipCountB;
-		     ++vertexIndex) {
-			int currentIndex;
+		previous_index = g_clip_idx_b[g_clip_count_b - 1];
+		for (vertex_index = 0; vertex_index < g_clip_count_b;
+		     ++vertex_index) {
+			int current_index;
 
-			currentIndex = g_clipIdxB[vertexIndex];
-			RenderClip_ClipPolyRight(previousIndex, currentIndex,
-						 vertices);
-			previousIndex = currentIndex;
+			current_index = g_clip_idx_b[vertex_index];
+			render_clip_clip_poly_right(previous_index,
+						    current_index, vertices);
+			previous_index = current_index;
 		}
 #ifdef XVT_MODERN
 	}
 #endif
-	if (g_clipCountA < MIN_TRIANGLE_VERTEX_COUNT) {
+	if (g_clip_count_a < MIN_TRIANGLE_VERTEX_COUNT) {
 		return;
 	}
 
-	if (g_clipCountA + g_d3dVertexCount > g_maxBatchVerts ||
-	    g_clipCountA + g_d3dTriangleCount > g_maxBatchTris) {
-		Math_SetFpuExtendedPrecisionMode();
-		std3D_StartScene();
-		std3D_LockExecuteBuffer();
-		std3D_AddVertices(g_flightVertexBuffer, g_d3dVertexCount);
-		std3D_BeginInstructions();
-		std3D_AddTriangles(g_triBuffer,
-				   (unsigned int)g_d3dTriangleCount);
-		std3D_ExecuteBuffer();
-		std3D_EndScene();
-		Math_SetFpuSinglePrecisionMode();
-		g_d3dTriangleCount = 0;
-		g_d3dVertexCount = 0;
+	if (g_clip_count_a + g_d3d_vertex_count > g_max_batch_verts ||
+	    g_clip_count_a + g_d3d_triangle_count > g_max_batch_tris) {
+		math_set_fpu_extended_precision_mode();
+		std3d_start_scene();
+		std3d_lock_execute_buffer();
+		std3d_add_vertices(g_flight_vertex_buffer, g_d3d_vertex_count);
+		std3d_begin_instructions();
+		std3d_add_triangles(g_tri_buffer,
+				    (unsigned int)g_d3d_triangle_count);
+		std3d_execute_buffer();
+		std3d_end_scene();
+		math_set_fpu_single_precision_mode();
+		g_d3d_triangle_count = 0;
+		g_d3d_vertex_count = 0;
 	}
-	if (g_capVertexAlpha != 0) {
+	if (g_cap_vertex_alpha != 0) {
 		color = 0xfeffffff;
-		g_capVertexAlpha = 0;
+		g_cap_vertex_alpha = 0;
 	}
-	vertexColor = color;
-	vertexSpecular = 0;
-	for (vertexIndex = 0; vertexIndex < g_clipCountA; ++vertexIndex) {
-		int sourceIndex;
-		float sourceY;
-		float sourceDepth;
-		float sourceU;
-		float sourceV;
+	vertex_color = color;
+	vertex_specular = 0;
+	for (vertex_index = 0; vertex_index < g_clip_count_a; ++vertex_index) {
+		int source_index;
+		float source_y;
+		float source_depth;
+		float source_u;
+		float source_v;
 
-		sourceIndex = g_clipIdxA[vertexIndex];
-		sourceY = vertices[sourceIndex].y;
-		sourceU = vertices[sourceIndex].u;
-		sourceV = vertices[sourceIndex].v;
-		sourceDepth = vertices[sourceIndex].scaledInverseDepth;
-		g_flightVertexBuffer[g_d3dVertexCount].sx =
-			vertices[sourceIndex].x + g_flightVpOriginX;
-		g_flightVertexBuffer[g_d3dVertexCount].sy =
-			sourceY + g_flightVpOriginY;
-		g_flightVertexBuffer[g_d3dVertexCount].sz = sourceDepth;
-		g_flightVertexBuffer[g_d3dVertexCount].rhw = sourceDepth;
-		g_flightVertexBuffer[g_d3dVertexCount].tu = sourceU;
-		g_flightVertexBuffer[g_d3dVertexCount].tv = sourceV;
-		g_flightVertexBuffer[g_d3dVertexCount].color = vertexColor;
-		g_flightVertexBuffer[g_d3dVertexCount].specular =
-			vertexSpecular;
-		g_clipIdxA[vertexIndex] = g_d3dVertexCount;
-		++g_d3dVertexCount;
+		source_index = g_clip_idx_a[vertex_index];
+		source_y = vertices[source_index].y;
+		source_u = vertices[source_index].u;
+		source_v = vertices[source_index].v;
+		source_depth = vertices[source_index].scaled_inverse_depth;
+		g_flight_vertex_buffer[g_d3d_vertex_count].sx =
+			vertices[source_index].x + g_flight_vp_origin_x;
+		g_flight_vertex_buffer[g_d3d_vertex_count].sy =
+			source_y + g_flight_vp_origin_y;
+		g_flight_vertex_buffer[g_d3d_vertex_count].sz = source_depth;
+		g_flight_vertex_buffer[g_d3d_vertex_count].rhw = source_depth;
+		g_flight_vertex_buffer[g_d3d_vertex_count].tu = source_u;
+		g_flight_vertex_buffer[g_d3d_vertex_count].tv = source_v;
+		g_flight_vertex_buffer[g_d3d_vertex_count].color = vertex_color;
+		g_flight_vertex_buffer[g_d3d_vertex_count].specular =
+			vertex_specular;
+		g_clip_idx_a[vertex_index] = g_d3d_vertex_count;
+		++g_d3d_vertex_count;
 	}
-	palette = (uint16_t *)(textureBytes +
-			       imageHeader->convertedPaletteOffset);
-	pixels = textureBytes + imageHeader->encodedImageOffset + 16;
-	rleFormat = (int32_t)imageHeader->packingMode;
-	texture = RenderTexture_GetOrCreateBitmap(width, height, palette,
-						  pixels, rleFormat);
-	for (vertexIndex = TRIANGLE_FAN_FIRST_INDEX; vertexIndex < g_clipCountA;
-	     ++vertexIndex) {
-		g_triBuffer[g_d3dTriangleCount].vertexIndex0 = g_clipIdxA[0];
-		g_triBuffer[g_d3dTriangleCount].vertexIndex1 =
-			g_clipIdxA[vertexIndex - 1];
-		g_triBuffer[g_d3dTriangleCount].vertexIndex2 =
-			g_clipIdxA[vertexIndex];
-		g_triBuffer[g_d3dTriangleCount].texture = texture;
-		g_triBuffer[g_d3dTriangleCount].flags =
-			(Std3DRenderStateFlags)SPRITE_BASE_RENDER_FLAGS;
-		if (g_bilinearEnabled != 0) {
-			g_triBuffer[g_d3dTriangleCount].flags +=
+	palette = (uint16_t *)(texture_bytes +
+			       image_header->converted_palette_offset);
+	pixels = texture_bytes + image_header->encoded_image_offset + 16;
+	rle_format = (int32_t)image_header->packing_mode;
+	texture = render_texture_get_or_create_bitmap(width, height, palette,
+						      pixels, rle_format);
+	for (vertex_index = TRIANGLE_FAN_FIRST_INDEX;
+	     vertex_index < g_clip_count_a; ++vertex_index) {
+		g_tri_buffer[g_d3d_triangle_count].vertex_index0 =
+			g_clip_idx_a[0];
+		g_tri_buffer[g_d3d_triangle_count].vertex_index1 =
+			g_clip_idx_a[vertex_index - 1];
+		g_tri_buffer[g_d3d_triangle_count].vertex_index2 =
+			g_clip_idx_a[vertex_index];
+		g_tri_buffer[g_d3d_triangle_count].texture = texture;
+		g_tri_buffer[g_d3d_triangle_count].flags =
+			(std3d_render_state_flags)SPRITE_BASE_RENDER_FLAGS;
+		if (g_bilinear_enabled != 0) {
+			g_tri_buffer[g_d3d_triangle_count].flags +=
 				BILINEAR_RENDER_FLAGS;
 		}
-		g_triBuffer[g_d3dTriangleCount++].flags +=
+		g_tri_buffer[g_d3d_triangle_count++].flags +=
 			SPRITE_ALPHA_RENDER_FLAGS;
 	}
 }

@@ -15,7 +15,7 @@
 #include "xvt_runtime/timing/flight_timing.h"
 #include <string.h>
 
-static unsigned int XvtSnapshot_SumBytes(uint8_t **cursor, int count)
+static unsigned int xvt_snapshot_sum_bytes(uint8_t **cursor, int count)
 {
 	unsigned int sum = 0;
 	for (int i = 0; i < count; ++i) {
@@ -26,86 +26,87 @@ static unsigned int XvtSnapshot_SumBytes(uint8_t **cursor, int count)
 
 /* Sums the bytes of one present slot's records at *cursor: the object, then its mobile, craft,
  * warhead-guidance and character records when present, leaving out the links and cached motion that
- * XvtSnapshot_ChecksumImage's comment lists. Moves *cursor past all of them; returns the sum. */
-static unsigned int XvtSnapshot_SumSlotRecords(uint8_t **cursor)
+ * xvt_snapshot_checksum_image's comment lists. Moves *cursor past all of them; returns the sum. */
+static unsigned int xvt_snapshot_sum_slot_records(uint8_t **cursor)
 {
 	unsigned int sum = 0;
-	int bytesRemaining;
+	int bytes_remaining;
 
-	struct XvtSnapshotObjectRecord *objectState;
-	int objectDataBytes;
-	uint32_t mobilePresent;
+	struct xvt_snapshot_object_record *object_state;
+	int object_data_bytes;
+	uint32_t mobile_present;
 
-	objectState = (struct XvtSnapshotObjectRecord *)*cursor;
-	objectDataBytes = sizeof(*objectState) - sizeof(objectState->mobj);
+	object_state = (struct xvt_snapshot_object_record *)*cursor;
+	object_data_bytes = sizeof(*object_state) - sizeof(object_state->mobj);
 	do {
 		sum += *(*cursor)++;
-	} while (--objectDataBytes != 0);
-	*cursor = (uint8_t *)(objectState + 1);
-	memcpy(&mobilePresent, &objectState->mobj, sizeof(mobilePresent));
-	if (mobilePresent != 0) {
-		struct XvtSnapshotMobileObject *mobileState;
-		int mobileDataBytes;
-		uint32_t craftPresent;
-		uint32_t guidancePresent;
-		uint32_t charDataPresent;
+	} while (--object_data_bytes != 0);
+	*cursor = (uint8_t *)(object_state + 1);
+	memcpy(&mobile_present, &object_state->mobj, sizeof(mobile_present));
+	if (mobile_present != 0) {
+		struct xvt_snapshot_mobile_object *mobile_state;
+		int mobile_data_bytes;
+		uint32_t craft_present;
+		uint32_t guidance_present;
+		uint32_t char_data_present;
 
-		mobileState = (struct XvtSnapshotMobileObject *)*cursor;
-		mobileDataBytes = sizeof(*mobileState) -
-				  sizeof(mobileState->moveVectorDirty) -
-				  sizeof(mobileState->moveX) -
-				  sizeof(mobileState->moveY) -
-				  sizeof(mobileState->moveZ) -
-				  sizeof(mobileState->orientMatrixDirty) -
-				  sizeof(mobileState->cachedFwdX) -
-				  sizeof(mobileState->cachedFwdY) -
-				  sizeof(mobileState->cachedFwdZ) -
-				  sizeof(mobileState->cachedSideX) -
-				  sizeof(mobileState->cachedSideY) -
-				  sizeof(mobileState->cachedSideZ) -
-				  sizeof(mobileState->cachedUpX) -
-				  sizeof(mobileState->cachedUpY) -
-				  sizeof(mobileState->cachedUpZ) -
-				  sizeof(mobileState->pWarheadGuidance) -
-				  sizeof(mobileState->pCraft) -
-				  sizeof(mobileState->pCharData);
+		mobile_state = (struct xvt_snapshot_mobile_object *)*cursor;
+		mobile_data_bytes = sizeof(*mobile_state) -
+				    sizeof(mobile_state->move_vector_dirty) -
+				    sizeof(mobile_state->move_x) -
+				    sizeof(mobile_state->move_y) -
+				    sizeof(mobile_state->move_z) -
+				    sizeof(mobile_state->orient_matrix_dirty) -
+				    sizeof(mobile_state->cached_fwd_x) -
+				    sizeof(mobile_state->cached_fwd_y) -
+				    sizeof(mobile_state->cached_fwd_z) -
+				    sizeof(mobile_state->cached_side_x) -
+				    sizeof(mobile_state->cached_side_y) -
+				    sizeof(mobile_state->cached_side_z) -
+				    sizeof(mobile_state->cached_up_x) -
+				    sizeof(mobile_state->cached_up_y) -
+				    sizeof(mobile_state->cached_up_z) -
+				    sizeof(mobile_state->p_warhead_guidance) -
+				    sizeof(mobile_state->p_craft) -
+				    sizeof(mobile_state->p_char_data);
 		do {
 			sum += *(*cursor)++;
-		} while (--mobileDataBytes != 0);
-		*cursor = (uint8_t *)(mobileState + 1);
-		memcpy(&craftPresent, &mobileState->pCraft,
-		       sizeof(craftPresent));
-		if (craftPresent != 0) {
-			struct XvtSnapshotCraftData *craftState;
-			int craftDataBytes;
+		} while (--mobile_data_bytes != 0);
+		*cursor = (uint8_t *)(mobile_state + 1);
+		memcpy(&craft_present, &mobile_state->p_craft,
+		       sizeof(craft_present));
+		if (craft_present != 0) {
+			struct xvt_snapshot_craft_data *craft_state;
+			int craft_data_bytes;
 
-			craftState = (struct XvtSnapshotCraftData *)*cursor;
-			craftDataBytes =
-				sizeof(*craftState) -
-				sizeof(craftState->unused3F2) -
-				sizeof(craftState->turretObjectLinks) -
-				sizeof(craftState->effectiveAiObjectLink) + 32;
+			craft_state = (struct xvt_snapshot_craft_data *)*cursor;
+			craft_data_bytes =
+				sizeof(*craft_state) -
+				sizeof(craft_state->unused3f2) -
+				sizeof(craft_state->turret_object_links) -
+				sizeof(craft_state->effective_ai_object_link) +
+				32;
 			do {
 				sum += *(*cursor)++;
-			} while (--craftDataBytes != 0);
-			*cursor = (uint8_t *)(craftState + 1);
+			} while (--craft_data_bytes != 0);
+			*cursor = (uint8_t *)(craft_state + 1);
 		}
-		memcpy(&guidancePresent, &mobileState->pWarheadGuidance,
-		       sizeof(guidancePresent));
-		if (guidancePresent != 0) {
-			bytesRemaining = sizeof(struct WarheadGuidanceState);
+		memcpy(&guidance_present, &mobile_state->p_warhead_guidance,
+		       sizeof(guidance_present));
+		if (guidance_present != 0) {
+			bytes_remaining = sizeof(struct warhead_guidance_state);
 			do {
 				sum += *(*cursor)++;
-			} while (--bytesRemaining != 0);
+			} while (--bytes_remaining != 0);
 		}
-		memcpy(&charDataPresent, &mobileState->pCharData,
-		       sizeof(charDataPresent));
-		if (charDataPresent != 0) {
-			bytesRemaining =
-				sizeof(struct XvtSnapshotMobileObjectCharData);
+		memcpy(&char_data_present, &mobile_state->p_char_data,
+		       sizeof(char_data_present));
+		if (char_data_present != 0) {
+			bytes_remaining = sizeof(
+				struct xvt_snapshot_mobile_object_char_data);
 			do {
 				sum += *(*cursor)++;
-			} while (--bytesRemaining != 0);
+			} while (--bytes_remaining != 0);
 		}
 	}
 	return sum;
@@ -114,365 +115,387 @@ static unsigned int XvtSnapshot_SumSlotRecords(uint8_t **cursor)
 /* Closes the current checksum region once it has grown past the target size
  * while regions remain: records its length and sum, then starts the next
  * region at the cursor with a zero sum. */
-static void XvtSnapshot_CloseChecksumRegion(
-	unsigned checksums[16], unsigned lengths[16], int lastRegion,
-	int regionTargetSize, const uint8_t *cursor, uint8_t **regionStart,
-	int *checksumRegionIndex, unsigned int *checksum)
+static void xvt_snapshot_close_checksum_region(
+	unsigned checksums[16], unsigned lengths[16], int last_region,
+	int region_target_size, const uint8_t *cursor, uint8_t **region_start,
+	int *checksum_region_index, unsigned int *checksum)
 {
-	if (*checksumRegionIndex < lastRegion &&
-	    cursor - *regionStart > regionTargetSize) {
-		lengths[*checksumRegionIndex] =
-			(unsigned int)(cursor - *regionStart);
-		checksums[(*checksumRegionIndex)++] = *checksum;
+	if (*checksum_region_index < last_region &&
+	    cursor - *region_start > region_target_size) {
+		lengths[*checksum_region_index] =
+			(unsigned int)(cursor - *region_start);
+		checksums[(*checksum_region_index)++] = *checksum;
 		*checksum = 0;
-		*regionStart = (uint8_t *)cursor;
+		*region_start = (uint8_t *)cursor;
 	}
 }
 
-void XvtSnapshot_ChecksumPrefix(const uint8_t *image, size_t prefix,
-				unsigned checksums[16], unsigned lengths[16])
+void xvt_snapshot_checksum_prefix(const uint8_t *image, size_t prefix,
+				  unsigned checksums[16], unsigned lengths[16])
 {
 	uint8_t *cursor;
-	uint8_t *regionStart;
+	uint8_t *region_start;
 	unsigned int checksum;
-	int regionTargetSize;
-	int checksumRegionIndex;
-	int objectIndex;
-	int objectCount;
-	int bytesRemaining;
-	int flightGroupCount;
+	int region_target_size;
+	int checksum_region_index;
+	int object_index;
+	int object_count;
+	int bytes_remaining;
+	int flight_group_count;
 
-	int network = XvtFlightTiming_IsNetwork125();
-	int lastRegion = network ? 14 : 15;
+	int network = xvt_flight_timing_is_network125();
+	int last_region = network ? 14 : 15;
 	memset(checksums, 0, 16 * sizeof *checksums);
 	memset(lengths, 0, 16 * sizeof *lengths);
 
-	regionTargetSize = (int)prefix / (network ? 15 : 16);
+	region_target_size = (int)prefix / (network ? 15 : 16);
 	cursor = (uint8_t *)image;
-	regionStart = (uint8_t *)image;
+	region_start = (uint8_t *)image;
 	checksum = 0;
-	checksumRegionIndex = 0;
-	objectIndex = 0;
-	objectCount = g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount;
-	if (objectCount > 0) {
+	checksum_region_index = 0;
+	object_index = 0;
+	object_count = g_region_main_object_slot_end +
+		       g_region_static_object_slot_count;
+	if (object_count > 0) {
 		do {
-			if (g_localTransientSlotStart > objectIndex ||
-			    g_localDebrisSlotEnd <= objectIndex) {
-				uint8_t objectPresent;
+			if (g_local_transient_slot_start > object_index ||
+			    g_local_debris_slot_end <= object_index) {
+				uint8_t object_present;
 
-				objectPresent = *cursor++;
-				if (objectPresent != 0) {
-					checksum += XvtSnapshot_SumSlotRecords(
-						&cursor);
+				object_present = *cursor++;
+				if (object_present != 0) {
+					checksum +=
+						xvt_snapshot_sum_slot_records(
+							&cursor);
 				}
-				XvtSnapshot_CloseChecksumRegion(
-					checksums, lengths, lastRegion,
-					regionTargetSize, cursor, &regionStart,
-					&checksumRegionIndex, &checksum);
+				xvt_snapshot_close_checksum_region(
+					checksums, lengths, last_region,
+					region_target_size, cursor,
+					&region_start, &checksum_region_index,
+					&checksum);
 			}
-			++objectIndex;
-		} while (objectCount > objectIndex);
+			++object_index;
+		} while (object_count > object_index);
 	}
 
-	checksum += XvtSnapshot_SumBytes(&cursor, 8);
-	checksum += XvtSnapshot_SumBytes(&cursor, 8);
-	checksum += XvtSnapshot_SumBytes(&cursor, sizeof(struct MissionHeader));
-	flightGroupCount = (int16_t)g_missionHeader.numFlightGroups;
-	bytesRemaining = 294 * flightGroupCount;
-	if (bytesRemaining > 0) {
+	checksum += xvt_snapshot_sum_bytes(&cursor, 8);
+	checksum += xvt_snapshot_sum_bytes(&cursor, 8);
+	checksum +=
+		xvt_snapshot_sum_bytes(&cursor, sizeof(struct mission_header));
+	flight_group_count = (int16_t)g_mission_header.num_flight_groups;
+	bytes_remaining = 294 * flight_group_count;
+	if (bytes_remaining > 0) {
 		do {
 			checksum += *cursor++;
-		} while (--bytesRemaining != 0);
+		} while (--bytes_remaining != 0);
 	}
-	XvtSnapshot_CloseChecksumRegion(checksums, lengths, lastRegion,
-					regionTargetSize, cursor, &regionStart,
-					&checksumRegionIndex, &checksum);
+	xvt_snapshot_close_checksum_region(
+		checksums, lengths, last_region, region_target_size, cursor,
+		&region_start, &checksum_region_index, &checksum);
 
-	bytesRemaining = 1382 * flightGroupCount;
-	if (bytesRemaining > 0) {
+	bytes_remaining = 1382 * flight_group_count;
+	if (bytes_remaining > 0) {
 		do {
 			checksum += *cursor++;
-		} while (--bytesRemaining != 0);
+		} while (--bytes_remaining != 0);
 	}
-	XvtSnapshot_CloseChecksumRegion(checksums, lengths, lastRegion,
-					regionTargetSize, cursor, &regionStart,
-					&checksumRegionIndex, &checksum);
+	xvt_snapshot_close_checksum_region(
+		checksums, lengths, last_region, region_target_size, cursor,
+		&region_start, &checksum_region_index, &checksum);
 
-	checksum += XvtSnapshot_SumBytes(&cursor, 3376);
-	XvtSnapshot_CloseChecksumRegion(checksums, lengths, lastRegion,
-					regionTargetSize, cursor, &regionStart,
-					&checksumRegionIndex, &checksum);
+	checksum += xvt_snapshot_sum_bytes(&cursor, 3376);
+	xvt_snapshot_close_checksum_region(
+		checksums, lengths, last_region, region_target_size, cursor,
+		&region_start, &checksum_region_index, &checksum);
 
-	checksum += XvtSnapshot_SumBytes(&cursor, 22);
-	checksum += XvtSnapshot_SumBytes(&cursor, 2);
-	XvtSnapshot_CloseChecksumRegion(checksums, lengths, lastRegion,
-					regionTargetSize, cursor, &regionStart,
-					&checksumRegionIndex, &checksum);
+	checksum += xvt_snapshot_sum_bytes(&cursor, 22);
+	checksum += xvt_snapshot_sum_bytes(&cursor, 2);
+	xvt_snapshot_close_checksum_region(
+		checksums, lengths, last_region, region_target_size, cursor,
+		&region_start, &checksum_region_index, &checksum);
 
-	checksum += XvtSnapshot_SumBytes(&cursor, 4);
+	checksum += xvt_snapshot_sum_bytes(&cursor, 4);
 	checksum += *cursor++;
 	/* The 20 range dwords: 4 pool sizes, the world-state debris slot count and 15 slot-range bounds. */
-	checksum += XvtSnapshot_SumBytes(&cursor, 20 * 4);
-	checksum += XvtSnapshot_SumBytes(&cursor, 21760);
-	checksum += XvtSnapshot_SumBytes(&cursor, 4);
-	checksum += XvtSnapshot_SumBytes(&cursor, 4);
-	checksum += XvtSnapshot_SumBytes(&cursor, 256);
-	XvtSnapshot_CloseChecksumRegion(checksums, lengths, lastRegion,
-					regionTargetSize, cursor, &regionStart,
-					&checksumRegionIndex, &checksum);
+	checksum += xvt_snapshot_sum_bytes(&cursor, 20 * 4);
+	checksum += xvt_snapshot_sum_bytes(&cursor, 21760);
+	checksum += xvt_snapshot_sum_bytes(&cursor, 4);
+	checksum += xvt_snapshot_sum_bytes(&cursor, 4);
+	checksum += xvt_snapshot_sum_bytes(&cursor, 256);
+	xvt_snapshot_close_checksum_region(
+		checksums, lengths, last_region, region_target_size, cursor,
+		&region_start, &checksum_region_index, &checksum);
 
-	checksum += XvtSnapshot_SumBytes(&cursor, 2);
-	checksum += XvtSnapshot_SumBytes(&cursor, 2);
-	checksum += XvtSnapshot_SumBytes(&cursor, 4);
-	checksum += XvtSnapshot_SumBytes(&cursor, 11752);
-	if (network || cursor - regionStart > regionTargetSize) {
+	checksum += xvt_snapshot_sum_bytes(&cursor, 2);
+	checksum += xvt_snapshot_sum_bytes(&cursor, 2);
+	checksum += xvt_snapshot_sum_bytes(&cursor, 4);
+	checksum += xvt_snapshot_sum_bytes(&cursor, 11752);
+	if (network || cursor - region_start > region_target_size) {
 		if (network) {
-			checksumRegionIndex = 14;
+			checksum_region_index = 14;
 		}
-		lengths[checksumRegionIndex] = (unsigned)(cursor - regionStart);
-		checksums[checksumRegionIndex] = checksum;
+		lengths[checksum_region_index] =
+			(unsigned)(cursor - region_start);
+		checksums[checksum_region_index] = checksum;
 	}
 }
 
-static unsigned int XvtSnapshot_ChecksumMobileObjectCharData(
-	const struct MobileObjectCharData *live)
+static unsigned int xvt_snapshot_checksum_mobile_object_char_data(
+	const struct mobile_object_char_data *live)
 {
-	struct XvtSnapshotMobileObjectCharData record;
-	XvtSnapshot_EncodeMobileObjectCharData(&record, live);
-	return Flight_ChecksumBufferRotateXor(&record, 0x4C);
+	struct xvt_snapshot_mobile_object_char_data record;
+	xvt_snapshot_encode_mobile_object_char_data(&record, live);
+	return flight_checksum_buffer_rotate_xor(&record, 0x4C);
 }
 
 static unsigned int
-XvtSnapshot_ChecksumMobileObject(const struct MobileObject *live)
+xvt_snapshot_checksum_mobile_object(const struct mobile_object *live)
 {
-	struct XvtSnapshotMobileObject record;
-	XvtSnapshot_EncodeMobileObject(&record, live);
-	return Flight_ChecksumBufferRotateXor(&record, 0x8B);
+	struct xvt_snapshot_mobile_object record;
+	xvt_snapshot_encode_mobile_object(&record, live);
+	return flight_checksum_buffer_rotate_xor(&record, 0x8B);
 }
 
 static unsigned int
-XvtSnapshot_ChecksumObjectRecord(const struct ObjectRecord *live)
+xvt_snapshot_checksum_object_record(const struct object_record *live)
 {
-	struct XvtSnapshotObjectRecord record;
-	XvtSnapshot_EncodeObjectRecord(&record, live);
-	return Flight_ChecksumBufferRotateXor(&record, 0x1F);
-}
-
-static unsigned int XvtSnapshot_ChecksumCraftData(const struct CraftData *live)
-{
-	struct XvtSnapshotCraftData record;
-	XvtSnapshot_EncodeCraftData(&record, live);
-	return Flight_ChecksumBufferRotateXor(&record, 0x412);
+	struct xvt_snapshot_object_record record;
+	xvt_snapshot_encode_object_record(&record, live);
+	return flight_checksum_buffer_rotate_xor(&record, 0x1F);
 }
 
 static unsigned int
-XvtSnapshot_ChecksumPlayerData(const struct PlayerData *live)
+xvt_snapshot_checksum_craft_data(const struct craft_data *live)
 {
-	struct XvtSnapshotPlayerData record;
-	XvtSnapshot_EncodePlayerData(&record, live);
-	return Flight_ChecksumBufferRotateXor(&record, 0x5BD);
+	struct xvt_snapshot_craft_data record;
+	xvt_snapshot_encode_craft_data(&record, live);
+	return flight_checksum_buffer_rotate_xor(&record, 0x412);
+}
+
+static unsigned int
+xvt_snapshot_checksum_player_data(const struct player_data *live)
+{
+	struct xvt_snapshot_player_data record;
+	xvt_snapshot_encode_player_data(&record, live);
+	return flight_checksum_buffer_rotate_xor(&record, 0x5BD);
 }
 
 /* Folds one value into the live checksum: exclusive-or, then rotate left by one bit. */
-static uint32_t XvtSnapshot_MixChecksum(uint32_t checksum, uint32_t value)
+static uint32_t xvt_snapshot_mix_checksum(uint32_t checksum, uint32_t value)
 {
-	return Flight_RotateChecksumLeft(checksum ^ value);
+	return flight_rotate_checksum_left(checksum ^ value);
 }
 
 /* Folds every occupied pool record into checksum, pool by pool: character data, mobile records,
  * main-slot objects, static objects, craft, then warhead guidance. Returns the new checksum. */
-static uint32_t XvtSnapshot_MixPools(uint32_t checksum)
+static uint32_t xvt_snapshot_mix_pools(uint32_t checksum)
 {
-	int firstSlot;
-	int charDataIndex;
-	int mobileObjectIndex;
-	int objectIndex;
-	int staticObjectIndex;
-	int craftIndex;
-	int projectileIndex;
+	int first_slot;
+	int char_data_index;
+	int mobile_object_index;
+	int object_index;
+	int static_object_index;
+	int craft_index;
+	int projectile_index;
 
-	firstSlot = g_objectSlotRangeByGenus[16].start;
-	for (charDataIndex = 0;
-	     charDataIndex < (int)g_mobileObjectCharDataCount;
-	     charDataIndex++) {
-		if (g_objectTable[firstSlot + charDataIndex].objectType != 0) {
-			checksum = XvtSnapshot_MixChecksum(
-				checksum,
-				XvtSnapshot_ChecksumMobileObjectCharData(
-					&g_mobileObjectCharDataPool
-						[charDataIndex]));
-		}
-	}
-
-	for (mobileObjectIndex = 0;
-	     mobileObjectIndex <
-	     g_regionMainObjectSlotEnd - g_localDebrisSlotCount;
-	     mobileObjectIndex++) {
-		if (g_objectTable[mobileObjectIndex].objectType != 0) {
-			checksum = XvtSnapshot_MixChecksum(
-				checksum, XvtSnapshot_ChecksumMobileObject(
-						  &g_mobileObjectPoolBase
-							  [mobileObjectIndex]));
-		}
-	}
-	for (objectIndex = 0;
-	     objectIndex < g_regionMainObjectSlotEnd - g_localDebrisSlotCount;
-	     objectIndex++) {
-		if (g_objectTable[objectIndex].objectType != 0) {
-			checksum = XvtSnapshot_MixChecksum(
-				checksum, XvtSnapshot_ChecksumObjectRecord(
-						  &g_objectTable[objectIndex]));
-		}
-	}
-	for (staticObjectIndex = g_regionMainObjectSlotEnd;
-	     staticObjectIndex <
-	     g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount;
-	     staticObjectIndex++) {
-		if (g_objectTable[staticObjectIndex].objectType != 0) {
-			checksum = XvtSnapshot_MixChecksum(
-				checksum,
-				XvtSnapshot_ChecksumObjectRecord(
-					&g_objectTable[staticObjectIndex]));
-		}
-	}
-
-	firstSlot = g_objectSlotRangeByGenus[0].start;
-	for (craftIndex = 0; craftIndex < g_craftDataPoolCapacity;
-	     craftIndex++) {
-		if (g_objectTable[firstSlot + craftIndex].objectType != 0) {
-			checksum = XvtSnapshot_MixChecksum(
-				checksum,
-				XvtSnapshot_ChecksumCraftData(
-					&g_craftDataPoolBase[craftIndex]));
-		}
-	}
-	firstSlot = g_objectSlotRangeByGenus[6].start;
-	for (projectileIndex = 0;
-	     projectileIndex < (int)g_projectileObjectSlotsTotal;
-	     projectileIndex++) {
-		if (g_objectTable[firstSlot + projectileIndex].objectType !=
+	first_slot = g_object_slot_range_by_genus[16].start;
+	for (char_data_index = 0;
+	     char_data_index < (int)g_mobile_object_char_data_count;
+	     char_data_index++) {
+		if (g_object_table[first_slot + char_data_index].object_type !=
 		    0) {
-			checksum = XvtSnapshot_MixChecksum(
-				checksum, Flight_ChecksumBufferRotateXor(
-						  &g_projectileGuidanceStates
-							  [projectileIndex],
+			checksum = xvt_snapshot_mix_checksum(
+				checksum,
+				xvt_snapshot_checksum_mobile_object_char_data(
+					&g_mobile_object_char_data_pool
+						[char_data_index]));
+		}
+	}
+
+	for (mobile_object_index = 0;
+	     mobile_object_index <
+	     g_region_main_object_slot_end - g_local_debris_slot_count;
+	     mobile_object_index++) {
+		if (g_object_table[mobile_object_index].object_type != 0) {
+			checksum = xvt_snapshot_mix_checksum(
+				checksum,
+				xvt_snapshot_checksum_mobile_object(
+					&g_mobile_object_pool_base
+						[mobile_object_index]));
+		}
+	}
+	for (object_index = 0; object_index < g_region_main_object_slot_end -
+						      g_local_debris_slot_count;
+	     object_index++) {
+		if (g_object_table[object_index].object_type != 0) {
+			checksum = xvt_snapshot_mix_checksum(
+				checksum,
+				xvt_snapshot_checksum_object_record(
+					&g_object_table[object_index]));
+		}
+	}
+	for (static_object_index = g_region_main_object_slot_end;
+	     static_object_index <
+	     g_region_main_object_slot_end + g_region_static_object_slot_count;
+	     static_object_index++) {
+		if (g_object_table[static_object_index].object_type != 0) {
+			checksum = xvt_snapshot_mix_checksum(
+				checksum,
+				xvt_snapshot_checksum_object_record(
+					&g_object_table[static_object_index]));
+		}
+	}
+
+	first_slot = g_object_slot_range_by_genus[0].start;
+	for (craft_index = 0; craft_index < g_craft_data_pool_capacity;
+	     craft_index++) {
+		if (g_object_table[first_slot + craft_index].object_type != 0) {
+			checksum = xvt_snapshot_mix_checksum(
+				checksum,
+				xvt_snapshot_checksum_craft_data(
+					&g_craft_data_pool_base[craft_index]));
+		}
+	}
+	first_slot = g_object_slot_range_by_genus[6].start;
+	for (projectile_index = 0;
+	     projectile_index < (int)g_projectile_object_slots_total;
+	     projectile_index++) {
+		if (g_object_table[first_slot + projectile_index].object_type !=
+		    0) {
+			checksum = xvt_snapshot_mix_checksum(
+				checksum, flight_checksum_buffer_rotate_xor(
+						  &g_projectile_guidance_states
+							  [projectile_index],
 						  0xA));
 		}
 	}
 	return checksum;
 }
 
-int XvtSnapshot_LiveChecksum(void)
+int xvt_snapshot_live_checksum(void)
 {
-	struct XvtSnapshotFlightMissionState missionState;
+	struct xvt_snapshot_flight_mission_state mission_state;
 	uint32_t checksum;
-	int flightGroupIndex;
-	int goalIndex;
-	int playerIndex;
+	int flight_group_index;
+	int goal_index;
+	int player_index;
 
 	checksum = 0;
-	checksum = XvtSnapshot_MixPools(checksum);
+	checksum = xvt_snapshot_mix_pools(checksum);
 
-	checksum = XvtSnapshot_MixChecksum(
-		checksum,
-		Flight_ChecksumBufferRotateXor(&g_missionElapsedClock,
-					       sizeof(g_missionElapsedClock)));
-	checksum = XvtSnapshot_MixChecksum(
-		checksum, Flight_ChecksumBufferRotateXor(
-				  &g_missionCountdownClock,
-				  sizeof(g_missionCountdownClock)));
-	for (flightGroupIndex = 0;
-	     flightGroupIndex < (int16_t)g_missionHeader.numFlightGroups;
-	     flightGroupIndex++) {
-		checksum = XvtSnapshot_MixChecksum(
+	checksum = xvt_snapshot_mix_checksum(
+		checksum, flight_checksum_buffer_rotate_xor(
+				  &g_mission_elapsed_clock,
+				  sizeof(g_mission_elapsed_clock)));
+	checksum = xvt_snapshot_mix_checksum(
+		checksum, flight_checksum_buffer_rotate_xor(
+				  &g_mission_countdown_clock,
+				  sizeof(g_mission_countdown_clock)));
+	for (flight_group_index = 0;
+	     flight_group_index < (int16_t)g_mission_header.num_flight_groups;
+	     flight_group_index++) {
+		checksum = xvt_snapshot_mix_checksum(
 			checksum,
-			Flight_ChecksumBufferRotateXor(
-				&g_missionFgStats[flightGroupIndex], 0x126));
+			flight_checksum_buffer_rotate_xor(
+				&g_mission_fg_stats[flight_group_index],
+				0x126));
 	}
 
-	XvtSnapshot_EncodeFlightMissionState(&missionState,
-					     &g_flightMissionState);
-	checksum = XvtSnapshot_MixChecksum(
-		checksum, Flight_ChecksumBufferRotateXor(&missionState,
-							 sizeof(missionState)));
-	checksum = XvtSnapshot_MixChecksum(checksum, g_nextObjectSignature);
-	checksum = XvtSnapshot_MixChecksum(
-		checksum, Flight_ChecksumBufferRotateXor(
-				  &g_flightGlobalCountdownTimers, 0x16));
-	checksum = XvtSnapshot_MixChecksum(
-		checksum, (uint32_t)(int16_t)g_missionFileVersion);
-	checksum = XvtSnapshot_MixChecksum(
+	xvt_snapshot_encode_flight_mission_state(&mission_state,
+						 &g_flight_mission_state);
+	checksum = xvt_snapshot_mix_checksum(
+		checksum, flight_checksum_buffer_rotate_xor(
+				  &mission_state, sizeof(mission_state)));
+	checksum = xvt_snapshot_mix_checksum(checksum, g_next_object_signature);
+	checksum = xvt_snapshot_mix_checksum(
+		checksum, flight_checksum_buffer_rotate_xor(
+				  &g_flight_global_countdown_timers, 0x16));
+	checksum = xvt_snapshot_mix_checksum(
+		checksum, (uint32_t)(int16_t)g_mission_file_version);
+	checksum = xvt_snapshot_mix_checksum(
 		checksum,
-		Flight_ChecksumBufferRotateXor(&g_missionHeader, 0xA2));
-	for (flightGroupIndex = 0;
-	     flightGroupIndex < (int16_t)g_missionHeader.numFlightGroups;
-	     flightGroupIndex++) {
-		checksum = XvtSnapshot_MixChecksum(
+		flight_checksum_buffer_rotate_xor(&g_mission_header, 0xA2));
+	for (flight_group_index = 0;
+	     flight_group_index < (int16_t)g_mission_header.num_flight_groups;
+	     flight_group_index++) {
+		checksum = xvt_snapshot_mix_checksum(
 			checksum,
-			Flight_ChecksumBufferRotateXor(
-				&g_missionFlightGroups[flightGroupIndex],
+			flight_checksum_buffer_rotate_xor(
+				&g_mission_flight_groups[flight_group_index],
 				0x562));
 	}
-	checksum = XvtSnapshot_MixChecksum(
+	checksum = xvt_snapshot_mix_checksum(
 		checksum,
-		Flight_ChecksumBufferRotateXor(g_missionMessages,
-					       sizeof(g_missionMessages)));
-	for (goalIndex = 0; goalIndex < 10; goalIndex++) {
-		checksum = XvtSnapshot_MixChecksum(
-			checksum, Flight_ChecksumBufferRotateXor(
-					  g_missionGlobalGoals[goalIndex],
-					  sizeof(g_missionGlobalGoals[0])));
+		flight_checksum_buffer_rotate_xor(g_mission_messages,
+						  sizeof(g_mission_messages)));
+	for (goal_index = 0; goal_index < 10; goal_index++) {
+		checksum = xvt_snapshot_mix_checksum(
+			checksum, flight_checksum_buffer_rotate_xor(
+					  g_mission_global_goals[goal_index],
+					  sizeof(g_mission_global_goals[0])));
 	}
 
-	checksum = XvtSnapshot_MixChecksum(checksum, g_activeFlightPlayerCount);
-	checksum = XvtSnapshot_MixChecksum(checksum, g_worldStateReservedByte);
-	checksum = XvtSnapshot_MixChecksum(checksum, g_craftDataPoolCapacity);
+	checksum = xvt_snapshot_mix_checksum(checksum,
+					     g_active_flight_player_count);
+	checksum = xvt_snapshot_mix_checksum(checksum,
+					     g_world_state_reserved_byte);
 	checksum =
-		XvtSnapshot_MixChecksum(checksum, g_mobileObjectCharDataCount);
+		xvt_snapshot_mix_checksum(checksum, g_craft_data_pool_capacity);
+	checksum = xvt_snapshot_mix_checksum(checksum,
+					     g_mobile_object_char_data_count);
+	checksum = xvt_snapshot_mix_checksum(checksum,
+					     g_projectile_object_slots_total);
+	checksum = xvt_snapshot_mix_checksum(checksum,
+					     g_debris_object_slots_total);
+	checksum = xvt_snapshot_mix_checksum(checksum,
+					     g_world_state_debris_slot_count);
 	checksum =
-		XvtSnapshot_MixChecksum(checksum, g_projectileObjectSlotsTotal);
-	checksum = XvtSnapshot_MixChecksum(checksum, g_debrisObjectSlotsTotal);
+		xvt_snapshot_mix_checksum(checksum, g_local_debris_slot_count);
+	checksum = xvt_snapshot_mix_checksum(checksum,
+					     g_active_region_object_slot_start);
+	checksum = xvt_snapshot_mix_checksum(
+		checksum, g_active_region_craft_object_slot_end);
+	checksum = xvt_snapshot_mix_checksum(
+		checksum, g_mobile_object_char_data_slot_start);
+	checksum = xvt_snapshot_mix_checksum(
+		checksum, g_mobile_object_char_data_slot_end);
+	checksum = xvt_snapshot_mix_checksum(checksum,
+					     g_projectile_object_slot_start);
+	checksum = xvt_snapshot_mix_checksum(checksum,
+					     g_projectile_object_slot_end);
 	checksum =
-		XvtSnapshot_MixChecksum(checksum, g_worldStateDebrisSlotCount);
-	checksum = XvtSnapshot_MixChecksum(checksum, g_localDebrisSlotCount);
-	checksum = XvtSnapshot_MixChecksum(checksum,
-					   g_activeRegionObjectSlotStart);
-	checksum = XvtSnapshot_MixChecksum(checksum,
-					   g_activeRegionCraftObjectSlotEnd);
-	checksum = XvtSnapshot_MixChecksum(checksum,
-					   g_mobileObjectCharDataSlotStart);
-	checksum = XvtSnapshot_MixChecksum(checksum,
-					   g_mobileObjectCharDataSlotEnd);
+		xvt_snapshot_mix_checksum(checksum, g_debris_object_slot_start);
 	checksum =
-		XvtSnapshot_MixChecksum(checksum, g_projectileObjectSlotStart);
-	checksum = XvtSnapshot_MixChecksum(checksum, g_projectileObjectSlotEnd);
-	checksum = XvtSnapshot_MixChecksum(checksum, g_debrisObjectSlotStart);
-	checksum = XvtSnapshot_MixChecksum(checksum, g_debrisObjectSlotEnd);
-	checksum =
-		XvtSnapshot_MixChecksum(checksum, g_explosionObjectSlotStart);
-	checksum = XvtSnapshot_MixChecksum(checksum, g_explosionObjectSlotEnd);
-	checksum = XvtSnapshot_MixChecksum(checksum, g_localTransientSlotStart);
-	checksum = XvtSnapshot_MixChecksum(checksum, g_localDebrisSlotEnd);
-	checksum = XvtSnapshot_MixChecksum(checksum, g_regionMainObjectSlotEnd);
-	checksum = XvtSnapshot_MixChecksum(checksum,
-					   g_regionStaticObjectSlotCount);
-	checksum = XvtSnapshot_MixChecksum(
-		checksum, Flight_ChecksumBufferRotateXor(g_planTable, 0x5500));
-	checksum = XvtSnapshot_MixChecksum(checksum, g_planCount);
-	checksum = XvtSnapshot_MixChecksum(
+		xvt_snapshot_mix_checksum(checksum, g_debris_object_slot_end);
+	checksum = xvt_snapshot_mix_checksum(checksum,
+					     g_explosion_object_slot_start);
+	checksum = xvt_snapshot_mix_checksum(checksum,
+					     g_explosion_object_slot_end);
+	checksum = xvt_snapshot_mix_checksum(checksum,
+					     g_local_transient_slot_start);
+	checksum = xvt_snapshot_mix_checksum(checksum, g_local_debris_slot_end);
+	checksum = xvt_snapshot_mix_checksum(checksum,
+					     g_region_main_object_slot_end);
+	checksum = xvt_snapshot_mix_checksum(checksum,
+					     g_region_static_object_slot_count);
+	checksum = xvt_snapshot_mix_checksum(
 		checksum,
-		Flight_ChecksumBufferRotateXor(g_planOrderData, 0x1FFFF));
-	checksum = XvtSnapshot_MixChecksum(checksum,
-					   g_unusedWorldStateSerializedDword);
-	checksum = XvtSnapshot_MixChecksum(checksum,
-					   (uint16_t)g_gameRandFeedbackState);
-	checksum = XvtSnapshot_MixChecksum(checksum, g_flightConfNewNet);
+		flight_checksum_buffer_rotate_xor(g_plan_table, 0x5500));
+	checksum = xvt_snapshot_mix_checksum(checksum, g_plan_count);
+	checksum = xvt_snapshot_mix_checksum(
+		checksum,
+		flight_checksum_buffer_rotate_xor(g_plan_order_data, 0x1FFFF));
+	checksum = xvt_snapshot_mix_checksum(
+		checksum, g_unused_world_state_serialized_dword);
+	checksum = xvt_snapshot_mix_checksum(
+		checksum, (uint16_t)g_game_rand_feedback_state);
+	checksum = xvt_snapshot_mix_checksum(checksum, g_flight_conf_new_net);
 
-	for (playerIndex = 0; playerIndex < 8; playerIndex++) {
-		if (g_players[playerIndex].participationState != 0) {
-			checksum = XvtSnapshot_MixChecksum(
-				checksum, XvtSnapshot_ChecksumPlayerData(
-						  &g_players[playerIndex]));
+	for (player_index = 0; player_index < 8; player_index++) {
+		if (g_players[player_index].participation_state != 0) {
+			checksum = xvt_snapshot_mix_checksum(
+				checksum, xvt_snapshot_checksum_player_data(
+						  &g_players[player_index]));
 		}
 	}
 	return (int)checksum;

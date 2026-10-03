@@ -9,7 +9,7 @@
 
 /* Starts a flight for command, copied up to 1023 characters, and resets the flight simulation.
  * Returns 1; returns 0 and does nothing when a flight is active or command is NULL. */
-int XvtFlightTask_Begin(const char *command);
+int xvt_flight_task_begin(const char *command);
 /* Advances the flight by one phase step; call only while the task is active, since a lost network
  * session sends any phase before cleanup, idle included, to cleanup with a result of 0. Does not
  * advance while a resync is active. A failed step goes to cleanup. Cleanup releases the mission
@@ -17,25 +17,25 @@ int XvtFlightTask_Begin(const char *command);
  * start succeeded, restores the pre-flight resolution when the mission was entered and it changed,
  * saves the pilot when the result is 1, and starts a music CD fade when CD music is on; the next
  * phase waits out the fade, closes the music CD, runs the entry cleanup and marks the task done. */
-void XvtFlightTask_Update(void);
+void xvt_flight_task_update(void);
 /* 1 from Begin until the task is done or shut down. */
-int XvtFlightTask_IsActive(void);
+int xvt_flight_task_is_active(void);
 /* 1 from Begin through the world-start phase, which also draws the first view. */
-int XvtFlightTask_IsLoading(void);
+int xvt_flight_task_is_loading(void);
 /* 1 once cleanup and the music fade have finished, until Shutdown or the next Begin. */
-int XvtFlightTask_IsComplete(void);
+int xvt_flight_task_is_complete(void);
 /* 1 once world start succeeded, unless the network session was lost before cleanup; otherwise
  * 0. */
-int XvtFlightTask_GetResult(void);
-/* 1 while active with more than one flight player; XvtPort_NetworkRequiresProgress reports it. */
-int XvtFlightTask_ContinuesWithoutFocus(void);
+int xvt_flight_task_get_result(void);
+/* 1 while active with more than one flight player; xvt_port_network_requires_progress reports it. */
+int xvt_flight_task_continues_without_focus(void);
 /* Microseconds until the task next needs an update: the resync's delay while a resync is active or
  * holds input, the frame loop's during frames, one tick while waiting for the first time delta,
  * the CD task's during the fade, and UINT64_MAX when the task asks for no timed wake. */
-uint64_t XvtFlightTask_NextWakeDelayUs(void);
+uint64_t xvt_flight_task_next_wake_delay_us(void);
 /* Leaves relative mouse mode and resets the resync and flight network state. An active flight is
  * released without restoring the resolution, its CD fade is cancelled, the music CD closed and the
  * entry cleanup run. Always leaves the task idle with a result of 0. */
-void XvtFlightTask_Shutdown(void);
+void xvt_flight_task_shutdown(void);
 
 #endif

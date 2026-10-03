@@ -13,7 +13,7 @@ where the two disagree:
   shape        a format string is not "event key=value ...": the event id is
                not a literal two-part dotted name, a word is not key=value,
                or a text value (%s) is not double-quoted
-  bypass       a call to Aeron_Log*, XvtLog_Write or XvtCrashNote_Writef
+  bypass       a call to Aeron_Log*, xvt_log_write or xvt_crash_note_writef
                outside the files that define the macros
   catalog      a catalog entry is malformed, or its text names a field the
                entry does not declare
@@ -22,7 +22,7 @@ XVT_LOG_DEBUG, XVT_LOG_INFO, XVT_LOG_WARN and XVT_LOG_ERROR write levels D,
 I, W and E; XVT_LOG_CRASH, the crash note's macro, writes level C. The log
 header, its source file and the crash note's header are not scanned: they
 define the macros. The crash note's source file is scanned, since it holds
-the XVT_LOG_CRASH call sites, but may name XvtCrashNote_Writef: it defines it.
+the XVT_LOG_CRASH call sites, but may name xvt_crash_note_writef: it defines it.
 One finding per line, "FAIL <kind> <file>:<line> <detail>", then a summary.
 Exit status 0 when nothing is reported, 1 when something is, 2 when the
 catalog cannot be read.
@@ -51,7 +51,7 @@ STRING_LITERALS = re.compile(r'\s*(?:"(?:[^"\\]|\\.)*"\s*)+')
 ONE_LITERAL = re.compile(r'"((?:[^"\\]|\\.)*)"')
 BYPASS = re.compile(
     r"\b(?:Aeron_Log(?:Trace|Verbose|Debug|Info|Warn|Error|Critical|Message|MessageV)"
-    r"|XvtLog_Write|XvtCrashNote_Writef|XVT_LOG_AT)\s*\("
+    r"|xvt_log_write|xvt_crash_note_writef|XVT_LOG_AT)\s*\("
 )
 EVENT_ID = re.compile(r"^[a-z][a-z0-9]*\.[a-z][a-z0-9_]*$")
 FIELD = re.compile(r"^([a-z][a-z0-9_]*)=(.+)$")
@@ -206,7 +206,7 @@ def scan_file(path: Path, root: Path) -> tuple[list[Site], list[Finding]]:
     for match in BYPASS.finditer(mask):
         where = f"{relative}:{line_of(code, match.start())}"
         name = match.group(0).rstrip("( \t\n")
-        if name == "XvtCrashNote_Writef" and path.relative_to(root) == CRASH_SOURCE:
+        if name == "xvt_crash_note_writef" and path.relative_to(root) == CRASH_SOURCE:
             continue
         findings.append(
             Finding("bypass", where, f"{name} is called outside the log header")

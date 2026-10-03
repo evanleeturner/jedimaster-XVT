@@ -9,63 +9,63 @@
 #include "xvt_runtime/snapshot/render_capture.h"
 #include <string.h>
 
-static struct XvtSnapTargetBox g_boxes[XVT_SNAP_TARGET_BOXES];
-static unsigned g_boxCount, g_scope = XVT_SCOPE_COCKPIT;
+static struct xvt_snap_target_box g_boxes[XVT_SNAP_TARGET_BOXES];
+static unsigned g_box_count, g_scope = XVT_SCOPE_COCKPIT;
 
-void XvtRenderDraw_Scope(unsigned scope) { g_scope = scope; }
+void xvt_render_draw_scope(unsigned scope) { g_scope = scope; }
 
-unsigned XvtRenderDraw_ScopeCurrent(void) { return g_scope; }
+unsigned xvt_render_draw_scope_current(void) { return g_scope; }
 
-uint32_t XvtRenderDraw_Color(unsigned index)
+uint32_t xvt_render_draw_color(unsigned index)
 {
 	/* HD colors use the unadjusted DAC palette, independent of classic brightness and pixel format. */
 	index &= 255;
-	unsigned r = g_swPalette[index].r & 63, g = g_swPalette[index].g & 63,
-		 b = g_swPalette[index].b & 63;
+	unsigned r = g_sw_palette[index].r & 63, g = g_sw_palette[index].g & 63,
+		 b = g_sw_palette[index].b & 63;
 	r = (r << 2) | (r >> 4);
 	g = (g << 2) | (g >> 4);
 	b = (b << 2) | (b >> 4);
 	return 0xff000000u | (r << 16) | (g << 8) | b;
 }
 
-void XvtRenderHud_Reset(void)
+void xvt_render_hud_reset(void)
 {
-	g_boxCount = 0;
+	g_box_count = 0;
 	g_scope = XVT_SCOPE_COCKPIT;
 }
 
-void XvtRenderHud_BeginFrame(void) { XvtRenderHud_Reset(); }
+void xvt_render_hud_begin_frame(void) { xvt_render_hud_reset(); }
 
-void XvtRenderHud_Publish(struct XvtRenderSnapshot *out)
+void xvt_render_hud_publish(struct xvt_render_snapshot *out)
 {
-	out->target_box_count = g_boxCount;
-	memcpy(out->target_boxes, g_boxes, g_boxCount * sizeof *g_boxes);
+	out->target_box_count = g_box_count;
+	memcpy(out->target_boxes, g_boxes, g_box_count * sizeof *g_boxes);
 }
 
-void XvtRenderHud_TargetBox(unsigned object, unsigned component, int extent,
-			    int color)
+void xvt_render_hud_target_box(unsigned object, unsigned component, int extent,
+			       int color)
 {
-	struct XvtRenderSnapshot *s = XvtRenderSnapshot_Writer();
-	if (!s || XvtRenderDraw_ScopeCurrent() == XVT_SCOPE_MAP ||
-	    XvtRenderDraw_ScopeCurrent() == XVT_SCOPE_CRT) {
+	struct xvt_render_snapshot *s = xvt_render_snapshot_writer();
+	if (!s || xvt_render_draw_scope_current() == XVT_SCOPE_MAP ||
+	    xvt_render_draw_scope_current() == XVT_SCOPE_CRT) {
 		return;
 	}
-	if (g_boxCount == XVT_SNAP_TARGET_BOXES) {
+	if (g_box_count == XVT_SNAP_TARGET_BOXES) {
 		++s->dropped_records;
 		return;
 	}
-	struct XvtSnapTargetBox *b = &g_boxes[g_boxCount++];
-	*b = (struct XvtSnapTargetBox){
+	struct xvt_snap_target_box *b = &g_boxes[g_box_count++];
+	*b = (struct xvt_snap_target_box){
 		.object = {UINT16_MAX, 0},
 		.component = (uint16_t)component,
 		.color_index = (uint16_t)color,
 		.scope = XVT_SCOPE_COCKPIT,
 		.extent = extent,
-		.world_pos = {g_worldLocX, g_worldLocY, g_worldLocZ}};
-	if (object < (unsigned)(g_regionMainObjectSlotEnd +
-				g_regionStaticObjectSlotCount)) {
-		b->object = (struct XvtSnapObjectId){
+		.world_pos = {g_world_loc_x, g_world_loc_y, g_world_loc_z}};
+	if (object < (unsigned)(g_region_main_object_slot_end +
+				g_region_static_object_slot_count)) {
+		b->object = (struct xvt_snap_object_id){
 			(uint16_t)object,
-			g_objectTable[object].objectSignature};
+			g_object_table[object].object_signature};
 	}
 }

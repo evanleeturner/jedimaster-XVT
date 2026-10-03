@@ -8,14 +8,15 @@
 extern "C" {
 #endif
 
-float Math3D_Dot3(const float *lhs, const float *rhs);
-void Math3D_RotateVec3(float *vecInOut, const float *matrix3x3);
-float Math3D_RotateVec3X(const float *vec, const float *matrix3x3);
-float Math3D_RotateVec3Y(const float *vec, const float *matrix3x3);
-float Math3D_RotateVec3Z(const float *vec, const float *matrix3x3);
-void Math3D_MulMatrix3x3(float *lhsInOut, const float *rhs);
-void Math3D_PreMulTransposedMatrix3x3(float *lhsInOut, const float *rhs);
-void Math3D_BuildAxisAngleMatrix(float *matrix3x3Out, const float *axisAngle);
+float math3d_dot3(const float *lhs, const float *rhs);
+void math3d_rotate_vec3(float *vec_in_out, const float *matrix3x3);
+float math3d_rotate_vec3x(const float *vec, const float *matrix3x3);
+float math3d_rotate_vec3y(const float *vec, const float *matrix3x3);
+float math3d_rotate_vec3z(const float *vec, const float *matrix3x3);
+void math3d_mul_matrix3x3(float *lhs_in_out, const float *rhs);
+void math3d_pre_mul_transposed_matrix3x3(float *lhs_in_out, const float *rhs);
+void math3d_build_axis_angle_matrix(float *matrix3x3_out,
+				    const float *axis_angle);
 
 #ifdef __cplusplus
 }

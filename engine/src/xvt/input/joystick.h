@@ -8,39 +8,39 @@
 extern "C" {
 #endif
 
-struct JoystickCalibration {
-	int axisRangeX; /* wXmax - wXmin; 1 with no device. */
-	int axisRangeY; /* wYmax - wYmin; 1 with no device. */
-	int axisRangeZ; /* wZmax - wZmin; 1 with no device. */
-	/* (axisRangeX >> 1) - wXmax, added to a raw X before scaling; 0 with no
+struct joystick_calibration {
+	int axis_range_x; /* wXmax - wXmin; 1 with no device. */
+	int axis_range_y; /* wYmax - wYmin; 1 with no device. */
+	int axis_range_z; /* wZmax - wZmin; 1 with no device. */
+	/* (axis_range_x >> 1) - wXmax, added to a raw X before scaling; 0 with no
 	 * device. */
-	int axisNormalizeOffsetX;
-	/* (axisRangeY >> 1) - wYmax; 0 with no device. */
-	int axisNormalizeOffsetY;
-	/* (axisRangeZ >> 1) - wZmax; 0 with no device. */
-	int axisNormalizeOffsetZ;
-	/* axisRangeX / 20: a raw X no further than this from g_joyAxisCenterX
+	int axis_normalize_offset_x;
+	/* (axis_range_y >> 1) - wYmax; 0 with no device. */
+	int axis_normalize_offset_y;
+	/* (axis_range_z >> 1) - wZmax; 0 with no device. */
+	int axis_normalize_offset_z;
+	/* axis_range_x / 20: a raw X no further than this from g_joy_axis_center_x
 	 * reads 0. */
-	int axisDeadzoneX;
-	int axisDeadzoneY; /* axisRangeY / 20, the same for Y. */
-	int axisDeadzoneZ; /* axisRangeZ / 20, the same for Z. */
-	int hasPov; /* 1 when the capabilities carry JOYCAPS_HASPOV, else 0. */
+	int axis_deadzone_x;
+	int axis_deadzone_y; /* axis_range_y / 20, the same for Y. */
+	int axis_deadzone_z; /* axis_range_z / 20, the same for Z. */
+	int has_pov; /* 1 when the capabilities carry JOYCAPS_HASPOV, else 0. */
 };
 
-extern int g_joystickCalibrationInitialized[2];
-extern struct JoystickCalibration g_joystickCalibration;
-extern int g_joyAxisCenterZ;
-extern unsigned int g_joyDeviceId[2];
-extern int g_joyAxisCenterX;
-extern int g_joyAxisCenterY;
-extern int g_joystickActive;
-extern int g_joyDeviceIndex;
+extern int g_joystick_calibration_initialized[2];
+extern struct joystick_calibration g_joystick_calibration;
+extern int g_joy_axis_center_z;
+extern unsigned int g_joy_device_id[2];
+extern int g_joy_axis_center_x;
+extern int g_joy_axis_center_y;
+extern int g_joystick_active;
+extern int g_joy_device_index;
 
-void Joystick_PollScaledAxes(int deviceIndex, int *pAxisX, int *pAxisY,
-			     int *pAxisZ, int *pButtons);
-int16_t Joystick_InitializeBackendStub(void);
-int Joystick_PollScaledAxesIfActive(int *pAxisX, int *pAxisY, int *pAxisZ,
-				    int *pAxisR);
+void joystick_poll_scaled_axes(int device_index, int *p_axis_x, int *p_axis_y,
+			       int *p_axis_z, int *p_buttons);
+int16_t joystick_initialize_backend_stub(void);
+int joystick_poll_scaled_axes_if_active(int *p_axis_x, int *p_axis_y,
+					int *p_axis_z, int *p_axis_r);
 
 #ifdef __cplusplus
 }

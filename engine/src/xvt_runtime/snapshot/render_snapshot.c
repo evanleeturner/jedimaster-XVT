@@ -7,57 +7,57 @@
 #include "aeron/aeron.h"
 #include <string.h>
 
-static struct XvtRenderSnapshot g_slots[3];
+static struct xvt_render_snapshot g_slots[3];
 static int g_initialized;
-static int g_snapshotOpen;
-static int g_writeSlot;
-static int g_currentSlot = -1;
-static int g_previousSlot = -1;
-static uint64_t g_snapshotSerial;
-static XvtSceneKind g_sceneKind;
-static uint32_t g_drawOrder;
+static int g_snapshot_open;
+static int g_write_slot;
+static int g_current_slot = -1;
+static int g_previous_slot = -1;
+static uint64_t g_snapshot_serial;
+static xvt_scene_kind g_scene_kind;
+static uint32_t g_draw_order;
 
-void XvtRenderSnapshot_Init(void)
+void xvt_render_snapshot_init(void)
 {
 	if (g_initialized) {
 		return;
 	}
 	memset(g_slots, 0, sizeof(g_slots));
-	g_writeSlot = 0;
-	g_currentSlot = -1;
-	g_previousSlot = -1;
-	g_snapshotSerial = 0;
-	g_snapshotOpen = 0;
-	g_sceneKind = XVT_SCENE_NONE;
+	g_write_slot = 0;
+	g_current_slot = -1;
+	g_previous_slot = -1;
+	g_snapshot_serial = 0;
+	g_snapshot_open = 0;
+	g_scene_kind = XVT_SCENE_NONE;
 	g_initialized = 1;
-	XvtRenderAssets_Init();
-	XvtRenderCapture_Reset();
-	XvtRenderFrontend_Init();
+	xvt_render_assets_init();
+	xvt_render_capture_reset();
+	xvt_render_frontend_init();
 }
 
-void XvtRenderSnapshot_Shutdown(void)
+void xvt_render_snapshot_shutdown(void)
 {
-	XvtRenderAssets_Shutdown();
-	XvtRenderCapture_Reset();
+	xvt_render_assets_shutdown();
+	xvt_render_capture_reset();
 	g_initialized = 0;
-	g_snapshotOpen = 0;
-	g_currentSlot = -1;
-	g_previousSlot = -1;
-	g_sceneKind = XVT_SCENE_NONE;
+	g_snapshot_open = 0;
+	g_current_slot = -1;
+	g_previous_slot = -1;
+	g_scene_kind = XVT_SCENE_NONE;
 }
 
-void XvtRenderSnapshot_BeginFrame(void)
+void xvt_render_snapshot_begin_frame(void)
 {
-	struct XvtRenderSnapshot *snapshot;
-	if (!g_initialized || g_snapshotOpen) {
+	struct xvt_render_snapshot *snapshot;
+	if (!g_initialized || g_snapshot_open) {
 		return;
 	}
-	XvtRenderAssets_BeginFrame();
-	XvtRenderCapture_BeginFrame();
-	snapshot = &g_slots[g_writeSlot];
-	snapshot->snapshot_serial = g_snapshotSerial;
-	g_drawOrder = 0;
-	snapshot->scene_kind = g_sceneKind;
+	xvt_render_assets_begin_frame();
+	xvt_render_capture_begin_frame();
+	snapshot = &g_slots[g_write_slot];
+	snapshot->snapshot_serial = g_snapshot_serial;
+	g_draw_order = 0;
+	snapshot->scene_kind = g_scene_kind;
 	snapshot->dropped_records = 0;
 	snapshot->flight_valid = 0;
 	snapshot->camera.valid = 0;
@@ -78,65 +78,66 @@ void XvtRenderSnapshot_BeginFrame(void)
 	snapshot->opt_asset_count = 0;
 	snapshot->texture_asset_count = 0;
 	snapshot->image_asset_count = 0;
-	g_snapshotOpen = 1;
+	g_snapshot_open = 1;
 }
 
-void XvtRenderSnapshot_SetSceneKind(XvtSceneKind kind)
+void xvt_render_snapshot_set_scene_kind(xvt_scene_kind kind)
 {
 	if (!g_initialized) {
 		return;
 	}
-	g_sceneKind = kind;
-	if (g_snapshotOpen) {
-		g_slots[g_writeSlot].scene_kind = kind;
+	g_scene_kind = kind;
+	if (g_snapshot_open) {
+		g_slots[g_write_slot].scene_kind = kind;
 	}
 }
 
-void XvtRenderSnapshot_Commit(int32_t game_time_ticks, int focused, int paused)
+void xvt_render_snapshot_commit(int32_t game_time_ticks, int focused,
+				int paused)
 {
-	struct XvtRenderSnapshot *snapshot;
+	struct xvt_render_snapshot *snapshot;
 	int slot;
-	if (!g_initialized || !g_snapshotOpen) {
+	if (!g_initialized || !g_snapshot_open) {
 		return;
 	}
-	snapshot = &g_slots[g_writeSlot];
+	snapshot = &g_slots[g_write_slot];
 	snapshot->game_time_ticks = game_time_ticks;
 	snapshot->capture_host_us = Aeron_NowUs();
 	snapshot->focused = focused != 0;
 	snapshot->paused = paused != 0;
-	snapshot->scene_kind = g_sceneKind;
-	XvtRenderCapture_Commit(snapshot, XvtRenderSnapshot_Current());
-	XvtRenderFrontend_Commit(snapshot);
-	g_previousSlot = g_currentSlot;
-	XvtRenderAssets_Export(snapshot);
-	g_currentSlot = g_writeSlot;
+	snapshot->scene_kind = g_scene_kind;
+	xvt_render_capture_commit(snapshot, xvt_render_snapshot_current());
+	xvt_render_frontend_commit(snapshot);
+	g_previous_slot = g_current_slot;
+	xvt_render_assets_export(snapshot);
+	g_current_slot = g_write_slot;
 	/* Preserve both committed slots while the next task tick fills the writer. */
 	for (slot = 0; slot < 3; ++slot) {
-		if (slot != g_currentSlot && slot != g_previousSlot) {
-			g_writeSlot = slot;
+		if (slot != g_current_slot && slot != g_previous_slot) {
+			g_write_slot = slot;
 			break;
 		}
 	}
-	++g_snapshotSerial;
-	g_snapshotOpen = 0;
+	++g_snapshot_serial;
+	g_snapshot_open = 0;
 }
 
-const struct XvtRenderSnapshot *XvtRenderSnapshot_Current(void)
+const struct xvt_render_snapshot *xvt_render_snapshot_current(void)
 {
-	return g_currentSlot >= 0 ? &g_slots[g_currentSlot] : NULL;
+	return g_current_slot >= 0 ? &g_slots[g_current_slot] : NULL;
 }
 
-struct XvtRenderSnapshot *XvtRenderSnapshot_Writer(void)
+struct xvt_render_snapshot *xvt_render_snapshot_writer(void)
 {
-	return g_initialized && g_snapshotOpen ? &g_slots[g_writeSlot] : NULL;
+	return g_initialized && g_snapshot_open ? &g_slots[g_write_slot] : NULL;
 }
 
-uint32_t XvtRenderSnapshot_NextOrder(void)
+uint32_t xvt_render_snapshot_next_order(void)
 {
-	return g_snapshotOpen ? g_drawOrder++ : 0;
+	return g_snapshot_open ? g_draw_order++ : 0;
 }
 
-const struct XvtRenderSnapshot *XvtRenderSnapshot_Previous(void)
+const struct xvt_render_snapshot *xvt_render_snapshot_previous(void)
 {
-	return g_previousSlot >= 0 ? &g_slots[g_previousSlot] : NULL;
+	return g_previous_slot >= 0 ? &g_slots[g_previous_slot] : NULL;
 }

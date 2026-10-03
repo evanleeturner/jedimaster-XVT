@@ -11,800 +11,821 @@
 
 #include <string.h>
 
-/* Nonzero while flight text wraps at g_flightClipRight: a glyph that does not
- * fit moves to the next line, and FlightText_DrawString breaks before a word
- * that does not fit. Set by FlightText_SetWordWrap;
- * FlightLoading_PulseAndDrawProgressScreen, FeDiskIo_ShowRetryFailPrompt
- * and FeDiskIo_ShowFatalErrorMessageAndWaitKey save it and put it back. */
+/* Nonzero while flight text wraps at g_flight_clip_right: a glyph that does not
+ * fit moves to the next line, and flight_text_draw_string breaks before a word
+ * that does not fit. Set by flight_text_set_word_wrap;
+ * flight_loading_pulse_and_draw_progress_screen, fe_disk_io_show_retry_fail_prompt
+ * and fe_disk_io_show_fatal_error_message_and_wait_key save it and put it back. */
 // GLOBAL: XVT 0x9CD270
-int16_t g_flightWordWrapEnabled;
+int16_t g_flight_word_wrap_enabled;
 /* Nonzero while each wrap and newline first fills the rest of the line with
- * g_flightTextBgColor. Set by FlightText_SetClearLineBackground;
- * FlightLoading_PulseAndDrawProgressScreen, FeDiskIo_ShowRetryFailPrompt
- * and FeDiskIo_ShowFatalErrorMessageAndWaitKey save it and put it back. */
+ * g_flight_text_bg_color. Set by flight_text_set_clear_line_background;
+ * flight_loading_pulse_and_draw_progress_screen, fe_disk_io_show_retry_fail_prompt
+ * and fe_disk_io_show_fatal_error_message_and_wait_key save it and put it back. */
 // GLOBAL: XVT 0x9FE7E4
-int16_t g_flightClearLineBgEnabled;
+int16_t g_flight_clear_line_bg_enabled;
 /* Never set to anything but its starting 0, and never used:
- * FlightLoading_PulseAndDrawProgressScreen, FeDiskIo_ShowRetryFailPrompt
- * and FeDiskIo_ShowFatalErrorMessageAndWaitKey only save it and put it
+ * flight_loading_pulse_and_draw_progress_screen, fe_disk_io_show_retry_fail_prompt
+ * and fe_disk_io_show_fatal_error_message_and_wait_key only save it and put it
  * back. */
 // GLOBAL: XVT 0xA07C64
-int16_t g_flightTextUnusedState = 0;
+int16_t g_flight_text_unused_state = 0;
 /* Text cursor row in pixels on the drawing surface: the top of the next
- * glyph. Written by FlightText_SetCursor and by the four glyph drawers on
- * each newline and wrap; FlightLoading_PulseAndDrawProgressScreen,
- * FeDiskIo_ShowRetryFailPrompt and FeDiskIo_ShowFatalErrorMessageAndWaitKey
+ * glyph. Written by flight_text_set_cursor and by the four glyph drawers on
+ * each newline and wrap; flight_loading_pulse_and_draw_progress_screen,
+ * fe_disk_io_show_retry_fail_prompt and fe_disk_io_show_fatal_error_message_and_wait_key
  * save it and put it back. */
 // GLOBAL: XVT 0xA08102
-int16_t g_flightCursorY = 0;
+int16_t g_flight_cursor_y = 0;
 /* Text cursor column in pixels on the drawing surface: the left edge of the
- * next glyph. Written by FlightText_SetCursor and by the four glyph drawers,
+ * next glyph. Written by flight_text_set_cursor and by the four glyph drawers,
  * which advance it by each glyph's width and reset it on newline and wrap;
- * FlightLoading_PulseAndDrawProgressScreen, FeDiskIo_ShowRetryFailPrompt
- * and FeDiskIo_ShowFatalErrorMessageAndWaitKey save it and put it back. */
+ * flight_loading_pulse_and_draw_progress_screen, fe_disk_io_show_retry_fail_prompt
+ * and fe_disk_io_show_fatal_error_message_and_wait_key save it and put it back. */
 // GLOBAL: XVT 0xA08108
-int16_t g_flightCursorX = 0;
+int16_t g_flight_cursor_x = 0;
 /* Shared buffer where text is built before it is drawn or handed to
- * msg_addMessagePtr. Many functions write it, chiefly FlightText_SetScratch,
- * FlightText_AppendScratchString, FlightText_AppendScratchChar,
- * FlightText_FormatScratchInt and sprintf calls in hud.c. None of the
+ * msg_add_message_ptr. Many functions write it, chiefly flight_text_set_scratch,
+ * flight_text_append_scratch_string, flight_text_append_scratch_char,
+ * flight_text_format_scratch_int and sprintf calls in hud.c. None of the
  * FlightText functions checks its 256-byte size. */
 // GLOBAL: XVT 0x9A1ED0
-char g_flightTextScratchBuffer[256];
+char g_flight_text_scratch_buffer[256];
 /* Palette index of the set pixels of the next glyphs. Many functions write
- * it, chiefly FlightText_SetColor; Hud_ShowFlightMessagePane and
- * Mfd_DrawMessageLogPage step it by one. */
+ * it, chiefly flight_text_set_color; hud_show_flight_message_pane and
+ * mfd_draw_message_log_page step it by one. */
 // GLOBAL: XVT 0x9A807A
-uint8_t g_flightTextColorIndex;
+uint8_t g_flight_text_color_index;
 /* Palette index of the unset pixels of each glyph cell, and the color
- * FlightSw_FillRectOrBorder8bpp and FlightSw_FillRectOrBorder16bpp fill
+ * flight_sw_fill_rect_or_border8bpp and flight_sw_fill_rect_or_border16bpp fill
  * with, as for the rest of a line or the clip rectangle. Many functions
- * write it, chiefly FlightText_SetBackgroundColor. */
+ * write it, chiefly flight_text_set_background_color. */
 // GLOBAL: XVT 0xA08100
-uint8_t g_flightTextBgColor;
-/* Palette index of the drop shadow drawn while g_flightTextShadowEnabled is
- * set. Written by FlightText_SetShadowColor; FeDiskIo_InitGlobalBuffers,
- * FeDiskIo_ShowRetryFailPrompt and FeDiskIo_ShowFatalErrorMessageAndWaitKey
+uint8_t g_flight_text_bg_color;
+/* Palette index of the drop shadow drawn while g_flight_text_shadow_enabled is
+ * set. Written by flight_text_set_shadow_color; fe_disk_io_init_global_buffers,
+ * fe_disk_io_show_retry_fail_prompt and fe_disk_io_show_fatal_error_message_and_wait_key
  * set it to 0, and those two prompts and
- * FlightLoading_PulseAndDrawProgressScreen put back what they saved. */
+ * flight_loading_pulse_and_draw_progress_screen put back what they saved. */
 // GLOBAL: XVT 0x9E8F52
-uint8_t g_flightTextShadowColor;
-/* Font size class last given to FlightText_SetFontTier, its only writer,
+uint8_t g_flight_text_shadow_color;
+/* Font size class last given to flight_text_set_font_tier, its only writer,
  * which has the table of fonts; every caller passes 0, 1 or 2.
- * FeDiskIo_LockGlobalBuffers reads it to choose g_flightFontGlyphTableSw
+ * fe_disk_io_lock_global_buffers reads it to choose g_flight_font_glyph_table_sw
  * again after relocking the fonts. */
 // GLOBAL: XVT 0x9D80C8
-uint8_t g_flightFontTier = 0;
+uint8_t g_flight_font_tier = 0;
 /* 1 when the current font has lowercase glyphs. When it is 0 and
- * g_flightFontTier is not 0, lowercase letters draw and measure as capitals.
- * Only FlightText_SetFontTier writes it. */
+ * g_flight_font_tier is not 0, lowercase letters draw and measure as capitals.
+ * Only flight_text_set_font_tier writes it. */
 // GLOBAL: XVT 0x9A1FF4
-uint8_t g_flightFontHasLowercase = 0;
+uint8_t g_flight_font_has_lowercase = 0;
 /* Line height of the current font in pixels: 5 for the micro font, 8 for the
- * small and 10 for the medium. Only FlightText_SetFontTier writes it. */
+ * small and 10 for the medium. Only flight_text_set_font_tier writes it. */
 // GLOBAL: XVT 0x9A20AE
-uint8_t g_flightFontLineHeight = 0;
+uint8_t g_flight_font_line_height = 0;
 /* Digit width in pixels that the HUD lays numbers out with: 3 for the micro
- * font, 4 for the small and 5 for the medium. Only FlightText_SetFontTier
+ * font, 4 for the small and 5 for the medium. Only flight_text_set_font_tier
  * writes it; nothing derives it from the glyphs. */
 // GLOBAL: XVT 0x9ED232
-uint8_t g_flightFontDigitWidth = 0;
-/* Glyph records of the current font, one every g_flightFontGlyphStrideSw
+uint8_t g_flight_font_digit_width = 0;
+/* Glyph records of the current font, one every g_flight_font_glyph_stride_sw
  * bytes from code 0x20: an advance width byte, a height byte, then the rows.
- * Written by FlightText_SetFontTier, and by FeDiskIo_LockGlobalBuffers,
- * which picks by g_flightFontTier with another mapping (0 medium, 1 small,
+ * Written by flight_text_set_font_tier, and by fe_disk_io_lock_global_buffers,
+ * which picks by g_flight_font_tier with another mapping (0 medium, 1 small,
  * 2 micro) and leaves the stride and line height alone. */
 // GLOBAL: XVT 0x9D7674
-uint8_t *g_flightFontGlyphTableSw = 0;
-/* Bytes per glyph record in g_flightFontGlyphTableSw: 42 for the micro font,
- * 66 for the small and 82 for the medium. Only FlightText_SetFontTier writes
+uint8_t *g_flight_font_glyph_table_sw = 0;
+/* Bytes per glyph record in g_flight_font_glyph_table_sw: 42 for the micro font,
+ * 66 for the small and 82 for the medium. Only flight_text_set_font_tier writes
  * it. */
 // GLOBAL: XVT 0x9D8C02
-uint16_t g_flightFontGlyphStrideSw = 0;
-/* The small font, MICRO48.FNT, in the memory of g_flightSmallFontHandle.
- * FeDiskIo_InitGlobalBuffers sets it to NULL, then locks the handle and
- * loads the file; FeDiskIo_LockGlobalBuffers locks it again. */
+uint16_t g_flight_font_glyph_stride_sw = 0;
+/* The small font, MICRO48.FNT, in the memory of g_flight_small_font_handle.
+ * fe_disk_io_init_global_buffers sets it to NULL, then locks the handle and
+ * loads the file; fe_disk_io_lock_global_buffers locks it again. */
 // GLOBAL: XVT 0x9A7800
-uint8_t *g_flightFontSmallSw = 0;
-/* The medium font, MICRO64.FNT, in the memory of g_flightMediumFontHandle,
- * locked by FeDiskIo_InitGlobalBuffers and FeDiskIo_LockGlobalBuffers. At
- * 320x240 FeDiskIo_InitGlobalBuffers loads no file into it. */
+uint8_t *g_flight_font_small_sw = 0;
+/* The medium font, MICRO64.FNT, in the memory of g_flight_medium_font_handle,
+ * locked by fe_disk_io_init_global_buffers and fe_disk_io_lock_global_buffers. At
+ * 320x240 fe_disk_io_init_global_buffers loads no file into it. */
 // GLOBAL: XVT 0x9E965C
-uint8_t *g_flightFontMediumSw = 0;
-/* The micro font, MICRO32.FNT, in the memory of g_flightMicroFontHandle,
- * locked and loaded by FeDiskIo_InitGlobalBuffers and locked again by
- * FeDiskIo_LockGlobalBuffers. */
+uint8_t *g_flight_font_medium_sw = 0;
+/* The micro font, MICRO32.FNT, in the memory of g_flight_micro_font_handle,
+ * locked and loaded by fe_disk_io_init_global_buffers and locked again by
+ * fe_disk_io_lock_global_buffers. */
 // GLOBAL: XVT 0xA07CC0
-uint8_t *g_flightFontMicroSw = 0;
+uint8_t *g_flight_font_micro_sw = 0;
 /* Left edge in pixels of the clip rectangle for flight text,
- * fills and lines. Written by FlightText_SetClipRect;
- * FlightLoading_PulseAndDrawProgressScreen, FeDiskIo_ShowRetryFailPrompt
- * and FeDiskIo_ShowFatalErrorMessageAndWaitKey save it and put it back. */
+ * fills and lines. Written by flight_text_set_clip_rect;
+ * flight_loading_pulse_and_draw_progress_screen, fe_disk_io_show_retry_fail_prompt
+ * and fe_disk_io_show_fatal_error_message_and_wait_key save it and put it back. */
 // GLOBAL: XVT 0x9A6FE0
-int16_t g_flightClipLeft = 0;
+int16_t g_flight_clip_left = 0;
 /* Right edge, exclusive, in pixels of the clip rectangle for flight text,
- * fills and lines. Written by FlightText_SetClipRect;
- * FlightLoading_PulseAndDrawProgressScreen, FeDiskIo_ShowRetryFailPrompt
- * and FeDiskIo_ShowFatalErrorMessageAndWaitKey save it and put it back. */
+ * fills and lines. Written by flight_text_set_clip_rect;
+ * flight_loading_pulse_and_draw_progress_screen, fe_disk_io_show_retry_fail_prompt
+ * and fe_disk_io_show_fatal_error_message_and_wait_key save it and put it back. */
 // GLOBAL: XVT 0x9D8C00
-int16_t g_flightClipRight = 0;
+int16_t g_flight_clip_right = 0;
 /* Bottom edge, exclusive, in pixels of the clip rectangle for flight text,
- * fills and lines. Written by FlightText_SetClipRect;
- * FlightLoading_PulseAndDrawProgressScreen, FeDiskIo_ShowRetryFailPrompt
- * and FeDiskIo_ShowFatalErrorMessageAndWaitKey save it and put it back. */
+ * fills and lines. Written by flight_text_set_clip_rect;
+ * flight_loading_pulse_and_draw_progress_screen, fe_disk_io_show_retry_fail_prompt
+ * and fe_disk_io_show_fatal_error_message_and_wait_key save it and put it back. */
 // GLOBAL: XVT 0xA07CE4
-int16_t g_flightClipBottom = 0;
+int16_t g_flight_clip_bottom = 0;
 /* Top edge in pixels of the clip rectangle for flight text,
- * fills and lines. Written by FlightText_SetClipRect;
- * FlightLoading_PulseAndDrawProgressScreen, FeDiskIo_ShowRetryFailPrompt
- * and FeDiskIo_ShowFatalErrorMessageAndWaitKey save it and put it back. */
+ * fills and lines. Written by flight_text_set_clip_rect;
+ * flight_loading_pulse_and_draw_progress_screen, fe_disk_io_show_retry_fail_prompt
+ * and fe_disk_io_show_fatal_error_message_and_wait_key save it and put it back. */
 // GLOBAL: XVT 0xA0813C
-int16_t g_flightClipTop = 0;
+int16_t g_flight_clip_top = 0;
 /* Palette indices for the color codes 0x40 to 0x5F that
- * FlightText_SetColor, FlightText_SetBackgroundColor and
- * FlightText_SetShadowColor accept: 0x40 to 0x53 give 0x2C to 0x3F in order;
+ * flight_text_set_color, flight_text_set_background_color and
+ * flight_text_set_shadow_color accept: 0x40 to 0x53 give 0x2C to 0x3F in order;
  * 0x54 to 0x57 give 0xD5, 0xD5, 0xD4 and 0xD3; 0x58 to 0x5F give 0x2C to
  * 0x2F twice. */
 // GLOBAL: XVT 0x524080
-const uint8_t g_flightCharToColorLut[32] = {
+const uint8_t g_flight_char_to_color_lut[32] = {
 	0x2c, 0x2d, 0x2e, 0x2f, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36,
 	0x37, 0x38, 0x39, 0x3a, 0x3b, 0x3c, 0x3d, 0x3e, 0x3f, 0xd5, 0xd5,
 	0xd4, 0xd3, 0x2c, 0x2d, 0x2e, 0x2f, 0x2c, 0x2d, 0x2e, 0x2f,
 };
 /* Place value by digit position, counted from the right starting at 1: 1, 10,
  * 100, 1,000 and 10,000 for positions 1 to 5. Entry 0 is 1; entries 6 and 7
- * are 0. Read by FlightText_DrawDecimalNumber and msg_emitInFlightMessage. */
+ * are 0. Read by flight_text_draw_decimal_number and msg_emit_in_flight_message. */
 // GLOBAL: XVT 0x520EB0
-const uint16_t g_flightTextDecimalDivisors[8] = {1,    1,     10, 100,
-						 1000, 10000, 0,  0};
-/* Nonzero while glyphs get a drop shadow in g_flightTextShadowColor: each
+const uint16_t g_flight_text_decimal_divisors[8] = {1,	  1,	 10, 100,
+						    1000, 10000, 0,  0};
+/* Nonzero while glyphs get a drop shadow in g_flight_text_shadow_color: each
  * row's set pixels repeated one pixel right on the row below, the drawn cell
  * one pixel wider. No setter; many functions write it directly, chiefly
  * hud.c drawing functions, which set 0 before their text, and
- * FlightAlert_DrawBox and Hud_SetupReadyMessagePaneText, which set 1. */
+ * flight_alert_draw_box and hud_setup_ready_message_pane_text, which set 1. */
 // GLOBAL: XVT 0x9EC464
-uint8_t g_flightTextShadowEnabled = 0;
+uint8_t g_flight_text_shadow_enabled = 0;
 
 /* Draws one character of the current font at the text cursor into an 8-bit
  * surface, for fonts whose rows are one byte, stored 2 bytes apart, top bit
- * leftmost. Set pixels take g_flightTextColorIndex, shadow pixels
- * g_flightTextShadowColor and the rest of the cell g_flightTextBgColor; all
- * clip to the g_flightClip rectangle. Advances g_flightCursorX by the glyph's
- * advance width. A newline moves the cursor to g_flightClipLeft and
- * g_flightFontLineHeight down; other codes below 0x20 draw nothing. With word
- * wrap on, a glyph that would reach g_flightClipRight first moves to the next
+ * leftmost. Set pixels take g_flight_text_color_index, shadow pixels
+ * g_flight_text_shadow_color and the rest of the cell g_flight_text_bg_color; all
+ * clip to the g_flightClip rectangle. Advances g_flight_cursor_x by the glyph's
+ * advance width. A newline moves the cursor to g_flight_clip_left and
+ * g_flight_font_line_height down; other codes below 0x20 draw nothing. With word
+ * wrap on, a glyph that would reach g_flight_clip_right first moves to the next
  * line, the glyph's height plus 2 down, and the cursor does the same after a
  * glyph that reaches it; each newline and wrap first clears the rest of the
- * line when g_flightClearLineBgEnabled is set. Nothing calls this:
- * FlightRender_InstallCallbacks never puts it in g_flightDrawCharFn. */
+ * line when g_flight_clear_line_bg_enabled is set. Nothing calls this:
+ * flight_render_install_callbacks never puts it in g_flight_draw_char_fn. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x40F050
-void FlightText_DrawNarrowGlyph8bpp(uint8_t ch)
+void flight_text_draw_narrow_glyph8bpp(uint8_t ch)
 {
-	uint16_t glyphAdvance;
-	int glyphRowCount;
-	int glyphWidth;
-	uint8_t glyphHeight;
-	uint16_t wrapLineHeight;
-	const uint8_t *rowData;
-	int lineOffset;
+	uint16_t glyph_advance;
+	int glyph_row_count;
+	int glyph_width;
+	uint8_t glyph_height;
+	uint16_t wrap_line_height;
+	const uint8_t *row_data;
+	int line_offset;
 	uint8_t *destination;
 	int line;
-	uint8_t normalizedChar;
-	int drawX;
-	int pixelCount;
-	int addressEachRowSeparately;
-	uint8_t glyphBits;
-	uint8_t shadowBits;
-	uint8_t paletteIndex;
-	uint8_t *rowStart;
+	uint8_t normalized_char;
+	int draw_x;
+	int pixel_count;
+	int address_each_row_separately;
+	uint8_t glyph_bits;
+	uint8_t shadow_bits;
+	uint8_t palette_index;
+	uint8_t *row_start;
 #ifndef XVT_MODERN
-	unsigned int pixelOffset;
+	unsigned int pixel_offset;
 	unsigned int page;
-	int clippedBottom;
+	int clipped_bottom;
 #endif
 
 	if (ch == '\n') {
-		if (g_flightClearLineBgEnabled != 0) {
-			FlightText_ClearRemainingLineBackground8bpp();
+		if (g_flight_clear_line_bg_enabled != 0) {
+			flight_text_clear_remaining_line_background8bpp();
 		}
-		g_flightCursorX = g_flightClipLeft;
-		g_flightCursorY += g_flightFontLineHeight;
+		g_flight_cursor_x = g_flight_clip_left;
+		g_flight_cursor_y += g_flight_font_line_height;
 		return;
 	}
 	if (ch < ' ') {
 		return;
 	}
 
-	normalizedChar = ch;
-	if (g_flightFontTier != 0 && g_flightFontHasLowercase == 0 &&
+	normalized_char = ch;
+	if (g_flight_font_tier != 0 && g_flight_font_has_lowercase == 0 &&
 	    ch >= 'a' && ch <= 'z') {
-		normalizedChar = ch - ('a' - 'A');
+		normalized_char = ch - ('a' - 'A');
 	}
-	rowData = &g_flightFontGlyphTableSw[g_flightFontGlyphStrideSw *
-					    (uint8_t)(normalizedChar - ' ')];
-	glyphAdvance = *rowData++;
-	glyphWidth = glyphAdvance;
-	glyphHeight = *rowData++;
-	if (glyphWidth + g_flightCursorX >= g_flightClipRight &&
-	    g_flightWordWrapEnabled != 0) {
-		if (g_flightClearLineBgEnabled != 0) {
-			FlightText_ClearRemainingLineBackground8bpp();
+	row_data =
+		&g_flight_font_glyph_table_sw[g_flight_font_glyph_stride_sw *
+					      (uint8_t)(normalized_char - ' ')];
+	glyph_advance = *row_data++;
+	glyph_width = glyph_advance;
+	glyph_height = *row_data++;
+	if (glyph_width + g_flight_cursor_x >= g_flight_clip_right &&
+	    g_flight_word_wrap_enabled != 0) {
+		if (g_flight_clear_line_bg_enabled != 0) {
+			flight_text_clear_remaining_line_background8bpp();
 		}
-		g_flightCursorX = g_flightClipLeft;
-		g_flightCursorY += glyphHeight + 2;
+		g_flight_cursor_x = g_flight_clip_left;
+		g_flight_cursor_y += glyph_height + 2;
 	}
 
 #ifdef XVT_MODERN
-	XvtCockpitPages_RecordGlyph(normalizedChar, glyphAdvance, glyphHeight,
-				    1);
-	XvtCockpitMessages_RecordGlyph(normalizedChar, glyphAdvance,
-				       glyphHeight, 1);
+	xvt_cockpit_pages_record_glyph(normalized_char, glyph_advance,
+				       glyph_height, 1);
+	xvt_cockpit_messages_record_glyph(normalized_char, glyph_advance,
+					  glyph_height, 1);
 #endif
-	shadowBits = 0;
-	addressEachRowSeparately = 0;
-	line = g_flightCursorY;
-	if (line < g_flightClipTop) {
-		line = g_flightClipTop;
+	shadow_bits = 0;
+	address_each_row_separately = 0;
+	line = g_flight_cursor_y;
+	if (line < g_flight_clip_top) {
+		line = g_flight_clip_top;
 	}
 #ifdef XVT_MODERN
 	/* Fully clipped glyphs still advance the cursor, without looking up a row. */
-	lineOffset =
-		line < g_flightClipBottom ? FlightSw_GetLineOffset(line) : 0;
+	line_offset = line < g_flight_clip_bottom
+			      ? flight_sw_get_line_offset(line)
+			      : 0;
 #else
-	lineOffset = FlightSw_GetLineOffset(line);
+	line_offset = flight_sw_get_line_offset(line);
 #endif
 #ifndef XVT_MODERN
-	if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
-	    g_flightSwFramebufferBase == g_swFramebufferBase) {
-		page = lineOffset / g_vesaPageSizeBytes;
-		lineOffset %= g_vesaPageSizeBytes;
-		RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
-		clippedBottom = g_flightCursorY + glyphHeight + 1;
-		if (clippedBottom > g_flightClipBottom) {
-			clippedBottom = g_flightClipBottom;
+	if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
+	    g_flight_sw_framebuffer_base == g_sw_framebuffer_base) {
+		page = line_offset / g_vesa_page_size_bytes;
+		line_offset %= g_vesa_page_size_bytes;
+		rts_vga2_set_current_page((uint8_t)g_vesa_window,
+					  (uint16_t)page);
+		clipped_bottom = g_flight_cursor_y + glyph_height + 1;
+		if (clipped_bottom > g_flight_clip_bottom) {
+			clipped_bottom = g_flight_clip_bottom;
 		}
-		if (lineOffset + g_surfacePitch * (clippedBottom - line) >
+		if (line_offset + g_surface_pitch * (clipped_bottom - line) >
 		    0xFFFF) {
-			addressEachRowSeparately = 1;
+			address_each_row_separately = 1;
 		}
 	}
 #endif
-	if (g_flightSwFramebufferBase != g_swFramebufferBase) {
-		addressEachRowSeparately = 1;
+	if (g_flight_sw_framebuffer_base != g_sw_framebuffer_base) {
+		address_each_row_separately = 1;
 	}
 
-	if (addressEachRowSeparately == 0) {
-		destination = g_flightSwFramebufferBase + lineOffset;
-		wrapLineHeight = glyphHeight;
-		line = g_flightCursorY;
-		glyphRowCount = wrapLineHeight;
-		if (g_flightCursorY + glyphRowCount > line) {
+	if (address_each_row_separately == 0) {
+		destination = g_flight_sw_framebuffer_base + line_offset;
+		wrap_line_height = glyph_height;
+		line = g_flight_cursor_y;
+		glyph_row_count = wrap_line_height;
+		if (g_flight_cursor_y + glyph_row_count > line) {
 			do {
-				pixelCount = glyphWidth;
-				glyphBits = *rowData;
-				if (g_flightTextShadowEnabled != 0) {
-					++pixelCount;
+				pixel_count = glyph_width;
+				glyph_bits = *row_data;
+				if (g_flight_text_shadow_enabled != 0) {
+					++pixel_count;
 				}
-				drawX = g_flightCursorX;
-				if (drawX < g_flightClipLeft) {
-					if (g_flightClipLeft - drawX >=
-					    pixelCount) {
+				draw_x = g_flight_cursor_x;
+				if (draw_x < g_flight_clip_left) {
+					if (g_flight_clip_left - draw_x >=
+					    pixel_count) {
 						break;
 					}
-					pixelCount = drawX + pixelCount -
-						     g_flightClipLeft;
-					glyphBits <<= g_flightClipLeft - drawX;
-					drawX = g_flightClipLeft;
+					pixel_count = draw_x + pixel_count -
+						      g_flight_clip_left;
+					glyph_bits <<=
+						g_flight_clip_left - draw_x;
+					draw_x = g_flight_clip_left;
 				}
-				if (g_flightClipBottom <= line) {
+				if (g_flight_clip_bottom <= line) {
 					break;
 				}
-				if (g_flightClipTop <= line) {
-					if (drawX + pixelCount >
-					    g_flightClipRight) {
-						pixelCount = g_flightClipRight -
-							     drawX;
-						if (pixelCount <= 0) {
+				if (g_flight_clip_top <= line) {
+					if (draw_x + pixel_count >
+					    g_flight_clip_right) {
+						pixel_count =
+							g_flight_clip_right -
+							draw_x;
+						if (pixel_count <= 0) {
 							break;
 						}
 					}
-					rowStart = &destination[drawX];
-					while (pixelCount-- != 0) {
-						if ((glyphBits & 0x80u) != 0) {
-							paletteIndex =
-								g_flightTextColorIndex;
+					row_start = &destination[draw_x];
+					while (pixel_count-- != 0) {
+						if ((glyph_bits & 0x80u) != 0) {
+							palette_index =
+								g_flight_text_color_index;
 						} else if (
-							g_flightTextShadowEnabled !=
+							g_flight_text_shadow_enabled !=
 								0 &&
-							(shadowBits & 0x80u) !=
+							(shadow_bits & 0x80u) !=
 								0) {
-							paletteIndex =
-								g_flightTextShadowColor;
+							palette_index =
+								g_flight_text_shadow_color;
 						} else {
-							paletteIndex =
-								g_flightTextBgColor;
+							palette_index =
+								g_flight_text_bg_color;
 						}
-						*rowStart++ = paletteIndex;
-						glyphBits <<= 1;
-						shadowBits <<= 1;
+						*row_start++ = palette_index;
+						glyph_bits <<= 1;
+						shadow_bits <<= 1;
 					}
-					destination += FlightSw_GetLinePitch();
+					destination +=
+						flight_sw_get_line_pitch();
 				}
-				shadowBits = *rowData;
-				rowData += 2;
+				shadow_bits = *row_data;
+				row_data += 2;
 				++line;
-				shadowBits >>= 1;
-			} while (glyphRowCount + g_flightCursorY > line);
+				shadow_bits >>= 1;
+			} while (glyph_row_count + g_flight_cursor_y > line);
 		}
 	} else {
-		line = g_flightCursorY;
-		wrapLineHeight = glyphHeight;
-		glyphRowCount = wrapLineHeight;
-		if (g_flightCursorY + glyphRowCount > line) {
+		line = g_flight_cursor_y;
+		wrap_line_height = glyph_height;
+		glyph_row_count = wrap_line_height;
+		if (g_flight_cursor_y + glyph_row_count > line) {
 			do {
-				pixelCount = glyphWidth;
-				glyphBits = *rowData;
-				if (g_flightTextShadowEnabled != 0) {
-					++pixelCount;
+				pixel_count = glyph_width;
+				glyph_bits = *row_data;
+				if (g_flight_text_shadow_enabled != 0) {
+					++pixel_count;
 				}
-				drawX = g_flightCursorX;
-				if (drawX < g_flightClipLeft) {
-					if (g_flightClipLeft - drawX >=
-					    pixelCount) {
+				draw_x = g_flight_cursor_x;
+				if (draw_x < g_flight_clip_left) {
+					if (g_flight_clip_left - draw_x >=
+					    pixel_count) {
 						break;
 					}
-					pixelCount = drawX + pixelCount -
-						     g_flightClipLeft;
-					glyphBits <<= g_flightClipLeft - drawX;
-					drawX = g_flightClipLeft;
+					pixel_count = draw_x + pixel_count -
+						      g_flight_clip_left;
+					glyph_bits <<=
+						g_flight_clip_left - draw_x;
+					draw_x = g_flight_clip_left;
 				}
-				if (g_flightClipBottom <= line) {
+				if (g_flight_clip_bottom <= line) {
 					break;
 				}
-				if (g_flightClipTop <= line) {
-					if (drawX + pixelCount >
-					    g_flightClipRight) {
-						pixelCount = g_flightClipRight -
-							     drawX;
-						if (pixelCount <= 0) {
+				if (g_flight_clip_top <= line) {
+					if (draw_x + pixel_count >
+					    g_flight_clip_right) {
+						pixel_count =
+							g_flight_clip_right -
+							draw_x;
+						if (pixel_count <= 0) {
 							break;
 						}
 					}
 #ifdef XVT_MODERN
-					rowStart =
-						&g_flightSwFramebufferBase
-							[FlightSw_GetLineOffset(
+					row_start =
+						&g_flight_sw_framebuffer_base
+							[flight_sw_get_line_offset(
 								 line) +
-							 drawX];
+							 draw_x];
 #else
-					pixelOffset =
-						drawX +
-						FlightSw_GetLineOffset(line);
-					if (g_flightResolutionMode !=
+					pixel_offset =
+						draw_x +
+						flight_sw_get_line_offset(line);
+					if (g_flight_resolution_mode !=
 						    FLIGHT_RESOLUTION_320X240 &&
-					    g_flightSwFramebufferBase ==
-						    g_swFramebufferBase) {
-						page = pixelOffset /
-						       g_vesaPageSizeBytes;
-						pixelOffset %=
-							g_vesaPageSizeBytes;
-						RtsVga2_SetCurrentPage(
-							(uint8_t)g_vesaWindow,
+					    g_flight_sw_framebuffer_base ==
+						    g_sw_framebuffer_base) {
+						page = pixel_offset /
+						       g_vesa_page_size_bytes;
+						pixel_offset %=
+							g_vesa_page_size_bytes;
+						rts_vga2_set_current_page(
+							(uint8_t)g_vesa_window,
 							(uint16_t)page);
 					}
-					rowStart = &g_flightSwFramebufferBase
-							   [pixelOffset];
+					row_start =
+						&g_flight_sw_framebuffer_base
+							[pixel_offset];
 #endif
-					while (pixelCount-- != 0) {
-						if ((glyphBits & 0x80u) != 0) {
-							paletteIndex =
-								g_flightTextColorIndex;
+					while (pixel_count-- != 0) {
+						if ((glyph_bits & 0x80u) != 0) {
+							palette_index =
+								g_flight_text_color_index;
 						} else if (
-							g_flightTextShadowEnabled !=
+							g_flight_text_shadow_enabled !=
 								0 &&
-							(shadowBits & 0x80u) !=
+							(shadow_bits & 0x80u) !=
 								0) {
-							paletteIndex =
-								g_flightTextShadowColor;
+							palette_index =
+								g_flight_text_shadow_color;
 						} else {
-							paletteIndex =
-								g_flightTextBgColor;
+							palette_index =
+								g_flight_text_bg_color;
 						}
-						*rowStart++ = paletteIndex;
-						glyphBits <<= 1;
-						shadowBits <<= 1;
+						*row_start++ = palette_index;
+						glyph_bits <<= 1;
+						shadow_bits <<= 1;
 					}
 				}
-				shadowBits = *rowData;
-				rowData += 2;
+				shadow_bits = *row_data;
+				row_data += 2;
 				++line;
-				shadowBits >>= 1;
-			} while (glyphRowCount + g_flightCursorY > line);
+				shadow_bits >>= 1;
+			} while (glyph_row_count + g_flight_cursor_y > line);
 		}
 	}
 
-	g_flightCursorX += glyphAdvance;
-	if (g_flightClipRight <= g_flightCursorX &&
-	    g_flightWordWrapEnabled != 0) {
-		if (g_flightClearLineBgEnabled != 0) {
-			FlightText_ClearRemainingLineBackground8bpp();
+	g_flight_cursor_x += glyph_advance;
+	if (g_flight_clip_right <= g_flight_cursor_x &&
+	    g_flight_word_wrap_enabled != 0) {
+		if (g_flight_clear_line_bg_enabled != 0) {
+			flight_text_clear_remaining_line_background8bpp();
 		}
-		g_flightCursorX = g_flightClipLeft;
-		g_flightCursorY += wrapLineHeight + 2;
+		g_flight_cursor_x = g_flight_clip_left;
+		g_flight_cursor_y += wrap_line_height + 2;
 	}
 }
 
 /* Draws one character at the text cursor into an 8-bit surface, as
- * FlightText_DrawNarrowGlyph8bpp does, for fonts whose rows are a 32-bit
+ * flight_text_draw_narrow_glyph8bpp does, for fonts whose rows are a 32-bit
  * little-endian word, stored 8 bytes apart, top bit leftmost; a newline moves
- * down g_flightFontLineHeight plus 1. FlightRender_InstallCallbacks installs
- * it as g_flightDrawCharFn for pixel modes 0 and 1. In the modern build it
+ * down g_flight_font_line_height plus 1. flight_render_install_callbacks installs
+ * it as g_flight_draw_char_fn for pixel modes 0 and 1. In the modern build it
  * also records the glyph for the modern renderer. */
 // FUNCTION: XVT 0x40F520
-void FlightText_DrawWideGlyph8bpp(uint8_t ch)
+void flight_text_draw_wide_glyph8bpp(uint8_t ch)
 {
-	uint16_t glyphAdvance;
-	int glyphRowCount;
-	int glyphWidth;
-	uint8_t glyphHeight;
-	uint16_t wrapLineHeight;
-	const uint8_t *rowData;
-	int lineOffset;
+	uint16_t glyph_advance;
+	int glyph_row_count;
+	int glyph_width;
+	uint8_t glyph_height;
+	uint16_t wrap_line_height;
+	const uint8_t *row_data;
+	int line_offset;
 	uint8_t *destination;
 	int line;
-	uint8_t normalizedChar;
-	int drawX;
-	int pixelCount;
-	int addressEachRowSeparately;
-	uint32_t glyphBits;
-	uint32_t shadowBits;
-	uint8_t paletteIndex;
-	uint8_t *rowStart;
+	uint8_t normalized_char;
+	int draw_x;
+	int pixel_count;
+	int address_each_row_separately;
+	uint32_t glyph_bits;
+	uint32_t shadow_bits;
+	uint8_t palette_index;
+	uint8_t *row_start;
 #ifndef XVT_MODERN
-	unsigned int pixelOffset;
+	unsigned int pixel_offset;
 	unsigned int page;
-	int clippedBottom;
+	int clipped_bottom;
 #endif
 
 	if (ch == '\n') {
-		if (g_flightClearLineBgEnabled != 0) {
-			FlightText_ClearRemainingLineBackground8bpp();
+		if (g_flight_clear_line_bg_enabled != 0) {
+			flight_text_clear_remaining_line_background8bpp();
 		}
-		g_flightCursorX = g_flightClipLeft;
-		g_flightCursorY += g_flightFontLineHeight + 1;
+		g_flight_cursor_x = g_flight_clip_left;
+		g_flight_cursor_y += g_flight_font_line_height + 1;
 		return;
 	}
 	if (ch < ' ') {
 		return;
 	}
 
-	normalizedChar = ch;
-	if (g_flightFontTier != 0 && g_flightFontHasLowercase == 0 &&
+	normalized_char = ch;
+	if (g_flight_font_tier != 0 && g_flight_font_has_lowercase == 0 &&
 	    ch >= 'a' && ch <= 'z') {
-		normalizedChar = ch - ('a' - 'A');
+		normalized_char = ch - ('a' - 'A');
 	}
-	rowData = &g_flightFontGlyphTableSw[g_flightFontGlyphStrideSw *
-					    (uint8_t)(normalizedChar - ' ')];
-	glyphAdvance = *rowData++;
-	glyphWidth = glyphAdvance;
-	glyphHeight = *rowData++;
-	if (glyphWidth + g_flightCursorX >= g_flightClipRight &&
-	    g_flightWordWrapEnabled != 0) {
-		if (g_flightClearLineBgEnabled != 0) {
-			FlightText_ClearRemainingLineBackground8bpp();
+	row_data =
+		&g_flight_font_glyph_table_sw[g_flight_font_glyph_stride_sw *
+					      (uint8_t)(normalized_char - ' ')];
+	glyph_advance = *row_data++;
+	glyph_width = glyph_advance;
+	glyph_height = *row_data++;
+	if (glyph_width + g_flight_cursor_x >= g_flight_clip_right &&
+	    g_flight_word_wrap_enabled != 0) {
+		if (g_flight_clear_line_bg_enabled != 0) {
+			flight_text_clear_remaining_line_background8bpp();
 		}
-		g_flightCursorX = g_flightClipLeft;
-		g_flightCursorY += glyphHeight + 2;
+		g_flight_cursor_x = g_flight_clip_left;
+		g_flight_cursor_y += glyph_height + 2;
 	}
 
-	addressEachRowSeparately = 0;
+	address_each_row_separately = 0;
 #ifdef XVT_MODERN
-	XvtCockpitPages_RecordGlyph(normalizedChar, glyphAdvance, glyphHeight,
-				    0);
-	XvtCockpitMessages_RecordGlyph(normalizedChar, glyphAdvance,
-				       glyphHeight, 0);
+	xvt_cockpit_pages_record_glyph(normalized_char, glyph_advance,
+				       glyph_height, 0);
+	xvt_cockpit_messages_record_glyph(normalized_char, glyph_advance,
+					  glyph_height, 0);
 #endif
-	shadowBits = 0;
-	line = g_flightCursorY;
-	if (line < g_flightClipTop) {
-		line = g_flightClipTop;
+	shadow_bits = 0;
+	line = g_flight_cursor_y;
+	if (line < g_flight_clip_top) {
+		line = g_flight_clip_top;
 	}
 #ifdef XVT_MODERN
 	/* Fully clipped glyphs still advance the cursor, without looking up a row. */
-	lineOffset =
-		line < g_flightClipBottom ? FlightSw_GetLineOffset(line) : 0;
+	line_offset = line < g_flight_clip_bottom
+			      ? flight_sw_get_line_offset(line)
+			      : 0;
 #else
-	lineOffset = FlightSw_GetLineOffset(line);
+	line_offset = flight_sw_get_line_offset(line);
 #endif
 #ifndef XVT_MODERN
-	if (g_flightResolutionMode != FLIGHT_RESOLUTION_320X240 &&
-	    g_flightSwFramebufferBase == g_swFramebufferBase) {
-		page = lineOffset / g_vesaPageSizeBytes;
-		lineOffset %= g_vesaPageSizeBytes;
-		RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow, (uint16_t)page);
-		clippedBottom = g_flightCursorY + glyphHeight + 1;
-		if (clippedBottom > g_flightClipBottom) {
-			clippedBottom = g_flightClipBottom;
+	if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
+	    g_flight_sw_framebuffer_base == g_sw_framebuffer_base) {
+		page = line_offset / g_vesa_page_size_bytes;
+		line_offset %= g_vesa_page_size_bytes;
+		rts_vga2_set_current_page((uint8_t)g_vesa_window,
+					  (uint16_t)page);
+		clipped_bottom = g_flight_cursor_y + glyph_height + 1;
+		if (clipped_bottom > g_flight_clip_bottom) {
+			clipped_bottom = g_flight_clip_bottom;
 		}
-		if (lineOffset + g_surfacePitch * (clippedBottom - line) >
+		if (line_offset + g_surface_pitch * (clipped_bottom - line) >
 		    0xFFFF) {
-			addressEachRowSeparately = 1;
+			address_each_row_separately = 1;
 		}
 	}
 #endif
-	if (g_flightSwFramebufferBase != g_swFramebufferBase) {
-		addressEachRowSeparately = 1;
+	if (g_flight_sw_framebuffer_base != g_sw_framebuffer_base) {
+		address_each_row_separately = 1;
 	}
 
-	if (addressEachRowSeparately == 0) {
-		destination = g_flightSwFramebufferBase + lineOffset;
-		wrapLineHeight = glyphHeight;
-		line = g_flightCursorY;
-		glyphRowCount = wrapLineHeight;
-		if (g_flightCursorY + glyphRowCount > line) {
+	if (address_each_row_separately == 0) {
+		destination = g_flight_sw_framebuffer_base + line_offset;
+		wrap_line_height = glyph_height;
+		line = g_flight_cursor_y;
+		glyph_row_count = wrap_line_height;
+		if (g_flight_cursor_y + glyph_row_count > line) {
 			do {
-				pixelCount = glyphWidth;
+				pixel_count = glyph_width;
 #ifdef XVT_MODERN
-				memcpy(&glyphBits, rowData, sizeof(glyphBits));
+				memcpy(&glyph_bits, row_data,
+				       sizeof(glyph_bits));
 #else
-				glyphBits = *(const uint32_t *)rowData;
+				glyph_bits = *(const uint32_t *)row_data;
 #endif
-				if (g_flightTextShadowEnabled != 0) {
-					++pixelCount;
+				if (g_flight_text_shadow_enabled != 0) {
+					++pixel_count;
 				}
-				drawX = g_flightCursorX;
-				if (drawX < g_flightClipLeft) {
-					if (g_flightClipLeft - drawX >=
-					    pixelCount) {
+				draw_x = g_flight_cursor_x;
+				if (draw_x < g_flight_clip_left) {
+					if (g_flight_clip_left - draw_x >=
+					    pixel_count) {
 						break;
 					}
-					pixelCount = drawX + pixelCount -
-						     g_flightClipLeft;
-					glyphBits <<= g_flightClipLeft - drawX;
-					drawX = g_flightClipLeft;
+					pixel_count = draw_x + pixel_count -
+						      g_flight_clip_left;
+					glyph_bits <<=
+						g_flight_clip_left - draw_x;
+					draw_x = g_flight_clip_left;
 				}
-				if (g_flightClipBottom <= line) {
+				if (g_flight_clip_bottom <= line) {
 					break;
 				}
-				if (g_flightClipTop <= line) {
-					if (drawX + pixelCount >
-					    g_flightClipRight) {
-						pixelCount = g_flightClipRight -
-							     drawX;
-						if (pixelCount <= 0) {
+				if (g_flight_clip_top <= line) {
+					if (draw_x + pixel_count >
+					    g_flight_clip_right) {
+						pixel_count =
+							g_flight_clip_right -
+							draw_x;
+						if (pixel_count <= 0) {
 							break;
 						}
 					}
-					rowStart = &destination[drawX];
-					while (pixelCount-- != 0) {
-						if ((glyphBits & 0x80000000u) !=
-						    0) {
-							paletteIndex =
-								g_flightTextColorIndex;
+					row_start = &destination[draw_x];
+					while (pixel_count-- != 0) {
+						if ((glyph_bits &
+						     0x80000000u) != 0) {
+							palette_index =
+								g_flight_text_color_index;
 						} else if (
-							g_flightTextShadowEnabled !=
+							g_flight_text_shadow_enabled !=
 								0 &&
-							(shadowBits &
+							(shadow_bits &
 							 0x80000000u) != 0) {
-							paletteIndex =
-								g_flightTextShadowColor;
+							palette_index =
+								g_flight_text_shadow_color;
 						} else {
-							paletteIndex =
-								g_flightTextBgColor;
+							palette_index =
+								g_flight_text_bg_color;
 						}
-						*rowStart++ = paletteIndex;
-						glyphBits <<= 1;
-						shadowBits <<= 1;
+						*row_start++ = palette_index;
+						glyph_bits <<= 1;
+						shadow_bits <<= 1;
 					}
-					destination += FlightSw_GetLinePitch();
+					destination +=
+						flight_sw_get_line_pitch();
 				}
 #ifdef XVT_MODERN
-				memcpy(&shadowBits, rowData,
-				       sizeof(shadowBits));
+				memcpy(&shadow_bits, row_data,
+				       sizeof(shadow_bits));
 #else
-				shadowBits = *(const uint32_t *)rowData;
+				shadow_bits = *(const uint32_t *)row_data;
 #endif
-				rowData += 8;
+				row_data += 8;
 				++line;
-				shadowBits >>= 1;
-			} while (glyphRowCount + g_flightCursorY > line);
+				shadow_bits >>= 1;
+			} while (glyph_row_count + g_flight_cursor_y > line);
 		}
 	} else {
-		line = g_flightCursorY;
-		wrapLineHeight = glyphHeight;
-		glyphRowCount = wrapLineHeight;
-		if (g_flightCursorY + glyphRowCount > line) {
+		line = g_flight_cursor_y;
+		wrap_line_height = glyph_height;
+		glyph_row_count = wrap_line_height;
+		if (g_flight_cursor_y + glyph_row_count > line) {
 			do {
-				pixelCount = glyphWidth;
+				pixel_count = glyph_width;
 #ifdef XVT_MODERN
-				memcpy(&glyphBits, rowData, sizeof(glyphBits));
+				memcpy(&glyph_bits, row_data,
+				       sizeof(glyph_bits));
 #else
-				glyphBits = *(const uint32_t *)rowData;
+				glyph_bits = *(const uint32_t *)row_data;
 #endif
-				if (g_flightTextShadowEnabled != 0) {
-					++pixelCount;
+				if (g_flight_text_shadow_enabled != 0) {
+					++pixel_count;
 				}
-				drawX = g_flightCursorX;
-				if (drawX < g_flightClipLeft) {
-					if (g_flightClipLeft - drawX >=
-					    pixelCount) {
+				draw_x = g_flight_cursor_x;
+				if (draw_x < g_flight_clip_left) {
+					if (g_flight_clip_left - draw_x >=
+					    pixel_count) {
 						break;
 					}
-					pixelCount = drawX + pixelCount -
-						     g_flightClipLeft;
-					glyphBits <<= g_flightClipLeft - drawX;
-					drawX = g_flightClipLeft;
+					pixel_count = draw_x + pixel_count -
+						      g_flight_clip_left;
+					glyph_bits <<=
+						g_flight_clip_left - draw_x;
+					draw_x = g_flight_clip_left;
 				}
-				if (g_flightClipBottom <= line) {
+				if (g_flight_clip_bottom <= line) {
 					break;
 				}
-				if (g_flightClipTop <= line) {
-					if (drawX + pixelCount >
-					    g_flightClipRight) {
-						pixelCount = g_flightClipRight -
-							     drawX;
-						if (pixelCount <= 0) {
+				if (g_flight_clip_top <= line) {
+					if (draw_x + pixel_count >
+					    g_flight_clip_right) {
+						pixel_count =
+							g_flight_clip_right -
+							draw_x;
+						if (pixel_count <= 0) {
 							break;
 						}
 					}
 #ifdef XVT_MODERN
-					rowStart =
-						&g_flightSwFramebufferBase
-							[FlightSw_GetLineOffset(
+					row_start =
+						&g_flight_sw_framebuffer_base
+							[flight_sw_get_line_offset(
 								 line) +
-							 drawX];
+							 draw_x];
 #else
-					pixelOffset =
-						drawX +
-						FlightSw_GetLineOffset(line);
-					if (g_flightResolutionMode !=
+					pixel_offset =
+						draw_x +
+						flight_sw_get_line_offset(line);
+					if (g_flight_resolution_mode !=
 						    FLIGHT_RESOLUTION_320X240 &&
-					    g_flightSwFramebufferBase ==
-						    g_swFramebufferBase) {
-						page = pixelOffset /
-						       g_vesaPageSizeBytes;
-						pixelOffset %=
-							g_vesaPageSizeBytes;
-						RtsVga2_SetCurrentPage(
-							(uint8_t)g_vesaWindow,
+					    g_flight_sw_framebuffer_base ==
+						    g_sw_framebuffer_base) {
+						page = pixel_offset /
+						       g_vesa_page_size_bytes;
+						pixel_offset %=
+							g_vesa_page_size_bytes;
+						rts_vga2_set_current_page(
+							(uint8_t)g_vesa_window,
 							(uint16_t)page);
 					}
-					rowStart = &g_flightSwFramebufferBase
-							   [pixelOffset];
+					row_start =
+						&g_flight_sw_framebuffer_base
+							[pixel_offset];
 #endif
-					while (pixelCount-- != 0) {
-						if ((glyphBits & 0x80000000u) !=
-						    0) {
-							paletteIndex =
-								g_flightTextColorIndex;
+					while (pixel_count-- != 0) {
+						if ((glyph_bits &
+						     0x80000000u) != 0) {
+							palette_index =
+								g_flight_text_color_index;
 						} else if (
-							g_flightTextShadowEnabled !=
+							g_flight_text_shadow_enabled !=
 								0 &&
-							(shadowBits &
+							(shadow_bits &
 							 0x80000000u) != 0) {
-							paletteIndex =
-								g_flightTextShadowColor;
+							palette_index =
+								g_flight_text_shadow_color;
 						} else {
-							paletteIndex =
-								g_flightTextBgColor;
+							palette_index =
+								g_flight_text_bg_color;
 						}
-						*rowStart++ = paletteIndex;
-						glyphBits <<= 1;
-						shadowBits <<= 1;
+						*row_start++ = palette_index;
+						glyph_bits <<= 1;
+						shadow_bits <<= 1;
 					}
 				}
 #ifdef XVT_MODERN
-				memcpy(&shadowBits, rowData,
-				       sizeof(shadowBits));
+				memcpy(&shadow_bits, row_data,
+				       sizeof(shadow_bits));
 #else
-				shadowBits = *(const uint32_t *)rowData;
+				shadow_bits = *(const uint32_t *)row_data;
 #endif
-				rowData += 8;
+				row_data += 8;
 				++line;
-				shadowBits >>= 1;
-			} while (glyphRowCount + g_flightCursorY > line);
+				shadow_bits >>= 1;
+			} while (glyph_row_count + g_flight_cursor_y > line);
 		}
 	}
 
-	g_flightCursorX += glyphAdvance;
-	if (g_flightClipRight <= g_flightCursorX &&
-	    g_flightWordWrapEnabled != 0) {
-		if (g_flightClearLineBgEnabled != 0) {
-			FlightText_ClearRemainingLineBackground8bpp();
+	g_flight_cursor_x += glyph_advance;
+	if (g_flight_clip_right <= g_flight_cursor_x &&
+	    g_flight_word_wrap_enabled != 0) {
+		if (g_flight_clear_line_bg_enabled != 0) {
+			flight_text_clear_remaining_line_background8bpp();
 		}
-		g_flightCursorX = g_flightClipLeft;
-		g_flightCursorY += wrapLineHeight + 2;
+		g_flight_cursor_x = g_flight_clip_left;
+		g_flight_cursor_y += wrap_line_height + 2;
 	}
 }
 
-/* Fills from the text cursor to g_flightClipRight, g_flightFontLineHeight
- * rows down, clipped to the g_flightClip rectangle, with g_flightTextBgColor
+/* Fills from the text cursor to g_flight_clip_right, g_flight_font_line_height
+ * rows down, clipped to the g_flightClip rectangle, with g_flight_text_bg_color
  * on an 8-bit surface. Writes the g_flightFillRect 8bpp edges; does nothing
- * when the cursor is at or past g_flightClipRight. */
+ * when the cursor is at or past g_flight_clip_right. */
 // FUNCTION: XVT 0x410110
-void FlightText_ClearRemainingLineBackground8bpp(void)
+void flight_text_clear_remaining_line_background8bpp(void)
 {
 
 	uint16_t bottom;
 
-	if (g_flightClipRight <= g_flightCursorX) {
+	if (g_flight_clip_right <= g_flight_cursor_x) {
 		return;
 	}
-	g_flightFillRectRight8bpp = g_flightClipRight;
-	g_flightFillRectLeft8bpp = g_flightCursorX;
-	g_flightFillRectTop8bpp = g_flightCursorY;
-	bottom = g_flightFontLineHeight + g_flightCursorY;
-	if (g_flightFillRectLeft8bpp < g_flightClipLeft) {
-		g_flightFillRectLeft8bpp = g_flightClipLeft;
+	g_flight_fill_rect_right8bpp = g_flight_clip_right;
+	g_flight_fill_rect_left8bpp = g_flight_cursor_x;
+	g_flight_fill_rect_top8bpp = g_flight_cursor_y;
+	bottom = g_flight_font_line_height + g_flight_cursor_y;
+	if (g_flight_fill_rect_left8bpp < g_flight_clip_left) {
+		g_flight_fill_rect_left8bpp = g_flight_clip_left;
 	}
-	if (g_flightClipTop > g_flightFillRectTop8bpp) {
-		g_flightFillRectTop8bpp = g_flightClipTop;
+	if (g_flight_clip_top > g_flight_fill_rect_top8bpp) {
+		g_flight_fill_rect_top8bpp = g_flight_clip_top;
 	}
-	g_flightFillRectBottom8bpp = bottom;
-	if (bottom > g_flightClipBottom) {
-		bottom = g_flightClipBottom;
-		g_flightFillRectBottom8bpp = bottom;
+	g_flight_fill_rect_bottom8bpp = bottom;
+	if (bottom > g_flight_clip_bottom) {
+		bottom = g_flight_clip_bottom;
+		g_flight_fill_rect_bottom8bpp = bottom;
 	}
-	if (g_flightFillRectTop8bpp < g_flightFillRectBottom8bpp) {
-		FlightSw_FillRectOrBorder8bpp(0);
+	if (g_flight_fill_rect_top8bpp < g_flight_fill_rect_bottom8bpp) {
+		flight_sw_fill_rect_or_border8bpp(0);
 	}
 }
 
-/* Returns g_flightFontLineHeight plus 1 when str, drawn from g_flightCursorX,
- * would end beyond g_flightClipRight - 11; else 0, and 0 for NULL. */
+/* Returns g_flight_font_line_height plus 1 when str, drawn from g_flight_cursor_x,
+ * would end beyond g_flight_clip_right - 11; else 0, and 0 for NULL. */
 // FUNCTION: XVT 0x415C40
-int16_t FlightText_GetWrapHeightForString(const char *str)
+int16_t flight_text_get_wrap_height_for_string(const char *str)
 {
 	if (str == 0) {
 		return 0;
 	}
-	if (g_flightCursorX + FlightText_MeasureStringWidth(str) >
-	    g_flightClipRight - 11) {
-		return g_flightFontLineHeight + 1;
+	if (g_flight_cursor_x + flight_text_measure_string_width(str) >
+	    g_flight_clip_right - 11) {
+		return g_flight_font_line_height + 1;
 	}
 
 	return 0;
 }
 
-/* Draws value right-aligned in digitCount places through g_flightDrawCharFn,
+/* Draws value right-aligned in digit_count places through g_flight_draw_char_fn,
  * with zeros in front shown as spaces except in the last minDigits places. When
  * value needs more places, the first place shows 9 and the rest are right. The
- * value 0xFFFF draws digitCount zeros in color code '@' without shadow, then
- * puts back g_flightTextShadowEnabled and g_flightTextColorIndex. Does not
- * check digitCount: g_flightTextDecimalDivisors serves 1 to 5 places, holds 0
+ * value 0xFFFF draws digit_count zeros in color code '@' without shadow, then
+ * puts back g_flight_text_shadow_enabled and g_flight_text_color_index. Does not
+ * check digit_count: g_flight_text_decimal_divisors serves 1 to 5 places, holds 0
  * for 6 and 7, and ends there. */
 // FUNCTION: XVT 0x4277F0
-void FlightText_DrawDecimalNumber(uint16_t value, unsigned int digitCount,
-				  unsigned int minDigits)
+void flight_text_draw_decimal_number(uint16_t value, unsigned int digit_count,
+				     unsigned int min_digits)
 {
-	uint16_t savedShadow;
-	uint16_t savedColor;
-	unsigned int digitIndex;
+	uint16_t saved_shadow;
+	uint16_t saved_color;
+	unsigned int digit_index;
 	int16_t started;
 	uint16_t divisor;
 	uint16_t digit;
 
 	if (value == UINT16_MAX) {
-		savedShadow = g_flightTextShadowEnabled;
-		savedColor = g_flightTextColorIndex;
-		g_flightTextShadowEnabled = 0;
-		FlightText_SetColor('@');
-		for (digitIndex = digitCount; digitIndex != 0; --digitIndex) {
-			g_flightDrawCharFn('0');
+		saved_shadow = g_flight_text_shadow_enabled;
+		saved_color = g_flight_text_color_index;
+		g_flight_text_shadow_enabled = 0;
+		flight_text_set_color('@');
+		for (digit_index = digit_count; digit_index != 0;
+		     --digit_index) {
+			g_flight_draw_char_fn('0');
 		}
-		g_flightTextShadowEnabled = savedShadow;
-		g_flightTextColorIndex = savedColor;
+		g_flight_text_shadow_enabled = saved_shadow;
+		g_flight_text_color_index = saved_color;
 		return;
 	}
 
 	started = 0;
-	for (digitIndex = digitCount; digitIndex != 0; --digitIndex) {
-		divisor = g_flightTextDecimalDivisors[digitIndex];
+	for (digit_index = digit_count; digit_index != 0; --digit_index) {
+		divisor = g_flight_text_decimal_divisors[digit_index];
 		digit = value / divisor;
 		divisor *= digit;
 		value -= divisor;
-		if (started != 0 || digitIndex <= minDigits || digit != 0) {
+		if (started != 0 || digit_index <= min_digits || digit != 0) {
 			started = 1;
 			if (digit > 9) {
 				digit = 9;
@@ -813,7 +834,7 @@ void FlightText_DrawDecimalNumber(uint16_t value, unsigned int digitCount,
 		} else {
 			digit = ' ';
 		}
-		g_flightDrawCharFn((uint8_t)digit);
+		g_flight_draw_char_fn((uint8_t)digit);
 	}
 }
 
@@ -822,13 +843,13 @@ void FlightText_DrawDecimalNumber(uint16_t value, unsigned int digitCount,
  * 0x20, and a 0xFE color escape with the byte after it; lowercase letters
  * count as capitals as they draw. Does not check str for NULL. */
 // FUNCTION: XVT 0x4278C0
-uint16_t FlightText_MeasureStringWidth(const char *str)
+uint16_t flight_text_measure_string_width(const char *str)
 {
-	uint16_t totalWidth;
+	uint16_t total_width;
 	uint8_t ch;
 	const char *cursor;
 
-	totalWidth = 0;
+	total_width = 0;
 	ch = (uint8_t)*str;
 	cursor = str + 1;
 	while (ch != '\0') {
@@ -839,431 +860,437 @@ uint16_t FlightText_MeasureStringWidth(const char *str)
 			if (ch == 0xfeu) {
 				++cursor;
 			} else {
-				if (g_flightFontTier != 0 &&
-				    g_flightFontHasLowercase == 0 &&
+				if (g_flight_font_tier != 0 &&
+				    g_flight_font_has_lowercase == 0 &&
 				    ch >= 'a' && ch <= 'z') {
 					ch -= 32;
 				}
-				totalWidth += g_flightFontGlyphTableSw
-					[g_flightFontGlyphStrideSw *
+				total_width += g_flight_font_glyph_table_sw
+					[g_flight_font_glyph_stride_sw *
 					 (uint8_t)(ch - 32)];
 			}
 		}
 		ch = (uint8_t)*cursor++;
 	}
 
-	return totalWidth;
+	return total_width;
 }
 
-/* The 16-bit surface version of FlightText_DrawNarrowGlyph8bpp: the same
+/* The 16-bit surface version of flight_text_draw_narrow_glyph8bpp: the same
  * glyph rows, colors, shadow, clipping, cursor moves and wrap, with each
- * palette index turned into a pixel through g_flightPalette16Bpp. Nothing
- * calls this: FlightRender_InstallCallbacks never puts it in
- * g_flightDrawCharFn. */
+ * palette index turned into a pixel through g_flight_palette16_bpp. Nothing
+ * calls this: flight_render_install_callbacks never puts it in
+ * g_flight_draw_char_fn. */
 // FUNCTION: XVT 0x449F70
-void FlightText_DrawNarrowGlyph(uint8_t ch)
+void flight_text_draw_narrow_glyph(uint8_t ch)
 {
-	uint8_t normalizedChar;
-	uint8_t glyphHeight;
-	uint8_t glyphBits;
-	uint8_t shadowBits;
-	const uint8_t *glyphData;
-	const uint8_t *rowData;
-	int16_t glyphAdvance;
-	int16_t wrapLineHeight;
-	int glyphRowCount;
-	int glyphWidth;
+	uint8_t normalized_char;
+	uint8_t glyph_height;
+	uint8_t glyph_bits;
+	uint8_t shadow_bits;
+	const uint8_t *glyph_data;
+	const uint8_t *row_data;
+	int16_t glyph_advance;
+	int16_t wrap_line_height;
+	int glyph_row_count;
+	int glyph_width;
 	int line;
-	int drawX;
-	int pixelCount;
-	int pixelsRemaining;
-	unsigned int pixelOffset;
-	unsigned int paletteIndex;
+	int draw_x;
+	int pixel_count;
+	int pixels_remaining;
+	unsigned int pixel_offset;
+	unsigned int palette_index;
 	uint16_t *destination;
 #ifndef XVT_MODERN
 	unsigned int page;
 #endif
 
 	if (ch == '\n') {
-		if (g_flightClearLineBgEnabled != 0) {
-			FlightText_ClearRemainingLineBackground();
+		if (g_flight_clear_line_bg_enabled != 0) {
+			flight_text_clear_remaining_line_background();
 		}
-		g_flightCursorX = g_flightClipLeft;
-		g_flightCursorY += g_flightFontLineHeight;
+		g_flight_cursor_x = g_flight_clip_left;
+		g_flight_cursor_y += g_flight_font_line_height;
 		return;
 	}
 	if (ch < ' ') {
 		return;
 	}
 
-	normalizedChar = ch;
-	if (g_flightFontTier != 0 && g_flightFontHasLowercase == 0 &&
+	normalized_char = ch;
+	if (g_flight_font_tier != 0 && g_flight_font_has_lowercase == 0 &&
 	    ch >= 'a' && ch <= 'z') {
-		normalizedChar = ch - ('a' - 'A');
+		normalized_char = ch - ('a' - 'A');
 	}
-	glyphData = &g_flightFontGlyphTableSw[g_flightFontGlyphStrideSw *
-					      (uint8_t)(normalizedChar - ' ')];
-	glyphAdvance = *glyphData++;
-	glyphHeight = *glyphData++;
-	rowData = glyphData;
-	glyphWidth = glyphAdvance;
-	if (glyphWidth + g_flightCursorX >= g_flightClipRight &&
-	    g_flightWordWrapEnabled != 0) {
-		if (g_flightClearLineBgEnabled != 0) {
-			FlightText_ClearRemainingLineBackground();
+	glyph_data =
+		&g_flight_font_glyph_table_sw[g_flight_font_glyph_stride_sw *
+					      (uint8_t)(normalized_char - ' ')];
+	glyph_advance = *glyph_data++;
+	glyph_height = *glyph_data++;
+	row_data = glyph_data;
+	glyph_width = glyph_advance;
+	if (glyph_width + g_flight_cursor_x >= g_flight_clip_right &&
+	    g_flight_word_wrap_enabled != 0) {
+		if (g_flight_clear_line_bg_enabled != 0) {
+			flight_text_clear_remaining_line_background();
 		}
-		g_flightCursorX = g_flightClipLeft;
-		g_flightCursorY += glyphHeight + 2;
+		g_flight_cursor_x = g_flight_clip_left;
+		g_flight_cursor_y += glyph_height + 2;
 	}
 
 #ifdef XVT_MODERN
-	XvtCockpitPages_RecordGlyph(normalizedChar, glyphAdvance, glyphHeight,
-				    1);
-	XvtCockpitMessages_RecordGlyph(normalizedChar, glyphAdvance,
-				       glyphHeight, 1);
+	xvt_cockpit_pages_record_glyph(normalized_char, glyph_advance,
+				       glyph_height, 1);
+	xvt_cockpit_messages_record_glyph(normalized_char, glyph_advance,
+					  glyph_height, 1);
 #endif
-	shadowBits = 0;
-	line = g_flightCursorY;
-	wrapLineHeight = glyphHeight;
-	glyphRowCount = glyphHeight;
-	if (glyphRowCount + g_flightCursorY > line) {
+	shadow_bits = 0;
+	line = g_flight_cursor_y;
+	wrap_line_height = glyph_height;
+	glyph_row_count = glyph_height;
+	if (glyph_row_count + g_flight_cursor_y > line) {
 		do {
-			pixelCount = glyphWidth;
-			glyphBits = *rowData;
-			if (g_flightTextShadowEnabled != 0) {
-				++pixelCount;
+			pixel_count = glyph_width;
+			glyph_bits = *row_data;
+			if (g_flight_text_shadow_enabled != 0) {
+				++pixel_count;
 			}
-			drawX = g_flightCursorX;
-			if (g_flightCursorX < g_flightClipLeft) {
-				if (g_flightClipLeft - g_flightCursorX >=
-				    pixelCount) {
+			draw_x = g_flight_cursor_x;
+			if (g_flight_cursor_x < g_flight_clip_left) {
+				if (g_flight_clip_left - g_flight_cursor_x >=
+				    pixel_count) {
 					break;
 				}
-				pixelCount = g_flightCursorX + pixelCount -
-					     g_flightClipLeft;
-				drawX = g_flightClipLeft;
-				glyphBits <<=
-					g_flightClipLeft - g_flightCursorX;
+				pixel_count = g_flight_cursor_x + pixel_count -
+					      g_flight_clip_left;
+				draw_x = g_flight_clip_left;
+				glyph_bits <<=
+					g_flight_clip_left - g_flight_cursor_x;
 			}
-			if (g_flightClipBottom <= line) {
+			if (g_flight_clip_bottom <= line) {
 				break;
 			}
-			if (g_flightClipTop > line) {
-				pixelCount = 0;
+			if (g_flight_clip_top > line) {
+				pixel_count = 0;
 			}
-			if (pixelCount + drawX > g_flightClipRight) {
-				pixelCount = g_flightClipRight - drawX;
-				if (pixelCount <= 0) {
+			if (pixel_count + draw_x > g_flight_clip_right) {
+				pixel_count = g_flight_clip_right - draw_x;
+				if (pixel_count <= 0) {
 					break;
 				}
 			}
 
 #ifndef XVT_MODERN
-			pixelOffset = FlightSw_GetLineOffset(line) + 2 * drawX;
-			if (g_flightResolutionMode !=
+			pixel_offset =
+				flight_sw_get_line_offset(line) + 2 * draw_x;
+			if (g_flight_resolution_mode !=
 				    FLIGHT_RESOLUTION_320X240 &&
-			    g_flightSwFramebufferBase == g_swFramebufferBase) {
-				page = pixelOffset / g_vesaPageSizeBytes;
-				pixelOffset %= g_vesaPageSizeBytes;
-				RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow,
-						       (uint16_t)page);
+			    g_flight_sw_framebuffer_base ==
+				    g_sw_framebuffer_base) {
+				page = pixel_offset / g_vesa_page_size_bytes;
+				pixel_offset %= g_vesa_page_size_bytes;
+				rts_vga2_set_current_page(
+					(uint8_t)g_vesa_window, (uint16_t)page);
 			}
-			destination = &(
-				(uint16_t *)
-					g_flightSwFramebufferBase)[pixelOffset /
-								   2];
+			destination =
+				&((uint16_t *)g_flight_sw_framebuffer_base)
+					[pixel_offset / 2];
 #endif
-			pixelsRemaining = pixelCount;
-			if (pixelsRemaining != 0) {
+			pixels_remaining = pixel_count;
+			if (pixels_remaining != 0) {
 #ifdef XVT_MODERN
 				/* The original looks up negative rows even when top clipping leaves
 				 * no pixels. Keep row/shadow progression outside this drawing block. */
-				pixelOffset = FlightSw_GetLineOffset(line) +
-					      2 * drawX;
-				destination =
-					&((uint16_t *)g_flightSwFramebufferBase)
-						[pixelOffset / 2];
+				pixel_offset = flight_sw_get_line_offset(line) +
+					       2 * draw_x;
+				destination = &((
+					uint16_t *)g_flight_sw_framebuffer_base)
+						      [pixel_offset / 2];
 #endif
-				--pixelsRemaining;
+				--pixels_remaining;
 				do {
-					if ((glyphBits & 0x80u) != 0) {
-						paletteIndex =
-							g_flightTextColorIndex;
-					} else if (g_flightTextShadowEnabled !=
-							   0 &&
-						   (shadowBits & 0x80u) != 0) {
-						paletteIndex =
-							g_flightTextShadowColor;
+					if ((glyph_bits & 0x80u) != 0) {
+						palette_index =
+							g_flight_text_color_index;
+					} else if (
+						g_flight_text_shadow_enabled !=
+							0 &&
+						(shadow_bits & 0x80u) != 0) {
+						palette_index =
+							g_flight_text_shadow_color;
 					} else {
-						paletteIndex =
-							g_flightTextBgColor;
+						palette_index =
+							g_flight_text_bg_color;
 					}
-					*destination++ = g_flightPalette16Bpp
-						[paletteIndex];
-					shadowBits <<= 1;
-					glyphBits <<= 1;
-				} while (pixelsRemaining-- != 0);
+					*destination++ = g_flight_palette16_bpp
+						[palette_index];
+					shadow_bits <<= 1;
+					glyph_bits <<= 1;
+				} while (pixels_remaining-- != 0);
 			}
-			shadowBits = *rowData >> 1;
-			rowData += 2;
+			shadow_bits = *row_data >> 1;
+			row_data += 2;
 			++line;
-		} while (glyphRowCount + g_flightCursorY > line);
+		} while (glyph_row_count + g_flight_cursor_y > line);
 	}
 
-	g_flightCursorX += glyphAdvance;
-	if (g_flightClipRight <= g_flightCursorX &&
-	    g_flightWordWrapEnabled != 0) {
-		if (g_flightClearLineBgEnabled != 0) {
-			FlightText_ClearRemainingLineBackground();
+	g_flight_cursor_x += glyph_advance;
+	if (g_flight_clip_right <= g_flight_cursor_x &&
+	    g_flight_word_wrap_enabled != 0) {
+		if (g_flight_clear_line_bg_enabled != 0) {
+			flight_text_clear_remaining_line_background();
 		}
-		g_flightCursorX = g_flightClipLeft;
-		g_flightCursorY += wrapLineHeight + 2;
+		g_flight_cursor_x = g_flight_clip_left;
+		g_flight_cursor_y += wrap_line_height + 2;
 	}
 }
 
-/* The 16-bit surface version of FlightText_DrawWideGlyph8bpp, with each
- * palette index turned into a pixel through g_flightPalette16Bpp.
- * FlightRender_InstallCallbacks installs it as g_flightDrawCharFn for pixel
+/* The 16-bit surface version of flight_text_draw_wide_glyph8bpp, with each
+ * palette index turned into a pixel through g_flight_palette16_bpp.
+ * flight_render_install_callbacks installs it as g_flight_draw_char_fn for pixel
  * mode 2. In the modern build it also records the glyph for the modern
  * renderer. */
 // FUNCTION: XVT 0x44A270
-void FlightText_DrawWideGlyph(uint8_t ch)
+void flight_text_draw_wide_glyph(uint8_t ch)
 {
-	uint8_t normalizedChar;
-	uint8_t glyphHeight;
-	const uint8_t *glyphData;
+	uint8_t normalized_char;
+	uint8_t glyph_height;
+	const uint8_t *glyph_data;
 #ifdef XVT_MODERN
-	const uint8_t *rowData;
+	const uint8_t *row_data;
 #else
-	const uint32_t *rowData;
+	const uint32_t *row_data;
 #endif
-	int16_t glyphAdvance;
-	int16_t wrapLineHeight;
-	int glyphWidth;
-	int glyphRowCount;
+	int16_t glyph_advance;
+	int16_t wrap_line_height;
+	int glyph_width;
+	int glyph_row_count;
 	int line;
-	int drawX;
-	int pixelCount;
-	int pixelsRemaining;
-	uint32_t glyphBits;
-	uint32_t shadowBits;
-	unsigned int pixelOffset;
-	unsigned int paletteIndex;
+	int draw_x;
+	int pixel_count;
+	int pixels_remaining;
+	uint32_t glyph_bits;
+	uint32_t shadow_bits;
+	unsigned int pixel_offset;
+	unsigned int palette_index;
 	uint16_t *destination;
 #ifndef XVT_MODERN
 	unsigned int page;
 #endif
 
 	if (ch == '\n') {
-		if (g_flightClearLineBgEnabled != 0) {
-			FlightText_ClearRemainingLineBackground();
+		if (g_flight_clear_line_bg_enabled != 0) {
+			flight_text_clear_remaining_line_background();
 		}
-		g_flightCursorX = g_flightClipLeft;
-		g_flightCursorY += g_flightFontLineHeight + 1;
+		g_flight_cursor_x = g_flight_clip_left;
+		g_flight_cursor_y += g_flight_font_line_height + 1;
 		return;
 	}
 	if (ch < ' ') {
 		return;
 	}
 
-	normalizedChar = ch;
-	if (g_flightFontTier != 0 && g_flightFontHasLowercase == 0 &&
-	    normalizedChar >= 'a' && normalizedChar <= 'z') {
-		normalizedChar -= 'a' - 'A';
+	normalized_char = ch;
+	if (g_flight_font_tier != 0 && g_flight_font_has_lowercase == 0 &&
+	    normalized_char >= 'a' && normalized_char <= 'z') {
+		normalized_char -= 'a' - 'A';
 	}
-	glyphData = &g_flightFontGlyphTableSw[g_flightFontGlyphStrideSw *
-					      (uint8_t)(normalizedChar - ' ')];
-	glyphAdvance = *glyphData++;
-	glyphHeight = *glyphData++;
+	glyph_data =
+		&g_flight_font_glyph_table_sw[g_flight_font_glyph_stride_sw *
+					      (uint8_t)(normalized_char - ' ')];
+	glyph_advance = *glyph_data++;
+	glyph_height = *glyph_data++;
 #ifdef XVT_MODERN
-	rowData = glyphData;
+	row_data = glyph_data;
 #else
-	rowData = (const uint32_t *)glyphData;
+	row_data = (const uint32_t *)glyph_data;
 #endif
-	glyphWidth = glyphAdvance;
-	if (glyphWidth + g_flightCursorX >= g_flightClipRight &&
-	    g_flightWordWrapEnabled != 0) {
-		if (g_flightClearLineBgEnabled != 0) {
-			FlightText_ClearRemainingLineBackground();
+	glyph_width = glyph_advance;
+	if (glyph_width + g_flight_cursor_x >= g_flight_clip_right &&
+	    g_flight_word_wrap_enabled != 0) {
+		if (g_flight_clear_line_bg_enabled != 0) {
+			flight_text_clear_remaining_line_background();
 		}
-		g_flightCursorX = g_flightClipLeft;
-		g_flightCursorY += glyphHeight + 2;
+		g_flight_cursor_x = g_flight_clip_left;
+		g_flight_cursor_y += glyph_height + 2;
 	}
 
 #ifdef XVT_MODERN
-	XvtCockpitPages_RecordGlyph(normalizedChar, glyphAdvance, glyphHeight,
-				    0);
-	XvtCockpitMessages_RecordGlyph(normalizedChar, glyphAdvance,
-				       glyphHeight, 0);
+	xvt_cockpit_pages_record_glyph(normalized_char, glyph_advance,
+				       glyph_height, 0);
+	xvt_cockpit_messages_record_glyph(normalized_char, glyph_advance,
+					  glyph_height, 0);
 #endif
-	shadowBits = 0;
-	wrapLineHeight = glyphHeight;
-	line = g_flightCursorY;
-	glyphRowCount = glyphHeight;
-	if (g_flightCursorY + glyphRowCount > g_flightCursorY) {
+	shadow_bits = 0;
+	wrap_line_height = glyph_height;
+	line = g_flight_cursor_y;
+	glyph_row_count = glyph_height;
+	if (g_flight_cursor_y + glyph_row_count > g_flight_cursor_y) {
 		do {
-			pixelCount = glyphWidth;
+			pixel_count = glyph_width;
 #ifdef XVT_MODERN
-			memcpy(&glyphBits, rowData, sizeof(glyphBits));
+			memcpy(&glyph_bits, row_data, sizeof(glyph_bits));
 #else
-			glyphBits = *rowData;
+			glyph_bits = *row_data;
 #endif
-			if (g_flightTextShadowEnabled != 0) {
-				++pixelCount;
+			if (g_flight_text_shadow_enabled != 0) {
+				++pixel_count;
 			}
-			drawX = g_flightCursorX;
-			if (g_flightCursorX < g_flightClipLeft) {
-				if (g_flightClipLeft - g_flightCursorX >=
-				    pixelCount) {
+			draw_x = g_flight_cursor_x;
+			if (g_flight_cursor_x < g_flight_clip_left) {
+				if (g_flight_clip_left - g_flight_cursor_x >=
+				    pixel_count) {
 					break;
 				}
-				pixelCount = g_flightCursorX + pixelCount -
-					     g_flightClipLeft;
-				drawX = g_flightClipLeft;
-				glyphBits <<=
-					g_flightClipLeft - g_flightCursorX;
+				pixel_count = g_flight_cursor_x + pixel_count -
+					      g_flight_clip_left;
+				draw_x = g_flight_clip_left;
+				glyph_bits <<=
+					g_flight_clip_left - g_flight_cursor_x;
 			}
-			if (g_flightClipBottom <= line) {
+			if (g_flight_clip_bottom <= line) {
 				break;
 			}
-			if (g_flightClipTop > line) {
-				pixelCount = 0;
+			if (g_flight_clip_top > line) {
+				pixel_count = 0;
 			}
-			if (pixelCount + drawX > g_flightClipRight) {
-				pixelCount = g_flightClipRight - drawX;
-				if (pixelCount <= 0) {
+			if (pixel_count + draw_x > g_flight_clip_right) {
+				pixel_count = g_flight_clip_right - draw_x;
+				if (pixel_count <= 0) {
 					break;
 				}
 			}
 
 #ifndef XVT_MODERN
-			pixelOffset = FlightSw_GetLineOffset(line) + 2 * drawX;
-			if (g_flightResolutionMode !=
+			pixel_offset =
+				flight_sw_get_line_offset(line) + 2 * draw_x;
+			if (g_flight_resolution_mode !=
 				    FLIGHT_RESOLUTION_320X240 &&
-			    g_flightSwFramebufferBase == g_swFramebufferBase) {
-				page = pixelOffset / g_vesaPageSizeBytes;
-				pixelOffset %= g_vesaPageSizeBytes;
-				RtsVga2_SetCurrentPage((uint8_t)g_vesaWindow,
-						       (uint16_t)page);
+			    g_flight_sw_framebuffer_base ==
+				    g_sw_framebuffer_base) {
+				page = pixel_offset / g_vesa_page_size_bytes;
+				pixel_offset %= g_vesa_page_size_bytes;
+				rts_vga2_set_current_page(
+					(uint8_t)g_vesa_window, (uint16_t)page);
 			}
-			destination = &(
-				(uint16_t *)
-					g_flightSwFramebufferBase)[pixelOffset /
-								   2];
+			destination =
+				&((uint16_t *)g_flight_sw_framebuffer_base)
+					[pixel_offset / 2];
 #endif
-			pixelsRemaining = pixelCount;
-			if (pixelsRemaining != 0) {
+			pixels_remaining = pixel_count;
+			if (pixels_remaining != 0) {
 #ifdef XVT_MODERN
 				/* The original looks up negative rows even when top clipping leaves
 				 * no pixels. Keep row/shadow progression outside this drawing block. */
-				pixelOffset = FlightSw_GetLineOffset(line) +
-					      2 * drawX;
-				destination =
-					&((uint16_t *)g_flightSwFramebufferBase)
-						[pixelOffset / 2];
+				pixel_offset = flight_sw_get_line_offset(line) +
+					       2 * draw_x;
+				destination = &((
+					uint16_t *)g_flight_sw_framebuffer_base)
+						      [pixel_offset / 2];
 #endif
-				--pixelsRemaining;
+				--pixels_remaining;
 				do {
-					if ((glyphBits & 0x80000000u) != 0) {
-						paletteIndex =
-							g_flightTextColorIndex;
-					} else if (g_flightTextShadowEnabled !=
-							   0 &&
-						   (shadowBits & 0x80000000u) !=
-							   0) {
-						paletteIndex =
-							g_flightTextShadowColor;
+					if ((glyph_bits & 0x80000000u) != 0) {
+						palette_index =
+							g_flight_text_color_index;
+					} else if (
+						g_flight_text_shadow_enabled !=
+							0 &&
+						(shadow_bits & 0x80000000u) !=
+							0) {
+						palette_index =
+							g_flight_text_shadow_color;
 					} else {
-						paletteIndex =
-							g_flightTextBgColor;
+						palette_index =
+							g_flight_text_bg_color;
 					}
-					*destination++ = g_flightPalette16Bpp
-						[paletteIndex];
-					glyphBits <<= 1;
-					shadowBits <<= 1;
-				} while (pixelsRemaining-- != 0);
+					*destination++ = g_flight_palette16_bpp
+						[palette_index];
+					glyph_bits <<= 1;
+					shadow_bits <<= 1;
+				} while (pixels_remaining-- != 0);
 			}
 #ifdef XVT_MODERN
-			memcpy(&shadowBits, rowData, sizeof(shadowBits));
-			rowData += 8;
+			memcpy(&shadow_bits, row_data, sizeof(shadow_bits));
+			row_data += 8;
 #else
-			shadowBits = *rowData;
-			rowData += 2;
+			shadow_bits = *row_data;
+			row_data += 2;
 #endif
 			++line;
-			shadowBits >>= 1;
-		} while (glyphRowCount + g_flightCursorY > line);
+			shadow_bits >>= 1;
+		} while (glyph_row_count + g_flight_cursor_y > line);
 	}
 
-	g_flightCursorX += glyphAdvance;
-	if (g_flightClipRight <= g_flightCursorX &&
-	    g_flightWordWrapEnabled != 0) {
-		if (g_flightClearLineBgEnabled != 0) {
-			FlightText_ClearRemainingLineBackground();
+	g_flight_cursor_x += glyph_advance;
+	if (g_flight_clip_right <= g_flight_cursor_x &&
+	    g_flight_word_wrap_enabled != 0) {
+		if (g_flight_clear_line_bg_enabled != 0) {
+			flight_text_clear_remaining_line_background();
 		}
-		g_flightCursorX = g_flightClipLeft;
-		g_flightCursorY += wrapLineHeight + 2;
+		g_flight_cursor_x = g_flight_clip_left;
+		g_flight_cursor_y += wrap_line_height + 2;
 	}
 }
 
 /* The 16-bit surface version of
- * FlightText_ClearRemainingLineBackground8bpp: fills the rest of the line
- * with g_flightTextBgColor and writes the g_flightFillRect 16bpp edges. */
+ * flight_text_clear_remaining_line_background8bpp: fills the rest of the line
+ * with g_flight_text_bg_color and writes the g_flightFillRect 16bpp edges. */
 // FUNCTION: XVT 0x44AA50
-void FlightText_ClearRemainingLineBackground(void)
+void flight_text_clear_remaining_line_background(void)
 {
 
-	uint16_t clippedTop;
-	uint16_t clippedBottom;
-	int16_t cursorX;
-	int16_t cursorY;
+	uint16_t clipped_top;
+	uint16_t clipped_bottom;
+	int16_t cursor_x;
+	int16_t cursor_y;
 
-	cursorX = g_flightCursorX;
-	if (g_flightClipRight <= cursorX) {
+	cursor_x = g_flight_cursor_x;
+	if (g_flight_clip_right <= cursor_x) {
 		return;
 	}
 
-	cursorY = g_flightCursorY;
-	clippedTop = cursorY;
-	g_flightFillRectRight16bpp = g_flightClipRight;
-	g_flightFillRectLeft16bpp = cursorX;
-	clippedBottom = g_flightFontLineHeight + cursorY;
-	if (g_flightClipLeft > (int)(uint16_t)cursorX) {
-		g_flightFillRectLeft16bpp = g_flightClipLeft;
+	cursor_y = g_flight_cursor_y;
+	clipped_top = cursor_y;
+	g_flight_fill_rect_right16bpp = g_flight_clip_right;
+	g_flight_fill_rect_left16bpp = cursor_x;
+	clipped_bottom = g_flight_font_line_height + cursor_y;
+	if (g_flight_clip_left > (int)(uint16_t)cursor_x) {
+		g_flight_fill_rect_left16bpp = g_flight_clip_left;
 	}
 
-	g_flightFillRectTop16bpp = cursorY;
-	if (g_flightClipTop > (int)g_flightFillRectTop16bpp) {
-		clippedTop = g_flightClipTop;
+	g_flight_fill_rect_top16bpp = cursor_y;
+	if (g_flight_clip_top > (int)g_flight_fill_rect_top16bpp) {
+		clipped_top = g_flight_clip_top;
 	}
 
-	g_flightFillRectBottom16bpp = g_flightFontLineHeight + cursorY;
-	if (g_flightClipBottom < (int)g_flightFillRectBottom16bpp) {
-		clippedBottom = g_flightClipBottom;
+	g_flight_fill_rect_bottom16bpp = g_flight_font_line_height + cursor_y;
+	if (g_flight_clip_bottom < (int)g_flight_fill_rect_bottom16bpp) {
+		clipped_bottom = g_flight_clip_bottom;
 	}
-	g_flightFillRectBottom16bpp = clippedBottom;
-	g_flightFillRectTop16bpp = clippedTop;
-	if (clippedBottom > clippedTop) {
-		FlightSw_FillRectOrBorder16bpp(0);
+	g_flight_fill_rect_bottom16bpp = clipped_bottom;
+	g_flight_fill_rect_top16bpp = clipped_top;
+	if (clipped_bottom > clipped_top) {
+		flight_sw_fill_rect_or_border16bpp(0);
 	}
 }
 
 /* Moves the text cursor to x, y; no checks. */
 // FUNCTION: XVT 0x4A9500
-void FlightText_SetCursor(int x, int y)
+void flight_text_set_cursor(int x, int y)
 {
-	g_flightCursorY = y;
-	g_flightCursorX = x;
+	g_flight_cursor_y = y;
+	g_flight_cursor_x = x;
 }
 
 /* Sets the g_flightClip rectangle; right and bottom are exclusive. Raises a
- * negative left or top to 0 and lowers right and bottom to g_screenWidth and
- * g_screenHeight; a negative right or bottom, compared unsigned, also becomes
+ * negative left or top to 0 and lowers right and bottom to g_screen_width and
+ * g_screen_height; a negative right or bottom, compared unsigned, also becomes
  * the screen's width or height. Does not check that left is below right or
  * top below bottom. */
 // FUNCTION: XVT 0x4A9520
-void FlightText_SetClipRect(int16_t left, int16_t top, int16_t right,
-			    int16_t bottom)
+void flight_text_set_clip_rect(int16_t left, int16_t top, int16_t right,
+			       int16_t bottom)
 {
 	if (top < 0) {
 		top = 0;
@@ -1271,169 +1298,169 @@ void FlightText_SetClipRect(int16_t left, int16_t top, int16_t right,
 	if (left < 0) {
 		left = 0;
 	}
-	if ((unsigned int)right > g_screenWidth) {
-		right = (int16_t)g_screenWidth;
+	if ((unsigned int)right > g_screen_width) {
+		right = (int16_t)g_screen_width;
 	}
-	if ((unsigned int)bottom > g_screenHeight) {
-		bottom = (int16_t)g_screenHeight;
+	if ((unsigned int)bottom > g_screen_height) {
+		bottom = (int16_t)g_screen_height;
 	}
 
-	g_flightClipTop = top;
-	g_flightClipBottom = bottom;
-	g_flightClipLeft = left;
-	g_flightClipRight = right;
+	g_flight_clip_top = top;
+	g_flight_clip_bottom = bottom;
+	g_flight_clip_left = left;
+	g_flight_clip_right = right;
 }
 
-/* Sets g_flightTextColorIndex: a code from 0x40 up, other than
- * g_flightTransparentColorIndex, is looked up in g_flightCharToColorLut;
+/* Sets g_flight_text_color_index: a code from 0x40 up, other than
+ * g_flight_transparent_color_index, is looked up in g_flight_char_to_color_lut;
  * anything else is the palette index itself. Does not check a code above
  * 0x5F against the table's 32 entries. */
 // FUNCTION: XVT 0x4A9590
-void FlightText_SetColor(unsigned int charOrIndex)
+void flight_text_set_color(unsigned int char_or_index)
 {
-	if (charOrIndex >= 0x40u &&
-	    charOrIndex != g_flightTransparentColorIndex) {
-		g_flightTextColorIndex =
-			g_flightCharToColorLut[charOrIndex - 0x40u];
+	if (char_or_index >= 0x40u &&
+	    char_or_index != g_flight_transparent_color_index) {
+		g_flight_text_color_index =
+			g_flight_char_to_color_lut[char_or_index - 0x40u];
 	} else {
-		g_flightTextColorIndex = (uint8_t)charOrIndex;
+		g_flight_text_color_index = (uint8_t)char_or_index;
 	}
 }
 
-/* Sets g_flightTextBgColor from a color code or palette index, as
- * FlightText_SetColor reads them, with the same missing check. */
+/* Sets g_flight_text_bg_color from a color code or palette index, as
+ * flight_text_set_color reads them, with the same missing check. */
 // FUNCTION: XVT 0x4A95C0
-void FlightText_SetBackgroundColor(unsigned int charOrIndex)
+void flight_text_set_background_color(unsigned int char_or_index)
 {
-	if (charOrIndex >= 0x40u &&
-	    charOrIndex != g_flightTransparentColorIndex) {
-		g_flightTextBgColor =
-			g_flightCharToColorLut[charOrIndex - 0x40u];
+	if (char_or_index >= 0x40u &&
+	    char_or_index != g_flight_transparent_color_index) {
+		g_flight_text_bg_color =
+			g_flight_char_to_color_lut[char_or_index - 0x40u];
 	} else {
-		g_flightTextBgColor = (uint8_t)charOrIndex;
+		g_flight_text_bg_color = (uint8_t)char_or_index;
 	}
 }
 
-/* Sets g_flightTextShadowColor from a color code or palette index, as
- * FlightText_SetColor reads them, with the same missing check. */
+/* Sets g_flight_text_shadow_color from a color code or palette index, as
+ * flight_text_set_color reads them, with the same missing check. */
 // FUNCTION: XVT 0x4A95F0
-void FlightText_SetShadowColor(unsigned int charOrIndex)
+void flight_text_set_shadow_color(unsigned int char_or_index)
 {
-	if (charOrIndex >= 0x40u &&
-	    charOrIndex != g_flightTransparentColorIndex) {
-		g_flightTextShadowColor =
-			g_flightCharToColorLut[charOrIndex - 0x40u];
+	if (char_or_index >= 0x40u &&
+	    char_or_index != g_flight_transparent_color_index) {
+		g_flight_text_shadow_color =
+			g_flight_char_to_color_lut[char_or_index - 0x40u];
 	} else {
-		g_flightTextShadowColor = (uint8_t)charOrIndex;
+		g_flight_text_shadow_color = (uint8_t)char_or_index;
 	}
 }
 
-/* Sets g_flightWordWrapEnabled. */
+/* Sets g_flight_word_wrap_enabled. */
 // FUNCTION: XVT 0x4A9620
-void FlightText_SetWordWrap(int16_t enabled)
+void flight_text_set_word_wrap(int16_t enabled)
 {
-	g_flightWordWrapEnabled = enabled;
+	g_flight_word_wrap_enabled = enabled;
 }
 
-/* Sets g_flightClearLineBgEnabled. */
+/* Sets g_flight_clear_line_bg_enabled. */
 // FUNCTION: XVT 0x4A9630
-void FlightText_SetClearLineBackground(int16_t enabled)
+void flight_text_set_clear_line_background(int16_t enabled)
 {
-	g_flightClearLineBgEnabled = enabled;
+	g_flight_clear_line_bg_enabled = enabled;
 }
 
-/* Selects the flight text font: stores tier in g_flightFontTier and, for
- * tiers 0 to 2, sets g_flightFontGlyphTableSw, g_flightFontGlyphStrideSw,
- * g_flightFontLineHeight, g_flightFontDigitWidth and, but for one case,
- * g_flightFontHasLowercase by g_flightResolutionMode. At 320x240 every tier
+/* Selects the flight text font: stores tier in g_flight_font_tier and, for
+ * tiers 0 to 2, sets g_flight_font_glyph_table_sw, g_flight_font_glyph_stride_sw,
+ * g_flight_font_line_height, g_flight_font_digit_width and, but for one case,
+ * g_flight_font_has_lowercase by g_flight_resolution_mode. At 320x240 every tier
  * gets the micro font. Tier 0 gets the micro font at 480x360 and the small
  * one at 640x480; tiers 1 and 2 are alike: the small font at 480x360 and the
  * medium one at 640x480. The small font at 480x360 leaves
- * g_flightFontHasLowercase as it was. Any other tier or resolution mode
- * changes only g_flightFontTier. */
+ * g_flight_font_has_lowercase as it was. Any other tier or resolution mode
+ * changes only g_flight_font_tier. */
 // FUNCTION: XVT 0x4A9640
-void FlightText_SetFontTier(uint8_t tier)
+void flight_text_set_font_tier(uint8_t tier)
 {
-	g_flightFontTier = tier;
+	g_flight_font_tier = tier;
 	switch (tier) {
 	case 0:
-		switch (g_flightResolutionMode) {
+		switch (g_flight_resolution_mode) {
 		case FLIGHT_RESOLUTION_320X240:
 		case FLIGHT_RESOLUTION_480X360:
-			g_flightFontLineHeight = 5;
-			g_flightFontHasLowercase = 0;
-			g_flightFontDigitWidth = 3;
-			g_flightFontGlyphStrideSw = 42;
-			g_flightFontGlyphTableSw = g_flightFontMicroSw;
+			g_flight_font_line_height = 5;
+			g_flight_font_has_lowercase = 0;
+			g_flight_font_digit_width = 3;
+			g_flight_font_glyph_stride_sw = 42;
+			g_flight_font_glyph_table_sw = g_flight_font_micro_sw;
 			break;
 		case FLIGHT_RESOLUTION_640X480:
-			g_flightFontLineHeight = 8;
-			g_flightFontHasLowercase = 1;
-			g_flightFontDigitWidth = 4;
-			g_flightFontGlyphStrideSw = 66;
-			g_flightFontGlyphTableSw = g_flightFontSmallSw;
+			g_flight_font_line_height = 8;
+			g_flight_font_has_lowercase = 1;
+			g_flight_font_digit_width = 4;
+			g_flight_font_glyph_stride_sw = 66;
+			g_flight_font_glyph_table_sw = g_flight_font_small_sw;
 			break;
 		}
 		break;
 	case 1:
-		switch (g_flightResolutionMode) {
+		switch (g_flight_resolution_mode) {
 		case FLIGHT_RESOLUTION_320X240:
-			g_flightFontLineHeight = 5;
-			g_flightFontHasLowercase = 0;
-			g_flightFontDigitWidth = 3;
-			g_flightFontGlyphStrideSw = 42;
-			g_flightFontGlyphTableSw = g_flightFontMicroSw;
+			g_flight_font_line_height = 5;
+			g_flight_font_has_lowercase = 0;
+			g_flight_font_digit_width = 3;
+			g_flight_font_glyph_stride_sw = 42;
+			g_flight_font_glyph_table_sw = g_flight_font_micro_sw;
 			break;
 		case FLIGHT_RESOLUTION_640X480:
-			g_flightFontLineHeight = 10;
-			g_flightFontHasLowercase = 1;
-			g_flightFontDigitWidth = 5;
-			g_flightFontGlyphStrideSw = 82;
-			g_flightFontGlyphTableSw = g_flightFontMediumSw;
+			g_flight_font_line_height = 10;
+			g_flight_font_has_lowercase = 1;
+			g_flight_font_digit_width = 5;
+			g_flight_font_glyph_stride_sw = 82;
+			g_flight_font_glyph_table_sw = g_flight_font_medium_sw;
 			break;
 		case FLIGHT_RESOLUTION_480X360:
-			g_flightFontLineHeight = 8;
-			g_flightFontDigitWidth = 4;
-			g_flightFontGlyphStrideSw = 66;
-			g_flightFontGlyphTableSw = g_flightFontSmallSw;
+			g_flight_font_line_height = 8;
+			g_flight_font_digit_width = 4;
+			g_flight_font_glyph_stride_sw = 66;
+			g_flight_font_glyph_table_sw = g_flight_font_small_sw;
 			break;
 		}
 		break;
 	case 2:
-		switch (g_flightResolutionMode) {
+		switch (g_flight_resolution_mode) {
 		case FLIGHT_RESOLUTION_320X240:
-			g_flightFontLineHeight = 5;
-			g_flightFontHasLowercase = 0;
-			g_flightFontDigitWidth = 3;
-			g_flightFontGlyphStrideSw = 42;
-			g_flightFontGlyphTableSw = g_flightFontMicroSw;
+			g_flight_font_line_height = 5;
+			g_flight_font_has_lowercase = 0;
+			g_flight_font_digit_width = 3;
+			g_flight_font_glyph_stride_sw = 42;
+			g_flight_font_glyph_table_sw = g_flight_font_micro_sw;
 			break;
 		case FLIGHT_RESOLUTION_640X480:
-			g_flightFontLineHeight = 10;
-			g_flightFontHasLowercase = 1;
-			g_flightFontDigitWidth = 5;
-			g_flightFontGlyphStrideSw = 82;
-			g_flightFontGlyphTableSw = g_flightFontMediumSw;
+			g_flight_font_line_height = 10;
+			g_flight_font_has_lowercase = 1;
+			g_flight_font_digit_width = 5;
+			g_flight_font_glyph_stride_sw = 82;
+			g_flight_font_glyph_table_sw = g_flight_font_medium_sw;
 			break;
 		case FLIGHT_RESOLUTION_480X360:
-			g_flightFontLineHeight = 8;
-			g_flightFontDigitWidth = 4;
-			g_flightFontGlyphStrideSw = 66;
-			g_flightFontGlyphTableSw = g_flightFontSmallSw;
+			g_flight_font_line_height = 8;
+			g_flight_font_digit_width = 4;
+			g_flight_font_glyph_stride_sw = 66;
+			g_flight_font_glyph_table_sw = g_flight_font_small_sw;
 			break;
 		}
 		break;
 	}
 }
 
-/* Copies text into g_flightTextScratchBuffer, or empties it for NULL. Does
+/* Copies text into g_flight_text_scratch_buffer, or empties it for NULL. Does
  * not check the buffer's 256-byte size. */
 // FUNCTION: XVT 0x4A97F0
-void FlightText_SetScratch(const char *text)
+void flight_text_set_scratch(const char *text)
 {
 	char *destination;
 
-	destination = g_flightTextScratchBuffer;
+	destination = g_flight_text_scratch_buffer;
 	if (text != 0) {
 		while (*text != '\0') {
 			*destination++ = *text++;
@@ -1442,14 +1469,14 @@ void FlightText_SetScratch(const char *text)
 	*destination = '\0';
 }
 
-/* Appends text, or nothing for NULL, to g_flightTextScratchBuffer. Does not
+/* Appends text, or nothing for NULL, to g_flight_text_scratch_buffer. Does not
  * check the buffer's 256-byte size. */
 // FUNCTION: XVT 0x4A9820
-void FlightText_AppendScratchString(const char *text)
+void flight_text_append_scratch_string(const char *text)
 {
 	char *destination;
 
-	destination = g_flightTextScratchBuffer;
+	destination = g_flight_text_scratch_buffer;
 	while (*destination != '\0') {
 		destination++;
 	}
@@ -1461,14 +1488,14 @@ void FlightText_AppendScratchString(const char *text)
 	*destination = '\0';
 }
 
-/* Appends one character to g_flightTextScratchBuffer. Does not check the
+/* Appends one character to g_flight_text_scratch_buffer. Does not check the
  * buffer's 256-byte size. */
 // FUNCTION: XVT 0x4A9860
-void FlightText_AppendScratchChar(uint8_t ch)
+void flight_text_append_scratch_char(uint8_t ch)
 {
 	char *destination;
 
-	destination = g_flightTextScratchBuffer;
+	destination = g_flight_text_scratch_buffer;
 	while (*destination != '\0') {
 		destination++;
 	}
@@ -1477,76 +1504,76 @@ void FlightText_AppendScratchChar(uint8_t ch)
 }
 
 /* Writes value in decimal, with a '-' in front when negative, over
- * g_flightTextScratchBuffer and returns the characters written, sign
+ * g_flight_text_scratch_buffer and returns the characters written, sign
  * included. Does not handle INT_MIN, whose negation overflows. */
 // FUNCTION: XVT 0x4A9890
-uint16_t FlightText_FormatScratchInt(int value)
+uint16_t flight_text_format_scratch_int(int value)
 {
 	int magnitude;
-	uint16_t digitCount;
-	int expandedDigitCount;
-	int remainingValue;
-	int digitIndex;
+	uint16_t digit_count;
+	int expanded_digit_count;
+	int remaining_value;
+	int digit_index;
 	int16_t digit;
-	int16_t isNegative;
+	int16_t is_negative;
 	char *output;
-	char *digitPosition;
+	char *digit_position;
 
-	isNegative = 0;
-	output = g_flightTextScratchBuffer;
+	is_negative = 0;
+	output = g_flight_text_scratch_buffer;
 	magnitude = value;
 	if (magnitude < 0) {
 		magnitude = -magnitude;
-		g_flightTextScratchBuffer[0] = '-';
-		output = &g_flightTextScratchBuffer[1];
-		isNegative = 1;
+		g_flight_text_scratch_buffer[0] = '-';
+		output = &g_flight_text_scratch_buffer[1];
+		is_negative = 1;
 	}
 	if (magnitude != 0) {
-		digitCount = 0;
-		remainingValue = magnitude;
+		digit_count = 0;
+		remaining_value = magnitude;
 		if (magnitude > 0) {
 			do {
-				++digitCount;
-				remainingValue /= 10;
-			} while (remainingValue > 0);
+				++digit_count;
+				remaining_value /= 10;
+			} while (remaining_value > 0);
 		}
-		digitIndex = 0;
-		if (digitCount != 0) {
-			expandedDigitCount = digitCount;
+		digit_index = 0;
+		if (digit_count != 0) {
+			expanded_digit_count = digit_count;
 			do {
 				digit = (int16_t)(magnitude % 10);
 				magnitude /= 10;
-				digitPosition = &output[-digitIndex++];
-				digitPosition[expandedDigitCount - 1] =
+				digit_position = &output[-digit_index++];
+				digit_position[expanded_digit_count - 1] =
 					(char)(digit + '0');
-			} while (digitIndex < expandedDigitCount);
+			} while (digit_index < expanded_digit_count);
 		}
 	} else {
-		digitCount = 1;
+		digit_count = 1;
 		*output = '0';
 	}
-	output[digitCount] = '\0';
-	if (isNegative != 0) {
-		++digitCount;
+	output[digit_count] = '\0';
+	if (is_negative != 0) {
+		++digit_count;
 	}
-	return digitCount;
+	return digit_count;
 }
 
-/* Draws str at the text cursor through g_flightDrawCharFn. A 0xFE byte sets
+/* Draws str at the text cursor through g_flight_draw_char_fn. A 0xFE byte sets
  * the text color from the byte after it; a byte below 0x10, newline
  * included, sets the color to that value; both go through
- * FlightText_SetColor. With word wrap on, a space draws as a newline when
- * it and the word after it would end beyond g_flightClipRight - 2. Returns
+ * flight_text_set_color. With word wrap on, a space draws as a newline when
+ * it and the word after it would end beyond g_flight_clip_right - 2. Returns
  * at once for an empty string; does not check str for NULL. The modern build
  * reads at most 79 characters of that word; the original does not bound it,
  * and a word of 80 or more overruns the 80-byte buffer it is copied into. */
 // FUNCTION: XVT 0x4A9960
-void FlightText_DrawString(const char *str)
+void flight_text_draw_string(const char *str)
 {
-	char wordBuffer[80];
-	uint16_t wordLength;
-	const char *wordScan;
-	int nextWordWidth;
+	char word_buffer[80];
+	uint16_t word_length;
+	const char *word_scan;
+	int next_word_width;
 
 	if (*str == '\0') {
 		return;
@@ -1555,84 +1582,84 @@ void FlightText_DrawString(const char *str)
 	do {
 		if ((uint8_t)*str == 0xfeu) {
 			++str;
-			FlightText_SetColor((uint8_t)*str);
+			flight_text_set_color((uint8_t)*str);
 		} else if ((uint8_t)*str < 0x10u) {
-			FlightText_SetColor((uint8_t)*str);
+			flight_text_set_color((uint8_t)*str);
 		} else if ((uint8_t)*str == ' ' &&
-			   g_flightWordWrapEnabled != 0) {
-			wordScan = str + 1;
-			wordLength = 0;
-			while (*wordScan != ' ' && *wordScan != '\0'
+			   g_flight_word_wrap_enabled != 0) {
+			word_scan = str + 1;
+			word_length = 0;
+			while (*word_scan != ' ' && *word_scan != '\0'
 #ifdef XVT_MODERN
-			       &&
-			       wordLength < (uint16_t)(sizeof(wordBuffer) - 1u)
+			       && word_length <
+					  (uint16_t)(sizeof(word_buffer) - 1u)
 #endif
 			) {
-				wordBuffer[wordLength] = *wordScan;
-				++wordLength;
-				++wordScan;
+				word_buffer[word_length] = *word_scan;
+				++word_length;
+				++word_scan;
 			}
-			wordBuffer[wordLength] = '\0';
+			word_buffer[word_length] = '\0';
 
-			nextWordWidth =
-				FlightText_MeasureStringWidth(wordBuffer);
-			if (g_flightCursorX +
-				    FlightText_MeasureStringWidth(" ") +
-				    nextWordWidth >
-			    g_flightClipRight - 2) {
-				g_flightDrawCharFn('\n');
+			next_word_width =
+				flight_text_measure_string_width(word_buffer);
+			if (g_flight_cursor_x +
+				    flight_text_measure_string_width(" ") +
+				    next_word_width >
+			    g_flight_clip_right - 2) {
+				g_flight_draw_char_fn('\n');
 			} else {
-				g_flightDrawCharFn((uint8_t)*str);
+				g_flight_draw_char_fn((uint8_t)*str);
 			}
 		} else {
-			g_flightDrawCharFn((uint8_t)*str);
+			g_flight_draw_char_fn((uint8_t)*str);
 		}
 	} while (*++str != '\0');
 }
 
-/* Draws str through FlightText_DrawString on the cursor's row, centered
- * between g_flightClipLeft and g_flightClipRight. A start left of
- * g_flightClipLeft moves to it, but a start below 0 is kept. */
+/* Draws str through flight_text_draw_string on the cursor's row, centered
+ * between g_flight_clip_left and g_flight_clip_right. A start left of
+ * g_flight_clip_left moves to it, but a start below 0 is kept. */
 // FUNCTION: XVT 0x4A9A50
-void FlightText_DrawStringCentered(const char *str)
+void flight_text_draw_string_centered(const char *str)
 {
-	uint16_t halfWidth;
-	uint16_t candidateX;
-	int cursorY;
+	uint16_t half_width;
+	uint16_t candidate_x;
+	int cursor_y;
 
-	halfWidth = FlightText_MeasureStringWidth(str) >> 1;
-	candidateX =
-		(uint16_t)(((int)g_flightClipRight + (int)g_flightClipLeft) /
-				   2 -
-			   halfWidth);
-	if (candidateX < (int)g_flightClipLeft) {
-		candidateX = g_flightClipLeft;
+	half_width = flight_text_measure_string_width(str) >> 1;
+	candidate_x = (uint16_t)(((int)g_flight_clip_right +
+				  (int)g_flight_clip_left) /
+					 2 -
+				 half_width);
+	if (candidate_x < (int)g_flight_clip_left) {
+		candidate_x = g_flight_clip_left;
 	}
-	cursorY = g_flightCursorY;
-	FlightText_SetCursor((int16_t)candidateX, (int16_t)cursorY);
-	FlightText_DrawString(str);
+	cursor_y = g_flight_cursor_y;
+	flight_text_set_cursor((int16_t)candidate_x, (int16_t)cursor_y);
+	flight_text_draw_string(str);
 }
 
-/* Draws str through FlightText_DrawString on the cursor's row, ending 2
- * pixels short of g_flightClipRight. A start left of g_flightClipLeft, or
- * below 0, moves to g_flightClipLeft. */
+/* Draws str through flight_text_draw_string on the cursor's row, ending 2
+ * pixels short of g_flight_clip_right. A start left of g_flight_clip_left, or
+ * below 0, moves to g_flight_clip_left. */
 // FUNCTION: XVT 0x4A9AC0
-void FlightText_DrawStringRightAligned(const char *str)
+void flight_text_draw_string_right_aligned(const char *str)
 {
 	uint16_t width;
-	uint16_t cursorX;
-	int cursorY;
+	uint16_t cursor_x;
+	int cursor_y;
 
-	width = FlightText_MeasureStringWidth(str) + 2;
-	cursorX = g_flightClipRight;
-	cursorX -= width;
-	if (cursorX >= 0x8000u) {
-		cursorX = 0;
+	width = flight_text_measure_string_width(str) + 2;
+	cursor_x = g_flight_clip_right;
+	cursor_x -= width;
+	if (cursor_x >= 0x8000u) {
+		cursor_x = 0;
 	}
-	if (g_flightClipLeft > (int)cursorX) {
-		cursorX = g_flightClipLeft;
+	if (g_flight_clip_left > (int)cursor_x) {
+		cursor_x = g_flight_clip_left;
 	}
-	cursorY = g_flightCursorY;
-	FlightText_SetCursor(cursorX, cursorY);
-	FlightText_DrawString(str);
+	cursor_y = g_flight_cursor_y;
+	flight_text_set_cursor(cursor_x, cursor_y);
+	flight_text_draw_string(str);
 }

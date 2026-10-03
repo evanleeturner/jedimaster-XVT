@@ -4,23 +4,25 @@
 #include "xvt_runtime/log/log.h"
 #include <stdio.h>
 #include <string.h>
-static struct XvtRenderSettings g_effective, g_requested;
-static struct XvtVideoSettings g_video;
-static uint64_t g_generation, g_documentGeneration;
-static int g_initialized, g_videoOverride;
-static AeronSampler *g_meshSampler;
+static struct xvt_render_settings g_effective, g_requested;
+static struct xvt_video_settings g_video;
+static uint64_t g_generation, g_document_generation;
+static int g_initialized, g_video_override;
+static AeronSampler *g_mesh_sampler;
 
-static void XvtRemasterConfig_ReadOutput(struct XvtRenderSettings *settings)
+static void
+xvt_remaster_config_read_output(struct xvt_render_settings *settings)
 {
 	settings->presentation.hdr_output = Aeron_OutputHdrEnabled();
 	settings->presentation.sdr_gamma = Aeron_OutputSdrContentGamma();
 	settings->presentation.paper_white_nits = Aeron_OutputPaperWhiteNits();
 }
 
-static int XvtRemasterConfig_Apply(const struct XvtRenderSettings *requested,
-				   char *error, size_t capacity)
+static int
+xvt_remaster_config_apply(const struct xvt_render_settings *requested,
+			  char *error, size_t capacity)
 {
-	struct XvtRenderSettings next = *requested;
+	struct xvt_render_settings next = *requested;
 	if (next.temporal_mode != AERON_TEMPORAL_OFF) {
 		next.msaa_samples = 1;
 	}
@@ -36,7 +38,7 @@ static int XvtRemasterConfig_Apply(const struct XvtRenderSettings *requested,
 	bool sampler_changed =
 		!g_initialized || next.anisotropic != g_effective.anisotropic ||
 		next.max_anisotropy != g_effective.max_anisotropy;
-	AeronSampler *sampler = g_meshSampler;
+	AeronSampler *sampler = g_mesh_sampler;
 	if (sampler_changed) {
 		sampler = next.anisotropic
 				  ? Aeron_CreateSampler(&(AeronSamplerDesc){
@@ -88,10 +90,10 @@ static int XvtRemasterConfig_Apply(const struct XvtRenderSettings *requested,
 #endif
 	AeronScenePresent_ApplySettings(&next.scene.tonemap);
 	if (sampler_changed) {
-		Aeron_DestroySampler(g_meshSampler);
-		g_meshSampler = sampler;
+		Aeron_DestroySampler(g_mesh_sampler);
+		g_mesh_sampler = sampler;
 	}
-	XvtRemasterConfig_ReadOutput(&next);
+	xvt_remaster_config_read_output(&next);
 	if (!g_initialized || memcmp(&next, &g_effective, sizeof next)) {
 		++g_generation;
 	}
@@ -101,27 +103,28 @@ static int XvtRemasterConfig_Apply(const struct XvtRenderSettings *requested,
 	return 1;
 }
 
-int XvtRemasterConfig_Sync(void)
+int xvt_remaster_config_sync(void)
 {
-	const struct XvtSettings *settings = XvtConfig_Settings();
+	const struct xvt_settings *settings = xvt_config_settings();
 	if (!settings) {
 		return 0;
 	}
-	if (!g_initialized || g_documentGeneration != XvtConfig_Generation()) {
-		struct XvtRenderSettings next = settings->render;
-		if (g_videoOverride) {
-			XvtVideoSettings_ApplyTo(&g_video, &next);
+	if (!g_initialized ||
+	    g_document_generation != xvt_config_generation()) {
+		struct xvt_render_settings next = settings->render;
+		if (g_video_override) {
+			xvt_video_settings_apply_to(&g_video, &next);
 		}
 		char error[512];
-		if (!XvtRemasterConfig_Apply(&next, error, sizeof error)) {
+		if (!xvt_remaster_config_apply(&next, error, sizeof error)) {
 			XVT_LOG_ERROR("remaster.config_failed error=\"%s\"",
 				      error);
 			return 0;
 		}
-		g_documentGeneration = XvtConfig_Generation();
+		g_document_generation = xvt_config_generation();
 	} else {
-		struct XvtRenderSettings next = g_effective;
-		XvtRemasterConfig_ReadOutput(&next);
+		struct xvt_render_settings next = g_effective;
+		xvt_remaster_config_read_output(&next);
 		if (memcmp(&next.presentation, &g_effective.presentation,
 			   sizeof next.presentation)) {
 			g_effective = next;
@@ -131,11 +134,11 @@ int XvtRemasterConfig_Sync(void)
 	return 1;
 }
 
-bool XvtRemasterConfig_ApplyVideo(const struct XvtVideoSettings *previous,
-				  const struct XvtVideoSettings *requested,
-				  char *error, size_t capacity)
+bool xvt_remaster_config_apply_video(const struct xvt_video_settings *previous,
+				     const struct xvt_video_settings *requested,
+				     char *error, size_t capacity)
 {
-	if (!XvtVideoSettings_Validate(requested, error, capacity)) {
+	if (!xvt_video_settings_validate(requested, error, capacity)) {
 		return false;
 	}
 	int fullscreen = Aeron_Fullscreen();
@@ -144,9 +147,9 @@ bool XvtRemasterConfig_ApplyVideo(const struct XvtVideoSettings *previous,
 		snprintf(error, capacity, "Cannot change fullscreen mode");
 		return false;
 	}
-	struct XvtRenderSettings next = XvtConfig_Settings()->render;
-	XvtVideoSettings_ApplyTo(requested, &next);
-	if (!XvtRemasterConfig_Apply(&next, error, capacity)) {
+	struct xvt_render_settings next = xvt_config_settings()->render;
+	xvt_video_settings_apply_to(requested, &next);
+	if (!xvt_remaster_config_apply(&next, error, capacity)) {
 		if (fullscreen != requested->fullscreen &&
 		    !Aeron_SetFullscreen(fullscreen)) {
 			Aeron_RequestFatalRendererError(
@@ -156,23 +159,23 @@ bool XvtRemasterConfig_ApplyVideo(const struct XvtVideoSettings *previous,
 	}
 	(void)previous;
 	g_video = *requested;
-	g_videoOverride = 1;
+	g_video_override = 1;
 	return true;
 }
 
-const struct XvtRenderSettings *XvtRemasterConfig_Effective(void)
+const struct xvt_render_settings *xvt_remaster_config_effective(void)
 {
 	return g_initialized ? &g_effective : NULL;
 }
 
-uint64_t XvtRemasterConfig_Generation(void) { return g_generation; }
+uint64_t xvt_remaster_config_generation(void) { return g_generation; }
 
-AeronSampler *XvtRemasterConfig_MeshSampler(void) { return g_meshSampler; }
+AeronSampler *xvt_remaster_config_mesh_sampler(void) { return g_mesh_sampler; }
 
-void XvtRemasterConfig_Shutdown(void)
+void xvt_remaster_config_shutdown(void)
 {
-	Aeron_DestroySampler(g_meshSampler);
-	g_meshSampler = NULL;
-	g_initialized = g_videoOverride = 0;
-	g_documentGeneration = g_generation = 0;
+	Aeron_DestroySampler(g_mesh_sampler);
+	g_mesh_sampler = NULL;
+	g_initialized = g_video_override = 0;
+	g_document_generation = g_generation = 0;
 }

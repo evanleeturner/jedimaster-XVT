@@ -1,70 +1,71 @@
 #include "xvt/input/keyboard.h"
 #include "xvt/frontend/frontend_state.h"
 
-/* Returns 1 when the 0x80 bit of g_frontState.keyState for the virtual-key code
+/* Returns 1 when the 0x80 bit of g_front_state.key_state for the virtual-key code
  * is set, else 0. The original build fills that table with GetKeyboardState on
- * each front-end frame, the modern build in XvtInput_Update. */
+ * each front-end frame, the modern build in xvt_input_update. */
 // FUNCTION: XVT 0x4DCA90
-int Keyboard_IsKeyDown(uint8_t virtualKey)
+int keyboard_is_key_down(uint8_t virtual_key)
 {
-	return (g_frontState.keyState[virtualKey] & 0x80u) != 0;
+	return (g_front_state.key_state[virtual_key] & 0x80u) != 0;
 }
 
 /* Takes the oldest character from the front end's typed-character ring,
- * g_frontState.charRingBuffer: returns it and advances
- * g_frontState.charReadIdx, wrapping it to 0 at 1024. Returns 0 when the ring
+ * g_front_state.char_ring_buffer: returns it and advances
+ * g_front_state.char_read_idx, wrapping it to 0 at 1024. Returns 0 when the ring
  * is empty. */
 // FUNCTION: XVT 0x4DCAD0
-char Keyboard_DequeueChar(void)
+char keyboard_dequeue_char(void)
 {
-	if (g_frontState.charWriteIdx == g_frontState.charReadIdx) {
+	if (g_front_state.char_write_idx == g_front_state.char_read_idx) {
 		return 0;
 	}
 
 	{
 		char result =
-			g_frontState.charRingBuffer[g_frontState.charReadIdx];
+			g_front_state
+				.char_ring_buffer[g_front_state.char_read_idx];
 
-		++g_frontState.charReadIdx;
-		if (g_frontState.charReadIdx == 1024) {
-			g_frontState.charReadIdx = 0;
+		++g_front_state.char_read_idx;
+		if (g_front_state.char_read_idx == 1024) {
+			g_front_state.char_read_idx = 0;
 		}
 		return result;
 	}
 }
 
-/* Returns the oldest character in g_frontState.charRingBuffer without taking
+/* Returns the oldest character in g_front_state.char_ring_buffer without taking
  * it, or 0 when the ring is empty. */
 // FUNCTION: XVT 0x4DCB10
-char Keyboard_PeekChar(void)
+char keyboard_peek_char(void)
 {
-	if (g_frontState.charWriteIdx == g_frontState.charReadIdx) {
+	if (g_front_state.char_write_idx == g_front_state.char_read_idx) {
 		return 0;
 	}
-	return g_frontState.charRingBuffer[g_frontState.charReadIdx];
+	return g_front_state.char_ring_buffer[g_front_state.char_read_idx];
 }
 
-/* Empties the typed-character ring by setting g_frontState.charReadIdx and
- * g_frontState.charWriteIdx to 0. Returns 1. */
+/* Empties the typed-character ring by setting g_front_state.char_read_idx and
+ * g_front_state.char_write_idx to 0. Returns 1. */
 // FUNCTION: XVT 0x4DCB30
-int Keyboard_FlushCharBuffer(void)
+int keyboard_flush_char_buffer(void)
 {
-	g_frontState.charReadIdx = 0;
-	g_frontState.charWriteIdx = 0;
+	g_front_state.char_read_idx = 0;
+	g_front_state.char_write_idx = 0;
 	return 1;
 }
 
 /* Drops the oldest character from the typed-character ring, advancing
- * g_frontState.charReadIdx and wrapping it to 0 at 1024, and returns 1; returns
+ * g_front_state.char_read_idx and wrapping it to 0 at 1024, and returns 1; returns
  * 0 when the ring is empty. */
 // FUNCTION: XVT 0x4DCB50
-int Keyboard_DiscardChar(void)
+int keyboard_discard_char(void)
 {
-	if (g_frontState.charWriteIdx == g_frontState.charReadIdx) {
+	if (g_front_state.char_write_idx == g_front_state.char_read_idx) {
 		return 0;
 	}
-	if (++g_frontState.charReadIdx == 1024) {
-		g_frontState.charReadIdx = 0;
+	if (++g_front_state.char_read_idx == 1024) {
+		g_front_state.char_read_idx = 0;
 	}
 	return 1;
 }

@@ -11,105 +11,107 @@
 
 #include <string.h>
 
-/* 1 once the flight music track is marked complete. MusicCd_Initialize,
- * MusicCd_PlayTrackFromTime, MusicCd_StopTrack and MusicCd_CloseDevice set 0;
- * only MusicCd_MarkPlaybackComplete sets 1, and nothing calls it, so it stays
+/* 1 once the flight music track is marked complete. music_cd_initialize,
+ * music_cd_play_track_from_time, music_cd_stop_track and music_cd_close_device set 0;
+ * only music_cd_mark_playback_complete sets 1, and nothing calls it, so it stays
  * 0. */
 // GLOBAL: XVT 0x622BC0
-int g_musicCdPlaybackComplete = 0;
-/* Tracks on the CD, read by MusicCd_Initialize; nothing resets it. */
+int g_music_cd_playback_complete = 0;
+/* Tracks on the CD, read by music_cd_initialize; nothing resets it. */
 // GLOBAL: XVT 0x622BC4
-uint32_t g_musicCdTrackCount = 0;
+uint32_t g_music_cd_track_count = 0;
 /* Volume, 0 to 65535, of the first CD audio auxiliary device with volume
- * control, saved by MusicCd_Initialize to put back at MusicCd_CloseDevice; -1
- * when none was saved, and 0 before the first MusicCd_Initialize. */
+ * control, saved by music_cd_initialize to put back at music_cd_close_device; -1
+ * when none was saved, and 0 before the first music_cd_initialize. */
 // GLOBAL: XVT 0x622BC8
-int g_musicCdSavedAuxVolume = 0;
-/* Each track's length for flight music, filled by MusicCd_Initialize and
+int g_music_cd_saved_aux_volume = 0;
+/* Each track's length for flight music, filled by music_cd_initialize and
  * cleared when the device closes. */
 // GLOBAL: XVT 0x622BCC
-struct MusicCdTrackCache g_musicCdTrackCache = {0};
-/* Track MusicCd_PlayTrackFromTime last started for flight music, 0 when none;
- * MusicCd_Initialize, MusicCd_StopTrack and MusicCd_CloseDevice set 0. */
+struct music_cd_track_cache g_music_cd_track_cache = {0};
+/* Track music_cd_play_track_from_time last started for flight music, 0 when none;
+ * music_cd_initialize, music_cd_stop_track and music_cd_close_device set 0. */
 // GLOBAL: XVT 0x622C48
-int g_musicCdCurrentTrack = 0;
+int g_music_cd_current_track = 0;
 /* MCI device id of the CD opened for flight music, 0 when none is open;
- * MusicCd_Initialize sets it and MusicCd_CloseDevice sets 0.
- * XvtCdTask_BeginFade and XvtFlightTask_Update read it in the modern build. */
+ * music_cd_initialize sets it and music_cd_close_device sets 0.
+ * xvt_cd_task_begin_fade and xvt_flight_task_update read it in the modern build. */
 // GLOBAL: XVT 0x622C4C
-uint32_t g_musicCdMciDeviceId = 0;
+uint32_t g_music_cd_mci_device_id = 0;
 
 /* Opens the CD audio device through MCI for flight music. Returns 0 at once
- * when the window is not up: g_flightMainWindowHandle NULL in the original
- * build, XvtPort_IsInitialized false in the modern one. A device already open
- * is closed and its state cleared first. Sets g_musicCdSavedAuxVolume to -1,
+ * when the window is not up: g_flight_main_window_handle NULL in the original
+ * build, xvt_port_is_initialized false in the modern one. A device already open
+ * is closed and its state cleared first. Sets g_music_cd_saved_aux_volume to -1,
  * then to the low 16 bits of the volume of the first auxiliary device that is a
  * CD audio device with volume control and whose volume reads. Opens "cdaudio"
- * into g_musicCdMciDeviceId, sets the time format to tracks, minutes, seconds
- * and frames, reads the track count into g_musicCdTrackCount and each track's
- * length into g_musicCdTrackCache. Returns 1; 0 when the open fails, or when a
- * later step fails, after closing the device and setting g_musicCdMciDeviceId
+ * into g_music_cd_mci_device_id, sets the time format to tracks, minutes, seconds
+ * and frames, reads the track count into g_music_cd_track_count and each track's
+ * length into g_music_cd_track_cache. Returns 1; 0 when the open fails, or when a
+ * later step fails, after closing the device and setting g_music_cd_mci_device_id
  * to 0. Does not check the track count against the cache's 30 entries.
- * Flight_MainLoop calls it in the original build, XvtFlightLoading_Runtime in
+ * flight_main_loop calls it in the original build, xvt_flight_loading_runtime in
  * the modern one. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4A4EC0
-int MusicCd_Initialize(void)
+int music_cd_initialize(void)
 {
 	struct {
-		uint32_t savedVolume; /* Volume auxGetVolume reads. */
+		uint32_t saved_volume; /* Volume auxGetVolume reads. */
 		/* Track count and length queries. */
-		MCI_STATUS_PARMS statusParameters;
-		MCI_SET_PARMS setParameters; /* Time format to set. */
+		MCI_STATUS_PARMS status_parameters;
+		MCI_SET_PARMS set_parameters; /* Time format to set. */
 		/* Open request for "cdaudio". */
-		MCI_OPEN_PARMSA openParameters;
-		AUXCAPSA deviceCaps; /* Capabilities of the device looked at. */
+		MCI_OPEN_PARMSA open_parameters;
+		AUXCAPSA
+			device_caps; /* Capabilities of the device looked at. */
 	} parameters;
 
 #ifdef XVT_MODERN
-	if (!XvtPort_IsInitialized()) {
+	if (!xvt_port_is_initialized()) {
 #else
-	if (g_flightMainWindowHandle == NULL) {
+	if (g_flight_main_window_handle == NULL) {
 #endif
 		return 0;
 	}
-	if (g_musicCdMciDeviceId != 0) {
-		mciSendCommandA(g_musicCdMciDeviceId, MCI_CLOSE, 0, NULL);
-		g_musicCdMciDeviceId = 0;
-		memset(g_musicCdTrackCache.trackLengthMsfByTrack, 0,
-		       sizeof(g_musicCdTrackCache.trackLengthMsfByTrack));
-		g_musicCdCurrentTrack = 0;
-		g_musicCdPlaybackComplete = 0;
+	if (g_music_cd_mci_device_id != 0) {
+		mciSendCommandA(g_music_cd_mci_device_id, MCI_CLOSE, 0, NULL);
+		g_music_cd_mci_device_id = 0;
+		memset(g_music_cd_track_cache.track_length_msf_by_track, 0,
+		       sizeof(g_music_cd_track_cache
+				      .track_length_msf_by_track));
+		g_music_cd_current_track = 0;
+		g_music_cd_playback_complete = 0;
 	}
 
-	g_musicCdSavedAuxVolume = -1;
+	g_music_cd_saved_aux_volume = -1;
 	{
-		unsigned int deviceIndex;
-		unsigned int deviceCount;
+		unsigned int device_index;
+		unsigned int device_count;
 
-		deviceIndex = 0;
-		deviceCount = auxGetNumDevs();
-		if (deviceCount > 0) {
+		device_index = 0;
+		device_count = auxGetNumDevs();
+		if (device_count > 0) {
 			do {
-				memset(&parameters.deviceCaps, 0,
-				       sizeof(parameters.deviceCaps));
-				auxGetDevCapsA(deviceIndex,
-					       &parameters.deviceCaps,
-					       sizeof(parameters.deviceCaps));
-				if (parameters.deviceCaps.wTechnology ==
+				memset(&parameters.device_caps, 0,
+				       sizeof(parameters.device_caps));
+				auxGetDevCapsA(device_index,
+					       &parameters.device_caps,
+					       sizeof(parameters.device_caps));
+				if (parameters.device_caps.wTechnology ==
 					    AUXCAPS_CDAUDIO &&
-				    (parameters.deviceCaps.dwSupport &
+				    (parameters.device_caps.dwSupport &
 				     AUXCAPS_VOLUME) != 0 &&
-				    auxGetVolume(deviceIndex,
-						 &parameters.savedVolume) ==
+				    auxGetVolume(device_index,
+						 &parameters.saved_volume) ==
 					    MMSYSERR_NOERROR) {
-					g_musicCdSavedAuxVolume =
-						parameters.savedVolume &
+					g_music_cd_saved_aux_volume =
+						parameters.saved_volume &
 						UINT16_MAX;
 					break;
 				}
-				++deviceIndex;
-				if (deviceCount > deviceIndex) {
+				++device_index;
+				if (device_count > device_index) {
 					continue;
 				}
 				break;
@@ -117,79 +119,81 @@ int MusicCd_Initialize(void)
 		}
 	}
 
-	parameters.openParameters.lpstrDeviceType = "cdaudio";
+	parameters.open_parameters.lpstrDeviceType = "cdaudio";
 	if (mciSendCommandA(0, MCI_OPEN, MCI_OPEN_TYPE,
-			    &parameters.openParameters) != MMSYSERR_NOERROR) {
-		g_musicCdMciDeviceId = 0;
+			    &parameters.open_parameters) != MMSYSERR_NOERROR) {
+		g_music_cd_mci_device_id = 0;
 		return 0;
 	}
-	g_musicCdMciDeviceId = parameters.openParameters.wDeviceID;
-	parameters.setParameters.dwTimeFormat = MCI_FORMAT_TMSF;
-	if (mciSendCommandA(g_musicCdMciDeviceId, MCI_SET, MCI_SET_TIME_FORMAT,
-			    &parameters.setParameters) != MMSYSERR_NOERROR) {
-		mciSendCommandA(g_musicCdMciDeviceId, MCI_CLOSE, 0, NULL);
-		g_musicCdMciDeviceId = 0;
+	g_music_cd_mci_device_id = parameters.open_parameters.wDeviceID;
+	parameters.set_parameters.dwTimeFormat = MCI_FORMAT_TMSF;
+	if (mciSendCommandA(g_music_cd_mci_device_id, MCI_SET,
+			    MCI_SET_TIME_FORMAT,
+			    &parameters.set_parameters) != MMSYSERR_NOERROR) {
+		mciSendCommandA(g_music_cd_mci_device_id, MCI_CLOSE, 0, NULL);
+		g_music_cd_mci_device_id = 0;
 		return 0;
 	}
 
 	{
 		MMRESULT result;
-		uint32_t deviceId;
-		uint32_t trackCount;
-		unsigned int trackNumber;
+		uint32_t device_id;
+		uint32_t track_count;
+		unsigned int track_number;
 
-		parameters.statusParameters.dwItem =
+		parameters.status_parameters.dwItem =
 			MCI_STATUS_NUMBER_OF_TRACKS;
-		if (mciSendCommandA(
-			    g_musicCdMciDeviceId, MCI_STATUS, MCI_STATUS_ITEM,
-			    &parameters.statusParameters) != MMSYSERR_NOERROR) {
-			mciSendCommandA(g_musicCdMciDeviceId, MCI_CLOSE, 0,
+		if (mciSendCommandA(g_music_cd_mci_device_id, MCI_STATUS,
+				    MCI_STATUS_ITEM,
+				    &parameters.status_parameters) !=
+		    MMSYSERR_NOERROR) {
+			mciSendCommandA(g_music_cd_mci_device_id, MCI_CLOSE, 0,
 					NULL);
-			g_musicCdMciDeviceId = 0;
+			g_music_cd_mci_device_id = 0;
 			return 0;
 		}
 
-		g_musicCdTrackCount =
-			(uint32_t)parameters.statusParameters.dwReturn;
-		trackNumber = 1;
-		if (g_musicCdTrackCount >= trackNumber) {
-			deviceId = g_musicCdMciDeviceId;
+		g_music_cd_track_count =
+			(uint32_t)parameters.status_parameters.dwReturn;
+		track_number = 1;
+		if (g_music_cd_track_count >= track_number) {
+			device_id = g_music_cd_mci_device_id;
 			do {
-				parameters.statusParameters.dwItem =
+				parameters.status_parameters.dwItem =
 					MCI_STATUS_LENGTH;
-				parameters.statusParameters.dwTrack =
-					trackNumber;
+				parameters.status_parameters.dwTrack =
+					track_number;
 				result = mciSendCommandA(
-					deviceId, MCI_STATUS,
+					device_id, MCI_STATUS,
 					MCI_STATUS_ITEM | MCI_TRACK,
-					&parameters.statusParameters);
-				trackCount = g_musicCdTrackCount;
-				deviceId = g_musicCdMciDeviceId;
+					&parameters.status_parameters);
+				track_count = g_music_cd_track_count;
+				device_id = g_music_cd_mci_device_id;
 				if (result != MMSYSERR_NOERROR) {
-					mciSendCommandA(deviceId, MCI_CLOSE, 0,
+					mciSendCommandA(device_id, MCI_CLOSE, 0,
 							NULL);
-					g_musicCdMciDeviceId = 0;
+					g_music_cd_mci_device_id = 0;
 					return 0;
 				}
-				g_musicCdTrackCache
-					.trackLengthMsfByTrack[trackNumber -
-							       1] =
+				g_music_cd_track_cache.track_length_msf_by_track
+					[track_number - 1] =
 					(unsigned int)parameters
-						.statusParameters.dwReturn;
-				++trackNumber;
-			} while (trackCount >= trackNumber);
+						.status_parameters.dwReturn;
+				++track_number;
+			} while (track_count >= track_number);
 		}
 		return 1;
 	}
 }
 
-/* Plays track trackNumber through MCI from startMinute and startSecond to the
- * track's end, with MCI_NOTIFY to g_flightMainWindowHandle. Returns 0 when the
- * track is not 1 to g_musicCdTrackCount, no device is open, or MCI_PLAY fails.
- * Otherwise sets g_musicCdPlaybackComplete to 0 and g_musicCdCurrentTrack to
+/* Plays track track_number through MCI from start_minute and start_second to the
+ * track's end, with MCI_NOTIFY to g_flight_main_window_handle. Returns 0 when the
+ * track is not 1 to g_music_cd_track_count, no device is open, or MCI_PLAY fails.
+ * Otherwise sets g_music_cd_playback_complete to 0 and g_music_cd_current_track to
  * the track number, and returns 1. */
 // FUNCTION: XVT 0x4A50D0
-int MusicCd_PlayTrackFromTime(int trackNumber, int startMinute, int startSecond)
+int music_cd_play_track_from_time(int track_number, int start_minute,
+				  int start_second)
 {
 	struct {
 		void *callback; /* Window MCI notifies when the play ends. */
@@ -197,227 +201,232 @@ int MusicCd_PlayTrackFromTime(int trackNumber, int startMinute, int startSecond)
 		uint32_t to;	/* End, the track's length, the same way. */
 	} parameters;
 
-	uint32_t deviceId;
-	uint32_t toTime;
-	unsigned int trackEndMsf;
+	uint32_t device_id;
+	uint32_t to_time;
+	unsigned int track_end_msf;
 
-	if ((int)g_musicCdTrackCount < trackNumber || trackNumber <= 0) {
+	if ((int)g_music_cd_track_count < track_number || track_number <= 0) {
 		return 0;
 	}
-	deviceId = g_musicCdMciDeviceId;
-	if (deviceId == 0) {
+	device_id = g_music_cd_mci_device_id;
+	if (device_id == 0) {
 		return 0;
 	}
 
 	memset(&parameters, 0, sizeof(parameters));
 	parameters.from =
-		MCI_MAKE_TMSF(trackNumber, startMinute, startSecond, 0);
-	trackEndMsf =
-		g_musicCdTrackCache.trackLengthMsfByTrack[trackNumber - 1];
-	parameters.callback = g_flightMainWindowHandle;
-	toTime = MCI_MAKE_TMSF(trackNumber, MCI_MSF_MINUTE(trackEndMsf),
-			       MCI_MSF_SECOND(trackEndMsf),
-			       MCI_MSF_FRAME(trackEndMsf));
-	parameters.to = toTime;
-	if (mciSendCommandA(deviceId, MCI_PLAY, MCI_NOTIFY | MCI_FROM | MCI_TO,
+		MCI_MAKE_TMSF(track_number, start_minute, start_second, 0);
+	track_end_msf = g_music_cd_track_cache
+				.track_length_msf_by_track[track_number - 1];
+	parameters.callback = g_flight_main_window_handle;
+	to_time = MCI_MAKE_TMSF(track_number, MCI_MSF_MINUTE(track_end_msf),
+				MCI_MSF_SECOND(track_end_msf),
+				MCI_MSF_FRAME(track_end_msf));
+	parameters.to = to_time;
+	if (mciSendCommandA(device_id, MCI_PLAY, MCI_NOTIFY | MCI_FROM | MCI_TO,
 			    &parameters) != MMSYSERR_NOERROR) {
 		return 0;
 	}
-	g_musicCdPlaybackComplete = 0;
-	g_musicCdCurrentTrack = MCI_TMSF_TRACK(parameters.from);
+	g_music_cd_playback_complete = 0;
+	g_music_cd_current_track = MCI_TMSF_TRACK(parameters.from);
 	return 1;
 }
 
-/* Stops the current track with MCI_STOP, sets g_musicCdCurrentTrack and
- * g_musicCdPlaybackComplete to 0 and returns 1; returns 0 when no device is
+/* Stops the current track with MCI_STOP, sets g_music_cd_current_track and
+ * g_music_cd_playback_complete to 0 and returns 1; returns 0 when no device is
  * open or no track is current. Nothing calls this. */
 // FUNCTION: XVT 0x4A51B0
-int MusicCd_StopTrack(void)
+int music_cd_stop_track(void)
 {
 	MCI_GENERIC_PARMS parameters;
 
-	if (g_musicCdMciDeviceId == 0) {
+	if (g_music_cd_mci_device_id == 0) {
 		return 0;
 	}
-	if (g_musicCdCurrentTrack == 0) {
+	if (g_music_cd_current_track == 0) {
 		return 0;
 	}
-	mciSendCommandA(g_musicCdMciDeviceId, MCI_STOP, 0, &parameters);
-	g_musicCdCurrentTrack = 0;
-	g_musicCdPlaybackComplete = 0;
+	mciSendCommandA(g_music_cd_mci_device_id, MCI_STOP, 0, &parameters);
+	g_music_cd_current_track = 0;
+	g_music_cd_playback_complete = 0;
 	return 1;
 }
 
 /* Closes the flight music CD device: stops a current track, closes the device
- * and sets g_musicCdMciDeviceId to 0, and clears the cached track lengths,
- * g_musicCdCurrentTrack and g_musicCdPlaybackComplete. When
- * g_musicCdSavedAuxVolume is not -1 it puts that volume back on both channels
+ * and sets g_music_cd_mci_device_id to 0, and clears the cached track lengths,
+ * g_music_cd_current_track and g_music_cd_playback_complete. When
+ * g_music_cd_saved_aux_volume is not -1 it puts that volume back on both channels
  * of every CD audio auxiliary device with volume control; then it sets
- * g_musicCdSavedAuxVolume to -1. Returns 0 when no device is open. After
+ * g_music_cd_saved_aux_volume to -1. Returns 0 when no device is open. After
  * closing one the modern build returns 0; the original build's code ends with
  * no return statement. */
 // FUNCTION: XVT 0x4A5210
-int MusicCd_CloseDevice(void)
+int music_cd_close_device(void)
 {
 	MCI_GENERIC_PARMS parameters;
-	AUXCAPSA deviceCaps;
-	int deviceCount;
-	int deviceIndex;
-	uint32_t stereoVolume;
+	AUXCAPSA device_caps;
+	int device_count;
+	int device_index;
+	uint32_t stereo_volume;
 
-	if (g_musicCdMciDeviceId == 0) {
+	if (g_music_cd_mci_device_id == 0) {
 		return 0;
 	}
 
-	if (g_musicCdCurrentTrack != 0) {
-		mciSendCommandA(g_musicCdMciDeviceId, MCI_STOP, 0, &parameters);
-		g_musicCdCurrentTrack = 0;
-		g_musicCdPlaybackComplete = 0;
+	if (g_music_cd_current_track != 0) {
+		mciSendCommandA(g_music_cd_mci_device_id, MCI_STOP, 0,
+				&parameters);
+		g_music_cd_current_track = 0;
+		g_music_cd_playback_complete = 0;
 	}
-	mciSendCommandA(g_musicCdMciDeviceId, MCI_CLOSE, 0, NULL);
-	g_musicCdMciDeviceId = 0;
-	memset(g_musicCdTrackCache.trackLengthMsfByTrack, 0,
-	       sizeof(g_musicCdTrackCache.trackLengthMsfByTrack));
-	g_musicCdCurrentTrack = 0;
-	g_musicCdPlaybackComplete = 0;
+	mciSendCommandA(g_music_cd_mci_device_id, MCI_CLOSE, 0, NULL);
+	g_music_cd_mci_device_id = 0;
+	memset(g_music_cd_track_cache.track_length_msf_by_track, 0,
+	       sizeof(g_music_cd_track_cache.track_length_msf_by_track));
+	g_music_cd_current_track = 0;
+	g_music_cd_playback_complete = 0;
 
-	deviceIndex = 0;
-	deviceCount = (int)auxGetNumDevs();
-	if (g_musicCdSavedAuxVolume != -1) {
-		stereoVolume = (uint32_t)g_musicCdSavedAuxVolume * 65537;
-		if (deviceCount > 0) {
+	device_index = 0;
+	device_count = (int)auxGetNumDevs();
+	if (g_music_cd_saved_aux_volume != -1) {
+		stereo_volume = (uint32_t)g_music_cd_saved_aux_volume * 65537;
+		if (device_count > 0) {
 			do {
-				memset(&deviceCaps, 0, sizeof(deviceCaps));
-				auxGetDevCapsA((uintptr_t)deviceIndex,
-					       &deviceCaps, sizeof(deviceCaps));
-				if (deviceCaps.wTechnology == AUXCAPS_CDAUDIO &&
-				    (deviceCaps.dwSupport & AUXCAPS_VOLUME) !=
+				memset(&device_caps, 0, sizeof(device_caps));
+				auxGetDevCapsA((uintptr_t)device_index,
+					       &device_caps,
+					       sizeof(device_caps));
+				if (device_caps.wTechnology ==
+					    AUXCAPS_CDAUDIO &&
+				    (device_caps.dwSupport & AUXCAPS_VOLUME) !=
 					    0) {
-					auxSetVolume((uintptr_t)deviceIndex,
-						     stereoVolume);
+					auxSetVolume((uintptr_t)device_index,
+						     stereo_volume);
 				}
-				++deviceIndex;
-			} while (deviceIndex < deviceCount);
+				++device_index;
+			} while (device_index < device_count);
 		}
 	}
-	g_musicCdSavedAuxVolume = -1;
+	g_music_cd_saved_aux_volume = -1;
 #ifdef XVT_MODERN
 	return 0;
 #endif
 }
 
-/* Returns g_musicCdPlaybackComplete, or 0 when no device is open or no track is
+/* Returns g_music_cd_playback_complete, or 0 when no device is open or no track is
  * current. Nothing calls this. */
 // FUNCTION: XVT 0x4A5300
-int MusicCd_IsPlaybackComplete(void)
+int music_cd_is_playback_complete(void)
 {
-	if (g_musicCdMciDeviceId == 0) {
+	if (g_music_cd_mci_device_id == 0) {
 		return 0;
 	}
-	if (g_musicCdCurrentTrack == 0) {
+	if (g_music_cd_current_track == 0) {
 		return 0;
 	}
-	return g_musicCdPlaybackComplete;
+	return g_music_cd_playback_complete;
 }
 
-/* Returns g_musicCdMciDeviceId. Nothing calls this. */
+/* Returns g_music_cd_mci_device_id. Nothing calls this. */
 // FUNCTION: XVT 0x4A5320
-uint32_t MusicCd_GetDeviceId(void) { return g_musicCdMciDeviceId; }
+uint32_t music_cd_get_device_id(void) { return g_music_cd_mci_device_id; }
 
-/* Sets g_musicCdPlaybackComplete to 1 and returns 1. Nothing calls this. */
+/* Sets g_music_cd_playback_complete to 1 and returns 1. Nothing calls this. */
 // FUNCTION: XVT 0x4A5330
-int MusicCd_MarkPlaybackComplete(void)
+int music_cd_mark_playback_complete(void)
 {
-	g_musicCdPlaybackComplete = 1;
+	g_music_cd_playback_complete = 1;
 	return 1;
 }
 
-/* Returns the cached length of track trackNumber in milliseconds,
+/* Returns the cached length of track track_number in milliseconds,
  * frames * 1000 / 75 + 1000 * (seconds + 60 * minutes), or 0 when no device is
- * open or the track is not 1 to g_musicCdTrackCount. */
+ * open or the track is not 1 to g_music_cd_track_count. */
 // FUNCTION: XVT 0x4A5340
-int MusicCd_GetTrackLengthMs(int trackNumber)
+int music_cd_get_track_length_ms(int track_number)
 {
-	unsigned int trackEndMsf;
+	unsigned int track_end_msf;
 
-	if (g_musicCdMciDeviceId == 0) {
+	if (g_music_cd_mci_device_id == 0) {
 		return 0;
 	}
-	if (trackNumber <= 0 || trackNumber > (int)g_musicCdTrackCount) {
+	if (track_number <= 0 || track_number > (int)g_music_cd_track_count) {
 		return 0;
 	}
 
-	trackEndMsf =
-		g_musicCdTrackCache.trackLengthMsfByTrack[trackNumber - 1];
-	return MCI_MSF_FRAME(trackEndMsf) * 1000 / 75 +
-	       1000 * (MCI_MSF_SECOND(trackEndMsf) +
-		       60 * MCI_MSF_MINUTE(trackEndMsf));
+	track_end_msf = g_music_cd_track_cache
+				.track_length_msf_by_track[track_number - 1];
+	return MCI_MSF_FRAME(track_end_msf) * 1000 / 75 +
+	       1000 * (MCI_MSF_SECOND(track_end_msf) +
+		       60 * MCI_MSF_MINUTE(track_end_msf));
 }
 
-/* Calls CDAudio_SetAuxVolume and returns its result, 1; that also stores the
- * volume in g_frontState.cdAudioTrackCache.currentAuxVolume. */
+/* Calls cd_audio_set_aux_volume and returns its result, 1; that also stores the
+ * volume in g_front_state.cd_audio_track_cache.current_aux_volume. */
 // FUNCTION: XVT 0x4A53B0
-int MusicCd_SetAuxVolume(unsigned int volume0To65535)
+int music_cd_set_aux_volume(unsigned int volume0_to65535)
 {
-	return CDAudio_SetAuxVolume(volume0To65535);
+	return cd_audio_set_aux_volume(volume0_to65535);
 }
 
-/* Moves the CD volume from fromVolume to toVolume over about fadeDurationMs
- * milliseconds, as the original build's CDAudio_FadeAuxVolume does but timed
- * with timeGetTime and needing g_musicCdMciDeviceId: returns 0 when no device
+/* Moves the CD volume from from_volume to to_volume over about fade_duration_ms
+ * milliseconds, as the original build's cd_audio_fade_aux_volume does but timed
+ * with timeGetTime and needing g_music_cd_mci_device_id: returns 0 when no device
  * is open, 1 at once when the volumes are equal, else 1 after stepping the
- * volume 256 at a time with MusicCd_SetAuxVolume until it reaches or passes
- * toVolume. Only the original build calls this, from Flight_MainLoop. */
+ * volume 256 at a time with music_cd_set_aux_volume until it reaches or passes
+ * to_volume. Only the original build calls this, from flight_main_loop. */
 // FUNCTION: XVT 0x4A53C0
-int MusicCd_FadeAuxVolume(unsigned int fromVolume, unsigned int toVolume,
-			  int fadeDurationMs)
+int music_cd_fade_aux_volume(unsigned int from_volume, unsigned int to_volume,
+			     int fade_duration_ms)
 {
-	int fadeUp;
-	unsigned int stepDelayMs;
-	uint32_t previousTimeMs;
-	int currentTimeMs;
-	unsigned int nextVolume;
+	int fade_up;
+	unsigned int step_delay_ms;
+	uint32_t previous_time_ms;
+	int current_time_ms;
+	unsigned int next_volume;
 
-	if (g_musicCdMciDeviceId == 0) {
+	if (g_music_cd_mci_device_id == 0) {
 		return 0;
 	}
-	if (toVolume == fromVolume) {
+	if (to_volume == from_volume) {
 		return 1;
 	}
-	if (toVolume < fromVolume) {
-		fadeUp = 0;
-		stepDelayMs = (fadeDurationMs << 8) / (fromVolume - toVolume);
+	if (to_volume < from_volume) {
+		fade_up = 0;
+		step_delay_ms =
+			(fade_duration_ms << 8) / (from_volume - to_volume);
 	} else {
-		fadeUp = 1;
-		stepDelayMs = (fadeDurationMs << 8) / (toVolume - fromVolume);
+		fade_up = 1;
+		step_delay_ms =
+			(fade_duration_ms << 8) / (to_volume - from_volume);
 	}
 
-	previousTimeMs = timeGetTime();
+	previous_time_ms = timeGetTime();
 	while (1) {
-		currentTimeMs = timeGetTime();
-		if ((int)(previousTimeMs + stepDelayMs) < currentTimeMs) {
-			if (fadeUp != 0) {
-				nextVolume = fromVolume + 256;
-				if (nextVolume > 65535) {
-					fromVolume = 65535;
+		current_time_ms = timeGetTime();
+		if ((int)(previous_time_ms + step_delay_ms) < current_time_ms) {
+			if (fade_up != 0) {
+				next_volume = from_volume + 256;
+				if (next_volume > 65535) {
+					from_volume = 65535;
 				} else {
-					fromVolume = nextVolume;
+					from_volume = next_volume;
 				}
 			} else {
-				if (fromVolume < 256) {
-					fromVolume = 0;
+				if (from_volume < 256) {
+					from_volume = 0;
 				} else {
-					fromVolume -= 256;
+					from_volume -= 256;
 				}
 			}
-			MusicCd_SetAuxVolume(fromVolume);
-			previousTimeMs = currentTimeMs;
+			music_cd_set_aux_volume(from_volume);
+			previous_time_ms = current_time_ms;
 		}
-		if (fadeUp != 0) {
-			if (toVolume <= fromVolume) {
+		if (fade_up != 0) {
+			if (to_volume <= from_volume) {
 				break;
 			}
-		} else if (toVolume >= fromVolume) {
+		} else if (to_volume >= from_volume) {
 			break;
 		}
 	}

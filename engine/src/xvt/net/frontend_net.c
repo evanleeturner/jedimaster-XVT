@@ -36,152 +36,152 @@
 #include <string.h>
 
 /* The game's DirectPlay application GUID as four words, used to list, join and
- * host sessions of this game (Net_EnumerateAppSessions,
- * Net_StartNetworkSession). Never written; only original-build code reads
+ * host sessions of this game (net_enumerate_app_sessions,
+ * net_start_network_session). Never written; only original-build code reads
  * it. */
 // GLOBAL: XVT 0x518278
-const unsigned int g_frontendNetXvtDirectPlayAppGuid[4] = {
+const unsigned int g_frontend_net_xvt_direct_play_app_guid[4] = {
 	0x09438C20, 0x11CEE06A, 0xAA008186, 0x575D6C00};
 /* The mission description id in the host's last lobby STATE packet; -1 while no
  * session is selected or none has arrived. 7 functions write it:
- * FrontendNet_ProcessNetworkPackets sets it from a STATE packet, and the join
- * screen, the session probe and sort code and XvtNetworkDialogs_Return reset it
+ * frontend_net_process_network_packets sets it from a STATE packet, and the join
+ * screen, the session probe and sort code and xvt_network_dialogs_return reset it
  * to -1. The mission setup screens and the join screen's drawing read it. */
 // GLOBAL: XVT 0xAA6AE8
-int g_frontendNetReceivedMissionDescriptionId = 0;
+int g_frontend_net_received_mission_description_id = 0;
 /* The mission directory id in the host's last lobby STATE packet. Set by
- * FrontendNet_ProcessNetworkPackets; reset to the training exercises directory
- * by FrontendNet_JoinGameScreen, FrontendNet_ConnectToSelectedGameScreen and
- * FrontendNet_ProbeSessionByIndex. */
+ * frontend_net_process_network_packets; reset to the training exercises directory
+ * by frontend_net_join_game_screen, frontend_net_connect_to_selected_game_screen and
+ * frontend_net_probe_session_by_index. */
 // GLOBAL: XVT 0xAA6CF8
-int g_frontendNetReceivedMissionDirectoryId = 0;
+int g_frontend_net_received_mission_directory_id = 0;
 /* The buffer most frontend network packets are built in just before they are
  * sent. 37 functions write it, most in the mission setup, briefing and debrief
  * screens, 5 in this file. */
 // GLOBAL: XVT 0xAA6AF0
-struct FrontendNetPacketScratch g_frontendNetPacketScratch = {0};
-/* The games the join screen lists, kept sorted by FrontendNet_SortSessions.
- * Written by FrontendNet_RefreshSessionList, FrontendNet_ProbeSessionByIndex
- * and FrontendNet_JoinGameScreen, which clears it on entry unless
- * g_frontendSkipScreenEntrySetup is set. Only the original build uses it. */
+struct frontend_net_packet_scratch g_frontend_net_packet_scratch = {0};
+/* The games the join screen lists, kept sorted by frontend_net_sort_sessions.
+ * Written by frontend_net_refresh_session_list, frontend_net_probe_session_by_index
+ * and frontend_net_join_game_screen, which clears it on entry unless
+ * g_frontend_skip_screen_entry_setup is set. Only the original build uses it. */
 // GLOBAL: XVT 0xAA62B0
-struct FrontendNetSessionEntry g_frontendNetSessionList[32] = {{0}};
-/* Entries in use in g_frontendNetSessionList; FrontendNet_RefreshSessionList
- * recounts it, at most 32, and FrontendNet_JoinGameScreen zeroes it with the
+struct frontend_net_session_entry g_frontend_net_session_list[32] = {{0}};
+/* Entries in use in g_frontend_net_session_list; frontend_net_refresh_session_list
+ * recounts it, at most 32, and frontend_net_join_game_screen zeroes it with the
  * list. Only the original build uses it. */
 // GLOBAL: XVT 0xAA6CF4
-int g_frontendNetSessionCount = 0;
+int g_frontend_net_session_count = 0;
 /* First session-list row shown, set by the list's scrollbar and zeroed on the
- * join screen's first frame. Only FrontendNet_DrawJoinGameList uses it, in the
+ * join screen's first frame. Only frontend_net_draw_join_game_list uses it, in the
  * original build. */
 // GLOBAL: XVT 0x665438
-int g_frontendNetSessionListScrollOffset = 0;
-/* Index in g_frontendNetSessionList of the game selected on the join screen, -1
+int g_frontend_net_session_list_scroll_offset = 0;
+/* Index in g_frontend_net_session_list of the game selected on the join screen, -1
  * for none; while one is selected the list is not refreshed and that game's
- * packets are read. 6 functions write it, chiefly FrontendNet_JoinGameScreen,
- * FrontendNet_SortSessions (which follows the game as the list is sorted) and
- * XvtNetworkDialogs_Return. Only original-build code reads it. */
+ * packets are read. 6 functions write it, chiefly frontend_net_join_game_screen,
+ * frontend_net_sort_sessions (which follows the game as the list is sorted) and
+ * xvt_network_dialogs_return. Only original-build code reads it. */
 // GLOBAL: XVT 0x52BF50
-int g_frontendNetSelectedSessionIdx = -1;
+int g_frontend_net_selected_session_idx = -1;
 /* DirectPlay id of the sender of the last packet
- * FrontendNet_ProcessNetworkPackets read. The mission setup, briefing and
+ * frontend_net_process_network_packets read. The mission setup, briefing and
  * debrief screens read it, and the modern admission screen ignores packets not
  * sent by the host. */
 // GLOBAL: XVT 0x52C188
-int g_frontendNetPacketSenderPlayerId = 0;
+int g_frontend_net_packet_sender_player_id = 0;
 /* First payload word of the last mission choice, countdown, reservation,
- * release or PILOT_RATING packet FrontendNet_ProcessNetworkPackets read; the
+ * release or PILOT_RATING packet frontend_net_process_network_packets read; the
  * mission setup and briefing screens read it. */
 // GLOBAL: XVT 0x52C18C
-int g_frontendNetPacketArg0 = 0;
+int g_frontend_net_packet_arg0 = 0;
 /* DirectPlay id of the player who made the last team or flight reservation: the
- * second payload word of that packet. FrontendNet_ProcessNetworkPackets writes
+ * second payload word of that packet. frontend_net_process_network_packets writes
  * it and nothing reads it. */
 // GLOBAL: XVT 0x52C190
-int g_frontendNetReservingPlayerId = 0;
+int g_frontend_net_reserving_player_id = 0;
 /* 1 from the frame the host screen's game name is confirmed until the next
- * frame, which starts hosting. Only FrontendNet_HostGameScreen uses it, and
+ * frame, which starts hosting. Only frontend_net_host_game_screen uses it, and
  * zeroes it on its first frame. */
 // GLOBAL: XVT 0x665D0C
-int g_hostGameStartPending = 0;
+int g_host_game_start_pending = 0;
 /* 1 after the mission setup's Quick Start button: the team assignment screen
  * (in single player) and the flight assignment screen then pass straight on,
  * and a single-player briefing applies the chosen preset craft. Only
- * MissionSetup_Update sets it to 1; Concourse_Update, MissionSetup_Update,
- * MissionDebrief_Update, FrontendNet_HostGameScreen and
- * XvtMissionDialogs_Resume reset it to 0. */
+ * mission_setup_update sets it to 1; concourse_update, mission_setup_update,
+ * mission_debrief_update, frontend_net_host_game_screen and
+ * xvt_mission_dialogs_resume reset it to 0. */
 // GLOBAL: XVT 0x52C204
-int g_frontendQuickStartLaunchFlag = 0;
+int g_frontend_quick_start_launch_flag = 0;
 /* Protocol version in the last probe answer or game-started notice, stored by
- * FrontendNet_ProcessNetworkPackets; FrontendNet_ProbeSessionByIndex copies it
+ * frontend_net_process_network_packets; frontend_net_probe_session_by_index copies it
  * into the session list. Only original-build code reads it. */
 // GLOBAL: XVT 0xAA62A4
-int g_frontendNetProbeVersion = 0;
+int g_frontend_net_probe_version = 0;
 /* Players a game still needs: the 8 roster places minus the players in the
  * host's last lobby STATE or READY_ROSTER packet, stored by
- * FrontendNet_ProcessNetworkPackets. FrontendNet_ProbeSessionByIndex zeroes it
+ * frontend_net_process_network_packets. frontend_net_probe_session_by_index zeroes it
  * before a probe and copies it into the session list. Only original-build code
  * reads it. */
 // GLOBAL: XVT 0xAA6A70
-int g_frontendNetProbePlayersNeeded = 0;
+int g_frontend_net_probe_players_needed = 0;
 /* Nonzero when the last probe answer or game-started notice says the game needs
- * a password; stored by FrontendNet_ProcessNetworkPackets and copied into the
+ * a password; stored by frontend_net_process_network_packets and copied into the
  * session list. Only original-build code reads it. */
 // GLOBAL: XVT 0xAA6A74
-int g_frontendNetProbePasswordRequired = 0;
+int g_frontend_net_probe_password_required = 0;
 /* Mission seconds elapsed, from the last probe answer or game-started notice.
- * FrontendNet_ProcessNetworkPackets stores it, and the join screen code and
- * XvtNetworkDialogs_Return reset it to 0, but nothing reads it. */
+ * frontend_net_process_network_packets stores it, and the join screen code and
+ * xvt_network_dialogs_return reset it to 0, but nothing reads it. */
 // GLOBAL: XVT 0xAA6CF0
-int g_frontendNetProbeMissionElapsedSeconds = 0;
+int g_frontend_net_probe_mission_elapsed_seconds = 0;
 /* BRIEFING_ENTERED packets received, which the briefing compares with the ready
- * players. FrontendNet_ProcessNetworkPackets counts it up; MissionSetup_Update
- * and MissionSetup_FlightAssignmentUpdate reset it to 0. */
+ * players. frontend_net_process_network_packets counts it up; mission_setup_update
+ * and mission_setup_flight_assignment_update reset it to 0. */
 // GLOBAL: XVT 0xA91C90
-int g_frontendBriefingEnteredCount = 0;
+int g_frontend_briefing_entered_count = 0;
 /* The chat line being typed, up to 100 bytes;
- * FrontendNet_UpdateAndDrawChatPanel edits it, sends it on Enter or Tab and
+ * frontend_net_update_and_draw_chat_panel edits it, sends it on Enter or Tab and
  * clears it. */
 // GLOBAL: XVT 0xAA6A80
-char g_frontendChatInputBuffer[100] = {0};
-/* The chat log text, 1,024 bytes from Frontend_LoadResources, freed by GameMain
- * or XvtFrontendTask_Shutdown; NULL when not allocated.
- * FrontendNet_ProcessNetworkPackets adds received lines to it; Concourse_Update
+char g_frontend_chat_input_buffer[100] = {0};
+/* The chat log text, 1,024 bytes from frontend_load_resources, freed by game_main
+ * or xvt_frontend_task_shutdown; NULL when not allocated.
+ * frontend_net_process_network_packets adds received lines to it; concourse_update
  * and the join, connect and host screens clear it. */
 // GLOBAL: XVT 0xB69CD0
-char *g_frontendChatLogBuffer = NULL;
-/* Bytes of text in g_frontendChatLogBuffer, not counting the NUL after them;
+char *g_frontend_chat_log_buffer = NULL;
+/* Bytes of text in g_frontend_chat_log_buffer, not counting the NUL after them;
  * zeroed whenever the log is cleared. */
 // GLOBAL: XVT 0xB6A2C4
-int g_frontendChatLogUsedBytes = 0;
+int g_frontend_chat_log_used_bytes = 0;
 /* 1 while chat goes to this player's team only.
- * FrontendNet_UpdateAndDrawChatPanel sets it from its Team and All tabs, which
+ * frontend_net_update_and_draw_chat_panel sets it from its Team and All tabs, which
  * show only once the mission setup roster is authoritative, and otherwise holds
- * it at 0. MissionSetup_FlightAssignmentUpdate sets it to 1;
- * MissionSetup_TeamAssignmentUpdate, MissionDebrief_Update,
- * XvtCampaignTask_EnterTeams and XvtCampaignTask_EnterDebrief reset it to 0. */
+ * it at 0. mission_setup_flight_assignment_update sets it to 1;
+ * mission_setup_team_assignment_update, mission_debrief_update,
+ * xvt_campaign_task_enter_teams and xvt_campaign_task_enter_debrief reset it to 0. */
 // GLOBAL: XVT 0x52BF54
-int g_frontendChatTeamOnly = 0;
+int g_frontend_chat_team_only = 0;
 /* Lines the chat log view is scrolled back from its newest line; zeroed on the
- * panel's first frame. Only FrontendNet_UpdateAndDrawChatPanel uses it. */
+ * panel's first frame. Only frontend_net_update_and_draw_chat_panel uses it. */
 // GLOBAL: XVT 0x66543C
-int g_frontendChatScrollOffset = 0;
+int g_frontend_chat_scroll_offset = 0;
 /* Name of the game selected on the join screen, drawn at the top of the screen
  * and given as the session name when probing it; empty when none. It starts as
  * 32 bytes of 0xFF until the join screen's first frame clears it. 5 functions
- * write it: FrontendNet_JoinGameScreen, FrontendNet_ProbeSessionByIndex, and
- * FrontendNet_SortSessions, FrontendNet_ProbeAllSessions and
- * XvtNetworkDialogs_Return, which clear it. */
+ * write it: frontend_net_join_game_screen, frontend_net_probe_session_by_index, and
+ * frontend_net_sort_sessions, frontend_net_probe_all_sessions and
+ * xvt_network_dialogs_return, which clear it. */
 // GLOBAL: XVT 0x665440
-char g_frontendNetSelectedGameName[32] = {
+char g_frontend_net_selected_game_name[32] = {
 	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
 	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
 };
 
 /* Draws the join screen's game list and returns the index of the row clicked
- * this frame, or -1. The modern build returns XvtNetworkBrowser_DrawList's
+ * this frame, or -1. The modern build returns xvt_network_browser_draw_list's
  * result instead. The original draws up to 6 rows from
- * g_frontendNetSessionListScrollOffset, with a scrollbar past 6 games, the
+ * g_frontend_net_session_list_scroll_offset, with a scrollbar past 6 games, the
  * selected row highlighted, a key for a password, and for a game needing 8
  * players or fewer the count and the time since its last query. Row colors:
  * gray for another protocol version, shown with its number; red for a full game
@@ -189,138 +189,147 @@ char g_frontendNetSelectedGameName[32] = {
  * white otherwise. Frame 0 resets the scroll offset; a click plays a sound when
  * datapad sounds are on. */
 // FUNCTION: XVT 0x4D7020
-int FrontendNet_DrawJoinGameList(int frameCounter)
+int frontend_net_draw_join_game_list(int frame_counter)
 {
 #ifdef XVT_MODERN
-	(void)frameCounter;
-	return XvtNetworkBrowser_DrawList();
+	(void)frame_counter;
+	return xvt_network_browser_draw_list();
 #else
 	struct RECT rect;
 	struct RECT destination;
-	uint32_t nowMs;
-	int mouseX;
-	int mouseY;
-	int clickedIndex;
-	int rowIndex;
+	uint32_t now_ms;
+	int mouse_x;
+	int mouse_y;
+	int clicked_index;
+	int row_index;
 
-	if (frameCounter == 0) {
-		g_frontendNetSessionListScrollOffset = 0;
+	if (frame_counter == 0) {
+		g_frontend_net_session_list_scroll_offset = 0;
 	}
-	nowMs = GetTickCount();
-	FrontendDraw_RectAssign(&rect, 88, 94, 416, 109);
-	FrontendText_DrawAlignedInRect(
+	now_ms = GetTickCount();
+	frontend_draw_rect_assign(&rect, 88, 94, 416, 109);
+	frontend_text_draw_aligned_in_rect(
 		12,
-		FrontendString_Get(
+		frontend_string_get(
 			FRONTSTR_016_GAME_NAME_PLAYERS_NEEDED_LAST_QUERY),
 		&rect, 0, 1, 0xFFFF);
-	FrontendCursor_GetPos(&mouseX, &mouseY);
-	if (g_frontendNetSessionCount > 6) {
-		FrontendDraw_RectAssign(&rect, 421, 114, 430, 204);
-		g_frontendNetSessionListScrollOffset = FrontendScrollbar_Draw(
-			&rect, g_frontendNetSessionListScrollOffset,
-			g_frontendNetSessionCount, 0, 5,
-			(unsigned int)g_colorNavy, 5);
+	frontend_cursor_get_pos(&mouse_x, &mouse_y);
+	if (g_frontend_net_session_count > 6) {
+		frontend_draw_rect_assign(&rect, 421, 114, 430, 204);
+		g_frontend_net_session_list_scroll_offset =
+			frontend_scrollbar_draw(
+				&rect,
+				g_frontend_net_session_list_scroll_offset,
+				g_frontend_net_session_count, 0, 5,
+				(unsigned int)g_color_navy, 5);
 	}
-	FrontendDraw_RectAssign(&rect, 88, 114, 419, 128);
-	clickedIndex = -1;
-	rowIndex = g_frontendNetSessionListScrollOffset;
-	while (rowIndex < g_frontendNetSessionListScrollOffset + 6 &&
-	       rowIndex < g_frontendNetSessionCount) {
-		unsigned short textColor;
+	frontend_draw_rect_assign(&rect, 88, 114, 419, 128);
+	clicked_index = -1;
+	row_index = g_frontend_net_session_list_scroll_offset;
+	while (row_index < g_frontend_net_session_list_scroll_offset + 6 &&
+	       row_index < g_frontend_net_session_count) {
+		unsigned short text_color;
 
-		if (rowIndex == g_frontendNetSelectedSessionIdx) {
-			FrontendDraw_Rect(&rect, 0, 0, g_colorNavy, 1);
+		if (row_index == g_frontend_net_selected_session_idx) {
+			frontend_draw_rect(&rect, 0, 0, g_color_navy, 1);
 		}
-		if (g_frontendNetSessionList[rowIndex].version != 101u) {
-			textColor = g_colorGray;
-		} else if (g_frontendNetSessionList[rowIndex].playersNeeded ==
-			   0) {
-			textColor = g_frontendNetSessionList[rowIndex]
-							    .gameInFlight != 0
-					    ? g_colorRed
-					    : g_colorYellow;
+		if (g_frontend_net_session_list[row_index].version != 101u) {
+			text_color = g_color_gray;
+		} else if (g_frontend_net_session_list[row_index]
+				   .players_needed == 0) {
+			text_color =
+				g_frontend_net_session_list[row_index]
+							.game_in_flight != 0
+					? g_color_red
+					: g_color_yellow;
 		} else {
-			textColor = 0xFFFF;
-			if (g_frontendNetSessionList[rowIndex].playersNeeded <=
-			    8) {
-				textColor = g_colorGreen2;
+			text_color = 0xFFFF;
+			if (g_frontend_net_session_list[row_index]
+				    .players_needed <= 8) {
+				text_color = g_color_green2;
 			}
 		}
-		if (g_frontendNetSessionList[rowIndex].passwordRequired != 0) {
-			FrontImage_DrawSprite("key", rect.left - 6,
-					      rect.top + 1);
+		if (g_frontend_net_session_list[row_index].password_required !=
+		    0) {
+			front_image_draw_sprite("key", rect.left - 6,
+						rect.top + 1);
 		}
-		if (g_frontendNetSessionList[rowIndex].version != 101u) {
-			if (g_frontendNetSessionList[rowIndex].version == 0) {
-				sprintf(g_frontendScratchBuffer, "%s v. ???",
-					g_frontendNetSessionList[rowIndex]
-						.gameName);
+		if (g_frontend_net_session_list[row_index].version != 101u) {
+			if (g_frontend_net_session_list[row_index].version ==
+			    0) {
+				sprintf(g_frontend_scratch_buffer, "%s v. ???",
+					g_frontend_net_session_list[row_index]
+						.game_name);
 			} else {
-				sprintf(g_frontendScratchBuffer, "%s v. %d.%d",
-					g_frontendNetSessionList[rowIndex]
-						.gameName,
-					(g_frontendNetSessionList[rowIndex]
+				sprintf(g_frontend_scratch_buffer,
+					"%s v. %d.%d",
+					g_frontend_net_session_list[row_index]
+						.game_name,
+					(g_frontend_net_session_list[row_index]
 						 .version -
 					 1) / 100 +
 						1,
-					(g_frontendNetSessionList[rowIndex]
+					(g_frontend_net_session_list[row_index]
 						 .version -
 					 1) % 100);
 			}
-			FrontendText_DrawAlignedInRect(12,
-						       g_frontendScratchBuffer,
-						       &rect, 0, 1, textColor);
+			frontend_text_draw_aligned_in_rect(
+				12, g_frontend_scratch_buffer, &rect, 0, 1,
+				text_color);
 		} else {
-			FrontendText_DrawAlignedInRect(
-				12, g_frontendNetSessionList[rowIndex].gameName,
-				&rect, 0, 1, textColor);
+			frontend_text_draw_aligned_in_rect(
+				12,
+				g_frontend_net_session_list[row_index]
+					.game_name,
+				&rect, 0, 1, text_color);
 		}
-		if (g_frontendNetSessionList[rowIndex].playersNeeded <= 8) {
-			FrontendDraw_RectCopy(&destination, &rect);
+		if (g_frontend_net_session_list[row_index].players_needed <=
+		    8) {
+			frontend_draw_rect_copy(&destination, &rect);
 			destination.left = 285;
-			sprintf(g_frontendScratchBuffer, "%d",
-				g_frontendNetSessionList[rowIndex]
-					.playersNeeded);
-			FrontendText_DrawAlignedInRect(
-				12, g_frontendScratchBuffer, &destination, 0, 1,
-				textColor);
+			sprintf(g_frontend_scratch_buffer, "%d",
+				g_frontend_net_session_list[row_index]
+					.players_needed);
+			frontend_text_draw_aligned_in_rect(
+				12, g_frontend_scratch_buffer, &destination, 0,
+				1, text_color);
 			destination.left = 374;
-			Frontend_FormatSecondsToClockString(
-				(nowMs - g_frontendNetSessionList[rowIndex]
-						 .lastQueryMs) /
+			frontend_format_seconds_to_clock_string(
+				(now_ms - g_frontend_net_session_list[row_index]
+						  .last_query_ms) /
 				1000);
-			FrontendText_DrawAlignedInRect(
-				12, g_frontendScratchBuffer, &destination, 0, 1,
-				textColor);
+			frontend_text_draw_aligned_in_rect(
+				12, g_frontend_scratch_buffer, &destination, 0,
+				1, text_color);
 		}
-		if (FrontendDraw_PointInRect(&rect, mouseX, mouseY)) {
-			FrontendDraw_RectOutline(&rect, 0, 0, g_colorGreen);
-			if (FrontendMouse_GetLeftClick() != 0 ||
-			    FrontendMouse_GetRightClick() != 0) {
-				if (g_gameConfig.sfxDatapadEnabled != 0) {
-					FrontendSound_PlayUISound(
+		if (frontend_draw_point_in_rect(&rect, mouse_x, mouse_y)) {
+			frontend_draw_rect_outline(&rect, 0, 0, g_color_green);
+			if (frontend_mouse_get_left_click() != 0 ||
+			    frontend_mouse_get_right_click() != 0) {
+				if (g_game_config.sfx_datapad_enabled != 0) {
+					frontend_sound_play_ui_sound(
 						"jewelsound", 1, 0, 255,
-						12 * g_gameConfig
-								.sfxDatapadVolume,
+						12 * g_game_config
+								.sfx_datapad_volume,
 						63);
 				}
-				clickedIndex = rowIndex;
+				clicked_index = row_index;
 			}
 		}
-		FrontendDraw_RectOffsetXY(&rect, 0, 15);
-		++rowIndex;
+		frontend_draw_rect_offset_xy(&rect, 0, 15);
+		++row_index;
 	}
-	return clickedIndex;
+	return clicked_index;
 #endif
 }
 
 /* The join screen, run each frame. The modern build hands off to
- * XvtNetworkBrowser_Screen. In the original, any transport but IPX goes to
- * FrontendNet_ConnectToSelectedGameScreen, first sending a client with no IP
+ * xvt_network_browser_screen. In the original, any transport but IPX goes to
+ * frontend_net_connect_to_selected_game_screen, first sending a client with no IP
  * address or phone number to the configuration screen, or back to the concourse
- * when g_frontendSkipScreenEntrySetup is set. For IPX it lists the games found.
+ * when g_frontend_skip_screen_entry_setup is set. For IPX it lists the games found.
  * Frame 0 resets the roster, chat log, game list (unless
- * g_frontendSkipScreenEntrySetup), selection and mission state and draws the
+ * g_frontend_skip_screen_entry_setup), selection and mission state and draws the
  * background; every 160 frames with nothing selected it refreshes the list.
  * With a game selected it reads frontend packets: a lobby STATE updates the
  * entry and loads the mission list and briefing; a host cancel, or a mission
@@ -330,14 +339,14 @@ int FrontendNet_DrawJoinGameList(int frameCounter)
  * it draws the roster, briefing, chat, version, player banner and sidebars.
  * Join, offered when the selected game needs players and runs this protocol
  * version, sends the host a JOIN_REQUEST with the version and password and
- * moves to FrontendNet_AwaitJoinAdmissionScreen; the back button ends the
+ * moves to frontend_net_await_join_admission_screen; the back button ends the
  * connection and returns to the concourse. Returns 1 when
- * Frontend_HandleCommonScreenControls returns 1, else 0. */
+ * frontend_handle_common_screen_controls returns 1, else 0. */
 // FUNCTION: XVT 0x4D73C0
-int FrontendNet_JoinGameScreen(int frameCounter)
+int frontend_net_join_game_screen(int frame_counter)
 {
 #ifdef XVT_MODERN
-	return XvtNetworkBrowser_Screen(frameCounter);
+	return xvt_network_browser_screen(frame_counter);
 #else
 	enum {
 		SESSION_REFRESH_INTERVAL_FRAMES = 160,
@@ -346,404 +355,425 @@ int FrontendNet_JoinGameScreen(int frameCounter)
 		PILOT_BANNER_ANIMATION_PERIOD_FRAMES = 32,
 	};
 
-	int packetType;
-	int clickedSessionIndex;
-	int animationFrame;
-	int hostPlayerId;
+	int packet_type;
+	int clicked_session_index;
+	int animation_frame;
+	int host_player_id;
 	struct RECT rect;
-	struct RECT screenRect;
+	struct RECT screen_rect;
 
-	g_configConnectionTypeEditable = 0;
-	if (g_gameConfig.networkType != NET_TRANSPORT_IPX) {
-		if (g_frontendSkipScreenEntrySetup != 0) {
-			g_frontendMissionSessionMode =
+	g_config_connection_type_editable = 0;
+	if (g_game_config.network_type != NET_TRANSPORT_IPX) {
+		if (g_frontend_skip_screen_entry_setup != 0) {
+			g_frontend_mission_session_mode =
 				FRONTEND_MISSION_SESSION_NONE;
-			FrontendScreen_SetCallbacks(Concourse_Update,
-						    Concourse_Exit);
+			frontend_screen_set_callbacks(concourse_update,
+						      concourse_exit);
 			return 0;
 		}
-		if (g_frontendMissionSessionMode ==
+		if (g_frontend_mission_session_mode ==
 		    FRONTEND_MISSION_SESSION_NET_CLIENT) {
-			switch (g_gameConfig.networkType) {
+			switch (g_game_config.network_type) {
 			case NET_TRANSPORT_TCPIP:
-				if (g_gameConfig.ipAddress[0] == '\0') {
+				if (g_game_config.ip_address[0] == '\0') {
 
-					if (FrontendDialog_ShowConfirmDialog(
-						    FrontendString_Get(
+					if (frontend_dialog_show_confirm_dialog(
+						    frontend_string_get(
 							    FRONTSTR_693_YOU_HAVE_NOT_ENTERED_AN_IP_ADDRESS_FOR),
-						    FrontendString_Get(
+						    frontend_string_get(
 							    FRONTSTR_694_THE_TCP_IP_CONNECTION_PLEASE_ENTER_ONE),
-						    FrontendString_Get(
+						    frontend_string_get(
 							    FRONTSTR_695_IN_THE_CONFIGURATION_SCREEN),
-						    FrontendString_Get(
+						    frontend_string_get(
 							    FRONTSTR_523_OKAY),
-						    FrontendString_Get(
+						    frontend_string_get(
 							    FRONTSTR_019_CANCEL)) ==
 					    0) {
-						g_frontendMissionSessionMode =
+						g_frontend_mission_session_mode =
 							FRONTEND_MISSION_SESSION_NONE;
-						FrontendScreen_SetCallbacks(
-							Concourse_Update,
-							Concourse_Exit);
+						frontend_screen_set_callbacks(
+							concourse_update,
+							concourse_exit);
 						return 0;
 					}
 
-					FrontendDraw_RectAssign(&screenRect, 0,
-								0, 640, 480);
-					FrontendScreen_QueuePush(
-						Config_OptionsDatapadUpdate,
-						&screenRect);
+					frontend_draw_rect_assign(
+						&screen_rect, 0, 0, 640, 480);
+					frontend_screen_queue_push(
+						config_options_datapad_update,
+						&screen_rect);
 					return 0;
 				}
 				break;
 			case NET_TRANSPORT_MODEM:
-				if (g_gameConfig.phoneNumber[0] == '\0') {
+				if (g_game_config.phone_number[0] == '\0') {
 
-					if (FrontendDialog_ShowConfirmDialog(
-						    FrontendString_Get(
+					if (frontend_dialog_show_confirm_dialog(
+						    frontend_string_get(
 							    FRONTSTR_696_YOU_HAVE_NOT_ENTERED_A_PHONE_NUMBER_FOR),
-						    FrontendString_Get(
+						    frontend_string_get(
 							    FRONTSTR_697_THE_MODEM_CONNECTION_PLEASE_ENTER_ONE),
-						    FrontendString_Get(
+						    frontend_string_get(
 							    FRONTSTR_698_IN_THE_CONFIGURATION_SCREEN),
-						    FrontendString_Get(
+						    frontend_string_get(
 							    FRONTSTR_523_OKAY),
-						    FrontendString_Get(
+						    frontend_string_get(
 							    FRONTSTR_019_CANCEL)) ==
 					    0) {
-						g_frontendMissionSessionMode =
+						g_frontend_mission_session_mode =
 							FRONTEND_MISSION_SESSION_NONE;
-						FrontendScreen_SetCallbacks(
-							Concourse_Update,
-							Concourse_Exit);
+						frontend_screen_set_callbacks(
+							concourse_update,
+							concourse_exit);
 						return 0;
 					}
 
-					FrontendDraw_RectAssign(&screenRect, 0,
-								0, 640, 480);
-					FrontendScreen_QueuePush(
-						Config_OptionsDatapadUpdate,
-						&screenRect);
+					frontend_draw_rect_assign(
+						&screen_rect, 0, 0, 640, 480);
+					frontend_screen_queue_push(
+						config_options_datapad_update,
+						&screen_rect);
 					return 0;
 				}
 				break;
 			}
 		}
-		return FrontendNet_ConnectToSelectedGameScreen(frameCounter);
+		return frontend_net_connect_to_selected_game_screen(
+			frame_counter);
 	} else {
-		if (frameCounter == 0) {
-			FrontendCursor_SetPos(415, 121);
-			memset(g_mpRoster, 0, sizeof(g_mpRoster));
-			Net_ClearPlayerReadyFlags();
-			memset(g_frontendNetSelectedGameName, 0,
-			       sizeof(g_frontendNetSelectedGameName));
-			if (g_frontendChatLogBuffer != NULL) {
-				memset(g_frontendChatLogBuffer, 0, 1024);
-				g_frontendChatLogUsedBytes = 0;
+		if (frame_counter == 0) {
+			frontend_cursor_set_pos(415, 121);
+			memset(g_mp_roster, 0, sizeof(g_mp_roster));
+			net_clear_player_ready_flags();
+			memset(g_frontend_net_selected_game_name, 0,
+			       sizeof(g_frontend_net_selected_game_name));
+			if (g_frontend_chat_log_buffer != NULL) {
+				memset(g_frontend_chat_log_buffer, 0, 1024);
+				g_frontend_chat_log_used_bytes = 0;
 			}
-			if (g_frontendSkipScreenEntrySetup == 0) {
-				memset(g_frontendNetSessionList, 0,
-				       sizeof(g_frontendNetSessionList));
-				g_frontendNetSessionCount = 0;
+			if (g_frontend_skip_screen_entry_setup == 0) {
+				memset(g_frontend_net_session_list, 0,
+				       sizeof(g_frontend_net_session_list));
+				g_frontend_net_session_count = 0;
 			}
-			g_frontendFirstVisibleLine = 0;
-			g_configConnectionTypeEditable = 0;
-			g_frontendGameSessionInProgress = 0;
-			g_frontendNetReceivedMissionDirectoryId =
+			g_frontend_first_visible_line = 0;
+			g_config_connection_type_editable = 0;
+			g_frontend_game_session_in_progress = 0;
+			g_frontend_net_received_mission_directory_id =
 				MISSION_DIRECTORY_TRAINING_EXERCISES;
-			g_frontendNetReceivedMissionDescriptionId = -1;
-			g_frontendNetSelectedSessionIdx = -1;
-			g_missionSetupRosterAuthoritative = 0;
-			g_frontendSkipScreenEntrySetup = 0;
-			if (g_missionText == NULL) {
-				g_missionText = malloc(BRIEFING_TEXT_CAPACITY);
+			g_frontend_net_received_mission_description_id = -1;
+			g_frontend_net_selected_session_idx = -1;
+			g_mission_setup_roster_authoritative = 0;
+			g_frontend_skip_screen_entry_setup = 0;
+			if (g_mission_text == NULL) {
+				g_mission_text = malloc(BRIEFING_TEXT_CAPACITY);
 			}
-			FrontImage_RegisterResourceDefault(
+			front_image_register_resource_default(
 				"frontres\\joinback.bmp", "background");
-			FrontendDisplay_LockOffscreenSurface();
-			FrontImage_DrawSpriteOpaque("background", 0, 0);
-			FrontImage_DrawSprite("frame", 0, 0);
-			if (g_hostCdAvailable != 0) {
-				FrontImage_DrawSprite("allactive", 0, 0);
+			frontend_display_lock_offscreen_surface();
+			front_image_draw_sprite_opaque("background", 0, 0);
+			front_image_draw_sprite("frame", 0, 0);
+			if (g_host_cd_available != 0) {
+				front_image_draw_sprite("allactive", 0, 0);
 			} else {
-				FrontImage_DrawSprite("clientactive", 0, 0);
+				front_image_draw_sprite("clientactive", 0, 0);
 			}
-			FrontImage_DrawSpriteTranslucent("chatbox", 0, 0);
-			FrontImage_DrawSpriteTranslucent("joinoverlay", 0, 0);
-			FrontendDisplay_UnlockOffscreenSurface(1);
-			FrontendText_StartTextFadeIn(20);
+			front_image_draw_sprite_translucent("chatbox", 0, 0);
+			front_image_draw_sprite_translucent("joinoverlay", 0,
+							    0);
+			frontend_display_unlock_offscreen_surface(1);
+			frontend_text_start_text_fade_in(20);
 		}
 
-		FrontendDraw_RectAssign(&rect, 158, 52, 491, 68);
-		FrontendText_DrawCentered(12, g_frontendNetSelectedGameName,
-					  &rect, 0xFFFF);
-		if (frameCounter % SESSION_REFRESH_INTERVAL_FRAMES == 0 &&
-		    g_frontendNetSelectedSessionIdx == -1) {
-			FrontendNet_RefreshSessionList();
+		frontend_draw_rect_assign(&rect, 158, 52, 491, 68);
+		frontend_text_draw_centered(
+			12, g_frontend_net_selected_game_name, &rect, 0xFFFF);
+		if (frame_counter % SESSION_REFRESH_INTERVAL_FRAMES == 0 &&
+		    g_frontend_net_selected_session_idx == -1) {
+			frontend_net_refresh_session_list();
 		}
-		if (g_frontendNetSelectedSessionIdx != -1) {
-			packetType = FrontendNet_ProcessNetworkPackets();
-			if (packetType == NET_PACKET_STATE) {
-				g_frontendNetSessionList
-					[g_frontendNetSelectedSessionIdx]
-						.lastQueryMs = GetTickCount();
-				g_frontendNetSessionList
-					[g_frontendNetSelectedSessionIdx]
-						.playersNeeded =
-					g_frontendNetProbePlayersNeeded;
-				g_frontendNetSessionList
-					[g_frontendNetSelectedSessionIdx]
-						.passwordRequired = (uint8_t)
-					g_frontendNetProbePasswordRequired;
-				MpRoster_CompactActiveEntries();
-				g_pilotData.missionDirectoryId =
-					g_frontendNetReceivedMissionDirectoryId;
-				g_pilotData.missionDescriptionIds
-					[g_frontendNetReceivedMissionDirectoryId] =
-					g_frontendNetReceivedMissionDescriptionId;
-				MissionSetup_LoadMissionList(
-					g_pilotData.missionDirectoryId);
-				MissionSetup_LoadMissionDescText(g_missionText);
-				if (g_missionList != NULL) {
-					for (g_selectedMissionListIndex = 0;
+		if (g_frontend_net_selected_session_idx != -1) {
+			packet_type = frontend_net_process_network_packets();
+			if (packet_type == NET_PACKET_STATE) {
+				g_frontend_net_session_list
+					[g_frontend_net_selected_session_idx]
+						.last_query_ms = GetTickCount();
+				g_frontend_net_session_list
+					[g_frontend_net_selected_session_idx]
+						.players_needed =
+					g_frontend_net_probe_players_needed;
+				g_frontend_net_session_list
+					[g_frontend_net_selected_session_idx]
+						.password_required = (uint8_t)
+					g_frontend_net_probe_password_required;
+				mp_roster_compact_active_entries();
+				g_pilot_data.mission_directory_id =
+					g_frontend_net_received_mission_directory_id;
+				g_pilot_data.mission_description_ids
+					[g_frontend_net_received_mission_directory_id] =
+					g_frontend_net_received_mission_description_id;
+				mission_setup_load_mission_list(
+					g_pilot_data.mission_directory_id);
+				mission_setup_load_mission_desc_text(
+					g_mission_text);
+				if (g_mission_list != NULL) {
+					for (g_selected_mission_list_index = 0;
 					     (unsigned int)
-						     g_selectedMissionListIndex <
-					     g_missionCount;
-					     ++g_selectedMissionListIndex) {
-						if (g_missionList
-							    [g_selectedMissionListIndex]
-								    .missionIdx ==
-						    g_pilotData.missionDescriptionIds
-							    [g_pilotData
-								     .missionDirectoryId]) {
+						     g_selected_mission_list_index <
+					     g_mission_count;
+					     ++g_selected_mission_list_index) {
+						if (g_mission_list
+							    [g_selected_mission_list_index]
+								    .mission_idx ==
+						    g_pilot_data.mission_description_ids
+							    [g_pilot_data
+								     .mission_directory_id]) {
 							break;
 						}
 					}
 				}
-				g_frontendFirstVisibleLine = 0;
+				g_frontend_first_visible_line = 0;
 			} else if (
-				packetType == NET_PACKET_HOST_CANCELLED ||
-				packetType ==
+				packet_type == NET_PACKET_HOST_CANCELLED ||
+				packet_type ==
 					NET_PACKET_FRONTEND_MISSION_START ||
-				packetType ==
+				packet_type ==
 					NET_PACKET_NEXT_TOURNAMENT_MISSION ||
-				packetType == NET_PACKET_NEXT_BATTLE_MISSION ||
-				packetType == NET_PACKET_REPLAY_MISSION ||
-				packetType ==
+				packet_type == NET_PACKET_NEXT_BATTLE_MISSION ||
+				packet_type == NET_PACKET_REPLAY_MISSION ||
+				packet_type ==
 					NET_PACKET_RETURN_TO_MISSION_SELECTION ||
-				packetType ==
+				packet_type ==
 					NET_PACKET_REPLAY_CURRENT_MISSION) {
-				Net_ShutdownDirectPlaySession();
-				FrontendNet_RefreshSessionList();
-				g_frontendNetProbeMissionElapsedSeconds = 0;
-				g_frontendNetSelectedSessionIdx = -1;
-				g_frontendNetReceivedMissionDescriptionId = -1;
-				memset(g_frontendNetSelectedGameName, 0,
-				       sizeof(g_frontendNetSelectedGameName));
-				memset(g_missionText, 0,
+				net_shutdown_direct_play_session();
+				frontend_net_refresh_session_list();
+				g_frontend_net_probe_mission_elapsed_seconds =
+					0;
+				g_frontend_net_selected_session_idx = -1;
+				g_frontend_net_received_mission_description_id =
+					-1;
+				memset(g_frontend_net_selected_game_name, 0,
+				       sizeof(g_frontend_net_selected_game_name));
+				memset(g_mission_text, 0,
 				       BRIEFING_TEXT_CAPACITY);
-			} else if (packetType ==
+			} else if (packet_type ==
 				   NET_PACKET_PLAYER_UNAVAILABLE) {
-				Net_ShutdownDirectPlaySession();
-				g_frontendNetProbeMissionElapsedSeconds = 0;
-				g_frontendNetSelectedSessionIdx = -1;
-				g_frontendNetReceivedMissionDescriptionId = -1;
-				FrontendNet_RefreshSessionList();
-				memset(g_frontendNetSelectedGameName, 0,
-				       sizeof(g_frontendNetSelectedGameName));
-				memset(g_missionText, 0,
+				net_shutdown_direct_play_session();
+				g_frontend_net_probe_mission_elapsed_seconds =
+					0;
+				g_frontend_net_selected_session_idx = -1;
+				g_frontend_net_received_mission_description_id =
+					-1;
+				frontend_net_refresh_session_list();
+				memset(g_frontend_net_selected_game_name, 0,
+				       sizeof(g_frontend_net_selected_game_name));
+				memset(g_mission_text, 0,
 				       BRIEFING_TEXT_CAPACITY);
-			} else if (packetType == NET_PACKET_GAME_FULL ||
-				   packetType == NET_PACKET_VERSION_MISMATCH ||
-				   packetType == NET_PACKET_PASSWORD_REQUIRED ||
-				   packetType == NET_PACKET_ROSTER_LOCKED) {
-				Net_ShutdownDirectPlaySession();
-				switch (packetType - NET_PACKET_GAME_FULL) {
+			} else if (packet_type == NET_PACKET_GAME_FULL ||
+				   packet_type == NET_PACKET_VERSION_MISMATCH ||
+				   packet_type ==
+					   NET_PACKET_PASSWORD_REQUIRED ||
+				   packet_type == NET_PACKET_ROSTER_LOCKED) {
+				net_shutdown_direct_play_session();
+				switch (packet_type - NET_PACKET_GAME_FULL) {
 				case 0:
-					FrontendDialog_ShowConfirmDialog(
-						FrontendString_Get(
+					frontend_dialog_show_confirm_dialog(
+						frontend_string_get(
 							FRONTSTR_543_THE_GAME_YOU_ARE_TRYING_TO_JOIN_IS_FULL),
-						FrontendString_Get(
+						frontend_string_get(
 							FRONTSTR_544_PLEASE_TRY_ANOTHER_GAME),
-						FrontendString_Get(
+						frontend_string_get(
 							FRONTSTR_545_SPACE_TRANSLATION_PLACEHOLDER),
 						NULL, NULL);
 					break;
 				case NET_PACKET_VERSION_MISMATCH -
 					NET_PACKET_GAME_FULL:
-					FrontendDialog_ShowConfirmDialog(
-						FrontendString_Get(
+					frontend_dialog_show_confirm_dialog(
+						frontend_string_get(
 							FRONTSTR_546_YOUR_VERSION_OF_THE_PROGRAM_DOES_NOT),
-						FrontendString_Get(
+						frontend_string_get(
 							FRONTSTR_547_MATCH_THE_HOSTS_PLEASE_VERIFY_THAT_YOU),
-						FrontendString_Get(
+						frontend_string_get(
 							FRONTSTR_548_HAVE_THE_CORRECT_PROGRAM),
 						NULL, NULL);
 					break;
 				case NET_PACKET_PASSWORD_REQUIRED -
 					NET_PACKET_GAME_FULL:
-					FrontendDialog_ShowConfirmDialog(
-						FrontendString_Get(
+					frontend_dialog_show_confirm_dialog(
+						frontend_string_get(
 							FRONTSTR_549_THIS_GAME_REQUIRES_A_PASSWORD),
-						FrontendString_Get(
+						frontend_string_get(
 							FRONTSTR_550_PLEASE_ENTER_THE_CORRECT_PASSWORD_IN),
-						FrontendString_Get(
+						frontend_string_get(
 							FRONTSTR_551_THE_NETWORK_CONFIGURATION_SCREEN),
 						NULL, NULL);
-					FrontendDraw_RectAssign(&screenRect, 0,
-								0, 640, 480);
-					FrontendScreen_QueuePush(
-						Config_OptionsDatapadUpdate,
-						&screenRect);
+					frontend_draw_rect_assign(
+						&screen_rect, 0, 0, 640, 480);
+					frontend_screen_queue_push(
+						config_options_datapad_update,
+						&screen_rect);
 					break;
 				case NET_PACKET_ROSTER_LOCKED -
 					NET_PACKET_GAME_FULL:
-					FrontendDialog_ShowConfirmDialog(
-						FrontendString_Get(
+					frontend_dialog_show_confirm_dialog(
+						frontend_string_get(
 							FRONTSTR_552_THIS_GAME_HAS_ALREADY_STARTED),
-						FrontendString_Get(
+						frontend_string_get(
 							FRONTSTR_553_PLEASE_SELECT_ANOTHER_GAME_TO_JOIN),
-						FrontendString_Get(
+						frontend_string_get(
 							FRONTSTR_554_SPACE_TRANSLATION_PLACEHOLDER),
 						NULL, NULL);
 					break;
 				}
-				g_frontendNetProbeMissionElapsedSeconds = 0;
-				g_frontendNetSelectedSessionIdx = -1;
-				g_frontendNetReceivedMissionDescriptionId = -1;
-				FrontendNet_RefreshSessionList();
-				memset(g_frontendNetSelectedGameName, 0,
-				       sizeof(g_frontendNetSelectedGameName));
-				memset(g_missionText, 0,
+				g_frontend_net_probe_mission_elapsed_seconds =
+					0;
+				g_frontend_net_selected_session_idx = -1;
+				g_frontend_net_received_mission_description_id =
+					-1;
+				frontend_net_refresh_session_list();
+				memset(g_frontend_net_selected_game_name, 0,
+				       sizeof(g_frontend_net_selected_game_name));
+				memset(g_mission_text, 0,
 				       BRIEFING_TEXT_CAPACITY);
 			}
 		}
 
-		clickedSessionIndex =
-			FrontendNet_DrawJoinGameList(frameCounter);
-		if (clickedSessionIndex != -1) {
-			if (g_frontendNetSelectedSessionIdx ==
-			    clickedSessionIndex) {
-				g_frontendNetSelectedSessionIdx = -1;
-				g_frontendNetReceivedMissionDescriptionId = -1;
-				g_frontendNetProbeMissionElapsedSeconds = 0;
-				memset(g_frontendNetSelectedGameName, 0,
-				       sizeof(g_frontendNetSelectedGameName));
-				memset(g_missionText, 0,
+		clicked_session_index =
+			frontend_net_draw_join_game_list(frame_counter);
+		if (clicked_session_index != -1) {
+			if (g_frontend_net_selected_session_idx ==
+			    clicked_session_index) {
+				g_frontend_net_selected_session_idx = -1;
+				g_frontend_net_received_mission_description_id =
+					-1;
+				g_frontend_net_probe_mission_elapsed_seconds =
+					0;
+				memset(g_frontend_net_selected_game_name, 0,
+				       sizeof(g_frontend_net_selected_game_name));
+				memset(g_mission_text, 0,
 				       BRIEFING_TEXT_CAPACITY);
-				Net_ShutdownDirectPlaySession();
+				net_shutdown_direct_play_session();
 			} else {
-				g_frontendNetSelectedSessionIdx =
-					clickedSessionIndex;
-				if (FrontendNet_ProbeSessionByIndex(
-					    clickedSessionIndex) == 0) {
-					Net_ShutdownDirectPlaySession();
-					g_frontendNetProbeMissionElapsedSeconds =
+				g_frontend_net_selected_session_idx =
+					clicked_session_index;
+				if (frontend_net_probe_session_by_index(
+					    clicked_session_index) == 0) {
+					net_shutdown_direct_play_session();
+					g_frontend_net_probe_mission_elapsed_seconds =
 						0;
-					g_frontendNetSelectedSessionIdx = -1;
-					g_frontendNetReceivedMissionDescriptionId =
+					g_frontend_net_selected_session_idx =
 						-1;
-					FrontendNet_RefreshSessionList();
-					memset(g_frontendNetSelectedGameName, 0,
-					       sizeof(g_frontendNetSelectedGameName));
-					memset(g_missionText, 0,
+					g_frontend_net_received_mission_description_id =
+						-1;
+					frontend_net_refresh_session_list();
+					memset(g_frontend_net_selected_game_name,
+					       0,
+					       sizeof(g_frontend_net_selected_game_name));
+					memset(g_mission_text, 0,
 					       BRIEFING_TEXT_CAPACITY);
 				} else {
-					FrontendNet_SortSessions();
-					if (g_frontendNetSessionList
-						    [g_frontendNetSelectedSessionIdx]
-							    .playersNeeded >
+					frontend_net_sort_sessions();
+					if (g_frontend_net_session_list
+						    [g_frontend_net_selected_session_idx]
+							    .players_needed >
 					    0) {
-						FrontendMouse_ClearClicks();
-						FrontendCursor_SetPos(37, 445);
+						frontend_mouse_clear_clicks();
+						frontend_cursor_set_pos(37,
+									445);
 					}
 				}
 			}
 		}
-		FrontendNet_DrawJoinGamePlayerRoster();
-		FrontendNet_DrawJoinGameMissionBriefing();
-		if (g_frontendNetSelectedSessionIdx != -1) {
-			FrontendNet_UpdateAndDrawChatPanel(frameCounter);
+		frontend_net_draw_join_game_player_roster();
+		frontend_net_draw_join_game_mission_briefing();
+		if (g_frontend_net_selected_session_idx != -1) {
+			frontend_net_update_and_draw_chat_panel(frame_counter);
 		}
-		FrontendDraw_RectAssign(&rect, 507, 452, 562, 464);
-		sprintf(g_frontendScratchBuffer, "v. %d.%d", 2, 0);
-		FrontendText_DrawCentered(12, g_frontendScratchBuffer, &rect,
-					  0xFFFF);
-		FrontendDraw_RectAssign(&rect, 200, 452, 436, 464);
-		if (g_pilotData.name[0] != '\0') {
-			sprintf(g_frontendScratchBuffer, "%c%s %c%s", 6,
-				g_pilotData.ratingName, 1, g_pilotData.name);
-			FrontendText_DrawCentered(12, g_frontendScratchBuffer,
-						  &rect, g_colorYellow);
-			animationFrame =
-				(frameCounter %
+		frontend_draw_rect_assign(&rect, 507, 452, 562, 464);
+		sprintf(g_frontend_scratch_buffer, "v. %d.%d", 2, 0);
+		frontend_text_draw_centered(12, g_frontend_scratch_buffer,
+					    &rect, 0xFFFF);
+		frontend_draw_rect_assign(&rect, 200, 452, 436, 464);
+		if (g_pilot_data.name[0] != '\0') {
+			sprintf(g_frontend_scratch_buffer, "%c%s %c%s", 6,
+				g_pilot_data.rating_name, 1, g_pilot_data.name);
+			frontend_text_draw_centered(12,
+						    g_frontend_scratch_buffer,
+						    &rect, g_color_yellow);
+			animation_frame =
+				(frame_counter %
 				 PILOT_BANNER_ANIMATION_PERIOD_FRAMES) >>
 				1;
-			sprintf(g_frontendScratchBuffer, "rebtiny%d",
-				animationFrame);
-			FrontImage_DrawSprite(g_frontendScratchBuffer, 204,
-					      453);
-			sprintf(g_frontendScratchBuffer, "imptiny%d",
-				animationFrame);
-			FrontImage_DrawSprite(g_frontendScratchBuffer, 420,
-					      453);
+			sprintf(g_frontend_scratch_buffer, "rebtiny%d",
+				animation_frame);
+			front_image_draw_sprite(g_frontend_scratch_buffer, 204,
+						453);
+			sprintf(g_frontend_scratch_buffer, "imptiny%d",
+				animation_frame);
+			front_image_draw_sprite(g_frontend_scratch_buffer, 420,
+						453);
 		}
-		FrontendNet_DrawJoinGameSidebarsAndQueryAll();
-		if (Frontend_HandleCommonScreenControls(0) == 1) {
+		frontend_net_draw_join_game_sidebars_and_query_all();
+		if (frontend_handle_common_screen_controls(0) == 1) {
 			return 1;
 		}
-		FrontendDraw_RectAssign(&rect, 85, 447, 176, 471);
-		if (g_gameConfig.helpOn != 0) {
-			FrontendButton_EnableOverlayText();
+		frontend_draw_rect_assign(&rect, 85, 447, 176, 471);
+		if (g_game_config.help_on != 0) {
+			frontend_button_enable_overlay_text();
 		}
-		FrontendButton_SetOverlayText(
-			FrontendString_Get(FRONTSTR_569_PREVIOUS));
-		if (FrontendButton_HandleSpriteButton(
+		frontend_button_set_overlay_text(
+			frontend_string_get(FRONTSTR_569_PREVIOUS));
+		if (frontend_button_handle_sprite_button(
 			    &rect, "leaveup", "leavedown",
-			    FrontendString_Get(
+			    frontend_string_get(
 				    FRONTSTR_258_RETURN_TO_PILOT_RECORDS),
 			    12, 0, 8, "buttonsound") != 0) {
-			g_frontendMissionSessionMode =
+			g_frontend_mission_session_mode =
 				FRONTEND_MISSION_SESSION_NONE;
-			Net_ShutdownDirectPlaySession();
-			FrontendScreen_SetCallbacks(Concourse_Update,
-						    Concourse_Exit);
+			net_shutdown_direct_play_session();
+			frontend_screen_set_callbacks(concourse_update,
+						      concourse_exit);
 		}
-		FrontendDraw_RectAssign(&rect, 8, 405, 71, 470);
-		if (g_frontendNetSelectedSessionIdx != -1 &&
-		    g_frontendNetSessionList[g_frontendNetSelectedSessionIdx]
-				    .playersNeeded > 0 &&
-		    g_frontendNetSessionList[g_frontendNetSelectedSessionIdx]
-				    .version == FRONTEND_NET_PROTOCOL_VERSION) {
-			FrontendButton_SetOverlayText(
-				FrontendString_Get(FRONTSTR_018_JOIN));
-			if (FrontendButton_HandleSpriteButton(
+		frontend_draw_rect_assign(&rect, 8, 405, 71, 470);
+		if (g_frontend_net_selected_session_idx != -1 &&
+		    g_frontend_net_session_list
+				    [g_frontend_net_selected_session_idx]
+					    .players_needed > 0 &&
+		    g_frontend_net_session_list
+				    [g_frontend_net_selected_session_idx]
+					    .version ==
+			    FRONTEND_NET_PROTOCOL_VERSION) {
+			frontend_button_set_overlay_text(
+				frontend_string_get(FRONTSTR_018_JOIN));
+			if (frontend_button_handle_sprite_button(
 				    &rect, "nextup", "nextdown",
-				    FrontendString_Get(FRONTSTR_018_JOIN), 12,
+				    frontend_string_get(FRONTSTR_018_JOIN), 12,
 				    0, 7, "flysound") != 0) {
-				g_missionSetupIsHost = 0;
-				strcpy(g_pilotData.multiplayerGameName,
-				       g_frontendNetSessionList
-					       [g_frontendNetSelectedSessionIdx]
-						       .gameName);
-				hostPlayerId = Net_GetHostPlayerId();
-				g_frontendNetPacketScratch.packetType =
+				g_mission_setup_is_host = 0;
+				strcpy(g_pilot_data.multiplayer_game_name,
+				       g_frontend_net_session_list
+					       [g_frontend_net_selected_session_idx]
+						       .game_name);
+				host_player_id = net_get_host_player_id();
+				g_frontend_net_packet_scratch.packet_type =
 					NET_PACKET_JOIN_REQUEST;
-				*(int *)&g_frontendNetPacketScratch.payload[0] =
+				*(int *)&g_frontend_net_packet_scratch
+					 .payload[0] =
 					FRONTEND_NET_PROTOCOL_VERSION;
-				memcpy(&g_frontendNetPacketScratch.payload[4],
-				       g_gameConfig.password,
-				       sizeof(g_gameConfig.password));
-				Net_SendPacketAndFlush(
-					hostPlayerId,
-					&g_frontendNetPacketScratch,
+				memcpy(&g_frontend_net_packet_scratch
+						.payload[4],
+				       g_game_config.password,
+				       sizeof(g_game_config.password));
+				net_send_packet_and_flush(
+					host_player_id,
+					&g_frontend_net_packet_scratch,
 					JOIN_REQUEST_PACKET_SIZE);
-				FrontendScreen_SetCallbacks(
-					FrontendNet_AwaitJoinAdmissionScreen,
+				frontend_screen_set_callbacks(
+					frontend_net_await_join_admission_screen,
 					NULL);
 			}
 		}
-		FrontendButton_DisableOverlayText();
+		frontend_button_disable_overlay_text();
 		return 0;
 	}
 
@@ -754,325 +784,336 @@ int FrontendNet_JoinGameScreen(int frameCounter)
 /* Waits for the host's answer to a join request, run each frame, showing the
  * access message, version and player banner. It reads frontend packets; the
  * modern build first shows any admission failure
- * (XvtNetworkDialogs_ReportAdmissionFailure) and ignores packets not sent by
+ * (xvt_network_dialogs_report_admission_failure) and ignores packets not sent by
  * the host. A refusal (full, version, password, roster locked, game started,
  * host cancelled) ends the connection and shows its message; the modern build
- * then continues through XvtDialog_ContinueWith and returns its result, while
+ * then continues through xvt_dialog_continue_with and returns its result, while
  * the original opens the configuration screen for a password refusal and
  * returns to the concourse, or to the join screen for IPX. PLAYER_ADMITTED
- * clears g_mpRoster and moves to the mission setup screen. The cancel button,
+ * clears g_mp_roster and moves to the mission setup screen. The cancel button,
  * or frame 480 in the original, ends the connection and returns to the join
- * screen. Returns 1 when Frontend_HandleCommonScreenControls returns 1, else 0
+ * screen. Returns 1 when frontend_handle_common_screen_controls returns 1, else 0
  * unless noted. */
 // FUNCTION: XVT 0x4D7E70
-int FrontendNet_AwaitJoinAdmissionScreen(int frameCounter)
+int frontend_net_await_join_admission_screen(int frame_counter)
 {
 	enum {
 		ACCESS_TIMEOUT_FRAME = 480,
 		PILOT_BANNER_ANIMATION_PERIOD_FRAMES = 32,
 	};
 
-	int networkResult;
-	int animationFrame;
-	int cancelPressed;
+	int network_result;
+	int animation_frame;
+	int cancel_pressed;
 	struct RECT rect;
-	struct RECT screenRect;
+	struct RECT screen_rect;
 
-	if (frameCounter == 0) {
-		FrontImage_RegisterResourceDefault("frontres\\joinback.bmp",
-						   "background");
-		FrontendDisplay_LockOffscreenSurface();
-		FrontImage_DrawSpriteOpaque("background", 0, 0);
-		FrontImage_DrawSprite("frame", 0, 0);
-		if (g_hostCdAvailable != 0) {
-			FrontImage_DrawSprite("allactive", 0, 0);
+	if (frame_counter == 0) {
+		front_image_register_resource_default("frontres\\joinback.bmp",
+						      "background");
+		frontend_display_lock_offscreen_surface();
+		front_image_draw_sprite_opaque("background", 0, 0);
+		front_image_draw_sprite("frame", 0, 0);
+		if (g_host_cd_available != 0) {
+			front_image_draw_sprite("allactive", 0, 0);
 		} else {
-			FrontImage_DrawSprite("clientactive", 0, 0);
+			front_image_draw_sprite("clientactive", 0, 0);
 		}
-		FrontImage_DrawSpriteTranslucent("chatbox", 0, 0);
-		FrontendDisplay_UnlockOffscreenSurface(1);
-		FrontendText_StartTextFadeIn(20);
+		front_image_draw_sprite_translucent("chatbox", 0, 0);
+		frontend_display_unlock_offscreen_surface(1);
+		frontend_text_start_text_fade_in(20);
 	}
 
-	FrontendDraw_RectAssign(&rect, 84, 107, 434, 433);
-	FrontendText_DrawCentered(
-		15, FrontendString_Get(FRONTSTR_020_ACCESSING_IMPERIAL_NETWORK),
+	frontend_draw_rect_assign(&rect, 84, 107, 434, 433);
+	frontend_text_draw_centered(
+		15,
+		frontend_string_get(FRONTSTR_020_ACCESSING_IMPERIAL_NETWORK),
 		&rect, 0xFFFF);
 #ifdef XVT_MODERN
-	if (XvtNetworkDialogs_ReportAdmissionFailure()) {
+	if (xvt_network_dialogs_report_admission_failure()) {
 		return 0;
 	}
 #endif
-	networkResult = FrontendNet_ProcessNetworkPackets();
+	network_result = frontend_net_process_network_packets();
 #ifdef XVT_MODERN
-	if (g_frontendNetPacketSenderPlayerId != Net_GetHostPlayerId()) {
-		networkResult = 0;
+	if (g_frontend_net_packet_sender_player_id !=
+	    net_get_host_player_id()) {
+		network_result = 0;
 	}
 #endif
-	if (networkResult == NET_PACKET_GAME_FULL ||
-	    networkResult == NET_PACKET_VERSION_MISMATCH ||
-	    networkResult == NET_PACKET_PASSWORD_REQUIRED ||
-	    networkResult == NET_PACKET_ROSTER_LOCKED ||
-	    networkResult == NET_PACKET_HOST_CANCELLED ||
-	    networkResult == NET_PACKET_FRONTEND_GAME_STARTED) {
+	if (network_result == NET_PACKET_GAME_FULL ||
+	    network_result == NET_PACKET_VERSION_MISMATCH ||
+	    network_result == NET_PACKET_PASSWORD_REQUIRED ||
+	    network_result == NET_PACKET_ROSTER_LOCKED ||
+	    network_result == NET_PACKET_HOST_CANCELLED ||
+	    network_result == NET_PACKET_FRONTEND_GAME_STARTED) {
 #ifdef XVT_MODERN
-		XvtNetworkSession_Reject();
+		xvt_network_session_reject();
 #else
-		Net_ShutdownDirectPlaySessionNoHandshake();
+		net_shutdown_direct_play_session_no_handshake();
 #endif
-		switch (networkResult - NET_PACKET_FRONTEND_GAME_STARTED) {
+		switch (network_result - NET_PACKET_FRONTEND_GAME_STARTED) {
 		case NET_PACKET_FRONTEND_GAME_STARTED -
 			NET_PACKET_FRONTEND_GAME_STARTED:
 		case NET_PACKET_ROSTER_LOCKED -
 			NET_PACKET_FRONTEND_GAME_STARTED:
-			FrontendDialog_ShowConfirmDialog(
-				FrontendString_Get(
+			frontend_dialog_show_confirm_dialog(
+				frontend_string_get(
 					FRONTSTR_552_THIS_GAME_HAS_ALREADY_STARTED),
-				FrontendString_Get(
+				frontend_string_get(
 					FRONTSTR_553_PLEASE_SELECT_ANOTHER_GAME_TO_JOIN),
-				FrontendString_Get(
+				frontend_string_get(
 					FRONTSTR_554_SPACE_TRANSLATION_PLACEHOLDER),
 				NULL, NULL);
 #ifdef XVT_MODERN
-			return XvtDialog_ContinueWith(
-				XvtNetworkDialogs_Resume,
+			return xvt_dialog_continue_with(
+				xvt_network_dialogs_resume,
 				XVT_NETWORK_ACCESS_REJECTED);
 #endif
 			break;
 		case NET_PACKET_GAME_FULL - NET_PACKET_FRONTEND_GAME_STARTED:
-			FrontendDialog_ShowConfirmDialog(
-				FrontendString_Get(
+			frontend_dialog_show_confirm_dialog(
+				frontend_string_get(
 					FRONTSTR_543_THE_GAME_YOU_ARE_TRYING_TO_JOIN_IS_FULL),
-				FrontendString_Get(
+				frontend_string_get(
 					FRONTSTR_544_PLEASE_TRY_ANOTHER_GAME),
-				FrontendString_Get(
+				frontend_string_get(
 					FRONTSTR_545_SPACE_TRANSLATION_PLACEHOLDER),
 				NULL, NULL);
 #ifdef XVT_MODERN
-			return XvtDialog_ContinueWith(
-				XvtNetworkDialogs_Resume,
+			return xvt_dialog_continue_with(
+				xvt_network_dialogs_resume,
 				XVT_NETWORK_ACCESS_REJECTED);
 #endif
 			break;
 		case NET_PACKET_HOST_CANCELLED -
 			NET_PACKET_FRONTEND_GAME_STARTED:
-			FrontendDialog_ShowConfirmDialog(
-				FrontendString_Get(
+			frontend_dialog_show_confirm_dialog(
+				frontend_string_get(
 					FRONTSTR_631_THE_CURRENT_GAME_HAS_BEEN),
-				FrontendString_Get(
+				frontend_string_get(
 					FRONTSTR_632_CANCELLED_BY_THE_HOST),
-				FrontendString_Get(
+				frontend_string_get(
 					FRONTSTR_633_PLEASE_SELECT_ANOTHER_GAME),
 				NULL, NULL);
 #ifdef XVT_MODERN
-			return XvtDialog_ContinueWith(
-				XvtNetworkDialogs_Resume,
+			return xvt_dialog_continue_with(
+				xvt_network_dialogs_resume,
 				XVT_NETWORK_ACCESS_REJECTED);
 #endif
 			break;
 		case NET_PACKET_VERSION_MISMATCH -
 			NET_PACKET_FRONTEND_GAME_STARTED:
-			FrontendDialog_ShowConfirmDialog(
-				FrontendString_Get(
+			frontend_dialog_show_confirm_dialog(
+				frontend_string_get(
 					FRONTSTR_546_YOUR_VERSION_OF_THE_PROGRAM_DOES_NOT),
-				FrontendString_Get(
+				frontend_string_get(
 					FRONTSTR_547_MATCH_THE_HOSTS_PLEASE_VERIFY_THAT_YOU),
-				FrontendString_Get(
+				frontend_string_get(
 					FRONTSTR_548_HAVE_THE_CORRECT_PROGRAM),
 				NULL, NULL);
 #ifdef XVT_MODERN
-			return XvtDialog_ContinueWith(
-				XvtNetworkDialogs_Resume,
+			return xvt_dialog_continue_with(
+				xvt_network_dialogs_resume,
 				XVT_NETWORK_ACCESS_REJECTED);
 #endif
 			break;
 		case NET_PACKET_PASSWORD_REQUIRED -
 			NET_PACKET_FRONTEND_GAME_STARTED:
-			FrontendDialog_ShowConfirmDialog(
-				FrontendString_Get(
+			frontend_dialog_show_confirm_dialog(
+				frontend_string_get(
 					FRONTSTR_549_THIS_GAME_REQUIRES_A_PASSWORD),
-				FrontendString_Get(
+				frontend_string_get(
 					FRONTSTR_550_PLEASE_ENTER_THE_CORRECT_PASSWORD_IN),
-				FrontendString_Get(
+				frontend_string_get(
 					FRONTSTR_551_THE_NETWORK_CONFIGURATION_SCREEN),
 				NULL, NULL);
 #ifdef XVT_MODERN
-			return XvtDialog_ContinueWith(
-				XvtNetworkDialogs_Resume,
+			return xvt_dialog_continue_with(
+				xvt_network_dialogs_resume,
 				XVT_NETWORK_ACCESS_PASSWORD);
 #endif
-			FrontendDraw_RectAssign(&screenRect, 0, 0, 640, 480);
-			FrontendScreen_QueuePush(Config_OptionsDatapadUpdate,
-						 &screenRect);
+			frontend_draw_rect_assign(&screen_rect, 0, 0, 640, 480);
+			frontend_screen_queue_push(
+				config_options_datapad_update, &screen_rect);
 			break;
 		}
-		if (g_gameConfig.networkType != 0) {
-			FrontendScreen_SetCallbacks(Concourse_Update,
-						    Concourse_Exit);
+		if (g_game_config.network_type != 0) {
+			frontend_screen_set_callbacks(concourse_update,
+						      concourse_exit);
 		} else {
-			g_frontendSkipScreenEntrySetup = 1;
-			FrontendScreen_SetCallbacks(
-				FrontendNet_JoinGameScreen,
-				FrontendMissionList_FreeScreenResources);
+			g_frontend_skip_screen_entry_setup = 1;
+			frontend_screen_set_callbacks(
+				frontend_net_join_game_screen,
+				frontend_mission_list_free_screen_resources);
 		}
-	} else if (networkResult == NET_PACKET_PLAYER_ADMITTED) {
-		memset(g_mpRoster, 0, sizeof(g_mpRoster));
-		FrontendScreen_SetCallbacks(MissionSetup_Update,
-					    MissionSetup_Exit);
+	} else if (network_result == NET_PACKET_PLAYER_ADMITTED) {
+		memset(g_mp_roster, 0, sizeof(g_mp_roster));
+		frontend_screen_set_callbacks(mission_setup_update,
+					      mission_setup_exit);
 	}
 
-	FrontendDraw_RectAssign(&rect, 507, 452, 562, 464);
-	sprintf(g_frontendScratchBuffer, "v. %d.%d", 2, 0);
-	FrontendText_DrawCentered(12, g_frontendScratchBuffer, &rect, 0xFFFF);
-	FrontendDraw_RectAssign(&rect, 200, 452, 436, 464);
-	if (g_pilotData.name[0] != '\0') {
-		sprintf(g_frontendScratchBuffer, "%c%s %c%s", 6,
-			g_pilotData.ratingName, 1, g_pilotData.name);
-		FrontendText_DrawCentered(12, g_frontendScratchBuffer, &rect,
-					  g_colorYellow);
-		animationFrame =
-			(frameCounter % PILOT_BANNER_ANIMATION_PERIOD_FRAMES) >>
-			1;
-		sprintf(g_frontendScratchBuffer, "rebtiny%d", animationFrame);
-		FrontImage_DrawSprite(g_frontendScratchBuffer, 204, 453);
-		sprintf(g_frontendScratchBuffer, "imptiny%d", animationFrame);
-		FrontImage_DrawSprite(g_frontendScratchBuffer, 420, 453);
+	frontend_draw_rect_assign(&rect, 507, 452, 562, 464);
+	sprintf(g_frontend_scratch_buffer, "v. %d.%d", 2, 0);
+	frontend_text_draw_centered(12, g_frontend_scratch_buffer, &rect,
+				    0xFFFF);
+	frontend_draw_rect_assign(&rect, 200, 452, 436, 464);
+	if (g_pilot_data.name[0] != '\0') {
+		sprintf(g_frontend_scratch_buffer, "%c%s %c%s", 6,
+			g_pilot_data.rating_name, 1, g_pilot_data.name);
+		frontend_text_draw_centered(12, g_frontend_scratch_buffer,
+					    &rect, g_color_yellow);
+		animation_frame = (frame_counter %
+				   PILOT_BANNER_ANIMATION_PERIOD_FRAMES) >>
+				  1;
+		sprintf(g_frontend_scratch_buffer, "rebtiny%d",
+			animation_frame);
+		front_image_draw_sprite(g_frontend_scratch_buffer, 204, 453);
+		sprintf(g_frontend_scratch_buffer, "imptiny%d",
+			animation_frame);
+		front_image_draw_sprite(g_frontend_scratch_buffer, 420, 453);
 	}
-	if (Frontend_HandleCommonScreenControls(0) == 1) {
+	if (frontend_handle_common_screen_controls(0) == 1) {
 		return 1;
 	}
 #ifdef XVT_MODERN
-	if (XvtDialog_IsActive()) {
+	if (xvt_dialog_is_active()) {
 		return 0;
 	}
 #endif
-	if (g_gameConfig.helpOn != 0) {
-		FrontendButton_EnableOverlayText();
+	if (g_game_config.help_on != 0) {
+		frontend_button_enable_overlay_text();
 	}
-	FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_019_CANCEL));
-	FrontendDraw_RectAssign(&rect, 85, 447, 176, 471);
-	cancelPressed = FrontendButton_HandleSpriteButton(
+	frontend_button_set_overlay_text(
+		frontend_string_get(FRONTSTR_019_CANCEL));
+	frontend_draw_rect_assign(&rect, 85, 447, 176, 471);
+	cancel_pressed = frontend_button_handle_sprite_button(
 		&rect, "leaveup", "leavedown",
-		FrontendString_Get(FRONTSTR_019_CANCEL), 12, 0, 8,
+		frontend_string_get(FRONTSTR_019_CANCEL), 12, 0, 8,
 		"buttonsound");
-	FrontendButton_DisableOverlayText();
+	frontend_button_disable_overlay_text();
 #ifdef XVT_MODERN
-	if (cancelPressed != 0) {
-		XvtNetworkSession_Cancel();
+	if (cancel_pressed != 0) {
+		xvt_network_session_cancel();
 #else
-	if (cancelPressed != 0 || frameCounter == ACCESS_TIMEOUT_FRAME) {
-		Net_ShutdownDirectPlaySessionNoHandshake();
+	if (cancel_pressed != 0 || frame_counter == ACCESS_TIMEOUT_FRAME) {
+		net_shutdown_direct_play_session_no_handshake();
 #endif
-		g_frontendSkipScreenEntrySetup = 1;
-		FrontendScreen_SetCallbacks(
-			FrontendNet_JoinGameScreen,
-			FrontendMissionList_FreeScreenResources);
-		FrontImage_FreeResourceByName("background");
+		g_frontend_skip_screen_entry_setup = 1;
+		frontend_screen_set_callbacks(
+			frontend_net_join_game_screen,
+			frontend_mission_list_free_screen_resources);
+		front_image_free_resource_by_name("background");
 	}
 	return 0;
 }
 
 /* Draws the join screen's mission heading, with the mission's name once a lobby
- * STATE has named it, and then its briefing text from g_missionText, with a
+ * STATE has named it, and then its briefing text from g_mission_text, with a
  * scrollbar past 6 lines; returns 1. The modern build returns
- * XvtNetworkBrowser_DrawMission's result instead. */
+ * xvt_network_browser_draw_mission's result instead. */
 // FUNCTION: XVT 0x4D8350
-int FrontendNet_DrawJoinGameMissionBriefing(void)
+int frontend_net_draw_join_game_mission_briefing(void)
 {
 #ifdef XVT_MODERN
-	return XvtNetworkBrowser_DrawMission();
+	return xvt_network_browser_draw_mission();
 #else
 	struct RECT rect;
 
-	FrontendDraw_RectAssign(&rect, 88, 309, 430, 324);
-	if (g_frontendNetReceivedMissionDescriptionId != -1) {
-		if (g_missionList != NULL &&
-		    g_selectedMissionListIndex < g_missionCount) {
-			sprintf(g_frontendScratchBuffer, "%s %c%s",
-				FrontendString_Get(FRONTSTR_187_MISSION), 4,
-				g_missionList[g_selectedMissionListIndex]
+	frontend_draw_rect_assign(&rect, 88, 309, 430, 324);
+	if (g_frontend_net_received_mission_description_id != -1) {
+		if (g_mission_list != NULL &&
+		    g_selected_mission_list_index < g_mission_count) {
+			sprintf(g_frontend_scratch_buffer, "%s %c%s",
+				frontend_string_get(FRONTSTR_187_MISSION), 4,
+				g_mission_list[g_selected_mission_list_index]
 					.description);
 		} else {
-			strcpy(g_frontendScratchBuffer,
-			       FrontendString_Get(FRONTSTR_187_MISSION));
+			strcpy(g_frontend_scratch_buffer,
+			       frontend_string_get(FRONTSTR_187_MISSION));
 		}
-		FrontendText_DrawAlignedInRect(12, g_frontendScratchBuffer,
-					       &rect, 0, 1, 0xFFFF);
+		frontend_text_draw_aligned_in_rect(
+			12, g_frontend_scratch_buffer, &rect, 0, 1, 0xFFFF);
 	} else {
-		FrontendText_DrawAlignedInRect(
-			12, FrontendString_Get(FRONTSTR_187_MISSION), &rect, 0,
+		frontend_text_draw_aligned_in_rect(
+			12, frontend_string_get(FRONTSTR_187_MISSION), &rect, 0,
 			1, 0xFFFF);
 	}
 
-	if (g_frontendNetReceivedMissionDescriptionId != -1 &&
-	    g_missionText != NULL) {
-		unsigned int lineCount;
+	if (g_frontend_net_received_mission_description_id != -1 &&
+	    g_mission_text != NULL) {
+		unsigned int line_count;
 
-		FrontendDraw_RectAssign(&rect, 88, 328, 420, 426);
-		lineCount = FrontendText_DrawWrapped(12, g_missionText, &rect,
-						     0xFFFF, 4, 4096) +
-			    1;
-		if (lineCount > 6) {
-			FrontendDraw_RectAssign(&rect, 421, 328, 430, 426);
-			g_frontendFirstVisibleLine = FrontendScrollbar_Draw(
-				&rect, g_frontendFirstVisibleLine, lineCount, 0,
-				5, (unsigned int)g_colorNavy, 6);
-			FrontendDraw_RectAssign(&rect, 88, 328, 420, 426);
+		frontend_draw_rect_assign(&rect, 88, 328, 420, 426);
+		line_count =
+			frontend_text_draw_wrapped(12, g_mission_text, &rect,
+						   0xFFFF, 4, 4096) +
+			1;
+		if (line_count > 6) {
+			frontend_draw_rect_assign(&rect, 421, 328, 430, 426);
+			g_frontend_first_visible_line = frontend_scrollbar_draw(
+				&rect, g_frontend_first_visible_line,
+				line_count, 0, 5, (unsigned int)g_color_navy,
+				6);
+			frontend_draw_rect_assign(&rect, 88, 328, 420, 426);
 		} else {
-			FrontendDraw_RectAssign(&rect, 88, 328, 430, 426);
+			frontend_draw_rect_assign(&rect, 88, 328, 430, 426);
 		}
-		FrontendText_DrawWrapped(12, g_missionText, &rect, 0xFFFF, 4,
-					 g_frontendFirstVisibleLine);
+		frontend_text_draw_wrapped(12, g_mission_text, &rect, 0xFFFF, 4,
+					   g_frontend_first_visible_line);
 	}
 	return 1;
 #endif
 }
 
 /* Draws the join screen's player heading and, once a lobby STATE has arrived,
- * each player in g_mpRoster with rating and name, in two columns of 4; returns
- * 1. Calls Net_CountReadyPlayers and ignores its result. The modern build
- * returns XvtNetworkBrowser_DrawRoster's result instead. */
+ * each player in g_mp_roster with rating and name, in two columns of 4; returns
+ * 1. Calls net_count_ready_players and ignores its result. The modern build
+ * returns xvt_network_browser_draw_roster's result instead. */
 // FUNCTION: XVT 0x4D8540
-int FrontendNet_DrawJoinGamePlayerRoster(void)
+int frontend_net_draw_join_game_player_roster(void)
 {
 #ifdef XVT_MODERN
-	return XvtNetworkBrowser_DrawRoster();
+	return xvt_network_browser_draw_roster();
 #else
 	struct RECT rect;
-	struct RECT previousClipRect;
-	int displayedCount;
-	int rosterIndex;
+	struct RECT previous_clip_rect;
+	int displayed_count;
+	int roster_index;
 
-	FrontendDraw_RectAssign(&rect, 88, 218, 430, 233);
-	FrontendText_DrawAlignedInRect(
-		12, FrontendString_Get(FRONTSTR_201_PLAYERS_IN_GAME), &rect, 0,
+	frontend_draw_rect_assign(&rect, 88, 218, 430, 233);
+	frontend_text_draw_aligned_in_rect(
+		12, frontend_string_get(FRONTSTR_201_PLAYERS_IN_GAME), &rect, 0,
 		1, 0xFFFF);
-	if (g_frontendNetReceivedMissionDescriptionId != -1) {
-		displayedCount = 0;
-		Net_CountReadyPlayers();
-		FrontendDraw_RectAssign(&rect, 88, 238, 258, 252);
-		for (rosterIndex = 0; rosterIndex < 8; ++rosterIndex) {
-			if (g_mpRoster[rosterIndex].playerId != 0) {
-				FrontendDisplay_GetScreenClipRect(
-					&previousClipRect);
-				++displayedCount;
-				FrontendDisplay_SetScreenClipRect640x480(&rect);
-				sprintf(g_frontendScratchBuffer, "%c%s %c%s", 6,
-					FrontendString_Get(
+	if (g_frontend_net_received_mission_description_id != -1) {
+		displayed_count = 0;
+		net_count_ready_players();
+		frontend_draw_rect_assign(&rect, 88, 238, 258, 252);
+		for (roster_index = 0; roster_index < 8; ++roster_index) {
+			if (g_mp_roster[roster_index].player_id != 0) {
+				frontend_display_get_screen_clip_rect(
+					&previous_clip_rect);
+				++displayed_count;
+				frontend_display_set_screen_clip_rect640x480(
+					&rect);
+				sprintf(g_frontend_scratch_buffer, "%c%s %c%s",
+					6,
+					frontend_string_get(
 						FRONTSTR_154_DRONE +
-						g_mpRoster[rosterIndex]
-							.pilotRating),
-					4, g_mpRoster[rosterIndex].name);
-				FrontendText_DrawAlignedInRect(
-					12, g_frontendScratchBuffer, &rect, 0,
+						g_mp_roster[roster_index]
+							.pilot_rating),
+					4, g_mp_roster[roster_index].name);
+				frontend_text_draw_aligned_in_rect(
+					12, g_frontend_scratch_buffer, &rect, 0,
 					1, 0xFFFF);
-				FrontendDisplay_SetScreenClipRect640x480(
-					&previousClipRect);
-				if (displayedCount == 4) {
-					FrontendDraw_RectAssign(&rect, 259, 238,
-								430, 252);
+				frontend_display_set_screen_clip_rect640x480(
+					&previous_clip_rect);
+				if (displayed_count == 4) {
+					frontend_draw_rect_assign(
+						&rect, 259, 238, 430, 252);
 				} else {
-					FrontendDraw_RectOffsetXY(&rect, 0, 15);
+					frontend_draw_rect_offset_xy(&rect, 0,
+								     15);
 				}
 			}
 		}
@@ -1082,180 +1123,185 @@ int FrontendNet_DrawJoinGamePlayerRoster(void)
 }
 
 /* Runs the chat panel each frame. Once the mission setup roster is
- * authoritative it shows All and Team tabs that set g_frontendChatTeamOnly;
+ * authoritative it shows All and Team tabs that set g_frontend_chat_team_only;
  * before that it holds it at 0. On Enter or Tab with text in
- * g_frontendChatInputBuffer it sends a CHAT packet: a color code byte (2 for
+ * g_frontend_chat_input_buffer it sends a CHAT packet: a color code byte (2 for
  * team or 3 for all when this player is ready, 4 when not), this player's name,
  * ": ", color code 1 and the text, with no closing NUL. A team message goes to
- * each player on this player's team (g_pilotData.team), or to all when this
- * player has no team assignment. Then it draws g_frontendChatLogBuffer with a
- * scrollbar past 20 lines, kept in g_frontendChatScrollOffset, and returns
- * FrontendText_DrawWrapped's result for it. Frame 0 flushes typed keys and
- * resets the scroll. Writes g_frontendNetPacketScratch. */
+ * each player on this player's team (g_pilot_data.team), or to all when this
+ * player has no team assignment. Then it draws g_frontend_chat_log_buffer with a
+ * scrollbar past 20 lines, kept in g_frontend_chat_scroll_offset, and returns
+ * frontend_text_draw_wrapped's result for it. Frame 0 flushes typed keys and
+ * resets the scroll. Writes g_frontend_net_packet_scratch. */
 // FUNCTION: XVT 0x4D8690
-int FrontendNet_UpdateAndDrawChatPanel(int frameCounter)
+int frontend_net_update_and_draw_chat_panel(int frame_counter)
 {
 	struct RECT rect;
-	int cursorX;
-	int cursorY;
-	int localPlayerId;
-	int teamMessage;
-	int lineCount;
-	int maxScroll;
-	int playerIndex;
+	int cursor_x;
+	int cursor_y;
+	int local_player_id;
+	int team_message;
+	int line_count;
+	int max_scroll;
+	int player_index;
 
-	if (frameCounter == 0) {
-		Keyboard_FlushCharBuffer();
-		g_frontendChatScrollOffset = 0;
+	if (frame_counter == 0) {
+		keyboard_flush_char_buffer();
+		g_frontend_chat_scroll_offset = 0;
 	}
 
-	if (g_missionSetupRosterAuthoritative != 0) {
-		FrontendCursor_GetPos(&cursorX, &cursorY);
-		if (g_frontendChatTeamOnly == 0) {
-			FrontImage_DrawSprite("tab2", 0, 0);
-			FrontendDraw_RectAssign(&rect, 556, 95, 588, 105);
-			FrontendText_DrawCentered(
-				10, FrontendString_Get(FRONTSTR_217_TEAM),
-				&rect, g_colorGray);
-			if (FrontendDraw_PointInRect(&rect, cursorX, cursorY) &&
-			    (FrontendMouse_GetLeftClick() != 0 ||
-			     FrontendMouse_GetRightClick() != 0)) {
-				if (g_gameConfig.sfxDatapadEnabled != 0) {
-					FrontendSound_PlayUISound(
+	if (g_mission_setup_roster_authoritative != 0) {
+		frontend_cursor_get_pos(&cursor_x, &cursor_y);
+		if (g_frontend_chat_team_only == 0) {
+			front_image_draw_sprite("tab2", 0, 0);
+			frontend_draw_rect_assign(&rect, 556, 95, 588, 105);
+			frontend_text_draw_centered(
+				10, frontend_string_get(FRONTSTR_217_TEAM),
+				&rect, g_color_gray);
+			if (frontend_draw_point_in_rect(&rect, cursor_x,
+							cursor_y) &&
+			    (frontend_mouse_get_left_click() != 0 ||
+			     frontend_mouse_get_right_click() != 0)) {
+				if (g_game_config.sfx_datapad_enabled != 0) {
+					frontend_sound_play_ui_sound(
 						"jewelsound", 1, 0, 255,
-						12 * g_gameConfig
-								.sfxDatapadVolume,
+						12 * g_game_config
+								.sfx_datapad_volume,
 						63);
 				}
-				g_frontendChatTeamOnly = 1;
+				g_frontend_chat_team_only = 1;
 			}
-			FrontImage_DrawSprite("tab1", 0, 0);
-			FrontendDraw_RectAssign(&rect, 520, 95, 552, 105);
-			FrontendText_DrawCentered(
-				10, FrontendString_Get(FRONTSTR_402_ALL), &rect,
-				0xFFFF);
+			front_image_draw_sprite("tab1", 0, 0);
+			frontend_draw_rect_assign(&rect, 520, 95, 552, 105);
+			frontend_text_draw_centered(
+				10, frontend_string_get(FRONTSTR_402_ALL),
+				&rect, 0xFFFF);
 		} else {
-			FrontImage_DrawSprite("tab1", 0, 0);
-			FrontendDraw_RectAssign(&rect, 520, 95, 552, 105);
-			FrontendText_DrawCentered(
-				10, FrontendString_Get(FRONTSTR_402_ALL), &rect,
-				g_colorGray);
-			if (FrontendDraw_PointInRect(&rect, cursorX, cursorY) &&
-			    (FrontendMouse_GetLeftClick() != 0 ||
-			     FrontendMouse_GetRightClick() != 0)) {
-				if (g_gameConfig.sfxDatapadEnabled != 0) {
-					FrontendSound_PlayUISound(
+			front_image_draw_sprite("tab1", 0, 0);
+			frontend_draw_rect_assign(&rect, 520, 95, 552, 105);
+			frontend_text_draw_centered(
+				10, frontend_string_get(FRONTSTR_402_ALL),
+				&rect, g_color_gray);
+			if (frontend_draw_point_in_rect(&rect, cursor_x,
+							cursor_y) &&
+			    (frontend_mouse_get_left_click() != 0 ||
+			     frontend_mouse_get_right_click() != 0)) {
+				if (g_game_config.sfx_datapad_enabled != 0) {
+					frontend_sound_play_ui_sound(
 						"jewelsound", 1, 0, 255,
-						12 * g_gameConfig
-								.sfxDatapadVolume,
+						12 * g_game_config
+								.sfx_datapad_volume,
 						63);
 				}
-				g_frontendChatTeamOnly = 0;
+				g_frontend_chat_team_only = 0;
 			}
-			FrontImage_DrawSprite("tab2", 0, 0);
-			FrontendDraw_RectAssign(&rect, 556, 95, 588, 105);
-			FrontendText_DrawCentered(
-				10, FrontendString_Get(FRONTSTR_217_TEAM),
+			front_image_draw_sprite("tab2", 0, 0);
+			frontend_draw_rect_assign(&rect, 556, 95, 588, 105);
+			frontend_text_draw_centered(
+				10, frontend_string_get(FRONTSTR_217_TEAM),
 				&rect, 0xFFFF);
 		}
 	} else {
-		g_frontendChatTeamOnly = 0;
+		g_frontend_chat_team_only = 0;
 	}
 
-	FrontendDraw_RectAssign(&rect, 461, 406, 595, 424);
-	if (FrontendText_HandleEditableField(&rect, g_frontendChatInputBuffer,
-					     100, 0, 12, NULL) != 0 &&
-	    g_frontendChatInputBuffer[0] != 0) {
-		g_frontendNetPacketScratch.packetType = NET_PACKET_CHAT;
-		localPlayerId = Net_GetLocalPlayerId();
-		if (Net_IsPlayerReady(localPlayerId) != 0) {
-			teamMessage = g_frontendChatTeamOnly;
-			if (g_frontendChatTeamOnly == 1) {
-				g_frontendScratchBuffer[0] = 2;
+	frontend_draw_rect_assign(&rect, 461, 406, 595, 424);
+	if (frontend_text_handle_editable_field(&rect,
+						g_frontend_chat_input_buffer,
+						100, 0, 12, NULL) != 0 &&
+	    g_frontend_chat_input_buffer[0] != 0) {
+		g_frontend_net_packet_scratch.packet_type = NET_PACKET_CHAT;
+		local_player_id = net_get_local_player_id();
+		if (net_is_player_ready(local_player_id) != 0) {
+			team_message = g_frontend_chat_team_only;
+			if (g_frontend_chat_team_only == 1) {
+				g_frontend_scratch_buffer[0] = 2;
 			} else {
-				g_frontendScratchBuffer[0] = 3;
+				g_frontend_scratch_buffer[0] = 3;
 			}
 		} else {
-			g_frontendScratchBuffer[0] = 4;
-			teamMessage = g_frontendChatTeamOnly;
+			g_frontend_scratch_buffer[0] = 4;
+			team_message = g_frontend_chat_team_only;
 		}
-		g_frontendScratchBuffer[1] = 0;
-		strcat(g_frontendScratchBuffer, g_pilotData.name);
-		strcat(g_frontendScratchBuffer, ": ");
+		g_frontend_scratch_buffer[1] = 0;
+		strcat(g_frontend_scratch_buffer, g_pilot_data.name);
+		strcat(g_frontend_scratch_buffer, ": ");
 		{
-			size_t messageLength = strlen(g_frontendScratchBuffer);
-			g_frontendScratchBuffer[messageLength] = 1;
-			g_frontendScratchBuffer[messageLength + 1] = 0;
+			size_t message_length =
+				strlen(g_frontend_scratch_buffer);
+			g_frontend_scratch_buffer[message_length] = 1;
+			g_frontend_scratch_buffer[message_length + 1] = 0;
 		}
-		strcat(g_frontendScratchBuffer, g_frontendChatInputBuffer);
-		memcpy(g_frontendNetPacketScratch.payload,
-		       g_frontendScratchBuffer,
-		       strlen(g_frontendScratchBuffer));
-		if (teamMessage != 0) {
-			playerIndex = 0;
-			while (playerIndex < 8 &&
-			       Net_GetLocalPlayerId() !=
-				       g_missionSetupPlayerAssignments
-					       .assignedPlayerIds
-						       [playerIndex]) {
-				++playerIndex;
+		strcat(g_frontend_scratch_buffer, g_frontend_chat_input_buffer);
+		memcpy(g_frontend_net_packet_scratch.payload,
+		       g_frontend_scratch_buffer,
+		       strlen(g_frontend_scratch_buffer));
+		if (team_message != 0) {
+			player_index = 0;
+			while (player_index < 8 &&
+			       net_get_local_player_id() !=
+				       g_mission_setup_player_assignments
+					       .assigned_player_ids
+						       [player_index]) {
+				++player_index;
 			}
-			if (playerIndex == 8) {
-				Net_SendPacketAndFlush(
-					0, &g_frontendNetPacketScratch,
-					strlen(g_frontendScratchBuffer) + 4);
+			if (player_index == 8) {
+				net_send_packet_and_flush(
+					0, &g_frontend_net_packet_scratch,
+					strlen(g_frontend_scratch_buffer) + 4);
 			} else {
-				for (playerIndex = 0; playerIndex < 8;
-				     ++playerIndex) {
-					int playerId =
-						g_missionSetupPlayerAssignments
-							.teamPlayerIds
-								[g_pilotData
+				for (player_index = 0; player_index < 8;
+				     ++player_index) {
+					int player_id =
+						g_mission_setup_player_assignments
+							.team_player_ids
+								[g_pilot_data
 									 .team]
-								[playerIndex];
-					if (playerId != 0) {
-						Net_SendPacketAndFlush(
-							(DPID)playerId,
-							&g_frontendNetPacketScratch,
-							strlen(g_frontendScratchBuffer) +
+								[player_index];
+					if (player_id != 0) {
+						net_send_packet_and_flush(
+							(DPID)player_id,
+							&g_frontend_net_packet_scratch,
+							strlen(g_frontend_scratch_buffer) +
 								4);
 					}
 				}
 			}
 		} else {
-			Net_SendPacketAndFlush(0, &g_frontendNetPacketScratch,
-					       strlen(g_frontendScratchBuffer) +
-						       4);
+			net_send_packet_and_flush(
+				0, &g_frontend_net_packet_scratch,
+				strlen(g_frontend_scratch_buffer) + 4);
 		}
-		memset(g_frontendChatInputBuffer, 0,
-		       sizeof(g_frontendChatInputBuffer));
+		memset(g_frontend_chat_input_buffer, 0,
+		       sizeof(g_frontend_chat_input_buffer));
 	}
 
-	FrontendDraw_RectAssign(&rect, 461, 117, 595, 407);
-	lineCount = FrontendText_DrawWrapped(12, g_frontendChatLogBuffer, &rect,
-					     0xFFFF, 2, 1024);
-	maxScroll = lineCount - 20;
-	if (lineCount <= 20) {
-		maxScroll = 0;
+	frontend_draw_rect_assign(&rect, 461, 117, 595, 407);
+	line_count = frontend_text_draw_wrapped(12, g_frontend_chat_log_buffer,
+						&rect, 0xFFFF, 2, 1024);
+	max_scroll = line_count - 20;
+	if (line_count <= 20) {
+		max_scroll = 0;
 	}
-	if (maxScroll > 0) {
-		++maxScroll;
-		if (g_frontendChatScrollOffset == maxScroll) {
-			--g_frontendChatScrollOffset;
+	if (max_scroll > 0) {
+		++max_scroll;
+		if (g_frontend_chat_scroll_offset == max_scroll) {
+			--g_frontend_chat_scroll_offset;
 		}
-		FrontendDraw_RectAssign(&rect, 596, 117, 605, 407);
-		g_frontendChatScrollOffset =
-			maxScroll -
-			FrontendScrollbar_Draw(
+		frontend_draw_rect_assign(&rect, 596, 117, 605, 407);
+		g_frontend_chat_scroll_offset =
+			max_scroll -
+			frontend_scrollbar_draw(
 				&rect,
-				maxScroll - g_frontendChatScrollOffset - 1,
-				maxScroll, 0, 5, (unsigned int)g_colorNavy, 7) -
+				max_scroll - g_frontend_chat_scroll_offset - 1,
+				max_scroll, 0, 5, (unsigned int)g_color_navy,
+				7) -
 			1;
 	}
-	FrontendDraw_RectAssign(&rect, 461, 117, 595, 398);
-	return FrontendText_DrawWrapped(
-		12, g_frontendChatLogBuffer, &rect, 0xFFFF, 2,
-		maxScroll - g_frontendChatScrollOffset - 1);
+	frontend_draw_rect_assign(&rect, 461, 117, 595, 398);
+	return frontend_text_draw_wrapped(
+		12, g_frontend_chat_log_buffer, &rect, 0xFFFF, 2,
+		max_scroll - g_frontend_chat_scroll_offset - 1);
 }
 
 #ifndef XVT_MODERN
@@ -1264,12 +1310,12 @@ int FrontendNet_UpdateAndDrawChatPanel(int frameCounter)
  * draws the connecting message; frames 1 to 4 add the transport's hint (the
  * TCP/IP time-out, or Alt+F4 to cancel); frame 5 ends any DirectPlay session
  * and joins one as a client at the configured IP address or phone number, named
- * after g_frontendNetSessionList[0].gameName. On success it sends the host a
+ * after g_frontend_net_session_list[0].game_name. On success it sends the host a
  * JOIN_REQUEST with the protocol version and password and moves to
- * FrontendNet_AwaitJoinAdmissionScreen; on failure it returns to the concourse.
+ * frontend_net_await_join_admission_screen; on failure it returns to the concourse.
  * Returns 0. Only the original build calls this. */
 // FUNCTION: XVT 0x4D8C20
-int FrontendNet_ConnectToSelectedGameScreen(int frameCounter)
+int frontend_net_connect_to_selected_game_screen(int frame_counter)
 {
 	enum {
 		CONNECT_ACTION_FRAME = 5,
@@ -1291,222 +1337,226 @@ int FrontendNet_ConnectToSelectedGameScreen(int frameCounter)
 	};
 
 	struct RECT rect;
-	char playerInfo[2];
-	int hostPlayerId;
-	unsigned int networkType;
+	char player_info[2];
+	int host_player_id;
+	unsigned int network_type;
 
-	if (frameCounter == 0) {
-		Net_ClearPlayerReadyFlags();
-		if (g_frontendChatLogBuffer != NULL) {
-			memset(g_frontendChatLogBuffer, 0, CHAT_LOG_CAPACITY);
-			g_frontendChatLogUsedBytes = 0;
+	if (frame_counter == 0) {
+		net_clear_player_ready_flags();
+		if (g_frontend_chat_log_buffer != NULL) {
+			memset(g_frontend_chat_log_buffer, 0,
+			       CHAT_LOG_CAPACITY);
+			g_frontend_chat_log_used_bytes = 0;
 		}
-		g_frontendNetReceivedMissionDirectoryId =
+		g_frontend_net_received_mission_directory_id =
 			MISSION_DIRECTORY_TRAINING_EXERCISES;
-		g_frontendNetReceivedMissionDescriptionId = -1;
-		g_frontendNetSelectedSessionIdx = -1;
-		g_missionSetupRosterAuthoritative = 0;
-		if (g_missionText == NULL) {
-			g_missionText = (char *)malloc(BRIEFING_TEXT_CAPACITY);
+		g_frontend_net_received_mission_description_id = -1;
+		g_frontend_net_selected_session_idx = -1;
+		g_mission_setup_roster_authoritative = 0;
+		if (g_mission_text == NULL) {
+			g_mission_text = (char *)malloc(BRIEFING_TEXT_CAPACITY);
 		}
-		FrontImage_RegisterResourceDefault("frontres\\joinback.bmp",
-						   "background");
-		FrontendDisplay_LockOffscreenSurface();
-		FrontImage_DrawSpriteOpaque("background", 0, 0);
-		FrontImage_DrawSprite("frame", 0, 0);
-		if (g_hostCdAvailable != 0) {
-			FrontImage_DrawSprite("allactive", 0, 0);
+		front_image_register_resource_default("frontres\\joinback.bmp",
+						      "background");
+		frontend_display_lock_offscreen_surface();
+		front_image_draw_sprite_opaque("background", 0, 0);
+		front_image_draw_sprite("frame", 0, 0);
+		if (g_host_cd_available != 0) {
+			front_image_draw_sprite("allactive", 0, 0);
 		} else {
-			FrontImage_DrawSprite("clientactive", 0, 0);
+			front_image_draw_sprite("clientactive", 0, 0);
 		}
-		FrontendDraw_RectAssign(&rect, 0, 0, CONNECT_SCREEN_WIDTH,
-					CONNECT_SCREEN_HEIGHT);
-		FrontendText_DrawCentered(
+		frontend_draw_rect_assign(&rect, 0, 0, CONNECT_SCREEN_WIDTH,
+					  CONNECT_SCREEN_HEIGHT);
+		frontend_text_draw_centered(
 			CONNECT_TITLE_FONT_SIZE,
-			FrontendString_Get(FRONTSTR_645_CONNECTING), &rect,
+			frontend_string_get(FRONTSTR_645_CONNECTING), &rect,
 			0xFFFF);
-		FrontendDisplay_UnlockOffscreenSurface(1);
-		FrontendText_StopTextFade();
+		frontend_display_unlock_offscreen_surface(1);
+		frontend_text_stop_text_fade();
 		return 0;
 	}
 
-	if (frameCounter > 0 && frameCounter < CONNECT_ACTION_FRAME) {
-		FrontendCursor_Hide();
-		networkType = g_gameConfig.networkType;
-		switch ((NetworkTransportType)networkType) {
+	if (frame_counter > 0 && frame_counter < CONNECT_ACTION_FRAME) {
+		frontend_cursor_hide();
+		network_type = g_game_config.network_type;
+		switch ((network_transport_type)network_type) {
 		case NET_TRANSPORT_TCPIP:
-			FrontendDraw_RectAssign(&rect, CONNECT_MESSAGE_LEFT,
-						CONNECT_MESSAGE_LOWER_TOP,
-						CONNECT_MESSAGE_RIGHT,
-						CONNECT_MESSAGE_LOWER_BOTTOM);
-			FrontendText_DrawCentered(
+			frontend_draw_rect_assign(&rect, CONNECT_MESSAGE_LEFT,
+						  CONNECT_MESSAGE_LOWER_TOP,
+						  CONNECT_MESSAGE_RIGHT,
+						  CONNECT_MESSAGE_LOWER_BOTTOM);
+			frontend_text_draw_centered(
 				CONNECT_FONT_SIZE,
-				FrontendString_Get(
+				frontend_string_get(
 					FRONTSTR_740_IF_ATTEMPT_TO_CONNECT_TO_THE_TCP_IP_ADDRESS_FAILS_TIMEOUT_WILL_OCCUR_IN_2_5_MINUTES),
-				&rect, g_colorRed);
-			FrontendDraw_RectAssign(&rect, CONNECT_MESSAGE_LEFT,
-						CONNECT_MESSAGE_TOP,
-						CONNECT_MESSAGE_RIGHT,
-						CONNECT_MESSAGE_BOTTOM);
-			FrontendText_DrawCentered(
+				&rect, g_color_red);
+			frontend_draw_rect_assign(&rect, CONNECT_MESSAGE_LEFT,
+						  CONNECT_MESSAGE_TOP,
+						  CONNECT_MESSAGE_RIGHT,
+						  CONNECT_MESSAGE_BOTTOM);
+			frontend_text_draw_centered(
 				CONNECT_FONT_SIZE,
-				FrontendString_Get(
+				frontend_string_get(
 					FRONTSTR_740_IF_ATTEMPT_TO_CONNECT_TO_THE_TCP_IP_ADDRESS_FAILS_TIMEOUT_WILL_OCCUR_IN_2_5_MINUTES),
-				&rect, g_colorRed);
+				&rect, g_color_red);
 			break;
 		case NET_TRANSPORT_MODEM:
 		case NET_TRANSPORT_SERIAL:
-			FrontendDraw_RectAssign(&rect, CONNECT_MESSAGE_LEFT,
-						CONNECT_MESSAGE_LOWER_TOP,
-						CONNECT_MESSAGE_RIGHT,
-						CONNECT_MESSAGE_LOWER_BOTTOM);
-			FrontendText_DrawCentered(
+			frontend_draw_rect_assign(&rect, CONNECT_MESSAGE_LEFT,
+						  CONNECT_MESSAGE_LOWER_TOP,
+						  CONNECT_MESSAGE_RIGHT,
+						  CONNECT_MESSAGE_LOWER_BOTTOM);
+			frontend_text_draw_centered(
 				CONNECT_FONT_SIZE,
-				FrontendString_Get(
+				frontend_string_get(
 					FRONTSTR_671_PRESS_ALT_F4_TO_CANCEL_CONNECTION_ATTEMPT),
-				&rect, g_colorRed);
-			FrontendDraw_RectAssign(&rect, CONNECT_MESSAGE_LEFT,
-						CONNECT_MESSAGE_TOP,
-						CONNECT_MESSAGE_RIGHT,
-						CONNECT_MESSAGE_BOTTOM);
-			FrontendText_DrawCentered(
+				&rect, g_color_red);
+			frontend_draw_rect_assign(&rect, CONNECT_MESSAGE_LEFT,
+						  CONNECT_MESSAGE_TOP,
+						  CONNECT_MESSAGE_RIGHT,
+						  CONNECT_MESSAGE_BOTTOM);
+			frontend_text_draw_centered(
 				CONNECT_FONT_SIZE,
-				FrontendString_Get(
+				frontend_string_get(
 					FRONTSTR_671_PRESS_ALT_F4_TO_CANCEL_CONNECTION_ATTEMPT),
-				&rect, g_colorRed);
+				&rect, g_color_red);
 			break;
 		default:
 			break;
 		}
-		if (frameCounter == CONNECT_RESTORE_DISABLE_FRAME) {
-			FrontendDisplay_DisableOffscreenRestore();
+		if (frame_counter == CONNECT_RESTORE_DISABLE_FRAME) {
+			frontend_display_disable_offscreen_restore();
 			return 0;
 		}
-	} else if (frameCounter == CONNECT_ACTION_FRAME) {
-		networkType = g_gameConfig.networkType;
-		switch ((NetworkTransportType)networkType) {
+	} else if (frame_counter == CONNECT_ACTION_FRAME) {
+		network_type = g_game_config.network_type;
+		switch ((network_transport_type)network_type) {
 		case NET_TRANSPORT_TCPIP:
-			FrontendDraw_RectAssign(&rect, CONNECT_MESSAGE_LEFT,
-						CONNECT_MESSAGE_LOWER_TOP,
-						CONNECT_MESSAGE_RIGHT,
-						CONNECT_MESSAGE_LOWER_BOTTOM);
-			FrontendText_DrawCentered(
+			frontend_draw_rect_assign(&rect, CONNECT_MESSAGE_LEFT,
+						  CONNECT_MESSAGE_LOWER_TOP,
+						  CONNECT_MESSAGE_RIGHT,
+						  CONNECT_MESSAGE_LOWER_BOTTOM);
+			frontend_text_draw_centered(
 				CONNECT_FONT_SIZE,
-				FrontendString_Get(
+				frontend_string_get(
 					FRONTSTR_740_IF_ATTEMPT_TO_CONNECT_TO_THE_TCP_IP_ADDRESS_FAILS_TIMEOUT_WILL_OCCUR_IN_2_5_MINUTES),
-				&rect, g_colorRed);
-			FrontendDraw_RectAssign(&rect, CONNECT_MESSAGE_LEFT,
-						CONNECT_MESSAGE_TOP,
-						CONNECT_MESSAGE_RIGHT,
-						CONNECT_MESSAGE_BOTTOM);
-			FrontendText_DrawCentered(
+				&rect, g_color_red);
+			frontend_draw_rect_assign(&rect, CONNECT_MESSAGE_LEFT,
+						  CONNECT_MESSAGE_TOP,
+						  CONNECT_MESSAGE_RIGHT,
+						  CONNECT_MESSAGE_BOTTOM);
+			frontend_text_draw_centered(
 				CONNECT_FONT_SIZE,
-				FrontendString_Get(
+				frontend_string_get(
 					FRONTSTR_740_IF_ATTEMPT_TO_CONNECT_TO_THE_TCP_IP_ADDRESS_FAILS_TIMEOUT_WILL_OCCUR_IN_2_5_MINUTES),
-				&rect, g_colorRed);
+				&rect, g_color_red);
 			break;
 		case NET_TRANSPORT_MODEM:
 		case NET_TRANSPORT_SERIAL:
-			FrontendDraw_RectAssign(&rect, CONNECT_MESSAGE_LEFT,
-						CONNECT_MESSAGE_LOWER_TOP,
-						CONNECT_MESSAGE_RIGHT,
-						CONNECT_MESSAGE_LOWER_BOTTOM);
-			FrontendText_DrawCentered(
+			frontend_draw_rect_assign(&rect, CONNECT_MESSAGE_LEFT,
+						  CONNECT_MESSAGE_LOWER_TOP,
+						  CONNECT_MESSAGE_RIGHT,
+						  CONNECT_MESSAGE_LOWER_BOTTOM);
+			frontend_text_draw_centered(
 				CONNECT_FONT_SIZE,
-				FrontendString_Get(
+				frontend_string_get(
 					FRONTSTR_671_PRESS_ALT_F4_TO_CANCEL_CONNECTION_ATTEMPT),
-				&rect, g_colorRed);
-			FrontendDraw_RectAssign(&rect, CONNECT_MESSAGE_LEFT,
-						CONNECT_MESSAGE_TOP,
-						CONNECT_MESSAGE_RIGHT,
-						CONNECT_MESSAGE_BOTTOM);
-			FrontendText_DrawCentered(
+				&rect, g_color_red);
+			frontend_draw_rect_assign(&rect, CONNECT_MESSAGE_LEFT,
+						  CONNECT_MESSAGE_TOP,
+						  CONNECT_MESSAGE_RIGHT,
+						  CONNECT_MESSAGE_BOTTOM);
+			frontend_text_draw_centered(
 				CONNECT_FONT_SIZE,
-				FrontendString_Get(
+				frontend_string_get(
 					FRONTSTR_671_PRESS_ALT_F4_TO_CANCEL_CONNECTION_ATTEMPT),
-				&rect, g_colorRed);
+				&rect, g_color_red);
 			break;
 		default:
 			break;
 		}
 
-		g_missionSetupIsHost = 0;
-		Net_ShutdownDirectPlaySession();
-		networkType = g_gameConfig.networkType;
-		switch ((NetworkTransportType)networkType) {
+		g_mission_setup_is_host = 0;
+		net_shutdown_direct_play_session();
+		network_type = g_game_config.network_type;
+		switch ((network_transport_type)network_type) {
 		case NET_TRANSPORT_IPX:
 		case NET_TRANSPORT_SERIAL:
-			g_frontendScratchBuffer[0] = '\0';
+			g_frontend_scratch_buffer[0] = '\0';
 			break;
 		case NET_TRANSPORT_TCPIP:
-			FrontendDisplay_FlipDirectDrawToGDISurface();
-			FrontendDraw_RectAssign(&rect, CONNECT_MESSAGE_LEFT,
-						CONNECT_MESSAGE_TOP,
-						CONNECT_MESSAGE_RIGHT,
-						CONNECT_GDI_MESSAGE_BOTTOM);
-			FrontendDisplay_DrawGdiTextOnDesktop(
+			frontend_display_flip_direct_draw_to_gdi_surface();
+			frontend_draw_rect_assign(&rect, CONNECT_MESSAGE_LEFT,
+						  CONNECT_MESSAGE_TOP,
+						  CONNECT_MESSAGE_RIGHT,
+						  CONNECT_GDI_MESSAGE_BOTTOM);
+			frontend_display_draw_gdi_text_on_desktop(
 				&rect,
-				FrontendString_Get(FRONTSTR_645_CONNECTING),
-				FrontendString_Get(
+				frontend_string_get(FRONTSTR_645_CONNECTING),
+				frontend_string_get(
 					FRONTSTR_740_IF_ATTEMPT_TO_CONNECT_TO_THE_TCP_IP_ADDRESS_FAILS_TIMEOUT_WILL_OCCUR_IN_2_5_MINUTES));
-			strcpy(g_frontendScratchBuffer, g_gameConfig.ipAddress);
+			strcpy(g_frontend_scratch_buffer,
+			       g_game_config.ip_address);
 			break;
 		case NET_TRANSPORT_MODEM:
-			strcpy(g_frontendScratchBuffer,
-			       g_gameConfig.phoneNumber);
+			strcpy(g_frontend_scratch_buffer,
+			       g_game_config.phone_number);
 			break;
 		}
 
-		playerInfo[0] = (char)(g_pilotData.rating + 1);
-		playerInfo[1] = '\0';
-		FrontendDisplay_UnlockBackBuffer();
-		FrontendCursor_ShowOsCursor();
-		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
-		if (Net_StartNetworkSession(
-			    (int)g_frontendNetXvtDirectPlayAppGuid[0],
-			    (int)g_frontendNetXvtDirectPlayAppGuid[1],
-			    (int)g_frontendNetXvtDirectPlayAppGuid[2],
-			    (int)g_frontendNetXvtDirectPlayAppGuid[3],
-			    playerInfo, g_pilotData.name, g_missionSetupIsHost,
-			    g_frontendNetSessionList[0].gameName,
-			    (NetworkTransportType)g_gameConfig.networkType, 0,
-			    1, g_frontendScratchBuffer, NULL) != 0) {
-			hostPlayerId = Net_GetHostPlayerId();
-			g_frontendNetPacketScratch.packetType =
+		player_info[0] = (char)(g_pilot_data.rating + 1);
+		player_info[1] = '\0';
+		frontend_display_unlock_back_buffer();
+		frontend_cursor_show_os_cursor();
+		g_draw_surface_ptr = frontend_display_lock_back_buffer();
+		if (net_start_network_session(
+			    (int)g_frontend_net_xvt_direct_play_app_guid[0],
+			    (int)g_frontend_net_xvt_direct_play_app_guid[1],
+			    (int)g_frontend_net_xvt_direct_play_app_guid[2],
+			    (int)g_frontend_net_xvt_direct_play_app_guid[3],
+			    player_info, g_pilot_data.name,
+			    g_mission_setup_is_host,
+			    g_frontend_net_session_list[0].game_name,
+			    (network_transport_type)g_game_config.network_type,
+			    0, 1, g_frontend_scratch_buffer, NULL) != 0) {
+			host_player_id = net_get_host_player_id();
+			g_frontend_net_packet_scratch.packet_type =
 				NET_PACKET_JOIN_REQUEST;
-			*(int *)g_frontendNetPacketScratch.payload =
+			*(int *)g_frontend_net_packet_scratch.payload =
 				FRONTEND_NET_PROTOCOL_VERSION;
-			memcpy(g_frontendNetPacketScratch.payload + sizeof(int),
-			       g_gameConfig.password,
-			       sizeof(g_gameConfig.password));
-			Net_SendPacketAndFlush(hostPlayerId,
-					       &g_frontendNetPacketScratch,
-					       JOIN_REQUEST_PACKET_SIZE);
-			FrontendScreen_SetCallbacks(
-				FrontendNet_AwaitJoinAdmissionScreen, NULL);
+			memcpy(g_frontend_net_packet_scratch.payload +
+				       sizeof(int),
+			       g_game_config.password,
+			       sizeof(g_game_config.password));
+			net_send_packet_and_flush(
+				host_player_id, &g_frontend_net_packet_scratch,
+				JOIN_REQUEST_PACKET_SIZE);
+			frontend_screen_set_callbacks(
+				frontend_net_await_join_admission_screen, NULL);
 		} else {
-			g_frontendMissionSessionMode =
+			g_frontend_mission_session_mode =
 				FRONTEND_MISSION_SESSION_NONE;
-			FrontendScreen_SetCallbacks(Concourse_Update,
-						    Concourse_Exit);
+			frontend_screen_set_callbacks(concourse_update,
+						      concourse_exit);
 		}
-		FrontendDisplay_UnlockBackBuffer();
-		networkType = g_gameConfig.networkType;
-		switch ((NetworkTransportType)networkType) {
+		frontend_display_unlock_back_buffer();
+		network_type = g_game_config.network_type;
+		switch ((network_transport_type)network_type) {
 		case NET_TRANSPORT_TCPIP:
-			FrontendDraw_RectAssign(&rect, CONNECT_MESSAGE_LEFT,
-						CONNECT_MESSAGE_TOP,
-						CONNECT_MESSAGE_RIGHT,
-						CONNECT_GDI_MESSAGE_BOTTOM);
-			FrontendDisplay_ClearDesktopGdi(&rect);
+			frontend_draw_rect_assign(&rect, CONNECT_MESSAGE_LEFT,
+						  CONNECT_MESSAGE_TOP,
+						  CONNECT_MESSAGE_RIGHT,
+						  CONNECT_GDI_MESSAGE_BOTTOM);
+			frontend_display_clear_desktop_gdi(&rect);
 			break;
 		default:
 			break;
 		}
-		FrontendCursor_HideOsCursor();
-		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
-		FrontendCursor_Show();
-		FrontendDisplay_EnableOffscreenRestore();
+		frontend_cursor_hide_os_cursor();
+		g_draw_surface_ptr = frontend_display_lock_back_buffer();
+		frontend_cursor_show();
+		frontend_display_enable_offscreen_restore();
 	}
 	return 0;
 }
@@ -1514,10 +1564,10 @@ int FrontendNet_ConnectToSelectedGameScreen(int frameCounter)
 
 /* Draws the join screen's side navigation, its first slot active and shown
  * pressed while the query button is held, and the query button; a click probes
- * every listed game (FrontendNet_ProbeAllSessions), or in the modern build,
- * where the button reads Refresh, calls XvtNetworkTask_Refresh. Returns 1. */
+ * every listed game (frontend_net_probe_all_sessions), or in the modern build,
+ * where the button reads Refresh, calls xvt_network_task_refresh. Returns 1. */
 // FUNCTION: XVT 0x4D9170
-int FrontendNet_DrawJoinGameSidebarsAndQueryAll(void)
+int frontend_net_draw_join_game_sidebars_and_query_all(void)
 {
 	enum {
 		QUERY_BUTTON_LEFT = 22,
@@ -1528,46 +1578,46 @@ int FrontendNet_DrawJoinGameSidebarsAndQueryAll(void)
 		QUERY_BUTTON_HELD_SLOT = 11,
 	};
 
-	int cursorX;
-	int cursorY;
-	FrontendNavigationSlotState slotStates[8];
+	int cursor_x;
+	int cursor_y;
+	frontend_navigation_slot_state slot_states[8];
 	struct RECT rect;
 
-	slotStates[1] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
-	slotStates[2] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
-	slotStates[3] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
-	slotStates[4] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
-	slotStates[5] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
-	slotStates[6] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
-	slotStates[7] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
-	slotStates[0] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
-	FrontendCursor_GetPos(&cursorX, &cursorY);
-	FrontendDraw_RectAssign(&rect, QUERY_BUTTON_LEFT, QUERY_BUTTON_TOP,
-				QUERY_BUTTON_RIGHT, QUERY_BUTTON_BOTTOM);
-	if (FrontendDraw_PointInRect(&rect, cursorX, cursorY) &&
-	    (FrontendMouse_GetLeftDown() != 0 ||
-	     FrontendMouse_GetRightDown() != 0 ||
-	     FrontendMouse_GetLeftClick() != 0 ||
-	     FrontendMouse_GetRightClick() != 0)) {
-		slotStates[0] = FRONTEND_NAVIGATION_SLOT_SELECTED;
+	slot_states[1] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
+	slot_states[2] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
+	slot_states[3] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
+	slot_states[4] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
+	slot_states[5] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
+	slot_states[6] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
+	slot_states[7] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
+	slot_states[0] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
+	frontend_cursor_get_pos(&cursor_x, &cursor_y);
+	frontend_draw_rect_assign(&rect, QUERY_BUTTON_LEFT, QUERY_BUTTON_TOP,
+				  QUERY_BUTTON_RIGHT, QUERY_BUTTON_BOTTOM);
+	if (frontend_draw_point_in_rect(&rect, cursor_x, cursor_y) &&
+	    (frontend_mouse_get_left_down() != 0 ||
+	     frontend_mouse_get_right_down() != 0 ||
+	     frontend_mouse_get_left_click() != 0 ||
+	     frontend_mouse_get_right_click() != 0)) {
+		slot_states[0] = FRONTEND_NAVIGATION_SLOT_SELECTED;
 	}
-	FrontendButton_DrawEightSlotNavigationState(slotStates);
-	FrontendDraw_RectAssign(&rect, QUERY_BUTTON_LEFT, QUERY_BUTTON_TOP,
-				QUERY_BUTTON_RIGHT, QUERY_BUTTON_BOTTOM);
-	if (FrontendButton_HandleSpriteButton(&rect, "join1u", "join1d",
+	frontend_button_draw_eight_slot_navigation_state(slot_states);
+	frontend_draw_rect_assign(&rect, QUERY_BUTTON_LEFT, QUERY_BUTTON_TOP,
+				  QUERY_BUTTON_RIGHT, QUERY_BUTTON_BOTTOM);
+	if (frontend_button_handle_sprite_button(&rect, "join1u", "join1d",
 #ifdef XVT_MODERN
-					      "Refresh",
+						 "Refresh",
 #else
-					      FrontendString_Get(
-						      FRONTSTR_734_QUERY_ALL_GAMES),
+						 frontend_string_get(
+							 FRONTSTR_734_QUERY_ALL_GAMES),
 #endif
-					      QUERY_BUTTON_FONT_SIZE, 0,
-					      QUERY_BUTTON_HELD_SLOT,
-					      "jewelsound") != 0) {
+						 QUERY_BUTTON_FONT_SIZE, 0,
+						 QUERY_BUTTON_HELD_SLOT,
+						 "jewelsound") != 0) {
 #ifdef XVT_MODERN
-		XvtNetworkTask_Refresh();
+		xvt_network_task_refresh();
 #else
-		FrontendNet_ProbeAllSessions();
+		frontend_net_probe_all_sessions();
 #endif
 	}
 	return 1;
@@ -1579,7 +1629,7 @@ int FrontendNet_DrawJoinGameSidebarsAndQueryAll(void)
  * GUIDs can share a key, and a key of 0 marks an empty list entry. Only the
  * original build calls this. */
 // FUNCTION: XVT 0x4D9280
-int FrontendNet_MakeSessionGuidKey(struct NetSessionGuid guid)
+int frontend_net_make_session_guid_key(struct net_session_guid guid)
 {
 	return (int)(((unsigned int)guid.data2 << 16) + guid.data3 +
 		     guid.data4[1] + guid.data4[0] + guid.data1);
@@ -1596,164 +1646,177 @@ int FrontendNet_MakeSessionGuidKey(struct NetSessionGuid guid)
  * that appended sessions fit in the 32 entries. Only the original build calls
  * this. */
 // FUNCTION: XVT 0x4D92B0
-int FrontendNet_RefreshSessionList(void)
+int frontend_net_refresh_session_list(void)
 {
 	enum {
 		FRONTEND_NET_SESSION_CAPACITY =
-			sizeof(g_frontendNetSessionList) /
-			sizeof(g_frontendNetSessionList[0]),
+			sizeof(g_frontend_net_session_list) /
+			sizeof(g_frontend_net_session_list[0]),
 		FRONTEND_NET_NEW_SESSION_PLAYERS_NEEDED = 9,
 		FRONTEND_NET_UI_SOUND_PRIORITY = 255,
 		FRONTEND_NET_UI_SOUND_VOLUME_SCALE = 12,
 		FRONTEND_NET_UI_SOUND_CENTER_PAN = 63
 	};
 
-	struct NetSessionEnumEntry
-		enumeratedSessions[FRONTEND_NET_SESSION_CAPACITY];
-	unsigned int enumeratedSessionCount;
-	unsigned int enumeratedIndex;
-	int addedSession;
-	int existingIndex;
+	struct net_session_enum_entry
+		enumerated_sessions[FRONTEND_NET_SESSION_CAPACITY];
+	unsigned int enumerated_session_count;
+	unsigned int enumerated_index;
+	int added_session;
+	int existing_index;
 
-	addedSession = 0;
-	if (g_frontendNetSelectedSessionIdx != -1) {
+	added_session = 0;
+	if (g_frontend_net_selected_session_idx != -1) {
 		return 0;
 	}
 
-	enumeratedSessionCount = (unsigned int)Net_EnumerateAppSessions(
-		g_frontendNetXvtDirectPlayAppGuid[0],
-		g_frontendNetXvtDirectPlayAppGuid[1],
-		g_frontendNetXvtDirectPlayAppGuid[2],
-		g_frontendNetXvtDirectPlayAppGuid[3], enumeratedSessions,
+	enumerated_session_count = (unsigned int)net_enumerate_app_sessions(
+		g_frontend_net_xvt_direct_play_app_guid[0],
+		g_frontend_net_xvt_direct_play_app_guid[1],
+		g_frontend_net_xvt_direct_play_app_guid[2],
+		g_frontend_net_xvt_direct_play_app_guid[3], enumerated_sessions,
 		FRONTEND_NET_SESSION_CAPACITY,
-		(NetworkTransportType)g_gameConfig.networkType);
+		(network_transport_type)g_game_config.network_type);
 
-	existingIndex = 0;
-	if (g_frontendNetSessionCount != 0) {
+	existing_index = 0;
+	if (g_frontend_net_session_count != 0) {
 		do {
-			int existingGuidKey = FrontendNet_MakeSessionGuidKey(
-				g_frontendNetSessionList[existingIndex]
-					.sessionGuid);
-			if (existingGuidKey != 0) {
-				for (enumeratedIndex = 0;
-				     enumeratedIndex < enumeratedSessionCount;
-				     ++enumeratedIndex) {
-					int replacementGuidKey =
-						FrontendNet_MakeSessionGuidKey(
-							enumeratedSessions
-								[enumeratedIndex]
-									.sessionGuid);
-					if (replacementGuidKey != 0 &&
-					    replacementGuidKey ==
-						    existingGuidKey) {
-						memset(&enumeratedSessions
-								[enumeratedIndex]
-									.sessionGuid,
+			int existing_guid_key =
+				frontend_net_make_session_guid_key(
+					g_frontend_net_session_list
+						[existing_index]
+							.session_guid);
+			if (existing_guid_key != 0) {
+				for (enumerated_index = 0;
+				     enumerated_index <
+				     enumerated_session_count;
+				     ++enumerated_index) {
+					int replacement_guid_key =
+						frontend_net_make_session_guid_key(
+							enumerated_sessions
+								[enumerated_index]
+									.session_guid);
+					if (replacement_guid_key != 0 &&
+					    replacement_guid_key ==
+						    existing_guid_key) {
+						memset(&enumerated_sessions
+								[enumerated_index]
+									.session_guid,
 						       0,
-						       sizeof(enumeratedSessions[enumeratedIndex]
-								      .sessionGuid));
+						       sizeof(enumerated_sessions[enumerated_index]
+								      .session_guid));
 						break;
 					}
 				}
-				if (enumeratedIndex == enumeratedSessionCount) {
-					memset(&g_frontendNetSessionList
-						       [existingIndex],
+				if (enumerated_index ==
+				    enumerated_session_count) {
+					memset(&g_frontend_net_session_list
+						       [existing_index],
 					       0,
-					       sizeof(g_frontendNetSessionList
-							      [existingIndex]));
+					       sizeof(g_frontend_net_session_list
+							      [existing_index]));
 				}
 			}
-			++existingIndex;
-		} while ((unsigned int)existingIndex <
-			 (unsigned int)g_frontendNetSessionCount);
+			++existing_index;
+		} while ((unsigned int)existing_index <
+			 (unsigned int)g_frontend_net_session_count);
 	}
 
-	for (enumeratedIndex = 0; enumeratedIndex < enumeratedSessionCount;
-	     ++enumeratedIndex) {
-		int replacementGuidKey = FrontendNet_MakeSessionGuidKey(
-			enumeratedSessions[enumeratedIndex].sessionGuid);
-		if (replacementGuidKey != 0) {
-			/* existingIndex is reused here as the slot where the new session is appended. */
-			existingIndex = (unsigned int)g_frontendNetSessionCount;
-			strcpy(g_frontendNetSessionList[existingIndex].gameName,
-			       enumeratedSessions[enumeratedIndex].sessionName);
-			memcpy(&g_frontendNetSessionList[existingIndex]
-					.sessionGuid,
-			       &enumeratedSessions[enumeratedIndex].sessionGuid,
-			       sizeof(g_frontendNetSessionList[existingIndex]
-					      .sessionGuid));
-			++g_frontendNetSessionCount;
-			addedSession = 1;
-			g_frontendNetSessionList[existingIndex].playersNeeded =
+	for (enumerated_index = 0; enumerated_index < enumerated_session_count;
+	     ++enumerated_index) {
+		int replacement_guid_key = frontend_net_make_session_guid_key(
+			enumerated_sessions[enumerated_index].session_guid);
+		if (replacement_guid_key != 0) {
+			/* existing_index is reused here as the slot where the new session is appended. */
+			existing_index =
+				(unsigned int)g_frontend_net_session_count;
+			strcpy(g_frontend_net_session_list[existing_index]
+				       .game_name,
+			       enumerated_sessions[enumerated_index]
+				       .session_name);
+			memcpy(&g_frontend_net_session_list[existing_index]
+					.session_guid,
+			       &enumerated_sessions[enumerated_index]
+					.session_guid,
+			       sizeof(g_frontend_net_session_list
+					      [existing_index]
+						      .session_guid));
+			++g_frontend_net_session_count;
+			added_session = 1;
+			g_frontend_net_session_list[existing_index]
+				.players_needed =
 				FRONTEND_NET_NEW_SESSION_PLAYERS_NEEDED;
-			g_frontendNetSessionList[existingIndex].lastQueryMs = 0;
-			g_frontendNetSessionList[existingIndex].version =
+			g_frontend_net_session_list[existing_index]
+				.last_query_ms = 0;
+			g_frontend_net_session_list[existing_index].version =
 				FRONTEND_NET_PROTOCOL_VERSION;
-			g_frontendNetSessionList[existingIndex]
-				.passwordRequired = 0;
+			g_frontend_net_session_list[existing_index]
+				.password_required = 0;
 		}
 	}
 
-	if (addedSession != 0 && g_gameConfig.sfxDatapadEnabled != 0) {
-		FrontendSound_PlayUISound("newpsound", 1, 0,
-					  FRONTEND_NET_UI_SOUND_PRIORITY,
-					  FRONTEND_NET_UI_SOUND_VOLUME_SCALE *
-						  g_gameConfig.sfxDatapadVolume,
-					  FRONTEND_NET_UI_SOUND_CENTER_PAN);
+	if (added_session != 0 && g_game_config.sfx_datapad_enabled != 0) {
+		frontend_sound_play_ui_sound(
+			"newpsound", 1, 0, FRONTEND_NET_UI_SOUND_PRIORITY,
+			FRONTEND_NET_UI_SOUND_VOLUME_SCALE *
+				g_game_config.sfx_datapad_volume,
+			FRONTEND_NET_UI_SOUND_CENTER_PAN);
 	}
 
-	existingIndex = 0;
-	if (g_frontendNetSessionCount != 0) {
+	existing_index = 0;
+	if (g_frontend_net_session_count != 0) {
 		do {
-			int existingGuidKey = FrontendNet_MakeSessionGuidKey(
-				g_frontendNetSessionList[existingIndex]
-					.sessionGuid);
-			if (existingGuidKey == 0) {
-				unsigned int replacementIndex;
+			int existing_guid_key =
+				frontend_net_make_session_guid_key(
+					g_frontend_net_session_list
+						[existing_index]
+							.session_guid);
+			if (existing_guid_key == 0) {
+				unsigned int replacement_index;
 
-				for (replacementIndex = existingIndex + 1;
-				     (unsigned int)replacementIndex <
-				     (unsigned int)g_frontendNetSessionCount;
-				     ++replacementIndex) {
-					int replacementGuidKey =
-						FrontendNet_MakeSessionGuidKey(
-							g_frontendNetSessionList
-								[replacementIndex]
-									.sessionGuid);
-					if (replacementGuidKey != 0) {
-						memcpy(&g_frontendNetSessionList
-							       [existingIndex],
-						       &g_frontendNetSessionList
-							       [replacementIndex],
-						       sizeof(g_frontendNetSessionList
-								      [existingIndex]));
-						memset(&g_frontendNetSessionList
-							       [replacementIndex],
+				for (replacement_index = existing_index + 1;
+				     (unsigned int)replacement_index <
+				     (unsigned int)g_frontend_net_session_count;
+				     ++replacement_index) {
+					int replacement_guid_key =
+						frontend_net_make_session_guid_key(
+							g_frontend_net_session_list
+								[replacement_index]
+									.session_guid);
+					if (replacement_guid_key != 0) {
+						memcpy(&g_frontend_net_session_list
+							       [existing_index],
+						       &g_frontend_net_session_list
+							       [replacement_index],
+						       sizeof(g_frontend_net_session_list
+								      [existing_index]));
+						memset(&g_frontend_net_session_list
+							       [replacement_index],
 						       0,
-						       sizeof(g_frontendNetSessionList
-								      [replacementIndex]));
+						       sizeof(g_frontend_net_session_list
+								      [replacement_index]));
 						break;
 					}
 				}
 			}
-			++existingIndex;
-		} while ((unsigned int)existingIndex <
-			 (unsigned int)g_frontendNetSessionCount);
+			++existing_index;
+		} while ((unsigned int)existing_index <
+			 (unsigned int)g_frontend_net_session_count);
 	}
 
-	g_frontendNetSessionCount = 0;
-	while ((unsigned int)g_frontendNetSessionCount <
+	g_frontend_net_session_count = 0;
+	while ((unsigned int)g_frontend_net_session_count <
 	       FRONTEND_NET_SESSION_CAPACITY) {
-		existingIndex = (unsigned int)g_frontendNetSessionCount;
-		if (FrontendNet_MakeSessionGuidKey(
-			    g_frontendNetSessionList[existingIndex]
-				    .sessionGuid) == 0) {
+		existing_index = (unsigned int)g_frontend_net_session_count;
+		if (frontend_net_make_session_guid_key(
+			    g_frontend_net_session_list[existing_index]
+				    .session_guid) == 0) {
 			break;
 		}
-		++g_frontendNetSessionCount;
+		++g_frontend_net_session_count;
 	}
-	FrontendNet_SortSessions();
-	return g_frontendNetSessionCount;
+	frontend_net_sort_sessions();
+	return g_frontend_net_session_count;
 }
 #endif
 
@@ -1763,28 +1826,29 @@ int FrontendNet_RefreshSessionList(void)
  * 8 (not yet probed), then by name. Returns a negative number, 0 or a positive
  * number. Only the original build calls this. */
 // FUNCTION: XVT 0x4D95D0
-int FrontendNet_CompareSessionListEntries(
-	const struct FrontendNetSessionEntry *lhs,
-	const struct FrontendNetSessionEntry *rhs)
+int frontend_net_compare_session_list_entries(
+	const struct frontend_net_session_entry *lhs,
+	const struct frontend_net_session_entry *rhs)
 {
 	int result;
-	unsigned int rhsPlayersNeeded;
-	unsigned int lhsPlayersNeeded;
+	unsigned int rhs_players_needed;
+	unsigned int lhs_players_needed;
 
 	result = (rhs->version == 101u) - (lhs->version == 101u);
 	if (result == 0) {
-		result = (rhs->gameInFlight == 0) - (lhs->gameInFlight == 0);
+		result =
+			(rhs->game_in_flight == 0) - (lhs->game_in_flight == 0);
 		if (result == 0) {
-			rhsPlayersNeeded = (unsigned int)rhs->playersNeeded;
-			lhsPlayersNeeded = (unsigned int)lhs->playersNeeded;
-			result =
-				(rhsPlayersNeeded > 0) - (lhsPlayersNeeded > 0);
+			rhs_players_needed = (unsigned int)rhs->players_needed;
+			lhs_players_needed = (unsigned int)lhs->players_needed;
+			result = (rhs_players_needed > 0) -
+				 (lhs_players_needed > 0);
 			if (result == 0) {
-				result = (rhsPlayersNeeded > 8u) -
-					 (lhsPlayersNeeded > 8u);
+				result = (rhs_players_needed > 8u) -
+					 (lhs_players_needed > 8u);
 				if (result == 0) {
-					return strcmp(lhs->gameName,
-						      rhs->gameName);
+					return strcmp(lhs->game_name,
+						      rhs->game_name);
 				}
 			}
 		}
@@ -1795,56 +1859,58 @@ int FrontendNet_CompareSessionListEntries(
 #endif
 
 #ifndef XVT_MODERN
-/* Sorts g_frontendNetSessionList and keeps the selection on the same game by
+/* Sorts g_frontend_net_session_list and keeps the selection on the same game by
  * its GUID key; when the selected game is gone it drops the selection, its name
  * and mission text and ends the DirectPlay session. Returns the selected index,
  * or -1 for none or an empty list. Only the original build calls this. */
 // FUNCTION: XVT 0x4D9680
-int FrontendNet_SortSessions(void)
+int frontend_net_sort_sessions(void)
 {
 	enum { FRONTEND_NET_BRIEFING_TEXT_CAPACITY = 4096 };
 
-	int selectedSessionGuidKey;
-	int sessionIndex;
+	int selected_session_guid_key;
+	int session_index;
 
-	if (g_frontendNetSessionCount == 0) {
+	if (g_frontend_net_session_count == 0) {
 		return -1;
 	}
-	if (g_frontendNetSelectedSessionIdx != -1) {
-		selectedSessionGuidKey = FrontendNet_MakeSessionGuidKey(
-			g_frontendNetSessionList
-				[g_frontendNetSelectedSessionIdx]
-					.sessionGuid);
+	if (g_frontend_net_selected_session_idx != -1) {
+		selected_session_guid_key = frontend_net_make_session_guid_key(
+			g_frontend_net_session_list
+				[g_frontend_net_selected_session_idx]
+					.session_guid);
 	}
 
-	qsort(g_frontendNetSessionList, (size_t)g_frontendNetSessionCount,
-	      sizeof(g_frontendNetSessionList[0]),
+	qsort(g_frontend_net_session_list, (size_t)g_frontend_net_session_count,
+	      sizeof(g_frontend_net_session_list[0]),
 	      (int (*)(const void *,
-		       const void *))FrontendNet_CompareSessionListEntries);
-	if (g_frontendNetSelectedSessionIdx != -1) {
-		for (sessionIndex = 0; (unsigned int)sessionIndex <
-				       (unsigned int)g_frontendNetSessionCount;
-		     ++sessionIndex) {
-			if (FrontendNet_MakeSessionGuidKey(
-				    g_frontendNetSessionList[sessionIndex]
-					    .sessionGuid) ==
-			    selectedSessionGuidKey) {
-				g_frontendNetSelectedSessionIdx = sessionIndex;
+		       const void *))frontend_net_compare_session_list_entries);
+	if (g_frontend_net_selected_session_idx != -1) {
+		for (session_index = 0;
+		     (unsigned int)session_index <
+		     (unsigned int)g_frontend_net_session_count;
+		     ++session_index) {
+			if (frontend_net_make_session_guid_key(
+				    g_frontend_net_session_list[session_index]
+					    .session_guid) ==
+			    selected_session_guid_key) {
+				g_frontend_net_selected_session_idx =
+					session_index;
 				break;
 			}
 		}
-		if (sessionIndex == g_frontendNetSessionCount) {
-			g_frontendNetSelectedSessionIdx = -1;
-			g_frontendNetReceivedMissionDescriptionId = -1;
-			memset(g_frontendNetSelectedGameName, 0,
-			       sizeof(g_frontendNetSelectedGameName));
-			memset(g_missionText, 0,
+		if (session_index == g_frontend_net_session_count) {
+			g_frontend_net_selected_session_idx = -1;
+			g_frontend_net_received_mission_description_id = -1;
+			memset(g_frontend_net_selected_game_name, 0,
+			       sizeof(g_frontend_net_selected_game_name));
+			memset(g_mission_text, 0,
 			       FRONTEND_NET_BRIEFING_TEXT_CAPACITY);
-			Net_ShutdownDirectPlaySession();
+			net_shutdown_direct_play_session();
 		}
 	}
 
-	return g_frontendNetSelectedSessionIdx;
+	return g_frontend_net_selected_session_idx;
 }
 #endif
 
@@ -1853,43 +1919,43 @@ int FrontendNet_SortSessions(void)
  * turn, ends the DirectPlay session and sorts the list; returns the game count.
  * Only the original build calls this. */
 // FUNCTION: XVT 0x4D9780
-int FrontendNet_ProbeAllSessions(void)
+int frontend_net_probe_all_sessions(void)
 {
 	enum { BRIEFING_TEXT_CAPACITY = 4096 };
 
-	int sessionIndex;
+	int session_index;
 
-	g_frontendNetSelectedSessionIdx = -1;
-	g_frontendNetProbeMissionElapsedSeconds = 0;
-	g_frontendNetReceivedMissionDescriptionId = -1;
-	memset(g_frontendNetSelectedGameName, 0,
-	       sizeof(g_frontendNetSelectedGameName));
-	memset(g_missionText, 0, BRIEFING_TEXT_CAPACITY);
-	Net_ShutdownDirectPlaySession();
-	FrontendNet_RefreshSessionList();
-	for (sessionIndex = 0; sessionIndex < g_frontendNetSessionCount;
-	     ++sessionIndex) {
-		FrontendNet_ProbeSessionByIndex(sessionIndex);
+	g_frontend_net_selected_session_idx = -1;
+	g_frontend_net_probe_mission_elapsed_seconds = 0;
+	g_frontend_net_received_mission_description_id = -1;
+	memset(g_frontend_net_selected_game_name, 0,
+	       sizeof(g_frontend_net_selected_game_name));
+	memset(g_mission_text, 0, BRIEFING_TEXT_CAPACITY);
+	net_shutdown_direct_play_session();
+	frontend_net_refresh_session_list();
+	for (session_index = 0; session_index < g_frontend_net_session_count;
+	     ++session_index) {
+		frontend_net_probe_session_by_index(session_index);
 	}
-	Net_ShutdownDirectPlaySession();
-	FrontendNet_SortSessions();
-	return g_frontendNetSessionCount;
+	net_shutdown_direct_play_session();
+	frontend_net_sort_sessions();
+	return g_frontend_net_session_count;
 }
 #endif
 
 #ifndef XVT_MODERN
 /* Joins one listed game briefly to ask about it: ends any DirectPlay session,
- * names the game in g_frontendNetSelectedGameName, joins as a client, and sends
+ * names the game in g_frontend_net_selected_game_name, joins as a client, and sends
  * the host a PROBE_REQUEST, plus a CHAT_SYNC_REQUEST when it is the selected
  * game. It then reads packets for up to 2,000 ms until a probe answer or a
  * flight-session status arrives, loading the mission list and briefing from a
  * lobby STATE for the selected game. The answer's players needed, version and
- * password flag go into the entry, with gameInFlight 1 for a flight-session
+ * password flag go into the entry, with game_in_flight 1 for a flight-session
  * status; with no answer the entry gets 0 players and version 0. Returns 1, or
  * 0 when the join failed, which also marks the entry and drops any selection.
  * Leaves the DirectPlay session open. Only the original build calls this. */
 // FUNCTION: XVT 0x4D97F0
-int FrontendNet_ProbeSessionByIndex(int sessionIdx)
+int frontend_net_probe_session_by_index(int session_idx)
 {
 	enum {
 		SESSION_PROBE_PACKET_SIZE = sizeof(int),
@@ -1897,147 +1963,153 @@ int FrontendNet_ProbeSessionByIndex(int sessionIdx)
 		BRIEFING_TEXT_CAPACITY = 4096,
 	};
 
-	GUID sessionGuid;
-	char playerInfo[2];
-	unsigned int probeStartMs;
-	unsigned int currentTimeMs;
-	int hostPlayerId;
-	int packetType;
+	GUID session_guid;
+	char player_info[2];
+	unsigned int probe_start_ms;
+	unsigned int current_time_ms;
+	int host_player_id;
+	int packet_type;
 
-	Net_ShutdownDirectPlaySession();
-	strcpy(g_frontendNetSelectedGameName,
-	       g_frontendNetSessionList[sessionIdx].gameName);
-	switch ((NetworkTransportType)g_gameConfig.networkType) {
+	net_shutdown_direct_play_session();
+	strcpy(g_frontend_net_selected_game_name,
+	       g_frontend_net_session_list[session_idx].game_name);
+	switch ((network_transport_type)g_game_config.network_type) {
 	case NET_TRANSPORT_IPX:
-		g_frontendScratchBuffer[0] = '\0';
+		g_frontend_scratch_buffer[0] = '\0';
 		break;
 	case NET_TRANSPORT_TCPIP:
-		strcpy(g_frontendScratchBuffer, g_gameConfig.ipAddress);
+		strcpy(g_frontend_scratch_buffer, g_game_config.ip_address);
 		break;
 	case NET_TRANSPORT_MODEM:
-		strcpy(g_frontendScratchBuffer, g_gameConfig.phoneNumber);
+		strcpy(g_frontend_scratch_buffer, g_game_config.phone_number);
 		break;
 	default:
 		break;
 	}
 
-	memcpy(&sessionGuid, &g_frontendNetSessionList[sessionIdx].sessionGuid,
-	       sizeof(sessionGuid));
-	playerInfo[0] = (char)(g_pilotData.rating + 1);
-	playerInfo[1] = '\0';
-	if (Net_StartNetworkSession(
-		    (int)g_frontendNetXvtDirectPlayAppGuid[0],
-		    (int)g_frontendNetXvtDirectPlayAppGuid[1],
-		    (int)g_frontendNetXvtDirectPlayAppGuid[2],
-		    (int)g_frontendNetXvtDirectPlayAppGuid[3], playerInfo,
-		    g_pilotData.name, 0, g_frontendNetSelectedGameName,
-		    (NetworkTransportType)g_gameConfig.networkType, 0, 1,
-		    g_frontendScratchBuffer, &sessionGuid) == 0) {
-		if (g_frontendNetSelectedSessionIdx != -1) {
-			g_frontendNetSelectedSessionIdx = -1;
-			g_frontendNetReceivedMissionDescriptionId = -1;
-			g_frontendNetProbeMissionElapsedSeconds = 0;
-			memset(g_frontendNetSelectedGameName, 0,
-			       sizeof(g_frontendNetSelectedGameName));
-			memset(g_missionText, 0, BRIEFING_TEXT_CAPACITY);
-			FrontendNet_RefreshSessionList();
+	memcpy(&session_guid,
+	       &g_frontend_net_session_list[session_idx].session_guid,
+	       sizeof(session_guid));
+	player_info[0] = (char)(g_pilot_data.rating + 1);
+	player_info[1] = '\0';
+	if (net_start_network_session(
+		    (int)g_frontend_net_xvt_direct_play_app_guid[0],
+		    (int)g_frontend_net_xvt_direct_play_app_guid[1],
+		    (int)g_frontend_net_xvt_direct_play_app_guid[2],
+		    (int)g_frontend_net_xvt_direct_play_app_guid[3],
+		    player_info, g_pilot_data.name, 0,
+		    g_frontend_net_selected_game_name,
+		    (network_transport_type)g_game_config.network_type, 0, 1,
+		    g_frontend_scratch_buffer, &session_guid) == 0) {
+		if (g_frontend_net_selected_session_idx != -1) {
+			g_frontend_net_selected_session_idx = -1;
+			g_frontend_net_received_mission_description_id = -1;
+			g_frontend_net_probe_mission_elapsed_seconds = 0;
+			memset(g_frontend_net_selected_game_name, 0,
+			       sizeof(g_frontend_net_selected_game_name));
+			memset(g_mission_text, 0, BRIEFING_TEXT_CAPACITY);
+			frontend_net_refresh_session_list();
 		}
-		g_frontendNetSessionList[sessionIdx].playersNeeded = 0;
-		g_frontendNetSessionList[sessionIdx].lastQueryMs =
+		g_frontend_net_session_list[session_idx].players_needed = 0;
+		g_frontend_net_session_list[session_idx].last_query_ms =
 			GetTickCount();
-		g_frontendNetSessionList[sessionIdx].version = 0;
-		g_frontendNetSessionList[sessionIdx].passwordRequired = 0;
-		g_frontendNetSessionList[sessionIdx].gameInFlight = 0;
+		g_frontend_net_session_list[session_idx].version = 0;
+		g_frontend_net_session_list[session_idx].password_required = 0;
+		g_frontend_net_session_list[session_idx].game_in_flight = 0;
 		return 0;
 	}
 
-	if (g_frontendNetSelectedSessionIdx != -1 &&
-	    sessionIdx == g_frontendNetSelectedSessionIdx) {
-		g_frontendNetReceivedMissionDirectoryId =
+	if (g_frontend_net_selected_session_idx != -1 &&
+	    session_idx == g_frontend_net_selected_session_idx) {
+		g_frontend_net_received_mission_directory_id =
 			MISSION_DIRECTORY_TRAINING_EXERCISES;
-		g_frontendNetReceivedMissionDescriptionId = -1;
+		g_frontend_net_received_mission_description_id = -1;
 	}
-	hostPlayerId = Net_GetHostPlayerId();
-	g_frontendNetPacketScratch.packetType = NET_PACKET_PROBE_REQUEST;
-	Net_SendPacketAndFlush(hostPlayerId, &g_frontendNetPacketScratch,
-			       SESSION_PROBE_PACKET_SIZE);
-	if (g_frontendNetSelectedSessionIdx != -1 &&
-	    sessionIdx == g_frontendNetSelectedSessionIdx) {
-		g_frontendNetPacketScratch.packetType =
+	host_player_id = net_get_host_player_id();
+	g_frontend_net_packet_scratch.packet_type = NET_PACKET_PROBE_REQUEST;
+	net_send_packet_and_flush(host_player_id,
+				  &g_frontend_net_packet_scratch,
+				  SESSION_PROBE_PACKET_SIZE);
+	if (g_frontend_net_selected_session_idx != -1 &&
+	    session_idx == g_frontend_net_selected_session_idx) {
+		g_frontend_net_packet_scratch.packet_type =
 			NET_PACKET_CHAT_SYNC_REQUEST;
-		Net_SendPacketAndFlush(hostPlayerId,
-				       &g_frontendNetPacketScratch,
-				       SESSION_PROBE_PACKET_SIZE);
+		net_send_packet_and_flush(host_player_id,
+					  &g_frontend_net_packet_scratch,
+					  SESSION_PROBE_PACKET_SIZE);
 	}
 
-	g_frontendNetProbePlayersNeeded = 0;
-	g_frontendNetProbeMissionElapsedSeconds = 0;
-	probeStartMs = GetTickCount();
+	g_frontend_net_probe_players_needed = 0;
+	g_frontend_net_probe_mission_elapsed_seconds = 0;
+	probe_start_ms = GetTickCount();
 	do {
-		packetType = FrontendNet_ProcessNetworkPackets();
-		currentTimeMs = GetTickCount();
-		if (packetType == NET_PACKET_FLIGHT_SESSION_STATUS ||
-		    packetType == NET_PACKET_PROBE_RESPONSE) {
+		packet_type = frontend_net_process_network_packets();
+		current_time_ms = GetTickCount();
+		if (packet_type == NET_PACKET_FLIGHT_SESSION_STATUS ||
+		    packet_type == NET_PACKET_PROBE_RESPONSE) {
 			break;
 		}
-		if (packetType == NET_PACKET_STATE) {
-			if (g_frontendNetSelectedSessionIdx != -1 &&
-			    sessionIdx == g_frontendNetSelectedSessionIdx) {
-				g_pilotData.missionDirectoryId =
-					g_frontendNetReceivedMissionDirectoryId;
-				g_pilotData.missionDescriptionIds
-					[g_pilotData.missionDirectoryId] =
-					g_frontendNetReceivedMissionDescriptionId;
-				MissionSetup_LoadMissionList(
-					g_pilotData.missionDirectoryId);
-				MissionSetup_LoadMissionDescText(g_missionText);
-				if (g_missionList != NULL) {
-					g_selectedMissionListIndex = 0;
-					while ((unsigned int)g_selectedMissionListIndex <
+		if (packet_type == NET_PACKET_STATE) {
+			if (g_frontend_net_selected_session_idx != -1 &&
+			    session_idx ==
+				    g_frontend_net_selected_session_idx) {
+				g_pilot_data.mission_directory_id =
+					g_frontend_net_received_mission_directory_id;
+				g_pilot_data.mission_description_ids
+					[g_pilot_data.mission_directory_id] =
+					g_frontend_net_received_mission_description_id;
+				mission_setup_load_mission_list(
+					g_pilot_data.mission_directory_id);
+				mission_setup_load_mission_desc_text(
+					g_mission_text);
+				if (g_mission_list != NULL) {
+					g_selected_mission_list_index = 0;
+					while ((unsigned int)g_selected_mission_list_index <
 						       (unsigned int)
-							       g_missionCount &&
-					       g_missionList[g_selectedMissionListIndex]
-							       .missionIdx !=
-						       g_pilotData.missionDescriptionIds
-							       [g_pilotData
-									.missionDirectoryId]) {
-						++g_selectedMissionListIndex;
+							       g_mission_count &&
+					       g_mission_list[g_selected_mission_list_index]
+							       .mission_idx !=
+						       g_pilot_data.mission_description_ids
+							       [g_pilot_data
+									.mission_directory_id]) {
+						++g_selected_mission_list_index;
 					}
 				}
-				g_frontendFirstVisibleLine = 0;
+				g_frontend_first_visible_line = 0;
 			} else {
-				g_frontendNetReceivedMissionDescriptionId = -1;
+				g_frontend_net_received_mission_description_id =
+					-1;
 			}
 		}
-	} while (currentTimeMs - probeStartMs < SESSION_PROBE_TIMEOUT_MS);
+	} while (current_time_ms - probe_start_ms < SESSION_PROBE_TIMEOUT_MS);
 
-	if (packetType == NET_PACKET_FLIGHT_SESSION_STATUS) {
-		g_frontendNetSessionList[sessionIdx].lastQueryMs =
+	if (packet_type == NET_PACKET_FLIGHT_SESSION_STATUS) {
+		g_frontend_net_session_list[session_idx].last_query_ms =
 			GetTickCount();
-		g_frontendNetSessionList[sessionIdx].playersNeeded =
-			g_frontendNetProbePlayersNeeded;
-		g_frontendNetSessionList[sessionIdx].version =
-			g_frontendNetProbeVersion;
-		g_frontendNetSessionList[sessionIdx].passwordRequired =
-			(uint8_t)g_frontendNetProbePasswordRequired;
-		g_frontendNetSessionList[sessionIdx].gameInFlight = 1;
-	} else if (packetType == NET_PACKET_PROBE_RESPONSE) {
-		g_frontendNetSessionList[sessionIdx].lastQueryMs =
+		g_frontend_net_session_list[session_idx].players_needed =
+			g_frontend_net_probe_players_needed;
+		g_frontend_net_session_list[session_idx].version =
+			g_frontend_net_probe_version;
+		g_frontend_net_session_list[session_idx].password_required =
+			(uint8_t)g_frontend_net_probe_password_required;
+		g_frontend_net_session_list[session_idx].game_in_flight = 1;
+	} else if (packet_type == NET_PACKET_PROBE_RESPONSE) {
+		g_frontend_net_session_list[session_idx].last_query_ms =
 			GetTickCount();
-		g_frontendNetSessionList[sessionIdx].playersNeeded =
-			g_frontendNetProbePlayersNeeded;
-		g_frontendNetSessionList[sessionIdx].version =
-			g_frontendNetProbeVersion;
-		g_frontendNetSessionList[sessionIdx].passwordRequired =
-			(uint8_t)g_frontendNetProbePasswordRequired;
-		g_frontendNetSessionList[sessionIdx].gameInFlight = 0;
+		g_frontend_net_session_list[session_idx].players_needed =
+			g_frontend_net_probe_players_needed;
+		g_frontend_net_session_list[session_idx].version =
+			g_frontend_net_probe_version;
+		g_frontend_net_session_list[session_idx].password_required =
+			(uint8_t)g_frontend_net_probe_password_required;
+		g_frontend_net_session_list[session_idx].game_in_flight = 0;
 	} else {
-		g_frontendNetSessionList[sessionIdx].lastQueryMs =
+		g_frontend_net_session_list[session_idx].last_query_ms =
 			GetTickCount();
-		g_frontendNetSessionList[sessionIdx].playersNeeded = 0;
-		g_frontendNetSessionList[sessionIdx].version = 0;
-		g_frontendNetSessionList[sessionIdx].passwordRequired = 0;
-		g_frontendNetSessionList[sessionIdx].gameInFlight = 0;
+		g_frontend_net_session_list[session_idx].players_needed = 0;
+		g_frontend_net_session_list[session_idx].version = 0;
+		g_frontend_net_session_list[session_idx].password_required = 0;
+		g_frontend_net_session_list[session_idx].game_in_flight = 0;
 	}
 	return 1;
 }
@@ -2046,29 +2118,29 @@ int FrontendNet_ProbeSessionByIndex(int sessionIdx)
 /* Leaves the host screen: frees its background image and resets the scrollable
  * controls; returns 0. */
 // FUNCTION: XVT 0x4DFD10
-int FrontendNet_HostGameExit(int frameCounter)
+int frontend_net_host_game_exit(int frame_counter)
 {
-	(void)frameCounter;
+	(void)frame_counter;
 
-	FrontImage_FreeResourceByName("background");
-	Frontend_ResetScrollableControls();
+	front_image_free_resource_by_name("background");
+	frontend_reset_scrollable_controls();
 	return 0;
 }
 
 /* The host screen, run each frame. Frame 0 resets the host state
- * (g_hostGameStartPending, g_frontendQuickStartLaunchFlag and others), starts
+ * (g_host_game_start_pending, g_frontend_quick_start_launch_flag and others), starts
  * from the last host name as the game name, clears the chat log and roster, and
  * draws the background. Until the name is confirmed, by Enter or Tab in the
  * field or the Host button, it edits the name (up to 22 characters, this
  * player's name and a suffix when left empty) and offers the back button to the
  * concourse. On the next frame it keeps the name as the next default and starts
- * hosting: the modern build hands off to XvtNetworkTask_Begin; the original
+ * hosting: the modern build hands off to xvt_network_task_begin; the original
  * starts a DirectPlay session as host on the configured transport, then marks
  * itself ready, makes itself the only roster entry and moves to the mission
  * setup screen, or on failure returns to the concourse. Returns 1 when
- * Frontend_HandleCommonScreenControls returns 1, else 0. */
+ * frontend_handle_common_screen_controls returns 1, else 0. */
 // FUNCTION: XVT 0x4DFD30
-int FrontendNet_HostGameScreen(int frameCounter)
+int frontend_net_host_game_screen(int frame_counter)
 {
 	enum {
 		HOST_NAME_MAX_CHARS = 22,
@@ -2076,267 +2148,268 @@ int FrontendNet_HostGameScreen(int frameCounter)
 		HOST_BUTTON_HELD_SLOT = 20,
 	};
 
-	int hostRequested;
+	int host_requested;
 #ifndef XVT_MODERN
-	char playerInfo[2];
-	int localPlayerId;
-	int networkType;
+	char player_info[2];
+	int local_player_id;
+	int network_type;
 #endif
 	struct RECT rect;
 
-	if (frameCounter == 0) {
-		g_hostGameStartPending = 0;
-		g_frontendSkipScreenEntrySetup = 0;
-		g_frontendQuickStartLaunchFlag = 0;
-		g_configConnectionTypeEditable = 1;
-		g_frontendGameSessionInProgress = 0;
-		strcpy(g_pilotData.multiplayerGameName,
-		       g_pilotData.multiplayerHostName);
-		if (g_frontendChatLogBuffer != NULL) {
-			memset(g_frontendChatLogBuffer, 0, 1024);
-			g_frontendChatLogUsedBytes = 0;
+	if (frame_counter == 0) {
+		g_host_game_start_pending = 0;
+		g_frontend_skip_screen_entry_setup = 0;
+		g_frontend_quick_start_launch_flag = 0;
+		g_config_connection_type_editable = 1;
+		g_frontend_game_session_in_progress = 0;
+		strcpy(g_pilot_data.multiplayer_game_name,
+		       g_pilot_data.multiplayer_host_name);
+		if (g_frontend_chat_log_buffer != NULL) {
+			memset(g_frontend_chat_log_buffer, 0, 1024);
+			g_frontend_chat_log_used_bytes = 0;
 		}
-		FrontendCursor_SetPos(417, 291);
-		memset(g_mpRoster, 0, sizeof(g_mpRoster));
-		Keyboard_FlushCharBuffer();
-		FrontImage_RegisterResourceDefault("frontres\\create.bmp",
-						   "background");
-		FrontendDisplay_LockOffscreenSurface();
-		FrontImage_DrawSpriteOpaque("background", 0, 0);
-		FrontImage_DrawSprite("frame", 0, 0);
-		if (g_hostCdAvailable != 0) {
-			FrontImage_DrawSprite("allactive", 0, 0);
+		frontend_cursor_set_pos(417, 291);
+		memset(g_mp_roster, 0, sizeof(g_mp_roster));
+		keyboard_flush_char_buffer();
+		front_image_register_resource_default("frontres\\create.bmp",
+						      "background");
+		frontend_display_lock_offscreen_surface();
+		front_image_draw_sprite_opaque("background", 0, 0);
+		front_image_draw_sprite("frame", 0, 0);
+		if (g_host_cd_available != 0) {
+			front_image_draw_sprite("allactive", 0, 0);
 		} else {
-			FrontImage_DrawSprite("clientactive", 0, 0);
+			front_image_draw_sprite("clientactive", 0, 0);
 		}
-		FrontImage_DrawSpriteTranslucent("createoverlay", 0, 0);
-		FrontendDisplay_UnlockOffscreenSurface(1);
-		FrontendText_StartTextFadeIn(20);
+		front_image_draw_sprite_translucent("createoverlay", 0, 0);
+		frontend_display_unlock_offscreen_surface(1);
+		frontend_text_start_text_fade_in(20);
 	}
 
-	if (g_hostGameStartPending == 0) {
-		FrontendDraw_RectAssign(&rect, 245, 225, 445, 245);
-		FrontendText_DrawCentered(
+	if (g_host_game_start_pending == 0) {
+		frontend_draw_rect_assign(&rect, 245, 225, 445, 245);
+		frontend_text_draw_centered(
 			15,
-			FrontendString_Get(FRONTSTR_017_NAME_THE_GAME_SESSION),
+			frontend_string_get(FRONTSTR_017_NAME_THE_GAME_SESSION),
 			&rect, 0xFFFF);
-		FrontendDraw_RectAssign(&rect, 250, 245, 440, 265);
-		hostRequested = FrontendText_HandleEditableField(
-			&rect, g_pilotData.multiplayerGameName,
+		frontend_draw_rect_assign(&rect, 250, 245, 440, 265);
+		host_requested = frontend_text_handle_editable_field(
+			&rect, g_pilot_data.multiplayer_game_name,
 			HOST_NAME_MAX_CHARS, HOST_TEXT_FIELD_ID, 12, NULL);
-		FrontendDraw_RectAssign(&rect, 250, 275, 440, 295);
-		hostRequested |= FrontendButton_HandleTextButton(
-			&rect, FrontendString_Get(FRONTSTR_004_HOST_GAME), 15,
+		frontend_draw_rect_assign(&rect, 250, 275, 440, 295);
+		host_requested |= frontend_button_handle_text_button(
+			&rect, frontend_string_get(FRONTSTR_004_HOST_GAME), 15,
 			0xFFFF, HOST_BUTTON_HELD_SLOT, "buttonsound");
-		if (hostRequested != 0) {
-			if (g_pilotData.multiplayerGameName[0] == '\0') {
-				sprintf(g_pilotData.multiplayerGameName, "%s%s",
-					g_pilotData.name,
-					FrontendString_Get(
+		if (host_requested != 0) {
+			if (g_pilot_data.multiplayer_game_name[0] == '\0') {
+				sprintf(g_pilot_data.multiplayer_game_name,
+					"%s%s", g_pilot_data.name,
+					frontend_string_get(
 						FRONTSTR_470_S_GAME));
 			}
 #ifndef XVT_MODERN
-			networkType = g_gameConfig.networkType;
-			switch ((NetworkTransportType)networkType) {
+			network_type = g_game_config.network_type;
+			switch ((network_transport_type)network_type) {
 			case NET_TRANSPORT_TCPIP:
-				FrontendCursor_Hide();
+				frontend_cursor_hide();
 				break;
 			case NET_TRANSPORT_MODEM:
 			case NET_TRANSPORT_SERIAL:
-				FrontendCursor_Hide();
-				FrontendDraw_RectAssign(&rect, 84, 415, 605,
-							429);
-				FrontendText_DrawCentered(
+				frontend_cursor_hide();
+				frontend_draw_rect_assign(&rect, 84, 415, 605,
+							  429);
+				frontend_text_draw_centered(
 					12,
-					FrontendString_Get(
+					frontend_string_get(
 						FRONTSTR_671_PRESS_ALT_F4_TO_CANCEL_CONNECTION_ATTEMPT),
-					&rect, g_colorRed);
-				FrontendDraw_RectAssign(&rect, 84, 90, 605,
-							106);
-				FrontendText_DrawCentered(
+					&rect, g_color_red);
+				frontend_draw_rect_assign(&rect, 84, 90, 605,
+							  106);
+				frontend_text_draw_centered(
 					12,
-					FrontendString_Get(
+					frontend_string_get(
 						FRONTSTR_671_PRESS_ALT_F4_TO_CANCEL_CONNECTION_ATTEMPT),
-					&rect, g_colorRed);
+					&rect, g_color_red);
 				break;
 			default:
 				break;
 			}
 #endif
-			g_hostGameStartPending = 1;
-			FrontendDisplay_DisableOffscreenRestore();
+			g_host_game_start_pending = 1;
+			frontend_display_disable_offscreen_restore();
 		}
 
-		FrontendDraw_RectAssign(&rect, 507, 452, 562, 464);
-		sprintf(g_frontendScratchBuffer, "v. %d.%d", 2, 0);
-		FrontendText_DrawCentered(12, g_frontendScratchBuffer, &rect,
-					  0xFFFF);
-		FrontendDraw_RectAssign(&rect, 200, 452, 436, 464);
-		if (g_pilotData.name[0] != '\0') {
-			sprintf(g_frontendScratchBuffer, "%c%s %c%s", 6,
-				g_pilotData.ratingName, 1, g_pilotData.name);
-			FrontendText_DrawCentered(12, g_frontendScratchBuffer,
-						  &rect, g_colorYellow);
+		frontend_draw_rect_assign(&rect, 507, 452, 562, 464);
+		sprintf(g_frontend_scratch_buffer, "v. %d.%d", 2, 0);
+		frontend_text_draw_centered(12, g_frontend_scratch_buffer,
+					    &rect, 0xFFFF);
+		frontend_draw_rect_assign(&rect, 200, 452, 436, 464);
+		if (g_pilot_data.name[0] != '\0') {
+			sprintf(g_frontend_scratch_buffer, "%c%s %c%s", 6,
+				g_pilot_data.rating_name, 1, g_pilot_data.name);
+			frontend_text_draw_centered(12,
+						    g_frontend_scratch_buffer,
+						    &rect, g_color_yellow);
 		}
-		if (Frontend_HandleCommonScreenControls(0) == 1) {
+		if (frontend_handle_common_screen_controls(0) == 1) {
 			return 1;
 		}
 #ifdef XVT_MODERN
-		if (XvtDialog_IsActive()) {
+		if (xvt_dialog_is_active()) {
 			return 0;
 		}
 #endif
-		FrontendDraw_RectAssign(&rect, 85, 447, 176, 471);
-		if (g_gameConfig.helpOn != 0) {
-			FrontendButton_EnableOverlayText();
+		frontend_draw_rect_assign(&rect, 85, 447, 176, 471);
+		if (g_game_config.help_on != 0) {
+			frontend_button_enable_overlay_text();
 		}
-		FrontendButton_SetOverlayText(
-			FrontendString_Get(FRONTSTR_569_PREVIOUS));
-		if (FrontendButton_HandleSpriteButton(
+		frontend_button_set_overlay_text(
+			frontend_string_get(FRONTSTR_569_PREVIOUS));
+		if (frontend_button_handle_sprite_button(
 			    &rect, "leaveup", "leavedown",
-			    FrontendString_Get(
+			    frontend_string_get(
 				    FRONTSTR_258_RETURN_TO_PILOT_RECORDS),
 			    12, 0, 8, "buttonsound") != 0) {
-			g_frontendMissionSessionMode =
+			g_frontend_mission_session_mode =
 				FRONTEND_MISSION_SESSION_NONE;
-			FrontendScreen_SetCallbacks(Concourse_Update,
-						    Concourse_Exit);
+			frontend_screen_set_callbacks(concourse_update,
+						      concourse_exit);
 		}
-		FrontendButton_DisableOverlayText();
+		frontend_button_disable_overlay_text();
 		return 0;
 	}
 
 #ifndef XVT_MODERN
-	networkType = g_gameConfig.networkType;
-	if (networkType >= NET_TRANSPORT_MODEM &&
-	    networkType <= NET_TRANSPORT_SERIAL) {
-		FrontendDraw_RectAssign(&rect, 84, 415, 605, 429);
-		FrontendText_DrawCentered(
+	network_type = g_game_config.network_type;
+	if (network_type >= NET_TRANSPORT_MODEM &&
+	    network_type <= NET_TRANSPORT_SERIAL) {
+		frontend_draw_rect_assign(&rect, 84, 415, 605, 429);
+		frontend_text_draw_centered(
 			12,
-			FrontendString_Get(
+			frontend_string_get(
 				FRONTSTR_671_PRESS_ALT_F4_TO_CANCEL_CONNECTION_ATTEMPT),
-			&rect, g_colorRed);
-		FrontendDraw_RectAssign(&rect, 84, 90, 605, 106);
-		FrontendText_DrawCentered(
+			&rect, g_color_red);
+		frontend_draw_rect_assign(&rect, 84, 90, 605, 106);
+		frontend_text_draw_centered(
 			12,
-			FrontendString_Get(
+			frontend_string_get(
 				FRONTSTR_671_PRESS_ALT_F4_TO_CANCEL_CONNECTION_ATTEMPT),
-			&rect, g_colorRed);
+			&rect, g_color_red);
 	}
 #endif
-	strcpy(g_pilotData.multiplayerHostName,
-	       g_pilotData.multiplayerGameName);
-	g_missionSetupIsHost = 1;
-	g_hostGameStartPending = 0;
-	FrontendCursor_Show();
+	strcpy(g_pilot_data.multiplayer_host_name,
+	       g_pilot_data.multiplayer_game_name);
+	g_mission_setup_is_host = 1;
+	g_host_game_start_pending = 0;
+	frontend_cursor_show();
 #ifndef XVT_MODERN
-	networkType = g_gameConfig.networkType;
-	switch ((NetworkTransportType)networkType) {
+	network_type = g_game_config.network_type;
+	switch ((network_transport_type)network_type) {
 	case NET_TRANSPORT_IPX:
-		FrontendCursor_ShowOsCursor();
-		g_frontendScratchBuffer[0] = '\0';
+		frontend_cursor_show_os_cursor();
+		g_frontend_scratch_buffer[0] = '\0';
 		break;
 	case NET_TRANSPORT_TCPIP:
-		FrontendDisplay_FlipDirectDrawToGDISurface();
-		FrontendDraw_RectAssign(&rect, 84, 90, 605, 429);
-		FrontendDisplay_DrawGdiTextOnDesktop(
+		frontend_display_flip_direct_draw_to_gdi_surface();
+		frontend_draw_rect_assign(&rect, 84, 90, 605, 429);
+		frontend_display_draw_gdi_text_on_desktop(
 			&rect,
-			FrontendString_Get(
+			frontend_string_get(
 				FRONTSTR_020_ACCESSING_IMPERIAL_NETWORK),
 			NULL);
-		FrontendCursor_ShowOsCursor();
-		strcpy(g_frontendScratchBuffer, g_gameConfig.ipAddress);
+		frontend_cursor_show_os_cursor();
+		strcpy(g_frontend_scratch_buffer, g_game_config.ip_address);
 		break;
 	case NET_TRANSPORT_MODEM:
-		FrontendDisplay_FlipDirectDrawToGDISurface();
-		FrontendCursor_ShowOsCursor();
-		strcpy(g_frontendScratchBuffer, g_gameConfig.phoneNumber);
+		frontend_display_flip_direct_draw_to_gdi_surface();
+		frontend_cursor_show_os_cursor();
+		strcpy(g_frontend_scratch_buffer, g_game_config.phone_number);
 		break;
 	case NET_TRANSPORT_SERIAL:
-		FrontendDisplay_FlipDirectDrawToGDISurface();
-		FrontendCursor_ShowOsCursor();
+		frontend_display_flip_direct_draw_to_gdi_surface();
+		frontend_cursor_show_os_cursor();
 		break;
 	}
-	playerInfo[0] = (char)(g_pilotData.rating + 1);
-	playerInfo[1] = '\0';
+	player_info[0] = (char)(g_pilot_data.rating + 1);
+	player_info[1] = '\0';
 #endif
 #ifdef XVT_MODERN
-	XvtNetworkTask_Begin(XVT_NETWORK_HOST);
+	xvt_network_task_begin(XVT_NETWORK_HOST);
 	return 0;
 #else
-	if (Net_StartNetworkSession(
-		    (int)g_frontendNetXvtDirectPlayAppGuid[0],
-		    (int)g_frontendNetXvtDirectPlayAppGuid[1],
-		    (int)g_frontendNetXvtDirectPlayAppGuid[2],
-		    (int)g_frontendNetXvtDirectPlayAppGuid[3], playerInfo,
-		    g_pilotData.name, g_missionSetupIsHost,
-		    g_pilotData.multiplayerGameName,
-		    (NetworkTransportType)g_gameConfig.networkType, 0, 0,
-		    g_frontendScratchBuffer, NULL) == 0) {
-		FrontendDisplay_UnlockBackBuffer();
-		FrontendCursor_HideOsCursor();
-		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
-		g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_NONE;
-		FrontendScreen_SetCallbacks(Concourse_Update, Concourse_Exit);
-		FrontendDisplay_EnableOffscreenRestore();
+	if (net_start_network_session(
+		    (int)g_frontend_net_xvt_direct_play_app_guid[0],
+		    (int)g_frontend_net_xvt_direct_play_app_guid[1],
+		    (int)g_frontend_net_xvt_direct_play_app_guid[2],
+		    (int)g_frontend_net_xvt_direct_play_app_guid[3],
+		    player_info, g_pilot_data.name, g_mission_setup_is_host,
+		    g_pilot_data.multiplayer_game_name,
+		    (network_transport_type)g_game_config.network_type, 0, 0,
+		    g_frontend_scratch_buffer, NULL) == 0) {
+		frontend_display_unlock_back_buffer();
+		frontend_cursor_hide_os_cursor();
+		g_draw_surface_ptr = frontend_display_lock_back_buffer();
+		g_frontend_mission_session_mode = FRONTEND_MISSION_SESSION_NONE;
+		frontend_screen_set_callbacks(concourse_update, concourse_exit);
+		frontend_display_enable_offscreen_restore();
 		return 0;
 	}
-	FrontendDisplay_UnlockBackBuffer();
-	switch ((NetworkTransportType)g_gameConfig.networkType) {
+	frontend_display_unlock_back_buffer();
+	switch ((network_transport_type)g_game_config.network_type) {
 	case NET_TRANSPORT_TCPIP:
-		FrontendDraw_RectAssign(&rect, 84, 90, 605, 429);
-		FrontendDisplay_ClearDesktopGdi(&rect);
+		frontend_draw_rect_assign(&rect, 84, 90, 605, 429);
+		frontend_display_clear_desktop_gdi(&rect);
 		break;
 	default:
 		break;
 	}
-	FrontendCursor_HideOsCursor();
-	g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
-	localPlayerId = Net_GetLocalPlayerId();
-	Net_SetPlayerReady(localPlayerId);
-	memset(g_mpRoster, 0, sizeof(g_mpRoster));
-	strcpy(g_mpRoster[0].name, g_pilotData.name);
-	g_mpRoster[0].playerId = Net_GetLocalPlayerId();
-	g_mpRoster[0].pilotRating = g_pilotData.rating;
-	FrontendDisplay_ClearOffscreenSurface();
-	FrontendScreen_SetCallbacks(MissionSetup_Update, MissionSetup_Exit);
-	FrontendDisplay_EnableOffscreenRestore();
+	frontend_cursor_hide_os_cursor();
+	g_draw_surface_ptr = frontend_display_lock_back_buffer();
+	local_player_id = net_get_local_player_id();
+	net_set_player_ready(local_player_id);
+	memset(g_mp_roster, 0, sizeof(g_mp_roster));
+	strcpy(g_mp_roster[0].name, g_pilot_data.name);
+	g_mp_roster[0].player_id = net_get_local_player_id();
+	g_mp_roster[0].pilot_rating = g_pilot_data.rating;
+	frontend_display_clear_offscreen_surface();
+	frontend_screen_set_callbacks(mission_setup_update, mission_setup_exit);
+	frontend_display_enable_offscreen_restore();
 	return 0;
 #endif
 }
 
-/* Reads one frontend packet (Net_GetNextAppPacket) and acts on it; returns its
+/* Reads one frontend packet (net_get_next_app_packet) and acts on it; returns its
  * type, or NET_PACKET_NONE when there is none, the type is unknown, or the
  * packet was refused. First, when a ready player left this frame, it sends
  * everyone the lobby state. Each packet's sender goes in
- * g_frontendNetPacketSenderPlayerId. A PROBE_REQUEST gets the lobby state and a
+ * g_frontend_net_packet_sender_player_id. A PROBE_REQUEST gets the lobby state and a
  * PROBE_RESPONSE (version and password flag); a PROBE_RESPONSE or game-started
  * notice fills the g_frontendNetProbe globals. A lobby STATE or READY_ROSTER
- * rebuilds g_mpRoster and the ready flags, a STATE also
- * g_pilotData.multiplayerGameName and g_frontendNetReceivedMissionDirectoryId
+ * rebuilds g_mp_roster and the ready flags, a STATE also
+ * g_pilot_data.multiplayer_game_name and g_frontend_net_received_mission_directory_id
  * and DescriptionId. A JOIN_REQUEST is refused (roster locked, full, version,
  * password) or admitted, telling all players, resending the lobby state and
- * setting g_missionSetupBeginButtonLockoutFrames to 24; the modern build drops
+ * setting g_mission_setup_begin_button_lockout_frames to 24; the modern build drops
  * one that reaches a client or has the wrong size. Team and flight assignments,
  * ready flags, game options, loadouts, network statistics, mission starts,
  * choices, countdowns and reservations are stored in
- * g_missionSetupPlayerAssignments, g_missionSetupPlayerFlightGroupIndices,
- * g_mpRosterReadyFlags, the g_missionSetupSelected globals, g_mpRoster,
- * g_gameConfig, g_pilotData and g_frontendNetPacketArg0 and
- * g_frontendNetReservingPlayerId. A CHAT line is added to
- * g_frontendChatLogBuffer, dropping the oldest bytes past 1,022, with this
+ * g_mission_setup_player_assignments, g_mission_setup_player_flight_group_indices,
+ * g_mp_roster_ready_flags, the g_missionSetupSelected globals, g_mp_roster,
+ * g_game_config, g_pilot_data and g_frontend_net_packet_arg0 and
+ * g_frontend_net_reserving_player_id. A CHAT line is added to
+ * g_frontend_chat_log_buffer, dropping the oldest bytes past 1,022, with this
  * player's own lines marked by color code 5; a CHAT_SYNC_REQUEST gets the log
  * in 400-byte chunks, and a received chunk rebuilds it with every byte from 0
  * to 6 turned into color code 6. A PLAYER_UNAVAILABLE always returns
- * NET_PACKET_NONE. Also handles movie sync (g_movieMultiplayerSyncPlayers),
+ * NET_PACKET_NONE. Also handles movie sync (g_movie_multiplayer_sync_players),
  * battle progress (the g_remoteBattle globals), briefing arrivals
- * (g_frontendBriefingEnteredCount), RETURN_TO_SETUP
- * (g_frontendSkipScreenEntrySetup) and player departures, relays a
+ * (g_frontend_briefing_entered_count), RETURN_TO_SETUP
+ * (g_frontend_skip_screen_entry_setup) and player departures, relays a
  * SUBMIT_MISSION_CHOICE to all as a MISSION_CHOICE, and writes
- * g_frontendNetPacketScratch. Does not check team, slot or chunk indices or
+ * g_frontend_net_packet_scratch. Does not check team, slot or chunk indices or
  * chat sizes from the packet, or the chat log for NULL before a sync chunk. */
 // FUNCTION: XVT 0x4E0490
-int FrontendNet_ProcessNetworkPackets(void)
+int frontend_net_process_network_packets(void)
 {
 	enum {
 		MAX_PLAYERS = 8,
@@ -2360,113 +2433,113 @@ int FrontendNet_ProcessNetworkPackets(void)
 
 	int *packet;
 	int *payload;
-	uint8_t *payloadBytes;
-	uint8_t *chatChunkBytes;
-	uint32_t packetSize;
-	DPID senderPlayerId;
-	struct NetPlayerInfo *netPlayer;
-	int packetType;
-	int packetWordIndex;
-	int rosterIndex;
-	int playerIndex;
-	int teamIndex;
-	int slotIndex;
-	int sourceSlot;
-	int destinationSlot;
-	int readyPlayerCount;
-	int bytesToDiscard;
-	int chunkIndex;
-	int chatOffset;
-	int remainingBytes;
-	int statsCount;
-	int craftOption;
-	int moviePlayerIndex;
-	int assignmentIndex;
+	uint8_t *payload_bytes;
+	uint8_t *chat_chunk_bytes;
+	uint32_t packet_size;
+	DPID sender_player_id;
+	struct net_player_info *net_player;
+	int packet_type;
+	int packet_word_index;
+	int roster_index;
+	int player_index;
+	int team_index;
+	int slot_index;
+	int source_slot;
+	int destination_slot;
+	int ready_player_count;
+	int bytes_to_discard;
+	int chunk_index;
+	int chat_offset;
+	int remaining_bytes;
+	int stats_count;
+	int craft_option;
+	int movie_player_index;
+	int assignment_index;
 
-	Net_GetHostPlayerId();
-	packet = Net_GetNextAppPacket(&senderPlayerId, &packetSize);
-	if (Net_DidReadyPlayerLeaveThisFrame() != 0) {
-		MissionSetup_SendLobbyState(0);
+	net_get_host_player_id();
+	packet = net_get_next_app_packet(&sender_player_id, &packet_size);
+	if (net_did_ready_player_leave_this_frame() != 0) {
+		mission_setup_send_lobby_state(0);
 	}
 	if (packet == NULL) {
 		return 0;
 	}
 
-	packetType = packet[0];
-	g_frontendNetPacketSenderPlayerId = senderPlayerId;
+	packet_type = packet[0];
+	g_frontend_net_packet_sender_player_id = sender_player_id;
 	payload = &packet[1];
-	payloadBytes = (uint8_t *)payload;
-	switch (packetType) {
+	payload_bytes = (uint8_t *)payload;
+	switch (packet_type) {
 	case NET_PACKET_FRONTEND_GAME_STARTED:
 	case NET_PACKET_PROBE_RESPONSE:
-		g_frontendNetProbeMissionElapsedSeconds = payload[0];
-		g_frontendNetProbeVersion = payload[1];
-		g_frontendNetProbePasswordRequired = payload[2];
+		g_frontend_net_probe_mission_elapsed_seconds = payload[0];
+		g_frontend_net_probe_version = payload[1];
+		g_frontend_net_probe_password_required = payload[2];
 		break;
 
 	case NET_PACKET_PROBE_REQUEST:
-		MissionSetup_SendLobbyState(senderPlayerId);
-		g_frontendNetPacketScratch.packetType =
+		mission_setup_send_lobby_state(sender_player_id);
+		g_frontend_net_packet_scratch.packet_type =
 			NET_PACKET_PROBE_RESPONSE;
-		*(int *)&g_frontendNetPacketScratch.payload[0] = 0;
-		*(int *)&g_frontendNetPacketScratch.payload[4] =
+		*(int *)&g_frontend_net_packet_scratch.payload[0] = 0;
+		*(int *)&g_frontend_net_packet_scratch.payload[4] =
 			FRONTEND_NET_PROTOCOL_VERSION;
-		*(int *)&g_frontendNetPacketScratch.payload[8] =
-			g_gameConfig.requirePassword;
-		Net_SendPacketAndFlush(senderPlayerId,
-				       &g_frontendNetPacketScratch,
-				       4 * sizeof(int));
+		*(int *)&g_frontend_net_packet_scratch.payload[8] =
+			g_game_config.require_password;
+		net_send_packet_and_flush(sender_player_id,
+					  &g_frontend_net_packet_scratch,
+					  4 * sizeof(int));
 		break;
 
 	case NET_PACKET_STATE:
-		Net_ClearPlayerReadyFlags();
-		memcpy(g_pilotData.multiplayerGameName, payload,
-		       sizeof(g_pilotData.multiplayerGameName));
-		g_frontendNetReceivedMissionDirectoryId = payload[9];
-		g_frontendNetReceivedMissionDescriptionId = payload[10];
-		g_frontendNetProbePlayersNeeded = payload[11] - payload[12];
-		readyPlayerCount = payload[12];
-		packetWordIndex = ROSTER_PACKET_FIRST_PLAYER_WORD;
-		memset(g_mpRoster, 0, sizeof(g_mpRoster));
-		for (rosterIndex = 0; rosterIndex < readyPlayerCount;
-		     ++rosterIndex) {
-			if (payload[packetWordIndex] == 0) {
-				++packetWordIndex;
-				g_mpRoster[rosterIndex].playerId = 0;
-				g_mpRoster[rosterIndex].pilotRating =
-					payload[packetWordIndex++];
-				++packetWordIndex;
+		net_clear_player_ready_flags();
+		memcpy(g_pilot_data.multiplayer_game_name, payload,
+		       sizeof(g_pilot_data.multiplayer_game_name));
+		g_frontend_net_received_mission_directory_id = payload[9];
+		g_frontend_net_received_mission_description_id = payload[10];
+		g_frontend_net_probe_players_needed = payload[11] - payload[12];
+		ready_player_count = payload[12];
+		packet_word_index = ROSTER_PACKET_FIRST_PLAYER_WORD;
+		memset(g_mp_roster, 0, sizeof(g_mp_roster));
+		for (roster_index = 0; roster_index < ready_player_count;
+		     ++roster_index) {
+			if (payload[packet_word_index] == 0) {
+				++packet_word_index;
+				g_mp_roster[roster_index].player_id = 0;
+				g_mp_roster[roster_index].pilot_rating =
+					payload[packet_word_index++];
+				++packet_word_index;
 			} else {
-				netPlayer = Net_FindPlayer(
-					payload[packetWordIndex]);
-				if (netPlayer != NULL) {
-					Net_MarkPlayerReadyNoLock(
-						payload[packetWordIndex]);
-					strncpy(g_mpRoster[rosterIndex].name,
-						netPlayer->playerName,
+				net_player = net_find_player(
+					payload[packet_word_index]);
+				if (net_player != NULL) {
+					net_mark_player_ready_no_lock(
+						payload[packet_word_index]);
+					strncpy(g_mp_roster[roster_index].name,
+						net_player->player_name,
 						PLAYER_NAME_COPY_SIZE);
-					g_mpRoster[rosterIndex].playerId =
-						netPlayer->playerId;
-					++packetWordIndex;
-					g_mpRoster[rosterIndex].pilotRating =
-						payload[packetWordIndex];
-					++packetWordIndex;
-					if (Net_IsHost() == 0) {
-						Net_SetPlayerLatencyMs(
-							g_mpRoster[rosterIndex]
-								.playerId,
-							payload[packetWordIndex]);
+					g_mp_roster[roster_index].player_id =
+						net_player->player_id;
+					++packet_word_index;
+					g_mp_roster[roster_index].pilot_rating =
+						payload[packet_word_index];
+					++packet_word_index;
+					if (net_is_host() == 0) {
+						net_set_player_latency_ms(
+							g_mp_roster[roster_index]
+								.player_id,
+							payload[packet_word_index]);
 					}
-					++packetWordIndex;
+					++packet_word_index;
 				} else {
-					memcpy(g_mpRoster[rosterIndex].name,
+					memcpy(g_mp_roster[roster_index].name,
 					       "No name", sizeof("No name"));
-					g_mpRoster[rosterIndex].playerId =
-						payload[packetWordIndex];
-					++packetWordIndex;
-					g_mpRoster[rosterIndex].pilotRating =
-						payload[packetWordIndex];
-					packetWordIndex += 2;
+					g_mp_roster[roster_index].player_id =
+						payload[packet_word_index];
+					++packet_word_index;
+					g_mp_roster[roster_index].pilot_rating =
+						payload[packet_word_index];
+					packet_word_index += 2;
 				}
 			}
 		}
@@ -2474,55 +2547,56 @@ int FrontendNet_ProcessNetworkPackets(void)
 
 	case NET_PACKET_JOIN_REQUEST:
 #ifdef XVT_MODERN
-		if (!Net_IsHost() || packetSize != 6 * sizeof(int)) {
-			packetType = NET_PACKET_NONE;
+		if (!net_is_host() || packet_size != 6 * sizeof(int)) {
+			packet_type = NET_PACKET_NONE;
 			break;
 		}
 #endif
-		readyPlayerCount = Net_CountReadyPlayers();
-		if (g_missionSetupRosterAuthoritative != 0) {
-			g_frontendNetPacketScratch.packetType =
+		ready_player_count = net_count_ready_players();
+		if (g_mission_setup_roster_authoritative != 0) {
+			g_frontend_net_packet_scratch.packet_type =
 				NET_PACKET_ROSTER_LOCKED;
-			Net_SendPacketAndFlush(senderPlayerId,
-					       &g_frontendNetPacketScratch,
-					       sizeof(int));
-		} else if (readyPlayerCount >= MAX_PLAYERS) {
-			g_frontendNetPacketScratch.packetType =
+			net_send_packet_and_flush(
+				sender_player_id,
+				&g_frontend_net_packet_scratch, sizeof(int));
+		} else if (ready_player_count >= MAX_PLAYERS) {
+			g_frontend_net_packet_scratch.packet_type =
 				NET_PACKET_GAME_FULL;
-			Net_SendPacketAndFlush(senderPlayerId,
-					       &g_frontendNetPacketScratch,
-					       sizeof(int));
+			net_send_packet_and_flush(
+				sender_player_id,
+				&g_frontend_net_packet_scratch, sizeof(int));
 		} else if (payload[0] != FRONTEND_NET_PROTOCOL_VERSION) {
-			g_frontendNetPacketScratch.packetType =
+			g_frontend_net_packet_scratch.packet_type =
 				NET_PACKET_VERSION_MISMATCH;
-			Net_SendPacketAndFlush(senderPlayerId,
-					       &g_frontendNetPacketScratch,
-					       sizeof(int));
-		} else if (g_gameConfig.requirePassword != 0 &&
-			   strncmp(g_gameConfig.password,
+			net_send_packet_and_flush(
+				sender_player_id,
+				&g_frontend_net_packet_scratch, sizeof(int));
+		} else if (g_game_config.require_password != 0 &&
+			   strncmp(g_game_config.password,
 				   (const char *)&payload[1],
-				   sizeof(g_gameConfig.password)) != 0) {
-			g_frontendNetPacketScratch.packetType =
+				   sizeof(g_game_config.password)) != 0) {
+			g_frontend_net_packet_scratch.packet_type =
 				NET_PACKET_PASSWORD_REQUIRED;
-			Net_SendPacketAndFlush(senderPlayerId,
-					       &g_frontendNetPacketScratch,
-					       sizeof(int));
-		} else if (Net_SetPlayerReady(senderPlayerId) != 0) {
-			*(int *)&g_frontendNetPacketScratch.payload[0] =
-				senderPlayerId;
-			g_missionSetupBeginButtonLockoutFrames =
+			net_send_packet_and_flush(
+				sender_player_id,
+				&g_frontend_net_packet_scratch, sizeof(int));
+		} else if (net_set_player_ready(sender_player_id) != 0) {
+			*(int *)&g_frontend_net_packet_scratch.payload[0] =
+				sender_player_id;
+			g_mission_setup_begin_button_lockout_frames =
 				BEGIN_BUTTON_LOCKOUT_FRAMES;
-			g_frontendNetPacketScratch.packetType =
+			g_frontend_net_packet_scratch.packet_type =
 				NET_PACKET_PLAYER_ADMITTED;
-			Net_SendPacketAndFlush(0, &g_frontendNetPacketScratch,
-					       2 * sizeof(int));
-			MissionSetup_SendLobbyState(0);
+			net_send_packet_and_flush(
+				0, &g_frontend_net_packet_scratch,
+				2 * sizeof(int));
+			mission_setup_send_lobby_state(0);
 		} else {
-			g_frontendNetPacketScratch.packetType =
+			g_frontend_net_packet_scratch.packet_type =
 				NET_PACKET_GAME_FULL;
-			Net_SendPacketAndFlush(senderPlayerId,
-					       &g_frontendNetPacketScratch,
-					       sizeof(int));
+			net_send_packet_and_flush(
+				sender_player_id,
+				&g_frontend_net_packet_scratch, sizeof(int));
 		}
 		break;
 
@@ -2538,108 +2612,111 @@ int FrontendNet_ProcessNetworkPackets(void)
 
 	case NET_PACKET_PLAYER_ADMITTED:
 #ifdef XVT_MODERN
-		if (packetSize < 2 * sizeof(int) ||
-		    senderPlayerId != (DPID)Net_GetHostPlayerId() ||
-		    (XvtNetworkSession_GetStatus().state ==
+		if (packet_size < 2 * sizeof(int) ||
+		    sender_player_id != (DPID)net_get_host_player_id() ||
+		    (xvt_network_session_get_status().state ==
 			     XVT_NETWORK_SESSION_ADMISSION &&
-		     !XvtNetworkSession_AcceptAdmission(senderPlayerId,
-							(DPID)payload[0]))) {
-			packetType = NET_PACKET_NONE;
+		     !xvt_network_session_accept_admission(sender_player_id,
+							   (DPID)payload[0]))) {
+			packet_type = NET_PACKET_NONE;
 			break;
 		}
 #endif
-		for (rosterIndex = 0; rosterIndex < MAX_PLAYERS;
-		     ++rosterIndex) {
-			if (g_mpRoster[rosterIndex].playerId != 0 &&
-			    g_mpRoster[rosterIndex].playerId ==
-				    Net_GetLocalPlayerId()) {
+		for (roster_index = 0; roster_index < MAX_PLAYERS;
+		     ++roster_index) {
+			if (g_mp_roster[roster_index].player_id != 0 &&
+			    g_mp_roster[roster_index].player_id ==
+				    net_get_local_player_id()) {
 				break;
 			}
 		}
-		if (rosterIndex >= MAX_PLAYERS &&
-		    Net_GetLocalPlayerId() != payload[0]) {
-			packetType = NET_PACKET_NONE;
+		if (roster_index >= MAX_PLAYERS &&
+		    net_get_local_player_id() != payload[0]) {
+			packet_type = NET_PACKET_NONE;
 			break;
 		}
-		if (g_gameConfig.sfxDatapadEnabled != 0) {
-			FrontendSound_PlayUISound(
+		if (g_game_config.sfx_datapad_enabled != 0) {
+			frontend_sound_play_ui_sound(
 				"newpsound", 1, 0, 255,
-				12 * g_gameConfig.sfxDatapadVolume, 63);
+				12 * g_game_config.sfx_datapad_volume, 63);
 		}
-		Net_MarkPlayerReadyNoLock(payload[0]);
+		net_mark_player_ready_no_lock(payload[0]);
 		break;
 
 	case NET_PACKET_PLAYER_LEFT:
-		readyPlayerCount = Net_CountReadyPlayers();
-		rosterIndex = 0;
-		if (readyPlayerCount > 0) {
+		ready_player_count = net_count_ready_players();
+		roster_index = 0;
+		if (ready_player_count > 0) {
 			do {
-				if ((DPID)g_mpRoster[rosterIndex].playerId ==
-				    senderPlayerId) {
-					if (g_gameConfig.sfxDatapadEnabled !=
+				if ((DPID)g_mp_roster[roster_index].player_id ==
+				    sender_player_id) {
+					if (g_game_config.sfx_datapad_enabled !=
 					    0) {
-						FrontendSound_PlayUISound(
+						frontend_sound_play_ui_sound(
 							"exitpsound", 1, 0, 255,
-							12 * g_gameConfig
-									.sfxDatapadVolume,
+							12 * g_game_config
+									.sfx_datapad_volume,
 							63);
 					}
-					memset(g_mpRosterReadyFlags, 0,
-					       sizeof(g_mpRosterReadyFlags));
-					Net_ClearPlayerReadyFlagWithLockGuard(
-						senderPlayerId);
-					MissionSetup_SendLobbyState(0);
+					memset(g_mp_roster_ready_flags, 0,
+					       sizeof(g_mp_roster_ready_flags));
+					net_clear_player_ready_flag_with_lock_guard(
+						sender_player_id);
+					mission_setup_send_lobby_state(0);
 					break;
 				}
-				++rosterIndex;
-			} while (rosterIndex < readyPlayerCount);
+				++roster_index;
+			} while (roster_index < ready_player_count);
 		}
-		g_frontendNetPacketScratch.packetType = NET_PACKET_MOVIE_SYNC;
-		*(int *)&g_frontendNetPacketScratch.payload[0] = 2;
-		*(int *)&g_frontendNetPacketScratch.payload[4] = senderPlayerId;
-		Net_SendPacketAndFlush(0, &g_frontendNetPacketScratch,
-				       3 * sizeof(int));
+		g_frontend_net_packet_scratch.packet_type =
+			NET_PACKET_MOVIE_SYNC;
+		*(int *)&g_frontend_net_packet_scratch.payload[0] = 2;
+		*(int *)&g_frontend_net_packet_scratch.payload[4] =
+			sender_player_id;
+		net_send_packet_and_flush(0, &g_frontend_net_packet_scratch,
+					  3 * sizeof(int));
 		break;
 
 	case NET_PACKET_TEAM_ASSIGNMENTS_READY:
-		memcpy(&g_missionSetupPlayerAssignments, payload,
+		memcpy(&g_mission_setup_player_assignments, payload,
 		       MISSION_ASSIGNMENT_TEAM_BYTES);
 		break;
 
 	case NET_PACKET_FRONTEND_MISSION_START:
-		g_pilotData.missionDirectoryId = (MissionDirectoryId)payload[1];
-		g_pilotData.missionSequenceActive = payload[2];
-		if (g_pilotData.missionSequenceActive == 1) {
-			g_pilotData.savedMissionDescriptionId =
-				g_pilotData.missionDescriptionIds
-					[g_pilotData.missionDirectoryId];
-			if (g_pilotData.missionDirectoryId ==
+		g_pilot_data.mission_directory_id =
+			(mission_directory_id)payload[1];
+		g_pilot_data.mission_sequence_active = payload[2];
+		if (g_pilot_data.mission_sequence_active == 1) {
+			g_pilot_data.saved_mission_description_id =
+				g_pilot_data.mission_description_ids
+					[g_pilot_data.mission_directory_id];
+			if (g_pilot_data.mission_directory_id ==
 			    MISSION_DIRECTORY_MELEES) {
-				g_pilotData.meleeTournamentSequenceState
-					.missionCount = payload[3];
-			} else if (g_pilotData.missionDirectoryId ==
+				g_pilot_data.melee_tournament_sequence_state
+					.mission_count = payload[3];
+			} else if (g_pilot_data.mission_directory_id ==
 				   MISSION_DIRECTORY_COMBAT_ENGAGEMENTS) {
-				g_pilotData.battleSequenceState
-					.victoriesNeeded = payload[3];
+				g_pilot_data.battle_sequence_state
+					.victories_needed = payload[3];
 			} else {
-				g_pilotData.campaignSequenceState.missionCount =
-					payload[3];
+				g_pilot_data.campaign_sequence_state
+					.mission_count = payload[3];
 			}
 		}
-		g_pilotData
-			.missionDescriptionIds[g_pilotData.missionDirectoryId] =
-			payload[0];
-		MissionSetup_LoadMissionList(g_pilotData.missionDirectoryId);
-		if (g_missionList != NULL) {
-			g_selectedMissionListIndex = 0;
-			while ((unsigned int)g_selectedMissionListIndex <
-				       g_missionCount &&
-			       g_missionList[g_selectedMissionListIndex]
-					       .missionIdx !=
-				       g_pilotData.missionDescriptionIds
-					       [g_pilotData
-							.missionDirectoryId]) {
-				++g_selectedMissionListIndex;
+		g_pilot_data.mission_description_ids
+			[g_pilot_data.mission_directory_id] = payload[0];
+		mission_setup_load_mission_list(
+			g_pilot_data.mission_directory_id);
+		if (g_mission_list != NULL) {
+			g_selected_mission_list_index = 0;
+			while ((unsigned int)g_selected_mission_list_index <
+				       g_mission_count &&
+			       g_mission_list[g_selected_mission_list_index]
+					       .mission_idx !=
+				       g_pilot_data.mission_description_ids
+					       [g_pilot_data
+							.mission_directory_id]) {
+				++g_selected_mission_list_index;
 			}
 		}
 		break;
@@ -2649,78 +2726,83 @@ int FrontendNet_ProcessNetworkPackets(void)
 	case NET_PACKET_REPLAY_CURRENT_MISSION:
 	case NET_PACKET_NEXT_CAMPAIGN_MISSION:
 	case NET_PACKET_REPLAY_CAMPAIGN_MISSION:
-		g_gameConfig.randomSeed = payload[0];
+		g_game_config.random_seed = payload[0];
 		break;
 
 	case NET_PACKET_CHAT:
-		if (g_frontendChatLogBuffer != NULL) {
-			packetSize -= sizeof(int);
-			bytesToDiscard = CHAT_LOG_CONTENT_LIMIT;
-			bytesToDiscard -= g_frontendChatLogUsedBytes;
-			bytesToDiscard -= (int)packetSize;
-			if (bytesToDiscard < 0) {
-				bytesToDiscard = -bytesToDiscard;
-				memmove(g_frontendChatLogBuffer,
-					&g_frontendChatLogBuffer
-						[bytesToDiscard],
-					CHAT_LOG_CAPACITY - bytesToDiscard);
-				g_frontendChatLogUsedBytes -= bytesToDiscard;
+		if (g_frontend_chat_log_buffer != NULL) {
+			packet_size -= sizeof(int);
+			bytes_to_discard = CHAT_LOG_CONTENT_LIMIT;
+			bytes_to_discard -= g_frontend_chat_log_used_bytes;
+			bytes_to_discard -= (int)packet_size;
+			if (bytes_to_discard < 0) {
+				bytes_to_discard = -bytes_to_discard;
+				memmove(g_frontend_chat_log_buffer,
+					&g_frontend_chat_log_buffer
+						[bytes_to_discard],
+					CHAT_LOG_CAPACITY - bytes_to_discard);
+				g_frontend_chat_log_used_bytes -=
+					bytes_to_discard;
 			}
-			memcpy(&g_frontendChatLogBuffer
-				       [g_frontendChatLogUsedBytes],
-			       payload, packetSize);
-			if ((DPID)Net_GetLocalPlayerId() == senderPlayerId) {
-				g_frontendChatLogBuffer
-					[g_frontendChatLogUsedBytes] = 5;
+			memcpy(&g_frontend_chat_log_buffer
+				       [g_frontend_chat_log_used_bytes],
+			       payload, packet_size);
+			if ((DPID)net_get_local_player_id() ==
+			    sender_player_id) {
+				g_frontend_chat_log_buffer
+					[g_frontend_chat_log_used_bytes] = 5;
 			}
-			g_frontendChatLogUsedBytes += packetSize;
-			g_frontendChatLogBuffer[g_frontendChatLogUsedBytes++] =
-				'\n';
-			g_frontendChatLogBuffer[g_frontendChatLogUsedBytes] =
-				'\0';
+			g_frontend_chat_log_used_bytes += packet_size;
+			g_frontend_chat_log_buffer
+				[g_frontend_chat_log_used_bytes++] = '\n';
+			g_frontend_chat_log_buffer
+				[g_frontend_chat_log_used_bytes] = '\0';
 		}
 		break;
 
 	case NET_PACKET_TEAM_ASSIGNMENT:
-		if (Net_IsHost() != 0) {
+		if (net_is_host() != 0) {
 			break;
 		}
 		if (payload[1] == 10) {
-			for (playerIndex = 0; playerIndex < MAX_PLAYERS;
-			     ++playerIndex) {
-				if (g_missionSetupPlayerAssignments
-					    .assignedPlayerIds[playerIndex] ==
+			for (player_index = 0; player_index < MAX_PLAYERS;
+			     ++player_index) {
+				if (g_mission_setup_player_assignments
+					    .assigned_player_ids
+						    [player_index] ==
 				    payload[0]) {
-					g_missionSetupPlayerAssignments
-						.assignedPlayerIds
-							[playerIndex] = 0;
+					g_mission_setup_player_assignments
+						.assigned_player_ids
+							[player_index] = 0;
 					break;
 				}
 			}
-			for (teamIndex = 0; teamIndex < TEAM_COUNT;
-			     ++teamIndex) {
-				for (slotIndex = 0; slotIndex < MAX_PLAYERS;
-				     ++slotIndex) {
-					if (g_missionSetupPlayerAssignments
-						    .teamPlayerIds[teamIndex]
-								  [slotIndex] ==
+			for (team_index = 0; team_index < TEAM_COUNT;
+			     ++team_index) {
+				for (slot_index = 0; slot_index < MAX_PLAYERS;
+				     ++slot_index) {
+					if (g_mission_setup_player_assignments
+						    .team_player_ids
+							    [team_index]
+							    [slot_index] ==
 					    payload[0]) {
-						for (sourceSlot = slotIndex + 1;
-						     sourceSlot < MAX_PLAYERS;
-						     ++sourceSlot) {
-							g_missionSetupPlayerAssignments
-								.teamPlayerIds
-									[teamIndex]
-									[sourceSlot -
+						for (source_slot =
+							     slot_index + 1;
+						     source_slot < MAX_PLAYERS;
+						     ++source_slot) {
+							g_mission_setup_player_assignments
+								.team_player_ids
+									[team_index]
+									[source_slot -
 									 1] =
-								g_missionSetupPlayerAssignments
-									.teamPlayerIds
-										[teamIndex]
-										[sourceSlot];
+								g_mission_setup_player_assignments
+									.team_player_ids
+										[team_index]
+										[source_slot];
 						}
-						g_missionSetupPlayerAssignments
-							.teamPlayerIds
-								[teamIndex]
+						g_mission_setup_player_assignments
+							.team_player_ids
+								[team_index]
 								[MAX_PLAYERS -
 								 1] = 0;
 						break;
@@ -2729,160 +2811,166 @@ int FrontendNet_ProcessNetworkPackets(void)
 			}
 			break;
 		}
-		for (rosterIndex = 0; rosterIndex < MAX_PLAYERS;
-		     ++rosterIndex) {
-			if (g_mpRoster[rosterIndex].playerId != 0 &&
-			    g_mpRoster[rosterIndex].playerId ==
-				    Net_GetLocalPlayerId()) {
+		for (roster_index = 0; roster_index < MAX_PLAYERS;
+		     ++roster_index) {
+			if (g_mp_roster[roster_index].player_id != 0 &&
+			    g_mp_roster[roster_index].player_id ==
+				    net_get_local_player_id()) {
 				break;
 			}
 		}
-		if (rosterIndex < MAX_PLAYERS &&
-		    g_gameConfig.sfxDatapadEnabled != 0) {
-			FrontendSound_PlayUISound(
+		if (roster_index < MAX_PLAYERS &&
+		    g_game_config.sfx_datapad_enabled != 0) {
+			frontend_sound_play_ui_sound(
 				"slotsound", 1, 0, 255,
-				12 * g_gameConfig.sfxDatapadVolume, 63);
+				12 * g_game_config.sfx_datapad_volume, 63);
 		}
-		for (playerIndex = 0; playerIndex < MAX_PLAYERS;
-		     ++playerIndex) {
-			if (g_missionSetupPlayerAssignments
-				    .assignedPlayerIds[playerIndex] ==
+		for (player_index = 0; player_index < MAX_PLAYERS;
+		     ++player_index) {
+			if (g_mission_setup_player_assignments
+				    .assigned_player_ids[player_index] ==
 			    payload[0]) {
 				break;
 			}
 		}
-		if (playerIndex == MAX_PLAYERS) {
-			for (playerIndex = 0; playerIndex < MAX_PLAYERS;
-			     ++playerIndex) {
-				if (g_missionSetupPlayerAssignments
-					    .assignedPlayerIds[playerIndex] ==
-				    0) {
-					g_missionSetupPlayerAssignments
-						.assignedPlayerIds
-							[playerIndex] =
+		if (player_index == MAX_PLAYERS) {
+			for (player_index = 0; player_index < MAX_PLAYERS;
+			     ++player_index) {
+				if (g_mission_setup_player_assignments
+					    .assigned_player_ids
+						    [player_index] == 0) {
+					g_mission_setup_player_assignments
+						.assigned_player_ids
+							[player_index] =
 						payload[0];
 					break;
 				}
 			}
 		}
-		for (slotIndex = 0; slotIndex < MAX_PLAYERS; ++slotIndex) {
-			if (g_missionSetupPlayerAssignments
-				    .teamPlayerIds[payload[1]][slotIndex] ==
+		for (slot_index = 0; slot_index < MAX_PLAYERS; ++slot_index) {
+			if (g_mission_setup_player_assignments
+				    .team_player_ids[payload[1]][slot_index] ==
 			    payload[0]) {
 				break;
 			}
 		}
-		if (slotIndex == MAX_PLAYERS) {
-			destinationSlot = payload[2];
-			for (sourceSlot = MAX_PLAYERS - 1;
-			     sourceSlot > destinationSlot; --sourceSlot) {
-				g_missionSetupPlayerAssignments
-					.teamPlayerIds[payload[1]][sourceSlot] =
-					g_missionSetupPlayerAssignments
-						.teamPlayerIds[payload[1]]
-							      [sourceSlot - 1];
+		if (slot_index == MAX_PLAYERS) {
+			destination_slot = payload[2];
+			for (source_slot = MAX_PLAYERS - 1;
+			     source_slot > destination_slot; --source_slot) {
+				g_mission_setup_player_assignments
+					.team_player_ids[payload[1]]
+							[source_slot] =
+					g_mission_setup_player_assignments
+						.team_player_ids[payload[1]]
+								[source_slot -
+								 1];
 			}
-			g_missionSetupPlayerAssignments
-				.teamPlayerIds[payload[1]][destinationSlot] =
+			g_mission_setup_player_assignments
+				.team_player_ids[payload[1]][destination_slot] =
 				payload[0];
 		}
 		break;
 
 	case NET_PACKET_FLIGHT_ASSIGNMENT_NOTIFY:
-		if (payload[2] != -1 && g_gameConfig.sfxDatapadEnabled != 0) {
-			for (slotIndex = 0; slotIndex < MAX_PLAYERS;
-			     ++slotIndex) {
-				if (g_missionSetupPlayerAssignments
-					    .teamPlayerIds[payload[0]]
-							  [slotIndex] ==
-				    Net_GetLocalPlayerId()) {
+		if (payload[2] != -1 &&
+		    g_game_config.sfx_datapad_enabled != 0) {
+			for (slot_index = 0; slot_index < MAX_PLAYERS;
+			     ++slot_index) {
+				if (g_mission_setup_player_assignments
+					    .team_player_ids[payload[0]]
+							    [slot_index] ==
+				    net_get_local_player_id()) {
 					break;
 				}
 			}
-			if (slotIndex != MAX_PLAYERS) {
-				FrontendSound_PlayUISound(
+			if (slot_index != MAX_PLAYERS) {
+				frontend_sound_play_ui_sound(
 					"slotsound", 1, 0, 255,
-					12 * g_gameConfig.sfxDatapadVolume, 63);
+					12 * g_game_config.sfx_datapad_volume,
+					63);
 			}
 		}
 		/* Continue with the shared flight-group assignment. */
 
 	case NET_PACKET_FLIGHT_ASSIGNMENT:
-		g_missionSetupPlayerFlightGroupIndices[payload[0] *
-							       MAX_PLAYERS +
-						       payload[1]] = payload[2];
+		g_mission_setup_player_flight_group_indices
+			[payload[0] * MAX_PLAYERS + payload[1]] = payload[2];
 		break;
 
 	case NET_PACKET_PLAYER_READY:
-		for (rosterIndex = 0; rosterIndex < MAX_PLAYERS;
-		     ++rosterIndex) {
-			if ((DPID)g_mpRoster[rosterIndex].playerId ==
-			    senderPlayerId) {
-				g_mpRosterReadyFlags[rosterIndex] = 1;
+		for (roster_index = 0; roster_index < MAX_PLAYERS;
+		     ++roster_index) {
+			if ((DPID)g_mp_roster[roster_index].player_id ==
+			    sender_player_id) {
+				g_mp_roster_ready_flags[roster_index] = 1;
 				break;
 			}
 		}
 		break;
 
 	case NET_PACKET_PLAYER_UNREADY:
-		for (rosterIndex = 0; rosterIndex < MAX_PLAYERS;
-		     ++rosterIndex) {
-			if ((DPID)g_mpRoster[rosterIndex].playerId ==
-			    senderPlayerId) {
-				g_mpRosterReadyFlags[rosterIndex] = 0;
+		for (roster_index = 0; roster_index < MAX_PLAYERS;
+		     ++roster_index) {
+			if ((DPID)g_mp_roster[roster_index].player_id ==
+			    sender_player_id) {
+				g_mp_roster_ready_flags[roster_index] = 0;
 				break;
 			}
 		}
 		break;
 
 	case NET_PACKET_RETURN_TO_SETUP:
-		g_frontendSkipScreenEntrySetup = 1;
+		g_frontend_skip_screen_entry_setup = 1;
 		break;
 
 	case NET_PACKET_CLEAR_TEAM_ASSIGNMENTS:
-		memset(&g_missionSetupPlayerAssignments, 0,
+		memset(&g_mission_setup_player_assignments, 0,
 		       MISSION_ASSIGNMENT_TEAM_BYTES);
-		memset(g_missionSetupPlayerAssignments.assignedPlayerIds, 0,
-		       sizeof(g_missionSetupPlayerAssignments
-				      .assignedPlayerIds));
+		memset(g_mission_setup_player_assignments.assigned_player_ids,
+		       0,
+		       sizeof(g_mission_setup_player_assignments
+				      .assigned_player_ids));
 		break;
 
 	case NET_PACKET_TEAM_ASSIGNMENTS:
-		memcpy(g_missionSetupPlayerAssignments.teamPlayerIds, payload,
-		       sizeof(g_missionSetupPlayerAssignments.teamPlayerIds));
-		memcpy(g_missionSetupPlayerAssignments.assignedPlayerIds,
-		       &payload[sizeof(g_missionSetupPlayerAssignments
-					       .teamPlayerIds) /
+		memcpy(g_mission_setup_player_assignments.team_player_ids,
+		       payload,
+		       sizeof(g_mission_setup_player_assignments
+				      .team_player_ids));
+		memcpy(g_mission_setup_player_assignments.assigned_player_ids,
+		       &payload[sizeof(g_mission_setup_player_assignments
+					       .team_player_ids) /
 				sizeof(payload[0])],
-		       sizeof(g_missionSetupPlayerAssignments
-				      .assignedPlayerIds));
+		       sizeof(g_mission_setup_player_assignments
+				      .assigned_player_ids));
 		break;
 
 	case NET_PACKET_CLEAR_FLIGHT_ASSIGNMENTS:
-		memset(&g_missionSetupPlayerFlightGroupIndices[payload[0] *
-							       MAX_PLAYERS],
+		memset(&g_mission_setup_player_flight_group_indices
+			       [payload[0] * MAX_PLAYERS],
 		       0xFF,
 		       MAX_PLAYERS *
-			       sizeof(g_missionSetupPlayerFlightGroupIndices
+			       sizeof(g_mission_setup_player_flight_group_indices
 					      [0]));
 		break;
 
 	case NET_PACKET_FLIGHT_ASSIGNMENTS:
-		memcpy(&g_missionSetupPlayerFlightGroupIndices[payload[0] *
-							       MAX_PLAYERS],
+		memcpy(&g_mission_setup_player_flight_group_indices
+			       [payload[0] * MAX_PLAYERS],
 		       &payload[1],
 		       MAX_PLAYERS *
-			       sizeof(g_missionSetupPlayerFlightGroupIndices
+			       sizeof(g_mission_setup_player_flight_group_indices
 					      [0]));
 		break;
 
 	case NET_PACKET_MISSION_CHOICE:
-		g_frontendNetPacketArg0 = payload[0];
+		g_frontend_net_packet_arg0 = payload[0];
 		break;
 
 	case NET_PACKET_BRIEFING_COUNTDOWN:
 	case NET_PACKET_ASSIGNMENT_COUNTDOWN:
-		g_frontendNetPacketArg0 = payload[0];
+		g_frontend_net_packet_arg0 = payload[0];
 		break;
 
 	case NET_PACKET_RETURN_TO_MISSION_SELECTION:
@@ -2890,346 +2978,357 @@ int FrontendNet_ProcessNetworkPackets(void)
 
 	case NET_PACKET_RELEASE_TEAM_RESERVATION:
 	case NET_PACKET_RELEASE_FLIGHT_RESERVATION:
-		g_frontendNetPacketArg0 = payload[0];
+		g_frontend_net_packet_arg0 = payload[0];
 		break;
 
 	case NET_PACKET_GAME_OPTIONS:
-		for (rosterIndex = 0; rosterIndex < MAX_PLAYERS;
-		     ++rosterIndex) {
-			if (g_mpRoster[rosterIndex].playerId != 0 &&
-			    g_mpRoster[rosterIndex].playerId ==
-				    Net_GetLocalPlayerId()) {
+		for (roster_index = 0; roster_index < MAX_PLAYERS;
+		     ++roster_index) {
+			if (g_mp_roster[roster_index].player_id != 0 &&
+			    g_mp_roster[roster_index].player_id ==
+				    net_get_local_player_id()) {
 				break;
 			}
 		}
-		if (rosterIndex < MAX_PLAYERS) {
-			g_gameConfig.difficulty = payloadBytes[0];
-			g_gameConfig.collisions = payloadBytes[4];
-			g_gameConfig.craftJumping = payloadBytes[8];
-			g_gameConfig.randomSetup = payloadBytes[12];
-			g_gameConfig.battleLengthIndex = payloadBytes[16];
-			g_gameConfig.inProgressJoin = payloadBytes[24];
-			g_gameConfig.craftSelection = payloadBytes[28];
-			g_gameConfig.locatePlayers = payloadBytes[32];
-			g_gameConfig.craftWaves = payloadBytes[36];
-			g_gameConfig.missionTimeLimit = payloadBytes[40];
-			g_gameConfig.lastTeamTimeLimitMinutes =
-				payloadBytes[44];
-			g_gameConfig.randomSeed = payload[12];
-			g_gameConfig.internetPlay = payloadBytes[52];
-			g_gameConfig.aiOpponents = payloadBytes[56];
-			g_gameConfig.serverUpdateRate = payloadBytes[60];
-			g_gameConfig.combatBalance = payloadBytes[64];
-			g_gameConfig.continueBattleOrCampaign =
-				payloadBytes[68];
+		if (roster_index < MAX_PLAYERS) {
+			g_game_config.difficulty = payload_bytes[0];
+			g_game_config.collisions = payload_bytes[4];
+			g_game_config.craft_jumping = payload_bytes[8];
+			g_game_config.random_setup = payload_bytes[12];
+			g_game_config.battle_length_index = payload_bytes[16];
+			g_game_config.in_progress_join = payload_bytes[24];
+			g_game_config.craft_selection = payload_bytes[28];
+			g_game_config.locate_players = payload_bytes[32];
+			g_game_config.craft_waves = payload_bytes[36];
+			g_game_config.mission_time_limit = payload_bytes[40];
+			g_game_config.last_team_time_limit_minutes =
+				payload_bytes[44];
+			g_game_config.random_seed = payload[12];
+			g_game_config.internet_play = payload_bytes[52];
+			g_game_config.ai_opponents = payload_bytes[56];
+			g_game_config.server_update_rate = payload_bytes[60];
+			g_game_config.combat_balance = payload_bytes[64];
+			g_game_config.continue_battle_or_campaign =
+				payload_bytes[68];
 		}
 		break;
 
 	case NET_PACKET_REPLAY_MISSION:
-		g_gameConfig.randomSeed = payload[0];
+		g_game_config.random_seed = payload[0];
 		break;
 
 	case NET_PACKET_LAUNCH_ROSTER_AND_ASSIGNMENTS:
-		packetWordIndex = 0;
-		for (rosterIndex = 0; rosterIndex < MAX_PLAYERS;
-		     ++rosterIndex) {
-			g_mpRoster[rosterIndex].craftTypeOverride =
-				payload[packetWordIndex++];
-			g_mpRoster[rosterIndex].craftOptionIndex =
-				payload[packetWordIndex++];
-			g_mpRoster[rosterIndex].warheadOptionIndex =
-				payload[packetWordIndex++];
-			g_mpRoster[rosterIndex].beamOptionIndex =
-				payload[packetWordIndex++];
-			g_mpRoster[rosterIndex].countermeasureOptionIndex =
-				payload[packetWordIndex++];
+		packet_word_index = 0;
+		for (roster_index = 0; roster_index < MAX_PLAYERS;
+		     ++roster_index) {
+			g_mp_roster[roster_index].craft_type_override =
+				payload[packet_word_index++];
+			g_mp_roster[roster_index].craft_option_index =
+				payload[packet_word_index++];
+			g_mp_roster[roster_index].warhead_option_index =
+				payload[packet_word_index++];
+			g_mp_roster[roster_index].beam_option_index =
+				payload[packet_word_index++];
+			g_mp_roster[roster_index].countermeasure_option_index =
+				payload[packet_word_index++];
 		}
-		for (assignmentIndex = 0;
-		     assignmentIndex < FLIGHT_GROUP_ASSIGNMENT_COUNT;
-		     ++assignmentIndex) {
-			g_missionSetupPlayerFlightGroupIndices
-				[assignmentIndex] =
-					((uint8_t *)&payload[packetWordIndex])
-						[assignmentIndex];
+		for (assignment_index = 0;
+		     assignment_index < FLIGHT_GROUP_ASSIGNMENT_COUNT;
+		     ++assignment_index) {
+			g_mission_setup_player_flight_group_indices
+				[assignment_index] =
+					((uint8_t *)&payload[packet_word_index])
+						[assignment_index];
 		}
 		break;
 
 	case NET_PACKET_LOADOUT_ROSTER:
-		packetWordIndex = 0;
-		for (rosterIndex = 0; rosterIndex < MAX_PLAYERS;
-		     ++rosterIndex) {
-			g_mpRoster[rosterIndex].craftTypeOverride =
-				payload[packetWordIndex++];
-			g_mpRoster[rosterIndex].craftOptionIndex =
-				payload[packetWordIndex++];
-			g_mpRoster[rosterIndex].warheadOptionIndex =
-				payload[packetWordIndex++];
-			g_mpRoster[rosterIndex].beamOptionIndex =
-				payload[packetWordIndex++];
-			g_mpRoster[rosterIndex].countermeasureOptionIndex =
-				payload[packetWordIndex++];
+		packet_word_index = 0;
+		for (roster_index = 0; roster_index < MAX_PLAYERS;
+		     ++roster_index) {
+			g_mp_roster[roster_index].craft_type_override =
+				payload[packet_word_index++];
+			g_mp_roster[roster_index].craft_option_index =
+				payload[packet_word_index++];
+			g_mp_roster[roster_index].warhead_option_index =
+				payload[packet_word_index++];
+			g_mp_roster[roster_index].beam_option_index =
+				payload[packet_word_index++];
+			g_mp_roster[roster_index].countermeasure_option_index =
+				payload[packet_word_index++];
 		}
 		/* Continue with the network statistics carried by this packet. */
 
 	case NET_PACKET_LOBBY_SELECTION:
-		statsCount = payload[12];
-		packetWordIndex = 13;
-		while (statsCount > 0) {
-			if (Net_IsHost() == 0) {
-				Net_SetPlayerLatencyMs(
-					payload[packetWordIndex],
-					payload[packetWordIndex + 2]);
-				Net_SetPlayerPacketCount(
-					payload[packetWordIndex],
-					payload[packetWordIndex + 3]);
-				Net_SetPlayerPacketDropCount(
-					payload[packetWordIndex],
-					payload[packetWordIndex + 4]);
-				Net_SetPlayerPacketRetryCount(
-					payload[packetWordIndex],
-					payload[packetWordIndex + 5]);
+		stats_count = payload[12];
+		packet_word_index = 13;
+		while (stats_count > 0) {
+			if (net_is_host() == 0) {
+				net_set_player_latency_ms(
+					payload[packet_word_index],
+					payload[packet_word_index + 2]);
+				net_set_player_packet_count(
+					payload[packet_word_index],
+					payload[packet_word_index + 3]);
+				net_set_player_packet_drop_count(
+					payload[packet_word_index],
+					payload[packet_word_index + 4]);
+				net_set_player_packet_retry_count(
+					payload[packet_word_index],
+					payload[packet_word_index + 5]);
 			}
-			packetWordIndex += 6;
-			--statsCount;
+			packet_word_index += 6;
+			--stats_count;
 		}
 		break;
 
 	case NET_PACKET_CRAFT_LOADOUT:
-		for (rosterIndex = 0; rosterIndex < MAX_PLAYERS;
-		     ++rosterIndex) {
-			if ((DPID)g_mpRoster[rosterIndex].playerId !=
-				    senderPlayerId &&
-			    g_gameConfig.craftSelection !=
+		for (roster_index = 0; roster_index < MAX_PLAYERS;
+		     ++roster_index) {
+			if ((DPID)g_mp_roster[roster_index].player_id !=
+				    sender_player_id &&
+			    g_game_config.craft_selection !=
 				    CRAFT_SELECTION_HOST_ONLY) {
 				continue;
 			}
-			craftOption = payload[1];
-			if (craftOption != 0) {
+			craft_option = payload[1];
+			if (craft_option != 0) {
 				if ((unsigned int)payload[0] <
 				    MIN_PRESET_CRAFT_CATEGORY) {
-					g_mpRoster[rosterIndex]
-						.craftTypeOverride = 0;
+					g_mp_roster[roster_index]
+						.craft_type_override = 0;
 				} else if ((unsigned int)payload[0] <=
 					   MAX_STANDARD_PRESET_CRAFT_CATEGORY) {
-					g_mpRoster[rosterIndex]
-						.craftTypeOverride =
-						g_presetCraftTypes[craftOption];
+					g_mp_roster[roster_index]
+						.craft_type_override =
+						g_preset_craft_types
+							[craft_option];
 				} else if (payload[0] ==
 					   SPECIAL_PRESET_CRAFT_CATEGORY) {
-					g_mpRoster[rosterIndex]
-						.craftTypeOverride = g_presetCraftTypes
-						[craftOption +
+					g_mp_roster[roster_index]
+						.craft_type_override = g_preset_craft_types
+						[craft_option +
 						 SPECIAL_PRESET_CRAFT_OFFSET];
 				} else {
-					g_mpRoster[rosterIndex]
-						.craftTypeOverride = 0;
+					g_mp_roster[roster_index]
+						.craft_type_override = 0;
 				}
 			} else {
-				g_mpRoster[rosterIndex].craftTypeOverride = 0;
+				g_mp_roster[roster_index].craft_type_override =
+					0;
 			}
-			g_mpRoster[rosterIndex].craftOptionIndex =
+			g_mp_roster[roster_index].craft_option_index =
 				payload[2] - 1;
-			g_mpRoster[rosterIndex].warheadOptionIndex = payload[3];
-			g_mpRoster[rosterIndex].beamOptionIndex = payload[4];
-			g_mpRoster[rosterIndex].countermeasureOptionIndex =
+			g_mp_roster[roster_index].warhead_option_index =
+				payload[3];
+			g_mp_roster[roster_index].beam_option_index =
+				payload[4];
+			g_mp_roster[roster_index].countermeasure_option_index =
 				payload[5];
-			if (g_gameConfig.craftSelection ==
+			if (g_game_config.craft_selection ==
 			    CRAFT_SELECTION_HOST_ONLY) {
-				g_missionSetupSelectedPresetCraftOptionIndex =
+				g_mission_setup_selected_preset_craft_option_index =
 					payload[1];
-				g_missionSetupSelectedFlightGroupCraftOptionIndex =
+				g_mission_setup_selected_flight_group_craft_option_index =
 					payload[2];
-				g_missionSetupSelectedWarheadOptionIndex =
+				g_mission_setup_selected_warhead_option_index =
 					payload[3];
-				g_missionSetupSelectedBeamOptionIndex =
+				g_mission_setup_selected_beam_option_index =
 					payload[4];
-				g_missionSetupSelectedCountermeasureOptionIndex =
+				g_mission_setup_selected_countermeasure_option_index =
 					payload[5];
-				g_missionSetupSelectedWaveCountMinusOne =
+				g_mission_setup_selected_wave_count_minus_one =
 					payload[6];
-				g_missionSetupSelectedCraftCount = payload[7];
+				g_mission_setup_selected_craft_count =
+					payload[7];
 			}
 		}
 		break;
 
 	case NET_PACKET_BRIEFING_ENTERED:
-		++g_frontendBriefingEnteredCount;
+		++g_frontend_briefing_entered_count;
 		break;
 
 	case NET_PACKET_TEAM_RESERVATION:
 	case NET_PACKET_FLIGHT_RESERVATION:
-		g_frontendNetPacketArg0 = payload[0];
-		g_frontendNetReservingPlayerId = payload[1];
+		g_frontend_net_packet_arg0 = payload[0];
+		g_frontend_net_reserving_player_id = payload[1];
 		break;
 
 	case NET_PACKET_PLAYER_UNAVAILABLE:
-		if (Net_IsHost() != 0) {
-			if (g_gameConfig.sfxDatapadEnabled != 0) {
-				FrontendSound_PlayUISound(
+		if (net_is_host() != 0) {
+			if (g_game_config.sfx_datapad_enabled != 0) {
+				frontend_sound_play_ui_sound(
 					"exitpsound", 1, 0, 255,
-					12 * g_gameConfig.sfxDatapadVolume, 63);
+					12 * g_game_config.sfx_datapad_volume,
+					63);
 			}
-			memset(g_mpRosterReadyFlags, 0,
-			       sizeof(g_mpRosterReadyFlags));
-			Net_ClearPlayerReadyFlag(senderPlayerId);
-			MissionSetup_SendLobbyState(0);
+			memset(g_mp_roster_ready_flags, 0,
+			       sizeof(g_mp_roster_ready_flags));
+			net_clear_player_ready_flag(sender_player_id);
+			mission_setup_send_lobby_state(0);
 		}
-		packetType = NET_PACKET_NONE;
+		packet_type = NET_PACKET_NONE;
 		break;
 
 	case NET_PACKET_CHAT_SYNC_REQUEST:
-		chunkIndex = 0;
-		if (g_frontendChatLogBuffer != NULL) {
-			remainingBytes = g_frontendChatLogUsedBytes;
-			if (remainingBytes == 0) {
-				g_frontendNetPacketScratch.packetType =
+		chunk_index = 0;
+		if (g_frontend_chat_log_buffer != NULL) {
+			remaining_bytes = g_frontend_chat_log_used_bytes;
+			if (remaining_bytes == 0) {
+				g_frontend_net_packet_scratch.packet_type =
 					NET_PACKET_CHAT_SYNC_CHUNK;
-				*(int *)&g_frontendNetPacketScratch.payload[0] =
-					0;
-				Net_SendPacketAndFlush(
-					senderPlayerId,
-					&g_frontendNetPacketScratch,
+				*(int *)&g_frontend_net_packet_scratch
+					 .payload[0] = 0;
+				net_send_packet_and_flush(
+					sender_player_id,
+					&g_frontend_net_packet_scratch,
 					2 * sizeof(int));
 			} else {
-				chatOffset = 0;
+				chat_offset = 0;
 				do {
-					/* packetSize is reused here as the size of each outgoing chat chunk. */
-					packetSize = CHAT_SYNC_CHUNK_SIZE;
-					if (remainingBytes < (int)packetSize) {
-						packetSize = remainingBytes;
+					/* packet_size is reused here as the size of each outgoing chat chunk. */
+					packet_size = CHAT_SYNC_CHUNK_SIZE;
+					if (remaining_bytes <
+					    (int)packet_size) {
+						packet_size = remaining_bytes;
 					}
-					g_frontendNetPacketScratch.packetType =
+					g_frontend_net_packet_scratch
+						.packet_type =
 						NET_PACKET_CHAT_SYNC_CHUNK;
-					*(int *)&g_frontendNetPacketScratch
-						 .payload[0] = chunkIndex++;
-					memcpy(&g_frontendNetPacketScratch
+					*(int *)&g_frontend_net_packet_scratch
+						 .payload[0] = chunk_index++;
+					memcpy(&g_frontend_net_packet_scratch
 							.payload[4],
-					       &g_frontendChatLogBuffer
-						       [chatOffset],
-					       packetSize);
-					remainingBytes -= packetSize;
-					chatOffset += packetSize;
-					Net_SendPacketAndFlush(
-						senderPlayerId,
-						&g_frontendNetPacketScratch,
-						packetSize + 2 * sizeof(int));
-				} while (remainingBytes > 0);
+					       &g_frontend_chat_log_buffer
+						       [chat_offset],
+					       packet_size);
+					remaining_bytes -= packet_size;
+					chat_offset += packet_size;
+					net_send_packet_and_flush(
+						sender_player_id,
+						&g_frontend_net_packet_scratch,
+						packet_size + 2 * sizeof(int));
+				} while (remaining_bytes > 0);
 			}
 		}
 		break;
 
 	case NET_PACKET_CHAT_SYNC_CHUNK:
-		chunkIndex = payload[0];
-		packetSize -= 2 * sizeof(int);
-		if (chunkIndex == 0) {
-			memset(g_frontendChatLogBuffer, 0, CHAT_LOG_CAPACITY);
-			g_frontendChatLogUsedBytes = 0;
+		chunk_index = payload[0];
+		packet_size -= 2 * sizeof(int);
+		if (chunk_index == 0) {
+			memset(g_frontend_chat_log_buffer, 0,
+			       CHAT_LOG_CAPACITY);
+			g_frontend_chat_log_used_bytes = 0;
 		}
-		chatChunkBytes = (uint8_t *)&payload[1];
-		/* playerIndex is reused here as a byte index into the chat chunk. */
-		for (playerIndex = 0; playerIndex < (int)packetSize;
-		     ++playerIndex) {
-			if (chatChunkBytes[playerIndex] <= 6) {
-				chatChunkBytes[playerIndex] = 6;
+		chat_chunk_bytes = (uint8_t *)&payload[1];
+		/* player_index is reused here as a byte index into the chat chunk. */
+		for (player_index = 0; player_index < (int)packet_size;
+		     ++player_index) {
+			if (chat_chunk_bytes[player_index] <= 6) {
+				chat_chunk_bytes[player_index] = 6;
 			}
 		}
-		memcpy(&g_frontendChatLogBuffer[CHAT_SYNC_CHUNK_SIZE *
-						chunkIndex],
-		       chatChunkBytes, packetSize);
-		g_frontendChatLogUsedBytes += packetSize;
+		memcpy(&g_frontend_chat_log_buffer[CHAT_SYNC_CHUNK_SIZE *
+						   chunk_index],
+		       chat_chunk_bytes, packet_size);
+		g_frontend_chat_log_used_bytes += packet_size;
 		break;
 
 	case NET_PACKET_READY_ROSTER:
-		Net_ClearPlayerReadyFlags();
-		g_frontendNetProbePlayersNeeded = payload[0] - payload[1];
-		readyPlayerCount = payload[1];
-		packetWordIndex = ROSTER_PACKET_COMPACT_FIRST_PLAYER_WORD;
-		memset(g_mpRoster, 0, sizeof(g_mpRoster));
-		for (rosterIndex = 0; rosterIndex < readyPlayerCount;
-		     ++rosterIndex) {
-			if (payload[packetWordIndex] == 0) {
-				++packetWordIndex;
-				g_mpRoster[rosterIndex].playerId = 0;
-				g_mpRoster[rosterIndex].pilotRating =
-					payload[packetWordIndex++];
-				++packetWordIndex;
+		net_clear_player_ready_flags();
+		g_frontend_net_probe_players_needed = payload[0] - payload[1];
+		ready_player_count = payload[1];
+		packet_word_index = ROSTER_PACKET_COMPACT_FIRST_PLAYER_WORD;
+		memset(g_mp_roster, 0, sizeof(g_mp_roster));
+		for (roster_index = 0; roster_index < ready_player_count;
+		     ++roster_index) {
+			if (payload[packet_word_index] == 0) {
+				++packet_word_index;
+				g_mp_roster[roster_index].player_id = 0;
+				g_mp_roster[roster_index].pilot_rating =
+					payload[packet_word_index++];
+				++packet_word_index;
 			} else {
-				netPlayer = Net_FindPlayer(
-					payload[packetWordIndex]);
-				if (netPlayer != NULL) {
-					Net_MarkPlayerReadyNoLock(
-						payload[packetWordIndex]);
-					strncpy(g_mpRoster[rosterIndex].name,
-						netPlayer->playerName,
+				net_player = net_find_player(
+					payload[packet_word_index]);
+				if (net_player != NULL) {
+					net_mark_player_ready_no_lock(
+						payload[packet_word_index]);
+					strncpy(g_mp_roster[roster_index].name,
+						net_player->player_name,
 						PLAYER_NAME_COPY_SIZE);
-					g_mpRoster[rosterIndex].playerId =
-						netPlayer->playerId;
-					++packetWordIndex;
-					g_mpRoster[rosterIndex].pilotRating =
-						payload[packetWordIndex];
-					++packetWordIndex;
-					if (Net_IsHost() == 0) {
-						Net_SetPlayerLatencyMs(
-							g_mpRoster[rosterIndex]
-								.playerId,
-							payload[packetWordIndex]);
+					g_mp_roster[roster_index].player_id =
+						net_player->player_id;
+					++packet_word_index;
+					g_mp_roster[roster_index].pilot_rating =
+						payload[packet_word_index];
+					++packet_word_index;
+					if (net_is_host() == 0) {
+						net_set_player_latency_ms(
+							g_mp_roster[roster_index]
+								.player_id,
+							payload[packet_word_index]);
 					}
-					++packetWordIndex;
+					++packet_word_index;
 				} else {
-					memcpy(g_mpRoster[rosterIndex].name,
+					memcpy(g_mp_roster[roster_index].name,
 					       "No name", sizeof("No name"));
-					g_mpRoster[rosterIndex].playerId =
-						payload[packetWordIndex];
-					++packetWordIndex;
-					g_mpRoster[rosterIndex].pilotRating =
-						payload[packetWordIndex];
-					packetWordIndex += 2;
+					g_mp_roster[roster_index].player_id =
+						payload[packet_word_index];
+					++packet_word_index;
+					g_mp_roster[roster_index].pilot_rating =
+						payload[packet_word_index];
+					packet_word_index += 2;
 				}
 			}
 		}
 		break;
 
 	case NET_PACKET_PILOT_RATING:
-		g_frontendNetPacketArg0 = payload[0];
+		g_frontend_net_packet_arg0 = payload[0];
 		break;
 
 	case NET_PACKET_BATTLE_PROGRESS:
-		g_remoteBattleContinuationActive = payload[0];
-		g_remoteBattleSequenceContinuationChoice = payload[1];
-		g_remoteBattleLastCompletedMissionIndex = payload[2];
-		g_remoteBattleRebelVictoryCount = payload[3];
-		g_remoteBattleImperialVictoryCount = payload[4];
+		g_remote_battle_continuation_active = payload[0];
+		g_remote_battle_sequence_continuation_choice = payload[1];
+		g_remote_battle_last_completed_mission_index = payload[2];
+		g_remote_battle_rebel_victory_count = payload[3];
+		g_remote_battle_imperial_victory_count = payload[4];
 		break;
 
 	case NET_PACKET_MOVIE_SYNC:
-		for (moviePlayerIndex = 0; moviePlayerIndex < MAX_PLAYERS;
-		     ++moviePlayerIndex) {
+		for (movie_player_index = 0; movie_player_index < MAX_PLAYERS;
+		     ++movie_player_index) {
 			switch (payload[0]) {
 			case 0:
-				if ((DPID)g_movieMultiplayerSyncPlayers
-					    [moviePlayerIndex]
-						    .playerId ==
-				    senderPlayerId) {
-					g_movieMultiplayerSyncPlayers
-						[moviePlayerIndex]
-							.isWaiting = 1;
-					moviePlayerIndex = MAX_PLAYERS;
+				if ((DPID)g_movie_multiplayer_sync_players
+					    [movie_player_index]
+						    .player_id ==
+				    sender_player_id) {
+					g_movie_multiplayer_sync_players
+						[movie_player_index]
+							.is_waiting = 1;
+					movie_player_index = MAX_PLAYERS;
 				}
 				break;
 
 			case 1:
-				g_movieMultiplayerSyncPlayers[moviePlayerIndex]
-					.isWaiting = 1;
+				g_movie_multiplayer_sync_players
+					[movie_player_index]
+						.is_waiting = 1;
 				break;
 
 			case 2:
-				if (payload[1] == g_movieMultiplayerSyncPlayers
-							  [moviePlayerIndex]
-								  .playerId) {
-					g_movieMultiplayerSyncPlayers
-						[moviePlayerIndex]
-							.playerId = 0;
-					moviePlayerIndex = MAX_PLAYERS;
+				if (payload[1] ==
+				    g_movie_multiplayer_sync_players
+					    [movie_player_index]
+						    .player_id) {
+					g_movie_multiplayer_sync_players
+						[movie_player_index]
+							.player_id = 0;
+					movie_player_index = MAX_PLAYERS;
 				}
 				break;
 			}
@@ -3237,16 +3336,16 @@ int FrontendNet_ProcessNetworkPackets(void)
 		break;
 
 	case NET_PACKET_SUBMIT_MISSION_CHOICE:
-		g_frontendNetPacketScratch.packetType =
+		g_frontend_net_packet_scratch.packet_type =
 			NET_PACKET_MISSION_CHOICE;
-		*(int *)&g_frontendNetPacketScratch.payload[0] = payload[0];
-		Net_SendPacketAndFlush(0, &g_frontendNetPacketScratch,
-				       2 * sizeof(int));
+		*(int *)&g_frontend_net_packet_scratch.payload[0] = payload[0];
+		net_send_packet_and_flush(0, &g_frontend_net_packet_scratch,
+					  2 * sizeof(int));
 		break;
 
 	default:
-		packetType = NET_PACKET_NONE;
+		packet_type = NET_PACKET_NONE;
 		break;
 	}
-	return packetType;
+	return packet_type;
 }

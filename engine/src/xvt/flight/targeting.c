@@ -21,13 +21,13 @@
 #include "xvt/render/flight_sw.h"
 #include "xvt/render/renderer.h"
 
-/* How far off the aim line the object Targeting_TestAimCone last tested lies:
+/* How far off the aim line the object targeting_test_aim_cone last tested lies:
  * its up slope times 59578 / 65536 plus its side slope, each 256 times the
  * offset over the forward distance; 0xFFFF when the test returned early. Only
- * Targeting_TestAimCone writes it; Player_PickTargetInSight keeps the object
+ * targeting_test_aim_cone writes it; player_pick_target_in_sight keeps the object
  * with the lowest. */
 // GLOBAL: XVT 0x9A73A0
-uint16_t g_targetAngleScore = -1;
+uint16_t g_target_angle_score = -1;
 
 /* Tells whether an object, or the point a reference names, lies in the aim cone
  * ahead of the player's craft: returns 1 when both its up and side slopes are
@@ -36,187 +36,191 @@ uint16_t g_targetAngleScore = -1;
  * after scaling, or the side slope exceeds 160 or the up slope 100. Within a
  * rough distance of 655360 it measures at 1/16 scale and, for the player's
  * current target craft, at its selected component's center; beyond, at 1/256.
- * narrowCone keeps the bound at the object's size, halving it close in;
- * otherwise the bound is tripled, at least 9. Writes g_targetAngleScore (0xFFFF
- * first), g_lastRoughDistance and g_worldLocX, g_worldLocY and g_worldLocZ.
- * Reads the size of g_objectTable[objectIdx] without checking that objectIdx
+ * narrow_cone keeps the bound at the object's size, halving it close in;
+ * otherwise the bound is tripled, at least 9. Writes g_target_angle_score (0xFFFF
+ * first), g_last_rough_distance and g_world_loc_x, g_world_loc_y and g_world_loc_z.
+ * Reads the size of g_object_table[object_idx] without checking that object_idx
  * names an object slot. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x482640
-int16_t Targeting_TestAimCone(uint16_t objectIdx, int16_t narrowCone,
-			      int playerIdx)
+int16_t targeting_test_aim_cone(uint16_t object_idx, int16_t narrow_cone,
+				int player_idx)
 {
-	int16_t scaleShift;
+	int16_t scale_shift;
 	int dx;
 	int16_t dy, dz;
-	struct ObjectRecord *target;
-	int objectType;
-	uint16_t meshIndex;
+	struct object_record *target;
+	int object_type;
+	uint16_t mesh_index;
 	int forward;
 	int side;
 	int up;
-	int sideSlope;
-	int upSlope;
-	int targetExtent;
-	int extentSlope;
-	ModelIndex modelIndex;
-	int upScore;
-	int16_t boundSum;
-	uint8_t boundShift;
-	struct MobileObject **playerMobileObject;
-	uint16_t objectIndex;
+	int side_slope;
+	int up_slope;
+	int target_extent;
+	int extent_slope;
+	model_index model_index;
+	int up_score;
+	int16_t bound_sum;
+	uint8_t bound_shift;
+	struct mobile_object **player_mobile_object;
+	uint16_t object_index;
 
-	g_targetAngleScore = -1;
-	objectIndex = objectIdx;
-	if (g_players[playerIdx].objectIndex == -1) {
+	g_target_angle_score = -1;
+	object_index = object_idx;
+	if (g_players[player_idx].object_index == -1) {
 		return 0;
 	}
-	pai_ObjectRefUpdateRoughDistance(objectIndex,
-					 g_players[playerIdx].objectIndex);
+	pai_object_ref_update_rough_distance(
+		object_index, g_players[player_idx].object_index);
 
-	if (g_lastRoughDistance < 655360) {
-		Mission_ResolveObjectOrMissionPointWorldLoc(objectIndex, 0);
-		if (g_players[playerIdx].currentTargetObjectIdx ==
-		    (int16_t)objectIndex) {
-			target = &g_objectTable[objectIndex];
-			objectType = target->objectType;
-			if (objectType != 0 &&
-			    g_activeRegionCraftObjectSlotEnd >
-				    (int)objectIndex &&
-			    target->mobj->pCraft != NULL) {
-				meshIndex = (uint16_t)g_players[playerIdx]
-						    .selectedTargetComponent;
-				pai_RotateLocalVectorToWorldScratch(
+	if (g_last_rough_distance < 655360) {
+		mission_resolve_object_or_mission_point_world_loc(object_index,
+								  0);
+		if (g_players[player_idx].current_target_object_idx ==
+		    (int16_t)object_index) {
+			target = &g_object_table[object_index];
+			object_type = target->object_type;
+			if (object_type != 0 &&
+			    g_active_region_craft_object_slot_end >
+				    (int)object_index &&
+			    target->mobj->p_craft != NULL) {
+				mesh_index = (uint16_t)g_players[player_idx]
+						     .selected_target_component;
+				pai_rotate_local_vector_to_world_scratch(
 					target,
-					ModelMesh_GetCenterX(objectType,
-							     meshIndex),
-					ModelMesh_GetCenterZ(objectType,
-							     meshIndex),
-					-ModelMesh_GetCenterY(objectType,
-							      meshIndex));
-				g_worldLocX += g_rotatedX;
-				g_worldLocY += g_rotatedY;
-				g_worldLocZ += g_rotatedZ;
-				g_lastRoughDistance = collide_roughdistance3d(
-					g_worldLocX -
-						g_objectTable
-							[g_players[playerIdx]
-								 .objectIndex]
+					model_mesh_get_center_x(object_type,
+								mesh_index),
+					model_mesh_get_center_z(object_type,
+								mesh_index),
+					-model_mesh_get_center_y(object_type,
+								 mesh_index));
+				g_world_loc_x += g_rotated_x;
+				g_world_loc_y += g_rotated_y;
+				g_world_loc_z += g_rotated_z;
+				g_last_rough_distance = collide_roughdistance3d(
+					g_world_loc_x -
+						g_object_table
+							[g_players[player_idx]
+								 .object_index]
 								.world_x,
-					g_worldLocY -
-						g_objectTable
-							[g_players[playerIdx]
-								 .objectIndex]
+					g_world_loc_y -
+						g_object_table
+							[g_players[player_idx]
+								 .object_index]
 								.world_y,
-					g_worldLocZ -
-						g_objectTable
-							[g_players[playerIdx]
-								 .objectIndex]
+					g_world_loc_z -
+						g_object_table
+							[g_players[player_idx]
+								 .object_index]
 								.world_z);
 			}
 		}
-		dx = (g_worldLocX -
-		      g_objectTable[g_players[playerIdx].objectIndex]
+		dx = (g_world_loc_x -
+		      g_object_table[g_players[player_idx].object_index]
 			      .world_x) >>
 		     4;
-		dy = (g_worldLocY -
-		      g_objectTable[g_players[playerIdx].objectIndex]
+		dy = (g_world_loc_y -
+		      g_object_table[g_players[player_idx].object_index]
 			      .world_y) >>
 		     4;
-		dz = (g_worldLocZ -
-		      g_objectTable[g_players[playerIdx].objectIndex]
+		dz = (g_world_loc_z -
+		      g_object_table[g_players[player_idx].object_index]
 			      .world_z) >>
 		     4;
-		scaleShift = 4;
+		scale_shift = 4;
 	} else {
-		Mission_ResolveObjectOrMissionPointWorldLoc(objectIndex, 0);
-		dx = (g_worldLocX -
-		      g_objectTable[g_players[playerIdx].objectIndex]
+		mission_resolve_object_or_mission_point_world_loc(object_index,
+								  0);
+		dx = (g_world_loc_x -
+		      g_object_table[g_players[player_idx].object_index]
 			      .world_x) >>
 		     8;
-		dy = (g_worldLocY -
-		      g_objectTable[g_players[playerIdx].objectIndex]
+		dy = (g_world_loc_y -
+		      g_object_table[g_players[player_idx].object_index]
 			      .world_y) >>
 		     8;
-		dz = (g_worldLocZ -
-		      g_objectTable[g_players[playerIdx].objectIndex]
+		dz = (g_world_loc_z -
+		      g_object_table[g_players[player_idx].object_index]
 			      .world_z) >>
 		     8;
-		scaleShift = 8;
+		scale_shift = 8;
 	}
 
-	target = &g_objectTable[g_players[playerIdx].objectIndex];
-	if (target->mobj->orientMatrixDirty != 0) {
-		FVIEW_calcrotatemove(target->pitch, target->yaw, target);
-		FVIEW_calcrotateorient(
-			g_objectTable[g_players[playerIdx].objectIndex].roll, 0,
-			&g_objectTable[g_players[playerIdx].objectIndex]);
+	target = &g_object_table[g_players[player_idx].object_index];
+	if (target->mobj->orient_matrix_dirty != 0) {
+		fview_calcrotatemove(target->pitch, target->yaw, target);
+		fview_calcrotateorient(
+			g_object_table[g_players[player_idx].object_index].roll,
+			0, &g_object_table[g_players[player_idx].object_index]);
 	}
-	playerMobileObject =
-		&g_objectTable[g_players[playerIdx].objectIndex].mobj;
-	forward = Math_MulQ15((int16_t)dx, (*playerMobileObject)->cachedFwdX);
-	forward += Math_MulQ15(dy, (*playerMobileObject)->cachedFwdY);
-	forward += Math_MulQ15(dz, (*playerMobileObject)->cachedFwdZ);
+	player_mobile_object =
+		&g_object_table[g_players[player_idx].object_index].mobj;
+	forward = math_mul_q15((int16_t)dx,
+			       (*player_mobile_object)->cached_fwd_x);
+	forward += math_mul_q15(dy, (*player_mobile_object)->cached_fwd_y);
+	forward += math_mul_q15(dz, (*player_mobile_object)->cached_fwd_z);
 	if (forward <= 0) {
 		return 0;
 	}
 	if (forward > 0x20000) {
 		return 0;
 	}
-	if (narrowCone != 0 && forward < 0x2000) {
-		++scaleShift;
+	if (narrow_cone != 0 && forward < 0x2000) {
+		++scale_shift;
 	}
-	side = Math_MulQ15((int16_t)dx, (*playerMobileObject)->cachedSideX);
-	side += Math_MulQ15(dy, (*playerMobileObject)->cachedSideY);
-	side += Math_MulQ15(dz, (*playerMobileObject)->cachedSideZ);
+	side = math_mul_q15((int16_t)dx,
+			    (*player_mobile_object)->cached_side_x);
+	side += math_mul_q15(dy, (*player_mobile_object)->cached_side_y);
+	side += math_mul_q15(dz, (*player_mobile_object)->cached_side_z);
 	if (side < 0) {
 		side = -side;
 	}
-	sideSlope = (int)(((uint64_t)(unsigned int)side << 8) + 128) /
-		    (unsigned int)forward;
-	if (sideSlope > 160) {
+	side_slope = (int)(((uint64_t)(unsigned int)side << 8) + 128) /
+		     (unsigned int)forward;
+	if (side_slope > 160) {
 		return 0;
 	}
-	up = Math_MulQ15((int16_t)dx, (*playerMobileObject)->cachedUpX);
-	up += Math_MulQ15(dy, (*playerMobileObject)->cachedUpY);
-	up += Math_MulQ15(dz, (*playerMobileObject)->cachedUpZ);
+	up = math_mul_q15((int16_t)dx, (*player_mobile_object)->cached_up_x);
+	up += math_mul_q15(dy, (*player_mobile_object)->cached_up_y);
+	up += math_mul_q15(dz, (*player_mobile_object)->cached_up_z);
 	if (up < 0) {
 		up = -up;
 	}
-	upSlope = (int)(((uint64_t)(unsigned int)up << 8) + 128) /
-		  (unsigned int)forward;
-	if (upSlope > 100) {
+	up_slope = (int)(((uint64_t)(unsigned int)up << 8) + 128) /
+		   (unsigned int)forward;
+	if (up_slope > 100) {
 		return 0;
 	}
-	upScore = (59578 * upSlope) >> 16;
-	target = &g_objectTable[objectIndex];
-	if (target->mobj != NULL && target->mobj->pCraft != NULL) {
-		modelIndex = target->mobj->pCraft->modelIndex;
-		boundSum = g_modelDefs[modelIndex].boundSizeX;
-		boundSum += g_modelDefs[modelIndex].boundSizeY;
-		boundSum += g_modelDefs[modelIndex].boundSizeZ;
-		boundShift = g_modelDefs[modelIndex].boundSizeShift;
-		targetExtent = (boundSum / 3) << boundShift;
+	up_score = (59578 * up_slope) >> 16;
+	target = &g_object_table[object_index];
+	if (target->mobj != NULL && target->mobj->p_craft != NULL) {
+		model_index = target->mobj->p_craft->model_index;
+		bound_sum = g_model_defs[model_index].bound_size_x;
+		bound_sum += g_model_defs[model_index].bound_size_y;
+		bound_sum += g_model_defs[model_index].bound_size_z;
+		bound_shift = g_model_defs[model_index].bound_size_shift;
+		target_extent = (bound_sum / 3) << bound_shift;
 	} else {
-		targetExtent =
-			g_objectTypeTable[target->objectType].maxBoundsExtent;
+		target_extent = g_object_type_table[target->object_type]
+					.max_bounds_extent;
 	}
-	extentSlope =
-		(int)(((uint64_t)(unsigned int)(targetExtent >> scaleShift)
+	extent_slope =
+		(int)(((uint64_t)(unsigned int)(target_extent >> scale_shift)
 		       << 8) +
 		      128) /
 		(unsigned int)forward;
-	if (extentSlope <= 0) {
-		extentSlope = 1;
+	if (extent_slope <= 0) {
+		extent_slope = 1;
 	}
-	if (narrowCone == 0) {
-		extentSlope *= 3;
-		if (extentSlope < 10) {
-			extentSlope = 9;
+	if (narrow_cone == 0) {
+		extent_slope *= 3;
+		if (extent_slope < 10) {
+			extent_slope = 9;
 		}
 	}
-	g_targetAngleScore = (uint16_t)(upScore + sideSlope);
-	return upScore < extentSlope && sideSlope < extentSlope;
+	g_target_angle_score = (uint16_t)(up_score + side_slope);
+	return up_score < extent_slope && side_slope < extent_slope;
 }
 
 /* Draws a target box around craft in the active region for the local player,
@@ -225,10 +229,10 @@ int16_t Targeting_TestAimCone(uint16_t objectIdx, int16_t narrowCone,
  * below: in a melee, the local player's team's starfighters
  * (COLOR_LOCAL_QUICK_START_CRAFT) and the craft of any team whose score is the
  * highest above 0 (COLOR_LEADING_TEAM); other players' craft, hostile or allied
- * in a melee, else by IFF. Unless locatePlayersEnabled is set, a hostile craft
+ * in a melee, else by IFF. Unless locate_players_enabled is set, a hostile craft
  * the local player's team has not identified gets none. */
 // FUNCTION: XVT 0x482BE0
-void Targeting_DrawSceneObjectBoxes(void)
+void targeting_draw_scene_object_boxes(void)
 {
 	enum {
 		PLAYABLE_TEAM_COUNT = 8,
@@ -243,167 +247,169 @@ void Targeting_DrawSceneObjectBoxes(void)
 		COLOR_ALLIED_PLAYER = 211,
 	};
 
-	int leadingTeam;
-	int leadingScore;
-	int teamIndex;
-	int objectIdx;
+	int leading_team;
+	int leading_score;
+	int team_index;
+	int object_idx;
 
-	leadingTeam = NO_LEADING_TEAM;
-	if (g_missionHeader.missionType == MISSION_TYPE_MELEE) {
-		leadingScore = 0;
-		for (teamIndex = 0; teamIndex < PLAYABLE_TEAM_COUNT;
-		     ++teamIndex) {
-			int teamScore;
+	leading_team = NO_LEADING_TEAM;
+	if (g_mission_header.mission_type == MISSION_TYPE_MELEE) {
+		leading_score = 0;
+		for (team_index = 0; team_index < PLAYABLE_TEAM_COUNT;
+		     ++team_index) {
+			int team_score;
 
-			teamScore = g_flightMissionState.runtime
-					    .teamScores[TEAM_SCORE_BONUS]
-						       [teamIndex] +
-				    g_flightMissionState.runtime
-					    .teamScores[TEAM_SCORE_MISSION]
-						       [teamIndex];
-			if (teamScore > leadingScore) {
-				leadingScore = teamScore;
-				leadingTeam = teamIndex;
+			team_score = g_flight_mission_state.runtime
+					     .team_scores[TEAM_SCORE_BONUS]
+							 [team_index] +
+				     g_flight_mission_state.runtime
+					     .team_scores[TEAM_SCORE_MISSION]
+							 [team_index];
+			if (team_score > leading_score) {
+				leading_score = team_score;
+				leading_team = team_index;
 			}
 		}
 	}
 
-	for (objectIdx = g_activeRegionObjectSlotStart;
-	     objectIdx < (int)g_activeRegionCraftObjectSlotEnd; ++objectIdx) {
-		struct ObjectRecord *object;
-		uint8_t colorIndex;
+	for (object_idx = g_active_region_object_slot_start;
+	     object_idx < (int)g_active_region_craft_object_slot_end;
+	     ++object_idx) {
+		struct object_record *object;
+		uint8_t color_index;
 		int team;
-		int teamScore;
+		int team_score;
 
-		object = &g_objectTable[objectIdx];
-		if (object->objectType == 0 ||
-		    g_players[g_localPlayer].objectIndex == objectIdx) {
+		object = &g_object_table[object_idx];
+		if (object->object_type == 0 ||
+		    g_players[g_local_player].object_index == object_idx) {
 			continue;
 		}
 
-		colorIndex = 0;
+		color_index = 0;
 		team = object->mobj->team;
-		teamScore = g_flightMissionState.runtime
-				    .teamScores[TEAM_SCORE_MISSION][team];
-		teamScore += g_flightMissionState.runtime
-				     .teamScores[TEAM_SCORE_BONUS][team];
-		if (g_missionHeader.missionType == MISSION_TYPE_MELEE &&
-		    (uint16_t)g_players[g_localPlayer].team == team &&
-		    object->genusId == CRAFT_GENUS_STARFIGHTER) {
-			colorIndex = COLOR_LOCAL_QUICK_START_CRAFT;
-		} else if (leadingTeam == NO_LEADING_TEAM ||
-			   teamScore != leadingScore) {
-			if (object->playerOwnerIdx != -1 &&
-			    object->playerOwnerIdx != g_localPlayer) {
-				if (g_missionHeader.missionType ==
+		team_score = g_flight_mission_state.runtime
+				     .team_scores[TEAM_SCORE_MISSION][team];
+		team_score += g_flight_mission_state.runtime
+				      .team_scores[TEAM_SCORE_BONUS][team];
+		if (g_mission_header.mission_type == MISSION_TYPE_MELEE &&
+		    (uint16_t)g_players[g_local_player].team == team &&
+		    object->genus_id == CRAFT_GENUS_STARFIGHTER) {
+			color_index = COLOR_LOCAL_QUICK_START_CRAFT;
+		} else if (leading_team == NO_LEADING_TEAM ||
+			   team_score != leading_score) {
+			if (object->player_owner_idx != -1 &&
+			    object->player_owner_idx != g_local_player) {
+				if (g_mission_header.mission_type ==
 				    MISSION_TYPE_MELEE) {
-					int craftTeam;
-					int playerTeam;
-					int isHostile;
+					int craft_team;
+					int player_team;
+					int is_hostile;
 
-					craftTeam =
-						g_missionFlightGroups
-							[g_objectTable[(uint16_t)
-									       objectIdx]
-								 .flightGroupIdx]
+					craft_team =
+						g_mission_flight_groups
+							[g_object_table[(uint16_t)
+										object_idx]
+								 .flight_group_idx]
 								.fg.team;
-					playerTeam =
-						(uint16_t)
-							g_players[g_localPlayer]
-								.team;
-					if (craftTeam == playerTeam) {
-						isHostile = 0;
+					player_team = (uint16_t)g_players
+							      [g_local_player]
+								      .team;
+					if (craft_team == player_team) {
+						is_hostile = 0;
 					} else {
-						isHostile =
-							g_missionTeams[playerTeam]
-								.allies[craftTeam] ==
+						is_hostile =
+							g_mission_teams[player_team]
+								.allies[craft_team] ==
 							0;
 					}
-					if (isHostile) {
-						colorIndex =
+					if (is_hostile) {
+						color_index =
 							COLOR_HOSTILE_PLAYER;
 					} else {
-						colorIndex =
+						color_index =
 							COLOR_ALLIED_PLAYER;
 					}
 				} else {
 					switch (object->mobj->iff) {
 					case 0:
-						colorIndex = COLOR_REBEL;
+						color_index = COLOR_REBEL;
 						break;
 					case 1:
 					case 4:
-						colorIndex = COLOR_IMPERIAL;
+						color_index = COLOR_IMPERIAL;
 						break;
 					case 2:
-						colorIndex = COLOR_BLUE;
+						color_index = COLOR_BLUE;
 						break;
 					default:
-						colorIndex = COLOR_DEFAULT;
+						color_index = COLOR_DEFAULT;
 						break;
 					}
 				}
 			}
 		} else {
-			colorIndex = COLOR_LEADING_TEAM;
+			color_index = COLOR_LEADING_TEAM;
 		}
 
-		if (colorIndex != 0) {
-			struct CraftData *craft;
-			int playerTeam;
-			int craftTeam;
-			int isHostile;
+		if (color_index != 0) {
+			struct craft_data *craft;
+			int player_team;
+			int craft_team;
+			int is_hostile;
 
-			craft = object->mobj->pCraft;
-			if (g_flightMissionState.locatePlayersEnabled == 0) {
-				playerTeam =
-					(uint16_t)g_players[g_localPlayer].team;
-				if (craft->identifiedOrderByTeam[playerTeam] ==
-				    0) {
-					craftTeam =
-						g_missionFlightGroups
-							[g_objectTable[(uint16_t)
-									       objectIdx]
-								 .flightGroupIdx]
+			craft = object->mobj->p_craft;
+			if (g_flight_mission_state.locate_players_enabled ==
+			    0) {
+				player_team =
+					(uint16_t)g_players[g_local_player]
+						.team;
+				if (craft->identified_order_by_team
+					    [player_team] == 0) {
+					craft_team =
+						g_mission_flight_groups
+							[g_object_table[(uint16_t)
+										object_idx]
+								 .flight_group_idx]
 								.fg.team;
-					if (craftTeam == playerTeam) {
-						isHostile = 0;
+					if (craft_team == player_team) {
+						is_hostile = 0;
 					} else {
-						isHostile =
-							g_missionTeams[playerTeam]
-								.allies[craftTeam] ==
+						is_hostile =
+							g_mission_teams[player_team]
+								.allies[craft_team] ==
 							0;
 					}
-					if (isHostile) {
+					if (is_hostile) {
 						continue;
 					}
 				}
 			}
 
-			if (Object_HasActiveDecoyBeam((uint16_t)objectIdx) ==
-				    0 &&
-			    (uint16_t)g_players[g_localPlayer]
-					    .currentTargetObjectIdx !=
-				    objectIdx) {
-				Targeting_DrawObjectBox(objectIdx, UINT16_MAX,
-							colorIndex);
+			if (object_has_active_decoy_beam(
+				    (uint16_t)object_idx) == 0 &&
+			    (uint16_t)g_players[g_local_player]
+					    .current_target_object_idx !=
+				    object_idx) {
+				targeting_draw_object_box(
+					object_idx, UINT16_MAX, color_index);
 			}
 		}
 	}
 }
 
-/* Draws the corner box around an object, or around its component componentIdx
+/* Draws the corner box around an object, or around its component component_idx
  * unless that is UINT16_MAX, as the local player sees it. The size is the
- * component's max extent or Targeting_GetObjectBoxExtent, scaled by
- * g_projScaleInt over depth and clamped from 4 pixels (8 above 320x240) up to
+ * component's max extent or targeting_get_object_box_extent, scaled by
+ * g_proj_scale_int over depth and clamped from 4 pixels (8 above 320x240) up to
  * three quarters of the screen width, plus 4. Draws map-view corners when the
- * local player's mapCameraState is set, else depth-tested HUD corners. Does
+ * local player's map_camera_state is set, else depth-tested HUD corners. Does
  * nothing for UINT16_MAX, in replay view, with the local player's target box
  * off, or behind the camera. The modern build also hands the box to
- * XvtRenderHud_TargetBox. */
+ * xvt_render_hud_target_box. */
 // FUNCTION: XVT 0x482EB0
-void Targeting_DrawObjectBox(uint16_t objectIdx, uint16_t componentIdx,
-			     uint8_t colorIndex)
+void targeting_draw_object_box(uint16_t object_idx, uint16_t component_idx,
+			       uint8_t color_index)
 {
 	enum {
 		LOW_RESOLUTION_MIN_BOX_EXTENT = 4,
@@ -411,240 +417,253 @@ void Targeting_DrawObjectBox(uint16_t objectIdx, uint16_t componentIdx,
 		BOX_SIZE_PADDING = 4,
 	};
 
-	unsigned int componentIndex;
-	int screenX;
-	int screenY;
+	unsigned int component_index;
+	int screen_x;
+	int screen_y;
 	int depth;
-	int objectExtent;
-	int projectedExtent;
-	int minimumExtent;
-	int maximumExtent;
-	int boxSize;
+	int object_extent;
+	int projected_extent;
+	int minimum_extent;
+	int maximum_extent;
+	int box_size;
 
-	if (objectIdx == UINT16_MAX || g_replayViewMode != 0 ||
-	    g_players[g_localPlayer].targetBoxEnabled == 0) {
+	if (object_idx == UINT16_MAX || g_replay_view_mode != 0 ||
+	    g_players[g_local_player].target_box_enabled == 0) {
 		return;
 	}
 
-	componentIndex = componentIdx;
-	Targeting_ProjectObjectOrMissionPoint(objectIdx, componentIndex,
-					      &screenX, &screenY, &depth);
+	component_index = component_idx;
+	targeting_project_object_or_mission_point(object_idx, component_index,
+						  &screen_x, &screen_y, &depth);
 	if (depth <= 0) {
 		return;
 	}
 
-	if (componentIdx != UINT16_MAX) {
-		objectExtent = ModelMesh_GetComponentMaxExtent(
-			g_objectTable[objectIdx].objectType, componentIndex);
+	if (component_idx != UINT16_MAX) {
+		object_extent = model_mesh_get_component_max_extent(
+			g_object_table[object_idx].object_type,
+			component_index);
 	} else {
-		objectExtent = Targeting_GetObjectBoxExtent(objectIdx);
+		object_extent = targeting_get_object_box_extent(object_idx);
 	}
 #ifdef XVT_MODERN
-	XvtRenderHud_TargetBox(objectIdx, componentIdx, objectExtent,
-			       colorIndex);
+	xvt_render_hud_target_box(object_idx, component_idx, object_extent,
+				  color_index);
 #endif
-	projectedExtent =
-		(int)((unsigned int)(objectExtent * (int)g_projScaleInt) /
+	projected_extent =
+		(int)((unsigned int)(object_extent * (int)g_proj_scale_int) /
 		      (unsigned int)depth);
-	switch (g_flightResolutionMode) {
+	switch (g_flight_resolution_mode) {
 	case FLIGHT_RESOLUTION_320X240:
-		minimumExtent = LOW_RESOLUTION_MIN_BOX_EXTENT;
+		minimum_extent = LOW_RESOLUTION_MIN_BOX_EXTENT;
 		break;
 	default:
-		minimumExtent = DEFAULT_MIN_BOX_EXTENT;
+		minimum_extent = DEFAULT_MIN_BOX_EXTENT;
 		break;
 	}
-	maximumExtent = (int)((g_screenWidth >> 1) + (g_screenWidth >> 2));
-	if (minimumExtent > projectedExtent) {
-		projectedExtent = minimumExtent;
+	maximum_extent = (int)((g_screen_width >> 1) + (g_screen_width >> 2));
+	if (minimum_extent > projected_extent) {
+		projected_extent = minimum_extent;
 	}
-	if (maximumExtent < projectedExtent) {
-		projectedExtent = maximumExtent;
+	if (maximum_extent < projected_extent) {
+		projected_extent = maximum_extent;
 	}
 
-	boxSize = projectedExtent + BOX_SIZE_PADDING;
-	if (g_players[g_localPlayer].mapCameraState != 0) {
-		int halfBoxSize;
-		unsigned int drawColor;
+	box_size = projected_extent + BOX_SIZE_PADDING;
+	if (g_players[g_local_player].map_camera_state != 0) {
+		int half_box_size;
+		unsigned int draw_color;
 
-		halfBoxSize = boxSize / 2;
-		drawColor = colorIndex;
-		FlightMap_DrawObjectBoxCorners(screenX - halfBoxSize,
-					       screenY - halfBoxSize, boxSize,
-					       boxSize, drawColor);
+		half_box_size = box_size / 2;
+		draw_color = color_index;
+		flight_map_draw_object_box_corners(
+			screen_x - half_box_size, screen_y - half_box_size,
+			box_size, box_size, draw_color);
 	} else {
-		int halfBoxSize;
-		unsigned int drawColor;
+		int half_box_size;
+		unsigned int draw_color;
 
-		halfBoxSize = boxSize / 2;
-		drawColor = colorIndex;
-		Hud_DrawDepthTestedBoxCorners(screenX - halfBoxSize,
-					      screenY - halfBoxSize, boxSize,
-					      boxSize, drawColor, depth);
+		half_box_size = box_size / 2;
+		draw_color = color_index;
+		hud_draw_depth_tested_box_corners(
+			screen_x - half_box_size, screen_y - half_box_size,
+			box_size, box_size, draw_color, depth);
 	}
 }
 
 /* Returns an object's size for target boxes: for a craft, the mean of its
- * model's three bound sizes shifted left by boundSizeShift; else its type's
- * maxBoundsExtent. */
+ * model's three bound sizes shifted left by bound_size_shift; else its type's
+ * max_bounds_extent. */
 // FUNCTION: XVT 0x483030
-int Targeting_GetObjectBoxExtent(unsigned int objectIdx)
+int targeting_get_object_box_extent(unsigned int object_idx)
 {
-	struct ObjectRecord *object;
-	struct MobileObject *mobileObject;
-	struct CraftData *craft;
-	unsigned int modelIndex;
-	int averageExtent;
+	struct object_record *object;
+	struct mobile_object *mobile_object;
+	struct craft_data *craft;
+	unsigned int model_index;
+	int average_extent;
 
-	object = &g_objectTable[objectIdx];
-	mobileObject = object->mobj;
-	if (mobileObject != 0) {
-		craft = mobileObject->pCraft;
+	object = &g_object_table[object_idx];
+	mobile_object = object->mobj;
+	if (mobile_object != 0) {
+		craft = mobile_object->p_craft;
 		if (craft != 0) {
-			modelIndex = craft->modelIndex;
-			averageExtent = g_modelDefs[modelIndex].boundSizeX;
-			averageExtent += g_modelDefs[modelIndex].boundSizeY;
-			averageExtent += g_modelDefs[modelIndex].boundSizeZ;
-			averageExtent /= 3;
-			return (int)((unsigned int)averageExtent
-				     << g_modelDefs[modelIndex].boundSizeShift);
+			model_index = craft->model_index;
+			average_extent = g_model_defs[model_index].bound_size_x;
+			average_extent +=
+				g_model_defs[model_index].bound_size_y;
+			average_extent +=
+				g_model_defs[model_index].bound_size_z;
+			average_extent /= 3;
+			return (int)((unsigned int)average_extent
+				     << g_model_defs[model_index]
+						.bound_size_shift);
 		}
 
-		return g_objectTypeTable[object->objectType].maxBoundsExtent;
+		return g_object_type_table[object->object_type]
+			.max_bounds_extent;
 	}
 
-	return g_objectTypeTable[object->objectType].maxBoundsExtent;
+	return g_object_type_table[object->object_type].max_bounds_extent;
 }
 
 /* Projects an object, a mission point reference (0x8000 and up, read from
- * flight group 0), or the center of the object's component componentIdx unless
+ * flight group 0), or the center of the object's component component_idx unless
  * that is UINT16_MAX, through the local player's camera. Always writes the view
- * depth to outViewZ; writes the screen position only when the depth is
- * positive. Writes g_worldLocX, g_worldLocY and g_worldLocZ. Only this file
+ * depth to out_view_z; writes the screen position only when the depth is
+ * positive. Writes g_world_loc_x, g_world_loc_y and g_world_loc_z. Only this file
  * calls it. */
 // FUNCTION: XVT 0x4830D0
-void Targeting_ProjectObjectOrMissionPoint(unsigned int objOrMissionPointRef,
-					   uint16_t componentIdx,
-					   int *outScreenX, int *outScreenY,
-					   int *outViewZ)
+void targeting_project_object_or_mission_point(
+	unsigned int obj_or_mission_point_ref, uint16_t component_idx,
+	int *out_screen_x, int *out_screen_y, int *out_view_z)
 {
-	int deltaX;
-	int deltaY;
-	int deltaZ;
-	int viewX;
-	int viewY;
-	int viewZ;
-	struct ObjectRecord *object;
-	int objectType;
-	int localFwd;
-	int localUp;
-	int localSide;
+	int delta_x;
+	int delta_y;
+	int delta_z;
+	int view_x;
+	int view_y;
+	int view_z;
+	struct object_record *object;
+	int object_type;
+	int local_fwd;
+	int local_up;
+	int local_side;
 
-	Mission_ResolveObjectOrMissionPointWorldLoc(objOrMissionPointRef, 0);
-	if (componentIdx != UINT16_MAX) {
-		object = &g_objectTable[objOrMissionPointRef];
-		objectType = object->objectType;
-		localFwd = ModelMesh_GetCenterY(objectType, componentIdx);
-		localFwd = -localFwd;
-		localUp = ModelMesh_GetCenterZ(objectType, componentIdx);
-		localSide = ModelMesh_GetCenterX(objectType, componentIdx);
+	mission_resolve_object_or_mission_point_world_loc(
+		obj_or_mission_point_ref, 0);
+	if (component_idx != UINT16_MAX) {
+		object = &g_object_table[obj_or_mission_point_ref];
+		object_type = object->object_type;
+		local_fwd = model_mesh_get_center_y(object_type, component_idx);
+		local_fwd = -local_fwd;
+		local_up = model_mesh_get_center_z(object_type, component_idx);
+		local_side =
+			model_mesh_get_center_x(object_type, component_idx);
 
-		pai_RotateLocalVectorToWorldScratch(object, localSide, localUp,
-						    localFwd);
-		g_worldLocX += g_rotatedX;
-		g_worldLocY += g_rotatedY;
-		g_worldLocZ += g_rotatedZ;
+		pai_rotate_local_vector_to_world_scratch(object, local_side,
+							 local_up, local_fwd);
+		g_world_loc_x += g_rotated_x;
+		g_world_loc_y += g_rotated_y;
+		g_world_loc_z += g_rotated_z;
 	}
 
-	deltaX = g_worldLocX - g_players[g_localPlayer].viewState.cameraWorldX;
-	deltaY = g_worldLocY - g_players[g_localPlayer].viewState.cameraWorldY;
-	deltaZ = g_worldLocZ - g_players[g_localPlayer].viewState.cameraWorldZ;
-	viewZ = TRANSFM2_CamMatDotRow2(deltaX, deltaY, deltaZ);
-	*outViewZ = viewZ;
-	if (viewZ > 0) {
-		viewX = TRANSFM2_CamMatDotRow0(deltaX, deltaY, deltaZ);
-		viewY = TRANSFM2_CamMatDotRow1(deltaX, deltaY, deltaZ);
-		*outScreenX = TRANSFM2_ProjectScreenX(viewX, viewZ);
-		*outScreenY = TRANSFM2_ProjectScreenY(viewY, viewZ);
+	delta_x = g_world_loc_x -
+		  g_players[g_local_player].view_state.camera_world_x;
+	delta_y = g_world_loc_y -
+		  g_players[g_local_player].view_state.camera_world_y;
+	delta_z = g_world_loc_z -
+		  g_players[g_local_player].view_state.camera_world_z;
+	view_z = transfm2_cam_mat_dot_row2(delta_x, delta_y, delta_z);
+	*out_view_z = view_z;
+	if (view_z > 0) {
+		view_x = transfm2_cam_mat_dot_row0(delta_x, delta_y, delta_z);
+		view_y = transfm2_cam_mat_dot_row1(delta_x, delta_y, delta_z);
+		*out_screen_x = transfm2_project_screen_x(view_x, view_z);
+		*out_screen_y = transfm2_project_screen_y(view_y, view_z);
 	}
 }
 
 /* Nothing calls this. Writes an object's projected size in pixels, seen from
- * cameraX, cameraY and cameraZ through the current camera matrix, to both
- * outWidth and outHeight: the craft model's mean bound size, or the type's
- * maxBoundsExtent, times g_projScaleInt over view depth, measured at 1/16 scale
+ * camera_x, camera_y and camera_z through the current camera matrix, to both
+ * out_width and out_height: the craft model's mean bound size, or the type's
+ * max_bounds_extent, times g_proj_scale_int over view depth, measured at 1/16 scale
  * within 0x80000 units and 1/256 beyond. Writes 0 for UINT16_MAX or an object
- * behind the camera. Writes g_worldLocX, g_worldLocY, g_worldLocZ and trig2's
+ * behind the camera. Writes g_world_loc_x, g_world_loc_y, g_world_loc_z and trig2's
  * polar results. */
 // FUNCTION: XVT 0x483220
-void Targeting_ComputeProjectedObjectExtent(uint16_t objectIdx,
-					    uint16_t *outWidth,
-					    uint16_t *outHeight, int cameraX,
-					    int cameraY, int cameraZ)
+void targeting_compute_projected_object_extent(uint16_t object_idx,
+					       uint16_t *out_width,
+					       uint16_t *out_height,
+					       int camera_x, int camera_y,
+					       int camera_z)
 {
-	int objectIndex;
-	int deltaX;
-	int deltaY;
-	int deltaZ;
-	uint16_t distanceShift;
-	int viewDepth;
-	struct MobileObject *mobileObject;
-	struct CraftData *craft;
-	int16_t averageExtent;
-	int maxBoundsExtent;
-	unsigned int projectedExtent;
+	int object_index;
+	int delta_x;
+	int delta_y;
+	int delta_z;
+	uint16_t distance_shift;
+	int view_depth;
+	struct mobile_object *mobile_object;
+	struct craft_data *craft;
+	int16_t average_extent;
+	int max_bounds_extent;
+	unsigned int projected_extent;
 
-	if (objectIdx == UINT16_MAX) {
-		*outWidth = 0;
-		*outHeight = 0;
+	if (object_idx == UINT16_MAX) {
+		*out_width = 0;
+		*out_height = 0;
 		return;
 	}
 
-	objectIndex = objectIdx;
-	g_worldLocX = g_objectTable[objectIndex].world_x;
-	g_worldLocY = g_objectTable[objectIndex].world_y;
-	g_worldLocZ = g_objectTable[objectIndex].world_z;
-	trig2_ctop(cameraX - g_worldLocX, cameraY - g_worldLocY,
-		   cameraZ - g_worldLocZ);
+	object_index = object_idx;
+	g_world_loc_x = g_object_table[object_index].world_x;
+	g_world_loc_y = g_object_table[object_index].world_y;
+	g_world_loc_z = g_object_table[object_index].world_z;
+	trig2_ctop(camera_x - g_world_loc_x, camera_y - g_world_loc_y,
+		   camera_z - g_world_loc_z);
 	if (trig2_polardistance < 0x80000) {
-		Mission_ResolveObjectOrMissionPointWorldLoc(objectIdx, 0);
-		deltaX = (g_worldLocX - cameraX) >> 4;
-		deltaY = (g_worldLocY - cameraY) >> 4;
-		deltaZ = (g_worldLocZ - cameraZ) >> 4;
-		distanceShift = 4;
+		mission_resolve_object_or_mission_point_world_loc(object_idx,
+								  0);
+		delta_x = (g_world_loc_x - camera_x) >> 4;
+		delta_y = (g_world_loc_y - camera_y) >> 4;
+		delta_z = (g_world_loc_z - camera_z) >> 4;
+		distance_shift = 4;
 	} else {
-		Mission_ResolveObjectOrMissionPointWorldLoc(objectIdx, 0);
-		deltaX = (g_worldLocX - cameraX) >> 8;
-		deltaY = (g_worldLocY - cameraY) >> 8;
-		deltaZ = (g_worldLocZ - cameraZ) >> 8;
-		distanceShift = 8;
+		mission_resolve_object_or_mission_point_world_loc(object_idx,
+								  0);
+		delta_x = (g_world_loc_x - camera_x) >> 8;
+		delta_y = (g_world_loc_y - camera_y) >> 8;
+		delta_z = (g_world_loc_z - camera_z) >> 8;
+		distance_shift = 8;
 	}
 
-	viewDepth = TRANSFM2_CamMatDotRow2((int16_t)deltaX, (int16_t)deltaY,
-					   (int16_t)deltaZ);
-	if (viewDepth <= 0) {
-		*outWidth = 0;
-		*outHeight = 0;
+	view_depth = transfm2_cam_mat_dot_row2(
+		(int16_t)delta_x, (int16_t)delta_y, (int16_t)delta_z);
+	if (view_depth <= 0) {
+		*out_width = 0;
+		*out_height = 0;
 		return;
 	}
 
-	mobileObject = g_objectTable[objectIndex].mobj;
-	if (mobileObject != 0 && (craft = mobileObject->pCraft) != 0) {
-		averageExtent = g_modelDefs[craft->modelIndex].boundSizeX;
-		averageExtent += g_modelDefs[craft->modelIndex].boundSizeY;
-		averageExtent += g_modelDefs[craft->modelIndex].boundSizeZ;
-		maxBoundsExtent =
-			(averageExtent / 3)
-			<< g_modelDefs[craft->modelIndex].boundSizeShift;
+	mobile_object = g_object_table[object_index].mobj;
+	if (mobile_object != 0 && (craft = mobile_object->p_craft) != 0) {
+		average_extent = g_model_defs[craft->model_index].bound_size_x;
+		average_extent += g_model_defs[craft->model_index].bound_size_y;
+		average_extent += g_model_defs[craft->model_index].bound_size_z;
+		max_bounds_extent =
+			(average_extent / 3)
+			<< g_model_defs[craft->model_index].bound_size_shift;
 	} else {
-		maxBoundsExtent =
-			g_objectTypeTable[g_objectTable[objectIndex].objectType]
-				.maxBoundsExtent;
+		max_bounds_extent =
+			g_object_type_table[g_object_table[object_index]
+						    .object_type]
+				.max_bounds_extent;
 	}
 
-	maxBoundsExtent >>= distanceShift;
-	projectedExtent =
-		g_projScaleInt * maxBoundsExtent / (unsigned int)viewDepth;
-	*outWidth = projectedExtent;
-	*outHeight = projectedExtent;
+	max_bounds_extent >>= distance_shift;
+	projected_extent =
+		g_proj_scale_int * max_bounds_extent / (unsigned int)view_depth;
+	*out_width = projected_extent;
+	*out_height = projected_extent;
 }

@@ -8,14 +8,14 @@
 extern "C" {
 #endif
 
-int MATH2_ABoverC32(int a, int b, int c);
-unsigned int MATH2_fraction(uint16_t value, uint16_t fracQ16);
-unsigned int MATH2_longfraction(unsigned int value, uint16_t fracQ16);
-uint16_t MATH2_ratioQ16(uint16_t numerator, uint16_t denominator);
-unsigned int MATH2_longratioQ16(unsigned int numerator,
-				unsigned int denominator);
-unsigned int MATH2_mphconvert(int16_t speed, uint16_t divisor);
-int16_t MATH2_getradarcoord(int side, int up, int forward);
+int math2_ab_over_c32(int a, int b, int c);
+unsigned int math2_fraction(uint16_t value, uint16_t frac_q16);
+unsigned int math2_longfraction(unsigned int value, uint16_t frac_q16);
+uint16_t math2_ratio_q16(uint16_t numerator, uint16_t denominator);
+unsigned int math2_longratio_q16(unsigned int numerator,
+				 unsigned int denominator);
+unsigned int math2_mphconvert(int16_t speed, uint16_t divisor);
+int16_t math2_getradarcoord(int side, int up, int forward);
 
 #ifdef __cplusplus
 }

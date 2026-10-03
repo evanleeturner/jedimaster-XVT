@@ -9,126 +9,126 @@
 #include <stdint.h>
 #include <string.h>
 
-/* Key of each entry of g_renderTextureCache, the address of the image data it
+/* Key of each entry of g_render_texture_cache, the address of the image data it
  * was made from; NULL for an unclaimed entry.
- * RenderTexture_FindOrAllocateCacheEntry writes it and clears it all when
- * g_renderTextureCacheCursor is -1. */
+ * render_texture_find_or_allocate_cache_entry writes it and clears it all when
+ * g_render_texture_cache_cursor is -1. */
 // GLOBAL: XVT 0xA68750
-const void *g_renderTextureCacheKeys[1024] = {0};
+const void *g_render_texture_cache_keys[1024] = {0};
 /* The hardware texture cache, 1024 entries found through
- * g_renderTextureCacheKeys by open addressing; std3D fills an entry when it
+ * g_render_texture_cache_keys by open addressing; std3D fills an entry when it
  * uploads a texture. */
 // GLOBAL: XVT 0xA69750
-struct Std3DTexCacheNode g_renderTextureCache[1024] = {0};
-/* Index of the cache entry RenderTexture_FindOrAllocateCacheEntry last
- * returned, 0 to 1023; -1, set by Renderer_InitD3DDevice, makes the next lookup
+struct std3d_tex_cache_node g_render_texture_cache[1024] = {0};
+/* Index of the cache entry render_texture_find_or_allocate_cache_entry last
+ * returned, 0 to 1023; -1, set by renderer_init_d3d_device, makes the next lookup
  * clear the cache. */
 // GLOBAL: XVT 0x52F864
-int g_renderTextureCacheCursor = 0;
-/* Buffer RenderTexture_GetOrCreateBitmap decodes a run-length image into, 8
+int g_render_texture_cache_cursor = 0;
+/* Buffer render_texture_get_or_create_bitmap decodes a run-length image into, 8
  * bits per pixel, up to 65536 pixels, before the upload. */
 // GLOBAL: XVT 0x52F8F0
-uint8_t g_renderTextureDecodeScratch[65536] = {0};
-/* Buffer RenderTexture_GetOrCreateColorKey copies an image into with its
+uint8_t g_render_texture_decode_scratch[65536] = {0};
+/* Buffer render_texture_get_or_create_color_key copies an image into with its
  * transparent pixels set to index 0, up to 65536 pixels, before the upload. */
 // GLOBAL: XVT 0x53F978
-uint8_t g_renderTextureColorKeyScratch[65536] = {0};
+uint8_t g_render_texture_color_key_scratch[65536] = {0};
 /* Mask of the run-length bits in a run byte, by run-length format 0 to 8:
  * (1 << format) - 1. */
 // GLOBAL: XVT 0x51A530
-const uint8_t g_bitmapRleRunLengthMaskByFormat[9] = {0,	 1,  3,	  7,  15,
-						     31, 63, 127, 255};
+const uint8_t g_bitmap_rle_run_length_mask_by_format[9] = {0,  1,  3,	7,  15,
+							   31, 63, 127, 255};
 /* Shift that takes the color offset out of a run byte, by run-length format 0
  * to 8: the format itself. */
 // GLOBAL: XVT 0x51A540
-const uint8_t g_bitmapRleColorIndexShiftByFormat[9] = {0, 1, 2, 3, 4,
-						       5, 6, 7, 8};
+const uint8_t g_bitmap_rle_color_index_shift_by_format[9] = {0, 1, 2, 3, 4,
+							     5, 6, 7, 8};
 
-/* Finds the texture cache entry keyed by cacheKey, an image's address, or
- * claims a free one for it. When g_renderTextureCacheCursor is -1 it first
- * clears the 1024 keys and every entry's bCached. It looks from slot
- * XvtPointerKey_LowBits(cacheKey) & 1023 onward, wrapping, for the key, then
- * from the same slot for an entry with bCached 0, records the key there and
- * returns that entry, leaving its index in g_renderTextureCacheCursor. When all
+/* Finds the texture cache entry keyed by cache_key, an image's address, or
+ * claims a free one for it. When g_render_texture_cache_cursor is -1 it first
+ * clears the 1024 keys and every entry's b_cached. It looks from slot
+ * xvt_pointer_key_low_bits(cache_key) & 1023 onward, wrapping, for the key, then
+ * from the same slot for an entry with b_cached 0, records the key there and
+ * returns that entry, leaving its index in g_render_texture_cache_cursor. When all
  * 1024 are cached it writes a line to the debug console with
- * DebugConsole_WriteText and returns the start slot's entry with its key
+ * debug_console_write_text and returns the start slot's entry with its key
  * unchanged. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4079F0
-struct Std3DTexCacheNode *
-RenderTexture_FindOrAllocateCacheEntry(const void *cacheKey)
+struct std3d_tex_cache_node *
+render_texture_find_or_allocate_cache_entry(const void *cache_key)
 {
-	int probeCount;
-	int hashSlot;
+	int probe_count;
+	int hash_slot;
 
-	if (g_renderTextureCacheCursor == -1) {
-		memset(g_renderTextureCacheKeys, 0,
-		       sizeof(g_renderTextureCacheKeys));
-		for (probeCount = 0; probeCount < 1024; ++probeCount) {
-			g_renderTextureCache[probeCount].bCached = 0;
+	if (g_render_texture_cache_cursor == -1) {
+		memset(g_render_texture_cache_keys, 0,
+		       sizeof(g_render_texture_cache_keys));
+		for (probe_count = 0; probe_count < 1024; ++probe_count) {
+			g_render_texture_cache[probe_count].b_cached = 0;
 		}
 	}
 
-	hashSlot = XvtPointerKey_LowBits(cacheKey) & 1023;
-	probeCount = 0;
-	g_renderTextureCacheCursor = hashSlot;
+	hash_slot = xvt_pointer_key_low_bits(cache_key) & 1023;
+	probe_count = 0;
+	g_render_texture_cache_cursor = hash_slot;
 	do {
-		if (g_renderTextureCacheKeys[g_renderTextureCacheCursor] ==
-		    cacheKey) {
+		if (g_render_texture_cache_keys
+			    [g_render_texture_cache_cursor] == cache_key) {
 			break;
 		}
-		++g_renderTextureCacheCursor;
-		if (g_renderTextureCacheCursor == 1024) {
-			g_renderTextureCacheCursor = 0;
+		++g_render_texture_cache_cursor;
+		if (g_render_texture_cache_cursor == 1024) {
+			g_render_texture_cache_cursor = 0;
 		}
-		++probeCount;
-	} while (probeCount < 1024);
-	if (probeCount == 1024) {
-		g_renderTextureCacheCursor = hashSlot;
-		for (probeCount = 0; probeCount < 1024; ++probeCount) {
-			if (g_renderTextureCache[g_renderTextureCacheCursor]
-				    .bCached == 0) {
+		++probe_count;
+	} while (probe_count < 1024);
+	if (probe_count == 1024) {
+		g_render_texture_cache_cursor = hash_slot;
+		for (probe_count = 0; probe_count < 1024; ++probe_count) {
+			if (g_render_texture_cache
+				    [g_render_texture_cache_cursor]
+					    .b_cached == 0) {
 				break;
 			}
-			++g_renderTextureCacheCursor;
-			if (g_renderTextureCacheCursor == 1024) {
-				g_renderTextureCacheCursor = 0;
+			++g_render_texture_cache_cursor;
+			if (g_render_texture_cache_cursor == 1024) {
+				g_render_texture_cache_cursor = 0;
 			}
 		}
-		if (probeCount == 1024) {
-			DebugConsole_WriteText(
+		if (probe_count == 1024) {
+			debug_console_write_text(
 				"\n\n\n\n\n\nRAN OUT OF MYCACHETEXTURES!!!\n");
-			return &g_renderTextureCache
-				[g_renderTextureCacheCursor];
+			return &g_render_texture_cache
+				[g_render_texture_cache_cursor];
 		}
 	}
 
-	g_renderTextureCacheKeys[g_renderTextureCacheCursor] = cacheKey;
-	return &g_renderTextureCache[g_renderTextureCacheCursor];
+	g_render_texture_cache_keys[g_render_texture_cache_cursor] = cache_key;
+	return &g_render_texture_cache[g_render_texture_cache_cursor];
 }
 
 /* Returns the hardware texture for a run-length image, decoding and uploading
  * it the first time. Returns NULL when width * height is over 65536 or
- * std3D_AddToTextureCache fails. An entry already cached for pixels is
- * refreshed with std3D_CacheTextureSurface and returned. Otherwise it decodes
- * into g_renderTextureDecodeScratch, 8 bits per pixel: each row runs to a 0xFE
+ * std3d_add_to_texture_cache fails. An entry already cached for pixels is
+ * refreshed with std3d_cache_texture_surface and returned. Otherwise it decodes
+ * into g_render_texture_decode_scratch, 8 bits per pixel: each row runs to a 0xFE
  * byte; 0xFB sets the color base from the next two bytes, low byte first; 0xFC
  * writes input[1] + 1 pixels of 0; 0xFD writes input[1] + 1 pixels of color
  * input[2]; any other byte writes (byte & mask) + 1 pixels of color
- * base + (byte >> shift), mask and shift taken by rleFormat from the two
+ * base + (byte >> shift), mask and shift taken by rle_format from the two
  * tables. Runs are cut at the row's width, short rows are filled with 0, and a
  * 0xFF at a row's start ends the image, the rest filled with 0. It sets
- * palette[0] to the 16-bit pixel of g_flightTransparentColorIndex and converts
- * colors 0 to the highest one used (std3D_ConvertPaletteTo1555 when the device
+ * palette[0] to the 16-bit pixel of g_flight_transparent_color_index and converts
+ * colors 0 to the highest one used (std3d_convert_palette_to1555 when the device
  * takes alpha textures and not color-key ones, else
- * std3D_CopyPaletteToScratch16) and uploads with color keying. While the device
+ * std3d_copy_palette_to_scratch16) and uploads with color keying. While the device
  * has color-key textures it turns its alpha-texture flag off for the call.
- * RenderQuad_DrawRotatedSprite is its only caller. */
+ * render_quad_draw_rotated_sprite is its only caller. */
 // FUNCTION: XVT 0x407AF0
-struct Std3DTexCacheNode *RenderTexture_GetOrCreateBitmap(int width, int height,
-							  uint16_t *palette,
-							  const uint8_t *pixels,
-							  int rleFormat)
+struct std3d_tex_cache_node *
+render_texture_get_or_create_bitmap(int width, int height, uint16_t *palette,
+				    const uint8_t *pixels, int rle_format)
 {
 	enum {
 		BITMAP_RLE_SET_COLOR_BASE = 0xFB,
@@ -140,168 +140,168 @@ struct Std3DTexCacheNode *RenderTexture_GetOrCreateBitmap(int width, int height,
 		MAX_BITMAP_PIXELS = 65536
 	};
 
-	struct Std3DTexCacheNode *node;
-	int padCount;
-	struct Std3DVBuffer source;
+	struct std3d_tex_cache_node *node;
+	int pad_count;
+	struct std3dv_buffer source;
 	uint8_t *output;
 	const uint8_t *input;
-	uint8_t *rowEnd;
+	uint8_t *row_end;
 	uint8_t color;
-	uint8_t runLength;
-	int colorBase;
-	unsigned int maxColor = 0;
+	uint8_t run_length;
+	int color_base;
+	unsigned int max_color = 0;
 	int row;
 	int column;
-	int oldAlphaTexture;
+	int old_alpha_texture;
 
 	if (width * height > MAX_BITMAP_PIXELS) {
-		DebugPrintf("Error: Bitmap too large! (%d,%d)\n", width,
-			    height);
+		debug_printf("Error: Bitmap too large! (%d,%d)\n", width,
+			     height);
 		return NULL;
 	}
 	input = pixels;
-	node = RenderTexture_FindOrAllocateCacheEntry(pixels);
-	if (node->bCached != 0) {
-		std3D_CacheTextureSurface(node);
+	node = render_texture_find_or_allocate_cache_entry(pixels);
+	if (node->b_cached != 0) {
+		std3d_cache_texture_surface(node);
 		return node;
 	}
-	output = g_renderTextureDecodeScratch;
-	colorBase = 0;
+	output = g_render_texture_decode_scratch;
+	color_base = 0;
 	for (row = 0; row < height; ++row) {
 		if (*input == BITMAP_RLE_END_IMAGE) {
 			break;
 		}
 		column = 0;
-		rowEnd = output + width;
+		row_end = output + width;
 		while (*input != BITMAP_RLE_END_ROW) {
 			if (*input == BITMAP_RLE_SET_COLOR_BASE) {
-				colorBase = input[1] + (input[2] << 8);
+				color_base = input[1] + (input[2] << 8);
 				input += 3;
 			} else if (*input == BITMAP_RLE_TRANSPARENT_RUN) {
-				runLength = input[1] + 1;
+				run_length = input[1] + 1;
 				input += 2;
 				if (column < width) {
-					column += runLength;
+					column += run_length;
 					if (width < column) {
-						column -= runLength;
-						runLength = (uint8_t)(width -
-								      column);
+						column -= run_length;
+						run_length = (uint8_t)(width -
+								       column);
 						column = width;
 					}
-					while (runLength-- != 0) {
+					while (run_length-- != 0) {
 						*output++ = 0;
 					}
 				}
 			} else {
 				if (*input == BITMAP_RLE_SOLID_RUN) {
-					runLength = input[1] + 1;
+					run_length = input[1] + 1;
 					color = input[2];
 					input += 3;
 				} else {
-					color = (uint8_t)(colorBase +
+					color = (uint8_t)(color_base +
 							  (*input >>
-							   g_bitmapRleColorIndexShiftByFormat
-								   [rleFormat]));
-					runLength =
+							   g_bitmap_rle_color_index_shift_by_format
+								   [rle_format]));
+					run_length =
 						(*input &
-						 g_bitmapRleRunLengthMaskByFormat
-							 [rleFormat]) +
+						 g_bitmap_rle_run_length_mask_by_format
+							 [rle_format]) +
 						1;
 					++input;
 				}
-				if (maxColor < color) {
-					maxColor = color;
+				if (max_color < color) {
+					max_color = color;
 				}
 				if (column < width) {
-					column += runLength;
+					column += run_length;
 					if (width < column) {
-						column -= runLength;
-						runLength = (uint8_t)(width -
-								      column);
+						column -= run_length;
+						run_length = (uint8_t)(width -
+								       column);
 						column = width;
 					}
-					while (runLength-- != 0) {
+					while (run_length-- != 0) {
 						*output++ = color;
 					}
 				}
 			}
 		}
 		++input;
-		if (output < rowEnd) {
-			padCount = rowEnd - output;
-			memset(output, 0, (size_t)padCount);
-			output += padCount;
+		if (output < row_end) {
+			pad_count = row_end - output;
+			memset(output, 0, (size_t)pad_count);
+			output += pad_count;
 		}
 	}
 	if (row < height) {
 		memset(output, 0, (size_t)width * (size_t)(height - row));
 	}
 	memset(&source, 0, sizeof(source));
-	source.storageType = 0;
+	source.storage_type = 0;
 	source.raster.width = (unsigned int)width;
 	source.raster.height = (unsigned int)height;
-	source.raster.rowPitch = (unsigned int)width;
-	source.pixels = g_renderTextureDecodeScratch;
+	source.raster.row_pitch = (unsigned int)width;
+	source.pixels = g_render_texture_decode_scratch;
 	source.raster.bpp = 8;
-	source.raster.colorMode = STDCOLOR_PAL;
-	oldAlphaTexture = g_pStd3DCurDevice->caps.bAlphaTexture;
-	if (g_pStd3DCurDevice->caps.bColorKeyTexture != 0) {
-		g_pStd3DCurDevice->caps.bAlphaTexture = 0;
+	source.raster.color_mode = STDCOLOR_PAL;
+	old_alpha_texture = g_p_std3d_cur_device->caps.b_alpha_texture;
+	if (g_p_std3d_cur_device->caps.b_color_key_texture != 0) {
+		g_p_std3d_cur_device->caps.b_alpha_texture = 0;
 	}
-	if (g_pStd3DCurDevice->caps.bAlphaTexture != 0) {
-		palette[0] =
-			g_flightPalette16Bpp[g_flightTransparentColorIndex];
-		std3D_ConvertPaletteTo1555(palette, (int)maxColor + 1);
+	if (g_p_std3d_cur_device->caps.b_alpha_texture != 0) {
+		palette[0] = g_flight_palette16_bpp
+			[g_flight_transparent_color_index];
+		std3d_convert_palette_to1555(palette, (int)max_color + 1);
 	} else {
-		palette[0] =
-			g_flightPalette16Bpp[g_flightTransparentColorIndex];
-		std3D_CopyPaletteToScratch16(palette, (int)maxColor + 1);
+		palette[0] = g_flight_palette16_bpp
+			[g_flight_transparent_color_index];
+		std3d_copy_palette_to_scratch16(palette, (int)max_color + 1);
 	}
-	if (std3D_AddToTextureCache(&source, node, 1, 0) == 0) {
-		DebugPrintf(
+	if (std3d_add_to_texture_cache(&source, node, 1, 0) == 0) {
+		debug_printf(
 			"AddToTextureCache returned NULL! (colorkey, (%d,%d))\n",
 			width, height);
-		if (g_pStd3DCurDevice->caps.bColorKeyTexture != 0) {
-			g_pStd3DCurDevice->caps.bAlphaTexture = oldAlphaTexture;
+		if (g_p_std3d_cur_device->caps.b_color_key_texture != 0) {
+			g_p_std3d_cur_device->caps.b_alpha_texture =
+				old_alpha_texture;
 		}
 		return NULL;
 	}
-	if (g_pStd3DCurDevice->caps.bColorKeyTexture != 0) {
-		g_pStd3DCurDevice->caps.bAlphaTexture = oldAlphaTexture;
+	if (g_p_std3d_cur_device->caps.b_color_key_texture != 0) {
+		g_p_std3d_cur_device->caps.b_alpha_texture = old_alpha_texture;
 	}
 	return node;
 }
 
 /* Returns the hardware texture for an 8-bit image drawn without transparency:
- * the cached entry for pixels, refreshed with std3D_CacheTextureSurface, or a
+ * the cached entry for pixels, refreshed with std3d_cache_texture_surface, or a
  * new upload of pixels with its 256 palette colors copied by
- * std3D_CopyPaletteToScratch16. Returns NULL when the upload fails. */
+ * std3d_copy_palette_to_scratch16. Returns NULL when the upload fails. */
 // FUNCTION: XVT 0x407E40
-struct Std3DTexCacheNode *
-RenderTexture_GetOrCreateOpaque(int width, int height, const uint16_t *palette,
-				const uint8_t *pixels)
+struct std3d_tex_cache_node *render_texture_get_or_create_opaque(
+	int width, int height, const uint16_t *palette, const uint8_t *pixels)
 {
 	enum { INDEXED_TEXTURE_BITS_PER_PIXEL = 8, PALETTE_COLOR_COUNT = 256 };
 
-	struct Std3DTexCacheNode *node;
-	struct Std3DVBuffer source;
+	struct std3d_tex_cache_node *node;
+	struct std3dv_buffer source;
 
-	node = RenderTexture_FindOrAllocateCacheEntry(pixels);
-	if (node->bCached != 0) {
-		std3D_CacheTextureSurface(node);
+	node = render_texture_find_or_allocate_cache_entry(pixels);
+	if (node->b_cached != 0) {
+		std3d_cache_texture_surface(node);
 		return node;
 	}
 	memset(&source, 0, sizeof(source));
 	source.pixels = (void *)pixels;
-	source.storageType = 0;
+	source.storage_type = 0;
 	source.raster.width = (unsigned int)width;
 	source.raster.height = (unsigned int)height;
-	source.raster.rowPitch = (unsigned int)width;
+	source.raster.row_pitch = (unsigned int)width;
 	source.raster.bpp = INDEXED_TEXTURE_BITS_PER_PIXEL;
-	source.raster.colorMode = STDCOLOR_PAL;
-	std3D_CopyPaletteToScratch16(palette, PALETTE_COLOR_COUNT);
-	if (std3D_AddToTextureCache(&source, node, 0, 0) == 0) {
-		DebugPrintf(
+	source.raster.color_mode = STDCOLOR_PAL;
+	std3d_copy_palette_to_scratch16(palette, PALETTE_COLOR_COUNT);
+	if (std3d_add_to_texture_cache(&source, node, 0, 0) == 0) {
+		debug_printf(
 			"AddToTextureCache returned NULL! (nokey (%d,%d))\n",
 			width, height);
 		return NULL;
@@ -311,94 +311,96 @@ RenderTexture_GetOrCreateOpaque(int width, int height, const uint16_t *palette,
 
 /* Returns the color-keyed hardware texture for an 8-bit image, cached under
  * pixels + 1 so it does not share the opaque texture's entry. It copies the
- * image into g_renderTextureColorKeyScratch, every pixel whose palette color is
+ * image into g_render_texture_color_key_scratch, every pixel whose palette color is
  * 0 becoming index 0 and every other pixel of index 0 becoming the index
  * palette[256] holds; returns NULL when no pixel is visible. For the upload
- * palette entry 0 is the 16-bit pixel of g_flightTransparentColorIndex and that
+ * palette entry 0 is the 16-bit pixel of g_flight_transparent_color_index and that
  * index holds the old color 0; the 256 colors are converted as in
- * RenderTexture_GetOrCreateBitmap. Afterwards palette[0] is put back and the
+ * render_texture_get_or_create_bitmap. Afterwards palette[0] is put back and the
  * moved entry set to 0. Returns NULL when the upload fails. Reads palette[256],
  * past the 256 colors. */
 // FUNCTION: XVT 0x407F10
-struct Std3DTexCacheNode *
-RenderTexture_GetOrCreateColorKey(int width, int height, uint16_t *palette,
-				  const uint8_t *pixels)
+struct std3d_tex_cache_node *
+render_texture_get_or_create_color_key(int width, int height, uint16_t *palette,
+				       const uint8_t *pixels)
 {
 	enum { INDEXED_TEXTURE_BITS_PER_PIXEL = 8, PALETTE_COLOR_COUNT = 256 };
 
-	struct Std3DTexCacheNode *node;
-	int pixelCount;
-	struct Std3DVBuffer source;
-	int transparentIndex;
-	int hasVisiblePixels;
-	int oldAlphaTexture;
-	int pixelIndex;
+	struct std3d_tex_cache_node *node;
+	int pixel_count;
+	struct std3dv_buffer source;
+	int transparent_index;
+	int has_visible_pixels;
+	int old_alpha_texture;
+	int pixel_index;
 
-	node = RenderTexture_FindOrAllocateCacheEntry(pixels + 1);
-	if (node->bCached != 0) {
-		std3D_CacheTextureSurface(node);
+	node = render_texture_find_or_allocate_cache_entry(pixels + 1);
+	if (node->b_cached != 0) {
+		std3d_cache_texture_surface(node);
 		return node;
 	}
 	memset(&source, 0, sizeof(source));
-	transparentIndex = palette[PALETTE_COLOR_COUNT];
-	hasVisiblePixels = 0;
-	pixelCount = width * height;
-	for (pixelIndex = 0; pixelIndex < pixelCount; ++pixelIndex) {
-		uint8_t colorIndex = *pixels++;
-		if (palette[colorIndex] == 0) {
-			g_renderTextureColorKeyScratch[pixelIndex] = 0;
+	transparent_index = palette[PALETTE_COLOR_COUNT];
+	has_visible_pixels = 0;
+	pixel_count = width * height;
+	for (pixel_index = 0; pixel_index < pixel_count; ++pixel_index) {
+		uint8_t color_index = *pixels++;
+		if (palette[color_index] == 0) {
+			g_render_texture_color_key_scratch[pixel_index] = 0;
 		} else {
-			hasVisiblePixels = 1;
-			if (colorIndex != 0) {
-				g_renderTextureColorKeyScratch[pixelIndex] =
-					colorIndex;
+			has_visible_pixels = 1;
+			if (color_index != 0) {
+				g_render_texture_color_key_scratch
+					[pixel_index] = color_index;
 			} else {
-				g_renderTextureColorKeyScratch[pixelIndex] =
-					(uint8_t)transparentIndex;
+				g_render_texture_color_key_scratch
+					[pixel_index] =
+						(uint8_t)transparent_index;
 			}
 		}
 	}
-	if (hasVisiblePixels == 0) {
+	if (has_visible_pixels == 0) {
 		return NULL;
 	}
-	source.storageType = 0;
+	source.storage_type = 0;
 	source.raster.width = (unsigned int)width;
 	source.raster.height = (unsigned int)height;
-	source.raster.rowPitch = (unsigned int)width;
-	source.raster.colorMode = STDCOLOR_PAL;
-	source.pixels = g_renderTextureColorKeyScratch;
+	source.raster.row_pitch = (unsigned int)width;
+	source.raster.color_mode = STDCOLOR_PAL;
+	source.pixels = g_render_texture_color_key_scratch;
 	source.raster.bpp = INDEXED_TEXTURE_BITS_PER_PIXEL;
-	oldAlphaTexture = g_pStd3DCurDevice->caps.bAlphaTexture;
-	if (g_pStd3DCurDevice->caps.bColorKeyTexture != 0) {
-		g_pStd3DCurDevice->caps.bAlphaTexture = 0;
+	old_alpha_texture = g_p_std3d_cur_device->caps.b_alpha_texture;
+	if (g_p_std3d_cur_device->caps.b_color_key_texture != 0) {
+		g_p_std3d_cur_device->caps.b_alpha_texture = 0;
 	}
-	if (g_pStd3DCurDevice->caps.bAlphaTexture != 0) {
-		palette[transparentIndex] = palette[0];
-		palette[0] =
-			g_flightPalette16Bpp[g_flightTransparentColorIndex];
-		std3D_ConvertPaletteTo1555(palette, PALETTE_COLOR_COUNT);
-		palette[0] = palette[transparentIndex];
-		palette[transparentIndex] = 0;
+	if (g_p_std3d_cur_device->caps.b_alpha_texture != 0) {
+		palette[transparent_index] = palette[0];
+		palette[0] = g_flight_palette16_bpp
+			[g_flight_transparent_color_index];
+		std3d_convert_palette_to1555(palette, PALETTE_COLOR_COUNT);
+		palette[0] = palette[transparent_index];
+		palette[transparent_index] = 0;
 	} else {
-		uint16_t *transparentColor = &palette[transparentIndex];
-		*transparentColor = palette[0];
-		palette[0] =
-			g_flightPalette16Bpp[g_flightTransparentColorIndex];
-		std3D_CopyPaletteToScratch16(palette, PALETTE_COLOR_COUNT);
-		palette[0] = *transparentColor;
-		*transparentColor = 0;
+		uint16_t *transparent_color = &palette[transparent_index];
+		*transparent_color = palette[0];
+		palette[0] = g_flight_palette16_bpp
+			[g_flight_transparent_color_index];
+		std3d_copy_palette_to_scratch16(palette, PALETTE_COLOR_COUNT);
+		palette[0] = *transparent_color;
+		*transparent_color = 0;
 	}
-	if (std3D_AddToTextureCache(&source, node, 1, 0) == 0) {
-		DebugPrintf(
+	if (std3d_add_to_texture_cache(&source, node, 1, 0) == 0) {
+		debug_printf(
 			"AlphaTex:AddToTextureCache returned NULL! (colorkey, (%d,%d))\n",
 			width, height);
-		if (g_pStd3DCurDevice->caps.bColorKeyTexture != 0) {
-			g_pStd3DCurDevice->caps.bAlphaTexture = oldAlphaTexture;
+		if (g_p_std3d_cur_device->caps.b_color_key_texture != 0) {
+			g_p_std3d_cur_device->caps.b_alpha_texture =
+				old_alpha_texture;
 		}
 		return NULL;
 	}
-	if (g_pStd3DCurDevice->caps.bColorKeyTexture != 0) {
-		g_pStd3DCurDevice->caps.bAlphaTexture = oldAlphaTexture;
+	if (g_p_std3d_cur_device->caps.b_color_key_texture != 0) {
+		g_p_std3d_cur_device->caps.b_alpha_texture = old_alpha_texture;
 	}
 	return node;
 }

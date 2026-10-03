@@ -8,10 +8,10 @@
 extern "C" {
 #endif
 
-int16_t FlightPlayer_HasDisabledSubsystem(void);
+int16_t flight_player_has_disabled_subsystem(void);
 void nullsub_8(const char *message);
-void FlightPlayer_IncreaseThrottleSpeed(int16_t step, int playerIdx);
-void FlightPlayer_DecreaseThrottleSpeed(int16_t step, int playerIdx);
+void flight_player_increase_throttle_speed(int16_t step, int player_idx);
+void flight_player_decrease_throttle_speed(int16_t step, int player_idx);
 
 #ifdef __cplusplus
 }

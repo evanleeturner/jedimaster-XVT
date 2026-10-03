@@ -6,8 +6,8 @@
 #include <math.h>
 #include <string.h>
 
-/* FS b1 — mirrors cbuffer PbrLightFS (scene_pbr_lighting.hlsli). */
-struct PbrLightFS {
+/* FS b1 — mirrors cbuffer pbr_light_fs (scene_pbr_lighting.hlsli). */
+struct pbr_light_fs {
 	float light_intensity;
 	float global_spec_mul;
 	float debug_isolate_term;
@@ -19,16 +19,16 @@ struct PbrLightFS {
 	float ssao_rt_h;
 	float ssao_direct;
 	float spec_geom_adapt;
-	float _pad_tuning;
-	float camera_pos_world[3], _pad0;
-	float directional_dir[3], _pad1; /* surface -> light */
-	float sun_color[3], _pad2;
-	float amb_pos_x[3], _pad3;
-	float amb_neg_x[3], _pad4;
-	float amb_pos_y[3], _pad5;
-	float amb_neg_y[3], _pad6;
-	float amb_pos_z[3], _pad7;
-	float amb_neg_z[3], _pad8;
+	float pad_tuning;
+	float camera_pos_world[3], pad0;
+	float directional_dir[3], pad1; /* surface -> light */
+	float sun_color[3], pad2;
+	float amb_pos_x[3], pad3;
+	float amb_neg_x[3], pad4;
+	float amb_pos_y[3], pad5;
+	float amb_neg_y[3], pad6;
+	float amb_pos_z[3], pad7;
+	float amb_neg_z[3], pad8;
 	/* Additional diffuse-only directionals (backdrop suns/planets;
 	 * the classic sums plain Lambert per light). */
 	float extra_dir[3][4];
@@ -42,14 +42,14 @@ struct PbrLightFS {
 	float environment_forward[4];
 };
 
-typedef char XvtPbrSizeCheck[sizeof(struct PbrLightFS) == 368 ? 1 : -1];
+typedef char xvt_pbr_size_check[sizeof(struct pbr_light_fs) == 368 ? 1 : -1];
 
-void XvtLighting_AddPoint(AeronScene3D *scene, const float position[3],
-			  const float color[3], float intensity,
-			  float minimum_range)
+void xvt_lighting_add_point(AeronScene3D *scene, const float position[3],
+			    const float color[3], float intensity,
+			    float minimum_range)
 {
-	const struct XvtPointLightSettings *p =
-		&XvtRemasterConfig_Effective()->point_lights;
+	const struct xvt_point_light_settings *p =
+		&xvt_remaster_config_effective()->point_lights;
 	if (!p->enabled || !(intensity > 0) || !isfinite(intensity) ||
 	    p->scale <= 0) {
 		return;
@@ -73,7 +73,7 @@ void XvtLighting_AddPoint(AeronScene3D *scene, const float position[3],
 	AeronScene_AddLight(scene, &light);
 }
 
-static float ExplosionIntensity(const struct XvtSnapObject *o)
+static float explosion_intensity(const struct xvt_snap_object *o)
 {
 	/* Original explosion curves with neutral legacy brightness, before receiver culling. */
 	static const uint16_t large[] = {16,  16,  192, 320, 480, 320,
@@ -98,7 +98,7 @@ static float ExplosionIntensity(const struct XvtSnapObject *o)
 	return (float)intensity * 8;
 }
 
-static float ProjectileLight(unsigned type, float color[3])
+static float projectile_light(unsigned type, float color[3])
 {
 	/* XWA's projectile policy, matched to XvT's actual object-type IDs. */
 	static const float rebel[3] = {1, .2f, 0};
@@ -161,10 +161,10 @@ static float ProjectileLight(unsigned type, float color[3])
 	return intensity;
 }
 
-static void Shadows(AeronScene3D *scene, const struct XvtRenderSnapshot *s)
+static void shadows(AeronScene3D *scene, const struct xvt_render_snapshot *s)
 {
 	const AeronSceneShadowSettings *p =
-		&XvtRemasterConfig_Effective()->scene.shadows;
+		&xvt_remaster_config_effective()->scene.shadows;
 	AeronSceneDirectionalShadowDesc d = {
 		.enabled = p->enabled && s->lighting.directional_enabled,
 		.atlas_size = p->atlas_size,
@@ -191,8 +191,8 @@ static void Shadows(AeronScene3D *scene, const struct XvtRenderSnapshot *s)
 		d.light_dir[c] = (float)s->lighting.direction_q15[c] / 32768;
 		length += d.light_dir[c] * d.light_dir[c];
 	}
-	struct XvtHyperLighting hyper;
-	if (XvtHyperspace_Lighting(scene, &hyper)) {
+	struct xvt_hyper_lighting hyper;
+	if (xvt_hyperspace_lighting(scene, &hyper)) {
 		memcpy(d.light_dir, hyper.direction, sizeof d.light_dir);
 		d.enabled = p->enabled;
 		length = 1;
@@ -207,11 +207,11 @@ static void Shadows(AeronScene3D *scene, const struct XvtRenderSnapshot *s)
 	AeronScene_SetDirectionalShadow(scene, &d);
 }
 
-int XvtLighting_Begin(AeronScene3D *scene, const struct XvtRenderSnapshot *s)
+int xvt_lighting_begin(AeronScene3D *scene, const struct xvt_render_snapshot *s)
 {
-	const struct XvtPointLightSettings *p =
-		&XvtRemasterConfig_Effective()->point_lights;
-	Shadows(scene, s);
+	const struct xvt_point_light_settings *p =
+		&xvt_remaster_config_effective()->point_lights;
+	shadows(scene, s);
 	if (!AeronScene_SetClusteredLights(
 		    scene,
 		    &(AeronSceneClusteredLightDesc){
@@ -226,14 +226,14 @@ int XvtLighting_Begin(AeronScene3D *scene, const struct XvtRenderSnapshot *s)
 		return 1;
 	}
 	for (unsigned i = 0; i < s->object_count; ++i) {
-		const struct XvtSnapObject *o = &s->objects[i];
+		const struct xvt_snap_object *o = &s->objects[i];
 		if (o->slot_class == XVT_SLOT_STATIC) {
 			continue;
 		}
 		float intensity = 0, color[3] = {1, 1, 1}, minimum_range = 1024,
 		      position[3];
 		if (o->genus == CRAFT_GENUS_EXPLOSION) {
-			intensity = ExplosionIntensity(o);
+			intensity = explosion_intensity(o);
 			/* OpenTIE's sRGB explosion color (0.9, 0.5, 0.2), converted to linear. */
 			color[0] = .7874123f;
 			color[1] = .2140411f;
@@ -241,25 +241,26 @@ int XvtLighting_Begin(AeronScene3D *scene, const struct XvtRenderSnapshot *s)
 			minimum_range = 0;
 		} else if (o->genus == CRAFT_GENUS_PLAYER_PROJECTILE ||
 			   o->genus == CRAFT_GENUS_OTHER_PROJECTILE) {
-			intensity = ProjectileLight(o->object_type, color);
+			intensity = projectile_light(o->object_type, color);
 		}
 		AeronWorld_LocalI32(s->camera.world_pos, o->world_pos,
 				    position);
-		XvtLighting_AddPoint(scene, position, color, intensity,
-				     minimum_range);
+		xvt_lighting_add_point(scene, position, color, intensity,
+				       minimum_range);
 	}
 	return 1;
 }
 
-void XvtRemasterShip_SetEnvironment(AeronScene3D *scene,
-				    const struct XvtSnapLighting *light,
-				    const struct XvtSnapCamera *eye_camera,
-				    const float position[3])
+void xvt_remaster_ship_set_environment(AeronScene3D *scene,
+				       const struct xvt_snap_lighting *light,
+				       const struct xvt_snap_camera *eye_camera,
+				       const float position[3])
 {
-	const struct XvtLightingSettings *settings =
-		&XvtRemasterConfig_Effective()->lighting;
-	struct PbrLightFS env = {0};
-	const struct XvtRenderSettings *config = XvtRemasterConfig_Effective();
+	const struct xvt_lighting_settings *settings =
+		&xvt_remaster_config_effective()->lighting;
+	struct pbr_light_fs env = {0};
+	const struct xvt_render_settings *config =
+		xvt_remaster_config_effective();
 	int width, height;
 	AeronScene_RenderDims(scene, &width, &height);
 	env.ssao_intensity = config->scene.ssao.ssao_quality
@@ -308,8 +309,8 @@ void XvtRemasterShip_SetEnvironment(AeronScene3D *scene,
 			env.directional_dir[i] /= length;
 		}
 	}
-	struct XvtHyperLighting hyper;
-	if (!eye_camera && XvtHyperspace_Lighting(scene, &hyper)) {
+	struct xvt_hyper_lighting hyper;
+	if (!eye_camera && xvt_hyperspace_lighting(scene, &hyper)) {
 		memcpy(env.directional_dir, hyper.direction,
 		       sizeof hyper.direction);
 		memcpy(env.sun_color, hyper.color, sizeof hyper.color);

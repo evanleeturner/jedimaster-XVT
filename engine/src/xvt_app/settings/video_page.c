@@ -8,10 +8,10 @@
 /* Draws the whole video page against one copy of the settings: every control edits that copy and marks
  * it changed, and the copy is sent once at the end, only if something changed. The sections stay in one
  * function so that cycle reads top to bottom instead of passing through a helper per section. */
-static void XvtVideoPage_DrawControls(AeronUiContext *ui)
+static void xvt_video_page_draw_controls(AeronUiContext *ui)
 {
-	struct XvtVideoSettings options;
-	XvtVideoOptions_Get(&options);
+	struct xvt_video_settings options;
+	xvt_video_options_get(&options);
 	bool changed = false;
 	AeronUi_Header(ui, "Display");
 	int fullscreen = options.fullscreen;
@@ -97,7 +97,7 @@ static void XvtVideoPage_DrawControls(AeronUiContext *ui)
 			   &options.cockpit_undither)) {
 		changed = true;
 	}
-	if (XvtHudAssets_UnditherPending(options.cockpit_undither)) {
+	if (xvt_hud_assets_undither_pending(options.cockpit_undither)) {
 		AeronUi_Help(
 			ui,
 			"This change will take effect on the next cockpit load.");
@@ -190,23 +190,23 @@ static void XvtVideoPage_DrawControls(AeronUiContext *ui)
 	}
 	if (changed) {
 		char error[512];
-		if (!XvtVideoOptions_Request(&options, error, sizeof error)) {
-			XvtSettingsMenu_ReportError(error);
+		if (!xvt_video_options_request(&options, error, sizeof error)) {
+			xvt_settings_menu_report_error(error);
 		}
 	}
 	AeronUi_Spacer(ui, 8.0f);
 	if (AeronUi_Button(ui, "Restore Defaults")) {
-		XvtVideoOptions_RestoreDefaults();
+		xvt_video_options_restore_defaults();
 	}
 }
 
-void XvtVideoPage_Draw(AeronUiContext *ui, const AeronInputSnapshot *input)
+void xvt_video_page_draw(AeronUiContext *ui, const AeronInputSnapshot *input)
 {
 	(void)input;
 	float height = AeronUi_AvailableHeight(ui) - 140;
 	if (AeronUi_BeginScroll(ui, "Video Settings",
 				height > 180 ? height : 180)) {
-		XvtVideoPage_DrawControls(ui);
+		xvt_video_page_draw_controls(ui);
 		AeronUi_EndScroll(ui);
 	}
 }

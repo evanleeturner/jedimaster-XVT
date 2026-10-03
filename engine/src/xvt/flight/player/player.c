@@ -35,52 +35,52 @@
 #include <string.h>
 
 /* Per player, countdown timers for HUD panes and redraws, in ticks.
- * Flight_UpdateTimers counts each down by g_elapsedTicks for participating
- * players; Player_BindToAvailableCraft zeroes a player's set. Many functions
+ * flight_update_timers counts each down by g_elapsed_ticks for participating
+ * players; player_bind_to_available_craft zeroes a player's set. Many functions
  * write them, chiefly in the HUD, message and collision code. */
 // GLOBAL: XVT 0x9D8B80
-struct PlayerFlightTransientTimers g_playerFlightTransientTimers[8];
+struct player_flight_transient_timers g_player_flight_transient_timers[8];
 /* Slot, 0 to 7, of the player at this machine. Two functions write it, both at
- * flight start from NetSession_FindPlayerSlotByDpid: Flight_MainLoop in the
- * original build and XvtFlightLoading_Globals in the modern one. */
+ * flight start from net_session_find_player_slot_by_dpid: flight_main_loop in the
+ * original build and xvt_flight_loading_globals in the modern one. */
 // GLOBAL: XVT 0x9ECC34
-int g_localPlayer;
+int g_local_player;
 /* Each player's flight state: the craft flown, targeting, saved settings,
  * mission tallies, camera and chat. Many functions write it. */
 // GLOBAL: XVT 0x9E9670
-struct PlayerData g_players[8];
+struct player_data g_players[8];
 /* Each player's four taunt lines, 70 bytes each, sent as chat by keys 155 to
- * 158. Alone, a player gets g_gameConfig.taunts; in multiplayer each slot holds
+ * 158. Alone, a player gets g_game_config.taunts; in multiplayer each slot holds
  * what arrived over the network. Written by
- * FlightNet_SyncPlayerOptionsAndTaunts in the original build and by
- * XvtFlightNetwork_ReadTaunts and XvtFlightNetwork_ExchangeOptions in the
+ * flight_net_sync_player_options_and_taunts in the original build and by
+ * xvt_flight_network_read_taunts and xvt_flight_network_exchange_options in the
  * modern one. */
 // GLOBAL: XVT 0x9D7800
-char g_playerTauntText[8][4][70] = {{{0}}};
+char g_player_taunt_text[8][4][70] = {{{0}}};
 
 /* Binds a player to one of their flight groups' craft that is not breaking up,
  * exploding or entering hyperspace: the one with signature
- * preferredObjectSignature when given and found, else the next after
- * previousObjectIdx, wrapping through the active region's craft slots. Returns
+ * preferred_object_signature when given and found, else the next after
+ * previous_object_idx, wrapping through the active region's craft slots. Returns
  * 1, changing nothing, when there is none; else 0. The craft becomes the
  * player's: laser banks and launchers reset, then the player's saved link
  * modes, warhead flags, shield distribution (the front bank's energy shared out
- * again, at most twice shieldStrength a bank) and recharge levels restored, and
- * the saved throttle when the signature matched or previousObjectIdx was given.
- * The player gets objectIndex and boundObjectSignature; loses hyperspace,
+ * again, at most twice shield_strength a bank) and recharge levels restored, and
+ * the saved throttle when the signature matched or previous_object_idx was given.
+ * The player gets object_index and bound_object_signature; loses hyperspace,
  * missile lock, the pending action and beam timers, input smoothing, key mods
  * and engine wash state; keeps the weapon selection only on a signature match;
- * and with resetTargetingState 1 gets the target box on and no target or
- * presets. When previousObjectIdx names an object, the craft's AI target
+ * and with reset_targeting_state 1 gets the target box on and no target or
+ * presets. When previous_object_idx names an object, the craft's AI target
  * becomes the player's target. The craft gets plan nullpln and no AI target;
  * the player's transient timers, hardpoint position, HUD aim and camera are
  * reset. The local player also gets the craft name redrawn and
- * FLIGHT_SOUND_BOMB_1. Ends with Flight_ComputeLiveWorldStateChecksum. */
+ * FLIGHT_SOUND_BOMB_1. Ends with flight_compute_live_world_state_checksum. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x45A1E0
-int Player_BindToAvailableCraft(int playerIdx, uint32_t previousObjectIdx,
-				int preferredObjectSignature,
-				int resetTargetingState)
+int player_bind_to_available_craft(int player_idx, uint32_t previous_object_idx,
+				   int preferred_object_signature,
+				   int reset_targeting_state)
 {
 	enum {
 		OBJECT_TYPE_NONE = 0,
@@ -96,40 +96,42 @@ int Player_BindToAvailableCraft(int playerIdx, uint32_t previousObjectIdx,
 		DEFAULT_CAMERA_DISTANCE = 1024,
 	};
 
-	struct CraftData *craft;
-	int selectedObjectIdx;
-	int objectsRemaining;
-	int foundCraft;
-	int matchedPreferredSignature;
+	struct craft_data *craft;
+	int selected_object_idx;
+	int objects_remaining;
+	int found_craft;
+	int matched_preferred_signature;
 
-	foundCraft = 0;
-	matchedPreferredSignature = 0;
-	if (preferredObjectSignature != 0) {
-		for (selectedObjectIdx = g_activeRegionObjectSlotStart;
-		     selectedObjectIdx < g_activeRegionCraftObjectSlotEnd;
-		     ++selectedObjectIdx) {
-			if (g_objectTable[selectedObjectIdx].objectType !=
+	found_craft = 0;
+	matched_preferred_signature = 0;
+	if (preferred_object_signature != 0) {
+		for (selected_object_idx = g_active_region_object_slot_start;
+		     selected_object_idx <
+		     g_active_region_craft_object_slot_end;
+		     ++selected_object_idx) {
+			if (g_object_table[selected_object_idx].object_type !=
 			    OBJECT_TYPE_NONE) {
-				uint8_t objectKind;
+				uint8_t object_kind;
 
-				objectKind = g_objectTable[selectedObjectIdx]
-						     .mobj->pCraft->objectKind;
-				if (g_missionFlightGroups
-					    [g_objectTable[selectedObjectIdx]
-						     .flightGroupIdx]
-						    .playerOwnerIdx ==
-				    playerIdx) {
-					if (objectKind !=
+				object_kind =
+					g_object_table[selected_object_idx]
+						.mobj->p_craft->object_kind;
+				if (g_mission_flight_groups
+					    [g_object_table[selected_object_idx]
+						     .flight_group_idx]
+						    .player_owner_idx ==
+				    player_idx) {
+					if (object_kind !=
 						    CRAFT_OBJECT_KIND_BREAKING_UP &&
-					    objectKind !=
+					    object_kind !=
 						    CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE &&
-					    objectKind !=
+					    object_kind !=
 						    CRAFT_OBJECT_KIND_EXPLODING &&
-					    g_objectTable[selectedObjectIdx]
-							    .objectSignature ==
-						    preferredObjectSignature) {
-						foundCraft = 1;
-						matchedPreferredSignature = 1;
+					    g_object_table[selected_object_idx]
+							    .object_signature ==
+						    preferred_object_signature) {
+						found_craft = 1;
+						matched_preferred_signature = 1;
 						break;
 					}
 				}
@@ -137,270 +139,281 @@ int Player_BindToAvailableCraft(int playerIdx, uint32_t previousObjectIdx,
 		}
 	}
 
-	if (foundCraft == 0) {
-		selectedObjectIdx = previousObjectIdx;
-		objectsRemaining = g_activeRegionCraftObjectSlotEnd -
-				   g_activeRegionObjectSlotStart;
-		while (objectsRemaining != 0) {
-			uint8_t objectKind;
+	if (found_craft == 0) {
+		selected_object_idx = previous_object_idx;
+		objects_remaining = g_active_region_craft_object_slot_end -
+				    g_active_region_object_slot_start;
+		while (objects_remaining != 0) {
+			uint8_t object_kind;
 
-			++selectedObjectIdx;
-			if (selectedObjectIdx >=
-			    g_activeRegionCraftObjectSlotEnd) {
-				selectedObjectIdx =
-					g_activeRegionObjectSlotStart;
+			++selected_object_idx;
+			if (selected_object_idx >=
+			    g_active_region_craft_object_slot_end) {
+				selected_object_idx =
+					g_active_region_object_slot_start;
 			}
-			if (g_objectTable[selectedObjectIdx].objectType !=
+			if (g_object_table[selected_object_idx].object_type !=
 			    OBJECT_TYPE_NONE) {
-				objectKind = g_objectTable[selectedObjectIdx]
-						     .mobj->pCraft->objectKind;
-				if (g_missionFlightGroups
-					    [g_objectTable[selectedObjectIdx]
-						     .flightGroupIdx]
-						    .playerOwnerIdx ==
-				    playerIdx) {
-					if (objectKind !=
+				object_kind =
+					g_object_table[selected_object_idx]
+						.mobj->p_craft->object_kind;
+				if (g_mission_flight_groups
+					    [g_object_table[selected_object_idx]
+						     .flight_group_idx]
+						    .player_owner_idx ==
+				    player_idx) {
+					if (object_kind !=
 						    CRAFT_OBJECT_KIND_BREAKING_UP &&
-					    objectKind !=
+					    object_kind !=
 						    CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE &&
-					    objectKind !=
+					    object_kind !=
 						    CRAFT_OBJECT_KIND_EXPLODING) {
 						break;
 					}
 				}
 			}
-			--objectsRemaining;
+			--objects_remaining;
 		}
-		if (objectsRemaining == 0) {
+		if (objects_remaining == 0) {
 			return 1;
 		}
 	}
 
-	g_objectTable[selectedObjectIdx].playerOwnerIdx = playerIdx;
-	g_objectTable[selectedObjectIdx].mobj->orientMatrixDirty = 1;
-	g_objectTable[selectedObjectIdx].mobj->moveVectorDirty = 1;
-	collide_ResetObjectProximityForSlot((uint16_t)selectedObjectIdx);
-	craft = g_objectTable[selectedObjectIdx].mobj->pCraft;
+	g_object_table[selected_object_idx].player_owner_idx = player_idx;
+	g_object_table[selected_object_idx].mobj->orient_matrix_dirty = 1;
+	g_object_table[selected_object_idx].mobj->move_vector_dirty = 1;
+	collide_reset_object_proximity_for_slot((uint16_t)selected_object_idx);
+	craft = g_object_table[selected_object_idx].mobj->p_craft;
 	{
-		int weaponBank;
+		int weapon_bank;
 
-		for (weaponBank = 0; weaponBank < WEAPON_BANK_COUNT;
-		     ++weaponBank) {
-			ModelIndex modelIndex;
+		for (weapon_bank = 0; weapon_bank < WEAPON_BANK_COUNT;
+		     ++weapon_bank) {
+			model_index model_index;
 
-			craft->laserState.linkMode[weaponBank] =
+			craft->laser_state.link_mode[weapon_bank] =
 				LASER_LINK_DEFAULT;
-			craft->laserState.burstRemaining[weaponBank] = 0;
-			craft->laserState.nextSlot[weaponBank] = 0;
-			craft->laserState.fireCooldownTicks[weaponBank] = 0;
-			craft->laserState.nextFireTimestamp[weaponBank] = 0;
-			modelIndex = GetModelIndexFromType(
-				g_objectTable[selectedObjectIdx].objectType);
-			if (craft->laserState.projectileTypeId[weaponBank] !=
+			craft->laser_state.burst_remaining[weapon_bank] = 0;
+			craft->laser_state.next_slot[weapon_bank] = 0;
+			craft->laser_state.fire_cooldown_ticks[weapon_bank] = 0;
+			craft->laser_state.next_fire_timestamp[weapon_bank] = 0;
+			model_index = get_model_index_from_type(
+				g_object_table[selected_object_idx]
+					.object_type);
+			if (craft->laser_state
+					    .projectile_type_id[weapon_bank] !=
 				    0 &&
-			    g_modelDefs[modelIndex]
-					    .laserGroupMountType[weaponBank] !=
+			    g_model_defs[model_index].laser_group_mount_type
+					    [weapon_bank] !=
 				    GUNNER_LASER_MOUNT_TYPE) {
-				craft->laserState.nextSlot[weaponBank] =
-					g_modelDefs[modelIndex]
-						.laserGroupFirstSlot
-							[weaponBank];
+				craft->laser_state.next_slot[weapon_bank] =
+					g_model_defs[model_index]
+						.laser_group_first_slot
+							[weapon_bank];
 			}
 		}
 	}
-	craft->laserState.linkMode[0] =
-		g_players[playerIdx].savedCraftSettings.laserLinkMode[0];
-	craft->laserState.linkMode[1] =
-		g_players[playerIdx].savedCraftSettings.laserLinkMode[1];
+	craft->laser_state.link_mode[0] =
+		g_players[player_idx].saved_craft_settings.laser_link_mode[0];
+	craft->laser_state.link_mode[1] =
+		g_players[player_idx].saved_craft_settings.laser_link_mode[1];
 	{
-		int launcherIndex;
+		int launcher_index;
 
-		for (launcherIndex = 0; launcherIndex < WEAPON_BANK_COUNT;
-		     ++launcherIndex) {
-			craft->warheadLauncherFlags[launcherIndex] =
-				(int8_t)((craft->warheadLauncherFlags
-						  [launcherIndex] &
+		for (launcher_index = 0; launcher_index < WEAPON_BANK_COUNT;
+		     ++launcher_index) {
+			craft->warhead_launcher_flags[launcher_index] =
+				(int8_t)((craft->warhead_launcher_flags
+						  [launcher_index] &
 					  WARHEAD_KEEP_SIDE_SELECT_MASK) |
 					 WARHEAD_LINK_DEFAULT);
-			craft->warheadLauncherCooldownTicks[launcherIndex] = 0;
+			craft->warhead_launcher_cooldown_ticks[launcher_index] =
+				0;
 		}
 	}
-	craft->warheadLauncherFlags[0] =
-		(int8_t)((craft->warheadLauncherFlags[0] &
+	craft->warhead_launcher_flags[0] =
+		(int8_t)((craft->warhead_launcher_flags[0] &
 			  WARHEAD_SAVED_STATE_PRESERVE_MASK) |
-			 g_players[playerIdx]
-				 .savedCraftSettings.warheadLauncherFlags[0]);
-	craft->warheadLauncherFlags[1] =
-		(int8_t)((craft->warheadLauncherFlags[1] &
+			 g_players[player_idx]
+				 .saved_craft_settings
+				 .warhead_launcher_flags[0]);
+	craft->warhead_launcher_flags[1] =
+		(int8_t)((craft->warhead_launcher_flags[1] &
 			  WARHEAD_SAVED_STATE_PRESERVE_MASK) |
-			 g_players[playerIdx]
-				 .savedCraftSettings.warheadLauncherFlags[1]);
-	craft->warheadLockTicks = 0;
+			 g_players[player_idx]
+				 .saved_craft_settings
+				 .warhead_launcher_flags[1]);
+	craft->warhead_lock_ticks = 0;
 	{
 		enum { FRONT_SHIELD = 0, REAR_SHIELD = 1 };
 
-		int maxShieldPerFace;
-		uint8_t shieldDistributionMode;
+		int max_shield_per_face;
+		uint8_t shield_distribution_mode;
 
-		maxShieldPerFace =
-			2 * g_modelDefs[craft->modelIndex].shieldStrength;
-		shieldDistributionMode =
-			g_players[playerIdx]
-				.savedCraftSettings.shieldDistribMode;
-		craft->shieldDistribMode = shieldDistributionMode;
-		switch (shieldDistributionMode) {
+		max_shield_per_face =
+			2 * g_model_defs[craft->model_index].shield_strength;
+		shield_distribution_mode =
+			g_players[player_idx]
+				.saved_craft_settings.shield_distrib_mode;
+		craft->shield_distrib_mode = shield_distribution_mode;
+		switch (shield_distribution_mode) {
 		case SHIELD_DISTRIBUTION_FULLY_FORWARD:
-			if (craft->shieldEnergy[FRONT_SHIELD] >
-			    maxShieldPerFace) {
-				craft->shieldEnergy[REAR_SHIELD] =
-					craft->shieldEnergy[FRONT_SHIELD] -
-					maxShieldPerFace;
-				craft->shieldEnergy[FRONT_SHIELD] =
-					maxShieldPerFace;
+			if (craft->shield_energy[FRONT_SHIELD] >
+			    max_shield_per_face) {
+				craft->shield_energy[REAR_SHIELD] =
+					craft->shield_energy[FRONT_SHIELD] -
+					max_shield_per_face;
+				craft->shield_energy[FRONT_SHIELD] =
+					max_shield_per_face;
 			}
 			break;
 		case SHIELD_DISTRIBUTION_EVEN:
-			craft->shieldEnergy[FRONT_SHIELD] >>= 1;
-			craft->shieldEnergy[REAR_SHIELD] =
-				craft->shieldEnergy[FRONT_SHIELD];
+			craft->shield_energy[FRONT_SHIELD] >>= 1;
+			craft->shield_energy[REAR_SHIELD] =
+				craft->shield_energy[FRONT_SHIELD];
 			break;
 		case SHIELD_DISTRIBUTION_FULLY_AFT:
-			craft->shieldEnergy[REAR_SHIELD] =
-				craft->shieldEnergy[FRONT_SHIELD];
-			craft->shieldEnergy[FRONT_SHIELD] = 0;
-			if (craft->shieldEnergy[REAR_SHIELD] >
-			    maxShieldPerFace) {
-				craft->shieldEnergy[FRONT_SHIELD] =
-					craft->shieldEnergy[REAR_SHIELD] -
-					maxShieldPerFace;
-				craft->shieldEnergy[REAR_SHIELD] =
-					maxShieldPerFace;
+			craft->shield_energy[REAR_SHIELD] =
+				craft->shield_energy[FRONT_SHIELD];
+			craft->shield_energy[FRONT_SHIELD] = 0;
+			if (craft->shield_energy[REAR_SHIELD] >
+			    max_shield_per_face) {
+				craft->shield_energy[FRONT_SHIELD] =
+					craft->shield_energy[REAR_SHIELD] -
+					max_shield_per_face;
+				craft->shield_energy[REAR_SHIELD] =
+					max_shield_per_face;
 			}
 			break;
 		}
 	}
-	craft->shieldRechargeLevel =
-		g_players[playerIdx].savedCraftSettings.shieldRechargeLevel;
-	craft->laserRechargeLevel =
-		g_players[playerIdx].savedCraftSettings.laserRechargeLevel;
-	craft->beamRechargeLevel =
-		g_players[playerIdx].savedCraftSettings.beamLevel;
+	craft->shield_recharge_level =
+		g_players[player_idx]
+			.saved_craft_settings.shield_recharge_level;
+	craft->laser_recharge_level =
+		g_players[player_idx].saved_craft_settings.laser_recharge_level;
+	craft->beam_recharge_level =
+		g_players[player_idx].saved_craft_settings.beam_level;
 
-	g_players[playerIdx].objectIndex = selectedObjectIdx;
-	g_players[playerIdx].boundObjectSignature =
-		g_objectTable[selectedObjectIdx].objectSignature;
-	g_players[playerIdx].awaitingNewCraft = 0;
-	g_players[playerIdx].hyperspacePhase = 0;
-	if (matchedPreferredSignature != 0 || previousObjectIdx != UINT32_MAX) {
-		craft->throttleSpeed =
-			g_players[playerIdx].savedCraftSettings.throttleSpeed;
+	g_players[player_idx].object_index = selected_object_idx;
+	g_players[player_idx].bound_object_signature =
+		g_object_table[selected_object_idx].object_signature;
+	g_players[player_idx].awaiting_new_craft = 0;
+	g_players[player_idx].hyperspace_phase = 0;
+	if (matched_preferred_signature != 0 ||
+	    previous_object_idx != UINT32_MAX) {
+		craft->throttle_speed =
+			g_players[player_idx]
+				.saved_craft_settings.throttle_speed;
 	}
-	if (matchedPreferredSignature == 0) {
-		g_players[playerIdx].selectedWeaponBank = 0;
-		g_players[playerIdx].selectedWeaponMode = 0;
+	if (matched_preferred_signature == 0) {
+		g_players[player_idx].selected_weapon_bank = 0;
+		g_players[player_idx].selected_weapon_mode = 0;
 	}
-	g_players[playerIdx].targetCycleStart = -1;
-	g_players[playerIdx].targetingState = -1;
-	g_players[playerIdx].selectedTargetComponent = 0;
-	if (resetTargetingState == 1) {
-		int16_t *targetPresetSlots;
+	g_players[player_idx].target_cycle_start = -1;
+	g_players[player_idx].targeting_state = -1;
+	g_players[player_idx].selected_target_component = 0;
+	if (reset_targeting_state == 1) {
+		int16_t *target_preset_slots;
 
-		g_players[playerIdx].targetBoxEnabled = 1;
-		g_players[playerIdx].currentTargetObjectIdx = -1;
-		targetPresetSlots = g_players[playerIdx].targetPresetSlot;
-		memset(targetPresetSlots, 0xFF,
-		       sizeof(g_players[playerIdx].targetPresetSlot));
+		g_players[player_idx].target_box_enabled = 1;
+		g_players[player_idx].current_target_object_idx = -1;
+		target_preset_slots = g_players[player_idx].target_preset_slot;
+		memset(target_preset_slots, 0xFF,
+		       sizeof(g_players[player_idx].target_preset_slot));
 	}
-	if (previousObjectIdx != UINT32_MAX &&
-	    g_objectTable[previousObjectIdx].mobj != NULL) {
-		uint16_t targetObjectIdx;
+	if (previous_object_idx != UINT32_MAX &&
+	    g_object_table[previous_object_idx].mobj != NULL) {
+		uint16_t target_object_idx;
 
-		g_players[playerIdx].currentTargetObjectIdx = -1;
-		targetObjectIdx = craft->aiController.targetObjIdx;
-		if (targetObjectIdx < TARGET_OBJECT_INDEX_LIMIT) {
-			g_players[playerIdx].currentTargetObjectIdx =
-				(int16_t)targetObjectIdx;
-			g_players[playerIdx].selectedTargetComponent = 0;
+		g_players[player_idx].current_target_object_idx = -1;
+		target_object_idx = craft->ai_controller.target_obj_idx;
+		if (target_object_idx < TARGET_OBJECT_INDEX_LIMIT) {
+			g_players[player_idx].current_target_object_idx =
+				(int16_t)target_object_idx;
+			g_players[player_idx].selected_target_component = 0;
 		}
 	}
-	if ((uint16_t)g_players[playerIdx].currentTargetObjectIdx ==
-	    selectedObjectIdx) {
-		g_players[playerIdx].currentTargetObjectIdx = -1;
+	if ((uint16_t)g_players[player_idx].current_target_object_idx ==
+	    selected_object_idx) {
+		g_players[player_idx].current_target_object_idx = -1;
 	}
-	Player_ValidateCurrentTargets(playerIdx);
-	g_players[playerIdx].missileLockState = 0;
-	craft->aiController.runningPlanId =
-		(uint8_t)pai_FindPlanIdByNameOrZero("nullpln");
-	craft->aiController.targetObjIdx = UINT16_MAX;
-	g_players[playerIdx].pendingActionTimer = 0;
-	g_players[playerIdx].beamFireCooldownTimer = 0;
-	g_players[playerIdx].yawRollSwap = 0;
-	g_players[playerIdx].smoothedInputYaw = 0;
-	g_players[playerIdx].smoothedInputPitch = 0;
-	g_players[playerIdx].savedKeyMods = 0;
-	g_players[playerIdx].keyModsHoldTimer = 0;
-	g_players[playerIdx].engineWashSourceObjIdx = -1;
-	memset(&g_playerFlightTransientTimers[playerIdx], 0,
-	       sizeof(g_playerFlightTransientTimers[playerIdx]));
+	player_validate_current_targets(player_idx);
+	g_players[player_idx].missile_lock_state = 0;
+	craft->ai_controller.running_plan_id =
+		(uint8_t)pai_find_plan_id_by_name_or_zero("nullpln");
+	craft->ai_controller.target_obj_idx = UINT16_MAX;
+	g_players[player_idx].pending_action_timer = 0;
+	g_players[player_idx].beam_fire_cooldown_timer = 0;
+	g_players[player_idx].yaw_roll_swap = 0;
+	g_players[player_idx].smoothed_input_yaw = 0;
+	g_players[player_idx].smoothed_input_pitch = 0;
+	g_players[player_idx].saved_key_mods = 0;
+	g_players[player_idx].key_mods_hold_timer = 0;
+	g_players[player_idx].engine_wash_source_obj_idx = -1;
+	memset(&g_player_flight_transient_timers[player_idx], 0,
+	       sizeof(g_player_flight_transient_timers[player_idx]));
 	{
-		ModelIndex modelIndex;
+		model_index model_index;
 
-		modelIndex = GetModelIndexFromType(
-			g_objectTable[g_players[playerIdx].objectIndex]
-				.objectType);
+		model_index = get_model_index_from_type(
+			g_object_table[g_players[player_idx].object_index]
+				.object_type);
 		pai_calcrotatedpoint(
-			&g_objectTable[g_players[playerIdx].objectIndex], 0,
-			g_modelDefs[modelIndex].primaryHardpointZ,
-			g_modelDefs[modelIndex].primaryHardpointY);
+			&g_object_table[g_players[player_idx].object_index], 0,
+			g_model_defs[model_index].primary_hardpoint_z,
+			g_model_defs[model_index].primary_hardpoint_y);
 	}
-	g_players[playerIdx].hardpointWorldX = g_rotatedX;
-	g_players[playerIdx].hardpointWorldY = g_rotatedY;
-	g_players[playerIdx].hardpointWorldZ = g_rotatedZ;
-	g_players[playerIdx].prevHardpointWorldX =
-		g_players[playerIdx].hardpointWorldX;
-	g_players[playerIdx].prevHardpointWorldY =
-		g_players[playerIdx].hardpointWorldY;
-	g_players[playerIdx].prevHardpointWorldZ =
-		g_players[playerIdx].hardpointWorldZ;
-	g_players[playerIdx].viewState.hudAimXSnapState = 0;
-	g_players[playerIdx].viewState.hudAimX = 0;
-	g_players[playerIdx].viewState.hudAimY = 0;
-	g_players[playerIdx].viewState.externalCameraActive = 0;
-	g_players[playerIdx].viewState.cameraDistance = DEFAULT_CAMERA_DISTANCE;
-	g_players[playerIdx].viewState.playerInputBlocked = 0;
-	g_players[playerIdx].viewState.targetCameraActive = 0;
-	g_players[playerIdx].viewState.cameraFocusObjIdx =
-		(uint16_t)g_players[playerIdx].objectIndex;
-	if (g_players[playerIdx].savedHudViewState == HUD_VIEW_HUD_ONLY) {
-		Hud_ForcePlayerViewState(HUD_VIEW_HUD_ONLY, playerIdx);
+	g_players[player_idx].hardpoint_world_x = g_rotated_x;
+	g_players[player_idx].hardpoint_world_y = g_rotated_y;
+	g_players[player_idx].hardpoint_world_z = g_rotated_z;
+	g_players[player_idx].prev_hardpoint_world_x =
+		g_players[player_idx].hardpoint_world_x;
+	g_players[player_idx].prev_hardpoint_world_y =
+		g_players[player_idx].hardpoint_world_y;
+	g_players[player_idx].prev_hardpoint_world_z =
+		g_players[player_idx].hardpoint_world_z;
+	g_players[player_idx].view_state.hud_aim_x_snap_state = 0;
+	g_players[player_idx].view_state.hud_aim_x = 0;
+	g_players[player_idx].view_state.hud_aim_y = 0;
+	g_players[player_idx].view_state.external_camera_active = 0;
+	g_players[player_idx].view_state.camera_distance =
+		DEFAULT_CAMERA_DISTANCE;
+	g_players[player_idx].view_state.player_input_blocked = 0;
+	g_players[player_idx].view_state.target_camera_active = 0;
+	g_players[player_idx].view_state.camera_focus_obj_idx =
+		(uint16_t)g_players[player_idx].object_index;
+	if (g_players[player_idx].saved_hud_view_state == HUD_VIEW_HUD_ONLY) {
+		hud_force_player_view_state(HUD_VIEW_HUD_ONLY, player_idx);
 	} else {
-		Hud_ForcePlayerViewState(HUD_VIEW_FORWARD, playerIdx);
+		hud_force_player_view_state(HUD_VIEW_FORWARD, player_idx);
 	}
-	if (playerIdx == g_localPlayer) {
-		Hud_DrawCraftNameFpsAndNetworkStatus();
-		fsfx_PlaySound(FLIGHT_SOUND_BOMB_1, -1, playerIdx);
+	if (player_idx == g_local_player) {
+		hud_draw_craft_name_fps_and_network_status();
+		fsfx_play_sound(FLIGHT_SOUND_BOMB_1, -1, player_idx);
 	}
-	Flight_ComputeLiveWorldStateChecksum();
+	flight_compute_live_world_state_checksum();
 	return 0;
 }
 
 /* Hands the player's craft back to the AI. Returns 0, changing nothing, when
- * requireMultipleCraft is 1 and the player owns at most one craft not breaking
+ * require_multiple_craft is 1 and the player owns at most one craft not breaking
  * up, exploding or entering hyperspace, or when the player has no craft; else
  * 1. Saves the craft settings, then clears the craft's owner, proximity lists,
  * laser bank state, launcher cooldowns and lock, sets its launchers to link
  * mode 1 keeping bit 7, and puts all its shield energy in the front bank.
  * Clears the player's craft, hyperspace, missile lock, input smoothing and
- * engine wash state. With assignAiPlan the craft takes its flight group's first
+ * engine wash state. With assign_ai_plan the craft takes its flight group's first
  * order: plan, throttle (0 for nullpln, the stationary plans and disabledpln,
  * 0x8000 for escortldr1pln) and speed, and the player's target as candidate
  * target when an order aims at it; otherwise plan nullpln and no steering.
- * currentOrderSlot and the plan ids are written to the craft g_curCraft points
+ * current_order_slot and the plan ids are written to the craft g_cur_craft points
  * at on entry, which is this craft only when the caller left it there;
- * g_curCraft ends at this craft. */
+ * g_cur_craft ends at this craft. */
 // FUNCTION: XVT 0x45A850
-int Player_UnbindFromCurrentCraft(int playerIndex, int requireMultipleCraft,
-				  int assignAiPlan)
+int player_unbind_from_current_craft(int player_index,
+				     int require_multiple_craft,
+				     int assign_ai_plan)
 {
 	enum {
 		MAX_OWNED_CRAFT_WITHOUT_REPLACEMENT = 1,
@@ -411,199 +424,210 @@ int Player_UnbindFromCurrentCraft(int playerIndex, int requireMultipleCraft,
 		ESCORT_THROTTLE_SPEED = 0x8000,
 	};
 
-	int objectIdx;
-	int laserBank;
-	struct CraftData *craft;
-	int launcherIndex;
+	int object_idx;
+	int laser_bank;
+	struct craft_data *craft;
+	int launcher_index;
 
-	if (requireMultipleCraft == 1) {
-		uint16_t ownedCraftCount;
-		int objectSlot;
+	if (require_multiple_craft == 1) {
+		uint16_t owned_craft_count;
+		int object_slot;
 
-		ownedCraftCount = 0;
-		for (objectSlot = g_activeRegionObjectSlotStart;
-		     objectSlot < g_activeRegionCraftObjectSlotEnd;
-		     ++objectSlot) {
-			if (g_objectTable[objectSlot].objectType != 0 &&
-			    g_missionFlightGroups[g_objectTable[objectSlot]
-							  .flightGroupIdx]
-					    .playerOwnerIdx == playerIndex &&
-			    g_objectTable[objectSlot]
-					    .mobj->pCraft->objectKind !=
+		owned_craft_count = 0;
+		for (object_slot = g_active_region_object_slot_start;
+		     object_slot < g_active_region_craft_object_slot_end;
+		     ++object_slot) {
+			if (g_object_table[object_slot].object_type != 0 &&
+			    g_mission_flight_groups[g_object_table[object_slot]
+							    .flight_group_idx]
+					    .player_owner_idx == player_index &&
+			    g_object_table[object_slot]
+					    .mobj->p_craft->object_kind !=
 				    CRAFT_OBJECT_KIND_BREAKING_UP &&
-			    g_objectTable[objectSlot]
-					    .mobj->pCraft->objectKind !=
+			    g_object_table[object_slot]
+					    .mobj->p_craft->object_kind !=
 				    CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE &&
-			    g_objectTable[objectSlot]
-					    .mobj->pCraft->objectKind !=
+			    g_object_table[object_slot]
+					    .mobj->p_craft->object_kind !=
 				    CRAFT_OBJECT_KIND_EXPLODING) {
-				++ownedCraftCount;
+				++owned_craft_count;
 			}
 		}
-		if (ownedCraftCount <= MAX_OWNED_CRAFT_WITHOUT_REPLACEMENT) {
+		if (owned_craft_count <= MAX_OWNED_CRAFT_WITHOUT_REPLACEMENT) {
 			return 0;
 		}
 	}
 
-	objectIdx = g_players[playerIndex].objectIndex;
-	if (objectIdx == -1) {
+	object_idx = g_players[player_index].object_index;
+	if (object_idx == -1) {
 		return 0;
 	}
 
-	g_objectTable[objectIdx].playerOwnerIdx = -1;
-	g_objectTable[objectIdx].mobj->orientMatrixDirty = 1;
-	g_objectTable[objectIdx].mobj->moveVectorDirty = 1;
-	collide_ResetNeighborProximityLists((uint16_t)objectIdx);
-	collide_ResetObjectProximityForSlot((uint16_t)objectIdx);
-	Player_SaveCraftSettings(playerIndex);
+	g_object_table[object_idx].player_owner_idx = -1;
+	g_object_table[object_idx].mobj->orient_matrix_dirty = 1;
+	g_object_table[object_idx].mobj->move_vector_dirty = 1;
+	collide_reset_neighbor_proximity_lists((uint16_t)object_idx);
+	collide_reset_object_proximity_for_slot((uint16_t)object_idx);
+	player_save_craft_settings(player_index);
 
-	craft = g_objectTable[objectIdx].mobj->pCraft;
-	for (laserBank = 0; laserBank < WEAPON_BANK_COUNT; ++laserBank) {
-		craft->laserState.linkMode[laserBank] = 0;
-		craft->laserState.burstRemaining[laserBank] = 0;
-		craft->laserState.nextSlot[laserBank] = 0;
-		craft->laserState.fireCooldownTicks[laserBank] = 0;
-		craft->laserState.nextFireTimestamp[laserBank] = 0;
+	craft = g_object_table[object_idx].mobj->p_craft;
+	for (laser_bank = 0; laser_bank < WEAPON_BANK_COUNT; ++laser_bank) {
+		craft->laser_state.link_mode[laser_bank] = 0;
+		craft->laser_state.burst_remaining[laser_bank] = 0;
+		craft->laser_state.next_slot[laser_bank] = 0;
+		craft->laser_state.fire_cooldown_ticks[laser_bank] = 0;
+		craft->laser_state.next_fire_timestamp[laser_bank] = 0;
 	}
-	for (launcherIndex = 0; launcherIndex < WEAPON_BANK_COUNT;
-	     ++launcherIndex) {
-		craft->warheadLauncherFlags[launcherIndex] =
-			(int8_t)((craft->warheadLauncherFlags[launcherIndex] &
+	for (launcher_index = 0; launcher_index < WEAPON_BANK_COUNT;
+	     ++launcher_index) {
+		craft->warhead_launcher_flags[launcher_index] =
+			(int8_t)((craft->warhead_launcher_flags
+					  [launcher_index] &
 				  WARHEAD_KEEP_SIDE_SELECT_MASK) |
 				 WARHEAD_LINK_DEFAULT);
-		craft->warheadLauncherCooldownTicks[launcherIndex] = 0;
+		craft->warhead_launcher_cooldown_ticks[launcher_index] = 0;
 	}
-	craft->warheadLockTicks = 0;
-	craft->shieldEnergy[0] += craft->shieldEnergy[1];
-	craft->shieldEnergy[1] = 0;
-	craft->shieldDistribMode = SHIELD_DISTRIBUTION_FULLY_FORWARD;
+	craft->warhead_lock_ticks = 0;
+	craft->shield_energy[0] += craft->shield_energy[1];
+	craft->shield_energy[1] = 0;
+	craft->shield_distrib_mode = SHIELD_DISTRIBUTION_FULLY_FORWARD;
 
-	g_players[playerIndex].objectIndex = -1;
-	g_players[playerIndex].awaitingNewCraft = 0;
-	g_players[playerIndex].hyperspacePhase = 0;
-	g_players[playerIndex].missileLockState = 0;
-	g_players[playerIndex].yawRollSwap = 0;
-	g_players[playerIndex].smoothedInputYaw = 0;
-	g_players[playerIndex].smoothedInputPitch = 0;
-	g_players[playerIndex].savedKeyMods = 0;
-	g_players[playerIndex].keyModsHoldTimer = 0;
-	g_players[playerIndex].engineWashSourceObjIdx = -1;
-	g_curCraft->aiController.currentOrderSlot = 0;
+	g_players[player_index].object_index = -1;
+	g_players[player_index].awaiting_new_craft = 0;
+	g_players[player_index].hyperspace_phase = 0;
+	g_players[player_index].missile_lock_state = 0;
+	g_players[player_index].yaw_roll_swap = 0;
+	g_players[player_index].smoothed_input_yaw = 0;
+	g_players[player_index].smoothed_input_pitch = 0;
+	g_players[player_index].saved_key_mods = 0;
+	g_players[player_index].key_mods_hold_timer = 0;
+	g_players[player_index].engine_wash_source_obj_idx = -1;
+	g_cur_craft->ai_controller.current_order_slot = 0;
 
-	if (assignAiPlan != 0) {
-		uint16_t planId = g_builtinPlanIdByNameIndex
-			[g_orderLeaderBuiltinPlanNameIndex
-				 [g_missionFlightGroups[g_objectTable[objectIdx]
-								.flightGroupIdx]
-					  .fg.orders[0]
-					  .order]];
-		const char *planName;
-		uint16_t throttleSpeed;
+	if (assign_ai_plan != 0) {
+		uint16_t plan_id = g_builtin_plan_id_by_name_index
+			[g_order_leader_builtin_plan_name_index
+				 [g_mission_flight_groups
+					  [g_object_table[object_idx]
+						   .flight_group_idx]
+						  .fg.orders[0]
+						  .order]];
+		const char *plan_name;
+		uint16_t throttle_speed;
 
-		g_curCraft->aiController.currentPlanId = planId;
-		g_curCraft->aiController.runningPlanId = planId;
-		planName = g_planTable[planId].name;
-		if (strcmp(planName, "nullpln") == 0 ||
-		    strcmp(planName, "stationaryldrpln") == 0 ||
-		    strcmp(planName, "stationaryflwpln") == 0 ||
-		    strcmp(planName, "disabledpln") == 0) {
-			throttleSpeed = 0;
-		} else if (strcmp(planName, "escortldr1pln") == 0) {
-			throttleSpeed = ESCORT_THROTTLE_SPEED;
+		g_cur_craft->ai_controller.current_plan_id = plan_id;
+		g_cur_craft->ai_controller.running_plan_id = plan_id;
+		plan_name = g_plan_table[plan_id].name;
+		if (strcmp(plan_name, "nullpln") == 0 ||
+		    strcmp(plan_name, "stationaryldrpln") == 0 ||
+		    strcmp(plan_name, "stationaryflwpln") == 0 ||
+		    strcmp(plan_name, "disabledpln") == 0) {
+			throttle_speed = 0;
+		} else if (strcmp(plan_name, "escortldr1pln") == 0) {
+			throttle_speed = ESCORT_THROTTLE_SPEED;
 		} else {
-			throttleSpeed = g_orderThrottleToCraftThrottleSpeed
-				[g_missionFlightGroups[g_objectTable[objectIdx]
-							       .flightGroupIdx]
-					 .fg.orders[0]
-					 .throttle];
+			throttle_speed =
+				g_order_throttle_to_craft_throttle_speed
+					[g_mission_flight_groups
+						 [g_object_table[object_idx]
+							  .flight_group_idx]
+							 .fg.orders[0]
+							 .throttle];
 		}
-		craft->throttleSpeed = throttleSpeed;
-		g_objectTable[objectIdx].mobj->speed = (uint16_t)MATH2_fraction(
-			g_modelDefs[craft->modelIndex].maxSpeed, throttleSpeed);
-		g_objectTable[objectIdx].mobj->speedRemainder = 0;
-		g_curCraft = craft;
-		pai_setupcraftcontext((uint16_t)objectIdx);
-		pai_ApplyRunningPlanTargetAndManeuver((unsigned int)objectIdx);
+		craft->throttle_speed = throttle_speed;
+		g_object_table[object_idx].mobj->speed =
+			(uint16_t)math2_fraction(
+				g_model_defs[craft->model_index].max_speed,
+				throttle_speed);
+		g_object_table[object_idx].mobj->speed_remainder = 0;
+		g_cur_craft = craft;
+		pai_setupcraftcontext((uint16_t)object_idx);
+		pai_apply_running_plan_target_and_maneuver(
+			(unsigned int)object_idx);
 
-		if (g_players[playerIndex].currentTargetObjectIdx != -1) {
-			int targetObjIdx = (uint16_t)g_players[playerIndex]
-						   .currentTargetObjectIdx;
-			if (g_activeRegionCraftObjectSlotEnd > targetObjIdx ||
-			    (g_regionMainObjectSlotEnd <= targetObjIdx &&
-			     g_regionMainObjectSlotEnd +
-					     g_regionStaticObjectSlotCount >
-				     targetObjIdx)) {
-				unsigned int orderSlot;
-				int targetMatchesOrder;
+		if (g_players[player_index].current_target_object_idx != -1) {
+			int target_obj_idx = (uint16_t)g_players[player_index]
+						     .current_target_object_idx;
+			if (g_active_region_craft_object_slot_end >
+				    target_obj_idx ||
+			    (g_region_main_object_slot_end <= target_obj_idx &&
+			     g_region_main_object_slot_end +
+					     g_region_static_object_slot_count >
+				     target_obj_idx)) {
+				unsigned int order_slot;
+				int target_matches_order;
 
-				targetMatchesOrder = 0;
-				for (orderSlot = 0;
-				     orderSlot < ORDER_SLOT_COUNT;
-				     ++orderSlot) {
-					g_paiContext.orderSlot =
-						(uint16_t)orderSlot;
-					if (pai_CurrentOrderTargetsMatchObject(
-						    (uint16_t)g_players[playerIndex]
-							    .currentTargetObjectIdx) !=
+				target_matches_order = 0;
+				for (order_slot = 0;
+				     order_slot < ORDER_SLOT_COUNT;
+				     ++order_slot) {
+					g_pai_context.order_slot =
+						(uint16_t)order_slot;
+					if (pai_current_order_targets_match_object(
+						    (uint16_t)g_players[player_index]
+							    .current_target_object_idx) !=
 					    0) {
-						targetMatchesOrder = 1;
+						target_matches_order = 1;
 					}
 				}
-				if (targetMatchesOrder != 0) {
-					craft->aiController.candidateTargetIdx =
-						(uint16_t)g_players[playerIndex]
-							.currentTargetObjectIdx;
+				if (target_matches_order != 0) {
+					craft->ai_controller
+						.candidate_target_idx =
+						(uint16_t)g_players[player_index]
+							.current_target_object_idx;
 				}
 			}
 		}
 	} else {
-		g_curCraft->aiController.runningPlanId =
-			(uint8_t)pai_FindPlanIdByNameOrZero("nullpln");
-		g_curCraft->aiController.currentPlanId =
-			g_curCraft->aiController.runningPlanId;
-		g_curCraft = craft;
-		pai_setupcraftcontext((uint16_t)objectIdx);
-		pai_ApplyRunningPlanTargetAndManeuver((unsigned int)objectIdx);
-		craft->aiFlight.rollState = 0;
-		craft->aiFlight.pitchState = 0;
-		craft->aiFlight.turnState = 0;
-		craft->aiFlight.climbState = 0;
-		craft->aiFlight.diveState = 0;
+		g_cur_craft->ai_controller.running_plan_id =
+			(uint8_t)pai_find_plan_id_by_name_or_zero("nullpln");
+		g_cur_craft->ai_controller.current_plan_id =
+			g_cur_craft->ai_controller.running_plan_id;
+		g_cur_craft = craft;
+		pai_setupcraftcontext((uint16_t)object_idx);
+		pai_apply_running_plan_target_and_maneuver(
+			(unsigned int)object_idx);
+		craft->ai_flight.roll_state = 0;
+		craft->ai_flight.pitch_state = 0;
+		craft->ai_flight.turn_state = 0;
+		craft->ai_flight.climb_state = 0;
+		craft->ai_flight.dive_state = 0;
 	}
 	return 1;
 }
 
 /* Copies the throttle, recharge levels, shield distribution, laser link modes
  * and the low two bits of each warhead launcher's flags from the player's craft
- * into savedCraftSettings. Does not check that the player has a craft. */
+ * into saved_craft_settings. Does not check that the player has a craft. */
 // FUNCTION: XVT 0x45ACD0
-void Player_SaveCraftSettings(int playerIndex)
+void player_save_craft_settings(int player_index)
 {
-	struct CraftData *craft;
+	struct craft_data *craft;
 
-	craft = g_objectTable[g_players[playerIndex].objectIndex].mobj->pCraft;
-	g_players[playerIndex].savedCraftSettings.throttleSpeed =
-		craft->throttleSpeed;
-	g_players[playerIndex].savedCraftSettings.laserRechargeLevel =
-		craft->laserRechargeLevel;
-	g_players[playerIndex].savedCraftSettings.shieldRechargeLevel =
-		craft->shieldRechargeLevel;
-	g_players[playerIndex].savedCraftSettings.beamLevel =
-		craft->beamRechargeLevel;
-	g_players[playerIndex].savedCraftSettings.shieldDistribMode =
-		craft->shieldDistribMode;
-	g_players[playerIndex].savedCraftSettings.laserLinkMode[0] =
-		craft->laserState.linkMode[0];
-	g_players[playerIndex].savedCraftSettings.laserLinkMode[1] =
-		craft->laserState.linkMode[1];
-	g_players[playerIndex].savedCraftSettings.warheadLauncherFlags[0] =
-		(uint8_t)(craft->warheadLauncherFlags[0] & 3);
-	g_players[playerIndex].savedCraftSettings.warheadLauncherFlags[1] =
-		(uint8_t)(craft->warheadLauncherFlags[1] & 3);
+	craft = g_object_table[g_players[player_index].object_index]
+			.mobj->p_craft;
+	g_players[player_index].saved_craft_settings.throttle_speed =
+		craft->throttle_speed;
+	g_players[player_index].saved_craft_settings.laser_recharge_level =
+		craft->laser_recharge_level;
+	g_players[player_index].saved_craft_settings.shield_recharge_level =
+		craft->shield_recharge_level;
+	g_players[player_index].saved_craft_settings.beam_level =
+		craft->beam_recharge_level;
+	g_players[player_index].saved_craft_settings.shield_distrib_mode =
+		craft->shield_distrib_mode;
+	g_players[player_index].saved_craft_settings.laser_link_mode[0] =
+		craft->laser_state.link_mode[0];
+	g_players[player_index].saved_craft_settings.laser_link_mode[1] =
+		craft->laser_state.link_mode[1];
+	g_players[player_index].saved_craft_settings.warhead_launcher_flags[0] =
+		(uint8_t)(craft->warhead_launcher_flags[0] & 3);
+	g_players[player_index].saved_craft_settings.warhead_launcher_flags[1] =
+		(uint8_t)(craft->warhead_launcher_flags[1] & 3);
 }
 
 /* Turns one player's stick input into craft rotation or camera movement, after
- * FlightInput_ApplyDeadzone, doubling g_scaledInputPitch. In the cockpit (input
+ * flight_input_apply_deadzone, doubling g_scaled_input_pitch. In the cockpit (input
  * not blocked, no map camera) and outside hyperspace, the model's roll and
  * pitch rates scale with throttle (a third at a stop, full at a third of full
  * throttle, two thirds at full; a craft without engines counts as stopped) and
@@ -611,19 +635,19 @@ void Player_SaveCraftSettings(int playerIndex)
  * below 4 adds 0xC00 / 65536 of the rate, each level above takes as much
  * (lasers count twice without shields). The input sets a desired yaw and pitch,
  * zero when flight controls are out or a tractor beam holds the craft without
- * chaff; smoothedInputYaw and smoothedInputPitch move toward them, and the
+ * chaff; smoothed_input_yaw and smoothed_input_pitch move toward them, and the
  * steps, scaled by elapsed ticks, turn the craft through
- * Player_ApplyPitchYawSteps, yaw also rolling it. With the roll modifier key
- * (g_flightKeyMods & 0xE is 2) yaw input rolls the craft at twice the step
- * instead; the modern build takes that roll from XvtFlightControls_RollStep. In
+ * player_apply_pitch_yaw_steps, yaw also rolling it. With the roll modifier key
+ * (g_flight_key_mods & 0xE is 2) yaw input rolls the craft at twice the step
+ * instead; the modern build takes that roll from xvt_flight_controls_roll_step. In
  * hyperspace nothing turns. With input blocked or a map camera, it drives the
- * camera: steps the map camera's transition in mapCameraState, pans the map
- * camera or moves the HUD aim or view by input, and with g_flightKeyMods & 0xF
- * of 1 or 2 moves the camera in or out by cameraDistanceStep; otherwise it
- * shrinks cameraDistanceStep back to 32. The modern build's unlocked timing
+ * camera: steps the map camera's transition in map_camera_state, pans the map
+ * camera or moves the HUD aim or view by input, and with g_flight_key_mods & 0xF
+ * of 1 or 2 moves the camera in or out by camera_distance_step; otherwise it
+ * shrinks camera_distance_step back to 32. The modern build's unlocked timing
  * scales the steps with XvtPlayerTiming instead. */
 // FUNCTION: XVT 0x480570
-void Player_UpdateFlightControlsAndCamera(int playerIdx)
+void player_update_flight_controls_and_camera(int player_idx)
 {
 	enum {
 		BASE_THROTTLE_SCALE = 0x5555,
@@ -655,1727 +679,1797 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx)
 		CAMERA_WORLD_LIMIT = 0x1000000,
 	};
 
-	struct CraftData *craft;
-	struct MobileObject *mobileObject;
-	struct ObjectRecord *targetObject;
-	int16_t desiredYaw;
+	struct craft_data *craft;
+	struct mobile_object *mobile_object;
+	struct object_record *target_object;
+	int16_t desired_yaw;
 #ifdef XVT_MODERN
-	int16_t independentRollStep;
-	int16_t modernDistanceStep;
-	int16_t previousDistanceStep;
+	int16_t independent_roll_step;
+	int16_t modern_distance_step;
+	int16_t previous_distance_step;
 #endif
-	int16_t desiredPitch;
-	int16_t yawStep;
-	int16_t pitchStep;
-	int16_t smoothedInput;
-	int16_t inputDifference;
-	int16_t smoothingStep;
-	int16_t absoluteYaw;
-	int16_t absolutePitch;
-	int16_t *cameraDistanceStep;
-	int16_t powerBalance;
-	int16_t rechargeLevelTotal;
-	int16_t laserRechargeLevel;
-	uint16_t throttleScale;
-	uint16_t rollRate;
-	uint16_t pitchRate;
-	uint16_t segmentCount;
-	uint16_t segmentFraction;
-	uint16_t inputMagnitude;
-	uint16_t powerScale;
-	int16_t transitionMagnitude;
-	uint16_t keyMode;
-	uint16_t cameraKeyMode;
-	uint8_t cameraState;
-	int targetClearance;
+	int16_t desired_pitch;
+	int16_t yaw_step;
+	int16_t pitch_step;
+	int16_t smoothed_input;
+	int16_t input_difference;
+	int16_t smoothing_step;
+	int16_t absolute_yaw;
+	int16_t absolute_pitch;
+	int16_t *camera_distance_step;
+	int16_t power_balance;
+	int16_t recharge_level_total;
+	int16_t laser_recharge_level;
+	uint16_t throttle_scale;
+	uint16_t roll_rate;
+	uint16_t pitch_rate;
+	uint16_t segment_count;
+	uint16_t segment_fraction;
+	uint16_t input_magnitude;
+	uint16_t power_scale;
+	int16_t transition_magnitude;
+	uint16_t key_mode;
+	uint16_t camera_key_mode;
+	uint8_t camera_state;
+	int target_clearance;
 	int distance;
 	int movement;
-	int cameraScaleX, cameraScaleY, cameraScaleZ;
-	int clearanceScaleX, clearanceScaleY, clearanceScaleZ;
-	int reverseScaleX, reverseScaleY, reverseScaleZ;
-	int cameraMovementX, cameraMovementY, cameraMovementZ;
-	int clearanceMovementX, clearanceMovementY, clearanceMovementZ;
-	int reverseMovementX, reverseMovementY, reverseMovementZ;
+	int camera_scale_x, camera_scale_y, camera_scale_z;
+	int clearance_scale_x, clearance_scale_y, clearance_scale_z;
+	int reverse_scale_x, reverse_scale_y, reverse_scale_z;
+	int camera_movement_x, camera_movement_y, camera_movement_z;
+	int clearance_movement_x, clearance_movement_y, clearance_movement_z;
+	int reverse_movement_x, reverse_movement_y, reverse_movement_z;
 
 #ifdef XVT_MODERN
-	XvtPlayerTiming_BeginControls(playerIdx);
+	xvt_player_timing_begin_controls(player_idx);
 #endif
-	FlightInput_ApplyDeadzone();
-	g_scaledInputPitch *= 2;
-	if (g_players[playerIdx].viewState.playerInputBlocked == 0 &&
-	    g_players[playerIdx].mapCameraState == 0) {
-		if (g_players[playerIdx].hyperspacePhase == 0) {
-			mobileObject =
-				g_objectTable[g_players[playerIdx].objectIndex]
-					.mobj;
-			craft = mobileObject->pCraft;
-			throttleScale = craft->throttleSpeed;
-			if ((craft->workingSubsystems &
+	flight_input_apply_deadzone();
+	g_scaled_input_pitch *= 2;
+	if (g_players[player_idx].view_state.player_input_blocked == 0 &&
+	    g_players[player_idx].map_camera_state == 0) {
+		if (g_players[player_idx].hyperspace_phase == 0) {
+			mobile_object = g_object_table[g_players[player_idx]
+							       .object_index]
+						.mobj;
+			craft = mobile_object->p_craft;
+			throttle_scale = craft->throttle_speed;
+			if ((craft->working_subsystems &
 			     CRAFT_SUBSYSTEM_FLAG_ENGINES) == 0) {
-				throttleScale = 0;
+				throttle_scale = 0;
 			}
-			if (throttleScale < BASE_THROTTLE_SCALE) {
-				throttleScale = (uint16_t)(2 * throttleScale +
-							   BASE_THROTTLE_SCALE);
+			if (throttle_scale < BASE_THROTTLE_SCALE) {
+				throttle_scale =
+					(uint16_t)(2 * throttle_scale +
+						   BASE_THROTTLE_SCALE);
 			} else {
-				throttleScale =
+				throttle_scale =
 					(uint16_t)((BASE_THROTTLE_SCALE -
-						    throttleScale) /
+						    throttle_scale) /
 							   2 -
 						   1);
 			}
 
-			laserRechargeLevel = (uint8_t)craft->laserRechargeLevel;
-			if ((craft->systemFlags &
+			laser_recharge_level =
+				(uint8_t)craft->laser_recharge_level;
+			if ((craft->system_flags &
 			     CRAFT_SUBSYSTEM_FLAG_SHIELDS) != 0) {
-				rechargeLevelTotal =
+				recharge_level_total =
 					(int16_t)((uint8_t)craft
-							  ->shieldRechargeLevel +
-						  laserRechargeLevel);
+							  ->shield_recharge_level +
+						  laser_recharge_level);
 			} else {
-				rechargeLevelTotal =
-					(int16_t)(2 * laserRechargeLevel);
+				recharge_level_total =
+					(int16_t)(2 * laser_recharge_level);
 			}
-			powerBalance = (int16_t)(POWER_RECHARGE_NEUTRAL_TOTAL -
-						 rechargeLevelTotal);
-			if (powerBalance < 0) {
-				powerScale = (uint16_t)(-POWER_BALANCE_SCALE *
-							powerBalance);
+			power_balance = (int16_t)(POWER_RECHARGE_NEUTRAL_TOTAL -
+						  recharge_level_total);
+			if (power_balance < 0) {
+				power_scale = (uint16_t)(-POWER_BALANCE_SCALE *
+							 power_balance);
 			} else {
-				powerScale = (uint16_t)(POWER_BALANCE_SCALE *
-							powerBalance);
+				power_scale = (uint16_t)(POWER_BALANCE_SCALE *
+							 power_balance);
 			}
-			rollRate = (uint16_t)MATH2_fraction(
-				craft->aiFlight.rollRate, throttleScale);
-			if (powerBalance > 0) {
-				rollRate =
-					(uint16_t)(rollRate +
-						   MATH2_fraction(rollRate,
-								  powerScale));
+			roll_rate = (uint16_t)math2_fraction(
+				craft->ai_flight.roll_rate, throttle_scale);
+			if (power_balance > 0) {
+				roll_rate =
+					(uint16_t)(roll_rate +
+						   math2_fraction(roll_rate,
+								  power_scale));
 			} else {
-				rollRate =
-					(uint16_t)(rollRate -
-						   MATH2_fraction(rollRate,
-								  powerScale));
+				roll_rate =
+					(uint16_t)(roll_rate -
+						   math2_fraction(roll_rate,
+								  power_scale));
 			}
-			segmentCount = rollRate / ROLL_RATE_SEGMENT;
-			segmentFraction = (uint16_t)MATH2_ratioQ16(
-				rollRate % ROLL_RATE_SEGMENT,
+			segment_count = roll_rate / ROLL_RATE_SEGMENT;
+			segment_fraction = (uint16_t)math2_ratio_q16(
+				roll_rate % ROLL_RATE_SEGMENT,
 				ROLL_RATE_SEGMENT);
-			inputMagnitude = (uint16_t)g_scaledInputYaw;
-			if (inputMagnitude >= 0x8000u) {
-				inputMagnitude = (uint16_t)-g_scaledInputYaw;
+			input_magnitude = (uint16_t)g_scaled_input_yaw;
+			if (input_magnitude >= 0x8000u) {
+				input_magnitude = (uint16_t)-g_scaled_input_yaw;
 			}
-			desiredYaw = (int16_t)(MATH2_fraction(inputMagnitude,
-							      segmentFraction) +
-					       inputMagnitude * segmentCount);
-			if ((uint16_t)g_scaledInputYaw >= 0x8000u) {
-				desiredYaw = (int16_t)-desiredYaw;
+			desired_yaw =
+				(int16_t)(math2_fraction(input_magnitude,
+							 segment_fraction) +
+					  input_magnitude * segment_count);
+			if ((uint16_t)g_scaled_input_yaw >= 0x8000u) {
+				desired_yaw = (int16_t)-desired_yaw;
 			}
-			g_absScaledInputYaw = g_scaledInputYaw;
-			if ((uint16_t)g_scaledInputYaw >= 0x8000u) {
-				g_absScaledInputYaw =
-					(int16_t)-g_scaledInputYaw;
+			g_abs_scaled_input_yaw = g_scaled_input_yaw;
+			if ((uint16_t)g_scaled_input_yaw >= 0x8000u) {
+				g_abs_scaled_input_yaw =
+					(int16_t)-g_scaled_input_yaw;
 			}
 
-			pitchRate = (uint16_t)MATH2_fraction(
-				craft->aiFlight.pitchRate, throttleScale);
-			if (powerBalance > 0) {
-				pitchRate =
-					(uint16_t)(pitchRate +
-						   MATH2_fraction(pitchRate,
-								  powerScale));
+			pitch_rate = (uint16_t)math2_fraction(
+				craft->ai_flight.pitch_rate, throttle_scale);
+			if (power_balance > 0) {
+				pitch_rate =
+					(uint16_t)(pitch_rate +
+						   math2_fraction(pitch_rate,
+								  power_scale));
 			} else {
-				pitchRate =
-					(uint16_t)(pitchRate -
-						   MATH2_fraction(pitchRate,
-								  powerScale));
+				pitch_rate =
+					(uint16_t)(pitch_rate -
+						   math2_fraction(pitch_rate,
+								  power_scale));
 			}
-			segmentCount = pitchRate / PITCH_RATE_SEGMENT;
-			segmentFraction = (uint16_t)MATH2_ratioQ16(
-				pitchRate % PITCH_RATE_SEGMENT,
+			segment_count = pitch_rate / PITCH_RATE_SEGMENT;
+			segment_fraction = (uint16_t)math2_ratio_q16(
+				pitch_rate % PITCH_RATE_SEGMENT,
 				PITCH_RATE_SEGMENT);
-			inputMagnitude = (uint16_t)g_scaledInputPitch;
-			if (inputMagnitude >= 0x8000u) {
-				inputMagnitude = (uint16_t)-g_scaledInputPitch;
+			input_magnitude = (uint16_t)g_scaled_input_pitch;
+			if (input_magnitude >= 0x8000u) {
+				input_magnitude =
+					(uint16_t)-g_scaled_input_pitch;
 			}
-			desiredPitch =
-				(int16_t)(MATH2_fraction(inputMagnitude,
-							 segmentFraction) +
-					  inputMagnitude * segmentCount);
-			if ((uint16_t)g_scaledInputPitch >= 0x8000u) {
-				desiredPitch = (int16_t)-desiredPitch;
+			desired_pitch =
+				(int16_t)(math2_fraction(input_magnitude,
+							 segment_fraction) +
+					  input_magnitude * segment_count);
+			if ((uint16_t)g_scaled_input_pitch >= 0x8000u) {
+				desired_pitch = (int16_t)-desired_pitch;
 			}
-			if ((craft->workingSubsystems &
+			if ((craft->working_subsystems &
 			     CRAFT_SUBSYSTEM_FLAG_FLIGHT_CONTROLS) == 0 ||
-			    (craft->beamEffectAccum[1] != 0 &&
-			     craft->chaffActiveSeconds == 0)) {
-				desiredYaw = 0;
-				desiredPitch = 0;
+			    (craft->beam_effect_accum[1] != 0 &&
+			     craft->chaff_active_seconds == 0)) {
+				desired_yaw = 0;
+				desired_pitch = 0;
 			}
 
-			keyMode = 0;
-			if ((g_flightKeyMods & KEY_MODIFIER_MASK) ==
+			key_mode = 0;
+			if ((g_flight_key_mods & KEY_MODIFIER_MASK) ==
 			    ROLL_CONTROL_MODIFIER) {
-				keyMode = 1;
+				key_mode = 1;
 			}
-			if (g_players[playerIdx].yawRollSwap == keyMode) {
-				smoothedInput =
-					g_players[playerIdx].smoothedInputYaw;
-				inputDifference =
-					(int16_t)((uint16_t)desiredYaw -
-						  (uint16_t)smoothedInput);
+			if (g_players[player_idx].yaw_roll_swap == key_mode) {
+				smoothed_input = g_players[player_idx]
+							 .smoothed_input_yaw;
+				input_difference =
+					(int16_t)((uint16_t)desired_yaw -
+						  (uint16_t)smoothed_input);
 #ifdef XVT_MODERN
-				if (XvtFlightTiming_IsUnlocked()) {
-					g_players[playerIdx].smoothedInputYaw =
-						(int16_t)(smoothedInput +
-							  XvtPlayerTiming_Slew(
-								  playerIdx,
+				if (xvt_flight_timing_is_unlocked()) {
+					g_players[player_idx]
+						.smoothed_input_yaw =
+						(int16_t)(smoothed_input +
+							  xvt_player_timing_slew(
+								  player_idx,
 								  XVT_PLAYER_SLEW_YAW,
-								  inputDifference));
+								  input_difference));
 				} else
 #endif
-					if (inputDifference != 0) {
-					smoothingStep = inputDifference;
-					if (inputDifference < 0) {
-						smoothingStep =
-							(int16_t)-inputDifference;
+					if (input_difference != 0) {
+					smoothing_step = input_difference;
+					if (input_difference < 0) {
+						smoothing_step =
+							(int16_t)-input_difference;
 					}
-					if (smoothingStep <
+					if (smoothing_step <
 					    CONTROL_SMOOTHING_THRESHOLD) {
-						g_players[playerIdx]
-							.smoothedInputYaw =
-							(int16_t)(smoothedInput +
-								  inputDifference);
+						g_players[player_idx]
+							.smoothed_input_yaw =
+							(int16_t)(smoothed_input +
+								  input_difference);
 					} else {
-						if (g_simStepsPerSecond >
+						if (g_sim_steps_per_second >
 						    CONTROL_SMOOTHING_BASE_STEP) {
-							smoothingStep =
-								(int16_t)(smoothingStep /
-									  (int)g_simStepsPerSecond);
-							if (smoothingStep ==
+							smoothing_step =
+								(int16_t)(smoothing_step /
+									  (int)g_sim_steps_per_second);
+							if (smoothing_step ==
 							    0) {
-								smoothingStep =
+								smoothing_step =
 									1;
 							}
-							smoothingStep *=
+							smoothing_step *=
 								CONTROL_SMOOTHING_BASE_STEP;
 						}
-						if (inputDifference < 0) {
-							g_players[playerIdx]
-								.smoothedInputYaw -=
-								smoothingStep;
+						if (input_difference < 0) {
+							g_players[player_idx]
+								.smoothed_input_yaw -=
+								smoothing_step;
 						} else {
-							g_players[playerIdx]
-								.smoothedInputYaw +=
-								smoothingStep;
+							g_players[player_idx]
+								.smoothed_input_yaw +=
+								smoothing_step;
 						}
 					}
 				}
-				smoothedInput =
-					g_players[playerIdx].smoothedInputPitch;
-				inputDifference =
-					(int16_t)((uint16_t)desiredPitch -
-						  (uint16_t)smoothedInput);
+				smoothed_input = g_players[player_idx]
+							 .smoothed_input_pitch;
+				input_difference =
+					(int16_t)((uint16_t)desired_pitch -
+						  (uint16_t)smoothed_input);
 #ifdef XVT_MODERN
-				if (XvtFlightTiming_IsUnlocked()) {
-					g_players[playerIdx]
-						.smoothedInputPitch =
-						(int16_t)(smoothedInput +
-							  XvtPlayerTiming_Slew(
-								  playerIdx,
+				if (xvt_flight_timing_is_unlocked()) {
+					g_players[player_idx]
+						.smoothed_input_pitch =
+						(int16_t)(smoothed_input +
+							  xvt_player_timing_slew(
+								  player_idx,
 								  XVT_PLAYER_SLEW_PITCH,
-								  inputDifference));
+								  input_difference));
 				} else
 #endif
-					if (inputDifference != 0) {
-					smoothingStep = inputDifference;
-					if (inputDifference < 0) {
-						smoothingStep =
-							(int16_t)-inputDifference;
+					if (input_difference != 0) {
+					smoothing_step = input_difference;
+					if (input_difference < 0) {
+						smoothing_step =
+							(int16_t)-input_difference;
 					}
-					if (smoothingStep <
+					if (smoothing_step <
 					    CONTROL_SMOOTHING_THRESHOLD) {
-						g_players[playerIdx]
-							.smoothedInputPitch =
-							(int16_t)(smoothedInput +
-								  inputDifference);
+						g_players[player_idx]
+							.smoothed_input_pitch =
+							(int16_t)(smoothed_input +
+								  input_difference);
 					} else {
-						if (g_simStepsPerSecond >
+						if (g_sim_steps_per_second >
 						    CONTROL_SMOOTHING_BASE_STEP) {
-							smoothingStep =
-								(int16_t)(smoothingStep /
-									  (int)g_simStepsPerSecond);
-							if (smoothingStep ==
+							smoothing_step =
+								(int16_t)(smoothing_step /
+									  (int)g_sim_steps_per_second);
+							if (smoothing_step ==
 							    0) {
-								smoothingStep =
+								smoothing_step =
 									1;
 							}
-							smoothingStep *=
+							smoothing_step *=
 								CONTROL_SMOOTHING_BASE_STEP;
 						}
-						if (inputDifference < 0) {
-							g_players[playerIdx]
-								.smoothedInputPitch -=
-								smoothingStep;
+						if (input_difference < 0) {
+							g_players[player_idx]
+								.smoothed_input_pitch -=
+								smoothing_step;
 						} else {
-							g_players[playerIdx]
-								.smoothedInputPitch +=
-								smoothingStep;
+							g_players[player_idx]
+								.smoothed_input_pitch +=
+								smoothing_step;
 						}
 					}
 				}
 			} else {
-				g_players[playerIdx].smoothedInputYaw = 0;
-				g_players[playerIdx].smoothedInputPitch = 0;
+				g_players[player_idx].smoothed_input_yaw = 0;
+				g_players[player_idx].smoothed_input_pitch = 0;
 #ifdef XVT_MODERN
-				XvtPlayerTiming_Clear(playerIdx,
-						      XVT_PLAYER_SLEW_YAW);
-				XvtPlayerTiming_Clear(playerIdx,
-						      XVT_PLAYER_SLEW_PITCH);
-				XvtPlayerTiming_Clear(playerIdx,
-						      XVT_PLAYER_YAW);
-				XvtPlayerTiming_Clear(playerIdx,
-						      XVT_PLAYER_PITCH);
+				xvt_player_timing_clear(player_idx,
+							XVT_PLAYER_SLEW_YAW);
+				xvt_player_timing_clear(player_idx,
+							XVT_PLAYER_SLEW_PITCH);
+				xvt_player_timing_clear(player_idx,
+							XVT_PLAYER_YAW);
+				xvt_player_timing_clear(player_idx,
+							XVT_PLAYER_PITCH);
 #endif
 			}
-			g_players[playerIdx].yawRollSwap = (int16_t)keyMode;
-			yawStep = (int16_t)
+			g_players[player_idx].yaw_roll_swap = (int16_t)key_mode;
+			yaw_step = (int16_t)
 #ifdef XVT_MODERN
-				(XvtFlightTiming_IsUnlocked()
-					 ? XvtPlayerTiming_Scale(
-						   playerIdx, XVT_PLAYER_YAW,
-						   g_players[playerIdx]
-							   .smoothedInputYaw,
-						   g_elapsedTicks, 236)
-					 : Player_ScaleControlStepByElapsedTicks(
-						   g_players[playerIdx]
-							   .smoothedInputYaw))
+				(xvt_flight_timing_is_unlocked()
+					 ? xvt_player_timing_scale(
+						   player_idx, XVT_PLAYER_YAW,
+						   g_players[player_idx]
+							   .smoothed_input_yaw,
+						   g_elapsed_ticks, 236)
+					 : player_scale_control_step_by_elapsed_ticks(
+						   g_players[player_idx]
+							   .smoothed_input_yaw))
 #else
-				Player_ScaleControlStepByElapsedTicks(
-					g_players[playerIdx].smoothedInputYaw)
+				player_scale_control_step_by_elapsed_ticks(
+					g_players[player_idx]
+						.smoothed_input_yaw)
 #endif
 				;
-			pitchStep = (int16_t)
+			pitch_step = (int16_t)
 #ifdef XVT_MODERN
-				(XvtFlightTiming_IsUnlocked()
-					 ? XvtPlayerTiming_Scale(
-						   playerIdx, XVT_PLAYER_PITCH,
-						   g_players[playerIdx]
-							   .smoothedInputPitch,
-						   g_elapsedTicks, 236)
-					 : Player_ScaleControlStepByElapsedTicks(
-						   g_players[playerIdx]
-							   .smoothedInputPitch))
+				(xvt_flight_timing_is_unlocked()
+					 ? xvt_player_timing_scale(
+						   player_idx, XVT_PLAYER_PITCH,
+						   g_players[player_idx]
+							   .smoothed_input_pitch,
+						   g_elapsed_ticks, 236)
+					 : player_scale_control_step_by_elapsed_ticks(
+						   g_players[player_idx]
+							   .smoothed_input_pitch))
 #else
-				Player_ScaleControlStepByElapsedTicks(
-					g_players[playerIdx].smoothedInputPitch)
+				player_scale_control_step_by_elapsed_ticks(
+					g_players[player_idx]
+						.smoothed_input_pitch)
 #endif
 				;
 #ifdef XVT_MODERN
-			independentRollStep = XvtFlightControls_RollStep(
-				playerIdx, rollRate, keyMode ? yawStep : 0);
+			independent_roll_step = xvt_flight_controls_roll_step(
+				player_idx, roll_rate, key_mode ? yaw_step : 0);
 #endif
-			if ((craft->workingSubsystems &
+			if ((craft->working_subsystems &
 			     CRAFT_SUBSYSTEM_FLAG_FLIGHT_CONTROLS) == 0 ||
-			    (craft->beamEffectAccum[1] != 0 &&
-			     craft->chaffActiveSeconds == 0)) {
-				yawStep = 0;
-				pitchStep = 0;
+			    (craft->beam_effect_accum[1] != 0 &&
+			     craft->chaff_active_seconds == 0)) {
+				yaw_step = 0;
+				pitch_step = 0;
 #ifdef XVT_MODERN
-				independentRollStep = 0;
+				independent_roll_step = 0;
 #endif
 			}
-			if (keyMode != 0) {
+			if (key_mode != 0) {
 #ifdef XVT_MODERN
-				yawStep = independentRollStep;
+				yaw_step = independent_roll_step;
 #endif
-				if (pitchStep != 0) {
-					Player_ApplyPitchYawSteps(
-						pitchStep, 0,
-						(uint16_t)g_players[playerIdx]
-							.objectIndex,
+				if (pitch_step != 0) {
+					player_apply_pitch_yaw_steps(
+						pitch_step, 0,
+						(uint16_t)g_players[player_idx]
+							.object_index,
 						craft);
-					g_objectTable[g_players[playerIdx]
-							      .objectIndex]
-						.mobj->orientMatrixDirty = 1;
-					g_objectTable[g_players[playerIdx]
-							      .objectIndex]
-						.mobj->moveVectorDirty =
-						g_objectTable
-							[g_players[playerIdx]
-								 .objectIndex]
+					g_object_table[g_players[player_idx]
+							       .object_index]
+						.mobj->orient_matrix_dirty = 1;
+					g_object_table[g_players[player_idx]
+							       .object_index]
+						.mobj->move_vector_dirty =
+						g_object_table
+							[g_players[player_idx]
+								 .object_index]
 								.mobj
-								->orientMatrixDirty;
+								->orient_matrix_dirty;
 				}
-				if (yawStep != 0) {
-					g_objectTable[g_players[playerIdx]
-							      .objectIndex]
-						.roll -= 2 * yawStep;
-					g_objectTable[g_players[playerIdx]
-							      .objectIndex]
-						.mobj->orientMatrixDirty = 1;
-					g_objectTable[g_players[playerIdx]
-							      .objectIndex]
-						.mobj->moveVectorDirty =
-						g_objectTable
-							[g_players[playerIdx]
-								 .objectIndex]
+				if (yaw_step != 0) {
+					g_object_table[g_players[player_idx]
+							       .object_index]
+						.roll -= 2 * yaw_step;
+					g_object_table[g_players[player_idx]
+							       .object_index]
+						.mobj->orient_matrix_dirty = 1;
+					g_object_table[g_players[player_idx]
+							       .object_index]
+						.mobj->move_vector_dirty =
+						g_object_table
+							[g_players[player_idx]
+								 .object_index]
 								.mobj
-								->orientMatrixDirty;
+								->orient_matrix_dirty;
 				}
-			} else if (pitchStep != 0 || yawStep != 0) {
-				Player_ApplyPitchYawSteps(
-					pitchStep, (int16_t)-yawStep,
-					(uint16_t)g_players[playerIdx]
-						.objectIndex,
+			} else if (pitch_step != 0 || yaw_step != 0) {
+				player_apply_pitch_yaw_steps(
+					pitch_step, (int16_t)-yaw_step,
+					(uint16_t)g_players[player_idx]
+						.object_index,
 					craft);
-				g_objectTable[g_players[playerIdx].objectIndex]
-					.mobj->orientMatrixDirty = 1;
-				g_objectTable[g_players[playerIdx].objectIndex]
-					.mobj->moveVectorDirty =
-					g_objectTable[g_players[playerIdx]
-							      .objectIndex]
-						.mobj->orientMatrixDirty;
-				if (yawStep != 0) {
-					g_objectTable[g_players[playerIdx]
-							      .objectIndex]
-						.roll -= yawStep;
+				g_object_table[g_players[player_idx]
+						       .object_index]
+					.mobj->orient_matrix_dirty = 1;
+				g_object_table[g_players[player_idx]
+						       .object_index]
+					.mobj->move_vector_dirty =
+					g_object_table[g_players[player_idx]
+							       .object_index]
+						.mobj->orient_matrix_dirty;
+				if (yaw_step != 0) {
+					g_object_table[g_players[player_idx]
+							       .object_index]
+						.roll -= yaw_step;
 				}
 			}
 #ifdef XVT_MODERN
-			if (!keyMode && independentRollStep) {
-				g_objectTable[g_players[playerIdx].objectIndex]
-					.roll -= 2 * independentRollStep;
-				mobileObject->orientMatrixDirty = 1;
-				mobileObject->moveVectorDirty = 1;
+			if (!key_mode && independent_roll_step) {
+				g_object_table[g_players[player_idx]
+						       .object_index]
+					.roll -= 2 * independent_roll_step;
+				mobile_object->orient_matrix_dirty = 1;
+				mobile_object->move_vector_dirty = 1;
 			}
 #endif
 		}
 		return;
 	}
 
-	cameraState = g_players[playerIdx].mapCameraState;
-	if (cameraState != 0) {
-		if ((cameraState & MAP_CAMERA_DIRECTION_BIT) != 0) {
-			transitionMagnitude =
-				(int16_t)(cameraState & MAP_CAMERA_STATE_MASK);
-			if (transitionMagnitude < MAP_CAMERA_MAX_TRANSITION) {
-				if (g_flightSimSideEffectsSuppressed == 0) {
-					if (transitionMagnitude +
-						    (uint16_t)g_elapsedTicks >
+	camera_state = g_players[player_idx].map_camera_state;
+	if (camera_state != 0) {
+		if ((camera_state & MAP_CAMERA_DIRECTION_BIT) != 0) {
+			transition_magnitude =
+				(int16_t)(camera_state & MAP_CAMERA_STATE_MASK);
+			if (transition_magnitude < MAP_CAMERA_MAX_TRANSITION) {
+				if (g_flight_sim_side_effects_suppressed == 0) {
+					if (transition_magnitude +
+						    (uint16_t)g_elapsed_ticks >
 					    MAP_CAMERA_MAX_TRANSITION) {
-						transitionMagnitude =
+						transition_magnitude =
 							(int16_t)(MAP_CAMERA_MAX_TRANSITION -
-								  g_elapsedTicks);
+								  g_elapsed_ticks);
 					}
-					transitionMagnitude =
-						(int16_t)(transitionMagnitude +
-							  g_elapsedTicks);
-					transitionMagnitude |=
+					transition_magnitude =
+						(int16_t)(transition_magnitude +
+							  g_elapsed_ticks);
+					transition_magnitude |=
 						MAP_CAMERA_DIRECTION_BIT;
-					g_players[playerIdx].mapCameraState =
-						(uint8_t)transitionMagnitude;
+					g_players[player_idx].map_camera_state =
+						(uint8_t)transition_magnitude;
 				}
 			} else {
-				if (g_players[playerIdx]
-					    .viewState.cameraFocusObjIdx !=
+				if (g_players[player_idx]
+					    .view_state.camera_focus_obj_idx !=
 				    UINT16_MAX) {
-					g_players[playerIdx]
-						.viewState.cameraWorldX =
-						g_objectTable
-							[g_players[playerIdx]
-								 .viewState
-								 .cameraFocusObjIdx]
+					g_players[player_idx]
+						.view_state.camera_world_x =
+						g_object_table
+							[g_players[player_idx]
+								 .view_state
+								 .camera_focus_obj_idx]
 								.world_x;
-					g_players[playerIdx]
-						.viewState.cameraWorldY =
-						g_objectTable
-							[g_players[playerIdx]
-								 .viewState
-								 .cameraFocusObjIdx]
+					g_players[player_idx]
+						.view_state.camera_world_y =
+						g_object_table
+							[g_players[player_idx]
+								 .view_state
+								 .camera_focus_obj_idx]
 								.world_y;
-					g_players[playerIdx]
-						.viewState.cameraWorldZ =
-						g_objectTable
-							[g_players[playerIdx]
-								 .viewState
-								 .cameraFocusObjIdx]
+					g_players[player_idx]
+						.view_state.camera_world_z =
+						g_object_table
+							[g_players[player_idx]
+								 .view_state
+								 .camera_focus_obj_idx]
 								.world_z;
-					g_players[playerIdx]
-						.viewState.cameraWorldZ +=
-						g_players[playerIdx]
-							.viewState
-							.cameraDistance;
+					g_players[player_idx]
+						.view_state.camera_world_z +=
+						g_players[player_idx]
+							.view_state
+							.camera_distance;
 				}
-				g_players[playerIdx]
-					.viewState.cameraFocusObjIdx =
+				g_players[player_idx]
+					.view_state.camera_focus_obj_idx =
 					UINT16_MAX;
 			}
 		} else {
-			transitionMagnitude =
-				(int16_t)(cameraState & MAP_CAMERA_STATE_MASK);
-			if (transitionMagnitude > 1 &&
-			    g_flightSimSideEffectsSuppressed == 0) {
-				if (g_elapsedTicks >= transitionMagnitude) {
-					transitionMagnitude =
-						(int16_t)(g_elapsedTicks + 1);
+			transition_magnitude =
+				(int16_t)(camera_state & MAP_CAMERA_STATE_MASK);
+			if (transition_magnitude > 1 &&
+			    g_flight_sim_side_effects_suppressed == 0) {
+				if (g_elapsed_ticks >= transition_magnitude) {
+					transition_magnitude =
+						(int16_t)(g_elapsed_ticks + 1);
 				}
-				transitionMagnitude =
-					(int16_t)(transitionMagnitude -
-						  g_elapsedTicks);
-				g_players[playerIdx].mapCameraState =
-					(uint8_t)transitionMagnitude;
+				transition_magnitude =
+					(int16_t)(transition_magnitude -
+						  g_elapsed_ticks);
+				g_players[player_idx].map_camera_state =
+					(uint8_t)transition_magnitude;
 			}
 		}
-		if (g_players[playerIdx].mapCameraState != 0) {
-			absoluteYaw = g_scaledInputYaw;
-			absolutePitch = g_scaledInputPitch;
-			if (absoluteYaw < 0) {
-				absoluteYaw = (int16_t)-absoluteYaw;
+		if (g_players[player_idx].map_camera_state != 0) {
+			absolute_yaw = g_scaled_input_yaw;
+			absolute_pitch = g_scaled_input_pitch;
+			if (absolute_yaw < 0) {
+				absolute_yaw = (int16_t)-absolute_yaw;
 			}
-			if (absolutePitch < 0) {
-				absolutePitch = (int16_t)-absolutePitch;
+			if (absolute_pitch < 0) {
+				absolute_pitch = (int16_t)-absolute_pitch;
 			}
-			if (absoluteYaw < MAP_CAMERA_YAW_DEADZONE) {
-				g_scaledInputYaw = 0;
+			if (absolute_yaw < MAP_CAMERA_YAW_DEADZONE) {
+				g_scaled_input_yaw = 0;
 			}
-			if (absolutePitch < MAP_CAMERA_PITCH_DEADZONE) {
-				g_scaledInputPitch = 0;
+			if (absolute_pitch < MAP_CAMERA_PITCH_DEADZONE) {
+				g_scaled_input_pitch = 0;
 			}
 		}
 	}
 
-	yawStep = (int16_t)
+	yaw_step = (int16_t)
 #ifdef XVT_MODERN
-		(XvtFlightTiming_IsUnlocked()
-			 ? XvtPlayerTiming_Scale(
-				   playerIdx, XVT_PLAYER_CAMERA_YAW,
-				   g_scaledInputYaw, g_elapsedTicks, 236)
-			 : Player_ScaleControlStepByElapsedTicks(
-				   g_scaledInputYaw))
+		(xvt_flight_timing_is_unlocked()
+			 ? xvt_player_timing_scale(
+				   player_idx, XVT_PLAYER_CAMERA_YAW,
+				   g_scaled_input_yaw, g_elapsed_ticks, 236)
+			 : player_scale_control_step_by_elapsed_ticks(
+				   g_scaled_input_yaw))
 #else
-		Player_ScaleControlStepByElapsedTicks(g_scaledInputYaw)
+		player_scale_control_step_by_elapsed_ticks(g_scaled_input_yaw)
 #endif
 		;
-	pitchStep = (int16_t)
+	pitch_step = (int16_t)
 #ifdef XVT_MODERN
-		(XvtFlightTiming_IsUnlocked()
-			 ? XvtPlayerTiming_Scale(
-				   playerIdx, XVT_PLAYER_CAMERA_PITCH,
-				   g_scaledInputPitch, g_elapsedTicks, 236)
-			 : Player_ScaleControlStepByElapsedTicks(
-				   g_scaledInputPitch))
+		(xvt_flight_timing_is_unlocked()
+			 ? xvt_player_timing_scale(
+				   player_idx, XVT_PLAYER_CAMERA_PITCH,
+				   g_scaled_input_pitch, g_elapsed_ticks, 236)
+			 : player_scale_control_step_by_elapsed_ticks(
+				   g_scaled_input_pitch))
 #else
-		Player_ScaleControlStepByElapsedTicks(g_scaledInputPitch)
+		player_scale_control_step_by_elapsed_ticks(g_scaled_input_pitch)
 #endif
 		;
-	if ((g_players[playerIdx].mapCameraState & MAP_CAMERA_DIRECTION_BIT) !=
-	    0) {
-		g_players[playerIdx].viewState.cameraWorldX +=
-			yawStep *
-			((g_players[playerIdx].viewState.cameraWorldZ >>
+	if ((g_players[player_idx].map_camera_state &
+	     MAP_CAMERA_DIRECTION_BIT) != 0) {
+		g_players[player_idx].view_state.camera_world_x +=
+			yaw_step *
+			((g_players[player_idx].view_state.camera_world_z >>
 			  CAMERA_DISTANCE_COORDINATE_SHIFT) +
 			 1);
-		g_players[playerIdx].viewState.cameraWorldY +=
-			pitchStep *
-			((g_players[playerIdx].viewState.cameraWorldZ >>
+		g_players[player_idx].view_state.camera_world_y +=
+			pitch_step *
+			((g_players[player_idx].view_state.camera_world_z >>
 			  CAMERA_DISTANCE_COORDINATE_SHIFT) +
 			 1);
 	} else {
-		if (g_players[playerIdx].viewState.cameraFocusObjIdx !=
+		if (g_players[player_idx].view_state.camera_focus_obj_idx !=
 		    UINT16_MAX) {
-			g_players[playerIdx].viewState.hudAimY += yawStep;
-			g_players[playerIdx].viewState.hudAimX += pitchStep;
+			g_players[player_idx].view_state.hud_aim_y += yaw_step;
+			g_players[player_idx].view_state.hud_aim_x +=
+				pitch_step;
 		} else {
-			if (pitchStep != 0 || yawStep != 0) {
-				FlightView_RotateViewByInput(
-					pitchStep, -yawStep, playerIdx);
+			if (pitch_step != 0 || yaw_step != 0) {
+				flight_view_rotate_view_by_input(
+					pitch_step, -yaw_step, player_idx);
 			}
 		}
 	}
 
-	cameraKeyMode = g_flightKeyMods & 0xF;
+	camera_key_mode = g_flight_key_mods & 0xF;
 #ifdef XVT_MODERN
-	previousDistanceStep =
-		g_players[playerIdx].viewState.cameraDistanceStep;
+	previous_distance_step =
+		g_players[player_idx].view_state.camera_distance_step;
 #endif
-	if (cameraKeyMode != 1 && cameraKeyMode != 2) {
-		if (g_players[playerIdx].mapCameraState != 0) {
-			uint16_t currentDistanceStep =
-				g_players[playerIdx]
-					.viewState.cameraDistanceStep;
-			if (currentDistanceStep > 0x100u) {
-				uint16_t decayedDistanceStep =
-					currentDistanceStep;
-				currentDistanceStep >>=
+	if (camera_key_mode != 1 && camera_key_mode != 2) {
+		if (g_players[player_idx].map_camera_state != 0) {
+			uint16_t current_distance_step =
+				g_players[player_idx]
+					.view_state.camera_distance_step;
+			if (current_distance_step > 0x100u) {
+				uint16_t decayed_distance_step =
+					current_distance_step;
+				current_distance_step >>=
 					CAMERA_DISTANCE_DECAY_SHIFT;
-				decayedDistanceStep -= currentDistanceStep;
-				decayedDistanceStep -=
+				decayed_distance_step -= current_distance_step;
+				decayed_distance_step -=
 					CAMERA_DISTANCE_DEFAULT_STEP;
 
 #ifdef XVT_MODERN
-				g_players[playerIdx]
-					.viewState.cameraDistanceStep =
-					XvtFlightTiming_IsUnlocked()
-						? (int16_t)(previousDistanceStep +
-							    XvtPlayerTiming_Scale(
-								    playerIdx,
+				g_players[player_idx]
+					.view_state.camera_distance_step =
+					xvt_flight_timing_is_unlocked()
+						? (int16_t)(previous_distance_step +
+							    xvt_player_timing_scale(
+								    player_idx,
 								    XVT_PLAYER_ZOOM,
-								    (int)decayedDistanceStep -
+								    (int)decayed_distance_step -
 									    (uint16_t)
-										    previousDistanceStep,
-								    g_elapsedTicks,
+										    previous_distance_step,
+								    g_elapsed_ticks,
 								    8))
-						: (int16_t)decayedDistanceStep;
+						: (int16_t)
+							  decayed_distance_step;
 #else
-				g_players[playerIdx]
-					.viewState.cameraDistanceStep =
-					(int16_t)decayedDistanceStep;
+				g_players[player_idx]
+					.view_state.camera_distance_step =
+					(int16_t)decayed_distance_step;
 #endif
 
 			} else {
-				g_players[playerIdx]
-					.viewState.cameraDistanceStep =
+				g_players[player_idx]
+					.view_state.camera_distance_step =
 					CAMERA_DISTANCE_DEFAULT_STEP;
 			}
 		} else {
-			g_players[playerIdx].viewState.cameraDistanceStep =
+			g_players[player_idx].view_state.camera_distance_step =
 				CAMERA_DISTANCE_DEFAULT_STEP;
 		}
 		return;
 	}
 
-	if (g_players[playerIdx].mapCameraState > 1) {
-		distance = g_players[playerIdx].viewState.cameraWorldZ;
-		cameraDistanceStep =
-			&g_players[playerIdx].viewState.cameraDistanceStep;
+	if (g_players[player_idx].map_camera_state > 1) {
+		distance = g_players[player_idx].view_state.camera_world_z;
+		camera_distance_step =
+			&g_players[player_idx].view_state.camera_distance_step;
 		if ((distance & ~1) > CAMERA_DISTANCE_LARGE_THRESHOLD) {
-			*cameraDistanceStep = CAMERA_DISTANCE_LARGE_LIMIT;
+			*camera_distance_step = CAMERA_DISTANCE_LARGE_LIMIT;
 		} else {
-			*cameraDistanceStep = (int16_t)(distance >> 1);
+			*camera_distance_step = (int16_t)(distance >> 1);
 		}
-		if ((uint16_t)*cameraDistanceStep <
+		if ((uint16_t)*camera_distance_step <
 		    CAMERA_DISTANCE_MAP_MIN_STEP) {
-			*cameraDistanceStep = CAMERA_DISTANCE_MAP_MIN_STEP;
+			*camera_distance_step = CAMERA_DISTANCE_MAP_MIN_STEP;
 		}
-	} else if (g_players[playerIdx].mapCameraState == 1) {
-		if (g_players[playerIdx].viewState.cameraFocusObjIdx !=
+	} else if (g_players[player_idx].map_camera_state == 1) {
+		if (g_players[player_idx].view_state.camera_focus_obj_idx !=
 		    UINT16_MAX) {
-			distance =
-				g_players[playerIdx].viewState.cameraDistance;
-			cameraDistanceStep =
-				&g_players[playerIdx]
-					 .viewState.cameraDistanceStep;
+			distance = g_players[player_idx]
+					   .view_state.camera_distance;
+			camera_distance_step =
+				&g_players[player_idx]
+					 .view_state.camera_distance_step;
 			if ((distance & ~1) > CAMERA_DISTANCE_LARGE_THRESHOLD) {
-				*cameraDistanceStep =
+				*camera_distance_step =
 					CAMERA_DISTANCE_LARGE_LIMIT;
 			} else {
-				*cameraDistanceStep = (int16_t)(distance >> 1);
+				*camera_distance_step =
+					(int16_t)(distance >> 1);
 			}
-			if ((uint16_t)*cameraDistanceStep <
+			if ((uint16_t)*camera_distance_step <
 			    CAMERA_DISTANCE_FOCUS_MIN_STEP) {
-				*cameraDistanceStep =
+				*camera_distance_step =
 					CAMERA_DISTANCE_FOCUS_MIN_STEP;
 			}
-		} else if (g_players[playerIdx].viewState.aimTargetIdx !=
+		} else if (g_players[player_idx].view_state.aim_target_idx !=
 			   UINT16_MAX) {
-			targetObject =
-				&g_objectTable[g_players[playerIdx]
-						       .viewState.aimTargetIdx];
-			cameraDistanceStep =
-				&g_players[playerIdx]
-					 .viewState.cameraDistanceStep;
+			target_object =
+				&g_object_table[g_players[player_idx]
+							.view_state
+							.aim_target_idx];
+			camera_distance_step =
+				&g_players[player_idx]
+					 .view_state.camera_distance_step;
 			distance = collide_roughdistance3d(
-				targetObject->world_x -
-					g_players[playerIdx]
-						.viewState.cameraWorldX,
-				targetObject->world_y -
-					g_players[playerIdx]
-						.viewState.cameraWorldY,
-				targetObject->world_z -
-					g_players[playerIdx]
-						.viewState.cameraWorldZ);
+				target_object->world_x -
+					g_players[player_idx]
+						.view_state.camera_world_x,
+				target_object->world_y -
+					g_players[player_idx]
+						.view_state.camera_world_y,
+				target_object->world_z -
+					g_players[player_idx]
+						.view_state.camera_world_z);
 			if (distance <= CAMERA_DISTANCE_LARGE_LIMIT) {
-				*cameraDistanceStep = (int16_t)distance;
+				*camera_distance_step = (int16_t)distance;
 			} else {
-				*cameraDistanceStep =
+				*camera_distance_step =
 					CAMERA_DISTANCE_LARGE_LIMIT;
 			}
-			if ((uint16_t)*cameraDistanceStep <
+			if ((uint16_t)*camera_distance_step <
 			    CAMERA_DISTANCE_FREE_MIN_STEP)
 #ifdef XVT_MODERN
 			{
-				*cameraDistanceStep =
+				*camera_distance_step =
 					CAMERA_DISTANCE_FREE_MIN_STEP;
-				XvtPlayerTiming_Clear(playerIdx,
-						      XVT_PLAYER_DISTANCE);
-				XvtPlayerTiming_Clear(playerIdx,
-						      XVT_PLAYER_ZOOM);
+				xvt_player_timing_clear(player_idx,
+							XVT_PLAYER_DISTANCE);
+				xvt_player_timing_clear(player_idx,
+							XVT_PLAYER_ZOOM);
 			}
 #else
-				*cameraDistanceStep =
+				*camera_distance_step =
 					CAMERA_DISTANCE_FREE_MIN_STEP;
 #endif
 		} else {
-			uint16_t currentDistanceStep;
-			cameraDistanceStep =
-				&g_players[playerIdx]
-					 .viewState.cameraDistanceStep;
-			currentDistanceStep =
-				(uint16_t)(g_players[playerIdx]
-						   .viewState
-						   .cameraDistanceStep +
+			uint16_t current_distance_step;
+			camera_distance_step =
+				&g_players[player_idx]
+					 .view_state.camera_distance_step;
+			current_distance_step =
+				(uint16_t)(g_players[player_idx]
+						   .view_state
+						   .camera_distance_step +
 					   CAMERA_DISTANCE_DEFAULT_STEP);
-			*cameraDistanceStep = (int16_t)currentDistanceStep;
+			*camera_distance_step = (int16_t)current_distance_step;
 
 #ifdef XVT_MODERN
-			*cameraDistanceStep =
-				XvtFlightTiming_IsUnlocked()
-					? (int16_t)(previousDistanceStep +
-						    XvtPlayerTiming_Scale(
-							    playerIdx,
+			*camera_distance_step =
+				xvt_flight_timing_is_unlocked()
+					? (int16_t)(previous_distance_step +
+						    xvt_player_timing_scale(
+							    player_idx,
 							    XVT_PLAYER_ZOOM,
-							    (currentDistanceStep +
-							     (currentDistanceStep >>
-							      3)) - previousDistanceStep,
-							    g_elapsedTicks, 8))
-					: (int16_t)(currentDistanceStep +
-						    (currentDistanceStep >> 3));
+							    (current_distance_step +
+							     (current_distance_step >>
+							      3)) - previous_distance_step,
+							    g_elapsed_ticks, 8))
+					: (int16_t)(current_distance_step +
+						    (current_distance_step >>
+						     3));
 #else
-			*cameraDistanceStep =
-				(int16_t)(currentDistanceStep +
-					  (currentDistanceStep >> 3));
+			*camera_distance_step =
+				(int16_t)(current_distance_step +
+					  (current_distance_step >> 3));
 #endif
 
-			if ((uint16_t)*cameraDistanceStep >
+			if ((uint16_t)*camera_distance_step >
 			    CAMERA_DISTANCE_FREE_MAX_STEP)
 #ifdef XVT_MODERN
 			{
-				*cameraDistanceStep =
+				*camera_distance_step =
 					CAMERA_DISTANCE_FREE_MAX_STEP;
-				XvtPlayerTiming_Clear(playerIdx,
-						      XVT_PLAYER_DISTANCE);
-				XvtPlayerTiming_Clear(playerIdx,
-						      XVT_PLAYER_ZOOM);
+				xvt_player_timing_clear(player_idx,
+							XVT_PLAYER_DISTANCE);
+				xvt_player_timing_clear(player_idx,
+							XVT_PLAYER_ZOOM);
 			}
 #else
-				*cameraDistanceStep =
+				*camera_distance_step =
 					CAMERA_DISTANCE_FREE_MAX_STEP;
 #endif
 		}
 	} else {
-		cameraDistanceStep =
-			&g_players[playerIdx].viewState.cameraDistanceStep;
+		camera_distance_step =
+			&g_players[player_idx].view_state.camera_distance_step;
 
 #ifdef XVT_MODERN
-		*cameraDistanceStep =
-			XvtFlightTiming_IsUnlocked()
-				? (int16_t)(previousDistanceStep +
-					    XvtPlayerTiming_Scale(
-						    playerIdx, XVT_PLAYER_ZOOM,
-						    (previousDistanceStep +
+		*camera_distance_step =
+			xvt_flight_timing_is_unlocked()
+				? (int16_t)(previous_distance_step +
+					    xvt_player_timing_scale(
+						    player_idx, XVT_PLAYER_ZOOM,
+						    (previous_distance_step +
 						     CAMERA_DISTANCE_DEFAULT_STEP) -
-							    previousDistanceStep,
-						    g_elapsedTicks, 8))
-				: (int16_t)(previousDistanceStep +
+							    previous_distance_step,
+						    g_elapsed_ticks, 8))
+				: (int16_t)(previous_distance_step +
 					    CAMERA_DISTANCE_DEFAULT_STEP);
 #else
-		*cameraDistanceStep =
-			(int16_t)(g_players[playerIdx]
-					  .viewState.cameraDistanceStep +
+		*camera_distance_step =
+			(int16_t)(g_players[player_idx]
+					  .view_state.camera_distance_step +
 				  CAMERA_DISTANCE_DEFAULT_STEP);
 #endif
 
-		if ((uint16_t)*cameraDistanceStep > 0x400u)
+		if ((uint16_t)*camera_distance_step > 0x400u)
 #ifdef XVT_MODERN
 		{
-			*cameraDistanceStep = CAMERA_DISTANCE_FREE_MIN_STEP;
-			XvtPlayerTiming_Clear(playerIdx, XVT_PLAYER_DISTANCE);
-			XvtPlayerTiming_Clear(playerIdx, XVT_PLAYER_ZOOM);
+			*camera_distance_step = CAMERA_DISTANCE_FREE_MIN_STEP;
+			xvt_player_timing_clear(player_idx,
+						XVT_PLAYER_DISTANCE);
+			xvt_player_timing_clear(player_idx, XVT_PLAYER_ZOOM);
 		}
 #else
-			*cameraDistanceStep = CAMERA_DISTANCE_FREE_MIN_STEP;
+			*camera_distance_step = CAMERA_DISTANCE_FREE_MIN_STEP;
 #endif
 	}
 
 #ifdef XVT_MODERN
-	modernDistanceStep =
-		XvtFlightTiming_IsUnlocked()
-			? (int16_t)XvtPlayerTiming_Scale(
-				  playerIdx, XVT_PLAYER_DISTANCE,
-				  *cameraDistanceStep, g_elapsedTicks, 236)
+	modern_distance_step =
+		xvt_flight_timing_is_unlocked()
+			? (int16_t)xvt_player_timing_scale(
+				  player_idx, XVT_PLAYER_DISTANCE,
+				  *camera_distance_step, g_elapsed_ticks, 236)
 			: 0;
 #endif
-	if (cameraKeyMode == 1) {
-		if (g_players[playerIdx].mapCameraState == 0) {
-			g_players[playerIdx]
-				.viewState.cameraDistance -= (int16_t)
+	if (camera_key_mode == 1) {
+		if (g_players[player_idx].map_camera_state == 0) {
+			g_players[player_idx]
+				.view_state.camera_distance -= (int16_t)
 #ifdef XVT_MODERN
-				(XvtFlightTiming_IsUnlocked()
-					 ? modernDistanceStep
-					 : Player_ScaleControlStepByElapsedTicks(
-						   *cameraDistanceStep))
+				(xvt_flight_timing_is_unlocked()
+					 ? modern_distance_step
+					 : player_scale_control_step_by_elapsed_ticks(
+						   *camera_distance_step))
 #else
-				Player_ScaleControlStepByElapsedTicks(
-					*cameraDistanceStep)
+				player_scale_control_step_by_elapsed_ticks(
+					*camera_distance_step)
 #endif
 				;
-			if (g_players[playerIdx].viewState.cameraDistance <
+			if (g_players[player_idx].view_state.camera_distance <
 			    CAMERA_MINIMUM)
 #ifdef XVT_MODERN
 			{
-				g_players[playerIdx].viewState.cameraDistance =
+				g_players[player_idx]
+					.view_state.camera_distance =
 					CAMERA_MINIMUM;
-				XvtPlayerTiming_Clear(playerIdx,
-						      XVT_PLAYER_DISTANCE);
-				XvtPlayerTiming_Clear(playerIdx,
-						      XVT_PLAYER_ZOOM);
+				xvt_player_timing_clear(player_idx,
+							XVT_PLAYER_DISTANCE);
+				xvt_player_timing_clear(player_idx,
+							XVT_PLAYER_ZOOM);
 			}
 #else
-				g_players[playerIdx].viewState.cameraDistance =
+				g_players[player_idx]
+					.view_state.camera_distance =
 					CAMERA_MINIMUM;
 #endif
 			return;
 		}
-		if (g_players[playerIdx].viewState.cameraFocusObjIdx !=
+		if (g_players[player_idx].view_state.camera_focus_obj_idx !=
 		    UINT16_MAX) {
-			g_players[playerIdx]
-				.viewState.cameraDistance -= (int16_t)
+			g_players[player_idx]
+				.view_state.camera_distance -= (int16_t)
 #ifdef XVT_MODERN
-				(XvtFlightTiming_IsUnlocked()
-					 ? modernDistanceStep
-					 : Player_ScaleControlStepByElapsedTicks(
-						   *cameraDistanceStep))
+				(xvt_flight_timing_is_unlocked()
+					 ? modern_distance_step
+					 : player_scale_control_step_by_elapsed_ticks(
+						   *camera_distance_step))
 #else
-				Player_ScaleControlStepByElapsedTicks(
-					*cameraDistanceStep)
+				player_scale_control_step_by_elapsed_ticks(
+					*camera_distance_step)
 #endif
 				;
-			targetClearance =
-				g_objectTypeTable
-					[g_objectTable
-						 [g_players[playerIdx]
-							  .viewState
-							  .cameraFocusObjIdx]
-							 .objectType]
-						.maxBoundsExtent +
+			target_clearance =
+				g_object_type_table
+					[g_object_table
+						 [g_players[player_idx]
+							  .view_state
+							  .camera_focus_obj_idx]
+							 .object_type]
+						.max_bounds_extent +
 				CAMERA_CLEARANCE;
-			if (g_players[playerIdx].viewState.cameraDistance <
-			    targetClearance)
+			if (g_players[player_idx].view_state.camera_distance <
+			    target_clearance)
 #ifdef XVT_MODERN
 			{
-				g_players[playerIdx].viewState.cameraDistance =
-					targetClearance;
-				XvtPlayerTiming_Clear(playerIdx,
-						      XVT_PLAYER_DISTANCE);
-				XvtPlayerTiming_Clear(playerIdx,
-						      XVT_PLAYER_ZOOM);
+				g_players[player_idx]
+					.view_state.camera_distance =
+					target_clearance;
+				xvt_player_timing_clear(player_idx,
+							XVT_PLAYER_DISTANCE);
+				xvt_player_timing_clear(player_idx,
+							XVT_PLAYER_ZOOM);
 			}
 #else
-				g_players[playerIdx].viewState.cameraDistance =
-					targetClearance;
+				g_players[player_idx]
+					.view_state.camera_distance =
+					target_clearance;
 #endif
 			return;
 		}
-		if (g_players[playerIdx].viewState.aimTargetIdx != UINT16_MAX) {
-			FVIEW_BuildCameraOrient(
-				0, g_players[playerIdx].viewState.viewPitch,
-				g_players[playerIdx].viewState.viewYaw, 0, 0, 0,
-				NULL);
+		if (g_players[player_idx].view_state.aim_target_idx !=
+		    UINT16_MAX) {
+			fview_build_camera_orient(
+				0, g_players[player_idx].view_state.view_pitch,
+				g_players[player_idx].view_state.view_yaw, 0, 0,
+				0, NULL);
 		} else {
-			FVIEW_BuildCameraOrient(
-				0, g_players[playerIdx].viewState.viewPitch,
-				g_players[playerIdx].viewState.viewYaw, 0,
-				g_players[playerIdx].viewState.hudAimX,
-				g_players[playerIdx].viewState.hudAimY, NULL);
+			fview_build_camera_orient(
+				0, g_players[player_idx].view_state.view_pitch,
+				g_players[player_idx].view_state.view_yaw, 0,
+				g_players[player_idx].view_state.hud_aim_x,
+				g_players[player_idx].view_state.hud_aim_y,
+				NULL);
 		}
-		cameraScaleX = g_camMatR2_X;
-		cameraMovementX = (int16_t)
+		camera_scale_x = g_cam_mat_r2_x;
+		camera_movement_x = (int16_t)
 #ifdef XVT_MODERN
-			(XvtFlightTiming_IsUnlocked()
-				 ? modernDistanceStep
-				 : Player_ScaleControlStepByElapsedTicks(
-					   *cameraDistanceStep))
+			(xvt_flight_timing_is_unlocked()
+				 ? modern_distance_step
+				 : player_scale_control_step_by_elapsed_ticks(
+					   *camera_distance_step))
 #else
-			Player_ScaleControlStepByElapsedTicks(
-				*cameraDistanceStep)
+			player_scale_control_step_by_elapsed_ticks(
+				*camera_distance_step)
 #endif
 			;
-		cameraMovementX = Math_MulQ15(cameraMovementX, cameraScaleX);
-		g_players[playerIdx].viewState.cameraWorldX += cameraMovementX;
-		cameraScaleY = g_camMatR2_Y;
-		cameraMovementY = (int16_t)
+		camera_movement_x =
+			math_mul_q15(camera_movement_x, camera_scale_x);
+		g_players[player_idx].view_state.camera_world_x +=
+			camera_movement_x;
+		camera_scale_y = g_cam_mat_r2_y;
+		camera_movement_y = (int16_t)
 #ifdef XVT_MODERN
-			(XvtFlightTiming_IsUnlocked()
-				 ? modernDistanceStep
-				 : Player_ScaleControlStepByElapsedTicks(
-					   *cameraDistanceStep))
+			(xvt_flight_timing_is_unlocked()
+				 ? modern_distance_step
+				 : player_scale_control_step_by_elapsed_ticks(
+					   *camera_distance_step))
 #else
-			Player_ScaleControlStepByElapsedTicks(
-				*cameraDistanceStep)
+			player_scale_control_step_by_elapsed_ticks(
+				*camera_distance_step)
 #endif
 			;
-		cameraMovementY = Math_MulQ15(cameraMovementY, cameraScaleY);
-		g_players[playerIdx].viewState.cameraWorldY += cameraMovementY;
-		cameraScaleZ = g_camMatR2_Z;
-		cameraMovementZ = (int16_t)
+		camera_movement_y =
+			math_mul_q15(camera_movement_y, camera_scale_y);
+		g_players[player_idx].view_state.camera_world_y +=
+			camera_movement_y;
+		camera_scale_z = g_cam_mat_r2_z;
+		camera_movement_z = (int16_t)
 #ifdef XVT_MODERN
-			(XvtFlightTiming_IsUnlocked()
-				 ? modernDistanceStep
-				 : Player_ScaleControlStepByElapsedTicks(
-					   *cameraDistanceStep))
+			(xvt_flight_timing_is_unlocked()
+				 ? modern_distance_step
+				 : player_scale_control_step_by_elapsed_ticks(
+					   *camera_distance_step))
 #else
-			Player_ScaleControlStepByElapsedTicks(
-				*cameraDistanceStep)
+			player_scale_control_step_by_elapsed_ticks(
+				*camera_distance_step)
 #endif
 			;
-		cameraMovementZ = Math_MulQ15(cameraMovementZ, cameraScaleZ);
-		g_players[playerIdx].viewState.cameraWorldZ += cameraMovementZ;
-		if (g_players[playerIdx].viewState.aimTargetIdx != UINT16_MAX) {
-			targetObject =
-				&g_objectTable[g_players[playerIdx]
-						       .viewState.aimTargetIdx];
+		camera_movement_z =
+			math_mul_q15(camera_movement_z, camera_scale_z);
+		g_players[player_idx].view_state.camera_world_z +=
+			camera_movement_z;
+		if (g_players[player_idx].view_state.aim_target_idx !=
+		    UINT16_MAX) {
+			target_object =
+				&g_object_table[g_players[player_idx]
+							.view_state
+							.aim_target_idx];
 			distance = collide_roughdistance3d(
-				targetObject->world_x -
-					g_players[playerIdx]
-						.viewState.cameraWorldX,
-				targetObject->world_y -
-					g_players[playerIdx]
-						.viewState.cameraWorldY,
-				targetObject->world_z -
-					g_players[playerIdx]
-						.viewState.cameraWorldZ);
-			targetClearance =
-				g_objectTypeTable
-					[g_objectTable[g_players[playerIdx]
-							       .viewState
-							       .aimTargetIdx]
-						 .objectType]
-						.maxBoundsExtent +
+				target_object->world_x -
+					g_players[player_idx]
+						.view_state.camera_world_x,
+				target_object->world_y -
+					g_players[player_idx]
+						.view_state.camera_world_y,
+				target_object->world_z -
+					g_players[player_idx]
+						.view_state.camera_world_z);
+			target_clearance =
+				g_object_type_table
+					[g_object_table[g_players[player_idx]
+								.view_state
+								.aim_target_idx]
+						 .object_type]
+						.max_bounds_extent +
 				CAMERA_CLEARANCE;
-			if (targetClearance > distance) {
-				targetClearance =
-					g_objectTypeTable
-						[g_objectTable
-							 [g_players[playerIdx]
-								  .viewState
-								  .cameraFocusObjIdx]
-								 .objectType]
-							.maxBoundsExtent +
+			if (target_clearance > distance) {
+				target_clearance =
+					g_object_type_table
+						[g_object_table
+							 [g_players[player_idx]
+								  .view_state
+								  .camera_focus_obj_idx]
+								 .object_type]
+							.max_bounds_extent +
 					CAMERA_CLEARANCE;
-				movement = distance - targetClearance;
-				clearanceScaleX = g_camMatR2_X;
-				clearanceMovementX =
-					Math_MulQ15(movement, clearanceScaleX);
-				g_players[playerIdx].viewState.cameraWorldX +=
-					clearanceMovementX;
-				clearanceScaleY = g_camMatR2_Y;
-				clearanceMovementY =
-					Math_MulQ15(movement, clearanceScaleY);
-				g_players[playerIdx].viewState.cameraWorldY +=
-					clearanceMovementY;
-				clearanceScaleZ = g_camMatR2_Z;
-				clearanceMovementZ =
-					Math_MulQ15(movement, clearanceScaleZ);
-				g_players[playerIdx].viewState.cameraWorldZ +=
-					clearanceMovementZ;
+				movement = distance - target_clearance;
+				clearance_scale_x = g_cam_mat_r2_x;
+				clearance_movement_x = math_mul_q15(
+					movement, clearance_scale_x);
+				g_players[player_idx]
+					.view_state.camera_world_x +=
+					clearance_movement_x;
+				clearance_scale_y = g_cam_mat_r2_y;
+				clearance_movement_y = math_mul_q15(
+					movement, clearance_scale_y);
+				g_players[player_idx]
+					.view_state.camera_world_y +=
+					clearance_movement_y;
+				clearance_scale_z = g_cam_mat_r2_z;
+				clearance_movement_z = math_mul_q15(
+					movement, clearance_scale_z);
+				g_players[player_idx]
+					.view_state.camera_world_z +=
+					clearance_movement_z;
 			}
 		}
-		if (g_players[playerIdx].mapCameraState > 1 &&
-		    g_players[playerIdx].viewState.cameraWorldZ <
+		if (g_players[player_idx].map_camera_state > 1 &&
+		    g_players[player_idx].view_state.camera_world_z <
 			    CAMERA_MINIMUM) {
-			g_players[playerIdx].viewState.cameraWorldZ =
+			g_players[player_idx].view_state.camera_world_z =
 				CAMERA_MINIMUM;
 		}
-		if (g_players[playerIdx].viewState.cameraWorldX <
+		if (g_players[player_idx].view_state.camera_world_x <
 		    -CAMERA_WORLD_LIMIT) {
-			g_players[playerIdx].viewState.cameraWorldX =
+			g_players[player_idx].view_state.camera_world_x =
 				-CAMERA_WORLD_LIMIT;
 		}
-		if (g_players[playerIdx].viewState.cameraWorldX >
+		if (g_players[player_idx].view_state.camera_world_x >
 		    CAMERA_WORLD_LIMIT) {
-			g_players[playerIdx].viewState.cameraWorldX =
+			g_players[player_idx].view_state.camera_world_x =
 				CAMERA_WORLD_LIMIT;
 		}
-		if (g_players[playerIdx].viewState.cameraWorldY <
+		if (g_players[player_idx].view_state.camera_world_y <
 		    -CAMERA_WORLD_LIMIT) {
-			g_players[playerIdx].viewState.cameraWorldY =
+			g_players[player_idx].view_state.camera_world_y =
 				-CAMERA_WORLD_LIMIT;
 		}
-		if (g_players[playerIdx].viewState.cameraWorldY >
+		if (g_players[player_idx].view_state.camera_world_y >
 		    CAMERA_WORLD_LIMIT) {
-			g_players[playerIdx].viewState.cameraWorldY =
+			g_players[player_idx].view_state.camera_world_y =
 				CAMERA_WORLD_LIMIT;
 		}
-		if (g_players[playerIdx].viewState.cameraWorldZ <
+		if (g_players[player_idx].view_state.camera_world_z <
 		    -CAMERA_WORLD_LIMIT) {
-			g_players[playerIdx].viewState.cameraWorldZ =
+			g_players[player_idx].view_state.camera_world_z =
 				-CAMERA_WORLD_LIMIT;
 		}
-		if (g_players[playerIdx].viewState.cameraWorldZ >
+		if (g_players[player_idx].view_state.camera_world_z >
 		    CAMERA_WORLD_LIMIT) {
-			g_players[playerIdx].viewState.cameraWorldZ =
+			g_players[player_idx].view_state.camera_world_z =
 				CAMERA_WORLD_LIMIT;
 		}
 	} else {
-		if (g_players[playerIdx].mapCameraState == 0) {
-			g_players[playerIdx]
-				.viewState.cameraDistance += (int16_t)
+		if (g_players[player_idx].map_camera_state == 0) {
+			g_players[player_idx]
+				.view_state.camera_distance += (int16_t)
 #ifdef XVT_MODERN
-				(XvtFlightTiming_IsUnlocked()
-					 ? modernDistanceStep
-					 : Player_ScaleControlStepByElapsedTicks(
-						   *cameraDistanceStep))
+				(xvt_flight_timing_is_unlocked()
+					 ? modern_distance_step
+					 : player_scale_control_step_by_elapsed_ticks(
+						   *camera_distance_step))
 #else
-				Player_ScaleControlStepByElapsedTicks(
-					*cameraDistanceStep)
+				player_scale_control_step_by_elapsed_ticks(
+					*camera_distance_step)
 #endif
 				;
-			if (g_players[playerIdx].viewState.cameraDistance >
+			if (g_players[player_idx].view_state.camera_distance >
 			    CAMERA_DISTANCE_NORMAL_MAX) {
-				g_players[playerIdx].viewState.cameraDistance =
+				g_players[player_idx]
+					.view_state.camera_distance =
 					CAMERA_DISTANCE_NORMAL_MAX;
 			}
 			return;
 		}
-		if (g_players[playerIdx].viewState.cameraFocusObjIdx !=
+		if (g_players[player_idx].view_state.camera_focus_obj_idx !=
 		    UINT16_MAX) {
-			g_players[playerIdx]
-				.viewState.cameraDistance += (int16_t)
+			g_players[player_idx]
+				.view_state.camera_distance += (int16_t)
 #ifdef XVT_MODERN
-				(XvtFlightTiming_IsUnlocked()
-					 ? modernDistanceStep
-					 : Player_ScaleControlStepByElapsedTicks(
-						   *cameraDistanceStep))
+				(xvt_flight_timing_is_unlocked()
+					 ? modern_distance_step
+					 : player_scale_control_step_by_elapsed_ticks(
+						   *camera_distance_step))
 #else
-				Player_ScaleControlStepByElapsedTicks(
-					*cameraDistanceStep)
+				player_scale_control_step_by_elapsed_ticks(
+					*camera_distance_step)
 #endif
 				;
 			return;
 		}
-		if (g_players[playerIdx].viewState.aimTargetIdx != UINT16_MAX) {
-			FVIEW_BuildCameraOrient(
-				0, g_players[playerIdx].viewState.viewPitch,
-				g_players[playerIdx].viewState.viewYaw, 0, 0, 0,
-				NULL);
+		if (g_players[player_idx].view_state.aim_target_idx !=
+		    UINT16_MAX) {
+			fview_build_camera_orient(
+				0, g_players[player_idx].view_state.view_pitch,
+				g_players[player_idx].view_state.view_yaw, 0, 0,
+				0, NULL);
 		} else {
-			FVIEW_BuildCameraOrient(
-				0, g_players[playerIdx].viewState.viewPitch,
-				g_players[playerIdx].viewState.viewYaw, 0,
-				g_players[playerIdx].viewState.hudAimX,
-				g_players[playerIdx].viewState.hudAimY, NULL);
+			fview_build_camera_orient(
+				0, g_players[player_idx].view_state.view_pitch,
+				g_players[player_idx].view_state.view_yaw, 0,
+				g_players[player_idx].view_state.hud_aim_x,
+				g_players[player_idx].view_state.hud_aim_y,
+				NULL);
 		}
-		reverseScaleX = g_camMatR2_X;
-		reverseMovementX = (int16_t)
+		reverse_scale_x = g_cam_mat_r2_x;
+		reverse_movement_x = (int16_t)
 #ifdef XVT_MODERN
-			(XvtFlightTiming_IsUnlocked()
-				 ? modernDistanceStep
-				 : Player_ScaleControlStepByElapsedTicks(
-					   *cameraDistanceStep))
+			(xvt_flight_timing_is_unlocked()
+				 ? modern_distance_step
+				 : player_scale_control_step_by_elapsed_ticks(
+					   *camera_distance_step))
 #else
-			Player_ScaleControlStepByElapsedTicks(
-				*cameraDistanceStep)
+			player_scale_control_step_by_elapsed_ticks(
+				*camera_distance_step)
 #endif
 			;
-		reverseMovementX = Math_MulQ15(reverseMovementX, reverseScaleX);
-		g_players[playerIdx].viewState.cameraWorldX -= reverseMovementX;
-		reverseScaleY = g_camMatR2_Y;
-		reverseMovementY = (int16_t)
+		reverse_movement_x =
+			math_mul_q15(reverse_movement_x, reverse_scale_x);
+		g_players[player_idx].view_state.camera_world_x -=
+			reverse_movement_x;
+		reverse_scale_y = g_cam_mat_r2_y;
+		reverse_movement_y = (int16_t)
 #ifdef XVT_MODERN
-			(XvtFlightTiming_IsUnlocked()
-				 ? modernDistanceStep
-				 : Player_ScaleControlStepByElapsedTicks(
-					   *cameraDistanceStep))
+			(xvt_flight_timing_is_unlocked()
+				 ? modern_distance_step
+				 : player_scale_control_step_by_elapsed_ticks(
+					   *camera_distance_step))
 #else
-			Player_ScaleControlStepByElapsedTicks(
-				*cameraDistanceStep)
+			player_scale_control_step_by_elapsed_ticks(
+				*camera_distance_step)
 #endif
 			;
-		reverseMovementY = Math_MulQ15(reverseMovementY, reverseScaleY);
-		g_players[playerIdx].viewState.cameraWorldY -= reverseMovementY;
-		reverseScaleZ = g_camMatR2_Z;
-		reverseMovementZ = (int16_t)
+		reverse_movement_y =
+			math_mul_q15(reverse_movement_y, reverse_scale_y);
+		g_players[player_idx].view_state.camera_world_y -=
+			reverse_movement_y;
+		reverse_scale_z = g_cam_mat_r2_z;
+		reverse_movement_z = (int16_t)
 #ifdef XVT_MODERN
-			(XvtFlightTiming_IsUnlocked()
-				 ? modernDistanceStep
-				 : Player_ScaleControlStepByElapsedTicks(
-					   *cameraDistanceStep))
+			(xvt_flight_timing_is_unlocked()
+				 ? modern_distance_step
+				 : player_scale_control_step_by_elapsed_ticks(
+					   *camera_distance_step))
 #else
-			Player_ScaleControlStepByElapsedTicks(
-				*cameraDistanceStep)
+			player_scale_control_step_by_elapsed_ticks(
+				*camera_distance_step)
 #endif
 			;
-		reverseMovementZ = Math_MulQ15(reverseMovementZ, reverseScaleZ);
-		g_players[playerIdx].viewState.cameraWorldZ -= reverseMovementZ;
-		if (g_players[playerIdx].viewState.cameraWorldX <
+		reverse_movement_z =
+			math_mul_q15(reverse_movement_z, reverse_scale_z);
+		g_players[player_idx].view_state.camera_world_z -=
+			reverse_movement_z;
+		if (g_players[player_idx].view_state.camera_world_x <
 		    -CAMERA_WORLD_LIMIT) {
-			g_players[playerIdx].viewState.cameraWorldX =
+			g_players[player_idx].view_state.camera_world_x =
 				-CAMERA_WORLD_LIMIT;
 		}
-		if (g_players[playerIdx].viewState.cameraWorldX >
+		if (g_players[player_idx].view_state.camera_world_x >
 		    CAMERA_WORLD_LIMIT) {
-			g_players[playerIdx].viewState.cameraWorldX =
+			g_players[player_idx].view_state.camera_world_x =
 				CAMERA_WORLD_LIMIT;
 		}
-		if (g_players[playerIdx].viewState.cameraWorldY <
+		if (g_players[player_idx].view_state.camera_world_y <
 		    -CAMERA_WORLD_LIMIT) {
-			g_players[playerIdx].viewState.cameraWorldY =
+			g_players[player_idx].view_state.camera_world_y =
 				-CAMERA_WORLD_LIMIT;
 		}
-		if (g_players[playerIdx].viewState.cameraWorldY >
+		if (g_players[player_idx].view_state.camera_world_y >
 		    CAMERA_WORLD_LIMIT) {
-			g_players[playerIdx].viewState.cameraWorldY =
+			g_players[player_idx].view_state.camera_world_y =
 				CAMERA_WORLD_LIMIT;
 		}
-		if (g_players[playerIdx].viewState.cameraWorldZ <
+		if (g_players[player_idx].view_state.camera_world_z <
 		    -CAMERA_WORLD_LIMIT) {
-			g_players[playerIdx].viewState.cameraWorldZ =
+			g_players[player_idx].view_state.camera_world_z =
 				-CAMERA_WORLD_LIMIT;
 		}
-		if (g_players[playerIdx].viewState.cameraWorldZ >
+		if (g_players[player_idx].view_state.camera_world_z >
 		    CAMERA_WORLD_LIMIT) {
-			g_players[playerIdx].viewState.cameraWorldZ =
+			g_players[player_idx].view_state.camera_world_z =
 				CAMERA_WORLD_LIMIT;
 		}
 	}
 }
 
-/* Edits and sends the player's chat line for g_currentActionKey: 8 deletes a
- * character, 9 cycles the recipients (team, enemy, all), 13 sends msgText with
+/* Edits and sends the player's chat line for g_current_action_key: 8 deletes a
+ * character, 9 cycles the recipients (team, enemy, all), 13 sends msg_text with
  * IFMSG_374 to every participating player the recipients admit (team: the same
  * team; enemy: another team not allied with the sender's), then IFMSG_378; 27
- * cancels with IFMSG_379; 155 to 158 send taunts 0 to 3 from g_playerTauntText
+ * cancels with IFMSG_379; 155 to 158 send taunts 0 to 3 from g_player_taunt_text
  * the same way. Any other key adds a character while the line holds fewer than
  * 48. Key 0 only redraws the line, for the local player while
- * flightGroupMessagePaneTimer is below SIMULATION_TICKS_PER_SECOND. Sending or
- * cancelling sets chatRecipientMode back to inactive; sending sets
- * g_msgSenderIff to 3. */
+ * flight_group_message_pane_timer is below SIMULATION_TICKS_PER_SECOND. Sending or
+ * cancelling sets chat_recipient_mode back to inactive; sending sets
+ * g_msg_sender_iff to 3. */
 // FUNCTION: XVT 0x481420
-void FlightChat_HandleInput(int playerIdx)
+void flight_chat_handle_input(int player_idx)
 {
-	struct PlayerData *player;
-	uint8_t messageLength;
-	int recipientIndex;
-	struct PlayerData *recipient;
-	int shouldSend;
-	FlightChatRecipientMode recipientMode;
-	const char *tauntText;
+	struct player_data *player;
+	uint8_t message_length;
+	int recipient_index;
+	struct player_data *recipient;
+	int should_send;
+	flight_chat_recipient_mode recipient_mode;
+	const char *taunt_text;
 
-	switch (g_currentActionKey) {
+	switch (g_current_action_key) {
 	case 8:
-		player = &g_players[playerIdx];
-		messageLength = player->msgLength;
-		if (messageLength != 0) {
-			--messageLength;
-			player->msgLength = messageLength;
-			player->msgText[messageLength] = '_';
-			player->msgText[messageLength + 1] = '\0';
+		player = &g_players[player_idx];
+		message_length = player->msg_length;
+		if (message_length != 0) {
+			--message_length;
+			player->msg_length = message_length;
+			player->msg_text[message_length] = '_';
+			player->msg_text[message_length + 1] = '\0';
 		}
-		msg_addMessagePtr(0, player->msgText);
-		msg_emitInFlightMessage(
-			(InFlightMessageId)((uint8_t)player->chatRecipientMode +
-					    IFMSG_374_FROM_ARG_ARG),
-			playerIdx);
+		msg_add_message_ptr(0, player->msg_text);
+		msg_emit_in_flight_message(
+			(in_flight_message_id)((uint8_t)player
+						       ->chat_recipient_mode +
+					       IFMSG_374_FROM_ARG_ARG),
+			player_idx);
 		return;
 
 	case 9:
-		player = &g_players[playerIdx];
-		++player->chatRecipientMode;
-		if ((uint8_t)player->chatRecipientMode >
+		player = &g_players[player_idx];
+		++player->chat_recipient_mode;
+		if ((uint8_t)player->chat_recipient_mode >
 		    FLIGHT_CHAT_RECIPIENT_ALL) {
-			player->chatRecipientMode = FLIGHT_CHAT_RECIPIENT_TEAM;
+			player->chat_recipient_mode =
+				FLIGHT_CHAT_RECIPIENT_TEAM;
 		}
-		msg_addMessagePtr(0, player->msgText);
-		msg_emitInFlightMessage(
-			(InFlightMessageId)((uint8_t)player->chatRecipientMode +
-					    IFMSG_374_FROM_ARG_ARG),
-			playerIdx);
+		msg_add_message_ptr(0, player->msg_text);
+		msg_emit_in_flight_message(
+			(in_flight_message_id)((uint8_t)player
+						       ->chat_recipient_mode +
+					       IFMSG_374_FROM_ARG_ARG),
+			player_idx);
 		return;
 
 	case 13:
-		player = &g_players[playerIdx];
-		player->msgText[player->msgLength] = '\0';
-		msg_addMessagePtr(0, NetSession_GetPlayerName(playerIdx));
-		msg_addMessagePtr(1, player->msgText);
-		for (recipientIndex = 0; recipientIndex < 8; ++recipientIndex) {
-			recipient = &g_players[recipientIndex];
-			if (recipient->participationState != 0) {
-				g_msgSenderIff = 3;
-				recipientMode = player->chatRecipientMode;
-				shouldSend = 0;
-				if (recipientMode ==
+		player = &g_players[player_idx];
+		player->msg_text[player->msg_length] = '\0';
+		msg_add_message_ptr(0, net_session_get_player_name(player_idx));
+		msg_add_message_ptr(1, player->msg_text);
+		for (recipient_index = 0; recipient_index < 8;
+		     ++recipient_index) {
+			recipient = &g_players[recipient_index];
+			if (recipient->participation_state != 0) {
+				g_msg_sender_iff = 3;
+				recipient_mode = player->chat_recipient_mode;
+				should_send = 0;
+				if (recipient_mode ==
 				    FLIGHT_CHAT_RECIPIENT_TEAM) {
 					if (player->team == recipient->team) {
-						shouldSend = 1;
+						should_send = 1;
 					}
-				} else if (recipientMode ==
+				} else if (recipient_mode ==
 					   FLIGHT_CHAT_RECIPIENT_ENEMY) {
 					if (recipient->team != player->team &&
-					    g_missionTeams[(uint16_t)recipient
-								   ->team]
+					    g_mission_teams[(uint16_t)recipient
+								    ->team]
 							    .allies[(uint16_t)player
 									    ->team] ==
 						    0) {
-						shouldSend = 1;
+						should_send = 1;
 					}
 				} else {
-					shouldSend = 1;
+					should_send = 1;
 				}
-				if (shouldSend != 0) {
-					msg_emitInFlightMessage(
+				if (should_send != 0) {
+					msg_emit_in_flight_message(
 						IFMSG_374_FROM_ARG_ARG,
-						recipientIndex);
+						recipient_index);
 				}
 			}
 		}
-		player->chatRecipientMode = FLIGHT_CHAT_RECIPIENT_INACTIVE;
-		msg_emitInFlightMessage(IFMSG_378_MESSAGE_SENT, playerIdx);
+		player->chat_recipient_mode = FLIGHT_CHAT_RECIPIENT_INACTIVE;
+		msg_emit_in_flight_message(IFMSG_378_MESSAGE_SENT, player_idx);
 		return;
 
 	case 27:
-		player = &g_players[playerIdx];
-		player->chatRecipientMode = FLIGHT_CHAT_RECIPIENT_INACTIVE;
-		msg_emitInFlightMessage(IFMSG_379_MESSAGE_ABORTED, playerIdx);
+		player = &g_players[player_idx];
+		player->chat_recipient_mode = FLIGHT_CHAT_RECIPIENT_INACTIVE;
+		msg_emit_in_flight_message(IFMSG_379_MESSAGE_ABORTED,
+					   player_idx);
 		return;
 
 	case 155:
 	case 156:
 	case 157:
 	case 158:
-		player = &g_players[playerIdx];
-		player->msgText[player->msgLength] = '\0';
-		msg_addMessagePtr(0, NetSession_GetPlayerName(playerIdx));
-		tauntText =
-			g_playerTauntText[playerIdx][g_currentActionKey - 155];
-		msg_addMessagePtr(1, tauntText);
-		for (recipientIndex = 0; recipientIndex < 8; ++recipientIndex) {
-			recipient = &g_players[recipientIndex];
-			if (recipient->participationState != 0) {
-				g_msgSenderIff = 3;
-				recipientMode = player->chatRecipientMode;
-				shouldSend = 0;
-				if (recipientMode ==
+		player = &g_players[player_idx];
+		player->msg_text[player->msg_length] = '\0';
+		msg_add_message_ptr(0, net_session_get_player_name(player_idx));
+		taunt_text = g_player_taunt_text[player_idx]
+						[g_current_action_key - 155];
+		msg_add_message_ptr(1, taunt_text);
+		for (recipient_index = 0; recipient_index < 8;
+		     ++recipient_index) {
+			recipient = &g_players[recipient_index];
+			if (recipient->participation_state != 0) {
+				g_msg_sender_iff = 3;
+				recipient_mode = player->chat_recipient_mode;
+				should_send = 0;
+				if (recipient_mode ==
 				    FLIGHT_CHAT_RECIPIENT_TEAM) {
 					if (player->team == recipient->team) {
-						shouldSend = 1;
+						should_send = 1;
 					}
-				} else if (recipientMode ==
+				} else if (recipient_mode ==
 					   FLIGHT_CHAT_RECIPIENT_ENEMY) {
 					if (recipient->team != player->team &&
-					    g_missionTeams[(uint16_t)recipient
-								   ->team]
+					    g_mission_teams[(uint16_t)recipient
+								    ->team]
 							    .allies[(uint16_t)player
 									    ->team] ==
 						    0) {
-						shouldSend = 1;
+						should_send = 1;
 					}
 				} else {
-					shouldSend = 1;
+					should_send = 1;
 				}
-				if (shouldSend != 0) {
-					msg_emitInFlightMessage(
+				if (should_send != 0) {
+					msg_emit_in_flight_message(
 						IFMSG_374_FROM_ARG_ARG,
-						recipientIndex);
+						recipient_index);
 				}
 			}
 		}
-		player->chatRecipientMode = FLIGHT_CHAT_RECIPIENT_INACTIVE;
-		msg_emitInFlightMessage(IFMSG_378_MESSAGE_SENT, playerIdx);
+		player->chat_recipient_mode = FLIGHT_CHAT_RECIPIENT_INACTIVE;
+		msg_emit_in_flight_message(IFMSG_378_MESSAGE_SENT, player_idx);
 		return;
 
 	default:
-		player = &g_players[playerIdx];
-		if (g_currentActionKey != 0) {
-			messageLength = player->msgLength;
-			if (messageLength < 48) {
-				player->msgText[messageLength] =
-					(char)g_currentActionKey;
-				player->msgText[messageLength + 1] = '_';
-				player->msgText[messageLength + 2] = '\0';
-				++player->msgLength;
+		player = &g_players[player_idx];
+		if (g_current_action_key != 0) {
+			message_length = player->msg_length;
+			if (message_length < 48) {
+				player->msg_text[message_length] =
+					(char)g_current_action_key;
+				player->msg_text[message_length + 1] = '_';
+				player->msg_text[message_length + 2] = '\0';
+				++player->msg_length;
 			}
-			msg_addMessagePtr(0, player->msgText);
-			msg_emitInFlightMessage(
-				(InFlightMessageId)((uint8_t)player
-							    ->chatRecipientMode +
-						    IFMSG_374_FROM_ARG_ARG),
-				playerIdx);
-		} else if (playerIdx == g_localPlayer &&
-			   (int16_t)g_playerFlightTransientTimers[playerIdx]
-					   .flightGroupMessagePaneTimer <
+			msg_add_message_ptr(0, player->msg_text);
+			msg_emit_in_flight_message(
+				(in_flight_message_id)((uint8_t)player
+							       ->chat_recipient_mode +
+						       IFMSG_374_FROM_ARG_ARG),
+				player_idx);
+		} else if (player_idx == g_local_player &&
+			   (int16_t)g_player_flight_transient_timers[player_idx]
+					   .flight_group_message_pane_timer <
 				   SIMULATION_TICKS_PER_SECOND) {
-			msg_addMessagePtr(0, player->msgText);
-			msg_emitInFlightMessage(
-				(InFlightMessageId)((uint8_t)player
-							    ->chatRecipientMode +
-						    IFMSG_374_FROM_ARG_ARG),
-				playerIdx);
+			msg_add_message_ptr(0, player->msg_text);
+			msg_emit_in_flight_message(
+				(in_flight_message_id)((uint8_t)player
+							       ->chat_recipient_mode +
+						       IFMSG_374_FROM_ARG_ARG),
+				player_idx);
 		}
 		return;
 	}
 }
 
 /* Returns the nearest object, of a flight group not on the player's team, that
- * is an objective of kind goalType for that team, or -1 when none. A craft
+ * is an objective of kind goal_type for that team, or -1 when none. A craft
  * counts when active or arriving, with a pending flight group goal of that kind
  * enabled for the team with points of 0 or more, or matching one of the team's
- * global goal triggers for that kind; craft msg_BuildTargetDescription marks
+ * global goal triggers for that kind; craft msg_build_target_description marks
  * actionable come first. Static objects count, as actionable, with such a
  * pending flight group goal. Skips empty slots, the player's own craft,
  * explosions and objects with an active decoy beam. Writes trig2's polar
  * results. */
 // FUNCTION: XVT 0x481940
-int16_t Player_FindNearestObjective(int goalType, int playerIdx)
+int16_t player_find_nearest_objective(int goal_type, int player_idx)
 {
 	enum {
 		FLIGHT_GROUP_GOAL_COUNT = 8,
 		GOAL_STATE_PENDING = 4,
 	};
 
-	unsigned int objectIdx;
-	uint16_t bestActionableObject;
-	uint16_t bestObjectiveObject;
-	unsigned int bestActionableRange;
-	unsigned int bestObjectiveRange;
-	unsigned int playerTeam;
-	int16_t selectedObject;
+	unsigned int object_idx;
+	uint16_t best_actionable_object;
+	uint16_t best_objective_object;
+	unsigned int best_actionable_range;
+	unsigned int best_objective_range;
+	unsigned int player_team;
+	int16_t selected_object;
 
-	playerTeam = (uint16_t)g_players[playerIdx].team;
-	bestActionableObject = UINT16_MAX;
-	bestObjectiveObject = UINT16_MAX;
-	bestActionableRange = UINT_MAX;
-	bestObjectiveRange = UINT_MAX;
+	player_team = (uint16_t)g_players[player_idx].team;
+	best_actionable_object = UINT16_MAX;
+	best_objective_object = UINT16_MAX;
+	best_actionable_range = UINT_MAX;
+	best_objective_range = UINT_MAX;
 
-	for (objectIdx = g_activeRegionObjectSlotStart;
-	     objectIdx < (unsigned int)g_activeRegionCraftObjectSlotEnd;
-	     ++objectIdx) {
-		int flightGroupIdx;
+	for (object_idx = g_active_region_object_slot_start;
+	     object_idx < (unsigned int)g_active_region_craft_object_slot_end;
+	     ++object_idx) {
+		int flight_group_idx;
 		int objective;
-		int triggerCondition;
-		unsigned int goalIndex;
-		struct FlightGroupGoal *goals;
-		uint8_t *enabledTeamGoals;
+		int trigger_condition;
+		unsigned int goal_index;
+		struct flight_group_goal *goals;
+		uint8_t *enabled_team_goals;
 
-		if (g_objectTable[objectIdx].objectType == 0 ||
-		    objectIdx ==
-			    (unsigned int)g_players[playerIdx].objectIndex ||
-		    g_objectTable[objectIdx].genusId == CRAFT_GENUS_EXPLOSION ||
-		    Object_HasActiveDecoyBeam(objectIdx) != 0) {
+		if (g_object_table[object_idx].object_type == 0 ||
+		    object_idx ==
+			    (unsigned int)g_players[player_idx].object_index ||
+		    g_object_table[object_idx].genus_id ==
+			    CRAFT_GENUS_EXPLOSION ||
+		    object_has_active_decoy_beam(object_idx) != 0) {
 			continue;
 		}
-		flightGroupIdx = g_objectTable[objectIdx].flightGroupIdx;
-		if (g_missionFlightGroups[flightGroupIdx].fg.team ==
-		    playerTeam) {
+		flight_group_idx = g_object_table[object_idx].flight_group_idx;
+		if (g_mission_flight_groups[flight_group_idx].fg.team ==
+		    player_team) {
 			continue;
 		}
-		goalIndex = 0;
-		goals = g_missionFlightGroups[flightGroupIdx].fg.goals;
+		goal_index = 0;
+		goals = g_mission_flight_groups[flight_group_idx].fg.goals;
 		objective = 0;
-		enabledTeamGoals = &goals[0].enabledTeams[playerTeam];
-		for (; goalIndex < FLIGHT_GROUP_GOAL_COUNT; ++goalIndex) {
-			struct FlightGroupGoal *goal = &goals[goalIndex];
-			if (enabledTeamGoals[goalIndex * sizeof(*goal)] != 0 &&
-			    goal->goalKind == (uint8_t)goalType &&
+		enabled_team_goals = &goals[0].enabled_teams[player_team];
+		for (; goal_index < FLIGHT_GROUP_GOAL_COUNT; ++goal_index) {
+			struct flight_group_goal *goal = &goals[goal_index];
+			if (enabled_team_goals[goal_index * sizeof(*goal)] !=
+				    0 &&
+			    goal->goal_kind == (uint8_t)goal_type &&
 			    goal->points >= 0 &&
-			    g_missionFgStats[g_objectTable[objectIdx]
-						     .flightGroupIdx]
-					    .goalState[FLIGHT_GROUP_GOAL_COUNT *
-							       playerTeam +
-						       goalIndex] ==
+			    g_mission_fg_stats[g_object_table[object_idx]
+						       .flight_group_idx]
+					    .goal_state
+						    [FLIGHT_GROUP_GOAL_COUNT *
+							     player_team +
+						     goal_index] ==
 				    GOAL_STATE_PENDING) {
 				objective = 1;
 			}
 		}
-		triggerCondition = g_missionGlobalGoals[playerTeam][goalType]
-					   .triggerPairs[0]
-					   .triggers[0]
-					   .condition;
-		if (triggerCondition != MISSION_COND_NEVER &&
-		    triggerCondition != MISSION_COND_ALWAYS_TRUE &&
-		    Mission_ObjectMatchesTriggerVariable(
-			    objectIdx,
-			    g_missionGlobalGoals[playerTeam][goalType]
-				    .triggerPairs[0]
+		trigger_condition =
+			g_mission_global_goals[player_team][goal_type]
+				.trigger_pairs[0]
+				.triggers[0]
+				.condition;
+		if (trigger_condition != MISSION_COND_NEVER &&
+		    trigger_condition != MISSION_COND_ALWAYS_TRUE &&
+		    mission_object_matches_trigger_variable(
+			    object_idx,
+			    g_mission_global_goals[player_team][goal_type]
+				    .trigger_pairs[0]
 				    .triggers[0]
-				    .variableType,
-			    g_missionGlobalGoals[playerTeam][goalType]
-				    .triggerPairs[0]
+				    .variable_type,
+			    g_mission_global_goals[player_team][goal_type]
+				    .trigger_pairs[0]
 				    .triggers[0]
 				    .variable) != 0) {
 			objective = 1;
 		}
-		triggerCondition = g_missionGlobalGoals[playerTeam][goalType]
-					   .triggerPairs[0]
-					   .triggers[1]
-					   .condition;
-		if (triggerCondition != MISSION_COND_NEVER &&
-		    triggerCondition != MISSION_COND_ALWAYS_TRUE &&
-		    Mission_ObjectMatchesTriggerVariable(
-			    objectIdx,
-			    g_missionGlobalGoals[playerTeam][goalType]
-				    .triggerPairs[0]
+		trigger_condition =
+			g_mission_global_goals[player_team][goal_type]
+				.trigger_pairs[0]
+				.triggers[1]
+				.condition;
+		if (trigger_condition != MISSION_COND_NEVER &&
+		    trigger_condition != MISSION_COND_ALWAYS_TRUE &&
+		    mission_object_matches_trigger_variable(
+			    object_idx,
+			    g_mission_global_goals[player_team][goal_type]
+				    .trigger_pairs[0]
 				    .triggers[1]
-				    .variableType,
-			    g_missionGlobalGoals[playerTeam][goalType]
-				    .triggerPairs[0]
+				    .variable_type,
+			    g_mission_global_goals[player_team][goal_type]
+				    .trigger_pairs[0]
 				    .triggers[1]
 				    .variable) != 0) {
 			objective = 1;
 		}
 		/* The original reads the second pair's condition but the first pair's variable. */
-		triggerCondition = g_missionGlobalGoals[playerTeam][goalType]
-					   .triggerPairs[1]
-					   .triggers[0]
-					   .condition;
-		if (triggerCondition != MISSION_COND_NEVER &&
-		    triggerCondition != MISSION_COND_ALWAYS_TRUE &&
-		    Mission_ObjectMatchesTriggerVariable(
-			    objectIdx,
-			    g_missionGlobalGoals[playerTeam][goalType]
-				    .triggerPairs[0]
+		trigger_condition =
+			g_mission_global_goals[player_team][goal_type]
+				.trigger_pairs[1]
+				.triggers[0]
+				.condition;
+		if (trigger_condition != MISSION_COND_NEVER &&
+		    trigger_condition != MISSION_COND_ALWAYS_TRUE &&
+		    mission_object_matches_trigger_variable(
+			    object_idx,
+			    g_mission_global_goals[player_team][goal_type]
+				    .trigger_pairs[0]
 				    .triggers[0]
-				    .variableType,
-			    g_missionGlobalGoals[playerTeam][goalType]
-				    .triggerPairs[0]
+				    .variable_type,
+			    g_mission_global_goals[player_team][goal_type]
+				    .trigger_pairs[0]
 				    .triggers[0]
 				    .variable) != 0) {
 			objective = 1;
 		}
-		triggerCondition = g_missionGlobalGoals[playerTeam][goalType]
-					   .triggerPairs[1]
-					   .triggers[1]
-					   .condition;
-		if (triggerCondition != MISSION_COND_NEVER &&
-		    triggerCondition != MISSION_COND_ALWAYS_TRUE &&
-		    Mission_ObjectMatchesTriggerVariable(
-			    objectIdx,
-			    g_missionGlobalGoals[playerTeam][goalType]
-				    .triggerPairs[1]
+		trigger_condition =
+			g_mission_global_goals[player_team][goal_type]
+				.trigger_pairs[1]
+				.triggers[1]
+				.condition;
+		if (trigger_condition != MISSION_COND_NEVER &&
+		    trigger_condition != MISSION_COND_ALWAYS_TRUE &&
+		    mission_object_matches_trigger_variable(
+			    object_idx,
+			    g_mission_global_goals[player_team][goal_type]
+				    .trigger_pairs[1]
 				    .triggers[1]
-				    .variableType,
-			    g_missionGlobalGoals[playerTeam][goalType]
-				    .triggerPairs[1]
+				    .variable_type,
+			    g_mission_global_goals[player_team][goal_type]
+				    .trigger_pairs[1]
 				    .triggers[1]
 				    .variable) != 0) {
 			objective = 1;
 		}
 		if (objective != 0 &&
-		    (g_objectTable[objectIdx].mobj->pCraft->objectKind ==
+		    (g_object_table[object_idx].mobj->p_craft->object_kind ==
 			     CRAFT_OBJECT_KIND_ACTIVE ||
-		     g_objectTable[objectIdx].mobj->pCraft->objectKind ==
+		     g_object_table[object_idx].mobj->p_craft->object_kind ==
 			     CRAFT_OBJECT_KIND_ARRIVING_FROM_HYPERSPACE)) {
 			int actionable;
-			Player_ComputePolarToObjectRef(playerIdx, objectIdx);
-			actionable = msg_BuildTargetDescription(
-				objectIdx, playerIdx, 0, 1);
+			player_compute_polar_to_object_ref(player_idx,
+							   object_idx);
+			actionable = msg_build_target_description(
+				object_idx, player_idx, 0, 1);
 			if (actionable != 0) {
-				if (bestActionableRange >
+				if (best_actionable_range >
 				    (unsigned int)trig2_polardistance) {
-					bestActionableRange = (unsigned int)
+					best_actionable_range = (unsigned int)
 						trig2_polardistance;
-					bestActionableObject = objectIdx;
+					best_actionable_object = object_idx;
 				}
-			} else if (bestObjectiveRange >
+			} else if (best_objective_range >
 				   (unsigned int)trig2_polardistance) {
-				bestObjectiveRange =
+				best_objective_range =
 					(unsigned int)trig2_polardistance;
-				bestObjectiveObject = objectIdx;
+				best_objective_object = object_idx;
 			}
 		}
 	}
 
-	for (objectIdx = g_regionMainObjectSlotEnd;
-	     objectIdx < (unsigned int)(g_regionMainObjectSlotEnd +
-					g_regionStaticObjectSlotCount);
-	     ++objectIdx) {
-		int flightGroupIdx;
-		unsigned int goalIndex;
-		struct FlightGroupGoal *goals;
-		uint8_t *enabledTeamGoals;
+	for (object_idx = g_region_main_object_slot_end;
+	     object_idx < (unsigned int)(g_region_main_object_slot_end +
+					 g_region_static_object_slot_count);
+	     ++object_idx) {
+		int flight_group_idx;
+		unsigned int goal_index;
+		struct flight_group_goal *goals;
+		uint8_t *enabled_team_goals;
 
-		if (g_objectTable[objectIdx].objectType == 0) {
+		if (g_object_table[object_idx].object_type == 0) {
 			continue;
 		}
-		flightGroupIdx = g_objectTable[objectIdx].flightGroupIdx;
-		if (g_missionFlightGroups[flightGroupIdx].fg.team ==
-		    g_players[playerIdx].team) {
+		flight_group_idx = g_object_table[object_idx].flight_group_idx;
+		if (g_mission_flight_groups[flight_group_idx].fg.team ==
+		    g_players[player_idx].team) {
 			continue;
 		}
-		goalIndex = 0;
-		goals = g_missionFlightGroups[flightGroupIdx].fg.goals;
-		enabledTeamGoals = &goals[0].enabledTeams[playerTeam];
-		for (; goalIndex < FLIGHT_GROUP_GOAL_COUNT; ++goalIndex) {
-			struct FlightGroupGoal *goal = &goals[goalIndex];
-			if (enabledTeamGoals[goalIndex * sizeof(*goal)] != 0 &&
-			    goal->goalKind == (uint8_t)goalType &&
+		goal_index = 0;
+		goals = g_mission_flight_groups[flight_group_idx].fg.goals;
+		enabled_team_goals = &goals[0].enabled_teams[player_team];
+		for (; goal_index < FLIGHT_GROUP_GOAL_COUNT; ++goal_index) {
+			struct flight_group_goal *goal = &goals[goal_index];
+			if (enabled_team_goals[goal_index * sizeof(*goal)] !=
+				    0 &&
+			    goal->goal_kind == (uint8_t)goal_type &&
 			    goal->points >= 0 &&
-			    g_missionFgStats[flightGroupIdx]
-					    .goalState[FLIGHT_GROUP_GOAL_COUNT *
-							       playerTeam +
-						       goalIndex] ==
+			    g_mission_fg_stats[flight_group_idx].goal_state
+					    [FLIGHT_GROUP_GOAL_COUNT *
+						     player_team +
+					     goal_index] ==
 				    GOAL_STATE_PENDING) {
-				Player_ComputePolarToObjectRef(playerIdx,
-							       objectIdx);
-				if (bestActionableRange >
+				player_compute_polar_to_object_ref(player_idx,
+								   object_idx);
+				if (best_actionable_range >
 				    (unsigned int)trig2_polardistance) {
-					bestActionableRange = (unsigned int)
+					best_actionable_range = (unsigned int)
 						trig2_polardistance;
-					bestActionableObject = objectIdx;
+					best_actionable_object = object_idx;
 				}
 			}
 		}
 	}
-	selectedObject = (int16_t)bestActionableObject;
-	if (bestActionableObject == UINT16_MAX) {
-		selectedObject = (int16_t)bestObjectiveObject;
+	selected_object = (int16_t)best_actionable_object;
+	if (best_actionable_object == UINT16_MAX) {
+		selected_object = (int16_t)best_objective_object;
 	}
-	return selectedObject;
+	return selected_object;
 }
 
-/* Returns step * g_elapsedTicks / SIMULATION_TICKS_PER_SECOND: a rate per
+/* Returns step * g_elapsed_ticks / SIMULATION_TICKS_PER_SECOND: a rate per
  * SIMULATION_TICKS_PER_SECOND ticks turned into this update's share. */
 // FUNCTION: XVT 0x481D70
-int Player_ScaleControlStepByElapsedTicks(int16_t step)
+int player_scale_control_step_by_elapsed_ticks(int16_t step)
 {
-	return MATH2_ABoverC32(step, g_elapsedTicks,
-			       SIMULATION_TICKS_PER_SECOND);
+	return math2_ab_over_c32(step, g_elapsed_ticks,
+				 SIMULATION_TICKS_PER_SECOND);
 }
 
-/* Moves shield energy from bank srcBank to bank dstBank of the player's craft,
- * as much as dstBank lacks of Craft_GetObjectMaxShield; nothing when srcBank is
- * empty or dstBank full. Checks neither the banks nor that the player has a
+/* Moves shield energy from bank src_bank to bank dst_bank of the player's craft,
+ * as much as dst_bank lacks of craft_get_object_max_shield; nothing when src_bank is
+ * empty or dst_bank full. Checks neither the banks nor that the player has a
  * craft. */
 // FUNCTION: XVT 0x481EA0
-void Player_TransferShieldBankEnergy(uint16_t dstBank, uint16_t srcBank,
-				     int playerIdx)
+void player_transfer_shield_bank_energy(uint16_t dst_bank, uint16_t src_bank,
+					int player_idx)
 {
-	struct PlayerData *player;
-	struct CraftData *craft;
-	int *dstShieldEnergy;
-	int16_t objectMaxShield;
-	int dstEnergy;
-	int srcEnergy;
-	int16_t transferCapacity;
+	struct player_data *player;
+	struct craft_data *craft;
+	int *dst_shield_energy;
+	int16_t object_max_shield;
+	int dst_energy;
+	int src_energy;
+	int16_t transfer_capacity;
 
-	player = &g_players[playerIdx];
-	if (g_objectTable[player->objectIndex]
-		    .mobj->pCraft->shieldEnergy[srcBank] > 0) {
-		objectMaxShield =
-			(int16_t)Craft_GetObjectMaxShield(player->objectIndex);
-		craft = g_objectTable[player->objectIndex].mobj->pCraft;
-		dstEnergy = craft->shieldEnergy[dstBank];
-		dstShieldEnergy = &craft->shieldEnergy[dstBank];
-		transferCapacity = objectMaxShield - dstEnergy;
-		if (transferCapacity > 0) {
-			srcEnergy = craft->shieldEnergy[srcBank];
-			if (srcEnergy > transferCapacity) {
-				*dstShieldEnergy = dstEnergy + transferCapacity;
-				g_objectTable[player->objectIndex]
-					.mobj->pCraft->shieldEnergy[srcBank] -=
-					transferCapacity;
+	player = &g_players[player_idx];
+	if (g_object_table[player->object_index]
+		    .mobj->p_craft->shield_energy[src_bank] > 0) {
+		object_max_shield = (int16_t)craft_get_object_max_shield(
+			player->object_index);
+		craft = g_object_table[player->object_index].mobj->p_craft;
+		dst_energy = craft->shield_energy[dst_bank];
+		dst_shield_energy = &craft->shield_energy[dst_bank];
+		transfer_capacity = object_max_shield - dst_energy;
+		if (transfer_capacity > 0) {
+			src_energy = craft->shield_energy[src_bank];
+			if (src_energy > transfer_capacity) {
+				*dst_shield_energy =
+					dst_energy + transfer_capacity;
+				g_object_table[player->object_index]
+					.mobj->p_craft
+					->shield_energy[src_bank] -=
+					transfer_capacity;
 			} else {
-				*dstShieldEnergy = dstEnergy + srcEnergy;
-				g_objectTable[player->objectIndex]
-					.mobj->pCraft->shieldEnergy[srcBank] =
-					0;
+				*dst_shield_energy = dst_energy + src_energy;
+				g_object_table[player->object_index]
+					.mobj->p_craft
+					->shield_energy[src_bank] = 0;
 			}
 		}
 	}
 }
 
 /* Sets the HUD view for where the player's camera looks. With the external
- * camera on: the target camera view while targetCameraActive is set, else full
+ * camera on: the target camera view while target_camera_active is set, else full
  * screen, and all 60 entries of the camera roll, pitch and yaw histories set to
  * the current view angles. With it off: input unblocked; back on the player's
  * own craft, the saved HUD aim and view return; on another object, the HUD aim
  * is centered, the view goes full screen and the external camera turns on. */
 // FUNCTION: XVT 0x481FB0
-void Player_UpdateHudViewForCameraFocus(int playerIdx)
+void player_update_hud_view_for_camera_focus(int player_idx)
 {
 	enum {
 		CAMERA_HISTORY_SAMPLE_COUNT = 60,
 	};
 
-	uint16_t sampleIndex;
+	uint16_t sample_index;
 
-	if (g_players[playerIdx].viewState.externalCameraActive != 0) {
-		if (g_players[playerIdx].viewState.targetCameraActive != 0) {
-			Hud_SetHudViewState(HUD_VIEW_TARGET_CAMERA, playerIdx);
+	if (g_players[player_idx].view_state.external_camera_active != 0) {
+		if (g_players[player_idx].view_state.target_camera_active !=
+		    0) {
+			hud_set_hud_view_state(HUD_VIEW_TARGET_CAMERA,
+					       player_idx);
 		} else {
-			Hud_SetHudViewState(HUD_VIEW_FULL_SCREEN, playerIdx);
+			hud_set_hud_view_state(HUD_VIEW_FULL_SCREEN,
+					       player_idx);
 		}
-		for (sampleIndex = 0; sampleIndex < CAMERA_HISTORY_SAMPLE_COUNT;
-		     ++sampleIndex) {
-			g_players[playerIdx]
-				.viewState.cameraRollHistory[sampleIndex] =
-				g_players[playerIdx].viewState.viewRoll;
-			g_players[playerIdx]
-				.viewState.cameraPitchHistory[sampleIndex] =
-				g_players[playerIdx].viewState.viewPitch;
-			g_players[playerIdx]
-				.viewState.cameraYawHistory[sampleIndex] =
-				g_players[playerIdx].viewState.viewYaw;
+		for (sample_index = 0;
+		     sample_index < CAMERA_HISTORY_SAMPLE_COUNT;
+		     ++sample_index) {
+			g_players[player_idx]
+				.view_state.camera_roll_history[sample_index] =
+				g_players[player_idx].view_state.view_roll;
+			g_players[player_idx]
+				.view_state.camera_pitch_history[sample_index] =
+				g_players[player_idx].view_state.view_pitch;
+			g_players[player_idx]
+				.view_state.camera_yaw_history[sample_index] =
+				g_players[player_idx].view_state.view_yaw;
 		}
 	} else {
-		g_players[playerIdx].viewState.playerInputBlocked = 0;
-		if (g_players[playerIdx].viewState.cameraFocusObjIdx ==
-		    g_players[playerIdx].objectIndex) {
-			g_players[playerIdx].viewState.hudAimX =
-				g_players[playerIdx].viewState.savedHudAimX;
-			g_players[playerIdx].viewState.hudAimY =
-				g_players[playerIdx].viewState.savedHudAimY;
-			Hud_SetHudViewState(
-				g_players[playerIdx]
-					.viewState.savedHudStateByte,
-				playerIdx);
+		g_players[player_idx].view_state.player_input_blocked = 0;
+		if (g_players[player_idx].view_state.camera_focus_obj_idx ==
+		    g_players[player_idx].object_index) {
+			g_players[player_idx].view_state.hud_aim_x =
+				g_players[player_idx]
+					.view_state.saved_hud_aim_x;
+			g_players[player_idx].view_state.hud_aim_y =
+				g_players[player_idx]
+					.view_state.saved_hud_aim_y;
+			hud_set_hud_view_state(
+				g_players[player_idx]
+					.view_state.saved_hud_state_byte,
+				player_idx);
 		} else {
-			g_players[playerIdx].viewState.hudAimX = 0;
-			g_players[playerIdx].viewState.hudAimY = 0;
-			Hud_SetHudViewState(HUD_VIEW_FULL_SCREEN, playerIdx);
-			g_players[playerIdx].viewState.externalCameraActive = 1;
+			g_players[player_idx].view_state.hud_aim_x = 0;
+			g_players[player_idx].view_state.hud_aim_y = 0;
+			hud_set_hud_view_state(HUD_VIEW_FULL_SCREEN,
+					       player_idx);
+			g_players[player_idx]
+				.view_state.external_camera_active = 1;
 		}
 	}
 }
 
 /* Returns the object the player is looking at, or UINT16_MAX: among targetable
- * objects (type behaviorFlags bit 0) in the main and static slots other than
+ * objects (type behavior_flags bit 0) in the main and static slots other than
  * the player's craft, the nearest inside the narrow aim cone; failing that, the
- * one closest to the aim line when its g_targetAngleScore is below 50, or below
+ * one closest to the aim line when its g_target_angle_score is below 50, or below
  * 250 with the map camera. Without the map camera, a pick with an active decoy
  * beam is refused with IFMSG_257. */
 // FUNCTION: XVT 0x4820B0
-uint16_t Player_PickTargetInSight(int playerIdx)
+uint16_t player_pick_target_in_sight(int player_idx)
 {
-	uint16_t bestAngularTarget = UINT16_MAX;
-	uint16_t bestTarget = UINT16_MAX;
-	uint16_t bestAngle = UINT16_MAX;
-	unsigned int bestRange = UINT_MAX;
-	uint16_t objectIdx;
+	uint16_t best_angular_target = UINT16_MAX;
+	uint16_t best_target = UINT16_MAX;
+	uint16_t best_angle = UINT16_MAX;
+	unsigned int best_range = UINT_MAX;
+	uint16_t object_idx;
 
-	for (objectIdx = (uint16_t)g_activeRegionObjectSlotStart;
-	     objectIdx < g_regionMainObjectSlotEnd; ++objectIdx) {
-		if (g_objectTable[objectIdx].objectType != 0 &&
-		    g_players[playerIdx].objectIndex != objectIdx &&
-		    (g_objectTypeTable[g_objectTable[objectIdx].objectType]
-			     .behaviorFlags &
+	for (object_idx = (uint16_t)g_active_region_object_slot_start;
+	     object_idx < g_region_main_object_slot_end; ++object_idx) {
+		if (g_object_table[object_idx].object_type != 0 &&
+		    g_players[player_idx].object_index != object_idx &&
+		    (g_object_type_table[g_object_table[object_idx].object_type]
+			     .behavior_flags &
 		     1) != 0) {
-			if (Targeting_TestAimCone(objectIdx, 1, playerIdx)) {
-				if (bestRange >
-				    (unsigned int)g_lastRoughDistance) {
-					bestTarget = objectIdx;
-					bestRange = g_lastRoughDistance;
+			if (targeting_test_aim_cone(object_idx, 1,
+						    player_idx)) {
+				if (best_range >
+				    (unsigned int)g_last_rough_distance) {
+					best_target = object_idx;
+					best_range = g_last_rough_distance;
 				}
 			} else {
-				if (bestAngle <= g_targetAngleScore) {
+				if (best_angle <= g_target_angle_score) {
 					continue;
 				}
-				bestAngle = g_targetAngleScore;
-				bestAngularTarget = objectIdx;
+				best_angle = g_target_angle_score;
+				best_angular_target = object_idx;
 			}
 		}
 	}
-	for (objectIdx = (uint16_t)g_regionMainObjectSlotEnd;
-	     objectIdx <
-	     g_regionStaticObjectSlotCount + g_regionMainObjectSlotEnd;
-	     ++objectIdx) {
-		if (g_objectTable[objectIdx].objectType != 0 &&
-		    (g_objectTypeTable[g_objectTable[objectIdx].objectType]
-			     .behaviorFlags &
+	for (object_idx = (uint16_t)g_region_main_object_slot_end;
+	     object_idx <
+	     g_region_static_object_slot_count + g_region_main_object_slot_end;
+	     ++object_idx) {
+		if (g_object_table[object_idx].object_type != 0 &&
+		    (g_object_type_table[g_object_table[object_idx].object_type]
+			     .behavior_flags &
 		     1) != 0) {
-			if (Targeting_TestAimCone(objectIdx, 1, playerIdx)) {
-				if (bestRange >
-				    (unsigned int)g_lastRoughDistance) {
-					bestTarget = objectIdx;
-					bestRange = g_lastRoughDistance;
+			if (targeting_test_aim_cone(object_idx, 1,
+						    player_idx)) {
+				if (best_range >
+				    (unsigned int)g_last_rough_distance) {
+					best_target = object_idx;
+					best_range = g_last_rough_distance;
 				}
 			} else {
-				if (bestAngle <= g_targetAngleScore) {
+				if (best_angle <= g_target_angle_score) {
 					continue;
 				}
-				bestAngle = g_targetAngleScore;
-				bestAngularTarget = objectIdx;
+				best_angle = g_target_angle_score;
+				best_angular_target = object_idx;
 			}
 		}
 	}
-	if (bestTarget == UINT16_MAX) {
-		if (g_players[playerIdx].mapCameraState != 0) {
-			if (bestAngle < 0xFA) {
-				bestTarget = bestAngularTarget;
+	if (best_target == UINT16_MAX) {
+		if (g_players[player_idx].map_camera_state != 0) {
+			if (best_angle < 0xFA) {
+				best_target = best_angular_target;
 			}
-		} else if (bestAngle < 0x32) {
-			bestTarget = bestAngularTarget;
+		} else if (best_angle < 0x32) {
+			best_target = best_angular_target;
 		}
 	}
-	if (g_players[playerIdx].mapCameraState == 0 &&
-	    Object_HasActiveDecoyBeam(bestTarget) == 1) {
-		bestTarget = UINT16_MAX;
-		msg_emitInFlightMessage(
+	if (g_players[player_idx].map_camera_state == 0 &&
+	    object_has_active_decoy_beam(best_target) == 1) {
+		best_target = UINT16_MAX;
+		msg_emit_in_flight_message(
 			IFMSG_257_TARGET_ACQUISITION_BLOCKED_BY_DECOY_BEAM,
-			playerIdx);
+			player_idx);
 	}
-	return bestTarget;
+	return best_target;
 }
 
-/* Besides picking the next target, this leaves g_curCraft pointing at the last craft it examined. */
-/* Steps from currentObjIdx by direction through the main and static slots,
- * wrapping, and returns the first targetable object (type behaviorFlags bit 0)
+/* Besides picking the next target, this leaves g_cur_craft pointing at the last craft it examined. */
+/* Steps from current_obj_idx by direction through the main and static slots,
+ * wrapping, and returns the first targetable object (type behavior_flags bit 0)
  * other than the player's craft. Objects with mobile data are skipped when
  * explosions, under an active decoy beam, or craft breaking up or exploding.
  * Returns UINT16_MAX after a full lap with none. */
 // FUNCTION: XVT 0x4822C0
-uint16_t Player_CycleTargetAnyIFF(uint16_t currentObjIdx, int16_t direction,
-				  int playerIdx)
+uint16_t player_cycle_target_any_iff(uint16_t current_obj_idx,
+				     int16_t direction, int player_idx)
 {
-	int16_t remainingObjects;
-	int objectCount;
-	struct ObjectRecord *object;
-	struct MobileObject *mobileObject;
-	uint8_t objectKind;
+	int16_t remaining_objects;
+	int object_count;
+	struct object_record *object;
+	struct mobile_object *mobile_object;
+	uint8_t object_kind;
 
-	objectCount = g_regionStaticObjectSlotCount;
-	remainingObjects = (int16_t)objectCount;
-	remainingObjects += (int16_t)g_regionMainObjectSlotEnd;
+	object_count = g_region_static_object_slot_count;
+	remaining_objects = (int16_t)object_count;
+	remaining_objects += (int16_t)g_region_main_object_slot_end;
 	for (;;) {
-		if (remainingObjects-- == 0) {
+		if (remaining_objects-- == 0) {
 			return UINT16_MAX;
 		}
-		currentObjIdx += direction;
-		objectCount = g_regionStaticObjectSlotCount;
-		if (currentObjIdx >= 0x8000u) {
-			currentObjIdx =
-				(uint16_t)(objectCount +
-					   (int16_t)g_regionMainObjectSlotEnd -
+		current_obj_idx += direction;
+		object_count = g_region_static_object_slot_count;
+		if (current_obj_idx >= 0x8000u) {
+			current_obj_idx =
+				(uint16_t)(object_count +
+					   (int16_t)
+						   g_region_main_object_slot_end -
 					   1);
-		} else if (objectCount + g_regionMainObjectSlotEnd ==
-			   currentObjIdx) {
-			currentObjIdx = 0;
+		} else if (object_count + g_region_main_object_slot_end ==
+			   current_obj_idx) {
+			current_obj_idx = 0;
 		}
 
-		if (g_players[playerIdx].objectIndex != currentObjIdx) {
-			object = &g_objectTable[currentObjIdx];
-			if (object->objectType != 0 &&
-			    (g_objectTypeTable[object->objectType]
-				     .behaviorFlags &
+		if (g_players[player_idx].object_index != current_obj_idx) {
+			object = &g_object_table[current_obj_idx];
+			if (object->object_type != 0 &&
+			    (g_object_type_table[object->object_type]
+				     .behavior_flags &
 			     1) != 0) {
 				if (object->mobj == NULL) {
 					break;
 				}
-				if (object->genusId != CRAFT_GENUS_EXPLOSION &&
-				    Object_HasActiveDecoyBeam(currentObjIdx) ==
-					    0) {
-					mobileObject =
-						g_objectTable[currentObjIdx]
+				if (object->genus_id != CRAFT_GENUS_EXPLOSION &&
+				    object_has_active_decoy_beam(
+					    current_obj_idx) == 0) {
+					mobile_object =
+						g_object_table[current_obj_idx]
 							.mobj;
-					if (mobileObject->family != 0) {
+					if (mobile_object->family != 0) {
 						break;
 					}
-					g_curCraft = mobileObject->pCraft;
-					objectKind = g_curCraft->objectKind;
-					if (objectKind !=
+					g_cur_craft = mobile_object->p_craft;
+					object_kind = g_cur_craft->object_kind;
+					if (object_kind !=
 						    CRAFT_OBJECT_KIND_BREAKING_UP &&
-					    objectKind !=
+					    object_kind !=
 						    CRAFT_OBJECT_KIND_EXPLODING) {
 						break;
 					}
@@ -2383,116 +2477,117 @@ uint16_t Player_CycleTargetAnyIFF(uint16_t currentObjIdx, int16_t direction,
 			}
 		}
 	}
-	return currentObjIdx;
+	return current_obj_idx;
 }
 
-/* Besides picking the next target, this leaves g_curCraft pointing at the last craft it examined. */
-/* Steps like Player_CycleTargetAnyIFF, with filters. targetFlags bit 2 skips
- * projectile slots, bit 1 skips slots from g_projectileObjectSlotEnd up, bit 0
- * skips mines. iffFilter 1 keeps the player's team, 2 objects not hostile to
+/* Besides picking the next target, this leaves g_cur_craft pointing at the last craft it examined. */
+/* Steps like player_cycle_target_any_iff, with filters. target_flags bit 2 skips
+ * projectile slots, bit 1 skips slots from g_projectile_object_slot_end up, bit 0
+ * skips mines. iff_filter 1 keeps the player's team, 2 objects not hostile to
  * it, 3 hostile objects, 4 craft flown by players; the team is the mobile team,
  * or the flight group's for an object without mobile data. Returns UINT16_MAX
  * after a full lap with none. */
 // FUNCTION: XVT 0x4823E0
-uint16_t Player_CycleTarget(uint16_t currentObjIdx, int16_t direction,
-			    int playerIdx, int iffFilter, int targetFlags)
+uint16_t player_cycle_target(uint16_t current_obj_idx, int16_t direction,
+			     int player_idx, int iff_filter, int target_flags)
 {
-	struct ObjectRecord *object;
-	struct MobileObject *mobileObject;
-	uint16_t objectIndex;
-	int16_t remainingObjects;
-	int objectCount;
-	uint8_t objectKind;
-	ObjectTypeId objectType;
-	int objectTeam;
-	uint16_t playerTeam;
+	struct object_record *object;
+	struct mobile_object *mobile_object;
+	uint16_t object_index;
+	int16_t remaining_objects;
+	int object_count;
+	uint8_t object_kind;
+	object_type_id object_type;
+	int object_team;
+	uint16_t player_team;
 
-	objectIndex = currentObjIdx;
-	objectCount = g_regionStaticObjectSlotCount;
-	remainingObjects = (int16_t)objectCount;
-	remainingObjects += (int16_t)g_regionMainObjectSlotEnd;
+	object_index = current_obj_idx;
+	object_count = g_region_static_object_slot_count;
+	remaining_objects = (int16_t)object_count;
+	remaining_objects += (int16_t)g_region_main_object_slot_end;
 	for (;;) {
-		if (remainingObjects-- == 0) {
+		if (remaining_objects-- == 0) {
 			return UINT16_MAX;
 		}
 
-		objectIndex += direction;
-		objectCount = g_regionStaticObjectSlotCount;
-		if (objectIndex >= 0x8000u) {
-			objectIndex =
-				(uint16_t)(objectCount +
-					   (int16_t)g_regionMainObjectSlotEnd -
+		object_index += direction;
+		object_count = g_region_static_object_slot_count;
+		if (object_index >= 0x8000u) {
+			object_index =
+				(uint16_t)(object_count +
+					   (int16_t)
+						   g_region_main_object_slot_end -
 					   1);
-		} else if (objectCount + g_regionMainObjectSlotEnd ==
-			   objectIndex) {
-			objectIndex = 0;
+		} else if (object_count + g_region_main_object_slot_end ==
+			   object_index) {
+			object_index = 0;
 		}
 
-		if (g_players[playerIdx].objectIndex != objectIndex &&
-		    ((targetFlags & 4) == 0 ||
-		     g_projectileObjectSlotStart > objectIndex ||
-		     g_projectileObjectSlotEnd <= objectIndex) &&
-		    ((targetFlags & 2) == 0 ||
-		     g_projectileObjectSlotEnd > objectIndex)) {
-			object = &g_objectTable[objectIndex];
-			objectType = object->objectType;
-			if (objectType != 0 &&
-			    (g_objectTypeTable[objectType].behaviorFlags & 1) !=
-				    0 &&
-			    ((targetFlags & 1) == 0 ||
-			     object->genusId != CRAFT_GENUS_MINE)) {
-				objectTeam =
+		if (g_players[player_idx].object_index != object_index &&
+		    ((target_flags & 4) == 0 ||
+		     g_projectile_object_slot_start > object_index ||
+		     g_projectile_object_slot_end <= object_index) &&
+		    ((target_flags & 2) == 0 ||
+		     g_projectile_object_slot_end > object_index)) {
+			object = &g_object_table[object_index];
+			object_type = object->object_type;
+			if (object_type != 0 &&
+			    (g_object_type_table[object_type].behavior_flags &
+			     1) != 0 &&
+			    ((target_flags & 1) == 0 ||
+			     object->genus_id != CRAFT_GENUS_MINE)) {
+				object_team =
 					object->mobj == NULL
-						? g_missionFlightGroups
-							  [object->flightGroupIdx]
+						? g_mission_flight_groups
+							  [object->flight_group_idx]
 								  .fg.team
 						: object->mobj->team;
 
 				/* Cases 2 and 3 overwrite the object's team with a 0/1 flag: 1 when hostile to the player. */
-				switch (iffFilter) {
+				switch (iff_filter) {
 				case 1:
-					if ((uint16_t)g_players[playerIdx]
-						    .team != objectTeam) {
+					if ((uint16_t)g_players[player_idx]
+						    .team != object_team) {
 						continue;
 					}
 					break;
 
 				case 2:
-					playerTeam =
-						(uint16_t)g_players[playerIdx]
+					player_team =
+						(uint16_t)g_players[player_idx]
 							.team;
-					if (playerTeam == objectTeam) {
-						objectTeam = 0;
+					if (player_team == object_team) {
+						object_team = 0;
 					} else {
-						objectTeam =
-							g_missionTeams[playerTeam]
-								.allies[objectTeam] ==
+						object_team =
+							g_mission_teams[player_team]
+								.allies[object_team] ==
 							0;
 					}
-					if (objectTeam == 1) {
+					if (object_team == 1) {
 						continue;
 					}
 					break;
 
 				case 3:
-					playerTeam =
-						(uint16_t)g_players[playerIdx]
+					player_team =
+						(uint16_t)g_players[player_idx]
 							.team;
-					if (playerTeam == objectTeam) {
-						objectTeam = 0;
+					if (player_team == object_team) {
+						object_team = 0;
 					} else {
-						objectTeam =
-							g_missionTeams[playerTeam]
-								.allies[objectTeam] ==
+						object_team =
+							g_mission_teams[player_team]
+								.allies[object_team] ==
 							0;
 					}
-					if (objectTeam == 0) {
+					if (object_team == 0) {
 						continue;
 					}
 					break;
 
 				case 4:
-					if (object->playerOwnerIdx == -1) {
+					if (object->player_owner_idx == -1) {
 						continue;
 					}
 					break;
@@ -2504,19 +2599,20 @@ uint16_t Player_CycleTarget(uint16_t currentObjIdx, int16_t direction,
 				if (object->mobj == NULL) {
 					break;
 				}
-				if (object->genusId != CRAFT_GENUS_EXPLOSION &&
-				    Object_HasActiveDecoyBeam(objectIndex) ==
-					    0) {
-					mobileObject =
-						g_objectTable[objectIndex].mobj;
-					if (mobileObject->family != 0) {
+				if (object->genus_id != CRAFT_GENUS_EXPLOSION &&
+				    object_has_active_decoy_beam(
+					    object_index) == 0) {
+					mobile_object =
+						g_object_table[object_index]
+							.mobj;
+					if (mobile_object->family != 0) {
 						break;
 					}
-					g_curCraft = mobileObject->pCraft;
-					objectKind = g_curCraft->objectKind;
-					if (objectKind !=
+					g_cur_craft = mobile_object->p_craft;
+					object_kind = g_cur_craft->object_kind;
+					if (object_kind !=
 						    CRAFT_OBJECT_KIND_BREAKING_UP &&
-					    objectKind !=
+					    object_kind !=
 						    CRAFT_OBJECT_KIND_EXPLODING) {
 						break;
 					}
@@ -2525,7 +2621,7 @@ uint16_t Player_CycleTarget(uint16_t currentObjIdx, int16_t direction,
 		}
 	}
 
-	return objectIndex;
+	return object_index;
 }
 
 /* Makes an object the player's current target. Ignores UINT16_MAX, empty slots,
@@ -2533,154 +2629,158 @@ uint16_t Player_CycleTarget(uint16_t currentObjIdx, int16_t direction,
  * player's craft out, emits IFMSG_086 and changes nothing. For a new target:
  * plays FLIGHT_SOUND_TARGET_SELECTED; picks its component in a craft slot (the
  * first main hull or fuselage with the map camera, else
- * Player_SelectTargetComponentMesh), or 0; aims the camera at it while
- * targetCameraActive is set; clears missileLockState and the craft's
- * warheadLockTicks; and describes it with msg_BuildTargetDescription with the
+ * player_select_target_component_mesh), or 0; aims the camera at it while
+ * target_camera_active is set; clears missile_lock_state and the craft's
+ * warhead_lock_ticks; and describes it with msg_build_target_description with the
  * map camera, or when the craft's first HUD feature is active and the player's
  * view is HUD only or forward, or the local player's is the target camera.
  * Without the map camera, does not check that the player has a craft before
  * reading its HUD features. */
 // FUNCTION: XVT 0x4833D0
-void Player_SetTarget(int newTargetObjIdx, int playerIdx)
+void player_set_target(int new_target_obj_idx, int player_idx)
 {
 	enum { OBJECT_TYPE_MESH_CACHE_COUNT = 73 };
 
-	int targetObjIdx;
-	int playerObjectIdx;
-	int canTarget;
+	int target_obj_idx;
+	int player_object_idx;
+	int can_target;
 
-	if ((uint16_t)newTargetObjIdx == UINT16_MAX) {
+	if ((uint16_t)new_target_obj_idx == UINT16_MAX) {
 		return;
 	}
-	targetObjIdx = (uint16_t)newTargetObjIdx;
-	if (g_objectTable[targetObjIdx].objectType == 0 ||
-	    g_objectTable[targetObjIdx].genusId == 13) {
+	target_obj_idx = (uint16_t)new_target_obj_idx;
+	if (g_object_table[target_obj_idx].object_type == 0 ||
+	    g_object_table[target_obj_idx].genus_id == 13) {
 		return;
 	}
-	playerObjectIdx = g_players[playerIdx].objectIndex;
-	if (playerObjectIdx == targetObjIdx) {
+	player_object_idx = g_players[player_idx].object_index;
+	if (player_object_idx == target_obj_idx) {
 		return;
 	}
-	canTarget = 1;
-	if (playerObjectIdx != -1) {
-		if ((g_objectTable[playerObjectIdx]
-			     .mobj->pCraft->workingSubsystems &
+	can_target = 1;
+	if (player_object_idx != -1) {
+		if ((g_object_table[player_object_idx]
+			     .mobj->p_craft->working_subsystems &
 		     CRAFT_SUBSYSTEM_FLAG_TARGETING_COMPUTER) == 0) {
-			canTarget = 0;
+			can_target = 0;
 		}
 	}
-	if (canTarget != 0) {
-		if ((uint16_t)newTargetObjIdx != UINT16_MAX &&
-		    (uint16_t)g_players[playerIdx].currentTargetObjectIdx !=
-			    (uint16_t)newTargetObjIdx) {
-			fsfx_PlaySound(FLIGHT_SOUND_TARGET_SELECTED, -1,
-				       playerIdx);
-			g_players[playerIdx].currentTargetObjectIdx =
-				(uint16_t)newTargetObjIdx;
-			g_players[playerIdx].selectedTargetComponent = 0;
-			if (g_activeRegionCraftObjectSlotEnd > targetObjIdx) {
-				if (g_players[playerIdx].mapCameraState != 0) {
-					int objectType;
-					int meshCount;
-					uint16_t meshIndex;
+	if (can_target != 0) {
+		if ((uint16_t)new_target_obj_idx != UINT16_MAX &&
+		    (uint16_t)g_players[player_idx].current_target_object_idx !=
+			    (uint16_t)new_target_obj_idx) {
+			fsfx_play_sound(FLIGHT_SOUND_TARGET_SELECTED, -1,
+					player_idx);
+			g_players[player_idx].current_target_object_idx =
+				(uint16_t)new_target_obj_idx;
+			g_players[player_idx].selected_target_component = 0;
+			if (g_active_region_craft_object_slot_end >
+			    target_obj_idx) {
+				if (g_players[player_idx].map_camera_state !=
+				    0) {
+					int object_type;
+					int mesh_count;
+					uint16_t mesh_index;
 
-					objectType =
-						g_objectTable
-							[(uint16_t)g_players[playerIdx]
-								 .currentTargetObjectIdx]
-								.objectType;
-					if (objectType <
+					object_type =
+						g_object_table
+							[(uint16_t)g_players[player_idx]
+								 .current_target_object_idx]
+								.object_type;
+					if (object_type <
 					    OBJECT_TYPE_MESH_CACHE_COUNT) {
-						meshCount =
-							g_objectTypeMeshCache
-								[objectType]
-									.meshCount;
+						mesh_count =
+							g_object_type_mesh_cache
+								[object_type]
+									.mesh_count;
 					} else {
-						meshCount =
-							ModelMesh_GetObjectTypeMeshCount(
-								objectType);
+						mesh_count =
+							model_mesh_get_object_type_mesh_count(
+								object_type);
 					}
-					for (meshIndex = 0;
-					     meshIndex < meshCount;
-					     ++meshIndex) {
-						int cachedMeshIndex;
-						int meshType;
+					for (mesh_index = 0;
+					     mesh_index < mesh_count;
+					     ++mesh_index) {
+						int cached_mesh_index;
+						int mesh_type;
 
-						cachedMeshIndex = meshIndex;
-						objectType =
-							g_objectTable
+						cached_mesh_index = mesh_index;
+						object_type =
+							g_object_table
 								[(uint16_t)g_players
-									 [playerIdx]
-										 .currentTargetObjectIdx]
-									.objectType;
-						if (objectType <
+									 [player_idx]
+										 .current_target_object_idx]
+									.object_type;
+						if (object_type <
 						    OBJECT_TYPE_MESH_CACHE_COUNT) {
-							meshType = ModelMesh_GetCachedObjectTypeMeshType(
-								objectType,
-								cachedMeshIndex);
+							mesh_type = model_mesh_get_cached_object_type_mesh_type(
+								object_type,
+								cached_mesh_index);
 						} else {
-							meshType = ModelMesh_GetObjectTypeMeshType(
-								objectType,
-								meshIndex);
+							mesh_type = model_mesh_get_object_type_mesh_type(
+								object_type,
+								mesh_index);
 						}
-						if (meshType ==
+						if (mesh_type ==
 							    MESH_COMPONENT_01_MAIN_HULL ||
-						    meshType ==
+						    mesh_type ==
 							    MESH_COMPONENT_03_FUSELAGE) {
-							g_players[playerIdx]
-								.selectedTargetComponent =
-								meshIndex;
+							g_players[player_idx]
+								.selected_target_component =
+								mesh_index;
 							break;
 						}
 					}
 				} else {
-					g_players[playerIdx]
-						.selectedTargetComponent =
-						Player_SelectTargetComponentMesh(
+					g_players[player_idx]
+						.selected_target_component =
+						player_select_target_component_mesh(
 							(uint16_t)
-								newTargetObjIdx,
-							playerIdx);
+								new_target_obj_idx,
+							player_idx);
 				}
 			}
-			if (g_players[playerIdx].viewState.targetCameraActive !=
-			    0) {
-				g_players[playerIdx]
-					.viewState.cameraFocusObjIdx =
-					g_players[playerIdx]
-						.currentTargetObjectIdx;
+			if (g_players[player_idx]
+				    .view_state.target_camera_active != 0) {
+				g_players[player_idx]
+					.view_state.camera_focus_obj_idx =
+					g_players[player_idx]
+						.current_target_object_idx;
 			}
-			g_players[playerIdx].missileLockState = 0;
-			playerObjectIdx = g_players[playerIdx].objectIndex;
-			if (playerObjectIdx != -1) {
-				g_objectTable[playerObjectIdx]
-					.mobj->pCraft->warheadLockTicks = 0;
+			g_players[player_idx].missile_lock_state = 0;
+			player_object_idx = g_players[player_idx].object_index;
+			if (player_object_idx != -1) {
+				g_object_table[player_object_idx]
+					.mobj->p_craft->warhead_lock_ticks = 0;
 			}
-			if (g_players[playerIdx].mapCameraState != 0) {
-				msg_BuildTargetDescription(newTargetObjIdx,
-							   playerIdx, 1, 0);
+			if (g_players[player_idx].map_camera_state != 0) {
+				msg_build_target_description(new_target_obj_idx,
+							     player_idx, 1, 0);
 				return;
 			}
-			playerObjectIdx = g_players[playerIdx].objectIndex;
-			if ((g_objectTable[playerObjectIdx]
-				     .mobj->pCraft->damageStats
-				     .activeHudFeatureMask &
+			player_object_idx = g_players[player_idx].object_index;
+			if ((g_object_table[player_object_idx]
+				     .mobj->p_craft->damage_stats
+				     .active_hud_feature_mask &
 			     1) == 0) {
 				return;
 			}
-			if (g_players[playerIdx].viewState.hudStateLive ==
+			if (g_players[player_idx].view_state.hud_state_live ==
 				    HUD_VIEW_HUD_ONLY ||
-			    g_players[playerIdx].viewState.hudStateLive ==
+			    g_players[player_idx].view_state.hud_state_live ==
 				    HUD_VIEW_FORWARD ||
-			    g_players[g_localPlayer].viewState.hudStateLive ==
+			    g_players[g_local_player]
+					    .view_state.hud_state_live ==
 				    HUD_VIEW_TARGET_CAMERA) {
-				msg_BuildTargetDescription(newTargetObjIdx,
-							   playerIdx, 1, 0);
+				msg_build_target_description(new_target_obj_idx,
+							     player_idx, 1, 0);
 			}
 		}
 	} else {
-		g_msgArgTable[0] = IFMSG_096_TARGETING_COMPUTER;
-		g_msgArgTable[1] = IFMSG_087_DAMAGED_AND_INOPERATIVE;
-		msg_emitInFlightMessage(IFMSG_086_ARG_SYSTEM_IS_ARG, playerIdx);
+		g_msg_arg_table[0] = IFMSG_096_TARGETING_COMPUTER;
+		g_msg_arg_table[1] = IFMSG_087_DAMAGED_AND_INOPERATIVE;
+		msg_emit_in_flight_message(IFMSG_086_ARG_SYSTEM_IS_ARG,
+					   player_idx);
 	}
 }
 
@@ -2689,109 +2789,114 @@ void Player_SetTarget(int newTargetObjIdx, int playerIdx)
  * nearer than 0x1000000); for anything else the first main hull or fuselage
  * mesh, or the mesh count, one past the last mesh, when it has none. */
 // FUNCTION: XVT 0x483800
-uint16_t Player_SelectTargetComponentMesh(uint16_t targetObjIdx,
-					  unsigned int playerIdx)
+uint16_t player_select_target_component_mesh(uint16_t target_obj_idx,
+					     unsigned int player_idx)
 {
 	/* Prefer the nearest hull or fuselage component for capital ships. */
-	uint16_t genusId;
-	int objectType;
-	int meshTypeIndex;
-	uint16_t meshIndex;
-	int meshCount;
-	MeshComponentType meshType;
-	uint16_t selectedMeshIdx;
-	unsigned int nearestDistance;
+	uint16_t genus_id;
+	int object_type;
+	int mesh_type_index;
+	uint16_t mesh_index;
+	int mesh_count;
+	mesh_component_type mesh_type;
+	uint16_t selected_mesh_idx;
+	unsigned int nearest_distance;
 
-	nearestDistance = 0x1000000;
-	genusId = g_objectTable[targetObjIdx].genusId;
+	nearest_distance = 0x1000000;
+	genus_id = g_object_table[target_obj_idx].genus_id;
 
-	if (genusId == CRAFT_GENUS_STARSHIP ||
-	    genusId == CRAFT_GENUS_PLATFORM) {
-		selectedMeshIdx = 0;
-		objectType = g_objectTable[targetObjIdx].objectType;
-		if (objectType < (int)(sizeof(g_objectTypeMeshCache) /
-				       sizeof(g_objectTypeMeshCache[0]))) {
-			meshCount = g_objectTypeMeshCache[objectType].meshCount;
+	if (genus_id == CRAFT_GENUS_STARSHIP ||
+	    genus_id == CRAFT_GENUS_PLATFORM) {
+		selected_mesh_idx = 0;
+		object_type = g_object_table[target_obj_idx].object_type;
+		if (object_type < (int)(sizeof(g_object_type_mesh_cache) /
+					sizeof(g_object_type_mesh_cache[0]))) {
+			mesh_count = g_object_type_mesh_cache[object_type]
+					     .mesh_count;
 		} else {
-			meshCount =
-				ModelMesh_GetObjectTypeMeshCount(objectType);
+			mesh_count = model_mesh_get_object_type_mesh_count(
+				object_type);
 		}
 
-		for (meshIndex = 0; meshIndex < meshCount; ++meshIndex) {
-			meshTypeIndex = meshIndex;
-			objectType = g_objectTable[targetObjIdx].objectType;
-			if (objectType <
-			    (int)(sizeof(g_objectTypeMeshCache) /
-				  sizeof(g_objectTypeMeshCache[0]))) {
-				meshType =
-					ModelMesh_GetCachedObjectTypeMeshType(
-						objectType, meshTypeIndex);
+		for (mesh_index = 0; mesh_index < mesh_count; ++mesh_index) {
+			mesh_type_index = mesh_index;
+			object_type =
+				g_object_table[target_obj_idx].object_type;
+			if (object_type <
+			    (int)(sizeof(g_object_type_mesh_cache) /
+				  sizeof(g_object_type_mesh_cache[0]))) {
+				mesh_type =
+					model_mesh_get_cached_object_type_mesh_type(
+						object_type, mesh_type_index);
 			} else {
-				meshType = ModelMesh_GetObjectTypeMeshType(
-					objectType, meshIndex);
+				mesh_type =
+					model_mesh_get_object_type_mesh_type(
+						object_type, mesh_index);
 			}
-			if (meshType == MESH_COMPONENT_01_MAIN_HULL ||
-			    meshType == MESH_COMPONENT_03_FUSELAGE) {
+			if (mesh_type == MESH_COMPONENT_01_MAIN_HULL ||
+			    mesh_type == MESH_COMPONENT_03_FUSELAGE) {
 				unsigned int distance =
-					Object_DirectionAndDistanceToMeshCenter(
-						g_players[playerIdx]
-							.objectIndex,
-						targetObjIdx, meshIndex);
-				if (distance < nearestDistance) {
-					selectedMeshIdx = meshIndex;
-					nearestDistance = distance;
+					object_direction_and_distance_to_mesh_center(
+						g_players[player_idx]
+							.object_index,
+						target_obj_idx, mesh_index);
+				if (distance < nearest_distance) {
+					selected_mesh_idx = mesh_index;
+					nearest_distance = distance;
 				}
 			}
 		}
-		return selectedMeshIdx;
+		return selected_mesh_idx;
 	}
 
-	objectType = g_objectTable[targetObjIdx].objectType;
-	if (objectType < (int)(sizeof(g_objectTypeMeshCache) /
-			       sizeof(g_objectTypeMeshCache[0]))) {
-		meshCount = g_objectTypeMeshCache[objectType].meshCount;
+	object_type = g_object_table[target_obj_idx].object_type;
+	if (object_type < (int)(sizeof(g_object_type_mesh_cache) /
+				sizeof(g_object_type_mesh_cache[0]))) {
+		mesh_count = g_object_type_mesh_cache[object_type].mesh_count;
 	} else {
-		meshCount = ModelMesh_GetObjectTypeMeshCount(objectType);
+		mesh_count = model_mesh_get_object_type_mesh_count(object_type);
 	}
 
-	for (meshIndex = 0; meshIndex < meshCount; ++meshIndex) {
-		meshTypeIndex = meshIndex;
-		objectType = g_objectTable[targetObjIdx].objectType;
-		if (objectType < (int)(sizeof(g_objectTypeMeshCache) /
-				       sizeof(g_objectTypeMeshCache[0]))) {
-			meshType = ModelMesh_GetCachedObjectTypeMeshType(
-				objectType, meshTypeIndex);
+	for (mesh_index = 0; mesh_index < mesh_count; ++mesh_index) {
+		mesh_type_index = mesh_index;
+		object_type = g_object_table[target_obj_idx].object_type;
+		if (object_type < (int)(sizeof(g_object_type_mesh_cache) /
+					sizeof(g_object_type_mesh_cache[0]))) {
+			mesh_type = model_mesh_get_cached_object_type_mesh_type(
+				object_type, mesh_type_index);
 		} else {
-			meshType = ModelMesh_GetObjectTypeMeshType(
-				objectType, meshTypeIndex);
+			mesh_type = model_mesh_get_object_type_mesh_type(
+				object_type, mesh_type_index);
 		}
-		if (meshType == MESH_COMPONENT_01_MAIN_HULL ||
-		    meshType == MESH_COMPONENT_03_FUSELAGE) {
-			return meshIndex;
+		if (mesh_type == MESH_COMPONENT_01_MAIN_HULL ||
+		    mesh_type == MESH_COMPONENT_03_FUSELAGE) {
+			return mesh_index;
 		}
 	}
-	return meshIndex;
+	return mesh_index;
 }
 
 /* Applies a pitch step and a yaw step to a craft's orientation. It returns the
  * new roll, which both callers drop. The yaw step is ignored while the roll
- * modifier key is held (g_flightKeyMods & 0xE is 2). The modern build turns the
- * angles with XvtOrientation_ApplyPitchYaw and writes the object's pitch, yaw
+ * modifier key is held (g_flight_key_mods & 0xE is 2). The modern build turns the
+ * angles with xvt_orientation_apply_pitch_yaw and writes the object's pitch, yaw
  * and roll and craft->pitch. The original build rotates the object's axes in
  * g_curMatR0 to g_curMatR2 and writes the new pitch to craft->pitch only, and
  * yaw and roll to the object. */
 // FUNCTION: XVT 0x483A00
-int16_t Player_ApplyPitchYawSteps(int16_t pitchAngleQ16, int16_t yawAngleQ16,
-				  uint16_t objectIndex, struct CraftData *craft)
+int16_t player_apply_pitch_yaw_steps(int16_t pitch_angle_q16,
+				     int16_t yaw_angle_q16,
+				     uint16_t object_index,
+				     struct craft_data *craft)
 {
 #ifdef XVT_MODERN
-	struct ObjectRecord *object = &g_objectTable[objectIndex];
-	struct XvtOrientationAngles current = {object->yaw, object->pitch,
-					       object->roll};
-	struct XvtOrientationAngles updated = XvtOrientation_ApplyPitchYaw(
-		current, pitchAngleQ16,
-		(g_flightKeyMods & 0xE) == 2 ? 0 : yawAngleQ16);
-	/* BoP also retains the commanded pitch in CraftData. Publish a coherent
+	struct object_record *object = &g_object_table[object_index];
+	struct xvt_orientation_angles current = {object->yaw, object->pitch,
+						 object->roll};
+	struct xvt_orientation_angles updated = xvt_orientation_apply_pitch_yaw(
+		current, pitch_angle_q16,
+		(g_flight_key_mods & 0xE) == 2 ? 0 : yaw_angle_q16);
+	/* BoP also retains the commanded pitch in craft_data. Publish a coherent
 	 * orientation immediately, as XWA does, before the per-object step gate. */
 	craft->pitch = object->pitch = updated.pitch;
 	object->yaw = updated.yaw;
@@ -2800,394 +2905,404 @@ int16_t Player_ApplyPitchYawSteps(int16_t pitchAngleQ16, int16_t yawAngleQ16,
 #else
 	int16_t pitch;
 	int16_t yaw;
-	int16_t pitchCos;
-	int16_t pitchSin;
-	int16_t yawCos;
-	int16_t yawSin;
-	int16_t pitchCosYawCos;
-	int16_t pitchCosYawSin;
-	int16_t pitchSinYawCos;
-	int16_t pitchSinYawSin;
-	int negativeYawSin;
-	int negativePitchSin;
-	int16_t rotatedX;
-	int16_t rotatedY;
-	int16_t rotatedZ;
+	int16_t pitch_cos;
+	int16_t pitch_sin;
+	int16_t yaw_cos;
+	int16_t yaw_sin;
+	int16_t pitch_cos_yaw_cos;
+	int16_t pitch_cos_yaw_sin;
+	int16_t pitch_sin_yaw_cos;
+	int16_t pitch_sin_yaw_sin;
+	int negative_yaw_sin;
+	int negative_pitch_sin;
+	int16_t rotated_x;
+	int16_t rotated_y;
+	int16_t rotated_z;
 	int16_t result;
 
-	if (g_objectTable[objectIndex].mobj->orientMatrixDirty != 0) {
-		FVIEW_calcrotatemove(g_objectTable[objectIndex].pitch,
-				     g_objectTable[objectIndex].yaw,
-				     &g_objectTable[objectIndex]);
-		FVIEW_calcrotateorient(g_objectTable[objectIndex].roll, 0,
-				       &g_objectTable[objectIndex]);
+	if (g_object_table[object_index].mobj->orient_matrix_dirty != 0) {
+		fview_calcrotatemove(g_object_table[object_index].pitch,
+				     g_object_table[object_index].yaw,
+				     &g_object_table[object_index]);
+		fview_calcrotateorient(g_object_table[object_index].roll, 0,
+				       &g_object_table[object_index]);
 	}
-	g_curMatR2_X = -g_objectTable[objectIndex].mobj->cachedFwdX;
-	g_curMatR2_Y = -g_objectTable[objectIndex].mobj->cachedFwdY;
-	g_curMatR2_Z = -g_objectTable[objectIndex].mobj->cachedFwdZ;
-	g_curMatR1_X = g_objectTable[objectIndex].mobj->cachedUpX;
-	g_curMatR1_Y = g_objectTable[objectIndex].mobj->cachedUpY;
-	g_curMatR1_Z = g_objectTable[objectIndex].mobj->cachedUpZ;
-	g_curMatR0_X = g_objectTable[objectIndex].mobj->cachedSideX;
-	g_curMatR0_Y = g_objectTable[objectIndex].mobj->cachedSideY;
-	g_curMatR0_Z = g_objectTable[objectIndex].mobj->cachedSideZ;
-	FVIEW_transformaxes(g_curMatR0_X, g_curMatR0_Y, g_curMatR0_Z,
-			    pitchAngleQ16);
-	if ((g_flightKeyMods & 0xE) != 2) {
-		FVIEW_transformaxes(g_curMatR1_X, g_curMatR1_Y, g_curMatR1_Z,
-				    yawAngleQ16);
+	g_cur_mat_r2_x = -g_object_table[object_index].mobj->cached_fwd_x;
+	g_cur_mat_r2_y = -g_object_table[object_index].mobj->cached_fwd_y;
+	g_cur_mat_r2_z = -g_object_table[object_index].mobj->cached_fwd_z;
+	g_cur_mat_r1_x = g_object_table[object_index].mobj->cached_up_x;
+	g_cur_mat_r1_y = g_object_table[object_index].mobj->cached_up_y;
+	g_cur_mat_r1_z = g_object_table[object_index].mobj->cached_up_z;
+	g_cur_mat_r0_x = g_object_table[object_index].mobj->cached_side_x;
+	g_cur_mat_r0_y = g_object_table[object_index].mobj->cached_side_y;
+	g_cur_mat_r0_z = g_object_table[object_index].mobj->cached_side_z;
+	fview_transformaxes(g_cur_mat_r0_x, g_cur_mat_r0_y, g_cur_mat_r0_z,
+			    pitch_angle_q16);
+	if ((g_flight_key_mods & 0xE) != 2) {
+		fview_transformaxes(g_cur_mat_r1_x, g_cur_mat_r1_y,
+				    g_cur_mat_r1_z, yaw_angle_q16);
 	}
 
-	pitch = trig2_w_arccos((int16_t)-g_curMatR2_Z);
+	pitch = trig2_w_arccos((int16_t)-g_cur_mat_r2_z);
 	craft->pitch = pitch;
-	yaw = (int16_t)-trig2_arctan(g_curMatR2_X, -g_curMatR2_Y);
-	yawCos = trig2_getsignedcos(yaw);
-	yawSin = trig2_getsignedsin(yaw);
-	pitchCos = trig2_getsignedcos(pitch);
-	pitchSin = trig2_getsignedsin(pitch);
-	pitchCosYawSin = (int16_t)Math_MulQ15(yawSin, pitchCos);
-	pitchSinYawSin = (int16_t)Math_MulQ15(yawSin, pitchSin);
-	pitchCosYawCos = (int16_t)Math_MulQ15(yawCos, pitchCos);
-	pitchSinYawCos = (int16_t)Math_MulQ15(yawCos, pitchSin);
-	negativeYawSin = (int16_t)-yawSin;
-	negativePitchSin = (int16_t)-pitchSin;
+	yaw = (int16_t)-trig2_arctan(g_cur_mat_r2_x, -g_cur_mat_r2_y);
+	yaw_cos = trig2_getsignedcos(yaw);
+	yaw_sin = trig2_getsignedsin(yaw);
+	pitch_cos = trig2_getsignedcos(pitch);
+	pitch_sin = trig2_getsignedsin(pitch);
+	pitch_cos_yaw_sin = (int16_t)math_mul_q15(yaw_sin, pitch_cos);
+	pitch_sin_yaw_sin = (int16_t)math_mul_q15(yaw_sin, pitch_sin);
+	pitch_cos_yaw_cos = (int16_t)math_mul_q15(yaw_cos, pitch_cos);
+	pitch_sin_yaw_cos = (int16_t)math_mul_q15(yaw_cos, pitch_sin);
+	negative_yaw_sin = (int16_t)-yaw_sin;
+	negative_pitch_sin = (int16_t)-pitch_sin;
 
-	rotatedX = (int16_t)Math_Dot3Q15Wrapped(g_curMatR0_X, g_curMatR0_Y,
-						g_curMatR0_Z, yawCos,
-						negativeYawSin, 0);
-	rotatedY = (int16_t)Math_Dot3Q15Wrapped(
-		g_curMatR0_X, g_curMatR0_Y, g_curMatR0_Z, pitchCosYawSin,
-		pitchCosYawCos, negativePitchSin);
-	rotatedZ = (int16_t)Math_Dot3Q15Wrapped(g_curMatR0_X, g_curMatR0_Y,
-						g_curMatR0_Z, pitchSinYawSin,
-						pitchSinYawCos, pitchCos);
-	g_curMatR0_X = rotatedX;
-	g_curMatR0_Y = rotatedY;
-	g_curMatR0_Z = rotatedZ;
+	rotated_x = (int16_t)math_dot3q15_wrapped(
+		g_cur_mat_r0_x, g_cur_mat_r0_y, g_cur_mat_r0_z, yaw_cos,
+		negative_yaw_sin, 0);
+	rotated_y = (int16_t)math_dot3q15_wrapped(
+		g_cur_mat_r0_x, g_cur_mat_r0_y, g_cur_mat_r0_z,
+		pitch_cos_yaw_sin, pitch_cos_yaw_cos, negative_pitch_sin);
+	rotated_z = (int16_t)math_dot3q15_wrapped(
+		g_cur_mat_r0_x, g_cur_mat_r0_y, g_cur_mat_r0_z,
+		pitch_sin_yaw_sin, pitch_sin_yaw_cos, pitch_cos);
+	g_cur_mat_r0_x = rotated_x;
+	g_cur_mat_r0_y = rotated_y;
+	g_cur_mat_r0_z = rotated_z;
 
-	rotatedX = (int16_t)Math_Dot3Q15Wrapped(g_curMatR1_X, g_curMatR1_Y,
-						g_curMatR1_Z, yawCos,
-						negativeYawSin, 0);
-	rotatedY = (int16_t)Math_Dot3Q15Wrapped(
-		g_curMatR1_X, g_curMatR1_Y, g_curMatR1_Z, pitchCosYawSin,
-		pitchCosYawCos, negativePitchSin);
-	rotatedZ = (int16_t)Math_Dot3Q15Wrapped(g_curMatR1_X, g_curMatR1_Y,
-						g_curMatR1_Z, pitchSinYawSin,
-						pitchSinYawCos, pitchCos);
-	g_curMatR1_X = rotatedX;
-	g_curMatR1_Y = rotatedY;
-	g_curMatR1_Z = rotatedZ;
+	rotated_x = (int16_t)math_dot3q15_wrapped(
+		g_cur_mat_r1_x, g_cur_mat_r1_y, g_cur_mat_r1_z, yaw_cos,
+		negative_yaw_sin, 0);
+	rotated_y = (int16_t)math_dot3q15_wrapped(
+		g_cur_mat_r1_x, g_cur_mat_r1_y, g_cur_mat_r1_z,
+		pitch_cos_yaw_sin, pitch_cos_yaw_cos, negative_pitch_sin);
+	rotated_z = (int16_t)math_dot3q15_wrapped(
+		g_cur_mat_r1_x, g_cur_mat_r1_y, g_cur_mat_r1_z,
+		pitch_sin_yaw_sin, pitch_sin_yaw_cos, pitch_cos);
+	g_cur_mat_r1_x = rotated_x;
+	g_cur_mat_r1_y = rotated_y;
+	g_cur_mat_r1_z = rotated_z;
 
-	rotatedX = (int16_t)Math_Dot3Q15Wrapped(g_curMatR2_X, g_curMatR2_Y,
-						g_curMatR2_Z, yawCos,
-						negativeYawSin, 0);
-	rotatedY = (int16_t)Math_Dot3Q15Wrapped(
-		g_curMatR2_X, g_curMatR2_Y, g_curMatR2_Z, pitchCosYawSin,
-		pitchCosYawCos, negativePitchSin);
-	rotatedZ = (int16_t)Math_Dot3Q15Wrapped(g_curMatR2_X, g_curMatR2_Y,
-						g_curMatR2_Z, pitchSinYawSin,
-						pitchSinYawCos, pitchCos);
-	g_curMatR2_X = rotatedX;
-	g_curMatR2_Y = rotatedY;
-	g_curMatR2_Z = rotatedZ;
+	rotated_x = (int16_t)math_dot3q15_wrapped(
+		g_cur_mat_r2_x, g_cur_mat_r2_y, g_cur_mat_r2_z, yaw_cos,
+		negative_yaw_sin, 0);
+	rotated_y = (int16_t)math_dot3q15_wrapped(
+		g_cur_mat_r2_x, g_cur_mat_r2_y, g_cur_mat_r2_z,
+		pitch_cos_yaw_sin, pitch_cos_yaw_cos, negative_pitch_sin);
+	rotated_z = (int16_t)math_dot3q15_wrapped(
+		g_cur_mat_r2_x, g_cur_mat_r2_y, g_cur_mat_r2_z,
+		pitch_sin_yaw_sin, pitch_sin_yaw_cos, pitch_cos);
+	g_cur_mat_r2_x = rotated_x;
+	g_cur_mat_r2_y = rotated_y;
+	g_cur_mat_r2_z = rotated_z;
 
-	result = (int16_t)-trig2_arctan(g_curMatR0_Y, g_curMatR0_X);
-	g_objectTable[objectIndex].yaw = yaw;
-	g_objectTable[objectIndex].roll = result;
+	result = (int16_t)-trig2_arctan(g_cur_mat_r0_y, g_cur_mat_r0_x);
+	g_object_table[object_index].yaw = yaw;
+	g_object_table[object_index].roll = result;
 	return result;
 #endif
 }
 
-/* Besides answering, this leaves g_curCraft pointing at the targeted craft when no player flies it. */
+/* Besides answering, this leaves g_cur_craft pointing at the targeted craft when no player flies it. */
 /* Tells whether the player may order their current target by radio. Returns 0
  * when there is none, it lies past the craft slots, a player flies it, or it is
  * not active or has no working subsystem; 1 when it belongs to the player's
  * flight group. Otherwise returns 0 when its group's radio setting is 0, and 1
  * when its group is on the player's team, shares the player's group's global
- * unit, has radio minus that group's playerNumber equal to 8, or radio minus
+ * unit, has radio minus that group's player_number equal to 8, or radio minus
  * the player's team equal to 1; else 0. */
 // FUNCTION: XVT 0x4841B0
-int16_t Player_CanRadioCommandCraft(int playerIdx)
+int16_t player_can_radio_command_craft(int player_idx)
 {
-	int currentTargetObjectIdx;
-	struct ObjectRecord *targetObject;
-	int flightGroupIdx;
-	int boundFlightGroupIdx;
+	int current_target_object_idx;
+	struct object_record *target_object;
+	int flight_group_idx;
+	int bound_flight_group_idx;
 	uint8_t radio;
-	int playerTeam;
-	uint8_t globalUnit;
+	int player_team;
+	uint8_t global_unit;
 
-	if (g_players[playerIdx].currentTargetObjectIdx == -1) {
+	if (g_players[player_idx].current_target_object_idx == -1) {
 		return 0;
 	}
-	currentTargetObjectIdx =
-		(uint16_t)g_players[playerIdx].currentTargetObjectIdx;
-	if (g_activeRegionCraftObjectSlotEnd <= currentTargetObjectIdx) {
+	current_target_object_idx =
+		(uint16_t)g_players[player_idx].current_target_object_idx;
+	if (g_active_region_craft_object_slot_end <=
+	    current_target_object_idx) {
 		return 0;
 	}
-	targetObject = &g_objectTable[currentTargetObjectIdx];
-	if (targetObject->playerOwnerIdx != -1) {
+	target_object = &g_object_table[current_target_object_idx];
+	if (target_object->player_owner_idx != -1) {
 		return 0;
 	}
-	g_curCraft = targetObject->mobj->pCraft;
-	if (g_curCraft->objectKind != CRAFT_OBJECT_KIND_ACTIVE) {
+	g_cur_craft = target_object->mobj->p_craft;
+	if (g_cur_craft->object_kind != CRAFT_OBJECT_KIND_ACTIVE) {
 		return 0;
 	}
-	if (g_curCraft->workingSubsystems == 0) {
+	if (g_cur_craft->working_subsystems == 0) {
 		return 0;
 	}
-	flightGroupIdx = targetObject->flightGroupIdx;
-	boundFlightGroupIdx =
-		(uint16_t)g_players[playerIdx].boundFlightGroupIdx;
-	if (flightGroupIdx == boundFlightGroupIdx) {
+	flight_group_idx = target_object->flight_group_idx;
+	bound_flight_group_idx =
+		(uint16_t)g_players[player_idx].bound_flight_group_idx;
+	if (flight_group_idx == bound_flight_group_idx) {
 		return 1;
 	}
-	radio = g_missionFlightGroups[flightGroupIdx].fg.radio;
+	radio = g_mission_flight_groups[flight_group_idx].fg.radio;
 	if (radio == 0) {
 		return 0;
 	}
-	playerTeam = (uint16_t)g_players[playerIdx].team;
-	if (g_missionFlightGroups[flightGroupIdx].fg.team == playerTeam) {
+	player_team = (uint16_t)g_players[player_idx].team;
+	if (g_mission_flight_groups[flight_group_idx].fg.team == player_team) {
 		return 1;
 	}
-	globalUnit = g_missionFlightGroups[flightGroupIdx].fg.globalUnit;
-	if (globalUnit != 0 &&
-	    g_missionFlightGroups[boundFlightGroupIdx].fg.globalUnit ==
-		    globalUnit) {
+	global_unit = g_mission_flight_groups[flight_group_idx].fg.global_unit;
+	if (global_unit != 0 &&
+	    g_mission_flight_groups[bound_flight_group_idx].fg.global_unit ==
+		    global_unit) {
 		return 1;
 	}
-	if (radio - g_missionFlightGroups[boundFlightGroupIdx]
-			    .fg.playerNumber ==
+	if (radio - g_mission_flight_groups[bound_flight_group_idx]
+			    .fg.player_number ==
 	    8) {
 		return 1;
 	}
-	return radio - playerTeam == 1;
+	return radio - player_team == 1;
 }
 
 /* Passes the player's order about a target to their AI wingmen; does nothing
  * when the target is given and not hostile to the player's team. Wingmen are
  * active AI craft of that team in the player's flight group, or in a group
  * sharing its global unit or whose radio setting minus the player's group's
- * playerNumber is 8. For commandId 155 each avoids the target
- * (playerCommandAvoidTargetObjIdx) and drops it as candidate target. For any
+ * player_number is 8. For commandId 155 each avoids the target
+ * (player_command_avoid_target_obj_idx) and drops it as candidate target. For any
  * other command each takes it as candidate target and stops avoiding it, after
  * leaving craftwaitforgopln for its saved plan; craft on the still, formation,
  * fly-home, into-hyperspace or hangar plans are skipped. For the local player
- * the last wingman answers by radio. Writes g_curCraft when a wingman leaves
+ * the last wingman answers by radio. Writes g_cur_craft when a wingman leaves
  * craftwaitforgopln. */
 // FUNCTION: XVT 0x484320
-void Player_IssueAiWingmanTargetOrder(uint16_t targetObjIdx, uint16_t commandId,
-				      uint16_t responseIndex, int playerIdx)
+void player_issue_ai_wingman_target_order(uint16_t target_obj_idx,
+					  uint16_t command_id,
+					  uint16_t response_index,
+					  int player_idx)
 {
-	uint16_t matchingWingmen;
-	uint16_t objectIndex;
-	uint16_t lastWingman;
+	uint16_t matching_wingmen;
+	uint16_t object_index;
+	uint16_t last_wingman;
 
-	if (targetObjIdx != UINT16_MAX) {
-		int targetTeam =
-			g_missionFlightGroups[g_objectTable[targetObjIdx]
-						      .flightGroupIdx]
+	if (target_obj_idx != UINT16_MAX) {
+		int target_team =
+			g_mission_flight_groups[g_object_table[target_obj_idx]
+							.flight_group_idx]
 				.fg.team;
-		int targetIsHostile;
-		if (targetTeam == (uint16_t)g_players[playerIdx].team) {
-			targetIsHostile = 0;
+		int target_is_hostile;
+		if (target_team == (uint16_t)g_players[player_idx].team) {
+			target_is_hostile = 0;
 		} else {
-			targetIsHostile =
-				!g_missionTeams[(uint16_t)g_players[playerIdx]
-							.team]
-					 .allies[targetTeam];
+			target_is_hostile =
+				!g_mission_teams[(uint16_t)g_players[player_idx]
+							 .team]
+					 .allies[target_team];
 		}
-		if (!targetIsHostile) {
+		if (!target_is_hostile) {
 			return;
 		}
 	}
 
-	matchingWingmen = 0;
-	lastWingman = UINT16_MAX;
-	for (objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
-	     objectIndex < g_activeRegionCraftObjectSlotEnd; objectIndex++) {
-		struct ObjectRecord *object;
-		struct AiController *ai;
-		struct CraftData *craft;
-		int flightGroupIdx;
-		int playerSlot;
-		uint16_t boundFlightGroupIdx;
+	matching_wingmen = 0;
+	last_wingman = UINT16_MAX;
+	for (object_index = (uint16_t)g_active_region_object_slot_start;
+	     object_index < g_active_region_craft_object_slot_end;
+	     object_index++) {
+		struct object_record *object;
+		struct ai_controller *ai;
+		struct craft_data *craft;
+		int flight_group_idx;
+		int player_slot;
+		uint16_t bound_flight_group_idx;
 
-		if (g_players[playerIdx].objectIndex == objectIndex) {
+		if (g_players[player_idx].object_index == object_index) {
 			continue;
 		}
-		object = &g_objectTable[objectIndex];
-		if (object->playerOwnerIdx != -1 || object->objectType == 0) {
+		object = &g_object_table[object_index];
+		if (object->player_owner_idx != -1 ||
+		    object->object_type == 0) {
 			continue;
 		}
-		flightGroupIdx = object->flightGroupIdx;
-		if (g_missionFlightGroups[flightGroupIdx].fg.team !=
-		    (uint16_t)g_players[playerIdx].team) {
+		flight_group_idx = object->flight_group_idx;
+		if (g_mission_flight_groups[flight_group_idx].fg.team !=
+		    (uint16_t)g_players[player_idx].team) {
 			continue;
 		}
-		craft = object->mobj->pCraft;
-		if (craft->objectKind != CRAFT_OBJECT_KIND_ACTIVE) {
+		craft = object->mobj->p_craft;
+		if (craft->object_kind != CRAFT_OBJECT_KIND_ACTIVE) {
 			continue;
 		}
-		boundFlightGroupIdx = g_players[playerIdx].boundFlightGroupIdx;
-		playerSlot = g_missionFlightGroups[boundFlightGroupIdx]
-				     .fg.playerNumber -
-			     1;
-		if (flightGroupIdx != boundFlightGroupIdx) {
-			uint8_t globalUnit =
-				g_missionFlightGroups[flightGroupIdx]
-					.fg.globalUnit;
-			if ((globalUnit == 0 ||
-			     g_missionFlightGroups[boundFlightGroupIdx]
-					     .fg.globalUnit != globalUnit) &&
-			    g_missionFlightGroups[flightGroupIdx].fg.radio -
-					    playerSlot !=
+		bound_flight_group_idx =
+			g_players[player_idx].bound_flight_group_idx;
+		player_slot = g_mission_flight_groups[bound_flight_group_idx]
+				      .fg.player_number -
+			      1;
+		if (flight_group_idx != bound_flight_group_idx) {
+			uint8_t global_unit =
+				g_mission_flight_groups[flight_group_idx]
+					.fg.global_unit;
+			if ((global_unit == 0 ||
+			     g_mission_flight_groups[bound_flight_group_idx]
+					     .fg.global_unit != global_unit) &&
+			    g_mission_flight_groups[flight_group_idx].fg.radio -
+					    player_slot !=
 				    9) {
 				continue;
 			}
 		}
-		ai = &craft->aiController;
-		if (commandId != 155) {
-			const char *planName =
-				g_planTable[ai->runningPlanId].name;
-			if (strcmp(planName, "nullpln") == 0 ||
-			    strcmp(planName, "stationaryldrpln") == 0 ||
-			    strcmp(planName, "stationaryflwpln") == 0 ||
-			    strcmp(planName, "formldr1pln") == 0 ||
-			    strcmp(planName, "formflw1pln") == 0 ||
-			    strcmp(planName, "formevadeldr1pln") == 0 ||
-			    strcmp(planName, "formevadeflw1pln") == 0 ||
-			    strcmp(planName, "flyhomeevadepln") == 0 ||
-			    strcmp(planName, "intohyperspacepln") == 0 ||
-			    strcmp(planName, "enterhangarpln") == 0) {
+		ai = &craft->ai_controller;
+		if (command_id != 155) {
+			const char *plan_name =
+				g_plan_table[ai->running_plan_id].name;
+			if (strcmp(plan_name, "nullpln") == 0 ||
+			    strcmp(plan_name, "stationaryldrpln") == 0 ||
+			    strcmp(plan_name, "stationaryflwpln") == 0 ||
+			    strcmp(plan_name, "formldr1pln") == 0 ||
+			    strcmp(plan_name, "formflw1pln") == 0 ||
+			    strcmp(plan_name, "formevadeldr1pln") == 0 ||
+			    strcmp(plan_name, "formevadeflw1pln") == 0 ||
+			    strcmp(plan_name, "flyhomeevadepln") == 0 ||
+			    strcmp(plan_name, "intohyperspacepln") == 0 ||
+			    strcmp(plan_name, "enterhangarpln") == 0) {
 				continue;
 			}
-			if (strcmp(planName, "craftwaitforgopln") == 0) {
-				ai->runningPlanId = ai->savedPlanId;
-				g_curCraft = craft;
-				pai_setupcraftcontext(objectIndex);
-				pai_ApplyRunningPlanTargetAndManeuver(
-					objectIndex);
+			if (strcmp(plan_name, "craftwaitforgopln") == 0) {
+				ai->running_plan_id = ai->saved_plan_id;
+				g_cur_craft = craft;
+				pai_setupcraftcontext(object_index);
+				pai_apply_running_plan_target_and_maneuver(
+					object_index);
 			}
-			ai->candidateTargetIdx = targetObjIdx;
-			if (craft->playerCommandAvoidTargetObjIdx ==
-			    targetObjIdx) {
-				craft->playerCommandAvoidTargetObjIdx =
+			ai->candidate_target_idx = target_obj_idx;
+			if (craft->player_command_avoid_target_obj_idx ==
+			    target_obj_idx) {
+				craft->player_command_avoid_target_obj_idx =
 					UINT16_MAX;
 			}
 		} else {
-			craft->playerCommandAvoidTargetObjIdx = targetObjIdx;
-			if (ai->candidateTargetIdx == targetObjIdx) {
-				ai->candidateTargetIdx = UINT16_MAX;
+			craft->player_command_avoid_target_obj_idx =
+				target_obj_idx;
+			if (ai->candidate_target_idx == target_obj_idx) {
+				ai->candidate_target_idx = UINT16_MAX;
 			}
 		}
-		matchingWingmen++;
-		lastWingman = objectIndex;
+		matching_wingmen++;
+		last_wingman = object_index;
 	}
-	if (playerIdx == g_localPlayer && lastWingman != UINT16_MAX) {
-		uint8_t *wingmanCraft =
-			(uint8_t *)g_objectTable[lastWingman].mobj->pCraft;
-		if (matchingWingmen == 1) {
-			msg_radioMessage(lastWingman, wingmanCraft, commandId,
-					 responseIndex, 0);
+	if (player_idx == g_local_player && last_wingman != UINT16_MAX) {
+		uint8_t *wingman_craft =
+			(uint8_t *)g_object_table[last_wingman].mobj->p_craft;
+		if (matching_wingmen == 1) {
+			msg_radio_message(last_wingman, wingman_craft,
+					  command_id, response_index, 0);
 		} else {
-			msg_radioMessage(lastWingman, wingmanCraft, commandId,
-					 responseIndex, 1);
+			msg_radio_message(last_wingman, wingman_craft,
+					  command_id, response_index, 1);
 		}
 	}
 }
 
 /* Returns the craft nearest the target among those attacking it, or -1 when
  * none or the target is UINT16_MAX. Looks at active craft with a working
- * subsystem and no active decoy beam, other than the target, excludedObjIdx and
+ * subsystem and no active decoy beam, other than the target, excluded_obj_idx and
  * explosions. An AI craft attacks when its AI target is the target and its
  * maneuver is attack or rocket attack. A player's craft attacks when it hit the
  * target craft last and the target is not a player's or was hit under 5 mission
  * seconds ago; or when its player has the target selected and it lies within
  * rough distance 0x10000 in the wide aim cone, or its warhead lock is building.
- * Writes g_lastRoughDistance, g_targetAngleScore and trig2's polar results. */
+ * Writes g_last_rough_distance, g_target_angle_score and trig2's polar results. */
 // FUNCTION: XVT 0x4846F0
-int16_t Player_FindAttackerOfTarget(uint16_t targetObjIdx,
-				    int16_t excludedObjIdx)
+int16_t player_find_attacker_of_target(uint16_t target_obj_idx,
+				       int16_t excluded_obj_idx)
 {
 	uint16_t nearest;
-	unsigned int nearestDistance;
-	uint16_t objectIdx;
+	unsigned int nearest_distance;
+	uint16_t object_idx;
 
-	if (targetObjIdx == UINT16_MAX) {
+	if (target_obj_idx == UINT16_MAX) {
 		return -1;
 	}
-	nearestDistance = UINT_MAX;
+	nearest_distance = UINT_MAX;
 	nearest = UINT16_MAX;
-	for (objectIdx = (uint16_t)g_activeRegionObjectSlotStart;
-	     objectIdx < g_activeRegionCraftObjectSlotEnd; ++objectIdx) {
-		struct CraftData *craft;
+	for (object_idx = (uint16_t)g_active_region_object_slot_start;
+	     object_idx < g_active_region_craft_object_slot_end; ++object_idx) {
+		struct craft_data *craft;
 		int qualifies;
-		if (g_objectTable[objectIdx].objectType == 0 ||
-		    targetObjIdx == objectIdx ||
-		    objectIdx == (uint16_t)excludedObjIdx ||
-		    g_objectTable[objectIdx].genusId == CRAFT_GENUS_EXPLOSION) {
+		if (g_object_table[object_idx].object_type == 0 ||
+		    target_obj_idx == object_idx ||
+		    object_idx == (uint16_t)excluded_obj_idx ||
+		    g_object_table[object_idx].genus_id ==
+			    CRAFT_GENUS_EXPLOSION) {
 			continue;
 		}
-		craft = g_objectTable[objectIdx].mobj->pCraft;
+		craft = g_object_table[object_idx].mobj->p_craft;
 		qualifies = 0;
-		if (craft->workingSubsystems == 0 ||
-		    craft->objectKind != CRAFT_OBJECT_KIND_ACTIVE ||
-		    Object_HasActiveDecoyBeam(objectIdx)) {
+		if (craft->working_subsystems == 0 ||
+		    craft->object_kind != CRAFT_OBJECT_KIND_ACTIVE ||
+		    object_has_active_decoy_beam(object_idx)) {
 			continue;
 		}
-		if (g_objectTable[objectIdx].playerOwnerIdx == -1) {
-			struct AiController *ai = &craft->aiController;
-			if (ai->targetObjIdx != targetObjIdx ||
-			    (ai->maneuverMode != AI_MANEUVER_MODE_ATTACK &&
-			     ai->maneuverMode !=
+		if (g_object_table[object_idx].player_owner_idx == -1) {
+			struct ai_controller *ai = &craft->ai_controller;
+			if (ai->target_obj_idx != target_obj_idx ||
+			    (ai->maneuver_mode != AI_MANEUVER_MODE_ATTACK &&
+			     ai->maneuver_mode !=
 				     AI_MANEUVER_MODE_ROCKET_ATTACK)) {
 				continue;
 			}
 			qualifies = 1;
 		} else {
-			int playerOwnerIdx;
-			if (g_activeRegionCraftObjectSlotEnd > targetObjIdx) {
-				struct CraftData *targetCraft =
-					g_objectTable[targetObjIdx]
-						.mobj->pCraft;
-				if (targetCraft->lastAttackerObjIdx ==
-					    objectIdx &&
-				    (g_objectTable[targetObjIdx]
-						     .playerOwnerIdx == -1 ||
-				     (uint16_t)Mission_ClockToSeconds(
-					     g_missionElapsedClock.hours,
-					     g_missionElapsedClock.minutes,
-					     g_missionElapsedClock.seconds) -
-						     targetCraft
-							     ->lastHitMissionSecond <
+			int player_owner_idx;
+			if (g_active_region_craft_object_slot_end >
+			    target_obj_idx) {
+				struct craft_data *target_craft =
+					g_object_table[target_obj_idx]
+						.mobj->p_craft;
+				if (target_craft->last_attacker_obj_idx ==
+					    object_idx &&
+				    (g_object_table[target_obj_idx]
+						     .player_owner_idx == -1 ||
+				     (uint16_t)mission_clock_to_seconds(
+					     g_mission_elapsed_clock.hours,
+					     g_mission_elapsed_clock.minutes,
+					     g_mission_elapsed_clock.seconds) -
+						     target_craft
+							     ->last_hit_mission_second <
 					     5)) {
 					qualifies = 1;
 				}
 			}
-			playerOwnerIdx =
-				g_objectTable[objectIdx].playerOwnerIdx;
-			if ((uint16_t)g_players[playerOwnerIdx]
-				    .currentTargetObjectIdx == targetObjIdx) {
-				pai_ObjectRefUpdateRoughDistance(objectIdx,
-								 targetObjIdx);
-				if (g_lastRoughDistance < 0x10000 &&
-				    Targeting_TestAimCone(targetObjIdx, 0,
-							  playerOwnerIdx)) {
+			player_owner_idx =
+				g_object_table[object_idx].player_owner_idx;
+			if ((uint16_t)g_players[player_owner_idx]
+				    .current_target_object_idx ==
+			    target_obj_idx) {
+				pai_object_ref_update_rough_distance(
+					object_idx, target_obj_idx);
+				if (g_last_rough_distance < 0x10000 &&
+				    targeting_test_aim_cone(target_obj_idx, 0,
+							    player_owner_idx)) {
 					qualifies = 1;
 				}
-				if (craft->warheadLockTicks != 0) {
+				if (craft->warhead_lock_ticks != 0) {
 					qualifies = 1;
 				}
 			}
 		}
 		if (qualifies != 0) {
-			pai_ObjectRefDirectionToObjectRef(targetObjIdx,
-							  objectIdx);
-			if (nearestDistance >
+			pai_object_ref_direction_to_object_ref(target_obj_idx,
+							       object_idx);
+			if (nearest_distance >
 			    (unsigned int)trig2_polardistance) {
-				nearestDistance = trig2_polardistance;
-				nearest = objectIdx;
+				nearest_distance = trig2_polardistance;
+				nearest = object_idx;
 			}
 		}
 	}
@@ -3195,186 +3310,195 @@ int16_t Player_FindAttackerOfTarget(uint16_t targetObjIdx,
 }
 
 /* Starts the player's view after their craft is destroyed: hyperspace off and
- * awaitingNewCraft 1. With the map camera, only clears the local player's ready
+ * awaiting_new_craft 1. With the map camera, only clears the local player's ready
  * message queue. Otherwise the camera is freed at the craft's last position
  * with input blocked, the view goes full screen, beam and missile warning
  * sounds stop and FLIGHT_SOUND_MISSILE_LOCK_3 plays; when the local player was
  * killed by an object in a craft slot, the killer is named: IFMSG_399 also
- * naming sourcePlayerIdx's craft when that player is flying and does not fly
+ * naming source_player_idx's craft when that player is flying and does not fly
  * the killer, else IFMSG_398. Does not check that the player has a craft. */
 // FUNCTION: XVT 0x484A30
-void Player_StartPostDestructionState(int playerIdx,
-				      unsigned int sourceObjectIndex,
-				      int sourcePlayerIdx)
+void player_start_post_destruction_state(int player_idx,
+					 unsigned int source_object_index,
+					 int source_player_idx)
 {
 	enum {
 		KILL_MESSAGE_NAME_SIZE = 64,
 		OBJECT_DISPLAY_NAME_AND_TYPE = 3,
 	};
 
-	char sourceName[KILL_MESSAGE_NAME_SIZE];
-	char assistingPlayerName[KILL_MESSAGE_NAME_SIZE];
-	int localPlayer;
+	char source_name[KILL_MESSAGE_NAME_SIZE];
+	char assisting_player_name[KILL_MESSAGE_NAME_SIZE];
+	int local_player;
 
-	g_players[playerIdx].hyperspacePhase = 0;
-	if (g_players[playerIdx].mapCameraState != 0) {
-		if (playerIdx == g_localPlayer) {
-			Hud_ClearReadyMessageQueue();
+	g_players[player_idx].hyperspace_phase = 0;
+	if (g_players[player_idx].map_camera_state != 0) {
+		if (player_idx == g_local_player) {
+			hud_clear_ready_message_queue();
 		}
 	} else {
-		g_players[playerIdx].viewState.cameraFocusObjIdx = UINT16_MAX;
-		g_players[playerIdx].viewState.cameraWorldX =
-			g_objectTable[g_players[playerIdx].objectIndex]
-				.mobj->prevWorldX;
-		g_players[playerIdx].viewState.cameraWorldY =
-			g_objectTable[g_players[playerIdx].objectIndex]
-				.mobj->prevWorldY;
-		localPlayer = g_localPlayer;
-		g_players[playerIdx].viewState.cameraWorldZ =
-			g_objectTable[g_players[playerIdx].objectIndex]
-				.mobj->prevWorldZ;
-		g_players[playerIdx].viewState.externalCameraActive = 1;
-		g_players[playerIdx].viewState.playerInputBlocked = 1;
-		g_players[playerIdx].viewState.hudAimY = 0;
-		g_players[playerIdx].viewState.hudAimX = 0;
-		if (playerIdx == localPlayer) {
-			Hud_ClearReadyMessageQueue();
+		g_players[player_idx].view_state.camera_focus_obj_idx =
+			UINT16_MAX;
+		g_players[player_idx].view_state.camera_world_x =
+			g_object_table[g_players[player_idx].object_index]
+				.mobj->prev_world_x;
+		g_players[player_idx].view_state.camera_world_y =
+			g_object_table[g_players[player_idx].object_index]
+				.mobj->prev_world_y;
+		local_player = g_local_player;
+		g_players[player_idx].view_state.camera_world_z =
+			g_object_table[g_players[player_idx].object_index]
+				.mobj->prev_world_z;
+		g_players[player_idx].view_state.external_camera_active = 1;
+		g_players[player_idx].view_state.player_input_blocked = 1;
+		g_players[player_idx].view_state.hud_aim_y = 0;
+		g_players[player_idx].view_state.hud_aim_x = 0;
+		if (player_idx == local_player) {
+			hud_clear_ready_message_queue();
 		}
 
-		fsfx_UpdateBeamSystemLoop(0, playerIdx);
-		fsfx_UpdateIncomingMissileWarning(0);
-		fsfx_PlaySound(FLIGHT_SOUND_MISSILE_LOCK_3, -1, playerIdx);
-		Hud_SetHudViewState(HUD_VIEW_FULL_SCREEN, playerIdx);
-		if (playerIdx == g_localPlayer &&
-		    sourceObjectIndex != UINT_MAX &&
-		    sourceObjectIndex <
-			    (unsigned int)g_activeRegionCraftObjectSlotEnd) {
-			if (g_activeFlightPlayerCount > 1) {
-				if (sourcePlayerIdx != -1 &&
-				    g_objectTable[sourceObjectIndex]
-						    .playerOwnerIdx !=
-					    sourcePlayerIdx &&
-				    g_players[sourcePlayerIdx].objectIndex !=
+		fsfx_update_beam_system_loop(0, player_idx);
+		fsfx_update_incoming_missile_warning(0);
+		fsfx_play_sound(FLIGHT_SOUND_MISSILE_LOCK_3, -1, player_idx);
+		hud_set_hud_view_state(HUD_VIEW_FULL_SCREEN, player_idx);
+		if (player_idx == g_local_player &&
+		    source_object_index != UINT_MAX &&
+		    source_object_index <
+			    (unsigned int)
+				    g_active_region_craft_object_slot_end) {
+			if (g_active_flight_player_count > 1) {
+				if (source_player_idx != -1 &&
+				    g_object_table[source_object_index]
+						    .player_owner_idx !=
+					    source_player_idx &&
+				    g_players[source_player_idx].object_index !=
 					    -1) {
-					Player_AppendKillMessageActorName(
-						0, sourceName,
-						(int)sourceObjectIndex);
-					Player_AppendKillMessageActorName(
-						1, assistingPlayerName,
-						g_players[sourcePlayerIdx]
-							.objectIndex);
-					msg_emitInFlightMessage(
+					player_append_kill_message_actor_name(
+						0, source_name,
+						(int)source_object_index);
+					player_append_kill_message_actor_name(
+						1, assisting_player_name,
+						g_players[source_player_idx]
+							.object_index);
+					msg_emit_in_flight_message(
 						IFMSG_399_YOU_WERE_KILLED_BY_ARG_MOST_DAMAGE_WAS_DONE_BY_ARG,
-						g_localPlayer);
+						g_local_player);
 				} else {
-					Player_AppendKillMessageActorName(
-						0, sourceName,
-						(int)sourceObjectIndex);
-					msg_emitInFlightMessage(
+					player_append_kill_message_actor_name(
+						0, source_name,
+						(int)source_object_index);
+					msg_emit_in_flight_message(
 						IFMSG_398_YOU_WERE_KILLED_BY_ARG,
-						g_localPlayer);
+						g_local_player);
 				}
 			} else {
-				Hud_FormatObjectDisplayName(
-					(uint16_t)sourceObjectIndex,
+				hud_format_object_display_name(
+					(uint16_t)source_object_index,
 					OBJECT_DISPLAY_NAME_AND_TYPE);
-				msg_addMessagePtr(0, g_flightTextScratchBuffer);
-				msg_emitInFlightMessage(
+				msg_add_message_ptr(
+					0, g_flight_text_scratch_buffer);
+				msg_emit_in_flight_message(
 					IFMSG_398_YOU_WERE_KILLED_BY_ARG,
-					g_localPlayer);
+					g_local_player);
 			}
 		}
 	}
-	g_players[playerIdx].awaitingNewCraft = 1;
+	g_players[player_idx].awaiting_new_craft = 1;
 }
 
 /* Copies a name for the object into text and makes it message argument slot. A
  * hostile craft the local player's team has not identified (unless
- * locatePlayersEnabled) is named by Hud_FormatObjectDisplayName style 1 in a
+ * locate_players_enabled) is named by hud_format_object_display_name style 1 in a
  * melee, else 3; a craft a player flies, by that player's name; anything else
  * by style 3. Does not check the size of text. */
 // FUNCTION: XVT 0x484C50
-void Player_AppendKillMessageActorName(int slot, char *text, int objectIndex)
+void player_append_kill_message_actor_name(int slot, char *text,
+					   int object_index)
 {
-	struct ObjectRecord *object;
-	int playerOwnerIdx;
-	struct CraftData *craft;
-	int playerTeam;
+	struct object_record *object;
+	int player_owner_idx;
+	struct craft_data *craft;
+	int player_team;
 	int team;
-	int isEnemy;
-	char *playerName;
+	int is_enemy;
+	char *player_name;
 
-	object = &g_objectTable[objectIndex];
-	playerOwnerIdx = object->playerOwnerIdx;
-	craft = object->mobj->pCraft;
-	if (g_flightMissionState.locatePlayersEnabled != 0 ||
-	    craft->identifiedOrderByTeam[(uint16_t)g_players[g_localPlayer]
-						 .team] != 0) {
-		isEnemy = 0;
+	object = &g_object_table[object_index];
+	player_owner_idx = object->player_owner_idx;
+	craft = object->mobj->p_craft;
+	if (g_flight_mission_state.locate_players_enabled != 0 ||
+	    craft->identified_order_by_team[(uint16_t)g_players[g_local_player]
+						    .team] != 0) {
+		is_enemy = 0;
 	} else {
-		playerTeam = (uint16_t)g_players[g_localPlayer].team;
-		team = g_missionFlightGroups
-			       [g_objectTable[(uint16_t)objectIndex]
-					.flightGroupIdx]
+		player_team = (uint16_t)g_players[g_local_player].team;
+		team = g_mission_flight_groups
+			       [g_object_table[(uint16_t)object_index]
+					.flight_group_idx]
 				       .fg.team;
-		if (team == playerTeam) {
-			isEnemy = 0;
+		if (team == player_team) {
+			is_enemy = 0;
 		} else {
-			isEnemy = g_missionTeams[playerTeam].allies[team] == 0;
+			is_enemy =
+				g_mission_teams[player_team].allies[team] == 0;
 		}
 	}
-	if (isEnemy == 1) {
-		if (g_missionHeader.missionType == MISSION_TYPE_MELEE) {
-			Hud_FormatObjectDisplayName((uint16_t)objectIndex, 1);
-			playerName = g_flightTextScratchBuffer;
+	if (is_enemy == 1) {
+		if (g_mission_header.mission_type == MISSION_TYPE_MELEE) {
+			hud_format_object_display_name((uint16_t)object_index,
+						       1);
+			player_name = g_flight_text_scratch_buffer;
 		} else {
-			Hud_FormatObjectDisplayName((uint16_t)objectIndex, 3);
-			playerName = g_flightTextScratchBuffer;
+			hud_format_object_display_name((uint16_t)object_index,
+						       3);
+			player_name = g_flight_text_scratch_buffer;
 		}
-	} else if (playerOwnerIdx != -1) {
-		playerName = NetSession_GetPlayerName(playerOwnerIdx);
+	} else if (player_owner_idx != -1) {
+		player_name = net_session_get_player_name(player_owner_idx);
 	} else {
-		Hud_FormatObjectDisplayName((uint16_t)objectIndex, 3);
-		playerName = g_flightTextScratchBuffer;
+		hud_format_object_display_name((uint16_t)object_index, 3);
+		player_name = g_flight_text_scratch_buffer;
 	}
-	strcpy(text, playerName);
-	msg_addMessagePtr((uint16_t)slot, text);
+	strcpy(text, player_name);
+	msg_add_message_ptr((uint16_t)slot, text);
 }
 
 /* Sets trig2's polar results for the direction from the player's craft to an
  * object or mission point reference, or from the player's camera when the
- * player has no craft. Writes g_worldLocX, g_worldLocY and g_worldLocZ. */
+ * player has no craft. Writes g_world_loc_x, g_world_loc_y and g_world_loc_z. */
 // FUNCTION: XVT 0x485000
-void Player_ComputePolarToObjectRef(int playerIdx, unsigned int objectRef)
+void player_compute_polar_to_object_ref(int player_idx, unsigned int object_ref)
 {
-	unsigned int objectIndex;
-	int deltaX;
-	int deltaY;
-	int deltaZ;
+	unsigned int object_index;
+	int delta_x;
+	int delta_y;
+	int delta_z;
 
-	objectIndex = g_players[playerIdx].objectIndex;
-	if (objectIndex == UINT32_MAX) {
-		Mission_ResolveObjectOrMissionPointWorldLoc(objectRef, 0);
-		deltaX = g_players[playerIdx].viewState.cameraWorldX;
-		deltaY = g_players[playerIdx].viewState.cameraWorldY;
-		deltaZ = g_players[playerIdx].viewState.cameraWorldZ;
-		deltaX = g_worldLocX - deltaX;
-		deltaY = g_worldLocY - deltaY;
-		deltaZ = g_worldLocZ - deltaZ;
-		trig2_ctop(deltaX, deltaY, deltaZ);
+	object_index = g_players[player_idx].object_index;
+	if (object_index == UINT32_MAX) {
+		mission_resolve_object_or_mission_point_world_loc(object_ref,
+								  0);
+		delta_x = g_players[player_idx].view_state.camera_world_x;
+		delta_y = g_players[player_idx].view_state.camera_world_y;
+		delta_z = g_players[player_idx].view_state.camera_world_z;
+		delta_x = g_world_loc_x - delta_x;
+		delta_y = g_world_loc_y - delta_y;
+		delta_z = g_world_loc_z - delta_z;
+		trig2_ctop(delta_x, delta_y, delta_z);
 	} else {
-		pai_ObjectRefDirectionToObjectRef(objectIndex, objectRef);
+		pai_object_ref_direction_to_object_ref(object_index,
+						       object_ref);
 	}
 }
 
-/* Takes the player out of the mission (participationState 2). While any player
- * is still connected (participationState 1), the player watches: map camera
+/* Takes the player out of the mission (participation_state 2). While any player
+ * is still connected (participation_state 1), the player watches: map camera
  * fully open, craft list view, input blocked, camera at height 0x40000 with
- * cameraDistance 0x40000, or over the current target with cameraDistance 16
- * times its maxBoundsExtent; no craft and no pending action; engine, chaff and
- * beam sound loops updated. With none connected, sets missionEndPending. */
+ * camera_distance 0x40000, or over the current target with camera_distance 16
+ * times its max_bounds_extent; no craft and no pending action; engine, chaff and
+ * beam sound loops updated. With none connected, sets mission_end_pending. */
 // FUNCTION: XVT 0x485080
-void Player_EndFlightParticipation(int playerIdx)
+void player_end_flight_participation(int player_idx)
 {
 	enum {
 		PLAYER_CONNECTED = 1,
@@ -3383,58 +3507,61 @@ void Player_EndFlightParticipation(int playerIdx)
 		CAMERA_TARGET_EXTENT_SCALE = 16,
 	};
 
-	unsigned int activePlayerCount;
-	unsigned int playerIndex;
+	unsigned int active_player_count;
+	unsigned int player_index;
 
-	g_players[playerIdx].participationState = PLAYER_OUT_OF_MISSION;
-	activePlayerCount = 0;
-	for (playerIndex = 0;
-	     playerIndex < sizeof(g_players) / sizeof(g_players[0]);
-	     ++playerIndex) {
-		if (g_players[playerIndex].participationState ==
+	g_players[player_idx].participation_state = PLAYER_OUT_OF_MISSION;
+	active_player_count = 0;
+	for (player_index = 0;
+	     player_index < sizeof(g_players) / sizeof(g_players[0]);
+	     ++player_index) {
+		if (g_players[player_index].participation_state ==
 		    PLAYER_CONNECTED) {
-			++activePlayerCount;
+			++active_player_count;
 		}
 	}
-	if (activePlayerCount != 0) {
-		g_players[playerIdx].mapCameraState = UINT8_MAX;
-		Hud_SetHudViewState(HUD_VIEW_CRAFT_LIST, playerIdx);
-		g_players[playerIdx].viewState.playerInputBlocked = 1;
-		g_players[playerIdx].viewState.externalCameraActive = 1;
-		g_players[playerIdx].viewState.cameraDistance =
+	if (active_player_count != 0) {
+		g_players[player_idx].map_camera_state = UINT8_MAX;
+		hud_set_hud_view_state(HUD_VIEW_CRAFT_LIST, player_idx);
+		g_players[player_idx].view_state.player_input_blocked = 1;
+		g_players[player_idx].view_state.external_camera_active = 1;
+		g_players[player_idx].view_state.camera_distance =
 			EXTERNAL_CAMERA_INITIAL_DISTANCE;
-		g_players[playerIdx].viewState.cameraFocusObjIdx = UINT16_MAX;
-		g_players[playerIdx].viewState.aimTargetIdx = UINT16_MAX;
-		g_players[playerIdx].viewState.cameraWorldZ =
+		g_players[player_idx].view_state.camera_focus_obj_idx =
+			UINT16_MAX;
+		g_players[player_idx].view_state.aim_target_idx = UINT16_MAX;
+		g_players[player_idx].view_state.camera_world_z =
 			EXTERNAL_CAMERA_INITIAL_DISTANCE;
-		if ((uint16_t)g_players[playerIdx].currentTargetObjectIdx !=
+		if ((uint16_t)g_players[player_idx].current_target_object_idx !=
 		    UINT16_MAX) {
-			g_players[playerIdx].viewState.cameraWorldX =
-				g_objectTable[(uint16_t)g_players[playerIdx]
-						      .currentTargetObjectIdx]
-					.world_x;
-			g_players[playerIdx].viewState.cameraWorldY =
-				g_objectTable[(uint16_t)g_players[playerIdx]
-						      .currentTargetObjectIdx]
-					.world_y;
-			g_players[playerIdx].viewState.cameraDistance =
+			g_players[player_idx].view_state.camera_world_x =
+				g_object_table
+					[(uint16_t)g_players[player_idx]
+						 .current_target_object_idx]
+						.world_x;
+			g_players[player_idx].view_state.camera_world_y =
+				g_object_table
+					[(uint16_t)g_players[player_idx]
+						 .current_target_object_idx]
+						.world_y;
+			g_players[player_idx].view_state.camera_distance =
 				CAMERA_TARGET_EXTENT_SCALE *
-				g_objectTypeTable
-					[g_objectTable
-						 [(uint16_t)g_players[playerIdx]
-							  .currentTargetObjectIdx]
-							 .objectType]
-						.maxBoundsExtent;
+				g_object_type_table
+					[g_object_table
+						 [(uint16_t)g_players[player_idx]
+							  .current_target_object_idx]
+							 .object_type]
+						.max_bounds_extent;
 		}
-		g_players[playerIdx].awaitingNewCraft = 0;
-		g_players[playerIdx].objectIndex = -1;
-		g_players[playerIdx].pendingActionTimer = 0;
-		g_players[playerIdx].pendingActionId = 0;
-		fsfx_UpdatePlayerEngineLoop();
-		fsfx_UpdateChaffLoop();
-		fsfx_UpdateBeamEffectLoops();
+		g_players[player_idx].awaiting_new_craft = 0;
+		g_players[player_idx].object_index = -1;
+		g_players[player_idx].pending_action_timer = 0;
+		g_players[player_idx].pending_action_id = 0;
+		fsfx_update_player_engine_loop();
+		fsfx_update_chaff_loop();
+		fsfx_update_beam_effect_loops();
 	} else {
-		g_flightMissionState.missionEndPending = 1;
+		g_flight_mission_state.mission_end_pending = 1;
 	}
 }
 
@@ -3443,32 +3570,32 @@ void Player_EndFlightParticipation(int playerIdx)
  * connected players remain (IFMSG_382) or that the local player is the only one
  * (IFMSG_383). */
 // FUNCTION: XVT 0x4851D0
-void Player_EmitRemotePlayerDepartedMessages(int playerIdx)
+void player_emit_remote_player_departed_messages(int player_idx)
 {
-	int connectedCount;
-	int playerIndex;
+	int connected_count;
+	int player_index;
 
-	if (g_localPlayer != playerIdx) {
-		msg_addMessagePtr(0, NetSession_GetPlayerName(playerIdx));
-		msg_emitInFlightMessage(
+	if (g_local_player != player_idx) {
+		msg_add_message_ptr(0, net_session_get_player_name(player_idx));
+		msg_emit_in_flight_message(
 			IFMSG_381_ARG_HAS_NO_MORE_CRAFT_AND_IS_OUT_OF_THE_MISSION,
-			g_localPlayer);
-		connectedCount = 0;
-		for (playerIndex = 0; playerIndex < 8; ++playerIndex) {
-			if (g_players[playerIndex].participationState == 1) {
-				++connectedCount;
+			g_local_player);
+		connected_count = 0;
+		for (player_index = 0; player_index < 8; ++player_index) {
+			if (g_players[player_index].participation_state == 1) {
+				++connected_count;
 			}
 		}
-		if (g_players[g_localPlayer].participationState == 1) {
-			if (connectedCount == 1) {
-				msg_emitInFlightMessage(
+		if (g_players[g_local_player].participation_state == 1) {
+			if (connected_count == 1) {
+				msg_emit_in_flight_message(
 					IFMSG_383_YOU_ARE_THE_ONLY_PLAYER_LEFT,
-					g_localPlayer);
+					g_local_player);
 			} else {
-				g_msgArgTable[0] = (uint16_t)connectedCount;
-				msg_emitInFlightMessage(
+				g_msg_arg_table[0] = (uint16_t)connected_count;
+				msg_emit_in_flight_message(
 					IFMSG_382_THERE_ARE_ARG_PLAYERS_LEFT_INCLUDING_YOURSELF,
-					g_localPlayer);
+					g_local_player);
 			}
 		}
 	}
@@ -3477,84 +3604,88 @@ void Player_EmitRemotePlayerDepartedMessages(int playerIdx)
 /* Drops the player's current target when its slot is empty, it is an explosion,
  * or it has mobile data and an active decoy beam; also, without the map camera,
  * when the player's targeting computer is out. On dropping it, sets
- * targetCycleStart to the old target and targetingState 0, and from the target
+ * target_cycle_start to the old target and targeting_state 0, and from the target
  * camera view returns to the forward view on the player's craft with IFMSG_224
- * (for the local player also setting g_hudCachedTargetObjectIdx to -2 and
- * g_renderObjectRefFlags to 0). Does not check that the player has a craft
+ * (for the local player also setting g_hud_cached_target_object_idx to -2 and
+ * g_render_object_ref_flags to 0). Does not check that the player has a craft
  * before testing its targeting computer. */
 // FUNCTION: XVT 0x485270
-void Player_ValidateCurrentTargets(int playerIdx)
+void player_validate_current_targets(int player_idx)
 {
 	enum {
 		OBJECT_GENUS_EXPLOSION = 13,
 	};
 
-	uint16_t currentTargetObjectIdx;
-	struct ObjectRecord *targetObject;
-	int localPlayer;
+	uint16_t current_target_object_idx;
+	struct object_record *target_object;
+	int local_player;
 
-	currentTargetObjectIdx =
-		(uint16_t)g_players[playerIdx].currentTargetObjectIdx;
-	if (currentTargetObjectIdx == UINT16_MAX) {
+	current_target_object_idx =
+		(uint16_t)g_players[player_idx].current_target_object_idx;
+	if (current_target_object_idx == UINT16_MAX) {
 		return;
 	}
 
-	targetObject = &g_objectTable[currentTargetObjectIdx];
-	if (targetObject->mobj != NULL) {
-		if (targetObject->objectType == 0 ||
-		    targetObject->genusId == OBJECT_GENUS_EXPLOSION ||
-		    Object_HasActiveDecoyBeam(currentTargetObjectIdx) != 0) {
-			g_players[playerIdx].currentTargetObjectIdx = -1;
+	target_object = &g_object_table[current_target_object_idx];
+	if (target_object->mobj != NULL) {
+		if (target_object->object_type == 0 ||
+		    target_object->genus_id == OBJECT_GENUS_EXPLOSION ||
+		    object_has_active_decoy_beam(current_target_object_idx) !=
+			    0) {
+			g_players[player_idx].current_target_object_idx = -1;
 		}
-	} else if (targetObject->objectType == 0 ||
-		   targetObject->genusId == OBJECT_GENUS_EXPLOSION) {
-		g_players[playerIdx].currentTargetObjectIdx = -1;
+	} else if (target_object->object_type == 0 ||
+		   target_object->genus_id == OBJECT_GENUS_EXPLOSION) {
+		g_players[player_idx].current_target_object_idx = -1;
 	}
 
-	if (g_players[playerIdx].mapCameraState == 0 &&
-	    (g_objectTable[g_players[playerIdx].objectIndex]
-		     .mobj->pCraft->workingSubsystems &
+	if (g_players[player_idx].map_camera_state == 0 &&
+	    (g_object_table[g_players[player_idx].object_index]
+		     .mobj->p_craft->working_subsystems &
 	     CRAFT_SUBSYSTEM_FLAG_TARGETING_COMPUTER) == 0) {
-		g_players[playerIdx].currentTargetObjectIdx = -1;
+		g_players[player_idx].current_target_object_idx = -1;
 	}
-	if ((uint16_t)g_players[playerIdx].currentTargetObjectIdx ==
+	if ((uint16_t)g_players[player_idx].current_target_object_idx ==
 	    UINT16_MAX) {
-		g_players[playerIdx].targetCycleStart =
-			(int16_t)currentTargetObjectIdx;
-		g_players[playerIdx].targetingState = 0;
-		if (g_players[playerIdx].viewState.hudStateLive ==
+		g_players[player_idx].target_cycle_start =
+			(int16_t)current_target_object_idx;
+		g_players[player_idx].targeting_state = 0;
+		if (g_players[player_idx].view_state.hud_state_live ==
 		    HUD_VIEW_TARGET_CAMERA) {
-			g_players[playerIdx].viewState.externalCameraActive = 0;
-			localPlayer = g_localPlayer;
-			g_players[playerIdx].viewState.targetCameraActive = 0;
-			g_players[playerIdx].viewState.cameraFocusObjIdx =
-				(uint16_t)g_players[playerIdx].objectIndex;
-			g_players[playerIdx].viewState.playerInputBlocked = 0;
-			if (playerIdx == localPlayer) {
-				g_hudCachedTargetObjectIdx = -2;
-				g_renderObjectRefFlags = 0;
+			g_players[player_idx]
+				.view_state.external_camera_active = 0;
+			local_player = g_local_player;
+			g_players[player_idx].view_state.target_camera_active =
+				0;
+			g_players[player_idx].view_state.camera_focus_obj_idx =
+				(uint16_t)g_players[player_idx].object_index;
+			g_players[player_idx].view_state.player_input_blocked =
+				0;
+			if (player_idx == local_player) {
+				g_hud_cached_target_object_idx = -2;
+				g_render_object_ref_flags = 0;
 			}
-			Hud_SetHudViewState(HUD_VIEW_FORWARD, playerIdx);
-			g_players[playerIdx].viewState.hudAimX = 0;
-			g_players[playerIdx].viewState.hudAimY = 0;
-			msg_emitInFlightMessage(
+			hud_set_hud_view_state(HUD_VIEW_FORWARD, player_idx);
+			g_players[player_idx].view_state.hud_aim_x = 0;
+			g_players[player_idx].view_state.hud_aim_y = 0;
+			msg_emit_in_flight_message(
 				IFMSG_224_THREAT_DISPLAY_TARGET_NO_LONGER_AVAILABLE,
-				playerIdx);
+				player_idx);
 		}
 	}
 }
 
-/* Runs Player_ValidateCurrentTargets for every participating player. */
+/* Runs player_validate_current_targets for every participating player. */
 // FUNCTION: XVT 0x4853C0
-void Player_ValidateAllCurrentTargets(void)
+void player_validate_all_current_targets(void)
 {
-	unsigned int playerIdx;
+	unsigned int player_idx;
 
-	for (playerIdx = 0;
-	     playerIdx < sizeof(g_players) / sizeof(g_players[0]);
-	     ++playerIdx) {
-		if (g_players[playerIdx].participationState != 0) {
-			Player_ValidateCurrentTargets((int)playerIdx);
+	for (player_idx = 0;
+	     player_idx < sizeof(g_players) / sizeof(g_players[0]);
+	     ++player_idx) {
+		if (g_players[player_idx].participation_state != 0) {
+			player_validate_current_targets((int)player_idx);
 		}
 	}
 }
@@ -3562,151 +3693,155 @@ void Player_ValidateAllCurrentTargets(void)
 /* Returns 1 when a craft of one of the player's flight groups in the active
  * region is not breaking up, exploding or entering hyperspace; else 0. */
 // FUNCTION: XVT 0x4853F0
-int Player_HasAvailableOwnedCraft(int playerIdx)
+int player_has_available_owned_craft(int player_idx)
 {
-	int objectIndex;
-	unsigned int remainingObjects;
-	struct ObjectRecord *object;
-	struct CraftData *craft;
-	uint8_t objectKind;
+	int object_index;
+	unsigned int remaining_objects;
+	struct object_record *object;
+	struct craft_data *craft;
+	uint8_t object_kind;
 
-	objectIndex = -1;
-	remainingObjects = g_activeRegionCraftObjectSlotEnd -
-			   g_activeRegionObjectSlotStart;
-	if (remainingObjects != 0) {
+	object_index = -1;
+	remaining_objects = g_active_region_craft_object_slot_end -
+			    g_active_region_object_slot_start;
+	if (remaining_objects != 0) {
 		do {
-			++objectIndex;
-			if (objectIndex >= g_activeRegionCraftObjectSlotEnd) {
-				objectIndex = g_activeRegionObjectSlotStart;
+			++object_index;
+			if (object_index >=
+			    g_active_region_craft_object_slot_end) {
+				object_index =
+					g_active_region_object_slot_start;
 			}
-			object = &g_objectTable[objectIndex];
-			if (object->objectType != 0) {
-				craft = object->mobj->pCraft;
-				if (g_missionFlightGroups
-					    [object->flightGroupIdx]
-						    .playerOwnerIdx ==
-				    playerIdx) {
-					objectKind = craft->objectKind;
-					if (objectKind !=
+			object = &g_object_table[object_index];
+			if (object->object_type != 0) {
+				craft = object->mobj->p_craft;
+				if (g_mission_flight_groups
+					    [object->flight_group_idx]
+						    .player_owner_idx ==
+				    player_idx) {
+					object_kind = craft->object_kind;
+					if (object_kind !=
 						    CRAFT_OBJECT_KIND_BREAKING_UP &&
-					    objectKind !=
+					    object_kind !=
 						    CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE &&
-					    objectKind !=
+					    object_kind !=
 						    CRAFT_OBJECT_KIND_EXPLODING) {
 						break;
 					}
 				}
 			}
-			--remainingObjects;
-		} while (remainingObjects != 0);
+			--remaining_objects;
+		} while (remaining_objects != 0);
 	}
-	return remainingObjects != 0;
+	return remaining_objects != 0;
 }
 
 /* Keeps players in or out of the mission. A player awaiting a new craft whose
  * bound craft is gone (slot empty or signature changed) has
- * Mission_ProcessFlightGroupWaveCompletion run for the bound group and is bound
+ * mission_process_flight_group_wave_completion run for the bound group and is bound
  * to another of their craft (IFMSG_290 for the local player), or with none left
  * leaves the mission with a notice. A watching player (map camera) still in the
  * mission with no craft left after the same processing leaves too. Then each
- * participating player flagged in g_playerAbortFlags quits: the craft goes to
- * the AI, participationState becomes 0, the active player count is updated, a
+ * participating player flagged in g_player_abort_flags quits: the craft goes to
+ * the AI, participation_state becomes 0, the active player count is updated, a
  * player other than the host is marked gone on the network, IFMSG_380 is shown,
- * and for the local player missionEndPending is set and, as host, the session
+ * and for the local player mission_end_pending is set and, as host, the session
  * abort is broadcast. Skips craft changes and quits while
- * g_flightSimSideEffectsSuppressed is set. */
+ * g_flight_sim_side_effects_suppressed is set. */
 // FUNCTION: XVT 0x485490
-void Player_UpdateParticipationState(void)
+void player_update_participation_state(void)
 {
 	enum {
 		PLAYER_OUT_OF_MISSION = 2,
 	};
 
-	unsigned int playerIdx;
+	unsigned int player_idx;
 
-	for (playerIdx = 0;
-	     playerIdx < sizeof(g_players) / sizeof(g_players[0]);
-	     ++playerIdx) {
-		struct PlayerData *player;
+	for (player_idx = 0;
+	     player_idx < sizeof(g_players) / sizeof(g_players[0]);
+	     ++player_idx) {
+		struct player_data *player;
 
-		player = &g_players[playerIdx];
-		if (player->participationState != 0) {
-			if (player->awaitingNewCraft != 0) {
-				if (g_flightSimSideEffectsSuppressed == 0 &&
-				    player->objectIndex != -1) {
-					struct ObjectRecord *object;
+		player = &g_players[player_idx];
+		if (player->participation_state != 0) {
+			if (player->awaiting_new_craft != 0) {
+				if (g_flight_sim_side_effects_suppressed == 0 &&
+				    player->object_index != -1) {
+					struct object_record *object;
 
-					object = &g_objectTable
-							 [player->objectIndex];
-					if (object->objectType == 0 ||
-					    player->boundObjectSignature !=
-						    object->objectSignature) {
-						Mission_ProcessFlightGroupWaveCompletion(
-							player->boundFlightGroupIdx);
-						if (Player_BindToAvailableCraft(
-							    (int)playerIdx,
+					object = &g_object_table
+							 [player->object_index];
+					if (object->object_type == 0 ||
+					    player->bound_object_signature !=
+						    object->object_signature) {
+						mission_process_flight_group_wave_completion(
+							player->bound_flight_group_idx);
+						if (player_bind_to_available_craft(
+							    (int)player_idx,
 							    UINT32_MAX, 0,
 							    0) != 0) {
-							Player_EndFlightParticipation(
-								(int)playerIdx);
-							Player_EmitRemotePlayerDepartedMessages(
-								(int)playerIdx);
-						} else if (g_localPlayer ==
-							   (int)playerIdx) {
-							msg_emitLocalPlayerCraftMessage(
+							player_end_flight_participation(
+								(int)player_idx);
+							player_emit_remote_player_departed_messages(
+								(int)player_idx);
+						} else if (g_local_player ==
+							   (int)player_idx) {
+							msg_emit_local_player_craft_message(
 								IFMSG_290_PREVIOUS_CRAFT_DESTROYED_NOW_PILOTING_ARG_ARG_ARG);
 						}
 					}
 				}
-			} else if (player->mapCameraState != 0 &&
-				   player->participationState !=
+			} else if (player->map_camera_state != 0 &&
+				   player->participation_state !=
 					   PLAYER_OUT_OF_MISSION &&
-				   g_flightSimSideEffectsSuppressed == 0 &&
-				   Player_HasAvailableOwnedCraft(
-					   (int)playerIdx) == 0) {
-				Mission_ProcessFlightGroupWaveCompletion(
-					player->boundFlightGroupIdx);
-				if (Player_HasAvailableOwnedCraft(
-					    (int)playerIdx) == 0) {
-					Player_EndFlightParticipation(
-						(int)playerIdx);
-					Player_EmitRemotePlayerDepartedMessages(
-						(int)playerIdx);
+				   g_flight_sim_side_effects_suppressed == 0 &&
+				   player_has_available_owned_craft(
+					   (int)player_idx) == 0) {
+				mission_process_flight_group_wave_completion(
+					player->bound_flight_group_idx);
+				if (player_has_available_owned_craft(
+					    (int)player_idx) == 0) {
+					player_end_flight_participation(
+						(int)player_idx);
+					player_emit_remote_player_departed_messages(
+						(int)player_idx);
 				}
 			}
 		}
 	}
 
-	if (g_flightSimSideEffectsSuppressed == 0) {
-		for (playerIdx = 0;
-		     playerIdx <
-		     sizeof(g_playerAbortFlags) / sizeof(g_playerAbortFlags[0]);
-		     ++playerIdx) {
-			if (g_playerAbortFlags[playerIdx] != 0 &&
-			    g_players[playerIdx].participationState != 0) {
-				if (g_players[playerIdx].objectIndex != -1) {
-					Player_UnbindFromCurrentCraft(
-						(int)playerIdx, 0, 1);
+	if (g_flight_sim_side_effects_suppressed == 0) {
+		for (player_idx = 0;
+		     player_idx < sizeof(g_player_abort_flags) /
+					  sizeof(g_player_abort_flags[0]);
+		     ++player_idx) {
+			if (g_player_abort_flags[player_idx] != 0 &&
+			    g_players[player_idx].participation_state != 0) {
+				if (g_players[player_idx].object_index != -1) {
+					player_unbind_from_current_craft(
+						(int)player_idx, 0, 1);
 				}
-				if (g_localPlayer == (int)playerIdx) {
-					g_flightMissionState.missionEndPending =
-						1;
+				if (g_local_player == (int)player_idx) {
+					g_flight_mission_state
+						.mission_end_pending = 1;
 				}
-				g_players[playerIdx].participationState = 0;
-				Flight_UpdateActivePlayerCount();
-				if (NetSession_GetHostDplayId() !=
-				    g_players[playerIdx].network.directPlayId) {
-					FlightNet_MarkPilotNetworkPlayerLeft(
-						(int)playerIdx);
+				g_players[player_idx].participation_state = 0;
+				flight_update_active_player_count();
+				if (net_session_get_host_dplay_id() !=
+				    g_players[player_idx]
+					    .network.direct_play_id) {
+					flight_net_mark_pilot_network_player_left(
+						(int)player_idx);
 				}
-				msg_addMessagePtr(0, NetSession_GetPlayerName(
-							     (int)playerIdx));
-				msg_emitInFlightMessage(
+				msg_add_message_ptr(0,
+						    net_session_get_player_name(
+							    (int)player_idx));
+				msg_emit_in_flight_message(
 					IFMSG_380_ARG_HAS_QUIT_THE_MISSION,
-					g_localPlayer);
-				if (g_localPlayer == (int)playerIdx &&
-				    NetSession_IsLocalHost() != 0) {
-					FlightNet_BroadcastHostSessionAbort();
+					g_local_player);
+				if (g_local_player == (int)player_idx &&
+				    net_session_is_local_host() != 0) {
+					flight_net_broadcast_host_session_abort();
 				}
 			}
 		}
@@ -3718,75 +3853,75 @@ void Player_UpdateParticipationState(void)
  * mobile team differs from the player's and whose flight group's team is not
  * allied, other than explosions, starships, freighters, platforms and craft
  * with an active decoy beam; in the static slots, a hostile mine with a nonzero
- * typeSpecificWord. Despite the name, any craft but starships, freighters and
+ * type_specific_word. Despite the name, any craft but starships, freighters and
  * platforms counts, and mines too. Skips the player's craft and
- * excludedObjectIdx. Writes trig2's polar results. */
+ * excluded_object_idx. Writes trig2's polar results. */
 // FUNCTION: XVT 0x485660
-int Player_FindNearestEnemyFighter(int playerIdx, int excludedObjectIdx)
+int player_find_nearest_enemy_fighter(int player_idx, int excluded_object_idx)
 {
-	int16_t objectIdx;
-	int playerTeam;
+	int16_t object_idx;
+	int player_team;
 	int team;
-	uint8_t genusId;
-	struct CraftData *craft;
-	uint8_t objectKind;
-	uint16_t staticObjectIdx;
-	struct ObjectRecord *staticObject;
-	int staticObjectTeam;
-	int staticPlayerTeam;
-	int isEnemy;
-	uint32_t nearestDistance;
-	struct ObjectRecord *object;
-	int nearestObjectIdx;
+	uint8_t genus_id;
+	struct craft_data *craft;
+	uint8_t object_kind;
+	uint16_t static_object_idx;
+	struct object_record *static_object;
+	int static_object_team;
+	int static_player_team;
+	int is_enemy;
+	uint32_t nearest_distance;
+	struct object_record *object;
+	int nearest_object_idx;
 
-	nearestDistance = UINT32_MAX;
-	nearestObjectIdx = UINT16_MAX;
-	for (objectIdx = g_activeRegionObjectSlotStart;
-	     objectIdx < g_activeRegionCraftObjectSlotEnd; ++objectIdx) {
-		object = &g_objectTable[objectIdx];
-		if (object->objectType != 0 &&
-		    g_players[playerIdx].objectIndex != objectIdx &&
-		    excludedObjectIdx != objectIdx) {
-			playerTeam = (uint16_t)g_players[playerIdx].team;
-			if (object->mobj->team != playerTeam) {
-				team = g_missionFlightGroups
-					       [g_objectTable[(uint16_t)
-								      objectIdx]
-							.flightGroupIdx]
+	nearest_distance = UINT32_MAX;
+	nearest_object_idx = UINT16_MAX;
+	for (object_idx = g_active_region_object_slot_start;
+	     object_idx < g_active_region_craft_object_slot_end; ++object_idx) {
+		object = &g_object_table[object_idx];
+		if (object->object_type != 0 &&
+		    g_players[player_idx].object_index != object_idx &&
+		    excluded_object_idx != object_idx) {
+			player_team = (uint16_t)g_players[player_idx].team;
+			if (object->mobj->team != player_team) {
+				team = g_mission_flight_groups
+					       [g_object_table[(uint16_t)
+								       object_idx]
+							.flight_group_idx]
 						       .fg.team;
-				if (team == playerTeam) {
-					isEnemy = 0;
+				if (team == player_team) {
+					is_enemy = 0;
 				} else {
-					isEnemy = g_missionTeams[playerTeam]
-							  .allies[team] == 0;
+					is_enemy = g_mission_teams[player_team]
+							   .allies[team] == 0;
 				}
-				if (isEnemy) {
-					genusId = object->genusId;
-					if (genusId != CRAFT_GENUS_EXPLOSION &&
-					    genusId != CRAFT_GENUS_STARSHIP &&
-					    genusId != CRAFT_GENUS_FREIGHTER &&
-					    genusId != CRAFT_GENUS_PLATFORM &&
-					    Object_HasActiveDecoyBeam(
-						    objectIdx) == 0) {
-						craft = g_objectTable[objectIdx]
-								.mobj->pCraft;
-						if (craft->workingSubsystems !=
+				if (is_enemy) {
+					genus_id = object->genus_id;
+					if (genus_id != CRAFT_GENUS_EXPLOSION &&
+					    genus_id != CRAFT_GENUS_STARSHIP &&
+					    genus_id != CRAFT_GENUS_FREIGHTER &&
+					    genus_id != CRAFT_GENUS_PLATFORM &&
+					    object_has_active_decoy_beam(
+						    object_idx) == 0) {
+						craft = g_object_table[object_idx]
+								.mobj->p_craft;
+						if (craft->working_subsystems !=
 						    0) {
-							objectKind =
-								craft->objectKind;
-							if (objectKind ==
+							object_kind =
+								craft->object_kind;
+							if (object_kind ==
 								    CRAFT_OBJECT_KIND_ACTIVE ||
-							    objectKind ==
+							    object_kind ==
 								    CRAFT_OBJECT_KIND_ARRIVING_FROM_HYPERSPACE) {
-								Player_ComputePolarToObjectRef(
-									playerIdx,
-									objectIdx);
+								player_compute_polar_to_object_ref(
+									player_idx,
+									object_idx);
 								if ((uint32_t)
 									    trig2_polardistance <
-								    nearestDistance) {
-									nearestObjectIdx =
-										objectIdx;
-									nearestDistance =
+								    nearest_distance) {
+									nearest_object_idx =
+										object_idx;
+									nearest_distance =
 										trig2_polardistance;
 								}
 							}
@@ -3797,56 +3932,59 @@ int Player_FindNearestEnemyFighter(int playerIdx, int excludedObjectIdx)
 		}
 	}
 
-	for (staticObjectIdx = g_regionMainObjectSlotEnd;
-	     (int)(g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount) >
-	     (int16_t)staticObjectIdx;
-	     ++staticObjectIdx) {
-		staticObject = &g_objectTable[(int16_t)staticObjectIdx];
-		if (staticObject->objectType != 0 &&
-		    staticObject->genusId == CRAFT_GENUS_MINE &&
-		    excludedObjectIdx != (int16_t)staticObjectIdx &&
-		    staticObject->typeSpecificWord != 0) {
-			staticObjectTeam =
-				g_missionFlightGroups
-					[g_objectTable[staticObjectIdx]
-						 .flightGroupIdx]
+	for (static_object_idx = g_region_main_object_slot_end;
+	     (int)(g_region_main_object_slot_end +
+		   g_region_static_object_slot_count) >
+	     (int16_t)static_object_idx;
+	     ++static_object_idx) {
+		static_object = &g_object_table[(int16_t)static_object_idx];
+		if (static_object->object_type != 0 &&
+		    static_object->genus_id == CRAFT_GENUS_MINE &&
+		    excluded_object_idx != (int16_t)static_object_idx &&
+		    static_object->type_specific_word != 0) {
+			static_object_team =
+				g_mission_flight_groups
+					[g_object_table[static_object_idx]
+						 .flight_group_idx]
 						.fg.team;
-			staticPlayerTeam = (uint16_t)g_players[playerIdx].team;
-			if (staticPlayerTeam == staticObjectTeam) {
-				isEnemy = 0;
+			static_player_team =
+				(uint16_t)g_players[player_idx].team;
+			if (static_player_team == static_object_team) {
+				is_enemy = 0;
 			} else {
-				isEnemy =
-					g_missionTeams[staticPlayerTeam]
-						.allies[staticObjectTeam] == 0;
+				is_enemy =
+					g_mission_teams[static_player_team]
+						.allies[static_object_team] ==
+					0;
 			}
-			if (isEnemy == 1) {
-				Player_ComputePolarToObjectRef(
-					playerIdx, (int16_t)staticObjectIdx);
+			if (is_enemy == 1) {
+				player_compute_polar_to_object_ref(
+					player_idx, (int16_t)static_object_idx);
 				if ((uint32_t)trig2_polardistance <
-				    nearestDistance) {
-					nearestObjectIdx =
-						(int16_t)staticObjectIdx;
-					nearestDistance = trig2_polardistance;
+				    nearest_distance) {
+					nearest_object_idx =
+						(int16_t)static_object_idx;
+					nearest_distance = trig2_polardistance;
 				}
 			}
 		}
 	}
-	return nearestObjectIdx;
+	return nearest_object_idx;
 }
 
 /* Answers the player's hyperspace key, unless sim side effects are suppressed.
  * With a hyperdrive installed: in the proving grounds, ends the mission and
  * takes the player out; with it working and no working Interdictor or modified
  * strike cruiser of another IFF in the craft slots, starts the jump (IFMSG_106,
- * hyperspacePhase 1 at 0 ticks, forward view, throttle 0, an X-wing's or
+ * hyperspace_phase 1 at 0 ticks, forward view, throttle 0, an X-wing's or
  * B-wing's S-foils closing with FLIGHT_SOUND_S_FOIL, IFMSG_113 to the other
  * players); with one present, IFMSG_109; with the hyperdrive damaged,
  * IFMSG_086. Without a hyperdrive, names the player's flight group's departure
  * and alternate motherships that are present (IFMSG_110 or IFMSG_111). Does not
  * check that craft is the player's. */
 // FUNCTION: XVT 0x485900
-void Player_HandleHyperspaceCommand(struct CraftData *craft,
-				    unsigned int playerIdx)
+void player_handle_hyperspace_command(struct craft_data *craft,
+				      unsigned int player_idx)
 {
 	enum {
 		PLAYER_OUT_OF_MISSION = 2,
@@ -3856,207 +3994,217 @@ void Player_HandleHyperspaceCommand(struct CraftData *craft,
 		DAMAGED_SYSTEM_STATE_MESSAGE_ARG = 87,
 	};
 
-	if (g_flightSimSideEffectsSuppressed == 0) {
-		if ((craft->systemFlags & CRAFT_SUBSYSTEM_FLAG_HYPERDRIVE) !=
+	if (g_flight_sim_side_effects_suppressed == 0) {
+		if ((craft->system_flags & CRAFT_SUBSYSTEM_FLAG_HYPERDRIVE) !=
 		    0) {
-			if (g_flightMissionState.provingGroundsModeActive !=
-			    0) {
-				g_flightMissionState.missionEndPending = 1;
-				g_players[playerIdx].participationState =
+			if (g_flight_mission_state
+				    .proving_grounds_mode_active != 0) {
+				g_flight_mission_state.mission_end_pending = 1;
+				g_players[player_idx].participation_state =
 					PLAYER_OUT_OF_MISSION;
-			} else if ((craft->workingSubsystems &
+			} else if ((craft->working_subsystems &
 				    CRAFT_SUBSYSTEM_FLAG_HYPERDRIVE) != 0) {
-				int16_t scanObjectIdx;
-				int16_t interdictorPresent;
+				int16_t scan_object_idx;
+				int16_t interdictor_present;
 
-				interdictorPresent = 0;
-				for (scanObjectIdx =
-					     g_activeRegionObjectSlotStart;
-				     scanObjectIdx <
-				     g_activeRegionCraftObjectSlotEnd;
-				     ++scanObjectIdx) {
-					struct ObjectRecord *object =
-						&g_objectTable[scanObjectIdx];
+				interdictor_present = 0;
+				for (scan_object_idx =
+					     g_active_region_object_slot_start;
+				     scan_object_idx <
+				     g_active_region_craft_object_slot_end;
+				     ++scan_object_idx) {
+					struct object_record *object =
+						&g_object_table
+							[scan_object_idx];
 
-					if ((object->objectType ==
+					if ((object->object_type ==
 						     CRAFT_SPECIES_INTERDICTOR ||
-					     object->objectType ==
+					     object->object_type ==
 						     CRAFT_SPECIES_MODIFIED_STRIKE_CRUISER) &&
-					    (uint16_t)g_players[playerIdx]
+					    (uint16_t)g_players[player_idx]
 							    .iff !=
 						    (uint8_t)
 							    object->mobj->iff &&
-					    object->mobj->pCraft
-							    ->workingSubsystems !=
+					    object->mobj->p_craft
+							    ->working_subsystems !=
 						    0) {
-						interdictorPresent = 1;
+						interdictor_present = 1;
 					}
 				}
 
-				if (interdictorPresent != 0) {
-					msg_emitInFlightMessage(
+				if (interdictor_present != 0) {
+					msg_emit_in_flight_message(
 						IFMSG_109_INTERDICTOR_PREVENTS_HYPERDRIVE_UNIT_FROM_FUNCTIONING,
-						playerIdx);
+						player_idx);
 				} else {
-					uint8_t objectType;
+					uint8_t object_type;
 
-					if (g_localPlayer == (int)playerIdx) {
-						Hud_ClearReadyMessageQueue();
+					if (g_local_player == (int)player_idx) {
+						hud_clear_ready_message_queue();
 					}
-					msg_emitInFlightMessage(
+					msg_emit_in_flight_message(
 						IFMSG_106_PREPARING_FOR_JUMP_TO_LIGHT_SPEED,
-						playerIdx);
-					g_players[playerIdx].hyperspacePhase =
+						player_idx);
+					g_players[player_idx].hyperspace_phase =
 						1;
-					g_players[playerIdx]
-						.hyperspaceRuntime
-						.phaseElapsedTicks = 0;
-					g_players[playerIdx]
-						.viewState.targetCameraActive =
-						0;
-					g_players[playerIdx]
-						.viewState
-						.externalCameraActive = 0;
-					g_players[playerIdx]
-						.viewState.playerInputBlocked =
-						0;
-					g_players[playerIdx]
-						.viewState.cameraFocusObjIdx =
-						(uint16_t)g_players[playerIdx]
-							.objectIndex;
-					Hud_SetHudViewState(HUD_VIEW_FORWARD,
-							    playerIdx);
-					g_players[playerIdx].viewState.hudAimX =
-						0;
-					g_players[playerIdx].viewState.hudAimY =
-						0;
-					craft->throttleSpeed = 0;
+					g_players[player_idx]
+						.hyperspace_runtime
+						.phase_elapsed_ticks = 0;
+					g_players[player_idx]
+						.view_state
+						.target_camera_active = 0;
+					g_players[player_idx]
+						.view_state
+						.external_camera_active = 0;
+					g_players[player_idx]
+						.view_state
+						.player_input_blocked = 0;
+					g_players[player_idx]
+						.view_state
+						.camera_focus_obj_idx =
+						(uint16_t)g_players[player_idx]
+							.object_index;
+					hud_set_hud_view_state(HUD_VIEW_FORWARD,
+							       player_idx);
+					g_players[player_idx]
+						.view_state.hud_aim_x = 0;
+					g_players[player_idx]
+						.view_state.hud_aim_y = 0;
+					craft->throttle_speed = 0;
 
-					objectType =
-						g_objectTable
-							[g_players[playerIdx]
-								 .objectIndex]
-								.objectType;
-					if ((objectType ==
+					object_type =
+						g_object_table
+							[g_players[player_idx]
+								 .object_index]
+								.object_type;
+					if ((object_type ==
 						     CRAFT_SPECIES_X_WING ||
-					     objectType ==
+					     object_type ==
 						     CRAFT_SPECIES_B_WING) &&
-					    (craft->sFoilState &
+					    (craft->s_foil_state &
 					     S_FOIL_CLOSED_MASK) == 0) {
-						craft->sFoilState |=
+						craft->s_foil_state |=
 							S_FOIL_CLOSED_MASK;
-						craft->sFoilState |=
+						craft->s_foil_state |=
 							S_FOIL_CLOSING_MASK;
-						fsfx_PlaySound(
+						fsfx_play_sound(
 							FLIGHT_SOUND_S_FOIL, -1,
-							playerIdx);
+							player_idx);
 					}
 
-					if (g_localPlayer != (int)playerIdx) {
-						msg_addMessagePtr(
+					if (g_local_player != (int)player_idx) {
+						msg_add_message_ptr(
 							0,
-							NetSession_GetPlayerName(
-								(int)playerIdx));
-						msg_emitInFlightMessage(
+							net_session_get_player_name(
+								(int)player_idx));
+						msg_emit_in_flight_message(
 							IFMSG_113_ARG_IS_INITIATING_HYPERJUMP,
-							g_localPlayer);
+							g_local_player);
 					}
 				}
 			} else {
-				g_msgArgTable[0] =
+				g_msg_arg_table[0] =
 					HYPERDRIVE_SYSTEM_NAME_MESSAGE_ARG;
-				g_msgArgTable[1] =
+				g_msg_arg_table[1] =
 					DAMAGED_SYSTEM_STATE_MESSAGE_ARG;
-				msg_emitInFlightMessage(
-					IFMSG_086_ARG_SYSTEM_IS_ARG, playerIdx);
+				msg_emit_in_flight_message(
+					IFMSG_086_ARG_SYSTEM_IS_ARG,
+					player_idx);
 			}
 		} else {
-			uint16_t departureMothershipObjIdx;
-			uint16_t alternateMothershipObjIdx;
-			uint16_t objectIdx;
+			uint16_t departure_mothership_obj_idx;
+			uint16_t alternate_mothership_obj_idx;
+			uint16_t object_idx;
 
-			departureMothershipObjIdx = UINT16_MAX;
-			alternateMothershipObjIdx = departureMothershipObjIdx;
-			for (objectIdx =
-				     (uint16_t)g_activeRegionObjectSlotStart;
-			     objectIdx < g_activeRegionCraftObjectSlotEnd;
-			     ++objectIdx) {
-				if (g_missionFlightGroups
-					    [g_objectTable[g_players[playerIdx]
-								   .objectIndex]
-						     .flightGroupIdx]
-						    .fg.departureMethod != 0) {
-					if (g_objectTable[objectIdx]
-							    .objectType !=
+			departure_mothership_obj_idx = UINT16_MAX;
+			alternate_mothership_obj_idx =
+				departure_mothership_obj_idx;
+			for (object_idx = (uint16_t)
+				     g_active_region_object_slot_start;
+			     object_idx < g_active_region_craft_object_slot_end;
+			     ++object_idx) {
+				if (g_mission_flight_groups
+					    [g_object_table
+						     [g_players[player_idx]
+							      .object_index]
+							     .flight_group_idx]
+						    .fg.departure_method != 0) {
+					if (g_object_table[object_idx]
+							    .object_type !=
 						    CRAFT_SPECIES_UNKNOWN &&
-					    g_missionFlightGroups
-							    [g_objectTable
-								     [g_players[playerIdx]
-									      .objectIndex]
-									     .flightGroupIdx]
+					    g_mission_flight_groups
+							    [g_object_table
+								     [g_players[player_idx]
+									      .object_index]
+									     .flight_group_idx]
 								    .fg
-								    .departureMothership ==
-						    g_objectTable[objectIdx]
-							    .flightGroupIdx) {
-						departureMothershipObjIdx =
-							objectIdx;
+								    .departure_mothership ==
+						    g_object_table[object_idx]
+							    .flight_group_idx) {
+						departure_mothership_obj_idx =
+							object_idx;
 					}
 				}
-				if (g_missionFlightGroups
-					    [g_objectTable[g_players[playerIdx]
-								   .objectIndex]
-						     .flightGroupIdx]
+				if (g_mission_flight_groups
+					    [g_object_table
+						     [g_players[player_idx]
+							      .object_index]
+							     .flight_group_idx]
 						    .fg
-						    .alternateMothershipUsed !=
+						    .alternate_mothership_used !=
 				    0) {
-					if (g_objectTable[objectIdx]
-							    .objectType !=
+					if (g_object_table[object_idx]
+							    .object_type !=
 						    CRAFT_SPECIES_UNKNOWN &&
-					    g_missionFlightGroups
-							    [g_objectTable
-								     [g_players[playerIdx]
-									      .objectIndex]
-									     .flightGroupIdx]
+					    g_mission_flight_groups
+							    [g_object_table
+								     [g_players[player_idx]
+									      .object_index]
+									     .flight_group_idx]
 								    .fg
-								    .alternateMothership ==
-						    g_objectTable[objectIdx]
-							    .flightGroupIdx) {
-						alternateMothershipObjIdx =
-							objectIdx;
+								    .alternate_mothership ==
+						    g_object_table[object_idx]
+							    .flight_group_idx) {
+						alternate_mothership_obj_idx =
+							object_idx;
 					}
 				}
 			}
 
-			if (departureMothershipObjIdx != UINT16_MAX &&
-			    alternateMothershipObjIdx != UINT16_MAX) {
-				msg_formatObjectName(departureMothershipObjIdx,
-						     0,
-						     g_flightTextScratchBuffer);
-				msg_addMessagePtr(0, g_flightTextScratchBuffer);
-				msg_formatObjectName(
-					alternateMothershipObjIdx, 0,
-					g_flightSecondaryObjectNameBuffer);
-				msg_addMessagePtr(
-					1, g_flightSecondaryObjectNameBuffer);
-				msg_emitInFlightMessage(
+			if (departure_mothership_obj_idx != UINT16_MAX &&
+			    alternate_mothership_obj_idx != UINT16_MAX) {
+				msg_format_object_name(
+					departure_mothership_obj_idx, 0,
+					g_flight_text_scratch_buffer);
+				msg_add_message_ptr(
+					0, g_flight_text_scratch_buffer);
+				msg_format_object_name(
+					alternate_mothership_obj_idx, 0,
+					g_flight_secondary_object_name_buffer);
+				msg_add_message_ptr(
+					1,
+					g_flight_secondary_object_name_buffer);
+				msg_emit_in_flight_message(
 					IFMSG_111_NO_HYPERDRIVE_RETURN_TO_ARG_OR_TO_ARG,
-					playerIdx);
-			} else if (departureMothershipObjIdx != UINT16_MAX) {
-				msg_formatObjectName(departureMothershipObjIdx,
-						     0,
-						     g_flightTextScratchBuffer);
-				msg_addMessagePtr(0, g_flightTextScratchBuffer);
-				msg_emitInFlightMessage(
+					player_idx);
+			} else if (departure_mothership_obj_idx != UINT16_MAX) {
+				msg_format_object_name(
+					departure_mothership_obj_idx, 0,
+					g_flight_text_scratch_buffer);
+				msg_add_message_ptr(
+					0, g_flight_text_scratch_buffer);
+				msg_emit_in_flight_message(
 					IFMSG_110_NO_HYPERDRIVE_RETURN_TO_ARG,
-					playerIdx);
-			} else if (alternateMothershipObjIdx != UINT16_MAX) {
-				msg_formatObjectName(alternateMothershipObjIdx,
-						     0,
-						     g_flightTextScratchBuffer);
-				msg_addMessagePtr(0, g_flightTextScratchBuffer);
-				msg_emitInFlightMessage(
+					player_idx);
+			} else if (alternate_mothership_obj_idx != UINT16_MAX) {
+				msg_format_object_name(
+					alternate_mothership_obj_idx, 0,
+					g_flight_text_scratch_buffer);
+				msg_add_message_ptr(
+					0, g_flight_text_scratch_buffer);
+				msg_emit_in_flight_message(
 					IFMSG_110_NO_HYPERDRIVE_RETURN_TO_ARG,
-					playerIdx);
+					player_idx);
 			}
 		}
 	}

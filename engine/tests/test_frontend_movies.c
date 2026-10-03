@@ -20,104 +20,106 @@
 #include <string.h>
 #include <time.h>
 
-static struct XvtTestAssets g_assets;
+static struct xvt_test_assets g_assets;
 
-static void Fresh(void)
+static void fresh(void)
 {
-	XvtFrontendMovies_Reset();
-	XvtMovieTask_Shutdown();
-	XvtTest_CloseAssets(&g_assets);
-	memset(&g_frontState, 0, sizeof g_frontState);
-	g_frontState.cdAudioSuspendState = CDAudio_Suspended;
-	g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_SINGLEPLAYER;
-	XvtTest_OpenAssets(&g_assets);
-	XvtTest_AddAsset(&g_assets, "movies/intro.smk");
+	xvt_frontend_movies_reset();
+	xvt_movie_task_shutdown();
+	xvt_test_close_assets(&g_assets);
+	memset(&g_front_state, 0, sizeof g_front_state);
+	g_front_state.cd_audio_suspend_state = CD_AUDIO_SUSPENDED;
+	g_frontend_mission_session_mode = FRONTEND_MISSION_SESSION_SINGLEPLAYER;
+	xvt_test_open_assets(&g_assets);
+	xvt_test_add_asset(&g_assets, "movies/intro.smk");
 }
 
 /* Ticks the movie task until the movie completes, then reaps it as the port does on the next frame. */
-static void FinishMovie(void)
+static void finish_movie(void)
 {
 	struct timespec pause = {0, 1000000};
-	for (int i = 0; i < 10000 && XvtMovieTask_IsActive(); ++i) {
-		XvtMovieTask_Update();
+	for (int i = 0; i < 10000 && xvt_movie_task_is_active(); ++i) {
+		xvt_movie_task_update();
 		nanosleep(&pause, NULL);
 	}
-	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 0);
-	XvtMovieTask_ReapFinished();
+	XVT_ASSERT_INT_EQ(xvt_movie_task_is_active(), 0);
+	xvt_movie_task_reap_finished();
 }
 
-static void CheckNothingPending(void)
+static void check_nothing_pending(void)
 {
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtFrontendMovies_ResumeViewer(), 0);
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_frontend_movies_resume_viewer(), 0);
 	/* A movie that cannot be found is not pending. */
-	XVT_ASSERT_INT_EQ(XvtFrontendMovies_PlayViewer("absent"), 0);
-	XVT_ASSERT_INT_EQ(XvtFrontendMovies_ResumeViewer(), 0);
-	XVT_ASSERT_INT_EQ(g_frontState.cdAudioSuspendState, CDAudio_Suspended);
+	XVT_ASSERT_INT_EQ(xvt_frontend_movies_play_viewer("absent"), 0);
+	XVT_ASSERT_INT_EQ(xvt_frontend_movies_resume_viewer(), 0);
+	XVT_ASSERT_INT_EQ(g_front_state.cd_audio_suspend_state,
+			  CD_AUDIO_SUSPENDED);
 }
 
-static void CheckViewerWaitsForResult(void)
+static void check_viewer_waits_for_result(void)
 {
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtFrontendMovies_PlayViewer("intro"), 1);
-	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 1);
-	XVT_ASSERT_INT_EQ(XvtFrontendMovies_ResumeViewer(), 1);
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_frontend_movies_play_viewer("intro"), 1);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_is_active(), 1);
+	XVT_ASSERT_INT_EQ(xvt_frontend_movies_resume_viewer(), 1);
 
 	/* Completed but not reaped: the result has not arrived. */
 	struct timespec pause = {0, 1000000};
-	for (int i = 0; i < 10000 && XvtMovieTask_IsActive(); ++i) {
-		XvtMovieTask_Update();
+	for (int i = 0; i < 10000 && xvt_movie_task_is_active(); ++i) {
+		xvt_movie_task_update();
 		nanosleep(&pause, NULL);
 	}
-	XVT_ASSERT_INT_EQ(XvtFrontendMovies_ResumeViewer(), 1);
+	XVT_ASSERT_INT_EQ(xvt_frontend_movies_resume_viewer(), 1);
 
 	/* Once it arrives: discarded, CD audio asked to resume, and nothing pending any more. */
-	XvtMovieTask_ReapFinished();
-	XVT_ASSERT_INT_EQ(XvtFrontendMovies_ResumeViewer(), 0);
+	xvt_movie_task_reap_finished();
+	XVT_ASSERT_INT_EQ(xvt_frontend_movies_resume_viewer(), 0);
 	int result = 77;
-	XVT_ASSERT_INT_EQ(XvtMovieTask_TakeResult(&result), 0);
-	XVT_ASSERT_INT_EQ(g_frontState.cdAudioSuspendState,
-			  CDAudio_ResumePending);
-	XVT_ASSERT_INT_EQ(XvtFrontendMovies_ResumeViewer(), 0);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_take_result(&result), 0);
+	XVT_ASSERT_INT_EQ(g_front_state.cd_audio_suspend_state,
+			  CD_AUDIO_RESUME_PENDING);
+	XVT_ASSERT_INT_EQ(xvt_frontend_movies_resume_viewer(), 0);
 }
 
-static void CheckUntakenResultHandedBack(void)
+static void check_untaken_result_handed_back(void)
 {
-	Fresh();
+	fresh();
 	/* A movie started elsewhere completes and is reaped, its result untaken. */
-	XVT_ASSERT_INT_EQ(XvtMovieTask_Begin("intro", 0), XVT_MOVIE_PENDING);
-	FinishMovie();
+	XVT_ASSERT_INT_EQ(xvt_movie_task_begin("intro", 0), XVT_MOVIE_PENDING);
+	finish_movie();
 
-	/* Movie_Play hands that result back: the viewer's movie is not started and nothing is pending. */
-	XVT_ASSERT_INT_EQ(XvtFrontendMovies_PlayViewer("intro"), 0);
-	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 0);
+	/* movie_play hands that result back: the viewer's movie is not started and nothing is pending. */
+	XVT_ASSERT_INT_EQ(xvt_frontend_movies_play_viewer("intro"), 0);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_is_active(), 0);
 	int result = 77;
-	XVT_ASSERT_INT_EQ(XvtMovieTask_TakeResult(&result), 0);
-	XVT_ASSERT_INT_EQ(XvtFrontendMovies_ResumeViewer(), 0);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_take_result(&result), 0);
+	XVT_ASSERT_INT_EQ(xvt_frontend_movies_resume_viewer(), 0);
 }
 
-static void CheckReset(void)
+static void check_reset(void)
 {
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtFrontendMovies_PlayViewer("intro"), 1);
-	XvtFrontendMovies_Reset();
-	XVT_ASSERT_INT_EQ(XvtFrontendMovies_ResumeViewer(), 0);
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_frontend_movies_play_viewer("intro"), 1);
+	xvt_frontend_movies_reset();
+	XVT_ASSERT_INT_EQ(xvt_frontend_movies_resume_viewer(), 0);
 	/* The movie was not stopped, and its result is still there to take. */
-	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 1);
-	FinishMovie();
+	XVT_ASSERT_INT_EQ(xvt_movie_task_is_active(), 1);
+	finish_movie();
 	int result = 77;
-	XVT_ASSERT_INT_EQ(XvtMovieTask_TakeResult(&result), 1);
-	XVT_ASSERT_INT_EQ(g_frontState.cdAudioSuspendState, CDAudio_Suspended);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_take_result(&result), 1);
+	XVT_ASSERT_INT_EQ(g_front_state.cd_audio_suspend_state,
+			  CD_AUDIO_SUSPENDED);
 }
 
 int main(void)
 {
-	CheckNothingPending();
-	CheckViewerWaitsForResult();
-	CheckUntakenResultHandedBack();
-	CheckReset();
-	XvtFrontendMovies_Reset();
-	XvtMovieTask_Shutdown();
-	XvtTest_CloseAssets(&g_assets);
+	check_nothing_pending();
+	check_viewer_waits_for_result();
+	check_untaken_result_handed_back();
+	check_reset();
+	xvt_frontend_movies_reset();
+	xvt_movie_task_shutdown();
+	xvt_test_close_assets(&g_assets);
 	return 0;
 }

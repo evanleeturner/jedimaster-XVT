@@ -37,172 +37,172 @@
 #include <string.h>
 
 /* The joystick action list read from joystick.txt: each entry's action code,
- * name and description. Config_LoadJoystickActionDictionary fills it when the
+ * name and description. config_load_joystick_action_dictionary fills it when the
  * config screen opens. */
 // GLOBAL: XVT 0xBB2820
-struct JoystickEntry g_joystickEntries[128] = {0};
-/* Entries in g_joystickEntries; Config_LoadJoystickActionDictionary sets it. */
+struct joystick_entry g_joystick_entries[128] = {0};
+/* Entries in g_joystick_entries; config_load_joystick_action_dictionary sets it. */
 // GLOBAL: XVT 0xBB72A0
-int g_joystickEntryCount = 0;
+int g_joystick_entry_count = 0;
 /* First action shown in the joystick page's list of keys: 0 when the config
  * screen opens, then set by the list's scrollbar and by picking an action from
  * the keyboard. */
 // GLOBAL: XVT 0x664E88
-int g_configJoystickActionScrollOffset = 0;
+int g_config_joystick_action_scroll_offset = 0;
 /* First row shown in the joystick page's button list: 0 when the config screen
  * opens, then set by the list's scrollbar and moved to a pressed button or hat
  * direction that is out of view. */
 // GLOBAL: XVT 0x664E8C
-int g_configJoystickButtonScrollOffset = 0;
+int g_config_joystick_button_scroll_offset = 0;
 /* Button being remapped: 0 to 15 for joystick buttons 1 to 16, 16 to 19 for the
  * hat directions. 0 when the config screen opens; set by picking a row or
  * pressing a button or hat direction. */
 // GLOBAL: XVT 0x664E90
-int g_configSelectedJoystickButtonIndex = 0;
-/* Index in g_joystickEntries of the action the selected button is mapped to, as
+int g_config_selected_joystick_button_index = 0;
+/* Index in g_joystick_entries of the action the selected button is mapped to, as
  * the joystick page shows it. */
 // GLOBAL: XVT 0x664E94
-int g_configSelectedJoystickActionIndex = 0;
+int g_config_selected_joystick_action_index = 0;
 
-/* The game's settings. Config_Load fills them from defaults and the config file
- * and Config_Write saves them; the config pages, the mission setup screen, the
+/* The game's settings. config_load fills them from defaults and the config file
+ * and config_write saves them; the config pages, the mission setup screen, the
  * host's game options packets and the command line change them, and many
  * functions read them. */
 // GLOBAL: XVT 0xBB72B0
-struct GameConfig g_gameConfig = {0};
+struct game_config g_game_config = {0};
 
 /* 1 while a config page should also draw its controls' fixed images into the
- * offscreen background: Config_OptionsDatapadUpdate sets 1 on its first frame
+ * offscreen background: config_options_datapad_update sets 1 on its first frame
  * and 0 after every frame, and the page buttons set 1 when they switch
  * pages. */
 // GLOBAL: XVT 0x664E98
-int g_configDrawStaticControlBackground = 0;
+int g_config_draw_static_control_background = 0;
 /* 1 while the network page lets the connection type change outside single
  * player. The concourse's first frame sets 1; mission setup, the network
  * screens in frontend_net.c and the modern build's network browser set it as
  * they start or leave a session. */
 // GLOBAL: XVT 0xB69CE0
-int g_configConnectionTypeEditable = 0;
+int g_config_connection_type_editable = 0;
 /* Config page shown: 0 network, 1 single-player video, 2 multiplayer video, 3
  * sound, 4 joystick, 5 taunts. 0 when the config screen opens; the page buttons
  * change it. */
 // GLOBAL: XVT 0x664E9C
-int g_configCurrentPage = 0;
+int g_config_current_page = 0;
 
-/* Keywords of the config file's lines; Config_Load numbers each by its place
+/* Keywords of the config file's lines; config_load numbers each by its place
  * here. They name the last pilot, the video settings of both sets, network,
  * sound, 32 joystick buttons (only the first 20 are read), the game options,
  * password, help, taunts and the 3D hardware settings. An empty string ends the
  * list. */
 // GLOBAL: XVT 0x52A4C8
-char *g_configKeywords[] = {"lastpilot",
-			    "backdrop1",
-			    "stardensity1",
-			    "debris1",
-			    "locallights1",
-			    "specular1",
-			    "diffuse1",
-			    "dither1",
-			    "textureres1",
-			    "mipmap1",
-			    "lod1",
-			    "screenres1",
-			    "windowsize1",
-			    "bpp1",
-			    "brightness1",
-			    "backdrop2",
-			    "stardensity2",
-			    "debris2",
-			    "locallights2",
-			    "specular2",
-			    "diffuse2",
-			    "dither2",
-			    "textureres2",
-			    "mipmap2",
-			    "lod2",
-			    "screenres2",
-			    "windowsize2",
-			    "bpp2",
-			    "brightness2",
-			    "networktype",
-			    "phonenumber",
-			    "ipaddress",
-			    "sfx_exterior",
-			    "sfx_interior",
-			    "sfx_engine",
-			    "sfx_datapad",
-			    "voice_pilot",
-			    "voice_tactical_officer",
-			    "voice_commander",
-			    "voice_special",
-			    "music",
-			    "sfx_datapad_volume",
-			    "sfx_exterior_volume",
-			    "sfx_interior_volume",
-			    "sfx_engine_volume",
-			    "voice_volume",
-			    "music_volume",
-			    "joybutton1",
-			    "joybutton2",
-			    "joybutton3",
-			    "joybutton4",
-			    "joybutton5",
-			    "joybutton6",
-			    "joybutton7",
-			    "joybutton8",
-			    "joybutton9",
-			    "joybutton10",
-			    "joybutton11",
-			    "joybutton12",
-			    "joybutton13",
-			    "joybutton14",
-			    "joybutton15",
-			    "joybutton16",
-			    "joybutton17",
-			    "joybutton18",
-			    "joybutton19",
-			    "joybutton20",
-			    "joybutton21",
-			    "joybutton22",
-			    "joybutton23",
-			    "joybutton24",
-			    "joybutton25",
-			    "joybutton26",
-			    "joybutton27",
-			    "joybutton28",
-			    "joybutton29",
-			    "joybutton30",
-			    "joybutton31",
-			    "joybutton32",
-			    "difficulty",
-			    "collisions",
-			    "craft_jumping",
-			    "random_setup",
-			    "handicapping",
-			    "require_password",
-			    "in_progress_join",
-			    "craft_selection",
-			    "locate_players",
-			    "craft_waves",
-			    "mission_time_limit",
-			    "last_time_limit",
-			    "random_seed",
-			    "password",
-			    "async_flag",
-			    "ai_opponents",
-			    "help_on",
-			    "datapad_music",
-			    "server_update_rate",
-			    "combat_balance",
-			    "taunt1",
-			    "taunt2",
-			    "taunt3",
-			    "taunt4",
-			    "use_3d_hardware1",
-			    "bilinear1",
-			    "use_3d_hardware2",
-			    "bilinear2",
-			    ""};
+char *g_config_keywords[] = {"lastpilot",
+			     "backdrop1",
+			     "stardensity1",
+			     "debris1",
+			     "locallights1",
+			     "specular1",
+			     "diffuse1",
+			     "dither1",
+			     "textureres1",
+			     "mipmap1",
+			     "lod1",
+			     "screenres1",
+			     "windowsize1",
+			     "bpp1",
+			     "brightness1",
+			     "backdrop2",
+			     "stardensity2",
+			     "debris2",
+			     "locallights2",
+			     "specular2",
+			     "diffuse2",
+			     "dither2",
+			     "textureres2",
+			     "mipmap2",
+			     "lod2",
+			     "screenres2",
+			     "windowsize2",
+			     "bpp2",
+			     "brightness2",
+			     "networktype",
+			     "phonenumber",
+			     "ipaddress",
+			     "sfx_exterior",
+			     "sfx_interior",
+			     "sfx_engine",
+			     "sfx_datapad",
+			     "voice_pilot",
+			     "voice_tactical_officer",
+			     "voice_commander",
+			     "voice_special",
+			     "music",
+			     "sfx_datapad_volume",
+			     "sfx_exterior_volume",
+			     "sfx_interior_volume",
+			     "sfx_engine_volume",
+			     "voice_volume",
+			     "music_volume",
+			     "joybutton1",
+			     "joybutton2",
+			     "joybutton3",
+			     "joybutton4",
+			     "joybutton5",
+			     "joybutton6",
+			     "joybutton7",
+			     "joybutton8",
+			     "joybutton9",
+			     "joybutton10",
+			     "joybutton11",
+			     "joybutton12",
+			     "joybutton13",
+			     "joybutton14",
+			     "joybutton15",
+			     "joybutton16",
+			     "joybutton17",
+			     "joybutton18",
+			     "joybutton19",
+			     "joybutton20",
+			     "joybutton21",
+			     "joybutton22",
+			     "joybutton23",
+			     "joybutton24",
+			     "joybutton25",
+			     "joybutton26",
+			     "joybutton27",
+			     "joybutton28",
+			     "joybutton29",
+			     "joybutton30",
+			     "joybutton31",
+			     "joybutton32",
+			     "difficulty",
+			     "collisions",
+			     "craft_jumping",
+			     "random_setup",
+			     "handicapping",
+			     "require_password",
+			     "in_progress_join",
+			     "craft_selection",
+			     "locate_players",
+			     "craft_waves",
+			     "mission_time_limit",
+			     "last_time_limit",
+			     "random_seed",
+			     "password",
+			     "async_flag",
+			     "ai_opponents",
+			     "help_on",
+			     "datapad_music",
+			     "server_update_rate",
+			     "combat_balance",
+			     "taunt1",
+			     "taunt2",
+			     "taunt3",
+			     "taunt4",
+			     "use_3d_hardware1",
+			     "bilinear1",
+			     "use_3d_hardware2",
+			     "bilinear2",
+			     ""};
 
 /* Update function of the config screen, which the common screen controls push
  * over the whole screen. On frame 0 it sets the cursor, saves and clears the
@@ -210,16 +210,16 @@ char *g_configKeywords[] = {"lastpilot",
  * button 0's action, and draws frontres\configb.bmp with its frame and overlays
  * into the offscreen surface. Every frame it draws the current page; on every
  * page but the joystick page it then locks and unlocks the offscreen surface
- * (flag 1) while g_configDrawStaticControlBackground is set. Then it draws the
+ * (flag 1) while g_config_draw_static_control_background is set. Then it draws the
  * pilot banner, clears that flag, handles the page buttons and Restore
- * defaults, and returns 1 when Frontend_HandleCommonScreenControls(2) returns
+ * defaults, and returns 1 when frontend_handle_common_screen_controls(2) returns
  * 1. Done, a network dismiss packet, or as network host a nonzero
- * Net_PollForPlayerCreatedOrBacklog closes the screen: it writes the config,
+ * net_poll_for_player_created_or_backlog closes the screen: it writes the config,
  * pops the screen, restores the scrollbar focus list and, as network host,
  * sends the game options packet. Returns 0 on every other path; the modern
  * build stops there while a dialog is up. */
 // FUNCTION: XVT 0x4B7F30
-int Config_OptionsDatapadUpdate(int frameCounter)
+int config_options_datapad_update(int frame_counter)
 {
 	enum {
 		CONFIG_PAGE_NETWORK = 0,
@@ -233,1198 +233,1249 @@ int Config_OptionsDatapadUpdate(int frameCounter)
 		PILOT_BANNER_ANIMATION_PERIOD_FRAMES = 32,
 	};
 
-	int joystickEntryIndex;
-	int animationFrame;
-	int dismissRequested;
+	int joystick_entry_index;
+	int animation_frame;
+	int dismiss_requested;
 	struct RECT rect;
 
-	if (frameCounter == 0) {
-		FrontendCursor_SetPos(32, 127);
-		FrontendScrollbar_SaveState();
-		Frontend_ResetScrollableControls();
-		g_configJoystickActionScrollOffset = 0;
-		g_configJoystickButtonScrollOffset = 0;
-		g_configCurrentPage = CONFIG_PAGE_NETWORK;
-		g_configSelectedJoystickButtonIndex = 0;
-		g_configDrawStaticControlBackground = 1;
-		Keyboard_FlushCharBuffer();
-		Config_LoadJoystickActionDictionary();
-		for (joystickEntryIndex = 0;
-		     joystickEntryIndex < g_joystickEntryCount;
-		     ++joystickEntryIndex) {
-			if (g_joystickEntries[joystickEntryIndex].actionCode ==
-			    g_gameConfig.joyButtons
-				    [g_configSelectedJoystickButtonIndex]) {
-				g_configSelectedJoystickActionIndex =
-					joystickEntryIndex;
+	if (frame_counter == 0) {
+		frontend_cursor_set_pos(32, 127);
+		frontend_scrollbar_save_state();
+		frontend_reset_scrollable_controls();
+		g_config_joystick_action_scroll_offset = 0;
+		g_config_joystick_button_scroll_offset = 0;
+		g_config_current_page = CONFIG_PAGE_NETWORK;
+		g_config_selected_joystick_button_index = 0;
+		g_config_draw_static_control_background = 1;
+		keyboard_flush_char_buffer();
+		config_load_joystick_action_dictionary();
+		for (joystick_entry_index = 0;
+		     joystick_entry_index < g_joystick_entry_count;
+		     ++joystick_entry_index) {
+			if (g_joystick_entries[joystick_entry_index]
+				    .action_code ==
+			    g_game_config.joy_buttons
+				    [g_config_selected_joystick_button_index]) {
+				g_config_selected_joystick_action_index =
+					joystick_entry_index;
 			}
 		}
-		FrontImage_RegisterResourceDefault("frontres\\configb.bmp",
-						   "backconfig");
-		FrontendDisplay_LockOffscreenSurface();
-		FrontImage_DrawSpriteOpaque("backconfig", 0, 0);
-		FrontImage_DrawSprite("frame", 0, 0);
-		FrontImage_DrawSprite("alloff", 0, 0);
-		FrontendDraw_RectAssign(&rect, 84, 107, 604, 433);
-		FrontImage_DrawSpriteTranslucent("configoverlay", 0, 0);
-		FrontendDisplay_UnlockOffscreenSurface(1);
-		FrontendText_StartTextFadeIn(20);
+		front_image_register_resource_default("frontres\\configb.bmp",
+						      "backconfig");
+		frontend_display_lock_offscreen_surface();
+		front_image_draw_sprite_opaque("backconfig", 0, 0);
+		front_image_draw_sprite("frame", 0, 0);
+		front_image_draw_sprite("alloff", 0, 0);
+		frontend_draw_rect_assign(&rect, 84, 107, 604, 433);
+		front_image_draw_sprite_translucent("configoverlay", 0, 0);
+		frontend_display_unlock_offscreen_surface(1);
+		frontend_text_start_text_fade_in(20);
 	}
 
-	switch (g_configCurrentPage) {
+	switch (g_config_current_page) {
 	case CONFIG_PAGE_NETWORK:
-		Config_NetworkOptionsScreen();
-		if (g_configDrawStaticControlBackground != 0) {
-			FrontendDisplay_LockOffscreenSurface();
-			FrontendDisplay_UnlockOffscreenSurface(1);
+		config_network_options_screen();
+		if (g_config_draw_static_control_background != 0) {
+			frontend_display_lock_offscreen_surface();
+			frontend_display_unlock_offscreen_surface(1);
 		}
 		break;
 	case CONFIG_PAGE_SINGLEPLAYER_VIDEO:
-		Config_DrawVideoOptionRows();
-		if (g_configDrawStaticControlBackground != 0) {
-			FrontendDisplay_LockOffscreenSurface();
-			FrontendDisplay_UnlockOffscreenSurface(1);
+		config_draw_video_option_rows();
+		if (g_config_draw_static_control_background != 0) {
+			frontend_display_lock_offscreen_surface();
+			frontend_display_unlock_offscreen_surface(1);
 		}
 		break;
 	case CONFIG_PAGE_MULTIPLAYER_VIDEO:
-		Config_DrawVideoOptionRows();
-		if (g_configDrawStaticControlBackground != 0) {
-			FrontendDisplay_LockOffscreenSurface();
-			FrontendDisplay_UnlockOffscreenSurface(1);
+		config_draw_video_option_rows();
+		if (g_config_draw_static_control_background != 0) {
+			frontend_display_lock_offscreen_surface();
+			frontend_display_unlock_offscreen_surface(1);
 		}
 		break;
 	case CONFIG_PAGE_SOUND:
-		Config_SoundOptionsScreen();
-		if (g_configDrawStaticControlBackground != 0) {
-			FrontendDisplay_LockOffscreenSurface();
-			FrontendDisplay_UnlockOffscreenSurface(1);
+		config_sound_options_screen();
+		if (g_config_draw_static_control_background != 0) {
+			frontend_display_lock_offscreen_surface();
+			frontend_display_unlock_offscreen_surface(1);
 		}
 		break;
 	case CONFIG_PAGE_JOYSTICK:
-		Config_JoystickRemapScreen();
+		config_joystick_remap_screen();
 		break;
 	case CONFIG_PAGE_TAUNTS:
-		Config_DrawCustomTauntsPage();
-		if (g_configDrawStaticControlBackground != 0) {
-			FrontendDisplay_LockOffscreenSurface();
-			FrontendDisplay_UnlockOffscreenSurface(1);
+		config_draw_custom_taunts_page();
+		if (g_config_draw_static_control_background != 0) {
+			frontend_display_lock_offscreen_surface();
+			frontend_display_unlock_offscreen_surface(1);
 		}
 		break;
 	}
 
-	FrontendDraw_RectAssign(&rect, 200, 452, 436, 464);
-	if (g_pilotData.name[0] != '\0') {
-		sprintf(g_frontendScratchBuffer, "%c%s %c%s", 6,
-			g_pilotData.ratingName, 1, g_pilotData.name);
-		FrontendText_DrawCentered(12, g_frontendScratchBuffer, &rect,
-					  g_colorYellow);
-		animationFrame =
-			frameCounter % PILOT_BANNER_ANIMATION_PERIOD_FRAMES;
-		animationFrame >>= 1;
-		sprintf(g_frontendScratchBuffer, "rebtiny%d", animationFrame);
-		FrontImage_DrawSprite(g_frontendScratchBuffer, 204, 453);
-		sprintf(g_frontendScratchBuffer, "imptiny%d", animationFrame);
-		FrontImage_DrawSprite(g_frontendScratchBuffer, 420, 453);
+	frontend_draw_rect_assign(&rect, 200, 452, 436, 464);
+	if (g_pilot_data.name[0] != '\0') {
+		sprintf(g_frontend_scratch_buffer, "%c%s %c%s", 6,
+			g_pilot_data.rating_name, 1, g_pilot_data.name);
+		frontend_text_draw_centered(12, g_frontend_scratch_buffer,
+					    &rect, g_color_yellow);
+		animation_frame =
+			frame_counter % PILOT_BANNER_ANIMATION_PERIOD_FRAMES;
+		animation_frame >>= 1;
+		sprintf(g_frontend_scratch_buffer, "rebtiny%d",
+			animation_frame);
+		front_image_draw_sprite(g_frontend_scratch_buffer, 204, 453);
+		sprintf(g_frontend_scratch_buffer, "imptiny%d",
+			animation_frame);
+		front_image_draw_sprite(g_frontend_scratch_buffer, 420, 453);
 	}
 
-	g_configDrawStaticControlBackground = 0;
-	Config_UpdateNavigationAndRestoreDefaults();
+	g_config_draw_static_control_background = 0;
+	config_update_navigation_and_restore_defaults();
 #ifdef XVT_MODERN
-	if (XvtDialog_IsActive()) {
+	if (xvt_dialog_is_active()) {
 		return 0;
 	}
 #endif
-	if (Frontend_HandleCommonScreenControls(CONFIG_SCREEN_CONTEXT) == 1) {
+	if (frontend_handle_common_screen_controls(CONFIG_SCREEN_CONTEXT) ==
+	    1) {
 		return 1;
 	}
 #ifdef XVT_MODERN
-	if (XvtDialog_IsActive()) {
+	if (xvt_dialog_is_active()) {
 		return 0;
 	}
 #endif
 
-	FrontendDraw_RectAssign(&rect, 85, 447, 176, 471);
-	if (g_gameConfig.helpOn != 0) {
-		FrontendButton_EnableOverlayText();
+	frontend_draw_rect_assign(&rect, 85, 447, 176, 471);
+	if (g_game_config.help_on != 0) {
+		frontend_button_enable_overlay_text();
 	}
-	FrontendButton_SetOverlayText(FrontendString_Get(FRONTSTR_206_DONE));
-	dismissRequested = FrontendButton_HandleSpriteButton(
+	frontend_button_set_overlay_text(
+		frontend_string_get(FRONTSTR_206_DONE));
+	dismiss_requested = frontend_button_handle_sprite_button(
 		&rect, "leaveup", "leavedown",
-		FrontendString_Get(FRONTSTR_206_DONE), 12, 0, 8, "buttonsound");
-	FrontendButton_DisableOverlayText();
-	dismissRequested |= FrontendDialog_HasNetworkDismissPacket();
-	if (g_frontendMissionSessionMode == FRONTEND_MISSION_SESSION_NET_HOST) {
-		dismissRequested |= Net_PollForPlayerCreatedOrBacklog();
+		frontend_string_get(FRONTSTR_206_DONE), 12, 0, 8,
+		"buttonsound");
+	frontend_button_disable_overlay_text();
+	dismiss_requested |= frontend_dialog_has_network_dismiss_packet();
+	if (g_frontend_mission_session_mode ==
+	    FRONTEND_MISSION_SESSION_NET_HOST) {
+		dismiss_requested |= net_poll_for_player_created_or_backlog();
 	}
-	if (dismissRequested != 0) {
-		Config_Write();
-		g_activeTextFieldId = 0;
-		Keyboard_FlushCharBuffer();
-		FrontendScreen_PopState();
-		FrontendMouse_ClearInputGate();
-		FrontImage_FreeResourceByName("backconfig");
-		FrontendText_StopTextFade();
-		FrontendScrollbar_RestoreState();
-		if (g_frontendMissionSessionMode ==
+	if (dismiss_requested != 0) {
+		config_write();
+		g_active_text_field_id = 0;
+		keyboard_flush_char_buffer();
+		frontend_screen_pop_state();
+		frontend_mouse_clear_input_gate();
+		front_image_free_resource_by_name("backconfig");
+		frontend_text_stop_text_fade();
+		frontend_scrollbar_restore_state();
+		if (g_frontend_mission_session_mode ==
 		    FRONTEND_MISSION_SESSION_NET_HOST) {
-			g_frontendNetPacketScratch.packetType =
+			g_frontend_net_packet_scratch.packet_type =
 				NET_PACKET_GAME_OPTIONS;
-			*(int *)&g_frontendNetPacketScratch.payload[0] =
-				(uint8_t)g_gameConfig.difficulty;
-			*(int *)&g_frontendNetPacketScratch.payload[4] =
-				g_gameConfig.collisions;
-			*(int *)&g_frontendNetPacketScratch.payload[8] =
-				g_gameConfig.craftJumping;
-			*(int *)&g_frontendNetPacketScratch.payload[12] =
-				g_gameConfig.randomSetup;
-			*(int *)&g_frontendNetPacketScratch.payload[16] =
-				(uint8_t)g_gameConfig.battleLengthIndex;
-			*(int *)&g_frontendNetPacketScratch.payload[20] =
-				g_gameConfig.requirePassword;
-			*(int *)&g_frontendNetPacketScratch.payload[24] =
-				g_gameConfig.inProgressJoin;
-			*(int *)&g_frontendNetPacketScratch.payload[28] =
-				(uint8_t)g_gameConfig.craftSelection;
-			*(int *)&g_frontendNetPacketScratch.payload[32] =
-				g_gameConfig.locatePlayers;
-			*(int *)&g_frontendNetPacketScratch.payload[36] =
-				(uint8_t)g_gameConfig.craftWaves;
-			*(int *)&g_frontendNetPacketScratch.payload[40] =
-				g_gameConfig.missionTimeLimit;
-			*(int *)&g_frontendNetPacketScratch.payload[44] =
-				g_gameConfig.lastTeamTimeLimitMinutes;
-			*(int *)&g_frontendNetPacketScratch.payload[48] =
+			*(int *)&g_frontend_net_packet_scratch.payload[0] =
+				(uint8_t)g_game_config.difficulty;
+			*(int *)&g_frontend_net_packet_scratch.payload[4] =
+				g_game_config.collisions;
+			*(int *)&g_frontend_net_packet_scratch.payload[8] =
+				g_game_config.craft_jumping;
+			*(int *)&g_frontend_net_packet_scratch.payload[12] =
+				g_game_config.random_setup;
+			*(int *)&g_frontend_net_packet_scratch.payload[16] =
+				(uint8_t)g_game_config.battle_length_index;
+			*(int *)&g_frontend_net_packet_scratch.payload[20] =
+				g_game_config.require_password;
+			*(int *)&g_frontend_net_packet_scratch.payload[24] =
+				g_game_config.in_progress_join;
+			*(int *)&g_frontend_net_packet_scratch.payload[28] =
+				(uint8_t)g_game_config.craft_selection;
+			*(int *)&g_frontend_net_packet_scratch.payload[32] =
+				g_game_config.locate_players;
+			*(int *)&g_frontend_net_packet_scratch.payload[36] =
+				(uint8_t)g_game_config.craft_waves;
+			*(int *)&g_frontend_net_packet_scratch.payload[40] =
+				g_game_config.mission_time_limit;
+			*(int *)&g_frontend_net_packet_scratch.payload[44] =
+				g_game_config.last_team_time_limit_minutes;
+			*(int *)&g_frontend_net_packet_scratch.payload[48] =
 				rand();
-			*(int *)&g_frontendNetPacketScratch.payload[52] =
-				g_gameConfig.internetPlay;
-			*(int *)&g_frontendNetPacketScratch.payload[56] =
-				g_gameConfig.aiOpponents;
-			*(int *)&g_frontendNetPacketScratch.payload[60] =
-				g_gameConfig.serverUpdateRate;
-			*(int *)&g_frontendNetPacketScratch.payload[64] =
-				(uint8_t)g_gameConfig.combatBalance;
-			*(int *)&g_frontendNetPacketScratch.payload[68] =
-				(uint8_t)g_gameConfig.continueBattleOrCampaign;
-			Net_SendPacketAndFlush(0, &g_frontendNetPacketScratch,
-					       CONFIG_PACKET_SIZE);
+			*(int *)&g_frontend_net_packet_scratch.payload[52] =
+				g_game_config.internet_play;
+			*(int *)&g_frontend_net_packet_scratch.payload[56] =
+				g_game_config.ai_opponents;
+			*(int *)&g_frontend_net_packet_scratch.payload[60] =
+				g_game_config.server_update_rate;
+			*(int *)&g_frontend_net_packet_scratch.payload[64] =
+				(uint8_t)g_game_config.combat_balance;
+			*(int *)&g_frontend_net_packet_scratch.payload[68] =
+				(uint8_t)g_game_config
+					.continue_battle_or_campaign;
+			net_send_packet_and_flush(
+				0, &g_frontend_net_packet_scratch,
+				CONFIG_PACKET_SIZE);
 		}
 	}
 	return 0;
 }
 
-/* Draws the video page for settings set g_configCurrentPage - 1: the
+/* Draws the video page for settings set g_config_current_page - 1: the
  * single-player title on page 1, the multiplayer title otherwise, then the
  * sixteen option rows. Does not check that a video page is shown. */
 // FUNCTION: XVT 0x4B83A0
-void Config_DrawVideoOptionRows(void)
+void config_draw_video_option_rows(void)
 {
 	struct RECT rect;
 
-	FrontendDraw_RectAssign(&rect, 84, 90, 604, 106);
-	FrontendText_DrawCentered(
+	frontend_draw_rect_assign(&rect, 84, 90, 604, 106);
+	frontend_text_draw_centered(
 		15,
-		g_configCurrentPage == 1
-			? FrontendString_Get(
+		g_config_current_page == 1
+			? frontend_string_get(
 				  FRONTSTR_219_SINGLE_PLAYER_FLIGHT_ENGINE_OPTIONS)
-			: FrontendString_Get(
+			: frontend_string_get(
 				  FRONTSTR_641_MULTIPLAYER_FLIGHT_ENGINE_OPTIONS),
 		&rect, 0xFFFF);
 
-	Config_DrawScreenResolutionOptionRow(g_configCurrentPage - 1);
-	Config_DrawWindowSizeOptionRow(g_configCurrentPage - 1);
-	Config_DrawBitsPerPixelOptionRow(g_configCurrentPage - 1);
-	Config_DrawBrightnessOptionRow(g_configCurrentPage - 1);
-	Config_DrawDebrisOptionRow(g_configCurrentPage - 1);
-	Config_DrawBackdropOptionRow(g_configCurrentPage - 1);
-	Config_DrawStarDensityOptionRow(g_configCurrentPage - 1);
-	Config_DrawLevelOfDetailOptionRow(g_configCurrentPage - 1);
-	Config_DrawTextureResolutionOptionRow(g_configCurrentPage - 1);
-	Config_DrawDitherOptionRow(g_configCurrentPage - 1);
-	Config_DrawMipmapOptionRow(g_configCurrentPage - 1);
-	Config_DrawLocalLightsOptionRow(g_configCurrentPage - 1);
-	Config_DrawSpecularOptionRow(g_configCurrentPage - 1);
-	Config_DrawDiffuseLightingOptionRow(g_configCurrentPage - 1);
-	Config_DrawUse3dHardwareOptionRow(g_configCurrentPage - 1);
-	Config_DrawBilinearOptionRow(g_configCurrentPage - 1);
+	config_draw_screen_resolution_option_row(g_config_current_page - 1);
+	config_draw_window_size_option_row(g_config_current_page - 1);
+	config_draw_bits_per_pixel_option_row(g_config_current_page - 1);
+	config_draw_brightness_option_row(g_config_current_page - 1);
+	config_draw_debris_option_row(g_config_current_page - 1);
+	config_draw_backdrop_option_row(g_config_current_page - 1);
+	config_draw_star_density_option_row(g_config_current_page - 1);
+	config_draw_level_of_detail_option_row(g_config_current_page - 1);
+	config_draw_texture_resolution_option_row(g_config_current_page - 1);
+	config_draw_dither_option_row(g_config_current_page - 1);
+	config_draw_mipmap_option_row(g_config_current_page - 1);
+	config_draw_local_lights_option_row(g_config_current_page - 1);
+	config_draw_specular_option_row(g_config_current_page - 1);
+	config_draw_diffuse_lighting_option_row(g_config_current_page - 1);
+	config_draw_use3d_hardware_option_row(g_config_current_page - 1);
+	config_draw_bilinear_option_row(g_config_current_page - 1);
 }
 
 /* Draws the screen resolution row; a new choice also becomes the window
  * size. */
 // FUNCTION: XVT 0x4B84E0
-void Config_DrawScreenResolutionOptionRow(int isMultiplayer)
+void config_draw_screen_resolution_option_row(int is_multiplayer)
 {
 	struct RECT rect;
-	int previousScreenResolution;
+	int previous_screen_resolution;
 
-	FrontendDraw_RectAssign(&rect, 88, 111, 332, 125);
-	FrontendText_DrawAlignedInRect(
-		12, FrontendString_Get(FRONTSTR_220_SCREEN_RESOLUTION), &rect,
+	frontend_draw_rect_assign(&rect, 88, 111, 332, 125);
+	frontend_text_draw_aligned_in_rect(
+		12, frontend_string_get(FRONTSTR_220_SCREEN_RESOLUTION), &rect,
 		0, 1, 0xFFFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	previousScreenResolution = g_gameConfig.screenRes[isMultiplayer];
-	Config_DrawThreeChoiceOption(&g_gameConfig.screenRes[isMultiplayer],
-				     &rect, FRONTSTR_221_320_X_240);
-	if (g_gameConfig.screenRes[isMultiplayer] != previousScreenResolution) {
-		g_gameConfig.windowSize[isMultiplayer] =
-			g_gameConfig.screenRes[isMultiplayer];
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	previous_screen_resolution = g_game_config.screen_res[is_multiplayer];
+	config_draw_three_choice_option(
+		&g_game_config.screen_res[is_multiplayer], &rect,
+		FRONTSTR_221_320_X_240);
+	if (g_game_config.screen_res[is_multiplayer] !=
+	    previous_screen_resolution) {
+		g_game_config.window_size[is_multiplayer] =
+			g_game_config.screen_res[is_multiplayer];
 	}
 }
 
 /* Draws the window size row, then lowers the window size to the screen
  * resolution when it is above it. */
 // FUNCTION: XVT 0x4B8570
-void Config_DrawWindowSizeOptionRow(int configIndex)
+void config_draw_window_size_option_row(int config_index)
 {
 	struct RECT rect;
 
-	FrontendDraw_RectAssign(&rect, 88, 160, 332, 174);
-	FrontendText_DrawAlignedInRect(
-		12, FrontendString_Get(FRONTSTR_224_WINDOW_SIZE), &rect, 0, 1,
+	frontend_draw_rect_assign(&rect, 88, 160, 332, 174);
+	frontend_text_draw_aligned_in_rect(
+		12, frontend_string_get(FRONTSTR_224_WINDOW_SIZE), &rect, 0, 1,
 		0xFFFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawThreeChoiceOption(&g_gameConfig.windowSize[configIndex],
-				     &rect, FRONTSTR_225_320_X_240);
-	if (g_gameConfig.windowSize[configIndex] >
-	    g_gameConfig.screenRes[configIndex]) {
-		g_gameConfig.windowSize[configIndex] =
-			g_gameConfig.screenRes[configIndex];
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	config_draw_three_choice_option(
+		&g_game_config.window_size[config_index], &rect,
+		FRONTSTR_225_320_X_240);
+	if (g_game_config.window_size[config_index] >
+	    g_game_config.screen_res[config_index]) {
+		g_game_config.window_size[config_index] =
+			g_game_config.screen_res[config_index];
 	}
 }
 
 /* Draws the colors row: read-only, with a gray label, while 3D hardware is
  * on. */
 // FUNCTION: XVT 0x4B8600
-void Config_DrawBitsPerPixelOptionRow(int configIndex)
+void config_draw_bits_per_pixel_option_row(int config_index)
 {
 	struct RECT rect;
 
-	FrontendDraw_RectAssign(&rect, 88, 209, 332, 223);
-	if (g_gameConfig.use3dHardware[configIndex] != 0) {
-		FrontendText_DrawAlignedInRect(
-			12, FrontendString_Get(FRONTSTR_232_NUMBER_OF_COLORS),
-			&rect, 0, 1, g_colorGray);
-		FrontendDraw_RectOffsetXY(&rect, 0, 15);
-		Config_DrawTwoChoiceOptionReadOnly(
-			&g_gameConfig.colorDepthChoice[configIndex], &rect,
+	frontend_draw_rect_assign(&rect, 88, 209, 332, 223);
+	if (g_game_config.use3d_hardware[config_index] != 0) {
+		frontend_text_draw_aligned_in_rect(
+			12, frontend_string_get(FRONTSTR_232_NUMBER_OF_COLORS),
+			&rect, 0, 1, g_color_gray);
+		frontend_draw_rect_offset_xy(&rect, 0, 15);
+		config_draw_two_choice_option_read_only(
+			&g_game_config.color_depth_choice[config_index], &rect,
 			FRONTSTR_233_256);
 	} else {
-		FrontendText_DrawAlignedInRect(
-			12, FrontendString_Get(FRONTSTR_232_NUMBER_OF_COLORS),
+		frontend_text_draw_aligned_in_rect(
+			12, frontend_string_get(FRONTSTR_232_NUMBER_OF_COLORS),
 			&rect, 0, 1, 0xFFFF);
-		FrontendDraw_RectOffsetXY(&rect, 0, 15);
-		Config_DrawTwoChoiceOption(
-			&g_gameConfig.colorDepthChoice[configIndex], &rect,
+		frontend_draw_rect_offset_xy(&rect, 0, 15);
+		config_draw_two_choice_option(
+			&g_game_config.color_depth_choice[config_index], &rect,
 			FRONTSTR_233_256);
 	}
 }
 
 /* Draws the brightness row: a slider of 8 positions. */
 // FUNCTION: XVT 0x4B86E0
-void Config_DrawBrightnessOptionRow(int configIndex)
+void config_draw_brightness_option_row(int config_index)
 {
 	struct RECT rect;
 
-	FrontendDraw_RectAssign(&rect, 88, 243, 332, 257);
-	FrontendText_DrawAlignedInRect(
-		12, FrontendString_Get(FRONTSTR_255_BRIGHTNESS), &rect, 0, 1,
+	frontend_draw_rect_assign(&rect, 88, 243, 332, 257);
+	frontend_text_draw_aligned_in_rect(
+		12, frontend_string_get(FRONTSTR_255_BRIGHTNESS), &rect, 0, 1,
 		0xFFFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawOptionSlider(&g_gameConfig.brightness[configIndex], &rect, 8,
-				FRONTSTR_256_DIM, 1);
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	config_draw_option_slider(&g_game_config.brightness[config_index],
+				  &rect, 8, FRONTSTR_256_DIM, 1);
 }
 
 /* Draws the space debris row. */
 // FUNCTION: XVT 0x4B8760
-void Config_DrawDebrisOptionRow(int configIndex)
+void config_draw_debris_option_row(int config_index)
 {
 	struct RECT rect;
 
-	FrontendDraw_RectAssign(&rect, 88, 292, 332, 306);
-	FrontendText_DrawAlignedInRect(
-		12, FrontendString_Get(FRONTSTR_238_SPACE_DEBRIS), &rect, 0, 1,
+	frontend_draw_rect_assign(&rect, 88, 292, 332, 306);
+	frontend_text_draw_aligned_in_rect(
+		12, frontend_string_get(FRONTSTR_238_SPACE_DEBRIS), &rect, 0, 1,
 		0xFFFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawTwoChoiceOption(&g_gameConfig.debris[configIndex], &rect,
-				   FRONTSTR_236_OFF);
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	config_draw_two_choice_option(&g_game_config.debris[config_index],
+				      &rect, FRONTSTR_236_OFF);
 }
 
 /* Draws the backdrop row. */
 // FUNCTION: XVT 0x4B87E0
-void Config_DrawBackdropOptionRow(int configIndex)
+void config_draw_backdrop_option_row(int config_index)
 {
 	struct RECT rect;
 
-	FrontendDraw_RectAssign(&rect, 88, 326, 332, 340);
-	FrontendText_DrawAlignedInRect(
-		12, FrontendString_Get(FRONTSTR_235_BACKDROP), &rect, 0, 1,
+	frontend_draw_rect_assign(&rect, 88, 326, 332, 340);
+	frontend_text_draw_aligned_in_rect(
+		12, frontend_string_get(FRONTSTR_235_BACKDROP), &rect, 0, 1,
 		0xFFFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawTwoChoiceOption(&g_gameConfig.backdrop[configIndex], &rect,
-				   FRONTSTR_236_OFF);
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	config_draw_two_choice_option(&g_game_config.backdrop[config_index],
+				      &rect, FRONTSTR_236_OFF);
 }
 
 /* Draws the star field density row. */
 // FUNCTION: XVT 0x4B8860
-void Config_DrawStarDensityOptionRow(int configIndex)
+void config_draw_star_density_option_row(int config_index)
 {
 	struct RECT rect;
 
-	FrontendDraw_RectAssign(&rect, 88, 360, 332, 374);
-	FrontendText_DrawAlignedInRect(
-		12, FrontendString_Get(FRONTSTR_228_STARFIELD_DENSITY), &rect,
+	frontend_draw_rect_assign(&rect, 88, 360, 332, 374);
+	frontend_text_draw_aligned_in_rect(
+		12, frontend_string_get(FRONTSTR_228_STARFIELD_DENSITY), &rect,
 		0, 1, 0xFFFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawThreeChoiceOption(&g_gameConfig.starDensity[configIndex],
-				     &rect, FRONTSTR_229_LOW);
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	config_draw_three_choice_option(
+		&g_game_config.star_density[config_index], &rect,
+		FRONTSTR_229_LOW);
 }
 
 /* Draws the low detail models row: a slider of 20 positions over lod. */
 // FUNCTION: XVT 0x4B88E0
-void Config_DrawLevelOfDetailOptionRow(int configIndex)
+void config_draw_level_of_detail_option_row(int config_index)
 {
 	struct RECT rect;
 
-	FrontendDraw_RectAssign(&rect, 356, 111, 600, 125);
-	FrontendText_DrawAlignedInRect(
-		12, FrontendString_Get(FRONTSTR_251_USE_LOW_DETAIL_MODELS),
+	frontend_draw_rect_assign(&rect, 356, 111, 600, 125);
+	frontend_text_draw_aligned_in_rect(
+		12, frontend_string_get(FRONTSTR_251_USE_LOW_DETAIL_MODELS),
 		&rect, 0, 1, 0xFFFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawOptionSlider(&g_gameConfig.lod[configIndex], &rect, 20,
-				FRONTSTR_252_NEAR, 1);
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	config_draw_option_slider(&g_game_config.lod[config_index], &rect, 20,
+				  FRONTSTR_252_NEAR, 1);
 }
 
 /* Draws the texture resolution row. */
 // FUNCTION: XVT 0x4B8960
-void Config_DrawTextureResolutionOptionRow(int configIndex)
+void config_draw_texture_resolution_option_row(int config_index)
 {
 	struct RECT rect;
 
-	FrontendDraw_RectAssign(&rect, 356, 155, 600, 169);
-	FrontendText_DrawAlignedInRect(
-		12, FrontendString_Get(FRONTSTR_243_TEXTURE_RESOLUTION), &rect,
+	frontend_draw_rect_assign(&rect, 356, 155, 600, 169);
+	frontend_text_draw_aligned_in_rect(
+		12, frontend_string_get(FRONTSTR_243_TEXTURE_RESOLUTION), &rect,
 		0, 1, 0xFFFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawThreeChoiceOption(&g_gameConfig.textureRes[configIndex],
-				     &rect, FRONTSTR_244_LOW);
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	config_draw_three_choice_option(
+		&g_game_config.texture_res[config_index], &rect,
+		FRONTSTR_244_LOW);
 }
 
 /* Draws the dithering row. */
 // FUNCTION: XVT 0x4B89E0
-void Config_DrawDitherOptionRow(int configIndex)
+void config_draw_dither_option_row(int config_index)
 {
 	struct RECT rect;
 
-	FrontendDraw_RectAssign(&rect, 356, 199, 600, 213);
-	FrontendText_DrawAlignedInRect(
-		12, FrontendString_Get(FRONTSTR_242_DITHERING), &rect, 0, 1,
+	frontend_draw_rect_assign(&rect, 356, 199, 600, 213);
+	frontend_text_draw_aligned_in_rect(
+		12, frontend_string_get(FRONTSTR_242_DITHERING), &rect, 0, 1,
 		0xFFFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawTwoChoiceOption(&g_gameConfig.dither[configIndex], &rect,
-				   FRONTSTR_236_OFF);
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	config_draw_two_choice_option(&g_game_config.dither[config_index],
+				      &rect, FRONTSTR_236_OFF);
 }
 
 /* Draws the mip-mapping row: a slider of 20 positions with FRONTSTR_250_OPTIMAL
  * centered in yellow below it. */
 // FUNCTION: XVT 0x4B8A60
-void Config_DrawMipmapOptionRow(int configIndex)
+void config_draw_mipmap_option_row(int config_index)
 {
 	struct RECT rect;
 
-	FrontendDraw_RectAssign(&rect, 356, 228, 600, 242);
-	FrontendText_DrawAlignedInRect(
-		12, FrontendString_Get(FRONTSTR_247_MIP_MAPPING), &rect, 0, 1,
+	frontend_draw_rect_assign(&rect, 356, 228, 600, 242);
+	frontend_text_draw_aligned_in_rect(
+		12, frontend_string_get(FRONTSTR_247_MIP_MAPPING), &rect, 0, 1,
 		0xFFFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawOptionSlider(&g_gameConfig.mipmap[configIndex], &rect, 20,
-				FRONTSTR_248_BLURRY, 1);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	FrontendText_DrawCentered(12, FrontendString_Get(FRONTSTR_250_OPTIMAL),
-				  &rect, g_colorYellow);
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	config_draw_option_slider(&g_game_config.mipmap[config_index], &rect,
+				  20, FRONTSTR_248_BLURRY, 1);
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	frontend_text_draw_centered(12,
+				    frontend_string_get(FRONTSTR_250_OPTIMAL),
+				    &rect, g_color_yellow);
 }
 
 /* Draws the local light source row. */
 // FUNCTION: XVT 0x4B8B20
-void Config_DrawLocalLightsOptionRow(int configIndex)
+void config_draw_local_lights_option_row(int config_index)
 {
 	struct RECT rect;
 
-	FrontendDraw_RectAssign(&rect, 356, 272, 600, 286);
-	FrontendText_DrawAlignedInRect(
-		12, FrontendString_Get(FRONTSTR_239_LOCAL_LIGHT_SOURCE), &rect,
+	frontend_draw_rect_assign(&rect, 356, 272, 600, 286);
+	frontend_text_draw_aligned_in_rect(
+		12, frontend_string_get(FRONTSTR_239_LOCAL_LIGHT_SOURCE), &rect,
 		0, 1, 0xFFFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawTwoChoiceOption(&g_gameConfig.localLights[configIndex],
-				   &rect, FRONTSTR_236_OFF);
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	config_draw_two_choice_option(&g_game_config.local_lights[config_index],
+				      &rect, FRONTSTR_236_OFF);
 }
 
 /* Draws the specular highlights row: dimmed, with a gray label, while 3D
  * hardware is on. */
 // FUNCTION: XVT 0x4B8BA0
-void Config_DrawSpecularOptionRow(int configIndex)
+void config_draw_specular_option_row(int config_index)
 {
 	struct RECT rect;
 
-	FrontendDraw_RectAssign(&rect, 356, 301, 600, 315);
-	if (g_gameConfig.use3dHardware[configIndex] != 0) {
-		FrontendText_DrawAlignedInRect(
+	frontend_draw_rect_assign(&rect, 356, 301, 600, 315);
+	if (g_game_config.use3d_hardware[config_index] != 0) {
+		frontend_text_draw_aligned_in_rect(
 			12,
-			FrontendString_Get(FRONTSTR_240_SPECULAR_HIGHLIGHTS),
-			&rect, 0, 1, g_colorGray);
-		FrontendDraw_RectOffsetXY(&rect, 0, 15);
-		Config_DrawTwoChoiceOptionDimmed(
-			&g_gameConfig.specular[configIndex], &rect,
+			frontend_string_get(FRONTSTR_240_SPECULAR_HIGHLIGHTS),
+			&rect, 0, 1, g_color_gray);
+		frontend_draw_rect_offset_xy(&rect, 0, 15);
+		config_draw_two_choice_option_dimmed(
+			&g_game_config.specular[config_index], &rect,
 			FRONTSTR_236_OFF);
 	} else {
-		FrontendText_DrawAlignedInRect(
+		frontend_text_draw_aligned_in_rect(
 			12,
-			FrontendString_Get(FRONTSTR_240_SPECULAR_HIGHLIGHTS),
+			frontend_string_get(FRONTSTR_240_SPECULAR_HIGHLIGHTS),
 			&rect, 0, 1, 0xFFFF);
-		FrontendDraw_RectOffsetXY(&rect, 0, 15);
-		Config_DrawTwoChoiceOption(&g_gameConfig.specular[configIndex],
-					   &rect, FRONTSTR_236_OFF);
+		frontend_draw_rect_offset_xy(&rect, 0, 15);
+		config_draw_two_choice_option(
+			&g_game_config.specular[config_index], &rect,
+			FRONTSTR_236_OFF);
 	}
 }
 
 /* Draws the diffuse lighting row. */
 // FUNCTION: XVT 0x4B8C80
-void Config_DrawDiffuseLightingOptionRow(int configIndex)
+void config_draw_diffuse_lighting_option_row(int config_index)
 {
 	struct RECT rect;
 
-	FrontendDraw_RectAssign(&rect, 356, 330, 600, 344);
-	FrontendText_DrawAlignedInRect(
-		12, FrontendString_Get(FRONTSTR_241_DIFFUSE_LIGHTING), &rect, 0,
-		1, 0xFFFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawTwoChoiceOption(&g_gameConfig.diffuse[configIndex], &rect,
-				   FRONTSTR_236_OFF);
+	frontend_draw_rect_assign(&rect, 356, 330, 600, 344);
+	frontend_text_draw_aligned_in_rect(
+		12, frontend_string_get(FRONTSTR_241_DIFFUSE_LIGHTING), &rect,
+		0, 1, 0xFFFF);
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	config_draw_two_choice_option(&g_game_config.diffuse[config_index],
+				      &rect, FRONTSTR_236_OFF);
 }
 
 /* Draws the 3D hardware row; turning it on sets the colors choice to 1. */
 // FUNCTION: XVT 0x4B8D00
-void Config_DrawUse3dHardwareOptionRow(int configIndex)
+void config_draw_use3d_hardware_option_row(int config_index)
 {
 	struct RECT rect;
-	int previousUse3dHardware;
+	int previous_use3d_hardware;
 
-	FrontendDraw_RectAssign(&rect, 356, 359, 600, 373);
-	FrontendText_DrawAlignedInRect(
-		12, FrontendString_Get(FRONTSTR_802_3D_HARDWARE), &rect, 0, 1,
+	frontend_draw_rect_assign(&rect, 356, 359, 600, 373);
+	frontend_text_draw_aligned_in_rect(
+		12, frontend_string_get(FRONTSTR_802_3D_HARDWARE), &rect, 0, 1,
 		0xFFFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	previousUse3dHardware = g_gameConfig.use3dHardware[configIndex];
-	Config_DrawTwoChoiceOption(&g_gameConfig.use3dHardware[configIndex],
-				   &rect, FRONTSTR_236_OFF);
-	if (g_gameConfig.use3dHardware[configIndex] != previousUse3dHardware &&
-	    g_gameConfig.use3dHardware[configIndex] != 0) {
-		g_gameConfig.colorDepthChoice[configIndex] = 1;
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	previous_use3d_hardware = g_game_config.use3d_hardware[config_index];
+	config_draw_two_choice_option(
+		&g_game_config.use3d_hardware[config_index], &rect,
+		FRONTSTR_236_OFF);
+	if (g_game_config.use3d_hardware[config_index] !=
+		    previous_use3d_hardware &&
+	    g_game_config.use3d_hardware[config_index] != 0) {
+		g_game_config.color_depth_choice[config_index] = 1;
 	}
 }
 
 /* Draws the bilinear filtering row: dimmed, with a gray label, while 3D
  * hardware is off. */
 // FUNCTION: XVT 0x4B8DA0
-void Config_DrawBilinearOptionRow(int configIndex)
+void config_draw_bilinear_option_row(int config_index)
 {
 	struct RECT rect;
 
-	FrontendDraw_RectAssign(&rect, 356, 388, 600, 402);
-	if (g_gameConfig.use3dHardware[configIndex] != 0) {
-		FrontendText_DrawAlignedInRect(
-			12, FrontendString_Get(FRONTSTR_803_BILINEAR_FILTERING),
+	frontend_draw_rect_assign(&rect, 356, 388, 600, 402);
+	if (g_game_config.use3d_hardware[config_index] != 0) {
+		frontend_text_draw_aligned_in_rect(
+			12,
+			frontend_string_get(FRONTSTR_803_BILINEAR_FILTERING),
 			&rect, 0, 1, 0xFFFF);
-		FrontendDraw_RectOffsetXY(&rect, 0, 15);
-		Config_DrawTwoChoiceOption(&g_gameConfig.bilinear[configIndex],
-					   &rect, FRONTSTR_236_OFF);
+		frontend_draw_rect_offset_xy(&rect, 0, 15);
+		config_draw_two_choice_option(
+			&g_game_config.bilinear[config_index], &rect,
+			FRONTSTR_236_OFF);
 	} else {
-		FrontendText_DrawAlignedInRect(
-			12, FrontendString_Get(FRONTSTR_803_BILINEAR_FILTERING),
-			&rect, 0, 1, g_colorGray);
-		FrontendDraw_RectOffsetXY(&rect, 0, 15);
-		Config_DrawTwoChoiceOptionDimmed(
-			&g_gameConfig.bilinear[configIndex], &rect,
+		frontend_text_draw_aligned_in_rect(
+			12,
+			frontend_string_get(FRONTSTR_803_BILINEAR_FILTERING),
+			&rect, 0, 1, g_color_gray);
+		frontend_draw_rect_offset_xy(&rect, 0, 15);
+		config_draw_two_choice_option_dimmed(
+			&g_game_config.bilinear[config_index], &rect,
 			FRONTSTR_236_OFF);
 	}
 }
 
-/* The two-choice control of Config_DrawTwoChoiceOptionImpl with a translucent
+/* The two-choice control of config_draw_two_choice_option_impl with a translucent
  * marker, taking clicks. */
 // FUNCTION: XVT 0x4B8E80
-void Config_DrawTwoChoiceOptionDimmed(uint8_t *value, const struct RECT *rect,
-				      FrontendStringId valueBaseStrId)
+void config_draw_two_choice_option_dimmed(uint8_t *value,
+					  const struct RECT *rect,
+					  frontend_string_id value_base_str_id)
 {
-	Config_DrawTwoChoiceOptionImpl(value, rect, valueBaseStrId, 1, 0);
+	config_draw_two_choice_option_impl(value, rect, value_base_str_id, 1,
+					   0);
 }
 
-/* The two-choice control of Config_DrawTwoChoiceOptionImpl with an opaque
+/* The two-choice control of config_draw_two_choice_option_impl with an opaque
  * marker, taking clicks. */
 // FUNCTION: XVT 0x4B8EA0
-void Config_DrawTwoChoiceOption(uint8_t *value, const struct RECT *rect,
-				FrontendStringId valueBaseStrId)
+void config_draw_two_choice_option(uint8_t *value, const struct RECT *rect,
+				   frontend_string_id value_base_str_id)
 {
-	Config_DrawTwoChoiceOptionImpl(value, rect, valueBaseStrId, 0, 0);
+	config_draw_two_choice_option_impl(value, rect, value_base_str_id, 0,
+					   0);
 }
 
-/* The two-choice control of Config_DrawTwoChoiceOptionImpl with a translucent
+/* The two-choice control of config_draw_two_choice_option_impl with a translucent
  * marker, ignoring clicks. */
 // FUNCTION: XVT 0x4B8EC0
-void Config_DrawTwoChoiceOptionReadOnly(uint8_t *value, const struct RECT *rect,
-					FrontendStringId valueBaseStrId)
+void config_draw_two_choice_option_read_only(
+	uint8_t *value, const struct RECT *rect,
+	frontend_string_id value_base_str_id)
 {
-	Config_DrawTwoChoiceOptionImpl(value, rect, valueBaseStrId, 1, 1);
+	config_draw_two_choice_option_impl(value, rect, value_base_str_id, 1,
+					   1);
 }
 
 /* Draws a two-choice control at rect: slots for choice 0 and choice 1, 130
- * pixels apart, each with its label (strings valueBaseStrId and valueBaseStrId
+ * pixels apart, each with its label (strings value_base_str_id and value_base_str_id
  * + 1) in yellow to the right, and the "3conbtn" marker on the chosen one,
- * translucent when translucentSelection is set. While
- * g_configDrawStaticControlBackground is set it also draws the slot images into
- * the offscreen background. Unless disableInput is set, a click on a slot
+ * translucent when translucent_selection is set. While
+ * g_config_draw_static_control_background is set it also draws the slot images into
+ * the offscreen background. Unless disable_input is set, a click on a slot
  * stores its number in *value, playing "configsound" when that changes it and
  * frontend sounds are on. */
 // FUNCTION: XVT 0x4B8EE0
-void Config_DrawTwoChoiceOptionImpl(uint8_t *value, const struct RECT *rect,
-				    FrontendStringId valueBaseStrId,
-				    int translucentSelection, int disableInput)
+void config_draw_two_choice_option_impl(uint8_t *value, const struct RECT *rect,
+					frontend_string_id value_base_str_id,
+					int translucent_selection,
+					int disable_input)
 {
-	struct RECT optionRect;
-	struct RECT spriteRect;
-	int cursorX;
-	int cursorY;
-	int optionIndex;
-	int labelColor;
+	struct RECT option_rect;
+	struct RECT sprite_rect;
+	int cursor_x;
+	int cursor_y;
+	int option_index;
+	int label_color;
 
-	FrontendCursor_GetPos(&cursorX, &cursorY);
-	FrontImage_GetResourceRect("offslot", &spriteRect);
-	optionIndex = 0;
-	FrontendDraw_RectCopy(&optionRect, rect);
+	frontend_cursor_get_pos(&cursor_x, &cursor_y);
+	front_image_get_resource_rect("offslot", &sprite_rect);
+	option_index = 0;
+	frontend_draw_rect_copy(&option_rect, rect);
 	do {
-		optionRect.right = optionRect.left + spriteRect.right -
-				   spriteRect.left + 1;
-		if (g_configDrawStaticControlBackground != 0) {
-			FrontendDisplay_LockOffscreenSurface();
-			if (optionIndex == 0) {
-				FrontImage_DrawSpriteTranslucent(
-					"offslot", optionRect.left,
-					optionRect.top);
+		option_rect.right = option_rect.left + sprite_rect.right -
+				    sprite_rect.left + 1;
+		if (g_config_draw_static_control_background != 0) {
+			frontend_display_lock_offscreen_surface();
+			if (option_index == 0) {
+				front_image_draw_sprite_translucent(
+					"offslot", option_rect.left,
+					option_rect.top);
 			} else {
-				FrontImage_DrawSpriteTranslucent(
-					"onslot", optionRect.left,
-					optionRect.top);
+				front_image_draw_sprite_translucent(
+					"onslot", option_rect.left,
+					option_rect.top);
 			}
-			FrontendDisplay_UnlockOffscreenSurface(0);
-			if (optionIndex == 0) {
-				FrontImage_DrawSpriteTranslucent(
-					"offslot", optionRect.left,
-					optionRect.top);
+			frontend_display_unlock_offscreen_surface(0);
+			if (option_index == 0) {
+				front_image_draw_sprite_translucent(
+					"offslot", option_rect.left,
+					option_rect.top);
 			} else {
-				FrontImage_DrawSpriteTranslucent(
-					"onslot", optionRect.left,
-					optionRect.top);
+				front_image_draw_sprite_translucent(
+					"onslot", option_rect.left,
+					option_rect.top);
 			}
 		}
 
-		if (disableInput == 0 &&
-		    FrontendDraw_PointInRect(&optionRect, cursorX, cursorY) &&
-		    (FrontendMouse_GetLeftClick() != 0 ||
-		     FrontendMouse_GetRightClick() != 0)) {
-			if (*value != optionIndex &&
-			    g_gameConfig.sfxDatapadEnabled != 0) {
-				FrontendSound_PlayUISound(
+		if (disable_input == 0 &&
+		    frontend_draw_point_in_rect(&option_rect, cursor_x,
+						cursor_y) &&
+		    (frontend_mouse_get_left_click() != 0 ||
+		     frontend_mouse_get_right_click() != 0)) {
+			if (*value != option_index &&
+			    g_game_config.sfx_datapad_enabled != 0) {
+				frontend_sound_play_ui_sound(
 					"configsound", 1, 0, 255,
-					12 * g_gameConfig.sfxDatapadVolume, 63);
+					12 * g_game_config.sfx_datapad_volume,
+					63);
 			}
-			*value = (uint8_t)optionIndex;
+			*value = (uint8_t)option_index;
 		}
-		if (*value == optionIndex) {
-			if (translucentSelection != 0) {
-				FrontImage_DrawSpriteTranslucent(
-					"3conbtn", optionRect.left,
-					optionRect.top);
+		if (*value == option_index) {
+			if (translucent_selection != 0) {
+				front_image_draw_sprite_translucent(
+					"3conbtn", option_rect.left,
+					option_rect.top);
 			} else {
-				FrontImage_DrawSprite("3conbtn",
-						      optionRect.left,
-						      optionRect.top);
+				front_image_draw_sprite("3conbtn",
+							option_rect.left,
+							option_rect.top);
 			}
 		}
-		labelColor = g_colorYellow;
-		++optionIndex;
-		optionRect.left = optionRect.right + 5;
-		optionRect.right = optionRect.left + 100;
-		FrontendText_DrawAlignedInRect(
+		label_color = g_color_yellow;
+		++option_index;
+		option_rect.left = option_rect.right + 5;
+		option_rect.right = option_rect.left + 100;
+		frontend_text_draw_aligned_in_rect(
 			12,
-			FrontendString_Get(valueBaseStrId + optionIndex - 1),
-			&optionRect, 0, 1, labelColor);
-		optionRect.left = rect->left + 130;
-	} while (optionIndex < 2);
+			frontend_string_get(value_base_str_id + option_index -
+					    1),
+			&option_rect, 0, 1, label_color);
+		option_rect.left = rect->left + 130;
+	} while (option_index < 2);
 }
 
 /* Draws a three-choice control at rect: the "3conbar" bar with marker positions
  * at its left end, middle and right end for choices 0, 1 and 2, the labels
- * valueBaseStrId to valueBaseStrId + 2 below them in yellow, and the "3conbtn"
+ * value_base_str_id to value_base_str_id + 2 below them in yellow, and the "3conbtn"
  * marker on the chosen one. A click on another position stores it in *value,
  * playing "configsound" when frontend sounds are on. While
- * g_configDrawStaticControlBackground is set it also draws the bar into the
+ * g_config_draw_static_control_background is set it also draws the bar into the
  * offscreen background. */
 // FUNCTION: XVT 0x4B9090
-void Config_DrawThreeChoiceOption(uint8_t *value, const struct RECT *rect,
-				  FrontendStringId valueBaseStrId)
+void config_draw_three_choice_option(uint8_t *value, const struct RECT *rect,
+				     frontend_string_id value_base_str_id)
 {
-	struct RECT optionRect;
-	struct RECT spriteRect;
-	int cursorX;
-	int cursorY;
-	int buttonWidth;
+	struct RECT option_rect;
+	struct RECT sprite_rect;
+	int cursor_x;
+	int cursor_y;
+	int button_width;
 	int right;
 
-	if (g_configDrawStaticControlBackground != 0) {
-		FrontendDisplay_LockOffscreenSurface();
-		FrontImage_DrawSpriteTranslucent("3conbar", rect->left,
-						 rect->top);
-		FrontendDisplay_UnlockOffscreenSurface(0);
-		FrontImage_DrawSpriteTranslucent("3conbar", rect->left,
-						 rect->top);
+	if (g_config_draw_static_control_background != 0) {
+		frontend_display_lock_offscreen_surface();
+		front_image_draw_sprite_translucent("3conbar", rect->left,
+						    rect->top);
+		frontend_display_unlock_offscreen_surface(0);
+		front_image_draw_sprite_translucent("3conbar", rect->left,
+						    rect->top);
 	}
 
-	FrontendCursor_GetPos(&cursorX, &cursorY);
-	FrontImage_GetResourceRect("3conbtn", &spriteRect);
-	buttonWidth = spriteRect.right - spriteRect.left + 1;
-	FrontImage_GetResourceRect("3conbar", &spriteRect);
-	FrontendDraw_RectOffsetXY(&spriteRect, rect->left, rect->top);
-	FrontendDraw_RectCopy(&optionRect, rect);
+	frontend_cursor_get_pos(&cursor_x, &cursor_y);
+	front_image_get_resource_rect("3conbtn", &sprite_rect);
+	button_width = sprite_rect.right - sprite_rect.left + 1;
+	front_image_get_resource_rect("3conbar", &sprite_rect);
+	frontend_draw_rect_offset_xy(&sprite_rect, rect->left, rect->top);
+	frontend_draw_rect_copy(&option_rect, rect);
 
-	optionRect.right = optionRect.left + buttonWidth;
+	option_rect.right = option_rect.left + button_width;
 	if (*value == 0) {
-		FrontImage_DrawSprite("3conbtn", optionRect.left,
-				      optionRect.top);
-	} else if ((FrontendMouse_GetLeftClick() != 0 ||
-		    FrontendMouse_GetRightClick() != 0) &&
-		   FrontendDraw_PointInRect(&optionRect, cursorX, cursorY)) {
-		if (*value != 0 && g_gameConfig.sfxDatapadEnabled != 0) {
-			FrontendSound_PlayUISound(
+		front_image_draw_sprite("3conbtn", option_rect.left,
+					option_rect.top);
+	} else if ((frontend_mouse_get_left_click() != 0 ||
+		    frontend_mouse_get_right_click() != 0) &&
+		   frontend_draw_point_in_rect(&option_rect, cursor_x,
+					       cursor_y)) {
+		if (*value != 0 && g_game_config.sfx_datapad_enabled != 0) {
+			frontend_sound_play_ui_sound(
 				"configsound", 1, 0, 255,
-				12 * g_gameConfig.sfxDatapadVolume, 63);
+				12 * g_game_config.sfx_datapad_volume, 63);
 		}
 		*value = 0;
 	}
-	FrontendDraw_RectOffsetXY(&optionRect, 0, 15);
-	FrontendText_DrawAlignedInRect(12, FrontendString_Get(valueBaseStrId),
-				       &optionRect, 0, 1, g_colorYellow);
-	FrontendDraw_RectOffsetXY(&optionRect, 0, -15);
+	frontend_draw_rect_offset_xy(&option_rect, 0, 15);
+	frontend_text_draw_aligned_in_rect(
+		12, frontend_string_get(value_base_str_id), &option_rect, 0, 1,
+		g_color_yellow);
+	frontend_draw_rect_offset_xy(&option_rect, 0, -15);
 
-	optionRect.left =
-		spriteRect.left +
-		((spriteRect.right - buttonWidth - spriteRect.left) >> 1) + 1;
-	optionRect.right = optionRect.left + buttonWidth;
+	option_rect.left =
+		sprite_rect.left +
+		((sprite_rect.right - button_width - sprite_rect.left) >> 1) +
+		1;
+	option_rect.right = option_rect.left + button_width;
 	if (*value == 1) {
-		FrontImage_DrawSprite("3conbtn", optionRect.left,
-				      optionRect.top);
-	} else if ((FrontendMouse_GetLeftClick() != 0 ||
-		    FrontendMouse_GetRightClick() != 0) &&
-		   FrontendDraw_PointInRect(&optionRect, cursorX, cursorY)) {
-		if (*value != 1 && g_gameConfig.sfxDatapadEnabled != 0) {
-			FrontendSound_PlayUISound(
+		front_image_draw_sprite("3conbtn", option_rect.left,
+					option_rect.top);
+	} else if ((frontend_mouse_get_left_click() != 0 ||
+		    frontend_mouse_get_right_click() != 0) &&
+		   frontend_draw_point_in_rect(&option_rect, cursor_x,
+					       cursor_y)) {
+		if (*value != 1 && g_game_config.sfx_datapad_enabled != 0) {
+			frontend_sound_play_ui_sound(
 				"configsound", 1, 0, 255,
-				12 * g_gameConfig.sfxDatapadVolume, 63);
+				12 * g_game_config.sfx_datapad_volume, 63);
 		}
 		*value = 1;
 	}
-	FrontendDraw_RectOffsetXY(&optionRect, 0, 15);
-	FrontendText_DrawCentered(12, FrontendString_Get(valueBaseStrId + 1),
-				  &optionRect, g_colorYellow);
-	FrontendDraw_RectOffsetXY(&optionRect, 0, -15);
+	frontend_draw_rect_offset_xy(&option_rect, 0, 15);
+	frontend_text_draw_centered(12,
+				    frontend_string_get(value_base_str_id + 1),
+				    &option_rect, g_color_yellow);
+	frontend_draw_rect_offset_xy(&option_rect, 0, -15);
 
-	optionRect.right = spriteRect.right;
-	optionRect.left = spriteRect.right - buttonWidth + 1;
+	option_rect.right = sprite_rect.right;
+	option_rect.left = sprite_rect.right - button_width + 1;
 	if (*value == 2) {
-		FrontImage_DrawSprite("3conbtn", optionRect.left,
-				      optionRect.top);
-	} else if ((FrontendMouse_GetLeftClick() != 0 ||
-		    FrontendMouse_GetRightClick() != 0) &&
-		   FrontendDraw_PointInRect(&optionRect, cursorX, cursorY)) {
-		if (*value != 2 && g_gameConfig.sfxDatapadEnabled != 0) {
-			FrontendSound_PlayUISound(
+		front_image_draw_sprite("3conbtn", option_rect.left,
+					option_rect.top);
+	} else if ((frontend_mouse_get_left_click() != 0 ||
+		    frontend_mouse_get_right_click() != 0) &&
+		   frontend_draw_point_in_rect(&option_rect, cursor_x,
+					       cursor_y)) {
+		if (*value != 2 && g_game_config.sfx_datapad_enabled != 0) {
+			frontend_sound_play_ui_sound(
 				"configsound", 1, 0, 255,
-				12 * g_gameConfig.sfxDatapadVolume, 63);
+				12 * g_game_config.sfx_datapad_volume, 63);
 		}
 		*value = 2;
 	}
-	FrontendDraw_RectOffsetXY(&optionRect, 0, 15);
-	right = spriteRect.right;
-	optionRect.left = right -
-			  FrontendText_MeasureWidth(
-				  FrontendString_Get(valueBaseStrId + 2), 12) +
-			  1;
-	FrontendText_DrawAlignedInRect(12,
-				       FrontendString_Get(valueBaseStrId + 2),
-				       &optionRect, 0, 1, g_colorYellow);
+	frontend_draw_rect_offset_xy(&option_rect, 0, 15);
+	right = sprite_rect.right;
+	option_rect.left =
+		right -
+		frontend_text_measure_width(
+			frontend_string_get(value_base_str_id + 2), 12) +
+		1;
+	frontend_text_draw_aligned_in_rect(
+		12, frontend_string_get(value_base_str_id + 2), &option_rect, 0,
+		1, g_color_yellow);
 }
 
-/* Draws a slider of valueCount positions across rect and lets a held mouse
+/* Draws a slider of value_count positions across rect and lets a held mouse
  * button move it. The "conhandle" handle sits at *value times the step, the
- * width divided by valueCount - 1; rangeLabelId and rangeLabelId + 1 label the
+ * width divided by value_count - 1; range_label_id and range_label_id + 1 label the
  * two ends below it in yellow. With a button held, the cursor within half a
- * step of the right end sets valueCount - 1, of the left end 0, and otherwise
- * the step band under it sets 1 to valueCount - 2. With playSoundOnChange set
+ * step of the right end sets value_count - 1, of the left end 0, and otherwise
+ * the step band under it sets 1 to value_count - 2. With play_sound_on_change set
  * and frontend sounds on, a change plays "configsound". Moves rect 2 pixels
  * right while drawing and back on every path. */
 // FUNCTION: XVT 0x4B93F0
-void Config_DrawOptionSlider(uint8_t *value, struct RECT *rect, int valueCount,
-			     FrontendStringId rangeLabelId,
-			     int playSoundOnChange)
+void config_draw_option_slider(uint8_t *value, struct RECT *rect,
+			       int value_count,
+			       frontend_string_id range_label_id,
+			       int play_sound_on_change)
 {
-	struct RECT optionRect;
-	int cursorY;
-	int cursorX;
-	float stepSize;
-	struct RECT handleRect;
-	double stepSizeAsDouble;
-	int sliderWidth;
-	int selectedValue;
-	int halfStepWidth;
-	int optionIndex;
-	int integerStepWidth;
+	struct RECT option_rect;
+	int cursor_y;
+	int cursor_x;
+	float step_size;
+	struct RECT handle_rect;
+	double step_size_as_double;
+	int slider_width;
+	int selected_value;
+	int half_step_width;
+	int option_index;
+	int integer_step_width;
 
-	sliderWidth = rect->right - rect->left + 1;
-	selectedValue = *value;
-	stepSize = (float)((double)sliderWidth / (double)(valueCount - 1));
-	if (g_configDrawStaticControlBackground != 0) {
-		FrontendDisplay_LockOffscreenSurface();
-		FrontImage_DrawSpriteTranslucent("conbar", rect->left,
-						 rect->top + 5);
-		FrontendDisplay_UnlockOffscreenSurface(0);
-		FrontImage_DrawSpriteTranslucent("conbar", rect->left,
-						 rect->top + 5);
+	slider_width = rect->right - rect->left + 1;
+	selected_value = *value;
+	step_size = (float)((double)slider_width / (double)(value_count - 1));
+	if (g_config_draw_static_control_background != 0) {
+		frontend_display_lock_offscreen_surface();
+		front_image_draw_sprite_translucent("conbar", rect->left,
+						    rect->top + 5);
+		frontend_display_unlock_offscreen_surface(0);
+		front_image_draw_sprite_translucent("conbar", rect->left,
+						    rect->top + 5);
 	}
 
-	FrontendDraw_RectCopy(&optionRect, rect);
-	FrontendDraw_RectOffsetXY(&optionRect, 0, 15);
-	optionRect.right = optionRect.left + sliderWidth / 2 - 1;
-	FrontendText_DrawAlignedInRect(12, FrontendString_Get(rangeLabelId),
-				       &optionRect, 0, 1, g_colorYellow);
-	FrontendDraw_RectOffsetXY(&optionRect, sliderWidth / 2, 0);
-	optionRect.left = optionRect.right -
-			  FrontendText_MeasureWidth(
-				  FrontendString_Get(rangeLabelId + 1), 12);
-	FrontendText_DrawAlignedInRect(12, FrontendString_Get(rangeLabelId + 1),
-				       &optionRect, 1, 1, g_colorYellow);
+	frontend_draw_rect_copy(&option_rect, rect);
+	frontend_draw_rect_offset_xy(&option_rect, 0, 15);
+	option_rect.right = option_rect.left + slider_width / 2 - 1;
+	frontend_text_draw_aligned_in_rect(12,
+					   frontend_string_get(range_label_id),
+					   &option_rect, 0, 1, g_color_yellow);
+	frontend_draw_rect_offset_xy(&option_rect, slider_width / 2, 0);
+	option_rect.left = option_rect.right -
+			   frontend_text_measure_width(
+				   frontend_string_get(range_label_id + 1), 12);
+	frontend_text_draw_aligned_in_rect(
+		12, frontend_string_get(range_label_id + 1), &option_rect, 1, 1,
+		g_color_yellow);
 
-	FrontendDraw_RectOffsetXY(rect, 2, 0);
-	FrontImage_GetResourceRect("conhandle", &handleRect);
-	FrontendDraw_RectOffsetXY(
-		&handleRect, (handleRect.left - handleRect.right - 1) >> 1, 0);
-	FrontendDraw_RectOffsetXY(&handleRect, (int)(selectedValue * stepSize),
-				  0);
-	FrontImage_DrawSprite("conhandle", handleRect.left + rect->left,
-			      handleRect.top + rect->top);
+	frontend_draw_rect_offset_xy(rect, 2, 0);
+	front_image_get_resource_rect("conhandle", &handle_rect);
+	frontend_draw_rect_offset_xy(
+		&handle_rect, (handle_rect.left - handle_rect.right - 1) >> 1,
+		0);
+	frontend_draw_rect_offset_xy(&handle_rect,
+				     (int)(selected_value * step_size), 0);
+	front_image_draw_sprite("conhandle", handle_rect.left + rect->left,
+				handle_rect.top + rect->top);
 
-	if (FrontendMouse_GetLeftDown() == 0 &&
-	    FrontendMouse_GetRightDown() == 0) {
-		FrontendDraw_RectOffsetXY(rect, -2, 0);
+	if (frontend_mouse_get_left_down() == 0 &&
+	    frontend_mouse_get_right_down() == 0) {
+		frontend_draw_rect_offset_xy(rect, -2, 0);
 		return;
 	}
 
-	FrontendCursor_GetPos(&cursorX, &cursorY);
-	FrontendDraw_RectCopy(&optionRect, rect);
-	stepSizeAsDouble = stepSize;
-	halfStepWidth = (int)(stepSize * 0.5);
-	optionRect.left = optionRect.right - halfStepWidth;
-	if (FrontendDraw_PointInRect(&optionRect, cursorX, cursorY)) {
-		if (playSoundOnChange != 0 && *value != valueCount - 1 &&
-		    g_gameConfig.sfxDatapadEnabled != 0) {
-			FrontendSound_PlayUISound(
+	frontend_cursor_get_pos(&cursor_x, &cursor_y);
+	frontend_draw_rect_copy(&option_rect, rect);
+	step_size_as_double = step_size;
+	half_step_width = (int)(step_size * 0.5);
+	option_rect.left = option_rect.right - half_step_width;
+	if (frontend_draw_point_in_rect(&option_rect, cursor_x, cursor_y)) {
+		if (play_sound_on_change != 0 && *value != value_count - 1 &&
+		    g_game_config.sfx_datapad_enabled != 0) {
+			frontend_sound_play_ui_sound(
 				"configsound", 1, 0, 255,
-				12 * g_gameConfig.sfxDatapadVolume, 63);
+				12 * g_game_config.sfx_datapad_volume, 63);
 		}
-		*value = (uint8_t)(valueCount - 1);
-		FrontendDraw_RectOffsetXY(rect, -2, 0);
+		*value = (uint8_t)(value_count - 1);
+		frontend_draw_rect_offset_xy(rect, -2, 0);
 		return;
 	}
 
-	FrontendDraw_RectCopy(&optionRect, rect);
-	optionRect.right = optionRect.left + halfStepWidth;
-	if (FrontendDraw_PointInRect(&optionRect, cursorX, cursorY)) {
-		if (playSoundOnChange != 0 && *value != 0 &&
-		    g_gameConfig.sfxDatapadEnabled != 0) {
-			FrontendSound_PlayUISound(
+	frontend_draw_rect_copy(&option_rect, rect);
+	option_rect.right = option_rect.left + half_step_width;
+	if (frontend_draw_point_in_rect(&option_rect, cursor_x, cursor_y)) {
+		if (play_sound_on_change != 0 && *value != 0 &&
+		    g_game_config.sfx_datapad_enabled != 0) {
+			frontend_sound_play_ui_sound(
 				"configsound", 1, 0, 255,
-				12 * g_gameConfig.sfxDatapadVolume, 63);
+				12 * g_game_config.sfx_datapad_volume, 63);
 		}
 		*value = 0;
-		FrontendDraw_RectOffsetXY(rect, -2, 0);
+		frontend_draw_rect_offset_xy(rect, -2, 0);
 		return;
 	}
 
-	optionIndex = 0;
-	optionRect.left = optionRect.right;
-	optionRect.right += (int)stepSizeAsDouble;
-	integerStepWidth = (int)stepSizeAsDouble;
-	if (valueCount - 2 <= 0) {
-		FrontendDraw_RectOffsetXY(rect, -2, 0);
+	option_index = 0;
+	option_rect.left = option_rect.right;
+	option_rect.right += (int)step_size_as_double;
+	integer_step_width = (int)step_size_as_double;
+	if (value_count - 2 <= 0) {
+		frontend_draw_rect_offset_xy(rect, -2, 0);
 		return;
 	}
-	while (!FrontendDraw_PointInRect(&optionRect, cursorX, cursorY)) {
-		++optionIndex;
-		FrontendDraw_RectOffsetXY(&optionRect, integerStepWidth, 0);
-		if (optionIndex >= valueCount - 2) {
-			FrontendDraw_RectOffsetXY(rect, -2, 0);
+	while (!frontend_draw_point_in_rect(&option_rect, cursor_x, cursor_y)) {
+		++option_index;
+		frontend_draw_rect_offset_xy(&option_rect, integer_step_width,
+					     0);
+		if (option_index >= value_count - 2) {
+			frontend_draw_rect_offset_xy(rect, -2, 0);
 			return;
 		}
 	}
-	if (playSoundOnChange != 0 && *value != optionIndex + 1 &&
-	    g_gameConfig.sfxDatapadEnabled != 0) {
-		FrontendSound_PlayUISound("configsound", 1, 0, 255,
-					  12 * g_gameConfig.sfxDatapadVolume,
-					  63);
+	if (play_sound_on_change != 0 && *value != option_index + 1 &&
+	    g_game_config.sfx_datapad_enabled != 0) {
+		frontend_sound_play_ui_sound(
+			"configsound", 1, 0, 255,
+			12 * g_game_config.sfx_datapad_volume, 63);
 	}
-	*value = (uint8_t)(optionIndex + 1);
-	FrontendDraw_RectOffsetXY(rect, -2, 0);
+	*value = (uint8_t)(option_index + 1);
+	frontend_draw_rect_offset_xy(rect, -2, 0);
 }
 
-/* Loads the settings into g_gameConfig. Fills in the defaults first: in both
+/* Loads the settings into g_game_config. Fills in the defaults first: in both
  * video sets the on/off options on, star density, texture resolution, screen
  * and window size 2, mip-mapping and detail 10, brightness 2, 256 colors, 3D
- * hardware as FrontendDisplay_IsSecondaryDirectDrawActive says; IPX; every
+ * hardware as frontend_display_is_secondary_direct_draw_active says; IPX; every
  * sound and message on, at volume 9 and music volume 5; medium difficulty;
  * server update rate 8; mission time limit 255; help on; default actions for
  * joystick buttons 1 to 10, as many as the joystick has; and the four default
- * taunts. The modern build then applies config.yaml through XvtConfig_Apply and
+ * taunts. The modern build then applies config.yaml through xvt_config_apply and
  * stops with a fatal error when that fails. The original build reads
  * config2.cfg, or else the base game's config.cfg, as lines of a keyword from
- * g_configKeywords, a space and a value; it ignores unknown keywords and
+ * g_config_keywords, a space and a value; it ignores unknown keywords and
  * joystick buttons 21 to 32. Button actions from config.cfg in 124 to 229 are
  * raised by 4. Checks no value's range. */
 // FUNCTION: XVT 0x4B97E0
-void Config_Load(void)
+void config_load(void)
 {
-	int legacyJoyButtonLoaded[20];
-	int buttonCount;
-	int configIndex;
+	int legacy_joy_button_loaded[20];
+	int button_count;
+	int config_index;
 #ifndef XVT_MODERN
-	XvtFile *stream;
-	int loadedLegacyConfig;
+	xvt_file *stream;
+	int loaded_legacy_config;
 	char *value;
-	int characterIndex;
-	int keywordIndex;
-	int matchedKeywordIndex;
+	int character_index;
+	int keyword_index;
+	int matched_keyword_index;
 #endif
 
-	memset(legacyJoyButtonLoaded, 0, sizeof(legacyJoyButtonLoaded));
-	memset(&g_gameConfig, 0, sizeof(g_gameConfig));
-	for (configIndex = 0; configIndex < 2; ++configIndex) {
-		g_gameConfig.backdrop[configIndex] = 1;
-		g_gameConfig.starDensity[configIndex] = 2;
-		g_gameConfig.debris[configIndex] = 1;
-		g_gameConfig.localLights[configIndex] = 1;
-		g_gameConfig.specular[configIndex] = 1;
-		g_gameConfig.diffuse[configIndex] = 1;
-		g_gameConfig.dither[configIndex] = 1;
-		g_gameConfig.textureRes[configIndex] = 2;
-		g_gameConfig.mipmap[configIndex] = 10;
-		g_gameConfig.lod[configIndex] = 10;
-		g_gameConfig.screenRes[configIndex] = 2;
-		g_gameConfig.windowSize[configIndex] = 2;
-		g_gameConfig.colorDepthChoice[configIndex] = 0;
-		g_gameConfig.brightness[configIndex] = 2;
-		g_gameConfig.use3dHardware[configIndex] =
-			FrontendDisplay_IsSecondaryDirectDrawActive();
-		g_gameConfig.bilinear[configIndex] = 1;
+	memset(legacy_joy_button_loaded, 0, sizeof(legacy_joy_button_loaded));
+	memset(&g_game_config, 0, sizeof(g_game_config));
+	for (config_index = 0; config_index < 2; ++config_index) {
+		g_game_config.backdrop[config_index] = 1;
+		g_game_config.star_density[config_index] = 2;
+		g_game_config.debris[config_index] = 1;
+		g_game_config.local_lights[config_index] = 1;
+		g_game_config.specular[config_index] = 1;
+		g_game_config.diffuse[config_index] = 1;
+		g_game_config.dither[config_index] = 1;
+		g_game_config.texture_res[config_index] = 2;
+		g_game_config.mipmap[config_index] = 10;
+		g_game_config.lod[config_index] = 10;
+		g_game_config.screen_res[config_index] = 2;
+		g_game_config.window_size[config_index] = 2;
+		g_game_config.color_depth_choice[config_index] = 0;
+		g_game_config.brightness[config_index] = 2;
+		g_game_config.use3d_hardware[config_index] =
+			frontend_display_is_secondary_direct_draw_active();
+		g_game_config.bilinear[config_index] = 1;
 	}
-	g_gameConfig.networkType = 0;
-	g_gameConfig.sfxExteriorEnabled = 1;
-	g_gameConfig.sfxInteriorEnabled = 1;
-	g_gameConfig.sfxEngineEnabled = 1;
-	g_gameConfig.sfxDatapadEnabled = 1;
-	g_gameConfig.voicePilotLevel = 2;
-	g_gameConfig.voiceTacticalOfficerLevel = 2;
-	g_gameConfig.voiceCommanderEnabled = 1;
-	g_gameConfig.voiceSpecialEnabled = 1;
-	g_gameConfig.musicEnabled = 1;
-	g_gameConfig.datapadMusicEnabled = 1;
-	g_gameConfig.sfxDatapadVolume = 9;
-	g_gameConfig.sfxExteriorVolume = 9;
-	g_gameConfig.sfxInteriorVolume = 9;
-	g_gameConfig.sfxEngineVolume = 9;
-	g_gameConfig.voiceVolume = 9;
-	g_gameConfig.difficulty = GAME_DIFFICULTY_MEDIUM;
-	g_gameConfig.collisions = 1;
-	g_gameConfig.craftJumping = 1;
-	g_gameConfig.randomSetup = 0;
-	g_gameConfig.battleLengthIndex = BATTLE_LENGTH_THREE_WINS;
-	g_gameConfig.requirePassword = 0;
-	g_gameConfig.inProgressJoin = 0;
-	g_gameConfig.craftSelection = CRAFT_SELECTION_ON;
-	g_gameConfig.locatePlayers = 1;
-	g_gameConfig.craftWaves = CRAFT_WAVES_DEFAULT;
-	g_gameConfig.lastTeamTimeLimitMinutes = 1;
-	g_gameConfig.randomSeed = 0;
-	g_gameConfig.internetPlay = 0;
-	g_gameConfig.aiOpponents = 0;
-	g_gameConfig.helpOn = 1;
-	g_gameConfig.combatBalance = COMBAT_BALANCE_AUTOBALANCE;
-	g_gameConfig.continueBattleOrCampaign = SEQUENCE_CONTINUE;
-	g_gameConfig.musicVolume = 5;
-	g_gameConfig.missionTimeLimit = UINT8_MAX;
-	g_gameConfig.serverUpdateRate = 8;
+	g_game_config.network_type = 0;
+	g_game_config.sfx_exterior_enabled = 1;
+	g_game_config.sfx_interior_enabled = 1;
+	g_game_config.sfx_engine_enabled = 1;
+	g_game_config.sfx_datapad_enabled = 1;
+	g_game_config.voice_pilot_level = 2;
+	g_game_config.voice_tactical_officer_level = 2;
+	g_game_config.voice_commander_enabled = 1;
+	g_game_config.voice_special_enabled = 1;
+	g_game_config.music_enabled = 1;
+	g_game_config.datapad_music_enabled = 1;
+	g_game_config.sfx_datapad_volume = 9;
+	g_game_config.sfx_exterior_volume = 9;
+	g_game_config.sfx_interior_volume = 9;
+	g_game_config.sfx_engine_volume = 9;
+	g_game_config.voice_volume = 9;
+	g_game_config.difficulty = GAME_DIFFICULTY_MEDIUM;
+	g_game_config.collisions = 1;
+	g_game_config.craft_jumping = 1;
+	g_game_config.random_setup = 0;
+	g_game_config.battle_length_index = BATTLE_LENGTH_THREE_WINS;
+	g_game_config.require_password = 0;
+	g_game_config.in_progress_join = 0;
+	g_game_config.craft_selection = CRAFT_SELECTION_ON;
+	g_game_config.locate_players = 1;
+	g_game_config.craft_waves = CRAFT_WAVES_DEFAULT;
+	g_game_config.last_team_time_limit_minutes = 1;
+	g_game_config.random_seed = 0;
+	g_game_config.internet_play = 0;
+	g_game_config.ai_opponents = 0;
+	g_game_config.help_on = 1;
+	g_game_config.combat_balance = COMBAT_BALANCE_AUTOBALANCE;
+	g_game_config.continue_battle_or_campaign = SEQUENCE_CONTINUE;
+	g_game_config.music_volume = 5;
+	g_game_config.mission_time_limit = UINT8_MAX;
+	g_game_config.server_update_rate = 8;
 
-	/* configIndex counted the single-player and multiplayer settings sets above; from here it is a
+	/* config_index counted the single-player and multiplayer settings sets above; from here it is a
 	 * joystick button index, here and in the legacy button conversion at the end. */
-	buttonCount = Joystick_GetButtonCount(0);
-	for (configIndex = 0; configIndex < buttonCount && configIndex < 16;
-	     ++configIndex) {
-		switch (configIndex) {
+	button_count = joystick_get_button_count(0);
+	for (config_index = 0; config_index < button_count && config_index < 16;
+	     ++config_index) {
+		switch (config_index) {
 		case 0:
-			g_gameConfig.joyButtons[configIndex] = (uint8_t)-100;
+			g_game_config.joy_buttons[config_index] = (uint8_t)-100;
 			break;
 		case 1:
-			g_gameConfig.joyButtons[configIndex] = (uint8_t)-99;
+			g_game_config.joy_buttons[config_index] = (uint8_t)-99;
 			break;
 		case 2:
-			g_gameConfig.joyButtons[configIndex] = 114;
+			g_game_config.joy_buttons[config_index] = 114;
 			break;
 		case 3:
-			g_gameConfig.joyButtons[configIndex] = 46;
+			g_game_config.joy_buttons[config_index] = 46;
 			break;
 		case 4:
-			g_gameConfig.joyButtons[configIndex] = 101;
+			g_game_config.joy_buttons[config_index] = 101;
 			break;
 		case 5:
-			g_gameConfig.joyButtons[configIndex] = 105;
+			g_game_config.joy_buttons[config_index] = 105;
 			break;
 		case 6:
-			g_gameConfig.joyButtons[configIndex] = 91;
+			g_game_config.joy_buttons[config_index] = 91;
 			break;
 		case 7:
-			g_gameConfig.joyButtons[configIndex] = 8;
+			g_game_config.joy_buttons[config_index] = 8;
 			break;
 		case 8:
-			g_gameConfig.joyButtons[configIndex] = 13;
+			g_game_config.joy_buttons[config_index] = 13;
 			break;
 		case 9:
-			g_gameConfig.joyButtons[configIndex] = 93;
+			g_game_config.joy_buttons[config_index] = 93;
 			break;
 		}
 	}
 
-	strcpy(g_gameConfig.taunts[0],
-	       FrontendString_Get(FRONTSTR_790_STAY_ON_TARGET));
-	strcpy(g_gameConfig.taunts[1],
-	       FrontendString_Get(FRONTSTR_791_I_CAN_T_SHAKE_HIM));
-	strcpy(g_gameConfig.taunts[2],
-	       FrontendString_Get(FRONTSTR_792_HE_S_HISTORY));
-	strcpy(g_gameConfig.taunts[3], FrontendString_Get(FRONTSTR_793_WOOHOO));
+	strcpy(g_game_config.taunts[0],
+	       frontend_string_get(FRONTSTR_790_STAY_ON_TARGET));
+	strcpy(g_game_config.taunts[1],
+	       frontend_string_get(FRONTSTR_791_I_CAN_T_SHAKE_HIM));
+	strcpy(g_game_config.taunts[2],
+	       frontend_string_get(FRONTSTR_792_HE_S_HISTORY));
+	strcpy(g_game_config.taunts[3],
+	       frontend_string_get(FRONTSTR_793_WOOHOO));
 
 #ifdef XVT_MODERN
 	{
 		char error[512];
-		if (!XvtConfig_Apply(&g_gameConfig, error, sizeof(error))) {
-			XvtStorage_Fatal(error, 1);
+		if (!xvt_config_apply(&g_game_config, error, sizeof(error))) {
+			xvt_storage_fatal(error, 1);
 		}
 	}
 	return;
 #else
-	stream = File_Open("config2.cfg", "r");
-	loadedLegacyConfig = 0;
+	stream = file_open("config2.cfg", "r");
+	loaded_legacy_config = 0;
 	if (stream == NULL) {
-		File_ChangeToBaseGameInstallPath();
-		stream = File_Open("config.cfg", "r");
-		File_ChangeToInstallPath();
-		loadedLegacyConfig = 1;
+		file_change_to_base_game_install_path();
+		stream = file_open("config.cfg", "r");
+		file_change_to_install_path();
+		loaded_legacy_config = 1;
 	}
 	if (stream == NULL) {
 		return;
 	}
 
 	for (;;) {
-		if (File_Gets(g_frontendScratchBuffer, 256, stream) == NULL) {
+		if (FILE_GETS(g_frontend_scratch_buffer, 256, stream) == NULL) {
 			break;
 		}
-		if (g_frontendScratchBuffer[strlen(g_frontendScratchBuffer) -
-					    1] == '\n') {
-			g_frontendScratchBuffer
-				[strlen(g_frontendScratchBuffer) - 1] = '\0';
+		if (g_frontend_scratch_buffer
+			    [strlen(g_frontend_scratch_buffer) - 1] == '\n') {
+			g_frontend_scratch_buffer
+				[strlen(g_frontend_scratch_buffer) - 1] = '\0';
 		}
 
 		value = NULL;
-		characterIndex = 0;
-		if ((int)strlen(g_frontendScratchBuffer) > 0) {
+		character_index = 0;
+		if ((int)strlen(g_frontend_scratch_buffer) > 0) {
 			do {
-				if (g_frontendScratchBuffer[characterIndex] ==
-				    ' ') {
-					g_frontendScratchBuffer
-						[characterIndex] = '\0';
-					value = &g_frontendScratchBuffer
-							[characterIndex + 1];
+				if (g_frontend_scratch_buffer
+					    [character_index] == ' ') {
+					g_frontend_scratch_buffer
+						[character_index] = '\0';
+					value = &g_frontend_scratch_buffer
+							[character_index + 1];
 					break;
 				}
-				++characterIndex;
-			} while ((int)strlen(g_frontendScratchBuffer) >
-				 characterIndex);
+				++character_index;
+			} while ((int)strlen(g_frontend_scratch_buffer) >
+				 character_index);
 		}
 		if (value == NULL) {
 			continue;
 		}
 
-		keywordIndex = 0;
-		matchedKeywordIndex = -1;
-		while (*g_configKeywords[keywordIndex] != '\0') {
-			if (strcmp(g_configKeywords[keywordIndex],
-				   g_frontendScratchBuffer) == 0) {
-				matchedKeywordIndex = keywordIndex;
+		keyword_index = 0;
+		matched_keyword_index = -1;
+		while (*g_config_keywords[keyword_index] != '\0') {
+			if (strcmp(g_config_keywords[keyword_index],
+				   g_frontend_scratch_buffer) == 0) {
+				matched_keyword_index = keyword_index;
 				break;
 			}
-			++keywordIndex;
+			++keyword_index;
 		}
-		if (matchedKeywordIndex == -1) {
+		if (matched_keyword_index == -1) {
 			continue;
 		}
 
-		switch (matchedKeywordIndex) {
+		switch (matched_keyword_index) {
 		case 0:
-			memcpy(g_gameConfig.lastPilotName, value,
-			       sizeof(g_gameConfig.lastPilotName));
+			memcpy(g_game_config.last_pilot_name, value,
+			       sizeof(g_game_config.last_pilot_name));
 			break;
 		case 1:
-			g_gameConfig.backdrop[0] = (uint8_t)atoi(value);
+			g_game_config.backdrop[0] = (uint8_t)atoi(value);
 			break;
 		case 2:
-			g_gameConfig.starDensity[0] = (uint8_t)atoi(value);
+			g_game_config.star_density[0] = (uint8_t)atoi(value);
 			break;
 		case 3:
-			g_gameConfig.debris[0] = (uint8_t)atoi(value);
+			g_game_config.debris[0] = (uint8_t)atoi(value);
 			break;
 		case 4:
-			g_gameConfig.localLights[0] = (uint8_t)atoi(value);
+			g_game_config.local_lights[0] = (uint8_t)atoi(value);
 			break;
 		case 5:
-			g_gameConfig.specular[0] = (uint8_t)atoi(value);
+			g_game_config.specular[0] = (uint8_t)atoi(value);
 			break;
 		case 6:
-			g_gameConfig.diffuse[0] = (uint8_t)atoi(value);
+			g_game_config.diffuse[0] = (uint8_t)atoi(value);
 			break;
 		case 7:
-			g_gameConfig.dither[0] = (uint8_t)atoi(value);
+			g_game_config.dither[0] = (uint8_t)atoi(value);
 			break;
 		case 8:
-			g_gameConfig.textureRes[0] = (uint8_t)atoi(value);
+			g_game_config.texture_res[0] = (uint8_t)atoi(value);
 			break;
 		case 9:
-			g_gameConfig.mipmap[0] = (uint8_t)atoi(value);
+			g_game_config.mipmap[0] = (uint8_t)atoi(value);
 			break;
 		case 10:
-			g_gameConfig.lod[0] = (uint8_t)atoi(value);
+			g_game_config.lod[0] = (uint8_t)atoi(value);
 			break;
 		case 11:
-			g_gameConfig.screenRes[0] = (uint8_t)atoi(value);
+			g_game_config.screen_res[0] = (uint8_t)atoi(value);
 			break;
 		case 12:
-			g_gameConfig.windowSize[0] = (uint8_t)atoi(value);
+			g_game_config.window_size[0] = (uint8_t)atoi(value);
 			break;
 		case 13:
-			g_gameConfig.colorDepthChoice[0] = (uint8_t)atoi(value);
+			g_game_config.color_depth_choice[0] =
+				(uint8_t)atoi(value);
 			break;
 		case 14:
-			g_gameConfig.brightness[0] = (uint8_t)atoi(value);
+			g_game_config.brightness[0] = (uint8_t)atoi(value);
 			break;
 		case 15:
-			g_gameConfig.backdrop[1] = (uint8_t)atoi(value);
+			g_game_config.backdrop[1] = (uint8_t)atoi(value);
 			break;
 		case 16:
-			g_gameConfig.starDensity[1] = (uint8_t)atoi(value);
+			g_game_config.star_density[1] = (uint8_t)atoi(value);
 			break;
 		case 17:
-			g_gameConfig.debris[1] = (uint8_t)atoi(value);
+			g_game_config.debris[1] = (uint8_t)atoi(value);
 			break;
 		case 18:
-			g_gameConfig.localLights[1] = (uint8_t)atoi(value);
+			g_game_config.local_lights[1] = (uint8_t)atoi(value);
 			break;
 		case 19:
-			g_gameConfig.specular[1] = (uint8_t)atoi(value);
+			g_game_config.specular[1] = (uint8_t)atoi(value);
 			break;
 		case 20:
-			g_gameConfig.diffuse[1] = (uint8_t)atoi(value);
+			g_game_config.diffuse[1] = (uint8_t)atoi(value);
 			break;
 		case 21:
-			g_gameConfig.dither[1] = (uint8_t)atoi(value);
+			g_game_config.dither[1] = (uint8_t)atoi(value);
 			break;
 		case 22:
-			g_gameConfig.textureRes[1] = (uint8_t)atoi(value);
+			g_game_config.texture_res[1] = (uint8_t)atoi(value);
 			break;
 		case 23:
-			g_gameConfig.mipmap[1] = (uint8_t)atoi(value);
+			g_game_config.mipmap[1] = (uint8_t)atoi(value);
 			break;
 		case 24:
-			g_gameConfig.lod[1] = (uint8_t)atoi(value);
+			g_game_config.lod[1] = (uint8_t)atoi(value);
 			break;
 		case 25:
-			g_gameConfig.screenRes[1] = (uint8_t)atoi(value);
+			g_game_config.screen_res[1] = (uint8_t)atoi(value);
 			break;
 		case 26:
-			g_gameConfig.windowSize[1] = (uint8_t)atoi(value);
+			g_game_config.window_size[1] = (uint8_t)atoi(value);
 			break;
 		case 27:
-			g_gameConfig.colorDepthChoice[1] = (uint8_t)atoi(value);
+			g_game_config.color_depth_choice[1] =
+				(uint8_t)atoi(value);
 			break;
 		case 28:
-			g_gameConfig.brightness[1] = (uint8_t)atoi(value);
+			g_game_config.brightness[1] = (uint8_t)atoi(value);
 			break;
 		case 29:
-			g_gameConfig.networkType = (uint8_t)atoi(value);
+			g_game_config.network_type = (uint8_t)atoi(value);
 			break;
 		case 30:
-			memcpy(g_gameConfig.phoneNumber, value,
-			       sizeof(g_gameConfig.phoneNumber));
+			memcpy(g_game_config.phone_number, value,
+			       sizeof(g_game_config.phone_number));
 			break;
 		case 31:
-			memcpy(g_gameConfig.ipAddress, value,
-			       sizeof(g_gameConfig.ipAddress));
+			memcpy(g_game_config.ip_address, value,
+			       sizeof(g_game_config.ip_address));
 			break;
 		case 32:
-			g_gameConfig.sfxExteriorEnabled = (uint8_t)atoi(value);
+			g_game_config.sfx_exterior_enabled =
+				(uint8_t)atoi(value);
 			break;
 		case 33:
-			g_gameConfig.sfxInteriorEnabled = (uint8_t)atoi(value);
+			g_game_config.sfx_interior_enabled =
+				(uint8_t)atoi(value);
 			break;
 		case 34:
-			g_gameConfig.sfxEngineEnabled = (uint8_t)atoi(value);
+			g_game_config.sfx_engine_enabled = (uint8_t)atoi(value);
 			break;
 		case 35:
-			g_gameConfig.sfxDatapadEnabled = (uint8_t)atoi(value);
+			g_game_config.sfx_datapad_enabled =
+				(uint8_t)atoi(value);
 			break;
 		case 36:
-			g_gameConfig.voicePilotLevel = (uint8_t)atoi(value);
+			g_game_config.voice_pilot_level = (uint8_t)atoi(value);
 			break;
 		case 37:
-			g_gameConfig.voiceTacticalOfficerLevel =
+			g_game_config.voice_tactical_officer_level =
 				(uint8_t)atoi(value);
 			break;
 		case 38:
-			g_gameConfig.voiceCommanderEnabled =
+			g_game_config.voice_commander_enabled =
 				(uint8_t)atoi(value);
 			break;
 		case 39:
-			g_gameConfig.voiceSpecialEnabled = (uint8_t)atoi(value);
+			g_game_config.voice_special_enabled =
+				(uint8_t)atoi(value);
 			break;
 		case 40:
-			g_gameConfig.musicEnabled = (uint8_t)atoi(value);
+			g_game_config.music_enabled = (uint8_t)atoi(value);
 			break;
 		case 41:
-			g_gameConfig.sfxDatapadVolume = (uint8_t)atoi(value);
+			g_game_config.sfx_datapad_volume = (uint8_t)atoi(value);
 			break;
 		case 42:
-			g_gameConfig.sfxExteriorVolume = (uint8_t)atoi(value);
+			g_game_config.sfx_exterior_volume =
+				(uint8_t)atoi(value);
 			break;
 		case 43:
-			g_gameConfig.sfxInteriorVolume = (uint8_t)atoi(value);
+			g_game_config.sfx_interior_volume =
+				(uint8_t)atoi(value);
 			break;
 		case 44:
-			g_gameConfig.sfxEngineVolume = (uint8_t)atoi(value);
+			g_game_config.sfx_engine_volume = (uint8_t)atoi(value);
 			break;
 		case 45:
-			g_gameConfig.voiceVolume = (uint8_t)atoi(value);
+			g_game_config.voice_volume = (uint8_t)atoi(value);
 			break;
 		case 46:
-			g_gameConfig.musicVolume = (uint8_t)atoi(value);
+			g_game_config.music_volume = (uint8_t)atoi(value);
 			break;
 		case 47:
 		case 48:
@@ -1446,264 +1497,273 @@ void Config_Load(void)
 		case 64:
 		case 65:
 		case 66:
-			g_gameConfig.joyButtons[matchedKeywordIndex - 47] =
+			g_game_config.joy_buttons[matched_keyword_index - 47] =
 				(uint8_t)atoi(value);
-			if (loadedLegacyConfig != 0) {
-				legacyJoyButtonLoaded[matchedKeywordIndex -
-						      47] = 1;
+			if (loaded_legacy_config != 0) {
+				legacy_joy_button_loaded[matched_keyword_index -
+							 47] = 1;
 			}
 			break;
 		case 79:
-			g_gameConfig.difficulty = (GameDifficulty)atoi(value);
+			g_game_config.difficulty = (game_difficulty)atoi(value);
 			break;
 		case 80:
-			g_gameConfig.collisions = (uint8_t)atoi(value);
+			g_game_config.collisions = (uint8_t)atoi(value);
 			break;
 		case 81:
-			g_gameConfig.craftJumping = (uint8_t)atoi(value);
+			g_game_config.craft_jumping = (uint8_t)atoi(value);
 			break;
 		case 82:
-			g_gameConfig.randomSetup = (uint8_t)atoi(value);
+			g_game_config.random_setup = (uint8_t)atoi(value);
 			break;
 		case 83:
-			g_gameConfig.battleLengthIndex =
-				(BattleLength)atoi(value);
+			g_game_config.battle_length_index =
+				(battle_length)atoi(value);
 			break;
 		case 84:
-			g_gameConfig.requirePassword = (uint8_t)atoi(value);
+			g_game_config.require_password = (uint8_t)atoi(value);
 			break;
 		case 85:
-			g_gameConfig.inProgressJoin = (uint8_t)atoi(value);
+			g_game_config.in_progress_join = (uint8_t)atoi(value);
 			break;
 		case 86:
-			g_gameConfig.craftSelection =
-				(CraftSelectionMode)atoi(value);
+			g_game_config.craft_selection =
+				(craft_selection_mode)atoi(value);
 			break;
 		case 87:
-			g_gameConfig.locatePlayers = (uint8_t)atoi(value);
+			g_game_config.locate_players = (uint8_t)atoi(value);
 			break;
 		case 88:
-			g_gameConfig.craftWaves = (CraftWaveMode)atoi(value);
+			g_game_config.craft_waves =
+				(craft_wave_mode)atoi(value);
 			break;
 		case 89:
-			g_gameConfig.missionTimeLimit = (uint8_t)atoi(value);
+			g_game_config.mission_time_limit = (uint8_t)atoi(value);
 			break;
 		case 90:
-			g_gameConfig.lastTeamTimeLimitMinutes =
+			g_game_config.last_team_time_limit_minutes =
 				(uint8_t)atoi(value);
 			break;
 		case 91:
-			g_gameConfig.randomSeed = (unsigned int)atoi(value);
+			g_game_config.random_seed = (unsigned int)atoi(value);
 			break;
 		case 92:
-			memcpy(g_gameConfig.password, value,
-			       sizeof(g_gameConfig.password));
+			memcpy(g_game_config.password, value,
+			       sizeof(g_game_config.password));
 			break;
 		case 93:
-			g_gameConfig.internetPlay = (uint8_t)atoi(value);
+			g_game_config.internet_play = (uint8_t)atoi(value);
 			break;
 		case 94:
-			g_gameConfig.aiOpponents = (uint8_t)atoi(value);
+			g_game_config.ai_opponents = (uint8_t)atoi(value);
 			break;
 		case 95:
-			g_gameConfig.helpOn = (uint8_t)atoi(value);
+			g_game_config.help_on = (uint8_t)atoi(value);
 			break;
 		case 96:
-			g_gameConfig.datapadMusicEnabled = (uint8_t)atoi(value);
+			g_game_config.datapad_music_enabled =
+				(uint8_t)atoi(value);
 			break;
 		case 97:
-			g_gameConfig.serverUpdateRate = (uint8_t)atoi(value);
+			g_game_config.server_update_rate = (uint8_t)atoi(value);
 			break;
 		case 98:
-			g_gameConfig.combatBalance =
-				(CombatBalanceMode)atoi(value);
+			g_game_config.combat_balance =
+				(combat_balance_mode)atoi(value);
 			break;
 		case 99:
 		case 100:
 		case 101:
 		case 102:
-			memcpy(g_gameConfig.taunts[matchedKeywordIndex - 99],
-			       value, sizeof(g_gameConfig.taunts[0]));
+			memcpy(g_game_config.taunts[matched_keyword_index - 99],
+			       value, sizeof(g_game_config.taunts[0]));
 			break;
 		case 103:
-			g_gameConfig.use3dHardware[0] = (uint8_t)atoi(value);
+			g_game_config.use3d_hardware[0] = (uint8_t)atoi(value);
 			break;
 		case 104:
-			g_gameConfig.bilinear[0] = (uint8_t)atoi(value);
+			g_game_config.bilinear[0] = (uint8_t)atoi(value);
 			break;
 		case 105:
-			g_gameConfig.use3dHardware[1] = (uint8_t)atoi(value);
+			g_game_config.use3d_hardware[1] = (uint8_t)atoi(value);
 			break;
 		case 106:
-			g_gameConfig.bilinear[1] = (uint8_t)atoi(value);
+			g_game_config.bilinear[1] = (uint8_t)atoi(value);
 			break;
 		}
 	}
 
-	File_Close(stream);
-	if (loadedLegacyConfig != 0) {
-		for (configIndex = 0; configIndex < 20; ++configIndex) {
-			if (legacyJoyButtonLoaded[configIndex] != 0 &&
-			    g_gameConfig.joyButtons[configIndex] >= 124 &&
-			    g_gameConfig.joyButtons[configIndex] <= 229) {
-				g_gameConfig.joyButtons[configIndex] += 4;
+	file_close(stream);
+	if (loaded_legacy_config != 0) {
+		for (config_index = 0; config_index < 20; ++config_index) {
+			if (legacy_joy_button_loaded[config_index] != 0 &&
+			    g_game_config.joy_buttons[config_index] >= 124 &&
+			    g_game_config.joy_buttons[config_index] <= 229) {
+				g_game_config.joy_buttons[config_index] += 4;
 			}
 		}
 	}
 #endif
 }
 
-/* Saves g_gameConfig, with the current pilot as the last pilot. The modern
- * build writes config.yaml through XvtConfig_Write and stops with a fatal error
+/* Saves g_game_config, with the current pilot as the last pilot. The modern
+ * build writes config.yaml through xvt_config_write and stops with a fatal error
  * when that fails. The original build writes config2.cfg, one keyword and value
- * per line, every setting but continueBattleOrCampaign; it writes nothing when
+ * per line, every setting but continue_battle_or_campaign; it writes nothing when
  * the file does not open. */
 // FUNCTION: XVT 0x4BA3C0
-void Config_Write(void)
+void config_write(void)
 {
 #ifdef XVT_MODERN
 	char error[512];
-	snprintf(g_gameConfig.lastPilotName, sizeof(g_gameConfig.lastPilotName),
-		 "%s", g_pilotData.name);
-	if (!XvtConfig_Write(&g_gameConfig, error, sizeof(error))) {
-		XvtStorage_Fatal(error, 1);
+	snprintf(g_game_config.last_pilot_name,
+		 sizeof(g_game_config.last_pilot_name), "%s",
+		 g_pilot_data.name);
+	if (!xvt_config_write(&g_game_config, error, sizeof(error))) {
+		xvt_storage_fatal(error, 1);
 	}
 #else
 
-	XvtFile *stream;
-	int configIndex;
-	int optionNumber;
+	xvt_file *stream;
+	int config_index;
+	int option_number;
 
-	strncpy(g_gameConfig.lastPilotName, g_pilotData.name,
-		sizeof(g_gameConfig.lastPilotName) - 1);
-	g_gameConfig.lastPilotName[sizeof(g_gameConfig.lastPilotName) - 1] =
+	strncpy(g_game_config.last_pilot_name, g_pilot_data.name,
+		sizeof(g_game_config.last_pilot_name) - 1);
+	g_game_config
+		.last_pilot_name[sizeof(g_game_config.last_pilot_name) - 1] =
 		'\0';
-	stream = File_Open("config2.cfg", "w");
+	stream = file_open("config2.cfg", "w");
 	if (stream == NULL) {
 		return;
 	}
 
-	File_Printf(stream, "lastpilot %s\n", g_pilotData.name);
-	for (configIndex = 0;
-	     configIndex < (int)(sizeof(g_gameConfig.backdrop) /
-				 sizeof(g_gameConfig.backdrop[0]));
-	     ++configIndex) {
-		optionNumber = configIndex + 1;
-		File_Printf(stream, "backdrop%d %d\n", optionNumber,
-			    g_gameConfig.backdrop[configIndex]);
-		File_Printf(stream, "stardensity%d %d\n", optionNumber,
-			    g_gameConfig.starDensity[configIndex]);
-		File_Printf(stream, "debris%d %d\n", optionNumber,
-			    g_gameConfig.debris[configIndex]);
-		File_Printf(stream, "locallights%d %d\n", optionNumber,
-			    g_gameConfig.localLights[configIndex]);
-		File_Printf(stream, "specular%d %d\n", optionNumber,
-			    g_gameConfig.specular[configIndex]);
-		File_Printf(stream, "diffuse%d %d\n", optionNumber,
-			    g_gameConfig.diffuse[configIndex]);
-		File_Printf(stream, "dither%d %d\n", optionNumber,
-			    g_gameConfig.dither[configIndex]);
-		File_Printf(stream, "textureres%d %d\n", optionNumber,
-			    g_gameConfig.textureRes[configIndex]);
-		File_Printf(stream, "mipmap%d %d\n", optionNumber,
-			    g_gameConfig.mipmap[configIndex]);
-		File_Printf(stream, "lod%d %d\n", optionNumber,
-			    g_gameConfig.lod[configIndex]);
-		File_Printf(stream, "screenres%d %d\n", optionNumber,
-			    g_gameConfig.screenRes[configIndex]);
-		File_Printf(stream, "windowsize%d %d\n", optionNumber,
-			    g_gameConfig.windowSize[configIndex]);
-		File_Printf(stream, "bpp%d %d\n", optionNumber,
-			    g_gameConfig.colorDepthChoice[configIndex]);
-		File_Printf(stream, "brightness%d %d\n", optionNumber,
-			    g_gameConfig.brightness[configIndex]);
-		File_Printf(stream, "use_3d_hardware%d %d\n", optionNumber,
-			    g_gameConfig.use3dHardware[configIndex]);
-		File_Printf(stream, "bilinear%d %d\n", optionNumber,
-			    g_gameConfig.bilinear[configIndex]);
+	FILE_PRINTF(stream, "lastpilot %s\n", g_pilot_data.name);
+	for (config_index = 0;
+	     config_index < (int)(sizeof(g_game_config.backdrop) /
+				  sizeof(g_game_config.backdrop[0]));
+	     ++config_index) {
+		option_number = config_index + 1;
+		FILE_PRINTF(stream, "backdrop%d %d\n", option_number,
+			    g_game_config.backdrop[config_index]);
+		FILE_PRINTF(stream, "stardensity%d %d\n", option_number,
+			    g_game_config.star_density[config_index]);
+		FILE_PRINTF(stream, "debris%d %d\n", option_number,
+			    g_game_config.debris[config_index]);
+		FILE_PRINTF(stream, "locallights%d %d\n", option_number,
+			    g_game_config.local_lights[config_index]);
+		FILE_PRINTF(stream, "specular%d %d\n", option_number,
+			    g_game_config.specular[config_index]);
+		FILE_PRINTF(stream, "diffuse%d %d\n", option_number,
+			    g_game_config.diffuse[config_index]);
+		FILE_PRINTF(stream, "dither%d %d\n", option_number,
+			    g_game_config.dither[config_index]);
+		FILE_PRINTF(stream, "textureres%d %d\n", option_number,
+			    g_game_config.texture_res[config_index]);
+		FILE_PRINTF(stream, "mipmap%d %d\n", option_number,
+			    g_game_config.mipmap[config_index]);
+		FILE_PRINTF(stream, "lod%d %d\n", option_number,
+			    g_game_config.lod[config_index]);
+		FILE_PRINTF(stream, "screenres%d %d\n", option_number,
+			    g_game_config.screen_res[config_index]);
+		FILE_PRINTF(stream, "windowsize%d %d\n", option_number,
+			    g_game_config.window_size[config_index]);
+		FILE_PRINTF(stream, "bpp%d %d\n", option_number,
+			    g_game_config.color_depth_choice[config_index]);
+		FILE_PRINTF(stream, "brightness%d %d\n", option_number,
+			    g_game_config.brightness[config_index]);
+		FILE_PRINTF(stream, "use_3d_hardware%d %d\n", option_number,
+			    g_game_config.use3d_hardware[config_index]);
+		FILE_PRINTF(stream, "bilinear%d %d\n", option_number,
+			    g_game_config.bilinear[config_index]);
 	}
 
-	File_Printf(stream, "networktype %d\n", g_gameConfig.networkType);
-	File_Printf(stream, "phonenumber %s\n", g_gameConfig.phoneNumber);
-	File_Printf(stream, "ipaddress %s\n", g_gameConfig.ipAddress);
-	File_Printf(stream, "server_update_rate %d\n",
-		    g_gameConfig.serverUpdateRate);
-	File_Printf(stream, "sfx_exterior %d\n",
-		    g_gameConfig.sfxExteriorEnabled);
-	File_Printf(stream, "sfx_interior %d\n",
-		    g_gameConfig.sfxInteriorEnabled);
-	File_Printf(stream, "sfx_engine %d\n", g_gameConfig.sfxEngineEnabled);
-	File_Printf(stream, "sfx_datapad %d\n", g_gameConfig.sfxDatapadEnabled);
-	File_Printf(stream, "voice_pilot %d\n", g_gameConfig.voicePilotLevel);
-	File_Printf(stream, "voice_tactical_officer %d\n",
-		    g_gameConfig.voiceTacticalOfficerLevel);
-	File_Printf(stream, "voice_commander %d\n",
-		    g_gameConfig.voiceCommanderEnabled);
-	File_Printf(stream, "voice_special %d\n",
-		    g_gameConfig.voiceSpecialEnabled);
-	File_Printf(stream, "music %d\n", g_gameConfig.musicEnabled);
-	File_Printf(stream, "sfx_datapad_volume %d\n",
-		    g_gameConfig.sfxDatapadVolume);
-	File_Printf(stream, "sfx_exterior_volume %d\n",
-		    g_gameConfig.sfxExteriorVolume);
-	File_Printf(stream, "sfx_interior_volume %d\n",
-		    g_gameConfig.sfxInteriorVolume);
-	File_Printf(stream, "sfx_engine_volume %d\n",
-		    g_gameConfig.sfxEngineVolume);
-	File_Printf(stream, "voice_volume %d\n", g_gameConfig.voiceVolume);
-	File_Printf(stream, "music_volume %d\n", g_gameConfig.musicVolume);
-	File_Printf(stream, "datapad_music %d\n",
-		    g_gameConfig.datapadMusicEnabled);
-	File_Printf(stream, "joybutton1 %d\n", g_gameConfig.joyButtons[0]);
-	File_Printf(stream, "joybutton2 %d\n", g_gameConfig.joyButtons[1]);
-	File_Printf(stream, "joybutton3 %d\n", g_gameConfig.joyButtons[2]);
-	File_Printf(stream, "joybutton4 %d\n", g_gameConfig.joyButtons[3]);
-	File_Printf(stream, "joybutton5 %d\n", g_gameConfig.joyButtons[4]);
-	File_Printf(stream, "joybutton6 %d\n", g_gameConfig.joyButtons[5]);
-	File_Printf(stream, "joybutton7 %d\n", g_gameConfig.joyButtons[6]);
-	File_Printf(stream, "joybutton8 %d\n", g_gameConfig.joyButtons[7]);
-	File_Printf(stream, "joybutton9 %d\n", g_gameConfig.joyButtons[8]);
-	File_Printf(stream, "joybutton10 %d\n", g_gameConfig.joyButtons[9]);
-	File_Printf(stream, "joybutton11 %d\n", g_gameConfig.joyButtons[10]);
-	File_Printf(stream, "joybutton12 %d\n", g_gameConfig.joyButtons[11]);
-	File_Printf(stream, "joybutton13 %d\n", g_gameConfig.joyButtons[12]);
-	File_Printf(stream, "joybutton14 %d\n", g_gameConfig.joyButtons[13]);
-	File_Printf(stream, "joybutton15 %d\n", g_gameConfig.joyButtons[14]);
-	File_Printf(stream, "joybutton16 %d\n", g_gameConfig.joyButtons[15]);
-	File_Printf(stream, "joybutton17 %d\n", g_gameConfig.joyButtons[16]);
-	File_Printf(stream, "joybutton18 %d\n", g_gameConfig.joyButtons[17]);
-	File_Printf(stream, "joybutton19 %d\n", g_gameConfig.joyButtons[18]);
-	File_Printf(stream, "joybutton20 %d\n", g_gameConfig.joyButtons[19]);
-	File_Printf(stream, "difficulty %d\n", g_gameConfig.difficulty);
-	File_Printf(stream, "collisions %d\n", g_gameConfig.collisions);
-	File_Printf(stream, "craft_jumping %d\n", g_gameConfig.craftJumping);
-	File_Printf(stream, "random_setup %d\n", g_gameConfig.randomSetup);
-	File_Printf(stream, "handicapping %d\n",
-		    g_gameConfig.battleLengthIndex);
-	File_Printf(stream, "require_password %d\n",
-		    g_gameConfig.requirePassword);
-	File_Printf(stream, "in_progress_join %d\n",
-		    g_gameConfig.inProgressJoin);
-	File_Printf(stream, "craft_selection %d\n",
-		    g_gameConfig.craftSelection);
-	File_Printf(stream, "locate_players %d\n", g_gameConfig.locatePlayers);
-	File_Printf(stream, "craft_waves %d\n", g_gameConfig.craftWaves);
-	File_Printf(stream, "mission_time_limit %d\n",
-		    g_gameConfig.missionTimeLimit);
-	File_Printf(stream, "last_time_limit %d\n",
-		    g_gameConfig.lastTeamTimeLimitMinutes);
-	File_Printf(stream, "random_seed %d\n", g_gameConfig.randomSeed);
-	File_Printf(stream, "password %s\n", g_gameConfig.password);
-	File_Printf(stream, "async_flag %d\n", g_gameConfig.internetPlay);
-	File_Printf(stream, "ai_opponents %d\n", g_gameConfig.aiOpponents);
-	File_Printf(stream, "help_on %d\n", g_gameConfig.helpOn);
-	File_Printf(stream, "combat_balance %d\n", g_gameConfig.combatBalance);
-	File_Printf(stream, "taunt1 %s\n", g_gameConfig.taunts[0]);
-	File_Printf(stream, "taunt2 %s\n", g_gameConfig.taunts[1]);
-	File_Printf(stream, "taunt3 %s\n", g_gameConfig.taunts[2]);
-	File_Printf(stream, "taunt4 %s\n", g_gameConfig.taunts[3]);
+	FILE_PRINTF(stream, "networktype %d\n", g_game_config.network_type);
+	FILE_PRINTF(stream, "phonenumber %s\n", g_game_config.phone_number);
+	FILE_PRINTF(stream, "ipaddress %s\n", g_game_config.ip_address);
+	FILE_PRINTF(stream, "server_update_rate %d\n",
+		    g_game_config.server_update_rate);
+	FILE_PRINTF(stream, "sfx_exterior %d\n",
+		    g_game_config.sfx_exterior_enabled);
+	FILE_PRINTF(stream, "sfx_interior %d\n",
+		    g_game_config.sfx_interior_enabled);
+	FILE_PRINTF(stream, "sfx_engine %d\n",
+		    g_game_config.sfx_engine_enabled);
+	FILE_PRINTF(stream, "sfx_datapad %d\n",
+		    g_game_config.sfx_datapad_enabled);
+	FILE_PRINTF(stream, "voice_pilot %d\n",
+		    g_game_config.voice_pilot_level);
+	FILE_PRINTF(stream, "voice_tactical_officer %d\n",
+		    g_game_config.voice_tactical_officer_level);
+	FILE_PRINTF(stream, "voice_commander %d\n",
+		    g_game_config.voice_commander_enabled);
+	FILE_PRINTF(stream, "voice_special %d\n",
+		    g_game_config.voice_special_enabled);
+	FILE_PRINTF(stream, "music %d\n", g_game_config.music_enabled);
+	FILE_PRINTF(stream, "sfx_datapad_volume %d\n",
+		    g_game_config.sfx_datapad_volume);
+	FILE_PRINTF(stream, "sfx_exterior_volume %d\n",
+		    g_game_config.sfx_exterior_volume);
+	FILE_PRINTF(stream, "sfx_interior_volume %d\n",
+		    g_game_config.sfx_interior_volume);
+	FILE_PRINTF(stream, "sfx_engine_volume %d\n",
+		    g_game_config.sfx_engine_volume);
+	FILE_PRINTF(stream, "voice_volume %d\n", g_game_config.voice_volume);
+	FILE_PRINTF(stream, "music_volume %d\n", g_game_config.music_volume);
+	FILE_PRINTF(stream, "datapad_music %d\n",
+		    g_game_config.datapad_music_enabled);
+	FILE_PRINTF(stream, "joybutton1 %d\n", g_game_config.joy_buttons[0]);
+	FILE_PRINTF(stream, "joybutton2 %d\n", g_game_config.joy_buttons[1]);
+	FILE_PRINTF(stream, "joybutton3 %d\n", g_game_config.joy_buttons[2]);
+	FILE_PRINTF(stream, "joybutton4 %d\n", g_game_config.joy_buttons[3]);
+	FILE_PRINTF(stream, "joybutton5 %d\n", g_game_config.joy_buttons[4]);
+	FILE_PRINTF(stream, "joybutton6 %d\n", g_game_config.joy_buttons[5]);
+	FILE_PRINTF(stream, "joybutton7 %d\n", g_game_config.joy_buttons[6]);
+	FILE_PRINTF(stream, "joybutton8 %d\n", g_game_config.joy_buttons[7]);
+	FILE_PRINTF(stream, "joybutton9 %d\n", g_game_config.joy_buttons[8]);
+	FILE_PRINTF(stream, "joybutton10 %d\n", g_game_config.joy_buttons[9]);
+	FILE_PRINTF(stream, "joybutton11 %d\n", g_game_config.joy_buttons[10]);
+	FILE_PRINTF(stream, "joybutton12 %d\n", g_game_config.joy_buttons[11]);
+	FILE_PRINTF(stream, "joybutton13 %d\n", g_game_config.joy_buttons[12]);
+	FILE_PRINTF(stream, "joybutton14 %d\n", g_game_config.joy_buttons[13]);
+	FILE_PRINTF(stream, "joybutton15 %d\n", g_game_config.joy_buttons[14]);
+	FILE_PRINTF(stream, "joybutton16 %d\n", g_game_config.joy_buttons[15]);
+	FILE_PRINTF(stream, "joybutton17 %d\n", g_game_config.joy_buttons[16]);
+	FILE_PRINTF(stream, "joybutton18 %d\n", g_game_config.joy_buttons[17]);
+	FILE_PRINTF(stream, "joybutton19 %d\n", g_game_config.joy_buttons[18]);
+	FILE_PRINTF(stream, "joybutton20 %d\n", g_game_config.joy_buttons[19]);
+	FILE_PRINTF(stream, "difficulty %d\n", g_game_config.difficulty);
+	FILE_PRINTF(stream, "collisions %d\n", g_game_config.collisions);
+	FILE_PRINTF(stream, "craft_jumping %d\n", g_game_config.craft_jumping);
+	FILE_PRINTF(stream, "random_setup %d\n", g_game_config.random_setup);
+	FILE_PRINTF(stream, "handicapping %d\n",
+		    g_game_config.battle_length_index);
+	FILE_PRINTF(stream, "require_password %d\n",
+		    g_game_config.require_password);
+	FILE_PRINTF(stream, "in_progress_join %d\n",
+		    g_game_config.in_progress_join);
+	FILE_PRINTF(stream, "craft_selection %d\n",
+		    g_game_config.craft_selection);
+	FILE_PRINTF(stream, "locate_players %d\n",
+		    g_game_config.locate_players);
+	FILE_PRINTF(stream, "craft_waves %d\n", g_game_config.craft_waves);
+	FILE_PRINTF(stream, "mission_time_limit %d\n",
+		    g_game_config.mission_time_limit);
+	FILE_PRINTF(stream, "last_time_limit %d\n",
+		    g_game_config.last_team_time_limit_minutes);
+	FILE_PRINTF(stream, "random_seed %d\n", g_game_config.random_seed);
+	FILE_PRINTF(stream, "password %s\n", g_game_config.password);
+	FILE_PRINTF(stream, "async_flag %d\n", g_game_config.internet_play);
+	FILE_PRINTF(stream, "ai_opponents %d\n", g_game_config.ai_opponents);
+	FILE_PRINTF(stream, "help_on %d\n", g_game_config.help_on);
+	FILE_PRINTF(stream, "combat_balance %d\n",
+		    g_game_config.combat_balance);
+	FILE_PRINTF(stream, "taunt1 %s\n", g_game_config.taunts[0]);
+	FILE_PRINTF(stream, "taunt2 %s\n", g_game_config.taunts[1]);
+	FILE_PRINTF(stream, "taunt3 %s\n", g_game_config.taunts[2]);
+	FILE_PRINTF(stream, "taunt4 %s\n", g_game_config.taunts[3]);
 
-	File_Close(stream);
+	file_close(stream);
 
 #endif
 }
@@ -1714,15 +1774,15 @@ void Config_Write(void)
  * asks first, then resets the current page: the network update rate to 8 and
  * the connection to TCP/IP with internet play in the modern build or IPX
  * without it in the original; a video set to its defaults, 3D hardware as
- * FrontendDisplay_IsSecondaryDirectDrawActive says for single player and off
+ * frontend_display_is_secondary_direct_draw_active says for single player and off
  * for multiplayer; the sounds, starting CD track 7 when frontend music was off;
  * the joystick buttons; or the taunts. A page button switches pages, redraws
  * the background into the offscreen surface and sets
- * g_configDrawStaticControlBackground. In the modern build the joystick button
- * calls XvtPort_RequestSettings instead, so it never shows the joystick
+ * g_config_draw_static_control_background. In the modern build the joystick button
+ * calls xvt_port_request_settings instead, so it never shows the joystick
  * page. */
 // FUNCTION: XVT 0x4BAAF0
-int Config_UpdateNavigationAndRestoreDefaults(void)
+int config_update_navigation_and_restore_defaults(void)
 {
 	enum {
 		CONFIG_PAGE_NETWORK = 0,
@@ -1782,330 +1842,334 @@ int Config_UpdateNavigationAndRestoreDefaults(void)
 		struct RECT rect; /* Area of the button being handled. */
 		/* State of each page light: the five pages, restore, an unused
 		 * slot and taunts. */
-		FrontendNavigationSlotState
-			navigationSlotStates[CONFIG_NAVIGATION_SLOT_COUNT];
-		int cursorY; /* Cursor y. */
-		int cursorX; /* Cursor x. */
+		frontend_navigation_slot_state
+			navigation_slot_states[CONFIG_NAVIGATION_SLOT_COUNT];
+		int cursor_y; /* Cursor y. */
+		int cursor_x; /* Cursor x. */
 	} ui;
 
-	int joystickButtonCount;
-	int joystickButtonIndex;
-	int joystickActionIndex;
-	int currentPage;
-	int previousDatapadMusicEnabled;
-	uint8_t selectedJoystickActionCode;
+	int joystick_button_count;
+	int joystick_button_index;
+	int joystick_action_index;
+	int current_page;
+	int previous_datapad_music_enabled;
+	uint8_t selected_joystick_action_code;
 
-	ui.navigationSlotStates[0] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
-	ui.navigationSlotStates[1] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
-	ui.navigationSlotStates[2] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
-	ui.navigationSlotStates[3] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
-	ui.navigationSlotStates[4] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
-	currentPage = g_configCurrentPage;
-	if (currentPage != CONFIG_PAGE_NETWORK ||
-	    (g_frontendMissionSessionMode !=
+	ui.navigation_slot_states[0] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
+	ui.navigation_slot_states[1] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
+	ui.navigation_slot_states[2] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
+	ui.navigation_slot_states[3] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
+	ui.navigation_slot_states[4] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
+	current_page = g_config_current_page;
+	if (current_page != CONFIG_PAGE_NETWORK ||
+	    (g_frontend_mission_session_mode !=
 		     FRONTEND_MISSION_SESSION_NET_HOST &&
-	     g_frontendMissionSessionMode !=
+	     g_frontend_mission_session_mode !=
 		     FRONTEND_MISSION_SESSION_NET_CLIENT)) {
-		ui.navigationSlotStates[CONFIG_NAVIGATION_RESTORE_SLOT] =
+		ui.navigation_slot_states[CONFIG_NAVIGATION_RESTORE_SLOT] =
 			FRONTEND_NAVIGATION_SLOT_ACTIVE;
 	} else {
-		ui.navigationSlotStates[CONFIG_NAVIGATION_RESTORE_SLOT] =
+		ui.navigation_slot_states[CONFIG_NAVIGATION_RESTORE_SLOT] =
 			FRONTEND_NAVIGATION_SLOT_INACTIVE;
 	}
-	ui.navigationSlotStates[CONFIG_NAVIGATION_UNUSED_SLOT] =
+	ui.navigation_slot_states[CONFIG_NAVIGATION_UNUSED_SLOT] =
 		FRONTEND_NAVIGATION_SLOT_INACTIVE;
-	ui.navigationSlotStates[CONFIG_NAVIGATION_TAUNTS_SLOT] =
+	ui.navigation_slot_states[CONFIG_NAVIGATION_TAUNTS_SLOT] =
 		FRONTEND_NAVIGATION_SLOT_ACTIVE;
-	if (currentPage == CONFIG_PAGE_TAUNTS) {
-		ui.navigationSlotStates[CONFIG_NAVIGATION_TAUNTS_SLOT] =
+	if (current_page == CONFIG_PAGE_TAUNTS) {
+		ui.navigation_slot_states[CONFIG_NAVIGATION_TAUNTS_SLOT] =
 			FRONTEND_NAVIGATION_SLOT_SELECTED;
 	} else {
-		ui.navigationSlotStates[currentPage] =
+		ui.navigation_slot_states[current_page] =
 			FRONTEND_NAVIGATION_SLOT_SELECTED;
 	}
 
-	FrontendDraw_RectAssign(&ui.rect, CONFIG_BUTTON_LEFT,
-				CONFIG_RESTORE_BUTTON_TOP, CONFIG_BUTTON_RIGHT,
-				CONFIG_RESTORE_BUTTON_BOTTOM);
-	FrontendCursor_GetPos(&ui.cursorX, &ui.cursorY);
-	if (ui.navigationSlotStates[CONFIG_NAVIGATION_RESTORE_SLOT] !=
+	frontend_draw_rect_assign(
+		&ui.rect, CONFIG_BUTTON_LEFT, CONFIG_RESTORE_BUTTON_TOP,
+		CONFIG_BUTTON_RIGHT, CONFIG_RESTORE_BUTTON_BOTTOM);
+	frontend_cursor_get_pos(&ui.cursor_x, &ui.cursor_y);
+	if (ui.navigation_slot_states[CONFIG_NAVIGATION_RESTORE_SLOT] !=
 		    FRONTEND_NAVIGATION_SLOT_INACTIVE &&
-	    FrontendDraw_PointInRect(&ui.rect, ui.cursorX, ui.cursorY) &&
-	    (FrontendMouse_GetLeftDown() != 0 ||
-	     FrontendMouse_GetRightDown() != 0 ||
-	     FrontendMouse_GetLeftClick() != 0 ||
-	     FrontendMouse_GetRightClick() != 0)) {
-		ui.navigationSlotStates[CONFIG_NAVIGATION_RESTORE_SLOT] =
+	    frontend_draw_point_in_rect(&ui.rect, ui.cursor_x, ui.cursor_y) &&
+	    (frontend_mouse_get_left_down() != 0 ||
+	     frontend_mouse_get_right_down() != 0 ||
+	     frontend_mouse_get_left_click() != 0 ||
+	     frontend_mouse_get_right_click() != 0)) {
+		ui.navigation_slot_states[CONFIG_NAVIGATION_RESTORE_SLOT] =
 			FRONTEND_NAVIGATION_SLOT_SELECTED;
 	}
-	FrontendButton_DrawEightSlotNavigationState(ui.navigationSlotStates);
+	frontend_button_draw_eight_slot_navigation_state(
+		ui.navigation_slot_states);
 
-	if (ui.navigationSlotStates[CONFIG_NAVIGATION_RESTORE_SLOT] !=
+	if (ui.navigation_slot_states[CONFIG_NAVIGATION_RESTORE_SLOT] !=
 	    FRONTEND_NAVIGATION_SLOT_INACTIVE) {
-		FrontendDraw_RectAssign(
+		frontend_draw_rect_assign(
 			&ui.rect, CONFIG_BUTTON_LEFT, CONFIG_RESTORE_BUTTON_TOP,
 			CONFIG_BUTTON_RIGHT, CONFIG_RESTORE_BUTTON_BOTTOM);
 #ifdef XVT_MODERN
-		if (XvtFrontendAction_Trigger(
+		if (xvt_frontend_action_trigger(
 			    XVT_ACTION_OWNER_CONFIG, 1,
-			    FrontendButton_HandleSpriteButton(
+			    frontend_button_handle_sprite_button(
 				    &ui.rect, "config6u", "config6d",
-				    FrontendString_Get(
+				    frontend_string_get(
 					    FRONTSTR_420_RESTORE_DEFAULTS),
 				    CONFIG_BUTTON_FONT_SIZE, 0,
 				    CONFIG_RESTORE_HELD_SLOT, "jewelsound"))) {
-			int result = FrontendDialog_ShowConfirmDialog(
-				FrontendString_Get(
+			int result = frontend_dialog_show_confirm_dialog(
+				frontend_string_get(
 					FRONTSTR_672_RESTORING_DEFAULTS_WILL_ERASE_ANY_CHANGES),
-				FrontendString_Get(
+				frontend_string_get(
 					FRONTSTR_673_YOU_HAVE_MADE_TO_THESE_SETTINGS),
-				FrontendString_Get(
+				frontend_string_get(
 					FRONTSTR_674_ARE_YOU_SURE_YOU_WANT_TO_DO_THIS),
-				FrontendString_Get(FRONTSTR_523_OKAY),
-				FrontendString_Get(FRONTSTR_019_CANCEL));
+				frontend_string_get(FRONTSTR_523_OKAY),
+				frontend_string_get(FRONTSTR_019_CANCEL));
 			if (result == XVT_DIALOG_PENDING) {
 				return 0;
 			}
-			XvtFrontendAction_Finish(XVT_ACTION_OWNER_CONFIG);
+			xvt_frontend_action_finish(XVT_ACTION_OWNER_CONFIG);
 			if (result) {
 #else
-		if (FrontendButton_HandleSpriteButton(
+		if (frontend_button_handle_sprite_button(
 			    &ui.rect, "config6u", "config6d",
-			    FrontendString_Get(FRONTSTR_420_RESTORE_DEFAULTS),
+			    frontend_string_get(FRONTSTR_420_RESTORE_DEFAULTS),
 			    CONFIG_BUTTON_FONT_SIZE, 0,
 			    CONFIG_RESTORE_HELD_SLOT, "jewelsound") != 0 &&
-		    FrontendDialog_ShowConfirmDialog(
-			    FrontendString_Get(
+		    frontend_dialog_show_confirm_dialog(
+			    frontend_string_get(
 				    FRONTSTR_672_RESTORING_DEFAULTS_WILL_ERASE_ANY_CHANGES),
-			    FrontendString_Get(
+			    frontend_string_get(
 				    FRONTSTR_673_YOU_HAVE_MADE_TO_THESE_SETTINGS),
-			    FrontendString_Get(
+			    frontend_string_get(
 				    FRONTSTR_674_ARE_YOU_SURE_YOU_WANT_TO_DO_THIS),
-			    FrontendString_Get(FRONTSTR_523_OKAY),
-			    FrontendString_Get(FRONTSTR_019_CANCEL)) != 0) {
+			    frontend_string_get(FRONTSTR_523_OKAY),
+			    frontend_string_get(FRONTSTR_019_CANCEL)) != 0) {
 #endif
-				switch (g_configCurrentPage) {
+				switch (g_config_current_page) {
 				case CONFIG_PAGE_NETWORK:
-					g_gameConfig.serverUpdateRate =
+					g_game_config.server_update_rate =
 						CONFIG_DEFAULT_SERVER_UPDATE_RATE;
 #ifdef XVT_MODERN
-					g_gameConfig.networkType =
+					g_game_config.network_type =
 						NET_TRANSPORT_TCPIP;
-					g_gameConfig.internetPlay =
+					g_game_config.internet_play =
 						CONFIG_DEFAULT_ENABLED;
 #else
-				g_gameConfig.networkType = NET_TRANSPORT_IPX;
-				g_gameConfig.internetPlay =
+				g_game_config.network_type = NET_TRANSPORT_IPX;
+				g_game_config.internet_play =
 					CONFIG_DEFAULT_DISABLED;
 #endif
 					break;
 				case CONFIG_PAGE_SINGLEPLAYER_VIDEO:
-					g_gameConfig.backdrop[0] =
+					g_game_config.backdrop[0] =
 						CONFIG_DEFAULT_ENABLED;
-					g_gameConfig.starDensity[0] =
+					g_game_config.star_density[0] =
 						CONFIG_DEFAULT_VIDEO_DENSITY;
-					g_gameConfig.debris[0] =
+					g_game_config.debris[0] =
 						CONFIG_DEFAULT_ENABLED;
-					g_gameConfig.localLights[0] =
+					g_game_config.local_lights[0] =
 						CONFIG_DEFAULT_ENABLED;
-					g_gameConfig.specular[0] =
+					g_game_config.specular[0] =
 						CONFIG_DEFAULT_ENABLED;
-					g_gameConfig.diffuse[0] =
+					g_game_config.diffuse[0] =
 						CONFIG_DEFAULT_ENABLED;
-					g_gameConfig.dither[0] =
+					g_game_config.dither[0] =
 						CONFIG_DEFAULT_ENABLED;
-					g_gameConfig.textureRes[0] =
+					g_game_config.texture_res[0] =
 						CONFIG_DEFAULT_THREE_CHOICE_HIGH;
-					g_gameConfig.mipmap[0] =
+					g_game_config.mipmap[0] =
 						CONFIG_DEFAULT_VIDEO_QUALITY;
-					g_gameConfig.lod[0] =
+					g_game_config.lod[0] =
 						CONFIG_DEFAULT_VIDEO_QUALITY;
-					g_gameConfig.screenRes[0] =
+					g_game_config.screen_res[0] =
 						CONFIG_DEFAULT_THREE_CHOICE_HIGH;
-					g_gameConfig.windowSize[0] =
+					g_game_config.window_size[0] =
 						CONFIG_DEFAULT_THREE_CHOICE_HIGH;
-					g_gameConfig.brightness[0] =
+					g_game_config.brightness[0] =
 						CONFIG_DEFAULT_BRIGHTNESS;
-					g_gameConfig.colorDepthChoice[0] =
+					g_game_config.color_depth_choice[0] =
 						CONFIG_DEFAULT_256_COLORS;
-					g_gameConfig.use3dHardware[0] =
-						FrontendDisplay_IsSecondaryDirectDrawActive();
-					g_gameConfig.bilinear[0] =
+					g_game_config.use3d_hardware[0] =
+						frontend_display_is_secondary_direct_draw_active();
+					g_game_config.bilinear[0] =
 						CONFIG_DEFAULT_ENABLED;
 					break;
 				case CONFIG_PAGE_MULTIPLAYER_VIDEO:
-					g_gameConfig.backdrop[1] =
+					g_game_config.backdrop[1] =
 						CONFIG_DEFAULT_ENABLED;
-					g_gameConfig.starDensity[1] =
+					g_game_config.star_density[1] =
 						CONFIG_DEFAULT_VIDEO_DENSITY;
-					g_gameConfig.debris[1] =
+					g_game_config.debris[1] =
 						CONFIG_DEFAULT_ENABLED;
-					g_gameConfig.localLights[1] =
+					g_game_config.local_lights[1] =
 						CONFIG_DEFAULT_ENABLED;
-					g_gameConfig.specular[1] =
+					g_game_config.specular[1] =
 						CONFIG_DEFAULT_ENABLED;
-					g_gameConfig.diffuse[1] =
+					g_game_config.diffuse[1] =
 						CONFIG_DEFAULT_ENABLED;
-					g_gameConfig.dither[1] =
+					g_game_config.dither[1] =
 						CONFIG_DEFAULT_ENABLED;
-					g_gameConfig.textureRes[1] =
+					g_game_config.texture_res[1] =
 						CONFIG_DEFAULT_THREE_CHOICE_HIGH;
-					g_gameConfig.mipmap[1] =
+					g_game_config.mipmap[1] =
 						CONFIG_DEFAULT_VIDEO_QUALITY;
-					g_gameConfig.lod[1] =
+					g_game_config.lod[1] =
 						CONFIG_DEFAULT_VIDEO_QUALITY;
-					g_gameConfig.screenRes[1] =
+					g_game_config.screen_res[1] =
 						CONFIG_DEFAULT_THREE_CHOICE_HIGH;
-					g_gameConfig.windowSize[1] =
+					g_game_config.window_size[1] =
 						CONFIG_DEFAULT_THREE_CHOICE_HIGH;
-					g_gameConfig.colorDepthChoice[1] =
+					g_game_config.color_depth_choice[1] =
 						CONFIG_DEFAULT_256_COLORS;
-					g_gameConfig.brightness[1] =
+					g_game_config.brightness[1] =
 						CONFIG_DEFAULT_BRIGHTNESS;
-					g_gameConfig.use3dHardware[1] =
+					g_game_config.use3d_hardware[1] =
 						CONFIG_DEFAULT_DISABLED;
-					g_gameConfig.bilinear[1] =
+					g_game_config.bilinear[1] =
 						CONFIG_DEFAULT_ENABLED;
 					break;
 				case CONFIG_PAGE_SOUND:
-					previousDatapadMusicEnabled =
-						g_gameConfig
-							.datapadMusicEnabled;
-					g_gameConfig.sfxExteriorEnabled =
+					previous_datapad_music_enabled =
+						g_game_config
+							.datapad_music_enabled;
+					g_game_config.sfx_exterior_enabled =
 						CONFIG_DEFAULT_ENABLED;
-					g_gameConfig.sfxInteriorEnabled =
+					g_game_config.sfx_interior_enabled =
 						CONFIG_DEFAULT_ENABLED;
-					g_gameConfig.sfxEngineEnabled =
+					g_game_config.sfx_engine_enabled =
 						CONFIG_DEFAULT_ENABLED;
-					g_gameConfig.sfxDatapadEnabled =
+					g_game_config.sfx_datapad_enabled =
 						CONFIG_DEFAULT_ENABLED;
-					g_gameConfig.voicePilotLevel =
+					g_game_config.voice_pilot_level =
 						CONFIG_DEFAULT_THREE_CHOICE_HIGH;
-					g_gameConfig.voiceTacticalOfficerLevel =
+					g_game_config
+						.voice_tactical_officer_level =
 						CONFIG_DEFAULT_THREE_CHOICE_HIGH;
-					g_gameConfig.voiceCommanderEnabled =
+					g_game_config.voice_commander_enabled =
 						CONFIG_DEFAULT_ENABLED;
-					g_gameConfig.voiceSpecialEnabled =
+					g_game_config.voice_special_enabled =
 						CONFIG_DEFAULT_ENABLED;
-					g_gameConfig.musicEnabled =
+					g_game_config.music_enabled =
 						CONFIG_DEFAULT_ENABLED;
-					g_gameConfig.datapadMusicEnabled =
+					g_game_config.datapad_music_enabled =
 						CONFIG_DEFAULT_ENABLED;
-					g_gameConfig.sfxDatapadVolume =
+					g_game_config.sfx_datapad_volume =
 						CONFIG_DEFAULT_SOUND_VOLUME;
-					g_gameConfig.sfxExteriorVolume =
+					g_game_config.sfx_exterior_volume =
 						CONFIG_DEFAULT_SOUND_VOLUME;
-					g_gameConfig.sfxInteriorVolume =
+					g_game_config.sfx_interior_volume =
 						CONFIG_DEFAULT_SOUND_VOLUME;
-					g_gameConfig.sfxEngineVolume =
+					g_game_config.sfx_engine_volume =
 						CONFIG_DEFAULT_SOUND_VOLUME;
-					g_gameConfig.voiceVolume =
+					g_game_config.voice_volume =
 						CONFIG_DEFAULT_SOUND_VOLUME;
-					g_gameConfig.musicVolume =
+					g_game_config.music_volume =
 						CONFIG_DEFAULT_MUSIC_VOLUME;
-					if (previousDatapadMusicEnabled !=
+					if (previous_datapad_music_enabled !=
 					    CONFIG_DEFAULT_ENABLED) {
-						CDAudio_SetAuxVolume(
+						cd_audio_set_aux_volume(
 							CONFIG_DEFAULT_DATAPAD_MUSIC_VOLUME);
-						CDAudio_PlayTrackFromTime(
+						cd_audio_play_track_from_time(
 							CONFIG_DEFAULT_DATAPAD_MUSIC_TRACK,
 							0, 0);
 					}
 					break;
 				case CONFIG_PAGE_JOYSTICK:
-					memset(g_gameConfig.joyButtons, 0,
-					       sizeof(g_gameConfig.joyButtons));
-					joystickButtonCount =
-						Joystick_GetButtonCount(0);
-					for (joystickButtonIndex = 0;
-					     joystickButtonIndex <
-						     joystickButtonCount &&
-					     joystickButtonIndex <
+					memset(g_game_config.joy_buttons, 0,
+					       sizeof(g_game_config
+							      .joy_buttons));
+					joystick_button_count =
+						joystick_get_button_count(0);
+					for (joystick_button_index = 0;
+					     joystick_button_index <
+						     joystick_button_count &&
+					     joystick_button_index <
 						     CONFIG_DEFAULT_JOYSTICK_BUTTON_LIMIT;
-					     ++joystickButtonIndex) {
-						switch (joystickButtonIndex) {
+					     ++joystick_button_index) {
+						switch (joystick_button_index) {
 						case 0:
-							g_gameConfig.joyButtons
-								[joystickButtonIndex] =
+							g_game_config.joy_buttons
+								[joystick_button_index] =
 								(uint8_t)-100;
 							break;
 						case 1:
-							g_gameConfig.joyButtons
-								[joystickButtonIndex] =
+							g_game_config.joy_buttons
+								[joystick_button_index] =
 								(uint8_t)-99;
 							break;
 						case 2:
-							g_gameConfig.joyButtons
-								[joystickButtonIndex] =
+							g_game_config.joy_buttons
+								[joystick_button_index] =
 								114;
 							break;
 						case 3:
-							g_gameConfig.joyButtons
-								[joystickButtonIndex] =
+							g_game_config.joy_buttons
+								[joystick_button_index] =
 								46;
 							break;
 						case 4:
-							g_gameConfig.joyButtons
-								[joystickButtonIndex] =
+							g_game_config.joy_buttons
+								[joystick_button_index] =
 								101;
 							break;
 						case 5:
-							g_gameConfig.joyButtons
-								[joystickButtonIndex] =
+							g_game_config.joy_buttons
+								[joystick_button_index] =
 								105;
 							break;
 						case 6:
-							g_gameConfig.joyButtons
-								[joystickButtonIndex] =
+							g_game_config.joy_buttons
+								[joystick_button_index] =
 								91;
 							break;
 						case 7:
-							g_gameConfig.joyButtons
-								[joystickButtonIndex] =
+							g_game_config.joy_buttons
+								[joystick_button_index] =
 								8;
 							break;
 						case 8:
-							g_gameConfig.joyButtons
-								[joystickButtonIndex] =
+							g_game_config.joy_buttons
+								[joystick_button_index] =
 								13;
 							break;
 						case 9:
-							g_gameConfig.joyButtons
-								[joystickButtonIndex] =
+							g_game_config.joy_buttons
+								[joystick_button_index] =
 								93;
 							break;
 						}
 					}
-					joystickActionIndex = 0;
-					if (g_joystickEntryCount > 0) {
-						selectedJoystickActionCode =
-							g_gameConfig.joyButtons
-								[g_configSelectedJoystickButtonIndex];
+					joystick_action_index = 0;
+					if (g_joystick_entry_count > 0) {
+						selected_joystick_action_code =
+							g_game_config.joy_buttons
+								[g_config_selected_joystick_button_index];
 						do {
-							if (g_joystickEntries
-								    [joystickActionIndex]
-									    .actionCode ==
-							    selectedJoystickActionCode) {
-								g_configSelectedJoystickActionIndex =
-									joystickActionIndex;
+							if (g_joystick_entries
+								    [joystick_action_index]
+									    .action_code ==
+							    selected_joystick_action_code) {
+								g_config_selected_joystick_action_index =
+									joystick_action_index;
 							}
-							++joystickActionIndex;
-						} while (joystickActionIndex <
-							 g_joystickEntryCount);
+							++joystick_action_index;
+						} while (
+							joystick_action_index <
+							g_joystick_entry_count);
 					}
 					break;
 				case CONFIG_PAGE_TAUNTS:
-					strcpy(g_gameConfig.taunts[0],
-					       FrontendString_Get(
+					strcpy(g_game_config.taunts[0],
+					       frontend_string_get(
 						       FRONTSTR_790_STAY_ON_TARGET));
-					strcpy(g_gameConfig.taunts[1],
-					       FrontendString_Get(
+					strcpy(g_game_config.taunts[1],
+					       frontend_string_get(
 						       FRONTSTR_791_I_CAN_T_SHAKE_HIM));
-					strcpy(g_gameConfig.taunts[2],
-					       FrontendString_Get(
+					strcpy(g_game_config.taunts[2],
+					       frontend_string_get(
 						       FRONTSTR_792_HE_S_HISTORY));
-					strcpy(g_gameConfig.taunts[3],
-					       FrontendString_Get(
+					strcpy(g_game_config.taunts[3],
+					       frontend_string_get(
 						       FRONTSTR_793_WOOHOO));
 					break;
 				}
@@ -2115,182 +2179,182 @@ int Config_UpdateNavigationAndRestoreDefaults(void)
 #endif
 	}
 
-	FrontendDraw_RectAssign(&ui.rect, CONFIG_BUTTON_LEFT,
-				CONFIG_TAUNTS_BUTTON_TOP, CONFIG_BUTTON_RIGHT,
-				CONFIG_TAUNTS_BUTTON_BOTTOM);
-	if (g_configCurrentPage == CONFIG_PAGE_TAUNTS) {
-		FrontendButton_DrawSpriteAndTooltip(
+	frontend_draw_rect_assign(&ui.rect, CONFIG_BUTTON_LEFT,
+				  CONFIG_TAUNTS_BUTTON_TOP, CONFIG_BUTTON_RIGHT,
+				  CONFIG_TAUNTS_BUTTON_BOTTOM);
+	if (g_config_current_page == CONFIG_PAGE_TAUNTS) {
+		frontend_button_draw_sprite_and_tooltip(
 			&ui.rect, "config8d",
-			FrontendString_Get(FRONTSTR_794_CUSTOM_TAUNTS),
+			frontend_string_get(FRONTSTR_794_CUSTOM_TAUNTS),
 			CONFIG_BUTTON_FONT_SIZE, 0);
-	} else if (FrontendButton_HandleSpriteButton(
+	} else if (frontend_button_handle_sprite_button(
 			   &ui.rect, "config8u", "config8u",
-			   FrontendString_Get(FRONTSTR_794_CUSTOM_TAUNTS),
+			   frontend_string_get(FRONTSTR_794_CUSTOM_TAUNTS),
 			   CONFIG_BUTTON_FONT_SIZE, 0, CONFIG_TAUNTS_HELD_SLOT,
 			   "jewelsound") != 0) {
-		g_configDrawStaticControlBackground = 1;
-		g_configCurrentPage = CONFIG_PAGE_TAUNTS;
-		g_activeTextFieldId = 0;
-		FrontendDisplay_LockOffscreenSurface();
-		FrontImage_DrawSpriteOpaque("backconfig", 0, 0);
-		FrontImage_DrawSprite("frame", 0, 0);
-		FrontImage_DrawSprite("alloff", 0, 0);
-		FrontendDraw_RectAssign(
+		g_config_draw_static_control_background = 1;
+		g_config_current_page = CONFIG_PAGE_TAUNTS;
+		g_active_text_field_id = 0;
+		frontend_display_lock_offscreen_surface();
+		front_image_draw_sprite_opaque("backconfig", 0, 0);
+		front_image_draw_sprite("frame", 0, 0);
+		front_image_draw_sprite("alloff", 0, 0);
+		frontend_draw_rect_assign(
 			&ui.rect, CONFIG_CONTENT_LEFT, CONFIG_CONTENT_TOP,
 			CONFIG_CONTENT_RIGHT, CONFIG_CONTENT_BOTTOM);
-		FrontImage_DrawSpriteTranslucent("configoverlay", 0, 0);
-		FrontendDisplay_UnlockOffscreenSurface(1);
+		front_image_draw_sprite_translucent("configoverlay", 0, 0);
+		frontend_display_unlock_offscreen_surface(1);
 	}
 
-	FrontendDraw_RectAssign(&ui.rect, CONFIG_BUTTON_LEFT,
-				CONFIG_JOYSTICK_BUTTON_TOP, CONFIG_BUTTON_RIGHT,
-				CONFIG_JOYSTICK_BUTTON_BOTTOM);
+	frontend_draw_rect_assign(
+		&ui.rect, CONFIG_BUTTON_LEFT, CONFIG_JOYSTICK_BUTTON_TOP,
+		CONFIG_BUTTON_RIGHT, CONFIG_JOYSTICK_BUTTON_BOTTOM);
 #ifdef XVT_MODERN
-	if (FrontendButton_HandleSpriteButton(
+	if (frontend_button_handle_sprite_button(
 		    &ui.rect, "config5u", "config5u", "OpenXvT Settings",
 		    CONFIG_BUTTON_FONT_SIZE, 0, CONFIG_JOYSTICK_HELD_SLOT,
 		    "jewelsound")) {
-		XvtPort_RequestSettings();
+		xvt_port_request_settings();
 	}
 #else
-	if (g_configCurrentPage == CONFIG_PAGE_JOYSTICK) {
-		FrontendButton_DrawSpriteAndTooltip(
+	if (g_config_current_page == CONFIG_PAGE_JOYSTICK) {
+		frontend_button_draw_sprite_and_tooltip(
 			&ui.rect, "config5d",
-			FrontendString_Get(FRONTSTR_415_JOYSTICK_OPTIONS),
+			frontend_string_get(FRONTSTR_415_JOYSTICK_OPTIONS),
 			CONFIG_BUTTON_FONT_SIZE, 0);
-	} else if (FrontendButton_HandleSpriteButton(
+	} else if (frontend_button_handle_sprite_button(
 			   &ui.rect, "config5u", "config5u",
-			   FrontendString_Get(FRONTSTR_415_JOYSTICK_OPTIONS),
+			   frontend_string_get(FRONTSTR_415_JOYSTICK_OPTIONS),
 			   CONFIG_BUTTON_FONT_SIZE, 0,
 			   CONFIG_JOYSTICK_HELD_SLOT, "jewelsound") != 0) {
-		g_configDrawStaticControlBackground = 1;
-		g_configCurrentPage = CONFIG_PAGE_JOYSTICK;
-		FrontendDisplay_LockOffscreenSurface();
-		FrontImage_DrawSpriteOpaque("backconfig", 0, 0);
-		FrontImage_DrawSprite("frame", 0, 0);
-		FrontImage_DrawSprite("alloff", 0, 0);
-		FrontendDraw_RectAssign(
+		g_config_draw_static_control_background = 1;
+		g_config_current_page = CONFIG_PAGE_JOYSTICK;
+		frontend_display_lock_offscreen_surface();
+		front_image_draw_sprite_opaque("backconfig", 0, 0);
+		front_image_draw_sprite("frame", 0, 0);
+		front_image_draw_sprite("alloff", 0, 0);
+		frontend_draw_rect_assign(
 			&ui.rect, CONFIG_CONTENT_LEFT, CONFIG_CONTENT_TOP,
 			CONFIG_CONTENT_RIGHT, CONFIG_CONTENT_BOTTOM);
-		FrontImage_DrawSpriteTranslucent("configoverlay", 0, 0);
-		FrontendDraw_RectAssign(&ui.rect, CONFIG_JOYSTICK_SHADE_LEFT,
-					CONFIG_JOYSTICK_SHADE_TOP,
-					CONFIG_JOYSTICK_SHADE_RIGHT,
-					CONFIG_JOYSTICK_SHADE_BOTTOM);
-		FrontendDraw_FillRectTranslucent(
+		front_image_draw_sprite_translucent("configoverlay", 0, 0);
+		frontend_draw_rect_assign(&ui.rect, CONFIG_JOYSTICK_SHADE_LEFT,
+					  CONFIG_JOYSTICK_SHADE_TOP,
+					  CONFIG_JOYSTICK_SHADE_RIGHT,
+					  CONFIG_JOYSTICK_SHADE_BOTTOM);
+		frontend_draw_fill_rect_translucent(
 			&ui.rect, 0, 0,
-			FrontendDisplay_PackRGB(0, 0,
-						CONFIG_JOYSTICK_SHADE_BLUE));
-		FrontendDisplay_UnlockOffscreenSurface(1);
+			frontend_display_pack_rgb(0, 0,
+						  CONFIG_JOYSTICK_SHADE_BLUE));
+		frontend_display_unlock_offscreen_surface(1);
 	}
 #endif
 
-	FrontendDraw_RectOffsetXY(&ui.rect, 0, -CONFIG_BUTTON_VERTICAL_STEP);
-	if (g_configCurrentPage == CONFIG_PAGE_SOUND) {
-		FrontendButton_DrawSpriteAndTooltip(
+	frontend_draw_rect_offset_xy(&ui.rect, 0, -CONFIG_BUTTON_VERTICAL_STEP);
+	if (g_config_current_page == CONFIG_PAGE_SOUND) {
+		frontend_button_draw_sprite_and_tooltip(
 			&ui.rect, "config4d",
-			FrontendString_Get(FRONTSTR_310_SOUND_OPTIONS),
+			frontend_string_get(FRONTSTR_310_SOUND_OPTIONS),
 			CONFIG_BUTTON_FONT_SIZE, 0);
-	} else if (FrontendButton_HandleSpriteButton(
+	} else if (frontend_button_handle_sprite_button(
 			   &ui.rect, "config4u", "config4u",
-			   FrontendString_Get(FRONTSTR_310_SOUND_OPTIONS),
+			   frontend_string_get(FRONTSTR_310_SOUND_OPTIONS),
 			   CONFIG_BUTTON_FONT_SIZE, 0, CONFIG_SOUND_HELD_SLOT,
 			   "jewelsound") != 0) {
-		g_configDrawStaticControlBackground = 1;
-		g_configCurrentPage = CONFIG_PAGE_SOUND;
-		FrontendDisplay_LockOffscreenSurface();
-		FrontImage_DrawSpriteOpaque("backconfig", 0, 0);
-		FrontImage_DrawSprite("frame", 0, 0);
-		FrontImage_DrawSprite("alloff", 0, 0);
-		FrontendDraw_RectAssign(
+		g_config_draw_static_control_background = 1;
+		g_config_current_page = CONFIG_PAGE_SOUND;
+		frontend_display_lock_offscreen_surface();
+		front_image_draw_sprite_opaque("backconfig", 0, 0);
+		front_image_draw_sprite("frame", 0, 0);
+		front_image_draw_sprite("alloff", 0, 0);
+		frontend_draw_rect_assign(
 			&ui.rect, CONFIG_CONTENT_LEFT, CONFIG_CONTENT_TOP,
 			CONFIG_CONTENT_RIGHT, CONFIG_CONTENT_BOTTOM);
-		FrontImage_DrawSpriteTranslucent("configoverlay", 0, 0);
-		FrontendDisplay_UnlockOffscreenSurface(1);
+		front_image_draw_sprite_translucent("configoverlay", 0, 0);
+		frontend_display_unlock_offscreen_surface(1);
 	}
 
-	FrontendDraw_RectOffsetXY(&ui.rect, 0, -CONFIG_BUTTON_VERTICAL_STEP);
-	if (g_configCurrentPage == CONFIG_PAGE_MULTIPLAYER_VIDEO) {
-		FrontendButton_DrawSpriteAndTooltip(
+	frontend_draw_rect_offset_xy(&ui.rect, 0, -CONFIG_BUTTON_VERTICAL_STEP);
+	if (g_config_current_page == CONFIG_PAGE_MULTIPLAYER_VIDEO) {
+		frontend_button_draw_sprite_and_tooltip(
 			&ui.rect, "config3d",
-			FrontendString_Get(
+			frontend_string_get(
 				FRONTSTR_641_MULTIPLAYER_FLIGHT_ENGINE_OPTIONS),
 			CONFIG_BUTTON_FONT_SIZE, 0);
 	} else if (
-		FrontendButton_HandleSpriteButton(
+		frontend_button_handle_sprite_button(
 			&ui.rect, "config3u", "config3u",
-			FrontendString_Get(
+			frontend_string_get(
 				FRONTSTR_641_MULTIPLAYER_FLIGHT_ENGINE_OPTIONS),
 			CONFIG_BUTTON_FONT_SIZE, 0,
 			CONFIG_MULTIPLAYER_VIDEO_HELD_SLOT,
 			"jewelsound") != 0) {
-		g_configDrawStaticControlBackground = 1;
-		g_configCurrentPage = CONFIG_PAGE_MULTIPLAYER_VIDEO;
-		FrontendDisplay_LockOffscreenSurface();
-		FrontImage_DrawSpriteOpaque("backconfig", 0, 0);
-		FrontImage_DrawSprite("frame", 0, 0);
-		FrontImage_DrawSprite("alloff", 0, 0);
-		FrontendDraw_RectAssign(
+		g_config_draw_static_control_background = 1;
+		g_config_current_page = CONFIG_PAGE_MULTIPLAYER_VIDEO;
+		frontend_display_lock_offscreen_surface();
+		front_image_draw_sprite_opaque("backconfig", 0, 0);
+		front_image_draw_sprite("frame", 0, 0);
+		front_image_draw_sprite("alloff", 0, 0);
+		frontend_draw_rect_assign(
 			&ui.rect, CONFIG_CONTENT_LEFT, CONFIG_CONTENT_TOP,
 			CONFIG_CONTENT_RIGHT, CONFIG_CONTENT_BOTTOM);
-		FrontImage_DrawSpriteTranslucent("configoverlay", 0, 0);
-		FrontendDisplay_UnlockOffscreenSurface(1);
+		front_image_draw_sprite_translucent("configoverlay", 0, 0);
+		frontend_display_unlock_offscreen_surface(1);
 	}
 
-	FrontendDraw_RectOffsetXY(&ui.rect, 0, -CONFIG_BUTTON_VERTICAL_STEP);
-	if (g_configCurrentPage == CONFIG_PAGE_SINGLEPLAYER_VIDEO) {
-		FrontendButton_DrawSpriteAndTooltip(
+	frontend_draw_rect_offset_xy(&ui.rect, 0, -CONFIG_BUTTON_VERTICAL_STEP);
+	if (g_config_current_page == CONFIG_PAGE_SINGLEPLAYER_VIDEO) {
+		frontend_button_draw_sprite_and_tooltip(
 			&ui.rect, "config2d",
-			FrontendString_Get(
+			frontend_string_get(
 				FRONTSTR_219_SINGLE_PLAYER_FLIGHT_ENGINE_OPTIONS),
 			CONFIG_BUTTON_FONT_SIZE, 0);
 	} else if (
-		FrontendButton_HandleSpriteButton(
+		frontend_button_handle_sprite_button(
 			&ui.rect, "config2u", "config2u",
-			FrontendString_Get(
+			frontend_string_get(
 				FRONTSTR_219_SINGLE_PLAYER_FLIGHT_ENGINE_OPTIONS),
 			CONFIG_BUTTON_FONT_SIZE, 0,
 			CONFIG_SINGLEPLAYER_VIDEO_HELD_SLOT,
 			"jewelsound") != 0) {
-		g_configDrawStaticControlBackground = 1;
-		g_configCurrentPage = CONFIG_PAGE_SINGLEPLAYER_VIDEO;
-		FrontendDisplay_LockOffscreenSurface();
-		FrontImage_DrawSpriteOpaque("backconfig", 0, 0);
-		FrontImage_DrawSprite("frame", 0, 0);
-		FrontImage_DrawSprite("alloff", 0, 0);
-		FrontendDraw_RectAssign(
+		g_config_draw_static_control_background = 1;
+		g_config_current_page = CONFIG_PAGE_SINGLEPLAYER_VIDEO;
+		frontend_display_lock_offscreen_surface();
+		front_image_draw_sprite_opaque("backconfig", 0, 0);
+		front_image_draw_sprite("frame", 0, 0);
+		front_image_draw_sprite("alloff", 0, 0);
+		frontend_draw_rect_assign(
 			&ui.rect, CONFIG_CONTENT_LEFT, CONFIG_CONTENT_TOP,
 			CONFIG_CONTENT_RIGHT, CONFIG_CONTENT_BOTTOM);
-		FrontImage_DrawSpriteTranslucent("configoverlay", 0, 0);
-		FrontendDisplay_UnlockOffscreenSurface(1);
+		front_image_draw_sprite_translucent("configoverlay", 0, 0);
+		frontend_display_unlock_offscreen_surface(1);
 	}
 
-	FrontendDraw_RectOffsetXY(&ui.rect, 0, -CONFIG_BUTTON_VERTICAL_STEP);
-	if (g_configCurrentPage == CONFIG_PAGE_NETWORK) {
-		FrontendButton_DrawSpriteAndTooltip(
+	frontend_draw_rect_offset_xy(&ui.rect, 0, -CONFIG_BUTTON_VERTICAL_STEP);
+	if (g_config_current_page == CONFIG_PAGE_NETWORK) {
+		frontend_button_draw_sprite_and_tooltip(
 			&ui.rect, "config1d",
-			FrontendString_Get(
+			frontend_string_get(
 				FRONTSTR_304_MULTIPLAYER_CONNECTION_OPTIONS),
 			CONFIG_BUTTON_FONT_SIZE, 0);
-	} else if (FrontendButton_HandleSpriteButton(
+	} else if (frontend_button_handle_sprite_button(
 			   &ui.rect, "config1u", "config1u",
-			   FrontendString_Get(
+			   frontend_string_get(
 				   FRONTSTR_304_MULTIPLAYER_CONNECTION_OPTIONS),
 			   CONFIG_BUTTON_FONT_SIZE, 0, CONFIG_NETWORK_HELD_SLOT,
 			   "jewelsound") != 0) {
-		Keyboard_FlushCharBuffer();
-		g_configCurrentPage = CONFIG_PAGE_NETWORK;
-		g_activeTextFieldId = 0;
-		g_configDrawStaticControlBackground = 1;
-		FrontendDisplay_LockOffscreenSurface();
-		FrontImage_DrawSpriteOpaque("backconfig", 0, 0);
-		FrontImage_DrawSprite("frame", 0, 0);
-		FrontImage_DrawSprite("alloff", 0, 0);
-		FrontendDraw_RectAssign(
+		keyboard_flush_char_buffer();
+		g_config_current_page = CONFIG_PAGE_NETWORK;
+		g_active_text_field_id = 0;
+		g_config_draw_static_control_background = 1;
+		frontend_display_lock_offscreen_surface();
+		front_image_draw_sprite_opaque("backconfig", 0, 0);
+		front_image_draw_sprite("frame", 0, 0);
+		front_image_draw_sprite("alloff", 0, 0);
+		frontend_draw_rect_assign(
 			&ui.rect, CONFIG_CONTENT_LEFT, CONFIG_CONTENT_TOP,
 			CONFIG_CONTENT_RIGHT, CONFIG_CONTENT_BOTTOM);
-		FrontImage_DrawSpriteTranslucent("configoverlay", 0, 0);
-		FrontendDisplay_UnlockOffscreenSurface(1);
+		front_image_draw_sprite_translucent("configoverlay", 0, 0);
+		frontend_display_unlock_offscreen_surface(1);
 	}
 
 	return 1;
@@ -2298,14 +2362,14 @@ int Config_UpdateNavigationAndRestoreDefaults(void)
 
 /* Draws the network page. The original build first offers the connection type
  * (IPX, TCP/IP with the address field, direct modem with the phone field,
- * direct serial), which changes only while g_configConnectionTypeEditable is
+ * direct serial), which changes only while g_config_connection_type_editable is
  * set or in single player; picking a different type turns internet play on for
  * TCP/IP and off for the others. Both builds then draw the password field and
  * the host options, internet play and the server update rate (4, 6 or 8 as low,
  * medium or high), read-only for a network client. Enter or Tab in a field
- * moves g_activeTextFieldId to the next field. */
+ * moves g_active_text_field_id to the next field. */
 // FUNCTION: XVT 0x4BB680
-void Config_NetworkOptionsScreen(void)
+void config_network_options_screen(void)
 {
 	enum {
 		TITLE_LEFT = 84,
@@ -2322,456 +2386,471 @@ void Config_NetworkOptionsScreen(void)
 	};
 
 	struct RECT rect;
-	struct RECT sourceRect;
-	int labelWidth;
+	struct RECT source_rect;
+	int label_width;
 #ifndef XVT_MODERN
-	int cursorX;
-	int cursorY;
-	int fieldLabelWidth;
-	int buttonWidth;
+	int cursor_x;
+	int cursor_y;
+	int field_label_width;
+	int button_width;
 #endif
-	uint8_t selectedOption;
+	uint8_t selected_option;
 
-	FrontendDraw_RectAssign(&sourceRect, TITLE_LEFT, TITLE_TOP, TITLE_RIGHT,
-				TITLE_BOTTOM);
-	FrontendText_DrawCentered(
+	frontend_draw_rect_assign(&source_rect, TITLE_LEFT, TITLE_TOP,
+				  TITLE_RIGHT, TITLE_BOTTOM);
+	frontend_text_draw_centered(
 		FONT_TITLE,
-		FrontendString_Get(FRONTSTR_304_MULTIPLAYER_CONNECTION_OPTIONS),
-		&sourceRect, 0xFFFF);
+		frontend_string_get(
+			FRONTSTR_304_MULTIPLAYER_CONNECTION_OPTIONS),
+		&source_rect, 0xFFFF);
 #ifdef XVT_MODERN
-	FrontendDraw_RectAssign(&sourceRect, LABEL_LEFT, LABEL_TOP, LABEL_RIGHT,
-				LABEL_BOTTOM);
+	frontend_draw_rect_assign(&source_rect, LABEL_LEFT, LABEL_TOP,
+				  LABEL_RIGHT, LABEL_BOTTOM);
 #else
-	labelWidth = FrontendText_MeasureWidth(
-		FrontendString_Get(FRONTSTR_308_IP_ADDRESS_NAME), FONT_LABEL);
-	fieldLabelWidth = FrontendText_MeasureWidth(
-		FrontendString_Get(FRONTSTR_309_PHONE_NUMBER), FONT_LABEL);
-	if (fieldLabelWidth < labelWidth) {
-		fieldLabelWidth = labelWidth;
+	label_width = frontend_text_measure_width(
+		frontend_string_get(FRONTSTR_308_IP_ADDRESS_NAME), FONT_LABEL);
+	field_label_width = frontend_text_measure_width(
+		frontend_string_get(FRONTSTR_309_PHONE_NUMBER), FONT_LABEL);
+	if (field_label_width < label_width) {
+		field_label_width = label_width;
 	}
-	FrontImage_GetResourceRect("offslot", &rect);
-	buttonWidth = rect.right - rect.left + 1;
-	FrontendCursor_GetPos(&cursorX, &cursorY);
-	FrontendDraw_RectAssign(&sourceRect, LABEL_LEFT, LABEL_TOP, LABEL_RIGHT,
-				LABEL_BOTTOM);
-	if (g_configConnectionTypeEditable == 0 &&
-	    g_frontendMissionSessionMode !=
+	front_image_get_resource_rect("offslot", &rect);
+	button_width = rect.right - rect.left + 1;
+	frontend_cursor_get_pos(&cursor_x, &cursor_y);
+	frontend_draw_rect_assign(&source_rect, LABEL_LEFT, LABEL_TOP,
+				  LABEL_RIGHT, LABEL_BOTTOM);
+	if (g_config_connection_type_editable == 0 &&
+	    g_frontend_mission_session_mode !=
 		    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
-		FrontendText_DrawAlignedInRect(
+		frontend_text_draw_aligned_in_rect(
 			FONT_LABEL,
-			FrontendString_Get(
+			frontend_string_get(
 				FRONTSTR_692_CONNECTION_TYPE_YOU_CANNOT_CHANGE_THESE_OPTIONS_WHILE_HOSTING_OR_JOINING_A_NETWORK_GAME),
-			&sourceRect, 0, 1, 0xFFFF);
+			&source_rect, 0, 1, 0xFFFF);
 	} else {
-		FrontendText_DrawAlignedInRect(
+		frontend_text_draw_aligned_in_rect(
 			FONT_LABEL,
-			FrontendString_Get(FRONTSTR_477_SELECT_CONNECTION_TYPE),
-			&sourceRect, 0, 1, 0xFFFF);
+			frontend_string_get(
+				FRONTSTR_477_SELECT_CONNECTION_TYPE),
+			&source_rect, 0, 1, 0xFFFF);
 	}
-	FrontendDraw_RectOffsetXY(&sourceRect, 0, 20);
-	sourceRect.right = sourceRect.left + 127;
-	FrontendDraw_RectCopy(&rect, &sourceRect);
-	rect.right = rect.left + buttonWidth;
-	if (g_configDrawStaticControlBackground != 0 &&
-	    (g_configConnectionTypeEditable != 0 ||
-	     g_frontendMissionSessionMode ==
+	frontend_draw_rect_offset_xy(&source_rect, 0, 20);
+	source_rect.right = source_rect.left + 127;
+	frontend_draw_rect_copy(&rect, &source_rect);
+	rect.right = rect.left + button_width;
+	if (g_config_draw_static_control_background != 0 &&
+	    (g_config_connection_type_editable != 0 ||
+	     g_frontend_mission_session_mode ==
 		     FRONTEND_MISSION_SESSION_SINGLEPLAYER)) {
-		FrontendDisplay_LockOffscreenSurface();
-		FrontImage_DrawSpriteTranslucent("offslot", rect.left,
-						 rect.top);
-		FrontendDisplay_UnlockOffscreenSurface(0);
-		FrontImage_DrawSpriteTranslucent("offslot", rect.left,
-						 rect.top);
+		frontend_display_lock_offscreen_surface();
+		front_image_draw_sprite_translucent("offslot", rect.left,
+						    rect.top);
+		frontend_display_unlock_offscreen_surface(0);
+		front_image_draw_sprite_translucent("offslot", rect.left,
+						    rect.top);
 	}
-	if (FrontendDraw_PointInRect(&rect, cursorX, cursorY) &&
-	    (g_configConnectionTypeEditable != 0 ||
-	     g_frontendMissionSessionMode ==
+	if (frontend_draw_point_in_rect(&rect, cursor_x, cursor_y) &&
+	    (g_config_connection_type_editable != 0 ||
+	     g_frontend_mission_session_mode ==
 		     FRONTEND_MISSION_SESSION_SINGLEPLAYER) &&
-	    (FrontendMouse_GetLeftClick() != 0 ||
-	     FrontendMouse_GetRightClick() != 0)) {
-		if (g_gameConfig.networkType != NET_TRANSPORT_IPX) {
-			if (g_gameConfig.sfxDatapadEnabled != 0) {
-				FrontendSound_PlayUISound(
+	    (frontend_mouse_get_left_click() != 0 ||
+	     frontend_mouse_get_right_click() != 0)) {
+		if (g_game_config.network_type != NET_TRANSPORT_IPX) {
+			if (g_game_config.sfx_datapad_enabled != 0) {
+				frontend_sound_play_ui_sound(
 					"configsound", 1, 0, 255,
-					12 * g_gameConfig.sfxDatapadVolume, 63);
+					12 * g_game_config.sfx_datapad_volume,
+					63);
 			}
-			if (g_gameConfig.networkType != NET_TRANSPORT_IPX) {
-				g_gameConfig.internetPlay = 0;
+			if (g_game_config.network_type != NET_TRANSPORT_IPX) {
+				g_game_config.internet_play = 0;
 			}
 		}
-		g_gameConfig.networkType = NET_TRANSPORT_IPX;
+		g_game_config.network_type = NET_TRANSPORT_IPX;
 	}
-	if (g_gameConfig.networkType == NET_TRANSPORT_IPX) {
-		FrontImage_DrawSprite("3conbtn", rect.left, rect.top);
+	if (g_game_config.network_type == NET_TRANSPORT_IPX) {
+		front_image_draw_sprite("3conbtn", rect.left, rect.top);
 	}
 	rect.left = rect.right + 5;
 	rect.right = rect.left + 100;
-	FrontendText_DrawAlignedInRect(FONT_LABEL,
-				       FrontendString_Get(FRONTSTR_305_IPX),
-				       &rect, 0, 1, g_colorYellow);
+	frontend_text_draw_aligned_in_rect(
+		FONT_LABEL, frontend_string_get(FRONTSTR_305_IPX), &rect, 0, 1,
+		g_color_yellow);
 
-	FrontendDraw_RectOffsetXY(&sourceRect, 0, 25);
-	sourceRect.right = sourceRect.left + 127;
-	FrontendDraw_RectCopy(&rect, &sourceRect);
-	rect.right = rect.left + buttonWidth;
-	if (g_configDrawStaticControlBackground != 0 &&
-	    (g_configConnectionTypeEditable != 0 ||
-	     g_frontendMissionSessionMode ==
+	frontend_draw_rect_offset_xy(&source_rect, 0, 25);
+	source_rect.right = source_rect.left + 127;
+	frontend_draw_rect_copy(&rect, &source_rect);
+	rect.right = rect.left + button_width;
+	if (g_config_draw_static_control_background != 0 &&
+	    (g_config_connection_type_editable != 0 ||
+	     g_frontend_mission_session_mode ==
 		     FRONTEND_MISSION_SESSION_SINGLEPLAYER)) {
-		FrontendDisplay_LockOffscreenSurface();
-		FrontImage_DrawSpriteTranslucent("offslot", rect.left,
-						 rect.top);
-		FrontendDisplay_UnlockOffscreenSurface(0);
-		FrontImage_DrawSpriteTranslucent("offslot", rect.left,
-						 rect.top);
+		frontend_display_lock_offscreen_surface();
+		front_image_draw_sprite_translucent("offslot", rect.left,
+						    rect.top);
+		frontend_display_unlock_offscreen_surface(0);
+		front_image_draw_sprite_translucent("offslot", rect.left,
+						    rect.top);
 	}
-	if (FrontendDraw_PointInRect(&rect, cursorX, cursorY) &&
-	    (g_configConnectionTypeEditable != 0 ||
-	     g_frontendMissionSessionMode ==
+	if (frontend_draw_point_in_rect(&rect, cursor_x, cursor_y) &&
+	    (g_config_connection_type_editable != 0 ||
+	     g_frontend_mission_session_mode ==
 		     FRONTEND_MISSION_SESSION_SINGLEPLAYER) &&
-	    (FrontendMouse_GetLeftClick() != 0 ||
-	     FrontendMouse_GetRightClick() != 0)) {
-		if (g_gameConfig.networkType != NET_TRANSPORT_TCPIP) {
-			if (g_gameConfig.sfxDatapadEnabled != 0) {
-				FrontendSound_PlayUISound(
+	    (frontend_mouse_get_left_click() != 0 ||
+	     frontend_mouse_get_right_click() != 0)) {
+		if (g_game_config.network_type != NET_TRANSPORT_TCPIP) {
+			if (g_game_config.sfx_datapad_enabled != 0) {
+				frontend_sound_play_ui_sound(
 					"configsound", 1, 0, 255,
-					12 * g_gameConfig.sfxDatapadVolume, 63);
+					12 * g_game_config.sfx_datapad_volume,
+					63);
 			}
-			if (g_gameConfig.networkType != NET_TRANSPORT_TCPIP) {
-				g_gameConfig.internetPlay = 1;
+			if (g_game_config.network_type != NET_TRANSPORT_TCPIP) {
+				g_game_config.internet_play = 1;
 			}
 		}
-		g_gameConfig.networkType = NET_TRANSPORT_TCPIP;
+		g_game_config.network_type = NET_TRANSPORT_TCPIP;
 	}
-	if (g_gameConfig.networkType == NET_TRANSPORT_TCPIP) {
-		FrontImage_DrawSprite("3conbtn", rect.left, rect.top);
+	if (g_game_config.network_type == NET_TRANSPORT_TCPIP) {
+		front_image_draw_sprite("3conbtn", rect.left, rect.top);
 	}
 	rect.left = rect.right + 5;
 	rect.right = rect.left + 100;
-	FrontendText_DrawAlignedInRect(FONT_LABEL,
-				       FrontendString_Get(FRONTSTR_306_TCP_IP),
-				       &rect, 0, 1, g_colorYellow);
-	FrontendDraw_RectOffsetXY(&rect, 100, 0);
-	FrontendText_DrawAlignedInRect(
-		FONT_LABEL, FrontendString_Get(FRONTSTR_308_IP_ADDRESS_NAME),
-		&rect, 0, 1, g_colorYellow);
-	rect.left += fieldLabelWidth + 15;
+	frontend_text_draw_aligned_in_rect(
+		FONT_LABEL, frontend_string_get(FRONTSTR_306_TCP_IP), &rect, 0,
+		1, g_color_yellow);
+	frontend_draw_rect_offset_xy(&rect, 100, 0);
+	frontend_text_draw_aligned_in_rect(
+		FONT_LABEL, frontend_string_get(FRONTSTR_308_IP_ADDRESS_NAME),
+		&rect, 0, 1, g_color_yellow);
+	rect.left += field_label_width + 15;
 	rect.right = rect.left + FIELD_WIDTH;
-	FrontendDraw_RectInsetXY(&rect, 0, -2);
-	FrontendDraw_FillRectTranslucent(&rect, 0, 0,
-					 g_editableFieldBackgroundColor);
-	if (FrontendText_HandleEditableField(&rect, g_gameConfig.ipAddress, 64,
-					     0, FONT_LABEL, NULL) != 0) {
-		g_activeTextFieldId = 1;
+	frontend_draw_rect_inset_xy(&rect, 0, -2);
+	frontend_draw_fill_rect_translucent(&rect, 0, 0,
+					    g_editable_field_background_color);
+	if (frontend_text_handle_editable_field(&rect, g_game_config.ip_address,
+						64, 0, FONT_LABEL, NULL) != 0) {
+		g_active_text_field_id = 1;
 	}
 
-	FrontendDraw_RectOffsetXY(&sourceRect, 0, 25);
-	sourceRect.right = sourceRect.left + 127;
-	FrontendDraw_RectCopy(&rect, &sourceRect);
-	rect.right = rect.left + buttonWidth;
-	if (g_configDrawStaticControlBackground != 0 &&
-	    (g_configConnectionTypeEditable != 0 ||
-	     g_frontendMissionSessionMode ==
+	frontend_draw_rect_offset_xy(&source_rect, 0, 25);
+	source_rect.right = source_rect.left + 127;
+	frontend_draw_rect_copy(&rect, &source_rect);
+	rect.right = rect.left + button_width;
+	if (g_config_draw_static_control_background != 0 &&
+	    (g_config_connection_type_editable != 0 ||
+	     g_frontend_mission_session_mode ==
 		     FRONTEND_MISSION_SESSION_SINGLEPLAYER)) {
-		FrontendDisplay_LockOffscreenSurface();
-		FrontImage_DrawSpriteTranslucent("offslot", rect.left,
-						 rect.top);
-		FrontendDisplay_UnlockOffscreenSurface(0);
-		FrontImage_DrawSpriteTranslucent("offslot", rect.left,
-						 rect.top);
+		frontend_display_lock_offscreen_surface();
+		front_image_draw_sprite_translucent("offslot", rect.left,
+						    rect.top);
+		frontend_display_unlock_offscreen_surface(0);
+		front_image_draw_sprite_translucent("offslot", rect.left,
+						    rect.top);
 	}
-	if (FrontendDraw_PointInRect(&rect, cursorX, cursorY) &&
-	    (g_configConnectionTypeEditable != 0 ||
-	     g_frontendMissionSessionMode ==
+	if (frontend_draw_point_in_rect(&rect, cursor_x, cursor_y) &&
+	    (g_config_connection_type_editable != 0 ||
+	     g_frontend_mission_session_mode ==
 		     FRONTEND_MISSION_SESSION_SINGLEPLAYER) &&
-	    (FrontendMouse_GetLeftClick() != 0 ||
-	     FrontendMouse_GetRightClick() != 0)) {
-		if (g_gameConfig.networkType != NET_TRANSPORT_MODEM) {
-			if (g_gameConfig.sfxDatapadEnabled != 0) {
-				FrontendSound_PlayUISound(
+	    (frontend_mouse_get_left_click() != 0 ||
+	     frontend_mouse_get_right_click() != 0)) {
+		if (g_game_config.network_type != NET_TRANSPORT_MODEM) {
+			if (g_game_config.sfx_datapad_enabled != 0) {
+				frontend_sound_play_ui_sound(
 					"configsound", 1, 0, 255,
-					12 * g_gameConfig.sfxDatapadVolume, 63);
+					12 * g_game_config.sfx_datapad_volume,
+					63);
 			}
-			if (g_gameConfig.networkType != NET_TRANSPORT_MODEM) {
-				g_gameConfig.internetPlay = 0;
+			if (g_game_config.network_type != NET_TRANSPORT_MODEM) {
+				g_game_config.internet_play = 0;
 			}
 		}
-		g_gameConfig.networkType = NET_TRANSPORT_MODEM;
+		g_game_config.network_type = NET_TRANSPORT_MODEM;
 	}
-	if (g_gameConfig.networkType == NET_TRANSPORT_MODEM) {
-		FrontImage_DrawSprite("3conbtn", rect.left, rect.top);
+	if (g_game_config.network_type == NET_TRANSPORT_MODEM) {
+		front_image_draw_sprite("3conbtn", rect.left, rect.top);
 	}
 	rect.left = rect.right + 5;
 	rect.right = rect.left + 100;
-	FrontendText_DrawAlignedInRect(
-		FONT_LABEL, FrontendString_Get(FRONTSTR_307_DIRECT_MODEM),
-		&rect, 0, 1, g_colorYellow);
-	FrontendDraw_RectOffsetXY(&rect, 100, 0);
-	FrontendText_DrawAlignedInRect(
-		FONT_LABEL, FrontendString_Get(FRONTSTR_309_PHONE_NUMBER),
-		&rect, 0, 1, g_colorYellow);
-	rect.left += fieldLabelWidth + 15;
+	frontend_text_draw_aligned_in_rect(
+		FONT_LABEL, frontend_string_get(FRONTSTR_307_DIRECT_MODEM),
+		&rect, 0, 1, g_color_yellow);
+	frontend_draw_rect_offset_xy(&rect, 100, 0);
+	frontend_text_draw_aligned_in_rect(
+		FONT_LABEL, frontend_string_get(FRONTSTR_309_PHONE_NUMBER),
+		&rect, 0, 1, g_color_yellow);
+	rect.left += field_label_width + 15;
 	rect.right = rect.left + FIELD_WIDTH;
-	FrontendDraw_RectInsetXY(&rect, 0, -2);
-	FrontendDraw_FillRectTranslucent(&rect, 0, 0,
-					 g_editableFieldBackgroundColor);
-	if (FrontendText_HandleEditableField(&rect, g_gameConfig.phoneNumber,
-					     64, 1, FONT_LABEL, NULL) != 0) {
-		g_activeTextFieldId = 2;
+	frontend_draw_rect_inset_xy(&rect, 0, -2);
+	frontend_draw_fill_rect_translucent(&rect, 0, 0,
+					    g_editable_field_background_color);
+	if (frontend_text_handle_editable_field(&rect,
+						g_game_config.phone_number, 64,
+						1, FONT_LABEL, NULL) != 0) {
+		g_active_text_field_id = 2;
 	}
 
-	FrontendDraw_RectOffsetXY(&sourceRect, 0, 25);
-	sourceRect.right = sourceRect.left + 127;
-	FrontendDraw_RectCopy(&rect, &sourceRect);
-	/* From here buttonWidth holds the serial slot's right edge, not a width. */
-	buttonWidth += rect.left;
-	rect.right = buttonWidth;
-	if (g_configDrawStaticControlBackground != 0 &&
-	    (g_configConnectionTypeEditable != 0 ||
-	     g_frontendMissionSessionMode ==
+	frontend_draw_rect_offset_xy(&source_rect, 0, 25);
+	source_rect.right = source_rect.left + 127;
+	frontend_draw_rect_copy(&rect, &source_rect);
+	/* From here button_width holds the serial slot's right edge, not a width. */
+	button_width += rect.left;
+	rect.right = button_width;
+	if (g_config_draw_static_control_background != 0 &&
+	    (g_config_connection_type_editable != 0 ||
+	     g_frontend_mission_session_mode ==
 		     FRONTEND_MISSION_SESSION_SINGLEPLAYER)) {
-		FrontendDisplay_LockOffscreenSurface();
-		FrontImage_DrawSpriteTranslucent("offslot", rect.left,
-						 rect.top);
-		FrontendDisplay_UnlockOffscreenSurface(0);
-		FrontImage_DrawSpriteTranslucent("offslot", rect.left,
-						 rect.top);
+		frontend_display_lock_offscreen_surface();
+		front_image_draw_sprite_translucent("offslot", rect.left,
+						    rect.top);
+		frontend_display_unlock_offscreen_surface(0);
+		front_image_draw_sprite_translucent("offslot", rect.left,
+						    rect.top);
 	}
-	if (FrontendDraw_PointInRect(&rect, cursorX, cursorY) &&
-	    (g_configConnectionTypeEditable != 0 ||
-	     g_frontendMissionSessionMode ==
+	if (frontend_draw_point_in_rect(&rect, cursor_x, cursor_y) &&
+	    (g_config_connection_type_editable != 0 ||
+	     g_frontend_mission_session_mode ==
 		     FRONTEND_MISSION_SESSION_SINGLEPLAYER) &&
-	    (FrontendMouse_GetLeftClick() != 0 ||
-	     FrontendMouse_GetRightClick() != 0)) {
-		if (g_gameConfig.networkType != NET_TRANSPORT_SERIAL) {
-			if (g_gameConfig.sfxDatapadEnabled != 0) {
-				FrontendSound_PlayUISound(
+	    (frontend_mouse_get_left_click() != 0 ||
+	     frontend_mouse_get_right_click() != 0)) {
+		if (g_game_config.network_type != NET_TRANSPORT_SERIAL) {
+			if (g_game_config.sfx_datapad_enabled != 0) {
+				frontend_sound_play_ui_sound(
 					"configsound", 1, 0, 255,
-					12 * g_gameConfig.sfxDatapadVolume, 63);
+					12 * g_game_config.sfx_datapad_volume,
+					63);
 			}
-			if (g_gameConfig.networkType != NET_TRANSPORT_SERIAL) {
-				g_gameConfig.internetPlay = 0;
+			if (g_game_config.network_type !=
+			    NET_TRANSPORT_SERIAL) {
+				g_game_config.internet_play = 0;
 			}
 		}
-		g_gameConfig.networkType = NET_TRANSPORT_SERIAL;
+		g_game_config.network_type = NET_TRANSPORT_SERIAL;
 	}
-	if (g_gameConfig.networkType == NET_TRANSPORT_SERIAL) {
-		FrontImage_DrawSprite("3conbtn", rect.left, rect.top);
+	if (g_game_config.network_type == NET_TRANSPORT_SERIAL) {
+		front_image_draw_sprite("3conbtn", rect.left, rect.top);
 	}
 	rect.left = rect.right + 5;
 	rect.right = rect.left + 100;
-	FrontendText_DrawAlignedInRect(
-		FONT_LABEL, FrontendString_Get(FRONTSTR_449_DIRECT_SERIAL),
-		&rect, 0, 1, g_colorYellow);
+	frontend_text_draw_aligned_in_rect(
+		FONT_LABEL, frontend_string_get(FRONTSTR_449_DIRECT_SERIAL),
+		&rect, 0, 1, g_color_yellow);
 
 #endif
-	FrontendDraw_RectOffsetXY(&sourceRect, 0, 35);
-	FrontendText_DrawAlignedInRect(
+	frontend_draw_rect_offset_xy(&source_rect, 0, 35);
+	frontend_text_draw_aligned_in_rect(
 		FONT_LABEL,
-		FrontendString_Get(FRONTSTR_478_GENERAL_CONNECTION_OPTIONS),
-		&sourceRect, 0, 1, 0xFFFF);
-	FrontendDraw_RectOffsetXY(&sourceRect, 0, 20);
-	FrontendDraw_RectCopy(&rect, &sourceRect);
-	FrontendText_DrawAlignedInRect(
+		frontend_string_get(FRONTSTR_478_GENERAL_CONNECTION_OPTIONS),
+		&source_rect, 0, 1, 0xFFFF);
+	frontend_draw_rect_offset_xy(&source_rect, 0, 20);
+	frontend_draw_rect_copy(&rect, &source_rect);
+	frontend_text_draw_aligned_in_rect(
 		FONT_LABEL,
-		FrontendString_Get(FRONTSTR_482_GAME_SESSION_PASSWORD), &rect,
-		0, 1, g_colorYellow);
-	labelWidth = FrontendText_MeasureWidth(
-		FrontendString_Get(FRONTSTR_482_GAME_SESSION_PASSWORD),
+		frontend_string_get(FRONTSTR_482_GAME_SESSION_PASSWORD), &rect,
+		0, 1, g_color_yellow);
+	label_width = frontend_text_measure_width(
+		frontend_string_get(FRONTSTR_482_GAME_SESSION_PASSWORD),
 		FONT_LABEL);
-	rect.left += labelWidth + 15;
+	rect.left += label_width + 15;
 	rect.right = rect.left + FIELD_WIDTH;
-	FrontendDraw_RectInsetXY(&rect, 0, -2);
-	FrontendDraw_FillRectTranslucent(&rect, 0, 0,
-					 g_editableFieldBackgroundColor);
-	if (FrontendText_HandleEditableField(&rect, g_gameConfig.password, 16,
-					     2, FONT_LABEL, NULL) != 0) {
-		g_activeTextFieldId = 0;
+	frontend_draw_rect_inset_xy(&rect, 0, -2);
+	frontend_draw_fill_rect_translucent(&rect, 0, 0,
+					    g_editable_field_background_color);
+	if (frontend_text_handle_editable_field(&rect, g_game_config.password,
+						16, 2, FONT_LABEL, NULL) != 0) {
+		g_active_text_field_id = 0;
 	}
 
-	FrontendDraw_RectOffsetXY(&sourceRect, 0, 35);
-	if (g_frontendMissionSessionMode ==
+	frontend_draw_rect_offset_xy(&source_rect, 0, 35);
+	if (g_frontend_mission_session_mode ==
 	    FRONTEND_MISSION_SESSION_NET_CLIENT) {
-		FrontendText_DrawAlignedInRect(
+		frontend_text_draw_aligned_in_rect(
 			FONT_LABEL,
-			FrontendString_Get(
+			frontend_string_get(
 				FRONTSTR_747_HOST_OPTIONS_YOU_ARE_A_CLIENT_YOU_CANNOT_CHANGE_THESE_SETTINGS),
-			&sourceRect, 0, 1, 0xFFFF);
-		FrontendDraw_RectOffsetXY(&sourceRect, 0, 20);
-		FrontendText_DrawAlignedInRect(
+			&source_rect, 0, 1, 0xFFFF);
+		frontend_draw_rect_offset_xy(&source_rect, 0, 20);
+		frontend_text_draw_aligned_in_rect(
 			FONT_LABEL,
-			FrontendString_Get(
+			frontend_string_get(
 				FRONTSTR_479_PLAYING_OVER_THE_INTERNET),
-			&sourceRect, 0, 1, g_colorYellow);
-		FrontendDraw_RectOffsetXY(&sourceRect, 0, 17);
-		Config_DrawTwoChoiceOptionReadOnlyOpaque(
-			&g_gameConfig.internetPlay, &sourceRect,
+			&source_rect, 0, 1, g_color_yellow);
+		frontend_draw_rect_offset_xy(&source_rect, 0, 17);
+		config_draw_two_choice_option_read_only_opaque(
+			&g_game_config.internet_play, &source_rect,
 			FRONTSTR_480_NO);
-		FrontendDraw_RectOffsetXY(&sourceRect, 0, 20);
-		FrontendText_DrawAlignedInRect(
+		frontend_draw_rect_offset_xy(&source_rect, 0, 20);
+		frontend_text_draw_aligned_in_rect(
 			FONT_LABEL,
-			FrontendString_Get(
+			frontend_string_get(
 				FRONTSTR_743_HOST_SERVER_UPDATE_RATE),
-			&sourceRect, 0, 1, g_colorYellow);
-		FrontendDraw_RectOffsetXY(&sourceRect, 0, 17);
-		selectedOption =
-			(uint8_t)((g_gameConfig.serverUpdateRate >> 1) - 2);
-		Config_DrawThreeChoiceOptionReadOnly(
-			&selectedOption, &sourceRect, FRONTSTR_744_LOW);
+			&source_rect, 0, 1, g_color_yellow);
+		frontend_draw_rect_offset_xy(&source_rect, 0, 17);
+		selected_option =
+			(uint8_t)((g_game_config.server_update_rate >> 1) - 2);
+		config_draw_three_choice_option_read_only(
+			&selected_option, &source_rect, FRONTSTR_744_LOW);
 	} else {
-		FrontendText_DrawAlignedInRect(
+		frontend_text_draw_aligned_in_rect(
 			FONT_LABEL,
-			FrontendString_Get(FRONTSTR_742_HOST_SERVER_OPTIONS),
-			&sourceRect, 0, 1, 0xFFFF);
-		FrontendDraw_RectOffsetXY(&sourceRect, 0, 20);
-		FrontendText_DrawAlignedInRect(
+			frontend_string_get(FRONTSTR_742_HOST_SERVER_OPTIONS),
+			&source_rect, 0, 1, 0xFFFF);
+		frontend_draw_rect_offset_xy(&source_rect, 0, 20);
+		frontend_text_draw_aligned_in_rect(
 			FONT_LABEL,
-			FrontendString_Get(
+			frontend_string_get(
 				FRONTSTR_479_PLAYING_OVER_THE_INTERNET),
-			&sourceRect, 0, 1, g_colorYellow);
-		FrontendDraw_RectOffsetXY(&sourceRect, 0, 17);
-		Config_DrawTwoChoiceOption(&g_gameConfig.internetPlay,
-					   &sourceRect, FRONTSTR_480_NO);
-		FrontendDraw_RectOffsetXY(&sourceRect, 0, 20);
-		FrontendText_DrawAlignedInRect(
+			&source_rect, 0, 1, g_color_yellow);
+		frontend_draw_rect_offset_xy(&source_rect, 0, 17);
+		config_draw_two_choice_option(&g_game_config.internet_play,
+					      &source_rect, FRONTSTR_480_NO);
+		frontend_draw_rect_offset_xy(&source_rect, 0, 20);
+		frontend_text_draw_aligned_in_rect(
 			FONT_LABEL,
-			FrontendString_Get(
+			frontend_string_get(
 				FRONTSTR_743_HOST_SERVER_UPDATE_RATE),
-			&sourceRect, 0, 1, g_colorYellow);
-		FrontendDraw_RectOffsetXY(&sourceRect, 0, 17);
-		selectedOption =
-			(uint8_t)((g_gameConfig.serverUpdateRate >> 1) - 2);
-		Config_DrawThreeChoiceOption(&selectedOption, &sourceRect,
-					     FRONTSTR_744_LOW);
-		g_gameConfig.serverUpdateRate =
-			(uint8_t)(2 * selectedOption + 4);
+			&source_rect, 0, 1, g_color_yellow);
+		frontend_draw_rect_offset_xy(&source_rect, 0, 17);
+		selected_option =
+			(uint8_t)((g_game_config.server_update_rate >> 1) - 2);
+		config_draw_three_choice_option(&selected_option, &source_rect,
+						FRONTSTR_744_LOW);
+		g_game_config.server_update_rate =
+			(uint8_t)(2 * selected_option + 4);
 	}
 }
 
-/* The two-choice control of Config_DrawTwoChoiceOptionImpl with an opaque
- * marker, taking no clicks; Config_DrawTwoChoiceOptionReadOnly takes none
+/* The two-choice control of config_draw_two_choice_option_impl with an opaque
+ * marker, taking no clicks; config_draw_two_choice_option_read_only takes none
  * either but draws the marker translucent. The network page uses it for a
  * client's internet play setting. */
 // FUNCTION: XVT 0x4BC1C0
-void Config_DrawTwoChoiceOptionReadOnlyOpaque(const uint8_t *value,
-					      const struct RECT *rect,
-					      FrontendStringId valueBaseStrId)
+void config_draw_two_choice_option_read_only_opaque(
+	const uint8_t *value, const struct RECT *rect,
+	frontend_string_id value_base_str_id)
 {
-	int optionIndex;
-	struct RECT slotRect;
-	struct RECT spriteRect;
-	int cursorX;
-	int cursorY;
+	int option_index;
+	struct RECT slot_rect;
+	struct RECT sprite_rect;
+	int cursor_x;
+	int cursor_y;
 
-	FrontendCursor_GetPos(&cursorX, &cursorY);
-	FrontImage_GetResourceRect("offslot", &spriteRect);
-	FrontendDraw_RectCopy(&slotRect, rect);
-	for (optionIndex = 0; optionIndex < 2; ++optionIndex) {
-		slotRect.right =
-			slotRect.left + spriteRect.right - spriteRect.left + 1;
-		if (g_configDrawStaticControlBackground != 0) {
-			FrontendDisplay_LockOffscreenSurface();
-			if (optionIndex == 0) {
-				FrontImage_DrawSpriteTranslucent(
-					"offslot", slotRect.left, slotRect.top);
+	frontend_cursor_get_pos(&cursor_x, &cursor_y);
+	front_image_get_resource_rect("offslot", &sprite_rect);
+	frontend_draw_rect_copy(&slot_rect, rect);
+	for (option_index = 0; option_index < 2; ++option_index) {
+		slot_rect.right = slot_rect.left + sprite_rect.right -
+				  sprite_rect.left + 1;
+		if (g_config_draw_static_control_background != 0) {
+			frontend_display_lock_offscreen_surface();
+			if (option_index == 0) {
+				front_image_draw_sprite_translucent(
+					"offslot", slot_rect.left,
+					slot_rect.top);
 			} else {
-				FrontImage_DrawSpriteTranslucent(
-					"onslot", slotRect.left, slotRect.top);
+				front_image_draw_sprite_translucent(
+					"onslot", slot_rect.left,
+					slot_rect.top);
 			}
-			FrontendDisplay_UnlockOffscreenSurface(0);
-			if (optionIndex == 0) {
-				FrontImage_DrawSpriteTranslucent(
-					"offslot", slotRect.left, slotRect.top);
+			frontend_display_unlock_offscreen_surface(0);
+			if (option_index == 0) {
+				front_image_draw_sprite_translucent(
+					"offslot", slot_rect.left,
+					slot_rect.top);
 			} else {
-				FrontImage_DrawSpriteTranslucent(
-					"onslot", slotRect.left, slotRect.top);
+				front_image_draw_sprite_translucent(
+					"onslot", slot_rect.left,
+					slot_rect.top);
 			}
 		}
 
-		if (*value == optionIndex) {
-			FrontImage_DrawSprite("3conbtn", slotRect.left,
-					      slotRect.top);
+		if (*value == option_index) {
+			front_image_draw_sprite("3conbtn", slot_rect.left,
+						slot_rect.top);
 		}
-		slotRect.left = slotRect.right + 5;
-		slotRect.right = slotRect.left + 100;
-		FrontendText_DrawAlignedInRect(
-			12, FrontendString_Get(valueBaseStrId + optionIndex),
-			&slotRect, 0, 1, g_colorYellow);
-		slotRect.left = rect->left + 130;
+		slot_rect.left = slot_rect.right + 5;
+		slot_rect.right = slot_rect.left + 100;
+		frontend_text_draw_aligned_in_rect(
+			12,
+			frontend_string_get(value_base_str_id + option_index),
+			&slot_rect, 0, 1, g_color_yellow);
+		slot_rect.left = rect->left + 130;
 	}
 }
 
-/* The three-choice control of Config_DrawThreeChoiceOption, taking no
+/* The three-choice control of config_draw_three_choice_option, taking no
  * clicks. */
 // FUNCTION: XVT 0x4BC2F0
-void Config_DrawThreeChoiceOptionReadOnly(const uint8_t *selectedOption,
-					  const struct RECT *barRect,
-					  FrontendStringId firstOptionStringId)
+void config_draw_three_choice_option_read_only(
+	const uint8_t *selected_option, const struct RECT *bar_rect,
+	frontend_string_id first_option_string_id)
 {
-	struct RECT optionRect;
-	struct RECT spriteRect;
-	int cursorX;
-	int cursorY;
-	int buttonWidth;
+	struct RECT option_rect;
+	struct RECT sprite_rect;
+	int cursor_x;
+	int cursor_y;
+	int button_width;
 	int right;
 
-	if (g_configDrawStaticControlBackground != 0) {
-		FrontendDisplay_LockOffscreenSurface();
-		FrontImage_DrawSpriteTranslucent("3conbar", barRect->left,
-						 barRect->top);
-		FrontendDisplay_UnlockOffscreenSurface(0);
-		FrontImage_DrawSpriteTranslucent("3conbar", barRect->left,
-						 barRect->top);
+	if (g_config_draw_static_control_background != 0) {
+		frontend_display_lock_offscreen_surface();
+		front_image_draw_sprite_translucent("3conbar", bar_rect->left,
+						    bar_rect->top);
+		frontend_display_unlock_offscreen_surface(0);
+		front_image_draw_sprite_translucent("3conbar", bar_rect->left,
+						    bar_rect->top);
 	}
 
-	FrontendCursor_GetPos(&cursorX, &cursorY);
-	FrontImage_GetResourceRect("3conbtn", &spriteRect);
-	buttonWidth = spriteRect.right - spriteRect.left + 1;
-	FrontImage_GetResourceRect("3conbar", &spriteRect);
-	FrontendDraw_RectOffsetXY(&spriteRect, barRect->left, barRect->top);
-	FrontendDraw_RectCopy(&optionRect, barRect);
+	frontend_cursor_get_pos(&cursor_x, &cursor_y);
+	front_image_get_resource_rect("3conbtn", &sprite_rect);
+	button_width = sprite_rect.right - sprite_rect.left + 1;
+	front_image_get_resource_rect("3conbar", &sprite_rect);
+	frontend_draw_rect_offset_xy(&sprite_rect, bar_rect->left,
+				     bar_rect->top);
+	frontend_draw_rect_copy(&option_rect, bar_rect);
 
-	optionRect.right = optionRect.left + buttonWidth;
-	if (*selectedOption == 0) {
-		FrontImage_DrawSprite("3conbtn", optionRect.left,
-				      optionRect.top);
+	option_rect.right = option_rect.left + button_width;
+	if (*selected_option == 0) {
+		front_image_draw_sprite("3conbtn", option_rect.left,
+					option_rect.top);
 	}
-	FrontendDraw_RectOffsetXY(&optionRect, 0, 15);
-	FrontendText_DrawAlignedInRect(12,
-				       FrontendString_Get(firstOptionStringId),
-				       &optionRect, 0, 1, g_colorYellow);
-	FrontendDraw_RectOffsetXY(&optionRect, 0, -15);
+	frontend_draw_rect_offset_xy(&option_rect, 0, 15);
+	frontend_text_draw_aligned_in_rect(
+		12, frontend_string_get(first_option_string_id), &option_rect,
+		0, 1, g_color_yellow);
+	frontend_draw_rect_offset_xy(&option_rect, 0, -15);
 
-	optionRect.left =
-		spriteRect.left +
-		((spriteRect.right - buttonWidth - spriteRect.left) >> 1) + 1;
-	optionRect.right = optionRect.left + buttonWidth;
-	if (*selectedOption == 1) {
-		FrontImage_DrawSprite("3conbtn", optionRect.left,
-				      optionRect.top);
-	}
-	FrontendDraw_RectOffsetXY(&optionRect, 0, 15);
-	FrontendText_DrawCentered(12,
-				  FrontendString_Get(firstOptionStringId + 1),
-				  &optionRect, g_colorYellow);
-	FrontendDraw_RectOffsetXY(&optionRect, 0, -15);
-
-	optionRect.right = spriteRect.right;
-	optionRect.left = spriteRect.right - buttonWidth + 1;
-	if (*selectedOption == 2) {
-		FrontImage_DrawSprite("3conbtn", optionRect.left,
-				      optionRect.top);
-	}
-	FrontendDraw_RectOffsetXY(&optionRect, 0, 15);
-	right = spriteRect.right;
-	optionRect.left =
-		right -
-		FrontendText_MeasureWidth(
-			FrontendString_Get(firstOptionStringId + 2), 12) +
+	option_rect.left =
+		sprite_rect.left +
+		((sprite_rect.right - button_width - sprite_rect.left) >> 1) +
 		1;
-	FrontendText_DrawAlignedInRect(
-		12, FrontendString_Get(firstOptionStringId + 2), &optionRect, 0,
-		1, g_colorYellow);
+	option_rect.right = option_rect.left + button_width;
+	if (*selected_option == 1) {
+		front_image_draw_sprite("3conbtn", option_rect.left,
+					option_rect.top);
+	}
+	frontend_draw_rect_offset_xy(&option_rect, 0, 15);
+	frontend_text_draw_centered(
+		12, frontend_string_get(first_option_string_id + 1),
+		&option_rect, g_color_yellow);
+	frontend_draw_rect_offset_xy(&option_rect, 0, -15);
+
+	option_rect.right = sprite_rect.right;
+	option_rect.left = sprite_rect.right - button_width + 1;
+	if (*selected_option == 2) {
+		front_image_draw_sprite("3conbtn", option_rect.left,
+					option_rect.top);
+	}
+	frontend_draw_rect_offset_xy(&option_rect, 0, 15);
+	right = sprite_rect.right;
+	option_rect.left =
+		right -
+		frontend_text_measure_width(
+			frontend_string_get(first_option_string_id + 2), 12) +
+		1;
+	frontend_text_draw_aligned_in_rect(
+		12, frontend_string_get(first_option_string_id + 2),
+		&option_rect, 0, 1, g_color_yellow);
 }
 
 /* Draws the sound page: switches and 10-position volume sliders for frontend,
@@ -2782,162 +2861,166 @@ void Config_DrawThreeChoiceOptionReadOnly(const uint8_t *selectedOption,
  * plays CD track 7 at the music volume, off stops it, and a music volume change
  * sets the CD volume while frontend music is on. */
 // FUNCTION: XVT 0x4BC520
-void Config_SoundOptionsScreen(void)
+void config_sound_options_screen(void)
 {
 	struct RECT rect;
-	int previousVolume;
-	int previousDatapadMusic;
+	int previous_volume;
+	int previous_datapad_music;
 
-	FrontendDraw_RectAssign(&rect, 84, 90, 604, 106);
-	FrontendText_DrawCentered(
-		15, FrontendString_Get(FRONTSTR_310_SOUND_OPTIONS), &rect,
+	frontend_draw_rect_assign(&rect, 84, 90, 604, 106);
+	frontend_text_draw_centered(
+		15, frontend_string_get(FRONTSTR_310_SOUND_OPTIONS), &rect,
 		0xFFFF);
 
-	FrontendDraw_RectAssign(&rect, 88, 111, 332, 125);
-	FrontendText_DrawAlignedInRect(
-		12, FrontendString_Get(FRONTSTR_408_DATAPAD_SFX), &rect, 0, 1,
+	frontend_draw_rect_assign(&rect, 88, 111, 332, 125);
+	frontend_text_draw_aligned_in_rect(
+		12, frontend_string_get(FRONTSTR_408_DATAPAD_SFX), &rect, 0, 1,
 		0xFFFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawTwoChoiceOption(&g_gameConfig.sfxDatapadEnabled, &rect,
-				   FRONTSTR_236_OFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	previousVolume = g_gameConfig.sfxDatapadVolume;
-	Config_DrawOptionSlider(&g_gameConfig.sfxDatapadVolume, &rect, 10,
-				FRONTSTR_403_VOLUME_LOW, 0);
-	if (g_gameConfig.sfxDatapadVolume != previousVolume &&
-	    g_gameConfig.sfxDatapadEnabled != 0) {
-		FrontendSound_PlayUISound("configsound", 1, 0, 255,
-					  12 * g_gameConfig.sfxDatapadVolume,
-					  63);
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	config_draw_two_choice_option(&g_game_config.sfx_datapad_enabled, &rect,
+				      FRONTSTR_236_OFF);
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	previous_volume = g_game_config.sfx_datapad_volume;
+	config_draw_option_slider(&g_game_config.sfx_datapad_volume, &rect, 10,
+				  FRONTSTR_403_VOLUME_LOW, 0);
+	if (g_game_config.sfx_datapad_volume != previous_volume &&
+	    g_game_config.sfx_datapad_enabled != 0) {
+		frontend_sound_play_ui_sound(
+			"configsound", 1, 0, 255,
+			12 * g_game_config.sfx_datapad_volume, 63);
 	}
-	FrontendDraw_RectOffsetXY(&rect, 0, 55);
+	frontend_draw_rect_offset_xy(&rect, 0, 55);
 
-	FrontendText_DrawAlignedInRect(
-		12, FrontendString_Get(FRONTSTR_405_FLIGHT_ENGINE_EXTERIOR_SFX),
+	frontend_text_draw_aligned_in_rect(
+		12,
+		frontend_string_get(FRONTSTR_405_FLIGHT_ENGINE_EXTERIOR_SFX),
 		&rect, 0, 1, 0xFFFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawTwoChoiceOption(&g_gameConfig.sfxExteriorEnabled, &rect,
-				   FRONTSTR_236_OFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	previousVolume = g_gameConfig.sfxExteriorVolume;
-	Config_DrawOptionSlider(&g_gameConfig.sfxExteriorVolume, &rect, 10,
-				FRONTSTR_403_VOLUME_LOW, 0);
-	if (g_gameConfig.sfxExteriorVolume != previousVolume &&
-	    g_gameConfig.sfxDatapadEnabled != 0) {
-		FrontendSound_PlayUISound("configsound", 1, 0, 255,
-					  12 * g_gameConfig.sfxExteriorVolume,
-					  63);
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	config_draw_two_choice_option(&g_game_config.sfx_exterior_enabled,
+				      &rect, FRONTSTR_236_OFF);
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	previous_volume = g_game_config.sfx_exterior_volume;
+	config_draw_option_slider(&g_game_config.sfx_exterior_volume, &rect, 10,
+				  FRONTSTR_403_VOLUME_LOW, 0);
+	if (g_game_config.sfx_exterior_volume != previous_volume &&
+	    g_game_config.sfx_datapad_enabled != 0) {
+		frontend_sound_play_ui_sound(
+			"configsound", 1, 0, 255,
+			12 * g_game_config.sfx_exterior_volume, 63);
 	}
-	FrontendDraw_RectOffsetXY(&rect, 0, 55);
+	frontend_draw_rect_offset_xy(&rect, 0, 55);
 
-	FrontendText_DrawAlignedInRect(
-		12, FrontendString_Get(FRONTSTR_406_COCKPIT_INTERIOR_SFX),
+	frontend_text_draw_aligned_in_rect(
+		12, frontend_string_get(FRONTSTR_406_COCKPIT_INTERIOR_SFX),
 		&rect, 0, 1, 0xFFFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawTwoChoiceOption(&g_gameConfig.sfxInteriorEnabled, &rect,
-				   FRONTSTR_236_OFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	previousVolume = g_gameConfig.sfxInteriorVolume;
-	Config_DrawOptionSlider(&g_gameConfig.sfxInteriorVolume, &rect, 10,
-				FRONTSTR_403_VOLUME_LOW, 0);
-	if (g_gameConfig.sfxInteriorVolume != previousVolume &&
-	    g_gameConfig.sfxDatapadEnabled != 0) {
-		FrontendSound_PlayUISound("configsound", 1, 0, 255,
-					  12 * g_gameConfig.sfxInteriorVolume,
-					  63);
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	config_draw_two_choice_option(&g_game_config.sfx_interior_enabled,
+				      &rect, FRONTSTR_236_OFF);
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	previous_volume = g_game_config.sfx_interior_volume;
+	config_draw_option_slider(&g_game_config.sfx_interior_volume, &rect, 10,
+				  FRONTSTR_403_VOLUME_LOW, 0);
+	if (g_game_config.sfx_interior_volume != previous_volume &&
+	    g_game_config.sfx_datapad_enabled != 0) {
+		frontend_sound_play_ui_sound(
+			"configsound", 1, 0, 255,
+			12 * g_game_config.sfx_interior_volume, 63);
 	}
-	FrontendDraw_RectOffsetXY(&rect, 0, 55);
+	frontend_draw_rect_offset_xy(&rect, 0, 55);
 
-	FrontendText_DrawAlignedInRect(
-		12, FrontendString_Get(FRONTSTR_407_ENGINE_SOUND), &rect, 0, 1,
+	frontend_text_draw_aligned_in_rect(
+		12, frontend_string_get(FRONTSTR_407_ENGINE_SOUND), &rect, 0, 1,
 		0xFFFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawTwoChoiceOption(&g_gameConfig.sfxEngineEnabled, &rect,
-				   FRONTSTR_236_OFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	previousVolume = g_gameConfig.sfxEngineVolume;
-	Config_DrawOptionSlider(&g_gameConfig.sfxEngineVolume, &rect, 10,
-				FRONTSTR_403_VOLUME_LOW, 0);
-	if (g_gameConfig.sfxEngineVolume != previousVolume &&
-	    g_gameConfig.sfxDatapadEnabled != 0) {
-		FrontendSound_PlayUISound("configsound", 1, 0, 255,
-					  12 * g_gameConfig.sfxEngineVolume,
-					  63);
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	config_draw_two_choice_option(&g_game_config.sfx_engine_enabled, &rect,
+				      FRONTSTR_236_OFF);
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	previous_volume = g_game_config.sfx_engine_volume;
+	config_draw_option_slider(&g_game_config.sfx_engine_volume, &rect, 10,
+				  FRONTSTR_403_VOLUME_LOW, 0);
+	if (g_game_config.sfx_engine_volume != previous_volume &&
+	    g_game_config.sfx_datapad_enabled != 0) {
+		frontend_sound_play_ui_sound(
+			"configsound", 1, 0, 255,
+			12 * g_game_config.sfx_engine_volume, 63);
 	}
 
-	FrontendDraw_RectAssign(&rect, 356, 111, 600, 125);
-	FrontendText_DrawAlignedInRect(
-		12, FrontendString_Get(FRONTSTR_409_PILOT_MESSAGES), &rect, 0,
+	frontend_draw_rect_assign(&rect, 356, 111, 600, 125);
+	frontend_text_draw_aligned_in_rect(
+		12, frontend_string_get(FRONTSTR_409_PILOT_MESSAGES), &rect, 0,
 		1, 0xFFFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawThreeChoiceOption(&g_gameConfig.voicePilotLevel, &rect,
-				     FRONTSTR_400_OFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 35);
-	FrontendText_DrawAlignedInRect(
-		12, FrontendString_Get(FRONTSTR_410_TACTICAL_OFFICER_MESSAGES),
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	config_draw_three_choice_option(&g_game_config.voice_pilot_level, &rect,
+					FRONTSTR_400_OFF);
+	frontend_draw_rect_offset_xy(&rect, 0, 35);
+	frontend_text_draw_aligned_in_rect(
+		12, frontend_string_get(FRONTSTR_410_TACTICAL_OFFICER_MESSAGES),
 		&rect, 0, 1, 0xFFFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawThreeChoiceOption(&g_gameConfig.voiceTacticalOfficerLevel,
-				     &rect, FRONTSTR_400_OFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 35);
-	FrontendText_DrawAlignedInRect(
-		12, FrontendString_Get(FRONTSTR_411_COMMANDER_MESSAGES), &rect,
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	config_draw_three_choice_option(
+		&g_game_config.voice_tactical_officer_level, &rect,
+		FRONTSTR_400_OFF);
+	frontend_draw_rect_offset_xy(&rect, 0, 35);
+	frontend_text_draw_aligned_in_rect(
+		12, frontend_string_get(FRONTSTR_411_COMMANDER_MESSAGES), &rect,
 		0, 1, 0xFFFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawTwoChoiceOption(&g_gameConfig.voiceCommanderEnabled, &rect,
-				   FRONTSTR_236_OFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 20);
-	FrontendText_DrawAlignedInRect(
-		12, FrontendString_Get(FRONTSTR_412_SPECIAL_MISSION_MESSAGES),
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	config_draw_two_choice_option(&g_game_config.voice_commander_enabled,
+				      &rect, FRONTSTR_236_OFF);
+	frontend_draw_rect_offset_xy(&rect, 0, 20);
+	frontend_text_draw_aligned_in_rect(
+		12, frontend_string_get(FRONTSTR_412_SPECIAL_MISSION_MESSAGES),
 		&rect, 0, 1, 0xFFFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawTwoChoiceOption(&g_gameConfig.voiceSpecialEnabled, &rect,
-				   FRONTSTR_236_OFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 25);
-	FrontendText_DrawAlignedInRect(
-		12, FrontendString_Get(FRONTSTR_414_VOICE_VOLUME), &rect, 0, 1,
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	config_draw_two_choice_option(&g_game_config.voice_special_enabled,
+				      &rect, FRONTSTR_236_OFF);
+	frontend_draw_rect_offset_xy(&rect, 0, 25);
+	frontend_text_draw_aligned_in_rect(
+		12, frontend_string_get(FRONTSTR_414_VOICE_VOLUME), &rect, 0, 1,
 		0xFFFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	previousVolume = g_gameConfig.voiceVolume;
-	Config_DrawOptionSlider(&g_gameConfig.voiceVolume, &rect, 10,
-				FRONTSTR_403_VOLUME_LOW, 0);
-	if (g_gameConfig.voiceVolume != previousVolume &&
-	    g_gameConfig.sfxDatapadEnabled != 0) {
-		FrontendSound_PlayUISound("configsound", 1, 0, 255,
-					  12 * g_gameConfig.voiceVolume, 63);
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	previous_volume = g_game_config.voice_volume;
+	config_draw_option_slider(&g_game_config.voice_volume, &rect, 10,
+				  FRONTSTR_403_VOLUME_LOW, 0);
+	if (g_game_config.voice_volume != previous_volume &&
+	    g_game_config.sfx_datapad_enabled != 0) {
+		frontend_sound_play_ui_sound("configsound", 1, 0, 255,
+					     12 * g_game_config.voice_volume,
+					     63);
 	}
 
-	FrontendDraw_RectOffsetXY(&rect, 0, 35);
-	previousDatapadMusic = g_gameConfig.datapadMusicEnabled;
-	FrontendText_DrawAlignedInRect(
-		12, FrontendString_Get(FRONTSTR_735_DATAPAD_MUSIC), &rect, 0, 1,
-		0xFFFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawTwoChoiceOption(&g_gameConfig.datapadMusicEnabled, &rect,
-				   FRONTSTR_236_OFF);
-	if (g_gameConfig.datapadMusicEnabled != previousDatapadMusic) {
-		if (g_gameConfig.datapadMusicEnabled != 0) {
-			CDAudio_SetAuxVolume(0xFFFF * g_gameConfig.musicVolume /
-					     9);
-			CDAudio_PlayTrackFromTime(7, 0, 0);
+	frontend_draw_rect_offset_xy(&rect, 0, 35);
+	previous_datapad_music = g_game_config.datapad_music_enabled;
+	frontend_text_draw_aligned_in_rect(
+		12, frontend_string_get(FRONTSTR_735_DATAPAD_MUSIC), &rect, 0,
+		1, 0xFFFF);
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	config_draw_two_choice_option(&g_game_config.datapad_music_enabled,
+				      &rect, FRONTSTR_236_OFF);
+	if (g_game_config.datapad_music_enabled != previous_datapad_music) {
+		if (g_game_config.datapad_music_enabled != 0) {
+			cd_audio_set_aux_volume(0xFFFF *
+						g_game_config.music_volume / 9);
+			cd_audio_play_track_from_time(7, 0, 0);
 		} else {
-			CDAudio_StopCurrentTrack();
+			cd_audio_stop_current_track();
 		}
 	}
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	FrontendText_DrawAlignedInRect(
-		12, FrontendString_Get(FRONTSTR_413_FLIGHT_ENGINE_MUSIC), &rect,
-		0, 1, 0xFFFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawTwoChoiceOption(&g_gameConfig.musicEnabled, &rect,
-				   FRONTSTR_236_OFF);
-	previousVolume = g_gameConfig.musicVolume;
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	Config_DrawOptionSlider(&g_gameConfig.musicVolume, &rect, 10,
-				FRONTSTR_403_VOLUME_LOW, 1);
-	if (g_gameConfig.musicVolume != previousVolume &&
-	    g_gameConfig.datapadMusicEnabled != 0) {
-		CDAudio_SetAuxVolume(0xFFFF * g_gameConfig.musicVolume / 9);
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	frontend_text_draw_aligned_in_rect(
+		12, frontend_string_get(FRONTSTR_413_FLIGHT_ENGINE_MUSIC),
+		&rect, 0, 1, 0xFFFF);
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	config_draw_two_choice_option(&g_game_config.music_enabled, &rect,
+				      FRONTSTR_236_OFF);
+	previous_volume = g_game_config.music_volume;
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	config_draw_option_slider(&g_game_config.music_volume, &rect, 10,
+				  FRONTSTR_403_VOLUME_LOW, 1);
+	if (g_game_config.music_volume != previous_volume &&
+	    g_game_config.datapad_music_enabled != 0) {
+		cd_audio_set_aux_volume(0xFFFF * g_game_config.music_volume /
+					9);
 	}
 }
 
@@ -2947,486 +3030,498 @@ void Config_SoundOptionsScreen(void)
  * into view. The left list shows each button, and the four hat directions when
  * the joystick has a hat, with its action; a click selects that row. The right
  * list shows every action; a click maps the selected button to it, and so does
- * a key from Config_ReadJoystickActionPickerKey that matches an action's
+ * a key from config_read_joystick_action_picker_key that matches an action's
  * code. */
 // FUNCTION: XVT 0x4BCC10
-void Config_JoystickRemapScreen(void)
+void config_joystick_remap_screen(void)
 {
 	struct RECT rect;
-	int pressedButton;
-	int povDirection;
-	int cursorX;
-	int cursorY;
-	int buttonCount;
-	int remappableRowCount;
+	int pressed_button;
+	int pov_direction;
+	int cursor_x;
+	int cursor_y;
+	int button_count;
+	int remappable_row_count;
 
-	FrontendCursor_GetPos(&cursorX, &cursorY);
-	FrontendDraw_RectAssign(&rect, 84, 90, 604, 106);
-	FrontendText_DrawCentered(
-		15, FrontendString_Get(FRONTSTR_415_JOYSTICK_OPTIONS), &rect,
+	frontend_cursor_get_pos(&cursor_x, &cursor_y);
+	frontend_draw_rect_assign(&rect, 84, 90, 604, 106);
+	frontend_text_draw_centered(
+		15, frontend_string_get(FRONTSTR_415_JOYSTICK_OPTIONS), &rect,
 		0xFFFF);
 
-	FrontendDraw_RectAssign(&rect, 88, 111, 322, 125);
+	frontend_draw_rect_assign(&rect, 88, 111, 322, 125);
 	{
-		int selectedButton = g_configSelectedJoystickButtonIndex;
-		if (selectedButton >= 16) {
-			sprintf(g_frontendScratchBuffer, "%c%s %s %c%s", 4,
-				FrontendString_Get(FRONTSTR_646_JOYSTICK_POV),
-				FrontendString_Get(FRONTSTR_647_UP +
-						   selectedButton - 16),
+		int selected_button = g_config_selected_joystick_button_index;
+		if (selected_button >= 16) {
+			sprintf(g_frontend_scratch_buffer, "%c%s %s %c%s", 4,
+				frontend_string_get(FRONTSTR_646_JOYSTICK_POV),
+				frontend_string_get(FRONTSTR_647_UP +
+						    selected_button - 16),
 				1,
-				FrontendString_Get(
+				frontend_string_get(
 					FRONTSTR_417_CURRENTLY_MAPPED_TO));
 		} else {
-			sprintf(g_frontendScratchBuffer, "%c%s %d %c%s", 4,
-				FrontendString_Get(
+			sprintf(g_frontend_scratch_buffer, "%c%s %d %c%s", 4,
+				frontend_string_get(
 					FRONTSTR_416_JOYSTICK_BUTTON),
-				selectedButton + 1, 1,
-				FrontendString_Get(
+				selected_button + 1, 1,
+				frontend_string_get(
 					FRONTSTR_417_CURRENTLY_MAPPED_TO));
 		}
 	}
-	FrontendText_DrawAlignedInRect(12, g_frontendScratchBuffer, &rect, 0, 1,
-				       0xFFFF);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	if (g_joystickEntryCount != 0) {
-		int selectedAction = g_configSelectedJoystickActionIndex;
-		if (selectedAction != 0) {
-			sprintf(g_frontendScratchBuffer, "%c%s: %c%s", 2,
-				g_joystickEntries[selectedAction].name, 1,
-				g_joystickEntries[selectedAction].description);
+	frontend_text_draw_aligned_in_rect(12, g_frontend_scratch_buffer, &rect,
+					   0, 1, 0xFFFF);
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	if (g_joystick_entry_count != 0) {
+		int selected_action = g_config_selected_joystick_action_index;
+		if (selected_action != 0) {
+			sprintf(g_frontend_scratch_buffer, "%c%s: %c%s", 2,
+				g_joystick_entries[selected_action].name, 1,
+				g_joystick_entries[selected_action]
+					.description);
 		} else {
-			sprintf(g_frontendScratchBuffer, "%c%s", 2,
-				g_joystickEntries[selectedAction].name);
+			sprintf(g_frontend_scratch_buffer, "%c%s", 2,
+				g_joystick_entries[selected_action].name);
 		}
-		FrontendText_DrawAlignedInRect(12, g_frontendScratchBuffer,
-					       &rect, 0, 1, 0xFFFF);
+		frontend_text_draw_aligned_in_rect(
+			12, g_frontend_scratch_buffer, &rect, 0, 1, 0xFFFF);
 	}
 
-	FrontendDraw_RectOffsetXY(&rect, 0, 30);
-	FrontendText_DrawAlignedInRect(
+	frontend_draw_rect_offset_xy(&rect, 0, 30);
+	frontend_text_draw_aligned_in_rect(
 		12,
-		FrontendString_Get(
+		frontend_string_get(
 			FRONTSTR_653_SELECT_A_BUTTON_BY_PICKING_FROM),
-		&rect, 0, 1, g_colorGreen);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	FrontendText_DrawAlignedInRect(
+		&rect, 0, 1, g_color_green);
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	frontend_text_draw_aligned_in_rect(
 		12,
-		FrontendString_Get(
+		frontend_string_get(
 			FRONTSTR_654_THE_LIST_BELOW_OR_PRESSING_ONE_OF),
-		&rect, 0, 1, g_colorGreen);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	FrontendText_DrawAlignedInRect(
+		&rect, 0, 1, g_color_green);
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	frontend_text_draw_aligned_in_rect(
 		12,
-		FrontendString_Get(
+		frontend_string_get(
 			FRONTSTR_655_YOUR_JOYSTICK_BUTTONS_THEN_PICK),
-		&rect, 0, 1, g_colorGreen);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	FrontendText_DrawAlignedInRect(
+		&rect, 0, 1, g_color_green);
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	frontend_text_draw_aligned_in_rect(
 		12,
-		FrontendString_Get(
+		frontend_string_get(
 			FRONTSTR_656_FROM_THE_LIST_OF_AVAILABLE_KEYS),
-		&rect, 0, 1, g_colorGreen);
-	FrontendDraw_RectOffsetXY(&rect, 0, 15);
-	FrontendText_DrawAlignedInRect(
-		12, FrontendString_Get(FRONTSTR_657_TO_REMAP), &rect, 0, 1,
-		g_colorGreen);
+		&rect, 0, 1, g_color_green);
+	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	frontend_text_draw_aligned_in_rect(
+		12, frontend_string_get(FRONTSTR_657_TO_REMAP), &rect, 0, 1,
+		g_color_green);
 
 	{
-		povDirection = Joystick_GetPovDirection(0);
-		pressedButton = Joystick_GetFirstPressedButton(0);
-		if ((pressedButton != -1 && pressedButton < 16) ||
-		    povDirection != 0) {
-			if (pressedButton != -1) {
-				int scrollOffset;
-				if (g_configSelectedJoystickButtonIndex !=
-					    pressedButton &&
-				    g_gameConfig.sfxDatapadEnabled != 0) {
-					FrontendSound_PlayUISound(
+		pov_direction = joystick_get_pov_direction(0);
+		pressed_button = joystick_get_first_pressed_button(0);
+		if ((pressed_button != -1 && pressed_button < 16) ||
+		    pov_direction != 0) {
+			if (pressed_button != -1) {
+				int scroll_offset;
+				if (g_config_selected_joystick_button_index !=
+					    pressed_button &&
+				    g_game_config.sfx_datapad_enabled != 0) {
+					frontend_sound_play_ui_sound(
 						"configsound", 1, 0, 255,
-						12 * g_gameConfig
-								.sfxDatapadVolume,
+						12 * g_game_config
+								.sfx_datapad_volume,
 						63);
 				}
-				scrollOffset =
-					g_configJoystickButtonScrollOffset;
-				g_configSelectedJoystickButtonIndex =
-					pressedButton;
-				if (pressedButton < scrollOffset ||
-				    pressedButton - scrollOffset >= 10) {
-					g_configJoystickButtonScrollOffset =
-						pressedButton;
+				scroll_offset =
+					g_config_joystick_button_scroll_offset;
+				g_config_selected_joystick_button_index =
+					pressed_button;
+				if (pressed_button < scroll_offset ||
+				    pressed_button - scroll_offset >= 10) {
+					g_config_joystick_button_scroll_offset =
+						pressed_button;
 				}
-			} else if (povDirection != 0) {
-				if (povDirection - g_configSelectedJoystickButtonIndex !=
+			} else if (pov_direction != 0) {
+				if (pov_direction - g_config_selected_joystick_button_index !=
 					    -15 &&
-				    g_gameConfig.sfxDatapadEnabled != 0) {
-					FrontendSound_PlayUISound(
+				    g_game_config.sfx_datapad_enabled != 0) {
+					frontend_sound_play_ui_sound(
 						"configsound", 1, 0, 255,
-						12 * g_gameConfig
-								.sfxDatapadVolume,
+						12 * g_game_config
+								.sfx_datapad_volume,
 						63);
 				}
-				g_configSelectedJoystickButtonIndex =
-					povDirection + 15;
+				g_config_selected_joystick_button_index =
+					pov_direction + 15;
 				{
-					int povListIndex =
-						povDirection +
-						Joystick_GetButtonCount(0) - 1;
-					int scrollOffset =
-						g_configJoystickButtonScrollOffset;
-					if (povListIndex < scrollOffset ||
-					    povListIndex - scrollOffset >= 10) {
-						g_configJoystickButtonScrollOffset =
-							povListIndex;
+					int pov_list_index =
+						pov_direction +
+						joystick_get_button_count(0) -
+						1;
+					int scroll_offset =
+						g_config_joystick_button_scroll_offset;
+					if (pov_list_index < scroll_offset ||
+					    pov_list_index - scroll_offset >=
+						    10) {
+						g_config_joystick_button_scroll_offset =
+							pov_list_index;
 					}
 				}
 			}
 			{
-				int entryIndex = 0;
-				int entryCount = g_joystickEntryCount;
-				if (entryCount > entryIndex) {
-					struct JoystickEntry *entry =
-						g_joystickEntries;
-					uint8_t actionCode =
-						g_gameConfig.joyButtons
-							[g_configSelectedJoystickButtonIndex];
+				int entry_index = 0;
+				int entry_count = g_joystick_entry_count;
+				if (entry_count > entry_index) {
+					struct joystick_entry *entry =
+						g_joystick_entries;
+					uint8_t action_code =
+						g_game_config.joy_buttons
+							[g_config_selected_joystick_button_index];
 					do {
-						if (entry->actionCode ==
-						    actionCode) {
-							g_configSelectedJoystickActionIndex =
-								entryIndex;
+						if (entry->action_code ==
+						    action_code) {
+							g_config_selected_joystick_action_index =
+								entry_index;
 						}
 						++entry;
-						++entryIndex;
-					} while (entryIndex < entryCount);
+						++entry_index;
+					} while (entry_index < entry_count);
 				}
 			}
 		}
 	}
 
-	buttonCount = Joystick_GetButtonCount(0);
-	remappableRowCount = buttonCount;
-	if (Joystick_HasPov(0) != 0) {
-		remappableRowCount += 4;
+	button_count = joystick_get_button_count(0);
+	remappable_row_count = button_count;
+	if (joystick_has_pov(0) != 0) {
+		remappable_row_count += 4;
 	}
 
-	FrontendDraw_RectAssign(&rect, 88, 246, 322, 260);
-	FrontendText_DrawCentered(
-		12, FrontendString_Get(FRONTSTR_652_REMAPPABLE_BUTTONS), &rect,
-		g_colorYellow);
-	if (remappableRowCount > 10) {
-		FrontendDraw_RectAssign(&rect, 313, 261, 322, 415);
-		g_configJoystickButtonScrollOffset = FrontendScrollbar_Draw(
-			&rect, g_configJoystickButtonScrollOffset,
-			remappableRowCount, 0, 5, (unsigned int)g_colorNavy, 1);
-		FrontendDraw_RectAssign(&rect, 88, 261, 312, 415);
+	frontend_draw_rect_assign(&rect, 88, 246, 322, 260);
+	frontend_text_draw_centered(
+		12, frontend_string_get(FRONTSTR_652_REMAPPABLE_BUTTONS), &rect,
+		g_color_yellow);
+	if (remappable_row_count > 10) {
+		frontend_draw_rect_assign(&rect, 313, 261, 322, 415);
+		g_config_joystick_button_scroll_offset =
+			frontend_scrollbar_draw(
+				&rect, g_config_joystick_button_scroll_offset,
+				remappable_row_count, 0, 5,
+				(unsigned int)g_color_navy, 1);
+		frontend_draw_rect_assign(&rect, 88, 261, 312, 415);
 	} else {
-		FrontendDraw_RectAssign(&rect, 88, 261, 322, 415);
+		frontend_draw_rect_assign(&rect, 88, 261, 322, 415);
 	}
-	FrontendDraw_Rect(&rect, 0, 0, 0xFFFF, 0);
-	FrontendDraw_RectInsetXY(&rect, 2, 2);
-	FrontendDraw_Rect(&rect, 0, 0, 0, 0);
+	frontend_draw_rect(&rect, 0, 0, 0xFFFF, 0);
+	frontend_draw_rect_inset_xy(&rect, 2, 2);
+	frontend_draw_rect(&rect, 0, 0, 0, 0);
 	rect.bottom = rect.top + 14;
-	FrontendDraw_RectInsetXY(&rect, 2, 0);
+	frontend_draw_rect_inset_xy(&rect, 2, 0);
 
 	{
-		int listRowIndex;
-		int entryCount;
-		for (listRowIndex = g_configJoystickButtonScrollOffset;
-		     listRowIndex < g_configJoystickButtonScrollOffset + 10;
-		     ++listRowIndex) {
-			int actionIndex;
+		int list_row_index;
+		int entry_count;
+		for (list_row_index = g_config_joystick_button_scroll_offset;
+		     list_row_index <
+		     g_config_joystick_button_scroll_offset + 10;
+		     ++list_row_index) {
+			int action_index;
 			uint16_t color;
-			entryCount = g_joystickEntryCount;
-			if (listRowIndex >= remappableRowCount) {
+			entry_count = g_joystick_entry_count;
+			if (list_row_index >= remappable_row_count) {
 				break;
 			}
-			actionIndex = 0;
-			if (entryCount > 0) {
-				struct JoystickEntry *entries =
-					g_joystickEntries;
-				for (; actionIndex < entryCount;
-				     ++actionIndex) {
-					if (listRowIndex < buttonCount) {
-						if (g_gameConfig.joyButtons
-							    [listRowIndex] ==
-						    entries[actionIndex]
-							    .actionCode) {
+			action_index = 0;
+			if (entry_count > 0) {
+				struct joystick_entry *entries =
+					g_joystick_entries;
+				for (; action_index < entry_count;
+				     ++action_index) {
+					if (list_row_index < button_count) {
+						if (g_game_config.joy_buttons
+							    [list_row_index] ==
+						    entries[action_index]
+							    .action_code) {
 							break;
 						}
-					} else if (g_gameConfig.joyButtons
-							   [listRowIndex -
-							    buttonCount + 16] ==
-						   entries[actionIndex]
-							   .actionCode) {
+					} else if (g_game_config.joy_buttons
+							   [list_row_index -
+							    button_count +
+							    16] ==
+						   entries[action_index]
+							   .action_code) {
 						break;
 					}
 				}
 			}
-			if (actionIndex < entryCount) {
-				if (FrontendDraw_PointInRect(&rect, cursorX,
-							     cursorY) != 0) {
-					FrontendDraw_RectOutline(&rect, 0, 0,
-								 g_colorGreen);
-					if (FrontendMouse_GetLeftClick() != 0 ||
-					    FrontendMouse_GetRightClick() !=
+			if (action_index < entry_count) {
+				if (frontend_draw_point_in_rect(
+					    &rect, cursor_x, cursor_y) != 0) {
+					frontend_draw_rect_outline(
+						&rect, 0, 0, g_color_green);
+					if (frontend_mouse_get_left_click() !=
+						    0 ||
+					    frontend_mouse_get_right_click() !=
 						    0) {
-						if (listRowIndex <
-						    buttonCount) {
-							if (g_configSelectedJoystickButtonIndex !=
-								    listRowIndex &&
-							    g_gameConfig.sfxDatapadEnabled !=
+						if (list_row_index <
+						    button_count) {
+							if (g_config_selected_joystick_button_index !=
+								    list_row_index &&
+							    g_game_config.sfx_datapad_enabled !=
 								    0) {
-								FrontendSound_PlayUISound(
+								frontend_sound_play_ui_sound(
 									"configsound",
 									1, 0,
 									255,
-									12 * g_gameConfig
-											.sfxDatapadVolume,
+									12 * g_game_config
+											.sfx_datapad_volume,
 									63);
 							}
-							g_configSelectedJoystickButtonIndex =
-								listRowIndex;
+							g_config_selected_joystick_button_index =
+								list_row_index;
 						} else {
-							if (listRowIndex + buttonCount -
-									    g_configSelectedJoystickButtonIndex !=
+							if (list_row_index +
+									    button_count -
+									    g_config_selected_joystick_button_index !=
 								    16 &&
-							    g_gameConfig.sfxDatapadEnabled !=
+							    g_game_config.sfx_datapad_enabled !=
 								    0) {
-								FrontendSound_PlayUISound(
+								frontend_sound_play_ui_sound(
 									"configsound",
 									1, 0,
 									255,
-									12 * g_gameConfig
-											.sfxDatapadVolume,
+									12 * g_game_config
+											.sfx_datapad_volume,
 									63);
 							}
-							g_configSelectedJoystickButtonIndex =
-								listRowIndex -
-								buttonCount +
+							g_config_selected_joystick_button_index =
+								list_row_index -
+								button_count +
 								16;
 						}
-						g_configSelectedJoystickActionIndex =
-							actionIndex;
+						g_config_selected_joystick_action_index =
+							action_index;
 					}
 				}
-				if (listRowIndex < buttonCount) {
+				if (list_row_index < button_count) {
 					color = 0xFFFF;
-					if (g_configSelectedJoystickButtonIndex ==
-					    listRowIndex) {
-						color = (uint16_t)g_colorYellow;
+					if (g_config_selected_joystick_button_index ==
+					    list_row_index) {
+						color = (uint16_t)
+							g_color_yellow;
 					}
-					sprintf(g_frontendScratchBuffer,
+					sprintf(g_frontend_scratch_buffer,
 						"%s %d: %c%s",
-						FrontendString_Get(
+						frontend_string_get(
 							FRONTSTR_416_JOYSTICK_BUTTON),
-						listRowIndex + 1, 2,
-						g_joystickEntries[actionIndex]
+						list_row_index + 1, 2,
+						g_joystick_entries[action_index]
 							.name);
-					FrontendText_DrawAlignedInRect(
-						12, g_frontendScratchBuffer,
+					frontend_text_draw_aligned_in_rect(
+						12, g_frontend_scratch_buffer,
 						&rect, 0, 1, color);
 				} else {
 					color = 0xFFFF;
-					if (listRowIndex - buttonCount -
-						    g_configSelectedJoystickButtonIndex ==
+					if (list_row_index - button_count -
+						    g_config_selected_joystick_button_index ==
 					    -16) {
-						color = (uint16_t)g_colorYellow;
+						color = (uint16_t)
+							g_color_yellow;
 					}
-					sprintf(g_frontendScratchBuffer,
+					sprintf(g_frontend_scratch_buffer,
 						"%s %s: %c%s",
-						FrontendString_Get(
+						frontend_string_get(
 							FRONTSTR_646_JOYSTICK_POV),
-						FrontendString_Get(
+						frontend_string_get(
 							FRONTSTR_647_UP +
-							listRowIndex -
-							buttonCount),
+							list_row_index -
+							button_count),
 						2,
-						g_joystickEntries[actionIndex]
+						g_joystick_entries[action_index]
 							.name);
-					FrontendText_DrawAlignedInRect(
-						12, g_frontendScratchBuffer,
+					frontend_text_draw_aligned_in_rect(
+						12, g_frontend_scratch_buffer,
 						&rect, 0, 1, color);
 				}
 			}
-			FrontendDraw_RectOffsetXY(&rect, 0, 15);
+			frontend_draw_rect_offset_xy(&rect, 0, 15);
 		}
 	}
 
-	FrontendDraw_RectAssign(&rect, 330, 111, 590, 125);
-	FrontendText_DrawCentered(
-		12, FrontendString_Get(FRONTSTR_651_AVAILABLE_KEYS), &rect,
-		g_colorYellow);
-	FrontendDraw_RectAssign(&rect, 591, 126, 600, 415);
-	g_configJoystickActionScrollOffset = FrontendScrollbar_Draw(
-		&rect, g_configJoystickActionScrollOffset, g_joystickEntryCount,
-		0, 5, (unsigned int)g_colorNavy, 2);
-	FrontendDraw_RectAssign(&rect, 330, 126, 590, 415);
-	FrontendDraw_Rect(&rect, 0, 0, 0xFFFF, 0);
-	FrontendDraw_RectInsetXY(&rect, 2, 2);
-	FrontendDraw_Rect(&rect, 0, 0, 0, 0);
+	frontend_draw_rect_assign(&rect, 330, 111, 590, 125);
+	frontend_text_draw_centered(
+		12, frontend_string_get(FRONTSTR_651_AVAILABLE_KEYS), &rect,
+		g_color_yellow);
+	frontend_draw_rect_assign(&rect, 591, 126, 600, 415);
+	g_config_joystick_action_scroll_offset = frontend_scrollbar_draw(
+		&rect, g_config_joystick_action_scroll_offset,
+		g_joystick_entry_count, 0, 5, (unsigned int)g_color_navy, 2);
+	frontend_draw_rect_assign(&rect, 330, 126, 590, 415);
+	frontend_draw_rect(&rect, 0, 0, 0xFFFF, 0);
+	frontend_draw_rect_inset_xy(&rect, 2, 2);
+	frontend_draw_rect(&rect, 0, 0, 0, 0);
 	rect.bottom = rect.top + 14;
-	FrontendDraw_RectInsetXY(&rect, 2, 0);
+	frontend_draw_rect_inset_xy(&rect, 2, 0);
 	{
-		int actionIndex;
-		for (actionIndex = g_configJoystickActionScrollOffset;
-		     actionIndex < g_configJoystickActionScrollOffset + 19 &&
-		     actionIndex < g_joystickEntryCount;
-		     ++actionIndex) {
-			struct JoystickEntry *entry =
-				&g_joystickEntries[actionIndex];
-			if (FrontendDraw_PointInRect(&rect, cursorX, cursorY) !=
-			    0) {
-				FrontendDraw_RectOutline(&rect, 0, 0,
-							 g_colorGreen);
-				if (FrontendMouse_GetLeftClick() != 0 ||
-				    FrontendMouse_GetRightClick() != 0) {
-					if (actionIndex !=
-						    g_configSelectedJoystickActionIndex &&
-					    g_gameConfig.sfxDatapadEnabled !=
+		int action_index;
+		for (action_index = g_config_joystick_action_scroll_offset;
+		     action_index <
+			     g_config_joystick_action_scroll_offset + 19 &&
+		     action_index < g_joystick_entry_count;
+		     ++action_index) {
+			struct joystick_entry *entry =
+				&g_joystick_entries[action_index];
+			if (frontend_draw_point_in_rect(&rect, cursor_x,
+							cursor_y) != 0) {
+				frontend_draw_rect_outline(&rect, 0, 0,
+							   g_color_green);
+				if (frontend_mouse_get_left_click() != 0 ||
+				    frontend_mouse_get_right_click() != 0) {
+					if (action_index !=
+						    g_config_selected_joystick_action_index &&
+					    g_game_config.sfx_datapad_enabled !=
 						    0) {
-						FrontendSound_PlayUISound(
+						frontend_sound_play_ui_sound(
 							"settingsound", 1, 0,
 							255,
-							12 * g_gameConfig
-									.sfxDatapadVolume,
+							12 * g_game_config
+									.sfx_datapad_volume,
 							63);
 					}
 					{
-						uint8_t selectedActionCode =
-							entry->actionCode;
-						g_configSelectedJoystickActionIndex =
-							actionIndex;
-						g_gameConfig.joyButtons
-							[g_configSelectedJoystickButtonIndex] =
-							selectedActionCode;
+						uint8_t selected_action_code =
+							entry->action_code;
+						g_config_selected_joystick_action_index =
+							action_index;
+						g_game_config.joy_buttons
+							[g_config_selected_joystick_button_index] =
+							selected_action_code;
 					}
 				}
 			}
-			sprintf(g_frontendScratchBuffer, "%c%s: %c%s", 2,
+			sprintf(g_frontend_scratch_buffer, "%c%s: %c%s", 2,
 				entry->name, 1, entry->description);
 			{
-				int textColor = g_colorYellow;
-				if (actionIndex !=
-				    g_configSelectedJoystickActionIndex) {
-					textColor = 0xFFFF;
+				int text_color = g_color_yellow;
+				if (action_index !=
+				    g_config_selected_joystick_action_index) {
+					text_color = 0xFFFF;
 				}
-				FrontendText_DrawAlignedInRect(
-					12, g_frontendScratchBuffer, &rect, 0,
-					1, textColor);
+				frontend_text_draw_aligned_in_rect(
+					12, g_frontend_scratch_buffer, &rect, 0,
+					1, text_color);
 			}
-			FrontendDraw_RectOffsetXY(&rect, 0, 15);
+			frontend_draw_rect_offset_xy(&rect, 0, 15);
 		}
 	}
 
 	{
-		struct JoystickEntry *entry;
-		int entryIndex = 0;
-		uint8_t actionCode = Config_ReadJoystickActionPickerKey();
-		int entryCount = g_joystickEntryCount;
-		if (entryIndex < entryCount) {
-			entry = g_joystickEntries;
+		struct joystick_entry *entry;
+		int entry_index = 0;
+		uint8_t action_code = config_read_joystick_action_picker_key();
+		int entry_count = g_joystick_entry_count;
+		if (entry_index < entry_count) {
+			entry = g_joystick_entries;
 			{
-				int selectedButton =
-					g_configSelectedJoystickButtonIndex;
+				int selected_button =
+					g_config_selected_joystick_button_index;
 				do {
-					if (actionCode != 0 &&
-					    entry->actionCode == actionCode) {
-						if (entryIndex !=
-							    g_configSelectedJoystickActionIndex &&
-						    g_gameConfig.sfxDatapadEnabled !=
+					if (action_code != 0 &&
+					    entry->action_code == action_code) {
+						if (entry_index !=
+							    g_config_selected_joystick_action_index &&
+						    g_game_config.sfx_datapad_enabled !=
 							    0) {
-							FrontendSound_PlayUISound(
+							frontend_sound_play_ui_sound(
 								"settingsound",
 								1, 0, 255,
-								12 * g_gameConfig
-										.sfxDatapadVolume,
+								12 * g_game_config
+										.sfx_datapad_volume,
 								63);
-							entryCount =
-								g_joystickEntryCount;
-							selectedButton =
-								g_configSelectedJoystickButtonIndex;
+							entry_count =
+								g_joystick_entry_count;
+							selected_button =
+								g_config_selected_joystick_button_index;
 						}
 						{
-							uint8_t selectedActionCode =
-								entry->actionCode;
-							g_configJoystickActionScrollOffset =
-								entryIndex;
-							g_configSelectedJoystickActionIndex =
-								entryIndex;
-							g_gameConfig.joyButtons
-								[selectedButton] =
-								selectedActionCode;
+							uint8_t selected_action_code =
+								entry->action_code;
+							g_config_joystick_action_scroll_offset =
+								entry_index;
+							g_config_selected_joystick_action_index =
+								entry_index;
+							g_game_config.joy_buttons
+								[selected_button] =
+								selected_action_code;
 						}
 					}
 					++entry;
-					++entryIndex;
-				} while (entryIndex < entryCount);
+					++entry_index;
+				} while (entry_index < entry_count);
 			}
 		}
 	}
 }
 
-/* Reads joystick.txt into g_joystickEntries: one action per line of up to 127
+/* Reads joystick.txt into g_joystick_entries: one action per line of up to 127
  * characters, a decimal code, a space, a name up to the next space, a space and
  * the description. Returns 0, keeping the old list, when the file does not
  * open, else 1. Checks neither the 128-entry limit nor the 20-byte name, and a
  * line without a second space takes its description from past its end. */
 // FUNCTION: XVT 0x4BD5F0
-int Config_LoadJoystickActionDictionary(void)
+int config_load_joystick_action_dictionary(void)
 {
-	XvtFile *stream;
+	xvt_file *stream;
 	char *cursor;
-	int tokenLength;
+	int token_length;
 	char token[256];
-	char currentCharacter;
-	int entryIndex;
+	char current_character;
+	int entry_index;
 
-	stream = File_Open("joystick.txt", "r");
+	stream = file_open("joystick.txt", "r");
 	if (stream == NULL) {
 		return 0;
 	}
-	g_joystickEntryCount = 0;
+	g_joystick_entry_count = 0;
 	for (;;) {
-		cursor = File_Gets(g_frontendScratchBuffer, 128, stream);
+		cursor = FILE_GETS(g_frontend_scratch_buffer, 128, stream);
 		if (cursor == NULL) {
 			break;
 		}
-		if (g_frontendScratchBuffer[strlen(g_frontendScratchBuffer) -
-					    1] == '\n') {
-			g_frontendScratchBuffer
-				[strlen(g_frontendScratchBuffer) - 1] = '\0';
+		if (g_frontend_scratch_buffer
+			    [strlen(g_frontend_scratch_buffer) - 1] == '\n') {
+			g_frontend_scratch_buffer
+				[strlen(g_frontend_scratch_buffer) - 1] = '\0';
 		}
 
-		tokenLength = 0;
+		token_length = 0;
 		while (*cursor != ' ') {
-			currentCharacter = *cursor;
-			if (currentCharacter == '\0' || tokenLength >= 256) {
+			current_character = *cursor;
+			if (current_character == '\0' || token_length >= 256) {
 				break;
 			}
-			token[tokenLength++] = *cursor++;
+			token[token_length++] = *cursor++;
 		}
-		token[tokenLength] = '\0';
+		token[token_length] = '\0';
 		++cursor;
-		g_joystickEntries[g_joystickEntryCount].actionCode =
+		g_joystick_entries[g_joystick_entry_count].action_code =
 			atoi(token);
 
-		tokenLength = 0;
+		token_length = 0;
 		while (*cursor != ' ') {
-			currentCharacter = *cursor;
-			if (currentCharacter == '\0' || tokenLength >= 256) {
+			current_character = *cursor;
+			if (current_character == '\0' || token_length >= 256) {
 				break;
 			}
-			token[tokenLength++] = *cursor++;
+			token[token_length++] = *cursor++;
 		}
-		token[tokenLength] = '\0';
-		entryIndex = g_joystickEntryCount;
-		strcpy(g_joystickEntries[g_joystickEntryCount].name, token);
-		strcpy(g_joystickEntries[entryIndex].description, cursor + 1);
-		++g_joystickEntryCount;
+		token[token_length] = '\0';
+		entry_index = g_joystick_entry_count;
+		strcpy(g_joystick_entries[g_joystick_entry_count].name, token);
+		strcpy(g_joystick_entries[entry_index].description, cursor + 1);
+		++g_joystick_entry_count;
 	}
-	File_Close(stream);
+	file_close(stream);
 	return 1;
 }
 
@@ -3436,195 +3531,195 @@ int Config_LoadJoystickActionDictionary(void)
  * F1 to F12 as 195 to 206, and the arrow, editing, lock and number pad keys as
  * fixed codes from 164 to 194. */
 // FUNCTION: XVT 0x4BD770
-uint8_t Config_ReadJoystickActionPickerKey(void)
+uint8_t config_read_joystick_action_picker_key(void)
 {
-	uint8_t keyCode;
-	int isKeyDown;
-	int keyIndex;
+	uint8_t key_code;
+	int is_key_down;
+	int key_index;
 
-	keyCode = Keyboard_DequeueChar();
-	if (keyCode != 0) {
-		return keyCode;
+	key_code = keyboard_dequeue_char();
+	if (key_code != 0) {
+		return key_code;
 	}
 
-	if (Keyboard_IsKeyDown(0x12)) {
-		for (keyIndex = 0; keyIndex < 26; ++keyIndex) {
-			if (Keyboard_IsKeyDown(keyIndex + 65)) {
-				return keyIndex + 0x80;
+	if (keyboard_is_key_down(0x12)) {
+		for (key_index = 0; key_index < 26; ++key_index) {
+			if (keyboard_is_key_down(key_index + 65)) {
+				return key_index + 0x80;
 			}
 		}
-		for (keyIndex = 0; keyIndex < 10; ++keyIndex) {
-			isKeyDown = Keyboard_IsKeyDown(keyIndex + 48);
-			if (isKeyDown) {
-				return keyIndex - 102;
+		for (key_index = 0; key_index < 10; ++key_index) {
+			is_key_down = keyboard_is_key_down(key_index + 48);
+			if (is_key_down) {
+				return key_index - 102;
 			}
 		}
-		return isKeyDown;
+		return is_key_down;
 	}
 
-	if (Keyboard_IsKeyDown(0x10)) {
-		for (keyIndex = 0; keyIndex < 12; ++keyIndex) {
-			isKeyDown = Keyboard_IsKeyDown(keyIndex + 112);
-			if (isKeyDown) {
-				return keyIndex - 49;
+	if (keyboard_is_key_down(0x10)) {
+		for (key_index = 0; key_index < 12; ++key_index) {
+			is_key_down = keyboard_is_key_down(key_index + 112);
+			if (is_key_down) {
+				return key_index - 49;
 			}
 		}
-		return isKeyDown;
+		return is_key_down;
 	}
 
-	for (keyIndex = 0; keyIndex < 12; ++keyIndex) {
-		if (Keyboard_IsKeyDown(keyIndex + 112)) {
-			return keyIndex - 61;
+	for (key_index = 0; key_index < 12; ++key_index) {
+		if (keyboard_is_key_down(key_index + 112)) {
+			return key_index - 61;
 		}
 	}
-	if (Keyboard_IsKeyDown(0x25)) {
+	if (keyboard_is_key_down(0x25)) {
 		return -92;
 	}
-	if (Keyboard_IsKeyDown(0x27)) {
+	if (keyboard_is_key_down(0x27)) {
 		return -91;
 	}
-	if (Keyboard_IsKeyDown(0x26)) {
+	if (keyboard_is_key_down(0x26)) {
 		return -90;
 	}
-	if (Keyboard_IsKeyDown(0x28)) {
+	if (keyboard_is_key_down(0x28)) {
 		return -89;
 	}
-	if (Keyboard_IsKeyDown(0x2D)) {
+	if (keyboard_is_key_down(0x2D)) {
 		return -88;
 	}
-	if (Keyboard_IsKeyDown(0x2E)) {
+	if (keyboard_is_key_down(0x2E)) {
 		return -87;
 	}
-	if (Keyboard_IsKeyDown(0x24)) {
+	if (keyboard_is_key_down(0x24)) {
 		return -86;
 	}
-	if (Keyboard_IsKeyDown(0x23)) {
+	if (keyboard_is_key_down(0x23)) {
 		return -85;
 	}
-	if (Keyboard_IsKeyDown(0x21)) {
+	if (keyboard_is_key_down(0x21)) {
 		return -84;
 	}
-	if (Keyboard_IsKeyDown(0x22)) {
+	if (keyboard_is_key_down(0x22)) {
 		return -83;
 	}
-	if (Keyboard_IsKeyDown(0x2C)) {
+	if (keyboard_is_key_down(0x2C)) {
 		return -82;
 	}
-	if (Keyboard_IsKeyDown(0x91)) {
+	if (keyboard_is_key_down(0x91)) {
 		return -81;
 	}
-	if (Keyboard_IsKeyDown(0x14)) {
+	if (keyboard_is_key_down(0x14)) {
 		return -79;
 	}
-	if (Keyboard_IsKeyDown(0x60)) {
+	if (keyboard_is_key_down(0x60)) {
 		return -78;
 	}
-	if (Keyboard_IsKeyDown(0x61)) {
+	if (keyboard_is_key_down(0x61)) {
 		return -77;
 	}
-	if (Keyboard_IsKeyDown(0x62)) {
+	if (keyboard_is_key_down(0x62)) {
 		return -76;
 	}
-	if (Keyboard_IsKeyDown(0x63)) {
+	if (keyboard_is_key_down(0x63)) {
 		return -75;
 	}
-	if (Keyboard_IsKeyDown(0x64)) {
+	if (keyboard_is_key_down(0x64)) {
 		return -74;
 	}
-	if (Keyboard_IsKeyDown(0x65)) {
+	if (keyboard_is_key_down(0x65)) {
 		return -73;
 	}
-	if (Keyboard_IsKeyDown(0x66)) {
+	if (keyboard_is_key_down(0x66)) {
 		return -72;
 	}
-	if (Keyboard_IsKeyDown(0x67)) {
+	if (keyboard_is_key_down(0x67)) {
 		return -71;
 	}
-	if (Keyboard_IsKeyDown(0x68)) {
+	if (keyboard_is_key_down(0x68)) {
 		return -70;
 	}
-	if (Keyboard_IsKeyDown(0x69)) {
+	if (keyboard_is_key_down(0x69)) {
 		return -69;
 	}
-	if (Keyboard_IsKeyDown(0x90)) {
+	if (keyboard_is_key_down(0x90)) {
 		return -68;
 	}
-	if (Keyboard_IsKeyDown(0x6A)) {
+	if (keyboard_is_key_down(0x6A)) {
 		return -66;
 	}
-	if (Keyboard_IsKeyDown(0x6B)) {
+	if (keyboard_is_key_down(0x6B)) {
 		return -64;
 	}
-	if (Keyboard_IsKeyDown(0x6D)) {
+	if (keyboard_is_key_down(0x6D)) {
 		return -65;
 	}
-	if (Keyboard_IsKeyDown(0x6E)) {
+	if (keyboard_is_key_down(0x6E)) {
 		return -62;
 	}
-	isKeyDown = Keyboard_IsKeyDown(0x6F);
-	if (isKeyDown != 0) {
-		keyCode = -67;
+	is_key_down = keyboard_is_key_down(0x6F);
+	if (is_key_down != 0) {
+		key_code = -67;
 	} else {
-		keyCode = isKeyDown;
+		key_code = is_key_down;
 	}
-	return keyCode;
+	return key_code;
 }
 
 /* Draws the taunts page: the four taunts as fields of up to 46 characters,
  * labeled FRONTSTR_795_TAUNT with their number. Enter or Tab in a field moves
- * g_activeTextFieldId to the next field, after the fourth to 0. */
+ * g_active_text_field_id to the next field, after the fourth to 0. */
 // FUNCTION: XVT 0x4BDA30
-void Config_DrawCustomTauntsPage(void)
+void config_draw_custom_taunts_page(void)
 {
 	struct RECT rect;
-	int widestLabel;
-	int labelIndex;
-	int labelWidth;
-	int textY;
-	int fieldIndex;
+	int widest_label;
+	int label_index;
+	int label_width;
+	int text_y;
+	int field_index;
 	char (*taunt)[70];
 
-	FrontendDraw_RectAssign(&rect, 84, 90, 604, 106);
-	widestLabel = 0;
-	labelIndex = 0;
-	FrontendText_DrawCentered(
-		15, FrontendString_Get(FRONTSTR_794_CUSTOM_TAUNTS), &rect,
+	frontend_draw_rect_assign(&rect, 84, 90, 604, 106);
+	widest_label = 0;
+	label_index = 0;
+	frontend_text_draw_centered(
+		15, frontend_string_get(FRONTSTR_794_CUSTOM_TAUNTS), &rect,
 		0xFFFF);
 	do {
-		++labelIndex;
-		sprintf(g_frontendScratchBuffer, "%s%d",
-			FrontendString_Get(FRONTSTR_795_TAUNT), labelIndex);
-		labelWidth =
-			FrontendText_MeasureWidth(g_frontendScratchBuffer, 12);
-		if (labelWidth > widestLabel) {
-			widestLabel = labelWidth;
+		++label_index;
+		sprintf(g_frontend_scratch_buffer, "%s%d",
+			frontend_string_get(FRONTSTR_795_TAUNT), label_index);
+		label_width = frontend_text_measure_width(
+			g_frontend_scratch_buffer, 12);
+		if (label_width > widest_label) {
+			widest_label = label_width;
 		}
-	} while (labelIndex < 4);
+	} while (label_index < 4);
 
-	textY = 126;
-	fieldIndex = 0;
-	taunt = g_gameConfig.taunts;
-	FrontendDraw_RectAssign(&rect, widestLabel + 93, 126, 600, 146);
+	text_y = 126;
+	field_index = 0;
+	taunt = g_game_config.taunts;
+	frontend_draw_rect_assign(&rect, widest_label + 93, 126, 600, 146);
 	do {
-		labelIndex = fieldIndex + 1;
-		sprintf(g_frontendScratchBuffer, "%s%d",
-			FrontendString_Get(FRONTSTR_795_TAUNT), labelIndex);
-		FrontendText_Draw(12, g_frontendScratchBuffer, 88, textY,
-				  0xFFFF);
-		FrontendDraw_FillRectTranslucent(
-			&rect, 0, 0, g_editableFieldBackgroundColor);
-		if (FrontendText_HandleEditableField(&rect, *taunt, 46,
-						     fieldIndex, 12, NULL)) {
-			g_activeTextFieldId = labelIndex;
-			if (labelIndex >= 4) {
-				g_activeTextFieldId = 0;
+		label_index = field_index + 1;
+		sprintf(g_frontend_scratch_buffer, "%s%d",
+			frontend_string_get(FRONTSTR_795_TAUNT), label_index);
+		frontend_text_draw(12, g_frontend_scratch_buffer, 88, text_y,
+				   0xFFFF);
+		frontend_draw_fill_rect_translucent(
+			&rect, 0, 0, g_editable_field_background_color);
+		if (frontend_text_handle_editable_field(
+			    &rect, *taunt, 46, field_index, 12, NULL)) {
+			g_active_text_field_id = label_index;
+			if (label_index >= 4) {
+				g_active_text_field_id = 0;
 			}
 		}
-		textY += 35;
+		text_y += 35;
 		++taunt;
-		fieldIndex = labelIndex;
-		FrontendDraw_RectOffsetXY(&rect, 0, 35);
-	} while (taunt < g_gameConfig.taunts + 4);
+		field_index = label_index;
+		frontend_draw_rect_offset_xy(&rect, 0, 35);
+	} while (taunt < g_game_config.taunts + 4);
 }
 
 /* Update function of the credits screen. On frame 0 it resets the credits
@@ -3636,177 +3731,178 @@ void Config_DrawCustomTauntsPage(void)
  * page's time is up it reads the next one and fades it in, turning off the CD
  * loop after the last. After the last page's time, or on a click, Esc, Enter or
  * Space, it clears the offscreen surface (on a key or click the back buffer
- * too), fades the CD music over 2000 ms and sets g_creditsExitPending; the next
+ * too), fades the CD music over 2000 ms and sets g_credits_exit_pending; the next
  * frame goes to the concourse, in the modern build once the fade is over.
  * Returns 0. */
 // FUNCTION: XVT 0x4FB670
-int Credits_UpdateScreen(int frameCounter)
+int credits_update_screen(int frame_counter)
 {
-	int outPageDurationFrames;
-	int lineIndex;
+	int out_page_duration_frames;
+	int line_index;
 	int key;
-	int logoId;
+	int logo_id;
 
-	if (frameCounter == 0) {
-		Keyboard_FlushCharBuffer();
-		if (g_frontendCreditsFile != NULL) {
-			File_Close(g_frontendCreditsFile);
+	if (frame_counter == 0) {
+		keyboard_flush_char_buffer();
+		if (g_frontend_credits_file != NULL) {
+			file_close(g_frontend_credits_file);
 		}
-		g_creditsCurrentTextColor = (uint16_t)-1;
-		g_creditsExitPending = 0;
-		g_creditsPageIndex = 0;
-		g_creditsTextX[0] = 0;
-		g_creditsTextY[1] = 0;
-		g_creditsLogoId[0] = 0;
-		g_creditsLogoY[0] = 0;
-		g_creditsLogoX[0] = 0;
-		g_creditsLogoId[1] = 0;
-		g_creditsLogoY[1] = 0;
-		g_creditsLogoX[1] = 0;
-		g_frontendCreditsFile = File_Open("credits.txt", "rt");
-		g_creditsHasMorePages = 0;
-		g_creditsPrevLogoId[0] = 0;
-		g_creditsPrevLogoY[0] = 0;
-		g_creditsPrevLogoX[0] = 0;
-		g_creditsPrevLogoId[1] = 0;
-		g_creditsPrevLogoY[1] = 0;
-		g_creditsPrevLogoX[1] = 0;
-		if (Credits_ParseNextPage(&g_creditsBufferIdx,
-					  &g_creditsHasMorePages,
-					  &g_creditsPageEndFrame,
-					  &g_creditsTextFadeFrames) == 0) {
-			FrontendScreen_SetCallbacks(Concourse_Update,
-						    Concourse_Exit);
+		g_credits_current_text_color = (uint16_t)-1;
+		g_credits_exit_pending = 0;
+		g_credits_page_index = 0;
+		g_credits_text_x[0] = 0;
+		g_credits_text_y[1] = 0;
+		g_credits_logo_id[0] = 0;
+		g_credits_logo_y[0] = 0;
+		g_credits_logo_x[0] = 0;
+		g_credits_logo_id[1] = 0;
+		g_credits_logo_y[1] = 0;
+		g_credits_logo_x[1] = 0;
+		g_frontend_credits_file = file_open("credits.txt", "rt");
+		g_credits_has_more_pages = 0;
+		g_credits_prev_logo_id[0] = 0;
+		g_credits_prev_logo_y[0] = 0;
+		g_credits_prev_logo_x[0] = 0;
+		g_credits_prev_logo_id[1] = 0;
+		g_credits_prev_logo_y[1] = 0;
+		g_credits_prev_logo_x[1] = 0;
+		if (credits_parse_next_page(&g_credits_buffer_idx,
+					    &g_credits_has_more_pages,
+					    &g_credits_page_end_frame,
+					    &g_credits_text_fade_frames) == 0) {
+			frontend_screen_set_callbacks(concourse_update,
+						      concourse_exit);
 			return 0;
 		}
-		FrontendText_StartTextFadeIn(200);
+		frontend_text_start_text_fade_in(200);
 	}
-	if (g_creditsExitPending != 0) {
+	if (g_credits_exit_pending != 0) {
 #ifdef XVT_MODERN
-		if (XvtCdTask_IsFading()) {
+		if (xvt_cd_task_is_fading()) {
 			return 0;
 		}
 #endif
-		FrontendScreen_SetCallbacks(Concourse_Update, Concourse_Exit);
+		frontend_screen_set_callbacks(concourse_update, concourse_exit);
 		return 0;
 	}
 
-	if (Keyboard_IsKeyDown(0x10) && Keyboard_IsKeyDown(0x12) &&
-	    Keyboard_IsKeyDown(0x7B)) {
-		switch (g_creditsPageIndex) {
+	if (keyboard_is_key_down(0x10) && keyboard_is_key_down(0x12) &&
+	    keyboard_is_key_down(0x7B)) {
+		switch (g_credits_page_index) {
 		case 0:
-			FrontImage_DrawSprite("comp01", 160, 157);
+			front_image_draw_sprite("comp01", 160, 157);
 			break;
 		case 1:
-			FrontImage_DrawSprite("artists", 160, 163);
+			front_image_draw_sprite("artists", 160, 163);
 			break;
 		case 2:
-			FrontImage_DrawSprite("testers", 160, 152);
+			front_image_draw_sprite("testers", 160, 152);
 			break;
 		case 4:
-			FrontImage_DrawSprite("lakota", 160, 143);
+			front_image_draw_sprite("lakota", 160, 143);
 			break;
 		default:
 			break;
 		}
 	}
 
-	if (g_creditsPrevLogoId[0] != g_creditsLogoId[0] ||
-	    g_creditsPrevLogoX[0] != g_creditsLogoX[0] ||
-	    g_creditsPrevLogoY[0] != g_creditsLogoY[0] ||
-	    g_creditsPrevLogoId[1] != g_creditsLogoId[1] ||
-	    g_creditsPrevLogoX[1] != g_creditsLogoX[1] ||
-	    g_creditsPrevLogoY[1] != g_creditsLogoY[1]) {
-		g_creditsPrevLogoId[0] = g_creditsLogoId[0];
-		g_creditsPrevLogoX[0] = g_creditsLogoX[0];
-		g_creditsPrevLogoY[0] = g_creditsLogoY[0];
-		g_creditsPrevLogoId[1] = g_creditsLogoId[1];
-		g_creditsPrevLogoX[1] = g_creditsLogoX[1];
-		g_creditsPrevLogoY[1] = g_creditsLogoY[1];
-		FrontendDisplay_LockOffscreenSurface();
-		FrontImage_DrawSpriteOpaque("background", 0, 0);
-		logoId = g_creditsLogoId[0];
-		switch (logoId) {
+	if (g_credits_prev_logo_id[0] != g_credits_logo_id[0] ||
+	    g_credits_prev_logo_x[0] != g_credits_logo_x[0] ||
+	    g_credits_prev_logo_y[0] != g_credits_logo_y[0] ||
+	    g_credits_prev_logo_id[1] != g_credits_logo_id[1] ||
+	    g_credits_prev_logo_x[1] != g_credits_logo_x[1] ||
+	    g_credits_prev_logo_y[1] != g_credits_logo_y[1]) {
+		g_credits_prev_logo_id[0] = g_credits_logo_id[0];
+		g_credits_prev_logo_x[0] = g_credits_logo_x[0];
+		g_credits_prev_logo_y[0] = g_credits_logo_y[0];
+		g_credits_prev_logo_id[1] = g_credits_logo_id[1];
+		g_credits_prev_logo_x[1] = g_credits_logo_x[1];
+		g_credits_prev_logo_y[1] = g_credits_logo_y[1];
+		frontend_display_lock_offscreen_surface();
+		front_image_draw_sprite_opaque("background", 0, 0);
+		logo_id = g_credits_logo_id[0];
+		switch (logo_id) {
 		case 1:
-			FrontImage_DrawSpriteTranslucent("totallylogo",
-							 g_creditsLogoX[0],
-							 g_creditsLogoY[0]);
+			front_image_draw_sprite_translucent(
+				"totallylogo", g_credits_logo_x[0],
+				g_credits_logo_y[0]);
 			break;
 		case 2:
-			FrontImage_DrawSpriteTranslucent("leclogo",
-							 g_creditsLogoX[0],
-							 g_creditsLogoY[0]);
+			front_image_draw_sprite_translucent(
+				"leclogo", g_credits_logo_x[0],
+				g_credits_logo_y[0]);
 			break;
 		default:
 			break;
 		}
-		logoId = g_creditsLogoId[1];
-		switch (logoId) {
+		logo_id = g_credits_logo_id[1];
+		switch (logo_id) {
 		case 1:
-			FrontImage_DrawSpriteTranslucent("totallylogo",
-							 g_creditsLogoX[1],
-							 g_creditsLogoY[1]);
+			front_image_draw_sprite_translucent(
+				"totallylogo", g_credits_logo_x[1],
+				g_credits_logo_y[1]);
 			break;
 		case 2:
-			FrontImage_DrawSpriteTranslucent("leclogo",
-							 g_creditsLogoX[1],
-							 g_creditsLogoY[1]);
+			front_image_draw_sprite_translucent(
+				"leclogo", g_credits_logo_x[1],
+				g_credits_logo_y[1]);
 			break;
 		default:
 			break;
 		}
-		FrontendDisplay_UnlockOffscreenSurface(1);
+		frontend_display_unlock_offscreen_surface(1);
 	}
 
-	if ((g_creditsBufferIdx & 1) != 0) {
-		FrontendText_SuspendTextFade();
+	if ((g_credits_buffer_idx & 1) != 0) {
+		frontend_text_suspend_text_fade();
 	}
-	for (lineIndex = 0; lineIndex < 32; ++lineIndex) {
-		FrontendText_Draw(15, g_creditsTextLines[0][lineIndex],
-				  g_creditsTextX[0],
-				  g_creditsTextY[0] + 19 * lineIndex,
-				  g_creditsTextColors[0][lineIndex]);
+	for (line_index = 0; line_index < 32; ++line_index) {
+		frontend_text_draw(15, g_credits_text_lines[0][line_index],
+				   g_credits_text_x[0],
+				   g_credits_text_y[0] + 19 * line_index,
+				   g_credits_text_colors[0][line_index]);
 	}
-	if ((g_creditsBufferIdx & 1) != 0) {
-		FrontendText_ResumeTextFade();
+	if ((g_credits_buffer_idx & 1) != 0) {
+		frontend_text_resume_text_fade();
 	} else {
-		FrontendText_SuspendTextFade();
+		frontend_text_suspend_text_fade();
 	}
-	for (lineIndex = 0; lineIndex < 32; ++lineIndex) {
-		FrontendText_Draw(15, g_creditsTextLines[1][lineIndex],
-				  g_creditsTextX[1],
-				  g_creditsTextY[1] + 19 * lineIndex,
-				  g_creditsTextColors[1][lineIndex]);
+	for (line_index = 0; line_index < 32; ++line_index) {
+		frontend_text_draw(15, g_credits_text_lines[1][line_index],
+				   g_credits_text_x[1],
+				   g_credits_text_y[1] + 19 * line_index,
+				   g_credits_text_colors[1][line_index]);
 	}
-	FrontendText_ResumeTextFade();
+	frontend_text_resume_text_fade();
 
-	if (g_creditsHasMorePages != 0) {
-		if (g_creditsPageEndFrame <= frameCounter) {
-			Credits_ParseNextPage(&g_creditsBufferIdx,
-					      &g_creditsHasMorePages,
-					      &outPageDurationFrames,
-					      &g_creditsTextFadeFrames);
-			g_creditsPageEndFrame += outPageDurationFrames;
-			FrontendText_StartTextFadeIn(g_creditsTextFadeFrames);
-			++g_creditsPageIndex;
-			if (g_creditsHasMorePages == 0) {
-				CDAudio_DisableLoopCurrentTrack();
+	if (g_credits_has_more_pages != 0) {
+		if (g_credits_page_end_frame <= frame_counter) {
+			credits_parse_next_page(&g_credits_buffer_idx,
+						&g_credits_has_more_pages,
+						&out_page_duration_frames,
+						&g_credits_text_fade_frames);
+			g_credits_page_end_frame += out_page_duration_frames;
+			frontend_text_start_text_fade_in(
+				g_credits_text_fade_frames);
+			++g_credits_page_index;
+			if (g_credits_has_more_pages == 0) {
+				cd_audio_disable_loop_current_track();
 			}
 		}
-	} else if (g_creditsPageEndFrame <= frameCounter) {
-		g_creditsExitPending = 1;
-		FrontendDisplay_ClearOffscreenSurface();
-		CDAudio_FadeAuxVolume(0x8000, 0x1000, 2000);
+	} else if (g_credits_page_end_frame <= frame_counter) {
+		g_credits_exit_pending = 1;
+		frontend_display_clear_offscreen_surface();
+		cd_audio_fade_aux_volume(0x8000, 0x1000, 2000);
 	}
 
-	key = (uint8_t)Keyboard_DequeueChar();
-	if (FrontendMouse_GetLeftClick() != 0 ||
-	    FrontendMouse_GetRightClick() != 0 || key == 27 || key == 13 ||
+	key = (uint8_t)keyboard_dequeue_char();
+	if (frontend_mouse_get_left_click() != 0 ||
+	    frontend_mouse_get_right_click() != 0 || key == 27 || key == 13 ||
 	    key == 32) {
-		g_creditsExitPending = 1;
-		FrontendDisplay_ClearOffscreenSurface();
-		FrontendDisplay_ClearBackBuffer();
-		CDAudio_FadeAuxVolume(0x8000, 0x1000, 2000);
+		g_credits_exit_pending = 1;
+		frontend_display_clear_offscreen_surface();
+		frontend_display_clear_back_buffer();
+		cd_audio_fade_aux_volume(0x8000, 0x1000, 2000);
 	}
 	return 0;
 }

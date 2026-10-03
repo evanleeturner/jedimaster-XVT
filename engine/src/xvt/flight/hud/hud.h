@@ -10,7 +10,7 @@ extern "C" {
 #endif
 
 // One HUD layout is a set of 144 instrument records loaded from the cockpit .INT files.
-enum HudInstrumentTableDimensions {
+enum hud_instrument_table_dimensions {
 	HUD_INSTRUMENT_SET_COUNT = 3,
 	HUD_INSTRUMENTS_PER_SET = 144,
 	HUD_INSTRUMENT_COUNT =
@@ -19,21 +19,21 @@ enum HudInstrumentTableDimensions {
 
 enum { HUD_SHIELD_TEXT_COLOR_OFFSET = 10 };
 
-enum HudInstrumentSetBaseIndex {
+enum hud_instrument_set_base_index {
 	HUD_COCKPIT_INSTRUMENT_BASE_INDEX = 0,
 	HUD_ONLY_VIEW_INSTRUMENT_BASE_INDEX = HUD_INSTRUMENTS_PER_SET,
 	HUD_CRAFT_LIST_INSTRUMENT_BASE_INDEX = 2 * HUD_INSTRUMENTS_PER_SET,
 };
 
-typedef enum HudViewState {
+typedef enum hud_view_state {
 	HUD_VIEW_FORWARD = 0,
 	HUD_VIEW_FULL_SCREEN = 18,
 	HUD_VIEW_HUD_ONLY = 19,
 	HUD_VIEW_TARGET_CAMERA = 20,
 	HUD_VIEW_CRAFT_LIST = 21,
-} HudViewState;
+} hud_view_state;
 
-enum HudMfdElementIndex {
+enum hud_mfd_element_index {
 	HUD_MFD_MESSAGE_LOG_ELEMENT = 117,
 	HUD_MFD_CRAFT_LIST_ELEMENT = 130,
 	HUD_MFD_MAP_OR_COMMAND_ELEMENT = 131,
@@ -42,24 +42,24 @@ enum HudMfdElementIndex {
 	HUD_MFD_SCOREBOARD_ELEMENT = 134,
 };
 
-struct HudCockpitResourceDescriptor {
+struct hud_cockpit_resource_descriptor {
 	/* 0 when the view is not offered; below 0x80 the view uses its own
 	 * image, loaded at start when 1; 0x80 plus n uses view n's image and
 	 * 0xC0 plus n view n's image mirrored. */
-	uint8_t resourceRef;
+	uint8_t resource_ref;
 	/* Base name of the view's .LFD image file; the craft list view's also
 	 * names its .INT and .PNL files. */
-	char lfdName[9];
-	uint16_t viewportOriginX;  /* Flight viewport's left edge in pixels. */
-	uint16_t viewportOriginY;  /* Flight viewport's top edge in pixels. */
-	uint16_t viewportWidth;	   /* Flight viewport's width in pixels. */
-	uint16_t viewportHeight;   /* Flight viewport's height in pixels. */
-	int16_t projectionOffsetY; /* Copied to g_projOffsetY for the view. */
+	char lfd_name[9];
+	uint16_t viewport_origin_x; /* Flight viewport's left edge in pixels. */
+	uint16_t viewport_origin_y; /* Flight viewport's top edge in pixels. */
+	uint16_t viewport_width;    /* Flight viewport's width in pixels. */
+	uint16_t viewport_height;   /* Flight viewport's height in pixels. */
+	int16_t projection_offset_y; /* Copied to g_proj_offset_y for the view. */
 	/* Name drawn at layout 49 when the view uses image 17. */
-	char displayName[16];
+	char display_name[16];
 };
 
-struct HudElementLayout {
+struct hud_element_layout {
 	uint16_t x; /* Left edge in pixels. */
 	uint16_t y; /* Top edge in pixels. */
 	/* Widget-specific .INT payload: the first panel sprite of a sprite widget, the digit count of a number
@@ -70,109 +70,110 @@ struct HudElementLayout {
 	 * or background color. Laser charge bars run right to left when it is
 	 * not 0, shield widgets show percent text at 0xFFFF, and the target
 	 * inset's is its height and the camera distance divisor. */
-	uint16_t colorIndexOrWidgetParam;
+	uint16_t color_index_or_widget_param;
 	/* Width of a text field's clip in pixels, or the fade amount of a faded
 	 * sprite; layouts 104 to 107 hold label widths stored at run time. */
-	uint16_t clipWidth;
+	uint16_t clip_width;
 	/* In layout 127, a counter of the critical warning's steps at run
 	 * time. */
-	int16_t clipHeightOrForegroundColor; ///< Widget-specific .INT payload: clip height or foreground text color.
+	int16_t clip_height_or_foreground_color; ///< Widget-specific .INT payload: clip height or foreground text color.
 };
 
-struct HudCockpitResource {
+struct hud_cockpit_resource {
 	/* Handle of the memory holding the entries; 0 when not loaded at
 	 * start. */
-	int16_t memoryHandle;
+	int16_t memory_handle;
 	/* Cockpit image, viewport span mask, palette (from 2 bytes in). */
 	uint8_t *entries[3];
 };
 
-struct RadarEllipseClampLimit {
+struct radar_ellipse_clamp_limit {
 	/* Largest sideways offset of a blip, in pixels, in this entry's
 	 * 443-unit angle step. */
-	uint8_t xLimit;
+	uint8_t x_limit;
 	/* Largest vertical offset of a blip, in pixels, in this angle step. */
-	uint8_t yLimit;
+	uint8_t y_limit;
 };
 
-extern struct RadarEllipseClampLimit g_radarEllipseClamp320x240Preset[37];
-extern struct RadarEllipseClampLimit g_radarEllipseClampTable[37];
-extern int g_radarEllipseClampCachedResolutionMode;
+extern struct radar_ellipse_clamp_limit g_radar_ellipse_clamp320x240_preset[37];
+extern struct radar_ellipse_clamp_limit g_radar_ellipse_clamp_table[37];
+extern int g_radar_ellipse_clamp_cached_resolution_mode;
 extern int16_t radarx;
 extern int16_t radary;
-extern uint16_t g_hudPanelSpriteDataHandle;
-extern uint16_t g_flightIconFramesHandle;
-extern uint16_t g_messageLogHandle;
-extern struct HudCockpitResource g_hudCockpitResources[28];
-extern struct HudCockpitResourceDescriptor g_hudCockpitResourceDescriptors[28];
-extern char g_hudCockpitResourcePath[32];
-extern char g_hudCockpitBasePath[32];
-extern struct HudPanelSpriteFileInfo g_hudPanelSpriteFileInfo;
-extern uint8_t g_hudPanelSetId;
-extern uint8_t g_hudLoadedPanelSetId;
-extern uint8_t g_flightDisplayRebuildPending;
-extern uint8_t *g_hudCockpitResourceWriteCursor;
-extern int g_hudCockpitResourcesLoaded;
-extern int16_t g_hudCachedTargetObjectIdx;
-extern const char *g_strWaypointNames[14];
-extern const char *g_strMeshComponentNames[33];
-extern const char *g_strCmdThreatDisplayText[18];
-extern const uint8_t g_messageTextPrefixColorCodes[16];
-extern const uint8_t g_messageSenderIffColorCodes[8];
-extern const char *g_strThreatDisplayText[4];
-extern const uint8_t g_hudShieldColors[22];
-extern uint8_t g_lastShieldDamageSide;
-extern uint8_t g_flightConfTickCounterEnabled;
-extern int g_flightTickOverlayLastLoopTicks;
-extern int g_flightTickOverlayWindowTicks;
-extern int g_flightTickOverlaySampleCount;
-extern int g_packetDropIndicator;
-extern int g_lagIndicator;
-extern int g_targetDescriptionMessageId;
-extern struct HudInFlightMessageRecord g_systemMessagePane;
-extern struct HudInFlightMessageRecord g_flightGroupMessagePane;
-extern struct HudInFlightMessageRecord g_readyMessagePaneQueue[11];
-extern uint8_t g_readyMessageQueueCount;
-extern int g_radioMessageBackupEnabled;
-extern uint16_t g_replayViewMode;
-extern int g_systemMessageDisplayEnabled;
+extern uint16_t g_hud_panel_sprite_data_handle;
+extern uint16_t g_flight_icon_frames_handle;
+extern uint16_t g_message_log_handle;
+extern struct hud_cockpit_resource g_hud_cockpit_resources[28];
+extern struct hud_cockpit_resource_descriptor
+	g_hud_cockpit_resource_descriptors[28];
+extern char g_hud_cockpit_resource_path[32];
+extern char g_hud_cockpit_base_path[32];
+extern struct hud_panel_sprite_file_info g_hud_panel_sprite_file_info;
+extern uint8_t g_hud_panel_set_id;
+extern uint8_t g_hud_loaded_panel_set_id;
+extern uint8_t g_flight_display_rebuild_pending;
+extern uint8_t *g_hud_cockpit_resource_write_cursor;
+extern int g_hud_cockpit_resources_loaded;
+extern int16_t g_hud_cached_target_object_idx;
+extern const char *g_str_waypoint_names[14];
+extern const char *g_str_mesh_component_names[33];
+extern const char *g_str_cmd_threat_display_text[18];
+extern const uint8_t g_message_text_prefix_color_codes[16];
+extern const uint8_t g_message_sender_iff_color_codes[8];
+extern const char *g_str_threat_display_text[4];
+extern const uint8_t g_hud_shield_colors[22];
+extern uint8_t g_last_shield_damage_side;
+extern uint8_t g_flight_conf_tick_counter_enabled;
+extern int g_flight_tick_overlay_last_loop_ticks;
+extern int g_flight_tick_overlay_window_ticks;
+extern int g_flight_tick_overlay_sample_count;
+extern int g_packet_drop_indicator;
+extern int g_lag_indicator;
+extern int g_target_description_message_id;
+extern struct hud_in_flight_message_record g_system_message_pane;
+extern struct hud_in_flight_message_record g_flight_group_message_pane;
+extern struct hud_in_flight_message_record g_ready_message_pane_queue[11];
+extern uint8_t g_ready_message_queue_count;
+extern int g_radio_message_backup_enabled;
+extern uint16_t g_replay_view_mode;
+extern int g_system_message_display_enabled;
 
-struct HudBeamSegmentOffset {
+struct hud_beam_segment_offset {
 	uint16_t x; /* Pixels right of layout 51. */
 	uint16_t y; /* Pixels below layout 51. */
 };
 
-struct HudRadarBlipPoint {
+struct hud_radar_blip_point {
 	uint16_t x;	/* Screen x in pixels. */
 	uint16_t y;	/* Screen y in pixels. */
 	uint16_t color; /* Palette index. */
 };
 
-extern uint16_t g_radarBlipColor;
-extern struct HudRadarBlipPoint *g_radarForeDrawBlips;
-extern uint16_t g_radarForeBlipCount;
-extern struct HudRadarBlipPoint *g_radarAftDrawBlips;
-extern uint16_t g_radarAftBlipCount;
-extern struct HudRadarBlipPoint *g_radarForeEraseBlips;
-extern struct HudRadarBlipPoint *g_radarAftEraseBlips;
-extern uint16_t g_radarForePrevBlipCount;
-extern uint16_t g_radarAftPrevBlipCount;
-extern uint8_t g_radarBlipBufferParity;
-extern uint8_t g_radarTargetMarkerBackgroundSaved;
-extern uint16_t g_radarTargetMarkerRestoreX;
-extern uint16_t g_radarTargetMarkerRestoreY;
-extern uint16_t g_radarTargetMarkerDrawX;
-extern uint16_t g_radarTargetMarkerDrawY;
+extern uint16_t g_radar_blip_color;
+extern struct hud_radar_blip_point *g_radar_fore_draw_blips;
+extern uint16_t g_radar_fore_blip_count;
+extern struct hud_radar_blip_point *g_radar_aft_draw_blips;
+extern uint16_t g_radar_aft_blip_count;
+extern struct hud_radar_blip_point *g_radar_fore_erase_blips;
+extern struct hud_radar_blip_point *g_radar_aft_erase_blips;
+extern uint16_t g_radar_fore_prev_blip_count;
+extern uint16_t g_radar_aft_prev_blip_count;
+extern uint8_t g_radar_blip_buffer_parity;
+extern uint8_t g_radar_target_marker_background_saved;
+extern uint16_t g_radar_target_marker_restore_x;
+extern uint16_t g_radar_target_marker_restore_y;
+extern uint16_t g_radar_target_marker_draw_x;
+extern uint16_t g_radar_target_marker_draw_y;
 
-struct HudPanelSpriteFileInfo {
-	char baseName[9]; /* Base name of the cockpit's .PNL file. */
-	/* With spriteCountAddend, the number of sprites read from it. */
-	uint8_t spriteCount;
-	/* Added to spriteCount for the number of sprites read. */
-	uint8_t spriteCountAddend;
+struct hud_panel_sprite_file_info {
+	char base_name[9]; /* Base name of the cockpit's .PNL file. */
+	/* With sprite_count_addend, the number of sprites read from it. */
+	uint8_t sprite_count;
+	/* Added to sprite_count for the number of sprites read. */
+	uint8_t sprite_count_addend;
 };
 
-typedef enum CmdThreatStringId {
+typedef enum cmd_threat_string_id {
 	CMD_THREAT_STR_DIST = 0x0,
 	CMD_THREAT_STR_SHD = 0x1,
 	CMD_THREAT_STR_HULL = 0x2,
@@ -191,17 +192,17 @@ typedef enum CmdThreatStringId {
 	CMD_THREAT_STR_TIME_TO_DESTINATION = 0xF,
 	CMD_THREAT_STR_D = 0x10,
 	CMD_THREAT_STR_L = 0x11,
-} CmdThreatStringId;
+} cmd_threat_string_id;
 
-typedef enum ThreatDisplayStringId {
+typedef enum threat_display_string_id {
 	THREAT_DISPLAY_STR_LASER = 0x0,
 	THREAT_DISPLAY_STR_ION = 0x1,
 	THREAT_DISPLAY_STR_WARHEAD = 0x2,
 	THREAT_DISPLAY_STR_BEAM = 0x3,
-} ThreatDisplayStringId;
+} threat_display_string_id;
 
-/* Stored as int32_t in the binary (IDB enum CockpitOverlayStringId). */
-typedef int32_t CockpitOverlayStringId;
+/* Stored as int32_t in the binary (IDB enum cockpit_overlay_string_id). */
+typedef int32_t cockpit_overlay_string_id;
 
 enum {
 	COCKPIT_OVERLAY_STR_SPD = 0x0,
@@ -246,129 +247,133 @@ enum {
 	COCKPIT_OVERLAY_STR_KO = 0x27,
 };
 
-extern struct HudElementLayout g_hudElementLayouts[HUD_INSTRUMENT_COUNT];
-extern int16_t g_hudElementStateCache[HUD_INSTRUMENT_COUNT];
-extern uint8_t *g_hudPanelSpriteDataByIndex[265];
-extern uint8_t *g_hudPanelSpriteDataWriteCursor;
-extern uint16_t g_hudInstrumentSetBaseIndex;
-extern uint16_t g_mfdMissionScoreboardBlitWidth;
-extern uint16_t g_mfdMissionScoreboardBlitSourceY;
-extern uint16_t g_mfdMissionScoreboardBlitHeight;
-extern uint16_t g_mfdMissionScoreboardBlitSourceX;
-extern uint16_t g_mfdMapBlitSourceY;
-extern uint16_t g_mfdMapBlitWidth;
-extern uint16_t g_mfdMapBlitHeight;
-extern uint16_t g_mfdMapBlitSourceX;
-extern uint16_t g_mfdCraftListBlitHeight;
-extern uint16_t g_mfdCraftListBlitSourceX;
-extern uint16_t g_mfdCraftListBlitSourceY;
-extern uint16_t g_mfdCraftListBlitWidth;
-extern uint16_t g_mfdGoalsBlitHeight;
-extern uint16_t g_mfdDamageBlitSourceX;
-extern uint16_t g_mfdGoalsBlitSourceX;
-extern uint16_t g_mfdDamageBlitHeight;
-extern uint16_t g_mfdGoalsBlitWidth;
-extern uint16_t g_mfdDamageBlitWidth;
-extern uint16_t g_mfdDamageBlitSourceY;
-extern uint16_t g_mfdGoalsBlitSourceY;
-extern uint8_t g_hudFullRedrawInProgress;
-extern int g_readyMessagePaneLeft;
-extern int g_readyMessagePaneTop;
-extern int g_readyMessagePaneRight;
-extern int g_readyMessagePaneBottom;
-extern uint8_t g_hudBeamSegmentColorByChargeStep[4];
-extern const struct HudBeamSegmentOffset g_hudBeamSegmentOffsets480x360[9];
-extern const struct HudBeamSegmentOffset g_hudBeamSegmentOffsets320x240[9];
-extern const char g_threeDigitWidthText[4];
-extern const char g_missionClockMinutesWidthText[4];
-extern const uint8_t g_lfdPaletteResourceTypeTag[4];
-extern uint8_t g_targetLockActive;
-extern uint8_t g_hudCraftListInsetSpanMask[480];
-extern uint8_t g_hudCockpitInsetSpanMask[480];
-extern uint8_t g_hudOnlyViewInsetSpanMask[480];
-extern const char *g_strCockpitOverlayText[40];
+extern struct hud_element_layout g_hud_element_layouts[HUD_INSTRUMENT_COUNT];
+extern int16_t g_hud_element_state_cache[HUD_INSTRUMENT_COUNT];
+extern uint8_t *g_hud_panel_sprite_data_by_index[265];
+extern uint8_t *g_hud_panel_sprite_data_write_cursor;
+extern uint16_t g_hud_instrument_set_base_index;
+extern uint16_t g_mfd_mission_scoreboard_blit_width;
+extern uint16_t g_mfd_mission_scoreboard_blit_source_y;
+extern uint16_t g_mfd_mission_scoreboard_blit_height;
+extern uint16_t g_mfd_mission_scoreboard_blit_source_x;
+extern uint16_t g_mfd_map_blit_source_y;
+extern uint16_t g_mfd_map_blit_width;
+extern uint16_t g_mfd_map_blit_height;
+extern uint16_t g_mfd_map_blit_source_x;
+extern uint16_t g_mfd_craft_list_blit_height;
+extern uint16_t g_mfd_craft_list_blit_source_x;
+extern uint16_t g_mfd_craft_list_blit_source_y;
+extern uint16_t g_mfd_craft_list_blit_width;
+extern uint16_t g_mfd_goals_blit_height;
+extern uint16_t g_mfd_damage_blit_source_x;
+extern uint16_t g_mfd_goals_blit_source_x;
+extern uint16_t g_mfd_damage_blit_height;
+extern uint16_t g_mfd_goals_blit_width;
+extern uint16_t g_mfd_damage_blit_width;
+extern uint16_t g_mfd_damage_blit_source_y;
+extern uint16_t g_mfd_goals_blit_source_y;
+extern uint8_t g_hud_full_redraw_in_progress;
+extern int g_ready_message_pane_left;
+extern int g_ready_message_pane_top;
+extern int g_ready_message_pane_right;
+extern int g_ready_message_pane_bottom;
+extern uint8_t g_hud_beam_segment_color_by_charge_step[4];
+extern const struct hud_beam_segment_offset
+	g_hud_beam_segment_offsets480x360[9];
+extern const struct hud_beam_segment_offset
+	g_hud_beam_segment_offsets320x240[9];
+extern const char g_three_digit_width_text[4];
+extern const char g_mission_clock_minutes_width_text[4];
+extern const uint8_t g_lfd_palette_resource_type_tag[4];
+extern uint8_t g_target_lock_active;
+extern uint8_t g_hud_craft_list_inset_span_mask[480];
+extern uint8_t g_hud_cockpit_inset_span_mask[480];
+extern uint8_t g_hud_only_view_inset_span_mask[480];
+extern const char *g_str_cockpit_overlay_text[40];
 
-void Hud_DrawBoxOverlayHW(int x, int y, int width, int height, int colorIdx,
-			  int depth);
-int Hud_SetHudViewState(int hudViewState, int playerIdx);
-void Hud_InitHUD(int playerIdx);
-void Hud_RenderHud(int playerIdx);
-void Hud_DrawHudTargetInsetIfEnabled(int playerIndex);
-void Hud_DrawStaticCockpitText(uint16_t playerIdx);
-void Hud_InitHUDEndStub(int playerIdx);
-void Hud_UpdateHUD(void);
-void Hud_UpdateHudOnlyView(void);
-void Hud_DrawMapViewOverlay(void);
-void Hud_UpdateCMDText(void);
-void Hud_DrawRadarBlips(void);
-void Hud_AddBlipToRadar(int16_t objIdx);
-void Hud_UpdateTargetingComputerDisplay(void);
-void Hud_FormatObjectDisplayName(uint16_t objectRef, int16_t displayFlags);
-int Hud_MissionFG_GetCraftNumberIfShown(int flightGroupIdx,
-					const struct CraftData *craft);
-void Hud_DrawTargetDistance(int polarDistance);
-void Hud_UpdateTargetingLockIndicator(void);
-void Hud_DrawLaserCannonIndicators(void);
-void Hud_UpdateWarheadCnt(void);
-void Hud_OutputWarheadCount(uint16_t warheadSlotIdx, uint16_t displaySlot,
-			    uint16_t warheadBank);
-void Hud_DrawShieldStrength2D(void);
-void Hud_DrawBeamStrength2D(void);
-void Hud_UpdateSpeedPercent(void);
-void Hud_UpdateThrottlePercent(void);
-void Hud_UpdateMissionClockDisplay(void);
-void Hud_DrawPowerSettings2D(void);
-void Hud_DrawCachedSegmentedBar(uint16_t filledCount, uint16_t elementIdx,
-				uint16_t segmentCount, int16_t yStep);
-void Hud_UpdateThreatIndicators(int hudMode);
-void Hud_UpdateCriticalHullShieldWarning(void);
-void Hud_UpdateCountermeasureStatus(void);
-void Hud_ClearUnavailableCraftSystemIndicators(void);
-void Hud_UpdateCraftSystemStatusIndicators(void);
-void Hud_DrawCmdTargetDetails(void);
-void Hud_DrawCmdTargetStatusIndicators(void);
-void Hud_DrawCachedSpriteElement(unsigned int elementIdx, unsigned int state);
-void Hud_DrawCachedFadedSpriteElement(uint16_t elementIdx, int16_t state,
-				      int16_t fade);
-void Hud_DrawCachedNumericElement(uint16_t elementIdx, int16_t value,
-				  uint16_t minDigits);
-void Hud_LoadCockpitResources(void);
-void Hud_LoadCockpitInterfaceFile(const char *basePath);
-int16_t Hud_LoadAuxiliaryCockpitInterfaceFile(void);
-void Hud_ForcePlayerViewState(int hudViewState, int playerIdx);
-void Hud_RebuildDisplayForViewState(int hudViewState, int playerIdx);
-void Hud_LoadCockpitLfdEntries(const char *lfdName, uint8_t **outEntries,
-			       unsigned int entryCount);
-void Hud_LoadCockpitSpriteResources(unsigned int modelIndex);
-void Hud_ReloadCockpitInterfaceFile(void);
-void Hud_UpdateMfdPages(void);
-void Hud_BlitSoftwareMfdPages(void);
-void Hud_Update3DCrt(uint16_t screenX, uint16_t screenY, uint16_t width,
-		     uint16_t height, int16_t refreshSpanMask);
-void Hud_DrawComponentMarkerBox(int x, int y, int width, int height,
-				uint8_t colorIdx);
-void Hud_PointCamera(uint16_t targetIdx, int16_t useHudLayoutScale,
-		     int playerIdx);
-void Hud_ResetFlightMessagePanes(int forceExpireActiveMessages);
-void Hud_ShiftReadyMessageQueueForReplacement(void);
-void Hud_AdvanceReadyMessageQueue(void);
-void Hud_ShowFlightMessagePane(int16_t paneType);
-void Hud_SetupReadyMessagePaneText(void);
-void Hud_FinishFlightMessagePane(int16_t paneType, char lastChar);
-void Hud_UpdateFlightMessagePanes(void);
-void Hud_ClearReadyMessageQueue(void);
-void Hud_AdvanceFlightMessagePaneTimers(void);
-void Hud_DrawCraftNameFpsAndNetworkStatus(void);
-uint16_t Hud_GetSystemMessagePaneState(void);
-void Hud_BlitSoftwareHudTextPanes(void);
-uint16_t Hud_MeasureFlightMessagePaneText(int16_t paneType);
-void Hud_DrawDepthTestedBoxCorners(int x, int y, int width, int height,
-				   int colorIdx, int depth);
-int16_t Hud_LoadPanelSpriteRecords(const char *fileName,
-				   uint16_t firstSpriteIndex,
-				   int16_t spriteCount, uint16_t recordsToSkip);
-int FlightIcon_LoadFrames(char *fileName, uint8_t *dataBuffer,
-			  uint8_t **framePointers);
+void hud_draw_box_overlay_hw(int x, int y, int width, int height, int color_idx,
+			     int depth);
+int hud_set_hud_view_state(int hud_view_state, int player_idx);
+void hud_init_hud(int player_idx);
+void hud_render_hud(int player_idx);
+void hud_draw_hud_target_inset_if_enabled(int player_index);
+void hud_draw_static_cockpit_text(uint16_t player_idx);
+void hud_init_hud_end_stub(int player_idx);
+void hud_update_hud(void);
+void hud_update_hud_only_view(void);
+void hud_draw_map_view_overlay(void);
+void hud_update_cmd_text(void);
+void hud_draw_radar_blips(void);
+void hud_add_blip_to_radar(int16_t obj_idx);
+void hud_update_targeting_computer_display(void);
+void hud_format_object_display_name(uint16_t object_ref, int16_t display_flags);
+int hud_mission_fg_get_craft_number_if_shown(int flight_group_idx,
+					     const struct craft_data *craft);
+void hud_draw_target_distance(int polar_distance);
+void hud_update_targeting_lock_indicator(void);
+void hud_draw_laser_cannon_indicators(void);
+void hud_update_warhead_cnt(void);
+void hud_output_warhead_count(uint16_t warhead_slot_idx, uint16_t display_slot,
+			      uint16_t warhead_bank);
+void hud_draw_shield_strength2d(void);
+void hud_draw_beam_strength2d(void);
+void hud_update_speed_percent(void);
+void hud_update_throttle_percent(void);
+void hud_update_mission_clock_display(void);
+void hud_draw_power_settings2d(void);
+void hud_draw_cached_segmented_bar(uint16_t filled_count, uint16_t element_idx,
+				   uint16_t segment_count, int16_t y_step);
+void hud_update_threat_indicators(int hud_mode);
+void hud_update_critical_hull_shield_warning(void);
+void hud_update_countermeasure_status(void);
+void hud_clear_unavailable_craft_system_indicators(void);
+void hud_update_craft_system_status_indicators(void);
+void hud_draw_cmd_target_details(void);
+void hud_draw_cmd_target_status_indicators(void);
+void hud_draw_cached_sprite_element(unsigned int element_idx,
+				    unsigned int state);
+void hud_draw_cached_faded_sprite_element(uint16_t element_idx, int16_t state,
+					  int16_t fade);
+void hud_draw_cached_numeric_element(uint16_t element_idx, int16_t value,
+				     uint16_t min_digits);
+void hud_load_cockpit_resources(void);
+void hud_load_cockpit_interface_file(const char *base_path);
+int16_t hud_load_auxiliary_cockpit_interface_file(void);
+void hud_force_player_view_state(int hud_view_state, int player_idx);
+void hud_rebuild_display_for_view_state(int hud_view_state, int player_idx);
+void hud_load_cockpit_lfd_entries(const char *lfd_name, uint8_t **out_entries,
+				  unsigned int entry_count);
+void hud_load_cockpit_sprite_resources(unsigned int model_index);
+void hud_reload_cockpit_interface_file(void);
+void hud_update_mfd_pages(void);
+void hud_blit_software_mfd_pages(void);
+void hud_update3d_crt(uint16_t screen_x, uint16_t screen_y, uint16_t width,
+		      uint16_t height, int16_t refresh_span_mask);
+void hud_draw_component_marker_box(int x, int y, int width, int height,
+				   uint8_t color_idx);
+void hud_point_camera(uint16_t target_idx, int16_t use_hud_layout_scale,
+		      int player_idx);
+void hud_reset_flight_message_panes(int force_expire_active_messages);
+void hud_shift_ready_message_queue_for_replacement(void);
+void hud_advance_ready_message_queue(void);
+void hud_show_flight_message_pane(int16_t pane_type);
+void hud_setup_ready_message_pane_text(void);
+void hud_finish_flight_message_pane(int16_t pane_type, char last_char);
+void hud_update_flight_message_panes(void);
+void hud_clear_ready_message_queue(void);
+void hud_advance_flight_message_pane_timers(void);
+void hud_draw_craft_name_fps_and_network_status(void);
+uint16_t hud_get_system_message_pane_state(void);
+void hud_blit_software_hud_text_panes(void);
+uint16_t hud_measure_flight_message_pane_text(int16_t pane_type);
+void hud_draw_depth_tested_box_corners(int x, int y, int width, int height,
+				       int color_idx, int depth);
+int16_t hud_load_panel_sprite_records(const char *file_name,
+				      uint16_t first_sprite_index,
+				      int16_t sprite_count,
+				      uint16_t records_to_skip);
+int flight_icon_load_frames(char *file_name, uint8_t *data_buffer,
+			    uint8_t **frame_pointers);
 
 #ifdef __cplusplus
 }

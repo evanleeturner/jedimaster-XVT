@@ -10,48 +10,48 @@
 extern "C" {
 #endif
 
-typedef int (*FrontendScreenUpdateFn)(int);
+typedef int (*frontend_screen_update_fn)(int);
 
-typedef int (*FrontendScreenExitFn)(int);
+typedef int (*frontend_screen_exit_fn)(int);
 
 enum { FRONTEND_SCREEN_MAX_STACK = 10 };
 
-struct FrontendScreenState {
-	/* The pixels under savedRect, copied by FrontendScreen_PushState when
+struct frontend_screen_state {
+	/* The pixels under saved_rect, copied by frontend_screen_push_state when
 	 * the next screen was pushed over this one and drawn back by
-	 * FrontendScreen_PopState: at 8 bits per pixel RLE-compressed when
-	 * FrontImage_CompressRLE succeeds, else raw; raw at 16. 0 by 0 with no
+	 * frontend_screen_pop_state: at 8 bits per pixel RLE-compressed when
+	 * front_image_compress_rle succeeds, else raw; raw at 16. 0 by 0 with no
 	 * data when that push had no rect. */
-	struct ImageResource savedImage;
+	struct image_resource saved_image;
 	/* The rect of the screen pushed over this one, clamped to 0 to 639 by 0
 	 * to 479. */
-	struct RECT savedRect;
-	/* Clip left edge before the push. FrontendScreen_PopState reads these
+	struct RECT saved_rect;
+	/* Clip left edge before the push. frontend_screen_pop_state reads these
 	 * four fields as one RECT to restore the clip. */
-	int savedClipMinX;
-	int savedClipMinY; /* Clip top edge before the push. */
-	int savedClipMaxX; /* Clip right edge before the push. */
-	int savedClipMaxY; /* Clip bottom edge before the push. */
+	int saved_clip_min_x;
+	int saved_clip_min_y; /* Clip top edge before the push. */
+	int saved_clip_max_x; /* Clip right edge before the push. */
+	int saved_clip_max_y; /* Clip bottom edge before the push. */
 	/* Called by the frame loop each frame while this screen is on top, with
-	 * g_frontState.frameCounter. Returning 1 calls exitFn, then ends a
+	 * g_front_state.frame_counter. Returning 1 calls exit_fn, then ends a
 	 * modal screen, or the program when the main loop ran it. */
-	FrontendScreenUpdateFn updateFn;
+	frontend_screen_update_fn update_fn;
 	/* Called after an update that returned 1, or one during which
-	 * FrontendScreen_SetCallbacks ran. */
-	FrontendScreenExitFn exitFn;
-	/* g_frontState.frameCounter before the push, restored by the pop. */
-	int savedFrameCounter;
+	 * frontend_screen_set_callbacks ran. */
+	frontend_screen_exit_fn exit_fn;
+	/* g_front_state.frame_counter before the push, restored by the pop. */
+	int saved_frame_counter;
 };
 
-void FrontendScreen_SetCallbacks(FrontendScreenUpdateFn updateFn,
-				 FrontendScreenExitFn exitFn);
-int FrontendScreen_QueuePush(int (*updateFn)(int),
-			     const struct RECT *screenRect);
-int FrontendScreen_RunModal(FrontendScreenUpdateFn updateFn,
-			    struct RECT *screenRect);
-int FrontendScreen_PushState(FrontendScreenUpdateFn updateFn,
-			     struct RECT *screenRect);
-void FrontendScreen_PopState(void);
+void frontend_screen_set_callbacks(frontend_screen_update_fn update_fn,
+				   frontend_screen_exit_fn exit_fn);
+int frontend_screen_queue_push(int (*update_fn)(int),
+			       const struct RECT *screen_rect);
+int frontend_screen_run_modal(frontend_screen_update_fn update_fn,
+			      struct RECT *screen_rect);
+int frontend_screen_push_state(frontend_screen_update_fn update_fn,
+			       struct RECT *screen_rect);
+void frontend_screen_pop_state(void);
 
 #ifdef __cplusplus
 }

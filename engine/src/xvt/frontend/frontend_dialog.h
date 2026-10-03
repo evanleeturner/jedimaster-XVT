@@ -8,27 +8,29 @@
 extern "C" {
 #endif
 
-extern char g_frontDialogLine1OrEdit[256];
-extern char g_frontDialogLine2[256];
-extern char g_frontDialogLine3[256];
-extern char g_frontDialogOkayLabel[128];
-extern char g_frontDialogCancelLabel[128];
-extern int g_frontDialogSavedMouseX;
-extern int g_frontDialogSavedMouseY;
-extern int g_dialogResult;
+extern char g_front_dialog_line1_or_edit[256];
+extern char g_front_dialog_line2[256];
+extern char g_front_dialog_line3[256];
+extern char g_front_dialog_okay_label[128];
+extern char g_front_dialog_cancel_label[128];
+extern int g_front_dialog_saved_mouse_x;
+extern int g_front_dialog_saved_mouse_y;
+extern int g_dialog_result;
 
-int FrontendDialog_ShowConfirmDialog(const char *line1, const char *line2,
-				     const char *line3, const char *okayLabel,
-				     const char *cancelLabel);
-int FrontendDialog_ConfirmUpdateCallback(int frameCounter);
-int FrontendDialog_HasNetworkDismissPacket(void);
-int FrontendDialog_PromptForPilotName(char *outName);
-int FrontendDialog_CreatePilotNameCallback(int frameCounter);
-int FrontendDialog_ShowNetworkAbortError(const char *line1, const char *line2,
-					 const char *line3,
-					 const char *okayLabel,
-					 const char *cancelLabel);
-int FrontendDialog_NetworkAbortErrorCallback(int frameCounter);
+int frontend_dialog_show_confirm_dialog(const char *line1, const char *line2,
+					const char *line3,
+					const char *okay_label,
+					const char *cancel_label);
+int frontend_dialog_confirm_update_callback(int frame_counter);
+int frontend_dialog_has_network_dismiss_packet(void);
+int frontend_dialog_prompt_for_pilot_name(char *out_name);
+int frontend_dialog_create_pilot_name_callback(int frame_counter);
+int frontend_dialog_show_network_abort_error(const char *line1,
+					     const char *line2,
+					     const char *line3,
+					     const char *okay_label,
+					     const char *cancel_label);
+int frontend_dialog_network_abort_error_callback(int frame_counter);
 
 #ifdef __cplusplus
 }

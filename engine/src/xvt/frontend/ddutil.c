@@ -5,69 +5,69 @@
 #include <stddef.h>
 #include <string.h>
 
-typedef HRESULT(AERON_DXAPI *DDUtilSurfaceGetDcFunc)(
+typedef HRESULT(AERON_DXAPI *dd_util_surface_get_dc_func)(
 	IDirectDrawSurface *surface, void **dc);
-typedef HRESULT(AERON_DXAPI *DDUtilSurfaceReleaseDcFunc)(
+typedef HRESULT(AERON_DXAPI *dd_util_surface_release_dc_func)(
 	IDirectDrawSurface *surface, void *dc);
 
 #ifndef XVT_MODERN
 __declspec(dllimport) void *__stdcall CreateCompatibleDC(void *dc);
 __declspec(dllimport) void *__stdcall SelectObject(void *dc, void *object);
-__declspec(dllimport) int __stdcall GetObjectA(void *object, int bufferSize,
+__declspec(dllimport) int __stdcall GetObjectA(void *object, int buffer_size,
 					       void *buffer);
 __declspec(dllimport) int __stdcall
-StretchBlt(void *destinationDc, int xDestination, int yDestination,
-	   int destinationWidth, int destinationHeight, void *sourceDc,
-	   int xSource, int ySource, int sourceWidth, int sourceHeight,
-	   unsigned long rasterOperation);
+StretchBlt(void *destination_dc, int x_destination, int y_destination,
+	   int destination_width, int destination_height, void *source_dc,
+	   int x_source, int y_source, int source_width, int source_height,
+	   unsigned long raster_operation);
 __declspec(dllimport) int __stdcall DeleteDC(void *dc);
-__declspec(dllimport) void *__stdcall GetModuleHandleA(const char *moduleName);
+__declspec(dllimport) void *__stdcall GetModuleHandleA(const char *module_name);
 __declspec(dllimport) void *__stdcall
 LoadImageA(void *instance, const char *name, unsigned int type, int width,
-	   int height, unsigned int loadFlags);
+	   int height, unsigned int load_flags);
 __declspec(dllimport) int __stdcall DeleteObject(void *object);
 #endif
 
 /* Nothing calls this. The original build loads the bitmap file bitmapName as a
  * DIB section (LoadImageA flags 0x2010, LR_CREATEDIBSECTION | LR_LOADFROMFILE)
  * at width by height, 0 meaning its own size, creates an offscreen surface of
- * the loaded size, copies the bitmap into it with DDUtil_CopyBitmapToSurface,
+ * the loaded size, copies the bitmap into it with dd_util_copy_bitmap_to_surface,
  * frees the bitmap and returns the surface. It returns NULL when the load or
  * the surface creation fails, the latter without freeing the bitmap. The modern
  * build returns NULL. */
 // FUNCTION: XVT 0x4F0BE0
-IDirectDrawSurface *DDUtil_LoadBitmapSurface(IDirectDraw *directDraw,
-					     const char *bitmapName, int width,
-					     int height)
+IDirectDrawSurface *dd_util_load_bitmap_surface(IDirectDraw *direct_draw,
+						const char *bitmap_name,
+						int width, int height)
 {
 #ifdef XVT_MODERN
-	(void)directDraw;
-	(void)bitmapName;
+	(void)direct_draw;
+	(void)bitmap_name;
 	(void)width;
 	(void)height;
 	return NULL;
 #else
 	void *bitmap;
 	IDirectDrawSurface *surface;
-	DDSURFACEDESC surfaceDesc;
-	struct BITMAP bitmapInfo;
+	DDSURFACEDESC surface_desc;
+	struct BITMAP bitmap_info;
 
-	bitmap = LoadImageA(NULL, bitmapName, 0, width, height, 0x2010);
+	bitmap = LoadImageA(NULL, bitmap_name, 0, width, height, 0x2010);
 	if (bitmap == NULL) {
 		return NULL;
 	}
-	GetObjectA(bitmap, sizeof(bitmapInfo), &bitmapInfo);
-	memset(&surfaceDesc, 0, sizeof(surfaceDesc));
-	surfaceDesc.dwWidth = bitmapInfo.bmWidth;
-	surfaceDesc.dwHeight = bitmapInfo.bmHeight;
-	surfaceDesc.dwSize = sizeof(surfaceDesc);
-	surfaceDesc.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH;
-	surfaceDesc.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;
-	if (directDraw->lpVtbl->CreateSurface(directDraw, &surfaceDesc,
-					      &surface, NULL) != DX_DD_OK) {
+	GetObjectA(bitmap, sizeof(bitmap_info), &bitmap_info);
+	memset(&surface_desc, 0, sizeof(surface_desc));
+	surface_desc.dwWidth = bitmap_info.bm_width;
+	surface_desc.dwHeight = bitmap_info.bm_height;
+	surface_desc.dwSize = sizeof(surface_desc);
+	surface_desc.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH;
+	surface_desc.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;
+	if (direct_draw->lpVtbl->CreateSurface(direct_draw, &surface_desc,
+					       &surface, NULL) != DX_DD_OK) {
 		return NULL;
 	}
-	DDUtil_CopyBitmapToSurface(surface, bitmap, 0, 0, 0, 0);
+	dd_util_copy_bitmap_to_surface(surface, bitmap, 0, 0, 0, 0);
 	DeleteObject(bitmap);
 	return surface;
 #endif
@@ -75,90 +75,91 @@ IDirectDrawSurface *DDUtil_LoadBitmapSurface(IDirectDraw *directDraw,
 
 /* Nothing calls this. The original build loads bitmapName as a bitmap resource
  * of the executable, else as a bitmap file, copies it over the whole surface
- * with DDUtil_CopyBitmapToSurface and returns that result, or DX_E_FAIL when
+ * with dd_util_copy_bitmap_to_surface and returns that result, or DX_E_FAIL when
  * both loads fail. The modern build returns DX_E_NOTIMPL. */
 // FUNCTION: XVT 0x4F0CC0
-HRESULT DDUtil_ReloadBitmapSurface(IDirectDrawSurface *surface,
-				   const char *bitmapName)
+HRESULT dd_util_reload_bitmap_surface(IDirectDrawSurface *surface,
+				      const char *bitmap_name)
 {
 #ifdef XVT_MODERN
 	(void)surface;
-	(void)bitmapName;
+	(void)bitmap_name;
 	return DX_E_NOTIMPL;
 #else
 	void *bitmap;
 	HRESULT result;
 
-	bitmap =
-		LoadImageA(GetModuleHandleA(NULL), bitmapName, 0, 0, 0, 0x2000);
+	bitmap = LoadImageA(GetModuleHandleA(NULL), bitmap_name, 0, 0, 0,
+			    0x2000);
 	if (bitmap == NULL) {
-		bitmap = LoadImageA(NULL, bitmapName, 0, 0, 0, 0x2010);
+		bitmap = LoadImageA(NULL, bitmap_name, 0, 0, 0, 0x2010);
 		if (bitmap == NULL) {
 			return DX_E_FAIL;
 		}
 	}
-	result = DDUtil_CopyBitmapToSurface(surface, bitmap, 0, 0, 0, 0);
+	result = dd_util_copy_bitmap_to_surface(surface, bitmap, 0, 0, 0, 0);
 	DeleteObject(bitmap);
 	return result;
 #endif
 }
 
-/* Only DDUtil_LoadBitmapSurface and DDUtil_ReloadBitmapSurface call this, and
+/* Only dd_util_load_bitmap_surface and dd_util_reload_bitmap_surface call this, and
  * nothing calls them. The original build restores the surface, then stretches
  * the bitmap's width by height pixels from (xSrc, ySrc), 0 meaning the bitmap's
  * own width or height, over the whole surface through GDI. Returns the
  * surface's GetDC result, DX_DD_OK when it copied, or DX_E_FAIL when surface or
  * bitmap is NULL. The modern build returns DX_E_NOTIMPL. */
 // FUNCTION: XVT 0x4F0D30
-HRESULT DDUtil_CopyBitmapToSurface(IDirectDrawSurface *surface, void *bitmap,
-				   int xSrc, int ySrc, int width, int height)
+HRESULT dd_util_copy_bitmap_to_surface(IDirectDrawSurface *surface,
+				       void *bitmap, int x_src, int y_src,
+				       int width, int height)
 {
 #ifdef XVT_MODERN
 	(void)surface;
 	(void)bitmap;
-	(void)xSrc;
-	(void)ySrc;
+	(void)x_src;
+	(void)y_src;
 	(void)width;
 	(void)height;
 	return DX_E_NOTIMPL;
 #else
-	void *compatibleDc;
-	int actualWidth;
-	int actualHeight;
-	void *destinationDc;
+	void *compatible_dc;
+	int actual_width;
+	int actual_height;
+	void *destination_dc;
 	HRESULT result;
-	int bitmapObject[6];
-	DDSURFACEDESC surfaceDesc;
+	int bitmap_object[6];
+	DDSURFACEDESC surface_desc;
 
 	if (bitmap == NULL || surface == NULL) {
 		return DX_E_FAIL;
 	}
 
 	surface->lpVtbl->Restore(surface);
-	compatibleDc = CreateCompatibleDC(NULL);
-	SelectObject(compatibleDc, bitmap);
-	GetObjectA(bitmap, sizeof(bitmapObject), bitmapObject);
-	actualWidth = width;
-	if (actualWidth == 0) {
-		actualWidth = bitmapObject[1];
+	compatible_dc = CreateCompatibleDC(NULL);
+	SelectObject(compatible_dc, bitmap);
+	GetObjectA(bitmap, sizeof(bitmap_object), bitmap_object);
+	actual_width = width;
+	if (actual_width == 0) {
+		actual_width = bitmap_object[1];
 	}
-	actualHeight = height;
-	if (actualHeight == 0) {
-		actualHeight = bitmapObject[2];
+	actual_height = height;
+	if (actual_height == 0) {
+		actual_height = bitmap_object[2];
 	}
-	surfaceDesc.dwSize = sizeof(surfaceDesc);
-	surfaceDesc.dwFlags = DDSD_HEIGHT | DDSD_WIDTH;
-	surface->lpVtbl->GetSurfaceDesc(surface, &surfaceDesc);
-	result = ((DDUtilSurfaceGetDcFunc)surface->lpVtbl->GetDC)(
-		surface, &destinationDc);
+	surface_desc.dwSize = sizeof(surface_desc);
+	surface_desc.dwFlags = DDSD_HEIGHT | DDSD_WIDTH;
+	surface->lpVtbl->GetSurfaceDesc(surface, &surface_desc);
+	result = ((dd_util_surface_get_dc_func)surface->lpVtbl->GetDC)(
+		surface, &destination_dc);
 	if (result == DX_DD_OK) {
-		StretchBlt(destinationDc, 0, 0, surfaceDesc.dwWidth,
-			   surfaceDesc.dwHeight, compatibleDc, xSrc, ySrc,
-			   actualWidth, actualHeight, DDROP_SRCCOPY);
-		((DDUtilSurfaceReleaseDcFunc)surface->lpVtbl->ReleaseDC)(
-			surface, destinationDc);
+		StretchBlt(destination_dc, 0, 0, surface_desc.dwWidth,
+			   surface_desc.dwHeight, compatible_dc, x_src, y_src,
+			   actual_width, actual_height, DDROP_SRCCOPY);
+		((dd_util_surface_release_dc_func)surface->lpVtbl->ReleaseDC)(
+			surface, destination_dc);
 	}
-	DeleteDC(compatibleDc);
+	DeleteDC(compatible_dc);
 	return result;
 #endif
 }

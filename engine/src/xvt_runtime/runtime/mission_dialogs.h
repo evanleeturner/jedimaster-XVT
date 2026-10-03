@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-typedef enum XvtMissionDialogAction {
+typedef enum xvt_mission_dialog_action {
 	XVT_MISSION_NOTICE,
 	XVT_MISSION_SETUP_CANCELLED,
 	XVT_MISSION_SETUP_BOOTED,
@@ -23,7 +23,7 @@ typedef enum XvtMissionDialogAction {
 	XVT_MISSION_DEBRIEF_HOST_ABORT,
 	XVT_MISSION_DEBRIEF_SOLO_ABORT,
 	XVT_MISSION_DEBRIEF_SOLO_ABORT_CLEAR_ROSTER
-} XvtMissionDialogAction;
+} xvt_mission_dialog_action;
 
 /* Dialog continuation for the mission screens' dialogs: runs the tail for action, in the suspended
  * screen's callback slot before its exit callback. NOTICE does nothing. The four CANCELLED actions
@@ -38,7 +38,7 @@ typedef enum XvtMissionDialogAction {
  * DEBRIEF_SOLO_ABORT actions clear the solo launch flags and the roster-authority flag, and the
  * multiplayer roster for CLEAR_ROSTER, then reopen mission setup. Always turns the overlay text
  * off and returns 0. */
-int XvtMissionDialogs_Resume(int result, int action);
+int xvt_mission_dialogs_resume(int result, int action);
 
 #ifdef __cplusplus
 }

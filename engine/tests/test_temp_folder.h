@@ -21,7 +21,8 @@
 #define XVT_TEST_PATH_CAPACITY 4096
 
 /* Writes folder/name into out; the check fails when it does not fit. */
-static inline void XvtTest_Join(char *out, const char *folder, const char *name)
+static inline void xvt_test_join(char *out, const char *folder,
+				 const char *name)
 {
 	int length =
 		snprintf(out, XVT_TEST_PATH_CAPACITY, "%s/%s", folder, name);
@@ -29,18 +30,18 @@ static inline void XvtTest_Join(char *out, const char *folder, const char *name)
 }
 
 /* Creates a new, empty folder and writes its path into out, which holds XVT_TEST_PATH_CAPACITY bytes. */
-static inline void XvtTest_MakeFolder(char *out)
+static inline void xvt_test_make_folder(char *out)
 {
 	const char *parent = getenv("TMPDIR");
 	if (!parent || !parent[0]) {
 		parent = "/tmp";
 	}
-	XvtTest_Join(out, parent, "openxvt-test-XXXXXX");
+	xvt_test_join(out, parent, "openxvt-test-XXXXXX");
 	XVT_ASSERT_TRUE(mkdtemp(out) != NULL);
 }
 
 /* Removes path and, when it is a folder, everything in it. A missing path is not an error. */
-static inline void XvtTest_RemoveTree(const char *path)
+static inline void xvt_test_remove_tree(const char *path)
 {
 	struct stat info;
 	if (lstat(path, &info) != 0) {
@@ -56,8 +57,8 @@ static inline void XvtTest_RemoveTree(const char *path)
 				continue;
 			}
 			char child[XVT_TEST_PATH_CAPACITY];
-			XvtTest_Join(child, path, entry->d_name);
-			XvtTest_RemoveTree(child);
+			xvt_test_join(child, path, entry->d_name);
+			xvt_test_remove_tree(child);
 		}
 		closedir(folder);
 		XVT_ASSERT_INT_EQ(rmdir(path), 0);
@@ -67,19 +68,19 @@ static inline void XvtTest_RemoveTree(const char *path)
 }
 
 /* Creates the folder folder/name; its parent must exist. */
-static inline void XvtTest_MakeSubfolder(const char *folder, const char *name)
+static inline void xvt_test_make_subfolder(const char *folder, const char *name)
 {
 	char path[XVT_TEST_PATH_CAPACITY];
-	XvtTest_Join(path, folder, name);
+	xvt_test_join(path, folder, name);
 	XVT_ASSERT_INT_EQ(mkdir(path, 0700), 0);
 }
 
 /* Writes size bytes to folder/name, replacing any file there; its parent folder must exist. */
-static inline void XvtTest_WriteFile(const char *folder, const char *name,
-				     const void *data, size_t size)
+static inline void xvt_test_write_file(const char *folder, const char *name,
+				       const void *data, size_t size)
 {
 	char path[XVT_TEST_PATH_CAPACITY];
-	XvtTest_Join(path, folder, name);
+	xvt_test_join(path, folder, name);
 	FILE *file = fopen(path, "wb");
 	XVT_ASSERT_TRUE(file != NULL);
 	XVT_ASSERT_INT_EQ(fwrite(data, 1, size, file), size);
@@ -87,18 +88,18 @@ static inline void XvtTest_WriteFile(const char *folder, const char *name,
 }
 
 /* Writes the text, without its terminator, to folder/name. */
-static inline void XvtTest_WriteText(const char *folder, const char *name,
-				     const char *text)
+static inline void xvt_test_write_text(const char *folder, const char *name,
+				       const char *text)
 {
-	XvtTest_WriteFile(folder, name, text, strlen(text));
+	xvt_test_write_file(folder, name, text, strlen(text));
 }
 
 /* Returns 1 when folder/name exists as a file, 2 as a folder, 0 when nothing is there. */
-static inline int XvtTest_Kind(const char *folder, const char *name)
+static inline int xvt_test_kind(const char *folder, const char *name)
 {
 	char path[XVT_TEST_PATH_CAPACITY];
 	struct stat info;
-	XvtTest_Join(path, folder, name);
+	xvt_test_join(path, folder, name);
 	if (lstat(path, &info) != 0) {
 		return 0;
 	}
@@ -107,11 +108,11 @@ static inline int XvtTest_Kind(const char *folder, const char *name)
 
 /* Reads the whole of folder/name into a buffer the caller frees, with a terminator after the last byte
  * so a text file can be read as a string. Writes the byte count to size when size is not NULL. */
-static inline char *XvtTest_ReadFile(const char *folder, const char *name,
-				     size_t *size)
+static inline char *xvt_test_read_file(const char *folder, const char *name,
+				       size_t *size)
 {
 	char path[XVT_TEST_PATH_CAPACITY];
-	XvtTest_Join(path, folder, name);
+	xvt_test_join(path, folder, name);
 	FILE *file = fopen(path, "rb");
 	XVT_ASSERT_TRUE(file != NULL);
 	size_t used = 0, capacity = 256;
@@ -136,11 +137,11 @@ static inline char *XvtTest_ReadFile(const char *folder, const char *name,
 }
 
 /* Returns 1 when folder/name holds exactly the text, without a terminator. */
-static inline int XvtTest_FileIs(const char *folder, const char *name,
-				 const char *text)
+static inline int xvt_test_file_is(const char *folder, const char *name,
+				   const char *text)
 {
 	size_t size;
-	char *data = XvtTest_ReadFile(folder, name, &size);
+	char *data = xvt_test_read_file(folder, name, &size);
 	int same = size == strlen(text) && memcmp(data, text, size) == 0;
 	free(data);
 	return same;

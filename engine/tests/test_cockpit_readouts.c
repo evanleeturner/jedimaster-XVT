@@ -25,52 +25,52 @@ enum { BYPASS = 9, FOREGROUND = 7, BACKGROUND = 4, SHADOW = 5 };
 
 enum { TARGET_A = 1, SIGNATURE_A = 0x0101, TARGET_B = 2, SIGNATURE_B = 0x0202 };
 
-static struct ObjectRecord g_testObjects[3];
-static struct XvtCockpitState g_state;
+static struct object_record g_test_objects[3];
+static struct xvt_cockpit_state g_state;
 static uint8_t g_framebuffer[16];
 
 /* Slots 0 and 1 are main slots and slot 2 is a static one; the local player in seat 0 targets nothing.
  * The text cursor is at (30, 40) inside the clip (10, 20) to (210, 120). */
-static void Start(void)
+static void cockpit_readouts_start(void)
 {
 	for (unsigned index = 0; index < 256; ++index) {
-		g_swPalette[index] = (struct RgbTriplet){
+		g_sw_palette[index] = (struct rgb_triplet){
 			(uint8_t)(index & 63), (uint8_t)(index >> 6), 7};
 	}
-	memset(g_testObjects, 0, sizeof g_testObjects);
-	g_objectTable = g_testObjects;
-	g_regionMainObjectSlotEnd = 2;
-	g_regionStaticObjectSlotCount = 1;
-	g_testObjects[TARGET_A].objectType = 3;
-	g_testObjects[TARGET_A].objectSignature = SIGNATURE_A;
-	g_testObjects[TARGET_B].objectType = 4;
-	g_testObjects[TARGET_B].objectSignature = SIGNATURE_B;
+	memset(g_test_objects, 0, sizeof g_test_objects);
+	g_object_table = g_test_objects;
+	g_region_main_object_slot_end = 2;
+	g_region_static_object_slot_count = 1;
+	g_test_objects[TARGET_A].object_type = 3;
+	g_test_objects[TARGET_A].object_signature = SIGNATURE_A;
+	g_test_objects[TARGET_B].object_type = 4;
+	g_test_objects[TARGET_B].object_signature = SIGNATURE_B;
 	memset(g_players, 0, sizeof g_players);
-	g_localPlayer = 0;
-	g_players[0].currentTargetObjectIdx = -1;
-	memset(g_hudElementLayouts, 0, sizeof g_hudElementLayouts);
+	g_local_player = 0;
+	g_players[0].current_target_object_idx = -1;
+	memset(g_hud_element_layouts, 0, sizeof g_hud_element_layouts);
 
-	g_flightClipLeft = 10;
-	g_flightClipTop = 20;
-	g_flightClipRight = 210;
-	g_flightClipBottom = 120;
-	g_flightCursorX = 30;
-	g_flightCursorY = 40;
-	g_flightFontTier = 2;
-	g_flightTextColorIndex = FOREGROUND;
-	g_flightTextBgColor = BACKGROUND;
-	g_flightTextShadowColor = SHADOW;
-	g_flightTextShadowEnabled = 1;
-	g_flightTransparentColorIndex = BYPASS;
-	g_flightOffscreenBuffer = NULL;
-	g_flightSwFramebufferBase = g_framebuffer;
+	g_flight_clip_left = 10;
+	g_flight_clip_top = 20;
+	g_flight_clip_right = 210;
+	g_flight_clip_bottom = 120;
+	g_flight_cursor_x = 30;
+	g_flight_cursor_y = 40;
+	g_flight_font_tier = 2;
+	g_flight_text_color_index = FOREGROUND;
+	g_flight_text_bg_color = BACKGROUND;
+	g_flight_text_shadow_color = SHADOW;
+	g_flight_text_shadow_enabled = 1;
+	g_flight_transparent_color_index = BYPASS;
+	g_flight_offscreen_buffer = NULL;
+	g_flight_sw_framebuffer_base = g_framebuffer;
 
-	XvtCockpitText_ResetFields();
-	XvtCockpitReadouts_Reset();
+	xvt_cockpit_text_reset_fields();
+	xvt_cockpit_readouts_reset();
 }
 
-/* A state whose instruments all show, as XvtCockpitInstruments_Build leaves it in the forward view. */
-static struct XvtCockpitState *Shown(void)
+/* A state whose instruments all show, as xvt_cockpit_instruments_build leaves it in the forward view. */
+static struct xvt_cockpit_state *shown(void)
 {
 	memset(&g_state, 0, sizeof g_state);
 	g_state.view.hud_state = HUD_VIEW_FORWARD;
@@ -88,37 +88,38 @@ static struct XvtCockpitState *Shown(void)
 	return &g_state;
 }
 
-static const struct XvtCockpitState *Copied(void)
+static const struct xvt_cockpit_state *copied(void)
 {
-	XvtCockpitReadouts_CopyState(Shown());
+	xvt_cockpit_readouts_copy_state(shown());
 	return &g_state;
 }
 
-static void Target(int slot)
+static void cockpit_readouts_target(int slot)
 {
-	g_players[0].currentTargetObjectIdx = (int16_t)slot;
+	g_players[0].current_target_object_idx = (int16_t)slot;
 }
 
-static void Record(XvtCockpitNumberId id, unsigned value)
+static void record(xvt_cockpit_number_id id, unsigned value)
 {
-	XvtCockpitReadouts_RecordNumber(id, value, 3, 2);
+	xvt_cockpit_readouts_record_number(id, value, 3, 2);
 }
 
-static const struct XvtCockpitTextField *TextField(XvtCockpitTextFieldId id)
+static const struct xvt_cockpit_text_field *
+text_field(xvt_cockpit_text_field_id id)
 {
-	static struct XvtCockpitState fields;
+	static struct xvt_cockpit_state fields;
 	memset(&fields, 0, sizeof fields);
 	fields.view.hud_state = HUD_VIEW_FORWARD;
-	XvtCockpitText_CopyFields(&fields);
+	xvt_cockpit_text_copy_fields(&fields);
 	return &fields.text_fields[id];
 }
 
-static void CheckRecordNumber(void)
+static void check_record_number(void)
 {
-	Start();
-	XvtCockpitReadouts_RecordNumber(XVT_COCKPIT_NUMBER_SPEED, 0x12345, 3,
-					2);
-	const struct XvtCockpitNumber *speed = &Copied()->readouts.speed;
+	cockpit_readouts_start();
+	xvt_cockpit_readouts_record_number(XVT_COCKPIT_NUMBER_SPEED, 0x12345, 3,
+					   2);
+	const struct xvt_cockpit_number *speed = &copied()->readouts.speed;
 	XVT_ASSERT_INT_EQ(speed->visible, 1);
 	/* Values keep 16 bits. */
 	XVT_ASSERT_INT_EQ(speed->value, 0x2345);
@@ -136,33 +137,34 @@ static void CheckRecordNumber(void)
 	XVT_ASSERT_INT_EQ(speed->shadow_enabled, 1);
 
 	/* The course score keeps all its bits. */
-	XvtCockpitReadouts_RecordCourse(1, 2, 3, 4);
-	Record(XVT_COCKPIT_NUMBER_COURSE_SCORE, 0x12345);
-	XVT_ASSERT_INT_EQ(Copied()->proving_grounds.score.value, 0x12345);
+	xvt_cockpit_readouts_record_course(1, 2, 3, 4);
+	record(XVT_COCKPIT_NUMBER_COURSE_SCORE, 0x12345);
+	XVT_ASSERT_INT_EQ(copied()->proving_grounds.score.value, 0x12345);
 }
 
-static void CheckNumberAllOnes(void)
+static void check_number_all_ones(void)
 {
-	Start();
+	cockpit_readouts_start();
 	/* A 16-bit 0xFFFF is drawn in the '@' color with no shadow. */
-	Record(XVT_COCKPIT_NUMBER_SPEED, 0xFFFF);
-	const struct XvtCockpitNumber *speed = &Copied()->readouts.speed;
+	record(XVT_COCKPIT_NUMBER_SPEED, 0xFFFF);
+	const struct xvt_cockpit_number *speed = &copied()->readouts.speed;
 	XVT_ASSERT_INT_EQ(speed->foreground,
-			  XvtCockpitText_ResolveColor('@', BYPASS));
+			  xvt_cockpit_text_resolve_color('@', BYPASS));
 	XVT_ASSERT_INT_EQ(speed->shadow_enabled, 0);
 	/* Any other value keeps the live foreground. */
-	Record(XVT_COCKPIT_NUMBER_SPEED, 0xFFFE);
-	XVT_ASSERT_INT_EQ(Copied()->readouts.speed.foreground, FOREGROUND);
+	record(XVT_COCKPIT_NUMBER_SPEED, 0xFFFE);
+	XVT_ASSERT_INT_EQ(copied()->readouts.speed.foreground, FOREGROUND);
 }
 
-static void CheckRecordNumberOutOfRange(void)
+static void check_record_number_out_of_range(void)
 {
-	Start();
-	XvtCockpitReadouts_RecordNumber(XVT_COCKPIT_NUMBER_COUNT, 5, 3, 2);
-	XvtCockpitReadouts_RecordNumber((XvtCockpitNumberId)-1, 5, 3, 2);
+	cockpit_readouts_start();
+	xvt_cockpit_readouts_record_number(XVT_COCKPIT_NUMBER_COUNT, 5, 3, 2);
+	xvt_cockpit_readouts_record_number((xvt_cockpit_number_id)-1, 5, 3, 2);
 	/* A binding past the element table is not a readout. */
-	XvtCockpitReadouts_RecordCachedNumber(HUD_INSTRUMENT_COUNT + 40, 5, 2);
-	const struct XvtCockpitState *state = Copied();
+	xvt_cockpit_readouts_record_cached_number(HUD_INSTRUMENT_COUNT + 40, 5,
+						  2);
+	const struct xvt_cockpit_state *state = copied();
 	XVT_ASSERT_INT_EQ(state->readouts.speed.visible, 0);
 	XVT_ASSERT_INT_EQ(state->readouts.throttle.visible, 0);
 	XVT_ASSERT_INT_EQ(state->proving_grounds.score.visible, 0);
@@ -171,16 +173,17 @@ static void CheckRecordNumberOutOfRange(void)
 			  0);
 }
 
-static void CheckCopyStateNeedsRecordAndInstrument(void)
+static void check_copy_state_needs_record_and_instrument(void)
 {
-	Start();
-	Record(XVT_COCKPIT_NUMBER_SPEED, 11);
-	Record(XVT_COCKPIT_NUMBER_COUNTERMEASURES, 12);
-	Record((XvtCockpitNumberId)(XVT_COCKPIT_NUMBER_LAUNCHER_FIRST + 2), 13);
-	Record((XvtCockpitNumberId)(XVT_COCKPIT_NUMBER_LASER_FIRST + 5), 14);
+	cockpit_readouts_start();
+	record(XVT_COCKPIT_NUMBER_SPEED, 11);
+	record(XVT_COCKPIT_NUMBER_COUNTERMEASURES, 12);
+	record((xvt_cockpit_number_id)(XVT_COCKPIT_NUMBER_LAUNCHER_FIRST + 2),
+	       13);
+	record((xvt_cockpit_number_id)(XVT_COCKPIT_NUMBER_LASER_FIRST + 5), 14);
 
 	/* Recorded and shown: visible with the recorded value. */
-	const struct XvtCockpitState *state = Copied();
+	const struct xvt_cockpit_state *state = copied();
 	XVT_ASSERT_INT_EQ(state->readouts.speed.visible, 1);
 	XVT_ASSERT_INT_EQ(state->readouts.speed.value, 11);
 	XVT_ASSERT_INT_EQ(state->systems.countermeasure_count.visible, 1);
@@ -197,27 +200,27 @@ static void CheckCopyStateNeedsRecordAndInstrument(void)
 	XVT_ASSERT_INT_EQ(state->weapons.slots[4].charge_percent.visible, 0);
 
 	/* Recorded but the state does not show the instrument: hidden. */
-	struct XvtCockpitState *hidden = Shown();
+	struct xvt_cockpit_state *hidden = shown();
 	hidden->readouts.speed.visible = 0;
 	hidden->systems.countermeasure_count.visible = 0;
 	hidden->weapons.launchers[2].count.visible = 0;
 	hidden->weapons.slots[5].charge_percent.visible = 0;
-	XvtCockpitReadouts_CopyState(hidden);
+	xvt_cockpit_readouts_copy_state(hidden);
 	XVT_ASSERT_INT_EQ(hidden->readouts.speed.visible, 0);
 	XVT_ASSERT_INT_EQ(hidden->systems.countermeasure_count.visible, 0);
 	XVT_ASSERT_INT_EQ(hidden->weapons.launchers[2].count.visible, 0);
 	XVT_ASSERT_INT_EQ(hidden->weapons.slots[5].charge_percent.visible, 0);
 }
 
-static void CheckCourse(void)
+static void check_course(void)
 {
-	Start();
-	Record(XVT_COCKPIT_NUMBER_COURSE_LEVEL, 3);
+	cockpit_readouts_start();
+	record(XVT_COCKPIT_NUMBER_COURSE_LEVEL, 3);
 	/* Course numbers follow the course: hidden until it is recorded. */
-	XVT_ASSERT_INT_EQ(Copied()->proving_grounds.level.visible, 0);
+	XVT_ASSERT_INT_EQ(copied()->proving_grounds.level.visible, 0);
 
-	XvtCockpitReadouts_RecordCourse(5, 6, 70, 80);
-	const struct XvtCockpitState *state = Copied();
+	xvt_cockpit_readouts_record_course(5, 6, 70, 80);
+	const struct xvt_cockpit_state *state = copied();
 	XVT_ASSERT_INT_EQ(state->proving_grounds.visible, 1);
 	XVT_ASSERT_INT_EQ(state->proving_grounds.bounds.x, 5);
 	XVT_ASSERT_INT_EQ(state->proving_grounds.bounds.y, 6);
@@ -227,56 +230,56 @@ static void CheckCourse(void)
 	XVT_ASSERT_INT_EQ(state->proving_grounds.level.value, 3);
 
 	/* A new update hides the course until it is recorded again. */
-	XvtCockpitReadouts_BeginUpdate();
-	state = Copied();
+	xvt_cockpit_readouts_begin_update();
+	state = copied();
 	XVT_ASSERT_INT_EQ(state->proving_grounds.visible, 0);
 	XVT_ASSERT_INT_EQ(state->proving_grounds.level.visible, 0);
 }
 
-static void CheckTargetShows(void)
+static void check_target_shows(void)
 {
-	Start();
-	Target(TARGET_A);
-	XvtCockpitReadouts_BeginTarget(0);
-	const struct XvtCockpitState *state = Copied();
+	cockpit_readouts_start();
+	cockpit_readouts_target(TARGET_A);
+	xvt_cockpit_readouts_begin_target(0);
+	const struct xvt_cockpit_state *state = copied();
 	XVT_ASSERT_INT_EQ(state->target.visible, 1);
 	XVT_ASSERT_INT_EQ(state->target.object.slot, TARGET_A);
 	XVT_ASSERT_INT_EQ(state->target.object.signature, SIGNATURE_A);
 	XVT_ASSERT_INT_EQ(state->target.cmd_mode, 0);
 
 	/* The static slot is a target too. */
-	Target(TARGET_B);
-	XvtCockpitReadouts_BeginTarget(0);
-	XVT_ASSERT_INT_EQ(Copied()->target.object.slot, TARGET_B);
+	cockpit_readouts_target(TARGET_B);
+	xvt_cockpit_readouts_begin_target(0);
+	XVT_ASSERT_INT_EQ(copied()->target.object.slot, TARGET_B);
 
 	/* Only while instruments are visible... */
-	struct XvtCockpitState *hidden = Shown();
+	struct xvt_cockpit_state *hidden = shown();
 	hidden->view.instruments_visible = 0;
-	XvtCockpitReadouts_CopyState(hidden);
+	xvt_cockpit_readouts_copy_state(hidden);
 	XVT_ASSERT_INT_EQ(hidden->target.visible, 0);
 
 	/* ...and only when updated since BeginUpdate. */
-	XvtCockpitReadouts_BeginUpdate();
-	XVT_ASSERT_INT_EQ(Copied()->target.visible, 0);
-	XvtCockpitReadouts_BeginTarget(0);
-	XVT_ASSERT_INT_EQ(Copied()->target.visible, 1);
+	xvt_cockpit_readouts_begin_update();
+	XVT_ASSERT_INT_EQ(copied()->target.visible, 0);
+	xvt_cockpit_readouts_begin_target(0);
+	XVT_ASSERT_INT_EQ(copied()->target.visible, 1);
 }
 
-static void CheckTargetValuesByMode(void)
+static void check_target_values_by_mode(void)
 {
-	Start();
-	Target(TARGET_A);
-	XvtCockpitReadouts_BeginTarget(0);
-	Record(XVT_COCKPIT_NUMBER_TARGET_SYSTEMS, 1);
-	Record(XVT_COCKPIT_NUMBER_TARGET_SHIELDS, 2);
-	Record(XVT_COCKPIT_NUMBER_TARGET_HULL, 3);
-	Record(XVT_COCKPIT_NUMBER_TARGET_RANGE, 4);
-	Record(XVT_COCKPIT_NUMBER_TARGET_RANGE_FRACTION, 5);
-	Record(XVT_COCKPIT_NUMBER_ORDER_RANGE, 6);
-	Record(XVT_COCKPIT_NUMBER_ORDER_MINUTES, 7);
+	cockpit_readouts_start();
+	cockpit_readouts_target(TARGET_A);
+	xvt_cockpit_readouts_begin_target(0);
+	record(XVT_COCKPIT_NUMBER_TARGET_SYSTEMS, 1);
+	record(XVT_COCKPIT_NUMBER_TARGET_SHIELDS, 2);
+	record(XVT_COCKPIT_NUMBER_TARGET_HULL, 3);
+	record(XVT_COCKPIT_NUMBER_TARGET_RANGE, 4);
+	record(XVT_COCKPIT_NUMBER_TARGET_RANGE_FRACTION, 5);
+	record(XVT_COCKPIT_NUMBER_ORDER_RANGE, 6);
+	record(XVT_COCKPIT_NUMBER_ORDER_MINUTES, 7);
 
 	/* Outside command mode: range and systems show, order range and time do not. */
-	const struct XvtCockpitTarget *target = &Copied()->target;
+	const struct xvt_cockpit_target *target = &copied()->target;
 	XVT_ASSERT_INT_EQ(target->systems.visible, 1);
 	XVT_ASSERT_INT_EQ(target->shields.visible, 1);
 	XVT_ASSERT_INT_EQ(target->hull.visible, 1);
@@ -287,16 +290,16 @@ static void CheckTargetValuesByMode(void)
 	XVT_ASSERT_INT_EQ(target->order_minutes.visible, 0);
 
 	/* In command mode the other way round; shields and hull show in both. */
-	XvtCockpitReadouts_BeginTarget(1);
-	Record(XVT_COCKPIT_NUMBER_TARGET_SYSTEMS, 1);
-	Record(XVT_COCKPIT_NUMBER_TARGET_SHIELDS, 2);
-	Record(XVT_COCKPIT_NUMBER_TARGET_HULL, 3);
-	Record(XVT_COCKPIT_NUMBER_TARGET_RANGE, 4);
-	Record(XVT_COCKPIT_NUMBER_ORDER_RANGE, 6);
-	Record(XVT_COCKPIT_NUMBER_ORDER_RANGE_FRACTION, 8);
-	Record(XVT_COCKPIT_NUMBER_ORDER_MINUTES, 7);
-	Record(XVT_COCKPIT_NUMBER_ORDER_SECONDS, 9);
-	target = &Copied()->target;
+	xvt_cockpit_readouts_begin_target(1);
+	record(XVT_COCKPIT_NUMBER_TARGET_SYSTEMS, 1);
+	record(XVT_COCKPIT_NUMBER_TARGET_SHIELDS, 2);
+	record(XVT_COCKPIT_NUMBER_TARGET_HULL, 3);
+	record(XVT_COCKPIT_NUMBER_TARGET_RANGE, 4);
+	record(XVT_COCKPIT_NUMBER_ORDER_RANGE, 6);
+	record(XVT_COCKPIT_NUMBER_ORDER_RANGE_FRACTION, 8);
+	record(XVT_COCKPIT_NUMBER_ORDER_MINUTES, 7);
+	record(XVT_COCKPIT_NUMBER_ORDER_SECONDS, 9);
+	target = &copied()->target;
 	XVT_ASSERT_INT_EQ(target->cmd_mode, 1);
 	XVT_ASSERT_INT_EQ(target->systems.visible, 0);
 	XVT_ASSERT_INT_EQ(target->distance.visible, 0);
@@ -309,14 +312,14 @@ static void CheckTargetValuesByMode(void)
 	XVT_ASSERT_INT_EQ(target->order_seconds.visible, 1);
 }
 
-static void CheckTargetCover(void)
+static void check_target_cover(void)
 {
-	Start();
-	Target(TARGET_A);
-	XvtCockpitReadouts_BeginTarget(0);
-	Record(XVT_COCKPIT_NUMBER_TARGET_HULL, 3);
-	XvtCockpitReadouts_RecordTargetCover(77);
-	const struct XvtCockpitTarget *target = &Copied()->target;
+	cockpit_readouts_start();
+	cockpit_readouts_target(TARGET_A);
+	xvt_cockpit_readouts_begin_target(0);
+	record(XVT_COCKPIT_NUMBER_TARGET_HULL, 3);
+	xvt_cockpit_readouts_record_target_cover(77);
+	const struct xvt_cockpit_target *target = &copied()->target;
 	XVT_ASSERT_INT_EQ(target->visible, 1);
 	XVT_ASSERT_INT_EQ(target->panel_cover, 1);
 	XVT_ASSERT_INT_EQ(target->cover_binding, 77);
@@ -325,202 +328,205 @@ static void CheckTargetCover(void)
 	XVT_ASSERT_INT_EQ(target->hull.visible, 0);
 
 	/* Hiding keeps a covered panel shown... */
-	XvtCockpitReadouts_HideTarget();
-	XVT_ASSERT_INT_EQ(Copied()->target.visible, 1);
+	xvt_cockpit_readouts_hide_target();
+	XVT_ASSERT_INT_EQ(copied()->target.visible, 1);
 	/* ...and hides an uncovered one. */
-	Start();
-	Target(TARGET_A);
-	XvtCockpitReadouts_BeginTarget(0);
-	XvtCockpitReadouts_HideTarget();
-	XVT_ASSERT_INT_EQ(Copied()->target.visible, 0);
+	cockpit_readouts_start();
+	cockpit_readouts_target(TARGET_A);
+	xvt_cockpit_readouts_begin_target(0);
+	xvt_cockpit_readouts_hide_target();
+	XVT_ASSERT_INT_EQ(copied()->target.visible, 0);
 }
 
-static void CheckHideTargetClearsFields(void)
+static void check_hide_target_clears_fields(void)
 {
-	Start();
-	Target(TARGET_A);
-	XvtCockpitReadouts_BeginTarget(0);
-	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_TARGET_NAME, "TIE",
-				   XVT_COCKPIT_ALIGN_LEFT);
+	cockpit_readouts_start();
+	cockpit_readouts_target(TARGET_A);
+	xvt_cockpit_readouts_begin_target(0);
+	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_TARGET_NAME, "TIE",
+				      XVT_COCKPIT_ALIGN_LEFT);
 	uint64_t generation =
-		TextField(XVT_COCKPIT_TEXT_TARGET_NAME)->generation;
-	XvtCockpitReadouts_HideTarget();
+		text_field(XVT_COCKPIT_TEXT_TARGET_NAME)->generation;
+	xvt_cockpit_readouts_hide_target();
 	XVT_ASSERT_INT_EQ(
-		TextField(XVT_COCKPIT_TEXT_TARGET_NAME)->caption.text[0], 0);
-	XVT_ASSERT_TRUE(TextField(XVT_COCKPIT_TEXT_TARGET_NAME)->generation >
+		text_field(XVT_COCKPIT_TEXT_TARGET_NAME)->caption.text[0], 0);
+	XVT_ASSERT_TRUE(text_field(XVT_COCKPIT_TEXT_TARGET_NAME)->generation >
 			generation);
 }
 
-static void CheckTargetChangeClears(void)
+static void check_target_change_clears(void)
 {
-	Start();
-	Target(TARGET_A);
-	XvtCockpitReadouts_BeginTarget(0);
-	Record(XVT_COCKPIT_NUMBER_TARGET_HULL, 3);
-	Record(XVT_COCKPIT_NUMBER_ORDER_SECONDS, 4);
-	Record(XVT_COCKPIT_NUMBER_SPEED, 5);
-	XvtCockpitReadouts_RecordArmament(1, 2);
-	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_TARGET_NAME, "TIE",
-				   XVT_COCKPIT_ALIGN_LEFT);
-	uint64_t name = TextField(XVT_COCKPIT_TEXT_TARGET_NAME)->generation;
+	cockpit_readouts_start();
+	cockpit_readouts_target(TARGET_A);
+	xvt_cockpit_readouts_begin_target(0);
+	record(XVT_COCKPIT_NUMBER_TARGET_HULL, 3);
+	record(XVT_COCKPIT_NUMBER_ORDER_SECONDS, 4);
+	record(XVT_COCKPIT_NUMBER_SPEED, 5);
+	xvt_cockpit_readouts_record_armament(1, 2);
+	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_TARGET_NAME, "TIE",
+				      XVT_COCKPIT_ALIGN_LEFT);
+	uint64_t name = text_field(XVT_COCKPIT_TEXT_TARGET_NAME)->generation;
 
 	/* The same target in the same mode keeps everything. */
-	XvtCockpitReadouts_BeginTarget(0);
-	const struct XvtCockpitState *state = Copied();
+	xvt_cockpit_readouts_begin_target(0);
+	const struct xvt_cockpit_state *state = copied();
 	XVT_ASSERT_INT_EQ(state->target.hull.visible, 1);
 	XVT_ASSERT_INT_EQ(state->target.armament[1].state, 2);
 	XVT_ASSERT_INT_EQ(
-		strcmp(TextField(XVT_COCKPIT_TEXT_TARGET_NAME)->caption.text,
+		strcmp(text_field(XVT_COCKPIT_TEXT_TARGET_NAME)->caption.text,
 		       "TIE"),
 		0);
 
 	/* A new target clears the target, its numbers and its text fields, but not the other numbers. */
-	Target(TARGET_B);
-	XvtCockpitReadouts_BeginTarget(1);
-	Record(XVT_COCKPIT_NUMBER_TARGET_SHIELDS, 6);
-	state = Copied();
+	cockpit_readouts_target(TARGET_B);
+	xvt_cockpit_readouts_begin_target(1);
+	record(XVT_COCKPIT_NUMBER_TARGET_SHIELDS, 6);
+	state = copied();
 	XVT_ASSERT_INT_EQ(state->target.hull.visible, 0);
 	XVT_ASSERT_INT_EQ(state->target.order_seconds.visible, 0);
 	XVT_ASSERT_INT_EQ(state->target.shields.visible, 1);
 	XVT_ASSERT_INT_EQ(state->target.armament[1].state, 0);
 	XVT_ASSERT_INT_EQ(state->readouts.speed.visible, 1);
 	XVT_ASSERT_INT_EQ(
-		TextField(XVT_COCKPIT_TEXT_TARGET_NAME)->caption.text[0], 0);
-	XVT_ASSERT_TRUE(TextField(XVT_COCKPIT_TEXT_TARGET_NAME)->generation >
+		text_field(XVT_COCKPIT_TEXT_TARGET_NAME)->caption.text[0], 0);
+	XVT_ASSERT_TRUE(text_field(XVT_COCKPIT_TEXT_TARGET_NAME)->generation >
 			name);
 
 	/* A change of mode alone clears them too. */
-	XvtCockpitReadouts_BeginTarget(0);
-	XVT_ASSERT_INT_EQ(Copied()->target.shields.visible, 0);
+	xvt_cockpit_readouts_begin_target(0);
+	XVT_ASSERT_INT_EQ(copied()->target.shields.visible, 0);
 }
 
-static void CheckCommandChangeResetsThreatCache(void)
+static void check_command_change_resets_threat_cache(void)
 {
-	Start();
-	g_hudElementStateCache[102] = g_hudElementStateCache[103] = 55;
-	Target(TARGET_A);
+	cockpit_readouts_start();
+	g_hud_element_state_cache[102] = g_hud_element_state_cache[103] = 55;
+	cockpit_readouts_target(TARGET_A);
 	/* A change outside command mode leaves the cache alone. */
-	XvtCockpitReadouts_BeginTarget(0);
-	XVT_ASSERT_INT_EQ(g_hudElementStateCache[102], 55);
-	XVT_ASSERT_INT_EQ(g_hudElementStateCache[103], 55);
+	xvt_cockpit_readouts_begin_target(0);
+	XVT_ASSERT_INT_EQ(g_hud_element_state_cache[102], 55);
+	XVT_ASSERT_INT_EQ(g_hud_element_state_cache[103], 55);
 	/* A change into command mode resets both entries. */
-	XvtCockpitReadouts_BeginTarget(1);
-	XVT_ASSERT_TRUE(g_hudElementStateCache[102] != 55);
-	XVT_ASSERT_TRUE(g_hudElementStateCache[103] != 55);
+	xvt_cockpit_readouts_begin_target(1);
+	XVT_ASSERT_TRUE(g_hud_element_state_cache[102] != 55);
+	XVT_ASSERT_TRUE(g_hud_element_state_cache[103] != 55);
 	/* No change, no reset. */
-	g_hudElementStateCache[102] = g_hudElementStateCache[103] = 55;
-	XvtCockpitReadouts_BeginTarget(1);
-	XVT_ASSERT_INT_EQ(g_hudElementStateCache[102], 55);
-	XVT_ASSERT_INT_EQ(g_hudElementStateCache[103], 55);
+	g_hud_element_state_cache[102] = g_hud_element_state_cache[103] = 55;
+	xvt_cockpit_readouts_begin_target(1);
+	XVT_ASSERT_INT_EQ(g_hud_element_state_cache[102], 55);
+	XVT_ASSERT_INT_EQ(g_hud_element_state_cache[103], 55);
 }
 
-static void CheckResetTargetsNoObject(void)
+static void check_reset_targets_no_object(void)
 {
-	Start();
+	cockpit_readouts_start();
 	/* Reset clears the target, replacing what the state held. */
-	struct XvtCockpitState *state = Shown();
+	struct xvt_cockpit_state *state = shown();
 	state->target.cover_binding = 99;
 	state->target.type = 99;
-	XvtCockpitReadouts_CopyState(state);
+	xvt_cockpit_readouts_copy_state(state);
 	XVT_ASSERT_INT_EQ(state->target.cover_binding, 0);
 	XVT_ASSERT_INT_EQ(state->target.type, 0);
-	struct XvtSnapObjectId none = state->target.object;
+	struct xvt_snap_object_id none = state->target.object;
 
 	/* A player with no target starts the panel on the same no-object target Reset left: no change, so a
 	 * target number recorded before it survives. */
-	Record(XVT_COCKPIT_NUMBER_TARGET_HULL, 3);
-	XvtCockpitReadouts_BeginTarget(0);
-	state = Shown();
-	XvtCockpitReadouts_CopyState(state);
+	record(XVT_COCKPIT_NUMBER_TARGET_HULL, 3);
+	xvt_cockpit_readouts_begin_target(0);
+	state = shown();
+	xvt_cockpit_readouts_copy_state(state);
 	XVT_ASSERT_INT_EQ(state->target.object.slot, none.slot);
 	XVT_ASSERT_INT_EQ(state->target.object.signature, none.signature);
 	XVT_ASSERT_INT_EQ(state->target.hull.visible, 1);
 }
 
-static void CheckArmament(void)
+static void check_armament(void)
 {
-	Start();
-	Target(TARGET_A);
-	XvtCockpitReadouts_BeginTarget(1);
-	XvtCockpitReadouts_RecordArmament(3, 2);
-	XvtCockpitReadouts_RecordArmament(4, 9);
-	const struct XvtCockpitTarget *target = &Copied()->target;
+	cockpit_readouts_start();
+	cockpit_readouts_target(TARGET_A);
+	xvt_cockpit_readouts_begin_target(1);
+	xvt_cockpit_readouts_record_armament(3, 2);
+	xvt_cockpit_readouts_record_armament(4, 9);
+	const struct xvt_cockpit_target *target = &copied()->target;
 	XVT_ASSERT_INT_EQ(target->armament[3].state, 2);
 	XVT_ASSERT_INT_EQ(target->armament[0].state, 0);
 }
 
-static void CheckClearOrder(void)
+static void check_clear_order(void)
 {
-	Start();
-	Target(TARGET_A);
-	XvtCockpitReadouts_BeginTarget(1);
-	Record(XVT_COCKPIT_NUMBER_ORDER_RANGE, 1);
-	Record(XVT_COCKPIT_NUMBER_ORDER_RANGE_FRACTION, 2);
-	Record(XVT_COCKPIT_NUMBER_ORDER_MINUTES, 3);
-	Record(XVT_COCKPIT_NUMBER_ORDER_SECONDS, 4);
-	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_ORDER_RANGE_SEPARATOR, ".",
-				   XVT_COCKPIT_ALIGN_LEFT);
-	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_ORDER_TIME_SEPARATOR, ":",
-				   XVT_COCKPIT_ALIGN_LEFT);
+	cockpit_readouts_start();
+	cockpit_readouts_target(TARGET_A);
+	xvt_cockpit_readouts_begin_target(1);
+	record(XVT_COCKPIT_NUMBER_ORDER_RANGE, 1);
+	record(XVT_COCKPIT_NUMBER_ORDER_RANGE_FRACTION, 2);
+	record(XVT_COCKPIT_NUMBER_ORDER_MINUTES, 3);
+	record(XVT_COCKPIT_NUMBER_ORDER_SECONDS, 4);
+	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_ORDER_RANGE_SEPARATOR,
+				      ".", XVT_COCKPIT_ALIGN_LEFT);
+	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_ORDER_TIME_SEPARATOR,
+				      ":", XVT_COCKPIT_ALIGN_LEFT);
 
-	XvtCockpitReadouts_ClearOrderRange();
-	const struct XvtCockpitTarget *target = &Copied()->target;
+	xvt_cockpit_readouts_clear_order_range();
+	const struct xvt_cockpit_target *target = &copied()->target;
 	XVT_ASSERT_INT_EQ(target->order_distance.visible, 0);
 	XVT_ASSERT_INT_EQ(target->order_distance_fraction.visible, 0);
 	XVT_ASSERT_INT_EQ(target->order_minutes.visible, 1);
 	XVT_ASSERT_INT_EQ(target->order_seconds.visible, 1);
-	XVT_ASSERT_INT_EQ(TextField(XVT_COCKPIT_TEXT_ORDER_RANGE_SEPARATOR)
+	XVT_ASSERT_INT_EQ(text_field(XVT_COCKPIT_TEXT_ORDER_RANGE_SEPARATOR)
 				  ->caption.text[0],
 			  0);
 	XVT_ASSERT_INT_EQ(
-		strcmp(TextField(XVT_COCKPIT_TEXT_ORDER_TIME_SEPARATOR)
+		strcmp(text_field(XVT_COCKPIT_TEXT_ORDER_TIME_SEPARATOR)
 			       ->caption.text,
 		       ":"),
 		0);
 
-	XvtCockpitReadouts_ClearOrderTime();
-	target = &Copied()->target;
+	xvt_cockpit_readouts_clear_order_time();
+	target = &copied()->target;
 	XVT_ASSERT_INT_EQ(target->order_minutes.visible, 0);
 	XVT_ASSERT_INT_EQ(target->order_seconds.visible, 0);
-	XVT_ASSERT_INT_EQ(TextField(XVT_COCKPIT_TEXT_ORDER_TIME_SEPARATOR)
+	XVT_ASSERT_INT_EQ(text_field(XVT_COCKPIT_TEXT_ORDER_TIME_SEPARATOR)
 				  ->caption.text[0],
 			  0);
 }
 
-static void CheckLaunchers(void)
+static void check_launchers(void)
 {
-	Start();
-	Record((XvtCockpitNumberId)(XVT_COCKPIT_NUMBER_LAUNCHER_FIRST + 1), 7);
-	Record((XvtCockpitNumberId)(XVT_COCKPIT_NUMBER_LAUNCHER_FIRST + 3), 8);
-	struct XvtCockpitNumber number;
-	XvtCockpitReadouts_CopyLauncher(&number, 1);
+	cockpit_readouts_start();
+	record((xvt_cockpit_number_id)(XVT_COCKPIT_NUMBER_LAUNCHER_FIRST + 1),
+	       7);
+	record((xvt_cockpit_number_id)(XVT_COCKPIT_NUMBER_LAUNCHER_FIRST + 3),
+	       8);
+	struct xvt_cockpit_number number;
+	xvt_cockpit_readouts_copy_launcher(&number, 1);
 	XVT_ASSERT_INT_EQ(number.visible, 1);
 	XVT_ASSERT_INT_EQ(number.value, 7);
 
-	XvtCockpitReadouts_ClearLauncher(1);
-	XvtCockpitReadouts_CopyLauncher(&number, 1);
+	xvt_cockpit_readouts_clear_launcher(1);
+	xvt_cockpit_readouts_copy_launcher(&number, 1);
 	XVT_ASSERT_INT_EQ(number.visible, 0);
 
 	/* Launchers from 4 up are ignored: the copy leaves number alone and the clear touches nothing. */
 	memset(&number, 0x5A, sizeof number);
-	struct XvtCockpitNumber before;
+	struct xvt_cockpit_number before;
 	memcpy(&before, &number, sizeof before);
-	XvtCockpitReadouts_CopyLauncher(&number, 4);
+	xvt_cockpit_readouts_copy_launcher(&number, 4);
 	XVT_ASSERT_INT_EQ(memcmp(&number, &before, sizeof number), 0);
-	XvtCockpitReadouts_ClearLauncher(4);
-	XvtCockpitReadouts_CopyLauncher(&number, 3);
+	xvt_cockpit_readouts_clear_launcher(4);
+	xvt_cockpit_readouts_copy_launcher(&number, 3);
 	XVT_ASSERT_INT_EQ(number.visible, 1);
 	XVT_ASSERT_INT_EQ(number.value, 8);
 }
 
-static void CheckResetClearsNumbers(void)
+static void check_reset_clears_numbers(void)
 {
-	Start();
-	Record(XVT_COCKPIT_NUMBER_SPEED, 1);
-	Record((XvtCockpitNumberId)(XVT_COCKPIT_NUMBER_LAUNCHER_FIRST + 1), 2);
-	XvtCockpitReadouts_RecordCourse(1, 2, 3, 4);
-	XvtCockpitReadouts_Reset();
-	const struct XvtCockpitState *state = Copied();
+	cockpit_readouts_start();
+	record(XVT_COCKPIT_NUMBER_SPEED, 1);
+	record((xvt_cockpit_number_id)(XVT_COCKPIT_NUMBER_LAUNCHER_FIRST + 1),
+	       2);
+	xvt_cockpit_readouts_record_course(1, 2, 3, 4);
+	xvt_cockpit_readouts_reset();
+	const struct xvt_cockpit_state *state = copied();
 	XVT_ASSERT_INT_EQ(state->readouts.speed.visible, 0);
 	XVT_ASSERT_INT_EQ(state->readouts.speed.value, 0);
 	XVT_ASSERT_INT_EQ(state->weapons.launchers[1].count.visible, 0);
@@ -529,21 +535,21 @@ static void CheckResetClearsNumbers(void)
 
 int main(void)
 {
-	CheckRecordNumber();
-	CheckNumberAllOnes();
-	CheckRecordNumberOutOfRange();
-	CheckCopyStateNeedsRecordAndInstrument();
-	CheckCourse();
-	CheckTargetShows();
-	CheckTargetValuesByMode();
-	CheckTargetCover();
-	CheckHideTargetClearsFields();
-	CheckTargetChangeClears();
-	CheckCommandChangeResetsThreatCache();
-	CheckResetTargetsNoObject();
-	CheckArmament();
-	CheckClearOrder();
-	CheckLaunchers();
-	CheckResetClearsNumbers();
+	check_record_number();
+	check_number_all_ones();
+	check_record_number_out_of_range();
+	check_copy_state_needs_record_and_instrument();
+	check_course();
+	check_target_shows();
+	check_target_values_by_mode();
+	check_target_cover();
+	check_hide_target_clears_fields();
+	check_target_change_clears();
+	check_command_change_resets_threat_cache();
+	check_reset_targets_no_object();
+	check_armament();
+	check_clear_order();
+	check_launchers();
+	check_reset_clears_numbers();
 	return 0;
 }

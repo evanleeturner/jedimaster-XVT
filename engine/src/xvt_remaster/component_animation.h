@@ -12,7 +12,7 @@ extern "C" {
  * world changes. */
 
 /* Forgets every pose and the frame last prepared. */
-void XvtComponentAnimation_Reset(void);
+void xvt_component_animation_reset(void);
 /* Advances the poses to snapshot. Resets everything for a snapshot without a valid, unlocked flight, or
  * first when the mission or world generation changed; after that, a repeated flight_frame_serial
  * changes nothing. Otherwise, per craft object: its slot's pose restarts when stale (not prepared last
@@ -22,11 +22,12 @@ void XvtComponentAnimation_Reset(void);
  * component_event_time) / 32 clamped to 0..1, except on a discontinuity (a restart, a changed
  * component_hp or component_state, or a target that changed with no new event), which snaps to the new
  * byte. An object whose angles moved gains a revision; Changed() reports whether any did. */
-void XvtComponentAnimation_Prepare(const struct XvtRenderSnapshot *snapshot);
+void xvt_component_animation_prepare(
+	const struct xvt_render_snapshot *snapshot);
 /* Whether the last Prepare of a new frame moved any angle. */
-int XvtComponentAnimation_Changed(void);
+int xvt_component_animation_changed(void);
 /* The count of prepared frames in which slot's angles moved; 0 for a slot out of range or never posed. */
-uint64_t XvtComponentAnimation_ObjectRevision(unsigned slot);
+uint64_t xvt_component_animation_object_revision(unsigned slot);
 /* Fills output with object's component angles for drawing: its mesh_rotation bytes, with the smoothed
  * angle substituted for each live component (below asset's component count, state 0, hit points nonzero)
  * whose mesh type turns (11, 12, 13, 21, 23, 24 or 25) or is a foil of a craft with S-foils open (type
@@ -35,10 +36,10 @@ uint64_t XvtComponentAnimation_ObjectRevision(unsigned slot);
  * NULL with output untouched for a NULL argument, a locked flight, a slot out of range, or a slot whose
  * pose belongs to another object. */
 const float *
-XvtComponentAnimation_Angles(const struct XvtRenderSnapshot *snapshot,
-			     const struct XvtSnapObject *object,
-			     const struct XvtMeshAsset *asset,
-			     float output[XVT_SNAP_COMPONENTS]);
+xvt_component_animation_angles(const struct xvt_render_snapshot *snapshot,
+			       const struct xvt_snap_object *object,
+			       const struct xvt_mesh_asset *asset,
+			       float output[XVT_SNAP_COMPONENTS]);
 #ifdef __cplusplus
 }
 #endif

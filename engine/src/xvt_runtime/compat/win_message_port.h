@@ -5,7 +5,7 @@
 
 /* Rebuild a pointer-valued Win32 message argument without assuming that host
  * pointers are 32 bits. The legacy value occupies the low 32 bits. */
-static __inline void *XvtPort_WinMessageParamAsPointer(uintptr_t value)
+static __inline void *xvt_port_win_message_param_as_pointer(uintptr_t value)
 {
 	return (void *)value;
 }

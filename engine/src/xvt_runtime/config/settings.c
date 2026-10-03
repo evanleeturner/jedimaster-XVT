@@ -7,32 +7,33 @@
 #include <stdio.h>
 #include <string.h>
 
-typedef enum XvtSettingType {
+typedef enum xvt_setting_type {
 	XVT_SETTING_BOOL,
 	XVT_SETTING_INT,
 	XVT_SETTING_FLOAT,
 	XVT_SETTING_STRING
-} XvtSettingType;
+} xvt_setting_type;
 
-struct XvtSettingField {
+struct xvt_setting_field {
 	const char *path;
 	size_t offset;
-	XvtSettingType type;
+	xvt_setting_type type;
 	double minimum, maximum;
 };
 
 #define SETTING_BOOL(path, member)                                             \
-	{path, offsetof(struct XvtSettings, member), XVT_SETTING_BOOL, 0, 1}
+	{path, offsetof(struct xvt_settings, member), XVT_SETTING_BOOL, 0, 1}
 #define SETTING_INT(path, member, low, high)                                   \
-	{path, offsetof(struct XvtSettings, member), XVT_SETTING_INT, low, high}
+	{path, offsetof(struct xvt_settings, member), XVT_SETTING_INT, low,    \
+	 high}
 #define SETTING_FLOAT(path, member, low, high)                                 \
-	{path, offsetof(struct XvtSettings, member), XVT_SETTING_FLOAT, low,   \
+	{path, offsetof(struct xvt_settings, member), XVT_SETTING_FLOAT, low,  \
 	 high}
 #define SETTING_STRING(path, member)                                           \
-	{path, offsetof(struct XvtSettings, member), XVT_SETTING_STRING, 0,    \
-	 sizeof(((struct XvtSettings *)0)->member)}
+	{path, offsetof(struct xvt_settings, member), XVT_SETTING_STRING, 0,   \
+	 sizeof(((struct xvt_settings *)0)->member)}
 
-static const struct XvtSettingField g_fields[] = {
+static const struct xvt_setting_field g_fields[] = {
 	SETTING_BOOL("startup.skip_intro", skip_intro),
 	SETTING_STRING("paths.game_data", game_data),
 	SETTING_STRING("ui.font", ui_font),
@@ -162,7 +163,7 @@ static const struct XvtSettingField g_fields[] = {
 #undef SETTING_FLOAT
 #undef SETTING_STRING
 
-static const char *XvtSettings_RootName(AeronVfsRoot root)
+static const char *xvt_settings_root_name(AeronVfsRoot root)
 {
 	switch (root) {
 	case AERON_VFS_ROOT_RESOURCE:
@@ -176,17 +177,17 @@ static const char *XvtSettings_RootName(AeronVfsRoot root)
 	}
 }
 
-int XvtSettings_FileError(const AeronConfigError *detail, char *error,
-			  size_t capacity)
+int xvt_settings_file_error(const AeronConfigError *detail, char *error,
+			    size_t capacity)
 {
 	snprintf(error, capacity, "%s/%s:%d:%d: %s",
-		 XvtSettings_RootName(detail->root), detail->path, detail->line,
-		 detail->column, detail->message);
+		 xvt_settings_root_name(detail->root), detail->path,
+		 detail->line, detail->column, detail->message);
 	return 0;
 }
 
-int XvtSettings_NodeError(const AeronConfigFile *document, const char *path,
-			  const char *message, char *error, size_t capacity)
+int xvt_settings_node_error(const AeronConfigFile *document, const char *path,
+			    const char *message, char *error, size_t capacity)
 {
 	const AeronConfigNode *node = AeronConfigFile_GetNode(document, path);
 	const char *source;
@@ -195,16 +196,16 @@ int XvtSettings_NodeError(const AeronConfigFile *document, const char *path,
 	}
 	source = AeronConfigNode_SourcePath(node);
 	snprintf(error, capacity, "%s/%s:%d:%d: %s: %s",
-		 XvtSettings_RootName(AeronConfigNode_SourceRoot(node)),
+		 xvt_settings_root_name(AeronConfigNode_SourceRoot(node)),
 		 source ? source : "config.yaml", AeronConfigNode_Line(node),
 		 AeronConfigNode_Column(node), path, message);
 	return 0;
 }
 
-static int XvtSettings_ReadField(const AeronConfigFile *document,
-				 const struct XvtSettingField *field,
-				 struct XvtSettings *settings, char *error,
-				 size_t capacity)
+static int xvt_settings_read_field(const AeronConfigFile *document,
+				   const struct xvt_setting_field *field,
+				   struct xvt_settings *settings, char *error,
+				   size_t capacity)
 {
 	const AeronConfigNode *node =
 		AeronConfigFile_GetNode(document, field->path);
@@ -245,14 +246,14 @@ static int XvtSettings_ReadField(const AeronConfigFile *document,
 		problem =
 			"number must be finite and within the supported range";
 	}
-	return XvtSettings_NodeError(document, field->path, problem, error,
-				     capacity);
+	return xvt_settings_node_error(document, field->path, problem, error,
+				       capacity);
 }
 
-static int XvtSettings_ReadChoice(const AeronConfigFile *document,
-				  const char *path, const char *const *choices,
-				  size_t count, int *out, char *error,
-				  size_t capacity)
+static int xvt_settings_read_choice(const AeronConfigFile *document,
+				    const char *path,
+				    const char *const *choices, size_t count,
+				    int *out, char *error, size_t capacity)
 {
 	const AeronConfigNode *node = AeronConfigFile_GetNode(document, path);
 	const char *value = AeronConfigNode_String(node, NULL);
@@ -264,14 +265,14 @@ static int XvtSettings_ReadChoice(const AeronConfigFile *document,
 			}
 		}
 	}
-	return XvtSettings_NodeError(document, path,
-				     "missing or unsupported option", error,
-				     capacity);
+	return xvt_settings_node_error(document, path,
+				       "missing or unsupported option", error,
+				       capacity);
 }
 
-static int XvtSettings_ReadDisplay(const AeronConfigFile *document,
-				   struct XvtPresentationSettings *out,
-				   char *error, size_t capacity)
+static int xvt_settings_read_display(const AeronConfigFile *document,
+				     struct xvt_presentation_settings *out,
+				     char *error, size_t capacity)
 {
 	const char *gamma_path = "presentation.sdr_gamma";
 	const char *white_path = "presentation.paper_white_nits";
@@ -290,9 +291,9 @@ static int XvtSettings_ReadDisplay(const AeronConfigFile *document,
 	} else if (value == 2.4 || !strcmp(name, "2.4")) {
 		out->sdr_gamma = 2.4f;
 	} else {
-		return XvtSettings_NodeError(document, gamma_path,
-					     "expected auto, srgb, 2.2 or 2.4",
-					     error, capacity);
+		return xvt_settings_node_error(
+			document, gamma_path, "expected auto, srgb, 2.2 or 2.4",
+			error, capacity);
 	}
 	name = AeronConfigNode_String(white, "");
 	value = AeronConfigNode_Float(white, -1);
@@ -301,7 +302,7 @@ static int XvtSettings_ReadDisplay(const AeronConfigFile *document,
 	} else if (isfinite(value) && value > 0 && value <= FLT_MAX) {
 		out->paper_white_nits = (float)value;
 	} else {
-		return XvtSettings_NodeError(
+		return xvt_settings_node_error(
 			document, white_path,
 			"expected auto or a positive finite luminance", error,
 			capacity);
@@ -309,11 +310,11 @@ static int XvtSettings_ReadDisplay(const AeronConfigFile *document,
 	return 1;
 }
 
-int XvtSettings_Parse(const AeronConfigFile *document,
-		      const struct XvtSceneSettings *scene_defaults,
-		      struct XvtSettings *out, char *error, size_t capacity)
+int xvt_settings_parse(const AeronConfigFile *document,
+		       const struct xvt_scene_settings *scene_defaults,
+		       struct xvt_settings *out, char *error, size_t capacity)
 {
-	struct XvtSettings candidate = {0};
+	struct xvt_settings candidate = {0};
 	AeronConfigError detail;
 	static const char *const flight_rates[] = {"native", "unlocked"};
 	static const char *const window_modes[] = {"windowed", "fullscreen"};
@@ -322,31 +323,31 @@ int XvtSettings_Parse(const AeronConfigFile *document,
 	static const char *const sky_modes[] = {"stars", "cube", "procedural"};
 	int temporal_mode;
 	if (!document || !scene_defaults || !out) {
-		return XvtSettings_NodeError(
+		return xvt_settings_node_error(
 			document, "",
 			"configuration document and output are required", error,
 			capacity);
 	}
 	for (size_t i = 0; i < sizeof(g_fields) / sizeof(g_fields[0]); ++i) {
-		if (!XvtSettings_ReadField(document, &g_fields[i], &candidate,
-					   error, capacity)) {
+		if (!xvt_settings_read_field(document, &g_fields[i], &candidate,
+					     error, capacity)) {
 			return 0;
 		}
 	}
-	if (!XvtSettings_ReadChoice(document, "flight.update_rate",
-				    flight_rates, 2, &candidate.flight_unlocked,
-				    error, capacity) ||
-	    !XvtSettings_ReadChoice(document, "video.window_mode", window_modes,
-				    2, &candidate.fullscreen, error,
-				    capacity) ||
-	    !XvtSettings_ReadChoice(document, "render.temporal_upscaling.mode",
-				    temporal_modes, 5, &temporal_mode, error,
-				    capacity) ||
-	    !XvtSettings_ReadChoice(document, "skybox.mode", sky_modes, 3,
-				    &candidate.render.sky.mode, error,
-				    capacity) ||
-	    !XvtSettings_ReadDisplay(document, &candidate.render.presentation,
-				     error, capacity)) {
+	if (!xvt_settings_read_choice(
+		    document, "flight.update_rate", flight_rates, 2,
+		    &candidate.flight_unlocked, error, capacity) ||
+	    !xvt_settings_read_choice(document, "video.window_mode",
+				      window_modes, 2, &candidate.fullscreen,
+				      error, capacity) ||
+	    !xvt_settings_read_choice(
+		    document, "render.temporal_upscaling.mode", temporal_modes,
+		    5, &temporal_mode, error, capacity) ||
+	    !xvt_settings_read_choice(document, "skybox.mode", sky_modes, 3,
+				      &candidate.render.sky.mode, error,
+				      capacity) ||
+	    !xvt_settings_read_display(document, &candidate.render.presentation,
+				       error, capacity)) {
 		return 0;
 	}
 	candidate.render.temporal_mode = (AeronTemporalMode)temporal_mode;
@@ -357,15 +358,15 @@ int XvtSettings_Parse(const AeronConfigFile *document,
 	    candidate.render.msaa_samples != 2 &&
 	    candidate.render.msaa_samples != 4 &&
 	    candidate.render.msaa_samples != 8) {
-		return XvtSettings_NodeError(document, "render.msaa_samples",
-					     "expected 1, 2, 4 or 8", error,
-					     capacity);
+		return xvt_settings_node_error(document, "render.msaa_samples",
+					       "expected 1, 2, 4 or 8", error,
+					       capacity);
 	}
 	if (candidate.render.sky.mode == XVT_SKY_CUBE &&
 	    !candidate.render.sky.path[0]) {
-		return XvtSettings_NodeError(document, "skybox.path",
-					     "cube mode requires a path", error,
-					     capacity);
+		return xvt_settings_node_error(document, "skybox.path",
+					       "cube mode requires a path",
+					       error, capacity);
 	}
 	candidate.render.scene = *scene_defaults;
 	if (!AeronSceneSettings_Overlay(
@@ -373,20 +374,20 @@ int XvtSettings_Parse(const AeronConfigFile *document,
 		    &candidate.render.scene.ssao,
 		    &candidate.render.scene.shadows,
 		    &candidate.render.scene.tonemap, &detail)) {
-		return XvtSettings_FileError(&detail, error, capacity);
+		return xvt_settings_file_error(&detail, error, capacity);
 	}
-	if (!XvtKeyboardConfig_Read(document, &candidate.keyboard, error,
-				    capacity) ||
-	    !XvtControllerConfig_Parse(document, &candidate.controller, error,
-				       capacity) ||
-	    !XvtControllerConfig_ReadProfile(document, "input.gamepad_defaults",
-					     AERON_CONTROLLER_KIND_GAMEPAD,
-					     &candidate.gamepad_defaults, error,
-					     capacity)) {
+	if (!xvt_keyboard_config_read(document, &candidate.keyboard, error,
+				      capacity) ||
+	    !xvt_controller_config_parse(document, &candidate.controller, error,
+					 capacity) ||
+	    !xvt_controller_config_read_profile(
+		    document, "input.gamepad_defaults",
+		    AERON_CONTROLLER_KIND_GAMEPAD, &candidate.gamepad_defaults,
+		    error, capacity)) {
 		return 0;
 	}
-	if (!XvtMouseConfig_Parse(document, &candidate.mouse, error,
-				  capacity)) {
+	if (!xvt_mouse_config_parse(document, &candidate.mouse, error,
+				    capacity)) {
 		return 0;
 	}
 	*out = candidate;

@@ -17,129 +17,129 @@
 #include <stdio.h>
 #include <string.h>
 
-/* Index in g_messageLogRecords of the newest logged message, 0 to 299, or
- * 0xFFFF before the first. Flight start sets 0xFFFF: Flight_MainLoop in the
- * original build, XvtFlightLoading_MissionSetup in the modern one. Only
- * msg_emitInFlightMessage advances it, back to 0 after 299. */
+/* Index in g_message_log_records of the newest logged message, 0 to 299, or
+ * 0xFFFF before the first. Flight start sets 0xFFFF: flight_main_loop in the
+ * original build, xvt_flight_loading_mission_setup in the modern one. Only
+ * msg_emit_in_flight_message advances it, back to 0 after 299. */
 // GLOBAL: XVT 0x5235D0
-uint16_t g_messageLogWriteIndex;
+uint16_t g_message_log_write_index;
 /* Messages logged since flight start, not wrapped at 300; only
- * msg_emitInFlightMessage raises it. Flight start sets 0: Flight_MainLoop in
- * the original build, XvtFlightLoading_MissionSetup in the modern one.
- * Mfd_DrawMessageLogPage redraws when it changes. */
+ * msg_emit_in_flight_message raises it. Flight start sets 0: flight_main_loop in
+ * the original build, xvt_flight_loading_mission_setup in the modern one.
+ * mfd_draw_message_log_page redraws when it changes. */
 // GLOBAL: XVT 0x5235D4
-uint16_t g_messageLogTotalCount;
-/* Set to 1 by msg_emitInFlightMessage, its only writer, when
- * g_messageLogWriteIndex first wraps; the message log page then offers all
+uint16_t g_message_log_total_count;
+/* Set to 1 by msg_emit_in_flight_message, its only writer, when
+ * g_message_log_write_index first wraps; the message log page then offers all
  * 300 records. Nothing sets it back to 0, so it carries into later flights
  * of the same run. */
 // GLOBAL: XVT 0x5235D8
-uint16_t g_messageLogWrapped = 0;
+uint16_t g_message_log_wrapped = 0;
 /* Arguments of the next in-flight message, taken in order by its '*' and '&'
  * marks. A value below 0x8000 is the number for '&', or for '*' a message
- * whose text it inserts; slot + 0x8000, set by msg_addMessagePtr, makes '*'
- * insert the text at g_msgPtrs[slot]. Many functions write it, chiefly the
- * msg functions and Flight_ProcessPlayerActions, just before they emit. */
+ * whose text it inserts; slot + 0x8000, set by msg_add_message_ptr, makes '*'
+ * insert the text at g_msg_ptrs[slot]. Many functions write it, chiefly the
+ * msg functions and flight_process_player_actions, just before they emit. */
 // GLOBAL: XVT 0xA07BE0
-uint16_t g_msgArgTable[4];
+uint16_t g_msg_arg_table[4];
 /* Second name buffer for messages that name two objects: paiman_boardmaneuver
- * and Player_HandleHyperspaceCommand write a name into it with
- * msg_formatObjectName and pass it as argument 1. */
+ * and player_handle_hyperspace_command write a name into it with
+ * msg_format_object_name and pass it as argument 1. */
 // GLOBAL: XVT 0x9EC4D0
-char g_flightSecondaryObjectNameBuffer[256] = {0};
-/* Text for '*' arguments marked slot + 0x8000 in g_msgArgTable; only
- * msg_addMessagePtr writes it. A model definition or flight group passed
+char g_flight_secondary_object_name_buffer[256] = {0};
+/* Text for '*' arguments marked slot + 0x8000 in g_msg_arg_table; only
+ * msg_add_message_ptr writes it. A model definition or flight group passed
  * here reads as its name, the first field of each. */
 // GLOBAL: XVT 0xA08120
-static const void *g_msgPtrs[4];
+static const void *g_msg_ptrs[4];
 /* The message log: a ring of 300 records in the memory of
- * g_messageLogHandle, MESSAGE_LOG_BUFFER_BYTES (32,000) long. Set by locking
- * the handle in msg_emitInFlightMessage and Mfd_DrawMessageLogPage;
- * msg_emitInFlightMessage writes each logged message at
- * g_messageLogWriteIndex. */
+ * g_message_log_handle, MESSAGE_LOG_BUFFER_BYTES (32,000) long. Set by locking
+ * the handle in msg_emit_in_flight_message and mfd_draw_message_log_page;
+ * msg_emit_in_flight_message writes each logged message at
+ * g_message_log_write_index. */
 // GLOBAL: XVT 0x9993FC
-struct HudInFlightMessageRecord *g_messageLogRecords = NULL;
-/* IFF of the next message's sender, copied into its senderIff. Many
+struct hud_in_flight_message_record *g_message_log_records = NULL;
+/* IFF of the next message's sender, copied into its sender_iff. Many
  * functions write it, chiefly the msg functions and
- * Flight_ProcessPlayerActions; nothing resets it, so a message whose caller
+ * flight_process_player_actions; nothing resets it, so a message whose caller
  * does not set it takes the last sender's. */
 // GLOBAL: XVT 0xA08292
-uint16_t g_msgSenderIff = 0;
+uint16_t g_msg_sender_iff = 0;
 /* By target designation, the offset of its message from
- * IFMSG_309_TARGET_DESCRIPTION: 1 when msg_BuildTargetDescription, its only
+ * IFMSG_309_TARGET_DESCRIPTION: 1 when msg_build_target_description, its only
  * reader, puts "Our", "Friendly" or "Enemy" before it. */
 // GLOBAL: XVT 0x5240B8
-const uint8_t g_targetDescDesignationUsesRelationText[24] = {
+const uint8_t g_target_desc_designation_uses_relation_text[24] = {
 	0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0};
-/* Voice sound id that msg_emitInFlightMessage stores in messages 196 and 207
+/* Voice sound id that msg_emit_in_flight_message stores in messages 196 and 207
  * (IFMSG_196_CODE_02_ARGUMENT, IFMSG_207_CODE_01_ARGUMENT);
- * Hud_ShowFlightMessagePane plays it when such a message is first shown.
- * Only Mission_UpdateLogic writes it. */
+ * hud_show_flight_message_pane plays it when such a message is first shown.
+ * Only mission_update_logic writes it. */
 // GLOBAL: XVT 0x9D7684
-uint16_t g_pendingHudMessageVoiceSfxId = 0;
-/* In-flight message templates by InFlightMessageId, filled by
- * StringTable_LoadGameStrings. The first byte is the pane type; '*' inserts
+uint16_t g_pending_hud_message_voice_sfx_id = 0;
+/* In-flight message templates by in_flight_message_id, filled by
+ * string_table_load_game_strings. The first byte is the pane type; '*' inserts
  * an argument's text, '&' and a count byte an argument's number, and '[' and
  * ']' switch the text color when the message is drawn. */
 // GLOBAL: XVT 0x9A1840
-const char *g_strInFlightMessages[417] = {0};
+const char *g_str_in_flight_messages[417] = {0};
 
 /* Appends the message log to the first of msglog0.txt to msglog99.txt that
  * does not exist yet, or to msglog99.txt when all do; the modern build looks
- * in the player's files. Writes records 0 to g_messageLogWriteIndex - 1 of
- * g_messageLogRecords, one line each: the text without its pane type byte
+ * in the player's files. Writes records 0 to g_message_log_write_index - 1 of
+ * g_message_log_records, one line each: the text without its pane type byte
  * (and, after type 1, a digit 0 to 3), a tab, and the mission clock as
  * hours:minutes:seconds. Called at a wrap it writes all 300; called
- * otherwise it leaves out the newest record, at g_messageLogWriteIndex. Does
+ * otherwise it leaves out the newest record, at g_message_log_write_index. Does
  * nothing when no file opens. Every existing file it opens to test, but
  * msglog99.txt, stays open. Does not check for the 0xFFFF index before the
  * first logged message, which makes it read 65,535 records. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x450550
-void msg_writeMessageLogFile(void)
+void msg_write_message_log_file(void)
 {
-	char fileName[16];
-	int logIndex;
-	XvtFile *stream;
-	int messageIndex;
-	int recordOffset;
-	struct HudInFlightMessageRecord *record;
+	char file_name[16];
+	int log_index;
+	xvt_file *stream;
+	int message_index;
+	int record_offset;
+	struct hud_in_flight_message_record *record;
 	int prefix;
 	char *text;
 
-	logIndex = 0;
+	log_index = 0;
 	do {
-		sprintf(fileName, "msglog%ld.txt", (long)logIndex);
+		sprintf(file_name, "msglog%ld.txt", (long)log_index);
 #ifdef XVT_MODERN
-		stream =
-			XvtStorage_OpenRoot(AERON_VFS_ROOT_USER, fileName, "r");
+		stream = xvt_storage_open_root(AERON_VFS_ROOT_USER, file_name,
+					       "r");
 #else
-		stream = File_RawOpen(fileName, "r");
+		stream = FILE_RAW_OPEN(file_name, "r");
 #endif
 		if (stream == NULL) {
-			stream = File_RawOpen(fileName, "a");
+			stream = FILE_RAW_OPEN(file_name, "a");
 			break;
 		}
-		if (logIndex == 99) {
+		if (log_index == 99) {
 			if (stream != NULL) {
-				File_RawClose(stream);
+				FILE_RAW_CLOSE(stream);
 			}
-			stream = File_RawOpen(fileName, "a");
+			stream = FILE_RAW_OPEN(file_name, "a");
 			break;
 		}
-		++logIndex;
-	} while (logIndex < 100);
+		++log_index;
+	} while (log_index < 100);
 
-	messageIndex = 0;
+	message_index = 0;
 	if (stream != NULL) {
-		if (g_messageLogWriteIndex > (uint16_t)messageIndex) {
-			recordOffset = 0;
+		if (g_message_log_write_index > (uint16_t)message_index) {
+			record_offset = 0;
 			do {
 				record =
-					(struct HudInFlightMessageRecord
+					(struct hud_in_flight_message_record
 						 *)((uint8_t *)
-							    g_messageLogRecords +
-						    recordOffset);
+							    g_message_log_records +
+						    record_offset);
 				prefix = record->text[0];
 				text = record->text;
 				if (prefix < 9) {
@@ -149,228 +149,233 @@ void msg_writeMessageLogFile(void)
 						++text;
 					}
 				}
-				recordOffset += sizeof(*record);
-				++messageIndex;
-				File_Printf(stream, "%s\t%ld:%ld:%ld\n", text,
-					    (long)record->clockHour,
-					    (long)record->clockMinute,
-					    (long)record->clockSecond);
-			} while ((uint16_t)g_messageLogWriteIndex >
-				 messageIndex);
+				record_offset += sizeof(*record);
+				++message_index;
+				FILE_PRINTF(stream, "%s\t%ld:%ld:%ld\n", text,
+					    (long)record->clock_hour,
+					    (long)record->clock_minute,
+					    (long)record->clock_second);
+			} while ((uint16_t)g_message_log_write_index >
+				 message_index);
 		}
-		File_RawClose(stream);
+		FILE_RAW_CLOSE(stream);
 	}
 }
 
 /* Builds in-flight message messageId from its template and the arguments in
- * g_msgArgTable, logs it, and hands it to a HUD pane. Does nothing when
- * g_flightSimSideEffectsSuppressed is set or playerIdx is not g_localPlayer.
+ * g_msg_arg_table, logs it, and hands it to a HUD pane. Does nothing when
+ * g_flight_sim_side_effects_suppressed is set or player_idx is not g_local_player.
  * The record takes the mission clock (the countdown clock when the mission
- * has a time limit, else the elapsed clock), g_msgSenderIff, and for
- * messages 196 and 207 g_pendingHudMessageVoiceSfxId. The template's first
+ * has a time limit, else the elapsed clock), g_msg_sender_iff, and for
+ * messages 196 and 207 g_pending_hud_message_voice_sfx_id. The template's first
  * byte is the pane type and, below 9, stays as the text's first character;
  * '*' inserts the next argument's text, and '&' with a count byte its value
  * in that many places, dropping zeros in front. Text past 69 characters is
  * cut. The modern build swaps in its own text for message 1, the pause
  * notice. A pane type of 9 or more becomes 6.
  *
- * Types 1 and 2 enter the message log unless g_replayViewMode is set:
- * g_messageLogTotalCount rises and g_messageLogWriteIndex steps on; at 300
- * it goes back to 0 and g_messageLogWrapped to 1, after
- * msg_writeMessageLogFile when g_radioMessageBackupEnabled is set. Types 3,
- * 4 and 7 replace g_systemMessagePane when system messages are on (or this
+ * Types 1 and 2 enter the message log unless g_replay_view_mode is set:
+ * g_message_log_total_count rises and g_message_log_write_index steps on; at 300
+ * it goes back to 0 and g_message_log_wrapped to 1, after
+ * msg_write_message_log_file when g_radio_message_backup_enabled is set. Types 3,
+ * 4 and 7 replace g_system_message_pane when system messages are on (or this
  * is message 400) and the pane is empty, holds no type 4, or the new one is
- * type 7; else they are dropped. Type 8 replaces g_flightGroupMessagePane.
- * Other types go to g_readyMessagePaneQueue: an empty slot 0 takes the
+ * type 7; else they are dropped. Type 8 replaces g_flight_group_message_pane.
+ * Other types go to g_ready_message_pane_queue: an empty slot 0 takes the
  * message and shows it; else, by the type in slot 0, it waits behind it (at
  * most 9 wait; past that it is lost) or takes slot 0 and is shown, after
- * Hud_ShiftReadyMessageQueueForReplacement when slot 0 holds a type 1, 2 or
+ * hud_shift_ready_message_queue_for_replacement when slot 0 holds a type 1, 2 or
  * 5. Behind a type 0 it is dropped. Does not check argument slots against
- * the 4-entry tables or an '&' count against g_flightTextDecimalDivisors. */
+ * the 4-entry tables or an '&' count against g_flight_text_decimal_divisors. */
 // FUNCTION: XVT 0x450650
-void msg_emitInFlightMessage(InFlightMessageId messageId, int playerIdx)
+void msg_emit_in_flight_message(in_flight_message_id message_id, int player_idx)
 {
-	struct HudInFlightMessageRecord message;
-	const uint8_t *templateCursor;
-	const char *argumentText;
-	uint16_t textLength;
-	uint16_t argumentIndex;
-	uint16_t argumentValue;
-	uint16_t digitCount;
+	struct hud_in_flight_message_record message;
+	const uint8_t *template_cursor;
+	const char *argument_text;
+	uint16_t text_length;
+	uint16_t argument_index;
+	uint16_t argument_value;
+	uint16_t digit_count;
 	uint16_t divisor;
-	uint16_t digitValue;
-	uint16_t outputChar;
+	uint16_t digit_value;
+	uint16_t output_char;
 	uint16_t remainder;
-	uint8_t paneType;
-	uint16_t normalizedPaneType;
-	uint8_t newQueueCount;
-	int digitStarted;
+	uint8_t pane_type;
+	uint16_t normalized_pane_type;
+	uint8_t new_queue_count;
+	int digit_started;
 
-	if (g_flightSimSideEffectsSuppressed != 0 ||
-	    playerIdx != g_localPlayer) {
+	if (g_flight_sim_side_effects_suppressed != 0 ||
+	    player_idx != g_local_player) {
 		return;
 	}
 
-	message.stateOrMessageId = (uint16_t)messageId;
-	if (g_flightMissionState.missionTimeLimitMinutes != 0) {
-		message.clockSubsecondTicks =
-			(uint16_t)g_missionCountdownClock.subsecondTicks;
-		message.clockSecond = g_missionCountdownClock.seconds;
-		message.clockMinute = g_missionCountdownClock.minutes;
-		message.clockHour = g_missionCountdownClock.hours;
+	message.state_or_message_id = (uint16_t)message_id;
+	if (g_flight_mission_state.mission_time_limit_minutes != 0) {
+		message.clock_subsecond_ticks =
+			(uint16_t)g_mission_countdown_clock.subsecond_ticks;
+		message.clock_second = g_mission_countdown_clock.seconds;
+		message.clock_minute = g_mission_countdown_clock.minutes;
+		message.clock_hour = g_mission_countdown_clock.hours;
 	} else {
-		message.clockSubsecondTicks =
-			(uint16_t)g_missionElapsedClock.subsecondTicks;
-		message.clockSecond = g_missionElapsedClock.seconds;
-		message.clockMinute = g_missionElapsedClock.minutes;
-		message.clockHour = g_missionElapsedClock.hours;
+		message.clock_subsecond_ticks =
+			(uint16_t)g_mission_elapsed_clock.subsecond_ticks;
+		message.clock_second = g_mission_elapsed_clock.seconds;
+		message.clock_minute = g_mission_elapsed_clock.minutes;
+		message.clock_hour = g_mission_elapsed_clock.hours;
 	}
-	message.ageSeconds = 0;
-	message.showCount = 0;
-	message.senderIff = g_msgSenderIff;
-	if (messageId == IFMSG_207_CODE_01_ARGUMENT ||
-	    messageId == IFMSG_196_CODE_02_ARGUMENT) {
-		message.voiceSfxId = g_pendingHudMessageVoiceSfxId;
+	message.age_seconds = 0;
+	message.show_count = 0;
+	message.sender_iff = g_msg_sender_iff;
+	if (message_id == IFMSG_207_CODE_01_ARGUMENT ||
+	    message_id == IFMSG_196_CODE_02_ARGUMENT) {
+		message.voice_sfx_id = g_pending_hud_message_voice_sfx_id;
 	} else {
-		message.voiceSfxId = 0;
+		message.voice_sfx_id = 0;
 	}
 
-	textLength = 0;
-	argumentIndex = 0;
-	templateCursor = (const uint8_t *)g_strInFlightMessages[messageId];
-	paneType = *templateCursor;
+	text_length = 0;
+	argument_index = 0;
+	template_cursor = (const uint8_t *)g_str_in_flight_messages[message_id];
+	pane_type = *template_cursor;
 #ifdef XVT_MODERN
-	if (messageId == IFMSG_001_MISSION_PAUSED_PRESS_ANY_KEY_TO_CONTINUE) {
-		message.text[textLength++] = (char)paneType;
-		templateCursor =
+	if (message_id == IFMSG_001_MISSION_PAUSED_PRESS_ANY_KEY_TO_CONTINUE) {
+		message.text[text_length++] = (char)pane_type;
+		template_cursor =
 			(const uint8_t
 				 *)"Mission paused. Press your pause key or button to continue.";
 	}
 #endif
-	while (*templateCursor != '\0' && textLength < sizeof(message.text)) {
-		if (*templateCursor == '*') {
-			++templateCursor;
-			argumentValue = g_msgArgTable[argumentIndex++];
-			if (argumentValue < 0x8000) {
-				argumentText =
-					g_strInFlightMessages[argumentValue];
+	while (*template_cursor != '\0' && text_length < sizeof(message.text)) {
+		if (*template_cursor == '*') {
+			++template_cursor;
+			argument_value = g_msg_arg_table[argument_index++];
+			if (argument_value < 0x8000) {
+				argument_text = g_str_in_flight_messages
+					[argument_value];
 			} else {
-				argumentText = (const char *)
-					g_msgPtrs[argumentValue & 0x7FFF];
+				argument_text = (const char *)
+					g_msg_ptrs[argument_value & 0x7FFF];
 			}
-			while (*argumentText != '\0' &&
-			       textLength < sizeof(message.text)) {
-				message.text[textLength++] = *argumentText++;
+			while (*argument_text != '\0' &&
+			       text_length < sizeof(message.text)) {
+				message.text[text_length++] = *argument_text++;
 			}
-		} else if (*templateCursor == '&') {
-			digitCount = templateCursor[1];
-			templateCursor += 2;
-			digitStarted = 0;
-			remainder = g_msgArgTable[argumentIndex++];
-			while (digitCount != 0 &&
-			       textLength < sizeof(message.text)) {
-				divisor =
-					g_flightTextDecimalDivisors[digitCount];
-				digitValue = remainder / divisor;
+		} else if (*template_cursor == '&') {
+			digit_count = template_cursor[1];
+			template_cursor += 2;
+			digit_started = 0;
+			remainder = g_msg_arg_table[argument_index++];
+			while (digit_count != 0 &&
+			       text_length < sizeof(message.text)) {
+				divisor = g_flight_text_decimal_divisors
+					[digit_count];
+				digit_value = remainder / divisor;
 				remainder %= divisor;
-				if (digitStarted != 0 || digitCount <= 1 ||
-				    digitValue != 0) {
-					digitStarted = 1;
-					if (digitValue > 9) {
-						digitValue = 9;
+				if (digit_started != 0 || digit_count <= 1 ||
+				    digit_value != 0) {
+					digit_started = 1;
+					if (digit_value > 9) {
+						digit_value = 9;
 					}
-					outputChar = digitValue + '0';
+					output_char = digit_value + '0';
 				} else {
-					outputChar = ' ';
+					output_char = ' ';
 				}
-				if (outputChar != ' ') {
-					message.text[textLength++] =
-						(char)outputChar;
+				if (output_char != ' ') {
+					message.text[text_length++] =
+						(char)output_char;
 				}
-				--digitCount;
+				--digit_count;
 			}
 		} else {
-			message.text[textLength++] = (char)*templateCursor++;
+			message.text[text_length++] = (char)*template_cursor++;
 		}
 	}
-	if (textLength >= sizeof(message.text)) {
+	if (text_length >= sizeof(message.text)) {
 		message.text[sizeof(message.text) - 1] = '\0';
 	} else {
-		message.text[textLength] = '\0';
+		message.text[text_length] = '\0';
 	}
 
-	message.paneType = paneType < 9 ? paneType : 6;
-	normalizedPaneType = message.paneType;
-	if (g_replayViewMode == 0 &&
-	    (normalizedPaneType == 2 || normalizedPaneType == 1)) {
-		++g_messageLogTotalCount;
-		if (++g_messageLogWriteIndex == 300) {
-			if (g_radioMessageBackupEnabled != 0) {
-				msg_writeMessageLogFile();
+	message.pane_type = pane_type < 9 ? pane_type : 6;
+	normalized_pane_type = message.pane_type;
+	if (g_replay_view_mode == 0 &&
+	    (normalized_pane_type == 2 || normalized_pane_type == 1)) {
+		++g_message_log_total_count;
+		if (++g_message_log_write_index == 300) {
+			if (g_radio_message_backup_enabled != 0) {
+				msg_write_message_log_file();
 			}
-			g_messageLogWriteIndex = 0;
-			g_messageLogWrapped = 1;
+			g_message_log_write_index = 0;
+			g_message_log_wrapped = 1;
 		}
-		g_messageLogRecords = (struct HudInFlightMessageRecord *)
-			Memory_GetHandleBlock(g_messageLogHandle);
-		Memory_HandleBlockDoneStub(g_messageLogHandle);
-		g_messageLogRecords[g_messageLogWriteIndex] = message;
+		g_message_log_records = (struct hud_in_flight_message_record *)
+			memory_get_handle_block(g_message_log_handle);
+		memory_handle_block_done_stub(g_message_log_handle);
+		g_message_log_records[g_message_log_write_index] = message;
 	}
 
-	if (normalizedPaneType == 3 || normalizedPaneType == 4 ||
-	    normalizedPaneType == 7) {
-		if ((g_systemMessageDisplayEnabled != 0 ||
-		     messageId ==
+	if (normalized_pane_type == 3 || normalized_pane_type == 4 ||
+	    normalized_pane_type == 7) {
+		if ((g_system_message_display_enabled != 0 ||
+		     message_id ==
 			     IFMSG_400_SYSTEM_MESSAGE_DISPLAYING_TURNED_OFF) &&
-		    (g_systemMessagePane.stateOrMessageId == UINT16_MAX ||
-		     g_systemMessagePane.paneType != 4 ||
-		     normalizedPaneType == 7)) {
-			g_systemMessagePane = message;
-			Hud_ShowFlightMessagePane((int16_t)normalizedPaneType);
+		    (g_system_message_pane.state_or_message_id == UINT16_MAX ||
+		     g_system_message_pane.pane_type != 4 ||
+		     normalized_pane_type == 7)) {
+			g_system_message_pane = message;
+			hud_show_flight_message_pane(
+				(int16_t)normalized_pane_type);
 		}
 		return;
 	}
-	if (normalizedPaneType == 8) {
-		g_flightGroupMessagePane = message;
-		Hud_ShowFlightMessagePane((int16_t)normalizedPaneType);
+	if (normalized_pane_type == 8) {
+		g_flight_group_message_pane = message;
+		hud_show_flight_message_pane((int16_t)normalized_pane_type);
 		return;
 	}
-	if (g_readyMessagePaneQueue[0].stateOrMessageId == UINT16_MAX) {
-		g_readyMessagePaneQueue[0] = message;
-		Hud_ShowFlightMessagePane((int16_t)normalizedPaneType);
+	if (g_ready_message_pane_queue[0].state_or_message_id == UINT16_MAX) {
+		g_ready_message_pane_queue[0] = message;
+		hud_show_flight_message_pane((int16_t)normalized_pane_type);
 		return;
 	}
 
-	switch (g_readyMessagePaneQueue[0].paneType) {
+	switch (g_ready_message_pane_queue[0].pane_type) {
 	case 1:
-		if (normalizedPaneType != 2 && normalizedPaneType != 1) {
-			Hud_ShiftReadyMessageQueueForReplacement();
-			g_readyMessagePaneQueue[0] = message;
-			Hud_ShowFlightMessagePane((int16_t)normalizedPaneType);
+		if (normalized_pane_type != 2 && normalized_pane_type != 1) {
+			hud_shift_ready_message_queue_for_replacement();
+			g_ready_message_pane_queue[0] = message;
+			hud_show_flight_message_pane(
+				(int16_t)normalized_pane_type);
 			break;
 		}
-		g_readyMessagePaneQueue[g_readyMessageQueueCount + 1] = message;
-		newQueueCount = g_readyMessageQueueCount + 1;
-		g_readyMessageQueueCount = newQueueCount;
-		if (newQueueCount >= 10) {
-			g_readyMessageQueueCount = newQueueCount - 1;
+		g_ready_message_pane_queue[g_ready_message_queue_count + 1] =
+			message;
+		new_queue_count = g_ready_message_queue_count + 1;
+		g_ready_message_queue_count = new_queue_count;
+		if (new_queue_count >= 10) {
+			g_ready_message_queue_count = new_queue_count - 1;
 		}
 		break;
 
 	case 2:
 	case 5:
-		if (normalizedPaneType == 2) {
-			g_readyMessagePaneQueue[g_readyMessageQueueCount + 1] =
-				message;
-			newQueueCount = g_readyMessageQueueCount + 1;
-			g_readyMessageQueueCount = newQueueCount;
-			if (newQueueCount >= 10) {
-				g_readyMessageQueueCount = newQueueCount - 1;
+		if (normalized_pane_type == 2) {
+			g_ready_message_pane_queue[g_ready_message_queue_count +
+						   1] = message;
+			new_queue_count = g_ready_message_queue_count + 1;
+			g_ready_message_queue_count = new_queue_count;
+			if (new_queue_count >= 10) {
+				g_ready_message_queue_count =
+					new_queue_count - 1;
 			}
 		} else {
-			Hud_ShiftReadyMessageQueueForReplacement();
-			g_readyMessagePaneQueue[0] = message;
-			Hud_ShowFlightMessagePane((int16_t)normalizedPaneType);
+			hud_shift_ready_message_queue_for_replacement();
+			g_ready_message_pane_queue[0] = message;
+			hud_show_flight_message_pane(
+				(int16_t)normalized_pane_type);
 		}
 		break;
 
@@ -378,22 +383,24 @@ void msg_emitInFlightMessage(InFlightMessageId messageId, int playerIdx)
 	case 6:
 	case 7:
 	case 8:
-		g_readyMessagePaneQueue[0] = message;
-		Hud_ShowFlightMessagePane((int16_t)normalizedPaneType);
+		g_ready_message_pane_queue[0] = message;
+		hud_show_flight_message_pane((int16_t)normalized_pane_type);
 		break;
 
 	case 4:
-		if (normalizedPaneType == 2 || normalizedPaneType == 1) {
-			g_readyMessagePaneQueue[g_readyMessageQueueCount + 1] =
-				message;
-			newQueueCount = g_readyMessageQueueCount + 1;
-			g_readyMessageQueueCount = newQueueCount;
-			if (newQueueCount >= 10) {
-				g_readyMessageQueueCount = newQueueCount - 1;
+		if (normalized_pane_type == 2 || normalized_pane_type == 1) {
+			g_ready_message_pane_queue[g_ready_message_queue_count +
+						   1] = message;
+			new_queue_count = g_ready_message_queue_count + 1;
+			g_ready_message_queue_count = new_queue_count;
+			if (new_queue_count >= 10) {
+				g_ready_message_queue_count =
+					new_queue_count - 1;
 			}
 		} else {
-			g_readyMessagePaneQueue[0] = message;
-			Hud_ShowFlightMessagePane((int16_t)normalizedPaneType);
+			g_ready_message_pane_queue[0] = message;
+			hud_show_flight_message_pane(
+				(int16_t)normalized_pane_type);
 		}
 		break;
 
@@ -402,231 +409,238 @@ void msg_emitInFlightMessage(InFlightMessageId messageId, int playerIdx)
 	}
 }
 
-/* Announces flight group flightGroupIndex's arrival to the local player. Finds
- * where it is with Mission_ResolveObjectOrMissionPointWorldLoc: for arrival
+/* Announces flight group flight_group_index's arrival to the local player. Finds
+ * where it is with mission_resolve_object_or_mission_point_world_loc: for arrival
  * method 0 with 0x8000, else with the group's craft in the active region that
  * follows no other; with none found, the last resolved place stands. Takes the
  * distance from the player's craft, or from the player's camera while
- * mapCameraState is not 0, and shows (distance * 161 / 65,536 + 50) / 100 km,
+ * map_camera_state is not 0, and shows (distance * 161 / 65,536 + 50) / 100 km,
  * at least 1; this leaves trig2_polardistance multiplied by 161. Emits message
  * 114 or 115, new craft alert for one craft or several, when the group's IFF is
- * not the player's, else 235 or 236, entering area. Sets g_msgSenderIff to the
+ * not the player's, else 235 or 236, entering area. Sets g_msg_sender_iff to the
  * group's IFF and fills the message arguments with the craft count,
- * modelIndex's long name, the group and the range. */
+ * model_index's long name, the group and the range. */
 // FUNCTION: XVT 0x451940
-void msg_reportfgcreation(uint16_t flightGroupIndex, uint16_t modelIndex)
+void msg_reportfgcreation(uint16_t flight_group_index, uint16_t model_index)
 {
-	int flightGroupIdx;
-	uint16_t objectIndex;
-	struct ObjectRecord *object;
-	struct CraftData *craft;
-	struct ObjectRecord *localPlayerObject;
-	uint16_t rangeKm;
+	int flight_group_idx;
+	uint16_t object_index;
+	struct object_record *object;
+	struct craft_data *craft;
+	struct object_record *local_player_object;
+	uint16_t range_km;
 	uint8_t iff;
-	uint16_t numberOfCraft;
-	int distanceHundredths;
+	uint16_t number_of_craft;
+	int distance_hundredths;
 
-	flightGroupIdx = flightGroupIndex;
-	if (g_missionFlightGroups[flightGroupIdx].fg.arrivalMethod == 0) {
-		Mission_ResolveObjectOrMissionPointWorldLoc(0x8000,
-							    flightGroupIndex);
+	flight_group_idx = flight_group_index;
+	if (g_mission_flight_groups[flight_group_idx].fg.arrival_method == 0) {
+		mission_resolve_object_or_mission_point_world_loc(
+			0x8000, flight_group_index);
 	} else {
-		objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
-		while (objectIndex < g_activeRegionCraftObjectSlotEnd) {
-			object = &g_objectTable[objectIndex];
-			if (object->objectType != 0) {
-				craft = object->mobj->pCraft;
-				if (object->flightGroupIdx ==
-					    flightGroupIndex &&
+		object_index = (uint16_t)g_active_region_object_slot_start;
+		while (object_index < g_active_region_craft_object_slot_end) {
+			object = &g_object_table[object_index];
+			if (object->object_type != 0) {
+				craft = object->mobj->p_craft;
+				if (object->flight_group_idx ==
+					    flight_group_index &&
 				    craft->leader_obj_idx == UINT8_MAX) {
-					Mission_ResolveObjectOrMissionPointWorldLoc(
-						objectIndex, flightGroupIndex);
+					mission_resolve_object_or_mission_point_world_loc(
+						object_index,
+						flight_group_index);
 					break;
 				}
 			}
-			++objectIndex;
+			++object_index;
 		}
 	}
 
-	if (g_players[g_localPlayer].mapCameraState == 0) {
-		localPlayerObject =
-			&g_objectTable[g_players[g_localPlayer].objectIndex];
-		trig2_ctop(g_worldLocX - localPlayerObject->world_x,
-			   g_worldLocY - localPlayerObject->world_y,
-			   g_worldLocZ - localPlayerObject->world_z);
+	if (g_players[g_local_player].map_camera_state == 0) {
+		local_player_object =
+			&g_object_table[g_players[g_local_player].object_index];
+		trig2_ctop(g_world_loc_x - local_player_object->world_x,
+			   g_world_loc_y - local_player_object->world_y,
+			   g_world_loc_z - local_player_object->world_z);
 	} else {
-		trig2_ctop(
-			g_worldLocX -
-				g_players[g_localPlayer].viewState.cameraWorldX,
-			g_worldLocY -
-				g_players[g_localPlayer].viewState.cameraWorldY,
-			g_worldLocZ - g_players[g_localPlayer]
-					      .viewState.cameraWorldZ);
+		trig2_ctop(g_world_loc_x - g_players[g_local_player]
+						   .view_state.camera_world_x,
+			   g_world_loc_y - g_players[g_local_player]
+						   .view_state.camera_world_y,
+			   g_world_loc_z - g_players[g_local_player]
+						   .view_state.camera_world_z);
 	}
 	trig2_polardistance *= 161;
-	distanceHundredths = (trig2_polardistance >> 16) & 0xFFFF;
-	rangeKm = (uint16_t)((distanceHundredths + 50) / 100);
-	if (rangeKm == 0) {
-		rangeKm = 1;
+	distance_hundredths = (trig2_polardistance >> 16) & 0xFFFF;
+	range_km = (uint16_t)((distance_hundredths + 50) / 100);
+	if (range_km == 0) {
+		range_km = 1;
 	}
-	iff = g_missionFlightGroups[flightGroupIdx].fg.iff;
-	numberOfCraft = g_missionFlightGroups[flightGroupIdx].fg.numberOfCraft;
-	g_msgArgTable[0] = numberOfCraft;
-	g_msgSenderIff = iff;
-	if ((uint16_t)g_players[g_localPlayer].iff != iff) {
-		msg_addMessagePtr(1, g_modelDefs[modelIndex].nameLong);
-		g_msgArgTable[2] = rangeKm;
-		if (numberOfCraft == 1) {
-			msg_emitInFlightMessage(
+	iff = g_mission_flight_groups[flight_group_idx].fg.iff;
+	number_of_craft =
+		g_mission_flight_groups[flight_group_idx].fg.number_of_craft;
+	g_msg_arg_table[0] = number_of_craft;
+	g_msg_sender_iff = iff;
+	if ((uint16_t)g_players[g_local_player].iff != iff) {
+		msg_add_message_ptr(1, g_model_defs[model_index].name_long);
+		g_msg_arg_table[2] = range_km;
+		if (number_of_craft == 1) {
+			msg_emit_in_flight_message(
 				IFMSG_114_NEW_CRAFT_ALERT_ARG_ARG_AT_ARG_KM,
-				g_localPlayer);
+				g_local_player);
 		} else {
-			msg_emitInFlightMessage(
+			msg_emit_in_flight_message(
 				IFMSG_115_NEW_CRAFT_ALERT_ARG_ARG_S_AT_ARG_KM,
-				g_localPlayer);
+				g_local_player);
 		}
-	} else if (numberOfCraft == 1) {
-		msg_addMessagePtr(0, g_modelDefs[modelIndex].nameLong);
-		msg_addMessagePtr(1, &g_missionFlightGroups[flightGroupIdx]);
-		g_msgArgTable[2] = rangeKm;
-		msg_emitInFlightMessage(
+	} else if (number_of_craft == 1) {
+		msg_add_message_ptr(0, g_model_defs[model_index].name_long);
+		msg_add_message_ptr(1,
+				    &g_mission_flight_groups[flight_group_idx]);
+		g_msg_arg_table[2] = range_km;
+		msg_emit_in_flight_message(
 			IFMSG_235_ARG_ARG_ENTERING_AREA_AT_ARG_KM,
-			g_localPlayer);
+			g_local_player);
 	} else {
-		msg_addMessagePtr(1, g_modelDefs[modelIndex].nameLong);
-		msg_addMessagePtr(2, &g_missionFlightGroups[flightGroupIdx]);
-		g_msgArgTable[3] = rangeKm;
-		msg_emitInFlightMessage(
+		msg_add_message_ptr(1, g_model_defs[model_index].name_long);
+		msg_add_message_ptr(2,
+				    &g_mission_flight_groups[flight_group_idx]);
+		g_msg_arg_table[3] = range_km;
+		msg_emit_in_flight_message(
 			IFMSG_236_ARG_ARG_S_FROM_FG_ARG_ENTERING_AREA_AT_ARG_KM,
-			g_localPlayer);
+			g_local_player);
 	}
 }
 
-/* Makes argument slot insert the text at value: stores value in g_msgPtrs and
- * slot + 0x8000 in g_msgArgTable. Does not check slot against the 4
+/* Makes argument slot insert the text at value: stores value in g_msg_ptrs and
+ * slot + 0x8000 in g_msg_arg_table. Does not check slot against the 4
  * entries. */
 // FUNCTION: XVT 0x451BF0
-void msg_addMessagePtr(uint16_t slot, const void *value)
+void msg_add_message_ptr(uint16_t slot, const void *value)
 {
-	g_msgArgTable[slot] = slot + 0x8000;
-	g_msgPtrs[slot] = value;
+	g_msg_arg_table[slot] = slot + 0x8000;
+	g_msg_ptrs[slot] = value;
 }
 
 /* Emits a message naming a craft, its model's short name then its flight
- * group, with its number when Hud_MissionFG_GetCraftNumberIfShown gives one
- * (message 133, else 134), followed by message msgTemplateId's text. Sets
- * g_msgSenderIff to the object's IFF and fills the message arguments. */
+ * group, with its number when hud_mission_fg_get_craft_number_if_shown gives one
+ * (message 133, else 134), followed by message msg_template_id's text. Sets
+ * g_msg_sender_iff to the object's IFF and fills the message arguments. */
 // FUNCTION: XVT 0x451C20
-void msg_emitCraftMessage(uint16_t objIdx, struct CraftData *craft,
-			  int16_t msgTemplateId)
+void msg_emit_craft_message(uint16_t obj_idx, struct craft_data *craft,
+			    int16_t msg_template_id)
 {
-	struct ObjectRecord *object;
-	int flightGroupIdx;
-	uint16_t craftNumber;
+	struct object_record *object;
+	int flight_group_idx;
+	uint16_t craft_number;
 
-	object = &g_objectTable[objIdx];
-	flightGroupIdx = object->flightGroupIdx;
-	g_msgSenderIff = (uint8_t)object->mobj->iff;
-	msg_addMessagePtr(0, &g_modelDefs[craft->modelIndex]);
-	msg_addMessagePtr(1, &g_missionFlightGroups[flightGroupIdx]);
-	craftNumber = (uint16_t)Hud_MissionFG_GetCraftNumberIfShown(
-		flightGroupIdx, craft);
-	if (craftNumber != 0) {
-		g_msgArgTable[2] = craftNumber;
-		g_msgArgTable[3] = (uint16_t)msgTemplateId;
-		msg_emitInFlightMessage(IFMSG_133_CRAFT_EVENT_WITH_NUMBER,
-					g_localPlayer);
+	object = &g_object_table[obj_idx];
+	flight_group_idx = object->flight_group_idx;
+	g_msg_sender_iff = (uint8_t)object->mobj->iff;
+	msg_add_message_ptr(0, &g_model_defs[craft->model_index]);
+	msg_add_message_ptr(1, &g_mission_flight_groups[flight_group_idx]);
+	craft_number = (uint16_t)hud_mission_fg_get_craft_number_if_shown(
+		flight_group_idx, craft);
+	if (craft_number != 0) {
+		g_msg_arg_table[2] = craft_number;
+		g_msg_arg_table[3] = (uint16_t)msg_template_id;
+		msg_emit_in_flight_message(IFMSG_133_CRAFT_EVENT_WITH_NUMBER,
+					   g_local_player);
 	} else {
-		g_msgArgTable[2] = (uint16_t)msgTemplateId;
-		msg_emitInFlightMessage(IFMSG_134_CRAFT_EVENT_WITHOUT_NUMBER,
-					g_localPlayer);
+		g_msg_arg_table[2] = (uint16_t)msg_template_id;
+		msg_emit_in_flight_message(IFMSG_134_CRAFT_EVENT_WITHOUT_NUMBER,
+					   g_local_player);
 	}
 }
 
 /* Shows a wingman's acknowledgment of a command and has it spoken. Sets
- * g_msgSenderIff to the sender's flight group's IFF, then does nothing more,
+ * g_msg_sender_iff to the sender's flight group's IFF, then does nothing more,
  * speech included, unless that group shares the local player's IFF and team.
- * With multipleRecipients set, emits message 269, acknowledged, with the
+ * With multiple_recipients set, emits message 269, acknowledged, with the
  * group and commandId's text; else 147 or 148, Roger, with the sender's
  * model, group and number when shown, and commandId's text. Then calls
- * fsfx_SpeakWingmanEvent with responseIndex. Takes the model index from
- * byte 4 of senderCraft. */
+ * fsfx_speak_wingman_event with response_index. Takes the model index from
+ * byte 4 of sender_craft. */
 // FUNCTION: XVT 0x451D00
-void msg_radioMessage(uint16_t senderObjIdx, uint8_t *senderCraft,
-		      uint16_t commandId, uint16_t responseIndex,
-		      int16_t multipleRecipients)
+void msg_radio_message(uint16_t sender_obj_idx, uint8_t *sender_craft,
+		       uint16_t command_id, uint16_t response_index,
+		       int16_t multiple_recipients)
 {
-	int flightGroupIdx;
-	uint16_t craftNumber;
+	int flight_group_idx;
+	uint16_t craft_number;
 
-	flightGroupIdx = g_objectTable[senderObjIdx].flightGroupIdx;
-	g_msgSenderIff = g_missionFlightGroups[flightGroupIdx].fg.iff;
-	if (g_players[g_localPlayer].iff != g_msgSenderIff ||
-	    g_missionFlightGroups[flightGroupIdx].fg.team !=
-		    g_players[g_localPlayer].team) {
+	flight_group_idx = g_object_table[sender_obj_idx].flight_group_idx;
+	g_msg_sender_iff = g_mission_flight_groups[flight_group_idx].fg.iff;
+	if (g_players[g_local_player].iff != g_msg_sender_iff ||
+	    g_mission_flight_groups[flight_group_idx].fg.team !=
+		    g_players[g_local_player].team) {
 		return;
 	}
-	if (multipleRecipients != 0) {
-		msg_addMessagePtr(0, &g_missionFlightGroups[flightGroupIdx]);
-		g_msgArgTable[1] = commandId;
-		msg_emitInFlightMessage(
+	if (multiple_recipients != 0) {
+		msg_add_message_ptr(0,
+				    &g_mission_flight_groups[flight_group_idx]);
+		g_msg_arg_table[1] = command_id;
+		msg_emit_in_flight_message(
 			IFMSG_269_MESSAGE_ACKNOWLEDGED_FLIGHT_GROUP_ARG_ARG,
-			g_localPlayer);
+			g_local_player);
 	} else {
-		msg_addMessagePtr(0, &g_modelDefs[senderCraft[4]]);
-		msg_addMessagePtr(1, &g_missionFlightGroups[flightGroupIdx]);
-		craftNumber = (uint16_t)Hud_MissionFG_GetCraftNumberIfShown(
-			flightGroupIdx, (struct CraftData *)senderCraft);
-		if (craftNumber != 0) {
-			g_msgArgTable[2] = craftNumber;
-			g_msgArgTable[3] = commandId;
-			msg_emitInFlightMessage(
+		msg_add_message_ptr(0, &g_model_defs[sender_craft[4]]);
+		msg_add_message_ptr(1,
+				    &g_mission_flight_groups[flight_group_idx]);
+		craft_number =
+			(uint16_t)hud_mission_fg_get_craft_number_if_shown(
+				flight_group_idx,
+				(struct craft_data *)sender_craft);
+		if (craft_number != 0) {
+			g_msg_arg_table[2] = craft_number;
+			g_msg_arg_table[3] = command_id;
+			msg_emit_in_flight_message(
 				IFMSG_147_ROGER_CRAFT_WITH_NUMBER,
-				g_localPlayer);
+				g_local_player);
 		} else {
-			g_msgArgTable[2] = commandId;
-			msg_emitInFlightMessage(
+			g_msg_arg_table[2] = command_id;
+			msg_emit_in_flight_message(
 				IFMSG_148_ROGER_CRAFT_WITHOUT_NUMBER,
-				g_localPlayer);
+				g_local_player);
 		}
 	}
-	fsfx_SpeakWingmanEvent(g_localPlayer, senderObjIdx, 1, responseIndex,
-			       senderObjIdx, UINT16_MAX);
+	fsfx_speak_wingman_event(g_local_player, sender_obj_idx, 1,
+				 response_index, sender_obj_idx, UINT16_MAX);
 }
 
-/* As msg_emitCraftMessage, with messages 157 and 158, reporting in, and
- * g_msgSenderIff set from the flight group's IFF instead of the object's. */
+/* As msg_emit_craft_message, with messages 157 and 158, reporting in, and
+ * g_msg_sender_iff set from the flight group's IFF instead of the object's. */
 // FUNCTION: XVT 0x451E70
-void msg_reportmessage(uint16_t objIdx, struct CraftData *craft,
-		       int16_t msgTemplateId)
+void msg_reportmessage(uint16_t obj_idx, struct craft_data *craft,
+		       int16_t msg_template_id)
 {
-	int flightGroupIdx;
-	uint16_t craftNumber;
+	int flight_group_idx;
+	uint16_t craft_number;
 
-	flightGroupIdx = g_objectTable[objIdx].flightGroupIdx;
-	g_msgSenderIff = g_missionFlightGroups[flightGroupIdx].fg.iff;
-	msg_addMessagePtr(0, &g_modelDefs[craft->modelIndex]);
-	msg_addMessagePtr(1, &g_missionFlightGroups[flightGroupIdx]);
-	craftNumber = (uint16_t)Hud_MissionFG_GetCraftNumberIfShown(
-		flightGroupIdx, craft);
-	if (craftNumber != 0) {
-		g_msgArgTable[2] = craftNumber;
-		g_msgArgTable[3] = (uint16_t)msgTemplateId;
-		msg_emitInFlightMessage(IFMSG_157_CRAFT_REPORT_WITH_NUMBER,
-					g_localPlayer);
+	flight_group_idx = g_object_table[obj_idx].flight_group_idx;
+	g_msg_sender_iff = g_mission_flight_groups[flight_group_idx].fg.iff;
+	msg_add_message_ptr(0, &g_model_defs[craft->model_index]);
+	msg_add_message_ptr(1, &g_mission_flight_groups[flight_group_idx]);
+	craft_number = (uint16_t)hud_mission_fg_get_craft_number_if_shown(
+		flight_group_idx, craft);
+	if (craft_number != 0) {
+		g_msg_arg_table[2] = craft_number;
+		g_msg_arg_table[3] = (uint16_t)msg_template_id;
+		msg_emit_in_flight_message(IFMSG_157_CRAFT_REPORT_WITH_NUMBER,
+					   g_local_player);
 	} else {
-		g_msgArgTable[2] = (uint16_t)msgTemplateId;
-		msg_emitInFlightMessage(IFMSG_158_CRAFT_REPORT_WITHOUT_NUMBER,
-					g_localPlayer);
+		g_msg_arg_table[2] = (uint16_t)msg_template_id;
+		msg_emit_in_flight_message(
+			IFMSG_158_CRAFT_REPORT_WITHOUT_NUMBER, g_local_player);
 	}
 }
 
-/* Builds the target description of playerIdx's target: its name, its
+/* Builds the target description of player_idx's target: its name, its
  * designation, and what the player's goals want done with it. Returns 0 at once
  * for an object in the projectile slots. Otherwise fills the message arguments:
- * slot 0 the name, from msg_formatObjectName mode 2 into
- * g_flightTextScratchBuffer; slot 1 "Our", "Friendly" or "Enemy" when
- * g_targetDescDesignationUsesRelationText asks for it; slot 2 the designation's
+ * slot 0 the name, from msg_format_object_name mode 2 into
+ * g_flight_text_scratch_buffer; slot 1 "Our", "Friendly" or "Enemy" when
+ * g_target_desc_designation_uses_relation_text asks for it; slot 2 the designation's
  * message, from the team's designation table or, when that gives 0, by kind
  * (mine, satellite, probe, nav buoy, wingman, friendly craft, cargo, craft);
  * slot 3 the goal phrase, blank when there is none.
@@ -640,82 +654,83 @@ void msg_reportmessage(uint16_t objIdx, struct CraftData *craft,
  * destroy. When an order of the player's flight group whose built-in plan is 19
  * (disable) or 69 (destroy) targets it, the phrase moves to the next message,
  * which tells the player to act, and the target is actionable; inspect always
- * is. With emitHudMessage set for the local player, emits message 309, sets the
- * player's targetDescriptionRefreshTimer to 1,180 ticks and
- * g_targetDescriptionMessageId to the phrase. Returns the actionable flag when
- * returnActionableOnly is set, else the phrase's message id. Does not check a
+ * is. With emit_hud_message set for the local player, emits message 309, sets the
+ * player's target_description_refresh_timer to 1,180 ticks and
+ * g_target_description_message_id to the phrase. Returns the actionable flag when
+ * return_actionable_only is set, else the phrase's message id. Does not check a
  * designation from the table against the 24 entries of
- * g_targetDescDesignationUsesRelationText. */
+ * g_target_desc_designation_uses_relation_text. */
 // FUNCTION: XVT 0x451F50
-int msg_BuildTargetDescription(uint16_t targetObjIdx, int playerIdx,
-			       int emitHudMessage, int returnActionableOnly)
+int msg_build_target_description(uint16_t target_obj_idx, int player_idx,
+				 int emit_hud_message,
+				 int return_actionable_only)
 {
-	int flightGroupIdx;
+	int flight_group_idx;
 	int team;
-	struct CraftData *craft;
-	int inspectFlag;
-	int disableFlag;
-	int captureFlag;
-	int boardedFlag;
-	int destroyFlag;
-	int specialCargoRelevant;
+	struct craft_data *craft;
+	int inspect_flag;
+	int disable_flag;
+	int capture_flag;
+	int boarded_flag;
+	int destroy_flag;
+	int special_cargo_relevant;
 	int actionable;
 	int designation;
-	unsigned int goalIndex;
+	unsigned int goal_index;
 
-	g_msgArgTable[3] = IFMSG_331_BLANK;
+	g_msg_arg_table[3] = IFMSG_331_BLANK;
 	actionable = 0;
-	if ((int)g_projectileObjectSlotStart <= targetObjIdx &&
-	    (int)g_projectileObjectSlotEnd > targetObjIdx) {
+	if ((int)g_projectile_object_slot_start <= target_obj_idx &&
+	    (int)g_projectile_object_slot_end > target_obj_idx) {
 		return 0;
 	}
-	if (g_activeRegionCraftObjectSlotEnd > targetObjIdx) {
-		craft = g_objectTable[targetObjIdx].mobj->pCraft;
+	if (g_active_region_craft_object_slot_end > target_obj_idx) {
+		craft = g_object_table[target_obj_idx].mobj->p_craft;
 	} else {
 		craft = NULL;
 	}
-	flightGroupIdx = g_objectTable[targetObjIdx].flightGroupIdx;
-	team = g_missionFlightGroups[flightGroupIdx].fg.team;
-	designation =
-		g_flightMissionState.runtime.teamFgDesignationCode
-			[(uint16_t)g_players[playerIdx].team][flightGroupIdx];
+	flight_group_idx = g_object_table[target_obj_idx].flight_group_idx;
+	team = g_mission_flight_groups[flight_group_idx].fg.team;
+	designation = g_flight_mission_state.runtime.team_fg_designation_code
+			      [(uint16_t)g_players[player_idx].team]
+			      [flight_group_idx];
 	if (designation == 0) {
 		if (craft == NULL) {
-			if (g_objectTable[targetObjIdx].genusId ==
+			if (g_object_table[target_obj_idx].genus_id ==
 			    CRAFT_GENUS_MINE) {
 				designation = IFMSG_326_MINE -
 					      IFMSG_309_TARGET_DESCRIPTION;
-			} else if (g_objectTable[targetObjIdx].objectType >=
+			} else if (g_object_table[target_obj_idx].object_type >=
 					   CRAFT_SPECIES_COMM_SAT_1 &&
-				   g_objectTable[targetObjIdx].objectType <=
+				   g_object_table[target_obj_idx].object_type <=
 					   CRAFT_SPECIES_SAT_5) {
 				designation = IFMSG_327_SATELLITE -
 					      IFMSG_309_TARGET_DESCRIPTION;
-			} else if (g_objectTable[targetObjIdx].objectType >=
+			} else if (g_object_table[target_obj_idx].object_type >=
 					   CRAFT_SPECIES_PROBE &&
-				   g_objectTable[targetObjIdx].objectType <=
+				   g_object_table[target_obj_idx].object_type <=
 					   CRAFT_SPECIES_PROBE_3) {
 				designation = IFMSG_328_PROBE -
 					      IFMSG_309_TARGET_DESCRIPTION;
-			} else if (g_objectTable[targetObjIdx].objectType >=
+			} else if (g_object_table[target_obj_idx].object_type >=
 					   CRAFT_SPECIES_NAV_BUOY_TYPE_1 &&
-				   g_objectTable[targetObjIdx].objectType <=
+				   g_object_table[target_obj_idx].object_type <=
 					   CRAFT_SPECIES_NAV_BUOY_TYPE_2) {
 				designation = IFMSG_329_NAV_BUOY -
 					      IFMSG_309_TARGET_DESCRIPTION;
 			}
 		} else {
-			if (g_players[playerIdx].boundFlightGroupIdx ==
-			    flightGroupIdx) {
+			if (g_players[player_idx].bound_flight_group_idx ==
+			    flight_group_idx) {
 				designation = IFMSG_323_YOUR_WINGMAN -
 					      IFMSG_309_TARGET_DESCRIPTION;
 			} else if (team ==
-				   (uint16_t)g_players[playerIdx].team) {
+				   (uint16_t)g_players[player_idx].team) {
 				designation = IFMSG_322_FRIENDLY_CRAFT -
 					      IFMSG_309_TARGET_DESCRIPTION;
-			} else if (g_objectTable[targetObjIdx].genusId ==
+			} else if (g_object_table[target_obj_idx].genus_id ==
 					   CRAFT_GENUS_FREIGHTER &&
-				   craft->aiFlight.maxSpeedCache == 0) {
+				   craft->ai_flight.max_speed_cache == 0) {
 				designation = IFMSG_325_CARGO -
 					      IFMSG_309_TARGET_DESCRIPTION;
 			} else {
@@ -724,324 +739,335 @@ int msg_BuildTargetDescription(uint16_t targetObjIdx, int playerIdx,
 			}
 		}
 	}
-	msg_formatObjectName(targetObjIdx, 2, g_flightTextScratchBuffer);
-	msg_addMessagePtr(0, g_flightTextScratchBuffer);
-	g_msgArgTable[1] = IFMSG_331_BLANK;
+	msg_format_object_name(target_obj_idx, 2, g_flight_text_scratch_buffer);
+	msg_add_message_ptr(0, g_flight_text_scratch_buffer);
+	g_msg_arg_table[1] = IFMSG_331_BLANK;
 	if (designation != 0) {
-		if (g_targetDescDesignationUsesRelationText[designation] != 0) {
-			if (team == (uint16_t)g_players[playerIdx].team) {
-				g_msgArgTable[1] = IFMSG_334_OUR;
+		if (g_target_desc_designation_uses_relation_text[designation] !=
+		    0) {
+			if (team == (uint16_t)g_players[player_idx].team) {
+				g_msg_arg_table[1] = IFMSG_334_OUR;
 			} else {
-				int currentTeam =
-					g_missionFlightGroups
-						[g_objectTable[targetObjIdx]
-							 .flightGroupIdx]
+				int current_team =
+					g_mission_flight_groups
+						[g_object_table[target_obj_idx]
+							 .flight_group_idx]
 							.fg.team;
-				int isEnemy =
-					(uint16_t)g_players[playerIdx].team !=
-						currentTeam &&
-					g_missionTeams[(uint16_t)g_players
-							       [playerIdx]
-								       .team]
-							.allies[currentTeam] <
+				int is_enemy =
+					(uint16_t)g_players[player_idx].team !=
+						current_team &&
+					g_mission_teams[(uint16_t)g_players
+								[player_idx]
+									.team]
+							.allies[current_team] <
 						1;
-				g_msgArgTable[1] = IFMSG_333_FRIENDLY;
-				if (isEnemy) {
-					g_msgArgTable[1] = IFMSG_332_ENEMY;
+				g_msg_arg_table[1] = IFMSG_333_FRIENDLY;
+				if (is_enemy) {
+					g_msg_arg_table[1] = IFMSG_332_ENEMY;
 				}
 			}
 		}
-		g_msgArgTable[2] =
+		g_msg_arg_table[2] =
 			(uint16_t)(designation + IFMSG_309_TARGET_DESCRIPTION);
 	} else {
-		g_msgArgTable[2] = IFMSG_331_BLANK;
+		g_msg_arg_table[2] = IFMSG_331_BLANK;
 	}
 
-	inspectFlag = 0;
-	destroyFlag = 0;
-	disableFlag = 0;
-	captureFlag = 0;
-	boardedFlag = 0;
-	specialCargoRelevant = 0;
-	for (goalIndex = 0; goalIndex < 8; ++goalIndex) {
-		struct FlightGroupGoal *goal =
-			&g_missionFlightGroups[flightGroupIdx]
-				 .fg.goals[goalIndex];
-		int eventCondition;
-		int playerTeam = (uint16_t)g_players[playerIdx].team;
-		if (goal->enabledTeams[playerTeam] == 0 ||
-		    goal->goalKind != 0 ||
-		    g_missionFgStats[flightGroupIdx]
-				    .goalState[8 * playerTeam + goalIndex] !=
+	inspect_flag = 0;
+	destroy_flag = 0;
+	disable_flag = 0;
+	capture_flag = 0;
+	boarded_flag = 0;
+	special_cargo_relevant = 0;
+	for (goal_index = 0; goal_index < 8; ++goal_index) {
+		struct flight_group_goal *goal =
+			&g_mission_flight_groups[flight_group_idx]
+				 .fg.goals[goal_index];
+		int event_condition;
+		int player_team = (uint16_t)g_players[player_idx].team;
+		if (goal->enabled_teams[player_team] == 0 ||
+		    goal->goal_kind != 0 ||
+		    g_mission_fg_stats[flight_group_idx]
+				    .goal_state[8 * player_team + goal_index] !=
 			    4) {
 			continue;
 		}
 		if (goal->amount == GOAL_AMT_ALL_SPECIAL_CARGO) {
-			if (g_missionFgStats[flightGroupIdx].specialCargoOutcome
-				    [FLIGHT_GROUP_OUTCOME_INSPECTED] == 0) {
-				inspectFlag = 1;
+			if (g_mission_fg_stats[flight_group_idx]
+				    .special_cargo_outcome
+					    [FLIGHT_GROUP_OUTCOME_INSPECTED] ==
+			    0) {
+				inspect_flag = 1;
 			}
-			specialCargoRelevant = 1;
+			special_cargo_relevant = 1;
 		}
-		eventCondition = goal->eventCondition;
-		if (eventCondition == 2) {
-			destroyFlag = 1;
-		} else if (eventCondition != 3) {
-			if (eventCondition == 8) {
-				disableFlag = 1;
-			} else if (eventCondition == 5) {
-				inspectFlag = 1;
-			} else if (eventCondition == 4 ||
-				   eventCondition == 44) {
-				captureFlag = 1;
-			} else if (eventCondition == 6) {
-				boardedFlag = 1;
+		event_condition = goal->event_condition;
+		if (event_condition == 2) {
+			destroy_flag = 1;
+		} else if (event_condition != 3) {
+			if (event_condition == 8) {
+				disable_flag = 1;
+			} else if (event_condition == 5) {
+				inspect_flag = 1;
+			} else if (event_condition == 4 ||
+				   event_condition == 44) {
+				capture_flag = 1;
+			} else if (event_condition == 6) {
+				boarded_flag = 1;
 			}
 		}
 	}
 	{
-		unsigned int pairOffset;
-		for (pairOffset = 0;
-		     pairOffset < 2 * sizeof(struct MissionTriggerPair);
-		     pairOffset += sizeof(struct MissionTriggerPair)) {
-			unsigned int triggerOffset;
-			for (triggerOffset = 0;
-			     triggerOffset < 2 * sizeof(struct MissionTrigger);
-			     triggerOffset += sizeof(struct MissionTrigger)) {
-				unsigned int triggerByteIndex =
-					pairOffset + triggerOffset +
-					sizeof(g_missionGlobalGoals[0]) *
-						(uint16_t)g_players[playerIdx]
+		unsigned int pair_offset;
+		for (pair_offset = 0;
+		     pair_offset < 2 * sizeof(struct mission_trigger_pair);
+		     pair_offset += sizeof(struct mission_trigger_pair)) {
+			unsigned int trigger_offset;
+			for (trigger_offset = 0;
+			     trigger_offset <
+			     2 * sizeof(struct mission_trigger);
+			     trigger_offset += sizeof(struct mission_trigger)) {
+				unsigned int trigger_byte_index =
+					pair_offset + trigger_offset +
+					sizeof(g_mission_global_goals[0]) *
+						(uint16_t)g_players[player_idx]
 							.team;
-				const uint8_t *globalGoalBytes =
-					(const uint8_t *)g_missionGlobalGoals;
-				int eventCondition = globalGoalBytes
-					[triggerByteIndex +
-					 offsetof(struct MissionTrigger,
+				const uint8_t *global_goal_bytes =
+					(const uint8_t *)g_mission_global_goals;
+				int event_condition = global_goal_bytes
+					[trigger_byte_index +
+					 offsetof(struct mission_trigger,
 						  condition)];
-				if (eventCondition != 10 &&
-				    Mission_FlightGroupMatchesTriggerVariable(
-					    flightGroupIdx,
-					    globalGoalBytes
-						    [triggerByteIndex +
+				if (event_condition != 10 &&
+				    mission_flight_group_matches_trigger_variable(
+					    flight_group_idx,
+					    global_goal_bytes
+						    [trigger_byte_index +
 						     offsetof(struct
-							      MissionTrigger,
-							      variableType)],
-					    globalGoalBytes
-						    [triggerByteIndex +
+							      mission_trigger,
+							      variable_type)],
+					    global_goal_bytes
+						    [trigger_byte_index +
 						     offsetof(struct
-							      MissionTrigger,
+							      mission_trigger,
 							      variable)]) !=
 					    0) {
-					if (eventCondition == 2) {
-						destroyFlag = 1;
-					} else if (eventCondition != 3) {
-						if (eventCondition == 8) {
-							disableFlag = 1;
-						} else if (eventCondition ==
+					if (event_condition == 2) {
+						destroy_flag = 1;
+					} else if (event_condition != 3) {
+						if (event_condition == 8) {
+							disable_flag = 1;
+						} else if (event_condition ==
 							   5) {
-							inspectFlag = 1;
-						} else if (eventCondition ==
+							inspect_flag = 1;
+						} else if (event_condition ==
 								   4 ||
-							   eventCondition ==
+							   event_condition ==
 								   44) {
-							captureFlag = 1;
-						} else if (eventCondition ==
+							capture_flag = 1;
+						} else if (event_condition ==
 							   6) {
-							boardedFlag = 1;
+							boarded_flag = 1;
 						}
 					}
 				}
 			}
 		}
 	}
-	if (g_activeRegionCraftObjectSlotEnd > targetObjIdx) {
-		if (inspectFlag != 0 &&
-		    craft->identifiedOrderByTeam[(uint16_t)g_players[playerIdx]
-							 .team] != 0) {
-			inspectFlag = 0;
+	if (g_active_region_craft_object_slot_end > target_obj_idx) {
+		if (inspect_flag != 0 &&
+		    craft->identified_order_by_team
+				    [(uint16_t)g_players[player_idx].team] !=
+			    0) {
+			inspect_flag = 0;
 		}
-		if (captureFlag != 0 || boardedFlag != 0) {
-			if (g_objectTable[targetObjIdx].mobj->speed != 0) {
-				disableFlag = 1;
+		if (capture_flag != 0 || boarded_flag != 0) {
+			if (g_object_table[target_obj_idx].mobj->speed != 0) {
+				disable_flag = 1;
 			}
-			if (specialCargoRelevant != 0 &&
-			    g_missionFlightGroups[flightGroupIdx]
-					    .fg.specialCargoCraft !=
-				    craft->craftOrdinal) {
-				captureFlag = 0;
-				boardedFlag = 0;
+			if (special_cargo_relevant != 0 &&
+			    g_mission_flight_groups[flight_group_idx]
+					    .fg.special_cargo_craft !=
+				    craft->craft_ordinal) {
+				capture_flag = 0;
+				boarded_flag = 0;
 			}
 		}
-		if (disableFlag != 0 && specialCargoRelevant != 0 &&
-		    g_missionFlightGroups[flightGroupIdx]
-				    .fg.specialCargoCraft !=
-			    craft->craftOrdinal) {
-			disableFlag = 0;
+		if (disable_flag != 0 && special_cargo_relevant != 0 &&
+		    g_mission_flight_groups[flight_group_idx]
+				    .fg.special_cargo_craft !=
+			    craft->craft_ordinal) {
+			disable_flag = 0;
 		}
-		if (destroyFlag != 0 && specialCargoRelevant != 0 &&
-		    g_missionFlightGroups[flightGroupIdx]
-				    .fg.specialCargoCraft !=
-			    craft->craftOrdinal) {
-			destroyFlag = 0;
+		if (destroy_flag != 0 && special_cargo_relevant != 0 &&
+		    g_mission_flight_groups[flight_group_idx]
+				    .fg.special_cargo_craft !=
+			    craft->craft_ordinal) {
+			destroy_flag = 0;
 		}
 	}
-	if (inspectFlag != 0) {
-		g_msgArgTable[3] = IFMSG_344_INSPECT_IT;
+	if (inspect_flag != 0) {
+		g_msg_arg_table[3] = IFMSG_344_INSPECT_IT;
 		actionable = 1;
-	} else if (disableFlag != 0) {
-		if (captureFlag != 0) {
-			g_msgArgTable[3] = IFMSG_341_TO_BE_CAPTURED;
-		} else if (boardedFlag != 0) {
-			g_msgArgTable[3] = IFMSG_345_TO_BE_BOARDED;
+	} else if (disable_flag != 0) {
+		if (capture_flag != 0) {
+			g_msg_arg_table[3] = IFMSG_341_TO_BE_CAPTURED;
+		} else if (boarded_flag != 0) {
+			g_msg_arg_table[3] = IFMSG_345_TO_BE_BOARDED;
 		} else {
-			g_msgArgTable[3] = IFMSG_347_OTHERS_WILL_DISABLE_IT;
+			g_msg_arg_table[3] = IFMSG_347_OTHERS_WILL_DISABLE_IT;
 		}
-		if (pai_SetupContextAndFindOrderPlanOnTarget(
-			    g_players[playerIdx].objectIndex, 19,
-			    targetObjIdx) == 1) {
-			++g_msgArgTable[3];
+		if (pai_setup_context_and_find_order_plan_on_target(
+			    g_players[player_idx].object_index, 19,
+			    target_obj_idx) == 1) {
+			++g_msg_arg_table[3];
 			actionable = 1;
 		}
-	} else if (captureFlag != 0) {
-		g_msgArgTable[3] = IFMSG_341_TO_BE_CAPTURED;
-	} else if (boardedFlag != 0) {
-		g_msgArgTable[3] = IFMSG_345_TO_BE_BOARDED;
-	} else if (destroyFlag != 0) {
-		g_msgArgTable[3] = IFMSG_337_OTHERS_WILL_DESTROY_IT;
-		if (pai_SetupContextAndFindOrderPlanOnTarget(
-			    g_players[playerIdx].objectIndex, 69,
-			    targetObjIdx) == 1) {
-			++g_msgArgTable[3];
+	} else if (capture_flag != 0) {
+		g_msg_arg_table[3] = IFMSG_341_TO_BE_CAPTURED;
+	} else if (boarded_flag != 0) {
+		g_msg_arg_table[3] = IFMSG_345_TO_BE_BOARDED;
+	} else if (destroy_flag != 0) {
+		g_msg_arg_table[3] = IFMSG_337_OTHERS_WILL_DESTROY_IT;
+		if (pai_setup_context_and_find_order_plan_on_target(
+			    g_players[player_idx].object_index, 69,
+			    target_obj_idx) == 1) {
+			++g_msg_arg_table[3];
 			actionable = 1;
 		}
 	}
-	if (emitHudMessage != 0 && playerIdx == g_localPlayer) {
-		msg_emitInFlightMessage(IFMSG_309_TARGET_DESCRIPTION,
-					playerIdx);
-		g_playerFlightTransientTimers[g_localPlayer]
-			.targetDescriptionRefreshTimer = 1180;
-		g_targetDescriptionMessageId = g_msgArgTable[3];
+	if (emit_hud_message != 0 && player_idx == g_local_player) {
+		msg_emit_in_flight_message(IFMSG_309_TARGET_DESCRIPTION,
+					   player_idx);
+		g_player_flight_transient_timers[g_local_player]
+			.target_description_refresh_timer = 1180;
+		g_target_description_message_id = g_msg_arg_table[3];
 	}
-	if (returnActionableOnly != 0) {
+	if (return_actionable_only != 0) {
 		return actionable;
 	}
-	return g_msgArgTable[3];
+	return g_msg_arg_table[3];
 }
 
-/* Writes an object's display name into outName, emptying it first. For a
- * craft: its model's long name (nameMode 1) or short name (0), its flight
+/* Writes an object's display name into out_name, emptying it first. For a
+ * craft: its model's long name (name_mode 1) or short name (0), its flight
  * group's name when it has one, and its number when
- * Hud_MissionFG_GetCraftNumberIfShown gives one, space separated; other
+ * hud_mission_fg_get_craft_number_if_shown gives one, space separated; other
  * modes leave out the model. Another mobile object gets its warhead name
  * (types 0x8F to 0x9B) or satellite, mine, probe or buoy name, else nothing.
  * An object with no mobile object gets its group's name in modes other than
  * 0 and 1, else the satellite-to-buoy name for its type and the group's
- * name. Does not check outName's size, or the type of an object with no
+ * name. Does not check out_name's size, or the type of an object with no
  * mobile object. */
 // FUNCTION: XVT 0x4525A0
-void msg_formatObjectName(uint16_t objIdx, uint16_t nameMode, char *outName)
+void msg_format_object_name(uint16_t obj_idx, uint16_t name_mode,
+			    char *out_name)
 {
-	int16_t namePartCount;
-	int objectIndex;
-	struct ObjectRecord *object;
-	struct MobileObject *mobileObject;
-	uint16_t objectType;
-	struct CraftData *craft;
-	uint16_t flightGroupIdx;
-	struct MissionFlightGroup *flightGroup;
-	uint16_t craftNumber;
+	int16_t name_part_count;
+	int object_index;
+	struct object_record *object;
+	struct mobile_object *mobile_object;
+	uint16_t object_type;
+	struct craft_data *craft;
+	uint16_t flight_group_idx;
+	struct mission_flight_group *flight_group;
+	uint16_t craft_number;
 
-	namePartCount = 0;
-	*outName = '\0';
-	objectIndex = objIdx;
-	object = &g_objectTable[objectIndex];
-	mobileObject = object->mobj;
-	if (mobileObject != NULL) {
-		objectType = object->objectType;
-		if (mobileObject->family == 0) {
-			craft = mobileObject->pCraft;
-			flightGroupIdx = object->flightGroupIdx;
-			if (nameMode == 1) {
-				msg_AppendString(
-					g_modelDefs[craft->modelIndex].nameLong,
-					outName);
-				namePartCount = 1;
-			} else if (nameMode == 0) {
-				msg_AppendString(
-					g_modelDefs[craft->modelIndex].name,
-					outName);
-				namePartCount = 1;
+	name_part_count = 0;
+	*out_name = '\0';
+	object_index = obj_idx;
+	object = &g_object_table[object_index];
+	mobile_object = object->mobj;
+	if (mobile_object != NULL) {
+		object_type = object->object_type;
+		if (mobile_object->family == 0) {
+			craft = mobile_object->p_craft;
+			flight_group_idx = object->flight_group_idx;
+			if (name_mode == 1) {
+				msg_append_string(
+					g_model_defs[craft->model_index]
+						.name_long,
+					out_name);
+				name_part_count = 1;
+			} else if (name_mode == 0) {
+				msg_append_string(
+					g_model_defs[craft->model_index].name,
+					out_name);
+				name_part_count = 1;
 			}
 
-			flightGroup = &g_missionFlightGroups[flightGroupIdx];
-			if (flightGroup->fg.name[0] != '\0') {
-				if (namePartCount != 0) {
-					namePartCount = 0;
-					msg_AppendChar(' ', outName);
+			flight_group =
+				&g_mission_flight_groups[flight_group_idx];
+			if (flight_group->fg.name[0] != '\0') {
+				if (name_part_count != 0) {
+					name_part_count = 0;
+					msg_append_char(' ', out_name);
 				}
-				++namePartCount;
-				msg_AppendString(flightGroup->fg.name, outName);
+				++name_part_count;
+				msg_append_string(flight_group->fg.name,
+						  out_name);
 			}
 
-			craftNumber =
-				(uint16_t)Hud_MissionFG_GetCraftNumberIfShown(
-					flightGroupIdx, craft);
-			if (craftNumber != 0) {
-				if (namePartCount != 0) {
-					msg_AppendChar(' ', outName);
+			craft_number = (uint16_t)
+				hud_mission_fg_get_craft_number_if_shown(
+					flight_group_idx, craft);
+			if (craft_number != 0) {
+				if (name_part_count != 0) {
+					msg_append_char(' ', out_name);
 				}
-				if (craftNumber >= 10) {
-					msg_AppendChar(craftNumber / 10 + '0',
-						       outName);
-					msg_AppendChar(craftNumber % 10 + '0',
-						       outName);
+				if (craft_number >= 10) {
+					msg_append_char(craft_number / 10 + '0',
+							out_name);
+					msg_append_char(craft_number % 10 + '0',
+							out_name);
 					return;
 				}
-				msg_AppendChar(craftNumber + '0', outName);
+				msg_append_char(craft_number + '0', out_name);
 			}
 			return;
 		}
 
-		if (objectType >= 0x8f && objectType <= 0x9b) {
-			msg_AppendString(g_strWarheadNames[objectType - 0x8f],
-					 outName);
-		} else if (objectType >= CRAFT_SPECIES_COMM_SAT_1 &&
-			   objectType <= CRAFT_SPECIES_NAV_BUOY_TYPE_2) {
-			msg_AppendString(
-				g_strSatMineProbeBuoyPilotNames
-					[objectType - CRAFT_SPECIES_COMM_SAT_1],
-				outName);
+		if (object_type >= 0x8f && object_type <= 0x9b) {
+			msg_append_string(
+				g_str_warhead_names[object_type - 0x8f],
+				out_name);
+		} else if (object_type >= CRAFT_SPECIES_COMM_SAT_1 &&
+			   object_type <= CRAFT_SPECIES_NAV_BUOY_TYPE_2) {
+			msg_append_string(g_str_sat_mine_probe_buoy_pilot_names
+						  [object_type -
+						   CRAFT_SPECIES_COMM_SAT_1],
+					  out_name);
 		}
 		return;
 	}
 
-	if (nameMode != 1 && nameMode != 0) {
-		msg_AppendString(
-			g_missionFlightGroups[object->flightGroupIdx].fg.name,
-			outName);
+	if (name_mode != 1 && name_mode != 0) {
+		msg_append_string(
+			g_mission_flight_groups[object->flight_group_idx]
+				.fg.name,
+			out_name);
 		return;
 	}
 
-	msg_AppendString(
-		g_strSatMineProbeBuoyPilotNames[object->objectType -
-						CRAFT_SPECIES_COMM_SAT_1],
-		outName);
-	flightGroup = &g_missionFlightGroups[g_objectTable[objectIndex]
-						     .flightGroupIdx];
-	if (flightGroup->fg.name[0] != '\0') {
-		msg_AppendChar(' ', outName);
-		msg_AppendString(
-			g_missionFlightGroups[g_objectTable[objectIndex]
-						      .flightGroupIdx]
+	msg_append_string(
+		g_str_sat_mine_probe_buoy_pilot_names[object->object_type -
+						      CRAFT_SPECIES_COMM_SAT_1],
+		out_name);
+	flight_group = &g_mission_flight_groups[g_object_table[object_index]
+							.flight_group_idx];
+	if (flight_group->fg.name[0] != '\0') {
+		msg_append_char(' ', out_name);
+		msg_append_string(
+			g_mission_flight_groups[g_object_table[object_index]
+							.flight_group_idx]
 				.fg.name,
-			outName);
+			out_name);
 	}
 }
 
 /* Appends source to the string in destination; does not check its size. */
 // FUNCTION: XVT 0x452830
-void msg_AppendString(const char *source, char *destination)
+void msg_append_string(const char *source, char *destination)
 {
 	while (*destination != '\0') {
 		destination++;
@@ -1054,7 +1080,7 @@ void msg_AppendString(const char *source, char *destination)
 
 /* Appends ch to the string in destination; does not check its size. */
 // FUNCTION: XVT 0x452860
-void msg_AppendChar(char ch, char *destination)
+void msg_append_char(char ch, char *destination)
 {
 	while (*destination != '\0') {
 		++destination;
@@ -1065,20 +1091,22 @@ void msg_AppendChar(char ch, char *destination)
 
 /* Emits messageId with arguments naming the local player's craft: its
  * model's short name in slot 0, its flight group in slot 1 and its number,
- * 0 when not shown, in slot 2. Sets g_msgSenderIff to the craft's IFF. */
+ * 0 when not shown, in slot 2. Sets g_msg_sender_iff to the craft's IFF. */
 // FUNCTION: XVT 0x452880
-void msg_emitLocalPlayerCraftMessage(InFlightMessageId messageId)
+void msg_emit_local_player_craft_message(in_flight_message_id message_id)
 {
-	int objectIndex;
+	int object_index;
 
-	objectIndex = (int)g_players[g_localPlayer].objectIndex;
-	g_msgSenderIff = (uint8_t)g_objectTable[objectIndex].mobj->iff;
-	msg_addMessagePtr(0, &g_modelDefs[g_objectTable[objectIndex]
-						  .mobj->pCraft->modelIndex]);
-	msg_addMessagePtr(1, &g_missionFlightGroups[g_objectTable[objectIndex]
-							    .flightGroupIdx]);
-	g_msgArgTable[2] = (uint16_t)Hud_MissionFG_GetCraftNumberIfShown(
-		g_objectTable[objectIndex].flightGroupIdx,
-		g_objectTable[objectIndex].mobj->pCraft);
-	msg_emitInFlightMessage(messageId, g_localPlayer);
+	object_index = (int)g_players[g_local_player].object_index;
+	g_msg_sender_iff = (uint8_t)g_object_table[object_index].mobj->iff;
+	msg_add_message_ptr(0,
+			    &g_model_defs[g_object_table[object_index]
+						  .mobj->p_craft->model_index]);
+	msg_add_message_ptr(
+		1, &g_mission_flight_groups[g_object_table[object_index]
+						    .flight_group_idx]);
+	g_msg_arg_table[2] = (uint16_t)hud_mission_fg_get_craft_number_if_shown(
+		g_object_table[object_index].flight_group_idx,
+		g_object_table[object_index].mobj->p_craft);
+	msg_emit_in_flight_message(message_id, g_local_player);
 }

@@ -1,31 +1,32 @@
 #include "xvt_remaster/hud_text.h"
 #include <string.h>
 
-struct TextCursor {
-	struct XvtCockpitGlyph glyph;
-	const struct XvtFontAtlas *font;
+struct text_cursor {
+	struct xvt_cockpit_glyph glyph;
+	const struct xvt_font_atlas *font;
 	unsigned phase, line_height;
 	int lowercase, wrap, clear_line;
 	uint32_t color_key;
 	int keyed;
 };
 
-static uint32_t ResolveTextColor(const struct TextCursor *cursor,
-				 uint32_t color)
+static uint32_t resolve_text_color(const struct text_cursor *cursor,
+				   uint32_t color)
 {
 	return cursor->keyed && color == cursor->color_key ? 0 : color;
 }
 
-static unsigned NormalizeCharacter(const struct TextCursor *cursor, unsigned ch)
+static unsigned normalize_character(const struct text_cursor *cursor,
+				    unsigned ch)
 {
 	return !cursor->lowercase && ch >= 'a' && ch <= 'z' ? ch - 'a' + 'A'
 							    : ch;
 }
 
-static const struct XvtFontGlyph *FindGlyph(const struct TextCursor *cursor,
-					    unsigned ch)
+static const struct xvt_font_glyph *find_glyph(const struct text_cursor *cursor,
+					       unsigned ch)
 {
-	ch = NormalizeCharacter(cursor, ch);
+	ch = normalize_character(cursor, ch);
 	return ch >= cursor->font->atlas.first_char &&
 			       ch < cursor->font->atlas.first_char +
 					       cursor->font->atlas.num_chars
@@ -34,8 +35,8 @@ static const struct XvtFontGlyph *FindGlyph(const struct TextCursor *cursor,
 		       : NULL;
 }
 
-static int MeasureText(const struct TextCursor *cursor,
-		       const unsigned char *text, int word)
+static int measure_text(const struct text_cursor *cursor,
+			const unsigned char *text, int word)
 {
 	int width = 0;
 	for (unsigned index = 0; text[index] && text[index] != '\n' &&
@@ -46,8 +47,8 @@ static int MeasureText(const struct TextCursor *cursor,
 			++index;
 			continue;
 		}
-		const struct XvtFontGlyph *glyph =
-			ch >= ' ' ? FindGlyph(cursor, ch) : NULL;
+		const struct xvt_font_glyph *glyph =
+			ch >= ' ' ? find_glyph(cursor, ch) : NULL;
 		if (glyph) {
 			width += glyph->advance;
 		}
@@ -55,67 +56,68 @@ static int MeasureText(const struct TextCursor *cursor,
 	return width;
 }
 
-static void AdvanceLine(const struct XvtHudDraw *draw,
-			struct TextCursor *cursor, int advance)
+static void advance_line(const struct xvt_hud_draw *draw,
+			 struct text_cursor *cursor, int advance)
 {
 	if (cursor->clear_line) {
-		struct XvtSnapRect bounds = cursor->glyph.clip;
+		struct xvt_snap_rect bounds = cursor->glyph.clip;
 		int right = bounds.x + bounds.width,
 		    bottom = bounds.y + bounds.height;
 		int x = cursor->glyph.x > bounds.x ? cursor->glyph.x : bounds.x;
 		int y = cursor->glyph.y > bounds.y ? cursor->glyph.y : bounds.y;
 		int end_y = cursor->glyph.y + (int)cursor->line_height;
-		XvtHudDraw_TextFill(
+		xvt_hud_draw_text_fill(
 			draw, cursor->font, cursor->phase,
-			(struct XvtSnapRect){x, y, right - x,
-					     (end_y < bottom ? end_y : bottom) -
-						     y},
+			(struct xvt_snap_rect){
+				x, y, right - x,
+				(end_y < bottom ? end_y : bottom) - y},
 			cursor->glyph.background_argb);
 	}
 	cursor->glyph.x = (int16_t)cursor->glyph.clip.x;
 	cursor->glyph.y += (int16_t)advance;
 }
 
-static int DrawCharacter(const struct XvtHudDraw *draw,
-			 struct TextCursor *cursor, unsigned ch)
+static int draw_character(const struct xvt_hud_draw *draw,
+			  struct text_cursor *cursor, unsigned ch)
 {
 	if (ch == '\n') {
-		AdvanceLine(draw, cursor,
-			    cursor->line_height + !cursor->glyph.narrow);
+		advance_line(draw, cursor,
+			     cursor->line_height + !cursor->glyph.narrow);
 		return 1;
 	}
 	if (ch < ' ') {
 		return 1;
 	}
-	const struct XvtFontGlyph *metrics = FindGlyph(cursor, ch);
+	const struct xvt_font_glyph *metrics = find_glyph(cursor, ch);
 	if (!metrics) {
 		return 0;
 	}
 	int right = cursor->glyph.clip.x + cursor->glyph.clip.width;
 	if (cursor->wrap && cursor->glyph.x + metrics->advance >= right) {
-		AdvanceLine(draw, cursor, metrics->height + 2);
+		advance_line(draw, cursor, metrics->height + 2);
 	}
-	cursor->glyph.character = (uint16_t)NormalizeCharacter(cursor, ch);
+	cursor->glyph.character = (uint16_t)normalize_character(cursor, ch);
 	cursor->glyph.advance = metrics->advance;
 	cursor->glyph.height = metrics->height;
-	if (!XvtHudDraw_Glyph(draw, &cursor->glyph, 0, 0, cursor->glyph.clip,
-			      cursor->phase)) {
+	if (!xvt_hud_draw_glyph(draw, &cursor->glyph, 0, 0, cursor->glyph.clip,
+				cursor->phase)) {
 		return 0;
 	}
 	cursor->glyph.x += metrics->advance;
 	if (cursor->wrap && cursor->glyph.x >= right) {
-		AdvanceLine(draw, cursor, metrics->height + 2);
+		advance_line(draw, cursor, metrics->height + 2);
 	}
 	return 1;
 }
 
-static int DrawString(const struct XvtHudDraw *draw, struct TextCursor *cursor,
-		      const char *string, unsigned alignment, int literal)
+static int draw_string(const struct xvt_hud_draw *draw,
+		       struct text_cursor *cursor, const char *string,
+		       unsigned alignment, int literal)
 {
 	const unsigned char *text = (const unsigned char *)string;
 	int right = cursor->glyph.clip.x + cursor->glyph.clip.width;
 	if (alignment != XVT_COCKPIT_ALIGN_LEFT) {
-		int width = MeasureText(cursor, text, 0);
+		int width = measure_text(cursor, text, 0);
 		int x = alignment == XVT_COCKPIT_ALIGN_CENTER
 				? (right + cursor->glyph.clip.x) / 2 -
 					  (width >> 1)
@@ -133,30 +135,31 @@ static int DrawString(const struct XvtHudDraw *draw, struct TextCursor *cursor,
 				}
 				ch = text[++index];
 			}
-			cursor->glyph.foreground_argb = ResolveTextColor(
+			cursor->glyph.foreground_argb = resolve_text_color(
 				cursor, draw->state->palette_argb[ch]);
 			continue;
 		}
 		if (!literal && ch == ' ' && cursor->wrap) {
-			const struct XvtFontGlyph *space =
-				FindGlyph(cursor, ' ');
+			const struct xvt_font_glyph *space =
+				find_glyph(cursor, ' ');
 			if (space &&
 			    cursor->glyph.x + space->advance +
-					    MeasureText(cursor,
-							text + index + 1, 1) >
+					    measure_text(cursor,
+							 text + index + 1, 1) >
 				    right - 2) {
 				ch = '\n';
 			}
 		}
-		if (!DrawCharacter(draw, cursor, ch)) {
+		if (!draw_character(draw, cursor, ch)) {
 			return 0;
 		}
 	}
 	return 1;
 }
 
-static int DrawStyledField(const struct XvtHudDraw *draw,
-			   const struct XvtCockpitTextField *field, int literal)
+static int draw_styled_field(const struct xvt_hud_draw *draw,
+			     const struct xvt_cockpit_text_field *field,
+			     int literal)
 {
 	if (!field->caption.visible) {
 		return 1;
@@ -165,10 +168,10 @@ static int DrawStyledField(const struct XvtHudDraw *draw,
 	if (tier >= XVT_HUD_FONT_TIERS) {
 		return 0;
 	}
-	const struct XvtCockpitFontBinding *font =
+	const struct xvt_cockpit_font_binding *font =
 		&draw->state->definition.fonts[tier];
-	struct TextCursor cursor = {
-		.font = XvtHudAssets_FindFont(font->asset_id),
+	struct text_cursor cursor = {
+		.font = xvt_hud_assets_find_font(font->asset_id),
 		.phase = field->caption.phase,
 		.line_height = font->line_height,
 		.lowercase = field->lowercase,
@@ -179,40 +182,40 @@ static int DrawStyledField(const struct XvtHudDraw *draw,
 	if (!cursor.font) {
 		return 0;
 	}
-	cursor.glyph = (struct XvtCockpitGlyph){
+	cursor.glyph = (struct xvt_cockpit_glyph){
 		.font_asset_id = font->asset_id,
 		.clip = field->bounds,
 		.x = field->x,
 		.y = field->y,
 		.narrow = field->narrow,
 		.shadow_enabled = field->shadow_enabled,
-		.foreground_argb = ResolveTextColor(
+		.foreground_argb = resolve_text_color(
 			&cursor,
 			draw->state->palette_argb[field->caption.foreground]),
-		.background_argb = ResolveTextColor(
+		.background_argb = resolve_text_color(
 			&cursor,
 			draw->state->palette_argb[field->caption.background]),
-		.shadow_argb = ResolveTextColor(
+		.shadow_argb = resolve_text_color(
 			&cursor,
 			draw->state->palette_argb[field->shadow_color])};
 	if (field->clear_background) {
-		XvtHudDraw_TextFill(draw, cursor.font, cursor.phase,
-				    field->bounds,
-				    cursor.glyph.background_argb);
+		xvt_hud_draw_text_fill(draw, cursor.font, cursor.phase,
+				       field->bounds,
+				       cursor.glyph.background_argb);
 	}
-	return DrawString(draw, &cursor, field->caption.text,
-			  field->caption.alignment, literal);
+	return draw_string(draw, &cursor, field->caption.text,
+			   field->caption.alignment, literal);
 }
 
-int XvtHudText_DrawField(const struct XvtHudDraw *draw,
-			 const struct XvtCockpitTextField *field)
+int xvt_hud_text_draw_field(const struct xvt_hud_draw *draw,
+			    const struct xvt_cockpit_text_field *field)
 {
-	return DrawStyledField(draw, field, 0);
+	return draw_styled_field(draw, field, 0);
 }
 
-int XvtHudText_DrawNumber(const struct XvtHudDraw *draw,
-			  const struct XvtCockpitNumber *number,
-			  int signed_value)
+int xvt_hud_text_draw_number(const struct xvt_hud_draw *draw,
+			     const struct xvt_cockpit_number *number,
+			     int signed_value)
 {
 	if (!number->visible) {
 		return 1;
@@ -221,7 +224,7 @@ int XvtHudText_DrawNumber(const struct XvtHudDraw *draw,
 	    number->field_width > 9) {
 		return 0;
 	}
-	struct XvtCockpitTextField field = {0};
+	struct xvt_cockpit_text_field field = {0};
 	field.caption.visible = 1;
 	field.caption.font_tier = number->font_tier;
 	field.caption.foreground = number->foreground;
@@ -267,5 +270,5 @@ int XvtHudText_DrawNumber(const struct XvtHudDraw *draw,
 	if (number->trailing_space) {
 		field.caption.text[number->field_width] = ' ';
 	}
-	return DrawStyledField(draw, &field, 1);
+	return draw_styled_field(draw, &field, 1);
 }

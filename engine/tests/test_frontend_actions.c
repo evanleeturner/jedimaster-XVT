@@ -7,98 +7,100 @@
 
 enum { ACTION_A = 7, ACTION_B = 9 };
 
-static void CheckTriggerRecordsOnPress(void)
+static void check_trigger_records_on_press(void)
 {
-	XvtFrontendAction_Reset();
+	xvt_frontend_action_reset();
 	/* With nothing pending, a release records nothing. */
-	XVT_ASSERT_INT_EQ(
-		XvtFrontendAction_Trigger(XVT_ACTION_OWNER_PILOT, ACTION_A, 0),
-		0);
-	XVT_ASSERT_INT_EQ(XvtFrontendAction_Pending(XVT_ACTION_OWNER_PILOT), 0);
+	XVT_ASSERT_INT_EQ(xvt_frontend_action_trigger(XVT_ACTION_OWNER_PILOT,
+						      ACTION_A, 0),
+			  0);
+	XVT_ASSERT_INT_EQ(xvt_frontend_action_pending(XVT_ACTION_OWNER_PILOT),
+			  0);
 
 	/* A press records owner and action. */
-	XVT_ASSERT_INT_EQ(
-		XvtFrontendAction_Trigger(XVT_ACTION_OWNER_PILOT, ACTION_A, 1),
-		1);
-	XVT_ASSERT_INT_EQ(XvtFrontendAction_Pending(XVT_ACTION_OWNER_PILOT),
+	XVT_ASSERT_INT_EQ(xvt_frontend_action_trigger(XVT_ACTION_OWNER_PILOT,
+						      ACTION_A, 1),
+			  1);
+	XVT_ASSERT_INT_EQ(xvt_frontend_action_pending(XVT_ACTION_OWNER_PILOT),
 			  ACTION_A);
-	XVT_ASSERT_INT_EQ(XvtFrontendAction_Pending(XVT_ACTION_OWNER_CONFIG),
+	XVT_ASSERT_INT_EQ(xvt_frontend_action_pending(XVT_ACTION_OWNER_CONFIG),
 			  0);
 }
 
-static void CheckPendingActionHoldsInput(void)
+static void check_pending_action_holds_input(void)
 {
-	XvtFrontendAction_Reset();
-	XVT_ASSERT_INT_EQ(
-		XvtFrontendAction_Trigger(XVT_ACTION_OWNER_CONFIG, ACTION_A, 1),
-		1);
+	xvt_frontend_action_reset();
+	XVT_ASSERT_INT_EQ(xvt_frontend_action_trigger(XVT_ACTION_OWNER_CONFIG,
+						      ACTION_A, 1),
+			  1);
 
 	/* The same owner and action is resumed, pressed or not. */
-	XVT_ASSERT_INT_EQ(
-		XvtFrontendAction_Trigger(XVT_ACTION_OWNER_CONFIG, ACTION_A, 0),
-		1);
-	XVT_ASSERT_INT_EQ(
-		XvtFrontendAction_Trigger(XVT_ACTION_OWNER_CONFIG, ACTION_A, 1),
-		1);
+	XVT_ASSERT_INT_EQ(xvt_frontend_action_trigger(XVT_ACTION_OWNER_CONFIG,
+						      ACTION_A, 0),
+			  1);
+	XVT_ASSERT_INT_EQ(xvt_frontend_action_trigger(XVT_ACTION_OWNER_CONFIG,
+						      ACTION_A, 1),
+			  1);
 
 	/* Another action or another owner is refused and records nothing, even when pressed. */
-	XVT_ASSERT_INT_EQ(
-		XvtFrontendAction_Trigger(XVT_ACTION_OWNER_CONFIG, ACTION_B, 1),
-		0);
-	XVT_ASSERT_INT_EQ(
-		XvtFrontendAction_Trigger(XVT_ACTION_OWNER_COMMON, ACTION_A, 1),
-		0);
-	XVT_ASSERT_INT_EQ(XvtFrontendAction_Pending(XVT_ACTION_OWNER_CONFIG),
+	XVT_ASSERT_INT_EQ(xvt_frontend_action_trigger(XVT_ACTION_OWNER_CONFIG,
+						      ACTION_B, 1),
+			  0);
+	XVT_ASSERT_INT_EQ(xvt_frontend_action_trigger(XVT_ACTION_OWNER_COMMON,
+						      ACTION_A, 1),
+			  0);
+	XVT_ASSERT_INT_EQ(xvt_frontend_action_pending(XVT_ACTION_OWNER_CONFIG),
 			  ACTION_A);
-	XVT_ASSERT_INT_EQ(XvtFrontendAction_Pending(XVT_ACTION_OWNER_COMMON),
+	XVT_ASSERT_INT_EQ(xvt_frontend_action_pending(XVT_ACTION_OWNER_COMMON),
 			  0);
 }
 
-static void CheckFinish(void)
+static void check_finish(void)
 {
-	XvtFrontendAction_Reset();
-	XVT_ASSERT_INT_EQ(XvtFrontendAction_Trigger(XVT_ACTION_OWNER_CONCOURSE,
-						    ACTION_B, 1),
+	xvt_frontend_action_reset();
+	XVT_ASSERT_INT_EQ(xvt_frontend_action_trigger(
+				  XVT_ACTION_OWNER_CONCOURSE, ACTION_B, 1),
 			  1);
 
 	/* Only the owner can finish its action. */
-	XvtFrontendAction_Finish(XVT_ACTION_OWNER_PILOT);
-	XVT_ASSERT_INT_EQ(XvtFrontendAction_Pending(XVT_ACTION_OWNER_CONCOURSE),
-			  ACTION_B);
-	XvtFrontendAction_Finish(XVT_ACTION_OWNER_CONCOURSE);
-	XVT_ASSERT_INT_EQ(XvtFrontendAction_Pending(XVT_ACTION_OWNER_CONCOURSE),
-			  0);
+	xvt_frontend_action_finish(XVT_ACTION_OWNER_PILOT);
+	XVT_ASSERT_INT_EQ(
+		xvt_frontend_action_pending(XVT_ACTION_OWNER_CONCOURSE),
+		ACTION_B);
+	xvt_frontend_action_finish(XVT_ACTION_OWNER_CONCOURSE);
+	XVT_ASSERT_INT_EQ(
+		xvt_frontend_action_pending(XVT_ACTION_OWNER_CONCOURSE), 0);
 
 	/* With the action finished, a new press by another owner is recorded. */
-	XVT_ASSERT_INT_EQ(
-		XvtFrontendAction_Trigger(XVT_ACTION_OWNER_PILOT, ACTION_A, 1),
-		1);
-	XVT_ASSERT_INT_EQ(XvtFrontendAction_Pending(XVT_ACTION_OWNER_PILOT),
+	XVT_ASSERT_INT_EQ(xvt_frontend_action_trigger(XVT_ACTION_OWNER_PILOT,
+						      ACTION_A, 1),
+			  1);
+	XVT_ASSERT_INT_EQ(xvt_frontend_action_pending(XVT_ACTION_OWNER_PILOT),
 			  ACTION_A);
 }
 
-static void CheckReset(void)
+static void check_reset(void)
 {
-	XvtFrontendAction_Reset();
-	XVT_ASSERT_INT_EQ(
-		XvtFrontendAction_Trigger(XVT_ACTION_OWNER_COMMON, ACTION_A, 1),
-		1);
-	XvtFrontendAction_Reset();
-	XVT_ASSERT_INT_EQ(XvtFrontendAction_Pending(XVT_ACTION_OWNER_COMMON),
+	xvt_frontend_action_reset();
+	XVT_ASSERT_INT_EQ(xvt_frontend_action_trigger(XVT_ACTION_OWNER_COMMON,
+						      ACTION_A, 1),
+			  1);
+	xvt_frontend_action_reset();
+	XVT_ASSERT_INT_EQ(xvt_frontend_action_pending(XVT_ACTION_OWNER_COMMON),
 			  0);
-	XVT_ASSERT_INT_EQ(
-		XvtFrontendAction_Trigger(XVT_ACTION_OWNER_CONFIG, ACTION_B, 1),
-		1);
-	XVT_ASSERT_INT_EQ(XvtFrontendAction_Pending(XVT_ACTION_OWNER_CONFIG),
+	XVT_ASSERT_INT_EQ(xvt_frontend_action_trigger(XVT_ACTION_OWNER_CONFIG,
+						      ACTION_B, 1),
+			  1);
+	XVT_ASSERT_INT_EQ(xvt_frontend_action_pending(XVT_ACTION_OWNER_CONFIG),
 			  ACTION_B);
-	XvtFrontendAction_Reset();
+	xvt_frontend_action_reset();
 }
 
 int main(void)
 {
-	CheckTriggerRecordsOnPress();
-	CheckPendingActionHoldsInput();
-	CheckFinish();
-	CheckReset();
+	check_trigger_records_on_press();
+	check_pending_action_holds_input();
+	check_finish();
+	check_reset();
 	return 0;
 }

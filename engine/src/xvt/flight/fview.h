@@ -8,30 +8,30 @@
 extern "C" {
 #endif
 
-void FVIEW_BuildCameraOrient(int16_t viewRoll, int16_t viewPitch,
-			     int16_t viewYaw, int16_t viewUpAxisAngle,
-			     int16_t hudAimX, int16_t hudAimY,
-			     struct ObjectRecord *objRecord);
-int FVIEW_SetObjectTransform(int16_t roll, int16_t pitch, int16_t yaw,
-			     int16_t upAxisAngle,
-			     struct ObjectRecord *objRecord);
-void FVIEW_calcrotatemove(int16_t pitch, int16_t yaw,
-			  struct ObjectRecord *objRecord);
-void FVIEW_calcrotateorient(int16_t roll, int16_t upAxisAngle,
-			    struct ObjectRecord *objRecord);
-int FVIEW_ComputeObjectViewMatrix(void);
-void FVIEW_transformaxes(int axisX_Q15, int axisY_Q15, int axisZ_Q15,
-			 int16_t angleQ16);
+void fview_build_camera_orient(int16_t view_roll, int16_t view_pitch,
+			       int16_t view_yaw, int16_t view_up_axis_angle,
+			       int16_t hud_aim_x, int16_t hud_aim_y,
+			       struct object_record *obj_record);
+int fview_set_object_transform(int16_t roll, int16_t pitch, int16_t yaw,
+			       int16_t up_axis_angle,
+			       struct object_record *obj_record);
+void fview_calcrotatemove(int16_t pitch, int16_t yaw,
+			  struct object_record *obj_record);
+void fview_calcrotateorient(int16_t roll, int16_t up_axis_angle,
+			    struct object_record *obj_record);
+int fview_compute_object_view_matrix(void);
+void fview_transformaxes(int axis_x_q15, int axis_y_q15, int axis_z_q15,
+			 int16_t angle_q16);
 
-extern int g_fviewForwardX_Q15;
-extern int g_fviewForwardY_Q15;
-extern int g_fviewForwardZ_Q15;
-extern int g_fviewSideX_Q15;
-extern int g_fviewSideY_Q15;
-extern int g_fviewSideZ_Q15;
-extern int g_fviewUpX_Q15;
-extern int g_fviewUpY_Q15;
-extern int g_fviewUpZ_Q15;
+extern int g_fview_forward_x_q15;
+extern int g_fview_forward_y_q15;
+extern int g_fview_forward_z_q15;
+extern int g_fview_side_x_q15;
+extern int g_fview_side_y_q15;
+extern int g_fview_side_z_q15;
+extern int g_fview_up_x_q15;
+extern int g_fview_up_y_q15;
+extern int g_fview_up_z_q15;
 
 #ifdef __cplusplus
 }

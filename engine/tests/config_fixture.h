@@ -25,25 +25,25 @@
 #error "XVT_TEST_SOURCE_DIR must name the source tree that holds the shipped defaults"
 #endif
 
-static char g_fixtureFolder[512];
-static AeronVfs *g_fixtureVfs;
-static int g_fixtureDocuments;
-static const char *g_fixtureCase;
+static char g_fixture_folder[512];
+static AeronVfs *g_fixture_vfs;
+static int g_fixture_documents;
+static const char *g_fixture_case;
 
 /* Names the input a check is working on, so that a failed check prints it; NULL once that input passed. */
-static inline void Fixture_Case(const char *text) { g_fixtureCase = text; }
+static inline void fixture_case(const char *text) { g_fixture_case = text; }
 
 /* Writes the host path of relative, a path inside the fixture folder, into path. */
-static inline void Fixture_Path(char *path, size_t capacity,
+static inline void fixture_path(char *path, size_t capacity,
 				const char *relative)
 {
 	int length =
-		snprintf(path, capacity, "%s/%s", g_fixtureFolder, relative);
+		snprintf(path, capacity, "%s/%s", g_fixture_folder, relative);
 	XVT_ASSERT_TRUE(length > 0 && (size_t)length < capacity);
 }
 
 /* The whole host file as a NUL-terminated string to free(), or NULL when it cannot be read. */
-static inline char *Fixture_ReadHostFile(const char *path)
+static inline char *fixture_read_host_file(const char *path)
 {
 	FILE *file = fopen(path, "rb");
 	if (!file) {
@@ -70,17 +70,17 @@ static inline char *Fixture_ReadHostFile(const char *path)
 }
 
 /* The file at relative inside the fixture folder as a string to free(), or NULL when there is none. */
-static inline char *Fixture_ReadText(const char *relative)
+static inline char *fixture_read_text(const char *relative)
 {
 	char path[1024];
-	Fixture_Path(path, sizeof path, relative);
-	return Fixture_ReadHostFile(path);
+	fixture_path(path, sizeof path, relative);
+	return fixture_read_host_file(path);
 }
 
-static inline void Fixture_WriteText(const char *relative, const char *text)
+static inline void fixture_write_text(const char *relative, const char *text)
 {
 	char path[1024];
-	Fixture_Path(path, sizeof path, relative);
+	fixture_path(path, sizeof path, relative);
 	FILE *file = fopen(path, "wb");
 	XVT_ASSERT_TRUE(file != NULL);
 	size_t size = strlen(text);
@@ -89,30 +89,31 @@ static inline void Fixture_WriteText(const char *relative, const char *text)
 }
 
 /* 1 when something (file or folder) exists at relative inside the fixture folder. */
-static inline int Fixture_Exists(const char *relative)
+static inline int fixture_exists(const char *relative)
 {
 	char path[1024];
 	struct stat info;
-	Fixture_Path(path, sizeof path, relative);
+	fixture_path(path, sizeof path, relative);
 	return stat(path, &info) == 0;
 }
 
-static inline void Fixture_MakeFolder(const char *relative)
+static inline void fixture_make_folder(const char *relative)
 {
 	char path[1024];
-	Fixture_Path(path, sizeof path, relative);
+	fixture_path(path, sizeof path, relative);
 	XVT_ASSERT_INT_EQ(mkdir(path, 0700), 0);
 }
 
-static inline void Fixture_Remove(const char *relative)
+static inline void fixture_remove(const char *relative)
 {
 	char path[1024];
-	Fixture_Path(path, sizeof path, relative);
+	fixture_path(path, sizeof path, relative);
 	XVT_ASSERT_INT_EQ(remove(path), 0);
 }
 
-static inline int Fixture_RemoveEntry(const char *path, const struct stat *info,
-				      int type, struct FTW *walk)
+static inline int fixture_remove_entry(const char *path,
+				       const struct stat *info, int type,
+				       struct FTW *walk)
 {
 	(void)info;
 	(void)type;
@@ -121,96 +122,97 @@ static inline int Fixture_RemoveEntry(const char *path, const struct stat *info,
 }
 
 /* Ends a check: drops the loaded settings, unbinds and frees the VFS, and removes the folder. */
-static inline void Fixture_End(void)
+static inline void fixture_end(void)
 {
-	XvtConfig_Shutdown();
-	XvtStorage_Bind(NULL);
-	if (g_fixtureVfs) {
-		AeronVfs_Destroy(g_fixtureVfs);
-		g_fixtureVfs = NULL;
+	xvt_config_shutdown();
+	xvt_storage_bind(NULL);
+	if (g_fixture_vfs) {
+		AeronVfs_Destroy(g_fixture_vfs);
+		g_fixture_vfs = NULL;
 	}
-	if (g_fixtureFolder[0]) {
-		nftw(g_fixtureFolder, Fixture_RemoveEntry, 16,
+	if (g_fixture_folder[0]) {
+		nftw(g_fixture_folder, fixture_remove_entry, 16,
 		     FTW_DEPTH | FTW_PHYS);
-		g_fixtureFolder[0] = 0;
+		g_fixture_folder[0] = 0;
 	}
 }
 
-static inline void Fixture_CopyShipped(const char *source, const char *relative)
+static inline void fixture_copy_shipped(const char *source,
+					const char *relative)
 {
 	char path[1024];
 	int length = snprintf(path, sizeof path, "%s/%s", XVT_TEST_SOURCE_DIR,
 			      source);
 	XVT_ASSERT_TRUE(length > 0 && (size_t)length < sizeof path);
-	char *text = Fixture_ReadHostFile(path);
+	char *text = fixture_read_host_file(path);
 	XVT_ASSERT_TRUE(text != NULL);
-	Fixture_WriteText(relative, text);
+	fixture_write_text(relative, text);
 	free(text);
 }
 
 /* Runs at exit: after a failed check, prints the input it was working on, then cleans up. */
-static inline void Fixture_AtExit(void)
+static inline void fixture_at_exit(void)
 {
-	if (g_fixtureCase) {
+	if (g_fixture_case) {
 		fprintf(stderr, "while checking this input:\n%s\n",
-			g_fixtureCase);
+			g_fixture_case);
 	}
-	Fixture_End();
+	fixture_end();
 }
 
 /* Starts a check from nothing: ends any earlier one, makes a fresh folder with the shipped defaults in
  * resource/, and binds a VFS over it. No settings are loaded. */
-static inline void Fixture_Begin(void)
+static inline void fixture_begin(void)
 {
 	static int registered;
-	Fixture_End();
+	fixture_end();
 	if (!registered) {
-		XVT_ASSERT_INT_EQ(atexit(Fixture_AtExit), 0);
+		XVT_ASSERT_INT_EQ(atexit(fixture_at_exit), 0);
 		registered = 1;
 	}
 	const char *base = getenv("TMPDIR");
-	int length = snprintf(g_fixtureFolder, sizeof g_fixtureFolder,
+	int length = snprintf(g_fixture_folder, sizeof g_fixture_folder,
 			      "%s/openxvt-test-XXXXXX",
 			      base && base[0] ? base : "/tmp");
-	XVT_ASSERT_TRUE(length > 0 && (size_t)length < sizeof g_fixtureFolder);
-	char *made = mkdtemp(g_fixtureFolder);
+	XVT_ASSERT_TRUE(length > 0 && (size_t)length < sizeof g_fixture_folder);
+	char *made = mkdtemp(g_fixture_folder);
 	if (!made) {
-		g_fixtureFolder[0] = 0;
+		g_fixture_folder[0] = 0;
 	}
 	XVT_ASSERT_TRUE(made != NULL);
-	g_fixtureDocuments = 0;
-	g_fixtureCase = NULL;
+	g_fixture_documents = 0;
+	g_fixture_case = NULL;
 
-	Fixture_MakeFolder("resource");
-	Fixture_MakeFolder("resource/aeron");
-	Fixture_MakeFolder("user");
-	Fixture_MakeFolder("asset");
-	Fixture_MakeFolder("temp");
-	Fixture_CopyShipped("resources/config.yaml", "resource/config.yaml");
-	Fixture_CopyShipped("aeron/config/scene3d_defaults.yaml",
-			    "resource/aeron/scene3d_defaults.yaml");
+	fixture_make_folder("resource");
+	fixture_make_folder("resource/aeron");
+	fixture_make_folder("user");
+	fixture_make_folder("asset");
+	fixture_make_folder("temp");
+	fixture_copy_shipped("resources/config.yaml", "resource/config.yaml");
+	fixture_copy_shipped("aeron/config/scene3d_defaults.yaml",
+			     "resource/aeron/scene3d_defaults.yaml");
 
 	char asset[1024], resource[1024], user[1024], temp[1024];
-	Fixture_Path(asset, sizeof asset, "asset");
-	Fixture_Path(resource, sizeof resource, "resource");
-	Fixture_Path(user, sizeof user, "user");
-	Fixture_Path(temp, sizeof temp, "temp");
+	fixture_path(asset, sizeof asset, "asset");
+	fixture_path(resource, sizeof resource, "resource");
+	fixture_path(user, sizeof user, "user");
+	fixture_path(temp, sizeof temp, "temp");
 	AeronVfsConfig config = {.org_name = "OpenXvT",
 				 .app_name = "tests",
 				 .asset_root = asset,
 				 .resource_root = resource,
 				 .user_root = user,
 				 .temp_root = temp};
-	g_fixtureVfs = AeronVfs_Create(&config);
-	XVT_ASSERT_TRUE(g_fixtureVfs != NULL);
-	XvtStorage_Bind(g_fixtureVfs);
+	g_fixture_vfs = AeronVfs_Create(&config);
+	XVT_ASSERT_TRUE(g_fixture_vfs != NULL);
+	xvt_storage_bind(g_fixture_vfs);
 }
 
 /* Loads the settings from the fixture's VFS; the check stops when the load fails. */
-static inline void Fixture_Load(void)
+static inline void fixture_load(void)
 {
 	char error[1024] = "";
-	int loaded = XvtConfig_Load(g_fixtureVfs, error, sizeof error);
+	int loaded = xvt_config_load(g_fixture_vfs, error, sizeof error);
 	if (!loaded) {
 		fprintf(stderr, "settings did not load: %s\n", error);
 	}
@@ -219,16 +221,16 @@ static inline void Fixture_Load(void)
 
 /* Parses text as a YAML document, through a new file temp/documentN.yaml in the TEMP root, N counting from 1
  * in each fresh folder; the check stops when it does not parse. */
-static inline AeronConfigFile *Fixture_Yaml(const char *text)
+static inline AeronConfigFile *fixture_yaml(const char *text)
 {
 	char name[64], relative[80];
 	AeronConfigFile *document = NULL;
 	AeronConfigError detail;
-	snprintf(name, sizeof name, "document%d.yaml", ++g_fixtureDocuments);
+	snprintf(name, sizeof name, "document%d.yaml", ++g_fixture_documents);
 	snprintf(relative, sizeof relative, "temp/%s", name);
-	Fixture_WriteText(relative, text);
+	fixture_write_text(relative, text);
 	int loaded = AeronConfigFile_LoadYamlEx(
-		g_fixtureVfs, AERON_VFS_ROOT_TEMP, name, &document, &detail);
+		g_fixture_vfs, AERON_VFS_ROOT_TEMP, name, &document, &detail);
 	if (!loaded) {
 		fprintf(stderr, "%s:%d:%d: %s\n", detail.path, detail.line,
 			detail.column, detail.message);
@@ -238,23 +240,23 @@ static inline AeronConfigFile *Fixture_Yaml(const char *text)
 }
 
 /* The fixture's copy of the shipped defaults, as a document of its own. */
-static inline AeronConfigFile *Fixture_ShippedDocument(void)
+static inline AeronConfigFile *fixture_shipped_document(void)
 {
 	AeronConfigFile *document = NULL;
 	AeronConfigError detail;
 	XVT_ASSERT_TRUE(AeronConfigFile_LoadYamlEx(
-		g_fixtureVfs, AERON_VFS_ROOT_RESOURCE, "config.yaml", &document,
-		&detail));
+		g_fixture_vfs, AERON_VFS_ROOT_RESOURCE, "config.yaml",
+		&document, &detail));
 	return document;
 }
 
 /* The shipped scene defaults, read from the fixture's copy. */
-static inline void Fixture_ShippedScene(struct XvtSceneSettings *scene)
+static inline void fixture_shipped_scene(struct xvt_scene_settings *scene)
 {
 	AeronConfigFile *document = NULL;
 	AeronConfigError detail;
 	XVT_ASSERT_TRUE(AeronConfigFile_LoadYamlEx(
-		g_fixtureVfs, AERON_VFS_ROOT_RESOURCE,
+		g_fixture_vfs, AERON_VFS_ROOT_RESOURCE,
 		"aeron/scene3d_defaults.yaml", &document, &detail));
 	XVT_ASSERT_TRUE(AeronSceneSettings_Load(AeronConfigFile_Root(document),
 						&scene->ssao, &scene->shadows,
@@ -263,8 +265,8 @@ static inline void Fixture_ShippedScene(struct XvtSceneSettings *scene)
 }
 
 /* 1 when both documents serialize to the same YAML text, or both are NULL. */
-static inline int Fixture_SameDocument(const AeronConfigFile *left,
-				       const AeronConfigFile *right)
+static inline int fixture_same_document(const AeronConfigFile *left,
+					const AeronConfigFile *right)
 {
 	if (!left || !right) {
 		return left == right;
@@ -283,14 +285,14 @@ static inline int Fixture_SameDocument(const AeronConfigFile *left,
 }
 
 /* A copy of the user overrides as they are now, to compare with later; destroy it when done. */
-static inline AeronConfigFile *Fixture_UserCopy(void)
+static inline AeronConfigFile *fixture_user_copy(void)
 {
 	AeronConfigFile *copy = NULL;
 	AeronConfigError detail;
-	if (!XvtConfig_UserDocument()) {
+	if (!xvt_config_user_document()) {
 		return NULL;
 	}
-	XVT_ASSERT_TRUE(AeronConfigFile_Clone(XvtConfig_UserDocument(), &copy,
+	XVT_ASSERT_TRUE(AeronConfigFile_Clone(xvt_config_user_document(), &copy,
 					      &detail));
 	return copy;
 }

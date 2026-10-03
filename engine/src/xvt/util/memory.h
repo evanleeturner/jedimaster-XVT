@@ -9,23 +9,24 @@
 extern "C" {
 #endif
 
-struct MemoryHandleTableState {
+struct memory_handle_table_state {
 	/* Bytes in each handle's block; 0 when free. */
-	size_t sizeTable[32768];
-	void *ptrTable[32768]; /* Each handle's block; NULL when free. */
+	size_t size_table[32768];
+	void *ptr_table[32768]; /* Each handle's block; NULL when free. */
 };
 
-extern uint8_t g_handleAllocatorInitialized;
-extern unsigned int g_handleAllocationAttemptCount;
-extern struct MemoryHandleTableState g_handleTables;
+extern uint8_t g_handle_allocator_initialized;
+extern unsigned int g_handle_allocation_attempt_count;
+extern struct memory_handle_table_state g_handle_tables;
 
-int Memory_SetRegionExecuteReadWrite(void *address, size_t size);
-uint16_t Memory_AllocHandleZeroed(size_t size, int legacyTag);
-uint16_t Memory_AllocHandle(size_t size, int legacyTag);
-uint16_t Memory_AllocHandleInternal(size_t size, int legacyTag, int clearFlag);
-void Memory_FreeHandle(unsigned int handle);
-void *Memory_GetHandleBlock(uint16_t handle);
-void Memory_HandleBlockDoneStub(uint16_t handle);
+int memory_set_region_execute_read_write(void *address, size_t size);
+uint16_t memory_alloc_handle_zeroed(size_t size, int legacy_tag);
+uint16_t memory_alloc_handle(size_t size, int legacy_tag);
+uint16_t memory_alloc_handle_internal(size_t size, int legacy_tag,
+				      int clear_flag);
+void memory_free_handle(unsigned int handle);
+void *memory_get_handle_block(uint16_t handle);
+void memory_handle_block_done_stub(uint16_t handle);
 
 #ifdef __cplusplus
 }

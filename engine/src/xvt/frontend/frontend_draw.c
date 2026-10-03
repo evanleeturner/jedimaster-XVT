@@ -10,19 +10,19 @@
 
 /* The first pixel of the surface frontend drawing writes to: the back buffer's
  * locked memory, or the offscreen surface's between
- * FrontendDisplay_LockOffscreenSurface and its unlock. Rows are
- * g_frontState.drawSurfacePitch bytes apart. Many functions write it, chiefly
- * the callers of FrontendDisplay_LockBackBuffer, which store its result here,
- * and FrontendDisplay_LockOffscreenSurface and
- * FrontendDisplay_UnlockOffscreenSurface. An unlock of the back buffer leaves
+ * frontend_display_lock_offscreen_surface and its unlock. Rows are
+ * g_front_state.draw_surface_pitch bytes apart. Many functions write it, chiefly
+ * the callers of frontend_display_lock_back_buffer, which store its result here,
+ * and frontend_display_lock_offscreen_surface and
+ * frontend_display_unlock_offscreen_surface. An unlock of the back buffer leaves
  * it pointing at memory no longer locked. */
 // GLOBAL: XVT 0xAA6CFC
-uint8_t *g_drawSurfacePtr;
+uint8_t *g_draw_surface_ptr;
 
 /* Sets the four edges of *rect. */
 // FUNCTION: XVT 0x4D6460
-void FrontendDraw_RectAssign(struct RECT *rect, int32_t left, int32_t top,
-			     int32_t right, int32_t bottom)
+void frontend_draw_rect_assign(struct RECT *rect, int32_t left, int32_t top,
+			       int32_t right, int32_t bottom)
 {
 	rect->left = left;
 	rect->top = top;
@@ -32,14 +32,14 @@ void FrontendDraw_RectAssign(struct RECT *rect, int32_t left, int32_t top,
 
 /* Copies *src into *dst. */
 // FUNCTION: XVT 0x4D6480
-void FrontendDraw_RectCopy(struct RECT *dst, const struct RECT *src)
+void frontend_draw_rect_copy(struct RECT *dst, const struct RECT *src)
 {
 	*dst = *src;
 }
 
 /* Moves *rect right by dx and down by dy. */
 // FUNCTION: XVT 0x4D64A0
-void FrontendDraw_RectOffsetXY(struct RECT *rect, int dx, int dy)
+void frontend_draw_rect_offset_xy(struct RECT *rect, int dx, int dy)
 {
 	rect->left += dx;
 	rect->right += dx;
@@ -50,7 +50,7 @@ void FrontendDraw_RectOffsetXY(struct RECT *rect, int dx, int dy)
 /* Shrinks *rect by dx at the left and the right and by dy at the top and the
  * bottom; negative values grow it. */
 // FUNCTION: XVT 0x4D64C0
-void FrontendDraw_RectInsetXY(struct RECT *rect, int dx, int dy)
+void frontend_draw_rect_inset_xy(struct RECT *rect, int dx, int dy)
 {
 	rect->left += dx;
 	rect->right -= dx;
@@ -58,19 +58,19 @@ void FrontendDraw_RectInsetXY(struct RECT *rect, int dx, int dy)
 	rect->bottom -= dy;
 }
 
-/* Clips *rect in place to the clip bounds, g_frontState.clipMinX to clipMaxX
- * and clipMinY to clipMaxY, all inclusive. Returns the edges it moved as bits:
+/* Clips *rect in place to the clip bounds, g_front_state.clip_min_x to clip_max_x
+ * and clip_min_y to clip_max_y, all inclusive. Returns the edges it moved as bits:
  * 0x1 left, 0x2 top, 0x4 right, 0x8 bottom; 0 when none. A rect wholly past a
  * bound is left with its far edge one pixel beyond that bound (for example
- * right = clipMinX - 1), so its inclusive width or height is 0. */
+ * right = clip_min_x - 1), so its inclusive width or height is 0. */
 // FUNCTION: XVT 0x4D64E0
-int FrontendDraw_RectClipToBounds(struct RECT *rect)
+int frontend_draw_rect_clip_to_bounds(struct RECT *rect)
 {
 	int result;
 	int bound;
 
 	result = 0;
-	bound = g_frontState.clipMinX;
+	bound = g_front_state.clip_min_x;
 	if (rect->left < bound) {
 		rect->left = bound;
 		if (rect->right < bound) {
@@ -79,7 +79,7 @@ int FrontendDraw_RectClipToBounds(struct RECT *rect)
 		result = 1;
 	}
 
-	bound = g_frontState.clipMaxX;
+	bound = g_front_state.clip_max_x;
 	if (rect->right > bound) {
 		rect->right = bound;
 		if (rect->left > bound) {
@@ -88,7 +88,7 @@ int FrontendDraw_RectClipToBounds(struct RECT *rect)
 		result |= 4;
 	}
 
-	bound = g_frontState.clipMinY;
+	bound = g_front_state.clip_min_y;
 	if (rect->top < bound) {
 		rect->top = bound;
 		if (rect->bottom < bound) {
@@ -97,7 +97,7 @@ int FrontendDraw_RectClipToBounds(struct RECT *rect)
 		result |= 2;
 	}
 
-	bound = g_frontState.clipMaxY;
+	bound = g_front_state.clip_max_y;
 	if (rect->bottom > bound) {
 		rect->bottom = bound;
 		if (rect->top > bound) {
@@ -112,86 +112,86 @@ int FrontendDraw_RectClipToBounds(struct RECT *rect)
 /* Blends color over *src moved by dx and dy, clipped to the clip bounds, both
  * edges of each axis included. At 16 bits per pixel each pixel becomes the
  * per-channel average of itself and color, in the 555 or 565 layout
- * g_frontState.pixelFormat555 names: red and green as (a + b) / 2, blue as a /
+ * g_front_state.pixel_format555 names: red and green as (a + b) / 2, blue as a /
  * 2 + b / 2, each division rounded down. Despite the name, at 8 bits per pixel
  * it fills solid with the color index. Draws nothing when src->right <=
  * src->left or src->top >= src->bottom, or when the moved rect has left > 640,
- * right < 0, top > 480 or bottom < 0. Writes through g_drawSurfacePtr. The
+ * right < 0, top > 480 or bottom < 0. Writes through g_draw_surface_ptr. The
  * modern build also records the fill for its renderer. */
 // FUNCTION: XVT 0x4D6550
-void FrontendDraw_FillRectTranslucent(const struct RECT *src, int dx, int dy,
-				      unsigned int color)
+void frontend_draw_fill_rect_translucent(const struct RECT *src, int dx, int dy,
+					 unsigned int color)
 {
-	int drawSurfacePitch;
+	int draw_surface_pitch;
 	int width;
 	uint8_t *destination;
-	struct RECT clippedRect;
-	int bottomEnd;
-	int remainingRows;
+	struct RECT clipped_rect;
+	int bottom_end;
+	int remaining_rows;
 
 	if (src->right <= src->left || src->top >= src->bottom) {
 		return;
 	}
 
-	FrontendDraw_RectCopy(&clippedRect, src);
-	FrontendDraw_RectOffsetXY(&clippedRect, dx, dy);
-	if (clippedRect.left > 640 || clippedRect.right < 0 ||
-	    clippedRect.top > 480 || clippedRect.bottom < 0) {
+	frontend_draw_rect_copy(&clipped_rect, src);
+	frontend_draw_rect_offset_xy(&clipped_rect, dx, dy);
+	if (clipped_rect.left > 640 || clipped_rect.right < 0 ||
+	    clipped_rect.top > 480 || clipped_rect.bottom < 0) {
 		return;
 	}
 
-	FrontendDraw_RectClipToBounds(&clippedRect);
+	frontend_draw_rect_clip_to_bounds(&clipped_rect);
 
 #ifdef XVT_MODERN
-	XvtRenderFrontend_Paint(XVT_PAINT_TRANSLUCENT, clippedRect.left,
-				clippedRect.top, clippedRect.right + 1,
-				clippedRect.bottom + 1, color);
+	xvt_render_frontend_paint(XVT_PAINT_TRANSLUCENT, clipped_rect.left,
+				  clipped_rect.top, clipped_rect.right + 1,
+				  clipped_rect.bottom + 1, color);
 #endif
-	bottomEnd = clippedRect.bottom + 1;
-	width = clippedRect.right - clippedRect.left + 1;
-	drawSurfacePitch = g_frontState.drawSurfacePitch;
-	if (g_frontState.displayBpp == 8) {
+	bottom_end = clipped_rect.bottom + 1;
+	width = clipped_rect.right - clipped_rect.left + 1;
+	draw_surface_pitch = g_front_state.draw_surface_pitch;
+	if (g_front_state.display_bpp == 8) {
 		destination =
-			&g_drawSurfacePtr[clippedRect.top *
-						  g_frontState
-							  .drawSurfacePitch +
-					  clippedRect.left];
-		if (bottomEnd <= clippedRect.top) {
+			&g_draw_surface_ptr
+				[clipped_rect.top *
+					 g_front_state.draw_surface_pitch +
+				 clipped_rect.left];
+		if (bottom_end <= clipped_rect.top) {
 			return;
 		}
 
-		remainingRows = bottomEnd - clippedRect.top;
+		remaining_rows = bottom_end - clipped_rect.top;
 		do {
 			memset(destination, color, (size_t)width);
-			destination += drawSurfacePitch;
-			--remainingRows;
-		} while (remainingRows != 0);
+			destination += draw_surface_pitch;
+			--remaining_rows;
+		} while (remaining_rows != 0);
 		return;
 	}
 
-	if (g_frontState.displayBpp == 16) {
-		unsigned int colorHalf;
+	if (g_front_state.display_bpp == 16) {
+		unsigned int color_half;
 
-		destination =
-			&g_drawSurfacePtr[2 * clippedRect.left +
-					  clippedRect.top * drawSurfacePitch];
-		if (g_frontState.pixelFormat555 != 0) {
-			colorHalf = ((color & 0x1f) + ((color & 0x7c00) << 6) +
-				     8 * (color & 0x3e0)) >>
-				    1;
-			if (bottomEnd <= clippedRect.top) {
+		destination = &g_draw_surface_ptr[2 * clipped_rect.left +
+						  clipped_rect.top *
+							  draw_surface_pitch];
+		if (g_front_state.pixel_format555 != 0) {
+			color_half = ((color & 0x1f) + ((color & 0x7c00) << 6) +
+				      8 * (color & 0x3e0)) >>
+				     1;
+			if (bottom_end <= clipped_rect.top) {
 				return;
 			}
 
-			remainingRows = bottomEnd - clippedRect.top;
-			drawSurfacePitch &= 0xfffffffe;
+			remaining_rows = bottom_end - clipped_rect.top;
+			draw_surface_pitch &= 0xfffffffe;
 			do {
 				if (width > 0) {
 					uint16_t *pixel;
-					int remainingWidth;
+					int remaining_width;
 
 					pixel = (uint16_t *)destination;
-					remainingWidth = width;
+					remaining_width = width;
 					do {
 						unsigned int value;
 						unsigned int blended;
@@ -203,7 +203,7 @@ void FrontendDraw_FillRectTranslucent(const struct RECT *src, int dx, int dy,
 							  << 6) +
 							 8 * (value & 0x3e0)) >>
 							1;
-						blended += colorHalf;
+						blended += color_half;
 						*pixel = (uint16_t)((blended &
 								     0x1f) +
 								    ((blended >>
@@ -213,31 +213,31 @@ void FrontendDraw_FillRectTranslucent(const struct RECT *src, int dx, int dy,
 								      3) &
 								     0x3e0));
 						++pixel;
-						--remainingWidth;
-					} while (remainingWidth != 0);
+						--remaining_width;
+					} while (remaining_width != 0);
 				}
-				destination += drawSurfacePitch;
-				--remainingRows;
-			} while (remainingRows != 0);
+				destination += draw_surface_pitch;
+				--remaining_rows;
+			} while (remaining_rows != 0);
 			return;
 		}
 
-		colorHalf = ((color & 0x1f) + 32 * (color & 0xf800) +
-			     8 * (color & 0x7e0)) >>
-			    1;
-		if (bottomEnd <= clippedRect.top) {
+		color_half = ((color & 0x1f) + 32 * (color & 0xf800) +
+			      8 * (color & 0x7e0)) >>
+			     1;
+		if (bottom_end <= clipped_rect.top) {
 			return;
 		}
 
-		remainingRows = bottomEnd - clippedRect.top;
-		drawSurfacePitch &= 0xfffffffe;
+		remaining_rows = bottom_end - clipped_rect.top;
+		draw_surface_pitch &= 0xfffffffe;
 		do {
 			if (width > 0) {
 				uint16_t *pixel;
-				int remainingWidth;
+				int remaining_width;
 
 				pixel = (uint16_t *)destination;
-				remainingWidth = width;
+				remaining_width = width;
 				do {
 					unsigned int value;
 					unsigned int blended;
@@ -247,107 +247,108 @@ void FrontendDraw_FillRectTranslucent(const struct RECT *src, int dx, int dy,
 						   32 * (value & 0xf800) +
 						   8 * (value & 0x7e0)) >>
 						  1;
-					blended += colorHalf;
+					blended += color_half;
 					*pixel = (uint16_t)((blended & 0x1f) +
 							    ((blended >> 5) &
 							     0xf800) +
 							    ((blended >> 3) &
 							     0x7e0));
 					++pixel;
-					--remainingWidth;
-				} while (remainingWidth != 0);
+					--remaining_width;
+				} while (remaining_width != 0);
 			}
-			destination += drawSurfacePitch;
-			--remainingRows;
-		} while (remainingRows != 0);
+			destination += draw_surface_pitch;
+			--remaining_rows;
+		} while (remaining_rows != 0);
 	}
 }
 
 /* Draws *rect moved by dx and dy in color: with filled 0 an outline, through
- * FrontendDraw_RectOutline, else a solid fill clipped to the clip bounds, both
+ * frontend_draw_rect_outline, else a solid fill clipped to the clip bounds, both
  * edges of each axis included. The fill draws nothing when rect->right <=
  * rect->left or rect->top >= rect->bottom, or when the moved rect has left >
- * 640, right < 0, top > 480 or bottom < 0. Writes through g_drawSurfacePtr. The
+ * 640, right < 0, top > 480 or bottom < 0. Writes through g_draw_surface_ptr. The
  * modern build also records the fill for its renderer. */
 // FUNCTION: XVT 0x4D67E0
-void FrontendDraw_Rect(struct RECT *rect, int dx, int dy, int color, int filled)
+void frontend_draw_rect(struct RECT *rect, int dx, int dy, int color,
+			int filled)
 {
-	struct RECT clippedRect;
-	int bottomEnd;
+	struct RECT clipped_rect;
+	int bottom_end;
 	int width;
-	int drawSurfacePitch;
-	int displayBpp;
+	int draw_surface_pitch;
+	int display_bpp;
 	uint8_t *destination;
-	int remainingRows;
-	uint8_t *wordDestination;
-	int remainingWidth;
+	int remaining_rows;
+	uint8_t *word_destination;
+	int remaining_width;
 
 	if (filled == 0) {
-		FrontendDraw_RectOutline(rect, dx, dy, color);
+		frontend_draw_rect_outline(rect, dx, dy, color);
 		return;
 	}
 	if (rect->right <= rect->left || rect->top >= rect->bottom) {
 		return;
 	}
 
-	FrontendDraw_RectCopy(&clippedRect, rect);
-	FrontendDraw_RectOffsetXY(&clippedRect, dx, dy);
-	if (clippedRect.left > 640 || clippedRect.right < 0 ||
-	    clippedRect.top > 480 || clippedRect.bottom < 0) {
+	frontend_draw_rect_copy(&clipped_rect, rect);
+	frontend_draw_rect_offset_xy(&clipped_rect, dx, dy);
+	if (clipped_rect.left > 640 || clipped_rect.right < 0 ||
+	    clipped_rect.top > 480 || clipped_rect.bottom < 0) {
 		return;
 	}
 
-	FrontendDraw_RectClipToBounds(&clippedRect);
+	frontend_draw_rect_clip_to_bounds(&clipped_rect);
 
 #ifdef XVT_MODERN
-	XvtRenderFrontend_Paint(XVT_PAINT_FILL, clippedRect.left,
-				clippedRect.top, clippedRect.right + 1,
-				clippedRect.bottom + 1, color);
+	xvt_render_frontend_paint(XVT_PAINT_FILL, clipped_rect.left,
+				  clipped_rect.top, clipped_rect.right + 1,
+				  clipped_rect.bottom + 1, color);
 #endif
-	bottomEnd = clippedRect.bottom + 1;
-	width = clippedRect.right - clippedRect.left + 1;
-	drawSurfacePitch = g_frontState.drawSurfacePitch;
-	displayBpp = g_frontState.displayBpp;
-	switch (displayBpp) {
+	bottom_end = clipped_rect.bottom + 1;
+	width = clipped_rect.right - clipped_rect.left + 1;
+	draw_surface_pitch = g_front_state.draw_surface_pitch;
+	display_bpp = g_front_state.display_bpp;
+	switch (display_bpp) {
 	case 8:
 		destination =
-			&g_drawSurfacePtr[clippedRect.left +
-					  clippedRect.top *
-						  g_frontState
-							  .drawSurfacePitch];
-		if (clippedRect.top >= bottomEnd) {
+			&g_draw_surface_ptr
+				[clipped_rect.left +
+				 clipped_rect.top *
+					 g_front_state.draw_surface_pitch];
+		if (clipped_rect.top >= bottom_end) {
 			break;
 		}
-		remainingRows = bottomEnd - clippedRect.top;
+		remaining_rows = bottom_end - clipped_rect.top;
 		do {
 			memset(destination, color, (size_t)width);
-			destination += drawSurfacePitch;
-			--remainingRows;
-		} while (remainingRows != 0);
+			destination += draw_surface_pitch;
+			--remaining_rows;
+		} while (remaining_rows != 0);
 		break;
 
 	case 16:
-		destination =
-			&g_drawSurfacePtr[2 * clippedRect.left +
-					  clippedRect.top * drawSurfacePitch];
-		if (clippedRect.top >= bottomEnd) {
+		destination = &g_draw_surface_ptr[2 * clipped_rect.left +
+						  clipped_rect.top *
+							  draw_surface_pitch];
+		if (clipped_rect.top >= bottom_end) {
 			break;
 		}
-		remainingRows = bottomEnd - clippedRect.top;
+		remaining_rows = bottom_end - clipped_rect.top;
 		do {
-			wordDestination = destination;
-			remainingWidth = width;
-			if (remainingWidth > 0) {
-				while (remainingWidth > 0) {
-					*(uint16_t *)wordDestination =
+			word_destination = destination;
+			remaining_width = width;
+			if (remaining_width > 0) {
+				while (remaining_width > 0) {
+					*(uint16_t *)word_destination =
 						(uint16_t)color;
-					wordDestination += 2;
-					--remainingWidth;
+					word_destination += 2;
+					--remaining_width;
 				}
 			}
-			destination += drawSurfacePitch;
-			--remainingRows;
-		} while (remainingRows != 0);
+			destination += draw_surface_pitch;
+			--remaining_rows;
+		} while (remaining_rows != 0);
 		break;
 	}
 }
@@ -358,91 +359,91 @@ void FrontendDraw_Rect(struct RECT *rect, int dx, int dy, int color, int filled)
  * row and the bottom edge is drawn one row above the rect's bottom. Draws
  * nothing when rect->right <= rect->left or rect->top >= rect->bottom, or when
  * the moved rect has left > 640, right < 0, top > 480 or bottom < 0. Writes
- * through g_drawSurfacePtr. The modern build also records the unclipped outline
+ * through g_draw_surface_ptr. The modern build also records the unclipped outline
  * for its renderer. */
 // FUNCTION: XVT 0x4D6950
-void FrontendDraw_RectOutline(struct RECT *rect, int dx, int dy, int color)
+void frontend_draw_rect_outline(struct RECT *rect, int dx, int dy, int color)
 {
 	int width;
-	int drawSurfacePitch;
-	int drawBottom;
-	int drawRight;
-	int drawLeft;
-	int drawTop;
+	int draw_surface_pitch;
+	int draw_bottom;
+	int draw_right;
+	int draw_left;
+	int draw_top;
 	int bottom;
-	struct RECT clippedRect;
-	struct RECT unclippedRect;
-	int displayBpp;
-	int interiorTop;
+	struct RECT clipped_rect;
+	struct RECT unclipped_rect;
+	int display_bpp;
+	int interior_top;
 
-	drawTop = 1;
-	drawLeft = 1;
-	drawRight = 1;
-	drawBottom = 1;
+	draw_top = 1;
+	draw_left = 1;
+	draw_right = 1;
+	draw_bottom = 1;
 	if (rect->right <= rect->left || rect->top >= rect->bottom) {
 		return;
 	}
 
-	FrontendDraw_RectCopy(&clippedRect, rect);
-	FrontendDraw_RectOffsetXY(&clippedRect, dx, dy);
-	if (clippedRect.left > 640 || clippedRect.right < 0 ||
-	    clippedRect.top > 480 || clippedRect.bottom < 0) {
+	frontend_draw_rect_copy(&clipped_rect, rect);
+	frontend_draw_rect_offset_xy(&clipped_rect, dx, dy);
+	if (clipped_rect.left > 640 || clipped_rect.right < 0 ||
+	    clipped_rect.top > 480 || clipped_rect.bottom < 0) {
 		return;
 	}
 
 #ifdef XVT_MODERN
-	XvtRenderFrontend_Paint(XVT_PAINT_FRAME, clippedRect.left,
-				clippedRect.top, clippedRect.right + 1,
-				clippedRect.bottom + 1, color);
+	xvt_render_frontend_paint(XVT_PAINT_FRAME, clipped_rect.left,
+				  clipped_rect.top, clipped_rect.right + 1,
+				  clipped_rect.bottom + 1, color);
 #endif
-	FrontendDraw_RectCopy(&unclippedRect, &clippedRect);
-	FrontendDraw_RectClipToBounds(&clippedRect);
-	if (unclippedRect.left != clippedRect.left) {
-		drawLeft = 0;
+	frontend_draw_rect_copy(&unclipped_rect, &clipped_rect);
+	frontend_draw_rect_clip_to_bounds(&clipped_rect);
+	if (unclipped_rect.left != clipped_rect.left) {
+		draw_left = 0;
 	}
-	if (unclippedRect.right != clippedRect.right) {
-		drawRight = 0;
+	if (unclipped_rect.right != clipped_rect.right) {
+		draw_right = 0;
 	}
-	if (unclippedRect.top != clippedRect.top) {
-		drawTop = 0;
+	if (unclipped_rect.top != clipped_rect.top) {
+		draw_top = 0;
 	}
-	if (unclippedRect.bottom != clippedRect.bottom) {
-		drawBottom = 0;
+	if (unclipped_rect.bottom != clipped_rect.bottom) {
+		draw_bottom = 0;
 	}
 
 	/* bottom starts as the clipped bottom edge; each case below turns it into the number of interior rows
 	 * and counts it down while drawing the side edges. */
-	bottom = clippedRect.bottom;
-	width = clippedRect.right - clippedRect.left + 1;
-	drawSurfacePitch = g_frontState.drawSurfacePitch;
-	displayBpp = g_frontState.displayBpp;
-	switch (displayBpp) {
+	bottom = clipped_rect.bottom;
+	width = clipped_rect.right - clipped_rect.left + 1;
+	draw_surface_pitch = g_front_state.draw_surface_pitch;
+	display_bpp = g_front_state.display_bpp;
+	switch (display_bpp) {
 	case 8: {
 		uint8_t *destination;
 		destination =
-			&g_drawSurfacePtr[clippedRect.left +
-					  clippedRect.top *
-						  g_frontState
-							  .drawSurfacePitch];
-		if (drawTop != 0) {
+			&g_draw_surface_ptr
+				[clipped_rect.left +
+				 clipped_rect.top *
+					 g_front_state.draw_surface_pitch];
+		if (draw_top != 0) {
 			memset(destination, color, (size_t)width);
-			destination += drawSurfacePitch;
+			destination += draw_surface_pitch;
 		}
-		interiorTop = clippedRect.top + 1;
-		if (bottom > interiorTop) {
-			bottom -= interiorTop;
+		interior_top = clipped_rect.top + 1;
+		if (bottom > interior_top) {
+			bottom -= interior_top;
 			do {
-				if (drawLeft != 0) {
+				if (draw_left != 0) {
 					destination[0] = (uint8_t)color;
 				}
-				if (drawRight != 0) {
+				if (draw_right != 0) {
 					destination[width - 1] = (uint8_t)color;
 				}
-				destination += drawSurfacePitch;
+				destination += draw_surface_pitch;
 				--bottom;
 			} while (bottom != 0);
 		}
-		if (drawBottom != 0) {
+		if (draw_bottom != 0) {
 			memset(destination, color, (size_t)width);
 		}
 		break;
@@ -450,33 +451,33 @@ void FrontendDraw_RectOutline(struct RECT *rect, int dx, int dy, int color)
 
 	case 16: {
 		uint8_t *destination;
-		destination =
-			&g_drawSurfacePtr[clippedRect.left * 2 +
-					  clippedRect.top * drawSurfacePitch];
-		if (drawTop != 0) {
+		destination = &g_draw_surface_ptr[clipped_rect.left * 2 +
+						  clipped_rect.top *
+							  draw_surface_pitch];
+		if (draw_top != 0) {
 			int x;
 			for (x = 0; x < width; ++x) {
 				((uint16_t *)destination)[x] = (uint16_t)color;
 			}
-			destination += drawSurfacePitch;
+			destination += draw_surface_pitch;
 		}
-		interiorTop = clippedRect.top + 1;
-		if (bottom > interiorTop) {
-			bottom -= interiorTop;
+		interior_top = clipped_rect.top + 1;
+		if (bottom > interior_top) {
+			bottom -= interior_top;
 			do {
-				if (drawLeft != 0) {
+				if (draw_left != 0) {
 					*(uint16_t *)destination =
 						(uint16_t)color;
 				}
-				if (drawRight != 0) {
+				if (draw_right != 0) {
 					((uint16_t *)destination)[width - 1] =
 						(uint16_t)color;
 				}
-				destination += drawSurfacePitch;
+				destination += draw_surface_pitch;
 				--bottom;
 			} while (bottom != 0);
 		}
-		if (drawBottom != 0) {
+		if (draw_bottom != 0) {
 			int x;
 			for (x = 0; x < width; ++x) {
 				((uint16_t *)destination)[x] = (uint16_t)color;
@@ -489,7 +490,7 @@ void FrontendDraw_RectOutline(struct RECT *rect, int dx, int dy, int color)
 
 /* Returns 1 when (x, y) lies in *rect, edges included, else 0. */
 // FUNCTION: XVT 0x4D6B90
-int FrontendDraw_PointInRect(const struct RECT *rect, int x, int y)
+int frontend_draw_point_in_rect(const struct RECT *rect, int x, int y)
 {
 	if (rect->left > x || rect->right < x) {
 		return 0;
@@ -505,18 +506,18 @@ int FrontendDraw_PointInRect(const struct RECT *rect, int x, int y)
  * fixed point, and each of the four slope quadrants gets its own walk so the
  * fill always advances to the right. Only 8bpp surfaces are supported. */
 /* Nothing calls this. A horizontal or vertical line is handed to
- * FrontendDraw_HorizontalLineClipped or FrontendDraw_VerticalLineClipped, which
+ * frontend_draw_horizontal_line_clipped or frontend_draw_vertical_line_clipped, which
  * also draw at 16 bits per pixel and record their own lines in the modern
  * build; this function records a sloped line there itself. */
 // FUNCTION: XVT 0x505CD0
-void FrontendDraw_Line(int x0, int y0, int x1, int y1, int color)
+void frontend_draw_line(int x0, int y0, int x1, int y1, int color)
 {
-	int startY;
-	int endY;
-	int startX;
-	int endX;
-	int xStep;
-	int xFraction;
+	int start_y;
+	int end_y;
+	int start_x;
+	int end_x;
+	int x_step;
+	int x_fraction;
 	int accumulator;
 	int rows;
 	int run;
@@ -525,137 +526,153 @@ void FrontendDraw_Line(int x0, int y0, int x1, int y1, int color)
 
 #ifdef XVT_MODERN
 	if (x0 != x1 && y0 != y1) {
-		XvtRenderFrontend_Paint(XVT_PAINT_LINE, x0, y0, x1, y1, color);
+		xvt_render_frontend_paint(XVT_PAINT_LINE, x0, y0, x1, y1,
+					  color);
 	}
 #endif
 	clipped = 0;
-	endY = y1;
-	startY = y0;
+	end_y = y1;
+	start_y = y0;
 	accumulator = 2048;
-	if (endY == startY) {
-		FrontendDraw_HorizontalLineClipped(x0, x1, startY, color);
+	if (end_y == start_y) {
+		frontend_draw_horizontal_line_clipped(x0, x1, start_y, color);
 		return;
 	}
 
-	endX = x1;
-	startX = x0;
-	if (endX == startX) {
-		FrontendDraw_VerticalLineClipped(startY, endY, startX, color);
+	end_x = x1;
+	start_x = x0;
+	if (end_x == start_x) {
+		frontend_draw_vertical_line_clipped(start_y, end_y, start_x,
+						    color);
 		return;
 	}
 
-	if (endY > startY && endX > startX) {
-		xStep = ((endX - startX + 1) << 12) / (endY - startY + 1);
-		if (g_frontState.clipMinX > startX) {
-			startY += ((g_frontState.clipMinX - startX) << 12) /
-				  xStep;
-			startX = g_frontState.clipMinX;
+	if (end_y > start_y && end_x > start_x) {
+		x_step = ((end_x - start_x + 1) << 12) / (end_y - start_y + 1);
+		if (g_front_state.clip_min_x > start_x) {
+			start_y +=
+				((g_front_state.clip_min_x - start_x) << 12) /
+				x_step;
+			start_x = g_front_state.clip_min_x;
 			clipped = 1;
 		}
-		if (startY < g_frontState.clipMinY) {
+		if (start_y < g_front_state.clip_min_y) {
 			clipped = 1;
-			startX += ((g_frontState.clipMinY - startY) * xStep) >>
-				  12;
-			startY = g_frontState.clipMinY;
+			start_x += ((g_front_state.clip_min_y - start_y) *
+				    x_step) >>
+				   12;
+			start_y = g_front_state.clip_min_y;
 		}
-		if (g_frontState.clipMaxX < endX) {
-			endY += ((g_frontState.clipMaxX - endX) << 12) / xStep;
-			endX = g_frontState.clipMaxX;
+		if (g_front_state.clip_max_x < end_x) {
+			end_y += ((g_front_state.clip_max_x - end_x) << 12) /
+				 x_step;
+			end_x = g_front_state.clip_max_x;
 			clipped = 1;
 		}
-		if (g_frontState.clipMaxY < endY) {
+		if (g_front_state.clip_max_y < end_y) {
 			clipped = 1;
-			endX -= ((endY - g_frontState.clipMaxY) * xStep) >> 12;
-			endY = g_frontState.clipMaxY;
+			end_x -=
+				((end_y - g_front_state.clip_max_y) * x_step) >>
+				12;
+			end_y = g_front_state.clip_max_y;
 		}
 		if (clipped != 0) {
-			if (endX < startX || startY > endY) {
+			if (end_x < start_x || start_y > end_y) {
 				return;
 			}
-			xStep = ((endX - startX + 1) << 12) /
-				(endY - startY + 1);
+			x_step = ((end_x - start_x + 1) << 12) /
+				 (end_y - start_y + 1);
 		}
 
-		xFraction = xStep & 0xfff;
-		xStep >>= 12;
-		destination = g_drawSurfacePtr +
-			      g_frontState.drawSurfacePitch * startY + startX;
-		if (xStep != 0) {
-			rows = endY - startY + 1;
+		x_fraction = x_step & 0xfff;
+		x_step >>= 12;
+		destination = g_draw_surface_ptr +
+			      g_front_state.draw_surface_pitch * start_y +
+			      start_x;
+		if (x_step != 0) {
+			rows = end_y - start_y + 1;
 			if (rows > 0) {
 				do {
-					accumulator += xFraction;
-					run = xStep;
+					accumulator += x_fraction;
+					run = x_step;
 					if (accumulator >= 4096) {
 						++run;
 						accumulator -= 4096;
 					}
 					memset(destination, color, (size_t)run);
 					destination +=
-						g_frontState.drawSurfacePitch +
+						g_front_state
+							.draw_surface_pitch +
 						run;
 					--rows;
 				} while (rows != 0);
 			}
 		} else {
-			rows = endY - startY + 1;
+			rows = end_y - start_y + 1;
 			if (rows > 0) {
 				do {
-					accumulator += xFraction;
+					accumulator += x_fraction;
 					*destination = (uint8_t)color;
 					if (accumulator >= 4096) {
 						accumulator -= 4096;
 						++destination;
 					}
 					destination +=
-						g_frontState.drawSurfacePitch;
+						g_front_state
+							.draw_surface_pitch;
 					--rows;
 				} while (rows != 0);
 			}
 		}
-	} else if (endY > startY && endX < startX) {
-		xStep = ((startX - endX + 1) << 12) / (endY - startY + 1);
-		if (g_frontState.clipMaxX < startX) {
-			startY += ((startX - g_frontState.clipMaxX) << 12) /
-				  xStep;
-			startX = g_frontState.clipMaxX;
+	} else if (end_y > start_y && end_x < start_x) {
+		x_step = ((start_x - end_x + 1) << 12) / (end_y - start_y + 1);
+		if (g_front_state.clip_max_x < start_x) {
+			start_y +=
+				((start_x - g_front_state.clip_max_x) << 12) /
+				x_step;
+			start_x = g_front_state.clip_max_x;
 			clipped = 1;
 		}
-		if (startY < g_frontState.clipMinY) {
+		if (start_y < g_front_state.clip_min_y) {
 			clipped = 1;
-			startX -= ((g_frontState.clipMinY - startY) * xStep) >>
-				  12;
-			startY = g_frontState.clipMinY;
+			start_x -= ((g_front_state.clip_min_y - start_y) *
+				    x_step) >>
+				   12;
+			start_y = g_front_state.clip_min_y;
 		}
-		if (g_frontState.clipMinX > endX) {
-			endY += ((endX - g_frontState.clipMinX) << 12) / xStep;
-			endX = g_frontState.clipMinX;
+		if (g_front_state.clip_min_x > end_x) {
+			end_y += ((end_x - g_front_state.clip_min_x) << 12) /
+				 x_step;
+			end_x = g_front_state.clip_min_x;
 			clipped = 1;
 		}
-		if (g_frontState.clipMaxY < endY) {
+		if (g_front_state.clip_max_y < end_y) {
 			clipped = 1;
-			endX += ((endY - g_frontState.clipMaxY) * xStep) >> 12;
-			endY = g_frontState.clipMaxY;
+			end_x +=
+				((end_y - g_front_state.clip_max_y) * x_step) >>
+				12;
+			end_y = g_front_state.clip_max_y;
 		}
 		if (clipped != 0) {
-			if (endX > startX || startY > endY) {
+			if (end_x > start_x || start_y > end_y) {
 				return;
 			}
-			xStep = ((startX - endX + 1) << 12) /
-				(endY - startY + 1);
+			x_step = ((start_x - end_x + 1) << 12) /
+				 (end_y - start_y + 1);
 		}
 
-		xFraction = xStep & 0xfff;
-		xStep >>= 12;
+		x_fraction = x_step & 0xfff;
+		x_step >>= 12;
 		destination =
-			&g_drawSurfacePtr[endX +
-					  endY * g_frontState.drawSurfacePitch];
-		if (xStep != 0) {
-			rows = endY - startY + 1;
+			&g_draw_surface_ptr
+				[end_x +
+				 end_y * g_front_state.draw_surface_pitch];
+		if (x_step != 0) {
+			rows = end_y - start_y + 1;
 			if (rows > 0) {
 				do {
-					accumulator += xFraction;
-					run = xStep;
+					accumulator += x_fraction;
+					run = x_step;
 					if (accumulator >= 4096) {
 						++run;
 						accumulator -= 4096;
@@ -663,68 +680,76 @@ void FrontendDraw_Line(int x0, int y0, int x1, int y1, int color)
 					memset(destination, color, (size_t)run);
 					destination +=
 						run -
-						g_frontState.drawSurfacePitch;
+						g_front_state
+							.draw_surface_pitch;
 					--rows;
 				} while (rows != 0);
 			}
 		} else {
-			rows = endY - startY + 1;
+			rows = end_y - start_y + 1;
 			if (rows > 0) {
 				do {
-					accumulator += xFraction;
+					accumulator += x_fraction;
 					*destination = (uint8_t)color;
 					if (accumulator >= 4096) {
 						accumulator -= 4096;
 						++destination;
 					}
 					destination -=
-						g_frontState.drawSurfacePitch;
+						g_front_state
+							.draw_surface_pitch;
 					--rows;
 				} while (rows != 0);
 			}
 		}
-	} else if (endY < startY && endX > startX) {
-		xStep = ((endX - startX + 1) << 12) / (startY - endY + 1);
-		if (g_frontState.clipMinX > startX) {
-			startY += ((startX - g_frontState.clipMinX) << 12) /
-				  xStep;
-			startX = g_frontState.clipMinX;
+	} else if (end_y < start_y && end_x > start_x) {
+		x_step = ((end_x - start_x + 1) << 12) / (start_y - end_y + 1);
+		if (g_front_state.clip_min_x > start_x) {
+			start_y +=
+				((start_x - g_front_state.clip_min_x) << 12) /
+				x_step;
+			start_x = g_front_state.clip_min_x;
 			clipped = 1;
 		}
-		if (startY > g_frontState.clipMaxY) {
+		if (start_y > g_front_state.clip_max_y) {
 			clipped = 1;
-			startX += ((startY - g_frontState.clipMaxY) * xStep) >>
-				  12;
-			startY = g_frontState.clipMaxY;
+			start_x += ((start_y - g_front_state.clip_max_y) *
+				    x_step) >>
+				   12;
+			start_y = g_front_state.clip_max_y;
 		}
-		if (g_frontState.clipMaxX < endX) {
-			endY += ((endX - g_frontState.clipMaxX) << 12) / xStep;
-			endX = g_frontState.clipMaxX;
+		if (g_front_state.clip_max_x < end_x) {
+			end_y += ((end_x - g_front_state.clip_max_x) << 12) /
+				 x_step;
+			end_x = g_front_state.clip_max_x;
 			clipped = 1;
 		}
-		if (g_frontState.clipMinY > endY) {
+		if (g_front_state.clip_min_y > end_y) {
 			clipped = 1;
-			endX -= ((g_frontState.clipMinY - endY) * xStep) >> 12;
-			endY = g_frontState.clipMinY;
+			end_x -=
+				((g_front_state.clip_min_y - end_y) * x_step) >>
+				12;
+			end_y = g_front_state.clip_min_y;
 		}
 		if (clipped != 0) {
-			if (endX < startX || startY < endY) {
+			if (end_x < start_x || start_y < end_y) {
 				return;
 			}
-			xStep = ((endX - startX + 1) << 12) /
-				(startY - endY + 1);
+			x_step = ((end_x - start_x + 1) << 12) /
+				 (start_y - end_y + 1);
 		}
 
-		xFraction = xStep & 0xfff;
-		xStep >>= 12;
-		destination = g_drawSurfacePtr +
-			      g_frontState.drawSurfacePitch * startY + startX;
-		if (xStep != 0) {
-			rows = startY - endY + 1;
+		x_fraction = x_step & 0xfff;
+		x_step >>= 12;
+		destination = g_draw_surface_ptr +
+			      g_front_state.draw_surface_pitch * start_y +
+			      start_x;
+		if (x_step != 0) {
+			rows = start_y - end_y + 1;
 			if (rows > 0) {
 				do {
-					accumulator += xFraction;
-					run = xStep;
+					accumulator += x_fraction;
+					run = x_step;
 					if (accumulator >= 4096) {
 						++run;
 						accumulator -= 4096;
@@ -732,92 +757,102 @@ void FrontendDraw_Line(int x0, int y0, int x1, int y1, int color)
 					memset(destination, color, (size_t)run);
 					destination +=
 						run -
-						g_frontState.drawSurfacePitch;
+						g_front_state
+							.draw_surface_pitch;
 					--rows;
 				} while (rows != 0);
 			}
 		} else {
-			rows = startY - endY + 1;
+			rows = start_y - end_y + 1;
 			if (rows > 0) {
 				do {
-					accumulator += xFraction;
+					accumulator += x_fraction;
 					*destination = (uint8_t)color;
 					if (accumulator >= 4096) {
 						accumulator -= 4096;
 						++destination;
 					}
 					destination -=
-						g_frontState.drawSurfacePitch;
+						g_front_state
+							.draw_surface_pitch;
 					--rows;
 				} while (rows != 0);
 			}
 		}
 	} else {
-		xStep = ((startX - endX + 1) << 12) / (startY - endY + 1);
-		if (g_frontState.clipMaxX < startX) {
-			startY += ((g_frontState.clipMaxX - startX) << 12) /
-				  xStep;
-			startX = g_frontState.clipMaxX;
+		x_step = ((start_x - end_x + 1) << 12) / (start_y - end_y + 1);
+		if (g_front_state.clip_max_x < start_x) {
+			start_y +=
+				((g_front_state.clip_max_x - start_x) << 12) /
+				x_step;
+			start_x = g_front_state.clip_max_x;
 			clipped = 1;
 		}
-		if (startY > g_frontState.clipMaxY) {
+		if (start_y > g_front_state.clip_max_y) {
 			clipped = 1;
-			startX -= ((startY - g_frontState.clipMaxY) * xStep) >>
-				  12;
-			startY = g_frontState.clipMaxY;
+			start_x -= ((start_y - g_front_state.clip_max_y) *
+				    x_step) >>
+				   12;
+			start_y = g_front_state.clip_max_y;
 		}
-		if (g_frontState.clipMinX > endX) {
-			endY += ((g_frontState.clipMinX - endX) << 12) / xStep;
-			endX = g_frontState.clipMinX;
+		if (g_front_state.clip_min_x > end_x) {
+			end_y += ((g_front_state.clip_min_x - end_x) << 12) /
+				 x_step;
+			end_x = g_front_state.clip_min_x;
 			clipped = 1;
 		}
-		if (g_frontState.clipMinY > endY) {
+		if (g_front_state.clip_min_y > end_y) {
 			clipped = 1;
-			endX += ((g_frontState.clipMinY - endY) * xStep) >> 12;
-			endY = g_frontState.clipMinY;
+			end_x +=
+				((g_front_state.clip_min_y - end_y) * x_step) >>
+				12;
+			end_y = g_front_state.clip_min_y;
 		}
 		if (clipped != 0) {
-			if (endX > startX || startY < endY) {
+			if (end_x > start_x || start_y < end_y) {
 				return;
 			}
-			xStep = ((startX - endX + 1) << 12) /
-				(startY - endY + 1);
+			x_step = ((start_x - end_x + 1) << 12) /
+				 (start_y - end_y + 1);
 		}
 
-		xFraction = xStep & 0xfff;
-		xStep >>= 12;
+		x_fraction = x_step & 0xfff;
+		x_step >>= 12;
 		destination =
-			&g_drawSurfacePtr[endX +
-					  endY * g_frontState.drawSurfacePitch];
-		if (xStep != 0) {
-			rows = startY - endY + 1;
+			&g_draw_surface_ptr
+				[end_x +
+				 end_y * g_front_state.draw_surface_pitch];
+		if (x_step != 0) {
+			rows = start_y - end_y + 1;
 			if (rows > 0) {
 				do {
-					accumulator += xFraction;
-					run = xStep;
+					accumulator += x_fraction;
+					run = x_step;
 					if (accumulator >= 4096) {
 						++run;
 						accumulator -= 4096;
 					}
 					memset(destination, color, (size_t)run);
 					destination +=
-						g_frontState.drawSurfacePitch +
+						g_front_state
+							.draw_surface_pitch +
 						run;
 					--rows;
 				} while (rows != 0);
 			}
 		} else {
-			rows = startY - endY + 1;
+			rows = start_y - end_y + 1;
 			if (rows > 0) {
 				do {
-					accumulator += xFraction;
+					accumulator += x_fraction;
 					*destination = (uint8_t)color;
 					if (accumulator >= 4096) {
 						accumulator -= 4096;
 						++destination;
 					}
 					destination +=
-						g_frontState.drawSurfacePitch;
+						g_front_state
+							.draw_surface_pitch;
 					--rows;
 				} while (rows != 0);
 			}
@@ -831,43 +866,44 @@ void FrontendDraw_Line(int x0, int y0, int x1, int y1, int color)
 /* Draws x0 to x1 on row y in color, both ends included, clipped to the clip
  * bounds; nothing when y is outside them. Either order works, but with x0 over
  * x1 a span the clipping leaves one pixel long draws nothing. Writes through
- * g_drawSurfacePtr at 8 or 16 bits per pixel. The modern build also records the
+ * g_draw_surface_ptr at 8 or 16 bits per pixel. The modern build also records the
  * line, unclipped, for its renderer. */
 // FUNCTION: XVT 0x5063B0
-void FrontendDraw_HorizontalLineClipped(int x0, int x1, int y, int color)
+void frontend_draw_horizontal_line_clipped(int x0, int x1, int y, int color)
 {
-	int pixelShift;
+	int pixel_shift;
 	uint8_t *destination;
-	uint16_t *wordDestination;
+	uint16_t *word_destination;
 	int count;
 
 #ifdef XVT_MODERN
-	XvtRenderFrontend_Paint(XVT_PAINT_LINE, x0, y, x1, y, color);
+	xvt_render_frontend_paint(XVT_PAINT_LINE, x0, y, x1, y, color);
 #endif
 
-	pixelShift = g_frontState.displayBpp >> 4;
-	if (y > g_frontState.clipMaxY || y < g_frontState.clipMinY) {
+	pixel_shift = g_front_state.display_bpp >> 4;
+	if (y > g_front_state.clip_max_y || y < g_front_state.clip_min_y) {
 		return;
 	}
 
 	if (x0 <= x1) {
-		if (g_frontState.clipMinX > x0) {
-			x0 = g_frontState.clipMinX;
+		if (g_front_state.clip_min_x > x0) {
+			x0 = g_front_state.clip_min_x;
 			if (x1 < x0) {
 				return;
 			}
 		}
-		if (g_frontState.clipMaxX < x1) {
-			x1 = g_frontState.clipMaxX;
+		if (g_front_state.clip_max_x < x1) {
+			x1 = g_front_state.clip_max_x;
 			if (x0 > x1) {
 				return;
 			}
 		}
 
 		destination =
-			&g_drawSurfacePtr[(x0 << pixelShift) +
-					  g_frontState.drawSurfacePitch * y];
-		switch (pixelShift) {
+			&g_draw_surface_ptr[(x0 << pixel_shift) +
+					    g_front_state.draw_surface_pitch *
+						    y];
+		switch (pixel_shift) {
 		case 0:
 			count = x1 - x0 + 1;
 			memset(destination, (uint16_t)color, (size_t)count);
@@ -879,10 +915,10 @@ void FrontendDraw_HorizontalLineClipped(int x0, int x1, int y, int color)
 			if (count <= 0) {
 				return;
 			}
-			wordDestination = (uint16_t *)destination;
+			word_destination = (uint16_t *)destination;
 			do {
-				*wordDestination = (uint16_t)color;
-				++wordDestination;
+				*word_destination = (uint16_t)color;
+				++word_destination;
 				--count;
 			} while (count != 0);
 			return;
@@ -890,22 +926,22 @@ void FrontendDraw_HorizontalLineClipped(int x0, int x1, int y, int color)
 		return;
 	}
 
-	if (g_frontState.clipMaxX < x0) {
-		x0 = g_frontState.clipMaxX;
+	if (g_front_state.clip_max_x < x0) {
+		x0 = g_front_state.clip_max_x;
 		if (x1 >= x0) {
 			return;
 		}
 	}
-	if (g_frontState.clipMinX > x1) {
-		x1 = g_frontState.clipMinX;
+	if (g_front_state.clip_min_x > x1) {
+		x1 = g_front_state.clip_min_x;
 	}
 	if (x1 >= x0) {
 		return;
 	}
 
-	destination = &g_drawSurfacePtr[(x1 << pixelShift) +
-					g_frontState.drawSurfacePitch * y];
-	switch (pixelShift) {
+	destination = &g_draw_surface_ptr[(x1 << pixel_shift) +
+					  g_front_state.draw_surface_pitch * y];
+	switch (pixel_shift) {
 	case 0:
 		count = x0 - x1 + 1;
 		memset(destination, (uint16_t)color, (size_t)count);
@@ -917,10 +953,10 @@ void FrontendDraw_HorizontalLineClipped(int x0, int x1, int y, int color)
 		if (count <= 0) {
 			return;
 		}
-		wordDestination = (uint16_t *)destination;
+		word_destination = (uint16_t *)destination;
 		do {
-			*wordDestination = (uint16_t)color;
-			++wordDestination;
+			*word_destination = (uint16_t)color;
+			++word_destination;
 			--count;
 		} while (count != 0);
 	}
@@ -932,10 +968,10 @@ void FrontendDraw_HorizontalLineClipped(int x0, int x1, int y, int color)
 /* Draws rows y0 to y1 of column x in color, both ends included, clipped to the
  * clip bounds; nothing when x is outside them. Either order works, but with y0
  * over y1 a span the clipping leaves one pixel long draws nothing. Writes
- * through g_drawSurfacePtr at 8 or 16 bits per pixel. The modern build also
+ * through g_draw_surface_ptr at 8 or 16 bits per pixel. The modern build also
  * records the line, unclipped, for its renderer. */
 // FUNCTION: XVT 0x506550
-void FrontendDraw_VerticalLineClipped(int y0, int y1, int x, int color)
+void frontend_draw_vertical_line_clipped(int y0, int y1, int x, int color)
 {
 	int shift;
 	int start;
@@ -944,73 +980,77 @@ void FrontendDraw_VerticalLineClipped(int y0, int y1, int x, int color)
 	uint8_t *p;
 
 #ifdef XVT_MODERN
-	XvtRenderFrontend_Paint(XVT_PAINT_LINE, x, y0, x, y1, color);
+	xvt_render_frontend_paint(XVT_PAINT_LINE, x, y0, x, y1, color);
 #endif
 
-	if (g_frontState.clipMinX > x || g_frontState.clipMaxX < x) {
+	if (g_front_state.clip_min_x > x || g_front_state.clip_max_x < x) {
 		return;
 	}
-	shift = g_frontState.displayBpp >> 4;
+	shift = g_front_state.display_bpp >> 4;
 	if (y1 >= y0) {
 		end = y1;
 		start = y0;
-		if (g_frontState.clipMaxY < end) {
-			end = g_frontState.clipMaxY;
+		if (g_front_state.clip_max_y < end) {
+			end = g_front_state.clip_max_y;
 			if (end < y0) {
 				return;
 			}
 		}
-		if (g_frontState.clipMinY > start) {
-			start = g_frontState.clipMinY;
+		if (g_front_state.clip_min_y > start) {
+			start = g_front_state.clip_min_y;
 			if (start > end) {
 				return;
 			}
 		}
-		p = &g_drawSurfacePtr[g_frontState.drawSurfacePitch * start +
-				      (x << shift)];
+		p = &g_draw_surface_ptr[g_front_state.draw_surface_pitch *
+						start +
+					(x << shift)];
 		if (shift != 0) {
 			if (shift != 1) {
 				return;
 			}
 			for (y = start; y <= end; ++y) {
 				*(uint16_t *)p = (uint16_t)color;
-				p += g_frontState.drawSurfacePitch & 0xFFFFFFFE;
+				p += g_front_state.draw_surface_pitch &
+				     0xFFFFFFFE;
 			}
 		} else {
 			for (y = start; y <= end; ++y) {
 				*p = (uint8_t)color;
-				p += g_frontState.drawSurfacePitch;
+				p += g_front_state.draw_surface_pitch;
 			}
 		}
 	} else {
 		start = y1;
 		end = y0;
-		if (g_frontState.clipMinY > start) {
-			start = g_frontState.clipMinY;
+		if (g_front_state.clip_min_y > start) {
+			start = g_front_state.clip_min_y;
 			if (start >= y0) {
 				return;
 			}
 		}
-		if (g_frontState.clipMaxY < end) {
-			end = g_frontState.clipMaxY;
+		if (g_front_state.clip_max_y < end) {
+			end = g_front_state.clip_max_y;
 			if (end <= start) {
 				return;
 			}
 		}
-		p = &g_drawSurfacePtr[g_frontState.drawSurfacePitch * start +
-				      (x << shift)];
+		p = &g_draw_surface_ptr[g_front_state.draw_surface_pitch *
+						start +
+					(x << shift)];
 		if (shift != 0) {
 			if (shift != 1) {
 				return;
 			}
 			for (y = start; y <= end; ++y) {
 				*(uint16_t *)p = (uint16_t)color;
-				p += g_frontState.drawSurfacePitch & 0xFFFFFFFE;
+				p += g_front_state.draw_surface_pitch &
+				     0xFFFFFFFE;
 			}
 		} else {
 			for (y = start; y <= end; ++y) {
 				*p = (uint8_t)color;
-				p += g_frontState.drawSurfacePitch;
+				p += g_front_state.draw_surface_pitch;
 			}
 		}
 	}

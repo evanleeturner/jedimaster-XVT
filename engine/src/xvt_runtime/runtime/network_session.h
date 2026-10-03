@@ -16,79 +16,79 @@ extern "C" {
 
 enum { XVT_NETWORK_PENDING = -1 };
 
-typedef enum XvtNetworkSessionState {
+typedef enum xvt_network_session_state {
 	XVT_NETWORK_SESSION_IDLE,
 	XVT_NETWORK_SESSION_PENDING,
 	XVT_NETWORK_SESSION_ADMISSION,
 	XVT_NETWORK_SESSION_ESTABLISHED,
 	XVT_NETWORK_SESSION_FAILED
-} XvtNetworkSessionState;
+} xvt_network_session_state;
 
-struct XvtNetworkSessionStatus {
-	XvtNetworkSessionState state;
+struct xvt_network_session_status {
+	xvt_network_session_state state;
 	AeronDplayDirectoryError error;
 };
 
 /* Configures the directory with the lobby URL from settings, remembering it on success; an
  * unchanged URL returns NONE at once. Returns NOT_CONFIGURED for an empty URL and INVALID_REQUEST
  * for one too long. */
-AeronDplayDirectoryError XvtNetworkSession_Configure(void);
+AeronDplayDirectoryError xvt_network_session_configure(void);
 /* Close the previous session, then advance setup through Update without blocking. */
 /* Starts hosting as player with rating info under name ("<player>'s Game." when empty), listed in
  * the directory when online. Returns -1 when started, and also, doing nothing, while another
  * setup is under way; a missing or over-long argument fails the session and returns 0. */
-int XvtNetworkSession_BeginHost(const char *rating_text,
-				const char *player_name, const char *name,
-				int online);
+int xvt_network_session_begin_host(const char *rating_text,
+				   const char *player_name, const char *name,
+				   int online);
 /* BeginHost's rules for joining room through the directory, always online. */
-int XvtNetworkSession_BeginJoin(const char *rating_text,
-				const char *player_name, const GUID *room);
+int xvt_network_session_begin_join(const char *rating_text,
+				   const char *player_name, const GUID *room);
 /* FAILED, ESTABLISHED or ADMISSION for those phases, PENDING for any other setup phase or while a
  * close completes, else IDLE; error is the last failure's. */
-struct XvtNetworkSessionStatus XvtNetworkSession_GetStatus(void);
+struct xvt_network_session_status xvt_network_session_get_status(void);
 /* Application thread, after the game task: deadlines, close completion and metadata. */
 /* Finishes a close once DirectPlay is inactive, cancelling a deferred join. Fails a lost session
  * outside flight, and a join past its deadline or whose preparation failed. For an established,
  * registered host: publishes the room when it changes (joinable only on mission setup after its
  * first frame; in flight, only players still active once ready), skips an empty roster, and
  * retries a failed listing every 15 seconds. */
-void XvtNetworkSession_Service(void);
+void xvt_network_session_service(void);
 /* Leave. */
-void XvtNetworkSession_Cancel(void);
+void xvt_network_session_cancel(void);
 /* Shuts down the DirectPlay session. */
-void XvtNetworkSession_Leave(void);
+void xvt_network_session_leave(void);
 /* Called by the recovered close path; it never recursively closes DirectPlay. */
 /* Forgets the flight mission cookie and its counter, stops the directory listing, cancels a join (deferred
  * until the close completes when the session was opened), clears the flight and lost state and returns to
  * idle with a close pending. */
-void XvtNetworkSession_OnClose(void);
+void xvt_network_session_on_close(void);
 /* During admission, accepts the host's admission of the local player before the join deadline
  * and while not lost: finishes the join and returns 1 with the session established; otherwise 0. */
-int XvtNetworkSession_AcceptAdmission(DPID sender, DPID player);
+int xvt_network_session_accept_admission(DPID sender, DPID player);
 /* For a refused join: leaves the session, finishes the directory join and drops a deferred
  * cancel. */
-void XvtNetworkSession_Reject(void);
+void xvt_network_session_reject(void);
 /* Marks the session lost; outside flight, the next Service or Update fails it. */
-void XvtNetworkSession_HostLost(void);
+void xvt_network_session_host_lost(void);
 /* 1 once the session is marked lost. */
-int XvtNetworkSession_IsLost(void);
+int xvt_network_session_is_lost(void);
 /* When established: marks a flight begun, and an online host lists the room as in flight and not
  * joinable, with the current roster when it has players. */
-void XvtNetworkSession_BeginFlight(void);
+void xvt_network_session_begin_flight(void);
 /* Marks the flight ready, so the listing keeps only players still active. */
-void XvtNetworkSession_MarkFlightReady(void);
+void xvt_network_session_mark_flight_ready(void);
 /* Ends a begun flight and refreshes the player roster. */
-void XvtNetworkSession_EndFlight(void);
+void xvt_network_session_end_flight(void);
 
 /* Advances setup; returns -1 while pending, 1 in admission or established, and 0 once failed or
  * idle. A lost session outside flight fails. */
-int XvtNetworkSession_Update(void);
+int xvt_network_session_update(void);
 /* Forgets the session state and the configured lobby URL, without closing DirectPlay. */
-void XvtNetworkSession_Shutdown(void);
+void xvt_network_session_shutdown(void);
 /* Splits message's short and long names, each NUL-terminated, into the outputs, truncated to fit.
  * Returns 0 for a NULL or zero-capacity argument or a name without its terminator. */
-int XvtNetworkSession_CopyPlayerNames(
-	const struct NetPlayerNameMessage *message, char *short_name,
+int xvt_network_session_copy_player_names(
+	const struct net_player_name_message *message, char *short_name,
 	size_t short_capacity, char *long_name, size_t long_capacity);
 
 #ifdef __cplusplus

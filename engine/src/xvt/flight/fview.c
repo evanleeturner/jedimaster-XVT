@@ -13,286 +13,289 @@
 #include <stdint.h>
 
 /* Forward axis of the object last oriented, X term, Q15 (32,768 is 1.0);
- * the negated row 2 of the current object matrix (g_curMatR2_X). The nine
+ * the negated row 2 of the current object matrix (g_cur_mat_r2_x). The nine
  * g_fview axis globals have two writers, each setting all nine:
- * FVIEW_calcrotateorient, from the matrix it has just turned, and
- * FVIEW_SetObjectTransform, from an object's cached axes. */
+ * fview_calcrotateorient, from the matrix it has just turned, and
+ * fview_set_object_transform, from an object's cached axes. */
 // GLOBAL: XVT 0x9D12E8
-int g_fviewForwardX_Q15 = 0;
-/* Forward axis, Y term; see g_fviewForwardX_Q15. */
+int g_fview_forward_x_q15 = 0;
+/* Forward axis, Y term; see g_fview_forward_x_q15. */
 // GLOBAL: XVT 0x9D1264
-int g_fviewForwardY_Q15 = 0;
-/* Forward axis, Z term; see g_fviewForwardX_Q15. */
+int g_fview_forward_y_q15 = 0;
+/* Forward axis, Z term; see g_fview_forward_x_q15. */
 // GLOBAL: XVT 0x9D1154
-int g_fviewForwardZ_Q15 = 0;
+int g_fview_forward_z_q15 = 0;
 /* Side axis of the object last oriented, X term: row 0 of the current
- * object matrix; see g_fviewForwardX_Q15. */
+ * object matrix; see g_fview_forward_x_q15. */
 // GLOBAL: XVT 0x9A8D80
-int g_fviewSideX_Q15 = 0;
-/* Side axis, Y term; see g_fviewSideX_Q15. */
+int g_fview_side_x_q15 = 0;
+/* Side axis, Y term; see g_fview_side_x_q15. */
 // GLOBAL: XVT 0x9A8D60
-int g_fviewSideY_Q15 = 0;
-/* Side axis, Z term; see g_fviewSideX_Q15. */
+int g_fview_side_y_q15 = 0;
+/* Side axis, Z term; see g_fview_side_x_q15. */
 // GLOBAL: XVT 0x9A8D8C
-int g_fviewSideZ_Q15 = 0;
+int g_fview_side_z_q15 = 0;
 /* Up axis of the object last oriented, X term: row 1 of the current object
- * matrix; see g_fviewForwardX_Q15. */
+ * matrix; see g_fview_forward_x_q15. */
 // GLOBAL: XVT 0x9A8E20
-int g_fviewUpX_Q15 = 0;
-/* Up axis, Y term; see g_fviewUpX_Q15. */
+int g_fview_up_x_q15 = 0;
+/* Up axis, Y term; see g_fview_up_x_q15. */
 // GLOBAL: XVT 0x9A8E1C
-int g_fviewUpY_Q15 = 0;
-/* Up axis, Z term; see g_fviewUpX_Q15. */
+int g_fview_up_y_q15 = 0;
+/* Up axis, Z term; see g_fview_up_x_q15. */
 // GLOBAL: XVT 0x9A8E28
-int g_fviewUpZ_Q15 = 0;
+int g_fview_up_z_q15 = 0;
 
-/* Builds the camera matrix g_camMatR0_X to g_camMatR2_Z from view angles
- * (a full circle is 65,536): FVIEW_calcrotatemove for viewPitch and viewYaw,
- * FVIEW_calcrotateorient for viewUpAxisAngle and viewRoll, rows 1 and 2
- * negated, then a turn by hudAimX about the side axis and by hudAimY about
- * row 1 as it stood before that turn. Those calls also write g_curMatR0_X to
- * g_curMatR2_Z, the g_fviewMove globals and the g_fview axis globals, and,
- * when objRecord is not NULL, store that move vector and those axes, as they
- * were before the negation, in objRecord's mobj. The modern build also calls
- * XvtRenderCamera_Build with the same angles. */
+/* Builds the camera matrix g_cam_mat_r0_x to g_cam_mat_r2_z from view angles
+ * (a full circle is 65,536): fview_calcrotatemove for view_pitch and view_yaw,
+ * fview_calcrotateorient for view_up_axis_angle and view_roll, rows 1 and 2
+ * negated, then a turn by hud_aim_x about the side axis and by hud_aim_y about
+ * row 1 as it stood before that turn. Those calls also write g_cur_mat_r0_x to
+ * g_cur_mat_r2_z, the g_fviewMove globals and the g_fview axis globals, and,
+ * when obj_record is not NULL, store that move vector and those axes, as they
+ * were before the negation, in obj_record's mobj. The modern build also calls
+ * xvt_render_camera_build with the same angles. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x427940
-void FVIEW_BuildCameraOrient(int16_t viewRoll, int16_t viewPitch,
-			     int16_t viewYaw, int16_t viewUpAxisAngle,
-			     int16_t hudAimX, int16_t hudAimY,
-			     struct ObjectRecord *objRecord)
+void fview_build_camera_orient(int16_t view_roll, int16_t view_pitch,
+			       int16_t view_yaw, int16_t view_up_axis_angle,
+			       int16_t hud_aim_x, int16_t hud_aim_y,
+			       struct object_record *obj_record)
 {
 	/* Build the camera basis from the current orientation and HUD aim offsets. */
-	int axisX;
-	int axisY;
-	int axisZ;
+	int axis_x;
+	int axis_y;
+	int axis_z;
 
-	FVIEW_calcrotatemove(viewPitch, viewYaw, objRecord);
-	FVIEW_calcrotateorient(viewRoll, viewUpAxisAngle, objRecord);
+	fview_calcrotatemove(view_pitch, view_yaw, obj_record);
+	fview_calcrotateorient(view_roll, view_up_axis_angle, obj_record);
 
-	g_curMatR2_X = -g_curMatR2_X;
-	g_curMatR2_Y = -g_curMatR2_Y;
-	g_curMatR2_Z = -g_curMatR2_Z;
-	g_curMatR1_X = -g_curMatR1_X;
-	axisX = g_curMatR1_X;
-	g_curMatR1_Y = -g_curMatR1_Y;
-	axisY = g_curMatR1_Y;
-	g_curMatR1_Z = -g_curMatR1_Z;
-	axisZ = g_curMatR1_Z;
+	g_cur_mat_r2_x = -g_cur_mat_r2_x;
+	g_cur_mat_r2_y = -g_cur_mat_r2_y;
+	g_cur_mat_r2_z = -g_cur_mat_r2_z;
+	g_cur_mat_r1_x = -g_cur_mat_r1_x;
+	axis_x = g_cur_mat_r1_x;
+	g_cur_mat_r1_y = -g_cur_mat_r1_y;
+	axis_y = g_cur_mat_r1_y;
+	g_cur_mat_r1_z = -g_cur_mat_r1_z;
+	axis_z = g_cur_mat_r1_z;
 
-	FVIEW_transformaxes(g_curMatR0_X, g_curMatR0_Y, g_curMatR0_Z, hudAimX);
-	FVIEW_transformaxes(axisX, axisY, axisZ, hudAimY);
+	fview_transformaxes(g_cur_mat_r0_x, g_cur_mat_r0_y, g_cur_mat_r0_z,
+			    hud_aim_x);
+	fview_transformaxes(axis_x, axis_y, axis_z, hud_aim_y);
 
-	g_camMatR0_X = g_curMatR0_X;
-	g_camMatR0_Y = g_curMatR0_Y;
-	g_camMatR0_Z = g_curMatR0_Z;
-	g_camMatR1_X = g_curMatR1_X;
-	g_camMatR1_Y = g_curMatR1_Y;
-	g_camMatR1_Z = g_curMatR1_Z;
-	g_camMatR2_X = g_curMatR2_X;
-	g_camMatR2_Y = g_curMatR2_Y;
-	g_camMatR2_Z = g_curMatR2_Z;
+	g_cam_mat_r0_x = g_cur_mat_r0_x;
+	g_cam_mat_r0_y = g_cur_mat_r0_y;
+	g_cam_mat_r0_z = g_cur_mat_r0_z;
+	g_cam_mat_r1_x = g_cur_mat_r1_x;
+	g_cam_mat_r1_y = g_cur_mat_r1_y;
+	g_cam_mat_r1_z = g_cur_mat_r1_z;
+	g_cam_mat_r2_x = g_cur_mat_r2_x;
+	g_cam_mat_r2_y = g_cur_mat_r2_y;
+	g_cam_mat_r2_z = g_cur_mat_r2_z;
 #ifdef XVT_MODERN
-	XvtRenderCamera_Build(viewRoll, viewPitch, viewYaw, viewUpAxisAngle,
-			      hudAimX, hudAimY);
+	xvt_render_camera_build(view_roll, view_pitch, view_yaw,
+				view_up_axis_angle, hud_aim_x, hud_aim_y);
 #endif
 }
 
-/* Sets the current object matrix (g_curMatR0_X to g_curMatR2_Z) and the
+/* Sets the current object matrix (g_cur_mat_r0_x to g_cur_mat_r2_z) and the
  * g_fview axis globals for an object, then builds its object-to-view matrix
- * with FVIEW_ComputeObjectViewMatrix and returns what that returns. With
- * objRecord NULL, or its mobj's orientMatrixDirty set, it works from the
- * angles through FVIEW_calcrotatemove and FVIEW_calcrotateorient, which
+ * with fview_compute_object_view_matrix and returns what that returns. With
+ * obj_record NULL, or its mobj's orient_matrix_dirty set, it works from the
+ * angles through fview_calcrotatemove and fview_calcrotateorient, which
  * refresh a record's cached axes; otherwise it takes the cached axes from
  * the record's mobj. Does not check that mobj is set. */
 // FUNCTION: XVT 0x427A60
-int FVIEW_SetObjectTransform(int16_t roll, int16_t pitch, int16_t yaw,
-			     int16_t upAxisAngle,
-			     struct ObjectRecord *objRecord)
+int fview_set_object_transform(int16_t roll, int16_t pitch, int16_t yaw,
+			       int16_t up_axis_angle,
+			       struct object_record *obj_record)
 {
-	if (objRecord == NULL) {
-		FVIEW_calcrotatemove(pitch, yaw, objRecord);
-		FVIEW_calcrotateorient(roll, upAxisAngle, objRecord);
-		return FVIEW_ComputeObjectViewMatrix();
+	if (obj_record == NULL) {
+		fview_calcrotatemove(pitch, yaw, obj_record);
+		fview_calcrotateorient(roll, up_axis_angle, obj_record);
+		return fview_compute_object_view_matrix();
 	}
 
-	if (objRecord->mobj->orientMatrixDirty != 0) {
-		FVIEW_calcrotatemove(pitch, yaw, objRecord);
-		FVIEW_calcrotateorient(roll, upAxisAngle, objRecord);
-		return FVIEW_ComputeObjectViewMatrix();
+	if (obj_record->mobj->orient_matrix_dirty != 0) {
+		fview_calcrotatemove(pitch, yaw, obj_record);
+		fview_calcrotateorient(roll, up_axis_angle, obj_record);
+		return fview_compute_object_view_matrix();
 	}
 
-	g_fviewForwardX_Q15 = objRecord->mobj->cachedFwdX;
-	g_fviewForwardY_Q15 = objRecord->mobj->cachedFwdY;
-	g_fviewForwardZ_Q15 = objRecord->mobj->cachedFwdZ;
-	g_fviewSideX_Q15 = objRecord->mobj->cachedSideX;
-	g_fviewSideY_Q15 = objRecord->mobj->cachedSideY;
-	g_fviewSideZ_Q15 = objRecord->mobj->cachedSideZ;
-	g_fviewUpX_Q15 = objRecord->mobj->cachedUpX;
-	g_fviewUpY_Q15 = objRecord->mobj->cachedUpY;
-	g_fviewUpZ_Q15 = objRecord->mobj->cachedUpZ;
+	g_fview_forward_x_q15 = obj_record->mobj->cached_fwd_x;
+	g_fview_forward_y_q15 = obj_record->mobj->cached_fwd_y;
+	g_fview_forward_z_q15 = obj_record->mobj->cached_fwd_z;
+	g_fview_side_x_q15 = obj_record->mobj->cached_side_x;
+	g_fview_side_y_q15 = obj_record->mobj->cached_side_y;
+	g_fview_side_z_q15 = obj_record->mobj->cached_side_z;
+	g_fview_up_x_q15 = obj_record->mobj->cached_up_x;
+	g_fview_up_y_q15 = obj_record->mobj->cached_up_y;
+	g_fview_up_z_q15 = obj_record->mobj->cached_up_z;
 
-	g_curMatR2_X = -g_fviewForwardX_Q15;
-	g_curMatR2_Y = -g_fviewForwardY_Q15;
-	g_curMatR2_Z = -g_fviewForwardZ_Q15;
-	g_curMatR0_X = g_fviewSideX_Q15;
-	g_curMatR0_Y = g_fviewSideY_Q15;
-	g_curMatR0_Z = g_fviewSideZ_Q15;
-	g_curMatR1_X = g_fviewUpX_Q15;
-	g_curMatR1_Y = g_fviewUpY_Q15;
-	g_curMatR1_Z = g_fviewUpZ_Q15;
+	g_cur_mat_r2_x = -g_fview_forward_x_q15;
+	g_cur_mat_r2_y = -g_fview_forward_y_q15;
+	g_cur_mat_r2_z = -g_fview_forward_z_q15;
+	g_cur_mat_r0_x = g_fview_side_x_q15;
+	g_cur_mat_r0_y = g_fview_side_y_q15;
+	g_cur_mat_r0_z = g_fview_side_z_q15;
+	g_cur_mat_r1_x = g_fview_up_x_q15;
+	g_cur_mat_r1_y = g_fview_up_y_q15;
+	g_cur_mat_r1_z = g_fview_up_z_q15;
 
-	return FVIEW_ComputeObjectViewMatrix();
+	return fview_compute_object_view_matrix();
 }
 
 /* Starts the current object matrix from a pitch and a yaw (a full circle is
- * 65,536), with no roll: writes all nine g_curMatR0_X to g_curMatR2_Z, and
- * g_fviewMoveX_Q15, g_fviewMoveY_Q15 and g_fviewMoveZ_Q15, the forward
- * direction (negated row 2), Q15. When objRecord is not NULL it also stores
- * that direction as its mobj's moveX, moveY and moveZ and clears
- * moveVectorDirty. */
+ * 65,536), with no roll: writes all nine g_cur_mat_r0_x to g_cur_mat_r2_z, and
+ * g_fview_move_x_q15, g_fview_move_y_q15 and g_fview_move_z_q15, the forward
+ * direction (negated row 2), Q15. When obj_record is not NULL it also stores
+ * that direction as its mobj's move_x, move_y and move_z and clears
+ * move_vector_dirty. */
 // FUNCTION: XVT 0x427BD0
-void FVIEW_calcrotatemove(int16_t pitch, int16_t yaw,
-			  struct ObjectRecord *objRecord)
+void fview_calcrotatemove(int16_t pitch, int16_t yaw,
+			  struct object_record *obj_record)
 {
-	int16_t cosNegB;
-	int16_t cosC000MinusA;
-	int16_t sinNegB;
-	int16_t sinC000MinusA;
+	int16_t cos_neg_b;
+	int16_t cos_c000_minus_a;
+	int16_t sin_neg_b;
+	int16_t sin_c000_minus_a;
 
-	cosNegB = trig2_getsignedcos(-yaw);
-	cosC000MinusA = trig2_getsignedcos((int16_t)(0xc000 - pitch));
-	sinNegB = trig2_getsignedsin(-yaw);
-	sinC000MinusA = trig2_getsignedsin((int16_t)(0xc000 - pitch));
+	cos_neg_b = trig2_getsignedcos(-yaw);
+	cos_c000_minus_a = trig2_getsignedcos((int16_t)(0xc000 - pitch));
+	sin_neg_b = trig2_getsignedsin(-yaw);
+	sin_c000_minus_a = trig2_getsignedsin((int16_t)(0xc000 - pitch));
 
-	g_curMatR0_X = cosNegB;
-	g_curMatR0_Y = sinNegB;
-	g_curMatR0_Z = 0;
-	g_curMatR2_X = Math_MulQ15(-sinNegB, cosC000MinusA);
-	g_curMatR2_Y = Math_MulQ15(cosNegB, cosC000MinusA);
-	g_curMatR2_Z = sinC000MinusA;
-	g_curMatR1_X = -Math_MulQ15(sinNegB, sinC000MinusA);
-	g_curMatR1_Z = -cosC000MinusA;
-	g_curMatR1_Y = -Math_MulQ15(-cosNegB, sinC000MinusA);
+	g_cur_mat_r0_x = cos_neg_b;
+	g_cur_mat_r0_y = sin_neg_b;
+	g_cur_mat_r0_z = 0;
+	g_cur_mat_r2_x = math_mul_q15(-sin_neg_b, cos_c000_minus_a);
+	g_cur_mat_r2_y = math_mul_q15(cos_neg_b, cos_c000_minus_a);
+	g_cur_mat_r2_z = sin_c000_minus_a;
+	g_cur_mat_r1_x = -math_mul_q15(sin_neg_b, sin_c000_minus_a);
+	g_cur_mat_r1_z = -cos_c000_minus_a;
+	g_cur_mat_r1_y = -math_mul_q15(-cos_neg_b, sin_c000_minus_a);
 
-	g_fviewMoveX_Q15 = -g_curMatR2_X;
-	g_fviewMoveZ_Q15 = -g_curMatR2_Z;
-	g_fviewMoveY_Q15 = -g_curMatR2_Y;
-	if (objRecord != NULL) {
-		objRecord->mobj->moveX = (int16_t)g_fviewMoveX_Q15;
-		objRecord->mobj->moveY = (int16_t)g_fviewMoveY_Q15;
-		objRecord->mobj->moveZ = (int16_t)g_fviewMoveZ_Q15;
-		objRecord->mobj->moveVectorDirty = 0;
+	g_fview_move_x_q15 = -g_cur_mat_r2_x;
+	g_fview_move_z_q15 = -g_cur_mat_r2_z;
+	g_fview_move_y_q15 = -g_cur_mat_r2_y;
+	if (obj_record != NULL) {
+		obj_record->mobj->move_x = (int16_t)g_fview_move_x_q15;
+		obj_record->mobj->move_y = (int16_t)g_fview_move_y_q15;
+		obj_record->mobj->move_z = (int16_t)g_fview_move_z_q15;
+		obj_record->mobj->move_vector_dirty = 0;
 	}
 }
 
-/* Finishes the current object matrix begun by FVIEW_calcrotatemove: turns it
- * by upAxisAngle about its row 1, then by roll about its row 2
- * (FVIEW_transformaxes), and copies the axes into the g_fview axis globals.
- * When objRecord is not NULL it also caches them in its mobj (cachedFwdX to
- * cachedUpZ) and clears orientMatrixDirty. */
+/* Finishes the current object matrix begun by fview_calcrotatemove: turns it
+ * by up_axis_angle about its row 1, then by roll about its row 2
+ * (fview_transformaxes), and copies the axes into the g_fview axis globals.
+ * When obj_record is not NULL it also caches them in its mobj (cached_fwd_x to
+ * cached_up_z) and clears orient_matrix_dirty. */
 // FUNCTION: XVT 0x427D30
-void FVIEW_calcrotateorient(int16_t roll, int16_t upAxisAngle,
-			    struct ObjectRecord *objRecord)
+void fview_calcrotateorient(int16_t roll, int16_t up_axis_angle,
+			    struct object_record *obj_record)
 {
-	FVIEW_transformaxes(g_curMatR1_X, g_curMatR1_Y, g_curMatR1_Z,
-			    upAxisAngle);
-	FVIEW_transformaxes(g_curMatR2_X, g_curMatR2_Y, g_curMatR2_Z, roll);
+	fview_transformaxes(g_cur_mat_r1_x, g_cur_mat_r1_y, g_cur_mat_r1_z,
+			    up_axis_angle);
+	fview_transformaxes(g_cur_mat_r2_x, g_cur_mat_r2_y, g_cur_mat_r2_z,
+			    roll);
 
-	g_fviewForwardX_Q15 = -g_curMatR2_X;
-	g_fviewForwardY_Q15 = -g_curMatR2_Y;
-	g_fviewSideX_Q15 = g_curMatR0_X;
-	g_fviewSideY_Q15 = g_curMatR0_Y;
-	g_fviewUpX_Q15 = g_curMatR1_X;
-	g_fviewForwardZ_Q15 = -g_curMatR2_Z;
-	g_fviewSideZ_Q15 = g_curMatR0_Z;
-	g_fviewUpY_Q15 = g_curMatR1_Y;
-	g_fviewUpZ_Q15 = g_curMatR1_Z;
+	g_fview_forward_x_q15 = -g_cur_mat_r2_x;
+	g_fview_forward_y_q15 = -g_cur_mat_r2_y;
+	g_fview_side_x_q15 = g_cur_mat_r0_x;
+	g_fview_side_y_q15 = g_cur_mat_r0_y;
+	g_fview_up_x_q15 = g_cur_mat_r1_x;
+	g_fview_forward_z_q15 = -g_cur_mat_r2_z;
+	g_fview_side_z_q15 = g_cur_mat_r0_z;
+	g_fview_up_y_q15 = g_cur_mat_r1_y;
+	g_fview_up_z_q15 = g_cur_mat_r1_z;
 
-	if (objRecord != NULL) {
-		objRecord->mobj->cachedFwdX = (int16_t)g_fviewForwardX_Q15;
-		objRecord->mobj->cachedFwdY = (int16_t)g_fviewForwardY_Q15;
-		objRecord->mobj->cachedFwdZ = (int16_t)g_fviewForwardZ_Q15;
-		objRecord->mobj->cachedSideX = (int16_t)g_fviewSideX_Q15;
-		objRecord->mobj->cachedSideY = (int16_t)g_fviewSideY_Q15;
-		objRecord->mobj->cachedSideZ = (int16_t)g_fviewSideZ_Q15;
-		objRecord->mobj->cachedUpX = (int16_t)g_fviewUpX_Q15;
-		objRecord->mobj->cachedUpY = (int16_t)g_fviewUpY_Q15;
-		objRecord->mobj->cachedUpZ = (int16_t)g_fviewUpZ_Q15;
-		objRecord->mobj->orientMatrixDirty = 0;
+	if (obj_record != NULL) {
+		obj_record->mobj->cached_fwd_x = (int16_t)g_fview_forward_x_q15;
+		obj_record->mobj->cached_fwd_y = (int16_t)g_fview_forward_y_q15;
+		obj_record->mobj->cached_fwd_z = (int16_t)g_fview_forward_z_q15;
+		obj_record->mobj->cached_side_x = (int16_t)g_fview_side_x_q15;
+		obj_record->mobj->cached_side_y = (int16_t)g_fview_side_y_q15;
+		obj_record->mobj->cached_side_z = (int16_t)g_fview_side_z_q15;
+		obj_record->mobj->cached_up_x = (int16_t)g_fview_up_x_q15;
+		obj_record->mobj->cached_up_y = (int16_t)g_fview_up_y_q15;
+		obj_record->mobj->cached_up_z = (int16_t)g_fview_up_z_q15;
+		obj_record->mobj->orient_matrix_dirty = 0;
 	}
 }
 
-/* Builds g_objViewMat_R0_X to g_objViewMat_R2_Z, the rotation from the
+/* Builds g_obj_view_mat_r0_x to g_obj_view_mat_r2_z, the rotation from the
  * current object matrix into view space: each entry is one row of the
  * object matrix (rows 0, 2 and 1, in that order) dotted with one row of the
- * camera matrix, by Math_Dot3Q15Wrapped. With
- * g_transformLightDirectionToObjectSpace set it also turns the world light
- * direction into object space the same way, into g_objectLightDirectionX to
+ * camera matrix, by math_dot3q15_wrapped. With
+ * g_transform_light_direction_to_object_space set it also turns the world light
+ * direction into object space the same way, into g_object_light_direction_x to
  * Z, and returns the Z term; otherwise it copies the world direction
- * unchanged and returns g_objViewMat_R2_Z. */
+ * unchanged and returns g_obj_view_mat_r2_z. */
 // FUNCTION: XVT 0x427E90
-int FVIEW_ComputeObjectViewMatrix(void)
+int fview_compute_object_view_matrix(void)
 {
 	int result;
 
-	g_objViewMat_R0_X =
-		Math_Dot3Q15Wrapped(g_curMatR0_X, g_curMatR0_Y, g_curMatR0_Z,
-				    g_camMatR0_X, g_camMatR0_Y, g_camMatR0_Z);
-	g_objViewMat_R0_Y =
-		Math_Dot3Q15Wrapped(g_curMatR0_X, g_curMatR0_Y, g_curMatR0_Z,
-				    g_camMatR1_X, g_camMatR1_Y, g_camMatR1_Z);
-	g_objViewMat_R0_Z =
-		Math_Dot3Q15Wrapped(g_curMatR0_X, g_curMatR0_Y, g_curMatR0_Z,
-				    g_camMatR2_X, g_camMatR2_Y, g_camMatR2_Z);
-	g_objViewMat_R1_X =
-		Math_Dot3Q15Wrapped(g_curMatR2_X, g_curMatR2_Y, g_curMatR2_Z,
-				    g_camMatR0_X, g_camMatR0_Y, g_camMatR0_Z);
-	g_objViewMat_R1_Y =
-		Math_Dot3Q15Wrapped(g_curMatR2_X, g_curMatR2_Y, g_curMatR2_Z,
-				    g_camMatR1_X, g_camMatR1_Y, g_camMatR1_Z);
-	g_objViewMat_R1_Z =
-		Math_Dot3Q15Wrapped(g_curMatR2_X, g_curMatR2_Y, g_curMatR2_Z,
-				    g_camMatR2_X, g_camMatR2_Y, g_camMatR2_Z);
-	g_objViewMat_R2_X =
-		Math_Dot3Q15Wrapped(g_curMatR1_X, g_curMatR1_Y, g_curMatR1_Z,
-				    g_camMatR0_X, g_camMatR0_Y, g_camMatR0_Z);
-	g_objViewMat_R2_Y =
-		Math_Dot3Q15Wrapped(g_curMatR1_X, g_curMatR1_Y, g_curMatR1_Z,
-				    g_camMatR1_X, g_camMatR1_Y, g_camMatR1_Z);
-	result = Math_Dot3Q15Wrapped(g_curMatR1_X, g_curMatR1_Y, g_curMatR1_Z,
-				     g_camMatR2_X, g_camMatR2_Y, g_camMatR2_Z);
-	g_objViewMat_R2_Z = result;
-	if (g_transformLightDirectionToObjectSpace != 0) {
-		g_objectLightDirectionX = Math_Dot3Q15Wrapped(
-			g_curMatR0_X, g_curMatR0_Y, g_curMatR0_Z,
-			g_worldLightDirectionX, g_worldLightDirectionY,
-			g_worldLightDirectionZ);
-		g_objectLightDirectionY = Math_Dot3Q15Wrapped(
-			g_curMatR2_X, g_curMatR2_Y, g_curMatR2_Z,
-			g_worldLightDirectionX, g_worldLightDirectionY,
-			g_worldLightDirectionZ);
-		result = Math_Dot3Q15Wrapped(
-			g_curMatR1_X, g_curMatR1_Y, g_curMatR1_Z,
-			g_worldLightDirectionX, g_worldLightDirectionY,
-			g_worldLightDirectionZ);
-		g_objectLightDirectionZ = result;
+	g_obj_view_mat_r0_x = math_dot3q15_wrapped(
+		g_cur_mat_r0_x, g_cur_mat_r0_y, g_cur_mat_r0_z, g_cam_mat_r0_x,
+		g_cam_mat_r0_y, g_cam_mat_r0_z);
+	g_obj_view_mat_r0_y = math_dot3q15_wrapped(
+		g_cur_mat_r0_x, g_cur_mat_r0_y, g_cur_mat_r0_z, g_cam_mat_r1_x,
+		g_cam_mat_r1_y, g_cam_mat_r1_z);
+	g_obj_view_mat_r0_z = math_dot3q15_wrapped(
+		g_cur_mat_r0_x, g_cur_mat_r0_y, g_cur_mat_r0_z, g_cam_mat_r2_x,
+		g_cam_mat_r2_y, g_cam_mat_r2_z);
+	g_obj_view_mat_r1_x = math_dot3q15_wrapped(
+		g_cur_mat_r2_x, g_cur_mat_r2_y, g_cur_mat_r2_z, g_cam_mat_r0_x,
+		g_cam_mat_r0_y, g_cam_mat_r0_z);
+	g_obj_view_mat_r1_y = math_dot3q15_wrapped(
+		g_cur_mat_r2_x, g_cur_mat_r2_y, g_cur_mat_r2_z, g_cam_mat_r1_x,
+		g_cam_mat_r1_y, g_cam_mat_r1_z);
+	g_obj_view_mat_r1_z = math_dot3q15_wrapped(
+		g_cur_mat_r2_x, g_cur_mat_r2_y, g_cur_mat_r2_z, g_cam_mat_r2_x,
+		g_cam_mat_r2_y, g_cam_mat_r2_z);
+	g_obj_view_mat_r2_x = math_dot3q15_wrapped(
+		g_cur_mat_r1_x, g_cur_mat_r1_y, g_cur_mat_r1_z, g_cam_mat_r0_x,
+		g_cam_mat_r0_y, g_cam_mat_r0_z);
+	g_obj_view_mat_r2_y = math_dot3q15_wrapped(
+		g_cur_mat_r1_x, g_cur_mat_r1_y, g_cur_mat_r1_z, g_cam_mat_r1_x,
+		g_cam_mat_r1_y, g_cam_mat_r1_z);
+	result = math_dot3q15_wrapped(g_cur_mat_r1_x, g_cur_mat_r1_y,
+				      g_cur_mat_r1_z, g_cam_mat_r2_x,
+				      g_cam_mat_r2_y, g_cam_mat_r2_z);
+	g_obj_view_mat_r2_z = result;
+	if (g_transform_light_direction_to_object_space != 0) {
+		g_object_light_direction_x = math_dot3q15_wrapped(
+			g_cur_mat_r0_x, g_cur_mat_r0_y, g_cur_mat_r0_z,
+			g_world_light_direction_x, g_world_light_direction_y,
+			g_world_light_direction_z);
+		g_object_light_direction_y = math_dot3q15_wrapped(
+			g_cur_mat_r2_x, g_cur_mat_r2_y, g_cur_mat_r2_z,
+			g_world_light_direction_x, g_world_light_direction_y,
+			g_world_light_direction_z);
+		result = math_dot3q15_wrapped(
+			g_cur_mat_r1_x, g_cur_mat_r1_y, g_cur_mat_r1_z,
+			g_world_light_direction_x, g_world_light_direction_y,
+			g_world_light_direction_z);
+		g_object_light_direction_z = result;
 	} else {
-		g_objectLightDirectionX = g_worldLightDirectionX;
-		g_objectLightDirectionY = g_worldLightDirectionY;
-		g_objectLightDirectionZ = g_worldLightDirectionZ;
+		g_object_light_direction_x = g_world_light_direction_x;
+		g_object_light_direction_y = g_world_light_direction_y;
+		g_object_light_direction_z = g_world_light_direction_z;
 	}
 	return result;
 }
 
-/* Turns all three rows of the current object matrix (g_curMatR0_X to
- * g_curMatR2_Z) by angleQ16 (a full circle is 65,536) about the axis
- * (axisX_Q15, axisY_Q15, axisZ_Q15), building the rotation from the axis
+/* Turns all three rows of the current object matrix (g_cur_mat_r0_x to
+ * g_cur_mat_r2_z) by angle_q16 (a full circle is 65,536) about the axis
+ * (axis_x_q15, axis_y_q15, axis_z_q15), building the rotation from the axis
  * and the angle's cosine and sine. Does nothing when the angle is 0. Does
  * not check that the axis has length 1. */
 // FUNCTION: XVT 0x4290B0
-void FVIEW_transformaxes(int axisX_Q15, int axisY_Q15, int axisZ_Q15,
-			 int16_t angleQ16)
+void fview_transformaxes(int axis_x_q15, int axis_y_q15, int axis_z_q15,
+			 int16_t angle_q16)
 {
 	enum { Q15_ONE = 0x7FFF };
 
@@ -307,99 +310,108 @@ void FVIEW_transformaxes(int axisX_Q15, int axisY_Q15, int axisZ_Q15,
 	int coefficient20;
 	int coefficient21;
 	int coefficient22;
-	int newX;
-	int newY;
-	int newZ;
+	int new_x;
+	int new_y;
+	int new_z;
 
-	if (angleQ16 == 0) {
+	if (angle_q16 == 0) {
 		return;
 	}
 
-	cosine = trig2_getsignedcos(angleQ16);
-	sine = trig2_getsignedsin(angleQ16);
+	cosine = trig2_getsignedcos(angle_q16);
+	sine = trig2_getsignedsin(angle_q16);
 	if (cosine >= 0) {
-		const int cosineComplement = Q15_ONE - cosine;
+		const int cosine_complement = Q15_ONE - cosine;
 
-		coefficient00 = Math_RodriguesTermNonnegativeCos(
-			axisX_Q15, axisX_Q15, cosineComplement, cosine);
-		coefficient01 = Math_RodriguesTermNonnegativeCos(
-			axisX_Q15, axisY_Q15, cosineComplement,
-			Math_MulQ15(sine, axisZ_Q15));
-		coefficient02 = Math_RodriguesTermNonnegativeCos(
-			axisX_Q15, axisZ_Q15, cosineComplement,
-			-Math_MulQ15(sine, axisY_Q15));
-		coefficient10 = Math_RodriguesTermNonnegativeCos(
-			axisX_Q15, axisY_Q15, cosineComplement,
-			-Math_MulQ15(sine, axisZ_Q15));
-		coefficient11 = Math_RodriguesTermNonnegativeCos(
-			axisY_Q15, axisY_Q15, cosineComplement, cosine);
-		coefficient12 = Math_RodriguesTermNonnegativeCos(
-			axisY_Q15, axisZ_Q15, cosineComplement,
-			Math_MulQ15(sine, axisX_Q15));
-		coefficient20 = Math_RodriguesTermNonnegativeCos(
-			axisX_Q15, axisZ_Q15, cosineComplement,
-			Math_MulQ15(sine, axisY_Q15));
-		coefficient21 = Math_RodriguesTermNonnegativeCos(
-			axisY_Q15, axisZ_Q15, cosineComplement,
-			-Math_MulQ15(sine, axisX_Q15));
-		coefficient22 = Math_RodriguesTermNonnegativeCos(
-			axisZ_Q15, axisZ_Q15, cosineComplement, cosine);
+		coefficient00 = math_rodrigues_term_nonnegative_cos(
+			axis_x_q15, axis_x_q15, cosine_complement, cosine);
+		coefficient01 = math_rodrigues_term_nonnegative_cos(
+			axis_x_q15, axis_y_q15, cosine_complement,
+			math_mul_q15(sine, axis_z_q15));
+		coefficient02 = math_rodrigues_term_nonnegative_cos(
+			axis_x_q15, axis_z_q15, cosine_complement,
+			-math_mul_q15(sine, axis_y_q15));
+		coefficient10 = math_rodrigues_term_nonnegative_cos(
+			axis_x_q15, axis_y_q15, cosine_complement,
+			-math_mul_q15(sine, axis_z_q15));
+		coefficient11 = math_rodrigues_term_nonnegative_cos(
+			axis_y_q15, axis_y_q15, cosine_complement, cosine);
+		coefficient12 = math_rodrigues_term_nonnegative_cos(
+			axis_y_q15, axis_z_q15, cosine_complement,
+			math_mul_q15(sine, axis_x_q15));
+		coefficient20 = math_rodrigues_term_nonnegative_cos(
+			axis_x_q15, axis_z_q15, cosine_complement,
+			math_mul_q15(sine, axis_y_q15));
+		coefficient21 = math_rodrigues_term_nonnegative_cos(
+			axis_y_q15, axis_z_q15, cosine_complement,
+			-math_mul_q15(sine, axis_x_q15));
+		coefficient22 = math_rodrigues_term_nonnegative_cos(
+			axis_z_q15, axis_z_q15, cosine_complement, cosine);
 	} else {
-		const int cosineMagnitude = -cosine;
+		const int cosine_magnitude = -cosine;
 
-		coefficient00 = Math_RodriguesTermNegativeCos(
-			axisX_Q15, axisX_Q15, cosineMagnitude, cosine);
-		coefficient01 = Math_RodriguesTermNegativeCos(
-			axisX_Q15, axisY_Q15, cosineMagnitude,
-			Math_MulQ15(sine, axisZ_Q15));
-		coefficient02 = Math_RodriguesTermNegativeCos(
-			axisX_Q15, axisZ_Q15, cosineMagnitude,
-			-Math_MulQ15(sine, axisY_Q15));
-		coefficient10 = Math_RodriguesTermNegativeCos(
-			axisX_Q15, axisY_Q15, cosineMagnitude,
-			-Math_MulQ15(sine, axisZ_Q15));
-		coefficient11 = Math_RodriguesTermNegativeCos(
-			axisY_Q15, axisY_Q15, cosineMagnitude, cosine);
-		coefficient12 = Math_RodriguesTermNegativeCos(
-			axisY_Q15, axisZ_Q15, cosineMagnitude,
-			Math_MulQ15(sine, axisX_Q15));
-		coefficient20 = Math_RodriguesTermNegativeCos(
-			axisX_Q15, axisZ_Q15, cosineMagnitude,
-			Math_MulQ15(sine, axisY_Q15));
-		coefficient21 = Math_RodriguesTermNegativeCos(
-			axisY_Q15, axisZ_Q15, cosineMagnitude,
-			-Math_MulQ15(sine, axisX_Q15));
-		coefficient22 = Math_RodriguesTermNegativeCos(
-			axisZ_Q15, axisZ_Q15, cosineMagnitude, cosine);
+		coefficient00 = math_rodrigues_term_negative_cos(
+			axis_x_q15, axis_x_q15, cosine_magnitude, cosine);
+		coefficient01 = math_rodrigues_term_negative_cos(
+			axis_x_q15, axis_y_q15, cosine_magnitude,
+			math_mul_q15(sine, axis_z_q15));
+		coefficient02 = math_rodrigues_term_negative_cos(
+			axis_x_q15, axis_z_q15, cosine_magnitude,
+			-math_mul_q15(sine, axis_y_q15));
+		coefficient10 = math_rodrigues_term_negative_cos(
+			axis_x_q15, axis_y_q15, cosine_magnitude,
+			-math_mul_q15(sine, axis_z_q15));
+		coefficient11 = math_rodrigues_term_negative_cos(
+			axis_y_q15, axis_y_q15, cosine_magnitude, cosine);
+		coefficient12 = math_rodrigues_term_negative_cos(
+			axis_y_q15, axis_z_q15, cosine_magnitude,
+			math_mul_q15(sine, axis_x_q15));
+		coefficient20 = math_rodrigues_term_negative_cos(
+			axis_x_q15, axis_z_q15, cosine_magnitude,
+			math_mul_q15(sine, axis_y_q15));
+		coefficient21 = math_rodrigues_term_negative_cos(
+			axis_y_q15, axis_z_q15, cosine_magnitude,
+			-math_mul_q15(sine, axis_x_q15));
+		coefficient22 = math_rodrigues_term_negative_cos(
+			axis_z_q15, axis_z_q15, cosine_magnitude, cosine);
 	}
 
-	newX = Math_Dot3Q15Wrapped(g_curMatR0_X, g_curMatR0_Y, g_curMatR0_Z,
-				   coefficient00, coefficient10, coefficient20);
-	newY = Math_Dot3Q15Wrapped(g_curMatR0_X, g_curMatR0_Y, g_curMatR0_Z,
-				   coefficient01, coefficient11, coefficient21);
-	newZ = Math_Dot3Q15Wrapped(g_curMatR0_X, g_curMatR0_Y, g_curMatR0_Z,
-				   coefficient02, coefficient12, coefficient22);
-	g_curMatR0_X = newX;
-	g_curMatR0_Y = newY;
-	g_curMatR0_Z = newZ;
+	new_x = math_dot3q15_wrapped(g_cur_mat_r0_x, g_cur_mat_r0_y,
+				     g_cur_mat_r0_z, coefficient00,
+				     coefficient10, coefficient20);
+	new_y = math_dot3q15_wrapped(g_cur_mat_r0_x, g_cur_mat_r0_y,
+				     g_cur_mat_r0_z, coefficient01,
+				     coefficient11, coefficient21);
+	new_z = math_dot3q15_wrapped(g_cur_mat_r0_x, g_cur_mat_r0_y,
+				     g_cur_mat_r0_z, coefficient02,
+				     coefficient12, coefficient22);
+	g_cur_mat_r0_x = new_x;
+	g_cur_mat_r0_y = new_y;
+	g_cur_mat_r0_z = new_z;
 
-	newX = Math_Dot3Q15Wrapped(g_curMatR1_X, g_curMatR1_Y, g_curMatR1_Z,
-				   coefficient00, coefficient10, coefficient20);
-	newY = Math_Dot3Q15Wrapped(g_curMatR1_X, g_curMatR1_Y, g_curMatR1_Z,
-				   coefficient01, coefficient11, coefficient21);
-	newZ = Math_Dot3Q15Wrapped(g_curMatR1_X, g_curMatR1_Y, g_curMatR1_Z,
-				   coefficient02, coefficient12, coefficient22);
-	g_curMatR1_X = newX;
-	g_curMatR1_Y = newY;
-	g_curMatR1_Z = newZ;
+	new_x = math_dot3q15_wrapped(g_cur_mat_r1_x, g_cur_mat_r1_y,
+				     g_cur_mat_r1_z, coefficient00,
+				     coefficient10, coefficient20);
+	new_y = math_dot3q15_wrapped(g_cur_mat_r1_x, g_cur_mat_r1_y,
+				     g_cur_mat_r1_z, coefficient01,
+				     coefficient11, coefficient21);
+	new_z = math_dot3q15_wrapped(g_cur_mat_r1_x, g_cur_mat_r1_y,
+				     g_cur_mat_r1_z, coefficient02,
+				     coefficient12, coefficient22);
+	g_cur_mat_r1_x = new_x;
+	g_cur_mat_r1_y = new_y;
+	g_cur_mat_r1_z = new_z;
 
-	newX = Math_Dot3Q15Wrapped(g_curMatR2_X, g_curMatR2_Y, g_curMatR2_Z,
-				   coefficient00, coefficient10, coefficient20);
-	newY = Math_Dot3Q15Wrapped(g_curMatR2_X, g_curMatR2_Y, g_curMatR2_Z,
-				   coefficient01, coefficient11, coefficient21);
-	newZ = Math_Dot3Q15Wrapped(g_curMatR2_X, g_curMatR2_Y, g_curMatR2_Z,
-				   coefficient02, coefficient12, coefficient22);
-	g_curMatR2_X = newX;
-	g_curMatR2_Y = newY;
-	g_curMatR2_Z = newZ;
+	new_x = math_dot3q15_wrapped(g_cur_mat_r2_x, g_cur_mat_r2_y,
+				     g_cur_mat_r2_z, coefficient00,
+				     coefficient10, coefficient20);
+	new_y = math_dot3q15_wrapped(g_cur_mat_r2_x, g_cur_mat_r2_y,
+				     g_cur_mat_r2_z, coefficient01,
+				     coefficient11, coefficient21);
+	new_z = math_dot3q15_wrapped(g_cur_mat_r2_x, g_cur_mat_r2_y,
+				     g_cur_mat_r2_z, coefficient02,
+				     coefficient12, coefficient22);
+	g_cur_mat_r2_x = new_x;
+	g_cur_mat_r2_y = new_y;
+	g_cur_mat_r2_z = new_z;
 }

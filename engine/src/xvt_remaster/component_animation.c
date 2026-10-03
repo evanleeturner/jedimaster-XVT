@@ -1,7 +1,7 @@
 #include "xvt_remaster/component_animation.h"
 #include <string.h>
 
-struct ComponentPose {
+struct component_pose {
 	uint64_t frame, event, model, revision;
 	uint16_t signature;
 	uint8_t type, valid;
@@ -10,26 +10,26 @@ struct ComponentPose {
 	float current[XVT_SNAP_COMPONENTS], previous[XVT_SNAP_COMPONENTS];
 };
 
-static struct ComponentPose g_poses[XVT_SNAP_OBJECTS];
+static struct component_pose g_poses[XVT_SNAP_OBJECTS];
 static uint64_t g_mission, g_world, g_frame;
 static int g_changed;
 
-void XvtComponentAnimation_Reset(void)
+void xvt_component_animation_reset(void)
 {
 	memset(g_poses, 0, sizeof g_poses);
 	g_mission = g_world = g_frame = 0;
 	g_changed = 0;
 }
 
-void XvtComponentAnimation_Prepare(const struct XvtRenderSnapshot *s)
+void xvt_component_animation_prepare(const struct xvt_render_snapshot *s)
 {
 	if (!s->flight_valid || !s->flight_unlocked) {
-		XvtComponentAnimation_Reset();
+		xvt_component_animation_reset();
 		return;
 	}
 	if (s->mission_generation != g_mission ||
 	    s->world_generation != g_world) {
-		XvtComponentAnimation_Reset();
+		xvt_component_animation_reset();
 	}
 	g_mission = s->mission_generation;
 	g_world = s->world_generation;
@@ -38,11 +38,11 @@ void XvtComponentAnimation_Prepare(const struct XvtRenderSnapshot *s)
 	}
 	g_changed = 0;
 	for (unsigned i = 0; i < s->object_count; ++i) {
-		const struct XvtSnapObject *o = &s->objects[i];
+		const struct xvt_snap_object *o = &s->objects[i];
 		if (!o->has_craft || o->id.slot >= XVT_SNAP_OBJECTS) {
 			continue;
 		}
-		struct ComponentPose *p = &g_poses[o->id.slot];
+		struct component_pose *p = &g_poses[o->id.slot];
 		int reset = !p->valid || p->frame != g_frame ||
 			    p->signature != o->id.signature ||
 			    p->type != o->object_type;
@@ -97,18 +97,18 @@ void XvtComponentAnimation_Prepare(const struct XvtRenderSnapshot *s)
 	g_frame = s->flight_frame_serial;
 }
 
-int XvtComponentAnimation_Changed(void) { return g_changed; }
+int xvt_component_animation_changed(void) { return g_changed; }
 
-const float *XvtComponentAnimation_Angles(const struct XvtRenderSnapshot *s,
-					  const struct XvtSnapObject *o,
-					  const struct XvtMeshAsset *asset,
-					  float output[XVT_SNAP_COMPONENTS])
+const float *xvt_component_animation_angles(const struct xvt_render_snapshot *s,
+					    const struct xvt_snap_object *o,
+					    const struct xvt_mesh_asset *asset,
+					    float output[XVT_SNAP_COMPONENTS])
 {
 	if (!s || !o || !asset || !s->flight_unlocked ||
 	    o->id.slot >= XVT_SNAP_OBJECTS) {
 		return NULL;
 	}
-	const struct ComponentPose *p = &g_poses[o->id.slot];
+	const struct component_pose *p = &g_poses[o->id.slot];
 	if (!p->valid || p->signature != o->id.signature ||
 	    p->type != o->object_type) {
 		return NULL;
@@ -135,7 +135,7 @@ const float *XvtComponentAnimation_Angles(const struct XvtRenderSnapshot *s,
 	return output;
 }
 
-uint64_t XvtComponentAnimation_ObjectRevision(unsigned slot)
+uint64_t xvt_component_animation_object_revision(unsigned slot)
 {
 	return slot < XVT_SNAP_OBJECTS && g_poses[slot].valid
 		       ? g_poses[slot].revision

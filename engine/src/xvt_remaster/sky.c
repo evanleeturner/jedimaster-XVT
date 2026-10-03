@@ -9,29 +9,29 @@
 #include <stdio.h>
 #include <string.h>
 
-static struct XvtRemasterSkyStars *g_stars;
+static struct xvt_remaster_sky_stars *g_stars;
 static AeronTexture *g_cube;
-static char g_cubePath[XVT_SNAP_PATH];
-static int g_drawHyperspace, g_drawStars;
+static char g_cube_path[XVT_SNAP_PATH];
+static int g_draw_hyperspace, g_draw_stars;
 
-static void Background(AeronCommandBuffer *cmd, AeronRenderPass *pass, int w,
+static void background(AeronCommandBuffer *cmd, AeronRenderPass *pass, int w,
 		       int h, void *user)
 {
 	(void)user;
-	if (g_drawHyperspace) {
-		XvtHyperspace_Draw(cmd, pass, w, h, NULL);
-	} else if (g_drawStars) {
-		XvtRemasterSkyStars_Draw(cmd, pass, w, h, g_stars);
+	if (g_draw_hyperspace) {
+		xvt_hyperspace_draw(cmd, pass, w, h, NULL);
+	} else if (g_draw_stars) {
+		xvt_remaster_sky_stars_draw(cmd, pass, w, h, g_stars);
 	}
 }
 
-static void Backdrops(AeronScene3D *scene, const struct XvtRenderSnapshot *s,
-		      const struct XvtRenderView *view)
+static void backdrops(AeronScene3D *scene, const struct xvt_render_snapshot *s,
+		      const struct xvt_render_view *view)
 {
 	if (!s->sky.backdrop_enabled) {
 		return;
 	}
-	const struct XvtSnapCamera *cam = &s->camera;
+	const struct xvt_snap_camera *cam = &s->camera;
 	unsigned record = 0;
 	static const unsigned axes[3][3] = {{1, 0, 2}, {0, 1, 2}, {2, 1, 0}};
 	/* BoP's atlas UV order starts at positive right/up. */
@@ -49,8 +49,8 @@ static void Backdrops(AeronScene3D *scene, const struct XvtRenderSnapshot *s,
 		     ++i, ++record) {
 			unsigned bits = s->sky.backdrop_directions[record],
 				 type = s->sky.backdrop_types[record];
-			struct XvtEffectFrame frame;
-			if (!XvtEffects_Frame(s, type, 0, &frame)) {
+			struct xvt_effect_frame frame;
+			if (!xvt_effects_frame(s, type, 0, &frame)) {
 				continue;
 			}
 			float dir[3] = {0};
@@ -103,31 +103,32 @@ static void Backdrops(AeronScene3D *scene, const struct XvtRenderSnapshot *s,
 						 up[a] * sy[c] * hh);
 				}
 			}
-			XvtEffects_SetFrame(&b, &frame, 1, 1);
+			xvt_effects_set_frame(&b, &frame, 1, 1);
 			AeronScene_AddBillboard(scene, &b);
 		}
 	}
 }
 
-int XvtSky_Prepare(AeronCommandBuffer *cmd, AeronScene3D *scene,
-		   const struct XvtRenderSnapshot *s,
-		   const struct XvtRenderView *view)
+int xvt_sky_prepare(AeronCommandBuffer *cmd, AeronScene3D *scene,
+		    const struct xvt_render_snapshot *s,
+		    const struct xvt_render_view *view)
 {
-	const struct XvtSkySettings *p = &XvtRemasterConfig_Effective()->sky;
-	g_drawHyperspace =
+	const struct xvt_sky_settings *p =
+		&xvt_remaster_config_effective()->sky;
+	g_draw_hyperspace =
 		s->hyperspace.phase == XVT_SNAP_HYPERSPACE_TRANSITION;
-	g_drawStars = 0;
+	g_draw_stars = 0;
 	AeronScene_SetSkyCube(scene, NULL, NULL, 1);
 	AeronScene_SetPassHook(scene, AERON_SCENE_HOOK_BEFORE_OPAQUE,
-			       Background, NULL);
-	if (!XvtHyperspace_Prepare(cmd, s, scene, view)) {
+			       background, NULL);
+	if (!xvt_hyperspace_prepare(cmd, s, scene, view)) {
 		return 0;
 	}
-	if (g_drawHyperspace) {
+	if (g_draw_hyperspace) {
 		return 1;
 	}
 	if (p->enabled && p->mode == XVT_SKY_CUBE) {
-		if (!g_cube || strcmp(g_cubePath, p->path)) {
+		if (!g_cube || strcmp(g_cube_path, p->path)) {
 			AeronTexture *cube = Aeron_ImageLoadCubemapKtx2Vfs(
 				cmd, Aeron_GetVfs(), AERON_VFS_ROOT_ASSET,
 				p->path, 256u * 1024u * 1024u);
@@ -136,38 +137,39 @@ int XvtSky_Prepare(AeronCommandBuffer *cmd, AeronScene3D *scene,
 			}
 			Aeron_DestroyTexture(g_cube);
 			g_cube = cube;
-			snprintf(g_cubePath, sizeof g_cubePath, "%s", p->path);
+			snprintf(g_cube_path, sizeof g_cube_path, "%s",
+				 p->path);
 		}
 		AeronScene_SetSkyCube(scene, g_cube, NULL, p->exposure);
 	} else if (p->enabled) {
 		if (!g_stars) {
-			g_stars = XvtRemasterSkyStars_Create();
+			g_stars = xvt_remaster_sky_stars_create();
 		}
 		if (!g_stars) {
 			return 0;
 		}
-		struct XvtRemasterSkyStarsParams params = {
+		struct xvt_remaster_sky_stars_params params = {
 			.exposure = p->exposure,
 			.brightness = p->star_brightness,
 			.classic_pixel_scale = view->classic_pixel_scale,
 			.density_divisor = s->sky.star_grid_divisor,
 		};
-		if (!XvtRemasterSkyStars_Prepare(g_stars, cmd, scene,
-						 &params)) {
+		if (!xvt_remaster_sky_stars_prepare(g_stars, cmd, scene,
+						    &params)) {
 			return 0;
 		}
-		g_drawStars = 1;
+		g_draw_stars = 1;
 	}
-	Backdrops(scene, s, view);
+	backdrops(scene, s, view);
 	return 1;
 }
 
-void XvtSky_Shutdown(void)
+void xvt_sky_shutdown(void)
 {
-	XvtRemasterSkyStars_Destroy(g_stars);
+	xvt_remaster_sky_stars_destroy(g_stars);
 	g_stars = NULL;
 	Aeron_DestroyTexture(g_cube);
 	g_cube = NULL;
-	g_cubePath[0] = 0;
-	XvtHyperspace_Shutdown();
+	g_cube_path[0] = 0;
+	xvt_hyperspace_shutdown();
 }

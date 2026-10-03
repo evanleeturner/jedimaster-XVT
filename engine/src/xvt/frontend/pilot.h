@@ -11,8 +11,8 @@
 extern "C" {
 #endif
 
-/* Stored as int32_t in the binary (IDB enum PilotRating). */
-typedef int32_t PilotRating;
+/* Stored as int32_t in the binary (IDB enum pilot_rating). */
+typedef int32_t pilot_rating;
 
 enum {
 	PILOT_RATING_TARGET_DRONE = 0x0,
@@ -50,30 +50,30 @@ enum {
 };
 
 /* Nothing in the engine uses this type. Its fields match the start of
- * PilotData, except that missionDescriptionIds has 5 entries where PilotData
+ * pilot_data, except that mission_description_ids has 5 entries where pilot_data
  * has 6. */
-struct PilotDataSelection {
-	char name[14];	   /* Never read or written by name. */
-	int totalScore;	   /* Never read or written by name. */
-	int localPlayerId; /* Never read or written by name. */
+struct pilot_data_selection {
+	char name[14];	     /* Never read or written by name. */
+	int total_score;     /* Never read or written by name. */
+	int local_player_id; /* Never read or written by name. */
 	/* Never read or written by name. */
-	int launchSessionMarker; ///< Persisted marker set to 1 when launch/debrief session state is captured; no
+	int launch_session_marker; ///< Persisted marker set to 1 when launch/debrief session state is captured; no
 	///< XVT reader is identified.
-	int isHost; /* Never read or written by name. */
+	int is_host; /* Never read or written by name. */
 	/* Never read or written by name. */
-	unsigned int numHumanPlayersLastMission;
-	int sessionMode; /* Never read or written by name. */
+	unsigned int num_human_players_last_mission;
+	int session_mode; /* Never read or written by name. */
 	/* Never read or written by name. */
-	uint8_t xvtRecordPayload
+	uint8_t xvt_record_payload
 		[672]; ///< Opaque 672-byte payload from the XvT-compatible pilot-record prefix.
-	int team;      /* Never read or written by name. */
+	int team; /* Never read or written by name. */
 	/* Never read or written by name. */
-	MissionDirectoryId missionDirectoryId;
-	int missionDescriptionIds[5]; /* Never read or written by name. */
+	mission_directory_id mission_directory_id;
+	int mission_description_ids[5]; /* Never read or written by name. */
 };
 
-/* Stored as int32_t in the binary (IDB enum PilotPromotionDelta). */
-typedef int32_t PilotPromotionDelta;
+/* Stored as int32_t in the binary (IDB enum pilot_promotion_delta). */
+typedef int32_t pilot_promotion_delta;
 
 enum {
 	PILOT_PROMOTION_DEMOTION = -1,
@@ -81,14 +81,14 @@ enum {
 	PILOT_PROMOTION_PROMOTION = 0x1,
 };
 
-int Pilot_DeleteCurrent(void);
-int Pilot_CreateNew(const char *pilotName);
-int Pilot_Save(int useTemporaryFile);
-int Pilot_FindAndLoadByName(const char *pilotName);
-int Pilot_ParseCommandLine(const char *cmdLine);
-int Pilot_LoadXvtRecord(XvtFile *stream);
-int Pilot_LoadFromPath(const char *basePilotPath);
-int Pilot_WriteXvtRecord(const char *fileName, XvtFile *stream);
+int pilot_delete_current(void);
+int pilot_create_new(const char *pilot_name);
+int pilot_save(int use_temporary_file);
+int pilot_find_and_load_by_name(const char *pilot_name);
+int pilot_parse_command_line(const char *cmd_line);
+int pilot_load_xvt_record(xvt_file *stream);
+int pilot_load_from_path(const char *base_pilot_path);
+int pilot_write_xvt_record(const char *file_name, xvt_file *stream);
 
 #ifdef __cplusplus
 }

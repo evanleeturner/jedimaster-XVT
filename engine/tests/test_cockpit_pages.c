@@ -21,47 +21,47 @@ enum { BYPASS = 9, FOREGROUND = 7, BACKGROUND = 4 };
 
 enum { PAGE = MFD_PAGE_GOALS, OTHER = MFD_PAGE_DAMAGE };
 
-static struct XvtCockpitState g_state;
+static struct xvt_cockpit_state g_state;
 
 /* The clip runs from (90, 40) to (400, 300); the cursor starts at (110, 60). */
-static void Start(void)
+static void cockpit_pages_start(void)
 {
 	for (unsigned index = 0; index < 256; ++index) {
-		g_swPalette[index] = (struct RgbTriplet){
+		g_sw_palette[index] = (struct rgb_triplet){
 			(uint8_t)(index & 63), (uint8_t)(index >> 6), 7};
 	}
-	g_flightClipLeft = 90;
-	g_flightClipTop = 40;
-	g_flightClipRight = 400;
-	g_flightClipBottom = 300;
-	g_flightCursorX = 110;
-	g_flightCursorY = 60;
-	g_flightTextColorIndex = FOREGROUND;
-	g_flightTextBgColor = BACKGROUND;
-	g_flightTextShadowEnabled = 0;
-	g_flightTransparentColorIndex = BYPASS;
-	XvtCockpitPages_Reset();
-	XvtCockpitPages_BeginFrame();
+	g_flight_clip_left = 90;
+	g_flight_clip_top = 40;
+	g_flight_clip_right = 400;
+	g_flight_clip_bottom = 300;
+	g_flight_cursor_x = 110;
+	g_flight_cursor_y = 60;
+	g_flight_text_color_index = FOREGROUND;
+	g_flight_text_bg_color = BACKGROUND;
+	g_flight_text_shadow_enabled = 0;
+	g_flight_transparent_color_index = BYPASS;
+	xvt_cockpit_pages_reset();
+	xvt_cockpit_pages_begin_frame();
 }
 
-static void Glyph(unsigned character)
+static void glyph(unsigned character)
 {
-	XvtCockpitPages_RecordGlyph(character, 8, 10, 0);
+	xvt_cockpit_pages_record_glyph(character, 8, 10, 0);
 }
 
 /* One section holding count glyphs, the first one being first. */
-static void Section(unsigned page, XvtCockpitPageSection section,
+static void section(unsigned page, xvt_cockpit_page_section section,
 		    unsigned first, unsigned count)
 {
-	XvtCockpitPages_BeginSection(page, section);
+	xvt_cockpit_pages_begin_section(page, section);
 	for (unsigned index = 0; index < count; ++index) {
-		Glyph(first + index);
+		glyph(first + index);
 	}
-	XvtCockpitPages_EndSection();
+	xvt_cockpit_pages_end_section();
 }
 
 /* Exports into a valid state that shows the given pages, -1 for none. */
-static const struct XvtCockpitState *Exported(int page, int other)
+static const struct xvt_cockpit_state *exported(int page, int other)
 {
 	memset(&g_state, 0, sizeof g_state);
 	g_state.valid = 1;
@@ -71,28 +71,28 @@ static const struct XvtCockpitState *Exported(int page, int other)
 	if (other >= 0) {
 		g_state.pages[other].visible = 1;
 	}
-	XvtCockpitPages_Export(&g_state);
+	xvt_cockpit_pages_export(&g_state);
 	return &g_state;
 }
 
-static void CheckCaptureLatchExport(void)
+static void check_capture_latch_export(void)
 {
-	Start();
-	XvtCockpitPages_SetOrigin(PAGE, 100, 50);
-	Section(PAGE, XVT_COCKPIT_PAGE_HEADER, 'A', 1);
-	XvtCockpitPages_BeginSection(PAGE, XVT_COCKPIT_PAGE_BODY);
-	XvtCockpitPages_RecordRow(7, 1);
-	g_flightCursorX = 120;
-	g_flightCursorY = 70;
-	Glyph('B');
-	g_flightCursorX = 128;
-	Glyph('C');
-	XvtCockpitPages_EndSection();
-	XvtCockpitPages_Latch(PAGE);
+	cockpit_pages_start();
+	xvt_cockpit_pages_set_origin(PAGE, 100, 50);
+	section(PAGE, XVT_COCKPIT_PAGE_HEADER, 'A', 1);
+	xvt_cockpit_pages_begin_section(PAGE, XVT_COCKPIT_PAGE_BODY);
+	xvt_cockpit_pages_record_row(7, 1);
+	g_flight_cursor_x = 120;
+	g_flight_cursor_y = 70;
+	glyph('B');
+	g_flight_cursor_x = 128;
+	glyph('C');
+	xvt_cockpit_pages_end_section();
+	xvt_cockpit_pages_latch(PAGE);
 
-	const struct XvtCockpitState *state = Exported(PAGE, -1);
-	const struct XvtCockpitPage *page = &state->pages[PAGE];
-	const struct XvtCockpitPageStore *store = &state->page_content;
+	const struct xvt_cockpit_state *state = exported(PAGE, -1);
+	const struct xvt_cockpit_page *page = &state->pages[PAGE];
+	const struct xvt_cockpit_page_store *store = &state->page_content;
 	XVT_ASSERT_INT_EQ(state->valid, 1);
 	XVT_ASSERT_INT_EQ(page->visible, 1);
 	XVT_ASSERT_INT_EQ(page->glyph_count, 3);
@@ -109,7 +109,7 @@ static void CheckCaptureLatchExport(void)
 
 	XVT_ASSERT_INT_EQ(page->row_count, 1);
 	XVT_ASSERT_INT_EQ(store->row_count, 1);
-	const struct XvtCockpitPageRow *row =
+	const struct xvt_cockpit_page_row *row =
 		&store->rows[page->first_store_row];
 	XVT_ASSERT_INT_EQ(row->key, 7);
 	XVT_ASSERT_INT_EQ(row->selected, 1);
@@ -120,26 +120,26 @@ static void CheckCaptureLatchExport(void)
 	XVT_ASSERT_INT_EQ(row->bounds.width, 310);
 	XVT_ASSERT_INT_EQ(row->bounds.height, 260);
 	XVT_ASSERT_INT_EQ(row->background_argb,
-			  XvtRenderDraw_Color(BACKGROUND));
+			  xvt_render_draw_color(BACKGROUND));
 }
 
-static void CheckExportWritesLatchedShownPages(void)
+static void check_export_writes_latched_shown_pages(void)
 {
-	Start();
-	Section(PAGE, XVT_COCKPIT_PAGE_BODY, 'A', 2);
-	Section(OTHER, XVT_COCKPIT_PAGE_BODY, 'a', 3);
-	XvtCockpitPages_Latch(PAGE);
-	XvtCockpitPages_Latch(OTHER);
+	cockpit_pages_start();
+	section(PAGE, XVT_COCKPIT_PAGE_BODY, 'A', 2);
+	section(OTHER, XVT_COCKPIT_PAGE_BODY, 'a', 3);
+	xvt_cockpit_pages_latch(PAGE);
+	xvt_cockpit_pages_latch(OTHER);
 
 	/* A latched page the state does not show stays hidden and unwritten. */
-	const struct XvtCockpitState *state = Exported(PAGE, -1);
+	const struct xvt_cockpit_state *state = exported(PAGE, -1);
 	XVT_ASSERT_INT_EQ(state->pages[PAGE].glyph_count, 2);
 	XVT_ASSERT_INT_EQ(state->pages[OTHER].visible, 0);
 	XVT_ASSERT_INT_EQ(state->pages[OTHER].glyph_count, 0);
 	XVT_ASSERT_INT_EQ(state->page_content.glyph_count, 2);
 
 	/* Both shown and latched: both packed into the store. */
-	state = Exported(PAGE, OTHER);
+	state = exported(PAGE, OTHER);
 	XVT_ASSERT_INT_EQ(state->pages[OTHER].visible, 1);
 	XVT_ASSERT_INT_EQ(state->pages[OTHER].glyph_count, 3);
 	XVT_ASSERT_INT_EQ(state->page_content.glyph_count, 5);
@@ -149,90 +149,90 @@ static void CheckExportWritesLatchedShownPages(void)
 		'a');
 
 	/* A new frame unlatches every page: a shown page that is not latched again is hidden. */
-	XvtCockpitPages_BeginFrame();
-	XvtCockpitPages_Latch(PAGE);
-	state = Exported(PAGE, OTHER);
+	xvt_cockpit_pages_begin_frame();
+	xvt_cockpit_pages_latch(PAGE);
+	state = exported(PAGE, OTHER);
 	XVT_ASSERT_INT_EQ(state->pages[PAGE].visible, 1);
 	XVT_ASSERT_INT_EQ(state->pages[OTHER].visible, 0);
 	XVT_ASSERT_INT_EQ(state->pages[OTHER].glyph_count, 0);
 }
 
-static uint64_t Generation(void)
+static uint64_t generation(void)
 {
-	XvtCockpitPages_Latch(PAGE);
-	return Exported(PAGE, -1)->pages[PAGE].content_generation;
+	xvt_cockpit_pages_latch(PAGE);
+	return exported(PAGE, -1)->pages[PAGE].content_generation;
 }
 
-static void CheckGenerations(void)
+static void check_generations(void)
 {
-	Start();
-	Section(PAGE, XVT_COCKPIT_PAGE_HEADER, 'A', 1);
-	uint64_t first = Generation();
+	cockpit_pages_start();
+	section(PAGE, XVT_COCKPIT_PAGE_HEADER, 'A', 1);
+	uint64_t first = generation();
 	XVT_ASSERT_TRUE(first > 0);
 
 	/* The same section captured again changes nothing. */
-	Section(PAGE, XVT_COCKPIT_PAGE_HEADER, 'A', 1);
-	XVT_ASSERT_INT_EQ(Generation(), first);
+	section(PAGE, XVT_COCKPIT_PAGE_HEADER, 'A', 1);
+	XVT_ASSERT_INT_EQ(generation(), first);
 
 	/* New glyphs, a new scroll position and a new mode each raise it. */
-	Section(PAGE, XVT_COCKPIT_PAGE_HEADER, 'B', 1);
-	uint64_t second = Generation();
+	section(PAGE, XVT_COCKPIT_PAGE_HEADER, 'B', 1);
+	uint64_t second = generation();
 	XVT_ASSERT_TRUE(second > first);
-	XvtCockpitPages_RecordScroll(PAGE, 1, 2, 0);
-	uint64_t third = Generation();
+	xvt_cockpit_pages_record_scroll(PAGE, 1, 2, 0);
+	uint64_t third = generation();
 	XVT_ASSERT_TRUE(third > second);
-	XvtCockpitPages_RecordMode(PAGE, 4);
-	XVT_ASSERT_TRUE(Generation() > third);
+	xvt_cockpit_pages_record_mode(PAGE, 4);
+	XVT_ASSERT_TRUE(generation() > third);
 }
 
-static void CheckClear(void)
+static void check_clear(void)
 {
-	Start();
-	Section(PAGE, XVT_COCKPIT_PAGE_HEADER, 'A', 1);
-	Section(PAGE, XVT_COCKPIT_PAGE_BODY, 'B', 2);
-	XvtCockpitPages_RecordBackground(PAGE);
-	uint64_t before = Generation();
+	cockpit_pages_start();
+	section(PAGE, XVT_COCKPIT_PAGE_HEADER, 'A', 1);
+	section(PAGE, XVT_COCKPIT_PAGE_BODY, 'B', 2);
+	xvt_cockpit_pages_record_background(PAGE);
+	uint64_t before = generation();
 
-	XvtCockpitPages_Clear(PAGE);
-	uint64_t after = Generation();
-	const struct XvtCockpitPage *page = &g_state.pages[PAGE];
+	xvt_cockpit_pages_clear(PAGE);
+	uint64_t after = generation();
+	const struct xvt_cockpit_page *page = &g_state.pages[PAGE];
 	XVT_ASSERT_TRUE(after > before);
 	XVT_ASSERT_INT_EQ(page->glyph_count, 0);
 	XVT_ASSERT_INT_EQ(page->row_count, 0);
 	XVT_ASSERT_INT_EQ(page->background_argb, 0);
 }
 
-static void CheckNestedSectionFails(void)
+static void check_nested_section_fails(void)
 {
-	Start();
-	Section(PAGE, XVT_COCKPIT_PAGE_HEADER, 'A', 1);
-	XvtCockpitPages_Latch(PAGE);
-	XVT_ASSERT_INT_EQ(Exported(PAGE, -1)->valid, 1);
+	cockpit_pages_start();
+	section(PAGE, XVT_COCKPIT_PAGE_HEADER, 'A', 1);
+	xvt_cockpit_pages_latch(PAGE);
+	XVT_ASSERT_INT_EQ(exported(PAGE, -1)->valid, 1);
 
 	/* Opening a section while one is open fails the open capture. */
-	XvtCockpitPages_BeginSection(PAGE, XVT_COCKPIT_PAGE_HEADER);
-	Glyph('X');
-	XvtCockpitPages_BeginSection(PAGE, XVT_COCKPIT_PAGE_BODY);
-	Glyph('Y');
-	XvtCockpitPages_EndSection();
-	XvtCockpitPages_EndSection();
+	xvt_cockpit_pages_begin_section(PAGE, XVT_COCKPIT_PAGE_HEADER);
+	glyph('X');
+	xvt_cockpit_pages_begin_section(PAGE, XVT_COCKPIT_PAGE_BODY);
+	glyph('Y');
+	xvt_cockpit_pages_end_section();
+	xvt_cockpit_pages_end_section();
 
 	/* Latching a page with a failed section invalidates this frame's export, and writes nothing. */
-	XvtCockpitPages_BeginFrame();
-	XvtCockpitPages_Latch(PAGE);
-	const struct XvtCockpitState *state = Exported(PAGE, -1);
+	xvt_cockpit_pages_begin_frame();
+	xvt_cockpit_pages_latch(PAGE);
+	const struct xvt_cockpit_state *state = exported(PAGE, -1);
 	XVT_ASSERT_INT_EQ(state->valid, 0);
 	XVT_ASSERT_INT_EQ(state->pages[PAGE].glyph_count, 0);
 
 	/* The next frame starts clear. */
-	XvtCockpitPages_BeginFrame();
-	XVT_ASSERT_INT_EQ(Exported(PAGE, -1)->valid, 1);
+	xvt_cockpit_pages_begin_frame();
+	XVT_ASSERT_INT_EQ(exported(PAGE, -1)->valid, 1);
 
 	/* Clear drops the failure mark. */
-	XvtCockpitPages_Clear(PAGE);
-	Section(PAGE, XVT_COCKPIT_PAGE_HEADER, 'Z', 1);
-	XvtCockpitPages_Latch(PAGE);
-	state = Exported(PAGE, -1);
+	xvt_cockpit_pages_clear(PAGE);
+	section(PAGE, XVT_COCKPIT_PAGE_HEADER, 'Z', 1);
+	xvt_cockpit_pages_latch(PAGE);
+	state = exported(PAGE, -1);
 	XVT_ASSERT_INT_EQ(state->valid, 1);
 	XVT_ASSERT_INT_EQ(
 		state->page_content.glyphs[state->pages[PAGE].first_glyph]
@@ -240,123 +240,124 @@ static void CheckNestedSectionFails(void)
 		'Z');
 }
 
-static void Rows(unsigned count)
+static void rows(unsigned count)
 {
-	XvtCockpitPages_BeginSection(PAGE, XVT_COCKPIT_PAGE_BODY);
+	xvt_cockpit_pages_begin_section(PAGE, XVT_COCKPIT_PAGE_BODY);
 	for (unsigned row = 0; row < count; ++row) {
-		XvtCockpitPages_RecordRow(row, 0);
-		Glyph('r');
+		xvt_cockpit_pages_record_row(row, 0);
+		glyph('r');
 	}
-	XvtCockpitPages_EndSection();
-	XvtCockpitPages_Latch(PAGE);
+	xvt_cockpit_pages_end_section();
+	xvt_cockpit_pages_latch(PAGE);
 }
 
-static void CheckRowLimit(void)
+static void check_row_limit(void)
 {
-	Start();
-	Rows(XVT_HUD_ROWS_PER_SECTION);
-	const struct XvtCockpitState *state = Exported(PAGE, -1);
+	cockpit_pages_start();
+	rows(XVT_HUD_ROWS_PER_SECTION);
+	const struct xvt_cockpit_state *state = exported(PAGE, -1);
 	XVT_ASSERT_INT_EQ(state->valid, 1);
 	XVT_ASSERT_INT_EQ(state->pages[PAGE].row_count,
 			  XVT_HUD_ROWS_PER_SECTION);
 
-	Start();
-	Rows(XVT_HUD_ROWS_PER_SECTION + 1);
-	XVT_ASSERT_INT_EQ(Exported(PAGE, -1)->valid, 0);
+	cockpit_pages_start();
+	rows(XVT_HUD_ROWS_PER_SECTION + 1);
+	XVT_ASSERT_INT_EQ(exported(PAGE, -1)->valid, 0);
 }
 
-static void CheckGlyphLimit(void)
+static void check_glyph_limit(void)
 {
-	Start();
-	Section(PAGE, XVT_COCKPIT_PAGE_BODY, 0, XVT_HUD_PAGE_GLYPH_CAPACITY);
-	XvtCockpitPages_Latch(PAGE);
-	const struct XvtCockpitState *state = Exported(PAGE, -1);
+	cockpit_pages_start();
+	section(PAGE, XVT_COCKPIT_PAGE_BODY, 0, XVT_HUD_PAGE_GLYPH_CAPACITY);
+	xvt_cockpit_pages_latch(PAGE);
+	const struct xvt_cockpit_state *state = exported(PAGE, -1);
 	XVT_ASSERT_INT_EQ(state->valid, 1);
 	XVT_ASSERT_INT_EQ(state->pages[PAGE].glyph_count,
 			  XVT_HUD_PAGE_GLYPH_CAPACITY);
 
-	Start();
-	Section(PAGE, XVT_COCKPIT_PAGE_BODY, 0,
+	cockpit_pages_start();
+	section(PAGE, XVT_COCKPIT_PAGE_BODY, 0,
 		XVT_HUD_PAGE_GLYPH_CAPACITY + 1);
-	XvtCockpitPages_Latch(PAGE);
-	XVT_ASSERT_INT_EQ(Exported(PAGE, -1)->valid, 0);
+	xvt_cockpit_pages_latch(PAGE);
+	XVT_ASSERT_INT_EQ(exported(PAGE, -1)->valid, 0);
 }
 
-static void CheckStoreOverflow(void)
+static void check_store_overflow(void)
 {
-	Start();
+	cockpit_pages_start();
 	/* Each page fits the store alone; together they do not. */
-	Section(PAGE, XVT_COCKPIT_PAGE_BODY, 0, 5000);
-	Section(OTHER, XVT_COCKPIT_PAGE_BODY, 0, 5000);
-	XvtCockpitPages_Latch(PAGE);
-	XvtCockpitPages_Latch(OTHER);
-	const struct XvtCockpitState *state = Exported(PAGE, OTHER);
+	section(PAGE, XVT_COCKPIT_PAGE_BODY, 0, 5000);
+	section(OTHER, XVT_COCKPIT_PAGE_BODY, 0, 5000);
+	xvt_cockpit_pages_latch(PAGE);
+	xvt_cockpit_pages_latch(OTHER);
+	const struct xvt_cockpit_state *state = exported(PAGE, OTHER);
 	XVT_ASSERT_INT_EQ(state->valid, 0);
 	XVT_ASSERT_INT_EQ(state->page_content.glyph_count, 5000);
 }
 
-static void CheckBackgroundAndBorder(void)
+static void check_background_and_border(void)
 {
-	Start();
-	XvtCockpitPages_SetOrigin(PAGE, 100, 50);
-	XvtCockpitPages_RecordBackground(PAGE);
-	g_flightClipLeft = 95;
-	XvtCockpitPages_RecordBorder(PAGE);
-	uint64_t first = Generation();
-	const struct XvtCockpitPage *page = &g_state.pages[PAGE];
+	cockpit_pages_start();
+	xvt_cockpit_pages_set_origin(PAGE, 100, 50);
+	xvt_cockpit_pages_record_background(PAGE);
+	g_flight_clip_left = 95;
+	xvt_cockpit_pages_record_border(PAGE);
+	uint64_t first = generation();
+	const struct xvt_cockpit_page *page = &g_state.pages[PAGE];
 	XVT_ASSERT_INT_EQ(page->background_bounds.x, 90 - 100);
 	XVT_ASSERT_INT_EQ(page->background_bounds.y, 40 - 50);
 	XVT_ASSERT_INT_EQ(page->background_bounds.width, 310);
 	XVT_ASSERT_INT_EQ(page->background_bounds.height, 260);
 	XVT_ASSERT_INT_EQ(page->background_argb,
-			  XvtRenderDraw_Color(BACKGROUND));
+			  xvt_render_draw_color(BACKGROUND));
 	XVT_ASSERT_INT_EQ(page->border_bounds.x, 95 - 100);
 	XVT_ASSERT_INT_EQ(page->border_bounds.width, 305);
-	XVT_ASSERT_INT_EQ(page->border_argb, XvtRenderDraw_Color(BACKGROUND));
+	XVT_ASSERT_INT_EQ(page->border_argb, xvt_render_draw_color(BACKGROUND));
 
 	/* The same record again changes nothing. */
-	XvtCockpitPages_RecordBorder(PAGE);
-	XVT_ASSERT_INT_EQ(Generation(), first);
+	xvt_cockpit_pages_record_border(PAGE);
+	XVT_ASSERT_INT_EQ(generation(), first);
 
 	/* In the key color both are 0, and the change raises the generation. */
-	g_flightTextBgColor = BYPASS;
-	XvtCockpitPages_RecordBackground(PAGE);
-	XvtCockpitPages_RecordBorder(PAGE);
-	XVT_ASSERT_TRUE(Generation() > first);
+	g_flight_text_bg_color = BYPASS;
+	xvt_cockpit_pages_record_background(PAGE);
+	xvt_cockpit_pages_record_border(PAGE);
+	XVT_ASSERT_TRUE(generation() > first);
 	XVT_ASSERT_INT_EQ(page->background_argb, 0);
 	XVT_ASSERT_INT_EQ(page->border_argb, 0);
 }
 
-static void CheckScroll(void)
+static void check_scroll(void)
 {
-	Start();
-	XvtCockpitPages_RecordScroll(PAGE, 3, 20, 5);
-	Generation();
-	const struct XvtCockpitPage *page = &g_state.pages[PAGE];
+	cockpit_pages_start();
+	xvt_cockpit_pages_record_scroll(PAGE, 3, 20, 5);
+	generation();
+	const struct xvt_cockpit_page *page = &g_state.pages[PAGE];
 	XVT_ASSERT_INT_EQ(page->first_visible_row, 3);
 	XVT_ASSERT_INT_EQ(page->total_rows, 20);
 	XVT_ASSERT_INT_EQ(page->selected_row, 5);
 }
 
-static void CheckOutOfRangeIgnored(void)
+static void check_out_of_range_ignored(void)
 {
-	Start();
-	XvtCockpitPages_SetOrigin(MFD_PAGE_COUNT, 1, 1);
-	XvtCockpitPages_Clear(MFD_PAGE_COUNT);
-	XvtCockpitPages_RecordBackground(MFD_PAGE_COUNT);
-	XvtCockpitPages_RecordBorder(MFD_PAGE_COUNT);
-	XvtCockpitPages_RecordScroll(MFD_PAGE_COUNT, 1, 2, 3);
-	XvtCockpitPages_RecordMode(MFD_PAGE_COUNT, 1);
-	XvtCockpitPages_Latch(MFD_PAGE_COUNT);
+	cockpit_pages_start();
+	xvt_cockpit_pages_set_origin(MFD_PAGE_COUNT, 1, 1);
+	xvt_cockpit_pages_clear(MFD_PAGE_COUNT);
+	xvt_cockpit_pages_record_background(MFD_PAGE_COUNT);
+	xvt_cockpit_pages_record_border(MFD_PAGE_COUNT);
+	xvt_cockpit_pages_record_scroll(MFD_PAGE_COUNT, 1, 2, 3);
+	xvt_cockpit_pages_record_mode(MFD_PAGE_COUNT, 1);
+	xvt_cockpit_pages_latch(MFD_PAGE_COUNT);
 
 	/* Out-of-range sections open nothing, so the next section opens without a nesting failure. */
-	XvtCockpitPages_BeginSection(MFD_PAGE_COUNT, XVT_COCKPIT_PAGE_HEADER);
-	XvtCockpitPages_BeginSection(PAGE, XVT_COCKPIT_PAGE_SECTION_COUNT);
-	Glyph('X');
-	XvtCockpitPages_EndSection();
-	Section(PAGE, XVT_COCKPIT_PAGE_HEADER, 'A', 1);
-	XvtCockpitPages_Latch(PAGE);
-	const struct XvtCockpitState *state = Exported(PAGE, -1);
+	xvt_cockpit_pages_begin_section(MFD_PAGE_COUNT,
+					XVT_COCKPIT_PAGE_HEADER);
+	xvt_cockpit_pages_begin_section(PAGE, XVT_COCKPIT_PAGE_SECTION_COUNT);
+	glyph('X');
+	xvt_cockpit_pages_end_section();
+	section(PAGE, XVT_COCKPIT_PAGE_HEADER, 'A', 1);
+	xvt_cockpit_pages_latch(PAGE);
+	const struct xvt_cockpit_state *state = exported(PAGE, -1);
 	XVT_ASSERT_INT_EQ(state->valid, 1);
 	XVT_ASSERT_INT_EQ(state->pages[PAGE].glyph_count, 1);
 	XVT_ASSERT_INT_EQ(
@@ -365,20 +366,20 @@ static void CheckOutOfRangeIgnored(void)
 		'A');
 }
 
-static void CheckIgnoredGlyphsAndRows(void)
+static void check_ignored_glyphs_and_rows(void)
 {
-	Start();
+	cockpit_pages_start();
 	/* With no capture open, glyphs and rows go nowhere. */
-	Glyph('X');
-	XvtCockpitPages_RecordRow(1, 0);
+	glyph('X');
+	xvt_cockpit_pages_record_row(1, 0);
 	/* Outside the clip, a glyph is not captured. */
-	XvtCockpitPages_BeginSection(PAGE, XVT_COCKPIT_PAGE_BODY);
-	Glyph('A');
-	g_flightCursorX = 500;
-	Glyph('Y');
-	XvtCockpitPages_EndSection();
-	XvtCockpitPages_Latch(PAGE);
-	const struct XvtCockpitState *state = Exported(PAGE, -1);
+	xvt_cockpit_pages_begin_section(PAGE, XVT_COCKPIT_PAGE_BODY);
+	glyph('A');
+	g_flight_cursor_x = 500;
+	glyph('Y');
+	xvt_cockpit_pages_end_section();
+	xvt_cockpit_pages_latch(PAGE);
+	const struct xvt_cockpit_state *state = exported(PAGE, -1);
 	XVT_ASSERT_INT_EQ(state->pages[PAGE].glyph_count, 1);
 	XVT_ASSERT_INT_EQ(state->pages[PAGE].row_count, 0);
 	XVT_ASSERT_INT_EQ(
@@ -387,56 +388,56 @@ static void CheckIgnoredGlyphsAndRows(void)
 		'A');
 }
 
-static void CheckResets(void)
+static void check_resets(void)
 {
 	/* Reset abandons an open capture: nothing more is captured and a new section opens cleanly. */
-	Start();
-	XvtCockpitPages_BeginSection(PAGE, XVT_COCKPIT_PAGE_HEADER);
-	XvtCockpitPages_Reset();
-	Glyph('X');
-	XvtCockpitPages_EndSection();
-	XvtCockpitPages_Latch(PAGE);
-	XVT_ASSERT_INT_EQ(Exported(PAGE, -1)->pages[PAGE].glyph_count, 0);
-	Section(PAGE, XVT_COCKPIT_PAGE_HEADER, 'A', 1);
-	XvtCockpitPages_Latch(PAGE);
-	XVT_ASSERT_INT_EQ(Exported(PAGE, -1)->valid, 1);
+	cockpit_pages_start();
+	xvt_cockpit_pages_begin_section(PAGE, XVT_COCKPIT_PAGE_HEADER);
+	xvt_cockpit_pages_reset();
+	glyph('X');
+	xvt_cockpit_pages_end_section();
+	xvt_cockpit_pages_latch(PAGE);
+	XVT_ASSERT_INT_EQ(exported(PAGE, -1)->pages[PAGE].glyph_count, 0);
+	section(PAGE, XVT_COCKPIT_PAGE_HEADER, 'A', 1);
+	xvt_cockpit_pages_latch(PAGE);
+	XVT_ASSERT_INT_EQ(exported(PAGE, -1)->valid, 1);
 
 	/* Reset clears the placed pages too. */
-	XvtCockpitPages_Reset();
-	XVT_ASSERT_INT_EQ(Exported(PAGE, -1)->pages[PAGE].visible, 0);
+	xvt_cockpit_pages_reset();
+	XVT_ASSERT_INT_EQ(exported(PAGE, -1)->pages[PAGE].visible, 0);
 
 	/* ResetWorking keeps the placed page; the working page is empty afterwards. */
-	Start();
-	Section(PAGE, XVT_COCKPIT_PAGE_HEADER, 'A', 1);
-	XvtCockpitPages_Latch(PAGE);
-	XvtCockpitPages_BeginSection(PAGE, XVT_COCKPIT_PAGE_BODY);
-	XvtCockpitPages_ResetWorking();
-	XVT_ASSERT_INT_EQ(Exported(PAGE, -1)->pages[PAGE].glyph_count, 1);
-	XvtCockpitPages_Latch(PAGE);
-	XVT_ASSERT_INT_EQ(Exported(PAGE, -1)->pages[PAGE].glyph_count, 0);
+	cockpit_pages_start();
+	section(PAGE, XVT_COCKPIT_PAGE_HEADER, 'A', 1);
+	xvt_cockpit_pages_latch(PAGE);
+	xvt_cockpit_pages_begin_section(PAGE, XVT_COCKPIT_PAGE_BODY);
+	xvt_cockpit_pages_reset_working();
+	XVT_ASSERT_INT_EQ(exported(PAGE, -1)->pages[PAGE].glyph_count, 1);
+	xvt_cockpit_pages_latch(PAGE);
+	XVT_ASSERT_INT_EQ(exported(PAGE, -1)->pages[PAGE].glyph_count, 0);
 	/* It abandoned the open capture as well. */
-	Section(PAGE, XVT_COCKPIT_PAGE_HEADER, 'B', 1);
-	XvtCockpitPages_Latch(PAGE);
-	const struct XvtCockpitState *state = Exported(PAGE, -1);
+	section(PAGE, XVT_COCKPIT_PAGE_HEADER, 'B', 1);
+	xvt_cockpit_pages_latch(PAGE);
+	const struct xvt_cockpit_state *state = exported(PAGE, -1);
 	XVT_ASSERT_INT_EQ(state->valid, 1);
 	XVT_ASSERT_INT_EQ(state->pages[PAGE].glyph_count, 1);
 }
 
 int main(void)
 {
-	CheckCaptureLatchExport();
-	CheckExportWritesLatchedShownPages();
-	CheckGenerations();
-	CheckClear();
-	CheckNestedSectionFails();
-	CheckRowLimit();
-	CheckGlyphLimit();
-	CheckStoreOverflow();
-	CheckBackgroundAndBorder();
-	CheckScroll();
-	CheckOutOfRangeIgnored();
-	CheckIgnoredGlyphsAndRows();
-	CheckResets();
-	XvtCockpitPages_Reset();
+	check_capture_latch_export();
+	check_export_writes_latched_shown_pages();
+	check_generations();
+	check_clear();
+	check_nested_section_fails();
+	check_row_limit();
+	check_glyph_limit();
+	check_store_overflow();
+	check_background_and_border();
+	check_scroll();
+	check_out_of_range_ignored();
+	check_ignored_glyphs_and_rows();
+	check_resets();
+	xvt_cockpit_pages_reset();
 	return 0;
 }

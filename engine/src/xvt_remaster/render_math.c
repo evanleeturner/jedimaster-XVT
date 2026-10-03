@@ -5,14 +5,14 @@
 #include <math.h>
 #include <string.h>
 
-static float Dot(const float *a, const float *b)
+static float dot(const float *a, const float *b)
 {
 	return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 }
 
-static int Normalize(float v[3])
+static int normalize(float v[3])
 {
-	float length = sqrtf(Dot(v, v));
+	float length = sqrtf(dot(v, v));
 	if (!isfinite(length) || length < 1e-6f) {
 		return 0;
 	}
@@ -69,7 +69,7 @@ static void fl_curmat_from_cached(const int16_t rows[9], float cur[3][3])
 #define FL_Q16_TO_RAD (2.0f * 3.14159265358979323846f / 65536.0f)
 
 /* Rodrigues rotation of all three curMat rows about `axis` by a Q16
- * angle — the float mirror of FVIEW_transformaxes (new = M.row with
+ * angle — the float mirror of fview_transformaxes (new = M.row with
  * new_x = m00 x + m10 y + m20 z, i.e. M applied transposed). */
 static void fl_transformaxes(float cur[3][3], const float axis[3],
 			     int angle_q16)
@@ -82,7 +82,7 @@ static void fl_transformaxes(float cur[3][3], const float axis[3],
 	const float sn = sinf(a);
 	const float t = 1.0f - c;
 	const float x = axis[0], y = axis[1], z = axis[2];
-	/* m[i][j] laid out as FVIEW_transformaxes computes m00..m22. */
+	/* m[i][j] laid out as fview_transformaxes computes m00..m22. */
 	const float m[3][3] = {
 		{c + t * x * x, sn * z + t * y * x, -sn * y + t * z * x},
 		{-sn * z + t * y * x, c + t * y * y, sn * x + t * z * y},
@@ -98,30 +98,31 @@ static void fl_transformaxes(float cur[3][3], const float axis[3],
 }
 
 /* curMat rows from the record's Q16 Euler angles — the float mirror of
- * FVIEW_calcrotatemove + FVIEW_calcrotateorient (statics and dirty
+ * fview_calcrotatemove + fview_calcrotateorient (statics and dirty
  * orientations). */
-static void fl_curmat_from_euler(const struct XvtSnapObject *f, float cur[3][3])
+static void fl_curmat_from_euler(const struct xvt_snap_object *f,
+				 float cur[3][3])
 {
 	const float pitch_angle =
 		(float)(int16_t)(0xc000 - f->pitch) * FL_Q16_TO_RAD;
 	const float yaw_angle =
 		(float)(int16_t)(-(int16_t)f->yaw) * FL_Q16_TO_RAD;
-	const float cB = cosf(yaw_angle), sB = sinf(yaw_angle);
-	const float cA = cosf(pitch_angle), sA = sinf(pitch_angle);
-	cur[0][0] = cB;
-	cur[0][1] = sB;
+	const float c_b = cosf(yaw_angle), s_b = sinf(yaw_angle);
+	const float c_a = cosf(pitch_angle), s_a = sinf(pitch_angle);
+	cur[0][0] = c_b;
+	cur[0][1] = s_b;
 	cur[0][2] = 0.0f;
-	cur[2][0] = -sB * cA;
-	cur[2][1] = cB * cA;
-	cur[2][2] = sA;
-	cur[1][0] = -sB * sA;
-	cur[1][1] = cB * sA;
-	cur[1][2] = -cA;
+	cur[2][0] = -s_b * c_a;
+	cur[2][1] = c_b * c_a;
+	cur[2][2] = s_a;
+	cur[1][0] = -s_b * s_a;
+	cur[1][1] = c_b * s_a;
+	cur[1][2] = -c_a;
 	fl_transformaxes(cur, cur[2], (int16_t)f->roll);
 }
 
 /* Model->world basis rows: the curMat rows in the engine's consumption
- * order (R0, R2, R1) — FVIEW_ComputeObjectViewMatrix's row read, with
+ * order (R0, R2, R1) — fview_compute_object_view_matrix's row read, with
  * the camera factor moved into the scene's view matrix. */
 static void fl_object_world(const float cur[3][3], float out[9])
 {
@@ -134,7 +135,7 @@ static void fl_object_world(const float cur[3][3], float out[9])
 }
 
 /* Model matrix from a model->space basis (rows) + translation, the
- * transpose consumption the model preview validated (Math3D_RotateVec3
+ * transpose consumption the model preview validated (math3d_rotate_vec3
  * is column-major over the stored rows). */
 static void fl_model_matrix(const float basis[9], const float delta[3],
 			    float m[16])
@@ -158,9 +159,9 @@ static void fl_model_matrix(const float basis[9], const float delta[3],
 	m[15] = 1.0f;
 }
 
-int XvtRenderMath_BuildView(const struct XvtSnapCamera *cam,
-			    const int32_t origin[3], int width, int height,
-			    struct XvtRenderView *out)
+int xvt_render_math_build_view(const struct xvt_snap_camera *cam,
+			       const int32_t origin[3], int width, int height,
+			       struct xvt_render_view *out)
 {
 	if (!cam || !cam->valid || !origin || !out || width <= 0 ||
 	    height <= 0 || cam->viewport.width <= 0 ||
@@ -170,14 +171,14 @@ int XvtRenderMath_BuildView(const struct XvtSnapCamera *cam,
 	memset(out, 0, sizeof *out);
 	float rows[9];
 	memcpy(rows, cam->rows, sizeof rows);
-	if (!Normalize(rows)) {
+	if (!normalize(rows)) {
 		return 0;
 	}
-	float projection = Dot(rows, rows + 3);
+	float projection = dot(rows, rows + 3);
 	for (int i = 0; i < 3; ++i) {
 		rows[3 + i] -= rows[i] * projection;
 	}
-	if (!Normalize(rows + 3)) {
+	if (!normalize(rows + 3)) {
 		return 0;
 	}
 	rows[6] = rows[1] * rows[5] - rows[2] * rows[4];
@@ -193,7 +194,7 @@ int XvtRenderMath_BuildView(const struct XvtSnapCamera *cam,
 	memcpy(out->origin_world, origin, sizeof out->origin_world);
 	AeronWorld_LocalI32(origin, cam->world_pos, c->pos);
 	float focal = ldexpf(1.0f, cam->perspective_shift & 31);
-	/* MATH2_longfraction treats 0xFFFF as exactly one. Zero skips scaling. */
+	/* math2_longfraction treats 0xFFFF as exactly one. Zero skips scaling. */
 	float aspect_y = !cam->aspect_y_q16 || cam->aspect_y_q16 == UINT16_MAX
 				 ? 1.0f
 				 : (float)cam->aspect_y_q16 / 65536.0f;
@@ -212,9 +213,9 @@ int XvtRenderMath_BuildView(const struct XvtSnapCamera *cam,
 	return 1;
 }
 
-int XvtRenderMath_ProjectWorld(const struct XvtRenderView *view,
-			       const int32_t world[3], float *x, float *y,
-			       float *depth)
+int xvt_render_math_project_world(const struct xvt_render_view *view,
+				  const int32_t world[3], float *x, float *y,
+				  float *depth)
 {
 	if (!view || !world || !x || !y) {
 		return 0;
@@ -238,11 +239,11 @@ int XvtRenderMath_ProjectWorld(const struct XvtRenderView *view,
 	return isfinite(*x) && isfinite(*y);
 }
 
-int XvtRenderMath_BuildMainView(const struct XvtSnapCamera *cam,
-				const int32_t origin[3], int width, int height,
-				struct XvtRenderView *out)
+int xvt_render_math_build_main_view(const struct xvt_snap_camera *cam,
+				    const int32_t origin[3], int width,
+				    int height, struct xvt_render_view *out)
 {
-	if (!XvtRenderMath_BuildView(cam, origin, width, height, out) ||
+	if (!xvt_render_math_build_view(cam, origin, width, height, out) ||
 	    cam->screen_width <= 0 || cam->screen_height <= 0) {
 		return 0;
 	}
@@ -269,8 +270,8 @@ int XvtRenderMath_BuildMainView(const struct XvtSnapCamera *cam,
 	return 1;
 }
 
-void XvtRenderMath_ObjectMatrix(const struct XvtSnapObject *object,
-				const int32_t origin[3], float out[16])
+void xvt_render_math_object_matrix(const struct xvt_snap_object *object,
+				   const int32_t origin[3], float out[16])
 {
 	float cur[3][3], basis[9], local[3];
 	if (object->has_mobile && !object->orient_dirty) {
@@ -283,8 +284,8 @@ void XvtRenderMath_ObjectMatrix(const struct XvtSnapObject *object,
 	fl_model_matrix(basis, local, out);
 }
 
-int XvtRenderMath_PoseChanged(const struct XvtRenderSnapshot *current,
-			      const struct XvtRenderSnapshot *previous)
+int xvt_render_math_pose_changed(const struct xvt_render_snapshot *current,
+				 const struct xvt_render_snapshot *previous)
 {
 	if (!current || !previous ||
 	    current->flight_valid != previous->flight_valid) {
@@ -295,15 +296,15 @@ int XvtRenderMath_PoseChanged(const struct XvtRenderSnapshot *current,
 	}
 	if ((current->flight_unlocked &&
 	     current->view_time_ticks != previous->view_time_ticks &&
-	     XvtComponentAnimation_Changed()) ||
+	     xvt_component_animation_changed()) ||
 	    memcmp(&current->camera, &previous->camera,
 		   sizeof current->camera) ||
 	    current->object_count != previous->object_count) {
 		return 1;
 	}
 	for (unsigned i = 0; i < current->object_count; ++i) {
-		const struct XvtSnapObject *a = &current->objects[i],
-					   *b = &previous->objects[i];
+		const struct xvt_snap_object *a = &current->objects[i],
+					     *b = &previous->objects[i];
 		if (a->id.slot != b->id.slot ||
 		    a->id.signature != b->id.signature ||
 		    a->object_type != b->object_type ||
@@ -340,20 +341,21 @@ int XvtRenderMath_PoseChanged(const struct XvtRenderSnapshot *current,
 	return 0;
 }
 
-int XvtRenderMath_Layout(float sw, float sh, float tw, float th,
-			 struct XvtLayoutTransform *out)
+int xvt_render_math_layout(float sw, float sh, float tw, float th,
+			   struct xvt_layout_transform *out)
 {
 	if (!out || !isfinite(sw + sh + tw + th) || sw <= 0 || sh <= 0 ||
 	    tw <= 0 || th <= 0) {
 		return 0;
 	}
-	*out = (struct XvtLayoutTransform){fminf(tw / sw, th / sh), sw, sh, tw,
-					   th};
+	*out = (struct xvt_layout_transform){fminf(tw / sw, th / sh), sw, sh,
+					     tw, th};
 	return 1;
 }
 
-void XvtRenderMath_LayoutPoint(const struct XvtLayoutTransform *t, float ax,
-			       float ay, float x, float y, float *ox, float *oy)
+void xvt_render_math_layout_point(const struct xvt_layout_transform *t,
+				  float ax, float ay, float x, float y,
+				  float *ox, float *oy)
 {
 	*ox = x * t->scale +
 	      ax * (t->target_width - t->source_width * t->scale);
@@ -361,9 +363,9 @@ void XvtRenderMath_LayoutPoint(const struct XvtLayoutTransform *t, float ax,
 	      ay * (t->target_height - t->source_height * t->scale);
 }
 
-void XvtRenderMath_LayoutInverse(const struct XvtLayoutTransform *t, float ax,
-				 float ay, float x, float y, float *ox,
-				 float *oy)
+void xvt_render_math_layout_inverse(const struct xvt_layout_transform *t,
+				    float ax, float ay, float x, float y,
+				    float *ox, float *oy)
 {
 	*ox = (x - ax * (t->target_width - t->source_width * t->scale)) /
 	      t->scale;

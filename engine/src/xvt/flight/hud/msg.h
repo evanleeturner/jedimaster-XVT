@@ -9,50 +9,50 @@
 extern "C" {
 #endif
 
-struct HudInFlightMessageRecord {
-	/* The message's InFlightMessageId; 0xFFFF marks an empty pane or slot,
-	 * and Hud_ShowFlightMessagePane sets the system and flight group panes'
+struct hud_in_flight_message_record {
+	/* The message's in_flight_message_id; 0xFFFF marks an empty pane or slot,
+	 * and hud_show_flight_message_pane sets the system and flight group panes'
 	 * to 1 once shown. */
-	uint16_t stateOrMessageId;
+	uint16_t state_or_message_id;
 	/* Voice sound played when the ready pane first shows the message;
-	 * g_pendingHudMessageVoiceSfxId for messages 196 and 207, else 0. */
-	uint16_t voiceSfxId;
+	 * g_pending_hud_message_voice_sfx_id for messages 196 and 207, else 0. */
+	uint16_t voice_sfx_id;
 	/* Mission clock ticks within the second; nothing reads it. */
-	uint16_t clockSubsecondTicks;
+	uint16_t clock_subsecond_ticks;
 	/* Mission clock seconds when the message was made: the countdown clock
 	 * with a time limit, else the elapsed clock. */
-	uint8_t clockSecond;
-	uint8_t clockMinute; /* Mission clock minutes, from the same clock. */
-	uint8_t clockHour;   /* Mission clock hours, from the same clock. */
+	uint8_t clock_second;
+	uint8_t clock_minute; /* Mission clock minutes, from the same clock. */
+	uint8_t clock_hour;   /* Mission clock hours, from the same clock. */
 	/* 0 to 8, from the template's first byte (6 for 9 or more): 1 and 2 are
 	 * logged, 3, 4 and 7 go to the system pane, 8 to the flight group pane,
 	 * others to the ready pane. */
-	uint8_t paneType;
-	/* Sender's IFF, from g_msgSenderIff; colors type 2 messages. */
-	uint16_t senderIff;
+	uint8_t pane_type;
+	/* Sender's IFF, from g_msg_sender_iff; colors type 2 messages. */
+	uint16_t sender_iff;
 	/* Simulated seconds spent in its pane, raised by
-	 * Hud_AdvanceFlightMessagePaneTimers. */
-	uint8_t ageSeconds;
+	 * hud_advance_flight_message_pane_timers. */
+	uint8_t age_seconds;
 	/* Times shown: the voice plays only at 0, and under 2 the message can
 	 * be pushed back to wait for a newer one. */
-	uint8_t showCount;
+	uint8_t show_count;
 	/* The pane type byte when below 9, then the text, at most 69
 	 * characters and a terminator. */
 	char text[70];
 };
 
-extern uint16_t g_messageLogWriteIndex;
-extern uint16_t g_messageLogTotalCount;
-extern struct HudInFlightMessageRecord *g_messageLogRecords;
-extern uint16_t g_messageLogWrapped;
-extern uint16_t g_msgSenderIff;
-extern uint16_t g_pendingHudMessageVoiceSfxId;
-extern const char *g_strInFlightMessages[417];
-extern uint16_t g_msgArgTable[4];
-extern char g_flightSecondaryObjectNameBuffer[256];
+extern uint16_t g_message_log_write_index;
+extern uint16_t g_message_log_total_count;
+extern struct hud_in_flight_message_record *g_message_log_records;
+extern uint16_t g_message_log_wrapped;
+extern uint16_t g_msg_sender_iff;
+extern uint16_t g_pending_hud_message_voice_sfx_id;
+extern const char *g_str_in_flight_messages[417];
+extern uint16_t g_msg_arg_table[4];
+extern char g_flight_secondary_object_name_buffer[256];
 
-/* Stored as int32_t in the binary (IDB enum InFlightMessageId). */
-typedef int32_t InFlightMessageId;
+/* Stored as int32_t in the binary (IDB enum in_flight_message_id). */
+typedef int32_t in_flight_message_id;
 
 enum {
 	IFMSG_000_X_WING_VS_TIE_FIGHTER_VER_1_10_05_11_97 =
@@ -836,23 +836,26 @@ enum {
 		0x1A0, ///< strings.txt line 1682: \07Voice channel available
 };
 
-void msg_writeMessageLogFile(void);
-void msg_emitInFlightMessage(InFlightMessageId messageId, int playerIdx);
-void msg_reportfgcreation(uint16_t flightGroupIndex, uint16_t modelIndex);
-void msg_addMessagePtr(uint16_t slot, const void *value);
-void msg_emitCraftMessage(uint16_t objIdx, struct CraftData *craft,
-			  int16_t msgTemplateId);
-void msg_radioMessage(uint16_t senderObjIdx, uint8_t *senderCraft,
-		      uint16_t commandId, uint16_t responseIndex,
-		      int16_t multipleRecipients);
-void msg_reportmessage(uint16_t objIdx, struct CraftData *craft,
-		       int16_t msgTemplateId);
-int msg_BuildTargetDescription(uint16_t targetObjIdx, int playerIdx,
-			       int emitHudMessage, int returnActionableOnly);
-void msg_formatObjectName(uint16_t objIdx, uint16_t nameMode, char *outName);
-void msg_AppendString(const char *source, char *destination);
-void msg_AppendChar(char ch, char *destination);
-void msg_emitLocalPlayerCraftMessage(InFlightMessageId messageId);
+void msg_write_message_log_file(void);
+void msg_emit_in_flight_message(in_flight_message_id message_id,
+				int player_idx);
+void msg_reportfgcreation(uint16_t flight_group_index, uint16_t model_index);
+void msg_add_message_ptr(uint16_t slot, const void *value);
+void msg_emit_craft_message(uint16_t obj_idx, struct craft_data *craft,
+			    int16_t msg_template_id);
+void msg_radio_message(uint16_t sender_obj_idx, uint8_t *sender_craft,
+		       uint16_t command_id, uint16_t response_index,
+		       int16_t multiple_recipients);
+void msg_reportmessage(uint16_t obj_idx, struct craft_data *craft,
+		       int16_t msg_template_id);
+int msg_build_target_description(uint16_t target_obj_idx, int player_idx,
+				 int emit_hud_message,
+				 int return_actionable_only);
+void msg_format_object_name(uint16_t obj_idx, uint16_t name_mode,
+			    char *out_name);
+void msg_append_string(const char *source, char *destination);
+void msg_append_char(char ch, char *destination);
+void msg_emit_local_player_craft_message(in_flight_message_id message_id);
 
 #ifdef __cplusplus
 }

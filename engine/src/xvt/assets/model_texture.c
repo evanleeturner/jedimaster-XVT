@@ -12,17 +12,17 @@
 #include <string.h>
 
 /* Returns 1 when the 3D device's opaque texture format has 5 green bits
- * (g_pFmtOpaqueTexture), else 0. Its one caller, Display_IsPixelFormat555,
+ * (g_p_fmt_opaque_texture), else 0. Its one caller, display_is_pixel_format555,
  * returns the same. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x40DD40
-int ModelTexture_IsHardwareFormat555(void)
+int model_texture_is_hardware_format555(void)
 {
-	return g_pFmtOpaqueTexture->colorInfo.greenBPP == 5;
+	return g_p_fmt_opaque_texture->color_info.green_bpp == 5;
 }
 
 /* Marks a texture palette's see-through colors for the 3D card; the palette is
- * 16 sub-palettes of 256 RGB565 colors. Below g_textureResolutionLevel 2 it
+ * 16 sub-palettes of 256 RGB565 colors. Below g_texture_resolution_level 2 it
  * only sets palette[2304] to 0. At level 2 it sets to 0 each of the first 256
  * colors that is near black (its three 5-bit components' squares adding to
  * under 32) or that lies more than 16, in squared distance, from the same entry
@@ -31,33 +31,33 @@ int ModelTexture_IsHardwareFormat555(void)
  * palette[2304] the count set to 0, or 0 when all 256 were. The renderer reads
  * palette[2304] as the opaque half's transparent-index slot. */
 // FUNCTION: XVT 0x40DD50
-void ModelTexture_FilterHardwarePalette(uint16_t *palette)
+void model_texture_filter_hardware_palette(uint16_t *palette)
 {
 	uint16_t *entry;
 	int red;
-	int planeIndex;
-	uint16_t *comparisonEntry;
-	int blueDelta;
-	int greenDelta;
-	int redDelta;
-	int colorMagnitude;
-	int colorDistance;
-	int clearedCount;
-	int paletteIndex;
-	int firstClearedIndex;
+	int plane_index;
+	uint16_t *comparison_entry;
+	int blue_delta;
+	int green_delta;
+	int red_delta;
+	int color_magnitude;
+	int color_distance;
+	int cleared_count;
+	int palette_index;
+	int first_cleared_index;
 	int blue;
 	int green;
 	uint16_t color;
-	uint16_t comparisonColor;
+	uint16_t comparison_color;
 
-	if (g_textureResolutionLevel != 2) {
+	if (g_texture_resolution_level != 2) {
 		palette[2304] = 0;
 		return;
 	}
 	{
-		clearedCount = 0;
-		paletteIndex = 0;
-		firstClearedIndex = -1;
+		cleared_count = 0;
+		palette_index = 0;
+		first_cleared_index = -1;
 		entry = palette;
 		do {
 			color = *entry;
@@ -66,64 +66,66 @@ void ModelTexture_FilterHardwarePalette(uint16_t *palette)
 			green = color & 0x1F;
 			color >>= 5;
 			red = color & 0x1F;
-			colorMagnitude = blue * blue;
-			colorMagnitude += green * green;
-			colorMagnitude += red * red;
-			if (colorMagnitude < 32) {
+			color_magnitude = blue * blue;
+			color_magnitude += green * green;
+			color_magnitude += red * red;
+			if (color_magnitude < 32) {
 				*entry = 0;
-				++clearedCount;
-				if (firstClearedIndex == -1) {
-					firstClearedIndex = paletteIndex;
+				++cleared_count;
+				if (first_cleared_index == -1) {
+					first_cleared_index = palette_index;
 				}
 			} else {
-				planeIndex = 1;
-				comparisonEntry = entry + 256;
+				plane_index = 1;
+				comparison_entry = entry + 256;
 				for (;;) {
-					comparisonColor = *comparisonEntry;
-					blueDelta =
-						(comparisonColor & 0x1F) - blue;
-					comparisonColor >>= 6;
-					greenDelta = (comparisonColor & 0x1F) -
-						     green;
-					comparisonColor >>= 5;
-					redDelta =
-						(comparisonColor & 0x1F) - red;
-					colorDistance = blueDelta * blueDelta;
-					colorDistance +=
-						greenDelta * greenDelta;
-					colorDistance += redDelta * redDelta;
-					if (colorDistance > 16) {
+					comparison_color = *comparison_entry;
+					blue_delta = (comparison_color & 0x1F) -
+						     blue;
+					comparison_color >>= 6;
+					green_delta =
+						(comparison_color & 0x1F) -
+						green;
+					comparison_color >>= 5;
+					red_delta =
+						(comparison_color & 0x1F) - red;
+					color_distance =
+						blue_delta * blue_delta;
+					color_distance +=
+						green_delta * green_delta;
+					color_distance += red_delta * red_delta;
+					if (color_distance > 16) {
 						*entry = 0;
-						++clearedCount;
-						if (firstClearedIndex == -1) {
-							firstClearedIndex =
-								paletteIndex;
+						++cleared_count;
+						if (first_cleared_index == -1) {
+							first_cleared_index =
+								palette_index;
 						}
 						break;
 					}
-					comparisonEntry += 256;
-					++planeIndex;
-					if (planeIndex >= 7) {
+					comparison_entry += 256;
+					++plane_index;
+					if (plane_index >= 7) {
 						break;
 					}
 				}
-				if (planeIndex == 7) {
+				if (plane_index == 7) {
 					*entry = entry[2560];
 				}
 			}
 			++entry;
-			++paletteIndex;
-		} while (paletteIndex < 256);
+			++palette_index;
+		} while (palette_index < 256);
 
-		if (clearedCount < 256) {
-			DebugPrintf("%x:AlphaTex!(%d)\n", palette,
-				    clearedCount);
+		if (cleared_count < 256) {
+			debug_printf("%x:AlphaTex!(%d)\n", palette,
+				     cleared_count);
 		} else {
-			DebugPrintf("%x:No Alpha\n", palette);
-			clearedCount = 0;
+			debug_printf("%x:No Alpha\n", palette);
+			cleared_count = 0;
 		}
-		palette[256] = (uint16_t)firstClearedIndex;
-		palette[2304] = (uint16_t)clearedCount;
+		palette[256] = (uint16_t)first_cleared_index;
+		palette[2304] = (uint16_t)cleared_count;
 	}
 }
 
@@ -132,472 +134,493 @@ void ModelTexture_FilterHardwarePalette(uint16_t *palette)
  * becomes the index of an equal color in a palette built as it goes, the first
  * pixel's color at 0; once 256 colors are taken, a new color gets the nearest
  * one. After the texels it writes 16 shades of the 256 colors, shade by shade:
- * 4096 bytes of the nearest g_swPalette index from 0x40 to 0xFF, then 4096
+ * 4096 bytes of the nearest g_sw_palette index from 0x40 to 0xFF, then 4096
  * RGB565 colors with the green's low bit 0. Shades 0 to 7 turn a component c
  * into ((c << 7) + (((c * shade) & 0xFFFFF8) << 4)) >> 8, shades 8 to 15 into
  * ((c << 8) + ((((31 - c) * (shade - 8)) & 0xFFFFF8) << 5)) >> 8. Palette
  * entries past the colors taken come from uninitialized stack bytes. */
 // FUNCTION: XVT 0x4720D0
-void ModelTexture_BuildPalettedShadeTable(uint8_t *dst, const uint8_t *rgb24,
-					  int width, int height)
+void model_texture_build_paletted_shade_table(uint8_t *dst,
+					      const uint8_t *rgb24, int width,
+					      int height)
 {
-	uint8_t targetRgb[3];
-	uint8_t localPalette[256 * 3];
-	unsigned int paletteSize;
-	const uint8_t *sourcePixel;
-	int pixelCount;
-	uint8_t *dstTexel;
+	uint8_t target_rgb[3];
+	uint8_t local_palette[256 * 3];
+	unsigned int palette_size;
+	const uint8_t *source_pixel;
+	int pixel_count;
+	uint8_t *dst_texel;
 
-	sourcePixel = rgb24;
-	localPalette[0] = sourcePixel[2] >> 3;
-	paletteSize = 1;
-	localPalette[1] = sourcePixel[1] >> 3;
-	pixelCount = width * height;
-	localPalette[2] = sourcePixel[0] >> 3;
-	sourcePixel += 3;
-	dstTexel = dst + 1;
+	source_pixel = rgb24;
+	local_palette[0] = source_pixel[2] >> 3;
+	palette_size = 1;
+	local_palette[1] = source_pixel[1] >> 3;
+	pixel_count = width * height;
+	local_palette[2] = source_pixel[0] >> 3;
+	source_pixel += 3;
+	dst_texel = dst + 1;
 	dst[0] = 0;
-	if ((unsigned int)pixelCount > 1) {
-		int remainingPixels;
+	if ((unsigned int)pixel_count > 1) {
+		int remaining_pixels;
 
-		remainingPixels = pixelCount - 1;
+		remaining_pixels = pixel_count - 1;
 		do {
-			uint8_t paletteIndex;
+			uint8_t palette_index;
 
-			targetRgb[0] = sourcePixel[2] >> 3;
-			targetRgb[1] = sourcePixel[1] >> 3;
-			targetRgb[2] = sourcePixel[0] >> 3;
-			paletteIndex =
-				(uint8_t)Color_FindNearestRgbTripletIndex(
-					targetRgb, localPalette, 0,
-					paletteSize);
-			if ((localPalette[3 * paletteIndex] != targetRgb[0] ||
-			     localPalette[3 * paletteIndex + 1] !=
-				     targetRgb[1] ||
-			     localPalette[3 * paletteIndex + 2] !=
-				     targetRgb[2]) &&
-			    paletteSize < 256) {
-				paletteIndex = (uint8_t)paletteSize++;
-				localPalette[3 * paletteIndex] = targetRgb[0];
-				localPalette[3 * paletteIndex + 1] =
-					targetRgb[1];
-				localPalette[3 * paletteIndex + 2] =
-					targetRgb[2];
+			target_rgb[0] = source_pixel[2] >> 3;
+			target_rgb[1] = source_pixel[1] >> 3;
+			target_rgb[2] = source_pixel[0] >> 3;
+			palette_index =
+				(uint8_t)color_find_nearest_rgb_triplet_index(
+					target_rgb, local_palette, 0,
+					palette_size);
+			if ((local_palette[3 * palette_index] !=
+				     target_rgb[0] ||
+			     local_palette[3 * palette_index + 1] !=
+				     target_rgb[1] ||
+			     local_palette[3 * palette_index + 2] !=
+				     target_rgb[2]) &&
+			    palette_size < 256) {
+				palette_index = (uint8_t)palette_size++;
+				local_palette[3 * palette_index] =
+					target_rgb[0];
+				local_palette[3 * palette_index + 1] =
+					target_rgb[1];
+				local_palette[3 * palette_index + 2] =
+					target_rgb[2];
 			}
-			*dstTexel++ = paletteIndex;
-			sourcePixel += 3;
-			--remainingPixels;
-		} while (remainingPixels != 0);
+			*dst_texel++ = palette_index;
+			source_pixel += 3;
+			--remaining_pixels;
+		} while (remaining_pixels != 0);
 	}
 
 	{
-		const uint8_t *paletteEntry;
-		uint16_t *packedShadeEntry;
-		uint8_t *indexedShadeEntry;
+		const uint8_t *palette_entry;
+		uint16_t *packed_shade_entry;
+		uint8_t *indexed_shade_entry;
 
-		paletteEntry = localPalette;
-		indexedShadeEntry = &dst[pixelCount];
-		packedShadeEntry = (uint16_t *)&dst[pixelCount + 4096];
+		palette_entry = local_palette;
+		indexed_shade_entry = &dst[pixel_count];
+		packed_shade_entry = (uint16_t *)&dst[pixel_count + 4096];
 		do {
 			unsigned int shade;
-			uint16_t *packedEntry;
-			uint8_t *indexedEntry;
+			uint16_t *packed_entry;
+			uint8_t *indexed_entry;
 
 			shade = 0;
-			packedEntry = packedShadeEntry;
-			indexedEntry = indexedShadeEntry;
+			packed_entry = packed_shade_entry;
+			indexed_entry = indexed_shade_entry;
 			do {
-				int paletteComponent;
-				int scaledComponent;
+				int palette_component;
+				int scaled_component;
 
 				if (shade < 8) {
-					scaledComponent = shade;
-					paletteComponent = paletteEntry[0];
-					scaledComponent *= paletteComponent;
-					scaledComponent =
-						(paletteComponent << 7) +
-						((scaledComponent & 0xFFFFF8)
+					scaled_component = shade;
+					palette_component = palette_entry[0];
+					scaled_component *= palette_component;
+					scaled_component =
+						(palette_component << 7) +
+						((scaled_component & 0xFFFFF8)
 						 << 4);
-					paletteComponent = paletteEntry[1];
-					targetRgb[0] =
-						(uint8_t)(scaledComponent >> 8);
-					scaledComponent =
-						paletteComponent * shade;
-					scaledComponent =
-						(paletteComponent << 7) +
-						((scaledComponent & 0xFFFFF8)
+					palette_component = palette_entry[1];
+					target_rgb[0] =
+						(uint8_t)(scaled_component >>
+							  8);
+					scaled_component =
+						palette_component * shade;
+					scaled_component =
+						(palette_component << 7) +
+						((scaled_component & 0xFFFFF8)
 						 << 4);
-					paletteComponent = paletteEntry[2];
-					targetRgb[1] =
-						(uint8_t)(scaledComponent >> 8);
-					scaledComponent =
-						paletteComponent * shade;
-					scaledComponent =
-						(paletteComponent << 7) +
-						((scaledComponent & 0xFFFFF8)
+					palette_component = palette_entry[2];
+					target_rgb[1] =
+						(uint8_t)(scaled_component >>
+							  8);
+					scaled_component =
+						palette_component * shade;
+					scaled_component =
+						(palette_component << 7) +
+						((scaled_component & 0xFFFFF8)
 						 << 4);
 				} else {
-					unsigned int lightShade;
+					unsigned int light_shade;
 
-					paletteComponent = paletteEntry[0];
-					lightShade = shade - 8;
-					scaledComponent =
-						lightShade *
-						(31 - paletteComponent);
-					scaledComponent =
-						(paletteComponent << 8) +
-						((scaledComponent & 0xFFFFF8)
+					palette_component = palette_entry[0];
+					light_shade = shade - 8;
+					scaled_component =
+						light_shade *
+						(31 - palette_component);
+					scaled_component =
+						(palette_component << 8) +
+						((scaled_component & 0xFFFFF8)
 						 << 5);
-					paletteComponent = paletteEntry[1];
-					targetRgb[0] =
-						(uint8_t)(scaledComponent >> 8);
-					scaledComponent =
-						lightShade *
-						(31 - paletteComponent);
-					scaledComponent =
-						(paletteComponent << 8) +
-						((scaledComponent & 0xFFFFF8)
+					palette_component = palette_entry[1];
+					target_rgb[0] =
+						(uint8_t)(scaled_component >>
+							  8);
+					scaled_component =
+						light_shade *
+						(31 - palette_component);
+					scaled_component =
+						(palette_component << 8) +
+						((scaled_component & 0xFFFFF8)
 						 << 5);
-					paletteComponent = paletteEntry[2];
-					targetRgb[1] =
-						(uint8_t)(scaledComponent >> 8);
-					scaledComponent =
-						lightShade *
-						(31 - paletteComponent);
-					scaledComponent =
-						(paletteComponent << 8) +
-						((scaledComponent & 0xFFFFF8)
+					palette_component = palette_entry[2];
+					target_rgb[1] =
+						(uint8_t)(scaled_component >>
+							  8);
+					scaled_component =
+						light_shade *
+						(31 - palette_component);
+					scaled_component =
+						(palette_component << 8) +
+						((scaled_component & 0xFFFFF8)
 						 << 5);
 				}
-				targetRgb[2] = (uint8_t)(scaledComponent >> 8);
-				*packedEntry = (uint16_t)(targetRgb[2] +
-							  ((targetRgb[1] +
-							    32 * targetRgb[0])
-							   << 6));
-				targetRgb[0] *= 2;
-				targetRgb[1] *= 2;
-				targetRgb[2] *= 2;
-				*indexedEntry = (uint8_t)
-					Color_FindNearestRgbTripletIndex(
-						targetRgb,
-						(const uint8_t *)g_swPalette,
+				target_rgb[2] =
+					(uint8_t)(scaled_component >> 8);
+				*packed_entry = (uint16_t)(target_rgb[2] +
+							   ((target_rgb[1] +
+							     32 * target_rgb[0])
+							    << 6));
+				target_rgb[0] *= 2;
+				target_rgb[1] *= 2;
+				target_rgb[2] *= 2;
+				*indexed_entry = (uint8_t)
+					color_find_nearest_rgb_triplet_index(
+						target_rgb,
+						(const uint8_t *)g_sw_palette,
 						0x40, 0x100);
-				indexedEntry += 256;
-				packedEntry += 256;
+				indexed_entry += 256;
+				packed_entry += 256;
 				++shade;
 			} while (shade < 16);
-			++packedShadeEntry;
-			++indexedShadeEntry;
-			paletteEntry += 3;
-		} while (paletteEntry < localPalette + sizeof(localPalette));
+			++packed_shade_entry;
+			++indexed_shade_entry;
+			palette_entry += 3;
+		} while (palette_entry < local_palette + sizeof(local_palette));
 	}
 }
 
 #ifndef XVT_MODERN
 /* Loads a texture file into dst as a packed OPT texture and returns its bytes:
- * a 24-byte OptTextureData header with palette 256 and inlinePaletteCount 16,
- * the texels, 4096 bytes of g_swPalette shade indices and 8192 bytes of RGB565
+ * a 24-byte opt_texture_data header with palette 256 and inline_palette_count 16,
+ * the texels, 4096 bytes of g_sw_palette shade indices and 8192 bytes of RGB565
  * shades. A name ending in "rgb", ignoring case, is tried first as the same
  * name ending in "tex". A .tex file gives its own header and texels (dataSize
- * bytes when textureSize equals width times height, else width times height),
+ * bytes when texture_size equals width times height, else width times height),
  * then the RGB565 shades, leaving the 4096 bytes before them unwritten. An .rgb
  * file has a 512-byte header with a big-endian width and height at bytes 6 and
  * 8, then three planes of one byte per pixel; it is turned into texels and
- * shades in place much as ModelTexture_BuildPalettedShadeTable does, without
- * its 0xFFFFF8 masks, and textureSize and dataSize keep the header's bytes 8 to
+ * shades in place much as model_texture_build_paletted_shade_table does, without
+ * its 0xFFFFF8 masks, and texture_size and dataSize keep the header's bytes 8 to
  * 15. Either file returns its texel bytes plus 12312. A missing file or another
- * extension gives the 8 by 8 texture of g_defaultWhiteTextureRgb24 and returns
+ * extension gives the 8 by 8 texture of g_default_white_texture_rgb24 and returns
  * 12376. Only the original build calls this. */
 // FUNCTION: XVT 0x479E80
-size_t ModelTexture_LoadRgbOrTexFile(uint8_t *dst, const char *fileName)
+size_t model_texture_load_rgb_or_tex_file(uint8_t *dst, const char *file_name)
 {
-	uint8_t targetRgb[3];
+	uint8_t target_rgb[3];
 	char path[256];
-	uint8_t localPalette[256 * 3];
+	uint8_t local_palette[256 * 3];
 	char *extension;
-	XvtFile *stream;
+	xvt_file *stream;
 	uint8_t *texels;
-	int pixelCount;
+	int pixel_count;
 
-	strcpy(path, fileName);
+	strcpy(path, file_name);
 	extension = path + strlen(path) - 3;
-	if (_strcmpi(extension, g_extRgb) == 0) {
+	if (_strcmpi(extension, g_ext_rgb) == 0) {
 		extension[0] = 't';
 		extension[1] = 'e';
 		extension[2] = 'x';
-		FeDiskIo_OpenGlobalStream(path, g_fileModeReadBinary, 0, 0);
-		stream = (XvtFile *)g_stream;
+		fe_disk_io_open_global_stream(path, g_file_mode_read_binary, 0,
+					      0);
+		stream = (xvt_file *)g_stream;
 		extension[0] = 'r';
 		extension[1] = 'g';
 		extension[2] = 'b';
 		if (stream == NULL) {
-			FeDiskIo_OpenGlobalStream(path, g_fileModeReadBinary, 0,
-						  0);
-			stream = (XvtFile *)g_stream;
+			fe_disk_io_open_global_stream(
+				path, g_file_mode_read_binary, 0, 0);
+			stream = (xvt_file *)g_stream;
 			if (stream == NULL) {
-				uint8_t *whiteTexels = dst + 24;
+				uint8_t *white_texels = dst + 24;
 
 				((unsigned int *)dst)[4] = 8;
 				((unsigned int *)dst)[5] = 8;
 				((unsigned int *)dst)[0] = 256;
 				((unsigned int *)dst)[1] = 16;
-				ModelTexture_BuildPalettedShadeTable(
-					whiteTexels, g_defaultWhiteTextureRgb24,
-					8, 8);
+				model_texture_build_paletted_shade_table(
+					white_texels,
+					g_default_white_texture_rgb24, 8, 8);
 				return 12376;
 			}
 			{
-				const uint8_t *paletteEntry;
-				uint16_t *packedShadeEntry;
-				uint8_t *indexedShadeEntry;
-				uint8_t *serializedEnd;
-				uint8_t *dstTexel;
-				uint8_t *sourcePixel;
-				int remainingPixels;
-				int paletteSize;
+				const uint8_t *palette_entry;
+				uint16_t *packed_shade_entry;
+				uint8_t *indexed_shade_entry;
+				uint8_t *serialized_end;
+				uint8_t *dst_texel;
+				uint8_t *source_pixel;
+				int remaining_pixels;
+				int palette_size;
 				int height;
 				int width;
 
-				File_RawRead(dst, 512, 1, stream);
+				FILE_RAW_READ(dst, 512, 1, stream);
 				width = ((unsigned int)dst[6] << 8) + dst[7];
 				height = ((unsigned int)dst[8] << 8) + dst[9];
-				pixelCount = width * height;
-				sourcePixel = dst + 24;
+				pixel_count = width * height;
+				source_pixel = dst + 24;
 				((unsigned int *)dst)[4] = width;
 				((unsigned int *)dst)[5] = height;
-				File_RawRead(sourcePixel, pixelCount, 3,
-					     stream);
-				File_RawClose(stream);
+				FILE_RAW_READ(source_pixel, pixel_count, 3,
+					      stream);
+				FILE_RAW_CLOSE(stream);
 
 				/* The three colour planes are converted to palette indices in place. */
-				paletteSize = 1;
-				localPalette[0] = sourcePixel[0] >> 3;
-				localPalette[1] = sourcePixel[pixelCount] >> 3;
-				localPalette[2] =
-					sourcePixel[pixelCount * 2] >> 3;
-				serializedEnd = sourcePixel + pixelCount;
+				palette_size = 1;
+				local_palette[0] = source_pixel[0] >> 3;
+				local_palette[1] =
+					source_pixel[pixel_count] >> 3;
+				local_palette[2] =
+					source_pixel[pixel_count * 2] >> 3;
+				serialized_end = source_pixel + pixel_count;
 				dst[24] = 0;
-				++sourcePixel;
-				dstTexel = sourcePixel;
-				if (pixelCount > 1) {
-					remainingPixels = pixelCount - 1;
+				++source_pixel;
+				dst_texel = source_pixel;
+				if (pixel_count > 1) {
+					remaining_pixels = pixel_count - 1;
 					do {
-						uint8_t paletteIndex;
+						uint8_t palette_index;
 
-						targetRgb[0] =
-							sourcePixel[0] >> 3;
-						targetRgb[1] =
-							sourcePixel
-								[pixelCount] >>
+						target_rgb[0] =
+							source_pixel[0] >> 3;
+						target_rgb[1] =
+							source_pixel
+								[pixel_count] >>
 							3;
-						targetRgb[2] =
-							sourcePixel[pixelCount *
-								    2] >>
+						target_rgb[2] =
+							source_pixel
+								[pixel_count *
+								 2] >>
 							3;
-						paletteIndex = (uint8_t)
-							Color_FindNearestRgbTripletIndex(
-								targetRgb,
-								localPalette, 0,
-								paletteSize);
-						if ((localPalette[3 *
-								  paletteIndex] !=
-							     targetRgb[0] ||
-						     localPalette[3 * paletteIndex +
-								  1] !=
-							     targetRgb[1] ||
-						     localPalette[3 * paletteIndex +
-								  2] !=
-							     targetRgb[2]) &&
-						    paletteSize < 256) {
-							paletteIndex = (uint8_t)
-								paletteSize++;
-							localPalette[3 *
-								     paletteIndex] =
-								targetRgb[0];
-							localPalette
-								[3 * paletteIndex +
-								 1] = targetRgb
+						palette_index = (uint8_t)
+							color_find_nearest_rgb_triplet_index(
+								target_rgb,
+								local_palette,
+								0,
+								palette_size);
+						if ((local_palette[3 *
+								   palette_index] !=
+							     target_rgb[0] ||
+						     local_palette[3 * palette_index +
+								   1] !=
+							     target_rgb[1] ||
+						     local_palette[3 * palette_index +
+								   2] !=
+							     target_rgb[2]) &&
+						    palette_size < 256) {
+							palette_index = (uint8_t)
+								palette_size++;
+							local_palette[3 *
+								      palette_index] =
+								target_rgb[0];
+							local_palette
+								[3 * palette_index +
+								 1] = target_rgb
 									[1];
-							localPalette
-								[3 * paletteIndex +
-								 2] = targetRgb
+							local_palette
+								[3 * palette_index +
+								 2] = target_rgb
 									[2];
 						}
-						*dstTexel++ = paletteIndex;
-						++sourcePixel;
-						--remainingPixels;
-					} while (remainingPixels != 0);
+						*dst_texel++ = palette_index;
+						++source_pixel;
+						--remaining_pixels;
+					} while (remaining_pixels != 0);
 				}
 
-				indexedShadeEntry = serializedEnd;
-				serializedEnd += 4096;
-				packedShadeEntry = (uint16_t *)serializedEnd;
-				serializedEnd += 8192;
+				indexed_shade_entry = serialized_end;
+				serialized_end += 4096;
+				packed_shade_entry = (uint16_t *)serialized_end;
+				serialized_end += 8192;
 				((unsigned int *)dst)[0] = 256;
 				((unsigned int *)dst)[1] = 16;
-				paletteEntry = localPalette;
+				palette_entry = local_palette;
 				do {
 					int shade;
-					uint16_t *packedEntry;
-					uint8_t *indexedEntry;
+					uint16_t *packed_entry;
+					uint8_t *indexed_entry;
 
 					shade = 0;
-					indexedEntry = indexedShadeEntry;
-					packedEntry = packedShadeEntry;
+					indexed_entry = indexed_shade_entry;
+					packed_entry = packed_shade_entry;
 					do {
-						int paletteComponent;
-						int scaledComponent;
+						int palette_component;
+						int scaled_component;
 
 						if (shade < 8) {
-							paletteComponent =
-								paletteEntry[0];
-							scaledComponent =
-								paletteComponent *
+							palette_component =
+								palette_entry
+									[0];
+							scaled_component =
+								palette_component *
 								shade;
-							scaledComponent =
-								(paletteComponent
+							scaled_component =
+								(palette_component
 								 << 7) +
-								(scaledComponent
+								(scaled_component
 								 << 8) / 16;
-							paletteComponent =
-								paletteEntry[1];
-							targetRgb[0] =
-								(uint8_t)(scaledComponent >>
+							palette_component =
+								palette_entry
+									[1];
+							target_rgb[0] =
+								(uint8_t)(scaled_component >>
 									  8);
-							scaledComponent =
-								paletteComponent *
+							scaled_component =
+								palette_component *
 								shade;
-							scaledComponent =
-								(paletteComponent
+							scaled_component =
+								(palette_component
 								 << 7) +
-								(scaledComponent
+								(scaled_component
 								 << 8) / 16;
-							paletteComponent =
-								paletteEntry[2];
-							targetRgb[1] =
-								(uint8_t)(scaledComponent >>
+							palette_component =
+								palette_entry
+									[2];
+							target_rgb[1] =
+								(uint8_t)(scaled_component >>
 									  8);
-							scaledComponent =
-								paletteComponent *
+							scaled_component =
+								palette_component *
 								shade;
-							scaledComponent =
-								(paletteComponent
+							scaled_component =
+								(palette_component
 								 << 7) +
-								(scaledComponent
+								(scaled_component
 								 << 8) / 16;
 						} else {
-							paletteComponent =
-								paletteEntry[0];
-							scaledComponent =
+							palette_component =
+								palette_entry
+									[0];
+							scaled_component =
 								(31 -
-								 paletteComponent) *
+								 palette_component) *
 								(shade - 8);
-							scaledComponent =
-								(paletteComponent
+							scaled_component =
+								(palette_component
 								 << 8) +
-								(scaledComponent
+								(scaled_component
 								 << 8) / 8;
-							paletteComponent =
-								paletteEntry[1];
-							targetRgb[0] =
-								(uint8_t)(scaledComponent >>
+							palette_component =
+								palette_entry
+									[1];
+							target_rgb[0] =
+								(uint8_t)(scaled_component >>
 									  8);
-							scaledComponent =
+							scaled_component =
 								(31 -
-								 paletteComponent) *
+								 palette_component) *
 								(shade - 8);
-							scaledComponent =
-								(paletteComponent
+							scaled_component =
+								(palette_component
 								 << 8) +
-								(scaledComponent
+								(scaled_component
 								 << 8) / 8;
-							paletteComponent =
-								paletteEntry[2];
-							targetRgb[1] =
-								(uint8_t)(scaledComponent >>
+							palette_component =
+								palette_entry
+									[2];
+							target_rgb[1] =
+								(uint8_t)(scaled_component >>
 									  8);
-							scaledComponent =
+							scaled_component =
 								(31 -
-								 paletteComponent) *
+								 palette_component) *
 								(shade - 8);
-							scaledComponent =
-								(paletteComponent
+							scaled_component =
+								(palette_component
 								 << 8) +
-								(scaledComponent
+								(scaled_component
 								 << 8) / 8;
 						}
-						targetRgb[2] =
-							(uint8_t)(scaledComponent >>
+						target_rgb[2] =
+							(uint8_t)(scaled_component >>
 								  8);
-						*packedEntry =
-							(uint16_t)(((32 * targetRgb[0] +
-								     targetRgb
+						*packed_entry =
+							(uint16_t)(((32 * target_rgb[0] +
+								     target_rgb
 									     [1])
 								    << 6) +
-								   targetRgb
+								   target_rgb
 									   [2]);
-						targetRgb[0] *= 2;
-						targetRgb[1] *= 2;
-						targetRgb[2] *= 2;
-						*indexedEntry = (uint8_t)
-							Color_FindNearestRgbTripletIndex(
-								targetRgb,
+						target_rgb[0] *= 2;
+						target_rgb[1] *= 2;
+						target_rgb[2] *= 2;
+						*indexed_entry = (uint8_t)
+							color_find_nearest_rgb_triplet_index(
+								target_rgb,
 								(const uint8_t
 									 *)
-									g_swPalette,
+									g_sw_palette,
 								0x40, 0x100);
-						indexedEntry += 256;
-						packedEntry += 256;
+						indexed_entry += 256;
+						packed_entry += 256;
 						++shade;
 					} while (shade < 16);
-					++packedShadeEntry;
-					++indexedShadeEntry;
-					paletteEntry += 3;
-				} while (paletteEntry <
-					 localPalette + sizeof(localPalette));
+					++packed_shade_entry;
+					++indexed_shade_entry;
+					palette_entry += 3;
+				} while (palette_entry <
+					 local_palette + sizeof(local_palette));
 
-				return serializedEnd - dst;
+				return serialized_end - dst;
 			}
 		}
 	} else {
-		if (_strcmpi(extension, g_extTex) != 0) {
-			uint8_t *whiteTexels = dst + 24;
+		if (_strcmpi(extension, g_ext_tex) != 0) {
+			uint8_t *white_texels = dst + 24;
 
 			((unsigned int *)dst)[4] = 8;
 			((unsigned int *)dst)[5] = 8;
 			((unsigned int *)dst)[0] = 256;
 			((unsigned int *)dst)[1] = 16;
-			ModelTexture_BuildPalettedShadeTable(
-				whiteTexels, g_defaultWhiteTextureRgb24, 8, 8);
+			model_texture_build_paletted_shade_table(
+				white_texels, g_default_white_texture_rgb24, 8,
+				8);
 			return 12376;
 		}
-		FeDiskIo_OpenGlobalStream(path, g_fileModeReadBinary, 0, 0);
-		stream = (XvtFile *)g_stream;
+		fe_disk_io_open_global_stream(path, g_file_mode_read_binary, 0,
+					      0);
+		stream = (xvt_file *)g_stream;
 		if (stream == NULL) {
-			uint8_t *whiteTexels = dst + 24;
+			uint8_t *white_texels = dst + 24;
 
 			((unsigned int *)dst)[4] = 8;
 			((unsigned int *)dst)[5] = 8;
 			((unsigned int *)dst)[0] = 256;
 			((unsigned int *)dst)[1] = 16;
-			ModelTexture_BuildPalettedShadeTable(
-				whiteTexels, g_defaultWhiteTextureRgb24, 8, 8);
+			model_texture_build_paletted_shade_table(
+				white_texels, g_default_white_texture_rgb24, 8,
+				8);
 			return 12376;
 		}
 	}
 
 	texels = dst + 24;
-	File_RawRead(dst, 24, 1, stream);
-	pixelCount = ((unsigned int *)dst)[4] * ((unsigned int *)dst)[5];
-	if (((unsigned int *)dst)[2] == (unsigned int)pixelCount) {
-		pixelCount = ((unsigned int *)dst)[3];
+	FILE_RAW_READ(dst, 24, 1, stream);
+	pixel_count = ((unsigned int *)dst)[4] * ((unsigned int *)dst)[5];
+	if (((unsigned int *)dst)[2] == (unsigned int)pixel_count) {
+		pixel_count = ((unsigned int *)dst)[3];
 	}
 	((unsigned int *)dst)[0] = 256;
 	((unsigned int *)dst)[1] = 16;
-	File_RawRead(texels, pixelCount, 1, stream);
-	texels += pixelCount + 4096;
-	File_RawRead(texels, 8192, 1, stream);
-	File_RawClose(stream);
-	return pixelCount + 12312;
+	FILE_RAW_READ(texels, pixel_count, 1, stream);
+	texels += pixel_count + 4096;
+	FILE_RAW_READ(texels, 8192, 1, stream);
+	FILE_RAW_CLOSE(stream);
+	return pixel_count + 12312;
 }
 #endif

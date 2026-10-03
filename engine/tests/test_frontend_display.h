@@ -4,7 +4,7 @@
  * made, so the frontend's offscreen restore must stay off while frames run, and no fonts or images are
  * loaded, so text and sprites draw nothing.
  *
- * Open after clearing g_frontState; Close releases the surfaces and the device and drops what Aeron kept of
+ * Open after clearing g_front_state; Close releases the surfaces and the device and drops what Aeron kept of
  * the last presented frame. */
 #ifndef XVT_TESTS_TEST_FRONTEND_DISPLAY_H
 #define XVT_TESTS_TEST_FRONTEND_DISPLAY_H
@@ -20,7 +20,7 @@
 
 /* Creates one surface of the device with the given caps; size flags are set for an offscreen surface. */
 static inline IDirectDrawSurface *
-XvtTest_CreateSurface(IDirectDraw *device, unsigned caps, int sized)
+xvt_test_create_surface(IDirectDraw *device, unsigned caps, int sized)
 {
 	IDirectDrawSurface *surface = NULL;
 	DDSURFACEDESC desc;
@@ -39,48 +39,48 @@ XvtTest_CreateSurface(IDirectDraw *device, unsigned caps, int sized)
 
 /* Gives the frontend its display: the device, the back buffer and its pitch, the primary surface, 16 bits
  * per pixel, and presenting by copy rather than by page flip. */
-static inline void XvtTest_OpenDisplay(void)
+static inline void xvt_test_open_display(void)
 {
 	IDirectDraw *device = NULL;
 	DDSURFACEDESC desc;
 	XVT_ASSERT_INT_EQ(DirectDrawCreate(NULL, &device, NULL), DX_DD_OK);
 	XVT_ASSERT_INT_EQ(device->lpVtbl->SetDisplayMode(device, 640, 480, 16),
 			  DX_DD_OK);
-	g_frontState.directDraw = device;
-	g_frontState.primarySurface =
-		XvtTest_CreateSurface(device, DDSCAPS_PRIMARYSURFACE, 0);
-	g_frontState.backBufferSurface = XvtTest_CreateSurface(
+	g_front_state.direct_draw = device;
+	g_front_state.primary_surface =
+		xvt_test_create_surface(device, DDSCAPS_PRIMARYSURFACE, 0);
+	g_front_state.back_buffer_surface = xvt_test_create_surface(
 		device, DDSCAPS_OFFSCREENPLAIN | DDSCAPS_SYSTEMMEMORY, 1);
 	memset(&desc, 0, sizeof desc);
 	desc.dwSize = sizeof desc;
-	XVT_ASSERT_INT_EQ(
-		g_frontState.backBufferSurface->lpVtbl->Lock(
-			g_frontState.backBufferSurface, NULL, &desc, 0, NULL),
-		DX_DD_OK);
-	g_frontState.backBufferPitch = desc.lPitch;
-	g_frontState.backBufferSurface->lpVtbl->Unlock(
-		g_frontState.backBufferSurface, NULL);
-	g_frontState.backBufferLocked = 0;
-	g_frontState.displayBpp = 16;
-	g_noPageFlip = 1;
+	XVT_ASSERT_INT_EQ(g_front_state.back_buffer_surface->lpVtbl->Lock(
+				  g_front_state.back_buffer_surface, NULL,
+				  &desc, 0, NULL),
+			  DX_DD_OK);
+	g_front_state.back_buffer_pitch = desc.lPitch;
+	g_front_state.back_buffer_surface->lpVtbl->Unlock(
+		g_front_state.back_buffer_surface, NULL);
+	g_front_state.back_buffer_locked = 0;
+	g_front_state.display_bpp = 16;
+	g_no_page_flip = 1;
 }
 
 /* Releases what Open made and clears the frontend's pointers to it. */
-static inline void XvtTest_CloseDisplay(void)
+static inline void xvt_test_close_display(void)
 {
-	if (!g_frontState.directDraw) {
+	if (!g_front_state.direct_draw) {
 		return;
 	}
-	FrontendDisplay_UnlockBackBuffer();
-	g_frontState.backBufferSurface->lpVtbl->Release(
-		g_frontState.backBufferSurface);
-	g_frontState.primarySurface->lpVtbl->Release(
-		g_frontState.primarySurface);
-	g_frontState.directDraw->lpVtbl->Release(g_frontState.directDraw);
-	g_frontState.backBufferSurface = NULL;
-	g_frontState.primarySurface = NULL;
-	g_frontState.directDraw = NULL;
-	g_drawSurfacePtr = NULL;
+	frontend_display_unlock_back_buffer();
+	g_front_state.back_buffer_surface->lpVtbl->Release(
+		g_front_state.back_buffer_surface);
+	g_front_state.primary_surface->lpVtbl->Release(
+		g_front_state.primary_surface);
+	g_front_state.direct_draw->lpVtbl->Release(g_front_state.direct_draw);
+	g_front_state.back_buffer_surface = NULL;
+	g_front_state.primary_surface = NULL;
+	g_front_state.direct_draw = NULL;
+	g_draw_surface_ptr = NULL;
 	AeronDx5_Shutdown();
 }
 

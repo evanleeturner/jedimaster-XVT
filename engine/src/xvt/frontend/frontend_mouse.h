@@ -8,17 +8,17 @@
 extern "C" {
 #endif
 
-int FrontendMouse_SetInputGate(int gateId);
-int FrontendMouse_ClearInputGate(void);
-int FrontendMouse_GetLeftDown(void);
-int FrontendMouse_GetRightDown(void);
-int FrontendMouse_GetLeftClick(void);
-int FrontendMouse_GetRightClick(void);
-int FrontendMouse_GetLeftClickFor(int gateId);
-int FrontendMouse_GetRightClickFor(int gateId);
-int FrontendMouse_IsGateOwner(int gateId);
-int FrontendMouse_IsGateOpen(void);
-int FrontendMouse_ClearClicks(void);
+int frontend_mouse_set_input_gate(int gate_id);
+int frontend_mouse_clear_input_gate(void);
+int frontend_mouse_get_left_down(void);
+int frontend_mouse_get_right_down(void);
+int frontend_mouse_get_left_click(void);
+int frontend_mouse_get_right_click(void);
+int frontend_mouse_get_left_click_for(int gate_id);
+int frontend_mouse_get_right_click_for(int gate_id);
+int frontend_mouse_is_gate_owner(int gate_id);
+int frontend_mouse_is_gate_open(void);
+int frontend_mouse_clear_clicks(void);
 
 #ifdef __cplusplus
 }

@@ -14,34 +14,34 @@
 
 static const GUID g_room = {1, 2, 3, {4, 5, 6, 7, 8, 9, 10, 11}};
 
-static struct NetPlayerNameMessage g_message;
+static struct net_player_name_message g_message;
 
-static XvtNetworkSessionState State(void)
+static xvt_network_session_state state(void)
 {
-	return XvtNetworkSession_GetStatus().state;
+	return xvt_network_session_get_status().state;
 }
 
-static AeronDplayDirectoryError Error(void)
+static AeronDplayDirectoryError network_session_error(void)
 {
-	return XvtNetworkSession_GetStatus().error;
+	return xvt_network_session_get_status().error;
 }
 
-static void Fresh(void)
+static void fresh(void)
 {
-	XvtNetworkSession_Shutdown();
-	XVT_ASSERT_INT_EQ(State(), XVT_NETWORK_SESSION_IDLE);
+	xvt_network_session_shutdown();
+	XVT_ASSERT_INT_EQ(state(), XVT_NETWORK_SESSION_IDLE);
 }
 
 /* Completes the close every Begin starts with; no DirectPlay session is open in these tests. */
-static void FinishClose(void) { XvtNetworkSession_Service(); }
+static void finish_close(void) { xvt_network_session_service(); }
 
-static void CheckCopyPlayerNames(void)
+static void check_copy_player_names(void)
 {
 	char short_name[16];
 	char long_name[16];
 	memset(&g_message, 0, sizeof g_message);
 	memcpy(g_message.names, "Luke\0Skywalker", sizeof "Luke\0Skywalker");
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_CopyPlayerNames(
+	XVT_ASSERT_INT_EQ(xvt_network_session_copy_player_names(
 				  &g_message, short_name, sizeof short_name,
 				  long_name, sizeof long_name),
 			  1);
@@ -49,42 +49,42 @@ static void CheckCopyPlayerNames(void)
 	XVT_ASSERT_INT_EQ(strcmp(long_name, "Skywalker"), 0);
 
 	/* Truncated to fit, each terminated. */
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_CopyPlayerNames(
+	XVT_ASSERT_INT_EQ(xvt_network_session_copy_player_names(
 				  &g_message, short_name, 3, long_name, 4),
 			  1);
 	XVT_ASSERT_INT_EQ(strcmp(short_name, "Lu"), 0);
 	XVT_ASSERT_INT_EQ(strcmp(long_name, "Sky"), 0);
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_CopyPlayerNames(
+	XVT_ASSERT_INT_EQ(xvt_network_session_copy_player_names(
 				  &g_message, short_name, 1, long_name, 1),
 			  1);
 	XVT_ASSERT_INT_EQ(short_name[0], 0);
 	XVT_ASSERT_INT_EQ(long_name[0], 0);
 
 	/* NULL and zero-capacity arguments. */
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_CopyPlayerNames(NULL, short_name,
-							    16, long_name, 16),
+	XVT_ASSERT_INT_EQ(xvt_network_session_copy_player_names(
+				  NULL, short_name, 16, long_name, 16),
 			  0);
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_CopyPlayerNames(&g_message, NULL,
-							    16, long_name, 16),
+	XVT_ASSERT_INT_EQ(xvt_network_session_copy_player_names(
+				  &g_message, NULL, 16, long_name, 16),
 			  0);
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_CopyPlayerNames(
+	XVT_ASSERT_INT_EQ(xvt_network_session_copy_player_names(
 				  &g_message, short_name, 16, NULL, 16),
 			  0);
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_CopyPlayerNames(
+	XVT_ASSERT_INT_EQ(xvt_network_session_copy_player_names(
 				  &g_message, short_name, 0, long_name, 16),
 			  0);
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_CopyPlayerNames(
+	XVT_ASSERT_INT_EQ(xvt_network_session_copy_player_names(
 				  &g_message, short_name, 16, long_name, 0),
 			  0);
 
 	/* A long name without its terminator, then no terminator at all. */
 	memset(g_message.names, 'x', sizeof g_message.names);
 	g_message.names[1] = 0;
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_CopyPlayerNames(
+	XVT_ASSERT_INT_EQ(xvt_network_session_copy_player_names(
 				  &g_message, short_name, 16, long_name, 16),
 			  0);
 	memset(g_message.names, 'x', sizeof g_message.names);
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_CopyPlayerNames(
+	XVT_ASSERT_INT_EQ(xvt_network_session_copy_player_names(
 				  &g_message, short_name, 16, long_name, 16),
 			  0);
 
@@ -92,22 +92,22 @@ static void CheckCopyPlayerNames(void)
 	memset(g_message.names, 'x', sizeof g_message.names);
 	g_message.names[sizeof g_message.names - 2] = 0;
 	g_message.names[sizeof g_message.names - 1] = 0;
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_CopyPlayerNames(
+	XVT_ASSERT_INT_EQ(xvt_network_session_copy_player_names(
 				  &g_message, short_name, 16, long_name, 16),
 			  1);
 	XVT_ASSERT_INT_EQ(strlen(short_name), 15);
 	XVT_ASSERT_INT_EQ(long_name[0], 0);
 }
 
-static void CheckConfigureNeedsALobby(void)
+static void check_configure_needs_a_lobby(void)
 {
-	Fresh();
+	fresh();
 	/* With no settings loaded the lobby URL is empty. */
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_Configure(),
+	XVT_ASSERT_INT_EQ(xvt_network_session_configure(),
 			  AERON_DPLAY_DIRECTORY_ERROR_NOT_CONFIGURED);
 }
 
-static void CheckBeginRefusals(void)
+static void check_begin_refusals(void)
 {
 	char too_long[64];
 	memset(too_long, 'n', sizeof too_long);
@@ -127,173 +127,185 @@ static void CheckBeginRefusals(void)
 	};
 
 	for (unsigned i = 0; i < sizeof hosts / sizeof hosts[0]; ++i) {
-		Fresh();
-		XVT_ASSERT_INT_EQ(XvtNetworkSession_BeginHost(hosts[i].info,
-							      hosts[i].player,
-							      hosts[i].name, 0),
+		fresh();
+		XVT_ASSERT_INT_EQ(xvt_network_session_begin_host(
+					  hosts[i].info, hosts[i].player,
+					  hosts[i].name, 0),
 				  0);
-		XVT_ASSERT_INT_EQ(State(), XVT_NETWORK_SESSION_FAILED);
-		XVT_ASSERT_INT_EQ(Error(),
+		XVT_ASSERT_INT_EQ(state(), XVT_NETWORK_SESSION_FAILED);
+		XVT_ASSERT_INT_EQ(network_session_error(),
 				  AERON_DPLAY_DIRECTORY_ERROR_INVALID_REQUEST);
 	}
 
 	/* A join needs a room as well. */
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_BeginJoin("\x02", "Luke", NULL), 0);
-	XVT_ASSERT_INT_EQ(State(), XVT_NETWORK_SESSION_FAILED);
-	XVT_ASSERT_INT_EQ(Error(), AERON_DPLAY_DIRECTORY_ERROR_INVALID_REQUEST);
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_BeginJoin("0123456789abcdef",
-						      "Luke", &g_room),
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_network_session_begin_join("\x02", "Luke", NULL),
 			  0);
-	XVT_ASSERT_INT_EQ(State(), XVT_NETWORK_SESSION_FAILED);
+	XVT_ASSERT_INT_EQ(state(), XVT_NETWORK_SESSION_FAILED);
+	XVT_ASSERT_INT_EQ(network_session_error(),
+			  AERON_DPLAY_DIRECTORY_ERROR_INVALID_REQUEST);
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_network_session_begin_join("0123456789abcdef",
+							 "Luke", &g_room),
+			  0);
+	XVT_ASSERT_INT_EQ(state(), XVT_NETWORK_SESSION_FAILED);
 
 	/* The longest arguments that fit are accepted: 15, 15 and 31 characters. */
-	Fresh();
+	fresh();
 	too_long[31] = 0;
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_BeginHost("0123456789abcde",
-						      "0123456789abcde",
-						      too_long, 0),
+	XVT_ASSERT_INT_EQ(xvt_network_session_begin_host("0123456789abcde",
+							 "0123456789abcde",
+							 too_long, 0),
 			  XVT_NETWORK_PENDING);
-	XVT_ASSERT_INT_EQ(State(), XVT_NETWORK_SESSION_PENDING);
+	XVT_ASSERT_INT_EQ(state(), XVT_NETWORK_SESSION_PENDING);
 }
 
-static void CheckBeginWhileUnderWay(void)
+static void check_begin_while_under_way(void)
 {
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_BeginHost("\x02", "Luke", "", 0),
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_network_session_begin_host("\x02", "Luke", "", 0),
 			  XVT_NETWORK_PENDING);
-	XVT_ASSERT_INT_EQ(State(), XVT_NETWORK_SESSION_PENDING);
+	XVT_ASSERT_INT_EQ(state(), XVT_NETWORK_SESSION_PENDING);
 
 	/* Another Begin while setup is under way returns -1 and does nothing: bad arguments do not fail it. */
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_BeginHost(NULL, NULL, NULL, 0),
+	XVT_ASSERT_INT_EQ(xvt_network_session_begin_host(NULL, NULL, NULL, 0),
 			  XVT_NETWORK_PENDING);
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_BeginJoin(NULL, NULL, NULL),
+	XVT_ASSERT_INT_EQ(xvt_network_session_begin_join(NULL, NULL, NULL),
 			  XVT_NETWORK_PENDING);
-	XVT_ASSERT_INT_EQ(State(), XVT_NETWORK_SESSION_PENDING);
-	XVT_ASSERT_INT_EQ(Error(), AERON_DPLAY_DIRECTORY_ERROR_NONE);
+	XVT_ASSERT_INT_EQ(state(), XVT_NETWORK_SESSION_PENDING);
+	XVT_ASSERT_INT_EQ(network_session_error(),
+			  AERON_DPLAY_DIRECTORY_ERROR_NONE);
 
 	/* A failed session can be started again. */
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_BeginJoin("\x02", "Luke", NULL), 0);
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_BeginJoin("\x02", "Luke", &g_room),
-			  XVT_NETWORK_PENDING);
-	XVT_ASSERT_INT_EQ(State(), XVT_NETWORK_SESSION_PENDING);
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_network_session_begin_join("\x02", "Luke", NULL),
+			  0);
+	XVT_ASSERT_INT_EQ(
+		xvt_network_session_begin_join("\x02", "Luke", &g_room),
+		XVT_NETWORK_PENDING);
+	XVT_ASSERT_INT_EQ(state(), XVT_NETWORK_SESSION_PENDING);
 }
 
-static void CheckTick(void)
+static void check_tick(void)
 {
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_Update(), 0);
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_network_session_update(), 0);
 
 	/* A failed session ticks as 0. */
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_BeginHost(NULL, "Luke", "", 0), 0);
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_Update(), 0);
-	XVT_ASSERT_INT_EQ(State(), XVT_NETWORK_SESSION_FAILED);
+	XVT_ASSERT_INT_EQ(xvt_network_session_begin_host(NULL, "Luke", "", 0),
+			  0);
+	XVT_ASSERT_INT_EQ(xvt_network_session_update(), 0);
+	XVT_ASSERT_INT_EQ(state(), XVT_NETWORK_SESSION_FAILED);
 
 	/* While the previous session's close completes, setup is pending. */
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_BeginHost("\x02", "Luke", "", 0),
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_network_session_begin_host("\x02", "Luke", "", 0),
 			  XVT_NETWORK_PENDING);
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_Update(), XVT_NETWORK_PENDING);
-	XVT_ASSERT_INT_EQ(State(), XVT_NETWORK_SESSION_PENDING);
+	XVT_ASSERT_INT_EQ(xvt_network_session_update(), XVT_NETWORK_PENDING);
+	XVT_ASSERT_INT_EQ(state(), XVT_NETWORK_SESSION_PENDING);
 }
 
-static void CheckLost(void)
+static void check_lost(void)
 {
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_IsLost(), 0);
-	XvtNetworkSession_HostLost();
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_IsLost(), 1);
-	XvtNetworkSession_HostLost();
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_IsLost(), 1);
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_network_session_is_lost(), 0);
+	xvt_network_session_host_lost();
+	XVT_ASSERT_INT_EQ(xvt_network_session_is_lost(), 1);
+	xvt_network_session_host_lost();
+	XVT_ASSERT_INT_EQ(xvt_network_session_is_lost(), 1);
 
 	/* Outside flight, the next Update fails a lost session. */
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_BeginHost("\x02", "Luke", "", 0),
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_network_session_begin_host("\x02", "Luke", "", 0),
 			  XVT_NETWORK_PENDING);
-	XvtNetworkSession_HostLost();
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_Update(), 0);
-	XVT_ASSERT_INT_EQ(State(), XVT_NETWORK_SESSION_FAILED);
+	xvt_network_session_host_lost();
+	XVT_ASSERT_INT_EQ(xvt_network_session_update(), 0);
+	XVT_ASSERT_INT_EQ(state(), XVT_NETWORK_SESSION_FAILED);
 
 	/* ...and so does the next Service. */
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_BeginJoin("\x02", "Luke", &g_room),
-			  XVT_NETWORK_PENDING);
-	FinishClose();
-	XVT_ASSERT_INT_EQ(State(), XVT_NETWORK_SESSION_PENDING);
-	XvtNetworkSession_HostLost();
-	XvtNetworkSession_Service();
-	XVT_ASSERT_INT_EQ(State(), XVT_NETWORK_SESSION_FAILED);
+	fresh();
+	XVT_ASSERT_INT_EQ(
+		xvt_network_session_begin_join("\x02", "Luke", &g_room),
+		XVT_NETWORK_PENDING);
+	finish_close();
+	XVT_ASSERT_INT_EQ(state(), XVT_NETWORK_SESSION_PENDING);
+	xvt_network_session_host_lost();
+	xvt_network_session_service();
+	XVT_ASSERT_INT_EQ(state(), XVT_NETWORK_SESSION_FAILED);
 }
 
-static void CheckClose(void)
+static void check_close(void)
 {
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_BeginHost("\x02", "Luke", "", 0),
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_network_session_begin_host("\x02", "Luke", "", 0),
 			  XVT_NETWORK_PENDING);
-	XvtNetworkSession_HostLost();
+	xvt_network_session_host_lost();
 
 	/* OnClose returns to idle with a close pending, and clears the lost mark. */
-	XvtNetworkSession_OnClose();
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_IsLost(), 0);
-	XVT_ASSERT_INT_EQ(State(), XVT_NETWORK_SESSION_PENDING);
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_Update(), 0);
+	xvt_network_session_on_close();
+	XVT_ASSERT_INT_EQ(xvt_network_session_is_lost(), 0);
+	XVT_ASSERT_INT_EQ(state(), XVT_NETWORK_SESSION_PENDING);
+	XVT_ASSERT_INT_EQ(xvt_network_session_update(), 0);
 
 	/* Service finishes the close once DirectPlay is inactive. */
-	FinishClose();
-	XVT_ASSERT_INT_EQ(State(), XVT_NETWORK_SESSION_IDLE);
+	finish_close();
+	XVT_ASSERT_INT_EQ(state(), XVT_NETWORK_SESSION_IDLE);
 
 	/* Leave and Cancel shut the DirectPlay session down, which closes the session. */
-	XvtNetworkSession_Leave();
-	XVT_ASSERT_INT_EQ(State(), XVT_NETWORK_SESSION_PENDING);
-	FinishClose();
-	XvtNetworkSession_Cancel();
-	XVT_ASSERT_INT_EQ(State(), XVT_NETWORK_SESSION_PENDING);
-	FinishClose();
-	XVT_ASSERT_INT_EQ(State(), XVT_NETWORK_SESSION_IDLE);
+	xvt_network_session_leave();
+	XVT_ASSERT_INT_EQ(state(), XVT_NETWORK_SESSION_PENDING);
+	finish_close();
+	xvt_network_session_cancel();
+	XVT_ASSERT_INT_EQ(state(), XVT_NETWORK_SESSION_PENDING);
+	finish_close();
+	XVT_ASSERT_INT_EQ(state(), XVT_NETWORK_SESSION_IDLE);
 }
 
-static void CheckLeaveKeepsShutdownClears(void)
+static void check_leave_keeps_shutdown_clears(void)
 {
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_BeginHost(NULL, "Luke", "", 0), 0);
-	XVT_ASSERT_INT_EQ(Error(), AERON_DPLAY_DIRECTORY_ERROR_INVALID_REQUEST);
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_network_session_begin_host(NULL, "Luke", "", 0),
+			  0);
+	XVT_ASSERT_INT_EQ(network_session_error(),
+			  AERON_DPLAY_DIRECTORY_ERROR_INVALID_REQUEST);
 
 	/* Leave keeps the session state: the last failure's error stays. */
-	XvtNetworkSession_Leave();
-	FinishClose();
-	XVT_ASSERT_INT_EQ(Error(), AERON_DPLAY_DIRECTORY_ERROR_INVALID_REQUEST);
+	xvt_network_session_leave();
+	finish_close();
+	XVT_ASSERT_INT_EQ(network_session_error(),
+			  AERON_DPLAY_DIRECTORY_ERROR_INVALID_REQUEST);
 
 	/* Shutdown forgets it. */
-	XvtNetworkSession_HostLost();
-	XvtNetworkSession_Shutdown();
-	XVT_ASSERT_INT_EQ(State(), XVT_NETWORK_SESSION_IDLE);
-	XVT_ASSERT_INT_EQ(Error(), AERON_DPLAY_DIRECTORY_ERROR_NONE);
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_IsLost(), 0);
+	xvt_network_session_host_lost();
+	xvt_network_session_shutdown();
+	XVT_ASSERT_INT_EQ(state(), XVT_NETWORK_SESSION_IDLE);
+	XVT_ASSERT_INT_EQ(network_session_error(),
+			  AERON_DPLAY_DIRECTORY_ERROR_NONE);
+	XVT_ASSERT_INT_EQ(xvt_network_session_is_lost(), 0);
 }
 
-static void CheckAdmissionOutsideAdmission(void)
+static void check_admission_outside_admission(void)
 {
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_AcceptAdmission(0, 0), 0);
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_BeginJoin("\x02", "Luke", &g_room),
-			  XVT_NETWORK_PENDING);
-	XVT_ASSERT_INT_EQ(XvtNetworkSession_AcceptAdmission(0, 0), 0);
-	XVT_ASSERT_INT_EQ(State(), XVT_NETWORK_SESSION_PENDING);
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_network_session_accept_admission(0, 0), 0);
+	XVT_ASSERT_INT_EQ(
+		xvt_network_session_begin_join("\x02", "Luke", &g_room),
+		XVT_NETWORK_PENDING);
+	XVT_ASSERT_INT_EQ(xvt_network_session_accept_admission(0, 0), 0);
+	XVT_ASSERT_INT_EQ(state(), XVT_NETWORK_SESSION_PENDING);
 }
 
 int main(void)
 {
-	CheckCopyPlayerNames();
-	CheckConfigureNeedsALobby();
-	CheckBeginRefusals();
-	CheckBeginWhileUnderWay();
-	CheckTick();
-	CheckLost();
-	CheckClose();
-	CheckLeaveKeepsShutdownClears();
-	CheckAdmissionOutsideAdmission();
-	XvtNetworkSession_Shutdown();
+	check_copy_player_names();
+	check_configure_needs_a_lobby();
+	check_begin_refusals();
+	check_begin_while_under_way();
+	check_tick();
+	check_lost();
+	check_close();
+	check_leave_keeps_shutdown_clears();
+	check_admission_outside_admission();
+	xvt_network_session_shutdown();
 	return 0;
 }

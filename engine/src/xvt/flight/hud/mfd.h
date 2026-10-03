@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-enum MfdPageId {
+enum mfd_page_id {
 	MFD_PAGE_SCOREBOARD = 0,
 	MFD_PAGE_GOALS = 1,
 	MFD_PAGE_MESSAGE_LOG = 2,
@@ -21,7 +21,7 @@ enum MfdPageId {
 	MFD_PAGE_NONE = UINT16_MAX,
 };
 
-enum MfdPageState {
+enum mfd_page_state {
 	MFD_PAGE_STATE_CLOSING = -2,
 	MFD_PAGE_STATE_REOPENED =
 		-1, ///< Open state produced when a display rebuild cancels a pending close.
@@ -29,32 +29,32 @@ enum MfdPageState {
 	MFD_PAGE_STATE_OPEN = 1,
 };
 
-extern uint16_t g_mfdActivePage;
-extern uint16_t g_mfdSecondaryPage;
-extern int16_t g_mfdPageStates[MFD_PAGE_COUNT];
-extern uint16_t g_mfdSavedActivePage;
-extern uint16_t g_mfdSavedSecondaryPage;
-extern int16_t g_savedMfdPageStates[MFD_PAGE_COUNT];
-extern uint16_t g_mfdMapHelpCameraStateCache;
-extern int16_t g_mfdMissionScoreboardFirstVisibleRow;
-extern int16_t g_mfdMissionScoreboardLastPlayerCount;
-extern int16_t g_mfdMissionScoreboardLastWidth;
-extern uint16_t g_mfdCraftListCachedRowCount;
-extern int16_t g_mfdCraftListTopRowByMode[2];
-extern const char g_mfdCraftListTeamColorCodes[11];
-extern const char *g_strMapRoomText[20];
-extern const char *g_mfdDeveloperCreditsLines[47];
+extern uint16_t g_mfd_active_page;
+extern uint16_t g_mfd_secondary_page;
+extern int16_t g_mfd_page_states[MFD_PAGE_COUNT];
+extern uint16_t g_mfd_saved_active_page;
+extern uint16_t g_mfd_saved_secondary_page;
+extern int16_t g_saved_mfd_page_states[MFD_PAGE_COUNT];
+extern uint16_t g_mfd_map_help_camera_state_cache;
+extern int16_t g_mfd_mission_scoreboard_first_visible_row;
+extern int16_t g_mfd_mission_scoreboard_last_player_count;
+extern int16_t g_mfd_mission_scoreboard_last_width;
+extern uint16_t g_mfd_craft_list_cached_row_count;
+extern int16_t g_mfd_craft_list_top_row_by_mode[2];
+extern const char g_mfd_craft_list_team_color_codes[11];
+extern const char *g_str_map_room_text[20];
+extern const char *g_mfd_developer_credits_lines[47];
 
-int16_t Mfd_DrawMissionGoalsPage(void);
-void Mfd_DrawMissionScoreboardPage(void);
-void Mfd_DrawCraftListPage(uint16_t showHostileCraft);
-void Mfd_BuildScratchCraftListName(uint16_t objectIdx);
-int16_t Mfd_GetFlightGroupGoalStatusStringId(uint16_t objectIndex);
-void Mfd_DrawMapHelpPage(void);
-void Mfd_TogglePage(uint16_t page);
-int16_t Mfd_FindSecondaryOpenPage(void);
-int16_t Mfd_DrawMessageLogPage(void);
-int Mfd_GetMessageLogRecordIndex(int displayOffset);
+int16_t mfd_draw_mission_goals_page(void);
+void mfd_draw_mission_scoreboard_page(void);
+void mfd_draw_craft_list_page(uint16_t show_hostile_craft);
+void mfd_build_scratch_craft_list_name(uint16_t object_idx);
+int16_t mfd_get_flight_group_goal_status_string_id(uint16_t object_index);
+void mfd_draw_map_help_page(void);
+void mfd_toggle_page(uint16_t page);
+int16_t mfd_find_secondary_open_page(void);
+int16_t mfd_draw_message_log_page(void);
+int mfd_get_message_log_record_index(int display_offset);
 
 #ifdef __cplusplus
 }

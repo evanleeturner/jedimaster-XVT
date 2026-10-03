@@ -5,9 +5,9 @@ static const char *const paths[] = {"input.mouse_flight",
 				    "input.mouse_sensitivity",
 				    "input.mouse_invert_y"};
 
-bool XvtMouseConfig_Parse(const AeronConfigFile *document,
-			  struct XvtMouseOptions *options, char *error,
-			  size_t capacity)
+bool xvt_mouse_config_parse(const AeronConfigFile *document,
+			    struct xvt_mouse_options *options, char *error,
+			    size_t capacity)
 {
 	for (unsigned i = 0; i < 3; ++i) {
 		const AeronConfigNode *node =
@@ -31,25 +31,25 @@ bool XvtMouseConfig_Parse(const AeronConfigFile *document,
 				valid ? (int)sensitivity : 5;
 		}
 		if (!valid) {
-			return XvtSettings_NodeError(document, paths[i],
-						     "invalid mouse setting",
-						     error, capacity);
+			return xvt_settings_node_error(document, paths[i],
+						       "invalid mouse setting",
+						       error, capacity);
 		}
 	}
 	return true;
 }
 
-bool XvtConfig_SetMouse(const struct XvtMouseOptions *options, char *error,
-			size_t capacity)
+bool xvt_config_set_mouse(const struct xvt_mouse_options *options, char *error,
+			  size_t capacity)
 {
 	AeronConfigFile *candidate = NULL;
 	AeronConfigError detail;
-	if (!AeronConfigFile_Clone(XvtConfig_UserDocument(), &candidate,
+	if (!AeronConfigFile_Clone(xvt_config_user_document(), &candidate,
 				   &detail)) {
-		return XvtSettings_FileError(&detail, error, capacity);
+		return xvt_settings_file_error(&detail, error, capacity);
 	}
-	const struct XvtMouseOptions *defaults =
-		&XvtConfig_DefaultSettings()->mouse;
+	const struct xvt_mouse_options *defaults =
+		&xvt_config_default_settings()->mouse;
 	bool success =
 		AeronConfigFile_SetBool(candidate, paths[0],
 					options->mouse_flight_enabled,
@@ -69,9 +69,9 @@ bool XvtConfig_SetMouse(const struct XvtMouseOptions *options, char *error,
 		}
 	}
 	if (success) {
-		success = XvtConfig_UpdateUser(candidate, 0, error, capacity);
+		success = xvt_config_update_user(candidate, 0, error, capacity);
 	} else {
-		XvtSettings_FileError(&detail, error, capacity);
+		xvt_settings_file_error(&detail, error, capacity);
 	}
 	AeronConfigFile_Destroy(candidate);
 	return success;

@@ -8,23 +8,23 @@
 extern "C" {
 #endif
 
-struct RenderObjectListEntry {
-	int sortDepth; /* Depth the list is sorted by, given by the caller. */
-	int objectIdx; /* Object table index to draw. */
+struct render_object_list_entry {
+	int sort_depth; /* Depth the list is sorted by, given by the caller. */
+	int object_idx; /* Object table index to draw. */
 	/* Next entry in the list; NULL at the end. */
-	struct RenderObjectListEntry *next;
+	struct render_object_list_entry *next;
 };
 
-extern struct RenderObjectListEntry *g_renderListHead;
-extern struct RenderObjectListEntry *g_renderObjectListEntries;
+extern struct render_object_list_entry *g_render_list_head;
+extern struct render_object_list_entry *g_render_object_list_entries;
 
-void RenderList_QueueObject(int objectIdx, int sortDepth);
-void RenderList_Reset(void);
-int RenderList_ProjectObjectBoundsForCulling(int objectIdx,
-					     unsigned int boundsRadius,
-					     int playerIdx);
-void RenderList_SortDepthDescending(void);
-void RenderList_SortDepthAscending(void);
+void render_list_queue_object(int object_idx, int sort_depth);
+void render_list_reset(void);
+int render_list_project_object_bounds_for_culling(int object_idx,
+						  unsigned int bounds_radius,
+						  int player_idx);
+void render_list_sort_depth_descending(void);
+void render_list_sort_depth_ascending(void);
 
 #ifdef __cplusplus
 }

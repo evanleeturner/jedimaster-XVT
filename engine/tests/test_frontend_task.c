@@ -1,5 +1,5 @@
 /* Checks the frontend's frame loop (xvt_runtime/runtime/frontend_task.h) against the promises in its
- * header that hold without the game's window and files: RunFrame's update, frame counter, exit callback
+ * header that hold without the game's window and files: run_frame's update, frame counter, exit callback
  * and pending screen push, a dialog continuation run in place of the update, and the frame held for an
  * opened dialog or the network task; Update's pacing, the dialog that updates alone, a quit result, and when
  * a frame is presented; the wake delay; the joystick polling interval and the CD task tick of
@@ -35,330 +35,335 @@
 
 enum { FRAME_MS = 40 };
 
-static int g_screenCalls;
-static int g_screenFrame;
-static int g_screenReturn;
-static int g_screenAction;
-static int g_exitCalls;
-static int g_otherExitCalls;
-static int g_dialogCalls;
+static int g_screen_calls;
+static int g_screen_frame;
+static int g_screen_return;
+static int g_screen_action;
+static int g_exit_calls;
+static int g_other_exit_calls;
+static int g_dialog_calls;
 
 enum { ACTION_NONE, ACTION_SWITCH, ACTION_QUEUE, ACTION_DIALOG };
 
-static int OtherScreen(int frame) { return frame * 0; }
+static int other_screen(int frame) { return frame * 0; }
 
-static int OtherExit(int frame)
+static int other_exit(int frame)
 {
 	(void)frame;
-	++g_otherExitCalls;
+	++g_other_exit_calls;
 	return 0;
 }
 
-static int DialogScreen(int frame)
+static int dialog_screen(int frame)
 {
 	(void)frame;
-	++g_dialogCalls;
+	++g_dialog_calls;
 	return 0;
 }
 
 /* The top screen's update: counts its calls, and on request switches screens, queues a screen push or
- * opens a dialog before returning g_screenReturn. */
-static int Screen(int frame)
+ * opens a dialog before returning g_screen_return. */
+static int screen(int frame)
 {
 	static const struct RECT whole = {0, 0, 639, 479};
-	++g_screenCalls;
-	g_screenFrame = frame;
-	if (g_screenAction == ACTION_SWITCH) {
-		FrontendScreen_SetCallbacks(OtherScreen, OtherExit);
-	} else if (g_screenAction == ACTION_QUEUE) {
-		FrontendScreen_QueuePush(OtherScreen, &whole);
-	} else if (g_screenAction == ACTION_DIALOG) {
-		XvtDialog_Begin(DialogScreen, NULL);
+	++g_screen_calls;
+	g_screen_frame = frame;
+	if (g_screen_action == ACTION_SWITCH) {
+		frontend_screen_set_callbacks(other_screen, other_exit);
+	} else if (g_screen_action == ACTION_QUEUE) {
+		frontend_screen_queue_push(other_screen, &whole);
+	} else if (g_screen_action == ACTION_DIALOG) {
+		xvt_dialog_begin(dialog_screen, NULL);
 	}
-	return g_screenReturn;
+	return g_screen_return;
 }
 
-static int Exit(int frame)
+static int frontend_task_exit(int frame)
 {
 	(void)frame;
-	++g_exitCalls;
+	++g_exit_calls;
 	return 0;
 }
 
-static int Continuation(int result, int context)
+static int continuation(int result, int context)
 {
 	(void)result;
 	(void)context;
 	return 5;
 }
 
-static void Fresh(void)
+static void fresh(void)
 {
-	XvtDialog_Shutdown();
-	XvtNetworkTask_Shutdown();
-	XvtNetworkSession_Shutdown();
-	XvtCdTask_CancelFade();
-	XvtTest_CloseDisplay();
-	memset(&g_frontState, 0, sizeof g_frontState);
-	XvtTest_OpenDisplay();
-	memset(&g_pilotData, 0, sizeof g_pilotData);
-	g_musicCdMciDeviceId = 0;
-	g_frontState.frameIntervalMs = FRAME_MS;
-	g_frontState.screenStates[0].updateFn = Screen;
-	g_frontState.screenStates[0].exitFn = Exit;
-	g_frontState.frameCounter = 3;
-	g_screenCalls = g_screenFrame = g_screenReturn = 0;
-	g_screenAction = ACTION_NONE;
-	g_exitCalls = g_otherExitCalls = g_dialogCalls = 0;
+	xvt_dialog_shutdown();
+	xvt_network_task_shutdown();
+	xvt_network_session_shutdown();
+	xvt_cd_task_cancel_fade();
+	xvt_test_close_display();
+	memset(&g_front_state, 0, sizeof g_front_state);
+	xvt_test_open_display();
+	memset(&g_pilot_data, 0, sizeof g_pilot_data);
+	g_music_cd_mci_device_id = 0;
+	g_front_state.frame_interval_ms = FRAME_MS;
+	g_front_state.screen_states[0].update_fn = screen;
+	g_front_state.screen_states[0].exit_fn = frontend_task_exit;
+	g_front_state.frame_counter = 3;
+	g_screen_calls = g_screen_frame = g_screen_return = 0;
+	g_screen_action = ACTION_NONE;
+	g_exit_calls = g_other_exit_calls = g_dialog_calls = 0;
 }
 
-static void AdvanceMs(int ms) { XvtTime_AdvanceHostClock(ms * 1000); }
+static void advance_ms(int ms) { xvt_time_advance_host_clock(ms * 1000); }
 
 /* The clock runs on across cases, and so does the frame deadline: move past any deadline an earlier case
  * left, so the next Update runs a frame. */
-static void FrameDue(void) { AdvanceMs(1000); }
+static void frame_due(void) { advance_ms(1000); }
 
-static void CheckRunFrameWithoutUpdate(void)
+static void check_run_frame_without_update(void)
 {
-	Fresh();
-	g_frontState.screenStates[0].updateFn = NULL;
-	XVT_ASSERT_INT_EQ(XvtFrontendTask_RunFrame(), 0);
-	XVT_ASSERT_INT_EQ(g_exitCalls, 0);
+	fresh();
+	g_front_state.screen_states[0].update_fn = NULL;
+	XVT_ASSERT_INT_EQ(xvt_frontend_task_run_frame(), 0);
+	XVT_ASSERT_INT_EQ(g_exit_calls, 0);
 }
 
-static void CheckRunFrame(void)
+static void check_run_frame(void)
 {
-	Fresh();
-	g_screenReturn = 7;
-	XVT_ASSERT_INT_EQ(XvtFrontendTask_RunFrame(), 7);
-	XVT_ASSERT_INT_EQ(g_screenCalls, 1);
-	XVT_ASSERT_INT_EQ(g_screenFrame, 3);
-	XVT_ASSERT_INT_EQ(g_frontState.frameCounter, 4);
+	fresh();
+	g_screen_return = 7;
+	XVT_ASSERT_INT_EQ(xvt_frontend_task_run_frame(), 7);
+	XVT_ASSERT_INT_EQ(g_screen_calls, 1);
+	XVT_ASSERT_INT_EQ(g_screen_frame, 3);
+	XVT_ASSERT_INT_EQ(g_front_state.frame_counter, 4);
 	/* The callbacks did not change and the result is not 1: no exit callback. */
-	XVT_ASSERT_INT_EQ(g_exitCalls, 0);
+	XVT_ASSERT_INT_EQ(g_exit_calls, 0);
 
 	/* A result of 1 runs the exit callback. */
-	g_screenReturn = 1;
-	XVT_ASSERT_INT_EQ(XvtFrontendTask_RunFrame(), 1);
-	XVT_ASSERT_INT_EQ(g_screenFrame, 4);
-	XVT_ASSERT_INT_EQ(g_exitCalls, 1);
+	g_screen_return = 1;
+	XVT_ASSERT_INT_EQ(xvt_frontend_task_run_frame(), 1);
+	XVT_ASSERT_INT_EQ(g_screen_frame, 4);
+	XVT_ASSERT_INT_EQ(g_exit_calls, 1);
 }
 
-static void CheckSwitchRunsCapturedExit(void)
+static void check_switch_runs_captured_exit(void)
 {
-	Fresh();
-	g_screenAction = ACTION_SWITCH;
-	XVT_ASSERT_INT_EQ(XvtFrontendTask_RunFrame(), 0);
+	fresh();
+	g_screen_action = ACTION_SWITCH;
+	XVT_ASSERT_INT_EQ(xvt_frontend_task_run_frame(), 0);
 	/* The exit callback captured before the update runs, not the new screen's. */
-	XVT_ASSERT_INT_EQ(g_exitCalls, 1);
-	XVT_ASSERT_INT_EQ(g_otherExitCalls, 0);
-	XVT_ASSERT_TRUE(g_frontState.screenStates[0].updateFn == OtherScreen);
-	XVT_ASSERT_INT_EQ(g_frontState.screenCallbacksDirty, 0);
+	XVT_ASSERT_INT_EQ(g_exit_calls, 1);
+	XVT_ASSERT_INT_EQ(g_other_exit_calls, 0);
+	XVT_ASSERT_TRUE(g_front_state.screen_states[0].update_fn ==
+			other_screen);
+	XVT_ASSERT_INT_EQ(g_front_state.screen_callbacks_dirty, 0);
 
 	/* A callback change already pending when the frame starts also runs the exit callback. */
-	Fresh();
-	g_frontState.screenCallbacksDirty = 1;
-	XVT_ASSERT_INT_EQ(XvtFrontendTask_RunFrame(), 0);
-	XVT_ASSERT_INT_EQ(g_exitCalls, 1);
+	fresh();
+	g_front_state.screen_callbacks_dirty = 1;
+	XVT_ASSERT_INT_EQ(xvt_frontend_task_run_frame(), 0);
+	XVT_ASSERT_INT_EQ(g_exit_calls, 1);
 }
 
-static void CheckPendingPush(void)
+static void check_pending_push(void)
 {
-	Fresh();
-	g_screenAction = ACTION_QUEUE;
-	XVT_ASSERT_INT_EQ(XvtFrontendTask_RunFrame(), 0);
-	XVT_ASSERT_INT_EQ(g_frontState.screenStackTop, 1);
-	XVT_ASSERT_TRUE(g_frontState.screenStates[1].updateFn == OtherScreen);
-	FrontendScreen_PopState();
+	fresh();
+	g_screen_action = ACTION_QUEUE;
+	XVT_ASSERT_INT_EQ(xvt_frontend_task_run_frame(), 0);
+	XVT_ASSERT_INT_EQ(g_front_state.screen_stack_top, 1);
+	XVT_ASSERT_TRUE(g_front_state.screen_states[1].update_fn ==
+			other_screen);
+	frontend_screen_pop_state();
 }
 
-static void CheckDialogHoldsFrame(void)
+static void check_dialog_holds_frame(void)
 {
-	Fresh();
-	g_screenAction = ACTION_DIALOG;
-	g_screenReturn = 1;
-	XVT_ASSERT_INT_EQ(XvtFrontendTask_RunFrame(), 0);
-	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 1);
-	XVT_ASSERT_INT_EQ(g_frontState.frameCounter, 3);
-	XVT_ASSERT_INT_EQ(g_exitCalls, 0);
+	fresh();
+	g_screen_action = ACTION_DIALOG;
+	g_screen_return = 1;
+	XVT_ASSERT_INT_EQ(xvt_frontend_task_run_frame(), 0);
+	XVT_ASSERT_INT_EQ(xvt_dialog_is_active(), 1);
+	XVT_ASSERT_INT_EQ(g_front_state.frame_counter, 3);
+	XVT_ASSERT_INT_EQ(g_exit_calls, 0);
 }
 
-static void CheckContinuationReplacesUpdate(void)
+static void check_continuation_replaces_update(void)
 {
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtDialog_Begin(DialogScreen, NULL),
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_dialog_begin(dialog_screen, NULL),
 			  XVT_DIALOG_PENDING);
-	XvtDialog_ContinueWith(Continuation, 0);
-	XvtDialog_Update();
-	g_frontState.charRingBuffer[g_frontState.charWriteIdx++] = 27;
-	XvtDialog_Update();
-	XVT_ASSERT_INT_EQ(XvtDialog_HasResult(), 1);
+	xvt_dialog_continue_with(continuation, 0);
+	xvt_dialog_update();
+	g_front_state.char_ring_buffer[g_front_state.char_write_idx++] = 27;
+	xvt_dialog_update();
+	XVT_ASSERT_INT_EQ(xvt_dialog_has_result(), 1);
 
 	/* The parent's next frame runs the continuation in place of its update. */
-	XVT_ASSERT_INT_EQ(XvtFrontendTask_RunFrame(), 5);
-	XVT_ASSERT_INT_EQ(g_screenCalls, 0);
-	XVT_ASSERT_INT_EQ(XvtDialog_HasResult(), 0);
+	XVT_ASSERT_INT_EQ(xvt_frontend_task_run_frame(), 5);
+	XVT_ASSERT_INT_EQ(g_screen_calls, 0);
+	XVT_ASSERT_INT_EQ(xvt_dialog_has_result(), 0);
 	/* The frame after that runs the update again. */
-	XvtFrontendTask_RunFrame();
-	XVT_ASSERT_INT_EQ(g_screenCalls, 1);
+	xvt_frontend_task_run_frame();
+	XVT_ASSERT_INT_EQ(g_screen_calls, 1);
 }
 
-static void CheckNetworkTaskHoldsFrame(void)
+static void check_network_task_holds_frame(void)
 {
-	Fresh();
-	XvtNetworkTask_Begin(XVT_NETWORK_HOST);
-	XVT_ASSERT_INT_EQ(XvtNetworkTask_IsActive(), 1);
+	fresh();
+	xvt_network_task_begin(XVT_NETWORK_HOST);
+	XVT_ASSERT_INT_EQ(xvt_network_task_is_active(), 1);
 	/* The network task is resumed in place of the update, and the frame is held. */
-	XVT_ASSERT_INT_EQ(XvtFrontendTask_RunFrame(), 0);
-	XVT_ASSERT_INT_EQ(g_screenCalls, 0);
-	XVT_ASSERT_INT_EQ(g_frontState.frameCounter, 3);
-	XVT_ASSERT_INT_EQ(g_exitCalls, 0);
+	XVT_ASSERT_INT_EQ(xvt_frontend_task_run_frame(), 0);
+	XVT_ASSERT_INT_EQ(g_screen_calls, 0);
+	XVT_ASSERT_INT_EQ(g_front_state.frame_counter, 3);
+	XVT_ASSERT_INT_EQ(g_exit_calls, 0);
 }
 
-static void CheckTickPacing(void)
+static void check_tick_pacing(void)
 {
-	Fresh();
-	FrameDue();
-	XvtFrontendTask_Update();
-	XVT_ASSERT_INT_EQ(g_screenCalls, 1);
-	XvtFrontendTask_Update();
-	XVT_ASSERT_INT_EQ(g_screenCalls, 1);
-	XVT_ASSERT_INT_EQ(XvtFrontendTask_NextWakeDelayUs(), FRAME_MS * 1000);
-	AdvanceMs(FRAME_MS - 1);
-	XVT_ASSERT_INT_EQ(XvtFrontendTask_NextWakeDelayUs(), 1000);
-	XvtFrontendTask_Update();
-	XVT_ASSERT_INT_EQ(g_screenCalls, 1);
-	AdvanceMs(1);
-	XVT_ASSERT_INT_EQ(XvtFrontendTask_NextWakeDelayUs(), 0);
-	XvtFrontendTask_Update();
-	XVT_ASSERT_INT_EQ(g_screenCalls, 2);
-	XVT_ASSERT_INT_EQ(XvtFrontendTask_ShouldQuit(), 0);
+	fresh();
+	frame_due();
+	xvt_frontend_task_update();
+	XVT_ASSERT_INT_EQ(g_screen_calls, 1);
+	xvt_frontend_task_update();
+	XVT_ASSERT_INT_EQ(g_screen_calls, 1);
+	XVT_ASSERT_INT_EQ(xvt_frontend_task_next_wake_delay_us(),
+			  FRAME_MS * 1000);
+	advance_ms(FRAME_MS - 1);
+	XVT_ASSERT_INT_EQ(xvt_frontend_task_next_wake_delay_us(), 1000);
+	xvt_frontend_task_update();
+	XVT_ASSERT_INT_EQ(g_screen_calls, 1);
+	advance_ms(1);
+	XVT_ASSERT_INT_EQ(xvt_frontend_task_next_wake_delay_us(), 0);
+	xvt_frontend_task_update();
+	XVT_ASSERT_INT_EQ(g_screen_calls, 2);
+	XVT_ASSERT_INT_EQ(xvt_frontend_task_should_quit(), 0);
 }
 
-static void CheckTickPresents(void)
+static void check_tick_presents(void)
 {
-	Fresh();
-	FrameDue();
+	fresh();
+	frame_due();
 	uint64_t serial = AeronDx5_GetClassicFlightFrameSerial();
-	XvtFrontendTask_Update();
-	XVT_ASSERT_INT_EQ(g_screenCalls, 1);
+	xvt_frontend_task_update();
+	XVT_ASSERT_INT_EQ(g_screen_calls, 1);
 	XVT_ASSERT_INT_EQ(AeronDx5_GetClassicFlightFrameSerial(), serial + 1);
 }
 
-static void CheckTickRunsOnlyTheDialog(void)
+static void check_tick_runs_only_the_dialog(void)
 {
-	Fresh();
-	FrameDue();
-	XVT_ASSERT_INT_EQ(XvtDialog_Begin(DialogScreen, NULL),
+	fresh();
+	frame_due();
+	XVT_ASSERT_INT_EQ(xvt_dialog_begin(dialog_screen, NULL),
 			  XVT_DIALOG_PENDING);
-	XvtFrontendTask_Update();
-	XVT_ASSERT_INT_EQ(g_dialogCalls, 1);
-	XVT_ASSERT_INT_EQ(g_screenCalls, 0);
-	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 1);
+	xvt_frontend_task_update();
+	XVT_ASSERT_INT_EQ(g_dialog_calls, 1);
+	XVT_ASSERT_INT_EQ(g_screen_calls, 0);
+	XVT_ASSERT_INT_EQ(xvt_dialog_is_active(), 1);
 
 	/* The tick that ends the dialog keeps its last presented frame: nothing new is presented. */
-	g_frontState.charRingBuffer[g_frontState.charWriteIdx++] = 27;
-	AdvanceMs(FRAME_MS);
+	g_front_state.char_ring_buffer[g_front_state.char_write_idx++] = 27;
+	advance_ms(FRAME_MS);
 	uint64_t serial = AeronDx5_GetClassicFlightFrameSerial();
-	XvtFrontendTask_Update();
-	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
+	xvt_frontend_task_update();
+	XVT_ASSERT_INT_EQ(xvt_dialog_is_active(), 0);
 	XVT_ASSERT_INT_EQ(AeronDx5_GetClassicFlightFrameSerial(), serial);
-	XVT_ASSERT_INT_EQ(g_screenCalls, 0);
+	XVT_ASSERT_INT_EQ(g_screen_calls, 0);
 }
 
-static void CheckWakeDelayTakesCdSooner(void)
+static void check_wake_delay_takes_cd_sooner(void)
 {
-	Fresh();
-	FrameDue();
-	XvtFrontendTask_Update();
-	g_musicCdMciDeviceId = 1;
-	XVT_ASSERT_INT_EQ(XvtCdTask_BeginFade(0, 512, 0), 1);
-	XVT_ASSERT_INT_EQ(XvtFrontendTask_NextWakeDelayUs(), 1000);
-	XvtCdTask_CancelFade();
-	XVT_ASSERT_INT_EQ(XvtFrontendTask_NextWakeDelayUs(), FRAME_MS * 1000);
+	fresh();
+	frame_due();
+	xvt_frontend_task_update();
+	g_music_cd_mci_device_id = 1;
+	XVT_ASSERT_INT_EQ(xvt_cd_task_begin_fade(0, 512, 0), 1);
+	XVT_ASSERT_INT_EQ(xvt_frontend_task_next_wake_delay_us(), 1000);
+	xvt_cd_task_cancel_fade();
+	XVT_ASSERT_INT_EQ(xvt_frontend_task_next_wake_delay_us(),
+			  FRAME_MS * 1000);
 }
 
-static void CheckServiceFrameSystems(void)
+static void check_service_frame_systems(void)
 {
-	Fresh();
+	fresh();
 	/* A joystick marked present that cannot be read is dropped when it is polled. */
-	XvtFrontendTask_ServiceFrameSystems();
-	AdvanceMs(100);
-	g_frontState.joystickPresent[0] = 1;
-	g_frontState.joystickPresent[1] = 1;
-	g_frontState.joyDeviceIds[0] = 77;
-	g_frontState.joyDeviceIds[1] = 78;
-	XvtFrontendTask_ServiceFrameSystems();
-	XVT_ASSERT_INT_EQ(g_frontState.joystickPresent[0], 0);
-	XVT_ASSERT_INT_EQ(g_frontState.joystickPresent[1], 0);
+	xvt_frontend_task_service_frame_systems();
+	advance_ms(100);
+	g_front_state.joystick_present[0] = 1;
+	g_front_state.joystick_present[1] = 1;
+	g_front_state.joy_device_ids[0] = 77;
+	g_front_state.joy_device_ids[1] = 78;
+	xvt_frontend_task_service_frame_systems();
+	XVT_ASSERT_INT_EQ(g_front_state.joystick_present[0], 0);
+	XVT_ASSERT_INT_EQ(g_front_state.joystick_present[1], 0);
 
 	/* Not again before 100 ms have passed. */
-	g_frontState.joystickPresent[0] = 1;
-	AdvanceMs(99);
-	XvtFrontendTask_ServiceFrameSystems();
-	XVT_ASSERT_INT_EQ(g_frontState.joystickPresent[0], 1);
-	AdvanceMs(1);
-	XvtFrontendTask_ServiceFrameSystems();
-	XVT_ASSERT_INT_EQ(g_frontState.joystickPresent[0], 0);
+	g_front_state.joystick_present[0] = 1;
+	advance_ms(99);
+	xvt_frontend_task_service_frame_systems();
+	XVT_ASSERT_INT_EQ(g_front_state.joystick_present[0], 1);
+	advance_ms(1);
+	xvt_frontend_task_service_frame_systems();
+	XVT_ASSERT_INT_EQ(g_front_state.joystick_present[0], 0);
 
 	/* The CD task is ticked: a due fade step moves the volume. */
-	g_musicCdMciDeviceId = 1;
-	XVT_ASSERT_INT_EQ(XvtCdTask_BeginFade(0, 512, 0), 1);
-	g_frontState.cdAudioTrackCache.currentAuxVolume = 12345;
-	AdvanceMs(1);
-	XvtFrontendTask_ServiceFrameSystems();
-	XVT_ASSERT_INT_EQ(g_frontState.cdAudioTrackCache.currentAuxVolume, 256);
-	XvtCdTask_CancelFade();
+	g_music_cd_mci_device_id = 1;
+	XVT_ASSERT_INT_EQ(xvt_cd_task_begin_fade(0, 512, 0), 1);
+	g_front_state.cd_audio_track_cache.current_aux_volume = 12345;
+	advance_ms(1);
+	xvt_frontend_task_service_frame_systems();
+	XVT_ASSERT_INT_EQ(g_front_state.cd_audio_track_cache.current_aux_volume,
+			  256);
+	xvt_cd_task_cancel_fade();
 }
 
-static void CheckShutdownBeforeInit(void)
+static void check_shutdown_before_init(void)
 {
-	static struct CutsceneEntry table[1];
-	Fresh();
-	g_cutsceneTable = table;
-	g_cutsceneCount = 1;
-	XvtFrontendTask_Shutdown();
-	XVT_ASSERT_TRUE(g_cutsceneTable == table);
-	XVT_ASSERT_INT_EQ(g_cutsceneCount, 1);
-	g_cutsceneTable = NULL;
-	g_cutsceneCount = 0;
+	static struct cutscene_entry table[1];
+	fresh();
+	g_cutscene_table = table;
+	g_cutscene_count = 1;
+	xvt_frontend_task_shutdown();
+	XVT_ASSERT_TRUE(g_cutscene_table == table);
+	XVT_ASSERT_INT_EQ(g_cutscene_count, 1);
+	g_cutscene_table = NULL;
+	g_cutscene_count = 0;
 }
 
-static void CheckQuit(void)
+static void check_quit(void)
 {
-	Fresh();
-	FrameDue();
-	g_screenReturn = 2;
-	XvtFrontendTask_Update();
-	XVT_ASSERT_INT_EQ(g_screenCalls, 1);
-	XVT_ASSERT_INT_EQ(XvtFrontendTask_ShouldQuit(), 1);
+	fresh();
+	frame_due();
+	g_screen_return = 2;
+	xvt_frontend_task_update();
+	XVT_ASSERT_INT_EQ(g_screen_calls, 1);
+	XVT_ASSERT_INT_EQ(xvt_frontend_task_should_quit(), 1);
 	/* Nothing runs once the quit is set. */
-	AdvanceMs(FRAME_MS * 5);
-	XvtFrontendTask_Update();
-	XVT_ASSERT_INT_EQ(g_screenCalls, 1);
-	XVT_ASSERT_INT_EQ(XvtFrontendTask_ShouldQuit(), 1);
+	advance_ms(FRAME_MS * 5);
+	xvt_frontend_task_update();
+	XVT_ASSERT_INT_EQ(g_screen_calls, 1);
+	XVT_ASSERT_INT_EQ(xvt_frontend_task_should_quit(), 1);
 }
 
 int main(void)
 {
-	XvtTime_Reset();
-	CheckRunFrameWithoutUpdate();
-	CheckRunFrame();
-	CheckSwitchRunsCapturedExit();
-	CheckPendingPush();
-	CheckDialogHoldsFrame();
-	CheckContinuationReplacesUpdate();
-	CheckNetworkTaskHoldsFrame();
-	CheckTickPacing();
-	CheckTickPresents();
-	CheckTickRunsOnlyTheDialog();
-	CheckWakeDelayTakesCdSooner();
-	CheckServiceFrameSystems();
-	CheckShutdownBeforeInit();
-	CheckQuit();
-	XvtDialog_Shutdown();
-	XvtNetworkTask_Shutdown();
-	XvtNetworkSession_Shutdown();
-	XvtTest_CloseDisplay();
+	xvt_time_reset();
+	check_run_frame_without_update();
+	check_run_frame();
+	check_switch_runs_captured_exit();
+	check_pending_push();
+	check_dialog_holds_frame();
+	check_continuation_replaces_update();
+	check_network_task_holds_frame();
+	check_tick_pacing();
+	check_tick_presents();
+	check_tick_runs_only_the_dialog();
+	check_wake_delay_takes_cd_sooner();
+	check_service_frame_systems();
+	check_shutdown_before_init();
+	check_quit();
+	xvt_dialog_shutdown();
+	xvt_network_task_shutdown();
+	xvt_network_session_shutdown();
+	xvt_test_close_display();
 	return 0;
 }

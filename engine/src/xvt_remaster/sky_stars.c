@@ -8,12 +8,12 @@
 
 enum { STAR_COUNT = 3072, STAR_GRID_SPAN = 32 };
 
-struct StarInstance {
+struct star_instance {
 	float axis[3];
 	float intensity;
 };
 
-struct StarVertexUniform {
+struct star_vertex_uniform {
 	float view_proj[16];
 	float pixel_to_clip[2];
 	float half_size_px[2];
@@ -22,31 +22,31 @@ struct StarVertexUniform {
 };
 
 /* Match the float4 instance and uniform layouts consumed by HLSL. */
-typedef char StarInstanceLayout[(sizeof(struct StarInstance) == 16) ? 1 : -1];
-typedef char StarVertexUniformLayout[(sizeof(struct StarVertexUniform) == 96)
-					     ? 1
-					     : -1];
+typedef char
+	star_instance_layout[(sizeof(struct star_instance) == 16) ? 1 : -1];
+typedef char star_vertex_uniform_layout
+	[(sizeof(struct star_vertex_uniform) == 96) ? 1 : -1];
 
-struct XvtRemasterSkyStars {
+struct xvt_remaster_sky_stars {
 	AeronShader *vertex_shader;
 	AeronShader *fragment_shader;
 	AeronGraphicsPipeline *pipeline;
 	AeronSampleCount pipeline_samples;
 	AeronBuffer *instances;
-	struct StarVertexUniform vertex_uniform;
+	struct star_vertex_uniform vertex_uniform;
 	uint8_t position_indices[STAR_COUNT];
 	float intensities[STAR_COUNT];
 	uint32_t instance_count;
 	uint16_t density_divisor;
 };
 
-struct StarRandomState {
+struct star_random_state {
 	uint16_t seed, value;
 };
 
-/* GameRand's LFSR with private state, as in OpenTIE: renderer initialization
+/* game_rand's LFSR with private state, as in OpenTIE: renderer initialization
  * must not consume simulation randomness. */
-static uint16_t NextStarRandom(struct StarRandomState *rng)
+static uint16_t next_star_random(struct star_random_state *rng)
 {
 	for (int bit = 0; bit < 16; ++bit) {
 		uint16_t feedback =
@@ -58,27 +58,27 @@ static uint16_t NextStarRandom(struct StarRandomState *rng)
 	return rng->value;
 }
 
-static void InitializeStarTables(struct XvtRemasterSkyStars *stars)
+static void initialize_star_tables(struct xvt_remaster_sky_stars *stars)
 {
-	struct StarRandomState rng = {.seed = 0x2357u};
+	struct star_random_state rng = {.seed = 0x2357u};
 	for (unsigned i = 0; i < STAR_COUNT; ++i) {
 		float shade =
-			(float)((NextStarRandom(&rng) & 15u) + 8u) / 31.0f;
+			(float)((next_star_random(&rng) & 15u) + 8u) / 31.0f;
 		/* All original levels are above the linear segment of sRGB. */
 		stars->intensities[i] = powf((shade + 0.055f) / 1.055f, 2.4f);
 	}
 	for (unsigned i = 0; i < STAR_COUNT; ++i) {
 		uint8_t index;
 		do {
-			index = (uint8_t)(NextStarRandom(&rng) & 127u);
+			index = (uint8_t)(next_star_random(&rng) & 127u);
 		} while (index > 124);
 		stars->position_indices[i] = index;
 	}
 }
 
-static int UploadStarInstances(struct XvtRemasterSkyStars *stars,
-			       AeronCommandBuffer *cmd,
-			       uint16_t density_divisor)
+static int upload_star_instances(struct xvt_remaster_sky_stars *stars,
+				 AeronCommandBuffer *cmd,
+				 uint16_t density_divisor)
 {
 	if (stars->density_divisor == density_divisor) {
 		return 1;
@@ -87,14 +87,14 @@ static int UploadStarInstances(struct XvtRemasterSkyStars *stars,
 	float grid_step = 64.0f / (float)grid_size;
 	static const unsigned column_axis[3] = {0, 0, 1};
 	static const unsigned row_axis[3] = {1, 2, 2};
-	struct StarInstance instances[STAR_COUNT];
+	struct star_instance instances[STAR_COUNT];
 	uint32_t count = 0;
 	for (unsigned plane = 0; plane < 3; ++plane) {
 		for (unsigned row = 0; row < grid_size; ++row) {
 			for (unsigned column = 0; column < grid_size;
 			     ++column, ++count) {
 				int index = stars->position_indices[count];
-				struct StarInstance *star = &instances[count];
+				struct star_instance *star = &instances[count];
 				star->axis[0] = (float)(-32 + index / 25 - 2);
 				star->axis[1] =
 					(float)(-32 + (index % 25) / 5 - 2);
@@ -116,8 +116,8 @@ static int UploadStarInstances(struct XvtRemasterSkyStars *stars,
 	return 1;
 }
 
-static int PrepareStarPipeline(struct XvtRemasterSkyStars *stars,
-			       AeronSampleCount sample_count)
+static int prepare_star_pipeline(struct xvt_remaster_sky_stars *stars,
+				 AeronSampleCount sample_count)
 {
 	if (stars->pipeline && stars->pipeline_samples == sample_count) {
 		return 1;
@@ -157,9 +157,9 @@ static int PrepareStarPipeline(struct XvtRemasterSkyStars *stars,
 	return stars->pipeline != NULL;
 }
 
-struct XvtRemasterSkyStars *XvtRemasterSkyStars_Create(void)
+struct xvt_remaster_sky_stars *xvt_remaster_sky_stars_create(void)
 {
-	struct XvtRemasterSkyStars *stars = calloc(1, sizeof *stars);
+	struct xvt_remaster_sky_stars *stars = calloc(1, sizeof *stars);
 	if (!stars) {
 		return NULL;
 	}
@@ -174,7 +174,7 @@ struct XvtRemasterSkyStars *XvtRemasterSkyStars_Create(void)
 		.stage = AERON_SHADER_STAGE_FRAGMENT,
 	});
 	stars->instances = Aeron_CreateBuffer(&(AeronBufferDesc){
-		.size = STAR_COUNT * sizeof(struct StarInstance),
+		.size = STAR_COUNT * sizeof(struct star_instance),
 		.usage = AERON_BUFFER_USAGE_STORAGE,
 		.memory_usage = AERON_MEMORY_USAGE_GPU_ONLY,
 		.debug_name = "xvt.sky.stars.instances",
@@ -182,14 +182,14 @@ struct XvtRemasterSkyStars *XvtRemasterSkyStars_Create(void)
 	if (!stars->vertex_shader || !stars->fragment_shader ||
 	    !stars->instances) {
 		XVT_LOG_ERROR("remaster.stars_gpu_failed");
-		XvtRemasterSkyStars_Destroy(stars);
+		xvt_remaster_sky_stars_destroy(stars);
 		return NULL;
 	}
-	InitializeStarTables(stars);
+	initialize_star_tables(stars);
 	return stars;
 }
 
-void XvtRemasterSkyStars_Destroy(struct XvtRemasterSkyStars *stars)
+void xvt_remaster_sky_stars_destroy(struct xvt_remaster_sky_stars *stars)
 {
 	if (!stars) {
 		return;
@@ -209,10 +209,10 @@ void XvtRemasterSkyStars_Destroy(struct XvtRemasterSkyStars *stars)
 	free(stars);
 }
 
-int XvtRemasterSkyStars_Prepare(struct XvtRemasterSkyStars *stars,
-				AeronCommandBuffer *cmd,
-				const AeronScene3D *scene,
-				const struct XvtRemasterSkyStarsParams *params)
+int xvt_remaster_sky_stars_prepare(
+	struct xvt_remaster_sky_stars *stars, AeronCommandBuffer *cmd,
+	const AeronScene3D *scene,
+	const struct xvt_remaster_sky_stars_params *params)
 {
 	if (!stars || !cmd || !scene || !params || !params->density_divisor ||
 	    params->density_divisor > STAR_GRID_SPAN ||
@@ -227,10 +227,10 @@ int XvtRemasterSkyStars_Prepare(struct XvtRemasterSkyStars *stars,
 	    output_h <= 0) {
 		return 0;
 	}
-	if (!UploadStarInstances(stars, cmd, params->density_divisor)) {
+	if (!upload_star_instances(stars, cmd, params->density_divisor)) {
 		return 0;
 	}
-	struct StarVertexUniform *uniform = &stars->vertex_uniform;
+	struct star_vertex_uniform *uniform = &stars->vertex_uniform;
 	memcpy(uniform->view_proj, view_proj, sizeof uniform->view_proj);
 	uniform->pixel_to_clip[0] = 2.0f / (float)render_w;
 	uniform->pixel_to_clip[1] = 2.0f / (float)render_h;
@@ -243,18 +243,18 @@ int XvtRemasterSkyStars_Prepare(struct XvtRemasterSkyStars *stars,
 	return 1;
 }
 
-void XvtRemasterSkyStars_Draw(AeronCommandBuffer *command_buffer,
-			      AeronRenderPass *render_pass, int rt_w, int rt_h,
-			      void *user)
+void xvt_remaster_sky_stars_draw(AeronCommandBuffer *command_buffer,
+				 AeronRenderPass *render_pass, int rt_w,
+				 int rt_h, void *user)
 {
 	(void)rt_w;
 	(void)rt_h;
-	struct XvtRemasterSkyStars *stars = user;
+	struct xvt_remaster_sky_stars *stars = user;
 	if (!stars || !render_pass || !stars->instance_count) {
 		return;
 	}
-	if (!PrepareStarPipeline(stars,
-				 Aeron_RenderPassGetSampleCount(render_pass))) {
+	if (!prepare_star_pipeline(
+		    stars, Aeron_RenderPassGetSampleCount(render_pass))) {
 		Aeron_CommandBufferSetFailure(
 			command_buffer,
 			"Starfield pipeline preparation failed");

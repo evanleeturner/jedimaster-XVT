@@ -9,41 +9,43 @@
 extern "C" {
 #endif
 
-extern int g_inputFrameCount[8];
-extern struct InputFrame g_inputHistory[8][450];
-extern int g_flightNetDirtyAllObjectTransformsAfterRestore;
-extern int g_remotePlayerRenderSmoothingEnabled;
+extern int g_input_frame_count[8];
+extern struct input_frame g_input_history[8][450];
+extern int g_flight_net_dirty_all_object_transforms_after_restore;
+extern int g_remote_player_render_smoothing_enabled;
 
-void FlightSync_QueuePredictedRemoteInputFrames(int predictedFrameDelta);
-void FlightSync_DiscardAllPredictedInputFrames(void);
-void FlightSync_DiscardPredictedInputFrames(int playerIdx);
-void FlightSync_RemoveInputHistoryFrame(int playerIdx,
-					struct InputFrame *frame);
-struct InputFrame *
-FlightSync_InsertInputFrame(int playerIdx, int timestamp,
-			    const struct FlightInputFrameRecord *input);
-struct InputFrame *FlightSync_FindLastUnrelayedInputFrame(int playerIdx);
-void FlightSync_ResetRemotePlayerRenderSmoothing(void);
-void FlightSync_CaptureSamplesAndRestorePoses(void);
-void FlightSync_ApplyRemotePlayerRenderSmoothing(void);
+void flight_sync_queue_predicted_remote_input_frames(int predicted_frame_delta);
+void flight_sync_discard_all_predicted_input_frames(void);
+void flight_sync_discard_predicted_input_frames(int player_idx);
+void flight_sync_remove_input_history_frame(int player_idx,
+					    struct input_frame *frame);
+struct input_frame *
+flight_sync_insert_input_frame(int player_idx, int timestamp,
+			       const struct flight_input_frame_record *input);
+struct input_frame *flight_sync_find_last_unrelayed_input_frame(int player_idx);
+void flight_sync_reset_remote_player_render_smoothing(void);
+void flight_sync_capture_samples_and_restore_poses(void);
+void flight_sync_apply_remote_player_render_smoothing(void);
 #ifndef XVT_MODERN
-void FlightSync_ApplyWorldMessagePacket(uint8_t *packet);
+void flight_sync_apply_world_message_packet(uint8_t *packet);
 #endif
-void FlightSync_HandleWorldChecksumPacket(int senderDpid, const int *packet);
-void FlightSync_HandleServerChecksumPacket(uint8_t *packet);
-void FlightSync_CopyWorldStateResyncChunk(const void *src, int offset,
-					  unsigned int size);
-void FlightSync_ApplyResyncAndReplayWorldMessages(unsigned int worldStateBytes,
-						  int serverTickTime);
-void FlightSync_SnapshotWorldStateForReplay(void);
+void flight_sync_handle_world_checksum_packet(int sender_dpid,
+					      const int *packet);
+void flight_sync_handle_server_checksum_packet(uint8_t *packet);
+void flight_sync_copy_world_state_resync_chunk(const void *src, int offset,
+					       unsigned int size);
+void flight_sync_apply_resync_and_replay_world_messages(
+	unsigned int world_state_bytes, int server_tick_time);
+void flight_sync_snapshot_world_state_for_replay(void);
 #ifndef XVT_MODERN
-void FlightSync_BufferWorldMessagePacket(uint8_t *packet);
+void flight_sync_buffer_world_message_packet(uint8_t *packet);
 #endif
-void FlightSync_ClearBufferedWorldMessages(void);
+void flight_sync_clear_buffered_world_messages(void);
 #ifndef XVT_MODERN
-void FlightSync_ReplayBufferedWorldMessages(void);
+void flight_sync_replay_buffered_world_messages(void);
 #endif
-int FlightSync_UnusedFourArgForwarder(int arg1, int arg2, int arg3, int arg4);
+int flight_sync_unused_four_arg_forwarder(int arg1, int arg2, int arg3,
+					  int arg4);
 
 #ifdef __cplusplus
 }

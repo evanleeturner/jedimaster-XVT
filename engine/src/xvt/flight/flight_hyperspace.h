@@ -8,9 +8,9 @@
 extern "C" {
 #endif
 
-void FlightHyperspace_DrawTransitionEffectObject(void);
-void FlightHyperspace_RequestTransitionEffectInitialization(void);
-void FlightHyperspace_RenderTransitionEffect(void);
+void flight_hyperspace_draw_transition_effect_object(void);
+void flight_hyperspace_request_transition_effect_initialization(void);
+void flight_hyperspace_render_transition_effect(void);
 
 #ifdef __cplusplus
 }

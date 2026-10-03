@@ -18,12 +18,12 @@
 #define MOUSE_FLIGHT_STICK_GAIN (127.0f / 256.0f)
 /* Right-button tap window: release inside it emits the target-in-sight tap
  * action, roll-lock engages only after it. Close to the recovered 59-tick
- * window Flight_UpdatePlayerStep uses for joystick button 2: 236 ms of real
+ * window flight_update_player_step uses for joystick button 2: 236 ms of real
  * time, 250 ms at the original's assumed 236 ticks a second. */
 #define MOUSE_FLIGHT_TAP_US 250000u
 
 static struct {
-	struct XvtMouseOptions options;
+	struct xvt_mouse_options options;
 	uint64_t pumped_frame;
 	/* Time of the last drain; 0 = no drain since (re)activation. */
 	uint64_t drain_time_us;
@@ -49,137 +49,139 @@ static struct {
 	int active;
 	uint16_t keys[16];
 	unsigned read_key, write_key;
-} g_mouseFlight;
+} g_mouse_flight;
 
 /* Doubling steps (1/16x..16x): raw relative deltas vary by more than an
  * order of magnitude between touchpads and high-DPI mice. */
-static const float k_mouseFlightSensitivityScale[XVT_MOUSE_SENSITIVITY_MAX] = {
-	0.0625f, 0.125f, 0.25f, 0.5f, 1.0f, 2.0f, 4.0f, 8.0f, 16.0f,
+static const float k_mouse_flight_sensitivity_scale[XVT_MOUSE_SENSITIVITY_MAX] =
+	{
+		0.0625f, 0.125f, 0.25f, 0.5f, 1.0f, 2.0f, 4.0f, 8.0f, 16.0f,
 };
 
-void XvtMouseFlight_Reset(void)
+void xvt_mouse_flight_reset(void)
 {
-	g_mouseFlight.pending_x = 0.0f;
-	g_mouseFlight.pending_y = 0.0f;
-	g_mouseFlight.stick_x = 0.0f;
-	g_mouseFlight.stick_y = 0.0f;
-	g_mouseFlight.stick_r = 0.0f;
-	g_mouseFlight.axis_x = 0;
-	g_mouseFlight.axis_y = 0;
-	g_mouseFlight.axis_r = 0;
-	g_mouseFlight.buttons = 0;
-	g_mouseFlight.roll_lock = 0;
-	g_mouseFlight.drained_roll_lock = 0;
-	g_mouseFlight.rmb_down = 0;
-	g_mouseFlight.target_tap = 0;
-	g_mouseFlight.drain_time_us = 0;
-	g_mouseFlight.active = 0;
-	g_mouseFlight.read_key = g_mouseFlight.write_key = 0;
+	g_mouse_flight.pending_x = 0.0f;
+	g_mouse_flight.pending_y = 0.0f;
+	g_mouse_flight.stick_x = 0.0f;
+	g_mouse_flight.stick_y = 0.0f;
+	g_mouse_flight.stick_r = 0.0f;
+	g_mouse_flight.axis_x = 0;
+	g_mouse_flight.axis_y = 0;
+	g_mouse_flight.axis_r = 0;
+	g_mouse_flight.buttons = 0;
+	g_mouse_flight.roll_lock = 0;
+	g_mouse_flight.drained_roll_lock = 0;
+	g_mouse_flight.rmb_down = 0;
+	g_mouse_flight.target_tap = 0;
+	g_mouse_flight.drain_time_us = 0;
+	g_mouse_flight.active = 0;
+	g_mouse_flight.read_key = g_mouse_flight.write_key = 0;
 }
 
-static void XvtMouseFlight_QueueKey(uint16_t key)
+static void xvt_mouse_flight_queue_key(uint16_t key)
 {
-	unsigned next = (g_mouseFlight.write_key + 1) % 16;
-	if (next == g_mouseFlight.read_key) {
+	unsigned next = (g_mouse_flight.write_key + 1) % 16;
+	if (next == g_mouse_flight.read_key) {
 		XVT_LOG_WARN("input.queue_full queue=mouse");
 		return;
 	}
-	g_mouseFlight.keys[g_mouseFlight.write_key] = key;
-	g_mouseFlight.write_key = next;
+	g_mouse_flight.keys[g_mouse_flight.write_key] = key;
+	g_mouse_flight.write_key = next;
 }
 
-uint16_t XvtMouseFlight_ReadKey(void)
+uint16_t xvt_mouse_flight_read_key(void)
 {
-	if (!XvtInput_MouseFlightAllowed() || (unsigned)g_localPlayer >= 8 ||
-	    g_players[g_localPlayer].chatRecipientMode !=
+	if (!xvt_input_mouse_flight_allowed() ||
+	    (unsigned)g_local_player >= 8 ||
+	    g_players[g_local_player].chat_recipient_mode !=
 		    FLIGHT_CHAT_RECIPIENT_INACTIVE) {
-		g_mouseFlight.read_key = g_mouseFlight.write_key = 0;
+		g_mouse_flight.read_key = g_mouse_flight.write_key = 0;
 		return 0;
 	}
-	if (g_mouseFlight.read_key == g_mouseFlight.write_key) {
+	if (g_mouse_flight.read_key == g_mouse_flight.write_key) {
 		return 0;
 	}
-	uint16_t key = g_mouseFlight.keys[g_mouseFlight.read_key];
-	g_mouseFlight.read_key = (g_mouseFlight.read_key + 1) % 16;
+	uint16_t key = g_mouse_flight.keys[g_mouse_flight.read_key];
+	g_mouse_flight.read_key = (g_mouse_flight.read_key + 1) % 16;
 	return key;
 }
 
-void XvtMouseFlight_SetOptions(const struct XvtMouseOptions *options)
+void xvt_mouse_flight_set_options(const struct xvt_mouse_options *options)
 {
 
 	if (!options) {
 		return;
 	}
 
-	g_mouseFlight.options = *options;
-	XvtMouseFlight_Reset();
+	g_mouse_flight.options = *options;
+	xvt_mouse_flight_reset();
 }
 
-void XvtMouseFlight_Pump(void)
+void xvt_mouse_flight_pump(void)
 {
 	const AeronInputSnapshot *in = Aeron_InputSnapshot();
 
-	if (!g_mouseFlight.options.mouse_flight_enabled || !in) {
-		XvtMouseFlight_Reset();
+	if (!g_mouse_flight.options.mouse_flight_enabled || !in) {
+		xvt_mouse_flight_reset();
 		return;
 	}
-	if (in->frame_id == g_mouseFlight.pumped_frame) {
+	if (in->frame_id == g_mouse_flight.pumped_frame) {
 		return;
 	}
-	g_mouseFlight.pumped_frame = in->frame_id;
+	g_mouse_flight.pumped_frame = in->frame_id;
 	/* Only a captured pointer belongs to flight controls: while the capture is
 	 * released to the OS, motion over the window must not steer the ship. */
-	if (!(XvtInput_MouseFlightAllowed() && Aeron_RelativeMouseMode())) {
-		XvtMouseFlight_Reset();
+	if (!(xvt_input_mouse_flight_allowed() && Aeron_RelativeMouseMode())) {
+		xvt_mouse_flight_reset();
 		return;
 	}
-	g_mouseFlight.active = 1;
-	g_mouseFlight.pending_x += in->mouse.relative_x;
-	g_mouseFlight.pending_y += in->mouse.relative_y;
-	g_mouseFlight.buttons =
-		(XvtInput_FilterMouseButtons(in->mouse.buttons) &
+	g_mouse_flight.active = 1;
+	g_mouse_flight.pending_x += in->mouse.relative_x;
+	g_mouse_flight.pending_y += in->mouse.relative_y;
+	g_mouse_flight.buttons =
+		(xvt_input_filter_mouse_buttons(in->mouse.buttons) &
 		 AERON_MOUSE_BUTTON_LEFT) != 0;
 	{
 		const int rmb =
-			(XvtInput_FilterMouseButtons(in->mouse.buttons) &
+			(xvt_input_filter_mouse_buttons(in->mouse.buttons) &
 			 AERON_MOUSE_BUTTON_RIGHT) != 0;
 		const uint64_t now = Aeron_NowUs();
 
-		if (rmb && !g_mouseFlight.rmb_down) {
-			g_mouseFlight.rmb_press_time_us = now;
-		} else if (!rmb && g_mouseFlight.rmb_down &&
-			   now - g_mouseFlight.rmb_press_time_us <
+		if (rmb && !g_mouse_flight.rmb_down) {
+			g_mouse_flight.rmb_press_time_us = now;
+		} else if (!rmb && g_mouse_flight.rmb_down &&
+			   now - g_mouse_flight.rmb_press_time_us <
 				   MOUSE_FLIGHT_TAP_US) {
-			g_mouseFlight.target_tap = 1;
+			g_mouse_flight.target_tap = 1;
 		}
-		g_mouseFlight.rmb_down = rmb;
-		g_mouseFlight.roll_lock =
-			rmb && now - g_mouseFlight.rmb_press_time_us >=
+		g_mouse_flight.rmb_down = rmb;
+		g_mouse_flight.roll_lock =
+			rmb && now - g_mouse_flight.rmb_press_time_us >=
 				       MOUSE_FLIGHT_TAP_US;
 	}
-	if ((unsigned)g_localPlayer < 8 &&
-	    g_players[g_localPlayer].chatRecipientMode ==
+	if ((unsigned)g_local_player < 8 &&
+	    g_players[g_local_player].chat_recipient_mode ==
 		    FLIGHT_CHAT_RECIPIENT_INACTIVE) {
-		if (g_mouseFlight.target_tap) {
-			XvtMouseFlight_QueueKey(FLIGHT_KEY_ALT_1);
+		if (g_mouse_flight.target_tap) {
+			xvt_mouse_flight_queue_key(FLIGHT_KEY_ALT_1);
 		}
-		uint32_t pressed =
-			XvtInput_FilterMouseButtons(in->mouse.pressed_buttons);
+		uint32_t pressed = xvt_input_filter_mouse_buttons(
+			in->mouse.pressed_buttons);
 		if (pressed & AERON_MOUSE_BUTTON_MIDDLE) {
-			XvtMouseFlight_QueueKey(XvtInputActions_Key(
+			xvt_mouse_flight_queue_key(xvt_input_actions_key(
 				XVT_INPUT_ACTION_TARGET_NEAREST_FIGHTER_OR_MINE));
 		}
 		if (pressed & AERON_MOUSE_BUTTON_X1) {
-			XvtMouseFlight_QueueKey(XvtInputActions_Key(
+			xvt_mouse_flight_queue_key(xvt_input_actions_key(
 				XVT_INPUT_ACTION_VIEW_TOGGLE_COCKPIT));
 		}
 	} else {
-		g_mouseFlight.read_key = g_mouseFlight.write_key = 0;
+		g_mouse_flight.read_key = g_mouse_flight.write_key = 0;
 	}
-	g_mouseFlight.target_tap = 0;
+	g_mouse_flight.target_tap = 0;
 }
 
-static float XvtMouseFlight_ClampStick(float value)
+static float xvt_mouse_flight_clamp_stick(float value)
 {
 	if (value > 127.0f) {
 		return 127.0f;
@@ -190,7 +192,7 @@ static float XvtMouseFlight_ClampStick(float value)
 	return value;
 }
 
-static int XvtMouseFlight_StickAxis(float value)
+static int xvt_mouse_flight_stick_axis(float value)
 {
 	return (int)floorf(value + 0.5f);
 }
@@ -198,110 +200,118 @@ static int XvtMouseFlight_StickAxis(float value)
 /* Virtual stick: mouse displacement moves a held virtual-stick deflection.
  * While roll-lock is held, X motion moves a transient roll deflection and the
  * yaw/pitch stick is frozen; roll recenters when the button is released. */
-static void XvtMouseFlight_UpdateStick(float sensitivity)
+static void xvt_mouse_flight_update_stick(float sensitivity)
 {
 	const float gain = MOUSE_FLIGHT_STICK_GAIN * sensitivity;
-	float delta_y = g_mouseFlight.pending_y * gain;
+	float delta_y = g_mouse_flight.pending_y * gain;
 
 	/* Mouse Y is positive downward; flight pitch is positive nose-up. */
-	if (!g_mouseFlight.options.mouse_invert_y) {
+	if (!g_mouse_flight.options.mouse_invert_y) {
 		delta_y = -delta_y;
 	}
-	if (g_mouseFlight.roll_lock != g_mouseFlight.drained_roll_lock) {
-		g_mouseFlight.drained_roll_lock = g_mouseFlight.roll_lock;
-		g_mouseFlight.stick_r = 0.0f;
+	if (g_mouse_flight.roll_lock != g_mouse_flight.drained_roll_lock) {
+		g_mouse_flight.drained_roll_lock = g_mouse_flight.roll_lock;
+		g_mouse_flight.stick_r = 0.0f;
 	}
-	if (g_mouseFlight.roll_lock) {
-		g_mouseFlight.stick_r = XvtMouseFlight_ClampStick(
-			g_mouseFlight.stick_r + g_mouseFlight.pending_x * gain);
+	if (g_mouse_flight.roll_lock) {
+		g_mouse_flight.stick_r = xvt_mouse_flight_clamp_stick(
+			g_mouse_flight.stick_r +
+			g_mouse_flight.pending_x * gain);
 	} else {
-		g_mouseFlight.stick_r = 0.0f;
-		g_mouseFlight.stick_x = XvtMouseFlight_ClampStick(
-			g_mouseFlight.stick_x + g_mouseFlight.pending_x * gain);
-		g_mouseFlight.stick_y = XvtMouseFlight_ClampStick(
-			g_mouseFlight.stick_y + delta_y);
+		g_mouse_flight.stick_r = 0.0f;
+		g_mouse_flight.stick_x = xvt_mouse_flight_clamp_stick(
+			g_mouse_flight.stick_x +
+			g_mouse_flight.pending_x * gain);
+		g_mouse_flight.stick_y = xvt_mouse_flight_clamp_stick(
+			g_mouse_flight.stick_y + delta_y);
 	}
-	g_mouseFlight.axis_x = XvtMouseFlight_StickAxis(g_mouseFlight.stick_x);
-	g_mouseFlight.axis_y = XvtMouseFlight_StickAxis(g_mouseFlight.stick_y);
-	g_mouseFlight.axis_r = XvtMouseFlight_StickAxis(g_mouseFlight.stick_r);
+	g_mouse_flight.axis_x =
+		xvt_mouse_flight_stick_axis(g_mouse_flight.stick_x);
+	g_mouse_flight.axis_y =
+		xvt_mouse_flight_stick_axis(g_mouse_flight.stick_y);
+	g_mouse_flight.axis_r =
+		xvt_mouse_flight_stick_axis(g_mouse_flight.stick_r);
 }
 
-int XvtMouseFlight_Sample(void)
+int xvt_mouse_flight_sample(void)
 {
 	uint64_t now;
 	uint64_t interval_us;
 	float sensitivity;
 
-	if (!XvtInput_MouseFlightAllowed()) {
-		XvtMouseFlight_Reset();
+	if (!xvt_input_mouse_flight_allowed()) {
+		xvt_mouse_flight_reset();
 		return 0;
 	}
-	XvtMouseFlight_Pump();
-	if (!g_mouseFlight.active) {
+	xvt_mouse_flight_pump();
+	if (!g_mouse_flight.active) {
 		return 0;
 	}
 
 	now = Aeron_NowUs();
-	interval_us = now - g_mouseFlight.drain_time_us;
+	interval_us = now - g_mouse_flight.drain_time_us;
 	/* Discard transition motion on first sampling or after a stall, preserving
 	 * the held stick deflection. */
-	if (g_mouseFlight.drain_time_us == 0 ||
+	if (g_mouse_flight.drain_time_us == 0 ||
 	    interval_us > MOUSE_FLIGHT_MAX_SAMPLE_GAP_US) {
-		g_mouseFlight.drain_time_us = now;
-		g_mouseFlight.pending_x = 0.0f;
-		g_mouseFlight.pending_y = 0.0f;
-		g_mouseFlight.axis_x =
-			XvtMouseFlight_StickAxis(g_mouseFlight.stick_x);
-		g_mouseFlight.axis_y =
-			XvtMouseFlight_StickAxis(g_mouseFlight.stick_y);
-		g_mouseFlight.axis_r =
-			XvtMouseFlight_StickAxis(g_mouseFlight.stick_r);
+		g_mouse_flight.drain_time_us = now;
+		g_mouse_flight.pending_x = 0.0f;
+		g_mouse_flight.pending_y = 0.0f;
+		g_mouse_flight.axis_x =
+			xvt_mouse_flight_stick_axis(g_mouse_flight.stick_x);
+		g_mouse_flight.axis_y =
+			xvt_mouse_flight_stick_axis(g_mouse_flight.stick_y);
+		g_mouse_flight.axis_r =
+			xvt_mouse_flight_stick_axis(g_mouse_flight.stick_r);
 		return 1;
 	}
-	g_mouseFlight.drain_time_us = now;
+	g_mouse_flight.drain_time_us = now;
 
-	sensitivity = k_mouseFlightSensitivityScale[g_mouseFlight.options
-							    .mouse_sensitivity -
-						    XVT_MOUSE_SENSITIVITY_MIN];
-	XvtMouseFlight_UpdateStick(sensitivity);
-	g_mouseFlight.pending_x = 0.0f;
-	g_mouseFlight.pending_y = 0.0f;
+	sensitivity =
+		k_mouse_flight_sensitivity_scale[g_mouse_flight.options
+							 .mouse_sensitivity -
+						 XVT_MOUSE_SENSITIVITY_MIN];
+	xvt_mouse_flight_update_stick(sensitivity);
+	g_mouse_flight.pending_x = 0.0f;
+	g_mouse_flight.pending_y = 0.0f;
 	return 1;
 }
 
-void XvtMouseFlight_GetAxes(int *axisX, int *axisY, int *axisR)
+void xvt_mouse_flight_get_axes(int *axis_x, int *axis_y, int *axis_r)
 {
-	if (axisX) {
-		*axisX = g_mouseFlight.axis_x;
+	if (axis_x) {
+		*axis_x = g_mouse_flight.axis_x;
 	}
-	if (axisY) {
-		*axisY = g_mouseFlight.axis_y;
+	if (axis_y) {
+		*axis_y = g_mouse_flight.axis_y;
 	}
-	if (axisR) {
-		*axisR = g_mouseFlight.axis_r;
+	if (axis_r) {
+		*axis_r = g_mouse_flight.axis_r;
 	}
 }
 
-int XvtMouseFlight_ButtonsMask(void) { return g_mouseFlight.buttons; }
+int xvt_mouse_flight_buttons_mask(void) { return g_mouse_flight.buttons; }
 
-int XvtMouseFlight_GetHudMarker(int *deflectionX, int *deflectionY)
+int xvt_mouse_flight_get_hud_marker(int *deflection_x, int *deflection_y)
 {
-	if (!XvtInput_MouseFlightAllowed() || !g_mouseFlight.active) {
+	if (!xvt_input_mouse_flight_allowed() || !g_mouse_flight.active) {
 		return 0;
 	}
-	if (deflectionX) {
-		*deflectionX = XvtMouseFlight_StickAxis(g_mouseFlight.stick_x);
+	if (deflection_x) {
+		*deflection_x =
+			xvt_mouse_flight_stick_axis(g_mouse_flight.stick_x);
 	}
-	if (deflectionY) {
-		*deflectionY = XvtMouseFlight_StickAxis(g_mouseFlight.stick_y);
+	if (deflection_y) {
+		*deflection_y =
+			xvt_mouse_flight_stick_axis(g_mouse_flight.stick_y);
 	}
 	return 1;
 }
 
-void XvtMouseFlight_DiscardPending(void)
+void xvt_mouse_flight_discard_pending(void)
 {
-	g_mouseFlight.pending_x = g_mouseFlight.pending_y = 0.0f;
-	g_mouseFlight.read_key = g_mouseFlight.write_key = 0;
-	g_mouseFlight.target_tap = 0;
-	g_mouseFlight.drain_time_us = Aeron_NowUs();
+	g_mouse_flight.pending_x = g_mouse_flight.pending_y = 0.0f;
+	g_mouse_flight.read_key = g_mouse_flight.write_key = 0;
+	g_mouse_flight.target_tap = 0;
+	g_mouse_flight.drain_time_us = Aeron_NowUs();
 }

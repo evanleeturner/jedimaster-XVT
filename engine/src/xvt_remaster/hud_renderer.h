@@ -20,28 +20,27 @@
  * equals the last prepared one the lists stand; otherwise they are rebuilt in order: world markers,
  * base artwork, covers, radar, widgets, readouts before the CRT, the CRT marker when visible, the
  * mouse stick, readouts after the CRT, messages, pages, overlays. Returns 1 ready to draw. */
-int XvtHudRenderer_Prepare(AeronCommandBuffer *cmd,
-			   const struct XvtCockpitState *state,
-			   uint64_t world_generation,
-			   const struct XvtSnapTargetBox *markers,
-			   unsigned marker_count,
-			   const struct XvtRenderView *view,
-			   AeronTexture *crt_color, int width, int height);
+int xvt_hud_renderer_prepare(AeronCommandBuffer *cmd,
+			     const struct xvt_cockpit_state *state,
+			     uint64_t world_generation,
+			     const struct xvt_snap_target_box *markers,
+			     unsigned marker_count,
+			     const struct xvt_render_view *view,
+			     AeronTexture *crt_color, int width, int height);
 /* Renders the before list, the CRT, then the after list into pass; nothing unless the last Prepare left
  * the HUD ready. */
-void XvtHudRenderer_Draw(AeronCommandBuffer *cmd, AeronRenderPass *pass,
-			 AeronRenderTarget *target);
+void xvt_hud_renderer_draw(AeronCommandBuffer *cmd, AeronRenderPass *pass,
+			   AeronRenderTarget *target);
 /* Forgets the prepared lists and the cached layout; the next Prepare rebuilds. */
-void XvtHudRenderer_Invalidate(void);
+void xvt_hud_renderer_invalidate(void);
 /* Whether Prepare would rebuild: 1 for a NULL state or too many markers; for an invalid state, whether
  * a HUD is still ready (so a Prepare can clear it); else whether nothing is prepared, the world
  * generation changed, or the key differs. */
-int XvtHudRenderer_NeedsPreparation(const struct XvtCockpitState *state,
-				    uint64_t world_generation,
-				    const struct XvtSnapTargetBox *markers,
-				    unsigned marker_count,
-				    const struct XvtRenderView *view,
-				    int crt_visible, int width, int height);
+int xvt_hud_renderer_needs_preparation(
+	const struct xvt_cockpit_state *state, uint64_t world_generation,
+	const struct xvt_snap_target_box *markers, unsigned marker_count,
+	const struct xvt_render_view *view, int crt_visible, int width,
+	int height);
 /* Destroys the lists, the HUD assets and the CRT, and invalidates. */
-void XvtHudRenderer_Shutdown(void);
+void xvt_hud_renderer_shutdown(void);
 #endif

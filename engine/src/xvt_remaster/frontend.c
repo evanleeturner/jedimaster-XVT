@@ -11,38 +11,38 @@ enum { TARGETS = XVT_TARGET_FRONT_SAVED_FIRST + XVT_TARGET_FRONT_SAVED_COUNT };
 
 static AeronRenderTarget *g_targets[TARGETS];
 static AeronDrawList2D *g_list;
-static int g_width, g_height, g_presented, g_moviePresented;
+static int g_width, g_height, g_presented, g_movie_presented;
 static float g_scale;
-static int g_releasePresented;
-static uint64_t g_replayedSnapshotSerial = UINT64_MAX;
+static int g_release_presented;
+static uint64_t g_replayed_snapshot_serial = UINT64_MAX;
 
-static struct XvtSnapRect g_savedBounds[TARGETS];
-static AeronRenderTarget *g_cursorTarget;
-static struct XvtSnapSprite g_cursor;
-static int g_cursorVisible;
+static struct xvt_snap_rect g_saved_bounds[TARGETS];
+static AeronRenderTarget *g_cursor_target;
+static struct xvt_snap_sprite g_cursor;
+static int g_cursor_visible;
 
-static int IsSavedTarget(unsigned id)
+static int is_saved_target(unsigned id)
 {
 	return id >= XVT_TARGET_FRONT_SAVED_FIRST && id < TARGETS;
 }
 
-static int IsFrontendTarget(unsigned id)
+static int is_frontend_target(unsigned id)
 {
 	return id <= XVT_TARGET_FRONT_BACKUP ||
 	       id == XVT_TARGET_FRONT_PRESENTED ||
-	       id == XVT_TARGET_FRONT_MOVIE || IsSavedTarget(id);
+	       id == XVT_TARGET_FRONT_MOVIE || is_saved_target(id);
 }
 
-static struct XvtSnapRect ScaleRect(struct XvtSnapRect rect, float scale)
+static struct xvt_snap_rect scale_rect(struct xvt_snap_rect rect, float scale)
 {
 	int left = (int)roundf(rect.x * scale),
 	    top = (int)roundf(rect.y * scale);
-	return (struct XvtSnapRect){
+	return (struct xvt_snap_rect){
 		left, top, (int)roundf((rect.x + rect.width) * scale) - left,
 		(int)roundf((rect.y + rect.height) * scale) - top};
 }
 
-static AeronRenderTarget *CreateTarget(unsigned id, int width, int height)
+static AeronRenderTarget *create_target(unsigned id, int width, int height)
 {
 	const char *name;
 	char saved_name[48];
@@ -75,10 +75,10 @@ static AeronRenderTarget *CreateTarget(unsigned id, int width, int height)
 		.debug_name = name});
 }
 
-static int ClearTarget(AeronCommandBuffer *cmd, unsigned id, uint32_t color)
+static int clear_target(AeronCommandBuffer *cmd, unsigned id, uint32_t color)
 {
 	float rgba[4];
-	XvtUi_Color(color, rgba);
+	xvt_ui_color(color, rgba);
 	AeronTexture *texture = Aeron_RenderTargetGetTexture(g_targets[id]);
 	AeronDrawList_Begin(
 		g_list, g_targets[id], Aeron_TextureGetWidth(texture),
@@ -87,42 +87,42 @@ static int ClearTarget(AeronCommandBuffer *cmd, unsigned id, uint32_t color)
 	return 1;
 }
 
-static int PrepareTarget(AeronCommandBuffer *cmd, unsigned id)
+static int prepare_target(AeronCommandBuffer *cmd, unsigned id)
 {
-	if (!IsFrontendTarget(id)) {
+	if (!is_frontend_target(id)) {
 		return 0;
 	}
 	if (g_targets[id]) {
 		return 1;
 	}
-	struct XvtSnapRect bounds =
-		IsSavedTarget(id)
-			? ScaleRect(g_savedBounds[id], g_scale)
-			: (struct XvtSnapRect){0, 0, g_width, g_height};
+	struct xvt_snap_rect bounds =
+		is_saved_target(id)
+			? scale_rect(g_saved_bounds[id], g_scale)
+			: (struct xvt_snap_rect){0, 0, g_width, g_height};
 	if (bounds.width <= 0 || bounds.height <= 0) {
 		return 0;
 	}
-	g_targets[id] = CreateTarget(id, bounds.width, bounds.height);
+	g_targets[id] = create_target(id, bounds.width, bounds.height);
 	return g_targets[id] &&
-	       (IsSavedTarget(id) ||
-		ClearTarget(cmd, id,
-			    id == XVT_TARGET_FRONT_MOVIE ? 0 : 0xff000000u));
+	       (is_saved_target(id) ||
+		clear_target(cmd, id,
+			     id == XVT_TARGET_FRONT_MOVIE ? 0 : 0xff000000u));
 }
 
-static int ResizeTargets(AeronCommandBuffer *cmd, int width, int height,
-			 float scale)
+static int resize_targets(AeronCommandBuffer *cmd, int width, int height,
+			  float scale)
 {
 	AeronRenderTarget *replacements[TARGETS] = {0};
 	for (unsigned id = 0; id < TARGETS; ++id) {
 		if (!g_targets[id]) {
 			continue;
 		}
-		struct XvtSnapRect bounds =
-			IsSavedTarget(id)
-				? ScaleRect(g_savedBounds[id], scale)
-				: (struct XvtSnapRect){0, 0, width, height};
+		struct xvt_snap_rect bounds =
+			is_saved_target(id)
+				? scale_rect(g_saved_bounds[id], scale)
+				: (struct xvt_snap_rect){0, 0, width, height};
 		replacements[id] =
-			CreateTarget(id, bounds.width, bounds.height);
+			create_target(id, bounds.width, bounds.height);
 		if (!replacements[id]) {
 			goto failed;
 		}
@@ -130,12 +130,12 @@ static int ResizeTargets(AeronCommandBuffer *cmd, int width, int height,
 			Aeron_RenderTargetGetTexture(g_targets[id]);
 		int source_width = Aeron_TextureGetWidth(source),
 		    source_height = Aeron_TextureGetHeight(source);
-		if (!XvtUi_CopyFrontend(
+		if (!xvt_ui_copy_frontend(
 			    cmd, replacements[id], source,
-			    &(struct XvtSnapRect){0, 0, source_width,
-						  source_height},
-			    &(struct XvtSnapRect){0, 0, bounds.width,
-						  bounds.height},
+			    &(struct xvt_snap_rect){0, 0, source_width,
+						    source_height},
+			    &(struct xvt_snap_rect){0, 0, bounds.width,
+						    bounds.height},
 			    source_width, source_height)) {
 			goto failed;
 		}
@@ -152,7 +152,7 @@ failed:
 	return 0;
 }
 
-static int PrepareTargets(AeronCommandBuffer *cmd, int width, int height)
+static int prepare_targets(AeronCommandBuffer *cmd, int width, int height)
 {
 	if (!g_list) {
 		g_list = AeronDrawList_Create(65536);
@@ -163,60 +163,60 @@ static int PrepareTargets(AeronCommandBuffer *cmd, int width, int height)
 	float scale = fminf(width / 640.0f, height / 480.0f);
 	int w = (int)ceilf(640 * scale), h = (int)ceilf(480 * scale);
 	if ((w != g_width || h != g_height) &&
-	    !ResizeTargets(cmd, w, h, scale)) {
+	    !resize_targets(cmd, w, h, scale)) {
 		return 0;
 	}
 	g_scale = scale;
 	g_width = w;
 	g_height = h;
-	return PrepareTarget(cmd, XVT_TARGET_FRONT_BACK) &&
-	       PrepareTarget(cmd, XVT_TARGET_FRONT_PRESENTED);
+	return prepare_target(cmd, XVT_TARGET_FRONT_BACK) &&
+	       prepare_target(cmd, XVT_TARGET_FRONT_PRESENTED);
 }
 
-static int CopyRegion(AeronCommandBuffer *cmd, unsigned src, unsigned dst,
-		      struct XvtSnapRect from, struct XvtSnapRect to)
+static int copy_region(AeronCommandBuffer *cmd, unsigned src, unsigned dst,
+		       struct xvt_snap_rect from, struct xvt_snap_rect to)
 {
 	/* Saved slots use local texture coordinates; captured rectangles stay in screen space. */
-	if (IsSavedTarget(src) && !g_targets[src]) {
+	if (is_saved_target(src) && !g_targets[src]) {
 		return 0;
 	}
-	if (IsSavedTarget(dst)) {
+	if (is_saved_target(dst)) {
 		Aeron_DestroyRenderTarget(g_targets[dst]);
 		g_targets[dst] = NULL;
-		g_savedBounds[dst] = to;
+		g_saved_bounds[dst] = to;
 	}
-	if (!PrepareTarget(cmd, src) || !PrepareTarget(cmd, dst)) {
+	if (!prepare_target(cmd, src) || !prepare_target(cmd, dst)) {
 		return 0;
 	}
-	from = ScaleRect(from, g_scale);
-	to = ScaleRect(to, g_scale);
-	if (IsSavedTarget(src)) {
-		struct XvtSnapRect origin =
-			ScaleRect(g_savedBounds[src], g_scale);
+	from = scale_rect(from, g_scale);
+	to = scale_rect(to, g_scale);
+	if (is_saved_target(src)) {
+		struct xvt_snap_rect origin =
+			scale_rect(g_saved_bounds[src], g_scale);
 		from.x -= origin.x;
 		from.y -= origin.y;
 	}
-	if (IsSavedTarget(dst)) {
-		struct XvtSnapRect origin =
-			ScaleRect(g_savedBounds[dst], g_scale);
+	if (is_saved_target(dst)) {
+		struct xvt_snap_rect origin =
+			scale_rect(g_saved_bounds[dst], g_scale);
 		to.x -= origin.x;
 		to.y -= origin.y;
 	}
 	AeronTexture *source = Aeron_RenderTargetGetTexture(g_targets[src]);
-	int ok = XvtUi_CopyFrontend(cmd, g_targets[dst], source, &from, &to,
-				    Aeron_TextureGetWidth(source),
-				    Aeron_TextureGetHeight(source));
-	if (ok && IsSavedTarget(src)) {
+	int ok = xvt_ui_copy_frontend(cmd, g_targets[dst], source, &from, &to,
+				      Aeron_TextureGetWidth(source),
+				      Aeron_TextureGetHeight(source));
+	if (ok && is_saved_target(src)) {
 		Aeron_DestroyRenderTarget(g_targets[src]);
 		g_targets[src] = NULL;
-		memset(&g_savedBounds[src], 0, sizeof g_savedBounds[src]);
+		memset(&g_saved_bounds[src], 0, sizeof g_saved_bounds[src]);
 	}
 	return ok;
 }
 
-static int DrawSprite(const struct XvtSnapSprite *b, float scale)
+static int draw_sprite(const struct xvt_snap_sprite *b, float scale)
 {
-	const AeronRuntimeAtlas *a = XvtRemasterAssets_FindFrontendImage(b);
+	const AeronRuntimeAtlas *a = xvt_remaster_assets_find_frontend_image(b);
 	if (!a) {
 		return 0;
 	}
@@ -245,14 +245,14 @@ static int DrawSprite(const struct XvtSnapSprite *b, float scale)
 				.dst_h = b->destination.height * scale,
 				.blend = AERON_BLIT2D_BLEND_PMA,
 				.filter = AERON_BLIT2D_FILTER_NEAREST};
-			struct XvtSnapRect clip =
-				ScaleRect(b->draw.clip, scale);
+			struct xvt_snap_rect clip =
+				scale_rect(b->draw.clip, scale);
 			d.scissor = (AeronRectI){clip.x, clip.y, clip.width,
 						 clip.height};
-			XvtUi_Color(b->kind == XVT_SPRITE_FRONT_TRANSLUCENT
-					    ? 0x80ffffffu
-					    : 0xffffffffu,
-				    d.tint);
+			xvt_ui_color(b->kind == XVT_SPRITE_FRONT_TRANSLUCENT
+					     ? 0x80ffffffu
+					     : 0xffffffffu,
+				     d.tint);
 			AeronDrawList_AddSprite(g_list, &d);
 			return 1;
 		}
@@ -260,14 +260,14 @@ static int DrawSprite(const struct XvtSnapSprite *b, float scale)
 	return 0;
 }
 
-static void DrawPreview(unsigned i)
+static void draw_preview(unsigned i)
 {
-	const struct XvtPreviewOutput *p = XvtRemasterPreview_Output(i);
+	const struct xvt_preview_output *p = xvt_remaster_preview_output(i);
 	if (!p) {
 		return;
 	}
-	struct XvtSnapRect r = ScaleRect(p->destination, g_scale),
-			   clip = ScaleRect(p->draw.clip, g_scale);
+	struct xvt_snap_rect r = scale_rect(p->destination, g_scale),
+			     clip = scale_rect(p->draw.clip, g_scale);
 	AeronDrawList2DSprite d = {
 		.texture = p->texture,
 		.src_u1 = 1,
@@ -283,10 +283,10 @@ static void DrawPreview(unsigned i)
 	AeronDrawList_AddSprite(g_list, &d);
 }
 
-static int RenderCursor(AeronCommandBuffer *cmd,
-			const struct XvtSnapSprite *cursor)
+static int render_cursor(AeronCommandBuffer *cmd,
+			 const struct xvt_snap_sprite *cursor)
 {
-	g_cursorVisible = 0;
+	g_cursor_visible = 0;
 	if (!cursor) {
 		return 1;
 	}
@@ -296,47 +296,47 @@ static int RenderCursor(AeronCommandBuffer *cmd,
 		return 0;
 	}
 	AeronTexture *texture =
-		g_cursorTarget ? Aeron_RenderTargetGetTexture(g_cursorTarget)
-			       : NULL;
+		g_cursor_target ? Aeron_RenderTargetGetTexture(g_cursor_target)
+				: NULL;
 	if (!texture || Aeron_TextureGetWidth(texture) != width ||
 	    Aeron_TextureGetHeight(texture) != height) {
-		Aeron_DestroyRenderTarget(g_cursorTarget);
-		g_cursorTarget =
+		Aeron_DestroyRenderTarget(g_cursor_target);
+		g_cursor_target =
 			Aeron_CreateRenderTarget(&(AeronRenderTargetDesc){
 				.width = width,
 				.height = height,
 				.format = AERON_TEXTURE_FORMAT_RGBA8_SRGB,
 				.debug_name = "xvt.frontend.cursor"});
-		if (!g_cursorTarget) {
+		if (!g_cursor_target) {
 			return 0;
 		}
 	}
 	/* Own the pixels with the held presentation, independently of source asset lifetime. */
-	struct XvtSnapSprite local = *cursor;
+	struct xvt_snap_sprite local = *cursor;
 	local.destination = local.draw.clip =
-		(struct XvtSnapRect){0, 0, width, height};
+		(struct xvt_snap_rect){0, 0, width, height};
 	const float clear[4] = {0, 0, 0, 0};
-	AeronDrawList_Begin(g_list, g_cursorTarget, width, height,
+	AeronDrawList_Begin(g_list, g_cursor_target, width, height,
 			    AERON_DRAWLIST2D_CLEAR, clear);
-	if (!DrawSprite(&local, 1)) {
+	if (!draw_sprite(&local, 1)) {
 		return 0;
 	}
 	AeronDrawList_Render(g_list, cmd);
 	g_cursor = *cursor;
-	g_cursorVisible = 1;
+	g_cursor_visible = 1;
 	return 1;
 }
 
-static int ApplySurfaceEvent(AeronCommandBuffer *cmd,
-			     const struct XvtSnapSurfaceEvent *e,
-			     const struct XvtSnapSprite *cursor)
+static int apply_surface_event(AeronCommandBuffer *cmd,
+			       const struct xvt_snap_surface_event *e,
+			       const struct xvt_snap_sprite *cursor)
 {
-	if (!IsFrontendTarget(e->target)) {
+	if (!is_frontend_target(e->target)) {
 		return 1;
 	}
 	if (e->kind == XVT_SURFACE_PRESENT) {
 		if (e->target == XVT_TARGET_FRONT_MOVIE) {
-			g_moviePresented = 1;
+			g_movie_presented = 1;
 			return 1;
 		}
 		AeronDrawList_Begin(
@@ -354,54 +354,55 @@ static int ApplySurfaceEvent(AeronCommandBuffer *cmd,
 			.filter = AERON_BLIT2D_FILTER_NEAREST};
 		AeronDrawList_AddSprite(g_list, &background);
 		AeronDrawList_Render(g_list, cmd);
-		if (!RenderCursor(cmd, cursor)) {
+		if (!render_cursor(cmd, cursor)) {
 			return 0;
 		}
 		g_presented = 1;
-		g_releasePresented = 0;
+		g_release_presented = 0;
 	} else if (e->kind == XVT_SURFACE_RESET) {
 		/* Recreated classic surfaces repaint through subsequent events. The held
 		 * presentation and independent screen-stack copies survive the reset. */
 		for (unsigned i = 0; i < TARGETS; ++i) {
 			if (g_targets[i] && i != XVT_TARGET_FRONT_PRESENTED &&
-			    !IsSavedTarget(i) &&
-			    !ClearTarget(cmd, i,
-					 i == XVT_TARGET_FRONT_MOVIE
-						 ? 0
-						 : 0xff000000u)) {
+			    !is_saved_target(i) &&
+			    !clear_target(cmd, i,
+					  i == XVT_TARGET_FRONT_MOVIE
+						  ? 0
+						  : 0xff000000u)) {
 				return 0;
 			}
 		}
-	} else if (!PrepareTarget(cmd, e->target) ||
-		   !ClearTarget(cmd, e->target, e->color_argb)) {
+	} else if (!prepare_target(cmd, e->target) ||
+		   !clear_target(cmd, e->target, e->color_argb)) {
 		return 0;
 	}
 	return 1;
 }
 
-int XvtFrontend_AssetsNeedPreparation(const struct XvtRenderSnapshot *snapshot)
+int xvt_frontend_assets_need_preparation(
+	const struct xvt_render_snapshot *snapshot)
 {
 	for (unsigned i = 0; i < snapshot->sprite_count; ++i) {
-		const struct XvtSnapSprite *sprite = &snapshot->sprites[i];
+		const struct xvt_snap_sprite *sprite = &snapshot->sprites[i];
 		if (sprite->draw.scope != XVT_SCOPE_FRONTEND) {
 			continue;
 		}
-		if (!XvtRemasterAssets_FindFrontendImage(sprite)) {
+		if (!xvt_remaster_assets_find_frontend_image(sprite)) {
 			return 1;
 		}
 	}
 	return 0;
 }
 
-int XvtFrontend_PrepareAssets(AeronCommandBuffer *cmd,
-			      const struct XvtRenderSnapshot *snapshot)
+int xvt_frontend_prepare_assets(AeronCommandBuffer *cmd,
+				const struct xvt_render_snapshot *snapshot)
 {
 	for (unsigned i = 0; i < snapshot->sprite_count; ++i) {
-		const struct XvtSnapSprite *sprite = &snapshot->sprites[i];
+		const struct xvt_snap_sprite *sprite = &snapshot->sprites[i];
 		if (sprite->draw.scope != XVT_SCOPE_FRONTEND) {
 			continue;
 		}
-		if (!XvtRemasterAssets_PrepareFrontendImage(cmd, sprite)) {
+		if (!xvt_remaster_assets_prepare_frontend_image(cmd, sprite)) {
 			Aeron_CommandBufferSetFailure(
 				cmd, "frontend image preparation");
 			return 0;
@@ -410,14 +411,14 @@ int XvtFrontend_PrepareAssets(AeronCommandBuffer *cmd,
 	return 1;
 }
 
-int XvtFrontend_NeedsReplay(const struct XvtRenderSnapshot *s, int w, int h)
+int xvt_frontend_needs_replay(const struct xvt_render_snapshot *s, int w, int h)
 {
 	if (g_list && s->presented_target != XVT_TARGET_FLIGHT_MAIN &&
 	    ((int)ceilf(640 * fminf(w / 640.0f, h / 480.0f)) != g_width ||
 	     (int)ceilf(480 * fminf(w / 640.0f, h / 480.0f)) != g_height)) {
 		return 1;
 	}
-	if (s->snapshot_serial == g_replayedSnapshotSerial) {
+	if (s->snapshot_serial == g_replayed_snapshot_serial) {
 		return 0;
 	}
 	for (unsigned i = 0; i < s->sprite_count; ++i) {
@@ -441,24 +442,25 @@ int XvtFrontend_NeedsReplay(const struct XvtRenderSnapshot *s, int w, int h)
 		}
 	}
 	for (unsigned i = 0; i < s->surface_event_count; ++i) {
-		if (IsFrontendTarget(s->surface_events[i].target)) {
+		if (is_frontend_target(s->surface_events[i].target)) {
 			return 1;
 		}
 	}
 	return s->preview_count != 0;
 }
 
-int XvtFrontend_Replay(AeronCommandBuffer *cmd,
-		       const struct XvtRenderSnapshot *s, int width, int height)
+int xvt_frontend_replay(AeronCommandBuffer *cmd,
+			const struct xvt_render_snapshot *s, int width,
+			int height)
 {
-	if (!PrepareTargets(cmd, width, height)) {
+	if (!prepare_targets(cmd, width, height)) {
 		return 0;
 	}
-	if (g_replayedSnapshotSerial == s->snapshot_serial) {
+	if (g_replayed_snapshot_serial == s->snapshot_serial) {
 		return 1;
 	}
 	unsigned indices[6] = {0};
-	const struct XvtSnapSprite *cursor = NULL;
+	const struct xvt_snap_sprite *cursor = NULL;
 	int active = -1;
 	const unsigned counts[6] = {s->sprite_count,	    s->glyph_count,
 				    s->paint_count,	    s->copy_count,
@@ -501,9 +503,9 @@ int XvtFrontend_Replay(AeronCommandBuffer *cmd,
 			}
 			active = -1;
 			if (stream == 4) {
-				if (!ApplySurfaceEvent(cmd,
-						       &s->surface_events[i],
-						       cursor)) {
+				if (!apply_surface_event(cmd,
+							 &s->surface_events[i],
+							 cursor)) {
 					return 0;
 				}
 				if (s->surface_events[i].kind ==
@@ -511,17 +513,18 @@ int XvtFrontend_Replay(AeronCommandBuffer *cmd,
 					cursor = NULL;
 				}
 			} else {
-				const struct XvtSnapCopyRect *c = &s->copies[i];
+				const struct xvt_snap_copy_rect *c =
+					&s->copies[i];
 				if (c->draw.scope == XVT_SCOPE_FRONTEND &&
-				    !CopyRegion(cmd, c->source_target,
-						c->draw.target, c->source,
-						c->destination)) {
+				    !copy_region(cmd, c->source_target,
+						 c->draw.target, c->source,
+						 c->destination)) {
 					return 0;
 				}
 			}
 			continue;
 		}
-		const struct XvtSnapDrawHeader *h =
+		const struct xvt_snap_draw_header *h =
 			stream == 0   ? &s->sprites[i].draw
 			: stream == 1 ? &s->glyphs[i].draw
 			: stream == 2 ? &s->paint[i].draw
@@ -531,14 +534,14 @@ int XvtFrontend_Replay(AeronCommandBuffer *cmd,
 			continue;
 		}
 		if (h->scope != XVT_SCOPE_FRONTEND ||
-		    !IsFrontendTarget(h->target)) {
+		    !is_frontend_target(h->target)) {
 			continue;
 		}
 		if (active != h->target) {
 			if (active >= 0) {
 				AeronDrawList_Render(g_list, cmd);
 			}
-			if (!PrepareTarget(cmd, h->target)) {
+			if (!prepare_target(cmd, h->target)) {
 				return 0;
 			}
 			active = h->target;
@@ -547,52 +550,52 @@ int XvtFrontend_Replay(AeronCommandBuffer *cmd,
 					    NULL);
 		}
 		if (stream == 0) {
-			if (!DrawSprite(&s->sprites[i], g_scale)) {
+			if (!draw_sprite(&s->sprites[i], g_scale)) {
 				return 0;
 			}
 		} else if (stream == 1) {
-			XvtUi_Glyph(g_list, &s->glyphs[i], g_scale, 0, 0);
+			xvt_ui_glyph(g_list, &s->glyphs[i], g_scale, 0, 0);
 		} else if (stream == 2) {
-			XvtUi_Paint(g_list, &s->paint[i], g_scale);
+			xvt_ui_paint(g_list, &s->paint[i], g_scale);
 		} else {
-			DrawPreview(i);
+			draw_preview(i);
 		}
 	}
 	if (active >= 0) {
 		AeronDrawList_Render(g_list, cmd);
 	}
-	g_replayedSnapshotSerial = s->snapshot_serial;
+	g_replayed_snapshot_serial = s->snapshot_serial;
 	return 1;
 }
 
-AeronTexture *XvtFrontend_Output(void)
+AeronTexture *xvt_frontend_output(void)
 {
 	return g_presented ? Aeron_RenderTargetGetTexture(
 				     g_targets[XVT_TARGET_FRONT_PRESENTED])
 			   : NULL;
 }
 
-AeronTexture *XvtFrontend_MovieOverlay(void)
+AeronTexture *xvt_frontend_movie_overlay(void)
 {
-	return g_moviePresented ? Aeron_RenderTargetGetTexture(
-					  g_targets[XVT_TARGET_FRONT_MOVIE])
-				: NULL;
+	return g_movie_presented ? Aeron_RenderTargetGetTexture(
+					   g_targets[XVT_TARGET_FRONT_MOVIE])
+				 : NULL;
 }
 
-void XvtFrontend_PresentCursor(float opacity)
+void xvt_frontend_present_cursor(float opacity)
 {
-	if (!g_presented || !g_cursorVisible || !g_cursorTarget ||
-	    opacity <= 0 || XvtInput_IsCaptured() || Aeron_DebugUiVisible() ||
+	if (!g_presented || !g_cursor_visible || !g_cursor_target ||
+	    opacity <= 0 || xvt_input_is_captured() || Aeron_DebugUiVisible() ||
 	    Aeron_RelativeMouseMode()) {
 		return;
 	}
 	int x = g_cursor.destination.x, y = g_cursor.destination.y;
 	/* Align with the baked classic cursor during the renderer crossfade. */
 	if (opacity >= 1) {
-		XvtInput_FrontendCursorPosition(&x, &y);
+		xvt_input_frontend_cursor_position(&x, &y);
 	}
-	AeronRectI classic = XvtPresentation_ClassicRect();
-	struct XvtSnapRect clip = g_cursor.draw.clip;
+	AeronRectI classic = xvt_presentation_classic_rect();
+	struct xvt_snap_rect clip = g_cursor.draw.clip;
 	int left = clip.x > 0 ? clip.x : 0, top = clip.y > 0 ? clip.y : 0;
 	int right = clip.x + clip.width < 640 ? clip.x + clip.width : 640;
 	int bottom = clip.y + clip.height < 480 ? clip.y + clip.height : 480;
@@ -600,7 +603,7 @@ void XvtFrontend_PresentCursor(float opacity)
 		return;
 	}
 	AeronTextureLayerDesc layer = {
-		.texture = Aeron_RenderTargetGetTexture(g_cursorTarget),
+		.texture = Aeron_RenderTargetGetTexture(g_cursor_target),
 		.logical_rect = {classic.x + x, classic.y + y,
 				 g_cursor.destination.width,
 				 g_cursor.destination.height},
@@ -615,7 +618,7 @@ void XvtFrontend_PresentCursor(float opacity)
 	}
 }
 
-void XvtFrontend_Shutdown(void)
+void xvt_frontend_shutdown(void)
 {
 	for (unsigned i = 0; i < TARGETS; ++i) {
 		Aeron_DestroyRenderTarget(g_targets[i]);
@@ -623,20 +626,20 @@ void XvtFrontend_Shutdown(void)
 	}
 	AeronDrawList_Destroy(g_list);
 	g_list = NULL;
-	g_replayedSnapshotSerial = UINT64_MAX;
-	g_width = g_height = g_presented = g_moviePresented = 0;
-	g_releasePresented = 0;
-	Aeron_DestroyRenderTarget(g_cursorTarget);
-	g_cursorTarget = NULL;
-	g_cursorVisible = 0;
-	memset(g_savedBounds, 0, sizeof g_savedBounds);
+	g_replayed_snapshot_serial = UINT64_MAX;
+	g_width = g_height = g_presented = g_movie_presented = 0;
+	g_release_presented = 0;
+	Aeron_DestroyRenderTarget(g_cursor_target);
+	g_cursor_target = NULL;
+	g_cursor_visible = 0;
+	memset(g_saved_bounds, 0, sizeof g_saved_bounds);
 }
 
-void XvtFrontend_ReleaseForFlight(void)
+void xvt_frontend_release_for_flight(void)
 {
 	for (unsigned id = 0; id < TARGETS; ++id) {
 		/* Saved screen-stack images outlive the classic surfaces and must survive a later pop. */
-		if (id == XVT_TARGET_FRONT_PRESENTED || IsSavedTarget(id)) {
+		if (id == XVT_TARGET_FRONT_PRESENTED || is_saved_target(id)) {
 			continue;
 		}
 		Aeron_DestroyRenderTarget(g_targets[id]);
@@ -644,19 +647,19 @@ void XvtFrontend_ReleaseForFlight(void)
 	}
 	AeronDrawList_Destroy(g_list);
 	g_list = NULL;
-	g_moviePresented = 0;
-	g_releasePresented = 1;
+	g_movie_presented = 0;
+	g_release_presented = 1;
 }
 
-void XvtFrontend_ReleasePresented(void)
+void xvt_frontend_release_presented(void)
 {
-	if (!g_releasePresented) {
+	if (!g_release_presented) {
 		return;
 	}
 	Aeron_DestroyRenderTarget(g_targets[XVT_TARGET_FRONT_PRESENTED]);
 	g_targets[XVT_TARGET_FRONT_PRESENTED] = NULL;
-	g_presented = g_releasePresented = 0;
-	Aeron_DestroyRenderTarget(g_cursorTarget);
-	g_cursorTarget = NULL;
-	g_cursorVisible = 0;
+	g_presented = g_release_presented = 0;
+	Aeron_DestroyRenderTarget(g_cursor_target);
+	g_cursor_target = NULL;
+	g_cursor_visible = 0;
 }

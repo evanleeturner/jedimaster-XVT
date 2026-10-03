@@ -36,8 +36,8 @@ extern "C" {
  * shuts down, then the port, the renderer, the snapshot store and the UI; a nonzero port exit code
  * becomes the result; CD music, config, storage and Aeron shut down. Returns the frame loop's exit code
  * when it ran, 0 for a cancelled setup, 2 for a bad log level, otherwise 1. The caller ends the log with
- * XvtLogSink_Finish and this result. */
-int XvtApplication_Run(const struct XvtLaunchOptions *options);
+ * xvt_log_sink_finish and this result. */
+int xvt_application_run(const struct xvt_launch_options *options);
 
 #ifdef __cplusplus
 }

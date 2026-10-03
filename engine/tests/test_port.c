@@ -21,86 +21,87 @@
 
 #include <string.h>
 
-static int Placeholder(int frame) { return frame; }
+static int placeholder(int frame) { return frame; }
 
-static void Fresh(void)
+static void fresh(void)
 {
-	XvtPort_Shutdown();
-	XvtNetworkTask_Shutdown();
-	XvtNetworkSession_Shutdown();
-	memset(&g_frontState, 0, sizeof g_frontState);
-	memset(&g_pilotData, 0, sizeof g_pilotData);
-	g_frontState.screenStates[0].updateFn = Placeholder;
+	xvt_port_shutdown();
+	xvt_network_task_shutdown();
+	xvt_network_session_shutdown();
+	memset(&g_front_state, 0, sizeof g_front_state);
+	memset(&g_pilot_data, 0, sizeof g_pilot_data);
+	g_front_state.screen_states[0].update_fn = placeholder;
 }
 
-static void CheckInitRefusesSize(void)
+static void check_init_refuses_size(void)
 {
 	const int sizes[][2] = {{800, 600}, {640, 400}, {852, 480}};
 	for (unsigned i = 0; i < sizeof sizes / sizeof sizes[0]; ++i) {
-		Fresh();
+		fresh();
 		XVT_ASSERT_INT_EQ(
 			Aeron_SetLogicalSize(sizes[i][0], sizes[i][1]), 1);
-		XVT_ASSERT_INT_EQ(XvtPort_Init(), 0);
-		XVT_ASSERT_INT_EQ(XvtPort_GetExitCode(), 1);
-		XVT_ASSERT_INT_EQ(XvtPort_IsInitialized(), 0);
-		XVT_ASSERT_INT_EQ(XvtPort_ServiceQuit(), 1);
+		XVT_ASSERT_INT_EQ(xvt_port_init(), 0);
+		XVT_ASSERT_INT_EQ(xvt_port_get_exit_code(), 1);
+		XVT_ASSERT_INT_EQ(xvt_port_is_initialized(), 0);
+		XVT_ASSERT_INT_EQ(xvt_port_service_quit(), 1);
 	}
 }
 
-static void CheckBeforeInit(void)
+static void check_before_init(void)
 {
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtPort_IsInitialized(), 0);
-	XVT_ASSERT_INT_EQ(XvtPort_ServiceQuit(), 1);
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_port_is_initialized(), 0);
+	XVT_ASSERT_INT_EQ(xvt_port_service_quit(), 1);
 
 	/* Update does nothing once ShouldQuit is 1: the host clock does not move. */
-	XvtTime_Reset();
-	XvtPort_Update(16000);
-	XVT_ASSERT_INT_EQ(XvtTime_GetElapsedUs(), 0);
+	xvt_time_reset();
+	xvt_port_update(16000);
+	XVT_ASSERT_INT_EQ(xvt_time_get_elapsed_us(), 0);
 
 	/* Shutdown before Init only lifts the classic rendering suppression. */
 	AeronDx5_SetClassicFlightRenderingSuppressed(1);
-	XvtPort_Shutdown();
+	xvt_port_shutdown();
 	XVT_ASSERT_INT_EQ(AeronDx5_IsClassicFlightRenderingSuppressed(), 0);
-	XVT_ASSERT_INT_EQ(XvtPort_IsInitialized(), 0);
+	XVT_ASSERT_INT_EQ(xvt_port_is_initialized(), 0);
 }
 
-static void CheckSettingsLatch(void)
+static void check_settings_latch(void)
 {
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtPort_ConsumeSettingsRequest(), 0);
-	XvtPort_RequestSettings();
-	XvtPort_RequestSettings();
-	XVT_ASSERT_INT_EQ(XvtPort_ConsumeSettingsRequest(), 1);
-	XVT_ASSERT_INT_EQ(XvtPort_ConsumeSettingsRequest(), 0);
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_port_consume_settings_request(), 0);
+	xvt_port_request_settings();
+	xvt_port_request_settings();
+	XVT_ASSERT_INT_EQ(xvt_port_consume_settings_request(), 1);
+	XVT_ASSERT_INT_EQ(xvt_port_consume_settings_request(), 0);
 }
 
-static void CheckNetworkRequiresProgress(void)
+static void check_network_requires_progress(void)
 {
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtPort_NetworkRequiresProgress(), 0);
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_port_network_requires_progress(), 0);
 
 	/* The game browser is visible: the join screen is on the stack. */
-	g_frontState.screenStates[0].updateFn = FrontendNet_JoinGameScreen;
-	XVT_ASSERT_INT_EQ(XvtPort_NetworkRequiresProgress(), 1);
-	g_frontState.screenStates[0].updateFn = Placeholder;
-	XVT_ASSERT_INT_EQ(XvtPort_NetworkRequiresProgress(), 0);
+	g_front_state.screen_states[0].update_fn =
+		frontend_net_join_game_screen;
+	XVT_ASSERT_INT_EQ(xvt_port_network_requires_progress(), 1);
+	g_front_state.screen_states[0].update_fn = placeholder;
+	XVT_ASSERT_INT_EQ(xvt_port_network_requires_progress(), 0);
 
 	/* A host attempt runs in the network task. */
-	XvtNetworkTask_Begin(XVT_NETWORK_HOST);
-	XVT_ASSERT_INT_EQ(XvtNetworkTask_IsActive(), 1);
-	XVT_ASSERT_INT_EQ(XvtPort_NetworkRequiresProgress(), 1);
-	XvtNetworkTask_Shutdown();
-	XVT_ASSERT_INT_EQ(XvtPort_NetworkRequiresProgress(), 0);
+	xvt_network_task_begin(XVT_NETWORK_HOST);
+	XVT_ASSERT_INT_EQ(xvt_network_task_is_active(), 1);
+	XVT_ASSERT_INT_EQ(xvt_port_network_requires_progress(), 1);
+	xvt_network_task_shutdown();
+	XVT_ASSERT_INT_EQ(xvt_port_network_requires_progress(), 0);
 }
 
 int main(void)
 {
-	CheckInitRefusesSize();
-	CheckBeforeInit();
-	CheckSettingsLatch();
-	CheckNetworkRequiresProgress();
-	XvtPort_Shutdown();
-	XvtNetworkSession_Shutdown();
+	check_init_refuses_size();
+	check_before_init();
+	check_settings_latch();
+	check_network_requires_progress();
+	xvt_port_shutdown();
+	xvt_network_session_shutdown();
 	return 0;
 }

@@ -9,9 +9,9 @@
 #include "xvt_runtime/snapshot/render_hud.h"
 #include <string.h>
 
-static struct XvtCockpitTextField g_fields[XVT_COCKPIT_TEXT_FIELD_COUNT];
+static struct xvt_cockpit_text_field g_fields[XVT_COCKPIT_TEXT_FIELD_COUNT];
 
-static int FieldClearsBackground(XvtCockpitTextFieldId field)
+static int field_clears_background(xvt_cockpit_text_field_id field)
 {
 	switch (field) {
 	case XVT_COCKPIT_TEXT_TARGET_NAME:
@@ -32,21 +32,24 @@ static int FieldClearsBackground(XvtCockpitTextFieldId field)
 	case XVT_COCKPIT_TEXT_COURSE_LABEL_FIRST:
 		return 1;
 	case XVT_COCKPIT_TEXT_CRITICAL_WARNING:
-		return (uint16_t)g_hudElementLayouts[127]
-			       .clipHeightOrForegroundColor > 512;
+		return (uint16_t)g_hud_element_layouts[127]
+			       .clip_height_or_foreground_color > 512;
 	default:
 		return 0;
 	}
 }
 
-void XvtCockpitText_ResetFields(void) { memset(g_fields, 0, sizeof g_fields); }
+void xvt_cockpit_text_reset_fields(void)
+{
+	memset(g_fields, 0, sizeof g_fields);
+}
 
-void XvtCockpitText_ClearField(XvtCockpitTextFieldId field)
+void xvt_cockpit_text_clear_field(xvt_cockpit_text_field_id field)
 {
 	if ((unsigned)field >= XVT_COCKPIT_TEXT_FIELD_COUNT) {
 		return;
 	}
-	struct XvtCockpitTextField *current = &g_fields[field];
+	struct xvt_cockpit_text_field *current = &g_fields[field];
 	if (!current->caption.visible) {
 		return;
 	}
@@ -55,21 +58,22 @@ void XvtCockpitText_ClearField(XvtCockpitTextFieldId field)
 	current->generation = generation;
 }
 
-void XvtCockpitText_ClearTargetFields(void)
+void xvt_cockpit_text_clear_target_fields(void)
 {
 	for (unsigned field = XVT_COCKPIT_TEXT_TARGET_NAME;
 	     field <= XVT_COCKPIT_TEXT_CMD_TIME_UNKNOWN; ++field) {
-		XvtCockpitText_ClearField((XvtCockpitTextFieldId)field);
+		xvt_cockpit_text_clear_field((xvt_cockpit_text_field_id)field);
 	}
 }
 
-void XvtCockpitText_RecordField(XvtCockpitTextFieldId field, const char *text,
-				XvtCockpitAlignment alignment)
+void xvt_cockpit_text_record_field(xvt_cockpit_text_field_id field,
+				   const char *text,
+				   xvt_cockpit_alignment alignment)
 {
 	if ((unsigned)field >= XVT_COCKPIT_TEXT_FIELD_COUNT || !text) {
 		return;
 	}
-	struct XvtCockpitTextField next;
+	struct xvt_cockpit_text_field next;
 	memset(&next, 0, sizeof next);
 	size_t length = strlen(text);
 	if (length >= sizeof next.caption.text) {
@@ -83,42 +87,43 @@ void XvtCockpitText_RecordField(XvtCockpitTextFieldId field, const char *text,
 		if ((uint8_t)next.caption.text[index] == 0xfe) {
 			++index;
 			next.caption.text[index] =
-				(char)XvtCockpitText_ResolveColor(
+				(char)xvt_cockpit_text_resolve_color(
 					(uint8_t)next.caption.text[index],
-					g_flightTransparentColorIndex);
+					g_flight_transparent_color_index);
 		}
 	}
 	next.caption.visible = length != 0;
-	next.caption.font_tier = g_flightFontTier;
-	next.caption.foreground = g_flightTextColorIndex;
+	next.caption.font_tier = g_flight_font_tier;
+	next.caption.foreground = g_flight_text_color_index;
 	if (length > 1 && (uint8_t)next.caption.text[0] == 0xfe) {
 		next.caption.foreground = (uint8_t)next.caption.text[1];
 	} else if (length && (uint8_t)next.caption.text[0] < 0x10) {
 		next.caption.foreground = (uint8_t)next.caption.text[0];
 	}
-	next.caption.background = g_flightTextBgColor;
+	next.caption.background = g_flight_text_bg_color;
 	next.caption.alignment = (uint8_t)alignment;
 	next.caption.phase = XVT_COCKPIT_BEFORE_CRT;
-	next.bounds =
-		(struct XvtSnapRect){g_flightClipLeft, g_flightClipTop,
-				     g_flightClipRight - g_flightClipLeft,
-				     g_flightClipBottom - g_flightClipTop};
-	next.x = alignment == XVT_COCKPIT_ALIGN_LEFT ? g_flightCursorX : 0;
-	next.y = g_flightCursorY;
-	next.shadow_enabled = g_flightTextShadowEnabled;
+	next.bounds = (struct xvt_snap_rect){
+		g_flight_clip_left, g_flight_clip_top,
+		g_flight_clip_right - g_flight_clip_left,
+		g_flight_clip_bottom - g_flight_clip_top};
+	next.x = alignment == XVT_COCKPIT_ALIGN_LEFT ? g_flight_cursor_x : 0;
+	next.y = g_flight_cursor_y;
+	next.shadow_enabled = g_flight_text_shadow_enabled;
 	next.shadow_color =
-		g_flightTextShadowEnabled ? g_flightTextShadowColor : 0;
-	next.lowercase = g_flightFontTier == 0 || g_flightFontHasLowercase;
-	next.word_wrap = g_flightWordWrapEnabled != 0;
-	next.clear_line = g_flightClearLineBgEnabled != 0;
-	next.keyed = g_flightSwFramebufferBase == g_flightOffscreenBuffer;
+		g_flight_text_shadow_enabled ? g_flight_text_shadow_color : 0;
+	next.lowercase = g_flight_font_tier == 0 || g_flight_font_has_lowercase;
+	next.word_wrap = g_flight_word_wrap_enabled != 0;
+	next.clear_line = g_flight_clear_line_bg_enabled != 0;
+	next.keyed = g_flight_sw_framebuffer_base == g_flight_offscreen_buffer;
 	if (next.keyed) {
 		next.color_key_argb =
-			XvtRenderDraw_Color(g_flightTransparentColorIndex);
+			xvt_render_draw_color(g_flight_transparent_color_index);
 	}
-	next.narrow = g_flightDrawCharFn == FlightText_DrawNarrowGlyph8bpp ||
-		      g_flightDrawCharFn == FlightText_DrawNarrowGlyph;
-	next.clear_background = FieldClearsBackground(field);
+	next.narrow =
+		g_flight_draw_char_fn == flight_text_draw_narrow_glyph8bpp ||
+		g_flight_draw_char_fn == flight_text_draw_narrow_glyph;
+	next.clear_background = field_clears_background(field);
 	next.generation = g_fields[field].generation;
 	if (memcmp(&next, &g_fields[field], sizeof next)) {
 		++next.generation;
@@ -126,13 +131,13 @@ void XvtCockpitText_RecordField(XvtCockpitTextFieldId field, const char *text,
 	g_fields[field] = next;
 }
 
-void XvtCockpitText_CopyFields(struct XvtCockpitState *state)
+void xvt_cockpit_text_copy_fields(struct xvt_cockpit_state *state)
 {
 	memcpy(state->text_fields, g_fields, sizeof g_fields);
 	int cockpit = state->view.hud_state == HUD_VIEW_FORWARD ||
 		      state->view.hud_state == HUD_VIEW_HUD_ONLY;
 	for (unsigned id = 0; id < XVT_COCKPIT_TEXT_FIELD_COUNT; ++id) {
-		struct XvtCockpitTextField *field = &state->text_fields[id];
+		struct xvt_cockpit_text_field *field = &state->text_fields[id];
 		int visible = 1;
 		if (id == XVT_COCKPIT_TEXT_CLOCK_SEPARATOR) {
 			visible = state->readouts.clock_minutes.visible &&
@@ -198,9 +203,9 @@ void XvtCockpitText_CopyFields(struct XvtCockpitState *state)
 	}
 }
 
-void XvtCockpitText_CopyPlacedField(struct XvtCockpitTextField *field,
-				    XvtCockpitTextFieldId id, int offset_x,
-				    int offset_y)
+void xvt_cockpit_text_copy_placed_field(struct xvt_cockpit_text_field *field,
+					xvt_cockpit_text_field_id id,
+					int offset_x, int offset_y)
 {
 	*field = g_fields[id];
 	field->bounds.x += offset_x;
@@ -212,38 +217,38 @@ void XvtCockpitText_CopyPlacedField(struct XvtCockpitTextField *field,
 	field->caption.phase = XVT_COCKPIT_AFTER_CRT;
 	field->keyed = 1;
 	field->color_key_argb =
-		XvtRenderDraw_Color(g_flightTransparentColorIndex);
+		xvt_render_draw_color(g_flight_transparent_color_index);
 }
 
-int XvtCockpitText_CaptureGlyph(struct XvtCockpitGlyph *glyph,
-				unsigned character, unsigned advance,
-				unsigned height, int narrow, int origin_x,
-				int origin_y, const uint32_t palette[256],
-				int keyed)
+int xvt_cockpit_text_capture_glyph(struct xvt_cockpit_glyph *glyph,
+				   unsigned character, unsigned advance,
+				   unsigned height, int narrow, int origin_x,
+				   int origin_y, const uint32_t palette[256],
+				   int keyed)
 {
-	int x = g_flightCursorX, y = g_flightCursorY;
-	if (x >= g_flightClipRight || y >= g_flightClipBottom ||
-	    x + (int)advance + 1 <= g_flightClipLeft ||
-	    y + (int)height + 1 <= g_flightClipTop) {
+	int x = g_flight_cursor_x, y = g_flight_cursor_y;
+	if (x >= g_flight_clip_right || y >= g_flight_clip_bottom ||
+	    x + (int)advance + 1 <= g_flight_clip_left ||
+	    y + (int)height + 1 <= g_flight_clip_top) {
 		return 0;
 	}
 	memset(glyph, 0, sizeof *glyph);
 	glyph->font_asset_id =
-		XvtRenderAssets_ImageId(g_flightFontGlyphTableSw);
-	glyph->clip = (struct XvtSnapRect){
-		g_flightClipLeft - origin_x, g_flightClipTop - origin_y,
-		g_flightClipRight - g_flightClipLeft,
-		g_flightClipBottom - g_flightClipTop};
+		xvt_render_assets_image_id(g_flight_font_glyph_table_sw);
+	glyph->clip = (struct xvt_snap_rect){
+		g_flight_clip_left - origin_x, g_flight_clip_top - origin_y,
+		g_flight_clip_right - g_flight_clip_left,
+		g_flight_clip_bottom - g_flight_clip_top};
 	glyph->x = (int16_t)(x - origin_x);
 	glyph->y = (int16_t)(y - origin_y);
 	glyph->character = (uint16_t)character;
 	glyph->advance = (uint16_t)advance;
 	glyph->height = (uint16_t)height;
-	glyph->foreground_argb = palette[g_flightTextColorIndex];
-	glyph->background_argb = palette[g_flightTextBgColor];
-	glyph->shadow_argb = palette[g_flightTextShadowColor];
+	glyph->foreground_argb = palette[g_flight_text_color_index];
+	glyph->background_argb = palette[g_flight_text_bg_color];
+	glyph->shadow_argb = palette[g_flight_text_shadow_color];
 	if (keyed) {
-		uint32_t key = palette[g_flightTransparentColorIndex];
+		uint32_t key = palette[g_flight_transparent_color_index];
 		if (glyph->foreground_argb == key) {
 			glyph->foreground_argb = 0;
 		}
@@ -255,15 +260,15 @@ int XvtCockpitText_CaptureGlyph(struct XvtCockpitGlyph *glyph,
 		}
 	}
 	glyph->narrow = narrow != 0;
-	glyph->shadow_enabled = g_flightTextShadowEnabled;
+	glyph->shadow_enabled = g_flight_text_shadow_enabled;
 	return 1;
 }
 
-uint8_t XvtCockpitText_ResolveColor(uint8_t code, uint8_t bypass)
+uint8_t xvt_cockpit_text_resolve_color(uint8_t code, uint8_t bypass)
 {
-	if (code >= 0x40 && code < 0x40 + sizeof g_flightCharToColorLut &&
+	if (code >= 0x40 && code < 0x40 + sizeof g_flight_char_to_color_lut &&
 	    code != bypass) {
-		return g_flightCharToColorLut[code - 0x40];
+		return g_flight_char_to_color_lut[code - 0x40];
 	}
 	return code;
 }

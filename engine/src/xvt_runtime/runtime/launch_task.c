@@ -35,9 +35,9 @@ enum {
 };
 
 static int g_phase;
-static char g_command[sizeof(g_frontendFlightCommandLine)];
+static char g_command[sizeof(g_frontend_flight_command_line)];
 
-int XvtLaunchTask_Queue(void)
+int xvt_launch_task_queue(void)
 {
 	unsigned int index;
 	int length;
@@ -45,36 +45,37 @@ int XvtLaunchTask_Queue(void)
 	if (g_phase != XVT_LAUNCH_IDLE) {
 		return 0;
 	}
-	Config_Write();
-	if (!Pilot_Save(0)) {
+	config_write();
+	if (!pilot_save(0)) {
 		return 1;
 	}
-	if (!File_CheckGameCdPresent(g_skipMovieChecks)) {
-		XvtStorage_Fatal(
+	if (!file_check_game_cd_present(g_skip_movie_checks)) {
+		xvt_storage_fatal(
 			"Required flight/voice data is missing; select a complete installation with --setup",
 			1);
 		return 1;
 	}
-	Frontend_CheckHostCdPresent();
-	if (!g_hostCdAvailable && g_frontendMissionSessionMode !=
-					  FRONTEND_MISSION_SESSION_NET_CLIENT) {
-		XvtStorage_Fatal(
+	frontend_check_host_cd_present();
+	if (!g_host_cd_available &&
+	    g_frontend_mission_session_mode !=
+		    FRONTEND_MISSION_SESSION_NET_CLIENT) {
+		xvt_storage_fatal(
 			"Required training mission is missing from the installation",
 			1);
 		return 1;
 	}
-	MissionSetup_LoadMissionList(g_pilotData.missionDirectoryId);
-	for (index = 0; g_missionList && index < g_missionCount; ++index) {
-		if (g_missionList[index].missionIdx ==
-		    g_pilotData.missionDescriptionIds
-			    [g_pilotData.missionDirectoryId]) {
+	mission_setup_load_mission_list(g_pilot_data.mission_directory_id);
+	for (index = 0; g_mission_list && index < g_mission_count; ++index) {
+		if (g_mission_list[index].mission_idx ==
+		    g_pilot_data.mission_description_ids
+			    [g_pilot_data.mission_directory_id]) {
 			break;
 		}
 	}
-	if (!g_missionList || index == g_missionCount) {
-		free(g_missionList);
-		g_missionList = NULL;
-		XvtStorage_Fatal(
+	if (!g_mission_list || index == g_mission_count) {
+		free(g_mission_list);
+		g_mission_list = NULL;
+		xvt_storage_fatal(
 			"Selected mission is absent from the installed mission list",
 			1);
 		return 1;
@@ -82,112 +83,114 @@ int XvtLaunchTask_Queue(void)
 	length = snprintf(
 		g_command, sizeof(g_command),
 		"~%s\\%s~ ~%s~ ~%s~ %u ~%s~ 0 %u %s",
-		g_missionDirectoryNames[g_pilotData.missionDirectoryId],
-		g_missionList[index].fileName,
-		g_pilotData.networkPlayers[g_localPilotNetworkPlayerIndex]
-			.formalName,
-		g_pilotData.name, g_missionSetupIsHost,
-		g_pilotData.multiplayerGameName,
-		g_frontendLaunchHumanPlayerCount,
-		g_optNoFullscreen ? "nopageflip nofullscreen"
-				  : "pageflip fullscreen");
-	free(g_missionList);
-	g_missionList = NULL;
+		g_mission_directory_names[g_pilot_data.mission_directory_id],
+		g_mission_list[index].file_name,
+		g_pilot_data.network_players[g_local_pilot_network_player_index]
+			.formal_name,
+		g_pilot_data.name, g_mission_setup_is_host,
+		g_pilot_data.multiplayer_game_name,
+		g_frontend_launch_human_player_count,
+		g_opt_no_fullscreen ? "nopageflip nofullscreen"
+				    : "pageflip fullscreen");
+	free(g_mission_list);
+	g_mission_list = NULL;
 	if (length < 0 || length >= (int)sizeof(g_command)) {
-		XvtStorage_Fatal(
+		xvt_storage_fatal(
 			"Mission launch arguments exceed their supported length",
 			1);
 		return 1;
 	}
-	memcpy(g_frontendFlightCommandLine, g_command, sizeof(g_command));
-	FrontendCursor_Hide();
-	if (g_gameConfig.datapadMusicEnabled && !CDAudio_IsPlaybackComplete()) {
-		volume = 65535 * g_gameConfig.musicVolume / 9;
-		XvtCdTask_BeginFade(volume, volume / 8, 1000);
+	memcpy(g_frontend_flight_command_line, g_command, sizeof(g_command));
+	frontend_cursor_hide();
+	if (g_game_config.datapad_music_enabled &&
+	    !cd_audio_is_playback_complete()) {
+		volume = 65535 * g_game_config.music_volume / 9;
+		xvt_cd_task_begin_fade(volume, volume / 8, 1000);
 	}
 	g_phase = XVT_LAUNCH_FADE;
 	return 0;
 }
 
-void XvtLaunchTask_Update(void)
+void xvt_launch_task_update(void)
 {
-	if (g_phase == XVT_LAUNCH_FADE && !XvtCdTask_IsFading()) {
+	if (g_phase == XVT_LAUNCH_FADE && !xvt_cd_task_is_fading()) {
 		g_phase = XVT_LAUNCH_PENDING;
 		XVT_LOG_INFO("launch.queued");
 		XVT_LOG_DEBUG("launch.command command=\"%s\"", g_command);
 	}
 	if ((g_phase == XVT_LAUNCH_FADE || g_phase == XVT_LAUNCH_PENDING) &&
-	    Keyboard_PeekChar() == 27) {
-		Keyboard_FlushCharBuffer();
-		XvtLaunchTask_Complete(0);
+	    keyboard_peek_char() == 27) {
+		keyboard_flush_char_buffer();
+		xvt_launch_task_complete(0);
 	}
 }
 
-int XvtLaunchTask_IsActive(void) { return g_phase != XVT_LAUNCH_IDLE; }
+int xvt_launch_task_is_active(void) { return g_phase != XVT_LAUNCH_IDLE; }
 
-int XvtLaunchTask_HasPendingLaunch(void)
+int xvt_launch_task_has_pending_launch(void)
 {
 	return g_phase == XVT_LAUNCH_PENDING;
 }
 
-const char *XvtLaunchTask_BeginPendingLaunch(void)
+const char *xvt_launch_task_begin_pending_launch(void)
 {
-	if (!XvtLaunchTask_HasPendingLaunch()) {
+	if (!xvt_launch_task_has_pending_launch()) {
 		return NULL;
 	}
-	FrontendDisplay_UnlockBackBuffer();
-	FrontendDisplay_FlipDirectDrawToGDISurface();
-	FrontendDisplay_ReleaseSurfacesForFlight();
-	XvtRenderFrontend_ReleaseSurfaces();
-	FrontendDisplay_SetWndProcMode(1);
+	frontend_display_unlock_back_buffer();
+	frontend_display_flip_direct_draw_to_gdi_surface();
+	frontend_display_release_surfaces_for_flight();
+	xvt_render_frontend_release_surfaces();
+	frontend_display_set_wnd_proc_mode(1);
 	g_phase = XVT_LAUNCH_RUNNING;
 	return g_command;
 }
 
-void XvtLaunchTask_Complete(int succeeded)
+void xvt_launch_task_complete(int succeeded)
 {
 	int launched = g_phase == XVT_LAUNCH_RUNNING;
-	if (!XvtLaunchTask_IsActive()) {
+	if (!xvt_launch_task_is_active()) {
 		return;
 	}
 	g_phase = XVT_LAUNCH_IDLE;
-	XvtCdTask_CancelFade();
+	xvt_cd_task_cancel_fade();
 	if (launched) {
-		if (!FrontendDisplay_ReinitSurfaces()) {
-			XvtStorage_Fatal(
+		if (!frontend_display_reinit_surfaces()) {
+			xvt_storage_fatal(
 				"Cannot restore frontend surfaces after flight",
 				1);
 			return;
 		}
-		FrontendDisplay_SetWndProcMode(0);
-		FrontendSound_LoadList("sfx\\sfx.lst");
-		Config_Write();
-		snprintf(g_pilotData.ratingName, sizeof(g_pilotData.ratingName),
-			 "%s",
-			 FrontendString_Get(
-				 (FrontendStringId)(g_pilotData.rating + 122)));
-		Pilot_Save(0);
-		CDAudio_Initialize();
-		CDAudio_EnableLoopCurrentTrack();
+		frontend_display_set_wnd_proc_mode(0);
+		frontend_sound_load_list("sfx\\sfx.lst");
+		config_write();
+		snprintf(g_pilot_data.rating_name,
+			 sizeof(g_pilot_data.rating_name), "%s",
+			 frontend_string_get(
+				 (frontend_string_id)(g_pilot_data.rating +
+						      122)));
+		pilot_save(0);
+		cd_audio_initialize();
+		cd_audio_enable_loop_current_track();
 	}
-	if (g_gameConfig.datapadMusicEnabled) {
-		CDAudio_PlayTrackFromTime(7, 0, 0);
-		CDAudio_SetAuxVolume(65535 * g_gameConfig.musicVolume / 9);
+	if (g_game_config.datapad_music_enabled) {
+		cd_audio_play_track_from_time(7, 0, 0);
+		cd_audio_set_aux_volume(65535 * g_game_config.music_volume / 9);
 	}
 	if (succeeded) {
-		FrontendScreen_SetCallbacks(MissionDebrief_Update,
-					    MissionDebrief_Exit);
+		frontend_screen_set_callbacks(mission_debrief_update,
+					      mission_debrief_exit);
 	} else {
-		FrontendCursor_Show();
-		Net_ShutdownDirectPlaySession();
-		FrontendScreen_SetCallbacks(Concourse_Update, Concourse_Exit);
+		frontend_cursor_show();
+		net_shutdown_direct_play_session();
+		frontend_screen_set_callbacks(concourse_update, concourse_exit);
 	}
 	/* Completion occurs outside a screen slice; the previous exit callback is a no-op. */
-	g_frontState.screenCallbacksDirty = 0;
-	g_frontState.frameCounter = 0;
+	g_front_state.screen_callbacks_dirty = 0;
+	g_front_state.frame_counter = 0;
 }
 
-void XvtLaunchTask_Shutdown(void)
+void xvt_launch_task_shutdown(void)
 {
 	g_phase = XVT_LAUNCH_IDLE;
 	g_command[0] = 0;

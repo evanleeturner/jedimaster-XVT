@@ -20,416 +20,423 @@
 
 enum { PARENT_FRAME = 5 };
 
-static int g_updateFrames;
-static int g_updateLastFrame;
-static int g_updateEnds;
-static int g_updateResult;
-static int g_continuationCalls;
-static int g_continuationResult;
-static int g_continuationContext;
+static int g_update_frames;
+static int g_update_last_frame;
+static int g_update_ends;
+static int g_update_result;
+static int g_continuation_calls;
+static int g_continuation_result;
+static int g_continuation_context;
 
-static int Parent(int frame) { return frame; }
+static int parent(int frame) { return frame; }
 
 /* A dialog's update: counts its frames, and when told to, sets the dialog result and ends. */
-static int TestUpdate(int frame)
+static int test_update(int frame)
 {
-	++g_updateFrames;
-	g_updateLastFrame = frame;
-	if (g_updateEnds) {
-		g_dialogResult = g_updateResult;
+	++g_update_frames;
+	g_update_last_frame = frame;
+	if (g_update_ends) {
+		g_dialog_result = g_update_result;
 	}
-	return g_updateEnds;
+	return g_update_ends;
 }
 
-static int OtherUpdate(int frame) { return frame; }
+static int other_update(int frame) { return frame; }
 
-static int Continuation(int result, int context)
+static int continuation(int result, int context)
 {
-	++g_continuationCalls;
-	g_continuationResult = result;
-	g_continuationContext = context;
+	++g_continuation_calls;
+	g_continuation_result = result;
+	g_continuation_context = context;
 	return 99;
 }
 
-static void Fresh(void)
+static void fresh(void)
 {
-	XvtDialog_Shutdown();
-	XvtTest_CloseDisplay();
-	memset(&g_frontState, 0, sizeof g_frontState);
-	XvtTest_OpenDisplay();
-	g_frontState.screenStates[0].updateFn = Parent;
-	g_frontState.frameCounter = PARENT_FRAME;
-	g_gameConfig.sfxDatapadEnabled = 0;
-	FrontendButton_DisableOverlayText();
-	g_dialogResult = 0;
-	g_updateFrames = g_updateLastFrame = g_updateEnds = g_updateResult = 0;
-	g_continuationCalls = g_continuationResult = g_continuationContext = 0;
+	xvt_dialog_shutdown();
+	xvt_test_close_display();
+	memset(&g_front_state, 0, sizeof g_front_state);
+	xvt_test_open_display();
+	g_front_state.screen_states[0].update_fn = parent;
+	g_front_state.frame_counter = PARENT_FRAME;
+	g_game_config.sfx_datapad_enabled = 0;
+	frontend_button_disable_overlay_text();
+	g_dialog_result = 0;
+	g_update_frames = g_update_last_frame = g_update_ends =
+		g_update_result = 0;
+	g_continuation_calls = g_continuation_result = g_continuation_context =
+		0;
 }
 
-static void QueueKeys(const char *keys)
+static void queue_keys(const char *keys)
 {
 	for (; *keys; ++keys) {
-		g_frontState.charRingBuffer[g_frontState.charWriteIdx] = *keys;
-		g_frontState.charWriteIdx =
-			(g_frontState.charWriteIdx + 1) % 1024;
+		g_front_state.char_ring_buffer[g_front_state.char_write_idx] =
+			*keys;
+		g_front_state.char_write_idx =
+			(g_front_state.char_write_idx + 1) % 1024;
 	}
 }
 
-static FrontendScreenUpdateFn TopScreen(void)
+static frontend_screen_update_fn top_screen(void)
 {
-	return g_frontState.screenStates[g_frontState.screenStackTop].updateFn;
+	return g_front_state.screen_states[g_front_state.screen_stack_top]
+		.update_fn;
 }
 
 /* Runs the open dialog's first frame, then ends it with Escape. */
-static void EscapeDialog(void)
+static void escape_dialog(void)
 {
-	XvtDialog_Update();
-	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 1);
-	QueueKeys("\x1b");
-	XvtDialog_Update();
-	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
+	xvt_dialog_update();
+	XVT_ASSERT_INT_EQ(xvt_dialog_is_active(), 1);
+	queue_keys("\x1b");
+	xvt_dialog_update();
+	XVT_ASSERT_INT_EQ(xvt_dialog_is_active(), 0);
 }
 
-static void CheckNothingOpen(void)
+static void check_nothing_open(void)
 {
-	Fresh();
+	fresh();
 	int result = 123;
-	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
-	XVT_ASSERT_INT_EQ(XvtDialog_IsTextPrompt(), 0);
-	XVT_ASSERT_INT_EQ(XvtDialog_HasResult(), 0);
-	XVT_ASSERT_INT_EQ(XvtDialog_TakeResult(&result), 0);
+	XVT_ASSERT_INT_EQ(xvt_dialog_is_active(), 0);
+	XVT_ASSERT_INT_EQ(xvt_dialog_is_text_prompt(), 0);
+	XVT_ASSERT_INT_EQ(xvt_dialog_has_result(), 0);
+	XVT_ASSERT_INT_EQ(xvt_dialog_take_result(&result), 0);
 	XVT_ASSERT_INT_EQ(result, 123);
-	XVT_ASSERT_INT_EQ(XvtDialog_ContinueWith(Continuation, 1), 0);
-	XVT_ASSERT_INT_EQ(XvtDialog_ResumeContinuation(&result), 0);
+	XVT_ASSERT_INT_EQ(xvt_dialog_continue_with(continuation, 1), 0);
+	XVT_ASSERT_INT_EQ(xvt_dialog_resume_continuation(&result), 0);
 	XVT_ASSERT_INT_EQ(result, 123);
-	XVT_ASSERT_INT_EQ(g_continuationCalls, 0);
+	XVT_ASSERT_INT_EQ(g_continuation_calls, 0);
 	/* A tick with no dialog does nothing. */
-	XvtDialog_Update();
-	XVT_ASSERT_INT_EQ(g_frontState.screenStackTop, 0);
-	XVT_ASSERT_INT_EQ(g_frontState.frameCounter, PARENT_FRAME);
+	xvt_dialog_update();
+	XVT_ASSERT_INT_EQ(g_front_state.screen_stack_top, 0);
+	XVT_ASSERT_INT_EQ(g_front_state.frame_counter, PARENT_FRAME);
 }
 
-static void CheckBeginSavesAndEndRestores(void)
+static void check_begin_saves_and_end_restores(void)
 {
-	Fresh();
-	g_frontState.screenCallbacksDirty = 1;
-	g_frontState.offscreenRestoreEnabled = 1;
-	g_frontState.mouseX = 100;
-	g_frontState.mouseY = 200;
-	g_frontState.cursorVisible = 1;
-	FrontendButton_EnableOverlayText();
-	XVT_ASSERT_INT_EQ(XvtDialog_Begin(TestUpdate, NULL),
+	fresh();
+	g_front_state.screen_callbacks_dirty = 1;
+	g_front_state.offscreen_restore_enabled = 1;
+	g_front_state.mouse_x = 100;
+	g_front_state.mouse_y = 200;
+	g_front_state.cursor_visible = 1;
+	frontend_button_enable_overlay_text();
+	XVT_ASSERT_INT_EQ(xvt_dialog_begin(test_update, NULL),
 			  XVT_DIALOG_PENDING);
-	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 1);
-	XVT_ASSERT_INT_EQ(XvtDialog_IsTextPrompt(), 0);
-	XVT_ASSERT_INT_EQ(XvtDialog_HasResult(), 0);
+	XVT_ASSERT_INT_EQ(xvt_dialog_is_active(), 1);
+	XVT_ASSERT_INT_EQ(xvt_dialog_is_text_prompt(), 0);
+	XVT_ASSERT_INT_EQ(xvt_dialog_has_result(), 0);
 
 	/* The dialog's frames change what the parent saved. The display has no offscreen surface, so
 	 * offscreen restore must be off while frames run. */
-	g_frontState.offscreenRestoreEnabled = 0;
-	g_frontState.cursorVisible = 0;
-	g_frontState.mouseX = 5;
-	g_frontState.mouseY = 5;
+	g_front_state.offscreen_restore_enabled = 0;
+	g_front_state.cursor_visible = 0;
+	g_front_state.mouse_x = 5;
+	g_front_state.mouse_y = 5;
 
-	XvtDialog_Update();
-	XVT_ASSERT_INT_EQ(g_updateFrames, 1);
-	XVT_ASSERT_INT_EQ(g_updateLastFrame, 0);
-	XVT_ASSERT_TRUE(TopScreen() == TestUpdate);
-	XvtDialog_Update();
-	XVT_ASSERT_INT_EQ(g_updateFrames, 2);
-	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 1);
+	xvt_dialog_update();
+	XVT_ASSERT_INT_EQ(g_update_frames, 1);
+	XVT_ASSERT_INT_EQ(g_update_last_frame, 0);
+	XVT_ASSERT_TRUE(top_screen() == test_update);
+	xvt_dialog_update();
+	XVT_ASSERT_INT_EQ(g_update_frames, 2);
+	XVT_ASSERT_INT_EQ(xvt_dialog_is_active(), 1);
 
 	/* An update returning 1 ends the dialog with the dialog's result. */
-	g_updateEnds = 1;
-	g_updateResult = 7;
-	QueueKeys("xy");
-	g_frontState.mouseLeftClickLatch = 1;
-	g_frontState.mouseRightClickLatch = 1;
-	XvtDialog_Update();
-	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
-	XVT_ASSERT_INT_EQ(XvtDialog_HasResult(), 1);
+	g_update_ends = 1;
+	g_update_result = 7;
+	queue_keys("xy");
+	g_front_state.mouse_left_click_latch = 1;
+	g_front_state.mouse_right_click_latch = 1;
+	xvt_dialog_update();
+	XVT_ASSERT_INT_EQ(xvt_dialog_is_active(), 0);
+	XVT_ASSERT_INT_EQ(xvt_dialog_has_result(), 1);
 
 	/* The parent's state is back. */
-	XVT_ASSERT_INT_EQ(g_frontState.screenStackTop, 0);
-	XVT_ASSERT_TRUE(TopScreen() == Parent);
-	XVT_ASSERT_INT_EQ(g_frontState.frameCounter, PARENT_FRAME);
-	XVT_ASSERT_INT_EQ(g_frontState.screenCallbacksDirty, 1);
-	XVT_ASSERT_INT_EQ(g_frontState.offscreenRestoreEnabled, 1);
-	XVT_ASSERT_INT_EQ(g_frontState.cursorVisible, 1);
-	XVT_ASSERT_INT_EQ(g_frontState.mouseX, 100);
-	XVT_ASSERT_INT_EQ(g_frontState.mouseY, 200);
-	XVT_ASSERT_INT_EQ(FrontendButton_IsOverlayTextEnabled(), 1);
+	XVT_ASSERT_INT_EQ(g_front_state.screen_stack_top, 0);
+	XVT_ASSERT_TRUE(top_screen() == parent);
+	XVT_ASSERT_INT_EQ(g_front_state.frame_counter, PARENT_FRAME);
+	XVT_ASSERT_INT_EQ(g_front_state.screen_callbacks_dirty, 1);
+	XVT_ASSERT_INT_EQ(g_front_state.offscreen_restore_enabled, 1);
+	XVT_ASSERT_INT_EQ(g_front_state.cursor_visible, 1);
+	XVT_ASSERT_INT_EQ(g_front_state.mouse_x, 100);
+	XVT_ASSERT_INT_EQ(g_front_state.mouse_y, 200);
+	XVT_ASSERT_INT_EQ(frontend_button_is_overlay_text_enabled(), 1);
 	/* The keyboard is flushed and the click latches cleared. */
-	XVT_ASSERT_INT_EQ(g_frontState.charReadIdx, g_frontState.charWriteIdx);
-	XVT_ASSERT_INT_EQ(g_frontState.mouseLeftClickLatch, 0);
-	XVT_ASSERT_INT_EQ(g_frontState.mouseRightClickLatch, 0);
+	XVT_ASSERT_INT_EQ(g_front_state.char_read_idx,
+			  g_front_state.char_write_idx);
+	XVT_ASSERT_INT_EQ(g_front_state.mouse_left_click_latch, 0);
+	XVT_ASSERT_INT_EQ(g_front_state.mouse_right_click_latch, 0);
 
 	/* The result is held until taken, once. */
 	int result = 0;
-	XVT_ASSERT_INT_EQ(XvtDialog_TakeResult(&result), 1);
+	XVT_ASSERT_INT_EQ(xvt_dialog_take_result(&result), 1);
 	XVT_ASSERT_INT_EQ(result, 7);
-	XVT_ASSERT_INT_EQ(XvtDialog_HasResult(), 0);
-	XVT_ASSERT_INT_EQ(XvtDialog_TakeResult(&result), 0);
+	XVT_ASSERT_INT_EQ(xvt_dialog_has_result(), 0);
+	XVT_ASSERT_INT_EQ(xvt_dialog_take_result(&result), 0);
 }
 
-static void CheckOverlayOffRestored(void)
+static void check_overlay_off_restored(void)
 {
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtDialog_Begin(TestUpdate, NULL),
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_dialog_begin(test_update, NULL),
 			  XVT_DIALOG_PENDING);
-	FrontendButton_EnableOverlayText();
-	EscapeDialog();
-	XVT_ASSERT_INT_EQ(FrontendButton_IsOverlayTextEnabled(), 0);
+	frontend_button_enable_overlay_text();
+	escape_dialog();
+	XVT_ASSERT_INT_EQ(frontend_button_is_overlay_text_enabled(), 0);
 }
 
-static void CheckEscape(void)
+static void check_escape(void)
 {
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtDialog_Begin(TestUpdate, NULL),
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_dialog_begin(test_update, NULL),
 			  XVT_DIALOG_PENDING);
 	/* Escape before the first frame does not end the dialog. */
-	QueueKeys("\x1b");
-	XvtDialog_Update();
-	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 1);
-	XVT_ASSERT_INT_EQ(g_updateFrames, 1);
+	queue_keys("\x1b");
+	xvt_dialog_update();
+	XVT_ASSERT_INT_EQ(xvt_dialog_is_active(), 1);
+	XVT_ASSERT_INT_EQ(g_update_frames, 1);
 
 	/* After it, Escape ends the dialog with result 0, whatever the dialog's result says. */
-	g_dialogResult = 9;
-	QueueKeys("\x1b");
-	XvtDialog_Update();
-	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
+	g_dialog_result = 9;
+	queue_keys("\x1b");
+	xvt_dialog_update();
+	XVT_ASSERT_INT_EQ(xvt_dialog_is_active(), 0);
 	int result = -5;
-	XVT_ASSERT_INT_EQ(XvtDialog_TakeResult(&result), 1);
+	XVT_ASSERT_INT_EQ(xvt_dialog_take_result(&result), 1);
 	XVT_ASSERT_INT_EQ(result, 0);
-	XVT_ASSERT_INT_EQ(g_frontState.screenStackTop, 0);
-	XVT_ASSERT_INT_EQ(g_frontState.frameCounter, PARENT_FRAME);
+	XVT_ASSERT_INT_EQ(g_front_state.screen_stack_top, 0);
+	XVT_ASSERT_INT_EQ(g_front_state.frame_counter, PARENT_FRAME);
 }
 
-static void CheckBeginRefusals(void)
+static void check_begin_refusals(void)
 {
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtDialog_Begin(TestUpdate, NULL),
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_dialog_begin(test_update, NULL),
 			  XVT_DIALOG_PENDING);
 	/* While a dialog is open another Begin does nothing. */
-	XVT_ASSERT_INT_EQ(XvtDialog_Begin(OtherUpdate, NULL),
+	XVT_ASSERT_INT_EQ(xvt_dialog_begin(other_update, NULL),
 			  XVT_DIALOG_PENDING);
-	XvtDialog_Update();
-	XVT_ASSERT_TRUE(TopScreen() == TestUpdate);
-	QueueKeys("\x1b");
-	XvtDialog_Update();
-	XVT_ASSERT_INT_EQ(XvtDialog_HasResult(), 1);
+	xvt_dialog_update();
+	XVT_ASSERT_TRUE(top_screen() == test_update);
+	queue_keys("\x1b");
+	xvt_dialog_update();
+	XVT_ASSERT_INT_EQ(xvt_dialog_has_result(), 1);
 
 	/* While a result is untaken, Begin does nothing either. */
-	XVT_ASSERT_INT_EQ(XvtDialog_Begin(OtherUpdate, NULL),
+	XVT_ASSERT_INT_EQ(xvt_dialog_begin(other_update, NULL),
 			  XVT_DIALOG_PENDING);
-	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
-	XVT_ASSERT_INT_EQ(XvtDialog_HasResult(), 1);
+	XVT_ASSERT_INT_EQ(xvt_dialog_is_active(), 0);
+	XVT_ASSERT_INT_EQ(xvt_dialog_has_result(), 1);
 }
 
-static void CheckConfirm(void)
+static void check_confirm(void)
 {
-	Fresh();
+	fresh();
 	XVT_ASSERT_INT_EQ(
-		XvtDialog_Confirm("one", NULL, "three", "Okay", NULL, 0),
+		xvt_dialog_confirm("one", NULL, "three", "Okay", NULL, 0),
 		XVT_DIALOG_PENDING);
-	XVT_ASSERT_INT_EQ(strcmp(g_frontDialogLine1OrEdit, "one"), 0);
-	XVT_ASSERT_INT_EQ(strcmp(g_frontDialogLine2, ""), 0);
-	XVT_ASSERT_INT_EQ(strcmp(g_frontDialogLine3, "three"), 0);
-	XVT_ASSERT_INT_EQ(strcmp(g_frontDialogOkayLabel, "Okay"), 0);
-	XVT_ASSERT_INT_EQ(strcmp(g_frontDialogCancelLabel, ""), 0);
-	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 1);
-	XVT_ASSERT_INT_EQ(XvtDialog_IsTextPrompt(), 0);
+	XVT_ASSERT_INT_EQ(strcmp(g_front_dialog_line1_or_edit, "one"), 0);
+	XVT_ASSERT_INT_EQ(strcmp(g_front_dialog_line2, ""), 0);
+	XVT_ASSERT_INT_EQ(strcmp(g_front_dialog_line3, "three"), 0);
+	XVT_ASSERT_INT_EQ(strcmp(g_front_dialog_okay_label, "Okay"), 0);
+	XVT_ASSERT_INT_EQ(strcmp(g_front_dialog_cancel_label, ""), 0);
+	XVT_ASSERT_INT_EQ(xvt_dialog_is_active(), 1);
+	XVT_ASSERT_INT_EQ(xvt_dialog_is_text_prompt(), 0);
 
 	/* While it is open, Confirm returns -1 and copies nothing. */
-	XVT_ASSERT_INT_EQ(XvtDialog_Confirm("other", "b", "c", "d", "e", 0),
+	XVT_ASSERT_INT_EQ(xvt_dialog_confirm("other", "b", "c", "d", "e", 0),
 			  XVT_DIALOG_PENDING);
-	XVT_ASSERT_INT_EQ(strcmp(g_frontDialogLine1OrEdit, "one"), 0);
+	XVT_ASSERT_INT_EQ(strcmp(g_front_dialog_line1_or_edit, "one"), 0);
 
-	XvtDialog_Update();
-	XVT_ASSERT_TRUE(TopScreen() == FrontendDialog_ConfirmUpdateCallback);
-	QueueKeys("\x1b");
-	XvtDialog_Update();
+	xvt_dialog_update();
+	XVT_ASSERT_TRUE(top_screen() ==
+			frontend_dialog_confirm_update_callback);
+	queue_keys("\x1b");
+	xvt_dialog_update();
 
 	/* The untaken result comes back first, and no dialog opens. */
-	XVT_ASSERT_INT_EQ(XvtDialog_Confirm("two", NULL, NULL, NULL, NULL, 0),
+	XVT_ASSERT_INT_EQ(xvt_dialog_confirm("two", NULL, NULL, NULL, NULL, 0),
 			  0);
-	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
-	XVT_ASSERT_INT_EQ(XvtDialog_HasResult(), 0);
+	XVT_ASSERT_INT_EQ(xvt_dialog_is_active(), 0);
+	XVT_ASSERT_INT_EQ(xvt_dialog_has_result(), 0);
 
 	/* With network set, the network abort dialog opens instead. */
 	XVT_ASSERT_INT_EQ(
-		XvtDialog_Confirm("net", NULL, NULL, NULL, "Cancel", 1),
+		xvt_dialog_confirm("net", NULL, NULL, NULL, "Cancel", 1),
 		XVT_DIALOG_PENDING);
-	XVT_ASSERT_INT_EQ(strcmp(g_frontDialogCancelLabel, "Cancel"), 0);
-	XvtDialog_Update();
-	XVT_ASSERT_TRUE(TopScreen() ==
-			FrontendDialog_NetworkAbortErrorCallback);
-	QueueKeys("\x1b");
-	XvtDialog_Update();
-	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
+	XVT_ASSERT_INT_EQ(strcmp(g_front_dialog_cancel_label, "Cancel"), 0);
+	xvt_dialog_update();
+	XVT_ASSERT_TRUE(top_screen() ==
+			frontend_dialog_network_abort_error_callback);
+	queue_keys("\x1b");
+	xvt_dialog_update();
+	XVT_ASSERT_INT_EQ(xvt_dialog_is_active(), 0);
 }
 
-static void CheckConfirmReturnsAnyResult(void)
+static void check_confirm_returns_any_result(void)
 {
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtDialog_Begin(TestUpdate, NULL),
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_dialog_begin(test_update, NULL),
 			  XVT_DIALOG_PENDING);
-	XvtDialog_Update();
-	g_updateEnds = 1;
-	g_updateResult = 4;
-	XvtDialog_Update();
+	xvt_dialog_update();
+	g_update_ends = 1;
+	g_update_result = 4;
+	xvt_dialog_update();
 	/* The result of a dialog Confirm did not open is returned all the same. */
-	XVT_ASSERT_INT_EQ(XvtDialog_Confirm("a", "b", "c", "d", "e", 0), 4);
-	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
+	XVT_ASSERT_INT_EQ(xvt_dialog_confirm("a", "b", "c", "d", "e", 0), 4);
+	XVT_ASSERT_INT_EQ(xvt_dialog_is_active(), 0);
 }
 
-static void CheckPilotNameTyped(void)
+static void check_pilot_name_typed(void)
 {
-	Fresh();
+	fresh();
 	char name[13];
-	XVT_ASSERT_INT_EQ(XvtDialog_PilotName(name), XVT_DIALOG_PENDING);
-	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 1);
-	XVT_ASSERT_INT_EQ(XvtDialog_IsTextPrompt(), 1);
-	XVT_ASSERT_INT_EQ(XvtDialog_PilotName(name), XVT_DIALOG_PENDING);
-	XvtDialog_Update();
-	XVT_ASSERT_TRUE(TopScreen() == FrontendDialog_CreatePilotNameCallback);
+	XVT_ASSERT_INT_EQ(xvt_dialog_pilot_name(name), XVT_DIALOG_PENDING);
+	XVT_ASSERT_INT_EQ(xvt_dialog_is_active(), 1);
+	XVT_ASSERT_INT_EQ(xvt_dialog_is_text_prompt(), 1);
+	XVT_ASSERT_INT_EQ(xvt_dialog_pilot_name(name), XVT_DIALOG_PENDING);
+	xvt_dialog_update();
+	XVT_ASSERT_TRUE(top_screen() ==
+			frontend_dialog_create_pilot_name_callback);
 
 	/* The prompt takes one typed character a frame, and Enter. */
-	QueueKeys("Luke\r");
-	for (int frame = 0; frame < 10 && XvtDialog_IsActive(); ++frame) {
-		XvtDialog_Update();
+	queue_keys("Luke\r");
+	for (int frame = 0; frame < 10 && xvt_dialog_is_active(); ++frame) {
+		xvt_dialog_update();
 	}
-	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
-	XVT_ASSERT_INT_EQ(XvtDialog_IsTextPrompt(), 0);
+	XVT_ASSERT_INT_EQ(xvt_dialog_is_active(), 0);
+	XVT_ASSERT_INT_EQ(xvt_dialog_is_text_prompt(), 0);
 	memset(name, 'Z', sizeof name);
-	XVT_ASSERT_INT_EQ(XvtDialog_PilotName(name), 1);
+	XVT_ASSERT_INT_EQ(xvt_dialog_pilot_name(name), 1);
 	XVT_ASSERT_INT_EQ(strcmp(name, "Luke"), 0);
-	XVT_ASSERT_INT_EQ(XvtDialog_HasResult(), 0);
+	XVT_ASSERT_INT_EQ(xvt_dialog_has_result(), 0);
 }
 
-static void CheckPilotNameEscaped(void)
+static void check_pilot_name_escaped(void)
 {
-	Fresh();
+	fresh();
 	char name[13];
-	XVT_ASSERT_INT_EQ(XvtDialog_PilotName(name), XVT_DIALOG_PENDING);
-	EscapeDialog();
+	XVT_ASSERT_INT_EQ(xvt_dialog_pilot_name(name), XVT_DIALOG_PENDING);
+	escape_dialog();
 	memset(name, 'Z', sizeof name);
-	XVT_ASSERT_INT_EQ(XvtDialog_PilotName(name), 0);
+	XVT_ASSERT_INT_EQ(xvt_dialog_pilot_name(name), 0);
 	XVT_ASSERT_INT_EQ(name[0], 0);
 }
 
-static void CheckPilotNameAfterConfirm(void)
+static void check_pilot_name_after_confirm(void)
 {
-	Fresh();
+	fresh();
 	char name[13];
-	XVT_ASSERT_INT_EQ(XvtDialog_Confirm("ABCDEFGHIJKLMNOP", NULL, NULL,
-					    NULL, NULL, 0),
+	XVT_ASSERT_INT_EQ(xvt_dialog_confirm("ABCDEFGHIJKLMNOP", NULL, NULL,
+					     NULL, NULL, 0),
 			  XVT_DIALOG_PENDING);
-	EscapeDialog();
+	escape_dialog();
 	/* The confirm's first line, cut to 12 characters and terminated. */
 	memset(name, 'Z', sizeof name);
-	XVT_ASSERT_INT_EQ(XvtDialog_PilotName(name), 0);
+	XVT_ASSERT_INT_EQ(xvt_dialog_pilot_name(name), 0);
 	XVT_ASSERT_INT_EQ(strcmp(name, "ABCDEFGHIJKL"), 0);
-	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
+	XVT_ASSERT_INT_EQ(xvt_dialog_is_active(), 0);
 }
 
-static void CheckContinuation(void)
+static void check_continuation(void)
 {
-	Fresh();
+	fresh();
 	int frame_result = 0;
-	XVT_ASSERT_INT_EQ(XvtDialog_Begin(TestUpdate, NULL),
+	XVT_ASSERT_INT_EQ(xvt_dialog_begin(test_update, NULL),
 			  XVT_DIALOG_PENDING);
-	XVT_ASSERT_INT_EQ(XvtDialog_ContinueWith(Continuation, 42), 0);
-	XvtDialog_Update();
-	XVT_ASSERT_INT_EQ(XvtDialog_ResumeContinuation(&frame_result), 0);
-	g_updateEnds = 1;
-	g_updateResult = 7;
-	XvtDialog_Update();
-	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
+	XVT_ASSERT_INT_EQ(xvt_dialog_continue_with(continuation, 42), 0);
+	xvt_dialog_update();
+	XVT_ASSERT_INT_EQ(xvt_dialog_resume_continuation(&frame_result), 0);
+	g_update_ends = 1;
+	g_update_result = 7;
+	xvt_dialog_update();
+	XVT_ASSERT_INT_EQ(xvt_dialog_is_active(), 0);
 
 	/* The continuation runs once with the result and context, and its return is the frame's. */
-	XVT_ASSERT_INT_EQ(XvtDialog_ResumeContinuation(&frame_result), 1);
-	XVT_ASSERT_INT_EQ(g_continuationCalls, 1);
-	XVT_ASSERT_INT_EQ(g_continuationResult, 7);
-	XVT_ASSERT_INT_EQ(g_continuationContext, 42);
+	XVT_ASSERT_INT_EQ(xvt_dialog_resume_continuation(&frame_result), 1);
+	XVT_ASSERT_INT_EQ(g_continuation_calls, 1);
+	XVT_ASSERT_INT_EQ(g_continuation_result, 7);
+	XVT_ASSERT_INT_EQ(g_continuation_context, 42);
 	XVT_ASSERT_INT_EQ(frame_result, 99);
-	XVT_ASSERT_INT_EQ(XvtDialog_HasResult(), 0);
+	XVT_ASSERT_INT_EQ(xvt_dialog_has_result(), 0);
 	frame_result = 0;
-	XVT_ASSERT_INT_EQ(XvtDialog_ResumeContinuation(&frame_result), 0);
+	XVT_ASSERT_INT_EQ(xvt_dialog_resume_continuation(&frame_result), 0);
 	XVT_ASSERT_INT_EQ(frame_result, 0);
-	XVT_ASSERT_INT_EQ(g_continuationCalls, 1);
+	XVT_ASSERT_INT_EQ(g_continuation_calls, 1);
 }
 
-static void CheckShutdownBeforeFirstFrame(void)
+static void check_shutdown_before_first_frame(void)
 {
-	Fresh();
-	g_frontState.screenCallbacksDirty = 1;
-	g_frontState.offscreenRestoreEnabled = 1;
-	g_frontState.cursorVisible = 1;
-	XVT_ASSERT_INT_EQ(XvtDialog_Begin(TestUpdate, NULL),
+	fresh();
+	g_front_state.screen_callbacks_dirty = 1;
+	g_front_state.offscreen_restore_enabled = 1;
+	g_front_state.cursor_visible = 1;
+	XVT_ASSERT_INT_EQ(xvt_dialog_begin(test_update, NULL),
 			  XVT_DIALOG_PENDING);
 	/* The dialog never ran a frame, but the parent's state changed meanwhile. */
-	g_frontState.frameCounter = 40;
-	g_frontState.screenCallbacksDirty = 0;
-	g_frontState.offscreenRestoreEnabled = 0;
-	g_frontState.cursorVisible = 0;
-	XvtDialog_Shutdown();
-	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
-	XVT_ASSERT_INT_EQ(g_frontState.screenStackTop, 0);
-	XVT_ASSERT_INT_EQ(g_frontState.frameCounter, PARENT_FRAME);
-	XVT_ASSERT_INT_EQ(g_frontState.screenCallbacksDirty, 1);
-	XVT_ASSERT_INT_EQ(g_frontState.offscreenRestoreEnabled, 1);
-	XVT_ASSERT_INT_EQ(g_frontState.cursorVisible, 1);
-	XVT_ASSERT_INT_EQ(g_updateFrames, 0);
+	g_front_state.frame_counter = 40;
+	g_front_state.screen_callbacks_dirty = 0;
+	g_front_state.offscreen_restore_enabled = 0;
+	g_front_state.cursor_visible = 0;
+	xvt_dialog_shutdown();
+	XVT_ASSERT_INT_EQ(xvt_dialog_is_active(), 0);
+	XVT_ASSERT_INT_EQ(g_front_state.screen_stack_top, 0);
+	XVT_ASSERT_INT_EQ(g_front_state.frame_counter, PARENT_FRAME);
+	XVT_ASSERT_INT_EQ(g_front_state.screen_callbacks_dirty, 1);
+	XVT_ASSERT_INT_EQ(g_front_state.offscreen_restore_enabled, 1);
+	XVT_ASSERT_INT_EQ(g_front_state.cursor_visible, 1);
+	XVT_ASSERT_INT_EQ(g_update_frames, 0);
 }
 
-static void CheckShutdown(void)
+static void check_shutdown(void)
 {
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtDialog_Begin(TestUpdate, NULL),
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_dialog_begin(test_update, NULL),
 			  XVT_DIALOG_PENDING);
-	XvtDialog_ContinueWith(Continuation, 3);
-	XvtDialog_Update();
-	XVT_ASSERT_INT_EQ(g_frontState.screenStackTop, 1);
+	xvt_dialog_continue_with(continuation, 3);
+	xvt_dialog_update();
+	XVT_ASSERT_INT_EQ(g_front_state.screen_stack_top, 1);
 
 	/* Shutdown ends the open dialog, restoring its parent, and leaves no result. */
-	XvtDialog_Shutdown();
-	XVT_ASSERT_INT_EQ(XvtDialog_IsActive(), 0);
-	XVT_ASSERT_INT_EQ(XvtDialog_HasResult(), 0);
-	XVT_ASSERT_INT_EQ(g_frontState.screenStackTop, 0);
-	XVT_ASSERT_TRUE(TopScreen() == Parent);
-	XVT_ASSERT_INT_EQ(g_frontState.frameCounter, PARENT_FRAME);
+	xvt_dialog_shutdown();
+	XVT_ASSERT_INT_EQ(xvt_dialog_is_active(), 0);
+	XVT_ASSERT_INT_EQ(xvt_dialog_has_result(), 0);
+	XVT_ASSERT_INT_EQ(g_front_state.screen_stack_top, 0);
+	XVT_ASSERT_TRUE(top_screen() == parent);
+	XVT_ASSERT_INT_EQ(g_front_state.frame_counter, PARENT_FRAME);
 
 	/* The continuation is forgotten too. */
 	int frame_result = 0;
-	XVT_ASSERT_INT_EQ(XvtDialog_Begin(TestUpdate, NULL),
+	XVT_ASSERT_INT_EQ(xvt_dialog_begin(test_update, NULL),
 			  XVT_DIALOG_PENDING);
-	EscapeDialog();
-	XVT_ASSERT_INT_EQ(XvtDialog_ResumeContinuation(&frame_result), 0);
-	XVT_ASSERT_INT_EQ(g_continuationCalls, 0);
+	escape_dialog();
+	XVT_ASSERT_INT_EQ(xvt_dialog_resume_continuation(&frame_result), 0);
+	XVT_ASSERT_INT_EQ(g_continuation_calls, 0);
 
 	/* An untaken result is forgotten. */
-	XVT_ASSERT_INT_EQ(XvtDialog_HasResult(), 1);
-	XvtDialog_Shutdown();
-	XVT_ASSERT_INT_EQ(XvtDialog_HasResult(), 0);
+	XVT_ASSERT_INT_EQ(xvt_dialog_has_result(), 1);
+	xvt_dialog_shutdown();
+	XVT_ASSERT_INT_EQ(xvt_dialog_has_result(), 0);
 }
 
 int main(void)
 {
-	CheckNothingOpen();
-	CheckBeginSavesAndEndRestores();
-	CheckOverlayOffRestored();
-	CheckEscape();
-	CheckBeginRefusals();
-	CheckConfirm();
-	CheckConfirmReturnsAnyResult();
-	CheckPilotNameTyped();
-	CheckPilotNameEscaped();
-	CheckPilotNameAfterConfirm();
-	CheckContinuation();
-	CheckShutdownBeforeFirstFrame();
-	CheckShutdown();
-	XvtDialog_Shutdown();
-	XvtTest_CloseDisplay();
+	check_nothing_open();
+	check_begin_saves_and_end_restores();
+	check_overlay_off_restored();
+	check_escape();
+	check_begin_refusals();
+	check_confirm();
+	check_confirm_returns_any_result();
+	check_pilot_name_typed();
+	check_pilot_name_escaped();
+	check_pilot_name_after_confirm();
+	check_continuation();
+	check_shutdown_before_first_frame();
+	check_shutdown();
+	xvt_dialog_shutdown();
+	xvt_test_close_display();
 	return 0;
 }

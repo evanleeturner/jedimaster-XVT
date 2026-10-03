@@ -24,351 +24,356 @@ enum {
 };
 
 /* Model node last chosen for a billboard object: the frame
- * SceneBillboard_DrawOrQueueObject draws as a node, or the mesh
- * Damage_QueueCraftBillboardsForObjectType or ProvingGrounds_DrawCourseObject
- * is on. Only ProvingGrounds_DrawCourseObject reads it. */
+ * scene_billboard_draw_or_queue_object draws as a node, or the mesh
+ * damage_queue_craft_billboards_for_object_type or proving_grounds_draw_course_object
+ * is on. Only proving_grounds_draw_course_object reads it. */
 // GLOBAL: XVT 0x9A1FE6
-uint16_t g_billboardModelNodeSwitchIndex = 0;
-/* Selection marking for the meshes Damage_QueueCraftBillboardsForObjectType
+uint16_t g_billboard_model_node_switch_index = 0;
+/* Selection marking for the meshes damage_queue_craft_billboards_for_object_type
  * walks: 1 for the whole object while it is the local beam target, 2 on the
- * mesh matching g_renderTargetComponentIdx, 0 on the others;
- * ProvingGrounds_DrawCourseObject sets 1. Only
- * Damage_QueueCraftBillboardsForObjectType reads it. */
+ * mesh matching g_render_target_component_idx, 0 on the others;
+ * proving_grounds_draw_course_object sets 1. Only
+ * damage_queue_craft_billboards_for_object_type reads it. */
 // GLOBAL: XVT 0x9A20A6
-uint16_t g_billboardTargetSelectionState = 0;
-/* Billboards waiting in g_sceneBillboardQueue, 0 to 32.
- * SceneBillboard_QueueProjectedTextured adds one;
- * SceneBillboard_RenderQueuedTextured counts it down and leaves -1, and its
+uint16_t g_billboard_target_selection_state = 0;
+/* Billboards waiting in g_scene_billboard_queue, 0 to 32.
+ * scene_billboard_queue_projected_textured adds one;
+ * scene_billboard_render_queued_textured counts it down and leaves -1, and its
  * callers and the frame and map setup set it back to 0. */
 // GLOBAL: XVT 0x9A8062
-int16_t g_sceneBillboardQueueCount = 0;
+int16_t g_scene_billboard_queue_count = 0;
 /* Object index (or, in a few callers, a type or marker value) of the object
  * being drawn, which the billboard and model drawing code reads; many functions
- * write it, chiefly SceneBillboard_DrawOrQueueObject,
- * RenderQuad_DrawModelTexture, Damage_QueueCraftBillboardsForObjectType and
- * RenderNonCraftSceneObject. */
+ * write it, chiefly scene_billboard_draw_or_queue_object,
+ * render_quad_draw_model_texture, damage_queue_craft_billboards_for_object_type and
+ * render_non_craft_scene_object. */
 // GLOBAL: XVT 0x9ED664
-uint16_t g_billboardObjectOrTypeIndex = 0;
+uint16_t g_billboard_object_or_type_index = 0;
 
 /* Textured billboards waiting to be drawn, 32 entries, filled by
- * SceneBillboard_QueueProjectedTextured and drawn by
- * SceneBillboard_RenderQueuedTextured. */
+ * scene_billboard_queue_projected_textured and drawn by
+ * scene_billboard_render_queued_textured. */
 // GLOBAL: XVT 0x9ECA30
-static struct SceneBillboardQueueEntry g_sceneBillboardQueue[32] = {{0}};
+static struct scene_billboard_queue_entry g_scene_billboard_queue[32] = {{0}};
 
 /* Draws an object through its type's frame sequence: model frames at once,
  * texture frames as queued billboards. Uses the object-to-view matrix and the
- * g_viewSpace position the caller has set up. Sets g_billboardObjectOrTypeIndex
- * and g_billboardTextureFrameSequence; the frame is typeSpecificByte[0] >> 1
+ * g_viewSpace position the caller has set up. Sets g_billboard_object_or_type_index
+ * and g_billboard_texture_frame_sequence; the frame is type_specific_byte[0] >> 1
  * for object type 89 (COMPONENT_OBJECT_TYPE), else the sequence entry at
- * typeSpecificByte[0], stored in g_billboardTextureSequenceIndex, and it
+ * type_specific_byte[0], stored in g_billboard_texture_sequence_index, and it
  * returns when the type has no sequence. Frames from 0xFF00 up draw nothing. A
- * frame under 0x8000 is a model node: it sets g_billboardModelNodeSwitchIndex
- * and draws it with RenderScene_DrawSelectedRootNode, and stops there, except
- * for a type 89 object whose mobj's sourceObjectType is also 89, which then
- * takes a texture frame from g_objectType132TextureFrameSequence at
- * typeSpecificByte[1]. A texture frame (0x8000 to 0xFEFF) with view depth not
+ * frame under 0x8000 is a model node: it sets g_billboard_model_node_switch_index
+ * and draws it with render_scene_draw_selected_root_node, and stops there, except
+ * for a type 89 object whose mobj's source_object_type is also 89, which then
+ * takes a texture frame from g_object_type132_texture_frame_sequence at
+ * type_specific_byte[1]. A texture frame (0x8000 to 0xFEFF) with view depth not
  * negative is queued at the projected point, returning when either coordinate
  * falls outside -65536 to 65535, with Y measured up from the viewport's bottom,
- * a size of effectSize << 6 (plus 256 when that is 256 or more, or 256 for no
- * effectSize), and the object's on-screen roll from row 0 or 1 of the
+ * a size of effect_size << 6 (plus 256 when that is 256 or more, or 256 for no
+ * effect_size), and the object's on-screen roll from row 0 or 1 of the
  * object-to-view matrix, whichever has the smaller Z term in size (row 1 on a
  * tie). Does not check that the object has a mobj. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x401000
-void SceneBillboard_DrawOrQueueObject(int objectIndex)
+void scene_billboard_draw_or_queue_object(int object_index)
 {
-	struct ObjectRecord *object;
-	uint16_t sourceObjectType;
+	struct object_record *object;
+	uint16_t source_object_type;
 	uint16_t frame;
-	int absR0Z;
-	int absR1Z;
-	int axisX;
-	int axisY;
-	uint16_t rotationAngle;
-	int projectedX;
-	int projectedXHigh;
-	int projectedY;
-	int projectedYHigh;
-	int screenY;
-	uint16_t screenSize;
+	int abs_r0z;
+	int abs_r1z;
+	int axis_x;
+	int axis_y;
+	uint16_t rotation_angle;
+	int projected_x;
+	int projected_x_high;
+	int projected_y;
+	int projected_y_high;
+	int screen_y;
+	uint16_t screen_size;
 
-	object = &g_objectTable[objectIndex];
-	sourceObjectType = object->objectType;
-	g_billboardObjectOrTypeIndex = objectIndex;
-	g_billboardTextureFrameSequence =
-		g_objectTypeTable[sourceObjectType].textureFrameSequence;
-	if (sourceObjectType == COMPONENT_OBJECT_TYPE) {
-		frame = object->typeSpecificByte[0] >> 1;
+	object = &g_object_table[object_index];
+	source_object_type = object->object_type;
+	g_billboard_object_or_type_index = object_index;
+	g_billboard_texture_frame_sequence =
+		g_object_type_table[source_object_type].texture_frame_sequence;
+	if (source_object_type == COMPONENT_OBJECT_TYPE) {
+		frame = object->type_specific_byte[0] >> 1;
 	} else {
-		if (g_billboardTextureFrameSequence == NULL) {
+		if (g_billboard_texture_frame_sequence == NULL) {
 			return;
 		}
-		g_billboardTextureSequenceIndex = object->typeSpecificByte[0];
-		frame = g_billboardTextureFrameSequence
-			[g_billboardTextureSequenceIndex];
+		g_billboard_texture_sequence_index =
+			object->type_specific_byte[0];
+		frame = g_billboard_texture_frame_sequence
+			[g_billboard_texture_sequence_index];
 	}
 
 	if (frame >= BILLBOARD_INVALID_FRAME_START) {
 		return;
 	}
 	if (frame < BILLBOARD_MODEL_FRAME_LIMIT) {
-		if (sourceObjectType == COMPONENT_OBJECT_TYPE) {
-			/* From here sourceObjectType holds mobj->sourceObjectType, not the object's own type. */
-			sourceObjectType = object->mobj->sourceObjectType;
+		if (source_object_type == COMPONENT_OBJECT_TYPE) {
+			/* From here source_object_type holds mobj->source_object_type, not the object's own type. */
+			source_object_type = object->mobj->source_object_type;
 		}
-		g_billboardModelNodeSwitchIndex = frame;
-		RenderScene_DrawSelectedRootNode(object, frame);
-		if (sourceObjectType == COMPONENT_OBJECT_TYPE) {
-			g_billboardTextureSequenceIndex =
-				g_objectTable[objectIndex].typeSpecificByte[1];
-			frame = g_objectType132TextureFrameSequence
-				[g_billboardTextureSequenceIndex];
+		g_billboard_model_node_switch_index = frame;
+		render_scene_draw_selected_root_node(object, frame);
+		if (source_object_type == COMPONENT_OBJECT_TYPE) {
+			g_billboard_texture_sequence_index =
+				g_object_table[object_index]
+					.type_specific_byte[1];
+			frame = g_object_type132_texture_frame_sequence
+				[g_billboard_texture_sequence_index];
 		}
 	}
 
 	if (frame >= BILLBOARD_INVALID_FRAME_START ||
-	    frame < BILLBOARD_MODEL_FRAME_LIMIT || g_viewSpaceDepth < 0) {
+	    frame < BILLBOARD_MODEL_FRAME_LIMIT || g_view_space_depth < 0) {
 		return;
 	}
-	absR0Z = g_objViewMat_R0_Z;
-	absR1Z = g_objViewMat_R1_Z;
-	if (absR0Z < 0) {
-		absR0Z = -absR0Z;
+	abs_r0z = g_obj_view_mat_r0_z;
+	abs_r1z = g_obj_view_mat_r1_z;
+	if (abs_r0z < 0) {
+		abs_r0z = -abs_r0z;
 	}
-	if (absR1Z < 0) {
-		absR1Z = -absR1Z;
+	if (abs_r1z < 0) {
+		abs_r1z = -abs_r1z;
 	}
-	if (absR1Z > absR0Z) {
-		axisX = g_objViewMat_R0_X;
-		axisY = g_objViewMat_R0_Y;
+	if (abs_r1z > abs_r0z) {
+		axis_x = g_obj_view_mat_r0_x;
+		axis_y = g_obj_view_mat_r0_y;
 	} else {
-		axisX = g_objViewMat_R1_X;
-		axisY = g_objViewMat_R1_Y;
+		axis_x = g_obj_view_mat_r1_x;
+		axis_y = g_obj_view_mat_r1_y;
 	}
-	if (axisX < 0) {
-		rotationAngle = (uint16_t)trig2_arctan(axisY, -axisX);
+	if (axis_x < 0) {
+		rotation_angle = (uint16_t)trig2_arctan(axis_y, -axis_x);
 	} else {
-		rotationAngle = (uint16_t)-trig2_arctan(axisY, axisX);
+		rotation_angle = (uint16_t)-trig2_arctan(axis_y, axis_x);
 	}
 
-	projectedX = TRANSFM2_ProjectScreenX(g_viewSpaceX, g_viewSpaceDepth);
-	projectedXHigh = projectedX & BILLBOARD_SCREEN_COORD_HIGH_MASK;
-	if (projectedXHigh > 0 ||
-	    projectedXHigh < BILLBOARD_SCREEN_COORD_HIGH_MASK) {
+	projected_x =
+		transfm2_project_screen_x(g_view_space_x, g_view_space_depth);
+	projected_x_high = projected_x & BILLBOARD_SCREEN_COORD_HIGH_MASK;
+	if (projected_x_high > 0 ||
+	    projected_x_high < BILLBOARD_SCREEN_COORD_HIGH_MASK) {
 		return;
 	}
-	projectedY = TRANSFM2_ProjectScreenY(g_viewSpaceY, g_viewSpaceDepth);
-	projectedYHigh = projectedY & BILLBOARD_SCREEN_COORD_HIGH_MASK;
-	if (projectedYHigh > 0 ||
-	    projectedYHigh < BILLBOARD_SCREEN_COORD_HIGH_MASK) {
+	projected_y =
+		transfm2_project_screen_y(g_view_space_y, g_view_space_depth);
+	projected_y_high = projected_y & BILLBOARD_SCREEN_COORD_HIGH_MASK;
+	if (projected_y_high > 0 ||
+	    projected_y_high < BILLBOARD_SCREEN_COORD_HIGH_MASK) {
 		return;
 	}
 
-	screenY = g_flightVpHeight - projectedY;
-	screenSize = g_objectTable[objectIndex].mobj->effectSize;
-	if (screenSize != 0) {
-		screenSize =
-			(uint16_t)(screenSize << BILLBOARD_EFFECT_SIZE_SHIFT);
-		if (screenSize >= BILLBOARD_DEFAULT_SCREEN_SIZE) {
-			screenSize = (uint16_t)(screenSize +
-						BILLBOARD_DEFAULT_SCREEN_SIZE);
+	screen_y = g_flight_vp_height - projected_y;
+	screen_size = g_object_table[object_index].mobj->effect_size;
+	if (screen_size != 0) {
+		screen_size =
+			(uint16_t)(screen_size << BILLBOARD_EFFECT_SIZE_SHIFT);
+		if (screen_size >= BILLBOARD_DEFAULT_SCREEN_SIZE) {
+			screen_size = (uint16_t)(screen_size +
+						 BILLBOARD_DEFAULT_SCREEN_SIZE);
 		}
 	} else {
-		screenSize = BILLBOARD_DEFAULT_SCREEN_SIZE;
+		screen_size = BILLBOARD_DEFAULT_SCREEN_SIZE;
 	}
-	SceneBillboard_QueueProjectedTextured(
-		g_billboardObjectOrTypeIndex, frame, screenSize,
-		(int16_t)projectedX, (int16_t)screenY, g_viewSpaceDepth,
-		rotationAngle);
+	scene_billboard_queue_projected_textured(
+		g_billboard_object_or_type_index, frame, screen_size,
+		(int16_t)projected_x, (int16_t)screen_y, g_view_space_depth,
+		rotation_angle);
 }
 
-/* Adds a billboard to g_sceneBillboardQueue and raises
- * g_sceneBillboardQueueCount; does nothing when 32 wait. */
+/* Adds a billboard to g_scene_billboard_queue and raises
+ * g_scene_billboard_queue_count; does nothing when 32 wait. */
 // FUNCTION: XVT 0x401250
-void SceneBillboard_QueueProjectedTextured(int objectOrTypeIndex, int frame,
-					   int screenSize, int screenX,
-					   int screenY, int depthZ,
-					   int rotationAngle)
+void scene_billboard_queue_projected_textured(int object_or_type_index,
+					      int frame, int screen_size,
+					      int screen_x, int screen_y,
+					      int depth_z, int rotation_angle)
 {
 	int16_t count;
 
-	count = g_sceneBillboardQueueCount;
+	count = g_scene_billboard_queue_count;
 	if (count < 32) {
-		g_sceneBillboardQueue[count].objectOrTypeIndex =
-			objectOrTypeIndex;
-		g_sceneBillboardQueue[count].frame = frame;
-		g_sceneBillboardQueue[count].screenSize = screenSize;
-		g_sceneBillboardQueue[count].screenX = screenX;
-		g_sceneBillboardQueue[count].screenY = screenY;
-		g_sceneBillboardQueue[count].depthZ = depthZ;
-		g_sceneBillboardQueue[count].rotationAngle = rotationAngle;
-		g_sceneBillboardQueueCount = (int16_t)(count + 1);
+		g_scene_billboard_queue[count].object_or_type_index =
+			object_or_type_index;
+		g_scene_billboard_queue[count].frame = frame;
+		g_scene_billboard_queue[count].screen_size = screen_size;
+		g_scene_billboard_queue[count].screen_x = screen_x;
+		g_scene_billboard_queue[count].screen_y = screen_y;
+		g_scene_billboard_queue[count].depth_z = depth_z;
+		g_scene_billboard_queue[count].rotation_angle = rotation_angle;
+		g_scene_billboard_queue_count = (int16_t)(count + 1);
 	}
 }
 
-/* Draws the queued billboards with RenderQuad_DrawModelTexture, farthest
- * (largest depthZ) first, sorting by bubble passes as it goes, and leaves
- * g_sceneBillboardQueueCount at -1. With drawTargetMarkers nonzero and a local
- * target, it then boxes the target with Targeting_DrawObjectBox in color 59,
+/* Draws the queued billboards with render_quad_draw_model_texture, farthest
+ * (largest depth_z) first, sorting by bubble passes as it goes, and leaves
+ * g_scene_billboard_queue_count at -1. With draw_target_markers nonzero and a local
+ * target, it then boxes the target with targeting_draw_object_box in color 59,
  * around the selected component for a starship or platform. */
 // FUNCTION: XVT 0x4012C0
-void SceneBillboard_RenderQueuedTextured(int16_t drawTargetMarkers)
+void scene_billboard_render_queued_textured(int16_t draw_target_markers)
 {
 	enum { TARGET_BOX_COLOR = 59 };
 
-	int16_t queuedCount;
+	int16_t queued_count;
 	int16_t swapped;
-	uint16_t queueIndex;
-	uint16_t currentTargetObjectIdx;
+	uint16_t queue_index;
+	uint16_t current_target_object_idx;
 
-	queuedCount = g_sceneBillboardQueueCount;
-	--g_sceneBillboardQueueCount;
+	queued_count = g_scene_billboard_queue_count;
+	--g_scene_billboard_queue_count;
 	swapped = 1;
-	if (queuedCount != 0) {
+	if (queued_count != 0) {
 		do {
 			if (swapped != 0) {
 				int count;
 
 				swapped = 0;
-				queueIndex = 0;
-				if (g_sceneBillboardQueueCount > 0) {
-					count = g_sceneBillboardQueueCount;
+				queue_index = 0;
+				if (g_scene_billboard_queue_count > 0) {
+					count = g_scene_billboard_queue_count;
 					do {
-						if (g_sceneBillboardQueue
-							    [queueIndex + 1]
-								    .depthZ <
-						    g_sceneBillboardQueue
-							    [queueIndex]
-								    .depthZ) {
-							struct SceneBillboardQueueEntry
+						if (g_scene_billboard_queue
+							    [queue_index + 1]
+								    .depth_z <
+						    g_scene_billboard_queue
+							    [queue_index]
+								    .depth_z) {
+							struct scene_billboard_queue_entry
 								temporary;
 
-							temporary = g_sceneBillboardQueue
-								[queueIndex];
-							g_sceneBillboardQueue
-								[queueIndex] = g_sceneBillboardQueue
-									[queueIndex +
+							temporary = g_scene_billboard_queue
+								[queue_index];
+							g_scene_billboard_queue
+								[queue_index] = g_scene_billboard_queue
+									[queue_index +
 									 1];
-							g_sceneBillboardQueue
-								[queueIndex +
+							g_scene_billboard_queue
+								[queue_index +
 								 1] = temporary;
 							swapped = 1;
 						}
-						++queueIndex;
-					} while (queueIndex < count);
+						++queue_index;
+					} while (queue_index < count);
 				}
 			}
 
-			RenderQuad_DrawModelTexture(
-				&g_sceneBillboardQueue
-					[g_sceneBillboardQueueCount]);
-			queuedCount = g_sceneBillboardQueueCount;
-			--g_sceneBillboardQueueCount;
-		} while (queuedCount != 0);
+			render_quad_draw_model_texture(
+				&g_scene_billboard_queue
+					[g_scene_billboard_queue_count]);
+			queued_count = g_scene_billboard_queue_count;
+			--g_scene_billboard_queue_count;
+		} while (queued_count != 0);
 	}
 
-	if (drawTargetMarkers == 0) {
+	if (draw_target_markers == 0) {
 		return;
 	}
-	currentTargetObjectIdx =
-		(uint16_t)g_players[g_localPlayer].currentTargetObjectIdx;
-	if (currentTargetObjectIdx == UINT16_MAX) {
+	current_target_object_idx =
+		(uint16_t)g_players[g_local_player].current_target_object_idx;
+	if (current_target_object_idx == UINT16_MAX) {
 		return;
 	}
-	if (g_objectTable[currentTargetObjectIdx].genusId ==
+	if (g_object_table[current_target_object_idx].genus_id ==
 		    CRAFT_GENUS_STARSHIP ||
-	    g_objectTable[currentTargetObjectIdx].genusId ==
+	    g_object_table[current_target_object_idx].genus_id ==
 		    CRAFT_GENUS_PLATFORM) {
-		Targeting_DrawObjectBox(currentTargetObjectIdx,
-					(uint16_t)g_players[g_localPlayer]
-						.selectedTargetComponent,
-					TARGET_BOX_COLOR);
+		targeting_draw_object_box(current_target_object_idx,
+					  (uint16_t)g_players[g_local_player]
+						  .selected_target_component,
+					  TARGET_BOX_COLOR);
 	} else {
-		Targeting_DrawObjectBox(currentTargetObjectIdx, UINT16_MAX,
-					TARGET_BOX_COLOR);
+		targeting_draw_object_box(current_target_object_idx, UINT16_MAX,
+					  TARGET_BOX_COLOR);
 	}
 }
 
 /* Draws an object's model rolled to face the local player's camera: adds to its
  * roll trig2_arctan(up, side) of the camera's offset taken along the object's
  * cached up and side axes, less a quarter turn (0x4000), draws it with
- * FVIEW_SetObjectTransform and RenderScene_DrawObjectModel, and puts the roll
+ * fview_set_object_transform and render_scene_draw_object_model, and puts the roll
  * back, marking the orientation dirty both times. Sets
- * g_billboardObjectOrTypeIndex. */
+ * g_billboard_object_or_type_index. */
 // FUNCTION: XVT 0x41FF70
-void SceneBillboard_DrawRollAlignedObjectModel(uint16_t objectIndex)
+void scene_billboard_draw_roll_aligned_object_model(uint16_t object_index)
 {
-	struct ObjectRecord *object;
-	int deltaX;
-	int deltaY;
-	int deltaZ;
-	int sideProjection;
-	int upProjection;
-	int16_t savedRoll;
+	struct object_record *object;
+	int delta_x;
+	int delta_y;
+	int delta_z;
+	int side_projection;
+	int up_projection;
+	int16_t saved_roll;
 
-	g_billboardObjectOrTypeIndex = objectIndex;
-	object = &g_objectTable[objectIndex];
-	deltaX = g_players[g_localPlayer].viewState.cameraWorldX -
-		 object->world_x;
-	deltaY = g_players[g_localPlayer].viewState.cameraWorldY -
-		 object->world_y;
-	deltaZ = g_players[g_localPlayer].viewState.cameraWorldZ -
-		 object->world_z;
-	sideProjection = Math_Dot3Q15(
-		object->mobj->cachedSideX, object->mobj->cachedSideY,
-		object->mobj->cachedSideZ, deltaX, deltaY, deltaZ);
-	upProjection =
-		Math_Dot3Q15(object->mobj->cachedUpX, object->mobj->cachedUpY,
-			     object->mobj->cachedUpZ, deltaX, deltaY, deltaZ);
-	savedRoll = object->roll;
-	object->roll = (int16_t)(savedRoll +
-				 trig2_arctan(upProjection, sideProjection));
+	g_billboard_object_or_type_index = object_index;
+	object = &g_object_table[object_index];
+	delta_x = g_players[g_local_player].view_state.camera_world_x -
+		  object->world_x;
+	delta_y = g_players[g_local_player].view_state.camera_world_y -
+		  object->world_y;
+	delta_z = g_players[g_local_player].view_state.camera_world_z -
+		  object->world_z;
+	side_projection = math_dot3q15(
+		object->mobj->cached_side_x, object->mobj->cached_side_y,
+		object->mobj->cached_side_z, delta_x, delta_y, delta_z);
+	up_projection = math_dot3q15(
+		object->mobj->cached_up_x, object->mobj->cached_up_y,
+		object->mobj->cached_up_z, delta_x, delta_y, delta_z);
+	saved_roll = object->roll;
+	object->roll = (int16_t)(saved_roll +
+				 trig2_arctan(up_projection, side_projection));
 	object->roll -= BILLBOARD_ALIGNMENT_QUARTER_TURN;
-	object->mobj->orientMatrixDirty = 1;
-	FVIEW_SetObjectTransform(object->roll, object->pitch, object->yaw, 0,
-				 object);
-	RenderScene_DrawObjectModel(object);
-	object->roll = savedRoll;
-	object->mobj->orientMatrixDirty = 1;
+	object->mobj->orient_matrix_dirty = 1;
+	fview_set_object_transform(object->roll, object->pitch, object->yaw, 0,
+				   object);
+	render_scene_draw_object_model(object);
+	object->roll = saved_roll;
+	object->mobj->orient_matrix_dirty = 1;
 }
 
-/* Screen size of a billboard at a depth: s = modelMaxExtent / (size of
- * depthZ >> 8), or 0 when that is 0, then s * baseScreenSize >> 8, capped at
+/* Screen size of a billboard at a depth: s = model_max_extent / (size of
+ * depth_z >> 8), or 0 when that is 0, then s * base_screen_size >> 8, capped at
  * 1024. The modern build works the product without signed overflow and leaves
- * INT32_MIN as it is. Only RenderQuad_DrawModelTexture calls it. */
+ * INT32_MIN as it is. Only render_quad_draw_model_texture calls it. */
 // FUNCTION: XVT 0x4243D0
-int SceneBillboard_ComputeProjectedSize(int depthZ, uint16_t modelMaxExtent,
-					uint16_t baseScreenSize)
+int scene_billboard_compute_projected_size(int depth_z,
+					   uint16_t model_max_extent,
+					   uint16_t base_screen_size)
 {
 #ifdef XVT_MODERN
-	if (depthZ < 0 && depthZ != INT32_MIN)
+	if (depth_z < 0 && depth_z != INT32_MIN)
 #else
-	if (depthZ < 0)
+	if (depth_z < 0)
 #endif
-		depthZ = -depthZ;
-	depthZ >>= 8;
-	/* From here depthZ holds the model's extent over that depth, a scale, and then that scale times
-	 * baseScreenSize over 256: the projected size returned. */
-	if (depthZ != 0) {
-		depthZ = modelMaxExtent / depthZ;
+		depth_z = -depth_z;
+	depth_z >>= 8;
+	/* From here depth_z holds the model's extent over that depth, a scale, and then that scale times
+	 * base_screen_size over 256: the projected size returned. */
+	if (depth_z != 0) {
+		depth_z = model_max_extent / depth_z;
 	}
 #ifdef XVT_MODERN
 	{
 		uint32_t product;
 
-		product = (uint32_t)baseScreenSize * (uint32_t)depthZ;
-		depthZ = (int)(product >> 8);
+		product = (uint32_t)base_screen_size * (uint32_t)depth_z;
+		depth_z = (int)(product >> 8);
 		if ((product & 0x80000000u) != 0) {
-			depthZ -= 0x1000000;
+			depth_z -= 0x1000000;
 		}
 	}
 #else
-	depthZ *= baseScreenSize;
-	depthZ >>= 8;
+	depth_z *= base_screen_size;
+	depth_z >>= 8;
 #endif
-	if (depthZ > 1024) {
-		depthZ = 1024;
+	if (depth_z > 1024) {
+		depth_z = 1024;
 	}
-	return depthZ;
+	return depth_z;
 }

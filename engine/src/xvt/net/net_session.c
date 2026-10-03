@@ -16,301 +16,317 @@
 
 #pragma pack(push, 1)
 
-struct NetSessionCompactEncodedPacket {
+struct net_session_compact_encoded_packet {
 	/* Type in bits 0-6, sequence in 8-14, channel bits 0x80, 0x8000 */
-	int16_t packetTypeHeader;
+	int16_t packet_type_header;
 	/* Body length when the type takes one; else the body starts here */
-	int16_t payloadSize;
+	int16_t payload_size;
 	uint8_t payload[1020]; /* Body, then the saved copy or a NOP */
 };
 
-struct NetSessionSequencedEncodedPacket {
+struct net_session_sequenced_encoded_packet {
 	/* Type, sequence, and bit 0x80 with bit 15 clear: a resend */
-	int16_t packetTypeHeader;
+	int16_t packet_type_header;
 	/* Channel class: 0 all players, 1 direct, 2 group */
-	uint8_t packetClass;
+	uint8_t packet_class;
 	/* Body length when the type takes one; else the body starts here */
-	int16_t payloadSize;
+	int16_t payload_size;
 	uint8_t payload[1019]; /* Body, then a NOP outside the resync types */
 };
 
 #pragma pack(pop)
-typedef char xvt_size_NetSessionCompactEncodedPacket
-	[(sizeof(struct NetSessionCompactEncodedPacket) == 1024) ? 1 : -1];
-typedef char xvt_size_NetSessionSequencedEncodedPacket
-	[(sizeof(struct NetSessionSequencedEncodedPacket) == 1024) ? 1 : -1];
+typedef char xvt_size_net_session_compact_encoded_packet
+	[(sizeof(struct net_session_compact_encoded_packet) == 1024) ? 1 : -1];
+typedef char xvt_size_net_session_sequenced_encoded_packet
+	[(sizeof(struct net_session_sequenced_encoded_packet) == 1024) ? 1
+								       : -1];
 
-/* Next slot, 0-127, that NetSession_SendPacket fills in
- * g_netSessionSentHistory; it wraps to 0. NetSession_InitGameSession takes it
- * from the frontend's saved state, and NetSession_Shutdown hands it back. */
+/* Next slot, 0-127, that net_session_send_packet fills in
+ * g_net_session_sent_history; it wraps to 0. net_session_init_game_session takes it
+ * from the frontend's saved state, and net_session_shutdown hands it back. */
 // GLOBAL: XVT 0x52701C
-int g_netSessionSentHistoryWriteIndex = 0;
-/* Next slot, 0-255, that NetSession_SendPacket fills in
- * g_netSessionSentWorldMessageHistory; it wraps to 0. Zeroed by
- * NetSession_InitGameSession; NetSession_Shutdown hands it to the frontend. */
+int g_net_session_sent_history_write_index = 0;
+/* Next slot, 0-255, that net_session_send_packet fills in
+ * g_net_session_sent_world_message_history; it wraps to 0. Zeroed by
+ * net_session_init_game_session; net_session_shutdown hands it to the frontend. */
 // GLOBAL: XVT 0x527020
-int g_netSessionSentWorldMessageWriteIndex = 0;
+int g_net_session_sent_world_message_write_index = 0;
 /* The last 128 packets this player sent to others, each with its destination,
  * size, channel class (0 all players, 1 direct, 2 group) and sequence, kept so
- * NetSession_PumpIncomingPackets can resend one a peer asks for. Internet-play
- * inputs are not kept. Filled by NetSession_SendPacket;
- * NetSession_InitGameSession loads the frontend's saved copy and
- * NetSession_Shutdown hands it back. */
+ * net_session_pump_incoming_packets can resend one a peer asks for. Internet-play
+ * inputs are not kept. Filled by net_session_send_packet;
+ * net_session_init_game_session loads the frontend's saved copy and
+ * net_session_shutdown hands it back. */
 // GLOBAL: XVT 0x5DD9B8
-struct NetQueuedPacket g_netSessionSentHistory[128] = {0};
+struct net_queued_packet g_net_session_sent_history[128] = {0};
 /* The last 256 world messages this player sent, kept so
- * NetSession_PumpIncomingPackets can resend the one with the tick a WORLD_NACK
- * asks for. Filled by NetSession_SendPacket; cleared by
- * NetSession_InitGameSession. */
+ * net_session_pump_incoming_packets can resend the one with the tick a WORLD_NACK
+ * asks for. Filled by net_session_send_packet; cleared by
+ * net_session_init_game_session. */
 // GLOBAL: XVT 0x5EE1B8
-struct NetQueuedPacket g_netSessionSentWorldMessageHistory[256] = {0};
+struct net_queued_packet g_net_session_sent_world_message_history[256] = {0};
 /* The flight's network session: DirectPlay interface and ids, the player
  * roster, channel sequences and saved copies, and reliable delivery state per
- * peer. NetSession_InitGameSession clears it and loads it from the frontend's
- * saved state. 18 functions write it, chiefly NetSession_InitGameSession,
- * NetSession_SendPacket, NetSession_PumpIncomingPackets,
- * NetSession_ReceivePacket, NetSession_HandleDirectPlaySystemMessage and the
+ * peer. net_session_init_game_session clears it and loads it from the frontend's
+ * saved state. 18 functions write it, chiefly net_session_init_game_session,
+ * net_session_send_packet, net_session_pump_incoming_packets,
+ * net_session_receive_packet, net_session_handle_direct_play_system_message and the
  * NetReliable_ functions. */
 // GLOBAL: XVT 0x9994C0
-struct NetSessionState g_netSession = {0};
+struct net_session_state g_net_session = {0};
 /* The buffer session packets are built in just before they are sent: startup
  * and roster packets, peer sequence status and keepalives. 6 functions write
- * it: NetSession_InitGameSession, NetSession_HandleDirectPlaySystemMessage,
- * NetSession_BroadcastPlayerRoster, NetSession_SendReliableKeepalives,
- * XvtFlightNetwork_SendRosterRecord and XvtFlightNetwork_ExchangeRoster. */
+ * it: net_session_init_game_session, net_session_handle_direct_play_system_message,
+ * net_session_broadcast_player_roster, net_session_send_reliable_keepalives,
+ * xvt_flight_network_send_roster_record and xvt_flight_network_exchange_roster. */
 // GLOBAL: XVT 0x5597A0
-struct NetSessionScratchState g_netSessionScratchPacket = {0};
-/* Picks the branches NetSession_HandleDirectPlaySystemMessage takes.
- * NetSession_InitGameSession sets it to 1 and nothing sets it back to 0, so
+struct net_session_scratch_state g_net_session_scratch_packet = {0};
+/* Picks the branches net_session_handle_direct_play_system_message takes.
+ * net_session_init_game_session sets it to 1 and nothing sets it back to 0, so
  * after the first session of a run the branches for 0 never run. */
 // GLOBAL: XVT 0x9EC608
-uint8_t g_netSessionFlightHandshakeActive = 0;
+uint8_t g_net_session_flight_handshake_active = 0;
 
 /* Does nothing; message is ignored. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x46C220
-void NetSession_DebugTrace(const char *message) { (void)message; }
+void net_session_debug_trace(const char *message) { (void)message; }
 
 /* Opens the flight's network session from the state the frontend saved
- * (NetSession_ImportRuntimeState): DirectPlay interface, ids, receive queue,
+ * (net_session_import_runtime_state): DirectPlay interface, ids, receive queue,
  * reliable peer slots, channel sequences and sent history. It first clears
- * g_netSession and g_netRecvQueueCount, resets the 40 reliable peer slots,
- * g_netSessionSentWorldMessageHistory and its write index, and
- * g_netSessionScratchPacket.trailingState, and sets
- * g_netSessionFlightHandshakeActive; the import then fills
- * g_netSessionRecvQueue with its indices and count, and g_netSessionSentHistory
- * with its write index. A solo host takes formalName and pilotName as its
+ * g_net_session and g_net_recv_queue_count, resets the 40 reliable peer slots,
+ * g_net_session_sent_world_message_history and its write index, and
+ * g_net_session_scratch_packet.trailing_state, and sets
+ * g_net_session_flight_handshake_active; the import then fills
+ * g_net_session_recv_queue with its indices and count, and g_net_session_sent_history
+ * with its write index. A solo host takes formalName and pilot_name as its
  * names, becomes roster slot 0 and returns 1; without a DirectPlay interface
  * its id is 1. Otherwise it lists the DirectPlay players that
- * g_pilotData.networkPlayers also holds, and sends the host a STARTUP_READY and
- * a NOP. The modern build then returns XvtFlightNetwork_BeginRosterExchange's
+ * g_pilot_data.network_players also holds, and sends the host a STARTUP_READY and
+ * a NOP. The modern build then returns xvt_flight_network_begin_roster_exchange's
  * result, which is XVT_FLIGHT_NETWORK_PENDING unless a client joins a flight in
- * progress. The original blocks: the host waits for numHumanPlayers
+ * progress. The original blocks: the host waits for num_human_players
  * STARTUP_READY packets, its own included, then with more than one sends
- * everyone the roster; a client, unless inProgressLaunch, waits for the roster
+ * everyone the roster; a client, unless in_progress_launch, waits for the roster
  * count and entries. A 60-second wait with no packet returns 0, clearing the
  * DirectPlay interface pointer except while roster entries arrive; else 1.
- * mpGameName and connectionAddress are unused. Does not check for a DirectPlay
+ * mp_game_name and connection_address are unused. Does not check for a DirectPlay
  * interface outside the solo path, nor the slot number in a roster entry. */
 // FUNCTION: XVT 0x46C230
-int NetSession_InitGameSession(const char *formalName, const char *pilotName,
-			       int isHost, const char *mpGameName,
-			       NetworkTransportType networkType,
-			       int numHumanPlayers, int inProgressLaunch,
-			       const char *connectionAddress)
+int net_session_init_game_session(const char *formal_name,
+				  const char *pilot_name, int is_host,
+				  const char *mp_game_name,
+				  network_transport_type network_type,
+				  int num_human_players, int in_progress_launch,
+				  const char *connection_address)
 {
-	DPCAPS directPlayCaps;
-	char dialNumber[32] = "Dial a New Number.";
-	int playerIndex;
+	DPCAPS direct_play_caps;
+	char dial_number[32] = "Dial a New Number.";
+	int player_index;
 	int success;
 #ifndef XVT_MODERN
-	int outPayloadSize;
-	int outDpid;
+	int out_payload_size;
+	int out_dpid;
 	int *packet;
-	int receivedPlayerCount;
-	int rosterIndex;
-	int *rosterEntry;
+	int received_player_count;
+	int roster_index;
+	int *roster_entry;
 #endif
 
-	(void)dialNumber;
-	(void)mpGameName;
-	(void)connectionAddress;
-	NetSession_DebugTrace("Init network");
-	memset(&g_netSession, 0, sizeof(g_netSession));
-	g_netSessionFlightHandshakeActive = 1;
-	g_netSessionScratchPacket.trailingState = 0;
-	g_netSession.networkType = networkType;
-	g_netSession.broadcastSeqCounter = 0;
-	g_netSession.broadcastPiggybackEmpty = 1;
-	g_netSession.broadcastPayload[0] = NET_PACKET_NOP;
-	g_netSession.broadcastPayloadLength = 1;
-	g_netSession.groupSeqCounter = 0;
-	g_netSession.groupPiggybackEmpty = 1;
-	g_netSession.groupPayload[0] = NET_PACKET_NOP;
-	g_netSession.groupPayloadLength = 1;
-	g_netSession.reliableUseFixedResendTimeouts = 0;
-	for (playerIndex = 0; playerIndex < 40; ++playerIndex) {
-		g_netSession.reliablePeerSlots[playerIndex]
-			.lastDeliveredSeqDefault = 127;
-		g_netSession.reliablePeerSlots[playerIndex]
-			.lastDeliveredSeqChannelA = 127;
-		g_netSession.reliablePeerSlots[playerIndex]
-			.lastDeliveredSeqChannelB = 127;
-		g_netSession.reliablePeerSlots[playerIndex].recvSeqDefault =
-			127;
-		g_netSession.reliablePeerSlots[playerIndex].recvSeqChannelA =
-			127;
-		g_netSession.reliablePeerSlots[playerIndex].recvSeqChannelB =
-			127;
-		g_netSession.reliablePeerSlots[playerIndex].sendSeq = 0;
-		g_netSession.reliablePeerSlots[playerIndex].directPlayId = 0;
-		g_netSession.reliablePeerSlots[playerIndex].lastPiggybackType =
-			NET_PACKET_NOP;
-		g_netSession.reliablePeerSlots[playerIndex].piggybackLength = 1;
-		g_netSession.reliablePeerSlots[playerIndex].lastActivityMs = 0;
-		g_netSession.reliablePeerSlots[playerIndex].packetCount = 0;
-		g_netSession.reliablePeerSlots[playerIndex].packetDropCount = 0;
+	(void)dial_number;
+	(void)mp_game_name;
+	(void)connection_address;
+	net_session_debug_trace("Init network");
+	memset(&g_net_session, 0, sizeof(g_net_session));
+	g_net_session_flight_handshake_active = 1;
+	g_net_session_scratch_packet.trailing_state = 0;
+	g_net_session.network_type = network_type;
+	g_net_session.broadcast_seq_counter = 0;
+	g_net_session.broadcast_piggyback_empty = 1;
+	g_net_session.broadcast_payload[0] = NET_PACKET_NOP;
+	g_net_session.broadcast_payload_length = 1;
+	g_net_session.group_seq_counter = 0;
+	g_net_session.group_piggyback_empty = 1;
+	g_net_session.group_payload[0] = NET_PACKET_NOP;
+	g_net_session.group_payload_length = 1;
+	g_net_session.reliable_use_fixed_resend_timeouts = 0;
+	for (player_index = 0; player_index < 40; ++player_index) {
+		g_net_session.reliable_peer_slots[player_index]
+			.last_delivered_seq_default = 127;
+		g_net_session.reliable_peer_slots[player_index]
+			.last_delivered_seq_channel_a = 127;
+		g_net_session.reliable_peer_slots[player_index]
+			.last_delivered_seq_channel_b = 127;
+		g_net_session.reliable_peer_slots[player_index]
+			.recv_seq_default = 127;
+		g_net_session.reliable_peer_slots[player_index]
+			.recv_seq_channel_a = 127;
+		g_net_session.reliable_peer_slots[player_index]
+			.recv_seq_channel_b = 127;
+		g_net_session.reliable_peer_slots[player_index].send_seq = 0;
+		g_net_session.reliable_peer_slots[player_index].direct_play_id =
+			0;
+		g_net_session.reliable_peer_slots[player_index]
+			.last_piggyback_type = NET_PACKET_NOP;
+		g_net_session.reliable_peer_slots[player_index]
+			.piggyback_length = 1;
+		g_net_session.reliable_peer_slots[player_index]
+			.last_activity_ms = 0;
+		g_net_session.reliable_peer_slots[player_index].packet_count =
+			0;
+		g_net_session.reliable_peer_slots[player_index]
+			.packet_drop_count = 0;
 	}
-	g_netSessionSentWorldMessageWriteIndex = 0;
-	memset(g_netSessionSentWorldMessageHistory, 0,
-	       sizeof(g_netSessionSentWorldMessageHistory));
-	g_netRecvQueueCount = 0;
-	g_netSession.reliablePeerSlotCount = 0;
+	g_net_session_sent_world_message_write_index = 0;
+	memset(g_net_session_sent_world_message_history, 0,
+	       sizeof(g_net_session_sent_world_message_history));
+	g_net_recv_queue_count = 0;
+	g_net_session.reliable_peer_slot_count = 0;
 	/* The 1 stored in success here also serves below as the player count, the host flag, a DirectPlay id and
 	 * an active flag. */
 	success = 1;
 
-	if (numHumanPlayers == success && isHost == success) {
+	if (num_human_players == success && is_host == success) {
 		/* The single-player path reuses the persisted DirectPlay snapshot. */
-		NetSession_ImportRuntimeState(
-			(void **)&g_netSession.dplayInterface,
-			&g_netSession.appGuid, &g_netSession.instanceGuid,
-			(int32_t *)&g_netSession.groupDplayId,
-			&g_netSession.hostDplayId,
-			(struct NetPlayerInfo *)&g_netSession.localPlayerInfo,
-			g_netSessionRecvQueue, &g_netRecvQueueReadIndex,
-			(int *)&g_netRecvQueueCount, &g_netRecvQueueWriteIndex,
-			g_netSession.reliablePeerSlots,
-			&g_netSession.reliablePeerSlotCount,
-			&g_netSession.broadcastSeqCounter,
-			(char *)g_netSession.broadcastPayload,
-			&g_netSession.broadcastPayloadLength,
-			&g_netSession.broadcastPiggybackEmpty,
-			&g_netSession.groupSeqCounter,
-			(char *)g_netSession.groupPayload,
-			&g_netSession.groupPayloadLength,
-			&g_netSession.groupPiggybackEmpty,
-			g_netSessionSentHistory,
-			&g_netSessionSentHistoryWriteIndex);
-		if (g_netSession.dplayInterface == NULL) {
-			g_netSession.localPlayerInfo.directPlayId = success;
-			g_netSession.localPlayerInfo.activeFlag = success;
+		net_session_import_runtime_state(
+			(void **)&g_net_session.dplay_interface,
+			&g_net_session.app_guid, &g_net_session.instance_guid,
+			(int32_t *)&g_net_session.group_dplay_id,
+			&g_net_session.host_dplay_id,
+			(struct net_player_info *)&g_net_session
+				.local_player_info,
+			g_net_session_recv_queue, &g_net_recv_queue_read_index,
+			(int *)&g_net_recv_queue_count,
+			&g_net_recv_queue_write_index,
+			g_net_session.reliable_peer_slots,
+			&g_net_session.reliable_peer_slot_count,
+			&g_net_session.broadcast_seq_counter,
+			(char *)g_net_session.broadcast_payload,
+			&g_net_session.broadcast_payload_length,
+			&g_net_session.broadcast_piggyback_empty,
+			&g_net_session.group_seq_counter,
+			(char *)g_net_session.group_payload,
+			&g_net_session.group_payload_length,
+			&g_net_session.group_piggyback_empty,
+			g_net_session_sent_history,
+			&g_net_session_sent_history_write_index);
+		if (g_net_session.dplay_interface == NULL) {
+			g_net_session.local_player_info.direct_play_id =
+				success;
+			g_net_session.local_player_info.active_flag = success;
 		} else {
-			memset(&directPlayCaps, 0, sizeof(directPlayCaps));
-			directPlayCaps.dwSize = sizeof(directPlayCaps);
-			g_netSession.dplayInterface->lpVtbl->GetCaps(
-				g_netSession.dplayInterface, &directPlayCaps,
-				0);
+			memset(&direct_play_caps, 0, sizeof(direct_play_caps));
+			direct_play_caps.dwSize = sizeof(direct_play_caps);
+			g_net_session.dplay_interface->lpVtbl->GetCaps(
+				g_net_session.dplay_interface,
+				&direct_play_caps, 0);
 		}
-		strncpy(g_netSession.localPlayerInfo.longName, formalName,
-			sizeof(g_netSession.localPlayerInfo.longName));
-		strncpy(g_netSession.localPlayerInfo.playerName, pilotName,
-			sizeof(g_netSession.localPlayerInfo.playerName));
-		g_netSession.players[0] = g_netSession.localPlayerInfo;
-		g_netSession.localIsHost = isHost;
-		g_netSession.playerCount = success;
+		strncpy(g_net_session.local_player_info.long_name, formal_name,
+			sizeof(g_net_session.local_player_info.long_name));
+		strncpy(g_net_session.local_player_info.player_name, pilot_name,
+			sizeof(g_net_session.local_player_info.player_name));
+		g_net_session.players[0] = g_net_session.local_player_info;
+		g_net_session.local_is_host = is_host;
+		g_net_session.player_count = success;
 		return success;
 	}
 
-	NetSession_ImportRuntimeState(
-		(void **)&g_netSession.dplayInterface, &g_netSession.appGuid,
-		&g_netSession.instanceGuid,
-		(int32_t *)&g_netSession.groupDplayId,
-		&g_netSession.hostDplayId,
-		(struct NetPlayerInfo *)&g_netSession.localPlayerInfo,
-		g_netSessionRecvQueue, &g_netRecvQueueReadIndex,
-		(int *)&g_netRecvQueueCount, &g_netRecvQueueWriteIndex,
-		g_netSession.reliablePeerSlots,
-		&g_netSession.reliablePeerSlotCount,
-		&g_netSession.broadcastSeqCounter,
-		(char *)g_netSession.broadcastPayload,
-		&g_netSession.broadcastPayloadLength,
-		&g_netSession.broadcastPiggybackEmpty,
-		&g_netSession.groupSeqCounter,
-		(char *)g_netSession.groupPayload,
-		&g_netSession.groupPayloadLength,
-		&g_netSession.groupPiggybackEmpty, g_netSessionSentHistory,
-		&g_netSessionSentHistoryWriteIndex);
-	memset(&directPlayCaps, 0, sizeof(directPlayCaps));
-	directPlayCaps.dwSize = sizeof(directPlayCaps);
-	g_netSession.dplayInterface->lpVtbl->GetCaps(
-		g_netSession.dplayInterface, &directPlayCaps, 0);
-	g_netSession.playerCount = 0;
-	g_netSession.localIsHost = isHost;
-	NetSession_EnumeratePlayers();
+	net_session_import_runtime_state(
+		(void **)&g_net_session.dplay_interface,
+		&g_net_session.app_guid, &g_net_session.instance_guid,
+		(int32_t *)&g_net_session.group_dplay_id,
+		&g_net_session.host_dplay_id,
+		(struct net_player_info *)&g_net_session.local_player_info,
+		g_net_session_recv_queue, &g_net_recv_queue_read_index,
+		(int *)&g_net_recv_queue_count, &g_net_recv_queue_write_index,
+		g_net_session.reliable_peer_slots,
+		&g_net_session.reliable_peer_slot_count,
+		&g_net_session.broadcast_seq_counter,
+		(char *)g_net_session.broadcast_payload,
+		&g_net_session.broadcast_payload_length,
+		&g_net_session.broadcast_piggyback_empty,
+		&g_net_session.group_seq_counter,
+		(char *)g_net_session.group_payload,
+		&g_net_session.group_payload_length,
+		&g_net_session.group_piggyback_empty,
+		g_net_session_sent_history,
+		&g_net_session_sent_history_write_index);
+	memset(&direct_play_caps, 0, sizeof(direct_play_caps));
+	direct_play_caps.dwSize = sizeof(direct_play_caps);
+	g_net_session.dplay_interface->lpVtbl->GetCaps(
+		g_net_session.dplay_interface, &direct_play_caps, 0);
+	g_net_session.player_count = 0;
+	g_net_session.local_is_host = is_host;
+	net_session_enumerate_players();
 #ifndef XVT_MODERN
-	receivedPlayerCount = numHumanPlayers;
+	received_player_count = num_human_players;
 #endif
-	g_netSessionFlightHandshakeActive = 1;
+	g_net_session_flight_handshake_active = 1;
 	timeGetTime();
-	g_netSessionScratchPacket.packetType = NET_PACKET_STARTUP_READY;
-	NetSession_SendPacket(g_netSession.hostDplayId,
-			      (unsigned int *)&g_netSessionScratchPacket, 4);
-	g_netSessionScratchPacket.packetType = NET_PACKET_NOP;
-	NetSession_SendPacket(g_netSession.hostDplayId,
-			      (unsigned int *)&g_netSessionScratchPacket, 4);
+	g_net_session_scratch_packet.packet_type = NET_PACKET_STARTUP_READY;
+	net_session_send_packet(g_net_session.host_dplay_id,
+				(unsigned int *)&g_net_session_scratch_packet,
+				4);
+	g_net_session_scratch_packet.packet_type = NET_PACKET_NOP;
+	net_session_send_packet(g_net_session.host_dplay_id,
+				(unsigned int *)&g_net_session_scratch_packet,
+				4);
 
 #ifdef XVT_MODERN
-	return XvtFlightNetwork_BeginRosterExchange(numHumanPlayers,
-						    inProgressLaunch);
+	return xvt_flight_network_begin_roster_exchange(num_human_players,
+							in_progress_launch);
 #else
-	if (NetSession_IsLocalHost() != 0 && numHumanPlayers != 0) {
-		while (receivedPlayerCount != 0) {
-			packet = NetSession_WaitForGamePacket(
-				&outDpid, &outPayloadSize, 60);
+	if (net_session_is_local_host() != 0 && num_human_players != 0) {
+		while (received_player_count != 0) {
+			packet = net_session_wait_for_game_packet(
+				&out_dpid, &out_payload_size, 60);
 			if (packet == NULL) {
-				g_netSession.dplayInterface = NULL;
+				g_net_session.dplay_interface = NULL;
 				return 0;
 			}
 			if (*packet == NET_PACKET_STARTUP_READY) {
-				--receivedPlayerCount;
+				--received_player_count;
 			}
 		}
 	}
 
-	if (NetSession_IsLocalHost() != 0) {
-		if (numHumanPlayers > 1) {
-			NetSession_BroadcastPlayerRoster(0);
-			g_netSessionScratchPacket.packetType = NET_PACKET_NOP;
-			NetSession_SendPacket(
-				0, (unsigned int *)&g_netSessionScratchPacket,
+	if (net_session_is_local_host() != 0) {
+		if (num_human_players > 1) {
+			net_session_broadcast_player_roster(0);
+			g_net_session_scratch_packet.packet_type =
+				NET_PACKET_NOP;
+			net_session_send_packet(
+				0,
+				(unsigned int *)&g_net_session_scratch_packet,
 				4);
 		}
-	} else if (inProgressLaunch == 0) {
+	} else if (in_progress_launch == 0) {
 		do {
-			packet = NetSession_WaitForGamePacket(
-				&outDpid, &outPayloadSize, 60);
+			packet = net_session_wait_for_game_packet(
+				&out_dpid, &out_payload_size, 60);
 			if (packet == NULL) {
-				g_netSession.dplayInterface = NULL;
+				g_net_session.dplay_interface = NULL;
 				return 0;
 			}
 		} while (*packet != NET_PACKET_ROSTER_COUNT);
 
-		g_netSession.playerCount = packet[1];
-		receivedPlayerCount = 0;
-		while (g_netSession.playerCount > receivedPlayerCount) {
+		g_net_session.player_count = packet[1];
+		received_player_count = 0;
+		while (g_net_session.player_count > received_player_count) {
 			do {
-				packet = NetSession_WaitForGamePacket(
-					&outDpid, &outPayloadSize, 60);
+				packet = net_session_wait_for_game_packet(
+					&out_dpid, &out_payload_size, 60);
 				if (packet == NULL) {
 					return 0;
 				}
 			} while (*packet != NET_PACKET_ROSTER_ENTRY);
-			rosterEntry = packet + 2;
-			rosterIndex = packet[1];
-			memcpy(&g_netSession.players[rosterIndex], rosterEntry,
-			       sizeof(struct SessionPlayerInfo));
-			++receivedPlayerCount;
+			roster_entry = packet + 2;
+			roster_index = packet[1];
+			memcpy(&g_net_session.players[roster_index],
+			       roster_entry,
+			       sizeof(struct session_player_info));
+			++received_player_count;
 		}
 	}
 	return success;
@@ -318,87 +334,93 @@ int NetSession_InitGameSession(const char *formalName, const char *pilotName,
 }
 
 /* Hands this session's network state back to the frontend through
- * NetSession_ExportRuntimeState: receive queue, reliable peer slots, channel
+ * net_session_export_runtime_state: receive queue, reliable peer slots, channel
  * sequences and saved copies, sent history, and the sent world-message history
  * with its write index. Closes nothing. Returns 1. */
 // FUNCTION: XVT 0x46C6A0
-int NetSession_Shutdown(void)
+int net_session_shutdown(void)
 {
-	NetSession_ExportRuntimeState(
-		(void **)&g_netSession.dplayInterface, &g_netSession.appGuid,
-		&g_netSession.instanceGuid, (int *)&g_netSession.groupDplayId,
-		&g_netSession.hostDplayId, &g_netSession.localPlayerInfo,
-		g_netSessionRecvQueue, &g_netRecvQueueReadIndex,
-		(int *)&g_netRecvQueueCount, &g_netRecvQueueWriteIndex,
-		g_netSession.reliablePeerSlots,
-		(int *)&g_netSession.reliablePeerSlotCount,
-		(int *)&g_netSession.broadcastSeqCounter,
-		g_netSession.broadcastPayload,
-		&g_netSession.broadcastPayloadLength,
-		&g_netSession.broadcastPiggybackEmpty,
-		(int *)&g_netSession.groupSeqCounter, g_netSession.groupPayload,
-		&g_netSession.groupPayloadLength,
-		&g_netSession.groupPiggybackEmpty, g_netSessionSentHistory,
-		&g_netSessionSentHistoryWriteIndex,
-		g_netSessionSentWorldMessageHistory,
-		&g_netSessionSentWorldMessageWriteIndex);
+	net_session_export_runtime_state(
+		(void **)&g_net_session.dplay_interface,
+		&g_net_session.app_guid, &g_net_session.instance_guid,
+		(int *)&g_net_session.group_dplay_id,
+		&g_net_session.host_dplay_id, &g_net_session.local_player_info,
+		g_net_session_recv_queue, &g_net_recv_queue_read_index,
+		(int *)&g_net_recv_queue_count, &g_net_recv_queue_write_index,
+		g_net_session.reliable_peer_slots,
+		(int *)&g_net_session.reliable_peer_slot_count,
+		(int *)&g_net_session.broadcast_seq_counter,
+		g_net_session.broadcast_payload,
+		&g_net_session.broadcast_payload_length,
+		&g_net_session.broadcast_piggyback_empty,
+		(int *)&g_net_session.group_seq_counter,
+		g_net_session.group_payload,
+		&g_net_session.group_payload_length,
+		&g_net_session.group_piggyback_empty,
+		g_net_session_sent_history,
+		&g_net_session_sent_history_write_index,
+		g_net_session_sent_world_message_history,
+		&g_net_session_sent_world_message_write_index);
 	return 1;
 }
 
-/* Has DirectPlay list every player through NetSession_EnumPlayersCallback,
+/* Has DirectPlay list every player through net_session_enum_players_callback,
  * which adds them to the roster. Returns 1. Does not reset the roster count
  * first or check for a DirectPlay interface. */
 // FUNCTION: XVT 0x46C730
-int NetSession_EnumeratePlayers(void)
+int net_session_enumerate_players(void)
 {
-	g_netSession.dplayInterface->lpVtbl->EnumPlayers(
-		g_netSession.dplayInterface, 0, NetSession_EnumPlayersCallback,
-		0, 0);
+	g_net_session.dplay_interface->lpVtbl->EnumPlayers(
+		g_net_session.dplay_interface, 0,
+		net_session_enum_players_callback, 0, 0);
 	return 1;
 }
 
 /* Adds one DirectPlay player to the roster: skips entries of type 0 (not
- * players) and players missing from g_pilotData.networkPlayers; stores the long
- * name in longName and the short name in playerName, cut to 15 characters,
- * with the id and activeFlag 1, and counts it in g_netSession.playerCount.
+ * players) and players missing from g_pilot_data.network_players; stores the long
+ * name in long_name and the short name in playerName, cut to 15 characters,
+ * with the id and active_flag 1, and counts it in g_net_session.player_count.
  * Returns 0, which stops the listing, once 8 players are in; else 1. */
 // FUNCTION: XVT 0x46C750
-int AERON_DXAPI NetSession_EnumPlayersCallback(DPID dplayId,
-					       uint32_t playerType,
-					       const DPNAME *nameInfo,
-					       uint32_t flags, void *context)
+int AERON_DXAPI net_session_enum_players_callback(DPID dplay_id,
+						  uint32_t player_type,
+						  const DPNAME *name_info,
+						  uint32_t flags, void *context)
 {
-	char *nameEnd;
-	int *playerValue;
+	char *name_end;
+	int *player_value;
 
 	(void)flags;
 	(void)context;
 
-	if (playerType == 0) {
+	if (player_type == 0) {
 		return 1;
 	}
-	if (g_netSession.playerCount >= 8) {
+	if (g_net_session.player_count >= 8) {
 		return 0;
 	}
-	if (PilotData_HasNetworkPlayerDpid(dplayId) != 0) {
-		strncpy(g_netSession.players[g_netSession.playerCount].longName,
-			nameInfo->lpszLongNameA, 16);
-		strncpy(g_netSession.players[g_netSession.playerCount]
-				.playerName,
-			nameInfo->lpszShortNameA, 16);
-		nameEnd = &g_netSession.players[g_netSession.playerCount]
-				   .longName[15];
-		*nameEnd = '\0';
-		nameEnd = &g_netSession.players[g_netSession.playerCount]
-				   .playerName[15];
-		*nameEnd = '\0';
-		playerValue = &g_netSession.players[g_netSession.playerCount]
-				       .directPlayId;
-		*playerValue = dplayId;
-		playerValue = &g_netSession.players[g_netSession.playerCount]
-				       .activeFlag;
-		*playerValue = 1;
-		g_netSession.playerCount++;
+	if (pilot_data_has_network_player_dpid(dplay_id) != 0) {
+		strncpy(g_net_session.players[g_net_session.player_count]
+				.long_name,
+			name_info->lpszLongNameA, 16);
+		strncpy(g_net_session.players[g_net_session.player_count]
+				.player_name,
+			name_info->lpszShortNameA, 16);
+		name_end = &g_net_session.players[g_net_session.player_count]
+				    .long_name[15];
+		*name_end = '\0';
+		name_end = &g_net_session.players[g_net_session.player_count]
+				    .player_name[15];
+		*name_end = '\0';
+		player_value =
+			&g_net_session.players[g_net_session.player_count]
+				 .direct_play_id;
+		*player_value = dplay_id;
+		player_value =
+			&g_net_session.players[g_net_session.player_count]
+				 .active_flag;
+		*player_value = 1;
+		g_net_session.player_count++;
 	}
 	return 1;
 }
@@ -416,998 +438,1076 @@ enum {
 /* Moves every packet DirectPlay holds for this player into the receive queue.
  * Does nothing without a DirectPlay interface; stops when DirectPlay has no
  * more, or when the queue holds 1,023 entries, after calling
- * NetReliable_KeepOnlyHostReceivedPackets. System messages (sender 0) are
+ * net_reliable_keep_only_host_received_packets. System messages (sender 0) are
  * queued as they come; packets addressed to another player are skipped. It
  * answers a PING with a PONG and ignores a KEEPALIVE_ACK. A peer's WORLD_NACK
  * gets the world message with that tick from
- * g_netSessionSentWorldMessageHistory, a NACK the asked sequence and channel
- * from g_netSessionSentHistory, either one a NOP in that sequence when the
+ * g_net_session_sent_world_message_history, a NACK the asked sequence and channel
+ * from g_net_session_sent_history, either one a NOP in that sequence when the
  * packet is gone, and a KEEPALIVE the next packet on each channel that the peer
  * still lacks; NACKs count in the peer's drop count. A resent packet (bit 0x80
  * set, bit 15 clear) is queued under the channel its marker byte names. Any
  * other packet is queued with its channel and sequence, marked as a resent copy
- * when NetReliable_CheckAndRecordRecvSequence finds the sequence not new (a
+ * when net_reliable_check_and_record_recv_sequence finds the sequence not new (a
  * repeat or a stale one), except that such a packet on the group channel is
- * dropped; when NetReliable_CheckAndRecordRecvSequence says the
+ * dropped; when net_reliable_check_and_record_recv_sequence says the
  * channel's previous sequence is new, the copy of it riding behind the packet
  * is queued too. Writes
- * g_netSession.receivePumpState (0), the peer slots' receive sequences and drop
- * counts, g_netSessionRecvQueue, g_netRecvQueueWriteIndex and
- * g_netRecvQueueCount. */
+ * g_net_session.receive_pump_state (0), the peer slots' receive sequences and drop
+ * counts, g_net_session_recv_queue, g_net_recv_queue_write_index and
+ * g_net_recv_queue_count. */
 // FUNCTION: XVT 0x46C830
-void NetSession_PumpIncomingPackets(void)
+void net_session_pump_incoming_packets(void)
 {
-	static int receiveSuppressCount;
-	DPID fromId;
-	DPID toId;
+	static int receive_suppress_count;
+	DPID from_id;
+	DPID to_id;
 	struct {
 		uint16_t header;    /* Type, sequence and channel bits */
 		uint8_t data[1022]; /* The rest; a system message fills both */
-	} wirePacket;
-	unsigned int responsePacket[2];
-	uint32_t wireSize;
-	uint8_t *packetData;
-	uint32_t packetSize;
-	unsigned int packetType;
+	} wire_packet;
+	unsigned int response_packet[2];
+	uint32_t wire_size;
+	uint8_t *packet_data;
+	uint32_t packet_size;
+	unsigned int packet_type;
 	int sequence;
-	int groupChannel;
-	int broadcastChannel;
-	int hasLength;
-	unsigned int peerSlot;
+	int group_channel;
+	int broadcast_channel;
+	int has_length;
+	unsigned int peer_slot;
 	int duplicate;
-	int previousSequence;
+	int previous_sequence;
 	uint8_t *piggyback;
-	uint32_t piggybackSize;
-	unsigned int piggybackType;
-	if (g_netSession.dplayInterface == NULL) {
+	uint32_t piggyback_size;
+	unsigned int piggyback_type;
+	if (g_net_session.dplay_interface == NULL) {
 		return;
 	}
-	g_netSession.receivePumpState = 0;
+	g_net_session.receive_pump_state = 0;
 	for (;;) {
-		if ((int)g_netRecvQueueCount >= RECEIVE_QUEUE_LIMIT) {
-			NetSession_DebugTrace("Ran out of receive buffers!!!");
-			NetReliable_KeepOnlyHostReceivedPackets();
+		if ((int)g_net_recv_queue_count >= RECEIVE_QUEUE_LIMIT) {
+			net_session_debug_trace(
+				"Ran out of receive buffers!!!");
+			net_reliable_keep_only_host_received_packets();
 			return;
 		}
-		wireSize = sizeof(wirePacket);
-		if (g_netSession.dplayInterface->lpVtbl->Receive(
-			    g_netSession.dplayInterface, &fromId, &toId, 1,
-			    &wirePacket, &wireSize) != 0) {
+		wire_size = sizeof(wire_packet);
+		if (g_net_session.dplay_interface->lpVtbl->Receive(
+			    g_net_session.dplay_interface, &from_id, &to_id, 1,
+			    &wire_packet, &wire_size) != 0) {
 			return;
 		}
-		if (fromId == 0) {
-			NetSession_DebugTrace("(RSM)");
-			if (wireSize >
-			    sizeof(g_netSessionRecvQueue[0].payload)) {
-				wireSize = sizeof(
-					g_netSessionRecvQueue[0].payload);
+		if (from_id == 0) {
+			net_session_debug_trace("(RSM)");
+			if (wire_size >
+			    sizeof(g_net_session_recv_queue[0].payload)) {
+				wire_size = sizeof(
+					g_net_session_recv_queue[0].payload);
 			}
-			g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-				.directPlayId = fromId;
-			g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-				.payloadSize = wireSize;
-			g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-				.isResentCopy = 0;
-			memcpy(g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-				       .payload,
-			       &wirePacket.header, wireSize);
-			++g_netRecvQueueWriteIndex;
-			++g_netRecvQueueCount;
-			if (g_netRecvQueueWriteIndex >=
+			g_net_session_recv_queue[g_net_recv_queue_write_index]
+				.direct_play_id = from_id;
+			g_net_session_recv_queue[g_net_recv_queue_write_index]
+				.payload_size = wire_size;
+			g_net_session_recv_queue[g_net_recv_queue_write_index]
+				.is_resent_copy = 0;
+			memcpy(g_net_session_recv_queue
+				       [g_net_recv_queue_write_index]
+					       .payload,
+			       &wire_packet.header, wire_size);
+			++g_net_recv_queue_write_index;
+			++g_net_recv_queue_count;
+			if (g_net_recv_queue_write_index >=
 			    RECEIVE_QUEUE_CAPACITY) {
-				g_netRecvQueueWriteIndex = 0;
+				g_net_recv_queue_write_index = 0;
 			}
 			continue;
 		}
-		if (receiveSuppressCount != 0) {
-			--receiveSuppressCount;
+		if (receive_suppress_count != 0) {
+			--receive_suppress_count;
 			continue;
 		}
-		if (toId != (DPID)g_netSession.localPlayerInfo.directPlayId) {
+		if (to_id !=
+		    (DPID)g_net_session.local_player_info.direct_play_id) {
 			continue;
 		}
-		packetType = wirePacket.header & 0x7F;
-		groupChannel = (wirePacket.header & 0x80) != 0;
-		broadcastChannel = (wirePacket.header & 0x8000) == 0;
-		sequence = (wirePacket.header >> 8) & 0x7F;
-		packetData = wirePacket.data;
-		packetSize = wireSize - sizeof(wirePacket.header);
-		hasLength = packetType < NET_PACKET_RESYNC_CHECKSUMS ||
-			    packetType > NET_PACKET_RESYNC_CHUNK;
-		if (hasLength && !(broadcastChannel && groupChannel) &&
-		    NetSession_GetFixedPayloadSize(packetType) == 0 &&
-		    packetSize >= sizeof(uint16_t)) {
-			uint16_t encodedSize;
-			memcpy(&encodedSize, packetData, sizeof(encodedSize));
-			packetData += sizeof(encodedSize);
-			packetSize = encodedSize;
+		packet_type = wire_packet.header & 0x7F;
+		group_channel = (wire_packet.header & 0x80) != 0;
+		broadcast_channel = (wire_packet.header & 0x8000) == 0;
+		sequence = (wire_packet.header >> 8) & 0x7F;
+		packet_data = wire_packet.data;
+		packet_size = wire_size - sizeof(wire_packet.header);
+		has_length = packet_type < NET_PACKET_RESYNC_CHECKSUMS ||
+			     packet_type > NET_PACKET_RESYNC_CHUNK;
+		if (has_length && !(broadcast_channel && group_channel) &&
+		    net_session_get_fixed_payload_size(packet_type) == 0 &&
+		    packet_size >= sizeof(uint16_t)) {
+			uint16_t encoded_size;
+			memcpy(&encoded_size, packet_data,
+			       sizeof(encoded_size));
+			packet_data += sizeof(encoded_size);
+			packet_size = encoded_size;
 		}
-		if (packetSize > MAX_PAYLOAD_SIZE) {
-			packetSize = MAX_PAYLOAD_SIZE;
+		if (packet_size > MAX_PAYLOAD_SIZE) {
+			packet_size = MAX_PAYLOAD_SIZE;
 		}
-		if (packetType == NET_PACKET_PING) {
-			responsePacket[0] = NET_PACKET_PONG;
-			NetSession_SendPacket(fromId, responsePacket,
-					      sizeof(uint32_t));
+		if (packet_type == NET_PACKET_PING) {
+			response_packet[0] = NET_PACKET_PONG;
+			net_session_send_packet(from_id, response_packet,
+						sizeof(uint32_t));
 			continue;
 		}
-		if (packetType == NET_PACKET_KEEPALIVE_ACK) {
+		if (packet_type == NET_PACKET_KEEPALIVE_ACK) {
 			continue;
 		}
-		if (packetType == NET_PACKET_WORLD_NACK) {
-			if (packetSize >= 2 * sizeof(int)) {
-				unsigned int searchCount;
-				unsigned int worldCursor;
+		if (packet_type == NET_PACKET_WORLD_NACK) {
+			if (packet_size >= 2 * sizeof(int)) {
+				unsigned int search_count;
+				unsigned int world_cursor;
 				int timestamp;
-				int requestedSequence;
-				memcpy(&timestamp, packetData,
+				int requested_sequence;
+				memcpy(&timestamp, packet_data,
 				       sizeof(timestamp));
-				memcpy(&requestedSequence,
-				       packetData + sizeof(timestamp),
-				       sizeof(requestedSequence));
-				peerSlot = NetReliable_FindOrCreatePeerSlot(
-					fromId);
-				if (peerSlot < g_netSession
-						       .reliablePeerSlotCount &&
-				    peerSlot < 40) {
-					++g_netSession
-						  .reliablePeerSlots[peerSlot]
-						  .packetDropCount;
+				memcpy(&requested_sequence,
+				       packet_data + sizeof(timestamp),
+				       sizeof(requested_sequence));
+				peer_slot =
+					net_reliable_find_or_create_peer_slot(
+						from_id);
+				if (peer_slot <
+					    g_net_session
+						    .reliable_peer_slot_count &&
+				    peer_slot < 40) {
+					++g_net_session
+						  .reliable_peer_slots
+							  [peer_slot]
+						  .packet_drop_count;
 				}
-				worldCursor = (unsigned int)
-					g_netSessionSentWorldMessageWriteIndex;
-				for (searchCount = 0;
-				     searchCount < WORLD_HISTORY_CAPACITY;
-				     ++searchCount) {
-					if (g_netSessionSentWorldMessageHistory
-							    [worldCursor]
-								    .payloadSize !=
+				world_cursor = (unsigned int)
+					g_net_session_sent_world_message_write_index;
+				for (search_count = 0;
+				     search_count < WORLD_HISTORY_CAPACITY;
+				     ++search_count) {
+					if (g_net_session_sent_world_message_history
+							    [world_cursor]
+								    .payload_size !=
 						    0 &&
 					    ((*((uint32_t
-							 *)&g_netSessionSentWorldMessageHistory
-							[worldCursor]
+							 *)&g_net_session_sent_world_message_history
+							[world_cursor]
 								.payload[4]) &
 					      0x7FFFFFFF) ==
 					     (uint32_t)timestamp)) {
 						break;
 					}
-					if (++worldCursor >=
+					if (++world_cursor >=
 					    WORLD_HISTORY_CAPACITY) {
-						worldCursor = 0;
+						world_cursor = 0;
 					}
 				}
-				if (searchCount < WORLD_HISTORY_CAPACITY) {
-					NetSession_SendSequencedGamePacket(
-						fromId, 0,
-						g_netSessionSentWorldMessageHistory
-							[worldCursor]
-								.sequenceByte,
+				if (search_count < WORLD_HISTORY_CAPACITY) {
+					net_session_send_sequenced_game_packet(
+						from_id, 0,
+						g_net_session_sent_world_message_history
+							[world_cursor]
+								.sequence_byte,
 						(const unsigned int *)
-							g_netSessionSentWorldMessageHistory
-								[worldCursor]
+							g_net_session_sent_world_message_history
+								[world_cursor]
 									.payload,
-						g_netSessionSentWorldMessageHistory
-							[worldCursor]
-								.payloadSize);
+						g_net_session_sent_world_message_history
+							[world_cursor]
+								.payload_size);
 				} else {
-					responsePacket[0] = NET_PACKET_NOP;
-					NetSession_SendSequencedGamePacket(
-						fromId, 0,
-						(uint8_t)requestedSequence,
-						responsePacket,
+					response_packet[0] = NET_PACKET_NOP;
+					net_session_send_sequenced_game_packet(
+						from_id, 0,
+						(uint8_t)requested_sequence,
+						response_packet,
 						sizeof(uint32_t));
 				}
 			}
 			continue;
 		}
-		if (packetType == NET_PACKET_NACK) {
-			if (packetSize >= 2 * sizeof(int)) {
-				int requestedSequence;
-				int requestedClass;
-				unsigned int searchCount;
-				unsigned int historyCursor;
-				memcpy(&requestedSequence, packetData,
-				       sizeof(requestedSequence));
-				memcpy(&requestedClass,
-				       packetData + sizeof(requestedSequence),
-				       sizeof(requestedClass));
-				peerSlot = NetReliable_FindOrCreatePeerSlot(
-					fromId);
-				if (peerSlot < g_netSession
-						       .reliablePeerSlotCount &&
-				    peerSlot < 40) {
-					++g_netSession
-						  .reliablePeerSlots[peerSlot]
-						  .packetDropCount;
+		if (packet_type == NET_PACKET_NACK) {
+			if (packet_size >= 2 * sizeof(int)) {
+				int requested_sequence;
+				int requested_class;
+				unsigned int search_count;
+				unsigned int history_cursor;
+				memcpy(&requested_sequence, packet_data,
+				       sizeof(requested_sequence));
+				memcpy(&requested_class,
+				       packet_data + sizeof(requested_sequence),
+				       sizeof(requested_class));
+				peer_slot =
+					net_reliable_find_or_create_peer_slot(
+						from_id);
+				if (peer_slot <
+					    g_net_session
+						    .reliable_peer_slot_count &&
+				    peer_slot < 40) {
+					++g_net_session
+						  .reliable_peer_slots
+							  [peer_slot]
+						  .packet_drop_count;
 				}
-				historyCursor = (unsigned int)
-					g_netSessionSentHistoryWriteIndex;
-				for (searchCount = 0;
-				     searchCount < HISTORY_CAPACITY;
-				     ++searchCount) {
-					if (g_netSessionSentHistory[historyCursor]
-							    .payloadSize != 0 &&
-					    g_netSessionSentHistory[historyCursor]
-							    .sequenceByte ==
-						    requestedSequence &&
-					    g_netSessionSentHistory[historyCursor]
-							    .packetClass ==
-						    requestedClass &&
-					    (requestedClass == 0 ||
-					     requestedClass == 2 ||
-					     g_netSessionSentHistory[historyCursor]
-							     .directPlayId ==
-						     fromId)) {
+				history_cursor = (unsigned int)
+					g_net_session_sent_history_write_index;
+				for (search_count = 0;
+				     search_count < HISTORY_CAPACITY;
+				     ++search_count) {
+					if (g_net_session_sent_history
+							    [history_cursor]
+								    .payload_size !=
+						    0 &&
+					    g_net_session_sent_history
+							    [history_cursor]
+								    .sequence_byte ==
+						    requested_sequence &&
+					    g_net_session_sent_history
+							    [history_cursor]
+								    .packet_class ==
+						    requested_class &&
+					    (requested_class == 0 ||
+					     requested_class == 2 ||
+					     g_net_session_sent_history
+							     [history_cursor]
+								     .direct_play_id ==
+						     from_id)) {
 						break;
 					}
-					if (++historyCursor >=
+					if (++history_cursor >=
 					    HISTORY_CAPACITY) {
-						historyCursor = 0;
+						history_cursor = 0;
 					}
 				}
-				if (searchCount < HISTORY_CAPACITY) {
-					NetSession_SendSequencedGamePacket(
-						fromId, (uint8_t)requestedClass,
-						g_netSessionSentHistory
-							[historyCursor]
-								.sequenceByte,
+				if (search_count < HISTORY_CAPACITY) {
+					net_session_send_sequenced_game_packet(
+						from_id,
+						(uint8_t)requested_class,
+						g_net_session_sent_history
+							[history_cursor]
+								.sequence_byte,
 						(const unsigned int *)
-							g_netSessionSentHistory
-								[historyCursor]
+							g_net_session_sent_history
+								[history_cursor]
 									.payload,
-						g_netSessionSentHistory
-							[historyCursor]
-								.payloadSize);
+						g_net_session_sent_history
+							[history_cursor]
+								.payload_size);
 				} else {
-					responsePacket[0] = NET_PACKET_NOP;
-					NetSession_SendSequencedGamePacket(
-						fromId, (uint8_t)requestedClass,
-						(uint8_t)requestedSequence,
-						responsePacket,
+					response_packet[0] = NET_PACKET_NOP;
+					net_session_send_sequenced_game_packet(
+						from_id,
+						(uint8_t)requested_class,
+						(uint8_t)requested_sequence,
+						response_packet,
 						sizeof(uint32_t));
 				}
 			}
 			continue;
 		}
-		if (packetType == NET_PACKET_KEEPALIVE) {
-			if (packetSize >= 3 * sizeof(int)) {
-				unsigned int searchCount;
-				unsigned int historyCursor;
-				uint8_t packetClass;
-				int expectedBroadcast;
-				int expectedGroup;
-				int expectedDirected;
-				memcpy(&expectedBroadcast, packetData,
-				       sizeof(expectedBroadcast));
-				memcpy(&expectedGroup,
-				       packetData + sizeof(expectedBroadcast),
-				       sizeof(expectedGroup));
-				memcpy(&expectedDirected,
-				       packetData +
-					       2 * sizeof(expectedBroadcast),
-				       sizeof(expectedDirected));
-				if (expectedBroadcast ==
-				    (int)g_netSession.broadcastSeqCounter) {
-					expectedBroadcast = SEQUENCE_NONE;
+		if (packet_type == NET_PACKET_KEEPALIVE) {
+			if (packet_size >= 3 * sizeof(int)) {
+				unsigned int search_count;
+				unsigned int history_cursor;
+				uint8_t packet_class;
+				int expected_broadcast;
+				int expected_group;
+				int expected_directed;
+				memcpy(&expected_broadcast, packet_data,
+				       sizeof(expected_broadcast));
+				memcpy(&expected_group,
+				       packet_data + sizeof(expected_broadcast),
+				       sizeof(expected_group));
+				memcpy(&expected_directed,
+				       packet_data +
+					       2 * sizeof(expected_broadcast),
+				       sizeof(expected_directed));
+				if (expected_broadcast ==
+				    (int)g_net_session.broadcast_seq_counter) {
+					expected_broadcast = SEQUENCE_NONE;
 				}
-				if (expectedGroup ==
-				    (int)g_netSession.groupSeqCounter) {
-					expectedGroup = SEQUENCE_NONE;
+				if (expected_group ==
+				    (int)g_net_session.group_seq_counter) {
+					expected_group = SEQUENCE_NONE;
 				}
-				peerSlot = NetReliable_FindOrCreatePeerSlot(
-					fromId);
-				if (peerSlot >=
-					    g_netSession
-						    .reliablePeerSlotCount ||
-				    g_netSession.reliablePeerSlots[peerSlot]
-						    .sendSeq ==
-					    expectedDirected) {
-					expectedDirected = SEQUENCE_NONE;
+				peer_slot =
+					net_reliable_find_or_create_peer_slot(
+						from_id);
+				if (peer_slot >=
+					    g_net_session
+						    .reliable_peer_slot_count ||
+				    g_net_session.reliable_peer_slots[peer_slot]
+						    .send_seq ==
+					    expected_directed) {
+					expected_directed = SEQUENCE_NONE;
 				}
-				historyCursor = (unsigned int)
-					g_netSessionSentHistoryWriteIndex;
-				for (searchCount = 0;
-				     searchCount < HISTORY_CAPACITY &&
-				     (expectedBroadcast != SEQUENCE_NONE ||
-				      expectedGroup != SEQUENCE_NONE ||
-				      expectedDirected != SEQUENCE_NONE);
-				     ++searchCount) {
-					if (g_netSessionSentHistory
-						    [historyCursor]
-							    .payloadSize != 0) {
-						packetClass =
-							g_netSessionSentHistory
-								[historyCursor]
-									.packetClass;
-						if (packetClass == 0) {
-							if (g_netSessionSentHistory
-								    [historyCursor]
-									    .sequenceByte ==
-							    expectedBroadcast) {
-								NetSession_SendSequencedGamePacket(
-									fromId,
+				history_cursor = (unsigned int)
+					g_net_session_sent_history_write_index;
+				for (search_count = 0;
+				     search_count < HISTORY_CAPACITY &&
+				     (expected_broadcast != SEQUENCE_NONE ||
+				      expected_group != SEQUENCE_NONE ||
+				      expected_directed != SEQUENCE_NONE);
+				     ++search_count) {
+					if (g_net_session_sent_history
+						    [history_cursor]
+							    .payload_size !=
+					    0) {
+						packet_class =
+							g_net_session_sent_history
+								[history_cursor]
+									.packet_class;
+						if (packet_class == 0) {
+							if (g_net_session_sent_history
+								    [history_cursor]
+									    .sequence_byte ==
+							    expected_broadcast) {
+								net_session_send_sequenced_game_packet(
+									from_id,
 									0,
-									expectedBroadcast,
+									expected_broadcast,
 									(const unsigned int
-										 *)g_netSessionSentHistory
-										[historyCursor]
+										 *)g_net_session_sent_history
+										[history_cursor]
 											.payload,
-									g_netSessionSentHistory
-										[historyCursor]
-											.payloadSize);
-								expectedBroadcast =
+									g_net_session_sent_history
+										[history_cursor]
+											.payload_size);
+								expected_broadcast =
 									SEQUENCE_NONE;
 							}
-						} else if (packetClass == 2) {
-							if (g_netSessionSentHistory
-								    [historyCursor]
-									    .sequenceByte ==
-							    expectedGroup) {
-								NetSession_SendSequencedGamePacket(
-									fromId,
+						} else if (packet_class == 2) {
+							if (g_net_session_sent_history
+								    [history_cursor]
+									    .sequence_byte ==
+							    expected_group) {
+								net_session_send_sequenced_game_packet(
+									from_id,
 									2,
-									expectedGroup,
+									expected_group,
 									(const unsigned int
-										 *)g_netSessionSentHistory
-										[historyCursor]
+										 *)g_net_session_sent_history
+										[history_cursor]
 											.payload,
-									g_netSessionSentHistory
-										[historyCursor]
-											.payloadSize);
-								expectedGroup =
+									g_net_session_sent_history
+										[history_cursor]
+											.payload_size);
+								expected_group =
 									SEQUENCE_NONE;
 							}
 						} else if (
-							g_netSessionSentHistory[historyCursor]
-									.directPlayId ==
-								fromId &&
-							g_netSessionSentHistory[historyCursor]
-									.sequenceByte ==
-								expectedDirected) {
-							NetSession_SendSequencedGamePacket(
-								fromId, 1,
-								expectedDirected,
+							g_net_session_sent_history
+									[history_cursor]
+										.direct_play_id ==
+								from_id &&
+							g_net_session_sent_history
+									[history_cursor]
+										.sequence_byte ==
+								expected_directed) {
+							net_session_send_sequenced_game_packet(
+								from_id, 1,
+								expected_directed,
 								(const unsigned int
-									 *)g_netSessionSentHistory
-									[historyCursor]
+									 *)g_net_session_sent_history
+									[history_cursor]
 										.payload,
-								g_netSessionSentHistory
-									[historyCursor]
-										.payloadSize);
-							expectedDirected =
+								g_net_session_sent_history
+									[history_cursor]
+										.payload_size);
+							expected_directed =
 								SEQUENCE_NONE;
 						}
 					}
-					if (++historyCursor >=
+					if (++history_cursor >=
 					    HISTORY_CAPACITY) {
-						historyCursor = 0;
+						history_cursor = 0;
 					}
 				}
 			}
 			continue;
 		}
-		peerSlot = NetReliable_FindOrCreatePeerSlot(fromId);
-		if (broadcastChannel && groupChannel) {
-			uint8_t channelMarker;
-			const uint8_t *appPayload;
-			uint32_t appPayloadSize;
-			channelMarker = packetSize != 0 ? packetData[0] : 0;
-			appPayload =
-				packetSize != 0 ? packetData + 1 : packetData;
-			appPayloadSize = packetSize != 0 ? packetSize - 1 : 0;
-			if (hasLength &&
-			    NetSession_GetFixedPayloadSize(packetType) == 0 &&
-			    appPayloadSize >= sizeof(uint16_t)) {
-				uint16_t encodedSize;
-				memcpy(&encodedSize, appPayload,
-				       sizeof(encodedSize));
-				appPayload += sizeof(encodedSize);
-				appPayloadSize = encodedSize;
+		peer_slot = net_reliable_find_or_create_peer_slot(from_id);
+		if (broadcast_channel && group_channel) {
+			uint8_t channel_marker;
+			const uint8_t *app_payload;
+			uint32_t app_payload_size;
+			channel_marker = packet_size != 0 ? packet_data[0] : 0;
+			app_payload = packet_size != 0 ? packet_data + 1
+						       : packet_data;
+			app_payload_size =
+				packet_size != 0 ? packet_size - 1 : 0;
+			if (has_length &&
+			    net_session_get_fixed_payload_size(packet_type) ==
+				    0 &&
+			    app_payload_size >= sizeof(uint16_t)) {
+				uint16_t encoded_size;
+				memcpy(&encoded_size, app_payload,
+				       sizeof(encoded_size));
+				app_payload += sizeof(encoded_size);
+				app_payload_size = encoded_size;
 			}
-			if (appPayloadSize > MAX_PAYLOAD_SIZE) {
-				appPayloadSize = MAX_PAYLOAD_SIZE;
+			if (app_payload_size > MAX_PAYLOAD_SIZE) {
+				app_payload_size = MAX_PAYLOAD_SIZE;
 			}
-			memcpy(g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-				       .payload,
-			       &packetType, sizeof(packetType));
-			memcpy(g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-					       .payload +
-				       sizeof(packetType),
-			       appPayload, appPayloadSize);
-			g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-				.directPlayId = fromId;
-			g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-				.payloadSize =
-				appPayloadSize + sizeof(packetType);
-			g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-				.lastNackMs = 0;
-			g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-				.nackRetryCount = 0;
-			g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-				.isResentCopy = 1;
-			peerSlot = NetReliable_FindOrCreatePeerSlot(fromId);
-			if (channelMarker == 0) {
-				g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-					.packetClass = 0;
-				if (peerSlot < g_netSession
-						       .reliablePeerSlotCount &&
-				    peerSlot < 40) {
-					NetSession_AdvanceReceivedSequence(
-						&g_netSession
-							 .reliablePeerSlots
-								 [peerSlot]
-							 .recvSeqChannelA,
+			memcpy(g_net_session_recv_queue
+				       [g_net_recv_queue_write_index]
+					       .payload,
+			       &packet_type, sizeof(packet_type));
+			memcpy(g_net_session_recv_queue
+					       [g_net_recv_queue_write_index]
+						       .payload +
+				       sizeof(packet_type),
+			       app_payload, app_payload_size);
+			g_net_session_recv_queue[g_net_recv_queue_write_index]
+				.direct_play_id = from_id;
+			g_net_session_recv_queue[g_net_recv_queue_write_index]
+				.payload_size =
+				app_payload_size + sizeof(packet_type);
+			g_net_session_recv_queue[g_net_recv_queue_write_index]
+				.last_nack_ms = 0;
+			g_net_session_recv_queue[g_net_recv_queue_write_index]
+				.nack_retry_count = 0;
+			g_net_session_recv_queue[g_net_recv_queue_write_index]
+				.is_resent_copy = 1;
+			peer_slot =
+				net_reliable_find_or_create_peer_slot(from_id);
+			if (channel_marker == 0) {
+				g_net_session_recv_queue
+					[g_net_recv_queue_write_index]
+						.packet_class = 0;
+				if (peer_slot <
+					    g_net_session
+						    .reliable_peer_slot_count &&
+				    peer_slot < 40) {
+					net_session_advance_received_sequence(
+						&g_net_session
+							 .reliable_peer_slots
+								 [peer_slot]
+							 .recv_seq_channel_a,
 						sequence);
 				}
-			} else if (channelMarker == 2) {
-				g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-					.packetClass = 2;
-				if (peerSlot < g_netSession
-						       .reliablePeerSlotCount &&
-				    peerSlot < 40) {
-					NetSession_AdvanceReceivedSequence(
-						&g_netSession
-							 .reliablePeerSlots
-								 [peerSlot]
-							 .recvSeqChannelB,
+			} else if (channel_marker == 2) {
+				g_net_session_recv_queue
+					[g_net_recv_queue_write_index]
+						.packet_class = 2;
+				if (peer_slot <
+					    g_net_session
+						    .reliable_peer_slot_count &&
+				    peer_slot < 40) {
+					net_session_advance_received_sequence(
+						&g_net_session
+							 .reliable_peer_slots
+								 [peer_slot]
+							 .recv_seq_channel_b,
 						sequence);
 				}
 			} else {
-				g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-					.packetClass = 1;
-				if (peerSlot < g_netSession
-						       .reliablePeerSlotCount &&
-				    peerSlot < 40) {
-					NetSession_AdvanceReceivedSequence(
-						&g_netSession
-							 .reliablePeerSlots
-								 [peerSlot]
-							 .recvSeqDefault,
+				g_net_session_recv_queue
+					[g_net_recv_queue_write_index]
+						.packet_class = 1;
+				if (peer_slot <
+					    g_net_session
+						    .reliable_peer_slot_count &&
+				    peer_slot < 40) {
+					net_session_advance_received_sequence(
+						&g_net_session
+							 .reliable_peer_slots
+								 [peer_slot]
+							 .recv_seq_default,
 						sequence);
 				}
 			}
-			g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-				.sequenceByte = (uint8_t)sequence;
-			++g_netRecvQueueCount;
-			++g_netRecvQueueWriteIndex;
-			if (g_netRecvQueueWriteIndex >=
+			g_net_session_recv_queue[g_net_recv_queue_write_index]
+				.sequence_byte = (uint8_t)sequence;
+			++g_net_recv_queue_count;
+			++g_net_recv_queue_write_index;
+			if (g_net_recv_queue_write_index >=
 			    RECEIVE_QUEUE_CAPACITY) {
-				g_netRecvQueueWriteIndex = 0;
+				g_net_recv_queue_write_index = 0;
 			}
 			continue;
 		}
-		peerSlot = NetReliable_FindOrCreatePeerSlot(fromId);
-		if (hasLength) {
-			previousSequence = sequence == 0 ? SEQUENCE_MODULUS - 1
-							 : sequence - 1;
-			duplicate = NetReliable_CheckAndRecordRecvSequence(
-				fromId, previousSequence, broadcastChannel,
-				groupChannel);
+		peer_slot = net_reliable_find_or_create_peer_slot(from_id);
+		if (has_length) {
+			previous_sequence = sequence == 0 ? SEQUENCE_MODULUS - 1
+							  : sequence - 1;
+			duplicate = net_reliable_check_and_record_recv_sequence(
+				from_id, previous_sequence, broadcast_channel,
+				group_channel);
 			if (!duplicate) {
-				if (peerSlot < g_netSession
-						       .reliablePeerSlotCount &&
-				    peerSlot < 40 && !groupChannel) {
-					++g_netSession
-						  .reliablePeerSlots[peerSlot]
-						  .packetDropCount;
+				if (peer_slot <
+					    g_net_session
+						    .reliable_peer_slot_count &&
+				    peer_slot < 40 && !group_channel) {
+					++g_net_session
+						  .reliable_peer_slots
+							  [peer_slot]
+						  .packet_drop_count;
 				}
-				piggyback = packetData + packetSize;
-				piggybackSize =
-					wireSize -
+				piggyback = packet_data + packet_size;
+				piggyback_size =
+					wire_size -
 					(unsigned int)(piggyback -
-						       (uint8_t *)&wirePacket
+						       (uint8_t *)&wire_packet
 							       .header);
-				if (piggybackSize > 0) {
-					piggybackType = piggyback[0];
-					if (piggybackType != NET_PACKET_NOP) {
-						if (piggybackSize - 1 >
+				if (piggyback_size > 0) {
+					piggyback_type = piggyback[0];
+					if (piggyback_type != NET_PACKET_NOP) {
+						if (piggyback_size - 1 >
 						    MAX_PAYLOAD_SIZE) {
-							piggybackSize =
+							piggyback_size =
 								MAX_PAYLOAD_SIZE +
 								1;
 						}
-						memcpy(g_netSessionRecvQueue
-							       [g_netRecvQueueWriteIndex]
+						memcpy(g_net_session_recv_queue
+							       [g_net_recv_queue_write_index]
 								       .payload,
-						       &piggybackType,
-						       sizeof(piggybackType));
-						memcpy(g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-								       .payload +
+						       &piggyback_type,
+						       sizeof(piggyback_type));
+						memcpy(g_net_session_recv_queue
+								       [g_net_recv_queue_write_index]
+									       .payload +
 							       sizeof(uint32_t),
 						       piggyback + 1,
-						       piggybackSize - 1);
-						g_netSessionRecvQueue
-							[g_netRecvQueueWriteIndex]
-								.directPlayId =
-							fromId;
-						g_netSessionRecvQueue
-							[g_netRecvQueueWriteIndex]
-								.payloadSize =
-							piggybackSize +
+						       piggyback_size - 1);
+						g_net_session_recv_queue
+							[g_net_recv_queue_write_index]
+								.direct_play_id =
+							from_id;
+						g_net_session_recv_queue
+							[g_net_recv_queue_write_index]
+								.payload_size =
+							piggyback_size +
 							sizeof(uint32_t) - 1;
-						g_netSessionRecvQueue
-							[g_netRecvQueueWriteIndex]
-								.lastNackMs = 0;
-						g_netSessionRecvQueue
-							[g_netRecvQueueWriteIndex]
-								.nackRetryCount =
+						g_net_session_recv_queue
+							[g_net_recv_queue_write_index]
+								.last_nack_ms =
 							0;
-						g_netSessionRecvQueue
-							[g_netRecvQueueWriteIndex]
-								.isResentCopy =
+						g_net_session_recv_queue
+							[g_net_recv_queue_write_index]
+								.nack_retry_count =
 							0;
-						if (broadcastChannel) {
-							g_netSessionRecvQueue
-								[g_netRecvQueueWriteIndex]
-									.packetClass =
+						g_net_session_recv_queue
+							[g_net_recv_queue_write_index]
+								.is_resent_copy =
+							0;
+						if (broadcast_channel) {
+							g_net_session_recv_queue
+								[g_net_recv_queue_write_index]
+									.packet_class =
 								0;
 						} else {
-							g_netSessionRecvQueue
-								[g_netRecvQueueWriteIndex]
-									.packetClass =
+							g_net_session_recv_queue
+								[g_net_recv_queue_write_index]
+									.packet_class =
 								2;
-							if (!groupChannel) {
-								g_netSessionRecvQueue
-									[g_netRecvQueueWriteIndex]
-										.packetClass =
+							if (!group_channel) {
+								g_net_session_recv_queue
+									[g_net_recv_queue_write_index]
+										.packet_class =
 									1;
 							}
 						}
-						g_netSessionRecvQueue
-							[g_netRecvQueueWriteIndex]
-								.sequenceByte =
+						g_net_session_recv_queue
+							[g_net_recv_queue_write_index]
+								.sequence_byte =
 							(uint8_t)
-								previousSequence;
-						++g_netRecvQueueWriteIndex;
-						++g_netRecvQueueCount;
-						if (g_netRecvQueueWriteIndex >=
+								previous_sequence;
+						++g_net_recv_queue_write_index;
+						++g_net_recv_queue_count;
+						if (g_net_recv_queue_write_index >=
 						    RECEIVE_QUEUE_CAPACITY) {
-							g_netRecvQueueWriteIndex =
+							g_net_recv_queue_write_index =
 								0;
 						}
 					}
 				}
 			}
 		}
-		duplicate = NetReliable_CheckAndRecordRecvSequence(
-			fromId, sequence, broadcastChannel, groupChannel);
-		if (!groupChannel || !duplicate) {
-			memcpy(g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-				       .payload,
-			       &packetType, sizeof(packetType));
-			memcpy(g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-					       .payload +
-				       sizeof(packetType),
-			       packetData, packetSize);
-			g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-				.directPlayId = fromId;
-			g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-				.payloadSize = packetSize + sizeof(packetType);
-			g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-				.lastNackMs = 0;
-			g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-				.nackRetryCount = 0;
-			g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-				.isResentCopy = 1;
+		duplicate = net_reliable_check_and_record_recv_sequence(
+			from_id, sequence, broadcast_channel, group_channel);
+		if (!group_channel || !duplicate) {
+			memcpy(g_net_session_recv_queue
+				       [g_net_recv_queue_write_index]
+					       .payload,
+			       &packet_type, sizeof(packet_type));
+			memcpy(g_net_session_recv_queue
+					       [g_net_recv_queue_write_index]
+						       .payload +
+				       sizeof(packet_type),
+			       packet_data, packet_size);
+			g_net_session_recv_queue[g_net_recv_queue_write_index]
+				.direct_play_id = from_id;
+			g_net_session_recv_queue[g_net_recv_queue_write_index]
+				.payload_size =
+				packet_size + sizeof(packet_type);
+			g_net_session_recv_queue[g_net_recv_queue_write_index]
+				.last_nack_ms = 0;
+			g_net_session_recv_queue[g_net_recv_queue_write_index]
+				.nack_retry_count = 0;
+			g_net_session_recv_queue[g_net_recv_queue_write_index]
+				.is_resent_copy = 1;
 			if (!duplicate) {
-				g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-					.isResentCopy = 0;
+				g_net_session_recv_queue
+					[g_net_recv_queue_write_index]
+						.is_resent_copy = 0;
 			}
-			if (broadcastChannel) {
-				g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-					.packetClass = 0;
+			if (broadcast_channel) {
+				g_net_session_recv_queue
+					[g_net_recv_queue_write_index]
+						.packet_class = 0;
 			} else {
-				g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-					.packetClass = 2;
-				if (!groupChannel) {
-					g_netSessionRecvQueue
-						[g_netRecvQueueWriteIndex]
-							.packetClass = 1;
+				g_net_session_recv_queue
+					[g_net_recv_queue_write_index]
+						.packet_class = 2;
+				if (!group_channel) {
+					g_net_session_recv_queue
+						[g_net_recv_queue_write_index]
+							.packet_class = 1;
 				}
 			}
-			g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-				.sequenceByte = (uint8_t)sequence;
-			++g_netRecvQueueWriteIndex;
-			++g_netRecvQueueCount;
-			if (g_netRecvQueueWriteIndex >=
+			g_net_session_recv_queue[g_net_recv_queue_write_index]
+				.sequence_byte = (uint8_t)sequence;
+			++g_net_recv_queue_write_index;
+			++g_net_recv_queue_count;
+			if (g_net_recv_queue_write_index >=
 			    RECEIVE_QUEUE_CAPACITY) {
-				g_netRecvQueueWriteIndex = 0;
+				g_net_recv_queue_write_index = 0;
 			}
 		}
 	}
 }
 
-/* Sends the packet with NetSession_SendPacket to every active roster entry with
+/* Sends the packet with net_session_send_packet to every active roster entry with
  * a nonzero id, this player included. Returns the last send's result when the
  * last roster entry was sent to; otherwise that entry's DirectPlay id, or the
  * roster count when the roster is empty. */
 // FUNCTION: XVT 0x46D300
-int NetSession_BroadcastPacketToPlayers(unsigned int *payload, int payloadSize)
+int net_session_broadcast_packet_to_players(unsigned int *payload,
+					    int payload_size)
 {
 	int result;
-	int playerIndex;
+	int player_index;
 
-	result = g_netSession.playerCount;
+	result = g_net_session.player_count;
 	if (result > 0) {
-		for (playerIndex = 0; playerIndex < g_netSession.playerCount;
-		     ++playerIndex) {
-			result = g_netSession.players[playerIndex].directPlayId;
+		for (player_index = 0;
+		     player_index < g_net_session.player_count;
+		     ++player_index) {
+			result = g_net_session.players[player_index]
+					 .direct_play_id;
 			if (result != 0 &&
-			    g_netSession.players[playerIndex].activeFlag != 0) {
-				result = NetSession_SendPacket(result, payload,
-							       payloadSize);
+			    g_net_session.players[player_index].active_flag !=
+				    0) {
+				result = net_session_send_packet(
+					result, payload, payload_size);
 			}
 		}
 	}
 	return result;
 }
 
-/* Sends one game packet whose first word is its type; payloadSize counts its
+/* Sends one game packet whose first word is its type; payload_size counts its
  * bytes, and below 4 nothing is sent and 0 returned. The packet goes out with a
  * 2-byte header, the type in the low 7 bits and a 7-bit sequence above, on one
- * of three channels: to id 0, all players, on g_netSession.broadcastSeqCounter;
- * to the session group, or any internet-play REMOTE_INPUT, on groupSeqCounter
+ * of three channels: to id 0, all players, on g_net_session.broadcast_seq_counter;
+ * to the session group, or any internet-play REMOTE_INPUT, on group_seq_counter
  * (bits 0x8080); to one player, on that peer's reliable slot sequence (bit
  * 0x8000). Outside the resync types (RESYNC_CHECKSUMS to RESYNC_CHUNK) the body
  * gets a 2-byte length and, behind it, the channel's previous packet (a NOP the
  * first time), from which a receiver can recover a lost one; this packet then
  * becomes the channel's saved copy. Packets to others go into
- * g_netSessionSentHistory, and world messages into
- * g_netSessionSentWorldMessageHistory, for resends; internet-play inputs do
+ * g_net_session_sent_history, and world messages into
+ * g_net_session_sent_world_message_history, for resends; internet-play inputs do
  * not. A packet to all, to the group, to this player, or sent with no
  * DirectPlay interface is also queued for this player to receive, in
- * g_netSessionRecvQueue with g_netRecvQueueWriteIndex and g_netRecvQueueCount.
+ * g_net_session_recv_queue with g_net_recv_queue_write_index and g_net_recv_queue_count.
  * Returns 1 when DirectPlay takes it, when the destination is this player, or
  * with no interface; else 0. The original arm's check before it records its own
  * receive sequence compares a 0-or-1 flag with 40, so it always passes; the
- * modern arm checks the slot. Does not check payloadSize against the 512-byte
+ * modern arm checks the slot. Does not check payload_size against the 512-byte
  * saved copies and history entries, or the reliable slot index before it uses
  * the slot's saved copy. */
 // FUNCTION: XVT 0x46D350
-int NetSession_SendPacket(int directPlayId, unsigned int *payload,
-			  signed int payloadSize)
+int net_session_send_packet(int direct_play_id, unsigned int *payload,
+			    signed int payload_size)
 {
-	unsigned int packetType;
-	int appendPending;
-	uint16_t packetHeader;
-	int sendResult;
-	struct NetSessionCompactEncodedPacket encodedPacket;
-	uint8_t *encodedPayload;
-	int encodedHeaderSize;
-	int encodedSize;
-	uint8_t packetTypeByte[4];
+	unsigned int packet_type;
+	int append_pending;
+	uint16_t packet_header;
+	int send_result;
+	struct net_session_compact_encoded_packet encoded_packet;
+	uint8_t *encoded_payload;
+	int encoded_header_size;
+	int encoded_size;
+	uint8_t packet_type_byte[4];
 
-	sendResult = 0;
-	if (payloadSize < 4) {
+	send_result = 0;
+	if (payload_size < 4) {
 		return 0;
 	}
 
-	packetType = *payload;
-	packetHeader = packetTypeByte[0] = packetType & 0x7F;
-	if (packetType < NET_PACKET_RESYNC_CHECKSUMS ||
-	    packetType >= NET_PACKET_RESYNC_CHUNK + 1) {
-		appendPending = 1;
+	packet_type = *payload;
+	packet_header = packet_type_byte[0] = packet_type & 0x7F;
+	if (packet_type < NET_PACKET_RESYNC_CHECKSUMS ||
+	    packet_type >= NET_PACKET_RESYNC_CHUNK + 1) {
+		append_pending = 1;
 	} else {
-		appendPending = 0;
+		append_pending = 0;
 	}
 
-	if (packetType == NET_PACKET_REMOTE_INPUT &&
-	    g_gameConfig.internetPlay == 1) {
-		packetHeader |= (g_netSession.groupSeqCounter & 0x7F) << 8;
-		++g_netSession.groupSeqCounter;
-		packetHeader |= 0x8080;
-		if ((int)g_netSession.groupSeqCounter > 127) {
-			g_netSession.groupSeqCounter = 0;
+	if (packet_type == NET_PACKET_REMOTE_INPUT &&
+	    g_game_config.internet_play == 1) {
+		packet_header |= (g_net_session.group_seq_counter & 0x7F) << 8;
+		++g_net_session.group_seq_counter;
+		packet_header |= 0x8080;
+		if ((int)g_net_session.group_seq_counter > 127) {
+			g_net_session.group_seq_counter = 0;
 		}
-		encodedPacket.packetTypeHeader = packetHeader;
-		encodedPayload = (uint8_t *)&encodedPacket.payloadSize;
-		encodedHeaderSize = 2;
-		if (appendPending &&
-		    NetSession_GetFixedPayloadSize(packetType) == 0) {
-			encodedPacket.payloadSize = payloadSize - 4;
-			encodedPayload = encodedPacket.payload;
-			encodedHeaderSize = 4;
+		encoded_packet.packet_type_header = packet_header;
+		encoded_payload = (uint8_t *)&encoded_packet.payload_size;
+		encoded_header_size = 2;
+		if (append_pending &&
+		    net_session_get_fixed_payload_size(packet_type) == 0) {
+			encoded_packet.payload_size = payload_size - 4;
+			encoded_payload = encoded_packet.payload;
+			encoded_header_size = 4;
 		}
-		memcpy(encodedPayload, payload + 1, payloadSize - 4);
-		encodedPayload += payloadSize - 4;
-		encodedSize = payloadSize + encodedHeaderSize - 4;
-		if (appendPending) {
-			if (g_netSession.groupPiggybackEmpty != 0) {
-				*encodedPayload = NET_PACKET_NOP;
-				g_netSession.groupPiggybackEmpty = 0;
-				++encodedSize;
+		memcpy(encoded_payload, payload + 1, payload_size - 4);
+		encoded_payload += payload_size - 4;
+		encoded_size = payload_size + encoded_header_size - 4;
+		if (append_pending) {
+			if (g_net_session.group_piggyback_empty != 0) {
+				*encoded_payload = NET_PACKET_NOP;
+				g_net_session.group_piggyback_empty = 0;
+				++encoded_size;
 			} else {
-				memcpy(encodedPayload,
-				       g_netSession.groupPayload,
-				       g_netSession.groupPayloadLength);
-				encodedSize += g_netSession.groupPayloadLength;
+				memcpy(encoded_payload,
+				       g_net_session.group_payload,
+				       g_net_session.group_payload_length);
+				encoded_size +=
+					g_net_session.group_payload_length;
 			}
 		}
-		g_netSession.groupPayload[0] = packetTypeByte[0];
-		memcpy(g_netSession.groupPayload + 1, payload + 1,
-		       payloadSize - 4);
-		g_netSession.groupPayloadLength = payloadSize - 3;
-	} else if (directPlayId == 0) {
-		packetHeader |= (g_netSession.broadcastSeqCounter & 0x7F) << 8;
-		++g_netSession.broadcastSeqCounter;
-		if ((int)g_netSession.broadcastSeqCounter > 127) {
-			g_netSession.broadcastSeqCounter = 0;
+		g_net_session.group_payload[0] = packet_type_byte[0];
+		memcpy(g_net_session.group_payload + 1, payload + 1,
+		       payload_size - 4);
+		g_net_session.group_payload_length = payload_size - 3;
+	} else if (direct_play_id == 0) {
+		packet_header |= (g_net_session.broadcast_seq_counter & 0x7F)
+				 << 8;
+		++g_net_session.broadcast_seq_counter;
+		if ((int)g_net_session.broadcast_seq_counter > 127) {
+			g_net_session.broadcast_seq_counter = 0;
 		}
-		encodedPacket.packetTypeHeader = packetHeader;
-		encodedPayload = (uint8_t *)&encodedPacket.payloadSize;
-		encodedHeaderSize = 2;
-		if (appendPending &&
-		    NetSession_GetFixedPayloadSize(packetType) == 0) {
-			encodedPacket.payloadSize = payloadSize - 4;
-			encodedPayload = encodedPacket.payload;
-			encodedHeaderSize = 4;
+		encoded_packet.packet_type_header = packet_header;
+		encoded_payload = (uint8_t *)&encoded_packet.payload_size;
+		encoded_header_size = 2;
+		if (append_pending &&
+		    net_session_get_fixed_payload_size(packet_type) == 0) {
+			encoded_packet.payload_size = payload_size - 4;
+			encoded_payload = encoded_packet.payload;
+			encoded_header_size = 4;
 		}
-		memcpy(encodedPayload, payload + 1, payloadSize - 4);
-		encodedPayload += payloadSize - 4;
-		encodedSize = payloadSize + encodedHeaderSize - 4;
-		if (appendPending) {
-			if (g_netSession.broadcastPiggybackEmpty != 0) {
-				*encodedPayload = NET_PACKET_NOP;
-				g_netSession.broadcastPiggybackEmpty = 0;
-				++encodedSize;
+		memcpy(encoded_payload, payload + 1, payload_size - 4);
+		encoded_payload += payload_size - 4;
+		encoded_size = payload_size + encoded_header_size - 4;
+		if (append_pending) {
+			if (g_net_session.broadcast_piggyback_empty != 0) {
+				*encoded_payload = NET_PACKET_NOP;
+				g_net_session.broadcast_piggyback_empty = 0;
+				++encoded_size;
 			} else {
-				memcpy(encodedPayload,
-				       g_netSession.broadcastPayload,
-				       g_netSession.broadcastPayloadLength);
-				encodedSize +=
-					g_netSession.broadcastPayloadLength;
+				memcpy(encoded_payload,
+				       g_net_session.broadcast_payload,
+				       g_net_session.broadcast_payload_length);
+				encoded_size +=
+					g_net_session.broadcast_payload_length;
 			}
 		}
-		g_netSession.broadcastPayload[0] = packetTypeByte[0];
-		memcpy(g_netSession.broadcastPayload + 1, payload + 1,
-		       payloadSize - 4);
-		g_netSession.broadcastPayloadLength = payloadSize - 3;
-	} else if (directPlayId == g_netSession.groupDplayId) {
-		packetHeader |= (g_netSession.groupSeqCounter & 0x7F) << 8;
-		++g_netSession.groupSeqCounter;
-		packetHeader |= 0x8080;
-		if ((int)g_netSession.groupSeqCounter > 127) {
-			g_netSession.groupSeqCounter = 0;
+		g_net_session.broadcast_payload[0] = packet_type_byte[0];
+		memcpy(g_net_session.broadcast_payload + 1, payload + 1,
+		       payload_size - 4);
+		g_net_session.broadcast_payload_length = payload_size - 3;
+	} else if (direct_play_id == g_net_session.group_dplay_id) {
+		packet_header |= (g_net_session.group_seq_counter & 0x7F) << 8;
+		++g_net_session.group_seq_counter;
+		packet_header |= 0x8080;
+		if ((int)g_net_session.group_seq_counter > 127) {
+			g_net_session.group_seq_counter = 0;
 		}
-		encodedPacket.packetTypeHeader = packetHeader;
-		encodedPayload = (uint8_t *)&encodedPacket.payloadSize;
-		encodedHeaderSize = 2;
-		if (appendPending &&
-		    NetSession_GetFixedPayloadSize(packetType) == 0) {
-			encodedPacket.payloadSize = payloadSize - 4;
-			encodedPayload = encodedPacket.payload;
-			encodedHeaderSize = 4;
+		encoded_packet.packet_type_header = packet_header;
+		encoded_payload = (uint8_t *)&encoded_packet.payload_size;
+		encoded_header_size = 2;
+		if (append_pending &&
+		    net_session_get_fixed_payload_size(packet_type) == 0) {
+			encoded_packet.payload_size = payload_size - 4;
+			encoded_payload = encoded_packet.payload;
+			encoded_header_size = 4;
 		}
-		memcpy(encodedPayload, payload + 1, payloadSize - 4);
-		encodedPayload += payloadSize - 4;
-		encodedSize = payloadSize + encodedHeaderSize - 4;
-		if (appendPending) {
-			if (g_netSession.groupPiggybackEmpty != 0) {
-				*encodedPayload = NET_PACKET_NOP;
-				g_netSession.groupPiggybackEmpty = 0;
-				++encodedSize;
+		memcpy(encoded_payload, payload + 1, payload_size - 4);
+		encoded_payload += payload_size - 4;
+		encoded_size = payload_size + encoded_header_size - 4;
+		if (append_pending) {
+			if (g_net_session.group_piggyback_empty != 0) {
+				*encoded_payload = NET_PACKET_NOP;
+				g_net_session.group_piggyback_empty = 0;
+				++encoded_size;
 			} else {
-				memcpy(encodedPayload,
-				       g_netSession.groupPayload,
-				       g_netSession.groupPayloadLength);
-				encodedSize += g_netSession.groupPayloadLength;
+				memcpy(encoded_payload,
+				       g_net_session.group_payload,
+				       g_net_session.group_payload_length);
+				encoded_size +=
+					g_net_session.group_payload_length;
 			}
 		}
-		g_netSession.groupPayload[0] = packetTypeByte[0];
-		memcpy(g_netSession.groupPayload + 1, payload + 1,
-		       payloadSize - 4);
-		g_netSession.groupPayloadLength = payloadSize - 3;
+		g_net_session.group_payload[0] = packet_type_byte[0];
+		memcpy(g_net_session.group_payload + 1, payload + 1,
+		       payload_size - 4);
+		g_net_session.group_payload_length = payload_size - 3;
 	} else {
-		unsigned int peerSlot =
-			NetReliable_FindOrCreatePeerSlot(directPlayId);
-		if (g_netSession.reliablePeerSlotCount > peerSlot &&
-		    peerSlot < 40) {
-			int sendSequence;
-			sendSequence = g_netSession.reliablePeerSlots[peerSlot]
-					       .sendSeq;
-			packetHeader |= (sendSequence++ & 0x7F) << 8;
-			g_netSession.reliablePeerSlots[peerSlot].sendSeq =
-				sendSequence;
-			if (sendSequence > 127) {
-				g_netSession.reliablePeerSlots[peerSlot]
-					.sendSeq = 0;
+		unsigned int peer_slot =
+			net_reliable_find_or_create_peer_slot(direct_play_id);
+		if (g_net_session.reliable_peer_slot_count > peer_slot &&
+		    peer_slot < 40) {
+			int send_sequence;
+			send_sequence =
+				g_net_session.reliable_peer_slots[peer_slot]
+					.send_seq;
+			packet_header |= (send_sequence++ & 0x7F) << 8;
+			g_net_session.reliable_peer_slots[peer_slot].send_seq =
+				send_sequence;
+			if (send_sequence > 127) {
+				g_net_session.reliable_peer_slots[peer_slot]
+					.send_seq = 0;
 			}
 		}
-		packetHeader |= 0x8000;
-		encodedPacket.packetTypeHeader = packetHeader;
-		encodedPayload = (uint8_t *)&encodedPacket.payloadSize;
-		encodedHeaderSize = 2;
-		if (appendPending &&
-		    NetSession_GetFixedPayloadSize(packetType) == 0) {
-			encodedPacket.payloadSize = payloadSize - 4;
-			encodedPayload = encodedPacket.payload;
-			encodedHeaderSize = 4;
+		packet_header |= 0x8000;
+		encoded_packet.packet_type_header = packet_header;
+		encoded_payload = (uint8_t *)&encoded_packet.payload_size;
+		encoded_header_size = 2;
+		if (append_pending &&
+		    net_session_get_fixed_payload_size(packet_type) == 0) {
+			encoded_packet.payload_size = payload_size - 4;
+			encoded_payload = encoded_packet.payload;
+			encoded_header_size = 4;
 		}
-		memcpy(encodedPayload, payload + 1, payloadSize - 4);
-		encodedPayload += payloadSize - 4;
-		encodedSize = payloadSize + encodedHeaderSize - 4;
-		if (appendPending) {
-			memcpy(encodedPayload,
-			       &g_netSession.reliablePeerSlots[peerSlot]
-					.lastPiggybackType,
-			       g_netSession.reliablePeerSlots[peerSlot]
-				       .piggybackLength);
-			encodedSize += g_netSession.reliablePeerSlots[peerSlot]
-					       .piggybackLength;
+		memcpy(encoded_payload, payload + 1, payload_size - 4);
+		encoded_payload += payload_size - 4;
+		encoded_size = payload_size + encoded_header_size - 4;
+		if (append_pending) {
+			memcpy(encoded_payload,
+			       &g_net_session.reliable_peer_slots[peer_slot]
+					.last_piggyback_type,
+			       g_net_session.reliable_peer_slots[peer_slot]
+				       .piggyback_length);
+			encoded_size +=
+				g_net_session.reliable_peer_slots[peer_slot]
+					.piggyback_length;
 		}
-		g_netSession.reliablePeerSlots[peerSlot].lastPiggybackType =
-			packetTypeByte[0];
-		memcpy(g_netSession.reliablePeerSlots[peerSlot]
-			       .piggybackPayload,
-		       payload + 1, payloadSize - 4);
-		g_netSession.reliablePeerSlots[peerSlot].piggybackLength =
-			payloadSize - 3;
+		g_net_session.reliable_peer_slots[peer_slot]
+			.last_piggyback_type = packet_type_byte[0];
+		memcpy(g_net_session.reliable_peer_slots[peer_slot]
+			       .piggyback_payload,
+		       payload + 1, payload_size - 4);
+		g_net_session.reliable_peer_slots[peer_slot].piggyback_length =
+			payload_size - 3;
 	}
 
-	if ((packetType != NET_PACKET_REMOTE_INPUT ||
-	     g_gameConfig.internetPlay != 1) &&
-	    g_netSession.localPlayerInfo.directPlayId != directPlayId) {
-		if (packetType == NET_PACKET_WORLD_MESSAGE) {
-			struct NetQueuedPacket *queuedPacket;
-			memcpy(g_netSessionSentWorldMessageHistory
-				       [g_netSessionSentWorldMessageWriteIndex]
+	if ((packet_type != NET_PACKET_REMOTE_INPUT ||
+	     g_game_config.internet_play != 1) &&
+	    g_net_session.local_player_info.direct_play_id != direct_play_id) {
+		if (packet_type == NET_PACKET_WORLD_MESSAGE) {
+			struct net_queued_packet *queued_packet;
+			memcpy(g_net_session_sent_world_message_history
+				       [g_net_session_sent_world_message_write_index]
 					       .payload,
-			       payload, payloadSize);
-			queuedPacket =
-				&g_netSessionSentWorldMessageHistory
-					[g_netSessionSentWorldMessageWriteIndex];
-			queuedPacket->directPlayId = directPlayId;
-			queuedPacket->payloadSize = payloadSize;
-			queuedPacket->lastNackMs = 0;
-			queuedPacket->nackRetryCount = 0;
-			queuedPacket->packetClass = 0;
-			queuedPacket->sequenceByte =
-				(encodedPacket.packetTypeHeader & 0x7F00) >> 8;
-			++g_netSessionSentWorldMessageWriteIndex;
-			if (g_netSessionSentWorldMessageWriteIndex >= 256) {
-				g_netSessionSentWorldMessageWriteIndex = 0;
+			       payload, payload_size);
+			queued_packet =
+				&g_net_session_sent_world_message_history
+					[g_net_session_sent_world_message_write_index];
+			queued_packet->direct_play_id = direct_play_id;
+			queued_packet->payload_size = payload_size;
+			queued_packet->last_nack_ms = 0;
+			queued_packet->nack_retry_count = 0;
+			queued_packet->packet_class = 0;
+			queued_packet->sequence_byte =
+				(encoded_packet.packet_type_header & 0x7F00) >>
+				8;
+			++g_net_session_sent_world_message_write_index;
+			if (g_net_session_sent_world_message_write_index >=
+			    256) {
+				g_net_session_sent_world_message_write_index =
+					0;
 			}
 		}
 
 		{
-			int historyIndex;
-			memcpy(g_netSessionSentHistory
-				       [g_netSessionSentHistoryWriteIndex]
+			int history_index;
+			memcpy(g_net_session_sent_history
+				       [g_net_session_sent_history_write_index]
 					       .payload,
-			       payload, payloadSize);
-			historyIndex = g_netSessionSentHistoryWriteIndex;
-			g_netSessionSentHistory[historyIndex].directPlayId =
-				directPlayId;
-			g_netSessionSentHistory[historyIndex].payloadSize =
-				payloadSize;
-			g_netSessionSentHistory[historyIndex].lastNackMs = 0;
-			g_netSessionSentHistory[historyIndex].nackRetryCount =
+			       payload, payload_size);
+			history_index = g_net_session_sent_history_write_index;
+			g_net_session_sent_history[history_index]
+				.direct_play_id = direct_play_id;
+			g_net_session_sent_history[history_index].payload_size =
+				payload_size;
+			g_net_session_sent_history[history_index].last_nack_ms =
 				0;
-			if (directPlayId == 0) {
-				g_netSessionSentHistory[historyIndex]
-					.packetClass = 0;
-			} else if (directPlayId == g_netSession.groupDplayId) {
-				g_netSessionSentHistory[historyIndex]
-					.packetClass = 2;
+			g_net_session_sent_history[history_index]
+				.nack_retry_count = 0;
+			if (direct_play_id == 0) {
+				g_net_session_sent_history[history_index]
+					.packet_class = 0;
+			} else if (direct_play_id ==
+				   g_net_session.group_dplay_id) {
+				g_net_session_sent_history[history_index]
+					.packet_class = 2;
 			} else {
-				g_netSessionSentHistory[historyIndex]
-					.packetClass = 1;
+				g_net_session_sent_history[history_index]
+					.packet_class = 1;
 			}
-			++g_netSessionSentHistoryWriteIndex;
-			g_netSessionSentHistory[historyIndex].sequenceByte =
-				(encodedPacket.packetTypeHeader & 0x7F00) >> 8;
+			++g_net_session_sent_history_write_index;
+			g_net_session_sent_history[history_index]
+				.sequence_byte =
+				(encoded_packet.packet_type_header & 0x7F00) >>
+				8;
 		}
-		if (g_netSessionSentHistoryWriteIndex >= 128) {
-			g_netSessionSentHistoryWriteIndex = 0;
+		if (g_net_session_sent_history_write_index >= 128) {
+			g_net_session_sent_history_write_index = 0;
 		}
 	}
 
-	if (g_netSession.localPlayerInfo.directPlayId == directPlayId ||
-	    directPlayId == 0 || g_netSession.dplayInterface == NULL ||
-	    directPlayId == g_netSession.groupDplayId) {
-		if ((int)g_netRecvQueueCount >= 1024) {
-			NetReliable_KeepOnlyHostReceivedPackets();
+	if (g_net_session.local_player_info.direct_play_id == direct_play_id ||
+	    direct_play_id == 0 || g_net_session.dplay_interface == NULL ||
+	    direct_play_id == g_net_session.group_dplay_id) {
+		if ((int)g_net_recv_queue_count >= 1024) {
+			net_reliable_keep_only_host_received_packets();
 		}
-		if ((int)g_netRecvQueueCount < 1024) {
-			unsigned int queueIndex;
-			unsigned int peerSlot;
-			int peerSlotAvailable;
-			memcpy(g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-				       .payload,
-			       payload, payloadSize);
-			queueIndex = (unsigned int)g_netRecvQueueWriteIndex;
-			g_netSessionRecvQueue[queueIndex].directPlayId =
-				(DPID)g_netSession.localPlayerInfo.directPlayId;
-			g_netSessionRecvQueue[queueIndex].payloadSize =
-				payloadSize;
-			g_netSessionRecvQueue[queueIndex].lastNackMs = 0;
-			g_netSessionRecvQueue[queueIndex].nackRetryCount = 0;
-			g_netSessionRecvQueue[queueIndex].isResentCopy = 0;
-			peerSlot = NetReliable_FindOrCreatePeerSlot(
-				g_netSession.localPlayerInfo.directPlayId);
-			if (packetType == NET_PACKET_REMOTE_INPUT &&
-			    g_gameConfig.internetPlay == 1) {
-				peerSlotAvailable =
-					peerSlot <
-					g_netSession.reliablePeerSlotCount;
-				g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-					.packetClass = 2;
+		if ((int)g_net_recv_queue_count < 1024) {
+			unsigned int queue_index;
+			unsigned int peer_slot;
+			int peer_slot_available;
+			memcpy(g_net_session_recv_queue
+				       [g_net_recv_queue_write_index]
+					       .payload,
+			       payload, payload_size);
+			queue_index =
+				(unsigned int)g_net_recv_queue_write_index;
+			g_net_session_recv_queue[queue_index].direct_play_id =
+				(DPID)g_net_session.local_player_info
+					.direct_play_id;
+			g_net_session_recv_queue[queue_index].payload_size =
+				payload_size;
+			g_net_session_recv_queue[queue_index].last_nack_ms = 0;
+			g_net_session_recv_queue[queue_index].nack_retry_count =
+				0;
+			g_net_session_recv_queue[queue_index].is_resent_copy =
+				0;
+			peer_slot = net_reliable_find_or_create_peer_slot(
+				g_net_session.local_player_info.direct_play_id);
+			if (packet_type == NET_PACKET_REMOTE_INPUT &&
+			    g_game_config.internet_play == 1) {
+				peer_slot_available =
+					peer_slot <
+					g_net_session.reliable_peer_slot_count;
+				g_net_session_recv_queue
+					[g_net_recv_queue_write_index]
+						.packet_class = 2;
 #ifdef XVT_MODERN
-				if (peerSlotAvailable && peerSlot < 40) {
+				if (peer_slot_available && peer_slot < 40) {
 #else
-				if (peerSlotAvailable < 40) {
+				if (peer_slot_available < 40) {
 #endif
-					packetHeader &= 0x7F00;
-					packetHeader >>= 8;
-					g_netSession.reliablePeerSlots[peerSlot]
-						.recvSeqChannelB = packetHeader;
+					packet_header &= 0x7F00;
+					packet_header >>= 8;
+					g_net_session
+						.reliable_peer_slots[peer_slot]
+						.recv_seq_channel_b =
+						packet_header;
 				}
-			} else if (directPlayId == 0) {
-				g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-					.packetClass = 0;
-				if (peerSlot < g_netSession
-						       .reliablePeerSlotCount &&
-				    peerSlot < 40) {
-					packetHeader &= 0x7F00;
-					packetHeader >>= 8;
-					g_netSession.reliablePeerSlots[peerSlot]
-						.recvSeqChannelA = packetHeader;
+			} else if (direct_play_id == 0) {
+				g_net_session_recv_queue
+					[g_net_recv_queue_write_index]
+						.packet_class = 0;
+				if (peer_slot <
+					    g_net_session
+						    .reliable_peer_slot_count &&
+				    peer_slot < 40) {
+					packet_header &= 0x7F00;
+					packet_header >>= 8;
+					g_net_session
+						.reliable_peer_slots[peer_slot]
+						.recv_seq_channel_a =
+						packet_header;
 				}
-			} else if (directPlayId == g_netSession.groupDplayId) {
-				peerSlotAvailable =
-					peerSlot <
-					g_netSession.reliablePeerSlotCount;
-				g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-					.packetClass = 2;
+			} else if (direct_play_id ==
+				   g_net_session.group_dplay_id) {
+				peer_slot_available =
+					peer_slot <
+					g_net_session.reliable_peer_slot_count;
+				g_net_session_recv_queue
+					[g_net_recv_queue_write_index]
+						.packet_class = 2;
 #ifdef XVT_MODERN
-				if (peerSlotAvailable && peerSlot < 40) {
+				if (peer_slot_available && peer_slot < 40) {
 #else
-				if (peerSlotAvailable < 40) {
+				if (peer_slot_available < 40) {
 #endif
-					packetHeader &= 0x7F00;
-					packetHeader >>= 8;
-					g_netSession.reliablePeerSlots[peerSlot]
-						.recvSeqChannelB = packetHeader;
+					packet_header &= 0x7F00;
+					packet_header >>= 8;
+					g_net_session
+						.reliable_peer_slots[peer_slot]
+						.recv_seq_channel_b =
+						packet_header;
 				}
 			} else {
-				peerSlotAvailable =
-					peerSlot <
-					g_netSession.reliablePeerSlotCount;
-				g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-					.packetClass = 1;
+				peer_slot_available =
+					peer_slot <
+					g_net_session.reliable_peer_slot_count;
+				g_net_session_recv_queue
+					[g_net_recv_queue_write_index]
+						.packet_class = 1;
 #ifdef XVT_MODERN
-				if (peerSlotAvailable && peerSlot < 40) {
+				if (peer_slot_available && peer_slot < 40) {
 #else
-				if (peerSlotAvailable < 40) {
+				if (peer_slot_available < 40) {
 #endif
-					packetHeader &= 0x7F00;
-					packetHeader >>= 8;
-					g_netSession.reliablePeerSlots[peerSlot]
-						.recvSeqDefault = packetHeader;
+					packet_header &= 0x7F00;
+					packet_header >>= 8;
+					g_net_session
+						.reliable_peer_slots[peer_slot]
+						.recv_seq_default =
+						packet_header;
 				}
 			}
-			g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-				.sequenceByte =
-				(encodedPacket.packetTypeHeader & 0x7F00) >> 8;
-			++g_netRecvQueueCount;
-			++g_netRecvQueueWriteIndex;
-			if (g_netRecvQueueWriteIndex >= 1024) {
-				g_netRecvQueueWriteIndex = 0;
+			g_net_session_recv_queue[g_net_recv_queue_write_index]
+				.sequence_byte =
+				(encoded_packet.packet_type_header & 0x7F00) >>
+				8;
+			++g_net_recv_queue_count;
+			++g_net_recv_queue_write_index;
+			if (g_net_recv_queue_write_index >= 1024) {
+				g_net_recv_queue_write_index = 0;
 			}
 		}
 	}
 
-	if (g_netSession.dplayInterface == NULL) {
+	if (g_net_session.dplay_interface == NULL) {
 		return 1;
 	}
-	if (g_netSession.localPlayerInfo.directPlayId != directPlayId) {
-		sendResult = g_netSession.dplayInterface->lpVtbl->Send(
-			g_netSession.dplayInterface,
-			(DPID)g_netSession.localPlayerInfo.directPlayId,
-			(DPID)directPlayId, 0, &encodedPacket.packetTypeHeader,
-			encodedSize);
+	if (g_net_session.local_player_info.direct_play_id != direct_play_id) {
+		send_result = g_net_session.dplay_interface->lpVtbl->Send(
+			g_net_session.dplay_interface,
+			(DPID)g_net_session.local_player_info.direct_play_id,
+			(DPID)direct_play_id, 0,
+			&encoded_packet.packet_type_header, encoded_size);
 	}
-	return sendResult == 0;
+	return send_result == 0;
 }
 
 /* Resends a packet from history to one player under its original channel class
@@ -1415,184 +1515,193 @@ int NetSession_SendPacket(int directPlayId, unsigned int *payload,
  * 15 clear, which marks a resend, then the class byte; outside the resync types
  * the body gets a 2-byte length and a trailing NOP instead of a saved copy.
  * Sent to this player itself, it is queued locally as a resent copy when the
- * queue has room, in g_netSessionRecvQueue with g_netRecvQueueWriteIndex and
- * g_netRecvQueueCount. Returns 1 when DirectPlay takes it, when it was for this
+ * queue has room, in g_net_session_recv_queue with g_net_recv_queue_write_index and
+ * g_net_recv_queue_count. Returns 1 when DirectPlay takes it, when it was for this
  * player, or with no DirectPlay interface; else 0. Does not check that
- * packetSize is at least 4. */
+ * packet_size is at least 4. */
 // FUNCTION: XVT 0x46DD80
-int NetSession_SendSequencedGamePacket(int destDplayId, uint8_t packetClass,
-				       uint8_t sequence,
-				       const unsigned int *packet,
-				       unsigned int packetSize)
+int net_session_send_sequenced_game_packet(int dest_dplay_id,
+					   uint8_t packet_class,
+					   uint8_t sequence,
+					   const unsigned int *packet,
+					   unsigned int packet_size)
 {
-	int appendTerminator;
-	HRESULT sendResult;
-	struct NetSessionSequencedEncodedPacket encodedPacket;
-	unsigned int packetType;
-	uint16_t packetFlags;
-	uint8_t *encodedPayload;
-	int encodedSize;
-	unsigned int packetDataSize;
-	unsigned int queueIndex;
-	unsigned int queueCount;
-	int fixedPayloadSize;
+	int append_terminator;
+	HRESULT send_result;
+	struct net_session_sequenced_encoded_packet encoded_packet;
+	unsigned int packet_type;
+	uint16_t packet_flags;
+	uint8_t *encoded_payload;
+	int encoded_size;
+	unsigned int packet_data_size;
+	unsigned int queue_index;
+	unsigned int queue_count;
+	int fixed_payload_size;
 
-	sendResult = 0;
-	if (g_netSession.dplayInterface == NULL) {
+	send_result = 0;
+	if (g_net_session.dplay_interface == NULL) {
 		return 1;
 	}
 
-	packetType = *packet;
-	packetFlags = (uint8_t)packetType & 0x7F;
-	appendTerminator = packetType < NET_PACKET_RESYNC_CHECKSUMS ||
-			   packetType >= NET_PACKET_RESYNC_CHUNK + 1;
-	packetFlags |= (uint16_t)(sequence & 0x7F) << 8;
-	packetFlags |= 0x80;
-	packetFlags &= 0x7FFF;
-	encodedPacket.packetTypeHeader = (int16_t)packetFlags;
-	encodedPacket.packetClass = packetClass;
-	encodedPayload = (uint8_t *)&encodedPacket.payloadSize;
-	encodedSize = 3;
-	if (appendTerminator) {
-		fixedPayloadSize =
-			NetSession_GetFixedPayloadSize((int)packetType);
-		packetDataSize = packetSize;
-		if (fixedPayloadSize == 0) {
-			encodedPayload = encodedPacket.payload;
-			encodedPacket.payloadSize =
-				(int16_t)(packetDataSize - 4);
-			encodedSize = 5;
+	packet_type = *packet;
+	packet_flags = (uint8_t)packet_type & 0x7F;
+	append_terminator = packet_type < NET_PACKET_RESYNC_CHECKSUMS ||
+			    packet_type >= NET_PACKET_RESYNC_CHUNK + 1;
+	packet_flags |= (uint16_t)(sequence & 0x7F) << 8;
+	packet_flags |= 0x80;
+	packet_flags &= 0x7FFF;
+	encoded_packet.packet_type_header = (int16_t)packet_flags;
+	encoded_packet.packet_class = packet_class;
+	encoded_payload = (uint8_t *)&encoded_packet.payload_size;
+	encoded_size = 3;
+	if (append_terminator) {
+		fixed_payload_size =
+			net_session_get_fixed_payload_size((int)packet_type);
+		packet_data_size = packet_size;
+		if (fixed_payload_size == 0) {
+			encoded_payload = encoded_packet.payload;
+			encoded_packet.payload_size =
+				(int16_t)(packet_data_size - 4);
+			encoded_size = 5;
 		}
 	} else {
-		packetDataSize = packetSize;
+		packet_data_size = packet_size;
 	}
 
-	memcpy(encodedPayload, packet + 1, packetDataSize - 4);
-	encodedPayload += packetDataSize - 4;
-	encodedSize += (int)packetDataSize - 4;
-	if (appendTerminator) {
-		*encodedPayload = NET_PACKET_NOP;
-		++encodedSize;
+	memcpy(encoded_payload, packet + 1, packet_data_size - 4);
+	encoded_payload += packet_data_size - 4;
+	encoded_size += (int)packet_data_size - 4;
+	if (append_terminator) {
+		*encoded_payload = NET_PACKET_NOP;
+		++encoded_size;
 	}
 
-	if (g_netSession.localPlayerInfo.directPlayId != destDplayId) {
-		sendResult = g_netSession.dplayInterface->lpVtbl->Send(
-			g_netSession.dplayInterface,
-			(DPID)g_netSession.localPlayerInfo.directPlayId,
-			(DPID)destDplayId, 0, &encodedPacket.packetTypeHeader,
-			(uint32_t)encodedSize);
+	if (g_net_session.local_player_info.direct_play_id != dest_dplay_id) {
+		send_result = g_net_session.dplay_interface->lpVtbl->Send(
+			g_net_session.dplay_interface,
+			(DPID)g_net_session.local_player_info.direct_play_id,
+			(DPID)dest_dplay_id, 0,
+			&encoded_packet.packet_type_header,
+			(uint32_t)encoded_size);
 	} else {
-		if ((int)g_netRecvQueueCount >= 1024) {
-			NetReliable_KeepOnlyHostReceivedPackets();
+		if ((int)g_net_recv_queue_count >= 1024) {
+			net_reliable_keep_only_host_received_packets();
 		}
-		if ((int)g_netRecvQueueCount < 1024) {
-			memcpy(g_netSessionRecvQueue[g_netRecvQueueWriteIndex]
-				       .payload,
-			       packet, packetDataSize);
-			queueIndex = (unsigned int)g_netRecvQueueWriteIndex;
-			g_netSessionRecvQueue[queueIndex].directPlayId =
-				(DPID)g_netSession.localPlayerInfo.directPlayId;
-			g_netSessionRecvQueue[queueIndex].payloadSize =
-				packetDataSize;
-			queueCount = g_netRecvQueueCount;
-			g_netSessionRecvQueue[queueIndex].packetClass =
-				packetClass;
-			++queueCount;
-			g_netSessionRecvQueue[queueIndex].sequenceByte =
+		if ((int)g_net_recv_queue_count < 1024) {
+			memcpy(g_net_session_recv_queue
+				       [g_net_recv_queue_write_index]
+					       .payload,
+			       packet, packet_data_size);
+			queue_index =
+				(unsigned int)g_net_recv_queue_write_index;
+			g_net_session_recv_queue[queue_index].direct_play_id =
+				(DPID)g_net_session.local_player_info
+					.direct_play_id;
+			g_net_session_recv_queue[queue_index].payload_size =
+				packet_data_size;
+			queue_count = g_net_recv_queue_count;
+			g_net_session_recv_queue[queue_index].packet_class =
+				packet_class;
+			++queue_count;
+			g_net_session_recv_queue[queue_index].sequence_byte =
 				sequence;
-			g_netRecvQueueCount = queueCount;
-			g_netSessionRecvQueue[queueIndex].isResentCopy = 1;
-			g_netSessionRecvQueue[queueIndex].lastNackMs = 0;
-			g_netSessionRecvQueue[queueIndex].nackRetryCount = 0;
-			++g_netRecvQueueWriteIndex;
-			if (g_netRecvQueueWriteIndex >= 1024) {
-				g_netRecvQueueWriteIndex = 0;
+			g_net_recv_queue_count = queue_count;
+			g_net_session_recv_queue[queue_index].is_resent_copy =
+				1;
+			g_net_session_recv_queue[queue_index].last_nack_ms = 0;
+			g_net_session_recv_queue[queue_index].nack_retry_count =
+				0;
+			++g_net_recv_queue_write_index;
+			if (g_net_recv_queue_write_index >= 1024) {
+				g_net_recv_queue_write_index = 0;
 			}
 		}
 	}
 
-	return sendResult == 0;
+	return send_result == 0;
 }
 
-/* Returns the roster, g_netSession.players, and stores its entry count in
+/* Returns the roster, g_net_session.players, and stores its entry count in
  * *outCount. */
 // FUNCTION: XVT 0x46DFA0
-struct SessionPlayerInfo *NetSession_GetPlayerRoster(int *outCount)
+struct session_player_info *net_session_get_player_roster(int *out_count)
 {
-	*outCount = g_netSession.playerCount;
-	return g_netSession.players;
+	*out_count = g_net_session.player_count;
+	return g_net_session.players;
 }
 
-/* Returns this player's own entry, g_netSession.localPlayerInfo. Nothing calls
+/* Returns this player's own entry, g_net_session.local_player_info. Nothing calls
  * this. */
 // FUNCTION: XVT 0x46DFC0
-struct SessionPlayerInfo *NetSession_GetLocalPlayerInfo(void)
+struct session_player_info *net_session_get_local_player_info(void)
 {
-	return &g_netSession.localPlayerInfo;
+	return &g_net_session.local_player_info;
 }
 
-/* Copies playerCount entries into the roster and sets the roster count; returns
- * 1. Does not check playerCount against the 8 slots. Nothing calls this. */
+/* Copies player_count entries into the roster and sets the roster count; returns
+ * 1. Does not check player_count against the 8 slots. Nothing calls this. */
 // FUNCTION: XVT 0x46DFD0
-int NetSession_SetPlayerRoster(const struct SessionPlayerInfo *players,
-			       int playerCount)
+int net_session_set_player_roster(const struct session_player_info *players,
+				  int player_count)
 {
-	memcpy(g_netSession.players, players,
-	       (size_t)playerCount * sizeof(*players));
-	g_netSession.playerCount = playerCount;
+	memcpy(g_net_session.players, players,
+	       (size_t)player_count * sizeof(*players));
+	g_net_session.player_count = player_count;
 	return 1;
 }
 
 /* Returns the roster count, or 1 when it is 0. */
 // FUNCTION: XVT 0x46E000
-int NetSession_GetPlayerCount(void)
+int net_session_get_player_count(void)
 {
-	if (g_netSession.playerCount == 0) {
+	if (g_net_session.player_count == 0) {
 		return 1;
 	}
-	return g_netSession.playerCount;
+	return g_net_session.player_count;
 }
 
-/* Returns g_netSession.localIsHost, nonzero when this player hosts. */
+/* Returns g_net_session.local_is_host, nonzero when this player hosts. */
 // FUNCTION: XVT 0x46E040
-int NetSession_IsLocalHost(void) { return g_netSession.localIsHost; }
+int net_session_is_local_host(void) { return g_net_session.local_is_host; }
 
-/* Returns the next game packet from NetSession_ReceivePacket, with its sender
+/* Returns the next game packet from net_session_receive_packet, with its sender
  * and size, or NULL when none is ready. DirectPlay system messages (sender 0)
- * met on the way go to NetSession_HandleDirectPlaySystemMessage and are not
+ * met on the way go to net_session_handle_direct_play_system_message and are not
  * returned. The packet stays valid until the next receive. */
 // FUNCTION: XVT 0x46E050
-int *NetSession_ReceiveGamePacket(int *outSenderDpid, int *outPayloadSize)
+int *net_session_receive_game_packet(int *out_sender_dpid,
+				     int *out_payload_size)
 {
 	int *packet;
 
 	for (;;) {
-		packet = (int *)NetSession_ReceivePacket(outSenderDpid,
-							 outPayloadSize);
-		if (packet == NULL || *outSenderDpid != 0) {
+		packet = (int *)net_session_receive_packet(out_sender_dpid,
+							   out_payload_size);
+		if (packet == NULL || *out_sender_dpid != 0) {
 			return packet;
 		}
-		NetSession_HandleDirectPlaySystemMessage(*packet, packet);
+		net_session_handle_direct_play_system_message(*packet, packet);
 	}
 }
 
-/* Acts on a DirectPlay system message, writing g_netSession and
- * g_netSessionScratchPacket; only the host acts, except on a name change. A new
+/* Acts on a DirectPlay system message, writing g_net_session and
+ * g_net_session_scratch_packet; only the host acts, except on a name change. A new
  * player is sent a SEQUENCE_STATUS with every reliable peer slot's id and
  * sequences, then a FLIGHT_SESSION_STATUS with the mission's elapsed seconds
  * and the protocol version (103 in the modern build, 101 in the original). A
- * departed player is first reported to XvtNetworkSession_HostLost in the modern
+ * departed player is first reported to xvt_network_session_host_lost in the modern
  * build when it was the host; the host then queues itself a STARTUP_READY if
  * the player was active, removes it from the DirectPlay group, marks it
  * inactive, and frees its reliable peer slot by moving the last slot into its
  * place. A name change updates the matching roster entry's names, cut to 12
  * characters; the original arm copies them with strcpy, unbounded. When
- * g_netSessionFlightHandshakeActive is 0, a new player's session status carries
+ * g_net_session_flight_handshake_active is 0, a new player's session status carries
  * 0 instead, and the roster is listed again with every other player added to
  * the group, and a departure lists the roster again; that never happens after a
  * session init. Returns a value no caller uses. */
 // FUNCTION: XVT 0x46E080
-int NetSession_HandleDirectPlaySystemMessage(int packetOpcode, int *packet)
+int net_session_handle_direct_play_system_message(int packet_opcode,
+						  int *packet)
 {
 	enum {
 		RELIABLE_SEQUENCE_SENTINEL = 127,
@@ -1603,160 +1712,175 @@ int NetSession_HandleDirectPlaySystemMessage(int packetOpcode, int *packet)
 		PEER_CHANNEL_A_OFFSET = 6,
 		PEER_CHANNEL_B_OFFSET = 7,
 		PEER_SLOT_QWORD_COUNT =
-			sizeof(struct NetReliablePeerSlot) / sizeof(uint64_t)
+			sizeof(struct net_reliable_peer_slot) / sizeof(uint64_t)
 	};
 
-	int result = packetOpcode;
-	int playerIndex;
-	int peerIndex;
-	uint8_t handshakeActive;
-	struct NetReliablePeerSlot *peer;
-	uint8_t *encodedPeer;
+	int result = packet_opcode;
+	int player_index;
+	int peer_index;
+	uint8_t handshake_active;
+	struct net_reliable_peer_slot *peer;
+	uint8_t *encoded_peer;
 
-	switch (packetOpcode) {
+	switch (packet_opcode) {
 	case DPSYS_CREATEPLAYERORGROUP:
-		result = NetSession_IsLocalHost();
+		result = net_session_is_local_host();
 		if (result == 0) {
 			return result;
 		}
-		handshakeActive = g_netSessionFlightHandshakeActive;
+		handshake_active = g_net_session_flight_handshake_active;
 		result = packet[1];
-		if (handshakeActive != 0) {
+		if (handshake_active != 0) {
 			if (result == 1 &&
-			    packet[2] !=
-				    g_netSession.localPlayerInfo.directPlayId) {
-				g_netSessionScratchPacket.payloadDwords[0] = 0;
-				g_netSessionScratchPacket.packetType =
+			    packet[2] != g_net_session.local_player_info
+						 .direct_play_id) {
+				g_net_session_scratch_packet.payload_dwords[0] =
+					0;
+				g_net_session_scratch_packet.packet_type =
 					NET_PACKET_SEQUENCE_STATUS;
-				g_netSessionScratchPacket.payloadDwords[1] =
-					(int)g_netSession.reliablePeerSlotCount;
-				g_netSessionScratchPacket.payloadDwords[2] =
+				g_net_session_scratch_packet.payload_dwords[1] =
+					(int)g_net_session
+						.reliable_peer_slot_count;
+				g_net_session_scratch_packet.payload_dwords[2] =
 					(int)timeGetTime();
-				encodedPeer =
-					(uint8_t *)&g_netSessionScratchPacket.payloadDwords
+				encoded_peer =
+					(uint8_t *)&g_net_session_scratch_packet.payload_dwords
 						[PEER_SNAPSHOT_METADATA_DWORD_COUNT];
-				for (peerIndex = 0;
-				     peerIndex <
-				     (int)g_netSession.reliablePeerSlotCount;
-				     ++peerIndex) {
-					peer = &g_netSession.reliablePeerSlots
-							[peerIndex];
-					memcpy(&encodedPeer
-						       [peerIndex *
+				for (peer_index = 0;
+				     peer_index <
+				     (int)g_net_session
+					     .reliable_peer_slot_count;
+				     ++peer_index) {
+					peer = &g_net_session
+							.reliable_peer_slots
+								[peer_index];
+					memcpy(&encoded_peer
+						       [peer_index *
 							PEER_SNAPSHOT_STRIDE],
-					       &peer->directPlayId,
-					       sizeof(peer->directPlayId));
-					encodedPeer[peerIndex *
-							    PEER_SNAPSHOT_STRIDE +
-						    PEER_PREV_CHANNEL_A_OFFSET] =
+					       &peer->direct_play_id,
+					       sizeof(peer->direct_play_id));
+					encoded_peer[peer_index *
+							     PEER_SNAPSHOT_STRIDE +
+						     PEER_PREV_CHANNEL_A_OFFSET] =
 						(uint8_t)peer
-							->lastDeliveredSeqChannelA;
-					encodedPeer[peerIndex *
-							    PEER_SNAPSHOT_STRIDE +
-						    PEER_PREV_CHANNEL_B_OFFSET] =
+							->last_delivered_seq_channel_a;
+					encoded_peer[peer_index *
+							     PEER_SNAPSHOT_STRIDE +
+						     PEER_PREV_CHANNEL_B_OFFSET] =
 						(uint8_t)peer
-							->lastDeliveredSeqChannelB;
-					encodedPeer[peerIndex *
-							    PEER_SNAPSHOT_STRIDE +
-						    PEER_CHANNEL_A_OFFSET] =
-						(uint8_t)peer->recvSeqChannelA;
-					encodedPeer[peerIndex *
-							    PEER_SNAPSHOT_STRIDE +
-						    PEER_CHANNEL_B_OFFSET] =
-						(uint8_t)peer->recvSeqChannelB;
+							->last_delivered_seq_channel_b;
+					encoded_peer[peer_index *
+							     PEER_SNAPSHOT_STRIDE +
+						     PEER_CHANNEL_A_OFFSET] =
+						(uint8_t)peer
+							->recv_seq_channel_a;
+					encoded_peer[peer_index *
+							     PEER_SNAPSHOT_STRIDE +
+						     PEER_CHANNEL_B_OFFSET] =
+						(uint8_t)peer
+							->recv_seq_channel_b;
 				}
-				NetSession_SendPacket(
+				net_session_send_packet(
 					packet[2],
 					(unsigned int
-						 *)&g_netSessionScratchPacket,
-					8 * (int)g_netSession.reliablePeerSlotCount +
+						 *)&g_net_session_scratch_packet,
+					8 * (int)g_net_session.reliable_peer_slot_count +
 						16);
-				g_netSessionScratchPacket.packetType =
+				g_net_session_scratch_packet.packet_type =
 					NET_PACKET_FLIGHT_SESSION_STATUS;
-				g_netSessionScratchPacket.payloadDwords[0] =
-					Mission_GetElapsedClockSeconds();
-				g_netSessionScratchPacket.payloadDwords[1] =
+				g_net_session_scratch_packet.payload_dwords[0] =
+					mission_get_elapsed_clock_seconds();
+				g_net_session_scratch_packet.payload_dwords[1] =
 #ifdef XVT_MODERN
 					FRONTEND_NET_PROTOCOL_VERSION;
 #else
 					101;
 #endif
-				g_netSessionScratchPacket.payloadDwords[2] = 0;
-				return NetSession_SendPacket(
+				g_net_session_scratch_packet.payload_dwords[2] =
+					0;
+				return net_session_send_packet(
 					packet[2],
 					(unsigned int
-						 *)&g_netSessionScratchPacket,
+						 *)&g_net_session_scratch_packet,
 					16);
 			}
 		} else if (result == 1) {
 			if (packet[2] !=
-			    g_netSession.localPlayerInfo.directPlayId) {
-				g_netSessionScratchPacket.payloadDwords[0] = 0;
-				g_netSessionScratchPacket.packetType =
+			    g_net_session.local_player_info.direct_play_id) {
+				g_net_session_scratch_packet.payload_dwords[0] =
+					0;
+				g_net_session_scratch_packet.packet_type =
 					NET_PACKET_SEQUENCE_STATUS;
-				g_netSessionScratchPacket.payloadDwords[1] =
-					(int)g_netSession.reliablePeerSlotCount;
-				g_netSessionScratchPacket.payloadDwords[2] =
+				g_net_session_scratch_packet.payload_dwords[1] =
+					(int)g_net_session
+						.reliable_peer_slot_count;
+				g_net_session_scratch_packet.payload_dwords[2] =
 					(int)timeGetTime();
-				encodedPeer =
-					(uint8_t *)&g_netSessionScratchPacket.payloadDwords
+				encoded_peer =
+					(uint8_t *)&g_net_session_scratch_packet.payload_dwords
 						[PEER_SNAPSHOT_METADATA_DWORD_COUNT];
-				for (peerIndex = 0;
-				     peerIndex <
-				     (int)g_netSession.reliablePeerSlotCount;
-				     ++peerIndex) {
-					peer = &g_netSession.reliablePeerSlots
-							[peerIndex];
-					memcpy(&encodedPeer
-						       [peerIndex *
+				for (peer_index = 0;
+				     peer_index <
+				     (int)g_net_session
+					     .reliable_peer_slot_count;
+				     ++peer_index) {
+					peer = &g_net_session
+							.reliable_peer_slots
+								[peer_index];
+					memcpy(&encoded_peer
+						       [peer_index *
 							PEER_SNAPSHOT_STRIDE],
-					       &peer->directPlayId,
-					       sizeof(peer->directPlayId));
-					encodedPeer[peerIndex *
-							    PEER_SNAPSHOT_STRIDE +
-						    PEER_PREV_CHANNEL_A_OFFSET] =
+					       &peer->direct_play_id,
+					       sizeof(peer->direct_play_id));
+					encoded_peer[peer_index *
+							     PEER_SNAPSHOT_STRIDE +
+						     PEER_PREV_CHANNEL_A_OFFSET] =
 						(uint8_t)peer
-							->lastDeliveredSeqChannelA;
-					encodedPeer[peerIndex *
-							    PEER_SNAPSHOT_STRIDE +
-						    PEER_PREV_CHANNEL_B_OFFSET] =
+							->last_delivered_seq_channel_a;
+					encoded_peer[peer_index *
+							     PEER_SNAPSHOT_STRIDE +
+						     PEER_PREV_CHANNEL_B_OFFSET] =
 						(uint8_t)peer
-							->lastDeliveredSeqChannelB;
-					encodedPeer[peerIndex *
-							    PEER_SNAPSHOT_STRIDE +
-						    PEER_CHANNEL_A_OFFSET] =
-						(uint8_t)peer->recvSeqChannelA;
-					encodedPeer[peerIndex *
-							    PEER_SNAPSHOT_STRIDE +
-						    PEER_CHANNEL_B_OFFSET] =
-						(uint8_t)peer->recvSeqChannelB;
+							->last_delivered_seq_channel_b;
+					encoded_peer[peer_index *
+							     PEER_SNAPSHOT_STRIDE +
+						     PEER_CHANNEL_A_OFFSET] =
+						(uint8_t)peer
+							->recv_seq_channel_a;
+					encoded_peer[peer_index *
+							     PEER_SNAPSHOT_STRIDE +
+						     PEER_CHANNEL_B_OFFSET] =
+						(uint8_t)peer
+							->recv_seq_channel_b;
 				}
-				NetSession_SendPacket(
+				net_session_send_packet(
 					packet[2],
 					(unsigned int
-						 *)&g_netSessionScratchPacket,
-					8 * (int)g_netSession.reliablePeerSlotCount +
+						 *)&g_net_session_scratch_packet,
+					8 * (int)g_net_session.reliable_peer_slot_count +
 						16);
-				g_netSessionScratchPacket.packetType =
+				g_net_session_scratch_packet.packet_type =
 					NET_PACKET_FLIGHT_SESSION_STATUS;
-				g_netSessionScratchPacket.payloadDwords[0] = 0;
-				NetSession_SendPacket(
+				g_net_session_scratch_packet.payload_dwords[0] =
+					0;
+				net_session_send_packet(
 					packet[2],
 					(unsigned int
-						 *)&g_netSessionScratchPacket,
+						 *)&g_net_session_scratch_packet,
 					8);
 			}
-			g_netSession.playerCount = 0;
-			NetSession_EnumeratePlayers();
-			for (playerIndex = 0;
-			     playerIndex < g_netSession.playerCount;
-			     ++playerIndex) {
-				if (g_netSession.players[playerIndex]
-					    .directPlayId !=
-				    g_netSession.localPlayerInfo.directPlayId) {
-					NetSession_AddPlayerToGroup(
-						&g_netSession
-							 .players[playerIndex]);
+			g_net_session.player_count = 0;
+			net_session_enumerate_players();
+			for (player_index = 0;
+			     player_index < g_net_session.player_count;
+			     ++player_index) {
+				if (g_net_session.players[player_index]
+					    .direct_play_id !=
+				    g_net_session.local_player_info
+					    .direct_play_id) {
+					net_session_add_player_to_group(
+						&g_net_session.players
+							 [player_index]);
 				}
 			}
 		}
@@ -1765,149 +1889,150 @@ int NetSession_HandleDirectPlaySystemMessage(int packetOpcode, int *packet)
 	case DPSYS_DESTROYPLAYERORGROUP:
 #ifdef XVT_MODERN
 		if (packet[1] == DPPLAYERTYPE_PLAYER &&
-		    packet[2] == g_netSession.hostDplayId) {
-			XvtNetworkSession_HostLost();
+		    packet[2] == g_net_session.host_dplay_id) {
+			xvt_network_session_host_lost();
 		}
 #endif
-		result = NetSession_IsLocalHost();
+		result = net_session_is_local_host();
 		if (result == 0) {
 			return result;
 		}
-		if (g_netSessionFlightHandshakeActive != 0) {
+		if (g_net_session_flight_handshake_active != 0) {
 			result = packet[1];
 			if (result == 1) {
-				result = g_netSession.playerCount;
-				for (playerIndex = 0;
-				     playerIndex < g_netSession.playerCount;
-				     ++playerIndex) {
-					if (g_netSession.players[playerIndex]
-						    .directPlayId ==
+				result = g_net_session.player_count;
+				for (player_index = 0;
+				     player_index < g_net_session.player_count;
+				     ++player_index) {
+					if (g_net_session.players[player_index]
+						    .direct_play_id ==
 					    packet[2]) {
-						if (g_netSession
-							    .players[playerIndex]
-							    .activeFlag != 0) {
-							g_netSessionScratchPacket
-								.packetType =
+						if (g_net_session
+							    .players[player_index]
+							    .active_flag != 0) {
+							g_net_session_scratch_packet
+								.packet_type =
 								NET_PACKET_STARTUP_READY;
-							NetSession_SendPacket(
-								g_netSession
-									.localPlayerInfo
-									.directPlayId,
+							net_session_send_packet(
+								g_net_session
+									.local_player_info
+									.direct_play_id,
 								(unsigned int
-									 *)&g_netSessionScratchPacket,
+									 *)&g_net_session_scratch_packet,
 								4);
 						}
 						result =
-							NetSession_RemovePlayerFromGroup(
+							net_session_remove_player_from_group(
 								packet[2]);
-						g_netSession
-							.players[playerIndex]
-							.activeFlag = 0;
+						g_net_session
+							.players[player_index]
+							.active_flag = 0;
 						break;
 					}
 				}
-				/* Below, playerIndex indexes reliable peer slots, to drop the departed player's slot. */
-				playerIndex = 0;
-				if ((int)g_netSession.reliablePeerSlotCount <=
-				    playerIndex) {
+				/* Below, player_index indexes reliable peer slots, to drop the departed player's slot. */
+				player_index = 0;
+				if ((int)g_net_session
+					    .reliable_peer_slot_count <=
+				    player_index) {
 					return result;
 				}
 				result = packet[2];
 				do {
-					if (g_netSession
-						    .reliablePeerSlots
-							    [playerIndex]
-						    .directPlayId ==
+					if (g_net_session
+						    .reliable_peer_slots
+							    [player_index]
+						    .direct_play_id ==
 					    (DPID)packet[2]) {
-						--g_netSession
-							  .reliablePeerSlotCount;
-						memcpy(&g_netSession.reliablePeerSlots
-								[playerIndex],
-						       &g_netSession.reliablePeerSlots
-								[g_netSession
-									 .reliablePeerSlotCount],
-						       sizeof(g_netSession.reliablePeerSlots
-								      [playerIndex]));
-						g_netSession
-							.reliablePeerSlots
-								[g_netSession
-									 .reliablePeerSlotCount]
-							.directPlayId = 0;
-						g_netSession
-							.reliablePeerSlots
-								[g_netSession
-									 .reliablePeerSlotCount]
-							.lastDeliveredSeqDefault =
+						--g_net_session
+							  .reliable_peer_slot_count;
+						memcpy(&g_net_session.reliable_peer_slots
+								[player_index],
+						       &g_net_session.reliable_peer_slots
+								[g_net_session
+									 .reliable_peer_slot_count],
+						       sizeof(g_net_session.reliable_peer_slots
+								      [player_index]));
+						g_net_session
+							.reliable_peer_slots
+								[g_net_session
+									 .reliable_peer_slot_count]
+							.direct_play_id = 0;
+						g_net_session
+							.reliable_peer_slots
+								[g_net_session
+									 .reliable_peer_slot_count]
+							.last_delivered_seq_default =
 							RELIABLE_SEQUENCE_SENTINEL;
-						g_netSession
-							.reliablePeerSlots
-								[g_netSession
-									 .reliablePeerSlotCount]
-							.lastDeliveredSeqChannelA =
+						g_net_session
+							.reliable_peer_slots
+								[g_net_session
+									 .reliable_peer_slot_count]
+							.last_delivered_seq_channel_a =
 							RELIABLE_SEQUENCE_SENTINEL;
-						g_netSession
-							.reliablePeerSlots
-								[g_netSession
-									 .reliablePeerSlotCount]
-							.lastDeliveredSeqChannelB =
+						g_net_session
+							.reliable_peer_slots
+								[g_net_session
+									 .reliable_peer_slot_count]
+							.last_delivered_seq_channel_b =
 							RELIABLE_SEQUENCE_SENTINEL;
-						g_netSession
-							.reliablePeerSlots
-								[g_netSession
-									 .reliablePeerSlotCount]
-							.recvSeqDefault =
+						g_net_session
+							.reliable_peer_slots
+								[g_net_session
+									 .reliable_peer_slot_count]
+							.recv_seq_default =
 							RELIABLE_SEQUENCE_SENTINEL;
-						g_netSession
-							.reliablePeerSlots
-								[g_netSession
-									 .reliablePeerSlotCount]
-							.recvSeqChannelA =
+						g_net_session
+							.reliable_peer_slots
+								[g_net_session
+									 .reliable_peer_slot_count]
+							.recv_seq_channel_a =
 							RELIABLE_SEQUENCE_SENTINEL;
-						g_netSession
-							.reliablePeerSlots
-								[g_netSession
-									 .reliablePeerSlotCount]
-							.recvSeqChannelB =
+						g_net_session
+							.reliable_peer_slots
+								[g_net_session
+									 .reliable_peer_slot_count]
+							.recv_seq_channel_b =
 							RELIABLE_SEQUENCE_SENTINEL;
-						g_netSession
-							.reliablePeerSlots
-								[g_netSession
-									 .reliablePeerSlotCount]
-							.sendSeq = 0;
-						g_netSession
-							.reliablePeerSlots
-								[g_netSession
-									 .reliablePeerSlotCount]
-							.lastPiggybackType =
+						g_net_session
+							.reliable_peer_slots
+								[g_net_session
+									 .reliable_peer_slot_count]
+							.send_seq = 0;
+						g_net_session
+							.reliable_peer_slots
+								[g_net_session
+									 .reliable_peer_slot_count]
+							.last_piggyback_type =
 							NET_PACKET_NOP;
-						g_netSession
-							.reliablePeerSlots
-								[g_netSession
-									 .reliablePeerSlotCount]
-							.piggybackLength = 1;
-						g_netSession
-							.reliablePeerSlots
-								[g_netSession
-									 .reliablePeerSlotCount]
-							.lastActivityMs = 0;
-						g_netSession
-							.reliablePeerSlots
-								[g_netSession
-									 .reliablePeerSlotCount]
-							.packetCount = 0;
-						g_netSession
-							.reliablePeerSlots
-								[g_netSession
-									 .reliablePeerSlotCount]
-							.packetDropCount = 0;
+						g_net_session
+							.reliable_peer_slots
+								[g_net_session
+									 .reliable_peer_slot_count]
+							.piggyback_length = 1;
+						g_net_session
+							.reliable_peer_slots
+								[g_net_session
+									 .reliable_peer_slot_count]
+							.last_activity_ms = 0;
+						g_net_session
+							.reliable_peer_slots
+								[g_net_session
+									 .reliable_peer_slot_count]
+							.packet_count = 0;
+						g_net_session
+							.reliable_peer_slots
+								[g_net_session
+									 .reliable_peer_slot_count]
+							.packet_drop_count = 0;
 						return PEER_SLOT_QWORD_COUNT *
-						       (int)g_netSession
-							       .reliablePeerSlotCount;
+						       (int)g_net_session
+							       .reliable_peer_slot_count;
 					}
-					++playerIndex;
-				} while (playerIndex <
-					 (int)g_netSession
-						 .reliablePeerSlotCount);
+					++player_index;
+				} while (player_index <
+					 (int)g_net_session
+						 .reliable_peer_slot_count);
 				return result;
 			}
 			return result;
@@ -1916,155 +2041,162 @@ int NetSession_HandleDirectPlaySystemMessage(int packetOpcode, int *packet)
 		if (result != 1) {
 			return result;
 		}
-		g_netSession.playerCount = 0;
-		NetSession_EnumeratePlayers();
-		result = NetSession_RemovePlayerFromGroup(packet[2]);
-		/* Below, playerIndex indexes reliable peer slots, to drop the departed player's slot. */
-		playerIndex = 0;
-		if ((int)g_netSession.reliablePeerSlotCount <= playerIndex) {
+		g_net_session.player_count = 0;
+		net_session_enumerate_players();
+		result = net_session_remove_player_from_group(packet[2]);
+		/* Below, player_index indexes reliable peer slots, to drop the departed player's slot. */
+		player_index = 0;
+		if ((int)g_net_session.reliable_peer_slot_count <=
+		    player_index) {
 			return result;
 		}
 		result = packet[2];
 		do {
-			if (g_netSession.reliablePeerSlots[playerIndex]
-				    .directPlayId == (DPID)packet[2]) {
-				--g_netSession.reliablePeerSlotCount;
-				memcpy(&g_netSession
-						.reliablePeerSlots[playerIndex],
-				       &g_netSession.reliablePeerSlots
-						[g_netSession
-							 .reliablePeerSlotCount],
-				       sizeof(g_netSession.reliablePeerSlots
-						      [playerIndex]));
-				g_netSession
-					.reliablePeerSlots
-						[g_netSession
-							 .reliablePeerSlotCount]
-					.directPlayId = 0;
-				g_netSession
-					.reliablePeerSlots
-						[g_netSession
-							 .reliablePeerSlotCount]
-					.lastDeliveredSeqDefault =
+			if (g_net_session.reliable_peer_slots[player_index]
+				    .direct_play_id == (DPID)packet[2]) {
+				--g_net_session.reliable_peer_slot_count;
+				memcpy(&g_net_session.reliable_peer_slots
+						[player_index],
+				       &g_net_session.reliable_peer_slots
+						[g_net_session
+							 .reliable_peer_slot_count],
+				       sizeof(g_net_session.reliable_peer_slots
+						      [player_index]));
+				g_net_session
+					.reliable_peer_slots
+						[g_net_session
+							 .reliable_peer_slot_count]
+					.direct_play_id = 0;
+				g_net_session
+					.reliable_peer_slots
+						[g_net_session
+							 .reliable_peer_slot_count]
+					.last_delivered_seq_default =
 					RELIABLE_SEQUENCE_SENTINEL;
-				g_netSession
-					.reliablePeerSlots
-						[g_netSession
-							 .reliablePeerSlotCount]
-					.lastDeliveredSeqChannelA =
+				g_net_session
+					.reliable_peer_slots
+						[g_net_session
+							 .reliable_peer_slot_count]
+					.last_delivered_seq_channel_a =
 					RELIABLE_SEQUENCE_SENTINEL;
-				g_netSession
-					.reliablePeerSlots
-						[g_netSession
-							 .reliablePeerSlotCount]
-					.lastDeliveredSeqChannelB =
+				g_net_session
+					.reliable_peer_slots
+						[g_net_session
+							 .reliable_peer_slot_count]
+					.last_delivered_seq_channel_b =
 					RELIABLE_SEQUENCE_SENTINEL;
-				g_netSession
-					.reliablePeerSlots
-						[g_netSession
-							 .reliablePeerSlotCount]
-					.recvSeqDefault =
+				g_net_session
+					.reliable_peer_slots
+						[g_net_session
+							 .reliable_peer_slot_count]
+					.recv_seq_default =
 					RELIABLE_SEQUENCE_SENTINEL;
-				g_netSession
-					.reliablePeerSlots
-						[g_netSession
-							 .reliablePeerSlotCount]
-					.recvSeqChannelA =
+				g_net_session
+					.reliable_peer_slots
+						[g_net_session
+							 .reliable_peer_slot_count]
+					.recv_seq_channel_a =
 					RELIABLE_SEQUENCE_SENTINEL;
-				g_netSession
-					.reliablePeerSlots
-						[g_netSession
-							 .reliablePeerSlotCount]
-					.recvSeqChannelB =
+				g_net_session
+					.reliable_peer_slots
+						[g_net_session
+							 .reliable_peer_slot_count]
+					.recv_seq_channel_b =
 					RELIABLE_SEQUENCE_SENTINEL;
-				g_netSession
-					.reliablePeerSlots
-						[g_netSession
-							 .reliablePeerSlotCount]
-					.sendSeq = 0;
-				g_netSession
-					.reliablePeerSlots
-						[g_netSession
-							 .reliablePeerSlotCount]
-					.lastPiggybackType = NET_PACKET_NOP;
-				g_netSession
-					.reliablePeerSlots
-						[g_netSession
-							 .reliablePeerSlotCount]
-					.piggybackLength = 1;
-				g_netSession
-					.reliablePeerSlots
-						[g_netSession
-							 .reliablePeerSlotCount]
-					.lastActivityMs = 0;
-				g_netSession
-					.reliablePeerSlots
-						[g_netSession
-							 .reliablePeerSlotCount]
-					.packetCount = 0;
-				g_netSession
-					.reliablePeerSlots
-						[g_netSession
-							 .reliablePeerSlotCount]
-					.packetDropCount = 0;
+				g_net_session
+					.reliable_peer_slots
+						[g_net_session
+							 .reliable_peer_slot_count]
+					.send_seq = 0;
+				g_net_session
+					.reliable_peer_slots
+						[g_net_session
+							 .reliable_peer_slot_count]
+					.last_piggyback_type = NET_PACKET_NOP;
+				g_net_session
+					.reliable_peer_slots
+						[g_net_session
+							 .reliable_peer_slot_count]
+					.piggyback_length = 1;
+				g_net_session
+					.reliable_peer_slots
+						[g_net_session
+							 .reliable_peer_slot_count]
+					.last_activity_ms = 0;
+				g_net_session
+					.reliable_peer_slots
+						[g_net_session
+							 .reliable_peer_slot_count]
+					.packet_count = 0;
+				g_net_session
+					.reliable_peer_slots
+						[g_net_session
+							 .reliable_peer_slot_count]
+					.packet_drop_count = 0;
 				return PEER_SLOT_QWORD_COUNT *
-				       (int)g_netSession.reliablePeerSlotCount;
+				       (int)g_net_session
+					       .reliable_peer_slot_count;
 			}
-			++playerIndex;
-		} while (playerIndex < (int)g_netSession.reliablePeerSlotCount);
+			++player_index;
+		} while (player_index <
+			 (int)g_net_session.reliable_peer_slot_count);
 		return result;
 
 	case DPSYS_SETPLAYERORGROUPNAME:
-		result = ((const struct NetPlayerNameMessage *)packet)
+		result = ((const struct net_player_name_message *)packet)
 				 ->header.dwPlayerType;
 		if (result == 1) {
-			result = g_netSession.playerCount;
-			for (playerIndex = 0;
-			     playerIndex < g_netSession.playerCount;
-			     ++playerIndex) {
-				if (g_netSession.players[playerIndex]
-					    .directPlayId ==
-				    (int)((const struct NetPlayerNameMessage *)
-						  packet)
+			result = g_net_session.player_count;
+			for (player_index = 0;
+			     player_index < g_net_session.player_count;
+			     ++player_index) {
+				if (g_net_session.players[player_index]
+					    .direct_play_id ==
+				    (int)((const struct net_player_name_message
+						   *)packet)
 					    ->header.dpId) {
 #ifdef XVT_MODERN
-					if (!XvtNetworkSession_CopyPlayerNames(
+					if (!xvt_network_session_copy_player_names(
 						    (const struct
-						     NetPlayerNameMessage *)
+						     net_player_name_message *)
 							    packet,
-						    g_netSession
-							    .players[playerIndex]
-							    .playerName,
-						    sizeof(g_netSession
-								   .players[playerIndex]
-								   .playerName),
-						    g_netSession
-							    .players[playerIndex]
-							    .longName,
-						    sizeof(g_netSession
-								   .players[playerIndex]
-								   .longName))) {
+						    g_net_session
+							    .players[player_index]
+							    .player_name,
+						    sizeof(g_net_session
+								   .players[player_index]
+								   .player_name),
+						    g_net_session
+							    .players[player_index]
+							    .long_name,
+						    sizeof(g_net_session
+								   .players[player_index]
+								   .long_name))) {
 						return 0;
 					}
 #else
-					strcpy(g_netSession.players[playerIndex]
-						       .playerName,
+					strcpy(g_net_session
+						       .players[player_index]
+						       .player_name,
 					       ((const struct
-						 NetPlayerNameMessage *)packet)
+						 net_player_name_message *)
+							packet)
 						       ->names);
-					strcpy(g_netSession.players[playerIndex]
-						       .longName,
+					strcpy(g_net_session
+						       .players[player_index]
+						       .long_name,
 					       &((const struct
-						  NetPlayerNameMessage *)packet)
-							->names[strlen(g_netSession
-									       .players[playerIndex]
-									       .playerName) +
+						  net_player_name_message *)
+							 packet)
+							->names[strlen(g_net_session
+									       .players[player_index]
+									       .player_name) +
 								1]);
 #endif
-					g_netSession.players[playerIndex]
-						.playerName[12] = '\0';
-					g_netSession.players[playerIndex]
-						.longName[12] = '\0';
+					g_net_session.players[player_index]
+						.player_name[12] = '\0';
+					g_net_session.players[player_index]
+						.long_name[12] = '\0';
 					return 0;
 				}
 			}
@@ -2077,9 +2209,9 @@ int NetSession_HandleDirectPlaySystemMessage(int packetOpcode, int *packet)
 }
 
 /* Returns the next packet to hand to the game, in order per peer and channel,
- * or NULL; *outSenderDpid and *outPayloadSize describe it, and the pointer,
- * into g_netSession.recvScratchPacket, is valid until the next call. It first
- * runs NetSession_PumpIncomingPackets and NetSession_SendReliableKeepalives. A
+ * or NULL; *out_sender_dpid and *out_payload_size describe it, and the pointer,
+ * into g_net_session.recv_scratch_packet, is valid until the next call. It first
+ * runs net_session_pump_incoming_packets and net_session_send_reliable_keepalives. A
  * system message is returned only from the front of the queue. Entries from a
  * peer with no reliable slot (all 40 taken), or 1 to 28 sequence numbers behind
  * the next expected one (counting around the 128 wrap), are dropped. The entry
@@ -2088,7 +2220,7 @@ int NetSession_HandleDirectPlaySystemMessage(int packetOpcode, int *packet)
  * gap. On a gap it looks in the queue for the missing sequences and returns the
  * expected one when found; otherwise it sends a NACK per missing sequence, or
  * for a world message a WORLD_NACK holding the missing message's tick estimated
- * from g_netUpdateIntervalTicks, and repeats them after a wait that doubles
+ * from g_net_update_interval_ticks, and repeats them after a wait that doubles
  * each time, from 2,000 ms; once its NACK count passes 3 (5 for world messages)
  * it gives up the gap and returns the first packet it holds past it. Per call,
  * a peer's entries stop being examined once its examined count, which also
@@ -2096,861 +2228,889 @@ int NetSession_HandleDirectPlaySystemMessage(int packetOpcode, int *packet)
  * not found passes 25. When the queue holds 1,023
  * entries or more and nothing was returned, it returns the first entry already
  * NACKed, giving up its gap. Writes the peer slots' delivered sequences,
- * activity times and counts, g_netLastDeliveredRecvSequence,
- * g_netSession.recvScratchPacket, and the receive queue: g_netRecvQueueCount,
- * g_netRecvQueueReadIndex and its entries, also through
- * NetReliable_RemoveQueuedPacket. */
+ * activity times and counts, g_net_last_delivered_recv_sequence,
+ * g_net_session.recv_scratch_packet, and the receive queue: g_net_recv_queue_count,
+ * g_net_recv_queue_read_index and its entries, also through
+ * net_reliable_remove_queued_packet. */
 // FUNCTION: XVT 0x46E780
-void *NetSession_ReceivePacket(int *outSenderDpid, int *outPayloadSize)
+void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 {
 	int sequence;
-	int expectedSequence;
-	int queueIndex;
+	int expected_sequence;
+	int queue_index;
 
 	struct {
-		int wantChannelA; /* Entry is on the all-players channel */
-		int wantChannelB; /* Entry is on the group channel */
-		unsigned int remainingQueueEntries; /* Entries left to scan */
+		int want_channel_a; /* Entry is on the all-players channel */
+		int want_channel_b; /* Entry is on the group channel */
+		unsigned int remaining_queue_entries; /* Entries left to scan */
 	} channels;
 
-	int nextSequence;
-	int sequenceDistance;
-	int queuedIndex;
-	int payloadType;
-	int missingTickOffset;
+	int next_sequence;
+	int sequence_distance;
+	int queued_index;
+	int payload_type;
+	int missing_tick_offset;
 	uint8_t *payload;
-	int sentRetry;
-	int unusedSearchIndex;
-	int remoteSequence;
+	int sent_retry;
+	int unused_search_index;
+	int remote_sequence;
 	uint8_t inspected[40];
-	uint8_t retryCounts[40];
-	uint8_t lastSequences[40][3];
-	uint8_t inspectionLimits[40];
-	struct NetSessionScratchPacket retryPacket;
-	struct NetQueuedPacket *packet;
-	unsigned int oldPeerCount;
-	unsigned int peerIndex;
-	int peerSlotIndex;
-	int peerSlotsRemaining;
+	uint8_t retry_counts[40];
+	uint8_t last_sequences[40][3];
+	uint8_t inspection_limits[40];
+	struct net_session_scratch_packet retry_packet;
+	struct net_queued_packet *packet;
+	unsigned int old_peer_count;
+	unsigned int peer_index;
+	int peer_slot_index;
+	int peer_slots_remaining;
 	int delta;
 	uint32_t now;
 	unsigned int timeout;
-	unsigned int retryLimit;
-	int searchSequence;
-	int directPlayId;
+	unsigned int retry_limit;
+	int search_sequence;
+	int direct_play_id;
 
-	extern int g_netUpdateIntervalTicks;
+	extern int g_net_update_interval_ticks;
 
-	NetSession_PumpIncomingPackets();
-	NetSession_SendReliableKeepalives();
-	if (g_netRecvQueueCount == 0) {
+	net_session_pump_incoming_packets();
+	net_session_send_reliable_keepalives();
+	if (g_net_recv_queue_count == 0) {
 		return NULL;
 	}
 
-	memset(retryCounts, 0, sizeof(retryCounts));
+	memset(retry_counts, 0, sizeof(retry_counts));
 	memset(inspected, 0, sizeof(inspected));
-	memset(inspectionLimits, 90, sizeof(inspectionLimits));
-	memset(lastSequences, 0, sizeof(lastSequences));
-	peerSlotsRemaining = g_netSession.reliablePeerSlotCount;
-	if ((int)g_netSession.reliablePeerSlotCount > 0) {
-		peerSlotIndex = 0;
+	memset(inspection_limits, 90, sizeof(inspection_limits));
+	memset(last_sequences, 0, sizeof(last_sequences));
+	peer_slots_remaining = g_net_session.reliable_peer_slot_count;
+	if ((int)g_net_session.reliable_peer_slot_count > 0) {
+		peer_slot_index = 0;
 		do {
-			lastSequences[peerSlotIndex][0] =
-				(uint8_t)g_netSession
-					.reliablePeerSlots[peerSlotIndex]
-					.lastDeliveredSeqChannelA;
-			lastSequences[peerSlotIndex][1] =
-				(uint8_t)g_netSession
-					.reliablePeerSlots[peerSlotIndex]
-					.lastDeliveredSeqDefault;
-			lastSequences[peerSlotIndex][2] =
-				(uint8_t)g_netSession
-					.reliablePeerSlots[peerSlotIndex]
-					.lastDeliveredSeqChannelB;
-			++peerSlotIndex;
-			--peerSlotsRemaining;
-		} while (peerSlotsRemaining != 0);
+			last_sequences[peer_slot_index][0] =
+				(uint8_t)g_net_session
+					.reliable_peer_slots[peer_slot_index]
+					.last_delivered_seq_channel_a;
+			last_sequences[peer_slot_index][1] =
+				(uint8_t)g_net_session
+					.reliable_peer_slots[peer_slot_index]
+					.last_delivered_seq_default;
+			last_sequences[peer_slot_index][2] =
+				(uint8_t)g_net_session
+					.reliable_peer_slots[peer_slot_index]
+					.last_delivered_seq_channel_b;
+			++peer_slot_index;
+			--peer_slots_remaining;
+		} while (peer_slots_remaining != 0);
 	}
 
-	queueIndex = g_netRecvQueueReadIndex;
-	channels.remainingQueueEntries = g_netRecvQueueCount;
-	while ((int)channels.remainingQueueEntries > 0) {
-		directPlayId = g_netSessionRecvQueue[queueIndex].directPlayId;
-		packet = &g_netSessionRecvQueue[queueIndex];
-		if (directPlayId == 0) {
-			if (queueIndex == g_netRecvQueueReadIndex) {
-				memcpy(&g_netSession.recvScratchPacket,
-				       &g_netSessionRecvQueue[queueIndex],
-				       sizeof(g_netSession.recvScratchPacket));
-				*outSenderDpid =
-					g_netSessionRecvQueue[queueIndex]
-						.directPlayId;
-				*outPayloadSize =
-					g_netSessionRecvQueue[queueIndex]
-						.payloadSize;
-				--g_netRecvQueueCount;
-				++g_netRecvQueueReadIndex;
-				if (g_netRecvQueueReadIndex >= 1024) {
-					g_netRecvQueueReadIndex = 0;
+	queue_index = g_net_recv_queue_read_index;
+	channels.remaining_queue_entries = g_net_recv_queue_count;
+	while ((int)channels.remaining_queue_entries > 0) {
+		direct_play_id =
+			g_net_session_recv_queue[queue_index].direct_play_id;
+		packet = &g_net_session_recv_queue[queue_index];
+		if (direct_play_id == 0) {
+			if (queue_index == g_net_recv_queue_read_index) {
+				memcpy(&g_net_session.recv_scratch_packet,
+				       &g_net_session_recv_queue[queue_index],
+				       sizeof(g_net_session
+						      .recv_scratch_packet));
+				*out_sender_dpid =
+					g_net_session_recv_queue[queue_index]
+						.direct_play_id;
+				*out_payload_size =
+					g_net_session_recv_queue[queue_index]
+						.payload_size;
+				--g_net_recv_queue_count;
+				++g_net_recv_queue_read_index;
+				if (g_net_recv_queue_read_index >= 1024) {
+					g_net_recv_queue_read_index = 0;
 				}
-				return g_netSession.recvScratchPacket.payload;
+				return g_net_session.recv_scratch_packet
+					.payload;
 			}
-			++queueIndex;
-			if (queueIndex >= 1024) {
-				queueIndex = 0;
+			++queue_index;
+			if (queue_index >= 1024) {
+				queue_index = 0;
 			}
-			--channels.remainingQueueEntries;
+			--channels.remaining_queue_entries;
 			continue;
 		}
-		sequence = g_netSessionRecvQueue[queueIndex].sequenceByte;
-		oldPeerCount = g_netSession.reliablePeerSlotCount;
-		channels.wantChannelA =
-			g_netSessionRecvQueue[queueIndex].packetClass == 0;
-		channels.wantChannelB =
-			g_netSessionRecvQueue[queueIndex].packetClass == 2;
-		peerIndex = NetReliable_FindOrCreatePeerSlot(directPlayId);
-		if (oldPeerCount != g_netSession.reliablePeerSlotCount &&
-		    peerIndex < 40) {
-			lastSequences[peerIndex][0] = 127;
-			lastSequences[peerIndex][1] = 127;
-			lastSequences[peerIndex][2] = 127;
+		sequence = g_net_session_recv_queue[queue_index].sequence_byte;
+		old_peer_count = g_net_session.reliable_peer_slot_count;
+		channels.want_channel_a =
+			g_net_session_recv_queue[queue_index].packet_class == 0;
+		channels.want_channel_b =
+			g_net_session_recv_queue[queue_index].packet_class == 2;
+		peer_index =
+			net_reliable_find_or_create_peer_slot(direct_play_id);
+		if (old_peer_count != g_net_session.reliable_peer_slot_count &&
+		    peer_index < 40) {
+			last_sequences[peer_index][0] = 127;
+			last_sequences[peer_index][1] = 127;
+			last_sequences[peer_index][2] = 127;
 		}
-		if (peerIndex < g_netSession.reliablePeerSlotCount) {
-			if (inspectionLimits[peerIndex] <
-			    inspected[peerIndex]) {
-				++queueIndex;
-				if (queueIndex >= 1024) {
-					queueIndex = 0;
+		if (peer_index < g_net_session.reliable_peer_slot_count) {
+			if (inspection_limits[peer_index] <
+			    inspected[peer_index]) {
+				++queue_index;
+				if (queue_index >= 1024) {
+					queue_index = 0;
 				}
-				--channels.remainingQueueEntries;
+				--channels.remaining_queue_entries;
 				continue;
 			}
-			if (g_netSessionRecvQueue[queueIndex].isResentCopy ==
-			    0) {
-				++inspected[peerIndex];
+			if (g_net_session_recv_queue[queue_index]
+				    .is_resent_copy == 0) {
+				++inspected[peer_index];
 			}
 
-			if (channels.wantChannelA) {
-				expectedSequence =
-					g_netSession
-						.reliablePeerSlots[peerIndex]
-						.lastDeliveredSeqChannelA +
+			if (channels.want_channel_a) {
+				expected_sequence =
+					g_net_session
+						.reliable_peer_slots[peer_index]
+						.last_delivered_seq_channel_a +
 					1;
-				if (expectedSequence > 127) {
-					expectedSequence = 0;
+				if (expected_sequence > 127) {
+					expected_sequence = 0;
 				}
-				nextSequence =
+				next_sequence =
 					(unsigned int)
-						lastSequences[peerIndex][0] +
+						last_sequences[peer_index][0] +
 					1;
-				if (nextSequence > 127) {
-					nextSequence = 0;
+				if (next_sequence > 127) {
+					next_sequence = 0;
 				}
-			} else if (channels.wantChannelB) {
-				expectedSequence =
-					g_netSession
-						.reliablePeerSlots[peerIndex]
-						.lastDeliveredSeqChannelB +
+			} else if (channels.want_channel_b) {
+				expected_sequence =
+					g_net_session
+						.reliable_peer_slots[peer_index]
+						.last_delivered_seq_channel_b +
 					1;
-				if (expectedSequence > 127) {
-					expectedSequence = 0;
+				if (expected_sequence > 127) {
+					expected_sequence = 0;
 				}
-				nextSequence =
+				next_sequence =
 					(unsigned int)
-						lastSequences[peerIndex][2] +
+						last_sequences[peer_index][2] +
 					1;
-				if (nextSequence > 127) {
-					nextSequence = 0;
+				if (next_sequence > 127) {
+					next_sequence = 0;
 				}
 			} else {
-				expectedSequence =
-					g_netSession
-						.reliablePeerSlots[peerIndex]
-						.lastDeliveredSeqDefault +
+				expected_sequence =
+					g_net_session
+						.reliable_peer_slots[peer_index]
+						.last_delivered_seq_default +
 					1;
-				if (expectedSequence > 127) {
-					expectedSequence = 0;
+				if (expected_sequence > 127) {
+					expected_sequence = 0;
 				}
-				nextSequence =
+				next_sequence =
 					(unsigned int)
-						lastSequences[peerIndex][1] +
+						last_sequences[peer_index][1] +
 					1;
-				if (nextSequence > 127) {
-					nextSequence = 0;
+				if (next_sequence > 127) {
+					next_sequence = 0;
 				}
 			}
 		}
 #ifdef XVT_MODERN
 		else {
-			expectedSequence = 0;
-			nextSequence = 0;
+			expected_sequence = 0;
+			next_sequence = 0;
 		}
 #endif
 
-		payload = g_netSessionRecvQueue[queueIndex].payload;
+		payload = g_net_session_recv_queue[queue_index].payload;
 #ifdef XVT_MODERN
-		memcpy(&payloadType, payload, sizeof(payloadType));
+		memcpy(&payload_type, payload, sizeof(payload_type));
 #else
-		payloadType = *(int *)payload;
+		payload_type = *(int *)payload;
 #endif
-		delta = sequence - expectedSequence;
-		if (peerIndex >= g_netSession.reliablePeerSlotCount ||
+		delta = sequence - expected_sequence;
+		if (peer_index >= g_net_session.reliable_peer_slot_count ||
 		    (delta >= -28 && (delta < 0 || delta >= 100))) {
-			if (NetReliable_RemoveQueuedPacket(queueIndex) != 0) {
-				++queueIndex;
-				if (queueIndex >= 1024) {
-					queueIndex = 0;
+			if (net_reliable_remove_queued_packet(queue_index) !=
+			    0) {
+				++queue_index;
+				if (queue_index >= 1024) {
+					queue_index = 0;
 				}
 			}
-			--channels.remainingQueueEntries;
+			--channels.remaining_queue_entries;
 			continue;
 		}
 
-		if (expectedSequence == sequence &&
-		    nextSequence == expectedSequence) {
-			g_netSession.reliablePeerSlots[peerIndex]
-				.lastActivityMs = timeGetTime();
-			if (channels.wantChannelA) {
-				g_netSession.reliablePeerSlots[peerIndex]
-					.lastDeliveredSeqChannelA = sequence;
-			} else if (channels.wantChannelB) {
-				g_netSession.reliablePeerSlots[peerIndex]
-					.lastDeliveredSeqChannelB = sequence;
+		if (expected_sequence == sequence &&
+		    next_sequence == expected_sequence) {
+			g_net_session.reliable_peer_slots[peer_index]
+				.last_activity_ms = timeGetTime();
+			if (channels.want_channel_a) {
+				g_net_session.reliable_peer_slots[peer_index]
+					.last_delivered_seq_channel_a =
+					sequence;
+			} else if (channels.want_channel_b) {
+				g_net_session.reliable_peer_slots[peer_index]
+					.last_delivered_seq_channel_b =
+					sequence;
 			} else {
-				g_netSession.reliablePeerSlots[peerIndex]
-					.lastDeliveredSeqDefault = sequence;
+				g_net_session.reliable_peer_slots[peer_index]
+					.last_delivered_seq_default = sequence;
 			}
-			g_netLastDeliveredRecvSequence = sequence;
-			if (payloadType != NET_PACKET_REMOTE_INPUT ||
-			    g_gameConfig.internetPlay != 1) {
-				++g_netSession.reliablePeerSlots[peerIndex]
-					  .packetCount;
+			g_net_last_delivered_recv_sequence = sequence;
+			if (payload_type != NET_PACKET_REMOTE_INPUT ||
+			    g_game_config.internet_play != 1) {
+				++g_net_session.reliable_peer_slots[peer_index]
+					  .packet_count;
 			}
-			memcpy(&g_netSession.recvScratchPacket,
-			       &g_netSessionRecvQueue[queueIndex],
-			       sizeof(g_netSession.recvScratchPacket));
-			NetReliable_RemoveQueuedPacket(queueIndex);
-			*outSenderDpid =
-				g_netSession.recvScratchPacket.directPlayId;
-			*outPayloadSize =
-				g_netSession.recvScratchPacket.payloadSize;
-			return g_netSession.recvScratchPacket.payload;
+			memcpy(&g_net_session.recv_scratch_packet,
+			       &g_net_session_recv_queue[queue_index],
+			       sizeof(g_net_session.recv_scratch_packet));
+			net_reliable_remove_queued_packet(queue_index);
+			*out_sender_dpid = g_net_session.recv_scratch_packet
+						   .direct_play_id;
+			*out_payload_size =
+				g_net_session.recv_scratch_packet.payload_size;
+			return g_net_session.recv_scratch_packet.payload;
 		}
 
-		if (payloadType == NET_PACKET_REMOTE_INPUT &&
-		    g_gameConfig.internetPlay == 1) {
-			g_netSession.reliablePeerSlots[peerIndex]
-				.lastActivityMs = timeGetTime();
-			if (channels.wantChannelA) {
-				g_netSession.reliablePeerSlots[peerIndex]
-					.lastDeliveredSeqChannelA = sequence;
-			} else if (channels.wantChannelB) {
-				g_netSession.reliablePeerSlots[peerIndex]
-					.lastDeliveredSeqChannelB = sequence;
+		if (payload_type == NET_PACKET_REMOTE_INPUT &&
+		    g_game_config.internet_play == 1) {
+			g_net_session.reliable_peer_slots[peer_index]
+				.last_activity_ms = timeGetTime();
+			if (channels.want_channel_a) {
+				g_net_session.reliable_peer_slots[peer_index]
+					.last_delivered_seq_channel_a =
+					sequence;
+			} else if (channels.want_channel_b) {
+				g_net_session.reliable_peer_slots[peer_index]
+					.last_delivered_seq_channel_b =
+					sequence;
 			} else {
-				g_netSession.reliablePeerSlots[peerIndex]
-					.lastDeliveredSeqDefault = sequence;
+				g_net_session.reliable_peer_slots[peer_index]
+					.last_delivered_seq_default = sequence;
 			}
-			g_netLastDeliveredRecvSequence = sequence;
-			memcpy(&g_netSession.recvScratchPacket,
-			       &g_netSessionRecvQueue[queueIndex],
-			       sizeof(g_netSession.recvScratchPacket));
-			NetReliable_RemoveQueuedPacket(queueIndex);
-			*outSenderDpid =
-				g_netSession.recvScratchPacket.directPlayId;
-			*outPayloadSize =
-				g_netSession.recvScratchPacket.payloadSize;
-			return g_netSession.recvScratchPacket.payload;
+			g_net_last_delivered_recv_sequence = sequence;
+			memcpy(&g_net_session.recv_scratch_packet,
+			       &g_net_session_recv_queue[queue_index],
+			       sizeof(g_net_session.recv_scratch_packet));
+			net_reliable_remove_queued_packet(queue_index);
+			*out_sender_dpid = g_net_session.recv_scratch_packet
+						   .direct_play_id;
+			*out_payload_size =
+				g_net_session.recv_scratch_packet.payload_size;
+			return g_net_session.recv_scratch_packet.payload;
 		}
 
-		if (g_netSessionRecvQueue[queueIndex].isResentCopy == 0) {
-			int selectedChannel =
-				channels.wantChannelA
+		if (g_net_session_recv_queue[queue_index].is_resent_copy == 0) {
+			int selected_channel =
+				channels.want_channel_a
 					? 0
-					: (channels.wantChannelB ? 2 : 1);
-			remoteSequence =
-				(unsigned int)lastSequences[peerIndex]
-							   [selectedChannel] +
+					: (channels.want_channel_b ? 2 : 1);
+			remote_sequence =
+				(unsigned int)last_sequences[peer_index]
+							    [selected_channel] +
 				1;
-			lastSequences[peerIndex][selectedChannel] =
+			last_sequences[peer_index][selected_channel] =
 				(uint8_t)sequence;
-			if (remoteSequence > 127) {
-				remoteSequence = 0;
+			if (remote_sequence > 127) {
+				remote_sequence = 0;
 			}
-			sequenceDistance = sequence - remoteSequence;
-			if (sequenceDistance < 0) {
-				sequenceDistance += 128;
+			sequence_distance = sequence - remote_sequence;
+			if (sequence_distance < 0) {
+				sequence_distance += 128;
 			}
-			searchSequence = remoteSequence;
-			missingTickOffset = sequenceDistance;
-			missingTickOffset *= g_netUpdateIntervalTicks;
-			sentRetry = 0;
-			if (inspected[peerIndex] < 127) {
-				inspected[peerIndex] =
-					(uint8_t)(inspected[peerIndex] +
-						  sequenceDistance);
+			search_sequence = remote_sequence;
+			missing_tick_offset = sequence_distance;
+			missing_tick_offset *= g_net_update_interval_ticks;
+			sent_retry = 0;
+			if (inspected[peer_index] < 127) {
+				inspected[peer_index] =
+					(uint8_t)(inspected[peer_index] +
+						  sequence_distance);
 			}
-			if (retryCounts[peerIndex] > 25) {
-				++queueIndex;
-				if (queueIndex >= 1024) {
-					queueIndex = 0;
+			if (retry_counts[peer_index] > 25) {
+				++queue_index;
+				if (queue_index >= 1024) {
+					queue_index = 0;
 				}
-				--channels.remainingQueueEntries;
+				--channels.remaining_queue_entries;
 				continue;
 			}
 
-			while (sequence != remoteSequence) {
-				unusedSearchIndex = queueIndex;
-				queuedIndex = NetReliable_FindQueuedRecvPacket(
-					unusedSearchIndex, remoteSequence,
-					channels.wantChannelA,
-					channels.wantChannelB, (int)peerIndex);
-				if (queuedIndex < 1024 && queuedIndex >= 0) {
-					if (expectedSequence ==
-					    remoteSequence) {
-						g_netSession
-							.reliablePeerSlots
-								[peerIndex]
-							.lastActivityMs =
+			while (sequence != remote_sequence) {
+				unused_search_index = queue_index;
+				queued_index =
+					net_reliable_find_queued_recv_packet(
+						unused_search_index,
+						remote_sequence,
+						channels.want_channel_a,
+						channels.want_channel_b,
+						(int)peer_index);
+				if (queued_index < 1024 && queued_index >= 0) {
+					if (expected_sequence ==
+					    remote_sequence) {
+						g_net_session
+							.reliable_peer_slots
+								[peer_index]
+							.last_activity_ms =
 							timeGetTime();
-						memcpy(&g_netSession
-								.recvScratchPacket,
-						       &g_netSessionRecvQueue
-							       [queuedIndex],
-						       sizeof(g_netSession
-								      .recvScratchPacket));
-						NetReliable_RemoveQueuedPacket(
-							queuedIndex);
-						if (channels.wantChannelA) {
-							g_netSession
-								.reliablePeerSlots
-									[peerIndex]
-								.lastDeliveredSeqChannelA =
-								expectedSequence;
+						memcpy(&g_net_session
+								.recv_scratch_packet,
+						       &g_net_session_recv_queue
+							       [queued_index],
+						       sizeof(g_net_session
+								      .recv_scratch_packet));
+						net_reliable_remove_queued_packet(
+							queued_index);
+						if (channels.want_channel_a) {
+							g_net_session
+								.reliable_peer_slots
+									[peer_index]
+								.last_delivered_seq_channel_a =
+								expected_sequence;
 						} else if (
-							channels.wantChannelB) {
-							g_netSession
-								.reliablePeerSlots
-									[peerIndex]
-								.lastDeliveredSeqChannelB =
-								expectedSequence;
+							channels.want_channel_b) {
+							g_net_session
+								.reliable_peer_slots
+									[peer_index]
+								.last_delivered_seq_channel_b =
+								expected_sequence;
 						} else {
-							g_netSession
-								.reliablePeerSlots
-									[peerIndex]
-								.lastDeliveredSeqDefault =
-								expectedSequence;
+							g_net_session
+								.reliable_peer_slots
+									[peer_index]
+								.last_delivered_seq_default =
+								expected_sequence;
 						}
-						g_netLastDeliveredRecvSequence =
-							expectedSequence;
-						++g_netSession
-							  .reliablePeerSlots
-								  [peerIndex]
-							  .packetCount;
-						*outSenderDpid =
-							g_netSession
-								.recvScratchPacket
-								.directPlayId;
-						*outPayloadSize =
-							g_netSession
-								.recvScratchPacket
-								.payloadSize;
-						if (sequenceDistance <= 1) {
-							g_netSessionRecvQueue
-								[queueIndex]
-									.nackRetryCount =
+						g_net_last_delivered_recv_sequence =
+							expected_sequence;
+						++g_net_session
+							  .reliable_peer_slots
+								  [peer_index]
+							  .packet_count;
+						*out_sender_dpid =
+							g_net_session
+								.recv_scratch_packet
+								.direct_play_id;
+						*out_payload_size =
+							g_net_session
+								.recv_scratch_packet
+								.payload_size;
+						if (sequence_distance <= 1) {
+							g_net_session_recv_queue
+								[queue_index]
+									.nack_retry_count =
 								0;
-							g_netSessionRecvQueue
-								[queueIndex]
-									.lastNackMs =
+							g_net_session_recv_queue
+								[queue_index]
+									.last_nack_ms =
 								0;
 						}
-						return g_netSession
-							.recvScratchPacket
+						return g_net_session
+							.recv_scratch_packet
 							.payload;
 					}
-					--sequenceDistance;
+					--sequence_distance;
 				} else {
-					++retryCounts[peerIndex];
-					if (g_netSessionRecvQueue[queueIndex]
-						    .nackRetryCount == 0) {
-						int retryChannel =
-							channels.wantChannelA
+					++retry_counts[peer_index];
+					if (g_net_session_recv_queue
+						    [queue_index]
+							    .nack_retry_count ==
+					    0) {
+						int retry_channel =
+							channels.want_channel_a
 								? 0
-								: (channels.wantChannelB
+								: (channels.want_channel_b
 									   ? 2
 									   : 1);
-						if (payloadType ==
+						if (payload_type ==
 							    NET_PACKET_WORLD_MESSAGE
 #ifdef XVT_MODERN
-						    && channels.wantChannelA
+						    && channels.want_channel_a
 #endif
 						) {
-							retryPacket.packetType =
+							retry_packet
+								.packet_type =
 								NET_PACKET_WORLD_NACK;
 #ifdef XVT_MODERN
-							memcpy(&retryPacket.payloadDwords
+							memcpy(&retry_packet.payload_dwords
 									[0],
 							       payload + 4,
-							       sizeof(retryPacket
-									      .payloadDwords
+							       sizeof(retry_packet
+									      .payload_dwords
 										      [0]));
-							retryPacket
-								.payloadDwords
+							retry_packet
+								.payload_dwords
 									[0] =
-								(retryPacket.payloadDwords
+								(retry_packet.payload_dwords
 									 [0] &
 								 0x7fffffff) -
-								missingTickOffset;
+								missing_tick_offset;
 #else
-							retryPacket
-								.payloadDwords
+							retry_packet
+								.payload_dwords
 									[0] =
 								(*(int *)(payload +
 									  4) &
 								 0x7fffffff) -
-								missingTickOffset;
+								missing_tick_offset;
 #endif
-							retryPacket
-								.payloadDwords
+							retry_packet
+								.payload_dwords
 									[1] =
-								remoteSequence;
-							NetSession_SendCompactGamePacket(
-								packet->directPlayId,
+								remote_sequence;
+							net_session_send_compact_game_packet(
+								packet->direct_play_id,
 								(unsigned int
-									 *)&retryPacket,
+									 *)&retry_packet,
 								12, 1);
 						} else {
-							int retryDirectPlayId =
-								packet->directPlayId;
-							retryPacket
-								.payloadDwords
+							int retry_direct_play_id =
+								packet->direct_play_id;
+							retry_packet
+								.payload_dwords
 									[0] =
-								remoteSequence;
-							retryPacket.packetType =
+								remote_sequence;
+							retry_packet
+								.packet_type =
 								NET_PACKET_NACK;
-							retryPacket
-								.payloadDwords
+							retry_packet
+								.payload_dwords
 									[1] =
-								retryChannel;
-							NetSession_SendCompactGamePacket(
-								retryDirectPlayId,
+								retry_channel;
+							net_session_send_compact_game_packet(
+								retry_direct_play_id,
 								(unsigned int
-									 *)&retryPacket,
+									 *)&retry_packet,
 								12, 1);
 						}
-						++g_netSession
-							  .reliablePeerSlots
-								  [peerIndex]
-							  .packetRetryCount;
-						sentRetry = 1;
+						++g_net_session
+							  .reliable_peer_slots
+								  [peer_index]
+							  .packet_retry_count;
+						sent_retry = 1;
 					} else {
-						int timeoutPayloadType;
+						int timeout_payload_type;
 						now = timeGetTime();
-						timeoutPayloadType =
-							payloadType;
-						if (g_netSession
-							    .reliableUseFixedResendTimeouts !=
+						timeout_payload_type =
+							payload_type;
+						if (g_net_session
+							    .reliable_use_fixed_resend_timeouts !=
 						    0) {
-							retryLimit = 0;
+							retry_limit = 0;
 							timeout =
-								timeoutPayloadType ==
+								timeout_payload_type ==
 										2
 									? 40000
 									: 3000;
 						} else {
-							retryLimit =
-								timeoutPayloadType ==
+							retry_limit =
+								timeout_payload_type ==
 										2
 									? 5
 									: 3;
 							timeout =
 								1000
-								<< g_netSessionRecvQueue
-									   [queueIndex]
-										   .nackRetryCount;
+								<< g_net_session_recv_queue
+									   [queue_index]
+										   .nack_retry_count;
 						}
-						if (now - (uint32_t)g_netSessionRecvQueue
-								    [queueIndex]
-									    .lastNackMs >
+						if (now - (uint32_t)g_net_session_recv_queue
+								    [queue_index]
+									    .last_nack_ms >
 						    timeout) {
-							NetSession_DebugTrace(
+							net_session_debug_trace(
 								"(RTO) ");
-							if (g_netSessionRecvQueue
-								    [queueIndex]
-									    .nackRetryCount >
-							    retryLimit) {
-								NetSession_DebugTrace(
+							if (g_net_session_recv_queue
+								    [queue_index]
+									    .nack_retry_count >
+							    retry_limit) {
+								net_session_debug_trace(
 									"(TMR) ");
-								g_netSession
-									.reliablePeerSlots
-										[peerIndex]
-									.lastActivityMs =
+								g_net_session
+									.reliable_peer_slots
+										[peer_index]
+									.last_activity_ms =
 									timeGetTime();
-								remoteSequence =
-									searchSequence;
+								remote_sequence =
+									search_sequence;
 								for (;;) {
-									queuedIndex = NetReliable_FindQueuedRecvPacket(
-										unusedSearchIndex,
-										remoteSequence,
-										channels.wantChannelA,
-										channels.wantChannelB,
-										(int)peerIndex);
-									if (queuedIndex >=
+									queued_index = net_reliable_find_queued_recv_packet(
+										unused_search_index,
+										remote_sequence,
+										channels.want_channel_a,
+										channels.want_channel_b,
+										(int)peer_index);
+									if (queued_index >=
 										    0 &&
-									    queuedIndex <=
+									    queued_index <=
 										    1024) {
 										break;
 									}
 									if (sequence ==
-									    remoteSequence) {
-										if (channels.wantChannelA) {
-											g_netSession
-												.reliablePeerSlots
-													[peerIndex]
-												.lastDeliveredSeqChannelA =
+									    remote_sequence) {
+										if (channels.want_channel_a) {
+											g_net_session
+												.reliable_peer_slots
+													[peer_index]
+												.last_delivered_seq_channel_a =
 												sequence;
 										} else if (
-											channels.wantChannelB) {
-											g_netSession
-												.reliablePeerSlots
-													[peerIndex]
-												.lastDeliveredSeqChannelB =
+											channels.want_channel_b) {
+											g_net_session
+												.reliable_peer_slots
+													[peer_index]
+												.last_delivered_seq_channel_b =
 												sequence;
 										} else {
-											g_netSession
-												.reliablePeerSlots
-													[peerIndex]
-												.lastDeliveredSeqDefault =
+											g_net_session
+												.reliable_peer_slots
+													[peer_index]
+												.last_delivered_seq_default =
 												sequence;
 										}
-										g_netLastDeliveredRecvSequence =
+										g_net_last_delivered_recv_sequence =
 											sequence;
-										++g_netSession
-											  .reliablePeerSlots
-												  [peerIndex]
-											  .packetCount;
-										memcpy(&g_netSession
-												.recvScratchPacket,
-										       &g_netSessionRecvQueue
-											       [queueIndex],
-										       sizeof(g_netSession
-												      .recvScratchPacket));
-										NetReliable_RemoveQueuedPacket(
+										++g_net_session
+											  .reliable_peer_slots
+												  [peer_index]
+											  .packet_count;
+										memcpy(&g_net_session
+												.recv_scratch_packet,
+										       &g_net_session_recv_queue
+											       [queue_index],
+										       sizeof(g_net_session
+												      .recv_scratch_packet));
+										net_reliable_remove_queued_packet(
 											(unsigned int)
-												unusedSearchIndex);
-										*outSenderDpid =
-											g_netSession
-												.recvScratchPacket
-												.directPlayId;
-										*outPayloadSize =
-											g_netSession
-												.recvScratchPacket
-												.payloadSize;
-										return g_netSession
-											.recvScratchPacket
+												unused_search_index);
+										*out_sender_dpid =
+											g_net_session
+												.recv_scratch_packet
+												.direct_play_id;
+										*out_payload_size =
+											g_net_session
+												.recv_scratch_packet
+												.payload_size;
+										return g_net_session
+											.recv_scratch_packet
 											.payload;
 									}
-									++remoteSequence;
-									if (remoteSequence >
+									++remote_sequence;
+									if (remote_sequence >
 									    127) {
-										remoteSequence =
+										remote_sequence =
 											0;
 									}
 								}
-								memcpy(&g_netSession
-										.recvScratchPacket,
-								       &g_netSessionRecvQueue
-									       [queuedIndex],
-								       sizeof(g_netSession
-										      .recvScratchPacket));
-								NetReliable_RemoveQueuedPacket(
-									queuedIndex);
-								if (channels.wantChannelA) {
-									g_netSession
-										.reliablePeerSlots
-											[peerIndex]
-										.lastDeliveredSeqChannelA =
-										remoteSequence;
+								memcpy(&g_net_session
+										.recv_scratch_packet,
+								       &g_net_session_recv_queue
+									       [queued_index],
+								       sizeof(g_net_session
+										      .recv_scratch_packet));
+								net_reliable_remove_queued_packet(
+									queued_index);
+								if (channels.want_channel_a) {
+									g_net_session
+										.reliable_peer_slots
+											[peer_index]
+										.last_delivered_seq_channel_a =
+										remote_sequence;
 								} else if (
-									channels.wantChannelB) {
-									g_netSession
-										.reliablePeerSlots
-											[peerIndex]
-										.lastDeliveredSeqChannelB =
-										remoteSequence;
+									channels.want_channel_b) {
+									g_net_session
+										.reliable_peer_slots
+											[peer_index]
+										.last_delivered_seq_channel_b =
+										remote_sequence;
 								} else {
-									g_netSession
-										.reliablePeerSlots
-											[peerIndex]
-										.lastDeliveredSeqDefault =
-										remoteSequence;
+									g_net_session
+										.reliable_peer_slots
+											[peer_index]
+										.last_delivered_seq_default =
+										remote_sequence;
 								}
-								g_netLastDeliveredRecvSequence =
-									remoteSequence;
-								++g_netSession
-									  .reliablePeerSlots
-										  [peerIndex]
-									  .packetCount;
-								*outSenderDpid =
-									g_netSession
-										.recvScratchPacket
-										.directPlayId;
-								*outPayloadSize =
-									g_netSession
-										.recvScratchPacket
-										.payloadSize;
-								return g_netSession
-									.recvScratchPacket
+								g_net_last_delivered_recv_sequence =
+									remote_sequence;
+								++g_net_session
+									  .reliable_peer_slots
+										  [peer_index]
+									  .packet_count;
+								*out_sender_dpid =
+									g_net_session
+										.recv_scratch_packet
+										.direct_play_id;
+								*out_payload_size =
+									g_net_session
+										.recv_scratch_packet
+										.payload_size;
+								return g_net_session
+									.recv_scratch_packet
 									.payload;
 							}
 							{
-								int retryChannel =
-									channels.wantChannelA
+								int retry_channel =
+									channels.want_channel_a
 										? 0
-										: (channels.wantChannelB
+										: (channels.want_channel_b
 											   ? 2
 											   : 1);
-								if (payloadType ==
+								if (payload_type ==
 									    NET_PACKET_WORLD_MESSAGE
 #ifdef XVT_MODERN
 								    &&
-								    channels.wantChannelA
+								    channels.want_channel_a
 #endif
 								) {
-									retryPacket
-										.packetType =
+									retry_packet
+										.packet_type =
 										NET_PACKET_WORLD_NACK;
 #ifdef XVT_MODERN
-									memcpy(&retryPacket
-											.payloadDwords
+									memcpy(&retry_packet
+											.payload_dwords
 												[0],
 									       payload +
 										       4,
-									       sizeof(retryPacket
-											      .payloadDwords
+									       sizeof(retry_packet
+											      .payload_dwords
 												      [0]));
-									retryPacket
-										.payloadDwords
+									retry_packet
+										.payload_dwords
 											[0] =
-										(retryPacket
-											 .payloadDwords
+										(retry_packet
+											 .payload_dwords
 												 [0] &
 										 0x7fffffff) -
-										missingTickOffset;
+										missing_tick_offset;
 #else
-									retryPacket
-										.payloadDwords
+									retry_packet
+										.payload_dwords
 											[0] =
 										(*(int *)(payload +
 											  4) &
 										 0x7fffffff) -
-										missingTickOffset;
+										missing_tick_offset;
 #endif
-									retryPacket
-										.payloadDwords
+									retry_packet
+										.payload_dwords
 											[1] =
-										remoteSequence;
-									NetSession_SendCompactGamePacket(
-										packet->directPlayId,
+										remote_sequence;
+									net_session_send_compact_game_packet(
+										packet->direct_play_id,
 										(unsigned int
-											 *)&retryPacket,
+											 *)&retry_packet,
 										12,
 										1);
 								} else {
-									int retryDirectPlayId =
-										packet->directPlayId;
-									retryPacket
-										.payloadDwords
+									int retry_direct_play_id =
+										packet->direct_play_id;
+									retry_packet
+										.payload_dwords
 											[0] =
-										remoteSequence;
-									retryPacket
-										.packetType =
+										remote_sequence;
+									retry_packet
+										.packet_type =
 										NET_PACKET_NACK;
-									retryPacket
-										.payloadDwords
+									retry_packet
+										.payload_dwords
 											[1] =
-										retryChannel;
-									NetSession_SendCompactGamePacket(
-										retryDirectPlayId,
+										retry_channel;
+									net_session_send_compact_game_packet(
+										retry_direct_play_id,
 										(unsigned int
-											 *)&retryPacket,
+											 *)&retry_packet,
 										12,
 										1);
 								}
-								sentRetry = 1;
+								sent_retry = 1;
 							}
 						}
 					}
 				}
-				missingTickOffset -= g_netUpdateIntervalTicks;
-				++remoteSequence;
-				if (remoteSequence > 127) {
-					remoteSequence = 0;
+				missing_tick_offset -=
+					g_net_update_interval_ticks;
+				++remote_sequence;
+				if (remote_sequence > 127) {
+					remote_sequence = 0;
 				}
 			}
 
-			if (sequenceDistance <= 0) {
-				g_netSessionRecvQueue[queueIndex]
-					.nackRetryCount = 0;
-				g_netSessionRecvQueue[queueIndex].lastNackMs =
-					0;
-			} else if (sentRetry == 1) {
-				++g_netSessionRecvQueue[queueIndex]
-					  .nackRetryCount;
-				g_netSessionRecvQueue[queueIndex].lastNackMs =
-					timeGetTime();
+			if (sequence_distance <= 0) {
+				g_net_session_recv_queue[queue_index]
+					.nack_retry_count = 0;
+				g_net_session_recv_queue[queue_index]
+					.last_nack_ms = 0;
+			} else if (sent_retry == 1) {
+				++g_net_session_recv_queue[queue_index]
+					  .nack_retry_count;
+				g_net_session_recv_queue[queue_index]
+					.last_nack_ms = timeGetTime();
 			}
 		} else {
-			if (g_netRecvQueueReadIndex == queueIndex) {
-				if (NetReliable_RemoveQueuedPacket(
-					    queueIndex) == 0) {
-					--channels.remainingQueueEntries;
+			if (g_net_recv_queue_read_index == queue_index) {
+				if (net_reliable_remove_queued_packet(
+					    queue_index) == 0) {
+					--channels.remaining_queue_entries;
 					continue;
 				}
 			}
-			++queueIndex;
-			if (queueIndex >= 1024) {
-				queueIndex = 0;
+			++queue_index;
+			if (queue_index >= 1024) {
+				queue_index = 0;
 			}
-			--channels.remainingQueueEntries;
+			--channels.remaining_queue_entries;
 			continue;
 		}
-		++queueIndex;
-		if (queueIndex >= 1024) {
-			queueIndex = 0;
+		++queue_index;
+		if (queue_index >= 1024) {
+			queue_index = 0;
 		}
-		--channels.remainingQueueEntries;
+		--channels.remaining_queue_entries;
 	}
 
-	if ((int)g_netRecvQueueCount < 1023) {
+	if ((int)g_net_recv_queue_count < 1023) {
 		return NULL;
 	}
 	{
-		unsigned int fullQueueIndex = g_netRecvQueueReadIndex;
-		int fullRemaining = g_netRecvQueueCount;
-		while (fullRemaining > 0) {
-			if (g_netSessionRecvQueue[fullQueueIndex]
-				    .directPlayId != 0) {
-				sequence = g_netSessionRecvQueue[fullQueueIndex]
-						   .sequenceByte;
-				channels.wantChannelA =
-					g_netSessionRecvQueue[fullQueueIndex]
-						.packetClass == 0;
-				channels.wantChannelB =
-					g_netSessionRecvQueue[fullQueueIndex]
-						.packetClass == 2;
-				peerIndex = NetReliable_FindOrCreatePeerSlot(
-					g_netSessionRecvQueue[fullQueueIndex]
-						.directPlayId);
-				if (peerIndex <
-					    g_netSession
-						    .reliablePeerSlotCount &&
-				    peerIndex < 40) {
-					if (channels.wantChannelA) {
-						expectedSequence =
-							g_netSession
-								.reliablePeerSlots
-									[peerIndex]
-								.lastDeliveredSeqChannelA +
+		unsigned int full_queue_index = g_net_recv_queue_read_index;
+		int full_remaining = g_net_recv_queue_count;
+		while (full_remaining > 0) {
+			if (g_net_session_recv_queue[full_queue_index]
+				    .direct_play_id != 0) {
+				sequence = g_net_session_recv_queue
+						   [full_queue_index]
+							   .sequence_byte;
+				channels.want_channel_a =
+					g_net_session_recv_queue
+						[full_queue_index]
+							.packet_class == 0;
+				channels.want_channel_b =
+					g_net_session_recv_queue
+						[full_queue_index]
+							.packet_class == 2;
+				peer_index =
+					net_reliable_find_or_create_peer_slot(
+						g_net_session_recv_queue
+							[full_queue_index]
+								.direct_play_id);
+				if (peer_index <
+					    g_net_session
+						    .reliable_peer_slot_count &&
+				    peer_index < 40) {
+					if (channels.want_channel_a) {
+						expected_sequence =
+							g_net_session
+								.reliable_peer_slots
+									[peer_index]
+								.last_delivered_seq_channel_a +
 							1;
-						if (expectedSequence > 127) {
-							expectedSequence = 0;
+						if (expected_sequence > 127) {
+							expected_sequence = 0;
 						}
-					} else if (channels.wantChannelB) {
-						expectedSequence =
-							g_netSession
-								.reliablePeerSlots
-									[peerIndex]
-								.lastDeliveredSeqChannelB +
+					} else if (channels.want_channel_b) {
+						expected_sequence =
+							g_net_session
+								.reliable_peer_slots
+									[peer_index]
+								.last_delivered_seq_channel_b +
 							1;
-						if (expectedSequence > 127) {
-							expectedSequence = 0;
+						if (expected_sequence > 127) {
+							expected_sequence = 0;
 						}
 					} else {
-						expectedSequence =
-							g_netSession
-								.reliablePeerSlots
-									[peerIndex]
-								.lastDeliveredSeqDefault +
+						expected_sequence =
+							g_net_session
+								.reliable_peer_slots
+									[peer_index]
+								.last_delivered_seq_default +
 							1;
-						if (expectedSequence > 127) {
-							expectedSequence = 0;
+						if (expected_sequence > 127) {
+							expected_sequence = 0;
 						}
 					}
 				}
 #ifdef XVT_MODERN
 				else {
-					expectedSequence = 0;
+					expected_sequence = 0;
 				}
 #endif
-				delta = sequence - expectedSequence;
-				if (peerIndex >=
-					    g_netSession
-						    .reliablePeerSlotCount ||
+				delta = sequence - expected_sequence;
+				if (peer_index >=
+					    g_net_session
+						    .reliable_peer_slot_count ||
 				    (delta >= -27 &&
 				     (delta < 0 || delta >= 100))) {
-					if (NetReliable_RemoveQueuedPacket(
-						    fullQueueIndex) == 0) {
-						--fullRemaining;
+					if (net_reliable_remove_queued_packet(
+						    full_queue_index) == 0) {
+						--full_remaining;
 						continue;
 					}
-				} else if (g_netSessionRecvQueue[fullQueueIndex]
-						   .nackRetryCount == 0) {
-					++fullQueueIndex;
-					if ((int)fullQueueIndex >= 1024) {
-						fullQueueIndex = 0;
+				} else if (g_net_session_recv_queue
+						   [full_queue_index]
+							   .nack_retry_count ==
+					   0) {
+					++full_queue_index;
+					if ((int)full_queue_index >= 1024) {
+						full_queue_index = 0;
 					}
-					--fullRemaining;
+					--full_remaining;
 					continue;
 				} else {
-					NetSession_DebugTrace("(NMR) ");
-					if (channels.wantChannelA) {
-						g_netSession
-							.reliablePeerSlots
-								[peerIndex]
-							.lastDeliveredSeqChannelA =
+					net_session_debug_trace("(NMR) ");
+					if (channels.want_channel_a) {
+						g_net_session
+							.reliable_peer_slots
+								[peer_index]
+							.last_delivered_seq_channel_a =
 							sequence;
-					} else if (channels.wantChannelB) {
-						g_netSession
-							.reliablePeerSlots
-								[peerIndex]
-							.lastDeliveredSeqChannelB =
+					} else if (channels.want_channel_b) {
+						g_net_session
+							.reliable_peer_slots
+								[peer_index]
+							.last_delivered_seq_channel_b =
 							sequence;
 					} else {
-						g_netSession
-							.reliablePeerSlots
-								[peerIndex]
-							.lastDeliveredSeqDefault =
+						g_net_session
+							.reliable_peer_slots
+								[peer_index]
+							.last_delivered_seq_default =
 							sequence;
 					}
-					g_netLastDeliveredRecvSequence =
+					g_net_last_delivered_recv_sequence =
 						sequence;
-					++g_netSession
-						  .reliablePeerSlots[peerIndex]
-						  .packetCount;
-					memcpy(&g_netSession.recvScratchPacket,
-					       &g_netSessionRecvQueue
-						       [fullQueueIndex],
-					       sizeof(g_netSession
-							      .recvScratchPacket));
-					NetReliable_RemoveQueuedPacket(
-						fullQueueIndex);
-					*outSenderDpid =
-						g_netSession.recvScratchPacket
-							.directPlayId;
-					*outPayloadSize =
-						g_netSession.recvScratchPacket
-							.payloadSize;
-					return g_netSession.recvScratchPacket
+					++g_net_session
+						  .reliable_peer_slots
+							  [peer_index]
+						  .packet_count;
+					memcpy(&g_net_session
+							.recv_scratch_packet,
+					       &g_net_session_recv_queue
+						       [full_queue_index],
+					       sizeof(g_net_session
+							      .recv_scratch_packet));
+					net_reliable_remove_queued_packet(
+						full_queue_index);
+					*out_sender_dpid =
+						g_net_session
+							.recv_scratch_packet
+							.direct_play_id;
+					*out_payload_size =
+						g_net_session
+							.recv_scratch_packet
+							.payload_size;
+					return g_net_session.recv_scratch_packet
 						.payload;
 				}
 			}
-			++fullQueueIndex;
-			if ((int)fullQueueIndex >= 1024) {
-				fullQueueIndex = 0;
+			++full_queue_index;
+			if ((int)full_queue_index >= 1024) {
+				full_queue_index = 0;
 			}
-			--fullRemaining;
+			--full_remaining;
 		}
 	}
 	return NULL;
@@ -2962,106 +3122,108 @@ void *NetSession_ReceivePacket(int *outSenderDpid, int *outPayloadSize)
  * body gets a 2-byte length and a trailing NOP. Nothing is sent to this player
  * itself. Returns 1 when DirectPlay takes it, when the destination is this
  * player, or with no DirectPlay interface; else 0. The fourth argument, 0 or 1
- * at every call, is never read, and the deliveryMode 1 branch cannot be taken.
- * Does not check payloadSize. */
+ * at every call, is never read, and the delivery_mode 1 branch cannot be taken.
+ * Does not check payload_size. */
 // FUNCTION: XVT 0x46F470
-int NetSession_SendCompactGamePacket(int directPlayId, unsigned int *payload,
-				     int payloadSize, ...)
+int net_session_send_compact_game_packet(int direct_play_id,
+					 unsigned int *payload,
+					 int payload_size, ...)
 {
-	int appendTerminator;
-	HRESULT sendResult;
-	struct NetSessionCompactEncodedPacket encodedPacket;
-	unsigned int packetType;
-	uint16_t packetFlags;
-	int deliveryMode;
-	uint8_t *encodedPayload;
-	int encodedSize;
-	int packetDataSize;
-	int fixedPayloadSize;
+	int append_terminator;
+	HRESULT send_result;
+	struct net_session_compact_encoded_packet encoded_packet;
+	unsigned int packet_type;
+	uint16_t packet_flags;
+	int delivery_mode;
+	uint8_t *encoded_payload;
+	int encoded_size;
+	int packet_data_size;
+	int fixed_payload_size;
 
-	sendResult = 0;
-	if (g_netSession.dplayInterface == NULL) {
+	send_result = 0;
+	if (g_net_session.dplay_interface == NULL) {
 		return 1;
 	}
-	packetType = *payload;
-	packetFlags = (uint8_t)packetType & 0x7F;
-	appendTerminator = packetType < NET_PACKET_RESYNC_CHECKSUMS ||
-			   packetType >= NET_PACKET_RESYNC_CHUNK + 1;
-	if (packetType == NET_PACKET_REMOTE_INPUT &&
-	    g_gameConfig.internetPlay == 1) {
-		deliveryMode = 2;
+	packet_type = *payload;
+	packet_flags = (uint8_t)packet_type & 0x7F;
+	append_terminator = packet_type < NET_PACKET_RESYNC_CHECKSUMS ||
+			    packet_type >= NET_PACKET_RESYNC_CHUNK + 1;
+	if (packet_type == NET_PACKET_REMOTE_INPUT &&
+	    g_game_config.internet_play == 1) {
+		delivery_mode = 2;
 	} else {
-		if (directPlayId == 0) {
-			deliveryMode = 0;
-		} else if (directPlayId == g_netSession.groupDplayId) {
-			deliveryMode = 2;
+		if (direct_play_id == 0) {
+			delivery_mode = 0;
+		} else if (direct_play_id == g_net_session.group_dplay_id) {
+			delivery_mode = 2;
 		} else {
-			deliveryMode = 0;
+			delivery_mode = 0;
 		}
 	}
-	if (deliveryMode == 2) {
-		packetFlags |= 0x8080;
-	} else if (deliveryMode == 1) {
-		packetFlags |= 0x8000;
+	if (delivery_mode == 2) {
+		packet_flags |= 0x8080;
+	} else if (delivery_mode == 1) {
+		packet_flags |= 0x8000;
 	}
-	encodedPacket.packetTypeHeader = (int16_t)packetFlags;
-	encodedPayload = (uint8_t *)&encodedPacket.payloadSize;
-	encodedSize = 2;
-	if (appendTerminator) {
-		fixedPayloadSize =
-			NetSession_GetFixedPayloadSize((int)packetType);
-		packetDataSize = payloadSize;
-		if (fixedPayloadSize == 0) {
-			encodedPayload = encodedPacket.payload;
-			encodedPacket.payloadSize =
-				(int16_t)(packetDataSize - 4);
-			encodedSize = 4;
+	encoded_packet.packet_type_header = (int16_t)packet_flags;
+	encoded_payload = (uint8_t *)&encoded_packet.payload_size;
+	encoded_size = 2;
+	if (append_terminator) {
+		fixed_payload_size =
+			net_session_get_fixed_payload_size((int)packet_type);
+		packet_data_size = payload_size;
+		if (fixed_payload_size == 0) {
+			encoded_payload = encoded_packet.payload;
+			encoded_packet.payload_size =
+				(int16_t)(packet_data_size - 4);
+			encoded_size = 4;
 		}
 	} else {
-		packetDataSize = payloadSize;
+		packet_data_size = payload_size;
 	}
-	memcpy(encodedPayload, payload + 1, (size_t)(packetDataSize - 4));
-	encodedPayload += packetDataSize - 4;
-	encodedSize += packetDataSize - 4;
-	if (appendTerminator) {
-		++encodedSize;
-		*encodedPayload = NET_PACKET_NOP;
+	memcpy(encoded_payload, payload + 1, (size_t)(packet_data_size - 4));
+	encoded_payload += packet_data_size - 4;
+	encoded_size += packet_data_size - 4;
+	if (append_terminator) {
+		++encoded_size;
+		*encoded_payload = NET_PACKET_NOP;
 	}
-	if (directPlayId != g_netSession.localPlayerInfo.directPlayId) {
-		sendResult = g_netSession.dplayInterface->lpVtbl->Send(
-			g_netSession.dplayInterface,
-			(DPID)g_netSession.localPlayerInfo.directPlayId,
-			(DPID)directPlayId, 0, &encodedPacket.packetTypeHeader,
-			(uint32_t)encodedSize);
+	if (direct_play_id != g_net_session.local_player_info.direct_play_id) {
+		send_result = g_net_session.dplay_interface->lpVtbl->Send(
+			g_net_session.dplay_interface,
+			(DPID)g_net_session.local_player_info.direct_play_id,
+			(DPID)direct_play_id, 0,
+			&encoded_packet.packet_type_header,
+			(uint32_t)encoded_size);
 	}
 
-	return sendResult == 0;
+	return send_result == 0;
 }
 
 #ifndef XVT_MODERN
-/* Polls NetSession_ReceiveGamePacket until a packet arrives or timeoutSeconds
+/* Polls net_session_receive_game_packet until a packet arrives or timeout_seconds
  * pass, without sleeping between polls; returns the packet with its sender and
  * size, or NULL on timeout. Only the original build calls this. */
 // FUNCTION: XVT 0x46F5E0
-int *NetSession_WaitForGamePacket(int *outDpid, int *outPayloadSize,
-				  int timeoutSeconds)
+int *net_session_wait_for_game_packet(int *out_dpid, int *out_payload_size,
+				      int timeout_seconds)
 {
-	uint32_t startTime;
-	uint32_t timeoutMilliseconds;
-	int senderDpid;
-	int payloadSize;
-	int copiedPayloadSize;
+	uint32_t start_time;
+	uint32_t timeout_milliseconds;
+	int sender_dpid;
+	int payload_size;
+	int copied_payload_size;
 	int *packet;
 
-	timeoutMilliseconds = (uint32_t)(timeoutSeconds * 1000);
-	startTime = timeGetTime();
-	while (timeGetTime() - startTime <= timeoutMilliseconds) {
-		packet =
-			NetSession_ReceiveGamePacket(&senderDpid, &payloadSize);
+	timeout_milliseconds = (uint32_t)(timeout_seconds * 1000);
+	start_time = timeGetTime();
+	while (timeGetTime() - start_time <= timeout_milliseconds) {
+		packet = net_session_receive_game_packet(&sender_dpid,
+							 &payload_size);
 		if (packet != NULL) {
-			copiedPayloadSize = payloadSize;
-			*outDpid = senderDpid;
-			*outPayloadSize = copiedPayloadSize;
+			copied_payload_size = payload_size;
+			*out_dpid = sender_dpid;
+			*out_payload_size = copied_payload_size;
 			return packet;
 		}
 	}
@@ -3071,48 +3233,48 @@ int *NetSession_WaitForGamePacket(int *outDpid, int *outPayloadSize,
 
 /* Returns the roster slot whose DirectPlay id is dpid, or 8 when none is. */
 // FUNCTION: XVT 0x46F660
-int NetSession_FindPlayerSlotByDpid(int dpid)
+int net_session_find_player_slot_by_dpid(int dpid)
 {
-	int playerSlot;
+	int player_slot;
 
-	for (playerSlot = 0; playerSlot < 8; ++playerSlot) {
-		if (g_netSession.players[playerSlot].directPlayId == dpid) {
-			return playerSlot;
+	for (player_slot = 0; player_slot < 8; ++player_slot) {
+		if (g_net_session.players[player_slot].direct_play_id == dpid) {
+			return player_slot;
 		}
 	}
 
-	return playerSlot;
+	return player_slot;
 }
 
-/* Returns the DirectPlay id in roster slot playerIndex; does not check the
+/* Returns the DirectPlay id in roster slot player_index; does not check the
  * index. Nothing calls this. */
 // FUNCTION: XVT 0x46F680
-int NetSession_GetPlayerDplayId(int playerIndex)
+int net_session_get_player_dplay_id(int player_index)
 {
-	return g_netSession.players[playerIndex].directPlayId;
+	return g_net_session.players[player_index].direct_play_id;
 }
 
 /* Returns the DirectPlay id of the active roster entry numbered
- * activePlayerIndex, counting active entries from 0, or 0 when there are not
+ * active_player_index, counting active entries from 0, or 0 when there are not
  * that many. Nothing calls this. */
 // FUNCTION: XVT 0x46F690
-int NetSession_GetDplayIdByActivePlayerIndex(int activePlayerIndex)
+int net_session_get_dplay_id_by_active_player_index(int active_player_index)
 {
-	int activeIndex;
-	unsigned int playerSlot;
+	int active_index;
+	unsigned int player_slot;
 
-	activeIndex = 0;
-	for (playerSlot = 0; playerSlot < 8; playerSlot++) {
-		if (g_netSession.players[playerSlot].activeFlag != 0) {
-			if (activeIndex == activePlayerIndex) {
+	active_index = 0;
+	for (player_slot = 0; player_slot < 8; player_slot++) {
+		if (g_net_session.players[player_slot].active_flag != 0) {
+			if (active_index == active_player_index) {
 				break;
 			}
-			activeIndex++;
+			active_index++;
 		}
 	}
 
-	if (playerSlot < 8) {
-		return g_netSession.players[playerSlot].directPlayId;
+	if (player_slot < 8) {
+		return g_net_session.players[player_slot].direct_play_id;
 	}
 	return 0;
 }
@@ -3121,60 +3283,60 @@ int NetSession_GetDplayIdByActivePlayerIndex(int activePlayerIndex)
  * is dpid; when none is, the count of all active entries. Nothing calls
  * this. */
 // FUNCTION: XVT 0x46F6D0
-int NetSession_FindActivePlayerIndexByDpid(int dpid)
+int net_session_find_active_player_index_by_dpid(int dpid)
 {
-	int activePlayerIndex;
-	int playerSlot;
+	int active_player_index;
+	int player_slot;
 
-	activePlayerIndex = 0;
-	for (playerSlot = 0; playerSlot < 8; playerSlot++) {
-		if (g_netSession.players[playerSlot].activeFlag != 0) {
-			if (g_netSession.players[playerSlot].directPlayId ==
+	active_player_index = 0;
+	for (player_slot = 0; player_slot < 8; player_slot++) {
+		if (g_net_session.players[player_slot].active_flag != 0) {
+			if (g_net_session.players[player_slot].direct_play_id ==
 			    dpid) {
 				break;
 			}
-			activePlayerIndex++;
+			active_player_index++;
 		}
 	}
 
-	return activePlayerIndex;
+	return active_player_index;
 }
 
-/* Returns the host's DirectPlay id, g_netSession.hostDplayId. */
+/* Returns the host's DirectPlay id, g_net_session.host_dplay_id. */
 // FUNCTION: XVT 0x46F700
-int NetSession_GetHostDplayId(void) { return g_netSession.hostDplayId; }
+int net_session_get_host_dplay_id(void) { return g_net_session.host_dplay_id; }
 
 /* Returns this player's DirectPlay id. */
 // FUNCTION: XVT 0x46F710
-int NetSession_GetLocalDplayId(void)
+int net_session_get_local_dplay_id(void)
 {
-	return g_netSession.localPlayerInfo.directPlayId;
+	return g_net_session.local_player_info.direct_play_id;
 }
 
-/* Returns the short name of the roster entry in playerSlot, found by matching
+/* Returns the short name of the roster entry in player_slot, found by matching
  * DirectPlay ids; in a one-player session, this player's own name whatever the
  * slot. When no entry matches, the modern build returns NULL and the original
  * reaches the end with no return statement. */
 // FUNCTION: XVT 0x46F720
-char *NetSession_GetPlayerName(int playerSlot)
+char *net_session_get_player_name(int player_slot)
 {
-	int rosterIndex;
+	int roster_index;
 
-	if (g_netSession.playerCount == 1) {
-		return g_netSession.localPlayerInfo.playerName;
+	if (g_net_session.player_count == 1) {
+		return g_net_session.local_player_info.player_name;
 	}
 
-	rosterIndex = 0;
-	if (g_netSession.playerCount > rosterIndex) {
+	roster_index = 0;
+	if (g_net_session.player_count > roster_index) {
 		do {
-			if (NetSession_FindPlayerSlotByDpid(
-				    g_netSession.players[rosterIndex]
-					    .directPlayId) == playerSlot) {
-				return g_netSession.players[rosterIndex]
-					.playerName;
+			if (net_session_find_player_slot_by_dpid(
+				    g_net_session.players[roster_index]
+					    .direct_play_id) == player_slot) {
+				return g_net_session.players[roster_index]
+					.player_name;
 			}
-			++rosterIndex;
-		} while (rosterIndex < g_netSession.playerCount);
+			++roster_index;
+		} while (roster_index < g_net_session.player_count);
 	}
 #ifdef XVT_MODERN
 	return NULL;
@@ -3184,27 +3346,27 @@ char *NetSession_GetPlayerName(int playerSlot)
 /* Returns the first queued player entry, or NULL when the queue is empty.
  * Nothing calls this. */
 // FUNCTION: XVT 0x46F780
-struct SessionPlayerInfo *NetSession_PeekQueuedPlayerInfo(void)
+struct session_player_info *net_session_peek_queued_player_info(void)
 {
-	return g_netSession.playerInfoQueueCount > 0
-		       ? g_netSession.playerInfoQueue
+	return g_net_session.player_info_queue_count > 0
+		       ? g_net_session.player_info_queue
 		       : 0;
 }
 
 #ifndef XVT_MODERN
 #pragma function(memcpy)
 #endif
-/* Takes 1 off g_netSession.playerInfoQueueCount and copies the queue up over
+/* Takes 1 off g_net_session.player_info_queue_count and copies the queue up over
  * its first entry, but copies only count minus 1 bytes, not entries, so the
  * queue is not moved up. Nothing calls this. */
 // FUNCTION: XVT 0x46F7A0
-void NetSession_DiscardFirstQueuedPlayerInfo(void)
+void net_session_discard_first_queued_player_info(void)
 {
-	if (g_netSession.playerInfoQueueCount > 0) {
-		memcpy(g_netSession.playerInfoQueue,
-		       &g_netSession.playerInfoQueue[1],
-		       (size_t)(g_netSession.playerInfoQueueCount - 1));
-		g_netSession.playerInfoQueueCount--;
+	if (g_net_session.player_info_queue_count > 0) {
+		memcpy(g_net_session.player_info_queue,
+		       &g_net_session.player_info_queue[1],
+		       (size_t)(g_net_session.player_info_queue_count - 1));
+		g_net_session.player_info_queue_count--;
 	}
 }
 #ifndef XVT_MODERN
@@ -3214,83 +3376,85 @@ void NetSession_DiscardFirstQueuedPlayerInfo(void)
 /* Returns how many roster slots from slot 0 are active before the first
  * inactive one. Nothing calls this. */
 // FUNCTION: XVT 0x46F7D0
-int NetSession_CountLeadingActivePlayers(void)
+int net_session_count_leading_active_players(void)
 {
-	int playerCount;
+	int player_count;
 
-	for (playerCount = 0; playerCount < 8; ++playerCount) {
-		if (g_netSession.players[playerCount].activeFlag == 0) {
+	for (player_count = 0; player_count < 8; ++player_count) {
+		if (g_net_session.players[player_count].active_flag == 0) {
 			break;
 		}
 	}
-	return playerCount;
+	return player_count;
 }
 
 /* Sets the roster count. Nothing calls this. */
 // FUNCTION: XVT 0x46F7F0
-void NetSession_SetPlayerCount(int playerCount)
+void net_session_set_player_count(int player_count)
 {
-	g_netSession.playerCount = playerCount;
+	g_net_session.player_count = player_count;
 }
 
-/* Copies playerInfo into roster slot playerSlot, marks it active and adds 1 to
- * the roster count, even when the slot was in use. Does not check playerSlot.
+/* Copies player_info into roster slot player_slot, marks it active and adds 1 to
+ * the roster count, even when the slot was in use. Does not check player_slot.
  * Nothing calls this. */
 // FUNCTION: XVT 0x46F800
-void NetSession_AddPlayerToRosterSlot(
-	int playerSlot, const struct SessionPlayerInfo *playerInfo)
+void net_session_add_player_to_roster_slot(
+	int player_slot, const struct session_player_info *player_info)
 {
-	struct SessionPlayerInfo *rosterSlot;
+	struct session_player_info *roster_slot;
 
-	g_netSession.players[playerSlot] = *playerInfo;
-	rosterSlot = &g_netSession.players[playerSlot];
-	rosterSlot->activeFlag = 1;
-	g_netSession.playerCount++;
+	g_net_session.players[player_slot] = *player_info;
+	roster_slot = &g_net_session.players[player_slot];
+	roster_slot->active_flag = 1;
+	g_net_session.player_count++;
 }
 
 #ifndef XVT_MODERN
-/* Sends toPlayerId (0 for all players) a ROSTER_COUNT, then one ROSTER_ENTRY
+/* Sends to_player_id (0 for all players) a ROSTER_COUNT, then one ROSTER_ENTRY
  * per roster entry with its index. When sending to all, it waits after each
  * send until a packet of that type arrives, which its own queued copy
  * satisfies, and returns 0 when a 60 s wait sees none; else returns 1. Writes
- * g_netSessionScratchPacket. Only the original build calls this. */
+ * g_net_session_scratch_packet. Only the original build calls this. */
 // FUNCTION: XVT 0x46F840
-int NetSession_BroadcastPlayerRoster(int toPlayerId)
+int net_session_broadcast_player_roster(int to_player_id)
 {
-	int outDpid;
-	int outPayloadSize;
+	int out_dpid;
+	int out_payload_size;
 	int *packet;
-	int playerIndex;
+	int player_index;
 
-	g_netSessionScratchPacket.packetType = NET_PACKET_ROSTER_COUNT;
-	g_netSessionScratchPacket.payloadDwords[0] = g_netSession.playerCount;
-	NetSession_SendPacket(toPlayerId,
-			      (unsigned int *)&g_netSessionScratchPacket, 8);
+	g_net_session_scratch_packet.packet_type = NET_PACKET_ROSTER_COUNT;
+	g_net_session_scratch_packet.payload_dwords[0] =
+		g_net_session.player_count;
+	net_session_send_packet(
+		to_player_id, (unsigned int *)&g_net_session_scratch_packet, 8);
 
-	if (toPlayerId == 0) {
+	if (to_player_id == 0) {
 		do {
-			packet = NetSession_WaitForGamePacket(
-				&outDpid, &outPayloadSize, 60);
+			packet = net_session_wait_for_game_packet(
+				&out_dpid, &out_payload_size, 60);
 			if (packet == NULL) {
 				return 0;
 			}
 		} while (*packet != NET_PACKET_ROSTER_COUNT);
 	}
 
-	for (playerIndex = 0; playerIndex < g_netSession.playerCount;
-	     ++playerIndex) {
-		g_netSessionScratchPacket.packetType = NET_PACKET_ROSTER_ENTRY;
-		g_netSessionScratchPacket.payloadDwords[0] = playerIndex;
-		memcpy(&g_netSessionScratchPacket.payloadDwords[1],
-		       &g_netSession.players[playerIndex],
-		       sizeof(struct SessionPlayerInfo));
-		NetSession_SendPacket(
-			toPlayerId, (unsigned int *)&g_netSessionScratchPacket,
-			48);
-		if (toPlayerId == 0) {
+	for (player_index = 0; player_index < g_net_session.player_count;
+	     ++player_index) {
+		g_net_session_scratch_packet.packet_type =
+			NET_PACKET_ROSTER_ENTRY;
+		g_net_session_scratch_packet.payload_dwords[0] = player_index;
+		memcpy(&g_net_session_scratch_packet.payload_dwords[1],
+		       &g_net_session.players[player_index],
+		       sizeof(struct session_player_info));
+		net_session_send_packet(
+			to_player_id,
+			(unsigned int *)&g_net_session_scratch_packet, 48);
+		if (to_player_id == 0) {
 			do {
-				packet = NetSession_WaitForGamePacket(
-					&outDpid, &outPayloadSize, 60);
+				packet = net_session_wait_for_game_packet(
+					&out_dpid, &out_payload_size, 60);
 				if (packet == NULL) {
 					return 0;
 				}
@@ -3301,93 +3465,95 @@ int NetSession_BroadcastPlayerRoster(int toPlayerId)
 }
 #endif
 
-/* Returns g_netSession.playerInfoQueueCount. Nothing calls this. */
+/* Returns g_net_session.player_info_queue_count. Nothing calls this. */
 // FUNCTION: XVT 0x46F9D0
-int NetSession_GetQueuedPlayerInfoCount(void)
+int net_session_get_queued_player_info_count(void)
 {
-	return g_netSession.playerInfoQueueCount;
+	return g_net_session.player_info_queue_count;
 }
 
-/* Appends a copy of playerInfo to g_netSession.playerInfoQueue. Does not check
+/* Appends a copy of player_info to g_net_session.player_info_queue. Does not check
  * that the 8-entry queue has room. Nothing calls this. */
 // FUNCTION: XVT 0x46F9E0
-void NetSession_QueuePlayerInfo(const struct SessionPlayerInfo *playerInfo)
+void net_session_queue_player_info(
+	const struct session_player_info *player_info)
 {
-	g_netSession.playerInfoQueue[g_netSession.playerInfoQueueCount] =
-		*playerInfo;
-	g_netSession.playerInfoQueueCount++;
+	g_net_session.player_info_queue[g_net_session.player_info_queue_count] =
+		*player_info;
+	g_net_session.player_info_queue_count++;
 }
 
 /* Asks DirectPlay to add the player to the session group,
- * g_netSession.groupDplayId; returns DirectPlay's result code. Does not check
+ * g_net_session.group_dplay_id; returns DirectPlay's result code. Does not check
  * for a DirectPlay interface. */
 // FUNCTION: XVT 0x46FA10
-int NetSession_AddPlayerToGroup(const struct SessionPlayerInfo *playerInfo)
+int net_session_add_player_to_group(
+	const struct session_player_info *player_info)
 {
-	return g_netSession.dplayInterface->lpVtbl->AddPlayerToGroup(
-		g_netSession.dplayInterface, g_netSession.groupDplayId,
-		playerInfo->directPlayId);
+	return g_net_session.dplay_interface->lpVtbl->AddPlayerToGroup(
+		g_net_session.dplay_interface, g_net_session.group_dplay_id,
+		player_info->direct_play_id);
 }
 
-/* Returns how many of the 8 roster slots have activeFlag 1. */
+/* Returns how many of the 8 roster slots have active_flag 1. */
 // FUNCTION: XVT 0x46FA30
-int NetSession_CountActivePlayers(void)
+int net_session_count_active_players(void)
 {
-	int activePlayerCount = 0;
-	int playerIndex;
+	int active_player_count = 0;
+	int player_index;
 
-	for (playerIndex = 0; playerIndex < 8; ++playerIndex) {
-		if (g_netSession.players[playerIndex].activeFlag == 1) {
-			++activePlayerCount;
+	for (player_index = 0; player_index < 8; ++player_index) {
+		if (g_net_session.players[player_index].active_flag == 1) {
+			++active_player_count;
 		}
 	}
-	return activePlayerCount;
+	return active_player_count;
 }
 
 /* Asks DirectPlay to remove the player from the session group; returns
  * DirectPlay's result code. Does not check for a DirectPlay interface. */
 // FUNCTION: XVT 0x46FA50
-int NetSession_RemovePlayerFromGroup(int playerDplayId)
+int net_session_remove_player_from_group(int player_dplay_id)
 {
-	return g_netSession.dplayInterface->lpVtbl->DeletePlayerFromGroup(
-		g_netSession.dplayInterface, g_netSession.groupDplayId,
-		(DPID)playerDplayId);
+	return g_net_session.dplay_interface->lpVtbl->DeletePlayerFromGroup(
+		g_net_session.dplay_interface, g_net_session.group_dplay_id,
+		(DPID)player_dplay_id);
 }
 
-/* Makes the first active roster entry the host in g_netSession.hostDplayId and
+/* Makes the first active roster entry the host in g_net_session.host_dplay_id and
  * returns 1, or returns 0 when none is active. Does not change
- * g_netSession.localIsHost. Nothing calls this. */
+ * g_net_session.local_is_host. Nothing calls this. */
 // FUNCTION: XVT 0x46FA70
-int NetSession_SelectFirstActivePlayerAsHost(void)
+int net_session_select_first_active_player_as_host(void)
 {
-	int playerIndex;
+	int player_index;
 
-	playerIndex = 0;
-	while (g_netSession.players[playerIndex].activeFlag == 0) {
-		playerIndex++;
-		if (playerIndex >= 8) {
+	player_index = 0;
+	while (g_net_session.players[player_index].active_flag == 0) {
+		player_index++;
+		if (player_index >= 8) {
 			return 0;
 		}
 	}
-	g_netSession.hostDplayId =
-		g_netSession.players[playerIndex].directPlayId;
+	g_net_session.host_dplay_id =
+		g_net_session.players[player_index].direct_play_id;
 	return 1;
 }
 
 /* Returns 1 and does nothing else. Nothing calls this. */
 // FUNCTION: XVT 0x46FAB0
-int NetSession_UnusedStubReturnTrue(void) { return 1; }
+int net_session_unused_stub_return_true(void) { return 1; }
 
 /* Returns 1 and does nothing else. */
 // FUNCTION: XVT 0x46FAC0
-int NetSession_StubReturnTrue(void) { return 1; }
+int net_session_stub_return_true(void) { return 1; }
 
 /* Returns 0 for every packet type: no type has a fixed size, so every packet
  * outside the resync types carries a 2-byte length. */
 // FUNCTION: XVT 0x46FAD0
-int NetSession_GetFixedPayloadSize(int packetType)
+int net_session_get_fixed_payload_size(int packet_type)
 {
-	(void)packetType;
+	(void)packet_type;
 	return 0;
 }
 
@@ -3397,102 +3563,104 @@ int NetSession_GetFixedPayloadSize(int packetType)
  * the peer then resends the packet with that sequence on each channel, if it
  * has sent one. Only peers in the first 8 of the 40 slots get one. Creates a
  * slot for any roster player that has none, and writes
- * g_netSessionScratchPacket and the slot's activity time. Returns 1. */
+ * g_net_session_scratch_packet and the slot's activity time. Returns 1. */
 // FUNCTION: XVT 0x46FAE0
-int NetSession_SendReliableKeepalives(void)
+int net_session_send_reliable_keepalives(void)
 {
-	struct SessionPlayerInfo *player;
-	struct SessionPlayerInfo *playerRoster;
-	unsigned int playerIndex;
-	unsigned int peerSlot;
-	unsigned int reliablePeerIndex;
-	uint32_t currentTime;
-	unsigned int nextSequence;
-	int playerCount;
+	struct session_player_info *player;
+	struct session_player_info *player_roster;
+	unsigned int player_index;
+	unsigned int peer_slot;
+	unsigned int reliable_peer_index;
+	uint32_t current_time;
+	unsigned int next_sequence;
+	int player_count;
 
-	playerIndex = 0;
-	playerRoster = NetSession_GetPlayerRoster(&playerCount);
-	if (playerCount != 0) {
-		player = playerRoster;
+	player_index = 0;
+	player_roster = net_session_get_player_roster(&player_count);
+	if (player_count != 0) {
+		player = player_roster;
 		do {
-			currentTime = timeGetTime();
-			if (g_netSession.localPlayerInfo.directPlayId !=
-			    player->directPlayId) {
-				peerSlot = NetReliable_FindOrCreatePeerSlot(
-					player->directPlayId);
-				if (peerSlot < g_netSession
-						       .reliablePeerSlotCount &&
-				    peerSlot < 8) {
-					reliablePeerIndex = peerSlot;
-					if (currentTime -
-						    g_netSession
-							    .reliablePeerSlots
-								    [peerSlot]
-							    .lastActivityMs >
+			current_time = timeGetTime();
+			if (g_net_session.local_player_info.direct_play_id !=
+			    player->direct_play_id) {
+				peer_slot =
+					net_reliable_find_or_create_peer_slot(
+						player->direct_play_id);
+				if (peer_slot <
+					    g_net_session
+						    .reliable_peer_slot_count &&
+				    peer_slot < 8) {
+					reliable_peer_index = peer_slot;
+					if (current_time -
+						    g_net_session
+							    .reliable_peer_slots
+								    [peer_slot]
+							    .last_activity_ms >
 					    3000) {
-						g_netSession
-							.reliablePeerSlots
-								[peerSlot]
-							.lastActivityMs =
-							currentTime;
-						NetSession_DebugTrace(
+						g_net_session
+							.reliable_peer_slots
+								[peer_slot]
+							.last_activity_ms =
+							current_time;
+						net_session_debug_trace(
 							"(Sending RRA) ");
-						g_netSessionScratchPacket
-							.packetType =
+						g_net_session_scratch_packet
+							.packet_type =
 							NET_PACKET_KEEPALIVE;
-						nextSequence =
-							g_netSession
-								.reliablePeerSlots
-									[reliablePeerIndex]
-								.recvSeqChannelA +
+						next_sequence =
+							g_net_session
+								.reliable_peer_slots
+									[reliable_peer_index]
+								.recv_seq_channel_a +
 							1;
-						if (nextSequence > 127) {
-							nextSequence = 0;
+						if (next_sequence > 127) {
+							next_sequence = 0;
 						}
-						g_netSessionScratchPacket
-							.payloadDwords[0] =
-							(int)nextSequence;
-						nextSequence =
-							g_netSession
-								.reliablePeerSlots
-									[reliablePeerIndex]
-								.recvSeqChannelB +
+						g_net_session_scratch_packet
+							.payload_dwords[0] =
+							(int)next_sequence;
+						next_sequence =
+							g_net_session
+								.reliable_peer_slots
+									[reliable_peer_index]
+								.recv_seq_channel_b +
 							1;
-						if (nextSequence > 127) {
-							nextSequence = 0;
+						if (next_sequence > 127) {
+							next_sequence = 0;
 						}
-						g_netSessionScratchPacket
-							.payloadDwords[1] =
-							(int)nextSequence;
-						nextSequence =
-							g_netSession
-								.reliablePeerSlots
-									[reliablePeerIndex]
-								.recvSeqDefault +
+						g_net_session_scratch_packet
+							.payload_dwords[1] =
+							(int)next_sequence;
+						next_sequence =
+							g_net_session
+								.reliable_peer_slots
+									[reliable_peer_index]
+								.recv_seq_default +
 							1;
-						if (nextSequence > 127) {
-							nextSequence = 0;
+						if (next_sequence > 127) {
+							next_sequence = 0;
 						}
-						g_netSessionScratchPacket
-							.payloadDwords[2] =
-							(int)nextSequence;
-						g_netSessionScratchPacket
-							.payloadDwords[3] =
+						g_net_session_scratch_packet
+							.payload_dwords[2] =
+							(int)next_sequence;
+						g_net_session_scratch_packet
+							.payload_dwords[3] =
 							(int)timeGetTime();
-						NetSession_SendCompactGamePacket(
-							g_netSession
-								.reliablePeerSlots
-									[reliablePeerIndex]
-								.directPlayId,
+						net_session_send_compact_game_packet(
+							g_net_session
+								.reliable_peer_slots
+									[reliable_peer_index]
+								.direct_play_id,
 							(unsigned int
-								 *)&g_netSessionScratchPacket,
+								 *)&g_net_session_scratch_packet,
 							20, 0);
 					}
 				}
 			}
 			++player;
-			++playerIndex;
-		} while ((unsigned int)playerCount > playerIndex);
+			++player_index;
+		} while ((unsigned int)player_count > player_index);
 	}
 	return 1;
 }

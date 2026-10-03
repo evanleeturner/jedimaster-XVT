@@ -9,22 +9,22 @@
 extern "C" {
 #endif
 
-extern void *g_swFramebufferBase;
-extern int g_flightPageFlip;
-extern int g_flightDrawToHudLayer;
-extern IDirectDrawSurface *g_flightOffscreenSurface;
-extern uint8_t g_flightDisplaySurfacesActive;
-extern int32_t g_flightNetClockLeadTicks;
-extern uint8_t g_flightSurfaceAlreadyLocked;
-extern int g_surfaceLockCount;
+extern void *g_sw_framebuffer_base;
+extern int g_flight_page_flip;
+extern int g_flight_draw_to_hud_layer;
+extern IDirectDrawSurface *g_flight_offscreen_surface;
+extern uint8_t g_flight_display_surfaces_active;
+extern int32_t g_flight_net_clock_lead_ticks;
+extern uint8_t g_flight_surface_already_locked;
+extern int g_surface_lock_count;
 
-void FlightSurface_ClearToBlack(void);
-int FlightSurface_GetLockCount(void);
-void FlightSurface_Lock(void);
-void FlightSurface_Unlock(void);
-int FlightSurface_SetViewport480ByteSpan(int byteSpan);
-void *FlightSurface_SetSoftwareFramebufferBase(void *framebufferBase);
-void *FlightSurface_GetSoftwareFramebufferBase(void);
+void flight_surface_clear_to_black(void);
+int flight_surface_get_lock_count(void);
+void flight_surface_lock(void);
+void flight_surface_unlock(void);
+int flight_surface_set_viewport480_byte_span(int byte_span);
+void *flight_surface_set_software_framebuffer_base(void *framebuffer_base);
+void *flight_surface_get_software_framebuffer_base(void);
 
 #ifdef __cplusplus
 }

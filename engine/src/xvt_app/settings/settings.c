@@ -19,13 +19,13 @@
 
 static struct {
 	AeronUiContext *ui;
-	XvtSettingsPageFn pages[5];
+	xvt_settings_page_fn pages[5];
 	bool open, close_requested, capture_owns_frame, ready;
 	int page;
 	int exit_confirmation_open;
 	char error[1024];
-	struct XvtControllerSettings controller;
-	struct XvtKeyboardSettings keyboard;
+	struct xvt_controller_settings controller;
+	struct xvt_keyboard_settings keyboard;
 
 	struct {
 		uint32_t instance;
@@ -33,32 +33,33 @@ static struct {
 	} start[AERON_CONTROLLER_MAX];
 } g_menu;
 
-static void XvtSettingsMenu_DrawGame(AeronUiContext *ui,
-				     const AeronInputSnapshot *input)
+static void xvt_settings_menu_draw_game(AeronUiContext *ui,
+					const AeronInputSnapshot *input)
 {
 	static const char *const rates[] = {"Native (31.25 Hz)", "Unlocked"};
-	int skip_intro = XvtConfig_Settings()->skip_intro;
+	int skip_intro = xvt_config_settings()->skip_intro;
 	AeronUi_Header(ui, "Startup");
 	if (AeronUi_Toggle(ui, "Skip intro cutscenes on launch", &skip_intro)) {
 		char error[1024];
-		if (!XvtConfig_SetSkipIntro(skip_intro != 0, error,
-					    sizeof error)) {
-			XvtSettingsMenu_ReportError(error);
+		if (!xvt_config_set_skip_intro(skip_intro != 0, error,
+					       sizeof error)) {
+			xvt_settings_menu_report_error(error);
 		}
 	}
 	AeronUi_Spacer(ui, 8.0f);
-	int unlocked = XvtConfig_Settings()->flight_unlocked;
+	int unlocked = xvt_config_settings()->flight_unlocked;
 	AeronUi_Header(ui, "Flight");
 	if (AeronUi_Selector(ui, "Flight Rate", &unlocked, rates, 2)) {
 		char error[1024];
-		if (!XvtConfig_SetFlightRate(unlocked != 0, error,
-					     sizeof error)) {
-			XvtSettingsMenu_ReportError(error);
+		if (!xvt_config_set_flight_rate(unlocked != 0, error,
+						sizeof error)) {
+			xvt_settings_menu_report_error(error);
 		}
 	}
 	AeronUi_Help(ui, "Applies to the next mission.");
-	if (XvtFlightTask_IsActive() && !XvtFlightTask_IsLoading()) {
-		XvtFlightTimingProfile profile = XvtFlightTiming_Profile();
+	if (xvt_flight_task_is_active() && !xvt_flight_task_is_loading()) {
+		xvt_flight_timing_profile profile =
+			xvt_flight_timing_session_profile();
 		AeronUi_Help(ui, profile == XVT_FLIGHT_TIMING_NETWORK_125
 					 ? "Active mission: 125 Hz"
 				 : profile == XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED
@@ -66,144 +67,144 @@ static void XvtSettingsMenu_DrawGame(AeronUiContext *ui,
 					 : "Active mission: 31.25 Hz");
 	}
 	AeronUi_Spacer(ui, 8.0f);
-	XvtInstallationPage_Draw(ui, input);
+	xvt_installation_page_draw(ui, input);
 }
 
-static void XvtSettingsMenu_DrawController(AeronUiContext *ui,
-					   const AeronInputSnapshot *input)
+static void xvt_settings_menu_draw_controller(AeronUiContext *ui,
+					      const AeronInputSnapshot *input)
 {
-	XvtControllerSettings_Draw(&g_menu.controller, ui, input);
+	xvt_controller_settings_draw(&g_menu.controller, ui, input);
 }
 
-static void XvtSettingsMenu_DrawKeyboard(AeronUiContext *ui,
-					 const AeronInputSnapshot *input)
+static void xvt_settings_menu_draw_keyboard(AeronUiContext *ui,
+					    const AeronInputSnapshot *input)
 {
 	(void)input;
-	XvtKeyboardSettings_Draw(&g_menu.keyboard, ui);
+	xvt_keyboard_settings_draw(&g_menu.keyboard, ui);
 }
 
-bool XvtSettingsMenu_Init(struct XvtAppUi *ui, char *error, size_t capacity)
+bool xvt_settings_menu_init(struct xvt_app_ui *ui, char *error, size_t capacity)
 {
 	memset(&g_menu, 0, sizeof g_menu);
-	g_menu.ui = XvtAppUi_Context(ui);
-	g_menu.pages[0] = XvtSettingsMenu_DrawGame;
-	g_menu.pages[1] = XvtVideoPage_Draw;
-	g_menu.pages[2] = XvtSettingsMenu_DrawController;
-	g_menu.pages[3] = XvtSettingsMenu_DrawKeyboard;
-	g_menu.pages[4] = XvtMousePage_Draw;
-	XvtVideoOptions_Configure(XvtRemasterConfig_ApplyVideo);
-	g_menu.ready = XvtInstallationPage_Init(error, capacity);
+	g_menu.ui = xvt_app_ui_context(ui);
+	g_menu.pages[0] = xvt_settings_menu_draw_game;
+	g_menu.pages[1] = xvt_video_page_draw;
+	g_menu.pages[2] = xvt_settings_menu_draw_controller;
+	g_menu.pages[3] = xvt_settings_menu_draw_keyboard;
+	g_menu.pages[4] = xvt_mouse_page_draw;
+	xvt_video_options_configure(xvt_remaster_config_apply_video);
+	g_menu.ready = xvt_installation_page_init(error, capacity);
 	return g_menu.ready;
 }
 
-void XvtSettingsMenu_FlushForExit(void)
+void xvt_settings_menu_flush_for_exit(void)
 {
 	if (!g_menu.ready) {
 		return;
 	}
 	char error[1024];
-	if (!XvtVideoOptions_Flush(true, error, sizeof error)) {
+	if (!xvt_video_options_flush(true, error, sizeof error)) {
 		XVT_LOG_ERROR("settings.save_failed part=video error=\"%s\"",
 			      error);
 	}
 	if (g_menu.open) {
-		if (!XvtKeyboardSettings_Commit(&g_menu.keyboard, error,
-						sizeof error)) {
+		if (!xvt_keyboard_settings_commit(&g_menu.keyboard, error,
+						  sizeof error)) {
 			XVT_LOG_ERROR(
 				"settings.save_failed part=keyboard error=\"%s\"",
 				error);
 		}
-		if (!XvtControllerSettings_Commit(&g_menu.controller, error,
-						  sizeof error)) {
+		if (!xvt_controller_settings_commit(&g_menu.controller, error,
+						    sizeof error)) {
 			XVT_LOG_ERROR(
 				"settings.save_failed part=controller error=\"%s\"",
 				error);
 		}
-		if (!XvtInstallationPage_Flush(error, sizeof error)) {
+		if (!xvt_installation_page_flush(error, sizeof error)) {
 			XVT_LOG_ERROR(
 				"settings.save_failed part=installation error=\"%s\"",
 				error);
 		}
 	}
-	if (!XvtConfig_Save(error, sizeof error)) {
+	if (!xvt_config_save(error, sizeof error)) {
 		XVT_LOG_ERROR("settings.save_failed part=config error=\"%s\"",
 			      error);
 	}
 }
 
-void XvtSettingsMenu_Shutdown(void)
+void xvt_settings_menu_shutdown(void)
 {
-	XvtInstallationPage_Shutdown();
-	XvtKeyboardSettings_CancelCapture(&g_menu.keyboard, g_menu.ui);
+	xvt_installation_page_shutdown();
+	xvt_keyboard_settings_cancel_capture(&g_menu.keyboard, g_menu.ui);
 	if (g_menu.ui) {
 		AeronUi_CancelControllerCapture(g_menu.ui);
 	}
 	memset(&g_menu, 0, sizeof g_menu);
 }
 
-void XvtSettingsMenu_SetPage(int page, XvtSettingsPageFn draw)
+void xvt_settings_menu_set_page(int page, xvt_settings_page_fn draw)
 {
 	if ((unsigned)page < 5) {
 		g_menu.pages[page] = draw;
 	}
 }
 
-bool XvtSettingsMenu_IsOpen(void) { return g_menu.open; }
+bool xvt_settings_menu_is_open(void) { return g_menu.open; }
 
-bool XvtSettingsMenu_CapturesKeyboard(void)
+bool xvt_settings_menu_captures_keyboard(void)
 {
 	return g_menu.open && AeronUi_KeyboardCaptureActive(g_menu.ui);
 }
 
-bool XvtSettingsMenu_CaptureOwnsFrame(void)
+bool xvt_settings_menu_capture_owns_frame(void)
 {
 	return g_menu.open && g_menu.capture_owns_frame;
 }
 
-void XvtSettingsMenu_Show(void)
+void xvt_settings_menu_show(void)
 {
 	if (g_menu.ui && !g_menu.open) {
 		g_menu.open = true;
-		XvtInstallationPage_Open();
-		XvtControllerSettings_Open(&g_menu.controller,
-					   XvtConfig_Settings());
-		XvtKeyboardSettings_Open(&g_menu.keyboard,
-					 XvtConfig_Settings());
+		xvt_installation_page_open();
+		xvt_controller_settings_open(&g_menu.controller,
+					     xvt_config_settings());
+		xvt_keyboard_settings_open(&g_menu.keyboard,
+					   xvt_config_settings());
 		g_menu.error[0] = 0;
-		XvtInput_SetCaptured(true);
-		XvtPort_SetSettingsOpen(1);
+		xvt_input_set_captured(true);
+		xvt_port_set_settings_open(1);
 		Aeron_SetHostCursorVisible(1);
 	}
 }
 
-void XvtSettingsMenu_RequestClose(void)
+void xvt_settings_menu_request_close(void)
 {
 	if (g_menu.open) {
 		g_menu.close_requested = true;
 	}
 }
 
-bool XvtSettingsMenu_CloseRequested(void) { return g_menu.close_requested; }
+bool xvt_settings_menu_close_requested(void) { return g_menu.close_requested; }
 
-void XvtSettingsMenu_CompleteClose(void)
+void xvt_settings_menu_complete_close(void)
 {
-	XvtKeyboardSettings_CancelCapture(&g_menu.keyboard, g_menu.ui);
-	XvtControllerSettings_CancelCapture(&g_menu.controller, g_menu.ui);
-	XvtInstallationPage_CancelPicker();
+	xvt_keyboard_settings_cancel_capture(&g_menu.keyboard, g_menu.ui);
+	xvt_controller_settings_cancel_capture(&g_menu.controller, g_menu.ui);
+	xvt_installation_page_cancel_picker();
 	AeronUi_CancelControllerCapture(g_menu.ui);
 	g_menu.open = g_menu.close_requested = g_menu.capture_owns_frame =
 		false;
 	g_menu.exit_confirmation_open = 0;
-	XvtPort_SetSettingsOpen(0);
+	xvt_port_set_settings_open(0);
 }
 
-void XvtSettingsMenu_ReportError(const char *error)
+void xvt_settings_menu_report_error(const char *error)
 {
 	snprintf(g_menu.error, sizeof g_menu.error, "%s", error);
 	g_menu.close_requested = false;
 }
 
-static void XvtSettingsMenu_DrawExitConfirmation(AeronUiContext *ui)
+static void xvt_settings_menu_draw_exit_confirmation(AeronUiContext *ui)
 {
 	if (!AeronUi_BeginModal(ui, "EXIT GAME", &g_menu.exit_confirmation_open,
 				NULL)) {
@@ -223,7 +224,7 @@ static void XvtSettingsMenu_DrawExitConfirmation(AeronUiContext *ui)
 	AeronUi_EndModal(ui);
 }
 
-void XvtSettingsMenu_Frame(const AeronInputSnapshot *input, float seconds)
+void xvt_settings_menu_frame(const AeronInputSnapshot *input, float seconds)
 {
 	if (!g_menu.open || !input) {
 		return;
@@ -239,20 +240,20 @@ void XvtSettingsMenu_Frame(const AeronInputSnapshot *input, float seconds)
 						     .centered = 1})) {
 		AeronUi_BeginTabBar(g_menu.ui, "pages", pages, 5, &g_menu.page);
 		if (g_menu.page != 2) {
-			XvtControllerSettings_CancelCapture(&g_menu.controller,
-							    g_menu.ui);
+			xvt_controller_settings_cancel_capture(
+				&g_menu.controller, g_menu.ui);
 			g_menu.controller.editor.binding_modal_open = 0;
 			g_menu.controller.restore_modal_open = 0;
 		}
 		if (g_menu.page != 3) {
-			XvtKeyboardSettings_CancelCapture(&g_menu.keyboard,
-							  g_menu.ui);
+			xvt_keyboard_settings_cancel_capture(&g_menu.keyboard,
+							     g_menu.ui);
 		}
 		if (g_menu.pages[g_menu.page]) {
 			g_menu.pages[g_menu.page](g_menu.ui, input);
 		}
 		AeronUi_EndTabBar(g_menu.ui);
-		if (XvtPort_NetworkRequiresProgress()) {
+		if (xvt_port_network_requires_progress()) {
 			AeronUi_Help(
 				g_menu.ui,
 				"Multiplayer continues while settings are open.");
@@ -268,49 +269,50 @@ void XvtSettingsMenu_Frame(const AeronInputSnapshot *input, float seconds)
 			}
 			AeronUi_NextColumn(g_menu.ui);
 			if (AeronUi_Button(g_menu.ui, "Close")) {
-				XvtSettingsMenu_RequestClose();
+				xvt_settings_menu_request_close();
 			}
 			AeronUi_EndColumns(g_menu.ui);
 		} else if (AeronUi_Button(g_menu.ui, "Close")) {
-			XvtSettingsMenu_RequestClose();
+			xvt_settings_menu_request_close();
 		}
 		if (g_menu.page == 2) {
-			XvtControllerSettings_DrawModals(&g_menu.controller,
-							 g_menu.ui, input,
-							 XvtConfig_Settings());
+			xvt_controller_settings_draw_modals(
+				&g_menu.controller, g_menu.ui, input,
+				xvt_config_settings());
 		}
 		if (g_menu.page == 3) {
-			XvtKeyboardSettings_DrawModals(&g_menu.keyboard,
-						       g_menu.ui);
+			xvt_keyboard_settings_draw_modals(&g_menu.keyboard,
+							  g_menu.ui);
 		}
 		if (g_menu.exit_confirmation_open) {
-			XvtSettingsMenu_DrawExitConfirmation(g_menu.ui);
+			xvt_settings_menu_draw_exit_confirmation(g_menu.ui);
 		}
 		AeronUi_EndWindow(g_menu.ui);
 	}
-	XvtInstallationPage_DrawPicker(g_menu.ui);
+	xvt_installation_page_draw_picker(g_menu.ui);
 	AeronUiOutput output = AeronUi_EndFrame(g_menu.ui);
 	g_menu.capture_owns_frame = output.capture_all != 0;
 	if (output.cancel_pressed) {
-		XvtSettingsMenu_RequestClose();
+		xvt_settings_menu_request_close();
 	}
 	AeronUi_Submit(g_menu.ui);
 }
 
-static bool XvtSettingsMenu_PollStartPress(const AeronInputSnapshot *input)
+static bool xvt_settings_menu_poll_start_press(const AeronInputSnapshot *input)
 {
 	if (!input) {
 		memset(g_menu.start, 0, sizeof g_menu.start);
 		return false;
 	}
-	const struct XvtControllerOptions *options =
-		XvtControllerMapping_Options();
+	const struct xvt_controller_options *options =
+		xvt_controller_mapping_options();
 	bool pressed = false;
 	for (int i = 0; i < AERON_CONTROLLER_MAX; ++i) {
 		const AeronControllerSnapshot *device = &input->controllers[i];
-		int model = device->connected ? XvtControllerOptions_FindModel(
-							options, device->guid)
-					      : -1;
+		int model = device->connected
+				    ? xvt_controller_options_find_model(
+					      options, device->guid)
+				    : -1;
 		bool eligible = model >= 0 &&
 				options->models[model].kind == device->kind &&
 				device->kind == AERON_CONTROLLER_KIND_GAMEPAD;
@@ -330,71 +332,71 @@ static bool XvtSettingsMenu_PollStartPress(const AeronInputSnapshot *input)
 	return pressed;
 }
 
-bool XvtSettingsMenu_BeginFrame(const AeronInputSnapshot *input)
+bool xvt_settings_menu_begin_frame(const AeronInputSnapshot *input)
 {
 	bool was_open = g_menu.open;
 	if (g_menu.open) {
-		XvtControllerSettings_Discover(
+		xvt_controller_settings_discover(
 			&g_menu.controller, g_menu.ui, input,
-			&XvtConfig_DefaultSettings()->gamepad_defaults);
+			&xvt_config_default_settings()->gamepad_defaults);
 	}
-	XvtControllerMapping_ApplyPending();
+	xvt_controller_mapping_apply_pending();
 	char apply_error[1024];
-	if (!XvtVideoOptions_ApplyPending(apply_error, sizeof apply_error)) {
-		XvtSettingsMenu_ReportError(apply_error);
+	if (!xvt_video_options_apply_pending(apply_error, sizeof apply_error)) {
+		xvt_settings_menu_report_error(apply_error);
 	}
 	if (g_menu.close_requested) {
 		char error[1024];
-		if (XvtVideoOptions_Flush(false, error, sizeof error) &&
-		    XvtControllerSettings_Commit(&g_menu.controller, error,
+		if (xvt_video_options_flush(false, error, sizeof error) &&
+		    xvt_controller_settings_commit(&g_menu.controller, error,
+						   sizeof error) &&
+		    xvt_keyboard_settings_commit(&g_menu.keyboard, error,
 						 sizeof error) &&
-		    XvtKeyboardSettings_Commit(&g_menu.keyboard, error,
-					       sizeof error) &&
-		    XvtInstallationPage_Flush(error, sizeof error) &&
-		    XvtConfig_Save(error, sizeof error)) {
-			XvtSettingsMenu_CompleteClose();
+		    xvt_installation_page_flush(error, sizeof error) &&
+		    xvt_config_save(error, sizeof error)) {
+			xvt_settings_menu_complete_close();
 		} else {
-			XvtSettingsMenu_ReportError(error);
+			xvt_settings_menu_report_error(error);
 		}
 	}
 	bool opened = false;
-	bool start_pressed = XvtSettingsMenu_PollStartPress(input);
-	if (input && input->has_focus && !XvtDialog_IsActive()) {
+	bool start_pressed = xvt_settings_menu_poll_start_press(input);
+	if (input && input->has_focus && !xvt_dialog_is_active()) {
 
 		if (!g_menu.close_requested && start_pressed &&
 		    !g_menu.capture_owns_frame &&
-		    !XvtSettingsMenu_CapturesKeyboard() &&
-		    !XvtInstallationPage_PickerOpen() &&
-		    (g_menu.open || !XvtFlightTask_IsActive())) {
+		    !xvt_settings_menu_captures_keyboard() &&
+		    !xvt_installation_page_picker_open() &&
+		    (g_menu.open || !xvt_flight_task_is_active())) {
 			if (g_menu.open) {
-				XvtSettingsMenu_RequestClose();
+				xvt_settings_menu_request_close();
 			} else if (!was_open) {
-				XvtSettingsMenu_Show();
+				xvt_settings_menu_show();
 				opened = true;
 			}
 		}
 	}
 	if (input && input->has_focus && !was_open && !g_menu.open &&
-	    XvtKeyboardMapping_FindShortcutPress(
+	    xvt_keyboard_mapping_find_shortcut_press(
 		    input, XVT_KEYBOARD_SHORTCUT_SETTINGS) >= 0) {
-		XvtSettingsMenu_Show();
+		xvt_settings_menu_show();
 		opened = true;
 	}
-	XvtInput_BeginCaptureFrame(input, was_open || g_menu.open || !input ||
-						  !input->has_focus);
-	XvtControllerMapping_Update(input);
+	xvt_input_begin_capture_frame(
+		input, was_open || g_menu.open || !input || !input->has_focus);
+	xvt_controller_mapping_update(input);
 	if (was_open && !g_menu.open) {
-		Aeron_SetHostCursorVisible(!XvtFlightTask_IsActive());
+		Aeron_SetHostCursorVisible(!xvt_flight_task_is_active());
 	}
 	return opened;
 }
 
-bool XvtSettingsMenu_ConsumeRuntimeRequest(void)
+bool xvt_settings_menu_consume_runtime_request(void)
 {
-	if (!XvtPort_ConsumeSettingsRequest()) {
+	if (!xvt_port_consume_settings_request()) {
 		return false;
 	}
 	bool was_open = g_menu.open;
-	XvtSettingsMenu_Show();
+	xvt_settings_menu_show();
 	return !was_open && g_menu.open;
 }

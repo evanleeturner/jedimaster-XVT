@@ -9,31 +9,31 @@
 extern "C" {
 #endif
 
-extern const int16_t g_aiEscortStationOffsetXByVariable[28];
-extern const int16_t g_aiEscortStationOffsetYByVariable[28];
-extern const int16_t g_aiEscortStationOffsetZByVariable[28];
-extern const int16_t g_formPosX[34][6];
-extern const int16_t g_formPosY[34][6];
-extern const int16_t g_formPosZ[34][6];
-extern const int16_t g_formationDivisor[34];
+extern const int16_t g_ai_escort_station_offset_x_by_variable[28];
+extern const int16_t g_ai_escort_station_offset_y_by_variable[28];
+extern const int16_t g_ai_escort_station_offset_z_by_variable[28];
+extern const int16_t g_form_pos_x[34][6];
+extern const int16_t g_form_pos_y[34][6];
+extern const int16_t g_form_pos_z[34][6];
+extern const int16_t g_formation_divisor[34];
 
-typedef int16_t (*AiCourseOrderManeuverProc)(void);
+typedef int16_t (*ai_course_order_maneuver_proc)(void);
 
-typedef void (*AiManeuverInitProc)(void);
+typedef void (*ai_maneuver_init_proc)(void);
 
-extern AiCourseOrderManeuverProc
-	g_aiCourseOrderManeuverTable[AI_MANEUVER_MODE_COUNT];
-extern AiCourseOrderManeuverProc g_aiCurrentManeuverProc;
-extern uint16_t g_orderThrottleToCraftThrottleSpeed[12];
+extern ai_course_order_maneuver_proc
+	g_ai_course_order_maneuver_table[AI_MANEUVER_MODE_COUNT];
+extern ai_course_order_maneuver_proc g_ai_current_maneuver_proc;
+extern uint16_t g_order_throttle_to_craft_throttle_speed[12];
 /* The matching translation unit defines this before use; modern consumers need the declaration. */
 #ifdef XVT_MODERN
-extern uint16_t g_aiTurnAwayStateDelayBySkill[4];
+extern uint16_t g_ai_turn_away_state_delay_by_skill[4];
 #endif
 
 void paiman_initmaneuver(void);
 void paiman_initturninsidemaneuver(void);
 int16_t paiman_turninsidemaneuver(void);
-void paiman_UpdateTurnInsideHeading(unsigned int fallbackObjIdx);
+void paiman_update_turn_inside_heading(unsigned int fallback_obj_idx);
 void paiman_initsplitsmaneuver(void);
 int16_t paiman_splitsmaneuver(void);
 void paiman_initimmelmannmaneuver(void);
@@ -44,7 +44,7 @@ void paiman_initrendezvousmaneuver(void);
 int16_t paiman_rendezvousmaneuver(void);
 void paiman_initcruisemaneuver(void);
 int16_t paiman_cruisemaneuver(void);
-void paiman_AdvanceOrderWaypoint(int objectIndex);
+void paiman_advance_order_waypoint(int object_index);
 void paiman_initheadtowardfullmaneuver(void);
 int16_t paiman_headtowardfullmaneuver(void);
 void paiman_initrunawaymaneuver(void);
@@ -65,7 +65,7 @@ void paiman_initsplitsdivemaneuver(void);
 int16_t paiman_splitsdivemaneuver(void);
 void paiman_initspeedawaymaneuver(void);
 int16_t paiman_speedawaymaneuver(void);
-void paiman_SetupSpeedAwayTurn(unsigned int objectIdx);
+void paiman_setup_speed_away_turn(unsigned int object_idx);
 void paiman_initintohyperspacemaneuver(void);
 int16_t paiman_intohyperspacemaneuver(void);
 void paiman_initoutofhyperspacemaneuver(void);
@@ -74,15 +74,16 @@ void paiman_initescortmaneuver(void);
 int16_t paiman_escortmaneuver(void);
 void paiman_initboardmaneuver(void);
 int16_t paiman_boardmaneuver(void);
-void paiman_TransferObjectToAiTeam(unsigned int objectIdx,
-				   struct CraftData *craft, uint8_t ownerFlag);
+void paiman_transfer_object_to_ai_team(unsigned int object_idx,
+				       struct craft_data *craft,
+				       uint8_t owner_flag);
 void paiman_initawaitboardmaneuver(void);
 int16_t paiman_awaitboardmaneuver(void);
 void paiman_initheadtowardmaneuver(void);
 int16_t paiman_headtowardmaneuver(void);
 void paiman_initturnawaymaneuver(void);
 int16_t paiman_turnawaymaneuver(void);
-void paiman_setupturnawaycourse(unsigned int objectIdx);
+void paiman_setupturnawaycourse(unsigned int object_idx);
 void paiman_initoutofhangarmaneuver(void);
 int16_t paiman_outofhangarmaneuver(void);
 void paiman_initavoidstarshipmaneuver(void);
@@ -97,14 +98,14 @@ void paiman_initavoidattackermaneuver(void);
 int16_t paiman_avoidattackermaneuver(void);
 void paiman_initkamikazecopymaneuver(void);
 int16_t paiman_kamikazecopymaneuver(void);
-void paiman_setflighttotarget(uint16_t yawOffset, int steerPitch);
+void paiman_setflighttotarget(uint16_t yaw_offset, int steer_pitch);
 void paiman_initcruiseandrunawaycontrols(void);
-void paiman_attacktarget(int16_t yawOffset);
-void paiman_calcplanelead(int targetObjIdx);
+void paiman_attacktarget(int16_t yaw_offset);
+void paiman_calcplanelead(int target_obj_idx);
 void paiman_calcformation(void);
-void paiman_setturn(int turnStep);
-void paiman_setpower(int ignoredObjIdx, int throttle);
-void paiman_setspeed(int objIdx, unsigned int desiredSpeed);
+void paiman_setturn(int turn_step);
+void paiman_setpower(int ignored_obj_idx, int throttle);
+void paiman_setspeed(int obj_idx, unsigned int desired_speed);
 
 #ifdef __cplusplus
 }

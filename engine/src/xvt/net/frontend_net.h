@@ -20,75 +20,75 @@ enum {
 
 #pragma pack(push, 1)
 
-struct FrontendNetPacketScratch {
-	int packetType;	      /* NET_PACKET_ value naming the packet */
-	uint8_t payload[508]; /* Body; its layout depends on packetType */
+struct frontend_net_packet_scratch {
+	int packet_type;      /* NET_PACKET_ value naming the packet */
+	uint8_t payload[508]; /* Body; its layout depends on packet_type */
 };
 
 #pragma pack(pop)
-typedef char xvt_size_FrontendNetPacketScratch
-	[(sizeof(struct FrontendNetPacketScratch) == 512) ? 1 : -1];
+typedef char xvt_size_frontend_net_packet_scratch
+	[(sizeof(struct frontend_net_packet_scratch) == 512) ? 1 : -1];
 
-struct FrontendNetSessionEntry {
-	char gameName[32]; /* Session name from DirectPlay */
+struct frontend_net_session_entry {
+	char game_name[32]; /* Session name from DirectPlay */
 	/* DirectPlay session GUID; a key of 0 marks an empty entry */
-	struct NetSessionGuid sessionGuid;
+	struct net_session_guid session_guid;
 	/* Players needed: 9 until probed, 0 if full or no answer came */
-	unsigned int playersNeeded;
+	unsigned int players_needed;
 	/* GetTickCount ms of the last probe; 0 before any */
-	unsigned int lastQueryMs;
+	unsigned int last_query_ms;
 	/* Host's protocol version: this build's until probed, 0 if no answer */
 	unsigned int version;
-	uint8_t passwordRequired; /* Nonzero when the game needs a password */
-	uint8_t gameInFlight;	  /* 1 when the probe found the game flying */
+	uint8_t password_required; /* Nonzero when the game needs a password */
+	uint8_t game_in_flight;	   /* 1 when the probe found the game flying */
 };
 
-extern int g_frontendNetSessionCount;
-extern int g_frontendNetReceivedMissionDescriptionId;
-extern int g_frontendNetReceivedMissionDirectoryId;
-extern const unsigned int g_frontendNetXvtDirectPlayAppGuid[4];
-extern struct FrontendNetPacketScratch g_frontendNetPacketScratch;
-extern struct FrontendNetSessionEntry g_frontendNetSessionList[32];
-extern int g_frontendNetSessionListScrollOffset;
-extern int g_frontendNetSelectedSessionIdx;
-extern int g_frontendNetPacketSenderPlayerId;
-extern int g_frontendNetPacketArg0;
-extern int g_frontendNetReservingPlayerId;
-extern int g_hostGameStartPending;
-extern int g_frontendQuickStartLaunchFlag;
-extern int g_frontendNetProbeVersion;
-extern int g_frontendNetProbePlayersNeeded;
-extern int g_frontendNetProbePasswordRequired;
-extern int g_frontendNetProbeMissionElapsedSeconds;
-extern int g_frontendBriefingEnteredCount;
-extern char g_frontendChatInputBuffer[100];
-extern char *g_frontendChatLogBuffer;
-extern int g_frontendChatLogUsedBytes;
-extern int g_frontendChatTeamOnly;
-extern int g_frontendChatScrollOffset;
-extern char g_frontendNetSelectedGameName[32];
+extern int g_frontend_net_session_count;
+extern int g_frontend_net_received_mission_description_id;
+extern int g_frontend_net_received_mission_directory_id;
+extern const unsigned int g_frontend_net_xvt_direct_play_app_guid[4];
+extern struct frontend_net_packet_scratch g_frontend_net_packet_scratch;
+extern struct frontend_net_session_entry g_frontend_net_session_list[32];
+extern int g_frontend_net_session_list_scroll_offset;
+extern int g_frontend_net_selected_session_idx;
+extern int g_frontend_net_packet_sender_player_id;
+extern int g_frontend_net_packet_arg0;
+extern int g_frontend_net_reserving_player_id;
+extern int g_host_game_start_pending;
+extern int g_frontend_quick_start_launch_flag;
+extern int g_frontend_net_probe_version;
+extern int g_frontend_net_probe_players_needed;
+extern int g_frontend_net_probe_password_required;
+extern int g_frontend_net_probe_mission_elapsed_seconds;
+extern int g_frontend_briefing_entered_count;
+extern char g_frontend_chat_input_buffer[100];
+extern char *g_frontend_chat_log_buffer;
+extern int g_frontend_chat_log_used_bytes;
+extern int g_frontend_chat_team_only;
+extern int g_frontend_chat_scroll_offset;
+extern char g_frontend_net_selected_game_name[32];
 
-int FrontendNet_DrawJoinGameList(int frameCounter);
-int FrontendNet_JoinGameScreen(int frameCounter);
-int FrontendNet_AwaitJoinAdmissionScreen(int frameCounter);
-int FrontendNet_DrawJoinGameMissionBriefing(void);
-int FrontendNet_DrawJoinGamePlayerRoster(void);
-int FrontendNet_UpdateAndDrawChatPanel(int frameCounter);
-int FrontendNet_DrawJoinGameSidebarsAndQueryAll(void);
-int FrontendNet_HostGameExit(int frameCounter);
-int FrontendNet_HostGameScreen(int frameCounter);
-int FrontendNet_ProcessNetworkPackets(void);
+int frontend_net_draw_join_game_list(int frame_counter);
+int frontend_net_join_game_screen(int frame_counter);
+int frontend_net_await_join_admission_screen(int frame_counter);
+int frontend_net_draw_join_game_mission_briefing(void);
+int frontend_net_draw_join_game_player_roster(void);
+int frontend_net_update_and_draw_chat_panel(int frame_counter);
+int frontend_net_draw_join_game_sidebars_and_query_all(void);
+int frontend_net_host_game_exit(int frame_counter);
+int frontend_net_host_game_screen(int frame_counter);
+int frontend_net_process_network_packets(void);
 
 #ifndef XVT_MODERN
-int FrontendNet_ConnectToSelectedGameScreen(int frameCounter);
-int FrontendNet_MakeSessionGuidKey(struct NetSessionGuid guid);
-int FrontendNet_RefreshSessionList(void);
-int FrontendNet_CompareSessionListEntries(
-	const struct FrontendNetSessionEntry *lhs,
-	const struct FrontendNetSessionEntry *rhs);
-int FrontendNet_SortSessions(void);
-int FrontendNet_ProbeAllSessions(void);
-int FrontendNet_ProbeSessionByIndex(int sessionIdx);
+int frontend_net_connect_to_selected_game_screen(int frame_counter);
+int frontend_net_make_session_guid_key(struct net_session_guid guid);
+int frontend_net_refresh_session_list(void);
+int frontend_net_compare_session_list_entries(
+	const struct frontend_net_session_entry *lhs,
+	const struct frontend_net_session_entry *rhs);
+int frontend_net_sort_sessions(void);
+int frontend_net_probe_all_sessions(void);
+int frontend_net_probe_session_by_index(int session_idx);
 #endif
 
 #ifdef __cplusplus

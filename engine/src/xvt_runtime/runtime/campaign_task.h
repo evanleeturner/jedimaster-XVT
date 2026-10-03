@@ -19,26 +19,26 @@ enum { XVT_CAMPAIGN_PENDING = -1 };
  * then plays the phase-0 cutscenes. In a network session a cutscene result of 0 (a movie's
  * nonzero result, or no cutscene table) leaves the game: it tells the host, shuts down the
  * session, opens the join screen and returns 0. */
-int XvtCampaignTask_EnterTeams(void);
+int xvt_campaign_task_enter_teams(void);
 /* Debrief prefix. Shows the cursor and flushes the keyboard; after a completed training mission in
  * an active sequence, plays the phase-1 cutscenes, where a cutscene result of 0 in a network
  * session leaves the game for the concourse and returns 0. Then allocates the briefing text in an
  * active training sequence, clears the ready flags of players who left, resets the network roster
  * to the local player and, after a promotion in a network session, renames the local player with
  * the new rating. Returns 1 when done. */
-int XvtCampaignTask_EnterDebrief(void);
+int xvt_campaign_task_enter_debrief(void);
 /* Takes up to 32 queued application packets, dropping each that is not a complete packet_type
  * packet. Stores the first complete one in packet and returns 1; returns -1 while waiting. The
  * first call of a wait starts a 30-second host-clock limit, checked after each packet read, so a
  * packet read after the limit still wins; past it, logs a warning and returns 0. packet is set to
  * NULL unless 1 is returned. */
-int XvtCampaignTask_WaitPacket(int packet_type, int **packet);
+int xvt_campaign_task_wait_packet(int packet_type, int **packet);
 /* 1 after a prefix returned pending, until it finishes or Reset. */
-int XvtCampaignTask_IsPending(void);
+int xvt_campaign_task_is_pending(void);
 /* 1 while WaitPacket is waiting, so the port keeps running without window focus. */
-int XvtCampaignTask_ContinuesWithoutFocus(void);
+int xvt_campaign_task_continues_without_focus(void);
 /* Forgets any prefix or packet wait in progress and resets the cutscene task. */
-void XvtCampaignTask_Reset(void);
+void xvt_campaign_task_reset(void);
 
 #ifdef __cplusplus
 }

@@ -8,12 +8,12 @@
 extern "C" {
 #endif
 
-int Mouse_ReadPositionAndButtons(int16_t *x, int16_t *y);
-void Mouse_ReadDelta(int16_t *deltaX, int16_t *deltaY);
-int Mouse_SetPosition(int16_t x, int16_t y);
-void Mouse_SetHorizontalBounds(int16_t minX, int16_t maxX);
-void Mouse_SetVerticalBounds(int16_t minY, int16_t maxY);
-void Mouse_SetScaleFactors(int16_t scaleX, int16_t scaleY);
+int mouse_read_position_and_buttons(int16_t *x, int16_t *y);
+void mouse_read_delta(int16_t *delta_x, int16_t *delta_y);
+int mouse_set_position(int16_t x, int16_t y);
+void mouse_set_horizontal_bounds(int16_t min_x, int16_t max_x);
+void mouse_set_vertical_bounds(int16_t min_y, int16_t max_y);
+void mouse_set_scale_factors(int16_t scale_x, int16_t scale_y);
 
 #ifdef __cplusplus
 }

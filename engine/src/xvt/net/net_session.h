@@ -12,190 +12,198 @@ extern "C" {
 
 #pragma pack(push, 1)
 
-struct SessionPlayerInfo {
+struct session_player_info {
 	/* DirectPlay long name; the formal name in a solo flight */
-	char longName[16];
-	char playerName[16]; /* Short name; pilotName if solo */
-	int directPlayId;    /* DirectPlay player id */
-	int activeFlag;	     /* 1 while the player is in the session */
+	char long_name[16];
+	char player_name[16]; /* Short name; pilot_name if solo */
+	int direct_play_id;   /* DirectPlay player id */
+	int active_flag;      /* 1 while the player is in the session */
 };
 
 #pragma pack(pop)
-typedef char xvt_size_SessionPlayerInfo[(sizeof(struct SessionPlayerInfo) == 40)
-						? 1
-						: -1];
+typedef char xvt_size_session_player_info
+	[(sizeof(struct session_player_info) == 40) ? 1 : -1];
 
 #pragma pack(push, 1)
 
-struct NetSessionScratchPacket {
-	int packetType;		/* NET_PACKET_ value naming the packet */
-	int payloadDwords[127]; /* Body; its layout depends on packetType */
+struct net_session_scratch_packet {
+	int packet_type;	 /* NET_PACKET_ value naming the packet */
+	int payload_dwords[127]; /* Body; its layout depends on packet_type */
 };
 
 #pragma pack(pop)
-typedef char xvt_size_NetSessionScratchPacket
-	[(sizeof(struct NetSessionScratchPacket) == 512) ? 1 : -1];
+typedef char xvt_size_net_session_scratch_packet
+	[(sizeof(struct net_session_scratch_packet) == 512) ? 1 : -1];
 
 #pragma pack(push, 1)
 
-struct NetSessionScratchState {
-	int packetType;		/* NET_PACKET_ value naming the packet */
-	int payloadDwords[127]; /* Body; its layout depends on packetType */
-	/* Zeroed by NetSession_InitGameSession; nothing reads it */
-	int trailingState;
+struct net_session_scratch_state {
+	int packet_type;	 /* NET_PACKET_ value naming the packet */
+	int payload_dwords[127]; /* Body; its layout depends on packet_type */
+	/* Zeroed by net_session_init_game_session; nothing reads it */
+	int trailing_state;
 };
 
 #pragma pack(pop)
-typedef char xvt_size_NetSessionScratchState
-	[(sizeof(struct NetSessionScratchState) == 516) ? 1 : -1];
+typedef char xvt_size_net_session_scratch_state
+	[(sizeof(struct net_session_scratch_state) == 516) ? 1 : -1];
 
 /* DirectPlay flight-session state is reset as one block by the original game. */
 #pragma pack(push, 1)
 
-struct NetSessionState {
-	/* Never named; only NetSession_InitGameSession's clear sets it */
-	uint32_t reservedState0;
+struct net_session_state {
+	/* Never named; only net_session_init_game_session's clear sets it */
+	uint32_t reserved_state0;
 	/* Taken from the frontend; NULL when there is none or a startup wait
 	 * timed out, and then sends are only queued for this player */
-	IDirectPlay2A *dplayInterface;
-	/* Never named; only NetSession_InitGameSession's clear sets it */
-	uint32_t reservedState1;
-	/* Transport given to NetSession_InitGameSession; nothing reads it */
-	NetworkTransportType networkType;
+	IDirectPlay2A *dplay_interface;
+	/* Never named; only net_session_init_game_session's clear sets it */
+	uint32_t reserved_state1;
+	/* Transport given to net_session_init_game_session; nothing reads it */
+	network_transport_type network_type;
 	/* DirectPlay application GUID from the frontend; nothing reads it */
-	GUID appGuid;
+	GUID app_guid;
 	/* GUID of the joined session, from the frontend; nothing reads it */
-	GUID instanceGuid;
+	GUID instance_guid;
 	/* DirectPlay group of the players; sends to it use the group channel */
-	int groupDplayId;
-	int localIsHost; /* Nonzero when this player hosts */
-	int hostDplayId; /* The host's DirectPlay id */
-	int playerCount; /* Entries in players */
-	/* Set to 0 by NetSession_PumpIncomingPackets; nothing reads it */
-	int receivePumpState;
-	/* Never named; only NetSession_InitGameSession's clear sets it */
-	uint8_t reservedSessionState[32];
-	/* Only ever set to 0. When nonzero, NetSession_ReceivePacket gives up
+	int group_dplay_id;
+	int local_is_host; /* Nonzero when this player hosts */
+	int host_dplay_id; /* The host's DirectPlay id */
+	int player_count;  /* Entries in players */
+	/* Set to 0 by net_session_pump_incoming_packets; nothing reads it */
+	int receive_pump_state;
+	/* Never named; only net_session_init_game_session's clear sets it */
+	uint8_t reserved_session_state[32];
+	/* Only ever set to 0. When nonzero, net_session_receive_packet gives up
 	 * a gap a fixed time after one NACK: 3,000 ms, or 40,000 ms for world
 	 * messages. */
-	int reliableUseFixedResendTimeouts;
+	int reliable_use_fixed_resend_timeouts;
 	/* This player's own entry, from the frontend */
-	struct SessionPlayerInfo localPlayerInfo;
-	struct SessionPlayerInfo players[8]; /* The roster */
+	struct session_player_info local_player_info;
+	struct session_player_info players[8]; /* The roster */
 	/* Queue of player entries; only functions nothing calls use it */
-	struct SessionPlayerInfo playerInfoQueue[8];
+	struct session_player_info player_info_queue[8];
 	/* Next sequence, 0-127, for packets to all players */
-	uint32_t broadcastSeqCounter;
+	uint32_t broadcast_seq_counter;
 	/* Type byte and body of the last packet to all players, sent again
 	 * behind the next one */
-	uint8_t broadcastPayload[512];
-	int broadcastPayloadLength; /* Bytes used in broadcastPayload */
+	uint8_t broadcast_payload[512];
+	int broadcast_payload_length; /* Bytes used in broadcast_payload */
 	/* While 1, the next packet to all carries a NOP, not a copy */
-	int broadcastPiggybackEmpty;
+	int broadcast_piggyback_empty;
 	/* Next sequence, 0-127, for the group channel, which also carries
 	 * internet-play inputs */
-	uint32_t groupSeqCounter;
+	uint32_t group_seq_counter;
 	/* Type byte and body of the last group-channel packet, sent again
 	 * behind the next one */
-	uint8_t groupPayload[512];
-	int groupPayloadLength; /* Bytes used in groupPayload */
+	uint8_t group_payload[512];
+	int group_payload_length; /* Bytes used in group_payload */
 	/* While 1, the next group packet carries a NOP, not a copy */
-	int groupPiggybackEmpty;
+	int group_piggyback_empty;
 	/* Per-peer delivery state: sequences, saved copy, activity, counts */
-	struct NetReliablePeerSlot reliablePeerSlots[40];
-	/* Never named in code. It follows reliablePeerSlots, so
-	 * NetSession_SendPacket's unchecked use of slot 40, when all 40 slots
+	struct net_reliable_peer_slot reliable_peer_slots[40];
+	/* Never named in code. It follows reliable_peer_slots, so
+	 * net_session_send_packet's unchecked use of slot 40, when all 40 slots
 	 * are taken, lands here. */
-	struct NetReliablePeerSlot reliablePeerOverflowSlot;
-	unsigned int reliablePeerSlotCount; /* reliablePeerSlots in use */
-	int playerInfoQueueCount;	    /* Entries in playerInfoQueue */
-	/* Copy of the packet NetSession_ReceivePacket last returned; callers
+	struct net_reliable_peer_slot reliable_peer_overflow_slot;
+	unsigned int reliable_peer_slot_count; /* reliable_peer_slots in use */
+	int player_info_queue_count; /* Entries in player_info_queue */
+	/* Copy of the packet net_session_receive_packet last returned; callers
 	 * get a pointer into it */
-	struct NetQueuedPacket recvScratchPacket;
+	struct net_queued_packet recv_scratch_packet;
 };
 
 #pragma pack(pop)
-typedef char xvt_size_NetSessionState
-	[(sizeof(struct NetSessionState) == 25652 + sizeof(void *)) ? 1 : -1];
+typedef char xvt_size_net_session_state
+	[(sizeof(struct net_session_state) == 25652 + sizeof(void *)) ? 1 : -1];
 
-extern struct NetSessionState g_netSession;
+extern struct net_session_state g_net_session;
 
-extern struct NetSessionScratchState g_netSessionScratchPacket;
-extern int g_netSessionSentHistoryWriteIndex;
-extern int g_netSessionSentWorldMessageWriteIndex;
-extern struct NetQueuedPacket g_netSessionSentHistory[128];
-extern struct NetQueuedPacket g_netSessionSentWorldMessageHistory[256];
+extern struct net_session_scratch_state g_net_session_scratch_packet;
+extern int g_net_session_sent_history_write_index;
+extern int g_net_session_sent_world_message_write_index;
+extern struct net_queued_packet g_net_session_sent_history[128];
+extern struct net_queued_packet g_net_session_sent_world_message_history[256];
 
-void NetSession_DebugTrace(const char *message);
-int NetSession_InitGameSession(const char *formalName, const char *pilotName,
-			       int isHost, const char *mpGameName,
-			       NetworkTransportType networkType,
-			       int numHumanPlayers, int inProgressLaunch,
-			       const char *connectionAddress);
-int NetSession_Shutdown(void);
-int NetSession_EnumeratePlayers(void);
-int AERON_DXAPI NetSession_EnumPlayersCallback(DPID dplayId,
-					       uint32_t playerType,
-					       const DPNAME *nameInfo,
-					       uint32_t flags, void *context);
+void net_session_debug_trace(const char *message);
+int net_session_init_game_session(const char *formal_name,
+				  const char *pilot_name, int is_host,
+				  const char *mp_game_name,
+				  network_transport_type network_type,
+				  int num_human_players, int in_progress_launch,
+				  const char *connection_address);
+int net_session_shutdown(void);
+int net_session_enumerate_players(void);
+int AERON_DXAPI net_session_enum_players_callback(DPID dplay_id,
+						  uint32_t player_type,
+						  const DPNAME *name_info,
+						  uint32_t flags,
+						  void *context);
 /* Only contiguous retransmissions advance the channel receive watermark. */
-static inline void NetSession_AdvanceReceivedSequence(int *receivedSequence,
-						      unsigned int sequence)
+static inline void net_session_advance_received_sequence(int *received_sequence,
+							 unsigned int sequence)
 {
-	unsigned int nextSequence = (unsigned int)*receivedSequence + 1;
-	if (nextSequence > 127) {
-		nextSequence = 0;
+	unsigned int next_sequence = (unsigned int)*received_sequence + 1;
+	if (next_sequence > 127) {
+		next_sequence = 0;
 	}
-	if (nextSequence == sequence) {
-		*receivedSequence = nextSequence;
+	if (next_sequence == sequence) {
+		*received_sequence = next_sequence;
 	}
 }
 
-void NetSession_PumpIncomingPackets(void);
-int NetSession_BroadcastPacketToPlayers(unsigned int *payload, int payloadSize);
-int NetSession_SendPacket(int directPlayId, unsigned int *payload,
-			  signed int payloadSize);
-int NetSession_SendSequencedGamePacket(int destDplayId, uint8_t packetClass,
-				       uint8_t sequence,
-				       const unsigned int *packet,
-				       unsigned int packetSize);
-struct SessionPlayerInfo *NetSession_GetPlayerRoster(int *outCount);
-struct SessionPlayerInfo *NetSession_GetLocalPlayerInfo(void);
-int NetSession_SetPlayerRoster(const struct SessionPlayerInfo *players,
-			       int playerCount);
-int NetSession_GetPlayerCount(void);
-int NetSession_IsLocalHost(void);
-int *NetSession_ReceiveGamePacket(int *outSenderDpid, int *outPayloadSize);
-int NetSession_HandleDirectPlaySystemMessage(int packetOpcode, int *packet);
-void *NetSession_ReceivePacket(int *outSenderDpid, int *outPayloadSize);
-int NetSession_SendCompactGamePacket(int directPlayId, unsigned int *payload,
-				     int payloadSize, ...);
-int *NetSession_WaitForGamePacket(int *outDpid, int *outPayloadSize,
-				  int timeoutSeconds);
-int NetSession_FindPlayerSlotByDpid(int dpid);
-int NetSession_GetPlayerDplayId(int playerIndex);
-int NetSession_GetDplayIdByActivePlayerIndex(int activePlayerIndex);
-int NetSession_FindActivePlayerIndexByDpid(int dpid);
-int NetSession_GetHostDplayId(void);
-int NetSession_GetLocalDplayId(void);
-char *NetSession_GetPlayerName(int playerSlot);
-struct SessionPlayerInfo *NetSession_PeekQueuedPlayerInfo(void);
-void NetSession_DiscardFirstQueuedPlayerInfo(void);
-int NetSession_CountLeadingActivePlayers(void);
-void NetSession_SetPlayerCount(int playerCount);
-void NetSession_AddPlayerToRosterSlot(
-	int playerSlot, const struct SessionPlayerInfo *playerInfo);
-int NetSession_BroadcastPlayerRoster(int toPlayerId);
-int NetSession_GetQueuedPlayerInfoCount(void);
-void NetSession_QueuePlayerInfo(const struct SessionPlayerInfo *playerInfo);
-int NetSession_AddPlayerToGroup(const struct SessionPlayerInfo *playerInfo);
-int NetSession_CountActivePlayers(void);
-int NetSession_RemovePlayerFromGroup(int playerDplayId);
-int NetSession_SelectFirstActivePlayerAsHost(void);
-int NetSession_UnusedStubReturnTrue(void);
-int NetSession_StubReturnTrue(void);
-int NetSession_GetFixedPayloadSize(int packetType);
-int NetSession_SendReliableKeepalives(void);
+void net_session_pump_incoming_packets(void);
+int net_session_broadcast_packet_to_players(unsigned int *payload,
+					    int payload_size);
+int net_session_send_packet(int direct_play_id, unsigned int *payload,
+			    signed int payload_size);
+int net_session_send_sequenced_game_packet(int dest_dplay_id,
+					   uint8_t packet_class,
+					   uint8_t sequence,
+					   const unsigned int *packet,
+					   unsigned int packet_size);
+struct session_player_info *net_session_get_player_roster(int *out_count);
+struct session_player_info *net_session_get_local_player_info(void);
+int net_session_set_player_roster(const struct session_player_info *players,
+				  int player_count);
+int net_session_get_player_count(void);
+int net_session_is_local_host(void);
+int *net_session_receive_game_packet(int *out_sender_dpid,
+				     int *out_payload_size);
+int net_session_handle_direct_play_system_message(int packet_opcode,
+						  int *packet);
+void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size);
+int net_session_send_compact_game_packet(int direct_play_id,
+					 unsigned int *payload,
+					 int payload_size, ...);
+int *net_session_wait_for_game_packet(int *out_dpid, int *out_payload_size,
+				      int timeout_seconds);
+int net_session_find_player_slot_by_dpid(int dpid);
+int net_session_get_player_dplay_id(int player_index);
+int net_session_get_dplay_id_by_active_player_index(int active_player_index);
+int net_session_find_active_player_index_by_dpid(int dpid);
+int net_session_get_host_dplay_id(void);
+int net_session_get_local_dplay_id(void);
+char *net_session_get_player_name(int player_slot);
+struct session_player_info *net_session_peek_queued_player_info(void);
+void net_session_discard_first_queued_player_info(void);
+int net_session_count_leading_active_players(void);
+void net_session_set_player_count(int player_count);
+void net_session_add_player_to_roster_slot(
+	int player_slot, const struct session_player_info *player_info);
+int net_session_broadcast_player_roster(int to_player_id);
+int net_session_get_queued_player_info_count(void);
+void net_session_queue_player_info(
+	const struct session_player_info *player_info);
+int net_session_add_player_to_group(
+	const struct session_player_info *player_info);
+int net_session_count_active_players(void);
+int net_session_remove_player_from_group(int player_dplay_id);
+int net_session_select_first_active_player_as_host(void);
+int net_session_unused_stub_return_true(void);
+int net_session_stub_return_true(void);
+int net_session_get_fixed_payload_size(int packet_type);
+int net_session_send_reliable_keepalives(void);
 
 #ifdef __cplusplus
 }

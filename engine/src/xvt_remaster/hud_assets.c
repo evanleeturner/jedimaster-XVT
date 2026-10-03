@@ -7,33 +7,33 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct CockpitAssetGroup {
+struct cockpit_asset_group {
 	uint64_t generation;
 	int undither;
-	struct XvtHudAssetSet *views[28];
+	struct xvt_hud_asset_set *views[28];
 	uint8_t owns_base[28];
-	struct XvtHudAssetSet parts;
-	struct CockpitAssetGroup *next;
+	struct xvt_hud_asset_set parts;
+	struct cockpit_asset_group *next;
 };
 
-static struct CockpitAssetGroup *g_groups, *g_pending;
-static const struct XvtHudAssetSet *g_current;
-static const struct XvtHudAssetSet g_empty;
+static struct cockpit_asset_group *g_groups, *g_pending;
+static const struct xvt_hud_asset_set *g_current;
+static const struct xvt_hud_asset_set g_empty;
 
-struct DecodedPart {
-	struct XvtCockpitAssetBinding source;
+struct decoded_part {
+	struct xvt_cockpit_asset_binding source;
 	uint16_t key;
 	uint8_t unshifted;
 	AeronIndexedFrame bitmap;
 };
 
-static void ReleaseGroup(struct CockpitAssetGroup *group)
+static void release_group(struct cockpit_asset_group *group)
 {
 	if (!group) {
 		return;
 	}
 	for (unsigned view = 0; view < 28; ++view) {
-		struct XvtHudAssetSet *set = group->views[view];
+		struct xvt_hud_asset_set *set = group->views[view];
 		if (!set) {
 			continue;
 		}
@@ -50,13 +50,13 @@ static void ReleaseGroup(struct CockpitAssetGroup *group)
 	free(group);
 }
 
-void XvtHudAssets_Abort(void)
+void xvt_hud_assets_abort(void)
 {
-	ReleaseGroup(g_pending);
+	release_group(g_pending);
 	g_pending = NULL;
 }
 
-void XvtHudAssets_Commit(void)
+void xvt_hud_assets_commit(void)
 {
 	if (!g_pending) {
 		return;
@@ -66,28 +66,32 @@ void XvtHudAssets_Commit(void)
 	g_pending = NULL;
 }
 
-void XvtHudAssets_Shutdown(void)
+void xvt_hud_assets_shutdown(void)
 {
-	XvtHudAssets_Abort();
+	xvt_hud_assets_abort();
 	while (g_groups) {
-		struct CockpitAssetGroup *next = g_groups->next;
-		ReleaseGroup(g_groups);
+		struct cockpit_asset_group *next = g_groups->next;
+		release_group(g_groups);
 		g_groups = next;
 	}
 	g_current = NULL;
 }
 
-const struct XvtHudAssetSet *XvtHudAssets_Current(void) { return g_current; }
-
-int XvtHudAssets_UnditherPending(int requested)
+const struct xvt_hud_asset_set *xvt_hud_assets_current(void)
 {
-	const struct XvtRenderSnapshot *snapshot = XvtRenderSnapshot_Current();
+	return g_current;
+}
+
+int xvt_hud_assets_undither_pending(int requested)
+{
+	const struct xvt_render_snapshot *snapshot =
+		xvt_render_snapshot_current();
 	if (!snapshot || !snapshot->cockpit_resources.valid) {
 		return 0;
 	}
 	uint64_t generation =
 		snapshot->cockpit_resources.definition.resource_generation;
-	for (const struct CockpitAssetGroup *group = g_groups; group;
+	for (const struct cockpit_asset_group *group = g_groups; group;
 	     group = group->next) {
 		if (group->generation == generation) {
 			return group->undither != requested;
@@ -96,13 +100,13 @@ int XvtHudAssets_UnditherPending(int requested)
 	return 0;
 }
 
-const struct XvtFontAtlas *XvtHudAssets_FindFont(uint64_t id)
+const struct xvt_font_atlas *xvt_hud_assets_find_font(uint64_t id)
 {
-	return XvtRemasterAssets_Font(id, 0);
+	return xvt_remaster_assets_font(id, 0);
 }
 
-static int SameRequest(const struct XvtHudPartRequest *a,
-		       const struct XvtHudPartRequest *b)
+static int same_request(const struct xvt_hud_part_request *a,
+			const struct xvt_hud_part_request *b)
 {
 	return a->source.asset_id == b->source.asset_id &&
 	       a->source.frame == b->source.frame && a->key == b->key &&
@@ -111,9 +115,9 @@ static int SameRequest(const struct XvtHudPartRequest *a,
 		(a->fade == b->fade && a->color == b->color));
 }
 
-static int MatchesAssetSet(const struct XvtHudAssetSet *set,
-			   const struct XvtCockpitState *state,
-			   const struct XvtHudLayout *layout)
+static int matches_asset_set(const struct xvt_hud_asset_set *set,
+			     const struct xvt_cockpit_state *state,
+			     const struct xvt_hud_layout *layout)
 {
 	return set && set->base_asset_id == layout->base_asset_id &&
 	       set->part_count == layout->part_count &&
@@ -123,10 +127,10 @@ static int MatchesAssetSet(const struct XvtHudAssetSet *set,
 		       layout->part_count * sizeof *layout->parts);
 }
 
-static uint8_t *ColorizeBitmap(const AeronIndexedFrame *bitmap,
-			       const struct XvtOriginal2d *source,
-			       const uint32_t palette[256],
-			       const struct XvtHudPartRequest *request)
+static uint8_t *colorize_bitmap(const AeronIndexedFrame *bitmap,
+				const struct xvt_original2d *source,
+				const uint32_t palette[256],
+				const struct xvt_hud_part_request *request)
 {
 	size_t count = (size_t)bitmap->width * bitmap->height;
 	uint8_t *rgba = calloc(count, 4);
@@ -164,9 +168,9 @@ static uint8_t *ColorizeBitmap(const AeronIndexedFrame *bitmap,
 	return rgba;
 }
 
-static int DecodePart(const struct XvtOriginal2d *source,
-		      const struct XvtHudPartRequest *request,
-		      AeronIndexedFrame *bitmap)
+static int decode_part(const struct xvt_original2d *source,
+		       const struct xvt_hud_part_request *request,
+		       AeronIndexedFrame *bitmap)
 {
 	unsigned frame = request->source.frame;
 	const AeronByteSpan *record =
@@ -208,8 +212,8 @@ static int DecodePart(const struct XvtOriginal2d *source,
 }
 
 static const AeronIndexedFrame *
-FindOrDecodePart(struct DecodedPart *decoded, unsigned *count,
-		 const struct XvtHudPartRequest *request)
+find_or_decode_part(struct decoded_part *decoded, unsigned *count,
+		    const struct xvt_hud_part_request *request)
 {
 	unsigned unshifted = request->color_mode != XVT_HUD_PART_ORIGINAL;
 	for (unsigned index = 0; index < *count; ++index) {
@@ -221,33 +225,34 @@ FindOrDecodePart(struct DecodedPart *decoded, unsigned *count,
 			return &decoded[index].bitmap;
 		}
 	}
-	const struct XvtOriginal2d *source =
-		XvtRemasterAssets_FindDecodedImage(request->source.asset_id);
+	const struct xvt_original2d *source =
+		xvt_remaster_assets_find_decoded_image(
+			request->source.asset_id);
 	if (!source || !source->panel_bytes) {
 		return NULL;
 	}
-	struct DecodedPart *part = &decoded[(*count)++];
+	struct decoded_part *part = &decoded[(*count)++];
 	part->source = request->source;
 	part->key = request->key;
 	part->unshifted = (uint8_t)unshifted;
-	return DecodePart(source, request, &part->bitmap) ? &part->bitmap
-							  : NULL;
+	return decode_part(source, request, &part->bitmap) ? &part->bitmap
+							   : NULL;
 }
 
-static const AeronRuntimeAtlasOptions g_atlasOptions = {
+static const AeronRuntimeAtlasOptions g_atlas_options = {
 	.format = AERON_TEXTURE_FORMAT_RGBA8_SRGB,
 	.color_space = AERON_COLOR_SPACE_SRGB,
 	.alpha_mode = AERON_IMAGE_ALPHA_STRAIGHT,
 	.generate_mips = true,
 	.debug_name = "xvt.cockpit.parts"};
 
-static int BuildParts(AeronCommandBuffer *cmd, struct XvtHudAssetSet *set,
-		      const uint32_t *palettes[XVT_HUD_PART_CAPACITY])
+static int build_parts(AeronCommandBuffer *cmd, struct xvt_hud_asset_set *set,
+		       const uint32_t *palettes[XVT_HUD_PART_CAPACITY])
 {
 	if (!set->part_count) {
 		return 1;
 	}
-	struct DecodedPart *decoded = calloc(set->part_count, sizeof *decoded);
+	struct decoded_part *decoded = calloc(set->part_count, sizeof *decoded);
 	AeronRuntimeAtlasFrame *frames =
 		calloc(set->part_count, sizeof *frames);
 	if (!decoded || !frames) {
@@ -258,14 +263,15 @@ static int BuildParts(AeronCommandBuffer *cmd, struct XvtHudAssetSet *set,
 	unsigned decoded_count = 0, frame_count = 0;
 	int ok = 1;
 	for (unsigned index = 0; ok && index < set->part_count; ++index) {
-		const struct XvtHudPartRequest *request = &set->requests[index];
-		struct XvtHudPreparedPart *binding = &set->bindings[index];
+		const struct xvt_hud_part_request *request =
+			&set->requests[index];
+		struct xvt_hud_prepared_part *binding = &set->bindings[index];
 		binding->monochrome =
 			request->color_mode == XVT_HUD_PART_MONOCHROME;
 		binding->color = request->color;
 		unsigned previous = 0;
 		for (; previous < index; ++previous) {
-			if (SameRequest(request, &set->requests[previous]) &&
+			if (same_request(request, &set->requests[previous]) &&
 			    (request->color_mode == XVT_HUD_PART_MONOCHROME ||
 			     !memcmp(palettes[index], palettes[previous],
 				     sizeof set->palette))) {
@@ -278,21 +284,21 @@ static int BuildParts(AeronCommandBuffer *cmd, struct XvtHudAssetSet *set,
 			continue;
 		}
 		const AeronIndexedFrame *bitmap =
-			FindOrDecodePart(decoded, &decoded_count, request);
-		const struct XvtOriginal2d *source =
-			XvtRemasterAssets_FindDecodedImage(
+			find_or_decode_part(decoded, &decoded_count, request);
+		const struct xvt_original2d *source =
+			xvt_remaster_assets_find_decoded_image(
 				request->source.asset_id);
 		if (!bitmap) {
 			ok = 0;
 			break;
 		}
-		uint8_t *rgba = ColorizeBitmap(bitmap, source, palettes[index],
-					       request);
+		uint8_t *rgba = colorize_bitmap(bitmap, source, palettes[index],
+						request);
 		if (!rgba) {
 			ok = 0;
 			break;
 		}
-		if (XvtRemasterConfig_Effective()->cockpit_undither &&
+		if (xvt_remaster_config_effective()->cockpit_undither &&
 		    !binding->monochrome) {
 			uint8_t colors[256][4];
 			for (unsigned entry = 0; entry < 256; ++entry) {
@@ -324,7 +330,7 @@ static int BuildParts(AeronCommandBuffer *cmd, struct XvtHudAssetSet *set,
 				}
 				colors[entry][3] = 255;
 			}
-			if (!XvtUndither_Apply(bitmap, colors, 256, rgba)) {
+			if (!xvt_undither_apply(bitmap, colors, 256, rgba)) {
 				Aeron_CommandBufferSetFailure(
 					cmd,
 					"cockpit sprite undithering failed");
@@ -345,7 +351,8 @@ static int BuildParts(AeronCommandBuffer *cmd, struct XvtHudAssetSet *set,
 	}
 	if (ok) {
 		ok = Aeron_RuntimeAtlasBuild(&set->parts, cmd, frames,
-					     (int)frame_count, &g_atlasOptions);
+					     (int)frame_count,
+					     &g_atlas_options);
 	}
 	for (unsigned index = 0; index < decoded_count; ++index) {
 		AeronIndexedFrame_Free(&decoded[index].bitmap);
@@ -358,27 +365,28 @@ static int BuildParts(AeronCommandBuffer *cmd, struct XvtHudAssetSet *set,
 	return ok;
 }
 
-static int BuildBase(AeronCommandBuffer *cmd, struct XvtHudAssetSet *set)
+static int build_base(AeronCommandBuffer *cmd, struct xvt_hud_asset_set *set)
 {
 	if (!set->base_asset_id) {
 		return 1;
 	}
-	const struct XvtOriginal2d *source =
-		XvtRemasterAssets_FindDecodedImage(set->base_asset_id);
+	const struct xvt_original2d *source =
+		xvt_remaster_assets_find_decoded_image(set->base_asset_id);
 	if (!source) {
 		return 0;
 	}
-	struct XvtHudPartRequest request = {.source = {set->base_asset_id, 0},
-					    .key = 0};
+	struct xvt_hud_part_request request = {
+		.source = {set->base_asset_id, 0}, .key = 0};
 	AeronIndexedFrame bitmap = {0};
-	if (!DecodePart(source, &request, &bitmap)) {
+	if (!decode_part(source, &request, &bitmap)) {
 		AeronIndexedFrame_Free(&bitmap);
 		return 0;
 	}
-	uint8_t *rgba = ColorizeBitmap(&bitmap, source, set->palette, &request);
-	if (rgba && XvtRemasterConfig_Effective()->cockpit_undither &&
-	    !XvtUndither_Apply(&bitmap, source->images.frames[0].palette,
-			       source->images.frames[0].palette_count, rgba)) {
+	uint8_t *rgba =
+		colorize_bitmap(&bitmap, source, set->palette, &request);
+	if (rgba && xvt_remaster_config_effective()->cockpit_undither &&
+	    !xvt_undither_apply(&bitmap, source->images.frames[0].palette,
+				source->images.frames[0].palette_count, rgba)) {
 		Aeron_CommandBufferSetFailure(
 			cmd, "cockpit background undithering failed");
 		free(rgba);
@@ -387,7 +395,7 @@ static int BuildBase(AeronCommandBuffer *cmd, struct XvtHudAssetSet *set)
 	}
 	AeronRuntimeAtlasFrame frame = {rgba, bitmap.width, bitmap.height, 0, 0,
 					0};
-	AeronRuntimeAtlasOptions options = g_atlasOptions;
+	AeronRuntimeAtlasOptions options = g_atlas_options;
 	options.debug_name = "xvt.cockpit.base";
 	int ok =
 		rgba &&
@@ -399,7 +407,8 @@ static int BuildBase(AeronCommandBuffer *cmd, struct XvtHudAssetSet *set)
 	return ok;
 }
 
-static int SourceResident(const struct XvtRenderSnapshot *snapshot, uint64_t id)
+static int source_resident(const struct xvt_render_snapshot *snapshot,
+			   uint64_t id)
 {
 	if (!id) {
 		return 1;
@@ -412,22 +421,22 @@ static int SourceResident(const struct XvtRenderSnapshot *snapshot, uint64_t id)
 	return 0;
 }
 
-void XvtHudAssets_Retire(const struct XvtRenderSnapshot *snapshot)
+void xvt_hud_assets_retire(const struct xvt_render_snapshot *snapshot)
 {
-	struct CockpitAssetGroup **link = &g_groups;
+	struct cockpit_asset_group **link = &g_groups;
 	while (*link) {
-		struct CockpitAssetGroup *group = *link;
+		struct cockpit_asset_group *group = *link;
 		int resident = 1;
 		for (unsigned view = 0; view < 28 && resident; ++view) {
 			if (group->views[view]) {
-				resident = SourceResident(
+				resident = source_resident(
 					snapshot,
 					group->views[view]->base_asset_id);
 			}
 		}
 		for (unsigned part = 0;
 		     part < group->parts.part_count && resident; ++part) {
-			resident = SourceResident(
+			resident = source_resident(
 				snapshot,
 				group->parts.requests[part].source.asset_id);
 		}
@@ -435,14 +444,14 @@ void XvtHudAssets_Retire(const struct XvtRenderSnapshot *snapshot)
 			link = &group->next;
 		} else {
 			*link = group->next;
-			ReleaseGroup(group);
+			release_group(group);
 		}
 	}
 }
 
-int XvtHudAssets_HasResources(uint64_t generation)
+int xvt_hud_assets_has_resources(uint64_t generation)
 {
-	for (const struct CockpitAssetGroup *group = g_groups; group;
+	for (const struct cockpit_asset_group *group = g_groups; group;
 	     group = group->next) {
 		if (group->generation == generation) {
 			return 1;
@@ -451,9 +460,9 @@ int XvtHudAssets_HasResources(uint64_t generation)
 	return 0;
 }
 
-static int CompileLoadedView(const struct XvtCockpitResources *resources,
-			     unsigned view, struct XvtCockpitState *state,
-			     struct XvtHudLayout *layout)
+static int compile_loaded_view(const struct xvt_cockpit_resources *resources,
+			       unsigned view, struct xvt_cockpit_state *state,
+			       struct xvt_hud_layout *layout)
 {
 	unsigned owner = view;
 	unsigned resource_ref =
@@ -481,14 +490,14 @@ static int CompileLoadedView(const struct XvtCockpitResources *resources,
 		memcpy(state->palette_argb, resources->view_palette[owner],
 		       sizeof resources->view_palette[owner]);
 	}
-	return XvtHudLayout_Compile(state, layout);
+	return xvt_hud_layout_compile(state, layout);
 }
 
-int XvtHudAssets_PrepareResources(AeronCommandBuffer *cmd,
-				  const struct XvtCockpitResources *resources)
+int xvt_hud_assets_prepare_resources(
+	AeronCommandBuffer *cmd, const struct xvt_cockpit_resources *resources)
 {
 	if (!resources->valid ||
-	    XvtHudAssets_HasResources(
+	    xvt_hud_assets_has_resources(
 		    resources->definition.resource_generation)) {
 		return 1;
 	}
@@ -496,15 +505,15 @@ int XvtHudAssets_PrepareResources(AeronCommandBuffer *cmd,
 		return 0;
 	}
 	g_pending = calloc(1, sizeof *g_pending);
-	struct XvtCockpitState *state = calloc(1, sizeof *state);
-	struct XvtHudLayout *layout = malloc(sizeof *layout);
+	struct xvt_cockpit_state *state = calloc(1, sizeof *state);
+	struct xvt_hud_layout *layout = malloc(sizeof *layout);
 	if (!g_pending || !state || !layout) {
 		free(state);
 		free(layout);
 		return 0;
 	}
 	g_pending->generation = resources->definition.resource_generation;
-	g_pending->undither = XvtRemasterConfig_Effective()->cockpit_undither;
+	g_pending->undither = xvt_remaster_config_effective()->cockpit_undither;
 	state->definition = resources->definition;
 	state->systems.installed_hud_features =
 		resources->installed_hud_features;
@@ -515,14 +524,14 @@ int XvtHudAssets_PrepareResources(AeronCommandBuffer *cmd,
 		    view != HUD_VIEW_FULL_SCREEN) {
 			continue;
 		}
-		if (!CompileLoadedView(resources, view, state, layout)) {
+		if (!compile_loaded_view(resources, view, state, layout)) {
 			ok = 0;
 			break;
 		}
 		if (view != HUD_VIEW_FULL_SCREEN && !layout->base_asset_id) {
 			continue;
 		}
-		struct XvtHudAssetSet *set = calloc(1, sizeof *set);
+		struct xvt_hud_asset_set *set = calloc(1, sizeof *set);
 		if (!set) {
 			ok = 0;
 			break;
@@ -547,7 +556,7 @@ int XvtHudAssets_PrepareResources(AeronCommandBuffer *cmd,
 				g_pending->views[owner]->base_coverage;
 		} else {
 			g_pending->owns_base[view] = 1;
-			if (!BuildBase(cmd, set)) {
+			if (!build_base(cmd, set)) {
 				ok = 0;
 				break;
 			}
@@ -566,11 +575,11 @@ int XvtHudAssets_PrepareResources(AeronCommandBuffer *cmd,
 		}
 	}
 	if (ok) {
-		ok = BuildParts(cmd, &g_pending->parts, palettes);
+		ok = build_parts(cmd, &g_pending->parts, palettes);
 	}
 	if (ok) {
 		for (unsigned view = 0; view < 28; ++view) {
-			struct XvtHudAssetSet *set = g_pending->views[view];
+			struct xvt_hud_asset_set *set = g_pending->views[view];
 			if (!set) {
 				continue;
 			}
@@ -589,8 +598,8 @@ int XvtHudAssets_PrepareResources(AeronCommandBuffer *cmd,
 	return ok;
 }
 
-int XvtHudAssets_Select(const struct XvtCockpitState *state,
-			const struct XvtHudLayout *layout)
+int xvt_hud_assets_select(const struct xvt_cockpit_state *state,
+			  const struct xvt_hud_layout *layout)
 {
 	if ((!layout->base_asset_id && !layout->part_count) ||
 	    !state->definition.layout.valid ||
@@ -600,11 +609,11 @@ int XvtHudAssets_Select(const struct XvtCockpitState *state,
 		g_current = &g_empty;
 		return 1;
 	}
-	for (const struct CockpitAssetGroup *group = g_groups; group;
+	for (const struct cockpit_asset_group *group = g_groups; group;
 	     group = group->next) {
 		for (unsigned view = 0; view < 28; ++view) {
-			if (MatchesAssetSet(group->views[view], state,
-					    layout)) {
+			if (matches_asset_set(group->views[view], state,
+					      layout)) {
 				g_current = group->views[view];
 				return 1;
 			}

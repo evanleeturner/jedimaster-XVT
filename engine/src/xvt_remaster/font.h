@@ -4,13 +4,13 @@
 #include "aeron/scene/font_atlas.h"
 
 /* Layout stays in classic units regardless of atlas resolution or packing. */
-struct XvtFontGlyph {
+struct xvt_font_glyph {
 	uint16_t width, height, advance;
 };
 
-struct XvtFontAtlas {
+struct xvt_font_atlas {
 	AeronFontAtlas atlas;
-	struct XvtFontGlyph
+	struct xvt_font_glyph
 		*glyphs; /* Owned classic metrics, indexed like atlas.glyphs. */
 	uint16_t cell_height;
 	float white_uv

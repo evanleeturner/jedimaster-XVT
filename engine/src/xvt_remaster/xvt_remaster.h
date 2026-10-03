@@ -17,10 +17,10 @@ extern "C" {
 /* Aeron and snapshot storage must outlive the initialized driver. */
 /* Returns 1 at once when already initialized; 0 without a host logical size, when the render settings
  * cannot be applied, or when the asset cache fails to initialize (undone again). */
-int XvtRemaster_Init(void);
+int xvt_remaster_init(void);
 /* Called before the port tick; scene readiness controls classic suppression. */
 /* Nothing before Init. A failed settings sync requests a fatal renderer error. */
-void XvtRemaster_BeginFrame(const struct AeronInputSnapshot *input);
+void xvt_remaster_begin_frame(const struct AeronInputSnapshot *input);
 /* Consume the committed snapshot after the port tick and before Aeron_Present. */
 /* Nothing before Init or without a snapshot. Advances the component animation and clears the preview
  * outputs; a changed scene kind invalidates the flight; no presentation size invalidates it and
@@ -33,15 +33,15 @@ void XvtRemaster_BeginFrame(const struct AeronInputSnapshot *input);
  * in one command buffer and submits it. Releases the frontend surfaces once the snapshot says so,
  * marks the snapshot's assets consumed, and presents through the view mode. Every failure requests a
  * fatal renderer error and returns. */
-void XvtRemaster_Frame(int32_t delta_us);
+void xvt_remaster_frame(int32_t delta_us);
 /* Shuts every module down; safe before Init. */
-void XvtRemaster_Shutdown(void);
+void xvt_remaster_shutdown(void);
 /* Borrowed retained output; frontend/movie artwork is linear SDR content. */
 /* NULL without a snapshot or in a movie scene; the frontend's presented image unless the main flight
  * target is presented, then the flight pipeline's output. */
-struct AeronTexture *XvtRemaster_Output(void);
+struct AeronTexture *xvt_remaster_output(void);
 /* The frontend's movie overlay in a movie scene, else NULL. */
-struct AeronTexture *XvtRemaster_MovieOverlay(void);
+struct AeronTexture *xvt_remaster_movie_overlay(void);
 
 #ifdef __cplusplus
 }

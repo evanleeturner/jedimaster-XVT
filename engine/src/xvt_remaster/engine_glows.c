@@ -9,13 +9,13 @@
 
 static AeronTexture *g_mask;
 
-static float Linear(float value)
+static float linear(float value)
 {
 	return value <= .04045f ? value / 12.92f
 				: powf((value + .055f) / 1.055f, 2.4f);
 }
 
-static int Ensure(AeronCommandBuffer *cmd)
+static int ensure(AeronCommandBuffer *cmd)
 {
 	if (g_mask) {
 		return 1;
@@ -57,7 +57,7 @@ static int Ensure(AeronCommandBuffer *cmd)
 	return 1;
 }
 
-static float Power(const struct XvtSnapObject *o)
+static float engine_glows_power(const struct xvt_snap_object *o)
 {
 	return fmaxf(0, (float)(16 - o->laser_recharge_level -
 				o->shield_recharge_level -
@@ -65,7 +65,7 @@ static float Power(const struct XvtSnapObject *o)
 	       .0625f * ((float)o->overdrive_off / 65535);
 }
 
-static float Scale(const struct XvtSnapObject *o, int32_t ticks)
+static float engine_glows_scale(const struct xvt_snap_object *o, int32_t ticks)
 {
 	if (!o->has_craft || !o->overdrive_off ||
 	    !(o->working_subsystems & CRAFT_SUBSYSTEM_FLAG_ENGINES)) {
@@ -90,22 +90,23 @@ static float Scale(const struct XvtSnapObject *o, int32_t ticks)
 	seed ^= seed >> 17;
 	seed ^= seed << 5;
 	return fmaxf(.35f, (float)o->throttle / 65535 *
-				   (1 - (seed & 15) * .004f) * Power(o));
+				   (1 - (seed & 15) * .004f) *
+				   engine_glows_power(o));
 }
 
 /* Turns each engine glow of one mesh into a camera-facing quad by the classic renderer's steps, in its
  * order: articulate, move to view space, cull, build the corners, push them along the look axis, color
  * and submit. Every step reads the same view-space center and axes, so helpers would each take most of
  * that frame as arguments and scatter one calculation across the file. */
-static void Submit(AeronScene3D *scene, const AeronSceneMesh *mesh,
+static void submit(AeronScene3D *scene, const AeronSceneMesh *mesh,
 		   const float transform[16], float model_scale,
 		   const AeronSceneMeshTable *table, float scale,
 		   const float crows[9], const float cam_pos[3],
-		   const struct XvtEffectFrame *tex)
+		   const struct xvt_effect_frame *tex)
 {
 	if (!scene || !mesh || !mesh->engine_glow_count || !transform ||
 	    scale <= 0.0f ||
-	    XvtRemasterConfig_Effective()->models.engine_emissive_strength <=
+	    xvt_remaster_config_effective()->models.engine_emissive_strength <=
 		    0.0f ||
 	    !tex || !tex->texture) {
 		return;
@@ -219,7 +220,7 @@ static void Submit(AeronScene3D *scene, const AeronSceneMesh *mesh,
 
 		/* Classic culls (EngineGlow_BuildProjectedQuad): behind/at the
 		 * eye plane, or projected size under a pixel (max dim x 256 /
-		 * viewZ, the classic focal). Dims scale with the model. */
+		 * view_z, the classic focal). Dims scale with the model. */
 		const float dim_x = k * g->dimensions.x;
 		const float dim_y = k * g->dimensions.y;
 		const float dim_z = k * g->dimensions.z;
@@ -318,11 +319,11 @@ static void Submit(AeronScene3D *scene, const AeronSceneMesh *mesh,
 		core[3] = g->core_rgba[3];
 		outer[3] = g->outer_rgba[3];
 		for (int ch = 0; ch < 3; ch++) {
-			core[ch] = Linear(g->core_rgba[ch]) * core[3] *
-				   XvtRemasterConfig_Effective()
+			core[ch] = linear(g->core_rgba[ch]) * core[3] *
+				   xvt_remaster_config_effective()
 					   ->models.engine_emissive_strength;
-			outer[ch] = Linear(g->outer_rgba[ch]) * outer[3] *
-				    XvtRemasterConfig_Effective()
+			outer[ch] = linear(g->outer_rgba[ch]) * outer[3] *
+				    xvt_remaster_config_effective()
 					    ->models.engine_emissive_strength;
 		}
 
@@ -358,11 +359,11 @@ static void Submit(AeronScene3D *scene, const AeronSceneMesh *mesh,
 	}
 }
 
-static void Lights(AeronScene3D *scene, const AeronSceneMesh *mesh,
-		   const struct XvtSnapObject *object,
+static void lights(AeronScene3D *scene, const AeronSceneMesh *mesh,
+		   const struct xvt_snap_object *object,
 		   const AeronSceneMeshTable *table, const float transform[16])
 {
-	float power = Power(object);
+	float power = engine_glows_power(object);
 	if (!(object->working_subsystems & CRAFT_SUBSYSTEM_FLAG_ENGINES) ||
 	    power <= 0) {
 		return;
@@ -385,7 +386,7 @@ static void Lights(AeronScene3D *scene, const AeronSceneMesh *mesh,
 			local[r] = row[0] * g->position.x +
 				   row[1] * g->position.y +
 				   row[2] * g->position.z + row[3];
-			color[r] = Linear(g->core_rgba[r]);
+			color[r] = linear(g->core_rgba[r]);
 		}
 		for (int r = 0; r < 3; ++r) {
 			world[r] = transform[r * 4] * local[0] +
@@ -393,43 +394,43 @@ static void Lights(AeronScene3D *scene, const AeronSceneMesh *mesh,
 				   transform[r * 4 + 2] * local[2] +
 				   transform[r * 4 + 3];
 		}
-		XvtLighting_AddPoint(scene, world, color,
-				     g->dimensions.z *
-					     AERON_OPT_UNITS_PER_METER * power *
-					     300,
-				     power * 16384);
+		xvt_lighting_add_point(scene, world, color,
+				       g->dimensions.z *
+					       AERON_OPT_UNITS_PER_METER *
+					       power * 300,
+				       power * 16384);
 	}
 }
 
-int XvtEngineGlows_Submit(AeronCommandBuffer *cmd, AeronScene3D *scene,
-			  const struct XvtRenderSnapshot *snapshot,
-			  const struct XvtSnapObject *object,
-			  const struct XvtMeshAsset *asset,
-			  const AeronSceneMeshTable *table,
-			  const float transform[16], int draw)
+int xvt_engine_glows_submit(AeronCommandBuffer *cmd, AeronScene3D *scene,
+			    const struct xvt_render_snapshot *snapshot,
+			    const struct xvt_snap_object *object,
+			    const struct xvt_mesh_asset *asset,
+			    const AeronSceneMeshTable *table,
+			    const float transform[16], int draw)
 {
 	if (!object->has_craft || !asset->mesh->engine_glow_count) {
 		return 1;
 	}
-	Lights(scene, asset->mesh, object, table, transform);
-	float scale = Scale(object, snapshot->view_time_ticks);
+	lights(scene, asset->mesh, object, table, transform);
+	float scale = engine_glows_scale(object, snapshot->view_time_ticks);
 	if (!draw || scale <= 0 ||
-	    XvtRemasterConfig_Effective()->models.engine_emissive_strength <=
+	    xvt_remaster_config_effective()->models.engine_emissive_strength <=
 		    0) {
 		return 1;
 	}
-	if (!Ensure(cmd)) {
+	if (!ensure(cmd)) {
 		return 0;
 	}
-	struct XvtEffectFrame texture = {
+	struct xvt_effect_frame texture = {
 		.texture = g_mask, .u1 = 1, .v1 = 1, .width = 32, .height = 32};
-	Submit(scene, asset->mesh, transform, AERON_OPT_UNITS_PER_METER, table,
+	submit(scene, asset->mesh, transform, AERON_OPT_UNITS_PER_METER, table,
 	       scale, snapshot->camera.rows, (const float[3]){0, 0, 0},
 	       &texture);
 	return 1;
 }
 
-void XvtEngineGlows_Shutdown(void)
+void xvt_engine_glows_shutdown(void)
 {
 	Aeron_DestroyTexture(g_mask);
 	g_mask = NULL;

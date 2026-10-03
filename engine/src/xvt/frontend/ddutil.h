@@ -10,13 +10,14 @@
 extern "C" {
 #endif
 
-IDirectDrawSurface *DDUtil_LoadBitmapSurface(IDirectDraw *directDraw,
-					     const char *bitmapName, int width,
-					     int height);
-HRESULT DDUtil_ReloadBitmapSurface(IDirectDrawSurface *surface,
-				   const char *bitmapName);
-HRESULT DDUtil_CopyBitmapToSurface(IDirectDrawSurface *surface, void *bitmap,
-				   int xSrc, int ySrc, int width, int height);
+IDirectDrawSurface *dd_util_load_bitmap_surface(IDirectDraw *direct_draw,
+						const char *bitmap_name,
+						int width, int height);
+HRESULT dd_util_reload_bitmap_surface(IDirectDrawSurface *surface,
+				      const char *bitmap_name);
+HRESULT dd_util_copy_bitmap_to_surface(IDirectDrawSurface *surface,
+				       void *bitmap, int x_src, int y_src,
+				       int width, int height);
 
 #ifdef __cplusplus
 }

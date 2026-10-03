@@ -20,371 +20,372 @@ const char *__asan_default_options(void)
 	return "allocator_may_return_null=1";
 }
 
-enum { kSlots = 5 };
+enum { SLOTS = 5 };
 
-static struct ObjectRecord g_testObjects[kSlots];
+static struct object_record g_test_objects[SLOTS];
 
-static void Place(unsigned slot, int x, int y, int z)
+static void place(unsigned slot, int x, int y, int z)
 {
-	g_testObjects[slot].world_x = x;
-	g_testObjects[slot].world_y = y;
-	g_testObjects[slot].world_z = z;
+	g_test_objects[slot].world_x = x;
+	g_test_objects[slot].world_y = y;
+	g_test_objects[slot].world_z = z;
 }
 
-static void Move(unsigned slot, int dx, int dy, int dz)
+static void move(unsigned slot, int dx, int dy, int dz)
 {
-	g_testObjects[slot].world_x += dx;
-	g_testObjects[slot].world_y += dy;
-	g_testObjects[slot].world_z += dz;
+	g_test_objects[slot].world_x += dx;
+	g_test_objects[slot].world_y += dy;
+	g_test_objects[slot].world_z += dz;
 }
 
-static void FreshWorld(XvtFlightTimingProfile profile)
+static void fresh_world(xvt_flight_timing_profile profile)
 {
-	memset(g_testObjects, 0, sizeof g_testObjects);
-	g_testObjects[0].objectType = 1;
-	g_testObjects[0].objectSignature = 0x100;
-	Place(0, 1000, 2000, 3000);
-	g_testObjects[2].objectType = 2;
-	g_testObjects[2].objectSignature = 0x102;
-	Place(2, -500, 0, 40);
-	g_testObjects[3].objectType = 1;
-	g_testObjects[3].objectSignature = 0x103;
-	g_testObjects[4].objectType = 1;
-	g_testObjects[4].objectSignature = 0x104;
-	g_objectTable = g_testObjects;
-	g_gameTime = 100;
-	g_localTransientSlotStart = 0;
-	g_localDebrisSlotEnd = 0;
-	XvtFlightTiming_BeginSession(profile);
-	XVT_ASSERT_INT_EQ(XvtReferenceMotion_Init(kSlots), 1);
+	memset(g_test_objects, 0, sizeof g_test_objects);
+	g_test_objects[0].object_type = 1;
+	g_test_objects[0].object_signature = 0x100;
+	place(0, 1000, 2000, 3000);
+	g_test_objects[2].object_type = 2;
+	g_test_objects[2].object_signature = 0x102;
+	place(2, -500, 0, 40);
+	g_test_objects[3].object_type = 1;
+	g_test_objects[3].object_signature = 0x103;
+	g_test_objects[4].object_type = 1;
+	g_test_objects[4].object_signature = 0x104;
+	g_object_table = g_test_objects;
+	g_game_time = 100;
+	g_local_transient_slot_start = 0;
+	g_local_debris_slot_end = 0;
+	xvt_flight_timing_begin_session(profile);
+	XVT_ASSERT_INT_EQ(xvt_reference_motion_init(SLOTS), 1);
 }
 
-static void ExpectDisplacement(unsigned slot, int32_t x, int32_t y, int32_t z)
+static void expect_displacement(unsigned slot, int32_t x, int32_t y, int32_t z)
 {
 	int32_t delta[3] = {7, 7, 7};
-	XvtReferenceMotion_Displacement(slot, delta);
+	xvt_reference_motion_displacement(slot, delta);
 	XVT_ASSERT_INT_EQ(delta[0], x);
 	XVT_ASSERT_INT_EQ(delta[1], y);
 	XVT_ASSERT_INT_EQ(delta[2], z);
 }
 
-static void CheckInitSamples(void)
+static void check_init_samples(void)
 {
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	/* Over exactly one reference period, the displacement is the movement itself. */
-	Move(0, 8, -16, 24);
-	g_gameTime = 100 + XVT_REFERENCE_TICKS;
-	ExpectDisplacement(0, 8, -16, 24);
-	ExpectDisplacement(2, 0, 0, 0);
+	move(0, 8, -16, 24);
+	g_game_time = 100 + XVT_REFERENCE_TICKS;
+	expect_displacement(0, 8, -16, 24);
+	expect_displacement(2, 0, 0, 0);
 	/* The empty slot holds no sample. */
-	ExpectDisplacement(1, 0, 0, 0);
+	expect_displacement(1, 0, 0, 0);
 }
 
-static void CheckDisplacementScale(void)
+static void check_displacement_scale(void)
 {
 	/* The change times 8 over the ticks between: twice the period halves it, half the period doubles it. */
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	Move(0, 40, 80, -120);
-	g_gameTime = 116;
-	ExpectDisplacement(0, 20, 40, -60);
-	g_gameTime = 104;
-	ExpectDisplacement(0, 80, 160, -240);
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	move(0, 40, 80, -120);
+	g_game_time = 116;
+	expect_displacement(0, 20, 40, -60);
+	g_game_time = 104;
+	expect_displacement(0, 80, 160, -240);
 
 	/* No time passed, or time ran backwards: all zero. */
-	g_gameTime = 100;
-	ExpectDisplacement(0, 0, 0, 0);
-	g_gameTime = 90;
-	ExpectDisplacement(0, 0, 0, 0);
+	g_game_time = 100;
+	expect_displacement(0, 0, 0, 0);
+	g_game_time = 90;
+	expect_displacement(0, 0, 0, 0);
 
 	/* A slot out of range: all zero. */
-	g_gameTime = 108;
-	ExpectDisplacement(kSlots, 0, 0, 0);
-	ExpectDisplacement(1000, 0, 0, 0);
+	g_game_time = 108;
+	expect_displacement(SLOTS, 0, 0, 0);
+	expect_displacement(1000, 0, 0, 0);
 }
 
-static void CheckClamp(void)
+static void check_clamp(void)
 {
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	Place(0, -2000000000, 2000000000, 0);
-	XVT_ASSERT_INT_EQ(XvtReferenceMotion_Init(kSlots), 1);
-	Place(0, 2000000000, -2000000000, 0);
-	g_gameTime = 101;
-	ExpectDisplacement(0, INT32_MAX, INT32_MIN, 0);
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	place(0, -2000000000, 2000000000, 0);
+	XVT_ASSERT_INT_EQ(xvt_reference_motion_init(SLOTS), 1);
+	place(0, 2000000000, -2000000000, 0);
+	g_game_time = 101;
+	expect_displacement(0, INT32_MAX, INT32_MIN, 0);
 }
 
-static void CheckAxis(void)
+static void check_axis(void)
 {
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	Move(0, 16, -32, 48);
-	g_gameTime = 116;
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	move(0, 16, -32, 48);
+	g_game_time = 116;
 	int32_t delta[3];
-	XvtReferenceMotion_Displacement(0, delta);
+	xvt_reference_motion_displacement(0, delta);
 	for (unsigned axis = 0; axis < 3; ++axis) {
-		XVT_ASSERT_INT_EQ(XvtReferenceMotion_AxisDisplacement(0, axis),
-				  delta[axis]);
+		XVT_ASSERT_INT_EQ(
+			xvt_reference_motion_axis_displacement(0, axis),
+			delta[axis]);
 	}
-	XVT_ASSERT_INT_EQ(XvtReferenceMotion_AxisDisplacement(0, 3), 0);
-	XVT_ASSERT_INT_EQ(XvtReferenceMotion_AxisDisplacement(0, 1000), 0);
+	XVT_ASSERT_INT_EQ(xvt_reference_motion_axis_displacement(0, 3), 0);
+	XVT_ASSERT_INT_EQ(xvt_reference_motion_axis_displacement(0, 1000), 0);
 }
 
-static void CheckCommitted(void)
+static void check_committed(void)
 {
 	/* Unlocked: the committed time stands for the current time. */
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	Move(0, 8, 0, 0);
-	XvtReferenceMotion_Committed(0, 104);
-	g_gameTime = 500;
-	ExpectDisplacement(0, 16, 0, 0);
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	move(0, 8, 0, 0);
+	xvt_reference_motion_committed(0, 104);
+	g_game_time = 500;
+	expect_displacement(0, 16, 0, 0);
 
 	/* Locked: Committed does nothing, and game time is the current time. */
-	FreshWorld(XVT_FLIGHT_TIMING_NATIVE);
-	Move(0, 8, 0, 0);
-	XvtReferenceMotion_Committed(0, 104);
-	g_gameTime = 108;
-	ExpectDisplacement(0, 8, 0, 0);
+	fresh_world(XVT_FLIGHT_TIMING_NATIVE);
+	move(0, 8, 0, 0);
+	xvt_reference_motion_committed(0, 104);
+	g_game_time = 108;
+	expect_displacement(0, 8, 0, 0);
 }
 
-static void CheckCommitBoundary(void)
+static void check_commit_boundary(void)
 {
 	/* In a reference step, the boundary takes a new sample at game time: later movement is measured from
 	 * it, so 8 more over 8 more ticks is a displacement of 8, not (16 + 8) * 8 / 16. */
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	XvtFlightTiming_BeginAdvance(XVT_REFERENCE_TICKS);
-	Move(0, 16, 0, 0);
-	g_gameTime = 108;
-	XvtReferenceMotion_CommitBoundary();
-	XvtFlightTiming_EndAdvance();
-	ExpectDisplacement(0, 0, 0, 0);
-	Move(0, 8, 0, 0);
-	g_gameTime = 116;
-	ExpectDisplacement(0, 8, 0, 0);
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	xvt_flight_timing_begin_advance(XVT_REFERENCE_TICKS);
+	move(0, 16, 0, 0);
+	g_game_time = 108;
+	xvt_reference_motion_commit_boundary();
+	xvt_flight_timing_end_advance();
+	expect_displacement(0, 0, 0, 0);
+	move(0, 8, 0, 0);
+	g_game_time = 116;
+	expect_displacement(0, 8, 0, 0);
 
 	/* A committed time dates the sample instead of game time. */
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	XvtReferenceMotion_Committed(0, 150);
-	XvtFlightTiming_BeginAdvance(XVT_REFERENCE_TICKS);
-	XvtReferenceMotion_CommitBoundary();
-	XvtFlightTiming_EndAdvance();
-	Move(0, 8, 0, 0);
-	XvtReferenceMotion_Committed(0, 158);
-	g_gameTime = 1000;
-	ExpectDisplacement(0, 8, 0, 0);
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	xvt_reference_motion_committed(0, 150);
+	xvt_flight_timing_begin_advance(XVT_REFERENCE_TICKS);
+	xvt_reference_motion_commit_boundary();
+	xvt_flight_timing_end_advance();
+	move(0, 8, 0, 0);
+	xvt_reference_motion_committed(0, 158);
+	g_game_time = 1000;
+	expect_displacement(0, 8, 0, 0);
 
 	/* Outside a reference step it does nothing: the movement is still measured from Init's sample. */
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	XvtFlightTiming_BeginAdvance(1);
-	Move(0, 16, 0, 0);
-	g_gameTime = 108;
-	XvtReferenceMotion_CommitBoundary();
-	XvtFlightTiming_EndAdvance();
-	ExpectDisplacement(0, 16, 0, 0);
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	xvt_flight_timing_begin_advance(1);
+	move(0, 16, 0, 0);
+	g_game_time = 108;
+	xvt_reference_motion_commit_boundary();
+	xvt_flight_timing_end_advance();
+	expect_displacement(0, 16, 0, 0);
 
 	/* In a locked flight it does nothing either. */
-	FreshWorld(XVT_FLIGHT_TIMING_NATIVE);
-	XvtFlightTiming_BeginAdvance(XVT_REFERENCE_TICKS);
-	Move(0, 16, 0, 0);
-	g_gameTime = 108;
-	XvtReferenceMotion_CommitBoundary();
-	ExpectDisplacement(0, 16, 0, 0);
+	fresh_world(XVT_FLIGHT_TIMING_NATIVE);
+	xvt_flight_timing_begin_advance(XVT_REFERENCE_TICKS);
+	move(0, 16, 0, 0);
+	g_game_time = 108;
+	xvt_reference_motion_commit_boundary();
+	expect_displacement(0, 16, 0, 0);
 }
 
-static void CheckObjectChangeClears(void)
+static void check_object_change_clears(void)
 {
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	Move(0, 8, 0, 0);
-	Move(2, 8, 0, 0);
-	g_gameTime = 108;
-	ExpectDisplacement(0, 8, 0, 0);
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	move(0, 8, 0, 0);
+	move(2, 8, 0, 0);
+	g_game_time = 108;
+	expect_displacement(0, 8, 0, 0);
 
 	/* Another signature: the sample is gone, and stays gone when the old signature returns. */
-	g_testObjects[0].objectSignature = 0x999;
-	ExpectDisplacement(0, 0, 0, 0);
-	g_testObjects[0].objectSignature = 0x100;
-	ExpectDisplacement(0, 0, 0, 0);
+	g_test_objects[0].object_signature = 0x999;
+	expect_displacement(0, 0, 0, 0);
+	g_test_objects[0].object_signature = 0x100;
+	expect_displacement(0, 0, 0, 0);
 
 	/* Another type. */
-	g_testObjects[2].objectType = 3;
-	ExpectDisplacement(2, 0, 0, 0);
+	g_test_objects[2].object_type = 3;
+	expect_displacement(2, 0, 0, 0);
 }
 
-static int RecordsEqual(const struct XvtReferenceMotionWire *a,
-			const struct XvtReferenceMotionWire *b)
+static int records_equal(const struct xvt_reference_motion_wire *a,
+			 const struct xvt_reference_motion_wire *b)
 {
 	return memcmp(a, b, sizeof *a) == 0;
 }
 
-static struct XvtReferenceMotionWire EmptyRecord(unsigned slot)
+static struct xvt_reference_motion_wire empty_record(unsigned slot)
 {
-	struct XvtReferenceMotionWire record;
+	struct xvt_reference_motion_wire record;
 	memset(&record, 0, sizeof record);
-	XvtWire_Set16(record.slot, (uint16_t)slot);
+	xvt_wire_set16(record.slot, (uint16_t)slot);
 	return record;
 }
 
-static void CheckEncodeDecode(void)
+static void check_encode_decode(void)
 {
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	XvtReferenceMotion_Committed(0, 104);
-	Move(0, 8, 8, 8);
-	struct XvtReferenceMotionWire record, out;
-	XvtReferenceMotion_Encode(0, &record);
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	xvt_reference_motion_committed(0, 104);
+	move(0, 8, 8, 8);
+	struct xvt_reference_motion_wire record, out;
+	xvt_reference_motion_encode(0, &record);
 	XVT_ASSERT_INT_EQ(record.type, 1);
-	XVT_ASSERT_INT_EQ(XvtWire_Get16(record.slot), 0);
+	XVT_ASSERT_INT_EQ(xvt_wire_get16(record.slot), 0);
 
 	/* Installed into a fresh table sampled later, the record brings the old sample and committed time
 	 * back: the same displacement, and the same record out. */
-	g_gameTime = 300;
-	XVT_ASSERT_INT_EQ(XvtReferenceMotion_Init(kSlots), 1);
-	ExpectDisplacement(0, 0, 0, 0);
-	XVT_ASSERT_INT_EQ(XvtReferenceMotion_Decode(&record, 1), 1);
-	ExpectDisplacement(0, 16, 16, 16);
-	XvtReferenceMotion_Encode(0, &out);
-	XVT_ASSERT_TRUE(RecordsEqual(&out, &record));
+	g_game_time = 300;
+	XVT_ASSERT_INT_EQ(xvt_reference_motion_init(SLOTS), 1);
+	expect_displacement(0, 0, 0, 0);
+	XVT_ASSERT_INT_EQ(xvt_reference_motion_decode(&record, 1), 1);
+	expect_displacement(0, 16, 16, 16);
+	xvt_reference_motion_encode(0, &out);
+	XVT_ASSERT_TRUE(records_equal(&out, &record));
 
 	/* Without apply it is judged, not installed. */
-	XVT_ASSERT_INT_EQ(XvtReferenceMotion_Init(kSlots), 1);
-	XVT_ASSERT_INT_EQ(XvtReferenceMotion_Decode(&record, 0), 1);
-	ExpectDisplacement(0, 0, 0, 0);
+	XVT_ASSERT_INT_EQ(xvt_reference_motion_init(SLOTS), 1);
+	XVT_ASSERT_INT_EQ(xvt_reference_motion_decode(&record, 0), 1);
+	expect_displacement(0, 0, 0, 0);
 
 	/* Not checked against the object: accepted, encoded as another object's entry, and cleared by the
 	 * next read. */
-	struct XvtReferenceMotionWire other = record;
-	XvtWire_Set16(other.signature, 0x777);
-	XVT_ASSERT_INT_EQ(XvtReferenceMotion_Decode(&other, 1), 1);
-	XvtReferenceMotion_Encode(0, &out);
-	struct XvtReferenceMotionWire empty = EmptyRecord(0);
-	XVT_ASSERT_TRUE(RecordsEqual(&out, &empty));
-	ExpectDisplacement(0, 0, 0, 0);
+	struct xvt_reference_motion_wire other = record;
+	xvt_wire_set16(other.signature, 0x777);
+	XVT_ASSERT_INT_EQ(xvt_reference_motion_decode(&other, 1), 1);
+	xvt_reference_motion_encode(0, &out);
+	struct xvt_reference_motion_wire empty = empty_record(0);
+	XVT_ASSERT_TRUE(records_equal(&out, &empty));
+	expect_displacement(0, 0, 0, 0);
 }
 
-static void CheckEncodeEmpty(void)
+static void check_encode_empty(void)
 {
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	struct XvtReferenceMotionWire out, empty;
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	struct xvt_reference_motion_wire out, empty;
 
-	XvtReferenceMotion_Encode(1, &out);
-	empty = EmptyRecord(1);
-	XVT_ASSERT_TRUE(RecordsEqual(&out, &empty));
+	xvt_reference_motion_encode(1, &out);
+	empty = empty_record(1);
+	XVT_ASSERT_TRUE(records_equal(&out, &empty));
 
-	XvtReferenceMotion_Encode(kSlots + 2, &out);
-	empty = EmptyRecord(kSlots + 2);
-	XVT_ASSERT_TRUE(RecordsEqual(&out, &empty));
+	xvt_reference_motion_encode(SLOTS + 2, &out);
+	empty = empty_record(SLOTS + 2);
+	XVT_ASSERT_TRUE(records_equal(&out, &empty));
 
-	g_testObjects[3].objectSignature = 0x555;
-	XvtReferenceMotion_Encode(3, &out);
-	empty = EmptyRecord(3);
-	XVT_ASSERT_TRUE(RecordsEqual(&out, &empty));
-	g_testObjects[2].objectType = 9;
-	XvtReferenceMotion_Encode(2, &out);
-	empty = EmptyRecord(2);
-	XVT_ASSERT_TRUE(RecordsEqual(&out, &empty));
+	g_test_objects[3].object_signature = 0x555;
+	xvt_reference_motion_encode(3, &out);
+	empty = empty_record(3);
+	XVT_ASSERT_TRUE(records_equal(&out, &empty));
+	g_test_objects[2].object_type = 9;
+	xvt_reference_motion_encode(2, &out);
+	empty = empty_record(2);
+	XVT_ASSERT_TRUE(records_equal(&out, &empty));
 }
 
-static void ExpectRefused(const struct XvtReferenceMotionWire *record)
+static void expect_refused(const struct xvt_reference_motion_wire *record)
 {
-	struct XvtReferenceMotionWire before, after;
-	XvtReferenceMotion_Encode(0, &before);
-	XVT_ASSERT_INT_EQ(XvtReferenceMotion_Decode(record, 1), 0);
-	XvtReferenceMotion_Encode(0, &after);
-	XVT_ASSERT_TRUE(RecordsEqual(&before, &after));
+	struct xvt_reference_motion_wire before, after;
+	xvt_reference_motion_encode(0, &before);
+	XVT_ASSERT_INT_EQ(xvt_reference_motion_decode(record, 1), 0);
+	xvt_reference_motion_encode(0, &after);
+	XVT_ASSERT_TRUE(records_equal(&before, &after));
 }
 
-static void CheckDecodeRefusals(void)
+static void check_decode_refusals(void)
 {
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	struct XvtReferenceMotionWire good, bad;
-	XvtReferenceMotion_Encode(0, &good);
-	XvtWire_Set32(good.sample_tick, 50);
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	struct xvt_reference_motion_wire good, bad;
+	xvt_reference_motion_encode(0, &good);
+	xvt_wire_set32(good.sample_tick, 50);
 	good.flags = XVT_MOTION_VALID | XVT_MOTION_CURRENT_VALID;
 
 	bad = good;
-	XvtWire_Set16(bad.slot, kSlots);
-	ExpectRefused(&bad);
+	xvt_wire_set16(bad.slot, SLOTS);
+	expect_refused(&bad);
 	bad = good;
 	bad.flags |= 4;
-	ExpectRefused(&bad);
+	expect_refused(&bad);
 	bad = good;
 	bad.flags = 0x80;
-	ExpectRefused(&bad);
+	expect_refused(&bad);
 	bad = good;
-	XvtWire_Set16(bad.reserved, 1);
-	ExpectRefused(&bad);
+	xvt_wire_set16(bad.reserved, 1);
+	expect_refused(&bad);
 
 	/* Type 0 must be exactly the empty record. */
-	bad = EmptyRecord(0);
-	XvtWire_Set32(bad.current_tick, 1);
-	ExpectRefused(&bad);
-	bad = EmptyRecord(0);
+	bad = empty_record(0);
+	xvt_wire_set32(bad.current_tick, 1);
+	expect_refused(&bad);
+	bad = empty_record(0);
 	bad.flags = XVT_MOTION_VALID;
-	ExpectRefused(&bad);
+	expect_refused(&bad);
 
-	bad = EmptyRecord(0);
-	XVT_ASSERT_INT_EQ(XvtReferenceMotion_Decode(&bad, 0), 1);
-	XVT_ASSERT_INT_EQ(XvtReferenceMotion_Decode(&good, 0), 1);
+	bad = empty_record(0);
+	XVT_ASSERT_INT_EQ(xvt_reference_motion_decode(&bad, 0), 1);
+	XVT_ASSERT_INT_EQ(xvt_reference_motion_decode(&good, 0), 1);
 }
 
-static void CheckReset(void)
+static void check_reset(void)
 {
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	Move(0, 8, 0, 0);
-	Move(2, 8, 0, 0);
-	g_gameTime = 108;
-	XvtReferenceMotion_Reset(0);
-	ExpectDisplacement(0, 0, 0, 0);
-	XvtReferenceMotion_Reset(kSlots + 5);
-	ExpectDisplacement(2, 8, 0, 0);
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	move(0, 8, 0, 0);
+	move(2, 8, 0, 0);
+	g_game_time = 108;
+	xvt_reference_motion_reset(0);
+	expect_displacement(0, 0, 0, 0);
+	xvt_reference_motion_reset(SLOTS + 5);
+	expect_displacement(2, 8, 0, 0);
 }
 
-static void CheckResetShared(void)
+static void check_reset_shared(void)
 {
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	Move(0, 8, 0, 0);
-	Move(2, 8, 0, 0);
-	Move(4, 8, 0, 0);
-	g_gameTime = 108;
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	move(0, 8, 0, 0);
+	move(2, 8, 0, 0);
+	move(4, 8, 0, 0);
+	g_game_time = 108;
 	/* Local slots 1 and 2; slot 0 lies below them and slot 4 past them. */
-	g_localTransientSlotStart = 1;
-	g_localDebrisSlotEnd = 3;
-	XvtReferenceMotion_ResetShared();
-	ExpectDisplacement(0, 0, 0, 0);
-	ExpectDisplacement(2, 8, 0, 0);
-	ExpectDisplacement(4, 0, 0, 0);
+	g_local_transient_slot_start = 1;
+	g_local_debris_slot_end = 3;
+	xvt_reference_motion_reset_shared();
+	expect_displacement(0, 0, 0, 0);
+	expect_displacement(2, 8, 0, 0);
+	expect_displacement(4, 0, 0, 0);
 
 	/* Before Init it does nothing. */
-	XvtReferenceMotion_Shutdown();
-	XvtReferenceMotion_ResetShared();
+	xvt_reference_motion_shutdown();
+	xvt_reference_motion_reset_shared();
 }
 
-static void CheckNoTable(void)
+static void check_no_table(void)
 {
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	Move(0, 8, 0, 0);
-	g_gameTime = 108;
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	move(0, 8, 0, 0);
+	g_game_time = 108;
 	/* A failed allocation leaves no table: nothing is in range. */
-	XVT_ASSERT_INT_EQ(XvtReferenceMotion_Init(SIZE_MAX / 2), 0);
-	ExpectDisplacement(0, 0, 0, 0);
-	struct XvtReferenceMotionWire out, empty = EmptyRecord(0);
-	XvtReferenceMotion_Encode(0, &out);
-	XVT_ASSERT_TRUE(RecordsEqual(&out, &empty));
-	XVT_ASSERT_INT_EQ(XvtReferenceMotion_Decode(&empty, 0), 0);
+	XVT_ASSERT_INT_EQ(xvt_reference_motion_init(SIZE_MAX / 2), 0);
+	expect_displacement(0, 0, 0, 0);
+	struct xvt_reference_motion_wire out, empty = empty_record(0);
+	xvt_reference_motion_encode(0, &out);
+	XVT_ASSERT_TRUE(records_equal(&out, &empty));
+	XVT_ASSERT_INT_EQ(xvt_reference_motion_decode(&empty, 0), 0);
 }
 
 int main(void)
 {
-	CheckInitSamples();
-	CheckDisplacementScale();
-	CheckClamp();
-	CheckAxis();
-	CheckCommitted();
-	CheckCommitBoundary();
-	CheckObjectChangeClears();
-	CheckEncodeDecode();
-	CheckEncodeEmpty();
-	CheckDecodeRefusals();
-	CheckReset();
-	CheckResetShared();
-	CheckNoTable();
-	XvtReferenceMotion_Shutdown();
-	XvtFlightTiming_EndSession();
+	check_init_samples();
+	check_displacement_scale();
+	check_clamp();
+	check_axis();
+	check_committed();
+	check_commit_boundary();
+	check_object_change_clears();
+	check_encode_decode();
+	check_encode_empty();
+	check_decode_refusals();
+	check_reset();
+	check_reset_shared();
+	check_no_table();
+	xvt_reference_motion_shutdown();
+	xvt_flight_timing_end_session();
 	return 0;
 }

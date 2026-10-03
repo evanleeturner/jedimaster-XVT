@@ -8,14 +8,14 @@
 extern "C" {
 #endif
 
-extern int16_t g_gameRandValueState;
-extern int16_t g_gameRandFeedbackState;
-extern uint16_t g_gameRand2ValueState;
-extern uint16_t g_gameRand2FeedbackState;
+extern int16_t g_game_rand_value_state;
+extern int16_t g_game_rand_feedback_state;
+extern uint16_t g_game_rand2_value_state;
+extern uint16_t g_game_rand2_feedback_state;
 
-int16_t GameRand(void);
-uint16_t GameRand2(void);
-uint16_t GameRandRange(uint16_t modulus);
+int16_t game_rand(void);
+uint16_t game_rand2(void);
+uint16_t game_rand_range(uint16_t modulus);
 
 #ifdef __cplusplus
 }

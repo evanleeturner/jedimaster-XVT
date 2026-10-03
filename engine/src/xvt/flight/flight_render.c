@@ -4,165 +4,178 @@
 #include "xvt/render/flight_sw.h"
 #include "xvt/render/renderer.h"
 
-/* Does nothing. FlightRender_InstallCallbacks makes it the transition hook
- * (g_flightRenderTransitionHook) in every mode. */
+/* Does nothing. flight_render_install_callbacks makes it the transition hook
+ * (g_flight_render_transition_hook) in every mode. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x40E580
-void FlightRender_TransitionHookStub(void) {}
+void flight_render_transition_hook_stub(void) {}
 
-/* Calls g_flightRenderTransitionHook; the argument is ignored. */
+/* Calls g_flight_render_transition_hook; the argument is ignored. */
 // FUNCTION: XVT 0x4A9B60
-void FlightRender_InvokeTransitionHook(int transitionFlags)
+void flight_render_invoke_transition_hook(int transition_flags)
 {
-	(void)transitionFlags;
-	g_flightRenderTransitionHook();
+	(void)transition_flags;
+	g_flight_render_transition_hook();
 }
 
-/* Calls g_flightResetPaletteFn; the argument is ignored. */
+/* Calls g_flight_reset_palette_fn; the argument is ignored. */
 // FUNCTION: XVT 0x4A9B70
-void FlightRender_ResetPalette(int transitionFlags)
+void flight_render_reset_palette(int transition_flags)
 {
-	(void)transitionFlags;
-	g_flightResetPaletteFn();
+	(void)transition_flags;
+	g_flight_reset_palette_fn();
 }
 
 /* Picks the software drawing mode for the resolution and installs its
- * drawing functions: g_flightPixelMode is 0 at 320x240 or an unknown mode,
+ * drawing functions: g_flight_pixel_mode is 0 at 320x240 or an unknown mode,
  * 1 at 640x480 and 480x360, and 2 at 640x480 in 16 bits or whenever
- * g_flightBytesPerPixel is 2. Also sets g_flightViewportMode to 1 and
- * g_flightGraphicsDetailPreset to initialGraphicsDetailPreset; both callers,
+ * g_flight_bytes_per_pixel is 2. Also sets g_flight_viewport_mode to 1 and
+ * g_flight_graphics_detail_preset to initial_graphics_detail_preset; both callers,
  * at flight start, pass 3. */
 // FUNCTION: XVT 0x411AF0
-void FlightRender_ConfigureCallbacksForResolution(
-	uint8_t initialGraphicsDetailPreset)
+void flight_render_configure_callbacks_for_resolution(
+	uint8_t initial_graphics_detail_preset)
 {
-	uint8_t pixelMode;
+	uint8_t pixel_mode;
 
-	switch (g_flightResolutionMode) {
+	switch (g_flight_resolution_mode) {
 	case FLIGHT_RESOLUTION_320X240:
-		pixelMode = 0;
+		pixel_mode = 0;
 		break;
 	case FLIGHT_RESOLUTION_640X480:
 	case FLIGHT_RESOLUTION_480X360:
-		pixelMode = 1;
+		pixel_mode = 1;
 		break;
 	case FLIGHT_RESOLUTION_640X480_16BPP:
-		pixelMode = 2;
+		pixel_mode = 2;
 		break;
 	default:
-		pixelMode = 0;
+		pixel_mode = 0;
 		break;
 	}
-	g_flightPixelMode = pixelMode;
-	if (g_flightBytesPerPixel == 2) {
-		pixelMode = 2;
+	g_flight_pixel_mode = pixel_mode;
+	if (g_flight_bytes_per_pixel == 2) {
+		pixel_mode = 2;
 	}
-	g_flightPixelMode = pixelMode;
-	g_flightViewportMode = 1;
-	FlightRender_InstallCallbacks(pixelMode);
-	g_flightGraphicsDetailPreset = initialGraphicsDetailPreset;
+	g_flight_pixel_mode = pixel_mode;
+	g_flight_viewport_mode = 1;
+	flight_render_install_callbacks(pixel_mode);
+	g_flight_graphics_detail_preset = initial_graphics_detail_preset;
 }
 
-/* Sets the 20 software drawing function pointers, g_flightInitLineBufferFn
- * to g_flightDrawLineFn: the 8-bit drawing functions for pixelMode 0 or 1,
+/* Sets the 20 software drawing function pointers, g_flight_init_line_buffer_fn
+ * to g_flight_draw_line_fn: the 8-bit drawing functions for pixel_mode 0 or 1,
  * the same set for both, or the 16-bit ones for 2. The palette functions,
- * the transition hook and g_flightInitLineBufferFn are the same in all
- * three. Any other pixelMode changes nothing. */
+ * the transition hook and g_flight_init_line_buffer_fn are the same in all
+ * three. Any other pixel_mode changes nothing. */
 // FUNCTION: XVT 0x411B60
-void FlightRender_InstallCallbacks(int pixelMode)
+void flight_render_install_callbacks(int pixel_mode)
 {
-	switch (pixelMode) {
+	switch (pixel_mode) {
 	case 1: {
-		g_flightInitLineBufferFn = FlightSw_InitFramebuffer;
-		g_flightRenderTransitionHook = FlightRender_TransitionHookStub;
-		g_flightResetPaletteFn = FlightPalette_ApplyToDisplay;
-		g_flightSetPaletteRangeFn = FlightPalette_SetRange;
-		g_flightGetPaletteFn = FlightPalette_GetFull;
-		g_flightSetPaletteFn = FlightPalette_SetFull;
-		g_flightComputePixelOffsetFn = FlightSw_ComputePixelOffset8bpp;
-		g_flightBlitSpriteFn = FlightSw_BlitSpriteRle8bpp;
-		g_flightBlitSpriteFadedFn = FlightSw_BlitSpriteRleFaded8bpp;
-		g_flightDrawCharFn = FlightText_DrawWideGlyph8bpp;
-		g_flightFillClipRectFn = FlightSw_FillClipRect8bpp;
-		g_flightFillRectClippedFn = FlightSw_FillRectClipped8bpp;
-		g_flightSaveScreenRectFn =
-			(FlightScreenRectFn)FlightSw_SaveScreenRect8bpp;
-		g_flightRestoreScreenRectFn =
-			(FlightScreenRectFn)FlightSw_RestoreScreenRect8bpp;
-		g_flightDrawPointArrayFn = FlightSw_DrawPointArray8bpp;
-		g_flightDrawPointArrayMaskedFn = FlightSw_ErasePointArray8bpp;
-		g_flightDrawPixelFn = FlightSw_DrawPixel8bpp;
-		g_flightDrawRadarTargetMarkerFn =
-			FlightSw_DrawRadarTargetMarker8bpp;
-		g_flightRestoreRadarTargetMarkerFn =
-			FlightSw_RestoreRadarTargetMarker8bpp;
-		g_flightDrawLineFn = FlightSw_DrawLine8bpp;
-		FlightRender_SetPixelModeStub(pixelMode);
+		g_flight_init_line_buffer_fn = flight_sw_init_framebuffer;
+		g_flight_render_transition_hook =
+			flight_render_transition_hook_stub;
+		g_flight_reset_palette_fn = flight_palette_apply_to_display;
+		g_flight_set_palette_range_fn = flight_palette_set_range;
+		g_flight_get_palette_fn = flight_palette_get_full;
+		g_flight_set_palette_fn = flight_palette_set_full;
+		g_flight_compute_pixel_offset_fn =
+			flight_sw_compute_pixel_offset8bpp;
+		g_flight_blit_sprite_fn = flight_sw_blit_sprite_rle8bpp;
+		g_flight_blit_sprite_faded_fn =
+			flight_sw_blit_sprite_rle_faded8bpp;
+		g_flight_draw_char_fn = flight_text_draw_wide_glyph8bpp;
+		g_flight_fill_clip_rect_fn = flight_sw_fill_clip_rect8bpp;
+		g_flight_fill_rect_clipped_fn = flight_sw_fill_rect_clipped8bpp;
+		g_flight_save_screen_rect_fn =
+			(flight_screen_rect_fn)flight_sw_save_screen_rect8bpp;
+		g_flight_restore_screen_rect_fn = (flight_screen_rect_fn)
+			flight_sw_restore_screen_rect8bpp;
+		g_flight_draw_point_array_fn = flight_sw_draw_point_array8bpp;
+		g_flight_draw_point_array_masked_fn =
+			flight_sw_erase_point_array8bpp;
+		g_flight_draw_pixel_fn = flight_sw_draw_pixel8bpp;
+		g_flight_draw_radar_target_marker_fn =
+			flight_sw_draw_radar_target_marker8bpp;
+		g_flight_restore_radar_target_marker_fn =
+			flight_sw_restore_radar_target_marker8bpp;
+		g_flight_draw_line_fn = flight_sw_draw_line8bpp;
+		flight_render_set_pixel_mode_stub(pixel_mode);
 		break;
 	}
 	case 2: {
-		g_flightInitLineBufferFn = FlightSw_InitFramebuffer;
-		g_flightRenderTransitionHook = FlightRender_TransitionHookStub;
-		g_flightResetPaletteFn = FlightPalette_ApplyToDisplay;
-		g_flightSetPaletteRangeFn = FlightPalette_SetRange;
-		g_flightGetPaletteFn = FlightPalette_GetFull;
-		g_flightSetPaletteFn = FlightPalette_SetFull;
-		g_flightComputePixelOffsetFn = FlightSw_ComputePixelOffset;
-		g_flightBlitSpriteFn = FlightSw_BlitSpriteRle16bpp;
-		g_flightBlitSpriteFadedFn = FlightSw_BlitSpriteRleFaded16bpp;
-		g_flightDrawCharFn = FlightText_DrawWideGlyph;
-		g_flightFillClipRectFn = FlightSw_FillClipRect16bpp;
-		g_flightFillRectClippedFn = FlightSw_FillRectClipped16bpp;
-		g_flightSaveScreenRectFn =
-			(FlightScreenRectFn)FlightSw_SaveScreenRect16bpp;
-		g_flightRestoreScreenRectFn =
-			(FlightScreenRectFn)FlightSw_RestoreScreenRect16bpp;
-		g_flightDrawPointArrayFn = FlightSw_DrawPointArray16bpp;
-		g_flightDrawPointArrayMaskedFn = FlightSw_ErasePointArray16bpp;
-		g_flightDrawPixelFn = FlightSw_DrawPixel16bpp;
-		g_flightDrawRadarTargetMarkerFn =
-			FlightSw_DrawRadarTargetMarker16bpp;
-		g_flightRestoreRadarTargetMarkerFn =
-			FlightSw_RestoreRadarTargetMarker16bpp;
-		g_flightDrawLineFn = FlightSw_DrawLine16bpp;
-		FlightRender_SetPixelModeStub(pixelMode);
+		g_flight_init_line_buffer_fn = flight_sw_init_framebuffer;
+		g_flight_render_transition_hook =
+			flight_render_transition_hook_stub;
+		g_flight_reset_palette_fn = flight_palette_apply_to_display;
+		g_flight_set_palette_range_fn = flight_palette_set_range;
+		g_flight_get_palette_fn = flight_palette_get_full;
+		g_flight_set_palette_fn = flight_palette_set_full;
+		g_flight_compute_pixel_offset_fn =
+			flight_sw_compute_pixel_offset;
+		g_flight_blit_sprite_fn = flight_sw_blit_sprite_rle16bpp;
+		g_flight_blit_sprite_faded_fn =
+			flight_sw_blit_sprite_rle_faded16bpp;
+		g_flight_draw_char_fn = flight_text_draw_wide_glyph;
+		g_flight_fill_clip_rect_fn = flight_sw_fill_clip_rect16bpp;
+		g_flight_fill_rect_clipped_fn =
+			flight_sw_fill_rect_clipped16bpp;
+		g_flight_save_screen_rect_fn =
+			(flight_screen_rect_fn)flight_sw_save_screen_rect16bpp;
+		g_flight_restore_screen_rect_fn = (flight_screen_rect_fn)
+			flight_sw_restore_screen_rect16bpp;
+		g_flight_draw_point_array_fn = flight_sw_draw_point_array16bpp;
+		g_flight_draw_point_array_masked_fn =
+			flight_sw_erase_point_array16bpp;
+		g_flight_draw_pixel_fn = flight_sw_draw_pixel16bpp;
+		g_flight_draw_radar_target_marker_fn =
+			flight_sw_draw_radar_target_marker16bpp;
+		g_flight_restore_radar_target_marker_fn =
+			flight_sw_restore_radar_target_marker16bpp;
+		g_flight_draw_line_fn = flight_sw_draw_line16bpp;
+		flight_render_set_pixel_mode_stub(pixel_mode);
 		break;
 	}
 	default:
-		FlightRender_SetPixelModeStub(pixelMode);
+		flight_render_set_pixel_mode_stub(pixel_mode);
 		break;
 	case 0: {
-		g_flightInitLineBufferFn = FlightSw_InitFramebuffer;
-		g_flightRenderTransitionHook = FlightRender_TransitionHookStub;
-		g_flightResetPaletteFn = FlightPalette_ApplyToDisplay;
-		g_flightSetPaletteRangeFn = FlightPalette_SetRange;
-		g_flightGetPaletteFn = FlightPalette_GetFull;
-		g_flightSetPaletteFn = FlightPalette_SetFull;
-		g_flightComputePixelOffsetFn = FlightSw_ComputePixelOffset8bpp;
-		g_flightBlitSpriteFn = FlightSw_BlitSpriteRle8bpp;
-		g_flightBlitSpriteFadedFn = FlightSw_BlitSpriteRleFaded8bpp;
-		g_flightDrawCharFn = FlightText_DrawWideGlyph8bpp;
-		g_flightFillClipRectFn = FlightSw_FillClipRect8bpp;
-		g_flightFillRectClippedFn = FlightSw_FillRectClipped8bpp;
-		g_flightSaveScreenRectFn =
-			(FlightScreenRectFn)FlightSw_SaveScreenRect8bpp;
-		g_flightRestoreScreenRectFn =
-			(FlightScreenRectFn)FlightSw_RestoreScreenRect8bpp;
-		g_flightDrawPointArrayFn = FlightSw_DrawPointArray8bpp;
-		g_flightDrawPointArrayMaskedFn = FlightSw_ErasePointArray8bpp;
-		g_flightDrawPixelFn = FlightSw_DrawPixel8bpp;
-		g_flightDrawRadarTargetMarkerFn =
-			FlightSw_DrawRadarTargetMarker8bpp;
-		g_flightRestoreRadarTargetMarkerFn =
-			FlightSw_RestoreRadarTargetMarker8bpp;
-		g_flightDrawLineFn = FlightSw_DrawLine8bpp;
-		FlightRender_SetPixelModeStub(pixelMode);
+		g_flight_init_line_buffer_fn = flight_sw_init_framebuffer;
+		g_flight_render_transition_hook =
+			flight_render_transition_hook_stub;
+		g_flight_reset_palette_fn = flight_palette_apply_to_display;
+		g_flight_set_palette_range_fn = flight_palette_set_range;
+		g_flight_get_palette_fn = flight_palette_get_full;
+		g_flight_set_palette_fn = flight_palette_set_full;
+		g_flight_compute_pixel_offset_fn =
+			flight_sw_compute_pixel_offset8bpp;
+		g_flight_blit_sprite_fn = flight_sw_blit_sprite_rle8bpp;
+		g_flight_blit_sprite_faded_fn =
+			flight_sw_blit_sprite_rle_faded8bpp;
+		g_flight_draw_char_fn = flight_text_draw_wide_glyph8bpp;
+		g_flight_fill_clip_rect_fn = flight_sw_fill_clip_rect8bpp;
+		g_flight_fill_rect_clipped_fn = flight_sw_fill_rect_clipped8bpp;
+		g_flight_save_screen_rect_fn =
+			(flight_screen_rect_fn)flight_sw_save_screen_rect8bpp;
+		g_flight_restore_screen_rect_fn = (flight_screen_rect_fn)
+			flight_sw_restore_screen_rect8bpp;
+		g_flight_draw_point_array_fn = flight_sw_draw_point_array8bpp;
+		g_flight_draw_point_array_masked_fn =
+			flight_sw_erase_point_array8bpp;
+		g_flight_draw_pixel_fn = flight_sw_draw_pixel8bpp;
+		g_flight_draw_radar_target_marker_fn =
+			flight_sw_draw_radar_target_marker8bpp;
+		g_flight_restore_radar_target_marker_fn =
+			flight_sw_restore_radar_target_marker8bpp;
+		g_flight_draw_line_fn = flight_sw_draw_line8bpp;
+		flight_render_set_pixel_mode_stub(pixel_mode);
 		break;
 	}
 	}
 }
 
-/* Does nothing; FlightRender_InstallCallbacks calls it last in every
+/* Does nothing; flight_render_install_callbacks calls it last in every
  * mode. */
 // FUNCTION: XVT 0x426C40
-void FlightRender_SetPixelModeStub(int pixelMode) { (void)pixelMode; }
+void flight_render_set_pixel_mode_stub(int pixel_mode) { (void)pixel_mode; }

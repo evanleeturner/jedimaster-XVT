@@ -9,13 +9,13 @@
 extern "C" {
 #endif
 
-int FrontendScrollbar_SaveState(void);
-int FrontendScrollbar_RestoreState(void);
-extern int g_scrollbarRepeatCountdown;
-extern int g_scrollbarRepeatInterval;
-int FrontendScrollbar_Draw(const struct RECT *barRect, int currentValue,
-			   int maximumExclusive, int minimum, int pageStep,
-			   unsigned int color, int controlId);
+int frontend_scrollbar_save_state(void);
+int frontend_scrollbar_restore_state(void);
+extern int g_scrollbar_repeat_countdown;
+extern int g_scrollbar_repeat_interval;
+int frontend_scrollbar_draw(const struct RECT *bar_rect, int current_value,
+			    int maximum_exclusive, int minimum, int page_step,
+			    unsigned int color, int control_id);
 
 #ifdef __cplusplus
 }

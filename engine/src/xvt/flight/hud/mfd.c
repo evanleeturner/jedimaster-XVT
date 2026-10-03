@@ -24,160 +24,160 @@
 #include <stdio.h>
 #include <string.h>
 
-/* The MFD page that has the keyboard focus, an MfdPageId, MFD_PAGE_NONE when
+/* The MFD page that has the keyboard focus, an mfd_page_id, MFD_PAGE_NONE when
  * none: the up and down keys scroll it and it gets the bright border. Many
- * functions write it, chiefly Mfd_TogglePage, the page draw functions (which
- * pass it to g_mfdSecondaryPage as their page closes),
- * Hud_RebuildDisplayForViewState and Damage_DisplayMfdPage. Flight start sets
- * MFD_PAGE_NONE: Flight_MainLoop in the original build,
- * XvtFlightLoading_MissionSetup in the modern one. */
+ * functions write it, chiefly mfd_toggle_page, the page draw functions (which
+ * pass it to g_mfd_secondary_page as their page closes),
+ * hud_rebuild_display_for_view_state and damage_display_mfd_page. Flight start sets
+ * MFD_PAGE_NONE: flight_main_loop in the original build,
+ * xvt_flight_loading_mission_setup in the modern one. */
 // GLOBAL: XVT 0x521548
-uint16_t g_mfdActivePage = MFD_PAGE_NONE;
+uint16_t g_mfd_active_page = MFD_PAGE_NONE;
 /* The page that becomes active when the active one closes, MFD_PAGE_NONE
- * when none; written alongside g_mfdActivePage by the same functions. */
+ * when none; written alongside g_mfd_active_page by the same functions. */
 // GLOBAL: XVT 0x52154C
-uint16_t g_mfdSecondaryPage = MFD_PAGE_NONE;
-/* g_mfdActivePage as Hud_RebuildDisplayForViewState saved it on leaving the
+uint16_t g_mfd_secondary_page = MFD_PAGE_NONE;
+/* g_mfd_active_page as hud_rebuild_display_for_view_state saved it on leaving the
  * forward or HUD-only view, put back when that view returns. 3 functions
- * write it: Hud_RebuildDisplayForViewState, and at flight start
- * Flight_MainLoop in the original build and XvtFlightLoading_MissionSetup in
+ * write it: hud_rebuild_display_for_view_state, and at flight start
+ * flight_main_loop in the original build and xvt_flight_loading_mission_setup in
  * the modern one. */
 // GLOBAL: XVT 0x521554
-uint16_t g_mfdSavedActivePage = MFD_PAGE_NONE;
-/* g_mfdSecondaryPage saved with g_mfdSavedActivePage, by the same 3
+uint16_t g_mfd_saved_active_page = MFD_PAGE_NONE;
+/* g_mfd_secondary_page saved with g_mfd_saved_active_page, by the same 3
  * functions. */
 // GLOBAL: XVT 0x521558
-uint16_t g_mfdSavedSecondaryPage = MFD_PAGE_NONE;
-/* g_mfdPageStates saved with g_mfdSavedActivePage, by the same 3
+uint16_t g_mfd_saved_secondary_page = MFD_PAGE_NONE;
+/* g_mfd_page_states saved with g_mfd_saved_active_page, by the same 3
  * functions. */
 // GLOBAL: XVT 0xA08330
-int16_t g_savedMfdPageStates[MFD_PAGE_COUNT] = {MFD_PAGE_STATE_CLOSED};
-/* Per page, an MfdPageState: closed, open, closing (the next draw clears it)
- * or reopened. Many functions write it, chiefly Mfd_TogglePage,
- * Mfd_DrawCraftListPage, Hud_RebuildDisplayForViewState and
- * Damage_DisplayMfdPage; flight start sets every entry closed. */
+int16_t g_saved_mfd_page_states[MFD_PAGE_COUNT] = {MFD_PAGE_STATE_CLOSED};
+/* Per page, an mfd_page_state: closed, open, closing (the next draw clears it)
+ * or reopened. Many functions write it, chiefly mfd_toggle_page,
+ * mfd_draw_craft_list_page, hud_rebuild_display_for_view_state and
+ * damage_display_mfd_page; flight start sets every entry closed. */
 // GLOBAL: XVT 0xA08BA0
-int16_t g_mfdPageStates[MFD_PAGE_COUNT] = {MFD_PAGE_STATE_CLOSED};
+int16_t g_mfd_page_states[MFD_PAGE_COUNT] = {MFD_PAGE_STATE_CLOSED};
 /* Lines the message log page is scrolled down, 0 at the newest. Only
- * Mfd_DrawMessageLogPage writes it, setting 0 when the page state
+ * mfd_draw_message_log_page writes it, setting 0 when the page state
  * changes. */
 // GLOBAL: XVT 0x622BBC
-uint16_t g_mfdMessageLogScrollOffset = 0;
-/* 1 when the message log page must redraw; only Mfd_DrawMessageLogPage
+uint16_t g_mfd_message_log_scroll_offset = 0;
+/* 1 when the message log page must redraw; only mfd_draw_message_log_page
  * writes it, setting 0 after each draw. */
 // GLOBAL: XVT 0x622BB0
-uint16_t g_mfdMessageLogRedraw = 0;
-/* g_messageLogTotalCount at the message log page's last draw; only
- * Mfd_DrawMessageLogPage writes it, to tell when the log grew. */
+uint16_t g_mfd_message_log_redraw = 0;
+/* g_message_log_total_count at the message log page's last draw; only
+ * mfd_draw_message_log_page writes it, to tell when the log grew. */
 // GLOBAL: XVT 0x622BB8
-unsigned int g_mfdMessageLogLastDrawTotalCount = 0;
-/* The local player's mapCameraState when the map help page last drew its
- * text; only Mfd_DrawMapHelpPage writes it. */
+unsigned int g_mfd_message_log_last_draw_total_count = 0;
+/* The local player's map_camera_state when the map help page last drew its
+ * text; only mfd_draw_map_help_page writes it. */
 // GLOBAL: XVT 0x5569F0
-uint16_t g_mfdMapHelpCameraStateCache = 0;
-/* First row the scoreboard page shows; only Mfd_DrawMissionScoreboardPage
+uint16_t g_mfd_map_help_camera_state_cache = 0;
+/* First row the scoreboard page shows; only mfd_draw_mission_scoreboard_page
  * writes it, 0 when it redraws the header. */
 // GLOBAL: XVT 0x5569E0
-int16_t g_mfdMissionScoreboardFirstVisibleRow = 0;
-/* g_activeFlightPlayerCount when the scoreboard pane was last sized, 0 after
- * it closes; only Mfd_DrawMissionScoreboardPage writes it. */
+int16_t g_mfd_mission_scoreboard_first_visible_row = 0;
+/* g_active_flight_player_count when the scoreboard pane was last sized, 0 after
+ * it closes; only mfd_draw_mission_scoreboard_page writes it. */
 // GLOBAL: XVT 0x5569E4
-int16_t g_mfdMissionScoreboardLastPlayerCount = 0;
+int16_t g_mfd_mission_scoreboard_last_player_count = 0;
 /* Right edge of the scoreboard pane at its last sizing, 0 after it closes;
- * only Mfd_DrawMissionScoreboardPage writes it. */
+ * only mfd_draw_mission_scoreboard_page writes it. */
 // GLOBAL: XVT 0x5569E8
-int16_t g_mfdMissionScoreboardLastWidth = 0;
-/* Rows in the craft list at its last full draw; only Mfd_DrawCraftListPage
+int16_t g_mfd_mission_scoreboard_last_width = 0;
+/* Rows in the craft list at its last full draw; only mfd_draw_craft_list_page
  * writes it. */
 // GLOBAL: XVT 0x5569D8
-uint16_t g_mfdCraftListCachedRowCount = 0;
+uint16_t g_mfd_craft_list_cached_row_count = 0;
 /* First row shown, for the friendly (0) and hostile (1) craft lists; only
- * Mfd_DrawCraftListPage writes it. */
+ * mfd_draw_craft_list_page writes it. */
 // GLOBAL: XVT 0x5569EC
-int16_t g_mfdCraftListTopRowByMode[2] = {0};
+int16_t g_mfd_craft_list_top_row_by_mode[2] = {0};
 /* Lines each goals-page section takes, sections 0 to 3; recounted on every
- * call of Mfd_DrawMissionGoalsPage, its only writer. Entries 4 to 7 stay
+ * call of mfd_draw_mission_goals_page, its only writer. Entries 4 to 7 stay
  * 0. */
 // GLOBAL: XVT 0x9A7A10
-int g_mfdGoalsLineCounts[8] = {0};
+int g_mfd_goals_line_counts[8] = {0};
 /* The local team's prevent status at the goals page's last draw, 0xFF after
- * a reset; only Mfd_DrawMissionGoalsPage writes it. */
+ * a reset; only mfd_draw_mission_goals_page writes it. */
 // GLOBAL: XVT 0x5507F8
-uint8_t g_mfdGoalsCachedSecondaryStatus = 0;
-/* Lines the goals page drew last time; only Mfd_DrawMissionGoalsPage writes
+uint8_t g_mfd_goals_cached_secondary_status = 0;
+/* Lines the goals page drew last time; only mfd_draw_mission_goals_page writes
  * it. */
 // GLOBAL: XVT 0x5507FC
-int g_mfdGoalsCurrentTotalLines = 0;
-/* Sum of g_mfdGoalsLineCounts at the goals page's last check; only
- * Mfd_DrawMissionGoalsPage writes it. */
+int g_mfd_goals_current_total_lines = 0;
+/* Sum of g_mfd_goals_line_counts at the goals page's last check; only
+ * mfd_draw_mission_goals_page writes it. */
 // GLOBAL: XVT 0x550800
-int g_mfdGoalsCachedTotalGoalLines = 0;
-/* 1 when the goals page must redraw; only Mfd_DrawMissionGoalsPage writes
+int g_mfd_goals_cached_total_goal_lines = 0;
+/* 1 when the goals page must redraw; only mfd_draw_mission_goals_page writes
  * it, setting 0 at the end of each draw. */
 // GLOBAL: XVT 0x550804
-uint16_t g_mfdGoalsRedrawNeeded = 0;
-/* g_mfdGoalsLineCounts at the goals page's last draw; only
- * Mfd_DrawMissionGoalsPage writes it. */
+uint16_t g_mfd_goals_redraw_needed = 0;
+/* g_mfd_goals_line_counts at the goals page's last draw; only
+ * mfd_draw_mission_goals_page writes it. */
 // GLOBAL: XVT 0x550808
-int g_mfdGoalsCachedLineCounts[8] = {0};
-/* Set to 0 by Mfd_DrawMissionGoalsPage when the page opens; nothing reads
+int g_mfd_goals_cached_line_counts[8] = {0};
+/* Set to 0 by mfd_draw_mission_goals_page when the page opens; nothing reads
  * it. */
 // GLOBAL: XVT 0x550828
-uint16_t g_mfdGoalsUnusedState = 0;
+uint16_t g_mfd_goals_unused_state = 0;
 /* The local team's primary status at the goals page's last draw, 0xFF after
- * a reset; only Mfd_DrawMissionGoalsPage writes it. */
+ * a reset; only mfd_draw_mission_goals_page writes it. */
 // GLOBAL: XVT 0x550830
-uint8_t g_mfdGoalsCachedPrimaryStatus = 0;
-/* Goals page scroll position, in lines; only Mfd_DrawMissionGoalsPage
+uint8_t g_mfd_goals_cached_primary_status = 0;
+/* Goals page scroll position, in lines; only mfd_draw_mission_goals_page
  * writes it. */
 // GLOBAL: XVT 0x550838
-int g_mfdGoalsCurrentScrollTop = 0;
+int g_mfd_goals_current_scroll_top = 0;
 /* Per goals-page section and goal kind (primary, prevent, bonus), the goal
- * state the section lists: a flight group goal's goalState, or a nonzero
- * teamGlobalGoalState of a global goal, must equal it. Its low 2 bits also
+ * state the section lists: a flight group goal's goal_state, or a nonzero
+ * team_global_goal_state of a global goal, must equal it. Its low 2 bits also
  * pick the goal text slot, and it is the goal status passed to
  * goals_outputgoal, except 5 for prevent goals in section 2. Read only by
- * Mfd_DrawMissionGoalsPage. */
+ * mfd_draw_mission_goals_page. */
 // GLOBAL: XVT 0x51BE38
-uint16_t g_mfdGoalsDisplayStateBySectionType[4][3] = {
+uint16_t g_mfd_goals_display_state_by_section_type[4][3] = {
 	{2, 1, 1},
 	{4, 0, 0},
 	{0, 4, 0},
 	{1, 0, 1},
 };
 /* A second global goal state each section accepts, as
- * g_mfdGoalsDisplayStateBySectionType; read only by
- * Mfd_DrawMissionGoalsPage. */
+ * g_mfd_goals_display_state_by_section_type; read only by
+ * mfd_draw_mission_goals_page. */
 // GLOBAL: XVT 0x51BE50
-uint16_t g_mfdGoalsCountAltStateBySectionType[4][3] = {
+uint16_t g_mfd_goals_count_alt_state_by_section_type[4][3] = {
 	{2, 1, 1},
 	{4, 0, 0},
 	{0, 4, 0},
 	{4, 0, 1},
 };
-/* Per section and goal kind, the Mission_EvaluateCondition result bits (1
+/* Per section and goal kind, the mission_evaluate_condition result bits (1
  * met, 2 failed, 4 undecided) for which a global goal trigger is listed.
- * Read only by Mfd_DrawMissionGoalsPage. */
+ * Read only by mfd_draw_mission_goals_page. */
 // GLOBAL: XVT 0x51BE68
-uint16_t g_mfdGoalsConditionMaskBySectionType[4][3] = {
+uint16_t g_mfd_goals_condition_mask_by_section_type[4][3] = {
 	{2, 1, 1},
 	{6, 0, 0},
 	{0, 6, 0},
 	{1, 0, 1},
 };
-/* Per team, 0 to 9, the color letter FlightText_SetColor takes for its craft
- * in the craft lists. Read only by Mfd_DrawCraftListPage. */
+/* Per team, 0 to 9, the color letter flight_text_set_color takes for its craft
+ * in the craft lists. Read only by mfd_draw_craft_list_page. */
 // GLOBAL: XVT 0x523F80
-const char g_mfdCraftListTeamColorCodes[11] = "CJNRFCJNRF";
+const char g_mfd_craft_list_team_color_codes[11] = "CJNRFCJNRF";
 /* Map view help texts from strings.txt, filled by
- * StringTable_LoadGameStrings; read by Mfd_DrawMapHelpPage and
- * Hud_DrawMapViewOverlay. */
+ * string_table_load_game_strings; read by mfd_draw_map_help_page and
+ * hud_draw_map_view_overlay. */
 // GLOBAL: XVT 0xA0A790
-const char *g_strMapRoomText[20] = {0};
+const char *g_str_map_room_text[20] = {0};
 /* Thank-you lines the map help page shows for action keys 0xA8 to 0xAD in
- * 640x480; entry 9 is NULL. Read only by Mfd_DrawMapHelpPage. */
+ * 640x480; entry 9 is NULL. Read only by mfd_draw_map_help_page. */
 // GLOBAL: XVT 0x523F90
-const char *g_mfdDeveloperCreditsLines[47] = {
+const char *g_mfd_developer_credits_lines[47] = {
 	"Special Thanks to:",
 	"  Wendy, Frank and Stephanie Post;",
 	"  Eric & Krisitin Johnston; Mick & Sarah Foley;",
@@ -229,25 +229,25 @@ const char *g_mfdDeveloperCreditsLines[47] = {
 
 /* Draws the goals page into the offscreen buffer, in the map view's pane when
  * the local player's map is shown. A line for the local team's outcome
- * (victory, loss, draw or unresolved, from runtime.teamGoalStatus) heads four
+ * (victory, loss, draw or unresolved, from runtime.team_goal_status) heads four
  * sections, failed objectives, objectives to accomplish, conditions to prevent
  * and completed objectives, each listing the team's global goal triggers and
  * flight group goals whose state the section's entries in
- * g_mfdGoalsDisplayStateBySectionType, g_mfdGoalsCountAltStateBySectionType and
- * g_mfdGoalsConditionMaskBySectionType select; bonus goals show their points,
+ * g_mfd_goals_display_state_by_section_type, g_mfd_goals_count_alt_state_by_section_type and
+ * g_mfd_goals_condition_mask_by_section_type select; bonus goals show their points,
  * and goal text from the file replaces the generated line. It counts each
- * section's lines into g_mfdGoalsLineCounts, scrolls with the up and down keys
+ * section's lines into g_mfd_goals_line_counts, scrolls with the up and down keys
  * while the page is active, and redraws only when those counts, the team's
  * primary or prevent status or the scroll change, or every 472 ticks. When the
  * page state turns to closing it clears the page, makes the secondary page
  * active, and returns. It makes itself the active page when none is and the map
  * is not shown, and draws the active or secondary border. Always returns 0.
- * Writes g_mfdGoalsLineCounts and the other g_mfdGoals globals,
- * g_mfdActivePage, g_mfdSecondaryPage, g_flightCursorX and the local player's
- * missionGoalsRefreshTimer. */
+ * Writes g_mfd_goals_line_counts and the other g_mfdGoals globals,
+ * g_mfd_active_page, g_mfd_secondary_page, g_flight_cursor_x and the local player's
+ * mission_goals_refresh_timer. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x413C80
-int16_t Mfd_DrawMissionGoalsPage(void)
+int16_t mfd_draw_mission_goals_page(void)
 {
 	enum {
 		SECTION_COUNT = 4,
@@ -269,101 +269,105 @@ int16_t Mfd_DrawMissionGoalsPage(void)
 		COCKPIT_OVERLAY_STR_PENALTY = 22,
 	};
 
-	int playerTeam;
-	int totalGoalLines;
-	int scrollTop;
-	int lineIndex;
-	int16_t sectionIdx;
-	uint16_t cursorY;
-	uint16_t goalType;
+	int player_team;
+	int total_goal_lines;
+	int scroll_top;
+	int line_index;
+	int16_t section_idx;
+	uint16_t cursor_y;
+	uint16_t goal_type;
 	int16_t bottom;
 	int16_t top;
 	int16_t left;
 	int16_t right;
-	int16_t lineStep;
-	int16_t pairIdx;
-	int16_t lastVisibleLine;
-	int16_t triggerIdx;
-	uint16_t goalIdx;
-	int16_t flightGroupIdx;
-	int16_t statusTitle;
-	unsigned int statusColor;
+	int16_t line_step;
+	int16_t pair_idx;
+	int16_t last_visible_line;
+	int16_t trigger_idx;
+	uint16_t goal_idx;
+	int16_t flight_group_idx;
+	int16_t status_title;
+	unsigned int status_color;
 	char text[80];
 
-	if (g_players[g_localPlayer].mapCameraState != 0) {
-		left = g_mfdMapBlitSourceX + 2;
-		right = g_mfdMapBlitSourceX + g_mfdMapBlitWidth - 2;
-		top = g_mfdMapBlitSourceY + 2;
-		bottom = g_mfdMapBlitSourceY + g_mfdMapBlitHeight - 2;
+	if (g_players[g_local_player].map_camera_state != 0) {
+		left = g_mfd_map_blit_source_x + 2;
+		right = g_mfd_map_blit_source_x + g_mfd_map_blit_width - 2;
+		top = g_mfd_map_blit_source_y + 2;
+		bottom = g_mfd_map_blit_source_y + g_mfd_map_blit_height - 2;
 	} else {
-		left = g_mfdGoalsBlitSourceX + 2;
-		right = g_mfdGoalsBlitSourceX + g_mfdGoalsBlitWidth - 2;
-		top = g_mfdGoalsBlitSourceY + 2;
-		bottom = g_mfdGoalsBlitSourceY + g_mfdGoalsBlitHeight - 2;
+		left = g_mfd_goals_blit_source_x + 2;
+		right = g_mfd_goals_blit_source_x + g_mfd_goals_blit_width - 2;
+		top = g_mfd_goals_blit_source_y + 2;
+		bottom =
+			g_mfd_goals_blit_source_y + g_mfd_goals_blit_height - 2;
 	}
 
 #ifdef XVT_MODERN
-	XvtCockpitPages_SetOrigin(MFD_PAGE_GOALS, left - 2, top - 2);
+	xvt_cockpit_pages_set_origin(MFD_PAGE_GOALS, left - 2, top - 2);
 #endif
-	totalGoalLines = 0;
-	playerTeam = (uint16_t)g_players[g_localPlayer].team;
-	for (sectionIdx = 0; sectionIdx < SECTION_COUNT; ++sectionIdx) {
-		g_mfdGoalsLineCounts[sectionIdx] = 0;
-		for (goalType = 0; goalType <= GOAL_TYPE_MAX; ++goalType) {
-			uint16_t globalState =
-				g_flightMissionState.runtime
-					.teamGlobalGoalState[playerTeam]
-							    [goalType];
-			uint16_t displayState;
+	total_goal_lines = 0;
+	player_team = (uint16_t)g_players[g_local_player].team;
+	for (section_idx = 0; section_idx < SECTION_COUNT; ++section_idx) {
+		g_mfd_goals_line_counts[section_idx] = 0;
+		for (goal_type = 0; goal_type <= GOAL_TYPE_MAX; ++goal_type) {
+			uint16_t global_state =
+				g_flight_mission_state.runtime
+					.team_global_goal_state[player_team]
+							       [goal_type];
+			uint16_t display_state;
 
-			if (globalState != 0 &&
-			    (globalState == g_mfdGoalsDisplayStateBySectionType
-						    [sectionIdx][goalType] ||
-			     globalState == g_mfdGoalsCountAltStateBySectionType
-						    [sectionIdx][goalType])) {
-				for (pairIdx = 0; pairIdx < TRIGGER_PAIR_COUNT;
-				     ++pairIdx) {
-					int teamOrVariable = TEAM_NONE;
+			if (global_state != 0 &&
+			    (global_state ==
+				     g_mfd_goals_display_state_by_section_type
+					     [section_idx][goal_type] ||
+			     global_state ==
+				     g_mfd_goals_count_alt_state_by_section_type
+					     [section_idx][goal_type])) {
+				for (pair_idx = 0;
+				     pair_idx < TRIGGER_PAIR_COUNT;
+				     ++pair_idx) {
+					int team_or_variable = TEAM_NONE;
 
-					for (triggerIdx = 0;
-					     triggerIdx <
+					for (trigger_idx = 0;
+					     trigger_idx <
 					     TRIGGER_COUNT_PER_PAIR;
-					     ++triggerIdx) {
+					     ++trigger_idx) {
 						uint16_t condition =
-							g_missionGlobalGoals
-								[playerTeam]
-								[goalType]
-									.triggerPairs
-										[pairIdx]
+							g_mission_global_goals
+								[player_team]
+								[goal_type]
+									.trigger_pairs
+										[pair_idx]
 									.triggers
-										[triggerIdx]
+										[trigger_idx]
 									.condition;
-						uint16_t variableType =
-							g_missionGlobalGoals
-								[playerTeam]
-								[goalType]
-									.triggerPairs
-										[pairIdx]
+						uint16_t variable_type =
+							g_mission_global_goals
+								[player_team]
+								[goal_type]
+									.trigger_pairs
+										[pair_idx]
 									.triggers
-										[triggerIdx]
-									.variableType;
+										[trigger_idx]
+									.variable_type;
 						uint16_t variable =
-							g_missionGlobalGoals
-								[playerTeam]
-								[goalType]
-									.triggerPairs
-										[pairIdx]
+							g_mission_global_goals
+								[player_team]
+								[goal_type]
+									.trigger_pairs
+										[pair_idx]
 									.triggers
-										[triggerIdx]
+										[trigger_idx]
 									.variable;
 						uint16_t amount =
-							(uint8_t)g_missionGlobalGoals
-								[playerTeam]
-								[goalType]
-									.triggerPairs
-										[pairIdx]
+							(uint8_t)g_mission_global_goals
+								[player_team]
+								[goal_type]
+									.trigger_pairs
+										[pair_idx]
 									.triggers
-										[triggerIdx]
+										[trigger_idx]
 									.amount;
 
 						if (condition ==
@@ -374,351 +378,367 @@ int16_t Mfd_DrawMissionGoalsPage(void)
 							    MISSION_COND_ALWAYS_TRUE) {
 							continue;
 						}
-						if (g_missionGlobalGoals[playerTeam][goalType]
-								    .triggerPairs
-									    [pairIdx]
+						if (g_mission_global_goals[player_team][goal_type]
+								    .trigger_pairs
+									    [pair_idx]
 								    .triggers
-									    [triggerIdx +
+									    [trigger_idx +
 									     1]
 								    .condition ==
 							    MISSION_COND_NO_CONDITION &&
-						    g_missionGlobalGoals[playerTeam][goalType]
-								    .triggerPairs
-									    [pairIdx]
+						    g_mission_global_goals[player_team][goal_type]
+								    .trigger_pairs
+									    [pair_idx]
 								    .triggers
-									    [triggerIdx +
+									    [trigger_idx +
 									     1]
-								    .variableType ==
+								    .variable_type ==
 							    GOAL_TARGET_TEAM) {
-							teamOrVariable =
-								g_missionGlobalGoals[playerTeam][goalType]
-									.triggerPairs
-										[pairIdx]
-									.triggers
-										[triggerIdx +
-										 1]
-									.variable;
+							team_or_variable =
+								g_mission_global_goals
+									[player_team]
+									[goal_type]
+										.trigger_pairs
+											[pair_idx]
+										.triggers
+											[trigger_idx +
+											 1]
+										.variable;
 						}
-						if (((uint16_t)Mission_EvaluateCondition(
+						if (((uint16_t)mission_evaluate_condition(
 							     condition,
-							     variableType,
+							     variable_type,
 							     variable, amount,
 							     0,
-							     teamOrVariable) &
-						     g_mfdGoalsConditionMaskBySectionType
-							     [sectionIdx]
-							     [goalType]) != 0) {
-							++g_mfdGoalsLineCounts
-								[sectionIdx];
-							if (goalType == 2) {
-								++g_mfdGoalsLineCounts
-									[sectionIdx];
+							     team_or_variable) &
+						     g_mfd_goals_condition_mask_by_section_type
+							     [section_idx]
+							     [goal_type]) !=
+						    0) {
+							++g_mfd_goals_line_counts
+								[section_idx];
+							if (goal_type == 2) {
+								++g_mfd_goals_line_counts
+									[section_idx];
 							}
 						}
 					}
 				}
 			}
 
-			displayState =
-				g_mfdGoalsDisplayStateBySectionType[sectionIdx]
-								   [goalType];
-			for (goalIdx = 0; goalIdx < FLIGHT_GROUP_GOAL_COUNT;
-			     ++goalIdx) {
-				for (flightGroupIdx = 0;
-				     flightGroupIdx <
-				     g_missionHeader.numFlightGroups;
-				     ++flightGroupIdx) {
-					if (g_missionFlightGroups[flightGroupIdx]
-							    .fg.goals[goalIdx]
-							    .enabledTeams
-								    [playerTeam] ==
+			display_state =
+				g_mfd_goals_display_state_by_section_type
+					[section_idx][goal_type];
+			for (goal_idx = 0; goal_idx < FLIGHT_GROUP_GOAL_COUNT;
+			     ++goal_idx) {
+				for (flight_group_idx = 0;
+				     flight_group_idx <
+				     g_mission_header.num_flight_groups;
+				     ++flight_group_idx) {
+					if (g_mission_flight_groups[flight_group_idx]
+							    .fg.goals[goal_idx]
+							    .enabled_teams
+								    [player_team] ==
 						    0 ||
-					    g_missionFlightGroups[flightGroupIdx]
-							    .fg.goals[goalIdx]
-							    .goalKind !=
-						    goalType ||
-					    g_missionFgStats[flightGroupIdx].goalState
-							    [8 * playerTeam +
-							     goalIdx] !=
-						    displayState) {
+					    g_mission_flight_groups
+							    [flight_group_idx]
+								    .fg
+								    .goals[goal_idx]
+								    .goal_kind !=
+						    goal_type ||
+					    g_mission_fg_stats[flight_group_idx]
+							    .goal_state
+								    [8 * player_team +
+								     goal_idx] !=
+						    display_state) {
 						continue;
 					}
-					if (goalType == 2) {
-						if (sectionIdx ==
+					if (goal_type == 2) {
+						if (section_idx ==
 							    GOAL_TITLE_STR_FAILED_OBJECTIVES &&
-						    250 * g_missionFlightGroups[flightGroupIdx]
+						    250 * g_mission_flight_groups[flight_group_idx]
 									    .fg
-									    .goals[goalIdx]
+									    .goals[goal_idx]
 									    .points <
 							    0) {
-							g_mfdGoalsLineCounts
-								[sectionIdx] +=
+							g_mfd_goals_line_counts
+								[section_idx] +=
 								2;
 						} else if (
-							sectionIdx ==
+							section_idx ==
 								GOAL_TITLE_STR_COMPLETED_OBJECTIVES &&
-							250 * g_missionFlightGroups[flightGroupIdx]
+							250 * g_mission_flight_groups[flight_group_idx]
 										.fg
-										.goals[goalIdx]
+										.goals[goal_idx]
 										.points >=
 								0) {
-							g_mfdGoalsLineCounts
-								[sectionIdx] +=
+							g_mfd_goals_line_counts
+								[section_idx] +=
 								2;
 						}
 					} else {
-						++g_mfdGoalsLineCounts
-							[sectionIdx];
+						++g_mfd_goals_line_counts
+							[section_idx];
 					}
 				}
 			}
-			if (g_mfdGoalsLineCounts[sectionIdx] != 0) {
-				++g_mfdGoalsLineCounts[sectionIdx];
+			if (g_mfd_goals_line_counts[section_idx] != 0) {
+				++g_mfd_goals_line_counts[section_idx];
 			}
-			totalGoalLines += g_mfdGoalsLineCounts[sectionIdx];
+			total_goal_lines +=
+				g_mfd_goals_line_counts[section_idx];
 		}
 	}
 
-	FlightSw_SetRenderTarget(g_flightOffscreenBuffer, g_screenWidth,
-				 g_screenHeight,
-				 g_flightBytesPerPixel * g_screenWidth);
-	if (g_hudElementStateCache[g_hudInstrumentSetBaseIndex +
-				   HUD_MFD_GOALS_ELEMENT] !=
-	    (uint16_t)g_mfdPageStates[MFD_PAGE_GOALS]) {
-		if (g_players[g_localPlayer].mapCameraState != 0) {
-			FlightText_SetBackgroundColor(COLOR_MAP_BACKGROUND);
+	flight_sw_set_render_target(g_flight_offscreen_buffer, g_screen_width,
+				    g_screen_height,
+				    g_flight_bytes_per_pixel * g_screen_width);
+	if (g_hud_element_state_cache[g_hud_instrument_set_base_index +
+				      HUD_MFD_GOALS_ELEMENT] !=
+	    (uint16_t)g_mfd_page_states[MFD_PAGE_GOALS]) {
+		if (g_players[g_local_player].map_camera_state != 0) {
+			flight_text_set_background_color(COLOR_MAP_BACKGROUND);
 		} else {
-			FlightText_SetBackgroundColor(
-				g_flightTransparentColorIndex);
+			flight_text_set_background_color(
+				g_flight_transparent_color_index);
 		}
-		FlightText_SetClipRect(left - 2, top - 2, right + 2,
-				       bottom + 2);
-		g_flightFillClipRectFn();
-		if (g_mfdPageStates[MFD_PAGE_GOALS] == MFD_PAGE_STATE_CLOSING) {
+		flight_text_set_clip_rect(left - 2, top - 2, right + 2,
+					  bottom + 2);
+		g_flight_fill_clip_rect_fn();
+		if (g_mfd_page_states[MFD_PAGE_GOALS] ==
+		    MFD_PAGE_STATE_CLOSING) {
 #ifdef XVT_MODERN
-			XvtCockpitPages_Clear(MFD_PAGE_GOALS);
+			xvt_cockpit_pages_clear(MFD_PAGE_GOALS);
 #endif
-			if (g_mfdActivePage == MFD_PAGE_GOALS) {
-				g_mfdActivePage = g_mfdSecondaryPage;
-				g_mfdSecondaryPage =
-					Mfd_FindSecondaryOpenPage();
+			if (g_mfd_active_page == MFD_PAGE_GOALS) {
+				g_mfd_active_page = g_mfd_secondary_page;
+				g_mfd_secondary_page =
+					mfd_find_secondary_open_page();
 			}
-			FlightSw_SetRenderTarget(NULL, SCREEN_WIDTH,
-						 SCREEN_HEIGHT, 0);
+			flight_sw_set_render_target(NULL, SCREEN_WIDTH,
+						    SCREEN_HEIGHT, 0);
 			return 0;
 		}
 	}
 
-	FlightText_SetClipRect(left, top, right, bottom);
-	FlightText_SetWordWrap(1);
-	FlightText_SetClearLineBackground(1);
-	FlightText_SetFontTier(0);
-	if (g_players[g_localPlayer].mapCameraState != 0) {
-		FlightText_SetBackgroundColor(COLOR_MAP_BACKGROUND);
+	flight_text_set_clip_rect(left, top, right, bottom);
+	flight_text_set_word_wrap(1);
+	flight_text_set_clear_line_background(1);
+	flight_text_set_font_tier(0);
+	if (g_players[g_local_player].map_camera_state != 0) {
+		flight_text_set_background_color(COLOR_MAP_BACKGROUND);
 	} else {
-		FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
+		flight_text_set_background_color(
+			g_flight_transparent_color_index);
 	}
-	lineStep = g_flightFontLineHeight + 2;
-	if (g_hudElementStateCache[g_hudInstrumentSetBaseIndex +
-				   HUD_MFD_GOALS_ELEMENT] !=
-	    (uint16_t)g_mfdPageStates[MFD_PAGE_GOALS]) {
-		scrollTop = 0;
-		g_mfdGoalsUnusedState = 0;
-		g_mfdGoalsCachedTotalGoalLines = 0;
-		g_mfdGoalsCurrentTotalLines = 0;
-		g_playerFlightTransientTimers[g_localPlayer]
-			.missionGoalsRefreshTimer = MISSION_GOALS_REFRESH_TICKS;
-		g_mfdGoalsRedrawNeeded = 1;
-		g_mfdGoalsCachedPrimaryStatus = -1;
-		g_mfdGoalsCachedSecondaryStatus = -1;
+	line_step = g_flight_font_line_height + 2;
+	if (g_hud_element_state_cache[g_hud_instrument_set_base_index +
+				      HUD_MFD_GOALS_ELEMENT] !=
+	    (uint16_t)g_mfd_page_states[MFD_PAGE_GOALS]) {
+		scroll_top = 0;
+		g_mfd_goals_unused_state = 0;
+		g_mfd_goals_cached_total_goal_lines = 0;
+		g_mfd_goals_current_total_lines = 0;
+		g_player_flight_transient_timers[g_local_player]
+			.mission_goals_refresh_timer =
+			MISSION_GOALS_REFRESH_TICKS;
+		g_mfd_goals_redraw_needed = 1;
+		g_mfd_goals_cached_primary_status = -1;
+		g_mfd_goals_cached_secondary_status = -1;
 	} else {
-		scrollTop = g_mfdGoalsCurrentScrollTop;
-		if (g_mfdActivePage == MFD_PAGE_GOALS) {
-			switch (g_currentActionKey) {
+		scroll_top = g_mfd_goals_current_scroll_top;
+		if (g_mfd_active_page == MFD_PAGE_GOALS) {
+			switch (g_current_action_key) {
 			case FLIGHT_KEY_UP:
-				if (scrollTop > 0) {
-					g_mfdGoalsRedrawNeeded = 1;
-					--scrollTop;
+				if (scroll_top > 0) {
+					g_mfd_goals_redraw_needed = 1;
+					--scroll_top;
 				}
 				break;
 			case FLIGHT_KEY_DOWN:
-				if ((top - bottom) / lineStep +
-					    g_mfdGoalsCurrentTotalLines >=
-				    scrollTop) {
-					g_mfdGoalsRedrawNeeded = 1;
-					++scrollTop;
+				if ((top - bottom) / line_step +
+					    g_mfd_goals_current_total_lines >=
+				    scroll_top) {
+					g_mfd_goals_redraw_needed = 1;
+					++scroll_top;
 				}
 				break;
 			}
 		}
-		if (totalGoalLines != g_mfdGoalsCachedTotalGoalLines) {
-			g_mfdGoalsRedrawNeeded = 1;
-			g_mfdGoalsCachedTotalGoalLines = totalGoalLines;
+		if (total_goal_lines != g_mfd_goals_cached_total_goal_lines) {
+			g_mfd_goals_redraw_needed = 1;
+			g_mfd_goals_cached_total_goal_lines = total_goal_lines;
 		}
-		for (sectionIdx = 0; sectionIdx < 8; ++sectionIdx) {
-			if (g_mfdGoalsCachedLineCounts[sectionIdx] !=
-			    g_mfdGoalsLineCounts[sectionIdx]) {
-				g_mfdGoalsRedrawNeeded = 1;
+		for (section_idx = 0; section_idx < 8; ++section_idx) {
+			if (g_mfd_goals_cached_line_counts[section_idx] !=
+			    g_mfd_goals_line_counts[section_idx]) {
+				g_mfd_goals_redraw_needed = 1;
 				break;
 			}
 		}
-		if (g_flightMissionState.runtime.teamGoalStatus
-				    [(uint16_t)g_players[g_localPlayer].team]
-				    [0] != g_mfdGoalsCachedPrimaryStatus ||
-		    g_flightMissionState.runtime.teamGoalStatus
-				    [(uint16_t)g_players[g_localPlayer].team]
-				    [1] != g_mfdGoalsCachedSecondaryStatus) {
-			g_mfdGoalsRedrawNeeded = 1;
+		if (g_flight_mission_state.runtime.team_goal_status
+				    [(uint16_t)g_players[g_local_player].team]
+				    [0] != g_mfd_goals_cached_primary_status ||
+		    g_flight_mission_state.runtime.team_goal_status
+				    [(uint16_t)g_players[g_local_player].team]
+				    [1] !=
+			    g_mfd_goals_cached_secondary_status) {
+			g_mfd_goals_redraw_needed = 1;
 		}
 	}
 
-	if ((int16_t)g_playerFlightTransientTimers[g_localPlayer]
-		    .missionGoalsRefreshTimer <= 0) {
-		g_mfdGoalsRedrawNeeded = 1;
-		g_playerFlightTransientTimers[g_localPlayer]
-			.missionGoalsRefreshTimer = MISSION_GOALS_REFRESH_TICKS;
+	if ((int16_t)g_player_flight_transient_timers[g_local_player]
+		    .mission_goals_refresh_timer <= 0) {
+		g_mfd_goals_redraw_needed = 1;
+		g_player_flight_transient_timers[g_local_player]
+			.mission_goals_refresh_timer =
+			MISSION_GOALS_REFRESH_TICKS;
 	}
-	g_mfdGoalsCurrentScrollTop = scrollTop;
-	lastVisibleLine = scrollTop + (bottom - top) / lineStep - 1;
-	cursorY = top;
+	g_mfd_goals_current_scroll_top = scroll_top;
+	last_visible_line = scroll_top + (bottom - top) / line_step - 1;
+	cursor_y = top;
 
-	if (g_mfdGoalsRedrawNeeded != 0) {
+	if (g_mfd_goals_redraw_needed != 0) {
 #ifdef XVT_MODERN
-		XvtCockpitPages_Clear(MFD_PAGE_GOALS);
-		XvtCockpitPages_BeginSection(MFD_PAGE_GOALS,
-					     XVT_COCKPIT_PAGE_BODY);
+		xvt_cockpit_pages_clear(MFD_PAGE_GOALS);
+		xvt_cockpit_pages_begin_section(MFD_PAGE_GOALS,
+						XVT_COCKPIT_PAGE_BODY);
 #endif
-		lineIndex = 0;
-		FlightText_SetClipRect(left - 2, top - 2, right + 2,
-				       bottom + 2);
+		line_index = 0;
+		flight_text_set_clip_rect(left - 2, top - 2, right + 2,
+					  bottom + 2);
 #ifdef XVT_MODERN
-		XvtCockpitPages_RecordBackground(MFD_PAGE_GOALS);
+		xvt_cockpit_pages_record_background(MFD_PAGE_GOALS);
 #endif
-		g_flightFillClipRectFn();
-		FlightText_SetClipRect(left, top, right, bottom);
-		statusTitle = GOAL_TITLE_STR_MISSION_OUTCOME;
-		FlightText_SetScratch(g_strGoalTitles[statusTitle]);
-		switch (g_flightMissionState.runtime.teamGoalStatus
-				[(uint16_t)g_players[g_localPlayer].team][0]) {
+		g_flight_fill_clip_rect_fn();
+		flight_text_set_clip_rect(left, top, right, bottom);
+		status_title = GOAL_TITLE_STR_MISSION_OUTCOME;
+		flight_text_set_scratch(g_str_goal_titles[status_title]);
+		switch (g_flight_mission_state.runtime.team_goal_status
+				[(uint16_t)g_players[g_local_player].team][0]) {
 		case 0:
-			switch (g_flightMissionState.runtime.teamGoalStatus
-					[(uint16_t)g_players[g_localPlayer]
+			switch (g_flight_mission_state.runtime.team_goal_status
+					[(uint16_t)g_players[g_local_player]
 						 .team][1]) {
 			case 0:
 			case 2:
-				statusTitle = GOAL_TITLE_STR_UNRESOLVED;
-				statusColor = COLOR_UNRESOLVED;
+				status_title = GOAL_TITLE_STR_UNRESOLVED;
+				status_color = COLOR_UNRESOLVED;
 				break;
 			case 1:
-				statusTitle = GOAL_TITLE_STR_LOSS;
-				statusColor = COLOR_FAILURE;
+				status_title = GOAL_TITLE_STR_LOSS;
+				status_color = COLOR_FAILURE;
 				break;
 			}
 			break;
 		case 1:
-			switch (g_flightMissionState.runtime.teamGoalStatus
-					[(uint16_t)g_players[g_localPlayer]
+			switch (g_flight_mission_state.runtime.team_goal_status
+					[(uint16_t)g_players[g_local_player]
 						 .team][1]) {
 			case 0:
 			case 2:
-				statusTitle = GOAL_TITLE_STR_VICTORY;
-				statusColor = COLOR_SUCCESS;
+				status_title = GOAL_TITLE_STR_VICTORY;
+				status_color = COLOR_SUCCESS;
 				break;
 			case 1:
-				statusTitle = GOAL_TITLE_STR_DRAW;
-				statusColor = COLOR_ACTIVE_PAGE;
+				status_title = GOAL_TITLE_STR_DRAW;
+				status_color = COLOR_ACTIVE_PAGE;
 				break;
 			}
 			break;
 		case 2:
-			statusTitle = GOAL_TITLE_STR_LOSS;
-			statusColor = COLOR_FAILURE;
+			status_title = GOAL_TITLE_STR_LOSS;
+			status_color = COLOR_FAILURE;
 			break;
 		}
-		FlightText_AppendScratchChar(' ');
-		FlightText_AppendScratchString(g_strGoalTitles[statusTitle]);
-		FlightText_SetCursor(left, cursorY);
-		FlightText_SetColor(statusColor);
-		FlightText_DrawStringCentered(g_flightTextScratchBuffer);
-		cursorY += lineStep;
+		flight_text_append_scratch_char(' ');
+		flight_text_append_scratch_string(
+			g_str_goal_titles[status_title]);
+		flight_text_set_cursor(left, cursor_y);
+		flight_text_set_color(status_color);
+		flight_text_draw_string_centered(g_flight_text_scratch_buffer);
+		cursor_y += line_step;
 
-		for (sectionIdx = 0; sectionIdx < SECTION_COUNT; ++sectionIdx) {
-			uint8_t titlePending;
+		for (section_idx = 0; section_idx < SECTION_COUNT;
+		     ++section_idx) {
+			uint8_t title_pending;
 
-			FlightText_SetColor(
-				g_goalTitleColorByIndex[sectionIdx]);
-			titlePending = 1;
-			for (goalType = 0; goalType <= GOAL_TYPE_MAX;
-			     ++goalType) {
-				uint16_t globalState;
-				uint16_t displayState;
-				uint8_t bonusPrefixWidth;
+			flight_text_set_color(
+				g_goal_title_color_by_index[section_idx]);
+			title_pending = 1;
+			for (goal_type = 0; goal_type <= GOAL_TYPE_MAX;
+			     ++goal_type) {
+				uint16_t global_state;
+				uint16_t display_state;
+				uint8_t bonus_prefix_width;
 
-				if (g_mfdGoalsLineCounts[sectionIdx] == 0) {
+				if (g_mfd_goals_line_counts[section_idx] == 0) {
 					continue;
 				}
-				bonusPrefixWidth = 0;
-				globalState =
-					g_flightMissionState.runtime
-						.teamGlobalGoalState[playerTeam]
-								    [goalType];
-				if (globalState != 0 &&
-				    (globalState ==
-					     g_mfdGoalsDisplayStateBySectionType
-						     [sectionIdx][goalType] ||
-				     globalState ==
-					     g_mfdGoalsCountAltStateBySectionType
-						     [sectionIdx][goalType])) {
-					int16_t triggerOrdinal = 0;
+				bonus_prefix_width = 0;
+				global_state = g_flight_mission_state.runtime
+						       .team_global_goal_state
+							       [player_team]
+							       [goal_type];
+				if (global_state != 0 &&
+				    (global_state ==
+					     g_mfd_goals_display_state_by_section_type
+						     [section_idx][goal_type] ||
+				     global_state ==
+					     g_mfd_goals_count_alt_state_by_section_type
+						     [section_idx]
+						     [goal_type])) {
+					int16_t trigger_ordinal = 0;
 
-					for (pairIdx = 0;
-					     pairIdx < TRIGGER_PAIR_COUNT;
-					     ++pairIdx) {
-						int teamOrVariable = TEAM_NONE;
+					for (pair_idx = 0;
+					     pair_idx < TRIGGER_PAIR_COUNT;
+					     ++pair_idx) {
+						int team_or_variable =
+							TEAM_NONE;
 
-						for (triggerIdx = 0;
-						     triggerIdx <
+						for (trigger_idx = 0;
+						     trigger_idx <
 						     TRIGGER_COUNT_PER_PAIR;
-						     ++triggerIdx,
-						    ++triggerOrdinal) {
+						     ++trigger_idx,
+						    ++trigger_ordinal) {
 							uint16_t condition =
-								g_missionGlobalGoals
-									[playerTeam]
-									[goalType]
-										.triggerPairs
-											[pairIdx]
+								g_mission_global_goals
+									[player_team]
+									[goal_type]
+										.trigger_pairs
+											[pair_idx]
 										.triggers
-											[triggerIdx]
+											[trigger_idx]
 										.condition;
-							uint16_t variableType =
-								g_missionGlobalGoals
-									[playerTeam]
-									[goalType]
-										.triggerPairs
-											[pairIdx]
+							uint16_t variable_type =
+								g_mission_global_goals
+									[player_team]
+									[goal_type]
+										.trigger_pairs
+											[pair_idx]
 										.triggers
-											[triggerIdx]
-										.variableType;
+											[trigger_idx]
+										.variable_type;
 							uint16_t variable =
-								g_missionGlobalGoals
-									[playerTeam]
-									[goalType]
-										.triggerPairs
-											[pairIdx]
+								g_mission_global_goals
+									[player_team]
+									[goal_type]
+										.trigger_pairs
+											[pair_idx]
 										.triggers
-											[triggerIdx]
+											[trigger_idx]
 										.variable;
 							uint16_t amount =
-								(uint8_t)g_missionGlobalGoals
-									[playerTeam]
-									[goalType]
-										.triggerPairs
-											[pairIdx]
+								(uint8_t)g_mission_global_goals
+									[player_team]
+									[goal_type]
+										.trigger_pairs
+											[pair_idx]
 										.triggers
-											[triggerIdx]
+											[trigger_idx]
 										.amount;
-							uint16_t goalStatus;
-							uint16_t drawnHeight;
+							uint16_t goal_status;
+							uint16_t drawn_height;
 
 							if (condition ==
 								    MISSION_COND_NO_CONDITION ||
@@ -728,180 +748,183 @@ int16_t Mfd_DrawMissionGoalsPage(void)
 								    MISSION_COND_ALWAYS_TRUE) {
 								continue;
 							}
-							if (g_missionGlobalGoals[playerTeam][goalType]
-									    .triggerPairs
-										    [pairIdx]
+							if (g_mission_global_goals[player_team][goal_type]
+									    .trigger_pairs
+										    [pair_idx]
 									    .triggers
-										    [triggerIdx +
+										    [trigger_idx +
 										     1]
 									    .condition ==
 								    MISSION_COND_NO_CONDITION &&
-							    g_missionGlobalGoals[playerTeam][goalType]
-									    .triggerPairs
-										    [pairIdx]
+							    g_mission_global_goals[player_team][goal_type]
+									    .trigger_pairs
+										    [pair_idx]
 									    .triggers
-										    [triggerIdx +
+										    [trigger_idx +
 										     1]
-									    .variableType ==
+									    .variable_type ==
 								    GOAL_TARGET_TEAM) {
-								teamOrVariable =
-									g_missionGlobalGoals[playerTeam][goalType]
-										.triggerPairs
-											[pairIdx]
-										.triggers
-											[triggerIdx +
-											 1]
-										.variable;
+								team_or_variable =
+									g_mission_global_goals
+										[player_team]
+										[goal_type]
+											.trigger_pairs
+												[pair_idx]
+											.triggers
+												[trigger_idx +
+												 1]
+											.variable;
 							}
-							if (((uint16_t)Mission_EvaluateCondition(
+							if (((uint16_t)mission_evaluate_condition(
 								     condition,
-								     variableType,
+								     variable_type,
 								     variable,
 								     amount, 0,
-								     teamOrVariable) &
-							     g_mfdGoalsConditionMaskBySectionType
-								     [sectionIdx]
-								     [goalType]) ==
+								     team_or_variable) &
+							     g_mfd_goals_condition_mask_by_section_type
+								     [section_idx]
+								     [goal_type]) ==
 							    0) {
 								continue;
 							}
 
-							if (goalType == 2 &&
-							    bonusPrefixWidth ==
+							if (goal_type == 2 &&
+							    bonus_prefix_width ==
 								    0) {
 								int points =
 									250 *
-									g_missionGlobalGoals
-										[playerTeam]
-										[goalType]
-											.rawPoints;
-								if ((sectionIdx ==
+									g_mission_global_goals
+										[player_team]
+										[goal_type]
+											.raw_points;
+								if ((section_idx ==
 									     GOAL_TITLE_STR_FAILED_OBJECTIVES &&
 								     points >=
 									     0) ||
-								    (sectionIdx ==
+								    (section_idx ==
 									     GOAL_TITLE_STR_COMPLETED_OBJECTIVES &&
 								     points <
 									     0)) {
-									pairIdx =
+									pair_idx =
 										TRIGGER_PAIR_COUNT;
 									break;
 								}
-								if (titlePending !=
+								if (title_pending !=
 								    0) {
-									if (lineIndex >=
-										    g_mfdGoalsCurrentScrollTop &&
-									    lineIndex <
-										    lastVisibleLine) {
-										FlightText_SetCursor(
+									if (line_index >=
+										    g_mfd_goals_current_scroll_top &&
+									    line_index <
+										    last_visible_line) {
+										flight_text_set_cursor(
 											left,
-											cursorY);
-										FlightText_DrawStringCentered(
-											g_strGoalTitles
-												[sectionIdx]);
-										cursorY +=
-											lineStep;
+											cursor_y);
+										flight_text_draw_string_centered(
+											g_str_goal_titles
+												[section_idx]);
+										cursor_y +=
+											line_step;
 									}
-									titlePending =
+									title_pending =
 										0;
-									++lineIndex;
+									++line_index;
 								}
-								FlightText_SetCursor(
+								flight_text_set_cursor(
 									left,
-									cursorY);
+									cursor_y);
 								sprintf(text,
 									"(%s %ld) ",
-									g_strCockpitOverlayText
+									g_str_cockpit_overlay_text
 										[COCKPIT_OVERLAY_STR_BONUS +
 										 (points <
 										  0)],
 									(long)points);
-								FlightText_SetColor(
+								flight_text_set_color(
 									points < 0
 										? COLOR_FAILURE
 										: COLOR_SUCCESS);
-								FlightText_DrawString(
+								flight_text_draw_string(
 									text);
-								FlightText_SetColor(
-									g_goalTitleColorByIndex
-										[sectionIdx]);
-								bonusPrefixWidth =
-									FlightText_MeasureStringWidth(
+								flight_text_set_color(
+									g_goal_title_color_by_index
+										[section_idx]);
+								bonus_prefix_width =
+									flight_text_measure_string_width(
 										text);
 							}
 
-							if (titlePending != 0) {
-								if (lineIndex >=
-									    g_mfdGoalsCurrentScrollTop &&
-								    lineIndex <
-									    lastVisibleLine) {
-									FlightText_SetCursor(
+							if (title_pending !=
+							    0) {
+								if (line_index >=
+									    g_mfd_goals_current_scroll_top &&
+								    line_index <
+									    last_visible_line) {
+									flight_text_set_cursor(
 										left,
-										cursorY);
-									FlightText_DrawStringCentered(
-										g_strGoalTitles
-											[sectionIdx]);
-									cursorY +=
-										lineStep;
+										cursor_y);
+									flight_text_draw_string_centered(
+										g_str_goal_titles
+											[section_idx]);
+									cursor_y +=
+										line_step;
 								}
-								titlePending =
+								title_pending =
 									0;
-								++lineIndex;
+								++line_index;
 							}
-							drawnHeight = 0;
-							if (lineIndex >=
-								    g_mfdGoalsCurrentScrollTop &&
-							    lineIndex <=
-								    lastVisibleLine) {
-								const char *overrideText =
+							drawn_height = 0;
+							if (line_index >=
+								    g_mfd_goals_current_scroll_top &&
+							    line_index <=
+								    last_visible_line) {
+								const char *override_text =
 									NULL;
 
-								if (g_globalGoalOverrideStringHandles
-									    [playerTeam]
-									    [goalType]
-									    [triggerOrdinal]
-									    [g_mfdGoalsDisplayStateBySectionType
-										     [sectionIdx]
-										     [goalType] &
+								if (g_global_goal_override_string_handles
+									    [player_team]
+									    [goal_type]
+									    [trigger_ordinal]
+									    [g_mfd_goals_display_state_by_section_type
+										     [section_idx]
+										     [goal_type] &
 									     3] !=
 								    0) {
-									overrideText = (const char *)Memory_GetHandleBlock(
-										g_globalGoalOverrideStringHandles
-											[playerTeam]
-											[goalType]
-											[triggerOrdinal]
-											[g_mfdGoalsDisplayStateBySectionType
-												 [sectionIdx]
-												 [goalType] &
+									override_text = (const char *)memory_get_handle_block(
+										g_global_goal_override_string_handles
+											[player_team]
+											[goal_type]
+											[trigger_ordinal]
+											[g_mfd_goals_display_state_by_section_type
+												 [section_idx]
+												 [goal_type] &
 											 3]);
 								}
-								FlightText_SetCursor(
+								flight_text_set_cursor(
 									left,
-									cursorY);
-								goalStatus =
-									sectionIdx == GOAL_TITLE_STR_CONDITIONS_TO_PREVENT &&
-											goalType ==
+									cursor_y);
+								goal_status =
+									section_idx == GOAL_TITLE_STR_CONDITIONS_TO_PREVENT &&
+											goal_type ==
 												1
 										? 5
-										: g_mfdGoalsDisplayStateBySectionType
-											  [sectionIdx]
-											  [goalType];
-								if (goalType ==
+										: g_mfd_goals_display_state_by_section_type
+											  [section_idx]
+											  [goal_type];
+								if (goal_type ==
 								    2) {
-									g_flightCursorX +=
-										bonusPrefixWidth;
+									g_flight_cursor_x +=
+										bonus_prefix_width;
 								}
-								if (overrideText !=
+								if (override_text !=
 								    NULL) {
-									FlightText_DrawString(
-										overrideText);
-									if (g_flightMissionState
+									flight_text_draw_string(
+										override_text);
+									if (g_flight_mission_state
 											    .runtime
-											    .globalGoalTriggerCounts
+											    .global_goal_trigger_counts
 												    [1]
-												    [playerTeam]
-												    [goalType]
-												    [triggerOrdinal] <=
+												    [player_team]
+												    [goal_type]
+												    [trigger_ordinal] <=
 										    1 ||
 									    condition ==
 										    MISSION_COND_BOARDED ||
@@ -915,77 +938,77 @@ int16_t Mfd_DrawMissionGoalsPage(void)
 										    MISSION_COND_FAILED_MISSION ||
 									    condition ==
 										    MISSION_COND_NOT_DOCKED) {
-										g_flightDrawCharFn(
+										g_flight_draw_char_fn(
 											'\n');
-										drawnHeight = FlightText_GetWrapHeightForString(
-											overrideText);
-										cursorY +=
-											drawnHeight +
-											g_flightFontLineHeight +
+										drawn_height = flight_text_get_wrap_height_for_string(
+											override_text);
+										cursor_y +=
+											drawn_height +
+											g_flight_font_line_height +
 											2;
 									} else {
 										sprintf(text,
 											" (%ld%%)",
 											(long)(100 *
-											       g_flightMissionState
+											       g_flight_mission_state
 												       .runtime
-												       .globalGoalTriggerCounts
+												       .global_goal_trigger_counts
 													       [0]
-													       [playerTeam]
-													       [goalType]
-													       [triggerOrdinal] /
-											       g_flightMissionState
+													       [player_team]
+													       [goal_type]
+													       [trigger_ordinal] /
+											       g_flight_mission_state
 												       .runtime
-												       .globalGoalTriggerCounts
+												       .global_goal_trigger_counts
 													       [1]
-													       [playerTeam]
-													       [goalType]
-													       [triggerOrdinal]));
-										if (sectionIdx ==
+													       [player_team]
+													       [goal_type]
+													       [trigger_ordinal]));
+										if (section_idx ==
 											    GOAL_TITLE_STR_FAILED_OBJECTIVES ||
-										    sectionIdx ==
+										    section_idx ==
 											    GOAL_TITLE_STR_CONDITIONS_TO_PREVENT) {
-											FlightText_SetColor(
+											flight_text_set_color(
 												COLOR_FAILURE);
 										} else if (
-											sectionIdx ==
+											section_idx ==
 												GOAL_TITLE_STR_COMPLETED_OBJECTIVES ||
-											sectionIdx ==
+											section_idx ==
 												GOAL_TITLE_STR_OBJECTIVES_TO_ACCOMPLISH) {
-											FlightText_SetColor(
+											flight_text_set_color(
 												COLOR_SUCCESS);
 										} else {
-											FlightText_SetColor(
+											flight_text_set_color(
 												COLOR_NORMAL_TEXT);
 										}
-										FlightText_SetScratch(
-											overrideText);
-										FlightText_AppendScratchString(
+										flight_text_set_scratch(
+											override_text);
+										flight_text_append_scratch_string(
 											text);
-										FlightText_DrawString(
+										flight_text_draw_string(
 											text);
-										FlightText_SetColor(
-											g_goalTitleColorByIndex
-												[sectionIdx]);
-										g_flightDrawCharFn(
+										flight_text_set_color(
+											g_goal_title_color_by_index
+												[section_idx]);
+										g_flight_draw_char_fn(
 											'\n');
-										drawnHeight = FlightText_GetWrapHeightForString(
-											g_flightTextScratchBuffer);
-										cursorY +=
-											drawnHeight +
-											g_flightFontLineHeight +
+										drawn_height = flight_text_get_wrap_height_for_string(
+											g_flight_text_scratch_buffer);
+										cursor_y +=
+											drawn_height +
+											g_flight_font_line_height +
 											2;
 									}
 								} else {
-									int percentComplete;
+									int percent_complete;
 
-									if (g_flightMissionState
+									if (g_flight_mission_state
 											    .runtime
-											    .globalGoalTriggerCounts
+											    .global_goal_trigger_counts
 												    [1]
-												    [playerTeam]
-												    [goalType]
-												    [triggerOrdinal] <=
+												    [player_team]
+												    [goal_type]
+												    [trigger_ordinal] <=
 										    1 ||
 									    condition ==
 										    MISSION_COND_BOARDED ||
@@ -999,269 +1022,269 @@ int16_t Mfd_DrawMissionGoalsPage(void)
 										    MISSION_COND_FAILED_MISSION ||
 									    condition ==
 										    MISSION_COND_NOT_DOCKED) {
-										percentComplete =
+										percent_complete =
 											-1;
 									} else {
-										percentComplete =
+										percent_complete =
 											100 *
-											g_flightMissionState
+											g_flight_mission_state
 												.runtime
-												.globalGoalTriggerCounts
+												.global_goal_trigger_counts
 													[0]
-													[playerTeam]
-													[goalType]
-													[triggerOrdinal] /
-											g_flightMissionState
+													[player_team]
+													[goal_type]
+													[trigger_ordinal] /
+											g_flight_mission_state
 												.runtime
-												.globalGoalTriggerCounts
+												.global_goal_trigger_counts
 													[1]
-													[playerTeam]
-													[goalType]
-													[triggerOrdinal];
+													[player_team]
+													[goal_type]
+													[trigger_ordinal];
 									}
-									drawnHeight = goals_outputgoal(
+									drawn_height = goals_outputgoal(
 										variable,
 										condition,
-										variableType,
-										goalStatus,
+										variable_type,
+										goal_status,
 										amount,
 										0,
-										overrideText,
-										percentComplete,
-										sectionIdx);
-									cursorY +=
-										drawnHeight;
-									if (drawnHeight <=
-									    g_flightFontLineHeight +
+										override_text,
+										percent_complete,
+										section_idx);
+									cursor_y +=
+										drawn_height;
+									if (drawn_height <=
+									    g_flight_font_line_height +
 										    2) {
-										drawnHeight =
+										drawn_height =
 											0;
 									}
 								}
-								if (overrideText !=
+								if (override_text !=
 								    NULL) {
-									Memory_HandleBlockDoneStub(
-										g_globalGoalOverrideStringHandles
-											[playerTeam]
-											[goalType]
-											[triggerOrdinal]
-											[g_mfdGoalsDisplayStateBySectionType
-												 [sectionIdx]
-												 [goalType] &
+									memory_handle_block_done_stub(
+										g_global_goal_override_string_handles
+											[player_team]
+											[goal_type]
+											[trigger_ordinal]
+											[g_mfd_goals_display_state_by_section_type
+												 [section_idx]
+												 [goal_type] &
 											 3]);
 								}
 							}
-							if (drawnHeight != 0) {
-								lineIndex += 2;
+							if (drawn_height != 0) {
+								line_index += 2;
 							} else {
-								++lineIndex;
+								++line_index;
 							}
 						}
 					}
 				}
 
-				displayState =
-					g_mfdGoalsDisplayStateBySectionType
-						[sectionIdx][goalType];
-				for (goalIdx = 0;
-				     goalIdx < FLIGHT_GROUP_GOAL_COUNT;
-				     ++goalIdx) {
-					for (flightGroupIdx = 0;
-					     flightGroupIdx <
-					     g_missionHeader.numFlightGroups;
-					     ++flightGroupIdx) {
-						uint16_t drawnHeight;
-						uint16_t goalStatus;
-						uint16_t eventCondition;
-						uint16_t amountOp;
-						uint16_t timeLimit;
+				display_state =
+					g_mfd_goals_display_state_by_section_type
+						[section_idx][goal_type];
+				for (goal_idx = 0;
+				     goal_idx < FLIGHT_GROUP_GOAL_COUNT;
+				     ++goal_idx) {
+					for (flight_group_idx = 0;
+					     flight_group_idx <
+					     g_mission_header.num_flight_groups;
+					     ++flight_group_idx) {
+						uint16_t drawn_height;
+						uint16_t goal_status;
+						uint16_t event_condition;
+						uint16_t amount_op;
+						uint16_t time_limit;
 
-						if (g_missionFlightGroups[flightGroupIdx]
+						if (g_mission_flight_groups[flight_group_idx]
 								    .fg
-								    .goals[goalIdx]
-								    .enabledTeams
-									    [playerTeam] ==
+								    .goals[goal_idx]
+								    .enabled_teams
+									    [player_team] ==
 							    0 ||
-						    g_missionFgStats[flightGroupIdx]
-								    .arrivalEnabled ==
+						    g_mission_fg_stats[flight_group_idx]
+								    .arrival_enabled ==
 							    0 ||
-						    g_missionFlightGroups[flightGroupIdx]
+						    g_mission_flight_groups[flight_group_idx]
 								    .fg
-								    .goals[goalIdx]
-								    .goalKind !=
-							    goalType ||
-						    g_missionFgStats[flightGroupIdx]
-								    .goalState
-									    [8 * playerTeam +
-									     goalIdx] !=
-							    displayState) {
+								    .goals[goal_idx]
+								    .goal_kind !=
+							    goal_type ||
+						    g_mission_fg_stats[flight_group_idx]
+								    .goal_state
+									    [8 * player_team +
+									     goal_idx] !=
+							    display_state) {
 							continue;
 						}
-						eventCondition =
-							g_missionFlightGroups[flightGroupIdx]
+						event_condition =
+							g_mission_flight_groups[flight_group_idx]
 								.fg
-								.goals[goalIdx]
-								.eventCondition;
-						if (eventCondition ==
+								.goals[goal_idx]
+								.event_condition;
+						if (event_condition ==
 							    MISSION_COND_NEVER ||
-						    eventCondition ==
+						    event_condition ==
 							    MISSION_COND_ALWAYS_TRUE) {
 							continue;
 						}
-						if (goalType == 2) {
+						if (goal_type == 2) {
 							int points =
 								250 *
-								g_missionFlightGroups[flightGroupIdx]
+								g_mission_flight_groups[flight_group_idx]
 									.fg
-									.goals[goalIdx]
+									.goals[goal_idx]
 									.points;
 
-							if ((sectionIdx ==
+							if ((section_idx ==
 								     GOAL_TITLE_STR_FAILED_OBJECTIVES &&
 							     points >= 0) ||
-							    (sectionIdx ==
+							    (section_idx ==
 								     GOAL_TITLE_STR_COMPLETED_OBJECTIVES &&
 							     points < 0)) {
 								continue;
 							}
 						}
-						if (titlePending != 0) {
-							if (lineIndex >=
-								    g_mfdGoalsCurrentScrollTop &&
-							    lineIndex <
-								    lastVisibleLine) {
-								FlightText_SetCursor(
+						if (title_pending != 0) {
+							if (line_index >=
+								    g_mfd_goals_current_scroll_top &&
+							    line_index <
+								    last_visible_line) {
+								flight_text_set_cursor(
 									left,
-									cursorY);
-								FlightText_DrawStringCentered(
-									g_strGoalTitles
-										[sectionIdx]);
-								cursorY +=
-									lineStep;
+									cursor_y);
+								flight_text_draw_string_centered(
+									g_str_goal_titles
+										[section_idx]);
+								cursor_y +=
+									line_step;
 							}
-							titlePending = 0;
-							++lineIndex;
+							title_pending = 0;
+							++line_index;
 						}
-						drawnHeight = 0;
-						amountOp =
-							(uint8_t)g_missionFlightGroups
-								[flightGroupIdx]
+						drawn_height = 0;
+						amount_op =
+							(uint8_t)g_mission_flight_groups
+								[flight_group_idx]
 									.fg
-									.goals[goalIdx]
+									.goals[goal_idx]
 									.amount;
-						timeLimit =
-							g_missionFlightGroups
-								[flightGroupIdx]
+						time_limit =
+							g_mission_flight_groups
+								[flight_group_idx]
 									.fg
-									.goals[goalIdx]
-									.timeLimit5s;
-						if (lineIndex >=
-							    g_mfdGoalsCurrentScrollTop &&
-						    lineIndex <
-							    lastVisibleLine) {
+									.goals[goal_idx]
+									.time_limit5s;
+						if (line_index >=
+							    g_mfd_goals_current_scroll_top &&
+						    line_index <
+							    last_visible_line) {
 							const char
-								*overrideText =
+								*override_text =
 									NULL;
 
-							if (g_missionFgOverrideStringHandles
-								    [flightGroupIdx]
-								    [goalIdx]
-								    [g_mfdGoalsDisplayStateBySectionType
-									     [sectionIdx]
-									     [goalType] &
+							if (g_mission_fg_override_string_handles
+								    [flight_group_idx]
+								    [goal_idx]
+								    [g_mfd_goals_display_state_by_section_type
+									     [section_idx]
+									     [goal_type] &
 								     3] != 0) {
-								overrideText = (const char *)Memory_GetHandleBlock(
-									g_missionFgOverrideStringHandles
-										[flightGroupIdx]
-										[goalIdx]
-										[g_mfdGoalsDisplayStateBySectionType
-											 [sectionIdx]
-											 [goalType] &
+								override_text = (const char *)memory_get_handle_block(
+									g_mission_fg_override_string_handles
+										[flight_group_idx]
+										[goal_idx]
+										[g_mfd_goals_display_state_by_section_type
+											 [section_idx]
+											 [goal_type] &
 										 3]);
 							}
-							FlightText_SetCursor(
-								left, cursorY);
-							goalStatus =
-								sectionIdx == GOAL_TITLE_STR_CONDITIONS_TO_PREVENT &&
-										goalType ==
+							flight_text_set_cursor(
+								left, cursor_y);
+							goal_status =
+								section_idx == GOAL_TITLE_STR_CONDITIONS_TO_PREVENT &&
+										goal_type ==
 											1
 									? 5
-									: g_mfdGoalsDisplayStateBySectionType
-										  [sectionIdx]
-										  [goalType];
-							if (goalType == 2) {
+									: g_mfd_goals_display_state_by_section_type
+										  [section_idx]
+										  [goal_type];
+							if (goal_type == 2) {
 								int points =
 									250 *
-									g_missionFlightGroups[flightGroupIdx]
+									g_mission_flight_groups[flight_group_idx]
 										.fg
-										.goals[goalIdx]
+										.goals[goal_idx]
 										.points;
 
 								sprintf(text,
 									"(%s %ld) ",
-									g_strCockpitOverlayText
+									g_str_cockpit_overlay_text
 										[COCKPIT_OVERLAY_STR_BONUS +
 										 (points <
 										  0)],
 									(long)points);
-								FlightText_SetColor(
+								flight_text_set_color(
 									points < 0
 										? COLOR_FAILURE
 										: COLOR_SUCCESS);
-								FlightText_DrawString(
+								flight_text_draw_string(
 									text);
-								FlightText_SetColor(
-									g_goalTitleColorByIndex
-										[sectionIdx]);
+								flight_text_set_color(
+									g_goal_title_color_by_index
+										[section_idx]);
 							}
-							if (overrideText !=
+							if (override_text !=
 							    NULL) {
-								FlightText_DrawString(
-									overrideText);
-								g_flightDrawCharFn(
+								flight_text_draw_string(
+									override_text);
+								g_flight_draw_char_fn(
 									'\n');
-								drawnHeight = FlightText_GetWrapHeightForString(
-									overrideText);
-								cursorY +=
-									drawnHeight +
-									g_flightFontLineHeight +
+								drawn_height = flight_text_get_wrap_height_for_string(
+									override_text);
+								cursor_y +=
+									drawn_height +
+									g_flight_font_line_height +
 									2;
 							} else {
-								drawnHeight = goals_outputgoal(
-									flightGroupIdx,
-									eventCondition,
+								drawn_height = goals_outputgoal(
+									flight_group_idx,
+									event_condition,
 									GOAL_TARGET_FLIGHT_GROUP,
-									goalStatus,
-									amountOp,
-									timeLimit,
-									overrideText,
+									goal_status,
+									amount_op,
+									time_limit,
+									override_text,
 									-1,
-									sectionIdx);
-								cursorY +=
-									drawnHeight;
-								if (drawnHeight <=
-								    g_flightFontLineHeight +
+									section_idx);
+								cursor_y +=
+									drawn_height;
+								if (drawn_height <=
+								    g_flight_font_line_height +
 									    2) {
-									drawnHeight =
+									drawn_height =
 										0;
 								}
 							}
-							if (overrideText !=
+							if (override_text !=
 							    NULL) {
-								Memory_HandleBlockDoneStub(
-									g_missionFgOverrideStringHandles
-										[flightGroupIdx]
-										[goalIdx]
-										[g_mfdGoalsDisplayStateBySectionType
-											 [sectionIdx]
-											 [goalType] &
+								memory_handle_block_done_stub(
+									g_mission_fg_override_string_handles
+										[flight_group_idx]
+										[goal_idx]
+										[g_mfd_goals_display_state_by_section_type
+											 [section_idx]
+											 [goal_type] &
 										 3]);
 							}
 						}
-						if (drawnHeight != 0) {
-							lineIndex += 2;
+						if (drawn_height != 0) {
+							line_index += 2;
 						} else {
-							++lineIndex;
+							++line_index;
 						}
 					}
 				}
@@ -1269,64 +1292,66 @@ int16_t Mfd_DrawMissionGoalsPage(void)
 		}
 
 #ifdef XVT_MODERN
-		XvtCockpitPages_EndSection();
+		xvt_cockpit_pages_end_section();
 #endif
-		g_mfdGoalsCurrentTotalLines = lineIndex;
-		for (sectionIdx = 0; sectionIdx < 8; ++sectionIdx) {
-			g_mfdGoalsCachedLineCounts[sectionIdx] =
-				g_mfdGoalsLineCounts[sectionIdx];
+		g_mfd_goals_current_total_lines = line_index;
+		for (section_idx = 0; section_idx < 8; ++section_idx) {
+			g_mfd_goals_cached_line_counts[section_idx] =
+				g_mfd_goals_line_counts[section_idx];
 		}
-		g_mfdGoalsCachedPrimaryStatus =
-			g_flightMissionState.runtime.teamGoalStatus
-				[(uint16_t)g_players[g_localPlayer].team][0];
-		g_mfdGoalsCachedSecondaryStatus =
-			g_flightMissionState.runtime.teamGoalStatus
-				[(uint16_t)g_players[g_localPlayer].team][1];
+		g_mfd_goals_cached_primary_status =
+			g_flight_mission_state.runtime.team_goal_status
+				[(uint16_t)g_players[g_local_player].team][0];
+		g_mfd_goals_cached_secondary_status =
+			g_flight_mission_state.runtime.team_goal_status
+				[(uint16_t)g_players[g_local_player].team][1];
 	}
 
-	if (g_players[g_localPlayer].mapCameraState == 0) {
-		bottom = g_mfdGoalsBlitSourceY +
-			 lineStep * (g_mfdGoalsCurrentTotalLines + 1);
-		if (bottom > g_mfdGoalsBlitSourceY + g_mfdGoalsBlitHeight - 2) {
-			bottom = g_mfdGoalsBlitSourceY + g_mfdGoalsBlitHeight -
-				 2;
+	if (g_players[g_local_player].map_camera_state == 0) {
+		bottom = g_mfd_goals_blit_source_y +
+			 line_step * (g_mfd_goals_current_total_lines + 1);
+		if (bottom >
+		    g_mfd_goals_blit_source_y + g_mfd_goals_blit_height - 2) {
+			bottom = g_mfd_goals_blit_source_y +
+				 g_mfd_goals_blit_height - 2;
 		}
 	}
-	if (g_players[g_localPlayer].mapCameraState == 0 &&
-	    g_mfdActivePage == MFD_PAGE_NONE) {
-		g_mfdActivePage = MFD_PAGE_GOALS;
+	if (g_players[g_local_player].map_camera_state == 0 &&
+	    g_mfd_active_page == MFD_PAGE_NONE) {
+		g_mfd_active_page = MFD_PAGE_GOALS;
 	}
-	if (g_mfdActivePage == MFD_PAGE_GOALS) {
-		FlightText_SetBackgroundColor(COLOR_ACTIVE_PAGE);
-		FlightText_SetClipRect(left - 2, top - 2, right + 2,
-				       bottom + 2);
+	if (g_mfd_active_page == MFD_PAGE_GOALS) {
+		flight_text_set_background_color(COLOR_ACTIVE_PAGE);
+		flight_text_set_clip_rect(left - 2, top - 2, right + 2,
+					  bottom + 2);
 #ifdef XVT_MODERN
-		XvtCockpitPages_RecordBorder(MFD_PAGE_GOALS);
+		xvt_cockpit_pages_record_border(MFD_PAGE_GOALS);
 #endif
-		g_flightFillRectClippedFn(left - 2, top - 2, right + 2,
-					  bottom + 2, 1);
-	} else if (g_mfdSecondaryPage == MFD_PAGE_GOALS) {
-		if (g_players[g_localPlayer].mapCameraState != 0) {
-			FlightText_SetBackgroundColor(COLOR_MAP_BACKGROUND);
+		g_flight_fill_rect_clipped_fn(left - 2, top - 2, right + 2,
+					      bottom + 2, 1);
+	} else if (g_mfd_secondary_page == MFD_PAGE_GOALS) {
+		if (g_players[g_local_player].map_camera_state != 0) {
+			flight_text_set_background_color(COLOR_MAP_BACKGROUND);
 		} else {
-			FlightText_SetBackgroundColor(
-				g_flightTransparentColorIndex);
+			flight_text_set_background_color(
+				g_flight_transparent_color_index);
 		}
-		FlightText_SetClipRect(left - 2, top - 2, right + 2,
-				       bottom + 2);
+		flight_text_set_clip_rect(left - 2, top - 2, right + 2,
+					  bottom + 2);
 #ifdef XVT_MODERN
-		XvtCockpitPages_RecordBorder(MFD_PAGE_GOALS);
+		xvt_cockpit_pages_record_border(MFD_PAGE_GOALS);
 #endif
-		g_flightFillRectClippedFn(left - 2, top - 2, right + 2,
-					  bottom + 2, 1);
+		g_flight_fill_rect_clipped_fn(left - 2, top - 2, right + 2,
+					      bottom + 2, 1);
 	}
 #ifdef XVT_MODERN
-	XvtCockpitPages_RecordScroll(MFD_PAGE_GOALS, g_mfdGoalsCurrentScrollTop,
-				     g_mfdGoalsCurrentTotalLines, -1);
+	xvt_cockpit_pages_record_scroll(MFD_PAGE_GOALS,
+					g_mfd_goals_current_scroll_top,
+					g_mfd_goals_current_total_lines, -1);
 #endif
-	g_mfdGoalsRedrawNeeded = 0;
-	FlightText_SetWordWrap(0);
-	FlightSw_SetRenderTarget(NULL, SCREEN_WIDTH, SCREEN_HEIGHT, 0);
+	g_mfd_goals_redraw_needed = 0;
+	flight_text_set_word_wrap(0);
+	flight_sw_set_render_target(NULL, SCREEN_WIDTH, SCREEN_HEIGHT, 0);
 	return 0;
 }
 
@@ -1343,12 +1368,12 @@ int16_t Mfd_DrawMissionGoalsPage(void)
  * page state changed; when the page is closing it makes the secondary page
  * active, resets the cached width and count, and returns. It makes itself the
  * active page when none is and the map is not shown. Writes
- * g_mfdMissionScoreboardFirstVisibleRow, g_mfdMissionScoreboardLastWidth,
- * g_mfdMissionScoreboardLastPlayerCount, g_mfdActivePage and
- * g_mfdSecondaryPage. In the original build, with no team or player to list, it
+ * g_mfd_mission_scoreboard_first_visible_row, g_mfd_mission_scoreboard_last_width,
+ * g_mfd_mission_scoreboard_last_player_count, g_mfd_active_page and
+ * g_mfd_secondary_page. In the original build, with no team or player to list, it
  * reads the entry before its order array. */
 // FUNCTION: XVT 0x44BC90
-void Mfd_DrawMissionScoreboardPage(void)
+void mfd_draw_mission_scoreboard_page(void)
 {
 	enum {
 		PLAYER_COUNT = 8,
@@ -1367,443 +1392,463 @@ void Mfd_DrawMissionScoreboardPage(void)
 		COLOR_WINNING_ENTRY = 0x52,
 	};
 
-	int teamCount;
+	int team_count;
 
-	struct ScoreboardScratch {
-		int participatingTeamCount;
+	struct scoreboard_scratch {
+		int participating_team_count;
 		int order[TEAM_COUNT];
-		int playerFgCountByTeam[TEAM_COUNT];
-		int ownedFgCountByTeam[TEAM_COUNT];
+		int player_fg_count_by_team[TEAM_COUNT];
+		int owned_fg_count_by_team[TEAM_COUNT];
 		char text[80];
-		int teamPlacements[TEAM_COUNT];
+		int team_placements[TEAM_COUNT];
 	} scratch;
 
-	int16_t paneWidth;
-	uint16_t spaceWidth;
-	int16_t scoreColumnX;
-	uint16_t lineStep;
+	int16_t pane_width;
+	uint16_t space_width;
+	int16_t score_column_x;
+	uint16_t line_step;
 	int16_t left;
 	int16_t top;
 	int16_t right;
-	int16_t bottomY;
-	int16_t rowY;
-	int16_t lastVisibleExclusive;
+	int16_t bottom_y;
+	int16_t row_y;
+	int16_t last_visible_exclusive;
 	int16_t row;
-	int entryCount;
-	int16_t playerIdx;
-	int16_t needsRedraw;
-	int16_t sharedKillCount;
+	int entry_count;
+	int16_t player_idx;
+	int16_t needs_redraw;
+	int16_t shared_kill_count;
 
-	FlightSw_SetRenderTarget(g_flightOffscreenBuffer, g_screenWidth,
-				 g_screenHeight,
-				 g_screenWidth * g_flightBytesPerPixel);
-	FlightText_SetFontTier(0);
-	paneWidth = 0;
-	needsRedraw = 0;
-	for (playerIdx = 0; playerIdx < PLAYER_COUNT; ++playerIdx) {
-		if (g_players[playerIdx].participationState != 0) {
-			int16_t nameWidth;
+	flight_sw_set_render_target(g_flight_offscreen_buffer, g_screen_width,
+				    g_screen_height,
+				    g_screen_width * g_flight_bytes_per_pixel);
+	flight_text_set_font_tier(0);
+	pane_width = 0;
+	needs_redraw = 0;
+	for (player_idx = 0; player_idx < PLAYER_COUNT; ++player_idx) {
+		if (g_players[player_idx].participation_state != 0) {
+			int16_t name_width;
 
-			FlightText_SetScratch(
-				NetSession_GetPlayerName(playerIdx));
-			nameWidth = (int16_t)FlightText_MeasureStringWidth(
-				g_flightTextScratchBuffer);
-			if (paneWidth < nameWidth) {
-				paneWidth = nameWidth;
+			flight_text_set_scratch(
+				net_session_get_player_name(player_idx));
+			name_width = (int16_t)flight_text_measure_string_width(
+				g_flight_text_scratch_buffer);
+			if (pane_width < name_width) {
+				pane_width = name_width;
 			}
 		}
 	}
-	if (g_missionHeader.missionType == MISSION_TYPE_MELEE &&
-	    g_pilotData.missionSequenceActive == 1) {
-		paneWidth = (int16_t)(paneWidth +
-				      FlightText_MeasureStringWidth("(0)"));
+	if (g_mission_header.mission_type == MISSION_TYPE_MELEE &&
+	    g_pilot_data.mission_sequence_active == 1) {
+		pane_width = (int16_t)(pane_width +
+				       flight_text_measure_string_width("(0)"));
 	}
 	{
-		int16_t headerWidth;
+		int16_t header_width;
 
-		headerWidth = (int16_t)FlightText_MeasureStringWidth(
-			g_strCockpitOverlayText[COCKPIT_OVERLAY_STR_PLAYER]);
-		if (paneWidth < headerWidth) {
-			paneWidth = headerWidth;
+		header_width = (int16_t)flight_text_measure_string_width(
+			g_str_cockpit_overlay_text[COCKPIT_OVERLAY_STR_PLAYER]);
+		if (pane_width < header_width) {
+			pane_width = header_width;
 		}
 	}
-	FlightText_SetScratch(
-		g_strCockpitOverlayText[COCKPIT_OVERLAY_STR_SCORE]);
-	FlightText_AppendScratchString("          ");
-	FlightText_AppendScratchString(
-		g_strCockpitOverlayText[COCKPIT_OVERLAY_STR_KILLS]);
-	spaceWidth = FlightText_MeasureStringWidth("  ");
-	scoreColumnX = (int16_t)(paneWidth + spaceWidth);
-	paneWidth = (int16_t)(paneWidth + FlightText_MeasureStringWidth(
-						  g_flightTextScratchBuffer));
-	if (g_missionHeader.missionType == MISSION_TYPE_MELEE) {
-		int fgIdx;
+	flight_text_set_scratch(
+		g_str_cockpit_overlay_text[COCKPIT_OVERLAY_STR_SCORE]);
+	flight_text_append_scratch_string("          ");
+	flight_text_append_scratch_string(
+		g_str_cockpit_overlay_text[COCKPIT_OVERLAY_STR_KILLS]);
+	space_width = flight_text_measure_string_width("  ");
+	score_column_x = (int16_t)(pane_width + space_width);
+	pane_width =
+		(int16_t)(pane_width + flight_text_measure_string_width(
+					       g_flight_text_scratch_buffer));
+	if (g_mission_header.mission_type == MISSION_TYPE_MELEE) {
+		int fg_idx;
 		int team;
 
-		memset(scratch.teamPlacements, 0,
-		       sizeof(scratch.teamPlacements));
-		memset(scratch.ownedFgCountByTeam, 0,
-		       sizeof(scratch.ownedFgCountByTeam));
-		memset(scratch.playerFgCountByTeam, 0,
-		       sizeof(scratch.playerFgCountByTeam));
-		for (fgIdx = 0;
-		     fgIdx < (int16_t)g_missionHeader.numFlightGroups;
-		     ++fgIdx) {
-			if (g_missionFlightGroups[fgIdx].fg.playerNumber != 0 &&
-			    g_missionFgStats[fgIdx].hasArrived != 0) {
-				++scratch.playerFgCountByTeam
-					  [g_missionFlightGroups[fgIdx]
+		memset(scratch.team_placements, 0,
+		       sizeof(scratch.team_placements));
+		memset(scratch.owned_fg_count_by_team, 0,
+		       sizeof(scratch.owned_fg_count_by_team));
+		memset(scratch.player_fg_count_by_team, 0,
+		       sizeof(scratch.player_fg_count_by_team));
+		for (fg_idx = 0;
+		     fg_idx < (int16_t)g_mission_header.num_flight_groups;
+		     ++fg_idx) {
+			if (g_mission_flight_groups[fg_idx].fg.player_number !=
+				    0 &&
+			    g_mission_fg_stats[fg_idx].has_arrived != 0) {
+				++scratch.player_fg_count_by_team
+					  [g_mission_flight_groups[fg_idx]
 						   .fg.team];
 			}
-			if (g_missionFlightGroups[fgIdx].playerOwnerIdx != -1 &&
-			    g_missionFgStats[fgIdx].hasArrived != 0) {
-				++scratch.ownedFgCountByTeam
-					  [g_missionFlightGroups[fgIdx]
+			if (g_mission_flight_groups[fg_idx].player_owner_idx !=
+				    -1 &&
+			    g_mission_fg_stats[fg_idx].has_arrived != 0) {
+				++scratch.owned_fg_count_by_team
+					  [g_mission_flight_groups[fg_idx]
 						   .fg.team];
 			}
 		}
-		teamCount = 0;
+		team_count = 0;
 		for (team = 0; team < TEAM_COUNT; ++team) {
-			if (scratch.playerFgCountByTeam[team] != 0) {
-				scratch.order[teamCount++] = team;
+			if (scratch.player_fg_count_by_team[team] != 0) {
+				scratch.order[team_count++] = team;
 			}
 		}
 #ifdef XVT_MODERN
-		if (teamCount > 0)
+		if (team_count > 0)
 #endif
 		{
-			for (row = (int16_t)teamCount; row < TEAM_COUNT;
+			for (row = (int16_t)team_count; row < TEAM_COUNT;
 			     ++row) {
 				scratch.order[row] =
-					scratch.order[teamCount - 1];
+					scratch.order[team_count - 1];
 			}
 		}
-		entryCount = teamCount;
-		if (g_pilotData.missionSequenceActive == 1) {
-			scratch.participatingTeamCount =
-				g_pilotData.meleeTournamentSequenceState
-					.participatingTeamCount;
-			for (row = 0; row < scratch.participatingTeamCount;
+		entry_count = team_count;
+		if (g_pilot_data.mission_sequence_active == 1) {
+			scratch.participating_team_count =
+				g_pilot_data.melee_tournament_sequence_state
+					.participating_team_count;
+			for (row = 0; row < scratch.participating_team_count;
 			     ++row) {
 				int placement;
-				int16_t otherTeam;
+				int16_t other_team;
 				int score;
 
 				placement = 0;
-				score = g_flightMissionState.runtime
-						.teamScores[TEAM_SCORE_MISSION]
-							   [row] +
-					g_flightMissionState.runtime
-						.teamScores[TEAM_SCORE_BONUS]
-							   [row] +
-					g_pilotData.meleeTournamentSequenceState
-						.teamStandings[row]
-						.totalScore;
-				for (otherTeam = 0;
-				     otherTeam < scratch.participatingTeamCount;
-				     ++otherTeam) {
-					if (otherTeam != row &&
-					    g_flightMissionState.runtime.teamScores
+				score = g_flight_mission_state.runtime
+						.team_scores[TEAM_SCORE_MISSION]
+							    [row] +
+					g_flight_mission_state.runtime
+						.team_scores[TEAM_SCORE_BONUS]
+							    [row] +
+					g_pilot_data
+						.melee_tournament_sequence_state
+						.team_standings[row]
+						.total_score;
+				for (other_team = 0;
+				     other_team <
+				     scratch.participating_team_count;
+				     ++other_team) {
+					if (other_team != row &&
+					    g_flight_mission_state.runtime.team_scores
 								    [TEAM_SCORE_MISSION]
-								    [otherTeam] +
-							    g_flightMissionState
+								    [other_team] +
+							    g_flight_mission_state
 								    .runtime
-								    .teamScores
+								    .team_scores
 									    [TEAM_SCORE_BONUS]
-									    [otherTeam] +
-							    g_pilotData
-								    .meleeTournamentSequenceState
-								    .teamStandings
-									    [otherTeam]
-								    .totalScore >
+									    [other_team] +
+							    g_pilot_data
+								    .melee_tournament_sequence_state
+								    .team_standings
+									    [other_team]
+								    .total_score >
 						    score) {
 						++placement;
 					}
 				}
-				scratch.teamPlacements[row] = placement + 1;
+				scratch.team_placements[row] = placement + 1;
 			}
 		}
 	} else {
-		entryCount = g_activeFlightPlayerCount;
+		entry_count = g_active_flight_player_count;
 	}
-	if (entryCount == 0) {
-		entryCount = 1;
+	if (entry_count == 0) {
+		entry_count = 1;
 	}
 
-	if (g_players[g_localPlayer].mapCameraState != 0) {
-		left = (int16_t)(g_mfdMapBlitSourceX + 2);
-		top = (int16_t)(g_mfdMapBlitSourceY + 2);
-		right = (int16_t)(g_mfdMapBlitSourceX + g_mfdMapBlitWidth - 2);
-		bottomY =
-			(int16_t)(g_mfdMapBlitSourceY + g_mfdMapBlitHeight - 2);
+	if (g_players[g_local_player].map_camera_state != 0) {
+		left = (int16_t)(g_mfd_map_blit_source_x + 2);
+		top = (int16_t)(g_mfd_map_blit_source_y + 2);
+		right = (int16_t)(g_mfd_map_blit_source_x +
+				  g_mfd_map_blit_width - 2);
+		bottom_y = (int16_t)(g_mfd_map_blit_source_y +
+				     g_mfd_map_blit_height - 2);
 	} else {
-		top = (int16_t)(g_mfdMissionScoreboardBlitSourceY + 2);
-		++entryCount;
-		left = (int16_t)(g_mfdMissionScoreboardBlitSourceX + 2);
-		right = (int16_t)(left + paneWidth);
-		bottomY = (int16_t)((int16_t)entryCount *
-					    (g_flightFontLineHeight + 1) +
-				    top + 2);
-		if (g_mfdMissionScoreboardLastWidth != right ||
-		    g_mfdMissionScoreboardLastPlayerCount !=
-			    g_activeFlightPlayerCount) {
-			FlightText_SetBackgroundColor(
-				g_flightTransparentColorIndex);
-			if (g_mfdMissionScoreboardLastPlayerCount != 0) {
-				bottomY =
-					(int16_t)((g_mfdMissionScoreboardLastPlayerCount +
-						   1) * (g_flightFontLineHeight +
+		top = (int16_t)(g_mfd_mission_scoreboard_blit_source_y + 2);
+		++entry_count;
+		left = (int16_t)(g_mfd_mission_scoreboard_blit_source_x + 2);
+		right = (int16_t)(left + pane_width);
+		bottom_y = (int16_t)((int16_t)entry_count *
+					     (g_flight_font_line_height + 1) +
+				     top + 2);
+		if (g_mfd_mission_scoreboard_last_width != right ||
+		    g_mfd_mission_scoreboard_last_player_count !=
+			    g_active_flight_player_count) {
+			flight_text_set_background_color(
+				g_flight_transparent_color_index);
+			if (g_mfd_mission_scoreboard_last_player_count != 0) {
+				bottom_y =
+					(int16_t)((g_mfd_mission_scoreboard_last_player_count +
+						   1) * (g_flight_font_line_height +
 							 1) +
 						  top + 2);
 			}
-			if (g_mfdMissionScoreboardLastWidth != 0) {
+			if (g_mfd_mission_scoreboard_last_width != 0) {
 				right = (int16_t)
-					g_mfdMissionScoreboardLastWidth;
+					g_mfd_mission_scoreboard_last_width;
 			}
-			FlightText_SetClipRect(
+			flight_text_set_clip_rect(
 				(int16_t)(left - 2), (int16_t)(top - 2),
-				(int16_t)(right + 2), (int16_t)(bottomY + 2));
-			g_flightFillClipRectFn();
-			right = (int16_t)(left + paneWidth);
-			bottomY =
-				(int16_t)((int16_t)entryCount *
-						  (g_flightFontLineHeight + 1) +
+				(int16_t)(right + 2), (int16_t)(bottom_y + 2));
+			g_flight_fill_clip_rect_fn();
+			right = (int16_t)(left + pane_width);
+			bottom_y =
+				(int16_t)((int16_t)entry_count *
+						  (g_flight_font_line_height +
+						   1) +
 					  top + 2);
-			needsRedraw = 1;
+			needs_redraw = 1;
 		}
 	}
 
 #ifdef XVT_MODERN
-	XvtCockpitPages_SetOrigin(MFD_PAGE_SCOREBOARD, left - 2, top - 2);
+	xvt_cockpit_pages_set_origin(MFD_PAGE_SCOREBOARD, left - 2, top - 2);
 #endif
-	rowY = top;
-	lineStep = (uint16_t)(g_flightFontLineHeight + 1);
-	if (g_hudElementStateCache[g_hudInstrumentSetBaseIndex +
-				   HUD_MFD_SCOREBOARD_ELEMENT] !=
-		    g_mfdPageStates[MFD_PAGE_SCOREBOARD] ||
-	    needsRedraw != 0) {
-		if (g_players[g_localPlayer].mapCameraState != 0) {
-			FlightText_SetBackgroundColor(COLOR_MAP_BACKGROUND);
-		} else if (g_mfdPageStates[MFD_PAGE_SCOREBOARD] ==
+	row_y = top;
+	line_step = (uint16_t)(g_flight_font_line_height + 1);
+	if (g_hud_element_state_cache[g_hud_instrument_set_base_index +
+				      HUD_MFD_SCOREBOARD_ELEMENT] !=
+		    g_mfd_page_states[MFD_PAGE_SCOREBOARD] ||
+	    needs_redraw != 0) {
+		if (g_players[g_local_player].map_camera_state != 0) {
+			flight_text_set_background_color(COLOR_MAP_BACKGROUND);
+		} else if (g_mfd_page_states[MFD_PAGE_SCOREBOARD] ==
 				   MFD_PAGE_STATE_CLOSING ||
-			   g_players[g_localPlayer].viewState.hudStateLive !=
+			   g_players[g_local_player]
+					   .view_state.hud_state_live !=
 				   HUD_VIEW_FORWARD) {
-			FlightText_SetBackgroundColor(
-				g_flightTransparentColorIndex);
+			flight_text_set_background_color(
+				g_flight_transparent_color_index);
 		} else {
-			FlightText_SetBackgroundColor(COLOR_MFD_BACKGROUND);
+			flight_text_set_background_color(COLOR_MFD_BACKGROUND);
 		}
-		FlightText_SetClipRect((int16_t)(left - 2), (int16_t)(top - 2),
-				       (int16_t)(right + 2),
-				       (int16_t)(bottomY + 2));
+		flight_text_set_clip_rect(
+			(int16_t)(left - 2), (int16_t)(top - 2),
+			(int16_t)(right + 2), (int16_t)(bottom_y + 2));
 #ifdef XVT_MODERN
-		XvtCockpitPages_Clear(MFD_PAGE_SCOREBOARD);
-		XvtCockpitPages_RecordBackground(MFD_PAGE_SCOREBOARD);
+		xvt_cockpit_pages_clear(MFD_PAGE_SCOREBOARD);
+		xvt_cockpit_pages_record_background(MFD_PAGE_SCOREBOARD);
 #endif
-		g_flightFillClipRectFn();
-		if (g_mfdPageStates[MFD_PAGE_SCOREBOARD] ==
+		g_flight_fill_clip_rect_fn();
+		if (g_mfd_page_states[MFD_PAGE_SCOREBOARD] ==
 		    MFD_PAGE_STATE_CLOSING) {
 #ifdef XVT_MODERN
-			XvtCockpitPages_Clear(MFD_PAGE_SCOREBOARD);
+			xvt_cockpit_pages_clear(MFD_PAGE_SCOREBOARD);
 #endif
-			if (g_mfdActivePage == MFD_PAGE_SCOREBOARD) {
-				g_mfdActivePage = g_mfdSecondaryPage;
-				g_mfdSecondaryPage =
-					Mfd_FindSecondaryOpenPage();
+			if (g_mfd_active_page == MFD_PAGE_SCOREBOARD) {
+				g_mfd_active_page = g_mfd_secondary_page;
+				g_mfd_secondary_page =
+					mfd_find_secondary_open_page();
 			}
-			g_mfdMissionScoreboardLastWidth = 0;
-			g_mfdMissionScoreboardLastPlayerCount = 0;
-			FlightSw_SetRenderTarget(NULL, DEFAULT_SCREEN_WIDTH,
-						 DEFAULT_SCREEN_HEIGHT, 0);
+			g_mfd_mission_scoreboard_last_width = 0;
+			g_mfd_mission_scoreboard_last_player_count = 0;
+			flight_sw_set_render_target(NULL, DEFAULT_SCREEN_WIDTH,
+						    DEFAULT_SCREEN_HEIGHT, 0);
 			return;
 		}
-		if (g_players[g_localPlayer].mapCameraState != 0) {
-			FlightText_SetBackgroundColor(COLOR_MAP_BACKGROUND);
-		} else if (g_players[g_localPlayer].viewState.hudStateLive ==
+		if (g_players[g_local_player].map_camera_state != 0) {
+			flight_text_set_background_color(COLOR_MAP_BACKGROUND);
+		} else if (g_players[g_local_player]
+				   .view_state.hud_state_live ==
 			   HUD_VIEW_FORWARD) {
-			FlightText_SetBackgroundColor(COLOR_MFD_BACKGROUND);
+			flight_text_set_background_color(COLOR_MFD_BACKGROUND);
 		} else {
-			FlightText_SetBackgroundColor(
-				g_flightTransparentColorIndex);
+			flight_text_set_background_color(
+				g_flight_transparent_color_index);
 		}
 #ifdef XVT_MODERN
-		XvtCockpitPages_BeginSection(MFD_PAGE_SCOREBOARD,
-					     XVT_COCKPIT_PAGE_HEADER);
+		xvt_cockpit_pages_begin_section(MFD_PAGE_SCOREBOARD,
+						XVT_COCKPIT_PAGE_HEADER);
 #endif
-		FlightText_SetColor(COLOR_ACTIVE_PAGE);
-		FlightText_SetCursor(left, top);
-		if (g_missionHeader.missionType == MISSION_TYPE_MELEE &&
-		    scratch.playerFgCountByTeam
-				    [(uint16_t)g_players[g_localPlayer].team] >
+		flight_text_set_color(COLOR_ACTIVE_PAGE);
+		flight_text_set_cursor(left, top);
+		if (g_mission_header.mission_type == MISSION_TYPE_MELEE &&
+		    scratch.player_fg_count_by_team
+				    [(uint16_t)g_players[g_local_player].team] >
 			    1) {
-			FlightText_DrawString(
-				g_strCockpitOverlayText
+			flight_text_draw_string(
+				g_str_cockpit_overlay_text
 					[COCKPIT_OVERLAY_STR_TEAM]);
 		} else {
-			FlightText_DrawString(
-				g_strCockpitOverlayText
+			flight_text_draw_string(
+				g_str_cockpit_overlay_text
 					[COCKPIT_OVERLAY_STR_PLAYER]);
 		}
-		FlightText_SetScratch(
-			g_strCockpitOverlayText[COCKPIT_OVERLAY_STR_SCORE]);
-		FlightText_AppendScratchString("     ");
-		FlightText_AppendScratchString(
-			g_strCockpitOverlayText[COCKPIT_OVERLAY_STR_KILLS]);
-		FlightText_DrawStringRightAligned(g_flightTextScratchBuffer);
+		flight_text_set_scratch(
+			g_str_cockpit_overlay_text[COCKPIT_OVERLAY_STR_SCORE]);
+		flight_text_append_scratch_string("     ");
+		flight_text_append_scratch_string(
+			g_str_cockpit_overlay_text[COCKPIT_OVERLAY_STR_KILLS]);
+		flight_text_draw_string_right_aligned(
+			g_flight_text_scratch_buffer);
 #ifdef XVT_MODERN
-		XvtCockpitPages_EndSection();
+		xvt_cockpit_pages_end_section();
 #endif
-		g_mfdMissionScoreboardFirstVisibleRow = 0;
-		g_mfdMissionScoreboardLastWidth = right;
-		g_mfdMissionScoreboardLastPlayerCount =
-			g_activeFlightPlayerCount;
+		g_mfd_mission_scoreboard_first_visible_row = 0;
+		g_mfd_mission_scoreboard_last_width = right;
+		g_mfd_mission_scoreboard_last_player_count =
+			g_active_flight_player_count;
 	}
 
-	rowY = (int16_t)(rowY + lineStep + 1);
-	if (g_players[g_localPlayer].mapCameraState == 0 &&
-	    g_mfdActivePage == MFD_PAGE_NONE) {
-		g_mfdActivePage = MFD_PAGE_SCOREBOARD;
+	row_y = (int16_t)(row_y + line_step + 1);
+	if (g_players[g_local_player].map_camera_state == 0 &&
+	    g_mfd_active_page == MFD_PAGE_NONE) {
+		g_mfd_active_page = MFD_PAGE_SCOREBOARD;
 	}
-	if (g_mfdActivePage == MFD_PAGE_SCOREBOARD) {
-		FlightText_SetBackgroundColor(COLOR_ACTIVE_PAGE);
-		FlightText_SetClipRect((int16_t)(left - 2), (int16_t)(top - 2),
-				       (int16_t)(right + 2),
-				       (int16_t)(bottomY + 2));
+	if (g_mfd_active_page == MFD_PAGE_SCOREBOARD) {
+		flight_text_set_background_color(COLOR_ACTIVE_PAGE);
+		flight_text_set_clip_rect(
+			(int16_t)(left - 2), (int16_t)(top - 2),
+			(int16_t)(right + 2), (int16_t)(bottom_y + 2));
 #ifdef XVT_MODERN
-		XvtCockpitPages_RecordBorder(MFD_PAGE_SCOREBOARD);
+		xvt_cockpit_pages_record_border(MFD_PAGE_SCOREBOARD);
 #endif
-		g_flightFillRectClippedFn(
+		g_flight_fill_rect_clipped_fn(
 			(uint16_t)(left - 2), (uint16_t)(top - 2),
-			(uint16_t)(right + 2), (uint16_t)(bottomY + 2), 1);
+			(uint16_t)(right + 2), (uint16_t)(bottom_y + 2), 1);
 	} else {
-		if (g_mfdSecondaryPage == MFD_PAGE_SCOREBOARD) {
-			if (g_players[g_localPlayer].mapCameraState != 0) {
-				FlightText_SetBackgroundColor(
+		if (g_mfd_secondary_page == MFD_PAGE_SCOREBOARD) {
+			if (g_players[g_local_player].map_camera_state != 0) {
+				flight_text_set_background_color(
 					COLOR_MAP_BACKGROUND);
-			} else if (g_players[g_localPlayer]
-					   .viewState.hudStateLive !=
+			} else if (g_players[g_local_player]
+					   .view_state.hud_state_live !=
 				   HUD_VIEW_FORWARD) {
-				FlightText_SetBackgroundColor(
-					g_flightTransparentColorIndex);
+				flight_text_set_background_color(
+					g_flight_transparent_color_index);
 			} else {
-				FlightText_SetBackgroundColor(
+				flight_text_set_background_color(
 					COLOR_LOCAL_ENTRY);
 			}
-			FlightText_SetClipRect(
+			flight_text_set_clip_rect(
 				(int16_t)(left - 2), (int16_t)(top - 2),
-				(int16_t)(right + 2), (int16_t)(bottomY + 2));
+				(int16_t)(right + 2), (int16_t)(bottom_y + 2));
 #ifdef XVT_MODERN
-			XvtCockpitPages_RecordBorder(MFD_PAGE_SCOREBOARD);
+			xvt_cockpit_pages_record_border(MFD_PAGE_SCOREBOARD);
 #endif
-			g_flightFillRectClippedFn((uint16_t)(left - 2),
-						  (uint16_t)(top - 2),
-						  (uint16_t)(right + 2),
-						  (uint16_t)(bottomY + 2), 1);
+			g_flight_fill_rect_clipped_fn(
+				(uint16_t)(left - 2), (uint16_t)(top - 2),
+				(uint16_t)(right + 2), (uint16_t)(bottom_y + 2),
+				1);
 		} else {
-			if (g_players[g_localPlayer].viewState.hudStateLive ==
+			if (g_players[g_local_player]
+				    .view_state.hud_state_live ==
 			    HUD_VIEW_FORWARD) {
-				FlightText_SetBackgroundColor(
+				flight_text_set_background_color(
 					COLOR_LOCAL_ENTRY);
-				FlightText_SetClipRect((int16_t)(left - 2),
-						       (int16_t)(top - 2),
-						       (int16_t)(right + 2),
-						       (int16_t)(bottomY + 2));
+				flight_text_set_clip_rect(
+					(int16_t)(left - 2), (int16_t)(top - 2),
+					(int16_t)(right + 2),
+					(int16_t)(bottom_y + 2));
 #ifdef XVT_MODERN
-				XvtCockpitPages_RecordBorder(
+				xvt_cockpit_pages_record_border(
 					MFD_PAGE_SCOREBOARD);
 #endif
-				g_flightFillRectClippedFn(
+				g_flight_fill_rect_clipped_fn(
 					(uint16_t)(left - 2),
 					(uint16_t)(top - 2),
 					(uint16_t)(right + 2),
-					(uint16_t)(bottomY + 2), 1);
+					(uint16_t)(bottom_y + 2), 1);
 			}
 		}
 	}
 
-	FlightText_SetClipRect(left, rowY, right, bottomY);
-	if (g_players[g_localPlayer].mapCameraState != 0) {
-		FlightText_SetBackgroundColor(COLOR_MAP_BACKGROUND);
-	} else if (g_players[g_localPlayer].viewState.hudStateLive ==
+	flight_text_set_clip_rect(left, row_y, right, bottom_y);
+	if (g_players[g_local_player].map_camera_state != 0) {
+		flight_text_set_background_color(COLOR_MAP_BACKGROUND);
+	} else if (g_players[g_local_player].view_state.hud_state_live ==
 		   HUD_VIEW_FORWARD) {
-		FlightText_SetBackgroundColor(COLOR_MFD_BACKGROUND);
+		flight_text_set_background_color(COLOR_MFD_BACKGROUND);
 	} else {
-		FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
+		flight_text_set_background_color(
+			g_flight_transparent_color_index);
 	}
-	FlightText_SetColor(g_hudElementLayouts[g_hudInstrumentSetBaseIndex +
-						HUD_MFD_SCOREBOARD_ELEMENT]
-				    .colorIndexOrWidgetParam);
-	if (g_flightResolutionMode == FLIGHT_RESOLUTION_320X240 &&
-	    g_players[g_localPlayer].mapCameraState != 0 &&
-	    g_mfdActivePage == MFD_PAGE_SCOREBOARD) {
-		switch (g_currentActionKey) {
+	flight_text_set_color(
+		g_hud_element_layouts[g_hud_instrument_set_base_index +
+				      HUD_MFD_SCOREBOARD_ELEMENT]
+			.color_index_or_widget_param);
+	if (g_flight_resolution_mode == FLIGHT_RESOLUTION_320X240 &&
+	    g_players[g_local_player].map_camera_state != 0 &&
+	    g_mfd_active_page == MFD_PAGE_SCOREBOARD) {
+		switch (g_current_action_key) {
 		case FLIGHT_KEY_UP:
-			if (g_mfdMissionScoreboardFirstVisibleRow > 0) {
-				--g_mfdMissionScoreboardFirstVisibleRow;
+			if (g_mfd_mission_scoreboard_first_visible_row > 0) {
+				--g_mfd_mission_scoreboard_first_visible_row;
 			}
 			break;
 		case FLIGHT_KEY_DOWN:
-			if (g_missionHeader.missionType == MISSION_TYPE_MELEE) {
-				if ((top - bottomY) / lineStep + teamCount >=
-				    g_mfdMissionScoreboardFirstVisibleRow) {
-					++g_mfdMissionScoreboardFirstVisibleRow;
+			if (g_mission_header.mission_type ==
+			    MISSION_TYPE_MELEE) {
+				if ((top - bottom_y) / line_step + team_count >=
+				    g_mfd_mission_scoreboard_first_visible_row) {
+					++g_mfd_mission_scoreboard_first_visible_row;
 				}
 			} else if (
-				g_activeFlightPlayerCount >
+				g_active_flight_player_count >
 					MAX_LOW_RES_PLAYER_ROWS &&
-				g_mfdMissionScoreboardLastPlayerCount +
-						(top - bottomY) / lineStep >=
-					g_mfdMissionScoreboardFirstVisibleRow) {
-				++g_mfdMissionScoreboardFirstVisibleRow;
+				g_mfd_mission_scoreboard_last_player_count +
+						(top - bottom_y) / line_step >=
+					g_mfd_mission_scoreboard_first_visible_row) {
+				++g_mfd_mission_scoreboard_first_visible_row;
 			}
 			break;
 		}
 	}
-	lastVisibleExclusive = (int16_t)(g_mfdMissionScoreboardFirstVisibleRow +
-					 (bottomY - top) / lineStep - 1);
+	last_visible_exclusive =
+		(int16_t)(g_mfd_mission_scoreboard_first_visible_row +
+			  (bottom_y - top) / line_step - 1);
 #ifdef XVT_MODERN
-	XvtCockpitPages_RecordScroll(
-		MFD_PAGE_SCOREBOARD, g_mfdMissionScoreboardFirstVisibleRow,
-		g_players[g_localPlayer].mapCameraState != 0 ? entryCount
-							     : entryCount - 1,
+	xvt_cockpit_pages_record_scroll(
+		MFD_PAGE_SCOREBOARD, g_mfd_mission_scoreboard_first_visible_row,
+		g_players[g_local_player].map_camera_state != 0
+			? entry_count
+			: entry_count - 1,
 		-1);
-	XvtCockpitPages_BeginSection(MFD_PAGE_SCOREBOARD,
-				     XVT_COCKPIT_PAGE_BODY);
+	xvt_cockpit_pages_begin_section(MFD_PAGE_SCOREBOARD,
+					XVT_COCKPIT_PAGE_BODY);
 #endif
 
-	if (g_missionHeader.missionType == MISSION_TYPE_MELEE) {
-		if (teamCount > 1) {
+	if (g_mission_header.mission_type == MISSION_TYPE_MELEE) {
+		if (team_count > 1) {
 			int16_t swapped;
 
 			do {
 				swapped = 0;
-				for (row = 0; row < teamCount - 1; ++row) {
+				for (row = 0; row < team_count - 1; ++row) {
 					int team;
-					int nextTeam;
+					int next_team;
 
 					team = scratch.order[row];
 					if (team < TEAM_COUNT) {
-						nextTeam =
+						next_team =
 							scratch.order[row + 1];
-						if (g_flightMissionState.runtime.teamScores
-								    [TEAM_SCORE_BONUS]
-								    [nextTeam] +
-							    g_flightMissionState
+						if (g_flight_mission_state
 								    .runtime
-								    .teamScores
+								    .team_scores
+									    [TEAM_SCORE_BONUS]
+									    [next_team] +
+							    g_flight_mission_state
+								    .runtime
+								    .team_scores
 									    [TEAM_SCORE_MISSION]
-									    [nextTeam] >
-						    g_flightMissionState.runtime.teamScores
-								    [TEAM_SCORE_BONUS]
-								    [team] +
-							    g_flightMissionState
+									    [next_team] >
+						    g_flight_mission_state
 								    .runtime
-								    .teamScores
+								    .team_scores
+									    [TEAM_SCORE_BONUS]
+									    [team] +
+							    g_flight_mission_state
+								    .runtime
+								    .team_scores
 									    [TEAM_SCORE_MISSION]
 									    [team]) {
-							int16_t previousTeam;
+							int16_t previous_team;
 
-							previousTeam =
+							previous_team =
 								scratch.order
 									[row];
 							scratch.order[row] =
@@ -1811,7 +1856,7 @@ void Mfd_DrawMissionScoreboardPage(void)
 									[row +
 									 1];
 							scratch.order[row + 1] =
-								previousTeam;
+								previous_team;
 							swapped = 1;
 							break;
 						}
@@ -1819,163 +1864,175 @@ void Mfd_DrawMissionScoreboardPage(void)
 				}
 			} while (swapped != 0);
 		}
-		for (row = 0; row < teamCount; ++row) {
+		for (row = 0; row < team_count; ++row) {
 			int team;
 
-			if (row >= g_mfdMissionScoreboardFirstVisibleRow &&
-			    row < lastVisibleExclusive &&
+			if (row >= g_mfd_mission_scoreboard_first_visible_row &&
+			    row < last_visible_exclusive &&
 			    scratch.order[row] < TEAM_COUNT) {
 				int marker;
 
 				team = scratch.order[row];
-				if (scratch.playerFgCountByTeam[team] == 1 &&
-				    scratch.ownedFgCountByTeam[team] == 1) {
-					int fgIdx;
+				if (scratch.player_fg_count_by_team[team] ==
+					    1 &&
+				    scratch.owned_fg_count_by_team[team] == 1) {
+					int fg_idx;
 
-					for (fgIdx = 0;
-					     fgIdx < (int16_t)g_missionHeader
-							     .numFlightGroups;
-					     ++fgIdx) {
-						if (g_missionFlightGroups[fgIdx]
-								    .playerOwnerIdx !=
+					for (fg_idx = 0;
+					     fg_idx <
+					     (int16_t)g_mission_header
+						     .num_flight_groups;
+					     ++fg_idx) {
+						if (g_mission_flight_groups[fg_idx]
+								    .player_owner_idx !=
 							    -1 &&
-						    g_missionFlightGroups[fgIdx]
+						    g_mission_flight_groups[fg_idx]
 								    .fg.team ==
 							    team) {
-							FlightText_SetScratch(NetSession_GetPlayerName(
-								g_missionFlightGroups[fgIdx]
-									.playerOwnerIdx));
+							flight_text_set_scratch(net_session_get_player_name(
+								g_mission_flight_groups
+									[fg_idx]
+										.player_owner_idx));
 							break;
 						}
 					}
-					if (fgIdx == (int16_t)g_missionHeader
-							     .numFlightGroups) {
-						FlightText_SetScratch(
-							g_missionTeams[team]
+					if (fg_idx ==
+					    (int16_t)g_mission_header
+						    .num_flight_groups) {
+						flight_text_set_scratch(
+							g_mission_teams[team]
 								.name);
 					}
 				} else {
-					FlightText_SetScratch(
-						g_missionTeams[team].name);
+					flight_text_set_scratch(
+						g_mission_teams[team].name);
 				}
-				marker = scratch.teamPlacements[team];
+				marker = scratch.team_placements[team];
 				if (marker != 0 &&
 				    (marker <= 3 ||
-				     team == (uint16_t)g_players[g_localPlayer]
+				     team == (uint16_t)g_players[g_local_player]
 						     .team)) {
-					FlightText_AppendScratchChar(' ');
-					FlightText_AppendScratchChar('(');
-					FlightText_AppendScratchChar(
+					flight_text_append_scratch_char(' ');
+					flight_text_append_scratch_char('(');
+					flight_text_append_scratch_char(
 						(char)(marker + '0'));
-					FlightText_AppendScratchChar(')');
+					flight_text_append_scratch_char(')');
 				}
-				FlightText_SetClipRect(
-					left, rowY, right,
-					(int16_t)(rowY + lineStep));
-				g_flightFillClipRectFn();
+				flight_text_set_clip_rect(
+					left, row_y, right,
+					(int16_t)(row_y + line_step));
+				g_flight_fill_clip_rect_fn();
 #ifdef XVT_MODERN
-				XvtCockpitPages_RecordRow(
+				xvt_cockpit_pages_record_row(
 					(uint32_t)team,
-					team == (uint16_t)
-							g_players[g_localPlayer]
+					team == (uint16_t)g_players
+							[g_local_player]
 								.team);
 #endif
 				if (team ==
-				    (uint16_t)g_players[g_localPlayer].team) {
-					FlightText_SetColor(COLOR_LOCAL_ENTRY);
+				    (uint16_t)g_players[g_local_player].team) {
+					flight_text_set_color(
+						COLOR_LOCAL_ENTRY);
 				} else if (marker == 1) {
-					FlightText_SetColor(
+					flight_text_set_color(
 						COLOR_WINNING_ENTRY);
 				} else {
-					FlightText_SetColor(COLOR_NORMAL_TEXT);
+					flight_text_set_color(
+						COLOR_NORMAL_TEXT);
 				}
-				FlightText_SetCursor(left, (uint16_t)rowY);
-				FlightText_DrawString(
-					g_flightTextScratchBuffer);
-				g_flightDrawCharFn('\n');
-				FlightText_FormatScratchInt(
-					g_flightMissionState.runtime
-						.teamScores[TEAM_SCORE_BONUS]
-							   [team] +
-					g_flightMissionState.runtime
-						.teamScores[TEAM_SCORE_MISSION]
-							   [team]);
-				strcpy(scratch.text, g_flightTextScratchBuffer);
+				flight_text_set_cursor(left, (uint16_t)row_y);
+				flight_text_draw_string(
+					g_flight_text_scratch_buffer);
+				g_flight_draw_char_fn('\n');
+				flight_text_format_scratch_int(
+					g_flight_mission_state.runtime
+						.team_scores[TEAM_SCORE_BONUS]
+							    [team] +
+					g_flight_mission_state.runtime
+						.team_scores[TEAM_SCORE_MISSION]
+							    [team]);
+				strcpy(scratch.text,
+				       g_flight_text_scratch_buffer);
 				strcat(scratch.text, "    ");
-				sharedKillCount =
-					(int16_t)g_flightMissionState.runtime
-						.teamKillStats
+				shared_kill_count =
+					(int16_t)g_flight_mission_state.runtime
+						.team_kill_stats
 							[TEAM_KILL_STAT_SHARED]
 							[team];
-				FlightText_FormatScratchInt(
-					(int16_t)g_flightMissionState.runtime
-						.teamKillStats
+				flight_text_format_scratch_int(
+					(int16_t)g_flight_mission_state.runtime
+						.team_kill_stats
 							[TEAM_KILL_STAT_FULL]
 							[team]);
-				strcat(scratch.text, g_flightTextScratchBuffer);
+				strcat(scratch.text,
+				       g_flight_text_scratch_buffer);
 				strcat(scratch.text, "(");
-				FlightText_FormatScratchInt(sharedKillCount);
-				strcat(scratch.text, g_flightTextScratchBuffer);
+				flight_text_format_scratch_int(
+					shared_kill_count);
+				strcat(scratch.text,
+				       g_flight_text_scratch_buffer);
 				strcat(scratch.text, ")");
-				FlightText_SetCursor(left, (uint16_t)rowY);
-				FlightText_DrawStringRightAligned(scratch.text);
-				rowY = (int16_t)(rowY + lineStep);
+				flight_text_set_cursor(left, (uint16_t)row_y);
+				flight_text_draw_string_right_aligned(
+					scratch.text);
+				row_y = (int16_t)(row_y + line_step);
 			}
 		}
 	} else {
-		int16_t connectedCount;
+		int16_t connected_count;
 
-		connectedCount = 0;
-		for (playerIdx = 0; playerIdx < PLAYER_COUNT; ++playerIdx) {
-			if (g_players[playerIdx].participationState == 1 ||
-			    g_players[playerIdx].participationState == 2) {
-				scratch.order[connectedCount++] = playerIdx;
+		connected_count = 0;
+		for (player_idx = 0; player_idx < PLAYER_COUNT; ++player_idx) {
+			if (g_players[player_idx].participation_state == 1 ||
+			    g_players[player_idx].participation_state == 2) {
+				scratch.order[connected_count++] = player_idx;
 			}
 		}
 #ifdef XVT_MODERN
-		if (connectedCount > 0)
+		if (connected_count > 0)
 #endif
 		{
-			for (row = connectedCount; row < PLAYER_COUNT; ++row) {
+			for (row = connected_count; row < PLAYER_COUNT; ++row) {
 				scratch.order[row] =
-					scratch.order[connectedCount - 1];
+					scratch.order[connected_count - 1];
 			}
 		}
-		if (connectedCount > 1) {
+		if (connected_count > 1) {
 			int16_t swapped;
 
 			do {
 				swapped = 0;
-				for (row = 0; row < connectedCount - 1; ++row) {
+				for (row = 0; row < connected_count - 1;
+				     ++row) {
 					int player;
-					int nextPlayer;
+					int next_player;
 
 					player = scratch.order[row];
 					if (player < PLAYER_COUNT) {
-						nextPlayer =
+						next_player =
 							scratch.order[row + 1];
-						if (g_players[nextPlayer]
-								    .missionStats
-								    .missionScore +
-							    g_flightMissionState
+						if (g_players[next_player]
+								    .mission_stats
+								    .mission_score +
+							    g_flight_mission_state
 								    .runtime
-								    .teamScores
+								    .team_scores
 									    [TEAM_SCORE_BONUS]
 									    [(uint16_t)g_players
-										     [nextPlayer]
+										     [next_player]
 											     .team] >
 						    g_players[player]
-								    .missionStats
-								    .missionScore +
-							    g_flightMissionState
+								    .mission_stats
+								    .mission_score +
+							    g_flight_mission_state
 								    .runtime
-								    .teamScores
+								    .team_scores
 									    [TEAM_SCORE_BONUS]
 									    [(uint16_t)g_players[player]
 										     .team]) {
-							int16_t previousPlayer;
+							int16_t previous_player;
 
-							previousPlayer =
+							previous_player =
 								scratch.order
 									[row];
 							scratch.order[row] =
@@ -1983,7 +2040,7 @@ void Mfd_DrawMissionScoreboardPage(void)
 									[row +
 									 1];
 							scratch.order[row + 1] =
-								previousPlayer;
+								previous_player;
 							swapped = 1;
 							break;
 						}
@@ -1991,116 +2048,125 @@ void Mfd_DrawMissionScoreboardPage(void)
 				}
 			} while (swapped != 0);
 		}
-		for (row = 0; row < connectedCount; ++row) {
+		for (row = 0; row < connected_count; ++row) {
 			int player;
 
-			if (row >= g_mfdMissionScoreboardFirstVisibleRow &&
-			    row < lastVisibleExclusive &&
+			if (row >= g_mfd_mission_scoreboard_first_visible_row &&
+			    row < last_visible_exclusive &&
 			    scratch.order[row] < PLAYER_COUNT) {
 				int16_t digits;
-				int16_t xOffset;
-				int16_t fullKillCount;
-				int16_t fgIdx;
-				int16_t rowBottomY;
+				int16_t x_offset;
+				int16_t full_kill_count;
+				int16_t fg_idx;
+				int16_t row_bottom_y;
 
 				player = scratch.order[row];
-				FlightText_SetScratch(
-					NetSession_GetPlayerName(player));
-				rowBottomY = (int16_t)(rowY + lineStep);
-				FlightText_SetClipRect(left, rowY, right,
-						       rowBottomY);
-				g_flightFillClipRectFn();
+				flight_text_set_scratch(
+					net_session_get_player_name(player));
+				row_bottom_y = (int16_t)(row_y + line_step);
+				flight_text_set_clip_rect(left, row_y, right,
+							  row_bottom_y);
+				g_flight_fill_clip_rect_fn();
 #ifdef XVT_MODERN
-				XvtCockpitPages_RecordRow(
+				xvt_cockpit_pages_record_row(
 					(uint32_t)player,
-					player == g_localPlayer);
+					player == g_local_player);
 #endif
-				if (player == g_localPlayer) {
-					FlightText_SetColor(COLOR_LOCAL_ENTRY);
+				if (player == g_local_player) {
+					flight_text_set_color(
+						COLOR_LOCAL_ENTRY);
 				} else {
-					FlightText_SetColor(COLOR_NORMAL_TEXT);
+					flight_text_set_color(
+						COLOR_NORMAL_TEXT);
 				}
-				FlightText_SetCursor(left, (uint16_t)rowY);
-				FlightText_DrawString(
-					g_flightTextScratchBuffer);
-				g_flightDrawCharFn('\n');
-				digits = (int16_t)FlightText_FormatScratchInt(
+				flight_text_set_cursor(left, (uint16_t)row_y);
+				flight_text_draw_string(
+					g_flight_text_scratch_buffer);
+				g_flight_draw_char_fn('\n');
+				digits = (int16_t)flight_text_format_scratch_int(
 					g_players[player]
-						.missionStats.missionScore +
-					g_flightMissionState.runtime.teamScores
-						[TEAM_SCORE_BONUS]
-						[(uint16_t)g_players[player]
-							 .team]);
-				xOffset = 0;
+						.mission_stats.mission_score +
+					g_flight_mission_state.runtime
+						.team_scores
+							[TEAM_SCORE_BONUS]
+							[(uint16_t)g_players
+								 [player]
+									 .team]);
+				x_offset = 0;
 				if (digits < SCORE_DIGIT_COLUMNS) {
-					xOffset =
-						(int16_t)(spaceWidth *
+					x_offset =
+						(int16_t)(space_width *
 							  (SCORE_DIGIT_COLUMNS -
 							   digits));
 				}
-				FlightText_SetCursor(left + xOffset +
-							     scoreColumnX,
-						     (uint16_t)rowY);
-				strcpy(scratch.text, g_flightTextScratchBuffer);
+				flight_text_set_cursor(left + x_offset +
+							       score_column_x,
+						       (uint16_t)row_y);
+				strcpy(scratch.text,
+				       g_flight_text_scratch_buffer);
 				strcat(scratch.text, "    ");
-				fullKillCount = 0;
-				sharedKillCount = 0;
-				for (fgIdx = 0;
-				     fgIdx <
-				     (int16_t)g_missionHeader.numFlightGroups;
-				     ++fgIdx) {
-					fullKillCount =
-						(int16_t)(fullKillCount +
+				full_kill_count = 0;
+				shared_kill_count = 0;
+				for (fg_idx = 0;
+				     fg_idx < (int16_t)g_mission_header
+						      .num_flight_groups;
+				     ++fg_idx) {
+					full_kill_count =
+						(int16_t)(full_kill_count +
 							  g_players[player]
-								  .perMissionKills
-								  .killsFullOnFlightGroup
-									  [fgIdx]);
-					sharedKillCount =
-						(int16_t)(sharedKillCount +
+								  .per_mission_kills
+								  .kills_full_on_flight_group
+									  [fg_idx]);
+					shared_kill_count =
+						(int16_t)(shared_kill_count +
 							  g_players[player]
-								  .perMissionKills
-								  .killsSharedOnFlightGroup
-									  [fgIdx]);
+								  .per_mission_kills
+								  .kills_shared_on_flight_group
+									  [fg_idx]);
 				}
-				FlightText_FormatScratchInt(fullKillCount);
-				strcat(scratch.text, g_flightTextScratchBuffer);
+				flight_text_format_scratch_int(full_kill_count);
+				strcat(scratch.text,
+				       g_flight_text_scratch_buffer);
 				strcat(scratch.text, "(");
-				FlightText_FormatScratchInt(sharedKillCount);
-				strcat(scratch.text, g_flightTextScratchBuffer);
+				flight_text_format_scratch_int(
+					shared_kill_count);
+				strcat(scratch.text,
+				       g_flight_text_scratch_buffer);
 				strcat(scratch.text, ")");
-				FlightText_SetCursor(left, (uint16_t)rowY);
-				FlightText_DrawStringRightAligned(scratch.text);
-				rowY = rowBottomY;
+				flight_text_set_cursor(left, (uint16_t)row_y);
+				flight_text_draw_string_right_aligned(
+					scratch.text);
+				row_y = row_bottom_y;
 			}
 		}
 	}
 #ifdef XVT_MODERN
-	XvtCockpitPages_EndSection();
+	xvt_cockpit_pages_end_section();
 #endif
-	FlightSw_SetRenderTarget(NULL, DEFAULT_SCREEN_WIDTH,
-				 DEFAULT_SCREEN_HEIGHT, 0);
+	flight_sw_set_render_target(NULL, DEFAULT_SCREEN_WIDTH,
+				    DEFAULT_SCREEN_HEIGHT, 0);
 }
 
-/* Draws the friendly craft list or, with showHostileCraft 1, the hostile one
- * (page MFD_PAGE_FRIENDLY_CRAFT minus showHostileCraft) into the offscreen
+/* Draws the friendly craft list or, with show_hostile_craft 1, the hostile one
+ * (page MFD_PAGE_FRIENDLY_CRAFT minus show_hostile_craft) into the offscreen
  * buffer. A dead targeting computer on the local player's craft closes the page
  * with a message, and an empty list closes it. The friendly list holds the
  * craft of the player's own flight group and of every group on a team allied
  * with the player's; the hostile list every craft in the active region on a
  * team not allied with it; craft breaking up or exploding are left out, and
  * rows are sorted by team. Each row shows the craft's name in its team's
- * g_mfdCraftListTeamColorCodes color, its shield and hull percentages colored
+ * g_mfd_craft_list_team_color_codes color, its shield and hull percentages colored
  * by level (20 and 50 percent), its target (its player's current target or its
  * AI target; not for the friendly list in the 320x240 map view) and, for
  * hostile craft above 320x240, the goal word from
- * Mfd_GetFlightGroupGoalStatusStringId. The up and down keys scroll it while it
+ * mfd_get_flight_group_goal_status_string_id. The up and down keys scroll it while it
  * is active; it redraws when the row count changes or every 472 ticks. When the
  * page is closing it makes the secondary page active and returns. Writes
- * g_mfdCraftListTopRowByMode, g_mfdCraftListCachedRowCount, g_mfdPageStates,
- * g_mfdActivePage, g_mfdSecondaryPage, g_msgArgTable, g_flightTextScratchBuffer
- * and the local player's mfdCraftListRefreshTimer. */
+ * g_mfd_craft_list_top_row_by_mode, g_mfd_craft_list_cached_row_count, g_mfd_page_states,
+ * g_mfd_active_page, g_mfd_secondary_page, g_msg_arg_table, g_flight_text_scratch_buffer
+ * and the local player's mfd_craft_list_refresh_timer. */
 // FUNCTION: XVT 0x44CE40
-void Mfd_DrawCraftListPage(uint16_t showHostileCraft)
+void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 {
 	enum {
 		MAX_FLIGHT_GROUPS = 48,
@@ -2124,99 +2190,104 @@ void Mfd_DrawCraftListPage(uint16_t showHostileCraft)
 		STATUS_COLUMN_OFFSET = 15,
 	};
 
-	uint16_t craftRows[MAX_FLIGHT_GROUPS];
-	int localPlayer;
-	uint16_t playerTeam;
-	uint16_t pageIndex;
-	uint16_t layoutIndex;
-	uint16_t rowCount;
-	int rowTotal;
-	int flightGroupIdx;
-	int playerObjectIdx;
+	uint16_t craft_rows[MAX_FLIGHT_GROUPS];
+	int local_player;
+	uint16_t player_team;
+	uint16_t page_index;
+	uint16_t layout_index;
+	uint16_t row_count;
+	int row_total;
+	int flight_group_idx;
+	int player_object_idx;
 	int row;
-	int otherRow;
-	uint16_t lineStep;
-	int16_t paneLeft;
-	uint16_t paneTop;
-	int16_t paneRight;
-	int16_t paneBottom;
-	uint16_t rowY;
-	int characterWidth;
-	uint16_t needsRedraw;
-	uint16_t lastVisibleRow;
-	uint16_t lastTeam;
-	int16_t *pageState;
+	int other_row;
+	uint16_t line_step;
+	int16_t pane_left;
+	uint16_t pane_top;
+	int16_t pane_right;
+	int16_t pane_bottom;
+	uint16_t row_y;
+	int character_width;
+	uint16_t needs_redraw;
+	uint16_t last_visible_row;
+	uint16_t last_team;
+	int16_t *page_state;
 
-	FlightSw_SetRenderTarget(g_flightOffscreenBuffer, g_screenWidth,
-				 g_screenHeight,
-				 g_screenWidth * g_flightBytesPerPixel);
-	FlightText_SetFontTier(0);
-	localPlayer = g_localPlayer;
-	craftRows[0] = g_players[localPlayer].boundFlightGroupIdx;
-	playerTeam = (uint16_t)g_players[localPlayer].team;
-	pageIndex = (uint16_t)(MFD_PAGE_FRIENDLY_CRAFT - showHostileCraft);
-	layoutIndex = (uint16_t)(HUD_MFD_CRAFT_LIST_ELEMENT + showHostileCraft);
-	playerObjectIdx = g_players[localPlayer].objectIndex;
+	flight_sw_set_render_target(g_flight_offscreen_buffer, g_screen_width,
+				    g_screen_height,
+				    g_screen_width * g_flight_bytes_per_pixel);
+	flight_text_set_font_tier(0);
+	local_player = g_local_player;
+	craft_rows[0] = g_players[local_player].bound_flight_group_idx;
+	player_team = (uint16_t)g_players[local_player].team;
+	page_index = (uint16_t)(MFD_PAGE_FRIENDLY_CRAFT - show_hostile_craft);
+	layout_index =
+		(uint16_t)(HUD_MFD_CRAFT_LIST_ELEMENT + show_hostile_craft);
+	player_object_idx = g_players[local_player].object_index;
 	do {
-		if (playerObjectIdx != -1 &&
-		    g_objectTable[playerObjectIdx].mobj->pCraft->systemHealth
+		if (player_object_idx != -1 &&
+		    g_object_table[player_object_idx].mobj->p_craft->system_health
 				    [DAMAGE_SYSTEM_04_TARGETING_COMPUTER] ==
 			    0) {
-			pageState = &g_mfdPageStates[pageIndex];
-			if (*pageState != MFD_PAGE_STATE_CLOSING) {
-				g_msgArgTable[0] = IFMSG_096_TARGETING_COMPUTER;
-				g_msgArgTable[1] =
+			page_state = &g_mfd_page_states[page_index];
+			if (*page_state != MFD_PAGE_STATE_CLOSING) {
+				g_msg_arg_table[0] =
+					IFMSG_096_TARGETING_COMPUTER;
+				g_msg_arg_table[1] =
 					IFMSG_087_DAMAGED_AND_INOPERATIVE;
-				*pageState = MFD_PAGE_STATE_CLOSING;
-				msg_emitInFlightMessage(
+				*page_state = MFD_PAGE_STATE_CLOSING;
+				msg_emit_in_flight_message(
 					IFMSG_086_ARG_SYSTEM_IS_ARG,
-					g_localPlayer);
+					g_local_player);
 				break;
 			}
 		}
 
 		{
-			uint16_t friendlyFlightGroups[MAX_FLIGHT_GROUPS];
-			uint16_t flightGroupCount;
+			uint16_t friendly_flight_groups[MAX_FLIGHT_GROUPS];
+			uint16_t flight_group_count;
 
-			friendlyFlightGroups[0] = craftRows[0];
-			flightGroupCount = 1;
-			if (showHostileCraft == 1) {
-				int objectIdx;
+			friendly_flight_groups[0] = craft_rows[0];
+			flight_group_count = 1;
+			if (show_hostile_craft == 1) {
+				int object_idx;
 
-				rowCount = 0;
-				for (objectIdx = g_activeRegionObjectSlotStart;
-				     objectIdx <
-				     g_activeRegionCraftObjectSlotEnd;
-				     ++objectIdx) {
-					struct CraftData *craft;
+				row_count = 0;
+				for (object_idx =
+					     g_active_region_object_slot_start;
+				     object_idx <
+				     g_active_region_craft_object_slot_end;
+				     ++object_idx) {
+					struct craft_data *craft;
 					uint16_t team;
 
-					if (g_objectTable[objectIdx]
-							    .objectType != 0 &&
-					    g_objectTable[objectIdx].mobj !=
+					if (g_object_table[object_idx]
+							    .object_type != 0 &&
+					    g_object_table[object_idx].mobj !=
 						    NULL &&
-					    g_objectTable[objectIdx]
-							    .mobj->pCraft !=
+					    g_object_table[object_idx]
+							    .mobj->p_craft !=
 						    NULL) {
-						team = g_objectTable[objectIdx]
-							       .mobj->team;
-						if (g_objectTable[objectIdx]
+						team = g_object_table
+							       [object_idx]
+								       .mobj
+								       ->team;
+						if (g_object_table[object_idx]
 								    .mobj
 								    ->team !=
-							    playerTeam &&
-						    g_missionTeams[playerTeam]
+							    player_team &&
+						    g_mission_teams[player_team]
 								    .allies[team] ==
 							    0) {
-							craft = g_objectTable[objectIdx]
+							craft = g_object_table[object_idx]
 									.mobj
-									->pCraft;
-							if (craft->objectKind !=
+									->p_craft;
+							if (craft->object_kind !=
 								    CRAFT_OBJECT_KIND_BREAKING_UP &&
-							    craft->objectKind !=
+							    craft->object_kind !=
 								    CRAFT_OBJECT_KIND_EXPLODING) {
-								craftRows[rowCount++] =
-									(uint16_t)(objectIdx |
+								craft_rows[row_count++] =
+									(uint16_t)(object_idx |
 										   (team
 										    << 8));
 							}
@@ -2224,71 +2295,71 @@ void Mfd_DrawCraftListPage(uint16_t showHostileCraft)
 					}
 				}
 			} else {
-				for (flightGroupIdx = 0;
-				     flightGroupIdx <
-				     g_missionHeader.numFlightGroups;
-				     ++flightGroupIdx) {
+				for (flight_group_idx = 0;
+				     flight_group_idx <
+				     g_mission_header.num_flight_groups;
+				     ++flight_group_idx) {
 					int team;
-					int isHostile;
+					int is_hostile;
 
-					team = g_missionFlightGroups
-						       [flightGroupIdx]
+					team = g_mission_flight_groups
+						       [flight_group_idx]
 							       .fg.team;
-					isHostile =
-						team == playerTeam
+					is_hostile =
+						team == player_team
 							? 0
-							: g_missionTeams[playerTeam]
+							: g_mission_teams[player_team]
 									  .allies[team] <
 								  1;
-					if (!isHostile &&
-					    flightGroupIdx != craftRows[0]) {
-						friendlyFlightGroups
-							[flightGroupCount++] =
+					if (!is_hostile &&
+					    flight_group_idx != craft_rows[0]) {
+						friendly_flight_groups
+							[flight_group_count++] =
 								(uint16_t)
-									flightGroupIdx;
+									flight_group_idx;
 					}
 				}
-				rowCount = 0;
-				for (flightGroupIdx = 0;
-				     flightGroupIdx < flightGroupCount;
-				     ++flightGroupIdx) {
-					int friendlyFlightGroup;
-					int objectIdx;
+				row_count = 0;
+				for (flight_group_idx = 0;
+				     flight_group_idx < flight_group_count;
+				     ++flight_group_idx) {
+					int friendly_flight_group;
+					int object_idx;
 
-					friendlyFlightGroup =
-						friendlyFlightGroups
-							[flightGroupIdx];
-					for (objectIdx =
-						     g_activeRegionObjectSlotStart;
-					     objectIdx <
-					     g_activeRegionCraftObjectSlotEnd;
-					     ++objectIdx) {
-						struct MobileObject
-							*mobileObject;
-						struct CraftData *craft;
+					friendly_flight_group =
+						friendly_flight_groups
+							[flight_group_idx];
+					for (object_idx =
+						     g_active_region_object_slot_start;
+					     object_idx <
+					     g_active_region_craft_object_slot_end;
+					     ++object_idx) {
+						struct mobile_object
+							*mobile_object;
+						struct craft_data *craft;
 
-						if (g_objectTable[objectIdx]
-								    .flightGroupIdx ==
-							    friendlyFlightGroup &&
-						    g_objectTable[objectIdx]
-								    .objectType !=
+						if (g_object_table[object_idx]
+								    .flight_group_idx ==
+							    friendly_flight_group &&
+						    g_object_table[object_idx]
+								    .object_type !=
 							    0) {
-							mobileObject =
-								g_objectTable[objectIdx]
+							mobile_object =
+								g_object_table[object_idx]
 									.mobj;
-							if (mobileObject !=
+							if (mobile_object !=
 							    NULL) {
-								craft = mobileObject
-										->pCraft;
+								craft = mobile_object
+										->p_craft;
 								if (craft !=
 									    NULL &&
-								    craft->objectKind !=
+								    craft->object_kind !=
 									    CRAFT_OBJECT_KIND_BREAKING_UP &&
-								    craft->objectKind !=
+								    craft->object_kind !=
 									    CRAFT_OBJECT_KIND_EXPLODING) {
-									craftRows[rowCount++] =
-										(uint16_t)(objectIdx |
-											   ((uint16_t)mobileObject
+									craft_rows[row_count++] =
+										(uint16_t)(object_idx |
+											   ((uint16_t)mobile_object
 												    ->team
 											    << 8));
 								}
@@ -2298,800 +2369,821 @@ void Mfd_DrawCraftListPage(uint16_t showHostileCraft)
 				}
 			}
 		}
-		rowTotal = rowCount;
+		row_total = row_count;
 		row = 0;
 		do {
-			for (otherRow = row + 1; otherRow < rowCount;
-			     ++otherRow) {
-				int currentTeam;
-				int otherTeam;
-				int currentRow;
-				uint16_t savedRow;
+			for (other_row = row + 1; other_row < row_count;
+			     ++other_row) {
+				int current_team;
+				int other_team;
+				int current_row;
+				uint16_t saved_row;
 
-				currentRow = craftRows[row];
-				currentTeam = currentRow & ~0xFF;
-				otherTeam = (uint16_t)(craftRows[otherRow] &
-						       0xFF00);
-				if (otherTeam < currentTeam) {
-					savedRow = currentRow;
-					craftRows[row] = craftRows[otherRow];
-					craftRows[otherRow] = savedRow;
-					otherRow = row + 1;
+				current_row = craft_rows[row];
+				current_team = current_row & ~0xFF;
+				other_team = (uint16_t)(craft_rows[other_row] &
+							0xFF00);
+				if (other_team < current_team) {
+					saved_row = current_row;
+					craft_rows[row] = craft_rows[other_row];
+					craft_rows[other_row] = saved_row;
+					other_row = row + 1;
 				}
 			}
 			++row;
-		} while (row < rowCount);
-		if (rowCount == 0) {
-			pageState = &g_mfdPageStates[pageIndex];
-			if (*pageState != MFD_PAGE_STATE_CLOSING) {
-				if (*pageState != MFD_PAGE_STATE_CLOSED) {
-					*pageState = MFD_PAGE_STATE_CLOSING;
+		} while (row < row_count);
+		if (row_count == 0) {
+			page_state = &g_mfd_page_states[page_index];
+			if (*page_state != MFD_PAGE_STATE_CLOSING) {
+				if (*page_state != MFD_PAGE_STATE_CLOSED) {
+					*page_state = MFD_PAGE_STATE_CLOSING;
 				} else {
-					*pageState = MFD_PAGE_STATE_CLOSED;
+					*page_state = MFD_PAGE_STATE_CLOSED;
 				}
 				break;
 			}
 		}
 
-		lineStep = (uint16_t)(g_flightFontLineHeight + 2);
-		if (showHostileCraft == 1 &&
-		    g_players[localPlayer].mapCameraState != 0) {
-			paneLeft = (int16_t)(g_mfdMapBlitSourceX + 2);
-			paneTop = (int16_t)(g_mfdMapBlitSourceY + 2);
-			paneRight = (int16_t)(g_mfdMapBlitSourceX +
-					      g_mfdMapBlitWidth - 2);
-			paneBottom = (int16_t)(g_mfdMapBlitHeight +
-					       g_mfdMapBlitSourceY - 2);
+		line_step = (uint16_t)(g_flight_font_line_height + 2);
+		if (show_hostile_craft == 1 &&
+		    g_players[local_player].map_camera_state != 0) {
+			pane_left = (int16_t)(g_mfd_map_blit_source_x + 2);
+			pane_top = (int16_t)(g_mfd_map_blit_source_y + 2);
+			pane_right = (int16_t)(g_mfd_map_blit_source_x +
+					       g_mfd_map_blit_width - 2);
+			pane_bottom = (int16_t)(g_mfd_map_blit_height +
+						g_mfd_map_blit_source_y - 2);
 		} else {
-			paneLeft = (int16_t)(g_mfdCraftListBlitSourceX + 2);
-			paneTop = (int16_t)(g_mfdCraftListBlitSourceY + 2);
-			paneRight = (int16_t)(g_mfdCraftListBlitSourceX +
-					      g_mfdCraftListBlitWidth - 2);
-			if (g_mfdPageStates[pageIndex] ==
+			pane_left =
+				(int16_t)(g_mfd_craft_list_blit_source_x + 2);
+			pane_top =
+				(int16_t)(g_mfd_craft_list_blit_source_y + 2);
+			pane_right = (int16_t)(g_mfd_craft_list_blit_source_x +
+					       g_mfd_craft_list_blit_width - 2);
+			if (g_mfd_page_states[page_index] ==
 				    MFD_PAGE_STATE_CLOSING ||
-			    g_players[localPlayer].mapCameraState != 0) {
-				paneBottom =
-					(int16_t)(g_mfdCraftListBlitHeight +
-						  g_mfdCraftListBlitSourceY -
+			    g_players[local_player].map_camera_state != 0) {
+				pane_bottom =
+					(int16_t)(g_mfd_craft_list_blit_height +
+						  g_mfd_craft_list_blit_source_y -
 						  2);
 			} else {
-				paneBottom =
-					(int16_t)(g_mfdCraftListBlitSourceY +
-						  lineStep * (rowCount + 1));
-				if (paneBottom >
-					    g_mfdCraftListBlitHeight +
-						    g_mfdCraftListBlitSourceY -
+				pane_bottom =
+					(int16_t)(g_mfd_craft_list_blit_source_y +
+						  line_step * (row_count + 1));
+				if (pane_bottom >
+					    g_mfd_craft_list_blit_height +
+						    g_mfd_craft_list_blit_source_y -
 						    2 ||
-				    paneBottom <= g_mfdCraftListBlitSourceY) {
-					paneBottom =
-						(int16_t)(g_mfdCraftListBlitHeight +
-							  g_mfdCraftListBlitSourceY -
+				    pane_bottom <=
+					    g_mfd_craft_list_blit_source_y) {
+					pane_bottom =
+						(int16_t)(g_mfd_craft_list_blit_height +
+							  g_mfd_craft_list_blit_source_y -
 							  2);
 				}
 			}
 		}
-		if (g_players[localPlayer].mapCameraState == 0 &&
-		    g_mfdActivePage == MFD_PAGE_NONE) {
-			g_mfdActivePage = (int16_t)pageIndex;
+		if (g_players[local_player].map_camera_state == 0 &&
+		    g_mfd_active_page == MFD_PAGE_NONE) {
+			g_mfd_active_page = (int16_t)page_index;
 		}
 
 #ifdef XVT_MODERN
-		XvtCockpitPages_SetOrigin(pageIndex, paneLeft - 2, paneTop - 2);
+		xvt_cockpit_pages_set_origin(page_index, pane_left - 2,
+					     pane_top - 2);
 #endif
-		pageState = &g_mfdPageStates[pageIndex];
-		if (g_hudElementStateCache[g_hudInstrumentSetBaseIndex +
-					   layoutIndex] != *pageState) {
-			int16_t clearBottom;
+		page_state = &g_mfd_page_states[page_index];
+		if (g_hud_element_state_cache[g_hud_instrument_set_base_index +
+					      layout_index] != *page_state) {
+			int16_t clear_bottom;
 
-			if (g_players[localPlayer].mapCameraState != 0) {
-				FlightText_SetBackgroundColor(
+			if (g_players[local_player].map_camera_state != 0) {
+				flight_text_set_background_color(
 					COLOR_MAP_BACKGROUND);
-			} else if (*pageState == MFD_PAGE_STATE_CLOSING ||
-				   g_players[localPlayer]
-						   .viewState.hudStateLive !=
+			} else if (*page_state == MFD_PAGE_STATE_CLOSING ||
+				   g_players[local_player]
+						   .view_state.hud_state_live !=
 					   HUD_VIEW_FORWARD) {
-				FlightText_SetBackgroundColor(
-					g_flightTransparentColorIndex);
+				flight_text_set_background_color(
+					g_flight_transparent_color_index);
 			} else {
-				FlightText_SetBackgroundColor(
+				flight_text_set_background_color(
 					COLOR_MFD_BACKGROUND);
 			}
-			if (g_players[g_localPlayer].mapCameraState != 0) {
-				if (showHostileCraft == 1) {
-					clearBottom =
-						(int16_t)(g_mfdMapBlitHeight +
-							  g_mfdMapBlitSourceY -
+			if (g_players[g_local_player].map_camera_state != 0) {
+				if (show_hostile_craft == 1) {
+					clear_bottom =
+						(int16_t)(g_mfd_map_blit_height +
+							  g_mfd_map_blit_source_y -
 							  2);
 				} else {
-					clearBottom =
-						(int16_t)(g_mfdCraftListBlitHeight +
-							  g_mfdCraftListBlitSourceY -
+					clear_bottom =
+						(int16_t)(g_mfd_craft_list_blit_height +
+							  g_mfd_craft_list_blit_source_y -
 							  2);
 				}
 			} else {
-				clearBottom = paneBottom;
+				clear_bottom = pane_bottom;
 			}
-			FlightText_SetClipRect((int16_t)(paneLeft - 2),
-					       (int16_t)(paneTop - 2),
-					       (int16_t)(paneRight + 2),
-					       (int16_t)(clearBottom + 2));
-			g_flightFillClipRectFn();
-			FlightText_SetClipRect((int16_t)(paneLeft - 2),
-					       (int16_t)(paneTop - 2),
-					       (int16_t)(paneRight + 2),
-					       (int16_t)(paneBottom + 2));
-			if (*pageState == MFD_PAGE_STATE_CLOSING) {
+			flight_text_set_clip_rect((int16_t)(pane_left - 2),
+						  (int16_t)(pane_top - 2),
+						  (int16_t)(pane_right + 2),
+						  (int16_t)(clear_bottom + 2));
+			g_flight_fill_clip_rect_fn();
+			flight_text_set_clip_rect((int16_t)(pane_left - 2),
+						  (int16_t)(pane_top - 2),
+						  (int16_t)(pane_right + 2),
+						  (int16_t)(pane_bottom + 2));
+			if (*page_state == MFD_PAGE_STATE_CLOSING) {
 #ifdef XVT_MODERN
-				XvtCockpitPages_Clear(pageIndex);
+				xvt_cockpit_pages_clear(page_index);
 #endif
-				if (g_mfdActivePage == pageIndex) {
-					g_mfdActivePage = g_mfdSecondaryPage;
-					g_mfdSecondaryPage =
-						Mfd_FindSecondaryOpenPage();
+				if (g_mfd_active_page == page_index) {
+					g_mfd_active_page =
+						g_mfd_secondary_page;
+					g_mfd_secondary_page =
+						mfd_find_secondary_open_page();
 				}
-				FlightSw_SetRenderTarget(
+				flight_sw_set_render_target(
 					NULL, DEFAULT_SCREEN_WIDTH,
 					DEFAULT_SCREEN_HEIGHT, 0);
 				return;
 			}
 #ifdef XVT_MODERN
-			XvtCockpitPages_Clear(pageIndex);
-			XvtCockpitPages_RecordBackground(pageIndex);
-			XvtCockpitPages_BeginSection(pageIndex,
-						     XVT_COCKPIT_PAGE_HEADER);
+			xvt_cockpit_pages_clear(page_index);
+			xvt_cockpit_pages_record_background(page_index);
+			xvt_cockpit_pages_begin_section(
+				page_index, XVT_COCKPIT_PAGE_HEADER);
 #endif
-			FlightText_SetClearLineBackground(1);
-			FlightText_SetColor(COLOR_HEALTHY);
-			FlightText_SetFontTier(0);
-			FlightText_SetClipRect(paneLeft, paneTop, paneRight,
-					       paneBottom);
-			if (g_players[g_localPlayer].mapCameraState != 0) {
-				FlightText_SetBackgroundColor(
+			flight_text_set_clear_line_background(1);
+			flight_text_set_color(COLOR_HEALTHY);
+			flight_text_set_font_tier(0);
+			flight_text_set_clip_rect(pane_left, pane_top,
+						  pane_right, pane_bottom);
+			if (g_players[g_local_player].map_camera_state != 0) {
+				flight_text_set_background_color(
 					COLOR_MAP_BACKGROUND);
-			} else if (g_players[g_localPlayer]
-					   .viewState.hudStateLive ==
+			} else if (g_players[g_local_player]
+					   .view_state.hud_state_live ==
 				   HUD_VIEW_FORWARD) {
-				FlightText_SetBackgroundColor(
+				flight_text_set_background_color(
 					COLOR_MFD_BACKGROUND);
 			} else {
-				FlightText_SetBackgroundColor(
-					g_flightTransparentColorIndex);
+				flight_text_set_background_color(
+					g_flight_transparent_color_index);
 			}
-			characterWidth = g_flightFontDigitWidth;
-			FlightText_SetCursor(paneLeft, paneTop);
-			FlightText_DrawString(
-				g_strCockpitOverlayText
+			character_width = g_flight_font_digit_width;
+			flight_text_set_cursor(pane_left, pane_top);
+			flight_text_draw_string(
+				g_str_cockpit_overlay_text
 					[COCKPIT_OVERLAY_STR_CRAFT]);
 			{
-				int16_t healthHeaderX;
+				int16_t health_header_x;
 
-				healthHeaderX = characterWidth;
-				healthHeaderX =
-					(int16_t)(healthHeaderX *
+				health_header_x = character_width;
+				health_header_x =
+					(int16_t)(health_header_x *
 							  CRAFT_NAME_COLUMN_WIDTH +
-						  paneLeft);
-				FlightText_SetScratch(
-					g_strCmdThreatDisplayText[1]);
-				FlightText_AppendScratchString("/");
-				FlightText_AppendScratchString(
-					g_strCmdThreatDisplayText[2]);
-				FlightText_SetCursor(healthHeaderX, paneTop);
+						  pane_left);
+				flight_text_set_scratch(
+					g_str_cmd_threat_display_text[1]);
+				flight_text_append_scratch_string("/");
+				flight_text_append_scratch_string(
+					g_str_cmd_threat_display_text[2]);
+				flight_text_set_cursor(health_header_x,
+						       pane_top);
 			}
-			FlightText_DrawString(g_flightTextScratchBuffer);
+			flight_text_draw_string(g_flight_text_scratch_buffer);
 			{
-				int16_t targetColumnX;
+				int16_t target_column_x;
 
-				targetColumnX = (int16_t)(g_flightCursorX +
-							  characterWidth);
-				if (showHostileCraft == 1) {
-					FlightText_SetCursor(targetColumnX,
-							     paneTop);
-					FlightText_DrawString(
-						g_strCockpitOverlayText
+				target_column_x = (int16_t)(g_flight_cursor_x +
+							    character_width);
+				if (show_hostile_craft == 1) {
+					flight_text_set_cursor(target_column_x,
+							       pane_top);
+					flight_text_draw_string(
+						g_str_cockpit_overlay_text
 							[COCKPIT_OVERLAY_STR_TARGET]);
-					if (g_flightResolutionMode !=
+					if (g_flight_resolution_mode !=
 					    FLIGHT_RESOLUTION_320X240) {
-						int16_t ordersColumnX;
+						int16_t orders_column_x;
 
-						ordersColumnX = characterWidth;
-						ordersColumnX =
-							(int16_t)(ordersColumnX *
+						orders_column_x =
+							character_width;
+						orders_column_x =
+							(int16_t)(orders_column_x *
 									  ORDERS_COLUMN_OFFSET +
-								  targetColumnX);
-						FlightText_SetCursor(
-							ordersColumnX, paneTop);
-						FlightText_DrawString(
-							g_strCockpitOverlayText
+								  target_column_x);
+						flight_text_set_cursor(
+							orders_column_x,
+							pane_top);
+						flight_text_draw_string(
+							g_str_cockpit_overlay_text
 								[COCKPIT_OVERLAY_STR_ORDERS]);
 					}
-				} else if (g_players[g_localPlayer]
-							   .mapCameraState ==
+				} else if (g_players[g_local_player]
+							   .map_camera_state ==
 						   0 ||
-					   g_flightResolutionMode !=
+					   g_flight_resolution_mode !=
 						   FLIGHT_RESOLUTION_320X240) {
-					FlightText_SetCursor(targetColumnX,
-							     paneTop);
-					FlightText_DrawStringRightAligned(
-						g_strCockpitOverlayText
+					flight_text_set_cursor(target_column_x,
+							       pane_top);
+					flight_text_draw_string_right_aligned(
+						g_str_cockpit_overlay_text
 							[COCKPIT_OVERLAY_STR_TARGET]);
 				}
 			}
 #ifdef XVT_MODERN
-			XvtCockpitPages_EndSection();
+			xvt_cockpit_pages_end_section();
 #endif
-			needsRedraw = 1;
-			rowY = (int16_t)(paneTop + lineStep);
-			g_mfdCraftListTopRowByMode[showHostileCraft] = 0;
-			g_playerFlightTransientTimers[g_localPlayer]
-				.mfdCraftListRefreshTimer = REFRESH_TICKS;
-			FlightText_SetClipRect(paneLeft, rowY, paneRight,
-					       paneBottom);
-			g_mfdCraftListCachedRowCount = rowCount;
+			needs_redraw = 1;
+			row_y = (int16_t)(pane_top + line_step);
+			g_mfd_craft_list_top_row_by_mode[show_hostile_craft] =
+				0;
+			g_player_flight_transient_timers[g_local_player]
+				.mfd_craft_list_refresh_timer = REFRESH_TICKS;
+			flight_text_set_clip_rect(pane_left, row_y, pane_right,
+						  pane_bottom);
+			g_mfd_craft_list_cached_row_count = row_count;
 		} else {
-			rowY = (int16_t)(paneTop + lineStep);
-			characterWidth = g_flightFontDigitWidth;
-			FlightText_SetClearLineBackground(1);
-			FlightText_SetColor(COLOR_HEALTHY);
-			FlightText_SetFontTier(0);
-			FlightText_SetClipRect(paneLeft, paneTop, paneRight,
-					       paneBottom);
-			if (g_players[g_localPlayer].mapCameraState != 0) {
-				FlightText_SetBackgroundColor(
+			row_y = (int16_t)(pane_top + line_step);
+			character_width = g_flight_font_digit_width;
+			flight_text_set_clear_line_background(1);
+			flight_text_set_color(COLOR_HEALTHY);
+			flight_text_set_font_tier(0);
+			flight_text_set_clip_rect(pane_left, pane_top,
+						  pane_right, pane_bottom);
+			if (g_players[g_local_player].map_camera_state != 0) {
+				flight_text_set_background_color(
 					COLOR_MAP_BACKGROUND);
-			} else if (g_players[g_localPlayer]
-					   .viewState.hudStateLive ==
+			} else if (g_players[g_local_player]
+					   .view_state.hud_state_live ==
 				   HUD_VIEW_FORWARD) {
-				FlightText_SetBackgroundColor(
+				flight_text_set_background_color(
 					COLOR_MFD_BACKGROUND);
 			} else {
-				FlightText_SetBackgroundColor(
-					g_flightTransparentColorIndex);
+				flight_text_set_background_color(
+					g_flight_transparent_color_index);
 			}
-			if (rowCount != g_mfdCraftListCachedRowCount) {
-				int16_t clearBottom;
+			if (row_count != g_mfd_craft_list_cached_row_count) {
+				int16_t clear_bottom;
 
-				if (g_players[g_localPlayer]
-					    .viewState.hudStateLive ==
+				if (g_players[g_local_player]
+					    .view_state.hud_state_live ==
 				    HUD_VIEW_FORWARD) {
-					FlightText_SetBackgroundColor(
-						g_flightTransparentColorIndex);
+					flight_text_set_background_color(
+						g_flight_transparent_color_index);
 				}
-				if (showHostileCraft == 1 &&
-				    g_players[g_localPlayer].mapCameraState !=
-					    0) {
-					clearBottom =
-						(int16_t)(g_mfdMapBlitHeight +
-							  g_mfdMapBlitSourceY -
+				if (show_hostile_craft == 1 &&
+				    g_players[g_local_player]
+						    .map_camera_state != 0) {
+					clear_bottom =
+						(int16_t)(g_mfd_map_blit_height +
+							  g_mfd_map_blit_source_y -
 							  2);
 				} else {
-					clearBottom =
-						(int16_t)(g_mfdCraftListBlitHeight +
-							  g_mfdCraftListBlitSourceY -
+					clear_bottom =
+						(int16_t)(g_mfd_craft_list_blit_height +
+							  g_mfd_craft_list_blit_source_y -
 							  2);
 				}
-				FlightText_SetClipRect(
-					(int16_t)(paneLeft - 2), rowY,
-					(int16_t)(paneRight + 2),
-					(int16_t)(clearBottom + 2));
-				g_flightFillClipRectFn();
-				if (g_players[g_localPlayer]
-					    .viewState.hudStateLive ==
+				flight_text_set_clip_rect(
+					(int16_t)(pane_left - 2), row_y,
+					(int16_t)(pane_right + 2),
+					(int16_t)(clear_bottom + 2));
+				g_flight_fill_clip_rect_fn();
+				if (g_players[g_local_player]
+					    .view_state.hud_state_live ==
 				    HUD_VIEW_FORWARD) {
-					int16_t newBottom;
+					int16_t new_bottom;
 
-					FlightText_SetBackgroundColor(
+					flight_text_set_background_color(
 						COLOR_MFD_BACKGROUND);
-					newBottom =
-						(int16_t)(rowY +
-							  lineStep * rowCount);
-					if (newBottom >
-					    g_mfdCraftListBlitHeight +
-						    g_mfdCraftListBlitSourceY -
+					new_bottom =
+						(int16_t)(row_y +
+							  line_step *
+								  row_count);
+					if (new_bottom >
+					    g_mfd_craft_list_blit_height +
+						    g_mfd_craft_list_blit_source_y -
 						    2) {
-						newBottom = paneBottom;
+						new_bottom = pane_bottom;
 					}
-					FlightText_SetClipRect(
-						(int16_t)(paneLeft - 2), rowY,
-						(int16_t)(paneRight + 2),
-						(int16_t)(newBottom + 2));
-					g_flightFillClipRectFn();
+					flight_text_set_clip_rect(
+						(int16_t)(pane_left - 2), row_y,
+						(int16_t)(pane_right + 2),
+						(int16_t)(new_bottom + 2));
+					g_flight_fill_clip_rect_fn();
 				}
-				needsRedraw = 1;
-				g_mfdCraftListCachedRowCount = rowCount;
+				needs_redraw = 1;
+				g_mfd_craft_list_cached_row_count = row_count;
 			} else {
-				needsRedraw = 0;
+				needs_redraw = 0;
 			}
 		}
 
-		if (g_mfdActivePage == pageIndex) {
-			int16_t borderTop;
-			FlightText_SetBackgroundColor(COLOR_HEALTHY);
-			borderTop = (int16_t)(paneTop - 2);
-			FlightText_SetClipRect((int16_t)(paneLeft - 2),
-					       borderTop,
-					       (int16_t)(paneRight + 2),
-					       (int16_t)(paneBottom + 2));
+		if (g_mfd_active_page == page_index) {
+			int16_t border_top;
+			flight_text_set_background_color(COLOR_HEALTHY);
+			border_top = (int16_t)(pane_top - 2);
+			flight_text_set_clip_rect((int16_t)(pane_left - 2),
+						  border_top,
+						  (int16_t)(pane_right + 2),
+						  (int16_t)(pane_bottom + 2));
 #ifdef XVT_MODERN
-			XvtCockpitPages_RecordBorder(pageIndex);
+			xvt_cockpit_pages_record_border(page_index);
 #endif
-			g_flightFillRectClippedFn(
-				(uint16_t)(paneLeft - 2), (uint16_t)borderTop,
-				(uint16_t)(paneRight + 2),
-				(uint16_t)(paneBottom + 2), 1);
-		} else if (g_mfdSecondaryPage == pageIndex) {
-			int16_t borderTop;
-			if (g_players[g_localPlayer].mapCameraState != 0) {
-				FlightText_SetBackgroundColor(
+			g_flight_fill_rect_clipped_fn(
+				(uint16_t)(pane_left - 2), (uint16_t)border_top,
+				(uint16_t)(pane_right + 2),
+				(uint16_t)(pane_bottom + 2), 1);
+		} else if (g_mfd_secondary_page == page_index) {
+			int16_t border_top;
+			if (g_players[g_local_player].map_camera_state != 0) {
+				flight_text_set_background_color(
 					COLOR_MAP_BACKGROUND);
-			} else if (g_players[g_localPlayer]
-					   .viewState.hudStateLive ==
+			} else if (g_players[g_local_player]
+					   .view_state.hud_state_live ==
 				   HUD_VIEW_FORWARD) {
-				FlightText_SetBackgroundColor(COLOR_MEDIUM);
+				flight_text_set_background_color(COLOR_MEDIUM);
 			} else {
-				FlightText_SetBackgroundColor(
-					g_flightTransparentColorIndex);
+				flight_text_set_background_color(
+					g_flight_transparent_color_index);
 			}
-			borderTop = (int16_t)(paneTop - 2);
-			FlightText_SetClipRect((int16_t)(paneLeft - 2),
-					       borderTop,
-					       (int16_t)(paneRight + 2),
-					       (int16_t)(paneBottom + 2));
+			border_top = (int16_t)(pane_top - 2);
+			flight_text_set_clip_rect((int16_t)(pane_left - 2),
+						  border_top,
+						  (int16_t)(pane_right + 2),
+						  (int16_t)(pane_bottom + 2));
 #ifdef XVT_MODERN
-			XvtCockpitPages_RecordBorder(pageIndex);
+			xvt_cockpit_pages_record_border(page_index);
 #endif
-			g_flightFillRectClippedFn(
-				(uint16_t)(paneLeft - 2), (uint16_t)borderTop,
-				(uint16_t)(paneRight + 2),
-				(uint16_t)(paneBottom + 2), 1);
-		} else if (g_players[g_localPlayer].viewState.hudStateLive ==
+			g_flight_fill_rect_clipped_fn(
+				(uint16_t)(pane_left - 2), (uint16_t)border_top,
+				(uint16_t)(pane_right + 2),
+				(uint16_t)(pane_bottom + 2), 1);
+		} else if (g_players[g_local_player]
+				   .view_state.hud_state_live ==
 			   HUD_VIEW_FORWARD) {
-			int16_t borderTop;
+			int16_t border_top;
 
-			FlightText_SetBackgroundColor(COLOR_MEDIUM);
-			borderTop = (int16_t)(paneTop - 2);
-			FlightText_SetClipRect((int16_t)(paneLeft - 2),
-					       borderTop,
-					       (int16_t)(paneRight + 2),
-					       (int16_t)(paneBottom + 2));
+			flight_text_set_background_color(COLOR_MEDIUM);
+			border_top = (int16_t)(pane_top - 2);
+			flight_text_set_clip_rect((int16_t)(pane_left - 2),
+						  border_top,
+						  (int16_t)(pane_right + 2),
+						  (int16_t)(pane_bottom + 2));
 #ifdef XVT_MODERN
-			XvtCockpitPages_RecordBorder(pageIndex);
+			xvt_cockpit_pages_record_border(page_index);
 #endif
-			g_flightFillRectClippedFn(
-				(uint16_t)(paneLeft - 2), (uint16_t)borderTop,
-				(uint16_t)(paneRight + 2),
-				(uint16_t)(paneBottom + 2), 1);
+			g_flight_fill_rect_clipped_fn(
+				(uint16_t)(pane_left - 2), (uint16_t)border_top,
+				(uint16_t)(pane_right + 2),
+				(uint16_t)(pane_bottom + 2), 1);
 		}
-		if (g_players[g_localPlayer].mapCameraState != 0) {
-			FlightText_SetBackgroundColor(COLOR_MAP_BACKGROUND);
-		} else if (g_players[g_localPlayer].viewState.hudStateLive ==
+		if (g_players[g_local_player].map_camera_state != 0) {
+			flight_text_set_background_color(COLOR_MAP_BACKGROUND);
+		} else if (g_players[g_local_player]
+				   .view_state.hud_state_live ==
 			   HUD_VIEW_FORWARD) {
-			FlightText_SetBackgroundColor(COLOR_MFD_BACKGROUND);
+			flight_text_set_background_color(COLOR_MFD_BACKGROUND);
 		} else {
-			FlightText_SetBackgroundColor(
-				g_flightTransparentColorIndex);
+			flight_text_set_background_color(
+				g_flight_transparent_color_index);
 		}
 
-		if (g_mfdActivePage == pageIndex) {
-			unsigned int actionKey;
+		if (g_mfd_active_page == page_index) {
+			unsigned int action_key;
 
-			actionKey = g_currentActionKey;
-			switch (actionKey) {
+			action_key = g_current_action_key;
+			switch (action_key) {
 			case FLIGHT_KEY_UP:
-				if (g_mfdCraftListTopRowByMode
-					    [showHostileCraft] != 0) {
-					--g_mfdCraftListTopRowByMode
-						[showHostileCraft];
-					needsRedraw = 1;
+				if (g_mfd_craft_list_top_row_by_mode
+					    [show_hostile_craft] != 0) {
+					--g_mfd_craft_list_top_row_by_mode
+						[show_hostile_craft];
+					needs_redraw = 1;
 				}
 				break;
 			case FLIGHT_KEY_DOWN:
-				if (rowCount > 1 &&
-				    rowCount + (rowY - paneBottom) / lineStep >=
-					    (uint16_t)g_mfdCraftListTopRowByMode
-						    [showHostileCraft]) {
-					++g_mfdCraftListTopRowByMode
-						[showHostileCraft];
-					needsRedraw = 1;
+				if (row_count > 1 &&
+				    row_count + (row_y - pane_bottom) /
+							    line_step >=
+					    (uint16_t)g_mfd_craft_list_top_row_by_mode
+						    [show_hostile_craft]) {
+					++g_mfd_craft_list_top_row_by_mode
+						[show_hostile_craft];
+					needs_redraw = 1;
 				}
 				break;
 			}
 		}
-		if ((int16_t)g_playerFlightTransientTimers[g_localPlayer]
-			    .mfdCraftListRefreshTimer <= 0) {
-			needsRedraw = 1;
-			g_playerFlightTransientTimers[g_localPlayer]
-				.mfdCraftListRefreshTimer = REFRESH_TICKS;
+		if ((int16_t)g_player_flight_transient_timers[g_local_player]
+			    .mfd_craft_list_refresh_timer <= 0) {
+			needs_redraw = 1;
+			g_player_flight_transient_timers[g_local_player]
+				.mfd_craft_list_refresh_timer = REFRESH_TICKS;
 		}
-		lastVisibleRow =
-			(int16_t)(g_mfdCraftListTopRowByMode[showHostileCraft] +
-				  (paneBottom - rowY) / lineStep);
-		if (rowCount < (uint16_t)lastVisibleRow) {
-			if (g_mfdCraftListTopRowByMode[showHostileCraft] != 0) {
-				--g_mfdCraftListTopRowByMode[showHostileCraft];
+		last_visible_row = (int16_t)(g_mfd_craft_list_top_row_by_mode
+						     [show_hostile_craft] +
+					     (pane_bottom - row_y) / line_step);
+		if (row_count < (uint16_t)last_visible_row) {
+			if (g_mfd_craft_list_top_row_by_mode
+				    [show_hostile_craft] != 0) {
+				--g_mfd_craft_list_top_row_by_mode
+					[show_hostile_craft];
 			}
-			lastVisibleRow =
-				(int16_t)(g_mfdCraftListTopRowByMode
-						  [showHostileCraft] +
-					  (paneBottom - rowY) / lineStep);
+			last_visible_row =
+				(int16_t)(g_mfd_craft_list_top_row_by_mode
+						  [show_hostile_craft] +
+					  (pane_bottom - row_y) / line_step);
 		}
 
 #ifdef XVT_MODERN
-		XvtCockpitPages_RecordScroll(
-			pageIndex, g_mfdCraftListTopRowByMode[showHostileCraft],
-			rowCount, -1);
+		xvt_cockpit_pages_record_scroll(
+			page_index,
+			g_mfd_craft_list_top_row_by_mode[show_hostile_craft],
+			row_count, -1);
 #endif
-		lastTeam = UINT16_MAX;
-		if (needsRedraw != 0) {
-			const uint16_t *craftRow;
+		last_team = UINT16_MAX;
+		if (needs_redraw != 0) {
+			const uint16_t *craft_row;
 
 #ifdef XVT_MODERN
-			XvtCockpitPages_BeginSection(pageIndex,
-						     XVT_COCKPIT_PAGE_BODY);
+			xvt_cockpit_pages_begin_section(page_index,
+							XVT_COCKPIT_PAGE_BODY);
 #endif
-			FlightText_SetClipRect(paneLeft, rowY, paneRight,
-					       paneBottom);
-			g_flightFillClipRectFn();
+			flight_text_set_clip_rect(pane_left, row_y, pane_right,
+						  pane_bottom);
+			g_flight_fill_clip_rect_fn();
 			row = 0;
-			if (rowCount != 0) {
-				craftRow = craftRows;
+			if (row_count != 0) {
+				craft_row = craft_rows;
 				do {
-					uint16_t packedRow;
+					uint16_t packed_row;
 					uint16_t team;
-					uint16_t listedObjectIdx;
-					const char *statusColor;
+					uint16_t listed_object_idx;
+					const char *status_color;
 
-					FlightText_SetColor(COLOR_NORMAL_TEXT);
-					if (row < (uint16_t)g_mfdCraftListTopRowByMode
-							    [showHostileCraft] ||
-					    row > (uint16_t)lastVisibleRow) {
+					flight_text_set_color(
+						COLOR_NORMAL_TEXT);
+					if (row < (uint16_t)g_mfd_craft_list_top_row_by_mode
+							    [show_hostile_craft] ||
+					    row > (uint16_t)last_visible_row) {
 						continue;
 					}
-					packedRow = *craftRow;
-					listedObjectIdx =
-						(uint16_t)(packedRow & 0xFF);
-					team = (uint16_t)(packedRow >> 8);
-					statusColor =
-						&g_mfdCraftListTeamColorCodes
+					packed_row = *craft_row;
+					listed_object_idx =
+						(uint16_t)(packed_row & 0xFF);
+					team = (uint16_t)(packed_row >> 8);
+					status_color =
+						&g_mfd_craft_list_team_color_codes
 							[team];
-					FlightText_SetColor(
-						(uint8_t)*statusColor);
-					if (lastTeam != team &&
-					    row == (uint16_t)g_mfdCraftListTopRowByMode
-							    [showHostileCraft]) {
-						lastTeam = team;
-						if (g_players[g_localPlayer]
-							    .mapCameraState !=
+					flight_text_set_color(
+						(uint8_t)*status_color);
+					if (last_team != team &&
+					    row == (uint16_t)g_mfd_craft_list_top_row_by_mode
+							    [show_hostile_craft]) {
+						last_team = team;
+						if (g_players[g_local_player]
+							    .map_camera_state !=
 						    0) {
-							FlightSw_SetRenderTarget(
+							flight_sw_set_render_target(
 								NULL,
 								DEFAULT_SCREEN_WIDTH,
 								DEFAULT_SCREEN_HEIGHT,
 								0);
-							FlightText_SetBackgroundColor(
+							flight_text_set_background_color(
 								COLOR_MFD_BACKGROUND);
-							FlightText_SetBackgroundColor(
+							flight_text_set_background_color(
 								COLOR_MAP_BACKGROUND);
-							FlightSw_SetRenderTarget(
-								g_flightOffscreenBuffer,
-								g_screenWidth,
-								g_screenHeight,
-								g_screenWidth *
-									g_flightBytesPerPixel);
+							flight_sw_set_render_target(
+								g_flight_offscreen_buffer,
+								g_screen_width,
+								g_screen_height,
+								g_screen_width *
+									g_flight_bytes_per_pixel);
 						}
-						FlightText_SetClipRect(
-							paneLeft, rowY,
-							paneRight, paneBottom);
+						flight_text_set_clip_rect(
+							pane_left, row_y,
+							pane_right,
+							pane_bottom);
 					}
-					Mfd_BuildScratchCraftListName(
-						listedObjectIdx);
-					FlightText_SetCursor(paneLeft, rowY);
-					g_flightTextScratchBuffer[9] = 0;
-					FlightText_DrawString(
-						g_flightTextScratchBuffer);
+					mfd_build_scratch_craft_list_name(
+						listed_object_idx);
+					flight_text_set_cursor(pane_left,
+							       row_y);
+					g_flight_text_scratch_buffer[9] = 0;
+					flight_text_draw_string(
+						g_flight_text_scratch_buffer);
 					{
-						int16_t healthColumnX;
-						int16_t statusColumnBaseX;
-						struct ObjectRecord *object;
-						struct MobileObject
-							*mobileObject;
+						int16_t health_column_x;
+						int16_t status_column_base_x;
+						struct object_record *object;
+						struct mobile_object
+							*mobile_object;
 
-						healthColumnX =
-							(int16_t)(paneLeft +
+						health_column_x =
+							(int16_t)(pane_left +
 								  CRAFT_NAME_COLUMN_WIDTH *
-									  characterWidth);
-						statusColumnBaseX =
-							healthColumnX;
+									  character_width);
+						status_column_base_x =
+							health_column_x;
 						object =
-							&g_objectTable
-								[listedObjectIdx];
-						mobileObject = object->mobj;
-						if (mobileObject != NULL) {
-							struct CraftData *craft;
-							int hullPercent;
+							&g_object_table
+								[listed_object_idx];
+						mobile_object = object->mobj;
+						if (mobile_object != NULL) {
+							struct craft_data
+								*craft;
+							int hull_percent;
 
-							craft = mobileObject
-									->pCraft;
+							craft = mobile_object
+									->p_craft;
 							if (craft != NULL &&
-							    craft->objectKind !=
+							    craft->object_kind !=
 								    CRAFT_OBJECT_KIND_BREAKING_UP &&
-							    craft->objectKind !=
+							    craft->object_kind !=
 								    CRAFT_OBJECT_KIND_EXPLODING) {
-								int shieldAverage;
+								int shield_average;
 								unsigned int
-									maxShield;
-								int shieldPercent;
+									max_shield;
+								int shield_percent;
 								int percentage;
 
-								shieldAverage =
-									(craft->shieldEnergy
+								shield_average =
+									(craft->shield_energy
 										 [0] +
-									 craft->shieldEnergy
+									 craft->shield_energy
 										 [1]) /
 									2;
-								maxShield = (unsigned int)
-									Craft_GetObjectMaxShield(
-										listedObjectIdx);
-								if (shieldAverage !=
+								max_shield = (unsigned int)
+									craft_get_object_max_shield(
+										listed_object_idx);
+								if (shield_average !=
 									    0 &&
-								    maxShield !=
+								    max_shield !=
 									    0) {
-									percentage = (uint16_t)MATH2_longratioQ16(
+									percentage = (uint16_t)math2_longratio_q16(
 										(unsigned int)
-											shieldAverage,
-										maxShield);
-									shieldPercent =
+											shield_average,
+										max_shield);
+									shield_percent =
 										2 *
 										(percentage /
 										 PERCENTAGE_SCALE);
 								} else {
-									shieldPercent =
+									shield_percent =
 										0;
 								}
-								if (shieldPercent <=
+								if (shield_percent <=
 								    HEALTH_CRITICAL_PERCENT) {
-									FlightText_SetColor(
+									flight_text_set_color(
 										COLOR_DAMAGED);
 								} else if (
-									shieldPercent <=
+									shield_percent <=
 									HEALTH_GOOD_PERCENT) {
-									FlightText_SetColor(
+									flight_text_set_color(
 										COLOR_MEDIUM);
 								} else {
-									FlightText_SetColor(
+									flight_text_set_color(
 										COLOR_HEALTHY);
 								}
-								FlightText_SetCursor(
-									healthColumnX +
-										characterWidth,
-									rowY);
-								FlightText_DrawDecimalNumber(
-									shieldPercent,
+								flight_text_set_cursor(
+									health_column_x +
+										character_width,
+									row_y);
+								flight_text_draw_decimal_number(
+									shield_percent,
 									HEALTH_DIGIT_WIDTH,
 									1);
-								FlightText_SetColor(
-									(uint8_t)*statusColor);
-								g_flightDrawCharFn(
+								flight_text_set_color(
+									(uint8_t)*status_color);
+								g_flight_draw_char_fn(
 									'/');
 							}
-							hullPercent = 0;
-							if (craft->objectKind !=
+							hull_percent = 0;
+							if (craft->object_kind !=
 								    CRAFT_OBJECT_KIND_BREAKING_UP &&
-							    craft->objectKind !=
+							    craft->object_kind !=
 								    CRAFT_OBJECT_KIND_EXPLODING) {
-								if (craft->hullDamage >
-								    craft->hullMax) {
-									hullPercent =
+								if (craft->hull_damage >
+								    craft->hull_max) {
+									hull_percent =
 										1;
 								} else {
-									hullPercent = (uint16_t)MATH2_longratioQ16(
-										craft->hullMax -
-											craft->hullDamage,
-										craft->hullMax);
-									hullPercent =
+									hull_percent = (uint16_t)math2_longratio_q16(
+										craft->hull_max -
+											craft->hull_damage,
+										craft->hull_max);
+									hull_percent =
 										(uint16_t)
-											hullPercent /
+											hull_percent /
 										PERCENTAGE_SCALE;
-									if (hullPercent ==
+									if (hull_percent ==
 									    0) {
-										hullPercent =
+										hull_percent =
 											100;
 									}
 								}
 							}
-							if (hullPercent != 0) {
-								int digitCount;
+							if (hull_percent != 0) {
+								int digit_count;
 
-								digitCount = (uint16_t)
-									FlightText_FormatScratchInt(
-										hullPercent);
-								FlightText_SetCursor(
-									g_flightCursorX +
+								digit_count = (uint16_t)
+									flight_text_format_scratch_int(
+										hull_percent);
+								flight_text_set_cursor(
+									g_flight_cursor_x +
 										(HEALTH_DIGIT_WIDTH -
-										 digitCount) *
-											characterWidth,
-									rowY);
-								if (hullPercent <=
+										 digit_count) *
+											character_width,
+									row_y);
+								if (hull_percent <=
 								    HEALTH_CRITICAL_PERCENT) {
-									FlightText_SetColor(
+									flight_text_set_color(
 										COLOR_DAMAGED);
 								} else if (
-									hullPercent <=
+									hull_percent <=
 									HEALTH_GOOD_PERCENT) {
-									FlightText_SetColor(
+									flight_text_set_color(
 										COLOR_MEDIUM);
 								} else {
-									FlightText_SetColor(
+									flight_text_set_color(
 										COLOR_HEALTHY);
 								}
-								FlightText_DrawString(
-									g_flightTextScratchBuffer);
+								flight_text_draw_string(
+									g_flight_text_scratch_buffer);
 							}
-							FlightText_SetColor((
-								uint8_t)*statusColor);
+							flight_text_set_color((
+								uint8_t)*status_color);
 							{
-								int16_t targetColumnX;
+								int16_t target_column_x;
 
-								targetColumnX =
-									(int16_t)(g_flightCursorX +
-										  2 * characterWidth);
-								statusColumnBaseX =
-									targetColumnX;
-								if (g_players[g_localPlayer]
-										    .mapCameraState ==
+								target_column_x =
+									(int16_t)(g_flight_cursor_x +
+										  2 * character_width);
+								status_column_base_x =
+									target_column_x;
+								if (g_players[g_local_player]
+										    .map_camera_state ==
 									    0 ||
-								    showHostileCraft !=
+								    show_hostile_craft !=
 									    0 ||
-								    g_flightResolutionMode !=
+								    g_flight_resolution_mode !=
 									    FLIGHT_RESOLUTION_320X240) {
-									FlightText_SetCursor(
-										targetColumnX,
-										rowY);
-									if (g_objectTable[listedObjectIdx]
-										    .playerOwnerIdx !=
+									flight_text_set_cursor(
+										target_column_x,
+										row_y);
+									if (g_object_table[listed_object_idx]
+										    .player_owner_idx !=
 									    -1) {
 										uint16_t
-											targetObjectIdx;
+											target_object_idx;
 
-										targetObjectIdx =
-											g_players[g_objectTable[listedObjectIdx]
-													  .playerOwnerIdx]
-												.currentTargetObjectIdx;
-										if (targetObjectIdx !=
+										target_object_idx =
+											g_players[g_object_table[listed_object_idx]
+													  .player_owner_idx]
+												.current_target_object_idx;
+										if (target_object_idx !=
 											    UINT16_MAX &&
-										    targetObjectIdx <
-											    g_activeRegionCraftObjectSlotEnd &&
-										    g_objectTable[targetObjectIdx]
+										    target_object_idx <
+											    g_active_region_craft_object_slot_end &&
+										    g_object_table[target_object_idx]
 												    .mobj !=
 											    NULL) {
-											Hud_FormatObjectDisplayName(
+											hud_format_object_display_name(
 												(uint16_t)
-													targetObjectIdx,
+													target_object_idx,
 												DISPLAY_NAME_FLAGS);
 										} else {
-											FlightText_SetScratch(
-												g_strMeshComponentNames
+											flight_text_set_scratch(
+												g_str_mesh_component_names
 													[32]);
 										}
 									} else {
 										uint16_t
-											targetObjectIdx;
+											target_object_idx;
 
-										targetObjectIdx =
+										target_object_idx =
 											(uint16_t)craft
-												->aiController
-												.targetObjIdx;
-										if (targetObjectIdx !=
+												->ai_controller
+												.target_obj_idx;
+										if (target_object_idx !=
 											    TARGET_NONE_AI &&
-										    targetObjectIdx !=
+										    target_object_idx !=
 											    UINT16_MAX &&
-										    targetObjectIdx <
+										    target_object_idx <
 											    0x8000) {
-											Hud_FormatObjectDisplayName(
+											hud_format_object_display_name(
 												(uint16_t)
-													targetObjectIdx,
+													target_object_idx,
 												DISPLAY_NAME_FLAGS);
 										} else {
-											FlightText_SetScratch(
-												g_strMeshComponentNames
+											flight_text_set_scratch(
+												g_str_mesh_component_names
 													[32]);
 										}
 									}
-									if (showHostileCraft !=
+									if (show_hostile_craft !=
 										    0 ||
-									    g_flightResolutionMode ==
+									    g_flight_resolution_mode ==
 										    FLIGHT_RESOLUTION_320X240 ||
-									    g_players[g_localPlayer]
-											    .mapCameraState !=
+									    g_players[g_local_player]
+											    .map_camera_state !=
 										    0) {
-										FlightText_DrawString(
-											g_flightTextScratchBuffer);
+										flight_text_draw_string(
+											g_flight_text_scratch_buffer);
 									} else {
-										FlightText_DrawStringRightAligned(
-											g_flightTextScratchBuffer);
+										flight_text_draw_string_right_aligned(
+											g_flight_text_scratch_buffer);
 									}
 								}
 							}
 						}
-						if (showHostileCraft != 0 &&
-						    g_flightResolutionMode !=
+						if (show_hostile_craft != 0 &&
+						    g_flight_resolution_mode !=
 							    FLIGHT_RESOLUTION_320X240) {
-							int16_t statusColumnX;
+							int16_t status_column_x;
 							unsigned int
-								statusStringId;
+								status_string_id;
 
-							statusColumnX =
-								characterWidth;
-							statusColumnX =
-								(int16_t)(statusColumnX *
+							status_column_x =
+								character_width;
+							status_column_x =
+								(int16_t)(status_column_x *
 										  STATUS_COLUMN_OFFSET +
-									  statusColumnBaseX);
-							FlightText_SetCursor(
-								statusColumnX,
-								rowY);
-							statusStringId = (uint16_t)
-								Mfd_GetFlightGroupGoalStatusStringId(
-									listedObjectIdx);
-							if (statusStringId !=
+									  status_column_base_x);
+							flight_text_set_cursor(
+								status_column_x,
+								row_y);
+							status_string_id = (uint16_t)
+								mfd_get_flight_group_goal_status_string_id(
+									listed_object_idx);
+							if (status_string_id !=
 							    FG_GOAL_STATUS_STR_NONE) {
-								FlightText_DrawString(
-									g_strCockpitOverlayText
-										[statusStringId]);
+								flight_text_draw_string(
+									g_str_cockpit_overlay_text
+										[status_string_id]);
 							} else {
-								FlightText_DrawString(
-									g_strMeshComponentNames
+								flight_text_draw_string(
+									g_str_mesh_component_names
 										[32]);
 							}
 						}
 					}
-					rowY = (uint16_t)(rowY + lineStep);
-				} while (++craftRow, ++row < rowTotal);
+					row_y = (uint16_t)(row_y + line_step);
+				} while (++craft_row, ++row < row_total);
 			}
 		}
 #ifdef XVT_MODERN
-		XvtCockpitPages_EndSection();
+		xvt_cockpit_pages_end_section();
 #endif
 	} while (0);
-	FlightSw_SetRenderTarget(NULL, DEFAULT_SCREEN_WIDTH,
-				 DEFAULT_SCREEN_HEIGHT, 0);
+	flight_sw_set_render_target(NULL, DEFAULT_SCREEN_WIDTH,
+				    DEFAULT_SCREEN_HEIGHT, 0);
 }
 
-/* Puts an object's list name in g_flightTextScratchBuffer: for a craft, its
- * flight group's name and, when Hud_MissionFG_GetCraftNumberIfShown gives
+/* Puts an object's list name in g_flight_text_scratch_buffer: for a craft, its
+ * flight group's name and, when hud_mission_fg_get_craft_number_if_shown gives
  * one, a space and its number in one or two digits; for any other object an
  * empty string. */
 // FUNCTION: XVT 0x44E0A0
-void Mfd_BuildScratchCraftListName(uint16_t objectIdx)
+void mfd_build_scratch_craft_list_name(uint16_t object_idx)
 {
-	struct ObjectRecord *object;
-	struct MobileObject *mobileObject;
-	struct CraftData *craft;
-	int flightGroupIdx;
-	uint16_t craftNumber;
-	uint16_t tensDigit;
-	uint16_t onesDigit;
+	struct object_record *object;
+	struct mobile_object *mobile_object;
+	struct craft_data *craft;
+	int flight_group_idx;
+	uint16_t craft_number;
+	uint16_t tens_digit;
+	uint16_t ones_digit;
 
-	g_flightTextScratchBuffer[0] = '\0';
-	object = &g_objectTable[objectIdx];
-	mobileObject = object->mobj;
-	if (mobileObject != 0 && mobileObject->family == 0) {
-		craft = mobileObject->pCraft;
-		flightGroupIdx = object->flightGroupIdx;
-		FlightText_AppendScratchString(
-			g_missionFlightGroups[flightGroupIdx].fg.name);
-		craftNumber = (uint16_t)Hud_MissionFG_GetCraftNumberIfShown(
-			flightGroupIdx, craft);
-		if (craftNumber != 0) {
-			FlightText_AppendScratchChar(' ');
-			if (craftNumber >= 10) {
-				tensDigit = craftNumber / 10;
-				onesDigit = craftNumber % 10;
-				FlightText_AppendScratchChar(
-					(char)(tensDigit + '0'));
-				FlightText_AppendScratchChar(
-					(char)(onesDigit + '0'));
+	g_flight_text_scratch_buffer[0] = '\0';
+	object = &g_object_table[object_idx];
+	mobile_object = object->mobj;
+	if (mobile_object != 0 && mobile_object->family == 0) {
+		craft = mobile_object->p_craft;
+		flight_group_idx = object->flight_group_idx;
+		flight_text_append_scratch_string(
+			g_mission_flight_groups[flight_group_idx].fg.name);
+		craft_number =
+			(uint16_t)hud_mission_fg_get_craft_number_if_shown(
+				flight_group_idx, craft);
+		if (craft_number != 0) {
+			flight_text_append_scratch_char(' ');
+			if (craft_number >= 10) {
+				tens_digit = craft_number / 10;
+				ones_digit = craft_number % 10;
+				flight_text_append_scratch_char(
+					(char)(tens_digit + '0'));
+				flight_text_append_scratch_char(
+					(char)(ones_digit + '0'));
 			} else {
-				FlightText_AppendScratchChar(
-					(char)(craftNumber + '0'));
+				flight_text_append_scratch_char(
+					(char)(craft_number + '0'));
 			}
 		}
 	}
@@ -3107,179 +3199,180 @@ void Mfd_BuildScratchCraftListName(uint16_t objectIdx)
  * destroy, attack, else FG_GOAL_STATUS_STR_NONE, which is also the answer for
  * a projectile slot. */
 // FUNCTION: XVT 0x44E170
-int16_t Mfd_GetFlightGroupGoalStatusStringId(uint16_t objectIndex)
+int16_t mfd_get_flight_group_goal_status_string_id(uint16_t object_index)
 {
-	unsigned int goalIndex;
-	struct FlightGroupGoal *goal;
-	int16_t *playerTeam;
-	unsigned int globalTriggerIndex;
-	struct MissionTriggerPair *triggerPair;
-	struct MissionTrigger *trigger;
-	int eventCondition;
-	unsigned int flightGroupIdx;
-	int inspectActive;
-	int disableActive;
-	int captureActive;
-	int boardActive;
-	struct CraftData *craft;
-	int destroyActive;
-	int specialCargoOnly;
-	int attackActive;
+	unsigned int goal_index;
+	struct flight_group_goal *goal;
+	int16_t *player_team;
+	unsigned int global_trigger_index;
+	struct mission_trigger_pair *trigger_pair;
+	struct mission_trigger *trigger;
+	int event_condition;
+	unsigned int flight_group_idx;
+	int inspect_active;
+	int disable_active;
+	int capture_active;
+	int board_active;
+	struct craft_data *craft;
+	int destroy_active;
+	int special_cargo_only;
+	int attack_active;
 
-	if (g_projectileObjectSlotStart <= objectIndex &&
-	    g_projectileObjectSlotEnd > objectIndex) {
+	if (g_projectile_object_slot_start <= object_index &&
+	    g_projectile_object_slot_end > object_index) {
 		return FG_GOAL_STATUS_STR_NONE;
 	}
-	if (g_activeRegionCraftObjectSlotEnd > objectIndex) {
-		craft = g_objectTable[objectIndex].mobj->pCraft;
+	if (g_active_region_craft_object_slot_end > object_index) {
+		craft = g_object_table[object_index].mobj->p_craft;
 	} else {
 		craft = NULL;
 	}
 
-	inspectActive = 0;
-	destroyActive = 0;
-	disableActive = 0;
-	attackActive = 0;
-	captureActive = 0;
-	boardActive = 0;
-	flightGroupIdx = g_objectTable[objectIndex].flightGroupIdx;
-	specialCargoOnly = 0;
-	playerTeam = &g_players[g_localPlayer].team;
+	inspect_active = 0;
+	destroy_active = 0;
+	disable_active = 0;
+	attack_active = 0;
+	capture_active = 0;
+	board_active = 0;
+	flight_group_idx = g_object_table[object_index].flight_group_idx;
+	special_cargo_only = 0;
+	player_team = &g_players[g_local_player].team;
 
-	for (goalIndex = 0; goalIndex < 8; ++goalIndex) {
-		goal = &g_missionFlightGroups[flightGroupIdx]
-				.fg.goals[goalIndex];
-		if (goal->enabledTeams[(uint16_t)*playerTeam] != 0 &&
-		    goal->goalKind == 0 &&
-		    g_missionFgStats[flightGroupIdx]
-				    .goalState[8 * (uint16_t)*playerTeam +
-					       goalIndex] == 4) {
+	for (goal_index = 0; goal_index < 8; ++goal_index) {
+		goal = &g_mission_flight_groups[flight_group_idx]
+				.fg.goals[goal_index];
+		if (goal->enabled_teams[(uint16_t)*player_team] != 0 &&
+		    goal->goal_kind == 0 &&
+		    g_mission_fg_stats[flight_group_idx]
+				    .goal_state[8 * (uint16_t)*player_team +
+						goal_index] == 4) {
 			if (goal->amount == GOAL_AMT_ALL_SPECIAL_CARGO) {
-				if (g_missionFgStats[flightGroupIdx].specialCargoOutcome
+				if (g_mission_fg_stats[flight_group_idx].special_cargo_outcome
 					    [FLIGHT_GROUP_OUTCOME_INSPECTED] ==
 				    0) {
-					inspectActive = 1;
+					inspect_active = 1;
 				}
-				specialCargoOnly = 1;
+				special_cargo_only = 1;
 			}
-			eventCondition = goal->eventCondition;
-			if (eventCondition == 2) {
-				destroyActive = 1;
-			} else if (eventCondition == 3) {
-				attackActive = 1;
-			} else if (eventCondition == 8) {
-				disableActive = 1;
-			} else if (eventCondition == 5) {
-				inspectActive = 1;
-			} else if (eventCondition == 4) {
-				captureActive = 1;
-			} else if (eventCondition == 6) {
-				boardActive = 1;
+			event_condition = goal->event_condition;
+			if (event_condition == 2) {
+				destroy_active = 1;
+			} else if (event_condition == 3) {
+				attack_active = 1;
+			} else if (event_condition == 8) {
+				disable_active = 1;
+			} else if (event_condition == 5) {
+				inspect_active = 1;
+			} else if (event_condition == 4) {
+				capture_active = 1;
+			} else if (event_condition == 6) {
+				board_active = 1;
 			}
 		}
 	}
 
-	for (globalTriggerIndex = 0; globalTriggerIndex < 4;
-	     ++globalTriggerIndex) {
-		if (globalTriggerIndex < 2) {
-			triggerPair =
-				&g_missionGlobalGoals[(uint16_t)*playerTeam][0]
-					 .triggerPairs[0];
+	for (global_trigger_index = 0; global_trigger_index < 4;
+	     ++global_trigger_index) {
+		if (global_trigger_index < 2) {
+			trigger_pair = &g_mission_global_goals[(
+				uint16_t)*player_team][0]
+						.trigger_pairs[0];
 		} else {
-			triggerPair =
-				&g_missionGlobalGoals[(uint16_t)*playerTeam][0]
-					 .triggerPairs[1];
+			trigger_pair = &g_mission_global_goals[(
+				uint16_t)*player_team][0]
+						.trigger_pairs[1];
 		}
-		if ((globalTriggerIndex & 1) == 0) {
-			trigger = &triggerPair->triggers[0];
+		if ((global_trigger_index & 1) == 0) {
+			trigger = &trigger_pair->triggers[0];
 		} else {
-			trigger = &triggerPair->triggers[1];
+			trigger = &trigger_pair->triggers[1];
 		}
-		eventCondition = trigger->condition;
-		if (eventCondition != 10 &&
-		    Mission_FlightGroupMatchesTriggerVariable(
-			    flightGroupIdx, trigger->variableType,
+		event_condition = trigger->condition;
+		if (event_condition != 10 &&
+		    mission_flight_group_matches_trigger_variable(
+			    flight_group_idx, trigger->variable_type,
 			    trigger->variable)) {
-			if (eventCondition == 2) {
-				destroyActive = 1;
-			} else if (eventCondition == 3) {
-				attackActive = 1;
-			} else if (eventCondition == 8) {
-				disableActive = 1;
-			} else if (eventCondition == 5) {
-				inspectActive = 1;
-			} else if (eventCondition == 4) {
-				captureActive = 1;
-			} else if (eventCondition == 6) {
-				boardActive = 1;
+			if (event_condition == 2) {
+				destroy_active = 1;
+			} else if (event_condition == 3) {
+				attack_active = 1;
+			} else if (event_condition == 8) {
+				disable_active = 1;
+			} else if (event_condition == 5) {
+				inspect_active = 1;
+			} else if (event_condition == 4) {
+				capture_active = 1;
+			} else if (event_condition == 6) {
+				board_active = 1;
 			}
 		}
 	}
 
-	if (g_activeRegionCraftObjectSlotEnd > objectIndex) {
-		if (inspectActive != 0 &&
-		    craft->identifiedOrderByTeam[(uint16_t)*playerTeam] != 0) {
-			inspectActive = 0;
+	if (g_active_region_craft_object_slot_end > object_index) {
+		if (inspect_active != 0 &&
+		    craft->identified_order_by_team[(uint16_t)*player_team] !=
+			    0) {
+			inspect_active = 0;
 		}
-		if (captureActive != 0 || boardActive != 0) {
-			if (g_objectTable[objectIndex].mobj->speed != 0) {
-				disableActive = 1;
+		if (capture_active != 0 || board_active != 0) {
+			if (g_object_table[object_index].mobj->speed != 0) {
+				disable_active = 1;
 			}
-			if (specialCargoOnly != 0 &&
-			    g_missionFlightGroups[flightGroupIdx]
-					    .fg.specialCargoCraft !=
-				    craft->craftOrdinal) {
-				captureActive = 0;
-				boardActive = 0;
+			if (special_cargo_only != 0 &&
+			    g_mission_flight_groups[flight_group_idx]
+					    .fg.special_cargo_craft !=
+				    craft->craft_ordinal) {
+				capture_active = 0;
+				board_active = 0;
 			}
 		}
-		if (disableActive != 0 && specialCargoOnly != 0 &&
-		    g_missionFlightGroups[flightGroupIdx]
-				    .fg.specialCargoCraft !=
-			    craft->craftOrdinal) {
-			disableActive = 0;
+		if (disable_active != 0 && special_cargo_only != 0 &&
+		    g_mission_flight_groups[flight_group_idx]
+				    .fg.special_cargo_craft !=
+			    craft->craft_ordinal) {
+			disable_active = 0;
 		}
-		if (destroyActive != 0 && specialCargoOnly != 0 &&
-		    g_missionFlightGroups[flightGroupIdx]
-				    .fg.specialCargoCraft !=
-			    craft->craftOrdinal) {
-			destroyActive = 0;
+		if (destroy_active != 0 && special_cargo_only != 0 &&
+		    g_mission_flight_groups[flight_group_idx]
+				    .fg.special_cargo_craft !=
+			    craft->craft_ordinal) {
+			destroy_active = 0;
 		}
 	}
 
-	if (inspectActive != 0) {
+	if (inspect_active != 0) {
 		return FG_GOAL_STATUS_STR_INSPECT;
 	}
-	if (disableActive != 0) {
-		if (captureActive != 0) {
+	if (disable_active != 0) {
+		if (capture_active != 0) {
 			return FG_GOAL_STATUS_STR_CAPTURE;
 		}
-		return boardActive == 0 ? FG_GOAL_STATUS_STR_DISABLE
-					: FG_GOAL_STATUS_STR_BOARD;
+		return board_active == 0 ? FG_GOAL_STATUS_STR_DISABLE
+					 : FG_GOAL_STATUS_STR_BOARD;
 	}
-	if (captureActive != 0) {
+	if (capture_active != 0) {
 		return FG_GOAL_STATUS_STR_CAPTURE;
 	}
-	if (boardActive != 0) {
+	if (board_active != 0) {
 		return FG_GOAL_STATUS_STR_BOARD;
 	}
-	if (destroyActive != 0) {
+	if (destroy_active != 0) {
 		return FG_GOAL_STATUS_STR_DESTROY;
 	}
-	return attackActive == 0 ? FG_GOAL_STATUS_STR_NONE
-				 : FG_GOAL_STATUS_STR_ATTACK;
+	return attack_active == 0 ? FG_GOAL_STATUS_STR_NONE
+				  : FG_GOAL_STATUS_STR_ATTACK;
 }
 
 /* Draws the map help page in the map view's pane: nine rows of
- * g_strMapRoomText (rows 1 to 4 in two colors) when the page is first drawn
+ * g_str_map_room_text (rows 1 to 4 in two colors) when the page is first drawn
  * or the local player's map camera state changes. In 640x480, with the map
  * shown and this page active, action keys 0xA8 to 0xAD show a block of
- * g_mfdDeveloperCreditsLines instead. It makes itself the active page when
+ * g_mfd_developer_credits_lines instead. It makes itself the active page when
  * none is and draws the active or secondary border; when the page is closing
  * it clears it, makes the secondary page active, and returns. Writes
- * g_mfdActivePage, g_mfdSecondaryPage and g_mfdMapHelpCameraStateCache. */
+ * g_mfd_active_page, g_mfd_secondary_page and g_mfd_map_help_camera_state_cache. */
 // FUNCTION: XVT 0x44E5A0
-void Mfd_DrawMapHelpPage(void)
+void mfd_draw_map_help_page(void)
 {
 	enum {
 		MFD_BACKGROUND_COLOR = 0x34,
@@ -3292,145 +3385,145 @@ void Mfd_DrawMapHelpPage(void)
 	};
 
 	int16_t left;
-	int16_t borderTop;
+	int16_t border_top;
 	int16_t bottom;
 	int16_t top;
 	int16_t right;
 	int16_t column;
-	int16_t lineStep;
-	int16_t textMode;
-	int firstCredit;
-	int lastCredit;
-	int localPlayer;
+	int16_t line_step;
+	int16_t text_mode;
+	int first_credit;
+	int last_credit;
+	int local_player;
 	int row;
-	int rowStart;
-	uint16_t activePage;
-	int pitchBytes;
+	int row_start;
+	uint16_t active_page;
+	int pitch_bytes;
 
-	pitchBytes = g_flightBytesPerPixel;
-	pitchBytes *= g_screenWidth;
-	FlightSw_SetRenderTarget(g_flightOffscreenBuffer, g_screenWidth,
-				 g_screenHeight, pitchBytes);
-	FlightText_SetFontTier(0);
-	left = (int16_t)(g_mfdMapBlitSourceX + 2);
-	right = (int16_t)(g_mfdMapBlitWidth + g_mfdMapBlitSourceX - 2);
-	top = (int16_t)(g_mfdMapBlitSourceY + 2);
-	bottom = (int16_t)(g_mfdMapBlitSourceY + g_mfdMapBlitHeight - 2);
+	pitch_bytes = g_flight_bytes_per_pixel;
+	pitch_bytes *= g_screen_width;
+	flight_sw_set_render_target(g_flight_offscreen_buffer, g_screen_width,
+				    g_screen_height, pitch_bytes);
+	flight_text_set_font_tier(0);
+	left = (int16_t)(g_mfd_map_blit_source_x + 2);
+	right = (int16_t)(g_mfd_map_blit_width + g_mfd_map_blit_source_x - 2);
+	top = (int16_t)(g_mfd_map_blit_source_y + 2);
+	bottom = (int16_t)(g_mfd_map_blit_source_y + g_mfd_map_blit_height - 2);
 #ifdef XVT_MODERN
-	XvtCockpitPages_SetOrigin(MFD_PAGE_MAP_HELP, left - 2, top - 2);
+	xvt_cockpit_pages_set_origin(MFD_PAGE_MAP_HELP, left - 2, top - 2);
 #endif
-	activePage = g_mfdActivePage;
-	if (activePage == MFD_PAGE_NONE) {
-		activePage = MFD_PAGE_MAP_HELP;
+	active_page = g_mfd_active_page;
+	if (active_page == MFD_PAGE_NONE) {
+		active_page = MFD_PAGE_MAP_HELP;
 	}
-	g_mfdActivePage = activePage;
+	g_mfd_active_page = active_page;
 	do {
-		if (activePage == MFD_PAGE_MAP_HELP) {
-			FlightText_SetBackgroundColor(
+		if (active_page == MFD_PAGE_MAP_HELP) {
+			flight_text_set_background_color(
 				MFD_ACTIVE_BACKGROUND_COLOR);
 		} else {
-			if (g_mfdSecondaryPage != MFD_PAGE_MAP_HELP) {
+			if (g_mfd_secondary_page != MFD_PAGE_MAP_HELP) {
 				break;
 			}
-			FlightText_SetBackgroundColor(MFD_BACKGROUND_COLOR);
+			flight_text_set_background_color(MFD_BACKGROUND_COLOR);
 		}
-		borderTop = (int16_t)(top - 2);
-		FlightText_SetClipRect(left - 2, borderTop, right + 2,
-				       bottom + 2);
+		border_top = (int16_t)(top - 2);
+		flight_text_set_clip_rect(left - 2, border_top, right + 2,
+					  bottom + 2);
 #ifdef XVT_MODERN
-		XvtCockpitPages_RecordBorder(MFD_PAGE_MAP_HELP);
+		xvt_cockpit_pages_record_border(MFD_PAGE_MAP_HELP);
 #endif
-		g_flightFillRectClippedFn(
-			(uint16_t)(left - 2), (uint16_t)borderTop,
+		g_flight_fill_rect_clipped_fn(
+			(uint16_t)(left - 2), (uint16_t)border_top,
 			(uint16_t)(right + 2), (uint16_t)(bottom + 2), 1);
 	} while (0);
 
-	if (g_hudElementStateCache[g_hudInstrumentSetBaseIndex +
-				   HUD_MFD_MAP_OR_COMMAND_ELEMENT] !=
-	    g_mfdPageStates[MFD_PAGE_MAP_HELP]) {
-		FlightText_SetBackgroundColor(MFD_BACKGROUND_COLOR);
-		FlightText_SetClipRect(left - 2, top - 2, right + 2,
-				       bottom + 2);
+	if (g_hud_element_state_cache[g_hud_instrument_set_base_index +
+				      HUD_MFD_MAP_OR_COMMAND_ELEMENT] !=
+	    g_mfd_page_states[MFD_PAGE_MAP_HELP]) {
+		flight_text_set_background_color(MFD_BACKGROUND_COLOR);
+		flight_text_set_clip_rect(left - 2, top - 2, right + 2,
+					  bottom + 2);
 #ifdef XVT_MODERN
-		XvtCockpitPages_Clear(MFD_PAGE_MAP_HELP);
-		XvtCockpitPages_RecordBackground(MFD_PAGE_MAP_HELP);
+		xvt_cockpit_pages_clear(MFD_PAGE_MAP_HELP);
+		xvt_cockpit_pages_record_background(MFD_PAGE_MAP_HELP);
 #endif
-		g_flightFillClipRectFn();
-		if (g_mfdPageStates[MFD_PAGE_MAP_HELP] ==
+		g_flight_fill_clip_rect_fn();
+		if (g_mfd_page_states[MFD_PAGE_MAP_HELP] ==
 		    MFD_PAGE_STATE_CLOSING) {
 #ifdef XVT_MODERN
-			XvtCockpitPages_Clear(MFD_PAGE_MAP_HELP);
+			xvt_cockpit_pages_clear(MFD_PAGE_MAP_HELP);
 #endif
-			if (g_mfdActivePage == MFD_PAGE_MAP_HELP) {
-				g_mfdActivePage = g_mfdSecondaryPage;
-				g_mfdSecondaryPage =
-					Mfd_FindSecondaryOpenPage();
+			if (g_mfd_active_page == MFD_PAGE_MAP_HELP) {
+				g_mfd_active_page = g_mfd_secondary_page;
+				g_mfd_secondary_page =
+					mfd_find_secondary_open_page();
 			}
-			FlightSw_SetRenderTarget(NULL, MFD_DEFAULT_WIDTH,
-						 MFD_DEFAULT_HEIGHT, 0);
+			flight_sw_set_render_target(NULL, MFD_DEFAULT_WIDTH,
+						    MFD_DEFAULT_HEIGHT, 0);
 			return;
 		}
-		FlightText_SetClearLineBackground(1);
-		FlightText_SetColor(MFD_TEXT_COLOR);
-		FlightText_SetFontTier(0);
-		FlightText_SetClipRect(left, top, right, bottom);
-		lineStep = (int16_t)(g_flightFontLineHeight + 2);
-		FlightText_SetClipRect(left, top, right, bottom);
-		localPlayer = g_localPlayer;
-		g_mfdMapHelpCameraStateCache =
-			g_players[localPlayer].mapCameraState;
-		textMode = 1;
+		flight_text_set_clear_line_background(1);
+		flight_text_set_color(MFD_TEXT_COLOR);
+		flight_text_set_font_tier(0);
+		flight_text_set_clip_rect(left, top, right, bottom);
+		line_step = (int16_t)(g_flight_font_line_height + 2);
+		flight_text_set_clip_rect(left, top, right, bottom);
+		local_player = g_local_player;
+		g_mfd_map_help_camera_state_cache =
+			g_players[local_player].map_camera_state;
+		text_mode = 1;
 	} else {
-		lineStep = (int16_t)(g_flightFontLineHeight + 2);
-		FlightText_SetClearLineBackground(1);
-		FlightText_SetColor(MFD_TEXT_COLOR);
-		FlightText_SetFontTier(0);
-		FlightText_SetClipRect(left, top, right, bottom);
-		FlightText_SetBackgroundColor(MFD_BACKGROUND_COLOR);
-		localPlayer = g_localPlayer;
-		if (g_mfdMapHelpCameraStateCache !=
-		    g_players[localPlayer].mapCameraState) {
-			g_mfdMapHelpCameraStateCache =
-				g_players[localPlayer].mapCameraState;
-			textMode = 1;
+		line_step = (int16_t)(g_flight_font_line_height + 2);
+		flight_text_set_clear_line_background(1);
+		flight_text_set_color(MFD_TEXT_COLOR);
+		flight_text_set_font_tier(0);
+		flight_text_set_clip_rect(left, top, right, bottom);
+		flight_text_set_background_color(MFD_BACKGROUND_COLOR);
+		local_player = g_local_player;
+		if (g_mfd_map_help_camera_state_cache !=
+		    g_players[local_player].map_camera_state) {
+			g_mfd_map_help_camera_state_cache =
+				g_players[local_player].map_camera_state;
+			text_mode = 1;
 		} else {
-			textMode = 0;
+			text_mode = 0;
 		}
 	}
 
-	if (g_flightResolutionMode == FLIGHT_RESOLUTION_640X480 &&
-	    g_players[localPlayer].mapCameraState != 0 &&
-	    g_mfdActivePage == MFD_PAGE_MAP_HELP) {
-		switch (g_currentActionKey) {
+	if (g_flight_resolution_mode == FLIGHT_RESOLUTION_640X480 &&
+	    g_players[local_player].map_camera_state != 0 &&
+	    g_mfd_active_page == MFD_PAGE_MAP_HELP) {
+		switch (g_current_action_key) {
 		case 0xA8:
-			textMode = 3;
-			firstCredit = 21;
-			lastCredit = 29;
+			text_mode = 3;
+			first_credit = 21;
+			last_credit = 29;
 			break;
 		case 0xA9:
-			textMode = 3;
-			firstCredit = 0;
-			lastCredit = 5;
+			text_mode = 3;
+			first_credit = 0;
+			last_credit = 5;
 			break;
 		case 0xAA:
-			textMode = 2;
-			firstCredit = 0;
-			lastCredit = 9;
+			text_mode = 2;
+			first_credit = 0;
+			last_credit = 9;
 			break;
 		case 0xAB:
-			textMode = 3;
-			firstCredit = 5;
-			lastCredit = 13;
+			text_mode = 3;
+			first_credit = 5;
+			last_credit = 13;
 			break;
 		case 0xAC:
-			textMode = 3;
-			firstCredit = 29;
-			lastCredit = 37;
+			text_mode = 3;
+			first_credit = 29;
+			last_credit = 37;
 			break;
 		case 0xAD:
-			textMode = 3;
-			firstCredit = 13;
-			lastCredit = 21;
+			text_mode = 3;
+			first_credit = 13;
+			last_credit = 21;
 			break;
 		default:
 			break;
@@ -3438,41 +3531,41 @@ void Mfd_DrawMapHelpPage(void)
 	}
 
 #ifdef XVT_MODERN
-	if (textMode != 0) {
-		XvtCockpitPages_RecordMode(MFD_PAGE_MAP_HELP, textMode);
-		XvtCockpitPages_BeginSection(MFD_PAGE_MAP_HELP,
-					     XVT_COCKPIT_PAGE_BODY);
+	if (text_mode != 0) {
+		xvt_cockpit_pages_record_mode(MFD_PAGE_MAP_HELP, text_mode);
+		xvt_cockpit_pages_begin_section(MFD_PAGE_MAP_HELP,
+						XVT_COCKPIT_PAGE_BODY);
 	}
 #endif
-	if (textMode == 1) {
+	if (text_mode == 1) {
 #ifdef XVT_MODERN
-		XvtCockpitPages_RecordScroll(MFD_PAGE_MAP_HELP, 0, 9, -1);
+		xvt_cockpit_pages_record_scroll(MFD_PAGE_MAP_HELP, 0, 9, -1);
 #endif
 		row = 0;
-		FlightText_SetWordWrap(0);
-		g_flightFillClipRectFn();
+		flight_text_set_word_wrap(0);
+		g_flight_fill_clip_rect_fn();
 		while (row < 9) {
-			rowStart = row;
-			FlightText_SetCursor(left, (uint16_t)top);
-			FlightText_SetScratch(g_strMapRoomText[rowStart]);
-			if (rowStart > 0 && rowStart < 5) {
-				FlightText_AppendScratchString(
-					g_strMapRoomText[rowStart + 1]);
-				FlightText_DrawString(
-					g_strMapRoomText[rowStart]);
-				FlightText_SetColor(MFD_HIGHLIGHT_COLOR);
-				FlightText_DrawString(
-					g_strMapRoomText[rowStart + 1]);
-				FlightText_SetColor(MFD_TEXT_COLOR);
+			row_start = row;
+			flight_text_set_cursor(left, (uint16_t)top);
+			flight_text_set_scratch(g_str_map_room_text[row_start]);
+			if (row_start > 0 && row_start < 5) {
+				flight_text_append_scratch_string(
+					g_str_map_room_text[row_start + 1]);
+				flight_text_draw_string(
+					g_str_map_room_text[row_start]);
+				flight_text_set_color(MFD_HIGHLIGHT_COLOR);
+				flight_text_draw_string(
+					g_str_map_room_text[row_start + 1]);
+				flight_text_set_color(MFD_TEXT_COLOR);
 			} else {
-				FlightText_DrawString(
-					g_strMapRoomText[rowStart]);
+				flight_text_draw_string(
+					g_str_map_room_text[row_start]);
 			}
-			if (g_flightResolutionMode ==
+			if (g_flight_resolution_mode ==
 			    FLIGHT_RESOLUTION_320X240) {
 				int16_t width;
-				width = (int16_t)(FlightText_MeasureStringWidth(
-							  g_flightTextScratchBuffer) +
+				width = (int16_t)(flight_text_measure_string_width(
+							  g_flight_text_scratch_buffer) +
 						  1);
 				if (width < 16) {
 					width = 16;
@@ -3481,157 +3574,161 @@ void Mfd_DrawMapHelpPage(void)
 			} else {
 				column =
 					(int16_t)(left +
-						  FlightText_MeasureStringWidth(
-							  g_strMapRoomText[8]) +
+						  flight_text_measure_string_width(
+							  g_str_map_room_text
+								  [8]) +
 						  5);
 			}
-			FlightText_SetCursor(column, (uint16_t)top);
-			if (rowStart > 0 && rowStart < 5) {
-				FlightText_DrawString(
-					g_strMapRoomText[rowStart + 9]);
+			flight_text_set_cursor(column, (uint16_t)top);
+			if (row_start > 0 && row_start < 5) {
+				flight_text_draw_string(
+					g_str_map_room_text[row_start + 9]);
 				++row;
-				FlightText_SetColor(MFD_HIGHLIGHT_COLOR);
-				FlightText_DrawString(
-					g_strMapRoomText[rowStart + 10]);
-				FlightText_SetColor(MFD_TEXT_COLOR);
+				flight_text_set_color(MFD_HIGHLIGHT_COLOR);
+				flight_text_draw_string(
+					g_str_map_room_text[row_start + 10]);
+				flight_text_set_color(MFD_TEXT_COLOR);
 			} else {
-				FlightText_DrawString(
-					g_strMapRoomText[rowStart + 9]);
+				flight_text_draw_string(
+					g_str_map_room_text[row_start + 9]);
 			}
-			top = (int16_t)(top + lineStep);
+			top = (int16_t)(top + line_step);
 			++row;
 		}
-	} else if (textMode == 2) {
-		int creditIndex;
+	} else if (text_mode == 2) {
+		int credit_index;
 
 #ifdef XVT_MODERN
-		XvtCockpitPages_RecordScroll(MFD_PAGE_MAP_HELP, firstCredit,
-					     lastCredit - firstCredit, -1);
+		xvt_cockpit_pages_record_scroll(MFD_PAGE_MAP_HELP, first_credit,
+						last_credit - first_credit, -1);
 #endif
-		g_flightFillClipRectFn();
-		FlightText_SetColor(MFD_CREDIT_COLOR);
-		for (creditIndex = firstCredit; creditIndex < lastCredit;
-		     ++creditIndex) {
-			FlightText_SetCursor(left, (uint16_t)top);
-			FlightText_DrawString(
-				g_mfdDeveloperCreditsLines[creditIndex]);
-			top = (int16_t)(top + lineStep);
+		g_flight_fill_clip_rect_fn();
+		flight_text_set_color(MFD_CREDIT_COLOR);
+		for (credit_index = first_credit; credit_index < last_credit;
+		     ++credit_index) {
+			flight_text_set_cursor(left, (uint16_t)top);
+			flight_text_draw_string(
+				g_mfd_developer_credits_lines[credit_index]);
+			top = (int16_t)(top + line_step);
 		}
-	} else if (textMode == 3) {
-		int creditIndex;
+	} else if (text_mode == 3) {
+		int credit_index;
 
 #ifdef XVT_MODERN
-		XvtCockpitPages_RecordScroll(MFD_PAGE_MAP_HELP, firstCredit,
-					     1 + lastCredit - firstCredit, -1);
+		xvt_cockpit_pages_record_scroll(MFD_PAGE_MAP_HELP, first_credit,
+						1 + last_credit - first_credit,
+						-1);
 #endif
-		g_flightFillClipRectFn();
-		FlightText_SetColor(MFD_CREDIT_COLOR);
-		for (creditIndex = 0; creditIndex < 1; ++creditIndex) {
-			FlightText_SetCursor(left, (uint16_t)top);
-			FlightText_DrawString(
-				g_mfdDeveloperCreditsLines[creditIndex]);
-			top = (int16_t)(top + lineStep);
+		g_flight_fill_clip_rect_fn();
+		flight_text_set_color(MFD_CREDIT_COLOR);
+		for (credit_index = 0; credit_index < 1; ++credit_index) {
+			flight_text_set_cursor(left, (uint16_t)top);
+			flight_text_draw_string(
+				g_mfd_developer_credits_lines[credit_index]);
+			top = (int16_t)(top + line_step);
 		}
-		for (creditIndex = firstCredit; creditIndex < lastCredit;
-		     ++creditIndex) {
-			FlightText_SetCursor(left, (uint16_t)top);
-			FlightText_DrawString(
-				g_mfdDeveloperCreditsLines[creditIndex + 10]);
-			top = (int16_t)(top + lineStep);
+		for (credit_index = first_credit; credit_index < last_credit;
+		     ++credit_index) {
+			flight_text_set_cursor(left, (uint16_t)top);
+			flight_text_draw_string(
+				g_mfd_developer_credits_lines[credit_index +
+							      10]);
+			top = (int16_t)(top + line_step);
 		}
 	}
 
 #ifdef XVT_MODERN
-	XvtCockpitPages_EndSection();
+	xvt_cockpit_pages_end_section();
 #endif
-	FlightSw_SetRenderTarget(NULL, MFD_DEFAULT_WIDTH, MFD_DEFAULT_HEIGHT,
-				 0);
+	flight_sw_set_render_target(NULL, MFD_DEFAULT_WIDTH, MFD_DEFAULT_HEIGHT,
+				    0);
 }
 
 /* Opens or closes an MFD page for the local player. Outside the map view, a
  * closed page opens as the active page and the old active page becomes the
  * secondary one; any other state turns to closing. When neither craft list
  * is then closed, the list page does not name turns to closing, and
- * g_mfdSecondaryPage goes back to its earlier value unless that was a craft
+ * g_mfd_secondary_page goes back to its earlier value unless that was a craft
  * list; when page was being closed, that earlier value is read unset. In the
  * map view, a page other than the message log first closes every other open
  * page but the friendly craft list and the message log; then an open page
  * turns to closing, or a closed one opens as the active page. Writes
- * g_mfdPageStates, g_mfdActivePage and g_mfdSecondaryPage. */
+ * g_mfd_page_states, g_mfd_active_page and g_mfd_secondary_page. */
 // FUNCTION: XVT 0x4803F0
-void Mfd_TogglePage(uint16_t page)
+void mfd_toggle_page(uint16_t page)
 {
-	int16_t *pageState;
-	int16_t previousSecondaryPage;
-	uint16_t otherPage;
+	int16_t *page_state;
+	int16_t previous_secondary_page;
+	uint16_t other_page;
 
-	if (g_players[g_localPlayer].mapCameraState == 0) {
-		pageState = &g_mfdPageStates[page];
-		if (*pageState != MFD_PAGE_STATE_CLOSED) {
-			*pageState = MFD_PAGE_STATE_CLOSING;
+	if (g_players[g_local_player].map_camera_state == 0) {
+		page_state = &g_mfd_page_states[page];
+		if (*page_state != MFD_PAGE_STATE_CLOSED) {
+			*page_state = MFD_PAGE_STATE_CLOSING;
 		} else {
-			int16_t previousActivePage;
+			int16_t previous_active_page;
 
-			previousActivePage = g_mfdActivePage;
-			*pageState = MFD_PAGE_STATE_OPEN;
-			previousSecondaryPage = g_mfdSecondaryPage;
-			g_mfdSecondaryPage = previousActivePage;
-			g_mfdActivePage = page;
+			previous_active_page = g_mfd_active_page;
+			*page_state = MFD_PAGE_STATE_OPEN;
+			previous_secondary_page = g_mfd_secondary_page;
+			g_mfd_secondary_page = previous_active_page;
+			g_mfd_active_page = page;
 		}
-		if (g_mfdPageStates[MFD_PAGE_FRIENDLY_CRAFT] !=
+		if (g_mfd_page_states[MFD_PAGE_FRIENDLY_CRAFT] !=
 			    MFD_PAGE_STATE_CLOSED &&
-		    g_mfdPageStates[MFD_PAGE_HOSTILE_CRAFT] !=
+		    g_mfd_page_states[MFD_PAGE_HOSTILE_CRAFT] !=
 			    MFD_PAGE_STATE_CLOSED) {
 			if (page == MFD_PAGE_FRIENDLY_CRAFT) {
-				g_mfdPageStates[MFD_PAGE_HOSTILE_CRAFT] =
+				g_mfd_page_states[MFD_PAGE_HOSTILE_CRAFT] =
 					MFD_PAGE_STATE_CLOSING;
 			} else {
-				g_mfdPageStates[MFD_PAGE_FRIENDLY_CRAFT] =
+				g_mfd_page_states[MFD_PAGE_FRIENDLY_CRAFT] =
 					MFD_PAGE_STATE_CLOSING;
 			}
-			if (previousSecondaryPage != MFD_PAGE_FRIENDLY_CRAFT &&
-			    previousSecondaryPage != MFD_PAGE_HOSTILE_CRAFT) {
-				g_mfdSecondaryPage = previousSecondaryPage;
+			if (previous_secondary_page !=
+				    MFD_PAGE_FRIENDLY_CRAFT &&
+			    previous_secondary_page != MFD_PAGE_HOSTILE_CRAFT) {
+				g_mfd_secondary_page = previous_secondary_page;
 			}
 		}
 		return;
 	}
 
 	if (page != MFD_PAGE_MESSAGE_LOG) {
-		for (otherPage = MFD_PAGE_SCOREBOARD;
-		     otherPage < MFD_PAGE_COUNT; ++otherPage) {
-			if (page != otherPage &&
-			    otherPage != MFD_PAGE_FRIENDLY_CRAFT &&
-			    otherPage != MFD_PAGE_MESSAGE_LOG &&
-			    g_mfdPageStates[otherPage] !=
+		for (other_page = MFD_PAGE_SCOREBOARD;
+		     other_page < MFD_PAGE_COUNT; ++other_page) {
+			if (page != other_page &&
+			    other_page != MFD_PAGE_FRIENDLY_CRAFT &&
+			    other_page != MFD_PAGE_MESSAGE_LOG &&
+			    g_mfd_page_states[other_page] !=
 				    MFD_PAGE_STATE_CLOSED) {
-				g_mfdPageStates[otherPage] =
+				g_mfd_page_states[other_page] =
 					MFD_PAGE_STATE_CLOSING;
 			}
 		}
 	}
-	pageState = &g_mfdPageStates[page];
-	if (*pageState != MFD_PAGE_STATE_CLOSED) {
-		*pageState = MFD_PAGE_STATE_CLOSING;
+	page_state = &g_mfd_page_states[page];
+	if (*page_state != MFD_PAGE_STATE_CLOSED) {
+		*page_state = MFD_PAGE_STATE_CLOSING;
 		return;
 	}
-	*pageState = MFD_PAGE_STATE_OPEN;
-	g_mfdSecondaryPage = g_mfdActivePage;
-	g_mfdActivePage = page;
+	*page_state = MFD_PAGE_STATE_OPEN;
+	g_mfd_secondary_page = g_mfd_active_page;
+	g_mfd_active_page = page;
 }
 
 /* Returns the first page, from MFD_PAGE_SCOREBOARD up, that is not closed
- * and is not g_mfdActivePage, or -1 when there is none. */
+ * and is not g_mfd_active_page, or -1 when there is none. */
 // FUNCTION: XVT 0x480530
-int16_t Mfd_FindSecondaryOpenPage(void)
+int16_t mfd_find_secondary_open_page(void)
 {
-	uint16_t activePage;
+	uint16_t active_page;
 	uint16_t page;
 
-	activePage = g_mfdActivePage;
+	active_page = g_mfd_active_page;
 	for (page = MFD_PAGE_SCOREBOARD; page < MFD_PAGE_COUNT; page++) {
-		if (g_mfdPageStates[page] != MFD_PAGE_STATE_CLOSED &&
-		    activePage != page) {
+		if (g_mfd_page_states[page] != MFD_PAGE_STATE_CLOSED &&
+		    active_page != page) {
 			return (int16_t)page;
 		}
 	}
@@ -3646,209 +3743,213 @@ int16_t Mfd_FindSecondaryOpenPage(void)
  * active, action keys 0xA6 and 0xA7 scroll one line and 0xAC and 0xAD four; it
  * redraws when scrolled or when the log grows. When the page state turns to
  * closing it clears the pane, makes the secondary page active, and returns
- * cursorY, which the modern build sets to 0 and the original leaves unset;
+ * cursor_y, which the modern build sets to 0 and the original leaves unset;
  * otherwise it returns the last display offset the pane covers. Writes
- * g_mfdMessageLogScrollOffset, g_mfdMessageLogRedraw,
- * g_mfdMessageLogLastDrawTotalCount, g_messageLogRecords,
- * g_flightTextShadowEnabled, g_flightTextColorIndex, g_mfdActivePage and
- * g_mfdSecondaryPage. */
+ * g_mfd_message_log_scroll_offset, g_mfd_message_log_redraw,
+ * g_mfd_message_log_last_draw_total_count, g_message_log_records,
+ * g_flight_text_shadow_enabled, g_flight_text_color_index, g_mfd_active_page and
+ * g_mfd_secondary_page. */
 // FUNCTION: XVT 0x49EC40
-int16_t Mfd_DrawMessageLogPage(void)
+int16_t mfd_draw_message_log_page(void)
 {
 	int16_t left;
 	int16_t top;
 	int16_t right;
 	int16_t bottom;
-	int16_t lineHeight;
-	int16_t cursorY;
-	int16_t displayOffset;
-	int16_t lastDisplayOffset;
-	int16_t maxDisplayOffset;
-	int16_t logRecordCount;
+	int16_t line_height;
+	int16_t cursor_y;
+	int16_t display_offset;
+	int16_t last_display_offset;
+	int16_t max_display_offset;
+	int16_t log_record_count;
 	unsigned int pitch;
-	int recordIndex;
-	uint8_t prefixCode;
+	int record_index;
+	uint8_t prefix_code;
 	uint8_t ch;
 	char *text;
 
 #ifdef XVT_MODERN
 	ch = 0;
-	cursorY = 0;
+	cursor_y = 0;
 #endif
 
-	left = (int16_t)(g_readyMessagePaneLeft + 2);
-	top = (int16_t)(g_readyMessagePaneTop + 2);
-	right = (int16_t)(g_readyMessagePaneRight - 2);
-	bottom = (int16_t)(g_readyMessagePaneBottom - 2);
-	pitch = g_flightBytesPerPixel * g_screenWidth;
-	FlightSw_SetRenderTarget(g_flightOffscreenBuffer, g_screenWidth,
-				 g_screenHeight, (int)pitch);
-	if (g_hudElementStateCache[g_hudInstrumentSetBaseIndex +
-				   HUD_MFD_MESSAGE_LOG_ELEMENT] !=
-	    g_mfdPageStates[MFD_PAGE_MESSAGE_LOG]) {
-		FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
-		FlightText_SetClipRect(
-			g_readyMessagePaneLeft, g_readyMessagePaneTop,
-			g_readyMessagePaneRight, g_readyMessagePaneBottom);
+	left = (int16_t)(g_ready_message_pane_left + 2);
+	top = (int16_t)(g_ready_message_pane_top + 2);
+	right = (int16_t)(g_ready_message_pane_right - 2);
+	bottom = (int16_t)(g_ready_message_pane_bottom - 2);
+	pitch = g_flight_bytes_per_pixel * g_screen_width;
+	flight_sw_set_render_target(g_flight_offscreen_buffer, g_screen_width,
+				    g_screen_height, (int)pitch);
+	if (g_hud_element_state_cache[g_hud_instrument_set_base_index +
+				      HUD_MFD_MESSAGE_LOG_ELEMENT] !=
+	    g_mfd_page_states[MFD_PAGE_MESSAGE_LOG]) {
+		flight_text_set_background_color(
+			g_flight_transparent_color_index);
+		flight_text_set_clip_rect(g_ready_message_pane_left,
+					  g_ready_message_pane_top,
+					  g_ready_message_pane_right,
+					  g_ready_message_pane_bottom);
 #ifdef XVT_MODERN
-		XvtCockpitMessages_Clear(XVT_COCKPIT_MESSAGE_READY);
+		xvt_cockpit_messages_clear(XVT_COCKPIT_MESSAGE_READY);
 #endif
-		g_flightFillClipRectFn();
-		if (g_mfdPageStates[MFD_PAGE_MESSAGE_LOG] ==
+		g_flight_fill_clip_rect_fn();
+		if (g_mfd_page_states[MFD_PAGE_MESSAGE_LOG] ==
 		    MFD_PAGE_STATE_CLOSING) {
 #ifdef XVT_MODERN
-			XvtCockpitPages_Clear(MFD_PAGE_MESSAGE_LOG);
+			xvt_cockpit_pages_clear(MFD_PAGE_MESSAGE_LOG);
 #endif
-			if (g_mfdActivePage == MFD_PAGE_MESSAGE_LOG) {
-				g_mfdActivePage = g_mfdSecondaryPage;
-				g_mfdSecondaryPage =
-					Mfd_FindSecondaryOpenPage();
+			if (g_mfd_active_page == MFD_PAGE_MESSAGE_LOG) {
+				g_mfd_active_page = g_mfd_secondary_page;
+				g_mfd_secondary_page =
+					mfd_find_secondary_open_page();
 			}
-			FlightSw_SetRenderTarget(NULL, 320, 200, 0);
-			return cursorY;
+			flight_sw_set_render_target(NULL, 320, 200, 0);
+			return cursor_y;
 		}
 	}
 
-	FlightText_SetClipRect(left, top, right, bottom);
-	FlightText_SetWordWrap(1);
-	FlightText_SetClearLineBackground(1);
-	FlightText_SetFontTier(0);
+	flight_text_set_clip_rect(left, top, right, bottom);
+	flight_text_set_word_wrap(1);
+	flight_text_set_clear_line_background(1);
+	flight_text_set_font_tier(0);
 #ifdef XVT_MODERN
-	XvtCockpitPages_SetOrigin(MFD_PAGE_MESSAGE_LOG,
-				  g_readyMessagePaneLeft -
-					  (g_flightPlayerCount >= 1
-						   ? 2 * g_flightFontDigitWidth
-						   : 0),
-				  g_readyMessagePaneTop);
+	xvt_cockpit_pages_set_origin(
+		MFD_PAGE_MESSAGE_LOG,
+		g_ready_message_pane_left -
+			(g_flight_player_count >= 1
+				 ? 2 * g_flight_font_digit_width
+				 : 0),
+		g_ready_message_pane_top);
 #endif
-	FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
-	g_flightTextShadowEnabled = 1;
-	lineHeight = (int16_t)(g_flightFontLineHeight + 2);
-	FlightText_SetColor(0x43);
-	logRecordCount = (int16_t)g_messageLogWriteIndex;
-	g_messageLogRecords =
-		(struct HudInFlightMessageRecord *)Memory_GetHandleBlock(
-			g_messageLogHandle);
-	Memory_HandleBlockDoneStub(g_messageLogHandle);
-	cursorY = top;
+	flight_text_set_background_color(g_flight_transparent_color_index);
+	g_flight_text_shadow_enabled = 1;
+	line_height = (int16_t)(g_flight_font_line_height + 2);
+	flight_text_set_color(0x43);
+	log_record_count = (int16_t)g_message_log_write_index;
+	g_message_log_records =
+		(struct hud_in_flight_message_record *)memory_get_handle_block(
+			g_message_log_handle);
+	memory_handle_block_done_stub(g_message_log_handle);
+	cursor_y = top;
 
-	if (g_hudElementStateCache[g_hudInstrumentSetBaseIndex +
-				   HUD_MFD_MESSAGE_LOG_ELEMENT] !=
-	    g_mfdPageStates[MFD_PAGE_MESSAGE_LOG]) {
-		g_mfdMessageLogScrollOffset = 0;
-		g_mfdMessageLogLastDrawTotalCount = 0;
-		g_mfdMessageLogRedraw = 1;
-		g_flightFillClipRectFn();
+	if (g_hud_element_state_cache[g_hud_instrument_set_base_index +
+				      HUD_MFD_MESSAGE_LOG_ELEMENT] !=
+	    g_mfd_page_states[MFD_PAGE_MESSAGE_LOG]) {
+		g_mfd_message_log_scroll_offset = 0;
+		g_mfd_message_log_last_draw_total_count = 0;
+		g_mfd_message_log_redraw = 1;
+		g_flight_fill_clip_rect_fn();
 	} else {
-		if (g_mfdActivePage == MFD_PAGE_MESSAGE_LOG) {
-			switch (g_currentActionKey) {
+		if (g_mfd_active_page == MFD_PAGE_MESSAGE_LOG) {
+			switch (g_current_action_key) {
 			case 0xA6:
-				if (g_mfdMessageLogScrollOffset > 0) {
-					--g_mfdMessageLogScrollOffset;
-					g_mfdMessageLogRedraw = 1;
+				if (g_mfd_message_log_scroll_offset > 0) {
+					--g_mfd_message_log_scroll_offset;
+					g_mfd_message_log_redraw = 1;
 				}
 				break;
 			case 0xA7:
-				maxDisplayOffset = g_messageLogWrapped != 0
-							   ? 300
-							   : logRecordCount;
-				if ((top - bottom) / lineHeight +
-					    maxDisplayOffset >=
-				    g_mfdMessageLogScrollOffset) {
-					++g_mfdMessageLogScrollOffset;
-					g_mfdMessageLogRedraw = 1;
+				max_display_offset = g_message_log_wrapped != 0
+							     ? 300
+							     : log_record_count;
+				if ((top - bottom) / line_height +
+					    max_display_offset >=
+				    g_mfd_message_log_scroll_offset) {
+					++g_mfd_message_log_scroll_offset;
+					g_mfd_message_log_redraw = 1;
 				}
 				break;
 			case 0xAC:
-				if (g_mfdMessageLogScrollOffset > 4) {
-					g_mfdMessageLogScrollOffset -= 4;
-					g_mfdMessageLogRedraw = 1;
+				if (g_mfd_message_log_scroll_offset > 4) {
+					g_mfd_message_log_scroll_offset -= 4;
+					g_mfd_message_log_redraw = 1;
 				}
 				break;
 			case 0xAD:
-				maxDisplayOffset = g_messageLogWrapped != 0
-							   ? 300
-							   : logRecordCount;
-				if (maxDisplayOffset +
-					    (top - bottom) / lineHeight - 4 >=
-				    g_mfdMessageLogScrollOffset) {
-					g_mfdMessageLogScrollOffset += 4;
-					g_mfdMessageLogRedraw = 1;
+				max_display_offset = g_message_log_wrapped != 0
+							     ? 300
+							     : log_record_count;
+				if (max_display_offset +
+					    (top - bottom) / line_height - 4 >=
+				    g_mfd_message_log_scroll_offset) {
+					g_mfd_message_log_scroll_offset += 4;
+					g_mfd_message_log_redraw = 1;
 				}
 				break;
 			default:
 				break;
 			}
 		}
-		if (g_messageLogTotalCount !=
-		    g_mfdMessageLogLastDrawTotalCount) {
-			g_mfdMessageLogRedraw = 1;
+		if (g_message_log_total_count !=
+		    g_mfd_message_log_last_draw_total_count) {
+			g_mfd_message_log_redraw = 1;
 		}
 	}
 
-	lastDisplayOffset = (int16_t)((bottom - top) / lineHeight +
-				      g_mfdMessageLogScrollOffset);
-	if (g_mfdMessageLogRedraw != 0) {
+	last_display_offset = (int16_t)((bottom - top) / line_height +
+					g_mfd_message_log_scroll_offset);
+	if (g_mfd_message_log_redraw != 0) {
 #ifdef XVT_MODERN
-		XvtCockpitPages_RecordBackground(MFD_PAGE_MESSAGE_LOG);
-		XvtCockpitPages_BeginSection(MFD_PAGE_MESSAGE_LOG,
-					     XVT_COCKPIT_PAGE_BODY);
+		xvt_cockpit_pages_record_background(MFD_PAGE_MESSAGE_LOG);
+		xvt_cockpit_pages_begin_section(MFD_PAGE_MESSAGE_LOG,
+						XVT_COCKPIT_PAGE_BODY);
 #endif
-		g_flightFillClipRectFn();
-		for (displayOffset = 0; displayOffset <= lastDisplayOffset;
-		     ++displayOffset) {
-			if (displayOffset >= g_mfdMessageLogScrollOffset &&
-			    displayOffset < 300) {
-				FlightText_SetCursor(left, cursorY);
-				recordIndex = Mfd_GetMessageLogRecordIndex(
-					displayOffset);
-				if (recordIndex >= 0) {
-					text = g_messageLogRecords[recordIndex]
-						       .text;
-					prefixCode = (uint8_t)text[0];
-					if (prefixCode < 9) {
-						FlightText_SetColor(
-							g_messageTextPrefixColorCodes
-								[prefixCode]);
+		g_flight_fill_clip_rect_fn();
+		for (display_offset = 0; display_offset <= last_display_offset;
+		     ++display_offset) {
+			if (display_offset >= g_mfd_message_log_scroll_offset &&
+			    display_offset < 300) {
+				flight_text_set_cursor(left, cursor_y);
+				record_index = mfd_get_message_log_record_index(
+					display_offset);
+				if (record_index >= 0) {
+					text = g_message_log_records
+						       [record_index]
+							       .text;
+					prefix_code = (uint8_t)text[0];
+					if (prefix_code < 9) {
+						flight_text_set_color(
+							g_message_text_prefix_color_codes
+								[prefix_code]);
 						++text;
-						if (prefixCode == 1) {
+						if (prefix_code == 1) {
 							if ((uint8_t)text[0] >=
 								    '0' &&
 							    (uint8_t)text[0] <=
 								    '3') {
-								FlightText_SetColor(
-									g_messageTextPrefixColorCodes
+								flight_text_set_color(
+									g_message_text_prefix_color_codes
 										[(uint8_t)text
 											 [0] -
 										 '(']);
 								++text;
 							}
-						} else if (prefixCode == 2) {
-							FlightText_SetColor(
-								g_messageSenderIffColorCodes
-									[g_messageLogRecords[recordIndex]
-										 .senderIff]);
+						} else if (prefix_code == 2) {
+							flight_text_set_color(
+								g_message_sender_iff_color_codes
+									[g_message_log_records[record_index]
+										 .sender_iff]);
 						}
 					} else {
-						FlightText_SetColor(0x42);
+						flight_text_set_color(0x42);
 					}
 					while (*text != '\0') {
 						if (*text == '[') {
-							if (g_flightTextColorIndex ==
+							if (g_flight_text_color_index ==
 							    0xD4) {
-								--g_flightTextColorIndex;
+								--g_flight_text_color_index;
 							} else {
-								++g_flightTextColorIndex;
+								++g_flight_text_color_index;
 							}
 						} else if (*text == ']') {
-							if (g_flightTextColorIndex ==
+							if (g_flight_text_color_index ==
 							    0xD3) {
-								++g_flightTextColorIndex;
+								++g_flight_text_color_index;
 							} else {
-								--g_flightTextColorIndex;
+								--g_flight_text_color_index;
 							}
 						} else {
-							g_flightDrawCharFn(
+							g_flight_draw_char_fn(
 								(uint8_t)*text);
 						}
 						ch = (uint8_t)*text;
@@ -3856,107 +3957,109 @@ int16_t Mfd_DrawMessageLogPage(void)
 					}
 					if (ch != '?' && ch != '!' &&
 					    ch != ':' && ch != ' ') {
-						g_flightDrawCharFn('.');
+						g_flight_draw_char_fn('.');
 					}
-					FlightText_SetBackgroundColor(
-						g_flightTransparentColorIndex);
-					g_flightDrawCharFn('\n');
-					FlightText_SetColor(0x42);
-					FlightText_SetBackgroundColor(
-						g_flightTransparentColorIndex);
-					if (g_messageLogRecords[recordIndex]
-						    .clockHour != 0) {
-						FlightText_SetCursor(
-							right - FlightText_MeasureStringWidth(
+					flight_text_set_background_color(
+						g_flight_transparent_color_index);
+					g_flight_draw_char_fn('\n');
+					flight_text_set_color(0x42);
+					flight_text_set_background_color(
+						g_flight_transparent_color_index);
+					if (g_message_log_records[record_index]
+						    .clock_hour != 0) {
+						flight_text_set_cursor(
+							right - flight_text_measure_string_width(
 									"00:00:00 "),
-							cursorY);
-						FlightText_DrawDecimalNumber(
-							g_messageLogRecords
-								[recordIndex]
-									.clockHour,
+							cursor_y);
+						flight_text_draw_decimal_number(
+							g_message_log_records
+								[record_index]
+									.clock_hour,
 							2, 1);
-						g_flightDrawCharFn(':');
-						FlightText_DrawDecimalNumber(
-							g_messageLogRecords
-								[recordIndex]
-									.clockMinute,
+						g_flight_draw_char_fn(':');
+						flight_text_draw_decimal_number(
+							g_message_log_records
+								[record_index]
+									.clock_minute,
 							2, 2);
 					} else {
-						FlightText_SetCursor(
-							right - FlightText_MeasureStringWidth(
+						flight_text_set_cursor(
+							right - flight_text_measure_string_width(
 									"00:00 "),
-							cursorY);
-						FlightText_DrawDecimalNumber(
-							g_messageLogRecords
-								[recordIndex]
-									.clockMinute,
+							cursor_y);
+						flight_text_draw_decimal_number(
+							g_message_log_records
+								[record_index]
+									.clock_minute,
 							2, 1);
 					}
-					g_flightDrawCharFn(':');
-					FlightText_DrawDecimalNumber(
-						g_messageLogRecords[recordIndex]
-							.clockSecond,
+					g_flight_draw_char_fn(':');
+					flight_text_draw_decimal_number(
+						g_message_log_records
+							[record_index]
+								.clock_second,
 						2, 2);
-					g_flightDrawCharFn(' ');
-					cursorY =
-						(int16_t)(cursorY + lineHeight);
+					g_flight_draw_char_fn(' ');
+					cursor_y = (int16_t)(cursor_y +
+							     line_height);
 				}
 			}
 		}
 	}
 
 #ifdef XVT_MODERN
-	XvtCockpitPages_EndSection();
-	XvtCockpitPages_RecordScroll(
-		MFD_PAGE_MESSAGE_LOG, g_mfdMessageLogScrollOffset,
-		g_messageLogWrapped ? 300 : logRecordCount, -1);
+	xvt_cockpit_pages_end_section();
+	xvt_cockpit_pages_record_scroll(
+		MFD_PAGE_MESSAGE_LOG, g_mfd_message_log_scroll_offset,
+		g_message_log_wrapped ? 300 : log_record_count, -1);
 #endif
-	FlightText_SetWordWrap(0);
-	g_mfdMessageLogRedraw = 0;
-	if (g_players[g_localPlayer].mapCameraState == 0 &&
-	    g_mfdActivePage == MFD_PAGE_NONE) {
-		g_mfdActivePage = MFD_PAGE_MESSAGE_LOG;
+	flight_text_set_word_wrap(0);
+	g_mfd_message_log_redraw = 0;
+	if (g_players[g_local_player].map_camera_state == 0 &&
+	    g_mfd_active_page == MFD_PAGE_NONE) {
+		g_mfd_active_page = MFD_PAGE_MESSAGE_LOG;
 	}
-	if (g_mfdActivePage == MFD_PAGE_MESSAGE_LOG) {
-		FlightText_SetBackgroundColor(0x46);
-		FlightText_SetClipRect(left - 2, top - 2, right + 2,
-				       bottom + 2);
+	if (g_mfd_active_page == MFD_PAGE_MESSAGE_LOG) {
+		flight_text_set_background_color(0x46);
+		flight_text_set_clip_rect(left - 2, top - 2, right + 2,
+					  bottom + 2);
 #ifdef XVT_MODERN
-		XvtCockpitPages_RecordBorder(MFD_PAGE_MESSAGE_LOG);
+		xvt_cockpit_pages_record_border(MFD_PAGE_MESSAGE_LOG);
 #endif
-		g_flightFillRectClippedFn(left - 2, top - 2, right + 2,
-					  bottom + 2, 1);
-	} else if (g_mfdSecondaryPage == MFD_PAGE_MESSAGE_LOG) {
-		FlightText_SetBackgroundColor(g_flightTransparentColorIndex);
-		FlightText_SetClipRect(left - 2, top - 2, right + 2,
-				       bottom + 2);
+		g_flight_fill_rect_clipped_fn(left - 2, top - 2, right + 2,
+					      bottom + 2, 1);
+	} else if (g_mfd_secondary_page == MFD_PAGE_MESSAGE_LOG) {
+		flight_text_set_background_color(
+			g_flight_transparent_color_index);
+		flight_text_set_clip_rect(left - 2, top - 2, right + 2,
+					  bottom + 2);
 #ifdef XVT_MODERN
-		XvtCockpitPages_RecordBorder(MFD_PAGE_MESSAGE_LOG);
+		xvt_cockpit_pages_record_border(MFD_PAGE_MESSAGE_LOG);
 #endif
-		g_flightFillRectClippedFn(left - 2, top - 2, right + 2,
-					  bottom + 2, 1);
+		g_flight_fill_rect_clipped_fn(left - 2, top - 2, right + 2,
+					      bottom + 2, 1);
 	}
-	FlightSw_SetRenderTarget(NULL, 320, 200, 0);
-	g_mfdMessageLogLastDrawTotalCount = g_messageLogTotalCount;
-	return lastDisplayOffset;
+	flight_sw_set_render_target(NULL, 320, 200, 0);
+	g_mfd_message_log_last_draw_total_count = g_message_log_total_count;
+	return last_display_offset;
 }
 
 /* Maps a display offset, 0 for the newest message, to its index in the
  * 300-entry message log: while 300 or fewer were logged,
- * g_messageLogTotalCount - displayOffset - 1, negative past the oldest; after
- * that, counting back from g_messageLogWriteIndex and wrapping at 300. Does
- * not check that displayOffset is below 300. */
+ * g_message_log_total_count - display_offset - 1, negative past the oldest; after
+ * that, counting back from g_message_log_write_index and wrapping at 300. Does
+ * not check that display_offset is below 300. */
 // FUNCTION: XVT 0x49F330
-int Mfd_GetMessageLogRecordIndex(int displayOffset)
+int mfd_get_message_log_record_index(int display_offset)
 {
-	int recordIndex;
+	int record_index;
 
-	if (g_messageLogTotalCount <= 300) {
-		return g_messageLogTotalCount - displayOffset - 1;
+	if (g_message_log_total_count <= 300) {
+		return g_message_log_total_count - display_offset - 1;
 	}
-	recordIndex = g_messageLogWriteIndex - displayOffset - 1;
-	if (recordIndex < 0) {
-		recordIndex += 300;
+	record_index = g_message_log_write_index - display_offset - 1;
+	if (record_index < 0) {
+		record_index += 300;
 	}
-	return recordIndex;
+	return record_index;
 }

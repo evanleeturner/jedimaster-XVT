@@ -3,18 +3,19 @@
 #include "aeron/compat/host.h"
 #include "xvt_runtime/runtime/movie_task.h"
 
-static AeronRectI g_logicalRect = {0, 0, XVT_CLASSIC_WIDTH, XVT_CLASSIC_HEIGHT};
+static AeronRectI g_logical_rect = {0, 0, XVT_CLASSIC_WIDTH,
+				    XVT_CLASSIC_HEIGHT};
 
-static AeronDx5Rect ClassicRect(void *context, int width, int height)
+static AeronDx5Rect classic_rect(void *context, int width, int height)
 {
-	AeronRectI rect = XvtPresentation_ClassicRect();
+	AeronRectI rect = xvt_presentation_classic_rect();
 	(void)context;
 	(void)width;
 	(void)height;
 	return (AeronDx5Rect){rect.x, rect.y, rect.width, rect.height};
 }
 
-void XvtPresentation_SyncToWindow(int width, int height)
+void xvt_presentation_sync_to_window(int width, int height)
 {
 	if (width <= 0 || height <= 0) {
 		return;
@@ -26,26 +27,27 @@ void XvtPresentation_SyncToWindow(int width, int height)
 	if (w > 32 * 480 / 9) {
 		w = (32 * 480 / 9) & ~1;
 	}
-	if (g_logicalRect.width != w) {
-		g_logicalRect.width = w;
+	if (g_logical_rect.width != w) {
+		g_logical_rect.width = w;
 		Aeron_SetLogicalSize(w, 480);
 	}
 }
 
-AeronRectI XvtPresentation_LogicalRect(void) { return g_logicalRect; }
+AeronRectI xvt_presentation_logical_rect(void) { return g_logical_rect; }
 
-AeronRectI XvtPresentation_ClassicRect(void)
+AeronRectI xvt_presentation_classic_rect(void)
 {
-	return (AeronRectI){(g_logicalRect.width - 640) / 2, 0, 640, 480};
+	return (AeronRectI){(g_logical_rect.width - 640) / 2, 0, 640, 480};
 }
 
-AeronRectI XvtPresentation_FromClassic(AeronRectI r)
+AeronRectI xvt_presentation_from_classic(AeronRectI r)
 {
-	r.x += XvtPresentation_ClassicRect().x;
+	r.x += xvt_presentation_classic_rect().x;
 	return r;
 }
 
-int XvtPresentation_MouseToClassic(const AeronInputSnapshot *in, int *x, int *y)
+int xvt_presentation_mouse_to_classic(const AeronInputSnapshot *in, int *x,
+				      int *y)
 {
 	if (!in || in->window_width <= 0 || in->window_height <= 0) {
 		return 0;
@@ -68,33 +70,33 @@ int XvtPresentation_MouseToClassic(const AeronInputSnapshot *in, int *x, int *y)
 	       py < h;
 }
 
-int XvtPresentation_WarpClassic(int x, int y)
+int xvt_presentation_warp_classic(int x, int y)
 {
-	return Aeron_WarpMouseLogical(x + XvtPresentation_ClassicRect().x, y);
+	return Aeron_WarpMouseLogical(x + xvt_presentation_classic_rect().x, y);
 }
 
-void XvtPresentation_RequireClassic(void)
+void xvt_presentation_require_classic(void)
 {
 	AeronDx5_SetClassicFlightRenderingSuppressed(0);
 }
 
-void XvtPresentation_Init(void)
+void xvt_presentation_init(void)
 {
 	AeronDx5Config config = {0};
-	g_logicalRect = (AeronRectI){0, 0, 640, 480};
-	config.presentation_rect = ClassicRect;
+	g_logical_rect = (AeronRectI){0, 0, 640, 480};
+	config.presentation_rect = classic_rect;
 	AeronDx5_Configure(&config);
 	AeronDx5_ResetPresentationState();
 }
 
-void XvtPresentation_EndFrame(int movie_presented)
+void xvt_presentation_end_frame(int movie_presented)
 {
-	if (!movie_presented && !XvtMovieTask_IsActive()) {
+	if (!movie_presented && !xvt_movie_task_is_active()) {
 		AeronDx5_EndFrame();
 	}
 }
 
-void XvtPresentation_Shutdown(void)
+void xvt_presentation_shutdown(void)
 {
 	AeronDx5_SetClassicFlightRenderingSuppressed(0);
 	AeronDx5_Shutdown();

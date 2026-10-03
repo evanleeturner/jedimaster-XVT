@@ -4,16 +4,16 @@
 #include "xvt_remaster/config.h"
 #include <string.h>
 
-static struct XvtPreparedFlight g_frame;
-static uint64_t g_lastMission, g_lastWorld, g_lastOpt, g_lastTexture;
+static struct xvt_prepared_flight g_frame;
+static uint64_t g_last_mission, g_last_world, g_last_opt, g_last_texture;
 static int g_width, g_height;
-static uint64_t g_poseHostUs;
-static uint64_t g_lastConfig, g_resizeSince;
-static int g_requestedWidth, g_requestedHeight, g_lastHdr, g_lastPaused;
-static float g_lastHeadroom;
+static uint64_t g_pose_host_us;
+static uint64_t g_last_config, g_resize_since;
+static int g_requested_width, g_requested_height, g_last_hdr, g_last_paused;
+static float g_last_headroom;
 
-static int ViewDiscontinuity(const struct XvtSnapCamera *a,
-			     const struct XvtSnapCamera *b)
+static int view_discontinuity(const struct xvt_snap_camera *a,
+			      const struct xvt_snap_camera *b)
 {
 	return a->player.slot != b->player.slot ||
 	       a->player.signature != b->player.signature ||
@@ -30,11 +30,14 @@ static int ViewDiscontinuity(const struct XvtSnapCamera *a,
 	       a->projection_offset_y != b->projection_offset_y;
 }
 
-void XvtRemasterFlight_Invalidate(void) { g_frame.valid = 0; }
+void xvt_remaster_flight_invalidate(void) { g_frame.valid = 0; }
 
-void XvtRemasterFlight_RequestComposition(void) { g_frame.render_needed = 1; }
+void xvt_remaster_flight_request_composition(void)
+{
+	g_frame.render_needed = 1;
+}
 
-const struct XvtPreparedFlight *XvtRemasterFlight_Current(void)
+const struct xvt_prepared_flight *xvt_remaster_flight_current(void)
 {
 	return g_frame.valid ? &g_frame : NULL;
 }
@@ -45,27 +48,27 @@ const struct XvtPreparedFlight *XvtRemasterFlight_Current(void)
  * whether the frame must be drawn again. The decisions made near the top are
  * read by most later steps, so pieces split out would each take much of this
  * state as arguments or hand several values back. */
-int XvtRemasterFlight_Prepare(const struct XvtRenderSnapshot *s,
-			      const struct XvtRenderSnapshot *p, int width,
-			      int height)
+int xvt_remaster_flight_prepare(const struct xvt_render_snapshot *s,
+				const struct xvt_render_snapshot *p, int width,
+				int height)
 {
 	if (!s || !s->flight_valid || !s->camera.valid) {
-		XvtRemasterFlight_Invalidate();
+		xvt_remaster_flight_invalidate();
 		return 1;
 	}
 	uint64_t now = Aeron_NowUs();
-	if (width != g_requestedWidth || height != g_requestedHeight) {
-		g_requestedWidth = width;
-		g_requestedHeight = height;
-		g_resizeSince = now;
+	if (width != g_requested_width || height != g_requested_height) {
+		g_requested_width = width;
+		g_requested_height = height;
+		g_resize_since = now;
 	}
 	/* Keep the complete target during interactive resize, as in XWA. */
 	if (g_frame.valid && (width != g_width || height != g_height) &&
-	    now - g_resizeSince < 150000) {
+	    now - g_resize_since < 150000) {
 		width = g_width;
 		height = g_height;
 	}
-	uint64_t config = XvtRemasterConfig_Generation();
+	uint64_t config = xvt_remaster_config_generation();
 	int new_snapshot =
 		!g_frame.valid || s->snapshot_serial != g_frame.snapshot_serial;
 	int previous_valid = p && p->flight_valid && p->camera.valid &&
@@ -73,17 +76,17 @@ int XvtRemasterFlight_Prepare(const struct XvtRenderSnapshot *s,
 			     p->world_generation == s->world_generation;
 	int reset = !g_frame.valid || (new_snapshot && !previous_valid) ||
 		    g_width != width || g_height != height ||
-		    g_lastMission != s->mission_generation ||
-		    g_lastWorld != s->world_generation ||
-		    g_lastOpt != s->opt_asset_generation ||
-		    g_lastTexture != s->texture_asset_generation ||
-		    g_lastConfig != config;
+		    g_last_mission != s->mission_generation ||
+		    g_last_world != s->world_generation ||
+		    g_last_opt != s->opt_asset_generation ||
+		    g_last_texture != s->texture_asset_generation ||
+		    g_last_config != config;
 	if (new_snapshot && previous_valid &&
 	    (s->view_time_ticks < p->view_time_ticks ||
-	     ViewDiscontinuity(&s->camera, &p->camera))) {
+	     view_discontinuity(&s->camera, &p->camera))) {
 		reset = 1;
 	}
-	int changed = !previous_valid || XvtRenderMath_PoseChanged(s, p);
+	int changed = !previous_valid || xvt_render_math_pose_changed(s, p);
 	if (new_snapshot && previous_valid &&
 	    s->hyperspace.phase == XVT_SNAP_HYPERSPACE_TRANSITION &&
 	    ((s->hyperspace.elapsed_ticks < XVT_SNAP_HYPERSPACE_STREAK_END) !=
@@ -104,14 +107,14 @@ int XvtRemasterFlight_Prepare(const struct XvtRenderSnapshot *s,
 		 memcmp(&s->hyperspace, &p->hyperspace, sizeof s->hyperspace) ||
 		 (s->camera.map_mode &&
 		  memcmp(&s->map, &p->map, sizeof s->map)));
-	if (!XvtRenderMath_BuildMainView(&s->camera, s->camera.world_pos, width,
-					 height, &g_frame.view) ||
-	    !XvtRenderMath_Layout(s->camera.screen_width,
-				  s->camera.screen_height, (float)width,
-				  (float)height, &g_frame.cockpit_layout) ||
-	    !XvtRenderMath_Layout(640, 480, (float)width, (float)height,
-				  &g_frame.frontend_layout)) {
-		XvtRemasterFlight_Invalidate();
+	if (!xvt_render_math_build_main_view(&s->camera, s->camera.world_pos,
+					     width, height, &g_frame.view) ||
+	    !xvt_render_math_layout(s->camera.screen_width,
+				    s->camera.screen_height, (float)width,
+				    (float)height, &g_frame.cockpit_layout) ||
+	    !xvt_render_math_layout(640, 480, (float)width, (float)height,
+				    &g_frame.frontend_layout)) {
+		xvt_remaster_flight_invalidate();
 		return 0;
 	}
 	g_frame.content_rect = (AeronRectI){0, 0, width, height};
@@ -119,7 +122,7 @@ int XvtRemasterFlight_Prepare(const struct XvtRenderSnapshot *s,
 	    (s->camera.hud_state != HUD_VIEW_HUD_ONLY &&
 	     s->camera.hud_state != HUD_VIEW_FULL_SCREEN)) {
 		/* Match the centered bitmap frame without changing the scene projection. */
-		const struct XvtLayoutTransform *layout =
+		const struct xvt_layout_transform *layout =
 			&g_frame.cockpit_layout;
 		int w = (int)(layout->source_width * layout->scale + .5f);
 		int h = (int)(layout->source_height * layout->scale + .5f);
@@ -128,24 +131,24 @@ int XvtRemasterFlight_Prepare(const struct XvtRenderSnapshot *s,
 	}
 	if (advance) {
 		g_frame.velocity_span_us =
-			!reset && s->capture_host_us > g_poseHostUs
-				? s->capture_host_us - g_poseHostUs
+			!reset && s->capture_host_us > g_pose_host_us
+				? s->capture_host_us - g_pose_host_us
 				: 0;
-		g_poseHostUs = s->capture_host_us;
+		g_pose_host_us = s->capture_host_us;
 		if (reset) {
 			g_frame.previous_view = g_frame.view;
-		} else if (!XvtRenderMath_BuildMainView(
+		} else if (!xvt_render_math_build_main_view(
 				   &p->camera, s->camera.world_pos, width,
 				   height, &g_frame.previous_view)) {
-			XvtRemasterFlight_Invalidate();
+			xvt_remaster_flight_invalidate();
 			return 0;
 		}
 		unsigned previous_index = 0;
 		for (unsigned i = 0; i < s->object_count; ++i) {
-			const struct XvtSnapObject *object = &s->objects[i];
-			struct XvtPreparedObject *out = &g_frame.objects[i];
-			XvtRenderMath_ObjectMatrix(object, s->camera.world_pos,
-						   out->transform);
+			const struct xvt_snap_object *object = &s->objects[i];
+			struct xvt_prepared_object *out = &g_frame.objects[i];
+			xvt_render_math_object_matrix(
+				object, s->camera.world_pos, out->transform);
 			out->previous_index = -1;
 			out->zero_velocity = 1;
 			memcpy(out->previous_transform, out->transform,
@@ -162,7 +165,7 @@ int XvtRemasterFlight_Prepare(const struct XvtRenderSnapshot *s,
 			if (previous_index == p->object_count) {
 				continue;
 			}
-			const struct XvtSnapObject *old =
+			const struct xvt_snap_object *old =
 				&p->objects[previous_index];
 			if (old->id.slot != object->id.slot ||
 			    old->id.signature != object->id.signature ||
@@ -171,8 +174,8 @@ int XvtRemasterFlight_Prepare(const struct XvtRenderSnapshot *s,
 			}
 			out->previous_index = (int32_t)previous_index;
 			out->zero_velocity = 0;
-			XvtRenderMath_ObjectMatrix(old, s->camera.world_pos,
-						   out->previous_transform);
+			xvt_render_math_object_matrix(old, s->camera.world_pos,
+						      out->previous_transform);
 		}
 		int64_t ticks = previous_valid ? (int64_t)s->view_time_ticks -
 							 p->view_time_ticks
@@ -190,22 +193,23 @@ int XvtRemasterFlight_Prepare(const struct XvtRenderSnapshot *s,
 	float headroom = Aeron_OutputHdrHeadroom();
 	g_frame.render_needed =
 		advance || scene_changed ||
-		XvtRemasterConfig_Effective()->temporal_mode !=
+		xvt_remaster_config_effective()->temporal_mode !=
 			AERON_TEMPORAL_OFF ||
-		g_lastHdr != hdr || g_lastHeadroom != headroom ||
-		g_lastPaused != s->paused ||
-		(!XvtRemasterConfig_Effective()->motion_blur.pause_keep_blur &&
+		g_last_hdr != hdr || g_last_headroom != headroom ||
+		g_last_paused != s->paused ||
+		(!xvt_remaster_config_effective()
+			  ->motion_blur.pause_keep_blur &&
 		 motion_changed);
 	g_frame.valid = 1;
 	g_width = width;
 	g_height = height;
-	g_lastMission = s->mission_generation;
-	g_lastWorld = s->world_generation;
-	g_lastOpt = s->opt_asset_generation;
-	g_lastTexture = s->texture_asset_generation;
-	g_lastConfig = config;
-	g_lastHdr = hdr;
-	g_lastHeadroom = headroom;
-	g_lastPaused = s->paused;
+	g_last_mission = s->mission_generation;
+	g_last_world = s->world_generation;
+	g_last_opt = s->opt_asset_generation;
+	g_last_texture = s->texture_asset_generation;
+	g_last_config = config;
+	g_last_hdr = hdr;
+	g_last_headroom = headroom;
+	g_last_paused = s->paused;
 	return 1;
 }

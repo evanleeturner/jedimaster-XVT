@@ -6,32 +6,32 @@
 #include "xvt/frontend/pilot_record.h"
 #include "xvt_runtime/runtime/movie_task.h"
 
-static int g_viewerPending;
+static int g_viewer_pending;
 
-int XvtFrontendMovies_PlayViewer(const char *name)
+int xvt_frontend_movies_play_viewer(const char *name)
 {
-	int result = Movie_Play(name, 0);
-	g_viewerPending = result == XVT_MOVIE_PENDING;
-	return g_viewerPending;
+	int result = movie_play(name, 0);
+	g_viewer_pending = result == XVT_MOVIE_PENDING;
+	return g_viewer_pending;
 }
 
-int XvtFrontendMovies_ResumeViewer(void)
+int xvt_frontend_movies_resume_viewer(void)
 {
 	int result;
-	if (!g_viewerPending) {
+	if (!g_viewer_pending) {
 		return 0;
 	}
-	if (!XvtMovieTask_TakeResult(&result)) {
+	if (!xvt_movie_task_take_result(&result)) {
 		return 1;
 	}
-	g_viewerPending = 0;
-	FrontendDisplay_ClearBackBuffer();
-	FrontendDisplay_PresentFrame();
-	FrontendDisplay_ClearBackBuffer();
-	FrontendDisplay_EnableOffscreenRestore();
-	PilotRecord_RedrawBackground();
-	CDAudio_RequestResumePlayback();
+	g_viewer_pending = 0;
+	frontend_display_clear_back_buffer();
+	frontend_display_present_frame();
+	frontend_display_clear_back_buffer();
+	frontend_display_enable_offscreen_restore();
+	pilot_record_redraw_background();
+	cd_audio_request_resume_playback();
 	return 0;
 }
 
-void XvtFrontendMovies_Reset(void) { g_viewerPending = 0; }
+void xvt_frontend_movies_reset(void) { g_viewer_pending = 0; }

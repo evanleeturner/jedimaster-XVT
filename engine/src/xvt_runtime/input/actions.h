@@ -6,7 +6,7 @@
 /* Every action a key, controller or mouse can be bound to. Each has a settings-file name, a label for
  * the player, a category, and the original game's flight key code (FLIGHT_KEY_*), which the input mappings
  * use to drive the game. */
-typedef enum XvtInputAction {
+typedef enum xvt_input_action {
 	XVT_INPUT_ACTION_NONE,
 	XVT_INPUT_ACTION_FIRE_WEAPON,
 	XVT_INPUT_ACTION_CYCLE_WEAPON_GROUP,
@@ -119,9 +119,9 @@ typedef enum XvtInputAction {
 	XVT_INPUT_ACTION_TOGGLE_SYSTEM_MESSAGES,
 	XVT_INPUT_ACTION_SCREENSHOT,
 	XVT_INPUT_ACTION_COUNT
-} XvtInputAction;
+} xvt_input_action;
 
-typedef enum XvtInputActionCategory {
+typedef enum xvt_input_action_category {
 	XVT_INPUT_ACTION_CATEGORY_WEAPONS,
 	XVT_INPUT_ACTION_CATEGORY_TARGETING,
 	XVT_INPUT_ACTION_CATEGORY_THROTTLE,
@@ -130,20 +130,20 @@ typedef enum XvtInputActionCategory {
 	XVT_INPUT_ACTION_CATEGORY_SYSTEM,
 	XVT_INPUT_ACTION_CATEGORY_COMMUNICATIONS,
 	XVT_INPUT_ACTION_CATEGORY_COUNT
-} XvtInputActionCategory;
+} xvt_input_action_category;
 
 /* The action with that settings name, matched exactly; NONE for NULL or an unknown name. */
-XvtInputAction XvtInputActions_FromName(const char *name);
+xvt_input_action xvt_input_actions_from_name(const char *name);
 /* The settings name; "none" out of range. */
-const char *XvtInputActions_ToName(XvtInputAction action);
+const char *xvt_input_actions_to_name(xvt_input_action action);
 /* The label shown to the player; "None" out of range. */
-const char *XvtInputActions_DisplayName(XvtInputAction action);
+const char *xvt_input_actions_display_name(xvt_input_action action);
 /* SYSTEM out of range. */
-XvtInputActionCategory XvtInputActions_Category(XvtInputAction action);
+xvt_input_action_category xvt_input_actions_category(xvt_input_action action);
 /* The label shown to the player; "" out of range. */
-const char *XvtInputActions_CategoryName(XvtInputActionCategory category);
+const char *xvt_input_actions_category_name(xvt_input_action_category category);
 /* true for every action but NONE, CHAT_SEND and CHAT_CANCEL. */
-bool XvtInputActions_KeyboardBindable(XvtInputAction action);
+bool xvt_input_actions_keyboard_bindable(xvt_input_action action);
 /* The action's flight key code; 0 out of range. */
-uint16_t XvtInputActions_Key(XvtInputAction action);
+uint16_t xvt_input_actions_key(xvt_input_action action);
 #endif

@@ -8,26 +8,26 @@
 extern "C" {
 #endif
 
-extern const uint8_t g_flightIcons640FrameByObjectType[106];
-extern const uint8_t g_flightIcons640WidthByFrame[72];
-extern const uint8_t g_flightIcons640HeightByFrame[72];
-extern const uint8_t g_flightMapIcons480x360FrameByObjectType[106];
-extern const uint8_t g_flightMapIcons480x360WidthByFrame[72];
-extern const uint8_t g_flightMapIcons480x360HeightByFrame[72];
-extern const uint8_t g_flightMapIcons320x240FrameByObjectType[106];
-extern const uint8_t g_flightMapIcons320x240WidthByFrame[72];
-extern const uint8_t g_flightMapIcons320x240HeightByFrame[72];
-extern const char g_flightMapIcons320x240ResourcePath[22];
-extern const char g_flightMapIcons480x360ResourcePath[22];
-extern const char g_flightIcons640x480ResourcePath[22];
-extern int g_flightIconFrameCount;
-extern const char *g_flightIconResourcePath;
-extern uint8_t **g_flightIconFrames;
+extern const uint8_t g_flight_icons640_frame_by_object_type[106];
+extern const uint8_t g_flight_icons640_width_by_frame[72];
+extern const uint8_t g_flight_icons640_height_by_frame[72];
+extern const uint8_t g_flight_map_icons480x360_frame_by_object_type[106];
+extern const uint8_t g_flight_map_icons480x360_width_by_frame[72];
+extern const uint8_t g_flight_map_icons480x360_height_by_frame[72];
+extern const uint8_t g_flight_map_icons320x240_frame_by_object_type[106];
+extern const uint8_t g_flight_map_icons320x240_width_by_frame[72];
+extern const uint8_t g_flight_map_icons320x240_height_by_frame[72];
+extern const char g_flight_map_icons320x240_resource_path[22];
+extern const char g_flight_map_icons480x360_resource_path[22];
+extern const char g_flight_icons640x480_resource_path[22];
+extern int g_flight_icon_frame_count;
+extern const char *g_flight_icon_resource_path;
+extern uint8_t **g_flight_icon_frames;
 
-/* Returns one easing step toward delta for FlightMap_UpdateCamera: half of
+/* Returns one easing step toward delta for flight_map_update_camera: half of
  * delta, but at least 16 and at most 4,096 in size, and never past
  * delta. */
-static __inline int FlightMap_ComputeAimStep(int delta)
+static __inline int flight_map_compute_aim_step(int delta)
 {
 	int step;
 
@@ -56,7 +56,7 @@ static __inline int FlightMap_ComputeAimStep(int delta)
 	return step;
 }
 
-typedef enum MapRoomStringId {
+typedef enum map_room_string_id {
 	MAP_ROOM_STR_HELP_KEY = 0x0,
 	MAP_ROOM_STR_SLASH = 0x1,
 	MAP_ROOM_STR_FOLLOW_MARKER = 0x2,
@@ -77,21 +77,21 @@ typedef enum MapRoomStringId {
 	MAP_ROOM_STR_TOGGLE_MODE_DESCRIPTION = 0x11,
 	MAP_ROOM_STR_FOLLOWING = 0x12,
 	MAP_ROOM_STR_TRACKING = 0x13,
-} MapRoomStringId;
+} map_room_string_id;
 
-void FlightMap_RenderView(void);
-void FlightMap_UpdateCamera(int playerIdx);
-void FlightMap_BuildRenderList(void);
-void FlightMap_DrawObjectPass(int drawAboveGridPlane);
-void FlightMap_DrawOtherPlayerObjectBox(int objectIdx);
-void FlightMap_DrawObjectOverlay(int objectIdx);
-void FlightMap_DrawObjectIconAtViewPos(int objectIdx, int viewX, int viewY,
-				       int viewZ);
-void FlightMap_DrawObjectBoxCorners(int x, int y, int width, int height,
-				    unsigned int colorIndex);
-void FlightMap_DrawGrid(void);
-void FlightMap_RenderViewEndStub(void);
-int FlightMap_PickObjectNearestScreenCenter(int playerIdx);
+void flight_map_render_view(void);
+void flight_map_update_camera(int player_idx);
+void flight_map_build_render_list(void);
+void flight_map_draw_object_pass(int draw_above_grid_plane);
+void flight_map_draw_other_player_object_box(int object_idx);
+void flight_map_draw_object_overlay(int object_idx);
+void flight_map_draw_object_icon_at_view_pos(int object_idx, int view_x,
+					     int view_y, int view_z);
+void flight_map_draw_object_box_corners(int x, int y, int width, int height,
+					unsigned int color_index);
+void flight_map_draw_grid(void);
+void flight_map_render_view_end_stub(void);
+int flight_map_pick_object_nearest_screen_center(int player_idx);
 
 #ifdef __cplusplus
 }

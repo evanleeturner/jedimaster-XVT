@@ -5,71 +5,71 @@
 #include "xvt/render/renderer.h"
 
 /* Bytes per pixel of the flight frame buffer: 1 in the 8-bit paletted modes, 2
- * in 16-bit color; 1 at start. Four functions write it: Flight_Main in the
- * original build, XvtFlightEntry_Configure in the modern one,
- * FlightDisplay_Init and ModelPreview_LoadModel. */
+ * in 16-bit color; 1 at start. Four functions write it: flight_main in the
+ * original build, xvt_flight_entry_configure in the modern one,
+ * flight_display_init and model_preview_load_model. */
 // GLOBAL: XVT 0x5233D8
-int g_flightBytesPerPixel = 1;
+int g_flight_bytes_per_pixel = 1;
 /* Flight palette brightness, 256 for 1.0 (eight fraction bits).
- * FlightPalette_BuildRgbRange and FlightPalette_Build16BppRange scale each
+ * flight_palette_build_rgb_range and flight_palette_build16_bpp_range scale each
  * color's brightest channel by it, and copy colors unchanged at exactly 256. At
- * flight start Flight_Main (original build) or XvtFlightEntry_Configure
+ * flight start flight_main (original build) or xvt_flight_entry_configure
  * (modern) sets it to (setting + 4) << 6 from the solo or multiplayer
  * brightness setting, clamped to 256 to 704; in the 8-bit modes the Alt+B key
- * raises it by 0x40, going from 0x300 back to 0x100 (Flight_UpdatePlayerStep,
- * XvtFlightSim_UpdatePlayerStep). */
+ * raises it by 0x40, going from 0x300 back to 0x100 (flight_update_player_step,
+ * xvt_flight_sim_update_player_step). */
 // GLOBAL: XVT 0x523400
-int g_flightBrightnessScaleQ8 = 0x100;
+int g_flight_brightness_scale_q8 = 0x100;
 /* The flight palette before the brightness adjustment: 256 colors with channels
- * 0 to 63. FlightPalette_SetRange writes it, FlightPalette_ApplyToDisplay sends
+ * 0 to 63. flight_palette_set_range writes it, flight_palette_apply_to_display sends
  * an adjusted copy to the display, and the color matching code reads it. */
 // GLOBAL: XVT 0x9A7BC0
-struct RgbTriplet g_swPalette[256] = {{0}};
+struct rgb_triplet g_sw_palette[256] = {{0}};
 /* The flight palette as 16-bit pixels, one per palette index, for the 16-bit
- * drawing code; FlightPalette_SetRange rebuilds the entries it sets while
- * g_flightPixelMode is 2, brightness included. */
+ * drawing code; flight_palette_set_range rebuilds the entries it sets while
+ * g_flight_pixel_mode is 2, brightness included. */
 // GLOBAL: XVT 0xA00530
-uint16_t g_flightPalette16Bpp[256] = {0};
-/* FlightPalette_ApplyToDisplay clears its 0x1 bit; nothing else reads or writes
+uint16_t g_flight_palette16_bpp[256] = {0};
+/* flight_palette_apply_to_display clears its 0x1 bit; nothing else reads or writes
  * it. */
 // GLOBAL: XVT 0xA081F4
-uint8_t g_paletteDirtyFlags = 0;
+uint8_t g_palette_dirty_flags = 0;
 
-/* Writes entries startIndex to startIndex + count - 1 of srcRgb, channels 0 to
- * 63, into the same entries of dstRgb, adjusted for g_flightBrightnessScaleQ8.
+/* Writes entries startIndex to startIndex + count - 1 of src_rgb, channels 0 to
+ * 63, into the same entries of dst_rgb, adjusted for g_flight_brightness_scale_q8.
  * At 256 it copies them unchanged. Otherwise it splits each color into a
  * saturation, 63 * (max - min) / max, a hue sector and offset, and a value,
- * g_flightBrightnessScaleQ8 * max >> 8 capped at 63, and rebuilds the three
+ * g_flight_brightness_scale_q8 * max >> 8 capped at 63, and rebuilds the three
  * channels from them; a gray gets the value in all three. Does nothing for
  * count 0. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x40E1B0
-void FlightPalette_BuildRgbRange(const struct RgbTriplet *srcRgb,
-				 struct RgbTriplet *dstRgb, int startIndex,
-				 int count)
+void flight_palette_build_rgb_range(const struct rgb_triplet *src_rgb,
+				    struct rgb_triplet *dst_rgb,
+				    int start_index, int count)
 {
-	uint8_t maxChannel;
-	uint8_t minChannel;
+	uint8_t max_channel;
+	uint8_t min_channel;
 	uint8_t r;
 	uint8_t b;
 	uint8_t g;
 	uint8_t saturation6;
-	uint8_t hueSector;
-	uint8_t hueOffset6;
+	uint8_t hue_sector;
+	uint8_t hue_offset6;
 	uint8_t value6;
-	uint8_t lowChannel;
-	uint8_t offsetChannel;
-	uint8_t inverseOffsetChannel;
+	uint8_t low_channel;
+	uint8_t offset_channel;
+	uint8_t inverse_offset_channel;
 
-	if (g_flightBrightnessScaleQ8 == 256) {
-		const struct RgbTriplet *src;
-		struct RgbTriplet *dst;
+	if (g_flight_brightness_scale_q8 == 256) {
+		const struct rgb_triplet *src;
+		struct rgb_triplet *dst;
 
 		if (count-- == 0) {
 			return;
 		}
-		src = &srcRgb[startIndex];
-		dst = &dstRgb[startIndex];
+		src = &src_rgb[start_index];
+		dst = &dst_rgb[start_index];
 		do {
 			dst->r = src->r;
 			dst->g = src->g;
@@ -81,142 +81,144 @@ void FlightPalette_BuildRgbRange(const struct RgbTriplet *srcRgb,
 	}
 
 	{
-		const struct RgbTriplet *src;
-		struct RgbTriplet *dst;
+		const struct rgb_triplet *src;
+		struct rgb_triplet *dst;
 
 		if (count-- == 0) {
 			return;
 		}
 
-		dst = &dstRgb[startIndex];
-		src = &srcRgb[startIndex];
+		dst = &dst_rgb[start_index];
+		src = &src_rgb[start_index];
 		do {
 			r = src->r;
 			g = src->g;
 			b = src->b;
 
 			if (r >= g && r >= b) {
-				maxChannel = r;
+				max_channel = r;
 			} else {
-				maxChannel = (g >= r && g >= b) ? g : b;
+				max_channel = (g >= r && g >= b) ? g : b;
 			}
 
 			if (r <= g && r <= b) {
-				minChannel = r;
+				min_channel = r;
 			} else {
-				minChannel = (g <= r && g <= b) ? g : b;
+				min_channel = (g <= r && g <= b) ? g : b;
 			}
 
-			if (maxChannel != 0) {
+			if (max_channel != 0) {
 				saturation6 =
 					(uint8_t)(63 *
-						  (maxChannel - minChannel) /
-						  maxChannel);
+						  (max_channel - min_channel) /
+						  max_channel);
 			} else {
 				saturation6 = 0;
 			}
 
 			if (saturation6 != 0) {
-				if (r == maxChannel) {
+				if (r == max_channel) {
 					if (g >= b) {
-						hueOffset6 =
+						hue_offset6 =
 							(uint8_t)(63 * (g - b) /
-								  (maxChannel -
-								   minChannel));
-						hueSector = 0;
+								  (max_channel -
+								   min_channel));
+						hue_sector = 0;
 					} else {
-						hueOffset6 =
+						hue_offset6 =
 							(uint8_t)(63 * (g - b) /
-									  (maxChannel -
-									   minChannel) +
+									  (max_channel -
+									   min_channel) +
 								  63);
-						hueSector = 5;
+						hue_sector = 5;
 					}
-				} else if (g == maxChannel) {
+				} else if (g == max_channel) {
 					if (b >= r) {
-						hueOffset6 =
+						hue_offset6 =
 							(uint8_t)(63 * (b - r) /
-								  (maxChannel -
-								   minChannel));
-						hueSector = 2;
+								  (max_channel -
+								   min_channel));
+						hue_sector = 2;
 					} else {
-						hueOffset6 =
+						hue_offset6 =
 							(uint8_t)(63 * (b - r) /
-									  (maxChannel -
-									   minChannel) +
+									  (max_channel -
+									   min_channel) +
 								  63);
-						hueSector = 1;
+						hue_sector = 1;
 					}
 				} else if (r >= g) {
-					hueOffset6 = (uint8_t)(63 * (r - g) /
-							       (maxChannel -
-								minChannel));
-					hueSector = 4;
+					hue_offset6 = (uint8_t)(63 * (r - g) /
+								(max_channel -
+								 min_channel));
+					hue_sector = 4;
 				} else {
-					hueOffset6 =
+					hue_offset6 =
 						(uint8_t)(63 * (r - g) /
-								  (maxChannel -
-								   minChannel) +
+								  (max_channel -
+								   min_channel) +
 							  63);
-					hueSector = 3;
+					hue_sector = 3;
 				}
 			}
 
-			value6 = (uint8_t)(((unsigned int)
-						    g_flightBrightnessScaleQ8 *
-					    maxChannel) >>
-					   8);
+			value6 =
+				(uint8_t)(((unsigned int)
+						   g_flight_brightness_scale_q8 *
+					   max_channel) >>
+					  8);
 			if (value6 > 63) {
 				value6 = 63;
 			}
 
 			if (saturation6 != 0) {
-				lowChannel = (uint8_t)(value6 *
-						       (63 - saturation6) / 63);
-				offsetChannel =
+				low_channel =
+					(uint8_t)(value6 * (63 - saturation6) /
+						  63);
+				offset_channel =
 					(uint8_t)(value6 *
 						  (63 - saturation6 *
-								hueOffset6 /
+								hue_offset6 /
 								63) /
 						  63);
-				inverseOffsetChannel =
+				inverse_offset_channel =
 					(uint8_t)(value6 *
 						  (63 -
 						   saturation6 *
-							   (63 - hueOffset6) /
+							   (63 - hue_offset6) /
 							   63) /
 						  63);
 
-				switch (hueSector) {
+				switch (hue_sector) {
 				case 0:
 					r = value6;
-					g = inverseOffsetChannel;
-					b = lowChannel;
+					g = inverse_offset_channel;
+					b = low_channel;
 					break;
 				case 1:
-					r = offsetChannel;
+					r = offset_channel;
 					g = value6;
-					b = lowChannel;
+					b = low_channel;
 					break;
 				case 2:
-					r = lowChannel;
+					r = low_channel;
 					g = value6;
-					b = inverseOffsetChannel;
+					b = inverse_offset_channel;
 					break;
 				case 3:
-					r = lowChannel;
-					g = offsetChannel;
+					r = low_channel;
+					g = offset_channel;
 					b = value6;
 					break;
 				case 4:
-					r = inverseOffsetChannel;
-					g = lowChannel;
+					r = inverse_offset_channel;
+					g = low_channel;
 					b = value6;
 					break;
 				case 5:
 					r = value6;
-					g = lowChannel;
-					b = offsetChannel;
+					g = low_channel;
+					b = offset_channel;
 					break;
 				default:
 					break;
@@ -236,130 +238,131 @@ void FlightPalette_BuildRgbRange(const struct RgbTriplet *srcRgb,
 	}
 }
 
-/* Sends g_swPalette, adjusted by FlightPalette_BuildRgbRange, to the display
- * with FlightDisplay_SetPaletteEntries when g_flightBytesPerPixel is 1, and
- * clears the 0x1 bit of g_paletteDirtyFlags. FlightRender_InstallCallbacks
- * installs it as g_flightResetPaletteFn; Flight_MainLoop in the original build
- * and XvtFlightLoading_Palette in the modern one also call it. */
+/* Sends g_sw_palette, adjusted by flight_palette_build_rgb_range, to the display
+ * with flight_display_set_palette_entries when g_flight_bytes_per_pixel is 1, and
+ * clears the 0x1 bit of g_palette_dirty_flags. flight_render_install_callbacks
+ * installs it as g_flight_reset_palette_fn; flight_main_loop in the original build
+ * and xvt_flight_loading_palette in the modern one also call it. */
 // FUNCTION: XVT 0x40E590
-void FlightPalette_ApplyToDisplay(void)
+void flight_palette_apply_to_display(void)
 {
-	struct RgbTriplet adjustedPalette[256];
+	struct rgb_triplet adjusted_palette[256];
 
-	FlightPalette_BuildRgbRange(g_swPalette, adjustedPalette, 0, 256);
-	if (g_flightBytesPerPixel == 1) {
-		FlightDisplay_SetPaletteEntries((uint8_t *)adjustedPalette, 0,
-						256);
+	flight_palette_build_rgb_range(g_sw_palette, adjusted_palette, 0, 256);
+	if (g_flight_bytes_per_pixel == 1) {
+		flight_display_set_palette_entries((uint8_t *)adjusted_palette,
+						   0, 256);
 	}
-	g_paletteDirtyFlags &= ~1;
+	g_palette_dirty_flags &= ~1;
 }
 
-/* Copies count colors from rgbTriples into g_swPalette from entry startIdx,
- * read as unsigned 16 bits; while g_flightPixelMode is 2 it also rebuilds those
- * entries of g_flightPalette16Bpp with FlightPalette_Build16BppRange. Does not
+/* Copies count colors from rgb_triples into g_sw_palette from entry startIdx,
+ * read as unsigned 16 bits; while g_flight_pixel_mode is 2 it also rebuilds those
+ * entries of g_flight_palette16_bpp with flight_palette_build16_bpp_range. Does not
  * send the colors to the display or check that they stay under 256. Installed
- * as g_flightSetPaletteRangeFn. */
+ * as g_flight_set_palette_range_fn. */
 // FUNCTION: XVT 0x40E5E0
-void FlightPalette_SetRange(struct RgbTriplet *rgbTriples, int16_t startIdx,
-			    uint16_t count)
+void flight_palette_set_range(struct rgb_triplet *rgb_triples,
+			      int16_t start_idx, uint16_t count)
 {
-	uint16_t paletteIndex;
-	int endIndex;
+	uint16_t palette_index;
+	int end_index;
 
-	paletteIndex = (uint16_t)startIdx;
-	endIndex = paletteIndex + count;
-	while (paletteIndex < endIndex) {
-		g_swPalette[paletteIndex].r = rgbTriples->r;
-		g_swPalette[paletteIndex].g = rgbTriples->g;
-		g_swPalette[paletteIndex].b = rgbTriples->b;
-		++paletteIndex;
-		++rgbTriples;
+	palette_index = (uint16_t)start_idx;
+	end_index = palette_index + count;
+	while (palette_index < end_index) {
+		g_sw_palette[palette_index].r = rgb_triples->r;
+		g_sw_palette[palette_index].g = rgb_triples->g;
+		g_sw_palette[palette_index].b = rgb_triples->b;
+		++palette_index;
+		++rgb_triples;
 	}
 
-	if (g_flightPixelMode == 2) {
-		FlightPalette_Build16BppRange(g_swPalette, g_flightPalette16Bpp,
-					      (uint16_t)startIdx, count);
+	if (g_flight_pixel_mode == 2) {
+		flight_palette_build16_bpp_range(g_sw_palette,
+						 g_flight_palette16_bpp,
+						 (uint16_t)start_idx, count);
 	}
 }
 
-/* Copies the 256 colors of g_swPalette to dstPalette. Installed as
- * g_flightGetPaletteFn. */
+/* Copies the 256 colors of g_sw_palette to dst_palette. Installed as
+ * g_flight_get_palette_fn. */
 // FUNCTION: XVT 0x40E660
-void FlightPalette_GetFull(struct RgbTriplet *dstPalette)
+void flight_palette_get_full(struct rgb_triplet *dst_palette)
 {
 	uint16_t index;
 
 	index = 0;
 	do {
-		dstPalette->r = g_swPalette[index].r;
-		dstPalette->g = g_swPalette[index].g;
-		dstPalette->b = g_swPalette[index].b;
-		++dstPalette;
+		dst_palette->r = g_sw_palette[index].r;
+		dst_palette->g = g_sw_palette[index].g;
+		dst_palette->b = g_sw_palette[index].b;
+		++dst_palette;
 		++index;
 	} while (index < 256);
 }
 
-/* Calls FlightPalette_SetRange for all 256 colors. Installed as
- * g_flightSetPaletteFn. */
+/* Calls flight_palette_set_range for all 256 colors. Installed as
+ * g_flight_set_palette_fn. */
 // FUNCTION: XVT 0x40E6A0
-void FlightPalette_SetFull(struct RgbTriplet *rgbTriples)
+void flight_palette_set_full(struct rgb_triplet *rgb_triples)
 {
-	FlightPalette_SetRange(rgbTriples, 0, 256);
+	flight_palette_set_range(rgb_triples, 0, 256);
 }
 
-/* Calls FlightPalette_ApplyToDisplay when g_flightBytesPerPixel is 1.
- * Flight_WndProc calls it on message 0x311; in the original build
- * Flight_PumpWindowMessages calls it after bringing the flight window back to
+/* Calls flight_palette_apply_to_display when g_flight_bytes_per_pixel is 1.
+ * flight_wnd_proc calls it on message 0x311; in the original build
+ * flight_pump_window_messages calls it after bringing the flight window back to
  * the foreground. */
 // FUNCTION: XVT 0x449100
-void FlightPalette_ResetIf8Bit(void)
+void flight_palette_reset_if8_bit(void)
 {
-	if (g_flightBytesPerPixel == 1) {
-		FlightPalette_ApplyToDisplay();
+	if (g_flight_bytes_per_pixel == 1) {
+		flight_palette_apply_to_display();
 	}
 }
 
-/* Packs entries startIndex to startIndex + count - 1 of srcRgb, channels 0 to
+/* Packs entries startIndex to startIndex + count - 1 of src_rgb, channels 0 to
  * 63, into 16-bit pixels in the same entries of dst16: 5-6-5 as (r >> 1, g,
- * b >> 1), or 5-5-5 with each channel >> 1 when Display_IsPixelFormat555 is
+ * b >> 1), or 5-5-5 with each channel >> 1 when display_is_pixel_format555 is
  * true. At brightness 256 the colors go in unchanged and it returns the last
  * pixel packed, or startIndex + count cut to 16 bits when it packed none.
- * Otherwise each color first gets the adjustment FlightPalette_BuildRgbRange
+ * Otherwise each color first gets the adjustment flight_palette_build_rgb_range
  * makes, and it returns 0, packing nothing for count 0. */
 // FUNCTION: XVT 0x449410
-int16_t FlightPalette_Build16BppRange(struct RgbTriplet *srcRgb,
-				      uint16_t *dst16, int startIndex,
-				      int count)
+int16_t flight_palette_build16_bpp_range(struct rgb_triplet *src_rgb,
+					 uint16_t *dst16, int start_index,
+					 int count)
 {
-	struct RgbTriplet *src;
+	struct rgb_triplet *src;
 	uint16_t *dst;
 	int remaining;
-	int endIndex;
+	int end_index;
 	uint8_t r;
 	uint8_t g;
 	uint8_t b;
-	uint8_t maxChannel;
-	uint8_t minChannel;
+	uint8_t max_channel;
+	uint8_t min_channel;
 	uint8_t saturation6;
-	uint8_t hueSector;
-	uint8_t hueOffset6;
+	uint8_t hue_sector;
+	uint8_t hue_offset6;
 	uint8_t value6;
-	uint8_t lowChannel;
-	uint8_t offsetChannel;
-	uint8_t inverseOffsetChannel;
-	uint16_t packedColor;
+	uint8_t low_channel;
+	uint8_t offset_channel;
+	uint8_t inverse_offset_channel;
+	uint16_t packed_color;
 	int16_t result;
 
-	if (g_flightBrightnessScaleQ8 == 256) {
-		endIndex = startIndex + count;
-		result = (int16_t)endIndex;
-		if (startIndex < endIndex) {
-			dst = &dst16[startIndex];
-			src = &srcRgb[startIndex];
+	if (g_flight_brightness_scale_q8 == 256) {
+		end_index = start_index + count;
+		result = (int16_t)end_index;
+		if (start_index < end_index) {
+			dst = &dst16[start_index];
+			src = &src_rgb[start_index];
 			remaining = count;
 			do {
-				if (Display_IsPixelFormat555()) {
-					packedColor =
+				if (display_is_pixel_format555()) {
+					packed_color =
 						(uint16_t)((((src->r & 0x7Eu)
 							     << 9) &
 							    0x7FFFu) |
@@ -367,13 +370,14 @@ int16_t FlightPalette_Build16BppRange(struct RgbTriplet *srcRgb,
 							   (16 *
 							    (src->g & 0xFEu)));
 				} else {
-					packedColor = (uint16_t)(((src->r >> 1)
-								  << 11) |
-								 (src->g << 5) |
-								 (src->b >> 1));
+					packed_color =
+						(uint16_t)(((src->r >> 1)
+							    << 11) |
+							   (src->g << 5) |
+							   (src->b >> 1));
 				}
-				*dst = packedColor;
-				result = (int16_t)packedColor;
+				*dst = packed_color;
+				result = (int16_t)packed_color;
 				++dst;
 				++src;
 				--remaining;
@@ -386,8 +390,8 @@ int16_t FlightPalette_Build16BppRange(struct RgbTriplet *srcRgb,
 		return 0;
 	}
 
-	dst = &dst16[startIndex];
-	src = &srcRgb[startIndex];
+	dst = &dst16[start_index];
+	src = &src_rgb[start_index];
 	do {
 		r = src->r;
 		g = src->g;
@@ -395,124 +399,126 @@ int16_t FlightPalette_Build16BppRange(struct RgbTriplet *srcRgb,
 
 		if (r < g || r < b) {
 			if (g < r || g < b) {
-				maxChannel = b;
+				max_channel = b;
 			} else {
-				maxChannel = g;
+				max_channel = g;
 			}
 		} else {
-			maxChannel = r;
+			max_channel = r;
 		}
 
 		if (r > g || r > b) {
 			if (g > r || g > b) {
-				minChannel = b;
+				min_channel = b;
 			} else {
-				minChannel = g;
+				min_channel = g;
 			}
 		} else {
-			minChannel = r;
+			min_channel = r;
 		}
 
-		if (maxChannel != 0) {
-			saturation6 = (uint8_t)(63 * (maxChannel - minChannel) /
-						maxChannel);
+		if (max_channel != 0) {
+			saturation6 =
+				(uint8_t)(63 * (max_channel - min_channel) /
+					  max_channel);
 		} else {
 			saturation6 = 0;
 		}
 
 		if (saturation6 != 0) {
-			if (r == maxChannel) {
+			if (r == max_channel) {
 				if (g >= b) {
-					hueSector = 0;
-					hueOffset6 = (uint8_t)(63 * (g - b) /
-							       (maxChannel -
-								minChannel));
+					hue_sector = 0;
+					hue_offset6 = (uint8_t)(63 * (g - b) /
+								(max_channel -
+								 min_channel));
 				} else {
-					hueSector = 5;
-					hueOffset6 =
+					hue_sector = 5;
+					hue_offset6 =
 						(uint8_t)(63 * (g - b) /
-								  (maxChannel -
-								   minChannel) +
+								  (max_channel -
+								   min_channel) +
 							  63);
 				}
-			} else if (g == maxChannel) {
+			} else if (g == max_channel) {
 				if (b >= r) {
-					hueSector = 2;
-					hueOffset6 = (uint8_t)(63 * (b - r) /
-							       (maxChannel -
-								minChannel));
+					hue_sector = 2;
+					hue_offset6 = (uint8_t)(63 * (b - r) /
+								(max_channel -
+								 min_channel));
 				} else {
-					hueSector = 1;
-					hueOffset6 =
+					hue_sector = 1;
+					hue_offset6 =
 						(uint8_t)(63 * (b - r) /
-								  (maxChannel -
-								   minChannel) +
+								  (max_channel -
+								   min_channel) +
 							  63);
 				}
 			} else if (r >= g) {
-				hueSector = 4;
-				hueOffset6 =
+				hue_sector = 4;
+				hue_offset6 =
 					(uint8_t)(63 * (r - g) /
-						  (maxChannel - minChannel));
+						  (max_channel - min_channel));
 			} else {
-				hueSector = 3;
-				hueOffset6 = (uint8_t)(63 * (r - g) /
-							       (maxChannel -
-								minChannel) +
-						       63);
+				hue_sector = 3;
+				hue_offset6 = (uint8_t)(63 * (r - g) /
+								(max_channel -
+								 min_channel) +
+							63);
 			}
 		}
 
-		value6 = (uint8_t)(((unsigned int)g_flightBrightnessScaleQ8 *
-				    maxChannel) >>
+		value6 = (uint8_t)(((unsigned int)g_flight_brightness_scale_q8 *
+				    max_channel) >>
 				   8);
 		if (value6 > 63) {
 			value6 = 63;
 		}
 
 		if (saturation6 != 0) {
-			lowChannel =
+			low_channel =
 				(uint8_t)(value6 * (63 - saturation6) / 63);
-			offsetChannel =
+			offset_channel =
 				(uint8_t)(value6 *
-					  (63 - saturation6 * hueOffset6 / 63) /
+					  (63 -
+					   saturation6 * hue_offset6 / 63) /
 					  63);
-			inverseOffsetChannel =
+			inverse_offset_channel =
 				(uint8_t)(value6 *
 					  (63 - saturation6 *
-							(63 - hueOffset6) /
+							(63 - hue_offset6) /
 							63) /
 					  63);
-			switch (hueSector) {
+			switch (hue_sector) {
 			case 0:
 				r = value6;
-				g = inverseOffsetChannel;
-				b = lowChannel;
+				g = inverse_offset_channel;
+				b = low_channel;
 				break;
 			case 1:
-				r = offsetChannel;
+				r = offset_channel;
 				g = value6;
-				b = lowChannel;
+				b = low_channel;
 				break;
 			case 2:
-				r = lowChannel;
+				r = low_channel;
 				g = value6;
-				b = inverseOffsetChannel;
+				b = inverse_offset_channel;
 				break;
 			case 3:
-				r = lowChannel;
-				g = offsetChannel;
+				r = low_channel;
+				g = offset_channel;
 				b = value6;
 				break;
 			case 4:
-				r = inverseOffsetChannel;
-				g = lowChannel;
+				r = inverse_offset_channel;
+				g = low_channel;
 				b = value6;
 				break;
 			case 5:
 				r = value6;
-				g = lowChannel;
-				b = offsetChannel;
+				g = low_channel;
+				b = offset_channel;
 				break;
 			default:
 				break;
@@ -523,15 +529,15 @@ int16_t FlightPalette_Build16BppRange(struct RgbTriplet *srcRgb,
 			b = value6;
 		}
 
-		if (Display_IsPixelFormat555()) {
-			packedColor =
+		if (display_is_pixel_format555()) {
+			packed_color =
 				(uint16_t)((((r & 0x7Eu) << 9) & 0x7FFFu) |
 					   (b >> 1) | (16 * (g & 0xFEu)));
 		} else {
-			packedColor = (uint16_t)(((r >> 1) << 11) | (g << 5) |
-						 (b >> 1));
+			packed_color = (uint16_t)(((r >> 1) << 11) | (g << 5) |
+						  (b >> 1));
 		}
-		*dst = packedColor;
+		*dst = packed_color;
 		++dst;
 		++src;
 	} while (count-- != 0);

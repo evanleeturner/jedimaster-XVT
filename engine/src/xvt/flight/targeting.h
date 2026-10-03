@@ -8,21 +8,21 @@
 extern "C" {
 #endif
 
-int16_t Targeting_TestAimCone(uint16_t objectIdx, int16_t narrowCone,
-			      int playerIdx);
-extern uint16_t g_targetAngleScore;
-void Targeting_DrawSceneObjectBoxes(void);
-void Targeting_DrawObjectBox(uint16_t objectIdx, uint16_t componentIdx,
-			     uint8_t colorIndex);
-int Targeting_GetObjectBoxExtent(unsigned int objectIdx);
-void Targeting_ProjectObjectOrMissionPoint(unsigned int objOrMissionPointRef,
-					   uint16_t componentIdx,
-					   int *outScreenX, int *outScreenY,
-					   int *outViewZ);
-void Targeting_ComputeProjectedObjectExtent(uint16_t objectIdx,
-					    uint16_t *outWidth,
-					    uint16_t *outHeight, int cameraX,
-					    int cameraY, int cameraZ);
+int16_t targeting_test_aim_cone(uint16_t object_idx, int16_t narrow_cone,
+				int player_idx);
+extern uint16_t g_target_angle_score;
+void targeting_draw_scene_object_boxes(void);
+void targeting_draw_object_box(uint16_t object_idx, uint16_t component_idx,
+			       uint8_t color_index);
+int targeting_get_object_box_extent(unsigned int object_idx);
+void targeting_project_object_or_mission_point(
+	unsigned int obj_or_mission_point_ref, uint16_t component_idx,
+	int *out_screen_x, int *out_screen_y, int *out_view_z);
+void targeting_compute_projected_object_extent(uint16_t object_idx,
+					       uint16_t *out_width,
+					       uint16_t *out_height,
+					       int camera_x, int camera_y,
+					       int camera_z);
 
 #ifdef __cplusplus
 }

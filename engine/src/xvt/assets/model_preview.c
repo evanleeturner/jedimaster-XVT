@@ -25,222 +25,222 @@
 #include <string.h>
 
 /* 1 / 32767, which turns a 1.15 fixed point matrix entry into a float in
- * ModelPreview_RenderViewport. */
+ * model_preview_render_viewport. */
 // GLOBAL: XVT 0x518100
-const float g_modelPreviewMatrixQ15ToFloatScale = 0.000030518509f;
-/* The 1.0 ModelPreview_SetLightDirection divides by the vector's length. */
+const float g_model_preview_matrix_q15_to_float_scale = 0.000030518509f;
+/* The 1.0 model_preview_set_light_direction divides by the vector's length. */
 // GLOBAL: XVT 0x518110
-static const double g_modelPreviewInvLengthNumerator = 1.0;
-/* Size, in model units, that ModelPreview_LoadModel scales a model's largest
+static const double g_model_preview_inv_length_numerator = 1.0;
+/* Size, in model units, that model_preview_load_model scales a model's largest
  * extent to: 500. */
 // GLOBAL: XVT 0x5180F8
-const double g_modelPreviewTargetBoundsExtent = 500.0;
+const double g_model_preview_target_bounds_extent = 500.0;
 /* 32767, which turns a unit light direction into 1.15 fixed point in
- * ModelPreview_SetLightDirection. */
+ * model_preview_set_light_direction. */
 // GLOBAL: XVT 0x518118
-static const double g_modelPreviewLightDirectionQ15Scale = 32767.0;
+static const double g_model_preview_light_direction_q15_scale = 32767.0;
 /* 65,536 / 360: degrees to angle units. */
 // GLOBAL: XVT 0x518120
-static const double g_degreesToQ16AngleScale = 182.04444444444445;
-/* 1600, which ModelPreview_GetDisplayedSizeMeters multiplies the extent by. */
+static const double g_degrees_to_q16_angle_scale = 182.04444444444445;
+/* 1600, which model_preview_get_displayed_size_meters multiplies the extent by. */
 // GLOBAL: XVT 0x518128
-static const double g_modelPreviewMetersScale = 1600.0;
-/* 1 / 65,536, which ModelPreview_GetDisplayedSizeMeters multiplies the extent
+static const double g_model_preview_meters_scale = 1600.0;
+/* 1 / 65,536, which model_preview_get_displayed_size_meters multiplies the extent
  * by. */
 // GLOBAL: XVT 0x518130
-static const double g_modelPreviewQ16Scale = 0.0000152587890625;
+static const double g_model_preview_q16_scale = 0.0000152587890625;
 /* Angle about the up axis, 65,536 a full circle, that
- * ModelPreview_RenderViewport passes to FVIEW_SetObjectTransform. Set by
- * ModelPreview_SetObjectUpAxisAngleDegrees and ModelPreview_RestoreState; 0
+ * model_preview_render_viewport passes to fview_set_object_transform. Set by
+ * model_preview_set_object_up_axis_angle_degrees and model_preview_restore_state; 0
  * after each successful load. */
 // GLOBAL: XVT 0x520EC0
-int16_t g_modelPreviewUpAxisAngle;
-/* The preview model's block, locked by ModelPreview_LoadModel; NULL until the
- * first load. The modern XvtFrontendTask_Shutdown sets it back to NULL. */
+int16_t g_model_preview_up_axis_angle;
+/* The preview model's block, locked by model_preview_load_model; NULL until the
+ * first load. The modern xvt_frontend_task_shutdown sets it back to NULL. */
 // GLOBAL: XVT 0x520EC4
-struct OptimizedPolyObject *g_modelPreviewModelData = NULL;
-/* Nothing sets this flag, and ModelPreview_LoadModel clears it through ModelPreview_FreeResources before
+struct optimized_poly_object *g_model_preview_model_data = NULL;
+/* Nothing sets this flag, and model_preview_load_model clears it through model_preview_free_resources before
  * testing it, so every load resets the preview object, view and light. */
-/* Only ModelPreview_FreeResources writes it, and it writes 0. */
+/* Only model_preview_free_resources writes it, and it writes 0. */
 // GLOBAL: XVT 0x520EC8
-int g_modelPreviewSkipSceneReset = 0;
-/* 1 once ModelPreview_RenderViewport has allocated the render buffers and the
- * span mask; ModelPreview_FreeResources frees the buffers and sets it to 0. */
+int g_model_preview_skip_scene_reset = 0;
+/* 1 once model_preview_render_viewport has allocated the render buffers and the
+ * span mask; model_preview_free_resources frees the buffers and sets it to 0. */
 // GLOBAL: XVT 0x520ECC
-int g_modelPreviewRenderResourcesInitialized = 0;
-/* Memory handle of the preview's span mask buffer: ModelPreview_RenderViewport
- * allocates it, regrows it when too small and points g_flightAuxBuffer at it.
- * The modern XvtFrontendTask_Shutdown sets it to 0. */
+int g_model_preview_render_resources_initialized = 0;
+/* Memory handle of the preview's span mask buffer: model_preview_render_viewport
+ * allocates it, regrows it when too small and points g_flight_aux_buffer at it.
+ * The modern xvt_frontend_task_shutdown sets it to 0. */
 // GLOBAL: XVT 0x520ED0
-uint16_t g_modelPreviewAuxBufferHandle = 0;
-/* Bytes allocated for g_modelPreviewAuxBufferHandle; written by the same two
+uint16_t g_model_preview_aux_buffer_handle = 0;
+/* Bytes allocated for g_model_preview_aux_buffer_handle; written by the same two
  * functions. */
 // GLOBAL: XVT 0x520ED4
-unsigned int g_modelPreviewAuxBufferCapacityBytes = 0;
+unsigned int g_model_preview_aux_buffer_capacity_bytes = 0;
 /* The preview model's largest extent, in model units before scaling, from
- * ModelPreview_ComputeOptBoundsExtent; set by each load. */
+ * model_preview_compute_opt_bounds_extent; set by each load. */
 // GLOBAL: XVT 0x520ED8
-double g_modelPreviewBoundsExtent;
-/* Which child of an OPT_NODESWITCH node is drawn: RenderScene_DrawModelNode
- * takes g_nodeSwitchIndex + 1, cut to the node's child count, as its selection.
- * RenderScene_DrawObjectModel and RenderScene_DrawSelectedRootNode set it from
- * the drawn object's mobj->nodeSwitchIndex (0 without a mobj);
- * ModelPreview_SetNodeSwitchIndex and ModelPreview_RestoreState set it for the
- * preview, which ModelPreview_RenderViewport copies into the preview object. */
+double g_model_preview_bounds_extent;
+/* Which child of an OPT_NODESWITCH node is drawn: render_scene_draw_model_node
+ * takes g_node_switch_index + 1, cut to the node's child count, as its selection.
+ * render_scene_draw_object_model and render_scene_draw_selected_root_node set it from
+ * the drawn object's mobj->node_switch_index (0 without a mobj);
+ * model_preview_set_node_switch_index and model_preview_restore_state set it for the
+ * preview, which model_preview_render_viewport copies into the preview object. */
 // GLOBAL: XVT 0x5233A0
-int g_nodeSwitchIndex;
+int g_node_switch_index;
 /* The object the preview draws. Its objectType is 0, so it draws
- * g_loadedModels[0]; its mobj is g_modelPreviewMobileObject. Each successful
+ * g_loaded_models[0]; its mobj is g_model_preview_mobile_object. Each successful
  * load resets its position and angles to 0. */
 // GLOBAL: XVT 0x5561E8
-struct ObjectRecord g_modelPreviewObject;
-/* Factor ModelPreview_LoadModel scaled the preview model by:
- * g_modelPreviewTargetBoundsExtent over g_modelPreviewBoundsExtent. */
+struct object_record g_model_preview_object;
+/* Factor model_preview_load_model scaled the preview model by:
+ * g_model_preview_target_bounds_extent over g_model_preview_bounds_extent. */
 // GLOBAL: XVT 0x5561E0
-double g_modelPreviewScale = 0.0;
+double g_model_preview_scale = 0.0;
 /* The preview object's mobile part, cleared by each successful load, with
- * g_modelPreviewCraftScratch as its craft. */
+ * g_model_preview_craft_scratch as its craft. */
 // GLOBAL: XVT 0x556218
-struct MobileObject g_modelPreviewMobileObject = {0};
-/* Name of the preview's OPT file, set by ModelPreview_LoadModel once the file
- * is loaded; ModelPreview_SaveState copies it. */
+struct mobile_object g_model_preview_mobile_object = {0};
+/* Name of the preview's OPT file, set by model_preview_load_model once the file
+ * is loaded; model_preview_save_state copies it. */
 // GLOBAL: XVT 0x555CC8
-char g_modelPreviewOptFileName[128];
-/* Preview pitch saved by ModelPreview_SaveState, put back by
- * ModelPreview_RestoreState. */
+char g_model_preview_opt_file_name[128];
+/* Preview pitch saved by model_preview_save_state, put back by
+ * model_preview_restore_state. */
 // GLOBAL: XVT 0x555CC0
-int16_t g_savedModelPreviewPitch;
-/* Preview yaw saved by ModelPreview_SaveState, put back by
- * ModelPreview_RestoreState. */
+int16_t g_saved_model_preview_pitch;
+/* Preview yaw saved by model_preview_save_state, put back by
+ * model_preview_restore_state. */
 // GLOBAL: XVT 0x555CC4
-int16_t g_savedModelPreviewYaw;
+int16_t g_saved_model_preview_yaw;
 /* Largest z over the model's vertices, starting from 0, while
- * ModelPreview_ComputeOptBoundsExtent runs; afterwards the z extent. */
+ * model_preview_compute_opt_bounds_extent runs; afterwards the z extent. */
 // GLOBAL: XVT 0x555D48
-static float g_modelPreviewBoundsMaxZ = 0.0f;
+static float g_model_preview_bounds_max_z = 0.0f;
 /* Smallest z over the model's vertices, starting from 0, for
- * ModelPreview_ComputeOptBoundsExtent. */
+ * model_preview_compute_opt_bounds_extent. */
 // GLOBAL: XVT 0x555D4C
-static float g_modelPreviewBoundsMinZ = 0.0f;
+static float g_model_preview_bounds_min_z = 0.0f;
 /* Largest x over the model's vertices, starting from 0, while
- * ModelPreview_ComputeOptBoundsExtent runs; afterwards the x extent. */
+ * model_preview_compute_opt_bounds_extent runs; afterwards the x extent. */
 // GLOBAL: XVT 0x555D50
-static float g_modelPreviewBoundsMaxX = 0.0f;
+static float g_model_preview_bounds_max_x = 0.0f;
 /* Smallest x over the model's vertices, starting from 0, for
- * ModelPreview_ComputeOptBoundsExtent. */
+ * model_preview_compute_opt_bounds_extent. */
 // GLOBAL: XVT 0x555D54
-static float g_modelPreviewBoundsMinX = 0.0f;
-/* Light direction z saved by ModelPreview_SaveState, put back by
- * ModelPreview_RestoreState. */
+static float g_model_preview_bounds_min_x = 0.0f;
+/* Light direction z saved by model_preview_save_state, put back by
+ * model_preview_restore_state. */
 // GLOBAL: XVT 0x555D58
-int16_t g_savedModelPreviewLightDirectionZ;
-/* Preview world y saved by ModelPreview_SaveState, put back by
- * ModelPreview_RestoreState. */
+int16_t g_saved_model_preview_light_direction_z;
+/* Preview world y saved by model_preview_save_state, put back by
+ * model_preview_restore_state. */
 // GLOBAL: XVT 0x555D5C
-int g_savedModelPreviewWorldY;
-/* Preview world z saved by ModelPreview_SaveState, put back by
- * ModelPreview_RestoreState. */
+int g_saved_model_preview_world_y;
+/* Preview world z saved by model_preview_save_state, put back by
+ * model_preview_restore_state. */
 // GLOBAL: XVT 0x555D60
-int g_savedModelPreviewWorldZ;
-/* Preview world x saved by ModelPreview_SaveState, put back by
- * ModelPreview_RestoreState. */
+int g_saved_model_preview_world_z;
+/* Preview world x saved by model_preview_save_state, put back by
+ * model_preview_restore_state. */
 // GLOBAL: XVT 0x555D64
-int g_savedModelPreviewWorldX;
+int g_saved_model_preview_world_x;
 /* Largest y over the model's vertices, starting from 0, while
- * ModelPreview_ComputeOptBoundsExtent runs; afterwards the y extent. */
+ * model_preview_compute_opt_bounds_extent runs; afterwards the y extent. */
 // GLOBAL: XVT 0x555D68
-static float g_modelPreviewBoundsMaxY = 0.0f;
+static float g_model_preview_bounds_max_y = 0.0f;
 /* Smallest y over the model's vertices, starting from 0, for
- * ModelPreview_ComputeOptBoundsExtent. */
+ * model_preview_compute_opt_bounds_extent. */
 // GLOBAL: XVT 0x555D6C
-static float g_modelPreviewBoundsMinY = 0.0f;
+static float g_model_preview_bounds_min_y = 0.0f;
 /* Craft record the preview's mobile object points at, cleared by each
  * successful load. */
 // GLOBAL: XVT 0x555D78
-struct CraftData g_modelPreviewCraftScratch = {0};
-/* Light direction y saved by ModelPreview_SaveState, put back by
- * ModelPreview_RestoreState. */
+struct craft_data g_model_preview_craft_scratch = {0};
+/* Light direction y saved by model_preview_save_state, put back by
+ * model_preview_restore_state. */
 // GLOBAL: XVT 0x555D70
-int16_t g_savedModelPreviewLightDirectionY;
-/* Light direction x saved by ModelPreview_SaveState, put back by
- * ModelPreview_RestoreState. */
+int16_t g_saved_model_preview_light_direction_y;
+/* Light direction x saved by model_preview_save_state, put back by
+ * model_preview_restore_state. */
 // GLOBAL: XVT 0x555D74
-int16_t g_savedModelPreviewLightDirectionX;
-/* g_nodeSwitchIndex saved by ModelPreview_SaveState, put back by
- * ModelPreview_RestoreState. */
+int16_t g_saved_model_preview_light_direction_x;
+/* g_node_switch_index saved by model_preview_save_state, put back by
+ * model_preview_restore_state. */
 // GLOBAL: XVT 0x5561DC
-int g_savedModelPreviewNodeSwitchIndex;
-/* g_modelPreviewUpAxisAngle saved by ModelPreview_SaveState, put back by
- * ModelPreview_RestoreState. */
+int g_saved_model_preview_node_switch_index;
+/* g_model_preview_up_axis_angle saved by model_preview_save_state, put back by
+ * model_preview_restore_state. */
 // GLOBAL: XVT 0x55620C
-int16_t g_savedModelPreviewUpAxisAngle;
-/* Preview roll saved by ModelPreview_SaveState, put back by
- * ModelPreview_RestoreState. */
+int16_t g_saved_model_preview_up_axis_angle;
+/* Preview roll saved by model_preview_save_state, put back by
+ * model_preview_restore_state. */
 // GLOBAL: XVT 0x556210
-int16_t g_savedModelPreviewRoll;
-/* Preview file name saved by ModelPreview_SaveState; ModelPreview_RestoreState
+int16_t g_saved_model_preview_roll;
+/* Preview file name saved by model_preview_save_state; model_preview_restore_state
  * loads it again. */
 // GLOBAL: XVT 0x5562D0
-char g_savedModelPreviewModelFileName[128];
+char g_saved_model_preview_model_file_name[128];
 /* X of the light direction in world axes, 1.15 fixed point. Flight start sets
- * all three to DEFAULT_MODEL_LIGHT_DIRECTION (Flight_MainLoop in the original
- * build, XvtFlightLoading_MissionSetup in the modern one);
- * ModelPreview_SetLightDirection and ModelPreview_RestoreState set them for the
- * preview. FVIEW_ComputeObjectViewMatrix turns them into the object's light
+ * all three to DEFAULT_MODEL_LIGHT_DIRECTION (flight_main_loop in the original
+ * build, xvt_flight_loading_mission_setup in the modern one);
+ * model_preview_set_light_direction and model_preview_restore_state set them for the
+ * preview. fview_compute_object_view_matrix turns them into the object's light
  * direction. */
 // GLOBAL: XVT 0x9D12EC
-int g_worldLightDirectionX;
+int g_world_light_direction_x;
 /* Y of the light direction in world axes; written and read like
- * g_worldLightDirectionX. */
+ * g_world_light_direction_x. */
 // GLOBAL: XVT 0x9D12F0
-int g_worldLightDirectionY;
+int g_world_light_direction_y;
 /* Z of the light direction in world axes; written and read like
- * g_worldLightDirectionX. */
+ * g_world_light_direction_x. */
 // GLOBAL: XVT 0x9D1304
-int g_worldLightDirectionZ;
+int g_world_light_direction_z;
 /* The preview object's position less the camera's, turned into camera axes;
- * ModelPreview_RenderViewport sets it each draw and makes its z
- * g_viewSpaceDepth. The modern build passes it to
- * XvtRenderCapture_FrontendPreview. */
+ * model_preview_render_viewport sets it each draw and makes its z
+ * g_view_space_depth. The modern build passes it to
+ * xvt_render_capture_frontend_preview. */
 // GLOBAL: XVT 0xA60710
-struct OptVector g_modelPreviewViewDelta = {0.0f, 0.0f, 0.0f};
-/* ModelPreview_RenderViewport's float copy of a 1.15 matrix: first the camera
- * rotation, used to turn g_modelPreviewViewDelta, then the object-to-view
+struct opt_vector g_model_preview_view_delta = {0.0f, 0.0f, 0.0f};
+/* model_preview_render_viewport's float copy of a 1.15 matrix: first the camera
+ * rotation, used to turn g_model_preview_view_delta, then the object-to-view
  * rotation, which the modern build passes to
- * XvtRenderCapture_FrontendPreview. */
+ * xvt_render_capture_frontend_preview. */
 // GLOBAL: XVT 0xA6071C
-float g_modelPreviewMatrix[9] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-				 0.0f, 0.0f, 0.0f, 0.0f};
-/* Minus g_modelPreviewViewDelta turned by g_modelPreviewObjectViewMatrix, set
- * each draw by ModelPreview_RenderViewport; nothing reads it. */
+float g_model_preview_matrix[9] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+				   0.0f, 0.0f, 0.0f, 0.0f};
+/* Minus g_model_preview_view_delta turned by g_model_preview_object_view_matrix, set
+ * each draw by model_preview_render_viewport; nothing reads it. */
 // GLOBAL: XVT 0xA60740
-struct OptVector g_modelPreviewNegViewDelta = {0.0f, 0.0f, 0.0f};
+struct opt_vector g_model_preview_neg_view_delta = {0.0f, 0.0f, 0.0f};
 /* The object-to-view rotation transposed, set each draw by
- * ModelPreview_RenderViewport only to turn g_modelPreviewNegViewDelta. */
+ * model_preview_render_viewport only to turn g_model_preview_neg_view_delta. */
 // GLOBAL: XVT 0xA6074C
-float g_modelPreviewObjectViewMatrix[9] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-					   0.0f, 0.0f, 0.0f, 0.0f};
+float g_model_preview_object_view_matrix[9] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+					       0.0f, 0.0f, 0.0f, 0.0f};
 
-/* Loads a model for the frontend preview into g_loadedModels[0] and returns 1,
+/* Loads a model for the frontend preview into g_loaded_models[0] and returns 1,
  * or 0. It frees the preview's render buffers, resets the view and render
- * settings, turns g_mipmappingEnabled on, sets g_loadedModels[0] to 0 when
- * g_modelPreviewModelData is NULL, and opens the name with ".opt" in place of
+ * settings, turns g_mipmapping_enabled on, sets g_loaded_models[0] to 0 when
+ * g_model_preview_model_data is NULL, and opens the name with ".opt" in place of
  * its extension. The modern build returns 0 for a NULL name, one of 256 or more
  * characters, an extension other than ".opt", a file that does not open or a
  * load that fails. The original build cuts the name at its first '.' and, when
- * the OPT file does not open, imports the ".iv" file as OptModel_LoadHandle
+ * the OPT file does not open, imports the ".iv" file as opt_model_load_handle
  * does, saving it as the OPT file. An OPT file is loaded with
- * OptModel_LoadFileToHandle after the old slot's handle is freed, as an import
- * frees it too, and a runtime copy built with g_flightBytesPerPixel set to 2,
+ * opt_model_load_file_to_handle after the old slot's handle is freed, as an import
+ * frees it too, and a runtime copy built with g_flight_bytes_per_pixel set to 2,
  * which it stays, takes the slot. It locks the copy into
- * g_modelPreviewModelData, scales it so its largest extent is
- * g_modelPreviewTargetBoundsExtent (g_modelPreviewBoundsExtent,
- * g_modelPreviewScale), sets g_transformLightDirectionToObjectSpace, and resets
+ * g_model_preview_model_data, scales it so its largest extent is
+ * g_model_preview_target_bounds_extent (g_model_preview_bounds_extent,
+ * g_model_preview_scale), sets g_transform_light_direction_to_object_space, and resets
  * the preview object and the view, and the light to (1, 1, 1). The modern build
  * also registers the copy for its renderer. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x429E70
-int ModelPreview_LoadModel(const char *modelFileName)
+int model_preview_load_model(const char *model_file_name)
 {
 	enum {
 		MODEL_PREVIEW_SLOT = 0,
@@ -251,219 +251,222 @@ int ModelPreview_LoadModel(const char *modelFileName)
 		INVENTOR_BINARY_LABEL_LENGTH = sizeof("binary") - 1,
 #endif
 	};
-	char fileName[FILE_NAME_CAPACITY];
-	char baseName[FILE_NAME_CAPACITY];
+	char file_name[FILE_NAME_CAPACITY];
+	char base_name[FILE_NAME_CAPACITY];
 #ifdef XVT_MODERN
 	char *extension;
 #else
-	int extensionIndex;
+	int extension_index;
 #endif
-	XvtFile *stream;
+	xvt_file *stream;
 #ifndef XVT_MODERN
-	uint16_t importedHandle;
-	uint16_t packedHandle;
+	uint16_t imported_handle;
+	uint16_t packed_handle;
 #endif
 
-	ModelPreview_FreeResources();
-	ModelPreview_ResetViewAndRenderState();
-	g_mipmappingEnabled = 1;
-	if (g_modelPreviewModelData == NULL) {
-		g_loadedModels[MODEL_PREVIEW_SLOT] = 0;
+	model_preview_free_resources();
+	model_preview_reset_view_and_render_state();
+	g_mipmapping_enabled = 1;
+	if (g_model_preview_model_data == NULL) {
+		g_loaded_models[MODEL_PREVIEW_SLOT] = 0;
 	}
 
 #ifdef XVT_MODERN
-	if (!modelFileName || strlen(modelFileName) >= sizeof(baseName)) {
+	if (!model_file_name || strlen(model_file_name) >= sizeof(base_name)) {
 		return 0;
 	}
-	strcpy(baseName, modelFileName);
-	extension = strrchr(baseName, '.');
+	strcpy(base_name, model_file_name);
+	extension = strrchr(base_name, '.');
 	if (extension) {
 		if (strcasecmp(extension, ".opt") != 0) {
 			return 0;
 		}
 		*extension = '\0';
 	}
-	if (strlen(baseName) + sizeof(".opt") > sizeof(fileName)) {
+	if (strlen(base_name) + sizeof(".opt") > sizeof(file_name)) {
 		return 0;
 	}
 #else
-	strcpy(baseName, modelFileName);
-	for (extensionIndex = 0; baseName[extensionIndex] != '.';
-	     ++extensionIndex) {
+	strcpy(base_name, model_file_name);
+	for (extension_index = 0; base_name[extension_index] != '.';
+	     ++extension_index) {
 	}
-	baseName[extensionIndex] = '\0';
+	base_name[extension_index] = '\0';
 #endif
 
-	strcpy(fileName, baseName);
-	strcat(fileName, ".opt");
-	FeDiskIo_OpenGlobalStream(fileName, g_fileModeReadBinary, 0, 0);
+	strcpy(file_name, base_name);
+	strcat(file_name, ".opt");
+	fe_disk_io_open_global_stream(file_name, g_file_mode_read_binary, 0, 0);
 	stream = g_stream;
 #ifdef XVT_MODERN
 	if (!stream) {
 		return 0;
 	}
-	File_Close(stream);
+	file_close(stream);
 	g_stream = NULL;
-	if (g_loadedModels[MODEL_PREVIEW_SLOT] != 0) {
-		Memory_FreeHandle(g_loadedModels[MODEL_PREVIEW_SLOT]);
+	if (g_loaded_models[MODEL_PREVIEW_SLOT] != 0) {
+		memory_free_handle(g_loaded_models[MODEL_PREVIEW_SLOT]);
 	}
-	g_loadedModels[MODEL_PREVIEW_SLOT] =
-		OptModel_LoadFileToHandle(fileName);
+	g_loaded_models[MODEL_PREVIEW_SLOT] =
+		opt_model_load_file_to_handle(file_name);
 #else
 	if (stream == NULL) {
-		strcpy(fileName, baseName);
-		strcat(fileName, ".iv");
-		FeDiskIo_OpenGlobalStream(fileName, g_fileModeReadBinary, 0, 0);
+		strcpy(file_name, base_name);
+		strcat(file_name, ".iv");
+		fe_disk_io_open_global_stream(file_name,
+					      g_file_mode_read_binary, 0, 0);
 		stream = g_stream;
 		if (stream == NULL) {
 			return 0;
 		}
-		if (File_Scanf(stream, "%256s", fileName) != 1) {
+		if (FILE_SCANF(stream, "%256s", file_name) != 1) {
 			return 0;
 		}
-		if (_strnicmp(fileName, "#inventor",
+		if (_strnicmp(file_name, "#inventor",
 			      INVENTOR_SIGNATURE_LENGTH) != 0) {
 			return 0;
 		}
-		if (File_Scanf(stream, " %256s", fileName) != 1) {
+		if (FILE_SCANF(stream, " %256s", file_name) != 1) {
 			return 0;
 		}
-		if (File_Scanf(stream, " %256s", fileName) != 1) {
+		if (FILE_SCANF(stream, " %256s", file_name) != 1) {
 			return 0;
 		}
-		if (_strnicmp(fileName, "ascii", INVENTOR_ASCII_LABEL_LENGTH) ==
-		    0) {
-			if (g_loadedModels[MODEL_PREVIEW_SLOT] != 0) {
-				Memory_FreeHandle(
-					g_loadedModels[MODEL_PREVIEW_SLOT]);
+		if (_strnicmp(file_name, "ascii",
+			      INVENTOR_ASCII_LABEL_LENGTH) == 0) {
+			if (g_loaded_models[MODEL_PREVIEW_SLOT] != 0) {
+				memory_free_handle(
+					g_loaded_models[MODEL_PREVIEW_SLOT]);
 			}
-			importedHandle =
-				OptModel_LoadInventorAsciiToHandle(stream);
+			imported_handle =
+				opt_model_load_inventor_ascii_to_handle(stream);
 		} else {
-			if (_strnicmp(fileName, "binary",
+			if (_strnicmp(file_name, "binary",
 				      INVENTOR_BINARY_LABEL_LENGTH) == 0) {
-				if (g_loadedModels[MODEL_PREVIEW_SLOT] != 0) {
-					Memory_FreeHandle(
-						g_loadedModels
+				if (g_loaded_models[MODEL_PREVIEW_SLOT] != 0) {
+					memory_free_handle(
+						g_loaded_models
 							[MODEL_PREVIEW_SLOT]);
 				}
-				importedHandle =
-					OptModel_LoadInventorBinaryToHandle(
+				imported_handle =
+					opt_model_load_inventor_binary_to_handle(
 						stream);
 			} else {
-				File_RawClose(stream);
+				FILE_RAW_CLOSE(stream);
 				return 0;
 			}
 		}
-		File_RawClose(stream);
-		packedHandle =
-			OptModel_ConvertImportedHandleToPacked(importedHandle);
-		strcpy(fileName, baseName);
-		strcat(fileName, ".opt");
-		OptModel_SaveHandleToFile(fileName, packedHandle);
-		g_loadedModels[MODEL_PREVIEW_SLOT] = packedHandle;
+		FILE_RAW_CLOSE(stream);
+		packed_handle = opt_model_convert_imported_handle_to_packed(
+			imported_handle);
+		strcpy(file_name, base_name);
+		strcat(file_name, ".opt");
+		opt_model_save_handle_to_file(file_name, packed_handle);
+		g_loaded_models[MODEL_PREVIEW_SLOT] = packed_handle;
 	} else {
-		File_RawClose(stream);
-		if (g_loadedModels[MODEL_PREVIEW_SLOT] != 0) {
-			Memory_FreeHandle(g_loadedModels[MODEL_PREVIEW_SLOT]);
+		FILE_RAW_CLOSE(stream);
+		if (g_loaded_models[MODEL_PREVIEW_SLOT] != 0) {
+			memory_free_handle(g_loaded_models[MODEL_PREVIEW_SLOT]);
 		}
-		g_loadedModels[MODEL_PREVIEW_SLOT] =
-			OptModel_LoadFileToHandle(fileName);
+		g_loaded_models[MODEL_PREVIEW_SLOT] =
+			opt_model_load_file_to_handle(file_name);
 	}
 #endif
 
 #ifdef XVT_MODERN
-	if (!g_loadedModels[MODEL_PREVIEW_SLOT]) {
+	if (!g_loaded_models[MODEL_PREVIEW_SLOT]) {
 		return 0;
 	}
 #endif
-	strcpy(g_modelPreviewOptFileName, baseName);
-	strcat(g_modelPreviewOptFileName, ".opt");
-	if (g_mipmappingEnabled != 0) {
-		g_flightBytesPerPixel = 2;
-		g_loadedModels[MODEL_PREVIEW_SLOT] =
-			OptModel_CreateRuntimeHandle(
-				g_loadedModels[MODEL_PREVIEW_SLOT]);
-		g_flightBytesPerPixel = 2;
+	strcpy(g_model_preview_opt_file_name, base_name);
+	strcat(g_model_preview_opt_file_name, ".opt");
+	if (g_mipmapping_enabled != 0) {
+		g_flight_bytes_per_pixel = 2;
+		g_loaded_models[MODEL_PREVIEW_SLOT] =
+			opt_model_create_runtime_handle(
+				g_loaded_models[MODEL_PREVIEW_SLOT]);
+		g_flight_bytes_per_pixel = 2;
 	}
 #ifdef XVT_MODERN
-	if (!g_loadedModels[MODEL_PREVIEW_SLOT]) {
+	if (!g_loaded_models[MODEL_PREVIEW_SLOT]) {
 		return 0;
 	}
 #endif
 #ifdef XVT_MODERN
-	XvtRenderAssets_RegisterOpt(g_loadedModels[MODEL_PREVIEW_SLOT],
-				    g_modelPreviewOptFileName);
-	XvtRenderAssets_BindType(MODEL_PREVIEW_SLOT,
-				 g_loadedModels[MODEL_PREVIEW_SLOT]);
+	xvt_render_assets_register_opt(g_loaded_models[MODEL_PREVIEW_SLOT],
+				       g_model_preview_opt_file_name);
+	xvt_render_assets_bind_type(MODEL_PREVIEW_SLOT,
+				    g_loaded_models[MODEL_PREVIEW_SLOT]);
 #endif
-	g_modelPreviewModelData =
-		(struct OptimizedPolyObject *)Memory_GetHandleBlock(
-			g_loadedModels[MODEL_PREVIEW_SLOT]);
-	if (g_modelPreviewModelData->selfMarker != g_modelPreviewModelData) {
-		OptModel_AdjustOptimizedPolyObjectPointers(
-			g_modelPreviewModelData);
+	g_model_preview_model_data =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			g_loaded_models[MODEL_PREVIEW_SLOT]);
+	if (g_model_preview_model_data->self_marker !=
+	    g_model_preview_model_data) {
+		opt_model_adjust_optimized_poly_object_pointers(
+			g_model_preview_model_data);
 	}
 	/* The second argument is an axis, not a slot: MODEL_PREVIEW_SLOT passes 0, the largest extent. */
-	g_modelPreviewBoundsExtent = ModelPreview_ComputeOptBoundsExtent(
-		g_modelPreviewModelData, MODEL_PREVIEW_SLOT);
-	g_modelPreviewScale =
-		g_modelPreviewTargetBoundsExtent / g_modelPreviewBoundsExtent;
-	ModelPreview_ScaleOptRootNodes(g_modelPreviewModelData,
-				       g_modelPreviewScale);
-	g_transformLightDirectionToObjectSpace = 1;
+	g_model_preview_bounds_extent = model_preview_compute_opt_bounds_extent(
+		g_model_preview_model_data, MODEL_PREVIEW_SLOT);
+	g_model_preview_scale = g_model_preview_target_bounds_extent /
+				g_model_preview_bounds_extent;
+	model_preview_scale_opt_root_nodes(g_model_preview_model_data,
+					   g_model_preview_scale);
+	g_transform_light_direction_to_object_space = 1;
 
-	if (g_modelPreviewSkipSceneReset == 0) {
-		memset(&g_modelPreviewMobileObject, 0,
-		       sizeof(g_modelPreviewMobileObject));
-		memset(&g_modelPreviewCraftScratch, 0,
-		       sizeof(g_modelPreviewCraftScratch));
-		g_modelPreviewObject.objectType = 0;
-		g_modelPreviewObject.world_x = 0;
-		g_modelPreviewObject.pitch = 0;
-		g_modelPreviewObject.world_y = 0;
-		g_modelPreviewObject.yaw = 0;
-		g_modelPreviewObject.world_z = 0;
-		g_modelPreviewObject.mobj = &g_modelPreviewMobileObject;
-		g_modelPreviewMobileObject.pCraft = &g_modelPreviewCraftScratch;
-		g_modelPreviewObject.roll = 0;
-		g_modelPreviewUpAxisAngle = 0;
-		ModelPreview_ResetViewAndRenderState();
-		ModelPreview_SetLightDirection(1, 1, 1);
+	if (g_model_preview_skip_scene_reset == 0) {
+		memset(&g_model_preview_mobile_object, 0,
+		       sizeof(g_model_preview_mobile_object));
+		memset(&g_model_preview_craft_scratch, 0,
+		       sizeof(g_model_preview_craft_scratch));
+		g_model_preview_object.object_type = 0;
+		g_model_preview_object.world_x = 0;
+		g_model_preview_object.pitch = 0;
+		g_model_preview_object.world_y = 0;
+		g_model_preview_object.yaw = 0;
+		g_model_preview_object.world_z = 0;
+		g_model_preview_object.mobj = &g_model_preview_mobile_object;
+		g_model_preview_mobile_object.p_craft =
+			&g_model_preview_craft_scratch;
+		g_model_preview_object.roll = 0;
+		g_model_preview_up_axis_angle = 0;
+		model_preview_reset_view_and_render_state();
+		model_preview_set_light_direction(1, 1, 1);
 	}
 	return 1;
 }
 
-/* Frees the render buffers when g_modelPreviewRenderResourcesInitialized is set
- * and clears it; also clears g_modelPreviewSkipSceneReset. */
+/* Frees the render buffers when g_model_preview_render_resources_initialized is set
+ * and clears it; also clears g_model_preview_skip_scene_reset. */
 // FUNCTION: XVT 0x42A350
-void ModelPreview_FreeResources(void)
+void model_preview_free_resources(void)
 {
-	if (g_modelPreviewRenderResourcesInitialized != 0) {
-		RenderScene_FreeBuffers();
-		g_modelPreviewRenderResourcesInitialized = 0;
+	if (g_model_preview_render_resources_initialized != 0) {
+		render_scene_free_buffers();
+		g_model_preview_render_resources_initialized = 0;
 	}
-	g_modelPreviewSkipSceneReset = 0;
+	g_model_preview_skip_scene_reset = 0;
 }
 
 /* Draws the preview model into the viewport at x, y, width by height and
- * returns 1; returns 0 when g_loadedModels[0] is 0, x is 1024 or more, or y is
+ * returns 1; returns 0 when g_loaded_models[0] is 0, x is 1024 or more, or y is
  * 768 or more. A negative x moves the viewport's left edge to 0 and takes it
  * off the width; a negative y is taken off the height but kept. The right and
  * bottom edges are cut to 1024 by 768. It sets the flight viewport and
  * projection globals (scale 512, perspective shift 9), builds the camera from
  * the local player's view state and the object's transform with
- * g_modelPreviewUpAxisAngle, and sets g_modelPreviewViewDelta and the preview
+ * g_model_preview_up_axis_angle, and sets g_model_preview_view_delta and the preview
  * matrices. The first draw after a load allocates the render buffers and the
- * span mask in g_modelPreviewAuxBufferHandle: per row the byte 1, then a 0
+ * span mask in g_model_preview_aux_buffer_handle: per row the byte 1, then a 0
  * while the width left is 256 or more, taking 255 the first time and 256 the
  * second (twice at most), then the width left. It draws with local lights off,
- * the object's nodeSwitchIndex from g_nodeSwitchIndex, through
- * RenderScene_DrawObjectModel and sw3d_DrawVisibleFacesToSurface. The modern
+ * the object's node_switch_index from g_node_switch_index, through
+ * render_scene_draw_object_model and sw3d_draw_visible_faces_to_surface. The modern
  * build also records the draw for its renderer. The arguments after height are
  * ignored. */
 // FUNCTION: XVT 0x42A380
-int ModelPreview_RenderViewport(int x, int y, int width, int height, ...)
+int model_preview_render_viewport(int x, int y, int width, int height, ...)
 {
 	enum {
 		MODEL_PREVIEW_SLOT = 0,
@@ -477,22 +480,22 @@ int ModelPreview_RenderViewport(int x, int y, int width, int height, ...)
 		SPAN_MASK_LONG_RUN_THRESHOLD = SPAN_MASK_LONG_RUN_LENGTH + 1,
 	};
 
-	float objectRow0X;
-	float objectRow0Y;
-	float objectRow0Z;
-	float objectRow1X;
-	float objectRow1Y;
-	float objectRow1Z;
-	float objectRow2X;
-	float objectRow2Y;
-	float objectRow2Z;
-	uint8_t *auxBuffer;
-	uint8_t *maskCursor;
+	float object_row0x;
+	float object_row0y;
+	float object_row0z;
+	float object_row1x;
+	float object_row1y;
+	float object_row1z;
+	float object_row2x;
+	float object_row2y;
+	float object_row2z;
+	uint8_t *aux_buffer;
+	uint8_t *mask_cursor;
 	unsigned int row;
-	unsigned int remainingWidth;
-	int savedLocalLightsEnabled;
+	unsigned int remaining_width;
+	int saved_local_lights_enabled;
 
-	if (g_loadedModels[MODEL_PREVIEW_SLOT] == 0) {
+	if (g_loaded_models[MODEL_PREVIEW_SLOT] == 0) {
 		return 0;
 	}
 
@@ -516,196 +519,203 @@ int ModelPreview_RenderViewport(int x, int y, int width, int height, ...)
 		width = RENDER_SURFACE_MAX_WIDTH - x;
 	}
 
-	g_flightVpWidth = (uint16_t)width;
-	g_flightVpMaxX = (uint16_t)(width - 1);
-	g_flightVpCenterX = (uint16_t)(width / 2);
-	g_flightVpHeight = (uint16_t)height;
-	g_flightVpMaxY = (uint16_t)(height - 1);
-	g_flightVpCenterY = (uint16_t)(height / 2);
-	g_flightVpY = y;
-	g_flightVpX = x;
-	g_flightVpBaseOffset = (unsigned int)(y * g_surfacePitch + x);
-	g_projScaleInt = MODEL_PREVIEW_PROJECTION_SCALE;
-	g_projScaleHalfInt = MODEL_PREVIEW_PROJECTION_HALF_SCALE;
-	g_perspectiveShift = MODEL_PREVIEW_PERSPECTIVE_SHIFT;
-	g_projAspectY = 0;
+	g_flight_vp_width = (uint16_t)width;
+	g_flight_vp_max_x = (uint16_t)(width - 1);
+	g_flight_vp_center_x = (uint16_t)(width / 2);
+	g_flight_vp_height = (uint16_t)height;
+	g_flight_vp_max_y = (uint16_t)(height - 1);
+	g_flight_vp_center_y = (uint16_t)(height / 2);
+	g_flight_vp_y = y;
+	g_flight_vp_x = x;
+	g_flight_vp_base_offset = (unsigned int)(y * g_surface_pitch + x);
+	g_proj_scale_int = MODEL_PREVIEW_PROJECTION_SCALE;
+	g_proj_scale_half_int = MODEL_PREVIEW_PROJECTION_HALF_SCALE;
+	g_perspective_shift = MODEL_PREVIEW_PERSPECTIVE_SHIFT;
+	g_proj_aspect_y = 0;
 
-	FVIEW_BuildCameraOrient(g_players[g_localPlayer].viewState.viewRoll,
-				g_players[g_localPlayer].viewState.viewPitch,
-				g_players[g_localPlayer].viewState.viewYaw, 0,
-				0, 0, NULL);
-	FVIEW_SetObjectTransform(
-		g_modelPreviewObject.roll, g_modelPreviewObject.pitch,
-		g_modelPreviewObject.yaw, g_modelPreviewUpAxisAngle, NULL);
+	fview_build_camera_orient(
+		g_players[g_local_player].view_state.view_roll,
+		g_players[g_local_player].view_state.view_pitch,
+		g_players[g_local_player].view_state.view_yaw, 0, 0, 0, NULL);
+	fview_set_object_transform(g_model_preview_object.roll,
+				   g_model_preview_object.pitch,
+				   g_model_preview_object.yaw,
+				   g_model_preview_up_axis_angle, NULL);
 
-	g_modelPreviewViewDelta.x =
-		(float)(g_modelPreviewObject.world_x -
-			g_players[g_localPlayer].viewState.cameraWorldX);
-	g_modelPreviewViewDelta.y =
-		(float)(g_modelPreviewObject.world_y -
-			g_players[g_localPlayer].viewState.cameraWorldY);
-	g_modelPreviewViewDelta.z =
-		(float)(g_modelPreviewObject.world_z -
-			g_players[g_localPlayer].viewState.cameraWorldZ);
-	g_modelPreviewMatrix[0] =
-		(float)g_camMatR0_X * g_modelPreviewMatrixQ15ToFloatScale;
-	g_modelPreviewMatrix[1] =
-		(float)g_camMatR1_X * g_modelPreviewMatrixQ15ToFloatScale;
-	g_modelPreviewMatrix[2] =
-		(float)g_camMatR2_X * g_modelPreviewMatrixQ15ToFloatScale;
-	g_modelPreviewMatrix[3] =
-		(float)g_camMatR0_Y * g_modelPreviewMatrixQ15ToFloatScale;
-	g_modelPreviewMatrix[4] =
-		(float)g_camMatR1_Y * g_modelPreviewMatrixQ15ToFloatScale;
-	g_modelPreviewMatrix[5] =
-		(float)g_camMatR2_Y * g_modelPreviewMatrixQ15ToFloatScale;
-	g_modelPreviewMatrix[6] =
-		(float)g_camMatR0_Z * g_modelPreviewMatrixQ15ToFloatScale;
-	g_modelPreviewMatrix[7] =
-		(float)g_camMatR1_Z * g_modelPreviewMatrixQ15ToFloatScale;
-	g_modelPreviewMatrix[8] =
-		(float)g_camMatR2_Z * g_modelPreviewMatrixQ15ToFloatScale;
-	Math3D_RotateVec3(&g_modelPreviewViewDelta.x, g_modelPreviewMatrix);
+	g_model_preview_view_delta.x =
+		(float)(g_model_preview_object.world_x -
+			g_players[g_local_player].view_state.camera_world_x);
+	g_model_preview_view_delta.y =
+		(float)(g_model_preview_object.world_y -
+			g_players[g_local_player].view_state.camera_world_y);
+	g_model_preview_view_delta.z =
+		(float)(g_model_preview_object.world_z -
+			g_players[g_local_player].view_state.camera_world_z);
+	g_model_preview_matrix[0] = (float)g_cam_mat_r0_x *
+				    g_model_preview_matrix_q15_to_float_scale;
+	g_model_preview_matrix[1] = (float)g_cam_mat_r1_x *
+				    g_model_preview_matrix_q15_to_float_scale;
+	g_model_preview_matrix[2] = (float)g_cam_mat_r2_x *
+				    g_model_preview_matrix_q15_to_float_scale;
+	g_model_preview_matrix[3] = (float)g_cam_mat_r0_y *
+				    g_model_preview_matrix_q15_to_float_scale;
+	g_model_preview_matrix[4] = (float)g_cam_mat_r1_y *
+				    g_model_preview_matrix_q15_to_float_scale;
+	g_model_preview_matrix[5] = (float)g_cam_mat_r2_y *
+				    g_model_preview_matrix_q15_to_float_scale;
+	g_model_preview_matrix[6] = (float)g_cam_mat_r0_z *
+				    g_model_preview_matrix_q15_to_float_scale;
+	g_model_preview_matrix[7] = (float)g_cam_mat_r1_z *
+				    g_model_preview_matrix_q15_to_float_scale;
+	g_model_preview_matrix[8] = (float)g_cam_mat_r2_z *
+				    g_model_preview_matrix_q15_to_float_scale;
+	math3d_rotate_vec3(&g_model_preview_view_delta.x,
+			   g_model_preview_matrix);
 
-	objectRow0X =
-		(float)g_objViewMat_R0_X * g_modelPreviewMatrixQ15ToFloatScale;
-	g_modelPreviewMatrix[0] = objectRow0X;
-	objectRow0Y =
-		(float)g_objViewMat_R0_Y * g_modelPreviewMatrixQ15ToFloatScale;
-	g_modelPreviewMatrix[1] = objectRow0Y;
-	objectRow0Z =
-		(float)g_objViewMat_R0_Z * g_modelPreviewMatrixQ15ToFloatScale;
-	g_modelPreviewMatrix[2] = objectRow0Z;
-	objectRow1X =
-		(float)g_objViewMat_R1_X * g_modelPreviewMatrixQ15ToFloatScale;
-	g_modelPreviewMatrix[3] = objectRow1X;
-	objectRow1Y =
-		(float)g_objViewMat_R1_Y * g_modelPreviewMatrixQ15ToFloatScale;
-	g_modelPreviewMatrix[4] = objectRow1Y;
-	objectRow1Z =
-		(float)g_objViewMat_R1_Z * g_modelPreviewMatrixQ15ToFloatScale;
-	g_modelPreviewMatrix[5] = objectRow1Z;
-	objectRow2X =
-		(float)g_objViewMat_R2_X * g_modelPreviewMatrixQ15ToFloatScale;
-	g_modelPreviewMatrix[6] = objectRow2X;
-	objectRow2Y =
-		(float)g_objViewMat_R2_Y * g_modelPreviewMatrixQ15ToFloatScale;
-	g_modelPreviewMatrix[7] = objectRow2Y;
-	objectRow2Z =
-		(float)g_objViewMat_R2_Z * g_modelPreviewMatrixQ15ToFloatScale;
-	g_modelPreviewMatrix[8] = objectRow2Z;
+	object_row0x = (float)g_obj_view_mat_r0_x *
+		       g_model_preview_matrix_q15_to_float_scale;
+	g_model_preview_matrix[0] = object_row0x;
+	object_row0y = (float)g_obj_view_mat_r0_y *
+		       g_model_preview_matrix_q15_to_float_scale;
+	g_model_preview_matrix[1] = object_row0y;
+	object_row0z = (float)g_obj_view_mat_r0_z *
+		       g_model_preview_matrix_q15_to_float_scale;
+	g_model_preview_matrix[2] = object_row0z;
+	object_row1x = (float)g_obj_view_mat_r1_x *
+		       g_model_preview_matrix_q15_to_float_scale;
+	g_model_preview_matrix[3] = object_row1x;
+	object_row1y = (float)g_obj_view_mat_r1_y *
+		       g_model_preview_matrix_q15_to_float_scale;
+	g_model_preview_matrix[4] = object_row1y;
+	object_row1z = (float)g_obj_view_mat_r1_z *
+		       g_model_preview_matrix_q15_to_float_scale;
+	g_model_preview_matrix[5] = object_row1z;
+	object_row2x = (float)g_obj_view_mat_r2_x *
+		       g_model_preview_matrix_q15_to_float_scale;
+	g_model_preview_matrix[6] = object_row2x;
+	object_row2y = (float)g_obj_view_mat_r2_y *
+		       g_model_preview_matrix_q15_to_float_scale;
+	g_model_preview_matrix[7] = object_row2y;
+	object_row2z = (float)g_obj_view_mat_r2_z *
+		       g_model_preview_matrix_q15_to_float_scale;
+	g_model_preview_matrix[8] = object_row2z;
 
-	g_modelPreviewNegViewDelta.x = -g_modelPreviewViewDelta.x;
-	g_modelPreviewNegViewDelta.y = -g_modelPreviewViewDelta.y;
-	g_modelPreviewNegViewDelta.z = -g_modelPreviewViewDelta.z;
-	g_modelPreviewObjectViewMatrix[0] = objectRow0X;
-	g_modelPreviewObjectViewMatrix[1] = objectRow1X;
-	g_modelPreviewObjectViewMatrix[2] = objectRow2X;
-	g_modelPreviewObjectViewMatrix[3] = objectRow0Y;
-	g_modelPreviewObjectViewMatrix[4] = objectRow1Y;
-	g_modelPreviewObjectViewMatrix[5] = objectRow2Y;
-	g_modelPreviewObjectViewMatrix[6] = objectRow0Z;
-	g_modelPreviewObjectViewMatrix[7] = objectRow1Z;
-	g_modelPreviewObjectViewMatrix[8] = objectRow2Z;
-	Math3D_RotateVec3(&g_modelPreviewNegViewDelta.x,
-			  g_modelPreviewObjectViewMatrix);
+	g_model_preview_neg_view_delta.x = -g_model_preview_view_delta.x;
+	g_model_preview_neg_view_delta.y = -g_model_preview_view_delta.y;
+	g_model_preview_neg_view_delta.z = -g_model_preview_view_delta.z;
+	g_model_preview_object_view_matrix[0] = object_row0x;
+	g_model_preview_object_view_matrix[1] = object_row1x;
+	g_model_preview_object_view_matrix[2] = object_row2x;
+	g_model_preview_object_view_matrix[3] = object_row0y;
+	g_model_preview_object_view_matrix[4] = object_row1y;
+	g_model_preview_object_view_matrix[5] = object_row2y;
+	g_model_preview_object_view_matrix[6] = object_row0z;
+	g_model_preview_object_view_matrix[7] = object_row1z;
+	g_model_preview_object_view_matrix[8] = object_row2z;
+	math3d_rotate_vec3(&g_model_preview_neg_view_delta.x,
+			   g_model_preview_object_view_matrix);
 
-	if (g_modelPreviewRenderResourcesInitialized == 0) {
-		RenderScene_AllocateBuffers();
-		if (g_viewportSpanMaskOffset +
-			    g_flightVpHeight * ((g_flightVpWidth >> 7) + 2) >
-		    (int)g_modelPreviewAuxBufferCapacityBytes) {
-			if (g_modelPreviewAuxBufferHandle != 0) {
-				Memory_FreeHandle(
-					g_modelPreviewAuxBufferHandle);
+	if (g_model_preview_render_resources_initialized == 0) {
+		render_scene_allocate_buffers();
+		if (g_viewport_span_mask_offset +
+			    g_flight_vp_height *
+				    ((g_flight_vp_width >> 7) + 2) >
+		    (int)g_model_preview_aux_buffer_capacity_bytes) {
+			if (g_model_preview_aux_buffer_handle != 0) {
+				memory_free_handle(
+					g_model_preview_aux_buffer_handle);
 			}
-			g_modelPreviewAuxBufferHandle = Memory_AllocHandle(
-				g_viewportSpanMaskOffset +
-					g_flightVpHeight *
-						((g_flightVpWidth >> 7) + 2),
+			g_model_preview_aux_buffer_handle = memory_alloc_handle(
+				g_viewport_span_mask_offset +
+					g_flight_vp_height *
+						((g_flight_vp_width >> 7) + 2),
 				0);
-			g_modelPreviewAuxBufferCapacityBytes =
-				g_viewportSpanMaskOffset +
-				g_flightVpHeight * ((g_flightVpWidth >> 7) + 2);
+			g_model_preview_aux_buffer_capacity_bytes =
+				g_viewport_span_mask_offset +
+				g_flight_vp_height *
+					((g_flight_vp_width >> 7) + 2);
 		}
-		auxBuffer = (uint8_t *)Memory_GetHandleBlock(
-			g_modelPreviewAuxBufferHandle);
-		g_flightAuxBuffer = auxBuffer;
-		maskCursor = &auxBuffer[g_viewportSpanMaskOffset];
-		for (row = 0; row < g_flightVpHeight; ++row) {
-			*maskCursor++ = 1;
-			remainingWidth = g_flightVpWidth;
-			if (remainingWidth >= SPAN_MASK_LONG_RUN_THRESHOLD) {
-				*maskCursor++ = 0;
-				remainingWidth -= SPAN_MASK_LONG_RUN_LENGTH;
-				if (remainingWidth >=
+		aux_buffer = (uint8_t *)memory_get_handle_block(
+			g_model_preview_aux_buffer_handle);
+		g_flight_aux_buffer = aux_buffer;
+		mask_cursor = &aux_buffer[g_viewport_span_mask_offset];
+		for (row = 0; row < g_flight_vp_height; ++row) {
+			*mask_cursor++ = 1;
+			remaining_width = g_flight_vp_width;
+			if (remaining_width >= SPAN_MASK_LONG_RUN_THRESHOLD) {
+				*mask_cursor++ = 0;
+				remaining_width -= SPAN_MASK_LONG_RUN_LENGTH;
+				if (remaining_width >=
 				    SPAN_MASK_LONG_RUN_THRESHOLD) {
-					*maskCursor++ = 0;
-					remainingWidth -=
+					*mask_cursor++ = 0;
+					remaining_width -=
 						SPAN_MASK_LONG_RUN_THRESHOLD;
 				}
 			}
-			*maskCursor++ = (uint8_t)remainingWidth;
+			*mask_cursor++ = (uint8_t)remaining_width;
 		}
-		g_modelPreviewRenderResourcesInitialized = 1;
+		g_model_preview_render_resources_initialized = 1;
 	}
 
-	g_viewSpaceDepth = (int)g_modelPreviewViewDelta.z;
-	g_modelPreviewObject.mobj->nodeSwitchIndex = (uint8_t)g_nodeSwitchIndex;
-	savedLocalLightsEnabled = g_localLightsEnabled;
-	g_localLightsEnabled = 0;
-	RenderScene_Initialize(1);
+	g_view_space_depth = (int)g_model_preview_view_delta.z;
+	g_model_preview_object.mobj->node_switch_index =
+		(uint8_t)g_node_switch_index;
+	saved_local_lights_enabled = g_local_lights_enabled;
+	g_local_lights_enabled = 0;
+	render_scene_initialize(1);
 #ifdef XVT_MODERN
-	XvtRenderCapture_FrontendPreview(
-		g_loadedModels[0], &g_modelPreviewViewDelta.x,
-		g_modelPreviewMatrix, (float)g_modelPreviewScale,
-		(uint16_t)g_nodeSwitchIndex, x, y, width, height);
+	xvt_render_capture_frontend_preview(
+		g_loaded_models[0], &g_model_preview_view_delta.x,
+		g_model_preview_matrix, (float)g_model_preview_scale,
+		(uint16_t)g_node_switch_index, x, y, width, height);
 #endif
-	RenderScene_DrawObjectModel(&g_modelPreviewObject);
-	sw3d_DrawVisibleFacesToSurface();
-	RenderScene_UnlockBuffers();
-	g_localLightsEnabled = savedLocalLightsEnabled;
+	render_scene_draw_object_model(&g_model_preview_object);
+	sw3d_draw_visible_faces_to_surface();
+	render_scene_unlock_buffers();
+	g_local_lights_enabled = saved_local_lights_enabled;
 	return 1;
 }
 
 /* Multiplies by scale every vertex of each OPT_MESHVERTS node at or below node
  * and the two texture gradient vectors of each face of each OPT_FACEDATA node,
- * and divides by scale the first childCount floats of each OPT_FACEGROUP node.
+ * and divides by scale the first child_count floats of each OPT_FACEGROUP node.
  * Follows OPT_NODEREF links and stops at one that does not resolve; a node
  * reached through two links is scaled twice. Other face node types keep their
  * gradients. */
 // FUNCTION: XVT 0x42A920
-void ModelPreview_ScaleOptNodeTree(struct OptNode *node,
-				   struct OptimizedPolyObject *opt,
-				   double scale)
+void model_preview_scale_opt_node_tree(struct opt_node *node,
+				       struct optimized_poly_object *opt,
+				       double scale)
 {
-	struct OptNode *resolvedNode;
-	int childIndex;
+	struct opt_node *resolved_node;
+	int child_index;
 
-	resolvedNode = node;
-	if (resolvedNode == NULL) {
+	resolved_node = node;
+	if (resolved_node == NULL) {
 		return;
 	}
-	while (resolvedNode->nodeType == OPT_NODEREF) {
-		resolvedNode = OptModel_ResolveNodeRef(
-			opt, (const char *)resolvedNode->payload);
-		if (resolvedNode == NULL) {
+	while (resolved_node->node_type == OPT_NODEREF) {
+		resolved_node = opt_model_resolve_node_ref(
+			opt, (const char *)resolved_node->payload);
+		if (resolved_node == NULL) {
 			return;
 		}
 	}
 
-	switch (resolvedNode->nodeType) {
+	switch (resolved_node->node_type) {
 	case OPT_FACEDATA: {
 		int count;
-		struct OptPackedFaceData *faceData;
-		struct OptVector *faceNormals;
-		struct FaceTextureGradients *gradients;
+		struct opt_packed_face_data *face_data;
+		struct opt_vector *face_normals;
+		struct face_texture_gradients *gradients;
 		float *points;
 
-		count = resolvedNode->payloadCount;
-		faceData = (struct OptPackedFaceData *)resolvedNode->payload;
-		faceNormals = (struct OptVector *)&faceData->records[count];
-		gradients = (struct FaceTextureGradients *)&faceNormals[count];
+		count = resolved_node->payload_count;
+		face_data =
+			(struct opt_packed_face_data *)resolved_node->payload;
+		face_normals = (struct opt_vector *)&face_data->records[count];
+		gradients =
+			(struct face_texture_gradients *)&face_normals[count];
 		points = (float *)gradients;
 		if (count > 0) {
 			do {
@@ -726,8 +736,8 @@ void ModelPreview_ScaleOptNodeTree(struct OptNode *node,
 		int count;
 		float *vertices;
 
-		count = resolvedNode->payloadCount;
-		vertices = (float *)resolvedNode->payload;
+		count = resolved_node->payload_count;
+		vertices = (float *)resolved_node->payload;
 		if (count > 0) {
 			do {
 				vertices[0] = (float)(vertices[0] * scale);
@@ -741,15 +751,15 @@ void ModelPreview_ScaleOptNodeTree(struct OptNode *node,
 	}
 	case OPT_FACEGROUP: {
 		int count;
-		float *lodThresholds;
+		float *lod_thresholds;
 
-		count = resolvedNode->childCount;
-		lodThresholds = (float *)resolvedNode->payload;
+		count = resolved_node->child_count;
+		lod_thresholds = (float *)resolved_node->payload;
 		if (count > 0) {
 			do {
-				*lodThresholds =
-					(float)(*lodThresholds / scale);
-				++lodThresholds;
+				*lod_thresholds =
+					(float)(*lod_thresholds / scale);
+				++lod_thresholds;
 				--count;
 			} while (count != 0);
 		}
@@ -759,48 +769,50 @@ void ModelPreview_ScaleOptNodeTree(struct OptNode *node,
 		break;
 	}
 
-	for (childIndex = 0; childIndex < resolvedNode->childCount;
-	     ++childIndex) {
-		ModelPreview_ScaleOptNodeTree(
-			resolvedNode->pChildren[childIndex], opt, scale);
+	for (child_index = 0; child_index < resolved_node->child_count;
+	     ++child_index) {
+		model_preview_scale_opt_node_tree(
+			resolved_node->p_children[child_index], opt, scale);
 	}
 }
 
-/* Undoes ModelPreview_ScaleOptNodeTree: divides where it multiplies and
- * multiplies where it divides. Only ModelPreview_UnscaleOptRootNodes calls
+/* Undoes model_preview_scale_opt_node_tree: divides where it multiplies and
+ * multiplies where it divides. Only model_preview_unscale_opt_root_nodes calls
  * this, and nothing calls that. */
 // FUNCTION: XVT 0x42AA60
-void ModelPreview_UnscaleOptNodeTree(struct OptNode *node,
-				     struct OptimizedPolyObject *opt,
-				     double scale)
+void model_preview_unscale_opt_node_tree(struct opt_node *node,
+					 struct optimized_poly_object *opt,
+					 double scale)
 {
-	struct OptNode *resolvedNode;
-	int childIndex;
+	struct opt_node *resolved_node;
+	int child_index;
 
-	resolvedNode = node;
-	if (resolvedNode == NULL) {
+	resolved_node = node;
+	if (resolved_node == NULL) {
 		return;
 	}
-	while (resolvedNode->nodeType == OPT_NODEREF) {
-		resolvedNode = OptModel_ResolveNodeRef(
-			opt, (const char *)resolvedNode->payload);
-		if (resolvedNode == NULL) {
+	while (resolved_node->node_type == OPT_NODEREF) {
+		resolved_node = opt_model_resolve_node_ref(
+			opt, (const char *)resolved_node->payload);
+		if (resolved_node == NULL) {
 			return;
 		}
 	}
 
-	switch (resolvedNode->nodeType) {
+	switch (resolved_node->node_type) {
 	case OPT_FACEDATA: {
 		int count;
-		struct OptPackedFaceData *faceData;
-		struct OptVector *faceNormals;
-		struct FaceTextureGradients *gradients;
+		struct opt_packed_face_data *face_data;
+		struct opt_vector *face_normals;
+		struct face_texture_gradients *gradients;
 		float *points;
 
-		count = resolvedNode->payloadCount;
-		faceData = (struct OptPackedFaceData *)resolvedNode->payload;
-		faceNormals = (struct OptVector *)&faceData->records[count];
-		gradients = (struct FaceTextureGradients *)&faceNormals[count];
+		count = resolved_node->payload_count;
+		face_data =
+			(struct opt_packed_face_data *)resolved_node->payload;
+		face_normals = (struct opt_vector *)&face_data->records[count];
+		gradients =
+			(struct face_texture_gradients *)&face_normals[count];
 		points = (float *)gradients;
 		if (count > 0) {
 			do {
@@ -821,8 +833,8 @@ void ModelPreview_UnscaleOptNodeTree(struct OptNode *node,
 		int count;
 		float *vertices;
 
-		count = resolvedNode->payloadCount;
-		vertices = (float *)resolvedNode->payload;
+		count = resolved_node->payload_count;
+		vertices = (float *)resolved_node->payload;
 		if (count > 0) {
 			do {
 				vertices[0] = (float)(vertices[0] / scale);
@@ -836,15 +848,15 @@ void ModelPreview_UnscaleOptNodeTree(struct OptNode *node,
 	}
 	case OPT_FACEGROUP: {
 		int count;
-		float *lodThresholds;
+		float *lod_thresholds;
 
-		count = resolvedNode->childCount;
-		lodThresholds = (float *)resolvedNode->payload;
+		count = resolved_node->child_count;
+		lod_thresholds = (float *)resolved_node->payload;
 		if (count > 0) {
 			do {
-				*lodThresholds =
-					(float)(*lodThresholds * scale);
-				++lodThresholds;
+				*lod_thresholds =
+					(float)(*lod_thresholds * scale);
+				++lod_thresholds;
 				--count;
 			} while (count != 0);
 		}
@@ -854,109 +866,109 @@ void ModelPreview_UnscaleOptNodeTree(struct OptNode *node,
 		break;
 	}
 
-	for (childIndex = 0; childIndex < resolvedNode->childCount;
-	     ++childIndex) {
-		ModelPreview_UnscaleOptNodeTree(
-			resolvedNode->pChildren[childIndex], opt, scale);
+	for (child_index = 0; child_index < resolved_node->child_count;
+	     ++child_index) {
+		model_preview_unscale_opt_node_tree(
+			resolved_node->p_children[child_index], opt, scale);
 	}
 }
 
-/* Runs ModelPreview_ScaleOptNodeTree on each root of opt. */
+/* Runs model_preview_scale_opt_node_tree on each root of opt. */
 // FUNCTION: XVT 0x42AC50
-void ModelPreview_ScaleOptRootNodes(struct OptimizedPolyObject *opt,
-				    double scale)
+void model_preview_scale_opt_root_nodes(struct optimized_poly_object *opt,
+					double scale)
 {
-	int rootIndex;
+	int root_index;
 
-	for (rootIndex = 0; rootIndex < opt->rootNodeCount; ++rootIndex) {
-		ModelPreview_ScaleOptNodeTree(opt->rootNodes[rootIndex], opt,
-					      scale);
+	for (root_index = 0; root_index < opt->root_node_count; ++root_index) {
+		model_preview_scale_opt_node_tree(opt->root_nodes[root_index],
+						  opt, scale);
 	}
 }
 
-/* Runs ModelPreview_UnscaleOptNodeTree on each root of opt. Nothing calls
+/* Runs model_preview_unscale_opt_node_tree on each root of opt. Nothing calls
  * this. */
 // FUNCTION: XVT 0x42AC90
-void ModelPreview_UnscaleOptRootNodes(struct OptimizedPolyObject *opt,
-				      double scale)
+void model_preview_unscale_opt_root_nodes(struct optimized_poly_object *opt,
+					  double scale)
 {
-	int rootIndex;
+	int root_index;
 
-	for (rootIndex = 0; rootIndex < opt->rootNodeCount; ++rootIndex) {
-		ModelPreview_UnscaleOptNodeTree(opt->rootNodes[rootIndex], opt,
-						scale);
+	for (root_index = 0; root_index < opt->root_node_count; ++root_index) {
+		model_preview_unscale_opt_node_tree(opt->root_nodes[root_index],
+						    opt, scale);
 	}
 }
 
-/* Widens the preview bounds globals (g_modelPreviewBoundsMinX to
- * g_modelPreviewBoundsMaxZ) to hold every vertex of each OPT_MESHVERTS node at
+/* Widens the preview bounds globals (g_model_preview_bounds_min_x to
+ * g_model_preview_bounds_max_z) to hold every vertex of each OPT_MESHVERTS node at
  * or below node. Follows OPT_NODEREF links and stops at one that does not
  * resolve. */
 // FUNCTION: XVT 0x42AD10
-void ModelPreview_AccumulateOptNodeBounds(struct OptNode *node,
-					  struct OptimizedPolyObject *object)
+void model_preview_accumulate_opt_node_bounds(
+	struct opt_node *node, struct optimized_poly_object *object)
 {
-	struct OptNode *currentNode;
-	int vertexCount;
+	struct opt_node *current_node;
+	int vertex_count;
 	float *vertex;
-	int childIndex;
+	int child_index;
 
-	currentNode = node;
-	if (currentNode != NULL) {
-		while (currentNode->nodeType == OPT_NODEREF) {
-			currentNode = OptModel_ResolveNodeRef(
-				object, (const char *)currentNode->payload);
-			if (currentNode == NULL) {
+	current_node = node;
+	if (current_node != NULL) {
+		while (current_node->node_type == OPT_NODEREF) {
+			current_node = opt_model_resolve_node_ref(
+				object, (const char *)current_node->payload);
+			if (current_node == NULL) {
 				return;
 			}
 		}
 
-		if (currentNode->nodeType == OPT_MESHVERTS) {
-			vertexCount = currentNode->payloadCount;
-			vertex = currentNode->payload;
-			if (vertexCount > 0) {
+		if (current_node->node_type == OPT_MESHVERTS) {
+			vertex_count = current_node->payload_count;
+			vertex = current_node->payload;
+			if (vertex_count > 0) {
 				do {
 					if (vertex[0] >
-					    g_modelPreviewBoundsMaxX) {
-						g_modelPreviewBoundsMaxX =
+					    g_model_preview_bounds_max_x) {
+						g_model_preview_bounds_max_x =
 							vertex[0];
 					}
 					if (vertex[0] <
-					    g_modelPreviewBoundsMinX) {
-						g_modelPreviewBoundsMinX =
+					    g_model_preview_bounds_min_x) {
+						g_model_preview_bounds_min_x =
 							vertex[0];
 					}
 					if (vertex[1] >
-					    g_modelPreviewBoundsMaxY) {
-						g_modelPreviewBoundsMaxY =
+					    g_model_preview_bounds_max_y) {
+						g_model_preview_bounds_max_y =
 							vertex[1];
 					}
 					if (vertex[1] <
-					    g_modelPreviewBoundsMinY) {
-						g_modelPreviewBoundsMinY =
+					    g_model_preview_bounds_min_y) {
+						g_model_preview_bounds_min_y =
 							vertex[1];
 					}
 					if (vertex[2] >
-					    g_modelPreviewBoundsMaxZ) {
-						g_modelPreviewBoundsMaxZ =
+					    g_model_preview_bounds_max_z) {
+						g_model_preview_bounds_max_z =
 							vertex[2];
 					}
 					if (vertex[2] <
-					    g_modelPreviewBoundsMinZ) {
-						g_modelPreviewBoundsMinZ =
+					    g_model_preview_bounds_min_z) {
+						g_model_preview_bounds_min_z =
 							vertex[2];
 					}
 					vertex += 3;
-					--vertexCount;
-				} while (vertexCount != 0);
+					--vertex_count;
+				} while (vertex_count != 0);
 			}
 		}
 
-		childIndex = 0;
-		while (currentNode->childCount > childIndex) {
-			ModelPreview_AccumulateOptNodeBounds(
-				currentNode->pChildren[childIndex], object);
-			++childIndex;
+		child_index = 0;
+		while (current_node->child_count > child_index) {
+			model_preview_accumulate_opt_node_bounds(
+				current_node->p_children[child_index], object);
+			++child_index;
 		}
 	}
 }
@@ -967,202 +979,213 @@ void ModelPreview_AccumulateOptNodeBounds(struct OptNode *node,
  * the x and y extents are equal and both larger than the z extent, it returns
  * the z extent. Any axis other than 0 to 3 returns an uninitialized value. */
 // FUNCTION: XVT 0x42AE30
-double ModelPreview_ComputeOptBoundsExtent(struct OptimizedPolyObject *object,
-					   int axis)
+double
+model_preview_compute_opt_bounds_extent(struct optimized_poly_object *object,
+					int axis)
 {
-	int rootNodeIndex;
+	int root_node_index;
 	double result;
 
-	g_modelPreviewBoundsMaxX = 0.0f;
-	g_modelPreviewBoundsMinX = 0.0f;
-	g_modelPreviewBoundsMaxY = 0.0f;
-	g_modelPreviewBoundsMinY = 0.0f;
-	g_modelPreviewBoundsMaxZ = 0.0f;
-	g_modelPreviewBoundsMinZ = 0.0f;
-	for (rootNodeIndex = 0; rootNodeIndex < object->rootNodeCount;
-	     ++rootNodeIndex) {
-		ModelPreview_AccumulateOptNodeBounds(
-			object->rootNodes[rootNodeIndex], object);
+	g_model_preview_bounds_max_x = 0.0f;
+	g_model_preview_bounds_min_x = 0.0f;
+	g_model_preview_bounds_max_y = 0.0f;
+	g_model_preview_bounds_min_y = 0.0f;
+	g_model_preview_bounds_max_z = 0.0f;
+	g_model_preview_bounds_min_z = 0.0f;
+	for (root_node_index = 0; root_node_index < object->root_node_count;
+	     ++root_node_index) {
+		model_preview_accumulate_opt_node_bounds(
+			object->root_nodes[root_node_index], object);
 	}
 
 	/* From here the Max globals hold the extents (max - min), not the maxima. */
-	g_modelPreviewBoundsMaxX -= g_modelPreviewBoundsMinX;
-	g_modelPreviewBoundsMaxY -= g_modelPreviewBoundsMinY;
-	g_modelPreviewBoundsMaxZ -= g_modelPreviewBoundsMinZ;
+	g_model_preview_bounds_max_x -= g_model_preview_bounds_min_x;
+	g_model_preview_bounds_max_y -= g_model_preview_bounds_min_y;
+	g_model_preview_bounds_max_z -= g_model_preview_bounds_min_z;
 	if (axis == 0) {
-		if (g_modelPreviewBoundsMaxY >= g_modelPreviewBoundsMaxX ||
-		    g_modelPreviewBoundsMaxZ >= g_modelPreviewBoundsMaxX) {
-			if (g_modelPreviewBoundsMaxY <=
-				    g_modelPreviewBoundsMaxX ||
-			    g_modelPreviewBoundsMaxZ >=
-				    g_modelPreviewBoundsMaxY) {
-				result = g_modelPreviewBoundsMaxZ;
+		if (g_model_preview_bounds_max_y >=
+			    g_model_preview_bounds_max_x ||
+		    g_model_preview_bounds_max_z >=
+			    g_model_preview_bounds_max_x) {
+			if (g_model_preview_bounds_max_y <=
+				    g_model_preview_bounds_max_x ||
+			    g_model_preview_bounds_max_z >=
+				    g_model_preview_bounds_max_y) {
+				result = g_model_preview_bounds_max_z;
 			} else {
-				result = g_modelPreviewBoundsMaxY;
+				result = g_model_preview_bounds_max_y;
 			}
 		} else {
-			result = g_modelPreviewBoundsMaxX;
+			result = g_model_preview_bounds_max_x;
 		}
 	} else {
 		if (axis == 1) {
-			result = g_modelPreviewBoundsMaxX;
+			result = g_model_preview_bounds_max_x;
 		}
 		if (axis == 2) {
-			result = g_modelPreviewBoundsMaxY;
+			result = g_model_preview_bounds_max_y;
 		}
 		if (axis == 3) {
-			result = g_modelPreviewBoundsMaxZ;
+			result = g_model_preview_bounds_max_z;
 		}
 	}
 	return result;
 }
 
 /* Points the local player's camera at the preview: position (0, -1280, 0),
- * pitch 0x4000, roll and yaw 0, g_projOffsetY 0. Sets g_lodDistanceScale and
- * g_mipLodScale to 1.0, g_textureResolutionLevel to 1, and turns on local
+ * pitch 0x4000, roll and yaw 0, g_proj_offset_y 0. Sets g_lod_distance_scale and
+ * g_mip_lod_scale to 1.0, g_texture_resolution_level to 1, and turns on local
  * lights, specular, directional lighting and dithering. Returns 1. */
 // FUNCTION: XVT 0x42AF90
-int ModelPreview_ResetViewAndRenderState(void)
+int model_preview_reset_view_and_render_state(void)
 {
-	struct PlayerData *player = &g_players[g_localPlayer];
+	struct player_data *player = &g_players[g_local_player];
 
-	g_projOffsetY = 0;
-	player->viewState.cameraWorldX = 0;
-	player->viewState.cameraWorldY = -1280;
-	player->viewState.cameraWorldZ = 0;
-	player->viewState.viewRoll = 0;
-	player->viewState.viewPitch = 0x4000;
-	player->viewState.viewYaw = 0;
-	g_lodDistanceScale = 1.0f;
-	g_mipLodScale = 1.0f;
-	g_localLightsEnabled = 1;
-	g_specularEnabled = 1;
-	g_textureResolutionLevel = 1;
-	g_dirLightingEnabled = 1;
-	g_ditheringEnabled = 1;
+	g_proj_offset_y = 0;
+	player->view_state.camera_world_x = 0;
+	player->view_state.camera_world_y = -1280;
+	player->view_state.camera_world_z = 0;
+	player->view_state.view_roll = 0;
+	player->view_state.view_pitch = 0x4000;
+	player->view_state.view_yaw = 0;
+	g_lod_distance_scale = 1.0f;
+	g_mip_lod_scale = 1.0f;
+	g_local_lights_enabled = 1;
+	g_specular_enabled = 1;
+	g_texture_resolution_level = 1;
+	g_dir_lighting_enabled = 1;
+	g_dithering_enabled = 1;
 	return 1;
 }
 
-/* Sets g_worldLightDirectionX, Y and Z to the direction (x, -y, z) scaled to
+/* Sets g_world_light_direction_x, Y and Z to the direction (x, -y, z) scaled to
  * length 32767, each cut to an int16_t. Does not check for a zero vector. */
 // FUNCTION: XVT 0x42B010
-void ModelPreview_SetLightDirection(int x, int y, int z)
+void model_preview_set_light_direction(int x, int y, int z)
 {
-	double lightX;
-	double lightY;
-	double lightZ;
-	double invLength;
+	double light_x;
+	double light_y;
+	double light_z;
+	double inv_length;
 
 	y = -y;
-	lightX = x;
-	lightY = y;
-	lightZ = z;
-	invLength = g_modelPreviewInvLengthNumerator /
-		    sqrt(lightX * lightX + lightY * lightY + lightZ * lightZ);
-	lightX *= invLength;
-	lightY *= invLength;
-	lightZ *= invLength;
-	g_worldLightDirectionX =
-		(int16_t)(int)(lightX * g_modelPreviewLightDirectionQ15Scale);
-	g_worldLightDirectionY =
-		(int16_t)(int)(lightY * g_modelPreviewLightDirectionQ15Scale);
-	g_worldLightDirectionZ =
-		(int16_t)(int)(lightZ * g_modelPreviewLightDirectionQ15Scale);
+	light_x = x;
+	light_y = y;
+	light_z = z;
+	inv_length =
+		g_model_preview_inv_length_numerator /
+		sqrt(light_x * light_x + light_y * light_y + light_z * light_z);
+	light_x *= inv_length;
+	light_y *= inv_length;
+	light_z *= inv_length;
+	g_world_light_direction_x =
+		(int16_t)(int)(light_x *
+			       g_model_preview_light_direction_q15_scale);
+	g_world_light_direction_y =
+		(int16_t)(int)(light_y *
+			       g_model_preview_light_direction_q15_scale);
+	g_world_light_direction_z =
+		(int16_t)(int)(light_z *
+			       g_model_preview_light_direction_q15_scale);
 }
 
 /* Sets the preview object's pitch, yaw and roll from degrees, times 65,536 /
  * 360, each cut to an int16_t. */
 // FUNCTION: XVT 0x42B090
-void ModelPreview_SetObjectEulerDegrees(float pitchDeg, float yawDeg,
-					float rollDeg)
+void model_preview_set_object_euler_degrees(float pitch_deg, float yaw_deg,
+					    float roll_deg)
 {
 	double angle;
 
-	angle = pitchDeg;
-	g_modelPreviewObject.pitch =
-		(int16_t)(int)(angle * g_degreesToQ16AngleScale);
-	angle = yawDeg;
-	g_modelPreviewObject.yaw =
-		(int16_t)(int)(angle * g_degreesToQ16AngleScale);
-	angle = rollDeg;
-	g_modelPreviewObject.roll =
-		(int16_t)(int)(angle * g_degreesToQ16AngleScale);
+	angle = pitch_deg;
+	g_model_preview_object.pitch =
+		(int16_t)(int)(angle * g_degrees_to_q16_angle_scale);
+	angle = yaw_deg;
+	g_model_preview_object.yaw =
+		(int16_t)(int)(angle * g_degrees_to_q16_angle_scale);
+	angle = roll_deg;
+	g_model_preview_object.roll =
+		(int16_t)(int)(angle * g_degrees_to_q16_angle_scale);
 }
 
-/* Sets g_nodeSwitchIndex. */
+/* Sets g_node_switch_index. */
 // FUNCTION: XVT 0x42B0D0
-void ModelPreview_SetNodeSwitchIndex(int nodeSwitchIndex)
+void model_preview_set_node_switch_index(int node_switch_index)
 {
-	g_nodeSwitchIndex = nodeSwitchIndex;
+	g_node_switch_index = node_switch_index;
 }
 
 /* Sets the preview object's world position. */
 // FUNCTION: XVT 0x42B0E0
-void ModelPreview_SetObjectWorldPosition(int x, int y, int z)
+void model_preview_set_object_world_position(int x, int y, int z)
 {
-	g_modelPreviewObject.world_x = x;
-	g_modelPreviewObject.world_y = y;
-	g_modelPreviewObject.world_z = z;
+	g_model_preview_object.world_x = x;
+	g_model_preview_object.world_y = y;
+	g_model_preview_object.world_z = z;
 }
 
 /* Saves the preview's file name, position, angles, light direction,
- * g_nodeSwitchIndex and g_modelPreviewUpAxisAngle in the g_savedModelPreview
+ * g_node_switch_index and g_model_preview_up_axis_angle in the g_savedModelPreview
  * globals. */
 // FUNCTION: XVT 0x42B100
-void ModelPreview_SaveState(void)
+void model_preview_save_state(void)
 {
-	strcpy(g_savedModelPreviewModelFileName, g_modelPreviewOptFileName);
-	g_savedModelPreviewWorldX = g_modelPreviewObject.world_x;
-	g_savedModelPreviewWorldY = g_modelPreviewObject.world_y;
-	g_savedModelPreviewWorldZ = g_modelPreviewObject.world_z;
-	g_savedModelPreviewNodeSwitchIndex = g_nodeSwitchIndex;
-	g_savedModelPreviewPitch = g_modelPreviewObject.pitch;
-	g_savedModelPreviewYaw = g_modelPreviewObject.yaw;
-	g_savedModelPreviewRoll = g_modelPreviewObject.roll;
-	g_savedModelPreviewLightDirectionX = (int16_t)g_worldLightDirectionX;
-	g_savedModelPreviewLightDirectionY = (int16_t)g_worldLightDirectionY;
-	g_savedModelPreviewLightDirectionZ = (int16_t)g_worldLightDirectionZ;
-	g_savedModelPreviewUpAxisAngle = g_modelPreviewUpAxisAngle;
+	strcpy(g_saved_model_preview_model_file_name,
+	       g_model_preview_opt_file_name);
+	g_saved_model_preview_world_x = g_model_preview_object.world_x;
+	g_saved_model_preview_world_y = g_model_preview_object.world_y;
+	g_saved_model_preview_world_z = g_model_preview_object.world_z;
+	g_saved_model_preview_node_switch_index = g_node_switch_index;
+	g_saved_model_preview_pitch = g_model_preview_object.pitch;
+	g_saved_model_preview_yaw = g_model_preview_object.yaw;
+	g_saved_model_preview_roll = g_model_preview_object.roll;
+	g_saved_model_preview_light_direction_x =
+		(int16_t)g_world_light_direction_x;
+	g_saved_model_preview_light_direction_y =
+		(int16_t)g_world_light_direction_y;
+	g_saved_model_preview_light_direction_z =
+		(int16_t)g_world_light_direction_z;
+	g_saved_model_preview_up_axis_angle = g_model_preview_up_axis_angle;
 }
 
-/* Loads the saved file name again with ModelPreview_LoadModel, ignoring a
- * failure, then puts back what ModelPreview_SaveState saved. */
+/* Loads the saved file name again with model_preview_load_model, ignoring a
+ * failure, then puts back what model_preview_save_state saved. */
 // FUNCTION: XVT 0x42B1B0
-void ModelPreview_RestoreState(void)
+void model_preview_restore_state(void)
 {
-	ModelPreview_LoadModel(g_savedModelPreviewModelFileName);
-	g_modelPreviewObject.world_x = g_savedModelPreviewWorldX;
-	g_modelPreviewObject.world_y = g_savedModelPreviewWorldY;
-	g_modelPreviewObject.world_z = g_savedModelPreviewWorldZ;
-	g_modelPreviewObject.pitch = g_savedModelPreviewPitch;
-	g_modelPreviewObject.yaw = g_savedModelPreviewYaw;
-	g_modelPreviewObject.roll = g_savedModelPreviewRoll;
-	g_nodeSwitchIndex = g_savedModelPreviewNodeSwitchIndex;
-	g_worldLightDirectionX = g_savedModelPreviewLightDirectionX;
-	g_worldLightDirectionY = g_savedModelPreviewLightDirectionY;
-	g_worldLightDirectionZ = g_savedModelPreviewLightDirectionZ;
-	g_modelPreviewUpAxisAngle = g_savedModelPreviewUpAxisAngle;
+	model_preview_load_model(g_saved_model_preview_model_file_name);
+	g_model_preview_object.world_x = g_saved_model_preview_world_x;
+	g_model_preview_object.world_y = g_saved_model_preview_world_y;
+	g_model_preview_object.world_z = g_saved_model_preview_world_z;
+	g_model_preview_object.pitch = g_saved_model_preview_pitch;
+	g_model_preview_object.yaw = g_saved_model_preview_yaw;
+	g_model_preview_object.roll = g_saved_model_preview_roll;
+	g_node_switch_index = g_saved_model_preview_node_switch_index;
+	g_world_light_direction_x = g_saved_model_preview_light_direction_x;
+	g_world_light_direction_y = g_saved_model_preview_light_direction_y;
+	g_world_light_direction_z = g_saved_model_preview_light_direction_z;
+	g_model_preview_up_axis_angle = g_saved_model_preview_up_axis_angle;
 }
 
-/* Sets g_modelPreviewUpAxisAngle from degrees, times 65,536 / 360, cut to an
+/* Sets g_model_preview_up_axis_angle from degrees, times 65,536 / 360, cut to an
  * int16_t. */
 // FUNCTION: XVT 0x42B250
-void ModelPreview_SetObjectUpAxisAngleDegrees(float angleDeg)
+void model_preview_set_object_up_axis_angle_degrees(float angle_deg)
 {
-	double angle = angleDeg;
+	double angle = angle_deg;
 
-	g_modelPreviewUpAxisAngle =
-		(int16_t)(int)(angle * g_degreesToQ16AngleScale);
+	g_model_preview_up_axis_angle =
+		(int16_t)(int)(angle * g_degrees_to_q16_angle_scale);
 }
 
-/* Returns g_modelPreviewBoundsExtent times 1600 times 1 / 65,536, cut to an
+/* Returns g_model_preview_bounds_extent times 1600 times 1 / 65,536, cut to an
  * int. */
 // FUNCTION: XVT 0x42B270
-int ModelPreview_GetDisplayedSizeMeters(void)
+int model_preview_get_displayed_size_meters(void)
 {
-	double displayedSize = g_modelPreviewBoundsExtent;
+	double displayed_size = g_model_preview_bounds_extent;
 
-	displayedSize *= g_modelPreviewMetersScale;
-	displayedSize *= g_modelPreviewQ16Scale;
-	return (int)displayedSize;
+	displayed_size *= g_model_preview_meters_scale;
+	displayed_size *= g_model_preview_q16_scale;
+	return (int)displayed_size;
 }

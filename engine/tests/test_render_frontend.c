@@ -1,6 +1,6 @@
 /* Checks the frontend draw capture (xvt_runtime/snapshot/render_frontend.h) against the promises in its
  * header. The render snapshot is started and its ticks opened as the game does, and the recovered
- * frontend's state (g_frontState: pixel format, palette, clip, fonts, saved screens, cursor) is set here;
+ * frontend's state (g_front_state: pixel format, palette, clip, fonts, saved screens, cursor) is set here;
  * no game data is read. Test images and fonts are registered with the asset registry under the built-in
  * cursor kind, which needs no file.
  *
@@ -18,88 +18,89 @@
 #include <stdint.h>
 #include <string.h>
 
-static struct ImageResource g_image;
-static struct ImageResource g_cursorImage;
+static struct image_resource g_image;
+static struct image_resource g_cursor_image;
 static uint8_t g_pixels[64];
-static uint8_t g_glyphBits[256 * 4];
-static struct FrontImageResourceRecord g_preparedResourceGeneration[1];
+static uint8_t g_glyph_bits[256 * 4];
+static struct front_image_resource_record g_prepared_resource_generation[1];
 
 /* A fresh snapshot with its first tick open, a 16-bit 565 frontend clipped to (5, 6)-(600, 400), and one
  * registered 32 x 16 image. */
-static void Fresh(void)
+static void fresh(void)
 {
-	XvtRenderSnapshot_Shutdown();
-	memset(&g_frontState, 0, sizeof g_frontState);
-	g_frontState.displayBpp = 16;
-	g_frontState.clipMinX = 5;
-	g_frontState.clipMinY = 6;
-	g_frontState.clipMaxX = 600;
-	g_frontState.clipMaxY = 400;
-	g_activeTextFieldId = -1;
-	XvtRenderSnapshot_Init();
-	XvtRenderSnapshot_BeginFrame();
-	XVT_ASSERT_TRUE(XvtRenderSnapshot_Writer() != NULL);
-	g_image = (struct ImageResource){
+	xvt_render_snapshot_shutdown();
+	memset(&g_front_state, 0, sizeof g_front_state);
+	g_front_state.display_bpp = 16;
+	g_front_state.clip_min_x = 5;
+	g_front_state.clip_min_y = 6;
+	g_front_state.clip_max_x = 600;
+	g_front_state.clip_max_y = 400;
+	g_active_text_field_id = -1;
+	xvt_render_snapshot_init();
+	xvt_render_snapshot_begin_frame();
+	XVT_ASSERT_TRUE(xvt_render_snapshot_writer() != NULL);
+	g_image = (struct image_resource){
 		.width = 32, .height = 16, .pixels = g_pixels};
-	XVT_ASSERT_TRUE(XvtRenderAssets_RegisterImage(&g_image, 0, "",
-						      XVT_IMAGE_BUILTIN_CURSOR,
-						      0, 1, 0, 0, 0) != 0);
+	XVT_ASSERT_TRUE(xvt_render_assets_register_image(
+				&g_image, 0, "", XVT_IMAGE_BUILTIN_CURSOR, 0, 1,
+				0, 0, 0) != 0);
 }
 
-static struct XvtRenderSnapshot *Writer(void)
+static struct xvt_render_snapshot *writer(void)
 {
-	return XvtRenderSnapshot_Writer();
+	return xvt_render_snapshot_writer();
 }
 
 /* Commits the open tick and opens the next; returns the snapshot just committed. */
-static const struct XvtRenderSnapshot *NextTick(void)
+static const struct xvt_render_snapshot *next_tick(void)
 {
-	XvtRenderSnapshot_Commit(0, 1, 0);
-	const struct XvtRenderSnapshot *committed = XvtRenderSnapshot_Current();
-	XvtRenderSnapshot_BeginFrame();
+	xvt_render_snapshot_commit(0, 1, 0);
+	const struct xvt_render_snapshot *committed =
+		xvt_render_snapshot_current();
+	xvt_render_snapshot_begin_frame();
 	return committed;
 }
 
-static uint32_t PaintColor(unsigned color)
+static uint32_t paint_color(unsigned color)
 {
-	XvtRenderFrontend_Paint(XVT_PAINT_FILL, 0, 0, 1, 1, color);
-	return Writer()->paint[Writer()->paint_count - 1].color_argb;
+	xvt_render_frontend_paint(XVT_PAINT_FILL, 0, 0, 1, 1, color);
+	return writer()->paint[writer()->paint_count - 1].color_argb;
 }
 
-static void CheckColorConversion(void)
+static void check_color_conversion(void)
 {
-	Fresh();
-	g_frontState.displayBpp = 8;
-	g_frontState.displayPalette[7] =
-		(struct FrontendPaletteEntry){0x12, 0x34, 0x56, 0};
-	XVT_ASSERT_INT_EQ(PaintColor(7), 0xFF123456u);
+	fresh();
+	g_front_state.display_bpp = 8;
+	g_front_state.display_palette[7] =
+		(struct frontend_palette_entry){0x12, 0x34, 0x56, 0};
+	XVT_ASSERT_INT_EQ(paint_color(7), 0xFF123456u);
 
 	/* 16 bits, 565: each full channel is 255, an empty one 0. */
-	g_frontState.displayBpp = 16;
-	g_frontState.pixelFormat555 = 0;
-	XVT_ASSERT_INT_EQ(PaintColor(0xF800), 0xFFFF0000u);
-	XVT_ASSERT_INT_EQ(PaintColor(0x07E0), 0xFF00FF00u);
-	XVT_ASSERT_INT_EQ(PaintColor(0x001F), 0xFF0000FFu);
-	XVT_ASSERT_INT_EQ(PaintColor(0x0000), 0xFF000000u);
-	XVT_ASSERT_INT_EQ(PaintColor(0xFFFF), 0xFFFFFFFFu);
+	g_front_state.display_bpp = 16;
+	g_front_state.pixel_format555 = 0;
+	XVT_ASSERT_INT_EQ(paint_color(0xF800), 0xFFFF0000u);
+	XVT_ASSERT_INT_EQ(paint_color(0x07E0), 0xFF00FF00u);
+	XVT_ASSERT_INT_EQ(paint_color(0x001F), 0xFF0000FFu);
+	XVT_ASSERT_INT_EQ(paint_color(0x0000), 0xFF000000u);
+	XVT_ASSERT_INT_EQ(paint_color(0xFFFF), 0xFFFFFFFFu);
 
 	/* 16 bits, 555. */
-	g_frontState.pixelFormat555 = 1;
-	XVT_ASSERT_INT_EQ(PaintColor(0x7C00), 0xFFFF0000u);
-	XVT_ASSERT_INT_EQ(PaintColor(0x03E0), 0xFF00FF00u);
-	XVT_ASSERT_INT_EQ(PaintColor(0x001F), 0xFF0000FFu);
-	XVT_ASSERT_INT_EQ(PaintColor(0x7FFF), 0xFFFFFFFFu);
+	g_front_state.pixel_format555 = 1;
+	XVT_ASSERT_INT_EQ(paint_color(0x7C00), 0xFFFF0000u);
+	XVT_ASSERT_INT_EQ(paint_color(0x03E0), 0xFF00FF00u);
+	XVT_ASSERT_INT_EQ(paint_color(0x001F), 0xFF0000FFu);
+	XVT_ASSERT_INT_EQ(paint_color(0x7FFF), 0xFFFFFFFFu);
 }
 
-static void CheckPaintRecord(void)
+static void check_paint_record(void)
 {
-	Fresh();
-	XvtRenderFrontend_Select(XVT_TARGET_FRONT_OFFSCREEN);
-	XvtRenderFrontend_Paint(XVT_PAINT_LINE, 1, 2, 3, 4, 0xFFFF);
-	XvtRenderFrontend_Paint(XVT_PAINT_FRAME, 9, 8, 7, 6, 0);
-	XVT_ASSERT_INT_EQ(Writer()->paint_count, 2);
-	const struct XvtSnapPaint *first = &Writer()->paint[0];
-	const struct XvtSnapPaint *second = &Writer()->paint[1];
+	fresh();
+	xvt_render_frontend_select(XVT_TARGET_FRONT_OFFSCREEN);
+	xvt_render_frontend_paint(XVT_PAINT_LINE, 1, 2, 3, 4, 0xFFFF);
+	xvt_render_frontend_paint(XVT_PAINT_FRAME, 9, 8, 7, 6, 0);
+	XVT_ASSERT_INT_EQ(writer()->paint_count, 2);
+	const struct xvt_snap_paint *first = &writer()->paint[0];
+	const struct xvt_snap_paint *second = &writer()->paint[1];
 	XVT_ASSERT_INT_EQ(first->kind, XVT_PAINT_LINE);
 	XVT_ASSERT_INT_EQ(first->x0, 1);
 	XVT_ASSERT_INT_EQ(first->y0, 2);
@@ -113,64 +114,67 @@ static void CheckPaintRecord(void)
 	XVT_ASSERT_TRUE(second->draw.z_order > first->draw.z_order);
 
 	/* Translucent paint gets half alpha at 16 bits per pixel only. */
-	XvtRenderFrontend_Paint(XVT_PAINT_TRANSLUCENT, 0, 0, 1, 1, 0xF800);
-	uint32_t alpha = Writer()->paint[2].color_argb >> 24;
+	xvt_render_frontend_paint(XVT_PAINT_TRANSLUCENT, 0, 0, 1, 1, 0xF800);
+	uint32_t alpha = writer()->paint[2].color_argb >> 24;
 	XVT_ASSERT_TRUE(alpha == 0x7F || alpha == 0x80);
-	XVT_ASSERT_INT_EQ(Writer()->paint[2].color_argb & 0xFFFFFFu, 0xFF0000u);
-	g_frontState.displayBpp = 8;
-	XvtRenderFrontend_Paint(XVT_PAINT_TRANSLUCENT, 0, 0, 1, 1, 0);
-	XVT_ASSERT_INT_EQ(Writer()->paint[3].color_argb >> 24, 0xFF);
+	XVT_ASSERT_INT_EQ(writer()->paint[2].color_argb & 0xFFFFFFu, 0xFF0000u);
+	g_front_state.display_bpp = 8;
+	xvt_render_frontend_paint(XVT_PAINT_TRANSLUCENT, 0, 0, 1, 1, 0);
+	XVT_ASSERT_INT_EQ(writer()->paint[3].color_argb >> 24, 0xFF);
 }
 
-static void CheckTargetAndSuppression(void)
+static void check_target_and_suppression(void)
 {
-	Fresh();
-	XvtRenderFrontend_Select(XVT_TARGET_FRONT_BACKUP);
-	XVT_ASSERT_INT_EQ(XvtRenderFrontend_Target(), XVT_TARGET_FRONT_BACKUP);
+	fresh();
+	xvt_render_frontend_select(XVT_TARGET_FRONT_BACKUP);
+	XVT_ASSERT_INT_EQ(xvt_render_frontend_target(),
+			  XVT_TARGET_FRONT_BACKUP);
 
 	/* Two levels need two ends; while suppressed, Select and every draw call do nothing. */
-	XvtRenderFrontend_Suppress(1);
-	XvtRenderFrontend_Suppress(1);
-	XvtRenderFrontend_Suppress(0);
-	XvtRenderFrontend_Select(XVT_TARGET_FRONT_BACK);
-	XVT_ASSERT_INT_EQ(XvtRenderFrontend_Target(), XVT_TARGET_FRONT_BACKUP);
-	XvtRenderFrontend_Paint(XVT_PAINT_FILL, 0, 0, 1, 1, 0);
-	XvtRenderFrontend_Image(&g_image, 0, 0, 0, 0, 4, 4,
-				XVT_SPRITE_FRONT_OPAQUE, 0);
-	XvtRenderFrontend_Copy(XVT_TARGET_FRONT_OFFSCREEN,
-			       XVT_TARGET_FRONT_BACK);
-	XvtRenderFrontend_Clear(XVT_TARGET_FRONT_BACK, 0);
-	XvtRenderFrontend_Screen(0, 0);
-	XVT_ASSERT_INT_EQ(Writer()->paint_count, 0);
-	XVT_ASSERT_INT_EQ(Writer()->sprite_count, 0);
-	XVT_ASSERT_INT_EQ(Writer()->copy_count, 0);
-	XVT_ASSERT_INT_EQ(Writer()->surface_event_count, 0);
-	XVT_ASSERT_INT_EQ(Writer()->dropped_records, 0);
+	xvt_render_frontend_suppress(1);
+	xvt_render_frontend_suppress(1);
+	xvt_render_frontend_suppress(0);
+	xvt_render_frontend_select(XVT_TARGET_FRONT_BACK);
+	XVT_ASSERT_INT_EQ(xvt_render_frontend_target(),
+			  XVT_TARGET_FRONT_BACKUP);
+	xvt_render_frontend_paint(XVT_PAINT_FILL, 0, 0, 1, 1, 0);
+	xvt_render_frontend_image(&g_image, 0, 0, 0, 0, 4, 4,
+				  XVT_SPRITE_FRONT_OPAQUE, 0);
+	xvt_render_frontend_copy(XVT_TARGET_FRONT_OFFSCREEN,
+				 XVT_TARGET_FRONT_BACK);
+	xvt_render_frontend_clear(XVT_TARGET_FRONT_BACK, 0);
+	xvt_render_frontend_screen(0, 0);
+	XVT_ASSERT_INT_EQ(writer()->paint_count, 0);
+	XVT_ASSERT_INT_EQ(writer()->sprite_count, 0);
+	XVT_ASSERT_INT_EQ(writer()->copy_count, 0);
+	XVT_ASSERT_INT_EQ(writer()->surface_event_count, 0);
+	XVT_ASSERT_INT_EQ(writer()->dropped_records, 0);
 
-	XvtRenderFrontend_Suppress(0);
-	XvtRenderFrontend_Paint(XVT_PAINT_FILL, 0, 0, 1, 1, 0);
-	XVT_ASSERT_INT_EQ(Writer()->paint_count, 1);
+	xvt_render_frontend_suppress(0);
+	xvt_render_frontend_paint(XVT_PAINT_FILL, 0, 0, 1, 1, 0);
+	XVT_ASSERT_INT_EQ(writer()->paint_count, 1);
 
 	/* It never drops below zero: an extra end leaves one begin enough to suppress again. */
-	XvtRenderFrontend_Suppress(0);
-	XvtRenderFrontend_Suppress(1);
-	XvtRenderFrontend_Paint(XVT_PAINT_FILL, 0, 0, 1, 1, 0);
-	XVT_ASSERT_INT_EQ(Writer()->paint_count, 1);
-	XvtRenderFrontend_Suppress(0);
+	xvt_render_frontend_suppress(0);
+	xvt_render_frontend_suppress(1);
+	xvt_render_frontend_paint(XVT_PAINT_FILL, 0, 0, 1, 1, 0);
+	XVT_ASSERT_INT_EQ(writer()->paint_count, 1);
+	xvt_render_frontend_suppress(0);
 }
 
 /* Without an open tick no draw call records anything. */
-static void CheckNoTick(void)
+static void check_no_tick(void)
 {
-	Fresh();
-	XvtRenderSnapshot_Commit(0, 1, 0);
-	const struct XvtRenderSnapshot *current = XvtRenderSnapshot_Current();
-	XvtRenderFrontend_Paint(XVT_PAINT_FILL, 0, 0, 1, 1, 0);
-	XvtRenderFrontend_Image(&g_image, 0, 0, 0, 0, 4, 4,
-				XVT_SPRITE_FRONT_OPAQUE, 0);
-	XvtRenderFrontend_Copy(XVT_TARGET_FRONT_OFFSCREEN,
-			       XVT_TARGET_FRONT_BACK);
-	XvtRenderFrontend_Clear(XVT_TARGET_FRONT_BACK, 0);
+	fresh();
+	xvt_render_snapshot_commit(0, 1, 0);
+	const struct xvt_render_snapshot *current =
+		xvt_render_snapshot_current();
+	xvt_render_frontend_paint(XVT_PAINT_FILL, 0, 0, 1, 1, 0);
+	xvt_render_frontend_image(&g_image, 0, 0, 0, 0, 4, 4,
+				  XVT_SPRITE_FRONT_OPAQUE, 0);
+	xvt_render_frontend_copy(XVT_TARGET_FRONT_OFFSCREEN,
+				 XVT_TARGET_FRONT_BACK);
+	xvt_render_frontend_clear(XVT_TARGET_FRONT_BACK, 0);
 	XVT_ASSERT_INT_EQ(current->paint_count, 0);
 	XVT_ASSERT_INT_EQ(current->sprite_count, 0);
 	XVT_ASSERT_INT_EQ(current->copy_count, 0);
@@ -179,56 +183,56 @@ static void CheckNoTick(void)
 }
 
 /* A full list counts a dropped record. */
-static void CheckFullLists(void)
+static void check_full_lists(void)
 {
-	Fresh();
+	fresh();
 	for (unsigned i = 0; i < XVT_SNAP_PAINTS; ++i) {
-		XvtRenderFrontend_Paint(XVT_PAINT_FILL, 0, 0, 1, 1, 0);
+		xvt_render_frontend_paint(XVT_PAINT_FILL, 0, 0, 1, 1, 0);
 	}
-	XVT_ASSERT_INT_EQ(Writer()->dropped_records, 0);
-	XvtRenderFrontend_Paint(XVT_PAINT_FILL, 0, 0, 1, 1, 0);
-	XVT_ASSERT_INT_EQ(Writer()->paint_count, XVT_SNAP_PAINTS);
-	XVT_ASSERT_INT_EQ(Writer()->dropped_records, 1);
+	XVT_ASSERT_INT_EQ(writer()->dropped_records, 0);
+	xvt_render_frontend_paint(XVT_PAINT_FILL, 0, 0, 1, 1, 0);
+	XVT_ASSERT_INT_EQ(writer()->paint_count, XVT_SNAP_PAINTS);
+	XVT_ASSERT_INT_EQ(writer()->dropped_records, 1);
 
 	for (unsigned i = 0; i < XVT_SNAP_COPIES; ++i) {
-		XvtRenderFrontend_Copy(XVT_TARGET_FRONT_OFFSCREEN,
-				       XVT_TARGET_FRONT_BACKUP);
+		xvt_render_frontend_copy(XVT_TARGET_FRONT_OFFSCREEN,
+					 XVT_TARGET_FRONT_BACKUP);
 	}
-	XVT_ASSERT_INT_EQ(Writer()->dropped_records, 1);
-	XvtRenderFrontend_Copy(XVT_TARGET_FRONT_OFFSCREEN,
-			       XVT_TARGET_FRONT_BACKUP);
-	XVT_ASSERT_INT_EQ(Writer()->copy_count, XVT_SNAP_COPIES);
-	XVT_ASSERT_INT_EQ(Writer()->dropped_records, 2);
+	XVT_ASSERT_INT_EQ(writer()->dropped_records, 1);
+	xvt_render_frontend_copy(XVT_TARGET_FRONT_OFFSCREEN,
+				 XVT_TARGET_FRONT_BACKUP);
+	XVT_ASSERT_INT_EQ(writer()->copy_count, XVT_SNAP_COPIES);
+	XVT_ASSERT_INT_EQ(writer()->dropped_records, 2);
 
 	for (unsigned i = 0; i < XVT_SNAP_SURFACE_EVENTS; ++i) {
-		XvtRenderFrontend_Clear(XVT_TARGET_FRONT_BACKUP, 0);
+		xvt_render_frontend_clear(XVT_TARGET_FRONT_BACKUP, 0);
 	}
-	XVT_ASSERT_INT_EQ(Writer()->dropped_records, 2);
-	XvtRenderFrontend_Clear(XVT_TARGET_FRONT_BACKUP, 0);
-	XVT_ASSERT_INT_EQ(Writer()->surface_event_count,
+	XVT_ASSERT_INT_EQ(writer()->dropped_records, 2);
+	xvt_render_frontend_clear(XVT_TARGET_FRONT_BACKUP, 0);
+	XVT_ASSERT_INT_EQ(writer()->surface_event_count,
 			  XVT_SNAP_SURFACE_EVENTS);
-	XVT_ASSERT_INT_EQ(Writer()->dropped_records, 3);
+	XVT_ASSERT_INT_EQ(writer()->dropped_records, 3);
 
 	for (unsigned i = 0; i < XVT_SNAP_SPRITES; ++i) {
-		XvtRenderFrontend_Image(&g_image, 0, 0, 0, 0, 4, 4,
-					XVT_SPRITE_FRONT_OPAQUE, 0);
+		xvt_render_frontend_image(&g_image, 0, 0, 0, 0, 4, 4,
+					  XVT_SPRITE_FRONT_OPAQUE, 0);
 	}
-	XVT_ASSERT_INT_EQ(Writer()->dropped_records, 3);
-	XvtRenderFrontend_Image(&g_image, 0, 0, 0, 0, 4, 4,
-				XVT_SPRITE_FRONT_OPAQUE, 0);
-	XVT_ASSERT_INT_EQ(Writer()->sprite_count, XVT_SNAP_SPRITES);
-	XVT_ASSERT_INT_EQ(Writer()->dropped_records, 4);
+	XVT_ASSERT_INT_EQ(writer()->dropped_records, 3);
+	xvt_render_frontend_image(&g_image, 0, 0, 0, 0, 4, 4,
+				  XVT_SPRITE_FRONT_OPAQUE, 0);
+	XVT_ASSERT_INT_EQ(writer()->sprite_count, XVT_SNAP_SPRITES);
+	XVT_ASSERT_INT_EQ(writer()->dropped_records, 4);
 }
 
-static void CheckImage(void)
+static void check_image(void)
 {
-	Fresh();
-	uint64_t id = XvtRenderAssets_ImageId(&g_image);
-	XvtRenderFrontend_Select(XVT_TARGET_FRONT_BACKUP);
-	XvtRenderFrontend_Image(&g_image, 3, 4, 100, 200, 10, 12,
-				XVT_SPRITE_FRONT_TINTED, 0x11223344u);
-	XVT_ASSERT_INT_EQ(Writer()->sprite_count, 1);
-	const struct XvtSnapSprite *sprite = &Writer()->sprites[0];
+	fresh();
+	uint64_t id = xvt_render_assets_image_id(&g_image);
+	xvt_render_frontend_select(XVT_TARGET_FRONT_BACKUP);
+	xvt_render_frontend_image(&g_image, 3, 4, 100, 200, 10, 12,
+				  XVT_SPRITE_FRONT_TINTED, 0x11223344u);
+	XVT_ASSERT_INT_EQ(writer()->sprite_count, 1);
+	const struct xvt_snap_sprite *sprite = &writer()->sprites[0];
 	XVT_ASSERT_INT_EQ(sprite->asset_id, id);
 	XVT_ASSERT_INT_EQ(sprite->kind, XVT_SPRITE_FRONT_TINTED);
 	XVT_ASSERT_INT_EQ(sprite->tint_color, 0x11223344u);
@@ -245,35 +249,35 @@ static void CheckImage(void)
 	XVT_ASSERT_INT_EQ(sprite->draw.clip.y, 6);
 
 	/* A NULL or empty image is ignored; one with no registered asset counts as dropped. */
-	XvtRenderFrontend_Image(NULL, 0, 0, 0, 0, 4, 4, XVT_SPRITE_FRONT_OPAQUE,
-				0);
-	XvtRenderFrontend_Image(&g_image, 0, 0, 0, 0, 0, 4,
-				XVT_SPRITE_FRONT_OPAQUE, 0);
-	XvtRenderFrontend_Image(&g_image, 0, 0, 0, 0, 4, 0,
-				XVT_SPRITE_FRONT_OPAQUE, 0);
-	XVT_ASSERT_INT_EQ(Writer()->sprite_count, 1);
-	XVT_ASSERT_INT_EQ(Writer()->dropped_records, 0);
-	struct ImageResource unknown = {
+	xvt_render_frontend_image(NULL, 0, 0, 0, 0, 4, 4,
+				  XVT_SPRITE_FRONT_OPAQUE, 0);
+	xvt_render_frontend_image(&g_image, 0, 0, 0, 0, 0, 4,
+				  XVT_SPRITE_FRONT_OPAQUE, 0);
+	xvt_render_frontend_image(&g_image, 0, 0, 0, 0, 4, 0,
+				  XVT_SPRITE_FRONT_OPAQUE, 0);
+	XVT_ASSERT_INT_EQ(writer()->sprite_count, 1);
+	XVT_ASSERT_INT_EQ(writer()->dropped_records, 0);
+	struct image_resource unknown = {
 		.width = 8, .height = 8, .pixels = g_pixels};
-	XvtRenderFrontend_Image(&unknown, 0, 0, 0, 0, 4, 4,
-				XVT_SPRITE_FRONT_OPAQUE, 0);
-	XVT_ASSERT_INT_EQ(Writer()->sprite_count, 1);
-	XVT_ASSERT_INT_EQ(Writer()->dropped_records, 1);
+	xvt_render_frontend_image(&unknown, 0, 0, 0, 0, 4, 4,
+				  XVT_SPRITE_FRONT_OPAQUE, 0);
+	XVT_ASSERT_INT_EQ(writer()->sprite_count, 1);
+	XVT_ASSERT_INT_EQ(writer()->dropped_records, 1);
 }
 
 /* Copy records a full 640 x 480 copy between targets; Clear records a clear of a target. */
-static void CheckCopyAndClear(void)
+static void check_copy_and_clear(void)
 {
-	Fresh();
-	g_frontState.pixelFormat555 = 0;
-	XvtRenderFrontend_Copy(XVT_TARGET_FRONT_OFFSCREEN,
-			       XVT_TARGET_FRONT_BACKUP);
-	XVT_ASSERT_INT_EQ(Writer()->copy_count, 1);
-	const struct XvtSnapCopyRect *copy = &Writer()->copies[0];
+	fresh();
+	g_front_state.pixel_format555 = 0;
+	xvt_render_frontend_copy(XVT_TARGET_FRONT_OFFSCREEN,
+				 XVT_TARGET_FRONT_BACKUP);
+	XVT_ASSERT_INT_EQ(writer()->copy_count, 1);
+	const struct xvt_snap_copy_rect *copy = &writer()->copies[0];
 	XVT_ASSERT_INT_EQ(copy->source_target, XVT_TARGET_FRONT_OFFSCREEN);
 	XVT_ASSERT_INT_EQ(copy->draw.target, XVT_TARGET_FRONT_BACKUP);
-	const struct XvtSnapRect *rects[2] = {&copy->source,
-					      &copy->destination};
+	const struct xvt_snap_rect *rects[2] = {&copy->source,
+						&copy->destination};
 	for (int i = 0; i < 2; ++i) {
 		XVT_ASSERT_INT_EQ(rects[i]->x, 0);
 		XVT_ASSERT_INT_EQ(rects[i]->y, 0);
@@ -281,9 +285,10 @@ static void CheckCopyAndClear(void)
 		XVT_ASSERT_INT_EQ(rects[i]->height, 480);
 	}
 
-	XvtRenderFrontend_Clear(XVT_TARGET_FRONT_OFFSCREEN, 0x07E0);
-	XVT_ASSERT_INT_EQ(Writer()->surface_event_count, 1);
-	const struct XvtSnapSurfaceEvent *clear = &Writer()->surface_events[0];
+	xvt_render_frontend_clear(XVT_TARGET_FRONT_OFFSCREEN, 0x07E0);
+	XVT_ASSERT_INT_EQ(writer()->surface_event_count, 1);
+	const struct xvt_snap_surface_event *clear =
+		&writer()->surface_events[0];
 	XVT_ASSERT_INT_EQ(clear->kind, XVT_SURFACE_CLEAR);
 	XVT_ASSERT_INT_EQ(clear->target, XVT_TARGET_FRONT_OFFSCREEN);
 	XVT_ASSERT_INT_EQ(clear->color_argb, 0xFF00FF00u);
@@ -291,27 +296,27 @@ static void CheckCopyAndClear(void)
 }
 
 /* Returns 1 when the last Present recorded a cursor sprite: the snapshot shows a visible cursor. */
-static int PresentShowsCursor(void)
+static int present_shows_cursor(void)
 {
-	XvtRenderFrontend_Present();
-	return Writer()->cursor.visible != 0;
+	xvt_render_frontend_present();
+	return writer()->cursor.visible != 0;
 }
 
-static void CheckDefaultCursor(void)
+static void check_default_cursor(void)
 {
-	Fresh();
-	g_frontState.mouseX = 120;
-	g_frontState.mouseY = 90;
-	g_frontState.cursorWidth = 12;
-	g_frontState.cursorHeight = 20;
-	XvtRenderFrontend_Cursor(0);
-	XvtRenderFrontend_EndCursor();
-	XvtRenderFrontend_Present();
-	struct XvtRenderSnapshot *s = Writer();
+	fresh();
+	g_front_state.mouse_x = 120;
+	g_front_state.mouse_y = 90;
+	g_front_state.cursor_width = 12;
+	g_front_state.cursor_height = 20;
+	xvt_render_frontend_cursor(0);
+	xvt_render_frontend_end_cursor();
+	xvt_render_frontend_present();
+	struct xvt_render_snapshot *s = writer();
 	XVT_ASSERT_INT_EQ(s->cursor.visible, 1);
 	XVT_ASSERT_INT_EQ(
 		s->cursor.asset_id,
-		XvtRenderAssets_ImageId(XvtRenderAssets_DefaultCursor()));
+		xvt_render_assets_image_id(xvt_render_assets_default_cursor()));
 	XVT_ASSERT_TRUE(s->cursor.asset_id != 0);
 	XVT_ASSERT_INT_EQ(s->cursor.x, 120);
 	XVT_ASSERT_INT_EQ(s->cursor.y, 90);
@@ -324,130 +329,132 @@ static void CheckDefaultCursor(void)
 			s->sprites[0].draw.z_order);
 
 	/* With restore the cursor is hidden. */
-	XvtRenderFrontend_Cursor(1);
-	XVT_ASSERT_TRUE(!PresentShowsCursor());
+	xvt_render_frontend_cursor(1);
+	XVT_ASSERT_TRUE(!present_shows_cursor());
 }
 
-static void CheckNamedCursor(void)
+static void check_named_cursor(void)
 {
-	Fresh();
-	g_cursorImage = (struct ImageResource){
+	fresh();
+	g_cursor_image = (struct image_resource){
 		.width = 24, .height = 30, .pixels = g_pixels};
-	uint64_t id = XvtRenderAssets_RegisterImage(
-		&g_cursorImage, 0, "", XVT_IMAGE_BUILTIN_CURSOR, 0, 1, 0, 0, 0);
+	uint64_t id = xvt_render_assets_register_image(&g_cursor_image, 0, "",
+						       XVT_IMAGE_BUILTIN_CURSOR,
+						       0, 1, 0, 0, 0);
 	XVT_ASSERT_TRUE(id != 0);
-	memset(g_preparedResourceGeneration, 0,
-	       sizeof g_preparedResourceGeneration);
-	strcpy(g_preparedResourceGeneration[0].name, "pointer");
-	g_preparedResourceGeneration[0].image = &g_cursorImage;
-	g_frontState.resourceTable = g_preparedResourceGeneration;
-	g_frontState.resourceCount = 1;
-	strcpy(g_frontState.cursorSpriteName, "pointer");
-	g_frontState.mouseX = 300;
-	g_frontState.mouseY = 200;
-	XvtRenderFrontend_Cursor(0);
-	XvtRenderFrontend_EndCursor();
-	XvtRenderFrontend_Present();
-	XVT_ASSERT_INT_EQ(Writer()->cursor.visible, 1);
-	XVT_ASSERT_INT_EQ(Writer()->cursor.asset_id, id);
-	XVT_ASSERT_INT_EQ(Writer()->cursor.x, 300);
-	XVT_ASSERT_INT_EQ(Writer()->cursor.y, 200);
+	memset(g_prepared_resource_generation, 0,
+	       sizeof g_prepared_resource_generation);
+	strcpy(g_prepared_resource_generation[0].name, "pointer");
+	g_prepared_resource_generation[0].image = &g_cursor_image;
+	g_front_state.resource_table = g_prepared_resource_generation;
+	g_front_state.resource_count = 1;
+	strcpy(g_front_state.cursor_sprite_name, "pointer");
+	g_front_state.mouse_x = 300;
+	g_front_state.mouse_y = 200;
+	xvt_render_frontend_cursor(0);
+	xvt_render_frontend_end_cursor();
+	xvt_render_frontend_present();
+	XVT_ASSERT_INT_EQ(writer()->cursor.visible, 1);
+	XVT_ASSERT_INT_EQ(writer()->cursor.asset_id, id);
+	XVT_ASSERT_INT_EQ(writer()->cursor.x, 300);
+	XVT_ASSERT_INT_EQ(writer()->cursor.y, 200);
 }
 
 /* While the cursor is being drawn, an image goes whole to the cursor sprite, not to the sprite list. */
-static void CheckImageWhileDrawingCursor(void)
+static void check_image_while_drawing_cursor(void)
 {
-	Fresh();
-	g_frontState.mouseX = 50;
-	g_frontState.mouseY = 60;
-	XvtRenderFrontend_Cursor(0);
-	XvtRenderFrontend_Image(&g_image, 2, 3, 50, 60, 5, 5,
-				XVT_SPRITE_FRONT_KEYED, 0);
-	XvtRenderFrontend_EndCursor();
-	XVT_ASSERT_INT_EQ(Writer()->sprite_count, 0);
-	XvtRenderFrontend_Present();
-	XVT_ASSERT_INT_EQ(Writer()->sprite_count, 1);
-	const struct XvtSnapSprite *cursor = &Writer()->sprites[0];
-	XVT_ASSERT_INT_EQ(cursor->asset_id, XvtRenderAssets_ImageId(&g_image));
+	fresh();
+	g_front_state.mouse_x = 50;
+	g_front_state.mouse_y = 60;
+	xvt_render_frontend_cursor(0);
+	xvt_render_frontend_image(&g_image, 2, 3, 50, 60, 5, 5,
+				  XVT_SPRITE_FRONT_KEYED, 0);
+	xvt_render_frontend_end_cursor();
+	XVT_ASSERT_INT_EQ(writer()->sprite_count, 0);
+	xvt_render_frontend_present();
+	XVT_ASSERT_INT_EQ(writer()->sprite_count, 1);
+	const struct xvt_snap_sprite *cursor = &writer()->sprites[0];
+	XVT_ASSERT_INT_EQ(cursor->asset_id,
+			  xvt_render_assets_image_id(&g_image));
 	XVT_ASSERT_INT_EQ(cursor->source.width, g_image.width);
 	XVT_ASSERT_INT_EQ(cursor->source.height, g_image.height);
-	XVT_ASSERT_INT_EQ(Writer()->cursor.visible, 1);
+	XVT_ASSERT_INT_EQ(writer()->cursor.visible, 1);
 
 	/* After EndCursor images go to the sprite list again. */
-	XvtRenderFrontend_Image(&g_image, 0, 0, 0, 0, 4, 4,
-				XVT_SPRITE_FRONT_OPAQUE, 0);
-	XVT_ASSERT_INT_EQ(Writer()->sprite_count, 2);
+	xvt_render_frontend_image(&g_image, 0, 0, 0, 0, 4, 4,
+				  XVT_SPRITE_FRONT_OPAQUE, 0);
+	XVT_ASSERT_INT_EQ(writer()->sprite_count, 2);
 }
 
 /* Copy or Clear aimed at the back buffer hides the cursor, unless capture is suppressed; aimed elsewhere,
  * it does not. */
-static void CheckBackBufferHidesCursor(void)
+static void check_back_buffer_hides_cursor(void)
 {
-	Fresh();
-	XvtRenderFrontend_Cursor(0);
-	XvtRenderFrontend_EndCursor();
-	XvtRenderFrontend_Copy(XVT_TARGET_FRONT_OFFSCREEN,
-			       XVT_TARGET_FRONT_BACKUP);
-	XvtRenderFrontend_Clear(XVT_TARGET_FRONT_OFFSCREEN, 0);
-	XVT_ASSERT_TRUE(PresentShowsCursor());
-	XvtRenderFrontend_Suppress(1);
-	XvtRenderFrontend_Copy(XVT_TARGET_FRONT_OFFSCREEN,
-			       XVT_TARGET_FRONT_BACK);
-	XvtRenderFrontend_Clear(XVT_TARGET_FRONT_BACK, 0);
-	XvtRenderFrontend_Suppress(0);
-	XVT_ASSERT_TRUE(PresentShowsCursor());
-	XvtRenderFrontend_Copy(XVT_TARGET_FRONT_OFFSCREEN,
-			       XVT_TARGET_FRONT_BACK);
-	XVT_ASSERT_TRUE(!PresentShowsCursor());
+	fresh();
+	xvt_render_frontend_cursor(0);
+	xvt_render_frontend_end_cursor();
+	xvt_render_frontend_copy(XVT_TARGET_FRONT_OFFSCREEN,
+				 XVT_TARGET_FRONT_BACKUP);
+	xvt_render_frontend_clear(XVT_TARGET_FRONT_OFFSCREEN, 0);
+	XVT_ASSERT_TRUE(present_shows_cursor());
+	xvt_render_frontend_suppress(1);
+	xvt_render_frontend_copy(XVT_TARGET_FRONT_OFFSCREEN,
+				 XVT_TARGET_FRONT_BACK);
+	xvt_render_frontend_clear(XVT_TARGET_FRONT_BACK, 0);
+	xvt_render_frontend_suppress(0);
+	XVT_ASSERT_TRUE(present_shows_cursor());
+	xvt_render_frontend_copy(XVT_TARGET_FRONT_OFFSCREEN,
+				 XVT_TARGET_FRONT_BACK);
+	XVT_ASSERT_TRUE(!present_shows_cursor());
 
-	XvtRenderFrontend_Cursor(0);
-	XvtRenderFrontend_EndCursor();
-	XvtRenderFrontend_Clear(XVT_TARGET_FRONT_BACK, 0);
-	XVT_ASSERT_TRUE(!PresentShowsCursor());
+	xvt_render_frontend_cursor(0);
+	xvt_render_frontend_end_cursor();
+	xvt_render_frontend_clear(XVT_TARGET_FRONT_BACK, 0);
+	XVT_ASSERT_TRUE(!present_shows_cursor());
 }
 
 /* Cursor does nothing without an open tick or while suppressed. */
-static void CheckCursorRefusals(void)
+static void check_cursor_refusals(void)
 {
-	Fresh();
-	XvtRenderFrontend_Suppress(1);
-	XvtRenderFrontend_Cursor(0);
-	XvtRenderFrontend_EndCursor();
-	XvtRenderFrontend_Suppress(0);
-	XVT_ASSERT_TRUE(!PresentShowsCursor());
+	fresh();
+	xvt_render_frontend_suppress(1);
+	xvt_render_frontend_cursor(0);
+	xvt_render_frontend_end_cursor();
+	xvt_render_frontend_suppress(0);
+	XVT_ASSERT_TRUE(!present_shows_cursor());
 
-	XvtRenderSnapshot_Commit(0, 1, 0);
-	XvtRenderFrontend_Cursor(0);
-	XvtRenderFrontend_EndCursor();
-	XvtRenderSnapshot_BeginFrame();
-	XVT_ASSERT_TRUE(!PresentShowsCursor());
+	xvt_render_snapshot_commit(0, 1, 0);
+	xvt_render_frontend_cursor(0);
+	xvt_render_frontend_end_cursor();
+	xvt_render_snapshot_begin_frame();
+	XVT_ASSERT_TRUE(!present_shows_cursor());
 }
 
 /* With the sprite list full and the cursor visible, Present counts a dropped record and records neither
  * the cursor nor the present event. */
-static void CheckPresentWithSpritesFull(void)
+static void check_present_with_sprites_full(void)
 {
-	Fresh();
+	fresh();
 	for (unsigned i = 0; i < XVT_SNAP_SPRITES; ++i) {
-		XvtRenderFrontend_Image(&g_image, 0, 0, 0, 0, 4, 4,
-					XVT_SPRITE_FRONT_OPAQUE, 0);
+		xvt_render_frontend_image(&g_image, 0, 0, 0, 0, 4, 4,
+					  XVT_SPRITE_FRONT_OPAQUE, 0);
 	}
-	XvtRenderFrontend_Cursor(0);
-	XvtRenderFrontend_EndCursor();
-	XvtRenderFrontend_Present();
-	XVT_ASSERT_INT_EQ(Writer()->dropped_records, 1);
-	XVT_ASSERT_INT_EQ(Writer()->surface_event_count, 0);
-	XVT_ASSERT_INT_EQ(Writer()->cursor.visible, 0);
-	XVT_ASSERT_INT_EQ(NextTick()->presented_scene, XVT_SCENE_NONE);
+	xvt_render_frontend_cursor(0);
+	xvt_render_frontend_end_cursor();
+	xvt_render_frontend_present();
+	XVT_ASSERT_INT_EQ(writer()->dropped_records, 1);
+	XVT_ASSERT_INT_EQ(writer()->surface_event_count, 0);
+	XVT_ASSERT_INT_EQ(writer()->cursor.visible, 0);
+	XVT_ASSERT_INT_EQ(next_tick()->presented_scene, XVT_SCENE_NONE);
 }
 
 /* Present records the presented scene; with no dialog and no flight loading, the frontend. */
-static void CheckPresentScene(void)
+static void check_present_scene(void)
 {
-	Fresh();
-	uint64_t serial = NextTick()->presentation_serial;
-	XvtRenderFrontend_Present();
-	const struct XvtRenderSnapshot *committed = NextTick();
+	fresh();
+	uint64_t serial = next_tick()->presentation_serial;
+	xvt_render_frontend_present();
+	const struct xvt_render_snapshot *committed = next_tick();
 	XVT_ASSERT_INT_EQ(committed->presented_scene, XVT_SCENE_FRONTEND);
 	XVT_ASSERT_INT_EQ(committed->presented_target, XVT_TARGET_FRONT_BACK);
 	XVT_ASSERT_TRUE(committed->presentation_serial > serial);
@@ -456,72 +463,73 @@ static void CheckPresentScene(void)
 			  XVT_SURFACE_PRESENT);
 }
 
-static void CheckPresentedScene(void)
+static void check_presented_scene(void)
 {
-	Fresh();
+	fresh();
 
 	static const struct {
-		XvtSceneKind kind;
+		xvt_scene_kind kind;
 		unsigned target;
-	} kScenes[] = {
+	} k_scenes[] = {
 		{XVT_SCENE_FLIGHT, XVT_TARGET_FLIGHT_MAIN},
 		{XVT_SCENE_MOVIE, XVT_TARGET_FRONT_MOVIE},
 		{XVT_SCENE_FRONTEND, XVT_TARGET_FRONT_BACK},
 		{XVT_SCENE_LOADING, XVT_TARGET_FRONT_BACK},
 	};
 
-	uint64_t serial = NextTick()->presentation_serial;
-	for (size_t i = 0; i < sizeof kScenes / sizeof kScenes[0]; ++i) {
-		XvtRenderFrontend_PresentedScene(kScenes[i].kind);
-		const struct XvtRenderSnapshot *committed = NextTick();
-		XVT_ASSERT_INT_EQ(committed->presented_scene, kScenes[i].kind);
+	uint64_t serial = next_tick()->presentation_serial;
+	for (size_t i = 0; i < sizeof k_scenes / sizeof k_scenes[0]; ++i) {
+		xvt_render_frontend_presented_scene(k_scenes[i].kind);
+		const struct xvt_render_snapshot *committed = next_tick();
+		XVT_ASSERT_INT_EQ(committed->presented_scene, k_scenes[i].kind);
 		XVT_ASSERT_INT_EQ(committed->presented_target,
-				  kScenes[i].target);
+				  k_scenes[i].target);
 		XVT_ASSERT_TRUE(committed->presentation_serial > serial);
 		serial = committed->presentation_serial;
 	}
-	XvtRenderFrontend_FlightUiScene(XVT_SCENE_LOADING);
-	const struct XvtRenderSnapshot *committed = NextTick();
+	xvt_render_frontend_flight_ui_scene(XVT_SCENE_LOADING);
+	const struct xvt_render_snapshot *committed = next_tick();
 	XVT_ASSERT_INT_EQ(committed->presented_scene, XVT_SCENE_LOADING);
 	XVT_ASSERT_INT_EQ(committed->presented_target, XVT_TARGET_FLIGHT_MAIN);
 	XVT_ASSERT_TRUE(committed->presentation_serial > serial);
 }
 
-static void CheckResetAndRelease(void)
+static void check_reset_and_release(void)
 {
-	Fresh();
-	XvtRenderFrontend_ReleaseSurfaces();
-	const struct XvtRenderSnapshot *committed = NextTick();
+	fresh();
+	xvt_render_frontend_release_surfaces();
+	const struct xvt_render_snapshot *committed = next_tick();
 	uint64_t generation = committed->frontend_generation;
 	XVT_ASSERT_INT_EQ(committed->frontend_surfaces_released, 1);
-	XVT_ASSERT_INT_EQ(NextTick()->frontend_surfaces_released, 1);
+	XVT_ASSERT_INT_EQ(next_tick()->frontend_surfaces_released, 1);
 
-	XvtRenderFrontend_Select(XVT_TARGET_FRONT_OFFSCREEN);
-	XvtRenderFrontend_Cursor(0);
-	XvtRenderFrontend_EndCursor();
-	XvtRenderFrontend_Reset();
-	XVT_ASSERT_INT_EQ(XvtRenderFrontend_Target(), XVT_TARGET_FRONT_BACK);
-	XVT_ASSERT_INT_EQ(Writer()->surface_event_count, 1);
-	XVT_ASSERT_INT_EQ(Writer()->surface_events[0].kind, XVT_SURFACE_RESET);
-	XVT_ASSERT_INT_EQ(Writer()->surface_events[0].color_argb, 0xFF000000u);
-	XVT_ASSERT_TRUE(!PresentShowsCursor());
-	committed = NextTick();
+	xvt_render_frontend_select(XVT_TARGET_FRONT_OFFSCREEN);
+	xvt_render_frontend_cursor(0);
+	xvt_render_frontend_end_cursor();
+	xvt_render_frontend_reset();
+	XVT_ASSERT_INT_EQ(xvt_render_frontend_target(), XVT_TARGET_FRONT_BACK);
+	XVT_ASSERT_INT_EQ(writer()->surface_event_count, 1);
+	XVT_ASSERT_INT_EQ(writer()->surface_events[0].kind, XVT_SURFACE_RESET);
+	XVT_ASSERT_INT_EQ(writer()->surface_events[0].color_argb, 0xFF000000u);
+	XVT_ASSERT_TRUE(!present_shows_cursor());
+	committed = next_tick();
 	XVT_ASSERT_INT_EQ(committed->frontend_generation, generation + 1);
 	XVT_ASSERT_INT_EQ(committed->frontend_surfaces_released, 0);
 }
 
-static void CheckScreen(void)
+static void check_screen(void)
 {
-	Fresh();
-	g_frontState.screenStates[3].savedRect = (struct RECT){10, 20, 109, 69};
-	XvtRenderFrontend_Screen(3, 0);
-	XvtRenderFrontend_Screen(3, 1);
-	g_frontState.offscreenRestoreEnabled = 1;
-	XvtRenderFrontend_Screen(3, 1);
-	XVT_ASSERT_INT_EQ(Writer()->copy_count, 3);
-	const struct XvtSnapCopyRect *save = &Writer()->copies[0];
-	const struct XvtSnapCopyRect *restore = &Writer()->copies[1];
-	const struct XvtSnapCopyRect *offscreen = &Writer()->copies[2];
+	fresh();
+	g_front_state.screen_states[3].saved_rect =
+		(struct RECT){10, 20, 109, 69};
+	xvt_render_frontend_screen(3, 0);
+	xvt_render_frontend_screen(3, 1);
+	g_front_state.offscreen_restore_enabled = 1;
+	xvt_render_frontend_screen(3, 1);
+	XVT_ASSERT_INT_EQ(writer()->copy_count, 3);
+	const struct xvt_snap_copy_rect *save = &writer()->copies[0];
+	const struct xvt_snap_copy_rect *restore = &writer()->copies[1];
+	const struct xvt_snap_copy_rect *offscreen = &writer()->copies[2];
 	XVT_ASSERT_INT_EQ(save->source_target, XVT_TARGET_FRONT_BACK);
 	XVT_ASSERT_INT_EQ(save->draw.target, XVT_TARGET_FRONT_SAVED_FIRST + 3);
 	XVT_ASSERT_INT_EQ(restore->source_target,
@@ -531,7 +539,7 @@ static void CheckScreen(void)
 			  XVT_TARGET_FRONT_SAVED_FIRST + 3);
 	XVT_ASSERT_INT_EQ(offscreen->draw.target, XVT_TARGET_FRONT_OFFSCREEN);
 	for (int i = 0; i < 3; ++i) {
-		const struct XvtSnapCopyRect *copy = &Writer()->copies[i];
+		const struct xvt_snap_copy_rect *copy = &writer()->copies[i];
 		XVT_ASSERT_INT_EQ(copy->source.x, 10);
 		XVT_ASSERT_INT_EQ(copy->source.y, 20);
 		XVT_ASSERT_INT_EQ(memcmp(&copy->source, &copy->destination,
@@ -540,172 +548,172 @@ static void CheckScreen(void)
 	}
 
 	/* Other slots are ignored. */
-	XvtRenderFrontend_Screen(-1, 0);
-	XvtRenderFrontend_Screen(XVT_TARGET_FRONT_SAVED_COUNT, 1);
-	XVT_ASSERT_INT_EQ(Writer()->copy_count, 3);
+	xvt_render_frontend_screen(-1, 0);
+	xvt_render_frontend_screen(XVT_TARGET_FRONT_SAVED_COUNT, 1);
+	XVT_ASSERT_INT_EQ(writer()->copy_count, 3);
 }
 
-static void CheckMovie(void)
+static void check_movie(void)
 {
-	Fresh();
-	XvtRenderFrontend_Movie(1);
-	XVT_ASSERT_INT_EQ(XvtRenderFrontend_Target(), XVT_TARGET_FRONT_MOVIE);
-	XVT_ASSERT_INT_EQ(Writer()->surface_event_count, 1);
-	XVT_ASSERT_INT_EQ(Writer()->surface_events[0].kind, XVT_SURFACE_CLEAR);
-	XVT_ASSERT_INT_EQ(Writer()->surface_events[0].target,
+	fresh();
+	xvt_render_frontend_movie(1);
+	XVT_ASSERT_INT_EQ(xvt_render_frontend_target(), XVT_TARGET_FRONT_MOVIE);
+	XVT_ASSERT_INT_EQ(writer()->surface_event_count, 1);
+	XVT_ASSERT_INT_EQ(writer()->surface_events[0].kind, XVT_SURFACE_CLEAR);
+	XVT_ASSERT_INT_EQ(writer()->surface_events[0].target,
 			  XVT_TARGET_FRONT_MOVIE);
-	XvtRenderFrontend_Movie(0);
-	XVT_ASSERT_INT_EQ(XvtRenderFrontend_Target(), XVT_TARGET_FRONT_BACK);
-	XVT_ASSERT_INT_EQ(Writer()->surface_event_count, 2);
-	XVT_ASSERT_INT_EQ(Writer()->surface_events[1].kind,
+	xvt_render_frontend_movie(0);
+	XVT_ASSERT_INT_EQ(xvt_render_frontend_target(), XVT_TARGET_FRONT_BACK);
+	XVT_ASSERT_INT_EQ(writer()->surface_event_count, 2);
+	XVT_ASSERT_INT_EQ(writer()->surface_events[1].kind,
 			  XVT_SURFACE_PRESENT);
-	XVT_ASSERT_INT_EQ(Writer()->surface_events[1].target,
+	XVT_ASSERT_INT_EQ(writer()->surface_events[1].target,
 			  XVT_TARGET_FRONT_MOVIE);
-	XVT_ASSERT_INT_EQ(NextTick()->presented_scene, XVT_SCENE_MOVIE);
+	XVT_ASSERT_INT_EQ(next_tick()->presented_scene, XVT_SCENE_MOVIE);
 }
 
 /* The text-entry mark reaches the snapshot only in a frontend scene. */
-static void CheckTextEntry(void)
+static void check_text_entry(void)
 {
-	Fresh();
-	XvtRenderSnapshot_SetSceneKind(XVT_SCENE_FRONTEND);
-	g_activeTextFieldId = 4;
-	XvtRenderFrontend_BeginDraw();
-	XvtRenderFrontend_TextEntry(3);
-	XVT_ASSERT_INT_EQ(NextTick()->text_entry_active, 0);
-	XvtRenderFrontend_TextEntry(4);
-	XVT_ASSERT_INT_EQ(NextTick()->text_entry_active, 1);
-	XVT_ASSERT_INT_EQ(NextTick()->text_entry_active, 1);
-	XvtRenderFrontend_BeginDraw();
-	XVT_ASSERT_INT_EQ(NextTick()->text_entry_active, 0);
+	fresh();
+	xvt_render_snapshot_set_scene_kind(XVT_SCENE_FRONTEND);
+	g_active_text_field_id = 4;
+	xvt_render_frontend_begin_draw();
+	xvt_render_frontend_text_entry(3);
+	XVT_ASSERT_INT_EQ(next_tick()->text_entry_active, 0);
+	xvt_render_frontend_text_entry(4);
+	XVT_ASSERT_INT_EQ(next_tick()->text_entry_active, 1);
+	XVT_ASSERT_INT_EQ(next_tick()->text_entry_active, 1);
+	xvt_render_frontend_begin_draw();
+	XVT_ASSERT_INT_EQ(next_tick()->text_entry_active, 0);
 
-	XvtRenderFrontend_TextEntry(4);
-	XvtRenderSnapshot_SetSceneKind(XVT_SCENE_FLIGHT);
-	XVT_ASSERT_INT_EQ(NextTick()->text_entry_active, 0);
+	xvt_render_frontend_text_entry(4);
+	xvt_render_snapshot_set_scene_kind(XVT_SCENE_FLIGHT);
+	XVT_ASSERT_INT_EQ(next_tick()->text_entry_active, 0);
 }
 
 /* Slot 2 holds a font whose glyph c is 4 bytes into the bits per character, 3 to 7 pixels wide. */
-static struct BitmapFont *LoadTestFont(void)
+static struct bitmap_font *load_test_font(void)
 {
-	struct BitmapFont *font = &g_frontState.fontSlots[2];
-	font->pGlyphBits = g_glyphBits;
+	struct bitmap_font *font = &g_front_state.font_slots[2];
+	font->p_glyph_bits = g_glyph_bits;
 	for (unsigned c = 0; c < 256; ++c) {
-		font->glyphBitOffset[c] = c * 4;
-		font->glyphWidth[c] = (uint8_t)(3 + c % 5);
-		font->glyphHeight[c] = 9;
+		font->glyph_bit_offset[c] = c * 4;
+		font->glyph_width[c] = (uint8_t)(3 + c % 5);
+		font->glyph_height[c] = 9;
 	}
-	font->inUse = 1;
-	font->charSpacing = 1;
+	font->in_use = 1;
+	font->char_spacing = 1;
 	return font;
 }
 
-static struct ImageResource GlyphImage(const struct BitmapFont *font,
-				       unsigned c)
+static struct image_resource glyph_image(const struct bitmap_font *font,
+					 unsigned c)
 {
-	return (struct ImageResource){.width = font->glyphWidth[c],
-				      .height = font->glyphHeight[c],
-				      .pixels = font->pGlyphBits +
-						font->glyphBitOffset[c]};
+	return (struct image_resource){.width = font->glyph_width[c],
+				       .height = font->glyph_height[c],
+				       .pixels = font->p_glyph_bits +
+						 font->glyph_bit_offset[c]};
 }
 
-static void CheckGlyph(void)
+static void check_glyph(void)
 {
-	Fresh();
-	g_frontState.pixelFormat555 = 0;
-	struct BitmapFont *font = LoadTestFont();
-	uint64_t id = XvtRenderAssets_RegisterImage(
+	fresh();
+	g_front_state.pixel_format555 = 0;
+	struct bitmap_font *font = load_test_font();
+	uint64_t id = xvt_render_assets_register_image(
 		font, 0, "", XVT_IMAGE_BUILTIN_CURSOR, 0, 1, 10, 0, 0);
 	XVT_ASSERT_TRUE(id != 0);
-	XvtRenderFrontend_FontLoaded(font);
+	xvt_render_frontend_font_loaded(font);
 	/* The font's id as registered when it was loaded, not a later one. */
-	XVT_ASSERT_TRUE(XvtRenderAssets_RegisterImage(font, 0, "",
-						      XVT_IMAGE_BUILTIN_CURSOR,
-						      0, 1, 12, 0, 0) != id);
+	XVT_ASSERT_TRUE(xvt_render_assets_register_image(
+				font, 0, "", XVT_IMAGE_BUILTIN_CURSOR, 0, 1, 12,
+				0, 0) != id);
 
-	struct ImageResource a = GlyphImage(font, 'A');
-	XvtRenderFrontend_Select(XVT_TARGET_FRONT_BACKUP);
-	XvtRenderFrontend_Glyph(&a, 40, 50, 0xF800, 0);
-	XVT_ASSERT_INT_EQ(Writer()->glyph_count, 1);
-	const struct XvtSnapGlyph *glyph = &Writer()->glyphs[0];
+	struct image_resource a = glyph_image(font, 'A');
+	xvt_render_frontend_select(XVT_TARGET_FRONT_BACKUP);
+	xvt_render_frontend_glyph(&a, 40, 50, 0xF800, 0);
+	XVT_ASSERT_INT_EQ(writer()->glyph_count, 1);
+	const struct xvt_snap_glyph *glyph = &writer()->glyphs[0];
 	XVT_ASSERT_INT_EQ(glyph->character, 'A');
 	XVT_ASSERT_INT_EQ(glyph->x, 40);
 	XVT_ASSERT_INT_EQ(glyph->y, 50);
 	XVT_ASSERT_INT_EQ(glyph->font_asset_id, id);
 	XVT_ASSERT_INT_EQ(glyph->foreground_argb, 0xFFFF0000u);
 	XVT_ASSERT_INT_EQ(glyph->draw.target, XVT_TARGET_FRONT_BACKUP);
-	XVT_ASSERT_INT_EQ(Writer()->dropped_records, 0);
+	XVT_ASSERT_INT_EQ(writer()->dropped_records, 0);
 
 	/* A glyph found in no slot counts as dropped: wrong pixels, wrong size, or a slot not in use. */
-	struct ImageResource stray = {
+	struct image_resource stray = {
 		.width = 3, .height = 9, .pixels = g_pixels};
-	XvtRenderFrontend_Glyph(&stray, 0, 0, 0, 0);
-	struct ImageResource resized = GlyphImage(font, 'B');
+	xvt_render_frontend_glyph(&stray, 0, 0, 0, 0);
+	struct image_resource resized = glyph_image(font, 'B');
 	resized.height = 8;
-	XvtRenderFrontend_Glyph(&resized, 0, 0, 0, 0);
-	XVT_ASSERT_INT_EQ(Writer()->dropped_records, 2);
-	font->inUse = 0;
-	XvtRenderFrontend_Glyph(&a, 0, 0, 0, 0);
-	XVT_ASSERT_INT_EQ(Writer()->dropped_records, 3);
-	XVT_ASSERT_INT_EQ(Writer()->glyph_count, 1);
+	xvt_render_frontend_glyph(&resized, 0, 0, 0, 0);
+	XVT_ASSERT_INT_EQ(writer()->dropped_records, 2);
+	font->in_use = 0;
+	xvt_render_frontend_glyph(&a, 0, 0, 0, 0);
+	XVT_ASSERT_INT_EQ(writer()->dropped_records, 3);
+	XVT_ASSERT_INT_EQ(writer()->glyph_count, 1);
 }
 
 /* A font that is not one of the frontend's font slots is not indexed. */
-static void CheckFontOutsideSlots(void)
+static void check_font_outside_slots(void)
 {
-	Fresh();
-	static struct BitmapFont outside;
+	fresh();
+	static struct bitmap_font outside;
 	memset(&outside, 0, sizeof outside);
-	outside.pGlyphBits = g_glyphBits;
-	outside.glyphWidth['Q'] = 4;
-	outside.glyphHeight['Q'] = 9;
-	outside.glyphBitOffset['Q'] = 'Q' * 4;
-	outside.inUse = 1;
-	g_frontState.fontSlots[0].inUse = 1;
-	XvtRenderFrontend_FontLoaded(&outside);
-	struct ImageResource q = GlyphImage(&outside, 'Q');
-	XvtRenderFrontend_Glyph(&q, 0, 0, 0, 0);
-	XVT_ASSERT_INT_EQ(Writer()->glyph_count, 0);
-	XVT_ASSERT_INT_EQ(Writer()->dropped_records, 1);
+	outside.p_glyph_bits = g_glyph_bits;
+	outside.glyph_width['Q'] = 4;
+	outside.glyph_height['Q'] = 9;
+	outside.glyph_bit_offset['Q'] = 'Q' * 4;
+	outside.in_use = 1;
+	g_front_state.font_slots[0].in_use = 1;
+	xvt_render_frontend_font_loaded(&outside);
+	struct image_resource q = glyph_image(&outside, 'Q');
+	xvt_render_frontend_glyph(&q, 0, 0, 0, 0);
+	XVT_ASSERT_INT_EQ(writer()->glyph_count, 0);
+	XVT_ASSERT_INT_EQ(writer()->dropped_records, 1);
 }
 
 /* Init lifts suppression and starts the presentation serial over. */
-static void CheckInitResets(void)
+static void check_init_resets(void)
 {
-	Fresh();
-	XvtRenderFrontend_PresentedScene(XVT_SCENE_FRONTEND);
-	XvtRenderFrontend_PresentedScene(XVT_SCENE_FRONTEND);
-	uint64_t serial = NextTick()->presentation_serial;
-	XvtRenderFrontend_Suppress(1);
-	XvtRenderFrontend_Init();
-	XvtRenderFrontend_Paint(XVT_PAINT_FILL, 0, 0, 1, 1, 0);
-	XVT_ASSERT_INT_EQ(Writer()->paint_count, 1);
-	XVT_ASSERT_TRUE(NextTick()->presentation_serial < serial);
+	fresh();
+	xvt_render_frontend_presented_scene(XVT_SCENE_FRONTEND);
+	xvt_render_frontend_presented_scene(XVT_SCENE_FRONTEND);
+	uint64_t serial = next_tick()->presentation_serial;
+	xvt_render_frontend_suppress(1);
+	xvt_render_frontend_init();
+	xvt_render_frontend_paint(XVT_PAINT_FILL, 0, 0, 1, 1, 0);
+	XVT_ASSERT_INT_EQ(writer()->paint_count, 1);
+	XVT_ASSERT_TRUE(next_tick()->presentation_serial < serial);
 }
 
 int main(void)
 {
-	CheckColorConversion();
-	CheckPaintRecord();
-	CheckTargetAndSuppression();
-	CheckNoTick();
-	CheckFullLists();
-	CheckImage();
-	CheckCopyAndClear();
-	CheckDefaultCursor();
-	CheckNamedCursor();
-	CheckImageWhileDrawingCursor();
-	CheckBackBufferHidesCursor();
-	CheckCursorRefusals();
-	CheckPresentWithSpritesFull();
-	CheckPresentScene();
-	CheckPresentedScene();
-	CheckResetAndRelease();
-	CheckScreen();
-	CheckMovie();
-	CheckTextEntry();
-	CheckGlyph();
-	CheckFontOutsideSlots();
-	CheckInitResets();
-	XvtRenderSnapshot_Shutdown();
+	check_color_conversion();
+	check_paint_record();
+	check_target_and_suppression();
+	check_no_tick();
+	check_full_lists();
+	check_image();
+	check_copy_and_clear();
+	check_default_cursor();
+	check_named_cursor();
+	check_image_while_drawing_cursor();
+	check_back_buffer_hides_cursor();
+	check_cursor_refusals();
+	check_present_with_sprites_full();
+	check_present_scene();
+	check_presented_scene();
+	check_reset_and_release();
+	check_screen();
+	check_movie();
+	check_text_entry();
+	check_glyph();
+	check_font_outside_slots();
+	check_init_resets();
+	xvt_render_snapshot_shutdown();
 	return 0;
 }

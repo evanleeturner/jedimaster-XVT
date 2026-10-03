@@ -10,8 +10,8 @@ extern "C" {
 
 uint32_t timeGetTime(void);
 uint32_t GetTickCount(void);
-void Time_ResetElapsedTicks(void);
-uint32_t Time_ConsumeElapsedTicks(void);
+void time_reset_elapsed_ticks(void);
+uint32_t time_consume_elapsed_ticks(void);
 
 #ifdef __cplusplus
 }

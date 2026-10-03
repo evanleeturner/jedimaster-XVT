@@ -14,123 +14,123 @@
 #include <stdlib.h>
 #include <string.h>
 
-static void Surface(void)
+static void surface(void)
 {
-	g_flightRenderToFrontend = 0;
-	g_flightPageFlip = 0;
-	g_surfaceLockCount = 0;
+	g_flight_render_to_frontend = 0;
+	g_flight_page_flip = 0;
+	g_surface_lock_count = 0;
 }
 
-static void CheckReset(void)
+static void check_reset(void)
 {
 	/* Handles and pool pointers are forgotten, not freed: the test frees the memory itself afterwards. */
 	void *objects = malloc(64);
 	void *mobiles = malloc(64);
-	void *charData = malloc(64);
+	void *char_data = malloc(64);
 	void *craft = malloc(64);
 	void *guidance = malloc(64);
-	XVT_ASSERT_TRUE(objects && mobiles && charData && craft && guidance);
-	g_objectTable = objects;
-	g_mobileObjectPoolBase = mobiles;
-	g_mobileObjectCharDataPool = charData;
-	g_craftDataPoolBase = craft;
-	g_projectileGuidanceStates = guidance;
-	g_objectTableHandle = 11;
-	g_mobileObjectPoolHandle = 12;
-	g_mobileObjectCharDataHandle = 13;
-	g_craftDataPoolHandle = 14;
-	g_warheadGuidancePoolHandle = 15;
-	g_stringDataHandle = 16;
-	g_renderObjectListHandle = 17;
-	g_messageLogHandle = 18;
+	XVT_ASSERT_TRUE(objects && mobiles && char_data && craft && guidance);
+	g_object_table = objects;
+	g_mobile_object_pool_base = mobiles;
+	g_mobile_object_char_data_pool = char_data;
+	g_craft_data_pool_base = craft;
+	g_projectile_guidance_states = guidance;
+	g_object_table_handle = 11;
+	g_mobile_object_pool_handle = 12;
+	g_mobile_object_char_data_handle = 13;
+	g_craft_data_pool_handle = 14;
+	g_warhead_guidance_pool_handle = 15;
+	g_string_data_handle = 16;
+	g_render_object_list_handle = 17;
+	g_message_log_handle = 18;
 
-	XvtFlightLoading_Reset();
-	XVT_ASSERT_TRUE(g_objectTable == NULL);
-	XVT_ASSERT_TRUE(g_mobileObjectPoolBase == NULL);
-	XVT_ASSERT_TRUE(g_mobileObjectCharDataPool == NULL);
-	XVT_ASSERT_TRUE(g_craftDataPoolBase == NULL);
-	XVT_ASSERT_TRUE(g_projectileGuidanceStates == NULL);
-	XVT_ASSERT_INT_EQ(g_objectTableHandle, 0);
-	XVT_ASSERT_INT_EQ(g_mobileObjectPoolHandle, 0);
-	XVT_ASSERT_INT_EQ(g_mobileObjectCharDataHandle, 0);
-	XVT_ASSERT_INT_EQ(g_craftDataPoolHandle, 0);
-	XVT_ASSERT_INT_EQ(g_warheadGuidancePoolHandle, 0);
-	XVT_ASSERT_INT_EQ(g_stringDataHandle, 0);
-	XVT_ASSERT_INT_EQ(g_renderObjectListHandle, 0);
-	XVT_ASSERT_INT_EQ(g_messageLogHandle, 0);
+	xvt_flight_loading_reset();
+	XVT_ASSERT_TRUE(g_object_table == NULL);
+	XVT_ASSERT_TRUE(g_mobile_object_pool_base == NULL);
+	XVT_ASSERT_TRUE(g_mobile_object_char_data_pool == NULL);
+	XVT_ASSERT_TRUE(g_craft_data_pool_base == NULL);
+	XVT_ASSERT_TRUE(g_projectile_guidance_states == NULL);
+	XVT_ASSERT_INT_EQ(g_object_table_handle, 0);
+	XVT_ASSERT_INT_EQ(g_mobile_object_pool_handle, 0);
+	XVT_ASSERT_INT_EQ(g_mobile_object_char_data_handle, 0);
+	XVT_ASSERT_INT_EQ(g_craft_data_pool_handle, 0);
+	XVT_ASSERT_INT_EQ(g_warhead_guidance_pool_handle, 0);
+	XVT_ASSERT_INT_EQ(g_string_data_handle, 0);
+	XVT_ASSERT_INT_EQ(g_render_object_list_handle, 0);
+	XVT_ASSERT_INT_EQ(g_message_log_handle, 0);
 	/* The sanitizer reports a double free here if Reset freed any of them. */
 	free(objects);
 	free(mobiles);
-	free(charData);
+	free(char_data);
 	free(craft);
 	free(guidance);
 }
 
-static void CheckProvingGrounds(void)
+static void check_proving_grounds(void)
 {
 	/* Craft 2, level 4 for traincourse... */
-	Surface();
-	g_flightConfTrainCourse = 1;
-	g_flightMissionState.provingGroundsCraftType = 0;
-	g_flightMissionState.provingGroundsLevel = 0;
-	XvtFlightLoading_MissionSetup();
-	XVT_ASSERT_INT_EQ(g_flightMissionState.provingGroundsCraftType, 2);
-	XVT_ASSERT_INT_EQ(g_flightMissionState.provingGroundsLevel, 4);
+	surface();
+	g_flight_conf_train_course = 1;
+	g_flight_mission_state.proving_grounds_craft_type = 0;
+	g_flight_mission_state.proving_grounds_level = 0;
+	xvt_flight_loading_mission_setup();
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.proving_grounds_craft_type, 2);
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.proving_grounds_level, 4);
 	/* ...else none. */
-	g_flightConfTrainCourse = 0;
-	XvtFlightLoading_MissionSetup();
-	XVT_ASSERT_INT_EQ(g_flightMissionState.provingGroundsCraftType, 0);
-	XVT_ASSERT_INT_EQ(g_flightMissionState.provingGroundsLevel, 0);
-	XVT_ASSERT_INT_EQ(g_surfaceLockCount, 0);
+	g_flight_conf_train_course = 0;
+	xvt_flight_loading_mission_setup();
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.proving_grounds_craft_type, 0);
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.proving_grounds_level, 0);
+	XVT_ASSERT_INT_EQ(g_surface_lock_count, 0);
 }
 
-static void CheckResets(void)
+static void check_resets(void)
 {
 	/* The flight input, the message log and the MFD pages are reset. */
-	Surface();
-	g_flightConfTrainCourse = 0;
-	g_keyMods = 3;
-	g_mouseButtons = 1;
-	g_messageLogTotalCount = 9;
-	g_mfdActivePage = 2;
-	g_mfdSecondaryPage = 3;
+	surface();
+	g_flight_conf_train_course = 0;
+	g_key_mods = 3;
+	g_mouse_buttons = 1;
+	g_message_log_total_count = 9;
+	g_mfd_active_page = 2;
+	g_mfd_secondary_page = 3;
 	for (int i = 0; i < MFD_PAGE_COUNT; ++i) {
-		g_mfdPageStates[i] = 1;
+		g_mfd_page_states[i] = 1;
 	}
-	XvtFlightLoading_MissionSetup();
-	XVT_ASSERT_INT_EQ(g_keyMods, 0);
-	XVT_ASSERT_INT_EQ(g_mouseButtons, 0);
-	XVT_ASSERT_INT_EQ(g_messageLogTotalCount, 0);
-	XVT_ASSERT_INT_EQ(g_mfdActivePage, MFD_PAGE_NONE);
-	XVT_ASSERT_INT_EQ(g_mfdSecondaryPage, MFD_PAGE_NONE);
+	xvt_flight_loading_mission_setup();
+	XVT_ASSERT_INT_EQ(g_key_mods, 0);
+	XVT_ASSERT_INT_EQ(g_mouse_buttons, 0);
+	XVT_ASSERT_INT_EQ(g_message_log_total_count, 0);
+	XVT_ASSERT_INT_EQ(g_mfd_active_page, MFD_PAGE_NONE);
+	XVT_ASSERT_INT_EQ(g_mfd_secondary_page, MFD_PAGE_NONE);
 	for (int i = 0; i < MFD_PAGE_COUNT; ++i) {
-		XVT_ASSERT_INT_EQ(g_mfdPageStates[i], MFD_PAGE_STATE_CLOSED);
+		XVT_ASSERT_INT_EQ(g_mfd_page_states[i], MFD_PAGE_STATE_CLOSED);
 	}
 }
 
-static void CheckNoiseTable(void)
+static void check_noise_table(void)
 {
 	/* The noise table is refilled from rand(): the same seed gives the same table whatever it held before,
 	 * and another seed another table. */
-	static uint8_t first[sizeof g_flightNoiseTable];
-	Surface();
+	static uint8_t first[sizeof g_flight_noise_table];
+	surface();
 	srand(7);
-	XvtFlightLoading_MissionSetup();
-	memcpy(first, g_flightNoiseTable, sizeof first);
-	memset(g_flightNoiseTable, 0xA5, sizeof g_flightNoiseTable);
+	xvt_flight_loading_mission_setup();
+	memcpy(first, g_flight_noise_table, sizeof first);
+	memset(g_flight_noise_table, 0xA5, sizeof g_flight_noise_table);
 	srand(7);
-	XvtFlightLoading_MissionSetup();
-	XVT_ASSERT_INT_EQ(memcmp(first, g_flightNoiseTable, sizeof first), 0);
+	xvt_flight_loading_mission_setup();
+	XVT_ASSERT_INT_EQ(memcmp(first, g_flight_noise_table, sizeof first), 0);
 	srand(8);
-	XvtFlightLoading_MissionSetup();
-	XVT_ASSERT_TRUE(memcmp(first, g_flightNoiseTable, sizeof first) != 0);
+	xvt_flight_loading_mission_setup();
+	XVT_ASSERT_TRUE(memcmp(first, g_flight_noise_table, sizeof first) != 0);
 }
 
 int main(void)
 {
-	CheckReset();
-	CheckProvingGrounds();
-	CheckResets();
-	CheckNoiseTable();
+	check_reset();
+	check_proving_grounds();
+	check_resets();
+	check_noise_table();
 	return 0;
 }

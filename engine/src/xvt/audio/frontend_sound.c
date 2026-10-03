@@ -10,1207 +10,1239 @@
 #include <stdio.h>
 #include <string.h>
 
-struct FrontendSoundPcmFormat {
-	uint16_t formatTag;		/* Wave format, 1 for PCM. */
-	uint16_t channels;		/* Channels, 2. */
-	uint32_t samplesPerSecond;	/* Sample rate, 11264. */
-	uint32_t averageBytesPerSecond; /* Bytes per second, 22528. */
-	uint16_t blockAlign;		/* Bytes per sample frame, 2. */
-	uint16_t bitsPerSample;		/* Bits per sample, 8. */
+struct frontend_sound_pcm_format {
+	uint16_t format_tag;		   /* Wave format, 1 for PCM. */
+	uint16_t channels;		   /* Channels, 2. */
+	uint32_t samples_per_second;	   /* Sample rate, 11264. */
+	uint32_t average_bytes_per_second; /* Bytes per second, 22528. */
+	uint16_t block_align;		   /* Bytes per sample frame, 2. */
+	uint16_t bits_per_sample;	   /* Bits per sample, 8. */
 };
 
 /* Starts the front end's DirectSound. Returns 1 at once when
- * g_frontState.frontendDirectSound is set. Otherwise it clears the 12 voices,
- * frontendActiveVoiceCount, frontendSoundBufferCount, frontendSoundPlaySerial
+ * g_front_state.frontend_direct_sound is set. Otherwise it clears the 12 voices,
+ * frontend_active_voice_count, frontend_sound_buffer_count, frontend_sound_play_serial
  * and the buffer and name of the 128 buffer records, creates
- * frontendDirectSound with DirectSoundCreate on the default device, asks for
- * frontendPrimarySoundBuffer with a format of 11264 samples per second, 2
+ * frontend_direct_sound with DirectSoundCreate on the default device, asks for
+ * frontend_primary_sound_buffer with a format of 11264 samples per second, 2
  * channels and 8 bits, without checking the result, and sets cooperative level
  * 1 (DSSCL_NORMAL) for hwnd. Returns 1, or 0 when DirectSoundCreate fails or,
- * after FrontendSound_ShutdownDirectSound, when setting the cooperative level
- * fails. FrontendDisplay_InitMainWindow and FrontendDisplay_ReinitSurfaces call
+ * after frontend_sound_shutdown_direct_sound, when setting the cooperative level
+ * fails. frontend_display_init_main_window and frontend_display_reinit_surfaces call
  * it. */
 // FUNCTION: XVT 0x4DE190
-int FrontendSound_InitDirectSound(void *hwnd)
+int frontend_sound_init_direct_sound(void *hwnd)
 {
-	int voiceIndex;
-	int bufferIndex;
-	struct FrontendSoundPcmFormat primaryFormat;
-	DSBUFFERDESC primaryBufferDesc;
+	int voice_index;
+	int buffer_index;
+	struct frontend_sound_pcm_format primary_format;
+	DSBUFFERDESC primary_buffer_desc;
 
-	if (g_frontState.frontendDirectSound != NULL) {
+	if (g_front_state.frontend_direct_sound != NULL) {
 		return 1;
 	}
-	for (voiceIndex = 0; voiceIndex < 12; ++voiceIndex) {
-		g_frontState.frontendSoundVoices[voiceIndex].bufferIndex = -1;
-		g_frontState.frontendSoundVoices[voiceIndex].playSerial = 0;
-		g_frontState.frontendSoundVoices[voiceIndex].buffer = NULL;
+	for (voice_index = 0; voice_index < 12; ++voice_index) {
+		g_front_state.frontend_sound_voices[voice_index].buffer_index =
+			-1;
+		g_front_state.frontend_sound_voices[voice_index].play_serial =
+			0;
+		g_front_state.frontend_sound_voices[voice_index].buffer = NULL;
 	}
-	g_frontState.frontendActiveVoiceCount = 0;
-	g_frontState.frontendSoundBufferCount = 0;
-	g_frontState.frontendSoundPlaySerial = 0;
-	for (bufferIndex = 0; bufferIndex < 128; ++bufferIndex) {
-		g_frontState.frontendSoundBuffers[bufferIndex].buffer = NULL;
-		g_frontState.frontendSoundBuffers[bufferIndex].name[0] = '\0';
+	g_front_state.frontend_active_voice_count = 0;
+	g_front_state.frontend_sound_buffer_count = 0;
+	g_front_state.frontend_sound_play_serial = 0;
+	for (buffer_index = 0; buffer_index < 128; ++buffer_index) {
+		g_front_state.frontend_sound_buffers[buffer_index].buffer =
+			NULL;
+		g_front_state.frontend_sound_buffers[buffer_index].name[0] =
+			'\0';
 	}
-	if (DirectSoundCreate(NULL, (void **)&g_frontState.frontendDirectSound,
+	if (DirectSoundCreate(NULL,
+			      (void **)&g_front_state.frontend_direct_sound,
 			      NULL) != 0) {
 		return 0;
 	}
 
-	memset(&primaryFormat, 0, sizeof(primaryFormat));
-	primaryFormat.samplesPerSecond = 11264;
-	primaryFormat.averageBytesPerSecond = 22528;
-	primaryFormat.formatTag = 1;
-	primaryFormat.channels = 2;
-	primaryFormat.blockAlign = 2;
-	primaryFormat.bitsPerSample = 8;
-	memset(&primaryBufferDesc, 0, sizeof(primaryBufferDesc));
-	primaryBufferDesc.dwSize = sizeof(primaryBufferDesc);
-	primaryBufferDesc.dwFlags = DSBCAPS_PRIMARYBUFFER;
-	primaryBufferDesc.lpwfxFormat = (WAVEFORMATEX *)&primaryFormat;
-	g_frontState.frontendDirectSound->lpVtbl->CreateSoundBuffer(
-		g_frontState.frontendDirectSound, &primaryBufferDesc,
-		&g_frontState.frontendPrimarySoundBuffer, NULL);
-	if (g_frontState.frontendDirectSound->lpVtbl->SetCooperativeLevel(
-		    g_frontState.frontendDirectSound, hwnd, 1) != 0) {
-		FrontendSound_ShutdownDirectSound();
+	memset(&primary_format, 0, sizeof(primary_format));
+	primary_format.samples_per_second = 11264;
+	primary_format.average_bytes_per_second = 22528;
+	primary_format.format_tag = 1;
+	primary_format.channels = 2;
+	primary_format.block_align = 2;
+	primary_format.bits_per_sample = 8;
+	memset(&primary_buffer_desc, 0, sizeof(primary_buffer_desc));
+	primary_buffer_desc.dwSize = sizeof(primary_buffer_desc);
+	primary_buffer_desc.dwFlags = DSBCAPS_PRIMARYBUFFER;
+	primary_buffer_desc.lpwfxFormat = (WAVEFORMATEX *)&primary_format;
+	g_front_state.frontend_direct_sound->lpVtbl->CreateSoundBuffer(
+		g_front_state.frontend_direct_sound, &primary_buffer_desc,
+		&g_front_state.frontend_primary_sound_buffer, NULL);
+	if (g_front_state.frontend_direct_sound->lpVtbl->SetCooperativeLevel(
+		    g_front_state.frontend_direct_sound, hwnd, 1) != 0) {
+		frontend_sound_shutdown_direct_sound();
 		return 0;
 	}
 	return 1;
 }
 
-/* Returns 1 at once when g_frontState.frontendDirectSound is NULL. Otherwise it
+/* Returns 1 at once when g_front_state.frontend_direct_sound is NULL. Otherwise it
  * releases it and sets it to NULL, clears the buffer and name of the 128 buffer
- * records and the 12 voices, sets frontendPrimarySoundBuffer to NULL without
- * releasing it and frontendSoundPlaySerial to 0, and returns 1. It releases
- * none of the loaded buffers and leaves frontendSoundBufferCount and
- * frontendActiveVoiceCount as they are. FrontendDisplay_Shutdown and
- * FrontendDisplay_ReleaseSurfacesForFlight call it, and in the original build
- * Net_ShutdownDirectPlaySessionEx. */
+ * records and the 12 voices, sets frontend_primary_sound_buffer to NULL without
+ * releasing it and frontend_sound_play_serial to 0, and returns 1. It releases
+ * none of the loaded buffers and leaves frontend_sound_buffer_count and
+ * frontend_active_voice_count as they are. frontend_display_shutdown and
+ * frontend_display_release_surfaces_for_flight call it, and in the original build
+ * net_shutdown_direct_play_session_ex. */
 // FUNCTION: XVT 0x4DE2E0
-int FrontendSound_ShutdownDirectSound(void)
+int frontend_sound_shutdown_direct_sound(void)
 {
-	int bufferIndex;
-	int voiceIndex;
+	int buffer_index;
+	int voice_index;
 
-	if (g_frontState.frontendDirectSound == NULL) {
+	if (g_front_state.frontend_direct_sound == NULL) {
 		return 1;
 	}
 
-	g_frontState.frontendDirectSound->lpVtbl->Release(
-		g_frontState.frontendDirectSound);
-	g_frontState.frontendDirectSound = NULL;
-	for (bufferIndex = 0; bufferIndex < 128; ++bufferIndex) {
-		g_frontState.frontendSoundBuffers[bufferIndex].buffer = NULL;
-		g_frontState.frontendSoundBuffers[bufferIndex].name[0] = '\0';
+	g_front_state.frontend_direct_sound->lpVtbl->Release(
+		g_front_state.frontend_direct_sound);
+	g_front_state.frontend_direct_sound = NULL;
+	for (buffer_index = 0; buffer_index < 128; ++buffer_index) {
+		g_front_state.frontend_sound_buffers[buffer_index].buffer =
+			NULL;
+		g_front_state.frontend_sound_buffers[buffer_index].name[0] =
+			'\0';
 	}
-	for (voiceIndex = 0; voiceIndex < 12; ++voiceIndex) {
-		g_frontState.frontendSoundVoices[voiceIndex].bufferIndex = -1;
-		g_frontState.frontendSoundVoices[voiceIndex].playSerial = 0;
-		g_frontState.frontendSoundVoices[voiceIndex].buffer = NULL;
+	for (voice_index = 0; voice_index < 12; ++voice_index) {
+		g_front_state.frontend_sound_voices[voice_index].buffer_index =
+			-1;
+		g_front_state.frontend_sound_voices[voice_index].play_serial =
+			0;
+		g_front_state.frontend_sound_voices[voice_index].buffer = NULL;
 	}
-	g_frontState.frontendPrimarySoundBuffer = NULL;
-	g_frontState.frontendSoundPlaySerial = 0;
+	g_front_state.frontend_primary_sound_buffer = NULL;
+	g_front_state.frontend_sound_play_serial = 0;
 	return 1;
 }
 
-/* Calls FrontendSound_LoadSoundFile with omitSoftwareAndFrequencyCaps 0 and
- * returns its result. Only FrontendSound_LoadList calls it. */
+/* Calls frontend_sound_load_sound_file with omit_software_and_frequency_caps 0 and
+ * returns its result. Only frontend_sound_load_list calls it. */
 // FUNCTION: XVT 0x4DE370
-int FrontendSound_LoadSound(const char *fileName, const char *soundName)
+int frontend_sound_load_sound(const char *file_name, const char *sound_name)
 {
-	return FrontendSound_LoadSoundFile(fileName, soundName, 0);
+	return frontend_sound_load_sound_file(file_name, sound_name, 0);
 }
 
-/* Loads a WAV file as a named front-end sound: DirectSound_LoadWaveBuffer makes
- * its buffer, rewound to 0, and FrontendSound_InsertSortedBuffer adds the
+/* Loads a WAV file as a named front-end sound: direct_sound_load_wave_buffer makes
+ * its buffer, rewound to 0, and frontend_sound_insert_sorted_buffer adds the
  * record with the name (up to 63 characters), the file name (up to 191) and
  * priority 0. Returns 1, also when the name is already loaded; 0 when either
- * string is empty, 128 sounds are loaded, g_frontState.frontendDirectSound is
+ * string is empty, 128 sounds are loaded, g_front_state.frontend_direct_sound is
  * NULL or the buffer fails to load. Unlocks the front end's back buffer around
  * its DirectSound calls and, when it was locked, locks it again into
- * g_drawSurfacePtr. Only FrontendSound_LoadSound calls it, passing 0. */
+ * g_draw_surface_ptr. Only frontend_sound_load_sound calls it, passing 0. */
 // FUNCTION: XVT 0x4DE390
-int FrontendSound_LoadSoundFile(const char *fileName, const char *soundName,
-				int omitSoftwareAndFrequencyCaps)
+int frontend_sound_load_sound_file(const char *file_name,
+				   const char *sound_name,
+				   int omit_software_and_frequency_caps)
 {
-	struct FrontendSoundBufferRecord record;
-	int wasBackBufferLocked;
+	struct frontend_sound_buffer_record record;
+	int was_back_buffer_locked;
 
-	if (*fileName == '\0') {
+	if (*file_name == '\0') {
 		return 0;
 	}
-	if (*soundName == '\0') {
+	if (*sound_name == '\0') {
 		return 0;
 	}
-	if (g_frontState.frontendSoundBufferCount >= 128) {
+	if (g_front_state.frontend_sound_buffer_count >= 128) {
 		return 0;
 	}
-	if (g_frontState.frontendDirectSound == NULL) {
+	if (g_front_state.frontend_direct_sound == NULL) {
 		return 0;
 	}
-	if (FrontendSound_FindBufferByName(soundName) != -1) {
+	if (frontend_sound_find_buffer_by_name(sound_name) != -1) {
 		return 1;
 	}
 
-	wasBackBufferLocked = g_frontState.backBufferLocked;
-	FrontendDisplay_UnlockBackBuffer();
-	record.buffer = DirectSound_LoadWaveBuffer(
-		g_frontState.frontendDirectSound, fileName,
-		omitSoftwareAndFrequencyCaps);
+	was_back_buffer_locked = g_front_state.back_buffer_locked;
+	frontend_display_unlock_back_buffer();
+	record.buffer = direct_sound_load_wave_buffer(
+		g_front_state.frontend_direct_sound, file_name,
+		omit_software_and_frequency_caps);
 	if (record.buffer != NULL) {
 		record.buffer->lpVtbl->SetCurrentPosition(record.buffer, 0);
-		strncpy(record.name, soundName, sizeof(record.name));
+		strncpy(record.name, sound_name, sizeof(record.name));
 		record.name[sizeof(record.name) - 1] = '\0';
-		strncpy(record.fileName, fileName, sizeof(record.fileName));
-		record.fileName[191] = '\0';
+		strncpy(record.file_name, file_name, sizeof(record.file_name));
+		record.file_name[191] = '\0';
 		record.priority = 0;
-		FrontendSound_InsertSortedBuffer(&record);
-		if (wasBackBufferLocked != 0) {
-			g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+		frontend_sound_insert_sorted_buffer(&record);
+		if (was_back_buffer_locked != 0) {
+			g_draw_surface_ptr =
+				frontend_display_lock_back_buffer();
 		}
 		return record.buffer != NULL;
 	}
-	if (wasBackBufferLocked != 0) {
-		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	if (was_back_buffer_locked != 0) {
+		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
 	return 0;
 }
 
-/* Calls FrontendSound_UnloadBufferByName with the name in each of the 128
+/* Calls frontend_sound_unload_buffer_by_name with the name in each of the 128
  * buffer records, from the last to the first; going down, it reaches every
- * loaded sound. FrontendDisplay_ReleaseSurfacesForFlight is its only caller. */
+ * loaded sound. frontend_display_release_surfaces_for_flight is its only caller. */
 // FUNCTION: XVT 0x4DE4D0
-void FrontendSound_UnloadAllBuffers(void)
+void frontend_sound_unload_all_buffers(void)
 {
-	int bufferIndex;
+	int buffer_index;
 
-	bufferIndex = 127;
+	buffer_index = 127;
 	do {
-		FrontendSound_UnloadBufferByName(
-			g_frontState.frontendSoundBuffers[bufferIndex].name);
-	} while (--bufferIndex >= 0);
+		frontend_sound_unload_buffer_by_name(
+			g_front_state.frontend_sound_buffers[buffer_index]
+				.name);
+	} while (--buffer_index >= 0);
 }
 
-/* Stops the named sound's voices with FrontendSound_StopOldestVoiceByName until
+/* Stops the named sound's voices with frontend_sound_stop_oldest_voice_by_name until
  * it returns other than 1, releases its buffer and removes its record with
- * FrontendSound_RemoveBufferRecord. Returns 1, or 0 when the name is empty or
+ * frontend_sound_remove_buffer_record. Returns 1, or 0 when the name is empty or
  * not loaded. Unlocks the front end's back buffer around its DirectSound calls
- * and, when it was locked, locks it again into g_drawSurfacePtr.
- * FrontendSound_UnloadAllBuffers and FrontendSound_UnloadList call it. */
+ * and, when it was locked, locks it again into g_draw_surface_ptr.
+ * frontend_sound_unload_all_buffers and frontend_sound_unload_list call it. */
 // FUNCTION: XVT 0x4DE4F0
-int FrontendSound_UnloadBufferByName(const char *soundName)
+int frontend_sound_unload_buffer_by_name(const char *sound_name)
 {
-	int bufferIndex;
-	int wasBackBufferLocked;
+	int buffer_index;
+	int was_back_buffer_locked;
 
-	if (*soundName == '\0') {
+	if (*sound_name == '\0') {
 		return 0;
 	}
-	bufferIndex = FrontendSound_FindBufferByName(soundName);
-	if (bufferIndex == -1) {
+	buffer_index = frontend_sound_find_buffer_by_name(sound_name);
+	if (buffer_index == -1) {
 		return 0;
 	}
 
-	wasBackBufferLocked = g_frontState.backBufferLocked;
-	FrontendDisplay_UnlockBackBuffer();
-	while (FrontendSound_StopOldestVoiceByName(
-		       g_frontState.frontendSoundBuffers[bufferIndex].name) ==
-	       1) {
+	was_back_buffer_locked = g_front_state.back_buffer_locked;
+	frontend_display_unlock_back_buffer();
+	while (frontend_sound_stop_oldest_voice_by_name(
+		       g_front_state.frontend_sound_buffers[buffer_index]
+			       .name) == 1) {
 	}
-	g_frontState.frontendSoundBuffers[bufferIndex].buffer->lpVtbl->Release(
-		g_frontState.frontendSoundBuffers[bufferIndex].buffer);
-	FrontendSound_RemoveBufferRecord(bufferIndex);
-	if (wasBackBufferLocked != 0) {
-		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	g_front_state.frontend_sound_buffers[buffer_index]
+		.buffer->lpVtbl->Release(
+			g_front_state.frontend_sound_buffers[buffer_index]
+				.buffer);
+	frontend_sound_remove_buffer_record(buffer_index);
+	if (was_back_buffer_locked != 0) {
+		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
 	return 1;
 }
 
 /* Plays a loaded front-end sound on a new duplicate of its buffer and records
- * it in one of the 12 voices of g_frontState.frontendSoundVoices. Returns 0
- * when frontendDirectSound is NULL or the name is empty or not loaded. With all
+ * it in one of the 12 voices of g_front_state.frontend_sound_voices. Returns 0
+ * when frontend_direct_sound is NULL or the name is empty or not loaded. With all
  * 12 voices in use it frees the first voice whose GetStatus fails or which is
  * neither playing (0x1) nor looping (0x4), releasing its buffer. With all 12
  * still playing it takes the first voice whose sound has the lowest priority
  * under priority, stops and releases its buffer and uses it; with none under
- * priority it returns 0, unless allowRestartExisting is set and a voice plays
+ * priority it returns 0, unless allow_restart_existing is set and a voice plays
  * this sound: then it rewinds the first such to 0, gives it the next play
  * serial and returns 1. With fewer than 12 in use it takes the first free
  * voice. It duplicates the sound's buffer, returning 0 when the duplicate is
  * NULL (the pointer is not cleared before the call), rewinds it, sets its
  * volume to 400 * (5 * v - 635) / 127 hundredths of a decibel and its pan to
- * 400 * (5 * p - 315) / 63, v and p being volume0To127 and pan0To127 clamped to
+ * 400 * (5 * p - 315) / 63, v and p being volume0_to127 and pan0_to127 clamped to
  * 0 to 127, and plays it, looping when loop is 1. When Play succeeds it fills
  * the voice (record index, buffer, the next serial from
- * frontendSoundPlaySerial), adds 1 to frontendActiveVoiceCount and returns 1.
+ * frontend_sound_play_serial), adds 1 to frontend_active_voice_count and returns 1.
  * When Play returns DSERR_BUFFERLOST (0x88780096) it refills the sound's buffer
- * from its file with DirectSound_ReloadWaveBuffer and plays again, filling the
+ * from its file with direct_sound_reload_wave_buffer and plays again, filling the
  * voice the same way on success; that path returns 0 whatever happens. Any
  * other failure of Play returns the HRESULT, a nonzero value, and the duplicate
  * is not released. Unlocks the front end's back buffer around its DirectSound
- * calls and, when it was locked, locks it again into g_drawSurfacePtr. */
+ * calls and, when it was locked, locks it again into g_draw_surface_ptr. */
 // FUNCTION: XVT 0x4DE5A0
-int FrontendSound_PlayUISound(const char *soundName, int allowRestartExisting,
-			      int loop, int priority, int volume0To127,
-			      int pan0To127)
+int frontend_sound_play_ui_sound(const char *sound_name,
+				 int allow_restart_existing, int loop,
+				 int priority, int volume0_to127,
+				 int pan0_to127)
 {
-	int bufferIndex;
-	int voiceIndex;
-	int scanIndex;
-	int restartVoiceIndex;
-	int candidateVoiceIndex;
-	int candidatePriority;
-	int currentBufferIndex;
-	int wasBackBufferLocked;
+	int buffer_index;
+	int voice_index;
+	int scan_index;
+	int restart_voice_index;
+	int candidate_voice_index;
+	int candidate_priority;
+	int current_buffer_index;
+	int was_back_buffer_locked;
 	uint32_t status;
-	IDirectSoundBuffer *duplicateBuffer;
-	struct FrontendSoundVoice *voice;
-	int clampedValue;
-	HRESULT playResult;
+	IDirectSoundBuffer *duplicate_buffer;
+	struct frontend_sound_voice *voice;
+	int clamped_value;
+	HRESULT play_result;
 	int result;
 
-	if (g_frontState.frontendDirectSound == NULL) {
+	if (g_front_state.frontend_direct_sound == NULL) {
 		return 0;
 	}
-	if (*soundName == '\0') {
+	if (*sound_name == '\0') {
 		return 0;
 	}
-	bufferIndex = FrontendSound_FindBufferByName(soundName);
-	if (bufferIndex == -1) {
+	buffer_index = frontend_sound_find_buffer_by_name(sound_name);
+	if (buffer_index == -1) {
 		return 0;
 	}
 
-	wasBackBufferLocked = g_frontState.backBufferLocked;
-	FrontendDisplay_UnlockBackBuffer();
-	if (g_frontState.frontendActiveVoiceCount == 12) {
-		for (voiceIndex = 0; voiceIndex < 12; ++voiceIndex) {
-			voice = &g_frontState.frontendSoundVoices[voiceIndex];
-			if (voice->bufferIndex != -1 &&
+	was_back_buffer_locked = g_front_state.back_buffer_locked;
+	frontend_display_unlock_back_buffer();
+	if (g_front_state.frontend_active_voice_count == 12) {
+		for (voice_index = 0; voice_index < 12; ++voice_index) {
+			voice = &g_front_state
+					 .frontend_sound_voices[voice_index];
+			if (voice->buffer_index != -1 &&
 			    (voice->buffer->lpVtbl->GetStatus(voice->buffer,
 							      &status) != 0 ||
 			     ((status & 1) == 0 && (status & 4) == 0))) {
-				g_frontState.frontendSoundVoices[voiceIndex]
+				g_front_state.frontend_sound_voices[voice_index]
 					.buffer->lpVtbl->Release(
-						g_frontState
-							.frontendSoundVoices
-								[voiceIndex]
+						g_front_state
+							.frontend_sound_voices
+								[voice_index]
 							.buffer);
-				g_frontState.frontendSoundVoices[voiceIndex]
-					.bufferIndex = -1;
-				g_frontState.frontendSoundVoices[voiceIndex]
+				g_front_state.frontend_sound_voices[voice_index]
+					.buffer_index = -1;
+				g_front_state.frontend_sound_voices[voice_index]
 					.buffer = NULL;
-				--g_frontState.frontendActiveVoiceCount;
+				--g_front_state.frontend_active_voice_count;
 				break;
 			}
 		}
-		if (voiceIndex == 12) {
-			candidateVoiceIndex = 12;
-			candidatePriority = priority;
-			scanIndex = 0;
+		if (voice_index == 12) {
+			candidate_voice_index = 12;
+			candidate_priority = priority;
+			scan_index = 0;
 			do {
-				currentBufferIndex =
-					g_frontState
-						.frontendSoundVoices[scanIndex]
-						.bufferIndex;
-				if (candidatePriority >
-				    g_frontState
-					    .frontendSoundBuffers
-						    [currentBufferIndex]
+				current_buffer_index =
+					g_front_state
+						.frontend_sound_voices
+							[scan_index]
+						.buffer_index;
+				if (candidate_priority >
+				    g_front_state
+					    .frontend_sound_buffers
+						    [current_buffer_index]
 					    .priority) {
-					candidateVoiceIndex = scanIndex;
-					candidatePriority =
-						g_frontState
-							.frontendSoundBuffers
-								[currentBufferIndex]
+					candidate_voice_index = scan_index;
+					candidate_priority =
+						g_front_state
+							.frontend_sound_buffers
+								[current_buffer_index]
 							.priority;
 				}
-				++scanIndex;
-			} while (scanIndex < 12);
+				++scan_index;
+			} while (scan_index < 12);
 
-			voiceIndex = candidateVoiceIndex;
-			if (candidateVoiceIndex != 12) {
-				g_frontState.frontendSoundVoices[voiceIndex]
+			voice_index = candidate_voice_index;
+			if (candidate_voice_index != 12) {
+				g_front_state.frontend_sound_voices[voice_index]
 					.buffer->lpVtbl->Stop(
-						g_frontState
-							.frontendSoundVoices
-								[voiceIndex]
+						g_front_state
+							.frontend_sound_voices
+								[voice_index]
 							.buffer);
-				g_frontState.frontendSoundVoices[voiceIndex]
+				g_front_state.frontend_sound_voices[voice_index]
 					.buffer->lpVtbl->Release(
-						g_frontState
-							.frontendSoundVoices
-								[voiceIndex]
+						g_front_state
+							.frontend_sound_voices
+								[voice_index]
 							.buffer);
-				g_frontState.frontendSoundVoices[voiceIndex]
-					.bufferIndex = -1;
-				g_frontState.frontendSoundVoices[voiceIndex]
+				g_front_state.frontend_sound_voices[voice_index]
+					.buffer_index = -1;
+				g_front_state.frontend_sound_voices[voice_index]
 					.buffer = NULL;
-				--g_frontState.frontendActiveVoiceCount;
+				--g_front_state.frontend_active_voice_count;
 			} else {
-				if (allowRestartExisting != 0) {
-					for (restartVoiceIndex = 0;
-					     restartVoiceIndex < 12;
-					     ++restartVoiceIndex) {
-						if (g_frontState
-							    .frontendSoundVoices
-								    [restartVoiceIndex]
-							    .bufferIndex ==
-						    bufferIndex) {
-							g_frontState
-								.frontendSoundVoices
-									[restartVoiceIndex]
+				if (allow_restart_existing != 0) {
+					for (restart_voice_index = 0;
+					     restart_voice_index < 12;
+					     ++restart_voice_index) {
+						if (g_front_state
+							    .frontend_sound_voices
+								    [restart_voice_index]
+							    .buffer_index ==
+						    buffer_index) {
+							g_front_state
+								.frontend_sound_voices
+									[restart_voice_index]
 								.buffer->lpVtbl
 								->SetCurrentPosition(
-									g_frontState
-										.frontendSoundVoices
-											[restartVoiceIndex]
+									g_front_state
+										.frontend_sound_voices
+											[restart_voice_index]
 										.buffer,
 									0);
-							g_frontState
-								.frontendSoundVoices
-									[restartVoiceIndex]
-								.playSerial =
-								g_frontState
-									.frontendSoundPlaySerial++;
-							if (wasBackBufferLocked !=
+							g_front_state
+								.frontend_sound_voices
+									[restart_voice_index]
+								.play_serial =
+								g_front_state
+									.frontend_sound_play_serial++;
+							if (was_back_buffer_locked !=
 							    0) {
-								g_drawSurfacePtr =
-									FrontendDisplay_LockBackBuffer();
+								g_draw_surface_ptr =
+									frontend_display_lock_back_buffer();
 							}
 							return 1;
 						}
 					}
 				}
-				if (wasBackBufferLocked != 0) {
-					g_drawSurfacePtr =
-						FrontendDisplay_LockBackBuffer();
+				if (was_back_buffer_locked != 0) {
+					g_draw_surface_ptr =
+						frontend_display_lock_back_buffer();
 				}
 				return 0;
 			}
 		}
 	} else {
-		voiceIndex = 0;
-		voice = g_frontState.frontendSoundVoices;
-		while (voiceIndex < 12 && voice->bufferIndex != -1) {
+		voice_index = 0;
+		voice = g_front_state.frontend_sound_voices;
+		while (voice_index < 12 && voice->buffer_index != -1) {
 			++voice;
-			++voiceIndex;
+			++voice_index;
 		}
 	}
 
-	g_frontState.frontendDirectSound->lpVtbl->DuplicateSoundBuffer(
-		g_frontState.frontendDirectSound,
-		g_frontState.frontendSoundBuffers[bufferIndex].buffer,
-		&duplicateBuffer);
-	if (duplicateBuffer == NULL) {
-		if (wasBackBufferLocked != 0) {
-			g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	g_front_state.frontend_direct_sound->lpVtbl->DuplicateSoundBuffer(
+		g_front_state.frontend_direct_sound,
+		g_front_state.frontend_sound_buffers[buffer_index].buffer,
+		&duplicate_buffer);
+	if (duplicate_buffer == NULL) {
+		if (was_back_buffer_locked != 0) {
+			g_draw_surface_ptr =
+				frontend_display_lock_back_buffer();
 		}
 		return 0;
 	}
 
-	duplicateBuffer->lpVtbl->SetCurrentPosition(duplicateBuffer, 0);
-	clampedValue = volume0To127;
-	if (clampedValue > 127) {
-		clampedValue = 127;
-	} else if (clampedValue < 0) {
-		clampedValue = 0;
+	duplicate_buffer->lpVtbl->SetCurrentPosition(duplicate_buffer, 0);
+	clamped_value = volume0_to127;
+	if (clamped_value > 127) {
+		clamped_value = 127;
+	} else if (clamped_value < 0) {
+		clamped_value = 0;
 	}
-	duplicateBuffer->lpVtbl->SetVolume(
-		duplicateBuffer, 400 * (5 * clampedValue - 635) / 127);
-	clampedValue = pan0To127;
-	if (clampedValue > 127) {
-		clampedValue = 127;
+	duplicate_buffer->lpVtbl->SetVolume(
+		duplicate_buffer, 400 * (5 * clamped_value - 635) / 127);
+	clamped_value = pan0_to127;
+	if (clamped_value > 127) {
+		clamped_value = 127;
 	}
-	if (clampedValue < 0) {
-		clampedValue = 0;
+	if (clamped_value < 0) {
+		clamped_value = 0;
 	}
-	duplicateBuffer->lpVtbl->SetPan(duplicateBuffer,
-					400 * (5 * clampedValue - 315) / 63);
-	playResult =
-		duplicateBuffer->lpVtbl->Play(duplicateBuffer, 0, 0, loop == 1);
-	result = playResult;
-	if (playResult == (HRESULT)0x88780096u) {
-		result = DirectSound_ReloadWaveBuffer(
-			g_frontState.frontendSoundBuffers[bufferIndex].buffer,
-			g_frontState.frontendSoundBuffers[bufferIndex]
-				.fileName);
+	duplicate_buffer->lpVtbl->SetPan(duplicate_buffer,
+					 400 * (5 * clamped_value - 315) / 63);
+	play_result = duplicate_buffer->lpVtbl->Play(duplicate_buffer, 0, 0,
+						     loop == 1);
+	result = play_result;
+	if (play_result == (HRESULT)0x88780096u) {
+		result = direct_sound_reload_wave_buffer(
+			g_front_state.frontend_sound_buffers[buffer_index]
+				.buffer,
+			g_front_state.frontend_sound_buffers[buffer_index]
+				.file_name);
 		if (result == 1) {
-			duplicateBuffer->lpVtbl->SetCurrentPosition(
-				duplicateBuffer, 0);
-			result = duplicateBuffer->lpVtbl->Play(duplicateBuffer,
-							       0, 0, loop == 1);
+			duplicate_buffer->lpVtbl->SetCurrentPosition(
+				duplicate_buffer, 0);
+			result = duplicate_buffer->lpVtbl->Play(
+				duplicate_buffer, 0, 0, loop == 1);
 			if (result == 0) {
-				g_frontState.frontendSoundVoices[voiceIndex]
-					.bufferIndex = bufferIndex;
-				g_frontState.frontendSoundVoices[voiceIndex]
-					.buffer = duplicateBuffer;
-				g_frontState.frontendSoundVoices[voiceIndex]
-					.playSerial =
-					g_frontState.frontendSoundPlaySerial++;
-				++g_frontState.frontendActiveVoiceCount;
+				g_front_state.frontend_sound_voices[voice_index]
+					.buffer_index = buffer_index;
+				g_front_state.frontend_sound_voices[voice_index]
+					.buffer = duplicate_buffer;
+				g_front_state.frontend_sound_voices[voice_index]
+					.play_serial =
+					g_front_state
+						.frontend_sound_play_serial++;
+				++g_front_state.frontend_active_voice_count;
 			} else {
 				result = 0;
 			}
 		}
-	} else if (playResult == 0) {
-		g_frontState.frontendSoundVoices[voiceIndex].bufferIndex =
-			bufferIndex;
-		g_frontState.frontendSoundVoices[voiceIndex].buffer =
-			duplicateBuffer;
-		g_frontState.frontendSoundVoices[voiceIndex].playSerial =
-			g_frontState.frontendSoundPlaySerial++;
-		++g_frontState.frontendActiveVoiceCount;
+	} else if (play_result == 0) {
+		g_front_state.frontend_sound_voices[voice_index].buffer_index =
+			buffer_index;
+		g_front_state.frontend_sound_voices[voice_index].buffer =
+			duplicate_buffer;
+		g_front_state.frontend_sound_voices[voice_index].play_serial =
+			g_front_state.frontend_sound_play_serial++;
+		++g_front_state.frontend_active_voice_count;
 		result = 1;
 	}
-	if (wasBackBufferLocked != 0) {
-		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	if (was_back_buffer_locked != 0) {
+		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
 	return result;
 }
 
 /* Stops the oldest voice of the named sound, the one with the lowest play
  * serial: stops and releases its buffer, frees the voice and lowers
- * g_frontState.frontendActiveVoiceCount. Returns 1 when Stop succeeded, else 0;
- * returns 0 with nothing stopped when frontendDirectSound is NULL, the name is
+ * g_front_state.frontend_active_voice_count. Returns 1 when Stop succeeded, else 0;
+ * returns 0 with nothing stopped when frontend_direct_sound is NULL, the name is
  * empty or not loaded, no voice holds the sound, or the voice's buffer is NULL.
  * Unlocks the front end's back buffer around its DirectSound calls and, when it
- * was locked, locks it again into g_drawSurfacePtr.
- * FrontendSound_UnloadBufferByName and FrontendSound_StopAllVoices call it. */
+ * was locked, locks it again into g_draw_surface_ptr.
+ * frontend_sound_unload_buffer_by_name and frontend_sound_stop_all_voices call it. */
 // FUNCTION: XVT 0x4DE9A0
-int FrontendSound_StopOldestVoiceByName(const char *name)
+int frontend_sound_stop_oldest_voice_by_name(const char *name)
 {
-	int bufferIndex;
-	int oldestVoiceIndex;
-	int oldestSerial;
-	int voiceIndex;
-	struct FrontendSoundVoice *voice;
+	int buffer_index;
+	int oldest_voice_index;
+	int oldest_serial;
+	int voice_index;
+	struct frontend_sound_voice *voice;
 	IDirectSoundBuffer *buffer;
-	int wasBackBufferLocked;
-	HRESULT stopResult;
+	int was_back_buffer_locked;
+	HRESULT stop_result;
 
-	if (g_frontState.frontendDirectSound == NULL) {
+	if (g_front_state.frontend_direct_sound == NULL) {
 		return 0;
 	}
 	if (*name == '\0') {
 		return 0;
 	}
-	bufferIndex = FrontendSound_FindBufferByName(name);
-	if (bufferIndex == -1) {
+	buffer_index = frontend_sound_find_buffer_by_name(name);
+	if (buffer_index == -1) {
 		return 0;
 	}
 
-	oldestVoiceIndex = -1;
-	oldestSerial = g_frontState.frontendSoundPlaySerial + 1;
-	voiceIndex = 0;
-	voice = g_frontState.frontendSoundVoices;
+	oldest_voice_index = -1;
+	oldest_serial = g_front_state.frontend_sound_play_serial + 1;
+	voice_index = 0;
+	voice = g_front_state.frontend_sound_voices;
 	do {
-		if (voice->bufferIndex == bufferIndex &&
-		    voice->playSerial < oldestSerial) {
-			oldestSerial = voice->playSerial;
-			oldestVoiceIndex = voiceIndex;
+		if (voice->buffer_index == buffer_index &&
+		    voice->play_serial < oldest_serial) {
+			oldest_serial = voice->play_serial;
+			oldest_voice_index = voice_index;
 		}
 		++voice;
-		++voiceIndex;
-	} while (voiceIndex < 12);
-	if (oldestVoiceIndex == -1) {
+		++voice_index;
+	} while (voice_index < 12);
+	if (oldest_voice_index == -1) {
 		return 0;
 	}
 
-	buffer = g_frontState.frontendSoundVoices[oldestVoiceIndex].buffer;
+	buffer = g_front_state.frontend_sound_voices[oldest_voice_index].buffer;
 	if (buffer == NULL) {
 		return 0;
 	}
-	wasBackBufferLocked = g_frontState.backBufferLocked;
-	FrontendDisplay_UnlockBackBuffer();
-	stopResult = buffer->lpVtbl->Stop(buffer);
+	was_back_buffer_locked = g_front_state.back_buffer_locked;
+	frontend_display_unlock_back_buffer();
+	stop_result = buffer->lpVtbl->Stop(buffer);
 	buffer->lpVtbl->Release(buffer);
-	g_frontState.frontendSoundVoices[oldestVoiceIndex].buffer = NULL;
-	g_frontState.frontendSoundVoices[oldestVoiceIndex].bufferIndex = -1;
-	--g_frontState.frontendActiveVoiceCount;
-	if (wasBackBufferLocked != 0) {
-		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	g_front_state.frontend_sound_voices[oldest_voice_index].buffer = NULL;
+	g_front_state.frontend_sound_voices[oldest_voice_index].buffer_index =
+		-1;
+	--g_front_state.frontend_active_voice_count;
+	if (was_back_buffer_locked != 0) {
+		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
-	return stopResult >= 0;
+	return stop_result >= 0;
 }
 
-/* Calls FrontendSound_StopOldestVoiceByName for the sound of each voice in use,
+/* Calls frontend_sound_stop_oldest_voice_by_name for the sound of each voice in use,
  * in voice order, and returns 1 when every call returned 1, else 0. Each call
  * stops that sound's oldest voice, not necessarily that voice, and no voice is
  * looked at twice, so when a sound's older voice sits later, the earlier voice
  * keeps playing. Nothing calls this. */
 // FUNCTION: XVT 0x4DEA90
-int FrontendSound_StopAllVoices(void)
+int frontend_sound_stop_all_voices(void)
 {
-	int allStopped;
-	int voiceIndex;
-	int bufferIndex;
+	int all_stopped;
+	int voice_index;
+	int buffer_index;
 
-	allStopped = 1;
-	for (voiceIndex = 0; voiceIndex < 12; ++voiceIndex) {
-		bufferIndex = g_frontState.frontendSoundVoices[voiceIndex]
-				      .bufferIndex;
-		if (bufferIndex != -1) {
-			allStopped &= FrontendSound_StopOldestVoiceByName(
-				g_frontState.frontendSoundBuffers[bufferIndex]
+	all_stopped = 1;
+	for (voice_index = 0; voice_index < 12; ++voice_index) {
+		buffer_index = g_front_state.frontend_sound_voices[voice_index]
+				       .buffer_index;
+		if (buffer_index != -1) {
+			all_stopped &= frontend_sound_stop_oldest_voice_by_name(
+				g_front_state
+					.frontend_sound_buffers[buffer_index]
 					.name);
 		}
 	}
-	return allStopped;
+	return all_stopped;
 }
 
 /* Sets the primary buffer's volume to 400 * (5 * v - 635) / 127 hundredths of a
- * decibel, v being volume0To127 clamped to 0 to 127. Returns 1 when SetVolume
+ * decibel, v being volume0_to127 clamped to 0 to 127. Returns 1 when SetVolume
  * succeeds; 0 when it fails, when there is no primary buffer, or when
- * g_frontState.frontendDirectSound is NULL. Unlocks the front end's back buffer
+ * g_front_state.frontend_direct_sound is NULL. Unlocks the front end's back buffer
  * around its DirectSound calls and, when it was locked, locks it again into
- * g_drawSurfacePtr. Nothing calls this. */
+ * g_draw_surface_ptr. Nothing calls this. */
 // FUNCTION: XVT 0x4DEAD0
-int FrontendSound_SetPrimaryVolume(int volume0To127)
+int frontend_sound_set_primary_volume(int volume0_to127)
 {
-	HRESULT setResult;
-	int wasBackBufferLocked;
-	int clampedVolume;
+	HRESULT set_result;
+	int was_back_buffer_locked;
+	int clamped_volume;
 
-	if (g_frontState.frontendDirectSound == NULL) {
+	if (g_front_state.frontend_direct_sound == NULL) {
 		return 0;
 	}
 
-	wasBackBufferLocked = g_frontState.backBufferLocked;
-	setResult = 1;
-	FrontendDisplay_UnlockBackBuffer();
-	if (g_frontState.frontendPrimarySoundBuffer != NULL) {
-		clampedVolume = volume0To127;
-		if (clampedVolume > 127) {
-			clampedVolume = 127;
-		} else if (clampedVolume < 0) {
-			clampedVolume = 0;
+	was_back_buffer_locked = g_front_state.back_buffer_locked;
+	set_result = 1;
+	frontend_display_unlock_back_buffer();
+	if (g_front_state.frontend_primary_sound_buffer != NULL) {
+		clamped_volume = volume0_to127;
+		if (clamped_volume > 127) {
+			clamped_volume = 127;
+		} else if (clamped_volume < 0) {
+			clamped_volume = 0;
 		}
-		setResult =
-			g_frontState.frontendPrimarySoundBuffer->lpVtbl
+		set_result =
+			g_front_state.frontend_primary_sound_buffer->lpVtbl
 				->SetVolume(
-					g_frontState.frontendPrimarySoundBuffer,
-					400 * (5 * clampedVolume - 635) / 127);
+					g_front_state
+						.frontend_primary_sound_buffer,
+					400 * (5 * clamped_volume - 635) / 127);
 	}
-	if (wasBackBufferLocked != 0) {
-		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	if (was_back_buffer_locked != 0) {
+		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
-	return setResult == 0;
+	return set_result == 0;
 }
 
 /* Returns the primary buffer's volume on the game's scale,
  * 127 * v / 2000 + 127, v in hundredths of a decibel; 0 when
- * g_frontState.frontendDirectSound is NULL or GetVolume fails,
+ * g_front_state.frontend_direct_sound is NULL or GetVolume fails,
  * and on that failure it leaves the back buffer unlocked. Does
  * not check that the primary buffer exists. Otherwise it locks
- * the back buffer again into g_drawSurfacePtr when it was locked.
+ * the back buffer again into g_draw_surface_ptr when it was locked.
  * Nothing calls this. */
 // FUNCTION: XVT 0x4DEB50
-int FrontendSound_GetPrimaryVolume(void)
+int frontend_sound_get_primary_volume(void)
 {
-	int wasBackBufferLocked;
-	int32_t directSoundVolume;
+	int was_back_buffer_locked;
+	int32_t direct_sound_volume;
 
-	if (g_frontState.frontendDirectSound == NULL) {
+	if (g_front_state.frontend_direct_sound == NULL) {
 		return 0;
 	}
 
-	wasBackBufferLocked = g_frontState.backBufferLocked;
-	FrontendDisplay_UnlockBackBuffer();
-	if (g_frontState.frontendPrimarySoundBuffer->lpVtbl->GetVolume(
-		    g_frontState.frontendPrimarySoundBuffer,
-		    &directSoundVolume) != 0) {
+	was_back_buffer_locked = g_front_state.back_buffer_locked;
+	frontend_display_unlock_back_buffer();
+	if (g_front_state.frontend_primary_sound_buffer->lpVtbl->GetVolume(
+		    g_front_state.frontend_primary_sound_buffer,
+		    &direct_sound_volume) != 0) {
 		return 0;
 	}
 
 	/* Convert the DirectSound attenuation back to the game's volume scale, where 127 is full volume. */
-	directSoundVolume = 127 * directSoundVolume / 2000 + 127;
-	if (wasBackBufferLocked != 0) {
-		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	direct_sound_volume = 127 * direct_sound_volume / 2000 + 127;
+	if (was_back_buffer_locked != 0) {
+		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
-	return directSoundVolume;
+	return direct_sound_volume;
 }
 
 /* Sets the volume of the named sound's newest voice, the one with the highest
  * play serial, to 400 * (5 * v - 635) / 127 hundredths of a decibel, v being
- * volume0To127 clamped to 0 to 127. Returns 1 when SetVolume succeeds, else 0;
- * 0 also when frontendDirectSound is NULL, the name is empty or not loaded, or
+ * volume0_to127 clamped to 0 to 127. Returns 1 when SetVolume succeeds, else 0;
+ * 0 also when frontend_direct_sound is NULL, the name is empty or not loaded, or
  * no voice holds it. Unlocks the front end's back buffer around its DirectSound
- * calls and, when it was locked, locks it again into g_drawSurfacePtr. Nothing
+ * calls and, when it was locked, locks it again into g_draw_surface_ptr. Nothing
  * calls this. */
 // FUNCTION: XVT 0x4DEBC0
-int FrontendSound_SetNewestVoiceVolumeByName(const char *name, int volume0To127)
+int frontend_sound_set_newest_voice_volume_by_name(const char *name,
+						   int volume0_to127)
 {
-	int bufferIndex;
-	int newestSerial;
-	struct FrontendSoundVoice *voice;
-	int voiceIndex;
-	int newestVoiceIndex;
-	int wasBackBufferLocked;
-	int clampedVolume;
-	int directSoundVolume;
-	HRESULT setResult;
+	int buffer_index;
+	int newest_serial;
+	struct frontend_sound_voice *voice;
+	int voice_index;
+	int newest_voice_index;
+	int was_back_buffer_locked;
+	int clamped_volume;
+	int direct_sound_volume;
+	HRESULT set_result;
 
-	if (g_frontState.frontendDirectSound == NULL) {
+	if (g_front_state.frontend_direct_sound == NULL) {
 		return 0;
 	}
 	if (*name == '\0') {
 		return 0;
 	}
-	bufferIndex = FrontendSound_FindBufferByName(name);
-	if (bufferIndex == -1) {
+	buffer_index = frontend_sound_find_buffer_by_name(name);
+	if (buffer_index == -1) {
 		return 0;
 	}
 
-	newestSerial = -1;
-	voiceIndex = 0;
-	newestVoiceIndex = -1;
-	voice = g_frontState.frontendSoundVoices;
+	newest_serial = -1;
+	voice_index = 0;
+	newest_voice_index = -1;
+	voice = g_front_state.frontend_sound_voices;
 	do {
-		if (voice->bufferIndex == bufferIndex &&
-		    newestSerial < voice->playSerial) {
-			newestSerial = voice->playSerial;
-			newestVoiceIndex = voiceIndex;
+		if (voice->buffer_index == buffer_index &&
+		    newest_serial < voice->play_serial) {
+			newest_serial = voice->play_serial;
+			newest_voice_index = voice_index;
 		}
 		voice++;
-		voiceIndex++;
-	} while (voiceIndex < 12);
-	if (newestVoiceIndex == -1) {
+		voice_index++;
+	} while (voice_index < 12);
+	if (newest_voice_index == -1) {
 		return 0;
 	}
 
-	wasBackBufferLocked = g_frontState.backBufferLocked;
-	FrontendDisplay_UnlockBackBuffer();
-	clampedVolume = volume0To127;
-	if (clampedVolume > 127) {
-		clampedVolume = 127;
-	} else if (clampedVolume < 0) {
-		clampedVolume = 0;
+	was_back_buffer_locked = g_front_state.back_buffer_locked;
+	frontend_display_unlock_back_buffer();
+	clamped_volume = volume0_to127;
+	if (clamped_volume > 127) {
+		clamped_volume = 127;
+	} else if (clamped_volume < 0) {
+		clamped_volume = 0;
 	}
-	directSoundVolume = 400 * (5 * clampedVolume - 635) / 127;
-	setResult =
-		g_frontState.frontendSoundVoices[newestVoiceIndex]
-			.buffer->lpVtbl->SetVolume(
-				g_frontState
-					.frontendSoundVoices[newestVoiceIndex]
-					.buffer,
-				directSoundVolume);
-	if (wasBackBufferLocked != 0) {
-		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	direct_sound_volume = 400 * (5 * clamped_volume - 635) / 127;
+	set_result = g_front_state.frontend_sound_voices[newest_voice_index]
+			     .buffer->lpVtbl->SetVolume(
+				     g_front_state
+					     .frontend_sound_voices
+						     [newest_voice_index]
+					     .buffer,
+				     direct_sound_volume);
+	if (was_back_buffer_locked != 0) {
+		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
-	return setResult == 0;
+	return set_result == 0;
 }
 
 /* Returns the volume of the named sound's newest voice on the game's scale,
- * 127 * v / 2000 + 127; 0 when frontendDirectSound is NULL, the name is empty
+ * 127 * v / 2000 + 127; 0 when frontend_direct_sound is NULL, the name is empty
  * or not loaded, no voice holds it, or GetVolume fails, and on that failure it
  * leaves the back buffer unlocked. Otherwise it locks the back buffer again
- * into g_drawSurfacePtr when it was locked. Nothing calls this. */
+ * into g_draw_surface_ptr when it was locked. Nothing calls this. */
 // FUNCTION: XVT 0x4DECA0
-int FrontendSound_GetNewestVoiceVolumeByName(const char *name)
+int frontend_sound_get_newest_voice_volume_by_name(const char *name)
 {
-	int bufferIndex;
-	int newestSerial;
-	struct FrontendSoundVoice *voice;
-	int voiceIndex;
-	int newestVoiceIndex;
-	int wasBackBufferLocked;
-	int32_t directSoundVolume;
+	int buffer_index;
+	int newest_serial;
+	struct frontend_sound_voice *voice;
+	int voice_index;
+	int newest_voice_index;
+	int was_back_buffer_locked;
+	int32_t direct_sound_volume;
 
-	if (g_frontState.frontendDirectSound == NULL) {
+	if (g_front_state.frontend_direct_sound == NULL) {
 		return 0;
 	}
 	if (*name == '\0') {
 		return 0;
 	}
-	bufferIndex = FrontendSound_FindBufferByName(name);
-	if (bufferIndex == -1) {
+	buffer_index = frontend_sound_find_buffer_by_name(name);
+	if (buffer_index == -1) {
 		return 0;
 	}
 
-	newestSerial = -1;
-	voiceIndex = 0;
-	newestVoiceIndex = -1;
-	voice = g_frontState.frontendSoundVoices;
+	newest_serial = -1;
+	voice_index = 0;
+	newest_voice_index = -1;
+	voice = g_front_state.frontend_sound_voices;
 	do {
-		if (voice->bufferIndex == bufferIndex &&
-		    newestSerial < voice->playSerial) {
-			newestSerial = voice->playSerial;
-			newestVoiceIndex = voiceIndex;
+		if (voice->buffer_index == buffer_index &&
+		    newest_serial < voice->play_serial) {
+			newest_serial = voice->play_serial;
+			newest_voice_index = voice_index;
 		}
 		voice++;
-		voiceIndex++;
-	} while (voiceIndex < 12);
-	if (newestVoiceIndex == -1) {
+		voice_index++;
+	} while (voice_index < 12);
+	if (newest_voice_index == -1) {
 		return 0;
 	}
 
-	wasBackBufferLocked = g_frontState.backBufferLocked;
-	FrontendDisplay_UnlockBackBuffer();
-	if (g_frontState.frontendSoundVoices[newestVoiceIndex]
+	was_back_buffer_locked = g_front_state.back_buffer_locked;
+	frontend_display_unlock_back_buffer();
+	if (g_front_state.frontend_sound_voices[newest_voice_index]
 		    .buffer->lpVtbl->GetVolume(
-			    g_frontState.frontendSoundVoices[newestVoiceIndex]
+			    g_front_state
+				    .frontend_sound_voices[newest_voice_index]
 				    .buffer,
-			    &directSoundVolume) != 0) {
+			    &direct_sound_volume) != 0) {
 		return 0;
 	}
 	/* Convert the DirectSound attenuation back to the game's volume scale, where 127 is full volume. */
-	directSoundVolume = 127 * directSoundVolume / 2000 + 127;
-	if (wasBackBufferLocked != 0) {
-		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	direct_sound_volume = 127 * direct_sound_volume / 2000 + 127;
+	if (was_back_buffer_locked != 0) {
+		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
-	return directSoundVolume;
+	return direct_sound_volume;
 }
 
 /* Sets the pan of the named sound's newest voice to 400 * (5 * p - 315) / 63
- * hundredths of a decibel, p being pan0To127 clamped to 0 to 127. Returns 1
- * when SetPan succeeds, else 0; 0 also when frontendDirectSound is NULL, the
+ * hundredths of a decibel, p being pan0_to127 clamped to 0 to 127. Returns 1
+ * when SetPan succeeds, else 0; 0 also when frontend_direct_sound is NULL, the
  * name is empty or not loaded, or no voice holds it. Unlocks the front end's
  * back buffer around its DirectSound calls and, when it was locked, locks it
- * again into g_drawSurfacePtr. Nothing calls this. */
+ * again into g_draw_surface_ptr. Nothing calls this. */
 // FUNCTION: XVT 0x4DED80
-int FrontendSound_SetNewestVoicePanByName(const char *name, int pan0To127)
+int frontend_sound_set_newest_voice_pan_by_name(const char *name,
+						int pan0_to127)
 {
-	int bufferIndex;
-	int newestSerial;
-	int voiceIndex;
-	int newestVoiceIndex;
-	int wasBackBufferLocked;
-	int clampedPan;
-	int directSoundPan;
-	HRESULT setResult;
+	int buffer_index;
+	int newest_serial;
+	int voice_index;
+	int newest_voice_index;
+	int was_back_buffer_locked;
+	int clamped_pan;
+	int direct_sound_pan;
+	HRESULT set_result;
 
-	if (g_frontState.frontendDirectSound == NULL) {
+	if (g_front_state.frontend_direct_sound == NULL) {
 		return 0;
 	}
 	if (*name == '\0') {
 		return 0;
 	}
-	bufferIndex = FrontendSound_FindBufferByName(name);
-	if (bufferIndex == -1) {
+	buffer_index = frontend_sound_find_buffer_by_name(name);
+	if (buffer_index == -1) {
 		return 0;
 	}
 
-	newestSerial = -1;
-	voiceIndex = 0;
-	newestVoiceIndex = -1;
+	newest_serial = -1;
+	voice_index = 0;
+	newest_voice_index = -1;
 	do {
-		if (g_frontState.frontendSoundVoices[voiceIndex].bufferIndex ==
-			    bufferIndex &&
-		    g_frontState.frontendSoundVoices[voiceIndex].playSerial >
-			    newestSerial) {
-			newestSerial =
-				g_frontState.frontendSoundVoices[voiceIndex]
-					.playSerial;
-			newestVoiceIndex = voiceIndex;
+		if (g_front_state.frontend_sound_voices[voice_index]
+				    .buffer_index == buffer_index &&
+		    g_front_state.frontend_sound_voices[voice_index]
+				    .play_serial > newest_serial) {
+			newest_serial =
+				g_front_state.frontend_sound_voices[voice_index]
+					.play_serial;
+			newest_voice_index = voice_index;
 		}
-		voiceIndex++;
-	} while (voiceIndex < 12);
-	if (newestVoiceIndex == -1) {
+		voice_index++;
+	} while (voice_index < 12);
+	if (newest_voice_index == -1) {
 		return 0;
 	}
 
-	wasBackBufferLocked = g_frontState.backBufferLocked;
-	FrontendDisplay_UnlockBackBuffer();
-	clampedPan = pan0To127;
-	if (clampedPan > 127) {
-		clampedPan = 127;
+	was_back_buffer_locked = g_front_state.back_buffer_locked;
+	frontend_display_unlock_back_buffer();
+	clamped_pan = pan0_to127;
+	if (clamped_pan > 127) {
+		clamped_pan = 127;
 	}
-	if (clampedPan < 0) {
-		clampedPan = 0;
+	if (clamped_pan < 0) {
+		clamped_pan = 0;
 	}
-	directSoundPan = 400 * (5 * clampedPan - 315) / 63;
-	setResult =
-		g_frontState.frontendSoundVoices[newestVoiceIndex]
-			.buffer->lpVtbl->SetPan(
-				g_frontState
-					.frontendSoundVoices[newestVoiceIndex]
-					.buffer,
-				directSoundPan);
-	if (wasBackBufferLocked != 0) {
-		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	direct_sound_pan = 400 * (5 * clamped_pan - 315) / 63;
+	set_result = g_front_state.frontend_sound_voices[newest_voice_index]
+			     .buffer->lpVtbl->SetPan(
+				     g_front_state
+					     .frontend_sound_voices
+						     [newest_voice_index]
+					     .buffer,
+				     direct_sound_pan);
+	if (was_back_buffer_locked != 0) {
+		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
-	return setResult == 0;
+	return set_result == 0;
 }
 
 /* Returns the pan of the named sound's newest voice on the game's scale,
- * 63 * pan / 10000 + 63; 0 when frontendDirectSound is NULL, the name is empty
+ * 63 * pan / 10000 + 63; 0 when frontend_direct_sound is NULL, the name is empty
  * or not loaded, no voice holds it, or GetPan fails. Unlocks the front end's
  * back buffer around its DirectSound calls and, when it was locked, locks it
- * again into g_drawSurfacePtr. Nothing calls this. */
+ * again into g_draw_surface_ptr. Nothing calls this. */
 // FUNCTION: XVT 0x4DEE60
-int FrontendSound_GetNewestVoicePanByName(const char *name)
+int frontend_sound_get_newest_voice_pan_by_name(const char *name)
 {
-	int bufferIndex;
-	int newestSerial;
-	int voiceIndex;
-	int newestVoiceIndex;
-	struct FrontendSoundVoice *voice;
-	int wasBackBufferLocked;
-	int32_t directSoundPan;
+	int buffer_index;
+	int newest_serial;
+	int voice_index;
+	int newest_voice_index;
+	struct frontend_sound_voice *voice;
+	int was_back_buffer_locked;
+	int32_t direct_sound_pan;
 
-	if (g_frontState.frontendDirectSound == NULL) {
+	if (g_front_state.frontend_direct_sound == NULL) {
 		return 0;
 	}
 	if (*name == '\0') {
 		return 0;
 	}
-	bufferIndex = FrontendSound_FindBufferByName(name);
-	if (bufferIndex == -1) {
+	buffer_index = frontend_sound_find_buffer_by_name(name);
+	if (buffer_index == -1) {
 		return 0;
 	}
 
-	newestSerial = -1;
-	voiceIndex = 0;
-	newestVoiceIndex = -1;
-	voice = g_frontState.frontendSoundVoices;
+	newest_serial = -1;
+	voice_index = 0;
+	newest_voice_index = -1;
+	voice = g_front_state.frontend_sound_voices;
 	do {
-		if (voice->bufferIndex == bufferIndex &&
-		    voice->playSerial > newestSerial) {
-			newestSerial = voice->playSerial;
-			newestVoiceIndex = voiceIndex;
+		if (voice->buffer_index == buffer_index &&
+		    voice->play_serial > newest_serial) {
+			newest_serial = voice->play_serial;
+			newest_voice_index = voice_index;
 		}
 		++voice;
-		++voiceIndex;
-	} while (voiceIndex < 12);
-	if (newestVoiceIndex == -1) {
+		++voice_index;
+	} while (voice_index < 12);
+	if (newest_voice_index == -1) {
 		return 0;
 	}
 
-	wasBackBufferLocked = g_frontState.backBufferLocked;
-	FrontendDisplay_UnlockBackBuffer();
-	if (g_frontState.frontendSoundVoices[newestVoiceIndex]
+	was_back_buffer_locked = g_front_state.back_buffer_locked;
+	frontend_display_unlock_back_buffer();
+	if (g_front_state.frontend_sound_voices[newest_voice_index]
 		    .buffer->lpVtbl->GetPan(
-			    g_frontState.frontendSoundVoices[newestVoiceIndex]
+			    g_front_state
+				    .frontend_sound_voices[newest_voice_index]
 				    .buffer,
-			    &directSoundPan) != 0) {
-		if (wasBackBufferLocked != 0) {
-			g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+			    &direct_sound_pan) != 0) {
+		if (was_back_buffer_locked != 0) {
+			g_draw_surface_ptr =
+				frontend_display_lock_back_buffer();
 		}
 		return 0;
 	}
 	/* Convert the DirectSound pan back to the game's pan scale, where 63 is center. */
-	directSoundPan = 63 * directSoundPan / 10000 + 63;
-	if (wasBackBufferLocked != 0) {
-		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	direct_sound_pan = 63 * direct_sound_pan / 10000 + 63;
+	if (was_back_buffer_locked != 0) {
+		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
-	return directSoundPan;
+	return direct_sound_pan;
 }
 
-/* Sets the named sound's priority to priority0To255 clamped to 0 to 255 and
+/* Sets the named sound's priority to priority0_to255 clamped to 0 to 255 and
  * returns 1; returns 0 when the name is not loaded. Does not check
- * frontendDirectSound. Nothing calls this, so every sound keeps priority 0. */
+ * frontend_direct_sound. Nothing calls this, so every sound keeps priority 0. */
 // FUNCTION: XVT 0x4DEF50
-int FrontendSound_SetBufferPriorityByName(const char *name, int priority0To255)
+int frontend_sound_set_buffer_priority_by_name(const char *name,
+					       int priority0_to255)
 {
-	int bufferIndex;
-	int clampedPriority;
+	int buffer_index;
+	int clamped_priority;
 
-	bufferIndex = FrontendSound_FindBufferByName(name);
-	if (bufferIndex == -1) {
+	buffer_index = frontend_sound_find_buffer_by_name(name);
+	if (buffer_index == -1) {
 		return 0;
 	}
 
-	clampedPriority = priority0To255;
-	if (clampedPriority > 255) {
-		clampedPriority = 255;
+	clamped_priority = priority0_to255;
+	if (clamped_priority > 255) {
+		clamped_priority = 255;
 	}
-	if (clampedPriority < 0) {
-		clampedPriority = 0;
+	if (clamped_priority < 0) {
+		clamped_priority = 0;
 	}
-	g_frontState.frontendSoundBuffers[bufferIndex].priority =
-		clampedPriority;
+	g_front_state.frontend_sound_buffers[buffer_index].priority =
+		clamped_priority;
 	return 1;
 }
 
 /* Returns the named sound's priority, or 0 when the name is not loaded. Nothing
  * calls this. */
 // FUNCTION: XVT 0x4DEFA0
-int FrontendSound_GetBufferPriorityByName(const char *name)
+int frontend_sound_get_buffer_priority_by_name(const char *name)
 {
-	int bufferIndex;
+	int buffer_index;
 
-	bufferIndex = FrontendSound_FindBufferByName(name);
-	if (bufferIndex == -1) {
+	buffer_index = frontend_sound_find_buffer_by_name(name);
+	if (buffer_index == -1) {
 		return 0;
 	}
 
-	return g_frontState.frontendSoundBuffers[bufferIndex].priority;
+	return g_front_state.frontend_sound_buffers[buffer_index].priority;
 }
 
 /* Counts the voices holding the named sound whose buffer reports the 0x1
  * (playing) or 0x4 (looping) status bit; returns the count, 0 to 12, or 0 when
- * frontendDirectSound is NULL or the name is empty or not loaded. Unlocks the
+ * frontend_direct_sound is NULL or the name is empty or not loaded. Unlocks the
  * front end's back buffer around its DirectSound calls and, when it was locked,
- * locks it again into g_drawSurfacePtr. Nothing calls this. */
+ * locks it again into g_draw_surface_ptr. Nothing calls this. */
 // FUNCTION: XVT 0x4DEFD0
-int FrontendSound_GetPlayingCount(const char *name)
+int frontend_sound_get_playing_count(const char *name)
 {
-	int bufferIndex;
-	int voiceIndex;
-	int wasBackBufferLocked;
-	int playingCount;
+	int buffer_index;
+	int voice_index;
+	int was_back_buffer_locked;
+	int playing_count;
 	uint32_t status;
 
-	if (g_frontState.frontendDirectSound == NULL) {
+	if (g_front_state.frontend_direct_sound == NULL) {
 		return 0;
 	}
 	if (name[0] == '\0') {
 		return 0;
 	}
 
-	bufferIndex = FrontendSound_FindBufferByName(name);
-	if (bufferIndex == -1) {
+	buffer_index = frontend_sound_find_buffer_by_name(name);
+	if (buffer_index == -1) {
 		return 0;
 	}
 
-	voiceIndex = 0;
-	wasBackBufferLocked = g_frontState.backBufferLocked;
-	playingCount = 0;
-	FrontendDisplay_UnlockBackBuffer();
+	voice_index = 0;
+	was_back_buffer_locked = g_front_state.back_buffer_locked;
+	playing_count = 0;
+	frontend_display_unlock_back_buffer();
 	do {
-		if (g_frontState.frontendSoundVoices[voiceIndex].bufferIndex ==
-			    bufferIndex &&
-		    g_frontState.frontendSoundVoices[voiceIndex]
+		if (g_front_state.frontend_sound_voices[voice_index]
+				    .buffer_index == buffer_index &&
+		    g_front_state.frontend_sound_voices[voice_index]
 				    .buffer->lpVtbl->GetStatus(
-					    g_frontState
-						    .frontendSoundVoices
-							    [voiceIndex]
+					    g_front_state
+						    .frontend_sound_voices
+							    [voice_index]
 						    .buffer,
 					    &status) == 0 &&
 		    ((status & 1) != 0 || (status & 4) != 0)) {
-			++playingCount;
+			++playing_count;
 		}
-		++voiceIndex;
-	} while (voiceIndex < 12);
+		++voice_index;
+	} while (voice_index < 12);
 
-	if (wasBackBufferLocked != 0) {
-		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	if (was_back_buffer_locked != 0) {
+		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
-	return playingCount;
+	return playing_count;
 }
 
-/* Inserts a copy of *record into g_frontState.frontendSoundBuffers, keeping it
+/* Inserts a copy of *record into g_front_state.frontend_sound_buffers, keeping it
  * sorted by name (strncmp over 64 characters) with the new record after equal
- * names, adds 1 to frontendSoundBufferCount and adds 1 to each voice's
+ * names, adds 1 to frontend_sound_buffer_count and adds 1 to each voice's
  * bufferIndex at or after the insertion point. Does not check that the table
- * has room; FrontendSound_LoadSoundFile checks the count under 128 first. */
+ * has room; frontend_sound_load_sound_file checks the count under 128 first. */
 // FUNCTION: XVT 0x4DF070
-void FrontendSound_InsertSortedBuffer(
-	const struct FrontendSoundBufferRecord *record)
+void frontend_sound_insert_sorted_buffer(
+	const struct frontend_sound_buffer_record *record)
 {
-	int insertionIndex;
-	int shiftIndex;
+	int insertion_index;
+	int shift_index;
 	int remaining;
-	int voiceIndex;
-	int bufferIndex;
-	struct FrontendSoundBufferRecord *destination;
+	int voice_index;
+	int buffer_index;
+	struct frontend_sound_buffer_record *destination;
 
-	insertionIndex = 0;
-	if (g_frontState.frontendSoundBufferCount > 0) {
+	insertion_index = 0;
+	if (g_front_state.frontend_sound_buffer_count > 0) {
 		do {
 			if (strncmp(record->name,
-				    g_frontState
-					    .frontendSoundBuffers
-						    [insertionIndex]
+				    g_front_state
+					    .frontend_sound_buffers
+						    [insertion_index]
 					    .name,
 				    64) < 0) {
 				break;
 			}
-			++insertionIndex;
-		} while (g_frontState.frontendSoundBufferCount >
-			 insertionIndex);
+			++insertion_index;
+		} while (g_front_state.frontend_sound_buffer_count >
+			 insertion_index);
 	}
-	if (g_frontState.frontendSoundBufferCount > insertionIndex) {
-		shiftIndex = g_frontState.frontendSoundBufferCount;
-		remaining =
-			g_frontState.frontendSoundBufferCount - insertionIndex;
+	if (g_front_state.frontend_sound_buffer_count > insertion_index) {
+		shift_index = g_front_state.frontend_sound_buffer_count;
+		remaining = g_front_state.frontend_sound_buffer_count -
+			    insertion_index;
 		do {
 			destination =
-				&g_frontState.frontendSoundBuffers[shiftIndex];
-			--shiftIndex;
+				&g_front_state
+					 .frontend_sound_buffers[shift_index];
+			--shift_index;
 			memcpy(destination,
-			       &g_frontState.frontendSoundBuffers[shiftIndex],
-			       sizeof(struct FrontendSoundBufferRecord));
+			       &g_front_state
+					.frontend_sound_buffers[shift_index],
+			       sizeof(struct frontend_sound_buffer_record));
 			--remaining;
 		} while (remaining != 0);
 	}
-	memcpy(&g_frontState.frontendSoundBuffers[insertionIndex], record,
-	       sizeof(struct FrontendSoundBufferRecord));
-	++g_frontState.frontendSoundBufferCount;
-	voiceIndex = 0;
+	memcpy(&g_front_state.frontend_sound_buffers[insertion_index], record,
+	       sizeof(struct frontend_sound_buffer_record));
+	++g_front_state.frontend_sound_buffer_count;
+	voice_index = 0;
 	do {
-		bufferIndex = g_frontState.frontendSoundVoices[voiceIndex]
-				      .bufferIndex;
-		if (insertionIndex <= bufferIndex) {
-			g_frontState.frontendSoundVoices[voiceIndex]
-				.bufferIndex = bufferIndex + 1;
+		buffer_index = g_front_state.frontend_sound_voices[voice_index]
+				       .buffer_index;
+		if (insertion_index <= buffer_index) {
+			g_front_state.frontend_sound_voices[voice_index]
+				.buffer_index = buffer_index + 1;
 		}
-		++voiceIndex;
-	} while (voiceIndex < 12);
+		++voice_index;
+	} while (voice_index < 12);
 }
 
-/* Removes record bufferIndex from g_frontState.frontendSoundBuffers, moving the
- * later records up one, lowers frontendSoundBufferCount and lowers by 1 each
+/* Removes record bufferIndex from g_front_state.frontend_sound_buffers, moving the
+ * later records up one, lowers frontend_sound_buffer_count and lowers by 1 each
  * voice's bufferIndex above it. Does nothing for an index outside 0 to
- * frontendSoundBufferCount - 1. Leaves the old last record in place, does not
+ * frontend_sound_buffer_count - 1. Leaves the old last record in place, does not
  * release the buffer and does not free voices that play it;
- * FrontendSound_UnloadBufferByName stops them first. */
+ * frontend_sound_unload_buffer_by_name stops them first. */
 // FUNCTION: XVT 0x4DF130
-void FrontendSound_RemoveBufferRecord(int bufferIndex)
+void frontend_sound_remove_buffer_record(int buffer_index)
 {
 	int index;
 
-	if (bufferIndex < 0 ||
-	    bufferIndex >= g_frontState.frontendSoundBufferCount) {
+	if (buffer_index < 0 ||
+	    buffer_index >= g_front_state.frontend_sound_buffer_count) {
 		return;
 	}
 
-	for (index = bufferIndex;
-	     index < g_frontState.frontendSoundBufferCount - 1; ++index) {
-		g_frontState.frontendSoundBuffers[index] =
-			g_frontState.frontendSoundBuffers[index + 1];
+	for (index = buffer_index;
+	     index < g_front_state.frontend_sound_buffer_count - 1; ++index) {
+		g_front_state.frontend_sound_buffers[index] =
+			g_front_state.frontend_sound_buffers[index + 1];
 	}
 
-	--g_frontState.frontendSoundBufferCount;
+	--g_front_state.frontend_sound_buffer_count;
 	for (index = 0; index < 12; ++index) {
-		if (g_frontState.frontendSoundVoices[index].bufferIndex >
-		    bufferIndex) {
-			--g_frontState.frontendSoundVoices[index].bufferIndex;
+		if (g_front_state.frontend_sound_voices[index].buffer_index >
+		    buffer_index) {
+			--g_front_state.frontend_sound_voices[index]
+				  .buffer_index;
 		}
 	}
 }
 
-/* Returns the index of the named sound among the frontendSoundBufferCount
- * loaded records, or -1, by FrontendSound_BinarySearchBufferByName. */
+/* Returns the index of the named sound among the frontend_sound_buffer_count
+ * loaded records, or -1, by frontend_sound_binary_search_buffer_by_name. */
 // FUNCTION: XVT 0x4DF1B0
-int FrontendSound_FindBufferByName(const char *name)
+int frontend_sound_find_buffer_by_name(const char *name)
 {
-	return FrontendSound_BinarySearchBufferByName(
-		g_frontState.frontendSoundBuffers,
-		g_frontState.frontendSoundBufferCount - 1, name);
+	return frontend_sound_binary_search_buffer_by_name(
+		g_front_state.frontend_sound_buffers,
+		g_front_state.frontend_sound_buffer_count - 1, name);
 }
 
-/* Binary search for name in records[0] to records[lastIndex], which must be
+/* Binary search for name in records[0] to records[last_index], which must be
  * sorted by name, comparing up to 64 characters with strncmp. Returns the index
- * found, or -1. FrontendSound_FindBufferByName is its only caller. */
+ * found, or -1. frontend_sound_find_buffer_by_name is its only caller. */
 // FUNCTION: XVT 0x4DF1D0
-int FrontendSound_BinarySearchBufferByName(
-	const struct FrontendSoundBufferRecord *records, int lastIndex,
+int frontend_sound_binary_search_buffer_by_name(
+	const struct frontend_sound_buffer_record *records, int last_index,
 	const char *name)
 {
-	int baseIndex;
-	int searchLastIndex;
+	int base_index;
+	int search_last_index;
 	int middle;
 	int comparison;
-	const struct FrontendSoundBufferRecord *middleRecord;
+	const struct frontend_sound_buffer_record *middle_record;
 
-	baseIndex = 0;
-	searchLastIndex = lastIndex;
+	base_index = 0;
+	search_last_index = last_index;
 	while (1) {
-		if (searchLastIndex < 0) {
+		if (search_last_index < 0) {
 			return -1;
 		}
-		middle = searchLastIndex >> 1;
-		middleRecord = &records[middle];
-		comparison = strncmp(middleRecord->name, name,
-				     sizeof(middleRecord->name));
+		middle = search_last_index >> 1;
+		middle_record = &records[middle];
+		comparison = strncmp(middle_record->name, name,
+				     sizeof(middle_record->name));
 		if (comparison == 0) {
-			return middle + baseIndex;
+			return middle + base_index;
 		}
-		if (searchLastIndex <= 0) {
+		if (search_last_index <= 0) {
 			return -1;
 		}
 		if (comparison < 0) {
-			baseIndex += middle + 1;
-			searchLastIndex -= middle + 1;
-			records = middleRecord + 1;
+			base_index += middle + 1;
+			search_last_index -= middle + 1;
+			records = middle_record + 1;
 		} else {
-			searchLastIndex = middle - 1;
+			search_last_index = middle - 1;
 		}
 	}
 }
 
 /* Loads the front end's sounds from a list file: skips the first line, read
- * with File_Gets into 255 bytes, then reads pairs of words, a WAV file and a
- * sound name, and loads each with FrontendSound_LoadSound, ignoring its result.
+ * with FILE_GETS into 255 bytes, then reads pairs of words, a WAV file and a
+ * sound name, and loads each with frontend_sound_load_sound, ignoring its result.
  * Returns 1 at the end of the file, also when the first line cannot be read; 0
  * when the file does not open or a line does not hold two words. The original
  * build reads each word with %s into a 256-byte buffer without a limit; the
  * modern build stops at 255 characters. Every caller passes the front end's
  * sound list file. */
 // FUNCTION: XVT 0x4DF700
-int FrontendSound_LoadList(const char *fileName)
+int frontend_sound_load_list(const char *file_name)
 {
-	XvtFile *stream;
-	int fieldCount;
-	char soundFileName[256];
-	char soundName[256];
+	xvt_file *stream;
+	int field_count;
+	char sound_file_name[256];
+	char sound_name[256];
 
-	stream = File_Open(fileName, "r");
+	stream = file_open(file_name, "r");
 	if (stream == NULL) {
 		return 0;
 	}
-	if (File_Gets(soundFileName, 255, stream) == NULL) {
-		File_Close(stream);
+	if (FILE_GETS(sound_file_name, 255, stream) == NULL) {
+		file_close(stream);
 		return 1;
 	}
 	while (1) {
 #ifdef XVT_MODERN
-		fieldCount = File_Scanf(stream, "%255s %255s\n", soundFileName,
-					soundName);
+		field_count = FILE_SCANF(stream, "%255s %255s\n",
+					 sound_file_name, sound_name);
 #else
-		fieldCount =
-			File_Scanf(stream, "%s %s\n", soundFileName, soundName);
+		field_count = FILE_SCANF(stream, "%s %s\n", sound_file_name,
+					 sound_name);
 #endif
-		if (fieldCount == EOF) {
-			File_Close(stream);
+		if (field_count == EOF) {
+			file_close(stream);
 			return 1;
 		}
-		if (fieldCount != 2) {
-			File_Close(stream);
+		if (field_count != 2) {
+			file_close(stream);
 			return 0;
 		}
-		FrontendSound_LoadSound(soundFileName, soundName);
+		frontend_sound_load_sound(sound_file_name, sound_name);
 	}
 }
 
-/* Reads a list file in FrontendSound_LoadList's form and unloads each named
- * sound with FrontendSound_UnloadBufferByName. Returns as
- * FrontendSound_LoadList does. Nothing calls this. */
+/* Reads a list file in frontend_sound_load_list's form and unloads each named
+ * sound with frontend_sound_unload_buffer_by_name. Returns as
+ * frontend_sound_load_list does. Nothing calls this. */
 // FUNCTION: XVT 0x4DF7C0
-int FrontendSound_UnloadList(char *fileName)
+int frontend_sound_unload_list(char *file_name)
 {
-	XvtFile *stream;
-	int fieldCount;
-	char ignoredFileName[256];
-	char soundName[256];
+	xvt_file *stream;
+	int field_count;
+	char ignored_file_name[256];
+	char sound_name[256];
 
-	stream = File_Open(fileName, "r");
+	stream = file_open(file_name, "r");
 	if (stream == NULL) {
 		return 0;
 	}
-	if (File_Gets(ignoredFileName, 255, stream) == NULL) {
-		File_Close(stream);
+	if (FILE_GETS(ignored_file_name, 255, stream) == NULL) {
+		file_close(stream);
 		return 1;
 	}
 	while (1) {
 #ifdef XVT_MODERN
-		fieldCount = File_Scanf(stream, "%255s %255s\n",
-					ignoredFileName, soundName);
+		field_count = FILE_SCANF(stream, "%255s %255s\n",
+					 ignored_file_name, sound_name);
 #else
-		fieldCount = File_Scanf(stream, "%s %s\n", ignoredFileName,
-					soundName);
+		field_count = FILE_SCANF(stream, "%s %s\n", ignored_file_name,
+					 sound_name);
 #endif
-		if (fieldCount == EOF) {
-			File_Close(stream);
+		if (field_count == EOF) {
+			file_close(stream);
 			return 1;
 		}
-		if (fieldCount != 2) {
-			File_Close(stream);
+		if (field_count != 2) {
+			file_close(stream);
 			return 0;
 		}
-		FrontendSound_UnloadBufferByName(soundName);
+		frontend_sound_unload_buffer_by_name(sound_name);
 	}
 }

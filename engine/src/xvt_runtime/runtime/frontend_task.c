@@ -43,291 +43,297 @@
 #include <stdlib.h>
 #include <string.h>
 
-static uint64_t g_nextFrameDueUs;
-static uint64_t g_nextJoystickPollDueUs;
+static uint64_t g_next_frame_due_us;
+static uint64_t g_next_joystick_poll_due_us;
 static int g_quit;
 static int g_initialized;
-static int g_startupMode;
-static int g_continuationFrame;
+static int g_startup_mode;
+static int g_continuation_frame;
 
-int XvtFrontendTask_Init(int skip_intro)
+int xvt_frontend_task_init(int skip_intro)
 {
-	static char commandLine[] = "";
-	memset(&g_frontState, 0, sizeof(g_frontState));
-	g_shutdownComplete = 0;
+	static char command_line[] = "";
+	memset(&g_front_state, 0, sizeof(g_front_state));
+	g_shutdown_complete = 0;
 	g_quit = 0;
-	XvtFrontendAction_Reset();
-	XvtFrontendMovies_Reset();
-	XvtCampaignTask_Reset();
+	xvt_frontend_action_reset();
+	xvt_frontend_movies_reset();
+	xvt_campaign_task_reset();
 	g_initialized = 1;
-	g_cmdLine = commandLine;
-	g_optSkipIntro = skip_intro;
-	g_noPageFlip = 1;
-	g_optNoFullscreen = 0;
-	g_frontState.frontendSoundBuffers =
-		calloc(128, sizeof(struct FrontendSoundBufferRecord));
-	g_frontState.frontendSoundVoices =
-		calloc(12, sizeof(struct FrontendSoundVoice));
-	g_frontState.resourceTable =
-		calloc(512, sizeof(struct FrontImageResourceRecord));
-	if (!g_frontState.frontendSoundBuffers ||
-	    !g_frontState.frontendSoundVoices || !g_frontState.resourceTable) {
+	g_cmd_line = command_line;
+	g_opt_skip_intro = skip_intro;
+	g_no_page_flip = 1;
+	g_opt_no_fullscreen = 0;
+	g_front_state.frontend_sound_buffers =
+		calloc(128, sizeof(struct frontend_sound_buffer_record));
+	g_front_state.frontend_sound_voices =
+		calloc(12, sizeof(struct frontend_sound_voice));
+	g_front_state.resource_table =
+		calloc(512, sizeof(struct front_image_resource_record));
+	if (!g_front_state.frontend_sound_buffers ||
+	    !g_front_state.frontend_sound_voices ||
+	    !g_front_state.resource_table) {
 		return 0;
 	}
-	g_frontState.clipMaxX = 639;
-	g_frontState.clipMaxY = 479;
-	g_frontState.displayBpp = 16;
-	g_frontState.clearBackBufferAfterPresent = 1;
-	g_frontState.cdAudioSavedAuxVolume = -1;
-	g_frontState.appActive = 1;
-	FrontendDisplay_SetFrameRate(24);
-	File_DetectGameAndCdPaths(NULL);
-	Config_Load();
-	if (!FrontendDisplay_InitMainWindow(NULL, 0)) {
+	g_front_state.clip_max_x = 639;
+	g_front_state.clip_max_y = 479;
+	g_front_state.display_bpp = 16;
+	g_front_state.clear_back_buffer_after_present = 1;
+	g_front_state.cd_audio_saved_aux_volume = -1;
+	g_front_state.app_active = 1;
+	frontend_display_set_frame_rate(24);
+	file_detect_game_and_cd_paths(NULL);
+	config_load();
+	if (!frontend_display_init_main_window(NULL, 0)) {
 		return 0;
 	}
-	g_frontState.screenStates[0].updateFn =
-		skip_intro ? Concourse_Update
-			   : FrontendBootstrap_PlayOpeningAndEnterCredits;
-	g_frontState.screenStates[0].exitFn =
-		skip_intro ? Concourse_Exit
-			   : FrontendBootstrap_ExitIntroAndLoadCredits;
-	g_startupMode = skip_intro ? 2 : 1;
-	g_nextFrameDueUs = XvtTime_GetElapsedUs();
-	g_nextJoystickPollDueUs = g_nextFrameDueUs;
+	g_front_state.screen_states[0].update_fn =
+		skip_intro ? concourse_update
+			   : frontend_bootstrap_play_opening_and_enter_credits;
+	g_front_state.screen_states[0].exit_fn =
+		skip_intro ? concourse_exit
+			   : frontend_bootstrap_exit_intro_and_load_credits;
+	g_startup_mode = skip_intro ? 2 : 1;
+	g_next_frame_due_us = xvt_time_get_elapsed_us();
+	g_next_joystick_poll_due_us = g_next_frame_due_us;
 	XVT_LOG_INFO("frontend.ready");
 	return 1;
 }
 
-void XvtFrontendTask_ServiceFrameSystems(void)
+void xvt_frontend_task_service_frame_systems(void)
 {
-	uint64_t now = XvtTime_GetElapsedUs();
-	if (now >= g_nextJoystickPollDueUs) {
-		Joystick_UpdateState(0);
-		Joystick_UpdateState(1);
-		g_nextJoystickPollDueUs = now + 100000;
+	uint64_t now = xvt_time_get_elapsed_us();
+	if (now >= g_next_joystick_poll_due_us) {
+		joystick_update_state(0);
+		joystick_update_state(1);
+		g_next_joystick_poll_due_us = now + 100000;
 	}
-	if (!XvtNetworkTask_IsActive()) {
-		Net_PumpIncomingPackets();
+	if (!xvt_network_task_is_active()) {
+		net_pump_incoming_packets();
 	}
-	XvtCdTask_Update();
+	xvt_cd_task_update();
 }
 
-int XvtFrontendTask_RunFrame(void)
+int xvt_frontend_task_run_frame(void)
 {
-	FrontendScreenExitFn exitFn;
-	FrontendScreenUpdateFn updateFn;
+	frontend_screen_exit_fn exit_fn;
+	frontend_screen_update_fn update_fn;
 	int result;
-	int stackTop = g_frontState.screenStackTop;
-	int dialogWasActive = XvtDialog_IsActive();
-	g_continuationFrame = 0;
-	g_frontState.netReadyPlayerLeftThisFrame = 0;
-	if (g_frontState.textFadeFramesLeft) {
-		memset(&g_frontState.textFadeColorCache, 0,
-		       sizeof(g_frontState.textFadeColorCache));
+	int stack_top = g_front_state.screen_stack_top;
+	int dialog_was_active = xvt_dialog_is_active();
+	g_continuation_frame = 0;
+	g_front_state.net_ready_player_left_this_frame = 0;
+	if (g_front_state.text_fade_frames_left) {
+		memset(&g_front_state.text_fade_color_cache, 0,
+		       sizeof(g_front_state.text_fade_color_cache));
 	}
-	updateFn = g_frontState.screenStates[stackTop].updateFn;
-	if (!updateFn) {
+	update_fn = g_front_state.screen_states[stack_top].update_fn;
+	if (!update_fn) {
 		return 0;
 	}
-	XvtPresentation_RequireClassic();
-	XvtRenderFrontend_BeginDraw();
-	g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
-	if (!g_drawSurfacePtr) {
-		XvtStorage_Fatal("Cannot lock frontend display", 1);
+	xvt_presentation_require_classic();
+	xvt_render_frontend_begin_draw();
+	g_draw_surface_ptr = frontend_display_lock_back_buffer();
+	if (!g_draw_surface_ptr) {
+		xvt_storage_fatal("Cannot lock frontend display", 1);
 		return 2;
 	}
-	exitFn = g_frontState.screenStates[stackTop].exitFn;
-	g_continuationFrame = XvtNetworkTask_Resume(&result);
-	if (!g_continuationFrame) {
-		g_continuationFrame = XvtDialog_ResumeContinuation(&result);
+	exit_fn = g_front_state.screen_states[stack_top].exit_fn;
+	g_continuation_frame = xvt_network_task_resume(&result);
+	if (!g_continuation_frame) {
+		g_continuation_frame = xvt_dialog_resume_continuation(&result);
 	}
-	if (!g_continuationFrame) {
-		result = updateFn(g_frontState.frameCounter);
+	if (!g_continuation_frame) {
+		result = update_fn(g_front_state.frame_counter);
 	}
-	if (XvtCampaignTask_IsPending() || XvtNetworkTask_IsActive()) {
+	if (xvt_campaign_task_is_pending() || xvt_network_task_is_active()) {
 		/* The entry prefix is suspended before the screen has completed frame zero. */
-		FrontendDisplay_UnlockBackBuffer();
-		if (g_continuationFrame && XvtNetworkTask_IsActive()) {
-			FrontendCursor_Draw();
-			FrontendDisplay_PresentFrame();
-			g_frontState.mouseLeftClickLatch = 0;
-			g_frontState.mouseRightClickLatch = 0;
-			memset(g_frontState.joystickButtonReleased, 0,
-			       sizeof(g_frontState.joystickButtonReleased));
+		frontend_display_unlock_back_buffer();
+		if (g_continuation_frame && xvt_network_task_is_active()) {
+			frontend_cursor_draw();
+			frontend_display_present_frame();
+			g_front_state.mouse_left_click_latch = 0;
+			g_front_state.mouse_right_click_latch = 0;
+			memset(g_front_state.joystick_button_released, 0,
+			       sizeof(g_front_state.joystick_button_released));
 		}
 		return 0;
 	}
-	if (!dialogWasActive && XvtDialog_IsActive()) {
-		FrontendDisplay_UnlockBackBuffer();
+	if (!dialog_was_active && xvt_dialog_is_active()) {
+		frontend_display_unlock_back_buffer();
 		return 0;
 	}
-	if (g_frontState.screenCallbacksDirty || result == 1) {
-		g_frontState.screenCallbacksDirty = 0;
-		if (exitFn) {
-			exitFn(g_frontState.frameCounter);
+	if (g_front_state.screen_callbacks_dirty || result == 1) {
+		g_front_state.screen_callbacks_dirty = 0;
+		if (exit_fn) {
+			exit_fn(g_front_state.frame_counter);
 		}
 	}
-	FrontendDisplay_UnlockBackBuffer();
-	if (g_frontState.pendingScreenUpdateFn) {
-		FrontendScreen_PushState(g_frontState.pendingScreenUpdateFn,
-					 &g_frontState.pendingScreenRect);
-		g_frontState.pendingScreenUpdateFn = NULL;
+	frontend_display_unlock_back_buffer();
+	if (g_front_state.pending_screen_update_fn) {
+		frontend_screen_push_state(
+			g_front_state.pending_screen_update_fn,
+			&g_front_state.pending_screen_rect);
+		g_front_state.pending_screen_update_fn = NULL;
 	}
-	if (!XvtMovieTask_IsActive() && g_frontState.cursorVisible) {
-		FrontendCursor_Draw();
+	if (!xvt_movie_task_is_active() && g_front_state.cursor_visible) {
+		frontend_cursor_draw();
 	}
-	memset(g_frontState.joystickButtonReleased, 0,
-	       sizeof(g_frontState.joystickButtonReleased));
-	++g_frontState.frameCounter;
-	if (g_frontState.textFadeFramesLeft) {
-		--g_frontState.textFadeFramesLeft;
+	memset(g_front_state.joystick_button_released, 0,
+	       sizeof(g_front_state.joystick_button_released));
+	++g_front_state.frame_counter;
+	if (g_front_state.text_fade_frames_left) {
+		--g_front_state.text_fade_frames_left;
 	}
-	g_frontState.mouseLeftClickLatch = 0;
-	g_frontState.mouseRightClickLatch = 0;
+	g_front_state.mouse_left_click_latch = 0;
+	g_front_state.mouse_right_click_latch = 0;
 	return result;
 }
 
-void XvtFrontendTask_Update(void)
+void xvt_frontend_task_update(void)
 {
-	uint64_t now = XvtTime_GetElapsedUs();
+	uint64_t now = xvt_time_get_elapsed_us();
 	int result;
-	if (g_quit || now < g_nextFrameDueUs) {
+	if (g_quit || now < g_next_frame_due_us) {
 		return;
 	}
-	g_nextFrameDueUs = now + (uint64_t)g_frontState.frameIntervalMs * 1000;
-	if (g_startupMode) {
-		int mode = g_startupMode;
-		g_startupMode = 0;
+	g_next_frame_due_us =
+		now + (uint64_t)g_front_state.frame_interval_ms * 1000;
+	if (g_startup_mode) {
+		int mode = g_startup_mode;
+		g_startup_mode = 0;
 		if (mode == 2) {
-			if (Frontend_LoadResources()) {
+			if (frontend_load_resources()) {
 				return;
 			}
 		} else {
-			FrontendBootstrap_InitMode();
+			frontend_bootstrap_init_mode();
 		}
 	}
-	if (XvtLaunchTask_IsActive()) {
-		XvtLaunchTask_Update();
+	if (xvt_launch_task_is_active()) {
+		xvt_launch_task_update();
 		return;
 	}
 	int credits_frame =
-		!XvtDialog_IsActive() &&
-		g_frontState.screenStates[g_frontState.screenStackTop]
-				.updateFn == Credits_UpdateScreen;
-	if (XvtDialog_IsActive()) {
-		XvtDialog_Update();
+		!xvt_dialog_is_active() &&
+		g_front_state.screen_states[g_front_state.screen_stack_top]
+				.update_fn == credits_update_screen;
+	if (xvt_dialog_is_active()) {
+		xvt_dialog_update();
 		result = 0;
 	} else {
-		result = XvtFrontendTask_RunFrame();
+		result = xvt_frontend_task_run_frame();
 	}
 	if (result == 1 || result == 2) {
 		g_quit = 1;
 	}
 	/* The original credits callback blocks in the music fade before presenting.
 	 * Retain its last presentation through the fade and concourse transition. */
-	if (credits_frame && g_creditsExitPending) {
+	if (credits_frame && g_credits_exit_pending) {
 		return;
 	}
 	/* Keep the last presented dialog until the parent has drawn its next frame. */
-	if (!XvtMovieTask_IsActive() && !XvtDialog_HasResult() &&
-	    !g_continuationFrame && !XvtCampaignTask_IsPending() &&
-	    !XvtNetworkTask_IsActive()) {
-		FrontendDisplay_PresentFrame();
+	if (!xvt_movie_task_is_active() && !xvt_dialog_has_result() &&
+	    !g_continuation_frame && !xvt_campaign_task_is_pending() &&
+	    !xvt_network_task_is_active()) {
+		frontend_display_present_frame();
 	}
 }
 
-int XvtFrontendTask_ShouldQuit(void) { return g_quit; }
+int xvt_frontend_task_should_quit(void) { return g_quit; }
 
-uint64_t XvtFrontendTask_NextWakeDelayUs(void)
+uint64_t xvt_frontend_task_next_wake_delay_us(void)
 {
-	uint64_t now = XvtTime_GetElapsedUs();
-	uint64_t delay = g_nextFrameDueUs > now ? g_nextFrameDueUs - now : 0;
-	uint64_t cd = XvtCdTask_NextWakeDelayUs();
+	uint64_t now = xvt_time_get_elapsed_us();
+	uint64_t delay =
+		g_next_frame_due_us > now ? g_next_frame_due_us - now : 0;
+	uint64_t cd = xvt_cd_task_next_wake_delay_us();
 	return cd < delay ? cd : delay;
 }
 
-void XvtFrontendTask_Shutdown(void)
+void xvt_frontend_task_shutdown(void)
 {
 	int index;
 	if (!g_initialized) {
 		return;
 	}
-	XvtCampaignTask_Reset();
-	XvtNetworkTask_Shutdown();
-	Net_ShutdownDirectPlaySessionForQuit();
-	XvtFrontendMovies_Reset();
-	XvtCdTask_CancelFade();
-	XvtLaunchTask_Shutdown();
-	XvtDialog_Shutdown();
-	CDAudio_CloseDevice();
-	if (g_frontendCreditsFile) {
-		File_Close(g_frontendCreditsFile);
+	xvt_campaign_task_reset();
+	xvt_network_task_shutdown();
+	net_shutdown_direct_play_session_for_quit();
+	xvt_frontend_movies_reset();
+	xvt_cd_task_cancel_fade();
+	xvt_launch_task_shutdown();
+	xvt_dialog_shutdown();
+	cd_audio_close_device();
+	if (g_frontend_credits_file) {
+		file_close(g_frontend_credits_file);
 	}
-	g_frontendCreditsFile = NULL;
-	FrontendDisplay_UnlockBackBuffer();
-	if (g_frontState.uiStringCount) {
-		if (g_pilotData.name[0] && !Pilot_Save(0)) {
-			XvtStorage_Fatal("Cannot save the selected pilot", 1);
+	g_frontend_credits_file = NULL;
+	frontend_display_unlock_back_buffer();
+	if (g_front_state.ui_string_count) {
+		if (g_pilot_data.name[0] && !pilot_save(0)) {
+			xvt_storage_fatal("Cannot save the selected pilot", 1);
 		}
-		Config_Write();
+		config_write();
 	}
-	Concourse_Exit(0);
-	free(g_shipList);
-	g_shipList = NULL;
-	g_shipCount = 0;
-	free(g_missionList);
-	g_missionList = NULL;
-	free(g_techLibrarySpecTextTable);
-	g_techLibrarySpecTextTable = NULL;
-	ModelPreview_FreeResources();
+	concourse_exit(0);
+	free(g_ship_list);
+	g_ship_list = NULL;
+	g_ship_count = 0;
+	free(g_mission_list);
+	g_mission_list = NULL;
+	free(g_tech_library_spec_text_table);
+	g_tech_library_spec_text_table = NULL;
+	model_preview_free_resources();
 	for (index = 0; index < 32768; ++index) {
-		if (g_handleTables.ptrTable[index]) {
-			Memory_FreeHandle((unsigned int)index + 1);
+		if (g_handle_tables.ptr_table[index]) {
+			memory_free_handle((unsigned int)index + 1);
 		}
 	}
-	memset(g_loadedModels, 0, sizeof(g_loadedModels));
-	g_modelPreviewModelData = NULL;
-	g_modelPreviewAuxBufferHandle = 0;
-	g_modelPreviewAuxBufferCapacityBytes = 0;
-	if (g_frontState.frontendSoundVoices) {
+	memset(g_loaded_models, 0, sizeof(g_loaded_models));
+	g_model_preview_model_data = NULL;
+	g_model_preview_aux_buffer_handle = 0;
+	g_model_preview_aux_buffer_capacity_bytes = 0;
+	if (g_front_state.frontend_sound_voices) {
 		for (index = 0; index < 12; ++index) {
 			IDirectSoundBuffer *buffer =
-				g_frontState.frontendSoundVoices[index].buffer;
+				g_front_state.frontend_sound_voices[index]
+					.buffer;
 			if (buffer) {
 				buffer->lpVtbl->Stop(buffer);
 				buffer->lpVtbl->Release(buffer);
-				g_frontState.frontendSoundVoices[index].buffer =
-					NULL;
-			}
-		}
-	}
-	if (g_frontState.frontendSoundBuffers) {
-		for (index = 0; index < 128; ++index) {
-			IDirectSoundBuffer *buffer =
-				g_frontState.frontendSoundBuffers[index].buffer;
-			if (buffer) {
-				buffer->lpVtbl->Release(buffer);
-				g_frontState.frontendSoundBuffers[index]
+				g_front_state.frontend_sound_voices[index]
 					.buffer = NULL;
 			}
 		}
 	}
-	if (g_frontState.frontendPrimarySoundBuffer) {
-		g_frontState.frontendPrimarySoundBuffer->lpVtbl->Release(
-			g_frontState.frontendPrimarySoundBuffer);
-		g_frontState.frontendPrimarySoundBuffer = NULL;
+	if (g_front_state.frontend_sound_buffers) {
+		for (index = 0; index < 128; ++index) {
+			IDirectSoundBuffer *buffer =
+				g_front_state.frontend_sound_buffers[index]
+					.buffer;
+			if (buffer) {
+				buffer->lpVtbl->Release(buffer);
+				g_front_state.frontend_sound_buffers[index]
+					.buffer = NULL;
+			}
+		}
 	}
-	FrontendDisplay_Shutdown(0);
-	free(g_cursorSaveBuffer);
-	g_cursorSaveBuffer = NULL;
-	free(g_frontendChatLogBuffer);
-	g_frontendChatLogBuffer = NULL;
-	free(g_cutsceneTable);
-	g_cutsceneTable = NULL;
-	g_cutsceneCount = 0;
-	free(g_campaignAwardSprites);
-	g_campaignAwardSprites = NULL;
-	g_campaignAwardSpriteCount = 0;
+	if (g_front_state.frontend_primary_sound_buffer) {
+		g_front_state.frontend_primary_sound_buffer->lpVtbl->Release(
+			g_front_state.frontend_primary_sound_buffer);
+		g_front_state.frontend_primary_sound_buffer = NULL;
+	}
+	frontend_display_shutdown(0);
+	free(g_cursor_save_buffer);
+	g_cursor_save_buffer = NULL;
+	free(g_frontend_chat_log_buffer);
+	g_frontend_chat_log_buffer = NULL;
+	free(g_cutscene_table);
+	g_cutscene_table = NULL;
+	g_cutscene_count = 0;
+	free(g_campaign_award_sprites);
+	g_campaign_award_sprites = NULL;
+	g_campaign_award_sprite_count = 0;
 	g_initialized = 0;
 }

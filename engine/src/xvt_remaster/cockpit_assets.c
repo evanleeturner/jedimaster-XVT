@@ -5,9 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-int XvtCockpitAssets_DecodeLfd(const void *bytes, size_t size,
-			       struct XvtOriginal2d *out,
-			       AeronDecodeError *error)
+int xvt_cockpit_assets_decode_lfd(const void *bytes, size_t size,
+				  struct xvt_original2d *out,
+				  AeronDecodeError *error)
 {
 	AeronLfd lfd = {0};
 	if (!AeronLfd_Parse(bytes, size, &lfd, error)) {
@@ -84,9 +84,10 @@ done:
 	return ok;
 }
 
-/* Raw LFD mask runs use the conversion performed by FlightSw_CopyViewportSpanMaskRle.
+/* Raw LFD mask runs use the conversion performed by flight_sw_copy_viewport_span_mask_rle.
  * Positive parity is the world opening. Mirrored views mirror the finished image. */
-static int MaskRun(const uint8_t **cursor, const uint8_t *end, int screen_width)
+static int mask_run(const uint8_t **cursor, const uint8_t *end,
+		    int screen_width)
 {
 	if (*cursor == end) {
 		return -1;
@@ -114,8 +115,8 @@ static int MaskRun(const uint8_t **cursor, const uint8_t *end, int screen_width)
 	return 511 + (uint8_t)(*(*cursor)++ + 1);
 }
 
-int XvtCockpitAssets_ApplyMask(struct XvtOriginal2d *image,
-			       const struct XvtSnapRect *rect)
+int xvt_cockpit_assets_apply_mask(struct xvt_original2d *image,
+				  const struct xvt_snap_rect *rect)
 {
 	if (!image->images.count || !image->cockpit_mask || !rect) {
 		return 0;
@@ -135,7 +136,7 @@ int XvtCockpitAssets_ApplyMask(struct XvtOriginal2d *image,
 		}
 		int8_t parity = (int8_t)*p++;
 		for (int x = 0; x < rect->width;) {
-			int run = MaskRun(&p, end, frame->width);
+			int run = mask_run(&p, end, frame->width);
 			if (run <= 0) {
 				return 0;
 			}

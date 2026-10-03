@@ -14,11 +14,12 @@ static struct {
 	int active;
 } g_fade;
 
-int XvtCdTask_BeginFade(unsigned int from, unsigned int to, int duration_ms)
+int xvt_cd_task_begin_fade(unsigned int from, unsigned int to, int duration_ms)
 {
 	unsigned int distance;
-	XvtCdTask_CancelFade();
-	if (!g_frontState.cdAudioMciDeviceId && !g_musicCdMciDeviceId) {
+	xvt_cd_task_cancel_fade();
+	if (!g_front_state.cd_audio_mci_device_id &&
+	    !g_music_cd_mci_device_id) {
 		return 0;
 	}
 	if (from > 65535) {
@@ -39,19 +40,19 @@ int XvtCdTask_BeginFade(unsigned int from, unsigned int to, int duration_ms)
 				  : 0) +
 		 1) *
 		1000;
-	g_fade.next = XvtTime_GetElapsedUs() + g_fade.interval;
+	g_fade.next = xvt_time_get_elapsed_us() + g_fade.interval;
 	g_fade.active = 1;
 	return 1;
 }
 
-int XvtCdTask_IsFading(void) { return g_fade.active; }
+int xvt_cd_task_is_fading(void) { return g_fade.active; }
 
-void XvtCdTask_CancelFade(void) { g_fade.active = 0; }
+void xvt_cd_task_cancel_fade(void) { g_fade.active = 0; }
 
-void XvtCdTask_Update(void)
+void xvt_cd_task_update(void)
 {
-	uint64_t now = XvtTime_GetElapsedUs();
-	uint32_t nowMs = XvtTime_GetElapsedMs();
+	uint64_t now = xvt_time_get_elapsed_us();
+	uint32_t now_ms = xvt_time_get_elapsed_ms();
 	if (g_fade.active && now >= g_fade.next) {
 		unsigned int steps =
 			(unsigned int)((now - g_fade.next) / g_fade.interval +
@@ -74,53 +75,55 @@ void XvtCdTask_Update(void)
 				g_fade.current = 65535;
 			}
 		}
-		CDAudio_SetAuxVolume(g_fade.current);
+		cd_audio_set_aux_volume(g_fade.current);
 		g_fade.next += steps * g_fade.interval;
 	}
-	if (XvtFlightTask_IsActive()) {
+	if (xvt_flight_task_is_active()) {
 		return;
 	}
-	if (g_frontState.cdAudioSuspendState == CDAudio_ResumePending &&
-	    (int32_t)(nowMs - g_frontState.cdAudioResumeDueMs) > 0) {
-		CDAudio_ResumeSuspendedPlayback();
+	if (g_front_state.cd_audio_suspend_state == CD_AUDIO_RESUME_PENDING &&
+	    (int32_t)(now_ms - g_front_state.cd_audio_resume_due_ms) > 0) {
+		cd_audio_resume_suspended_playback();
 	}
-	if (g_frontState.cdAudioCurrentTrack &&
-	    g_frontState.cdAudioSuspendState == 0 &&
-	    !g_frontState.cdAudioPlaybackComplete &&
-	    (int32_t)(nowMs - g_frontState.cdAudioTrackEndMs) > 0) {
-		if (g_frontState.cdAudioLoopCurrentTrack) {
-			CDAudio_PlayTrackFromTime(
-				g_frontState.cdAudioCurrentTrack, 0, 0);
+	if (g_front_state.cd_audio_current_track &&
+	    g_front_state.cd_audio_suspend_state == 0 &&
+	    !g_front_state.cd_audio_playback_complete &&
+	    (int32_t)(now_ms - g_front_state.cd_audio_track_end_ms) > 0) {
+		if (g_front_state.cd_audio_loop_current_track) {
+			cd_audio_play_track_from_time(
+				g_front_state.cd_audio_current_track, 0, 0);
 		} else {
-			g_frontState.cdAudioPlaybackComplete = 1;
+			g_front_state.cd_audio_playback_complete = 1;
 		}
 	}
 }
 
-uint64_t XvtCdTask_NextWakeDelayUs(void)
+uint64_t xvt_cd_task_next_wake_delay_us(void)
 {
-	uint64_t now = XvtTime_GetElapsedUs();
+	uint64_t now = xvt_time_get_elapsed_us();
 	uint64_t delay = g_fade.active
 				 ? (now < g_fade.next ? g_fade.next - now : 0)
 				 : UINT64_MAX;
-	uint32_t nowMs = XvtTime_GetElapsedMs();
+	uint32_t now_ms = xvt_time_get_elapsed_ms();
 	int32_t remaining;
 	uint64_t candidate;
-	if (XvtFlightTask_IsActive()) {
+	if (xvt_flight_task_is_active()) {
 		return delay;
 	}
-	if (g_frontState.cdAudioSuspendState == CDAudio_ResumePending) {
-		remaining = (int32_t)(g_frontState.cdAudioResumeDueMs - nowMs);
+	if (g_front_state.cd_audio_suspend_state == CD_AUDIO_RESUME_PENDING) {
+		remaining = (int32_t)(g_front_state.cd_audio_resume_due_ms -
+				      now_ms);
 		candidate =
 			remaining < 0 ? 0 : ((uint64_t)remaining + 1) * 1000;
 		if (candidate < delay) {
 			delay = candidate;
 		}
 	}
-	if (g_frontState.cdAudioCurrentTrack &&
-	    !g_frontState.cdAudioPlaybackComplete &&
-	    g_frontState.cdAudioSuspendState == CDAudio_NotSuspended) {
-		remaining = (int32_t)(g_frontState.cdAudioTrackEndMs - nowMs);
+	if (g_front_state.cd_audio_current_track &&
+	    !g_front_state.cd_audio_playback_complete &&
+	    g_front_state.cd_audio_suspend_state == CD_AUDIO_NOT_SUSPENDED) {
+		remaining =
+			(int32_t)(g_front_state.cd_audio_track_end_ms - now_ms);
 		candidate =
 			remaining < 0 ? 0 : ((uint64_t)remaining + 1) * 1000;
 		if (candidate < delay) {

@@ -16,69 +16,71 @@ enum {
 	SOURCE_CAPACITY = XVT_SNAP_ASSETS * 2 + XVT_SNAP_TYPES
 };
 
-struct Source {
-	struct XvtSnapImageAsset image;
-	struct XvtFrontendImageColors frontend_colors;
+struct source {
+	struct xvt_snap_image_asset image;
+	struct xvt_frontend_image_colors frontend_colors;
 	const void *owner;
 	uint16_t handle;
 	uint8_t retired;
 };
 
-static struct Source g_sources[SOURCE_CAPACITY];
+static struct source g_sources[SOURCE_CAPACITY];
 static uint64_t g_bindings[XVT_SNAP_TYPES];
-static uint64_t g_nextId, g_optGeneration, g_textureGeneration,
-	g_imageGeneration;
-static uint64_t g_exportedSnapshotSerial, g_consumedSnapshotSerial;
+static uint64_t g_next_id, g_opt_generation, g_texture_generation,
+	g_image_generation;
+static uint64_t g_exported_snapshot_serial, g_consumed_snapshot_serial;
 static int g_initialized;
 
-static void Changed(uint32_t kind)
+static void changed(uint32_t kind)
 {
 	if (kind == SOURCE_OPT) {
-		++g_optGeneration;
+		++g_opt_generation;
 	} else if (kind == SOURCE_ACT) {
-		++g_textureGeneration;
+		++g_texture_generation;
 	} else {
-		++g_imageGeneration;
+		++g_image_generation;
 	}
 }
 
-static void Retire(struct Source *source)
+static void retire(struct source *source)
 {
 	if (!source->image.id || source->retired) {
 		return;
 	}
 	source->retired = 1;
-	Changed(source->image.kind);
+	changed(source->image.kind);
 	for (unsigned i = 0; i < XVT_SNAP_TYPES; ++i) {
 		if (g_bindings[i] == source->image.id) {
 			g_bindings[i] = 0;
 		}
 	}
-	XvtRenderCockpit_Forget(source->image.id);
+	xvt_render_cockpit_forget(source->image.id);
 }
 
-void XvtRenderAssets_Init(void)
+void xvt_render_assets_init(void)
 {
 	memset(g_sources, 0, sizeof g_sources);
 	memset(g_bindings, 0, sizeof g_bindings);
-	g_nextId = 1;
-	g_optGeneration = g_textureGeneration = g_imageGeneration = 1;
-	g_exportedSnapshotSerial = g_consumedSnapshotSerial = UINT64_MAX;
+	g_next_id = 1;
+	g_opt_generation = g_texture_generation = g_image_generation = 1;
+	g_exported_snapshot_serial = g_consumed_snapshot_serial = UINT64_MAX;
 	g_initialized = 1;
-	XvtRenderCockpit_Reset();
-	XvtRenderAssets_RegisterImage(g_defaultCursorBitmap, 0, "",
-				      XVT_IMAGE_BUILTIN_CURSOR, 0, 1, 0, 0, 0);
+	xvt_render_cockpit_reset();
+	xvt_render_assets_register_image(g_default_cursor_bitmap, 0, "",
+					 XVT_IMAGE_BUILTIN_CURSOR, 0, 1, 0, 0,
+					 0);
 }
 
-void XvtRenderAssets_Shutdown(void)
+void xvt_render_assets_shutdown(void)
 {
 	g_initialized = 0;
 	memset(g_sources, 0, sizeof g_sources);
-	XvtRenderCockpit_Reset();
+	xvt_render_cockpit_reset();
 }
 
-static int SnapshotReferencesSource(const struct XvtRenderSnapshot *snapshot,
-				    uint64_t id)
+static int
+snapshot_references_source(const struct xvt_render_snapshot *snapshot,
+			   uint64_t id)
 {
 	if (!snapshot) {
 		return 0;
@@ -95,9 +97,9 @@ static int SnapshotReferencesSource(const struct XvtRenderSnapshot *snapshot,
 			return 1;
 		}
 	}
-	const struct XvtCockpitState *cockpit = &snapshot->cockpit;
+	const struct xvt_cockpit_state *cockpit = &snapshot->cockpit;
 	if (cockpit->valid) {
-		const struct XvtCockpitDefinition *definition =
+		const struct xvt_cockpit_definition *definition =
 			&cockpit->definition;
 		for (unsigned panel = 0; panel < XVT_HUD_PANEL_BINDINGS;
 		     ++panel) {
@@ -137,35 +139,36 @@ static int SnapshotReferencesSource(const struct XvtRenderSnapshot *snapshot,
 	return 0;
 }
 
-void XvtRenderAssets_BeginFrame(void)
+void xvt_render_assets_begin_frame(void)
 {
 	if (!g_initialized ||
-	    g_consumedSnapshotSerial != g_exportedSnapshotSerial) {
+	    g_consumed_snapshot_serial != g_exported_snapshot_serial) {
 		return;
 	}
 	/* A held presentation can still reference an original source after its
 	 * classic handle is freed. Keep its descriptor until both snapshots retire it. */
 	for (unsigned i = 0; i < SOURCE_CAPACITY; ++i) {
 		if (g_sources[i].retired &&
-		    !SnapshotReferencesSource(XvtRenderSnapshot_Current(),
-					      g_sources[i].image.id) &&
-		    !SnapshotReferencesSource(XvtRenderSnapshot_Previous(),
-					      g_sources[i].image.id)) {
-			Changed(g_sources[i].image.kind);
+		    !snapshot_references_source(xvt_render_snapshot_current(),
+						g_sources[i].image.id) &&
+		    !snapshot_references_source(xvt_render_snapshot_previous(),
+						g_sources[i].image.id)) {
+			changed(g_sources[i].image.kind);
 			memset(&g_sources[i], 0, sizeof g_sources[i]);
 		}
 	}
 }
 
-void XvtRenderAssets_Consumed(uint64_t snapshot_serial)
+void xvt_render_assets_consumed(uint64_t snapshot_serial)
 {
-	g_consumedSnapshotSerial = snapshot_serial;
+	g_consumed_snapshot_serial = snapshot_serial;
 }
 
-static uint64_t Register(const void *owner, uint16_t handle, const char *path,
-			 uint32_t kind, uint32_t first, uint32_t count,
-			 uint16_t point_size, uint8_t row_bytes,
-			 int make_palette, const struct XvtSnapRect *viewport)
+static uint64_t register_asset(const void *owner, uint16_t handle,
+			       const char *path, uint32_t kind, uint32_t first,
+			       uint32_t count, uint16_t point_size,
+			       uint8_t row_bytes, int make_palette,
+			       const struct xvt_snap_rect *viewport)
 {
 	if (!g_initialized || (!owner && !handle)) {
 		return 0;
@@ -173,7 +176,7 @@ static uint64_t Register(const void *owner, uint16_t handle, const char *path,
 	char resolved[XVT_SNAP_PATH];
 	if (kind == XVT_IMAGE_BUILTIN_CURSOR) {
 		resolved[0] = 0;
-	} else if (XvtStorage_ResolveAsset(path, resolved, sizeof resolved) !=
+	} else if (xvt_storage_resolve_asset(path, resolved, sizeof resolved) !=
 		   1) {
 		XVT_LOG_ERROR("snapshot.asset_unresolved path=\"%s\"",
 			      path ? path : "");
@@ -187,7 +190,7 @@ static uint64_t Register(const void *owner, uint16_t handle, const char *path,
 		}
 	}
 	for (unsigned i = 0; i < SOURCE_CAPACITY; ++i) {
-		struct Source *s = &g_sources[i];
+		struct source *s = &g_sources[i];
 		if (!s->image.id || s->retired) {
 			continue;
 		}
@@ -205,17 +208,17 @@ static uint64_t Register(const void *owner, uint16_t handle, const char *path,
 				    sizeof *viewport) == 0)) {
 				return s->image.id;
 			}
-			Retire(s);
+			retire(s);
 		}
 	}
 	for (unsigned i = 0; i < SOURCE_CAPACITY; ++i) {
-		struct Source *s = &g_sources[i];
+		struct source *s = &g_sources[i];
 		if (s->image.id) {
 			continue;
 		}
 		s->owner = owner;
 		s->handle = handle;
-		s->image.id = g_nextId++;
+		s->image.id = g_next_id++;
 		s->image.kind = kind;
 		snprintf(s->image.path, sizeof s->image.path, "%s", resolved);
 		s->image.first_record = first;
@@ -226,7 +229,7 @@ static uint64_t Register(const void *owner, uint16_t handle, const char *path,
 		if (viewport) {
 			s->image.cockpit_viewport = *viewport;
 		}
-		Changed(kind);
+		changed(kind);
 		return s->image.id;
 	}
 	Aeron_RequestFatalRendererError(
@@ -234,27 +237,28 @@ static uint64_t Register(const void *owner, uint16_t handle, const char *path,
 	return 0;
 }
 
-uint64_t XvtRenderAssets_RegisterImage(const void *owner, uint16_t handle,
-				       const char *path, XvtSnapImageKind kind,
-				       uint32_t first, uint32_t count,
-				       uint16_t point_size, uint8_t row_bytes,
-				       int make_palette)
+uint64_t xvt_render_assets_register_image(const void *owner, uint16_t handle,
+					  const char *path,
+					  xvt_snap_image_kind kind,
+					  uint32_t first, uint32_t count,
+					  uint16_t point_size,
+					  uint8_t row_bytes, int make_palette)
 {
-	return Register(owner, handle, path, kind, first, count, point_size,
-			row_bytes, make_palette, NULL);
+	return register_asset(owner, handle, path, kind, first, count,
+			      point_size, row_bytes, make_palette, NULL);
 }
 
-void XvtRenderAssets_RegisterFrontendImage(const struct ImageResource *image,
-					   const char *path, int make_palette,
-					   int pixel_format_555)
+void xvt_render_assets_register_frontend_image(
+	const struct image_resource *image, const char *path, int make_palette,
+	int pixel_format_555)
 {
-	uint64_t id = Register(image, 0, path, XVT_IMAGE_BMP, 0, 1, 0, 0,
-			       make_palette, NULL);
+	uint64_t id = register_asset(image, 0, path, XVT_IMAGE_BMP, 0, 1, 0, 0,
+				     make_palette, NULL);
 	if (!id) {
 		return;
 	}
 	for (unsigned i = 0; i < SOURCE_CAPACITY; ++i) {
-		struct Source *source = &g_sources[i];
+		struct source *source = &g_sources[i];
 		if (source->image.id != id) {
 			continue;
 		}
@@ -262,20 +266,20 @@ void XvtRenderAssets_RegisterFrontendImage(const struct ImageResource *image,
 			pixel_format_555 != 0;
 		for (unsigned color = 0; color < 256; ++color) {
 			source->frontend_colors.color_lut[color] =
-				(uint16_t)image->colorLUT[color];
+				(uint16_t)image->color_lut[color];
 		}
 		return;
 	}
 }
 
-int XvtRenderAssets_CopyFrontendColors(uint64_t id,
-				       struct XvtFrontendImageColors *colors)
+int xvt_render_assets_copy_frontend_colors(
+	uint64_t id, struct xvt_frontend_image_colors *colors)
 {
 	if (!g_initialized || !id || !colors) {
 		return 0;
 	}
 	for (unsigned i = 0; i < SOURCE_CAPACITY; ++i) {
-		const struct Source *source = &g_sources[i];
+		const struct source *source = &g_sources[i];
 		if (source->image.id == id &&
 		    source->image.kind == XVT_IMAGE_BMP) {
 			/* Retired sources remain readable until their exported frame is consumed. */
@@ -286,29 +290,32 @@ int XvtRenderAssets_CopyFrontendColors(uint64_t id,
 	return 0;
 }
 
-uint64_t XvtRenderAssets_RegisterCockpit(const void *owner, uint16_t handle,
-					 const char *path,
-					 const struct XvtSnapRect *viewport)
+uint64_t
+xvt_render_assets_register_cockpit(const void *owner, uint16_t handle,
+				   const char *path,
+				   const struct xvt_snap_rect *viewport)
 {
-	return Register(owner, handle, path, XVT_IMAGE_LFD, 0, 1, 0, 0, 0,
-			viewport);
+	return register_asset(owner, handle, path, XVT_IMAGE_LFD, 0, 1, 0, 0, 0,
+			      viewport);
 }
 
-void XvtRenderAssets_RegisterOpt(uint16_t handle, const char *path)
+void xvt_render_assets_register_opt(uint16_t handle, const char *path)
 {
 	if (handle) {
-		Register(NULL, handle, path, SOURCE_OPT, 0, 0, 0, 0, 0, NULL);
+		register_asset(NULL, handle, path, SOURCE_OPT, 0, 0, 0, 0, 0,
+			       NULL);
 	}
 }
 
-void XvtRenderAssets_RegisterTexture(uint16_t handle, const char *path)
+void xvt_render_assets_register_texture(uint16_t handle, const char *path)
 {
 	if (handle) {
-		Register(NULL, handle, path, SOURCE_ACT, 0, 0, 0, 0, 0, NULL);
+		register_asset(NULL, handle, path, SOURCE_ACT, 0, 0, 0, 0, 0,
+			       NULL);
 	}
 }
 
-uint64_t XvtRenderAssets_HandleId(uint16_t handle)
+uint64_t xvt_render_assets_handle_id(uint16_t handle)
 {
 	if (!handle) {
 		return 0;
@@ -322,38 +329,38 @@ uint64_t XvtRenderAssets_HandleId(uint16_t handle)
 	return 0;
 }
 
-void XvtRenderAssets_BindType(uint16_t type, uint16_t handle)
+void xvt_render_assets_bind_type(uint16_t type, uint16_t handle)
 {
 	if (type < XVT_SNAP_TYPES) {
-		g_bindings[type] = XvtRenderAssets_HandleId(handle);
+		g_bindings[type] = xvt_render_assets_handle_id(handle);
 	}
 }
 
-void XvtRenderAssets_RetireHandle(unsigned int handle)
+void xvt_render_assets_retire_handle(unsigned int handle)
 {
 	if (!g_initialized || !handle || handle > UINT16_MAX) {
 		return;
 	}
 	for (unsigned i = 0; i < SOURCE_CAPACITY; ++i) {
 		if (g_sources[i].handle == handle) {
-			Retire(&g_sources[i]);
+			retire(&g_sources[i]);
 		}
 	}
 }
 
-void XvtRenderAssets_RetireImage(const void *owner)
+void xvt_render_assets_retire_image(const void *owner)
 {
 	if (!g_initialized || !owner) {
 		return;
 	}
 	for (unsigned i = 0; i < SOURCE_CAPACITY; ++i) {
 		if (g_sources[i].owner == owner) {
-			Retire(&g_sources[i]);
+			retire(&g_sources[i]);
 		}
 	}
 }
 
-uint64_t XvtRenderAssets_ImageId(const void *owner)
+uint64_t xvt_render_assets_image_id(const void *owner)
 {
 	if (!owner) {
 		return 0;
@@ -366,20 +373,20 @@ uint64_t XvtRenderAssets_ImageId(const void *owner)
 	return 0;
 }
 
-void XvtRenderAssets_ClearMission(void)
+void xvt_render_assets_clear_mission(void)
 {
 	memset(g_bindings, 0, sizeof g_bindings);
-	++g_optGeneration;
-	++g_textureGeneration;
-	XvtRenderCockpit_Reset();
+	++g_opt_generation;
+	++g_texture_generation;
+	xvt_render_cockpit_reset();
 }
 
-const uint8_t *XvtRenderAssets_DefaultCursor(void)
+const uint8_t *xvt_render_assets_default_cursor(void)
 {
-	return g_defaultCursorBitmap;
+	return g_default_cursor_bitmap;
 }
 
-void XvtRenderAssets_Export(struct XvtRenderSnapshot *snapshot)
+void xvt_render_assets_export(struct xvt_render_snapshot *snapshot)
 {
 	if (!g_initialized || !snapshot) {
 		return;
@@ -393,13 +400,13 @@ void XvtRenderAssets_Export(struct XvtRenderSnapshot *snapshot)
 		}
 	}
 	for (unsigned i = 0; i < SOURCE_CAPACITY; ++i) {
-		const struct Source *s = &g_sources[i];
+		const struct source *s = &g_sources[i];
 		if (!s->image.id) {
 			continue;
 		}
 		if (s->image.kind == SOURCE_OPT &&
 		    snapshot->opt_asset_count < XVT_SNAP_ASSETS) {
-			struct XvtSnapOptAsset *out =
+			struct xvt_snap_opt_asset *out =
 				&snapshot->opt_assets
 					 [snapshot->opt_asset_count++];
 			out->id = s->image.id;
@@ -407,7 +414,7 @@ void XvtRenderAssets_Export(struct XvtRenderSnapshot *snapshot)
 			memcpy(out->path, s->image.path, sizeof out->path);
 		} else if (s->image.kind == SOURCE_ACT &&
 			   snapshot->texture_asset_count < XVT_SNAP_TYPES) {
-			struct XvtSnapTextureAsset *out =
+			struct xvt_snap_texture_asset *out =
 				&snapshot->texture_assets
 					 [snapshot->texture_asset_count++];
 			out->id = s->image.id;
@@ -442,12 +449,12 @@ void XvtRenderAssets_Export(struct XvtRenderSnapshot *snapshot)
 			}
 		}
 	}
-	snapshot->opt_asset_generation = g_optGeneration;
-	snapshot->texture_asset_generation = g_textureGeneration;
-	snapshot->image_asset_generation = g_imageGeneration;
+	snapshot->opt_asset_generation = g_opt_generation;
+	snapshot->texture_asset_generation = g_texture_generation;
+	snapshot->image_asset_generation = g_image_generation;
 	for (unsigned i = 0; i < 256; ++i) {
-		snapshot->flight_palette_argb[i] = XvtRenderDraw_Color(i);
+		snapshot->flight_palette_argb[i] = xvt_render_draw_color(i);
 	}
 
-	g_exportedSnapshotSerial = snapshot->snapshot_serial;
+	g_exported_snapshot_serial = snapshot->snapshot_serial;
 }

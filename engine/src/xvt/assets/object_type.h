@@ -10,10 +10,10 @@
 extern "C" {
 #endif
 
-/* Mission/frontend craft-type (species) identifier. Convert through g_craftTypeToObjectType before indexing
- * g_objectTypeTable; this is distinct from ModelIndex. */
-/* Stored as uint8_t in the binary (IDB enum CraftSpecies). */
-typedef uint8_t CraftSpecies;
+/* Mission/frontend craft-type (species) identifier. Convert through g_craft_type_to_object_type before indexing
+ * g_object_type_table; this is distinct from model_index. */
+/* Stored as uint8_t in the binary (IDB enum craft_species). */
+typedef uint8_t craft_species;
 
 enum {
 	CRAFT_SPECIES_UNKNOWN = 0x0,
@@ -123,10 +123,10 @@ enum {
 	CRAFT_SPECIES_UNUSED_100 = 0x64,
 };
 
-/* Byte family ID stored in ObjectTypeInfo. Values 0..2 have localized goal labels; 3..6 are internal families
+/* Byte family ID stored in object_type_info. Values 0..2 have localized goal labels; 3..6 are internal families
  * displayed as placeholders by the goal text table. */
-/* Stored as int8_t in the binary (IDB enum CraftFamily). */
-typedef int8_t CraftFamily;
+/* Stored as int8_t in the binary (IDB enum craft_family). */
+typedef int8_t craft_family;
 
 enum {
 	CRAFT_FAMILY_SPACE_CRAFT = 0x0,
@@ -138,87 +138,87 @@ enum {
 	CRAFT_FAMILY_OBSTACLE = 0x6,
 };
 
-struct ObjectTypeInfo {
+struct object_type_info {
 	/* Bit 0x2 (MODEL_RECORD_HAS_RESOURCE) marks a type
-	 * FeDiskIo_LoadResources loads a resource for; Mission_Init clears the
-	 * required-asset bit of every type whose recordFlags is nonzero. */
-	uint8_t recordFlags;
+	 * fe_disk_io_load_resources loads a resource for; mission_init clears the
+	 * required-asset bit of every type whose record_flags is nonzero. */
+	uint8_t record_flags;
 	/* Bits: 0x1, the resource is an OPT model, which the ModelMesh and
 	 * ModelBounds getters need; 0x2, a texture block; 0x10
-	 * (MODEL_ASSET_REQUIRED), set by Mission_Init for the types the mission
-	 * uses. FeDiskIo_LoadResources loads the resource when 0x8 or 0x10 is
+	 * (MODEL_ASSET_REQUIRED), set by mission_init for the types the mission
+	 * uses. fe_disk_io_load_resources loads the resource when 0x8 or 0x10 is
 	 * set, and one with 0x40 only on the proving grounds. */
-	uint8_t assetFlags;
+	uint8_t asset_flags;
 	/* Copied into a spawned craft's mobj->family; mission triggers compare
 	 * it. */
-	CraftFamily
-		familyId; ///< Object family classification; values are CraftFamily.
+	craft_family
+		family_id; ///< Object family classification; values are craft_family.
 	/* Mission triggers and much of the flight code compare it. */
-	uint8_t genusId; ///< Byte storage of CraftGenus for this ObjectTypeId; distinct from mission CraftSpecies.
-	/* Largest box size of the type's model: FeDiskIo_BuildModelDef sets it
-	 * from ModelBounds_GetMaxExtent for each loaded OPT model, and other
+	uint8_t genus_id; ///< Byte storage of craft_genus for this ObjectTypeId; distinct from mission craft_species.
+	/* Largest box size of the type's model: fe_disk_io_build_model_def sets it
+	 * from model_bounds_get_max_extent for each loaded OPT model, and other
 	 * types keep the table's value. Much of the flight code uses it as the
 	 * object's size. */
-	int maxBoundsExtent;
-	/* Half of maxBoundsExtent, set beside it; the game code never reads it,
+	int max_bounds_extent;
+	/* Half of max_bounds_extent, set beside it; the game code never reads it,
 	 * only the modern build's capture. */
-	int halfBoundsExtent;
+	int half_bounds_extent;
 	/* Memory handle of the type's loaded resource, the same as its
-	 * g_loadedModels entry; 0 for none. */
-	uint16_t resourceHandle;
+	 * g_loaded_models entry; 0 for none. */
+	uint16_t resource_handle;
 	/* Billboard frame sequence, coded as described at
-	 * g_objectType127TextureFrameSequence; NULL for a type drawn as its
+	 * g_object_type127_texture_frame_sequence; NULL for a type drawn as its
 	 * model. */
-	int16_t *textureFrameSequence;
-	/* A remap of 16 palette indices, or NULL; Mission_Init sets it for
+	int16_t *texture_frame_sequence;
+	/* A remap of 16 palette indices, or NULL; mission_init sets it for
 	 * backdrop types. The game code never reads it; the modern build's
 	 * capture copies it. */
 	uint8_t *palette;
 	/* Bits: 0x1 puts the type's objects on the radar; 0x2 lets the AI pick
 	 * static objects of the type (TARGETABLE_STATIC_MODEL_FLAG); 0x20 marks
 	 * a backdrop type (MODEL_FLAG_BACKDROP); 0x80 (STATIC_MODEL_FLAG) has
-	 * Mission_SpawnFlightGroupStaticObjects place the type's flight groups
-	 * instead of Mission_SpawnCurrentFlightGroupWave. */
-	uint8_t behaviorFlags;
-	/* GetModelIndexFromType returns it. */
-	uint8_t modelIndex; ///< Byte storage of optional ModelIndex into g_modelDefs[73]; 0xFF means
+	 * mission_spawn_flight_group_static_objects place the type's flight groups
+	 * instead of mission_spawn_current_flight_group_wave. */
+	uint8_t behavior_flags;
+	/* get_model_index_from_type returns it. */
+	uint8_t model_index; ///< Byte storage of optional model_index into g_model_defs[73]; 0xFF means
 	///< MODEL_INDEX_NONE.
-	/* Spec list the type's resource is listed in: FeDiskIo_LoadResources
-	 * reads list g_specListPrefixes[textureGroup] for the flight
+	/* Spec list the type's resource is listed in: fe_disk_io_load_resources
+	 * reads list g_spec_list_prefixes[texture_group] for the flight
 	 * resolution. */
-	uint8_t textureGroup;
+	uint8_t texture_group;
 	/* Place of the type's resource in that list, from 0, counting non-empty
-	 * lines; Mission_Init sets it for backdrop types. */
-	uint8_t resourceIndex;
+	 * lines; mission_init sets it for backdrop types. */
+	uint8_t resource_index;
 };
 
-extern int16_t g_objectType127TextureFrameSequence[13];
-extern int16_t g_objectType131TextureFrameSequence[7];
-extern int16_t g_objectType132TextureFrameSequence[8];
-extern int16_t g_objectType133TextureFrameSequence[2];
-extern int16_t g_objectType134TextureFrameSequence[2];
-extern int16_t g_objectType157TextureFrameSequence[11];
-extern int16_t g_fuselageDamageTextureFrameSequence[25];
-extern int16_t g_objectType110TextureFrameSequence[9];
-extern int16_t g_objectType111TextureFrameSequence[11];
-extern int16_t g_objectType112TextureFrameSequence[11];
-extern int16_t g_objectType113TextureFrameSequence[9];
-extern int16_t g_objectType128TextureFrameSequence[13];
-extern int16_t g_objectType129TextureFrameSequence[16];
-extern int16_t g_objectType130TextureFrameSequence[15];
-extern uint8_t g_objectTypePaletteRemaps[17][16];
-extern uint8_t *g_backdropPaletteRemapByFlightGroupStatus[17];
-extern uint8_t g_objectType110Palette[16];
-extern uint8_t g_objectType111Palette[16];
-extern uint8_t g_objectType112Palette[16];
-extern uint8_t g_objectType113Palette[16];
-extern struct ObjectTypeInfo g_objectTypeTable[201];
-extern uint8_t g_craftTypeToObjectType[96];
+extern int16_t g_object_type127_texture_frame_sequence[13];
+extern int16_t g_object_type131_texture_frame_sequence[7];
+extern int16_t g_object_type132_texture_frame_sequence[8];
+extern int16_t g_object_type133_texture_frame_sequence[2];
+extern int16_t g_object_type134_texture_frame_sequence[2];
+extern int16_t g_object_type157_texture_frame_sequence[11];
+extern int16_t g_fuselage_damage_texture_frame_sequence[25];
+extern int16_t g_object_type110_texture_frame_sequence[9];
+extern int16_t g_object_type111_texture_frame_sequence[11];
+extern int16_t g_object_type112_texture_frame_sequence[11];
+extern int16_t g_object_type113_texture_frame_sequence[9];
+extern int16_t g_object_type128_texture_frame_sequence[13];
+extern int16_t g_object_type129_texture_frame_sequence[16];
+extern int16_t g_object_type130_texture_frame_sequence[15];
+extern uint8_t g_object_type_palette_remaps[17][16];
+extern uint8_t *g_backdrop_palette_remap_by_flight_group_status[17];
+extern uint8_t g_object_type110_palette[16];
+extern uint8_t g_object_type111_palette[16];
+extern uint8_t g_object_type112_palette[16];
+extern uint8_t g_object_type113_palette[16];
+extern struct object_type_info g_object_type_table[201];
+extern uint8_t g_craft_type_to_object_type[96];
 
-/* Index into g_modelDefs[73] (the strings.txt 'strings for specs' name/specification table); MODEL_INDEX_NONE
- * means the object type has no ModelDef. */
-/* Stored as uint16_t in the binary (IDB enum ModelIndex). */
-typedef uint16_t ModelIndex;
+/* Index into g_model_defs[73] (the strings.txt 'strings for specs' name/specification table); MODEL_INDEX_NONE
+ * means the object type has no model_def. */
+/* Stored as uint16_t in the binary (IDB enum model_index). */
+typedef uint16_t model_index;
 
 enum {
 	MODEL_000_X_WING = 0x0,	     ///< strings.txt line 1874: m:X-wing
@@ -334,11 +334,11 @@ enum {
 	MODEL_072_MOD_STRIKE_CRUISER =
 		0x48, ///< strings.txt line 1946: m:Mod. Strike Cruiser
 	MODEL_INDEX_NONE =
-		0xFF, ///< XVT no-model sentinel returned by GetModelIndexFromType.
+		0xFF, ///< XVT no-model sentinel returned by get_model_index_from_type.
 };
 
-/* Stored as int8_t in the binary (IDB enum CraftGender). */
-typedef int8_t CraftGender;
+/* Stored as int8_t in the binary (IDB enum craft_gender). */
+typedef int8_t craft_gender;
 
 enum {
 	CRAFT_GENDER_MASCULINE = 0x0,
@@ -346,9 +346,9 @@ enum {
 	CRAFT_GENDER_NEUTERED = 0x2,
 };
 
-/* Runtime object/model-table index (0..200). Mission CraftSpecies values are converted through
- * g_craftTypeToObjectType before spawning. */
-typedef uint16_t ObjectTypeId;
+/* Runtime object/model-table index (0..200). Mission craft_species values are converted through
+ * g_craft_type_to_object_type before spawning. */
+typedef uint16_t object_type_id;
 
 #ifdef __cplusplus
 }

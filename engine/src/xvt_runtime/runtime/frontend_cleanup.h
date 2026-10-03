@@ -5,18 +5,18 @@
 extern "C" {
 #endif
 
-/* Screen exit callbacks with the FrontendScreenExitFn signature, for the modern arms. The original
+/* Screen exit callbacks with the frontend_screen_exit_fn signature, for the modern arms. The original
  * code casts the wrapped functions, which take no argument, to that type; these wrappers ignore
  * frame and return the wrapped function's result. */
 
-/* FrontendMissionList_FreeScreenResourcesAndClearInputGate. */
-int XvtFrontendCleanup_MissionResources(int frame);
-/* MissionSetup_ExitCurrentMission. */
-int XvtFrontendCleanup_CurrentMission(int frame);
-/* MissionSetup_ExitNextMission. */
-int XvtFrontendCleanup_NextMission(int frame);
-/* MissionSetup_BattleChoice_Exit. */
-int XvtFrontendCleanup_BattleChoice(int frame);
+/* frontend_mission_list_free_screen_resources_and_clear_input_gate. */
+int xvt_frontend_cleanup_mission_resources(int frame);
+/* mission_setup_exit_current_mission. */
+int xvt_frontend_cleanup_current_mission(int frame);
+/* mission_setup_exit_next_mission. */
+int xvt_frontend_cleanup_next_mission(int frame);
+/* mission_setup_battle_choice_exit. */
+int xvt_frontend_cleanup_battle_choice(int frame);
 
 #ifdef __cplusplus
 }

@@ -13,7 +13,7 @@ extern "C" {
 /* transform, previous_transform: the object's model matrices for the current and the previous snapshot,
  * equal when no previous pose exists. previous_index: the matching object's index in the previous
  * snapshot (same slot, signature and type), or -1. zero_velocity: no previous pose, so no motion. */
-struct XvtPreparedObject {
+struct xvt_prepared_object {
 	float transform[16], previous_transform[16];
 	int32_t previous_index;
 	uint8_t zero_velocity;
@@ -27,11 +27,11 @@ struct XvtPreparedObject {
  * original's assumed rate; real ticks run 250 a second), 0 after a reset; nothing reads it.
  * reset_history: motion history restarts. regenerate_motion: the poses advanced this frame.
  * render_needed: the frame must be drawn again. */
-struct XvtPreparedFlight {
-	struct XvtRenderView view, previous_view;
-	struct XvtLayoutTransform cockpit_layout, frontend_layout;
+struct xvt_prepared_flight {
+	struct xvt_render_view view, previous_view;
+	struct xvt_layout_transform cockpit_layout, frontend_layout;
 	AeronRectI content_rect;
-	struct XvtPreparedObject objects[XVT_SNAP_OBJECTS];
+	struct xvt_prepared_object objects[XVT_SNAP_OBJECTS];
 	uint32_t object_count;
 	uint64_t snapshot_serial, flight_frame_serial;
 	float delta_sim_seconds;
@@ -53,15 +53,15 @@ struct XvtPreparedFlight {
  * types, fuselage sequence, hyperspace, or the map in map mode), any temporal mode, an HDR or headroom
  * change, a pause change, or a change of the advance flag unless pause_keep_blur. Returns 0 with the
  * frame invalidated when a view or layout cannot be built. */
-int XvtRemasterFlight_Prepare(const struct XvtRenderSnapshot *current,
-			      const struct XvtRenderSnapshot *previous,
-			      int width, int height);
+int xvt_remaster_flight_prepare(const struct xvt_render_snapshot *current,
+				const struct xvt_render_snapshot *previous,
+				int width, int height);
 /* The prepared frame, or NULL while invalid. */
-const struct XvtPreparedFlight *XvtRemasterFlight_Current(void);
+const struct xvt_prepared_flight *xvt_remaster_flight_current(void);
 /* Marks the frame invalid; the next Prepare resets. */
-void XvtRemasterFlight_Invalidate(void);
+void xvt_remaster_flight_invalidate(void);
 /* Marks the frame as needing a render, for a HUD or CRT change. */
-void XvtRemasterFlight_RequestComposition(void);
+void xvt_remaster_flight_request_composition(void);
 /* Draws the prepared frame. Returns 1 with no output while there is no frame or no valid flight. In
  * map mode, renders the map when a render is due or no output stands. Otherwise, when a render is due,
  * the output is gone, or the scene must be recreated (size or MSAA change): begins the pipeline, sky,
@@ -76,17 +76,17 @@ void XvtRemasterFlight_RequestComposition(void);
  * component as variant 1 and draws the full model only at the checkpoint slots. The previous camera
  * serves motion only with camera blur or a temporal mode on. Then the effects, the HUD hook after
  * upscale, and the pipeline's finish. Returns 0 on any failure, the output invalid. */
-int XvtRemasterFlight_Render(AeronCommandBuffer *cmd,
-			     const struct XvtRenderSnapshot *current,
-			     const struct XvtRenderSnapshot *previous);
+int xvt_remaster_flight_render(AeronCommandBuffer *cmd,
+			       const struct xvt_render_snapshot *current,
+			       const struct xvt_render_snapshot *previous);
 /* Borrowed tonemapped SDR/HDR presentation output for the composition driver. */
 /* The pipeline's output while the last Render succeeded, else NULL. */
-AeronTexture *XvtRemasterFlight_Output(void);
+AeronTexture *xvt_remaster_flight_output(void);
 /* Shuts down the map, sky, glows and pipeline, destroys the scene and invalidates the frame. */
-void XvtRemasterFlight_Shutdown(void);
+void xvt_remaster_flight_shutdown(void);
 /* Creates the flight scene at width x height and the current MSAA when it differs, preparing its GPU
  * resources with the flight settings. Returns 0 when creation or preparation fails. */
-int XvtRemasterFlight_PrepareResources(int width, int height);
+int xvt_remaster_flight_prepare_resources(int width, int height);
 #ifdef __cplusplus
 }
 #endif

@@ -20,13 +20,13 @@
 
 #define WHY_FLOAT "a few single-precision operations"
 
-static const double kTol = 1e-5;
+static const double k_tol = 1e-5;
 
 /* A camera record at world (100, -200, 300) with orthonormal rows, a 320 x 200 viewport whose
  * projection center is its middle, a focal length of 2^8 and no aspect scaling. */
-static struct XvtSnapCamera CleanCamera(void)
+static struct xvt_snap_camera clean_camera(void)
 {
-	struct XvtSnapCamera camera;
+	struct xvt_snap_camera camera;
 	memset(&camera, 0, sizeof camera);
 	camera.valid = 1;
 	camera.world_pos[0] = 100;
@@ -46,18 +46,18 @@ static struct XvtSnapCamera CleanCamera(void)
 	return camera;
 }
 
-static const int32_t kOrigin[3] = {90, -190, 310};
+static const int32_t k_origin[3] = {90, -190, 310};
 
-static void CheckLayout(void)
+static void check_layout(void)
 {
-	struct XvtLayoutTransform layout;
-	XVT_ASSERT_INT_EQ(XvtRenderMath_Layout(640, 480, 1280, 1024, &layout),
+	struct xvt_layout_transform layout;
+	XVT_ASSERT_INT_EQ(xvt_render_math_layout(640, 480, 1280, 1024, &layout),
 			  1);
-	XVT_ASSERT_CLOSE(layout.scale, 2.0, kTol, WHY_FLOAT);
-	XVT_ASSERT_CLOSE(layout.source_width, 640, kTol, "the input itself");
-	XVT_ASSERT_CLOSE(layout.source_height, 480, kTol, "the input itself");
-	XVT_ASSERT_CLOSE(layout.target_width, 1280, kTol, "the input itself");
-	XVT_ASSERT_CLOSE(layout.target_height, 1024, kTol, "the input itself");
+	XVT_ASSERT_CLOSE(layout.scale, 2.0, k_tol, WHY_FLOAT);
+	XVT_ASSERT_CLOSE(layout.source_width, 640, k_tol, "the input itself");
+	XVT_ASSERT_CLOSE(layout.source_height, 480, k_tol, "the input itself");
+	XVT_ASSERT_CLOSE(layout.target_width, 1280, k_tol, "the input itself");
+	XVT_ASSERT_CLOSE(layout.target_height, 1024, k_tol, "the input itself");
 
 	/* The smaller ratio: the scaled source fits on both axes and fills one. */
 	static const float sizes[][4] = {{320, 200, 1920, 1080},
@@ -66,27 +66,28 @@ static void CheckLayout(void)
 	for (unsigned i = 0; i < 3; ++i) {
 		const float *s = sizes[i];
 		XVT_ASSERT_INT_EQ(
-			XvtRenderMath_Layout(s[0], s[1], s[2], s[3], &layout),
+			xvt_render_math_layout(s[0], s[1], s[2], s[3], &layout),
 			1);
 		XVT_ASSERT_CLOSE(layout.scale, fmin(s[2] / s[0], s[3] / s[1]),
-				 kTol, WHY_FLOAT);
-		XVT_ASSERT_TRUE(s[0] * layout.scale <= s[2] * (1 + kTol));
-		XVT_ASSERT_TRUE(s[1] * layout.scale <= s[3] * (1 + kTol));
+				 k_tol, WHY_FLOAT);
+		XVT_ASSERT_TRUE(s[0] * layout.scale <= s[2] * (1 + k_tol));
+		XVT_ASSERT_TRUE(s[1] * layout.scale <= s[3] * (1 + k_tol));
 	}
 
 	/* Refused, out untouched: a NULL out, and any size not positive or not finite. */
-	XVT_ASSERT_INT_EQ(XvtRenderMath_Layout(640, 480, 1280, 1024, NULL), 0);
+	XVT_ASSERT_INT_EQ(xvt_render_math_layout(640, 480, 1280, 1024, NULL),
+			  0);
 	const float bad[] = {0.0f, -1.0f, NAN, INFINITY};
 	for (unsigned which = 0; which < 4; ++which) {
 		for (unsigned b = 0; b < 4; ++b) {
 			float args[4] = {640, 480, 1280, 1024};
 			args[which] = bad[b];
-			struct XvtLayoutTransform before, after;
+			struct xvt_layout_transform before, after;
 			memset(&before, 0xA5, sizeof before);
 			after = before;
-			XVT_ASSERT_INT_EQ(XvtRenderMath_Layout(args[0], args[1],
-							       args[2], args[3],
-							       &after),
+			XVT_ASSERT_INT_EQ(xvt_render_math_layout(
+						  args[0], args[1], args[2],
+						  args[3], &after),
 					  0);
 			XVT_ASSERT_INT_EQ(
 				memcmp(&before, &after, sizeof before), 0);
@@ -94,146 +95,152 @@ static void CheckLayout(void)
 	}
 }
 
-static void CheckLayoutPoints(void)
+static void check_layout_points(void)
 {
 	/* A 4:3 surface in a 16:9 window: scale 2, 320 units left over across, none down. */
-	struct XvtLayoutTransform layout;
-	XVT_ASSERT_INT_EQ(XvtRenderMath_Layout(640, 480, 1600, 960, &layout),
+	struct xvt_layout_transform layout;
+	XVT_ASSERT_INT_EQ(xvt_render_math_layout(640, 480, 1600, 960, &layout),
 			  1);
 	float x, y;
 
 	/* Anchor 0 aligns the near edges, 1 the far edges, 0.5 the centers. */
-	XvtRenderMath_LayoutPoint(&layout, 0, 0, 0, 0, &x, &y);
-	XVT_ASSERT_CLOSE(x, 0, kTol, WHY_FLOAT);
-	XVT_ASSERT_CLOSE(y, 0, kTol, WHY_FLOAT);
-	XvtRenderMath_LayoutPoint(&layout, 1, 1, 640, 480, &x, &y);
-	XVT_ASSERT_CLOSE(x, 1600, kTol, WHY_FLOAT);
-	XVT_ASSERT_CLOSE(y, 960, kTol, WHY_FLOAT);
-	XvtRenderMath_LayoutPoint(&layout, 0.5f, 0.5f, 320, 240, &x, &y);
-	XVT_ASSERT_CLOSE(x, 800, kTol, WHY_FLOAT);
-	XVT_ASSERT_CLOSE(y, 480, kTol, WHY_FLOAT);
+	xvt_render_math_layout_point(&layout, 0, 0, 0, 0, &x, &y);
+	XVT_ASSERT_CLOSE(x, 0, k_tol, WHY_FLOAT);
+	XVT_ASSERT_CLOSE(y, 0, k_tol, WHY_FLOAT);
+	xvt_render_math_layout_point(&layout, 1, 1, 640, 480, &x, &y);
+	XVT_ASSERT_CLOSE(x, 1600, k_tol, WHY_FLOAT);
+	XVT_ASSERT_CLOSE(y, 960, k_tol, WHY_FLOAT);
+	xvt_render_math_layout_point(&layout, 0.5f, 0.5f, 320, 240, &x, &y);
+	XVT_ASSERT_CLOSE(x, 800, k_tol, WHY_FLOAT);
+	XVT_ASSERT_CLOSE(y, 480, k_tol, WHY_FLOAT);
 
 	/* Scaled: two points map to points the scale times as far apart. */
 	float x2, y2;
-	XvtRenderMath_LayoutPoint(&layout, 0.5f, 1, 10, 20, &x, &y);
-	XvtRenderMath_LayoutPoint(&layout, 0.5f, 1, 110, 70, &x2, &y2);
-	XVT_ASSERT_CLOSE(x2 - x, 100 * layout.scale, kTol, WHY_FLOAT);
-	XVT_ASSERT_CLOSE(y2 - y, 50 * layout.scale, kTol, WHY_FLOAT);
+	xvt_render_math_layout_point(&layout, 0.5f, 1, 10, 20, &x, &y);
+	xvt_render_math_layout_point(&layout, 0.5f, 1, 110, 70, &x2, &y2);
+	XVT_ASSERT_CLOSE(x2 - x, 100 * layout.scale, k_tol, WHY_FLOAT);
+	XVT_ASSERT_CLOSE(y2 - y, 50 * layout.scale, k_tol, WHY_FLOAT);
 
 	/* LayoutInverse undoes LayoutPoint with the same anchors, both ways round. */
 	static const float anchors[][2] = {
 		{0, 0}, {0.5f, 0.5f}, {1, 0}, {0.25f, 1}};
-	XVT_ASSERT_INT_EQ(XvtRenderMath_Layout(320, 200, 1000, 1000, &layout),
+	XVT_ASSERT_INT_EQ(xvt_render_math_layout(320, 200, 1000, 1000, &layout),
 			  1);
 	for (unsigned i = 0; i < 4; ++i) {
 		float ax = anchors[i][0], ay = anchors[i][1], back_x, back_y;
-		XvtRenderMath_LayoutPoint(&layout, ax, ay, 123.5f, 77.25f, &x,
-					  &y);
-		XvtRenderMath_LayoutInverse(&layout, ax, ay, x, y, &back_x,
-					    &back_y);
-		XVT_ASSERT_CLOSE(back_x, 123.5, kTol, WHY_FLOAT);
-		XVT_ASSERT_CLOSE(back_y, 77.25, kTol, WHY_FLOAT);
-		XvtRenderMath_LayoutInverse(&layout, ax, ay, 900, 40, &x, &y);
-		XvtRenderMath_LayoutPoint(&layout, ax, ay, x, y, &back_x,
-					  &back_y);
-		XVT_ASSERT_CLOSE(back_x, 900, kTol, WHY_FLOAT);
-		XVT_ASSERT_CLOSE(back_y, 40, kTol, WHY_FLOAT);
+		xvt_render_math_layout_point(&layout, ax, ay, 123.5f, 77.25f,
+					     &x, &y);
+		xvt_render_math_layout_inverse(&layout, ax, ay, x, y, &back_x,
+					       &back_y);
+		XVT_ASSERT_CLOSE(back_x, 123.5, k_tol, WHY_FLOAT);
+		XVT_ASSERT_CLOSE(back_y, 77.25, k_tol, WHY_FLOAT);
+		xvt_render_math_layout_inverse(&layout, ax, ay, 900, 40, &x,
+					       &y);
+		xvt_render_math_layout_point(&layout, ax, ay, x, y, &back_x,
+					     &back_y);
+		XVT_ASSERT_CLOSE(back_x, 900, k_tol, WHY_FLOAT);
+		XVT_ASSERT_CLOSE(back_y, 40, k_tol, WHY_FLOAT);
 	}
 }
 
 /* Calls BuildView on a view filled with a marker and checks it is refused with the view untouched. */
-static void ExpectRefusedUntouched(const struct XvtSnapCamera *camera,
-				   const int32_t *origin, int width, int height)
+static void expect_refused_untouched(const struct xvt_snap_camera *camera,
+				     const int32_t *origin, int width,
+				     int height)
 {
-	struct XvtRenderView before, after;
+	struct xvt_render_view before, after;
 	memset(&before, 0xA5, sizeof before);
 	after = before;
-	XVT_ASSERT_INT_EQ(
-		XvtRenderMath_BuildView(camera, origin, width, height, &after),
-		0);
+	XVT_ASSERT_INT_EQ(xvt_render_math_build_view(camera, origin, width,
+						     height, &after),
+			  0);
 	XVT_ASSERT_INT_EQ(memcmp(&before, &after, sizeof before), 0);
 	after = before;
-	XVT_ASSERT_INT_EQ(XvtRenderMath_BuildMainView(camera, origin, width,
-						      height, &after),
+	XVT_ASSERT_INT_EQ(xvt_render_math_build_main_view(camera, origin, width,
+							  height, &after),
 			  0);
 	XVT_ASSERT_INT_EQ(memcmp(&before, &after, sizeof before), 0);
 }
 
 /* Calls BuildView with a bad row and checks it is refused with the view zeroed. */
-static void ExpectRefusedZeroed(const struct XvtSnapCamera *camera)
+static void expect_refused_zeroed(const struct xvt_snap_camera *camera)
 {
-	struct XvtRenderView view, zero;
+	struct xvt_render_view view, zero;
 	memset(&view, 0xA5, sizeof view);
 	memset(&zero, 0, sizeof zero);
 	XVT_ASSERT_INT_EQ(
-		XvtRenderMath_BuildView(camera, kOrigin, 640, 400, &view), 0);
+		xvt_render_math_build_view(camera, k_origin, 640, 400, &view),
+		0);
 	XVT_ASSERT_INT_EQ(memcmp(&view, &zero, sizeof view), 0);
 }
 
-static void CheckBuildViewRefusals(void)
+static void check_build_view_refusals(void)
 {
-	struct XvtSnapCamera camera = CleanCamera();
-	struct XvtRenderView view;
+	struct xvt_snap_camera camera = clean_camera();
+	struct xvt_render_view view;
 	XVT_ASSERT_INT_EQ(
-		XvtRenderMath_BuildView(&camera, kOrigin, 640, 400, &view), 1);
+		xvt_render_math_build_view(&camera, k_origin, 640, 400, &view),
+		1);
 	XVT_ASSERT_INT_EQ(
-		XvtRenderMath_BuildView(&camera, kOrigin, 640, 400, NULL), 0);
-	XVT_ASSERT_INT_EQ(
-		XvtRenderMath_BuildMainView(&camera, kOrigin, 640, 400, NULL),
+		xvt_render_math_build_view(&camera, k_origin, 640, 400, NULL),
 		0);
+	XVT_ASSERT_INT_EQ(xvt_render_math_build_main_view(&camera, k_origin,
+							  640, 400, NULL),
+			  0);
 
-	ExpectRefusedUntouched(NULL, kOrigin, 640, 400);
-	ExpectRefusedUntouched(&camera, NULL, 640, 400);
-	ExpectRefusedUntouched(&camera, kOrigin, 0, 400);
-	ExpectRefusedUntouched(&camera, kOrigin, 640, -1);
+	expect_refused_untouched(NULL, k_origin, 640, 400);
+	expect_refused_untouched(&camera, NULL, 640, 400);
+	expect_refused_untouched(&camera, k_origin, 0, 400);
+	expect_refused_untouched(&camera, k_origin, 640, -1);
 	camera.valid = 0;
-	ExpectRefusedUntouched(&camera, kOrigin, 640, 400);
-	camera = CleanCamera();
+	expect_refused_untouched(&camera, k_origin, 640, 400);
+	camera = clean_camera();
 	camera.viewport.width = 0;
-	ExpectRefusedUntouched(&camera, kOrigin, 640, 400);
-	camera = CleanCamera();
+	expect_refused_untouched(&camera, k_origin, 640, 400);
+	camera = clean_camera();
 	camera.viewport.height = -5;
-	ExpectRefusedUntouched(&camera, kOrigin, 640, 400);
+	expect_refused_untouched(&camera, k_origin, 640, 400);
 
 	/* A first row shorter than 1e-6 or not finite. */
-	camera = CleanCamera();
+	camera = clean_camera();
 	camera.rows[1] = 0.0f;
-	ExpectRefusedZeroed(&camera);
+	expect_refused_zeroed(&camera);
 	camera.rows[1] = 5e-7f;
-	ExpectRefusedZeroed(&camera);
+	expect_refused_zeroed(&camera);
 	camera.rows[1] = NAN;
-	ExpectRefusedZeroed(&camera);
+	expect_refused_zeroed(&camera);
 	camera.rows[1] = INFINITY;
-	ExpectRefusedZeroed(&camera);
+	expect_refused_zeroed(&camera);
 
 	/* A second row with nothing left once made perpendicular to the first, or not finite. */
-	camera = CleanCamera();
+	camera = clean_camera();
 	camera.rows[3] = 0.0f;
 	camera.rows[4] = -2.5f;
 	camera.rows[5] = 0.0f;
-	ExpectRefusedZeroed(&camera);
+	expect_refused_zeroed(&camera);
 	camera.rows[4] = 0.0f;
-	ExpectRefusedZeroed(&camera);
+	expect_refused_zeroed(&camera);
 	camera.rows[5] = NAN;
-	ExpectRefusedZeroed(&camera);
+	expect_refused_zeroed(&camera);
 }
 
-static void CheckBuildViewFields(void)
+static void check_build_view_fields(void)
 {
-	struct XvtSnapCamera camera = CleanCamera();
-	struct XvtRenderView view;
+	struct xvt_snap_camera camera = clean_camera();
+	struct xvt_render_view view;
 	XVT_ASSERT_INT_EQ(
-		XvtRenderMath_BuildView(&camera, kOrigin, 640, 600, &view), 1);
+		xvt_render_math_build_view(&camera, k_origin, 640, 600, &view),
+		1);
 
 	/* Position relative to the origin, which the view keeps. */
-	XVT_ASSERT_CLOSE(view.camera.pos[0], 10, kTol,
+	XVT_ASSERT_CLOSE(view.camera.pos[0], 10, k_tol,
 			 "a small integer difference");
-	XVT_ASSERT_CLOSE(view.camera.pos[1], -10, kTol,
+	XVT_ASSERT_CLOSE(view.camera.pos[1], -10, k_tol,
 			 "a small integer difference");
-	XVT_ASSERT_CLOSE(view.camera.pos[2], -10, kTol,
+	XVT_ASSERT_CLOSE(view.camera.pos[2], -10, k_tol,
 			 "a small integer difference");
 	for (int i = 0; i < 3; ++i) {
-		XVT_ASSERT_INT_EQ(view.origin_world[i], kOrigin[i]);
+		XVT_ASSERT_INT_EQ(view.origin_world[i], k_origin[i]);
 	}
 
 	/* The whole window, and window pixels per original pixel. */
@@ -241,32 +248,35 @@ static void CheckBuildViewFields(void)
 	XVT_ASSERT_INT_EQ(view.camera.viewport.y, 0);
 	XVT_ASSERT_INT_EQ(view.camera.viewport.width, 640);
 	XVT_ASSERT_INT_EQ(view.camera.viewport.height, 600);
-	XVT_ASSERT_CLOSE(view.classic_pixel_scale, 600.0 / 200.0, kTol,
+	XVT_ASSERT_CLOSE(view.classic_pixel_scale, 600.0 / 200.0, k_tol,
 			 WHY_FLOAT);
 
 	/* Half the viewport height over the focal length 2^8; the horizontal angle from width:height. */
-	XVT_ASSERT_CLOSE(tan(view.camera.v_half_rad), 100.0 / 256.0, kTol,
+	XVT_ASSERT_CLOSE(tan(view.camera.v_half_rad), 100.0 / 256.0, k_tol,
 			 WHY_FLOAT);
 	XVT_ASSERT_CLOSE(tan(view.camera.h_half_rad),
-			 tan(view.camera.v_half_rad) * 640.0 / 600.0, kTol,
+			 tan(view.camera.v_half_rad) * 640.0 / 600.0, k_tol,
 			 WHY_FLOAT);
 
 	/* The Q16 aspect scales the focal length; 0 and 0xFFFF both count as 1. */
 	camera.aspect_y_q16 = 0x8000;
 	XVT_ASSERT_INT_EQ(
-		XvtRenderMath_BuildView(&camera, kOrigin, 640, 600, &view), 1);
+		xvt_render_math_build_view(&camera, k_origin, 640, 600, &view),
+		1);
 	XVT_ASSERT_CLOSE(tan(view.camera.v_half_rad), 100.0 / (256.0 * 0.5),
-			 kTol, WHY_FLOAT);
+			 k_tol, WHY_FLOAT);
 	camera.aspect_y_q16 = 0xFFFF;
 	XVT_ASSERT_INT_EQ(
-		XvtRenderMath_BuildView(&camera, kOrigin, 640, 600, &view), 1);
-	XVT_ASSERT_CLOSE(tan(view.camera.v_half_rad), 100.0 / 256.0, kTol,
+		xvt_render_math_build_view(&camera, k_origin, 640, 600, &view),
+		1);
+	XVT_ASSERT_CLOSE(tan(view.camera.v_half_rad), 100.0 / 256.0, k_tol,
 			 WHY_FLOAT);
 	camera.aspect_y_q16 = 0;
 	camera.perspective_shift = 6;
 	XVT_ASSERT_INT_EQ(
-		XvtRenderMath_BuildView(&camera, kOrigin, 640, 600, &view), 1);
-	XVT_ASSERT_CLOSE(tan(view.camera.v_half_rad), 100.0 / 64.0, kTol,
+		xvt_render_math_build_view(&camera, k_origin, 640, 600, &view),
+		1);
+	XVT_ASSERT_CLOSE(tan(view.camera.v_half_rad), 100.0 / 64.0, k_tol,
 			 WHY_FLOAT);
 
 	/* The view-projection is the camera's, as AeronScene_ComputeViewProj computes it. */
@@ -275,9 +285,9 @@ static void CheckBuildViewFields(void)
 	XVT_ASSERT_INT_EQ(memcmp(expected, view.view_proj, sizeof expected), 0);
 }
 
-static void CheckBuildViewRows(void)
+static void check_build_view_rows(void)
 {
-	struct XvtSnapCamera clean = CleanCamera(), messy = CleanCamera();
+	struct xvt_snap_camera clean = clean_camera(), messy = clean_camera();
 	/* The first row scaled, the second leaning toward the first and scaled, the third anything. */
 	messy.rows[1] = 3.0f;
 	messy.rows[3] = 0.0f;
@@ -286,40 +296,40 @@ static void CheckBuildViewRows(void)
 	messy.rows[6] = 7.0f;
 	messy.rows[7] = -3.0f;
 	messy.rows[8] = 2.0f;
-	struct XvtRenderView a, b;
+	struct xvt_render_view a, b;
 	XVT_ASSERT_INT_EQ(
-		XvtRenderMath_BuildView(&clean, kOrigin, 640, 400, &a), 1);
+		xvt_render_math_build_view(&clean, k_origin, 640, 400, &a), 1);
 	XVT_ASSERT_INT_EQ(
-		XvtRenderMath_BuildView(&messy, kOrigin, 640, 400, &b), 1);
+		xvt_render_math_build_view(&messy, k_origin, 640, 400, &b), 1);
 	/* q and -q are the same rotation. */
 	double dot = 0;
 	for (int i = 0; i < 4; ++i) {
 		dot += (double)a.camera.ori[i] * b.camera.ori[i];
 	}
-	XVT_ASSERT_CLOSE(fabs(dot), 1.0, kTol, WHY_FLOAT);
+	XVT_ASSERT_CLOSE(fabs(dot), 1.0, k_tol, WHY_FLOAT);
 }
 
-static float Depth(const struct XvtRenderView *view, int32_t x, int32_t y,
+static float depth(const struct xvt_render_view *view, int32_t x, int32_t y,
 		   int32_t z)
 {
 	const int32_t world[3] = {x, y, z};
 	float px, py, depth = NAN;
-	XvtRenderMath_ProjectWorld(view, world, &px, &py, &depth);
+	xvt_render_math_project_world(view, world, &px, &py, &depth);
 	return depth;
 }
 
 /* The view axis in world terms, from depth's change over 1000 units along each world axis. */
-static void ViewAxis(const struct XvtRenderView *view, const int32_t at[3],
-		     double axis[3])
+static void view_axis(const struct xvt_render_view *view, const int32_t at[3],
+		      double axis[3])
 {
-	double base = Depth(view, at[0], at[1], at[2]);
-	axis[0] = (Depth(view, at[0] + 1000, at[1], at[2]) - base) / 1000;
-	axis[1] = (Depth(view, at[0], at[1] + 1000, at[2]) - base) / 1000;
-	axis[2] = (Depth(view, at[0], at[1], at[2] + 1000) - base) / 1000;
+	double base = depth(view, at[0], at[1], at[2]);
+	axis[0] = (depth(view, at[0] + 1000, at[1], at[2]) - base) / 1000;
+	axis[1] = (depth(view, at[0], at[1] + 1000, at[2]) - base) / 1000;
+	axis[2] = (depth(view, at[0], at[1], at[2] + 1000) - base) / 1000;
 }
 
 /* The point d units from `at` along an axis-aligned direction. */
-static void Along(const int32_t at[3], const double axis[3], int32_t d,
+static void along(const int32_t at[3], const double axis[3], int32_t d,
 		  int32_t out[3])
 {
 	for (int i = 0; i < 3; ++i) {
@@ -327,104 +337,109 @@ static void Along(const int32_t at[3], const double axis[3], int32_t d,
 	}
 }
 
-static void CheckProjectWorld(void)
+static void check_project_world(void)
 {
-	struct XvtSnapCamera camera = CleanCamera();
-	struct XvtRenderView view;
+	struct xvt_snap_camera camera = clean_camera();
+	struct xvt_render_view view;
 	XVT_ASSERT_INT_EQ(
-		XvtRenderMath_BuildView(&camera, kOrigin, 640, 400, &view), 1);
+		xvt_render_math_build_view(&camera, k_origin, 640, 400, &view),
+		1);
 	double axis[3];
-	ViewAxis(&view, camera.world_pos, axis);
+	view_axis(&view, camera.world_pos, axis);
 	/* Depth is a distance: its gradient is a unit vector. These rows put it along a world axis. */
 	XVT_ASSERT_CLOSE(
 		sqrt(axis[0] * axis[0] + axis[1] * axis[1] + axis[2] * axis[2]),
-		1.0, kTol, WHY_FLOAT);
+		1.0, k_tol, WHY_FLOAT);
 	XVT_ASSERT_CLOSE(fabs(axis[0]) + fabs(axis[1]) + fabs(axis[2]), 1.0,
-			 kTol, WHY_FLOAT);
+			 k_tol, WHY_FLOAT);
 
 	/* Every point on the view axis in front of the camera lands on the same pixel, at its distance. */
 	int32_t point[3];
 	float x0, y0, x, y, depth;
-	Along(camera.world_pos, axis, 100, point);
+	along(camera.world_pos, axis, 100, point);
 	XVT_ASSERT_INT_EQ(
-		XvtRenderMath_ProjectWorld(&view, point, &x0, &y0, &depth), 1);
-	XVT_ASSERT_CLOSE(depth, 100, kTol, WHY_FLOAT);
+		xvt_render_math_project_world(&view, point, &x0, &y0, &depth),
+		1);
+	XVT_ASSERT_CLOSE(depth, 100, k_tol, WHY_FLOAT);
 	static const int32_t distances[] = {1, 1000, 1000000};
 	for (unsigned i = 0; i < 3; ++i) {
-		Along(camera.world_pos, axis, distances[i], point);
-		XVT_ASSERT_INT_EQ(XvtRenderMath_ProjectWorld(&view, point, &x,
-							     &y, &depth),
+		along(camera.world_pos, axis, distances[i], point);
+		XVT_ASSERT_INT_EQ(xvt_render_math_project_world(&view, point,
+								&x, &y, &depth),
 				  1);
-		XVT_ASSERT_CLOSE(depth, distances[i], kTol, WHY_FLOAT);
-		XVT_ASSERT_CLOSE(x, x0, kTol, WHY_FLOAT);
-		XVT_ASSERT_CLOSE(y, y0, kTol, WHY_FLOAT);
+		XVT_ASSERT_CLOSE(depth, distances[i], k_tol, WHY_FLOAT);
+		XVT_ASSERT_CLOSE(x, x0, k_tol, WHY_FLOAT);
+		XVT_ASSERT_CLOSE(y, y0, k_tol, WHY_FLOAT);
 	}
 
 	/* Depth may be left out. */
 	XVT_ASSERT_INT_EQ(
-		XvtRenderMath_ProjectWorld(&view, point, &x, &y, NULL), 1);
+		xvt_render_math_project_world(&view, point, &x, &y, NULL), 1);
 
 	/* Behind the camera, or at it: refused with depth written and x, y untouched. */
 	x = y = -12345.0f;
-	Along(camera.world_pos, axis, -100, point);
+	along(camera.world_pos, axis, -100, point);
 	XVT_ASSERT_INT_EQ(
-		XvtRenderMath_ProjectWorld(&view, point, &x, &y, &depth), 0);
-	XVT_ASSERT_CLOSE(depth, -100, kTol, WHY_FLOAT);
+		xvt_render_math_project_world(&view, point, &x, &y, &depth), 0);
+	XVT_ASSERT_CLOSE(depth, -100, k_tol, WHY_FLOAT);
 	XVT_ASSERT_CLOSE(x, -12345.0, 0, "untouched");
 	XVT_ASSERT_CLOSE(y, -12345.0, 0, "untouched");
-	XVT_ASSERT_INT_EQ(XvtRenderMath_ProjectWorld(&view, camera.world_pos,
-						     &x, &y, &depth),
+	XVT_ASSERT_INT_EQ(xvt_render_math_project_world(&view, camera.world_pos,
+							&x, &y, &depth),
 			  0);
 	XVT_ASSERT_CLOSE(x, -12345.0, 0, "untouched");
 
 	/* In front but far off to the side: not clipped, it lands outside the window. */
-	Along(camera.world_pos, axis, 100, point);
+	along(camera.world_pos, axis, 100, point);
 	point[0] += axis[0] == 0 ? 100000 : 0;
 	point[1] += axis[0] != 0 ? 100000 : 0;
 	XVT_ASSERT_INT_EQ(
-		XvtRenderMath_ProjectWorld(&view, point, &x, &y, &depth), 1);
+		xvt_render_math_project_world(&view, point, &x, &y, &depth), 1);
 	XVT_ASSERT_TRUE(x < 0 || x > 640 || y < 0 || y > 400);
 
 	/* NULL view, world, x or y: refused, nothing written. */
 	x = y = depth = -1.0f;
 	XVT_ASSERT_INT_EQ(
-		XvtRenderMath_ProjectWorld(NULL, point, &x, &y, &depth), 0);
+		xvt_render_math_project_world(NULL, point, &x, &y, &depth), 0);
 	XVT_ASSERT_INT_EQ(
-		XvtRenderMath_ProjectWorld(&view, NULL, &x, &y, &depth), 0);
+		xvt_render_math_project_world(&view, NULL, &x, &y, &depth), 0);
 	XVT_ASSERT_INT_EQ(
-		XvtRenderMath_ProjectWorld(&view, point, NULL, &y, &depth), 0);
+		xvt_render_math_project_world(&view, point, NULL, &y, &depth),
+		0);
 	XVT_ASSERT_INT_EQ(
-		XvtRenderMath_ProjectWorld(&view, point, &x, NULL, &depth), 0);
+		xvt_render_math_project_world(&view, point, &x, NULL, &depth),
+		0);
 	XVT_ASSERT_CLOSE(x, -1.0, 0, "untouched");
 	XVT_ASSERT_CLOSE(y, -1.0, 0, "untouched");
 	XVT_ASSERT_CLOSE(depth, -1.0, 0, "untouched");
 }
 
-static void CheckIntegerOrigin(void)
+static void check_integer_origin(void)
 {
 	/* Far from 0 a float cannot hold a world coordinate to the unit, but positions are measured from
 	 * the integer origin first: one unit along the view axis is a depth of one. */
-	struct XvtSnapCamera camera = CleanCamera();
+	struct xvt_snap_camera camera = clean_camera();
 	camera.world_pos[0] = 2000000000;
 	camera.world_pos[1] = -2000000000;
 	camera.world_pos[2] = 1500000003;
 	const int32_t origin[3] = {2000000000, -2000000000, 1500000000};
-	struct XvtRenderView view;
+	struct xvt_render_view view;
 	XVT_ASSERT_INT_EQ(
-		XvtRenderMath_BuildView(&camera, origin, 640, 400, &view), 1);
-	XVT_ASSERT_CLOSE(view.camera.pos[2], 3, kTol,
+		xvt_render_math_build_view(&camera, origin, 640, 400, &view),
+		1);
+	XVT_ASSERT_CLOSE(view.camera.pos[2], 3, k_tol,
 			 "a small integer difference");
 	double axis[3];
-	ViewAxis(&view, camera.world_pos, axis);
+	view_axis(&view, camera.world_pos, axis);
 	int32_t point[3];
-	Along(camera.world_pos, axis, 1, point);
-	XVT_ASSERT_CLOSE(Depth(&view, point[0], point[1], point[2]), 1, kTol,
+	along(camera.world_pos, axis, 1, point);
+	XVT_ASSERT_CLOSE(depth(&view, point[0], point[1], point[2]), 1, k_tol,
 			 WHY_FLOAT);
 }
 
-static void CheckBuildMainView(void)
+static void check_build_main_view(void)
 {
-	struct XvtSnapCamera camera = CleanCamera();
+	struct xvt_snap_camera camera = clean_camera();
 	camera.viewport.x = 16;
 	camera.viewport.y = 8;
 	camera.viewport.width = 288;
@@ -432,69 +447,71 @@ static void CheckBuildMainView(void)
 	camera.center_x = 144;
 	camera.center_y = 70;
 	camera.projection_offset_y = 10;
-	struct XvtRenderView view;
+	struct xvt_render_view view;
 
 	/* The uniform fit of the record's 320 x 200 screen, as Layout computes it. */
-	struct XvtLayoutTransform layout;
-	XVT_ASSERT_INT_EQ(
-		XvtRenderMath_BuildMainView(&camera, kOrigin, 800, 400, &view),
-		1);
-	XVT_ASSERT_INT_EQ(XvtRenderMath_Layout(320, 200, 800, 400, &layout), 1);
-	XVT_ASSERT_CLOSE(view.classic_pixel_scale, layout.scale, kTol,
+	struct xvt_layout_transform layout;
+	XVT_ASSERT_INT_EQ(xvt_render_math_build_main_view(&camera, k_origin,
+							  800, 400, &view),
+			  1);
+	XVT_ASSERT_INT_EQ(xvt_render_math_layout(320, 200, 800, 400, &layout),
+			  1);
+	XVT_ASSERT_CLOSE(view.classic_pixel_scale, layout.scale, k_tol,
 			 WHY_FLOAT);
-	XVT_ASSERT_INT_EQ(
-		XvtRenderMath_BuildMainView(&camera, kOrigin, 640, 400, &view),
-		1);
-	XVT_ASSERT_CLOSE(view.classic_pixel_scale, 2.0, kTol, WHY_FLOAT);
+	XVT_ASSERT_INT_EQ(xvt_render_math_build_main_view(&camera, k_origin,
+							  640, 400, &view),
+			  1);
+	XVT_ASSERT_CLOSE(view.classic_pixel_scale, 2.0, k_tol, WHY_FLOAT);
 
 	/* Both half-angles from the scaled focal length 2^8 * 2 over the whole window. */
 	XVT_ASSERT_CLOSE(tan(view.camera.h_half_rad), 640.0 / (2 * 256.0 * 2),
-			 kTol, WHY_FLOAT);
+			 k_tol, WHY_FLOAT);
 	XVT_ASSERT_CLOSE(tan(view.camera.v_half_rad), 400.0 / (2 * 256.0 * 2),
-			 kTol, WHY_FLOAT);
+			 k_tol, WHY_FLOAT);
 
 	/* The window has the screen's shape, so the fitted frame is the window: the view axis lands on the
 	 * viewport origin plus its center (plus the offset on y), scaled. */
 	double axis[3];
-	ViewAxis(&view, camera.world_pos, axis);
+	view_axis(&view, camera.world_pos, axis);
 	int32_t point[3];
-	Along(camera.world_pos, axis, 500, point);
+	along(camera.world_pos, axis, 500, point);
 	float x, y;
 	XVT_ASSERT_INT_EQ(
-		XvtRenderMath_ProjectWorld(&view, point, &x, &y, NULL), 1);
-	XVT_ASSERT_CLOSE(x, (16 + 144) * 2.0, kTol, WHY_FLOAT);
-	XVT_ASSERT_CLOSE(y, (8 + 70 + 10) * 2.0, kTol, WHY_FLOAT);
+		xvt_render_math_project_world(&view, point, &x, &y, NULL), 1);
+	XVT_ASSERT_CLOSE(x, (16 + 144) * 2.0, k_tol, WHY_FLOAT);
+	XVT_ASSERT_CLOSE(y, (8 + 70 + 10) * 2.0, k_tol, WHY_FLOAT);
 
 	/* No screen size: refused, with BuildView's result left in out. */
-	struct XvtRenderView built, main_view;
+	struct xvt_render_view built, main_view;
 	camera.screen_height = 0;
 	XVT_ASSERT_INT_EQ(
-		XvtRenderMath_BuildView(&camera, kOrigin, 640, 400, &built), 1);
-	XVT_ASSERT_INT_EQ(XvtRenderMath_BuildMainView(&camera, kOrigin, 640,
-						      400, &main_view),
+		xvt_render_math_build_view(&camera, k_origin, 640, 400, &built),
+		1);
+	XVT_ASSERT_INT_EQ(xvt_render_math_build_main_view(&camera, k_origin,
+							  640, 400, &main_view),
 			  0);
 	XVT_ASSERT_INT_EQ(memcmp(&built, &main_view, sizeof built), 0);
 }
 
-static void ExpectRotationColumns(const float m[16], double length)
+static void expect_rotation_columns(const float m[16], double length)
 {
 	for (int i = 0; i < 3; ++i) {
 		double norm =
 			sqrt((double)m[i] * m[i] + (double)m[4 + i] * m[4 + i] +
 			     (double)m[8 + i] * m[8 + i]);
-		XVT_ASSERT_CLOSE(norm, length, kTol, WHY_FLOAT);
+		XVT_ASSERT_CLOSE(norm, length, k_tol, WHY_FLOAT);
 		for (int j = i + 1; j < 3; ++j) {
 			double dot = (double)m[i] * m[j] +
 				     (double)m[4 + i] * m[4 + j] +
 				     (double)m[8 + i] * m[8 + j];
-			XVT_ASSERT_TRUE(fabs(dot) <= kTol * length * length);
+			XVT_ASSERT_TRUE(fabs(dot) <= k_tol * length * length);
 		}
 	}
 }
 
-static void CheckObjectMatrix(void)
+static void check_object_matrix(void)
 {
-	struct XvtSnapObject object;
+	struct xvt_snap_object object;
 	memset(&object, 0, sizeof object);
 	object.world_pos[0] = 1000;
 	object.world_pos[1] = 2000;
@@ -506,32 +523,32 @@ static void CheckObjectMatrix(void)
 	float m[16], other[16];
 
 	/* Translation in elements 3, 7 and 11; an affine bottom row. */
-	XvtRenderMath_ObjectMatrix(&object, origin, m);
-	XVT_ASSERT_CLOSE(m[3], 100, kTol, "a small integer difference");
-	XVT_ASSERT_CLOSE(m[7], -100, kTol, "a small integer difference");
-	XVT_ASSERT_CLOSE(m[11], 0, kTol, "a small integer difference");
-	XVT_ASSERT_CLOSE(m[12], 0, kTol, "exact");
-	XVT_ASSERT_CLOSE(m[13], 0, kTol, "exact");
-	XVT_ASSERT_CLOSE(m[14], 0, kTol, "exact");
-	XVT_ASSERT_CLOSE(m[15], 1, kTol, "exact");
+	xvt_render_math_object_matrix(&object, origin, m);
+	XVT_ASSERT_CLOSE(m[3], 100, k_tol, "a small integer difference");
+	XVT_ASSERT_CLOSE(m[7], -100, k_tol, "a small integer difference");
+	XVT_ASSERT_CLOSE(m[11], 0, k_tol, "a small integer difference");
+	XVT_ASSERT_CLOSE(m[12], 0, k_tol, "exact");
+	XVT_ASSERT_CLOSE(m[13], 0, k_tol, "exact");
+	XVT_ASSERT_CLOSE(m[14], 0, k_tol, "exact");
+	XVT_ASSERT_CLOSE(m[15], 1, k_tol, "exact");
 
 	/* From the angles: a rotation scaled by AERON_OPT_UNITS_PER_METER. */
-	ExpectRotationColumns(m, AERON_OPT_UNITS_PER_METER);
+	expect_rotation_columns(m, AERON_OPT_UNITS_PER_METER);
 
 	/* No mobile record: the angles count and the cached rows do not. */
 	object.cached_rows_q15[0] = 1234;
-	XvtRenderMath_ObjectMatrix(&object, origin, other);
+	xvt_render_math_object_matrix(&object, origin, other);
 	XVT_ASSERT_INT_EQ(memcmp(m, other, sizeof m), 0);
 	object.roll = 0x0100;
-	XvtRenderMath_ObjectMatrix(&object, origin, other);
+	xvt_render_math_object_matrix(&object, origin, other);
 	XVT_ASSERT_TRUE(memcmp(m, other, sizeof m) != 0);
 
 	/* A mobile record with a dirty orientation: the same. */
 	object.has_mobile = 1;
 	object.orient_dirty = 1;
-	XvtRenderMath_ObjectMatrix(&object, origin, m);
+	xvt_render_math_object_matrix(&object, origin, m);
 	object.cached_rows_q15[4] = -999;
-	XvtRenderMath_ObjectMatrix(&object, origin, other);
+	xvt_render_math_object_matrix(&object, origin, other);
 	XVT_ASSERT_INT_EQ(memcmp(m, other, sizeof m), 0);
 
 	/* A mobile record with a clean orientation: the cached Q15 rows count and the angles do not. Rows of
@@ -540,33 +557,34 @@ static void CheckObjectMatrix(void)
 	static const int16_t basis[9] = {0,	 32767,	 0, 0, 0,
 					 -32767, -32767, 0, 0};
 	memcpy(object.cached_rows_q15, basis, sizeof basis);
-	XvtRenderMath_ObjectMatrix(&object, origin, m);
-	ExpectRotationColumns(m, AERON_OPT_UNITS_PER_METER * 32767.0 / 32768.0);
+	xvt_render_math_object_matrix(&object, origin, m);
+	expect_rotation_columns(m,
+				AERON_OPT_UNITS_PER_METER * 32767.0 / 32768.0);
 	object.yaw = 0x7777;
 	object.pitch = 0x1111;
-	XvtRenderMath_ObjectMatrix(&object, origin, other);
+	xvt_render_math_object_matrix(&object, origin, other);
 	XVT_ASSERT_INT_EQ(memcmp(m, other, sizeof m), 0);
 	static const int16_t other_basis[9] = {0, 0, 32767, 32767, 0,
 					       0, 0, 32767, 0};
 	memcpy(object.cached_rows_q15, other_basis, sizeof other_basis);
-	XvtRenderMath_ObjectMatrix(&object, origin, other);
+	xvt_render_math_object_matrix(&object, origin, other);
 	XVT_ASSERT_TRUE(memcmp(m, other, sizeof m) != 0);
-	ExpectRotationColumns(other,
-			      AERON_OPT_UNITS_PER_METER * 32767.0 / 32768.0);
+	expect_rotation_columns(other,
+				AERON_OPT_UNITS_PER_METER * 32767.0 / 32768.0);
 }
 
-static struct XvtRenderSnapshot *g_current;
-static struct XvtRenderSnapshot *g_previous;
+static struct xvt_render_snapshot *g_current;
+static struct xvt_render_snapshot *g_previous;
 
 /* Two identical snapshots of a valid locked flight with a camera and two objects. */
-static void SameSnapshots(void)
+static void same_snapshots(void)
 {
 	memset(g_current, 0, sizeof *g_current);
 	g_current->flight_valid = 1;
-	g_current->camera = CleanCamera();
+	g_current->camera = clean_camera();
 	g_current->object_count = 2;
 	for (int i = 0; i < 2; ++i) {
-		struct XvtSnapObject *o = &g_current->objects[i];
+		struct xvt_snap_object *o = &g_current->objects[i];
 		o->id.slot = (uint16_t)(i + 3);
 		o->id.signature = (uint16_t)(0x40 + i);
 		o->object_type = 1;
@@ -579,26 +597,26 @@ static void SameSnapshots(void)
 }
 
 /* Flips one byte of the current snapshot, asks PoseChanged, and flips it back. */
-static int ChangedWithByteFlipped(size_t offset)
+static int changed_with_byte_flipped(size_t offset)
 {
 	uint8_t *bytes = (uint8_t *)g_current;
 	bytes[offset] ^= 0x5A;
-	int changed = XvtRenderMath_PoseChanged(g_current, g_previous);
+	int changed = xvt_render_math_pose_changed(g_current, g_previous);
 	bytes[offset] ^= 0x5A;
 	return changed;
 }
 
-struct Field {
+struct field {
 	size_t offset, size;
 	int compared;
 	const char *name;
 };
 
 #define OBJECT_FIELD(member, compared)                                         \
-	{offsetof(struct XvtSnapObject, member),                               \
-	 sizeof(((struct XvtSnapObject *)0)->member), compared, #member}
+	{offsetof(struct xvt_snap_object, member),                             \
+	 sizeof(((struct xvt_snap_object *)0)->member), compared, #member}
 
-static const struct Field kObjectFields[] = {
+static const struct field k_object_fields[] = {
 	OBJECT_FIELD(id.slot, 1),
 	OBJECT_FIELD(id.signature, 1),
 	OBJECT_FIELD(object_type, 1),
@@ -643,12 +661,12 @@ static const struct Field kObjectFields[] = {
 };
 
 #define SNAPSHOT_FIELD(member)                                                 \
-	{offsetof(struct XvtRenderSnapshot, member),                           \
-	 sizeof(((struct XvtRenderSnapshot *)0)->member), 0, #member}
+	{offsetof(struct xvt_render_snapshot, member),                         \
+	 sizeof(((struct xvt_render_snapshot *)0)->member), 0, #member}
 
 /* Every snapshot field PoseChanged does not compare. view_time_ticks and flight_unlocked count only while
  * the component animation reports movement, which it does not here. */
-static const struct Field kOtherFields[] = {
+static const struct field k_other_fields[] = {
 	SNAPSHOT_FIELD(snapshot_serial),
 	SNAPSHOT_FIELD(flight_frame_serial),
 	SNAPSHOT_FIELD(capture_host_us),
@@ -704,11 +722,11 @@ static const struct Field kOtherFields[] = {
 	SNAPSHOT_FIELD(image_asset_count),
 };
 
-static void ExpectFieldResult(size_t base, const struct Field *field)
+static void expect_field_result(size_t base, const struct field *field)
 {
-	int first = ChangedWithByteFlipped(base + field->offset);
-	int last =
-		ChangedWithByteFlipped(base + field->offset + field->size - 1);
+	int first = changed_with_byte_flipped(base + field->offset);
+	int last = changed_with_byte_flipped(base + field->offset +
+					     field->size - 1);
 	if (first != field->compared || last != field->compared) {
 		fprintf(stderr,
 			"field %s: PoseChanged gave %d and %d, expected %d\n",
@@ -718,66 +736,72 @@ static void ExpectFieldResult(size_t base, const struct Field *field)
 	XVT_ASSERT_INT_EQ(last, field->compared);
 }
 
-static void CheckPoseChanged(void)
+static void check_pose_changed(void)
 {
-	XvtComponentAnimation_Reset();
-	SameSnapshots();
-	XVT_ASSERT_INT_EQ(XvtRenderMath_PoseChanged(g_current, g_previous), 0);
-	XVT_ASSERT_INT_EQ(XvtRenderMath_PoseChanged(NULL, g_previous), 1);
-	XVT_ASSERT_INT_EQ(XvtRenderMath_PoseChanged(g_current, NULL), 1);
+	xvt_component_animation_reset();
+	same_snapshots();
+	XVT_ASSERT_INT_EQ(xvt_render_math_pose_changed(g_current, g_previous),
+			  0);
+	XVT_ASSERT_INT_EQ(xvt_render_math_pose_changed(NULL, g_previous), 1);
+	XVT_ASSERT_INT_EQ(xvt_render_math_pose_changed(g_current, NULL), 1);
 
 	/* flight_valid differs. */
 	g_current->flight_valid = 0;
-	XVT_ASSERT_INT_EQ(XvtRenderMath_PoseChanged(g_current, g_previous), 1);
-	XVT_ASSERT_INT_EQ(XvtRenderMath_PoseChanged(g_previous, g_current), 1);
+	XVT_ASSERT_INT_EQ(xvt_render_math_pose_changed(g_current, g_previous),
+			  1);
+	XVT_ASSERT_INT_EQ(xvt_render_math_pose_changed(g_previous, g_current),
+			  1);
 
 	/* Neither valid: nothing else matters. */
 	g_previous->flight_valid = 0;
 	g_current->camera.world_pos[0] += 5;
 	g_current->object_count = 1;
 	g_current->objects[0].yaw = 0x4000;
-	XVT_ASSERT_INT_EQ(XvtRenderMath_PoseChanged(g_current, g_previous), 0);
+	XVT_ASSERT_INT_EQ(xvt_render_math_pose_changed(g_current, g_previous),
+			  0);
 
 	/* Any byte of the camera record. */
-	SameSnapshots();
-	const size_t camera = offsetof(struct XvtRenderSnapshot, camera);
-	for (size_t i = 0; i < sizeof(struct XvtSnapCamera); ++i) {
-		XVT_ASSERT_INT_EQ(ChangedWithByteFlipped(camera + i), 1);
+	same_snapshots();
+	const size_t camera = offsetof(struct xvt_render_snapshot, camera);
+	for (size_t i = 0; i < sizeof(struct xvt_snap_camera); ++i) {
+		XVT_ASSERT_INT_EQ(changed_with_byte_flipped(camera + i), 1);
 	}
 
 	/* The object count. */
 	g_current->object_count = 1;
-	XVT_ASSERT_INT_EQ(XvtRenderMath_PoseChanged(g_current, g_previous), 1);
+	XVT_ASSERT_INT_EQ(xvt_render_math_pose_changed(g_current, g_previous),
+			  1);
 	g_current->object_count = 2;
 
 	/* Each field of each object in the count: compared, or one of the fields the header leaves out. */
 	for (unsigned o = 0; o < 2; ++o) {
 		const size_t base =
-			offsetof(struct XvtRenderSnapshot, objects) +
-			o * sizeof(struct XvtSnapObject);
+			offsetof(struct xvt_render_snapshot, objects) +
+			o * sizeof(struct xvt_snap_object);
 		for (unsigned f = 0;
-		     f < sizeof kObjectFields / sizeof kObjectFields[0]; ++f) {
-			ExpectFieldResult(base, &kObjectFields[f]);
+		     f < sizeof k_object_fields / sizeof k_object_fields[0];
+		     ++f) {
+			expect_field_result(base, &k_object_fields[f]);
 		}
 	}
 
 	/* Nothing else: an object past the count, and every other snapshot field. */
-	const struct Field past = {offsetof(struct XvtRenderSnapshot, objects) +
-					   2 * sizeof(struct XvtSnapObject),
-				   sizeof(struct XvtSnapObject), 0,
-				   "objects[object_count]"};
-	ExpectFieldResult(0, &past);
-	for (unsigned f = 0; f < sizeof kOtherFields / sizeof kOtherFields[0];
-	     ++f) {
-		ExpectFieldResult(0, &kOtherFields[f]);
+	const struct field past = {
+		offsetof(struct xvt_render_snapshot, objects) +
+			2 * sizeof(struct xvt_snap_object),
+		sizeof(struct xvt_snap_object), 0, "objects[object_count]"};
+	expect_field_result(0, &past);
+	for (unsigned f = 0;
+	     f < sizeof k_other_fields / sizeof k_other_fields[0]; ++f) {
+		expect_field_result(0, &k_other_fields[f]);
 	}
 }
 
 /* Makes the component animation report movement: a craft whose component turns between two frames. */
-static void AnimationMoves(void)
+static void animation_moves(void)
 {
-	XvtComponentAnimation_Reset();
-	struct XvtRenderSnapshot *frame = g_current;
+	xvt_component_animation_reset();
+	struct xvt_render_snapshot *frame = g_current;
 	memset(frame, 0, sizeof *frame);
 	frame->flight_valid = 1;
 	frame->flight_unlocked = 1;
@@ -787,31 +811,35 @@ static void AnimationMoves(void)
 	frame->objects[0].id.signature = 7;
 	frame->flight_frame_serial = 1;
 	frame->component_event_serial = 1;
-	XvtComponentAnimation_Prepare(frame);
+	xvt_component_animation_prepare(frame);
 	frame->flight_frame_serial = 2;
 	frame->component_event_serial = 2;
 	frame->view_time_ticks = 16;
 	frame->objects[0].mesh_rotation[0] = 64;
-	XvtComponentAnimation_Prepare(frame);
-	XVT_ASSERT_INT_EQ(XvtComponentAnimation_Changed(), 1);
+	xvt_component_animation_prepare(frame);
+	XVT_ASSERT_INT_EQ(xvt_component_animation_changed(), 1);
 }
 
-static void CheckPoseChangedViewTime(void)
+static void check_pose_changed_view_time(void)
 {
 	/* An unlocked flight whose view time moved while the animation reports movement. */
-	AnimationMoves();
-	SameSnapshots();
+	animation_moves();
+	same_snapshots();
 	g_current->flight_unlocked = g_previous->flight_unlocked = 1;
-	XVT_ASSERT_INT_EQ(XvtRenderMath_PoseChanged(g_current, g_previous), 0);
+	XVT_ASSERT_INT_EQ(xvt_render_math_pose_changed(g_current, g_previous),
+			  0);
 	g_current->view_time_ticks += 1;
-	XVT_ASSERT_INT_EQ(XvtRenderMath_PoseChanged(g_current, g_previous), 1);
+	XVT_ASSERT_INT_EQ(xvt_render_math_pose_changed(g_current, g_previous),
+			  1);
 
 	/* A locked flight, or no movement reported: the view time alone is no change. */
 	g_current->flight_unlocked = g_previous->flight_unlocked = 0;
-	XVT_ASSERT_INT_EQ(XvtRenderMath_PoseChanged(g_current, g_previous), 0);
+	XVT_ASSERT_INT_EQ(xvt_render_math_pose_changed(g_current, g_previous),
+			  0);
 	g_current->flight_unlocked = g_previous->flight_unlocked = 1;
-	XvtComponentAnimation_Reset();
-	XVT_ASSERT_INT_EQ(XvtRenderMath_PoseChanged(g_current, g_previous), 0);
+	xvt_component_animation_reset();
+	XVT_ASSERT_INT_EQ(xvt_render_math_pose_changed(g_current, g_previous),
+			  0);
 }
 
 int main(void)
@@ -819,17 +847,17 @@ int main(void)
 	g_current = calloc(1, sizeof *g_current);
 	g_previous = calloc(1, sizeof *g_previous);
 	XVT_ASSERT_TRUE(g_current != NULL && g_previous != NULL);
-	CheckLayout();
-	CheckLayoutPoints();
-	CheckBuildViewRefusals();
-	CheckBuildViewFields();
-	CheckBuildViewRows();
-	CheckProjectWorld();
-	CheckIntegerOrigin();
-	CheckBuildMainView();
-	CheckObjectMatrix();
-	CheckPoseChanged();
-	CheckPoseChangedViewTime();
+	check_layout();
+	check_layout_points();
+	check_build_view_refusals();
+	check_build_view_fields();
+	check_build_view_rows();
+	check_project_world();
+	check_integer_origin();
+	check_build_main_view();
+	check_object_matrix();
+	check_pose_changed();
+	check_pose_changed_view_time();
 	free(g_current);
 	free(g_previous);
 	return 0;

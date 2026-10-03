@@ -6,87 +6,90 @@
 #include "xvt/flight/player/player.h"
 
 /* Returns 1 when the local player's craft has an installed subsystem (its flag
- * set in systemFlags) whose systemHealth is 0, else 0. Also returns 0 when the
+ * set in system_flags) whose system_health is 0, else 0. Also returns 0 when the
  * local player has no craft or the object has no craft record. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x46C140
-int16_t FlightPlayer_HasDisabledSubsystem(void)
+int16_t flight_player_has_disabled_subsystem(void)
 {
-	int objectIndex;
-	struct CraftData *craft;
-	int16_t systemId;
-	int16_t displaySlot;
-	int16_t allInstalledSystemsOperational;
-	uint16_t systemIdByDisplaySlot[CRAFT_SUBSYSTEM_COUNT];
+	int object_index;
+	struct craft_data *craft;
+	int16_t system_id;
+	int16_t display_slot;
+	int16_t all_installed_systems_operational;
+	uint16_t system_id_by_display_slot[CRAFT_SUBSYSTEM_COUNT];
 
-	objectIndex = g_players[g_localPlayer].objectIndex;
-	if (objectIndex == -1) {
+	object_index = g_players[g_local_player].object_index;
+	if (object_index == -1) {
 		return 0;
 	}
-	craft = g_objectTable[objectIndex].mobj->pCraft;
+	craft = g_object_table[object_index].mobj->p_craft;
 	if (craft == NULL) {
 		return 0;
 	}
-	for (systemId = 0; systemId < CRAFT_SUBSYSTEM_COUNT; ++systemId) {
-		systemIdByDisplaySlot
-			[craft->systemDisplaySlotBySystem[systemId]] = systemId;
+	for (system_id = 0; system_id < CRAFT_SUBSYSTEM_COUNT; ++system_id) {
+		system_id_by_display_slot
+			[craft->system_display_slot_by_system[system_id]] =
+				system_id;
 	}
-	allInstalledSystemsOperational = 1;
-	for (displaySlot = 0; displaySlot < CRAFT_SUBSYSTEM_COUNT;
-	     ++displaySlot) {
-		if (craft->systemHealth[systemIdByDisplaySlot[displaySlot]] ==
+	all_installed_systems_operational = 1;
+	for (display_slot = 0; display_slot < CRAFT_SUBSYSTEM_COUNT;
+	     ++display_slot) {
+		if (craft->system_health
+				    [system_id_by_display_slot[display_slot]] ==
 			    0 &&
-		    (g_subsystemIdToFlag[systemIdByDisplaySlot[displaySlot]] &
-		     craft->systemFlags) != 0) {
-			allInstalledSystemsOperational = 0;
+		    (g_subsystem_id_to_flag
+			     [system_id_by_display_slot[display_slot]] &
+		     craft->system_flags) != 0) {
+			all_installed_systems_operational = 0;
 		}
 	}
-	return allInstalledSystemsOperational == 0;
+	return all_installed_systems_operational == 0;
 }
 
 /* Does nothing with its message. Nothing calls this. */
 // FUNCTION: XVT 0x46C200
 void nullsub_8(const char *message) { (void)message; }
 
-/* Adds step to the throttleSpeed of the player's craft, holding at 0xFFFF when
+/* Adds step to the throttle_speed of the player's craft, holding at 0xFFFF when
  * the sum would wrap past it. Does not check that the player has a craft. */
 // FUNCTION: XVT 0x481D90
-void FlightPlayer_IncreaseThrottleSpeed(int16_t step, int playerIdx)
+void flight_player_increase_throttle_speed(int16_t step, int player_idx)
 {
-	struct PlayerData *player;
-	uint16_t *throttleSpeedPtr;
-	uint16_t throttleSpeed;
+	struct player_data *player;
+	uint16_t *throttle_speed_ptr;
+	uint16_t throttle_speed;
 
-	player = &g_players[playerIdx];
-	throttleSpeedPtr =
-		&g_objectTable[player->objectIndex].mobj->pCraft->throttleSpeed;
-	throttleSpeed = *throttleSpeedPtr;
-	*throttleSpeedPtr = (uint16_t)(throttleSpeed + step);
-	if (g_objectTable[player->objectIndex].mobj->pCraft->throttleSpeed <
-	    throttleSpeed) {
-		g_objectTable[player->objectIndex].mobj->pCraft->throttleSpeed =
-			UINT16_MAX;
+	player = &g_players[player_idx];
+	throttle_speed_ptr = &g_object_table[player->object_index]
+				      .mobj->p_craft->throttle_speed;
+	throttle_speed = *throttle_speed_ptr;
+	*throttle_speed_ptr = (uint16_t)(throttle_speed + step);
+	if (g_object_table[player->object_index].mobj->p_craft->throttle_speed <
+	    throttle_speed) {
+		g_object_table[player->object_index]
+			.mobj->p_craft->throttle_speed = UINT16_MAX;
 	}
 }
 
-/* Takes step from the throttleSpeed of the player's craft, holding at 0 when
+/* Takes step from the throttle_speed of the player's craft, holding at 0 when
  * the result would wrap below it. Does not check that the player has a
  * craft. */
 // FUNCTION: XVT 0x481E10
-void FlightPlayer_DecreaseThrottleSpeed(int16_t step, int playerIdx)
+void flight_player_decrease_throttle_speed(int16_t step, int player_idx)
 {
-	struct PlayerData *player;
-	uint16_t *throttleSpeedPtr;
-	uint16_t throttleSpeed;
+	struct player_data *player;
+	uint16_t *throttle_speed_ptr;
+	uint16_t throttle_speed;
 
-	player = &g_players[playerIdx];
-	throttleSpeedPtr =
-		&g_objectTable[player->objectIndex].mobj->pCraft->throttleSpeed;
-	throttleSpeed = *throttleSpeedPtr;
-	*throttleSpeedPtr = (uint16_t)(throttleSpeed - step);
-	if (g_objectTable[player->objectIndex].mobj->pCraft->throttleSpeed >
-	    throttleSpeed) {
-		g_objectTable[player->objectIndex].mobj->pCraft->throttleSpeed =
-			0;
+	player = &g_players[player_idx];
+	throttle_speed_ptr = &g_object_table[player->object_index]
+				      .mobj->p_craft->throttle_speed;
+	throttle_speed = *throttle_speed_ptr;
+	*throttle_speed_ptr = (uint16_t)(throttle_speed - step);
+	if (g_object_table[player->object_index].mobj->p_craft->throttle_speed >
+	    throttle_speed) {
+		g_object_table[player->object_index]
+			.mobj->p_craft->throttle_speed = 0;
 	}
 }

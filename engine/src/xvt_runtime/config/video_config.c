@@ -4,8 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 
-void XvtVideoSettings_Read(const struct XvtSettings *settings,
-			   struct XvtVideoSettings *out)
+void xvt_video_settings_read(const struct xvt_settings *settings,
+			     struct xvt_video_settings *out)
 {
 	memset(out, 0, sizeof *out);
 	out->cockpit_undither = settings->render.cockpit_undither;
@@ -23,8 +23,8 @@ void XvtVideoSettings_Read(const struct XvtSettings *settings,
 	out->motion_blur_shutter = settings->render.motion_blur.shutter;
 }
 
-bool XvtVideoSettings_Equals(const struct XvtVideoSettings *left,
-			     const struct XvtVideoSettings *right)
+bool xvt_video_settings_equals(const struct xvt_video_settings *left,
+			       const struct xvt_video_settings *right)
 {
 	return left->cockpit_undither == right->cockpit_undither &&
 	       left->fullscreen == right->fullscreen &&
@@ -40,8 +40,8 @@ bool XvtVideoSettings_Equals(const struct XvtVideoSettings *left,
 	       left->motion_blur_shutter == right->motion_blur_shutter;
 }
 
-bool XvtVideoSettings_Validate(const struct XvtVideoSettings *o, char *error,
-			       size_t capacity)
+bool xvt_video_settings_validate(const struct xvt_video_settings *o,
+				 char *error, size_t capacity)
 {
 	bool valid =
 		o && (o->cockpit_undither == 0 || o->cockpit_undither == 1) &&
@@ -71,8 +71,8 @@ bool XvtVideoSettings_Validate(const struct XvtVideoSettings *o, char *error,
 	return valid;
 }
 
-void XvtVideoSettings_ApplyTo(const struct XvtVideoSettings *options,
-			      struct XvtRenderSettings *render)
+void xvt_video_settings_apply_to(const struct xvt_video_settings *options,
+				 struct xvt_render_settings *render)
 {
 	render->cockpit_undither = options->cockpit_undither;
 	render->presentation.hdr_output = options->hdr;
@@ -88,7 +88,7 @@ void XvtVideoSettings_ApplyTo(const struct XvtVideoSettings *options,
 	render->motion_blur.shutter = options->motion_blur_shutter;
 }
 
-static const char *const g_videoPaths[] = {
+static const char *const g_video_paths[] = {
 	"render.cockpit_undither",
 	"video.window_mode",
 	"presentation.hdr_output",
@@ -104,9 +104,9 @@ static const char *const g_videoPaths[] = {
 	"render.motion_blur.shutter",
 };
 
-static bool XvtConfig_WriteVideo(AeronConfigFile *document,
-				 const struct XvtVideoSettings *options,
-				 AeronConfigError *detail)
+static bool xvt_config_write_video(AeronConfigFile *document,
+				   const struct xvt_video_settings *options,
+				   AeronConfigError *detail)
 {
 	static const char *modes[] = {"off", "native_aa", "quality", "balanced",
 				      "performance"};
@@ -152,48 +152,49 @@ static bool XvtConfig_WriteVideo(AeronConfigFile *document,
 					options->motion_blur_shutter, detail);
 }
 
-bool XvtConfig_SetVideo(const struct XvtVideoSettings *options, char *error,
-			size_t capacity)
+bool xvt_config_set_video(const struct xvt_video_settings *options, char *error,
+			  size_t capacity)
 {
 	AeronConfigFile *candidate = NULL;
 	AeronConfigError detail;
-	if (!XvtVideoSettings_Validate(options, error, capacity)) {
+	if (!xvt_video_settings_validate(options, error, capacity)) {
 		return false;
 	}
-	if (!AeronConfigFile_Clone(XvtConfig_UserDocument(), &candidate,
+	if (!AeronConfigFile_Clone(xvt_config_user_document(), &candidate,
 				   &detail)) {
-		return XvtSettings_FileError(&detail, error, capacity);
+		return xvt_settings_file_error(&detail, error, capacity);
 	}
-	bool success = XvtConfig_WriteVideo(candidate, options, &detail);
+	bool success = xvt_config_write_video(candidate, options, &detail);
 	if (success) {
-		success = XvtConfig_UpdateUser(candidate, 0, error, capacity);
+		success = xvt_config_update_user(candidate, 0, error, capacity);
 	} else {
-		XvtSettings_FileError(&detail, error, capacity);
+		xvt_settings_file_error(&detail, error, capacity);
 	}
 	AeronConfigFile_Destroy(candidate);
 	return success;
 }
 
-bool XvtConfig_RestoreVideo(char *error, size_t capacity)
+bool xvt_config_restore_video(char *error, size_t capacity)
 {
 	AeronConfigFile *candidate = NULL;
 	AeronConfigError detail;
-	if (!AeronConfigFile_Clone(XvtConfig_UserDocument(), &candidate,
+	if (!AeronConfigFile_Clone(xvt_config_user_document(), &candidate,
 				   &detail)) {
-		return XvtSettings_FileError(&detail, error, capacity);
+		return xvt_settings_file_error(&detail, error, capacity);
 	}
 	bool success = true;
 	for (size_t i = 0;
-	     i < sizeof g_videoPaths / sizeof g_videoPaths[0] && success; ++i) {
-		if (AeronConfigFile_Has(candidate, g_videoPaths[i])) {
+	     i < sizeof g_video_paths / sizeof g_video_paths[0] && success;
+	     ++i) {
+		if (AeronConfigFile_Has(candidate, g_video_paths[i])) {
 			success = AeronConfigFile_Remove(
-				candidate, g_videoPaths[i], &detail);
+				candidate, g_video_paths[i], &detail);
 		}
 	}
 	if (success) {
-		success = XvtConfig_UpdateUser(candidate, 0, error, capacity);
+		success = xvt_config_update_user(candidate, 0, error, capacity);
 	} else {
-		XvtSettings_FileError(&detail, error, capacity);
+		xvt_settings_file_error(&detail, error, capacity);
 	}
 	AeronConfigFile_Destroy(candidate);
 	return success;

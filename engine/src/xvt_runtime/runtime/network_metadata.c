@@ -13,8 +13,8 @@ static const uint16_t g_windows1252[32] = {
 	0,	0x2018, 0x2019, 0x201c, 0x201d, 0x2022, 0x2013, 0x2014,
 	0x02dc, 0x2122, 0x0161, 0x203a, 0x0153, 0,	0x017e, 0x0178};
 
-void XvtNetworkMetadata_ToUtf8(char *out, size_t capacity, const char *text,
-			       size_t size)
+void xvt_network_metadata_to_utf8(char *out, size_t capacity, const char *text,
+				  size_t size)
 {
 	size_t written = 0;
 	if (!capacity) {
@@ -43,7 +43,8 @@ void XvtNetworkMetadata_ToUtf8(char *out, size_t capacity, const char *text,
 	out[written] = 0;
 }
 
-void XvtNetworkMetadata_FromUtf8(char *out, size_t capacity, const char *text)
+void xvt_network_metadata_from_utf8(char *out, size_t capacity,
+				    const char *text)
 {
 	size_t written = 0;
 	const uint8_t *source = (const uint8_t *)text;
@@ -94,75 +95,77 @@ void XvtNetworkMetadata_FromUtf8(char *out, size_t capacity, const char *text)
 	out[written] = 0;
 }
 
-static void XvtNetworkMetadata_Add(struct XvtNetworkMetadata *out,
-				   const struct NetPlayerInfo *player)
+static void xvt_network_metadata_add(struct xvt_network_metadata *out,
+				     const struct net_player_info *player)
 {
 	unsigned index = out->room.players;
-	if (!player || !player->playerId || player->readyFlag != 1 ||
+	if (!player || !player->player_id || player->ready_flag != 1 ||
 	    index == 8) {
 		return;
 	}
 	for (unsigned i = 0; i < index; ++i) {
-		if (out->players[i] == player->playerId) {
+		if (out->players[i] == player->player_id) {
 			return;
 		}
 	}
-	out->players[index] = player->playerId;
-	XvtNetworkMetadata_ToUtf8(out->room.roster[index].name,
-				  sizeof(out->room.roster[index].name),
-				  player->playerName,
-				  sizeof(player->playerName));
+	out->players[index] = player->player_id;
+	xvt_network_metadata_to_utf8(out->room.roster[index].name,
+				     sizeof(out->room.roster[index].name),
+				     player->player_name,
+				     sizeof(player->player_name));
 	if (!out->room.roster[index].name[0]) {
 		strcpy(out->room.roster[index].name, "No name");
 	}
-	unsigned rating = (uint8_t)player->longName[0];
+	unsigned rating = (uint8_t)player->long_name[0];
 	out->room.roster[index].rating = rating ? (uint8_t)(rating - 1) : 0;
 	++out->room.players;
 }
 
-void XvtNetworkMetadata_Build(struct XvtNetworkMetadata *out, int accepting)
+void xvt_network_metadata_build(struct xvt_network_metadata *out, int accepting)
 {
 	memset(out, 0, sizeof(*out));
 	out->room.max_players = 8;
-	out->room.password_required = g_gameConfig.requirePassword != 0;
-	XvtNetworkMetadata_ToUtf8(out->room.name, sizeof(out->room.name),
-				  g_frontState.netSessionName,
-				  sizeof(g_frontState.netSessionName));
+	out->room.password_required = g_game_config.require_password != 0;
+	xvt_network_metadata_to_utf8(out->room.name, sizeof(out->room.name),
+				     g_front_state.net_session_name,
+				     sizeof(g_front_state.net_session_name));
 	if (!out->room.name[0]) {
 		strcpy(out->room.name, "Internet game.");
 	}
-	int directory = g_pilotData.missionDirectoryId;
+	int directory = g_pilot_data.mission_directory_id;
 	if ((unsigned)directory < 6 &&
-	    g_pilotData.missionDescriptionIds[directory] >= 0) {
+	    g_pilot_data.mission_description_ids[directory] >= 0) {
 		out->room.mission.present = 1;
 		out->room.mission.directory = (uint8_t)directory;
 		out->room.mission.id =
-			g_pilotData.missionDescriptionIds[directory];
+			g_pilot_data.mission_description_ids[directory];
 	}
-	if (g_missionSetupRosterAuthoritative) {
+	if (g_mission_setup_roster_authoritative) {
 		for (unsigned i = 0; i < 8; ++i) {
-			XvtNetworkMetadata_Add(
-				out, Net_FindPlayer(g_mpRoster[i].playerId));
+			xvt_network_metadata_add(
+				out, net_find_player(g_mp_roster[i].player_id));
 		}
 	} else {
 		int count;
-		struct NetPlayerInfo *players = Net_GetPlayerRoster(&count);
+		struct net_player_info *players = net_get_player_roster(&count);
 		for (int i = 0; i < count && i < 32; ++i) {
-			XvtNetworkMetadata_Add(out, &players[i]);
+			xvt_network_metadata_add(out, &players[i]);
 		}
 	}
-	out->room.joinable = accepting && !g_missionSetupRosterAuthoritative &&
+	out->room.joinable = accepting &&
+			     !g_mission_setup_roster_authoritative &&
 			     out->room.players < 8;
 }
 
-void XvtNetworkMetadata_KeepActivePlayers(struct XvtNetworkMetadata *snapshot)
+void xvt_network_metadata_keep_active_players(
+	struct xvt_network_metadata *snapshot)
 {
 	unsigned count = 0;
 	for (unsigned i = 0; i < snapshot->room.players; ++i) {
 		for (unsigned j = 0; j < 8; ++j) {
-			if ((DPID)g_netSession.players[j].directPlayId ==
+			if ((DPID)g_net_session.players[j].direct_play_id ==
 				    snapshot->players[i] &&
-			    g_netSession.players[j].activeFlag) {
+			    g_net_session.players[j].active_flag) {
 				snapshot->players[count] = snapshot->players[i];
 				snapshot->room.roster[count++] =
 					snapshot->room.roster[i];

@@ -8,13 +8,13 @@
 extern "C" {
 #endif
 
-extern char *g_briefingMapLabelTexts[32];
-extern char *g_briefingTextBlocks[32];
-extern char *g_briefingUnusedBuffers[20];
-extern char *g_missionText;
+extern char *g_briefing_map_label_texts[32];
+extern char *g_briefing_text_blocks[32];
+extern char *g_briefing_unused_buffers[20];
+extern char *g_mission_text;
 
-int16_t BriefingText_FreeAllocatedBuffersExit(void);
-void BriefingText_FreeAllocatedBuffers(void);
+int16_t briefing_text_free_allocated_buffers_exit(void);
+void briefing_text_free_allocated_buffers(void);
 
 #ifdef __cplusplus
 }

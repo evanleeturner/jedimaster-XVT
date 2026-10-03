@@ -12,7 +12,7 @@ extern "C" {
 
 /* texture: the atlas page. u0, v0, u1, v1: the frame's rectangle on it. width, height: its classic
  * pixel size. */
-struct XvtEffectFrame {
+struct xvt_effect_frame {
 	AeronTexture *texture;
 	float u0, v0, u1, v1;
 	int width, height;
@@ -21,18 +21,19 @@ struct XvtEffectFrame {
 /* Finds frame id frame in object type type's texture atlas (the committed image of the type's texture
  * asset) and fills out. Returns 0 with out untouched for a type out of range, a type without a
  * committed atlas, or a frame id the atlas does not hold. */
-int XvtEffects_Frame(const struct XvtRenderSnapshot *snapshot, unsigned type,
-		     unsigned frame, struct XvtEffectFrame *out);
+int xvt_effects_frame(const struct xvt_render_snapshot *snapshot, unsigned type,
+		      unsigned frame, struct xvt_effect_frame *out);
 /* Writes the four corners of a camera-facing quad at center: half_w along camera's first row vector and
  * half_h along its second, rotated by angle (radians) in that plane with the camera's Q16 aspect
  * applied to the rotated terms, in the order (+, +), (-, +), (-, -), (+, -). Nothing is checked. */
-void XvtEffects_Quad(const struct XvtSnapCamera *camera, const float center[3],
-		     float half_w, float half_h, float angle, float out[4][3]);
+void xvt_effects_quad(const struct xvt_snap_camera *camera,
+		      const float center[3], float half_w, float half_h,
+		      float angle, float out[4][3]);
 /* Sets billboard's texture, alpha blending, frame's rectangle at the four corners in Quad's order, and
  * one color at every corner: intensity on the color channels, alpha on alpha. */
-void XvtEffects_SetFrame(AeronSceneBillboardDesc *billboard,
-			 const struct XvtEffectFrame *frame, float intensity,
-			 float alpha);
+void xvt_effects_set_frame(AeronSceneBillboardDesc *billboard,
+			   const struct xvt_effect_frame *frame,
+			   float intensity, float alpha);
 /* Submits the frame's effect billboards to scene, objects taken far to near by view depth. Skipped: the
  * camera's focus object in an internal view (unless drawing for the CRT); local transients when debris
  * is off, in the proving grounds, or during a hyperspace transition; for the CRT, every object but its
@@ -48,24 +49,24 @@ void XvtEffects_SetFrame(AeronSceneBillboardDesc *billboard,
  * envelope and glows by explosion_emissive_strength. Objects at or behind the eye or past 2^31 deep are
  * skipped. With regenerate, a previous snapshot of the same mission and world, and previous_camera, a
  * matching previous object's corners become the billboard's previous position. */
-void XvtEffects_Submit(AeronScene3D *scene,
-		       const struct XvtRenderSnapshot *current,
-		       const struct XvtRenderSnapshot *previous,
-		       const struct XvtSnapCamera *camera,
-		       const struct XvtSnapCamera *previous_camera,
-		       int regenerate, const struct XvtSnapPreview *crt);
+void xvt_effects_submit(AeronScene3D *scene,
+			const struct xvt_render_snapshot *current,
+			const struct xvt_render_snapshot *previous,
+			const struct xvt_snap_camera *camera,
+			const struct xvt_snap_camera *previous_camera,
+			int regenerate, const struct xvt_snap_preview *crt);
 /* ObjectMatrix for object with its roll turned so the mesh's up axis faces camera: the roll is offset by
  * the angle of the camera direction in the object's side-up plane less a quarter turn, and the
  * orientation is rebuilt from the angles, never the cached rows. */
-void XvtEffects_ProjectileMatrix(const struct XvtSnapObject *object,
-				 const int32_t camera[3],
-				 const int32_t origin[3], float out[16]);
+void xvt_effects_projectile_matrix(const struct xvt_snap_object *object,
+				   const int32_t camera[3],
+				   const int32_t origin[3], float out[16]);
 /* Submits object's sprite, when its type's sequence frame is a texture frame, and every engine flame it
  * has (a craft inside the sky's craft slot range, as in Submit, without the obstacle rule), for the
  * map: the snapshot's camera, no previous frame, no CRT filter, no focus, transient or genus skip. */
-void XvtEffects_MapObject(AeronScene3D *scene,
-			  const struct XvtRenderSnapshot *s,
-			  const struct XvtSnapObject *object);
+void xvt_effects_map_object(AeronScene3D *scene,
+			    const struct xvt_render_snapshot *s,
+			    const struct xvt_snap_object *object);
 #ifdef __cplusplus
 }
 #endif

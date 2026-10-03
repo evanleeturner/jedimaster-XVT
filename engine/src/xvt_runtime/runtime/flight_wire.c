@@ -1,7 +1,7 @@
 #include "xvt_runtime/runtime/flight_wire.h"
 #include <limits.h>
 
-static uint64_t XvtFlightWire_Read(const uint8_t *bytes, unsigned size)
+static uint64_t xvt_flight_wire_read(const uint8_t *bytes, unsigned size)
 {
 	uint64_t value = 0;
 	for (unsigned i = 0; i < size; ++i) {
@@ -10,14 +10,14 @@ static uint64_t XvtFlightWire_Read(const uint8_t *bytes, unsigned size)
 	return value;
 }
 
-static void XvtFlightWire_Write(uint8_t *bytes, uint64_t value, unsigned size)
+static void xvt_flight_wire_write(uint8_t *bytes, uint64_t value, unsigned size)
 {
 	for (unsigned i = 0; i < size; ++i) {
 		bytes[i] = (uint8_t)(value >> (i * 8));
 	}
 }
 
-static const uint32_t g_crc32cTable[256] = {
+static const uint32_t g_crc32c_table[256] = {
 	0x00000000u, 0xf26b8303u, 0xe13b70f7u, 0x1350f3f4u, 0xc79a971fu,
 	0x35f1141cu, 0x26a1e7e8u, 0xd4ca64ebu, 0x8ad958cfu, 0x78b2dbccu,
 	0x6be22838u, 0x9989ab3bu, 0x4d43cfd0u, 0xbf284cd3u, 0xac78bf27u,
@@ -72,46 +72,46 @@ static const uint32_t g_crc32cTable[256] = {
 	0xad7d5351u,
 };
 
-uint32_t XvtFlightWire_Crc32c(const uint8_t *bytes, size_t size)
+uint32_t xvt_flight_wire_crc32c(const uint8_t *bytes, size_t size)
 {
 	uint32_t crc = UINT32_MAX;
 	for (size_t i = 0; i < size; ++i) {
-		crc = (crc >> 8) ^ g_crc32cTable[(crc ^ bytes[i]) & 255];
+		crc = (crc >> 8) ^ g_crc32c_table[(crc ^ bytes[i]) & 255];
 	}
 	return ~crc;
 }
 
-uint16_t XvtWire_Get16(const XvtWireU16 value)
+uint16_t xvt_wire_get16(const xvt_wire_u16 value)
 {
-	return (uint16_t)XvtFlightWire_Read(value, sizeof(XvtWireU16));
+	return (uint16_t)xvt_flight_wire_read(value, sizeof(xvt_wire_u16));
 }
 
-uint32_t XvtWire_Get32(const XvtWireU32 value)
+uint32_t xvt_wire_get32(const xvt_wire_u32 value)
 {
-	return (uint32_t)XvtFlightWire_Read(value, sizeof(XvtWireU32));
+	return (uint32_t)xvt_flight_wire_read(value, sizeof(xvt_wire_u32));
 }
 
-uint64_t XvtWire_Get64(const XvtWireU64 value)
+uint64_t xvt_wire_get64(const xvt_wire_u64 value)
 {
-	return XvtFlightWire_Read(value, sizeof(XvtWireU64));
+	return xvt_flight_wire_read(value, sizeof(xvt_wire_u64));
 }
 
-void XvtWire_Set16(XvtWireU16 bytes, uint16_t value)
+void xvt_wire_set16(xvt_wire_u16 bytes, uint16_t value)
 {
-	XvtFlightWire_Write(bytes, value, sizeof(XvtWireU16));
+	xvt_flight_wire_write(bytes, value, sizeof(xvt_wire_u16));
 }
 
-void XvtWire_Set32(XvtWireU32 bytes, uint32_t value)
+void xvt_wire_set32(xvt_wire_u32 bytes, uint32_t value)
 {
-	XvtFlightWire_Write(bytes, value, sizeof(XvtWireU32));
+	xvt_flight_wire_write(bytes, value, sizeof(xvt_wire_u32));
 }
 
-void XvtWire_Set64(XvtWireU64 bytes, uint64_t value)
+void xvt_wire_set64(xvt_wire_u64 bytes, uint64_t value)
 {
-	XvtFlightWire_Write(bytes, value, sizeof(XvtWireU64));
+	xvt_flight_wire_write(bytes, value, sizeof(xvt_wire_u64));
 }
 
-int XvtWire_IsZero(const void *bytes, size_t size)
+int xvt_wire_is_zero(const void *bytes, size_t size)
 {
 	const uint8_t *data = bytes;
 	for (size_t i = 0; i < size; ++i) {
@@ -122,7 +122,7 @@ int XvtWire_IsZero(const void *bytes, size_t size)
 	return 1;
 }
 
-int XvtFlightWire_ValidTick(uint32_t tick)
+int xvt_flight_wire_valid_tick(uint32_t tick)
 {
 	return tick && tick <= INT32_MAX - 1u &&
 	       tick % XVT_NETWORK_STEP_TICKS == 0;

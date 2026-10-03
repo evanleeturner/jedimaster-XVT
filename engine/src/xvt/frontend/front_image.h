@@ -12,115 +12,124 @@ extern "C" {
 #endif
 
 /* A frontend image: a registered .bmp, a glyph of a font, or a screen area
- * saved by FrontendScreen_PushState. */
-struct ImageResource {
+ * saved by frontend_screen_push_state. */
+struct image_resource {
 	int width;  /* Width in pixels. */
 	int height; /* Height in pixels. */
-	/* 1 when pixels holds RLE rows (FrontImage_CompressRLE), 0 when it
+	/* 1 when pixels holds RLE rows (front_image_compress_rle), 0 when it
 	 * holds raw pixels. */
-	int isCompressed;
+	int is_compressed;
 	/* Bytes in pixels: width * height uncompressed, the encoded size after
-	 * FrontImage_CompressRLE, 2 * width * height for a 16-bit screen save,
+	 * front_image_compress_rle, 2 * width * height for a 16-bit screen save,
 	 * and 0 in the glyphs the text functions build. */
-	int pixelDataBytes;
+	int pixel_data_bytes;
 	/* The pixel data, rows top to bottom: palette indexes, RLE rows, or
 	 * 16-bit pixels for a 16-bit screen save. */
 	uint8_t *pixels;
 	/* For each palette index, the 16-bit display pixel value the blitters
-	 * draw at 16 bits per pixel; FrontImage_LoadBmpFile fills it from the
+	 * draw at 16 bits per pixel; front_image_load_bmp_file fills it from the
 	 * file's palette at that depth only. */
-	int colorLUT[256];
+	int color_lut[256];
 };
 
-/* One entry of g_frontState.resourceTable, which is kept sorted by name. */
-struct FrontImageResourceRecord {
+/* One entry of g_front_state.resource_table, which is kept sorted by name. */
+struct front_image_resource_record {
 	/* The registered name, compared over 64 bytes with strncmp; may lack a
 	 * NUL when 64 characters or longer. */
 	char name[64];
-	struct ImageResource *image; /* The heap image registered under name. */
+	struct image_resource
+		*image; /* The heap image registered under name. */
 };
 
-/* The scratch row FrontImage_CompressRLE and FrontImage_EncodeGlyphRow encode
- * into; the first encodedSize bytes of the whole struct are one row record. */
-struct FrontImageRleRowBuffer {
+/* The scratch row front_image_compress_rle and front_image_encode_glyph_row encode
+ * into; the first encoded_size bytes of the whole struct are one row record. */
+struct front_image_rle_row_buffer {
 	/* The row record's size in bytes: these 4, the tokens and the closing
 	 * 0x80. */
-	int encodedSize;
+	int encoded_size;
 	uint8_t data[1277]; /* The row's tokens, ending with 0x80. */
 };
 
-int FrontImage_RegisterResourceDefault(const char *fileName, const char *name);
-int FrontImage_RegisterResource(const char *fileName, const char *name,
-				int remapToDisplayPalette, int compressRLE);
-void FrontImage_FreeResourceByName(const char *name);
-void FrontImage_FreeAllResources(void);
-int FrontImage_ResourceExists(const char *name);
-int FrontImage_GetResourceRect(const char *name, struct RECT *outRect);
-int FrontImage_DrawSpriteTranslucent(const char *name, int x, int y);
-int FrontImage_BlitTranslucent(struct ImageResource *image, int x, int y);
-int FrontImage_DrawSpriteRectTransparent(const char *name, struct RECT *srcRect,
-					 int dstX, int dstY);
-int FrontImage_BlitRectTransparent(struct ImageResource *image,
-				   struct RECT *srcRect, int dstX, int dstY);
-int FrontImage_DrawSpriteRectTinted(const char *name, struct RECT *srcRect,
-				    int dstX, int dstY, unsigned int tintColor);
-int FrontImage_BlitRectTinted(struct ImageResource *image,
-			      const struct RECT *srcRect, int dstX, int dstY,
-			      unsigned int tintColor);
-int FrontImage_DrawSprite(const char *name, int x, int y);
-int FrontImage_BlitTransparent(struct ImageResource *image, int x, int y);
-void FrontImage_BlitRLE8(struct ImageResource *image, int destX, int destY,
-			 int srcLeft, int srcTop, int visibleWidth,
-			 int visibleHeight);
-void FrontImage_BlitRLE16(struct ImageResource *image, int destX, int destY,
-			  int srcLeft, int srcTop, int visibleWidth,
-			  int visibleHeight);
-int FrontImage_DrawSpriteOpaque(const char *name, int x, int y);
-int FrontImage_BlitOpaque(struct ImageResource *image, int x, int y);
-void FrontImage_BlitRLE8Opaque(struct ImageResource *image, int destX,
-			       int destY, int srcLeft, int srcTop,
-			       int visibleWidth, int visibleHeight);
-void FrontImage_BlitRLE16Opaque(struct ImageResource *image, int destX,
-				int destY, int srcLeft, int srcTop,
-				int visibleWidth, int visibleHeight);
-int FrontImage_DrawGlyph(struct ImageResource *glyph, int x, int y,
-			 unsigned int color, int applyTextFade);
-void FrontImage_BlitGlyphRLE_8bpp(struct ImageResource *glyph, int destX,
-				  int destY, int clipLeftSkip, int clipTopSkip,
-				  int visibleWidth, int visibleRows,
-				  uint8_t color);
-void FrontImage_BlitGlyphRLE_16bpp(struct ImageResource *glyph, int destX,
-				   int destY, int clipLeftSkip, int clipTopSkip,
-				   int visibleWidth, int visibleRows,
-				   unsigned int color);
-int FrontImage_LoadBmpFile(const char *fileName, struct ImageResource *image,
-			   int remapToDisplayPalette, int compressRLE);
-int FrontImage_DecodeBmp4bpp(XvtFile *stream, void *dstPixels,
-			     const struct BITMAPFILEHEADER *fileHeader,
-			     const struct BITMAPINFOHEADER *infoHeader);
-int FrontImage_DecodeBmp8bpp(XvtFile *stream, void *dstPixels,
-			     const struct BITMAPFILEHEADER *fileHeader,
-			     const struct BITMAPINFOHEADER *infoHeader);
-void FrontImage_RemapPalette(uint8_t *pixels, const uint8_t *srcPalette,
-			     const struct BITMAPINFOHEADER *infoHeader);
-char FrontImage_RemapPaletteIndex(const uint8_t *srcRgb, int srcIndex);
-int FrontImage_CompressRLE(struct ImageResource *image);
-int FrontImage_EncodeGlyphRow(struct FrontImageRleRowBuffer *rowBuffer,
-			      const uint8_t *srcPixels, int width);
-void FrontImage_InsertResourceSorted(
-	const struct FrontImageResourceRecord *entry);
-void FrontImage_RemoveResourceAt(int index);
-int FrontImage_FindResourceByName(const char *name);
-int FrontImage_BSearchResource(const struct FrontImageResourceRecord *table,
-			       int hi, const char *key);
-int FrontImage_SaveBmpFile(char *fileName, const void *pixels, int width,
-			   int height, int pitch, int bpp, int is555,
-			   const void *palette);
-int FrontImage_LoadBmpPaletteFile(const char *fileName, uint8_t *destRgba);
-void FrontImage_ReadBmpPalette(XvtFile *stream, uint8_t *dest, int count);
-unsigned int FrontImage_GetFadedGlyphColor16(unsigned int color16);
-int FrontImage_LoadResourceList(char *fileName);
-int FrontImage_UnloadResourceList(char *fileName);
+int front_image_register_resource_default(const char *file_name,
+					  const char *name);
+int front_image_register_resource(const char *file_name, const char *name,
+				  int remap_to_display_palette,
+				  int compress_rle);
+void front_image_free_resource_by_name(const char *name);
+void front_image_free_all_resources(void);
+int front_image_resource_exists(const char *name);
+int front_image_get_resource_rect(const char *name, struct RECT *out_rect);
+int front_image_draw_sprite_translucent(const char *name, int x, int y);
+int front_image_blit_translucent(struct image_resource *image, int x, int y);
+int front_image_draw_sprite_rect_transparent(const char *name,
+					     struct RECT *src_rect, int dst_x,
+					     int dst_y);
+int front_image_blit_rect_transparent(struct image_resource *image,
+				      struct RECT *src_rect, int dst_x,
+				      int dst_y);
+int front_image_draw_sprite_rect_tinted(const char *name, struct RECT *src_rect,
+					int dst_x, int dst_y,
+					unsigned int tint_color);
+int front_image_blit_rect_tinted(struct image_resource *image,
+				 const struct RECT *src_rect, int dst_x,
+				 int dst_y, unsigned int tint_color);
+int front_image_draw_sprite(const char *name, int x, int y);
+int front_image_blit_transparent(struct image_resource *image, int x, int y);
+void front_image_blit_rle8(struct image_resource *image, int dest_x, int dest_y,
+			   int src_left, int src_top, int visible_width,
+			   int visible_height);
+void front_image_blit_rle16(struct image_resource *image, int dest_x,
+			    int dest_y, int src_left, int src_top,
+			    int visible_width, int visible_height);
+int front_image_draw_sprite_opaque(const char *name, int x, int y);
+int front_image_blit_opaque(struct image_resource *image, int x, int y);
+void front_image_blit_rle8_opaque(struct image_resource *image, int dest_x,
+				  int dest_y, int src_left, int src_top,
+				  int visible_width, int visible_height);
+void front_image_blit_rle16_opaque(struct image_resource *image, int dest_x,
+				   int dest_y, int src_left, int src_top,
+				   int visible_width, int visible_height);
+int front_image_draw_glyph(struct image_resource *glyph, int x, int y,
+			   unsigned int color, int apply_text_fade);
+void front_image_blit_glyph_rle_8bpp(struct image_resource *glyph, int dest_x,
+				     int dest_y, int clip_left_skip,
+				     int clip_top_skip, int visible_width,
+				     int visible_rows, uint8_t color);
+void front_image_blit_glyph_rle_16bpp(struct image_resource *glyph, int dest_x,
+				      int dest_y, int clip_left_skip,
+				      int clip_top_skip, int visible_width,
+				      int visible_rows, unsigned int color);
+int front_image_load_bmp_file(const char *file_name,
+			      struct image_resource *image,
+			      int remap_to_display_palette, int compress_rle);
+int front_image_decode_bmp4bpp(xvt_file *stream, void *dst_pixels,
+			       const struct BITMAPFILEHEADER *file_header,
+			       const struct BITMAPINFOHEADER *info_header);
+int front_image_decode_bmp8bpp(xvt_file *stream, void *dst_pixels,
+			       const struct BITMAPFILEHEADER *file_header,
+			       const struct BITMAPINFOHEADER *info_header);
+void front_image_remap_palette(uint8_t *pixels, const uint8_t *src_palette,
+			       const struct BITMAPINFOHEADER *info_header);
+char front_image_remap_palette_index(const uint8_t *src_rgb, int src_index);
+int front_image_compress_rle(struct image_resource *image);
+int front_image_encode_glyph_row(struct front_image_rle_row_buffer *row_buffer,
+				 const uint8_t *src_pixels, int width);
+void front_image_insert_resource_sorted(
+	const struct front_image_resource_record *entry);
+void front_image_remove_resource_at(int index);
+int front_image_find_resource_by_name(const char *name);
+int front_image_bsearch_resource(
+	const struct front_image_resource_record *table, int hi,
+	const char *key);
+int front_image_save_bmp_file(char *file_name, const void *pixels, int width,
+			      int height, int pitch, int bpp, int is555,
+			      const void *palette);
+int front_image_load_bmp_palette_file(const char *file_name,
+				      uint8_t *dest_rgba);
+void front_image_read_bmp_palette(xvt_file *stream, uint8_t *dest, int count);
+unsigned int front_image_get_faded_glyph_color16(unsigned int color16);
+int front_image_load_resource_list(char *file_name);
+int front_image_unload_resource_list(char *file_name);
 
 #ifdef __cplusplus
 }

@@ -14,49 +14,50 @@ extern "C" {
 
 #pragma pack(push, 1)
 
-/* A lobby player: an entry of the roster g_frontState.netPlayers, where entry
+/* A lobby player: an entry of the roster g_front_state.net_players, where entry
  * 0 is the local player, or the local player's copy kept in
- * netRuntimeLocalPlayer. */
-struct NetPlayerInfo {
+ * net_runtime_local_player. */
+struct net_player_info {
 	/* DirectPlay long name; the lobby puts the player's rating plus one in
 	 * its first byte. */
-	char longName[16];
-	char playerName[16]; /* DirectPlay short name: the player's name. */
+	char long_name[16];
+	char player_name[16]; /* DirectPlay short name: the player's name. */
 	/* Id DirectPlay gave the player; 0 in an unused entry. */
-	DPID playerId;
-	/* 1 when marked ready (Net_SetPlayerReady, Net_MarkPlayerReadyNoLock);
-	 * Net_RefreshPlayerRoster carries it over. */
-	int readyFlag;
+	DPID player_id;
+	/* 1 when marked ready (net_set_player_ready, net_mark_player_ready_no_lock);
+	 * net_refresh_player_roster carries it over. */
+	int ready_flag;
 };
 
 #pragma pack(pop)
-typedef char
-	xvt_size_NetPlayerInfo[(sizeof(struct NetPlayerInfo) == 40) ? 1 : -1];
+typedef char xvt_size_net_player_info[(sizeof(struct net_player_info) == 40)
+					      ? 1
+					      : -1];
 
-/* Link figures for one player in g_netPlayerConnectionStats. On the host they
+/* Link figures for one player in g_net_player_connection_stats. On the host they
  * come from the player's keepalive acks; on the other players, from the
  * totals the host sends in its lobby packets. */
-struct NetPlayerConnectionStats {
-	int playerId; /* The player's DirectPlay id; 0 marks a free entry. */
-	uint32_t latencyTotalMs; /* Sum of the latency samples, in ms. */
-	int packetCount;	 /* Delivered-packet count reported. */
-	int packetDropCount;	 /* Drop count reported. */
-	int packetRetryCount;	 /* Retry count reported. */
-	/* Samples summed in latencyTotalMs, which divided by this gives the
+struct net_player_connection_stats {
+	int player_id; /* The player's DirectPlay id; 0 marks a free entry. */
+	uint32_t latency_total_ms; /* Sum of the latency samples, in ms. */
+	int packet_count;	   /* Delivered-packet count reported. */
+	int packet_drop_count;	   /* Drop count reported. */
+	int packet_retry_count;	   /* Retry count reported. */
+	/* Samples summed in latency_total_ms, which divided by this gives the
 	 * average. */
-	uint32_t latencySampleCount;
+	uint32_t latency_sample_count;
 };
 
-typedef enum NetworkTransportType {
+typedef enum network_transport_type {
 	NET_TRANSPORT_IPX = 0x0,
 	NET_TRANSPORT_TCPIP = 0x1,
 	NET_TRANSPORT_MODEM = 0x2,
 	NET_TRANSPORT_SERIAL = 0x3,
-} NetworkTransportType;
+} network_transport_type;
 
 /* Game opcodes carried inside DirectPlay messages. System notifications use DPSYS_*.
  * Phase-specific names distinguish overlapping frontend and flight payloads. */
-enum NetPacketType {
+enum net_packet_type {
 	NET_PACKET_NONE = 0, /* No application event; not transmitted. */
 	/* Shared reliability and handshake. */
 	NET_PACKET_WORLD_NACK = 51,
@@ -162,165 +163,176 @@ enum NetPacketType {
 };
 
 /* GUID layout with the final eight bytes grouped for session key arithmetic. */
-struct NetSessionGuid {
+struct net_session_guid {
 	unsigned int data1;    /* GUID bytes 0 to 3. */
 	unsigned short data2;  /* GUID bytes 4 and 5. */
 	unsigned short data3;  /* GUID bytes 6 and 7. */
 	unsigned int data4[2]; /* GUID bytes 8 to 15, as two words. */
 };
 
-typedef char
-	xvt_size_NetSessionGuid[(sizeof(struct NetSessionGuid) == 16) ? 1 : -1];
+typedef char xvt_size_net_session_guid[(sizeof(struct net_session_guid) == 16)
+					       ? 1
+					       : -1];
 
-struct NetSessionEnumEntry {
-	char sessionName[32]; /* Session name, cut to 31 characters. */
+struct net_session_enum_entry {
+	char session_name[32]; /* Session name, cut to 31 characters. */
 	/* The session's DirectPlay instance GUID. */
-	struct NetSessionGuid sessionGuid;
+	struct net_session_guid session_guid;
 };
 
-extern struct NetPlayerConnectionStats g_netPlayerConnectionStats[40];
-extern GUID g_netMatchedSessionInstanceGuid;
+extern struct net_player_connection_stats g_net_player_connection_stats[40];
+extern GUID g_net_matched_session_instance_guid;
 extern const GUID IID_IDirectPlay2A;
-extern NetworkTransportType g_netActiveTransportType;
+extern network_transport_type g_net_active_transport_type;
 #ifndef XVT_MODERN
-extern const GUID g_netLobbySessionInstanceGuid;
-extern const GUID g_netDirectPlayComPortAddressTypeGuid;
-extern const GUID g_netDirectPlayPhoneAddressTypeGuid;
-extern const GUID g_netDirectPlayInetAddressTypeGuid;
+extern const GUID g_net_lobby_session_instance_guid;
+extern const GUID g_net_direct_play_com_port_address_type_guid;
+extern const GUID g_net_direct_play_phone_address_type_guid;
+extern const GUID g_net_direct_play_inet_address_type_guid;
 #endif
 
-void Net_ShutdownDirectPlaySessionForQuit(void);
-void Net_ShutdownDirectPlaySession(void);
-void Net_ShutdownDirectPlaySessionNoHandshake(void);
-int Net_ShutdownDirectPlaySessionEx(int suppressRestart,
-				    int waitForHandshakeAcks);
-int Net_RefreshPlayerRoster(void);
-int AERON_DXAPI Net_EnumPlayersCallback(DPID playerId, uint32_t playerType,
-					const DPNAME *nameDesc, uint32_t flags,
-					void *context);
-int Net_CreateDirectPlayPlayer(const char *longPlayerInfo,
-			       const char *shortPlayerName);
+void net_shutdown_direct_play_session_for_quit(void);
+void net_shutdown_direct_play_session(void);
+void net_shutdown_direct_play_session_no_handshake(void);
+int net_shutdown_direct_play_session_ex(int suppress_restart,
+					int wait_for_handshake_acks);
+int net_refresh_player_roster(void);
+int AERON_DXAPI net_enum_players_callback(DPID player_id, uint32_t player_type,
+					  const DPNAME *name_desc,
+					  uint32_t flags, void *context);
+int net_create_direct_play_player(const char *long_player_info,
+				  const char *short_player_name);
 const GUID *
-Net_GetDirectPlayServiceProviderGuid(NetworkTransportType networkType);
-void Net_PumpIncomingPackets(void);
-int Net_SendPacketAndFlush(int toPlayerId, const void *packet,
-			   unsigned int packetSize);
-int Net_SendPacketInternal(int toPlayerId, const void *packet,
-			   unsigned int packetSize);
-int Net_SendDirectPlayPacket(int destPlayerId, const void *packet,
-			     int packetSize, int unusedSendMode);
-int Net_SendSequencedDirectPlayPacket(int destPlayerId, int packetClass,
-				      int sequenceId, const void *packet,
-				      unsigned int packetSize);
-struct NetPlayerInfo *Net_GetPlayerRoster(int *outCount);
-int Net_GetPlayerCount(void);
-int Net_DidReadyPlayerLeaveThisFrame(void);
-int Net_IsHost(void);
-int Net_PollForPacketTypeOrBacklog(int packetType);
-int Net_PollForPlayerCreatedOrBacklog(void);
-int *Net_GetNextAppPacket(DPID *outSenderId, uint32_t *outPacketSize);
-void Net_HandleDirectPlaySystemMessage(int packetType, const void *packetData);
-void *Net_DequeueIncomingPacket(DPID *outSenderId, uint32_t *outPacketSize);
-int *Net_WaitForAppPacket(DPID *outSenderId, uint32_t *outPacketSize,
-			  int timeoutSeconds);
-int Net_CountPlayersWithLowerId(DPID playerId);
-int Net_GetHostPlayerId(void);
-int Net_GetLocalPlayerId(void);
-void Net_MarkPlayerReadyNoLock(int playerId);
-void Net_ClearPlayerReadyFlag(int playerId);
-int Net_IsPlayerReady(int playerId);
-struct NetPlayerInfo *Net_FindPlayer(int playerId);
-int Net_SetPlayerReady(int playerId);
-void Net_ClearPlayerReadyFlagWithLockGuard(int playerId);
-int Net_CountReadyPlayers(void);
-void Net_ClearPlayerReadyFlags(void);
-int NetSession_ImportRuntimeState(
-	void **dplayInterfaceOut, GUID *appGuidOut, GUID *sessionGuidOut,
-	int32_t *groupIdOut, int *hostPlayerIdOut,
-	struct NetPlayerInfo *localPlayerInfoOut,
-	struct NetQueuedPacket *recvQueueOut, int32_t *recvQueueReadOut,
-	int *recvQueueCountOut, int *recvQueueWriteOut,
-	struct NetReliablePeerSlot *reliablePeerSlotsOut,
-	uint32_t *reliablePeerSlotCountOut, uint32_t *broadcastSeqCounterOut,
-	char *broadcastPayloadOut, int *broadcastPayloadLengthOut,
-	int *broadcastPiggybackEmptyOut, uint32_t *groupSeqCounterOut,
-	char *groupPayloadOut, int *groupPayloadLengthOut,
-	int *groupPiggybackEmptyOut, struct NetQueuedPacket *sentHistoryOut,
-	int *sentHistoryWriteIndexOut);
-int NetSession_ExportRuntimeState(
-	void **dplayInterface, const void *appGuid, const void *sessionGuid,
-	int *groupId, int *hostPlayerId, const void *localPlayerInfo,
-	const struct NetQueuedPacket *recvQueueEntries, int *recvQueueRead,
-	int *recvQueueCount, int *recvQueueWrite,
-	const struct NetReliablePeerSlot *reliablePeerSlots,
-	int *reliablePeerSlotCount, int *broadcastSeqCounter,
-	const void *broadcastPayload, int *broadcastPayloadLength,
-	int *broadcastPiggybackEmpty, int *groupSeqCounter,
-	const void *groupPayload, int *groupPayloadLength,
-	int *groupPiggybackEmpty, const struct NetQueuedPacket *sentHistory,
-	int *sentHistoryWriteIndex,
-	struct NetQueuedPacket *sentWorldMessageHistory,
-	int *sentWorldMessageWriteIndex);
-int Net_CompactReliablePeerSlotsForRoster(void);
-int Net_SendSequenceKeepalives(void);
-int Net_CheckAndRecordIncomingSequence(int playerId, int sequenceId,
-				       int useChannel0, int useChannel2);
-int Net_FindQueuedSequencedPacket(int unusedQueueIndex, int sequenceId,
-				  int useChannel0, int useChannel2,
-				  int peerSlotIndex);
-int Net_RemoveIncomingPacketAtIndex(unsigned int queueIndex);
-unsigned int Net_GetAverageLatencyMs(int playerId);
-int Net_SetPlayerLatencyMs(int playerId, int latencyMs);
-int Net_SetPlayerNameWithLockGuard(unsigned int playerId, const char *longName,
-				   const char *shortName);
-int Net_RefreshPlayerRosterWithLockGuard(void);
-unsigned int Net_FindOrCreatePeerSlot(int directPlayId);
-int Net_GetPacketDropRateBasisPoints(int playerId);
-int Net_DropSilentPeers(void);
-int Net_GetPlayerPacketCount(int playerId);
-int Net_GetPlayerPacketDropCount(int playerId);
-int Net_GetPlayerPacketRetryCount(int playerId);
-int Net_SetPlayerPacketCount(int playerId, int packetCount);
-int Net_SetPlayerPacketDropCount(int playerId, int packetDropCount);
-int Net_SetPlayerPacketRetryCount(int playerId, int packetRetryCount);
-int Net_DisableAutoDialRegistrySetting(void);
-int Net_RestoreAutoDialRegistrySetting(void);
-int Net_WaitForShutdownHandshakeAcks(void);
+net_get_direct_play_service_provider_guid(network_transport_type network_type);
+void net_pump_incoming_packets(void);
+int net_send_packet_and_flush(int to_player_id, const void *packet,
+			      unsigned int packet_size);
+int net_send_packet_internal(int to_player_id, const void *packet,
+			     unsigned int packet_size);
+int net_send_direct_play_packet(int dest_player_id, const void *packet,
+				int packet_size, int unused_send_mode);
+int net_send_sequenced_direct_play_packet(int dest_player_id, int packet_class,
+					  int sequence_id, const void *packet,
+					  unsigned int packet_size);
+struct net_player_info *net_get_player_roster(int *out_count);
+int net_get_player_count(void);
+int net_did_ready_player_leave_this_frame(void);
+int net_is_host(void);
+int net_poll_for_packet_type_or_backlog(int packet_type);
+int net_poll_for_player_created_or_backlog(void);
+int *net_get_next_app_packet(DPID *out_sender_id, uint32_t *out_packet_size);
+void net_handle_direct_play_system_message(int packet_type,
+					   const void *packet_data);
+void *net_dequeue_incoming_packet(DPID *out_sender_id,
+				  uint32_t *out_packet_size);
+int *net_wait_for_app_packet(DPID *out_sender_id, uint32_t *out_packet_size,
+			     int timeout_seconds);
+int net_count_players_with_lower_id(DPID player_id);
+int net_get_host_player_id(void);
+int net_get_local_player_id(void);
+void net_mark_player_ready_no_lock(int player_id);
+void net_clear_player_ready_flag(int player_id);
+int net_is_player_ready(int player_id);
+struct net_player_info *net_find_player(int player_id);
+int net_set_player_ready(int player_id);
+void net_clear_player_ready_flag_with_lock_guard(int player_id);
+int net_count_ready_players(void);
+void net_clear_player_ready_flags(void);
+int net_session_import_runtime_state(
+	void **dplay_interface_out, GUID *app_guid_out, GUID *session_guid_out,
+	int32_t *group_id_out, int *host_player_id_out,
+	struct net_player_info *local_player_info_out,
+	struct net_queued_packet *recv_queue_out, int32_t *recv_queue_read_out,
+	int *recv_queue_count_out, int *recv_queue_write_out,
+	struct net_reliable_peer_slot *reliable_peer_slots_out,
+	uint32_t *reliable_peer_slot_count_out,
+	uint32_t *broadcast_seq_counter_out, char *broadcast_payload_out,
+	int *broadcast_payload_length_out, int *broadcast_piggyback_empty_out,
+	uint32_t *group_seq_counter_out, char *group_payload_out,
+	int *group_payload_length_out, int *group_piggyback_empty_out,
+	struct net_queued_packet *sent_history_out,
+	int *sent_history_write_index_out);
+int net_session_export_runtime_state(
+	void **dplay_interface, const void *app_guid, const void *session_guid,
+	int *group_id, int *host_player_id, const void *local_player_info,
+	const struct net_queued_packet *recv_queue_entries,
+	int *recv_queue_read, int *recv_queue_count, int *recv_queue_write,
+	const struct net_reliable_peer_slot *reliable_peer_slots,
+	int *reliable_peer_slot_count, int *broadcast_seq_counter,
+	const void *broadcast_payload, int *broadcast_payload_length,
+	int *broadcast_piggyback_empty, int *group_seq_counter,
+	const void *group_payload, int *group_payload_length,
+	int *group_piggyback_empty,
+	const struct net_queued_packet *sent_history,
+	int *sent_history_write_index,
+	struct net_queued_packet *sent_world_message_history,
+	int *sent_world_message_write_index);
+int net_compact_reliable_peer_slots_for_roster(void);
+int net_send_sequence_keepalives(void);
+int net_check_and_record_incoming_sequence(int player_id, int sequence_id,
+					   int use_channel0, int use_channel2);
+int net_find_queued_sequenced_packet(int unused_queue_index, int sequence_id,
+				     int use_channel0, int use_channel2,
+				     int peer_slot_index);
+int net_remove_incoming_packet_at_index(unsigned int queue_index);
+unsigned int net_get_average_latency_ms(int player_id);
+int net_set_player_latency_ms(int player_id, int latency_ms);
+int net_set_player_name_with_lock_guard(unsigned int player_id,
+					const char *long_name,
+					const char *short_name);
+int net_refresh_player_roster_with_lock_guard(void);
+unsigned int net_find_or_create_peer_slot(int direct_play_id);
+int net_get_packet_drop_rate_basis_points(int player_id);
+int net_drop_silent_peers(void);
+int net_get_player_packet_count(int player_id);
+int net_get_player_packet_drop_count(int player_id);
+int net_get_player_packet_retry_count(int player_id);
+int net_set_player_packet_count(int player_id, int packet_count);
+int net_set_player_packet_drop_count(int player_id, int packet_drop_count);
+int net_set_player_packet_retry_count(int player_id, int packet_retry_count);
+int net_disable_auto_dial_registry_setting(void);
+int net_restore_auto_dial_registry_setting(void);
+int net_wait_for_shutdown_handshake_acks(void);
 
 #ifndef XVT_MODERN
-int Net_StartNetworkSession(
-	int appGuidData1, int appGuidData2, int appGuidData3, int appGuidData4,
-	const char *localPlayerInfo, const char *localPlayerName, int isHost,
-	const char *sessionName, NetworkTransportType networkType,
-	int waitForPlayerCount, int unusedA11, const char *connectionAddress,
-	const GUID *joinSessionInstanceGuid);
-int Net_HostDirectPlaySession(const char *sessionName);
-int Net_JoinDirectPlaySession(const char *sessionName,
-			      const GUID *sessionInstanceGuid);
-const GUID *Net_FindSessionByName(const char *sessionName);
-int AERON_DXAPI Net_EnumSessionsMatchNameCallback(
-	const DPSESSIONDESC2 *sessionDesc, uint32_t *timeoutMs, uint32_t flags,
-	void *context);
-int Net_EnumerateAppSessions(unsigned int appGuid0, unsigned int appGuid1,
-			     unsigned int appGuid2, unsigned int appGuid3,
-			     struct NetSessionEnumEntry *outSessions,
-			     int maxSessions, NetworkTransportType networkType);
-int AERON_DXAPI Net_EnumerateAppSessionsCallback(
-	const DPSESSIONDESC2 *sessionDesc, uint32_t *timeoutMs, uint32_t flags,
-	void *userData);
-int Net_CompareSessionEnumEntriesByName(const struct NetSessionEnumEntry *lhs,
-					const struct NetSessionEnumEntry *rhs);
-int Net_OpenDirectPlaySession(GUID appGuid, const char *localPlayerInfo,
-			      const char *localPlayerName, int isHost,
-			      const char *sessionName,
-			      NetworkTransportType networkType,
-			      const char *connectionAddress);
-HRESULT Net_BuildDirectPlayAddress(IDirectPlayLobbyA *directPlayLobby,
-				   const GUID *serviceProviderGuid,
-				   const GUID *addressTypeGuid,
-				   const char *address,
-				   void **outConnectionBuffer,
-				   size_t *outConnectionBufferSize);
+int net_start_network_session(int app_guid_data1, int app_guid_data2,
+			      int app_guid_data3, int app_guid_data4,
+			      const char *local_player_info,
+			      const char *local_player_name, int is_host,
+			      const char *session_name,
+			      network_transport_type network_type,
+			      int wait_for_player_count, int unused_a11,
+			      const char *connection_address,
+			      const GUID *join_session_instance_guid);
+int net_host_direct_play_session(const char *session_name);
+int net_join_direct_play_session(const char *session_name,
+				 const GUID *session_instance_guid);
+const GUID *net_find_session_by_name(const char *session_name);
+int AERON_DXAPI net_enum_sessions_match_name_callback(
+	const DPSESSIONDESC2 *session_desc, uint32_t *timeout_ms,
+	uint32_t flags, void *context);
+int net_enumerate_app_sessions(unsigned int app_guid0, unsigned int app_guid1,
+			       unsigned int app_guid2, unsigned int app_guid3,
+			       struct net_session_enum_entry *out_sessions,
+			       int max_sessions,
+			       network_transport_type network_type);
+int AERON_DXAPI net_enumerate_app_sessions_callback(
+	const DPSESSIONDESC2 *session_desc, uint32_t *timeout_ms,
+	uint32_t flags, void *user_data);
+int net_compare_session_enum_entries_by_name(
+	const struct net_session_enum_entry *lhs,
+	const struct net_session_enum_entry *rhs);
+int net_open_direct_play_session(GUID app_guid, const char *local_player_info,
+				 const char *local_player_name, int is_host,
+				 const char *session_name,
+				 network_transport_type network_type,
+				 const char *connection_address);
+HRESULT net_build_direct_play_address(IDirectPlayLobbyA *direct_play_lobby,
+				      const GUID *service_provider_guid,
+				      const GUID *address_type_guid,
+				      const char *address,
+				      void **out_connection_buffer,
+				      size_t *out_connection_buffer_size);
 #endif
 
 #ifdef __cplusplus

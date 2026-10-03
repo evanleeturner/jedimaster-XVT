@@ -9,32 +9,34 @@
 extern "C" {
 #endif
 
-typedef enum MissionBriefingCraftScreenFaction {
+typedef enum mission_briefing_craft_screen_faction {
 	MISSION_BRIEFING_CRAFT_SCREEN_REBEL = 0x0,
 	MISSION_BRIEFING_CRAFT_SCREEN_IMPERIAL = 0x1,
-} MissionBriefingCraftScreenFaction;
+} mission_briefing_craft_screen_faction;
 
-typedef enum MissionBriefingLaunchCountdownState {
+typedef enum mission_briefing_launch_countdown_state {
 	MISSION_BRIEFING_COUNTDOWN_IDLE = 0x0,
 	MISSION_BRIEFING_COUNTDOWN_ACTIVE = 0x1,
 	MISSION_BRIEFING_COUNTDOWN_EXPIRED = 0x2,
-} MissionBriefingLaunchCountdownState;
+} mission_briefing_launch_countdown_state;
 
-extern int g_missionBriefingCraftSelectionActive;
-extern MissionBriefingCraftScreenFaction g_missionBriefingCraftScreenFaction;
+extern int g_mission_briefing_craft_selection_active;
+extern mission_briefing_craft_screen_faction
+	g_mission_briefing_craft_screen_faction;
 
-int MissionBriefing_CraftSelectionExit(int frameCounter);
-int MissionBriefing_CraftSelectionUpdate(int frameCounter);
-int MissionBriefing_BroadcastRosterAndAssignments(void);
-int16_t MissionBriefing_HandleMapMouseInput(struct RECT *viewportRect,
-					    struct RECT *clipRect,
-					    int16_t suppressInput, int leftDown,
-					    int rightDown, int16_t mouseX,
-					    int16_t mouseY);
-int16_t MissionBriefing_DrawMapViewport(struct RECT *viewportRect,
-					struct RECT *clipRect,
-					int16_t highlightPhase);
-int MissionBriefing_AreAllNetworkPlayersReady(void);
+int mission_briefing_craft_selection_exit(int frame_counter);
+int mission_briefing_craft_selection_update(int frame_counter);
+int mission_briefing_broadcast_roster_and_assignments(void);
+int16_t mission_briefing_handle_map_mouse_input(struct RECT *viewport_rect,
+						struct RECT *clip_rect,
+						int16_t suppress_input,
+						int left_down, int right_down,
+						int16_t mouse_x,
+						int16_t mouse_y);
+int16_t mission_briefing_draw_map_viewport(struct RECT *viewport_rect,
+					   struct RECT *clip_rect,
+					   int16_t highlight_phase);
+int mission_briefing_are_all_network_players_ready(void);
 
 #ifdef __cplusplus
 }

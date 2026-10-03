@@ -18,94 +18,94 @@
 #include <stdio.h>
 
 /* Exit function of the first screen when the intro plays: runs once
- * FrontendBootstrap_PlayOpeningAndEnterCredits has switched to the credits,
- * and loads the credits screen through Credits_LoadScreenResources. Returns
+ * frontend_bootstrap_play_opening_and_enter_credits has switched to the credits,
+ * and loads the credits screen through credits_load_screen_resources. Returns
  * 0. */
 // FUNCTION: XVT 0x4F0860
-int FrontendBootstrap_ExitIntroAndLoadCredits(int frameCounter)
+int frontend_bootstrap_exit_intro_and_load_credits(int frame_counter)
 {
-	(void)frameCounter;
-	Credits_LoadScreenResources();
+	(void)frame_counter;
+	credits_load_screen_resources();
 	return 0;
 }
 
 /* Update function of the first screen when the intro plays. Unlocks the back
  * buffer, plays the "Opening" movie, clears the back buffer, makes
- * Credits_UpdateScreen and FrontendBootstrap_ExitCreditsAndLoadFrontend the
- * screen's callbacks and locks the back buffer again into g_drawSurfacePtr.
- * The original build plays the whole movie inside Movie_Play. In the modern
- * build Movie_Play starts it and answers XVT_MOVIE_PENDING, and this returns
+ * credits_update_screen and frontend_bootstrap_exit_credits_and_load_frontend the
+ * screen's callbacks and locks the back buffer again into g_draw_surface_ptr.
+ * The original build plays the whole movie inside movie_play. In the modern
+ * build movie_play starts it and answers XVT_MOVIE_PENDING, and this returns
  * at once with the back buffer unlocked; no frontend frame runs while the
  * movie plays, and the next call takes its result and goes on. Returns 0 on
  * every path and ignores the movie's result. */
 // FUNCTION: XVT 0x4F0870
-int FrontendBootstrap_PlayOpeningAndEnterCredits(int frameCounter)
+int frontend_bootstrap_play_opening_and_enter_credits(int frame_counter)
 {
-	(void)frameCounter;
-	FrontendDisplay_UnlockBackBuffer();
+	(void)frame_counter;
+	frontend_display_unlock_back_buffer();
 #ifdef XVT_MODERN
-	if (Movie_Play("Opening", 0) == XVT_MOVIE_PENDING) {
+	if (movie_play("Opening", 0) == XVT_MOVIE_PENDING) {
 		return 0;
 	}
 #else
-	Movie_Play("Opening", 0);
+	movie_play("Opening", 0);
 #endif
-	FrontendDisplay_ClearBackBuffer();
-	FrontendScreen_SetCallbacks(
-		Credits_UpdateScreen,
-		(FrontendScreenExitFn)
-			FrontendBootstrap_ExitCreditsAndLoadFrontend);
-	g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	frontend_display_clear_back_buffer();
+	frontend_screen_set_callbacks(
+		credits_update_screen,
+		(frontend_screen_exit_fn)
+			frontend_bootstrap_exit_credits_and_load_frontend);
+	g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	return 0;
 }
 
 /* Start function of the frontend when the intro plays, run once before the
- * first frame: by the main loop through modeInitFn in the original build, by
- * XvtFrontendTask_Update in the modern one. Turns off quitting on Esc, sets
+ * first frame: by the main loop through mode_init_fn in the original build, by
+ * xvt_frontend_task_update in the modern one. Turns off quitting on Esc, sets
  * the surface clear color to 0, hides the cursor, turns off clearing the back
  * buffer after each present and refilling it from the offscreen surface, and
- * loads font size 12. Closes g_movieSubtitleFile and sets it NULL when it is
+ * loads font size 12. Closes g_movie_subtitle_file and sets it NULL when it is
  * open. Returns 0, which in the original build lets the main loop start. */
 // FUNCTION: XVT 0x4F08B0
-int FrontendBootstrap_InitMode(void)
+int frontend_bootstrap_init_mode(void)
 {
-	FrontendDisplay_DisableEscapeClose();
-	FrontendDisplay_SetSurfaceClearColor(0);
-	FrontendCursor_Hide();
-	FrontendDisplay_DisableClearAfterPresent();
-	FrontendDisplay_DisableOffscreenRestore();
-	FrontendText_LoadFont(12);
-	if (g_movieSubtitleFile != NULL) {
-		File_RawClose(g_movieSubtitleFile);
-		g_movieSubtitleFile = NULL;
+	frontend_display_disable_escape_close();
+	frontend_display_set_surface_clear_color(0);
+	frontend_cursor_hide();
+	frontend_display_disable_clear_after_present();
+	frontend_display_disable_offscreen_restore();
+	frontend_text_load_font(12);
+	if (g_movie_subtitle_file != NULL) {
+		FILE_RAW_CLOSE(g_movie_subtitle_file);
+		g_movie_subtitle_file = NULL;
 	}
 	return 0;
 }
 
 /* Exit function of the credits screen, run once the credits have switched to
- * the concourse. Closes g_frontendCreditsFile and sets it NULL when it is
+ * the concourse. Closes g_frontend_credits_file and sets it NULL when it is
  * open, frees the seven credits images, stops the text fade, loads the
- * frontend through Frontend_LoadResources and turns on looping of the
- * current CD track. Returns 0 and ignores what Frontend_LoadResources
+ * frontend through frontend_load_resources and turns on looping of the
+ * current CD track. Returns 0 and ignores what frontend_load_resources
  * returns. */
 // FUNCTION: XVT 0x4FB5E0
-int FrontendBootstrap_ExitCreditsAndLoadFrontend(int frameCounter)
+int frontend_bootstrap_exit_credits_and_load_frontend(int frame_counter)
 {
-	(void)frameCounter;
+	(void)frame_counter;
 
-	if (g_frontendCreditsFile != NULL) {
-		File_Close(g_frontendCreditsFile);
-		g_frontendCreditsFile = NULL;
+	if (g_frontend_credits_file != NULL) {
+		file_close(g_frontend_credits_file);
+		g_frontend_credits_file = NULL;
 	}
-	FrontImage_FreeResourceByName("background");
-	FrontImage_FreeResourceByName("leclogo");
-	FrontImage_FreeResourceByName("totallylogo");
-	FrontImage_FreeResourceByName("comp01");
-	FrontImage_FreeResourceByName("testers");
-	FrontImage_FreeResourceByName("lakota");
-	FrontImage_FreeResourceByName("artists");
-	FrontendText_StopTextFade();
-	Frontend_LoadResources();
-	CDAudio_EnableLoopCurrentTrack();
+	front_image_free_resource_by_name("background");
+	front_image_free_resource_by_name("leclogo");
+	front_image_free_resource_by_name("totallylogo");
+	front_image_free_resource_by_name("comp01");
+	front_image_free_resource_by_name("testers");
+	front_image_free_resource_by_name("lakota");
+	front_image_free_resource_by_name("artists");
+	frontend_text_stop_text_fade();
+	frontend_load_resources();
+	cd_audio_enable_loop_current_track();
 	return 0;
 }

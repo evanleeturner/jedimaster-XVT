@@ -8,15 +8,15 @@
 extern "C" {
 #endif
 
-extern int g_flightLoadingReadyScreenStartMs;
-extern int g_flightLoadingReadyScreenNowMs;
-extern int g_unusedFlightLoadingReadyScreenFlag;
-extern int g_frontendLaunchHumanPlayerCount;
-extern char g_frontendFlightCommandLine[256];
+extern int g_flight_loading_ready_screen_start_ms;
+extern int g_flight_loading_ready_screen_now_ms;
+extern int g_unused_flight_loading_ready_screen_flag;
+extern int g_frontend_launch_human_player_count;
+extern char g_frontend_flight_command_line[256];
 
-int FlightLoading_UpdateReadyScreen(int frameCounter);
-int FrontendFlight_NoOpExit(int frameCounter);
-int FrontendFlight_LaunchSession(int frameCounter);
+int flight_loading_update_ready_screen(int frame_counter);
+int frontend_flight_no_op_exit(int frame_counter);
+int frontend_flight_launch_session(int frame_counter);
 
 #ifdef __cplusplus
 }

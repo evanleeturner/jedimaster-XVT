@@ -11,47 +11,48 @@
 
 /* X of the vector the last point rotation produced. Many functions write it,
  * chiefly pai_calcrotatedpoint, which turns a local vector into world axes
- * here, and ModelMesh_ApplyAnimatedMeshRotationToPoint; callers read it right
+ * here, and model_mesh_apply_animated_mesh_rotation_to_point; callers read it right
  * after the call and often scale or offset it in place. */
 // GLOBAL: XVT 0x9D8A58
-int g_rotatedX = 0;
+int g_rotated_x = 0;
 /* Y of the vector the last point rotation produced; written and read like
- * g_rotatedX. */
+ * g_rotated_x. */
 // GLOBAL: XVT 0x9D8A54
-int g_rotatedY = 0;
+int g_rotated_y = 0;
 /* Z of the vector the last point rotation produced; written and read like
- * g_rotatedX. */
+ * g_rotated_x. */
 // GLOBAL: XVT 0x9D8B60
-int g_rotatedZ = 0;
+int g_rotated_z = 0;
 
 /* Per object type 0 to 72, its mesh count and, for up to 50 meshes, each mesh's
- * type and descriptor. Only ModelMesh_BuildObjectTypeMeshCache fills it, after
+ * type and descriptor. Only model_mesh_build_object_type_mesh_cache fills it, after
  * the flight resources load. */
 // GLOBAL: XVT 0xA00870
-struct ModelMeshObjectTypeCache g_objectTypeMeshCache[73] = {0};
-/* Hardpoints passed so far in the current ModelMesh_FindNthHardpointNode
+struct model_mesh_object_type_cache g_object_type_mesh_cache[73] = {0};
+/* Hardpoints passed so far in the current model_mesh_find_nth_hardpoint_node
  * search: that function sets it to 0 and
- * ModelMesh_FindNthHardpointNodeRecursive raises it. */
+ * model_mesh_find_nth_hardpoint_node_recursive raises it. */
 // GLOBAL: XVT 0x528128
-int g_optHardpointSearchIndex = 0;
+int g_opt_hardpoint_search_index = 0;
 
-/* Sets g_rotatedX, g_rotatedY and g_rotatedZ to the local point, then, when
- * mesh meshIndex has an OPT_ROTSCALE node (ModelMesh_GetRotScaleData), turns
- * that point by angleQ16 (65,536 a full circle) about the node's axis: its
+/* Sets g_rotated_x, g_rotated_y and g_rotated_z to the local point, then, when
+ * mesh mesh_index has an OPT_ROTSCALE node (model_mesh_get_rot_scale_data), turns
+ * that point by angle_q16 (65,536 a full circle) about the node's axis: its
  * floats 3 to 5 cast to int and taken as 1.15 fixed point, through the point of
  * its floats 0 to 2 with the y negated. Leaves the result in the same three
  * globals. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4285A0
-void ModelMesh_ApplyAnimatedMeshRotationToPoint(int16_t angleQ16,
-						int objectType, int meshIndex,
-						int localX, int localY,
-						int localZ)
+void model_mesh_apply_animated_mesh_rotation_to_point(int16_t angle_q16,
+						      int object_type,
+						      int mesh_index,
+						      int local_x, int local_y,
+						      int local_z)
 {
-	float *rotScaleData;
-	int axisX;
-	int axisY;
-	int axisZ;
+	float *rot_scale_data;
+	int axis_x;
+	int axis_y;
+	int axis_z;
 	int cosine;
 	int sine;
 	int coefficient00;
@@ -63,144 +64,147 @@ void ModelMesh_ApplyAnimatedMeshRotationToPoint(int16_t angleQ16,
 	int coefficient20;
 	int coefficient21;
 	int coefficient22;
-	int transformedX;
-	int transformedY;
-	int transformedZ;
+	int transformed_x;
+	int transformed_y;
+	int transformed_z;
 
-	g_rotatedX = localX;
-	g_rotatedY = localY;
-	g_rotatedZ = localZ;
-	rotScaleData = ModelMesh_GetRotScaleData(objectType, meshIndex);
-	if (rotScaleData == NULL) {
+	g_rotated_x = local_x;
+	g_rotated_y = local_y;
+	g_rotated_z = local_z;
+	rot_scale_data = model_mesh_get_rot_scale_data(object_type, mesh_index);
+	if (rot_scale_data == NULL) {
 		return;
 	}
 
-	axisX = (int)rotScaleData[3];
-	axisY = (int)rotScaleData[4];
-	axisZ = (int)rotScaleData[5];
-	cosine = trig2_getsignedcos(angleQ16);
-	sine = trig2_getsignedsin(angleQ16);
+	axis_x = (int)rot_scale_data[3];
+	axis_y = (int)rot_scale_data[4];
+	axis_z = (int)rot_scale_data[5];
+	cosine = trig2_getsignedcos(angle_q16);
+	sine = trig2_getsignedsin(angle_q16);
 	if (cosine >= 0) {
-		const int oneMinusCosine = MODEL_MESH_Q15_ONE - cosine;
+		const int one_minus_cosine = MODEL_MESH_Q15_ONE - cosine;
 
-		coefficient00 = Math_RodriguesTermNonnegativeCos(
-			axisX, axisX, oneMinusCosine, cosine);
-		coefficient01 = Math_RodriguesTermNonnegativeCos(
-			axisX, axisY, oneMinusCosine, Math_MulQ15(sine, axisZ));
-		coefficient02 = Math_RodriguesTermNonnegativeCos(
-			axisX, axisZ, oneMinusCosine,
-			-Math_MulQ15(sine, axisY));
-		coefficient10 = Math_RodriguesTermNonnegativeCos(
-			axisX, axisY, oneMinusCosine,
-			-Math_MulQ15(sine, axisZ));
-		coefficient11 = Math_RodriguesTermNonnegativeCos(
-			axisY, axisY, oneMinusCosine, cosine);
-		coefficient12 = Math_RodriguesTermNonnegativeCos(
-			axisY, axisZ, oneMinusCosine, Math_MulQ15(sine, axisX));
-		coefficient20 = Math_RodriguesTermNonnegativeCos(
-			axisX, axisZ, oneMinusCosine, Math_MulQ15(sine, axisY));
-		coefficient21 = Math_RodriguesTermNonnegativeCos(
-			axisY, axisZ, oneMinusCosine,
-			-Math_MulQ15(sine, axisX));
-		coefficient22 = Math_RodriguesTermNonnegativeCos(
-			axisZ, axisZ, oneMinusCosine, cosine);
+		coefficient00 = math_rodrigues_term_nonnegative_cos(
+			axis_x, axis_x, one_minus_cosine, cosine);
+		coefficient01 = math_rodrigues_term_nonnegative_cos(
+			axis_x, axis_y, one_minus_cosine,
+			math_mul_q15(sine, axis_z));
+		coefficient02 = math_rodrigues_term_nonnegative_cos(
+			axis_x, axis_z, one_minus_cosine,
+			-math_mul_q15(sine, axis_y));
+		coefficient10 = math_rodrigues_term_nonnegative_cos(
+			axis_x, axis_y, one_minus_cosine,
+			-math_mul_q15(sine, axis_z));
+		coefficient11 = math_rodrigues_term_nonnegative_cos(
+			axis_y, axis_y, one_minus_cosine, cosine);
+		coefficient12 = math_rodrigues_term_nonnegative_cos(
+			axis_y, axis_z, one_minus_cosine,
+			math_mul_q15(sine, axis_x));
+		coefficient20 = math_rodrigues_term_nonnegative_cos(
+			axis_x, axis_z, one_minus_cosine,
+			math_mul_q15(sine, axis_y));
+		coefficient21 = math_rodrigues_term_nonnegative_cos(
+			axis_y, axis_z, one_minus_cosine,
+			-math_mul_q15(sine, axis_x));
+		coefficient22 = math_rodrigues_term_nonnegative_cos(
+			axis_z, axis_z, one_minus_cosine, cosine);
 	} else {
-		coefficient00 = Math_RodriguesTermNegativeCos(axisX, axisX,
-							      -cosine, cosine);
-		coefficient01 = Math_RodriguesTermNegativeCos(
-			axisX, axisY, -cosine, Math_MulQ15(sine, axisZ));
-		coefficient02 = Math_RodriguesTermNegativeCos(
-			axisX, axisZ, -cosine, -Math_MulQ15(sine, axisY));
-		coefficient10 = Math_RodriguesTermNegativeCos(
-			axisX, axisY, -cosine, -Math_MulQ15(sine, axisZ));
-		coefficient11 = Math_RodriguesTermNegativeCos(axisY, axisY,
-							      -cosine, cosine);
-		coefficient12 = Math_RodriguesTermNegativeCos(
-			axisY, axisZ, -cosine, Math_MulQ15(sine, axisX));
-		coefficient20 = Math_RodriguesTermNegativeCos(
-			axisX, axisZ, -cosine, Math_MulQ15(sine, axisY));
-		coefficient21 = Math_RodriguesTermNegativeCos(
-			axisY, axisZ, -cosine, -Math_MulQ15(sine, axisX));
-		coefficient22 = Math_RodriguesTermNegativeCos(axisZ, axisZ,
-							      -cosine, cosine);
+		coefficient00 = math_rodrigues_term_negative_cos(
+			axis_x, axis_x, -cosine, cosine);
+		coefficient01 = math_rodrigues_term_negative_cos(
+			axis_x, axis_y, -cosine, math_mul_q15(sine, axis_z));
+		coefficient02 = math_rodrigues_term_negative_cos(
+			axis_x, axis_z, -cosine, -math_mul_q15(sine, axis_y));
+		coefficient10 = math_rodrigues_term_negative_cos(
+			axis_x, axis_y, -cosine, -math_mul_q15(sine, axis_z));
+		coefficient11 = math_rodrigues_term_negative_cos(
+			axis_y, axis_y, -cosine, cosine);
+		coefficient12 = math_rodrigues_term_negative_cos(
+			axis_y, axis_z, -cosine, math_mul_q15(sine, axis_x));
+		coefficient20 = math_rodrigues_term_negative_cos(
+			axis_x, axis_z, -cosine, math_mul_q15(sine, axis_y));
+		coefficient21 = math_rodrigues_term_negative_cos(
+			axis_y, axis_z, -cosine, -math_mul_q15(sine, axis_x));
+		coefficient22 = math_rodrigues_term_negative_cos(
+			axis_z, axis_z, -cosine, cosine);
 	}
 
-	localX -= (int)rotScaleData[0];
-	localY += (int)rotScaleData[1];
-	localZ -= (int)rotScaleData[2];
-	transformedX =
-		Math_Dot3Q15Wrapped(localX, localY, localZ, coefficient00,
-				    coefficient10, coefficient20);
-	transformedY =
-		Math_Dot3Q15Wrapped(localX, localY, localZ, coefficient01,
-				    coefficient11, coefficient21);
-	transformedZ =
-		Math_Dot3Q15Wrapped(localX, localY, localZ, coefficient02,
-				    coefficient12, coefficient22);
-	transformedY -= (int)rotScaleData[1];
-	transformedZ += (int)rotScaleData[2];
-	transformedX += (int)rotScaleData[0];
-	g_rotatedX = transformedX;
-	g_rotatedY = transformedY;
-	g_rotatedZ = transformedZ;
+	local_x -= (int)rot_scale_data[0];
+	local_y += (int)rot_scale_data[1];
+	local_z -= (int)rot_scale_data[2];
+	transformed_x =
+		math_dot3q15_wrapped(local_x, local_y, local_z, coefficient00,
+				     coefficient10, coefficient20);
+	transformed_y =
+		math_dot3q15_wrapped(local_x, local_y, local_z, coefficient01,
+				     coefficient11, coefficient21);
+	transformed_z =
+		math_dot3q15_wrapped(local_x, local_y, local_z, coefficient02,
+				     coefficient12, coefficient22);
+	transformed_y -= (int)rot_scale_data[1];
+	transformed_z += (int)rot_scale_data[2];
+	transformed_x += (int)rot_scale_data[0];
+	g_rotated_x = transformed_x;
+	g_rotated_y = transformed_y;
+	g_rotated_z = transformed_z;
 }
 
 /* Returns the object type's mesh count: its model's root count, 1 less when the
- * first root is an OPT_TEXTURE, capped at 50. Returns 0 when g_loadedModels
- * holds no handle for it or its assetFlags lacks the 0x1 bit. */
+ * first root is an OPT_TEXTURE, capped at 50. Returns 0 when g_loaded_models
+ * holds no handle for it or its asset_flags lacks the 0x1 bit. */
 // FUNCTION: XVT 0x4ADC40
-int ModelMesh_GetObjectTypeMeshCount(int objectType)
+int model_mesh_get_object_type_mesh_count(int object_type)
 {
-	uint16_t modelHandle;
-	struct OptimizedPolyObject *model;
-	int meshCount;
+	uint16_t model_handle;
+	struct optimized_poly_object *model;
+	int mesh_count;
 
-	modelHandle = g_loadedModels[objectType];
-	if (modelHandle == 0) {
+	model_handle = g_loaded_models[object_type];
+	if (model_handle == 0) {
 		return 0;
 	}
-	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
+	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
 
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		modelHandle);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	model = (struct optimized_poly_object *)memory_get_handle_block(
+		model_handle);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
-	meshCount = model->rootNodeCount;
-	if (model->rootNodes[0]->nodeType == OPT_TEXTURE) {
-		--meshCount;
+	mesh_count = model->root_node_count;
+	if (model->root_nodes[0]->node_type == OPT_TEXTURE) {
+		--mesh_count;
 	}
-	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
+	memory_handle_block_done_stub(g_loaded_models[object_type]);
 
-	if (meshCount > 50) {
-		meshCount = 50;
+	if (mesh_count > 50) {
+		mesh_count = 50;
 	}
 
-	return meshCount;
+	return mesh_count;
 }
 
 /* Returns the first OPT_MESHVERTS node at or below node, depth first, or NULL.
  * Skips NULL child slots and does not follow OPT_NODEREF links. */
 // FUNCTION: XVT 0x4ADCC0
-struct OptNode *ModelMesh_FindFirstMeshVertsNode(struct OptNode *node)
+struct opt_node *model_mesh_find_first_mesh_verts_node(struct opt_node *node)
 {
-	struct OptNode *result;
-	int childIndex;
+	struct opt_node *result;
+	int child_index;
 
 	if (node == 0) {
 		return 0;
 	}
 
-	if (node->nodeType == OPT_MESHVERTS) {
+	if (node->node_type == OPT_MESHVERTS) {
 		return node;
 	}
 
-	for (childIndex = 0; childIndex < node->childCount; childIndex++) {
-		if (node->pChildren[childIndex] != 0) {
-			result = ModelMesh_FindFirstMeshVertsNode(
-				node->pChildren[childIndex]);
+	for (child_index = 0; child_index < node->child_count; child_index++) {
+		if (node->p_children[child_index] != 0) {
+			result = model_mesh_find_first_mesh_verts_node(
+				node->p_children[child_index]);
 			if (result != 0) {
 				return result;
 			}
@@ -213,23 +217,23 @@ struct OptNode *ModelMesh_FindFirstMeshVertsNode(struct OptNode *node)
 /* Returns the first OPT_ROTSCALE node at or below node, depth first, or NULL.
  * Skips NULL child slots and does not follow OPT_NODEREF links. */
 // FUNCTION: XVT 0x4ADD10
-struct OptNode *ModelMesh_FindFirstRotScaleNode(struct OptNode *node)
+struct opt_node *model_mesh_find_first_rot_scale_node(struct opt_node *node)
 {
-	struct OptNode *result;
-	int childIndex;
+	struct opt_node *result;
+	int child_index;
 
 	if (node == 0) {
 		return 0;
 	}
 
-	if (node->nodeType == OPT_ROTSCALE) {
+	if (node->node_type == OPT_ROTSCALE) {
 		return node;
 	}
 
-	for (childIndex = 0; childIndex < node->childCount; childIndex++) {
-		if (node->pChildren[childIndex] != 0) {
-			result = ModelMesh_FindFirstRotScaleNode(
-				node->pChildren[childIndex]);
+	for (child_index = 0; child_index < node->child_count; child_index++) {
+		if (node->p_children[child_index] != 0) {
+			result = model_mesh_find_first_rot_scale_node(
+				node->p_children[child_index]);
 			if (result != 0) {
 				return result;
 			}
@@ -239,28 +243,28 @@ struct OptNode *ModelMesh_FindFirstRotScaleNode(struct OptNode *node)
 	return 0;
 }
 
-/* Returns, as a MeshDescriptor, the payload of the first OPT_MESHDESC node at
+/* Returns, as a mesh_descriptor, the payload of the first OPT_MESHDESC node at
  * or below node, depth first, or NULL. Skips NULL child slots, does not follow
  * OPT_NODEREF links and ignores model. */
 // FUNCTION: XVT 0x4AE1A0
-struct MeshDescriptor *
-ModelMesh_FindDescriptorNodeRecursive(struct OptNode *node,
-				      struct OptimizedPolyObject *model)
+struct mesh_descriptor *
+model_mesh_find_descriptor_node_recursive(struct opt_node *node,
+					  struct optimized_poly_object *model)
 {
-	struct MeshDescriptor *descriptor;
-	int childIndex;
+	struct mesh_descriptor *descriptor;
+	int child_index;
 
 	if (node == NULL) {
 		return NULL;
 	}
-	if (node->nodeType == OPT_MESHDESC) {
-		return (struct MeshDescriptor *)node->payload;
+	if (node->node_type == OPT_MESHDESC) {
+		return (struct mesh_descriptor *)node->payload;
 	}
 
-	for (childIndex = 0; childIndex < node->childCount; ++childIndex) {
-		if (node->pChildren[childIndex] != NULL) {
-			descriptor = ModelMesh_FindDescriptorNodeRecursive(
-				node->pChildren[childIndex], model);
+	for (child_index = 0; child_index < node->child_count; ++child_index) {
+		if (node->p_children[child_index] != NULL) {
+			descriptor = model_mesh_find_descriptor_node_recursive(
+				node->p_children[child_index], model);
 			if (descriptor != NULL) {
 				return descriptor;
 			}
@@ -270,750 +274,760 @@ ModelMesh_FindDescriptorNodeRecursive(struct OptNode *node,
 	return NULL;
 }
 
-/* Returns the MeshDescriptor of mesh meshIndex of the object type's model, or
- * NULL; NULL also when g_loadedModels holds no handle for it, meshIndex is
- * negative or its assetFlags lacks the 0x1 bit. Mesh n is root node n, or n + 1
+/* Returns the mesh_descriptor of mesh mesh_index of the object type's model, or
+ * NULL; NULL also when g_loaded_models holds no handle for it, mesh_index is
+ * negative or its asset_flags lacks the 0x1 bit. Mesh n is root node n, or n + 1
  * when the first root is an OPT_TEXTURE, cut to the last root; the other
  * ModelMesh getters find a mesh the same way. */
 // FUNCTION: XVT 0x4AE200
-struct MeshDescriptor *ModelMesh_GetDescriptor(int objectType, int meshIndex)
+struct mesh_descriptor *model_mesh_get_descriptor(int object_type,
+						  int mesh_index)
 {
-	uint16_t modelHandle;
-	struct OptimizedPolyObject *model;
-	struct OptNode **rootNodes;
+	uint16_t model_handle;
+	struct optimized_poly_object *model;
+	struct opt_node **root_nodes;
 
-	modelHandle = g_loadedModels[objectType];
-	if (modelHandle == 0) {
+	model_handle = g_loaded_models[object_type];
+	if (model_handle == 0) {
 		return NULL;
 	}
-	if (meshIndex < 0) {
+	if (mesh_index < 0) {
 		return NULL;
 	}
-	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
+	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return NULL;
 	}
 
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		modelHandle);
-	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	model = (struct optimized_poly_object *)memory_get_handle_block(
+		model_handle);
+	memory_handle_block_done_stub(g_loaded_models[object_type]);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	rootNodes = model->rootNodes;
-	if (rootNodes[0]->nodeType == OPT_TEXTURE) {
-		++meshIndex;
+	root_nodes = model->root_nodes;
+	if (root_nodes[0]->node_type == OPT_TEXTURE) {
+		++mesh_index;
 	}
-	if (meshIndex >= model->rootNodeCount) {
-		meshIndex = model->rootNodeCount - 1;
+	if (mesh_index >= model->root_node_count) {
+		mesh_index = model->root_node_count - 1;
 	}
-	return ModelMesh_FindDescriptorNodeRecursive(rootNodes[meshIndex],
-						     model);
+	return model_mesh_find_descriptor_node_recursive(root_nodes[mesh_index],
+							 model);
 }
 
-/* Returns the meshType of mesh meshIndex's descriptor;
- * MESH_COMPONENT_00_DEFAULT when it has none, when meshIndex is negative, when
- * g_loadedModels holds no handle or when assetFlags lacks the 0x1 bit. */
+/* Returns the mesh_type of mesh mesh_index's descriptor;
+ * MESH_COMPONENT_00_DEFAULT when it has none, when mesh_index is negative, when
+ * g_loaded_models holds no handle or when asset_flags lacks the 0x1 bit. */
 // FUNCTION: XVT 0x4AE2A0
-MeshComponentType ModelMesh_GetObjectTypeMeshType(int objectType, int meshIndex)
+mesh_component_type model_mesh_get_object_type_mesh_type(int object_type,
+							 int mesh_index)
 {
-	uint16_t modelHandle;
-	struct OptimizedPolyObject *model;
-	struct OptNode **rootNodes;
-	struct MeshDescriptor *descriptor;
+	uint16_t model_handle;
+	struct optimized_poly_object *model;
+	struct opt_node **root_nodes;
+	struct mesh_descriptor *descriptor;
 
-	modelHandle = g_loadedModels[objectType];
-	if (modelHandle == 0) {
+	model_handle = g_loaded_models[object_type];
+	if (model_handle == 0) {
 		return MESH_COMPONENT_00_DEFAULT;
 	}
-	if (meshIndex < 0) {
+	if (mesh_index < 0) {
 		return MESH_COMPONENT_00_DEFAULT;
 	}
-	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
+	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return MESH_COMPONENT_00_DEFAULT;
 	}
 
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		modelHandle);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	model = (struct optimized_poly_object *)memory_get_handle_block(
+		model_handle);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	rootNodes = model->rootNodes;
-	if (rootNodes[0]->nodeType == OPT_TEXTURE) {
-		++meshIndex;
+	root_nodes = model->root_nodes;
+	if (root_nodes[0]->node_type == OPT_TEXTURE) {
+		++mesh_index;
 	}
-	if (meshIndex >= model->rootNodeCount) {
-		meshIndex = model->rootNodeCount - 1;
+	if (mesh_index >= model->root_node_count) {
+		mesh_index = model->root_node_count - 1;
 	}
 
-	descriptor = ModelMesh_FindDescriptorNodeRecursive(rootNodes[meshIndex],
-							   model);
-	/* From here meshIndex holds the result, no longer a root node index: the descriptor's mesh type,
+	descriptor = model_mesh_find_descriptor_node_recursive(
+		root_nodes[mesh_index], model);
+	/* From here mesh_index holds the result, no longer a root node index: the descriptor's mesh type,
 	 * or MESH_COMPONENT_00_DEFAULT without a descriptor. */
 	if (descriptor != NULL) {
-		meshIndex = descriptor->meshType;
+		mesh_index = descriptor->mesh_type;
 	} else {
-		meshIndex = MESH_COMPONENT_00_DEFAULT;
+		mesh_index = MESH_COMPONENT_00_DEFAULT;
 	}
 
-	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
-	return meshIndex;
+	memory_handle_block_done_stub(g_loaded_models[object_type]);
+	return mesh_index;
 }
 
-/* Returns the vertex count of mesh meshIndex's first OPT_MESHVERTS node; 0 when
- * assetFlags lacks the 0x1 bit. Does not check for a missing model, a negative
- * meshIndex or a mesh without a vertex node. */
+/* Returns the vertex count of mesh mesh_index's first OPT_MESHVERTS node; 0 when
+ * asset_flags lacks the 0x1 bit. Does not check for a missing model, a negative
+ * mesh_index or a mesh without a vertex node. */
 // FUNCTION: XVT 0x4AE340
-int ModelMesh_GetVertexCount(int objectType, int meshIndex)
+int model_mesh_get_vertex_count(int object_type, int mesh_index)
 {
-	struct OptimizedPolyObject *model;
-	struct OptNode **rootNodes;
-	int nodeType;
-	struct OptNode *vertexNode;
-	int vertexCount;
+	struct optimized_poly_object *model;
+	struct opt_node **root_nodes;
+	int node_type;
+	struct opt_node *vertex_node;
+	int vertex_count;
 
-	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
+	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
 
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		g_loadedModels[objectType]);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	model = (struct optimized_poly_object *)memory_get_handle_block(
+		g_loaded_models[object_type]);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	rootNodes = model->rootNodes;
-	nodeType = rootNodes[0]->nodeType;
-	if (nodeType == OPT_TEXTURE) {
-		++meshIndex;
+	root_nodes = model->root_nodes;
+	node_type = root_nodes[0]->node_type;
+	if (node_type == OPT_TEXTURE) {
+		++mesh_index;
 	}
-	if (meshIndex >= model->rootNodeCount) {
-		meshIndex = model->rootNodeCount - 1;
+	if (mesh_index >= model->root_node_count) {
+		mesh_index = model->root_node_count - 1;
 	}
 
-	vertexNode = ModelMesh_FindFirstMeshVertsNode(rootNodes[meshIndex]);
-	vertexCount = vertexNode->payloadCount;
+	vertex_node =
+		model_mesh_find_first_mesh_verts_node(root_nodes[mesh_index]);
+	vertex_count = vertex_node->payload_count;
 
-	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
-	return vertexCount;
+	memory_handle_block_done_stub(g_loaded_models[object_type]);
+	return vertex_count;
 }
 
-/* Returns, cut to an int, the x of vertex vertexIndex, lowered to the last one,
- * of mesh meshIndex's first OPT_MESHVERTS node; 0 when assetFlags lacks the 0x1
+/* Returns, cut to an int, the x of vertex vertex_index, lowered to the last one,
+ * of mesh mesh_index's first OPT_MESHVERTS node; 0 when asset_flags lacks the 0x1
  * bit. Does not check for a missing model, a negative index or a mesh without a
  * vertex node. */
 // FUNCTION: XVT 0x4AE3C0
-int ModelMesh_GetVertexX(int objectType, int meshIndex, int vertexIndex)
+int model_mesh_get_vertex_x(int object_type, int mesh_index, int vertex_index)
 {
-	struct OptimizedPolyObject *model;
-	struct OptNode **rootNodes;
-	struct OptNode *vertexNode;
-	struct OptVector *vertices;
-	int clampedVertexIndex;
+	struct optimized_poly_object *model;
+	struct opt_node **root_nodes;
+	struct opt_node *vertex_node;
+	struct opt_vector *vertices;
+	int clamped_vertex_index;
 	int result;
 
-	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
+	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
 
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		g_loadedModels[objectType]);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	model = (struct optimized_poly_object *)memory_get_handle_block(
+		g_loaded_models[object_type]);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	rootNodes = model->rootNodes;
-	if (rootNodes[0]->nodeType == OPT_TEXTURE) {
-		++meshIndex;
+	root_nodes = model->root_nodes;
+	if (root_nodes[0]->node_type == OPT_TEXTURE) {
+		++mesh_index;
 	}
-	if (meshIndex >= model->rootNodeCount) {
-		meshIndex = model->rootNodeCount - 1;
+	if (mesh_index >= model->root_node_count) {
+		mesh_index = model->root_node_count - 1;
 	}
 
-	vertexNode = ModelMesh_FindFirstMeshVertsNode(rootNodes[meshIndex]);
-	vertices = (struct OptVector *)vertexNode->payload;
-	clampedVertexIndex = vertexIndex;
-	if (clampedVertexIndex >= vertexNode->payloadCount) {
-		clampedVertexIndex = vertexNode->payloadCount - 1;
+	vertex_node =
+		model_mesh_find_first_mesh_verts_node(root_nodes[mesh_index]);
+	vertices = (struct opt_vector *)vertex_node->payload;
+	clamped_vertex_index = vertex_index;
+	if (clamped_vertex_index >= vertex_node->payload_count) {
+		clamped_vertex_index = vertex_node->payload_count - 1;
 	}
-	result = (int)vertices[clampedVertexIndex].x;
+	result = (int)vertices[clamped_vertex_index].x;
 
-	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
+	memory_handle_block_done_stub(g_loaded_models[object_type]);
 	return result;
 }
 
-/* Returns, cut to an int, the y of vertex vertexIndex, lowered to the last one,
- * of mesh meshIndex's first OPT_MESHVERTS node; 0 when assetFlags lacks the 0x1
+/* Returns, cut to an int, the y of vertex vertex_index, lowered to the last one,
+ * of mesh mesh_index's first OPT_MESHVERTS node; 0 when asset_flags lacks the 0x1
  * bit. Does not check for a missing model, a negative index or a mesh without a
  * vertex node. */
 // FUNCTION: XVT 0x4AE460
-int ModelMesh_GetVertexY(int objectType, int meshIndex, int vertexIndex)
+int model_mesh_get_vertex_y(int object_type, int mesh_index, int vertex_index)
 {
-	struct OptimizedPolyObject *model;
-	struct OptNode **rootNodes;
-	struct OptNode *vertexNode;
-	struct OptVector *vertices;
-	int clampedVertexIndex;
+	struct optimized_poly_object *model;
+	struct opt_node **root_nodes;
+	struct opt_node *vertex_node;
+	struct opt_vector *vertices;
+	int clamped_vertex_index;
 	int result;
 
-	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
+	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
 
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		g_loadedModels[objectType]);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	model = (struct optimized_poly_object *)memory_get_handle_block(
+		g_loaded_models[object_type]);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	rootNodes = model->rootNodes;
-	if (rootNodes[0]->nodeType == OPT_TEXTURE) {
-		++meshIndex;
+	root_nodes = model->root_nodes;
+	if (root_nodes[0]->node_type == OPT_TEXTURE) {
+		++mesh_index;
 	}
-	if (meshIndex >= model->rootNodeCount) {
-		meshIndex = model->rootNodeCount - 1;
+	if (mesh_index >= model->root_node_count) {
+		mesh_index = model->root_node_count - 1;
 	}
 
-	vertexNode = ModelMesh_FindFirstMeshVertsNode(rootNodes[meshIndex]);
-	vertices = (struct OptVector *)vertexNode->payload;
-	clampedVertexIndex = vertexIndex;
-	if (clampedVertexIndex >= vertexNode->payloadCount) {
-		clampedVertexIndex = vertexNode->payloadCount - 1;
+	vertex_node =
+		model_mesh_find_first_mesh_verts_node(root_nodes[mesh_index]);
+	vertices = (struct opt_vector *)vertex_node->payload;
+	clamped_vertex_index = vertex_index;
+	if (clamped_vertex_index >= vertex_node->payload_count) {
+		clamped_vertex_index = vertex_node->payload_count - 1;
 	}
-	result = (int)vertices[clampedVertexIndex].y;
+	result = (int)vertices[clamped_vertex_index].y;
 
-	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
+	memory_handle_block_done_stub(g_loaded_models[object_type]);
 	return result;
 }
 
-/* Returns, cut to an int, the z of vertex vertexIndex, lowered to the last one,
- * of mesh meshIndex's first OPT_MESHVERTS node; 0 when assetFlags lacks the 0x1
+/* Returns, cut to an int, the z of vertex vertex_index, lowered to the last one,
+ * of mesh mesh_index's first OPT_MESHVERTS node; 0 when asset_flags lacks the 0x1
  * bit. Does not check for a missing model, a negative index or a mesh without a
  * vertex node. */
 // FUNCTION: XVT 0x4AE500
-int ModelMesh_GetVertexZ(int objectType, int meshIndex, int vertexIndex)
+int model_mesh_get_vertex_z(int object_type, int mesh_index, int vertex_index)
 {
-	struct OptimizedPolyObject *model;
-	struct OptNode **rootNodes;
-	struct OptNode *vertexNode;
-	struct OptVector *vertices;
-	int clampedVertexIndex;
+	struct optimized_poly_object *model;
+	struct opt_node **root_nodes;
+	struct opt_node *vertex_node;
+	struct opt_vector *vertices;
+	int clamped_vertex_index;
 	int result;
 
-	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
+	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
 
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		g_loadedModels[objectType]);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	model = (struct optimized_poly_object *)memory_get_handle_block(
+		g_loaded_models[object_type]);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	rootNodes = model->rootNodes;
-	if (rootNodes[0]->nodeType == OPT_TEXTURE) {
-		++meshIndex;
+	root_nodes = model->root_nodes;
+	if (root_nodes[0]->node_type == OPT_TEXTURE) {
+		++mesh_index;
 	}
-	if (meshIndex >= model->rootNodeCount) {
-		meshIndex = model->rootNodeCount - 1;
+	if (mesh_index >= model->root_node_count) {
+		mesh_index = model->root_node_count - 1;
 	}
 
-	vertexNode = ModelMesh_FindFirstMeshVertsNode(rootNodes[meshIndex]);
-	vertices = (struct OptVector *)vertexNode->payload;
-	clampedVertexIndex = vertexIndex;
-	if (clampedVertexIndex >= vertexNode->payloadCount) {
-		clampedVertexIndex = vertexNode->payloadCount - 1;
+	vertex_node =
+		model_mesh_find_first_mesh_verts_node(root_nodes[mesh_index]);
+	vertices = (struct opt_vector *)vertex_node->payload;
+	clamped_vertex_index = vertex_index;
+	if (clamped_vertex_index >= vertex_node->payload_count) {
+		clamped_vertex_index = vertex_node->payload_count - 1;
 	}
-	result = (int)vertices[clampedVertexIndex].z;
+	result = (int)vertices[clamped_vertex_index].z;
 
-	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
+	memory_handle_block_done_stub(g_loaded_models[object_type]);
 	return result;
 }
 
-/* Returns, cut to an int, center.x of mesh meshIndex's descriptor; 0 without
- * one, for a negative meshIndex, or when assetFlags lacks the 0x1 bit. Does not
+/* Returns, cut to an int, center.x of mesh mesh_index's descriptor; 0 without
+ * one, for a negative mesh_index, or when asset_flags lacks the 0x1 bit. Does not
  * check for a missing model. */
 // FUNCTION: XVT 0x4AE5A0
-int ModelMesh_GetCenterX(int objectType, int meshIndex)
+int model_mesh_get_center_x(int object_type, int mesh_index)
 {
-	struct OptimizedPolyObject *model;
-	struct OptNode **rootNodes;
-	struct MeshDescriptor *descriptor;
-	int nodeIndex;
+	struct optimized_poly_object *model;
+	struct opt_node **root_nodes;
+	struct mesh_descriptor *descriptor;
+	int node_index;
 	int result;
 
-	if (meshIndex < 0) {
+	if (mesh_index < 0) {
 		return 0;
 	}
-	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
+	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
 
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		g_loadedModels[objectType]);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	model = (struct optimized_poly_object *)memory_get_handle_block(
+		g_loaded_models[object_type]);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	rootNodes = model->rootNodes;
-	nodeIndex = meshIndex;
-	if (rootNodes[0]->nodeType == OPT_TEXTURE) {
-		++nodeIndex;
+	root_nodes = model->root_nodes;
+	node_index = mesh_index;
+	if (root_nodes[0]->node_type == OPT_TEXTURE) {
+		++node_index;
 	}
-	if (nodeIndex >= model->rootNodeCount) {
-		nodeIndex = model->rootNodeCount - 1;
+	if (node_index >= model->root_node_count) {
+		node_index = model->root_node_count - 1;
 	}
 
-	descriptor = ModelMesh_FindDescriptorNodeRecursive(rootNodes[nodeIndex],
-							   model);
+	descriptor = model_mesh_find_descriptor_node_recursive(
+		root_nodes[node_index], model);
 	if (descriptor != NULL) {
 		result = (int)descriptor->center.x;
 	} else {
 		result = 0;
 	}
 
-	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
+	memory_handle_block_done_stub(g_loaded_models[object_type]);
 	return result;
 }
 
-/* Returns, cut to an int, center.y of mesh meshIndex's descriptor; 0 without
- * one, for a negative meshIndex, or when assetFlags lacks the 0x1 bit. Does not
+/* Returns, cut to an int, center.y of mesh mesh_index's descriptor; 0 without
+ * one, for a negative mesh_index, or when asset_flags lacks the 0x1 bit. Does not
  * check for a missing model. */
 // FUNCTION: XVT 0x4AE640
-int ModelMesh_GetCenterY(int objectType, int meshIndex)
+int model_mesh_get_center_y(int object_type, int mesh_index)
 {
-	struct OptimizedPolyObject *model;
-	struct OptNode **rootNodes;
-	struct MeshDescriptor *descriptor;
-	int rootNodeCount;
+	struct optimized_poly_object *model;
+	struct opt_node **root_nodes;
+	struct mesh_descriptor *descriptor;
+	int root_node_count;
 	int result;
 
-	if (meshIndex < 0) {
+	if (mesh_index < 0) {
 		return 0;
 	}
-	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
+	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
 
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		g_loadedModels[objectType]);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	model = (struct optimized_poly_object *)memory_get_handle_block(
+		g_loaded_models[object_type]);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	rootNodes = model->rootNodes;
-	if (rootNodes[0]->nodeType == OPT_TEXTURE) {
-		++meshIndex;
+	root_nodes = model->root_nodes;
+	if (root_nodes[0]->node_type == OPT_TEXTURE) {
+		++mesh_index;
 	}
-	rootNodeCount = model->rootNodeCount;
-	if (rootNodeCount <= meshIndex) {
-		meshIndex = rootNodeCount - 1;
+	root_node_count = model->root_node_count;
+	if (root_node_count <= mesh_index) {
+		mesh_index = root_node_count - 1;
 	}
 
-	descriptor = ModelMesh_FindDescriptorNodeRecursive(rootNodes[meshIndex],
-							   model);
+	descriptor = model_mesh_find_descriptor_node_recursive(
+		root_nodes[mesh_index], model);
 	if (descriptor != NULL) {
 		result = (int)descriptor->center.y;
 	} else {
 		result = 0;
 	}
 
-	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
+	memory_handle_block_done_stub(g_loaded_models[object_type]);
 	return result;
 }
 
-/* Returns, cut to an int, center.z of mesh meshIndex's descriptor; 0 without
- * one, for a negative meshIndex, or when assetFlags lacks the 0x1 bit. Does not
+/* Returns, cut to an int, center.z of mesh mesh_index's descriptor; 0 without
+ * one, for a negative mesh_index, or when asset_flags lacks the 0x1 bit. Does not
  * check for a missing model. */
 // FUNCTION: XVT 0x4AE6E0
-int ModelMesh_GetCenterZ(int objectType, int meshIndex)
+int model_mesh_get_center_z(int object_type, int mesh_index)
 {
-	struct OptimizedPolyObject *model;
-	struct OptNode **rootNodes;
-	struct MeshDescriptor *descriptor;
+	struct optimized_poly_object *model;
+	struct opt_node **root_nodes;
+	struct mesh_descriptor *descriptor;
 	int result;
 
-	if (meshIndex < 0) {
+	if (mesh_index < 0) {
 		return 0;
 	}
-	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
+	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
 
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		g_loadedModels[objectType]);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	model = (struct optimized_poly_object *)memory_get_handle_block(
+		g_loaded_models[object_type]);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	rootNodes = model->rootNodes;
-	if (rootNodes[0]->nodeType == OPT_TEXTURE) {
-		++meshIndex;
+	root_nodes = model->root_nodes;
+	if (root_nodes[0]->node_type == OPT_TEXTURE) {
+		++mesh_index;
 	}
-	meshIndex = meshIndex < model->rootNodeCount ? meshIndex
-						     : model->rootNodeCount - 1;
+	mesh_index = mesh_index < model->root_node_count
+			     ? mesh_index
+			     : model->root_node_count - 1;
 
-	descriptor = ModelMesh_FindDescriptorNodeRecursive(rootNodes[meshIndex],
-							   model);
+	descriptor = model_mesh_find_descriptor_node_recursive(
+		root_nodes[mesh_index], model);
 	if (descriptor != NULL) {
 		result = (int)descriptor->center.z;
 	} else {
 		result = 0;
 	}
 
-	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
+	memory_handle_block_done_stub(g_loaded_models[object_type]);
 	return result;
 }
 
-/* Returns, cut to an int, boxMin.x of mesh meshIndex's descriptor; 0 without
- * one, for a negative meshIndex, or when assetFlags lacks the 0x1 bit. Nothing
+/* Returns, cut to an int, box_min.x of mesh mesh_index's descriptor; 0 without
+ * one, for a negative mesh_index, or when asset_flags lacks the 0x1 bit. Nothing
  * calls this. */
 // FUNCTION: XVT 0x4AE780
-int ModelMesh_GetBoundsMinX(int objectType, int meshIndex)
+int model_mesh_get_bounds_min_x(int object_type, int mesh_index)
 {
-	struct OptimizedPolyObject *model;
-	struct OptNode **rootNodes;
-	struct MeshDescriptor *descriptor;
-	int nodeIndex;
+	struct optimized_poly_object *model;
+	struct opt_node **root_nodes;
+	struct mesh_descriptor *descriptor;
+	int node_index;
 	int result;
 
-	if (meshIndex < 0) {
+	if (mesh_index < 0) {
 		return 0;
 	}
-	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
+	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
 
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		g_loadedModels[objectType]);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	model = (struct optimized_poly_object *)memory_get_handle_block(
+		g_loaded_models[object_type]);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	rootNodes = model->rootNodes;
-	nodeIndex = meshIndex;
-	if (rootNodes[0]->nodeType == OPT_TEXTURE) {
-		++nodeIndex;
+	root_nodes = model->root_nodes;
+	node_index = mesh_index;
+	if (root_nodes[0]->node_type == OPT_TEXTURE) {
+		++node_index;
 	}
-	if (nodeIndex >= model->rootNodeCount) {
-		nodeIndex = model->rootNodeCount - 1;
+	if (node_index >= model->root_node_count) {
+		node_index = model->root_node_count - 1;
 	}
 
-	descriptor = ModelMesh_FindDescriptorNodeRecursive(rootNodes[nodeIndex],
-							   model);
+	descriptor = model_mesh_find_descriptor_node_recursive(
+		root_nodes[node_index], model);
 	if (descriptor != NULL) {
-		result = (int)descriptor->boxMin.x;
+		result = (int)descriptor->box_min.x;
 	} else {
 		result = 0;
 	}
 
-	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
+	memory_handle_block_done_stub(g_loaded_models[object_type]);
 	return result;
 }
 
-/* Returns, cut to an int, boxMin.y of mesh meshIndex's descriptor; 0 without
- * one, for a negative meshIndex, or when assetFlags lacks the 0x1 bit. Nothing
+/* Returns, cut to an int, box_min.y of mesh mesh_index's descriptor; 0 without
+ * one, for a negative mesh_index, or when asset_flags lacks the 0x1 bit. Nothing
  * calls this. */
 // FUNCTION: XVT 0x4AE820
-int ModelMesh_GetBoundsMinY(int objectType, int meshIndex)
+int model_mesh_get_bounds_min_y(int object_type, int mesh_index)
 {
-	struct OptimizedPolyObject *model;
-	struct OptNode **rootNodes;
-	struct MeshDescriptor *descriptor;
-	int nodeIndex;
+	struct optimized_poly_object *model;
+	struct opt_node **root_nodes;
+	struct mesh_descriptor *descriptor;
+	int node_index;
 	int result;
 
-	if (meshIndex < 0) {
+	if (mesh_index < 0) {
 		return 0;
 	}
-	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
+	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
 
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		g_loadedModels[objectType]);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	model = (struct optimized_poly_object *)memory_get_handle_block(
+		g_loaded_models[object_type]);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	rootNodes = model->rootNodes;
-	nodeIndex = meshIndex;
-	if (rootNodes[0]->nodeType == OPT_TEXTURE) {
-		++nodeIndex;
+	root_nodes = model->root_nodes;
+	node_index = mesh_index;
+	if (root_nodes[0]->node_type == OPT_TEXTURE) {
+		++node_index;
 	}
-	if (nodeIndex >= model->rootNodeCount) {
-		nodeIndex = model->rootNodeCount - 1;
+	if (node_index >= model->root_node_count) {
+		node_index = model->root_node_count - 1;
 	}
-	descriptor = ModelMesh_FindDescriptorNodeRecursive(rootNodes[nodeIndex],
-							   model);
+	descriptor = model_mesh_find_descriptor_node_recursive(
+		root_nodes[node_index], model);
 	if (descriptor != NULL) {
-		result = (int)descriptor->boxMin.y;
+		result = (int)descriptor->box_min.y;
 	} else {
 		result = 0;
 	}
 
-	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
+	memory_handle_block_done_stub(g_loaded_models[object_type]);
 	return result;
 }
 
-/* Returns, cut to an int, boxMin.z of mesh meshIndex's descriptor; 0 without
- * one, for a negative meshIndex, or when assetFlags lacks the 0x1 bit. Nothing
+/* Returns, cut to an int, box_min.z of mesh mesh_index's descriptor; 0 without
+ * one, for a negative mesh_index, or when asset_flags lacks the 0x1 bit. Nothing
  * calls this. */
 // FUNCTION: XVT 0x4AE8C0
-int ModelMesh_GetBoundsMinZ(int objectType, int meshIndex)
+int model_mesh_get_bounds_min_z(int object_type, int mesh_index)
 {
-	struct OptimizedPolyObject *model;
-	struct OptNode **rootNodes;
-	struct MeshDescriptor *descriptor;
+	struct optimized_poly_object *model;
+	struct opt_node **root_nodes;
+	struct mesh_descriptor *descriptor;
 	int result;
 
-	if (meshIndex < 0) {
+	if (mesh_index < 0) {
 		return 0;
 	}
-	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
+	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
 
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		g_loadedModels[objectType]);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	model = (struct optimized_poly_object *)memory_get_handle_block(
+		g_loaded_models[object_type]);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	rootNodes = model->rootNodes;
-	if (rootNodes[0]->nodeType == OPT_TEXTURE) {
-		++meshIndex;
+	root_nodes = model->root_nodes;
+	if (root_nodes[0]->node_type == OPT_TEXTURE) {
+		++mesh_index;
 	}
-	meshIndex = meshIndex < model->rootNodeCount ? meshIndex
-						     : model->rootNodeCount - 1;
+	mesh_index = mesh_index < model->root_node_count
+			     ? mesh_index
+			     : model->root_node_count - 1;
 
-	descriptor = ModelMesh_FindDescriptorNodeRecursive(rootNodes[meshIndex],
-							   model);
+	descriptor = model_mesh_find_descriptor_node_recursive(
+		root_nodes[mesh_index], model);
 	if (descriptor != NULL) {
-		result = (int)descriptor->boxMin.z;
+		result = (int)descriptor->box_min.z;
 	} else {
 		result = 0;
 	}
 
-	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
+	memory_handle_block_done_stub(g_loaded_models[object_type]);
 	return result;
 }
 
-/* Returns, cut to an int, boxMax.x of mesh meshIndex's descriptor; 0 without
- * one, for a negative meshIndex, or when assetFlags lacks the 0x1 bit. Nothing
+/* Returns, cut to an int, box_max.x of mesh mesh_index's descriptor; 0 without
+ * one, for a negative mesh_index, or when asset_flags lacks the 0x1 bit. Nothing
  * calls this. */
 // FUNCTION: XVT 0x4AE960
-int ModelMesh_GetBoundsMaxX(int objectType, int meshIndex)
+int model_mesh_get_bounds_max_x(int object_type, int mesh_index)
 {
-	struct OptimizedPolyObject *model;
-	struct OptNode **rootNodes;
-	struct MeshDescriptor *descriptor;
-	int nodeIndex;
+	struct optimized_poly_object *model;
+	struct opt_node **root_nodes;
+	struct mesh_descriptor *descriptor;
+	int node_index;
 	int result;
 
-	if (meshIndex < 0) {
+	if (mesh_index < 0) {
 		return 0;
 	}
-	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
+	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
 
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		g_loadedModels[objectType]);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	model = (struct optimized_poly_object *)memory_get_handle_block(
+		g_loaded_models[object_type]);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	rootNodes = model->rootNodes;
-	nodeIndex = meshIndex;
-	if (rootNodes[0]->nodeType == OPT_TEXTURE) {
-		++nodeIndex;
+	root_nodes = model->root_nodes;
+	node_index = mesh_index;
+	if (root_nodes[0]->node_type == OPT_TEXTURE) {
+		++node_index;
 	}
-	if (nodeIndex >= model->rootNodeCount) {
-		nodeIndex = model->rootNodeCount - 1;
+	if (node_index >= model->root_node_count) {
+		node_index = model->root_node_count - 1;
 	}
 
-	descriptor = ModelMesh_FindDescriptorNodeRecursive(rootNodes[nodeIndex],
-							   model);
+	descriptor = model_mesh_find_descriptor_node_recursive(
+		root_nodes[node_index], model);
 	if (descriptor != NULL) {
-		result = (int)descriptor->boxMax.x;
+		result = (int)descriptor->box_max.x;
 	} else {
 		result = 0;
 	}
 
-	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
+	memory_handle_block_done_stub(g_loaded_models[object_type]);
 	return result;
 }
 
-/* Returns, cut to an int, boxMax.y of mesh meshIndex's descriptor; 0 without
- * one, for a negative meshIndex, or when assetFlags lacks the 0x1 bit. Nothing
+/* Returns, cut to an int, box_max.y of mesh mesh_index's descriptor; 0 without
+ * one, for a negative mesh_index, or when asset_flags lacks the 0x1 bit. Nothing
  * calls this. */
 // FUNCTION: XVT 0x4AEA00
-int ModelMesh_GetBoundsMaxY(int objectType, int meshIndex)
+int model_mesh_get_bounds_max_y(int object_type, int mesh_index)
 {
-	struct OptimizedPolyObject *model;
-	struct OptNode **rootNodes;
-	struct MeshDescriptor *descriptor;
+	struct optimized_poly_object *model;
+	struct opt_node **root_nodes;
+	struct mesh_descriptor *descriptor;
 	int result;
 
-	if (meshIndex < 0) {
+	if (mesh_index < 0) {
 		return 0;
 	}
-	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
+	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
 
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		g_loadedModels[objectType]);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	model = (struct optimized_poly_object *)memory_get_handle_block(
+		g_loaded_models[object_type]);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	rootNodes = model->rootNodes;
-	if (rootNodes[0]->nodeType == OPT_TEXTURE) {
-		++meshIndex;
+	root_nodes = model->root_nodes;
+	if (root_nodes[0]->node_type == OPT_TEXTURE) {
+		++mesh_index;
 	}
-	meshIndex = meshIndex < model->rootNodeCount ? meshIndex
-						     : model->rootNodeCount - 1;
+	mesh_index = mesh_index < model->root_node_count
+			     ? mesh_index
+			     : model->root_node_count - 1;
 
-	descriptor = ModelMesh_FindDescriptorNodeRecursive(rootNodes[meshIndex],
-							   model);
+	descriptor = model_mesh_find_descriptor_node_recursive(
+		root_nodes[mesh_index], model);
 	if (descriptor != NULL) {
-		result = (int)descriptor->boxMax.y;
+		result = (int)descriptor->box_max.y;
 	} else {
 		result = 0;
 	}
 
-	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
+	memory_handle_block_done_stub(g_loaded_models[object_type]);
 	return result;
 }
 
-/* Returns, cut to an int, boxMax.z of mesh meshIndex's descriptor; 0 without
- * one, for a negative meshIndex, or when assetFlags lacks the 0x1 bit. Nothing
+/* Returns, cut to an int, box_max.z of mesh mesh_index's descriptor; 0 without
+ * one, for a negative mesh_index, or when asset_flags lacks the 0x1 bit. Nothing
  * calls this. */
 // FUNCTION: XVT 0x4AEAA0
-int ModelMesh_GetBoundsMaxZ(int objectType, int meshIndex)
+int model_mesh_get_bounds_max_z(int object_type, int mesh_index)
 {
-	struct OptimizedPolyObject *model;
-	struct OptNode **rootNodes;
-	struct MeshDescriptor *descriptor;
+	struct optimized_poly_object *model;
+	struct opt_node **root_nodes;
+	struct mesh_descriptor *descriptor;
 	int result;
 
-	if (meshIndex < 0) {
+	if (mesh_index < 0) {
 		return 0;
 	}
-	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
+	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
 
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		g_loadedModels[objectType]);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	model = (struct optimized_poly_object *)memory_get_handle_block(
+		g_loaded_models[object_type]);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	rootNodes = model->rootNodes;
-	if (rootNodes[0]->nodeType == OPT_TEXTURE) {
-		++meshIndex;
+	root_nodes = model->root_nodes;
+	if (root_nodes[0]->node_type == OPT_TEXTURE) {
+		++mesh_index;
 	}
-	meshIndex = meshIndex < model->rootNodeCount ? meshIndex
-						     : model->rootNodeCount - 1;
+	mesh_index = mesh_index < model->root_node_count
+			     ? mesh_index
+			     : model->root_node_count - 1;
 
-	descriptor = ModelMesh_FindDescriptorNodeRecursive(rootNodes[meshIndex],
-							   model);
+	descriptor = model_mesh_find_descriptor_node_recursive(
+		root_nodes[mesh_index], model);
 	if (descriptor != NULL) {
-		result = (int)descriptor->boxMax.z;
+		result = (int)descriptor->box_max.z;
 	} else {
 		result = 0;
 	}
 
-	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
+	memory_handle_block_done_stub(g_loaded_models[object_type]);
 	return result;
 }
 
-/* Returns the targetId of mesh meshIndex's descriptor; 0 without one, for a
- * negative meshIndex, or when assetFlags lacks the 0x1 bit. Does not check for
+/* Returns the targetId of mesh mesh_index's descriptor; 0 without one, for a
+ * negative mesh_index, or when asset_flags lacks the 0x1 bit. Does not check for
  * a missing model. */
 // FUNCTION: XVT 0x4AEB40
-int ModelMesh_GetTargetId(int objectType, int meshIndex)
+int model_mesh_get_target_id(int object_type, int mesh_index)
 {
-	struct OptimizedPolyObject *model;
-	struct OptNode **rootNodes;
-	struct MeshDescriptor *descriptor;
+	struct optimized_poly_object *model;
+	struct opt_node **root_nodes;
+	struct mesh_descriptor *descriptor;
 
-	if (meshIndex < 0) {
+	if (mesh_index < 0) {
 		return 0;
 	}
-	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
+	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
 
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		g_loadedModels[objectType]);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	model = (struct optimized_poly_object *)memory_get_handle_block(
+		g_loaded_models[object_type]);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	rootNodes = model->rootNodes;
-	if (rootNodes[0]->nodeType == OPT_TEXTURE) {
-		++meshIndex;
+	root_nodes = model->root_nodes;
+	if (root_nodes[0]->node_type == OPT_TEXTURE) {
+		++mesh_index;
 	}
-	if (model->rootNodeCount <= meshIndex) {
-		meshIndex = model->rootNodeCount - 1;
+	if (model->root_node_count <= mesh_index) {
+		mesh_index = model->root_node_count - 1;
 	}
 
-	descriptor = ModelMesh_FindDescriptorNodeRecursive(rootNodes[meshIndex],
-							   model);
-	/* From here meshIndex holds the result, no longer a root node index: the descriptor's target id,
+	descriptor = model_mesh_find_descriptor_node_recursive(
+		root_nodes[mesh_index], model);
+	/* From here mesh_index holds the result, no longer a root node index: the descriptor's target id,
 	 * or 0 without a descriptor. */
 	if (descriptor != NULL) {
-		meshIndex = descriptor->targetId;
+		mesh_index = descriptor->target_id;
 	} else {
-		meshIndex = 0;
+		mesh_index = 0;
 	}
 
-	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
-	return meshIndex;
+	memory_handle_block_done_stub(g_loaded_models[object_type]);
+	return mesh_index;
 }
 
-/* Returns, cut to an int, targetPoint.x of mesh meshIndex's descriptor when its
+/* Returns, cut to an int, target_point.x of mesh mesh_index's descriptor when its
  * targetId is nonzero, else center.x; 0 without a descriptor, for a negative
- * meshIndex, or when assetFlags lacks the 0x1 bit. */
+ * mesh_index, or when asset_flags lacks the 0x1 bit. */
 // FUNCTION: XVT 0x4AEBE0
-int ModelMesh_GetComponentFocusX(int objectType, int meshIndex)
+int model_mesh_get_component_focus_x(int object_type, int mesh_index)
 {
-	struct OptimizedPolyObject *model;
-	struct OptNode **rootNodes;
-	struct MeshDescriptor *descriptor;
+	struct optimized_poly_object *model;
+	struct opt_node **root_nodes;
+	struct mesh_descriptor *descriptor;
 	int value;
 
-	if (meshIndex < 0) {
+	if (mesh_index < 0) {
 		return 0;
 	}
-	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
+	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
 
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		g_loadedModels[objectType]);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	model = (struct optimized_poly_object *)memory_get_handle_block(
+		g_loaded_models[object_type]);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	rootNodes = model->rootNodes;
-	if (rootNodes[0]->nodeType == OPT_TEXTURE) {
-		++meshIndex;
+	root_nodes = model->root_nodes;
+	if (root_nodes[0]->node_type == OPT_TEXTURE) {
+		++mesh_index;
 	}
-	if (meshIndex >= model->rootNodeCount) {
-		meshIndex = model->rootNodeCount - 1;
+	if (mesh_index >= model->root_node_count) {
+		mesh_index = model->root_node_count - 1;
 	}
 
-	descriptor = ModelMesh_FindDescriptorNodeRecursive(rootNodes[meshIndex],
-							   model);
+	descriptor = model_mesh_find_descriptor_node_recursive(
+		root_nodes[mesh_index], model);
 	if (descriptor != NULL) {
-		if (descriptor->targetId != 0) {
-			value = (int)descriptor->targetPoint.x;
+		if (descriptor->target_id != 0) {
+			value = (int)descriptor->target_point.x;
 		} else {
 			value = (int)descriptor->center.x;
 		}
@@ -1021,47 +1035,47 @@ int ModelMesh_GetComponentFocusX(int objectType, int meshIndex)
 		value = 0;
 	}
 
-	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
+	memory_handle_block_done_stub(g_loaded_models[object_type]);
 	return value;
 }
 
-/* Returns, cut to an int, targetPoint.y of mesh meshIndex's descriptor when its
+/* Returns, cut to an int, target_point.y of mesh mesh_index's descriptor when its
  * targetId is nonzero, else center.y; 0 without a descriptor, for a negative
- * meshIndex, or when assetFlags lacks the 0x1 bit. */
+ * mesh_index, or when asset_flags lacks the 0x1 bit. */
 // FUNCTION: XVT 0x4AEC90
-int ModelMesh_GetComponentFocusY(int objectType, int meshIndex)
+int model_mesh_get_component_focus_y(int object_type, int mesh_index)
 {
-	struct OptimizedPolyObject *model;
-	struct OptNode **rootNodes;
-	struct MeshDescriptor *descriptor;
+	struct optimized_poly_object *model;
+	struct opt_node **root_nodes;
+	struct mesh_descriptor *descriptor;
 	int value;
 
-	if (meshIndex < 0) {
+	if (mesh_index < 0) {
 		return 0;
 	}
-	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
+	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
 
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		g_loadedModels[objectType]);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	model = (struct optimized_poly_object *)memory_get_handle_block(
+		g_loaded_models[object_type]);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	rootNodes = model->rootNodes;
-	if (rootNodes[0]->nodeType == OPT_TEXTURE) {
-		++meshIndex;
+	root_nodes = model->root_nodes;
+	if (root_nodes[0]->node_type == OPT_TEXTURE) {
+		++mesh_index;
 	}
-	if (meshIndex >= model->rootNodeCount) {
-		meshIndex = model->rootNodeCount - 1;
+	if (mesh_index >= model->root_node_count) {
+		mesh_index = model->root_node_count - 1;
 	}
 
-	descriptor = ModelMesh_FindDescriptorNodeRecursive(rootNodes[meshIndex],
-							   model);
+	descriptor = model_mesh_find_descriptor_node_recursive(
+		root_nodes[mesh_index], model);
 	if (descriptor != NULL) {
-		if (descriptor->targetId != 0) {
-			value = (int)descriptor->targetPoint.y;
+		if (descriptor->target_id != 0) {
+			value = (int)descriptor->target_point.y;
 		} else {
 			value = (int)descriptor->center.y;
 		}
@@ -1069,47 +1083,47 @@ int ModelMesh_GetComponentFocusY(int objectType, int meshIndex)
 		value = 0;
 	}
 
-	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
+	memory_handle_block_done_stub(g_loaded_models[object_type]);
 	return value;
 }
 
-/* Returns, cut to an int, targetPoint.z of mesh meshIndex's descriptor when its
+/* Returns, cut to an int, target_point.z of mesh mesh_index's descriptor when its
  * targetId is nonzero, else center.z; 0 without a descriptor, for a negative
- * meshIndex, or when assetFlags lacks the 0x1 bit. */
+ * mesh_index, or when asset_flags lacks the 0x1 bit. */
 // FUNCTION: XVT 0x4AED40
-int ModelMesh_GetComponentFocusZ(int objectType, int meshIndex)
+int model_mesh_get_component_focus_z(int object_type, int mesh_index)
 {
-	struct OptimizedPolyObject *model;
-	struct OptNode **rootNodes;
-	struct MeshDescriptor *descriptor;
+	struct optimized_poly_object *model;
+	struct opt_node **root_nodes;
+	struct mesh_descriptor *descriptor;
 	int value;
 
-	if (meshIndex < 0) {
+	if (mesh_index < 0) {
 		return 0;
 	}
-	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
+	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
 
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		g_loadedModels[objectType]);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	model = (struct optimized_poly_object *)memory_get_handle_block(
+		g_loaded_models[object_type]);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	rootNodes = model->rootNodes;
-	if (rootNodes[0]->nodeType == OPT_TEXTURE) {
-		++meshIndex;
+	root_nodes = model->root_nodes;
+	if (root_nodes[0]->node_type == OPT_TEXTURE) {
+		++mesh_index;
 	}
-	if (meshIndex >= model->rootNodeCount) {
-		meshIndex = model->rootNodeCount - 1;
+	if (mesh_index >= model->root_node_count) {
+		mesh_index = model->root_node_count - 1;
 	}
 
-	descriptor = ModelMesh_FindDescriptorNodeRecursive(rootNodes[meshIndex],
-							   model);
+	descriptor = model_mesh_find_descriptor_node_recursive(
+		root_nodes[mesh_index], model);
 	if (descriptor != NULL) {
-		if (descriptor->targetId != 0) {
-			value = (int)descriptor->targetPoint.z;
+		if (descriptor->target_id != 0) {
+			value = (int)descriptor->target_point.z;
 		} else {
 			value = (int)descriptor->center.z;
 		}
@@ -1117,865 +1131,877 @@ int ModelMesh_GetComponentFocusZ(int objectType, int meshIndex)
 		value = 0;
 	}
 
-	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
+	memory_handle_block_done_stub(g_loaded_models[object_type]);
 	return value;
 }
 
-/* Returns the largest of the three span components of mesh meshIndex's
+/* Returns the largest of the three span components of mesh mesh_index's
  * descriptor, each cut to an int; 0 without a descriptor, for a negative
- * meshIndex, or when assetFlags lacks the 0x1 bit. */
+ * mesh_index, or when asset_flags lacks the 0x1 bit. */
 // FUNCTION: XVT 0x4AEDF0
-int ModelMesh_GetComponentMaxExtent(int objectType, int meshIndex)
+int model_mesh_get_component_max_extent(int object_type, int mesh_index)
 {
-	struct OptimizedPolyObject *model;
-	struct OptNode **rootNodes;
-	struct MeshDescriptor *descriptor;
-	int extentX;
-	int extentY;
-	int extentZ;
+	struct optimized_poly_object *model;
+	struct opt_node **root_nodes;
+	struct mesh_descriptor *descriptor;
+	int extent_x;
+	int extent_y;
+	int extent_z;
 
-	if (meshIndex < 0) {
+	if (mesh_index < 0) {
 		return 0;
 	}
-	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
+	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		g_loadedModels[objectType]);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	model = (struct optimized_poly_object *)memory_get_handle_block(
+		g_loaded_models[object_type]);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
-	rootNodes = model->rootNodes;
-	if (rootNodes[0]->nodeType == OPT_TEXTURE) {
-		++meshIndex;
+	root_nodes = model->root_nodes;
+	if (root_nodes[0]->node_type == OPT_TEXTURE) {
+		++mesh_index;
 	}
-	if (meshIndex >= model->rootNodeCount) {
-		meshIndex = model->rootNodeCount - 1;
+	if (mesh_index >= model->root_node_count) {
+		mesh_index = model->root_node_count - 1;
 	}
-	descriptor = ModelMesh_FindDescriptorNodeRecursive(rootNodes[meshIndex],
-							   model);
+	descriptor = model_mesh_find_descriptor_node_recursive(
+		root_nodes[mesh_index], model);
 	if (descriptor != NULL) {
-		extentX = (int)descriptor->span.x;
-		extentY = (int)descriptor->span.y;
-		extentZ = (int)descriptor->span.z;
-		if (extentY >= extentX && extentZ <= extentY) {
-			extentX = extentY;
-		} else if (extentZ >= extentX && extentZ >= extentY) {
-			extentX = extentZ;
+		extent_x = (int)descriptor->span.x;
+		extent_y = (int)descriptor->span.y;
+		extent_z = (int)descriptor->span.z;
+		if (extent_y >= extent_x && extent_z <= extent_y) {
+			extent_x = extent_y;
+		} else if (extent_z >= extent_x && extent_z >= extent_y) {
+			extent_x = extent_z;
 		}
 	} else {
-		extentX = 0;
+		extent_x = 0;
 	}
-	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
-	return extentX;
+	memory_handle_block_done_stub(g_loaded_models[object_type]);
+	return extent_x;
 }
 
-/* Returns the 0x2 bit of mesh meshIndex's componentFlags, so 2 or 0; 0 without
- * a descriptor, for a negative meshIndex, or when assetFlags lacks the 0x1 bit.
+/* Returns the 0x2 bit of mesh mesh_index's component_flags, so 2 or 0; 0 without
+ * a descriptor, for a negative mesh_index, or when asset_flags lacks the 0x1 bit.
  * Spawning gives a mesh with the bit set its component hit points, and the
  * damage code damages the component of a hit mesh with it. */
 // FUNCTION: XVT 0x4AEEC0
-int ModelMesh_IsObjectTypeMeshDamageable(int objectType, int meshIndex)
+int model_mesh_is_object_type_mesh_damageable(int object_type, int mesh_index)
 {
-	struct OptimizedPolyObject *model;
-	struct OptNode **rootNodes;
-	struct MeshDescriptor *descriptor;
+	struct optimized_poly_object *model;
+	struct opt_node **root_nodes;
+	struct mesh_descriptor *descriptor;
 
-	if (meshIndex < 0) {
+	if (mesh_index < 0) {
 		return 0;
 	}
-	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
+	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
 
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		g_loadedModels[objectType]);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	model = (struct optimized_poly_object *)memory_get_handle_block(
+		g_loaded_models[object_type]);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	rootNodes = model->rootNodes;
-	if (rootNodes[0]->nodeType == OPT_TEXTURE) {
-		++meshIndex;
+	root_nodes = model->root_nodes;
+	if (root_nodes[0]->node_type == OPT_TEXTURE) {
+		++mesh_index;
 	}
-	if (model->rootNodeCount <= meshIndex) {
-		meshIndex = model->rootNodeCount - 1;
+	if (model->root_node_count <= mesh_index) {
+		mesh_index = model->root_node_count - 1;
 	}
 
-	descriptor = ModelMesh_FindDescriptorNodeRecursive(rootNodes[meshIndex],
-							   model);
-	/* From here meshIndex holds the result, no longer a root node index: bit 1 (value 2) of the
+	descriptor = model_mesh_find_descriptor_node_recursive(
+		root_nodes[mesh_index], model);
+	/* From here mesh_index holds the result, no longer a root node index: bit 1 (value 2) of the
 	 * descriptor's component flags, or 0 without a descriptor. */
 	if (descriptor != NULL) {
-		meshIndex = descriptor->componentFlags & 2;
+		mesh_index = descriptor->component_flags & 2;
 	} else {
-		meshIndex = 0;
+		mesh_index = 0;
 	}
 
-	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
-	return meshIndex;
+	memory_handle_block_done_stub(g_loaded_models[object_type]);
+	return mesh_index;
 }
 
-/* Returns the 0x1 bit of mesh meshIndex's componentFlags; 0 without a
- * descriptor, for a negative meshIndex, or when assetFlags lacks the 0x1 bit.
+/* Returns the 0x1 bit of mesh mesh_index's component_flags; 0 without a
+ * descriptor, for a negative mesh_index, or when asset_flags lacks the 0x1 bit.
  * Its one caller, collide_damagecraft, damages the hit mesh's component with
- * Craft_DamageComponent when the bit is set and either the difficulty is 0 or
+ * craft_damage_component when the bit is set and either the difficulty is 0 or
  * both shield energies are 0. */
 // FUNCTION: XVT 0x4AEF60
-int ModelMesh_HasExplosionTypeBit0(int objectType, int meshIndex)
+int model_mesh_has_explosion_type_bit0(int object_type, int mesh_index)
 {
-	struct OptimizedPolyObject *model;
-	struct OptNode **rootNodes;
-	struct MeshDescriptor *descriptor;
+	struct optimized_poly_object *model;
+	struct opt_node **root_nodes;
+	struct mesh_descriptor *descriptor;
 
-	if (meshIndex < 0) {
+	if (mesh_index < 0) {
 		return 0;
 	}
-	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
+	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
 
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		g_loadedModels[objectType]);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	model = (struct optimized_poly_object *)memory_get_handle_block(
+		g_loaded_models[object_type]);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	rootNodes = model->rootNodes;
-	if (rootNodes[0]->nodeType == OPT_TEXTURE) {
-		++meshIndex;
+	root_nodes = model->root_nodes;
+	if (root_nodes[0]->node_type == OPT_TEXTURE) {
+		++mesh_index;
 	}
-	if (model->rootNodeCount <= meshIndex) {
-		meshIndex = model->rootNodeCount - 1;
+	if (model->root_node_count <= mesh_index) {
+		mesh_index = model->root_node_count - 1;
 	}
 
-	descriptor = ModelMesh_FindDescriptorNodeRecursive(rootNodes[meshIndex],
-							   model);
-	/* From here meshIndex holds the result, no longer a root node index: bit 0 of the descriptor's
+	descriptor = model_mesh_find_descriptor_node_recursive(
+		root_nodes[mesh_index], model);
+	/* From here mesh_index holds the result, no longer a root node index: bit 0 of the descriptor's
 	 * component flags, or 0 without a descriptor. */
 	if (descriptor != NULL) {
-		meshIndex = descriptor->componentFlags & 1;
+		mesh_index = descriptor->component_flags & 1;
 	} else {
-		meshIndex = 0;
+		mesh_index = 0;
 	}
 
-	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
-	return meshIndex;
+	memory_handle_block_done_stub(g_loaded_models[object_type]);
+	return mesh_index;
 }
 
-/* Returns the payload of mesh meshIndex's first OPT_ROTSCALE node, 12 floats:
- * the pivot point, then three axes; NULL without one or when assetFlags lacks
- * the 0x1 bit. Does not check for a missing model or a negative meshIndex. */
+/* Returns the payload of mesh mesh_index's first OPT_ROTSCALE node, 12 floats:
+ * the pivot point, then three axes; NULL without one or when asset_flags lacks
+ * the 0x1 bit. Does not check for a missing model or a negative mesh_index. */
 // FUNCTION: XVT 0x4AF000
-float *ModelMesh_GetRotScaleData(int objectType, int meshIndex)
+float *model_mesh_get_rot_scale_data(int object_type, int mesh_index)
 {
-	struct OptimizedPolyObject *model;
-	struct OptNode **rootNodes;
-	struct OptNode *rotScaleNode;
+	struct optimized_poly_object *model;
+	struct opt_node **root_nodes;
+	struct opt_node *rot_scale_node;
 	float *result;
 
-	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
+	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
 
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		g_loadedModels[objectType]);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	model = (struct optimized_poly_object *)memory_get_handle_block(
+		g_loaded_models[object_type]);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	rootNodes = model->rootNodes;
-	if (rootNodes[0]->nodeType == OPT_TEXTURE) {
-		++meshIndex;
+	root_nodes = model->root_nodes;
+	if (root_nodes[0]->node_type == OPT_TEXTURE) {
+		++mesh_index;
 	}
-	if (meshIndex >= model->rootNodeCount) {
-		meshIndex = model->rootNodeCount - 1;
+	if (mesh_index >= model->root_node_count) {
+		mesh_index = model->root_node_count - 1;
 	}
 
-	rotScaleNode = rootNodes[meshIndex];
-	rotScaleNode = ModelMesh_FindFirstRotScaleNode(rotScaleNode);
-	if (rotScaleNode != 0) {
-		result = (float *)rotScaleNode->payload;
+	rot_scale_node = root_nodes[mesh_index];
+	rot_scale_node = model_mesh_find_first_rot_scale_node(rot_scale_node);
+	if (rot_scale_node != 0) {
+		result = (float *)rot_scale_node->payload;
 	} else {
 		result = 0;
 	}
-	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
+	memory_handle_block_done_stub(g_loaded_models[object_type]);
 	return result;
 }
 
 /* Walks node and the nodes below it depth first, counting OPT_HARDPOINT nodes
- * in g_optHardpointSearchIndex, and returns the hardpoint met while the count
- * equals hardpointIndex, or NULL. Follows OPT_NODEREF links; while
- * g_cacheResolvedOptNodeRefs is set it keeps each target in the link node,
- * through XvtOpt_ResolveCached in the modern build, and in the original build
+ * in g_opt_hardpoint_search_index, and returns the hardpoint met while the count
+ * equals hardpoint_index, or NULL. Follows OPT_NODEREF links; while
+ * g_cache_resolved_opt_node_refs is set it keeps each target in the link node,
+ * through xvt_opt_resolve_cached in the modern build, and in the original build
  * in its pName, blanking the first character of its name. A link that does not
  * resolve ends that branch. */
 // FUNCTION: XVT 0x4AF090
-struct OptNode *
-ModelMesh_FindNthHardpointNodeRecursive(struct OptNode *node,
-					struct OptimizedPolyObject *model,
-					int hardpointIndex)
+struct opt_node *model_mesh_find_nth_hardpoint_node_recursive(
+	struct opt_node *node, struct optimized_poly_object *model,
+	int hardpoint_index)
 {
-	struct OptNode *resolvedNode;
-	struct OptNode *result;
-	int childIndex;
-	int visitedChildCount;
+	struct opt_node *resolved_node;
+	struct opt_node *result;
+	int child_index;
+	int visited_child_count;
 #ifndef XVT_MODERN
-	char **referenceName;
+	char **reference_name;
 #endif
 
-	resolvedNode = node;
-	if (resolvedNode == NULL) {
+	resolved_node = node;
+	if (resolved_node == NULL) {
 		return NULL;
 	}
-	while (resolvedNode->nodeType == OPT_NODEREF) {
-		if (g_cacheResolvedOptNodeRefs != 0) {
+	while (resolved_node->node_type == OPT_NODEREF) {
+		if (g_cache_resolved_opt_node_refs != 0) {
 #ifdef XVT_MODERN
-			resolvedNode =
-				XvtOpt_ResolveCached(model, resolvedNode);
+			resolved_node =
+				xvt_opt_resolve_cached(model, resolved_node);
 #else
 
-			referenceName = (char **)&resolvedNode->payload;
-			if (**referenceName == '\0') {
-				resolvedNode =
-					(struct OptNode *)resolvedNode->pName;
+			reference_name = (char **)&resolved_node->payload;
+			if (**reference_name == '\0') {
+				resolved_node = (struct opt_node *)
+							resolved_node->p_name;
 			} else {
-				resolvedNode->pName =
-					(char *)OptModel_ResolveNodeRef(
-						model, *referenceName);
-				**referenceName = '\0';
-				resolvedNode =
-					(struct OptNode *)resolvedNode->pName;
+				resolved_node->p_name =
+					(char *)opt_model_resolve_node_ref(
+						model, *reference_name);
+				**reference_name = '\0';
+				resolved_node = (struct opt_node *)
+							resolved_node->p_name;
 			}
 #endif
 		} else {
-			resolvedNode = OptModel_ResolveNodeRef(
-				model, (const char *)resolvedNode->payload);
+			resolved_node = opt_model_resolve_node_ref(
+				model, (const char *)resolved_node->payload);
 		}
-		if (resolvedNode == NULL) {
+		if (resolved_node == NULL) {
 			return NULL;
 		}
 	}
-	if (resolvedNode->nodeType == OPT_HARDPOINT) {
-		if (hardpointIndex == g_optHardpointSearchIndex) {
-			return resolvedNode;
+	if (resolved_node->node_type == OPT_HARDPOINT) {
+		if (hardpoint_index == g_opt_hardpoint_search_index) {
+			return resolved_node;
 		}
-		++g_optHardpointSearchIndex;
+		++g_opt_hardpoint_search_index;
 	}
-	childIndex = 0;
-	visitedChildCount = 0;
-	while (resolvedNode->childCount > visitedChildCount) {
-		result = ModelMesh_FindNthHardpointNodeRecursive(
-			resolvedNode->pChildren[childIndex], model,
-			hardpointIndex);
+	child_index = 0;
+	visited_child_count = 0;
+	while (resolved_node->child_count > visited_child_count) {
+		result = model_mesh_find_nth_hardpoint_node_recursive(
+			resolved_node->p_children[child_index], model,
+			hardpoint_index);
 		if (result != NULL) {
 			return result;
 		}
-		++childIndex;
-		++visitedChildCount;
+		++child_index;
+		++visited_child_count;
 	}
 	return NULL;
 }
 
-/* Sets g_optHardpointSearchIndex to 0 and returns hardpoint number
- * hardpointIndex, from 0, at or below node
- * (ModelMesh_FindNthHardpointNodeRecursive), or NULL. */
+/* Sets g_opt_hardpoint_search_index to 0 and returns hardpoint number
+ * hardpoint_index, from 0, at or below node
+ * (model_mesh_find_nth_hardpoint_node_recursive), or NULL. */
 // FUNCTION: XVT 0x4AF150
-struct OptNode *
-ModelMesh_FindNthHardpointNode(struct OptNode *node,
-			       struct OptimizedPolyObject *model,
-			       int hardpointIndex)
+struct opt_node *
+model_mesh_find_nth_hardpoint_node(struct opt_node *node,
+				   struct optimized_poly_object *model,
+				   int hardpoint_index)
 {
-	g_optHardpointSearchIndex = 0;
-	return ModelMesh_FindNthHardpointNodeRecursive(node, model,
-						       hardpointIndex);
+	g_opt_hardpoint_search_index = 0;
+	return model_mesh_find_nth_hardpoint_node_recursive(node, model,
+							    hardpoint_index);
 }
 
 /* Returns the number of OPT_HARDPOINT nodes at or below node, following
- * OPT_NODEREF links as ModelMesh_FindNthHardpointNodeRecursive does; a node
+ * OPT_NODEREF links as model_mesh_find_nth_hardpoint_node_recursive does; a node
  * reached through two links counts twice. */
 // FUNCTION: XVT 0x4AF180
-int ModelMesh_CountHardpointNodesRecursive(struct OptNode *node,
-					   struct OptimizedPolyObject *model)
+int model_mesh_count_hardpoint_nodes_recursive(
+	struct opt_node *node, struct optimized_poly_object *model)
 {
-	struct OptNode *resolvedNode;
+	struct opt_node *resolved_node;
 	int count;
-	int childIndex;
-	int visitedChildCount;
+	int child_index;
+	int visited_child_count;
 #ifndef XVT_MODERN
-	char **referenceName;
+	char **reference_name;
 #endif
 
 	count = 0;
-	resolvedNode = node;
-	if (resolvedNode == NULL) {
+	resolved_node = node;
+	if (resolved_node == NULL) {
 		return 0;
 	}
-	while (resolvedNode->nodeType == OPT_NODEREF) {
-		if (g_cacheResolvedOptNodeRefs != 0) {
+	while (resolved_node->node_type == OPT_NODEREF) {
+		if (g_cache_resolved_opt_node_refs != 0) {
 #ifdef XVT_MODERN
-			resolvedNode =
-				XvtOpt_ResolveCached(model, resolvedNode);
+			resolved_node =
+				xvt_opt_resolve_cached(model, resolved_node);
 #else
 
-			referenceName = (char **)&resolvedNode->payload;
-			if (**referenceName == '\0') {
-				resolvedNode =
-					(struct OptNode *)resolvedNode->pName;
+			reference_name = (char **)&resolved_node->payload;
+			if (**reference_name == '\0') {
+				resolved_node = (struct opt_node *)
+							resolved_node->p_name;
 			} else {
-				resolvedNode->pName =
-					(char *)OptModel_ResolveNodeRef(
-						model, *referenceName);
-				**referenceName = '\0';
-				resolvedNode =
-					(struct OptNode *)resolvedNode->pName;
+				resolved_node->p_name =
+					(char *)opt_model_resolve_node_ref(
+						model, *reference_name);
+				**reference_name = '\0';
+				resolved_node = (struct opt_node *)
+							resolved_node->p_name;
 			}
 #endif
 		} else {
-			resolvedNode = OptModel_ResolveNodeRef(
-				model, (const char *)resolvedNode->payload);
+			resolved_node = opt_model_resolve_node_ref(
+				model, (const char *)resolved_node->payload);
 		}
-		if (resolvedNode == NULL) {
+		if (resolved_node == NULL) {
 			return 0;
 		}
 	}
-	if (resolvedNode->nodeType == OPT_HARDPOINT) {
+	if (resolved_node->node_type == OPT_HARDPOINT) {
 		count = 1;
 	}
-	visitedChildCount = 0;
-	if (resolvedNode->childCount > 0) {
-		childIndex = 0;
+	visited_child_count = 0;
+	if (resolved_node->child_count > 0) {
+		child_index = 0;
 		do {
-			count += ModelMesh_CountHardpointNodesRecursive(
-				resolvedNode->pChildren[childIndex], model);
-			++childIndex;
-			++visitedChildCount;
-		} while (resolvedNode->childCount > visitedChildCount);
+			count += model_mesh_count_hardpoint_nodes_recursive(
+				resolved_node->p_children[child_index], model);
+			++child_index;
+			++visited_child_count;
+		} while (resolved_node->child_count > visited_child_count);
 	}
 	return count;
 }
 
-/* Returns the number of hardpoints in mesh meshIndex; 0 when assetFlags lacks
- * the 0x1 bit. Does not check for a missing model or a negative meshIndex. */
+/* Returns the number of hardpoints in mesh mesh_index; 0 when asset_flags lacks
+ * the 0x1 bit. Does not check for a missing model or a negative mesh_index. */
 // FUNCTION: XVT 0x4AF250
-int ModelMesh_CountHardpoints(int objectType, int meshIndex)
+int model_mesh_count_hardpoints(int object_type, int mesh_index)
 {
-	struct OptimizedPolyObject *model;
-	struct OptNode **rootNodes;
-	int hardpointCount;
+	struct optimized_poly_object *model;
+	struct opt_node **root_nodes;
+	int hardpoint_count;
 
-	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
+	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		g_loadedModels[objectType]);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	model = (struct optimized_poly_object *)memory_get_handle_block(
+		g_loaded_models[object_type]);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
-	rootNodes = model->rootNodes;
-	if (rootNodes[0]->nodeType == OPT_TEXTURE) {
-		++meshIndex;
+	root_nodes = model->root_nodes;
+	if (root_nodes[0]->node_type == OPT_TEXTURE) {
+		++mesh_index;
 	}
-	if (meshIndex >= model->rootNodeCount) {
-		meshIndex = model->rootNodeCount - 1;
+	if (mesh_index >= model->root_node_count) {
+		mesh_index = model->root_node_count - 1;
 	}
-	hardpointCount = ModelMesh_CountHardpointNodesRecursive(
-		rootNodes[meshIndex], model);
-	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
-	return hardpointCount;
+	hardpoint_count = model_mesh_count_hardpoint_nodes_recursive(
+		root_nodes[mesh_index], model);
+	memory_handle_block_done_stub(g_loaded_models[object_type]);
+	return hardpoint_count;
 }
 
-/* Returns hardpointIndex as given and ignores objectType and meshIndex.
- * FeDiskIo_BuildModelDef stores the result as a weapon slot's
- * alternateMeshHardpointIdx. */
+/* Returns hardpoint_index as given and ignores objectType and mesh_index.
+ * fe_disk_io_build_model_def stores the result as a weapon slot's
+ * alternate_mesh_hardpoint_idx. */
 // FUNCTION: XVT 0x4AF2D0
-int ModelMesh_GetHardpointIndex(int objectType, int meshIndex,
-				int hardpointIndex)
+int model_mesh_get_hardpoint_index(int object_type, int mesh_index,
+				   int hardpoint_index)
 {
-	(void)objectType;
-	(void)meshIndex;
+	(void)object_type;
+	(void)mesh_index;
 
-	return hardpointIndex;
+	return hardpoint_index;
 }
 
-/* Returns, cut to an int, the x of hardpoint hardpointIndex of mesh meshIndex
- * (ModelMesh_FindNthHardpointNode); 0 without that hardpoint or when assetFlags
+/* Returns, cut to an int, the x of hardpoint hardpoint_index of mesh mesh_index
+ * (model_mesh_find_nth_hardpoint_node); 0 without that hardpoint or when asset_flags
  * lacks the 0x1 bit. */
 // FUNCTION: XVT 0x4AF2E0
-int ModelMesh_GetHardpointX(int objectType, int meshIndex, int hardpointIndex)
+int model_mesh_get_hardpoint_x(int object_type, int mesh_index,
+			       int hardpoint_index)
 {
-	struct OptimizedPolyObject *model;
-	struct OptNode **rootNodes;
-	struct OptNode *rootNode;
-	struct OptNode *hardpointNode;
+	struct optimized_poly_object *model;
+	struct opt_node **root_nodes;
+	struct opt_node *root_node;
+	struct opt_node *hardpoint_node;
 	int result;
 
-	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
+	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		g_loadedModels[objectType]);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	model = (struct optimized_poly_object *)memory_get_handle_block(
+		g_loaded_models[object_type]);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
-	rootNodes = model->rootNodes;
-	if (rootNodes[0]->nodeType == OPT_TEXTURE) {
-		++meshIndex;
+	root_nodes = model->root_nodes;
+	if (root_nodes[0]->node_type == OPT_TEXTURE) {
+		++mesh_index;
 	}
-	if (meshIndex >= model->rootNodeCount) {
-		meshIndex = model->rootNodeCount - 1;
+	if (mesh_index >= model->root_node_count) {
+		mesh_index = model->root_node_count - 1;
 	}
-	rootNode = rootNodes[meshIndex];
-	hardpointNode =
-		ModelMesh_FindNthHardpointNode(rootNode, model, hardpointIndex);
-	if (hardpointNode != NULL) {
-		result = (int)((struct OptHardpoint *)hardpointNode->payload)
+	root_node = root_nodes[mesh_index];
+	hardpoint_node = model_mesh_find_nth_hardpoint_node(root_node, model,
+							    hardpoint_index);
+	if (hardpoint_node != NULL) {
+		result = (int)((struct opt_hardpoint *)hardpoint_node->payload)
 				 ->position.x;
 	} else {
 		result = 0;
 	}
-	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
+	memory_handle_block_done_stub(g_loaded_models[object_type]);
 	return result;
 }
 
-/* Returns, cut to an int and negated, the y of hardpoint hardpointIndex of mesh
- * meshIndex (ModelMesh_FindNthHardpointNode); 0 without that hardpoint or when
- * assetFlags lacks the 0x1 bit. */
+/* Returns, cut to an int and negated, the y of hardpoint hardpoint_index of mesh
+ * mesh_index (model_mesh_find_nth_hardpoint_node); 0 without that hardpoint or when
+ * asset_flags lacks the 0x1 bit. */
 // FUNCTION: XVT 0x4AF380
-int ModelMesh_GetHardpointY(int objectType, int meshIndex, int hardpointIndex)
+int model_mesh_get_hardpoint_y(int object_type, int mesh_index,
+			       int hardpoint_index)
 {
-	struct OptimizedPolyObject *model;
-	struct OptNode **rootNodes;
-	struct OptNode *rootNode;
-	struct OptNode *hardpointNode;
+	struct optimized_poly_object *model;
+	struct opt_node **root_nodes;
+	struct opt_node *root_node;
+	struct opt_node *hardpoint_node;
 	int result;
 
-	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
+	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		g_loadedModels[objectType]);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	model = (struct optimized_poly_object *)memory_get_handle_block(
+		g_loaded_models[object_type]);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
-	rootNodes = model->rootNodes;
-	if (rootNodes[0]->nodeType == OPT_TEXTURE) {
-		++meshIndex;
+	root_nodes = model->root_nodes;
+	if (root_nodes[0]->node_type == OPT_TEXTURE) {
+		++mesh_index;
 	}
-	if (meshIndex >= model->rootNodeCount) {
-		meshIndex = model->rootNodeCount - 1;
+	if (mesh_index >= model->root_node_count) {
+		mesh_index = model->root_node_count - 1;
 	}
-	rootNode = rootNodes[meshIndex];
-	hardpointNode =
-		ModelMesh_FindNthHardpointNode(rootNode, model, hardpointIndex);
-	if (hardpointNode != NULL) {
-		result = (int)((struct OptHardpoint *)hardpointNode->payload)
+	root_node = root_nodes[mesh_index];
+	hardpoint_node = model_mesh_find_nth_hardpoint_node(root_node, model,
+							    hardpoint_index);
+	if (hardpoint_node != NULL) {
+		result = (int)((struct opt_hardpoint *)hardpoint_node->payload)
 				 ->position.y;
 	} else {
 		result = 0;
 	}
-	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
+	memory_handle_block_done_stub(g_loaded_models[object_type]);
 	return -result;
 }
 
-/* Returns, cut to an int, the z of hardpoint hardpointIndex of mesh meshIndex
- * (ModelMesh_FindNthHardpointNode); 0 without that hardpoint or when assetFlags
+/* Returns, cut to an int, the z of hardpoint hardpoint_index of mesh mesh_index
+ * (model_mesh_find_nth_hardpoint_node); 0 without that hardpoint or when asset_flags
  * lacks the 0x1 bit. */
 // FUNCTION: XVT 0x4AF420
-int ModelMesh_GetHardpointZ(int objectType, int meshIndex, int hardpointIndex)
+int model_mesh_get_hardpoint_z(int object_type, int mesh_index,
+			       int hardpoint_index)
 {
-	struct OptimizedPolyObject *model;
-	struct OptNode **rootNodes;
-	struct OptNode *rootNode;
-	struct OptNode *hardpointNode;
-	int rootNodeCount;
+	struct optimized_poly_object *model;
+	struct opt_node **root_nodes;
+	struct opt_node *root_node;
+	struct opt_node *hardpoint_node;
+	int root_node_count;
 	int result;
 
-	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
+	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		g_loadedModels[objectType]);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	model = (struct optimized_poly_object *)memory_get_handle_block(
+		g_loaded_models[object_type]);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
-	rootNodes = model->rootNodes;
-	if (rootNodes[0]->nodeType == OPT_TEXTURE) {
-		++meshIndex;
+	root_nodes = model->root_nodes;
+	if (root_nodes[0]->node_type == OPT_TEXTURE) {
+		++mesh_index;
 	}
-	rootNodeCount = model->rootNodeCount;
-	if (rootNodeCount <= meshIndex) {
-		meshIndex = rootNodeCount - 1;
+	root_node_count = model->root_node_count;
+	if (root_node_count <= mesh_index) {
+		mesh_index = root_node_count - 1;
 	}
-	rootNode = rootNodes[meshIndex];
-	hardpointNode =
-		ModelMesh_FindNthHardpointNode(rootNode, model, hardpointIndex);
-	if (hardpointNode != NULL) {
-		result = (int)((struct OptHardpoint *)hardpointNode->payload)
+	root_node = root_nodes[mesh_index];
+	hardpoint_node = model_mesh_find_nth_hardpoint_node(root_node, model,
+							    hardpoint_index);
+	if (hardpoint_node != NULL) {
+		result = (int)((struct opt_hardpoint *)hardpoint_node->payload)
 				 ->position.z;
 	} else {
 		result = 0;
 	}
-	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
+	memory_handle_block_done_stub(g_loaded_models[object_type]);
 	return result;
 }
 
-/* Stores the type of hardpoint hardpointIndex of mesh meshIndex in *outType and
+/* Stores the type of hardpoint hardpoint_index of mesh mesh_index in *out_type and
  * its position, cut to ints, in *outX, *outY and *outZ, with the y negated; all
- * four 0 when there is no such hardpoint. Writes nothing when assetFlags lacks
+ * four 0 when there is no such hardpoint. Writes nothing when asset_flags lacks
  * the 0x1 bit. */
 // FUNCTION: XVT 0x4AF4C0
-void ModelMesh_GetHardpoint(int objectType, int meshIndex, int hardpointIndex,
-			    int *outType, int *outX, int *outY, int *outZ)
+void model_mesh_get_hardpoint(int object_type, int mesh_index,
+			      int hardpoint_index, int *out_type, int *out_x,
+			      int *out_y, int *out_z)
 {
-	struct OptimizedPolyObject *model;
-	struct OptNode **rootNodes;
-	struct OptNode *hardpointNode;
-	const struct OptHardpoint *hardpoint;
-	const struct OptVector *position;
+	struct optimized_poly_object *model;
+	struct opt_node **root_nodes;
+	struct opt_node *hardpoint_node;
+	const struct opt_hardpoint *hardpoint;
+	const struct opt_vector *position;
 
-	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
+	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return;
 	}
 
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		g_loadedModels[objectType]);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	model = (struct optimized_poly_object *)memory_get_handle_block(
+		g_loaded_models[object_type]);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	rootNodes = model->rootNodes;
-	if (rootNodes[0]->nodeType == OPT_TEXTURE) {
-		++meshIndex;
+	root_nodes = model->root_nodes;
+	if (root_nodes[0]->node_type == OPT_TEXTURE) {
+		++mesh_index;
 	}
-	meshIndex = meshIndex < model->rootNodeCount ? meshIndex
-						     : model->rootNodeCount - 1;
+	mesh_index = mesh_index < model->root_node_count
+			     ? mesh_index
+			     : model->root_node_count - 1;
 
-	hardpointNode = ModelMesh_FindNthHardpointNode(rootNodes[meshIndex],
-						       model, hardpointIndex);
-	if (hardpointNode == NULL) {
-		*outType = 0;
-		*outX = 0;
-		*outY = 0;
-		*outZ = 0;
+	hardpoint_node = model_mesh_find_nth_hardpoint_node(
+		root_nodes[mesh_index], model, hardpoint_index);
+	if (hardpoint_node == NULL) {
+		*out_type = 0;
+		*out_x = 0;
+		*out_y = 0;
+		*out_z = 0;
 	} else {
-		hardpoint = (const struct OptHardpoint *)hardpointNode->payload;
+		hardpoint =
+			(const struct opt_hardpoint *)hardpoint_node->payload;
 		position = &hardpoint->position;
-		*outType = hardpoint->hardpointType;
-		*outX = (int)position->x;
-		*outY = -(int)position->y;
-		*outZ = (int)position->z;
+		*out_type = hardpoint->hardpoint_type;
+		*out_x = (int)position->x;
+		*out_y = -(int)position->y;
+		*out_z = (int)position->z;
 	}
 
-	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
+	memory_handle_block_done_stub(g_loaded_models[object_type]);
 }
 
 /* Returns 1 when a root of the object type's model, other than an OPT_TEXTURE,
  * has a descriptor of type MESH_COMPONENT_03_FUSELAGE; else 0, also when
- * assetFlags lacks the 0x1 bit. */
+ * asset_flags lacks the 0x1 bit. */
 // FUNCTION: XVT 0x4AF5B0
-int ModelMesh_HasFuselage(int objectType)
+int model_mesh_has_fuselage(int object_type)
 {
-	struct OptimizedPolyObject *model;
-	int rootIndex;
+	struct optimized_poly_object *model;
+	int root_index;
 
-	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
+	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
 
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		g_loadedModels[objectType]);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	model = (struct optimized_poly_object *)memory_get_handle_block(
+		g_loaded_models[object_type]);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	for (rootIndex = 0; rootIndex < model->rootNodeCount; ++rootIndex) {
-		struct OptNode *rootNode;
-		struct MeshDescriptor *descriptor;
+	for (root_index = 0; root_index < model->root_node_count;
+	     ++root_index) {
+		struct opt_node *root_node;
+		struct mesh_descriptor *descriptor;
 
-		rootNode = model->rootNodes[rootIndex];
-		if (rootNode != NULL && rootNode->nodeType != OPT_TEXTURE) {
-			descriptor = ModelMesh_FindDescriptorNodeRecursive(
-				rootNode, model);
+		root_node = model->root_nodes[root_index];
+		if (root_node != NULL && root_node->node_type != OPT_TEXTURE) {
+			descriptor = model_mesh_find_descriptor_node_recursive(
+				root_node, model);
 			if (descriptor != NULL &&
-			    descriptor->meshType ==
+			    descriptor->mesh_type ==
 				    MESH_COMPONENT_03_FUSELAGE) {
-				Memory_HandleBlockDoneStub(
-					g_loadedModels[objectType]);
+				memory_handle_block_done_stub(
+					g_loaded_models[object_type]);
 				return 1;
 			}
 		}
 	}
 
-	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
+	memory_handle_block_done_stub(g_loaded_models[object_type]);
 	return 0;
 }
 
 /* Returns the mesh index of the MESH_COMPONENT_01_MAIN_HULL mesh whose
  * descriptor box lies nearest the point, the distance being the largest of the
  * three per-axis gaps; stops at the first box that holds the point. Returns 0
- * when assetFlags lacks the 0x1 bit, and an uninitialized value when the model
+ * when asset_flags lacks the 0x1 bit, and an uninitialized value when the model
  * has no main hull mesh. */
 // FUNCTION: XVT 0x4AF660
-int ModelMesh_FindNearestMainHullByBounds(int objectType, int localX,
-					  int localY, int localZ)
+int model_mesh_find_nearest_main_hull_by_bounds(int object_type, int local_x,
+						int local_y, int local_z)
 {
-	float pointX;
-	float pointY;
-	float pointZ;
-	float nearestDistance;
-	float boundsDistance;
-	float axisDistance;
-	int nearestMeshIndex;
-	int rootNodeIndex;
-	struct OptimizedPolyObject *model;
-	struct OptNode *rootNode;
-	struct MeshDescriptor *descriptor;
+	float point_x;
+	float point_y;
+	float point_z;
+	float nearest_distance;
+	float bounds_distance;
+	float axis_distance;
+	int nearest_mesh_index;
+	int root_node_index;
+	struct optimized_poly_object *model;
+	struct opt_node *root_node;
+	struct mesh_descriptor *descriptor;
 
-	pointX = (float)localX;
-	pointY = (float)localY;
-	nearestDistance = 2147483648.0f;
-	pointZ = (float)localZ;
-	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
+	point_x = (float)local_x;
+	point_y = (float)local_y;
+	nearest_distance = 2147483648.0f;
+	point_z = (float)local_z;
+	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
 
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		g_loadedModels[objectType]);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	model = (struct optimized_poly_object *)memory_get_handle_block(
+		g_loaded_models[object_type]);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	for (rootNodeIndex = 0; rootNodeIndex < model->rootNodeCount;
-	     ++rootNodeIndex) {
-		rootNode = model->rootNodes[rootNodeIndex];
-		if (rootNode->nodeType == OPT_TEXTURE) {
+	for (root_node_index = 0; root_node_index < model->root_node_count;
+	     ++root_node_index) {
+		root_node = model->root_nodes[root_node_index];
+		if (root_node->node_type == OPT_TEXTURE) {
 			continue;
 		}
 
-		descriptor =
-			ModelMesh_FindDescriptorNodeRecursive(rootNode, model);
+		descriptor = model_mesh_find_descriptor_node_recursive(
+			root_node, model);
 		if (descriptor == NULL ||
-		    descriptor->meshType != MESH_COMPONENT_01_MAIN_HULL) {
+		    descriptor->mesh_type != MESH_COMPONENT_01_MAIN_HULL) {
 			continue;
 		}
 
-		if (pointX > descriptor->boxMax.x) {
-			axisDistance = pointX - descriptor->boxMax.x;
-		} else if (pointX < descriptor->boxMin.x) {
-			axisDistance = descriptor->boxMin.x - pointX;
+		if (point_x > descriptor->box_max.x) {
+			axis_distance = point_x - descriptor->box_max.x;
+		} else if (point_x < descriptor->box_min.x) {
+			axis_distance = descriptor->box_min.x - point_x;
 		} else {
-			axisDistance = 0.0f;
+			axis_distance = 0.0f;
 		}
-		boundsDistance = axisDistance;
+		bounds_distance = axis_distance;
 
-		if (pointY > descriptor->boxMax.y) {
-			axisDistance = pointY - descriptor->boxMax.y;
-		} else if (pointY < descriptor->boxMin.y) {
-			axisDistance = descriptor->boxMin.y - pointY;
+		if (point_y > descriptor->box_max.y) {
+			axis_distance = point_y - descriptor->box_max.y;
+		} else if (point_y < descriptor->box_min.y) {
+			axis_distance = descriptor->box_min.y - point_y;
 		} else {
-			axisDistance = 0.0f;
+			axis_distance = 0.0f;
 		}
-		if (boundsDistance < axisDistance) {
-			boundsDistance = axisDistance;
-		}
-
-		if (pointZ > descriptor->boxMax.z) {
-			axisDistance = pointZ - descriptor->boxMax.z;
-		} else if (pointZ < descriptor->boxMin.z) {
-			axisDistance = descriptor->boxMin.z - pointZ;
-		} else {
-			axisDistance = 0.0f;
-		}
-		if (boundsDistance < axisDistance) {
-			boundsDistance = axisDistance;
+		if (bounds_distance < axis_distance) {
+			bounds_distance = axis_distance;
 		}
 
-		if (boundsDistance < nearestDistance) {
-			nearestMeshIndex = rootNodeIndex;
-			nearestDistance = boundsDistance;
-			if (boundsDistance == 0.0f) {
+		if (point_z > descriptor->box_max.z) {
+			axis_distance = point_z - descriptor->box_max.z;
+		} else if (point_z < descriptor->box_min.z) {
+			axis_distance = descriptor->box_min.z - point_z;
+		} else {
+			axis_distance = 0.0f;
+		}
+		if (bounds_distance < axis_distance) {
+			bounds_distance = axis_distance;
+		}
+
+		if (bounds_distance < nearest_distance) {
+			nearest_mesh_index = root_node_index;
+			nearest_distance = bounds_distance;
+			if (bounds_distance == 0.0f) {
 				break;
 			}
 		}
 	}
 
-	if (model->rootNodes[0]->nodeType == OPT_TEXTURE) {
-		--nearestMeshIndex;
+	if (model->root_nodes[0]->node_type == OPT_TEXTURE) {
+		--nearest_mesh_index;
 	}
-	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
-	return nearestMeshIndex;
+	memory_handle_block_done_stub(g_loaded_models[object_type]);
+	return nearest_mesh_index;
 }
 
-/* Returns the index of a vertex of mesh meshIndex's first OPT_MESHVERTS node,
- * for nearestRank 0 the one nearest the point. It leaves out the last two
+/* Returns the index of a vertex of mesh mesh_index's first OPT_MESHVERTS node,
+ * for nearest_rank 0 the one nearest the point. It leaves out the last two
  * vertices when there are more than two, and looks at the first 256 at most.
- * For a nearestRank above 0 each pass keeps the best distance found by the
+ * For a nearest_rank above 0 each pass keeps the best distance found by the
  * passes before, so it finds no new vertex and the swaps move other entries:
- * rank 1 always gives vertex 0. Returns 0 when assetFlags lacks the 0x1 bit. */
+ * rank 1 always gives vertex 0. Returns 0 when asset_flags lacks the 0x1 bit. */
 // FUNCTION: XVT 0x4AF850
-int ModelMesh_FindNearestVertexForPoint(int objectType, int localX, int localY,
-					int localZ, int meshIndex,
-					int nearestRank)
+int model_mesh_find_nearest_vertex_for_point(int object_type, int local_x,
+					     int local_y, int local_z,
+					     int mesh_index, int nearest_rank)
 {
-	float nearestDistanceSq;
-	float pointX;
-	float pointY;
-	float pointZ;
-	float vertexDistanceSq[256];
-	int vertexIndices[256];
-	struct OptimizedPolyObject *model;
-	struct OptNode **rootNodes;
-	struct OptNode *verticesNode;
-	struct OptVector *vertices;
-	int rootNodeIndex;
-	int vertexCount;
-	int vertexIndex;
-	int selectedCount;
-	int candidateIndex;
-	int nearestIndex;
-	float deltaX;
-	float deltaY;
-	float deltaZ;
-	float swapDistance;
-	int swapIndex;
+	float nearest_distance_sq;
+	float point_x;
+	float point_y;
+	float point_z;
+	float vertex_distance_sq[256];
+	int vertex_indices[256];
+	struct optimized_poly_object *model;
+	struct opt_node **root_nodes;
+	struct opt_node *vertices_node;
+	struct opt_vector *vertices;
+	int root_node_index;
+	int vertex_count;
+	int vertex_index;
+	int selected_count;
+	int candidate_index;
+	int nearest_index;
+	float delta_x;
+	float delta_y;
+	float delta_z;
+	float swap_distance;
+	int swap_index;
 
-	pointX = (float)localX;
-	pointY = (float)localY;
-	pointZ = (float)localZ;
-	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
+	point_x = (float)local_x;
+	point_y = (float)local_y;
+	point_z = (float)local_z;
+	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
 
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		g_loadedModels[objectType]);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	model = (struct optimized_poly_object *)memory_get_handle_block(
+		g_loaded_models[object_type]);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
-	rootNodes = model->rootNodes;
-	rootNodeIndex = meshIndex;
-	if (rootNodes[0]->nodeType == OPT_TEXTURE) {
-		rootNodeIndex++;
+	root_nodes = model->root_nodes;
+	root_node_index = mesh_index;
+	if (root_nodes[0]->node_type == OPT_TEXTURE) {
+		root_node_index++;
 	}
-	if (rootNodeIndex >= model->rootNodeCount) {
-		rootNodeIndex = model->rootNodeCount - 1;
+	if (root_node_index >= model->root_node_count) {
+		root_node_index = model->root_node_count - 1;
 	}
-	verticesNode =
-		ModelMesh_FindFirstMeshVertsNode(rootNodes[rootNodeIndex]);
-	vertices = (struct OptVector *)verticesNode->payload;
-	vertexCount = verticesNode->payloadCount;
-	if (vertexCount > 2) {
-		vertexCount -= 2;
+	vertices_node = model_mesh_find_first_mesh_verts_node(
+		root_nodes[root_node_index]);
+	vertices = (struct opt_vector *)vertices_node->payload;
+	vertex_count = vertices_node->payload_count;
+	if (vertex_count > 2) {
+		vertex_count -= 2;
 	}
-	if (vertexCount > 256) {
-		vertexCount = 256;
+	if (vertex_count > 256) {
+		vertex_count = 256;
 	}
-	if (nearestRank >= vertexCount) {
-		nearestRank = vertexCount - 1;
-	}
-
-	for (vertexIndex = 0; vertexIndex < vertexCount; vertexIndex++) {
-		deltaX = vertices[vertexIndex].x - pointX;
-		deltaY = vertices[vertexIndex].y - pointY;
-		deltaZ = vertices[vertexIndex].z - pointZ;
-		vertexDistanceSq[vertexIndex] =
-			deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ;
-		vertexIndices[vertexIndex] = vertexIndex;
+	if (nearest_rank >= vertex_count) {
+		nearest_rank = vertex_count - 1;
 	}
 
-	selectedCount = 0;
-	nearestDistanceSq = 4611686018427387904.0f;
-	if (nearestRank + 1 > 0) {
-		nearestIndex = vertexIndices[0];
+	for (vertex_index = 0; vertex_index < vertex_count; vertex_index++) {
+		delta_x = vertices[vertex_index].x - point_x;
+		delta_y = vertices[vertex_index].y - point_y;
+		delta_z = vertices[vertex_index].z - point_z;
+		vertex_distance_sq[vertex_index] = delta_x * delta_x +
+						   delta_y * delta_y +
+						   delta_z * delta_z;
+		vertex_indices[vertex_index] = vertex_index;
+	}
+
+	selected_count = 0;
+	nearest_distance_sq = 4611686018427387904.0f;
+	if (nearest_rank + 1 > 0) {
+		nearest_index = vertex_indices[0];
 		do {
-			for (candidateIndex = selectedCount;
-			     candidateIndex < vertexCount; candidateIndex++) {
-				if (vertexDistanceSq[candidateIndex] <
-				    nearestDistanceSq) {
-					nearestIndex = candidateIndex;
-					nearestDistanceSq = vertexDistanceSq
-						[candidateIndex];
+			for (candidate_index = selected_count;
+			     candidate_index < vertex_count;
+			     candidate_index++) {
+				if (vertex_distance_sq[candidate_index] <
+				    nearest_distance_sq) {
+					nearest_index = candidate_index;
+					nearest_distance_sq = vertex_distance_sq
+						[candidate_index];
 				}
 			}
-			swapDistance = vertexDistanceSq[selectedCount];
-			vertexDistanceSq[nearestIndex] = swapDistance;
-			swapIndex = vertexIndices[nearestIndex];
-			vertexDistanceSq[selectedCount] = nearestDistanceSq;
-			vertexIndices[nearestIndex] =
-				vertexIndices[selectedCount];
-			vertexIndices[selectedCount] = swapIndex;
-			selectedCount++;
-		} while (nearestRank + 1 > selectedCount);
+			swap_distance = vertex_distance_sq[selected_count];
+			vertex_distance_sq[nearest_index] = swap_distance;
+			swap_index = vertex_indices[nearest_index];
+			vertex_distance_sq[selected_count] =
+				nearest_distance_sq;
+			vertex_indices[nearest_index] =
+				vertex_indices[selected_count];
+			vertex_indices[selected_count] = swap_index;
+			selected_count++;
+		} while (nearest_rank + 1 > selected_count);
 	}
 
-	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
-	return vertexIndices[nearestRank];
+	memory_handle_block_done_stub(g_loaded_models[object_type]);
+	return vertex_indices[nearest_rank];
 }
 
 /* Returns the mesh index, counting the roots that are not an OPT_TEXTURE, of
  * the first mesh whose descriptor type is MESH_COMPONENT_07_BRIDGE, or -1 when
  * there is none. */
 // FUNCTION: XVT 0x4AFA30
-int ModelMesh_FindBridgeIndex(struct OptimizedPolyObject *model)
+int model_mesh_find_bridge_index(struct optimized_poly_object *model)
 {
-	int rootIndex;
-	int meshIndex;
+	int root_index;
+	int mesh_index;
 
-	meshIndex = 0;
-	for (rootIndex = 0; rootIndex < model->rootNodeCount; ++rootIndex) {
-		struct OptNode *rootNode;
-		struct MeshDescriptor *descriptor;
+	mesh_index = 0;
+	for (root_index = 0; root_index < model->root_node_count;
+	     ++root_index) {
+		struct opt_node *root_node;
+		struct mesh_descriptor *descriptor;
 
-		rootNode = model->rootNodes[rootIndex];
-		if (rootNode->nodeType == OPT_TEXTURE) {
+		root_node = model->root_nodes[root_index];
+		if (root_node->node_type == OPT_TEXTURE) {
 			continue;
 		}
-		descriptor =
-			ModelMesh_FindDescriptorNodeRecursive(rootNode, model);
+		descriptor = model_mesh_find_descriptor_node_recursive(
+			root_node, model);
 		if (descriptor != NULL &&
-		    descriptor->meshType == MESH_COMPONENT_07_BRIDGE) {
+		    descriptor->mesh_type == MESH_COMPONENT_07_BRIDGE) {
 			break;
 		}
-		++meshIndex;
+		++mesh_index;
 	}
 
-	if (rootIndex < model->rootNodeCount) {
-		return meshIndex;
+	if (root_index < model->root_node_count) {
+		return mesh_index;
 	}
 	return -1;
 }
 
-/* Fills g_objectTypeMeshCache for all 73 object types. The pointer returned is one past the end of
+/* Fills g_object_type_mesh_cache for all 73 object types. The pointer returned is one past the end of
  * the array, not a cache entry; it must not be dereferenced. */
-/* Each entry gets ModelMesh_GetObjectTypeMeshCount and, per mesh, its type and
- * descriptor. FeDiskIo_InitResources calls this after
- * FeDiskIo_LoadResources. */
+/* Each entry gets model_mesh_get_object_type_mesh_count and, per mesh, its type and
+ * descriptor. fe_disk_io_init_resources calls this after
+ * fe_disk_io_load_resources. */
 // FUNCTION: XVT 0x4AFA90
-struct ModelMeshObjectTypeCache *ModelMesh_BuildObjectTypeMeshCache(void)
+struct model_mesh_object_type_cache *
+model_mesh_build_object_type_mesh_cache(void)
 {
-	struct ModelMeshObjectTypeCache *cache;
-	int objectType;
+	struct model_mesh_object_type_cache *cache;
+	int object_type;
 
-	objectType = 0;
+	object_type = 0;
 	do {
-		int meshIndex;
-		int meshCount;
+		int mesh_index;
+		int mesh_count;
 
-		cache = &g_objectTypeMeshCache[objectType];
-		meshIndex = 0;
-		meshCount = ModelMesh_GetObjectTypeMeshCount(objectType);
-		cache->meshCount = meshCount;
-		while (meshIndex < meshCount) {
-			cache->meshTypes[meshIndex] =
-				ModelMesh_GetObjectTypeMeshType(objectType,
-								meshIndex);
-			cache->meshDescriptors[meshIndex] =
-				ModelMesh_GetDescriptor(objectType, meshIndex);
-			++meshIndex;
+		cache = &g_object_type_mesh_cache[object_type];
+		mesh_index = 0;
+		mesh_count = model_mesh_get_object_type_mesh_count(object_type);
+		cache->mesh_count = mesh_count;
+		while (mesh_index < mesh_count) {
+			cache->mesh_types[mesh_index] =
+				model_mesh_get_object_type_mesh_type(
+					object_type, mesh_index);
+			cache->mesh_descriptors[mesh_index] =
+				model_mesh_get_descriptor(object_type,
+							  mesh_index);
+			++mesh_index;
 		}
 
-		++objectType;
-	} while (objectType < 73);
+		++object_type;
+	} while (object_type < 73);
 
-	return &g_objectTypeMeshCache[73];
+	return &g_object_type_mesh_cache[73];
 }

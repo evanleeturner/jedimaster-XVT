@@ -3,23 +3,23 @@
 #include "xvt_runtime/config/config.h"
 #include <stdio.h>
 
-typedef enum XvtSetupFrameResult {
+typedef enum xvt_setup_frame_result {
 	XVT_SETUP_FRAME_PENDING,
 	XVT_SETUP_FRAME_SUCCESS,
 	XVT_SETUP_FRAME_CANCELLED,
-} XvtSetupFrameResult;
+} xvt_setup_frame_result;
 
-static int XvtSetupUi_AcceptInstallation(const char *path, void *user,
-					 char *error, size_t capacity)
+static int xvt_setup_ui_accept_installation(const char *path, void *user,
+					    char *error, size_t capacity)
 {
 	(void)user;
 	char resolved[XVT_PATH_CAPACITY];
-	return XvtSetup_ResolveInstallation(path, resolved, sizeof resolved,
-					    error, capacity);
+	return xvt_setup_resolve_installation(path, resolved, sizeof resolved,
+					      error, capacity);
 }
 
-int XvtSetupUi_OpenPicker(AeronUiFilePicker *picker, const char *path,
-			  char *error, size_t capacity)
+int xvt_setup_ui_open_picker(AeronUiFilePicker *picker, const char *path,
+			     char *error, size_t capacity)
 {
 	const AeronUiFilePickerDesc desc = {
 		.mode = AERON_UI_FILE_PICKER_SELECT_DIRECTORY,
@@ -29,15 +29,15 @@ int XvtSetupUi_OpenPicker(AeronUiFilePicker *picker, const char *path,
 		.accept_label = "Use This Folder",
 		.cancel_label = "Cancel",
 		.initial_path = path && path[0] ? path : NULL,
-		.accept_fn = XvtSetupUi_AcceptInstallation,
+		.accept_fn = xvt_setup_ui_accept_installation,
 	};
 	return AeronUiFilePicker_Open(picker, &desc, error, capacity);
 }
 
-static XvtSetupFrameResult XvtSetupUi_DrawRecovery(AeronUiContext *ui,
-						   char *error, size_t capacity)
+static xvt_setup_frame_result
+xvt_setup_ui_draw_recovery(AeronUiContext *ui, char *error, size_t capacity)
 {
-	XvtSetupFrameResult result = XVT_SETUP_FRAME_PENDING;
+	xvt_setup_frame_result result = XVT_SETUP_FRAME_PENDING;
 	const AeronUiWindowDesc window = {.width_ref = 920.0f, .centered = 1};
 	if (!AeronUi_BeginWindow(ui, "OpenXvT configuration", &window)) {
 		return result;
@@ -51,7 +51,7 @@ static XvtSetupFrameResult XvtSetupUi_DrawRecovery(AeronUiContext *ui,
 	}
 	AeronUi_NextColumn(ui);
 	if (AeronUi_Button(ui, "Reset to defaults") &&
-	    XvtConfig_ResetToDefaults(error, capacity)) {
+	    xvt_config_reset_to_defaults(error, capacity)) {
 		result = XVT_SETUP_FRAME_SUCCESS;
 	}
 	AeronUi_EndColumns(ui);
@@ -59,12 +59,12 @@ static XvtSetupFrameResult XvtSetupUi_DrawRecovery(AeronUiContext *ui,
 	return result;
 }
 
-static XvtSetupFrameResult
-XvtSetupUi_DrawInstallation(AeronUiContext *ui, AeronUiFilePicker *picker,
-			    char *path, size_t path_capacity, int *valid,
-			    char *error, size_t capacity)
+static xvt_setup_frame_result
+xvt_setup_ui_draw_installation(AeronUiContext *ui, AeronUiFilePicker *picker,
+			       char *path, size_t path_capacity, int *valid,
+			       char *error, size_t capacity)
 {
-	XvtSetupFrameResult result = XVT_SETUP_FRAME_PENDING;
+	xvt_setup_frame_result result = XVT_SETUP_FRAME_PENDING;
 	const AeronUiWindowDesc window = {.width_ref = 920.0f, .centered = 1};
 	if (!AeronUi_BeginWindow(ui, "Welcome to OpenXvT", &window)) {
 		return result;
@@ -78,7 +78,7 @@ XvtSetupUi_DrawInstallation(AeronUiContext *ui, AeronUiFilePicker *picker,
 		ui, "XvT", path, path_capacity, AERON_UI_INPUT_TEXT_READ_ONLY,
 		"Browse...");
 	if (path_result & AERON_UI_INPUT_TEXT_ACTION_ACTIVATED) {
-		XvtSetupUi_OpenPicker(picker, path, error, capacity);
+		xvt_setup_ui_open_picker(picker, path, error, capacity);
 	}
 	AeronUi_Help(
 		ui,
@@ -96,9 +96,10 @@ XvtSetupUi_DrawInstallation(AeronUiContext *ui, AeronUiFilePicker *picker,
 	}
 	AeronUi_NextColumn(ui);
 	if (AeronUi_ButtonEnabled(ui, "Continue", *valid)) {
-		*valid = XvtSetup_ResolveInstallation(path, path, path_capacity,
-						      error, capacity);
-		if (*valid && XvtConfig_SetGameData(path, 1, error, capacity)) {
+		*valid = xvt_setup_resolve_installation(
+			path, path, path_capacity, error, capacity);
+		if (*valid &&
+		    xvt_config_set_game_data(path, 1, error, capacity)) {
 			result = XVT_SETUP_FRAME_SUCCESS;
 		}
 	}
@@ -107,20 +108,20 @@ XvtSetupUi_DrawInstallation(AeronUiContext *ui, AeronUiFilePicker *picker,
 	return result;
 }
 
-XvtSetupResult XvtSetupUi_Run(struct XvtAppUi *ui, char *path,
-			      size_t path_capacity, char *error,
-			      size_t capacity)
+xvt_setup_result xvt_setup_ui_run(struct xvt_app_ui *ui, char *path,
+				  size_t path_capacity, char *error,
+				  size_t capacity)
 {
-	AeronUiContext *context = XvtAppUi_Context(ui);
+	AeronUiContext *context = xvt_app_ui_context(ui);
 	AeronUiFilePicker *picker = path ? AeronUiFilePicker_Create() : NULL;
 	if (path && !picker) {
 		snprintf(error, capacity, "Cannot create installation picker.");
 		return XVT_SETUP_ERROR;
 	}
 	int valid = path && path[0] &&
-		    XvtSetup_ResolveInstallation(path, path, path_capacity,
-						 error, capacity);
-	XvtSetupResult outcome = XVT_SETUP_ERROR;
+		    xvt_setup_resolve_installation(path, path, path_capacity,
+						   error, capacity);
+	xvt_setup_result outcome = XVT_SETUP_ERROR;
 	Aeron_SetHostCursorVisible(1);
 	while (!Aeron_QuitRequested() && !Aeron_FatalErrorRequested()) {
 		const int32_t delta_us = Aeron_BeginFrame();
@@ -132,19 +133,19 @@ XvtSetupResult XvtSetupUi_Run(struct XvtAppUi *ui, char *path,
 					 .input = Aeron_InputSnapshot(),
 					 .dt_seconds = (float)delta_us * 1e-6f,
 				 });
-		const XvtSetupFrameResult frame_result =
-			path ? XvtSetupUi_DrawInstallation(
+		const xvt_setup_frame_result frame_result =
+			path ? xvt_setup_ui_draw_installation(
 				       context, picker, path, path_capacity,
 				       &valid, error, capacity)
-			     : XvtSetupUi_DrawRecovery(context, error,
-						       capacity);
+			     : xvt_setup_ui_draw_recovery(context, error,
+							  capacity);
 		if (picker) {
 			const AeronUiFilePickerResult picked =
 				AeronUiFilePicker_Draw(picker, context, path,
 						       path_capacity, error,
 						       capacity);
 			if (picked == AERON_UI_FILE_PICKER_SELECTED) {
-				valid = XvtSetup_ResolveInstallation(
+				valid = xvt_setup_resolve_installation(
 					path, path, path_capacity, error,
 					capacity);
 			}

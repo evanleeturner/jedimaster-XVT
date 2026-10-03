@@ -7,7 +7,7 @@
 
 /* The application-owned UI: one Aeron UI context with one font atlas serving as both the regular and
  * the title font, in a dark theme with a red accent. */
-struct XvtAppUi {
+struct xvt_app_ui {
 	AeronUiContext *context;
 	AeronFontAtlas font;
 };
@@ -17,10 +17,10 @@ struct XvtAppUi {
  * when it has capacity, for a NULL ui or a NULL or empty font, a command buffer that cannot be
  * acquired, an atlas that fails to load (the buffer is cancelled), a submission that fails, or a
  * context that cannot be created (the atlas is released). */
-bool XvtAppUi_Init(struct XvtAppUi *ui, const char *font, char *error,
-		   size_t capacity);
+bool xvt_app_ui_init(struct xvt_app_ui *ui, const char *font, char *error,
+		     size_t capacity);
 /* Destroys the context, releases the atlas and zeroes ui; nothing for NULL. */
-void XvtAppUi_Shutdown(struct XvtAppUi *ui);
+void xvt_app_ui_shutdown(struct xvt_app_ui *ui);
 /* The context; NULL for a NULL or zeroed ui. */
-AeronUiContext *XvtAppUi_Context(struct XvtAppUi *ui);
+AeronUiContext *xvt_app_ui_context(struct xvt_app_ui *ui);
 #endif

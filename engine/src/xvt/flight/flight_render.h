@@ -8,13 +8,13 @@
 extern "C" {
 #endif
 
-void FlightRender_TransitionHookStub(void);
-void FlightRender_InvokeTransitionHook(int transitionFlags);
-void FlightRender_ResetPalette(int transitionFlags);
-void FlightRender_ConfigureCallbacksForResolution(
-	uint8_t initialGraphicsDetailPreset);
-void FlightRender_InstallCallbacks(int pixelMode);
-void FlightRender_SetPixelModeStub(int pixelMode);
+void flight_render_transition_hook_stub(void);
+void flight_render_invoke_transition_hook(int transition_flags);
+void flight_render_reset_palette(int transition_flags);
+void flight_render_configure_callbacks_for_resolution(
+	uint8_t initial_graphics_detail_preset);
+void flight_render_install_callbacks(int pixel_mode);
+void flight_render_set_pixel_mode_stub(int pixel_mode);
 
 #ifdef __cplusplus
 }

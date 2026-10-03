@@ -8,30 +8,30 @@
 extern "C" {
 #endif
 
-extern int32_t g_backdropCamR0XSteps[16];
-extern int32_t g_backdropCamR0YSteps[16];
-extern int32_t g_backdropCamR0ZSteps[16];
-extern int32_t g_backdropCamR1XSteps[16];
-extern int32_t g_backdropCamR1YSteps[16];
-extern int32_t g_backdropCamR1ZSteps[16];
-extern int32_t g_backdropCamR2XSteps[16];
-extern int32_t g_backdropCamR2YSteps[16];
-extern int32_t g_backdropCamR2ZSteps[16];
-extern uint8_t g_backdropModelTypes[64];
-extern uint8_t g_backdropPackedDirections[64];
-extern uint16_t g_backdropPositiveYCount;
-extern uint16_t g_backdropNegativeYCount;
-extern uint16_t g_backdropPositiveZCount;
-extern uint16_t g_backdropNegativeZCount;
-extern uint16_t g_backdropPositiveXCount;
-extern uint16_t g_backdropNegativeXCount;
+extern int32_t g_backdrop_cam_r0x_steps[16];
+extern int32_t g_backdrop_cam_r0y_steps[16];
+extern int32_t g_backdrop_cam_r0z_steps[16];
+extern int32_t g_backdrop_cam_r1x_steps[16];
+extern int32_t g_backdrop_cam_r1y_steps[16];
+extern int32_t g_backdrop_cam_r1z_steps[16];
+extern int32_t g_backdrop_cam_r2x_steps[16];
+extern int32_t g_backdrop_cam_r2y_steps[16];
+extern int32_t g_backdrop_cam_r2z_steps[16];
+extern uint8_t g_backdrop_model_types[64];
+extern uint8_t g_backdrop_packed_directions[64];
+extern uint16_t g_backdrop_positive_y_count;
+extern uint16_t g_backdrop_negative_y_count;
+extern uint16_t g_backdrop_positive_z_count;
+extern uint16_t g_backdrop_negative_z_count;
+extern uint16_t g_backdrop_positive_x_count;
+extern uint16_t g_backdrop_negative_x_count;
 
-void Backdrop_DrawModelTexQuadAtScreen(int modelType, int screenX, int screenY,
-				       int angle);
-void Backdrop_BuildStarOffsetsAndRender(void);
-void Backdrop_ProjectAndDrawScreenQuad(int viewX, int viewY, int viewZ,
-				       int angle, int backdropNumber);
-void Backdrop_GenerateDefaultRecords(void);
+void backdrop_draw_model_tex_quad_at_screen(int model_type, int screen_x,
+					    int screen_y, int angle);
+void backdrop_build_star_offsets_and_render(void);
+void backdrop_project_and_draw_screen_quad(int view_x, int view_y, int view_z,
+					   int angle, int backdrop_number);
+void backdrop_generate_default_records(void);
 
 #ifdef __cplusplus
 }

@@ -16,70 +16,70 @@
 #include "xvt_runtime/runtime/flight_sim.h"
 #include "xvt_runtime/runtime/flight_task.h"
 #include <string.h>
-static bool g_captured, g_rendererTabSuppressed;
-static uint8_t g_blockedKeys[AERON_KEY_COUNT];
-static uint32_t g_blockedMouse;
-static uint64_t g_mouseIgnoredFrame = UINT64_MAX;
-static bool g_mouseReleased, g_mouseCaptureFailed, g_mouseSession;
-static int g_mouseContext = -1;
-static struct XvtMouseOptions g_mouseOptions;
+static bool g_captured, g_renderer_tab_suppressed;
+static uint8_t g_blocked_keys[AERON_KEY_COUNT];
+static uint32_t g_blocked_mouse;
+static uint64_t g_mouse_ignored_frame = UINT64_MAX;
+static bool g_mouse_released, g_mouse_capture_failed, g_mouse_session;
+static int g_mouse_context = -1;
+static struct xvt_mouse_options g_mouse_options;
 
 enum { MOUSE_CAPTURE_KEY = AERON_KEY_A + ('m' - 'a') };
 
 enum { MOUSE_CONTROL_SHIP, MOUSE_CONTROL_EXTERNAL, MOUSE_CONTROL_MAP };
 
-void XvtInput_FlushRawKeyboard(void)
+void xvt_input_flush_raw_keyboard(void)
 {
-	if (g_dinputKeyboardDevice) {
+	if (g_dinput_keyboard_device) {
 		uint32_t count = UINT32_MAX;
-		g_dinputKeyboardDevice->lpVtbl->GetDeviceData(
-			g_dinputKeyboardDevice, sizeof(DIDEVICEOBJECTDATA),
+		g_dinput_keyboard_device->lpVtbl->GetDeviceData(
+			g_dinput_keyboard_device, sizeof(DIDEVICEOBJECTDATA),
 			NULL, &count, 0);
 	}
-	g_dinputShiftDown = g_dinputCtrlDown = g_dinputAltDown = 0;
-	g_keyReady = 0;
-	g_lastKeyCode = 0;
-	Keyboard_FlushCharBuffer();
+	g_dinput_shift_down = g_dinput_ctrl_down = g_dinput_alt_down = 0;
+	g_key_ready = 0;
+	g_last_key_code = 0;
+	keyboard_flush_char_buffer();
 }
 
-static void XvtInput_ApplyKeySuppression(void)
+static void xvt_input_apply_key_suppression(void)
 {
 	for (int key = 0; key < AERON_KEY_COUNT; ++key) {
-		AeronCompat_SetKeySuppressed(key,
-					     g_captured || g_blockedKeys[key] ||
-						     (key == AERON_KEY_TAB &&
-						      g_rendererTabSuppressed));
+		AeronCompat_SetKeySuppressed(
+			key, g_captured || g_blocked_keys[key] ||
+				     (key == AERON_KEY_TAB &&
+				      g_renderer_tab_suppressed));
 	}
 }
 
-void XvtInput_BlockKeyUntilReleased(int key)
+void xvt_input_block_key_until_released(int key)
 {
 	if ((unsigned)key >= AERON_KEY_COUNT) {
 		return;
 	}
-	g_blockedKeys[key] = 1;
-	XvtInput_ApplyKeySuppression();
+	g_blocked_keys[key] = 1;
+	xvt_input_apply_key_suppression();
 }
 
-void XvtInput_BlockHeldKeys(void)
+void xvt_input_block_held_keys(void)
 {
 	const AeronInputSnapshot *input = Aeron_InputSnapshot();
 	if (input) {
 		for (int key = 0; key < AERON_KEY_COUNT; ++key) {
-			g_blockedKeys[key] |= input->key_down[key];
+			g_blocked_keys[key] |= input->key_down[key];
 		}
 	}
-	XvtInput_ApplyKeySuppression();
+	xvt_input_apply_key_suppression();
 }
 
-void XvtInput_FlushKeyboard(void)
+void xvt_input_flush_keyboard(void)
 {
-	XvtKeyboardMapping_Suspend();
-	XvtInput_BlockHeldKeys();
-	XvtInput_FlushRawKeyboard();
+	xvt_keyboard_mapping_suspend();
+	xvt_input_block_held_keys();
+	xvt_input_flush_raw_keyboard();
 }
 
-void XvtInput_SetCaptured(bool capture)
+void xvt_input_set_captured(bool capture)
 {
 	if (capture == g_captured) {
 		return;
@@ -88,161 +88,164 @@ void XvtInput_SetCaptured(bool capture)
 	const AeronInputSnapshot *input = Aeron_InputSnapshot();
 	if (input) {
 		for (int key = 0; key < AERON_KEY_COUNT; ++key) {
-			g_blockedKeys[key] = input->key_down[key];
+			g_blocked_keys[key] = input->key_down[key];
 		}
-		g_blockedMouse = input->mouse.buttons;
-		g_mouseIgnoredFrame = input->frame_id;
+		g_blocked_mouse = input->mouse.buttons;
+		g_mouse_ignored_frame = input->frame_id;
 	}
-	XvtInput_FlushKeyboard();
-	g_actionKey = 0;
-	g_ctrlAxisX = g_ctrlAxisY = 0;
-	g_keyMods = 0;
-	g_mouseButtons = 0;
-	g_flightMouseDeltaX = g_flightMouseDeltaY = 0;
-	XvtFlightControls_Reset();
-	XvtMouseFlight_Reset();
+	xvt_input_flush_keyboard();
+	g_action_key = 0;
+	g_ctrl_axis_x = g_ctrl_axis_y = 0;
+	g_key_mods = 0;
+	g_mouse_buttons = 0;
+	g_flight_mouse_delta_x = g_flight_mouse_delta_y = 0;
+	xvt_flight_controls_reset();
+	xvt_mouse_flight_reset();
 	if (capture) {
 		Aeron_SetRelativeMouseMode(0);
 	}
 	if (capture) {
-		XvtControllerMapping_Suspend();
+		xvt_controller_mapping_suspend();
 	}
-	FlightInput_ResetControlState();
-	XvtInput_ApplyKeySuppression();
+	flight_input_reset_control_state();
+	xvt_input_apply_key_suppression();
 }
 
-void XvtInput_BeginCaptureFrame(const AeronInputSnapshot *input, bool capture)
+void xvt_input_begin_capture_frame(const AeronInputSnapshot *input,
+				   bool capture)
 {
 	if (input) {
 		for (int key = 0; key < AERON_KEY_COUNT; ++key) {
 			if (!input->key_down[key] &&
 			    !input->key_released[key]) {
-				g_blockedKeys[key] = 0;
+				g_blocked_keys[key] = 0;
 			}
 		}
-		g_blockedMouse &=
+		g_blocked_mouse &=
 			input->mouse.buttons | input->mouse.released_buttons;
 	}
-	XvtInput_SetCaptured(capture);
-	XvtInput_ApplyKeySuppression();
+	xvt_input_set_captured(capture);
+	xvt_input_apply_key_suppression();
 	if (capture) {
-		XvtInput_FlushKeyboard();
+		xvt_input_flush_keyboard();
 	}
 }
 
-bool XvtInput_IsCaptured(void) { return g_captured; }
+bool xvt_input_is_captured(void) { return g_captured; }
 
-bool XvtInput_MouseMotionAllowed(void)
+bool xvt_input_mouse_motion_allowed(void)
 {
 	const AeronInputSnapshot *input = Aeron_InputSnapshot();
 	return !g_captured && input && input->has_focus &&
-	       input->frame_id != g_mouseIgnoredFrame;
+	       input->frame_id != g_mouse_ignored_frame;
 }
 
-uint32_t XvtInput_FilterMouseButtons(uint32_t buttons)
+uint32_t xvt_input_filter_mouse_buttons(uint32_t buttons)
 {
-	return g_captured ? 0 : buttons & ~g_blockedMouse;
+	return g_captured ? 0 : buttons & ~g_blocked_mouse;
 }
 
-void XvtInput_SuppressRendererTab(bool suppress)
+void xvt_input_suppress_renderer_tab(bool suppress)
 {
-	g_rendererTabSuppressed = suppress;
+	g_renderer_tab_suppressed = suppress;
 	AeronCompat_SetKeySuppressed(
-		AERON_KEY_TAB, g_captured || g_blockedKeys[AERON_KEY_TAB] ||
-				       g_rendererTabSuppressed);
+		AERON_KEY_TAB, g_captured || g_blocked_keys[AERON_KEY_TAB] ||
+				       g_renderer_tab_suppressed);
 }
 
-void XvtInput_ResetCapture(void)
+void xvt_input_reset_capture(void)
 {
-	g_captured = g_rendererTabSuppressed = false;
-	g_blockedMouse = 0;
-	g_mouseIgnoredFrame = UINT64_MAX;
-	memset(g_blockedKeys, 0, sizeof g_blockedKeys);
-	XvtInput_ApplyKeySuppression();
-	g_mouseReleased = g_mouseCaptureFailed = g_mouseSession = false;
-	g_mouseContext = -1;
-	memset(&g_mouseOptions, 0, sizeof g_mouseOptions);
-	XvtMouseFlight_Reset();
+	g_captured = g_renderer_tab_suppressed = false;
+	g_blocked_mouse = 0;
+	g_mouse_ignored_frame = UINT64_MAX;
+	memset(g_blocked_keys, 0, sizeof g_blocked_keys);
+	xvt_input_apply_key_suppression();
+	g_mouse_released = g_mouse_capture_failed = g_mouse_session = false;
+	g_mouse_context = -1;
+	memset(&g_mouse_options, 0, sizeof g_mouse_options);
+	xvt_mouse_flight_reset();
 	Aeron_SetRelativeMouseMode(0);
 }
 
-bool XvtInput_MouseFlightAllowed(void)
+bool xvt_input_mouse_flight_allowed(void)
 {
-	return g_mouseOptions.mouse_flight_enabled &&
-	       XvtFlightTask_IsActive() && !XvtFlightTask_IsLoading() &&
-	       !XvtFlightSim_IsPaused() && !XvtDialog_IsActive() &&
-	       !Aeron_DebugUiVisible() && XvtInput_MouseMotionAllowed() &&
-	       !g_mouseReleased && !g_mouseCaptureFailed;
+	return g_mouse_options.mouse_flight_enabled &&
+	       xvt_flight_task_is_active() && !xvt_flight_task_is_loading() &&
+	       !xvt_flight_sim_is_paused() && !xvt_dialog_is_active() &&
+	       !Aeron_DebugUiVisible() && xvt_input_mouse_motion_allowed() &&
+	       !g_mouse_released && !g_mouse_capture_failed;
 }
 
-void XvtInput_UpdateMouseCapture(const AeronInputSnapshot *input)
+void xvt_input_update_mouse_capture(const AeronInputSnapshot *input)
 {
-	const struct XvtSettings *settings = XvtConfig_Settings();
+	const struct xvt_settings *settings = xvt_config_settings();
 	if (!settings) {
 		return;
 	}
-	if (memcmp(&g_mouseOptions, &settings->mouse, sizeof g_mouseOptions)) {
-		g_mouseOptions = settings->mouse;
-		XvtMouseFlight_SetOptions(&g_mouseOptions);
-		g_mouseCaptureFailed = false;
-		g_blockedMouse |= input ? input->mouse.buttons : 0;
-		g_mouseIgnoredFrame = input ? input->frame_id : UINT64_MAX;
+	if (memcmp(&g_mouse_options, &settings->mouse,
+		   sizeof g_mouse_options)) {
+		g_mouse_options = settings->mouse;
+		xvt_mouse_flight_set_options(&g_mouse_options);
+		g_mouse_capture_failed = false;
+		g_blocked_mouse |= input ? input->mouse.buttons : 0;
+		g_mouse_ignored_frame = input ? input->frame_id : UINT64_MAX;
 	}
-	bool session = XvtFlightTask_IsActive() && !XvtFlightTask_IsLoading();
-	if (session != g_mouseSession) {
-		g_mouseSession = session;
-		g_mouseReleased = g_mouseCaptureFailed = false;
-		g_mouseContext = -1;
-		XvtMouseFlight_Reset();
+	bool session =
+		xvt_flight_task_is_active() && !xvt_flight_task_is_loading();
+	if (session != g_mouse_session) {
+		g_mouse_session = session;
+		g_mouse_released = g_mouse_capture_failed = false;
+		g_mouse_context = -1;
+		xvt_mouse_flight_reset();
 	}
-	if (session && (unsigned)g_localPlayer < 8) {
-		int context = g_players[g_localPlayer].mapCameraState
+	if (session && (unsigned)g_local_player < 8) {
+		int context = g_players[g_local_player].map_camera_state
 				      ? MOUSE_CONTROL_MAP
-			      : g_players[g_localPlayer]
-					      .viewState.externalCameraActive
+			      : g_players[g_local_player]
+					      .view_state.external_camera_active
 				      ? MOUSE_CONTROL_EXTERNAL
 				      : MOUSE_CONTROL_SHIP;
-		if (context != g_mouseContext) {
-			g_mouseContext = context;
-			XvtMouseFlight_Reset();
+		if (context != g_mouse_context) {
+			g_mouse_context = context;
+			xvt_mouse_flight_reset();
 		}
 	}
-	if (session && g_mouseOptions.mouse_flight_enabled && input &&
-	    input->has_focus && !g_captured && !XvtDialog_IsActive() &&
+	if (session && g_mouse_options.mouse_flight_enabled && input &&
+	    input->has_focus && !g_captured && !xvt_dialog_is_active() &&
 	    !Aeron_DebugUiVisible()) {
-		bool chord = !g_blockedKeys[MOUSE_CAPTURE_KEY] &&
-			     XvtKeyboardMapping_FindShortcutPress(
+		bool chord = !g_blocked_keys[MOUSE_CAPTURE_KEY] &&
+			     xvt_keyboard_mapping_find_shortcut_press(
 				     input, XVT_KEYBOARD_SHORTCUT_MOUSE) >= 0;
-		bool click = g_mouseReleased && input->mouse.inside_content &&
+		bool click = g_mouse_released && input->mouse.inside_content &&
 			     input->mouse.pressed_buttons;
 		if (chord || click) {
-			g_mouseReleased = chord ? !g_mouseReleased : false;
-			g_mouseCaptureFailed = false;
-			g_blockedKeys[MOUSE_CAPTURE_KEY] |= chord;
-			g_blockedMouse |= input->mouse.buttons |
-					  input->mouse.pressed_buttons;
-			g_mouseIgnoredFrame = input->frame_id;
-			XvtMouseFlight_Reset();
-			XvtInput_ApplyKeySuppression();
+			g_mouse_released = chord ? !g_mouse_released : false;
+			g_mouse_capture_failed = false;
+			g_blocked_keys[MOUSE_CAPTURE_KEY] |= chord;
+			g_blocked_mouse |= input->mouse.buttons |
+					   input->mouse.pressed_buttons;
+			g_mouse_ignored_frame = input->frame_id;
+			xvt_mouse_flight_reset();
+			xvt_input_apply_key_suppression();
 		}
 	}
-	bool want_relative_mouse = XvtInput_MouseFlightAllowed();
+	bool want_relative_mouse = xvt_input_mouse_flight_allowed();
 	bool was_relative = Aeron_RelativeMouseMode() != 0;
 	if (want_relative_mouse != was_relative) {
 		if (!Aeron_SetRelativeMouseMode(want_relative_mouse) &&
 		    want_relative_mouse) {
-			g_mouseCaptureFailed = true;
-			g_mouseReleased = true;
+			g_mouse_capture_failed = true;
+			g_mouse_released = true;
 			XVT_LOG_ERROR("input.capture_failed device=mouse");
 		}
-		XvtMouseFlight_Reset();
-		g_blockedMouse |= input ? input->mouse.buttons : 0;
+		xvt_mouse_flight_reset();
+		g_blocked_mouse |= input ? input->mouse.buttons : 0;
 	}
-	if (g_mouseOptions.mouse_flight_enabled && session) {
+	if (g_mouse_options.mouse_flight_enabled && session) {
 		Aeron_SetHostCursorVisible(!Aeron_RelativeMouseMode() &&
-					   !XvtDialog_IsActive());
+					   !xvt_dialog_is_active());
 	} else if (was_relative) {
 		Aeron_SetHostCursorVisible(0);
 	}
-	XvtMouseFlight_Pump();
+	xvt_mouse_flight_pump();
 }

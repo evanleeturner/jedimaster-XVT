@@ -5,18 +5,18 @@
 /* The fscanf format " %c": skip blanks, then read one character. Every function
  * in this file reads with it. */
 // GLOBAL: XVT 0x51BE2C
-static const char g_inventorAsciiCharScanFormat[] = " %c";
+static const char g_inventor_ascii_char_scan_format[] = " %c";
 
 /* Consumes the stream up to and including the next '{', or to the end of the
  * file. Only the original build calls this. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4138A0
-void InventorAscii_SkipPastOpenBrace(XvtFile *stream)
+void inventor_ascii_skip_past_open_brace(xvt_file *stream)
 {
 	char character;
 
-	while (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) ==
-		       1 &&
+	while (FILE_SCANF(stream, g_inventor_ascii_char_scan_format,
+			  &character) == 1 &&
 	       character != '{') {
 	}
 }
@@ -24,12 +24,12 @@ void InventorAscii_SkipPastOpenBrace(XvtFile *stream)
 /* Consumes the stream up to and including the next '[', or to the end of the
  * file. Only the original build calls this. */
 // FUNCTION: XVT 0x4138E0
-void InventorAscii_SkipPastOpenBracket(XvtFile *stream)
+void inventor_ascii_skip_past_open_bracket(xvt_file *stream)
 {
 	char character;
 
-	while (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) ==
-		       1 &&
+	while (FILE_SCANF(stream, g_inventor_ascii_char_scan_format,
+			  &character) == 1 &&
 	       character != '[') {
 	}
 }
@@ -38,12 +38,12 @@ void InventorAscii_SkipPastOpenBracket(XvtFile *stream)
  * including the next ',', or to the end of the file, so items with no comma
  * between them are consumed too. Only the original build calls this. */
 // FUNCTION: XVT 0x413920
-void InventorAscii_SkipListSeparator(XvtFile *stream)
+void inventor_ascii_skip_list_separator(xvt_file *stream)
 {
 	char character;
 
-	if (InventorAscii_PeekNextIsCloseBracket(stream) == 0) {
-		while (File_Scanf(stream, g_inventorAsciiCharScanFormat,
+	if (inventor_ascii_peek_next_is_close_bracket(stream) == 0) {
+		while (FILE_SCANF(stream, g_inventor_ascii_char_scan_format,
 				  &character) == 1 &&
 		       character != ',') {
 		}
@@ -53,12 +53,12 @@ void InventorAscii_SkipListSeparator(XvtFile *stream)
 /* Consumes the stream up to and including the next '"', or to the end of the
  * file. Only the original build calls this. */
 // FUNCTION: XVT 0x413970
-void InventorAscii_SkipPastQuote(XvtFile *stream)
+void inventor_ascii_skip_past_quote(xvt_file *stream)
 {
 	char character;
 
-	while (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) ==
-		       1 &&
+	while (FILE_SCANF(stream, g_inventor_ascii_char_scan_format,
+			  &character) == 1 &&
 	       character != '"') {
 	}
 }
@@ -66,12 +66,12 @@ void InventorAscii_SkipPastQuote(XvtFile *stream)
 /* Consumes the stream up to and including the next '}', or to the end of the
  * file. Only the original build calls this. */
 // FUNCTION: XVT 0x4139B0
-void InventorAscii_SkipPastCloseBrace(XvtFile *stream)
+void inventor_ascii_skip_past_close_brace(xvt_file *stream)
 {
 	char character;
 
-	while (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) ==
-		       1 &&
+	while (FILE_SCANF(stream, g_inventor_ascii_char_scan_format,
+			  &character) == 1 &&
 	       character != '}') {
 	}
 }
@@ -79,12 +79,12 @@ void InventorAscii_SkipPastCloseBrace(XvtFile *stream)
 /* Consumes the stream up to and including the next ']', or to the end of the
  * file. Only the original build calls this. */
 // FUNCTION: XVT 0x4139F0
-void InventorAscii_SkipPastCloseBracket(XvtFile *stream)
+void inventor_ascii_skip_past_close_bracket(xvt_file *stream)
 {
 	char character;
 
-	while (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) ==
-		       1 &&
+	while (FILE_SCANF(stream, g_inventor_ascii_char_scan_format,
+			  &character) == 1 &&
 	       character != ']') {
 	}
 }
@@ -93,24 +93,24 @@ void InventorAscii_SkipPastCloseBracket(XvtFile *stream)
  * of the file; seeks back, so the stream does not move. Only the original build
  * calls this. */
 // FUNCTION: XVT 0x413A30
-int InventorAscii_PeekNextIsQuote(XvtFile *stream)
+int inventor_ascii_peek_next_is_quote(xvt_file *stream)
 {
 	long position;
 	char character;
 
-	position = File_RawTell(stream);
-	if (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) !=
+	position = FILE_RAW_TELL(stream);
+	if (FILE_SCANF(stream, g_inventor_ascii_char_scan_format, &character) !=
 	    1) {
-		File_RawSeek(stream, position, SEEK_SET);
+		FILE_RAW_SEEK(stream, position, SEEK_SET);
 		return 0;
 	}
 
 	if (character == '"') {
-		File_RawSeek(stream, position, SEEK_SET);
+		FILE_RAW_SEEK(stream, position, SEEK_SET);
 		return 1;
 	}
 
-	File_RawSeek(stream, position, SEEK_SET);
+	FILE_RAW_SEEK(stream, position, SEEK_SET);
 	return 0;
 }
 
@@ -118,24 +118,24 @@ int InventorAscii_PeekNextIsQuote(XvtFile *stream)
  * of the file; seeks back, so the stream does not move. Only the original build
  * calls this. */
 // FUNCTION: XVT 0x413AA0
-int InventorAscii_PeekNextIsCloseBrace(XvtFile *stream)
+int inventor_ascii_peek_next_is_close_brace(xvt_file *stream)
 {
 	long position;
 	char character;
 
-	position = File_RawTell(stream);
-	if (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) !=
+	position = FILE_RAW_TELL(stream);
+	if (FILE_SCANF(stream, g_inventor_ascii_char_scan_format, &character) !=
 	    1) {
-		File_RawSeek(stream, position, SEEK_SET);
+		FILE_RAW_SEEK(stream, position, SEEK_SET);
 		return 0;
 	}
 
 	if (character == '}') {
-		File_RawSeek(stream, position, SEEK_SET);
+		FILE_RAW_SEEK(stream, position, SEEK_SET);
 		return 1;
 	}
 
-	File_RawSeek(stream, position, SEEK_SET);
+	FILE_RAW_SEEK(stream, position, SEEK_SET);
 	return 0;
 }
 
@@ -143,24 +143,24 @@ int InventorAscii_PeekNextIsCloseBrace(XvtFile *stream)
  * of the file; seeks back, so the stream does not move. Only the original build
  * calls this. */
 // FUNCTION: XVT 0x413B10
-int InventorAscii_PeekNextIsOpenBrace(XvtFile *stream)
+int inventor_ascii_peek_next_is_open_brace(xvt_file *stream)
 {
 	long position;
 	char character;
 
-	position = File_RawTell(stream);
-	if (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) !=
+	position = FILE_RAW_TELL(stream);
+	if (FILE_SCANF(stream, g_inventor_ascii_char_scan_format, &character) !=
 	    1) {
-		File_RawSeek(stream, position, SEEK_SET);
+		FILE_RAW_SEEK(stream, position, SEEK_SET);
 		return 0;
 	}
 
 	if (character == '{') {
-		File_RawSeek(stream, position, SEEK_SET);
+		FILE_RAW_SEEK(stream, position, SEEK_SET);
 		return 1;
 	}
 
-	File_RawSeek(stream, position, SEEK_SET);
+	FILE_RAW_SEEK(stream, position, SEEK_SET);
 	return 0;
 }
 
@@ -168,24 +168,24 @@ int InventorAscii_PeekNextIsOpenBrace(XvtFile *stream)
  * of the file; seeks back, so the stream does not move. Only the original build
  * calls this. */
 // FUNCTION: XVT 0x413B80
-int InventorAscii_PeekNextIsCloseBracket(XvtFile *stream)
+int inventor_ascii_peek_next_is_close_bracket(xvt_file *stream)
 {
 	long position;
 	char character;
 
-	position = File_RawTell(stream);
-	if (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) !=
+	position = FILE_RAW_TELL(stream);
+	if (FILE_SCANF(stream, g_inventor_ascii_char_scan_format, &character) !=
 	    1) {
-		File_RawSeek(stream, position, SEEK_SET);
+		FILE_RAW_SEEK(stream, position, SEEK_SET);
 		return 0;
 	}
 
 	if (character == ']') {
-		File_RawSeek(stream, position, SEEK_SET);
+		FILE_RAW_SEEK(stream, position, SEEK_SET);
 		return 1;
 	}
 
-	File_RawSeek(stream, position, SEEK_SET);
+	FILE_RAW_SEEK(stream, position, SEEK_SET);
 	return 0;
 }
 
@@ -193,24 +193,24 @@ int InventorAscii_PeekNextIsCloseBracket(XvtFile *stream)
  * of the file; seeks back, so the stream does not move. Only the original build
  * calls this. */
 // FUNCTION: XVT 0x413BF0
-int InventorAscii_PeekNextIsOpenBracket(XvtFile *stream)
+int inventor_ascii_peek_next_is_open_bracket(xvt_file *stream)
 {
 	long position;
 	char character;
 
-	position = File_RawTell(stream);
-	if (File_Scanf(stream, g_inventorAsciiCharScanFormat, &character) !=
+	position = FILE_RAW_TELL(stream);
+	if (FILE_SCANF(stream, g_inventor_ascii_char_scan_format, &character) !=
 	    1) {
-		File_RawSeek(stream, position, SEEK_SET);
+		FILE_RAW_SEEK(stream, position, SEEK_SET);
 		return 0;
 	}
 
 	if (character == '[') {
-		File_RawSeek(stream, position, SEEK_SET);
+		FILE_RAW_SEEK(stream, position, SEEK_SET);
 		return 1;
 	}
 
-	File_RawSeek(stream, position, SEEK_SET);
+	FILE_RAW_SEEK(stream, position, SEEK_SET);
 	return 0;
 }
 
@@ -218,10 +218,10 @@ int InventorAscii_PeekNextIsOpenBracket(XvtFile *stream)
  * the file: EOF cast to a byte is 0xFF, not '\n', so it loops forever there.
  * Only the original build calls this, for a '#' comment line. */
 // FUNCTION: XVT 0x413C60
-void InventorAscii_SkipToEndOfLine(XvtFile *stream)
+void inventor_ascii_skip_to_end_of_line(xvt_file *stream)
 {
 
-	while ((uint8_t)File_Getc(stream) != '\n') {
+	while ((uint8_t)FILE_GETC(stream) != '\n') {
 	}
 }
 #endif

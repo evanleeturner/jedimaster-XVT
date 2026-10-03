@@ -10,10 +10,10 @@
 extern "C" {
 #endif
 
-extern char *g_strFileErrorMessages[4];
+extern char *g_str_file_error_messages[4];
 
-void StringTable_LoadGameStrings(int loadFromDisk);
-int StringTable_ReadNonCommentLine(XvtFile *stream, char *buffer);
+void string_table_load_game_strings(int load_from_disk);
+int string_table_read_non_comment_line(xvt_file *stream, char *buffer);
 
 #ifdef __cplusplus
 }

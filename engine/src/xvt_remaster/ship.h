@@ -10,7 +10,7 @@ extern "C" {
 
 /* asset_id: the OPT model asset. component: one component index drawn alone, or UINT16_MAX for the whole
  * model. */
-struct XvtShipSelection {
+struct xvt_ship_selection {
 	uint64_t asset_id;
 	uint16_t component;
 };
@@ -23,32 +23,32 @@ struct XvtShipSelection {
  * model; every other genus draws nothing. Returns 1 with out set, else 0 with out partly written: a NULL
  * argument, a type or source type out of range, a frame index past the sequence, a refused genus or
  * entry, or a type with no model asset. */
-int XvtRemasterShip_Select(const struct XvtRenderSnapshot *snapshot,
-			   const struct XvtSnapObject *object,
-			   struct XvtShipSelection *out);
+int xvt_remaster_ship_select(const struct xvt_render_snapshot *snapshot,
+			     const struct xvt_snap_object *object,
+			     struct xvt_ship_selection *out);
 /* Fills out for every mesh slot: visible when the slot is below asset's component count and either the
  * whole model is drawn (component UINT16_MAX) or it is that component. For a craft object drawing the
  * whole model, a slot with a nonzero component_state is hidden, and a slot with a rotation axis turns
  * about its pivot by its angle (visual_angles when given, else the object's mesh_rotation byte) in
  * -1/256 turns. A B-wing's bridge component angle also turns every slot about -y through the origin.
  * Every slot is marked emissive. object may be NULL: visibility only. */
-void XvtRemasterShip_BuildMeshTable(const struct XvtMeshAsset *asset,
-				    const struct XvtSnapObject *object,
-				    uint16_t component,
-				    const float *visual_angles,
-				    AeronSceneMeshTable *out);
+void xvt_remaster_ship_build_mesh_table(const struct xvt_mesh_asset *asset,
+					const struct xvt_snap_object *object,
+					uint16_t component,
+					const float *visual_angles,
+					AeronSceneMeshTable *out);
 /* Conservative articulated sphere, in scene units, around instance translation. */
 /* The largest, over visible slots, of the slot-transformed bound-box center's distance from the model
  * origin plus half the box diagonal, times the longest column of transform's rotation part. 0 when no
  * slot is visible. */
-float XvtRemasterShip_Radius(const struct XvtMeshAsset *asset,
-			     const AeronSceneMeshTable *table,
-			     const float transform[16]);
+float xvt_remaster_ship_radius(const struct xvt_mesh_asset *asset,
+			       const AeronSceneMeshTable *table,
+			       const float transform[16]);
 /* Returns 0 when a sphere of radius at transform's translation lies wholly beyond one of view's six
  * frustum planes (left, right, top, bottom, near, and the reversed-Z far), else 1; a sphere that only
  * clips a corner still passes. */
-int XvtRemasterShip_Visible(const struct XvtRenderView *view,
-			    const float transform[16], float radius);
+int xvt_remaster_ship_visible(const struct xvt_render_view *view,
+			      const float transform[16], float radius);
 /* Sets the frame's fragment shading environment (uniform slot 1) from the lighting, scene and
  * point_lights settings: intensity, specular multiplier, wrap and spec_geom_adapt; SSAO intensity (0
  * when its quality is off), power, direct term and the render size; the point-light minimum distance,
@@ -58,10 +58,10 @@ int XvtRemasterShip_Visible(const struct XvtRenderView *view,
  * debug views are set to the inverse of spec_geom_adapt. Without eye_camera, an active hyperspace
  * tunnel instead supplies the sun direction and color, its texture as the environment map with a fixed
  * basis, and the hyperspace mesh_ambient_strength. */
-void XvtRemasterShip_SetEnvironment(AeronScene3D *scene,
-				    const struct XvtSnapLighting *lighting,
-				    const struct XvtSnapCamera *eye_camera,
-				    const float camera_position[3]);
+void xvt_remaster_ship_set_environment(AeronScene3D *scene,
+				       const struct xvt_snap_lighting *lighting,
+				       const struct xvt_snap_camera *eye_camera,
+				       const float camera_position[3]);
 #ifdef __cplusplus
 }
 #endif

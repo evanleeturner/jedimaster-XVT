@@ -1,8 +1,8 @@
 /* The color quantizer: it sorts an image's colors into a color tree, reduces the tree to a target
  * count, and maps each pixel to its nearest palette entry. Its data follows early ImageMagick's
- * image (magick/image.h): ImageQuantizerPixelRun is ImageMagick's RunlengthPacket (red, green,
- * blue, length, index); ImageQuantizerLegacyImageRecord follows its Image struct (two 2,048-byte
- * name buffers, then class, matte, compression, columns, rows); and colorClass holds its ClassType,
+ * image (magick/image.h): image_quantizer_pixel_run is ImageMagick's RunlengthPacket (red, green,
+ * blue, length, index); image_quantizer_legacy_image_record follows its Image struct (two 2,048-byte
+ * name buffers, then class, matte, compression, columns, rows); and color_class holds its ClassType,
  * 1 for direct color and 2 for a palette image. Names in this file say what the game does with a
  * value, so some differ from ImageMagick's. */
 
@@ -18,414 +18,416 @@
 
 #pragma pack(push, 1)
 
-struct ImageQuantizerPixelRun {
-	uint8_t red;		/* Red, 0 to 255. */
-	uint8_t green;		/* Green, 0 to 255. */
-	uint8_t blue;		/* Blue, 0 to 255. */
-	uint8_t lengthMinusOne; /* Pixels in the run less 1. */
+struct image_quantizer_pixel_run {
+	uint8_t red;		  /* Red, 0 to 255. */
+	uint8_t green;		  /* Green, 0 to 255. */
+	uint8_t blue;		  /* Blue, 0 to 255. */
+	uint8_t length_minus_one; /* Pixels in the run less 1. */
 	/* Palette entry the run maps to once colors are assigned. */
-	uint16_t paletteIndex;
+	uint16_t palette_index;
 };
 
-struct ImageQuantizerImageLayout {
-	/* The record's bytes before colorClass, not named in this view. */
+struct image_quantizer_image_layout {
+	/* The record's bytes before color_class, not named in this view. */
 	uint8_t reserved0000[0x1024];
 	/* 1 for direct color, 2 for a palette image;
-	 * ImageQuantizer_AssignPaletteColors sets 2 unless colorspace is 3. */
-	uint32_t colorClass;
-	/* Nonzero makes ImageQuantizer_CompressPixelRuns also need equal
+	 * image_quantizer_assign_palette_colors sets 2 unless colorspace is 3. */
+	uint32_t color_class;
+	/* Nonzero makes image_quantizer_compress_pixel_runs also need equal
 	 * palette indexes to join pixels; every writer sets it to 0. */
-	uint32_t comparePaletteIndex;
-	/* 2 from ImageQuantizer_AllocateImage; ImageQuantizer_CompressPixelRuns
+	uint32_t compare_palette_index;
+	/* 2 from image_quantizer_allocate_image; image_quantizer_compress_pixel_runs
 	 * sets 1 when the runs save too little. */
-	uint32_t compressionType;
+	uint32_t compression_type;
 	uint32_t width;	 /* Width in pixels. */
 	uint32_t height; /* Height in pixels. */
 	/* Not all reserved: the palette pointer at offset 0x104C and the palette color count at 0x1054 sit in
 	 * these bytes, and this file reads and writes them by raw offset. */
-	uint8_t reserved1038[0x4E];	/* Record bytes 0x1038 to 0x1085. */
-	struct ImageQuantizerPixelRun
+	uint8_t reserved1038[0x4E]; /* Record bytes 0x1038 to 0x1085. */
+	struct image_quantizer_pixel_run
 		*pixels; /* The pixel runs, from malloc. */
 	/* Nothing reads or writes it by name. */
-	uint8_t reservedAfterPixels[4];
-	/* Runs at pixels: width * height until ImageQuantizer_CompressPixelRuns
+	uint8_t reserved_after_pixels[4];
+	/* Runs at pixels: width * height until image_quantizer_compress_pixel_runs
 	 * joins them. */
-	uint32_t runCount;
-	/* Pixels left in the source run while ImageQuantizer_CompressPixelRuns
+	uint32_t run_count;
+	/* Pixels left in the source run while image_quantizer_compress_pixel_runs
 	 * walks the runs. */
-	uint32_t sourceRunPixelsRemaining;
+	uint32_t source_run_pixels_remaining;
 };
 
-struct ImageQuantizerOwnedBuffers {
+struct image_quantizer_owned_buffers {
 	uint8_t reserved0000[0x1014]; /* Bytes this view does not name. */
-	/* ImageQuantizer_DestroyImage frees it when not NULL; nothing else
+	/* image_quantizer_destroy_image frees it when not NULL; nothing else
 	 * reads or writes it by name. */
 	void *buffer1014;
-	/* ImageQuantizer_DestroyImage frees it when not NULL; nothing else
+	/* image_quantizer_destroy_image frees it when not NULL; nothing else
 	 * reads or writes it by name. */
 	void *buffer1018;
-	uint8_t reserved101C[0x28]; /* Bytes this view does not name. */
-	/* ImageQuantizer_DestroyImage frees it when not NULL; nothing else
+	uint8_t reserved101c[0x28]; /* Bytes this view does not name. */
+	/* image_quantizer_destroy_image frees it when not NULL; nothing else
 	 * reads or writes it by name. */
 	void *buffer1044;
-	/* ImageQuantizer_DestroyImage frees it when not NULL; nothing else
+	/* image_quantizer_destroy_image frees it when not NULL; nothing else
 	 * reads or writes it by name. */
 	void *buffer1048;
-	/* The palette, freed by ImageQuantizer_DestroyImage when not NULL. */
+	/* The palette, freed by image_quantizer_destroy_image when not NULL. */
 	void *palette;
 	uint8_t reserved1050[0x32]; /* Bytes this view does not name. */
-	/* ImageQuantizer_DestroyImage frees it when not NULL; nothing else
+	/* image_quantizer_destroy_image frees it when not NULL; nothing else
 	 * reads or writes it by name. */
 	void *buffer1082;
-	/* The pixel runs, freed by ImageQuantizer_DestroyImage when not
+	/* The pixel runs, freed by image_quantizer_destroy_image when not
 	 * NULL. */
 	void *pixels;
-	uint8_t reserved108A[0x10]; /* Bytes this view does not name. */
-	/* ImageQuantizer_DestroyImage frees it when not NULL; nothing else
+	uint8_t reserved108a[0x10]; /* Bytes this view does not name. */
+	/* image_quantizer_destroy_image frees it when not NULL; nothing else
 	 * reads or writes it by name. */
-	void *buffer109A;
-	uint8_t reserved109E[0x810]; /* Bytes this view does not name. */
-	/* ImageQuantizer_DestroyImage frees it when not NULL; nothing else
+	void *buffer109a;
+	uint8_t reserved109e[0x810]; /* Bytes this view does not name. */
+	/* image_quantizer_destroy_image frees it when not NULL; nothing else
 	 * reads or writes it by name. */
-	void *buffer18AE;
-	/* ImageQuantizer_DestroyImage frees it when not NULL; nothing else
+	void *buffer18ae;
+	/* image_quantizer_destroy_image frees it when not NULL; nothing else
 	 * reads or writes it by name. */
-	void *buffer18B2;
+	void *buffer18b2;
 };
 
-/* The image record ImageQuantizer_AllocateImage makes, at its 32-bit layout:
+/* The image record image_quantizer_allocate_image makes, at its 32-bit layout:
  * palette and pixels are 4-byte slots. In the 64-bit build the pointers kept
  * in the record take 8 bytes: the palette pointer copied to 0x104C also fills
- * field1050, the pixel run pointer also fills field108A, and each field of
- * ImageQuantizerImageLayout and ImageQuantizerOwnedBuffers after a pointer
+ * field1050, the pixel run pointer also fills field108a, and each field of
+ * image_quantizer_image_layout and image_quantizer_owned_buffers after a pointer
  * sits 4 bytes later per pointer before it than in the 32-bit layout, so the
- * layout's runCount falls on reserved1092. The notes below on what
- * ImageQuantizer_DestroyImage frees hold for the 32-bit build. */
-struct ImageQuantizerLegacyImageRecord {
-	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+ * layout's run_count falls on reserved1092. The notes below on what
+ * image_quantizer_destroy_image frees hold for the 32-bit build. */
+struct image_quantizer_legacy_image_record {
+	/* 0 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
 	uint32_t field0000;
-	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	/* 0 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
 	uint32_t field0004;
-	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	/* 0 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
 	uint32_t field0008;
-	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	/* 0 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
-	uint8_t field000C;
+	uint8_t field000c;
 	/* Left as malloc leaves it; nothing reads or writes it by name. */
-	uint8_t reserved000D[0x7FF];
-	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	uint8_t reserved000d[0x7FF];
+	/* 0 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
-	uint32_t field080C;
-	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	uint32_t field080c;
+	/* 0 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
 	uint32_t field0810;
-	/* "MIFF" from ImageQuantizer_AllocateImage; nothing reads it. */
-	char formatName[0x800];
-	/* 0 from ImageQuantizer_AllocateImage; ImageQuantizer_DestroyImage
+	/* "MIFF" from image_quantizer_allocate_image; nothing reads it. */
+	char format_name[0x800];
+	/* 0 from image_quantizer_allocate_image; image_quantizer_destroy_image
 	 * frees the pointer at this offset when it is not NULL. */
 	uint32_t field1014;
-	/* 0 from ImageQuantizer_AllocateImage; ImageQuantizer_DestroyImage
+	/* 0 from image_quantizer_allocate_image; image_quantizer_destroy_image
 	 * frees the pointer at this offset when it is not NULL. */
 	uint32_t field1018;
-	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	/* 0 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
-	uint32_t field101C;
-	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	uint32_t field101c;
+	/* 0 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
 	uint32_t field1020;
-	/* 1, direct color, from ImageQuantizer_AllocateImage; see
-	 * ImageQuantizerImageLayout. */
-	uint32_t colorClass;
-	/* 0 from ImageQuantizer_AllocateImage; see
-	 * ImageQuantizerImageLayout. */
-	uint32_t comparePaletteIndex;
-	/* 2 from ImageQuantizer_AllocateImage; see
-	 * ImageQuantizerImageLayout. */
-	uint32_t compressionType;
-	/* 0 from ImageQuantizer_AllocateImage; the caller sets the width. */
+	/* 1, direct color, from image_quantizer_allocate_image; see
+	 * image_quantizer_image_layout. */
+	uint32_t color_class;
+	/* 0 from image_quantizer_allocate_image; see
+	 * image_quantizer_image_layout. */
+	uint32_t compare_palette_index;
+	/* 2 from image_quantizer_allocate_image; see
+	 * image_quantizer_image_layout. */
+	uint32_t compression_type;
+	/* 0 from image_quantizer_allocate_image; the caller sets the width. */
 	uint32_t width;
-	/* 0 from ImageQuantizer_AllocateImage; the caller sets the height. */
+	/* 0 from image_quantizer_allocate_image; the caller sets the height. */
 	uint32_t height;
-	/* 8 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	/* 8 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
 	uint32_t field1038;
-	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	/* 0 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
-	uint32_t field103C;
-	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	uint32_t field103c;
+	/* 0 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
 	uint32_t field1040;
-	/* 0 from ImageQuantizer_AllocateImage; ImageQuantizer_DestroyImage
+	/* 0 from image_quantizer_allocate_image; image_quantizer_destroy_image
 	 * frees the pointer at this offset when it is not NULL. */
 	uint32_t field1044;
-	/* 0 from ImageQuantizer_AllocateImage; ImageQuantizer_DestroyImage
+	/* 0 from image_quantizer_allocate_image; image_quantizer_destroy_image
 	 * frees the pointer at this offset when it is not NULL. */
 	uint32_t field1048;
-	/* 0 from ImageQuantizer_AllocateImage;
-	 * ImageQuantizer_AssignPaletteColors keeps the palette pointer at this
+	/* 0 from image_quantizer_allocate_image;
+	 * image_quantizer_assign_palette_colors keeps the palette pointer at this
 	 * offset, 0x104C. */
 	uint32_t palette;
-	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	/* 0 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
 	uint32_t field1050;
-	/* 0 from ImageQuantizer_AllocateImage;
-	 * ImageQuantizer_AssignPaletteColors stores the color count at this
+	/* 0 from image_quantizer_allocate_image;
+	 * image_quantizer_assign_palette_colors stores the color count at this
 	 * offset, 0x1054. */
-	uint32_t paletteColorCount;
-	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	uint32_t palette_color_count;
+	/* 0 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
 	uint32_t field1058;
-	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	/* 0 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
-	uint32_t field105C;
-	/* 2 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	uint32_t field105c;
+	/* 2 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
 	uint16_t field1060;
-	/* 72.0 from ImageQuantizer_AllocateImage; nothing else reads or writes
+	/* 72.0 from image_quantizer_allocate_image; nothing else reads or writes
 	 * it by name. */
 	float field1062;
-	/* 72.0 from ImageQuantizer_AllocateImage; nothing else reads or writes
+	/* 72.0 from image_quantizer_allocate_image; nothing else reads or writes
 	 * it by name. */
 	float field1066;
-	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	/* 0 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
-	uint32_t field106A;
-	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	uint32_t field106a;
+	/* 0 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
-	uint32_t field106E;
-	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	uint32_t field106e;
+	/* 0 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
 	uint32_t field1072;
-	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	/* 0 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
 	uint32_t field1076;
-	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	/* 0 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
-	uint32_t field107A;
-	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	uint32_t field107a;
+	/* 0 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
-	uint32_t field107E;
-	/* 0 from ImageQuantizer_AllocateImage; ImageQuantizer_DestroyImage
+	uint32_t field107e;
+	/* 0 from image_quantizer_allocate_image; image_quantizer_destroy_image
 	 * frees the pointer at this offset when it is not NULL. */
 	uint32_t field1082;
-	/* 0 from ImageQuantizer_AllocateImage: the 32-bit slot of the pixel run
+	/* 0 from image_quantizer_allocate_image: the 32-bit slot of the pixel run
 	 * pointer, which the other code reaches through
-	 * ImageQuantizerImageLayout. */
+	 * image_quantizer_image_layout. */
 	uint32_t pixels;
-	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	/* 0 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
-	uint32_t field108A;
-	/* 0 from ImageQuantizer_AllocateImage; see
-	 * ImageQuantizerImageLayout. */
-	uint32_t runCount;
+	uint32_t field108a;
+	/* 0 from image_quantizer_allocate_image; see
+	 * image_quantizer_image_layout. */
+	uint32_t run_count;
 	/* Left as malloc leaves it and not named in this view; these bytes
-	 * are ImageQuantizerImageLayout's sourceRunPixelsRemaining in the
-	 * 32-bit build and its runCount in the 64-bit one. */
+	 * are image_quantizer_image_layout's source_run_pixels_remaining in the
+	 * 32-bit build and its run_count in the 64-bit one. */
 	uint8_t reserved1092[4];
-	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	/* 0 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
 	uint32_t field1096;
-	/* 0 from ImageQuantizer_AllocateImage; ImageQuantizer_DestroyImage
+	/* 0 from image_quantizer_allocate_image; image_quantizer_destroy_image
 	 * frees the pointer at this offset when it is not NULL. */
-	uint32_t field109A;
-	/* time(NULL) when ImageQuantizer_AllocateImage made the record; nothing
+	uint32_t field109a;
+	/* time(NULL) when image_quantizer_allocate_image made the record; nothing
 	 * reads it. */
-	uint32_t timestamp109E;
-	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	uint32_t timestamp109e;
+	/* 0 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
-	uint8_t field10A2;
+	uint8_t field10a2;
 	/* Left as malloc leaves it; nothing reads or writes it by name. */
-	uint8_t reserved10A3[0x7FF];
-	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	uint8_t reserved10a3[0x7FF];
+	/* 0 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
-	uint32_t field18A2;
-	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	uint32_t field18a2;
+	/* 0 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
-	uint32_t field18A6;
-	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	uint32_t field18a6;
+	/* 0 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
-	uint32_t field18AA;
-	/* 0 from ImageQuantizer_AllocateImage; ImageQuantizer_DestroyImage
+	uint32_t field18aa;
+	/* 0 from image_quantizer_allocate_image; image_quantizer_destroy_image
 	 * frees the pointer at this offset when it is not NULL. */
-	uint32_t field18AE;
-	/* 0 from ImageQuantizer_AllocateImage; ImageQuantizer_DestroyImage
+	uint32_t field18ae;
+	/* 0 from image_quantizer_allocate_image; image_quantizer_destroy_image
 	 * frees the pointer at this offset when it is not NULL. */
-	uint32_t field18B2;
-	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	uint32_t field18b2;
+	/* 0 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
-	uint32_t field18B6;
-	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	uint32_t field18b6;
+	/* 0 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
-	uint32_t field18BA;
-	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	uint32_t field18ba;
+	/* 0 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
-	uint32_t field18BE;
-	/* 0 from ImageQuantizer_AllocateImage;
-	 * ImageQuantizer_QuantizeImageLists reads the next image of a list at
+	uint32_t field18be;
+	/* 0 from image_quantizer_allocate_image;
+	 * image_quantizer_quantize_image_lists reads the next image of a list at
 	 * this offset, 6338. */
-	uint32_t nextImage;
+	uint32_t next_image;
 };
 
 #pragma pack(pop)
-typedef char xvt_size_ImageQuantizerPixelRun
-	[(sizeof(struct ImageQuantizerPixelRun) == 6) ? 1 : -1];
-typedef char xvt_size_ImageQuantizerLegacyImageRecord
-	[(sizeof(struct ImageQuantizerLegacyImageRecord) == 0x18C6) ? 1 : -1];
+typedef char xvt_size_image_quantizer_pixel_run
+	[(sizeof(struct image_quantizer_pixel_run) == 6) ? 1 : -1];
+typedef char xvt_size_image_quantizer_legacy_image_record
+	[(sizeof(struct image_quantizer_legacy_image_record) == 0x18C6) ? 1
+									: -1];
 #if defined(_MSC_VER) && !defined(XVT_MODERN)
-typedef char xvt_size_ImageQuantizerImageLayout
-	[(sizeof(struct ImageQuantizerImageLayout) == 0x1096) ? 1 : -1];
-typedef char xvt_size_ImageQuantizerOwnedBuffers
-	[(sizeof(struct ImageQuantizerOwnedBuffers) == 0x18B6) ? 1 : -1];
+typedef char xvt_size_image_quantizer_image_layout
+	[(sizeof(struct image_quantizer_image_layout) == 0x1096) ? 1 : -1];
+typedef char xvt_size_image_quantizer_owned_buffers
+	[(sizeof(struct image_quantizer_owned_buffers) == 0x18B6) ? 1 : -1];
 #else
-typedef char xvt_size_ImageQuantizerImageLayout
-	[(sizeof(struct ImageQuantizerImageLayout) == 0x109A) ? 1 : -1];
-typedef char xvt_size_ImageQuantizerOwnedBuffers
-	[(sizeof(struct ImageQuantizerOwnedBuffers) == 0x18DE) ? 1 : -1];
+typedef char xvt_size_image_quantizer_image_layout
+	[(sizeof(struct image_quantizer_image_layout) == 0x109A) ? 1 : -1];
+typedef char xvt_size_image_quantizer_owned_buffers
+	[(sizeof(struct image_quantizer_owned_buffers) == 0x18DE) ? 1 : -1];
 #endif
 
-struct ImageQuantizerNodePoolBlock {
-	/* Nodes ImageQuantizer_AllocateNode hands out in order. */
-	struct ImageQuantizerNode nodes[2048];
+struct image_quantizer_node_pool_block {
+	/* Nodes image_quantizer_allocate_node hands out in order. */
+	struct image_quantizer_node nodes[2048];
 	/* The block made before this one, NULL for the first; the pools are
 	 * freed along these links. */
-	struct ImageQuantizerNodePoolBlock *previous;
+	struct image_quantizer_node_pool_block *previous;
 };
 
 /* 196608.0, 3 * 256 * 256: the start value of a nearest-color search and the
  * error each pixel adds to the tree's root. */
 // GLOBAL: XVT 0x518148
-const double g_imageQuantizerMaxSquaredRgbErrorPerPixel = 196608.0;
+const double g_image_quantizer_max_squared_rgb_error_per_pixel = 196608.0;
 
-/* Context text passed to ImageQuantizer_FatalAllocationError, which ignores
+/* Context text passed to image_quantizer_fatal_allocation_error, which ignores
  * it. */
 // GLOBAL: XVT 0x521C20
-static const char g_imageQuantizerUnableToQuantizeMessage[28] =
+static const char g_image_quantizer_unable_to_quantize_message[28] =
 	"Unable to quantize image";
 
-/* Root of the color tree, made by ImageQuantizer_InitializeColorTree; its
+/* Root of the color tree, made by image_quantizer_initialize_color_tree; its
  * parent is itself. */
 // GLOBAL: XVT 0x556928
-static struct ImageQuantizerNode *g_imageQuantizerRoot = 0;
-/* Level of the color tree's leaves: ImageQuantizer_InitializeColorTree sets 2
- * to 8, and ImageQuantizer_ClassifyImageColors lowers it by 1 each time it
+static struct image_quantizer_node *g_image_quantizer_root = 0;
+/* Level of the color tree's leaves: image_quantizer_initialize_color_tree sets 2
+ * to 8, and image_quantizer_classify_image_colors lowers it by 1 each time it
  * collapses the deepest level. */
 // GLOBAL: XVT 0x55692C
-static int g_imageQuantizerMaxTreeDepth = 0;
+static int g_image_quantizer_max_tree_depth = 0;
 /* Colors in the color tree: leaves made while classifying, nodes holding pixels
  * after a reduction pass, then palette entries as they are built. */
 // GLOBAL: XVT 0x556930
-static unsigned int g_imageQuantizerColorCount = 0;
-/* Red of the color ImageQuantizer_FindNearestPaletteEntryRecursive looks for;
- * ImageQuantizer_AssignPaletteColors sets the three search channels. */
+static unsigned int g_image_quantizer_color_count = 0;
+/* Red of the color image_quantizer_find_nearest_palette_entry_recursive looks for;
+ * image_quantizer_assign_palette_colors sets the three search channels. */
 // GLOBAL: XVT 0x556934
-static uint8_t g_imageQuantizerSearchRed = 0;
-/* Green of the searched color; see g_imageQuantizerSearchRed. */
+static uint8_t g_image_quantizer_search_red = 0;
+/* Green of the searched color; see g_image_quantizer_search_red. */
 // GLOBAL: XVT 0x556935
-static uint8_t g_imageQuantizerSearchGreen = 0;
-/* Blue of the searched color; see g_imageQuantizerSearchRed. */
+static uint8_t g_image_quantizer_search_green = 0;
+/* Blue of the searched color; see g_image_quantizer_search_red. */
 // GLOBAL: XVT 0x556936
-static uint8_t g_imageQuantizerSearchBlue = 0;
+static uint8_t g_image_quantizer_search_blue = 0;
 /* Palette being built or searched, 9-byte entries; set by
- * ImageQuantizer_AssignPaletteColors and
- * ImageQuantizer_ExportPalette6BitAndDestroy. */
+ * image_quantizer_assign_palette_colors and
+ * image_quantizer_export_palette6_bit_and_destroy. */
 // GLOBAL: XVT 0x55693D
-static struct ImageQuantizerPaletteEntry *g_imageQuantizerPaletteEntries = 0;
+static struct image_quantizer_palette_entry *g_image_quantizer_palette_entries =
+	0;
 /* Smallest squared distance found so far by
- * ImageQuantizer_FindNearestPaletteEntryRecursive. */
+ * image_quantizer_find_nearest_palette_entry_recursive. */
 // GLOBAL: XVT 0x556941
-static double g_imageQuantizerNearestDistanceSq = 0.0;
+static double g_image_quantizer_nearest_distance_sq = 0.0;
 /* Error at or under which a reduction pass merges a node into its parent. */
 // GLOBAL: XVT 0x556949
-static double g_imageQuantizerPruneThreshold = 0.0;
+static double g_image_quantizer_prune_threshold = 0.0;
 /* Smallest error above the threshold met in the last reduction pass, the next
- * pass's threshold; ImageQuantizer_ReduceColorTree starts it at 1.0 and each
+ * pass's threshold; image_quantizer_reduce_color_tree starts it at 1.0 and each
  * pass at the root's error less 1.0. */
 // GLOBAL: XVT 0x556951
-static double g_imageQuantizerNextPruneThreshold = 0.0;
+static double g_image_quantizer_next_prune_threshold = 0.0;
 /* Squares of the differences -255 to 255, pointing at the square of 0 so a
- * signed difference indexes it; made by ImageQuantizer_InitializeColorTree and
+ * signed difference indexes it; made by image_quantizer_initialize_color_tree and
  * freed by the functions that end a quantization. */
 // GLOBAL: XVT 0x556959
-static uint32_t *g_imageQuantizerSquaredDiffTable = 0;
-/* Color tree nodes made and not merged away; ImageQuantizer_ClassifyImageColors
+static uint32_t *g_image_quantizer_squared_diff_table = 0;
+/* Color tree nodes made and not merged away; image_quantizer_classify_image_colors
  * collapses the deepest level while it is over 0x41241. */
 // GLOBAL: XVT 0x55695D
-unsigned int g_imageQuantizerNodeCount = 0;
+unsigned int g_image_quantizer_node_count = 0;
 /* Unused nodes left in the newest pool block; 2048 when a block is made. */
 // GLOBAL: XVT 0x556961
-unsigned int g_imageQuantizerPoolNodesRemaining = 0;
-/* Palette entry ImageQuantizer_FindNearestPaletteEntryRecursive found nearest
+unsigned int g_image_quantizer_pool_nodes_remaining = 0;
+/* Palette entry image_quantizer_find_nearest_palette_entry_recursive found nearest
  * the searched color. */
 // GLOBAL: XVT 0x556965
-static unsigned int g_imageQuantizerNearestPaletteIndex = 0;
+static unsigned int g_image_quantizer_nearest_palette_index = 0;
 /* Next unused node of the newest pool block. */
 // GLOBAL: XVT 0x556969
-struct ImageQuantizerNode *g_imageQuantizerNextNode = 0;
+struct image_quantizer_node *g_image_quantizer_next_node = 0;
 /* Newest block of the node pool, linked to the older ones through previous;
  * NULL when there is none. */
 // GLOBAL: XVT 0x55696D
-struct ImageQuantizerNodePoolBlock *g_imageQuantizerNodePoolHead = 0;
+struct image_quantizer_node_pool_block *g_image_quantizer_node_pool_head = 0;
 
 /* Does nothing; its arguments are ignored. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x443890
-void ImageQuantizer_ReportProgress(const char *stage, unsigned int completed,
-				   unsigned int total)
+void image_quantizer_report_progress(const char *stage, unsigned int completed,
+				     unsigned int total)
 {
 	(void)stage;
 	(void)completed;
 	(void)total;
 }
 
-/* Ignores its arguments and calls FeDiskIo_FatalError with the out-of-memory
+/* Ignores its arguments and calls fe_disk_io_fatal_error with the out-of-memory
  * message, which ends the program. */
 // FUNCTION: XVT 0x4438B0
-void ImageQuantizer_FatalAllocationError(const char *context,
-					 const char *message)
+void image_quantizer_fatal_allocation_error(const char *context,
+					    const char *message)
 {
 	(void)context;
 	(void)message;
-	FeDiskIo_FatalError(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
+	fe_disk_io_fatal_error(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 }
 
 /* Allocates an image record (0x18C6 bytes) and gives it default values: format
- * name "MIFF", colorClass 1, compressionType 2, field1038 8, field1060 2, both
- * floats 72.0, timestamp109E the current time, and 0 elsewhere; the three
+ * name "MIFF", color_class 1, compression_type 2, field1038 8, field1060 2, both
+ * floats 72.0, timestamp109e the current time, and 0 elsewhere; the three
  * reserved arrays are left as malloc leaves them. Returns it; when malloc fails
- * it calls ImageQuantizer_FatalAllocationError, which ends the program. */
+ * it calls image_quantizer_fatal_allocation_error, which ends the program. */
 // FUNCTION: XVT 0x4438C0
-void *ImageQuantizer_AllocateImage(void)
+void *image_quantizer_allocate_image(void)
 {
-	struct ImageQuantizerLegacyImageRecord *image;
+	struct image_quantizer_legacy_image_record *image;
 
-	image = malloc(sizeof(struct ImageQuantizerLegacyImageRecord));
+	image = malloc(sizeof(struct image_quantizer_legacy_image_record));
 	if (image == NULL) {
-		ImageQuantizer_FatalAllocationError("Unable to allocate image",
-						    "Memory allocation failed");
+		image_quantizer_fatal_allocation_error(
+			"Unable to allocate image", "Memory allocation failed");
 		return NULL;
 	}
 
 	image->field0000 = 0;
 	image->field0004 = 0;
 	image->field0008 = 0;
-	image->field000C = 0;
-	image->field080C = 0;
+	image->field000c = 0;
+	image->field080c = 0;
 	image->field0810 = 0;
-	strcpy(image->formatName, "MIFF");
+	strcpy(image->format_name, "MIFF");
 	image->field1014 = 0;
 	image->field1018 = 0;
-	image->field101C = 0;
+	image->field101c = 0;
 	image->field1020 = 0;
-	image->colorClass = 1;
-	image->comparePaletteIndex = 0;
-	image->compressionType = 2;
+	image->color_class = 1;
+	image->compare_palette_index = 0;
+	image->compression_type = 2;
 	image->width = 0;
 	image->height = 0;
 	image->field1038 = 8;
-	image->field103C = 0;
+	image->field103c = 0;
 	image->field1040 = 0;
 	image->field1060 = 2;
 	image->field1062 = 72.0f;
@@ -434,369 +436,376 @@ void *ImageQuantizer_AllocateImage(void)
 	image->field1048 = 0;
 	image->palette = 0;
 	image->field1050 = 0;
-	image->paletteColorCount = 0;
+	image->palette_color_count = 0;
 	image->field1058 = 0;
-	image->field105C = 0;
+	image->field105c = 0;
 	image->field1076 = 0;
-	image->field107A = 0;
-	image->field106E = 0;
+	image->field107a = 0;
+	image->field106e = 0;
 	image->field1072 = 0;
-	image->field106A = 0;
-	image->field107E = 0;
+	image->field106a = 0;
+	image->field107e = 0;
 	image->field1082 = 0;
 	image->pixels = 0;
-	image->field108A = 0;
-	image->runCount = 0;
+	image->field108a = 0;
+	image->run_count = 0;
 	image->field1096 = 0;
-	image->field109A = 0;
-	image->field10A2 = 0;
-	image->field18A2 = 0;
-	image->field18A6 = 0;
-	image->timestamp109E = (uint32_t)time(NULL);
-	image->field18AA = 0;
-	image->field18AE = 0;
-	image->field18B2 = 0;
-	image->field18B6 = 0;
-	image->field18BA = 0;
-	image->field18BE = 0;
-	image->nextImage = 0;
+	image->field109a = 0;
+	image->field10a2 = 0;
+	image->field18a2 = 0;
+	image->field18a6 = 0;
+	image->timestamp109e = (uint32_t)time(NULL);
+	image->field18aa = 0;
+	image->field18ae = 0;
+	image->field18b2 = 0;
+	image->field18b6 = 0;
+	image->field18ba = 0;
+	image->field18be = 0;
+	image->next_image = 0;
 	return image;
 }
 
-/* Joins neighboring pixels of the same color, and with comparePaletteIndex set
+/* Joins neighboring pixels of the same color, and with compare_palette_index set
  * the same palette index, into runs of up to 256, in place, then shrinks the
- * pixel buffer to runCount runs with realloc, without checking its result. Sets
- * compressionType to 1 when runCount is at least width * height * 3 / 4 for
+ * pixel buffer to run_count runs with realloc, without checking its result. Sets
+ * compression_type to 1 when run_count is at least width * height * 3 / 4 for
  * direct color, or width * height / 2 for a palette image. Does nothing for
  * NULL. */
 // FUNCTION: XVT 0x443A50
-void ImageQuantizer_CompressPixelRuns(unsigned int *image)
+void image_quantizer_compress_pixel_runs(unsigned int *image)
 {
-	struct ImageQuantizerImageLayout *imageLayout;
-	struct ImageQuantizerPixelRun *sourceRun;
-	struct ImageQuantizerPixelRun *destinationRun;
-	struct ImageQuantizerPixelRun *resizedRuns;
-	unsigned int pixelIndex;
+	struct image_quantizer_image_layout *image_layout;
+	struct image_quantizer_pixel_run *source_run;
+	struct image_quantizer_pixel_run *destination_run;
+	struct image_quantizer_pixel_run *resized_runs;
+	unsigned int pixel_index;
 	unsigned int remaining;
-	unsigned int colorClass;
+	unsigned int color_class;
 	unsigned int height;
 
-	pixelIndex = 0;
+	pixel_index = 0;
 	if (image == NULL) {
 		return;
 	}
 
-	imageLayout = (struct ImageQuantizerImageLayout *)image;
-	sourceRun = imageLayout->pixels;
-	remaining = sourceRun->lengthMinusOne + 1;
-	imageLayout->runCount = 0;
-	imageLayout->sourceRunPixelsRemaining = remaining;
-	destinationRun = sourceRun;
-	destinationRun->lengthMinusOne = 0xFF;
-	if (imageLayout->comparePaletteIndex != 0) {
-		if (imageLayout->width * imageLayout->height != 0) {
+	image_layout = (struct image_quantizer_image_layout *)image;
+	source_run = image_layout->pixels;
+	remaining = source_run->length_minus_one + 1;
+	image_layout->run_count = 0;
+	image_layout->source_run_pixels_remaining = remaining;
+	destination_run = source_run;
+	destination_run->length_minus_one = 0xFF;
+	if (image_layout->compare_palette_index != 0) {
+		if (image_layout->width * image_layout->height != 0) {
 			do {
 				remaining =
-					imageLayout->sourceRunPixelsRemaining;
+					image_layout
+						->source_run_pixels_remaining;
 				if (remaining != 0) {
 					--remaining;
 				} else {
-					++sourceRun;
-					remaining = sourceRun->lengthMinusOne;
+					++source_run;
+					remaining =
+						source_run->length_minus_one;
 				}
-				imageLayout->sourceRunPixelsRemaining =
+				image_layout->source_run_pixels_remaining =
 					remaining;
-				if (destinationRun->red == sourceRun->red &&
-				    destinationRun->green == sourceRun->green &&
-				    sourceRun->blue == destinationRun->blue &&
-				    sourceRun->paletteIndex ==
-					    destinationRun->paletteIndex &&
-				    destinationRun->lengthMinusOne < 0xFF) {
-					++destinationRun->lengthMinusOne;
+				if (destination_run->red == source_run->red &&
+				    destination_run->green ==
+					    source_run->green &&
+				    source_run->blue == destination_run->blue &&
+				    source_run->palette_index ==
+					    destination_run->palette_index &&
+				    destination_run->length_minus_one < 0xFF) {
+					++destination_run->length_minus_one;
 				} else {
-					if (imageLayout->runCount != 0) {
-						++destinationRun;
+					if (image_layout->run_count != 0) {
+						++destination_run;
 					}
-					++imageLayout->runCount;
-					*destinationRun = *sourceRun;
-					destinationRun->lengthMinusOne = 0;
+					++image_layout->run_count;
+					*destination_run = *source_run;
+					destination_run->length_minus_one = 0;
 				}
-				++pixelIndex;
-			} while (imageLayout->width * imageLayout->height >
-				 pixelIndex);
+				++pixel_index;
+			} while (image_layout->width * image_layout->height >
+				 pixel_index);
 		}
 	} else {
-		for (pixelIndex = 0;
-		     imageLayout->width * imageLayout->height > pixelIndex;
-		     ++pixelIndex) {
-			remaining = imageLayout->sourceRunPixelsRemaining;
+		for (pixel_index = 0;
+		     image_layout->width * image_layout->height > pixel_index;
+		     ++pixel_index) {
+			remaining = image_layout->source_run_pixels_remaining;
 			if (remaining != 0) {
 				--remaining;
 			} else {
-				++sourceRun;
-				remaining = sourceRun->lengthMinusOne;
+				++source_run;
+				remaining = source_run->length_minus_one;
 			}
-			imageLayout->sourceRunPixelsRemaining = remaining;
-			if (destinationRun->red == sourceRun->red &&
-			    destinationRun->green == sourceRun->green &&
-			    sourceRun->blue == destinationRun->blue &&
-			    destinationRun->lengthMinusOne < 0xFF) {
-				++destinationRun->lengthMinusOne;
+			image_layout->source_run_pixels_remaining = remaining;
+			if (destination_run->red == source_run->red &&
+			    destination_run->green == source_run->green &&
+			    source_run->blue == destination_run->blue &&
+			    destination_run->length_minus_one < 0xFF) {
+				++destination_run->length_minus_one;
 			} else {
-				if (imageLayout->runCount != 0) {
-					++destinationRun;
+				if (image_layout->run_count != 0) {
+					++destination_run;
 				}
-				++imageLayout->runCount;
-				*destinationRun = *sourceRun;
-				destinationRun->lengthMinusOne = 0;
+				++image_layout->run_count;
+				*destination_run = *source_run;
+				destination_run->length_minus_one = 0;
 			}
 		}
 	}
 
-	resizedRuns = realloc(imageLayout->pixels,
-			      imageLayout->runCount *
-				      sizeof(struct ImageQuantizerPixelRun));
-	colorClass = imageLayout->colorClass;
-	imageLayout->pixels = resizedRuns;
-	height = imageLayout->height;
-	if (colorClass == 1) {
-		if ((height * imageLayout->width * 3) / 4 <=
-		    imageLayout->runCount) {
-			imageLayout->compressionType = 1;
+	resized_runs =
+		realloc(image_layout->pixels,
+			image_layout->run_count *
+				sizeof(struct image_quantizer_pixel_run));
+	color_class = image_layout->color_class;
+	image_layout->pixels = resized_runs;
+	height = image_layout->height;
+	if (color_class == 1) {
+		if ((height * image_layout->width * 3) / 4 <=
+		    image_layout->run_count) {
+			image_layout->compression_type = 1;
 		}
-	} else if ((height * imageLayout->width) / 2 <= imageLayout->runCount) {
-		imageLayout->compressionType = 1;
+	} else if ((height * image_layout->width) / 2 <=
+		   image_layout->run_count) {
+		image_layout->compression_type = 1;
 	}
 }
 
-/* Frees each pointer the ImageQuantizerOwnedBuffers view names that is not
+/* Frees each pointer the image_quantizer_owned_buffers view names that is not
  * NULL, palette and pixels included, then the record. Does nothing for NULL. */
 // FUNCTION: XVT 0x443C30
-void ImageQuantizer_DestroyImage(void *image)
+void image_quantizer_destroy_image(void *image)
 {
-	struct ImageQuantizerOwnedBuffers *ownedBuffers;
+	struct image_quantizer_owned_buffers *owned_buffers;
 
 	if (image == NULL) {
 		return;
 	}
 
-	ownedBuffers = (struct ImageQuantizerOwnedBuffers *)image;
-	if (ownedBuffers->buffer1014 != NULL) {
-		free(ownedBuffers->buffer1014);
+	owned_buffers = (struct image_quantizer_owned_buffers *)image;
+	if (owned_buffers->buffer1014 != NULL) {
+		free(owned_buffers->buffer1014);
 	}
-	if (ownedBuffers->buffer1018 != NULL) {
-		free(ownedBuffers->buffer1018);
+	if (owned_buffers->buffer1018 != NULL) {
+		free(owned_buffers->buffer1018);
 	}
-	if (ownedBuffers->buffer1044 != NULL) {
-		free(ownedBuffers->buffer1044);
+	if (owned_buffers->buffer1044 != NULL) {
+		free(owned_buffers->buffer1044);
 	}
-	if (ownedBuffers->buffer1048 != NULL) {
-		free(ownedBuffers->buffer1048);
+	if (owned_buffers->buffer1048 != NULL) {
+		free(owned_buffers->buffer1048);
 	}
-	if (ownedBuffers->palette != NULL) {
-		free(ownedBuffers->palette);
+	if (owned_buffers->palette != NULL) {
+		free(owned_buffers->palette);
 	}
-	if (ownedBuffers->buffer1082 != NULL) {
-		free(ownedBuffers->buffer1082);
+	if (owned_buffers->buffer1082 != NULL) {
+		free(owned_buffers->buffer1082);
 	}
-	if (ownedBuffers->pixels != NULL) {
-		free(ownedBuffers->pixels);
+	if (owned_buffers->pixels != NULL) {
+		free(owned_buffers->pixels);
 	}
-	if (ownedBuffers->buffer109A != NULL) {
-		free(ownedBuffers->buffer109A);
+	if (owned_buffers->buffer109a != NULL) {
+		free(owned_buffers->buffer109a);
 	}
-	if (ownedBuffers->buffer18AE != NULL) {
-		free(ownedBuffers->buffer18AE);
+	if (owned_buffers->buffer18ae != NULL) {
+		free(owned_buffers->buffer18ae);
 	}
-	if (ownedBuffers->buffer18B2 != NULL) {
-		free(ownedBuffers->buffer18B2);
+	if (owned_buffers->buffer18b2 != NULL) {
+		free(owned_buffers->buffer18b2);
 	}
-	free(ownedBuffers);
+	free(owned_buffers);
 }
 
 /* Expands the runs to one per pixel in place, working back from the end, after
- * growing the buffer to width * height runs with realloc; sets runCount to
- * width * height. Returns 1, also when runCount already is width * height; 0
+ * growing the buffer to width * height runs with realloc; sets run_count to
+ * width * height. Returns 1, also when run_count already is width * height; 0
  * when realloc fails. */
 // FUNCTION: XVT 0x443D10
-int ImageQuantizer_ExpandPixelRuns(uint32_t *image)
+int image_quantizer_expand_pixel_runs(uint32_t *image)
 {
-	struct ImageQuantizerImageLayout *imageLayout;
-	struct ImageQuantizerPixelRun *resizedPixels;
-	struct ImageQuantizerPixelRun *destination;
-	struct ImageQuantizerPixelRun *source;
-	unsigned int sourceIndex;
-	unsigned int pixelCount;
-	unsigned int expandedPixelCount;
-	unsigned int runCount;
+	struct image_quantizer_image_layout *image_layout;
+	struct image_quantizer_pixel_run *resized_pixels;
+	struct image_quantizer_pixel_run *destination;
+	struct image_quantizer_pixel_run *source;
+	unsigned int source_index;
+	unsigned int pixel_count;
+	unsigned int expanded_pixel_count;
+	unsigned int run_count;
 	int copies;
 
-	imageLayout = (struct ImageQuantizerImageLayout *)image;
-	pixelCount = imageLayout->width * imageLayout->height;
-	if (imageLayout->runCount == pixelCount) {
+	image_layout = (struct image_quantizer_image_layout *)image;
+	pixel_count = image_layout->width * image_layout->height;
+	if (image_layout->run_count == pixel_count) {
 		return 1;
 	}
-	resizedPixels = (struct ImageQuantizerPixelRun *)realloc(
-		imageLayout->pixels,
-		pixelCount * sizeof(struct ImageQuantizerPixelRun));
-	if (resizedPixels == NULL) {
+	resized_pixels = (struct image_quantizer_pixel_run *)realloc(
+		image_layout->pixels,
+		pixel_count * sizeof(struct image_quantizer_pixel_run));
+	if (resized_pixels == NULL) {
 		return 0;
 	}
-	runCount = imageLayout->runCount;
-	imageLayout->pixels = resizedPixels;
-	source = resizedPixels + runCount - 1;
-	expandedPixelCount = imageLayout->width * imageLayout->height;
-	destination = resizedPixels + expandedPixelCount - 1;
-	sourceIndex = 0;
-	if (runCount != 0) {
+	run_count = image_layout->run_count;
+	image_layout->pixels = resized_pixels;
+	source = resized_pixels + run_count - 1;
+	expanded_pixel_count = image_layout->width * image_layout->height;
+	destination = resized_pixels + expanded_pixel_count - 1;
+	source_index = 0;
+	if (run_count != 0) {
 		do {
-			copies = source->lengthMinusOne;
+			copies = source->length_minus_one;
 			if (copies >= 0) {
 				++copies;
 				do {
 					*destination = *source;
-					destination->lengthMinusOne = 0;
+					destination->length_minus_one = 0;
 					--destination;
 					--copies;
 				} while (copies != 0);
 			}
 			--source;
-			++sourceIndex;
-		} while (imageLayout->runCount > sourceIndex);
+			++source_index;
+		} while (image_layout->run_count > source_index);
 	}
-	imageLayout->runCount = imageLayout->width * imageLayout->height;
+	image_layout->run_count = image_layout->width * image_layout->height;
 	return 1;
 }
 
-/* Reduces one image to at most paletteSize colors (paletteSize kept to 1 to
+/* Reduces one image to at most palette_size colors (palette_size kept to 1 to
  * 0xFFFF): joins its runs when the run count at byte 4238 is width * height,
- * builds a color tree of treeDepth levels (for 0: 1 plus the right shifts by 2
- * that bring paletteSize to 0, 1 less with dither, 2 more for a palette image),
- * classifies the colors, reduces the tree when it holds more than paletteSize,
+ * builds a color tree of tree_depth levels (for 0: 1 plus the right shifts by 2
+ * that bring palette_size to 0, 1 less with dither, 2 more for a palette image),
+ * classifies the colors, reduces the tree when it holds more than palette_size,
  * and assigns the palette, without dither when half the tree's color count is
- * under paletteSize. Then frees the node pool and the squared-difference table.
- * Returns at once for paletteSize 2 with colorspace 2 and dither. Nothing calls
+ * under palette_size. Then frees the node pool and the squared-difference table.
+ * Returns at once for palette_size 2 with colorspace 2 and dither. Nothing calls
  * this. */
 // FUNCTION: XVT 0x443DE0
-void ImageQuantizer_QuantizeImage(unsigned int *image, unsigned int paletteSize,
-				  int treeDepth, int dither, int colorspace)
+void image_quantizer_quantize_image(unsigned int *image,
+				    unsigned int palette_size, int tree_depth,
+				    int dither, int colorspace)
 {
-	unsigned int targetColorCount = paletteSize;
-	int effectiveDepth = treeDepth;
-	int effectiveDither = dither;
-	uint32_t *imageWords = image;
+	unsigned int target_color_count = palette_size;
+	int effective_depth = tree_depth;
+	int effective_dither = dither;
+	uint32_t *image_words = image;
 	unsigned int value;
-	unsigned int storedRunCount;
-	struct ImageQuantizerNodePoolBlock *previousBlock;
+	unsigned int stored_run_count;
+	struct image_quantizer_node_pool_block *previous_block;
 
-	if (paletteSize == 2 && colorspace == 2 && dither != 0) {
+	if (palette_size == 2 && colorspace == 2 && dither != 0) {
 		return;
 	}
-	if (targetColorCount == 0) {
-		targetColorCount = 1;
+	if (target_color_count == 0) {
+		target_color_count = 1;
 	}
-	if (targetColorCount > 0xFFFF) {
-		targetColorCount = 0xFFFF;
+	if (target_color_count > 0xFFFF) {
+		target_color_count = 0xFFFF;
 	}
-	memcpy(&storedRunCount, (uint8_t *)image + 4238,
-	       sizeof(storedRunCount));
-	if (imageWords[1036] * imageWords[1037] == storedRunCount) {
-		ImageQuantizer_CompressPixelRuns(image);
+	memcpy(&stored_run_count, (uint8_t *)image + 4238,
+	       sizeof(stored_run_count));
+	if (image_words[1036] * image_words[1037] == stored_run_count) {
+		image_quantizer_compress_pixel_runs(image);
 	}
-	if (effectiveDepth == 0) {
-		effectiveDepth = 1;
-		value = targetColorCount;
+	if (effective_depth == 0) {
+		effective_depth = 1;
+		value = target_color_count;
 		while (value != 0) {
 			value >>= 2;
-			++effectiveDepth;
+			++effective_depth;
 		}
-		if (effectiveDither != 0) {
-			--effectiveDepth;
+		if (effective_dither != 0) {
+			--effective_depth;
 		}
-		if (imageWords[1033] == 2) {
-			effectiveDepth += 2;
+		if (image_words[1033] == 2) {
+			effective_depth += 2;
 		}
 	}
-	ImageQuantizer_InitializeColorTree(effectiveDepth);
-	ImageQuantizer_ClassifyImageColors(image);
-	if ((g_imageQuantizerColorCount >> 1) < targetColorCount) {
-		effectiveDither = 0;
+	image_quantizer_initialize_color_tree(effective_depth);
+	image_quantizer_classify_image_colors(image);
+	if ((g_image_quantizer_color_count >> 1) < target_color_count) {
+		effective_dither = 0;
 	}
-	if (targetColorCount < g_imageQuantizerColorCount) {
-		ImageQuantizer_ReduceColorTree(targetColorCount);
+	if (target_color_count < g_image_quantizer_color_count) {
+		image_quantizer_reduce_color_tree(target_color_count);
 	}
-	ImageQuantizer_AssignPaletteColors(image, targetColorCount,
-					   effectiveDither, colorspace);
-	while (g_imageQuantizerNodePoolHead != NULL) {
-		previousBlock = g_imageQuantizerNodePoolHead->previous;
-		free(g_imageQuantizerNodePoolHead);
-		g_imageQuantizerNodePoolHead = previousBlock;
+	image_quantizer_assign_palette_colors(image, target_color_count,
+					      effective_dither, colorspace);
+	while (g_image_quantizer_node_pool_head != NULL) {
+		previous_block = g_image_quantizer_node_pool_head->previous;
+		free(g_image_quantizer_node_pool_head);
+		g_image_quantizer_node_pool_head = previous_block;
 	}
-	g_imageQuantizerSquaredDiffTable -= 255;
-	free(g_imageQuantizerSquaredDiffTable);
+	g_image_quantizer_squared_diff_table -= 255;
+	free(g_image_quantizer_squared_diff_table);
 }
 
 /* Builds the image's palette from the color tree and maps its runs to it. Frees
  * the old palette (the pointer at byte 0x104C), allocates
- * g_imageQuantizerColorCount 9-byte entries there and fills them with
- * ImageQuantizer_BuildPaletteEntriesRecursive, which counts
- * g_imageQuantizerColorCount again. For paletteSize 2 with colorspace 2 the two
+ * g_image_quantizer_color_count 9-byte entries there and fills them with
+ * image_quantizer_build_palette_entries_recursive, which counts
+ * g_image_quantizer_color_count again. For palette_size 2 with colorspace 2 the two
  * entries become white and black, white for the one with the larger 77 R + 150
- * G + 29 B. Unless colorspace is 3 it sets comparePaletteIndex 0 and colorClass
+ * G + 29 B. Unless colorspace is 3 it sets compare_palette_index 0 and color_class
  * 2. Stores the color count at byte 0x1054. With dither it returns 1 when
- * ImageQuantizer_DitherImageToPalette succeeds (returns 0); when that fails, or
+ * image_quantizer_dither_image_to_palette succeeds (returns 0); when that fails, or
  * without dither, each run goes down the tree by its color bits as far as
  * children exist, and the entry nearest its color under that node's parent
- * (ImageQuantizer_FindNearestPaletteEntryRecursive) becomes its paletteIndex,
+ * (image_quantizer_find_nearest_palette_entry_recursive) becomes its paletteIndex,
  * or for direct color its color; it returns 0. When the palette cannot be
- * allocated it calls ImageQuantizer_FatalAllocationError, which ends the
+ * allocated it calls image_quantizer_fatal_allocation_error, which ends the
  * program. */
 // FUNCTION: XVT 0x443EF0
-unsigned int ImageQuantizer_AssignPaletteColors(uint32_t *image,
-						unsigned int paletteSize,
-						int dither, int colorspace)
+unsigned int image_quantizer_assign_palette_colors(uint32_t *image,
+						   unsigned int palette_size,
+						   int dither, int colorspace)
 {
-	struct ImageQuantizerImageLayout *layout;
-	struct ImageQuantizerPixelRun *pixel;
-	struct ImageQuantizerPaletteEntry *palette;
-	uint8_t *paletteBytesPtr;
+	struct image_quantizer_image_layout *layout;
+	struct image_quantizer_pixel_run *pixel;
+	struct image_quantizer_palette_entry *palette;
+	uint8_t *palette_bytes_ptr;
 	unsigned int completed;
-	unsigned int paletteBytes;
-	unsigned int colorCount;
-	unsigned int runCount;
+	unsigned int palette_bytes;
+	unsigned int color_count;
+	unsigned int run_count;
 	unsigned int level;
-	unsigned int childIndex;
-	int firstLuma;
-	int secondLuma;
+	unsigned int child_index;
+	int first_luma;
+	int second_luma;
 	unsigned int offset;
-	int bitPosition;
-	int imageDithered;
-	struct ImageQuantizerNode *node;
-	uint8_t *imageBytes;
+	int bit_position;
+	int image_dithered;
+	struct image_quantizer_node *node;
+	uint8_t *image_bytes;
 
-	layout = (struct ImageQuantizerImageLayout *)image;
-	imageBytes = (uint8_t *)image;
-	memcpy(&palette, imageBytes + 0x104C, sizeof(palette));
+	layout = (struct image_quantizer_image_layout *)image;
+	image_bytes = (uint8_t *)image;
+	memcpy(&palette, image_bytes + 0x104C, sizeof(palette));
 	free(palette);
-	colorCount = g_imageQuantizerColorCount;
-	paletteBytes = colorCount * sizeof(struct ImageQuantizerPaletteEntry);
-	palette = malloc(paletteBytes);
+	color_count = g_image_quantizer_color_count;
+	palette_bytes =
+		color_count * sizeof(struct image_quantizer_palette_entry);
+	palette = malloc(palette_bytes);
 	if (palette == NULL) {
-		ImageQuantizer_FatalAllocationError("Unable to assign palette",
-						    "Memory allocation failed");
+		image_quantizer_fatal_allocation_error(
+			"Unable to assign palette", "Memory allocation failed");
 		return 1;
 	}
-	memcpy(imageBytes + 0x104C, &palette, sizeof(palette));
-	paletteBytesPtr = (uint8_t *)palette;
-	g_imageQuantizerPaletteEntries = palette;
-	g_imageQuantizerColorCount = 0;
-	ImageQuantizer_BuildPaletteEntriesRecursive(g_imageQuantizerRoot);
-	if (paletteSize == 2 && colorspace == 2 && colorCount >= 2) {
-		firstLuma = 77 * palette[0].red + 150 * palette[0].green +
-			    29 * palette[0].blue;
-		secondLuma = 77 * palette[1].red + 150 * palette[1].green +
-			     29 * palette[1].blue;
-		if (firstLuma < secondLuma) {
+	memcpy(image_bytes + 0x104C, &palette, sizeof(palette));
+	palette_bytes_ptr = (uint8_t *)palette;
+	g_image_quantizer_palette_entries = palette;
+	g_image_quantizer_color_count = 0;
+	image_quantizer_build_palette_entries_recursive(g_image_quantizer_root);
+	if (palette_size == 2 && colorspace == 2 && color_count >= 2) {
+		first_luma = 77 * palette[0].red + 150 * palette[0].green +
+			     29 * palette[0].blue;
+		second_luma = 77 * palette[1].red + 150 * palette[1].green +
+			      29 * palette[1].blue;
+		if (first_luma < second_luma) {
 			palette[0].red = 0;
 			palette[0].green = 0;
 			palette[0].blue = 0;
@@ -813,53 +822,57 @@ unsigned int ImageQuantizer_AssignPaletteColors(uint32_t *image,
 		}
 	}
 	if (colorspace != 3) {
-		layout->comparePaletteIndex = 0;
-		layout->colorClass = 2;
+		layout->compare_palette_index = 0;
+		layout->color_class = 2;
 	}
-	memcpy(imageBytes + 0x1054, &g_imageQuantizerColorCount,
-	       sizeof(g_imageQuantizerColorCount));
-	imageDithered =
-		dither ? ImageQuantizer_DitherImageToPalette(image) == 0 : 0;
-	if (imageDithered != 0) {
-		return (unsigned int)imageDithered;
+	memcpy(image_bytes + 0x1054, &g_image_quantizer_color_count,
+	       sizeof(g_image_quantizer_color_count));
+	image_dithered =
+		dither ? image_quantizer_dither_image_to_palette(image) == 0
+		       : 0;
+	if (image_dithered != 0) {
+		return (unsigned int)image_dithered;
 	}
 	pixel = layout->pixels;
-	runCount = layout->runCount;
-	for (completed = 0; completed < runCount; ++completed, ++pixel) {
-		node = g_imageQuantizerRoot;
+	run_count = layout->run_count;
+	for (completed = 0; completed < run_count; ++completed, ++pixel) {
+		node = g_image_quantizer_root;
 		level = 1;
-		bitPosition = 7;
-		while (level <= (unsigned int)g_imageQuantizerMaxTreeDepth) {
-			childIndex = ((pixel->red >> bitPosition) & 1u) << 2;
-			childIndex |= ((pixel->green >> bitPosition) & 1u) << 1;
-			childIndex |= (pixel->blue >> bitPosition) & 1u;
-			if ((node->childrenMask & (1u << childIndex)) == 0) {
+		bit_position = 7;
+		while (level <=
+		       (unsigned int)g_image_quantizer_max_tree_depth) {
+			child_index = ((pixel->red >> bit_position) & 1u) << 2;
+			child_index |= ((pixel->green >> bit_position) & 1u)
+				       << 1;
+			child_index |= (pixel->blue >> bit_position) & 1u;
+			if ((node->children_mask & (1u << child_index)) == 0) {
 				break;
 			}
-			node = node->children[childIndex];
-			--bitPosition;
+			node = node->children[child_index];
+			--bit_position;
 			++level;
 		}
-		g_imageQuantizerSearchRed = pixel->red;
-		g_imageQuantizerSearchGreen = pixel->green;
-		g_imageQuantizerSearchBlue = pixel->blue;
-		g_imageQuantizerNearestDistanceSq =
-			g_imageQuantizerMaxSquaredRgbErrorPerPixel;
-		ImageQuantizer_FindNearestPaletteEntryRecursive(node->parent);
-		if (layout->colorClass == 2) {
-			pixel->paletteIndex =
-				(uint16_t)g_imageQuantizerNearestPaletteIndex;
+		g_image_quantizer_search_red = pixel->red;
+		g_image_quantizer_search_green = pixel->green;
+		g_image_quantizer_search_blue = pixel->blue;
+		g_image_quantizer_nearest_distance_sq =
+			g_image_quantizer_max_squared_rgb_error_per_pixel;
+		image_quantizer_find_nearest_palette_entry_recursive(
+			node->parent);
+		if (layout->color_class == 2) {
+			pixel->palette_index = (uint16_t)
+				g_image_quantizer_nearest_palette_index;
 		} else {
-			offset = 9 * g_imageQuantizerNearestPaletteIndex;
-			pixel->red = paletteBytesPtr[offset];
-			pixel->green = paletteBytesPtr[offset + 1];
-			pixel->blue = paletteBytesPtr[offset + 2];
+			offset = 9 * g_image_quantizer_nearest_palette_index;
+			pixel->red = palette_bytes_ptr[offset];
+			pixel->green = palette_bytes_ptr[offset + 1];
+			pixel->blue = palette_bytes_ptr[offset + 2];
 		}
-		if (runCount - completed == 1 ||
+		if (run_count - completed == 1 ||
 		    completed % layout->height == 0) {
-			ImageQuantizer_ReportProgress(
+			image_quantizer_report_progress(
 				"  Assigning image colors...  ", completed,
-				runCount);
+				run_count);
 		}
 	}
 	return 0;
@@ -867,218 +880,224 @@ unsigned int ImageQuantizer_AssignPaletteColors(uint32_t *image,
 
 /* Adds an image's runs to the color tree. Adds width * height * 196608 to the
  * root's error. For each run it first, when more than 0x41241 nodes exist,
- * collapses the deepest level with ImageQuantizer_CollapseDeepestLevelRecursive
- * and lowers g_imageQuantizerMaxTreeDepth. It walks down
- * g_imageQuantizerMaxTreeDepth levels by the color's bits from the top (red 4,
+ * collapses the deepest level with image_quantizer_collapse_deepest_level_recursive
+ * and lowers g_image_quantizer_max_tree_depth. It walks down
+ * g_image_quantizer_max_tree_depth levels by the color's bits from the top (red 4,
  * green 2, blue 1), making missing children with the parent's midpoints moved
  * up or down, by the child's bits, by (1 << (8 - level)) >> 1, and counting
- * each new leaf in g_imageQuantizerColorCount, and adds to each node it passes
+ * each new leaf in g_image_quantizer_color_count, and adds to each node it passes
  * the run's squared distance to its midpoint times the run length. The last
  * node gets the run's pixel count and channel sums. Exits the program when a
  * node cannot be made. */
 // FUNCTION: XVT 0x4441F0
-void ImageQuantizer_ClassifyImageColors(unsigned int *image)
+void image_quantizer_classify_image_colors(unsigned int *image)
 {
-	struct ImageQuantizerPixelRun *pixel;
-	struct ImageQuantizerNode *node;
+	struct image_quantizer_pixel_run *pixel;
+	struct image_quantizer_node *node;
 	unsigned int completed;
 	unsigned int level;
-	unsigned int childIndex;
-	unsigned int runLength;
-	unsigned int midpointOffset;
-	int bitPosition;
-	int redOffset;
-	int greenOffset;
-	int blueOffset;
-	double pixelWeight;
-	double pixelError;
+	unsigned int child_index;
+	unsigned int run_length;
+	unsigned int midpoint_offset;
+	int bit_position;
+	int red_offset;
+	int green_offset;
+	int blue_offset;
+	double pixel_weight;
+	double pixel_error;
 
-	g_imageQuantizerRoot->quantizationError +=
-		(double)((struct ImageQuantizerImageLayout *)image)->width *
-		(double)((struct ImageQuantizerImageLayout *)image)->height *
-		g_imageQuantizerMaxSquaredRgbErrorPerPixel;
-	pixel = ((struct ImageQuantizerImageLayout *)image)->pixels;
+	g_image_quantizer_root->quantization_error +=
+		(double)((struct image_quantizer_image_layout *)image)->width *
+		(double)((struct image_quantizer_image_layout *)image)->height *
+		g_image_quantizer_max_squared_rgb_error_per_pixel;
+	pixel = ((struct image_quantizer_image_layout *)image)->pixels;
 	for (completed = 0;
-	     completed < ((struct ImageQuantizerImageLayout *)image)->runCount;
+	     completed <
+	     ((struct image_quantizer_image_layout *)image)->run_count;
 	     ++completed) {
-		if (g_imageQuantizerNodeCount > 0x41241) {
-			ImageQuantizer_CollapseDeepestLevelRecursive(
-				g_imageQuantizerRoot);
-			--g_imageQuantizerMaxTreeDepth;
+		if (g_image_quantizer_node_count > 0x41241) {
+			image_quantizer_collapse_deepest_level_recursive(
+				g_image_quantizer_root);
+			--g_image_quantizer_max_tree_depth;
 		}
 
-		node = g_imageQuantizerRoot;
-		bitPosition = 7;
+		node = g_image_quantizer_root;
+		bit_position = 7;
 		level = 1;
-		runLength = (unsigned int)pixel->lengthMinusOne + 1;
-		if ((unsigned int)g_imageQuantizerMaxTreeDepth >= 1) {
-			pixelWeight = (double)runLength;
+		run_length = (unsigned int)pixel->length_minus_one + 1;
+		if ((unsigned int)g_image_quantizer_max_tree_depth >= 1) {
+			pixel_weight = (double)run_length;
 			do {
-				childIndex = ((pixel->red >> bitPosition) & 1u)
-					     << 2;
-				childIndex |=
-					((pixel->green >> bitPosition) & 1u)
+				child_index =
+					((pixel->red >> bit_position) & 1u)
+					<< 2;
+				child_index |=
+					((pixel->green >> bit_position) & 1u)
 					<< 1;
-				childIndex |= (pixel->blue >> bitPosition) & 1u;
-				if (node->children[childIndex] == NULL) {
-					node->childrenMask |=
-						(uint8_t)(1u << childIndex);
-					midpointOffset =
+				child_index |=
+					(pixel->blue >> bit_position) & 1u;
+				if (node->children[child_index] == NULL) {
+					node->children_mask |=
+						(uint8_t)(1u << child_index);
+					midpoint_offset =
 						(1u << (8 - level)) >> 1;
-					blueOffset = midpointOffset;
-					if ((childIndex & 1) == 0) {
-						blueOffset = -midpointOffset;
+					blue_offset = midpoint_offset;
+					if ((child_index & 1) == 0) {
+						blue_offset = -midpoint_offset;
 					}
-					greenOffset = midpointOffset;
-					if ((childIndex & 2) == 0) {
-						greenOffset = -midpointOffset;
+					green_offset = midpoint_offset;
+					if ((child_index & 2) == 0) {
+						green_offset = -midpoint_offset;
 					}
-					redOffset = midpointOffset;
-					if ((childIndex & 4) == 0) {
-						redOffset = -midpointOffset;
+					red_offset = midpoint_offset;
+					if ((child_index & 4) == 0) {
+						red_offset = -midpoint_offset;
 					}
-					node->children[childIndex] =
-						ImageQuantizer_AllocateNode(
-							childIndex, level, node,
-							node->midpointRed +
-								redOffset,
-							node->midpointGreen +
-								greenOffset,
-							node->midpointBlue +
-								blueOffset);
-					if (node->children[childIndex] ==
+					node->children[child_index] =
+						image_quantizer_allocate_node(
+							child_index, level,
+							node,
+							node->midpoint_red +
+								red_offset,
+							node->midpoint_green +
+								green_offset,
+							node->midpoint_blue +
+								blue_offset);
+					if (node->children[child_index] ==
 					    NULL) {
-						ImageQuantizer_FatalAllocationError(
-							g_imageQuantizerUnableToQuantizeMessage,
+						image_quantizer_fatal_allocation_error(
+							g_image_quantizer_unable_to_quantize_message,
 							"Memory allocation failed");
 						exit(1);
 					}
 					if (level ==
 					    (unsigned int)
-						    g_imageQuantizerMaxTreeDepth) {
-						++g_imageQuantizerColorCount;
+						    g_image_quantizer_max_tree_depth) {
+						++g_image_quantizer_color_count;
 					}
 				}
-				node = node->children[childIndex];
-				pixelError =
-					(double)g_imageQuantizerSquaredDiffTable
+				node = node->children[child_index];
+				pixel_error = (double)
+					g_image_quantizer_squared_diff_table
 						[(int)pixel->red -
-						 node->midpointRed];
-				pixelError +=
-					(double)g_imageQuantizerSquaredDiffTable
+						 node->midpoint_red];
+				pixel_error += (double)
+					g_image_quantizer_squared_diff_table
 						[(int)pixel->green -
-						 node->midpointGreen];
-				pixelError +=
-					(double)g_imageQuantizerSquaredDiffTable
+						 node->midpoint_green];
+				pixel_error += (double)
+					g_image_quantizer_squared_diff_table
 						[(int)pixel->blue -
-						 node->midpointBlue];
-				node->quantizationError +=
-					pixelError * pixelWeight;
-				--bitPosition;
+						 node->midpoint_blue];
+				node->quantization_error +=
+					pixel_error * pixel_weight;
+				--bit_position;
 				++level;
-			} while (level <=
-				 (unsigned int)g_imageQuantizerMaxTreeDepth);
+			} while (
+				level <=
+				(unsigned int)g_image_quantizer_max_tree_depth);
 		}
 
-		node->pixelCount += runLength;
-		node->redSum += (double)(runLength * pixel->red);
-		node->greenSum += (double)(runLength * pixel->green);
-		node->blueSum += (double)(runLength * pixel->blue);
+		node->pixel_count += run_length;
+		node->red_sum += (double)(run_length * pixel->red);
+		node->green_sum += (double)(run_length * pixel->green);
+		node->blue_sum += (double)(run_length * pixel->blue);
 		++pixel;
-		if (((struct ImageQuantizerImageLayout *)image)->runCount -
+		if (((struct image_quantizer_image_layout *)image)->run_count -
 				    completed ==
 			    1 ||
-		    completed % ((struct ImageQuantizerImageLayout *)image)
+		    completed % ((struct image_quantizer_image_layout *)image)
 					    ->height ==
 			    0) {
-			ImageQuantizer_ReportProgress(
+			image_quantizer_report_progress(
 				"  Classifying image colors...  ", completed,
-				((struct ImageQuantizerImageLayout *)image)
-					->runCount);
+				((struct image_quantizer_image_layout *)image)
+					->run_count);
 		}
 	}
 }
 
 /* Searches node's subtree, children first, for the palette entry nearest the
  * searched color by squared distance, looking at the entry of each node that
- * holds pixels; updates g_imageQuantizerNearestDistanceSq and
- * g_imageQuantizerNearestPaletteIndex on a closer one. Only
- * ImageQuantizer_AssignPaletteColors calls it. */
+ * holds pixels; updates g_image_quantizer_nearest_distance_sq and
+ * g_image_quantizer_nearest_palette_index on a closer one. Only
+ * image_quantizer_assign_palette_colors calls it. */
 // FUNCTION: XVT 0x4444F0
-void ImageQuantizer_FindNearestPaletteEntryRecursive(
-	struct ImageQuantizerNode *node)
+void image_quantizer_find_nearest_palette_entry_recursive(
+	struct image_quantizer_node *node)
 {
-	unsigned int childIndex;
+	unsigned int child_index;
 
-	if (node->childrenMask != 0) {
-		childIndex = 0;
+	if (node->children_mask != 0) {
+		child_index = 0;
 		do {
-			if ((node->childrenMask & (1u << childIndex)) != 0) {
-				ImageQuantizer_FindNearestPaletteEntryRecursive(
-					node->children[childIndex]);
+			if ((node->children_mask & (1u << child_index)) != 0) {
+				image_quantizer_find_nearest_palette_entry_recursive(
+					node->children[child_index]);
 			}
-			++childIndex;
-		} while (childIndex < 8);
+			++child_index;
+		} while (child_index < 8);
 	}
 
-	if (node->pixelCount != 0) {
-		struct ImageQuantizerPaletteEntry *entry;
-		double distanceSq;
+	if (node->pixel_count != 0) {
+		struct image_quantizer_palette_entry *entry;
+		double distance_sq;
 
-		entry = &g_imageQuantizerPaletteEntries[node->paletteIndex];
-		distanceSq = (double)g_imageQuantizerSquaredDiffTable
-			[(int)entry->green - g_imageQuantizerSearchGreen];
-		distanceSq += (double)g_imageQuantizerSquaredDiffTable
-			[(int)entry->red - g_imageQuantizerSearchRed];
-		distanceSq += (double)g_imageQuantizerSquaredDiffTable
-			[(int)entry->blue - g_imageQuantizerSearchBlue];
-		if (distanceSq < g_imageQuantizerNearestDistanceSq) {
-			g_imageQuantizerNearestDistanceSq = distanceSq;
-			g_imageQuantizerNearestPaletteIndex =
-				(uint16_t)node->paletteIndex;
+		entry = &g_image_quantizer_palette_entries[node->palette_index];
+		distance_sq = (double)g_image_quantizer_squared_diff_table
+			[(int)entry->green - g_image_quantizer_search_green];
+		distance_sq += (double)g_image_quantizer_squared_diff_table
+			[(int)entry->red - g_image_quantizer_search_red];
+		distance_sq += (double)g_image_quantizer_squared_diff_table
+			[(int)entry->blue - g_image_quantizer_search_blue];
+		if (distance_sq < g_image_quantizer_nearest_distance_sq) {
+			g_image_quantizer_nearest_distance_sq = distance_sq;
+			g_image_quantizer_nearest_palette_index =
+				(uint16_t)node->palette_index;
 		}
 	}
 }
 
 /* Walks node's subtree, children first, and for each node holding pixels
- * writes palette entry g_imageQuantizerColorCount, each channel
- * (sum + (pixelCount >> 1)) / pixelCount, stores that index in the node's
- * paletteIndex and adds 1 to g_imageQuantizerColorCount. */
+ * writes palette entry g_image_quantizer_color_count, each channel
+ * (sum + (pixel_count >> 1)) / pixel_count, stores that index in the node's
+ * paletteIndex and adds 1 to g_image_quantizer_color_count. */
 // FUNCTION: XVT 0x4445E0
-void ImageQuantizer_BuildPaletteEntriesRecursive(
-	struct ImageQuantizerNode *node)
+void image_quantizer_build_palette_entries_recursive(
+	struct image_quantizer_node *node)
 {
-	unsigned int childIndex;
-	unsigned int pixelCount;
-	double halfPixelCount;
-	double pixelCountDouble;
+	unsigned int child_index;
+	unsigned int pixel_count;
+	double half_pixel_count;
+	double pixel_count_double;
 
-	if (node->childrenMask != 0) {
-		childIndex = 0;
+	if (node->children_mask != 0) {
+		child_index = 0;
 		do {
-			if ((node->childrenMask & (1u << childIndex)) != 0) {
-				ImageQuantizer_BuildPaletteEntriesRecursive(
-					node->children[childIndex]);
+			if ((node->children_mask & (1u << child_index)) != 0) {
+				image_quantizer_build_palette_entries_recursive(
+					node->children[child_index]);
 			}
-			++childIndex;
-		} while (childIndex < 8);
+			++child_index;
+		} while (child_index < 8);
 	}
 
-	pixelCount = node->pixelCount;
-	if (pixelCount != 0) {
-		halfPixelCount = (double)(pixelCount >> 1);
-		pixelCountDouble = (double)pixelCount;
-		g_imageQuantizerPaletteEntries[g_imageQuantizerColorCount].red =
-			(uint8_t)((node->redSum + halfPixelCount) /
-				  pixelCountDouble);
-		g_imageQuantizerPaletteEntries[g_imageQuantizerColorCount]
-			.green = (uint8_t)((node->greenSum + halfPixelCount) /
-					   pixelCountDouble);
-		g_imageQuantizerPaletteEntries[g_imageQuantizerColorCount]
-			.blue = (uint8_t)((node->blueSum + halfPixelCount) /
-					  pixelCountDouble);
-		node->paletteIndex = g_imageQuantizerColorCount;
-		++g_imageQuantizerColorCount;
+	pixel_count = node->pixel_count;
+	if (pixel_count != 0) {
+		half_pixel_count = (double)(pixel_count >> 1);
+		pixel_count_double = (double)pixel_count;
+		g_image_quantizer_palette_entries[g_image_quantizer_color_count]
+			.red = (uint8_t)((node->red_sum + half_pixel_count) /
+					 pixel_count_double);
+		g_image_quantizer_palette_entries[g_image_quantizer_color_count]
+			.green =
+			(uint8_t)((node->green_sum + half_pixel_count) /
+				  pixel_count_double);
+		g_image_quantizer_palette_entries[g_image_quantizer_color_count]
+			.blue = (uint8_t)((node->blue_sum + half_pixel_count) /
+					  pixel_count_double);
+		node->palette_index = g_image_quantizer_color_count;
+		++g_image_quantizer_color_count;
 	}
 }
 
@@ -1090,59 +1109,59 @@ void ImageQuantizer_BuildPaletteEntriesRecursive(
  * Of each pixel's error it adds 7 times to the next pixel's carry; the 3 and 5
  * times shares land on entries already passed, and the carry is cleared after
  * each row. Returns 0, or 1 when the expansion fails; a failed allocation calls
- * ImageQuantizer_FatalAllocationError, which ends the program. */
+ * image_quantizer_fatal_allocation_error, which ends the program. */
 // FUNCTION: XVT 0x4446C0
-int ImageQuantizer_DitherImageToPalette(uint32_t *image)
+int image_quantizer_dither_image_to_palette(uint32_t *image)
 {
-	struct ImageQuantizerImageLayout *layout;
-	struct ImageQuantizerPixelRun *pixels;
+	struct image_quantizer_image_layout *layout;
+	struct image_quantizer_pixel_run *pixels;
 	uint8_t *palette;
 	int *errors;
-	unsigned int paletteCount;
+	unsigned int palette_count;
 	unsigned int row;
 	unsigned int column;
-	unsigned int pixelIndex;
-	unsigned int rowWidth;
+	unsigned int pixel_index;
+	unsigned int row_width;
 	int direction;
-	int errorRed;
-	int errorGreen;
-	int errorBlue;
-	int nearestIndex;
-	int nearestDistance;
+	int error_red;
+	int error_green;
+	int error_blue;
+	int nearest_index;
+	int nearest_distance;
 
-	if (ImageQuantizer_ExpandPixelRuns(image) == 0) {
+	if (image_quantizer_expand_pixel_runs(image) == 0) {
 		return 1;
 	}
-	layout = (struct ImageQuantizerImageLayout *)image;
+	layout = (struct image_quantizer_image_layout *)image;
 	pixels = layout->pixels;
 	memcpy(&palette, (uint8_t *)image + 0x104C, sizeof(palette));
-	paletteCount = *(uint32_t *)((uint8_t *)image + 0x1054) >> 4;
-	if (paletteCount == 0) {
-		paletteCount = 1;
+	palette_count = *(uint32_t *)((uint8_t *)image + 0x1054) >> 4;
+	if (palette_count == 0) {
+		palette_count = 1;
 	}
-	rowWidth = layout->width;
-	errors = calloc((rowWidth + 2) * 6, sizeof(*errors));
+	row_width = layout->width;
+	errors = calloc((row_width + 2) * 6, sizeof(*errors));
 	if (errors == NULL || palette == NULL) {
 		free(errors);
-		ImageQuantizer_FatalAllocationError("Unable to dither image",
-						    "Memory allocation failed");
+		image_quantizer_fatal_allocation_error(
+			"Unable to dither image", "Memory allocation failed");
 		return 1;
 	}
-	pixelIndex = 0;
+	pixel_index = 0;
 	for (row = 0; row < layout->height; ++row) {
 		direction = (row & 1) == 0 ? 1 : -1;
-		for (column = 0; column < rowWidth; ++column) {
-			unsigned int sourceColumn =
-				direction > 0 ? column : rowWidth - column - 1;
-			struct ImageQuantizerPixelRun *pixel =
-				&pixels[pixelIndex + sourceColumn];
+		for (column = 0; column < row_width; ++column) {
+			unsigned int source_column =
+				direction > 0 ? column : row_width - column - 1;
+			struct image_quantizer_pixel_run *pixel =
+				&pixels[pixel_index + source_column];
 			int red =
 				pixel->red + errors[(column + 1) * 3 + 0] / 16;
 			int green = pixel->green +
 				    errors[(column + 1) * 3 + 1] / 16;
 			int blue =
 				pixel->blue + errors[(column + 1) * 3 + 2] / 16;
-			unsigned int paletteIndex;
+			unsigned int palette_index;
 			if (red < 0) {
 				red = 0;
 			}
@@ -1161,85 +1180,85 @@ int ImageQuantizer_DitherImageToPalette(uint32_t *image)
 			if (blue > 255) {
 				blue = 255;
 			}
-			nearestIndex = 0;
-			nearestDistance = INT_MAX;
-			for (paletteIndex = 0; paletteIndex < paletteCount;
-			     ++paletteIndex) {
-				int dr = red - palette[paletteIndex * 9 + 0];
-				int dg = green - palette[paletteIndex * 9 + 1];
-				int db = blue - palette[paletteIndex * 9 + 2];
+			nearest_index = 0;
+			nearest_distance = INT_MAX;
+			for (palette_index = 0; palette_index < palette_count;
+			     ++palette_index) {
+				int dr = red - palette[palette_index * 9 + 0];
+				int dg = green - palette[palette_index * 9 + 1];
+				int db = blue - palette[palette_index * 9 + 2];
 				int distance = dr * dr + dg * dg + db * db;
-				if (distance < nearestDistance) {
-					nearestDistance = distance;
-					nearestIndex = (int)paletteIndex;
+				if (distance < nearest_distance) {
+					nearest_distance = distance;
+					nearest_index = (int)palette_index;
 				}
 			}
-			pixel->paletteIndex = (uint16_t)nearestIndex;
-			if (layout->colorClass != 2) {
-				pixel->red = palette[nearestIndex * 9 + 0];
-				pixel->green = palette[nearestIndex * 9 + 1];
-				pixel->blue = palette[nearestIndex * 9 + 2];
+			pixel->palette_index = (uint16_t)nearest_index;
+			if (layout->color_class != 2) {
+				pixel->red = palette[nearest_index * 9 + 0];
+				pixel->green = palette[nearest_index * 9 + 1];
+				pixel->blue = palette[nearest_index * 9 + 2];
 			}
-			errorRed = red - palette[nearestIndex * 9 + 0];
-			errorGreen = green - palette[nearestIndex * 9 + 1];
-			errorBlue = blue - palette[nearestIndex * 9 + 2];
-			errors[(column + 2) * 3 + 0] += 7 * errorRed;
-			errors[(column + 2) * 3 + 1] += 7 * errorGreen;
-			errors[(column + 2) * 3 + 2] += 7 * errorBlue;
-			errors[column * 3 + 0] += 3 * errorRed;
-			errors[column * 3 + 1] += 3 * errorGreen;
-			errors[column * 3 + 2] += 3 * errorBlue;
-			errors[(column + 1) * 3 + 0] = 5 * errorRed;
-			errors[(column + 1) * 3 + 1] = 5 * errorGreen;
-			errors[(column + 1) * 3 + 2] = 5 * errorBlue;
+			error_red = red - palette[nearest_index * 9 + 0];
+			error_green = green - palette[nearest_index * 9 + 1];
+			error_blue = blue - palette[nearest_index * 9 + 2];
+			errors[(column + 2) * 3 + 0] += 7 * error_red;
+			errors[(column + 2) * 3 + 1] += 7 * error_green;
+			errors[(column + 2) * 3 + 2] += 7 * error_blue;
+			errors[column * 3 + 0] += 3 * error_red;
+			errors[column * 3 + 1] += 3 * error_green;
+			errors[column * 3 + 2] += 3 * error_blue;
+			errors[(column + 1) * 3 + 0] = 5 * error_red;
+			errors[(column + 1) * 3 + 1] = 5 * error_green;
+			errors[(column + 1) * 3 + 2] = 5 * error_blue;
 		}
-		memset(errors, 0, (rowWidth + 2) * 3 * sizeof(*errors));
-		pixelIndex += rowWidth;
-		ImageQuantizer_ReportProgress("  Dithering image...  ", row,
-					      layout->height);
+		memset(errors, 0, (row_width + 2) * 3 * sizeof(*errors));
+		pixel_index += row_width;
+		image_quantizer_report_progress("  Dithering image...  ", row,
+						layout->height);
 	}
 	free(errors);
 	return 0;
 }
 
 /* Starts a new color tree: clears the node pool bookkeeping without freeing old
- * blocks, sets g_imageQuantizerMaxTreeDepth to treeDepth kept to 2 to 8, makes
+ * blocks, sets g_image_quantizer_max_tree_depth to tree_depth kept to 2 to 8, makes
  * the root (midpoints 0x80, its own parent, error 0), sets
- * g_imageQuantizerColorCount to 0 and builds g_imageQuantizerSquaredDiffTable.
+ * g_image_quantizer_color_count to 0 and builds g_image_quantizer_squared_diff_table.
  * Returns 256, where its loop stops. Exits the program when an allocation
  * fails. */
 // FUNCTION: XVT 0x444CB0
-int ImageQuantizer_InitializeColorTree(int treeDepth)
+int image_quantizer_initialize_color_tree(int tree_depth)
 {
 	int difference;
 
-	g_imageQuantizerNodePoolHead = NULL;
-	g_imageQuantizerNodeCount = 0;
-	g_imageQuantizerPoolNodesRemaining = 0;
-	if (treeDepth > 8) {
-		treeDepth = 8;
+	g_image_quantizer_node_pool_head = NULL;
+	g_image_quantizer_node_count = 0;
+	g_image_quantizer_pool_nodes_remaining = 0;
+	if (tree_depth > 8) {
+		tree_depth = 8;
 	}
-	if (treeDepth < 2) {
-		treeDepth = 2;
+	if (tree_depth < 2) {
+		tree_depth = 2;
 	}
-	g_imageQuantizerMaxTreeDepth = treeDepth;
-	g_imageQuantizerRoot =
-		ImageQuantizer_AllocateNode(0, 0, NULL, 0x80, 0x80, 0x80);
-	g_imageQuantizerSquaredDiffTable = malloc(0x7FC);
-	if (g_imageQuantizerRoot == NULL ||
-	    g_imageQuantizerSquaredDiffTable == NULL) {
-		ImageQuantizer_FatalAllocationError(
-			g_imageQuantizerUnableToQuantizeMessage,
+	g_image_quantizer_max_tree_depth = tree_depth;
+	g_image_quantizer_root =
+		image_quantizer_allocate_node(0, 0, NULL, 0x80, 0x80, 0x80);
+	g_image_quantizer_squared_diff_table = malloc(0x7FC);
+	if (g_image_quantizer_root == NULL ||
+	    g_image_quantizer_squared_diff_table == NULL) {
+		image_quantizer_fatal_allocation_error(
+			g_image_quantizer_unable_to_quantize_message,
 			"Memory allocation failed");
 		exit(1);
 	}
-	g_imageQuantizerRoot->parent = g_imageQuantizerRoot;
-	g_imageQuantizerRoot->quantizationError = 0.0;
-	g_imageQuantizerColorCount = 0;
-	g_imageQuantizerSquaredDiffTable += 255;
+	g_image_quantizer_root->parent = g_image_quantizer_root;
+	g_image_quantizer_root->quantization_error = 0.0;
+	g_image_quantizer_color_count = 0;
+	g_image_quantizer_squared_diff_table += 255;
 	difference = -255;
 	do {
-		g_imageQuantizerSquaredDiffTable[difference] =
+		g_image_quantizer_squared_diff_table[difference] =
 			difference * difference;
 		++difference;
 	} while (difference <= 255);
@@ -1248,354 +1267,357 @@ int ImageQuantizer_InitializeColorTree(int treeDepth)
 }
 
 /* Takes the next node from the pool, making a new block of 2048 with malloc
- * when the newest is used up, and fills it: the given parent, childIndex, level
+ * when the newest is used up, and fills it: the given parent, child_index, level
  * and midpoints, no children, and 0 error, count and sums. Adds 1 to
- * g_imageQuantizerNodeCount. Returns it, or NULL when a block cannot be
+ * g_image_quantizer_node_count. Returns it, or NULL when a block cannot be
  * allocated. */
 // FUNCTION: XVT 0x444D90
-struct ImageQuantizerNode *
-ImageQuantizer_AllocateNode(int childIndex, int level,
-			    struct ImageQuantizerNode *parent, int midpointRed,
-			    int midpointGreen, int midpointBlue)
+struct image_quantizer_node *image_quantizer_allocate_node(
+	int child_index, int level, struct image_quantizer_node *parent,
+	int midpoint_red, int midpoint_green, int midpoint_blue)
 {
-	struct ImageQuantizerNodePoolBlock *poolBlock;
-	struct ImageQuantizerNode *node;
+	struct image_quantizer_node_pool_block *pool_block;
+	struct image_quantizer_node *node;
 
-	if (g_imageQuantizerPoolNodesRemaining == 0) {
-		poolBlock = (struct ImageQuantizerNodePoolBlock *)malloc(
-			sizeof(struct ImageQuantizerNodePoolBlock));
-		if (poolBlock == NULL) {
+	if (g_image_quantizer_pool_nodes_remaining == 0) {
+		pool_block = (struct image_quantizer_node_pool_block *)malloc(
+			sizeof(struct image_quantizer_node_pool_block));
+		if (pool_block == NULL) {
 			return NULL;
 		}
-		poolBlock->previous = g_imageQuantizerNodePoolHead;
-		g_imageQuantizerNodePoolHead = poolBlock;
-		g_imageQuantizerNextNode = poolBlock->nodes;
-		g_imageQuantizerPoolNodesRemaining = 2048;
+		pool_block->previous = g_image_quantizer_node_pool_head;
+		g_image_quantizer_node_pool_head = pool_block;
+		g_image_quantizer_next_node = pool_block->nodes;
+		g_image_quantizer_pool_nodes_remaining = 2048;
 	}
-	++g_imageQuantizerNodeCount;
-	--g_imageQuantizerPoolNodesRemaining;
-	node = g_imageQuantizerNextNode;
-	++g_imageQuantizerNextNode;
+	++g_image_quantizer_node_count;
+	--g_image_quantizer_pool_nodes_remaining;
+	node = g_image_quantizer_next_node;
+	++g_image_quantizer_next_node;
 	node->parent = parent;
 	memset(node->children, 0, sizeof(node->children));
-	node->childIndex = childIndex;
+	node->child_index = child_index;
 	node->level = level;
-	node->childrenMask = 0;
-	node->midpointRed = midpointRed;
-	node->midpointGreen = midpointGreen;
-	node->midpointBlue = midpointBlue;
-	node->quantizationError = 0.0;
-	node->pixelCount = 0;
-	node->redSum = 0.0;
-	node->greenSum = 0.0;
-	node->blueSum = 0.0;
+	node->children_mask = 0;
+	node->midpoint_red = midpoint_red;
+	node->midpoint_green = midpoint_green;
+	node->midpoint_blue = midpoint_blue;
+	node->quantization_error = 0.0;
+	node->pixel_count = 0;
+	node->red_sum = 0.0;
+	node->green_sum = 0.0;
+	node->blue_sum = 0.0;
 	return node;
 }
 
-/* Merges every node at level g_imageQuantizerMaxTreeDepth in node's subtree
- * into its parent with ImageQuantizer_MergeNodeIntoParent, children first. */
+/* Merges every node at level g_image_quantizer_max_tree_depth in node's subtree
+ * into its parent with image_quantizer_merge_node_into_parent, children first. */
 // FUNCTION: XVT 0x444E60
-void ImageQuantizer_CollapseDeepestLevelRecursive(
-	struct ImageQuantizerNode *node)
+void image_quantizer_collapse_deepest_level_recursive(
+	struct image_quantizer_node *node)
 {
-	int childIndex;
+	int child_index;
 
-	if (node->childrenMask != 0) {
-		for (childIndex = 0; childIndex < 8; childIndex++) {
-			if ((node->childrenMask & (1 << childIndex)) != 0) {
-				ImageQuantizer_CollapseDeepestLevelRecursive(
-					node->children[childIndex]);
+	if (node->children_mask != 0) {
+		for (child_index = 0; child_index < 8; child_index++) {
+			if ((node->children_mask & (1 << child_index)) != 0) {
+				image_quantizer_collapse_deepest_level_recursive(
+					node->children[child_index]);
 			}
 		}
 	}
 
-	if (node->level == g_imageQuantizerMaxTreeDepth) {
-		ImageQuantizer_MergeNodeIntoParent(node);
+	if (node->level == g_image_quantizer_max_tree_depth) {
+		image_quantizer_merge_node_into_parent(node);
 	}
 }
 
-/* Takes node out of its parent's childrenMask and adds its pixel count and
- * channel sums to the parent's; lowers g_imageQuantizerNodeCount. Returns the
+/* Takes node out of its parent's children_mask and adds its pixel count and
+ * channel sums to the parent's; lowers g_image_quantizer_node_count. Returns the
  * parent's new pixel count. The node's error is not passed on, and its memory
  * stays in the pool. */
 // FUNCTION: XVT 0x444EB0
-unsigned int ImageQuantizer_MergeNodeIntoParent(struct ImageQuantizerNode *node)
+unsigned int
+image_quantizer_merge_node_into_parent(struct image_quantizer_node *node)
 {
-	struct ImageQuantizerNode *parent;
-	unsigned int pixelCount;
+	struct image_quantizer_node *parent;
+	unsigned int pixel_count;
 
 	parent = node->parent;
-	parent->childrenMask &= ~(1 << node->childIndex);
-	pixelCount = node->pixelCount + parent->pixelCount;
-	parent->pixelCount = pixelCount;
-	parent->redSum += node->redSum;
-	parent->greenSum += node->greenSum;
-	parent->blueSum += node->blueSum;
-	--g_imageQuantizerNodeCount;
-	return pixelCount;
+	parent->children_mask &= ~(1 << node->child_index);
+	pixel_count = node->pixel_count + parent->pixel_count;
+	parent->pixel_count = pixel_count;
+	parent->red_sum += node->red_sum;
+	parent->green_sum += node->green_sum;
+	parent->blue_sum += node->blue_sum;
+	--g_image_quantizer_node_count;
+	return pixel_count;
 }
 
-/* Merges color tree nodes until at most targetColorCount hold pixels: each pass
+/* Merges color tree nodes until at most target_color_count hold pixels: each pass
  * merges every node whose error is at most the threshold, the smallest error
- * left by the last pass (1.0 at first), and counts g_imageQuantizerColorCount
+ * left by the last pass (1.0 at first), and counts g_image_quantizer_color_count
  * again. */
 // FUNCTION: XVT 0x444F00
-void ImageQuantizer_ReduceColorTree(unsigned int targetColorCount)
+void image_quantizer_reduce_color_tree(unsigned int target_color_count)
 {
-	unsigned int initialColorCount;
+	unsigned int initial_color_count;
 
-	initialColorCount = g_imageQuantizerColorCount;
-	g_imageQuantizerNextPruneThreshold = 1.0;
-	while (targetColorCount < g_imageQuantizerColorCount) {
-		g_imageQuantizerPruneThreshold =
-			g_imageQuantizerNextPruneThreshold;
-		g_imageQuantizerNextPruneThreshold =
-			g_imageQuantizerRoot->quantizationError - 1.0;
-		g_imageQuantizerColorCount = 0;
-		ImageQuantizer_ReduceColorTreePassRecursive(
-			g_imageQuantizerRoot);
-		ImageQuantizer_ReportProgress(
+	initial_color_count = g_image_quantizer_color_count;
+	g_image_quantizer_next_prune_threshold = 1.0;
+	while (target_color_count < g_image_quantizer_color_count) {
+		g_image_quantizer_prune_threshold =
+			g_image_quantizer_next_prune_threshold;
+		g_image_quantizer_next_prune_threshold =
+			g_image_quantizer_root->quantization_error - 1.0;
+		g_image_quantizer_color_count = 0;
+		image_quantizer_reduce_color_tree_pass_recursive(
+			g_image_quantizer_root);
+		image_quantizer_report_progress(
 			"  Reducing image colors...  ",
-			initialColorCount - g_imageQuantizerColorCount,
-			initialColorCount - targetColorCount + 1);
+			initial_color_count - g_image_quantizer_color_count,
+			initial_color_count - target_color_count + 1);
 	}
 }
 
 /* One reduction pass over node's subtree, children first: merges a node whose
- * error is at most g_imageQuantizerPruneThreshold into its parent; any other
- * node is counted in g_imageQuantizerColorCount when it holds pixels and lowers
- * g_imageQuantizerNextPruneThreshold to its error when that is smaller. */
+ * error is at most g_image_quantizer_prune_threshold into its parent; any other
+ * node is counted in g_image_quantizer_color_count when it holds pixels and lowers
+ * g_image_quantizer_next_prune_threshold to its error when that is smaller. */
 // FUNCTION: XVT 0x444F90
-void ImageQuantizer_ReduceColorTreePassRecursive(
-	struct ImageQuantizerNode *node)
+void image_quantizer_reduce_color_tree_pass_recursive(
+	struct image_quantizer_node *node)
 {
-	unsigned int childIndex;
+	unsigned int child_index;
 
-	if (node->childrenMask != 0) {
-		for (childIndex = 0; childIndex < 8; ++childIndex) {
-			if ((node->childrenMask & (1u << childIndex)) != 0) {
-				ImageQuantizer_ReduceColorTreePassRecursive(
-					node->children[childIndex]);
+	if (node->children_mask != 0) {
+		for (child_index = 0; child_index < 8; ++child_index) {
+			if ((node->children_mask & (1u << child_index)) != 0) {
+				image_quantizer_reduce_color_tree_pass_recursive(
+					node->children[child_index]);
 			}
 		}
 	}
 
-	if (node->quantizationError <= g_imageQuantizerPruneThreshold) {
-		ImageQuantizer_MergeNodeIntoParent(node);
+	if (node->quantization_error <= g_image_quantizer_prune_threshold) {
+		image_quantizer_merge_node_into_parent(node);
 		return;
 	}
 
-	if (node->pixelCount != 0) {
-		++g_imageQuantizerColorCount;
+	if (node->pixel_count != 0) {
+		++g_image_quantizer_color_count;
 	}
-	if (node->quantizationError < g_imageQuantizerNextPruneThreshold) {
-		g_imageQuantizerNextPruneThreshold = node->quantizationError;
+	if (node->quantization_error < g_image_quantizer_next_prune_threshold) {
+		g_image_quantizer_next_prune_threshold =
+			node->quantization_error;
 	}
 }
 
 /* Quantizes every image of listCount linked lists (each image's next at byte
  * 6338) with one color tree shared by all, the steps and defaults as in
- * ImageQuantizer_QuantizeImage, 2 more tree levels when any list's first image
+ * image_quantizer_quantize_image, 2 more tree levels when any list's first image
  * is a palette image. Nothing calls this. */
 // FUNCTION: XVT 0x445020
-void ImageQuantizer_QuantizeImageLists(unsigned int **imageListHeads,
-				       unsigned int listCount,
-				       unsigned int paletteSize, int treeDepth,
-				       int dither, int colorspace)
+void image_quantizer_quantize_image_lists(unsigned int **image_list_heads,
+					  unsigned int list_count,
+					  unsigned int palette_size,
+					  int tree_depth, int dither,
+					  int colorspace)
 {
-	unsigned int targetColorCount = paletteSize == 0 ? 1 : paletteSize;
-	int effectiveDepth = treeDepth;
+	unsigned int target_color_count = palette_size == 0 ? 1 : palette_size;
+	int effective_depth = tree_depth;
 	unsigned int value;
-	unsigned int listIndex;
-	unsigned int storedRunCount;
-	int hasIndexedImage = 0;
-	struct ImageQuantizerImageLayout *image;
-	struct ImageQuantizerImageLayout *nextImage;
-	struct ImageQuantizerNodePoolBlock *previousBlock;
+	unsigned int list_index;
+	unsigned int stored_run_count;
+	int has_indexed_image = 0;
+	struct image_quantizer_image_layout *image;
+	struct image_quantizer_image_layout *next_image;
+	struct image_quantizer_node_pool_block *previous_block;
 
-	if (targetColorCount > 0xFFFF) {
-		targetColorCount = 0xFFFF;
+	if (target_color_count > 0xFFFF) {
+		target_color_count = 0xFFFF;
 	}
-	if (effectiveDepth == 0) {
-		effectiveDepth = 1;
-		value = targetColorCount;
+	if (effective_depth == 0) {
+		effective_depth = 1;
+		value = target_color_count;
 		while (value != 0) {
 			value >>= 2;
-			++effectiveDepth;
+			++effective_depth;
 		}
 		if (dither != 0) {
-			--effectiveDepth;
+			--effective_depth;
 		}
-		for (listIndex = 0; listIndex < listCount; ++listIndex) {
-			if (imageListHeads[listIndex] != NULL &&
-			    imageListHeads[listIndex][1033] == 2) {
-				hasIndexedImage = 1;
+		for (list_index = 0; list_index < list_count; ++list_index) {
+			if (image_list_heads[list_index] != NULL &&
+			    image_list_heads[list_index][1033] == 2) {
+				has_indexed_image = 1;
 			}
 		}
-		if (hasIndexedImage != 0) {
-			effectiveDepth += 2;
+		if (has_indexed_image != 0) {
+			effective_depth += 2;
 		}
 	}
-	ImageQuantizer_InitializeColorTree(effectiveDepth);
-	for (listIndex = 0; listIndex < listCount; ++listIndex) {
-		image = (struct ImageQuantizerImageLayout *)
-			imageListHeads[listIndex];
+	image_quantizer_initialize_color_tree(effective_depth);
+	for (list_index = 0; list_index < list_count; ++list_index) {
+		image = (struct image_quantizer_image_layout *)
+			image_list_heads[list_index];
 		while (image != NULL) {
-			memcpy(&storedRunCount, (uint8_t *)image + 4238,
-			       sizeof(storedRunCount));
-			if (image->width * image->height == storedRunCount) {
-				ImageQuantizer_CompressPixelRuns(
+			memcpy(&stored_run_count, (uint8_t *)image + 4238,
+			       sizeof(stored_run_count));
+			if (image->width * image->height == stored_run_count) {
+				image_quantizer_compress_pixel_runs(
 					(unsigned int *)image);
 			}
-			memcpy(&nextImage, (uint8_t *)image + 6338,
-			       sizeof(nextImage));
-			image = nextImage;
+			memcpy(&next_image, (uint8_t *)image + 6338,
+			       sizeof(next_image));
+			image = next_image;
 		}
 	}
-	for (listIndex = 0; listIndex < listCount; ++listIndex) {
-		image = (struct ImageQuantizerImageLayout *)
-			imageListHeads[listIndex];
+	for (list_index = 0; list_index < list_count; ++list_index) {
+		image = (struct image_quantizer_image_layout *)
+			image_list_heads[list_index];
 		while (image != NULL) {
-			ImageQuantizer_ClassifyImageColors(
+			image_quantizer_classify_image_colors(
 				(unsigned int *)image);
-			memcpy(&nextImage, (uint8_t *)image + 6338,
-			       sizeof(nextImage));
-			image = nextImage;
+			memcpy(&next_image, (uint8_t *)image + 6338,
+			       sizeof(next_image));
+			image = next_image;
 		}
 	}
-	if ((g_imageQuantizerColorCount >> 1) < targetColorCount) {
+	if ((g_image_quantizer_color_count >> 1) < target_color_count) {
 		dither = 0;
 	}
-	if (targetColorCount < g_imageQuantizerColorCount) {
-		ImageQuantizer_ReduceColorTree(targetColorCount);
+	if (target_color_count < g_image_quantizer_color_count) {
+		image_quantizer_reduce_color_tree(target_color_count);
 	}
-	for (listIndex = 0; listIndex < listCount; ++listIndex) {
-		image = (struct ImageQuantizerImageLayout *)
-			imageListHeads[listIndex];
+	for (list_index = 0; list_index < list_count; ++list_index) {
+		image = (struct image_quantizer_image_layout *)
+			image_list_heads[list_index];
 		while (image != NULL) {
-			ImageQuantizer_AssignPaletteColors(
-				(unsigned int *)image, targetColorCount, dither,
-				colorspace);
-			memcpy(&nextImage, (uint8_t *)image + 6338,
-			       sizeof(nextImage));
-			image = nextImage;
+			image_quantizer_assign_palette_colors(
+				(unsigned int *)image, target_color_count,
+				dither, colorspace);
+			memcpy(&next_image, (uint8_t *)image + 6338,
+			       sizeof(next_image));
+			image = next_image;
 		}
 	}
-	while (g_imageQuantizerNodePoolHead != NULL) {
-		previousBlock = g_imageQuantizerNodePoolHead->previous;
-		free(g_imageQuantizerNodePoolHead);
-		g_imageQuantizerNodePoolHead = previousBlock;
+	while (g_image_quantizer_node_pool_head != NULL) {
+		previous_block = g_image_quantizer_node_pool_head->previous;
+		free(g_image_quantizer_node_pool_head);
+		g_image_quantizer_node_pool_head = previous_block;
 	}
-	g_imageQuantizerSquaredDiffTable -= 255;
-	free(g_imageQuantizerSquaredDiffTable);
+	g_image_quantizer_squared_diff_table -= 255;
+	free(g_image_quantizer_squared_diff_table);
 }
 
 /* Starts the color tree for a mission palette with
- * ImageQuantizer_InitializeColorTree(treeDepth) and returns its result;
- * targetColorCount is ignored. FeDiskIo_InitResources calls it only while
- * g_generateMissionPalette is set, which FeDiskIo_InitResources clears before
- * loading because g_paletteGenerationEnabled is never set, so it never runs. */
+ * image_quantizer_initialize_color_tree(tree_depth) and returns its result;
+ * target_color_count is ignored. fe_disk_io_init_resources calls it only while
+ * g_generate_mission_palette is set, which fe_disk_io_init_resources clears before
+ * loading because g_palette_generation_enabled is never set, so it never runs. */
 // FUNCTION: XVT 0x4451E0
-int ImageQuantizer_BeginPaletteCollection(int targetColorCount, int treeDepth)
+int image_quantizer_begin_palette_collection(int target_color_count,
+					     int tree_depth)
 {
-	(void)targetColorCount;
-	return ImageQuantizer_InitializeColorTree(treeDepth);
+	(void)target_color_count;
+	return image_quantizer_initialize_color_tree(tree_depth);
 }
 
 /* Ends a mission palette: reduces the tree to colorCount colors, builds the
- * palette entries and writes colorCount of them to paletteRgb as 6-bit triplets
+ * palette entries and writes colorCount of them to palette_rgb as 6-bit triplets
  * (each channel >> 2), even when fewer were built, then frees the entries, the
- * node pool and the squared-difference table. treeDepth is ignored. Does not
+ * node pool and the squared-difference table. tree_depth is ignored. Does not
  * check that a pool block exists; exits the program when the entries cannot be
- * allocated. FeDiskIo_InitResources calls it only while
- * g_generateMissionPalette is set, which FeDiskIo_InitResources clears before
- * loading because g_paletteGenerationEnabled is never set, so it never runs. */
+ * allocated. fe_disk_io_init_resources calls it only while
+ * g_generate_mission_palette is set, which fe_disk_io_init_resources clears before
+ * loading because g_palette_generation_enabled is never set, so it never runs. */
 // FUNCTION: XVT 0x4451F0
-void ImageQuantizer_ExportPalette6BitAndDestroy(int colorCount, int treeDepth,
-						uint8_t *paletteRgb)
+void image_quantizer_export_palette6_bit_and_destroy(int color_count,
+						     int tree_depth,
+						     uint8_t *palette_rgb)
 {
-	int remainingColors;
-	unsigned int entryOffset;
+	int remaining_colors;
+	unsigned int entry_offset;
 	int blue;
 	int green;
-	struct ImageQuantizerPaletteEntry *entry;
-	struct ImageQuantizerNodePoolBlock *previousBlock;
+	struct image_quantizer_palette_entry *entry;
+	struct image_quantizer_node_pool_block *previous_block;
 	uint8_t *output;
 
-	(void)treeDepth;
-	remainingColors = colorCount;
-	ImageQuantizer_ReduceColorTree(colorCount);
-	g_imageQuantizerPaletteEntries =
-		malloc(sizeof(struct ImageQuantizerPaletteEntry) *
-		       g_imageQuantizerColorCount);
-	if (g_imageQuantizerPaletteEntries == NULL) {
-		ImageQuantizer_FatalAllocationError(
-			g_imageQuantizerUnableToQuantizeMessage,
+	(void)tree_depth;
+	remaining_colors = color_count;
+	image_quantizer_reduce_color_tree(color_count);
+	g_image_quantizer_palette_entries =
+		malloc(sizeof(struct image_quantizer_palette_entry) *
+		       g_image_quantizer_color_count);
+	if (g_image_quantizer_palette_entries == NULL) {
+		image_quantizer_fatal_allocation_error(
+			g_image_quantizer_unable_to_quantize_message,
 			"Memory allocation failed");
 		exit(1);
 	}
-	entryOffset = 0;
-	g_imageQuantizerColorCount = 0;
-	ImageQuantizer_BuildPaletteEntriesRecursive(g_imageQuantizerRoot);
-	if (colorCount > 0) {
-		output = paletteRgb;
+	entry_offset = 0;
+	g_image_quantizer_color_count = 0;
+	image_quantizer_build_palette_entries_recursive(g_image_quantizer_root);
+	if (color_count > 0) {
+		output = palette_rgb;
 		do {
-			entry = (struct ImageQuantizerPaletteEntry
+			entry = (struct image_quantizer_palette_entry
 					 *)((uint8_t *)
-						    g_imageQuantizerPaletteEntries +
-					    entryOffset);
+						    g_image_quantizer_palette_entries +
+					    entry_offset);
 			green = entry->green;
 			blue = entry->blue;
-			entryOffset +=
-				sizeof(struct ImageQuantizerPaletteEntry);
+			entry_offset +=
+				sizeof(struct image_quantizer_palette_entry);
 			output[0] = entry->red >> 2;
-			--remainingColors;
+			--remaining_colors;
 			output[1] = green >> 2;
 			output[2] = blue >> 2;
 			output += 3;
-		} while (remainingColors != 0);
+		} while (remaining_colors != 0);
 	}
-	free(g_imageQuantizerPaletteEntries);
+	free(g_image_quantizer_palette_entries);
 	do {
-		previousBlock = g_imageQuantizerNodePoolHead->previous;
-		free(g_imageQuantizerNodePoolHead);
-		g_imageQuantizerNodePoolHead = previousBlock;
-	} while (previousBlock != NULL);
-	g_imageQuantizerSquaredDiffTable -= 255;
-	free(g_imageQuantizerSquaredDiffTable);
+		previous_block = g_image_quantizer_node_pool_head->previous;
+		free(g_image_quantizer_node_pool_head);
+		g_image_quantizer_node_pool_head = previous_block;
+	} while (previous_block != NULL);
+	g_image_quantizer_squared_diff_table -= 255;
+	free(g_image_quantizer_squared_diff_table);
 }
 
 /* Adds an 8-bit image with a 5-6-5 palette to the color tree: makes a temporary
  * record of width * height one-pixel runs, each color widened to 8 bits a
  * channel by shifting (red and blue << 3, green << 2), then joins, classifies
- * and destroys it. Calls FeDiskIo_FatalError when the pixels cannot be
- * allocated. OptModel_BuildRuntimeNode calls it only while
- * g_generateMissionPalette is set, which FeDiskIo_InitResources clears before
- * loading because g_paletteGenerationEnabled is never set, so it never runs. */
+ * and destroys it. Calls fe_disk_io_fatal_error when the pixels cannot be
+ * allocated. opt_model_build_runtime_node calls it only while
+ * g_generate_mission_palette is set, which fe_disk_io_init_resources clears before
+ * loading because g_palette_generation_enabled is never set, so it never runs. */
 // FUNCTION: XVT 0x4452D0
-void ImageQuantizer_ClassifyIndexedRgb565Image(const uint8_t *indexedPixels,
-					       const uint16_t *palette16,
-					       unsigned int width,
-					       unsigned int height)
+void image_quantizer_classify_indexed_rgb565_image(
+	const uint8_t *indexed_pixels, const uint16_t *palette16,
+	unsigned int width, unsigned int height)
 {
-	struct ImageQuantizerImageLayout *image;
-	struct ImageQuantizerPixelRun *sample;
+	struct image_quantizer_image_layout *image;
+	struct image_quantizer_pixel_run *sample;
 	unsigned int row;
 	unsigned int column;
 	uint16_t channel;
 
-	image = ImageQuantizer_AllocateImage();
+	image = image_quantizer_allocate_image();
 	if (image == NULL) {
 		return;
 	}
-	image->comparePaletteIndex = 0;
+	image->compare_palette_index = 0;
 	image->width = width;
 	image->height = height;
-	image->runCount = height * image->width;
-	image->pixels =
-		malloc(image->runCount * sizeof(struct ImageQuantizerPixelRun));
+	image->run_count = height * image->width;
+	image->pixels = malloc(image->run_count *
+			       sizeof(struct image_quantizer_pixel_run));
 	if (image->pixels == NULL) {
-		FeDiskIo_FatalError(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
+		fe_disk_io_fatal_error(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 	}
 
 	sample = image->pixels;
@@ -1603,124 +1625,123 @@ void ImageQuantizer_ClassifyIndexedRgb565Image(const uint8_t *indexedPixels,
 	while (row < image->height) {
 		column = 0;
 		while (column < image->width) {
-			channel = palette16[*indexedPixels];
+			channel = palette16[*indexed_pixels];
 			channel >>= 11;
 			channel <<= 3;
 			sample->red = (uint8_t)channel;
-			channel = palette16[*indexedPixels];
+			channel = palette16[*indexed_pixels];
 			channel >>= 5;
 			channel <<= 2;
 			sample->green = (uint8_t)channel;
-			channel = palette16[*indexedPixels];
+			channel = palette16[*indexed_pixels];
 			channel <<= 3;
 			sample->blue = (uint8_t)channel;
-			++indexedPixels;
-			sample->paletteIndex = 0;
-			sample->lengthMinusOne = 0;
+			++indexed_pixels;
+			sample->palette_index = 0;
+			sample->length_minus_one = 0;
 			++sample;
 			++column;
 		}
 		++row;
 	}
-	ImageQuantizer_CompressPixelRuns((unsigned int *)image);
-	ImageQuantizer_ClassifyImageColors((unsigned int *)image);
-	ImageQuantizer_DestroyImage(image);
+	image_quantizer_compress_pixel_runs((unsigned int *)image);
+	image_quantizer_classify_image_colors((unsigned int *)image);
+	image_quantizer_destroy_image(image);
 }
 
 /* Adds a run-length texture image to the color tree: decodes it, from 16 bytes
- * past encodedImage, into a temporary record of one-pixel runs until a 0xFF at
+ * past encoded_image, into a temporary record of one-pixel runs until a 0xFF at
  * a row's start. 0xFB sets the palette base from the next two bytes, low byte
  * first; 0xFC gives input[1] + 1 gray (0x80) pixels; 0xFD gives input[1] + 1
  * pixels of entry input[2]; any other byte gives (byte & mask) + 1 pixels of
  * entry base + (byte >> shift), mask and shift from
- * g_flightSwRleRunLengthMaskByPackingMode and
- * g_flightSwRlePaletteShiftByPackingMode; colors come from paletteRgba, 4 bytes
+ * g_flight_sw_rle_run_length_mask_by_packing_mode and
+ * g_flight_sw_rle_palette_shift_by_packing_mode; colors come from palette_rgba, 4 bytes
  * per entry. Then joins, classifies and destroys the record. Does not check the
  * pixel allocation or that the decoded pixels fit width * height.
- * TexLevel_Convert24BppPalettesTo8Bpp calls it only while
- * g_generateMissionPalette is set, which FeDiskIo_InitResources clears before
- * loading because g_paletteGenerationEnabled is never set, so it never runs. */
+ * tex_level_convert24_bpp_palettes_to8_bpp calls it only while
+ * g_generate_mission_palette is set, which fe_disk_io_init_resources clears before
+ * loading because g_palette_generation_enabled is never set, so it never runs. */
 // FUNCTION: XVT 0x4453D0
-void ImageQuantizer_ClassifyEncodedTexLevelImage(const uint8_t *encodedImage,
-						 const uint8_t *paletteRgba,
-						 unsigned int width,
-						 unsigned int height,
-						 int packingMode)
+void image_quantizer_classify_encoded_tex_level_image(
+	const uint8_t *encoded_image, const uint8_t *palette_rgba,
+	unsigned int width, unsigned int height, int packing_mode)
 {
 	uint8_t command;
-	struct ImageQuantizerImageLayout *image;
-	uint8_t runLengthMinusOne;
-	const uint8_t *commandPtr;
-	struct ImageQuantizerPixelRun *sample;
-	int paletteBase;
-	int paletteIndex;
+	struct image_quantizer_image_layout *image;
+	uint8_t run_length_minus_one;
+	const uint8_t *command_ptr;
+	struct image_quantizer_pixel_run *sample;
+	int palette_base;
+	int palette_index;
 
-	image = ImageQuantizer_AllocateImage();
+	image = image_quantizer_allocate_image();
 	if (image == NULL) {
 		return;
 	}
-	image->comparePaletteIndex = 0;
+	image->compare_palette_index = 0;
 	image->width = width;
 	image->height = height;
-	image->runCount = height * image->width;
-	image->pixels =
-		malloc(image->runCount * sizeof(struct ImageQuantizerPixelRun));
-	commandPtr = encodedImage + 16;
-	paletteBase = 0;
+	image->run_count = height * image->width;
+	image->pixels = malloc(image->run_count *
+			       sizeof(struct image_quantizer_pixel_run));
+	command_ptr = encoded_image + 16;
+	palette_base = 0;
 	sample = image->pixels;
-	while (*commandPtr != 0xff) {
-		while (*commandPtr != 0xfe) {
-			command = *commandPtr;
+	while (*command_ptr != 0xff) {
+		while (*command_ptr != 0xfe) {
+			command = *command_ptr;
 			if (command == 0xfb) {
-				paletteBase =
-					commandPtr[1] + (commandPtr[2] << 8);
-				commandPtr += 3;
+				palette_base =
+					command_ptr[1] + (command_ptr[2] << 8);
+				command_ptr += 3;
 			} else if (command == 0xfc) {
-				runLengthMinusOne = commandPtr[1];
-				commandPtr += 2;
+				run_length_minus_one = command_ptr[1];
+				command_ptr += 2;
 				do {
 					sample->red = 0x80;
 					sample->green = 0x80;
 					sample->blue = 0x80;
-					sample->paletteIndex = 0;
-					sample->lengthMinusOne = 0;
+					sample->palette_index = 0;
+					sample->length_minus_one = 0;
 					++sample;
-				} while (runLengthMinusOne-- != 0);
+				} while (run_length_minus_one-- != 0);
 			} else {
 				if (command == 0xfd) {
-					runLengthMinusOne = commandPtr[1];
-					paletteIndex = commandPtr[2];
-					commandPtr += 3;
+					run_length_minus_one = command_ptr[1];
+					palette_index = command_ptr[2];
+					command_ptr += 3;
 				} else {
-					runLengthMinusOne = command;
-					paletteIndex =
-						(uint8_t)(runLengthMinusOne >>
-							  g_flightSwRlePaletteShiftByPackingMode
-								  [packingMode]) +
-						paletteBase;
-					++commandPtr;
-					runLengthMinusOne =
-						g_flightSwRleRunLengthMaskByPackingMode
-							[packingMode];
-					runLengthMinusOne &= command;
+					run_length_minus_one = command;
+					palette_index =
+						(uint8_t)(run_length_minus_one >>
+							  g_flight_sw_rle_palette_shift_by_packing_mode
+								  [packing_mode]) +
+						palette_base;
+					++command_ptr;
+					run_length_minus_one =
+						g_flight_sw_rle_run_length_mask_by_packing_mode
+							[packing_mode];
+					run_length_minus_one &= command;
 				}
-				/* From here paletteIndex is a byte offset into paletteRgba, four bytes per entry. */
-				paletteIndex *= 4;
+				/* From here paletteIndex is a byte offset into palette_rgba, four bytes per entry. */
+				palette_index *= 4;
 				do {
-					sample->red = paletteRgba[paletteIndex];
+					sample->red =
+						palette_rgba[palette_index];
 					sample->green =
-						paletteRgba[paletteIndex + 1];
+						palette_rgba[palette_index + 1];
 					sample->blue =
-						paletteRgba[paletteIndex + 2];
-					sample->paletteIndex = 0;
-					sample->lengthMinusOne = 0;
+						palette_rgba[palette_index + 2];
+					sample->palette_index = 0;
+					sample->length_minus_one = 0;
 					++sample;
-				} while (runLengthMinusOne-- != 0);
+				} while (run_length_minus_one-- != 0);
 			}
 		}
-		++commandPtr;
+		++command_ptr;
 	}
-	ImageQuantizer_CompressPixelRuns((unsigned int *)image);
-	ImageQuantizer_ClassifyImageColors((unsigned int *)image);
-	ImageQuantizer_DestroyImage(image);
+	image_quantizer_compress_pixel_runs((unsigned int *)image);
+	image_quantizer_classify_image_colors((unsigned int *)image);
+	image_quantizer_destroy_image(image);
 }

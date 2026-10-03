@@ -13,160 +13,161 @@
 #include "xvt/util/memory.h"
 
 /* Object type of each backdrop record, whose texture block holds its image:
- * Backdrop_GenerateDefaultRecords fills the first 22 at random and Mission_Init
+ * backdrop_generate_default_records fills the first 22 at random and mission_init
  * puts a mission's backdrop flight groups over them. */
 // GLOBAL: XVT 0x5234F0
-uint8_t g_backdropModelTypes[64] = {0};
+uint8_t g_backdrop_model_types[64] = {0};
 /* Direction of each backdrop record on its cube face: low bits 0x07 and high
  * bits 0x70 index the camera step tables on the face's two other axes, and 0x08
- * and 0x80 negate them. Written by Backdrop_GenerateDefaultRecords and
- * Mission_Init. */
+ * and 0x80 negate them. Written by backdrop_generate_default_records and
+ * mission_init. */
 // GLOBAL: XVT 0x523530
-uint8_t g_backdropPackedDirections[64] = {0};
+uint8_t g_backdrop_packed_directions[64] = {0};
 /* Records on the positive Y face, first in the record arrays;
- * Backdrop_GenerateDefaultRecords sets 4. The six face counts order the
+ * backdrop_generate_default_records sets 4. The six face counts order the
  * records: +Y, -Y, +X, -X, +Z, -Z. */
 // GLOBAL: XVT 0x523570
-uint16_t g_backdropPositiveYCount = 0;
-/* Records on the negative Y face; Backdrop_GenerateDefaultRecords sets 4. */
+uint16_t g_backdrop_positive_y_count = 0;
+/* Records on the negative Y face; backdrop_generate_default_records sets 4. */
 // GLOBAL: XVT 0x523574
-uint16_t g_backdropNegativeYCount = 0;
-/* Records on the positive Z face; Backdrop_GenerateDefaultRecords sets 3. */
+uint16_t g_backdrop_negative_y_count = 0;
+/* Records on the positive Z face; backdrop_generate_default_records sets 3. */
 // GLOBAL: XVT 0x523578
-uint16_t g_backdropPositiveZCount = 0;
-/* Records on the negative Z face; Backdrop_GenerateDefaultRecords sets 3. */
+uint16_t g_backdrop_positive_z_count = 0;
+/* Records on the negative Z face; backdrop_generate_default_records sets 3. */
 // GLOBAL: XVT 0x52357C
-uint16_t g_backdropNegativeZCount = 0;
-/* Records on the positive X face; Backdrop_GenerateDefaultRecords sets 4. */
+uint16_t g_backdrop_negative_z_count = 0;
+/* Records on the positive X face; backdrop_generate_default_records sets 4. */
 // GLOBAL: XVT 0x523580
-uint16_t g_backdropPositiveXCount = 0;
-/* Records on the negative X face; Backdrop_GenerateDefaultRecords sets 4. */
+uint16_t g_backdrop_positive_x_count = 0;
+/* Records on the negative X face; backdrop_generate_default_records sets 4. */
 // GLOBAL: XVT 0x523584
-uint16_t g_backdropNegativeXCount = 0;
-/* Entry i holds (i * g_camMatR1_X) >> 5, i from 0 to 15; the nine step tables
- * are rebuilt each frame by Backdrop_BuildStarOffsetsAndRender, their only
+uint16_t g_backdrop_negative_x_count = 0;
+/* Entry i holds (i * g_cam_mat_r1_x) >> 5, i from 0 to 15; the nine step tables
+ * are rebuilt each frame by backdrop_build_star_offsets_and_render, their only
  * writer and reader. */
 // GLOBAL: XVT 0x9A8DD0
-int32_t g_backdropCamR1XSteps[16] = {0};
-/* Entry i holds (i * g_camMatR2_X) >> 5; see g_backdropCamR1XSteps. */
+int32_t g_backdrop_cam_r1x_steps[16] = {0};
+/* Entry i holds (i * g_cam_mat_r2_x) >> 5; see g_backdrop_cam_r1x_steps. */
 // GLOBAL: XVT 0x9D1270
-int32_t g_backdropCamR2XSteps[16] = {0};
-/* Entry i holds (i * g_camMatR0_X) >> 5; see g_backdropCamR1XSteps. */
+int32_t g_backdrop_cam_r2x_steps[16] = {0};
+/* Entry i holds (i * g_cam_mat_r0_x) >> 5; see g_backdrop_cam_r1x_steps. */
 // GLOBAL: XVT 0x9D80D0
-int32_t g_backdropCamR0XSteps[16] = {0};
-/* Entry i holds (i * g_camMatR1_Y) >> 5; see g_backdropCamR1XSteps. */
+int32_t g_backdrop_cam_r0x_steps[16] = {0};
+/* Entry i holds (i * g_cam_mat_r1_y) >> 5; see g_backdrop_cam_r1x_steps. */
 // GLOBAL: XVT 0x9E9600
-int32_t g_backdropCamR1YSteps[16] = {0};
-/* Entry i holds (i * g_camMatR2_Y) >> 5; see g_backdropCamR1XSteps. */
+int32_t g_backdrop_cam_r1y_steps[16] = {0};
+/* Entry i holds (i * g_cam_mat_r2_y) >> 5; see g_backdrop_cam_r1x_steps. */
 // GLOBAL: XVT 0x9EC480
-int32_t g_backdropCamR2YSteps[16] = {0};
-/* Entry i holds (i * g_camMatR0_Y) >> 5; see g_backdropCamR1XSteps. */
+int32_t g_backdrop_cam_r2y_steps[16] = {0};
+/* Entry i holds (i * g_cam_mat_r0_y) >> 5; see g_backdrop_cam_r1x_steps. */
 // GLOBAL: XVT 0x9FE740
-int32_t g_backdropCamR0YSteps[16] = {0};
-/* Entry i holds (i * g_camMatR1_Z) >> 5; see g_backdropCamR1XSteps. */
+int32_t g_backdrop_cam_r0y_steps[16] = {0};
+/* Entry i holds (i * g_cam_mat_r1_z) >> 5; see g_backdrop_cam_r1x_steps. */
 // GLOBAL: XVT 0xA004E0
-int32_t g_backdropCamR1ZSteps[16] = {0};
-/* Entry i holds (i * g_camMatR2_Z) >> 5; see g_backdropCamR1XSteps. */
+int32_t g_backdrop_cam_r1z_steps[16] = {0};
+/* Entry i holds (i * g_cam_mat_r2_z) >> 5; see g_backdrop_cam_r1x_steps. */
 // GLOBAL: XVT 0xA07C80
-int32_t g_backdropCamR2ZSteps[16] = {0};
-/* Entry i holds (i * g_camMatR0_Z) >> 5; see g_backdropCamR1XSteps. */
+int32_t g_backdrop_cam_r2z_steps[16] = {0};
+/* Entry i holds (i * g_cam_mat_r0_z) >> 5; see g_backdrop_cam_r1x_steps. */
 // GLOBAL: XVT 0xA08250
-int32_t g_backdropCamR0ZSteps[16] = {0};
+int32_t g_backdrop_cam_r0z_steps[16] = {0};
 
 /* Draws image 0 of a model type's texture block at a screen point, rolled by
- * angle, at size 256: through RenderQuad_DrawRotatedSprite with
- * g_useHardware3D, else with the software rotated-sprite functions. Sets
- * g_flightSwRotSpriteSpanRunsEnabled to 1, g_camRelWorldZ to 0x100000 and
- * g_viewSpaceDepth to 0x7FFFFFFF first. It reads the image after unlocking the
+ * angle, at size 256: through render_quad_draw_rotated_sprite with
+ * g_use_hardware3d, else with the software rotated-sprite functions. Sets
+ * g_flight_sw_rot_sprite_span_runs_enabled to 1, g_cam_rel_world_z to 0x100000 and
+ * g_view_space_depth to 0x7FFFFFFF first. It reads the image after unlocking the
  * type's resource handle. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x420110
-void Backdrop_DrawModelTexQuadAtScreen(int modelType, int screenX, int screenY,
-				       int angle)
+void backdrop_draw_model_tex_quad_at_screen(int model_type, int screen_x,
+					    int screen_y, int angle)
 {
-	const uint8_t *modelData;
-	const struct TexLevelHeader *textureHeader;
-	struct SpritePayload *sprite;
-	uint16_t softwareAngle;
+	const uint8_t *model_data;
+	const struct tex_level_header *texture_header;
+	struct sprite_payload *sprite;
+	uint16_t software_angle;
 
-	g_flightSwRotSpriteSpanRunsEnabled = 1;
-	g_camRelWorldZ = 0x100000;
-	g_viewSpaceDepth = 0x7FFFFFFF;
-	modelData = (const uint8_t *)Memory_GetHandleBlock(
-		g_objectTypeTable[modelType].resourceHandle);
-	Memory_HandleBlockDoneStub(g_objectTypeTable[modelType].resourceHandle);
-	textureHeader = (const struct TexLevelHeader *)modelData;
-	sprite = (struct SpritePayload
-			  *)(modelData +
+	g_flight_sw_rot_sprite_span_runs_enabled = 1;
+	g_cam_rel_world_z = 0x100000;
+	g_view_space_depth = 0x7FFFFFFF;
+	model_data = (const uint8_t *)memory_get_handle_block(
+		g_object_type_table[model_type].resource_handle);
+	memory_handle_block_done_stub(
+		g_object_type_table[model_type].resource_handle);
+	texture_header = (const struct tex_level_header *)model_data;
+	sprite = (struct sprite_payload
+			  *)(model_data +
 			     *(const uint32_t
-				       *)(modelData +
-					  textureHeader
-						  ->imageOffsetTableOffset));
-	if (g_useHardware3D != 0) {
-		RenderQuad_DrawRotatedSprite(angle, screenX, screenY, 256,
-					     sprite);
+				       *)(model_data +
+					  texture_header
+						  ->image_offset_table_offset));
+	if (g_use_hardware3d != 0) {
+		render_quad_draw_rotated_sprite(angle, screen_x, screen_y, 256,
+						sprite);
 	} else {
-		softwareAngle = (uint16_t)angle;
-		FlightSw_PrepareSpriteRotationTables(
-			softwareAngle, FLIGHT_SW_16BPP_BYTES_PER_PIXEL);
-		FlightSw_LoadSpritePaletteTables(sprite);
-		FlightSw_DrawRotatedSpriteQuad((int16_t)screenX,
-					       (int16_t)screenY, 256, sprite);
+		software_angle = (uint16_t)angle;
+		flight_sw_prepare_sprite_rotation_tables(
+			software_angle, FLIGHT_SW_16BPP_BYTES_PER_PIXEL);
+		flight_sw_load_sprite_palette_tables(sprite);
+		flight_sw_draw_rotated_sprite_quad(
+			(int16_t)screen_x, (int16_t)screen_y, 256, sprite);
 	}
 }
 
 /* Rebuilds the backdrop step tables and the starfield jitter, then draws the
  * backdrops. Each step table entry i is (i * camera matrix term) >> 5. The 125
- * entries of g_starfieldJitterX, Y and Z get rows 0, 1 and 2 of the camera
+ * entries of g_starfield_jitter_x, Y and Z get rows 0, 1 and 2 of the camera
  * matrix dotted with the grid point (x - 2, y - 2, z - 2), x, y and z each 0 to
- * 4, then >> 7. Unless g_backdropsEnabled is 0 it draws the records of one face
+ * 4, then >> 7. Unless g_backdrops_enabled is 0 it draws the records of one face
  * per axis, Y, then X, then Z: the positive face's when the camera matrix's row
  * 2 term for that axis is not negative, else the negative face's. A record's
  * view position adds the steps its packed direction names on the face's other
  * two axes (X then Z for a Y face, Y then Z for X, Y then X for Z) and the
  * camera column of the face's axis >> 2, added or taken away by the face's
  * sign; a record with a negative view depth is skipped. Each goes to
- * Backdrop_ProjectAndDrawScreenQuad with its 1-based record number and a roll
- * of -trig2_arctan(g_camMatR1_X, g_camMatR0_X), or of the Y terms for the X
+ * backdrop_project_and_draw_screen_quad with its 1-based record number and a roll
+ * of -trig2_arctan(g_cam_mat_r1_x, g_cam_mat_r0_x), or of the Y terms for the X
  * faces. */
 // FUNCTION: XVT 0x426080
-void Backdrop_BuildStarOffsetsAndRender(void)
+void backdrop_build_star_offsets_and_render(void)
 {
-	int accumR0X;
-	int accumR0Y;
-	int accumR0Z;
-	int accumR1X;
-	int accumR1Y;
-	int accumR1Z;
-	int accumR2X;
-	int accumR2Y;
-	int accumR2Z;
-	int gridBaseR0;
-	int gridBaseR1;
-	int gridBaseR2;
-	int gridRowR0;
-	int gridRowR1;
-	int gridRowR2;
-	int gridValueR0;
-	int gridValueR1;
-	int gridValueR2;
-	int stepIndex;
-	int gridX;
-	int gridY;
-	int gridZ;
-	int jitterIndex;
+	int accum_r0x;
+	int accum_r0y;
+	int accum_r0z;
+	int accum_r1x;
+	int accum_r1y;
+	int accum_r1z;
+	int accum_r2x;
+	int accum_r2y;
+	int accum_r2z;
+	int grid_base_r0;
+	int grid_base_r1;
+	int grid_base_r2;
+	int grid_row_r0;
+	int grid_row_r1;
+	int grid_row_r2;
+	int grid_value_r0;
+	int grid_value_r1;
+	int grid_value_r2;
+	int step_index;
+	int grid_x;
+	int grid_y;
+	int grid_z;
+	int jitter_index;
 	int16_t angle;
-	unsigned int directionIndex;
-	int directionCount;
-	int lowStepIndex;
-	unsigned int highStepIndex;
-	int basisX;
-	int basisY;
-	int basisZ;
-	int viewX;
-	int viewY;
-	int viewZ;
-	uint8_t packedDirection;
+	unsigned int direction_index;
+	int direction_count;
+	int low_step_index;
+	unsigned int high_step_index;
+	int basis_x;
+	int basis_y;
+	int basis_z;
+	int view_x;
+	int view_y;
+	int view_z;
+	uint8_t packed_direction;
 
 	enum {
 		CAMERA_STEP_COUNT = 16,
@@ -181,581 +182,582 @@ void Backdrop_BuildStarOffsetsAndRender(void)
 		DIRECTION_NEGATE_HIGH_BIT = 0x80
 	};
 
-	accumR0X = 0;
-	accumR0Y = 0;
-	accumR0Z = 0;
-	accumR1X = 0;
-	accumR1Y = 0;
-	accumR1Z = 0;
-	accumR2X = 0;
-	accumR2Y = 0;
-	accumR2Z = 0;
-	for (stepIndex = 0; stepIndex < CAMERA_STEP_COUNT; ++stepIndex) {
-		g_backdropCamR0XSteps[stepIndex] =
-			accumR0X >> CAMERA_STEP_SHIFT;
-		g_backdropCamR1XSteps[stepIndex] =
-			accumR1X >> CAMERA_STEP_SHIFT;
-		g_backdropCamR2XSteps[stepIndex] =
-			accumR2X >> CAMERA_STEP_SHIFT;
-		g_backdropCamR0YSteps[stepIndex] =
-			accumR0Y >> CAMERA_STEP_SHIFT;
-		g_backdropCamR1YSteps[stepIndex] =
-			accumR1Y >> CAMERA_STEP_SHIFT;
-		g_backdropCamR2YSteps[stepIndex] =
-			accumR2Y >> CAMERA_STEP_SHIFT;
-		g_backdropCamR0ZSteps[stepIndex] =
-			accumR0Z >> CAMERA_STEP_SHIFT;
-		g_backdropCamR1ZSteps[stepIndex] =
-			accumR1Z >> CAMERA_STEP_SHIFT;
-		g_backdropCamR2ZSteps[stepIndex] =
-			accumR2Z >> CAMERA_STEP_SHIFT;
-		accumR0X += g_camMatR0_X;
-		accumR1X += g_camMatR1_X;
-		accumR2X += g_camMatR2_X;
-		accumR0Y += g_camMatR0_Y;
-		accumR1Y += g_camMatR1_Y;
-		accumR2Y += g_camMatR2_Y;
-		accumR0Z += g_camMatR0_Z;
-		accumR1Z += g_camMatR1_Z;
-		accumR2Z += g_camMatR2_Z;
+	accum_r0x = 0;
+	accum_r0y = 0;
+	accum_r0z = 0;
+	accum_r1x = 0;
+	accum_r1y = 0;
+	accum_r1z = 0;
+	accum_r2x = 0;
+	accum_r2y = 0;
+	accum_r2z = 0;
+	for (step_index = 0; step_index < CAMERA_STEP_COUNT; ++step_index) {
+		g_backdrop_cam_r0x_steps[step_index] =
+			accum_r0x >> CAMERA_STEP_SHIFT;
+		g_backdrop_cam_r1x_steps[step_index] =
+			accum_r1x >> CAMERA_STEP_SHIFT;
+		g_backdrop_cam_r2x_steps[step_index] =
+			accum_r2x >> CAMERA_STEP_SHIFT;
+		g_backdrop_cam_r0y_steps[step_index] =
+			accum_r0y >> CAMERA_STEP_SHIFT;
+		g_backdrop_cam_r1y_steps[step_index] =
+			accum_r1y >> CAMERA_STEP_SHIFT;
+		g_backdrop_cam_r2y_steps[step_index] =
+			accum_r2y >> CAMERA_STEP_SHIFT;
+		g_backdrop_cam_r0z_steps[step_index] =
+			accum_r0z >> CAMERA_STEP_SHIFT;
+		g_backdrop_cam_r1z_steps[step_index] =
+			accum_r1z >> CAMERA_STEP_SHIFT;
+		g_backdrop_cam_r2z_steps[step_index] =
+			accum_r2z >> CAMERA_STEP_SHIFT;
+		accum_r0x += g_cam_mat_r0_x;
+		accum_r1x += g_cam_mat_r1_x;
+		accum_r2x += g_cam_mat_r2_x;
+		accum_r0y += g_cam_mat_r0_y;
+		accum_r1y += g_cam_mat_r1_y;
+		accum_r2y += g_cam_mat_r2_y;
+		accum_r0z += g_cam_mat_r0_z;
+		accum_r1z += g_cam_mat_r1_z;
+		accum_r2z += g_cam_mat_r2_z;
 	}
 
-	gridBaseR2 = -STAR_GRID_RADIUS *
-		     (g_camMatR2_X + g_camMatR2_Y + g_camMatR2_Z);
-	gridBaseR1 = -STAR_GRID_RADIUS *
-		     (g_camMatR1_X + g_camMatR1_Y + g_camMatR1_Z);
-	gridBaseR0 = -STAR_GRID_RADIUS *
-		     (g_camMatR0_X + g_camMatR0_Y + g_camMatR0_Z);
-	jitterIndex = 0;
-	for (gridX = 0; gridX < STAR_GRID_SIZE; ++gridX) {
-		gridRowR0 = gridBaseR0;
-		gridRowR1 = gridBaseR1;
-		gridRowR2 = gridBaseR2;
-		for (gridY = 0; gridY < STAR_GRID_SIZE; ++gridY) {
-			gridValueR0 = gridRowR0;
-			gridValueR1 = gridRowR1;
-			gridValueR2 = gridRowR2;
-			for (gridZ = 0; gridZ < STAR_GRID_SIZE; ++gridZ) {
-				g_starfieldJitterX[jitterIndex] =
-					gridValueR0 >> STAR_JITTER_SHIFT;
-				g_starfieldJitterY[jitterIndex] =
-					gridValueR1 >> STAR_JITTER_SHIFT;
-				g_starfieldJitterZ[jitterIndex] =
-					gridValueR2 >> STAR_JITTER_SHIFT;
-				++jitterIndex;
-				gridValueR0 += g_camMatR0_Z;
-				gridValueR2 += g_camMatR2_Z;
-				gridValueR1 += g_camMatR1_Z;
+	grid_base_r2 = -STAR_GRID_RADIUS *
+		       (g_cam_mat_r2_x + g_cam_mat_r2_y + g_cam_mat_r2_z);
+	grid_base_r1 = -STAR_GRID_RADIUS *
+		       (g_cam_mat_r1_x + g_cam_mat_r1_y + g_cam_mat_r1_z);
+	grid_base_r0 = -STAR_GRID_RADIUS *
+		       (g_cam_mat_r0_x + g_cam_mat_r0_y + g_cam_mat_r0_z);
+	jitter_index = 0;
+	for (grid_x = 0; grid_x < STAR_GRID_SIZE; ++grid_x) {
+		grid_row_r0 = grid_base_r0;
+		grid_row_r1 = grid_base_r1;
+		grid_row_r2 = grid_base_r2;
+		for (grid_y = 0; grid_y < STAR_GRID_SIZE; ++grid_y) {
+			grid_value_r0 = grid_row_r0;
+			grid_value_r1 = grid_row_r1;
+			grid_value_r2 = grid_row_r2;
+			for (grid_z = 0; grid_z < STAR_GRID_SIZE; ++grid_z) {
+				g_starfield_jitter_x[jitter_index] =
+					grid_value_r0 >> STAR_JITTER_SHIFT;
+				g_starfield_jitter_y[jitter_index] =
+					grid_value_r1 >> STAR_JITTER_SHIFT;
+				g_starfield_jitter_z[jitter_index] =
+					grid_value_r2 >> STAR_JITTER_SHIFT;
+				++jitter_index;
+				grid_value_r0 += g_cam_mat_r0_z;
+				grid_value_r2 += g_cam_mat_r2_z;
+				grid_value_r1 += g_cam_mat_r1_z;
 			}
-			gridRowR0 += g_camMatR0_Y;
-			gridRowR1 += g_camMatR1_Y;
-			gridRowR2 += g_camMatR2_Y;
+			grid_row_r0 += g_cam_mat_r0_y;
+			grid_row_r1 += g_cam_mat_r1_y;
+			grid_row_r2 += g_cam_mat_r2_y;
 		}
-		gridBaseR2 += g_camMatR2_X;
-		gridBaseR1 += g_camMatR1_X;
-		gridBaseR0 += g_camMatR0_X;
+		grid_base_r2 += g_cam_mat_r2_x;
+		grid_base_r1 += g_cam_mat_r1_x;
+		grid_base_r0 += g_cam_mat_r0_x;
 	}
 
-	if (g_backdropsEnabled == 0) {
+	if (g_backdrops_enabled == 0) {
 		return;
 	}
 
-	directionIndex = 0;
-	angle = (int16_t)-trig2_arctan(g_camMatR1_X, g_camMatR0_X);
-	if (g_camMatR2_Y >= 0) {
-		for (directionCount = g_backdropPositiveYCount;
-		     directionCount-- != 0;) {
-			packedDirection =
-				g_backdropPackedDirections[directionIndex++];
-			lowStepIndex = (uint8_t)packedDirection &
-				       DIRECTION_LOW_INDEX_MASK;
-			basisY = g_backdropCamR1XSteps[lowStepIndex];
-			basisZ = g_backdropCamR2XSteps[lowStepIndex];
-			basisX = g_backdropCamR0XSteps[lowStepIndex];
-			if (((uint8_t)packedDirection &
+	direction_index = 0;
+	angle = (int16_t)-trig2_arctan(g_cam_mat_r1_x, g_cam_mat_r0_x);
+	if (g_cam_mat_r2_y >= 0) {
+		for (direction_count = g_backdrop_positive_y_count;
+		     direction_count-- != 0;) {
+			packed_direction =
+				g_backdrop_packed_directions[direction_index++];
+			low_step_index = (uint8_t)packed_direction &
+					 DIRECTION_LOW_INDEX_MASK;
+			basis_y = g_backdrop_cam_r1x_steps[low_step_index];
+			basis_z = g_backdrop_cam_r2x_steps[low_step_index];
+			basis_x = g_backdrop_cam_r0x_steps[low_step_index];
+			if (((uint8_t)packed_direction &
 			     DIRECTION_NEGATE_LOW_BIT) != 0) {
-				basisX = -basisX;
-				basisY = -basisY;
-				basisZ = -basisZ;
+				basis_x = -basis_x;
+				basis_y = -basis_y;
+				basis_z = -basis_z;
 			}
-			if ((packedDirection & DIRECTION_NEGATE_HIGH_BIT) !=
+			if ((packed_direction & DIRECTION_NEGATE_HIGH_BIT) !=
 			    0) {
-				highStepIndex = (packedDirection &
-						 DIRECTION_HIGH_INDEX_MASK) >>
-						4;
-				viewX = basisX -
-					g_backdropCamR0ZSteps[highStepIndex];
-				viewY = basisY -
-					g_backdropCamR1ZSteps[highStepIndex];
-				viewZ = basisZ -
-					g_backdropCamR2ZSteps[highStepIndex];
+				high_step_index = (packed_direction &
+						   DIRECTION_HIGH_INDEX_MASK) >>
+						  4;
+				view_x = basis_x - g_backdrop_cam_r0z_steps
+							   [high_step_index];
+				view_y = basis_y - g_backdrop_cam_r1z_steps
+							   [high_step_index];
+				view_z = basis_z - g_backdrop_cam_r2z_steps
+							   [high_step_index];
 			} else {
-				highStepIndex = (packedDirection &
-						 DIRECTION_HIGH_INDEX_MASK) >>
-						4;
-				viewX = basisX +
-					g_backdropCamR0ZSteps[highStepIndex];
-				viewY = basisY +
-					g_backdropCamR1ZSteps[highStepIndex];
-				viewZ = basisZ +
-					g_backdropCamR2ZSteps[highStepIndex];
+				high_step_index = (packed_direction &
+						   DIRECTION_HIGH_INDEX_MASK) >>
+						  4;
+				view_x = basis_x + g_backdrop_cam_r0z_steps
+							   [high_step_index];
+				view_y = basis_y + g_backdrop_cam_r1z_steps
+							   [high_step_index];
+				view_z = basis_z + g_backdrop_cam_r2z_steps
+							   [high_step_index];
 			}
-			viewX += g_camMatR0_Y >> CAMERA_QUARTER_SHIFT;
-			viewY += g_camMatR1_Y >> CAMERA_QUARTER_SHIFT;
-			viewZ += g_camMatR2_Y >> CAMERA_QUARTER_SHIFT;
-			if (viewZ >= 0) {
-				Backdrop_ProjectAndDrawScreenQuad(
-					viewX, viewY, viewZ, angle,
-					directionIndex);
+			view_x += g_cam_mat_r0_y >> CAMERA_QUARTER_SHIFT;
+			view_y += g_cam_mat_r1_y >> CAMERA_QUARTER_SHIFT;
+			view_z += g_cam_mat_r2_y >> CAMERA_QUARTER_SHIFT;
+			if (view_z >= 0) {
+				backdrop_project_and_draw_screen_quad(
+					view_x, view_y, view_z, angle,
+					direction_index);
 			}
 		}
-		directionIndex += g_backdropNegativeYCount;
+		direction_index += g_backdrop_negative_y_count;
 	} else {
-		directionIndex += g_backdropPositiveYCount;
-		for (directionCount = g_backdropNegativeYCount;
-		     directionCount-- != 0;) {
-			packedDirection =
-				g_backdropPackedDirections[directionIndex++];
-			lowStepIndex = (uint8_t)packedDirection &
-				       DIRECTION_LOW_INDEX_MASK;
-			basisX = g_backdropCamR0XSteps[lowStepIndex];
-			basisY = g_backdropCamR1XSteps[lowStepIndex];
-			basisZ = g_backdropCamR2XSteps[lowStepIndex];
-			if (((uint8_t)packedDirection &
+		direction_index += g_backdrop_positive_y_count;
+		for (direction_count = g_backdrop_negative_y_count;
+		     direction_count-- != 0;) {
+			packed_direction =
+				g_backdrop_packed_directions[direction_index++];
+			low_step_index = (uint8_t)packed_direction &
+					 DIRECTION_LOW_INDEX_MASK;
+			basis_x = g_backdrop_cam_r0x_steps[low_step_index];
+			basis_y = g_backdrop_cam_r1x_steps[low_step_index];
+			basis_z = g_backdrop_cam_r2x_steps[low_step_index];
+			if (((uint8_t)packed_direction &
 			     DIRECTION_NEGATE_LOW_BIT) != 0) {
-				basisX = -basisX;
-				basisY = -basisY;
-				basisZ = -basisZ;
+				basis_x = -basis_x;
+				basis_y = -basis_y;
+				basis_z = -basis_z;
 			}
-			if ((packedDirection & DIRECTION_NEGATE_HIGH_BIT) !=
+			if ((packed_direction & DIRECTION_NEGATE_HIGH_BIT) !=
 			    0) {
-				highStepIndex = (packedDirection &
-						 DIRECTION_HIGH_INDEX_MASK) >>
-						4;
-				viewX = basisX -
-					g_backdropCamR0ZSteps[highStepIndex];
-				viewY = basisY -
-					g_backdropCamR1ZSteps[highStepIndex];
-				viewZ = basisZ -
-					g_backdropCamR2ZSteps[highStepIndex];
+				high_step_index = (packed_direction &
+						   DIRECTION_HIGH_INDEX_MASK) >>
+						  4;
+				view_x = basis_x - g_backdrop_cam_r0z_steps
+							   [high_step_index];
+				view_y = basis_y - g_backdrop_cam_r1z_steps
+							   [high_step_index];
+				view_z = basis_z - g_backdrop_cam_r2z_steps
+							   [high_step_index];
 			} else {
-				highStepIndex = (packedDirection &
-						 DIRECTION_HIGH_INDEX_MASK) >>
-						4;
-				viewX = basisX +
-					g_backdropCamR0ZSteps[highStepIndex];
-				viewY = basisY +
-					g_backdropCamR1ZSteps[highStepIndex];
-				viewZ = basisZ +
-					g_backdropCamR2ZSteps[highStepIndex];
+				high_step_index = (packed_direction &
+						   DIRECTION_HIGH_INDEX_MASK) >>
+						  4;
+				view_x = basis_x + g_backdrop_cam_r0z_steps
+							   [high_step_index];
+				view_y = basis_y + g_backdrop_cam_r1z_steps
+							   [high_step_index];
+				view_z = basis_z + g_backdrop_cam_r2z_steps
+							   [high_step_index];
 			}
-			viewX -= g_camMatR0_Y >> CAMERA_QUARTER_SHIFT;
-			viewY -= g_camMatR1_Y >> CAMERA_QUARTER_SHIFT;
-			viewZ -= g_camMatR2_Y >> CAMERA_QUARTER_SHIFT;
-			if (viewZ >= 0) {
-				Backdrop_ProjectAndDrawScreenQuad(
-					viewX, viewY, viewZ, angle,
-					directionIndex);
+			view_x -= g_cam_mat_r0_y >> CAMERA_QUARTER_SHIFT;
+			view_y -= g_cam_mat_r1_y >> CAMERA_QUARTER_SHIFT;
+			view_z -= g_cam_mat_r2_y >> CAMERA_QUARTER_SHIFT;
+			if (view_z >= 0) {
+				backdrop_project_and_draw_screen_quad(
+					view_x, view_y, view_z, angle,
+					direction_index);
 			}
 		}
 	}
 
-	angle = (int16_t)-trig2_arctan(g_camMatR1_Y, g_camMatR0_Y);
-	if (g_camMatR2_X >= 0) {
-		for (directionCount = g_backdropPositiveXCount;
-		     directionCount-- != 0;) {
-			packedDirection =
-				g_backdropPackedDirections[directionIndex++];
-			lowStepIndex = (uint8_t)packedDirection &
-				       DIRECTION_LOW_INDEX_MASK;
-			basisX = g_backdropCamR0YSteps[lowStepIndex];
-			basisY = g_backdropCamR1YSteps[lowStepIndex];
-			basisZ = g_backdropCamR2YSteps[lowStepIndex];
-			if (((uint8_t)packedDirection &
+	angle = (int16_t)-trig2_arctan(g_cam_mat_r1_y, g_cam_mat_r0_y);
+	if (g_cam_mat_r2_x >= 0) {
+		for (direction_count = g_backdrop_positive_x_count;
+		     direction_count-- != 0;) {
+			packed_direction =
+				g_backdrop_packed_directions[direction_index++];
+			low_step_index = (uint8_t)packed_direction &
+					 DIRECTION_LOW_INDEX_MASK;
+			basis_x = g_backdrop_cam_r0y_steps[low_step_index];
+			basis_y = g_backdrop_cam_r1y_steps[low_step_index];
+			basis_z = g_backdrop_cam_r2y_steps[low_step_index];
+			if (((uint8_t)packed_direction &
 			     DIRECTION_NEGATE_LOW_BIT) != 0) {
-				basisX = -basisX;
-				basisY = -basisY;
-				basisZ = -basisZ;
+				basis_x = -basis_x;
+				basis_y = -basis_y;
+				basis_z = -basis_z;
 			}
-			if ((packedDirection & DIRECTION_NEGATE_HIGH_BIT) !=
+			if ((packed_direction & DIRECTION_NEGATE_HIGH_BIT) !=
 			    0) {
-				highStepIndex = (packedDirection &
-						 DIRECTION_HIGH_INDEX_MASK) >>
-						4;
-				viewX = basisX -
-					g_backdropCamR0ZSteps[highStepIndex];
-				viewY = basisY -
-					g_backdropCamR1ZSteps[highStepIndex];
-				viewZ = basisZ -
-					g_backdropCamR2ZSteps[highStepIndex];
+				high_step_index = (packed_direction &
+						   DIRECTION_HIGH_INDEX_MASK) >>
+						  4;
+				view_x = basis_x - g_backdrop_cam_r0z_steps
+							   [high_step_index];
+				view_y = basis_y - g_backdrop_cam_r1z_steps
+							   [high_step_index];
+				view_z = basis_z - g_backdrop_cam_r2z_steps
+							   [high_step_index];
 			} else {
-				highStepIndex = (packedDirection &
-						 DIRECTION_HIGH_INDEX_MASK) >>
-						4;
-				viewX = basisX +
-					g_backdropCamR0ZSteps[highStepIndex];
-				viewY = basisY +
-					g_backdropCamR1ZSteps[highStepIndex];
-				viewZ = basisZ +
-					g_backdropCamR2ZSteps[highStepIndex];
+				high_step_index = (packed_direction &
+						   DIRECTION_HIGH_INDEX_MASK) >>
+						  4;
+				view_x = basis_x + g_backdrop_cam_r0z_steps
+							   [high_step_index];
+				view_y = basis_y + g_backdrop_cam_r1z_steps
+							   [high_step_index];
+				view_z = basis_z + g_backdrop_cam_r2z_steps
+							   [high_step_index];
 			}
-			viewX += g_camMatR0_X >> CAMERA_QUARTER_SHIFT;
-			viewY += g_camMatR1_X >> CAMERA_QUARTER_SHIFT;
-			viewZ += g_camMatR2_X >> CAMERA_QUARTER_SHIFT;
-			if (viewZ >= 0) {
-				Backdrop_ProjectAndDrawScreenQuad(
-					viewX, viewY, viewZ, angle,
-					directionIndex);
+			view_x += g_cam_mat_r0_x >> CAMERA_QUARTER_SHIFT;
+			view_y += g_cam_mat_r1_x >> CAMERA_QUARTER_SHIFT;
+			view_z += g_cam_mat_r2_x >> CAMERA_QUARTER_SHIFT;
+			if (view_z >= 0) {
+				backdrop_project_and_draw_screen_quad(
+					view_x, view_y, view_z, angle,
+					direction_index);
 			}
 		}
-		directionIndex += g_backdropNegativeXCount;
+		direction_index += g_backdrop_negative_x_count;
 	} else {
-		directionIndex += g_backdropPositiveXCount;
-		for (directionCount = g_backdropNegativeXCount;
-		     directionCount-- != 0;) {
-			packedDirection =
-				g_backdropPackedDirections[directionIndex++];
-			lowStepIndex = (uint8_t)packedDirection &
-				       DIRECTION_LOW_INDEX_MASK;
-			basisX = g_backdropCamR0YSteps[lowStepIndex];
-			basisY = g_backdropCamR1YSteps[lowStepIndex];
-			basisZ = g_backdropCamR2YSteps[lowStepIndex];
-			if (((uint8_t)packedDirection &
+		direction_index += g_backdrop_positive_x_count;
+		for (direction_count = g_backdrop_negative_x_count;
+		     direction_count-- != 0;) {
+			packed_direction =
+				g_backdrop_packed_directions[direction_index++];
+			low_step_index = (uint8_t)packed_direction &
+					 DIRECTION_LOW_INDEX_MASK;
+			basis_x = g_backdrop_cam_r0y_steps[low_step_index];
+			basis_y = g_backdrop_cam_r1y_steps[low_step_index];
+			basis_z = g_backdrop_cam_r2y_steps[low_step_index];
+			if (((uint8_t)packed_direction &
 			     DIRECTION_NEGATE_LOW_BIT) != 0) {
-				basisX = -basisX;
-				basisY = -basisY;
-				basisZ = -basisZ;
+				basis_x = -basis_x;
+				basis_y = -basis_y;
+				basis_z = -basis_z;
 			}
-			if ((packedDirection & DIRECTION_NEGATE_HIGH_BIT) !=
+			if ((packed_direction & DIRECTION_NEGATE_HIGH_BIT) !=
 			    0) {
-				highStepIndex = (packedDirection &
-						 DIRECTION_HIGH_INDEX_MASK) >>
-						4;
-				viewX = basisX -
-					g_backdropCamR0ZSteps[highStepIndex];
-				viewY = basisY -
-					g_backdropCamR1ZSteps[highStepIndex];
-				viewZ = basisZ -
-					g_backdropCamR2ZSteps[highStepIndex];
+				high_step_index = (packed_direction &
+						   DIRECTION_HIGH_INDEX_MASK) >>
+						  4;
+				view_x = basis_x - g_backdrop_cam_r0z_steps
+							   [high_step_index];
+				view_y = basis_y - g_backdrop_cam_r1z_steps
+							   [high_step_index];
+				view_z = basis_z - g_backdrop_cam_r2z_steps
+							   [high_step_index];
 			} else {
-				highStepIndex = (packedDirection &
-						 DIRECTION_HIGH_INDEX_MASK) >>
-						4;
-				viewX = basisX +
-					g_backdropCamR0ZSteps[highStepIndex];
-				viewY = basisY +
-					g_backdropCamR1ZSteps[highStepIndex];
-				viewZ = basisZ +
-					g_backdropCamR2ZSteps[highStepIndex];
+				high_step_index = (packed_direction &
+						   DIRECTION_HIGH_INDEX_MASK) >>
+						  4;
+				view_x = basis_x + g_backdrop_cam_r0z_steps
+							   [high_step_index];
+				view_y = basis_y + g_backdrop_cam_r1z_steps
+							   [high_step_index];
+				view_z = basis_z + g_backdrop_cam_r2z_steps
+							   [high_step_index];
 			}
-			viewX -= g_camMatR0_X >> CAMERA_QUARTER_SHIFT;
-			viewY -= g_camMatR1_X >> CAMERA_QUARTER_SHIFT;
-			viewZ -= g_camMatR2_X >> CAMERA_QUARTER_SHIFT;
-			if (viewZ >= 0) {
-				Backdrop_ProjectAndDrawScreenQuad(
-					viewX, viewY, viewZ, angle,
-					directionIndex);
+			view_x -= g_cam_mat_r0_x >> CAMERA_QUARTER_SHIFT;
+			view_y -= g_cam_mat_r1_x >> CAMERA_QUARTER_SHIFT;
+			view_z -= g_cam_mat_r2_x >> CAMERA_QUARTER_SHIFT;
+			if (view_z >= 0) {
+				backdrop_project_and_draw_screen_quad(
+					view_x, view_y, view_z, angle,
+					direction_index);
 			}
 		}
 	}
 
-	angle = (int16_t)-trig2_arctan(g_camMatR1_X, g_camMatR0_X);
-	if (g_camMatR2_Z >= 0) {
-		for (directionCount = g_backdropPositiveZCount;
-		     directionCount-- != 0;) {
-			packedDirection =
-				g_backdropPackedDirections[directionIndex++];
-			lowStepIndex = (uint8_t)packedDirection &
-				       DIRECTION_LOW_INDEX_MASK;
-			basisX = g_backdropCamR0YSteps[lowStepIndex];
-			basisY = g_backdropCamR1YSteps[lowStepIndex];
-			basisZ = g_backdropCamR2YSteps[lowStepIndex];
-			if (((uint8_t)packedDirection &
+	angle = (int16_t)-trig2_arctan(g_cam_mat_r1_x, g_cam_mat_r0_x);
+	if (g_cam_mat_r2_z >= 0) {
+		for (direction_count = g_backdrop_positive_z_count;
+		     direction_count-- != 0;) {
+			packed_direction =
+				g_backdrop_packed_directions[direction_index++];
+			low_step_index = (uint8_t)packed_direction &
+					 DIRECTION_LOW_INDEX_MASK;
+			basis_x = g_backdrop_cam_r0y_steps[low_step_index];
+			basis_y = g_backdrop_cam_r1y_steps[low_step_index];
+			basis_z = g_backdrop_cam_r2y_steps[low_step_index];
+			if (((uint8_t)packed_direction &
 			     DIRECTION_NEGATE_LOW_BIT) != 0) {
-				basisX = -basisX;
-				basisY = -basisY;
-				basisZ = -basisZ;
+				basis_x = -basis_x;
+				basis_y = -basis_y;
+				basis_z = -basis_z;
 			}
-			if ((packedDirection & DIRECTION_NEGATE_HIGH_BIT) !=
+			if ((packed_direction & DIRECTION_NEGATE_HIGH_BIT) !=
 			    0) {
-				highStepIndex = (packedDirection &
-						 DIRECTION_HIGH_INDEX_MASK) >>
-						4;
-				viewX = basisX -
-					g_backdropCamR0XSteps[highStepIndex];
-				viewY = basisY -
-					g_backdropCamR1XSteps[highStepIndex];
-				viewZ = basisZ -
-					g_backdropCamR2XSteps[highStepIndex];
+				high_step_index = (packed_direction &
+						   DIRECTION_HIGH_INDEX_MASK) >>
+						  4;
+				view_x = basis_x - g_backdrop_cam_r0x_steps
+							   [high_step_index];
+				view_y = basis_y - g_backdrop_cam_r1x_steps
+							   [high_step_index];
+				view_z = basis_z - g_backdrop_cam_r2x_steps
+							   [high_step_index];
 			} else {
-				highStepIndex = (packedDirection &
-						 DIRECTION_HIGH_INDEX_MASK) >>
-						4;
-				viewX = basisX +
-					g_backdropCamR0XSteps[highStepIndex];
-				viewY = basisY +
-					g_backdropCamR1XSteps[highStepIndex];
-				viewZ = basisZ +
-					g_backdropCamR2XSteps[highStepIndex];
+				high_step_index = (packed_direction &
+						   DIRECTION_HIGH_INDEX_MASK) >>
+						  4;
+				view_x = basis_x + g_backdrop_cam_r0x_steps
+							   [high_step_index];
+				view_y = basis_y + g_backdrop_cam_r1x_steps
+							   [high_step_index];
+				view_z = basis_z + g_backdrop_cam_r2x_steps
+							   [high_step_index];
 			}
-			viewX += g_camMatR0_Z >> CAMERA_QUARTER_SHIFT;
-			viewY += g_camMatR1_Z >> CAMERA_QUARTER_SHIFT;
-			viewZ += g_camMatR2_Z >> CAMERA_QUARTER_SHIFT;
-			if (viewZ >= 0) {
-				Backdrop_ProjectAndDrawScreenQuad(
-					viewX, viewY, viewZ, angle,
-					directionIndex);
+			view_x += g_cam_mat_r0_z >> CAMERA_QUARTER_SHIFT;
+			view_y += g_cam_mat_r1_z >> CAMERA_QUARTER_SHIFT;
+			view_z += g_cam_mat_r2_z >> CAMERA_QUARTER_SHIFT;
+			if (view_z >= 0) {
+				backdrop_project_and_draw_screen_quad(
+					view_x, view_y, view_z, angle,
+					direction_index);
 			}
 		}
 	} else {
-		directionIndex += g_backdropPositiveZCount;
-		for (directionCount = g_backdropNegativeZCount;
-		     directionCount-- != 0;) {
-			packedDirection =
-				g_backdropPackedDirections[directionIndex++];
-			lowStepIndex = (uint8_t)packedDirection &
-				       DIRECTION_LOW_INDEX_MASK;
-			basisX = g_backdropCamR0YSteps[lowStepIndex];
-			basisY = g_backdropCamR1YSteps[lowStepIndex];
-			basisZ = g_backdropCamR2YSteps[lowStepIndex];
-			if (((uint8_t)packedDirection &
+		direction_index += g_backdrop_positive_z_count;
+		for (direction_count = g_backdrop_negative_z_count;
+		     direction_count-- != 0;) {
+			packed_direction =
+				g_backdrop_packed_directions[direction_index++];
+			low_step_index = (uint8_t)packed_direction &
+					 DIRECTION_LOW_INDEX_MASK;
+			basis_x = g_backdrop_cam_r0y_steps[low_step_index];
+			basis_y = g_backdrop_cam_r1y_steps[low_step_index];
+			basis_z = g_backdrop_cam_r2y_steps[low_step_index];
+			if (((uint8_t)packed_direction &
 			     DIRECTION_NEGATE_LOW_BIT) != 0) {
-				basisX = -basisX;
-				basisY = -basisY;
-				basisZ = -basisZ;
+				basis_x = -basis_x;
+				basis_y = -basis_y;
+				basis_z = -basis_z;
 			}
-			if ((packedDirection & DIRECTION_NEGATE_HIGH_BIT) !=
+			if ((packed_direction & DIRECTION_NEGATE_HIGH_BIT) !=
 			    0) {
-				highStepIndex = (packedDirection &
-						 DIRECTION_HIGH_INDEX_MASK) >>
-						4;
-				viewX = basisX -
-					g_backdropCamR0XSteps[highStepIndex];
-				viewY = basisY -
-					g_backdropCamR1XSteps[highStepIndex];
-				viewZ = basisZ -
-					g_backdropCamR2XSteps[highStepIndex];
+				high_step_index = (packed_direction &
+						   DIRECTION_HIGH_INDEX_MASK) >>
+						  4;
+				view_x = basis_x - g_backdrop_cam_r0x_steps
+							   [high_step_index];
+				view_y = basis_y - g_backdrop_cam_r1x_steps
+							   [high_step_index];
+				view_z = basis_z - g_backdrop_cam_r2x_steps
+							   [high_step_index];
 			} else {
-				highStepIndex = (packedDirection &
-						 DIRECTION_HIGH_INDEX_MASK) >>
-						4;
-				viewX = basisX +
-					g_backdropCamR0XSteps[highStepIndex];
-				viewY = basisY +
-					g_backdropCamR1XSteps[highStepIndex];
-				viewZ = basisZ +
-					g_backdropCamR2XSteps[highStepIndex];
+				high_step_index = (packed_direction &
+						   DIRECTION_HIGH_INDEX_MASK) >>
+						  4;
+				view_x = basis_x + g_backdrop_cam_r0x_steps
+							   [high_step_index];
+				view_y = basis_y + g_backdrop_cam_r1x_steps
+							   [high_step_index];
+				view_z = basis_z + g_backdrop_cam_r2x_steps
+							   [high_step_index];
 			}
-			viewX -= g_camMatR0_Z >> CAMERA_QUARTER_SHIFT;
-			viewY -= g_camMatR1_Z >> CAMERA_QUARTER_SHIFT;
-			viewZ -= g_camMatR2_Z >> CAMERA_QUARTER_SHIFT;
-			if (viewZ >= 0) {
-				Backdrop_ProjectAndDrawScreenQuad(
-					viewX, viewY, viewZ, angle,
-					directionIndex);
+			view_x -= g_cam_mat_r0_z >> CAMERA_QUARTER_SHIFT;
+			view_y -= g_cam_mat_r1_z >> CAMERA_QUARTER_SHIFT;
+			view_z -= g_cam_mat_r2_z >> CAMERA_QUARTER_SHIFT;
+			if (view_z >= 0) {
+				backdrop_project_and_draw_screen_quad(
+					view_x, view_y, view_z, angle,
+					direction_index);
 			}
 		}
 	}
 }
 
 /* Projects a backdrop's view position and draws it; draws nothing when the
- * size of viewX or of viewY is greater than viewZ. Each offset is
- * (size * (1 << g_perspectiveShift) + g_projScaleHalfInt) / viewZ, worked
+ * size of view_x or of view_y is greater than view_z. Each offset is
+ * (size * (1 << g_perspective_shift) + g_proj_scale_half_int) / view_z, worked
  * in 64 bits, with the coordinate's sign, or 0x7FFFFF00 when the quotient
- * would not fit in 32 bits. It adds g_flightVpCenterX to X and
- * g_flightVpCenterY and g_projOffsetY to Y, and draws
- * g_backdropModelTypes[backdropNumber - 1] with
- * Backdrop_DrawModelTexQuadAtScreen at that X and g_flightVpHeight less
+ * would not fit in 32 bits. It adds g_flight_vp_center_x to X and
+ * g_flight_vp_center_y and g_proj_offset_y to Y, and draws
+ * g_backdrop_model_types[backdrop_number - 1] with
+ * backdrop_draw_model_tex_quad_at_screen at that X and g_flight_vp_height less
  * that Y. The modern build masks the shift to 5 bits and negates without
  * signed overflow. */
 // FUNCTION: XVT 0x426860
-void Backdrop_ProjectAndDrawScreenQuad(int viewX, int viewY, int viewZ,
-				       int angle, int backdropNumber)
+void backdrop_project_and_draw_screen_quad(int view_x, int view_y, int view_z,
+					   int angle, int backdrop_number)
 {
-	int projectedX;
-	int projectedY;
-	uint32_t projectionScale;
+	int projected_x;
+	int projected_y;
+	uint32_t projection_scale;
 
 	enum { PROJECTION_WORD_BITS = 32, PROJECTION_SATURATION = 0x7FFFFF00 };
 
 #ifdef XVT_MODERN
-	projectionScale = 1u
-			  << (g_perspectiveShift & (PROJECTION_WORD_BITS - 1));
+	projection_scale =
+		1u << (g_perspective_shift & (PROJECTION_WORD_BITS - 1));
 #else
-	projectionScale = 1u << g_perspectiveShift;
+	projection_scale = 1u << g_perspective_shift;
 #endif
 
-	if (viewX < 0) {
-		int projectionDepth;
+	if (view_x < 0) {
+		int projection_depth;
 		int magnitude;
 		uint64_t numerator;
 		uint32_t quotient;
 
-		projectionDepth = viewZ;
+		projection_depth = view_z;
 #ifdef XVT_MODERN
-		magnitude = (int)(0u - (unsigned int)viewX);
+		magnitude = (int)(0u - (unsigned int)view_x);
 #else
-		magnitude = -viewX;
+		magnitude = -view_x;
 #endif
-		if (projectionDepth < magnitude) {
+		if (projection_depth < magnitude) {
 			return;
 		}
-		numerator = (uint64_t)(uint32_t)magnitude * projectionScale +
-			    (uint32_t)g_projScaleHalfInt;
+		numerator = (uint64_t)(uint32_t)magnitude * projection_scale +
+			    (uint32_t)g_proj_scale_half_int;
 #ifdef XVT_MODERN
 		if ((uint32_t)(numerator >> PROJECTION_WORD_BITS) <
-		    (uint32_t)projectionDepth)
+		    (uint32_t)projection_depth)
 #else
 		if (((const uint32_t *)&numerator)[1] <
-		    (uint32_t)projectionDepth)
+		    (uint32_t)projection_depth)
 #endif
 			quotient = (uint32_t)(numerator /
-					      (uint32_t)projectionDepth);
+					      (uint32_t)projection_depth);
 		else {
 			quotient = PROJECTION_SATURATION;
 		}
-		projectedX = -(int)quotient;
+		projected_x = -(int)quotient;
 	} else {
-		int projectionDepth;
+		int projection_depth;
 		int magnitude;
 		uint64_t numerator;
 
-		projectionDepth = viewZ;
-		magnitude = viewX;
-		if (projectionDepth < magnitude) {
+		projection_depth = view_z;
+		magnitude = view_x;
+		if (projection_depth < magnitude) {
 			return;
 		}
-		numerator = (uint64_t)(uint32_t)magnitude * projectionScale +
-			    (uint32_t)g_projScaleHalfInt;
+		numerator = (uint64_t)(uint32_t)magnitude * projection_scale +
+			    (uint32_t)g_proj_scale_half_int;
 #ifdef XVT_MODERN
 		if ((uint32_t)(numerator >> PROJECTION_WORD_BITS) <
-		    (uint32_t)projectionDepth)
+		    (uint32_t)projection_depth)
 #else
 		if (((const uint32_t *)&numerator)[1] <
-		    (uint32_t)projectionDepth)
+		    (uint32_t)projection_depth)
 #endif
-			projectedX =
-				(int)(numerator / (uint32_t)projectionDepth);
+			projected_x =
+				(int)(numerator / (uint32_t)projection_depth);
 		else {
-			projectedX = PROJECTION_SATURATION;
+			projected_x = PROJECTION_SATURATION;
 		}
 	}
 
-	if (viewY < 0) {
-		int projectionDepth;
+	if (view_y < 0) {
+		int projection_depth;
 		int magnitude;
 		uint64_t numerator;
 		uint32_t quotient;
 
-		projectionDepth = viewZ;
+		projection_depth = view_z;
 #ifdef XVT_MODERN
-		magnitude = (int)(0u - (unsigned int)viewY);
+		magnitude = (int)(0u - (unsigned int)view_y);
 #else
-		magnitude = -viewY;
+		magnitude = -view_y;
 #endif
-		if (projectionDepth < magnitude) {
+		if (projection_depth < magnitude) {
 			return;
 		}
-		numerator = (uint64_t)(uint32_t)magnitude * projectionScale +
-			    (uint32_t)g_projScaleHalfInt;
+		numerator = (uint64_t)(uint32_t)magnitude * projection_scale +
+			    (uint32_t)g_proj_scale_half_int;
 #ifdef XVT_MODERN
 		if ((uint32_t)(numerator >> PROJECTION_WORD_BITS) <
-		    (uint32_t)projectionDepth)
+		    (uint32_t)projection_depth)
 #else
 		if (((const uint32_t *)&numerator)[1] <
-		    (uint32_t)projectionDepth)
+		    (uint32_t)projection_depth)
 #endif
 			quotient = (uint32_t)(numerator /
-					      (uint32_t)projectionDepth);
+					      (uint32_t)projection_depth);
 		else {
 			quotient = PROJECTION_SATURATION;
 		}
-		projectedY = -(int)quotient;
+		projected_y = -(int)quotient;
 	} else {
-		int projectionDepth;
+		int projection_depth;
 		int magnitude;
 		uint64_t numerator;
 
-		projectionDepth = viewZ;
-		magnitude = viewY;
-		if (projectionDepth < magnitude) {
+		projection_depth = view_z;
+		magnitude = view_y;
+		if (projection_depth < magnitude) {
 			return;
 		}
-		numerator = (uint64_t)(uint32_t)magnitude * projectionScale +
-			    (uint32_t)g_projScaleHalfInt;
+		numerator = (uint64_t)(uint32_t)magnitude * projection_scale +
+			    (uint32_t)g_proj_scale_half_int;
 #ifdef XVT_MODERN
 		if ((uint32_t)(numerator >> PROJECTION_WORD_BITS) <
-		    (uint32_t)projectionDepth)
+		    (uint32_t)projection_depth)
 #else
 		if (((const uint32_t *)&numerator)[1] <
-		    (uint32_t)projectionDepth)
+		    (uint32_t)projection_depth)
 #endif
-			projectedY =
-				(int)(numerator / (uint32_t)projectionDepth);
+			projected_y =
+				(int)(numerator / (uint32_t)projection_depth);
 		else {
-			projectedY = PROJECTION_SATURATION;
+			projected_y = PROJECTION_SATURATION;
 		}
 	}
-	projectedX += (int)g_flightVpCenterX;
-	projectedY += (int)g_flightVpCenterY;
-	projectedY += g_projOffsetY;
-	Backdrop_DrawModelTexQuadAtScreen(
-		g_backdropModelTypes[backdropNumber - 1], projectedX,
-		(int)g_flightVpHeight - projectedY, angle);
+	projected_x += (int)g_flight_vp_center_x;
+	projected_y += (int)g_flight_vp_center_y;
+	projected_y += g_proj_offset_y;
+	backdrop_draw_model_tex_quad_at_screen(
+		g_backdrop_model_types[backdrop_number - 1], projected_x,
+		(int)g_flight_vp_height - projected_y, angle);
 }
 
-/* Fills the first 22 backdrop records at random with GameRand: 4 each on
+/* Fills the first 22 backdrop records at random with game_rand: 4 each on
  * the Y and X faces and 3 on each Z face. Each packed direction is
  * low + (high << 4), low and high each one of 4, 6, 8, 10 and 12, so a
  * value of 8 or more reads back as the negate bit with index value - 8.
- * Each model type comes from r = GameRand() & 31: 117 for r under 3,
- * 117 + r / 3 for r under 12, else 125 + (r & 1). Mission_Init is its only
+ * Each model type comes from r = game_rand() & 31: 117 for r under 3,
+ * 117 + r / 3 for r under 12, else 125 + (r & 1). mission_init is its only
  * caller, with the random state seeded from the mission's backdrop
  * value. */
 // FUNCTION: XVT 0x458ED0
-void Backdrop_GenerateDefaultRecords(void)
+void backdrop_generate_default_records(void)
 {
-	int16_t lowCoordRoll;
-	uint16_t lowCoord;
-	uint16_t highCoord;
-	uint16_t directionRecordIdx;
-	uint16_t modelTypeRoll;
-	uint8_t modelType;
+	int16_t low_coord_roll;
+	uint16_t low_coord;
+	uint16_t high_coord;
+	uint16_t direction_record_idx;
+	uint16_t model_type_roll;
+	uint8_t model_type;
 
-	g_backdropPositiveYCount = 4;
-	g_backdropNegativeYCount = 4;
-	directionRecordIdx = 0;
-	g_backdropPositiveXCount = 4;
-	g_backdropNegativeXCount = 4;
-	g_backdropPositiveZCount = 3;
-	g_backdropNegativeZCount = 3;
-	while (directionRecordIdx < 22) {
+	g_backdrop_positive_y_count = 4;
+	g_backdrop_negative_y_count = 4;
+	direction_record_idx = 0;
+	g_backdrop_positive_x_count = 4;
+	g_backdrop_negative_x_count = 4;
+	g_backdrop_positive_z_count = 3;
+	g_backdrop_negative_z_count = 3;
+	while (direction_record_idx < 22) {
 		do {
-			lowCoordRoll = GameRand() & 14;
-			lowCoord = (uint16_t)(lowCoordRoll + 4);
-		} while (lowCoord > 12);
+			low_coord_roll = game_rand() & 14;
+			low_coord = (uint16_t)(low_coord_roll + 4);
+		} while (low_coord > 12);
 		do {
-			highCoord = (uint16_t)((GameRand() & 14) + 4);
-		} while (highCoord > 12);
-		highCoord <<= 4;
-		highCoord += lowCoord;
-		g_backdropPackedDirections[directionRecordIdx++] =
-			(uint8_t)highCoord;
+			high_coord = (uint16_t)((game_rand() & 14) + 4);
+		} while (high_coord > 12);
+		high_coord <<= 4;
+		high_coord += low_coord;
+		g_backdrop_packed_directions[direction_record_idx++] =
+			(uint8_t)high_coord;
 	}
 
-	/* lowCoord is reused here as the record index for the model types. */
-	for (lowCoord = 0; lowCoord < 22; lowCoord++) {
-		modelTypeRoll = (uint16_t)(GameRand() & 31);
-		if (modelTypeRoll < 3) {
-			g_backdropModelTypes[lowCoord] = 117;
+	/* low_coord is reused here as the record index for the model types. */
+	for (low_coord = 0; low_coord < 22; low_coord++) {
+		model_type_roll = (uint16_t)(game_rand() & 31);
+		if (model_type_roll < 3) {
+			g_backdrop_model_types[low_coord] = 117;
 		} else {
-			if (modelTypeRoll < 12) {
-				modelType = (uint8_t)(modelTypeRoll / 3 + 117);
+			if (model_type_roll < 12) {
+				model_type =
+					(uint8_t)(model_type_roll / 3 + 117);
 			} else {
-				modelType =
-					(uint8_t)((modelTypeRoll & 1) + 125);
+				model_type =
+					(uint8_t)((model_type_roll & 1) + 125);
 			}
-			g_backdropModelTypes[lowCoord] = modelType;
+			g_backdrop_model_types[low_coord] = model_type;
 		}
 	}
 }

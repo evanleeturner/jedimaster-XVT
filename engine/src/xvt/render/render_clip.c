@@ -7,1069 +7,1112 @@
  * is clipped, into the vertex array the clip functions are given: the near,
  * bottom and right clips append to it, and the finished polygon ends here.
  * Holds 32; nothing checks the count against that. Written by those three
- * clips, RenderScene_DrawMeshFaces and RenderQuad_DrawRotatedSprite. */
+ * clips, render_scene_draw_mesh_faces and render_quad_draw_rotated_sprite. */
 // GLOBAL: XVT 0x53F8F0
-int g_clipIdxA[32];
+int g_clip_idx_a[32];
 /* The other list: the top and left clips append to it, and
- * RenderScene_DrawMeshFaces copies a polygon into it for the near clip. Holds
+ * render_scene_draw_mesh_faces copies a polygon into it for the near clip. Holds
  * 32; nothing checks the count against that. */
 // GLOBAL: XVT 0x52F870
-int g_clipIdxB[32] = {0};
-/* Indices in use in g_clipIdxA. Callers set it to the polygon's corner count
+int g_clip_idx_b[32] = {0};
+/* Indices in use in g_clip_idx_a. Callers set it to the polygon's corner count
  * or to 0 before a pass that appends to the list. */
 // GLOBAL: XVT 0x54F978
-int g_clipCountA;
-/* Indices in use in g_clipIdxB. Callers set it to 0 before a pass that
+int g_clip_count_a;
+/* Indices in use in g_clip_idx_b. Callers set it to 0 before a pass that
  * appends to the list. */
 // GLOBAL: XVT 0x54F998
-int g_clipCountB = 0;
+int g_clip_count_b = 0;
 /* Index in the vertex array of the next vertex a clip creates; each clip
- * that creates one takes it and adds 1. RenderScene_DrawMeshFaces starts it
- * after the mesh's projected vertices, RenderQuad_DrawRotatedSprite after its
+ * that creates one takes it and adds 1. render_scene_draw_mesh_faces starts it
+ * after the mesh's projected vertices, render_quad_draw_rotated_sprite after its
  * 4 corners. Nothing checks it against the array's size. */
 // GLOBAL: XVT 0x54F99C
-int g_clipVertCursor;
-/* 1 over g_projScaleInt, as a float: multiplying a screen offset by depth
- * and this gives a view-space coordinate. Only RenderScene_Initialize writes
+int g_clip_vert_cursor;
+/* 1 over g_proj_scale_int, as a float: multiplying a screen offset by depth
+ * and this gives a view-space coordinate. Only render_scene_initialize writes
  * it. */
 // GLOBAL: XVT 0x99940C
-float g_invProjScale;
+float g_inv_proj_scale;
 
-/* Clips one edge of a polygon, from vertex prevVertIndex to curVertIndex,
+/* Clips one edge of a polygon, from vertex prev_vert_index to cur_vert_index,
  * against the top of the viewport (y of 0; y under 0 is outside) and appends
- * to g_clipIdxB: the current vertex when both ends are inside; a new vertex
+ * to g_clip_idx_b: the current vertex when both ends are inside; a new vertex
  * on the edge and then the current one when only the current end is; the new
  * vertex alone when only the previous end is; nothing when neither is.
- * Returns the new g_clipCountB, or INT32_MIN when it appended nothing; callers
- * ignore it. The new vertex goes at g_clipVertCursor, which it advances:
- * x, light and scaledInverseDepth are interpolated along the edge on the
- * screen, and u and v by the share of depth (g_projScaleInt over
- * scaledInverseDepth) unless the two ends' scaledInverseDepth are equal. */
+ * Returns the new g_clip_count_b, or INT32_MIN when it appended nothing; callers
+ * ignore it. The new vertex goes at g_clip_vert_cursor, which it advances:
+ * x, light and scaled_inverse_depth are interpolated along the edge on the
+ * screen, and u and v by the share of depth (g_proj_scale_int over
+ * scaled_inverse_depth) unless the two ends' scaled_inverse_depth are equal. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4096D0
-int RenderClip_ClipPolyTop(int prevVertIndex, int curVertIndex,
-			   struct RenderClipVertex *vertices)
+int render_clip_clip_poly_top(int prev_vert_index, int cur_vert_index,
+			      struct render_clip_vertex *vertices)
 {
-	struct RenderClipVertex *previous;
-	struct RenderClipVertex *current;
-	float previousY;
-	float currentY;
+	struct render_clip_vertex *previous;
+	struct render_clip_vertex *current;
+	float previous_y;
+	float current_y;
 	int result;
-	previous = &vertices[prevVertIndex];
-	previousY = previous->y;
-	current = &vertices[curVertIndex];
-	currentY = current->y;
+	previous = &vertices[prev_vert_index];
+	previous_y = previous->y;
+	current = &vertices[cur_vert_index];
+	current_y = current->y;
 	result = INT32_MIN;
 
-	if (previousY < 0.0f) {
-		if (currentY >= 0.0f) {
-			int output = g_clipVertCursor++;
-			float previousX = previous->x;
-			float currentX = current->x;
-			float previousLightIntensity = previous->lightIntensity;
-			float currentLightIntensity = current->lightIntensity;
-			float previousU = previous->u;
-			float currentU = current->u;
-			float previousV = previous->v;
-			float currentV = current->v;
-			float previousScaledInverseDepth =
-				previous->scaledInverseDepth;
-			float currentScaledInverseDepth =
-				current->scaledInverseDepth;
-			float deltaU = currentU - previousU;
-			float deltaX = currentX - previousX;
-			float deltaLightIntensity =
-				currentLightIntensity - previousLightIntensity;
-			float deltaY = currentY - previousY;
-			float deltaV = currentV - previousV;
-			float deltaScaledInverseDepth =
-				currentScaledInverseDepth -
-				previousScaledInverseDepth;
-			struct RenderClipVertex *destination;
+	if (previous_y < 0.0f) {
+		if (current_y >= 0.0f) {
+			int output = g_clip_vert_cursor++;
+			float previous_x = previous->x;
+			float current_x = current->x;
+			float previous_light_intensity =
+				previous->light_intensity;
+			float current_light_intensity =
+				current->light_intensity;
+			float previous_u = previous->u;
+			float current_u = current->u;
+			float previous_v = previous->v;
+			float current_v = current->v;
+			float previous_scaled_inverse_depth =
+				previous->scaled_inverse_depth;
+			float current_scaled_inverse_depth =
+				current->scaled_inverse_depth;
+			float delta_u = current_u - previous_u;
+			float delta_x = current_x - previous_x;
+			float delta_light_intensity = current_light_intensity -
+						      previous_light_intensity;
+			float delta_y = current_y - previous_y;
+			float delta_v = current_v - previous_v;
+			float delta_scaled_inverse_depth =
+				current_scaled_inverse_depth -
+				previous_scaled_inverse_depth;
+			struct render_clip_vertex *destination;
 			float t;
 
-			previousY = -previousY;
-			if (previousY < currentY) {
-				t = previousY / deltaY;
+			previous_y = -previous_y;
+			if (previous_y < current_y) {
+				t = previous_y / delta_y;
 				destination = &vertices[output];
-				destination->x = previousX + t * deltaX;
-				destination->lightIntensity =
-					previousLightIntensity +
-					t * deltaLightIntensity;
-				destination->scaledInverseDepth =
-					previousScaledInverseDepth +
-					t * deltaScaledInverseDepth;
-				if (deltaScaledInverseDepth != 0.0f) {
-					float baseDepth =
+				destination->x = previous_x + t * delta_x;
+				destination->light_intensity =
+					previous_light_intensity +
+					t * delta_light_intensity;
+				destination->scaled_inverse_depth =
+					previous_scaled_inverse_depth +
+					t * delta_scaled_inverse_depth;
+				if (delta_scaled_inverse_depth != 0.0f) {
+					float base_depth =
 						(float)(unsigned int)
-							g_projScaleInt /
-						previousScaledInverseDepth;
-					float otherDepth =
+							g_proj_scale_int /
+						previous_scaled_inverse_depth;
+					float other_depth =
 						(float)(unsigned int)
-							g_projScaleInt /
-						currentScaledInverseDepth;
-					float destinationDepth =
+							g_proj_scale_int /
+						current_scaled_inverse_depth;
+					float destination_depth =
 						(float)(unsigned int)
-							g_projScaleInt /
-						destination->scaledInverseDepth;
-					float uvT =
-						(destinationDepth - baseDepth) /
-						(otherDepth - baseDepth);
+							g_proj_scale_int /
+						destination
+							->scaled_inverse_depth;
+					float uv_t = (destination_depth -
+						      base_depth) /
+						     (other_depth - base_depth);
 					destination->u =
-						previousU + deltaU * uvT;
+						previous_u + delta_u * uv_t;
 					destination->v =
-						previousV + deltaV * uvT;
+						previous_v + delta_v * uv_t;
 				} else {
-					destination->u = previousU + t * deltaU;
-					destination->v = previousV + t * deltaV;
+					destination->u =
+						previous_u + t * delta_u;
+					destination->v =
+						previous_v + t * delta_v;
 				}
 			} else {
-				t = currentY / deltaY;
+				t = current_y / delta_y;
 				destination = &vertices[output];
-				destination->x = currentX - deltaX * t;
-				destination->lightIntensity =
-					currentLightIntensity -
-					deltaLightIntensity * t;
-				destination->scaledInverseDepth =
-					currentScaledInverseDepth -
-					deltaScaledInverseDepth * t;
-				if (deltaScaledInverseDepth != 0.0f) {
-					float baseProjection =
+				destination->x = current_x - delta_x * t;
+				destination->light_intensity =
+					current_light_intensity -
+					delta_light_intensity * t;
+				destination->scaled_inverse_depth =
+					current_scaled_inverse_depth -
+					delta_scaled_inverse_depth * t;
+				if (delta_scaled_inverse_depth != 0.0f) {
+					float base_projection =
 						(float)(unsigned int)
-							g_projScaleInt /
-						currentScaledInverseDepth;
-					float otherProjection =
+							g_proj_scale_int /
+						current_scaled_inverse_depth;
+					float other_projection =
 						(float)(unsigned int)
-							g_projScaleInt /
-						previousScaledInverseDepth;
-					float destinationProjection =
+							g_proj_scale_int /
+						previous_scaled_inverse_depth;
+					float destination_projection =
 						(float)(unsigned int)
-							g_projScaleInt /
-						destination->scaledInverseDepth;
-					float uvT = (destinationProjection -
-						     baseProjection) /
-						    (otherProjection -
-						     baseProjection);
+							g_proj_scale_int /
+						destination
+							->scaled_inverse_depth;
+					float uv_t = (destination_projection -
+						      base_projection) /
+						     (other_projection -
+						      base_projection);
 					destination->u =
-						currentU - deltaU * uvT;
+						current_u - delta_u * uv_t;
 					destination->v =
-						currentV - deltaV * uvT;
+						current_v - delta_v * uv_t;
 				} else {
-					destination->u = currentU - deltaU * t;
-					destination->v = currentV - deltaV * t;
+					destination->u =
+						current_u - delta_u * t;
+					destination->v =
+						current_v - delta_v * t;
 				}
 			}
 			destination->y = 0.0f;
-			g_clipIdxB[g_clipCountB++] = output;
-			g_clipIdxB[g_clipCountB++] = curVertIndex;
-			return g_clipCountB;
+			g_clip_idx_b[g_clip_count_b++] = output;
+			g_clip_idx_b[g_clip_count_b++] = cur_vert_index;
+			return g_clip_count_b;
 		}
-	} else if (currentY < 0.0f) {
-		int output = g_clipVertCursor++;
-		float previousX = previous->x;
-		float currentX = current->x;
-		float previousRhw = previous->lightIntensity;
-		float currentRhw = current->lightIntensity;
-		float previousU = previous->u;
-		float currentU = current->u;
-		float previousV = previous->v;
-		float currentV = current->v;
-		float previousZ = previous->scaledInverseDepth;
-		float currentZ = current->scaledInverseDepth;
-		float deltaX = currentX - previousX;
-		float deltaY = currentY - previousY;
-		float deltaRhw = currentRhw - previousRhw;
-		float deltaU = currentU - previousU;
-		float deltaV = currentV - previousV;
-		float deltaZ = currentZ - previousZ;
-		struct RenderClipVertex *destination;
+	} else if (current_y < 0.0f) {
+		int output = g_clip_vert_cursor++;
+		float previous_x = previous->x;
+		float current_x = current->x;
+		float previous_rhw = previous->light_intensity;
+		float current_rhw = current->light_intensity;
+		float previous_u = previous->u;
+		float current_u = current->u;
+		float previous_v = previous->v;
+		float current_v = current->v;
+		float previous_z = previous->scaled_inverse_depth;
+		float current_z = current->scaled_inverse_depth;
+		float delta_x = current_x - previous_x;
+		float delta_y = current_y - previous_y;
+		float delta_rhw = current_rhw - previous_rhw;
+		float delta_u = current_u - previous_u;
+		float delta_v = current_v - previous_v;
+		float delta_z = current_z - previous_z;
+		struct render_clip_vertex *destination;
 		float t;
 
-		currentY = -currentY;
-		if (currentY > previousY) {
-			t = previousY / deltaY;
+		current_y = -current_y;
+		if (current_y > previous_y) {
+			t = previous_y / delta_y;
 			destination = &vertices[output];
-			destination->x = previousX - t * deltaX;
-			destination->lightIntensity =
-				previousRhw - t * deltaRhw;
-			destination->scaledInverseDepth =
-				previousZ - t * deltaZ;
-			if (deltaZ != 0.0f) {
-				float baseProjection =
-					(float)(unsigned int)g_projScaleInt /
-					previousZ;
-				float otherProjection =
-					(float)(unsigned int)g_projScaleInt /
-					currentZ;
-				float destinationProjection =
-					(float)(unsigned int)g_projScaleInt /
-					destination->scaledInverseDepth;
-				float uvT = (destinationProjection -
-					     baseProjection) /
-					    (otherProjection - baseProjection);
-				destination->u = previousU + deltaU * uvT;
-				destination->v = previousV + deltaV * uvT;
+			destination->x = previous_x - t * delta_x;
+			destination->light_intensity =
+				previous_rhw - t * delta_rhw;
+			destination->scaled_inverse_depth =
+				previous_z - t * delta_z;
+			if (delta_z != 0.0f) {
+				float base_projection =
+					(float)(unsigned int)g_proj_scale_int /
+					previous_z;
+				float other_projection =
+					(float)(unsigned int)g_proj_scale_int /
+					current_z;
+				float destination_projection =
+					(float)(unsigned int)g_proj_scale_int /
+					destination->scaled_inverse_depth;
+				float uv_t =
+					(destination_projection -
+					 base_projection) /
+					(other_projection - base_projection);
+				destination->u = previous_u + delta_u * uv_t;
+				destination->v = previous_v + delta_v * uv_t;
 			} else {
-				destination->u = previousU - t * deltaU;
-				destination->v = previousV - t * deltaV;
+				destination->u = previous_u - t * delta_u;
+				destination->v = previous_v - t * delta_v;
 			}
 		} else {
-			t = currentY / deltaY;
+			t = current_y / delta_y;
 			destination = &vertices[output];
-			destination->x = currentX + deltaX * t;
-			destination->lightIntensity = currentRhw + deltaRhw * t;
-			destination->scaledInverseDepth = currentZ + deltaZ * t;
-			if (deltaZ != 0.0f) {
-				float baseProjection =
-					(float)(unsigned int)g_projScaleInt /
-					currentZ;
-				float otherProjection =
-					(float)(unsigned int)g_projScaleInt /
-					previousZ;
-				float destinationProjection =
-					(float)(unsigned int)g_projScaleInt /
-					destination->scaledInverseDepth;
-				float uvT = (destinationProjection -
-					     baseProjection) /
-					    (otherProjection - baseProjection);
-				destination->u = currentU - deltaU * uvT;
-				destination->v = currentV - deltaV * uvT;
+			destination->x = current_x + delta_x * t;
+			destination->light_intensity =
+				current_rhw + delta_rhw * t;
+			destination->scaled_inverse_depth =
+				current_z + delta_z * t;
+			if (delta_z != 0.0f) {
+				float base_projection =
+					(float)(unsigned int)g_proj_scale_int /
+					current_z;
+				float other_projection =
+					(float)(unsigned int)g_proj_scale_int /
+					previous_z;
+				float destination_projection =
+					(float)(unsigned int)g_proj_scale_int /
+					destination->scaled_inverse_depth;
+				float uv_t =
+					(destination_projection -
+					 base_projection) /
+					(other_projection - base_projection);
+				destination->u = current_u - delta_u * uv_t;
+				destination->v = current_v - delta_v * uv_t;
 			} else {
-				destination->u = currentU + deltaU * t;
-				destination->v = currentV + deltaV * t;
+				destination->u = current_u + delta_u * t;
+				destination->v = current_v + delta_v * t;
 			}
 		}
 		destination->y = 0.0f;
-		g_clipIdxB[g_clipCountB++] = output;
-		return g_clipCountB;
+		g_clip_idx_b[g_clip_count_b++] = output;
+		return g_clip_count_b;
 	} else {
-		g_clipIdxB[g_clipCountB++] = curVertIndex;
-		result = g_clipCountB;
+		g_clip_idx_b[g_clip_count_b++] = cur_vert_index;
+		result = g_clip_count_b;
 	}
 	return result;
 }
 
-/* Clips one edge against the bottom of the viewport, y of g_flightVpMaxY, the
- * way RenderClip_ClipPolyTop clips against the top, appending to g_clipIdxA;
+/* Clips one edge against the bottom of the viewport, y of g_flight_vp_max_y, the
+ * way render_clip_clip_poly_top clips against the top, appending to g_clip_idx_a;
  * returns nothing. A current vertex exactly on the edge counts as inside after
  * an inside previous vertex but is dropped after an outside one. */
 // FUNCTION: XVT 0x409C10
-void RenderClip_ClipPolyBottom(int prevVertIndex, int curVertIndex,
-			       struct RenderClipVertex *vertices)
+void render_clip_clip_poly_bottom(int prev_vert_index, int cur_vert_index,
+				  struct render_clip_vertex *vertices)
 {
-	struct RenderClipVertex *previous = &vertices[prevVertIndex];
-	float previousY = previous->y;
-	struct RenderClipVertex *current = &vertices[curVertIndex];
-	float currentY = current->y;
-	int viewportBottom = g_flightVpMaxY;
-	float boundary = (float)viewportBottom;
+	struct render_clip_vertex *previous = &vertices[prev_vert_index];
+	float previous_y = previous->y;
+	struct render_clip_vertex *current = &vertices[cur_vert_index];
+	float current_y = current->y;
+	int viewport_bottom = g_flight_vp_max_y;
+	float boundary = (float)viewport_bottom;
 
-	if (previousY > boundary) {
-		if (currentY >= boundary) {
+	if (previous_y > boundary) {
+		if (current_y >= boundary) {
 			return;
 		}
 
 		{
 			int output;
-			float previousX, currentX, previousLightIntensity,
-				currentLightIntensity;
-			float previousU, currentU, previousV, currentV;
-			float previousScaledInverseDepth,
-				currentScaledInverseDepth;
-			float deltaX, deltaY, deltaLightIntensity, deltaU,
-				deltaV, deltaScaledInverseDepth;
+			float previous_x, current_x, previous_light_intensity,
+				current_light_intensity;
+			float previous_u, current_u, previous_v, current_v;
+			float previous_scaled_inverse_depth,
+				current_scaled_inverse_depth;
+			float delta_x, delta_y, delta_light_intensity, delta_u,
+				delta_v, delta_scaled_inverse_depth;
 
-			output = g_clipVertCursor++;
-			previousX = previous->x;
-			currentX = current->x;
-			previousLightIntensity = previous->lightIntensity;
-			currentLightIntensity = current->lightIntensity;
-			previousU = previous->u;
-			currentU = current->u;
-			previousV = previous->v;
-			currentV = current->v;
-			previousScaledInverseDepth =
-				previous->scaledInverseDepth;
-			currentScaledInverseDepth = current->scaledInverseDepth;
-			deltaX = currentX - previousX;
-			deltaY = currentY - previousY;
-			deltaLightIntensity =
-				currentLightIntensity - previousLightIntensity;
-			deltaU = currentU - previousU;
-			deltaV = currentV - previousV;
-			deltaScaledInverseDepth = currentScaledInverseDepth -
-						  previousScaledInverseDepth;
+			output = g_clip_vert_cursor++;
+			previous_x = previous->x;
+			current_x = current->x;
+			previous_light_intensity = previous->light_intensity;
+			current_light_intensity = current->light_intensity;
+			previous_u = previous->u;
+			current_u = current->u;
+			previous_v = previous->v;
+			current_v = current->v;
+			previous_scaled_inverse_depth =
+				previous->scaled_inverse_depth;
+			current_scaled_inverse_depth =
+				current->scaled_inverse_depth;
+			delta_x = current_x - previous_x;
+			delta_y = current_y - previous_y;
+			delta_light_intensity = current_light_intensity -
+						previous_light_intensity;
+			delta_u = current_u - previous_u;
+			delta_v = current_v - previous_v;
+			delta_scaled_inverse_depth =
+				current_scaled_inverse_depth -
+				previous_scaled_inverse_depth;
 
-			/* From here previousY and currentY hold each vertex's distance from the bottom edge; whichever
+			/* From here previous_y and current_y hold each vertex's distance from the bottom edge; whichever
 			 * is divided by deltaY below then holds the fraction along the edge where it is clipped. */
-			previousY = previousY - boundary;
-			currentY = boundary - currentY;
-			if (currentY > previousY) {
-				previousY = previousY / deltaY;
+			previous_y = previous_y - boundary;
+			current_y = boundary - current_y;
+			if (current_y > previous_y) {
+				previous_y = previous_y / delta_y;
 				vertices[output].x =
-					previousX - previousY * deltaX;
-				vertices[output].lightIntensity =
-					previousLightIntensity -
-					previousY * deltaLightIntensity;
-				vertices[output].scaledInverseDepth =
-					previousScaledInverseDepth -
-					previousY * deltaScaledInverseDepth;
-				if (deltaScaledInverseDepth != 0.0f) {
+					previous_x - previous_y * delta_x;
+				vertices[output].light_intensity =
+					previous_light_intensity -
+					previous_y * delta_light_intensity;
+				vertices[output].scaled_inverse_depth =
+					previous_scaled_inverse_depth -
+					previous_y * delta_scaled_inverse_depth;
+				if (delta_scaled_inverse_depth != 0.0f) {
 					float projection =
-						(float)g_projScaleInt;
-					float previousDepth =
+						(float)g_proj_scale_int;
+					float previous_depth =
 						projection /
-						previousScaledInverseDepth;
-					float currentDepth =
+						previous_scaled_inverse_depth;
+					float current_depth =
 						projection /
-						currentScaledInverseDepth;
-					float destinationDepth =
+						current_scaled_inverse_depth;
+					float destination_depth =
 						projection /
 						vertices[output]
-							.scaledInverseDepth;
-					float uvT =
-						(destinationDepth -
-						 previousDepth) /
-						(currentDepth - previousDepth);
+							.scaled_inverse_depth;
+					float uv_t = (destination_depth -
+						      previous_depth) /
+						     (current_depth -
+						      previous_depth);
 					vertices[output].u =
-						previousU + deltaU * uvT;
+						previous_u + delta_u * uv_t;
 					vertices[output].v =
-						previousV + deltaV * uvT;
+						previous_v + delta_v * uv_t;
 				} else {
 					vertices[output].u =
-						previousU - previousY * deltaU;
+						previous_u -
+						previous_y * delta_u;
 					vertices[output].v =
-						previousV - previousY * deltaV;
+						previous_v -
+						previous_y * delta_v;
 				}
 			} else {
-				currentY = currentY / deltaY;
+				current_y = current_y / delta_y;
 				vertices[output].x =
-					currentX + currentY * deltaX;
-				vertices[output].lightIntensity =
-					currentLightIntensity +
-					deltaLightIntensity * currentY;
-				vertices[output].scaledInverseDepth =
-					currentScaledInverseDepth +
-					deltaScaledInverseDepth * currentY;
-				if (deltaScaledInverseDepth != 0.0f) {
+					current_x + current_y * delta_x;
+				vertices[output].light_intensity =
+					current_light_intensity +
+					delta_light_intensity * current_y;
+				vertices[output].scaled_inverse_depth =
+					current_scaled_inverse_depth +
+					delta_scaled_inverse_depth * current_y;
+				if (delta_scaled_inverse_depth != 0.0f) {
 					float projection =
-						(float)g_projScaleInt;
-					float previousProjection =
+						(float)g_proj_scale_int;
+					float previous_projection =
 						projection /
-						previousScaledInverseDepth;
-					float currentProjection =
+						previous_scaled_inverse_depth;
+					float current_projection =
 						projection /
-						currentScaledInverseDepth;
-					float destinationProjection =
+						current_scaled_inverse_depth;
+					float destination_projection =
 						projection /
 						vertices[output]
-							.scaledInverseDepth;
-					float uvT = (destinationProjection -
-						     currentProjection) /
-						    (previousProjection -
-						     currentProjection);
+							.scaled_inverse_depth;
+					float uv_t = (destination_projection -
+						      current_projection) /
+						     (previous_projection -
+						      current_projection);
 					vertices[output].u =
-						currentU - deltaU * uvT;
+						current_u - delta_u * uv_t;
 					vertices[output].v =
-						currentV - deltaV * uvT;
+						current_v - delta_v * uv_t;
 				} else {
 					vertices[output].u =
-						currentU + deltaU * currentY;
+						current_u + delta_u * current_y;
 					vertices[output].v =
-						currentV + deltaV * currentY;
+						current_v + delta_v * current_y;
 				}
 			}
-			vertices[output].y = (float)g_flightVpMaxY;
-			g_clipIdxA[g_clipCountA++] = output;
-			g_clipIdxA[g_clipCountA++] = curVertIndex;
+			vertices[output].y = (float)g_flight_vp_max_y;
+			g_clip_idx_a[g_clip_count_a++] = output;
+			g_clip_idx_a[g_clip_count_a++] = cur_vert_index;
 		}
-	} else if (currentY > boundary) {
+	} else if (current_y > boundary) {
 		int output;
-		float previousX, currentX, previousRhw, currentRhw;
-		float previousU, currentU, previousV, currentV;
-		float previousZ, currentZ;
-		float deltaX, deltaY, deltaRhw, deltaU, deltaV, deltaZ;
+		float previous_x, current_x, previous_rhw, current_rhw;
+		float previous_u, current_u, previous_v, current_v;
+		float previous_z, current_z;
+		float delta_x, delta_y, delta_rhw, delta_u, delta_v, delta_z;
 
-		output = g_clipVertCursor++;
-		previousRhw = previous->lightIntensity;
-		previousX = previous->x;
-		currentX = current->x;
-		currentRhw = current->lightIntensity;
-		previousU = previous->u;
-		currentU = current->u;
-		previousV = previous->v;
-		currentV = current->v;
-		previousZ = previous->scaledInverseDepth;
-		currentZ = current->scaledInverseDepth;
-		deltaX = currentX - previousX;
-		deltaY = currentY - previousY;
-		deltaRhw = currentRhw - previousRhw;
-		deltaU = currentU - previousU;
-		deltaV = currentV - previousV;
-		deltaZ = currentZ - previousZ;
+		output = g_clip_vert_cursor++;
+		previous_rhw = previous->light_intensity;
+		previous_x = previous->x;
+		current_x = current->x;
+		current_rhw = current->light_intensity;
+		previous_u = previous->u;
+		current_u = current->u;
+		previous_v = previous->v;
+		current_v = current->v;
+		previous_z = previous->scaled_inverse_depth;
+		current_z = current->scaled_inverse_depth;
+		delta_x = current_x - previous_x;
+		delta_y = current_y - previous_y;
+		delta_rhw = current_rhw - previous_rhw;
+		delta_u = current_u - previous_u;
+		delta_v = current_v - previous_v;
+		delta_z = current_z - previous_z;
 
-		/* From here previousY and currentY hold each vertex's distance from the bottom edge; whichever is
+		/* From here previous_y and current_y hold each vertex's distance from the bottom edge; whichever is
 		 * divided by deltaY below then holds the fraction along the edge where it is clipped. */
-		currentY = currentY - boundary;
-		previousY = boundary - previousY;
-		if (currentY > previousY) {
-			previousY = previousY / deltaY;
-			vertices[output].x = previousX + previousY * deltaX;
-			vertices[output].lightIntensity =
-				previousRhw + previousY * deltaRhw;
-			vertices[output].scaledInverseDepth =
-				previousZ + previousY * deltaZ;
-			if (deltaZ != 0.0f) {
-				float projection = (float)g_projScaleInt;
-				float previousProjection =
-					projection / previousZ;
-				float currentProjection = projection / currentZ;
-				float destinationProjection =
+		current_y = current_y - boundary;
+		previous_y = boundary - previous_y;
+		if (current_y > previous_y) {
+			previous_y = previous_y / delta_y;
+			vertices[output].x = previous_x + previous_y * delta_x;
+			vertices[output].light_intensity =
+				previous_rhw + previous_y * delta_rhw;
+			vertices[output].scaled_inverse_depth =
+				previous_z + previous_y * delta_z;
+			if (delta_z != 0.0f) {
+				float projection = (float)g_proj_scale_int;
+				float previous_projection =
+					projection / previous_z;
+				float current_projection =
+					projection / current_z;
+				float destination_projection =
 					projection /
-					vertices[output].scaledInverseDepth;
-				float uvT = (destinationProjection -
-					     previousProjection) /
-					    (currentProjection -
-					     previousProjection);
-				vertices[output].u = previousU + deltaU * uvT;
-				vertices[output].v = previousV + deltaV * uvT;
+					vertices[output].scaled_inverse_depth;
+				float uv_t = (destination_projection -
+					      previous_projection) /
+					     (current_projection -
+					      previous_projection);
+				vertices[output].u =
+					previous_u + delta_u * uv_t;
+				vertices[output].v =
+					previous_v + delta_v * uv_t;
 			} else {
 				vertices[output].u =
-					previousU + previousY * deltaU;
+					previous_u + previous_y * delta_u;
 				vertices[output].v =
-					previousV + previousY * deltaV;
+					previous_v + previous_y * delta_v;
 			}
 		} else {
-			currentY = currentY / deltaY;
-			vertices[output].x = currentX - currentY * deltaX;
-			vertices[output].lightIntensity =
-				currentRhw - deltaRhw * currentY;
-			vertices[output].scaledInverseDepth =
-				currentZ - deltaZ * currentY;
-			if (deltaZ != 0.0f) {
-				float projection = (float)g_projScaleInt;
-				float previousProjection =
-					projection / previousZ;
-				float currentProjection = projection / currentZ;
-				float destinationProjection =
+			current_y = current_y / delta_y;
+			vertices[output].x = current_x - current_y * delta_x;
+			vertices[output].light_intensity =
+				current_rhw - delta_rhw * current_y;
+			vertices[output].scaled_inverse_depth =
+				current_z - delta_z * current_y;
+			if (delta_z != 0.0f) {
+				float projection = (float)g_proj_scale_int;
+				float previous_projection =
+					projection / previous_z;
+				float current_projection =
+					projection / current_z;
+				float destination_projection =
 					projection /
-					vertices[output].scaledInverseDepth;
-				float uvT = (destinationProjection -
-					     currentProjection) /
-					    (previousProjection -
-					     currentProjection);
-				vertices[output].u = currentU - deltaU * uvT;
-				vertices[output].v = currentV - deltaV * uvT;
+					vertices[output].scaled_inverse_depth;
+				float uv_t = (destination_projection -
+					      current_projection) /
+					     (previous_projection -
+					      current_projection);
+				vertices[output].u = current_u - delta_u * uv_t;
+				vertices[output].v = current_v - delta_v * uv_t;
 			} else {
 				vertices[output].u =
-					currentU - deltaU * currentY;
+					current_u - delta_u * current_y;
 				vertices[output].v =
-					currentV - deltaV * currentY;
+					current_v - delta_v * current_y;
 			}
 		}
-		vertices[output].y = (float)g_flightVpMaxY;
-		g_clipIdxA[g_clipCountA++] = output;
+		vertices[output].y = (float)g_flight_vp_max_y;
+		g_clip_idx_a[g_clip_count_a++] = output;
 	} else {
-		g_clipIdxA[g_clipCountA++] = curVertIndex;
+		g_clip_idx_a[g_clip_count_a++] = cur_vert_index;
 	}
 }
 
 /* Clips one edge against the left of the viewport (x of 0; x under 0 is
- * outside) the way RenderClip_ClipPolyTop clips against the top, appending to
- * g_clipIdxB and returning the same values. */
+ * outside) the way render_clip_clip_poly_top clips against the top, appending to
+ * g_clip_idx_b and returning the same values. */
 // FUNCTION: XVT 0x40A1A0
-int RenderClip_ClipPolyLeft(int prevVertIndex, int curVertIndex,
-			    struct RenderClipVertex *vertices)
+int render_clip_clip_poly_left(int prev_vert_index, int cur_vert_index,
+			       struct render_clip_vertex *vertices)
 {
-	struct RenderClipVertex *previous;
-	struct RenderClipVertex *current;
-	float currentX;
-	float previousX;
+	struct render_clip_vertex *previous;
+	struct render_clip_vertex *current;
+	float current_x;
+	float previous_x;
 	int result;
-	previous = &vertices[prevVertIndex];
-	previousX = previous->x;
-	current = &vertices[curVertIndex];
-	currentX = current->x;
+	previous = &vertices[prev_vert_index];
+	previous_x = previous->x;
+	current = &vertices[cur_vert_index];
+	current_x = current->x;
 	result = INT32_MIN;
 
-	if (previousX < 0.0f) {
-		if (currentX < 0.0f) {
+	if (previous_x < 0.0f) {
+		if (current_x < 0.0f) {
 			return result;
 		}
 
 		{
 			int output;
-			float currentY, previousY, currentLightIntensity,
-				previousLightIntensity;
-			float currentU, previousU, currentV, previousV;
-			float currentScaledInverseDepth,
-				previousScaledInverseDepth, deltaX, deltaY,
-				deltaLightIntensity;
-			float deltaU, deltaV, deltaScaledInverseDepth;
-			struct RenderClipVertex *destination;
-			output = g_clipVertCursor++;
-			previousY = previous->y;
-			currentY = current->y;
-			previousLightIntensity = previous->lightIntensity;
-			currentLightIntensity = current->lightIntensity;
-			previousU = previous->u;
-			currentU = current->u;
-			previousV = previous->v;
-			currentV = current->v;
-			previousScaledInverseDepth =
-				previous->scaledInverseDepth;
-			currentScaledInverseDepth = current->scaledInverseDepth;
-			deltaX = currentX - previousX;
-			deltaY = currentY - previousY;
-			deltaLightIntensity =
-				currentLightIntensity - previousLightIntensity;
-			deltaU = currentU - previousU;
-			deltaV = currentV - previousV;
-			deltaScaledInverseDepth = currentScaledInverseDepth -
-						  previousScaledInverseDepth;
+			float current_y, previous_y, current_light_intensity,
+				previous_light_intensity;
+			float current_u, previous_u, current_v, previous_v;
+			float current_scaled_inverse_depth,
+				previous_scaled_inverse_depth, delta_x, delta_y,
+				delta_light_intensity;
+			float delta_u, delta_v, delta_scaled_inverse_depth;
+			struct render_clip_vertex *destination;
+			output = g_clip_vert_cursor++;
+			previous_y = previous->y;
+			current_y = current->y;
+			previous_light_intensity = previous->light_intensity;
+			current_light_intensity = current->light_intensity;
+			previous_u = previous->u;
+			current_u = current->u;
+			previous_v = previous->v;
+			current_v = current->v;
+			previous_scaled_inverse_depth =
+				previous->scaled_inverse_depth;
+			current_scaled_inverse_depth =
+				current->scaled_inverse_depth;
+			delta_x = current_x - previous_x;
+			delta_y = current_y - previous_y;
+			delta_light_intensity = current_light_intensity -
+						previous_light_intensity;
+			delta_u = current_u - previous_u;
+			delta_v = current_v - previous_v;
+			delta_scaled_inverse_depth =
+				current_scaled_inverse_depth -
+				previous_scaled_inverse_depth;
 
-			/* From here previousX and currentX hold each vertex's distance from the left edge; whichever
+			/* From here previous_x and current_x hold each vertex's distance from the left edge; whichever
 			 * is divided by deltaX below then holds the fraction along the edge where it is clipped. */
-			previousX = -previousX;
-			if (previousX < currentX) {
-				previousX = previousX / deltaX;
+			previous_x = -previous_x;
+			if (previous_x < current_x) {
+				previous_x = previous_x / delta_x;
 				destination = &vertices[output];
-				destination->y = previousY + previousX * deltaY;
-				destination->lightIntensity =
-					previousLightIntensity +
-					previousX * deltaLightIntensity;
-				destination->scaledInverseDepth =
-					previousScaledInverseDepth +
-					previousX * deltaScaledInverseDepth;
-				if (deltaScaledInverseDepth != 0.0f) {
+				destination->y =
+					previous_y + previous_x * delta_y;
+				destination->light_intensity =
+					previous_light_intensity +
+					previous_x * delta_light_intensity;
+				destination->scaled_inverse_depth =
+					previous_scaled_inverse_depth +
+					previous_x * delta_scaled_inverse_depth;
+				if (delta_scaled_inverse_depth != 0.0f) {
 					float projection;
-					float baseDepth;
-					float otherDepth;
-					float uvT;
+					float base_depth;
+					float other_depth;
+					float uv_t;
 					projection = (float)(unsigned int)
-						g_projScaleInt;
-					baseDepth = projection /
-						    previousScaledInverseDepth;
-					otherDepth = projection /
-						     currentScaledInverseDepth;
-					uvT = (projection /
-						       destination
-							       ->scaledInverseDepth -
-					       baseDepth) /
-					      (otherDepth - baseDepth);
+						g_proj_scale_int;
+					base_depth =
+						projection /
+						previous_scaled_inverse_depth;
+					other_depth =
+						projection /
+						current_scaled_inverse_depth;
+					uv_t = (projection /
+							destination
+								->scaled_inverse_depth -
+						base_depth) /
+					       (other_depth - base_depth);
 					destination->u =
-						previousU + deltaU * uvT;
+						previous_u + delta_u * uv_t;
 					destination->v =
-						previousV + deltaV * uvT;
+						previous_v + delta_v * uv_t;
 				} else {
-					destination->u =
-						previousU + previousX * deltaU;
-					destination->v =
-						previousV + previousX * deltaV;
+					destination->u = previous_u +
+							 previous_x * delta_u;
+					destination->v = previous_v +
+							 previous_x * delta_v;
 				}
 			} else {
-				currentX = currentX / deltaX;
+				current_x = current_x / delta_x;
 				destination = &vertices[output];
-				destination->y = currentY - currentX * deltaY;
-				destination->lightIntensity =
-					currentLightIntensity -
-					currentX * deltaLightIntensity;
-				destination->scaledInverseDepth =
-					currentScaledInverseDepth -
-					currentX * deltaScaledInverseDepth;
-				if (deltaScaledInverseDepth != 0.0f) {
+				destination->y =
+					current_y - current_x * delta_y;
+				destination->light_intensity =
+					current_light_intensity -
+					current_x * delta_light_intensity;
+				destination->scaled_inverse_depth =
+					current_scaled_inverse_depth -
+					current_x * delta_scaled_inverse_depth;
+				if (delta_scaled_inverse_depth != 0.0f) {
 					float projection;
-					float baseProjection;
-					float otherProjection;
-					float uvT;
+					float base_projection;
+					float other_projection;
+					float uv_t;
 					projection = (float)(unsigned int)
-						g_projScaleInt;
-					baseProjection =
+						g_proj_scale_int;
+					base_projection =
 						projection /
-						currentScaledInverseDepth;
-					otherProjection =
+						current_scaled_inverse_depth;
+					other_projection =
 						projection /
-						previousScaledInverseDepth;
-					uvT = (projection /
-						       destination
-							       ->scaledInverseDepth -
-					       baseProjection) /
-					      (otherProjection -
-					       baseProjection);
+						previous_scaled_inverse_depth;
+					uv_t = (projection /
+							destination
+								->scaled_inverse_depth -
+						base_projection) /
+					       (other_projection -
+						base_projection);
 					destination->u =
-						currentU - deltaU * uvT;
+						current_u - delta_u * uv_t;
 					destination->v =
-						currentV - deltaV * uvT;
+						current_v - delta_v * uv_t;
 				} else {
 					destination->u =
-						currentU - currentX * deltaU;
+						current_u - current_x * delta_u;
 					destination->v =
-						currentV - currentX * deltaV;
+						current_v - current_x * delta_v;
 				}
 			}
 			destination->x = 0.0f;
-			g_clipIdxB[g_clipCountB++] = output;
-			g_clipIdxB[g_clipCountB++] = curVertIndex;
-			return g_clipCountB;
+			g_clip_idx_b[g_clip_count_b++] = output;
+			g_clip_idx_b[g_clip_count_b++] = cur_vert_index;
+			return g_clip_count_b;
 		}
-	} else if (currentX < 0.0f) {
+	} else if (current_x < 0.0f) {
 		{
 			int output;
-			float currentY, previousY, currentRhw, previousRhw;
-			float currentU, previousU, currentV, previousV;
-			float currentZ, previousZ, deltaX, deltaY, deltaRhw;
-			float deltaU, deltaV, deltaZ;
-			struct RenderClipVertex *destination;
-			output = g_clipVertCursor++;
-			previousY = previous->y;
-			currentY = current->y;
-			previousRhw = previous->lightIntensity;
-			currentRhw = current->lightIntensity;
-			previousU = previous->u;
-			currentU = current->u;
-			previousV = previous->v;
-			currentV = current->v;
-			previousZ = previous->scaledInverseDepth;
-			currentZ = current->scaledInverseDepth;
-			deltaX = currentX - previousX;
-			deltaY = currentY - previousY;
-			deltaRhw = currentRhw - previousRhw;
-			deltaU = currentU - previousU;
-			deltaV = currentV - previousV;
-			deltaZ = currentZ - previousZ;
+			float current_y, previous_y, current_rhw, previous_rhw;
+			float current_u, previous_u, current_v, previous_v;
+			float current_z, previous_z, delta_x, delta_y,
+				delta_rhw;
+			float delta_u, delta_v, delta_z;
+			struct render_clip_vertex *destination;
+			output = g_clip_vert_cursor++;
+			previous_y = previous->y;
+			current_y = current->y;
+			previous_rhw = previous->light_intensity;
+			current_rhw = current->light_intensity;
+			previous_u = previous->u;
+			current_u = current->u;
+			previous_v = previous->v;
+			current_v = current->v;
+			previous_z = previous->scaled_inverse_depth;
+			current_z = current->scaled_inverse_depth;
+			delta_x = current_x - previous_x;
+			delta_y = current_y - previous_y;
+			delta_rhw = current_rhw - previous_rhw;
+			delta_u = current_u - previous_u;
+			delta_v = current_v - previous_v;
+			delta_z = current_z - previous_z;
 
-			/* From here previousX and currentX hold each vertex's distance from the left edge; whichever
+			/* From here previous_x and current_x hold each vertex's distance from the left edge; whichever
 			 * is divided by deltaX below then holds the fraction along the edge where it is clipped. */
-			currentX = -currentX;
-			if (currentX > previousX) {
-				previousX = previousX / deltaX;
+			current_x = -current_x;
+			if (current_x > previous_x) {
+				previous_x = previous_x / delta_x;
 				destination = &vertices[output];
-				destination->y = previousY - previousX * deltaY;
-				destination->lightIntensity =
-					previousRhw - previousX * deltaRhw;
-				destination->scaledInverseDepth =
-					previousZ - previousX * deltaZ;
-				if (deltaZ != 0.0f) {
+				destination->y =
+					previous_y - previous_x * delta_y;
+				destination->light_intensity =
+					previous_rhw - previous_x * delta_rhw;
+				destination->scaled_inverse_depth =
+					previous_z - previous_x * delta_z;
+				if (delta_z != 0.0f) {
 					float projection;
-					float baseProjection;
-					float otherProjection;
-					float uvT;
+					float base_projection;
+					float other_projection;
+					float uv_t;
 					projection = (float)(unsigned int)
-						g_projScaleInt;
-					baseProjection = projection / previousZ;
-					otherProjection = projection / currentZ;
-					uvT = (projection /
-						       destination
-							       ->scaledInverseDepth -
-					       baseProjection) /
-					      (otherProjection -
-					       baseProjection);
+						g_proj_scale_int;
+					base_projection =
+						projection / previous_z;
+					other_projection =
+						projection / current_z;
+					uv_t = (projection /
+							destination
+								->scaled_inverse_depth -
+						base_projection) /
+					       (other_projection -
+						base_projection);
 					destination->u =
-						previousU + deltaU * uvT;
+						previous_u + delta_u * uv_t;
 					destination->v =
-						previousV + deltaV * uvT;
+						previous_v + delta_v * uv_t;
 				} else {
-					destination->u =
-						previousU - previousX * deltaU;
-					destination->v =
-						previousV - previousX * deltaV;
+					destination->u = previous_u -
+							 previous_x * delta_u;
+					destination->v = previous_v -
+							 previous_x * delta_v;
 				}
 			} else {
-				currentX = currentX / deltaX;
+				current_x = current_x / delta_x;
 				destination = &vertices[output];
-				destination->y = currentY + currentX * deltaY;
-				destination->lightIntensity =
-					currentRhw + currentX * deltaRhw;
-				destination->scaledInverseDepth =
-					currentZ + currentX * deltaZ;
-				if (deltaZ != 0.0f) {
+				destination->y =
+					current_y + current_x * delta_y;
+				destination->light_intensity =
+					current_rhw + current_x * delta_rhw;
+				destination->scaled_inverse_depth =
+					current_z + current_x * delta_z;
+				if (delta_z != 0.0f) {
 					float projection;
-					float baseProjection;
-					float otherProjection;
-					float uvT;
+					float base_projection;
+					float other_projection;
+					float uv_t;
 					projection = (float)(unsigned int)
-						g_projScaleInt;
-					baseProjection = projection / currentZ;
-					otherProjection =
-						projection / previousZ;
-					uvT = (projection /
-						       destination
-							       ->scaledInverseDepth -
-					       baseProjection) /
-					      (otherProjection -
-					       baseProjection);
+						g_proj_scale_int;
+					base_projection =
+						projection / current_z;
+					other_projection =
+						projection / previous_z;
+					uv_t = (projection /
+							destination
+								->scaled_inverse_depth -
+						base_projection) /
+					       (other_projection -
+						base_projection);
 					destination->u =
-						currentU - deltaU * uvT;
+						current_u - delta_u * uv_t;
 					destination->v =
-						currentV - deltaV * uvT;
+						current_v - delta_v * uv_t;
 				} else {
 					destination->u =
-						currentU + currentX * deltaU;
+						current_u + current_x * delta_u;
 					destination->v =
-						currentV + currentX * deltaV;
+						current_v + current_x * delta_v;
 				}
 			}
 			destination->x = 0.0f;
-			g_clipIdxB[g_clipCountB++] = output;
-			return g_clipCountB;
+			g_clip_idx_b[g_clip_count_b++] = output;
+			return g_clip_count_b;
 		}
 	} else {
-		g_clipIdxB[g_clipCountB++] = curVertIndex;
-		result = g_clipCountB;
+		g_clip_idx_b[g_clip_count_b++] = cur_vert_index;
+		result = g_clip_count_b;
 	}
 	return result;
 }
 
-/* Clips one edge against the right of the viewport, x of g_flightVpWidth (x
- * over it is outside), the way RenderClip_ClipPolyTop clips against the top,
- * appending to g_clipIdxA; returns nothing. */
+/* Clips one edge against the right of the viewport, x of g_flight_vp_width (x
+ * over it is outside), the way render_clip_clip_poly_top clips against the top,
+ * appending to g_clip_idx_a; returns nothing. */
 // FUNCTION: XVT 0x40A6E0
-void RenderClip_ClipPolyRight(int prevVertIndex, int curVertIndex,
-			      struct RenderClipVertex *vertices)
+void render_clip_clip_poly_right(int prev_vert_index, int cur_vert_index,
+				 struct render_clip_vertex *vertices)
 {
-	struct RenderClipVertex *previous = &vertices[prevVertIndex];
-	float previousX = previous->x;
-	struct RenderClipVertex *current = &vertices[curVertIndex];
-	float currentX = current->x;
-	int viewportWidth = g_flightVpWidth;
-	float boundary = (float)viewportWidth;
+	struct render_clip_vertex *previous = &vertices[prev_vert_index];
+	float previous_x = previous->x;
+	struct render_clip_vertex *current = &vertices[cur_vert_index];
+	float current_x = current->x;
+	int viewport_width = g_flight_vp_width;
+	float boundary = (float)viewport_width;
 
-	if (previousX > boundary) {
-		if (currentX > boundary) {
+	if (previous_x > boundary) {
+		if (current_x > boundary) {
 			return;
 		}
 
 		{
 			int output;
-			float previousY, currentY, previousLightIntensity,
-				currentLightIntensity;
-			float previousU, currentU, previousV, currentV;
-			float previousScaledInverseDepth,
-				currentScaledInverseDepth;
-			float deltaX, deltaY, deltaLightIntensity, deltaU,
-				deltaV, deltaScaledInverseDepth;
+			float previous_y, current_y, previous_light_intensity,
+				current_light_intensity;
+			float previous_u, current_u, previous_v, current_v;
+			float previous_scaled_inverse_depth,
+				current_scaled_inverse_depth;
+			float delta_x, delta_y, delta_light_intensity, delta_u,
+				delta_v, delta_scaled_inverse_depth;
 
-			output = g_clipVertCursor++;
-			previousY = previous->y;
-			currentY = current->y;
-			previousLightIntensity = previous->lightIntensity;
-			currentLightIntensity = current->lightIntensity;
-			previousU = previous->u;
-			currentU = current->u;
-			previousV = previous->v;
-			currentV = current->v;
-			previousScaledInverseDepth =
-				previous->scaledInverseDepth;
-			currentScaledInverseDepth = current->scaledInverseDepth;
-			deltaX = currentX - previousX;
-			deltaY = currentY - previousY;
-			deltaLightIntensity =
-				currentLightIntensity - previousLightIntensity;
-			deltaU = currentU - previousU;
-			deltaV = currentV - previousV;
-			deltaScaledInverseDepth = currentScaledInverseDepth -
-						  previousScaledInverseDepth;
+			output = g_clip_vert_cursor++;
+			previous_y = previous->y;
+			current_y = current->y;
+			previous_light_intensity = previous->light_intensity;
+			current_light_intensity = current->light_intensity;
+			previous_u = previous->u;
+			current_u = current->u;
+			previous_v = previous->v;
+			current_v = current->v;
+			previous_scaled_inverse_depth =
+				previous->scaled_inverse_depth;
+			current_scaled_inverse_depth =
+				current->scaled_inverse_depth;
+			delta_x = current_x - previous_x;
+			delta_y = current_y - previous_y;
+			delta_light_intensity = current_light_intensity -
+						previous_light_intensity;
+			delta_u = current_u - previous_u;
+			delta_v = current_v - previous_v;
+			delta_scaled_inverse_depth =
+				current_scaled_inverse_depth -
+				previous_scaled_inverse_depth;
 
-			/* From here previousX and currentX hold each vertex's distance from the right edge; whichever
+			/* From here previous_x and current_x hold each vertex's distance from the right edge; whichever
 			 * is divided by deltaX below then holds the fraction along the edge where it is clipped. */
-			previousX = previousX - boundary;
-			currentX = boundary - currentX;
-			if (currentX > previousX) {
-				previousX = previousX / deltaX;
+			previous_x = previous_x - boundary;
+			current_x = boundary - current_x;
+			if (current_x > previous_x) {
+				previous_x = previous_x / delta_x;
 				vertices[output].y =
-					previousY - previousX * deltaY;
-				vertices[output].lightIntensity =
-					previousLightIntensity -
-					previousX * deltaLightIntensity;
-				vertices[output].scaledInverseDepth =
-					previousScaledInverseDepth -
-					previousX * deltaScaledInverseDepth;
-				if (deltaScaledInverseDepth != 0.0f) {
+					previous_y - previous_x * delta_y;
+				vertices[output].light_intensity =
+					previous_light_intensity -
+					previous_x * delta_light_intensity;
+				vertices[output].scaled_inverse_depth =
+					previous_scaled_inverse_depth -
+					previous_x * delta_scaled_inverse_depth;
+				if (delta_scaled_inverse_depth != 0.0f) {
 					float projection =
-						(float)g_projScaleInt;
-					float previousDepth =
+						(float)g_proj_scale_int;
+					float previous_depth =
 						projection /
-						previousScaledInverseDepth;
-					float currentDepth =
+						previous_scaled_inverse_depth;
+					float current_depth =
 						projection /
-						currentScaledInverseDepth;
-					float destinationDepth =
+						current_scaled_inverse_depth;
+					float destination_depth =
 						projection /
 						vertices[output]
-							.scaledInverseDepth;
-					float uvT =
-						(destinationDepth -
-						 previousDepth) /
-						(currentDepth - previousDepth);
+							.scaled_inverse_depth;
+					float uv_t = (destination_depth -
+						      previous_depth) /
+						     (current_depth -
+						      previous_depth);
 					vertices[output].u =
-						previousU + deltaU * uvT;
+						previous_u + delta_u * uv_t;
 					vertices[output].v =
-						previousV + deltaV * uvT;
+						previous_v + delta_v * uv_t;
 				} else {
 					vertices[output].u =
-						previousU - previousX * deltaU;
+						previous_u -
+						previous_x * delta_u;
 					vertices[output].v =
-						previousV - previousX * deltaV;
+						previous_v -
+						previous_x * delta_v;
 				}
 			} else {
-				currentX = currentX / deltaX;
+				current_x = current_x / delta_x;
 				vertices[output].y =
-					currentY + currentX * deltaY;
-				vertices[output].lightIntensity =
-					currentLightIntensity +
-					deltaLightIntensity * currentX;
-				vertices[output].scaledInverseDepth =
-					currentScaledInverseDepth +
-					deltaScaledInverseDepth * currentX;
-				if (deltaScaledInverseDepth != 0.0f) {
+					current_y + current_x * delta_y;
+				vertices[output].light_intensity =
+					current_light_intensity +
+					delta_light_intensity * current_x;
+				vertices[output].scaled_inverse_depth =
+					current_scaled_inverse_depth +
+					delta_scaled_inverse_depth * current_x;
+				if (delta_scaled_inverse_depth != 0.0f) {
 					float projection =
-						(float)g_projScaleInt;
-					float previousProjection =
+						(float)g_proj_scale_int;
+					float previous_projection =
 						projection /
-						previousScaledInverseDepth;
-					float currentProjection =
+						previous_scaled_inverse_depth;
+					float current_projection =
 						projection /
-						currentScaledInverseDepth;
-					float destinationProjection =
+						current_scaled_inverse_depth;
+					float destination_projection =
 						projection /
 						vertices[output]
-							.scaledInverseDepth;
-					float uvT = (destinationProjection -
-						     currentProjection) /
-						    (previousProjection -
-						     currentProjection);
+							.scaled_inverse_depth;
+					float uv_t = (destination_projection -
+						      current_projection) /
+						     (previous_projection -
+						      current_projection);
 					vertices[output].u =
-						currentU - deltaU * uvT;
+						current_u - delta_u * uv_t;
 					vertices[output].v =
-						currentV - deltaV * uvT;
+						current_v - delta_v * uv_t;
 				} else {
 					vertices[output].u =
-						currentU + deltaU * currentX;
+						current_u + delta_u * current_x;
 					vertices[output].v =
-						currentV + deltaV * currentX;
+						current_v + delta_v * current_x;
 				}
 			}
-			vertices[output].x = (float)g_flightVpWidth;
-			g_clipIdxA[g_clipCountA++] = output;
-			g_clipIdxA[g_clipCountA++] = curVertIndex;
+			vertices[output].x = (float)g_flight_vp_width;
+			g_clip_idx_a[g_clip_count_a++] = output;
+			g_clip_idx_a[g_clip_count_a++] = cur_vert_index;
 		}
-	} else if (currentX > boundary) {
+	} else if (current_x > boundary) {
 		int output;
-		float previousY, currentY, previousRhw, currentRhw;
-		float previousU, currentU, previousV, currentV;
-		float previousZ, currentZ;
-		float deltaX, deltaY, deltaRhw, deltaU, deltaV, deltaZ;
+		float previous_y, current_y, previous_rhw, current_rhw;
+		float previous_u, current_u, previous_v, current_v;
+		float previous_z, current_z;
+		float delta_x, delta_y, delta_rhw, delta_u, delta_v, delta_z;
 
-		output = g_clipVertCursor++;
-		previousRhw = previous->lightIntensity;
-		previousY = previous->y;
-		currentY = current->y;
-		currentRhw = current->lightIntensity;
-		previousU = previous->u;
-		currentU = current->u;
-		previousV = previous->v;
-		currentV = current->v;
-		previousZ = previous->scaledInverseDepth;
-		currentZ = current->scaledInverseDepth;
-		deltaX = currentX - previousX;
-		deltaY = currentY - previousY;
-		deltaRhw = currentRhw - previousRhw;
-		deltaU = currentU - previousU;
-		deltaV = currentV - previousV;
-		deltaZ = currentZ - previousZ;
+		output = g_clip_vert_cursor++;
+		previous_rhw = previous->light_intensity;
+		previous_y = previous->y;
+		current_y = current->y;
+		current_rhw = current->light_intensity;
+		previous_u = previous->u;
+		current_u = current->u;
+		previous_v = previous->v;
+		current_v = current->v;
+		previous_z = previous->scaled_inverse_depth;
+		current_z = current->scaled_inverse_depth;
+		delta_x = current_x - previous_x;
+		delta_y = current_y - previous_y;
+		delta_rhw = current_rhw - previous_rhw;
+		delta_u = current_u - previous_u;
+		delta_v = current_v - previous_v;
+		delta_z = current_z - previous_z;
 
-		/* From here previousX and currentX hold each vertex's distance from the right edge; whichever is
+		/* From here previous_x and current_x hold each vertex's distance from the right edge; whichever is
 		 * divided by deltaX below then holds the fraction along the edge where it is clipped. */
-		previousX = boundary - previousX;
-		currentX = currentX - boundary;
-		if (currentX > previousX) {
-			previousX = previousX / deltaX;
-			vertices[output].y = previousY + previousX * deltaY;
-			vertices[output].lightIntensity =
-				previousRhw + previousX * deltaRhw;
-			vertices[output].scaledInverseDepth =
-				previousZ + previousX * deltaZ;
-			if (deltaZ != 0.0f) {
-				float projection = (float)g_projScaleInt;
-				float previousProjection =
-					projection / previousZ;
-				float currentProjection = projection / currentZ;
-				float destinationProjection =
+		previous_x = boundary - previous_x;
+		current_x = current_x - boundary;
+		if (current_x > previous_x) {
+			previous_x = previous_x / delta_x;
+			vertices[output].y = previous_y + previous_x * delta_y;
+			vertices[output].light_intensity =
+				previous_rhw + previous_x * delta_rhw;
+			vertices[output].scaled_inverse_depth =
+				previous_z + previous_x * delta_z;
+			if (delta_z != 0.0f) {
+				float projection = (float)g_proj_scale_int;
+				float previous_projection =
+					projection / previous_z;
+				float current_projection =
+					projection / current_z;
+				float destination_projection =
 					projection /
-					vertices[output].scaledInverseDepth;
-				float uvT = (destinationProjection -
-					     previousProjection) /
-					    (currentProjection -
-					     previousProjection);
-				vertices[output].u = previousU + deltaU * uvT;
-				vertices[output].v = previousV + deltaV * uvT;
+					vertices[output].scaled_inverse_depth;
+				float uv_t = (destination_projection -
+					      previous_projection) /
+					     (current_projection -
+					      previous_projection);
+				vertices[output].u =
+					previous_u + delta_u * uv_t;
+				vertices[output].v =
+					previous_v + delta_v * uv_t;
 			} else {
 				vertices[output].u =
-					previousU + previousX * deltaU;
+					previous_u + previous_x * delta_u;
 				vertices[output].v =
-					previousV + previousX * deltaV;
+					previous_v + previous_x * delta_v;
 			}
 		} else {
-			currentX = currentX / deltaX;
-			vertices[output].y = currentY - currentX * deltaY;
-			vertices[output].lightIntensity =
-				currentRhw - deltaRhw * currentX;
-			vertices[output].scaledInverseDepth =
-				currentZ - deltaZ * currentX;
-			if (deltaZ != 0.0f) {
-				float projection = (float)g_projScaleInt;
-				float previousProjection =
-					projection / previousZ;
-				float currentProjection = projection / currentZ;
-				float destinationProjection =
+			current_x = current_x / delta_x;
+			vertices[output].y = current_y - current_x * delta_y;
+			vertices[output].light_intensity =
+				current_rhw - delta_rhw * current_x;
+			vertices[output].scaled_inverse_depth =
+				current_z - delta_z * current_x;
+			if (delta_z != 0.0f) {
+				float projection = (float)g_proj_scale_int;
+				float previous_projection =
+					projection / previous_z;
+				float current_projection =
+					projection / current_z;
+				float destination_projection =
 					projection /
-					vertices[output].scaledInverseDepth;
-				float uvT = (destinationProjection -
-					     currentProjection) /
-					    (previousProjection -
-					     currentProjection);
-				vertices[output].u = currentU - deltaU * uvT;
-				vertices[output].v = currentV - deltaV * uvT;
+					vertices[output].scaled_inverse_depth;
+				float uv_t = (destination_projection -
+					      current_projection) /
+					     (previous_projection -
+					      current_projection);
+				vertices[output].u = current_u - delta_u * uv_t;
+				vertices[output].v = current_v - delta_v * uv_t;
 			} else {
 				vertices[output].u =
-					currentU - deltaU * currentX;
+					current_u - delta_u * current_x;
 				vertices[output].v =
-					currentV - deltaV * currentX;
+					current_v - delta_v * current_x;
 			}
 		}
-		vertices[output].x = (float)g_flightVpWidth;
-		g_clipIdxA[g_clipCountA++] = output;
+		vertices[output].x = (float)g_flight_vp_width;
+		g_clip_idx_a[g_clip_count_a++] = output;
 	} else {
-		g_clipIdxA[g_clipCountA++] = curVertIndex;
+		g_clip_idx_a[g_clip_count_a++] = cur_vert_index;
 	}
 }
 
-/* Clips one edge against the plane at view depth 1 and appends to g_clipIdxA
+/* Clips one edge against the plane at view depth 1 and appends to g_clip_idx_a
  * as the other clips do. A vertex is behind the plane when its
- * scaledInverseDepth is negative (depth minus 1) and its x and y are then in
- * view space. The new vertex goes at g_clipVertCursor, which it advances, at
+ * scaled_inverse_depth is negative (depth minus 1) and its x and y are then in
+ * view space. The new vertex goes at g_clip_vert_cursor, which it advances, at
  * depth 1: x, y, light, u and v are interpolated in view space, then x and y
- * projected with scaledInverseDepth set to g_projScaleInt. Returns nothing. */
+ * projected with scaled_inverse_depth set to g_proj_scale_int. Returns nothing. */
 // FUNCTION: XVT 0x40AC80
-void RenderClip_ClipPolyNear(int prevVertIndex, int curVertIndex,
-			     struct RenderClipVertex *vertices)
+void render_clip_clip_poly_near(int prev_vert_index, int cur_vert_index,
+				struct render_clip_vertex *vertices)
 {
-	struct RenderClipVertex *previous = &vertices[prevVertIndex];
-	float previousScaledInverseDepth = previous->scaledInverseDepth;
-	struct RenderClipVertex *current = &vertices[curVertIndex];
-	float currentScaledInverseDepth = current->scaledInverseDepth;
+	struct render_clip_vertex *previous = &vertices[prev_vert_index];
+	float previous_scaled_inverse_depth = previous->scaled_inverse_depth;
+	struct render_clip_vertex *current = &vertices[cur_vert_index];
+	float current_scaled_inverse_depth = current->scaled_inverse_depth;
 	int output;
 
-	if (previousScaledInverseDepth < 0.0f) {
-		float previousX;
-		float previousY;
-		float previousLightIntensity;
-		float previousU;
-		float previousV;
-		float currentDepth;
-		float currentX;
-		float currentY;
-		float deltaU;
-		float deltaV;
+	if (previous_scaled_inverse_depth < 0.0f) {
+		float previous_x;
+		float previous_y;
+		float previous_light_intensity;
+		float previous_u;
+		float previous_v;
+		float current_depth;
+		float current_x;
+		float current_y;
+		float delta_u;
+		float delta_v;
 		float t;
 		float projection;
 
-		if (currentScaledInverseDepth < 0.0f) {
+		if (current_scaled_inverse_depth < 0.0f) {
 			return;
 		}
-		output = g_clipVertCursor++;
-		previousX = previous->x;
-		previousY = previous->y;
-		previousLightIntensity = previous->lightIntensity;
-		previousU = previous->u;
-		currentDepth = (float)(unsigned int)g_projScaleInt /
-			       currentScaledInverseDepth;
-		previousV = previous->v;
-		currentX = (current->x - (float)(g_flightVpWidth >> 1)) *
-			   currentDepth;
-		/* From here currentX is the edge's x difference (current vertex minus previous). */
-		currentX = currentX * g_invProjScale - previousX;
-		currentY = (current->y -
-			    (float)(g_projOffsetY + (g_flightVpHeight >> 1))) *
-			   currentDepth;
-		/* From here currentY is the edge's y difference (current vertex minus previous). */
-		currentY = currentY * g_invProjScale - previousY;
-		deltaU = current->u - previousU;
-		deltaV = current->v - previousV;
-		t = currentDepth - previousScaledInverseDepth;
-		t = previousScaledInverseDepth / (t - g_renderUnitFloat);
-		vertices[output].lightIntensity =
-			previousLightIntensity -
-			(current->lightIntensity - previousLightIntensity) * t;
-		vertices[output].x = previousX - currentX * t;
-		vertices[output].y = previousY - currentY * t;
-		vertices[output].v = previousV - t * deltaV;
-		vertices[output].u = previousU - deltaU * t;
-		projection = (float)(unsigned int)g_projScaleInt;
-		vertices[output].scaledInverseDepth = projection;
+		output = g_clip_vert_cursor++;
+		previous_x = previous->x;
+		previous_y = previous->y;
+		previous_light_intensity = previous->light_intensity;
+		previous_u = previous->u;
+		current_depth = (float)(unsigned int)g_proj_scale_int /
+				current_scaled_inverse_depth;
+		previous_v = previous->v;
+		current_x = (current->x - (float)(g_flight_vp_width >> 1)) *
+			    current_depth;
+		/* From here current_x is the edge's x difference (current vertex minus previous). */
+		current_x = current_x * g_inv_proj_scale - previous_x;
+		current_y = (current->y - (float)(g_proj_offset_y +
+						  (g_flight_vp_height >> 1))) *
+			    current_depth;
+		/* From here current_y is the edge's y difference (current vertex minus previous). */
+		current_y = current_y * g_inv_proj_scale - previous_y;
+		delta_u = current->u - previous_u;
+		delta_v = current->v - previous_v;
+		t = current_depth - previous_scaled_inverse_depth;
+		t = previous_scaled_inverse_depth / (t - g_render_unit_float);
+		vertices[output].light_intensity =
+			previous_light_intensity -
+			(current->light_intensity - previous_light_intensity) *
+				t;
+		vertices[output].x = previous_x - current_x * t;
+		vertices[output].y = previous_y - current_y * t;
+		vertices[output].v = previous_v - t * delta_v;
+		vertices[output].u = previous_u - delta_u * t;
+		projection = (float)(unsigned int)g_proj_scale_int;
+		vertices[output].scaled_inverse_depth = projection;
 		vertices[output].x = vertices[output].x * projection;
 		vertices[output].y = projection * vertices[output].y;
 		vertices[output].x =
-			(float)(g_flightVpWidth >> 1) + vertices[output].x;
+			(float)(g_flight_vp_width >> 1) + vertices[output].x;
 		vertices[output].y =
-			(float)(g_projOffsetY + (g_flightVpHeight >> 1)) +
+			(float)(g_proj_offset_y + (g_flight_vp_height >> 1)) +
 			vertices[output].y;
-		g_clipIdxA[g_clipCountA++] = output;
-		g_clipIdxA[g_clipCountA++] = curVertIndex;
-	} else if (currentScaledInverseDepth < 0.0f) {
-		float currentX;
-		float currentY;
-		float currentLightIntensity;
-		float currentU;
-		float currentV;
-		float previousDepth;
-		float previousX;
-		float previousY;
-		float deltaU;
-		float deltaV;
+		g_clip_idx_a[g_clip_count_a++] = output;
+		g_clip_idx_a[g_clip_count_a++] = cur_vert_index;
+	} else if (current_scaled_inverse_depth < 0.0f) {
+		float current_x;
+		float current_y;
+		float current_light_intensity;
+		float current_u;
+		float current_v;
+		float previous_depth;
+		float previous_x;
+		float previous_y;
+		float delta_u;
+		float delta_v;
 		float t;
 		float projection;
 
-		output = g_clipVertCursor++;
-		currentX = current->x;
-		previousDepth = (float)(unsigned int)g_projScaleInt /
-				previousScaledInverseDepth;
-		currentY = current->y;
-		currentLightIntensity = current->lightIntensity;
-		currentU = current->u;
-		currentV = current->v;
-		previousX = (previous->x - (float)(g_flightVpWidth >> 1)) *
-			    previousDepth;
-		/* From here previousX is the edge's x difference (current vertex minus previous). */
-		previousX = currentX - previousX * g_invProjScale;
-		previousY = (previous->y -
-			     (float)(g_projOffsetY + (g_flightVpHeight >> 1))) *
-			    previousDepth;
-		/* From here previousY is the edge's y difference (current vertex minus previous). */
-		previousY = currentY - previousY * g_invProjScale;
-		deltaU = currentU - previous->u;
-		deltaV = currentV - previous->v;
-		t = currentScaledInverseDepth /
-		    (currentScaledInverseDepth - previousDepth +
-		     g_renderUnitFloat);
-		vertices[output].lightIntensity =
-			currentLightIntensity -
-			(currentLightIntensity - previous->lightIntensity) * t;
-		vertices[output].x = currentX - previousX * t;
-		vertices[output].y = currentY - previousY * t;
-		vertices[output].u = currentU - deltaU * t;
-		vertices[output].v = currentV - t * deltaV;
-		projection = (float)(unsigned int)g_projScaleInt;
-		vertices[output].scaledInverseDepth = projection;
+		output = g_clip_vert_cursor++;
+		current_x = current->x;
+		previous_depth = (float)(unsigned int)g_proj_scale_int /
+				 previous_scaled_inverse_depth;
+		current_y = current->y;
+		current_light_intensity = current->light_intensity;
+		current_u = current->u;
+		current_v = current->v;
+		previous_x = (previous->x - (float)(g_flight_vp_width >> 1)) *
+			     previous_depth;
+		/* From here previous_x is the edge's x difference (current vertex minus previous). */
+		previous_x = current_x - previous_x * g_inv_proj_scale;
+		previous_y =
+			(previous->y -
+			 (float)(g_proj_offset_y + (g_flight_vp_height >> 1))) *
+			previous_depth;
+		/* From here previous_y is the edge's y difference (current vertex minus previous). */
+		previous_y = current_y - previous_y * g_inv_proj_scale;
+		delta_u = current_u - previous->u;
+		delta_v = current_v - previous->v;
+		t = current_scaled_inverse_depth /
+		    (current_scaled_inverse_depth - previous_depth +
+		     g_render_unit_float);
+		vertices[output].light_intensity =
+			current_light_intensity -
+			(current_light_intensity - previous->light_intensity) *
+				t;
+		vertices[output].x = current_x - previous_x * t;
+		vertices[output].y = current_y - previous_y * t;
+		vertices[output].u = current_u - delta_u * t;
+		vertices[output].v = current_v - t * delta_v;
+		projection = (float)(unsigned int)g_proj_scale_int;
+		vertices[output].scaled_inverse_depth = projection;
 		vertices[output].x = vertices[output].x * projection;
 		vertices[output].y = projection * vertices[output].y;
 		vertices[output].x =
-			(float)(g_flightVpWidth >> 1) + vertices[output].x;
+			(float)(g_flight_vp_width >> 1) + vertices[output].x;
 		vertices[output].y =
-			(float)(g_projOffsetY + (g_flightVpHeight >> 1)) +
+			(float)(g_proj_offset_y + (g_flight_vp_height >> 1)) +
 			vertices[output].y;
-		g_clipIdxA[g_clipCountA++] = output;
+		g_clip_idx_a[g_clip_count_a++] = output;
 	} else {
-		g_clipIdxA[g_clipCountA++] = curVertIndex;
+		g_clip_idx_a[g_clip_count_a++] = cur_vert_index;
 	}
 }

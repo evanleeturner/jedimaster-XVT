@@ -7,75 +7,76 @@
 
 #include <stdint.h>
 
-static void CheckReset(void)
+static void check_reset(void)
 {
-	XvtTime_Reset();
-	XvtTime_AdvanceHostClock(123456);
-	XVT_ASSERT_TRUE(XvtTime_GetElapsedUs() != 0);
-	XvtTime_Reset();
-	XVT_ASSERT_INT_EQ(XvtTime_GetElapsedUs(), 0);
-	XVT_ASSERT_INT_EQ(XvtTime_GetElapsedMs(), 0);
+	xvt_time_reset();
+	xvt_time_advance_host_clock(123456);
+	XVT_ASSERT_TRUE(xvt_time_get_elapsed_us() != 0);
+	xvt_time_reset();
+	XVT_ASSERT_INT_EQ(xvt_time_get_elapsed_us(), 0);
+	XVT_ASSERT_INT_EQ(xvt_time_get_elapsed_ms(), 0);
 }
 
-static void CheckAdvance(void)
+static void check_advance(void)
 {
-	XvtTime_Reset();
-	XvtTime_AdvanceHostClock(250);
-	XvtTime_AdvanceHostClock(750);
-	XVT_ASSERT_INT_EQ(XvtTime_GetElapsedUs(), 1000);
+	xvt_time_reset();
+	xvt_time_advance_host_clock(250);
+	xvt_time_advance_host_clock(750);
+	XVT_ASSERT_INT_EQ(xvt_time_get_elapsed_us(), 1000);
 
 	/* Zero and negative deltas are ignored. */
-	XvtTime_AdvanceHostClock(0);
-	XvtTime_AdvanceHostClock(-1);
-	XvtTime_AdvanceHostClock(INT32_MIN);
-	XVT_ASSERT_INT_EQ(XvtTime_GetElapsedUs(), 1000);
+	xvt_time_advance_host_clock(0);
+	xvt_time_advance_host_clock(-1);
+	xvt_time_advance_host_clock(INT32_MIN);
+	XVT_ASSERT_INT_EQ(xvt_time_get_elapsed_us(), 1000);
 
-	XvtTime_AdvanceHostClock(INT32_MAX);
-	XVT_ASSERT_INT_EQ(XvtTime_GetElapsedUs(), 1000 + (uint64_t)INT32_MAX);
+	xvt_time_advance_host_clock(INT32_MAX);
+	XVT_ASSERT_INT_EQ(xvt_time_get_elapsed_us(),
+			  1000 + (uint64_t)INT32_MAX);
 }
 
-static void CheckWholeMilliseconds(void)
+static void check_whole_milliseconds(void)
 {
-	XvtTime_Reset();
-	XvtTime_AdvanceHostClock(999);
-	XVT_ASSERT_INT_EQ(XvtTime_GetElapsedMs(), 0);
-	XvtTime_AdvanceHostClock(1);
-	XVT_ASSERT_INT_EQ(XvtTime_GetElapsedMs(), 1);
-	XvtTime_AdvanceHostClock(1999);
-	XVT_ASSERT_INT_EQ(XvtTime_GetElapsedMs(), 2);
+	xvt_time_reset();
+	xvt_time_advance_host_clock(999);
+	XVT_ASSERT_INT_EQ(xvt_time_get_elapsed_ms(), 0);
+	xvt_time_advance_host_clock(1);
+	XVT_ASSERT_INT_EQ(xvt_time_get_elapsed_ms(), 1);
+	xvt_time_advance_host_clock(1999);
+	XVT_ASSERT_INT_EQ(xvt_time_get_elapsed_ms(), 2);
 }
 
-static void CheckTicksWrap(void)
+static void check_ticks_wrap(void)
 {
-	XvtTime_Reset();
+	xvt_time_reset();
 	/* 2^32 milliseconds plus 5, in steps of 2^31 - 1 microseconds and a last partial step. */
 	const uint64_t target = (UINT64_C(1) << 32) * 1000 + 5000;
 	uint64_t added = 0;
 	while (target - added > (uint64_t)INT32_MAX) {
-		XvtTime_AdvanceHostClock(INT32_MAX);
+		xvt_time_advance_host_clock(INT32_MAX);
 		added += (uint64_t)INT32_MAX;
 	}
-	XvtTime_AdvanceHostClock((int32_t)(target - added));
+	xvt_time_advance_host_clock((int32_t)(target - added));
 	/* The microsecond count does not wrap; the millisecond count does. */
-	XVT_ASSERT_INT_EQ(XvtTime_GetElapsedUs(), target);
-	XVT_ASSERT_INT_EQ(XvtTime_GetElapsedMs(), 5);
+	XVT_ASSERT_INT_EQ(xvt_time_get_elapsed_us(), target);
+	XVT_ASSERT_INT_EQ(xvt_time_get_elapsed_ms(), 5);
 }
 
-static void CheckWindowsClock(void)
+static void check_windows_clock(void)
 {
-	XvtTime_Reset();
-	XvtTime_AdvanceHostClock(42 * 1000 + 300);
-	XVT_ASSERT_INT_EQ(timeGetTime(), XvtTime_GetElapsedMs());
-	XVT_ASSERT_INT_EQ(GetTickCount(), XvtTime_GetElapsedMs());
+	xvt_time_reset();
+	xvt_time_advance_host_clock(42 * 1000 + 300);
+	XVT_ASSERT_INT_EQ(timeGetTime(), xvt_time_get_elapsed_ms());
+	XVT_ASSERT_INT_EQ(GetTickCount(), xvt_time_get_elapsed_ms());
 	XVT_ASSERT_INT_EQ(timeGetTime(), 42);
 }
 
 int main(void)
 {
-	CheckReset();
-	CheckAdvance();
-	CheckWholeMilliseconds();
-	CheckTicksWrap();
-	CheckWindowsClock();
+	check_reset();
+	check_advance();
+	check_whole_milliseconds();
+	check_ticks_wrap();
+	check_windows_clock();
 	return 0;
 }

@@ -16,12 +16,12 @@ extern "C" {
  * it a peer-timeout deadline; with a request already out, it aborts the local player and ends the
  * mission once that deadline passes. The host cannot receive an image, so it ends the mission and
  * broadcasts a session abort, ending every player's flight. */
-void XvtResync_ServiceRecovery(void);
+void xvt_resync_service_recovery(void);
 /* 1 when a deferred checksum report carries a state request. */
-int XvtResync_HasStateRequest(void);
+int xvt_resync_has_state_request(void);
 /* The tick at or below which a world message is old: the incoming image's tick while it is
  * received or replayed, else the server tick. */
-int XvtResync_ReceiveFloor(void);
+int xvt_resync_receive_floor(void);
 /* Returns 1 when it consumed the packet, else 0 so the flight control handler sees it. On the host
  * during a send, a state request from the peer is deferred and restarts the send, and the peer's
  * ready signal starts the chunks. On a client, from the host only: the checksum table is kept; the
@@ -29,42 +29,42 @@ int XvtResync_ReceiveFloor(void);
  * whole before it is written and acknowledged; the apply verifies the image against the table,
  * decodes it, installs the world and starts the replay. A receive whose image or queues fail
  * restarts once; a second failure ends the mission. */
-int XvtResync_ReceivePacket(int sender, const uint8_t *bytes, unsigned size);
+int xvt_resync_receive_packet(int sender, const uint8_t *bytes, unsigned size);
 /* Host: starts sending world, a checkpoint image of size bytes, to player: announces the resync,
  * shows the alert and sends the checksum table and request from a pinned copy. Returns -1 when
  * started, and also, doing nothing, while a transfer is under way; returns 0, ending the send,
  * when the image fails validation, copying or checksumming. */
-int XvtResync_BeginSend(int peer_dpid, uint8_t *world, int size);
+int xvt_resync_begin_send(int peer_dpid, uint8_t *world, int size);
 /* Sends player the apply for size bytes, stamped with the input tick, and waits in the apply phase
  * for the acknowledgement, resending each retry interval and booting player after
  * XVT_RESYNC_RETRIES attempts. */
-void XvtResync_BeginApply(int peer_dpid, int size);
+void xvt_resync_begin_apply(int peer_dpid, int size);
 /* Processes packets and returns 1 once chunks 0 through count - 1 are acknowledged, and -1 while
  * waiting or after a restart request. After XVT_RESYNC_ACK_RETRIES intervals without progress,
  * or on Escape, boots player and returns 0. */
-int XvtResync_WaitAcks(int peer_dpid, int count);
+int xvt_resync_wait_acks(int peer_dpid, int count);
 /* 1 while a send, receive or replay runs. */
-int XvtResync_IsActive(void);
+int xvt_resync_is_active(void);
 /* On a client: 1 while a state request is out or an image is received or replayed; incoming input
  * batches are then ignored. */
-int XvtResync_HoldsInput(void);
+int xvt_resync_holds_input(void);
 /* 0 when work is ready now; the receive deadline while an image is requested or received; the
  * time to the next retry during a send; UINT64_MAX when idle. */
-uint64_t XvtResync_NextWakeDelayUs(void);
+uint64_t xvt_resync_next_wake_delay_us(void);
 /* Drops a send its peer restarted, restarts a failed receive, serves deferred checksum reports
  * while idle, flushes world parts, and advances the current phase. A receive past its deadline
  * ends the mission. A replay that confirms every buffered message acknowledges the host, resets
  * the input clock to the server tick plus the lead allowance, recovers the controls and returns to
  * idle. A pending mission end resets a running resync. */
-void XvtResync_Update(void);
+void xvt_resync_update(void);
 /* Drops any send, receive, pinned image and deferred reports, restoring the alert box. */
-void XvtResync_Reset(void);
+void xvt_resync_reset(void);
 /* Queues a checksum report from sender to be handled after the current transfer; a full queue logs
  * an error and ends the mission. */
-void XvtResync_DeferChecksum(int sender, const int *packet);
+void xvt_resync_defer_checksum(int sender, const int *packet);
 /* Called after the received world and buffered messages have been applied. */
 /* Tells the render capture that the world changed. */
-void XvtResync_WorldApplied(void);
+void xvt_resync_world_applied(void);
 
 #ifdef __cplusplus
 }

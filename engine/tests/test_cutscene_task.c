@@ -26,162 +26,165 @@
 
 enum { MISSION_INDEX = 11, DESCRIPTION_ID = 22 };
 
-static struct XvtTestAssets g_assets;
-static struct CutsceneEntry g_table[5];
+static struct xvt_test_assets g_assets;
+static struct cutscene_entry g_table[5];
 
-static void Entry(int index, const char *movie, int mission, int phase,
+static void entry(int index, const char *movie, int mission, int phase,
 		  int description)
 {
 	memset(&g_table[index], 0, sizeof g_table[index]);
-	strcpy(g_table[index].movieName, movie);
-	g_table[index].campaignId = mission;
-	g_table[index].playAfterDebriefing = phase;
-	g_table[index].campaignMissionId = description;
+	strcpy(g_table[index].movie_name, movie);
+	g_table[index].campaign_id = mission;
+	g_table[index].play_after_debriefing = phase;
+	g_table[index].campaign_mission_id = description;
 }
 
 /* The table: "first" and "fourth" match phase 0, "second" matches phase 1, the others never match the
  * pilot's mission. Placeholders exist for the movies named in present. */
-static void Fresh(const char *present_a, const char *present_b)
+static void fresh(const char *present_a, const char *present_b)
 {
-	XvtCutsceneTask_Reset();
-	XvtMovieTask_Shutdown();
-	XvtTest_CloseAssets(&g_assets);
-	memset(&g_frontState, 0, sizeof g_frontState);
-	g_frontState.cdAudioMciDeviceId = 1;
-	g_frontState.cdAudioCurrentTrack = 1;
-	g_frontState.cdAudioSuspendState = CDAudio_NotSuspended;
-	g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_SINGLEPLAYER;
-	memset(&g_pilotData, 0, sizeof g_pilotData);
-	g_pilotData.missionDirectoryId = MISSION_DIRECTORY_TRAINING_EXERCISES;
-	g_pilotData.missionSequenceActive = 1;
-	g_pilotData.missionDescriptionIds[5] = MISSION_INDEX;
-	g_pilotData.missionDescriptionIds[0] = DESCRIPTION_ID;
-	Entry(0, "first", MISSION_INDEX, 0, DESCRIPTION_ID);
-	Entry(1, "other", MISSION_INDEX + 1, 0, DESCRIPTION_ID);
-	Entry(2, "second", MISSION_INDEX, 1, DESCRIPTION_ID);
-	Entry(3, "third", MISSION_INDEX, 0, DESCRIPTION_ID + 1);
-	Entry(4, "fourth", MISSION_INDEX, 0, DESCRIPTION_ID);
-	g_cutsceneTable = g_table;
-	g_cutsceneCount = 5;
-	XvtTest_OpenAssets(&g_assets);
+	xvt_cutscene_task_reset();
+	xvt_movie_task_shutdown();
+	xvt_test_close_assets(&g_assets);
+	memset(&g_front_state, 0, sizeof g_front_state);
+	g_front_state.cd_audio_mci_device_id = 1;
+	g_front_state.cd_audio_current_track = 1;
+	g_front_state.cd_audio_suspend_state = CD_AUDIO_NOT_SUSPENDED;
+	g_frontend_mission_session_mode = FRONTEND_MISSION_SESSION_SINGLEPLAYER;
+	memset(&g_pilot_data, 0, sizeof g_pilot_data);
+	g_pilot_data.mission_directory_id =
+		MISSION_DIRECTORY_TRAINING_EXERCISES;
+	g_pilot_data.mission_sequence_active = 1;
+	g_pilot_data.mission_description_ids[5] = MISSION_INDEX;
+	g_pilot_data.mission_description_ids[0] = DESCRIPTION_ID;
+	entry(0, "first", MISSION_INDEX, 0, DESCRIPTION_ID);
+	entry(1, "other", MISSION_INDEX + 1, 0, DESCRIPTION_ID);
+	entry(2, "second", MISSION_INDEX, 1, DESCRIPTION_ID);
+	entry(3, "third", MISSION_INDEX, 0, DESCRIPTION_ID + 1);
+	entry(4, "fourth", MISSION_INDEX, 0, DESCRIPTION_ID);
+	g_cutscene_table = g_table;
+	g_cutscene_count = 5;
+	xvt_test_open_assets(&g_assets);
 	char path[XVT_TEST_PATH_CAPACITY];
 	if (present_a) {
 		snprintf(path, sizeof path, "movies/%s.smk", present_a);
-		XvtTest_AddAsset(&g_assets, path);
+		xvt_test_add_asset(&g_assets, path);
 	}
 	if (present_b) {
 		snprintf(path, sizeof path, "movies/%s.smk", present_b);
-		XvtTest_AddAsset(&g_assets, path);
+		xvt_test_add_asset(&g_assets, path);
 	}
 }
 
 /* Ticks the movie task until the movie completes and reaps it, as the port does. */
-static void FinishMovie(void)
+static void finish_movie(void)
 {
 	struct timespec pause = {0, 1000000};
-	for (int i = 0; i < 10000 && XvtMovieTask_IsActive(); ++i) {
-		XvtMovieTask_Update();
+	for (int i = 0; i < 10000 && xvt_movie_task_is_active(); ++i) {
+		xvt_movie_task_update();
 		nanosleep(&pause, NULL);
 	}
-	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 0);
-	XvtMovieTask_ReapFinished();
+	XVT_ASSERT_INT_EQ(xvt_movie_task_is_active(), 0);
+	xvt_movie_task_reap_finished();
 }
 
-static void CheckRefusals(void)
+static void check_refusals(void)
 {
-	Fresh(NULL, NULL);
-	g_pilotData.missionDirectoryId = MISSION_DIRECTORY_MELEES;
-	XVT_ASSERT_INT_EQ(XvtCutsceneTask_Play(0), 0);
-	Fresh(NULL, NULL);
-	g_pilotData.missionSequenceActive = 0;
-	XVT_ASSERT_INT_EQ(XvtCutsceneTask_Play(0), 0);
-	Fresh(NULL, NULL);
-	g_cutsceneTable = NULL;
-	XVT_ASSERT_INT_EQ(XvtCutsceneTask_Play(0), 0);
+	fresh(NULL, NULL);
+	g_pilot_data.mission_directory_id = MISSION_DIRECTORY_MELEES;
+	XVT_ASSERT_INT_EQ(xvt_cutscene_task_play(0), 0);
+	fresh(NULL, NULL);
+	g_pilot_data.mission_sequence_active = 0;
+	XVT_ASSERT_INT_EQ(xvt_cutscene_task_play(0), 0);
+	fresh(NULL, NULL);
+	g_cutscene_table = NULL;
+	XVT_ASSERT_INT_EQ(xvt_cutscene_task_play(0), 0);
 
 	/* A refusal starts no run: with the table back, the next call starts one. */
-	g_cutsceneTable = g_table;
-	XVT_ASSERT_INT_EQ(XvtCutsceneTask_Play(5), 1);
-	XVT_ASSERT_INT_EQ(g_frontState.cdAudioSuspendState,
-			  CDAudio_NotSuspended);
+	g_cutscene_table = g_table;
+	XVT_ASSERT_INT_EQ(xvt_cutscene_task_play(5), 1);
+	XVT_ASSERT_INT_EQ(g_front_state.cd_audio_suspend_state,
+			  CD_AUDIO_NOT_SUSPENDED);
 }
 
-static void CheckNoMatch(void)
+static void check_no_match(void)
 {
-	Fresh("first", "fourth");
-	XVT_ASSERT_INT_EQ(XvtCutsceneTask_Play(5), 1);
-	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 0);
-	XVT_ASSERT_INT_EQ(g_frontState.cdAudioSuspendState,
-			  CDAudio_NotSuspended);
+	fresh("first", "fourth");
+	XVT_ASSERT_INT_EQ(xvt_cutscene_task_play(5), 1);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_is_active(), 0);
+	XVT_ASSERT_INT_EQ(g_front_state.cd_audio_suspend_state,
+			  CD_AUDIO_NOT_SUSPENDED);
 
 	/* That return left no run: phase 0 now starts a new one, whose first match plays. */
-	XVT_ASSERT_INT_EQ(XvtCutsceneTask_Play(0), XVT_MOVIE_PENDING);
-	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 1);
+	XVT_ASSERT_INT_EQ(xvt_cutscene_task_play(0), XVT_MOVIE_PENDING);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_is_active(), 1);
 }
 
-static void CheckMissingMovieEndsRun(void)
+static void check_missing_movie_ends_run(void)
 {
 	/* "first" is missing, "fourth" is there: the failure of the first ends the run before the other. */
-	Fresh("fourth", NULL);
-	XVT_ASSERT_INT_EQ(XvtCutsceneTask_Play(0), 0);
-	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 0);
+	fresh("fourth", NULL);
+	XVT_ASSERT_INT_EQ(xvt_cutscene_task_play(0), 0);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_is_active(), 0);
 	/* CD audio was suspended for the movie and asked to resume after it. */
-	XVT_ASSERT_INT_EQ(g_frontState.cdAudioSuspendState,
-			  CDAudio_ResumePending);
+	XVT_ASSERT_INT_EQ(g_front_state.cd_audio_suspend_state,
+			  CD_AUDIO_RESUME_PENDING);
 }
 
-static void CheckPendingMovie(void)
+static void check_pending_movie(void)
 {
-	Fresh("first", "fourth");
-	XVT_ASSERT_INT_EQ(XvtCutsceneTask_Play(0), XVT_MOVIE_PENDING);
-	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 1);
-	XVT_ASSERT_INT_EQ(g_frontState.cdAudioSuspendState, CDAudio_Suspended);
+	fresh("first", "fourth");
+	XVT_ASSERT_INT_EQ(xvt_cutscene_task_play(0), XVT_MOVIE_PENDING);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_is_active(), 1);
+	XVT_ASSERT_INT_EQ(g_front_state.cd_audio_suspend_state,
+			  CD_AUDIO_SUSPENDED);
 	/* Later calls continue the run whatever phase they pass. */
-	XVT_ASSERT_INT_EQ(XvtCutsceneTask_Play(1), XVT_MOVIE_PENDING);
+	XVT_ASSERT_INT_EQ(xvt_cutscene_task_play(1), XVT_MOVIE_PENDING);
 
 	/* The empty file fails (result 2): the run ends with 0 and "fourth" is skipped. */
-	FinishMovie();
-	XVT_ASSERT_INT_EQ(XvtCutsceneTask_Play(1), 0);
-	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 0);
-	XVT_ASSERT_INT_EQ(g_frontState.cdAudioSuspendState,
-			  CDAudio_ResumePending);
+	finish_movie();
+	XVT_ASSERT_INT_EQ(xvt_cutscene_task_play(1), 0);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_is_active(), 0);
+	XVT_ASSERT_INT_EQ(g_front_state.cd_audio_suspend_state,
+			  CD_AUDIO_RESUME_PENDING);
 	int result = 77;
-	XVT_ASSERT_INT_EQ(XvtMovieTask_TakeResult(&result), 0);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_take_result(&result), 0);
 
 	/* No run is left: phase 1 starts a new one, matching "second" only, which is missing. */
-	XVT_ASSERT_INT_EQ(XvtCutsceneTask_Play(1), 0);
-	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 0);
+	XVT_ASSERT_INT_EQ(xvt_cutscene_task_play(1), 0);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_is_active(), 0);
 }
 
-static void CheckReset(void)
+static void check_reset(void)
 {
-	Fresh("first", NULL);
-	XVT_ASSERT_INT_EQ(XvtCutsceneTask_Play(0), XVT_MOVIE_PENDING);
-	XvtCutsceneTask_Reset();
+	fresh("first", NULL);
+	XVT_ASSERT_INT_EQ(xvt_cutscene_task_play(0), XVT_MOVIE_PENDING);
+	xvt_cutscene_task_reset();
 	/* The movie plays on, and CD audio stays suspended. */
-	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 1);
-	XVT_ASSERT_INT_EQ(g_frontState.cdAudioSuspendState, CDAudio_Suspended);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_is_active(), 1);
+	XVT_ASSERT_INT_EQ(g_front_state.cd_audio_suspend_state,
+			  CD_AUDIO_SUSPENDED);
 
 	/* The next Play starts over: it does not wait for that movie, but tries "first" again, which the
 	 * movie task refuses while a movie is active. */
-	XVT_ASSERT_INT_EQ(XvtCutsceneTask_Play(0), 0);
-	XVT_ASSERT_INT_EQ(XvtMovieTask_IsActive(), 1);
-	FinishMovie();
+	XVT_ASSERT_INT_EQ(xvt_cutscene_task_play(0), 0);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_is_active(), 1);
+	finish_movie();
 	int result = 77;
-	XVT_ASSERT_INT_EQ(XvtMovieTask_TakeResult(&result), 1);
+	XVT_ASSERT_INT_EQ(xvt_movie_task_take_result(&result), 1);
 }
 
 int main(void)
 {
-	CheckRefusals();
-	CheckNoMatch();
-	CheckMissingMovieEndsRun();
-	CheckPendingMovie();
-	CheckReset();
-	XvtCutsceneTask_Reset();
-	XvtMovieTask_Shutdown();
-	XvtTest_CloseAssets(&g_assets);
-	g_cutsceneTable = NULL;
-	g_cutsceneCount = 0;
+	check_refusals();
+	check_no_match();
+	check_missing_movie_ends_run();
+	check_pending_movie();
+	check_reset();
+	xvt_cutscene_task_reset();
+	xvt_movie_task_shutdown();
+	xvt_test_close_assets(&g_assets);
+	g_cutscene_table = NULL;
+	g_cutscene_count = 0;
 	return 0;
 }

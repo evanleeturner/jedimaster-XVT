@@ -13,7 +13,7 @@
 #include "xvt_runtime/timing/player_timing.h"
 #include "xvt_runtime/timing/reference_motion.h"
 
-typedef enum XvtFlightPhase {
+typedef enum xvt_flight_phase {
 	XVT_FLIGHT_IDLE,
 	XVT_FLIGHT_PREPARE,
 	XVT_FLIGHT_SESSION,
@@ -34,34 +34,34 @@ typedef enum XvtFlightPhase {
 	XVT_FLIGHT_CLEANUP,
 	XVT_FLIGHT_FADE,
 	XVT_FLIGHT_DONE
-} XvtFlightPhase;
+} xvt_flight_phase;
 
 static struct {
-	XvtFlightPhase phase;
+	xvt_flight_phase phase;
 	char command[1024];
-	int resourcesAllocated;
-	int commitResults;
-	int optionsFailed;
+	int resources_allocated;
+	int commit_results;
+	int options_failed;
 	int result;
 	int released;
-	int missionEntered;
+	int mission_entered;
 } g_flight;
 
-int XvtFlightTask_Begin(const char *command)
+int xvt_flight_task_begin(const char *command)
 {
-	if (XvtFlightTask_IsActive() || !command) {
+	if (xvt_flight_task_is_active() || !command) {
 		return 0;
 	}
 	memset(&g_flight, 0, sizeof(g_flight));
 	snprintf(g_flight.command, sizeof(g_flight.command), "%s", command);
 	g_flight.phase = XVT_FLIGHT_PREPARE;
-	XvtFlightSim_Reset();
+	xvt_flight_sim_reset();
 	XVT_LOG_INFO("flight.launch");
 	return 1;
 }
 
 /* The flight.end reason for a flight that left the phase from for cleanup. */
-static const char *XvtFlightTask_EndReason(XvtFlightPhase from)
+static const char *xvt_flight_task_end_reason(xvt_flight_phase from)
 {
 	switch (from) {
 	case XVT_FLIGHT_PREPARE:
@@ -81,134 +81,134 @@ static const char *XvtFlightTask_EndReason(XvtFlightPhase from)
 	}
 }
 
-static void XvtFlightTask_ReleaseMission(int quitting)
+static void xvt_flight_task_release_mission(int quitting)
 {
 	if (g_flight.released) {
 		return;
 	}
 	g_flight.released = 1;
-	XvtResync_Reset();
-	XvtFlightNetwork_ResetMission();
-	XvtFlightFrame_ResetReplay();
-	XvtRenderCapture_EndMission();
-	XvtFlightTiming_EndSession();
-	XvtFlightIntegration_Shutdown();
-	XvtReferenceMotion_Shutdown();
-	XvtPlayerTiming_Reset();
-	Flight_FreeWorldStateBuffers();
-	if (g_unusedFlightDebugLogFile) {
-		File_Close(g_unusedFlightDebugLogFile);
-		g_unusedFlightDebugLogFile = NULL;
+	xvt_resync_reset();
+	xvt_flight_network_reset_mission();
+	xvt_flight_frame_reset_replay();
+	xvt_render_capture_end_mission();
+	xvt_flight_timing_end_session();
+	xvt_flight_integration_shutdown();
+	xvt_reference_motion_shutdown();
+	xvt_player_timing_reset();
+	flight_free_world_state_buffers();
+	if (g_unused_flight_debug_log_file) {
+		file_close(g_unused_flight_debug_log_file);
+		g_unused_flight_debug_log_file = NULL;
 	}
-	if (g_flight.commitResults) {
-		g_flightRenderTransitionHook();
-		FeDiskIo_CommitFlightResults(0, 0);
-		g_flight.commitResults = 0;
+	if (g_flight.commit_results) {
+		g_flight_render_transition_hook();
+		fe_disk_io_commit_flight_results(0, 0);
+		g_flight.commit_results = 0;
 	}
-	g_flightDisplaySurfacesActive = 0;
-	if (g_flight.missionEntered) {
-		Sound_StopAllInstances();
+	g_flight_display_surfaces_active = 0;
+	if (g_flight.mission_entered) {
+		sound_stop_all_instances();
 	}
-	if (g_flight.optionsFailed) {
-		Sound_EmptyStub();
+	if (g_flight.options_failed) {
+		sound_empty_stub();
 	}
-	if (g_flight.resourcesAllocated) {
-		FeDiskIo_FreeFlightResources();
-		g_flight.resourcesAllocated = 0;
+	if (g_flight.resources_allocated) {
+		fe_disk_io_free_flight_resources();
+		g_flight.resources_allocated = 0;
 	}
-	if (g_flight.missionEntered && !quitting &&
-	    g_preFlightResolutionMode != g_flightResolutionMode) {
-		FlightDisplay_ApplyResolutionModeStub(
-			g_preFlightResolutionMode);
+	if (g_flight.mission_entered && !quitting &&
+	    g_pre_flight_resolution_mode != g_flight_resolution_mode) {
+		flight_display_apply_resolution_mode_stub(
+			g_pre_flight_resolution_mode);
 	}
-	if (g_flight.optionsFailed) {
-		memcpy(&g_localPlayerSnapshotOnOptionsSyncFailure,
-		       &g_players[g_localPlayer],
-		       sizeof(g_localPlayerSnapshotOnOptionsSyncFailure));
+	if (g_flight.options_failed) {
+		memcpy(&g_local_player_snapshot_on_options_sync_failure,
+		       &g_players[g_local_player],
+		       sizeof(g_local_player_snapshot_on_options_sync_failure));
 	} else if (g_flight.result) {
-		Pilot_Save(0);
+		pilot_save(0);
 	}
-	XvtFlightSim_Reset();
+	xvt_flight_sim_reset();
 }
 
-static int XvtFlightTask_StartWorld(void)
+static int xvt_flight_task_start_world(void)
 {
 	int offline =
-		atoi(g_flightLaunchArgs
+		atoi(g_flight_launch_args
 			     .arguments[FLIGHT_LAUNCH_ARG_NUM_PLAYERS]) == 1 &&
-		atoi(g_flightLaunchArgs.arguments[FLIGHT_LAUNCH_ARG_IS_HOST]) ==
-			1 &&
-		!g_flightInProgressLaunch &&
-		XvtNetworkSession_GetStatus().state !=
+		atoi(g_flight_launch_args
+			     .arguments[FLIGHT_LAUNCH_ARG_IS_HOST]) == 1 &&
+		!g_flight_in_progress_launch &&
+		xvt_network_session_get_status().state !=
 			XVT_NETWORK_SESSION_ESTABLISHED;
-	XvtFlightTimingProfile profile =
-		offline ? (XvtConfig_Settings()->flight_unlocked
+	xvt_flight_timing_profile profile =
+		offline ? (xvt_config_settings()->flight_unlocked
 				   ? XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED
 				   : XVT_FLIGHT_TIMING_NATIVE)
 			: XVT_FLIGHT_TIMING_NETWORK_125;
 	int unlocked = profile != XVT_FLIGHT_TIMING_NATIVE;
 	if (profile == XVT_FLIGHT_TIMING_NETWORK_125) {
-		g_gameTime = 0;
+		g_game_time = 0;
 	}
-	if (g_regionMainObjectSlotEnd < 0 ||
-	    g_regionStaticObjectSlotCount < 0) {
+	if (g_region_main_object_slot_end < 0 ||
+	    g_region_static_object_slot_count < 0) {
 		return 0;
 	}
-	size_t capacity = (size_t)g_regionMainObjectSlotEnd +
-			  g_regionStaticObjectSlotCount;
+	size_t capacity = (size_t)g_region_main_object_slot_end +
+			  g_region_static_object_slot_count;
 	if (capacity > UINT16_MAX) {
 		return 0;
 	}
-	XvtPlayerTiming_BeginWorld();
-	if (unlocked && (!XvtFlightIntegration_Init(capacity) ||
-			 !XvtReferenceMotion_Init(capacity))) {
+	xvt_player_timing_begin_world();
+	if (unlocked && (!xvt_flight_integration_init(capacity) ||
+			 !xvt_reference_motion_init(capacity))) {
 		XVT_LOG_WARN("timing.alloc_failed outcome=\"%s\"",
 			     profile == XVT_FLIGHT_TIMING_NETWORK_125
 				     ? "mission_blocked"
 				     : "native_flight");
-		XvtFlightIntegration_Shutdown();
-		XvtReferenceMotion_Shutdown();
+		xvt_flight_integration_shutdown();
+		xvt_reference_motion_shutdown();
 		if (profile == XVT_FLIGHT_TIMING_NETWORK_125) {
 			return 0;
 		}
 		unlocked = 0;
 		profile = XVT_FLIGHT_TIMING_NATIVE;
 	}
-	XvtFlightTiming_BeginSession(profile);
-	XvtFlightNetwork_ResetMission();
+	xvt_flight_timing_begin_session(profile);
+	xvt_flight_network_reset_mission();
 	unsigned mask = 0;
 	for (unsigned i = 0; i < 8; ++i) {
-		if (g_players[i].participationState) {
+		if (g_players[i].participation_state) {
 			mask |= 1u << i;
 		}
 	}
-	XvtFlightCheckpoint_Begin((uint8_t)mask);
-	g_unusedFlightStartupObjectPassState = 0;
-	for (int i = 0; i < g_regionMainObjectSlotEnd; ++i) {
-		if (g_objectTable[i].mobj) {
-			g_objectTable[i].mobj->simStateTimestamp = 0;
+	xvt_flight_checkpoint_begin((uint8_t)mask);
+	g_unused_flight_startup_object_pass_state = 0;
+	for (int i = 0; i < g_region_main_object_slot_end; ++i) {
+		if (g_object_table[i].mobj) {
+			g_object_table[i].mobj->sim_state_timestamp = 0;
 		}
 	}
-	Flight_AllocWorldStateBuffers();
-	if (!g_worldStateBuffer || !g_worldStateDupBuffer) {
+	flight_alloc_world_state_buffers();
+	if (!g_world_state_buffer || !g_world_state_dup_buffer) {
 		return 0;
 	}
-	FlightSync_ClearBufferedWorldMessages();
-	Flight_SaveWorldState();
-	if (!g_worldStateSize) {
+	flight_sync_clear_buffered_world_messages();
+	flight_save_world_state();
+	if (!g_world_state_size) {
 		return 0;
 	}
-	if (XvtFlightTiming_IsNetwork125()) {
-		Flight_ChecksumWorldState(0, 0);
-		g_flightNetWorldChecksumEpoch = 0;
-		FlightSync_SnapshotWorldStateForReplay();
-		g_flightNetBufferWorldMessagesUntilChecksum = 1;
+	if (xvt_flight_timing_is_network125()) {
+		flight_checksum_world_state(0, 0);
+		g_flight_net_world_checksum_epoch = 0;
+		flight_sync_snapshot_world_state_for_replay();
+		g_flight_net_buffer_world_messages_until_checksum = 1;
 	}
-	FlightView_RenderStartupFrame();
-	NetSession_StubReturnTrue();
+	flight_view_render_startup_frame();
+	net_session_stub_return_true();
 	XVT_LOG_INFO("flight.world players=%d mask=%02x slots=%zu bytes=%u",
-		     g_activeFlightPlayerCount, mask, capacity,
-		     g_worldStateSize);
+		     g_active_flight_player_count, mask, capacity,
+		     g_world_state_size);
 	return 1;
 }
 
@@ -216,22 +216,23 @@ static int XvtFlightTask_StartWorld(void)
  * and an active resync holds it in place; otherwise the current phase runs one stage (preparation,
  * session, devices, the loading steps, options, world, start, frames, cleanup, fade) and picks the
  * next phase. Each change of phase, and the way the flight ended, is logged. */
-void XvtFlightTask_Update(void)
+void xvt_flight_task_update(void)
 {
-	XvtFlightPhase previous = g_flight.phase;
-	if (XvtNetworkSession_IsLost() && g_flight.phase < XVT_FLIGHT_CLEANUP) {
+	xvt_flight_phase previous = g_flight.phase;
+	if (xvt_network_session_is_lost() &&
+	    g_flight.phase < XVT_FLIGHT_CLEANUP) {
 		XVT_LOG_INFO("flight.end result=0 reason=\"session_lost\"");
-		XvtResync_Reset();
+		xvt_resync_reset();
 		g_flight.result = 0;
 		g_flight.phase = XVT_FLIGHT_CLEANUP;
 	}
-	XvtResync_Update();
-	if (XvtResync_IsActive()) {
+	xvt_resync_update();
+	if (xvt_resync_is_active()) {
 		return;
 	}
 	switch (g_flight.phase) {
 	case XVT_FLIGHT_PREPARE: {
-		int status = XvtFlightEntry_Prepare(g_flight.command);
+		int status = xvt_flight_entry_prepare(g_flight.command);
 		g_flight.phase = status == XVT_FLIGHT_NETWORK_PENDING
 					 ? XVT_FLIGHT_SESSION
 				 : status ? XVT_FLIGHT_DEVICES
@@ -239,7 +240,7 @@ void XvtFlightTask_Update(void)
 		break;
 	}
 	case XVT_FLIGHT_SESSION: {
-		int status = XvtFlightNetwork_ExchangeRoster();
+		int status = xvt_flight_network_exchange_roster();
 		if (status != XVT_FLIGHT_NETWORK_PENDING) {
 			g_flight.phase = status ? XVT_FLIGHT_DEVICES
 						: XVT_FLIGHT_CLEANUP;
@@ -247,94 +248,95 @@ void XvtFlightTask_Update(void)
 		break;
 	}
 	case XVT_FLIGHT_DEVICES:
-		g_flight.phase = XvtFlightEntry_CreateDevices()
+		g_flight.phase = xvt_flight_entry_create_devices()
 					 ? XVT_FLIGHT_GLOBALS
 					 : XVT_FLIGHT_CLEANUP;
 		break;
 	case XVT_FLIGHT_GLOBALS:
-		g_flight.missionEntered = 1;
-		XvtFlightLoading_Globals();
+		g_flight.mission_entered = 1;
+		xvt_flight_loading_globals();
 		g_flight.phase = XVT_FLIGHT_PALETTE;
 		break;
 	case XVT_FLIGHT_PALETTE:
-		g_flight.resourcesAllocated = 1;
-		XvtFlightLoading_Palette();
+		g_flight.resources_allocated = 1;
+		xvt_flight_loading_palette();
 		g_flight.phase = XVT_FLIGHT_MISSION_SETUP;
 		break;
 	case XVT_FLIGHT_MISSION_SETUP:
-		XvtFlightLoading_MissionSetup();
+		xvt_flight_loading_mission_setup();
 		g_flight.phase = XVT_FLIGHT_MISSION;
 		break;
 	case XVT_FLIGHT_MISSION:
 		XVT_LOG_INFO("flight.mission file=\"%s\"",
-			     g_currentMissionFile);
-		FlightSurface_Lock();
-		XvtRenderCapture_BeginMission();
-		Mission_Init(g_currentMissionFile);
-		FlightSurface_Unlock();
+			     g_current_mission_file);
+		flight_surface_lock();
+		xvt_render_capture_begin_mission();
+		mission_init(g_current_mission_file);
+		flight_surface_unlock();
 		g_flight.phase = XVT_FLIGHT_VOICES;
 		break;
 	case XVT_FLIGHT_VOICES:
-		fsfx_LoadMissionVoiceSfx();
+		fsfx_load_mission_voice_sfx();
 		g_flight.phase = XVT_FLIGHT_RESOURCES;
 		break;
 	case XVT_FLIGHT_RESOURCES:
-		FeDiskIo_InitResources();
+		fe_disk_io_init_resources();
 		g_flight.phase = XVT_FLIGHT_LOADING_COMPLETE;
 		break;
 	case XVT_FLIGHT_LOADING_COMPLETE:
 		/* The original finishes this progress cycle without doing more loading. */
-		g_flightLoadingProgressStep |= 0x7f;
-		FlightLoading_PulseAndDrawProgressScreen();
+		g_flight_loading_progress_step |= 0x7f;
+		flight_loading_pulse_and_draw_progress_screen();
 		g_flight.phase = XVT_FLIGHT_RUNTIME;
 		break;
 	case XVT_FLIGHT_RUNTIME:
-		XvtFlightLoading_Runtime();
+		xvt_flight_loading_runtime();
 		g_flight.phase = XVT_FLIGHT_FIRST_DELTA;
 		break;
 	case XVT_FLIGHT_FIRST_DELTA:
-		if (!XvtCockpit_LoadingAssetsReady()) {
+		if (!xvt_cockpit_loading_assets_ready()) {
 			break;
 		}
-		g_inputTimestamp += Time_ConsumeElapsedTicks();
-		if (g_inputTimestamp) {
-			Object_RelinkMobileObjectPointers();
+		g_input_timestamp += time_consume_elapsed_ticks();
+		if (g_input_timestamp) {
+			object_relink_mobile_object_pointers();
 			g_flight.phase = XVT_FLIGHT_OPTIONS;
 		}
 		break;
 	case XVT_FLIGHT_OPTIONS: {
-		int status = FlightNet_SyncPlayerOptionsAndTaunts();
+		int status = flight_net_sync_player_options_and_taunts();
 		if (status == XVT_FLIGHT_NETWORK_PENDING) {
 			break;
 		}
 		if (status) {
 			XVT_LOG_INFO("flight.options players=%d cookie=%u",
-				     g_activeFlightPlayerCount,
-				     XvtFlightNetwork_Cookie());
+				     g_active_flight_player_count,
+				     xvt_flight_network_cookie());
 			g_flight.phase = XVT_FLIGHT_WORLD;
 		} else {
-			g_flight.optionsFailed = 1;
+			g_flight.options_failed = 1;
 			g_flight.phase = XVT_FLIGHT_CLEANUP;
 		}
 		break;
 	}
 	case XVT_FLIGHT_WORLD:
-		g_flight.phase = XvtFlightTask_StartWorld()
+		g_flight.phase = xvt_flight_task_start_world()
 					 ? XVT_FLIGHT_START
 					 : XVT_FLIGHT_CLEANUP;
 		break;
 	case XVT_FLIGHT_START: {
 		int status;
-		g_flight.commitResults = 1;
+		g_flight.commit_results = 1;
 		g_flight.result = 1;
-		status = FlightNet_WaitForMissionStart();
+		status = flight_net_wait_for_mission_start();
 		if (status == XVT_FLIGHT_NETWORK_PENDING) {
 			break;
 		}
 		if (status) {
 			XVT_LOG_INFO("flight.start local=%d players=%d",
-				     g_localPlayer, g_activeFlightPlayerCount);
-			XvtFlightFrame_Begin();
+				     g_local_player,
+				     g_active_flight_player_count);
+			xvt_flight_frame_begin();
 			g_flight.phase = XVT_FLIGHT_FRAMES;
 		} else {
 			g_flight.phase = XVT_FLIGHT_CLEANUP;
@@ -342,26 +344,26 @@ void XvtFlightTask_Update(void)
 		break;
 	}
 	case XVT_FLIGHT_FRAMES:
-		if (XvtFlightFrame_Update()) {
+		if (xvt_flight_frame_update()) {
 			g_flight.phase = XVT_FLIGHT_CLEANUP;
 		}
 		break;
 	case XVT_FLIGHT_CLEANUP:
-		XvtFlightTask_ReleaseMission(0);
-		if (g_musicCdMciDeviceId && g_gameConfig.musicEnabled &&
-		    g_gameConfig.musicVolume) {
+		xvt_flight_task_release_mission(0);
+		if (g_music_cd_mci_device_id && g_game_config.music_enabled &&
+		    g_game_config.music_volume) {
 			unsigned int volume =
-				UINT16_MAX * g_gameConfig.musicVolume / 9;
-			XvtCdTask_BeginFade(volume, volume / 8, 1000);
+				UINT16_MAX * g_game_config.music_volume / 9;
+			xvt_cd_task_begin_fade(volume, volume / 8, 1000);
 		}
 		g_flight.phase = XVT_FLIGHT_FADE;
 		break;
 	case XVT_FLIGHT_FADE:
-		if (XvtCdTask_IsFading()) {
+		if (xvt_cd_task_is_fading()) {
 			break;
 		}
-		MusicCd_CloseDevice();
-		XvtFlightEntry_Cleanup();
+		music_cd_close_device();
+		xvt_flight_entry_cleanup();
 		g_flight.phase = XVT_FLIGHT_DONE;
 		break;
 	default:
@@ -376,59 +378,62 @@ void XvtFlightTask_Update(void)
 	    previous != XVT_FLIGHT_CLEANUP) {
 		XVT_LOG_INFO("flight.end result=%d reason=\"%s\"",
 			     g_flight.result,
-			     XvtFlightTask_EndReason(previous));
+			     xvt_flight_task_end_reason(previous));
 	}
 }
 
-int XvtFlightTask_IsActive(void)
+int xvt_flight_task_is_active(void)
 {
 	return g_flight.phase > XVT_FLIGHT_IDLE &&
 	       g_flight.phase < XVT_FLIGHT_DONE;
 }
 
-int XvtFlightTask_IsLoading(void)
+int xvt_flight_task_is_loading(void)
 {
 	/* WORLD produces the first view and advances to START in the same tick. */
 	return g_flight.phase > XVT_FLIGHT_IDLE &&
 	       g_flight.phase <= XVT_FLIGHT_WORLD;
 }
 
-int XvtFlightTask_IsComplete(void) { return g_flight.phase == XVT_FLIGHT_DONE; }
-
-int XvtFlightTask_GetResult(void) { return g_flight.result; }
-
-int XvtFlightTask_ContinuesWithoutFocus(void)
+int xvt_flight_task_is_complete(void)
 {
-	return XvtFlightTask_IsActive() && g_activeFlightPlayerCount > 1;
+	return g_flight.phase == XVT_FLIGHT_DONE;
 }
 
-uint64_t XvtFlightTask_NextWakeDelayUs(void)
+int xvt_flight_task_get_result(void) { return g_flight.result; }
+
+int xvt_flight_task_continues_without_focus(void)
 {
-	if (XvtResync_IsActive() || XvtResync_HoldsInput()) {
-		return XvtResync_NextWakeDelayUs();
+	return xvt_flight_task_is_active() && g_active_flight_player_count > 1;
+}
+
+uint64_t xvt_flight_task_next_wake_delay_us(void)
+{
+	if (xvt_resync_is_active() || xvt_resync_holds_input()) {
+		return xvt_resync_next_wake_delay_us();
 	}
 	if (g_flight.phase == XVT_FLIGHT_FRAMES) {
-		return XvtFlightFrame_NextWakeDelayUs();
+		return xvt_flight_frame_next_wake_delay_us();
 	}
 	if (g_flight.phase == XVT_FLIGHT_FIRST_DELTA) {
-		return XvtFlightTime_DelayForTicks(1);
+		return xvt_flight_time_delay_for_ticks(1);
 	}
 	if (g_flight.phase == XVT_FLIGHT_FADE) {
-		return XvtCdTask_NextWakeDelayUs();
+		return xvt_cd_task_next_wake_delay_us();
 	}
 	return UINT64_MAX;
 }
 
-void XvtFlightTask_Shutdown(void)
+void xvt_flight_task_shutdown(void)
 {
 	Aeron_SetRelativeMouseMode(0);
-	XvtResync_Reset();
-	XvtFlightNetwork_Reset();
-	if (XvtFlightTask_IsActive()) {
-		XvtFlightTask_ReleaseMission(1);
-		XvtCdTask_CancelFade();
-		MusicCd_CloseDevice();
-		XvtFlightEntry_Cleanup();
+	xvt_resync_reset();
+	xvt_flight_network_reset();
+	if (xvt_flight_task_is_active()) {
+		xvt_flight_task_release_mission(1);
+		xvt_cd_task_cancel_fade();
+		music_cd_close_device();
+		xvt_flight_entry_cleanup();
 	}
 	memset(&g_flight, 0, sizeof(g_flight));
 }

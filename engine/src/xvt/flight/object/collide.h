@@ -8,80 +8,83 @@
 extern "C" {
 #endif
 
-extern const float g_collideZeroFloat;
-extern int g_collisionSegmentStartWorldX;
-extern int g_collisionSegmentStartWorldY;
-extern int g_collisionSegmentStartWorldZ;
-extern int g_collisionProbeWorldX;
-extern int g_collisionProbeWorldY;
-extern int g_collisionProbeWorldZ;
-extern int g_collisionSweepStartX;
-extern int g_collisionSweepStartY;
-extern int g_collisionSweepStartZ;
-extern int g_collisionSweepEndX;
-extern int g_collisionSweepEndY;
-extern int g_collisionSweepEndZ;
-extern int g_approxDist;
-extern int g_collisionIsAimPrediction;
-extern int g_collisionHitOffsetX;
-extern int g_collisionHitOffsetY;
-extern int g_collisionHitOffsetZ;
-extern int g_collideSweepRejectNearStartHits;
-extern int g_turretFireHullMeshOrdinal;
+extern const float g_collide_zero_float;
+extern int g_collision_segment_start_world_x;
+extern int g_collision_segment_start_world_y;
+extern int g_collision_segment_start_world_z;
+extern int g_collision_probe_world_x;
+extern int g_collision_probe_world_y;
+extern int g_collision_probe_world_z;
+extern int g_collision_sweep_start_x;
+extern int g_collision_sweep_start_y;
+extern int g_collision_sweep_start_z;
+extern int g_collision_sweep_end_x;
+extern int g_collision_sweep_end_y;
+extern int g_collision_sweep_end_z;
+extern int g_approx_dist;
+extern int g_collision_is_aim_prediction;
+extern int g_collision_hit_offset_x;
+extern int g_collision_hit_offset_y;
+extern int g_collision_hit_offset_z;
+extern int g_collide_sweep_reject_near_start_hits;
+extern int g_turret_fire_hull_mesh_ordinal;
 
-void collide_PopulateMobileObjectProximityCandidates(
-	struct MobileObjectProximityList *list, uint16_t ownerObjIdx);
+void collide_populate_mobile_object_proximity_candidates(
+	struct mobile_object_proximity_list *list, uint16_t owner_obj_idx);
 void collide_collisions(void);
-void collide_InsertMobileObjectProximityCandidate(
-	struct MobileObjectProximityList *list, uint16_t ownerObjIdx,
-	uint16_t candidateObjIdx);
-int collide_GetMobileObjectProximitySpeedQ12(uint16_t objIdx);
-void collide_ResetObjectProximityForSlot(uint16_t objIdx);
-void collide_ResetNeighborProximityLists(uint16_t objectIndex);
-void collide_RemoveMobileObjectProximityCandidate(
-	struct MobileObjectProximityList *list, uint16_t candidateObjIdx);
-void collide_applyCraftImpactBounce(uint16_t craftObjIdx, uint16_t otherObjIdx);
-int16_t collide_TestSweptPairCollision(uint16_t sourceObjIdx,
-				       uint16_t targetObjIdx);
+void collide_insert_mobile_object_proximity_candidate(
+	struct mobile_object_proximity_list *list, uint16_t owner_obj_idx,
+	uint16_t candidate_obj_idx);
+int collide_get_mobile_object_proximity_speed_q12(uint16_t obj_idx);
+void collide_reset_object_proximity_for_slot(uint16_t obj_idx);
+void collide_reset_neighbor_proximity_lists(uint16_t object_index);
+void collide_remove_mobile_object_proximity_candidate(
+	struct mobile_object_proximity_list *list, uint16_t candidate_obj_idx);
+void collide_apply_craft_impact_bounce(uint16_t craft_obj_idx,
+				       uint16_t other_obj_idx);
+int16_t collide_test_swept_pair_collision(uint16_t source_obj_idx,
+					  uint16_t target_obj_idx);
 int16_t collide_checkboxcollision(int radius);
-int collide_WouldShotHitTarget(uint16_t sourceObjIdx, uint16_t targetObjIdx,
-			       uint16_t hardpointIndex);
-uint16_t collide_craftstarshipcollision(uint16_t sourceObjIdx,
-					int16_t lookaheadSeconds);
-void collide_laserhitcraft(uint16_t projectileObjIdx, uint16_t craftObjIdx,
-			   int16_t hitMeshIndex);
-int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex,
-			    uint16_t sourceObjIdx,
-			    uint16_t hitSideOrDamageAmount);
-int collide_ConvertObjectToExplosion(unsigned int objectIndex,
-				     uint8_t explosionObjectType);
+int collide_would_shot_hit_target(uint16_t source_obj_idx,
+				  uint16_t target_obj_idx,
+				  uint16_t hardpoint_index);
+uint16_t collide_craftstarshipcollision(uint16_t source_obj_idx,
+					int16_t lookahead_seconds);
+void collide_laserhitcraft(uint16_t projectile_obj_idx, uint16_t craft_obj_idx,
+			   int16_t hit_mesh_index);
+int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
+			    uint16_t source_obj_idx,
+			    uint16_t hit_side_or_damage_amount);
+int collide_convert_object_to_explosion(unsigned int object_index,
+					uint8_t explosion_object_type);
 unsigned int collide_roughdistance3du(unsigned int abs_dx, unsigned int abs_dy,
 				      unsigned int abs_dz);
 int collide_roughdistance3d(int dx, int dy, int dz);
-unsigned int collide_TestSegmentAgainstLegacyPackedOptNode(
-	const uint8_t *nodeData, int startX, int startY, int startZ, int endX,
-	int endY, int endZ, int stopOnFirstHit);
-unsigned int collide_ComputeCraftDamageAmount(uint16_t victimObjIdx,
-					      uint16_t sourceObjIdx);
-int collide_IsLegacyProjectedEdgeCrossNonpositive(int pointDeltaU,
-						  int edgeDeltaV,
-						  int pointDeltaV,
-						  int edgeDeltaU);
-int collide_CheckSweptModelCollision(uint16_t sourceObjIdx,
-				     uint16_t targetObjIdx);
-int collide_TestSweepAgainstOptNode(struct OptimizedPolyObject *object,
-				    struct OptNode *node);
-int collide_IntersectSegmentWithFacePlane(const float *faceNormal,
-					  const float *faceVertex,
-					  const float *segmentStart,
-					  const float *segmentEnd, float *outT);
-int collide_PointInFacePolygon(const float *faceNormal,
-			       const float *vertexCoords,
-			       const int32_t *faceVertexIndices,
-			       float *projectedPoint);
-void collide_ApplyEngineWashDamage(int victimObjIdx, int sourceObjIdx);
-void collide_ApplyHostileProximityWeaponDisruption(int ownerObjIdx,
-						   int hostileObjIdx);
+unsigned int collide_test_segment_against_legacy_packed_opt_node(
+	const uint8_t *node_data, int start_x, int start_y, int start_z,
+	int end_x, int end_y, int end_z, int stop_on_first_hit);
+unsigned int collide_compute_craft_damage_amount(uint16_t victim_obj_idx,
+						 uint16_t source_obj_idx);
+int collide_is_legacy_projected_edge_cross_nonpositive(int point_delta_u,
+						       int edge_delta_v,
+						       int point_delta_v,
+						       int edge_delta_u);
+int collide_check_swept_model_collision(uint16_t source_obj_idx,
+					uint16_t target_obj_idx);
+int collide_test_sweep_against_opt_node(struct optimized_poly_object *object,
+					struct opt_node *node);
+int collide_intersect_segment_with_face_plane(const float *face_normal,
+					      const float *face_vertex,
+					      const float *segment_start,
+					      const float *segment_end,
+					      float *out_t);
+int collide_point_in_face_polygon(const float *face_normal,
+				  const float *vertex_coords,
+				  const int32_t *face_vertex_indices,
+				  float *projected_point);
+void collide_apply_engine_wash_damage(int victim_obj_idx, int source_obj_idx);
+void collide_apply_hostile_proximity_weapon_disruption(int owner_obj_idx,
+						       int hostile_obj_idx);
 
 #ifdef __cplusplus
 }

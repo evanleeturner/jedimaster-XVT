@@ -8,121 +8,121 @@
 #include "xvt_runtime/input/capture.h"
 #include "xvt_runtime/runtime/presentation.h"
 #else
-struct WinMouseWin32Message {
+struct win_mouse_win32_message {
 	/* Target window, as MSG.hwnd; nothing reads it by name. */
 	void *window;
 	uint32_t message; /* Message number; nothing reads it by name. */
 	/* First message parameter; nothing reads it by name. */
-	uint32_t wParam;
+	uint32_t w_param;
 	/* Second message parameter; nothing reads it by name. */
-	int32_t lParam;
+	int32_t l_param;
 	/* Time the message was posted; nothing reads it by name. */
 	uint32_t time;
 	/* Cursor X when it was posted; nothing reads it by name. */
-	int32_t pointX;
+	int32_t point_x;
 	/* Cursor Y when it was posted; nothing reads it by name. */
-	int32_t pointY;
+	int32_t point_y;
 };
 
 __declspec(dllimport) int __stdcall
-PeekMessageA(struct WinMouseWin32Message *message, void *hWnd,
-	     unsigned int filterMin, unsigned int filterMax,
-	     unsigned int removeMessage);
+PeekMessageA(struct win_mouse_win32_message *message, void *h_wnd,
+	     unsigned int filter_min, unsigned int filter_max,
+	     unsigned int remove_message);
 __declspec(dllimport) int __stdcall
-GetMessageA(struct WinMouseWin32Message *message, void *hWnd,
-	    unsigned int filterMin, unsigned int filterMax);
+GetMessageA(struct win_mouse_win32_message *message, void *h_wnd,
+	    unsigned int filter_min, unsigned int filter_max);
 __declspec(dllimport) int __stdcall
-TranslateMessage(const struct WinMouseWin32Message *message);
+TranslateMessage(const struct win_mouse_win32_message *message);
 __declspec(dllimport) int32_t __stdcall
-DispatchMessageA(const struct WinMouseWin32Message *message);
+DispatchMessageA(const struct win_mouse_win32_message *message);
 __declspec(dllimport) int __stdcall GetCursorPos(struct POINT *point);
 __declspec(dllimport) int __stdcall SetCursorPos(int x, int y);
 #endif
 
-/* Cursor point the next WinMouse_PollState measures movement from. Each poll
- * sets it to g_winMouseCenterPos after warping the cursor there, and
- * WinMouse_SetPosition sets it; in the modern build a poll also sets it to the
- * polled point while XvtInput_MouseMotionAllowed is false, so that poll finds
+/* Cursor point the next win_mouse_poll_state measures movement from. Each poll
+ * sets it to g_win_mouse_center_pos after warping the cursor there, and
+ * win_mouse_set_position sets it; in the modern build a poll also sets it to the
+ * polled point while xvt_input_mouse_motion_allowed is false, so that poll finds
  * no movement. */
 // GLOBAL: XVT 0x527ED8
-struct POINT g_winMousePrevPos;
-/* Cursor point WinMouse_PollState last read: from GetCursorPos in the original
- * build; in the modern one from XvtPresentation_MouseToClassic, or the old
- * point kept when that call returns 0. WinMouse_SetPosition also sets it. */
+struct POINT g_win_mouse_prev_pos;
+/* Cursor point win_mouse_poll_state last read: from GetCursorPos in the original
+ * build; in the modern one from xvt_presentation_mouse_to_classic, or the old
+ * point kept when that call returns 0. win_mouse_set_position also sets it. */
 // GLOBAL: XVT 0x527EE0
-struct POINT g_winMouseCursorPos;
+struct POINT g_win_mouse_cursor_pos;
 /* The game's mouse position: each poll adds the movement and clamps it to
- * g_winMouseMinX to g_winMouseMaxX and g_winMouseMinY to g_winMouseMaxY;
- * WinMouse_SetPosition sets it. Polls return it times g_winMouseScaleX and
- * g_winMouseScaleY. */
+ * g_win_mouse_min_x to g_win_mouse_max_x and g_win_mouse_min_y to g_win_mouse_max_y;
+ * win_mouse_set_position sets it. Polls return it times g_win_mouse_scale_x and
+ * g_win_mouse_scale_y. */
 // GLOBAL: XVT 0x527EE8
-struct POINT g_winMousePos;
+struct POINT g_win_mouse_pos;
 /* Left, right and middle button held, 1 or 0. Only the modern build's
- * WinMouse_PollState writes it, from Aeron's input snapshot; in the original
+ * win_mouse_poll_state writes it, from Aeron's input snapshot; in the original
  * build nothing in the engine writes it, so it stays 0. */
 // GLOBAL: XVT 0x527EF0
-int g_winMouseButtonDown[3] = {0, 0, 0};
+int g_win_mouse_button_down[3] = {0, 0, 0};
 /* Left, right and middle button pressed since the last poll, 1 or 0. The modern
- * build's WinMouse_PollState sets it from Aeron's input snapshot; every poll
+ * build's win_mouse_poll_state sets it from Aeron's input snapshot; every poll
  * clears it after copying it out. In the original build nothing else writes
  * it. */
 // GLOBAL: XVT 0x527EFC
-int g_winMouseButtonPressed[3] = {0, 0, 0};
+int g_win_mouse_button_pressed[3] = {0, 0, 0};
 /* Left, right and middle button released since the last poll, written like
- * g_winMouseButtonPressed. */
+ * g_win_mouse_button_pressed. */
 // GLOBAL: XVT 0x527F08
-int g_winMouseButtonReleased[3] = {0, 0, 0};
-/* Lowest X g_winMousePos may take. Only WinMouse_SetHorizontalBounds writes it,
- * and only the uncalled Mouse_SetHorizontalBounds calls that, so it stays 0. */
+int g_win_mouse_button_released[3] = {0, 0, 0};
+/* Lowest X g_win_mouse_pos may take. Only win_mouse_set_horizontal_bounds writes it,
+ * and only the uncalled mouse_set_horizontal_bounds calls that, so it stays 0. */
 // GLOBAL: XVT 0x527F14
-int g_winMouseMinX;
-/* Highest X g_winMousePos may take; written like g_winMouseMinX, so it stays
+int g_win_mouse_min_x;
+/* Highest X g_win_mouse_pos may take; written like g_win_mouse_min_x, so it stays
  * 0. */
 // GLOBAL: XVT 0x527F18
-int g_winMouseMaxX;
-/* Lowest Y g_winMousePos may take. Only WinMouse_SetVerticalBounds writes it,
- * and only the uncalled Mouse_SetVerticalBounds calls that, so it stays 0. */
+int g_win_mouse_max_x;
+/* Lowest Y g_win_mouse_pos may take. Only win_mouse_set_vertical_bounds writes it,
+ * and only the uncalled mouse_set_vertical_bounds calls that, so it stays 0. */
 // GLOBAL: XVT 0x527F1C
-int g_winMouseMinY;
-/* Highest Y g_winMousePos may take; written like g_winMouseMinY, so it stays
+int g_win_mouse_min_y;
+/* Highest Y g_win_mouse_pos may take; written like g_win_mouse_min_y, so it stays
  * 0. */
 // GLOBAL: XVT 0x527F20
-int g_winMouseMaxY;
+int g_win_mouse_max_y;
 /* Factor each poll multiplies the X position and movement by. Only
- * WinMouse_SetScaleFactors writes it, and only the uncalled
- * Mouse_SetScaleFactors calls that, so it stays 0 and every X a poll returns is
+ * win_mouse_set_scale_factors writes it, and only the uncalled
+ * mouse_set_scale_factors calls that, so it stays 0 and every X a poll returns is
  * 0. */
 // GLOBAL: XVT 0x527F24
-int g_winMouseScaleX;
-/* Factor for the Y position and movement, written like g_winMouseScaleX, so it
+int g_win_mouse_scale_x;
+/* Factor for the Y position and movement, written like g_win_mouse_scale_x, so it
  * stays 0. */
 // GLOBAL: XVT 0x527F28
-int g_winMouseScaleY;
+int g_win_mouse_scale_y;
 /* Point each poll warps the cursor to: the middle of the bounds on each axis,
  * (min + max) / 2. Only the two bounds setters write it, so it stays 0, 0. */
 // GLOBAL: XVT 0x527F2C
-struct POINT g_winMouseCenterPos;
+struct POINT g_win_mouse_center_pos;
 
 /* Reads the mouse once and puts the cursor back at the center. The original
  * build first handles one window message, waiting for it in GetMessageA unless
- * g_flightInputNonBlockingMsgPump is set and PeekMessageA finds none, and
+ * g_flight_input_non_blocking_msg_pump is set and PeekMessageA finds none, and
  * returns writing nothing when GetMessageA returns 0; then it reads the cursor
  * with GetCursorPos. The modern build reads Aeron's input snapshot: while input
  * is captured, the window lacks focus or there is no snapshot, it returns
- * g_winMousePos times the scale factors, no movement and no buttons, and writes
- * no global; otherwise it maps the cursor with XvtPresentation_MouseToClassic
+ * g_win_mouse_pos times the scale factors, no movement and no buttons, and writes
+ * no global; otherwise it maps the cursor with xvt_presentation_mouse_to_classic
  * and sets the three button arrays from the filtered buttons. Both then store
- * the point in g_winMouseCursorPos, return its offset from g_winMousePrevPos as
- * the movement, add that to g_winMousePos and clamp it to the bounds, move the
- * cursor to g_winMouseCenterPos (SetCursorPos, or XvtPresentation_WarpClassic
- * in the modern build) and set g_winMousePrevPos there, copy the button arrays
+ * the point in g_win_mouse_cursor_pos, return its offset from g_win_mouse_prev_pos as
+ * the movement, add that to g_win_mouse_pos and clamp it to the bounds, move the
+ * cursor to g_win_mouse_center_pos (SetCursorPos, or xvt_presentation_warp_classic
+ * in the modern build) and set g_win_mouse_prev_pos there, copy the button arrays
  * out and clear the pressed and released ones. Position and movement come back
- * multiplied by g_winMouseScaleX and g_winMouseScaleY. */
+ * multiplied by g_win_mouse_scale_x and g_win_mouse_scale_y. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4AA910
-void WinMouse_PollState(int *positionX, int *positionY, int *deltaX,
-			int *deltaY, int *buttonDown, int *buttonPressed,
-			int *buttonReleased)
+void win_mouse_poll_state(int *position_x, int *position_y, int *delta_x,
+			  int *delta_y, int *button_down, int *button_pressed,
+			  int *button_released)
 {
 	struct POINT point;
 
@@ -130,49 +130,50 @@ void WinMouse_PollState(int *positionX, int *positionY, int *deltaX,
 	const AeronInputSnapshot *input;
 
 	input = Aeron_InputSnapshot();
-	if (XvtInput_IsCaptured() || !input || !input->has_focus) {
-		*positionX = g_winMousePos.x * g_winMouseScaleX;
-		*positionY = g_winMousePos.y * g_winMouseScaleY;
-		*deltaX = *deltaY = 0;
-		buttonDown[0] = buttonDown[1] = buttonDown[2] = 0;
-		buttonPressed[0] = buttonPressed[1] = buttonPressed[2] = 0;
-		buttonReleased[0] = buttonReleased[1] = buttonReleased[2] = 0;
+	if (xvt_input_is_captured() || !input || !input->has_focus) {
+		*position_x = g_win_mouse_pos.x * g_win_mouse_scale_x;
+		*position_y = g_win_mouse_pos.y * g_win_mouse_scale_y;
+		*delta_x = *delta_y = 0;
+		button_down[0] = button_down[1] = button_down[2] = 0;
+		button_pressed[0] = button_pressed[1] = button_pressed[2] = 0;
+		button_released[0] = button_released[1] = button_released[2] =
+			0;
 		return;
 	}
-	if (!XvtPresentation_MouseToClassic(input, &point.x, &point.y)) {
-		point = g_winMouseCursorPos;
+	if (!xvt_presentation_mouse_to_classic(input, &point.x, &point.y)) {
+		point = g_win_mouse_cursor_pos;
 	}
-	g_winMouseButtonDown[0] =
-		(XvtInput_FilterMouseButtons(input->mouse.buttons) &
+	g_win_mouse_button_down[0] =
+		(xvt_input_filter_mouse_buttons(input->mouse.buttons) &
 		 AERON_MOUSE_BUTTON_LEFT) != 0;
-	g_winMouseButtonDown[1] =
-		(XvtInput_FilterMouseButtons(input->mouse.buttons) &
+	g_win_mouse_button_down[1] =
+		(xvt_input_filter_mouse_buttons(input->mouse.buttons) &
 		 AERON_MOUSE_BUTTON_RIGHT) != 0;
-	g_winMouseButtonDown[2] =
-		(XvtInput_FilterMouseButtons(input->mouse.buttons) &
+	g_win_mouse_button_down[2] =
+		(xvt_input_filter_mouse_buttons(input->mouse.buttons) &
 		 AERON_MOUSE_BUTTON_MIDDLE) != 0;
-	g_winMouseButtonPressed[0] =
-		(XvtInput_FilterMouseButtons(input->mouse.pressed_buttons) &
+	g_win_mouse_button_pressed[0] =
+		(xvt_input_filter_mouse_buttons(input->mouse.pressed_buttons) &
 		 AERON_MOUSE_BUTTON_LEFT) != 0;
-	g_winMouseButtonPressed[1] =
-		(XvtInput_FilterMouseButtons(input->mouse.pressed_buttons) &
+	g_win_mouse_button_pressed[1] =
+		(xvt_input_filter_mouse_buttons(input->mouse.pressed_buttons) &
 		 AERON_MOUSE_BUTTON_RIGHT) != 0;
-	g_winMouseButtonPressed[2] =
-		(XvtInput_FilterMouseButtons(input->mouse.pressed_buttons) &
+	g_win_mouse_button_pressed[2] =
+		(xvt_input_filter_mouse_buttons(input->mouse.pressed_buttons) &
 		 AERON_MOUSE_BUTTON_MIDDLE) != 0;
-	g_winMouseButtonReleased[0] =
-		(XvtInput_FilterMouseButtons(input->mouse.released_buttons) &
+	g_win_mouse_button_released[0] =
+		(xvt_input_filter_mouse_buttons(input->mouse.released_buttons) &
 		 AERON_MOUSE_BUTTON_LEFT) != 0;
-	g_winMouseButtonReleased[1] =
-		(XvtInput_FilterMouseButtons(input->mouse.released_buttons) &
+	g_win_mouse_button_released[1] =
+		(xvt_input_filter_mouse_buttons(input->mouse.released_buttons) &
 		 AERON_MOUSE_BUTTON_RIGHT) != 0;
-	g_winMouseButtonReleased[2] =
-		(XvtInput_FilterMouseButtons(input->mouse.released_buttons) &
+	g_win_mouse_button_released[2] =
+		(xvt_input_filter_mouse_buttons(input->mouse.released_buttons) &
 		 AERON_MOUSE_BUTTON_MIDDLE) != 0;
 #else
-	struct WinMouseWin32Message message;
+	struct win_mouse_win32_message message;
 
-	if (g_flightInputNonBlockingMsgPump == 0 ||
+	if (g_flight_input_non_blocking_msg_pump == 0 ||
 	    PeekMessageA(&message, 0, 0, 0, 0) != 0) {
 		if (GetMessageA(&message, 0, 0, 0) == 0) {
 			return;
@@ -183,196 +184,198 @@ void WinMouse_PollState(int *positionX, int *positionY, int *deltaX,
 	GetCursorPos(&point);
 #endif
 
-	g_winMouseCursorPos = point;
+	g_win_mouse_cursor_pos = point;
 #ifdef XVT_MODERN
-	if (!XvtInput_MouseMotionAllowed()) {
-		g_winMousePrevPos = point;
+	if (!xvt_input_mouse_motion_allowed()) {
+		g_win_mouse_prev_pos = point;
 	}
 #endif
-	*deltaX = point.x - g_winMousePrevPos.x;
-	*deltaY = g_winMouseCursorPos.y - g_winMousePrevPos.y;
-	g_winMousePos.x += *deltaX;
-	g_winMousePos.y += *deltaY;
-	if (g_winMousePos.x < g_winMouseMinX) {
-		g_winMousePos.x = g_winMouseMinX;
+	*delta_x = point.x - g_win_mouse_prev_pos.x;
+	*delta_y = g_win_mouse_cursor_pos.y - g_win_mouse_prev_pos.y;
+	g_win_mouse_pos.x += *delta_x;
+	g_win_mouse_pos.y += *delta_y;
+	if (g_win_mouse_pos.x < g_win_mouse_min_x) {
+		g_win_mouse_pos.x = g_win_mouse_min_x;
 	}
-	if (g_winMousePos.x > g_winMouseMaxX) {
-		g_winMousePos.x = g_winMouseMaxX;
+	if (g_win_mouse_pos.x > g_win_mouse_max_x) {
+		g_win_mouse_pos.x = g_win_mouse_max_x;
 	}
-	if (g_winMousePos.y < g_winMouseMinY) {
-		g_winMousePos.y = g_winMouseMinY;
+	if (g_win_mouse_pos.y < g_win_mouse_min_y) {
+		g_win_mouse_pos.y = g_win_mouse_min_y;
 	}
-	if (g_winMousePos.y > g_winMouseMaxY) {
-		g_winMousePos.y = g_winMouseMaxY;
+	if (g_win_mouse_pos.y > g_win_mouse_max_y) {
+		g_win_mouse_pos.y = g_win_mouse_max_y;
 	}
-	*positionX = g_winMousePos.x;
-	*positionY = g_winMousePos.y;
+	*position_x = g_win_mouse_pos.x;
+	*position_y = g_win_mouse_pos.y;
 
 #ifdef XVT_MODERN
-	XvtPresentation_WarpClassic(g_winMouseCenterPos.x,
-				    g_winMouseCenterPos.y);
+	xvt_presentation_warp_classic(g_win_mouse_center_pos.x,
+				      g_win_mouse_center_pos.y);
 #else
-	SetCursorPos(g_winMouseCenterPos.x, g_winMouseCenterPos.y);
+	SetCursorPos(g_win_mouse_center_pos.x, g_win_mouse_center_pos.y);
 #endif
-	g_winMousePrevPos = g_winMouseCenterPos;
-	buttonDown[0] = g_winMouseButtonDown[0];
-	buttonDown[1] = g_winMouseButtonDown[1];
-	buttonDown[2] = g_winMouseButtonDown[2];
-	buttonPressed[0] = g_winMouseButtonPressed[0];
-	buttonPressed[1] = g_winMouseButtonPressed[1];
-	buttonPressed[2] = g_winMouseButtonPressed[2];
-	buttonReleased[0] = g_winMouseButtonReleased[0];
-	buttonReleased[1] = g_winMouseButtonReleased[1];
-	buttonReleased[2] = g_winMouseButtonReleased[2];
-	g_winMouseButtonPressed[0] = 0;
-	g_winMouseButtonPressed[1] = 0;
-	g_winMouseButtonPressed[2] = 0;
-	g_winMouseButtonReleased[0] = 0;
-	g_winMouseButtonReleased[1] = 0;
-	g_winMouseButtonReleased[2] = 0;
-	*deltaX *= g_winMouseScaleX;
-	*deltaY *= g_winMouseScaleY;
-	*positionX *= g_winMouseScaleX;
-	*positionY *= g_winMouseScaleY;
+	g_win_mouse_prev_pos = g_win_mouse_center_pos;
+	button_down[0] = g_win_mouse_button_down[0];
+	button_down[1] = g_win_mouse_button_down[1];
+	button_down[2] = g_win_mouse_button_down[2];
+	button_pressed[0] = g_win_mouse_button_pressed[0];
+	button_pressed[1] = g_win_mouse_button_pressed[1];
+	button_pressed[2] = g_win_mouse_button_pressed[2];
+	button_released[0] = g_win_mouse_button_released[0];
+	button_released[1] = g_win_mouse_button_released[1];
+	button_released[2] = g_win_mouse_button_released[2];
+	g_win_mouse_button_pressed[0] = 0;
+	g_win_mouse_button_pressed[1] = 0;
+	g_win_mouse_button_pressed[2] = 0;
+	g_win_mouse_button_released[0] = 0;
+	g_win_mouse_button_released[1] = 0;
+	g_win_mouse_button_released[2] = 0;
+	*delta_x *= g_win_mouse_scale_x;
+	*delta_y *= g_win_mouse_scale_y;
+	*position_x *= g_win_mouse_scale_x;
+	*position_y *= g_win_mouse_scale_y;
 }
 
-/* Sets g_winMousePrevPos, g_winMouseCursorPos and g_winMousePos to x, y and
+/* Sets g_win_mouse_prev_pos, g_win_mouse_cursor_pos and g_win_mouse_pos to x, y and
  * moves the cursor there, returning the result of SetCursorPos, or of
- * XvtPresentation_WarpClassic in the modern build. Only Mouse_SetPosition calls
+ * xvt_presentation_warp_classic in the modern build. Only mouse_set_position calls
  * it, and nothing calls that. */
 // FUNCTION: XVT 0x4AAB00
-int WinMouse_SetPosition(int x, int y)
+int win_mouse_set_position(int x, int y)
 {
-	g_winMousePrevPos.x = x;
-	g_winMouseCursorPos.x = x;
-	g_winMousePos.x = x;
-	g_winMousePrevPos.y = y;
-	g_winMouseCursorPos.y = y;
-	g_winMousePos.y = y;
+	g_win_mouse_prev_pos.x = x;
+	g_win_mouse_cursor_pos.x = x;
+	g_win_mouse_pos.x = x;
+	g_win_mouse_prev_pos.y = y;
+	g_win_mouse_cursor_pos.y = y;
+	g_win_mouse_pos.y = y;
 
 #ifdef XVT_MODERN
-	return XvtPresentation_WarpClassic(x, y);
+	return xvt_presentation_warp_classic(x, y);
 #else
 	return SetCursorPos(x, y);
 #endif
 }
 
-/* Sets g_winMouseMinY and g_winMouseMaxY and g_winMouseCenterPos.y to
- * (minY + maxY) / 2. Only Mouse_SetVerticalBounds calls it, and nothing calls
+/* Sets g_win_mouse_min_y and g_win_mouse_max_y and g_win_mouse_center_pos.y to
+ * (minY + maxY) / 2. Only mouse_set_vertical_bounds calls it, and nothing calls
  * that. */
 // FUNCTION: XVT 0x4AAB60
-void WinMouse_SetVerticalBounds(int minY, int maxY)
+void win_mouse_set_vertical_bounds(int min_y, int max_y)
 {
-	g_winMouseMinY = minY;
-	g_winMouseMaxY = maxY;
-	g_winMouseCenterPos.y = (minY + maxY) / 2;
+	g_win_mouse_min_y = min_y;
+	g_win_mouse_max_y = max_y;
+	g_win_mouse_center_pos.y = (min_y + max_y) / 2;
 }
 
-/* Sets g_winMouseMinX and g_winMouseMaxX and g_winMouseCenterPos.x to
- * (minX + maxX) / 2. Only Mouse_SetHorizontalBounds calls it, and nothing
+/* Sets g_win_mouse_min_x and g_win_mouse_max_x and g_win_mouse_center_pos.x to
+ * (minX + maxX) / 2. Only mouse_set_horizontal_bounds calls it, and nothing
  * calls that. */
 // FUNCTION: XVT 0x4AAB40
-void WinMouse_SetHorizontalBounds(int minX, int maxX)
+void win_mouse_set_horizontal_bounds(int min_x, int max_x)
 {
-	g_winMouseMinX = minX;
-	g_winMouseMaxX = maxX;
-	g_winMouseCenterPos.x = (minX + maxX) / 2;
+	g_win_mouse_min_x = min_x;
+	g_win_mouse_max_x = max_x;
+	g_win_mouse_center_pos.x = (min_x + max_x) / 2;
 }
 
-/* Sets g_winMouseScaleX and g_winMouseScaleY. Only Mouse_SetScaleFactors calls
+/* Sets g_win_mouse_scale_x and g_win_mouse_scale_y. Only mouse_set_scale_factors calls
  * it, and nothing calls that. */
 // FUNCTION: XVT 0x4AAB80
-void WinMouse_SetScaleFactors(int scaleX, int scaleY)
+void win_mouse_set_scale_factors(int scale_x, int scale_y)
 {
-	g_winMouseScaleX = scaleX;
-	g_winMouseScaleY = scaleY;
+	g_win_mouse_scale_x = scale_x;
+	g_win_mouse_scale_y = scale_y;
 }
 
-/* Polls with WinMouse_PollState and stores the scaled position, cut to 16 bits,
+/* Polls with win_mouse_poll_state and stores the scaled position, cut to 16 bits,
  * and the held buttons as 0x1 left, 0x2 right, 0x4 middle.
- * Mouse_ReadPositionAndButtons is its only caller. */
+ * mouse_read_position_and_buttons is its only caller. */
 // FUNCTION: XVT 0x4AC860
-void WinMouse_PollPositionAndButtons(int16_t *buttons, int16_t *x, int16_t *y)
+void win_mouse_poll_position_and_buttons(int16_t *buttons, int16_t *x,
+					 int16_t *y)
 {
-	int positionX;
-	int positionY;
-	int buttonDown[3];
-	int deltaX;
-	int deltaY;
-	int buttonPressed[3];
-	int buttonReleased[3];
+	int position_x;
+	int position_y;
+	int button_down[3];
+	int delta_x;
+	int delta_y;
+	int button_pressed[3];
+	int button_released[3];
 
-	WinMouse_PollState(&positionX, &positionY, &deltaX, &deltaY, buttonDown,
-			   buttonPressed, buttonReleased);
-	*x = (int16_t)positionX;
-	*y = (int16_t)positionY;
-	*buttons = (int16_t)(buttonDown[0] |
-			     2 * (buttonDown[1] | 2 * buttonDown[2]));
+	win_mouse_poll_state(&position_x, &position_y, &delta_x, &delta_y,
+			     button_down, button_pressed, button_released);
+	*x = (int16_t)position_x;
+	*y = (int16_t)position_y;
+	*buttons = (int16_t)(button_down[0] |
+			     2 * (button_down[1] | 2 * button_down[2]));
 }
 
-/* Polls with WinMouse_PollState and reports one button, 0 left, 1 right, 2
+/* Polls with win_mouse_poll_state and reports one button, 0 left, 1 right, 2
  * middle: whether it is held, whether it was pressed since the last poll, and
- * the scaled position, each cut to 16 bits. Does not check buttonIndex. Nothing
+ * the scaled position, each cut to 16 bits. Does not check button_index. Nothing
  * calls this. */
 // FUNCTION: XVT 0x4AC8F0
-void WinMouse_PollButtonPress(int16_t buttonIndex, int16_t *isDown,
-			      int16_t *pressed, int16_t *x, int16_t *y)
+void win_mouse_poll_button_press(int16_t button_index, int16_t *is_down,
+				 int16_t *pressed, int16_t *x, int16_t *y)
 {
-	int positionX;
-	int positionY;
-	int deltaX;
-	int deltaY;
-	int buttonDown[3];
-	int buttonPressed[3];
-	int buttonReleased[3];
+	int position_x;
+	int position_y;
+	int delta_x;
+	int delta_y;
+	int button_down[3];
+	int button_pressed[3];
+	int button_released[3];
 
-	WinMouse_PollState(&positionX, &positionY, &deltaX, &deltaY, buttonDown,
-			   buttonPressed, buttonReleased);
-	*isDown = (int16_t)buttonDown[buttonIndex];
-	*pressed = (int16_t)buttonPressed[buttonIndex];
-	*x = (int16_t)positionX;
-	*y = (int16_t)positionY;
+	win_mouse_poll_state(&position_x, &position_y, &delta_x, &delta_y,
+			     button_down, button_pressed, button_released);
+	*is_down = (int16_t)button_down[button_index];
+	*pressed = (int16_t)button_pressed[button_index];
+	*x = (int16_t)position_x;
+	*y = (int16_t)position_y;
 }
 
-/* Polls with WinMouse_PollState and reports one button, 0 left, 1 right, 2
+/* Polls with win_mouse_poll_state and reports one button, 0 left, 1 right, 2
  * middle: whether it is held, whether it was released since the last poll, and
- * the scaled position, each cut to 16 bits. Does not check buttonIndex. Nothing
+ * the scaled position, each cut to 16 bits. Does not check button_index. Nothing
  * calls this. */
 // FUNCTION: XVT 0x4AC960
-void WinMouse_PollButtonRelease(int16_t buttonIndex, int16_t *isDown,
-				int16_t *released, int16_t *x, int16_t *y)
+void win_mouse_poll_button_release(int16_t button_index, int16_t *is_down,
+				   int16_t *released, int16_t *x, int16_t *y)
 {
-	int positionX;
-	int positionY;
-	int deltaX;
-	int deltaY;
-	int buttonDown[3];
-	int buttonReleased[3];
-	int buttonPressed[3];
+	int position_x;
+	int position_y;
+	int delta_x;
+	int delta_y;
+	int button_down[3];
+	int button_released[3];
+	int button_pressed[3];
 
-	WinMouse_PollState(&positionX, &positionY, &deltaX, &deltaY, buttonDown,
-			   buttonPressed, buttonReleased);
-	*isDown = (int16_t)buttonDown[buttonIndex];
-	*released = (int16_t)buttonReleased[buttonIndex];
-	*x = (int16_t)positionX;
-	*y = (int16_t)positionY;
+	win_mouse_poll_state(&position_x, &position_y, &delta_x, &delta_y,
+			     button_down, button_pressed, button_released);
+	*is_down = (int16_t)button_down[button_index];
+	*released = (int16_t)button_released[button_index];
+	*x = (int16_t)position_x;
+	*y = (int16_t)position_y;
 }
 
-/* Polls with WinMouse_PollState and stores the scaled movement, cut to 16 bits.
- * Mouse_ReadDelta is its only caller. */
+/* Polls with win_mouse_poll_state and stores the scaled movement, cut to 16 bits.
+ * mouse_read_delta is its only caller. */
 // FUNCTION: XVT 0x4ACA20
-void WinMouse_PollMovementDelta(int16_t *deltaX, int16_t *deltaY)
+void win_mouse_poll_movement_delta(int16_t *delta_x, int16_t *delta_y)
 {
-	int polledDeltaX;
-	int polledDeltaY;
-	int positionX;
-	int positionY;
-	int buttonDown[3];
-	int buttonPressed[3];
-	int buttonReleased[3];
+	int polled_delta_x;
+	int polled_delta_y;
+	int position_x;
+	int position_y;
+	int button_down[3];
+	int button_pressed[3];
+	int button_released[3];
 
-	WinMouse_PollState(&positionX, &positionY, &polledDeltaX, &polledDeltaY,
-			   buttonDown, buttonPressed, buttonReleased);
-	*deltaX = (int16_t)polledDeltaX;
-	*deltaY = (int16_t)polledDeltaY;
+	win_mouse_poll_state(&position_x, &position_y, &polled_delta_x,
+			     &polled_delta_y, button_down, button_pressed,
+			     button_released);
+	*delta_x = (int16_t)polled_delta_x;
+	*delta_y = (int16_t)polled_delta_y;
 }

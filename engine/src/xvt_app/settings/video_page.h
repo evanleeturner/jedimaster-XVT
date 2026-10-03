@@ -8,5 +8,5 @@
  * while HDR output is on (never on Apple systems); choosing temporal upscaling sets MSAA off and choosing
  * MSAA sets upscaling off; the motion blur amount shows only with blur on. Notes the HDR output status while
  * HDR is on but not active, and that an undither change applies at the next cockpit load. input is unused. */
-void XvtVideoPage_Draw(AeronUiContext *ui, const AeronInputSnapshot *input);
+void xvt_video_page_draw(AeronUiContext *ui, const AeronInputSnapshot *input);
 #endif

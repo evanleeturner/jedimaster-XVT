@@ -11,39 +11,42 @@ static AeronScenePresentChain *g_present;
 static AeronSampler *g_sampler;
 static AeronRenderTarget *g_target;
 static int g_width, g_height;
-static uint64_t g_lastHostUs;
+static uint64_t g_last_host_us;
 static AeronScenePresentChain *g_direct;
-static AeronTextureFormat g_directFormat;
-static AeronTexture *g_color, *g_bloomTexture;
+static AeronTextureFormat g_direct_format;
+static AeronTexture *g_color, *g_bloom_texture;
 static float g_intensity;
-static int g_directWanted, g_retained;
+static int g_direct_wanted, g_retained;
 static AeronDrawList2D *g_bars;
-static int g_barsVisible;
+static int g_bars_visible;
 
-void XvtFlightPipeline_ForgetSources(void) { g_color = g_bloomTexture = NULL; }
-
-int XvtFlightPipeline_SetDirect(int enabled, int width, int height)
+void xvt_flight_pipeline_forget_sources(void)
 {
-	g_directWanted = 0;
+	g_color = g_bloom_texture = NULL;
+}
+
+int xvt_flight_pipeline_set_direct(int enabled, int width, int height)
+{
+	g_direct_wanted = 0;
 	if (!enabled || !Aeron_CanRenderDirectToSwapchain(width, height)) {
 		return 0;
 	}
 	AeronTextureFormat format = Aeron_SwapchainFormat();
-	if (!g_direct || format != g_directFormat) {
+	if (!g_direct || format != g_direct_format) {
 		AeronScenePresentChain_Destroy(g_direct);
 		g_direct = AeronScenePresentChain_Create(format);
-		g_directFormat = format;
+		g_direct_format = format;
 		if (!g_direct) {
 			Aeron_RequestFatalRendererError(
 				"direct flight tonemap creation");
 			return 0;
 		}
 	}
-	g_directWanted = 1;
+	g_direct_wanted = 1;
 	return 1;
 }
 
-static int Ensure(int width, int height)
+static int ensure(int width, int height)
 {
 	if (!g_present) {
 		g_present = AeronScenePresentChain_Create(
@@ -76,7 +79,7 @@ static int Ensure(int width, int height)
 	}
 	AeronSceneBloom_Destroy(g_bloom);
 	Aeron_DestroyRenderTarget(g_target);
-	g_color = g_bloomTexture = NULL;
+	g_color = g_bloom_texture = NULL;
 	g_retained = 0;
 	g_bloom = bloom;
 	g_target = target;
@@ -85,12 +88,12 @@ static int Ensure(int width, int height)
 	return 1;
 }
 
-void XvtFlightPipeline_Post(AeronScene3D *scene, float shutter, int motion)
+void xvt_flight_pipeline_post(AeronScene3D *scene, float shutter, int motion)
 {
-	const struct XvtRenderSettings *settings =
-		XvtRemasterConfig_Effective();
+	const struct xvt_render_settings *settings =
+		xvt_remaster_config_effective();
 	const AeronSceneSsaoSettings *a = &settings->scene.ssao;
-	const struct XvtMotionBlurSettings *m = &settings->motion_blur;
+	const struct xvt_motion_blur_settings *m = &settings->motion_blur;
 	AeronScene_SetPost(
 		scene, &(AeronScenePostDesc){
 			       .ssao_quality = a->ssao_quality,
@@ -110,17 +113,18 @@ void XvtFlightPipeline_Post(AeronScene3D *scene, float shutter, int motion)
 			       .mb_fsr_direct_motion = m->fsr_direct_motion});
 }
 
-int XvtFlightPipeline_Begin(AeronScene3D *scene,
-			    const struct XvtRenderSnapshot *s,
-			    const struct XvtPreparedFlight *frame, int reset)
+int xvt_flight_pipeline_begin(AeronScene3D *scene,
+			      const struct xvt_render_snapshot *s,
+			      const struct xvt_prepared_flight *frame,
+			      int reset)
 {
-	const struct XvtRenderSettings *settings =
-		XvtRemasterConfig_Effective();
+	const struct xvt_render_settings *settings =
+		xvt_remaster_config_effective();
 	uint64_t now = Aeron_NowUs();
-	float delta_ms = g_lastHostUs && now > g_lastHostUs
-				 ? (float)(now - g_lastHostUs) / 1000
+	float delta_ms = g_last_host_us && now > g_last_host_us
+				 ? (float)(now - g_last_host_us) / 1000
 				 : 16.6667f;
-	g_lastHostUs = now;
+	g_last_host_us = now;
 	AeronScene_SetTemporal(
 		scene, &(AeronSceneTemporalDesc){
 			       .mode = settings->temporal_mode,
@@ -129,7 +133,7 @@ int XvtFlightPipeline_Begin(AeronScene3D *scene,
 			       .reset_history = reset});
 	if (!AeronScene_Begin(scene, &frame->view.camera) ||
 	    !AeronScene_SetMeshSampler(scene,
-				       XvtRemasterConfig_MeshSampler())) {
+				       xvt_remaster_config_mesh_sampler())) {
 		return 0;
 	}
 	/* XWA's 32 ms reference exposure: retained motion spans whole captured poses. */
@@ -141,7 +145,7 @@ int XvtFlightPipeline_Begin(AeronScene3D *scene,
 	    !settings->motion_blur.pause_keep_blur) {
 		shutter = 0;
 	}
-	XvtFlightPipeline_Post(scene, shutter, 1);
+	xvt_flight_pipeline_post(scene, shutter, 1);
 	/* FSR sees a stationary current frame while Aeron retains the last blur vectors. */
 	AeronScene_SetMotionContext(
 		scene,
@@ -153,12 +157,12 @@ int XvtFlightPipeline_Begin(AeronScene3D *scene,
 	return 1;
 }
 
-int XvtFlightPipeline_PrepareSceneResources(AeronScene3D *scene, int flight)
+int xvt_flight_pipeline_prepare_scene_resources(AeronScene3D *scene, int flight)
 {
 	int width, height;
 	AeronScene_RtDims(scene, &width, &height);
-	const struct XvtRenderSettings *settings =
-		XvtRemasterConfig_Effective();
+	const struct xvt_render_settings *settings =
+		xvt_remaster_config_effective();
 	AeronScene_SetTemporal(
 		scene, &(AeronSceneTemporalDesc){
 			       .mode = flight ? settings->temporal_mode
@@ -166,7 +170,7 @@ int XvtFlightPipeline_PrepareSceneResources(AeronScene3D *scene, int flight)
 			       .frame_time_delta_ms = 16.6667f,
 			       .sharpness = settings->temporal_sharpness,
 			       .reset_history = 1});
-	XvtFlightPipeline_Post(scene, 0, flight);
+	xvt_flight_pipeline_post(scene, 0, flight);
 	AeronSceneCamera camera = {.ori = {1, 0, 0, 0},
 				   .h_half_rad = .785398163f,
 				   .v_half_rad = .785398163f,
@@ -176,24 +180,24 @@ int XvtFlightPipeline_PrepareSceneResources(AeronScene3D *scene, int flight)
 	       AeronScene_PrepareResources(scene, AERON_CULL_BACK);
 }
 
-int XvtFlightPipeline_Finish(AeronCommandBuffer *cmd, AeronScene3D *scene)
+int xvt_flight_pipeline_finish(AeronCommandBuffer *cmd, AeronScene3D *scene)
 {
 	int width, height;
 	AeronScene_RtDims(scene, &width, &height);
-	if (!Ensure(width, height) || !AeronScene_Render(scene, cmd)) {
+	if (!ensure(width, height) || !AeronScene_Render(scene, cmd)) {
 		return 0;
 	}
 	AeronTexture *color =
 		Aeron_RenderTargetGetTexture(AeronScene_SceneRt(scene));
-	return XvtFlightPipeline_Resolve(cmd, color, width, height, 1);
+	return xvt_flight_pipeline_resolve(cmd, color, width, height, 1);
 }
 
-static int PrepareBars(AeronCommandBuffer *cmd, int width, int height)
+static int prepare_bars(AeronCommandBuffer *cmd, int width, int height)
 {
-	const struct XvtPreparedFlight *frame = XvtRemasterFlight_Current();
-	g_barsVisible = frame && (frame->content_rect.width != width ||
-				  frame->content_rect.height != height);
-	if (!g_barsVisible) {
+	const struct xvt_prepared_flight *frame = xvt_remaster_flight_current();
+	g_bars_visible = frame && (frame->content_rect.width != width ||
+				   frame->content_rect.height != height);
+	if (!g_bars_visible) {
 		return 1;
 	}
 	if (!g_bars) {
@@ -219,14 +223,14 @@ static int PrepareBars(AeronCommandBuffer *cmd, int width, int height)
 	return AeronDrawList_Prepare(g_bars, cmd);
 }
 
-int XvtFlightPipeline_Resolve(AeronCommandBuffer *cmd, AeronTexture *color,
-			      int width, int height, int enable_bloom)
+int xvt_flight_pipeline_resolve(AeronCommandBuffer *cmd, AeronTexture *color,
+				int width, int height, int enable_bloom)
 {
-	if (!Ensure(width, height) || !PrepareBars(cmd, width, height)) {
+	if (!ensure(width, height) || !prepare_bars(cmd, width, height)) {
 		return 0;
 	}
 	float intensity =
-		enable_bloom ? XvtRemasterConfig_Effective()->bloom_intensity
+		enable_bloom ? xvt_remaster_config_effective()->bloom_intensity
 			     : 0;
 	AeronTexture *bloom = NULL;
 	if (intensity > 0) {
@@ -241,13 +245,13 @@ int XvtFlightPipeline_Resolve(AeronCommandBuffer *cmd, AeronTexture *color,
 		}
 	}
 	g_color = color;
-	g_bloomTexture = bloom;
+	g_bloom_texture = bloom;
 	g_intensity = intensity;
 	g_retained = 0;
-	return g_directWanted || XvtFlightPipeline_Retain(cmd);
+	return g_direct_wanted || xvt_flight_pipeline_retain(cmd);
 }
 
-int XvtFlightPipeline_Retain(AeronCommandBuffer *cmd)
+int xvt_flight_pipeline_retain(AeronCommandBuffer *cmd)
 {
 	if (!g_color || g_retained) {
 		return 1;
@@ -262,11 +266,11 @@ int XvtFlightPipeline_Retain(AeronCommandBuffer *cmd)
 		return 0;
 	}
 	AeronScenePresentChain_Draw(g_present, pass, g_color, g_sampler,
-				    g_bloomTexture, g_intensity, g_width,
+				    g_bloom_texture, g_intensity, g_width,
 				    g_height, 1, (const float[4]){1, 1, 1, 1},
 				    0);
 	/* Mask after tonemapping so bloom cannot brighten the bars. */
-	if (g_barsVisible) {
+	if (g_bars_visible) {
 		AeronDrawList_RenderIntoPass(g_bars, cmd, pass, g_target);
 	}
 	Aeron_EndRenderPass(pass);
@@ -274,15 +278,15 @@ int XvtFlightPipeline_Retain(AeronCommandBuffer *cmd)
 	return 1;
 }
 
-int XvtFlightPipeline_NeedsRetain(void)
+int xvt_flight_pipeline_needs_retain(void)
 {
-	return g_color && !g_retained && !g_directWanted;
+	return g_color && !g_retained && !g_direct_wanted;
 }
 
-int XvtFlightPipeline_DrawStandaloneHud(AeronCommandBuffer *cmd, int width,
-					int height)
+int xvt_flight_pipeline_draw_standalone_hud(AeronCommandBuffer *cmd, int width,
+					    int height)
 {
-	if (!Ensure(width, height)) {
+	if (!ensure(width, height)) {
 		return 0;
 	}
 	AeronRenderPass *pass = Aeron_BeginRenderPass(&(AeronRenderPassDesc){
@@ -294,21 +298,22 @@ int XvtFlightPipeline_DrawStandaloneHud(AeronCommandBuffer *cmd, int width,
 	if (!pass) {
 		return 0;
 	}
-	XvtHudRenderer_Draw(cmd, pass, g_target);
+	xvt_hud_renderer_draw(cmd, pass, g_target);
 	Aeron_EndRenderPass(pass);
 	g_color = Aeron_RenderTargetGetTexture(g_target);
-	g_bloomTexture = NULL;
-	g_directWanted = 0;
+	g_bloom_texture = NULL;
+	g_direct_wanted = 0;
 	g_retained = 1;
-	g_barsVisible = 0;
+	g_bars_visible = 0;
 	return 1;
 }
 
-static void Direct(AeronCommandBuffer *cmd, AeronRenderPass *pass,
-		   AeronRenderTarget *target, int width, int height, void *user)
+static void draw_direct(AeronCommandBuffer *cmd, AeronRenderPass *pass,
+			AeronRenderTarget *target, int width, int height,
+			void *user)
 {
 	(void)user;
-	if (!g_directWanted || !g_color || width != g_width ||
+	if (!g_direct_wanted || !g_color || width != g_width ||
 	    height != g_height) {
 		return;
 	}
@@ -316,39 +321,39 @@ static void Direct(AeronCommandBuffer *cmd, AeronRenderPass *pass,
 	Aeron_SetViewport(pass, &full);
 	Aeron_SetScissor(pass, &full);
 	AeronScenePresentChain_Draw(g_direct, pass, g_color, g_sampler,
-				    g_bloomTexture, g_intensity, width, height,
+				    g_bloom_texture, g_intensity, width, height,
 				    1, (const float[4]){1, 1, 1, 1}, 0);
-	if (g_barsVisible) {
+	if (g_bars_visible) {
 		AeronDrawList_RenderIntoPass(g_bars, cmd, pass, target);
 	}
 }
 
-int XvtFlightPipeline_SubmitDirect(void)
+int xvt_flight_pipeline_submit_direct(void)
 {
-	if (!g_directWanted || !g_color) {
+	if (!g_direct_wanted || !g_color) {
 		return 0;
 	}
 	return Aeron_SubmitSwapchainRenderLayer(
 		&(AeronSwapchainRenderLayerDesc){
-			.callback = Direct,
+			.callback = draw_direct,
 			.required_width = g_width,
 			.required_height = g_height,
 			.debug_label = "XvT flight direct presentation"});
 }
 
-AeronTexture *XvtFlightPipeline_Output(void)
+AeronTexture *xvt_flight_pipeline_output(void)
 {
 	return g_color && g_target ? Aeron_RenderTargetGetTexture(g_target)
 				   : NULL;
 }
 
-void XvtFlightPipeline_Shutdown(void)
+void xvt_flight_pipeline_shutdown(void)
 {
 	AeronDrawList_Destroy(g_bars);
 	g_bars = NULL;
-	g_barsVisible = 0;
-	g_directWanted = g_retained = 0;
-	g_color = g_bloomTexture = NULL;
+	g_bars_visible = 0;
+	g_direct_wanted = g_retained = 0;
+	g_color = g_bloom_texture = NULL;
 	AeronScenePresentChain_Destroy(g_direct);
 	g_direct = NULL;
 	AeronSceneBloom_Destroy(g_bloom);
@@ -359,6 +364,6 @@ void XvtFlightPipeline_Shutdown(void)
 	g_present = NULL;
 	g_sampler = NULL;
 	g_target = NULL;
-	g_lastHostUs = 0;
+	g_last_host_us = 0;
 	g_width = g_height = 0;
 }

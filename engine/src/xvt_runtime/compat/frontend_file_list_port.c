@@ -7,19 +7,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct FrontendFileListBuildState {
-	struct FrontendFileList *list;
+struct frontend_file_list_build_state {
+	struct frontend_file_list *list;
 	char directory[XVT_PATH_CAPACITY];
 };
 
-static int FrontendFileList_CollectModernFile(void *userdata,
-					      const AeronVfsEntry *entry)
+static int frontend_file_list_collect_modern_file(void *userdata,
+						  const AeronVfsEntry *entry)
 {
-	struct FrontendFileListBuildState *state;
-	struct FrontendFileListNode *node;
+	struct frontend_file_list_build_state *state;
+	struct frontend_file_list_node *node;
 
-	state = (struct FrontendFileListBuildState *)userdata;
-	node = (struct FrontendFileListNode *)malloc(sizeof(*node));
+	state = (struct frontend_file_list_build_state *)userdata;
+	node = (struct frontend_file_list_node *)malloc(sizeof(*node));
 	if (node == NULL) {
 		return 0;
 	}
@@ -36,24 +36,24 @@ static int FrontendFileList_CollectModernFile(void *userdata,
 		state->list->head = node;
 		state->list->count = 1;
 	} else {
-		FrontendFileList_InsertNodeSorted(state->list, node);
+		frontend_file_list_insert_node_sorted(state->list, node);
 	}
 	return 1;
 }
 
-struct FrontendFileList *
-FrontendFileList_BuildSortedModern(const char *wildcard)
+struct frontend_file_list *
+frontend_file_list_build_sorted_modern(const char *wildcard)
 {
-	struct FrontendFileListBuildState state;
+	struct frontend_file_list_build_state state;
 
-	state.list = (struct FrontendFileList *)malloc(sizeof(*state.list));
+	state.list = (struct frontend_file_list *)malloc(sizeof(*state.list));
 	if (state.list == NULL) {
 		return NULL;
 	}
 	state.list->head = NULL;
 	state.list->count = 0;
-	if (!XvtStorage_Normalize(wildcard, state.directory,
-				  sizeof(state.directory))) {
+	if (!xvt_storage_normalize(wildcard, state.directory,
+				   sizeof(state.directory))) {
 		free(state.list);
 		return NULL;
 	}
@@ -63,11 +63,11 @@ FrontendFileList_BuildSortedModern(const char *wildcard)
 	} else {
 		state.directory[0] = 0;
 	}
-	if (!XvtStorage_Glob(AERON_VFS_ROOT_USER, wildcard,
-			     FrontendFileList_CollectModernFile, &state)) {
-		struct FrontendFileListNode *node = state.list->head;
+	if (!xvt_storage_glob(AERON_VFS_ROOT_USER, wildcard,
+			      frontend_file_list_collect_modern_file, &state)) {
+		struct frontend_file_list_node *node = state.list->head;
 		while (node) {
-			struct FrontendFileListNode *next = node->next;
+			struct frontend_file_list_node *next = node->next;
 			free(node->path);
 			free(node);
 			node = next;

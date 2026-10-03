@@ -32,9 +32,9 @@
 #include <limits.h>
 
 /* The figures of every shot type, a constant table laid out as
- * ProjectileTypeDataTables; the last four types have zeros. */
+ * projectile_type_data_tables; the last four types have zeros. */
 // GLOBAL: XVT 0x51A3B8
-const struct ProjectileTypeDataTables g_projectileTypeData = {
+const struct projectile_type_data_tables g_projectile_type_data = {
 	{
 		250,  500,  200, 400,	200,  400,   10000, 3000,
 		1000, 800,  800, 15000, 6000, 65000, 35000, 3000,
@@ -62,13 +62,13 @@ const struct ProjectileTypeDataTables g_projectileTypeData = {
  * fg.warhead, 0 for none): spawn loads it into a craft's launchers, and
  * laser_createprojectilefromstatic fires it from a static object. */
 // GLOBAL: XVT 0x5241F8
-const uint8_t g_warheadTypeIds[11] = {0x00, 0x96, 0x97, 0x90, 0x8F, 0x95,
-				      0x94, 0x98, 0x99, 0x9A, 0x90};
+const uint8_t g_warhead_type_ids[11] = {0x00, 0x96, 0x97, 0x90, 0x8F, 0x95,
+					0x94, 0x98, 0x99, 0x9A, 0x90};
 /* Share of a launcher's capacity loaded with each warhead choice, in
  * 65,536ths (0xFFFF loads it full); spawn loads at least 1.
  * paiman_boardmaneuver reads it too. */
 // GLOBAL: XVT 0x524208
-const uint16_t g_warheadAmmoFractionQ16[12] = {
+const uint16_t g_warhead_ammo_fraction_q16[12] = {
 	0x0000, 0x4000, 0x8000, 0xFFFF, 0xC000, 0xFFFF,
 	0xC000, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0x0000,
 };
@@ -76,7 +76,7 @@ const uint16_t g_warheadAmmoFractionQ16[12] = {
  * component type; a shield generator on object type 54 gets twice this
  * less one. */
 // GLOBAL: XVT 0x524220
-const uint8_t g_meshTypeComponentMaxHp[32] = {
+const uint8_t g_mesh_type_component_max_hp[32] = {
 	0xFF, 0xFF, 0xFF, 0xFF, 0x18, 0x04, 0xFF, 0xFF, 0x40, 0xFF, 0x20,
 	0x30, 0x30, 0x30, 0x70, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x18,
 	0x20, 0x30, 0x30, 0x30, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -86,7 +86,7 @@ const uint8_t g_meshTypeComponentMaxHp[32] = {
  * carries a beam: the first 6 for a tractor beam, all 12 for any other;
  * 0xFF entries are skipped. */
 // GLOBAL: XVT 0x524240
-const uint8_t g_platformBeamDisabledComponentIds[60] = {
+const uint8_t g_platform_beam_disabled_component_ids[60] = {
 	0x16, 0x17, 0x15, 0x14, 0x13, 0x05, 0x0F, 0x10, 0x11, 0x12, 0x18, 0x06,
 	0x03, 0x05, 0x1B, 0x09, 0x0A, 0xFF, 0x01, 0x04, 0x1A, 0x07, 0x08, 0xFF,
 	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -95,12 +95,12 @@ const uint8_t g_platformBeamDisabledComponentIds[60] = {
 };
 
 /* Runs one step of the weapon systems of every craft and mine. A power
- * step comes when the weaponPowerUpdateTimer of
- * g_flightGlobalCountdownTimers is 0, which resets it to
+ * step comes when the weapon_power_update_timer of
+ * g_flight_global_countdown_timers is 0, which resets it to
  * SIMULATION_TICKS_PER_SECOND (in the modern build only when
- * XvtFlightTiming_ReferenceDue). First it clears beamEffectAccum of every
+ * xvt_flight_timing_reference_due). First it clears beam_effect_accum of every
  * craft (family 0). Then, for a player's craft in warhead mode, it updates
- * the lock (missileLockState in g_players, warheadLockTicks): with no
+ * the lock (missile_lock_state in g_players, warhead_lock_ticks): with no
  * target or no rounds the lock drops to 0; a target closer than 101,805
  * world units (244,332 for a freighter, starship or platform) and inside
  * the aim cone builds it, half as fast against active chaff; otherwise it
@@ -108,21 +108,21 @@ const uint8_t g_platformBeamDisabledComponentIds[60] = {
  * player's beam is on it drains 125 charge every 59 ticks and acts on the
  * current target when that is in range and in the cone. For each hostile
  * starship, X/7 factory and repair yard it calls
- * collide_ApplyHostileProximityWeaponDisruption on the player's craft. For
+ * collide_apply_hostile_proximity_weapon_disruption on the player's craft. For
  * an AI craft, on a power step, it sets the shield and laser recharge
  * levels, moves laser charge into the front shield of a starfighter whose
  * shield is below full, and on difficulty 2 lets a damaged starship
  * recharge shields by its live shield generators. On a power step every
  * craft then recharges shields, lasers and beam by its recharge levels,
  * drops engine overdrive when its lasers run dry, and counts down chaff.
- * Next, for each craft whose weaponFireInhibitTimer is 0: unless a
- * jamming beam holds it (beamEffectAccum[2]), it counts down cannon
+ * Next, for each craft whose weapon_fire_inhibit_timer is 0: unless a
+ * jamming beam holds it (beam_effect_accum[2]), it counts down cannon
  * cooldowns and fires AI bursts through laser_firelasersystem; it fires
  * each gunner slot that has a target (laser_fireturretslot); and it counts
- * down launcher cooldowns. Last it runs laser_UpdateMineWeaponFire for each
+ * down launcher cooldowns. Last it runs laser_update_mine_weapon_fire for each
  * mine in the static slots. The modern build steps AI cannon fire, turrets
- * and mines on the reference clock. Writes g_curCraft and
- * g_localBeamTargetObjIdx. */
+ * and mines on the reference clock. Writes g_cur_craft and
+ * g_local_beam_target_obj_idx. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x404710
 void laser_weaponsfire(void)
@@ -156,1086 +156,1120 @@ void laser_weaponsfire(void)
 		TURRET_PROJECTILE_TYPE = 2,
 	};
 
-	char doPeriodicPowerUpdate;
-	uint16_t objectIdx;
+	char do_periodic_power_update;
+	uint16_t object_idx;
 
-	doPeriodicPowerUpdate = 0;
-	if (g_flightGlobalCountdownTimers.weaponPowerUpdateTimer == 0
+	do_periodic_power_update = 0;
+	if (g_flight_global_countdown_timers.weapon_power_update_timer == 0
 #ifdef XVT_MODERN
-	    && XvtFlightTiming_ReferenceDue()
+	    && xvt_flight_timing_reference_due()
 #endif
 	) {
-		doPeriodicPowerUpdate = 1;
-		g_flightGlobalCountdownTimers.weaponPowerUpdateTimer =
+		do_periodic_power_update = 1;
+		g_flight_global_countdown_timers.weapon_power_update_timer =
 			SIMULATION_TICKS_PER_SECOND;
 	}
 
 	{
-		uint16_t clearObjIdx;
+		uint16_t clear_obj_idx;
 
-		for (clearObjIdx = g_activeRegionObjectSlotStart;
-		     clearObjIdx < g_activeRegionCraftObjectSlotEnd;
-		     ++clearObjIdx) {
-			struct CraftData *craft;
-			uint16_t effectIndex;
+		for (clear_obj_idx = g_active_region_object_slot_start;
+		     clear_obj_idx < g_active_region_craft_object_slot_end;
+		     ++clear_obj_idx) {
+			struct craft_data *craft;
+			uint16_t effect_index;
 
-			if (g_objectTable[clearObjIdx].objectType ==
+			if (g_object_table[clear_obj_idx].object_type ==
 				    CRAFT_SPECIES_UNKNOWN ||
-			    g_objectTable[clearObjIdx].mobj->family != 0) {
+			    g_object_table[clear_obj_idx].mobj->family != 0) {
 				continue;
 			}
-			craft = g_objectTable[clearObjIdx].mobj->pCraft;
-			for (effectIndex = 0; effectIndex < BEAM_EFFECT_COUNT;
-			     ++effectIndex) {
-				craft->beamEffectAccum[effectIndex] = 0;
+			craft = g_object_table[clear_obj_idx].mobj->p_craft;
+			for (effect_index = 0; effect_index < BEAM_EFFECT_COUNT;
+			     ++effect_index) {
+				craft->beam_effect_accum[effect_index] = 0;
 			}
 		}
 	}
 
-	for (objectIdx = g_activeRegionObjectSlotStart;
-	     objectIdx < g_activeRegionCraftObjectSlotEnd; ++objectIdx) {
-		int16_t shieldRechargeRate;
+	for (object_idx = g_active_region_object_slot_start;
+	     object_idx < g_active_region_craft_object_slot_end; ++object_idx) {
+		int16_t shield_recharge_rate;
 
-		if (g_objectTable[objectIdx].objectType ==
+		if (g_object_table[object_idx].object_type ==
 			    CRAFT_SPECIES_UNKNOWN ||
-		    g_objectTable[objectIdx].mobj->family != 0) {
+		    g_object_table[object_idx].mobj->family != 0) {
 			continue;
 		}
 
-		if (g_objectTable[objectIdx].playerOwnerIdx != -1) {
-			int playerIdx;
+		if (g_object_table[object_idx].player_owner_idx != -1) {
+			int player_idx;
 
-			g_curCraft = g_objectTable[objectIdx].mobj->pCraft;
-			playerIdx = g_objectTable[objectIdx].playerOwnerIdx;
-			if (g_players[playerIdx].selectedWeaponMode != 0) {
-				int firstWarheadSlot;
-				uint16_t targetObjIdx;
-				int16_t warheadCount;
+			g_cur_craft = g_object_table[object_idx].mobj->p_craft;
+			player_idx =
+				g_object_table[object_idx].player_owner_idx;
+			if (g_players[player_idx].selected_weapon_mode != 0) {
+				int first_warhead_slot;
+				uint16_t target_obj_idx;
+				int16_t warhead_count;
 
-				firstWarheadSlot =
-					g_modelDefs[GetModelIndexFromType(
-							    g_objectTable[objectIdx]
-								    .objectType)]
-						.warheadLauncherFirstSlot
-							[g_players[playerIdx]
-								 .selectedWeaponBank];
-				targetObjIdx = (uint16_t)g_players[playerIdx]
-						       .currentTargetObjectIdx;
-				warheadCount =
-					g_curCraft
-						->weaponSlots[firstWarheadSlot]
-						.ammoCount +
-					g_curCraft
-						->weaponSlots[firstWarheadSlot +
-							      1]
-						.ammoCount;
-				if (targetObjIdx == UINT16_MAX ||
-				    warheadCount == 0) {
-					g_players[playerIdx].missileLockState =
-						0;
-					g_curCraft->warheadLockTicks = 0;
+				first_warhead_slot =
+					g_model_defs[get_model_index_from_type(
+							     g_object_table[object_idx]
+								     .object_type)]
+						.warhead_launcher_first_slot
+							[g_players[player_idx]
+								 .selected_weapon_bank];
+				target_obj_idx =
+					(uint16_t)g_players[player_idx]
+						.current_target_object_idx;
+				warhead_count =
+					g_cur_craft
+						->weapon_slots
+							[first_warhead_slot]
+						.ammo_count +
+					g_cur_craft
+						->weapon_slots
+							[first_warhead_slot + 1]
+						.ammo_count;
+				if (target_obj_idx == UINT16_MAX ||
+				    warhead_count == 0) {
+					g_players[player_idx]
+						.missile_lock_state = 0;
+					g_cur_craft->warhead_lock_ticks = 0;
 #ifdef XVT_MODERN
-					XvtPlayerTiming_LockHalf(playerIdx, 0);
+					xvt_player_timing_lock_half(player_idx,
+								    0);
 #endif
 				} else {
-					unsigned int lockRange;
-					uint8_t targetGenus;
+					unsigned int lock_range;
+					uint8_t target_genus;
 
-					targetGenus =
-						g_objectTable[targetObjIdx]
-							.genusId;
-					if (targetGenus ==
+					target_genus =
+						g_object_table[target_obj_idx]
+							.genus_id;
+					if (target_genus ==
 						    CRAFT_GENUS_STARSHIP ||
-					    targetGenus ==
+					    target_genus ==
 						    CRAFT_GENUS_PLATFORM) {
-						Object_DirectionAndDistanceToMeshCenter(
-							objectIdx, targetObjIdx,
-							(uint16_t)g_players[playerIdx]
-								.selectedTargetComponent);
+						object_direction_and_distance_to_mesh_center(
+							object_idx,
+							target_obj_idx,
+							(uint16_t)g_players[player_idx]
+								.selected_target_component);
 					} else {
-						pai_ObjectRefDirectionToObjectRef(
-							objectIdx,
-							targetObjIdx);
+						pai_object_ref_direction_to_object_ref(
+							object_idx,
+							target_obj_idx);
 					}
-					lockRange = MISSILE_LOCK_FIGHTER_RANGE;
-					if (targetObjIdx <
-						    g_activeRegionCraftObjectSlotEnd &&
-					    (targetGenus ==
+					lock_range = MISSILE_LOCK_FIGHTER_RANGE;
+					if (target_obj_idx <
+						    g_active_region_craft_object_slot_end &&
+					    (target_genus ==
 						     CRAFT_GENUS_FREIGHTER ||
-					     targetGenus ==
+					     target_genus ==
 						     CRAFT_GENUS_STARSHIP ||
-					     targetGenus ==
+					     target_genus ==
 						     CRAFT_GENUS_PLATFORM)) {
-						lockRange =
+						lock_range =
 							MISSILE_LOCK_LARGE_CRAFT_RANGE;
 					}
 					if ((unsigned int)trig2_polardistance <
-						    lockRange &&
-					    Targeting_TestAimCone(
-						    targetObjIdx, 0,
-						    playerIdx) != 0) {
-						ModelIndex
-							missileBoatModelIndex;
-						uint16_t lockThreshold;
+						    lock_range &&
+					    targeting_test_aim_cone(
+						    target_obj_idx, 0,
+						    player_idx) != 0) {
+						model_index
+							missile_boat_model_index;
+						uint16_t lock_threshold;
 
-						g_curCraft->warheadLockTicks +=
-							g_elapsedTicks;
-						if (targetObjIdx <
-						    g_activeRegionCraftObjectSlotEnd) {
-							struct CraftData
-								*targetCraft;
+						g_cur_craft
+							->warhead_lock_ticks +=
+							g_elapsed_ticks;
+						if (target_obj_idx <
+						    g_active_region_craft_object_slot_end) {
+							struct craft_data
+								*target_craft;
 
-							targetCraft =
-								g_objectTable[targetObjIdx]
+							target_craft =
+								g_object_table[target_obj_idx]
 									.mobj
-									->pCraft;
-							if (targetCraft->cmTypeId ==
+									->p_craft;
+							if (target_craft->cm_type_id ==
 								    COUNTERMEASURE_TYPE_CHAFF &&
-							    targetCraft->chaffActiveSeconds !=
+							    target_craft->chaff_active_seconds !=
 								    0) {
 
 #ifdef XVT_MODERN
-								g_curCraft
-									->warheadLockTicks -=
-									XvtPlayerTiming_LockHalf(
-										playerIdx,
+								g_cur_craft
+									->warhead_lock_ticks -=
+									xvt_player_timing_lock_half(
+										player_idx,
 										1);
 #else
-								g_curCraft
-									->warheadLockTicks -=
-									g_elapsedTicks >>
+								g_cur_craft
+									->warhead_lock_ticks -=
+									g_elapsed_ticks >>
 									1;
 #endif
 							}
 						}
-						missileBoatModelIndex =
-							GetModelIndexFromType(
+						missile_boat_model_index =
+							get_model_index_from_type(
 								CRAFT_SPECIES_MISSILE_BOAT);
-						lockThreshold =
-							GetModelIndexFromType(
-								g_objectTable[objectIdx]
-									.objectType) ==
-									missileBoatModelIndex
+						lock_threshold =
+							get_model_index_from_type(
+								g_object_table[object_idx]
+									.object_type) ==
+									missile_boat_model_index
 								? MISSILE_BOAT_LOCK_TICKS
 								: DEFAULT_LOCK_TICKS;
-						if (g_curCraft
-							    ->warheadLockTicks >=
-						    (int16_t)lockThreshold) {
-							g_players[playerIdx]
-								.missileLockState =
+						if (g_cur_craft
+							    ->warhead_lock_ticks >=
+						    (int16_t)lock_threshold) {
+							g_players[player_idx]
+								.missile_lock_state =
 								2;
 						} else {
-							g_players[playerIdx]
-								.missileLockState =
+							g_players[player_idx]
+								.missile_lock_state =
 								1;
 						}
 					} else {
-						int16_t lockTicks;
+						int16_t lock_ticks;
 
-						lockTicks =
-							g_curCraft
-								->warheadLockTicks;
-						if (lockTicks > 0) {
+						lock_ticks =
+							g_cur_craft
+								->warhead_lock_ticks;
+						if (lock_ticks > 0) {
 
 #ifdef XVT_MODERN
-							lockTicks -=
-								XvtPlayerTiming_LockHalf(
-									playerIdx,
+							lock_ticks -=
+								xvt_player_timing_lock_half(
+									player_idx,
 									2);
 #else
-							lockTicks -=
-								g_elapsedTicks >>
+							lock_ticks -=
+								g_elapsed_ticks >>
 								1;
 #endif
 
-							lockTicks -=
-								g_elapsedTicks;
-							g_curCraft
-								->warheadLockTicks =
-								lockTicks;
-							if (g_curCraft
-								    ->warheadLockTicks <
+							lock_ticks -=
+								g_elapsed_ticks;
+							g_cur_craft
+								->warhead_lock_ticks =
+								lock_ticks;
+							if (g_cur_craft
+								    ->warhead_lock_ticks <
 							    0) {
-								g_curCraft
-									->warheadLockTicks =
+								g_cur_craft
+									->warhead_lock_ticks =
 									0;
 							}
 						}
-						g_players[playerIdx]
-							.missileLockState = 0;
+						g_players[player_idx]
+							.missile_lock_state = 0;
 					}
 				}
 			}
 
 			{
-				uint16_t beamTargetObjIdx;
+				uint16_t beam_target_obj_idx;
 
-				beamTargetObjIdx = UINT16_MAX;
-				if ((g_curCraft->workingSubsystems &
+				beam_target_obj_idx = UINT16_MAX;
+				if ((g_cur_craft->working_subsystems &
 				     CRAFT_SUBSYSTEM_FLAG_BEAM_SYSTEM) != 0 &&
-				    g_curCraft->beamActive != 0 &&
-				    g_curCraft->beamTypeId != BEAM_TYPE_NONE &&
-				    g_players[playerIdx].awaitingNewCraft ==
+				    g_cur_craft->beam_active != 0 &&
+				    g_cur_craft->beam_type_id !=
+					    BEAM_TYPE_NONE &&
+				    g_players[player_idx].awaiting_new_craft ==
 					    0) {
-					if (g_players[playerIdx]
-						    .beamFireCooldownTimer ==
+					if (g_players[player_idx]
+						    .beam_fire_cooldown_timer ==
 					    0) {
-						int16_t beamCharge;
+						int16_t beam_charge;
 
-						g_players[playerIdx]
-							.beamFireCooldownTimer =
+						g_players[player_idx]
+							.beam_fire_cooldown_timer =
 							BEAM_FIRE_COOLDOWN_TICKS;
-						beamCharge =
-							(int16_t)(g_curCraft
-									  ->beamCharge -
+						beam_charge =
+							(int16_t)(g_cur_craft
+									  ->beam_charge -
 								  BEAM_DRAIN_AMOUNT);
-						if (beamCharge < 0) {
-							beamCharge = 0;
+						if (beam_charge < 0) {
+							beam_charge = 0;
 						}
-						g_curCraft->beamCharge =
-							(uint16_t)beamCharge;
-						if (beamCharge == 0 &&
-						    g_curCraft->beamActive !=
+						g_cur_craft->beam_charge =
+							(uint16_t)beam_charge;
+						if (beam_charge == 0 &&
+						    g_cur_craft->beam_active !=
 							    0) {
-							g_curCraft->beamActive =
+							g_cur_craft
+								->beam_active =
 								0;
-							g_curCraft->beamOutput =
+							g_cur_craft
+								->beam_output =
 								0;
-							if (playerIdx ==
-							    g_localPlayer) {
-								msg_emitInFlightMessage(
-									(InFlightMessageId)((uint8_t)g_curCraft
-												    ->beamTypeId +
-											    BEAM_END_MESSAGE_BASE),
-									g_localPlayer);
+							if (player_idx ==
+							    g_local_player) {
+								msg_emit_in_flight_message(
+									(in_flight_message_id)((uint8_t)g_cur_craft
+												       ->beam_type_id +
+											       BEAM_END_MESSAGE_BASE),
+									g_local_player);
 							}
 						}
 					}
 
 					{
-						uint16_t candidateObjIdx;
+						uint16_t candidate_obj_idx;
 
-						candidateObjIdx =
-							(uint16_t)g_players[playerIdx]
-								.currentTargetObjectIdx;
-						if (candidateObjIdx !=
+						candidate_obj_idx =
+							(uint16_t)g_players[player_idx]
+								.current_target_object_idx;
+						if (candidate_obj_idx !=
 							    UINT16_MAX &&
-						    candidateObjIdx <
-							    g_activeRegionCraftObjectSlotEnd &&
-						    g_objectTable[candidateObjIdx]
+						    candidate_obj_idx <
+							    g_active_region_craft_object_slot_end &&
+						    g_object_table[candidate_obj_idx]
 								    .mobj
-								    ->pCraft
-								    ->objectKind ==
+								    ->p_craft
+								    ->object_kind ==
 							    CRAFT_OBJECT_KIND_ACTIVE &&
-						    Targeting_TestAimCone(
-							    candidateObjIdx, 0,
-							    playerIdx) != 0 &&
-						    (unsigned int)g_lastRoughDistance <
+						    targeting_test_aim_cone(
+							    candidate_obj_idx,
+							    0,
+							    player_idx) != 0 &&
+						    (unsigned int)g_last_rough_distance <
 							    BEAM_TARGET_RANGE) {
-							beamTargetObjIdx =
-								candidateObjIdx;
+							beam_target_obj_idx =
+								candidate_obj_idx;
 						}
 					}
-					if (beamTargetObjIdx != UINT16_MAX) {
-						struct CraftData *targetCraft;
-						BeamType beamType;
+					if (beam_target_obj_idx != UINT16_MAX) {
+						struct craft_data *target_craft;
+						beam_type beam_type;
 
-						targetCraft =
-							g_objectTable
-								[beamTargetObjIdx]
+						target_craft =
+							g_object_table
+								[beam_target_obj_idx]
 									.mobj
-									->pCraft;
-						beamType =
-							g_curCraft->beamTypeId;
-						if (beamType ==
+									->p_craft;
+						beam_type =
+							g_cur_craft
+								->beam_type_id;
+						if (beam_type ==
 							    BEAM_TYPE_TRACTOR ||
-						    beamType ==
+						    beam_type ==
 							    BEAM_TYPE_JAMMING) {
-							if (targetCraft->cmTypeId ==
+							if (target_craft->cm_type_id ==
 								    COUNTERMEASURE_TYPE_CHAFF &&
-							    targetCraft->chaffActiveSeconds !=
+							    target_craft->chaff_active_seconds !=
 								    0) {
-								if (playerIdx ==
-									    g_localPlayer &&
-								    Hud_GetSystemMessagePaneState() !=
+								if (player_idx ==
+									    g_local_player &&
+								    hud_get_system_message_pane_state() !=
 									    SYSTEM_MESSAGE_PANE_STATE) {
-									msg_emitInFlightMessage(
+									msg_emit_in_flight_message(
 										IFMSG_256_BEAM_DISRUPTED_BY_TARGET_S_COUNTERMEASURES,
-										playerIdx);
+										player_idx);
 								}
-								beamTargetObjIdx =
+								beam_target_obj_idx =
 									UINT16_MAX;
 							} else {
-								targetCraft->beamEffectAccum
+								target_craft->beam_effect_accum
 									[(uint8_t)
-										 beamType] +=
-									(uint16_t)g_curCraft
-										->beamOutput;
+										 beam_type] +=
+									(uint16_t)g_cur_craft
+										->beam_output;
 							}
 						}
 					}
-					if (playerIdx == g_localPlayer) {
-						g_localBeamTargetObjIdx =
-							beamTargetObjIdx;
-						fsfx_UpdateBeamSystemLoop(
-							1, playerIdx);
+					if (player_idx == g_local_player) {
+						g_local_beam_target_obj_idx =
+							beam_target_obj_idx;
+						fsfx_update_beam_system_loop(
+							1, player_idx);
 					}
-				} else if (playerIdx == g_localPlayer) {
-					g_localBeamTargetObjIdx = UINT16_MAX;
-					if ((g_curCraft->systemFlags &
+				} else if (player_idx == g_local_player) {
+					g_local_beam_target_obj_idx =
+						UINT16_MAX;
+					if ((g_cur_craft->system_flags &
 					     CRAFT_SUBSYSTEM_FLAG_BEAM_SYSTEM) !=
 					    0) {
-						fsfx_UpdateBeamSystemLoop(
-							0, playerIdx);
+						fsfx_update_beam_system_loop(
+							0, player_idx);
 					}
 				}
 			}
 
-			shieldRechargeRate = PLAYER_SHIELD_RECHARGE_RATE;
+			shield_recharge_rate = PLAYER_SHIELD_RECHARGE_RATE;
 			{
-				uint16_t scanObjIdx;
+				uint16_t scan_obj_idx;
 
-				for (scanObjIdx = g_activeRegionObjectSlotStart;
-				     scanObjIdx <
-				     g_activeRegionCraftObjectSlotEnd;
-				     ++scanObjIdx) {
-					struct ObjectRecord *hostileObject;
+				for (scan_obj_idx =
+					     g_active_region_object_slot_start;
+				     scan_obj_idx <
+				     g_active_region_craft_object_slot_end;
+				     ++scan_obj_idx) {
+					struct object_record *hostile_object;
 
-					hostileObject =
-						&g_objectTable[scanObjIdx];
-					if (hostileObject->objectType !=
+					hostile_object =
+						&g_object_table[scan_obj_idx];
+					if (hostile_object->object_type !=
 						    CRAFT_SPECIES_UNKNOWN &&
-					    (hostileObject->genusId ==
+					    (hostile_object->genus_id ==
 						     CRAFT_GENUS_STARSHIP ||
-					     (hostileObject->genusId ==
+					     (hostile_object->genus_id ==
 						      CRAFT_GENUS_PLATFORM &&
-					      (hostileObject->objectType ==
+					      (hostile_object->object_type ==
 						       CRAFT_SPECIES_X7_FACTORY ||
-					       hostileObject->objectType ==
+					       hostile_object->object_type ==
 						       CRAFT_SPECIES_REPAIR_YARD)))) {
-						int hostileTeam;
-						int playerTeam;
+						int hostile_team;
+						int player_team;
 
-						hostileTeam =
-							hostileObject->mobj
+						hostile_team =
+							hostile_object->mobj
 								->team;
-						playerTeam =
-							g_missionFlightGroups
-								[g_objectTable[objectIdx]
-									 .flightGroupIdx]
+						player_team =
+							g_mission_flight_groups
+								[g_object_table[object_idx]
+									 .flight_group_idx]
 									.fg
 									.team;
-						if (hostileTeam != playerTeam &&
-						    g_missionTeams[hostileTeam].allies
-								    [playerTeam] <
+						if (hostile_team !=
+							    player_team &&
+						    g_mission_teams[hostile_team]
+								    .allies[player_team] <
 							    1) {
-							collide_ApplyHostileProximityWeaponDisruption(
-								objectIdx,
-								scanObjIdx);
+							collide_apply_hostile_proximity_weapon_disruption(
+								object_idx,
+								scan_obj_idx);
 						}
 					}
 				}
 			}
 		} else {
-			if (doPeriodicPowerUpdate == 0) {
+			if (do_periodic_power_update == 0) {
 				continue;
 			}
 			{
-				uint8_t genusId;
+				uint8_t genus_id;
 
-				genusId = g_objectTable[objectIdx].genusId;
-				g_curCraft =
-					g_objectTable[objectIdx].mobj->pCraft;
-				if (genusId == CRAFT_GENUS_STARFIGHTER) {
-					uint16_t groupAI;
+				genus_id = g_object_table[object_idx].genus_id;
+				g_cur_craft = g_object_table[object_idx]
+						      .mobj->p_craft;
+				if (genus_id == CRAFT_GENUS_STARFIGHTER) {
+					uint16_t group_ai;
 
-					g_curCraft->shieldRechargeLevel =
+					g_cur_craft->shield_recharge_level =
 						POWER_RECHARGE_MAINTENANCE;
-					g_curCraft->laserRechargeLevel =
+					g_cur_craft->laser_recharge_level =
 						POWER_RECHARGE_MAINTENANCE;
-					if ((g_curCraft->systemFlags &
+					if ((g_cur_craft->system_flags &
 					     CRAFT_SUBSYSTEM_FLAG_SHIELDS) !=
 					    0) {
-						int maxShield;
+						int max_shield;
 
-						groupAI =
-							g_missionFlightGroups
-								[g_objectTable[objectIdx]
-									 .flightGroupIdx]
+						group_ai =
+							g_mission_flight_groups
+								[g_object_table[object_idx]
+									 .flight_group_idx]
 									.fg
-									.groupAI;
-						if (g_curCraft->aiController
-							    .maneuverMode ==
+									.group_ai;
+						if (g_cur_craft->ai_controller
+							    .maneuver_mode ==
 						    AI_MANEUVER_MODE_AVOID_ATTACKER) {
-							if (groupAI == 5) {
-								g_curCraft
-									->shieldRechargeLevel =
+							if (group_ai == 5) {
+								g_cur_craft
+									->shield_recharge_level =
 									POWER_RECHARGE_FULLY_REDIRECTED_TO_ENGINES;
-							} else if (groupAI ==
+							} else if (group_ai ==
 									   4 ||
-								   groupAI ==
+								   group_ai ==
 									   3) {
-								g_curCraft
-									->shieldRechargeLevel =
+								g_cur_craft
+									->shield_recharge_level =
 									POWER_RECHARGE_PARTIALLY_REDIRECTED_TO_ENGINES;
 							} else {
-								g_curCraft
-									->shieldRechargeLevel =
+								g_cur_craft
+									->shield_recharge_level =
 									POWER_RECHARGE_MAINTENANCE;
 							}
-							g_curCraft
-								->laserRechargeLevel =
+							g_cur_craft
+								->laser_recharge_level =
 								POWER_RECHARGE_INCREASED;
 						}
-						maxShield =
-							Craft_GetObjectMaxShield(
-								objectIdx);
-						if (g_curCraft
-							    ->shieldEnergy[0] <
-						    maxShield) {
-							uint16_t transferLimit;
-							int16_t totalLaserCharge;
-							int transferAmount;
-							uint16_t slotIndex;
-							uint16_t transferCount;
+						max_shield =
+							craft_get_object_max_shield(
+								object_idx);
+						if (g_cur_craft
+							    ->shield_energy[0] <
+						    max_shield) {
+							uint16_t transfer_limit;
+							int16_t total_laser_charge;
+							int transfer_amount;
+							uint16_t slot_index;
+							uint16_t transfer_count;
 
-							if (g_curCraft
-								    ->laserRechargeLevel ==
+							if (g_cur_craft
+								    ->laser_recharge_level ==
 							    POWER_RECHARGE_MAINTENANCE) {
-								g_curCraft
-									->laserRechargeLevel =
+								g_cur_craft
+									->laser_recharge_level =
 									POWER_RECHARGE_MAXIMUM;
 							}
-							if (g_curCraft
-								    ->shieldEnergy
+							if (g_cur_craft
+								    ->shield_energy
 									    [0] >
 							    0) {
-								if (groupAI <
+								if (group_ai <
 								    2) {
-									transferLimit =
+									transfer_limit =
 										0;
 								} else {
-									int16_t updateMask;
+									int16_t update_mask;
 
-									if (groupAI ==
+									if (group_ai ==
 									    5) {
-										updateMask =
+										update_mask =
 											1;
 									} else if (
-										groupAI ==
+										group_ai ==
 										4) {
-										updateMask =
+										update_mask =
 											3;
 									} else if (
-										groupAI ==
+										group_ai ==
 										3) {
-										updateMask =
+										update_mask =
 											7;
 									} else {
-										updateMask =
+										update_mask =
 											15;
 									}
-									transferLimit =
-										((uint8_t)(updateMask &
-											   g_missionElapsedClock
+									transfer_limit =
+										((uint8_t)(update_mask &
+											   g_mission_elapsed_clock
 												   .seconds) ==
-										 updateMask)
+										 update_mask)
 											? AI_SHIELD_TRANSFER_PULSE
 											: 0;
 								}
 							} else {
-								if (g_curCraft
-									    ->shieldRechargeLevel ==
+								if (g_cur_craft
+									    ->shield_recharge_level ==
 								    POWER_RECHARGE_MAINTENANCE) {
-									g_curCraft
-										->shieldRechargeLevel =
+									g_cur_craft
+										->shield_recharge_level =
 										POWER_RECHARGE_MAXIMUM;
 								}
-								if (groupAI <
+								if (group_ai <
 								    2) {
-									transferLimit =
+									transfer_limit =
 										AI_SHIELD_TRANSFER_LOW;
 								} else if (
-									groupAI <
+									group_ai <
 									3) {
-									transferLimit =
+									transfer_limit =
 										AI_SHIELD_TRANSFER_MEDIUM;
 								} else {
-									transferLimit =
+									transfer_limit =
 										AI_SHIELD_TRANSFER_HIGH;
 								}
 							}
-							totalLaserCharge = 0;
-							for (slotIndex = 0;
-							     slotIndex <
-							     g_curCraft
-								     ->laserSlotCount;
-							     ++slotIndex) {
+							total_laser_charge = 0;
+							for (slot_index = 0;
+							     slot_index <
+							     g_cur_craft
+								     ->laser_slot_count;
+							     ++slot_index) {
 								int8_t charge;
 
 								charge =
-									g_curCraft
-										->weaponSlots
-											[slotIndex]
-										.laserCharge;
+									g_cur_craft
+										->weapon_slots
+											[slot_index]
+										.laser_charge;
 								if (charge >
 								    0) {
-									totalLaserCharge +=
+									total_laser_charge +=
 										charge;
 								}
 							}
-							slotIndex = 0;
-							transferCount = 0;
-							transferAmount =
-								g_objectTable[objectIdx].objectType ==
+							slot_index = 0;
+							transfer_count = 0;
+							transfer_amount =
+								g_object_table[object_idx]
+											.object_type ==
 										CRAFT_SPECIES_MISSILE_BOAT
 									? MISSILE_BOAT_SHIELD_TRANSFER
 									: DEFAULT_SHIELD_TRANSFER;
-							while (totalLaserCharge !=
+							while (total_laser_charge !=
 								       0 &&
-							       transferCount <
-								       transferLimit) {
-								if (g_curCraft
-									    ->weaponSlots
-										    [slotIndex]
-									    .laserCharge >
+							       transfer_count <
+								       transfer_limit) {
+								if (g_cur_craft
+									    ->weapon_slots
+										    [slot_index]
+									    .laser_charge >
 								    0) {
-									--totalLaserCharge;
-									--g_curCraft
-										  ->weaponSlots
-											  [slotIndex]
-										  .laserCharge;
-									g_curCraft
-										->shieldEnergy
+									--total_laser_charge;
+									--g_cur_craft
+										  ->weapon_slots
+											  [slot_index]
+										  .laser_charge;
+									g_cur_craft
+										->shield_energy
 											[0] +=
-										transferAmount;
-									if (g_curCraft
-										    ->shieldEnergy
+										transfer_amount;
+									if (g_cur_craft
+										    ->shield_energy
 											    [0] >=
-									    maxShield) {
-										totalLaserCharge =
+									    max_shield) {
+										total_laser_charge =
 											0;
 									}
 								}
-								++slotIndex;
-								if (slotIndex >=
-								    g_curCraft
-									    ->laserSlotCount) {
-									slotIndex =
+								++slot_index;
+								if (slot_index >=
+								    g_cur_craft
+									    ->laser_slot_count) {
+									slot_index =
 										0;
 								}
-								++transferCount;
+								++transfer_count;
 							}
 						}
 					}
 
-					if (g_curCraft->laserRechargeLevel ==
+					if (g_cur_craft->laser_recharge_level ==
 					    POWER_RECHARGE_MAINTENANCE) {
-						int totalCharge;
-						uint16_t chargedSlotCount;
-						uint16_t slotIndex;
+						int total_charge;
+						uint16_t charged_slot_count;
+						uint16_t slot_index;
 
-						totalCharge = 0;
-						chargedSlotCount = 0;
-						for (slotIndex = 0;
-						     slotIndex <
-						     g_curCraft->laserSlotCount;
-						     ++slotIndex) {
-							if (g_curCraft
-								    ->weaponSlots
-									    [slotIndex]
-								    .projectileTypeId !=
+						total_charge = 0;
+						charged_slot_count = 0;
+						for (slot_index = 0;
+						     slot_index <
+						     g_cur_craft
+							     ->laser_slot_count;
+						     ++slot_index) {
+							if (g_cur_craft
+								    ->weapon_slots
+									    [slot_index]
+								    .projectile_type_id !=
 							    0) {
-								totalCharge +=
-									g_curCraft
-										->weaponSlots
-											[slotIndex]
-										.laserCharge;
-								++chargedSlotCount;
+								total_charge +=
+									g_cur_craft
+										->weapon_slots
+											[slot_index]
+										.laser_charge;
+								++charged_slot_count;
 							}
 						}
-						if (chargedSlotCount != 0) {
-							int16_t averageCharge;
+						if (charged_slot_count != 0) {
+							int16_t average_charge;
 
-							averageCharge =
-								(int16_t)(totalCharge /
-									  (int)chargedSlotCount);
-							if (averageCharge <
+							average_charge =
+								(int16_t)(total_charge /
+									  (int)charged_slot_count);
+							if (average_charge <
 							    LASER_CHARGE_LOW_THRESHOLD) {
-								g_curCraft
-									->laserRechargeLevel =
+								g_cur_craft
+									->laser_recharge_level =
 									POWER_RECHARGE_MAXIMUM;
 							} else {
-								g_curCraft
-									->laserRechargeLevel =
-									averageCharge < LASER_CHARGE_HIGH_THRESHOLD
+								g_cur_craft
+									->laser_recharge_level =
+									average_charge <
+											LASER_CHARGE_HIGH_THRESHOLD
 										? POWER_RECHARGE_INCREASED
 										: POWER_RECHARGE_MAINTENANCE;
 							}
 						}
 					}
-					shieldRechargeRate =
+					shield_recharge_rate =
 						PLAYER_SHIELD_RECHARGE_RATE;
 				} else {
-					int16_t liveShieldGenerators;
+					int16_t live_shield_generators;
 
-					g_curCraft->shieldRechargeLevel =
+					g_cur_craft->shield_recharge_level =
 						POWER_RECHARGE_MAINTENANCE;
-					liveShieldGenerators = 0;
-					g_curCraft->laserRechargeLevel =
+					live_shield_generators = 0;
+					g_cur_craft->laser_recharge_level =
 						POWER_RECHARGE_MAINTENANCE;
-					if (g_flightMissionState.difficulty ==
+					if (g_flight_mission_state.difficulty ==
 						    2 &&
-					    genusId == CRAFT_GENUS_STARSHIP) {
-						if (g_curCraft->hullDamage !=
+					    genus_id == CRAFT_GENUS_STARSHIP) {
+						if (g_cur_craft->hull_damage !=
 						    0) {
-							if (g_objectTable[objectIdx]
-									    .objectType ==
+							if (g_object_table[object_idx]
+									    .object_type ==
 								    CRAFT_SPECIES_INTERDICTOR ||
-							    g_objectTable[objectIdx]
-									    .objectType ==
+							    g_object_table[object_idx]
+									    .object_type ==
 								    CRAFT_SPECIES_VICTORY_STAR_DESTROYER ||
-							    g_objectTable[objectIdx]
-									    .objectType ==
+							    g_object_table[object_idx]
+									    .object_type ==
 								    CRAFT_SPECIES_IMPERIAL_STAR_DESTROYER ||
-							    g_objectTable[objectIdx]
-									    .objectType ==
+							    g_object_table[object_idx]
+									    .object_type ==
 								    CRAFT_SPECIES_SUPER_STAR_DESTROYER) {
-								int meshCount;
-								int meshIndex;
+								int mesh_count;
+								int mesh_index;
 
-								meshCount =
-									g_objectTable[objectIdx].objectType <
-											(int)(sizeof(g_objectTypeMeshCache) /
-											      sizeof(g_objectTypeMeshCache
+								mesh_count =
+									g_object_table[object_idx]
+												.object_type <
+											(int)(sizeof(g_object_type_mesh_cache) /
+											      sizeof(g_object_type_mesh_cache
 													     [0]))
-										? g_objectTypeMeshCache
-											  [g_objectTable[objectIdx]
-												   .objectType]
-												  .meshCount
-										: ModelMesh_GetObjectTypeMeshCount(
-											  g_objectTable[objectIdx]
-												  .objectType);
-								for (meshIndex =
+										? g_object_type_mesh_cache
+											  [g_object_table[object_idx]
+												   .object_type]
+												  .mesh_count
+										: model_mesh_get_object_type_mesh_count(
+											  g_object_table[object_idx]
+												  .object_type);
+								for (mesh_index =
 									     0;
-								     meshIndex <
-								     meshCount;
-								     ++meshIndex) {
-									MeshComponentType
-										meshType;
+								     mesh_index <
+								     mesh_count;
+								     ++mesh_index) {
+									mesh_component_type
+										mesh_type;
 
-									meshType =
-										g_objectTable[objectIdx].objectType <
-												(int)(sizeof(g_objectTypeMeshCache) /
-												      sizeof(g_objectTypeMeshCache
+									mesh_type =
+										g_object_table[object_idx]
+													.object_type <
+												(int)(sizeof(g_object_type_mesh_cache) /
+												      sizeof(g_object_type_mesh_cache
 														     [0]))
-											? ModelMesh_GetCachedObjectTypeMeshType(
-												  g_objectTable[objectIdx]
-													  .objectType,
-												  meshIndex)
-											: ModelMesh_GetObjectTypeMeshType(
-												  g_objectTable[objectIdx]
-													  .objectType,
-												  meshIndex);
-									if (meshType ==
+											? model_mesh_get_cached_object_type_mesh_type(
+												  g_object_table[object_idx]
+													  .object_type,
+												  mesh_index)
+											: model_mesh_get_object_type_mesh_type(
+												  g_object_table[object_idx]
+													  .object_type,
+												  mesh_index);
+									if (mesh_type ==
 										    MESH_COMPONENT_08_SHLD_GEN &&
-									    g_curCraft->componentHp
-											    [meshIndex] !=
+									    g_cur_craft->component_hp
+											    [mesh_index] !=
 										    0) {
-										++liveShieldGenerators;
+										++live_shield_generators;
 									}
 								}
 							} else {
-								liveShieldGenerators =
+								live_shield_generators =
 									1;
 							}
 						}
-						g_curCraft
-							->shieldRechargeLevel =
+						g_cur_craft
+							->shield_recharge_level =
 							POWER_RECHARGE_INCREASED;
 					}
-					shieldRechargeRate =
+					shield_recharge_rate =
 						LARGE_CRAFT_SHIELD_RECHARGE_RATE *
-						liveShieldGenerators;
+						live_shield_generators;
 				}
 			}
 		}
 
-		if (doPeriodicPowerUpdate != 0) {
-			uint16_t slotIndex;
+		if (do_periodic_power_update != 0) {
+			uint16_t slot_index;
 
-			g_curCraft = g_objectTable[objectIdx].mobj->pCraft;
-			if (g_objectTable[objectIdx].objectType ==
+			g_cur_craft = g_object_table[object_idx].mobj->p_craft;
+			if (g_object_table[object_idx].object_type ==
 			    CRAFT_SPECIES_Y_WING) {
-				shieldRechargeRate *= 2;
+				shield_recharge_rate *= 2;
 			}
-			if ((g_curCraft->workingSubsystems &
+			if ((g_cur_craft->working_subsystems &
 			     CRAFT_SUBSYSTEM_FLAG_SHIELDS) != 0 &&
-			    shieldRechargeRate != 0) {
-				int16_t shieldDelta;
+			    shield_recharge_rate != 0) {
+				int16_t shield_delta;
 
-				shieldDelta =
-					(int16_t)(shieldRechargeRate *
-						  ((uint8_t)g_curCraft
-							   ->shieldRechargeLevel -
+				shield_delta =
+					(int16_t)(shield_recharge_rate *
+						  ((uint8_t)g_cur_craft
+							   ->shield_recharge_level -
 						   POWER_RECHARGE_MAINTENANCE));
-				if (shieldDelta != 0) {
-					if (g_curCraft->shieldDistribMode ==
+				if (shield_delta != 0) {
+					if (g_cur_craft->shield_distrib_mode ==
 					    SHIELD_DISTRIBUTION_FULLY_FORWARD) {
-						Craft_AdjustCurrentShieldEnergy(
-							objectIdx, 0,
-							shieldDelta);
+						craft_adjust_current_shield_energy(
+							object_idx, 0,
+							shield_delta);
 					} else if (
-						g_curCraft->shieldDistribMode ==
+						g_cur_craft
+							->shield_distrib_mode ==
 						SHIELD_DISTRIBUTION_FULLY_AFT) {
-						Craft_AdjustCurrentShieldEnergy(
-							objectIdx, 1,
-							shieldDelta);
+						craft_adjust_current_shield_energy(
+							object_idx, 1,
+							shield_delta);
 					} else {
-						int16_t halfDelta;
+						int16_t half_delta;
 
-						halfDelta = shieldDelta / 2;
-						Craft_AdjustCurrentShieldEnergy(
-							objectIdx, 0,
-							halfDelta);
-						Craft_AdjustCurrentShieldEnergy(
-							objectIdx, 1,
-							halfDelta);
+						half_delta = shield_delta / 2;
+						craft_adjust_current_shield_energy(
+							object_idx, 0,
+							half_delta);
+						craft_adjust_current_shield_energy(
+							object_idx, 1,
+							half_delta);
 					}
 				}
 			}
 
-			if ((g_curCraft->workingSubsystems &
+			if ((g_cur_craft->working_subsystems &
 			     CRAFT_SUBSYSTEM_FLAG_CANNONS) != 0) {
-				for (slotIndex = 0;
-				     slotIndex < g_curCraft->laserSlotCount;
-				     ++slotIndex) {
-					uint8_t projectileType;
-					int16_t chargeBasis;
-					int16_t chargeDelta;
+				for (slot_index = 0;
+				     slot_index < g_cur_craft->laser_slot_count;
+				     ++slot_index) {
+					uint8_t projectile_type;
+					int16_t charge_basis;
+					int16_t charge_delta;
 
-					projectileType =
-						g_curCraft
-							->weaponSlots[slotIndex]
-							.projectileTypeId;
-					if (projectileType == 0 ||
-					    projectileType ==
+					projectile_type =
+						g_cur_craft
+							->weapon_slots
+								[slot_index]
+							.projectile_type_id;
+					if (projectile_type == 0 ||
+					    projectile_type ==
 						    TURRET_PROJECTILE_TYPE) {
 						continue;
 					}
-					chargeBasis =
-						(int16_t)((uint8_t)g_curCraft
-								  ->laserRechargeLevel -
+					charge_basis =
+						(int16_t)((uint8_t)g_cur_craft
+								  ->laser_recharge_level -
 							  POWER_RECHARGE_MAINTENANCE);
-					if (g_curCraft->engineOverdriveOff ==
+					if (g_cur_craft->engine_overdrive_off ==
 					    ENGINE_OVERDRIVE_ACTIVE) {
-						chargeBasis =
-							(int16_t)((uint8_t)g_curCraft
-									  ->laserRechargeLevel -
+						charge_basis =
+							(int16_t)((uint8_t)g_cur_craft
+									  ->laser_recharge_level -
 								  6);
 					}
-					if (g_objectTable[objectIdx]
-							    .objectType ==
+					if (g_object_table[object_idx]
+							    .object_type ==
 						    CRAFT_SPECIES_TIE_FIGHTER ||
-					    g_objectTable[objectIdx]
-							    .objectType ==
+					    g_object_table[object_idx]
+							    .object_type ==
 						    CRAFT_SPECIES_TIE_BOMBER) {
-						chargeDelta =
+						charge_delta =
 							(int16_t)(3 *
-								  chargeBasis);
+								  charge_basis);
 					} else {
-						chargeDelta =
+						charge_delta =
 							(int16_t)(2 *
-								  chargeBasis);
+								  charge_basis);
 					}
-					g_curCraft->weaponSlots[slotIndex]
-						.laserCharge +=
-						(int8_t)chargeDelta;
-					if (chargeDelta < 0 &&
-					    g_curCraft->weaponSlots[slotIndex]
-							    .laserCharge < 0) {
-						g_curCraft
-							->weaponSlots[slotIndex]
-							.laserCharge = 0;
+					g_cur_craft->weapon_slots[slot_index]
+						.laser_charge +=
+						(int8_t)charge_delta;
+					if (charge_delta < 0 &&
+					    g_cur_craft
+							    ->weapon_slots
+								    [slot_index]
+							    .laser_charge < 0) {
+						g_cur_craft
+							->weapon_slots
+								[slot_index]
+							.laser_charge = 0;
 					}
-					if (chargeDelta > 0 &&
-					    g_curCraft->weaponSlots[slotIndex]
-							    .laserCharge < 0) {
-						g_curCraft
-							->weaponSlots[slotIndex]
-							.laserCharge =
+					if (charge_delta > 0 &&
+					    g_cur_craft
+							    ->weapon_slots
+								    [slot_index]
+							    .laser_charge < 0) {
+						g_cur_craft
+							->weapon_slots
+								[slot_index]
+							.laser_charge =
 							MAXIMUM_LASER_CHARGE;
 					}
 				}
 			}
 
-			if (g_curCraft->engineOverdriveOff ==
+			if (g_cur_craft->engine_overdrive_off ==
 			    ENGINE_OVERDRIVE_ACTIVE) {
-				int anyLaserCharge;
+				int any_laser_charge;
 
-				anyLaserCharge = 0;
-				for (slotIndex = 0;
-				     slotIndex < g_curCraft->laserSlotCount;
-				     ++slotIndex) {
-					if (g_curCraft->weaponSlots[slotIndex]
-						    .laserCharge > 0) {
-						anyLaserCharge = 1;
+				any_laser_charge = 0;
+				for (slot_index = 0;
+				     slot_index < g_cur_craft->laser_slot_count;
+				     ++slot_index) {
+					if (g_cur_craft
+						    ->weapon_slots[slot_index]
+						    .laser_charge > 0) {
+						any_laser_charge = 1;
 					}
 				}
-				if (anyLaserCharge == 0) {
-					g_curCraft->engineOverdriveOff =
+				if (any_laser_charge == 0) {
+					g_cur_craft->engine_overdrive_off =
 						ENGINE_OVERDRIVE_DISENGAGED;
-					msg_emitInFlightMessage(
+					msg_emit_in_flight_message(
 						IFMSG_285_ENGINE_OVERDRIVE_BOOSTERS_DISENGAGED,
-						g_localPlayer);
-					fsfx_PlaySound(FLIGHT_SOUND_POWER_DOWN,
-						       -1, g_localPlayer);
+						g_local_player);
+					fsfx_play_sound(FLIGHT_SOUND_POWER_DOWN,
+							-1, g_local_player);
 				}
 			}
 
-			if ((g_curCraft->workingSubsystems &
+			if ((g_cur_craft->working_subsystems &
 			     CRAFT_SUBSYSTEM_FLAG_BEAM_SYSTEM) != 0) {
-				int16_t beamPresent;
+				int16_t beam_present;
 
-				beamPresent =
-					(int16_t)(g_curCraft->beamCharge +
+				beam_present =
+					(int16_t)(g_cur_craft->beam_charge +
 						  BEAM_RECHARGE_STEP *
-							  ((uint8_t)g_curCraft
-								   ->beamRechargeLevel -
+							  ((uint8_t)g_cur_craft
+								   ->beam_recharge_level -
 							   POWER_RECHARGE_MAINTENANCE));
-				if (beamPresent < 0) {
-					beamPresent = 0;
+				if (beam_present < 0) {
+					beam_present = 0;
 				}
-				if (beamPresent > MAXIMUM_BEAM_CHARGE) {
-					beamPresent = MAXIMUM_BEAM_CHARGE;
+				if (beam_present > MAXIMUM_BEAM_CHARGE) {
+					beam_present = MAXIMUM_BEAM_CHARGE;
 				}
-				g_curCraft->beamCharge = (uint16_t)beamPresent;
-				if (beamPresent == 0 &&
-				    g_curCraft->beamActive != 0) {
-					g_curCraft->beamActive = 0;
-					g_curCraft->beamOutput = 0;
-					if (g_objectTable[objectIdx]
-						    .playerOwnerIdx ==
-					    g_localPlayer) {
-						msg_emitInFlightMessage(
-							(InFlightMessageId)((uint8_t)g_curCraft
-										    ->beamTypeId +
-									    BEAM_END_MESSAGE_BASE),
-							g_localPlayer);
+				g_cur_craft->beam_charge =
+					(uint16_t)beam_present;
+				if (beam_present == 0 &&
+				    g_cur_craft->beam_active != 0) {
+					g_cur_craft->beam_active = 0;
+					g_cur_craft->beam_output = 0;
+					if (g_object_table[object_idx]
+						    .player_owner_idx ==
+					    g_local_player) {
+						msg_emit_in_flight_message(
+							(in_flight_message_id)((uint8_t)g_cur_craft
+										       ->beam_type_id +
+									       BEAM_END_MESSAGE_BASE),
+							g_local_player);
 					}
 				}
 			}
 
-			if (g_curCraft->chaffActiveSeconds != 0) {
-				--g_curCraft->chaffActiveSeconds;
-				if (g_curCraft->cmTypeId ==
+			if (g_cur_craft->chaff_active_seconds != 0) {
+				--g_cur_craft->chaff_active_seconds;
+				if (g_cur_craft->cm_type_id ==
 					    COUNTERMEASURE_TYPE_CHAFF &&
-				    g_curCraft->chaffActiveSeconds == 0 &&
-				    g_objectTable[objectIdx].playerOwnerIdx !=
-					    -1) {
-					msg_emitInFlightMessage(
+				    g_cur_craft->chaff_active_seconds == 0 &&
+				    g_object_table[object_idx]
+						    .player_owner_idx != -1) {
+					msg_emit_in_flight_message(
 						IFMSG_368_CHAFF_BURST_EXPENDED,
-						g_objectTable[objectIdx]
-							.playerOwnerIdx);
+						g_object_table[object_idx]
+							.player_owner_idx);
 				}
 			}
 		}
 	}
 
-	for (objectIdx = g_activeRegionObjectSlotStart;
-	     objectIdx < g_activeRegionCraftObjectSlotEnd; ++objectIdx) {
-		/* slotIndex counts cannon groups in the first loop below (the laserState arrays, passed to
+	for (object_idx = g_active_region_object_slot_start;
+	     object_idx < g_active_region_craft_object_slot_end; ++object_idx) {
+		/* slotIndex counts cannon groups in the first loop below (the laser_state arrays, passed to
 		 * laser_firelasersystem as its group), weapon slots in the turret loop, then warhead launchers. */
-		uint16_t slotIndex;
+		uint16_t slot_index;
 
-		if (g_objectTable[objectIdx].objectType ==
+		if (g_object_table[object_idx].object_type ==
 			    CRAFT_SPECIES_UNKNOWN ||
-		    g_objectTable[objectIdx].mobj->family != 0) {
+		    g_object_table[object_idx].mobj->family != 0) {
 			continue;
 		}
-		g_curCraft = g_objectTable[objectIdx].mobj->pCraft;
-		if (g_curCraft->weaponFireInhibitTimer != 0) {
+		g_cur_craft = g_object_table[object_idx].mobj->p_craft;
+		if (g_cur_craft->weapon_fire_inhibit_timer != 0) {
 			continue;
 		}
 
-		if (g_curCraft->beamEffectAccum[2] == 0
+		if (g_cur_craft->beam_effect_accum[2] == 0
 #ifdef XVT_MODERN
-		    && (!XvtFlightTiming_IsUnlocked() ||
-			g_objectTable[objectIdx].playerOwnerIdx != -1 ||
-			XvtFlightTiming_ReferenceDue())
+		    && (!xvt_flight_timing_is_unlocked() ||
+			g_object_table[object_idx].player_owner_idx != -1 ||
+			xvt_flight_timing_reference_due())
 #endif
 		) {
 #ifdef XVT_MODERN
-			struct XvtFlightClock cannonClock = {
-				g_elapsedTicks, g_simStepsPerSecond};
-			if (g_objectTable[objectIdx].playerOwnerIdx == -1) {
-				cannonClock = XvtFlightTiming_EnterReference();
+			struct xvt_flight_clock cannon_clock = {
+				g_elapsed_ticks, g_sim_steps_per_second};
+			if (g_object_table[object_idx].player_owner_idx == -1) {
+				cannon_clock =
+					xvt_flight_timing_enter_reference();
 			}
 #endif
 
-			for (slotIndex = 0;
-			     slotIndex < g_curCraft->cannonGroupCount;
-			     ++slotIndex) {
+			for (slot_index = 0;
+			     slot_index < g_cur_craft->cannon_group_count;
+			     ++slot_index) {
 				int16_t cooldown;
 
-				cooldown =
-					g_curCraft->laserState
-						.fireCooldownTicks[slotIndex];
+				cooldown = g_cur_craft->laser_state
+						   .fire_cooldown_ticks
+							   [slot_index];
 				if (cooldown != 0) {
 					cooldown = (int16_t)(cooldown -
-							     g_elapsedTicks);
+							     g_elapsed_ticks);
 					if (cooldown < 0) {
 						cooldown = 0;
 					}
-					g_curCraft->laserState
-						.fireCooldownTicks[slotIndex] =
-						cooldown;
+					g_cur_craft->laser_state
+						.fire_cooldown_ticks
+							[slot_index] = cooldown;
 				}
-				if (g_objectTable[objectIdx].playerOwnerIdx ==
-					    -1 &&
-				    (int16_t)g_elapsedTicks > cooldown &&
-				    g_curCraft->laserState
-						    .linkMode[slotIndex] != 0) {
-					if ((g_curCraft->workingSubsystems &
+				if (g_object_table[object_idx]
+						    .player_owner_idx == -1 &&
+				    (int16_t)g_elapsed_ticks > cooldown &&
+				    g_cur_craft->laser_state
+						    .link_mode[slot_index] !=
+					    0) {
+					if ((g_cur_craft->working_subsystems &
 					     CRAFT_SUBSYSTEM_FLAG_CANNONS) !=
 						    0 &&
-					    g_curCraft->objectKind ==
+					    g_cur_craft->object_kind ==
 						    CRAFT_OBJECT_KIND_ACTIVE) {
 						laser_firelasersystem(
-							objectIdx, slotIndex);
+							object_idx, slot_index);
 					}
-					--g_curCraft->laserState
-						  .burstRemaining[slotIndex];
-					g_curCraft->laserState
-						.fireCooldownTicks[slotIndex] +=
-						2 * g_elapsedTicks;
-					g_curCraft->laserState
-						.nextFireTimestamp[slotIndex] +=
-						2 * g_elapsedTicks;
-					if (g_curCraft->laserState
-						    .burstRemaining
-							    [slotIndex] == 0) {
-						g_curCraft->laserState
-							.linkMode[slotIndex] =
+					--g_cur_craft->laser_state
+						  .burst_remaining[slot_index];
+					g_cur_craft->laser_state
+						.fire_cooldown_ticks
+							[slot_index] +=
+						2 * g_elapsed_ticks;
+					g_cur_craft->laser_state
+						.next_fire_timestamp
+							[slot_index] +=
+						2 * g_elapsed_ticks;
+					if (g_cur_craft->laser_state
+						    .burst_remaining
+							    [slot_index] == 0) {
+						g_cur_craft->laser_state
+							.link_mode[slot_index] =
 							0;
 					}
 				}
 			}
 
 #ifdef XVT_MODERN
-			XvtFlightTiming_RestoreClock(cannonClock);
+			xvt_flight_timing_restore_clock(cannon_clock);
 #endif
 		}
 
-		for (slotIndex = 0; slotIndex < g_curCraft->laserSlotCount;
-		     ++slotIndex) {
-			if (g_curCraft->weaponSlots[slotIndex]
-				    .projectileTypeId ==
+		for (slot_index = 0; slot_index < g_cur_craft->laser_slot_count;
+		     ++slot_index) {
+			if (g_cur_craft->weapon_slots[slot_index]
+				    .projectile_type_id ==
 			    TURRET_PROJECTILE_TYPE) {
-				uint16_t targetObjIdx;
+				uint16_t target_obj_idx;
 
-				targetObjIdx =
-					g_curCraft
-						->turretTargetStates[slotIndex]
-						.targetObjIdx;
-				if (targetObjIdx != UINT16_MAX) {
+				target_obj_idx = g_cur_craft
+							 ->turret_target_states
+								 [slot_index]
+							 .target_obj_idx;
+				if (target_obj_idx != UINT16_MAX) {
 
 #ifdef XVT_MODERN
-					if (XvtFlightTiming_ReferenceDue()) {
-						struct XvtFlightClock weaponClock =
-							XvtFlightTiming_EnterReference();
+					if (xvt_flight_timing_reference_due()) {
+						struct xvt_flight_clock weapon_clock =
+							xvt_flight_timing_enter_reference();
 						laser_fireturretslot(
-							objectIdx, slotIndex,
-							targetObjIdx);
-						XvtFlightTiming_RestoreClock(
-							weaponClock);
+							object_idx, slot_index,
+							target_obj_idx);
+						xvt_flight_timing_restore_clock(
+							weapon_clock);
 					}
 #else
-					laser_fireturretslot(objectIdx,
-							     slotIndex,
-							     targetObjIdx);
+					laser_fireturretslot(object_idx,
+							     slot_index,
+							     target_obj_idx);
 #endif
 				}
 			}
 		}
 
-		for (slotIndex = 0;
-		     slotIndex < g_curCraft->warheadLauncherCount;
-		     ++slotIndex) {
+		for (slot_index = 0;
+		     slot_index < g_cur_craft->warhead_launcher_count;
+		     ++slot_index) {
 			int16_t cooldown;
 
-			cooldown = g_curCraft->warheadLauncherCooldownTicks
-					   [slotIndex];
+			cooldown = g_cur_craft->warhead_launcher_cooldown_ticks
+					   [slot_index];
 			if (cooldown != 0) {
-				cooldown = (int16_t)(cooldown - g_elapsedTicks);
+				cooldown =
+					(int16_t)(cooldown - g_elapsed_ticks);
 				if (cooldown < 0) {
 					cooldown = 0;
 				}
-				g_curCraft->warheadLauncherCooldownTicks
-					[slotIndex] = cooldown;
+				g_cur_craft->warhead_launcher_cooldown_ticks
+					[slot_index] = cooldown;
 			}
 		}
 	}
 
-	for (objectIdx = g_regionMainObjectSlotEnd;
-	     objectIdx <
-	     g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount;
-	     ++objectIdx) {
-		if (g_objectTable[objectIdx].objectType !=
+	for (object_idx = g_region_main_object_slot_end;
+	     object_idx <
+	     g_region_main_object_slot_end + g_region_static_object_slot_count;
+	     ++object_idx) {
+		if (g_object_table[object_idx].object_type !=
 			    CRAFT_SPECIES_UNKNOWN &&
-		    g_objectTable[objectIdx].genusId == CRAFT_GENUS_MINE) {
+		    g_object_table[object_idx].genus_id == CRAFT_GENUS_MINE) {
 
 #ifdef XVT_MODERN
-			if (XvtFlightTiming_ReferenceDue()) {
-				struct XvtFlightClock weaponClock =
-					XvtFlightTiming_EnterReference();
-				laser_UpdateMineWeaponFire(objectIdx);
-				XvtFlightTiming_RestoreClock(weaponClock);
+			if (xvt_flight_timing_reference_due()) {
+				struct xvt_flight_clock weapon_clock =
+					xvt_flight_timing_enter_reference();
+				laser_update_mine_weapon_fire(object_idx);
+				xvt_flight_timing_restore_clock(weapon_clock);
 			}
 #else
-			laser_UpdateMineWeaponFire(objectIdx);
+			laser_update_mine_weapon_fire(object_idx);
 #endif
 		}
 	}
 }
 
-/* Returns the life of a shot of projectileObjectType in ticks: 236 for each
- * of its lifetimeSeconds plus its lifetimeFracQ16 share of 236, rounded.
+/* Returns the life of a shot of projectile_object_type in ticks: 236 for each
+ * of its lifetimeSeconds plus its lifetime_frac_q16 share of 236, rounded.
  * Does not check the type. */
 // FUNCTION: XVT 0x405860
-uint16_t laser_GetProjectileLifetimeTicks(int projectileObjectType)
+uint16_t laser_get_projectile_lifetime_ticks(int projectile_object_type)
 {
-	uint16_t wholeSecondsTicks;
+	uint16_t whole_seconds_ticks;
 
-	wholeSecondsTicks =
-		(uint16_t)(236u * g_projectileTypeData.lifetimeSeconds
-					  [projectileObjectType -
+	whole_seconds_ticks =
+		(uint16_t)(236u * g_projectile_type_data.lifetime_seconds
+					  [projectile_object_type -
 					   PROJECTILE_OBJECT_TYPE_FIRST]);
-	wholeSecondsTicks =
-		(uint16_t)(wholeSecondsTicks +
-			   MATH2_fraction(
-				   g_projectileTypeData.lifetimeFracQ16
-					   [projectileObjectType -
+	whole_seconds_ticks =
+		(uint16_t)(whole_seconds_ticks +
+			   math2_fraction(
+				   g_projectile_type_data.lifetime_frac_q16
+					   [projectile_object_type -
 					    PROJECTILE_OBJECT_TYPE_FIRST],
 				   236u));
-	return wholeSecondsTicks;
+	return whole_seconds_ticks;
 }
 
-/* Fires the selected weapon of playerIdx's craft, when it can. Does nothing
+/* Fires the selected weapon of player_idx's craft, when it can. Does nothing
  * when the player has no craft, and only reports IFMSG_361 (firing jammed)
- * while a jamming beam holds the craft (beamEffectAccum[2]) and it has no
+ * while a jamming beam holds the craft (beam_effect_accum[2]) and it has no
  * active chaff. In cannon mode the selected group fires through
  * laser_firelasersystem once its cooldown is below 1.5 times
- * g_elapsedTicks, or with the cannons out the local player gets a system
- * message; while g_laserFireTimestampTrackingEnabled is set, the group's
- * nextFireTimestamp against the player's lockstepTimestamp decides the
+ * g_elapsed_ticks, or with the cannons out the local player gets a system
+ * message; while g_laser_fire_timestamp_tracking_enabled is set, the group's
+ * next_fire_timestamp against the player's lockstep_timestamp decides the
  * cooldown instead. In warhead mode the selected launcher fires through
  * laser_firewarheadsystem on the same cooldown test, or with the launchers
  * out the local player gets a system message; when both of the launcher's
  * slots are then empty, the player goes back to cannon group 0 with a
  * 118-tick cooldown. */
 // FUNCTION: XVT 0x405890
-void laser_fireplayerweapon(int playerIdx)
+void laser_fireplayerweapon(int player_idx)
 {
 	enum {
 		WEAPON_COOLDOWN_TICKS = 118,
@@ -1244,216 +1278,231 @@ void laser_fireplayerweapon(int playerIdx)
 		WARHEAD_SYSTEM_NAME = 94
 	};
 
-	struct CraftData *craft;
-	int objectIndex = g_players[playerIdx].objectIndex;
+	struct craft_data *craft;
+	int object_index = g_players[player_idx].object_index;
 
-	if (objectIndex == -1) {
+	if (object_index == -1) {
 		return;
 	}
-	craft = g_objectTable[objectIndex].mobj->pCraft;
-	if (craft->beamEffectAccum[2] != 0 &&
-	    (craft->cmTypeId != COUNTERMEASURE_TYPE_CHAFF ||
-	     craft->chaffActiveSeconds == 0)) {
-		msg_emitInFlightMessage(
+	craft = g_object_table[object_index].mobj->p_craft;
+	if (craft->beam_effect_accum[2] != 0 &&
+	    (craft->cm_type_id != COUNTERMEASURE_TYPE_CHAFF ||
+	     craft->chaff_active_seconds == 0)) {
+		msg_emit_in_flight_message(
 			IFMSG_361_WEAPON_FIRING_JAMMED_BY_BEAM_SYSTEM,
-			playerIdx);
+			player_idx);
 		return;
 	}
-	if (g_players[playerIdx].selectedWeaponMode == 0) {
-		int selectedWeapon;
+	if (g_players[player_idx].selected_weapon_mode == 0) {
+		int selected_weapon;
 		int16_t cooldown;
 
-		selectedWeapon = g_players[playerIdx].selectedWeaponBank;
-		cooldown = craft->laserState.fireCooldownTicks[selectedWeapon];
-		if (g_laserFireTimestampTrackingEnabled != 0) {
-			int lockstepTimestamp;
+		selected_weapon = g_players[player_idx].selected_weapon_bank;
+		cooldown =
+			craft->laser_state.fire_cooldown_ticks[selected_weapon];
+		if (g_laser_fire_timestamp_tracking_enabled != 0) {
+			int lockstep_timestamp;
 
-			lockstepTimestamp =
-				g_players[playerIdx].lockstepTimestamp;
+			lockstep_timestamp =
+				g_players[player_idx].lockstep_timestamp;
 			if (cooldown != 0) {
-				int lastFireTimestamp;
+				int last_fire_timestamp;
 
-				lastFireTimestamp =
-					craft->laserState.nextFireTimestamp
-						[selectedWeapon];
-				if (lastFireTimestamp < lockstepTimestamp) {
+				last_fire_timestamp =
+					craft->laser_state.next_fire_timestamp
+						[selected_weapon];
+				if (last_fire_timestamp < lockstep_timestamp) {
 					cooldown = 0;
-					craft->laserState.nextFireTimestamp
-						[selectedWeapon] =
-						lockstepTimestamp;
+					craft->laser_state.next_fire_timestamp
+						[selected_weapon] =
+						lockstep_timestamp;
 				} else {
 					cooldown =
-						(int16_t)(2 * g_elapsedTicks);
+						(int16_t)(2 * g_elapsed_ticks);
 				}
 			} else {
-				craft->laserState
-					.nextFireTimestamp[selectedWeapon] =
-					lockstepTimestamp;
+				craft->laser_state
+					.next_fire_timestamp[selected_weapon] =
+					lockstep_timestamp;
 			}
 		}
-		if ((int16_t)(g_elapsedTicks + (g_elapsedTicks >> 1)) >
+		if ((int16_t)(g_elapsed_ticks + (g_elapsed_ticks >> 1)) >
 		    cooldown) {
-			if ((craft->workingSubsystems &
+			if ((craft->working_subsystems &
 			     CRAFT_SUBSYSTEM_FLAG_CANNONS) != 0) {
 				laser_firelasersystem(
-					g_players[playerIdx].objectIndex,
-					g_players[playerIdx]
-						.selectedWeaponBank);
-			} else if (playerIdx == g_localPlayer) {
-				int16_t selectedWarhead;
+					g_players[player_idx].object_index,
+					g_players[player_idx]
+						.selected_weapon_bank);
+			} else if (player_idx == g_local_player) {
+				int16_t selected_warhead;
 
-				selectedWarhead =
-					g_players[playerIdx].selectedWeaponBank;
-				g_msgArgTable[1] = SYSTEM_NAME_MESSAGE_ARG;
-				g_msgArgTable[0] =
-					(uint16_t)(selectedWarhead +
+				selected_warhead =
+					g_players[player_idx]
+						.selected_weapon_bank;
+				g_msg_arg_table[1] = SYSTEM_NAME_MESSAGE_ARG;
+				g_msg_arg_table[0] =
+					(uint16_t)(selected_warhead +
 						   LASER_SYSTEM_NAME_BASE);
-				msg_emitInFlightMessage(
-					IFMSG_086_ARG_SYSTEM_IS_ARG, playerIdx);
+				msg_emit_in_flight_message(
+					IFMSG_086_ARG_SYSTEM_IS_ARG,
+					player_idx);
 			}
 		}
 		return;
 	}
-	if (craft->warheadLauncherCooldownTicks[g_players[playerIdx]
-							.selectedWeaponBank] <
-	    (int16_t)(g_elapsedTicks + (g_elapsedTicks >> 1))) {
-		if ((craft->workingSubsystems &
+	if (craft->warhead_launcher_cooldown_ticks
+		    [g_players[player_idx].selected_weapon_bank] <
+	    (int16_t)(g_elapsed_ticks + (g_elapsed_ticks >> 1))) {
+		if ((craft->working_subsystems &
 		     CRAFT_SUBSYSTEM_FLAG_WARHEAD_LAUNCHER) != 0) {
 			laser_firewarheadsystem(
-				objectIndex,
-				g_players[playerIdx].selectedWeaponBank);
-			craft = g_objectTable[objectIndex].mobj->pCraft;
+				object_index,
+				g_players[player_idx].selected_weapon_bank);
+			craft = g_object_table[object_index].mobj->p_craft;
 			{
-				int firstSlot =
-					g_modelDefs[craft->modelIndex].warheadLauncherFirstSlot
-						[g_players[playerIdx]
-							 .selectedWeaponBank];
-				if (craft->weaponSlots[firstSlot + 1]
-						    .ammoCount +
-					    craft->weaponSlots[firstSlot]
-						    .ammoCount ==
+				int first_slot =
+					g_model_defs[craft->model_index].warhead_launcher_first_slot
+						[g_players[player_idx]
+							 .selected_weapon_bank];
+				if (craft->weapon_slots[first_slot + 1]
+						    .ammo_count +
+					    craft->weapon_slots[first_slot]
+						    .ammo_count ==
 				    0) {
-					g_players[playerIdx]
-						.selectedWeaponMode = 0;
-					g_players[playerIdx]
-						.selectedWeaponBank = 0;
-					craft->laserState.fireCooldownTicks[0] =
+					g_players[player_idx]
+						.selected_weapon_mode = 0;
+					g_players[player_idx]
+						.selected_weapon_bank = 0;
+					craft->laser_state
+						.fire_cooldown_ticks[0] =
 						WEAPON_COOLDOWN_TICKS;
-					craft->laserState.nextFireTimestamp[0] =
-						g_players[playerIdx]
-							.lockstepTimestamp +
+					craft->laser_state
+						.next_fire_timestamp[0] =
+						g_players[player_idx]
+							.lockstep_timestamp +
 						WEAPON_COOLDOWN_TICKS;
 				}
 			}
-		} else if (playerIdx == g_localPlayer) {
-			g_msgArgTable[0] = WARHEAD_SYSTEM_NAME;
-			g_msgArgTable[1] = SYSTEM_NAME_MESSAGE_ARG;
-			msg_emitInFlightMessage(IFMSG_086_ARG_SYSTEM_IS_ARG,
-						playerIdx);
+		} else if (player_idx == g_local_player) {
+			g_msg_arg_table[0] = WARHEAD_SYSTEM_NAME;
+			g_msg_arg_table[1] = SYSTEM_NAME_MESSAGE_ARG;
+			msg_emit_in_flight_message(IFMSG_086_ARG_SYSTEM_IS_ARG,
+						   player_idx);
 		}
 	}
 }
 
-/* Fires cannon group laserSystemIndex of the craft in objectIndex by its
- * linkMode: 1 the next slot alone, 2 every other slot from the next one
- * (half the group's slots), 3 every slot; the group's nextSlot moves on.
+/* Fires cannon group laser_system_index of the craft in object_index by its
+ * link_mode: 1 the next slot alone, 2 every other slot from the next one
+ * (half the group's slots), 3 every slot; the group's next_slot moves on.
  * Only slots with a weapon and charge above 0 fire. Each shot is
  * laser_createprojectile of the group's weapon type, one type higher when
  * the slot's charge is 64 or more, given the player's or the AI's current
  * target in its guidance record; unless the flight group's status is 21 it
  * costs the slot 3 charge on a player's TIE Fighter or TIE Bomber, 4 on
  * another player's craft and 1 on an AI craft. Adds the shots to the ion
- * or laser counts in weaponStats (and the player's missionStats), and 47
- * per shot plus 2 to the group's fireCooldownTicks and nextFireTimestamp.
+ * or laser counts in weapon_stats (and the player's mission_stats), and 47
+ * per shot plus 2 to the group's fire_cooldown_ticks and next_fire_timestamp.
  * With the S-foils closed nothing fires and the local player gets a
- * message. With any other linkMode the modern build returns at once; the
- * original build's text goes on with firstSlot and lastSlot unset. Writes
- * g_curCraft. */
+ * message. With any other link_mode the modern build returns at once; the
+ * original build's text goes on with first_slot and last_slot unset. Writes
+ * g_cur_craft. */
 // FUNCTION: XVT 0x405AC0
-void laser_firelasersystem(int objectIndex, int laserSystemIndex)
+void laser_firelasersystem(int object_index, int laser_system_index)
 {
-	int ownerPlayerIdx = g_objectTable[objectIndex].playerOwnerIdx;
-	ModelIndex modelIndex;
-	uint16_t firstSlot;
-	uint16_t currentSlot;
-	uint16_t lastSlot;
-	uint16_t slotStep;
-	uint16_t shotLimit;
-	uint16_t shotsFired;
-	struct AiController *aiController;
+	int owner_player_idx = g_object_table[object_index].player_owner_idx;
+	model_index model_index;
+	uint16_t first_slot;
+	uint16_t current_slot;
+	uint16_t last_slot;
+	uint16_t slot_step;
+	uint16_t shot_limit;
+	uint16_t shots_fired;
+	struct ai_controller *ai_controller;
 
-	g_curCraft = g_objectTable[objectIndex].mobj->pCraft;
-	aiController = &g_curCraft->aiController;
-	modelIndex = g_curCraft->modelIndex;
-	if (g_curCraft->sFoilState != 0) {
-		if (ownerPlayerIdx == g_localPlayer) {
-			msg_emitInFlightMessage(
+	g_cur_craft = g_object_table[object_index].mobj->p_craft;
+	ai_controller = &g_cur_craft->ai_controller;
+	model_index = g_cur_craft->model_index;
+	if (g_cur_craft->s_foil_state != 0) {
+		if (owner_player_idx == g_local_player) {
+			msg_emit_in_flight_message(
 				IFMSG_130_CANNONS_CANNOT_FIRE_WITH_S_FOILS_CLOSED,
-				g_localPlayer);
+				g_local_player);
 		}
 		return;
 	}
-	shotsFired = 0;
-	switch (g_curCraft->laserState.linkMode[laserSystemIndex]) {
+	shots_fired = 0;
+	switch (g_cur_craft->laser_state.link_mode[laser_system_index]) {
 	case 1:
-		if (g_modelDefs[modelIndex]
-				    .laserGroupFirstSlot[laserSystemIndex] >
-			    g_curCraft->laserState.nextSlot[laserSystemIndex] ||
-		    g_modelDefs[modelIndex]
-				    .laserGroupLastSlot[laserSystemIndex] <
-			    g_curCraft->laserState.nextSlot[laserSystemIndex]) {
-			g_curCraft->laserState.nextSlot[laserSystemIndex] =
-				g_modelDefs[modelIndex]
-					.laserGroupFirstSlot[laserSystemIndex];
+		if (g_model_defs[model_index].laser_group_first_slot
+				    [laser_system_index] >
+			    g_cur_craft->laser_state
+				    .next_slot[laser_system_index] ||
+		    g_model_defs[model_index]
+				    .laser_group_last_slot[laser_system_index] <
+			    g_cur_craft->laser_state
+				    .next_slot[laser_system_index]) {
+			g_cur_craft->laser_state.next_slot[laser_system_index] =
+				g_model_defs[model_index].laser_group_first_slot
+					[laser_system_index];
 		}
-		firstSlot = g_curCraft->laserState.nextSlot[laserSystemIndex]++;
-		lastSlot = firstSlot;
-		if (g_modelDefs[modelIndex]
-			    .laserGroupLastSlot[laserSystemIndex] <
-		    g_curCraft->laserState.nextSlot[laserSystemIndex]) {
-			g_curCraft->laserState.nextSlot[laserSystemIndex] =
-				(uint8_t)g_modelDefs[modelIndex]
-					.laserGroupFirstSlot[laserSystemIndex];
+		first_slot = g_cur_craft->laser_state
+				     .next_slot[laser_system_index]++;
+		last_slot = first_slot;
+		if (g_model_defs[model_index]
+			    .laser_group_last_slot[laser_system_index] <
+		    g_cur_craft->laser_state.next_slot[laser_system_index]) {
+			g_cur_craft->laser_state.next_slot[laser_system_index] =
+				(uint8_t)g_model_defs[model_index]
+					.laser_group_first_slot
+						[laser_system_index];
 		}
-		shotLimit = 1;
-		slotStep = 1;
+		shot_limit = 1;
+		slot_step = 1;
 		break;
 	case 2:
-		if (g_modelDefs[modelIndex]
-				    .laserGroupFirstSlot[laserSystemIndex] >
-			    g_curCraft->laserState.nextSlot[laserSystemIndex] ||
-		    g_modelDefs[modelIndex]
-				    .laserGroupLastSlot[laserSystemIndex] <
-			    g_curCraft->laserState.nextSlot[laserSystemIndex]) {
-			g_curCraft->laserState.nextSlot[laserSystemIndex] =
-				g_modelDefs[modelIndex]
-					.laserGroupFirstSlot[laserSystemIndex];
+		if (g_model_defs[model_index].laser_group_first_slot
+				    [laser_system_index] >
+			    g_cur_craft->laser_state
+				    .next_slot[laser_system_index] ||
+		    g_model_defs[model_index]
+				    .laser_group_last_slot[laser_system_index] <
+			    g_cur_craft->laser_state
+				    .next_slot[laser_system_index]) {
+			g_cur_craft->laser_state.next_slot[laser_system_index] =
+				g_model_defs[model_index].laser_group_first_slot
+					[laser_system_index];
 		}
-		firstSlot = g_curCraft->laserState.nextSlot[laserSystemIndex];
-		g_curCraft->laserState.nextSlot[laserSystemIndex] ^= 1;
-		if (g_curCraft->laserState.nextSlot[laserSystemIndex] >
-		    g_modelDefs[modelIndex]
-			    .laserGroupLastSlot[laserSystemIndex]) {
-			g_curCraft->laserState.nextSlot[laserSystemIndex] =
-				(uint8_t)g_modelDefs[modelIndex]
-					.laserGroupFirstSlot[laserSystemIndex];
+		first_slot =
+			g_cur_craft->laser_state.next_slot[laser_system_index];
+		g_cur_craft->laser_state.next_slot[laser_system_index] ^= 1;
+		if (g_cur_craft->laser_state.next_slot[laser_system_index] >
+		    g_model_defs[model_index]
+			    .laser_group_last_slot[laser_system_index]) {
+			g_cur_craft->laser_state.next_slot[laser_system_index] =
+				(uint8_t)g_model_defs[model_index]
+					.laser_group_first_slot
+						[laser_system_index];
 		}
-		lastSlot = g_modelDefs[modelIndex]
-				   .laserGroupLastSlot[laserSystemIndex];
-		shotLimit = (lastSlot -
-			     g_modelDefs[modelIndex]
-				     .laserGroupFirstSlot[laserSystemIndex] +
-			     1) /
-			    2;
-		slotStep = 2;
+		last_slot = g_model_defs[model_index]
+				    .laser_group_last_slot[laser_system_index];
+		shot_limit =
+			(last_slot -
+			 g_model_defs[model_index]
+				 .laser_group_first_slot[laser_system_index] +
+			 1) /
+			2;
+		slot_step = 2;
 		break;
 	case 3:
-		firstSlot = g_modelDefs[modelIndex]
-				    .laserGroupFirstSlot[laserSystemIndex];
-		lastSlot = g_modelDefs[modelIndex]
-				   .laserGroupLastSlot[laserSystemIndex];
-		slotStep = 1;
-		shotLimit = lastSlot - firstSlot + 1;
+		first_slot =
+			g_model_defs[model_index]
+				.laser_group_first_slot[laser_system_index];
+		last_slot = g_model_defs[model_index]
+				    .laser_group_last_slot[laser_system_index];
+		slot_step = 1;
+		shot_limit = last_slot - first_slot + 1;
 		break;
 	default:
 #ifdef XVT_MODERN
@@ -1462,806 +1511,836 @@ void laser_firelasersystem(int objectIndex, int laserSystemIndex)
 		break;
 #endif
 	}
-	currentSlot = firstSlot;
-	if (currentSlot <= lastSlot) {
+	current_slot = first_slot;
+	if (current_slot <= last_slot) {
 		do {
-			if (g_curCraft->weaponSlots[currentSlot]
-					    .projectileTypeId != 0 &&
-			    g_curCraft->weaponSlots[currentSlot].laserCharge >
-				    0) {
-				/* From here firstSlot holds the projectile type to fire: the group's weapon type, one higher
+			if (g_cur_craft->weapon_slots[current_slot]
+					    .projectile_type_id != 0 &&
+			    g_cur_craft->weapon_slots[current_slot]
+					    .laser_charge > 0) {
+				/* From here first_slot holds the projectile type to fire: the group's weapon type, one higher
 				 * when the slot's charge is 64 or more. The ion check after the loop reads it; if no slot
 				 * fired it still holds the first slot. */
-				firstSlot = g_modelDefs[modelIndex]
-						    .laserGroupWeaponType
-							    [laserSystemIndex];
-				if (g_curCraft->weaponSlots[currentSlot]
-					    .laserCharge >= 64) {
-					++firstSlot;
+				first_slot =
+					g_model_defs[model_index]
+						.laser_group_weapon_type
+							[laser_system_index];
+				if (g_cur_craft->weapon_slots[current_slot]
+					    .laser_charge >= 64) {
+					++first_slot;
 				}
 				{
-					unsigned int projectileIndex =
+					unsigned int projectile_index =
 						laser_createprojectile(
-							objectIndex,
-							currentSlot, firstSlot);
-					if (projectileIndex != UINT_MAX) {
-						if (g_missionFlightGroups
-								    [g_objectTable[objectIndex]
-									     .flightGroupIdx]
+							object_index,
+							current_slot,
+							first_slot);
+					if (projectile_index != UINT_MAX) {
+						if (g_mission_flight_groups
+								    [g_object_table[object_index]
+									     .flight_group_idx]
 									    .fg
 									    .status1 !=
 							    21 &&
-						    g_missionFlightGroups
-								    [g_objectTable[objectIndex]
-									     .flightGroupIdx]
+						    g_mission_flight_groups
+								    [g_object_table[object_index]
+									     .flight_group_idx]
 									    .fg
 									    .status2 !=
 							    21) {
-							if (ownerPlayerIdx !=
+							if (owner_player_idx !=
 							    -1) {
-								if (GetModelIndexFromType(
+								if (get_model_index_from_type(
 									    5) ==
-									    modelIndex ||
-								    GetModelIndexFromType(
+									    model_index ||
+								    get_model_index_from_type(
 									    7) ==
-									    modelIndex) {
-									g_curCraft
-										->weaponSlots
-											[currentSlot]
-										.laserCharge -=
+									    model_index) {
+									g_cur_craft
+										->weapon_slots
+											[current_slot]
+										.laser_charge -=
 										3;
 								} else {
-									g_curCraft
-										->weaponSlots
-											[currentSlot]
-										.laserCharge -=
+									g_cur_craft
+										->weapon_slots
+											[current_slot]
+										.laser_charge -=
 										4;
 								}
 							} else {
-								g_curCraft
-									->weaponSlots
-										[currentSlot]
-									.laserCharge--;
+								g_cur_craft
+									->weapon_slots
+										[current_slot]
+									.laser_charge--;
 							}
 						}
-						if (shotLimit >= 2) {
-							if ((shotsFired & 1) ==
+						if (shot_limit >= 2) {
+							if ((shots_fired & 1) ==
 							    0) {
 								fsfx_triggerweaponsfx(
-									projectileIndex,
-									ownerPlayerIdx);
+									projectile_index,
+									owner_player_idx);
 							}
-						} else if (shotsFired < 2) {
+						} else if (shots_fired < 2) {
 							fsfx_triggerweaponsfx(
-								projectileIndex,
-								ownerPlayerIdx);
+								projectile_index,
+								owner_player_idx);
 						}
-						if (g_curCraft
-							    ->weaponSlots
-								    [currentSlot]
-							    .laserCharge < 0) {
-							g_curCraft
-								->weaponSlots
-									[currentSlot]
-								.laserCharge =
+						if (g_cur_craft
+							    ->weapon_slots
+								    [current_slot]
+							    .laser_charge < 0) {
+							g_cur_craft
+								->weapon_slots
+									[current_slot]
+								.laser_charge =
 								0;
 						}
 						{
-							/* From here projectileIndex indexes g_projectileGuidanceStates. */
-							projectileIndex -=
-								g_projectileObjectSlotStart;
-							if (ownerPlayerIdx !=
+							/* From here projectile_index indexes g_projectile_guidance_states. */
+							projectile_index -=
+								g_projectile_object_slot_start;
+							if (owner_player_idx !=
 							    -1) {
-								g_projectileGuidanceStates
-									[projectileIndex]
-										.targetObjIdx =
-									g_players[ownerPlayerIdx]
-										.currentTargetObjectIdx;
+								g_projectile_guidance_states
+									[projectile_index]
+										.target_obj_idx =
+									g_players[owner_player_idx]
+										.current_target_object_idx;
 								if ((uint16_t)g_players
-									    [ownerPlayerIdx]
-										    .currentTargetObjectIdx !=
+									    [owner_player_idx]
+										    .current_target_object_idx !=
 								    UINT16_MAX) {
-									unsigned int targetObjectIndex =
+									unsigned int target_object_index =
 										(uint16_t)g_players
-											[ownerPlayerIdx]
-												.currentTargetObjectIdx;
-									g_projectileGuidanceStates
-										[projectileIndex]
-											.targetSignature =
-										g_objectTable[targetObjectIndex]
-											.objectSignature;
+											[owner_player_idx]
+												.current_target_object_idx;
+									g_projectile_guidance_states
+										[projectile_index]
+											.target_signature =
+										g_object_table[target_object_index]
+											.object_signature;
 								} else {
-									g_projectileGuidanceStates
-										[projectileIndex]
-											.targetSignature =
+									g_projectile_guidance_states
+										[projectile_index]
+											.target_signature =
 										0;
 								}
 							} else {
-								g_projectileGuidanceStates
-									[projectileIndex]
-										.targetObjIdx =
-									aiController
-										->targetObjIdx;
-								if (aiController
-									    ->targetObjIdx !=
+								g_projectile_guidance_states
+									[projectile_index]
+										.target_obj_idx =
+									ai_controller
+										->target_obj_idx;
+								if (ai_controller
+									    ->target_obj_idx !=
 								    UINT16_MAX) {
-									if (aiController
-										    ->targetObjIdx <
+									if (ai_controller
+										    ->target_obj_idx <
 									    0x8000) {
-										g_projectileGuidanceStates
-											[projectileIndex]
-												.targetSignature =
-											g_objectTable
-												[aiController
-													 ->targetObjIdx]
-													.objectSignature;
+										g_projectile_guidance_states
+											[projectile_index]
+												.target_signature =
+											g_object_table
+												[ai_controller
+													 ->target_obj_idx]
+													.object_signature;
 									} else {
-										g_projectileGuidanceStates
-											[projectileIndex]
-												.targetSignature =
+										g_projectile_guidance_states
+											[projectile_index]
+												.target_signature =
 											0;
 									}
 								} else {
-									g_projectileGuidanceStates
-										[projectileIndex]
-											.targetSignature =
+									g_projectile_guidance_states
+										[projectile_index]
+											.target_signature =
 										0;
 								}
 							}
-							++shotsFired;
-							g_projectileGuidanceStates
-								[projectileIndex]
-									.sourcePlayerIdx =
-								(int8_t)ownerPlayerIdx;
+							++shots_fired;
+							g_projectile_guidance_states
+								[projectile_index]
+									.source_player_idx =
+								(int8_t)owner_player_idx;
 						}
 					}
 				}
 			}
-			--shotLimit;
-			if (shotLimit == 0) {
+			--shot_limit;
+			if (shot_limit == 0) {
 				break;
 			}
-			currentSlot += slotStep;
-		} while (currentSlot <= lastSlot);
+			current_slot += slot_step;
+		} while (current_slot <= last_slot);
 	}
-	if (firstSlot == PROJECTILE_OBJECT_TYPE_ION_LASER ||
-	    firstSlot == PROJECTILE_OBJECT_TYPE_ION_TURBO_LASER) {
-		g_curCraft->weaponStats.ionShotsFired += (uint16_t)shotsFired;
-		if (ownerPlayerIdx != -1) {
-			g_players[ownerPlayerIdx].missionStats.ionShotsFired +=
-				(uint16_t)shotsFired;
+	if (first_slot == PROJECTILE_OBJECT_TYPE_ION_LASER ||
+	    first_slot == PROJECTILE_OBJECT_TYPE_ION_TURBO_LASER) {
+		g_cur_craft->weapon_stats.ion_shots_fired +=
+			(uint16_t)shots_fired;
+		if (owner_player_idx != -1) {
+			g_players[owner_player_idx]
+				.mission_stats.ion_shots_fired +=
+				(uint16_t)shots_fired;
 		}
 	} else {
-		g_curCraft->weaponStats.laserShotsFired += (uint16_t)shotsFired;
-		if (ownerPlayerIdx != -1) {
-			g_players[ownerPlayerIdx]
-				.missionStats.laserShotsFired +=
-				(uint16_t)shotsFired;
+		g_cur_craft->weapon_stats.laser_shots_fired +=
+			(uint16_t)shots_fired;
+		if (owner_player_idx != -1) {
+			g_players[owner_player_idx]
+				.mission_stats.laser_shots_fired +=
+				(uint16_t)shots_fired;
 		}
 	}
-	g_curCraft->laserState.fireCooldownTicks[laserSystemIndex] +=
-		(int16_t)(47 * shotsFired + 2);
-	g_curCraft->laserState.nextFireTimestamp[laserSystemIndex] +=
-		47 * shotsFired + 2;
+	g_cur_craft->laser_state.fire_cooldown_ticks[laser_system_index] +=
+		(int16_t)(47 * shots_fired + 2);
+	g_cur_craft->laser_state.next_fire_timestamp[laser_system_index] +=
+		47 * shots_fired + 2;
 }
 
-/* Fires launcher launcherIndex of the craft in objectIndex through
+/* Fires launcher launcher_index of the craft in object_index through
  * laser_firemissile: both of its slots when the low 7 bits of
- * warheadLauncherFlags are 3, else the slot flag bit 0x80 picks (the
+ * warhead_launcher_flags are 3, else the slot flag bit 0x80 picks (the
  * second when set). Adds 472 ticks to the launcher's cooldown whether or
  * not anything fired. For the local player's craft, unless a slot that
  * failed still holds rounds, it shows the message for no shot, one or two,
  * by the warhead kind of the player's selected launcher. Writes
- * g_curCraft. */
+ * g_cur_craft. */
 // FUNCTION: XVT 0x406030
-void laser_firewarheadsystem(int objectIndex, unsigned int launcherIndex)
+void laser_firewarheadsystem(int object_index, unsigned int launcher_index)
 {
-	int16_t shotsFired;
+	int16_t shots_fired;
 	int16_t incomplete;
 
-	g_curCraft = g_objectTable[objectIndex].mobj->pCraft;
+	g_cur_craft = g_object_table[object_index].mobj->p_craft;
 	{
-		int weaponSlotIndex;
-		uint16_t launcherSlot;
-		unsigned int launcherFlags;
+		int weapon_slot_index;
+		uint16_t launcher_slot;
+		unsigned int launcher_flags;
 
-		launcherFlags =
-			(uint8_t)
-				g_curCraft->warheadLauncherFlags[launcherIndex];
-		launcherSlot = g_modelDefs[g_curCraft->modelIndex]
-				       .warheadLauncherFirstSlot[launcherIndex];
-		shotsFired = 0;
+		launcher_flags =
+			(uint8_t)g_cur_craft
+				->warhead_launcher_flags[launcher_index];
+		launcher_slot =
+			g_model_defs[g_cur_craft->model_index]
+				.warhead_launcher_first_slot[launcher_index];
+		shots_fired = 0;
 		incomplete = 0;
-		if (((uint16_t)launcherFlags & 0x7F) == 3) {
-			weaponSlotIndex = launcherSlot;
-			if (laser_firemissile(
-				    objectIndex, weaponSlotIndex,
-				    g_curCraft
-					    ->warheadSlotTypeIds[launcherIndex],
-				    launcherIndex) != -1) {
-				shotsFired = 1;
-			} else if (g_curCraft->weaponSlots[weaponSlotIndex]
-					   .ammoCount != 0) {
+		if (((uint16_t)launcher_flags & 0x7F) == 3) {
+			weapon_slot_index = launcher_slot;
+			if (laser_firemissile(object_index, weapon_slot_index,
+					      g_cur_craft->warhead_slot_type_ids
+						      [launcher_index],
+					      launcher_index) != -1) {
+				shots_fired = 1;
+			} else if (g_cur_craft->weapon_slots[weapon_slot_index]
+					   .ammo_count != 0) {
 				incomplete = 1;
 			}
-			++launcherSlot;
-			if (laser_firemissile(
-				    objectIndex, launcherSlot,
-				    g_curCraft
-					    ->warheadSlotTypeIds[launcherIndex],
-				    launcherIndex) != -1) {
-				++shotsFired;
-			} else if (g_curCraft->weaponSlots[launcherSlot]
-					   .ammoCount != 0) {
+			++launcher_slot;
+			if (laser_firemissile(object_index, launcher_slot,
+					      g_cur_craft->warhead_slot_type_ids
+						      [launcher_index],
+					      launcher_index) != -1) {
+				++shots_fired;
+			} else if (g_cur_craft->weapon_slots[launcher_slot]
+					   .ammo_count != 0) {
 				incomplete = 1;
 			}
 		} else {
-			if (((uint16_t)launcherFlags & 0x80) != 0) {
-				++launcherSlot;
+			if (((uint16_t)launcher_flags & 0x80) != 0) {
+				++launcher_slot;
 				if (laser_firemissile(
-					    objectIndex, launcherSlot,
-					    g_curCraft->warheadSlotTypeIds
-						    [launcherIndex],
-					    launcherIndex) != -1) {
-					shotsFired = 1;
-				} else if (g_curCraft->weaponSlots[launcherSlot]
-						   .ammoCount != 0) {
+					    object_index, launcher_slot,
+					    g_cur_craft->warhead_slot_type_ids
+						    [launcher_index],
+					    launcher_index) != -1) {
+					shots_fired = 1;
+				} else if (g_cur_craft
+						   ->weapon_slots[launcher_slot]
+						   .ammo_count != 0) {
 					incomplete = 1;
 				}
 			} else {
 				if (laser_firemissile(
-					    objectIndex, launcherSlot,
-					    g_curCraft->warheadSlotTypeIds
-						    [launcherIndex],
-					    launcherIndex) != -1) {
-					shotsFired = 1;
-				} else if (g_curCraft->weaponSlots[launcherSlot]
-						   .ammoCount != 0) {
+					    object_index, launcher_slot,
+					    g_cur_craft->warhead_slot_type_ids
+						    [launcher_index],
+					    launcher_index) != -1) {
+					shots_fired = 1;
+				} else if (g_cur_craft
+						   ->weapon_slots[launcher_slot]
+						   .ammo_count != 0) {
 					incomplete = 1;
 				}
 			}
 		}
 	}
-	g_curCraft->warheadLauncherCooldownTicks[launcherIndex] += 472;
-	if (g_objectTable[objectIndex].playerOwnerIdx == g_localPlayer &&
+	g_cur_craft->warhead_launcher_cooldown_ticks[launcher_index] += 472;
+	if (g_object_table[object_index].player_owner_idx == g_local_player &&
 	    incomplete == 0) {
-		WarheadKindIndex warheadKind;
-		struct PlayerData *player;
+		warhead_kind_index warhead_kind;
+		struct player_data *player;
 
-		player = &g_players[g_localPlayer];
-		warheadKind = ObjectType_GetWarheadKindIndex(
-			g_curCraft->warheadSlotTypeIds
-				[player->selectedWeaponBank]);
-		if (shotsFired == 0) {
-			msg_emitInFlightMessage(
-				(InFlightMessageId)((uint16_t)warheadKind + 38),
-				g_localPlayer);
-		} else if (shotsFired == 1) {
-			msg_emitInFlightMessage(
-				(InFlightMessageId)((uint16_t)warheadKind + 48),
-				g_localPlayer);
-		} else if (shotsFired == 2) {
-			msg_emitInFlightMessage(
-				(InFlightMessageId)((uint16_t)warheadKind + 58),
-				g_localPlayer);
+		player = &g_players[g_local_player];
+		warhead_kind = object_type_get_warhead_kind_index(
+			g_cur_craft->warhead_slot_type_ids
+				[player->selected_weapon_bank]);
+		if (shots_fired == 0) {
+			msg_emit_in_flight_message(
+				(in_flight_message_id)((uint16_t)warhead_kind +
+						       38),
+				g_local_player);
+		} else if (shots_fired == 1) {
+			msg_emit_in_flight_message(
+				(in_flight_message_id)((uint16_t)warhead_kind +
+						       48),
+				g_local_player);
+		} else if (shots_fired == 2) {
+			msg_emit_in_flight_message(
+				(in_flight_message_id)((uint16_t)warhead_kind +
+						       58),
+				g_local_player);
 		}
 	}
 }
 
-/* Fires one warhead of projectileTypeId from weapon slot weaponSlotIndex of
- * the craft in objectIndex, when the slot has a weapon and rounds left.
- * Counts it in weaponStats.warheadsFired (and the player's warheadsFired),
- * takes its warheadPointValue off the player's missionScore and the team's
+/* Fires one warhead of projectile_type_id from weapon slot weapon_slot_index of
+ * the craft in object_index, when the slot has a weapon and rounds left.
+ * Counts it in weapon_stats.warheads_fired (and the player's warheads_fired),
+ * takes its warhead_point_value off the player's mission_score and the team's
  * mission score, plays the weapon sound, and uses a round unless the
  * flight group's status is 21. Fills the guidance record: for launchers 0
- * and 1 a homingTier of the craft's whole simulated seconds of lock (at
+ * and 1 a homing_tier of the craft's whole simulated seconds of lock (at
  * most 6); the player's or the AI's target, target component and
- * signature; and sourcePlayerIdx. Warns a player whose craft is the target
+ * signature; and source_player_idx. Warns a player whose craft is the target
  * (laser_warnplayer). For launchers 0 and 1 it sets flag bit 0x80 so the
  * next shot comes from the slot with more rounds (the first on a tie).
- * Returns the shot's index in g_projectileGuidanceStates, or -1 when
- * nothing fired. Expects g_curCraft to be the craft of objectIndex and
+ * Returns the shot's index in g_projectile_guidance_states, or -1 when
+ * nothing fired. Expects g_cur_craft to be the craft of object_index and
  * does not check it. */
 // FUNCTION: XVT 0x406290
-int laser_firemissile(int objectIndex, int weaponSlotIndex,
-		      int projectileTypeId, unsigned int launcherIndex)
+int laser_firemissile(int object_index, int weapon_slot_index,
+		      int projectile_type_id, unsigned int launcher_index)
 {
-	int ownerPlayerIdx = g_objectTable[objectIndex].playerOwnerIdx;
-	struct AiController *controller = &g_curCraft->aiController;
-	int projectileIndex = -1;
+	int owner_player_idx = g_object_table[object_index].player_owner_idx;
+	struct ai_controller *controller = &g_cur_craft->ai_controller;
+	int projectile_index = -1;
 
-	if ((weaponSlotIndex + g_curCraft->weaponSlots)->projectileTypeId !=
-		    0 &&
-	    g_curCraft->weaponSlots[weaponSlotIndex].ammoCount != 0) {
-		projectileIndex = laser_createprojectile(
-			objectIndex, weaponSlotIndex, projectileTypeId);
-		if (projectileIndex != -1) {
-			++g_curCraft->weaponStats.warheadsFired;
-			if (ownerPlayerIdx != -1) {
-				++g_players[ownerPlayerIdx].warheadsFired;
-				g_players[ownerPlayerIdx]
-					.missionStats.missionScore -=
-					g_projectileTypeData.warheadPointValue
-						[projectileTypeId -
+	if ((weapon_slot_index + g_cur_craft->weapon_slots)
+			    ->projectile_type_id != 0 &&
+	    g_cur_craft->weapon_slots[weapon_slot_index].ammo_count != 0) {
+		projectile_index = laser_createprojectile(
+			object_index, weapon_slot_index, projectile_type_id);
+		if (projectile_index != -1) {
+			++g_cur_craft->weapon_stats.warheads_fired;
+			if (owner_player_idx != -1) {
+				++g_players[owner_player_idx].warheads_fired;
+				g_players[owner_player_idx]
+					.mission_stats.mission_score -=
+					g_projectile_type_data.warhead_point_value
+						[projectile_type_id -
 						 PROJECTILE_OBJECT_TYPE_FIRST];
 			}
-			g_flightMissionState.runtime
-				.teamScores[TEAM_SCORE_MISSION]
-					   [g_missionFlightGroups
-						    [g_objectTable[objectIndex]
-							     .flightGroupIdx]
-							    .fg.team] -=
-				g_projectileTypeData.warheadPointValue
-					[projectileTypeId -
+			g_flight_mission_state.runtime.team_scores
+				[TEAM_SCORE_MISSION]
+				[g_mission_flight_groups
+					 [g_object_table[object_index]
+						  .flight_group_idx]
+						 .fg.team] -=
+				g_projectile_type_data.warhead_point_value
+					[projectile_type_id -
 					 PROJECTILE_OBJECT_TYPE_FIRST];
-			fsfx_triggerweaponsfx((unsigned int)projectileIndex,
-					      ownerPlayerIdx);
-			if (g_missionFlightGroups[g_objectTable[objectIndex]
-							  .flightGroupIdx]
+			fsfx_triggerweaponsfx((unsigned int)projectile_index,
+					      owner_player_idx);
+			if (g_mission_flight_groups[g_object_table[object_index]
+							    .flight_group_idx]
 					    .fg.status1 != 21 &&
-			    g_missionFlightGroups[g_objectTable[objectIndex]
-							  .flightGroupIdx]
+			    g_mission_flight_groups[g_object_table[object_index]
+							    .flight_group_idx]
 					    .fg.status2 != 21) {
-				--g_curCraft->weaponSlots[weaponSlotIndex]
-					  .ammoCount;
+				--g_cur_craft->weapon_slots[weapon_slot_index]
+					  .ammo_count;
 			}
 
-			/* From here projectileIndex indexes g_projectileGuidanceStates, and that index is what this
+			/* From here projectile_index indexes g_projectile_guidance_states, and that index is what this
 			 * function returns. */
-			projectileIndex -= g_projectileObjectSlotStart;
-			if (launcherIndex < 2) {
-				g_projectileGuidanceStates[projectileIndex]
-					.homingTier =
-					(uint8_t)(g_curCraft->warheadLockTicks /
+			projectile_index -= g_projectile_object_slot_start;
+			if (launcher_index < 2) {
+				g_projectile_guidance_states[projectile_index]
+					.homing_tier =
+					(uint8_t)(g_cur_craft
+							  ->warhead_lock_ticks /
 						  SIMULATION_TICKS_PER_SECOND);
-				if (g_projectileGuidanceStates[projectileIndex]
-					    .homingTier > 6) {
-					g_projectileGuidanceStates
-						[projectileIndex]
-							.homingTier = 6;
+				if (g_projectile_guidance_states
+					    [projectile_index]
+						    .homing_tier > 6) {
+					g_projectile_guidance_states
+						[projectile_index]
+							.homing_tier = 6;
 				}
 			}
-			if (ownerPlayerIdx != -1) {
-				g_projectileGuidanceStates[projectileIndex]
-					.targetObjIdx =
-					(uint16_t)g_players[ownerPlayerIdx]
-						.currentTargetObjectIdx;
-				g_projectileGuidanceStates[projectileIndex]
-					.targetComponentIdx =
-					(uint16_t)g_players[ownerPlayerIdx]
-						.selectedTargetComponent;
-				if ((uint16_t)g_players[ownerPlayerIdx]
-					    .currentTargetObjectIdx !=
+			if (owner_player_idx != -1) {
+				g_projectile_guidance_states[projectile_index]
+					.target_obj_idx =
+					(uint16_t)g_players[owner_player_idx]
+						.current_target_object_idx;
+				g_projectile_guidance_states[projectile_index]
+					.target_component_idx =
+					(uint16_t)g_players[owner_player_idx]
+						.selected_target_component;
+				if ((uint16_t)g_players[owner_player_idx]
+					    .current_target_object_idx !=
 				    UINT16_MAX) {
-					g_projectileGuidanceStates
-						[projectileIndex]
-							.targetSignature =
-						g_objectTable
+					g_projectile_guidance_states
+						[projectile_index]
+							.target_signature =
+						g_object_table
 							[(uint16_t)g_players
-								 [ownerPlayerIdx]
-									 .currentTargetObjectIdx]
-								.objectSignature;
+								 [owner_player_idx]
+									 .current_target_object_idx]
+								.object_signature;
 				} else {
-					g_projectileGuidanceStates
-						[projectileIndex]
-							.targetSignature = 0;
+					g_projectile_guidance_states
+						[projectile_index]
+							.target_signature = 0;
 				}
 			} else {
-				g_projectileGuidanceStates[projectileIndex]
-					.targetObjIdx =
-					controller->targetObjIdx;
-				g_projectileGuidanceStates[projectileIndex]
-					.targetComponentIdx =
-					controller->targetComponent;
-				if (controller->targetObjIdx != UINT16_MAX) {
-					if (controller->targetObjIdx < 0x8000) {
-						g_projectileGuidanceStates
-							[projectileIndex]
-								.targetSignature =
-							g_objectTable[controller
-									      ->targetObjIdx]
-								.objectSignature;
+				g_projectile_guidance_states[projectile_index]
+					.target_obj_idx =
+					controller->target_obj_idx;
+				g_projectile_guidance_states[projectile_index]
+					.target_component_idx =
+					controller->target_component;
+				if (controller->target_obj_idx != UINT16_MAX) {
+					if (controller->target_obj_idx <
+					    0x8000) {
+						g_projectile_guidance_states
+							[projectile_index]
+								.target_signature =
+							g_object_table[controller
+									       ->target_obj_idx]
+								.object_signature;
 					} else {
-						g_projectileGuidanceStates
-							[projectileIndex]
-								.targetSignature =
+						g_projectile_guidance_states
+							[projectile_index]
+								.target_signature =
 							0;
 					}
 				} else {
-					g_projectileGuidanceStates
-						[projectileIndex]
-							.targetSignature = 0;
+					g_projectile_guidance_states
+						[projectile_index]
+							.target_signature = 0;
 				}
 			}
-			g_projectileGuidanceStates[projectileIndex]
-				.sourcePlayerIdx = (int8_t)ownerPlayerIdx;
-			if (g_projectileGuidanceStates[projectileIndex]
-					    .targetObjIdx != UINT16_MAX &&
-			    g_objectTable[g_projectileGuidanceStates
-						  [projectileIndex]
-							  .targetObjIdx]
-					    .playerOwnerIdx != -1) {
-				laser_warnplayer((uint16_t)projectileIndex);
+			g_projectile_guidance_states[projectile_index]
+				.source_player_idx = (int8_t)owner_player_idx;
+			if (g_projectile_guidance_states[projectile_index]
+					    .target_obj_idx != UINT16_MAX &&
+			    g_object_table[g_projectile_guidance_states
+						   [projectile_index]
+							   .target_obj_idx]
+					    .player_owner_idx != -1) {
+				laser_warnplayer((uint16_t)projectile_index);
 			}
-			if (launcherIndex < 2) {
-				int launcherSlot =
-					g_modelDefs[g_curCraft->modelIndex]
-						.warheadLauncherFirstSlot
-							[launcherIndex];
-				if (g_curCraft->weaponSlots[launcherSlot]
-					    .ammoCount >=
-				    g_curCraft->weaponSlots[launcherSlot + 1]
-					    .ammoCount) {
-					g_curCraft->warheadLauncherFlags
-						[launcherIndex] &=
+			if (launcher_index < 2) {
+				int launcher_slot =
+					g_model_defs[g_cur_craft->model_index]
+						.warhead_launcher_first_slot
+							[launcher_index];
+				if (g_cur_craft->weapon_slots[launcher_slot]
+					    .ammo_count >=
+				    g_cur_craft->weapon_slots[launcher_slot + 1]
+					    .ammo_count) {
+					g_cur_craft->warhead_launcher_flags
+						[launcher_index] &=
 						(int8_t)~0x80;
 				} else {
-					g_curCraft->warheadLauncherFlags
-						[launcherIndex] |= (int8_t)0x80;
+					g_cur_craft->warhead_launcher_flags
+						[launcher_index] |=
+						(int8_t)0x80;
 				}
 			}
 		}
 	}
-	return projectileIndex;
+	return projectile_index;
 }
 
-/* Creates a shot of projectileObjectType from weapon slot weaponSlotIndex
- * of the object in sourceObjectIndex and returns its slot, or -1 when none
+/* Creates a shot of projectile_object_type from weapon slot weapon_slot_index
+ * of the object in source_object_index and returns its slot, or -1 when none
  * is free. A player's shot takes the first free slot of that player's 12
  * (of the last 4 for a warhead), else of the 32 shared player slots; any
  * other shot a free slot of the other-shot range. The shot copies the
  * firer's IFF and angles, flies at its type's speed plus the firer's, does
  * its type's damage plus the firer's speed (at least its type's damage),
- * lives laser_GetProjectileLifetimeTicks, and starts at the weapon
+ * lives laser_get_projectile_lifetime_ticks, and starts at the weapon
  * hardpoint (twice as far out for an Imperial Star Destroyer, object type
  * 53). A warhead from a freighter, starship or platform is then moved
- * launchOffset up or down and points straight up or down; any other shot
- * is moved launchOffset along the firer's forward axis and takes the
+ * launch_offset up or down and points straight up or down; any other shot
+ * is moved launch_offset along the firer's forward axis and takes the
  * firer's move vector and axes. prevWorld* keeps the hardpoint position,
- * and a player's shot starts at the player's lockstepTimestamp. Its
- * guidance record is reset (no target, no homing, cruiseSpeed its speed)
+ * and a player's shot starts at the player's lockstep_timestamp. Its
+ * guidance record is reset (no target, no homing, cruise_speed its speed)
  * and linked. Writes g_rotated*. */
 // FUNCTION: XVT 0x4065D0
-int laser_createprojectile(int sourceObjectIndex, int weaponSlotIndex,
-			   int projectileObjectType)
+int laser_createprojectile(int source_object_index, int weapon_slot_index,
+			   int projectile_object_type)
 {
-	struct ObjectRecord *source;
-	uint16_t rangeEnd;
-	uint16_t projectileIndex;
-	uint16_t projectileGenus;
-	ModelIndex modelIndex;
-	int16_t hardpointZ;
-	int16_t sourceType;
-	int worldX;
-	int worldY;
-	int worldZ;
-	uint16_t guidanceIndex;
+	struct object_record *source;
+	uint16_t range_end;
+	uint16_t projectile_index;
+	uint16_t projectile_genus;
+	model_index model_index;
+	int16_t hardpoint_z;
+	int16_t source_type;
+	int world_x;
+	int world_y;
+	int world_z;
+	uint16_t guidance_index;
 
-	if (g_objectTable[sourceObjectIndex].playerOwnerIdx != -1) {
-		projectileGenus = CRAFT_GENUS_PLAYER_PROJECTILE;
-		projectileIndex =
-			(uint16_t)(12 * g_objectTable[sourceObjectIndex]
-						   .playerOwnerIdx +
-				   g_objectSlotRangeByGenus
+	if (g_object_table[source_object_index].player_owner_idx != -1) {
+		projectile_genus = CRAFT_GENUS_PLAYER_PROJECTILE;
+		projectile_index =
+			(uint16_t)(12 * g_object_table[source_object_index]
+						   .player_owner_idx +
+				   g_object_slot_range_by_genus
 					   [CRAFT_GENUS_PLAYER_PROJECTILE]
 						   .start);
-		rangeEnd = (uint16_t)(projectileIndex + 12);
-		if (g_projectileTypeData
-			    .warheadClass[projectileObjectType -
-					  PROJECTILE_OBJECT_TYPE_FIRST] != 0) {
-			projectileIndex = (uint16_t)(projectileIndex + 8);
+		range_end = (uint16_t)(projectile_index + 12);
+		if (g_projectile_type_data
+			    .warhead_class[projectile_object_type -
+					   PROJECTILE_OBJECT_TYPE_FIRST] != 0) {
+			projectile_index = (uint16_t)(projectile_index + 8);
 		}
-		for (; projectileIndex < rangeEnd; ++projectileIndex) {
-			if (g_objectTable[projectileIndex].objectType == 0) {
-				g_objectTable[projectileIndex]
-					.mobj->sourceObjIdx = 0;
-				g_objectTable[projectileIndex]
-					.mobj->effectSize = 0;
+		for (; projectile_index < range_end; ++projectile_index) {
+			if (g_object_table[projectile_index].object_type == 0) {
+				g_object_table[projectile_index]
+					.mobj->source_obj_idx = 0;
+				g_object_table[projectile_index]
+					.mobj->effect_size = 0;
 				break;
 			}
 		}
-		if (projectileIndex < rangeEnd) {
-			collide_ResetObjectProximityForSlot(projectileIndex);
+		if (projectile_index < range_end) {
+			collide_reset_object_proximity_for_slot(
+				projectile_index);
 		} else {
-			projectileIndex =
-				(uint16_t)(g_objectSlotRangeByGenus
+			projectile_index =
+				(uint16_t)(g_object_slot_range_by_genus
 						   [CRAFT_GENUS_PLAYER_PROJECTILE]
 							   .start +
 					   96);
-			rangeEnd = (uint16_t)(projectileIndex + 32);
-			for (; projectileIndex < rangeEnd; ++projectileIndex) {
-				if (g_objectTable[projectileIndex].objectType ==
-				    0) {
-					g_objectTable[projectileIndex]
-						.mobj->sourceObjIdx = 0;
-					g_objectTable[projectileIndex]
-						.mobj->effectSize = 0;
+			range_end = (uint16_t)(projectile_index + 32);
+			for (; projectile_index < range_end;
+			     ++projectile_index) {
+				if (g_object_table[projectile_index]
+					    .object_type == 0) {
+					g_object_table[projectile_index]
+						.mobj->source_obj_idx = 0;
+					g_object_table[projectile_index]
+						.mobj->effect_size = 0;
 					break;
 				}
 			}
-			if (projectileIndex < rangeEnd) {
-				collide_ResetObjectProximityForSlot(
-					projectileIndex);
+			if (projectile_index < range_end) {
+				collide_reset_object_proximity_for_slot(
+					projectile_index);
 			} else {
 				return -1;
 			}
 		}
 	} else {
-		projectileGenus = CRAFT_GENUS_OTHER_PROJECTILE;
-		projectileIndex = Object_AllocSlotForGenus(projectileGenus);
+		projectile_genus = CRAFT_GENUS_OTHER_PROJECTILE;
+		projectile_index =
+			object_alloc_slot_for_genus(projectile_genus);
 	}
-	if (projectileIndex != UINT16_MAX) {
-		source = &g_objectTable[sourceObjectIndex];
-		sourceType = source->objectType;
-		g_objectTable[projectileIndex].mobj->family = 1;
-		g_objectTable[projectileIndex].genusId =
-			(uint8_t)projectileGenus;
-		g_objectTable[projectileIndex].objectType =
-			(uint8_t)projectileObjectType;
-		g_objectTable[projectileIndex].mobj->secondsAlive = 1;
-		g_objectTable[projectileIndex].mobj->sourceObjIdx =
-			(uint16_t)sourceObjectIndex;
-		g_objectTable[projectileIndex].mobj->sourceObjectType =
-			(uint8_t)sourceType;
-		modelIndex = GetModelIndexFromType(sourceType);
-		g_objectTable[projectileIndex].mobj->iff = source->mobj->iff;
-		g_objectTable[projectileIndex].pitch = source->pitch;
-		g_objectTable[projectileIndex].roll = source->roll;
-		g_objectTable[projectileIndex].yaw = source->yaw;
-		g_objectTable[projectileIndex].mobj->speed =
+	if (projectile_index != UINT16_MAX) {
+		source = &g_object_table[source_object_index];
+		source_type = source->object_type;
+		g_object_table[projectile_index].mobj->family = 1;
+		g_object_table[projectile_index].genus_id =
+			(uint8_t)projectile_genus;
+		g_object_table[projectile_index].object_type =
+			(uint8_t)projectile_object_type;
+		g_object_table[projectile_index].mobj->seconds_alive = 1;
+		g_object_table[projectile_index].mobj->source_obj_idx =
+			(uint16_t)source_object_index;
+		g_object_table[projectile_index].mobj->source_object_type =
+			(uint8_t)source_type;
+		model_index = get_model_index_from_type(source_type);
+		g_object_table[projectile_index].mobj->iff = source->mobj->iff;
+		g_object_table[projectile_index].pitch = source->pitch;
+		g_object_table[projectile_index].roll = source->roll;
+		g_object_table[projectile_index].yaw = source->yaw;
+		g_object_table[projectile_index].mobj->speed =
 			(uint16_t)(source->mobj->speed +
-				   g_projectileTypeData.speed
-					   [projectileObjectType -
+				   g_projectile_type_data.speed
+					   [projectile_object_type -
 					    PROJECTILE_OBJECT_TYPE_FIRST]);
-		g_projectileGuidanceStates[projectileIndex -
-					   g_projectileObjectSlotStart]
-			.cruiseSpeed =
-			g_objectTable[projectileIndex].mobj->speed;
-		g_objectTable[projectileIndex].mobj->damageAmount =
+		g_projectile_guidance_states[projectile_index -
+					     g_projectile_object_slot_start]
+			.cruise_speed =
+			g_object_table[projectile_index].mobj->speed;
+		g_object_table[projectile_index].mobj->damage_amount =
 			source->mobj->speed +
-			g_projectileTypeData
-				.damage[projectileObjectType -
+			g_projectile_type_data
+				.damage[projectile_object_type -
 					PROJECTILE_OBJECT_TYPE_FIRST];
-		if (g_objectTable[projectileIndex].mobj->damageAmount <
-		    g_projectileTypeData.damage[projectileObjectType -
-						PROJECTILE_OBJECT_TYPE_FIRST]) {
-			g_objectTable[projectileIndex].mobj->damageAmount =
-				g_projectileTypeData
-					.damage[projectileObjectType -
+		if (g_object_table[projectile_index].mobj->damage_amount <
+		    g_projectile_type_data
+			    .damage[projectile_object_type -
+				    PROJECTILE_OBJECT_TYPE_FIRST]) {
+			g_object_table[projectile_index].mobj->damage_amount =
+				g_projectile_type_data
+					.damage[projectile_object_type -
 						PROJECTILE_OBJECT_TYPE_FIRST];
 		}
-		g_objectTable[projectileIndex].mobj->lifetimeTimer =
-			laser_GetProjectileLifetimeTicks(projectileObjectType);
-		worldX = source->world_x;
-		worldY = source->world_y;
-		worldZ = source->world_z;
-		hardpointZ = g_modelDefs[modelIndex]
-				     .weaponHardpoints[weaponSlotIndex]
-				     .z;
-		pai_calcrotatedpoint(source,
-				     g_modelDefs[modelIndex]
-					     .weaponHardpoints[weaponSlotIndex]
-					     .x,
-				     hardpointZ,
-				     g_modelDefs[modelIndex]
-					     .weaponHardpoints[weaponSlotIndex]
-					     .y);
-		if (sourceType == 53) {
-			g_rotatedX *= 2;
-			g_rotatedY *= 2;
-			g_rotatedZ *= 2;
+		g_object_table[projectile_index].mobj->lifetime_timer =
+			laser_get_projectile_lifetime_ticks(
+				projectile_object_type);
+		world_x = source->world_x;
+		world_y = source->world_y;
+		world_z = source->world_z;
+		hardpoint_z = g_model_defs[model_index]
+				      .weapon_hardpoints[weapon_slot_index]
+				      .z;
+		pai_calcrotatedpoint(
+			source,
+			g_model_defs[model_index]
+				.weapon_hardpoints[weapon_slot_index]
+				.x,
+			hardpoint_z,
+			g_model_defs[model_index]
+				.weapon_hardpoints[weapon_slot_index]
+				.y);
+		if (source_type == 53) {
+			g_rotated_x *= 2;
+			g_rotated_y *= 2;
+			g_rotated_z *= 2;
 		}
-		worldX += g_rotatedX;
-		worldY += g_rotatedY;
-		worldZ += g_rotatedZ;
-		g_objectTable[projectileIndex].mobj->prevWorldX = worldX;
-		g_objectTable[projectileIndex].mobj->prevWorldY = worldY;
-		g_objectTable[projectileIndex].mobj->prevWorldZ = worldZ;
-		if (source->playerOwnerIdx != -1) {
-			g_objectTable[projectileIndex].mobj->simStateTimestamp =
-				g_players[source->playerOwnerIdx]
-					.lockstepTimestamp;
+		world_x += g_rotated_x;
+		world_y += g_rotated_y;
+		world_z += g_rotated_z;
+		g_object_table[projectile_index].mobj->prev_world_x = world_x;
+		g_object_table[projectile_index].mobj->prev_world_y = world_y;
+		g_object_table[projectile_index].mobj->prev_world_z = world_z;
+		if (source->player_owner_idx != -1) {
+			g_object_table[projectile_index]
+				.mobj->sim_state_timestamp =
+				g_players[source->player_owner_idx]
+					.lockstep_timestamp;
 		}
-		if (g_projectileTypeData.warheadClass
-				    [projectileObjectType -
+		if (g_projectile_type_data.warhead_class
+				    [projectile_object_type -
 				     PROJECTILE_OBJECT_TYPE_FIRST] != 0 &&
-		    (source->genusId == CRAFT_GENUS_STARSHIP ||
-		     source->genusId == CRAFT_GENUS_FREIGHTER ||
-		     source->genusId == CRAFT_GENUS_PLATFORM)) {
-			if (hardpointZ >= 0) {
-				worldZ +=
-					g_projectileTypeData.launchOffset
-						[projectileObjectType -
+		    (source->genus_id == CRAFT_GENUS_STARSHIP ||
+		     source->genus_id == CRAFT_GENUS_FREIGHTER ||
+		     source->genus_id == CRAFT_GENUS_PLATFORM)) {
+			if (hardpoint_z >= 0) {
+				world_z +=
+					g_projectile_type_data.launch_offset
+						[projectile_object_type -
 						 PROJECTILE_OBJECT_TYPE_FIRST];
-				g_objectTable[projectileIndex].pitch = 0;
+				g_object_table[projectile_index].pitch = 0;
 			} else {
-				worldZ -=
-					g_projectileTypeData.launchOffset
-						[projectileObjectType -
+				world_z -=
+					g_projectile_type_data.launch_offset
+						[projectile_object_type -
 						 PROJECTILE_OBJECT_TYPE_FIRST];
-				g_objectTable[projectileIndex].pitch =
+				g_object_table[projectile_index].pitch =
 					INT16_MIN;
 			}
-			g_objectTable[projectileIndex].mobj->orientMatrixDirty =
-				1;
-			g_objectTable[projectileIndex].mobj->moveVectorDirty =
-				g_objectTable[projectileIndex]
-					.mobj->orientMatrixDirty;
-			g_objectTable[projectileIndex].world_x = worldX;
-			g_objectTable[projectileIndex].world_y = worldY;
-			g_objectTable[projectileIndex].world_z = worldZ;
+			g_object_table[projectile_index]
+				.mobj->orient_matrix_dirty = 1;
+			g_object_table[projectile_index]
+				.mobj->move_vector_dirty =
+				g_object_table[projectile_index]
+					.mobj->orient_matrix_dirty;
+			g_object_table[projectile_index].world_x = world_x;
+			g_object_table[projectile_index].world_y = world_y;
+			g_object_table[projectile_index].world_z = world_z;
 		} else {
-			worldX += Math_MulQ15(
-				g_projectileTypeData.launchOffset
-					[projectileObjectType -
+			world_x += math_mul_q15(
+				g_projectile_type_data.launch_offset
+					[projectile_object_type -
 					 PROJECTILE_OBJECT_TYPE_FIRST],
-				source->mobj->cachedFwdX);
-			worldY += Math_MulQ15(
-				g_projectileTypeData.launchOffset
-					[projectileObjectType -
+				source->mobj->cached_fwd_x);
+			world_y += math_mul_q15(
+				g_projectile_type_data.launch_offset
+					[projectile_object_type -
 					 PROJECTILE_OBJECT_TYPE_FIRST],
-				source->mobj->cachedFwdY);
-			worldZ += Math_MulQ15(
-				g_projectileTypeData.launchOffset
-					[projectileObjectType -
+				source->mobj->cached_fwd_y);
+			world_z += math_mul_q15(
+				g_projectile_type_data.launch_offset
+					[projectile_object_type -
 					 PROJECTILE_OBJECT_TYPE_FIRST],
-				source->mobj->cachedFwdZ);
-			g_objectTable[projectileIndex].world_x = worldX;
-			g_objectTable[projectileIndex].world_y = worldY;
-			g_objectTable[projectileIndex].world_z = worldZ;
-			g_objectTable[projectileIndex].mobj->moveX =
-				source->mobj->moveX;
-			g_objectTable[projectileIndex].mobj->moveY =
-				source->mobj->moveY;
-			g_objectTable[projectileIndex].mobj->moveZ =
-				source->mobj->moveZ;
-			g_objectTable[projectileIndex].mobj->cachedSideX =
-				source->mobj->cachedSideX;
-			g_objectTable[projectileIndex].mobj->cachedSideY =
-				source->mobj->cachedSideY;
-			g_objectTable[projectileIndex].mobj->cachedSideZ =
-				source->mobj->cachedSideZ;
-			g_objectTable[projectileIndex].mobj->cachedUpX =
-				source->mobj->cachedUpX;
-			g_objectTable[projectileIndex].mobj->cachedUpY =
-				source->mobj->cachedUpY;
-			g_objectTable[projectileIndex].mobj->cachedUpZ =
-				source->mobj->cachedUpZ;
-			g_objectTable[projectileIndex].mobj->cachedFwdX =
-				source->mobj->cachedFwdX;
-			g_objectTable[projectileIndex].mobj->cachedFwdY =
-				source->mobj->cachedFwdY;
-			g_objectTable[projectileIndex].mobj->cachedFwdZ =
-				source->mobj->cachedFwdZ;
-			g_objectTable[projectileIndex].mobj->orientMatrixDirty =
-				0;
-			g_objectTable[projectileIndex].mobj->moveVectorDirty =
-				g_objectTable[projectileIndex]
-					.mobj->orientMatrixDirty;
+				source->mobj->cached_fwd_z);
+			g_object_table[projectile_index].world_x = world_x;
+			g_object_table[projectile_index].world_y = world_y;
+			g_object_table[projectile_index].world_z = world_z;
+			g_object_table[projectile_index].mobj->move_x =
+				source->mobj->move_x;
+			g_object_table[projectile_index].mobj->move_y =
+				source->mobj->move_y;
+			g_object_table[projectile_index].mobj->move_z =
+				source->mobj->move_z;
+			g_object_table[projectile_index].mobj->cached_side_x =
+				source->mobj->cached_side_x;
+			g_object_table[projectile_index].mobj->cached_side_y =
+				source->mobj->cached_side_y;
+			g_object_table[projectile_index].mobj->cached_side_z =
+				source->mobj->cached_side_z;
+			g_object_table[projectile_index].mobj->cached_up_x =
+				source->mobj->cached_up_x;
+			g_object_table[projectile_index].mobj->cached_up_y =
+				source->mobj->cached_up_y;
+			g_object_table[projectile_index].mobj->cached_up_z =
+				source->mobj->cached_up_z;
+			g_object_table[projectile_index].mobj->cached_fwd_x =
+				source->mobj->cached_fwd_x;
+			g_object_table[projectile_index].mobj->cached_fwd_y =
+				source->mobj->cached_fwd_y;
+			g_object_table[projectile_index].mobj->cached_fwd_z =
+				source->mobj->cached_fwd_z;
+			g_object_table[projectile_index]
+				.mobj->orient_matrix_dirty = 0;
+			g_object_table[projectile_index]
+				.mobj->move_vector_dirty =
+				g_object_table[projectile_index]
+					.mobj->orient_matrix_dirty;
 		}
-		guidanceIndex = (uint16_t)(projectileIndex -
-					   g_projectileObjectSlotStart);
-		g_projectileGuidanceStates[guidanceIndex].homingTier = 0;
-		g_projectileGuidanceStates[guidanceIndex].targetObjIdx =
+		guidance_index = (uint16_t)(projectile_index -
+					    g_projectile_object_slot_start);
+		g_projectile_guidance_states[guidance_index].homing_tier = 0;
+		g_projectile_guidance_states[guidance_index].target_obj_idx =
 			UINT16_MAX;
-		g_projectileGuidanceStates[guidanceIndex].targetSignature = 0;
-		g_projectileGuidanceStates[guidanceIndex].targetComponentIdx =
-			UINT16_MAX;
-		g_projectileGuidanceStates[guidanceIndex].sourcePlayerIdx = -1;
-		g_objectTable[projectileIndex].mobj->pWarheadGuidance =
-			&g_projectileGuidanceStates[guidanceIndex];
-		return projectileIndex;
+		g_projectile_guidance_states[guidance_index].target_signature =
+			0;
+		g_projectile_guidance_states[guidance_index]
+			.target_component_idx = UINT16_MAX;
+		g_projectile_guidance_states[guidance_index].source_player_idx =
+			-1;
+		g_object_table[projectile_index].mobj->p_warhead_guidance =
+			&g_projectile_guidance_states[guidance_index];
+		return projectile_index;
 	}
 	return -1;
 }
 
-/* Fires the warhead of the flight group of static object sourceObjIdx
- * (through g_warheadTypeIds) from that object at targetObjIdx;
- * static_ApplyStaticHit calls it as a Mine Type C is destroyed. Returns
+/* Fires the warhead of the flight group of static object source_obj_idx
+ * (through g_warhead_type_ids) from that object at target_obj_idx;
+ * static_apply_static_hit calls it as a Mine Type C is destroyed. Returns
  * UINT16_MAX when the group has no warhead or no slot is found, else the
  * new slot: a free other-shot slot or, with none free, a cannon shot of the
  * group's team in the other-shot range, which is taken over. The warhead
  * takes the group's IFF, all angles 0, its type's speed and damage, starts
  * 384 world units above the static object, homes at a random tier of 3 to
  * 6, and warns a player whose craft is the target (laser_warnplayer). With
- * no free slot, the search reads warheadClass by each slot's object type
+ * no free slot, the search reads warhead_class by each slot's object type
  * without checking that it is a shot type. */
 // FUNCTION: XVT 0x406D10
-uint16_t laser_createprojectilefromstatic(uint16_t sourceObjIdx,
-					  uint16_t targetObjIdx)
+uint16_t laser_createprojectilefromstatic(uint16_t source_obj_idx,
+					  uint16_t target_obj_idx)
 {
-	int flightGroupIdx;
-	uint16_t projectileType;
-	uint16_t objectIndex;
-	uint16_t guidanceIndex;
+	int flight_group_idx;
+	uint16_t projectile_type;
+	uint16_t object_index;
+	uint16_t guidance_index;
 
-	flightGroupIdx = g_objectTable[sourceObjIdx].flightGroupIdx;
-	projectileType = g_warheadTypeIds[g_missionFlightGroups[flightGroupIdx]
-						  .fg.warhead];
-	if (projectileType == 0) {
+	flight_group_idx = g_object_table[source_obj_idx].flight_group_idx;
+	projectile_type =
+		g_warhead_type_ids[g_mission_flight_groups[flight_group_idx]
+					   .fg.warhead];
+	if (projectile_type == 0) {
 		return UINT16_MAX;
 	}
-	objectIndex = Object_AllocSlotForGenus(7);
-	if (objectIndex == UINT16_MAX) {
-		for (objectIndex =
-			     (uint16_t)(g_projectileObjectSlotStart + 128);
-		     objectIndex < g_projectileObjectSlotEnd; objectIndex++) {
-			if (g_projectileTypeData.warheadClass
-					    [g_objectTable[objectIndex]
-						     .objectType -
+	object_index = object_alloc_slot_for_genus(7);
+	if (object_index == UINT16_MAX) {
+		for (object_index =
+			     (uint16_t)(g_projectile_object_slot_start + 128);
+		     object_index < g_projectile_object_slot_end;
+		     object_index++) {
+			if (g_projectile_type_data.warhead_class
+					    [g_object_table[object_index]
+						     .object_type -
 					     PROJECTILE_OBJECT_TYPE_FIRST] ==
 				    0 &&
-			    g_objectTable[objectIndex].mobj->team ==
-				    g_missionFlightGroups[flightGroupIdx]
+			    g_object_table[object_index].mobj->team ==
+				    g_mission_flight_groups[flight_group_idx]
 					    .fg.team) {
 				break;
 			}
 		}
 	}
-	if (g_projectileObjectSlotEnd == objectIndex) {
+	if (g_projectile_object_slot_end == object_index) {
 		return UINT16_MAX;
 	}
 
-	g_objectTable[objectIndex].mobj->family = 1;
-	g_objectTable[objectIndex].genusId = 7;
-	g_objectTable[objectIndex].objectType = (uint8_t)projectileType;
-	g_objectTable[objectIndex].mobj->secondsAlive = 1;
-	g_objectTable[objectIndex].mobj->sourceObjIdx = sourceObjIdx;
-	g_objectTable[objectIndex].mobj->sourceObjectType =
-		g_objectTable[sourceObjIdx].objectType;
-	g_objectTable[objectIndex].mobj->iff =
-		g_missionFlightGroups[flightGroupIdx].fg.iff;
-	g_objectTable[objectIndex].pitch = 0;
-	g_objectTable[objectIndex].roll = 0;
-	g_objectTable[objectIndex].yaw = 0;
-	g_objectTable[objectIndex].mobj->speed =
-		g_projectileTypeData
-			.speed[projectileType - PROJECTILE_OBJECT_TYPE_FIRST];
-	g_projectileGuidanceStates[objectIndex - g_projectileObjectSlotStart]
-		.cruiseSpeed = g_objectTable[objectIndex].mobj->speed;
-	g_objectTable[objectIndex].mobj->damageAmount =
-		g_projectileTypeData
-			.damage[projectileType - PROJECTILE_OBJECT_TYPE_FIRST];
-	g_objectTable[objectIndex].mobj->lifetimeTimer =
-		laser_GetProjectileLifetimeTicks(projectileType);
-	Mission_ResolveObjectOrMissionPointWorldLoc(sourceObjIdx, 0);
-	g_objectTable[objectIndex].mobj->prevWorldX = g_worldLocX;
-	g_objectTable[objectIndex].world_x =
-		g_objectTable[objectIndex].mobj->prevWorldX;
-	g_objectTable[objectIndex].mobj->prevWorldY = g_worldLocY;
-	g_objectTable[objectIndex].world_y =
-		g_objectTable[objectIndex].mobj->prevWorldY;
-	g_objectTable[objectIndex].mobj->prevWorldZ = g_worldLocZ + 384;
-	g_objectTable[objectIndex].world_z =
-		g_objectTable[objectIndex].mobj->prevWorldZ;
-	guidanceIndex = (uint16_t)(objectIndex - g_projectileObjectSlotStart);
-	g_projectileGuidanceStates[guidanceIndex].homingTier =
-		(uint8_t)((GameRand() & 3) + 3);
-	g_projectileGuidanceStates[guidanceIndex].targetObjIdx = targetObjIdx;
-	if (targetObjIdx != UINT16_MAX && targetObjIdx < 0x8000) {
-		g_projectileGuidanceStates[guidanceIndex].targetSignature =
-			g_objectTable[targetObjIdx].objectSignature;
+	g_object_table[object_index].mobj->family = 1;
+	g_object_table[object_index].genus_id = 7;
+	g_object_table[object_index].object_type = (uint8_t)projectile_type;
+	g_object_table[object_index].mobj->seconds_alive = 1;
+	g_object_table[object_index].mobj->source_obj_idx = source_obj_idx;
+	g_object_table[object_index].mobj->source_object_type =
+		g_object_table[source_obj_idx].object_type;
+	g_object_table[object_index].mobj->iff =
+		g_mission_flight_groups[flight_group_idx].fg.iff;
+	g_object_table[object_index].pitch = 0;
+	g_object_table[object_index].roll = 0;
+	g_object_table[object_index].yaw = 0;
+	g_object_table[object_index].mobj->speed =
+		g_projectile_type_data
+			.speed[projectile_type - PROJECTILE_OBJECT_TYPE_FIRST];
+	g_projectile_guidance_states[object_index -
+				     g_projectile_object_slot_start]
+		.cruise_speed = g_object_table[object_index].mobj->speed;
+	g_object_table[object_index].mobj->damage_amount =
+		g_projectile_type_data
+			.damage[projectile_type - PROJECTILE_OBJECT_TYPE_FIRST];
+	g_object_table[object_index].mobj->lifetime_timer =
+		laser_get_projectile_lifetime_ticks(projectile_type);
+	mission_resolve_object_or_mission_point_world_loc(source_obj_idx, 0);
+	g_object_table[object_index].mobj->prev_world_x = g_world_loc_x;
+	g_object_table[object_index].world_x =
+		g_object_table[object_index].mobj->prev_world_x;
+	g_object_table[object_index].mobj->prev_world_y = g_world_loc_y;
+	g_object_table[object_index].world_y =
+		g_object_table[object_index].mobj->prev_world_y;
+	g_object_table[object_index].mobj->prev_world_z = g_world_loc_z + 384;
+	g_object_table[object_index].world_z =
+		g_object_table[object_index].mobj->prev_world_z;
+	guidance_index =
+		(uint16_t)(object_index - g_projectile_object_slot_start);
+	g_projectile_guidance_states[guidance_index].homing_tier =
+		(uint8_t)((game_rand() & 3) + 3);
+	g_projectile_guidance_states[guidance_index].target_obj_idx =
+		target_obj_idx;
+	if (target_obj_idx != UINT16_MAX && target_obj_idx < 0x8000) {
+		g_projectile_guidance_states[guidance_index].target_signature =
+			g_object_table[target_obj_idx].object_signature;
 	} else {
-		g_projectileGuidanceStates[guidanceIndex].targetSignature = 0;
+		g_projectile_guidance_states[guidance_index].target_signature =
+			0;
 	}
-	g_projectileGuidanceStates[guidanceIndex].sourcePlayerIdx = -1;
-	g_objectTable[objectIndex].mobj->pWarheadGuidance =
-		&g_projectileGuidanceStates[guidanceIndex];
-	if (g_objectTable[targetObjIdx].playerOwnerIdx != -1) {
-		laser_warnplayer(guidanceIndex);
+	g_projectile_guidance_states[guidance_index].source_player_idx = -1;
+	g_object_table[object_index].mobj->p_warhead_guidance =
+		&g_projectile_guidance_states[guidance_index];
+	if (g_object_table[target_obj_idx].player_owner_idx != -1) {
+		laser_warnplayer(guidance_index);
 	}
-	return objectIndex;
+	return object_index;
 }
 
-/* Launches a shot of projectileObjectType, a countermeasure as a rule,
- * backward from the craft in ownerObjIdx and returns its slot, or -1 when
+/* Launches a shot of projectile_object_type, a countermeasure as a rule,
+ * backward from the craft in owner_obj_idx and returns its slot, or -1 when
  * none is free; slots are found as in laser_createprojectile. The shot
  * copies the owner's IFF, team and roll, points opposite the owner (a half
  * turn of yaw, pitch mirrored), flies at half its type's speed with a
- * cruiseSpeed of its type's speed plus the owner's, does its type's damage
+ * cruise_speed of its type's speed plus the owner's, does its type's damage
  * plus the owner's speed, and starts behind the owner by its own model's Y
- * size plus the owner's largest Y. It uses one of cmAmmoCount unless the
- * flight group's status is 21, and sets cmFireCooldownTimer to 472. A
+ * size plus the owner's largest Y. It uses one of cm_ammo_count unless the
+ * flight group's status is 21, and sets cm_fire_cooldown_timer to 472. A
  * COUNTERMEASURE_PROJECTILE_OBJECT_TYPE homes at tier 6 on the nearest
  * warhead aimed at the owner or, with none, on the nearest active craft
  * closer than 0x8000 that is after the owner (an AI craft targeting it, or
@@ -2272,319 +2351,327 @@ uint16_t laser_createprojectilefromstatic(uint16_t sourceObjIdx,
  * player's, and plays the weapon sound for a player's shot. Writes
  * trig2_*movedist and the trig2 outputs. */
 // FUNCTION: XVT 0x407090
-int laser_createcountermeasureprojectile(unsigned int ownerObjIdx,
-					 int projectileObjectType)
+int laser_createcountermeasureprojectile(unsigned int owner_obj_idx,
+					 int projectile_object_type)
 {
-	uint16_t projectileIndex;
-	struct ObjectRecord *owner;
-	struct ObjectRecord *projectile;
-	int ownerType;
-	unsigned int rangeEnd;
-	uint16_t guidanceIndex;
-	struct CraftData *craft;
-	uint16_t projectileGenus;
+	uint16_t projectile_index;
+	struct object_record *owner;
+	struct object_record *projectile;
+	int owner_type;
+	unsigned int range_end;
+	uint16_t guidance_index;
+	struct craft_data *craft;
+	uint16_t projectile_genus;
 
-	if (g_objectTable[ownerObjIdx].playerOwnerIdx != -1) {
-		int rangeStart;
+	if (g_object_table[owner_obj_idx].player_owner_idx != -1) {
+		int range_start;
 
-		projectileGenus = 6;
-		rangeStart = g_objectSlotRangeByGenus[6].start +
-			     12 * g_objectTable[ownerObjIdx].playerOwnerIdx;
-		projectileIndex = (uint16_t)rangeStart;
-		rangeEnd = rangeStart + 12;
-		if (g_projectileTypeData
-			    .warheadClass[projectileObjectType -
-					  PROJECTILE_OBJECT_TYPE_FIRST] != 0) {
-			projectileIndex += 8;
+		projectile_genus = 6;
+		range_start =
+			g_object_slot_range_by_genus[6].start +
+			12 * g_object_table[owner_obj_idx].player_owner_idx;
+		projectile_index = (uint16_t)range_start;
+		range_end = range_start + 12;
+		if (g_projectile_type_data
+			    .warhead_class[projectile_object_type -
+					   PROJECTILE_OBJECT_TYPE_FIRST] != 0) {
+			projectile_index += 8;
 		}
-		for (; projectileIndex < rangeEnd; ++projectileIndex) {
-			if (g_objectTable[projectileIndex].objectType == 0) {
-				g_objectTable[projectileIndex]
-					.mobj->sourceObjIdx = 0;
-				g_objectTable[projectileIndex]
-					.mobj->effectSize = 0;
+		for (; projectile_index < range_end; ++projectile_index) {
+			if (g_object_table[projectile_index].object_type == 0) {
+				g_object_table[projectile_index]
+					.mobj->source_obj_idx = 0;
+				g_object_table[projectile_index]
+					.mobj->effect_size = 0;
 				break;
 			}
 		}
-		if (projectileIndex >= rangeEnd) {
-			int fallbackStart =
-				(uint16_t)g_objectSlotRangeByGenus[6].start +
+		if (projectile_index >= range_end) {
+			int fallback_start =
+				(uint16_t)g_object_slot_range_by_genus[6]
+					.start +
 				96;
 
-			projectileIndex = (uint16_t)fallbackStart;
-			rangeEnd = fallbackStart + 32;
-			for (; projectileIndex < rangeEnd; ++projectileIndex) {
-				if (g_objectTable[projectileIndex].objectType ==
-				    0) {
-					g_objectTable[projectileIndex]
-						.mobj->sourceObjIdx = 0;
-					g_objectTable[projectileIndex]
-						.mobj->effectSize = 0;
+			projectile_index = (uint16_t)fallback_start;
+			range_end = fallback_start + 32;
+			for (; projectile_index < range_end;
+			     ++projectile_index) {
+				if (g_object_table[projectile_index]
+					    .object_type == 0) {
+					g_object_table[projectile_index]
+						.mobj->source_obj_idx = 0;
+					g_object_table[projectile_index]
+						.mobj->effect_size = 0;
 					break;
 				}
 			}
 		}
-		if (projectileIndex >= rangeEnd) {
+		if (projectile_index >= range_end) {
 			return -1;
 		}
 	} else {
-		projectileGenus = 7;
-		projectileIndex = Object_AllocSlotForGenus(7);
+		projectile_genus = 7;
+		projectile_index = object_alloc_slot_for_genus(7);
 	}
-	if (projectileIndex != UINT16_MAX) {
+	if (projectile_index != UINT16_MAX) {
 
-		owner = &g_objectTable[ownerObjIdx];
-		ownerType = owner->objectType;
-		g_objectTable[projectileIndex].mobj->family = 1;
-		g_objectTable[projectileIndex].genusId = projectileGenus;
-		g_objectTable[projectileIndex].objectType =
-			(uint8_t)projectileObjectType;
-		g_objectTable[projectileIndex].mobj->secondsAlive = 1;
-		g_objectTable[projectileIndex].mobj->sourceObjIdx =
-			(uint16_t)ownerObjIdx;
-		g_objectTable[projectileIndex].mobj->sourceObjectType =
-			(uint8_t)ownerType;
-		GetModelIndexFromType(ownerType);
-		g_objectTable[projectileIndex].mobj->iff = owner->mobj->iff;
-		g_objectTable[projectileIndex].mobj->team = owner->mobj->team;
-		g_objectTable[projectileIndex].pitch =
+		owner = &g_object_table[owner_obj_idx];
+		owner_type = owner->object_type;
+		g_object_table[projectile_index].mobj->family = 1;
+		g_object_table[projectile_index].genus_id = projectile_genus;
+		g_object_table[projectile_index].object_type =
+			(uint8_t)projectile_object_type;
+		g_object_table[projectile_index].mobj->seconds_alive = 1;
+		g_object_table[projectile_index].mobj->source_obj_idx =
+			(uint16_t)owner_obj_idx;
+		g_object_table[projectile_index].mobj->source_object_type =
+			(uint8_t)owner_type;
+		get_model_index_from_type(owner_type);
+		g_object_table[projectile_index].mobj->iff = owner->mobj->iff;
+		g_object_table[projectile_index].mobj->team = owner->mobj->team;
+		g_object_table[projectile_index].pitch =
 			(int16_t)(INT16_MIN - owner->pitch);
-		g_objectTable[projectileIndex].roll = owner->roll;
-		g_objectTable[projectileIndex].yaw =
+		g_object_table[projectile_index].roll = owner->roll;
+		g_object_table[projectile_index].yaw =
 			(int16_t)(owner->yaw + 0x8000);
-		g_objectTable[projectileIndex].mobj->speed =
-			g_projectileTypeData
-				.speed[projectileObjectType -
+		g_object_table[projectile_index].mobj->speed =
+			g_projectile_type_data
+				.speed[projectile_object_type -
 				       PROJECTILE_OBJECT_TYPE_FIRST] >>
 			1;
-		g_projectileGuidanceStates[projectileIndex -
-					   g_projectileObjectSlotStart]
-			.cruiseSpeed =
-			g_projectileTypeData
-				.speed[projectileObjectType -
+		g_projectile_guidance_states[projectile_index -
+					     g_projectile_object_slot_start]
+			.cruise_speed =
+			g_projectile_type_data
+				.speed[projectile_object_type -
 				       PROJECTILE_OBJECT_TYPE_FIRST] +
 			owner->mobj->speed;
-		g_objectTable[projectileIndex].mobj->damageAmount =
-			g_projectileTypeData
-				.damage[projectileObjectType -
+		g_object_table[projectile_index].mobj->damage_amount =
+			g_projectile_type_data
+				.damage[projectile_object_type -
 					PROJECTILE_OBJECT_TYPE_FIRST] +
 			owner->mobj->speed;
-		if (g_objectTable[projectileIndex].mobj->damageAmount <
-		    g_projectileTypeData.damage[projectileObjectType -
-						PROJECTILE_OBJECT_TYPE_FIRST]) {
-			g_objectTable[projectileIndex].mobj->damageAmount =
-				g_projectileTypeData
-					.damage[projectileObjectType -
+		if (g_object_table[projectile_index].mobj->damage_amount <
+		    g_projectile_type_data
+			    .damage[projectile_object_type -
+				    PROJECTILE_OBJECT_TYPE_FIRST]) {
+			g_object_table[projectile_index].mobj->damage_amount =
+				g_projectile_type_data
+					.damage[projectile_object_type -
 						PROJECTILE_OBJECT_TYPE_FIRST];
 		}
-		g_objectTable[projectileIndex].mobj->lifetimeTimer =
-			laser_GetProjectileLifetimeTicks(projectileObjectType);
-		g_objectTable[projectileIndex].mobj->orientMatrixDirty = 1;
-		g_objectTable[projectileIndex].mobj->moveVectorDirty =
-			g_objectTable[projectileIndex].mobj->orientMatrixDirty;
-		projectile = &g_objectTable[projectileIndex];
+		g_object_table[projectile_index].mobj->lifetime_timer =
+			laser_get_projectile_lifetime_ticks(
+				projectile_object_type);
+		g_object_table[projectile_index].mobj->orient_matrix_dirty = 1;
+		g_object_table[projectile_index].mobj->move_vector_dirty =
+			g_object_table[projectile_index]
+				.mobj->orient_matrix_dirty;
+		projectile = &g_object_table[projectile_index];
 		projectile->world_x = owner->world_x;
-		projectile->mobj->prevWorldX = projectile->world_x;
+		projectile->mobj->prev_world_x = projectile->world_x;
 		projectile->world_y = owner->world_y;
-		projectile->mobj->prevWorldY = projectile->world_y;
+		projectile->mobj->prev_world_y = projectile->world_y;
 		projectile->world_z = owner->world_z;
-		projectile->mobj->prevWorldZ = projectile->world_z;
+		projectile->mobj->prev_world_z = projectile->world_z;
 		{
-			int offset =
-				ModelBounds_GetSizeY(projectile->objectType);
-			struct ModelMeshScaleOperation moveOperation;
+			int offset = model_bounds_get_size_y(
+				projectile->object_type);
+			struct model_mesh_scale_operation move_operation;
 
 			offset = (uint16_t)(offset +
-					    ModelBounds_GetMaxY(ownerType));
-			FVIEW_calcrotatemove(projectile->pitch, projectile->yaw,
+					    model_bounds_get_max_y(owner_type));
+			fview_calcrotatemove(projectile->pitch, projectile->yaw,
 					     projectile);
-			moveOperation.scale = offset;
-			moveOperation.value = projectile->mobj->moveX;
-			trig2_xmovedist = Math_MulQ15(moveOperation.value,
-						      moveOperation.scale);
-			moveOperation.scale = offset;
-			moveOperation.value = projectile->mobj->moveY;
-			trig2_ymovedist = Math_MulQ15(moveOperation.value,
-						      moveOperation.scale);
-			moveOperation.scale = offset;
-			moveOperation.value = projectile->mobj->moveZ;
-			trig2_zmovedist = Math_MulQ15(moveOperation.value,
-						      moveOperation.scale);
+			move_operation.scale = offset;
+			move_operation.value = projectile->mobj->move_x;
+			trig2_xmovedist = math_mul_q15(move_operation.value,
+						       move_operation.scale);
+			move_operation.scale = offset;
+			move_operation.value = projectile->mobj->move_y;
+			trig2_ymovedist = math_mul_q15(move_operation.value,
+						       move_operation.scale);
+			move_operation.scale = offset;
+			move_operation.value = projectile->mobj->move_z;
+			trig2_zmovedist = math_mul_q15(move_operation.value,
+						       move_operation.scale);
 		}
-		Object_AddTrigMoveDeltaAndClampWorldPosition(
+		object_add_trig_move_delta_and_clamp_world_position(
 			(uint32_t *)projectile);
-		guidanceIndex = projectileIndex - g_projectileObjectSlotStart;
-		projectile->mobj->pWarheadGuidance =
-			&g_projectileGuidanceStates[guidanceIndex];
-		g_projectileGuidanceStates[guidanceIndex].homingTier = 0;
-		g_projectileGuidanceStates[guidanceIndex].targetObjIdx =
+		guidance_index =
+			projectile_index - g_projectile_object_slot_start;
+		projectile->mobj->p_warhead_guidance =
+			&g_projectile_guidance_states[guidance_index];
+		g_projectile_guidance_states[guidance_index].homing_tier = 0;
+		g_projectile_guidance_states[guidance_index].target_obj_idx =
 			UINT16_MAX;
-		g_projectileGuidanceStates[guidanceIndex].targetSignature = 0;
-		g_projectileGuidanceStates[guidanceIndex].targetComponentIdx =
-			UINT16_MAX;
-		g_projectileGuidanceStates[guidanceIndex].sourcePlayerIdx =
-			g_objectTable[ownerObjIdx].playerOwnerIdx;
-		craft = g_objectTable[ownerObjIdx].mobj->pCraft;
-		if (g_missionFlightGroups[g_objectTable[ownerObjIdx]
-						  .flightGroupIdx]
+		g_projectile_guidance_states[guidance_index].target_signature =
+			0;
+		g_projectile_guidance_states[guidance_index]
+			.target_component_idx = UINT16_MAX;
+		g_projectile_guidance_states[guidance_index].source_player_idx =
+			g_object_table[owner_obj_idx].player_owner_idx;
+		craft = g_object_table[owner_obj_idx].mobj->p_craft;
+		if (g_mission_flight_groups[g_object_table[owner_obj_idx]
+						    .flight_group_idx]
 				    .fg.status1 != 21 &&
-		    g_missionFlightGroups[g_objectTable[ownerObjIdx]
-						  .flightGroupIdx]
+		    g_mission_flight_groups[g_object_table[owner_obj_idx]
+						    .flight_group_idx]
 				    .fg.status2 != 21) {
-			--craft->cmAmmoCount;
+			--craft->cm_ammo_count;
 		}
-		craft->cmFireCooldownTimer = 472;
+		craft->cm_fire_cooldown_timer = 472;
 
-		if (projectileObjectType ==
+		if (projectile_object_type ==
 		    COUNTERMEASURE_PROJECTILE_OBJECT_TYPE) {
-			uint16_t nearestTarget = UINT16_MAX;
-			uint16_t nearestInterceptedTarget = UINT16_MAX;
-			unsigned int nearestTargetDistance = UINT_MAX;
-			unsigned int nearestInterceptedTargetDistance =
+			uint16_t nearest_target = UINT16_MAX;
+			uint16_t nearest_intercepted_target = UINT16_MAX;
+			unsigned int nearest_target_distance = UINT_MAX;
+			unsigned int nearest_intercepted_target_distance =
 				UINT_MAX;
-			unsigned int candidateIndex;
+			unsigned int candidate_index;
 
-			candidateIndex = g_projectileObjectSlotStart;
-			if ((unsigned int)g_projectileObjectSlotEnd >
-			    candidateIndex) {
+			candidate_index = g_projectile_object_slot_start;
+			if ((unsigned int)g_projectile_object_slot_end >
+			    candidate_index) {
 				do {
-					uint8_t candidateType =
-						g_objectTable[candidateIndex]
-							.objectType;
+					uint8_t candidate_type =
+						g_object_table[candidate_index]
+							.object_type;
 
-					if (candidateType != 0 &&
-					    g_objectTable[candidateIndex]
+					if (candidate_type != 0 &&
+					    g_object_table[candidate_index]
 							    .mobj->family ==
 						    1 &&
-					    g_projectileTypeData.warheadClass
-							    [candidateType -
+					    g_projectile_type_data.warhead_class
+							    [candidate_type -
 							     PROJECTILE_OBJECT_TYPE_FIRST] !=
 						    0 &&
-					    g_projectileGuidanceStates
-							    [candidateIndex -
-							     g_projectileObjectSlotStart]
-								    .targetObjIdx ==
-						    ownerObjIdx) {
-						int interceptorCount = 0;
-						unsigned int innerIndex;
+					    g_projectile_guidance_states
+							    [candidate_index -
+							     g_projectile_object_slot_start]
+								    .target_obj_idx ==
+						    owner_obj_idx) {
+						int interceptor_count = 0;
+						unsigned int inner_index;
 
-						for (innerIndex =
-							     g_projectileObjectSlotStart;
-						     innerIndex <
+						for (inner_index =
+							     g_projectile_object_slot_start;
+						     inner_index <
 						     (unsigned int)
-							     g_projectileObjectSlotEnd;
-						     ++innerIndex) {
-							if (candidateType ==
+							     g_projectile_object_slot_end;
+						     ++inner_index) {
+							if (candidate_type ==
 								    COUNTERMEASURE_PROJECTILE_OBJECT_TYPE &&
-							    g_projectileGuidanceStates
-									    [innerIndex -
-									     g_projectileObjectSlotStart]
-										    .targetObjIdx ==
-								    candidateIndex) {
-								++interceptorCount;
+							    g_projectile_guidance_states
+									    [inner_index -
+									     g_projectile_object_slot_start]
+										    .target_obj_idx ==
+								    candidate_index) {
+								++interceptor_count;
 							}
 						}
-						pai_ObjectRefDirectionToObjectRef(
-							ownerObjIdx,
-							candidateIndex);
-						if (interceptorCount != 0) {
+						pai_object_ref_direction_to_object_ref(
+							owner_obj_idx,
+							candidate_index);
+						if (interceptor_count != 0) {
 							if ((unsigned int)
 								    trig2_polardistance <
-							    nearestInterceptedTargetDistance) {
-								nearestInterceptedTargetDistance =
+							    nearest_intercepted_target_distance) {
+								nearest_intercepted_target_distance =
 									trig2_polardistance;
-								nearestInterceptedTarget =
+								nearest_intercepted_target =
 									(uint16_t)
-										candidateIndex;
+										candidate_index;
 							}
 						} else if (
 							(unsigned int)
 								trig2_polardistance <
-							nearestTargetDistance) {
-							nearestTargetDistance =
+							nearest_target_distance) {
+							nearest_target_distance =
 								trig2_polardistance;
-							nearestTarget = (uint16_t)
-								candidateIndex;
+							nearest_target = (uint16_t)
+								candidate_index;
 						}
 					}
-					++candidateIndex;
+					++candidate_index;
 				} while ((unsigned int)
-						 g_projectileObjectSlotEnd >
-					 candidateIndex);
+						 g_projectile_object_slot_end >
+					 candidate_index);
 			}
-			if (nearestTarget == UINT16_MAX) {
-				uint16_t craftIndex;
+			if (nearest_target == UINT16_MAX) {
+				uint16_t craft_index;
 
-				for (craftIndex = (uint16_t)
-					     g_activeRegionObjectSlotStart;
-				     craftIndex <
-				     g_activeRegionCraftObjectSlotEnd;
-				     ++craftIndex) {
-					struct ObjectRecord *candidate =
-						&g_objectTable[craftIndex];
+				for (craft_index = (uint16_t)
+					     g_active_region_object_slot_start;
+				     craft_index <
+				     g_active_region_craft_object_slot_end;
+				     ++craft_index) {
+					struct object_record *candidate =
+						&g_object_table[craft_index];
 
-					if (candidate->objectType != 0) {
-						struct CraftData
-							*candidateCraft =
+					if (candidate->object_type != 0) {
+						struct craft_data
+							*candidate_craft =
 								candidate->mobj
-									->pCraft;
+									->p_craft;
 
-						if (candidateCraft
-							    ->objectKind ==
+						if (candidate_craft
+							    ->object_kind ==
 						    CRAFT_OBJECT_KIND_ACTIVE) {
-							int isEnemy = 0;
+							int is_enemy = 0;
 
 							if (candidate
-								    ->playerOwnerIdx ==
+								    ->player_owner_idx ==
 							    -1) {
-								if (candidateCraft
-									    ->aiController
-									    .targetObjIdx ==
-								    ownerObjIdx) {
-									isEnemy =
+								if (candidate_craft
+									    ->ai_controller
+									    .target_obj_idx ==
+								    owner_obj_idx) {
+									is_enemy =
 										1;
 								}
 							} else {
-								int hostilePlayer =
+								int hostile_player =
 									0;
-								int ownerTeam =
-									g_missionFlightGroups
-										[g_objectTable
+								int owner_team =
+									g_mission_flight_groups
+										[g_object_table
 											 [(uint16_t)
-												  ownerObjIdx]
-												 .flightGroupIdx]
+												  owner_obj_idx]
+												 .flight_group_idx]
 											.fg
 											.team;
-								uint16_t candidateTeam =
+								uint16_t candidate_team =
 									(uint16_t)g_players
 										[candidate
-											 ->playerOwnerIdx]
+											 ->player_owner_idx]
 											.team;
 
-								if (ownerTeam !=
-								    candidateTeam) {
-									hostilePlayer =
-										g_missionTeams[candidateTeam]
-											.allies[ownerTeam] <
+								if (owner_team !=
+								    candidate_team) {
+									hostile_player =
+										g_mission_teams[candidate_team]
+											.allies[owner_team] <
 										1;
 								}
-								if (hostilePlayer !=
+								if (hostile_player !=
 								    0) {
-									isEnemy =
+									is_enemy =
 										1;
 								}
 							}
-							if (isEnemy != 0) {
-								pai_ObjectRefDirectionToObjectRef(
-									ownerObjIdx,
-									craftIndex);
+							if (is_enemy != 0) {
+								pai_object_ref_direction_to_object_ref(
+									owner_obj_idx,
+									craft_index);
 								if ((unsigned int)trig2_polardistance <
-									    nearestTargetDistance &&
+									    nearest_target_distance &&
 								    trig2_polardistance <
 									    0x8000) {
-									nearestTarget =
-										craftIndex;
-									nearestTargetDistance =
+									nearest_target =
+										craft_index;
+									nearest_target_distance =
 										trig2_polardistance;
 								}
 							}
@@ -2592,91 +2679,97 @@ int laser_createcountermeasureprojectile(unsigned int ownerObjIdx,
 					}
 				}
 			}
-			if (nearestTarget != UINT16_MAX) {
-				g_projectileGuidanceStates[guidanceIndex]
-					.targetObjIdx = nearestTarget;
-				g_projectileGuidanceStates[guidanceIndex]
-					.homingTier = 6;
-				g_projectileGuidanceStates[guidanceIndex]
-					.targetSignature =
-					g_objectTable[nearestTarget]
-						.objectSignature;
-			} else if (nearestInterceptedTarget != UINT16_MAX) {
-				g_projectileGuidanceStates[guidanceIndex]
-					.targetObjIdx =
-					nearestInterceptedTarget;
-				g_projectileGuidanceStates[guidanceIndex]
-					.homingTier = 6;
-				g_projectileGuidanceStates[guidanceIndex]
-					.targetSignature =
-					g_objectTable[nearestInterceptedTarget]
-						.objectSignature;
+			if (nearest_target != UINT16_MAX) {
+				g_projectile_guidance_states[guidance_index]
+					.target_obj_idx = nearest_target;
+				g_projectile_guidance_states[guidance_index]
+					.homing_tier = 6;
+				g_projectile_guidance_states[guidance_index]
+					.target_signature =
+					g_object_table[nearest_target]
+						.object_signature;
+			} else if (nearest_intercepted_target != UINT16_MAX) {
+				g_projectile_guidance_states[guidance_index]
+					.target_obj_idx =
+					nearest_intercepted_target;
+				g_projectile_guidance_states[guidance_index]
+					.homing_tier = 6;
+				g_projectile_guidance_states[guidance_index]
+					.target_signature =
+					g_object_table
+						[nearest_intercepted_target]
+							.object_signature;
 			}
 		}
-		if (g_projectileGuidanceStates[guidanceIndex].targetObjIdx >=
-			    g_activeRegionObjectSlotStart &&
-		    g_projectileGuidanceStates[guidanceIndex].targetObjIdx <
-			    g_activeRegionCraftObjectSlotEnd) {
-			g_objectTable[projectileIndex].mobj->lifetimeTimer >>=
-				1;
+		if (g_projectile_guidance_states[guidance_index]
+				    .target_obj_idx >=
+			    g_active_region_object_slot_start &&
+		    g_projectile_guidance_states[guidance_index]
+				    .target_obj_idx <
+			    g_active_region_craft_object_slot_end) {
+			g_object_table[projectile_index]
+				.mobj->lifetime_timer >>= 1;
 		}
-		if (g_projectileGuidanceStates[guidanceIndex].targetObjIdx !=
-			    UINT16_MAX &&
-		    g_objectTable[g_projectileGuidanceStates[guidanceIndex]
-					  .targetObjIdx]
-				    .playerOwnerIdx == g_localPlayer) {
-			fsfx_QueueVoiceSfx(37, 0, 0, 0, UINT16_MAX);
+		if (g_projectile_guidance_states[guidance_index]
+				    .target_obj_idx != UINT16_MAX &&
+		    g_object_table[g_projectile_guidance_states[guidance_index]
+					   .target_obj_idx]
+				    .player_owner_idx == g_local_player) {
+			fsfx_queue_voice_sfx(37, 0, 0, 0, UINT16_MAX);
 		}
-		if (g_objectTable[ownerObjIdx].playerOwnerIdx != -1) {
+		if (g_object_table[owner_obj_idx].player_owner_idx != -1) {
 			fsfx_triggerweaponsfx(
-				projectileIndex,
-				g_objectTable[ownerObjIdx].playerOwnerIdx);
+				projectile_index,
+				g_object_table[owner_obj_idx].player_owner_idx);
 		}
-		return projectileIndex;
+		return projectile_index;
 	}
 	return -1;
 }
 
 /* Warns the player whose craft is the target of the shot with guidance
- * index projectileGuidanceIdx, unless that player already has a pending
- * action: sets pendingActionId 1, no issuing player, the shot's slot as
- * pendingActionParam and a pendingActionTimer of 1,416 ticks. The local
+ * index projectile_guidance_idx, unless that player already has a pending
+ * action: sets pending_action_id 1, no issuing player, the shot's slot as
+ * pending_action_param and a pending_action_timer of 1,416 ticks. The local
  * player also gets the missile warning message and a wingman voice line.
  * Does nothing when no player owns the target; does not check that the
  * shot has one. */
 // FUNCTION: XVT 0x407910
-void laser_warnplayer(uint16_t projectileGuidanceIdx)
+void laser_warnplayer(uint16_t projectile_guidance_idx)
 {
-	int playerOwnerIdx;
+	int player_owner_idx;
 
-	playerOwnerIdx =
-		g_objectTable[g_projectileGuidanceStates[projectileGuidanceIdx]
-				      .targetObjIdx]
-			.playerOwnerIdx;
-	if (playerOwnerIdx == -1 ||
-	    g_players[playerOwnerIdx].pendingActionId != 0) {
+	player_owner_idx =
+		g_object_table
+			[g_projectile_guidance_states[projectile_guidance_idx]
+				 .target_obj_idx]
+				.player_owner_idx;
+	if (player_owner_idx == -1 ||
+	    g_players[player_owner_idx].pending_action_id != 0) {
 		return;
 	}
-	g_players[playerOwnerIdx].pendingActionId = 1;
-	g_players[playerOwnerIdx].pendingActionIssuerPlayerIdx = UINT16_MAX;
-	g_players[playerOwnerIdx].pendingActionParam =
-		projectileGuidanceIdx + g_projectileObjectSlotStart;
-	g_players[playerOwnerIdx].pendingActionTimer = 1416;
-	if (playerOwnerIdx == g_localPlayer) {
-		msg_emitInFlightMessage(IFMSG_116_MISSILE_WARNING_KEY_TO_TARGET,
-					playerOwnerIdx);
-		fsfx_SpeakWingmanEvent(g_localPlayer, -1, 12, -1,
-				       g_players[playerOwnerIdx].objectIndex,
-				       UINT16_MAX);
+	g_players[player_owner_idx].pending_action_id = 1;
+	g_players[player_owner_idx].pending_action_issuer_player_idx =
+		UINT16_MAX;
+	g_players[player_owner_idx].pending_action_param =
+		projectile_guidance_idx + g_projectile_object_slot_start;
+	g_players[player_owner_idx].pending_action_timer = 1416;
+	if (player_owner_idx == g_local_player) {
+		msg_emit_in_flight_message(
+			IFMSG_116_MISSILE_WARNING_KEY_TO_TARGET,
+			player_owner_idx);
+		fsfx_speak_wingman_event(
+			g_local_player, -1, 12, -1,
+			g_players[player_owner_idx].object_index, UINT16_MAX);
 	}
 }
 
-/* Lets the mine in static slot mineObjIdx fire while it works
- * (typeSpecificWord not 0). Each call takes half of g_elapsedTicks off its
- * countdown in typeSpecificByte[1]; when that runs out the countdown is
+/* Lets the mine in static slot mine_obj_idx fire while it works
+ * (type_specific_word not 0). Each call takes half of g_elapsed_ticks off its
+ * countdown in type_specific_byte[1]; when that runs out the countdown is
  * reset to 236 (two simulated seconds) and the mine looks for the nearest
  * target matching its flight group's first order, targets 1 and 2 and then
- * targets 3 and 4 (paifight_FindNearestMatchingTargetFromOrigin; a Mine
+ * targets 3 and 4 (paifight_find_nearest_matching_target_from_origin; a Mine
  * Type B asks for a target that is not disabled). It fires only at a
  * target closer than 0x10000 world units, aiming ahead of a moving one by
  * its last step's motion times the expected flight steps (plus a random 0
@@ -2687,10 +2780,10 @@ void laser_warnplayer(uint16_t projectileGuidanceIdx)
  * (the speed term is 16 bits and wraps from 700 up). The shot is an ion turbo
  * laser from a Mine Type B, else an imperial (IFF 1 or 4) or rebel turbo
  * laser, at half its type's speed and twice its life, with no homing.
- * Writes g_paifightSearchOrigin*, g_paiContext.requireUndisabledTarget,
+ * Writes g_paifightSearchOrigin*, g_pai_context.require_undisabled_target,
  * g_worldLoc* and the trig2 outputs. */
 // FUNCTION: XVT 0x446C60
-void laser_UpdateMineWeaponFire(uint16_t mineObjIdx)
+void laser_update_mine_weapon_fire(uint16_t mine_obj_idx)
 {
 	enum {
 		MINE_COOLDOWN_RESET = -20,
@@ -2712,361 +2805,377 @@ void laser_UpdateMineWeaponFire(uint16_t mineObjIdx)
 		ANGLE_SEVEN_EIGHTHS = 0xE000,
 	};
 
-	uint16_t flightGroupIdx;
-	int16_t projectilePitch;
-	uint16_t targetRef;
-	int mineX;
-	int mineY;
-	int mineZ;
-	int targetY;
-	int targetX;
-	int targetZ;
-	int leadTargetX;
-	int leadTargetY;
-	int leadTargetZ;
-	uint16_t projectileObjIdx;
-	int16_t projectileYaw;
+	uint16_t flight_group_idx;
+	int16_t projectile_pitch;
+	uint16_t target_ref;
+	int mine_x;
+	int mine_y;
+	int mine_z;
+	int target_y;
+	int target_x;
+	int target_z;
+	int lead_target_x;
+	int lead_target_y;
+	int lead_target_z;
+	uint16_t projectile_obj_idx;
+	int16_t projectile_yaw;
 
-	if (g_objectTable[mineObjIdx].typeSpecificWord == 0) {
+	if (g_object_table[mine_obj_idx].type_specific_word == 0) {
 		return;
 	}
 
 	{
 		uint8_t cooldown =
-			g_objectTable[mineObjIdx].typeSpecificByte[1];
-		uint16_t cooldownStep = g_elapsedTicks >> 1;
+			g_object_table[mine_obj_idx].type_specific_byte[1];
+		uint16_t cooldown_step = g_elapsed_ticks >> 1;
 
-		if ((unsigned int)cooldown > cooldownStep) {
-			g_objectTable[mineObjIdx].typeSpecificByte[1] =
-				(uint8_t)(cooldown - cooldownStep);
+		if ((unsigned int)cooldown > cooldown_step) {
+			g_object_table[mine_obj_idx].type_specific_byte[1] =
+				(uint8_t)(cooldown - cooldown_step);
 			return;
 		}
 	}
-	g_objectTable[mineObjIdx].typeSpecificByte[1] =
+	g_object_table[mine_obj_idx].type_specific_byte[1] =
 		(uint8_t)MINE_COOLDOWN_RESET;
 
-	mineX = g_objectTable[mineObjIdx].world_x;
-	mineY = g_objectTable[mineObjIdx].world_y;
-	mineZ = g_objectTable[mineObjIdx].world_z;
-	g_paifightSearchOriginX = mineX;
-	g_paifightSearchOriginY = mineY;
-	g_paifightSearchOriginZ = mineZ;
-	flightGroupIdx = g_objectTable[mineObjIdx].flightGroupIdx;
-	g_paiContext.requireUndisabledTarget = 1;
-	if (g_objectTable[mineObjIdx].objectType != MINE_TYPE_B_LIVE_TARGET) {
-		g_paiContext.requireUndisabledTarget = 0;
+	mine_x = g_object_table[mine_obj_idx].world_x;
+	mine_y = g_object_table[mine_obj_idx].world_y;
+	mine_z = g_object_table[mine_obj_idx].world_z;
+	g_paifight_search_origin_x = mine_x;
+	g_paifight_search_origin_y = mine_y;
+	g_paifight_search_origin_z = mine_z;
+	flight_group_idx = g_object_table[mine_obj_idx].flight_group_idx;
+	g_pai_context.require_undisabled_target = 1;
+	if (g_object_table[mine_obj_idx].object_type !=
+	    MINE_TYPE_B_LIVE_TARGET) {
+		g_pai_context.require_undisabled_target = 0;
 	}
-	targetRef = paifight_FindNearestMatchingTargetFromOrigin(
-		g_missionFlightGroups[flightGroupIdx].fg.orders[0].target1Type,
-		g_missionFlightGroups[flightGroupIdx].fg.orders[0].target1,
-		g_missionFlightGroups[flightGroupIdx]
+	target_ref = paifight_find_nearest_matching_target_from_origin(
+		g_mission_flight_groups[flight_group_idx]
 			.fg.orders[0]
-			.target1OrTarget2,
-		g_missionFlightGroups[flightGroupIdx].fg.orders[0].target2Type,
-		g_missionFlightGroups[flightGroupIdx].fg.orders[0].target2, 0);
-	if (targetRef == UINT16_MAX) {
-		targetRef = paifight_FindNearestMatchingTargetFromOrigin(
-			g_missionFlightGroups[flightGroupIdx]
+			.target1_type,
+		g_mission_flight_groups[flight_group_idx].fg.orders[0].target1,
+		g_mission_flight_groups[flight_group_idx]
+			.fg.orders[0]
+			.target1_or_target2,
+		g_mission_flight_groups[flight_group_idx]
+			.fg.orders[0]
+			.target2_type,
+		g_mission_flight_groups[flight_group_idx].fg.orders[0].target2,
+		0);
+	if (target_ref == UINT16_MAX) {
+		target_ref = paifight_find_nearest_matching_target_from_origin(
+			g_mission_flight_groups[flight_group_idx]
 				.fg.orders[0]
-				.secondaryTargetTypes[0],
-			g_missionFlightGroups[flightGroupIdx]
+				.secondary_target_types[0],
+			g_mission_flight_groups[flight_group_idx]
 				.fg.orders[0]
-				.secondaryTargets[0],
-			g_missionFlightGroups[flightGroupIdx]
+				.secondary_targets[0],
+			g_mission_flight_groups[flight_group_idx]
 				.fg.orders[0]
-				.target3OrTarget4,
-			g_missionFlightGroups[flightGroupIdx]
+				.target3_or_target4,
+			g_mission_flight_groups[flight_group_idx]
 				.fg.orders[0]
-				.secondaryTargetTypes[1],
-			g_missionFlightGroups[flightGroupIdx]
+				.secondary_target_types[1],
+			g_mission_flight_groups[flight_group_idx]
 				.fg.orders[0]
-				.secondaryTargets[1],
+				.secondary_targets[1],
 			0);
 	}
-	if (targetRef == UINT16_MAX) {
+	if (target_ref == UINT16_MAX) {
 		return;
 	}
 
-	Mission_ResolveObjectOrMissionPointWorldLoc(targetRef, 0);
-	targetX = g_worldLocX;
-	targetY = g_worldLocY;
-	targetZ = g_worldLocZ;
+	mission_resolve_object_or_mission_point_world_loc(target_ref, 0);
+	target_x = g_world_loc_x;
+	target_y = g_world_loc_y;
+	target_z = g_world_loc_z;
 	if ((unsigned int)collide_roughdistance3d(
-		    targetX - mineX, targetY - mineY, targetZ - mineZ) >=
+		    target_x - mine_x, target_y - mine_y, target_z - mine_z) >=
 	    MINE_FIRE_RANGE) {
 		return;
 	}
 
-	if (g_objectTable[targetRef].mobj != NULL) {
-		uint16_t leadFrames;
+	if (g_object_table[target_ref].mobj != NULL) {
+		uint16_t lead_frames;
 
-		trig2_ctop(g_objectTable[targetRef].world_x - mineX,
-			   g_objectTable[targetRef].world_y - mineY,
-			   g_objectTable[targetRef].world_z - mineZ);
-		trig2_polardistance *= g_simStepsPerSecond;
-		if (g_objectTable[mineObjIdx].objectType ==
+		trig2_ctop(g_object_table[target_ref].world_x - mine_x,
+			   g_object_table[target_ref].world_y - mine_y,
+			   g_object_table[target_ref].world_z - mine_z);
+		trig2_polardistance *= g_sim_steps_per_second;
+		if (g_object_table[mine_obj_idx].object_type ==
 		    MINE_TYPE_B_LIVE_TARGET) {
 			trig2_polardistance >>= 15;
 		} else {
 			trig2_polardistance >>= 14;
 		}
-		leadFrames = (uint16_t)trig2_polardistance;
-		leadFrames = (uint16_t)(leadFrames + (GameRand() & 3));
-		leadFrames--;
-		leadTargetX =
-			g_objectTable[targetRef].world_x +
-			leadFrames *
+		lead_frames = (uint16_t)trig2_polardistance;
+		lead_frames = (uint16_t)(lead_frames + (game_rand() & 3));
+		lead_frames--;
+		lead_target_x =
+			g_object_table[target_ref].world_x +
+			lead_frames *
 				(
 #ifdef XVT_MODERN
-					(XvtFlightTiming_IsUnlocked()
-						 ? XvtReferenceMotion_AxisDisplacement(
-							   targetRef, 0)
-						 : (g_objectTable[targetRef]
+					(xvt_flight_timing_is_unlocked()
+						 ? xvt_reference_motion_axis_displacement(
+							   target_ref, 0)
+						 : (g_object_table[target_ref]
 							    .world_x -
-						    g_objectTable[targetRef]
-							    .mobj->prevWorldX))
+						    g_object_table[target_ref]
+							    .mobj
+							    ->prev_world_x))
 #else
-					g_objectTable[targetRef].world_x -
-					g_objectTable[targetRef]
-						.mobj->prevWorldX
+					g_object_table[target_ref].world_x -
+					g_object_table[target_ref]
+						.mobj->prev_world_x
 #endif
 				);
-		leadTargetY =
-			g_objectTable[targetRef].world_y +
-			leadFrames *
+		lead_target_y =
+			g_object_table[target_ref].world_y +
+			lead_frames *
 				(
 #ifdef XVT_MODERN
-					(XvtFlightTiming_IsUnlocked()
-						 ? XvtReferenceMotion_AxisDisplacement(
-							   targetRef, 1)
-						 : (g_objectTable[targetRef]
+					(xvt_flight_timing_is_unlocked()
+						 ? xvt_reference_motion_axis_displacement(
+							   target_ref, 1)
+						 : (g_object_table[target_ref]
 							    .world_y -
-						    g_objectTable[targetRef]
-							    .mobj->prevWorldY))
+						    g_object_table[target_ref]
+							    .mobj
+							    ->prev_world_y))
 #else
-					g_objectTable[targetRef].world_y -
-					g_objectTable[targetRef]
-						.mobj->prevWorldY
+					g_object_table[target_ref].world_y -
+					g_object_table[target_ref]
+						.mobj->prev_world_y
 #endif
 				);
-		leadTargetZ =
-			g_objectTable[targetRef].world_z +
-			leadFrames *
+		lead_target_z =
+			g_object_table[target_ref].world_z +
+			lead_frames *
 				(
 #ifdef XVT_MODERN
-					(XvtFlightTiming_IsUnlocked()
-						 ? XvtReferenceMotion_AxisDisplacement(
-							   targetRef, 2)
-						 : (g_objectTable[targetRef]
+					(xvt_flight_timing_is_unlocked()
+						 ? xvt_reference_motion_axis_displacement(
+							   target_ref, 2)
+						 : (g_object_table[target_ref]
 							    .world_z -
-						    g_objectTable[targetRef]
-							    .mobj->prevWorldZ))
+						    g_object_table[target_ref]
+							    .mobj
+							    ->prev_world_z))
 #else
-					g_objectTable[targetRef].world_z -
-					g_objectTable[targetRef]
-						.mobj->prevWorldZ
+					g_object_table[target_ref].world_z -
+					g_object_table[target_ref]
+						.mobj->prev_world_z
 #endif
 				);
 	} else {
-		leadTargetX = targetX;
-		leadTargetY = targetY;
-		leadTargetZ = targetZ;
+		lead_target_x = target_x;
+		lead_target_y = target_y;
+		lead_target_z = target_z;
 	}
 
-	trig2_ctop(leadTargetX - mineX, leadTargetY - mineY,
-		   leadTargetZ - mineZ);
-	projectileYaw = trig2_xyangle;
-	projectilePitch = trig2_pitch;
+	trig2_ctop(lead_target_x - mine_x, lead_target_y - mine_y,
+		   lead_target_z - mine_z);
+	projectile_yaw = trig2_xyangle;
+	projectile_pitch = trig2_pitch;
 	{
-		uint16_t launchOffset = g_objectTable[mineObjIdx].objectType >
-							MINE_TYPE_B_LIVE_TARGET
-						? LARGE_MINE_LAUNCH_OFFSET
-						: SMALL_MINE_LAUNCH_OFFSET;
+		uint16_t launch_offset =
+			g_object_table[mine_obj_idx].object_type >
+					MINE_TYPE_B_LIVE_TARGET
+				? LARGE_MINE_LAUNCH_OFFSET
+				: SMALL_MINE_LAUNCH_OFFSET;
 
 		if (trig2_pitch < ANGLE_ONE_EIGHTH) {
-			mineZ += launchOffset;
+			mine_z += launch_offset;
 		} else if (trig2_pitch > ANGLE_THREE_EIGHTHS) {
-			if (g_objectTable[mineObjIdx].objectType >=
+			if (g_object_table[mine_obj_idx].object_type >=
 			    MINE_TYPE_C_FIRST_SIDE_ONLY) {
 				return;
 			}
-			mineZ -= launchOffset;
+			mine_z -= launch_offset;
 		} else if (trig2_xyangle < ANGLE_ONE_EIGHTH ||
 			   trig2_xyangle > ANGLE_SEVEN_EIGHTHS) {
-			mineY += launchOffset;
+			mine_y += launch_offset;
 		} else if (trig2_xyangle < ANGLE_THREE_EIGHTHS) {
-			mineX += launchOffset;
+			mine_x += launch_offset;
 		} else if (trig2_xyangle < ANGLE_FIVE_EIGHTHS) {
-			mineY -= launchOffset;
+			mine_y -= launch_offset;
 		} else {
-			mineX -= launchOffset;
+			mine_x -= launch_offset;
 		}
 	}
 
 	{
-		int16_t rangeScore = -1;
-		uint16_t invertedRange;
-		uint16_t targetSpeedAccuracy;
-		uint16_t accuracyThreshold;
+		int16_t range_score = -1;
+		uint16_t inverted_range;
+		uint16_t target_speed_accuracy;
+		uint16_t accuracy_threshold;
 
 		if (trig2_polardistance < MINE_FIRE_RANGE) {
-			rangeScore = (int16_t)trig2_polardistance;
+			range_score = (int16_t)trig2_polardistance;
 		}
-		invertedRange = (uint16_t)~rangeScore;
-		if (g_objectTable[targetRef].mobj == NULL) {
-			targetSpeedAccuracy = UINT16_MAX;
+		inverted_range = (uint16_t)~range_score;
+		if (g_object_table[target_ref].mobj == NULL) {
+			target_speed_accuracy = UINT16_MAX;
 		} else {
-			uint16_t targetSpeed =
-				g_objectTable[targetRef].mobj->speed;
+			uint16_t target_speed =
+				g_object_table[target_ref].mobj->speed;
 
-			targetSpeedAccuracy = UINT16_MAX;
-			if (targetSpeed >= TARGET_SPEED_ACCURACY_CUTOFF) {
-				targetSpeedAccuracy =
+			target_speed_accuracy = UINT16_MAX;
+			if (target_speed >= TARGET_SPEED_ACCURACY_CUTOFF) {
+				target_speed_accuracy =
 					(uint16_t)(TARGET_SPEED_ACCURACY_BASE -
-						   (targetSpeed << 7));
+						   (target_speed << 7));
 			}
 		}
-		accuracyThreshold =
-			MATH2_fraction(invertedRange, targetSpeedAccuracy);
-		if ((uint16_t)GameRand() > accuracyThreshold) {
-			int16_t aimError =
-				(int16_t)((GameRand() - AIM_ERROR_BASE) &
+		accuracy_threshold =
+			math2_fraction(inverted_range, target_speed_accuracy);
+		if ((uint16_t)game_rand() > accuracy_threshold) {
+			int16_t aim_error =
+				(int16_t)((game_rand() - AIM_ERROR_BASE) &
 					  AIM_ERROR_MASK);
 
-			if ((uint16_t)GameRand() >= 0x8000u) {
-				aimError = (int16_t)-aimError;
+			if ((uint16_t)game_rand() >= 0x8000u) {
+				aim_error = (int16_t)-aim_error;
 			}
-			projectileYaw = (int16_t)(projectileYaw + aimError);
-			aimError = (int16_t)((GameRand() - AIM_ERROR_BASE) &
-					     AIM_ERROR_MASK);
-			if ((uint16_t)GameRand() >= 0x8000u) {
-				projectilePitch =
-					(int16_t)(projectilePitch - aimError);
-				if ((projectilePitch & ANGLE_WRAPPED) != 0) {
-					projectilePitch = 0;
+			projectile_yaw = (int16_t)(projectile_yaw + aim_error);
+			aim_error = (int16_t)((game_rand() - AIM_ERROR_BASE) &
+					      AIM_ERROR_MASK);
+			if ((uint16_t)game_rand() >= 0x8000u) {
+				projectile_pitch =
+					(int16_t)(projectile_pitch - aim_error);
+				if ((projectile_pitch & ANGLE_WRAPPED) != 0) {
+					projectile_pitch = 0;
 				}
 			} else {
-				projectilePitch =
-					(int16_t)(projectilePitch + aimError);
-				if ((projectilePitch & ANGLE_WRAPPED) != 0) {
-					projectilePitch = INT16_MAX;
+				projectile_pitch =
+					(int16_t)(projectile_pitch + aim_error);
+				if ((projectile_pitch & ANGLE_WRAPPED) != 0) {
+					projectile_pitch = INT16_MAX;
 				}
 			}
 		}
 	}
 
-	projectileObjIdx =
-		Object_AllocSlotForGenus(CRAFT_GENUS_OTHER_PROJECTILE);
-	if (projectileObjIdx != UINT16_MAX) {
-		uint16_t projectileObjectType;
-		int16_t launchOffset;
-		int guidanceIndex;
+	projectile_obj_idx =
+		object_alloc_slot_for_genus(CRAFT_GENUS_OTHER_PROJECTILE);
+	if (projectile_obj_idx != UINT16_MAX) {
+		uint16_t projectile_object_type;
+		int16_t launch_offset;
+		int guidance_index;
 
-		g_objectTable[projectileObjIdx].mobj->family = 1;
-		g_objectTable[projectileObjIdx].genusId =
+		g_object_table[projectile_obj_idx].mobj->family = 1;
+		g_object_table[projectile_obj_idx].genus_id =
 			CRAFT_GENUS_OTHER_PROJECTILE;
-		if (g_objectTable[mineObjIdx].objectType ==
+		if (g_object_table[mine_obj_idx].object_type ==
 		    MINE_TYPE_B_LIVE_TARGET) {
-			projectileObjectType =
+			projectile_object_type =
 				PROJECTILE_OBJECT_TYPE_ION_TURBO_LASER;
-		} else if (g_missionFlightGroups[flightGroupIdx].fg.iff == 1 ||
-			   g_missionFlightGroups[flightGroupIdx].fg.iff == 4) {
-			projectileObjectType =
+		} else if (g_mission_flight_groups[flight_group_idx].fg.iff ==
+				   1 ||
+			   g_mission_flight_groups[flight_group_idx].fg.iff ==
+				   4) {
+			projectile_object_type =
 				PROJECTILE_OBJECT_TYPE_IMPERIAL_TURBO_LASER;
 		} else {
-			projectileObjectType =
+			projectile_object_type =
 				PROJECTILE_OBJECT_TYPE_REBEL_TURBO_LASER;
 		}
-		g_objectTable[projectileObjIdx].objectType =
-			(uint8_t)projectileObjectType;
-		g_objectTable[projectileObjIdx].mobj->secondsAlive = 1;
-		g_objectTable[projectileObjIdx].mobj->sourceObjIdx = mineObjIdx;
-		g_objectTable[projectileObjIdx].mobj->sourceObjectType = 0;
-		g_objectTable[projectileObjIdx].mobj->iff =
-			g_missionFlightGroups[g_objectTable[mineObjIdx]
-						      .flightGroupIdx]
+		g_object_table[projectile_obj_idx].object_type =
+			(uint8_t)projectile_object_type;
+		g_object_table[projectile_obj_idx].mobj->seconds_alive = 1;
+		g_object_table[projectile_obj_idx].mobj->source_obj_idx =
+			mine_obj_idx;
+		g_object_table[projectile_obj_idx].mobj->source_object_type = 0;
+		g_object_table[projectile_obj_idx].mobj->iff =
+			g_mission_flight_groups[g_object_table[mine_obj_idx]
+							.flight_group_idx]
 				.fg.iff;
-		g_objectTable[projectileObjIdx].pitch = projectilePitch;
-		g_objectTable[projectileObjIdx].roll = 0;
-		g_objectTable[projectileObjIdx].yaw = projectileYaw;
-		g_objectTable[projectileObjIdx].mobj->orientMatrixDirty = 1;
-		g_objectTable[projectileObjIdx].mobj->moveVectorDirty =
-			g_objectTable[projectileObjIdx].mobj->orientMatrixDirty;
-		g_objectTable[projectileObjIdx].mobj->speed =
-			g_projectileTypeData
-				.speed[projectileObjectType -
+		g_object_table[projectile_obj_idx].pitch = projectile_pitch;
+		g_object_table[projectile_obj_idx].roll = 0;
+		g_object_table[projectile_obj_idx].yaw = projectile_yaw;
+		g_object_table[projectile_obj_idx].mobj->orient_matrix_dirty =
+			1;
+		g_object_table[projectile_obj_idx].mobj->move_vector_dirty =
+			g_object_table[projectile_obj_idx]
+				.mobj->orient_matrix_dirty;
+		g_object_table[projectile_obj_idx].mobj->speed =
+			g_projectile_type_data
+				.speed[projectile_object_type -
 				       PROJECTILE_OBJECT_TYPE_FIRST] >>
 			MINE_PROJECTILE_SPEED_SHIFT;
-		g_objectTable[projectileObjIdx].mobj->lifetimeTimer =
+		g_object_table[projectile_obj_idx].mobj->lifetime_timer =
 			(uint16_t)(MINE_PROJECTILE_LIFETIME_SCALE *
-				   laser_GetProjectileLifetimeTicks(
-					   projectileObjectType));
-		g_objectTable[projectileObjIdx].mobj->damageAmount =
-			g_projectileTypeData
-				.damage[projectileObjectType -
+				   laser_get_projectile_lifetime_ticks(
+					   projectile_object_type));
+		g_object_table[projectile_obj_idx].mobj->damage_amount =
+			g_projectile_type_data
+				.damage[projectile_object_type -
 					PROJECTILE_OBJECT_TYPE_FIRST];
-		FVIEW_calcrotatemove(projectilePitch, projectileYaw,
-				     &g_objectTable[projectileObjIdx]);
-		g_objectTable[projectileObjIdx].mobj->prevWorldX = mineX;
-		g_objectTable[projectileObjIdx].mobj->prevWorldY = mineY;
-		g_objectTable[projectileObjIdx].mobj->prevWorldZ = mineZ;
-		launchOffset =
-			g_projectileTypeData
-				.launchOffset[projectileObjectType -
-					      PROJECTILE_OBJECT_TYPE_FIRST];
-		mineX += Math_MulQ15(g_fviewMoveX_Q15, launchOffset);
-		mineY += Math_MulQ15(g_fviewMoveY_Q15, launchOffset);
-		mineZ += Math_MulQ15(g_fviewMoveZ_Q15, launchOffset);
-		g_objectTable[projectileObjIdx].world_x = mineX;
-		g_objectTable[projectileObjIdx].world_y = mineY;
-		g_objectTable[projectileObjIdx].world_z = mineZ;
-		fsfx_triggerweaponsfx(projectileObjIdx, g_localPlayer);
-		guidanceIndex = (uint16_t)(projectileObjIdx -
-					   g_projectileObjectSlotStart);
-		g_projectileGuidanceStates[guidanceIndex].homingTier = 0;
-		g_projectileGuidanceStates[guidanceIndex].targetObjIdx =
-			targetRef;
-		if (targetRef == UINT16_MAX || targetRef >= 0x8000u) {
-			g_projectileGuidanceStates[guidanceIndex]
-				.targetSignature = 0;
+		fview_calcrotatemove(projectile_pitch, projectile_yaw,
+				     &g_object_table[projectile_obj_idx]);
+		g_object_table[projectile_obj_idx].mobj->prev_world_x = mine_x;
+		g_object_table[projectile_obj_idx].mobj->prev_world_y = mine_y;
+		g_object_table[projectile_obj_idx].mobj->prev_world_z = mine_z;
+		launch_offset =
+			g_projectile_type_data
+				.launch_offset[projectile_object_type -
+					       PROJECTILE_OBJECT_TYPE_FIRST];
+		mine_x += math_mul_q15(g_fview_move_x_q15, launch_offset);
+		mine_y += math_mul_q15(g_fview_move_y_q15, launch_offset);
+		mine_z += math_mul_q15(g_fview_move_z_q15, launch_offset);
+		g_object_table[projectile_obj_idx].world_x = mine_x;
+		g_object_table[projectile_obj_idx].world_y = mine_y;
+		g_object_table[projectile_obj_idx].world_z = mine_z;
+		fsfx_triggerweaponsfx(projectile_obj_idx, g_local_player);
+		guidance_index = (uint16_t)(projectile_obj_idx -
+					    g_projectile_object_slot_start);
+		g_projectile_guidance_states[guidance_index].homing_tier = 0;
+		g_projectile_guidance_states[guidance_index].target_obj_idx =
+			target_ref;
+		if (target_ref == UINT16_MAX || target_ref >= 0x8000u) {
+			g_projectile_guidance_states[guidance_index]
+				.target_signature = 0;
 		} else {
-			g_projectileGuidanceStates[guidanceIndex]
-				.targetSignature =
-				g_objectTable[targetRef].objectSignature;
+			g_projectile_guidance_states[guidance_index]
+				.target_signature =
+				g_object_table[target_ref].object_signature;
 		}
-		g_projectileGuidanceStates[guidanceIndex].sourcePlayerIdx = -1;
-		g_objectTable[projectileObjIdx].mobj->pWarheadGuidance =
-			&g_projectileGuidanceStates[guidanceIndex];
+		g_projectile_guidance_states[guidance_index].source_player_idx =
+			-1;
+		g_object_table[projectile_obj_idx].mobj->p_warhead_guidance =
+			&g_projectile_guidance_states[guidance_index];
 	}
 }
 
-/* Runs the gunner of weapon slot weaponSlotIdx of g_curCraft, the craft in
- * sourceObjIdx, against targetRef. Does nothing when the craft has no
+/* Runs the gunner of weapon slot weapon_slot_idx of g_cur_craft, the craft in
+ * source_obj_idx, against target_ref. Does nothing when the craft has no
  * working systems or the slot's mesh is destroyed. The low 7 bits of the
- * slot's laserCharge are a refire countdown: while it runs, each call takes
- * off a step set by the gunner's skill (pai_GetEffectiveSkillValue), or,
- * while a jamming beam holds the craft (beamEffectAccum[2]), 1 or 2 during
+ * slot's laser_charge are a refire countdown: while it runs, each call takes
+ * off a step set by the gunner's skill (pai_get_effective_skill_value), or,
+ * while a jamming beam holds the craft (beam_effect_accum[2]), 1 or 2 during
  * part of each simulated second and nothing at all from 0x28000 up; and
  * nothing fires. At 0 it is reset to 59 and the turret tries to fire: from
  * the slot's hardpoint (on odd subsecond ticks the mesh's other hardpoint,
  * when it has one; turned with a rotating turret's mesh; on a Super Star
  * Destroyer the hull vertex nearest the target), at a target within
- * 0x14000 world units, unless collide_CheckSweptModelCollision finds the
+ * 0x14000 world units, unless collide_check_swept_model_collision finds the
  * craft's own hull in the way. It aims ahead of a moving target by its last
  * step's motion times the expected flight steps, scaled by the gunner's
- * skill. The shot is an ion laser when the slot's ammoCount is set, else a
+ * skill. The shot is an ion laser when the slot's ammo_count is set, else a
  * rebel (IFF 0 or 2) or imperial turbo laser, the heavier kind (ion turbo
  * laser, turbo laser 2) when the slot is in a group of turbo laser 2
  * weapons; it flies at its type's speed for three times its life, with no
  * homing. The random aim error never applies: its threshold is UINT16_MAX.
  * Writes g_collisionProbeWorld*, g_collisionSegmentStartWorld*, and on a
- * Super Star Destroyer g_turretFireHullMeshOrdinal and
- * g_collideSweepRejectNearStartHits, plus g_rotated*, g_worldLoc* and the
- * trig2 outputs. Expects g_curCraft to be the source's craft and does not
+ * Super Star Destroyer g_turret_fire_hull_mesh_ordinal and
+ * g_collide_sweep_reject_near_start_hits, plus g_rotated*, g_worldLoc* and the
+ * trig2 outputs. Expects g_cur_craft to be the source's craft and does not
  * check it. */
 // FUNCTION: XVT 0x4A7900
-void laser_fireturretslot(uint16_t sourceObjIdx, uint16_t weaponSlotIdx,
-			  uint16_t targetRef)
+void laser_fireturretslot(uint16_t source_obj_idx, uint16_t weapon_slot_idx,
+			  uint16_t target_ref)
 {
 	enum {
 		LASER_CHARGE_VALUE_MASK = 0x7F,
@@ -3092,511 +3201,535 @@ void laser_fireturretslot(uint16_t sourceObjIdx, uint16_t weaponSlotIdx,
 		ANGLE_WRAPPED = 0x8000,
 	};
 
-	struct ObjectRecord *sourceObject;
-	uint16_t effectiveSkill;
-	uint16_t mainHullMeshIdx;
-	uint16_t projectileObjIdx;
-	uint16_t projectileType;
-	uint16_t leadFrames;
-	uint16_t leadScale;
-	uint16_t projectileYaw;
-	int16_t projectilePitch;
-	uint8_t alternateHardpointIdx;
+	struct object_record *source_object;
+	uint16_t effective_skill;
+	uint16_t main_hull_mesh_idx;
+	uint16_t projectile_obj_idx;
+	uint16_t projectile_type;
+	uint16_t lead_frames;
+	uint16_t lead_scale;
+	uint16_t projectile_yaw;
+	int16_t projectile_pitch;
+	uint8_t alternate_hardpoint_idx;
 	uint8_t charge;
-	uint8_t refireCountdown;
-	uint8_t countdownStep;
-	uint8_t previousCountdown;
-	uint8_t nearestRank;
-	int16_t firesIon;
-	int16_t hardpointX;
-	int16_t hardpointY;
-	int16_t hardpointZ;
-	int meshIdx;
-	int modelIndex;
-	uint8_t nearestVertexIdx;
-	int localZ;
-	int localX;
-	int localY;
-	int targetX;
-	int targetY;
-	int targetZ;
-	int launchX;
-	int launchY;
-	int launchZ;
-	int meshType;
-	int collisionBlocked;
-	int guidanceIndex;
-	uint16_t weaponGroupIndex;
-	int previousSlotIdx;
-	int targetObjIdx;
-	uint16_t heavyTurboLaser;
-	int launchOffset;
+	uint8_t refire_countdown;
+	uint8_t countdown_step;
+	uint8_t previous_countdown;
+	uint8_t nearest_rank;
+	int16_t fires_ion;
+	int16_t hardpoint_x;
+	int16_t hardpoint_y;
+	int16_t hardpoint_z;
+	int mesh_idx;
+	int model_index;
+	uint8_t nearest_vertex_idx;
+	int local_z;
+	int local_x;
+	int local_y;
+	int target_x;
+	int target_y;
+	int target_z;
+	int launch_x;
+	int launch_y;
+	int launch_z;
+	int mesh_type;
+	int collision_blocked;
+	int guidance_index;
+	uint16_t weapon_group_index;
+	int previous_slot_idx;
+	int target_obj_idx;
+	uint16_t heavy_turbo_laser;
+	int launch_offset;
 
-	if (g_curCraft->workingSubsystems == 0) {
+	if (g_cur_craft->working_subsystems == 0) {
 		return;
 	}
 
-	modelIndex = g_curCraft->modelIndex;
-	mainHullMeshIdx =
-		g_modelDefs[modelIndex].weaponHardpoints[weaponSlotIdx].meshIdx;
-	alternateHardpointIdx = g_modelDefs[modelIndex]
-					.weaponHardpoints[weaponSlotIdx]
-					.alternateMeshHardpointIdx;
-	meshIdx = mainHullMeshIdx;
-	if (g_curCraft->componentHp[meshIdx] == 0) {
+	model_index = g_cur_craft->model_index;
+	main_hull_mesh_idx = g_model_defs[model_index]
+				     .weapon_hardpoints[weapon_slot_idx]
+				     .mesh_idx;
+	alternate_hardpoint_idx = g_model_defs[model_index]
+					  .weapon_hardpoints[weapon_slot_idx]
+					  .alternate_mesh_hardpoint_idx;
+	mesh_idx = main_hull_mesh_idx;
+	if (g_cur_craft->component_hp[mesh_idx] == 0) {
 		return;
 	}
 
-	sourceObject = &g_objectTable[sourceObjIdx];
-	effectiveSkill = pai_GetEffectiveSkillValue(g_curCraft);
-	charge = (uint8_t)g_curCraft->weaponSlots[weaponSlotIdx].laserCharge;
-	refireCountdown = charge & LASER_CHARGE_VALUE_MASK;
-	if (refireCountdown != 0) {
-		if (g_curCraft->beamEffectAccum[2] != 0) {
-			if ((unsigned int)g_curCraft->beamEffectAccum[2] >=
+	source_object = &g_object_table[source_obj_idx];
+	effective_skill = pai_get_effective_skill_value(g_cur_craft);
+	charge = (uint8_t)g_cur_craft->weapon_slots[weapon_slot_idx]
+			 .laser_charge;
+	refire_countdown = charge & LASER_CHARGE_VALUE_MASK;
+	if (refire_countdown != 0) {
+		if (g_cur_craft->beam_effect_accum[2] != 0) {
+			if ((unsigned int)g_cur_craft->beam_effect_accum[2] >=
 			    BEAM_FIRE_BLOCK_THRESHOLD) {
 				return;
 			}
-			if ((unsigned int)g_curCraft->beamEffectAccum[2] >=
+			if ((unsigned int)g_cur_craft->beam_effect_accum[2] >=
 			    BEAM_SINGLE_DRAIN_THRESHOLD) {
-				if (g_missionElapsedClock.subsecondTicks <
+				if (g_mission_elapsed_clock.subsecond_ticks <
 				    BEAM_DRAIN_TICK_THRESHOLD) {
 					return;
 				}
-				countdownStep = 1;
+				countdown_step = 1;
 			} else if ((unsigned int)
-					   g_curCraft->beamEffectAccum[2] >=
+					   g_cur_craft->beam_effect_accum[2] >=
 				   BEAM_DOUBLE_DRAIN_THRESHOLD) {
-				if (g_missionElapsedClock.subsecondTicks <
+				if (g_mission_elapsed_clock.subsecond_ticks <
 				    BEAM_DRAIN_TICK_THRESHOLD) {
 					return;
 				}
-				countdownStep = 2;
+				countdown_step = 2;
 			} else {
-				countdownStep = 1;
+				countdown_step = 1;
 			}
-		} else if (effectiveSkill >= SKILL_FAST_DRAIN_THRESHOLD) {
-			countdownStep = (uint8_t)(g_elapsedTicks >> 1);
-		} else if (effectiveSkill >= SKILL_MEDIUM_DRAIN_THRESHOLD) {
-			countdownStep = (uint8_t)(g_elapsedTicks >> 2);
-		} else if (effectiveSkill >= SKILL_SLOW_DRAIN_THRESHOLD) {
-			countdownStep = (uint8_t)(g_elapsedTicks /
-						  SKILL_SLOW_DRAIN_DIVISOR);
+		} else if (effective_skill >= SKILL_FAST_DRAIN_THRESHOLD) {
+			countdown_step = (uint8_t)(g_elapsed_ticks >> 1);
+		} else if (effective_skill >= SKILL_MEDIUM_DRAIN_THRESHOLD) {
+			countdown_step = (uint8_t)(g_elapsed_ticks >> 2);
+		} else if (effective_skill >= SKILL_SLOW_DRAIN_THRESHOLD) {
+			countdown_step = (uint8_t)(g_elapsed_ticks /
+						   SKILL_SLOW_DRAIN_DIVISOR);
 		} else {
-			countdownStep = (uint8_t)(g_elapsedTicks >> 3);
+			countdown_step = (uint8_t)(g_elapsed_ticks >> 3);
 		}
-		if (countdownStep == 0) {
-			countdownStep = 1;
+		if (countdown_step == 0) {
+			countdown_step = 1;
 		}
-		previousCountdown = refireCountdown;
-		refireCountdown = (uint8_t)(refireCountdown - countdownStep);
-		if (refireCountdown > previousCountdown) {
-			refireCountdown = 0;
+		previous_countdown = refire_countdown;
+		refire_countdown = (uint8_t)(refire_countdown - countdown_step);
+		if (refire_countdown > previous_countdown) {
+			refire_countdown = 0;
 		}
-		g_curCraft->weaponSlots[weaponSlotIdx].laserCharge =
+		g_cur_craft->weapon_slots[weapon_slot_idx].laser_charge =
 			charge & LASER_CHARGE_FLAG_MASK;
-		g_curCraft->weaponSlots[weaponSlotIdx].laserCharge |=
-			(int8_t)refireCountdown;
+		g_cur_craft->weapon_slots[weapon_slot_idx].laser_charge |=
+			(int8_t)refire_countdown;
 		return;
 	}
 
-	g_curCraft->weaponSlots[weaponSlotIdx].laserCharge =
+	g_cur_craft->weapon_slots[weapon_slot_idx].laser_charge =
 		charge & LASER_CHARGE_FLAG_MASK;
-	g_curCraft->weaponSlots[weaponSlotIdx].laserCharge |=
+	g_cur_craft->weapon_slots[weapon_slot_idx].laser_charge |=
 		TURRET_REFIRE_TICKS;
-	launchX = sourceObject->world_x;
-	launchY = sourceObject->world_y;
-	launchZ = sourceObject->world_z;
-	if (sourceObject->objectType == SUPER_STAR_DESTROYER_OBJECT_TYPE) {
-		Mission_ResolveObjectOrMissionPointWorldLoc(targetRef, 0);
-		localX = g_worldLocX - launchX;
-		localY = g_worldLocY - launchY;
-		localZ = g_worldLocZ - launchZ;
-		if (sourceObject->mobj == NULL) {
+	launch_x = source_object->world_x;
+	launch_y = source_object->world_y;
+	launch_z = source_object->world_z;
+	if (source_object->object_type == SUPER_STAR_DESTROYER_OBJECT_TYPE) {
+		mission_resolve_object_or_mission_point_world_loc(target_ref,
+								  0);
+		local_x = g_world_loc_x - launch_x;
+		local_y = g_world_loc_y - launch_y;
+		local_z = g_world_loc_z - launch_z;
+		if (source_object->mobj == NULL) {
 			return;
 		}
-		if (sourceObject->mobj->orientMatrixDirty != 0) {
-			FVIEW_calcrotatemove(sourceObject->pitch,
-					     sourceObject->yaw, sourceObject);
-			FVIEW_calcrotateorient(sourceObject->roll, 0,
-					       sourceObject);
+		if (source_object->mobj->orient_matrix_dirty != 0) {
+			fview_calcrotatemove(source_object->pitch,
+					     source_object->yaw, source_object);
+			fview_calcrotateorient(source_object->roll, 0,
+					       source_object);
 		}
-		g_rotatedX = Math_Dot3Q15(sourceObject->mobj->cachedSideX,
-					  sourceObject->mobj->cachedSideY,
-					  sourceObject->mobj->cachedSideZ,
-					  localX, localY, localZ);
-		g_rotatedY = -Math_Dot3Q15(sourceObject->mobj->cachedFwdX,
-					   sourceObject->mobj->cachedFwdY,
-					   sourceObject->mobj->cachedFwdZ,
-					   localX, localY, localZ);
-		g_rotatedZ = Math_Dot3Q15(sourceObject->mobj->cachedUpX,
-					  sourceObject->mobj->cachedUpY,
-					  sourceObject->mobj->cachedUpZ, localX,
-					  localY, localZ);
-		mainHullMeshIdx =
-			(uint16_t)ModelMesh_FindNearestMainHullByBounds(
-				sourceObject->objectType, g_rotatedX,
-				g_rotatedY, g_rotatedZ);
-		nearestRank = 0;
-		for (previousSlotIdx = 0; previousSlotIdx < weaponSlotIdx;
-		     ++previousSlotIdx) {
-			if (g_curCraft->turretTargetStates[previousSlotIdx]
-				    .targetObjIdx == targetRef) {
-				++nearestRank;
+		g_rotated_x = math_dot3q15(source_object->mobj->cached_side_x,
+					   source_object->mobj->cached_side_y,
+					   source_object->mobj->cached_side_z,
+					   local_x, local_y, local_z);
+		g_rotated_y = -math_dot3q15(source_object->mobj->cached_fwd_x,
+					    source_object->mobj->cached_fwd_y,
+					    source_object->mobj->cached_fwd_z,
+					    local_x, local_y, local_z);
+		g_rotated_z = math_dot3q15(source_object->mobj->cached_up_x,
+					   source_object->mobj->cached_up_y,
+					   source_object->mobj->cached_up_z,
+					   local_x, local_y, local_z);
+		main_hull_mesh_idx =
+			(uint16_t)model_mesh_find_nearest_main_hull_by_bounds(
+				source_object->object_type, g_rotated_x,
+				g_rotated_y, g_rotated_z);
+		nearest_rank = 0;
+		for (previous_slot_idx = 0; previous_slot_idx < weapon_slot_idx;
+		     ++previous_slot_idx) {
+			if (g_cur_craft->turret_target_states[previous_slot_idx]
+				    .target_obj_idx == target_ref) {
+				++nearest_rank;
 			}
 		}
-		nearestVertexIdx = ModelMesh_FindNearestVertexForPoint(
-			sourceObject->objectType, g_rotatedX, g_rotatedY,
-			g_rotatedZ, mainHullMeshIdx, nearestRank);
-		localX =
-			ModelMesh_GetVertexX(sourceObject->objectType,
-					     mainHullMeshIdx, nearestVertexIdx);
-		localY = -ModelMesh_GetVertexY(sourceObject->objectType,
-					       mainHullMeshIdx,
-					       nearestVertexIdx);
-		localZ =
-			ModelMesh_GetVertexZ(sourceObject->objectType,
-					     mainHullMeshIdx, nearestVertexIdx);
-		g_rotatedX = Math_Dot3Q15(sourceObject->mobj->cachedSideX,
-					  sourceObject->mobj->cachedUpX,
-					  sourceObject->mobj->cachedFwdX,
-					  localX, localZ, localY);
-		g_rotatedY = Math_Dot3Q15(sourceObject->mobj->cachedSideY,
-					  sourceObject->mobj->cachedUpY,
-					  sourceObject->mobj->cachedFwdY,
-					  localX, localZ, localY);
-		g_rotatedZ = Math_Dot3Q15(sourceObject->mobj->cachedSideZ,
-					  sourceObject->mobj->cachedUpZ,
-					  sourceObject->mobj->cachedFwdZ,
-					  localX, localZ, localY);
+		nearest_vertex_idx = model_mesh_find_nearest_vertex_for_point(
+			source_object->object_type, g_rotated_x, g_rotated_y,
+			g_rotated_z, main_hull_mesh_idx, nearest_rank);
+		local_x = model_mesh_get_vertex_x(source_object->object_type,
+						  main_hull_mesh_idx,
+						  nearest_vertex_idx);
+		local_y = -model_mesh_get_vertex_y(source_object->object_type,
+						   main_hull_mesh_idx,
+						   nearest_vertex_idx);
+		local_z = model_mesh_get_vertex_z(source_object->object_type,
+						  main_hull_mesh_idx,
+						  nearest_vertex_idx);
+		g_rotated_x = math_dot3q15(source_object->mobj->cached_side_x,
+					   source_object->mobj->cached_up_x,
+					   source_object->mobj->cached_fwd_x,
+					   local_x, local_z, local_y);
+		g_rotated_y = math_dot3q15(source_object->mobj->cached_side_y,
+					   source_object->mobj->cached_up_y,
+					   source_object->mobj->cached_fwd_y,
+					   local_x, local_z, local_y);
+		g_rotated_z = math_dot3q15(source_object->mobj->cached_side_z,
+					   source_object->mobj->cached_up_z,
+					   source_object->mobj->cached_fwd_z,
+					   local_x, local_z, local_y);
 	} else {
-		if (alternateHardpointIdx == UINT8_MAX ||
-		    (g_missionElapsedClock.subsecondTicks & 1) == 0) {
-			hardpointX = g_modelDefs[modelIndex]
-					     .weaponHardpoints[weaponSlotIdx]
-					     .x;
-			hardpointY = g_modelDefs[modelIndex]
-					     .weaponHardpoints[weaponSlotIdx]
-					     .y;
-			hardpointZ = g_modelDefs[modelIndex]
-					     .weaponHardpoints[weaponSlotIdx]
-					     .z;
-		} else if (sourceObject->objectType ==
+		if (alternate_hardpoint_idx == UINT8_MAX ||
+		    (g_mission_elapsed_clock.subsecond_ticks & 1) == 0) {
+			hardpoint_x =
+				g_model_defs[model_index]
+					.weapon_hardpoints[weapon_slot_idx]
+					.x;
+			hardpoint_y =
+				g_model_defs[model_index]
+					.weapon_hardpoints[weapon_slot_idx]
+					.y;
+			hardpoint_z =
+				g_model_defs[model_index]
+					.weapon_hardpoints[weapon_slot_idx]
+					.z;
+		} else if (source_object->object_type ==
 			   IMPERIAL_STAR_DESTROYER_OBJECT_TYPE) {
-			hardpointX = (int16_t)(ModelMesh_GetHardpointX(
-						       sourceObject->objectType,
-						       meshIdx,
-						       alternateHardpointIdx) >>
-					       1);
-			hardpointY = (int16_t)(ModelMesh_GetHardpointY(
-						       sourceObject->objectType,
-						       meshIdx,
-						       alternateHardpointIdx) >>
-					       1);
-			hardpointZ = (int16_t)(ModelMesh_GetHardpointZ(
-						       sourceObject->objectType,
-						       meshIdx,
-						       alternateHardpointIdx) >>
-					       1);
+			hardpoint_x =
+				(int16_t)(model_mesh_get_hardpoint_x(
+						  source_object->object_type,
+						  mesh_idx,
+						  alternate_hardpoint_idx) >>
+					  1);
+			hardpoint_y =
+				(int16_t)(model_mesh_get_hardpoint_y(
+						  source_object->object_type,
+						  mesh_idx,
+						  alternate_hardpoint_idx) >>
+					  1);
+			hardpoint_z =
+				(int16_t)(model_mesh_get_hardpoint_z(
+						  source_object->object_type,
+						  mesh_idx,
+						  alternate_hardpoint_idx) >>
+					  1);
 		} else {
-			hardpointX = (int16_t)ModelMesh_GetHardpointX(
-				sourceObject->objectType, meshIdx,
-				alternateHardpointIdx);
-			hardpointY = (int16_t)ModelMesh_GetHardpointY(
-				sourceObject->objectType, meshIdx,
-				alternateHardpointIdx);
-			hardpointZ = (int16_t)ModelMesh_GetHardpointZ(
-				sourceObject->objectType, meshIdx,
-				alternateHardpointIdx);
+			hardpoint_x = (int16_t)model_mesh_get_hardpoint_x(
+				source_object->object_type, mesh_idx,
+				alternate_hardpoint_idx);
+			hardpoint_y = (int16_t)model_mesh_get_hardpoint_y(
+				source_object->object_type, mesh_idx,
+				alternate_hardpoint_idx);
+			hardpoint_z = (int16_t)model_mesh_get_hardpoint_z(
+				source_object->object_type, mesh_idx,
+				alternate_hardpoint_idx);
 		}
 		{
-			int sourceObjectType = sourceObject->objectType;
+			int source_object_type = source_object->object_type;
 
-			if (sourceObjectType < MODEL_TYPE_CACHE_CAPACITY) {
-				meshType =
-					ModelMesh_GetCachedObjectTypeMeshType(
-						sourceObjectType, meshIdx);
+			if (source_object_type < MODEL_TYPE_CACHE_CAPACITY) {
+				mesh_type =
+					model_mesh_get_cached_object_type_mesh_type(
+						source_object_type, mesh_idx);
 			} else {
-				meshType = ModelMesh_GetObjectTypeMeshType(
-					sourceObjectType, meshIdx);
+				mesh_type =
+					model_mesh_get_object_type_mesh_type(
+						source_object_type, mesh_idx);
 			}
 		}
-		if (meshType == MESH_COMPONENT_21_ROTATING_LASR_TUR) {
-			g_rotatedX = hardpointX;
-			g_rotatedY = hardpointY;
-			g_rotatedZ = hardpointZ;
-			if (sourceObject->objectType ==
+		if (mesh_type == MESH_COMPONENT_21_ROTATING_LASR_TUR) {
+			g_rotated_x = hardpoint_x;
+			g_rotated_y = hardpoint_y;
+			g_rotated_z = hardpoint_z;
+			if (source_object->object_type ==
 			    IMPERIAL_STAR_DESTROYER_OBJECT_TYPE) {
-				g_rotatedX *= 2;
-				g_rotatedY *= 2;
-				g_rotatedZ *= 2;
+				g_rotated_x *= 2;
+				g_rotated_y *= 2;
+				g_rotated_z *= 2;
 			}
-			ModelMesh_ApplyAnimatedMeshRotationToPoint(
-				(int16_t)(g_curCraft->meshRotation[meshIdx]
+			model_mesh_apply_animated_mesh_rotation_to_point(
+				(int16_t)(g_cur_craft->mesh_rotation[mesh_idx]
 					  << ANIMATED_MESH_ANGLE_SHIFT),
-				sourceObject->objectType, meshIdx, g_rotatedX,
-				g_rotatedY, g_rotatedZ);
-			if (sourceObject->objectType ==
+				source_object->object_type, mesh_idx,
+				g_rotated_x, g_rotated_y, g_rotated_z);
+			if (source_object->object_type ==
 			    IMPERIAL_STAR_DESTROYER_OBJECT_TYPE) {
-				g_rotatedX >>= 1;
-				g_rotatedY >>= 1;
-				g_rotatedZ >>= 1;
+				g_rotated_x >>= 1;
+				g_rotated_y >>= 1;
+				g_rotated_z >>= 1;
 			}
-			hardpointX = (int16_t)g_rotatedX;
-			hardpointY = (int16_t)g_rotatedY;
-			hardpointZ = (int16_t)g_rotatedZ;
+			hardpoint_x = (int16_t)g_rotated_x;
+			hardpoint_y = (int16_t)g_rotated_y;
+			hardpoint_z = (int16_t)g_rotated_z;
 		}
-		pai_calcrotatedpoint(sourceObject, hardpointX, hardpointZ,
-				     hardpointY);
+		pai_calcrotatedpoint(source_object, hardpoint_x, hardpoint_z,
+				     hardpoint_y);
 	}
-	if (sourceObject->objectType == IMPERIAL_STAR_DESTROYER_OBJECT_TYPE) {
-		g_rotatedX *= 2;
-		g_rotatedY *= 2;
-		g_rotatedZ *= 2;
+	if (source_object->object_type == IMPERIAL_STAR_DESTROYER_OBJECT_TYPE) {
+		g_rotated_x *= 2;
+		g_rotated_y *= 2;
+		g_rotated_z *= 2;
 	}
-	launchX += g_rotatedX;
-	launchY += g_rotatedY;
-	launchZ += g_rotatedZ;
+	launch_x += g_rotated_x;
+	launch_y += g_rotated_y;
+	launch_z += g_rotated_z;
 
-	targetObjIdx = targetRef;
-	Mission_ResolveObjectOrMissionPointWorldLoc((uint16_t)targetObjIdx, 0);
-	targetX = g_worldLocX;
-	targetY = g_worldLocY;
-	targetZ = g_worldLocZ;
+	target_obj_idx = target_ref;
+	mission_resolve_object_or_mission_point_world_loc(
+		(uint16_t)target_obj_idx, 0);
+	target_x = g_world_loc_x;
+	target_y = g_world_loc_y;
+	target_z = g_world_loc_z;
 	{
-		int targetDelta[3];
+		int target_delta[3];
 
-		targetDelta[0] = targetX - launchX;
-		targetDelta[1] = targetY - launchY;
-		targetDelta[2] = targetZ - launchZ;
+		target_delta[0] = target_x - launch_x;
+		target_delta[1] = target_y - launch_y;
+		target_delta[2] = target_z - launch_z;
 		if ((unsigned int)collide_roughdistance3d(
-			    targetDelta[0], targetDelta[1], targetDelta[2]) >
+			    target_delta[0], target_delta[1], target_delta[2]) >
 		    TURRET_FIRE_RANGE) {
 			return;
 		}
-		g_collisionProbeWorldX = targetX;
-		g_collisionSegmentStartWorldX = launchX;
-		g_collisionProbeWorldY = targetY;
-		g_collisionSegmentStartWorldY = launchY;
-		g_collisionProbeWorldZ = targetZ;
-		g_collisionSegmentStartWorldZ = launchZ;
-		if (sourceObject->objectType ==
+		g_collision_probe_world_x = target_x;
+		g_collision_segment_start_world_x = launch_x;
+		g_collision_probe_world_y = target_y;
+		g_collision_segment_start_world_y = launch_y;
+		g_collision_probe_world_z = target_z;
+		g_collision_segment_start_world_z = launch_z;
+		if (source_object->object_type ==
 		    SUPER_STAR_DESTROYER_OBJECT_TYPE) {
-			g_turretFireHullMeshOrdinal = mainHullMeshIdx;
-			g_collideSweepRejectNearStartHits = 1;
-			collisionBlocked = collide_CheckSweptModelCollision(
-				sourceObjIdx, sourceObjIdx);
-			g_collideSweepRejectNearStartHits = 0;
+			g_turret_fire_hull_mesh_ordinal = main_hull_mesh_idx;
+			g_collide_sweep_reject_near_start_hits = 1;
+			collision_blocked = collide_check_swept_model_collision(
+				source_obj_idx, source_obj_idx);
+			g_collide_sweep_reject_near_start_hits = 0;
 		} else {
-			collisionBlocked = collide_CheckSweptModelCollision(
-				sourceObjIdx, sourceObjIdx);
+			collision_blocked = collide_check_swept_model_collision(
+				source_obj_idx, source_obj_idx);
 		}
-		if (collisionBlocked != 0) {
+		if (collision_blocked != 0) {
 			return;
 		}
 
-		firesIon = g_curCraft->weaponSlots[weaponSlotIdx].ammoCount;
-		if (g_objectTable[targetObjIdx].mobj != NULL) {
-			trig2_ctop(targetDelta[0], targetDelta[1],
-				   targetDelta[2]);
-			trig2_polardistance *= g_simStepsPerSecond;
-			if (firesIon != 0) {
+		fires_ion =
+			g_cur_craft->weapon_slots[weapon_slot_idx].ammo_count;
+		if (g_object_table[target_obj_idx].mobj != NULL) {
+			trig2_ctop(target_delta[0], target_delta[1],
+				   target_delta[2]);
+			trig2_polardistance *= g_sim_steps_per_second;
+			if (fires_ion != 0) {
 				trig2_polardistance >>= 15;
 			} else {
 				trig2_polardistance >>= 14;
 			}
-			leadFrames = (uint16_t)trig2_polardistance;
-			leadFrames = (uint16_t)(leadFrames + (GameRand() & 3));
-			--leadFrames;
-			if (g_objectTable[targetObjIdx].mobj->speed == 0) {
-				leadFrames = 0;
+			lead_frames = (uint16_t)trig2_polardistance;
+			lead_frames =
+				(uint16_t)(lead_frames + (game_rand() & 3));
+			--lead_frames;
+			if (g_object_table[target_obj_idx].mobj->speed == 0) {
+				lead_frames = 0;
 			}
-			leadScale = (uint16_t)MATH2_fraction(leadFrames,
-							     effectiveSkill);
-			targetX +=
-				leadScale *
+			lead_scale = (uint16_t)math2_fraction(lead_frames,
+							      effective_skill);
+			target_x +=
+				lead_scale *
 				(
 #ifdef XVT_MODERN
-					(XvtFlightTiming_IsUnlocked()
-						 ? XvtReferenceMotion_AxisDisplacement(
-							   targetRef, 0) +
-							   (targetX -
-							    g_objectTable
-								    [targetObjIdx]
+					(xvt_flight_timing_is_unlocked()
+						 ? xvt_reference_motion_axis_displacement(
+							   target_ref, 0) +
+							   (target_x -
+							    g_object_table
+								    [target_obj_idx]
 									    .world_x)
-						 : (targetX -
-						    g_objectTable[targetObjIdx]
-							    .mobj->prevWorldX))
+						 : (target_x -
+						    g_object_table[target_obj_idx]
+							    .mobj
+							    ->prev_world_x))
 #else
-					targetX - g_objectTable[targetObjIdx]
-							  .mobj->prevWorldX
+					target_x -
+					g_object_table[target_obj_idx]
+						.mobj->prev_world_x
 #endif
 				);
-			targetY +=
-				leadScale *
+			target_y +=
+				lead_scale *
 				(
 #ifdef XVT_MODERN
-					(XvtFlightTiming_IsUnlocked()
-						 ? XvtReferenceMotion_AxisDisplacement(
-							   targetRef, 1) +
-							   (targetY -
-							    g_objectTable
-								    [targetObjIdx]
+					(xvt_flight_timing_is_unlocked()
+						 ? xvt_reference_motion_axis_displacement(
+							   target_ref, 1) +
+							   (target_y -
+							    g_object_table
+								    [target_obj_idx]
 									    .world_y)
-						 : (targetY -
-						    g_objectTable[targetObjIdx]
-							    .mobj->prevWorldY))
+						 : (target_y -
+						    g_object_table[target_obj_idx]
+							    .mobj
+							    ->prev_world_y))
 #else
-					targetY - g_objectTable[targetObjIdx]
-							  .mobj->prevWorldY
+					target_y -
+					g_object_table[target_obj_idx]
+						.mobj->prev_world_y
 #endif
 				);
-			targetZ +=
-				leadScale *
+			target_z +=
+				lead_scale *
 				(
 #ifdef XVT_MODERN
-					(XvtFlightTiming_IsUnlocked()
-						 ? XvtReferenceMotion_AxisDisplacement(
-							   targetRef, 2) +
-							   (targetZ -
-							    g_objectTable
-								    [targetObjIdx]
+					(xvt_flight_timing_is_unlocked()
+						 ? xvt_reference_motion_axis_displacement(
+							   target_ref, 2) +
+							   (target_z -
+							    g_object_table
+								    [target_obj_idx]
 									    .world_z)
-						 : (targetZ -
-						    g_objectTable[targetObjIdx]
-							    .mobj->prevWorldZ))
+						 : (target_z -
+						    g_object_table[target_obj_idx]
+							    .mobj
+							    ->prev_world_z))
 #else
-					targetZ - g_objectTable[targetObjIdx]
-							  .mobj->prevWorldZ
+					target_z -
+					g_object_table[target_obj_idx]
+						.mobj->prev_world_z
 #endif
 				);
 		}
 	}
-	trig2_ctop(targetX - launchX, targetY - launchY, targetZ - launchZ);
-	projectileYaw = trig2_xyangle;
-	projectilePitch = trig2_pitch;
+	trig2_ctop(target_x - launch_x, target_y - launch_y,
+		   target_z - launch_z);
+	projectile_yaw = trig2_xyangle;
+	projectile_pitch = trig2_pitch;
 	{
-		uint16_t accuracyThreshold = UINT16_MAX;
+		uint16_t accuracy_threshold = UINT16_MAX;
 
-		if ((uint16_t)GameRand() > accuracyThreshold) {
-			int16_t aimError =
-				(int16_t)((GameRand() - AIM_ERROR_BASE) &
+		if ((uint16_t)game_rand() > accuracy_threshold) {
+			int16_t aim_error =
+				(int16_t)((game_rand() - AIM_ERROR_BASE) &
 					  AIM_ERROR_MASK);
 
-			if ((uint16_t)GameRand() >= 0x8000u) {
-				aimError = (int16_t)-aimError;
+			if ((uint16_t)game_rand() >= 0x8000u) {
+				aim_error = (int16_t)-aim_error;
 			}
-			projectileYaw = (uint16_t)(projectileYaw + aimError);
-			aimError = (int16_t)((GameRand() - AIM_ERROR_BASE) &
-					     AIM_ERROR_MASK);
-			if ((uint16_t)GameRand() >= 0x8000u) {
-				projectilePitch =
-					(int16_t)(projectilePitch - aimError);
-				if ((projectilePitch & ANGLE_WRAPPED) != 0) {
-					projectilePitch = 0;
+			projectile_yaw = (uint16_t)(projectile_yaw + aim_error);
+			aim_error = (int16_t)((game_rand() - AIM_ERROR_BASE) &
+					      AIM_ERROR_MASK);
+			if ((uint16_t)game_rand() >= 0x8000u) {
+				projectile_pitch =
+					(int16_t)(projectile_pitch - aim_error);
+				if ((projectile_pitch & ANGLE_WRAPPED) != 0) {
+					projectile_pitch = 0;
 				}
 			} else {
-				projectilePitch =
-					(int16_t)(projectilePitch + aimError);
-				if ((projectilePitch & ANGLE_WRAPPED) != 0) {
-					projectilePitch = INT16_MAX;
+				projectile_pitch =
+					(int16_t)(projectile_pitch + aim_error);
+				if ((projectile_pitch & ANGLE_WRAPPED) != 0) {
+					projectile_pitch = INT16_MAX;
 				}
 			}
 		}
 	}
-	projectileObjIdx =
-		Object_AllocSlotForGenus(CRAFT_GENUS_OTHER_PROJECTILE);
-	if (projectileObjIdx == UINT16_MAX) {
+	projectile_obj_idx =
+		object_alloc_slot_for_genus(CRAFT_GENUS_OTHER_PROJECTILE);
+	if (projectile_obj_idx == UINT16_MAX) {
 		return;
 	}
 
-	g_objectTable[projectileObjIdx].mobj->family = 1;
-	g_objectTable[projectileObjIdx].genusId = CRAFT_GENUS_OTHER_PROJECTILE;
-	g_objectTable[projectileObjIdx].mobj->iff = sourceObject->mobj->iff;
-	heavyTurboLaser = 0;
-	for (weaponGroupIndex = 0; weaponGroupIndex < WEAPON_GROUP_COUNT;
-	     ++weaponGroupIndex) {
-		if (g_modelDefs[modelIndex]
-				    .laserGroupFirstSlot[weaponGroupIndex] <=
-			    weaponSlotIdx &&
-		    g_modelDefs[modelIndex]
-				    .laserGroupLastSlot[weaponGroupIndex] >=
-			    weaponSlotIdx &&
-		    (g_modelDefs[modelIndex]
-				     .laserGroupWeaponType[weaponGroupIndex] ==
+	g_object_table[projectile_obj_idx].mobj->family = 1;
+	g_object_table[projectile_obj_idx].genus_id =
+		CRAFT_GENUS_OTHER_PROJECTILE;
+	g_object_table[projectile_obj_idx].mobj->iff = source_object->mobj->iff;
+	heavy_turbo_laser = 0;
+	for (weapon_group_index = 0; weapon_group_index < WEAPON_GROUP_COUNT;
+	     ++weapon_group_index) {
+		if (g_model_defs[model_index].laser_group_first_slot
+				    [weapon_group_index] <= weapon_slot_idx &&
+		    g_model_defs[model_index].laser_group_last_slot
+				    [weapon_group_index] >= weapon_slot_idx &&
+		    (g_model_defs[model_index].laser_group_weapon_type
+				     [weapon_group_index] ==
 			     PROJECTILE_OBJECT_TYPE_REBEL_TURBO_LASER_2 ||
-		     g_modelDefs[modelIndex]
-				     .laserGroupWeaponType[weaponGroupIndex] ==
+		     g_model_defs[model_index].laser_group_weapon_type
+				     [weapon_group_index] ==
 			     PROJECTILE_OBJECT_TYPE_IMPERIAL_TURBO_LASER_2)) {
-			heavyTurboLaser = 1;
+			heavy_turbo_laser = 1;
 		}
 	}
-	if (firesIon != 0) {
-		projectileType =
-			heavyTurboLaser != 0
+	if (fires_ion != 0) {
+		projectile_type =
+			heavy_turbo_laser != 0
 				? PROJECTILE_OBJECT_TYPE_ION_TURBO_LASER
 				: PROJECTILE_OBJECT_TYPE_ION_LASER;
-	} else if (sourceObject->mobj->iff == 0 ||
-		   sourceObject->mobj->iff == 2) {
-		projectileType =
-			heavyTurboLaser != 0
+	} else if (source_object->mobj->iff == 0 ||
+		   source_object->mobj->iff == 2) {
+		projectile_type =
+			heavy_turbo_laser != 0
 				? PROJECTILE_OBJECT_TYPE_REBEL_TURBO_LASER_2
 				: PROJECTILE_OBJECT_TYPE_REBEL_TURBO_LASER;
 	} else {
-		projectileType =
-			heavyTurboLaser != 0
+		projectile_type =
+			heavy_turbo_laser != 0
 				? PROJECTILE_OBJECT_TYPE_IMPERIAL_TURBO_LASER_2
 				: PROJECTILE_OBJECT_TYPE_IMPERIAL_TURBO_LASER;
 	}
-	g_objectTable[projectileObjIdx].objectType = (uint8_t)projectileType;
-	g_objectTable[projectileObjIdx].mobj->secondsAlive = 1;
-	g_objectTable[projectileObjIdx].mobj->sourceObjIdx = sourceObjIdx;
-	g_objectTable[projectileObjIdx].mobj->sourceObjectType =
-		sourceObject->objectType;
-	g_objectTable[projectileObjIdx].pitch = projectilePitch;
-	g_objectTable[projectileObjIdx].roll = 0;
-	g_objectTable[projectileObjIdx].yaw = (int16_t)projectileYaw;
-	g_objectTable[projectileObjIdx].mobj->orientMatrixDirty = 1;
-	g_objectTable[projectileObjIdx].mobj->moveVectorDirty =
-		g_objectTable[projectileObjIdx].mobj->orientMatrixDirty;
-	g_objectTable[projectileObjIdx].mobj->speed =
-		g_projectileTypeData
-			.speed[projectileType - PROJECTILE_OBJECT_TYPE_FIRST];
-	g_objectTable[projectileObjIdx].mobj->damageAmount =
-		g_projectileTypeData
-			.damage[projectileType - PROJECTILE_OBJECT_TYPE_FIRST];
-	g_objectTable[projectileObjIdx].mobj->lifetimeTimer =
+	g_object_table[projectile_obj_idx].object_type =
+		(uint8_t)projectile_type;
+	g_object_table[projectile_obj_idx].mobj->seconds_alive = 1;
+	g_object_table[projectile_obj_idx].mobj->source_obj_idx =
+		source_obj_idx;
+	g_object_table[projectile_obj_idx].mobj->source_object_type =
+		source_object->object_type;
+	g_object_table[projectile_obj_idx].pitch = projectile_pitch;
+	g_object_table[projectile_obj_idx].roll = 0;
+	g_object_table[projectile_obj_idx].yaw = (int16_t)projectile_yaw;
+	g_object_table[projectile_obj_idx].mobj->orient_matrix_dirty = 1;
+	g_object_table[projectile_obj_idx].mobj->move_vector_dirty =
+		g_object_table[projectile_obj_idx].mobj->orient_matrix_dirty;
+	g_object_table[projectile_obj_idx].mobj->speed =
+		g_projectile_type_data
+			.speed[projectile_type - PROJECTILE_OBJECT_TYPE_FIRST];
+	g_object_table[projectile_obj_idx].mobj->damage_amount =
+		g_projectile_type_data
+			.damage[projectile_type - PROJECTILE_OBJECT_TYPE_FIRST];
+	g_object_table[projectile_obj_idx].mobj->lifetime_timer =
 		(uint16_t)(PROJECTILE_LIFETIME_SCALE *
-			   laser_GetProjectileLifetimeTicks(projectileType));
-	FVIEW_calcrotatemove(projectilePitch, (int16_t)projectileYaw,
-			     &g_objectTable[projectileObjIdx]);
-	g_objectTable[projectileObjIdx].mobj->prevWorldX = launchX;
-	g_objectTable[projectileObjIdx].mobj->prevWorldY = launchY;
-	g_objectTable[projectileObjIdx].mobj->prevWorldZ = launchZ;
-	launchOffset = (int16_t)g_projectileTypeData
-			       .launchOffset[projectileType -
-					     PROJECTILE_OBJECT_TYPE_FIRST];
-	launchX += Math_MulQ15(g_fviewMoveX_Q15, launchOffset);
-	launchY += Math_MulQ15(g_fviewMoveY_Q15, launchOffset);
-	launchZ += Math_MulQ15(g_fviewMoveZ_Q15, launchOffset);
-	g_objectTable[projectileObjIdx].world_x = launchX;
-	g_objectTable[projectileObjIdx].world_y = launchY;
-	g_objectTable[projectileObjIdx].world_z = launchZ;
+			   laser_get_projectile_lifetime_ticks(
+				   projectile_type));
+	fview_calcrotatemove(projectile_pitch, (int16_t)projectile_yaw,
+			     &g_object_table[projectile_obj_idx]);
+	g_object_table[projectile_obj_idx].mobj->prev_world_x = launch_x;
+	g_object_table[projectile_obj_idx].mobj->prev_world_y = launch_y;
+	g_object_table[projectile_obj_idx].mobj->prev_world_z = launch_z;
+	launch_offset = (int16_t)g_projectile_type_data
+				.launch_offset[projectile_type -
+					       PROJECTILE_OBJECT_TYPE_FIRST];
+	launch_x += math_mul_q15(g_fview_move_x_q15, launch_offset);
+	launch_y += math_mul_q15(g_fview_move_y_q15, launch_offset);
+	launch_z += math_mul_q15(g_fview_move_z_q15, launch_offset);
+	g_object_table[projectile_obj_idx].world_x = launch_x;
+	g_object_table[projectile_obj_idx].world_y = launch_y;
+	g_object_table[projectile_obj_idx].world_z = launch_z;
 
-	guidanceIndex =
-		(uint16_t)(projectileObjIdx - g_projectileObjectSlotStart);
-	g_projectileGuidanceStates[guidanceIndex].homingTier = 0;
-	g_projectileGuidanceStates[guidanceIndex].targetObjIdx = targetRef;
-	if (targetRef == UINT16_MAX || targetRef >= 0x8000u) {
-		g_projectileGuidanceStates[guidanceIndex].targetSignature = 0;
+	guidance_index =
+		(uint16_t)(projectile_obj_idx - g_projectile_object_slot_start);
+	g_projectile_guidance_states[guidance_index].homing_tier = 0;
+	g_projectile_guidance_states[guidance_index].target_obj_idx =
+		target_ref;
+	if (target_ref == UINT16_MAX || target_ref >= 0x8000u) {
+		g_projectile_guidance_states[guidance_index].target_signature =
+			0;
 	} else {
-		g_projectileGuidanceStates[guidanceIndex].targetSignature =
-			g_objectTable[targetRef].objectSignature;
+		g_projectile_guidance_states[guidance_index].target_signature =
+			g_object_table[target_ref].object_signature;
 	}
-	g_projectileGuidanceStates[guidanceIndex].cruiseSpeed =
-		g_objectTable[projectileObjIdx].mobj->speed;
-	g_projectileGuidanceStates[guidanceIndex].sourcePlayerIdx = -1;
-	g_objectTable[projectileObjIdx].mobj->pWarheadGuidance =
-		&g_projectileGuidanceStates[guidanceIndex];
-	fsfx_triggerweaponsfx(projectileObjIdx, g_localPlayer);
+	g_projectile_guidance_states[guidance_index].cruise_speed =
+		g_object_table[projectile_obj_idx].mobj->speed;
+	g_projectile_guidance_states[guidance_index].source_player_idx = -1;
+	g_object_table[projectile_obj_idx].mobj->p_warhead_guidance =
+		&g_projectile_guidance_states[guidance_index];
+	fsfx_triggerweaponsfx(projectile_obj_idx, g_local_player);
 }

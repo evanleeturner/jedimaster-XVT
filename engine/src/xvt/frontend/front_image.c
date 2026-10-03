@@ -19,70 +19,71 @@
 
 #pragma pack(push, 1)
 
-/* A .bmp file's first header, as FrontImage_SaveBmpFile writes it and
- * FrontImage_LoadBmpPaletteFile reads it. */
-struct FrontImageBmpFileHeader {
+/* A .bmp file's first header, as front_image_save_bmp_file writes it and
+ * front_image_load_bmp_palette_file reads it. */
+struct front_image_bmp_file_header {
 	/* 0x4D42, "BM": written by the save, checked by the palette load. */
 	uint16_t signature;
-	uint32_t fileSize; /* The file's size in bytes; written, never read. */
+	uint32_t file_size; /* The file's size in bytes; written, never read. */
 	/* Left unset by the save, which writes whatever it holds; not read. */
 	uint16_t reserved0;
 	/* Left unset by the save, which writes whatever it holds; not read. */
 	uint16_t reserved1;
-	uint32_t pixelOffset; /* Where the pixels start, 54; not read. */
+	uint32_t pixel_offset; /* Where the pixels start, 54; not read. */
 };
 
-/* A .bmp file's 40-byte info header, as FrontImage_SaveBmpFile writes it and
- * FrontImage_LoadBmpPaletteFile reads it. */
-struct FrontImageBmpInfoHeader {
-	uint32_t headerSize; /* This header's size, written as 40; not read. */
+/* A .bmp file's 40-byte info header, as front_image_save_bmp_file writes it and
+ * front_image_load_bmp_palette_file reads it. */
+struct front_image_bmp_info_header {
+	uint32_t header_size; /* This header's size, written as 40; not read. */
 	/* Width in pixels, written rounded up to even; not read. */
 	int32_t width;
 	int32_t height;	 /* Height in pixels; written, not read. */
 	uint16_t planes; /* Written as 1; the palette load needs 1. */
 	/* Written as 24; the palette load takes 16 entries for 4 and 256 for 8,
 	 * and none otherwise. */
-	uint16_t bitsPerPixel;
-	uint32_t compression;	  /* Written as 0, none; not read. */
-	uint32_t imageSize;	  /* Pixel bytes after the headers; not read. */
-	int32_t pixelsPerMeterX;  /* Written as 0; not read. */
-	int32_t pixelsPerMeterY;  /* Written as 0; not read. */
-	uint32_t colorsUsed;	  /* Written as 0; not read. */
-	uint32_t colorsImportant; /* Written as 0; not read. */
+	uint16_t bits_per_pixel;
+	uint32_t compression; /* Written as 0, none; not read. */
+	uint32_t image_size;  /* Pixel bytes after the headers; not read. */
+	int32_t pixels_per_meter_x; /* Written as 0; not read. */
+	int32_t pixels_per_meter_y; /* Written as 0; not read. */
+	uint32_t colors_used;	    /* Written as 0; not read. */
+	uint32_t colors_important;  /* Written as 0; not read. */
 };
 
 #pragma pack(pop)
-typedef char xvt_size_FrontImageBmpFileHeader
-	[(sizeof(struct FrontImageBmpFileHeader) == 14) ? 1 : -1];
-typedef char xvt_size_FrontImageBmpInfoHeader
-	[(sizeof(struct FrontImageBmpInfoHeader) == 40) ? 1 : -1];
+typedef char xvt_size_front_image_bmp_file_header
+	[(sizeof(struct front_image_bmp_file_header) == 14) ? 1 : -1];
+typedef char xvt_size_front_image_bmp_info_header
+	[(sizeof(struct front_image_bmp_info_header) == 40) ? 1 : -1];
 
 /* Per palette index of the image being remapped, the display palette index
- * FrontImage_RemapPaletteIndex chose for it, or 0x100 while none is chosen.
- * FrontImage_RemapPalette sets every entry to 0x100 at the start of each image;
+ * front_image_remap_palette_index chose for it, or 0x100 while none is chosen.
+ * front_image_remap_palette sets every entry to 0x100 at the start of each image;
  * only these two functions write it. */
 // GLOBAL: XVT 0x664C88
-static int16_t g_paletteRemapCache[256] = {0};
+static int16_t g_palette_remap_cache[256] = {0};
 
-/* Loads the .bmp file fileName with FrontImage_LoadBmpFile, remapped to the
+/* Loads the .bmp file fileName with front_image_load_bmp_file, remapped to the
  * display palette at 8 bits per pixel and RLE-compressed, and registers it
- * under name in g_frontState.resourceTable. Returns 1, or 0 when fileName or
+ * under name in g_front_state.resource_table. Returns 1, or 0 when fileName or
  * name is empty, name is already registered, or the allocation or the load
  * fails. The name is copied with strncpy into 64 bytes, with no NUL when it is
  * 64 characters or longer. Does not check the table's room. */
 // FUNCTION: XVT 0x4B4A60
-int FrontImage_RegisterResourceDefault(const char *fileName, const char *name)
+int front_image_register_resource_default(const char *file_name,
+					  const char *name)
 {
-	struct ImageResource *image;
-	struct FrontImageResourceRecord entry;
+	struct image_resource *image;
+	struct front_image_resource_record entry;
 
-	if (*fileName == '\0') {
+	if (*file_name == '\0') {
 		return 0;
 	}
 	if (*name == '\0') {
 		return 0;
 	}
-	if (FrontImage_FindResourceByName(name) != -1) {
+	if (front_image_find_resource_by_name(name) != -1) {
 		return 0;
 	}
 
@@ -91,33 +92,34 @@ int FrontImage_RegisterResourceDefault(const char *fileName, const char *name)
 		return 0;
 	}
 	memset(image, 0, sizeof(*image));
-	if (FrontImage_LoadBmpFile(fileName, image, 1, 1) == 0) {
+	if (front_image_load_bmp_file(file_name, image, 1, 1) == 0) {
 		free(image);
 		return 0;
 	}
 
 	entry.image = image;
 	strncpy(entry.name, name, sizeof(entry.name));
-	FrontImage_InsertResourceSorted(&entry);
+	front_image_insert_resource_sorted(&entry);
 	return 1;
 }
 
-/* Does what FrontImage_RegisterResourceDefault does, with the caller's
- * remapToDisplayPalette and compressRLE: each has effect only when it is 1. */
+/* Does what front_image_register_resource_default does, with the caller's
+ * remap_to_display_palette and compress_rle: each has effect only when it is 1. */
 // FUNCTION: XVT 0x4B4B20
-int FrontImage_RegisterResource(const char *fileName, const char *name,
-				int remapToDisplayPalette, int compressRLE)
+int front_image_register_resource(const char *file_name, const char *name,
+				  int remap_to_display_palette,
+				  int compress_rle)
 {
-	struct ImageResource *image;
-	struct FrontImageResourceRecord entry;
+	struct image_resource *image;
+	struct front_image_resource_record entry;
 
-	if (*fileName == '\0') {
+	if (*file_name == '\0') {
 		return 0;
 	}
 	if (*name == '\0') {
 		return 0;
 	}
-	if (FrontImage_FindResourceByName(name) != -1) {
+	if (front_image_find_resource_by_name(name) != -1) {
 		return 0;
 	}
 
@@ -126,280 +128,282 @@ int FrontImage_RegisterResource(const char *fileName, const char *name,
 		return 0;
 	}
 	memset(image, 0, sizeof(*image));
-	if (FrontImage_LoadBmpFile(fileName, image, remapToDisplayPalette,
-				   compressRLE) == 0) {
+	if (front_image_load_bmp_file(file_name, image,
+				      remap_to_display_palette,
+				      compress_rle) == 0) {
 		free(image);
 		return 0;
 	}
 
 	entry.image = image;
 	strncpy(entry.name, name, sizeof(entry.name));
-	FrontImage_InsertResourceSorted(&entry);
+	front_image_insert_resource_sorted(&entry);
 	return 1;
 }
 
 /* Frees the image registered under name, its pixels and its record, and takes
- * the record out of g_frontState.resourceTable; does nothing when no image has
+ * the record out of g_front_state.resource_table; does nothing when no image has
  * the name. The modern build also drops the image from its renderer. */
 // FUNCTION: XVT 0x4B4BF0
-void FrontImage_FreeResourceByName(const char *name)
+void front_image_free_resource_by_name(const char *name)
 {
-	int resourceIndex;
+	int resource_index;
 
-	resourceIndex = FrontImage_FindResourceByName(name);
-	if (resourceIndex == -1) {
+	resource_index = front_image_find_resource_by_name(name);
+	if (resource_index == -1) {
 		return;
 	}
 
-	if (g_frontState.resourceTable[resourceIndex].image != NULL) {
+	if (g_front_state.resource_table[resource_index].image != NULL) {
 #ifdef XVT_MODERN
-		XvtRenderAssets_RetireImage(
-			g_frontState.resourceTable[resourceIndex].image);
+		xvt_render_assets_retire_image(
+			g_front_state.resource_table[resource_index].image);
 #endif
-		if (g_frontState.resourceTable[resourceIndex].image->pixels !=
-		    NULL) {
-			free(g_frontState.resourceTable[resourceIndex]
+		if (g_front_state.resource_table[resource_index]
+			    .image->pixels != NULL) {
+			free(g_front_state.resource_table[resource_index]
 				     .image->pixels);
-			g_frontState.resourceTable[resourceIndex]
+			g_front_state.resource_table[resource_index]
 				.image->pixels = NULL;
 		}
-		free(g_frontState.resourceTable[resourceIndex].image);
-		g_frontState.resourceTable[resourceIndex].image = NULL;
+		free(g_front_state.resource_table[resource_index].image);
+		g_front_state.resource_table[resource_index].image = NULL;
 	}
-	FrontImage_RemoveResourceAt(resourceIndex);
+	front_image_remove_resource_at(resource_index);
 }
 
 /* Frees every registered image: passes the name in each of the table's 512
- * slots, from the last to the first, to FrontImage_FreeResourceByName, which
+ * slots, from the last to the first, to front_image_free_resource_by_name, which
  * ignores names no longer registered. Does nothing without a table. */
 // FUNCTION: XVT 0x4B4C70
-void FrontImage_FreeAllResources(void)
+void front_image_free_all_resources(void)
 {
-	int resourceIndex;
+	int resource_index;
 
-	if (g_frontState.resourceTable == NULL) {
+	if (g_front_state.resource_table == NULL) {
 		return;
 	}
 
-	for (resourceIndex = 511; resourceIndex >= 0; --resourceIndex) {
-		FrontImage_FreeResourceByName(
-			g_frontState.resourceTable[resourceIndex].name);
+	for (resource_index = 511; resource_index >= 0; --resource_index) {
+		front_image_free_resource_by_name(
+			g_front_state.resource_table[resource_index].name);
 	}
 }
 
 /* Only the original build calls this. Returns 1 when an image is registered
  * under name, 0 when none is or name is empty. */
 // FUNCTION: XVT 0x4B4CA0
-int FrontImage_ResourceExists(const char *name)
+int front_image_resource_exists(const char *name)
 {
 	if (*name == '\0') {
 		return 0;
 	}
 
-	return FrontImage_FindResourceByName(name) != -1;
+	return front_image_find_resource_by_name(name) != -1;
 }
 
-/* Sets *outRect to (0, 0, width, height) of the image registered under name, so
+/* Sets *out_rect to (0, 0, width, height) of the image registered under name, so
  * right and bottom are one past its last column and row, and returns 1. Sets it
  * to all 0 and returns 0 when name is empty or not registered. */
 // FUNCTION: XVT 0x4B4CC0
-int FrontImage_GetResourceRect(const char *name, struct RECT *outRect)
+int front_image_get_resource_rect(const char *name, struct RECT *out_rect)
 {
-	int resourceIndex;
+	int resource_index;
 
 	if (*name == '\0') {
-		FrontendDraw_RectAssign(outRect, 0, 0, 0, 0);
+		frontend_draw_rect_assign(out_rect, 0, 0, 0, 0);
 		return 0;
 	}
 
-	resourceIndex = FrontImage_FindResourceByName(name);
-	if (resourceIndex == -1) {
-		FrontendDraw_RectAssign(outRect, 0, 0, 0, 0);
+	resource_index = front_image_find_resource_by_name(name);
+	if (resource_index == -1) {
+		frontend_draw_rect_assign(out_rect, 0, 0, 0, 0);
 		return 0;
 	}
 
-	FrontendDraw_RectAssign(
-		outRect, 0, 0,
-		g_frontState.resourceTable[resourceIndex].image->width,
-		g_frontState.resourceTable[resourceIndex].image->height);
+	frontend_draw_rect_assign(
+		out_rect, 0, 0,
+		g_front_state.resource_table[resource_index].image->width,
+		g_front_state.resource_table[resource_index].image->height);
 	return 1;
 }
 
-/* Draws the image registered under name with FrontImage_BlitTranslucent and
+/* Draws the image registered under name with front_image_blit_translucent and
  * returns its result; returns 0 when the name is not registered or the image is
  * RLE-compressed. */
 // FUNCTION: XVT 0x4B4D40
-int FrontImage_DrawSpriteTranslucent(const char *name, int x, int y)
+int front_image_draw_sprite_translucent(const char *name, int x, int y)
 {
-	int resourceIndex;
-	struct ImageResource *image;
+	int resource_index;
+	struct image_resource *image;
 
-	resourceIndex = FrontImage_FindResourceByName(name);
-	if (resourceIndex == -1) {
+	resource_index = front_image_find_resource_by_name(name);
+	if (resource_index == -1) {
 		return 0;
 	}
 
-	image = g_frontState.resourceTable[resourceIndex].image;
-	if (image->isCompressed != 0) {
+	image = g_front_state.resource_table[resource_index].image;
+	if (image->is_compressed != 0) {
 		return 0;
 	}
 
-	return FrontImage_BlitTranslucent(image, x, y);
+	return front_image_blit_translucent(image, x, y);
 }
 
 /* Draws an uncompressed image with its top-left corner at (x, y), clipped to
  * the clip bounds, skipping pixels of index 0. At 16 bits per pixel each drawn
- * pixel becomes the per-channel average of the screen and the index's colorLUT
- * value, as FrontendDraw_FillRectTranslucent blends; at 8 bits, despite the
+ * pixel becomes the per-channel average of the screen and the index's color_lut
+ * value, as frontend_draw_fill_rect_translucent blends; at 8 bits, despite the
  * name, it writes the index. Returns the clip-edge bits of
- * FrontendDraw_RectClipToBounds, or 0 when image is NULL. Does not check that
+ * frontend_draw_rect_clip_to_bounds, or 0 when image is NULL. Does not check that
  * the image is uncompressed. The modern build also records the draw for its
  * renderer. */
 // FUNCTION: XVT 0x4B4D90
-int FrontImage_BlitTranslucent(struct ImageResource *image, int x, int y)
+int front_image_blit_translucent(struct image_resource *image, int x, int y)
 {
-	int clipOffsetX;
-	int clipOffsetY;
-	int imageWidth;
-	int visibleWidth;
-	int visibleHeight;
-	int clipResult;
-	int displayBpp;
+	int clip_offset_x;
+	int clip_offset_y;
+	int image_width;
+	int visible_width;
+	int visible_height;
+	int clip_result;
+	int display_bpp;
 	uint8_t *source;
 	uint8_t *destination;
-	struct RECT clippedRect;
-	struct RECT unclippedRect;
+	struct RECT clipped_rect;
+	struct RECT unclipped_rect;
 
 	if (image == NULL) {
 		return 0;
 	}
 
 	{
-		clippedRect.left = x;
-		imageWidth = image->width;
-		clippedRect.top = y;
-		clippedRect.right = x + imageWidth - 1;
-		clippedRect.bottom = y + image->height - 1;
-		FrontendDraw_RectCopy(&unclippedRect, &clippedRect);
-		clipResult = FrontendDraw_RectClipToBounds(&clippedRect);
-		if (clippedRect.right >= clippedRect.left &&
-		    clippedRect.bottom >= clippedRect.top) {
-			clipOffsetX = clippedRect.left - unclippedRect.left;
-			clipOffsetY = clippedRect.top - unclippedRect.top;
-			imageWidth = image->width;
-			visibleWidth = image->width + clippedRect.right -
-				       clipOffsetX - unclippedRect.right;
-			visibleHeight = clippedRect.bottom + image->height -
-					unclippedRect.bottom - clipOffsetY;
+		clipped_rect.left = x;
+		image_width = image->width;
+		clipped_rect.top = y;
+		clipped_rect.right = x + image_width - 1;
+		clipped_rect.bottom = y + image->height - 1;
+		frontend_draw_rect_copy(&unclipped_rect, &clipped_rect);
+		clip_result = frontend_draw_rect_clip_to_bounds(&clipped_rect);
+		if (clipped_rect.right >= clipped_rect.left &&
+		    clipped_rect.bottom >= clipped_rect.top) {
+			clip_offset_x = clipped_rect.left - unclipped_rect.left;
+			clip_offset_y = clipped_rect.top - unclipped_rect.top;
+			image_width = image->width;
+			visible_width = image->width + clipped_rect.right -
+					clip_offset_x - unclipped_rect.right;
+			visible_height = clipped_rect.bottom + image->height -
+					 unclipped_rect.bottom - clip_offset_y;
 
 #ifdef XVT_MODERN
-			XvtRenderFrontend_Image(
-				image, clipOffsetX, clipOffsetY,
-				x + clipOffsetX, y + clipOffsetY, visibleWidth,
-				visibleHeight, XVT_SPRITE_FRONT_TRANSLUCENT, 0);
+			xvt_render_frontend_image(
+				image, clip_offset_x, clip_offset_y,
+				x + clip_offset_x, y + clip_offset_y,
+				visible_width, visible_height,
+				XVT_SPRITE_FRONT_TRANSLUCENT, 0);
 #endif
-			displayBpp = g_frontState.displayBpp;
-			if (displayBpp == 8) {
-				int rowsRemaining;
+			display_bpp = g_front_state.display_bpp;
+			if (display_bpp == 8) {
+				int rows_remaining;
 
-				source = &image->pixels[imageWidth *
-								clipOffsetY +
-							clipOffsetX];
+				source = &image->pixels[image_width *
+								clip_offset_y +
+							clip_offset_x];
 				destination =
-					&g_drawSurfacePtr
-						[x + clipOffsetX +
-						 g_frontState.drawSurfacePitch *
-							 (y + clipOffsetY)];
-				if (visibleHeight > 0) {
-					rowsRemaining = visibleHeight;
+					&g_draw_surface_ptr
+						[x + clip_offset_x +
+						 g_front_state.draw_surface_pitch *
+							 (y + clip_offset_y)];
+				if (visible_height > 0) {
+					rows_remaining = visible_height;
 					do {
 						int column;
 
 						for (column = 0;
-						     visibleWidth > column;
+						     visible_width > column;
 						     ++column) {
-							uint8_t sourcePixel;
+							uint8_t source_pixel;
 
-							sourcePixel =
+							source_pixel =
 								source[column];
-							if (sourcePixel != 0) {
+							if (source_pixel != 0) {
 								destination[column] =
-									sourcePixel;
+									source_pixel;
 							}
 						}
 						destination +=
-							g_frontState
-								.drawSurfacePitch;
+							g_front_state
+								.draw_surface_pitch;
 						source += image->width;
-						--rowsRemaining;
-					} while (rowsRemaining != 0);
+						--rows_remaining;
+					} while (rows_remaining != 0);
 				}
-			} else if (displayBpp == 16) {
-				int rowsRemaining;
+			} else if (display_bpp == 16) {
+				int rows_remaining;
 
-				source = &image->pixels[imageWidth *
-								clipOffsetY +
-							clipOffsetX];
+				source = &image->pixels[image_width *
+								clip_offset_y +
+							clip_offset_x];
 				destination =
-					&g_drawSurfacePtr
-						[2 * x + 2 * clipOffsetX +
-						 g_frontState.drawSurfacePitch *
-							 (y + clipOffsetY)];
-				if (g_frontState.pixelFormat555 != 0) {
-					if (visibleHeight > 0) {
-						rowsRemaining =
-							clippedRect.bottom +
+					&g_draw_surface_ptr
+						[2 * x + 2 * clip_offset_x +
+						 g_front_state.draw_surface_pitch *
+							 (y + clip_offset_y)];
+				if (g_front_state.pixel_format555 != 0) {
+					if (visible_height > 0) {
+						rows_remaining =
+							clipped_rect.bottom +
 							image->height -
-							unclippedRect.bottom -
-							clipOffsetY;
+							unclipped_rect.bottom -
+							clip_offset_y;
 						do {
 							int column;
 							uint8_t *
-								destinationPixel;
+								destination_pixel;
 
 							column = 0;
-							if (visibleWidth > 0) {
-								destinationPixel =
+							if (visible_width > 0) {
+								destination_pixel =
 									destination;
 								do {
-									uint8_t sourcePixel;
+									uint8_t source_pixel;
 
-									sourcePixel = source
+									source_pixel = source
 										[column];
-									if (sourcePixel !=
+									if (source_pixel !=
 									    0) {
-										int sourceColor;
+										int source_color;
 										unsigned int
 											blended;
 
-										sourceColor =
-											image->colorLUT
-												[sourcePixel];
+										source_color =
+											image->color_lut
+												[source_pixel];
 										blended =
 											(((*(uint16_t
 												     *)
-												   destinationPixel &
+												   destination_pixel &
 											   0x1F) +
 											  8 * ((*(uint16_t
 													  *)
-													destinationPixel &
+													destination_pixel &
 												0x3E0) +
 											       8 * (*(uint16_t
 													      *)
-													    destinationPixel &
+													    destination_pixel &
 												    0x7C00u))) >>
 											 1) +
-											(((sourceColor &
+											(((source_color &
 											   0x1F) +
-											  ((sourceColor &
+											  ((source_color &
 											    0x7C00)
 											   << 6) +
-											  8 * (sourceColor &
+											  8 * (source_color &
 											       0x3E0u)) >>
 											 1);
 										*(uint16_t
 											  *)
-											destinationPixel =
+											destination_pixel =
 											(uint16_t)((blended &
 												    0x1F) +
 												   ((blended >>
@@ -409,40 +413,40 @@ int FrontImage_BlitTranslucent(struct ImageResource *image, int x, int y)
 												     3) &
 												    0x3E0));
 									}
-									destinationPixel +=
+									destination_pixel +=
 										2;
 									++column;
 								} while (
 									column <
-									visibleWidth);
+									visible_width);
 							}
 							source += image->width;
 							destination +=
-								g_frontState
-									.drawSurfacePitch &
+								g_front_state
+									.draw_surface_pitch &
 								0xFFFFFFFE;
-							--rowsRemaining;
-						} while (rowsRemaining != 0);
+							--rows_remaining;
+						} while (rows_remaining != 0);
 					}
-				} else if (visibleHeight > 0) {
-					rowsRemaining = clippedRect.bottom +
-							image->height -
-							unclippedRect.bottom -
-							clipOffsetY;
+				} else if (visible_height > 0) {
+					rows_remaining = clipped_rect.bottom +
+							 image->height -
+							 unclipped_rect.bottom -
+							 clip_offset_y;
 					do {
 						int column;
-						uint8_t *destinationPixel;
+						uint8_t *destination_pixel;
 
 						column = 0;
-						if (visibleWidth > 0) {
-							destinationPixel =
+						if (visible_width > 0) {
+							destination_pixel =
 								destination;
 							do {
-								uint8_t sourcePixel;
+								uint8_t source_pixel;
 
-								sourcePixel = source
+								source_pixel = source
 									[column];
-								if (sourcePixel !=
+								if (source_pixel !=
 								    0) {
 									unsigned int
 										blended;
@@ -450,30 +454,30 @@ int FrontImage_BlitTranslucent(struct ImageResource *image, int x, int y)
 									blended =
 										(((*(uint16_t
 											     *)
-											   destinationPixel &
+											   destination_pixel &
 										   0x1F) +
 										  8 * ((*(uint16_t
 												  *)
-												destinationPixel &
+												destination_pixel &
 											0x7E0) +
 										       4 * (*(uint16_t
 												      *)
-												    destinationPixel &
+												    destination_pixel &
 											    0xF800u))) >>
 										 1) +
-										(((image->colorLUT
-											   [sourcePixel] &
+										(((image->color_lut
+											   [source_pixel] &
 										   0x1F) +
-										  32 * (image->colorLUT
-												[sourcePixel] &
+										  32 * (image->color_lut
+												[source_pixel] &
 											0xF800) +
-										  8 * (image->colorLUT
-											       [sourcePixel] &
+										  8 * (image->color_lut
+											       [source_pixel] &
 										       0x7E0u)) >>
 										 1);
 									*(uint16_t
 										  *)
-										destinationPixel =
+										destination_pixel =
 										(uint16_t)((blended &
 											    0x1F) +
 											   ((blended >>
@@ -483,122 +487,129 @@ int FrontImage_BlitTranslucent(struct ImageResource *image, int x, int y)
 											     5) &
 											    0xF800));
 								}
-								destinationPixel +=
+								destination_pixel +=
 									2;
 								++column;
 							} while (column !=
-								 visibleWidth);
+								 visible_width);
 						}
 						source += image->width;
 						destination +=
-							g_frontState
-								.drawSurfacePitch &
+							g_front_state
+								.draw_surface_pitch &
 							0xFFFFFFFE;
-						--rowsRemaining;
-					} while (rowsRemaining != 0);
+						--rows_remaining;
+					} while (rows_remaining != 0);
 				}
 			}
 		}
-		return clipResult;
+		return clip_result;
 	}
 }
 
 /* Draws the part srcRect of the image registered under name with
- * FrontImage_BlitRectTransparent and returns its result; returns 0 when the
+ * front_image_blit_rect_transparent and returns its result; returns 0 when the
  * name is not registered or the image is RLE-compressed. */
 // FUNCTION: XVT 0x4B50B0
-int FrontImage_DrawSpriteRectTransparent(const char *name, struct RECT *srcRect,
-					 int dstX, int dstY)
+int front_image_draw_sprite_rect_transparent(const char *name,
+					     struct RECT *src_rect, int dst_x,
+					     int dst_y)
 {
-	int resourceIndex;
-	struct ImageResource *image;
+	int resource_index;
+	struct image_resource *image;
 
-	resourceIndex = FrontImage_FindResourceByName(name);
-	if (resourceIndex == -1) {
+	resource_index = front_image_find_resource_by_name(name);
+	if (resource_index == -1) {
 		return 0;
 	}
-	image = g_frontState.resourceTable[resourceIndex].image;
-	if (image->isCompressed != 0) {
+	image = g_front_state.resource_table[resource_index].image;
+	if (image->is_compressed != 0) {
 		return 0;
 	}
-	return FrontImage_BlitRectTransparent(image, srcRect, dstX, dstY);
+	return front_image_blit_rect_transparent(image, src_rect, dst_x, dst_y);
 }
 
 /* Draws the part *srcRect of an uncompressed image, edges included, with its
  * top-left corner at (dstX, dstY), clipped to the clip bounds and skipping
- * pixels of index 0: at 8 bits per pixel as the index, at 16 as its colorLUT
- * value. Returns the clip-edge bits of FrontendDraw_RectClipToBounds, or 0 when
+ * pixels of index 0: at 8 bits per pixel as the index, at 16 as its color_lut
+ * value. Returns the clip-edge bits of frontend_draw_rect_clip_to_bounds, or 0 when
  * image is NULL. Does not check that srcRect lies inside the image. The modern
  * build also records the draw for its renderer. */
 // FUNCTION: XVT 0x4B5100
-int FrontImage_BlitRectTransparent(struct ImageResource *image,
-				   struct RECT *srcRect, int dstX, int dstY)
+int front_image_blit_rect_transparent(struct image_resource *image,
+				      struct RECT *src_rect, int dst_x,
+				      int dst_y)
 {
-	int rowsRemaining;
-	int displayBpp;
-	int visibleHeight;
-	int clipOffsetX;
-	int clipOffsetY;
-	int visibleWidth;
-	int clipResult;
-	struct RECT destinationRect;
-	struct RECT unclippedRect;
+	int rows_remaining;
+	int display_bpp;
+	int visible_height;
+	int clip_offset_x;
+	int clip_offset_y;
+	int visible_width;
+	int clip_result;
+	struct RECT destination_rect;
+	struct RECT unclipped_rect;
 
 	if (image == NULL) {
 		return 0;
 	}
-	FrontendDraw_RectCopy(&destinationRect, srcRect);
-	FrontendDraw_RectOffsetXY(&destinationRect, dstX - srcRect->left,
-				  dstY - srcRect->top);
-	FrontendDraw_RectCopy(&unclippedRect, &destinationRect);
-	clipResult = FrontendDraw_RectClipToBounds(&destinationRect);
-	if (destinationRect.right >= destinationRect.left) {
-		if (destinationRect.top <= destinationRect.bottom) {
-			int sourceTop;
-			int sourceLeft;
+	frontend_draw_rect_copy(&destination_rect, src_rect);
+	frontend_draw_rect_offset_xy(&destination_rect, dst_x - src_rect->left,
+				     dst_y - src_rect->top);
+	frontend_draw_rect_copy(&unclipped_rect, &destination_rect);
+	clip_result = frontend_draw_rect_clip_to_bounds(&destination_rect);
+	if (destination_rect.right >= destination_rect.left) {
+		if (destination_rect.top <= destination_rect.bottom) {
+			int source_top;
+			int source_left;
 
-			clipOffsetX = destinationRect.left - unclippedRect.left;
-			clipOffsetY = destinationRect.top - unclippedRect.top;
-			sourceLeft = srcRect->left;
-			visibleWidth = srcRect->right - sourceLeft;
-			visibleWidth -= clipOffsetX;
-			visibleWidth += destinationRect.right + 1;
-			visibleWidth -= unclippedRect.right;
-			sourceTop = srcRect->top;
-			visibleHeight = srcRect->bottom - sourceTop;
-			visibleHeight += destinationRect.bottom + 1;
-			visibleHeight -= clipOffsetY;
-			visibleHeight -= unclippedRect.bottom;
+			clip_offset_x =
+				destination_rect.left - unclipped_rect.left;
+			clip_offset_y =
+				destination_rect.top - unclipped_rect.top;
+			source_left = src_rect->left;
+			visible_width = src_rect->right - source_left;
+			visible_width -= clip_offset_x;
+			visible_width += destination_rect.right + 1;
+			visible_width -= unclipped_rect.right;
+			source_top = src_rect->top;
+			visible_height = src_rect->bottom - source_top;
+			visible_height += destination_rect.bottom + 1;
+			visible_height -= clip_offset_y;
+			visible_height -= unclipped_rect.bottom;
 
 #ifdef XVT_MODERN
-			XvtRenderFrontend_Image(
-				image, sourceLeft + clipOffsetX,
-				sourceTop + clipOffsetY, dstX + clipOffsetX,
-				dstY + clipOffsetY, visibleWidth, visibleHeight,
+			xvt_render_frontend_image(
+				image, source_left + clip_offset_x,
+				source_top + clip_offset_y,
+				dst_x + clip_offset_x, dst_y + clip_offset_y,
+				visible_width, visible_height,
 				XVT_SPRITE_FRONT_KEYED, 0);
 #endif
-			displayBpp = g_frontState.displayBpp;
-			switch (displayBpp) {
+			display_bpp = g_front_state.display_bpp;
+			switch (display_bpp) {
 			case 8: {
 				uint8_t *source;
 				uint8_t *destination;
 				int column;
 
-				source = &image->pixels[image->width *
-								(sourceTop +
-								 clipOffsetY) +
-							sourceLeft +
-							clipOffsetX];
+				source =
+					&image->pixels[image->width *
+							       (source_top +
+								clip_offset_y) +
+						       source_left +
+						       clip_offset_x];
 				destination =
-					&g_drawSurfacePtr
-						[dstX + clipOffsetX +
-						 g_frontState.drawSurfacePitch *
-							 (dstY + clipOffsetY)];
-				if (visibleHeight > 0) {
-					rowsRemaining = visibleHeight;
+					&g_draw_surface_ptr
+						[dst_x + clip_offset_x +
+						 g_front_state.draw_surface_pitch *
+							 (dst_y +
+							  clip_offset_y)];
+				if (visible_height > 0) {
+					rows_remaining = visible_height;
 					do {
 						column = 0;
-						if (visibleWidth > 0) {
+						if (visible_width > 0) {
 							do {
 								if (source[column] !=
 								    0) {
@@ -608,15 +619,15 @@ int FrontImage_BlitRectTransparent(struct ImageResource *image,
 								++column;
 							} while (
 								column -
-									visibleWidth <
+									visible_width <
 								0);
 						}
 						source += image->width;
 						destination +=
-							g_frontState
-								.drawSurfacePitch;
-						--rowsRemaining;
-					} while (rowsRemaining != 0);
+							g_front_state
+								.draw_surface_pitch;
+						--rows_remaining;
+					} while (rows_remaining != 0);
 				}
 				break;
 			}
@@ -625,21 +636,23 @@ int FrontImage_BlitRectTransparent(struct ImageResource *image,
 				uint8_t *destination;
 				int column;
 
-				source = &image->pixels[image->width *
-								(sourceTop +
-								 clipOffsetY) +
-							sourceLeft +
-							clipOffsetX];
+				source =
+					&image->pixels[image->width *
+							       (source_top +
+								clip_offset_y) +
+						       source_left +
+						       clip_offset_x];
 				destination =
-					&g_drawSurfacePtr
-						[2 * (dstX + clipOffsetX) +
-						 g_frontState.drawSurfacePitch *
-							 (dstY + clipOffsetY)];
-				if (visibleHeight > 0) {
-					rowsRemaining = visibleHeight;
+					&g_draw_surface_ptr
+						[2 * (dst_x + clip_offset_x) +
+						 g_front_state.draw_surface_pitch *
+							 (dst_y +
+							  clip_offset_y)];
+				if (visible_height > 0) {
+					rows_remaining = visible_height;
 					do {
 						column = 0;
-						if (visibleWidth > 0) {
+						if (visible_width > 0) {
 							do {
 								if (source[column] !=
 								    0) {
@@ -648,83 +661,85 @@ int FrontImage_BlitRectTransparent(struct ImageResource *image,
 										[2 *
 										 column] =
 										(uint16_t)image
-											->colorLUT
+											->color_lut
 												[source[column]];
 								}
 								++column;
 							} while (column <
-								 visibleWidth);
+								 visible_width);
 						}
 						source += image->width;
 						destination +=
-							g_frontState
-								.drawSurfacePitch &
+							g_front_state
+								.draw_surface_pitch &
 							0xFFFFFFFE;
-						--rowsRemaining;
-					} while (rowsRemaining != 0);
+						--rows_remaining;
+					} while (rows_remaining != 0);
 				}
 				break;
 			}
 			}
 		}
 	}
-	return clipResult;
+	return clip_result;
 }
 
 /* Draws the part srcRect of the image registered under name with
- * FrontImage_BlitRectTinted and returns its result; returns 0 when the name is
+ * front_image_blit_rect_tinted and returns its result; returns 0 when the name is
  * not registered or the image is RLE-compressed. */
 // FUNCTION: XVT 0x4B52C0
-int FrontImage_DrawSpriteRectTinted(const char *name, struct RECT *srcRect,
-				    int dstX, int dstY, unsigned int tintColor)
+int front_image_draw_sprite_rect_tinted(const char *name, struct RECT *src_rect,
+					int dst_x, int dst_y,
+					unsigned int tint_color)
 {
-	int resourceIndex;
-	struct ImageResource *image;
+	int resource_index;
+	struct image_resource *image;
 
-	resourceIndex = FrontImage_FindResourceByName(name);
-	if (resourceIndex == -1) {
+	resource_index = front_image_find_resource_by_name(name);
+	if (resource_index == -1) {
 		return 0;
 	}
-	image = g_frontState.resourceTable[resourceIndex].image;
-	if (image->isCompressed != 0) {
+	image = g_front_state.resource_table[resource_index].image;
+	if (image->is_compressed != 0) {
 		return 0;
 	}
-	return FrontImage_BlitRectTinted(image, srcRect, dstX, dstY, tintColor);
+	return front_image_blit_rect_tinted(image, src_rect, dst_x, dst_y,
+					    tint_color);
 }
 
 /* Draws the part *srcRect of an uncompressed image, edges included, at (dstX,
- * dstY), clipped, in shades of tintColor, skipping pixels of index 0. At 16
- * bits per pixel the blue field, 0 to 31, of the index's colorLUT value is the
- * intensity, and each channel of tintColor is drawn as channel * intensity /
- * 31, in the 555 or 565 layout g_frontState.pixelFormat555 names; at 8 bits
- * every drawn pixel is tintColor's low byte. Returns the clip-edge bits of
- * FrontendDraw_RectClipToBounds, or 0 when image is NULL. The modern build also
+ * dstY), clipped, in shades of tint_color, skipping pixels of index 0. At 16
+ * bits per pixel the blue field, 0 to 31, of the index's color_lut value is the
+ * intensity, and each channel of tint_color is drawn as channel * intensity /
+ * 31, in the 555 or 565 layout g_front_state.pixel_format555 names; at 8 bits
+ * every drawn pixel is tint_color's low byte. Returns the clip-edge bits of
+ * frontend_draw_rect_clip_to_bounds, or 0 when image is NULL. The modern build also
  * records the draw for its renderer. */
 // FUNCTION: XVT 0x4B5310
-int FrontImage_BlitRectTinted(struct ImageResource *image,
-			      const struct RECT *srcRect, int dstX, int dstY,
-			      unsigned int tintColor)
+int front_image_blit_rect_tinted(struct image_resource *image,
+				 const struct RECT *src_rect, int dst_x,
+				 int dst_y, unsigned int tint_color)
 {
-	int visibleHeight;
-	int displayBpp;
-	int sourceTop;
-	int sourceLeft;
-	int clipOffsetX;
-	int clipOffsetY;
-	int visibleWidth;
-	int clipResult;
-	struct RECT destinationRect;
+	int visible_height;
+	int display_bpp;
+	int source_top;
+	int source_left;
+	int clip_offset_x;
+	int clip_offset_y;
+	int visible_width;
+	int clip_result;
+	struct RECT destination_rect;
 	uint8_t *source;
 	uint8_t *destination;
-	int rowsRemaining;
-	struct RECT unclippedRect;
+	int rows_remaining;
+	struct RECT unclipped_rect;
 	int column;
-	const struct RECT *sourceRect;
-	int destinationY;
-	uint8_t sourcePixel;
+	const struct RECT *source_rect;
+	int destination_y;
+	uint8_t source_pixel;
 	int intensity;
-	unsigned int tintRed;
-	unsigned int tintGreen;
+	unsigned int tint_red;
+	unsigned int tint_green;
 	int red;
 	int green;
 	int blue;
@@ -733,106 +748,114 @@ int FrontImage_BlitRectTinted(struct ImageResource *image,
 		return 0;
 	}
 
-	sourceRect = srcRect;
-	destinationY = dstY;
-	FrontendDraw_RectCopy(&destinationRect, sourceRect);
-	FrontendDraw_RectOffsetXY(&destinationRect, dstX - sourceRect->left,
-				  destinationY - sourceRect->top);
-	FrontendDraw_RectCopy(&unclippedRect, &destinationRect);
-	clipResult = FrontendDraw_RectClipToBounds(&destinationRect);
-	if (destinationRect.right >= destinationRect.left) {
-		if (destinationRect.top > destinationRect.bottom) {
-			return clipResult;
+	source_rect = src_rect;
+	destination_y = dst_y;
+	frontend_draw_rect_copy(&destination_rect, source_rect);
+	frontend_draw_rect_offset_xy(&destination_rect,
+				     dst_x - source_rect->left,
+				     destination_y - source_rect->top);
+	frontend_draw_rect_copy(&unclipped_rect, &destination_rect);
+	clip_result = frontend_draw_rect_clip_to_bounds(&destination_rect);
+	if (destination_rect.right >= destination_rect.left) {
+		if (destination_rect.top > destination_rect.bottom) {
+			return clip_result;
 		}
 
-		clipOffsetX = destinationRect.left - unclippedRect.left;
-		clipOffsetY = destinationRect.top - unclippedRect.top;
-		sourceLeft = sourceRect->left;
-		visibleWidth = sourceRect->right - sourceLeft - clipOffsetX -
-			       unclippedRect.right + destinationRect.right + 1;
-		sourceTop = sourceRect->top;
-		visibleHeight = sourceRect->bottom - sourceTop - clipOffsetY -
-				unclippedRect.bottom + destinationRect.bottom +
-				1;
+		clip_offset_x = destination_rect.left - unclipped_rect.left;
+		clip_offset_y = destination_rect.top - unclipped_rect.top;
+		source_left = source_rect->left;
+		visible_width = source_rect->right - source_left -
+				clip_offset_x - unclipped_rect.right +
+				destination_rect.right + 1;
+		source_top = source_rect->top;
+		visible_height = source_rect->bottom - source_top -
+				 clip_offset_y - unclipped_rect.bottom +
+				 destination_rect.bottom + 1;
 
 #ifdef XVT_MODERN
-		XvtRenderFrontend_Image(image, sourceLeft + clipOffsetX,
-					sourceTop + clipOffsetY,
-					dstX + clipOffsetX, dstY + clipOffsetY,
-					visibleWidth, visibleHeight,
-					XVT_SPRITE_FRONT_TINTED, tintColor);
+		xvt_render_frontend_image(
+			image, source_left + clip_offset_x,
+			source_top + clip_offset_y, dst_x + clip_offset_x,
+			dst_y + clip_offset_y, visible_width, visible_height,
+			XVT_SPRITE_FRONT_TINTED, tint_color);
 #endif
-		displayBpp = g_frontState.displayBpp;
-		if (displayBpp == 8) {
+		display_bpp = g_front_state.display_bpp;
+		if (display_bpp == 8) {
 			destination =
-				&g_drawSurfacePtr
-					[dstX + clipOffsetX +
-					 g_frontState.drawSurfacePitch *
-						 (destinationY + clipOffsetY)];
-			source = &image->pixels[image->width * (sourceTop +
-								clipOffsetY) +
-						sourceLeft + clipOffsetX];
-			if (visibleHeight > 0) {
+				&g_draw_surface_ptr
+					[dst_x + clip_offset_x +
+					 g_front_state.draw_surface_pitch *
+						 (destination_y +
+						  clip_offset_y)];
+			source = &image->pixels[image->width * (source_top +
+								clip_offset_y) +
+						source_left + clip_offset_x];
+			if (visible_height > 0) {
 				do {
-					for (column = 0; column < visibleWidth;
+					for (column = 0; column < visible_width;
 					     ++column) {
 						if (source[column] != 0) {
 							destination[column] =
 								(uint8_t)
-									tintColor;
+									tint_color;
 						}
 					}
 					destination +=
-						g_frontState.drawSurfacePitch;
+						g_front_state
+							.draw_surface_pitch;
 					source += image->width;
-					--visibleHeight;
-				} while (visibleHeight != 0);
+					--visible_height;
+				} while (visible_height != 0);
 			}
-		} else if (displayBpp == 16) {
-			source = &image->pixels[image->width * (sourceTop +
-								clipOffsetY) +
-						sourceLeft + clipOffsetX];
+		} else if (display_bpp == 16) {
+			source = &image->pixels[image->width * (source_top +
+								clip_offset_y) +
+						source_left + clip_offset_x];
 			destination =
-				&g_drawSurfacePtr
-					[2 * (dstX + clipOffsetX) +
-					 g_frontState.drawSurfacePitch *
-						 (destinationY + clipOffsetY)];
-			if (visibleHeight > 0) {
-				for (rowsRemaining = visibleHeight;
-				     rowsRemaining != 0; --rowsRemaining) {
-					for (column = 0; column < visibleWidth;
+				&g_draw_surface_ptr
+					[2 * (dst_x + clip_offset_x) +
+					 g_front_state.draw_surface_pitch *
+						 (destination_y +
+						  clip_offset_y)];
+			if (visible_height > 0) {
+				for (rows_remaining = visible_height;
+				     rows_remaining != 0; --rows_remaining) {
+					for (column = 0; column < visible_width;
 					     ++column) {
-						sourcePixel = source[column];
-						if (sourcePixel == 0) {
+						source_pixel = source[column];
+						if (source_pixel == 0) {
 							continue;
 						}
 						intensity =
-							image->colorLUT
-								[sourcePixel] &
+							image->color_lut
+								[source_pixel] &
 							0x1F;
-						if (g_frontState
-							    .pixelFormat555 !=
+						if (g_front_state
+							    .pixel_format555 !=
 						    0) {
-							tintRed =
-								tintColor >> 10;
-							tintGreen = tintColor &
-								    0x3E0;
+							tint_red = tint_color >>
+								   10;
+							tint_green =
+								tint_color &
+								0x3E0;
 						} else {
-							tintRed =
-								tintColor >> 11;
-							tintGreen = tintColor &
-								    0x7E0;
+							tint_red = tint_color >>
+								   11;
+							tint_green =
+								tint_color &
+								0x7E0;
 						}
-						red = intensity * (int)tintRed /
-						      31;
+						red = intensity *
+						      (int)tint_red / 31;
 						green = intensity *
-							(int)(tintGreen >> 5) /
+							(int)(tint_green >> 5) /
 							31;
 						blue = intensity *
-						       (int)(tintColor & 0x1F) /
+						       (int)(tint_color &
+							     0x1F) /
 						       31;
-						if (g_frontState
-							    .pixelFormat555 !=
+						if (g_front_state
+							    .pixel_format555 !=
 						    0) {
 							red <<= 5;
 						} else {
@@ -845,50 +868,51 @@ int FrontImage_BlitRectTinted(struct ImageResource *image,
 					}
 					source += image->width;
 					destination +=
-						g_frontState.drawSurfacePitch &
+						g_front_state
+							.draw_surface_pitch &
 						0xFFFFFFFE;
 				}
 			}
 		}
 	}
 
-	return clipResult;
+	return clip_result;
 }
 
-/* Draws the image registered under name with FrontImage_BlitTransparent and
+/* Draws the image registered under name with front_image_blit_transparent and
  * returns its result, or 0 when the name is not registered. */
 // FUNCTION: XVT 0x4B5570
-int FrontImage_DrawSprite(const char *name, int x, int y)
+int front_image_draw_sprite(const char *name, int x, int y)
 {
-	int resourceIndex;
+	int resource_index;
 
-	resourceIndex = FrontImage_FindResourceByName(name);
-	if (resourceIndex == -1) {
+	resource_index = front_image_find_resource_by_name(name);
+	if (resource_index == -1) {
 		return 0;
 	}
 
-	return FrontImage_BlitTransparent(
-		g_frontState.resourceTable[resourceIndex].image, x, y);
+	return front_image_blit_transparent(
+		g_front_state.resource_table[resource_index].image, x, y);
 }
 
 /* Draws an image with its top-left corner at (x, y), clipped to the clip
  * bounds, skipping pixels of index 0: an uncompressed image pixel by pixel, at
- * 8 bits per pixel as the index and at 16 as its colorLUT value, an
- * RLE-compressed one through FrontImage_BlitRLE8 or FrontImage_BlitRLE16.
- * Returns the clip-edge bits of FrontendDraw_RectClipToBounds, or 0 when image
+ * 8 bits per pixel as the index and at 16 as its color_lut value, an
+ * RLE-compressed one through front_image_blit_rle8 or front_image_blit_rle16.
+ * Returns the clip-edge bits of frontend_draw_rect_clip_to_bounds, or 0 when image
  * is NULL. The modern build also records the draw for its renderer. */
 // FUNCTION: XVT 0x4B55B0
-int FrontImage_BlitTransparent(struct ImageResource *image, int x, int y)
+int front_image_blit_transparent(struct image_resource *image, int x, int y)
 {
-	struct RECT clippedRect;
-	struct RECT originalRect;
-	int clipResult;
-	int sourceX;
-	int sourceY;
+	struct RECT clipped_rect;
+	struct RECT original_rect;
+	int clip_result;
+	int source_x;
+	int source_y;
 	int width;
-	int visibleWidth;
-	int visibleHeight;
-	int displayBpp;
+	int visible_width;
+	int visible_height;
+	int display_bpp;
 	const uint8_t *source;
 	uint8_t *destination;
 	int row;
@@ -899,39 +923,40 @@ int FrontImage_BlitTransparent(struct ImageResource *image, int x, int y)
 		return 0;
 	}
 
-	clippedRect.left = x;
-	clippedRect.top = y;
-	clippedRect.right = x + image->width - 1;
-	clippedRect.bottom = y + image->height - 1;
-	FrontendDraw_RectCopy(&originalRect, &clippedRect);
-	clipResult = FrontendDraw_RectClipToBounds(&clippedRect);
-	if (clippedRect.right >= clippedRect.left &&
-	    clippedRect.top <= clippedRect.bottom) {
-		sourceX = clippedRect.left - originalRect.left;
-		sourceY = clippedRect.top - originalRect.top;
+	clipped_rect.left = x;
+	clipped_rect.top = y;
+	clipped_rect.right = x + image->width - 1;
+	clipped_rect.bottom = y + image->height - 1;
+	frontend_draw_rect_copy(&original_rect, &clipped_rect);
+	clip_result = frontend_draw_rect_clip_to_bounds(&clipped_rect);
+	if (clipped_rect.right >= clipped_rect.left &&
+	    clipped_rect.top <= clipped_rect.bottom) {
+		source_x = clipped_rect.left - original_rect.left;
+		source_y = clipped_rect.top - original_rect.top;
 		width = image->width;
-		visibleWidth = clippedRect.right - sourceX -
-			       originalRect.right + width;
-		visibleHeight = clippedRect.bottom + image->height - sourceY -
-				originalRect.bottom;
+		visible_width = clipped_rect.right - source_x -
+				original_rect.right + width;
+		visible_height = clipped_rect.bottom + image->height -
+				 source_y - original_rect.bottom;
 
 #ifdef XVT_MODERN
-		XvtRenderFrontend_Image(
-			image, sourceX, sourceY, x + sourceX, y + sourceY,
-			visibleWidth, visibleHeight, XVT_SPRITE_FRONT_KEYED, 0);
+		xvt_render_frontend_image(image, source_x, source_y,
+					  x + source_x, y + source_y,
+					  visible_width, visible_height,
+					  XVT_SPRITE_FRONT_KEYED, 0);
 #endif
-		displayBpp = g_frontState.displayBpp;
-		if (image->isCompressed == 0) {
-			if (displayBpp == 8) {
-				source = &image->pixels[sourceY * width +
-							sourceX];
+		display_bpp = g_front_state.display_bpp;
+		if (image->is_compressed == 0) {
+			if (display_bpp == 8) {
+				source = &image->pixels[source_y * width +
+							source_x];
 				destination =
-					&g_drawSurfacePtr
-						[x + sourceX +
-						 g_frontState.drawSurfacePitch *
-							 (y + sourceY)];
-				for (row = visibleHeight; row > 0; --row) {
-					for (column = 0; column < visibleWidth;
+					&g_draw_surface_ptr
+						[x + source_x +
+						 g_front_state.draw_surface_pitch *
+							 (y + source_y)];
+				for (row = visible_height; row > 0; --row) {
+					for (column = 0; column < visible_width;
 					     ++column) {
 						pixel = source[column];
 						if (pixel != 0) {
@@ -941,102 +966,105 @@ int FrontImage_BlitTransparent(struct ImageResource *image, int x, int y)
 					}
 					source += image->width;
 					destination +=
-						g_frontState.drawSurfacePitch;
+						g_front_state
+							.draw_surface_pitch;
 				}
-			} else if (displayBpp == 16) {
-				source = &image->pixels[sourceY * width +
-							sourceX];
+			} else if (display_bpp == 16) {
+				source = &image->pixels[source_y * width +
+							source_x];
 				destination =
-					&g_drawSurfacePtr
-						[2 * (x + sourceX) +
-						 g_frontState.drawSurfacePitch *
-							 (y + sourceY)];
-				for (row = visibleHeight; row > 0; --row) {
-					for (column = 0; column < visibleWidth;
+					&g_draw_surface_ptr
+						[2 * (x + source_x) +
+						 g_front_state.draw_surface_pitch *
+							 (y + source_y)];
+				for (row = visible_height; row > 0; --row) {
+					for (column = 0; column < visible_width;
 					     ++column) {
 						if (source[column] != 0) {
 							*(uint16_t
 								  *)&destination
 								[2 * column] =
-								image->colorLUT
+								image->color_lut
 									[source[column]];
 						}
 					}
 					source += image->width;
 					destination +=
-						g_frontState.drawSurfacePitch &
+						g_front_state
+							.draw_surface_pitch &
 						~1;
 				}
 			}
 		} else {
-			if (displayBpp == 8) {
-				FrontImage_BlitRLE8(image, x + sourceX,
-						    y + sourceY, sourceX,
-						    sourceY, visibleWidth,
-						    visibleHeight);
-			} else if (displayBpp == 16) {
-				FrontImage_BlitRLE16(image, x + sourceX,
-						     y + sourceY, sourceX,
-						     sourceY, visibleWidth,
-						     visibleHeight);
+			if (display_bpp == 8) {
+				front_image_blit_rle8(image, x + source_x,
+						      y + source_y, source_x,
+						      source_y, visible_width,
+						      visible_height);
+			} else if (display_bpp == 16) {
+				front_image_blit_rle16(image, x + source_x,
+						       y + source_y, source_x,
+						       source_y, visible_width,
+						       visible_height);
 			}
 		}
 	}
 
-	return clipResult;
+	return clip_result;
 }
 
 /* Draws the visible part of an RLE-compressed image at 8 bits per pixel:
- * visibleHeight rows from row srcTop and visibleWidth columns from column
- * srcLeft, to (destX, destY) through g_drawSurfacePtr. Literal and run pixels
+ * visible_height rows from row src_top and visible_width columns from column
+ * src_left, to (dest_x, dest_y) through g_draw_surface_ptr. Literal and run pixels
  * are written as their palette index; skip tokens leave the screen as it is.
- * When visibleWidth is the image's width it draws whole rows and ignores
- * srcLeft. The caller has clipped; nothing is checked. */
+ * When visible_width is the image's width it draws whole rows and ignores
+ * src_left. The caller has clipped; nothing is checked. */
 // FUNCTION: XVT 0x4B5770
-void FrontImage_BlitRLE8(struct ImageResource *image, int destX, int destY,
-			 int srcLeft, int srcTop, int visibleWidth,
-			 int visibleHeight)
+void front_image_blit_rle8(struct image_resource *image, int dest_x, int dest_y,
+			   int src_left, int src_top, int visible_width,
+			   int visible_height)
 {
 	const uint8_t *row;
-	const uint8_t *rowStart;
+	const uint8_t *row_start;
 	uint8_t *destination;
-	int rowLength;
-	int tokenOffset;
-	int destinationOffset;
+	int row_length;
+	int token_offset;
+	int destination_offset;
 	uint8_t started;
 	uint8_t token;
 	int count;
-	int endOffset;
-	int rowsRemaining;
+	int end_offset;
+	int rows_remaining;
 	uint8_t value;
 
-	if (visibleWidth == image->width) {
-		int fastRowsRemaining;
+	if (visible_width == image->width) {
+		int fast_rows_remaining;
 
 		row = image->pixels;
-		destination = &g_drawSurfacePtr[g_frontState.drawSurfacePitch *
-							destY +
-						destX];
-		while (srcTop > 0) {
+		destination =
+			&g_draw_surface_ptr[g_front_state.draw_surface_pitch *
+						    dest_y +
+					    dest_x];
+		while (src_top > 0) {
 #ifdef XVT_MODERN
-			memcpy(&rowLength, row, sizeof(rowLength));
+			memcpy(&row_length, row, sizeof(row_length));
 #else
-			rowLength = *(const int *)row;
+			row_length = *(const int *)row;
 #endif
-			row += rowLength;
-			--srcTop;
+			row += row_length;
+			--src_top;
 		}
 
-		if (visibleHeight <= 0) {
+		if (visible_height <= 0) {
 			return;
 		}
 
-		fastRowsRemaining = visibleHeight;
+		fast_rows_remaining = visible_height;
 		do {
-			int fastDestinationOffset;
+			int fast_destination_offset;
 
-			fastDestinationOffset = 0;
-			row += sizeof(rowLength);
+			fast_destination_offset = 0;
+			row += sizeof(row_length);
 			for (;;) {
 				token = *row++;
 				if (token == 0x80) {
@@ -1046,63 +1074,64 @@ void FrontImage_BlitRLE8(struct ImageResource *image, int destX, int destY,
 				if ((token & 0x80u) != 0) {
 					token &= 0x7F;
 					memcpy(destination +
-						       fastDestinationOffset,
+						       fast_destination_offset,
 					       row, token);
-					fastDestinationOffset += token;
+					fast_destination_offset += token;
 					row += token;
 					continue;
 				}
 
 				if ((token & 0x40u) != 0) {
-					fastDestinationOffset += token & 0x3F;
+					fast_destination_offset += token & 0x3F;
 					continue;
 				}
 
 				value = *row++;
-				memset(destination + fastDestinationOffset,
+				memset(destination + fast_destination_offset,
 				       value, token);
-				fastDestinationOffset += token;
+				fast_destination_offset += token;
 			}
 
-			destination += g_frontState.drawSurfacePitch;
-			--fastRowsRemaining;
-		} while (fastRowsRemaining != 0);
+			destination += g_front_state.draw_surface_pitch;
+			--fast_rows_remaining;
+		} while (fast_rows_remaining != 0);
 		return;
 	}
 
 	row = image->pixels;
-	destination = &g_drawSurfacePtr[g_frontState.drawSurfacePitch * destY +
-					destX];
-	while (srcTop > 0) {
+	destination =
+		&g_draw_surface_ptr[g_front_state.draw_surface_pitch * dest_y +
+				    dest_x];
+	while (src_top > 0) {
 #ifdef XVT_MODERN
-		memcpy(&rowLength, row, sizeof(rowLength));
+		memcpy(&row_length, row, sizeof(row_length));
 #else
-		rowLength = *(const int *)row;
+		row_length = *(const int *)row;
 #endif
-		row += rowLength;
-		--srcTop;
+		row += row_length;
+		--src_top;
 	}
 
-	if (visibleHeight <= 0) {
+	if (visible_height <= 0) {
 		return;
 	}
 
-	rowsRemaining = visibleHeight;
+	rows_remaining = visible_height;
 	do {
-		rowStart = row;
-		destinationOffset = 0;
-		tokenOffset = sizeof(rowLength);
+		row_start = row;
+		destination_offset = 0;
+		token_offset = sizeof(row_length);
 #ifdef XVT_MODERN
-		memcpy(&rowLength, rowStart, sizeof(rowLength));
+		memcpy(&row_length, row_start, sizeof(row_length));
 #else
-		rowLength = *(const int *)rowStart;
+		row_length = *(const int *)row_start;
 #endif
 		started = 0;
 
 		for (;;) {
-			token = rowStart[tokenOffset++];
-			/* Until started is set, destinationOffset counts the source pixels skipped toward srcLeft;
-			 * when the row reaches srcLeft it is reset to 0 and from then on it is the destination column. */
+			token = row_start[token_offset++];
+			/* Until started is set, destination_offset counts the source pixels skipped toward src_left;
+			 * when the row reaches src_left it is reset to 0 and from then on it is the destination column. */
 			if (!started) {
 				if (token == 0x80) {
 					break;
@@ -1111,52 +1140,52 @@ void FrontImage_BlitRLE8(struct ImageResource *image, int destX, int destY,
 				if ((token & 0x80u) != 0) {
 					token &= 0x7F;
 					count = token;
-					endOffset = destinationOffset + count;
-					if (endOffset >= srcLeft) {
-						count = srcLeft -
-							destinationOffset;
-						tokenOffset += count;
+					end_offset = destination_offset + count;
+					if (end_offset >= src_left) {
+						count = src_left -
+							destination_offset;
+						token_offset += count;
 						started = 1;
 						token -= count;
-						destinationOffset = 0;
+						destination_offset = 0;
 						if (token != 0) {
 							token |= 0x80;
 						}
 					} else {
-						destinationOffset = endOffset;
-						tokenOffset += count;
+						destination_offset = end_offset;
+						token_offset += count;
 					}
 				} else if ((token & 0x40u) != 0) {
 					token &= 0x3F;
 					count = token;
-					endOffset = destinationOffset + token;
-					if (endOffset >= srcLeft) {
-						count = srcLeft -
-							destinationOffset;
+					end_offset = destination_offset + token;
+					if (end_offset >= src_left) {
+						count = src_left -
+							destination_offset;
 						started = 1;
 						token -= count;
-						destinationOffset = 0;
+						destination_offset = 0;
 						if (token != 0) {
 							token |= 0x40;
 						}
 					} else {
-						destinationOffset += count;
+						destination_offset += count;
 					}
 				} else {
 					count = token;
-					endOffset = destinationOffset + token;
-					if (endOffset >= srcLeft) {
-						count = srcLeft -
-							destinationOffset;
+					end_offset = destination_offset + token;
+					if (end_offset >= src_left) {
+						count = src_left -
+							destination_offset;
 						started = 1;
 						token -= count;
-						destinationOffset = 0;
+						destination_offset = 0;
 						if (token == 0) {
-							++tokenOffset;
+							++token_offset;
 						}
 					} else {
-						++tokenOffset;
-						destinationOffset += count;
+						++token_offset;
+						destination_offset += count;
 					}
 				}
 			}
@@ -1170,99 +1199,100 @@ void FrontImage_BlitRLE8(struct ImageResource *image, int destX, int destY,
 
 			if ((token & 0x80u) != 0) {
 				token &= 0x7F;
-				endOffset = destinationOffset + token;
-				if (endOffset >= visibleWidth) {
-					token = (uint8_t)(visibleWidth -
-							  destinationOffset);
-					memcpy(destination + destinationOffset,
-					       rowStart + tokenOffset, token);
+				end_offset = destination_offset + token;
+				if (end_offset >= visible_width) {
+					token = (uint8_t)(visible_width -
+							  destination_offset);
+					memcpy(destination + destination_offset,
+					       row_start + token_offset, token);
 					break;
 				}
 
-				memcpy(destination + destinationOffset,
-				       rowStart + tokenOffset, token);
-				destinationOffset = endOffset;
-				tokenOffset += token;
+				memcpy(destination + destination_offset,
+				       row_start + token_offset, token);
+				destination_offset = end_offset;
+				token_offset += token;
 			} else if ((token & 0x40u) != 0) {
 				token &= 0x3F;
-				destinationOffset += token;
-				if (destinationOffset >= visibleWidth) {
+				destination_offset += token;
+				if (destination_offset >= visible_width) {
 					break;
 				}
 			} else {
-				value = rowStart[tokenOffset++];
+				value = row_start[token_offset++];
 				count = token;
-				endOffset = destinationOffset + count;
-				if (endOffset >= visibleWidth) {
-					token = (uint8_t)(visibleWidth -
-							  destinationOffset);
-					memset(destination + destinationOffset,
+				end_offset = destination_offset + count;
+				if (end_offset >= visible_width) {
+					token = (uint8_t)(visible_width -
+							  destination_offset);
+					memset(destination + destination_offset,
 					       value, token);
 					break;
 				}
 
-				memset(destination + destinationOffset, value,
+				memset(destination + destination_offset, value,
 				       count);
-				destinationOffset = endOffset;
+				destination_offset = end_offset;
 			}
 		}
 
-		row += rowLength;
-		destination += g_frontState.drawSurfacePitch;
-		--rowsRemaining;
-	} while (rowsRemaining != 0);
+		row += row_length;
+		destination += g_front_state.draw_surface_pitch;
+		--rows_remaining;
+	} while (rows_remaining != 0);
 }
 
-/* Does what FrontImage_BlitRLE8 does at 16 bits per pixel, writing each pixel's
- * colorLUT value. */
+/* Does what front_image_blit_rle8 does at 16 bits per pixel, writing each pixel's
+ * color_lut value. */
 // FUNCTION: XVT 0x4B5A80
-void FrontImage_BlitRLE16(struct ImageResource *image, int destX, int destY,
-			  int srcLeft, int srcTop, int visibleWidth,
-			  int visibleHeight)
+void front_image_blit_rle16(struct image_resource *image, int dest_x,
+			    int dest_y, int src_left, int src_top,
+			    int visible_width, int visible_height)
 {
 	const uint8_t *row;
-	const uint8_t *rowStart;
+	const uint8_t *row_start;
 	uint8_t *destination;
-	int rowLength;
-	int tokenOffset;
-	int destinationOffset;
+	int row_length;
+	int token_offset;
+	int destination_offset;
 	uint8_t started;
 	uint8_t token;
 	int count;
-	int endOffset;
-	int rowsRemaining;
+	int end_offset;
+	int rows_remaining;
 	int color;
-	int pixelIndex;
-	uint16_t *fillDestination;
-	int fillCount;
+	int pixel_index;
+	uint16_t *fill_destination;
+	int fill_count;
 
-	if (visibleWidth == image->width) {
-		int fastRowsRemaining;
+	if (visible_width == image->width) {
+		int fast_rows_remaining;
 
 		row = image->pixels;
-		destination = &g_drawSurfacePtr[g_frontState.drawSurfacePitch *
-							destY +
-						2 * destX];
-		while (srcTop > 0) {
+		destination =
+			&g_draw_surface_ptr[g_front_state.draw_surface_pitch *
+						    dest_y +
+					    2 * dest_x];
+		while (src_top > 0) {
 #ifdef XVT_MODERN
-			memcpy(&rowLength, row, sizeof(rowLength));
+			memcpy(&row_length, row, sizeof(row_length));
 #else
-			rowLength = *(const int *)row;
+			row_length = *(const int *)row;
 #endif
-			row += rowLength;
-			--srcTop;
+			row += row_length;
+			--src_top;
 		}
 
-		if (visibleHeight <= 0) {
+		if (visible_height <= 0) {
 			return;
 		}
 
-		fastRowsRemaining = visibleHeight;
+		fast_rows_remaining = visible_height;
 		do {
-			int fastDestinationOffset;
+			int fast_destination_offset;
 
-			fastDestinationOffset = 0;
-			row += sizeof(rowLength);
+			fast_destination_offset = 0;
+			row += sizeof(row_length);
 			for (;;) {
 				token = *row++;
 				if (token == 0x80) {
@@ -1271,76 +1301,78 @@ void FrontImage_BlitRLE16(struct ImageResource *image, int destX, int destY,
 
 				if ((token & 0x80u) != 0) {
 					token &= 0x7F;
-					for (pixelIndex = 0; pixelIndex < token;
-					     ++pixelIndex) {
+					for (pixel_index = 0;
+					     pixel_index < token;
+					     ++pixel_index) {
 						*(uint16_t *)&destination
 							[2 *
-							 (fastDestinationOffset +
-							  pixelIndex)] =
-							image->colorLUT
-								[row[pixelIndex]];
+							 (fast_destination_offset +
+							  pixel_index)] =
+							image->color_lut
+								[row[pixel_index]];
 					}
-					fastDestinationOffset += token;
+					fast_destination_offset += token;
 					row += token;
 				} else if ((token & 0x40u) != 0) {
-					fastDestinationOffset += token & 0x3F;
+					fast_destination_offset += token & 0x3F;
 				} else {
-					color = image->colorLUT[*row++];
+					color = image->color_lut[*row++];
 					if (token != 0) {
-						fillDestination = (uint16_t
-									   *)&destination
+						fill_destination = (uint16_t
+									    *)&destination
 							[2 *
-							 fastDestinationOffset];
-						for (fillCount = token;
-						     fillCount != 0;
-						     --fillCount) {
-							*fillDestination++ =
+							 fast_destination_offset];
+						for (fill_count = token;
+						     fill_count != 0;
+						     --fill_count) {
+							*fill_destination++ =
 								(uint16_t)color;
 						}
 					}
-					fastDestinationOffset += token;
+					fast_destination_offset += token;
 				}
 			}
 
-			destination += g_frontState.drawSurfacePitch & ~1;
-			--fastRowsRemaining;
-		} while (fastRowsRemaining != 0);
+			destination += g_front_state.draw_surface_pitch & ~1;
+			--fast_rows_remaining;
+		} while (fast_rows_remaining != 0);
 		return;
 	}
 
 	row = image->pixels;
-	destination = &g_drawSurfacePtr[g_frontState.drawSurfacePitch * destY +
-					2 * destX];
-	while (srcTop > 0) {
+	destination =
+		&g_draw_surface_ptr[g_front_state.draw_surface_pitch * dest_y +
+				    2 * dest_x];
+	while (src_top > 0) {
 #ifdef XVT_MODERN
-		memcpy(&rowLength, row, sizeof(rowLength));
+		memcpy(&row_length, row, sizeof(row_length));
 #else
-		rowLength = *(const int *)row;
+		row_length = *(const int *)row;
 #endif
-		row += rowLength;
-		--srcTop;
+		row += row_length;
+		--src_top;
 	}
 
-	if (visibleHeight <= 0) {
+	if (visible_height <= 0) {
 		return;
 	}
 
-	rowsRemaining = visibleHeight;
+	rows_remaining = visible_height;
 	do {
-		rowStart = row;
-		destinationOffset = 0;
-		tokenOffset = sizeof(rowLength);
+		row_start = row;
+		destination_offset = 0;
+		token_offset = sizeof(row_length);
 #ifdef XVT_MODERN
-		memcpy(&rowLength, rowStart, sizeof(rowLength));
+		memcpy(&row_length, row_start, sizeof(row_length));
 #else
-		rowLength = *(const int *)rowStart;
+		row_length = *(const int *)row_start;
 #endif
 		started = 0;
 
 		for (;;) {
-			token = rowStart[tokenOffset++];
-			/* Until started is set, destinationOffset counts the source pixels skipped toward srcLeft;
-			 * when the row reaches srcLeft it is reset to 0 and from then on it is the destination column. */
+			token = row_start[token_offset++];
+			/* Until started is set, destination_offset counts the source pixels skipped toward src_left;
+			 * when the row reaches src_left it is reset to 0 and from then on it is the destination column. */
 			if (!started) {
 				if (token == 0x80) {
 					break;
@@ -1348,52 +1380,52 @@ void FrontImage_BlitRLE16(struct ImageResource *image, int destX, int destY,
 				if ((token & 0x80u) != 0) {
 					token &= 0x7F;
 					count = token;
-					endOffset = destinationOffset + count;
-					if (endOffset >= srcLeft) {
-						count = srcLeft -
-							destinationOffset;
-						tokenOffset += count;
+					end_offset = destination_offset + count;
+					if (end_offset >= src_left) {
+						count = src_left -
+							destination_offset;
+						token_offset += count;
 						started = 1;
 						token -= count;
-						destinationOffset = 0;
+						destination_offset = 0;
 						if (token != 0) {
 							token |= 0x80;
 						}
 					} else {
-						destinationOffset = endOffset;
-						tokenOffset += count;
+						destination_offset = end_offset;
+						token_offset += count;
 					}
 				} else if ((token & 0x40u) != 0) {
 					token &= 0x3F;
 					count = token;
-					endOffset = destinationOffset + token;
-					if (endOffset >= srcLeft) {
-						count = srcLeft -
-							destinationOffset;
+					end_offset = destination_offset + token;
+					if (end_offset >= src_left) {
+						count = src_left -
+							destination_offset;
 						started = 1;
 						token -= count;
-						destinationOffset = 0;
+						destination_offset = 0;
 						if (token != 0) {
 							token |= 0x40;
 						}
 					} else {
-						destinationOffset += count;
+						destination_offset += count;
 					}
 				} else {
 					count = token;
-					endOffset = destinationOffset + token;
-					if (endOffset >= srcLeft) {
-						count = srcLeft -
-							destinationOffset;
+					end_offset = destination_offset + token;
+					if (end_offset >= src_left) {
+						count = src_left -
+							destination_offset;
 						started = 1;
 						token -= count;
-						destinationOffset = 0;
+						destination_offset = 0;
 						if (token == 0) {
-							++tokenOffset;
+							++token_offset;
 						}
 					} else {
-						++tokenOffset;
-						destinationOffset += count;
+						++token_offset;
+						destination_offset += count;
 					}
 				}
 			}
@@ -1407,63 +1439,66 @@ void FrontImage_BlitRLE16(struct ImageResource *image, int destX, int destY,
 
 			if ((token & 0x80u) != 0) {
 				token &= 0x7F;
-				endOffset = destinationOffset + token;
-				if (endOffset >= visibleWidth) {
-					count = (uint8_t)(visibleWidth -
-							  destinationOffset);
+				end_offset = destination_offset + token;
+				if (end_offset >= visible_width) {
+					count = (uint8_t)(visible_width -
+							  destination_offset);
 					if (count != 0) {
-						pixelIndex = 0;
+						pixel_index = 0;
 						do {
 							*(uint16_t
 								  *)&destination
 								[2 *
-								 (destinationOffset +
-								  pixelIndex)] =
-								image->colorLUT
-									[rowStart[tokenOffset +
-										  pixelIndex]];
-							++pixelIndex;
-						} while (pixelIndex < count);
+								 (destination_offset +
+								  pixel_index)] =
+								image->color_lut
+									[row_start
+										 [token_offset +
+										  pixel_index]];
+							++pixel_index;
+						} while (pixel_index < count);
 					}
 					break;
 				}
 
-				pixelIndex = 0;
+				pixel_index = 0;
 				if (token != 0) {
 					do {
 						*(uint16_t *)&destination
 							[2 *
-							 (destinationOffset +
-							  pixelIndex)] =
-							image->colorLUT
-								[rowStart[tokenOffset +
-									  pixelIndex]];
-						++pixelIndex;
-					} while (pixelIndex < token);
+							 (destination_offset +
+							  pixel_index)] =
+							image->color_lut
+								[row_start
+									 [token_offset +
+									  pixel_index]];
+						++pixel_index;
+					} while (pixel_index < token);
 				}
-				destinationOffset = endOffset;
-				tokenOffset += token;
+				destination_offset = end_offset;
+				token_offset += token;
 			} else if ((token & 0x40u) != 0) {
 				token &= 0x3F;
-				destinationOffset += token;
-				if (destinationOffset >= visibleWidth) {
+				destination_offset += token;
+				if (destination_offset >= visible_width) {
 					break;
 				}
 			} else {
-				color = image->colorLUT
-						[rowStart[tokenOffset++]];
-				endOffset = destinationOffset + token;
-				if (endOffset >= visibleWidth) {
-					count = (uint8_t)(visibleWidth -
-							  destinationOffset);
+				color = image->color_lut
+						[row_start[token_offset++]];
+				end_offset = destination_offset + token;
+				if (end_offset >= visible_width) {
+					count = (uint8_t)(visible_width -
+							  destination_offset);
 					if (count != 0) {
-						fillDestination = (uint16_t
-									   *)&destination
-							[2 * destinationOffset];
-						for (fillCount = count;
-						     fillCount != 0;
-						     --fillCount) {
-							*fillDestination++ =
+						fill_destination = (uint16_t
+									    *)&destination
+							[2 *
+							 destination_offset];
+						for (fill_count = count;
+						     fill_count != 0;
+						     --fill_count) {
+							*fill_destination++ =
 								(uint16_t)color;
 						}
 					}
@@ -1471,59 +1506,60 @@ void FrontImage_BlitRLE16(struct ImageResource *image, int destX, int destY,
 				}
 
 				if (token != 0) {
-					fillDestination =
+					fill_destination =
 						(uint16_t *)&destination
-							[2 * destinationOffset];
-					for (fillCount = token; fillCount != 0;
-					     --fillCount) {
-						*fillDestination++ =
+							[2 *
+							 destination_offset];
+					for (fill_count = token;
+					     fill_count != 0; --fill_count) {
+						*fill_destination++ =
 							(uint16_t)color;
 					}
 				}
-				destinationOffset = endOffset;
+				destination_offset = end_offset;
 			}
 		}
 
-		row += rowLength;
-		destination += g_frontState.drawSurfacePitch & ~1;
-		--rowsRemaining;
-	} while (rowsRemaining != 0);
+		row += row_length;
+		destination += g_front_state.draw_surface_pitch & ~1;
+		--rows_remaining;
+	} while (rows_remaining != 0);
 }
 
-/* Draws the image registered under name with FrontImage_BlitOpaque and returns
+/* Draws the image registered under name with front_image_blit_opaque and returns
  * its result, or 0 when the name is not registered. */
 // FUNCTION: XVT 0x4B5DE0
-int FrontImage_DrawSpriteOpaque(const char *name, int x, int y)
+int front_image_draw_sprite_opaque(const char *name, int x, int y)
 {
-	int resourceIndex;
+	int resource_index;
 
-	resourceIndex = FrontImage_FindResourceByName(name);
-	if (resourceIndex == -1) {
+	resource_index = front_image_find_resource_by_name(name);
+	if (resource_index == -1) {
 		return 0;
 	}
 
-	return FrontImage_BlitOpaque(
-		g_frontState.resourceTable[resourceIndex].image, x, y);
+	return front_image_blit_opaque(
+		g_front_state.resource_table[resource_index].image, x, y);
 }
 
 /* Draws an image with its top-left corner at (x, y), clipped to the clip
  * bounds, every pixel included: an uncompressed image at 8 bits per pixel as
- * indexes and at 16 as colorLUT values, an RLE-compressed one through
- * FrontImage_BlitRLE8Opaque or FrontImage_BlitRLE16Opaque. Returns the
- * clip-edge bits of FrontendDraw_RectClipToBounds, or 0 when image is NULL. The
+ * indexes and at 16 as color_lut values, an RLE-compressed one through
+ * front_image_blit_rle8_opaque or front_image_blit_rle16_opaque. Returns the
+ * clip-edge bits of frontend_draw_rect_clip_to_bounds, or 0 when image is NULL. The
  * modern build also records the draw for its renderer. */
 // FUNCTION: XVT 0x4B5E20
-int FrontImage_BlitOpaque(struct ImageResource *image, int x, int y)
+int front_image_blit_opaque(struct image_resource *image, int x, int y)
 {
-	int clipResult;
-	struct RECT clippedRect;
-	struct RECT originalRect;
-	int sourceX;
-	int sourceY;
+	int clip_result;
+	struct RECT clipped_rect;
+	struct RECT original_rect;
+	int source_x;
+	int source_y;
 	int width;
-	int visibleWidth;
-	int visibleHeight;
-	int displayBpp;
+	int visible_width;
+	int visible_height;
+	int display_bpp;
 	const uint8_t *source;
 	uint8_t *destination;
 	int column;
@@ -1532,142 +1568,143 @@ int FrontImage_BlitOpaque(struct ImageResource *image, int x, int y)
 		return 0;
 	}
 
-	clippedRect.left = x;
-	clippedRect.top = y;
-	clippedRect.right = x + image->width - 1;
-	clippedRect.bottom = y + image->height - 1;
-	FrontendDraw_RectCopy(&originalRect, &clippedRect);
-	clipResult = FrontendDraw_RectClipToBounds(&clippedRect);
-	if (clippedRect.right >= clippedRect.left &&
-	    clippedRect.top <= clippedRect.bottom) {
-		sourceX = clippedRect.left - originalRect.left;
-		sourceY = clippedRect.top - originalRect.top;
+	clipped_rect.left = x;
+	clipped_rect.top = y;
+	clipped_rect.right = x + image->width - 1;
+	clipped_rect.bottom = y + image->height - 1;
+	frontend_draw_rect_copy(&original_rect, &clipped_rect);
+	clip_result = frontend_draw_rect_clip_to_bounds(&clipped_rect);
+	if (clipped_rect.right >= clipped_rect.left &&
+	    clipped_rect.top <= clipped_rect.bottom) {
+		source_x = clipped_rect.left - original_rect.left;
+		source_y = clipped_rect.top - original_rect.top;
 		width = image->width;
-		visibleWidth = clippedRect.right - sourceX -
-			       originalRect.right + width;
-		visibleHeight = clippedRect.bottom + image->height - sourceY -
-				originalRect.bottom;
+		visible_width = clipped_rect.right - source_x -
+				original_rect.right + width;
+		visible_height = clipped_rect.bottom + image->height -
+				 source_y - original_rect.bottom;
 
 #ifdef XVT_MODERN
-		XvtRenderFrontend_Image(image, sourceX, sourceY, x + sourceX,
-					y + sourceY, visibleWidth,
-					visibleHeight, XVT_SPRITE_FRONT_OPAQUE,
-					0);
+		xvt_render_frontend_image(image, source_x, source_y,
+					  x + source_x, y + source_y,
+					  visible_width, visible_height,
+					  XVT_SPRITE_FRONT_OPAQUE, 0);
 #endif
-		displayBpp = g_frontState.displayBpp;
-		if (image->isCompressed == 0) {
-			if (displayBpp == 8) {
-				source = &image->pixels[sourceY * width +
-							sourceX];
+		display_bpp = g_front_state.display_bpp;
+		if (image->is_compressed == 0) {
+			if (display_bpp == 8) {
+				source = &image->pixels[source_y * width +
+							source_x];
 				destination =
-					&g_drawSurfacePtr
-						[x + sourceX +
-						 g_frontState.drawSurfacePitch *
-							 (y + sourceY)];
-				if (visibleHeight > 0) {
+					&g_draw_surface_ptr
+						[x + source_x +
+						 g_front_state.draw_surface_pitch *
+							 (y + source_y)];
+				if (visible_height > 0) {
 					do {
 						for (column = 0;
-						     column < visibleWidth;
+						     column < visible_width;
 						     ++column) {
 							destination[column] =
 								source[column];
 						}
 						source += image->width;
 						destination +=
-							g_frontState
-								.drawSurfacePitch;
-						--visibleHeight;
-					} while (visibleHeight != 0);
+							g_front_state
+								.draw_surface_pitch;
+						--visible_height;
+					} while (visible_height != 0);
 				}
-			} else if (displayBpp == 16) {
-				source = &image->pixels[sourceY * width +
-							sourceX];
+			} else if (display_bpp == 16) {
+				source = &image->pixels[source_y * width +
+							source_x];
 				destination =
-					&g_drawSurfacePtr
-						[2 * (x + sourceX) +
-						 g_frontState.drawSurfacePitch *
-							 (y + sourceY)];
-				if (visibleHeight > 0) {
+					&g_draw_surface_ptr
+						[2 * (x + source_x) +
+						 g_front_state.draw_surface_pitch *
+							 (y + source_y)];
+				if (visible_height > 0) {
 					do {
 						for (column = 0;
-						     column < visibleWidth;
+						     column < visible_width;
 						     ++column) {
 							*(uint16_t
 								  *)&destination
 								[2 * column] =
-								image->colorLUT
+								image->color_lut
 									[source[column]];
 						}
 						source += image->width;
 						destination +=
-							g_frontState
-								.drawSurfacePitch &
+							g_front_state
+								.draw_surface_pitch &
 							0xFFFFFFFE;
-						--visibleHeight;
-					} while (visibleHeight != 0);
+						--visible_height;
+					} while (visible_height != 0);
 				}
 			}
-		} else if (displayBpp == 8) {
-			FrontImage_BlitRLE8Opaque(image, x + sourceX,
-						  y + sourceY, sourceX, sourceY,
-						  visibleWidth, visibleHeight);
-		} else if (displayBpp == 16) {
-			FrontImage_BlitRLE16Opaque(
-				image, x + sourceX, y + sourceY, sourceX,
-				sourceY, visibleWidth, visibleHeight);
+		} else if (display_bpp == 8) {
+			front_image_blit_rle8_opaque(
+				image, x + source_x, y + source_y, source_x,
+				source_y, visible_width, visible_height);
+		} else if (display_bpp == 16) {
+			front_image_blit_rle16_opaque(
+				image, x + source_x, y + source_y, source_x,
+				source_y, visible_width, visible_height);
 		}
 	}
 
-	return clipResult;
+	return clip_result;
 }
 
-/* Does what FrontImage_BlitRLE8 does, but fills the pixels of skip tokens with
+/* Does what front_image_blit_rle8 does, but fills the pixels of skip tokens with
  * index 0 instead of leaving them. */
 // FUNCTION: XVT 0x4B5FE0
-void FrontImage_BlitRLE8Opaque(struct ImageResource *image, int destX,
-			       int destY, int srcLeft, int srcTop,
-			       int visibleWidth, int visibleHeight)
+void front_image_blit_rle8_opaque(struct image_resource *image, int dest_x,
+				  int dest_y, int src_left, int src_top,
+				  int visible_width, int visible_height)
 {
 	const uint8_t *row;
-	const uint8_t *rowStart;
+	const uint8_t *row_start;
 	uint8_t *destination;
-	int rowLength;
-	int tokenOffset;
-	int destinationOffset;
+	int row_length;
+	int token_offset;
+	int destination_offset;
 	uint8_t started;
 	uint8_t token;
 	int count;
-	int endOffset;
-	int rowsRemaining;
+	int end_offset;
+	int rows_remaining;
 	uint8_t value;
 
 	row = image->pixels;
-	if (visibleWidth == image->width) {
-		int fastRowsRemaining;
+	if (visible_width == image->width) {
+		int fast_rows_remaining;
 
-		destination = &g_drawSurfacePtr[g_frontState.drawSurfacePitch *
-							destY +
-						destX];
-		while (srcTop > 0) {
+		destination =
+			&g_draw_surface_ptr[g_front_state.draw_surface_pitch *
+						    dest_y +
+					    dest_x];
+		while (src_top > 0) {
 #ifdef XVT_MODERN
-			memcpy(&rowLength, row, sizeof(rowLength));
+			memcpy(&row_length, row, sizeof(row_length));
 #else
-			rowLength = *(const int *)row;
+			row_length = *(const int *)row;
 #endif
-			row += rowLength;
-			--srcTop;
+			row += row_length;
+			--src_top;
 		}
 
-		if (visibleHeight <= 0) {
+		if (visible_height <= 0) {
 			return;
 		}
 
-		fastRowsRemaining = visibleHeight;
+		fast_rows_remaining = visible_height;
 		do {
-			int fastDestinationOffset;
+			int fast_destination_offset;
 
-			fastDestinationOffset = 0;
-			row += sizeof(rowLength);
+			fast_destination_offset = 0;
+			row += sizeof(row_length);
 			for (;;) {
 				token = *row++;
 				if (token == 0x80) {
@@ -1677,9 +1714,9 @@ void FrontImage_BlitRLE8Opaque(struct ImageResource *image, int destX,
 				if ((token & 0x80u) != 0) {
 					token &= 0x7F;
 					memcpy(destination +
-						       fastDestinationOffset,
+						       fast_destination_offset,
 					       row, token);
-					fastDestinationOffset += token;
+					fast_destination_offset += token;
 					row += token;
 					continue;
 				}
@@ -1687,56 +1724,57 @@ void FrontImage_BlitRLE8Opaque(struct ImageResource *image, int destX,
 				if ((token & 0x40u) != 0) {
 					token &= 0x3F;
 					memset(destination +
-						       fastDestinationOffset,
+						       fast_destination_offset,
 					       0, token);
-					fastDestinationOffset += token;
+					fast_destination_offset += token;
 					continue;
 				}
 
 				value = *row++;
-				memset(destination + fastDestinationOffset,
+				memset(destination + fast_destination_offset,
 				       value, token);
-				fastDestinationOffset += token;
+				fast_destination_offset += token;
 			}
 
-			destination += g_frontState.drawSurfacePitch;
-			--fastRowsRemaining;
-		} while (fastRowsRemaining != 0);
+			destination += g_front_state.draw_surface_pitch;
+			--fast_rows_remaining;
+		} while (fast_rows_remaining != 0);
 		return;
 	}
 
-	destination = &g_drawSurfacePtr[g_frontState.drawSurfacePitch * destY +
-					destX];
-	while (srcTop > 0) {
+	destination =
+		&g_draw_surface_ptr[g_front_state.draw_surface_pitch * dest_y +
+				    dest_x];
+	while (src_top > 0) {
 #ifdef XVT_MODERN
-		memcpy(&rowLength, row, sizeof(rowLength));
+		memcpy(&row_length, row, sizeof(row_length));
 #else
-		rowLength = *(const int *)row;
+		row_length = *(const int *)row;
 #endif
-		row += rowLength;
-		--srcTop;
+		row += row_length;
+		--src_top;
 	}
 
-	if (visibleHeight <= 0) {
+	if (visible_height <= 0) {
 		return;
 	}
 
-	rowsRemaining = visibleHeight;
+	rows_remaining = visible_height;
 	do {
-		rowStart = row;
-		destinationOffset = 0;
-		tokenOffset = sizeof(rowLength);
+		row_start = row;
+		destination_offset = 0;
+		token_offset = sizeof(row_length);
 #ifdef XVT_MODERN
-		memcpy(&rowLength, rowStart, sizeof(rowLength));
+		memcpy(&row_length, row_start, sizeof(row_length));
 #else
-		rowLength = *(const int *)rowStart;
+		row_length = *(const int *)row_start;
 #endif
 		started = 0;
 
 		for (;;) {
-			token = rowStart[tokenOffset++];
-			/* Until started is set, destinationOffset counts the source pixels skipped toward srcLeft;
-			 * when the row reaches srcLeft it is reset to 0 and from then on it is the destination column. */
+			token = row_start[token_offset++];
+			/* Until started is set, destination_offset counts the source pixels skipped toward src_left;
+			 * when the row reaches src_left it is reset to 0 and from then on it is the destination column. */
 			if (!started) {
 				if (token == 0x80) {
 					break;
@@ -1745,52 +1783,52 @@ void FrontImage_BlitRLE8Opaque(struct ImageResource *image, int destX,
 				if ((token & 0x80u) != 0) {
 					token &= 0x7F;
 					count = token;
-					endOffset = destinationOffset + count;
-					if (endOffset >= srcLeft) {
-						count = srcLeft -
-							destinationOffset;
-						tokenOffset += count;
+					end_offset = destination_offset + count;
+					if (end_offset >= src_left) {
+						count = src_left -
+							destination_offset;
+						token_offset += count;
 						started = 1;
 						token -= count;
-						destinationOffset = 0;
+						destination_offset = 0;
 						if (token != 0) {
 							token |= 0x80;
 						}
 					} else {
-						destinationOffset = endOffset;
-						tokenOffset += count;
+						destination_offset = end_offset;
+						token_offset += count;
 					}
 				} else if ((token & 0x40u) != 0) {
 					token &= 0x3F;
 					count = token;
-					endOffset = destinationOffset + token;
-					if (endOffset >= srcLeft) {
-						count = srcLeft -
-							destinationOffset;
+					end_offset = destination_offset + token;
+					if (end_offset >= src_left) {
+						count = src_left -
+							destination_offset;
 						started = 1;
 						token -= count;
-						destinationOffset = 0;
+						destination_offset = 0;
 						if (token != 0) {
 							token |= 0x40;
 						}
 					} else {
-						destinationOffset += count;
+						destination_offset += count;
 					}
 				} else {
 					count = token;
-					endOffset = destinationOffset + token;
-					if (endOffset >= srcLeft) {
-						count = srcLeft -
-							destinationOffset;
+					end_offset = destination_offset + token;
+					if (end_offset >= src_left) {
+						count = src_left -
+							destination_offset;
 						started = 1;
 						token -= count;
-						destinationOffset = 0;
+						destination_offset = 0;
 						if (token == 0) {
-							++tokenOffset;
+							++token_offset;
 						}
 					} else {
-						++tokenOffset;
-						destinationOffset += count;
+						++token_offset;
+						destination_offset += count;
 					}
 				}
 			}
@@ -1804,114 +1842,115 @@ void FrontImage_BlitRLE8Opaque(struct ImageResource *image, int destX,
 
 			if ((token & 0x80u) != 0) {
 				token &= 0x7F;
-				endOffset = destinationOffset + token;
-				if (endOffset >= visibleWidth) {
-					token = (uint8_t)(visibleWidth -
-							  destinationOffset);
-					memcpy(destination + destinationOffset,
-					       rowStart + tokenOffset, token);
+				end_offset = destination_offset + token;
+				if (end_offset >= visible_width) {
+					token = (uint8_t)(visible_width -
+							  destination_offset);
+					memcpy(destination + destination_offset,
+					       row_start + token_offset, token);
 					break;
 				}
 
-				memcpy(destination + destinationOffset,
-				       rowStart + tokenOffset, token);
-				destinationOffset = endOffset;
-				tokenOffset += token;
+				memcpy(destination + destination_offset,
+				       row_start + token_offset, token);
+				destination_offset = end_offset;
+				token_offset += token;
 			} else if ((token & 0x40u) != 0) {
 				token &= 0x3F;
-				endOffset = destinationOffset + token;
-				if (endOffset >= visibleWidth) {
-					token = (uint8_t)(visibleWidth -
-							  destinationOffset);
-					memset(destination + destinationOffset,
+				end_offset = destination_offset + token;
+				if (end_offset >= visible_width) {
+					token = (uint8_t)(visible_width -
+							  destination_offset);
+					memset(destination + destination_offset,
 					       0, token);
 					break;
 				}
 
-				memset(destination + destinationOffset, 0,
+				memset(destination + destination_offset, 0,
 				       token);
-				destinationOffset = endOffset;
+				destination_offset = end_offset;
 			} else {
-				value = rowStart[tokenOffset++];
+				value = row_start[token_offset++];
 				count = token;
-				endOffset = destinationOffset + count;
-				if (endOffset >= visibleWidth) {
-					token = (uint8_t)(visibleWidth -
-							  destinationOffset);
-					memset(destination + destinationOffset,
+				end_offset = destination_offset + count;
+				if (end_offset >= visible_width) {
+					token = (uint8_t)(visible_width -
+							  destination_offset);
+					memset(destination + destination_offset,
 					       value, token);
 					break;
 				}
 
-				memset(destination + destinationOffset, value,
+				memset(destination + destination_offset, value,
 				       count);
-				destinationOffset = endOffset;
+				destination_offset = end_offset;
 			}
 		}
 
-		row += rowLength;
-		destination += g_frontState.drawSurfacePitch;
-		--rowsRemaining;
-	} while (rowsRemaining != 0);
+		row += row_length;
+		destination += g_front_state.draw_surface_pitch;
+		--rows_remaining;
+	} while (rows_remaining != 0);
 }
 
 #ifndef XVT_MODERN
 #pragma optimize("y", off)
 #endif
-/* Does what FrontImage_BlitRLE16 does, but fills the pixels of skip tokens with
- * colorLUT[0] instead of leaving them. */
+/* Does what front_image_blit_rle16 does, but fills the pixels of skip tokens with
+ * color_lut[0] instead of leaving them. */
 // FUNCTION: XVT 0x4B6340
-void FrontImage_BlitRLE16Opaque(struct ImageResource *image, int destX,
-				int destY, int srcLeft, int srcTop,
-				int visibleWidth, int visibleHeight)
+void front_image_blit_rle16_opaque(struct image_resource *image, int dest_x,
+				   int dest_y, int src_left, int src_top,
+				   int visible_width, int visible_height)
 {
 	const uint8_t *row;
-	const uint8_t *rowStart;
+	const uint8_t *row_start;
 	uint8_t *destination;
-	int rowLength;
-	int tokenOffset;
-	int destinationOffset;
+	int row_length;
+	int token_offset;
+	int destination_offset;
 	uint8_t started;
 	uint8_t token;
 	int count;
-	int endOffset;
-	int rowsRemaining;
+	int end_offset;
+	int rows_remaining;
 	int color;
-	int pixelIndex;
-	uint16_t *fillDestination;
-	int fillCount;
-	int sourceRowsToSkip;
+	int pixel_index;
+	uint16_t *fill_destination;
+	int fill_count;
+	int source_rows_to_skip;
 
-	if (visibleWidth == image->width) {
-		int fastRowsRemaining;
+	if (visible_width == image->width) {
+		int fast_rows_remaining;
 
 		row = image->pixels;
-		destination = &g_drawSurfacePtr[g_frontState.drawSurfacePitch *
-							destY +
-						2 * destX];
-		sourceRowsToSkip = srcTop;
-		if (sourceRowsToSkip > 0) {
+		destination =
+			&g_draw_surface_ptr[g_front_state.draw_surface_pitch *
+						    dest_y +
+					    2 * dest_x];
+		source_rows_to_skip = src_top;
+		if (source_rows_to_skip > 0) {
 			do {
 #ifdef XVT_MODERN
-				memcpy(&rowLength, row, sizeof(rowLength));
+				memcpy(&row_length, row, sizeof(row_length));
 #else
-				rowLength = *(const int *)row;
+				row_length = *(const int *)row;
 #endif
-				row += rowLength;
-				--sourceRowsToSkip;
-			} while (sourceRowsToSkip != 0);
+				row += row_length;
+				--source_rows_to_skip;
+			} while (source_rows_to_skip != 0);
 		}
 
-		if (visibleHeight <= 0) {
+		if (visible_height <= 0) {
 			return;
 		}
 
-		fastRowsRemaining = visibleHeight;
+		fast_rows_remaining = visible_height;
 		do {
-			int fastDestinationOffset;
+			int fast_destination_offset;
 
-			fastDestinationOffset = 0;
-			row += sizeof(rowLength);
+			fast_destination_offset = 0;
+			row += sizeof(row_length);
 			for (;;) {
 				token = *row++;
 				if (token == 0x80) {
@@ -1920,93 +1959,95 @@ void FrontImage_BlitRLE16Opaque(struct ImageResource *image, int destX,
 
 				if ((token & 0x80u) != 0) {
 					token &= 0x7F;
-					for (pixelIndex = 0; pixelIndex < token;
-					     ++pixelIndex) {
+					for (pixel_index = 0;
+					     pixel_index < token;
+					     ++pixel_index) {
 						*(uint16_t *)&destination
 							[2 *
-							 (fastDestinationOffset +
-							  pixelIndex)] =
-							image->colorLUT
-								[row[pixelIndex]];
+							 (fast_destination_offset +
+							  pixel_index)] =
+							image->color_lut
+								[row[pixel_index]];
 					}
-					fastDestinationOffset += token;
+					fast_destination_offset += token;
 					row += token;
 				} else if ((token & 0x40u) != 0) {
 					token &= 0x3F;
-					color = image->colorLUT[0];
+					color = image->color_lut[0];
 					if (token != 0) {
-						fillDestination = (uint16_t
-									   *)&destination
+						fill_destination = (uint16_t
+									    *)&destination
 							[2 *
-							 fastDestinationOffset];
-						for (fillCount = token;
-						     fillCount != 0;
-						     --fillCount) {
-							*fillDestination++ =
+							 fast_destination_offset];
+						for (fill_count = token;
+						     fill_count != 0;
+						     --fill_count) {
+							*fill_destination++ =
 								(uint16_t)color;
 						}
 					}
-					fastDestinationOffset += token;
+					fast_destination_offset += token;
 				} else {
-					color = image->colorLUT[*row++];
+					color = image->color_lut[*row++];
 					if (token != 0) {
-						fillDestination = (uint16_t
-									   *)&destination
+						fill_destination = (uint16_t
+									    *)&destination
 							[2 *
-							 fastDestinationOffset];
-						for (fillCount = token;
-						     fillCount != 0;
-						     --fillCount) {
-							*fillDestination++ =
+							 fast_destination_offset];
+						for (fill_count = token;
+						     fill_count != 0;
+						     --fill_count) {
+							*fill_destination++ =
 								(uint16_t)color;
 						}
 					}
-					fastDestinationOffset += token;
+					fast_destination_offset += token;
 				}
 			}
 
-			destination += g_frontState.drawSurfacePitch & ~1;
-			--fastRowsRemaining;
-		} while (fastRowsRemaining != 0);
+			destination += g_front_state.draw_surface_pitch & ~1;
+			--fast_rows_remaining;
+		} while (fast_rows_remaining != 0);
 		return;
 	}
 
 	row = image->pixels;
-	destination = &g_drawSurfacePtr[g_frontState.drawSurfacePitch * destY +
-					2 * destX];
-	sourceRowsToSkip = srcTop;
-	if (sourceRowsToSkip > 0) {
+	destination =
+		&g_draw_surface_ptr[g_front_state.draw_surface_pitch * dest_y +
+				    2 * dest_x];
+	source_rows_to_skip = src_top;
+	if (source_rows_to_skip > 0) {
 		do {
 #ifdef XVT_MODERN
-			memcpy(&rowLength, row, sizeof(rowLength));
+			memcpy(&row_length, row, sizeof(row_length));
 #else
-			rowLength = *(const int *)row;
+			row_length = *(const int *)row;
 #endif
-			--sourceRowsToSkip;
-			row += rowLength;
-		} while (sourceRowsToSkip != 0);
+			--source_rows_to_skip;
+			row += row_length;
+		} while (source_rows_to_skip != 0);
 	}
 
-	if (visibleHeight <= 0) {
+	if (visible_height <= 0) {
 		return;
 	}
 
-	rowsRemaining = visibleHeight;
+	rows_remaining = visible_height;
 	do {
-		rowStart = row;
-		destinationOffset = 0;
-		tokenOffset = sizeof(rowLength);
+		row_start = row;
+		destination_offset = 0;
+		token_offset = sizeof(row_length);
 #ifdef XVT_MODERN
-		memcpy(&rowLength, rowStart, sizeof(rowLength));
+		memcpy(&row_length, row_start, sizeof(row_length));
 #else
-		rowLength = *(const int *)rowStart;
+		row_length = *(const int *)row_start;
 #endif
 		started = 0;
 
 		for (;;) {
-			token = rowStart[tokenOffset++];
-			/* Until started is set, destinationOffset counts the source pixels skipped toward srcLeft;
-			 * when the row reaches srcLeft it is reset to 0 and from then on it is the destination column. */
+			token = row_start[token_offset++];
+			/* Until started is set, destination_offset counts the source pixels skipped toward src_left;
+			 * when the row reaches src_left it is reset to 0 and from then on it is the destination column. */
 			if (started == 0) {
 				if (token == 0x80) {
 					break;
@@ -2014,52 +2055,52 @@ void FrontImage_BlitRLE16Opaque(struct ImageResource *image, int destX,
 				if ((token & 0x80u) != 0) {
 					token &= 0x7F;
 					count = token;
-					endOffset = destinationOffset + count;
-					if (endOffset >= srcLeft) {
-						count = srcLeft -
-							destinationOffset;
-						tokenOffset += count;
+					end_offset = destination_offset + count;
+					if (end_offset >= src_left) {
+						count = src_left -
+							destination_offset;
+						token_offset += count;
 						started = 1;
 						token -= count;
-						destinationOffset = 0;
+						destination_offset = 0;
 						if (token != 0) {
 							token |= 0x80;
 						}
 					} else {
-						destinationOffset = endOffset;
-						tokenOffset += count;
+						destination_offset = end_offset;
+						token_offset += count;
 					}
 				} else if ((token & 0x40u) != 0) {
 					token &= 0x3F;
 					count = token;
-					endOffset = destinationOffset + token;
-					if (endOffset >= srcLeft) {
-						count = srcLeft -
-							destinationOffset;
+					end_offset = destination_offset + token;
+					if (end_offset >= src_left) {
+						count = src_left -
+							destination_offset;
 						started = 1;
 						token -= count;
-						destinationOffset = 0;
+						destination_offset = 0;
 						if (token != 0) {
 							token |= 0x40;
 						}
 					} else {
-						destinationOffset += count;
+						destination_offset += count;
 					}
 				} else {
 					count = token;
-					endOffset = destinationOffset + token;
-					if (endOffset >= srcLeft) {
-						count = srcLeft -
-							destinationOffset;
+					end_offset = destination_offset + token;
+					if (end_offset >= src_left) {
+						count = src_left -
+							destination_offset;
 						started = 1;
 						token -= count;
-						destinationOffset = 0;
+						destination_offset = 0;
 						if (token == 0) {
-							++tokenOffset;
+							++token_offset;
 						}
 					} else {
-						++tokenOffset;
-						destinationOffset += count;
+						++token_offset;
+						destination_offset += count;
 					}
 				}
 			}
@@ -2073,165 +2114,170 @@ void FrontImage_BlitRLE16Opaque(struct ImageResource *image, int destX,
 
 			if ((token & 0x80u) != 0) {
 				token &= 0x7F;
-				endOffset = destinationOffset + token;
-				if (endOffset >= visibleWidth) {
-					count = (uint8_t)(visibleWidth -
-							  destinationOffset);
-					for (pixelIndex = 0; pixelIndex < count;
-					     ++pixelIndex) {
+				end_offset = destination_offset + token;
+				if (end_offset >= visible_width) {
+					count = (uint8_t)(visible_width -
+							  destination_offset);
+					for (pixel_index = 0;
+					     pixel_index < count;
+					     ++pixel_index) {
 						*(uint16_t *)&destination
 							[2 *
-							 (destinationOffset +
-							  pixelIndex)] =
-							image->colorLUT
-								[rowStart[tokenOffset +
-									  pixelIndex]];
+							 (destination_offset +
+							  pixel_index)] =
+							image->color_lut
+								[row_start
+									 [token_offset +
+									  pixel_index]];
 					}
 					break;
 				}
 
-				for (pixelIndex = 0; pixelIndex < token;
-				     ++pixelIndex) {
+				for (pixel_index = 0; pixel_index < token;
+				     ++pixel_index) {
 					*(uint16_t *)&destination
-						[2 * (destinationOffset +
-						      pixelIndex)] =
-						image->colorLUT
-							[rowStart[tokenOffset +
-								  pixelIndex]];
+						[2 * (destination_offset +
+						      pixel_index)] =
+						image->color_lut
+							[row_start
+								 [token_offset +
+								  pixel_index]];
 				}
-				destinationOffset = endOffset;
-				tokenOffset += token;
+				destination_offset = end_offset;
+				token_offset += token;
 			} else if ((token & 0x40u) != 0) {
 				token &= 0x3F;
-				endOffset = destinationOffset + token;
-				color = image->colorLUT[0];
-				if (endOffset >= visibleWidth) {
-					count = (uint8_t)(visibleWidth -
-							  destinationOffset);
-					fillDestination =
+				end_offset = destination_offset + token;
+				color = image->color_lut[0];
+				if (end_offset >= visible_width) {
+					count = (uint8_t)(visible_width -
+							  destination_offset);
+					fill_destination =
 						(uint16_t *)&destination
-							[2 * destinationOffset];
-					for (fillCount = count; fillCount != 0;
-					     --fillCount) {
-						*fillDestination++ =
+							[2 *
+							 destination_offset];
+					for (fill_count = count;
+					     fill_count != 0; --fill_count) {
+						*fill_destination++ =
 							(uint16_t)color;
 					}
 					break;
 				}
 
-				fillDestination = (uint16_t *)&destination
-					[2 * destinationOffset];
-				for (fillCount = token; fillCount != 0;
-				     --fillCount) {
-					*fillDestination++ = (uint16_t)color;
+				fill_destination = (uint16_t *)&destination
+					[2 * destination_offset];
+				for (fill_count = token; fill_count != 0;
+				     --fill_count) {
+					*fill_destination++ = (uint16_t)color;
 				}
-				destinationOffset = endOffset;
+				destination_offset = end_offset;
 			} else {
-				color = image->colorLUT
-						[rowStart[tokenOffset++]];
-				endOffset = destinationOffset + token;
-				if (endOffset >= visibleWidth) {
-					count = (uint8_t)(visibleWidth -
-							  destinationOffset);
-					fillDestination =
+				color = image->color_lut
+						[row_start[token_offset++]];
+				end_offset = destination_offset + token;
+				if (end_offset >= visible_width) {
+					count = (uint8_t)(visible_width -
+							  destination_offset);
+					fill_destination =
 						(uint16_t *)&destination
-							[2 * destinationOffset];
-					for (fillCount = count; fillCount != 0;
-					     --fillCount) {
-						*fillDestination++ =
+							[2 *
+							 destination_offset];
+					for (fill_count = count;
+					     fill_count != 0; --fill_count) {
+						*fill_destination++ =
 							(uint16_t)color;
 					}
 					break;
 				}
 
-				fillDestination = (uint16_t *)&destination
-					[2 * destinationOffset];
-				for (fillCount = token; fillCount != 0;
-				     --fillCount) {
-					*fillDestination++ = (uint16_t)color;
+				fill_destination = (uint16_t *)&destination
+					[2 * destination_offset];
+				for (fill_count = token; fill_count != 0;
+				     --fill_count) {
+					*fill_destination++ = (uint16_t)color;
 				}
-				destinationOffset = endOffset;
+				destination_offset = end_offset;
 			}
 		}
 
-		row += rowLength;
-		destination += g_frontState.drawSurfacePitch & ~1;
-		--rowsRemaining;
-	} while (rowsRemaining != 0);
+		row += row_length;
+		destination += g_front_state.draw_surface_pitch & ~1;
+		--rows_remaining;
+	} while (rows_remaining != 0);
 }
 #ifndef XVT_MODERN
 #pragma optimize("y", on)
 #endif
 
 /* Draws a glyph image with its top-left corner at (x, y), clipped to the clip
- * bounds: every nonzero pixel in color, through FrontImage_BlitGlyphRLE_8bpp or
- * _16bpp when it is RLE-compressed. At 16 bits per pixel, with applyTextFade
- * nonzero while g_frontState.textFadeFramesLeft is not 0, the color is first
- * faded by FrontImage_GetFadedGlyphColor16. Returns the clip-edge bits of
- * FrontendDraw_RectClipToBounds, or 0 when glyph is NULL. The modern build also
+ * bounds: every nonzero pixel in color, through front_image_blit_glyph_rle_8bpp or
+ * _16bpp when it is RLE-compressed. At 16 bits per pixel, with apply_text_fade
+ * nonzero while g_front_state.text_fade_frames_left is not 0, the color is first
+ * faded by front_image_get_faded_glyph_color16. Returns the clip-edge bits of
+ * frontend_draw_rect_clip_to_bounds, or 0 when glyph is NULL. The modern build also
  * records the glyph for its renderer. */
 // FUNCTION: XVT 0x4B6780
-int FrontImage_DrawGlyph(struct ImageResource *glyph, int x, int y,
-			 unsigned int color, int applyTextFade)
+int front_image_draw_glyph(struct image_resource *glyph, int x, int y,
+			   unsigned int color, int apply_text_fade)
 {
-	int clipResult;
-	struct RECT clippedRect;
-	struct RECT originalRect;
+	int clip_result;
+	struct RECT clipped_rect;
+	struct RECT original_rect;
 
 	if (glyph == NULL) {
 		return 0;
 	}
 
-	clippedRect.left = x;
-	clippedRect.top = y;
-	clippedRect.right = x + glyph->width - 1;
-	clippedRect.bottom = y + glyph->height - 1;
-	FrontendDraw_RectCopy(&originalRect, &clippedRect);
-	clipResult = FrontendDraw_RectClipToBounds(&clippedRect);
-	if (clippedRect.right < clippedRect.left) {
-		return clipResult;
+	clipped_rect.left = x;
+	clipped_rect.top = y;
+	clipped_rect.right = x + glyph->width - 1;
+	clipped_rect.bottom = y + glyph->height - 1;
+	frontend_draw_rect_copy(&original_rect, &clipped_rect);
+	clip_result = frontend_draw_rect_clip_to_bounds(&clipped_rect);
+	if (clipped_rect.right < clipped_rect.left) {
+		return clip_result;
 	}
-	if (clippedRect.bottom < clippedRect.top) {
-		return clipResult;
+	if (clipped_rect.bottom < clipped_rect.top) {
+		return clip_result;
 	}
 
 #ifdef XVT_MODERN
-	XvtRenderFrontend_Glyph(glyph, x, y, color, applyTextFade);
+	xvt_render_frontend_glyph(glyph, x, y, color, apply_text_fade);
 #endif
 	{
-		int clipLeftSkip;
-		int clipTopSkip;
-		int visibleWidth;
-		int visibleRows;
-		int displayBpp;
+		int clip_left_skip;
+		int clip_top_skip;
+		int visible_width;
+		int visible_rows;
+		int display_bpp;
 
-		clipLeftSkip = clippedRect.left - originalRect.left;
-		clipTopSkip = clippedRect.top - originalRect.top;
-		visibleWidth = clippedRect.right - clipLeftSkip -
-			       originalRect.right + glyph->width;
-		visibleRows = clippedRect.bottom + glyph->height -
-			      originalRect.bottom - clipTopSkip;
-		displayBpp = g_frontState.displayBpp;
-		if (glyph->isCompressed == 0) {
-			switch (displayBpp) {
+		clip_left_skip = clipped_rect.left - original_rect.left;
+		clip_top_skip = clipped_rect.top - original_rect.top;
+		visible_width = clipped_rect.right - clip_left_skip -
+				original_rect.right + glyph->width;
+		visible_rows = clipped_rect.bottom + glyph->height -
+			       original_rect.bottom - clip_top_skip;
+		display_bpp = g_front_state.display_bpp;
+		if (glyph->is_compressed == 0) {
+			switch (display_bpp) {
 			case 8: {
 				uint8_t *source;
 				uint8_t *destination;
 
 				source = &glyph->pixels[glyph->width *
-								clipTopSkip +
-							clipLeftSkip];
+								clip_top_skip +
+							clip_left_skip];
 				destination =
-					&g_drawSurfacePtr
-						[x + clipLeftSkip +
-						 g_frontState.drawSurfacePitch *
-							 (y + clipTopSkip)];
-				if (visibleRows > 0) {
+					&g_draw_surface_ptr
+						[x + clip_left_skip +
+						 g_front_state.draw_surface_pitch *
+							 (y + clip_top_skip)];
+				if (visible_rows > 0) {
 					do {
 						int column;
 
 						for (column = 0;
-						     column < visibleWidth;
+						     column < visible_width;
 						     ++column) {
 							if (source[column] !=
 							    0) {
@@ -2242,39 +2288,39 @@ int FrontImage_DrawGlyph(struct ImageResource *glyph, int x, int y,
 						}
 						source += glyph->width;
 						destination +=
-							g_frontState
-								.drawSurfacePitch;
-						--visibleRows;
-					} while (visibleRows != 0);
+							g_front_state
+								.draw_surface_pitch;
+						--visible_rows;
+					} while (visible_rows != 0);
 				}
 				break;
 			}
 			case 16: {
 				uint8_t *source;
 				uint8_t *destination;
-				uint16_t drawColor;
+				uint16_t draw_color;
 
-				drawColor = (uint16_t)color;
-				if (applyTextFade != 0 &&
-				    g_frontState.textFadeFramesLeft != 0) {
-					drawColor = (uint16_t)
-						FrontImage_GetFadedGlyphColor16(
+				draw_color = (uint16_t)color;
+				if (apply_text_fade != 0 &&
+				    g_front_state.text_fade_frames_left != 0) {
+					draw_color = (uint16_t)
+						front_image_get_faded_glyph_color16(
 							color);
 				}
 				source = &glyph->pixels[glyph->width *
-								clipTopSkip +
-							clipLeftSkip];
+								clip_top_skip +
+							clip_left_skip];
 				destination =
-					&g_drawSurfacePtr
-						[2 * (x + clipLeftSkip) +
-						 g_frontState.drawSurfacePitch *
-							 (y + clipTopSkip)];
-				if (visibleRows > 0) {
+					&g_draw_surface_ptr
+						[2 * (x + clip_left_skip) +
+						 g_front_state.draw_surface_pitch *
+							 (y + clip_top_skip)];
+				if (visible_rows > 0) {
 					do {
 						int column;
 
 						for (column = 0;
-						     column < visibleWidth;
+						     column < visible_width;
 						     ++column) {
 							if (source[column] !=
 							    0) {
@@ -2282,91 +2328,92 @@ int FrontImage_DrawGlyph(struct ImageResource *glyph, int x, int y,
 									  *)&destination
 									[2 *
 									 column] =
-									drawColor;
+									draw_color;
 							}
 						}
 						source += glyph->width;
 						destination +=
-							g_frontState
-								.drawSurfacePitch &
+							g_front_state
+								.draw_surface_pitch &
 							0xFFFFFFFE;
-						--visibleRows;
-					} while (visibleRows != 0);
+						--visible_rows;
+					} while (visible_rows != 0);
 				}
 				break;
 			}
 			}
 		} else {
-			switch (displayBpp) {
+			switch (display_bpp) {
 			case 8:
-				FrontImage_BlitGlyphRLE_8bpp(
-					glyph, x + clipLeftSkip,
-					y + clipTopSkip, clipLeftSkip,
-					clipTopSkip, visibleWidth, visibleRows,
-					(uint8_t)color);
+				front_image_blit_glyph_rle_8bpp(
+					glyph, x + clip_left_skip,
+					y + clip_top_skip, clip_left_skip,
+					clip_top_skip, visible_width,
+					visible_rows, (uint8_t)color);
 				break;
 			case 16: {
-				unsigned int drawColor;
+				unsigned int draw_color;
 
-				drawColor = color;
-				if (applyTextFade != 0 &&
-				    g_frontState.textFadeFramesLeft != 0) {
-					drawColor =
-						FrontImage_GetFadedGlyphColor16(
+				draw_color = color;
+				if (apply_text_fade != 0 &&
+				    g_front_state.text_fade_frames_left != 0) {
+					draw_color =
+						front_image_get_faded_glyph_color16(
 							color);
 				}
-				FrontImage_BlitGlyphRLE_16bpp(
-					glyph, x + clipLeftSkip,
-					y + clipTopSkip, clipLeftSkip,
-					clipTopSkip, visibleWidth, visibleRows,
-					drawColor);
+				front_image_blit_glyph_rle_16bpp(
+					glyph, x + clip_left_skip,
+					y + clip_top_skip, clip_left_skip,
+					clip_top_skip, visible_width,
+					visible_rows, draw_color);
 				break;
 			}
 			}
 		}
 	}
-	return clipResult;
+	return clip_result;
 }
 
 /* Draws the visible part of an RLE-compressed glyph at 8 bits per pixel, the
- * way FrontImage_BlitRLE8 crops it (clipLeftSkip and clipTopSkip are its
- * srcLeft and srcTop): the pixels of literal and run tokens in color, skip
- * tokens left as they are. When visibleWidth is the glyph's width it draws
+ * way front_image_blit_rle8 crops it (clip_left_skip and clip_top_skip are its
+ * src_left and src_top): the pixels of literal and run tokens in color, skip
+ * tokens left as they are. When visible_width is the glyph's width it draws
  * whole rows. */
 // FUNCTION: XVT 0x4B69B0
-void FrontImage_BlitGlyphRLE_8bpp(struct ImageResource *glyph, int destX,
-				  int destY, int clipLeftSkip, int clipTopSkip,
-				  int visibleWidth, int visibleRows,
-				  uint8_t color)
+void front_image_blit_glyph_rle_8bpp(struct image_resource *glyph, int dest_x,
+				     int dest_y, int clip_left_skip,
+				     int clip_top_skip, int visible_width,
+				     int visible_rows, uint8_t color)
 {
 	const uint8_t *row;
 	uint8_t *destination;
 	uint8_t token;
-	int destinationOffset;
+	int destination_offset;
 	int y;
 
-	if (visibleWidth == glyph->width) {
+	if (visible_width == glyph->width) {
 		row = glyph->pixels;
-		destination = &g_drawSurfacePtr[destX +
-						g_frontState.drawSurfacePitch *
-							destY];
-		for (y = 0; y < clipTopSkip; ++y) {
-			int rowLength;
+		destination =
+			&g_draw_surface_ptr[dest_x +
+					    g_front_state.draw_surface_pitch *
+						    dest_y];
+		for (y = 0; y < clip_top_skip; ++y) {
+			int row_length;
 
 #ifdef XVT_MODERN
-			memcpy(&rowLength, row, sizeof(rowLength));
+			memcpy(&row_length, row, sizeof(row_length));
 #else
-			rowLength = *(const int *)row;
+			row_length = *(const int *)row;
 #endif
-			row += rowLength;
+			row += row_length;
 		}
 
-		if (visibleRows <= 0) {
+		if (visible_rows <= 0) {
 			return;
 		}
 
-		y = visibleRows;
-		destinationOffset = 0;
+		y = visible_rows;
+		destination_offset = 0;
 		row += 4;
 		for (;;) {
 			token = *row++;
@@ -2376,66 +2423,67 @@ void FrontImage_BlitGlyphRLE_8bpp(struct ImageResource *glyph, int destX,
 				if ((token & 0x80) != 0) {
 					token &= 0x7F;
 					count = token;
-					memset(destination + destinationOffset,
+					memset(destination + destination_offset,
 					       color, count);
-					destinationOffset += count;
+					destination_offset += count;
 					row += count;
 					continue;
 				}
 
 				if ((token & 0x40) != 0) {
-					destinationOffset += token & 0x3F;
+					destination_offset += token & 0x3F;
 					continue;
 				}
 
 				count = token;
 				++row;
-				memset(destination + destinationOffset, color,
+				memset(destination + destination_offset, color,
 				       count);
-				destinationOffset += count;
+				destination_offset += count;
 				continue;
 			}
 
-			destination += g_frontState.drawSurfacePitch;
+			destination += g_front_state.draw_surface_pitch;
 			if (--y == 0) {
 				return;
 			}
-			destinationOffset = 0;
+			destination_offset = 0;
 			row += 4;
 		}
 	}
 
 	row = glyph->pixels;
-	destination = &g_drawSurfacePtr[destX +
-					g_frontState.drawSurfacePitch * destY];
-	for (y = 0; y < clipTopSkip; ++y) {
-		int rowLength;
+	destination =
+		&g_draw_surface_ptr[dest_x +
+				    g_front_state.draw_surface_pitch * dest_y];
+	for (y = 0; y < clip_top_skip; ++y) {
+		int row_length;
 
 #ifdef XVT_MODERN
-		memcpy(&rowLength, row, sizeof(rowLength));
+		memcpy(&row_length, row, sizeof(row_length));
 #else
-		rowLength = *(const int *)row;
+		row_length = *(const int *)row;
 #endif
-		row += rowLength;
+		row += row_length;
 	}
 
-	for (y = 0; y < visibleRows; ++y) {
-		int rowLength;
-		int tokenOffset;
+	for (y = 0; y < visible_rows; ++y) {
+		int row_length;
+		int token_offset;
 		char started;
 
-		destinationOffset = 0;
-		tokenOffset = 4;
+		destination_offset = 0;
+		token_offset = 4;
 		started = 0;
 #ifdef XVT_MODERN
-		memcpy(&rowLength, row, sizeof(rowLength));
+		memcpy(&row_length, row, sizeof(row_length));
 #else
-		rowLength = *(const int *)row;
+		row_length = *(const int *)row;
 #endif
 		for (;;) {
-			token = row[tokenOffset++];
-			/* Until started is set, destinationOffset counts the source pixels skipped toward
-			 * clipLeftSkip; when the row reaches clipLeftSkip it is reset to 0 and from then on it is the
+			token = row[token_offset++];
+			/* Until started is set, destination_offset counts the source pixels skipped toward
+			 * clip_left_skip; when the row reaches clip_left_skip it is reset to 0 and from then on it is the
 			 * destination column. */
 			if (started == 0) {
 				if (token == 0x80) {
@@ -2444,56 +2492,56 @@ void FrontImage_BlitGlyphRLE_8bpp(struct ImageResource *glyph, int destX,
 
 				if ((token & 0x80) != 0) {
 					token &= 0x7F;
-					if (clipLeftSkip <=
-					    destinationOffset + token) {
+					if (clip_left_skip <=
+					    destination_offset + token) {
 						int skip;
 
-						skip = clipLeftSkip -
-						       destinationOffset;
+						skip = clip_left_skip -
+						       destination_offset;
 						started = 1;
-						destinationOffset = 0;
-						tokenOffset += skip;
+						destination_offset = 0;
+						token_offset += skip;
 						token -= (uint8_t)skip;
 						if (token != 0) {
 							token |= 0x80;
 						}
 					} else {
-						destinationOffset += token;
-						tokenOffset += token;
+						destination_offset += token;
+						token_offset += token;
 					}
 				} else if ((token & 0x40) != 0) {
 					token &= 0x3F;
-					if (clipLeftSkip <=
-					    destinationOffset + token) {
+					if (clip_left_skip <=
+					    destination_offset + token) {
 						int skip;
 
-						skip = clipLeftSkip -
-						       destinationOffset;
+						skip = clip_left_skip -
+						       destination_offset;
 						started = 1;
-						destinationOffset = 0;
+						destination_offset = 0;
 						token -= (uint8_t)skip;
 						if (token != 0) {
 							token |= 0x40;
 						}
 					} else {
-						destinationOffset += token;
+						destination_offset += token;
 					}
 				} else {
-					if (clipLeftSkip <=
-					    destinationOffset + token) {
+					if (clip_left_skip <=
+					    destination_offset + token) {
 						int skip;
 
-						skip = clipLeftSkip -
-						       destinationOffset;
+						skip = clip_left_skip -
+						       destination_offset;
 						started = 1;
-						destinationOffset = 0;
+						destination_offset = 0;
 						token -= (uint8_t)skip;
 						if (token == 0) {
-							++tokenOffset;
+							++token_offset;
 						}
 					} else {
-						++tokenOffset;
-						destinationOffset += token;
+						++token_offset;
+						destination_offset += token;
 					}
 				}
 			}
@@ -2507,81 +2555,84 @@ void FrontImage_BlitGlyphRLE_8bpp(struct ImageResource *glyph, int destX,
 
 			if ((token & 0x80) != 0) {
 				token &= 0x7F;
-				if (destinationOffset + token >= visibleWidth) {
-					token = (uint8_t)(visibleWidth -
-							  destinationOffset);
-					memset(destination + destinationOffset,
+				if (destination_offset + token >=
+				    visible_width) {
+					token = (uint8_t)(visible_width -
+							  destination_offset);
+					memset(destination + destination_offset,
 					       color, token);
 					break;
 				}
 
-				memset(destination + destinationOffset, color,
+				memset(destination + destination_offset, color,
 				       token);
-				destinationOffset += token;
-				tokenOffset += token;
+				destination_offset += token;
+				token_offset += token;
 			} else if ((token & 0x40) != 0) {
-				destinationOffset += token & 0x3F;
-				if (destinationOffset >= visibleWidth) {
+				destination_offset += token & 0x3F;
+				if (destination_offset >= visible_width) {
 					break;
 				}
 			} else {
-				++tokenOffset;
-				if (destinationOffset + token >= visibleWidth) {
-					token = (uint8_t)(visibleWidth -
-							  destinationOffset);
-					memset(destination + destinationOffset,
+				++token_offset;
+				if (destination_offset + token >=
+				    visible_width) {
+					token = (uint8_t)(visible_width -
+							  destination_offset);
+					memset(destination + destination_offset,
 					       color, token);
 					break;
 				}
 
-				memset(destination + destinationOffset, color,
+				memset(destination + destination_offset, color,
 				       token);
-				destinationOffset += token;
+				destination_offset += token;
 			}
 		}
 
-		row += rowLength;
-		destination += g_frontState.drawSurfacePitch;
+		row += row_length;
+		destination += g_front_state.draw_surface_pitch;
 	}
 }
 
-/* Does what FrontImage_BlitGlyphRLE_8bpp does at 16 bits per pixel. */
+/* Does what front_image_blit_glyph_rle_8bpp does at 16 bits per pixel. */
 // FUNCTION: XVT 0x4B6CA0
-void FrontImage_BlitGlyphRLE_16bpp(struct ImageResource *glyph, int destX,
-				   int destY, int clipLeftSkip, int clipTopSkip,
-				   int visibleWidth, int visibleRows,
-				   unsigned int color)
+void front_image_blit_glyph_rle_16bpp(struct image_resource *glyph, int dest_x,
+				      int dest_y, int clip_left_skip,
+				      int clip_top_skip, int visible_width,
+				      int visible_rows, unsigned int color)
 {
 	const uint8_t *row;
 	uint8_t *destination;
 	uint8_t token;
-	int destinationOffset;
+	int destination_offset;
 	int y;
 
-	if (visibleWidth == glyph->width) {
-		unsigned int destinationPitch;
+	if (visible_width == glyph->width) {
+		unsigned int destination_pitch;
 
 		row = glyph->pixels;
-		destination = &g_drawSurfacePtr[2 * destX +
-						g_frontState.drawSurfacePitch *
-							destY];
-		for (y = clipTopSkip; y > 0; --y) {
-			int rowLength;
+		destination =
+			&g_draw_surface_ptr[2 * dest_x +
+					    g_front_state.draw_surface_pitch *
+						    dest_y];
+		for (y = clip_top_skip; y > 0; --y) {
+			int row_length;
 
 #ifdef XVT_MODERN
-			memcpy(&rowLength, row, sizeof(rowLength));
+			memcpy(&row_length, row, sizeof(row_length));
 #else
-			rowLength = *(const int *)row;
+			row_length = *(const int *)row;
 #endif
-			row += rowLength;
+			row += row_length;
 		}
 
-		if (visibleRows > 0) {
-			y = visibleRows;
-			destinationPitch =
-				g_frontState.drawSurfacePitch & 0xFFFFFFFE;
+		if (visible_rows > 0) {
+			y = visible_rows;
+			destination_pitch =
+				g_front_state.draw_surface_pitch & 0xFFFFFFFE;
 			do {
-				destinationOffset = 0;
+				destination_offset = 0;
 				row += 4;
 				for (;;) {
 					int count;
@@ -2592,45 +2643,47 @@ void FrontImage_BlitGlyphRLE_16bpp(struct ImageResource *glyph, int destX,
 					}
 
 					if ((token & 0x80) != 0) {
-						uint16_t *fillDestination;
-						int fillCount;
+						uint16_t *fill_destination;
+						int fill_count;
 
 						count = token & 0x7F;
-						fillDestination = (uint16_t
-									   *)&destination
-							[2 * destinationOffset];
-						fillCount = count;
-						while (fillCount > 0) {
-							*fillDestination =
+						fill_destination = (uint16_t
+									    *)&destination
+							[2 *
+							 destination_offset];
+						fill_count = count;
+						while (fill_count > 0) {
+							*fill_destination =
 								(uint16_t)color;
-							++fillDestination;
-							--fillCount;
+							++fill_destination;
+							--fill_count;
 						}
-						destinationOffset += count;
+						destination_offset += count;
 						row += count;
 					} else if ((token & 0x40) != 0) {
-						destinationOffset +=
+						destination_offset +=
 							token & 0x3F;
 					} else {
-						uint16_t *fillDestination;
-						int fillCount;
+						uint16_t *fill_destination;
+						int fill_count;
 
 						count = token;
 						++row;
-						fillDestination = (uint16_t
-									   *)&destination
-							[2 * destinationOffset];
-						fillCount = count;
-						while (fillCount > 0) {
-							*fillDestination =
+						fill_destination = (uint16_t
+									    *)&destination
+							[2 *
+							 destination_offset];
+						fill_count = count;
+						while (fill_count > 0) {
+							*fill_destination =
 								(uint16_t)color;
-							++fillDestination;
-							--fillCount;
+							++fill_destination;
+							--fill_count;
 						}
-						destinationOffset += count;
+						destination_offset += count;
 					}
 				}
-				destination += destinationPitch;
+				destination += destination_pitch;
 				--y;
 			} while (y != 0);
 		}
@@ -2638,41 +2691,43 @@ void FrontImage_BlitGlyphRLE_16bpp(struct ImageResource *glyph, int destX,
 	}
 
 	row = glyph->pixels;
-	destination = &g_drawSurfacePtr[2 * destX +
-					g_frontState.drawSurfacePitch * destY];
-	for (y = clipTopSkip; y > 0; --y) {
-		int rowLength;
+	destination =
+		&g_draw_surface_ptr[2 * dest_x +
+				    g_front_state.draw_surface_pitch * dest_y];
+	for (y = clip_top_skip; y > 0; --y) {
+		int row_length;
 
 #ifdef XVT_MODERN
-		memcpy(&rowLength, row, sizeof(rowLength));
+		memcpy(&row_length, row, sizeof(row_length));
 #else
-		rowLength = *(const int *)row;
+		row_length = *(const int *)row;
 #endif
-		row += rowLength;
+		row += row_length;
 	}
 
-	if (visibleRows > 0) {
-		unsigned int destinationPitch;
+	if (visible_rows > 0) {
+		unsigned int destination_pitch;
 
-		y = visibleRows;
-		destinationPitch = g_frontState.drawSurfacePitch & 0xFFFFFFFE;
+		y = visible_rows;
+		destination_pitch =
+			g_front_state.draw_surface_pitch & 0xFFFFFFFE;
 		do {
-			int rowLength;
-			int tokenOffset;
+			int row_length;
+			int token_offset;
 			char started;
 
-			destinationOffset = 0;
-			tokenOffset = 4;
+			destination_offset = 0;
+			token_offset = 4;
 			started = 0;
 #ifdef XVT_MODERN
-			memcpy(&rowLength, row, sizeof(rowLength));
+			memcpy(&row_length, row, sizeof(row_length));
 #else
-			rowLength = *(const int *)row;
+			row_length = *(const int *)row;
 #endif
 			for (;;) {
-				token = row[tokenOffset++];
-				/* Until started is set, destinationOffset counts the source pixels skipped toward
-				 * clipLeftSkip; when the row reaches clipLeftSkip it is reset to 0 and from then on it is
+				token = row[token_offset++];
+				/* Until started is set, destination_offset counts the source pixels skipped toward
+				 * clip_left_skip; when the row reaches clip_left_skip it is reset to 0 and from then on it is
 				 * the destination column. */
 				if (started == 0) {
 					if (token == 0x80) {
@@ -2681,58 +2736,61 @@ void FrontImage_BlitGlyphRLE_16bpp(struct ImageResource *glyph, int destX,
 
 					if ((token & 0x80) != 0) {
 						token &= 0x7F;
-						if (clipLeftSkip <=
-						    destinationOffset + token) {
+						if (clip_left_skip <=
+						    destination_offset +
+							    token) {
 							int skip;
 
-							skip = clipLeftSkip -
-							       destinationOffset;
+							skip = clip_left_skip -
+							       destination_offset;
 							started = 1;
-							destinationOffset = 0;
-							tokenOffset += skip;
+							destination_offset = 0;
+							token_offset += skip;
 							token -= (uint8_t)skip;
 							if (token != 0) {
 								token |= 0x80;
 							}
 						} else {
-							destinationOffset +=
+							destination_offset +=
 								token;
-							tokenOffset += token;
+							token_offset += token;
 						}
 					} else if ((token & 0x40) != 0) {
 						token &= 0x3F;
-						if (clipLeftSkip <=
-						    destinationOffset + token) {
+						if (clip_left_skip <=
+						    destination_offset +
+							    token) {
 							int skip;
 
-							skip = clipLeftSkip -
-							       destinationOffset;
+							skip = clip_left_skip -
+							       destination_offset;
 							started = 1;
-							destinationOffset = 0;
+							destination_offset = 0;
 							token -= (uint8_t)skip;
 							if (token != 0) {
 								token |= 0x40;
 							}
 						} else {
-							destinationOffset +=
+							destination_offset +=
 								token;
 						}
 					} else {
-						if (clipLeftSkip <=
-						    destinationOffset + token) {
+						if (clip_left_skip <=
+						    destination_offset +
+							    token) {
 							int skip;
 
-							skip = clipLeftSkip -
-							       destinationOffset;
+							skip = clip_left_skip -
+							       destination_offset;
 							started = 1;
-							destinationOffset = 0;
+							destination_offset = 0;
 							token -= (uint8_t)skip;
 							if (token == 0) {
-								++tokenOffset;
+								++token_offset;
 							}
 						} else {
-							++tokenOffset;
-							destinationOffset +=
+							++token_offset;
+							destination_offset +=
 								token;
 						}
 					}
@@ -2747,82 +2805,87 @@ void FrontImage_BlitGlyphRLE_16bpp(struct ImageResource *glyph, int destX,
 
 				if ((token & 0x80) != 0) {
 					int count;
-					uint16_t *fillDestination;
-					int fillCount;
+					uint16_t *fill_destination;
+					int fill_count;
 
 					count = token & 0x7F;
-					if (destinationOffset + count >=
-					    visibleWidth) {
-						count = (uint8_t)(visibleWidth -
-								  destinationOffset);
-						fillDestination = (uint16_t
-									   *)&destination
-							[2 * destinationOffset];
-						fillCount = count;
-						while (fillCount > 0) {
-							*fillDestination =
+					if (destination_offset + count >=
+					    visible_width) {
+						count = (uint8_t)(visible_width -
+								  destination_offset);
+						fill_destination = (uint16_t
+									    *)&destination
+							[2 *
+							 destination_offset];
+						fill_count = count;
+						while (fill_count > 0) {
+							*fill_destination =
 								(uint16_t)color;
-							++fillDestination;
-							--fillCount;
+							++fill_destination;
+							--fill_count;
 						}
 						break;
 					}
-					fillDestination =
+					fill_destination =
 						(uint16_t *)&destination
-							[2 * destinationOffset];
-					fillCount = count;
-					while (fillCount > 0) {
-						*fillDestination =
+							[2 *
+							 destination_offset];
+					fill_count = count;
+					while (fill_count > 0) {
+						*fill_destination =
 							(uint16_t)color;
-						++fillDestination;
-						--fillCount;
+						++fill_destination;
+						--fill_count;
 					}
-					destinationOffset += count;
-					tokenOffset += count;
+					destination_offset += count;
+					token_offset += count;
 				} else if ((token & 0x40) != 0) {
-					destinationOffset += token & 0x3F;
-					if (destinationOffset >= visibleWidth) {
+					destination_offset += token & 0x3F;
+					if (destination_offset >=
+					    visible_width) {
 						break;
 					}
 				} else {
 					int count;
-					uint16_t *fillDestination;
-					int fillCount;
+					uint16_t *fill_destination;
+					int fill_count;
 
-					++tokenOffset;
+					++token_offset;
 					count = token;
-					if (destinationOffset + count >=
-					    visibleWidth) {
-						count = (uint8_t)(visibleWidth -
-								  destinationOffset);
-						fillDestination = (uint16_t
-									   *)&destination
-							[2 * destinationOffset];
-						fillCount = count;
-						while (fillCount > 0) {
-							*fillDestination =
+					if (destination_offset + count >=
+					    visible_width) {
+						count = (uint8_t)(visible_width -
+								  destination_offset);
+						fill_destination = (uint16_t
+									    *)&destination
+							[2 *
+							 destination_offset];
+						fill_count = count;
+						while (fill_count > 0) {
+							*fill_destination =
 								(uint16_t)color;
-							++fillDestination;
-							--fillCount;
+							++fill_destination;
+							--fill_count;
 						}
 						break;
 					}
-					fillDestination =
+					fill_destination =
 						(uint16_t *)&destination
-							[2 * destinationOffset];
-					fillCount = count;
-					while (fillCount > 0) {
-						*fillDestination =
+							[2 *
+							 destination_offset];
+					fill_count = count;
+					while (fill_count > 0) {
+						*fill_destination =
 							(uint16_t)color;
-						++fillDestination;
-						--fillCount;
+						++fill_destination;
+						--fill_count;
 					}
-					destinationOffset += count;
+					destination_offset += count;
 				}
 			}
 
-			row += rowLength;
-			destination += destinationPitch;
+			row += row_length;
+			destination += destination_pitch;
 			--y;
 		} while (y != 0);
 	}
@@ -2830,115 +2893,119 @@ void FrontImage_BlitGlyphRLE_16bpp(struct ImageResource *glyph, int destX,
 
 /* Loads a 4- or 8-bit .bmp file into image as one palette index per pixel, rows
  * top to bottom, and returns 1. Needs the "BM" signature and 1 plane; reads the
- * palette, decodes the pixels with FrontImage_DecodeBmp4bpp or
- * FrontImage_DecodeBmp8bpp, then, at 8 bits per pixel with
- * remapToDisplayPalette 1, maps the indexes to the display palette
- * (FrontImage_RemapPalette), or at 16 bits fills image->colorLUT from the
+ * palette, decodes the pixels with front_image_decode_bmp4bpp or
+ * front_image_decode_bmp8bpp, then, at 8 bits per pixel with
+ * remap_to_display_palette 1, maps the indexes to the display palette
+ * (front_image_remap_palette), or at 16 bits fills image->color_lut from the
  * file's palette in the 555 or 565 layout. Sets width, height, pixels,
- * isCompressed 0 and pixelDataBytes, and with compressRLE 1 compresses it
- * (FrontImage_CompressRLE). Returns 0, freeing what it allocated, when the file
+ * isCompressed 0 and pixel_data_bytes, and with compress_rle 1 compresses it
+ * (front_image_compress_rle). Returns 0, freeing what it allocated, when the file
  * does not open, the signature, plane count or bit depth is wrong, or the pixel
  * allocation or decoding fails. Does not handle a top-down file's negative
  * height. The modern build also registers the image with its renderer. */
 // FUNCTION: XVT 0x4B6FB0
-int FrontImage_LoadBmpFile(const char *fileName, struct ImageResource *image,
-			   int remapToDisplayPalette, int compressRLE)
+int front_image_load_bmp_file(const char *file_name,
+			      struct image_resource *image,
+			      int remap_to_display_palette, int compress_rle)
 {
 	uint8_t *pixels;
-	XvtFile *stream;
+	xvt_file *stream;
 	int result;
-	struct BITMAPINFOHEADER infoHeader;
-	struct BITMAPFILEHEADER fileHeader;
+	struct BITMAPINFOHEADER info_header;
+	struct BITMAPFILEHEADER file_header;
 	uint8_t palette[256 * 4];
 
 	pixels = NULL;
-	stream = File_Open(fileName, "rb");
+	stream = file_open(file_name, "rb");
 	result = 0;
 	memset(palette, 0, sizeof(palette));
 	if (stream != NULL) {
-		File_ReadBytes(stream, &fileHeader, sizeof(fileHeader));
-		if (fileHeader.bfType == 0x4D42) {
-			int rowPadding;
+		file_read_bytes(stream, &file_header, sizeof(file_header));
+		if (file_header.bf_type == 0x4D42) {
+			int row_padding;
 
-			File_ReadBytes(stream, &infoHeader, sizeof(infoHeader));
-			rowPadding = infoHeader.biWidth % 4;
-			if (rowPadding != 0) {
-				rowPadding = 4 - rowPadding;
+			file_read_bytes(stream, &info_header,
+					sizeof(info_header));
+			row_padding = info_header.bi_width % 4;
+			if (row_padding != 0) {
+				row_padding = 4 - row_padding;
 			}
-			pixels =
-				malloc(rowPadding + infoHeader.biHeight *
-							    infoHeader.biWidth);
+			pixels = malloc(row_padding +
+					info_header.bi_height *
+						info_header.bi_width);
 			if (pixels != NULL) {
 				memset(pixels, 0,
-				       rowPadding + infoHeader.biHeight *
-							    infoHeader.biWidth);
-				if (infoHeader.biPlanes == 1) {
-					unsigned int bitsPerPixel;
-					int displayBpp;
+				       row_padding +
+					       info_header.bi_height *
+						       info_header.bi_width);
+				if (info_header.bi_planes == 1) {
+					unsigned int bits_per_pixel;
+					int display_bpp;
 
-					bitsPerPixel = infoHeader.biBitCount;
-					switch (bitsPerPixel) {
+					bits_per_pixel =
+						info_header.bi_bit_count;
+					switch (bits_per_pixel) {
 					case 4:
-						FrontImage_ReadBmpPalette(
+						front_image_read_bmp_palette(
 							stream, palette, 16);
 						result =
-							FrontImage_DecodeBmp4bpp(
+							front_image_decode_bmp4bpp(
 								stream, pixels,
-								&fileHeader,
-								&infoHeader);
+								&file_header,
+								&info_header);
 						break;
 					case 8:
-						FrontImage_ReadBmpPalette(
+						front_image_read_bmp_palette(
 							stream, palette, 256);
 						result =
-							FrontImage_DecodeBmp8bpp(
+							front_image_decode_bmp8bpp(
 								stream, pixels,
-								&fileHeader,
-								&infoHeader);
+								&file_header,
+								&info_header);
 						break;
 					}
 
-					displayBpp = g_frontState.displayBpp;
-					switch (displayBpp) {
+					display_bpp = g_front_state.display_bpp;
+					switch (display_bpp) {
 					case 8:
 						if (result == 1 &&
-						    remapToDisplayPalette ==
+						    remap_to_display_palette ==
 							    1) {
-							FrontImage_RemapPalette(
+							front_image_remap_palette(
 								pixels, palette,
-								&infoHeader);
+								&info_header);
 						}
 						break;
 
 					case 16: {
-						int *colorEntry;
-						uint8_t *paletteEntry;
+						int *color_entry;
+						uint8_t *palette_entry;
 
-						paletteEntry = palette;
-						colorEntry = image->colorLUT;
+						palette_entry = palette;
+						color_entry = image->color_lut;
 						do {
-							if (g_frontState
-								    .pixelFormat555 !=
+							if (g_front_state
+								    .pixel_format555 !=
 							    0) {
 								int green;
 								int red;
 								int blue;
 								int color;
 
-								green = paletteEntry
+								green = palette_entry
 										[1] >>
 									3;
 								color = green;
-								red = paletteEntry
+								red = palette_entry
 									      [0] >>
 								      3;
 								red <<= 5;
 								color += red;
-								blue = paletteEntry
+								blue = palette_entry
 									       [2] >>
 								       3;
 								color <<= 5;
-								*colorEntry =
+								*color_entry =
 									color +
 									blue;
 							} else {
@@ -2947,27 +3014,27 @@ int FrontImage_LoadBmpFile(const char *fileName, struct ImageResource *image,
 								int blue;
 								int color;
 
-								red = paletteEntry
+								red = palette_entry
 									      [0] >>
 								      3;
 								color = red
 									<< 6;
-								green = paletteEntry
+								green = palette_entry
 										[1] >>
 									2;
 								color += green;
-								blue = paletteEntry
+								blue = palette_entry
 									       [2] >>
 								       3;
 								color <<= 5;
-								*colorEntry =
+								*color_entry =
 									color +
 									blue;
 							}
-							paletteEntry += 4;
-							++colorEntry;
+							palette_entry += 4;
+							++color_entry;
 						} while (
-							paletteEntry <
+							palette_entry <
 							palette +
 								sizeof(palette));
 						break;
@@ -2976,7 +3043,7 @@ int FrontImage_LoadBmpFile(const char *fileName, struct ImageResource *image,
 				}
 			}
 		}
-		File_Close(stream);
+		file_close(stream);
 	}
 
 	if (result != 1) {
@@ -2987,80 +3054,80 @@ int FrontImage_LoadBmpFile(const char *fileName, struct ImageResource *image,
 	}
 
 	{
-		int imageHeight;
+		int image_height;
 
-		imageHeight = infoHeader.biHeight;
-		image->width = infoHeader.biWidth;
-		image->height = imageHeight;
+		image_height = info_header.bi_height;
+		image->width = info_header.bi_width;
+		image->height = image_height;
 		image->pixels = pixels;
-		image->isCompressed = 0;
-		image->pixelDataBytes = image->height * infoHeader.biWidth;
-		if (compressRLE == 1) {
-			FrontImage_CompressRLE(image);
+		image->is_compressed = 0;
+		image->pixel_data_bytes = image->height * info_header.bi_width;
+		if (compress_rle == 1) {
+			front_image_compress_rle(image);
 		}
 	}
 #ifdef XVT_MODERN
-	XvtRenderAssets_RegisterFrontendImage(image, fileName,
-					      remapToDisplayPalette,
-					      g_frontState.pixelFormat555);
+	xvt_render_assets_register_frontend_image(
+		image, file_name, remap_to_display_palette,
+		g_front_state.pixel_format555);
 #endif
 	return 1;
 }
 
 /* Reads a 4-bit .bmp's pixel data, bfSize - bfOffBits bytes from the current
- * position, and unpacks it into dstPixels as one index per pixel, the file's
+ * position, and unpacks it into dst_pixels as one index per pixel, the file's
  * bottom row last. Only uncompressed data (biCompression 0) is decoded;
- * anything else leaves dstPixels as it is. The row padding it skips is computed
+ * anything else leaves dst_pixels as it is. The row padding it skips is computed
  * from biWidth >> 1, which is right for even widths. Returns 1, or 0 when the
  * data cannot be allocated. */
 // FUNCTION: XVT 0x4B7240
-int FrontImage_DecodeBmp4bpp(XvtFile *stream, void *dstPixels,
-			     const struct BITMAPFILEHEADER *fileHeader,
-			     const struct BITMAPINFOHEADER *infoHeader)
+int front_image_decode_bmp4bpp(xvt_file *stream, void *dst_pixels,
+			       const struct BITMAPFILEHEADER *file_header,
+			       const struct BITMAPINFOHEADER *info_header)
 {
-	size_t dataSize;
+	size_t data_size;
 	uint8_t *data;
 
-	dataSize = fileHeader->bfSize - fileHeader->bfOffBits;
-	data = malloc(dataSize);
+	data_size = file_header->bf_size - file_header->bf_off_bits;
+	data = malloc(data_size);
 	if (data == NULL) {
 		return 0;
 	}
 
-	if (infoHeader->biCompression == 0) {
-		int srcOffset;
+	if (info_header->bi_compression == 0) {
+		int src_offset;
 		int16_t row;
 
-		srcOffset = 0;
-		File_ReadBytes(stream, data, dataSize);
-		for (row = 0; row < infoHeader->biHeight; ++row) {
+		src_offset = 0;
+		file_read_bytes(stream, data, data_size);
+		for (row = 0; row < info_header->bi_height; ++row) {
 			int16_t column;
-			int dstRowOffset;
+			int dst_row_offset;
 
-			dstRowOffset = infoHeader->biWidth *
-				       (infoHeader->biHeight - row - 1);
-			for (column = 0; column < infoHeader->biWidth;
+			dst_row_offset = info_header->bi_width *
+					 (info_header->bi_height - row - 1);
+			for (column = 0; column < info_header->bi_width;
 			     ++column) {
 				if ((column & 1) != 0) {
-					((uint8_t *)dstPixels)[dstRowOffset +
-							       column] =
-						data[srcOffset] & 0x0F;
-					++srcOffset;
+					((uint8_t *)dst_pixels)[dst_row_offset +
+								column] =
+						data[src_offset] & 0x0F;
+					++src_offset;
 				} else {
-					((uint8_t *)dstPixels)[dstRowOffset +
-							       column] =
-						data[srcOffset] >> 4;
+					((uint8_t *)dst_pixels)[dst_row_offset +
+								column] =
+						data[src_offset] >> 4;
 				}
 			}
 
-			if ((infoHeader->biWidth & 1) != 0) {
-				++srcOffset;
+			if ((info_header->bi_width & 1) != 0) {
+				++src_offset;
 			}
-			if ((infoHeader->biWidth & 6) != 0) {
-				srcOffset +=
-					(int16_t)(4 -
-						  ((infoHeader->biWidth >> 1) &
-						   3));
+			if ((info_header->bi_width & 6) != 0) {
+				src_offset +=
+					(int16_t)(4 - ((info_header->bi_width >>
+							1) &
+						       3));
 			}
 		}
 	}
@@ -3069,132 +3136,134 @@ int FrontImage_DecodeBmp4bpp(XvtFile *stream, void *dstPixels,
 	return 1;
 }
 
-/* Reads an 8-bit .bmp's pixels into dstPixels as one index per pixel, the
+/* Reads an 8-bit .bmp's pixels into dst_pixels as one index per pixel, the
  * file's bottom row last: uncompressed rows (biCompression 0), skipping each
  * row's padding to 4 bytes, or RLE8 data (biCompression 1) of biSizeImage bytes
  * with its runs, end-of-line, end-of-bitmap, delta and absolute codes. Other
  * compressions decode nothing. Returns 1, or 0 when a compressed file's buffer
- * cannot be allocated. Does not check that the data stays inside dstPixels. */
+ * cannot be allocated. Does not check that the data stays inside dst_pixels. */
 // FUNCTION: XVT 0x4B7320
-int FrontImage_DecodeBmp8bpp(XvtFile *stream, void *dstPixels,
-			     const struct BITMAPFILEHEADER *fileHeader,
-			     const struct BITMAPINFOHEADER *infoHeader)
+int front_image_decode_bmp8bpp(xvt_file *stream, void *dst_pixels,
+			       const struct BITMAPFILEHEADER *file_header,
+			       const struct BITMAPINFOHEADER *info_header)
 {
-	int rowPadding;
+	int row_padding;
 	uint8_t *data;
-	int sourceOffset;
-	int destinationOffset;
-	uint8_t paddingBuffer[4];
+	int source_offset;
+	int destination_offset;
+	uint8_t padding_buffer[4];
 
-	(void)fileHeader;
+	(void)file_header;
 
-	rowPadding = infoHeader->biWidth % 4;
-	if (rowPadding != 0) {
-		rowPadding = 4 - rowPadding;
+	row_padding = info_header->bi_width % 4;
+	if (row_padding != 0) {
+		row_padding = 4 - row_padding;
 	}
 
 	data = NULL;
-	if (infoHeader->biCompression != 0) {
-		data = malloc(infoHeader->biSizeImage);
+	if (info_header->bi_compression != 0) {
+		data = malloc(info_header->bi_size_image);
 		if (data == NULL) {
 			return 0;
 		}
 	}
 
-	switch (infoHeader->biCompression) {
+	switch (info_header->bi_compression) {
 	case 0: {
 		int16_t row;
 
-		for (row = 0; row < infoHeader->biHeight; ++row) {
-			File_ReadBytes(stream,
-				       (uint8_t *)dstPixels +
-					       infoHeader->biWidth *
-						       (infoHeader->biHeight -
-							row - 1),
-				       infoHeader->biWidth);
-			File_ReadBytes(stream, paddingBuffer, rowPadding);
+		for (row = 0; row < info_header->bi_height; ++row) {
+			file_read_bytes(
+				stream,
+				(uint8_t *)dst_pixels +
+					info_header->bi_width *
+						(info_header->bi_height - row -
+						 1),
+				info_header->bi_width);
+			file_read_bytes(stream, padding_buffer, row_padding);
 		}
 		break;
 	}
 	case 1: {
-		int rowStartOffset;
-		int16_t decodeComplete;
+		int row_start_offset;
+		int16_t decode_complete;
 
-		File_ReadBytes(stream, data, infoHeader->biSizeImage);
-		sourceOffset = 0;
-		decodeComplete = 0;
-		destinationOffset =
-			infoHeader->biWidth * (infoHeader->biHeight - 1);
-		rowStartOffset = destinationOffset;
+		file_read_bytes(stream, data, info_header->bi_size_image);
+		source_offset = 0;
+		decode_complete = 0;
+		destination_offset =
+			info_header->bi_width * (info_header->bi_height - 1);
+		row_start_offset = destination_offset;
 		do {
-			uint8_t runLength;
+			uint8_t run_length;
 
-			runLength = data[sourceOffset];
-			++sourceOffset;
-			if (runLength == 0) {
-				uint8_t escapeCode;
+			run_length = data[source_offset];
+			++source_offset;
+			if (run_length == 0) {
+				uint8_t escape_code;
 
-				escapeCode = data[sourceOffset];
-				++sourceOffset;
-				switch (escapeCode) {
+				escape_code = data[source_offset];
+				++source_offset;
+				switch (escape_code) {
 				case 0:
-					rowStartOffset -= infoHeader->biWidth;
-					destinationOffset = rowStartOffset;
+					row_start_offset -=
+						info_header->bi_width;
+					destination_offset = row_start_offset;
 					break;
 				case 1:
-					decodeComplete = 1;
+					decode_complete = 1;
 					break;
 				case 2: {
-					uint8_t deltaX;
-					uint8_t deltaY;
-					int columnOffset;
+					uint8_t delta_x;
+					uint8_t delta_y;
+					int column_offset;
 
-					deltaX = data[sourceOffset];
-					++sourceOffset;
-					deltaY = data[sourceOffset];
-					++sourceOffset;
-					columnOffset = destinationOffset -
-						       rowStartOffset;
-					rowStartOffset -=
-						deltaY * infoHeader->biWidth;
-					destinationOffset = deltaX +
-							    rowStartOffset +
-							    columnOffset;
+					delta_x = data[source_offset];
+					++source_offset;
+					delta_y = data[source_offset];
+					++source_offset;
+					column_offset = destination_offset -
+							row_start_offset;
+					row_start_offset -=
+						delta_y * info_header->bi_width;
+					destination_offset = delta_x +
+							     row_start_offset +
+							     column_offset;
 					break;
 				}
 				default: {
-					int16_t runIndex;
+					int16_t run_index;
 
-					for (runIndex = 0;
-					     runIndex < escapeCode;
-					     ++runIndex) {
-						((uint8_t *)dstPixels)
-							[destinationOffset] = data
-								[sourceOffset];
-						++sourceOffset;
-						++destinationOffset;
+					for (run_index = 0;
+					     run_index < escape_code;
+					     ++run_index) {
+						((uint8_t *)dst_pixels)
+							[destination_offset] = data
+								[source_offset];
+						++source_offset;
+						++destination_offset;
 					}
-					if ((escapeCode & 1) != 0) {
-						++sourceOffset;
+					if ((escape_code & 1) != 0) {
+						++source_offset;
 					}
 					break;
 				}
 				}
 			} else {
-				uint8_t runValue;
-				int16_t runIndex;
+				uint8_t run_value;
+				int16_t run_index;
 
-				runValue = data[sourceOffset];
-				++sourceOffset;
-				for (runIndex = 0; runIndex < runLength;
-				     ++runIndex) {
-					((uint8_t *)
-						 dstPixels)[destinationOffset] =
-						runValue;
-					++destinationOffset;
+				run_value = data[source_offset];
+				++source_offset;
+				for (run_index = 0; run_index < run_length;
+				     ++run_index) {
+					((uint8_t *)dst_pixels)
+						[destination_offset] =
+							run_value;
+					++destination_offset;
 				}
 			}
-		} while (decodeComplete == 0);
+		} while (decode_complete == 0);
 		break;
 	}
 	default:
@@ -3208,21 +3277,21 @@ int FrontImage_DecodeBmp8bpp(XvtFile *stream, void *dstPixels,
 }
 
 /* Replaces every pixel's index with the display palette index nearest its color
- * in srcPalette (red, green, blue and a spare byte per entry), through
- * FrontImage_RemapPaletteIndex; index 0 stays 0. First sets every entry of
- * g_paletteRemapCache to 0x100, so each image is mapped afresh. */
+ * in src_palette (red, green, blue and a spare byte per entry), through
+ * front_image_remap_palette_index; index 0 stays 0. First sets every entry of
+ * g_palette_remap_cache to 0x100, so each image is mapped afresh. */
 // FUNCTION: XVT 0x4B7510
-void FrontImage_RemapPalette(uint8_t *pixels, const uint8_t *srcPalette,
-			     const struct BITMAPINFOHEADER *infoHeader)
+void front_image_remap_palette(uint8_t *pixels, const uint8_t *src_palette,
+			       const struct BITMAPINFOHEADER *info_header)
 {
 	int width;
 	int height;
 	int i;
 
-	width = infoHeader->biWidth;
-	height = infoHeader->biHeight;
+	width = info_header->bi_width;
+	height = info_header->bi_height;
 	for (i = 0; i < 256; ++i) {
-		g_paletteRemapCache[i] = 0x100;
+		g_palette_remap_cache[i] = 0x100;
 	}
 
 	if (height > 0) {
@@ -3235,12 +3304,14 @@ void FrontImage_RemapPalette(uint8_t *pixels, const uint8_t *srcPalette,
 
 				x = width;
 				do {
-					uint8_t srcIndex;
+					uint8_t src_index;
 
-					srcIndex = *pixels;
-					*pixels = FrontImage_RemapPaletteIndex(
-						&srcPalette[4 * srcIndex],
-						srcIndex);
+					src_index = *pixels;
+					*pixels =
+						front_image_remap_palette_index(
+							&src_palette[4 *
+								     src_index],
+							src_index);
 					++pixels;
 					--x;
 				} while (x != 0);
@@ -3252,95 +3323,95 @@ void FrontImage_RemapPalette(uint8_t *pixels, const uint8_t *srcPalette,
 }
 
 /* Returns the display palette index for source index srcIndex, whose color is
- * srcRgb: the one cached in g_paletteRemapCache, else 0 for index 0, else
- * FrontendDisplay_PackRGB's nearest entry, which it caches. */
+ * src_rgb: the one cached in g_palette_remap_cache, else 0 for index 0, else
+ * frontend_display_pack_rgb's nearest entry, which it caches. */
 // FUNCTION: XVT 0x4B7570
-char FrontImage_RemapPaletteIndex(const uint8_t *srcRgb, int srcIndex)
+char front_image_remap_palette_index(const uint8_t *src_rgb, int src_index)
 {
-	int16_t *cachedIndex;
+	int16_t *cached_index;
 	int value;
 
-	cachedIndex = &g_paletteRemapCache[srcIndex];
-	if (*cachedIndex < 256) {
-		return (char)*cachedIndex;
+	cached_index = &g_palette_remap_cache[src_index];
+	if (*cached_index < 256) {
+		return (char)*cached_index;
 	}
-	if (srcIndex == 0) {
+	if (src_index == 0) {
 		return 0;
 	}
 
-	value = FrontendDisplay_PackRGB(srcRgb[0], srcRgb[1], srcRgb[2]);
-	*cachedIndex = (int16_t)value;
+	value = frontend_display_pack_rgb(src_rgb[0], src_rgb[1], src_rgb[2]);
+	*cached_index = (int16_t)value;
 	return (char)value;
 }
 
 /* Replaces an image's one-byte-per-pixel data with RLE rows, encoded one row at
- * a time in g_frontState.rleRowBuffer. Each row is a 4-byte size, counting
+ * a time in g_front_state.rle_row_buffer. Each row is a 4-byte size, counting
  * itself and the end byte, then tokens: 0x40 + n for n pixels of index 0 (left
  * as they are by the transparent blitters), n and a value for a run of 3 to 63
  * equal pixels, 0x80 + n and n bytes for up to 127 literal pixels, and 0x80 to
  * end the row. Encodes at most 640 pixels of each row. Returns 1 and sets
- * isCompressed to 1 and pixelDataBytes to the encoded size, freeing the old
+ * isCompressed to 1 and pixel_data_bytes to the encoded size, freeing the old
  * pixels. Returns 0 with the image unchanged when the encoding would be larger
  * than width * height bytes, and returns 0 after setting isCompressed to 0 when
  * the buffer cannot be allocated. Checks the old pointer instead of realloc's
  * result when shrinking, so a failed shrink leaves pixels NULL. */
 // FUNCTION: XVT 0x4B75B0
-int FrontImage_CompressRLE(struct ImageResource *image)
+int front_image_compress_rle(struct image_resource *image)
 {
-	uint8_t *lastToken;
-	uint8_t *compressedPixels;
-	int compressedSize;
-	uint8_t *sourceRow;
-	int encodedWidth;
-	uint8_t runLengthByte;
-	int sourceSize;
-	uint8_t *compressedWrite;
+	uint8_t *last_token;
+	uint8_t *compressed_pixels;
+	int compressed_size;
+	uint8_t *source_row;
+	int encoded_width;
+	uint8_t run_length_byte;
+	int source_size;
+	uint8_t *compressed_write;
 	int row;
 
-	sourceSize = image->width * image->height;
-	compressedPixels = malloc(sourceSize);
-	if (compressedPixels == NULL) {
-		image->isCompressed = 0;
+	source_size = image->width * image->height;
+	compressed_pixels = malloc(source_size);
+	if (compressed_pixels == NULL) {
+		image->is_compressed = 0;
 		return 0;
 	}
 
-	compressedSize = 0;
-	compressedWrite = compressedPixels;
-	sourceRow = image->pixels;
-	encodedWidth = 640;
-	if (image->width <= encodedWidth) {
-		encodedWidth = image->width;
+	compressed_size = 0;
+	compressed_write = compressed_pixels;
+	source_row = image->pixels;
+	encoded_width = 640;
+	if (image->width <= encoded_width) {
+		encoded_width = image->width;
 	}
 
 	row = 0;
 	if (image->height > 0) {
 		do {
 			uint8_t *source;
-			uint8_t *tokenWrite;
+			uint8_t *token_write;
 			uint8_t value;
-			int encodedBytes;
+			int encoded_bytes;
 			int consumed;
-			int copyIndex;
-			int rowSize;
+			int copy_index;
+			int row_size;
 
-			source = sourceRow;
-			encodedBytes = 0;
+			source = source_row;
+			encoded_bytes = 0;
 			consumed = 0;
-			tokenWrite = g_frontState.rleRowBuffer.data;
-			value = *sourceRow;
-			lastToken = g_frontState.rleRowBuffer.data;
-			g_frontState.rleRowBuffer.data[0] = 0;
+			token_write = g_front_state.rle_row_buffer.data;
+			value = *source_row;
+			last_token = g_front_state.rle_row_buffer.data;
+			g_front_state.rle_row_buffer.data[0] = 0;
 
-			if (encodedWidth > 0) {
+			if (encoded_width > 0) {
 				for (;;) {
-					int runLength;
+					int run_length;
 
-					for (runLength = 0; runLength < 63;
-					     ++runLength) {
-						if (consumed >= encodedWidth) {
+					for (run_length = 0; run_length < 63;
+					     ++run_length) {
+						if (consumed >= encoded_width) {
 							break;
 						}
-						if (source[runLength] !=
+						if (source[run_length] !=
 						    value) {
 							break;
 						}
@@ -3348,353 +3419,360 @@ int FrontImage_CompressRLE(struct ImageResource *image)
 					}
 
 					if (value != 0) {
-						if (runLength > 2) {
-							*tokenWrite = (uint8_t)
-								runLength;
-							encodedBytes += 2;
-							lastToken = tokenWrite;
-							tokenWrite[1] = value;
-							tokenWrite += 2;
+						if (run_length > 2) {
+							*token_write = (uint8_t)
+								run_length;
+							encoded_bytes += 2;
+							last_token =
+								token_write;
+							token_write[1] = value;
+							token_write += 2;
 						} else {
-							if ((*lastToken &
+							if ((*last_token &
 							     0x80u) == 0) {
-								++encodedBytes;
-								*tokenWrite =
-									(uint8_t)(runLength |
+								++encoded_bytes;
+								*token_write =
+									(uint8_t)(run_length |
 										  0x80);
-								lastToken =
-									tokenWrite++;
-								for (copyIndex =
+								last_token =
+									token_write++;
+								for (copy_index =
 									     0;
-								     copyIndex <
-								     runLength;
-								     ++copyIndex) {
-									tokenWrite[copyIndex] = source
-										[copyIndex];
+								     copy_index <
+								     run_length;
+								     ++copy_index) {
+									token_write[copy_index] = source
+										[copy_index];
 								}
 							} else {
-								runLengthByte =
-									(uint8_t)(runLength +
-										  (*lastToken &
+								run_length_byte =
+									(uint8_t)(run_length +
+										  (*last_token &
 										   0x7f));
-								if (runLengthByte <
+								if (run_length_byte <
 								    0x80) {
-									*lastToken =
-										(uint8_t)(runLengthByte |
+									*last_token =
+										(uint8_t)(run_length_byte |
 											  0x80);
-									for (copyIndex =
+									for (copy_index =
 										     0;
-									     copyIndex <
-									     runLength;
-									     ++copyIndex) {
-										tokenWrite[copyIndex] = source
-											[copyIndex];
+									     copy_index <
+									     run_length;
+									     ++copy_index) {
+										token_write[copy_index] = source
+											[copy_index];
 									}
 								} else {
-									++encodedBytes;
-									*tokenWrite =
-										(uint8_t)(runLength |
+									++encoded_bytes;
+									*token_write =
+										(uint8_t)(run_length |
 											  0x80);
-									lastToken =
-										tokenWrite++;
-									for (copyIndex =
+									last_token =
+										token_write++;
+									for (copy_index =
 										     0;
-									     copyIndex <
-									     runLength;
-									     ++copyIndex) {
-										tokenWrite[copyIndex] = source
-											[copyIndex];
+									     copy_index <
+									     run_length;
+									     ++copy_index) {
+										token_write[copy_index] = source
+											[copy_index];
 									}
 								}
 							}
-							tokenWrite += runLength;
-							encodedBytes +=
-								runLength;
+							token_write +=
+								run_length;
+							encoded_bytes +=
+								run_length;
 						}
 					} else {
-						++encodedBytes;
-						lastToken = tokenWrite;
-						*tokenWrite++ =
-							(uint8_t)(runLength |
+						++encoded_bytes;
+						last_token = token_write;
+						*token_write++ =
+							(uint8_t)(run_length |
 								  0x40);
 					}
 
-					if (consumed >= encodedWidth) {
+					if (consumed >= encoded_width) {
 						break;
 					}
-					source += runLength;
+					source += run_length;
 					value = *source;
 				}
 
-				*tokenWrite = 0x80;
-				rowSize = encodedBytes + 5;
-				g_frontState.rleRowBuffer.encodedSize = rowSize;
+				*token_write = 0x80;
+				row_size = encoded_bytes + 5;
+				g_front_state.rle_row_buffer.encoded_size =
+					row_size;
 			} else {
-				g_frontState.rleRowBuffer.data[0] = 0x80;
-				g_frontState.rleRowBuffer.encodedSize = 5;
-				rowSize = 5;
+				g_front_state.rle_row_buffer.data[0] = 0x80;
+				g_front_state.rle_row_buffer.encoded_size = 5;
+				row_size = 5;
 			}
 
-			if (sourceSize < compressedSize + rowSize) {
-				free(compressedPixels);
-				compressedSize =
+			if (source_size < compressed_size + row_size) {
+				free(compressed_pixels);
+				compressed_size =
 					image->width * image->height + 1;
 				break;
 			}
-			memcpy(compressedWrite, &g_frontState.rleRowBuffer,
-			       rowSize);
-			compressedWrite += rowSize;
-			compressedSize += rowSize;
+			memcpy(compressed_write, &g_front_state.rle_row_buffer,
+			       row_size);
+			compressed_write += row_size;
+			compressed_size += row_size;
 			++row;
-			sourceRow += image->width;
+			source_row += image->width;
 		} while (row < image->height);
 	}
 
-	if (image->width * image->height < compressedSize) {
+	if (image->width * image->height < compressed_size) {
 		return 0;
 	}
 
 	{
-		uint8_t *resizedPixels;
+		uint8_t *resized_pixels;
 
-		resizedPixels = realloc(compressedPixels, compressedSize);
-		if (compressedPixels == NULL) {
-			free(compressedPixels);
-			image->isCompressed = 0;
+		resized_pixels = realloc(compressed_pixels, compressed_size);
+		if (compressed_pixels == NULL) {
+			free(compressed_pixels);
+			image->is_compressed = 0;
 			return 0;
 		}
 		free(image->pixels);
-		image->pixels = resizedPixels;
-		image->isCompressed = 1;
-		image->pixelDataBytes = compressedSize;
+		image->pixels = resized_pixels;
+		image->is_compressed = 1;
+		image->pixel_data_bytes = compressed_size;
 	}
 	return 1;
 }
 
-/* Only FrontendText_LoadFont calls this, in the original build. Encodes one row
- * of width one-byte pixels into *rowBuffer in FrontImage_CompressRLE's format,
- * with no 640-pixel limit, sets rowBuffer->encodedSize and returns it, the
+/* Only frontend_text_load_font calls this, in the original build. Encodes one row
+ * of width one-byte pixels into *row_buffer in front_image_compress_rle's format,
+ * with no 640-pixel limit, sets row_buffer->encoded_size and returns it, the
  * row's size in bytes. Does not check that the row fits the buffer. */
 // FUNCTION: XVT 0x4B7840
-int FrontImage_EncodeGlyphRow(struct FrontImageRleRowBuffer *rowBuffer,
-			      const uint8_t *srcPixels, int width)
+int front_image_encode_glyph_row(struct front_image_rle_row_buffer *row_buffer,
+				 const uint8_t *src_pixels, int width)
 {
-	uint8_t *tokenWrite;
-	uint8_t *lastToken;
+	uint8_t *token_write;
+	uint8_t *last_token;
 	const uint8_t *source;
 	uint8_t value;
-	uint8_t runLengthByte;
-	int encodedBytes;
+	uint8_t run_length_byte;
+	int encoded_bytes;
 	int consumed;
-	int copyIndex;
-	int rowSize;
+	int copy_index;
+	int row_size;
 
-	encodedBytes = 0;
-	source = srcPixels;
+	encoded_bytes = 0;
+	source = src_pixels;
 	consumed = 0;
 	value = *source;
-	rowBuffer->data[0] = 0;
-	tokenWrite = rowBuffer->data;
-	lastToken = tokenWrite;
+	row_buffer->data[0] = 0;
+	token_write = row_buffer->data;
+	last_token = token_write;
 
 	if (width <= 0) {
-		*tokenWrite = 0x80;
-		rowBuffer->encodedSize = 5;
+		*token_write = 0x80;
+		row_buffer->encoded_size = 5;
 		return 5;
 	}
 
 	for (;;) {
-		int runLength;
+		int run_length;
 
-		for (runLength = 0; runLength < 63; ++runLength) {
+		for (run_length = 0; run_length < 63; ++run_length) {
 			if (consumed >= width) {
 				break;
 			}
-			if (source[runLength] != value) {
+			if (source[run_length] != value) {
 				break;
 			}
 			++consumed;
 		}
 
 		if (value == 0) {
-			lastToken = tokenWrite;
-			*tokenWrite++ = (uint8_t)(runLength | 0x40);
-			++encodedBytes;
-		} else if (runLength > 2) {
-			++encodedBytes;
-			*tokenWrite = (uint8_t)runLength;
-			++encodedBytes;
-			lastToken = tokenWrite;
-			tokenWrite[1] = value;
-			tokenWrite += 2;
+			last_token = token_write;
+			*token_write++ = (uint8_t)(run_length | 0x40);
+			++encoded_bytes;
+		} else if (run_length > 2) {
+			++encoded_bytes;
+			*token_write = (uint8_t)run_length;
+			++encoded_bytes;
+			last_token = token_write;
+			token_write[1] = value;
+			token_write += 2;
 		} else {
-			if ((*lastToken & 0x80u) == 0) {
-				*tokenWrite = (uint8_t)(runLength | 0x80);
-				++encodedBytes;
-				lastToken = tokenWrite++;
-				for (copyIndex = 0; copyIndex < runLength;
-				     ++copyIndex) {
-					tokenWrite[copyIndex] =
-						source[copyIndex];
+			if ((*last_token & 0x80u) == 0) {
+				*token_write = (uint8_t)(run_length | 0x80);
+				++encoded_bytes;
+				last_token = token_write++;
+				for (copy_index = 0; copy_index < run_length;
+				     ++copy_index) {
+					token_write[copy_index] =
+						source[copy_index];
 				}
 			} else {
-				runLengthByte = (uint8_t)(runLength +
-							  (*lastToken & 0x7f));
-				if (runLengthByte < 0x80) {
-					*lastToken =
-						(uint8_t)(runLengthByte | 0x80);
-					for (copyIndex = 0;
-					     copyIndex < runLength;
-					     ++copyIndex) {
-						tokenWrite[copyIndex] =
-							source[copyIndex];
+				run_length_byte =
+					(uint8_t)(run_length +
+						  (*last_token & 0x7f));
+				if (run_length_byte < 0x80) {
+					*last_token =
+						(uint8_t)(run_length_byte |
+							  0x80);
+					for (copy_index = 0;
+					     copy_index < run_length;
+					     ++copy_index) {
+						token_write[copy_index] =
+							source[copy_index];
 					}
 				} else {
-					*tokenWrite =
-						(uint8_t)(runLength | 0x80);
-					++encodedBytes;
-					lastToken = tokenWrite++;
-					for (copyIndex = 0;
-					     copyIndex < runLength;
-					     ++copyIndex) {
-						tokenWrite[copyIndex] =
-							source[copyIndex];
+					*token_write =
+						(uint8_t)(run_length | 0x80);
+					++encoded_bytes;
+					last_token = token_write++;
+					for (copy_index = 0;
+					     copy_index < run_length;
+					     ++copy_index) {
+						token_write[copy_index] =
+							source[copy_index];
 					}
 				}
 			}
-			tokenWrite += runLength;
-			encodedBytes += runLength;
+			token_write += run_length;
+			encoded_bytes += run_length;
 		}
 
 		if (consumed >= width) {
 			break;
 		}
-		source += runLength;
+		source += run_length;
 		value = *source;
 	}
 
-	*tokenWrite = 0x80;
-	rowSize = encodedBytes + 5;
-	rowBuffer->encodedSize = rowSize;
-	return rowSize;
+	*token_write = 0x80;
+	row_size = encoded_bytes + 5;
+	row_buffer->encoded_size = row_size;
+	return row_size;
 }
 
-/* Copies *entry into g_frontState.resourceTable at its place in name order
+/* Copies *entry into g_front_state.resource_table at its place in name order
  * (strncmp over 64 bytes, after equal names), moving later records up one, and
- * raises g_frontState.resourceCount. Does not check that the table has room. */
+ * raises g_front_state.resource_count. Does not check that the table has room. */
 // FUNCTION: XVT 0x4B7970
-void FrontImage_InsertResourceSorted(
-	const struct FrontImageResourceRecord *entry)
+void front_image_insert_resource_sorted(
+	const struct front_image_resource_record *entry)
 {
-	int insertIndex;
-	int entriesToShift;
-	int destinationIndex;
+	int insert_index;
+	int entries_to_shift;
+	int destination_index;
 
-	insertIndex = 0;
-	while (g_frontState.resourceCount > insertIndex) {
+	insert_index = 0;
+	while (g_front_state.resource_count > insert_index) {
 		if (strncmp(entry->name,
-			    g_frontState.resourceTable[insertIndex].name,
+			    g_front_state.resource_table[insert_index].name,
 			    sizeof(entry->name)) < 0) {
 			break;
 		}
-		++insertIndex;
+		++insert_index;
 	}
 
-	if (g_frontState.resourceCount > insertIndex) {
-		entriesToShift = g_frontState.resourceCount - insertIndex;
-		destinationIndex = g_frontState.resourceCount;
+	if (g_front_state.resource_count > insert_index) {
+		entries_to_shift = g_front_state.resource_count - insert_index;
+		destination_index = g_front_state.resource_count;
 		do {
-			g_frontState.resourceTable[destinationIndex] =
-				g_frontState
-					.resourceTable[destinationIndex - 1];
-			--destinationIndex;
-			--entriesToShift;
-		} while (entriesToShift != 0);
+			g_front_state.resource_table[destination_index] =
+				g_front_state
+					.resource_table[destination_index - 1];
+			--destination_index;
+			--entries_to_shift;
+		} while (entries_to_shift != 0);
 	}
-	g_frontState.resourceTable[insertIndex] = *entry;
-	++g_frontState.resourceCount;
+	g_front_state.resource_table[insert_index] = *entry;
+	++g_front_state.resource_count;
 }
 
-/* Removes the record at index from g_frontState.resourceTable, moving later
- * records down one, and lowers g_frontState.resourceCount. Does nothing for an
- * index outside 0 to resourceCount - 1. Frees nothing; the slot past the new
+/* Removes the record at index from g_front_state.resource_table, moving later
+ * records down one, and lowers g_front_state.resource_count. Does nothing for an
+ * index outside 0 to resource_count - 1. Frees nothing; the slot past the new
  * end keeps a copy of the last record. */
 // FUNCTION: XVT 0x4B7A10
-void FrontImage_RemoveResourceAt(int index)
+void front_image_remove_resource_at(int index)
 {
-	int destinationIndex;
-	int currentIndex;
-	struct FrontImageResourceRecord *resource;
+	int destination_index;
+	int current_index;
+	struct front_image_resource_record *resource;
 
-	currentIndex = index;
+	current_index = index;
 	if (index < 0) {
 		return;
 	}
-	if (g_frontState.resourceCount <= index) {
+	if (g_front_state.resource_count <= index) {
 		return;
 	}
-	if (g_frontState.resourceCount - 1 > index) {
-		destinationIndex = index;
+	if (g_front_state.resource_count - 1 > index) {
+		destination_index = index;
 		do {
-			resource =
-				&g_frontState.resourceTable[destinationIndex];
+			resource = &g_front_state
+					    .resource_table[destination_index];
 			*resource = resource[1];
-			++currentIndex;
-			++destinationIndex;
-		} while (g_frontState.resourceCount - 1 > currentIndex);
+			++current_index;
+			++destination_index;
+		} while (g_front_state.resource_count - 1 > current_index);
 	}
-	--g_frontState.resourceCount;
+	--g_front_state.resource_count;
 }
 
-/* Returns the index in g_frontState.resourceTable of the record named name, by
- * binary search (FrontImage_BSearchResource), or -1 when there is none or name
+/* Returns the index in g_front_state.resource_table of the record named name, by
+ * binary search (front_image_bsearch_resource), or -1 when there is none or name
  * is NULL. */
 // FUNCTION: XVT 0x4B7A70
-int FrontImage_FindResourceByName(const char *name)
+int front_image_find_resource_by_name(const char *name)
 {
 	if (name == NULL) {
 		return -1;
 	}
 
-	return FrontImage_BSearchResource(g_frontState.resourceTable,
-					  g_frontState.resourceCount - 1, name);
+	return front_image_bsearch_resource(g_front_state.resource_table,
+					    g_front_state.resource_count - 1,
+					    name);
 }
 
 /* Binary-searches table[0] to table[hi], sorted by name, for key, comparing 64
  * bytes with strncmp. Returns the matching index, or -1 when none matches or hi
  * is under 0. */
 // FUNCTION: XVT 0x4B7AA0
-int FrontImage_BSearchResource(const struct FrontImageResourceRecord *table,
-			       int hi, const char *key)
+int front_image_bsearch_resource(
+	const struct front_image_resource_record *table, int hi,
+	const char *key)
 {
-	int baseIndex;
-	int searchHi;
+	int base_index;
+	int search_hi;
 	int middle;
 	int comparison;
-	const struct FrontImageResourceRecord *middleEntry;
+	const struct front_image_resource_record *middle_entry;
 
-	baseIndex = 0;
-	searchHi = hi;
+	base_index = 0;
+	search_hi = hi;
 	while (1) {
-		if (searchHi < 0) {
+		if (search_hi < 0) {
 			return -1;
 		}
-		middle = searchHi >> 1;
-		middleEntry = &table[middle];
-		comparison = strncmp(middleEntry->name, key,
-				     sizeof(middleEntry->name));
+		middle = search_hi >> 1;
+		middle_entry = &table[middle];
+		comparison = strncmp(middle_entry->name, key,
+				     sizeof(middle_entry->name));
 		if (comparison == 0) {
-			return middle + baseIndex;
+			return middle + base_index;
 		}
-		if (searchHi <= 0) {
+		if (search_hi <= 0) {
 			return -1;
 		}
 		if (comparison < 0) {
-			baseIndex += middle + 1;
-			searchHi -= middle + 1;
-			table = middleEntry + 1;
+			base_index += middle + 1;
+			search_hi -= middle + 1;
+			table = middle_entry + 1;
 		} else {
-			searchHi = middle - 1;
+			search_hi = middle - 1;
 		}
 	}
 }
@@ -3709,31 +3787,31 @@ int FrontImage_BSearchResource(const struct FrontImageResourceRecord *table,
  * 0 when bpp is 8 without a palette, the file does not open, or a write fails.
  * Other depths write the headers with no pixels. */
 // FUNCTION: XVT 0x4B7B10
-int FrontImage_SaveBmpFile(char *fileName, const void *pixels, int width,
-			   int height, int pitch, int bpp, int is555,
-			   const void *palette)
+int front_image_save_bmp_file(char *file_name, const void *pixels, int width,
+			      int height, int pitch, int bpp, int is555,
+			      const void *palette)
 {
 	int y;
 	int x;
-	struct FrontImageBmpInfoHeader infoHeader;
-	struct FrontImageBmpFileHeader fileHeader;
-	const uint8_t *colorTable;
-	XvtFile *stream;
-	int fileSize;
+	struct front_image_bmp_info_header info_header;
+	struct front_image_bmp_file_header file_header;
+	const uint8_t *color_table;
+	xvt_file *stream;
+	int file_size;
 	int ok;
 
-	colorTable = (const uint8_t *)palette;
-	if (bpp == 8 && colorTable == NULL) {
+	color_table = (const uint8_t *)palette;
+	if (bpp == 8 && color_table == NULL) {
 		return 0;
 	}
 
-	stream = File_Open(fileName, "wb");
+	stream = file_open(file_name, "wb");
 	if (stream == NULL) {
 		return 0;
 	}
 
-	File_Seek(stream, 54, SEEK_SET);
-	fileSize = 54;
+	file_seek(stream, 54, SEEK_SET);
+	file_size = 54;
 
 	switch (bpp) {
 	case 8:
@@ -3742,49 +3820,49 @@ int FrontImage_SaveBmpFile(char *fileName, const void *pixels, int width,
 				(const uint8_t *)pixels + y * pitch;
 
 			for (x = 0; x < width; x++) {
-				ok = File_WriteByte(stream,
-						    colorTable[4 * *row]);
+				ok = file_write_byte(stream,
+						     color_table[4 * *row]);
 				if (ok == 0) {
-					File_Close(stream);
+					file_close(stream);
 					return 0;
 				}
-				ok = File_WriteByte(stream,
-						    colorTable[4 * *row + 1]);
+				ok = file_write_byte(stream,
+						     color_table[4 * *row + 1]);
 				if (ok == 0) {
-					File_Close(stream);
+					file_close(stream);
 					return 0;
 				}
-				ok = File_WriteByte(stream,
-						    colorTable[4 * *row + 2]);
+				ok = file_write_byte(stream,
+						     color_table[4 * *row + 2]);
 				if (ok == 0) {
-					File_Close(stream);
+					file_close(stream);
 					return 0;
 				}
-				fileSize++;
-				fileSize++;
-				fileSize++;
+				file_size++;
+				file_size++;
+				file_size++;
 				row++;
 			}
 
 			if ((x & 1) != 0) {
-				ok = File_WriteByte(stream, 0);
+				ok = file_write_byte(stream, 0);
 				if (ok == 0) {
-					File_Close(stream);
+					file_close(stream);
 					return 0;
 				}
-				ok = File_WriteByte(stream, 0);
+				ok = file_write_byte(stream, 0);
 				if (ok == 0) {
-					File_Close(stream);
+					file_close(stream);
 					return 0;
 				}
-				ok = File_WriteByte(stream, 0);
+				ok = file_write_byte(stream, 0);
 				if (ok == 0) {
-					File_Close(stream);
+					file_close(stream);
 					return 0;
 				}
-				fileSize++;
-				fileSize++;
-				fileSize++;
+				file_size++;
+				file_size++;
+				file_size++;
 			}
 		}
 		break;
@@ -3797,141 +3875,142 @@ int FrontImage_SaveBmpFile(char *fileName, const void *pixels, int width,
 
 			for (x = 0; x < width; x++) {
 				uint16_t value;
-				uint16_t greenRed;
+				uint16_t green_red;
 				uint16_t green;
 				uint16_t red;
 
 				value = *row;
-				greenRed = value >> 5;
+				green_red = value >> 5;
 				if (is555) {
-					green = 8 * greenRed;
-					red = greenRed >> 5;
+					green = 8 * green_red;
+					red = green_red >> 5;
 				} else {
-					green = 4 * greenRed;
-					red = greenRed >> 6;
+					green = 4 * green_red;
+					red = green_red >> 6;
 				}
 
-				ok = File_WriteByte(stream, 8 * value);
+				ok = file_write_byte(stream, 8 * value);
 				if (ok == 0) {
-					File_Close(stream);
+					file_close(stream);
 					return 0;
 				}
-				ok = File_WriteByte(stream, green);
+				ok = file_write_byte(stream, green);
 				if (ok == 0) {
-					File_Close(stream);
+					file_close(stream);
 					return 0;
 				}
-				ok = File_WriteByte(stream, 8 * red);
+				ok = file_write_byte(stream, 8 * red);
 				if (ok == 0) {
-					File_Close(stream);
+					file_close(stream);
 					return 0;
 				}
-				fileSize++;
-				fileSize++;
-				fileSize++;
+				file_size++;
+				file_size++;
+				file_size++;
 				row++;
 			}
 
 			if ((x & 1) != 0) {
-				ok = File_WriteByte(stream, 0);
+				ok = file_write_byte(stream, 0);
 				if (ok == 0) {
-					File_Close(stream);
+					file_close(stream);
 					return 0;
 				}
-				ok = File_WriteByte(stream, 0);
+				ok = file_write_byte(stream, 0);
 				if (ok == 0) {
-					File_Close(stream);
+					file_close(stream);
 					return 0;
 				}
-				ok = File_WriteByte(stream, 0);
+				ok = file_write_byte(stream, 0);
 				if (ok == 0) {
-					File_Close(stream);
+					file_close(stream);
 					return 0;
 				}
-				fileSize++;
-				fileSize++;
-				fileSize++;
+				file_size++;
+				file_size++;
+				file_size++;
 			}
 		}
 		break;
 	}
 
-	File_Seek(stream, 0, SEEK_SET);
-	fileHeader.signature = 0x4d42;
-	fileHeader.fileSize = (uint32_t)fileSize;
-	fileHeader.pixelOffset = 54;
-	infoHeader.headerSize = 40;
+	file_seek(stream, 0, SEEK_SET);
+	file_header.signature = 0x4d42;
+	file_header.file_size = (uint32_t)file_size;
+	file_header.pixel_offset = 54;
+	info_header.header_size = 40;
 
 	if ((width & 1) != 0) {
-		infoHeader.width = width + 1;
+		info_header.width = width + 1;
 	} else {
-		infoHeader.width = width;
+		info_header.width = width;
 	}
-	infoHeader.height = height;
-	infoHeader.planes = 1;
-	infoHeader.bitsPerPixel = 24;
-	infoHeader.compression = 0;
-	infoHeader.imageSize = (uint32_t)(fileSize - 54);
-	infoHeader.pixelsPerMeterX = 0;
-	infoHeader.pixelsPerMeterY = 0;
-	infoHeader.colorsUsed = 0;
-	infoHeader.colorsImportant = 0;
+	info_header.height = height;
+	info_header.planes = 1;
+	info_header.bits_per_pixel = 24;
+	info_header.compression = 0;
+	info_header.image_size = (uint32_t)(file_size - 54);
+	info_header.pixels_per_meter_x = 0;
+	info_header.pixels_per_meter_y = 0;
+	info_header.colors_used = 0;
+	info_header.colors_important = 0;
 
-	ok = File_WriteBytes(stream, &fileHeader, sizeof(fileHeader));
+	ok = file_write_bytes(stream, &file_header, sizeof(file_header));
 	if (ok == 0) {
-		File_Close(stream);
+		file_close(stream);
 		return 0;
 	}
-	ok = File_WriteBytes(stream, &infoHeader, sizeof(infoHeader));
+	ok = file_write_bytes(stream, &info_header, sizeof(info_header));
 	if (ok == 0) {
-		File_Close(stream);
+		file_close(stream);
 		return 0;
 	}
 
-	File_Close(stream);
+	file_close(stream);
 	return 1;
 }
 
-/* Nothing calls this. Reads the palette of a 4- or 8-bit .bmp into destRgba
- * through FrontImage_ReadBmpPalette, which writes 1,024 bytes, and returns 1;
- * returns 0 when destRgba is NULL, the file does not open, or the signature,
+/* Nothing calls this. Reads the palette of a 4- or 8-bit .bmp into dest_rgba
+ * through front_image_read_bmp_palette, which writes 1,024 bytes, and returns 1;
+ * returns 0 when dest_rgba is NULL, the file does not open, or the signature,
  * plane count or bit depth is wrong. */
 // FUNCTION: XVT 0x4D6D30
-int FrontImage_LoadBmpPaletteFile(const char *fileName, uint8_t *destRgba)
+int front_image_load_bmp_palette_file(const char *file_name, uint8_t *dest_rgba)
 {
-	XvtFile *stream;
+	xvt_file *stream;
 	int result;
-	unsigned int bitsPerPixel;
-	struct FrontImageBmpFileHeader fileHeader;
-	struct FrontImageBmpInfoHeader infoHeader;
+	unsigned int bits_per_pixel;
+	struct front_image_bmp_file_header file_header;
+	struct front_image_bmp_info_header info_header;
 
-	if (destRgba == NULL) {
+	if (dest_rgba == NULL) {
 		return 0;
 	}
 
-	stream = File_Open(fileName, "rb");
+	stream = file_open(file_name, "rb");
 	result = 0;
 	if (stream != NULL) {
-		File_ReadBytes(stream, &fileHeader, sizeof(fileHeader));
-		if (fileHeader.signature == 0x4D42) {
-			File_ReadBytes(stream, &infoHeader, sizeof(infoHeader));
-			if (infoHeader.planes == 1) {
-				bitsPerPixel = infoHeader.bitsPerPixel;
-				switch (bitsPerPixel) {
+		file_read_bytes(stream, &file_header, sizeof(file_header));
+		if (file_header.signature == 0x4D42) {
+			file_read_bytes(stream, &info_header,
+					sizeof(info_header));
+			if (info_header.planes == 1) {
+				bits_per_pixel = info_header.bits_per_pixel;
+				switch (bits_per_pixel) {
 				case 4:
-					FrontImage_ReadBmpPalette(stream,
-								  destRgba, 16);
+					front_image_read_bmp_palette(
+						stream, dest_rgba, 16);
 					result = 1;
 					break;
 				case 8:
-					FrontImage_ReadBmpPalette(
-						stream, destRgba, 256);
+					front_image_read_bmp_palette(
+						stream, dest_rgba, 256);
 					result = 1;
 					break;
 				}
 			}
 		}
-		File_Close(stream);
+		file_close(stream);
 	}
 	return result;
 }
@@ -3940,7 +4019,7 @@ int FrontImage_LoadBmpPaletteFile(const char *fileName, uint8_t *destRgba)
  * stored blue, green, red, spare, into the first count entries as red, green,
  * blue and 0. Does not check the reads. */
 // FUNCTION: XVT 0x4D6DD0
-void FrontImage_ReadBmpPalette(XvtFile *stream, uint8_t *dest, int count)
+void front_image_read_bmp_palette(xvt_file *stream, uint8_t *dest, int count)
 {
 	uint8_t entry[4];
 	uint8_t blue;
@@ -3950,7 +4029,7 @@ void FrontImage_ReadBmpPalette(XvtFile *stream, uint8_t *dest, int count)
 
 	memset(dest, 0, 256 * 4);
 	for (i = 0; i < count; i++) {
-		File_ReadBytes(stream, entry, sizeof(entry));
+		file_read_bytes(stream, entry, sizeof(entry));
 		blue = entry[0];
 		green = entry[1];
 		red = entry[2];
@@ -3962,34 +4041,34 @@ void FrontImage_ReadBmpPalette(XvtFile *stream, uint8_t *dest, int count)
 }
 
 /* Returns the 16-bit color color16 at the current step of the text fade-in:
- * each channel times (textFadeFrameCount - textFadeFramesLeft) /
- * textFadeFrameCount, in the layout g_frontState.pixelFormat555 names, or 1
+ * each channel times (text_fade_frame_count - text_fade_frames_left) /
+ * text_fade_frame_count, in the layout g_front_state.pixel_format555 names, or 1
  * when the whole result is 0. Caches the result in
- * g_frontState.textFadeColorCache[color16], which the frame loops clear each
+ * g_front_state.text_fade_color_cache[color16], which the frame loops clear each
  * frame while a fade runs, and returns a cached nonzero value as it is. Does
- * not check textFadeFrameCount for 0. */
+ * not check text_fade_frame_count for 0. */
 // FUNCTION: XVT 0x4D6F50
-unsigned int FrontImage_GetFadedGlyphColor16(unsigned int color16)
+unsigned int front_image_get_faded_glyph_color16(unsigned int color16)
 {
 	unsigned int green;
 	unsigned int blue;
 	unsigned int color;
-	uint16_t *cacheEntry;
-	uint16_t cachedColor;
+	uint16_t *cache_entry;
+	uint16_t cached_color;
 	unsigned int result;
-	unsigned int fadeMultiplier;
+	unsigned int fade_multiplier;
 
 	color = color16;
-	cacheEntry = &g_frontState.textFadeColorCache[color];
-	cachedColor = *cacheEntry;
-	if (cachedColor != 0) {
-		return cachedColor;
+	cache_entry = &g_front_state.text_fade_color_cache[color];
+	cached_color = *cache_entry;
+	if (cached_color != 0) {
+		return cached_color;
 	}
 
 	blue = color;
 	/* From here color holds only the red channel: masked and shifted down, faded, then shifted back into
 	 * place for packing. */
-	if (g_frontState.pixelFormat555 != 0) {
+	if (g_front_state.pixel_format555 != 0) {
 		blue &= 0x1F;
 		green = color;
 		green &= 0x3E0;
@@ -4005,15 +4084,15 @@ unsigned int FrontImage_GetFadedGlyphColor16(unsigned int color16)
 		color >>= 11;
 	}
 
-	fadeMultiplier = g_frontState.textFadeFrameCount -
-			 g_frontState.textFadeFramesLeft;
-	blue = fadeMultiplier * blue /
-	       (unsigned int)g_frontState.textFadeFrameCount;
-	green = fadeMultiplier * green /
-		(unsigned int)g_frontState.textFadeFrameCount;
-	color = fadeMultiplier * color /
-		(unsigned int)g_frontState.textFadeFrameCount;
-	if (g_frontState.pixelFormat555 != 0) {
+	fade_multiplier = g_front_state.text_fade_frame_count -
+			  g_front_state.text_fade_frames_left;
+	blue = fade_multiplier * blue /
+	       (unsigned int)g_front_state.text_fade_frame_count;
+	green = fade_multiplier * green /
+		(unsigned int)g_front_state.text_fade_frame_count;
+	color = fade_multiplier * color /
+		(unsigned int)g_front_state.text_fade_frame_count;
+	if (g_front_state.pixel_format555 != 0) {
 		color = (color & 0x1F) << 5;
 		green &= 0x1F;
 		blue &= 0x1F;
@@ -4027,95 +4106,97 @@ unsigned int FrontImage_GetFadedGlyphColor16(unsigned int color16)
 	if (result == 0) {
 		result = 1;
 	}
-	*cacheEntry = (uint16_t)result;
+	*cache_entry = (uint16_t)result;
 	return result;
 }
 
 /* Registers the images a list file names: skips its first line, then reads
  * lines of a .bmp file name, an image name and a compress flag, and passes each
- * to FrontImage_RegisterResource with no palette remap. Returns 1 at the end of
+ * to front_image_register_resource with no palette remap. Returns 1 at the end of
  * the file, or 0 when the file does not open or a line does not hold the three
  * fields; a failed registration is not reported. The original build reads the
  * names with no length limit into 256-byte buffers. */
 // FUNCTION: XVT 0x4DF880
-int FrontImage_LoadResourceList(char *fileName)
+int front_image_load_resource_list(char *file_name)
 {
-	int compressRLE;
-	char resourceFileName[256];
-	char resourceName[256];
-	XvtFile *stream;
-	int fieldCount;
+	int compress_rle;
+	char resource_file_name[256];
+	char resource_name[256];
+	xvt_file *stream;
+	int field_count;
 
-	stream = File_Open(fileName, "r");
+	stream = file_open(file_name, "r");
 	if (stream == NULL) {
 		return 0;
 	}
-	if (File_Gets(resourceFileName, 255, stream) == NULL) {
-		File_Close(stream);
+	if (FILE_GETS(resource_file_name, 255, stream) == NULL) {
+		file_close(stream);
 		return 1;
 	}
 
 	for (;;) {
 #ifdef XVT_MODERN
-		fieldCount =
-			File_Scanf(stream, "%255s %255s %d\n", resourceFileName,
-				   resourceName, &compressRLE);
+		field_count = FILE_SCANF(stream, "%255s %255s %d\n",
+					 resource_file_name, resource_name,
+					 &compress_rle);
 #else
-		fieldCount = File_Scanf(stream, "%s %s %d\n", resourceFileName,
-					resourceName, &compressRLE);
+		field_count =
+			FILE_SCANF(stream, "%s %s %d\n", resource_file_name,
+				   resource_name, &compress_rle);
 #endif
-		if (fieldCount == EOF) {
-			File_Close(stream);
+		if (field_count == EOF) {
+			file_close(stream);
 			return 1;
 		}
-		if (fieldCount != 3) {
-			File_Close(stream);
+		if (field_count != 3) {
+			file_close(stream);
 			return 0;
 		}
-		FrontImage_RegisterResource(resourceFileName, resourceName, 0,
-					    compressRLE);
+		front_image_register_resource(resource_file_name, resource_name,
+					      0, compress_rle);
 	}
 }
 
-/* Frees the images a list file names, read the way FrontImage_LoadResourceList
- * reads them, with FrontImage_FreeResourceByName. Returns 1 at the end of the
+/* Frees the images a list file names, read the way front_image_load_resource_list
+ * reads them, with front_image_free_resource_by_name. Returns 1 at the end of the
  * file, or 0 when the file does not open or a line does not hold the three
  * fields. */
 // FUNCTION: XVT 0x4DF950
-int FrontImage_UnloadResourceList(char *fileName)
+int front_image_unload_resource_list(char *file_name)
 {
-	int ignoredFlags;
-	char resourceFileName[256];
-	char resourceName[256];
-	XvtFile *stream;
-	int fieldCount;
+	int ignored_flags;
+	char resource_file_name[256];
+	char resource_name[256];
+	xvt_file *stream;
+	int field_count;
 
-	stream = File_Open(fileName, "r");
+	stream = file_open(file_name, "r");
 	if (stream == NULL) {
 		return 0;
 	}
-	if (File_Gets(resourceFileName, 255, stream) == NULL) {
-		File_Close(stream);
+	if (FILE_GETS(resource_file_name, 255, stream) == NULL) {
+		file_close(stream);
 		return 1;
 	}
 
 	for (;;) {
 #ifdef XVT_MODERN
-		fieldCount =
-			File_Scanf(stream, "%255s %255s %d\n", resourceFileName,
-				   resourceName, &ignoredFlags);
+		field_count = FILE_SCANF(stream, "%255s %255s %d\n",
+					 resource_file_name, resource_name,
+					 &ignored_flags);
 #else
-		fieldCount = File_Scanf(stream, "%s %s %d\n", resourceFileName,
-					resourceName, &ignoredFlags);
+		field_count =
+			FILE_SCANF(stream, "%s %s %d\n", resource_file_name,
+				   resource_name, &ignored_flags);
 #endif
-		if (fieldCount == EOF) {
-			File_Close(stream);
+		if (field_count == EOF) {
+			file_close(stream);
 			return 1;
 		}
-		if (fieldCount != 3) {
-			File_Close(stream);
+		if (field_count != 3) {
+			file_close(stream);
 			return 0;
 		}
-		FrontImage_FreeResourceByName(resourceName);
+		front_image_free_resource_by_name(resource_name);
 	}
 }

@@ -9,22 +9,22 @@
 #include "xvt_runtime/snapshot/cockpit_capture.h"
 #include <string.h>
 
-static uint64_t g_preparedImageGeneration, g_preparedResourceGeneration;
+static uint64_t g_prepared_image_generation, g_prepared_resource_generation;
 static int g_width, g_height, g_samples;
 
-void XvtCockpitLoading_Reset(void)
+void xvt_cockpit_loading_reset(void)
 {
-	g_preparedImageGeneration = g_preparedResourceGeneration = 0;
+	g_prepared_image_generation = g_prepared_resource_generation = 0;
 	g_width = g_height = g_samples = 0;
 }
 
-static int PrepareMapIcons(AeronCommandBuffer *cmd,
-			   const struct XvtRenderSnapshot *snapshot)
+static int prepare_map_icons(AeronCommandBuffer *cmd,
+			     const struct xvt_render_snapshot *snapshot)
 {
-	const struct XvtCockpitResources *resources =
+	const struct xvt_cockpit_resources *resources =
 		&snapshot->cockpit_resources;
 	for (unsigned asset = 0; asset < snapshot->image_asset_count; ++asset) {
-		const struct XvtSnapImageAsset *image =
+		const struct xvt_snap_image_asset *image =
 			&snapshot->image_assets[asset];
 		if (image->kind != XVT_IMAGE_ICO) {
 			continue;
@@ -38,10 +38,10 @@ static int PrepareMapIcons(AeronCommandBuffer *cmd,
 			memcpy(palette, resources->palette, sizeof palette);
 			memcpy(palette, resources->view_palette[view],
 			       sizeof resources->view_palette[view]);
-			if (!XvtRemasterAssets_PrepareMapIcons(cmd, image->id,
-							       palette, 0) ||
-			    !XvtRemasterAssets_PrepareMapIcons(cmd, image->id,
-							       palette, 1)) {
+			if (!xvt_remaster_assets_prepare_map_icons(
+				    cmd, image->id, palette, 0) ||
+			    !xvt_remaster_assets_prepare_map_icons(
+				    cmd, image->id, palette, 1)) {
 				return 0;
 			}
 		}
@@ -49,24 +49,24 @@ static int PrepareMapIcons(AeronCommandBuffer *cmd,
 	return 1;
 }
 
-int XvtCockpitLoading_Prepare(const struct XvtRenderSnapshot *snapshot,
-			      int width, int height)
+int xvt_cockpit_loading_prepare(const struct xvt_render_snapshot *snapshot,
+				int width, int height)
 {
-	const struct XvtCockpitResources *resources =
+	const struct xvt_cockpit_resources *resources =
 		&snapshot->cockpit_resources;
 	int images_changed =
-		g_preparedImageGeneration != snapshot->image_asset_generation;
+		g_prepared_image_generation != snapshot->image_asset_generation;
 	if (images_changed) {
-		XvtHudRenderer_Invalidate();
-		XvtHudAssets_Retire(snapshot);
+		xvt_hud_renderer_invalidate();
+		xvt_hud_assets_retire(snapshot);
 	}
 	if (!resources->valid) {
-		g_preparedImageGeneration = snapshot->image_asset_generation;
+		g_prepared_image_generation = snapshot->image_asset_generation;
 		return 1;
 	}
 	uint64_t generation = resources->definition.resource_generation;
-	int samples = XvtRemasterConfig_Effective()->msaa_samples;
-	if (!images_changed && g_preparedResourceGeneration == generation &&
+	int samples = xvt_remaster_config_effective()->msaa_samples;
+	if (!images_changed && g_prepared_resource_generation == generation &&
 	    width == g_width && height == g_height && samples == g_samples) {
 		return 1;
 	}
@@ -75,28 +75,28 @@ int XvtCockpitLoading_Prepare(const struct XvtRenderSnapshot *snapshot,
 		return 0;
 	}
 	uint64_t started = Aeron_NowUs();
-	int ok = XvtHudAssets_PrepareResources(cmd, resources) &&
-		 PrepareMapIcons(cmd, snapshot) &&
-		 XvtCrt_PrepareResources(cmd, resources) &&
-		 XvtRemasterPreview_PrepareCrtResources(resources, width,
-							height) &&
-		 XvtRemasterFlight_PrepareResources(width, height) &&
-		 XvtFlightMap_PrepareResources(width, height);
+	int ok = xvt_hud_assets_prepare_resources(cmd, resources) &&
+		 prepare_map_icons(cmd, snapshot) &&
+		 xvt_crt_prepare_resources(cmd, resources) &&
+		 xvt_remaster_preview_prepare_crt_resources(resources, width,
+							    height) &&
+		 xvt_remaster_flight_prepare_resources(width, height) &&
+		 xvt_flight_map_prepare_resources(width, height);
 	if (!ok) {
 		Aeron_CancelCommandBuffer(cmd);
 	} else {
 		ok = Aeron_SubmitCommandBuffer(cmd);
 	}
 	if (!ok) {
-		XvtHudAssets_Abort();
-		XvtRemasterAssets_Abort();
+		xvt_hud_assets_abort();
+		xvt_remaster_assets_abort();
 		return 0;
 	}
-	XvtHudAssets_Commit();
-	XvtRemasterAssets_CommitImages();
-	XvtCockpit_ResourcesPrepared(generation);
-	g_preparedImageGeneration = snapshot->image_asset_generation;
-	g_preparedResourceGeneration = generation;
+	xvt_hud_assets_commit();
+	xvt_remaster_assets_commit_images();
+	xvt_cockpit_resources_prepared(generation);
+	g_prepared_image_generation = snapshot->image_asset_generation;
+	g_prepared_resource_generation = generation;
 	g_width = width;
 	g_height = height;
 	g_samples = samples;

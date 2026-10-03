@@ -17,7 +17,7 @@ extern "C" {
  * external_palette: indices outside the LFD range take the caller's palette. cockpit_mask: the LFD
  * mask runs, raw. panel_bytes, panel_records: the raw PNL and its bitmap records. map_palette_used:
  * the palette indices an ICO's frames use. */
-struct XvtOriginal2d {
+struct xvt_original2d {
 	AeronIndexedFrames images;
 	AeronDecodedFont font;
 	/* PNL uses the flight palette; LFD supplies a range within it. */
@@ -36,49 +36,50 @@ struct XvtOriginal2d {
  * (ICO also its frames, undecoded but for the palette indices they use); ABP as a font with binary
  * coverage, or a micro font; or the built-in 10 x 10 cursor. Returns 0 with error written and out
  * freed for an unreadable file or a decode or allocation failure. */
-int XvtOriginal2d_Load(const struct XvtSnapImageAsset *source,
-		       struct XvtOriginal2d *out, char *error, size_t capacity);
+int xvt_original2d_load(const struct xvt_snap_image_asset *source,
+			struct xvt_original2d *out, char *error,
+			size_t capacity);
 /* Zeroes out and decodes an ACT texture's frames. Returns 0 with error written and out freed on
  * failure. */
-int XvtOriginal2d_LoadAct(const char *path, struct XvtOriginal2d *out,
-			  char *error, size_t capacity);
+int xvt_original2d_load_act(const char *path, struct xvt_original2d *out,
+			    char *error, size_t capacity);
 /* Frees everything and zeroes it; NULL is accepted. */
-void XvtOriginal2d_Free(struct XvtOriginal2d *source);
+void xvt_original2d_free(struct xvt_original2d *source);
 /* Packs every frame into an sRGB atlas: a covered pixel whose index is neither key takes its frame's
  * palette color, or palette's when the source has an external palette and the index is outside its
  * range, with its coverage as alpha; premultiplied alpha mode when every coverage is 255, straight
  * otherwise. Returns 0 for no frames or an allocation or build failure. */
-int XvtOriginal2d_BuildAtlas(const struct XvtOriginal2d *source,
-			     AeronCommandBuffer *cmd,
-			     const uint32_t palette[256], uint16_t key,
-			     uint16_t key_alt, int generate_mips,
-			     const char *label, AeronRuntimeAtlas *out);
+int xvt_original2d_build_atlas(const struct xvt_original2d *source,
+			       AeronCommandBuffer *cmd,
+			       const uint32_t palette[256], uint16_t key,
+			       uint16_t key_alt, int generate_mips,
+			       const char *label, AeronRuntimeAtlas *out);
 /* Builds the font's foreground or shadow plane as a font atlas upscaled 4x nearest, with a solid strip
  * for text backgrounds (white_uv), the classic glyph metrics kept in out->glyphs. Returns 1 doing
  * nothing when the plane is absent; 0 when a dimension or glyph metric would overflow 16 bits after
  * scaling, or an allocation or build fails. */
-int XvtOriginal2d_BuildFont(const AeronDecodedFont *source,
-			    AeronCommandBuffer *cmd, int shadow,
-			    const char *label, struct XvtFontAtlas *out);
+int xvt_original2d_build_font(const AeronDecodedFont *source,
+			      AeronCommandBuffer *cmd, int shadow,
+			      const char *label, struct xvt_font_atlas *out);
 /* Packs every ICO frame into an sRGB premultiplied atlas colored by palette (the index plus 4 with
  * remap), empty records as 1 x 1 blanks. Returns 0 for no frames or a decode, allocation or build
  * failure. */
-int XvtOriginal2d_BuildMapIcons(const struct XvtOriginal2d *source,
-				AeronCommandBuffer *cmd,
-				const uint32_t palette[256], int remap,
-				AeronRuntimeAtlas *out);
+int xvt_original2d_build_map_icons(const struct xvt_original2d *source,
+				   AeronCommandBuffer *cmd,
+				   const uint32_t palette[256], int remap,
+				   AeronRuntimeAtlas *out);
 /* Parses an LFD cockpit panel: the PANL record as one frame, the PLTT record as the palette range
  * (6-bit VGA values widened), the MASK record kept raw. Returns 0 with error set when a record is
  * missing or malformed or an allocation fails, and 0 with out partly filled when the PANL decode
  * fails. */
-int XvtCockpitAssets_DecodeLfd(const void *bytes, size_t size,
-			       struct XvtOriginal2d *out,
-			       AeronDecodeError *error);
+int xvt_cockpit_assets_decode_lfd(const void *bytes, size_t size,
+				  struct xvt_original2d *out,
+				  AeronDecodeError *error);
 /* Clears the frame's coverage inside viewport where the mask's runs are open (positive parity),
  * decoding the original's run format for the frame's width. Returns 0 for no frames or mask, a NULL
  * viewport, a viewport outside the frame, or a malformed run; 1 also when the mask ends early. */
-int XvtCockpitAssets_ApplyMask(struct XvtOriginal2d *image,
-			       const struct XvtSnapRect *viewport);
+int xvt_cockpit_assets_apply_mask(struct xvt_original2d *image,
+				  const struct xvt_snap_rect *viewport);
 #ifdef __cplusplus
 }
 #endif

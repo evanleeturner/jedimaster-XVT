@@ -15,24 +15,24 @@ extern "C" {
  * destination size that is not positive, a destination larger than the preview camera's screen, a mask
  * index of 3 or more, a mask byte count over 480, or a mask slot that PrepareResources has not built
  * from definition's bytes at exactly the destination's size. */
-int XvtCrt_PrepareView(const struct XvtSnapPreview *preview,
-		       const struct XvtSnapCockpitLayout *layout,
-		       AeronTexture *color, int width, int height, float scale,
-		       float offset_x, float offset_y);
+int xvt_crt_prepare_view(const struct xvt_snap_preview *preview,
+			 const struct xvt_snap_cockpit_layout *layout,
+			 AeronTexture *color, int width, int height,
+			 float scale, float offset_x, float offset_y);
 /* Records the quad the last PrepareView placed into pass, premultiplied-alpha blended, the color sampled
  * linearly and the mask by nearest texel, over the whole target. Does nothing when the last PrepareView
  * left nothing to draw. */
-void XvtCrt_Draw(AeronRenderPass *pass);
+void xvt_crt_draw(AeronRenderPass *pass);
 /* Destroys the masks, pipeline, shaders and samplers and forgets the placed CRT. */
-void XvtCrt_Shutdown(void);
+void xvt_crt_shutdown(void);
 /* Creates the pipeline, shaders and samplers on the first call, then decodes each of the layout's three
  * masks whose size is set (the layout's element 2 of each instrument set gives it: selector as width,
  * color_index as height) into an alpha texture when the held one differs in size or bytes; no bytes mean
  * a fully open mask. A slot with no size keeps whatever it held. Returns 0 when a GPU resource or buffer
  * cannot be created, a mask's byte count exceeds the layout's 480-byte field, or its run-length data
  * ends early. */
-int XvtCrt_PrepareResources(AeronCommandBuffer *cmd,
-			    const struct XvtCockpitResources *resources);
+int xvt_crt_prepare_resources(AeronCommandBuffer *cmd,
+			      const struct xvt_cockpit_resources *resources);
 #ifdef __cplusplus
 }
 #endif

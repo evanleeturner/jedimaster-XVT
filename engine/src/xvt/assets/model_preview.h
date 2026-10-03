@@ -8,51 +8,52 @@
 extern "C" {
 #endif
 
-extern int g_nodeSwitchIndex;
-extern int g_worldLightDirectionX;
-extern int g_worldLightDirectionY;
-extern int g_worldLightDirectionZ;
-extern int g_modelPreviewSkipSceneReset;
-extern int g_modelPreviewRenderResourcesInitialized;
-extern struct OptimizedPolyObject *g_modelPreviewModelData;
-extern uint16_t g_modelPreviewAuxBufferHandle;
-extern unsigned int g_modelPreviewAuxBufferCapacityBytes;
+extern int g_node_switch_index;
+extern int g_world_light_direction_x;
+extern int g_world_light_direction_y;
+extern int g_world_light_direction_z;
+extern int g_model_preview_skip_scene_reset;
+extern int g_model_preview_render_resources_initialized;
+extern struct optimized_poly_object *g_model_preview_model_data;
+extern uint16_t g_model_preview_aux_buffer_handle;
+extern unsigned int g_model_preview_aux_buffer_capacity_bytes;
 
-struct ModelPreviewCraftPosition {
-	/* Preview world x MissionSetup_DrawCraftLoadout gives a craft type,
-	 * from its row of g_modelPreviewCraftPositions. */
+struct model_preview_craft_position {
+	/* Preview world x mission_setup_draw_craft_loadout gives a craft type,
+	 * from its row of g_model_preview_craft_positions. */
 	int x;
 	int y; /* Preview world y for the craft type. */
 	int z; /* Preview world z for the craft type. */
 };
 
-int ModelPreview_LoadModel(const char *modelFileName);
-void ModelPreview_FreeResources(void);
-int ModelPreview_RenderViewport(int x, int y, int width, int height, ...);
-void ModelPreview_ScaleOptNodeTree(struct OptNode *node,
-				   struct OptimizedPolyObject *opt,
-				   double scale);
-void ModelPreview_UnscaleOptNodeTree(struct OptNode *node,
-				     struct OptimizedPolyObject *opt,
-				     double scale);
-void ModelPreview_ScaleOptRootNodes(struct OptimizedPolyObject *opt,
-				    double scale);
-void ModelPreview_UnscaleOptRootNodes(struct OptimizedPolyObject *opt,
-				      double scale);
-void ModelPreview_AccumulateOptNodeBounds(struct OptNode *node,
-					  struct OptimizedPolyObject *object);
-double ModelPreview_ComputeOptBoundsExtent(struct OptimizedPolyObject *object,
-					   int axis);
-int ModelPreview_ResetViewAndRenderState(void);
-void ModelPreview_SetLightDirection(int x, int y, int z);
-void ModelPreview_SetObjectEulerDegrees(float pitchDeg, float yawDeg,
-					float rollDeg);
-void ModelPreview_SetNodeSwitchIndex(int nodeSwitchIndex);
-void ModelPreview_SetObjectWorldPosition(int x, int y, int z);
-void ModelPreview_SaveState(void);
-void ModelPreview_RestoreState(void);
-void ModelPreview_SetObjectUpAxisAngleDegrees(float angleDeg);
-int ModelPreview_GetDisplayedSizeMeters(void);
+int model_preview_load_model(const char *model_file_name);
+void model_preview_free_resources(void);
+int model_preview_render_viewport(int x, int y, int width, int height, ...);
+void model_preview_scale_opt_node_tree(struct opt_node *node,
+				       struct optimized_poly_object *opt,
+				       double scale);
+void model_preview_unscale_opt_node_tree(struct opt_node *node,
+					 struct optimized_poly_object *opt,
+					 double scale);
+void model_preview_scale_opt_root_nodes(struct optimized_poly_object *opt,
+					double scale);
+void model_preview_unscale_opt_root_nodes(struct optimized_poly_object *opt,
+					  double scale);
+void model_preview_accumulate_opt_node_bounds(
+	struct opt_node *node, struct optimized_poly_object *object);
+double
+model_preview_compute_opt_bounds_extent(struct optimized_poly_object *object,
+					int axis);
+int model_preview_reset_view_and_render_state(void);
+void model_preview_set_light_direction(int x, int y, int z);
+void model_preview_set_object_euler_degrees(float pitch_deg, float yaw_deg,
+					    float roll_deg);
+void model_preview_set_node_switch_index(int node_switch_index);
+void model_preview_set_object_world_position(int x, int y, int z);
+void model_preview_save_state(void);
+void model_preview_restore_state(void);
+void model_preview_set_object_up_axis_angle_degrees(float angle_deg);
+int model_preview_get_displayed_size_meters(void);
 
 #ifdef __cplusplus
 }

@@ -12,31 +12,31 @@
 
 #include <string.h>
 
-typedef int (*ExitCallback)(int frame);
-typedef int (*Original)(void);
+typedef int (*exit_callback)(int frame);
+typedef int (*original)(void);
 
 static const int g_frames[] = {0, 1, -1, 1000, 0x7fffffff};
 
-static void CheckSameResult(ExitCallback callback, Original original)
+static void check_same_result(exit_callback callback, original original)
 {
 	for (unsigned i = 0; i < sizeof g_frames / sizeof g_frames[0]; ++i) {
-		memset(&g_frontState, 0, sizeof g_frontState);
+		memset(&g_front_state, 0, sizeof g_front_state);
 		int expected = original();
-		memset(&g_frontState, 0, sizeof g_frontState);
+		memset(&g_front_state, 0, sizeof g_front_state);
 		XVT_ASSERT_INT_EQ(callback(g_frames[i]), expected);
 	}
 }
 
 int main(void)
 {
-	CheckSameResult(
-		XvtFrontendCleanup_MissionResources,
-		FrontendMissionList_FreeScreenResourcesAndClearInputGate);
-	CheckSameResult(XvtFrontendCleanup_CurrentMission,
-			MissionSetup_ExitCurrentMission);
-	CheckSameResult(XvtFrontendCleanup_NextMission,
-			MissionSetup_ExitNextMission);
-	CheckSameResult(XvtFrontendCleanup_BattleChoice,
-			MissionSetup_BattleChoice_Exit);
+	check_same_result(
+		xvt_frontend_cleanup_mission_resources,
+		frontend_mission_list_free_screen_resources_and_clear_input_gate);
+	check_same_result(xvt_frontend_cleanup_current_mission,
+			  mission_setup_exit_current_mission);
+	check_same_result(xvt_frontend_cleanup_next_mission,
+			  mission_setup_exit_next_mission);
+	check_same_result(xvt_frontend_cleanup_battle_choice,
+			  mission_setup_battle_choice_exit);
 	return 0;
 }

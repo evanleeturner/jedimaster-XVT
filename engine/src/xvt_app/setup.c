@@ -13,10 +13,10 @@
 
 static char g_installation[XVT_PATH_CAPACITY];
 
-const char *XvtSetup_Installation(void) { return g_installation; }
+const char *xvt_setup_installation(void) { return g_installation; }
 
-static AeronFile *XvtSetup_OpenAsset(AeronVfs *vfs, const char *path,
-				     char *resolved, size_t capacity)
+static AeronFile *xvt_setup_open_asset(AeronVfs *vfs, const char *path,
+				       char *resolved, size_t capacity)
 {
 	AeronFile *file = NULL;
 	snprintf(resolved, capacity, "BalanceOfPower/%s", path);
@@ -30,8 +30,8 @@ static AeronFile *XvtSetup_OpenAsset(AeronVfs *vfs, const char *path,
 	return file;
 }
 
-static int XvtSetup_ProbeInstallation(AeronVfs *vfs, const char *path,
-				      char *error, size_t capacity)
+static int xvt_setup_probe_installation(AeronVfs *vfs, const char *path,
+					char *error, size_t capacity)
 {
 	static const char *exact[] = {"BalanceOfPower/fronttxt.txt",
 				      "BalanceOfPower/frontres/top.lst",
@@ -75,8 +75,8 @@ static int XvtSetup_ProbeInstallation(AeronVfs *vfs, const char *path,
 	}
 	for (size_t i = 0; i < sizeof(assets) / sizeof(assets[0]); ++i) {
 		AeronFile *file;
-		if (!(file = XvtSetup_OpenAsset(vfs, assets[i], resolved,
-						sizeof resolved))) {
+		if (!(file = xvt_setup_open_asset(vfs, assets[i], resolved,
+						  sizeof resolved))) {
 			snprintf(
 				error, capacity,
 				"Required game file '%s' is missing or could not be read in '%s' or its BalanceOfPower "
@@ -95,10 +95,10 @@ static int XvtSetup_ProbeInstallation(AeronVfs *vfs, const char *path,
 	}
 	int version;
 	unsigned int native_size;
-	AeronFile *model_file = XvtSetup_OpenAsset(vfs, "ivfiles/cal.opt",
-						   resolved, sizeof resolved);
+	AeronFile *model_file = xvt_setup_open_asset(vfs, "ivfiles/cal.opt",
+						     resolved, sizeof resolved);
 	uint16_t model =
-		XvtOpt_Read(model_file, resolved, &version, &native_size);
+		xvt_opt_read(model_file, resolved, &version, &native_size);
 	if (!model) {
 		snprintf(
 			error, capacity,
@@ -106,13 +106,13 @@ static int XvtSetup_ProbeInstallation(AeronVfs *vfs, const char *path,
 			path);
 		return 0;
 	}
-	Memory_FreeHandle(model);
+	memory_free_handle(model);
 	return 1;
 }
 
-int XvtSetup_ResolveInstallation(const char *path, char *resolved,
-				 size_t resolved_capacity, char *error,
-				 size_t capacity)
+int xvt_setup_resolve_installation(const char *path, char *resolved,
+				   size_t resolved_capacity, char *error,
+				   size_t capacity)
 {
 	char candidate[XVT_PATH_CAPACITY];
 	if (!path || !path[0] || strlen(path) >= sizeof candidate ||
@@ -141,7 +141,7 @@ int XvtSetup_ResolveInstallation(const char *path, char *resolved,
 		return 0;
 	}
 	int success =
-		XvtSetup_ProbeInstallation(vfs, candidate, error, capacity);
+		xvt_setup_probe_installation(vfs, candidate, error, capacity);
 	char *separator = strrchr(candidate, '/');
 	if (!success && separator) {
 		const char *name = separator + 1;
@@ -160,8 +160,8 @@ int XvtSetup_ResolveInstallation(const char *path, char *resolved,
 			} else {
 				*separator = 0;
 			}
-			success = XvtSetup_ProbeInstallation(vfs, candidate,
-							     error, capacity);
+			success = xvt_setup_probe_installation(vfs, candidate,
+							       error, capacity);
 		}
 	}
 	if (success) {
@@ -182,8 +182,8 @@ int XvtSetup_ResolveInstallation(const char *path, char *resolved,
 
 /* Import a selected pilot and its counterpart together. Existing names are
  * checked before either write; collisions require an explicit new basename. */
-static int XvtSetup_ImportPilot(const char *path, const char *pilot_name,
-				char *error, size_t capacity)
+static int xvt_setup_import_pilot(const char *path, const char *pilot_name,
+				  char *error, size_t capacity)
 {
 	char source[XVT_PATH_CAPACITY], source_pair[XVT_PATH_CAPACITY];
 	char target[64], target_pair[64];
@@ -192,7 +192,7 @@ static int XvtSetup_ImportPilot(const char *path, const char *pilot_name,
 	const char *sources[2] = {source, source_pair};
 	const char *targets[2] = {target, target_pair};
 	int success = 0, written = 0;
-	if (!XvtStorage_Normalize(path, source, sizeof(source))) {
+	if (!xvt_storage_normalize(path, source, sizeof(source))) {
 		goto done;
 	}
 	char *extension = strrchr(source, '.');
@@ -222,11 +222,12 @@ static int XvtSetup_ImportPilot(const char *path, const char *pilot_name,
 	source_pair[strlen(source_pair) - 1] = extension[3] == '2' ? 't' : '2';
 	target_pair[strlen(target_pair) - 1] = extension[3] == '2' ? 't' : '2';
 	for (int i = 0; i < 2; ++i) {
-		int status = XvtStorage_Probe(AERON_VFS_ROOT_ASSET, sources[i]);
+		int status =
+			xvt_storage_probe(AERON_VFS_ROOT_ASSET, sources[i]);
 		if (i && status == 0) {
 			char resolved[XVT_PATH_CAPACITY];
 			const char *source_basename = strrchr(source_pair, '/');
-			status = XvtStorage_ResolveAsset(
+			status = xvt_storage_resolve_asset(
 				source_basename ? source_basename + 1
 						: source_pair,
 				resolved, sizeof(resolved));
@@ -234,14 +235,14 @@ static int XvtSetup_ImportPilot(const char *path, const char *pilot_name,
 				strcpy(source_pair, resolved);
 			}
 		}
-		if (XvtStorage_Probe(AERON_VFS_ROOT_USER, targets[i]) != 0) {
+		if (xvt_storage_probe(AERON_VFS_ROOT_USER, targets[i]) != 0) {
 			goto done;
 		}
 		if (i && status == 0 && extension[3] != '2') {
 			continue;
 		}
 		if (status != 1 ||
-		    !AeronVfs_ReadAll(XvtStorage_Vfs(), AERON_VFS_ROOT_ASSET,
+		    !AeronVfs_ReadAll(xvt_storage_vfs(), AERON_VFS_ROOT_ASSET,
 				      sources[i], 296238, &data[i],
 				      &sizes[i])) {
 			goto done;
@@ -255,7 +256,7 @@ static int XvtSetup_ImportPilot(const char *path, const char *pilot_name,
 	}
 	for (int i = 0; i < 2; ++i) {
 		if (data[i] && !AeronVfs_WriteAllAtomic(
-				       XvtStorage_Vfs(), AERON_VFS_ROOT_USER,
+				       xvt_storage_vfs(), AERON_VFS_ROOT_USER,
 				       targets[i], data[i], sizes[i])) {
 			goto done;
 		}
@@ -266,7 +267,7 @@ done:
 	if (!success) {
 		for (int i = 0; i < written; ++i) {
 			if (data[i]) {
-				AeronVfs_Remove(XvtStorage_Vfs(),
+				AeronVfs_Remove(xvt_storage_vfs(),
 						AERON_VFS_ROOT_USER,
 						targets[i]);
 			}
@@ -282,23 +283,24 @@ done:
 	return success;
 }
 
-XvtSetupResult XvtSetup_Run(const struct XvtLaunchOptions *options,
-			    struct XvtAppUi *ui, char *error, size_t capacity)
+xvt_setup_result xvt_setup_run(const struct xvt_launch_options *options,
+			       struct xvt_app_ui *ui, char *error,
+			       size_t capacity)
 {
 	char selected[XVT_PATH_CAPACITY];
-	AeronVfs *vfs = XvtStorage_Vfs();
+	AeronVfs *vfs = xvt_storage_vfs();
 	int save_due = options->save_config;
 	if (!AeronVfs_SetRootOptions(
 		    vfs, AERON_VFS_ROOT_USER,
 		    AERON_VFS_ROOT_OPTION_CASE_INSENSITIVE_LOOKUP)) {
 		return XVT_SETUP_ERROR;
 	}
-	int loaded = XvtConfig_Load(vfs, error, capacity);
-	if (!loaded && !XvtConfig_CanResetToDefaults()) {
+	int loaded = xvt_config_load(vfs, error, capacity);
+	if (!loaded && !xvt_config_can_reset_to_defaults()) {
 		return XVT_SETUP_ERROR;
 	}
 	if (options->reset_config) {
-		if (!XvtConfig_ResetToDefaults(error, capacity)) {
+		if (!xvt_config_reset_to_defaults(error, capacity)) {
 			return XVT_SETUP_ERROR;
 		}
 		loaded = 1;
@@ -306,10 +308,10 @@ XvtSetupResult XvtSetup_Run(const struct XvtLaunchOptions *options,
 		error[0] = 0;
 	}
 	if (ui) {
-		const struct XvtSettings *settings =
-			loaded ? XvtConfig_Settings()
-			       : XvtConfig_DefaultSettings();
-		if (!XvtAppUi_Init(ui, settings->ui_font, error, capacity)) {
+		const struct xvt_settings *settings =
+			loaded ? xvt_config_settings()
+			       : xvt_config_default_settings();
+		if (!xvt_app_ui_init(ui, settings->ui_font, error, capacity)) {
 			return XVT_SETUP_ERROR;
 		}
 	}
@@ -317,8 +319,8 @@ XvtSetupResult XvtSetup_Run(const struct XvtLaunchOptions *options,
 		if (!ui) {
 			return XVT_SETUP_ERROR;
 		}
-		XvtSetupResult result =
-			XvtSetupUi_Run(ui, NULL, 0, error, capacity);
+		xvt_setup_result result =
+			xvt_setup_ui_run(ui, NULL, 0, error, capacity);
 		if (result != XVT_SETUP_SUCCESS) {
 			return result;
 		}
@@ -326,15 +328,15 @@ XvtSetupResult XvtSetup_Run(const struct XvtLaunchOptions *options,
 	}
 	const char *candidate = options->game_data
 					? options->game_data
-					: XvtConfig_Settings()->game_data;
+					: xvt_config_settings()->game_data;
 	if (strlen(candidate) >= sizeof(selected)) {
 		snprintf(error, capacity, "Game-data directory is too long.");
 		return XVT_SETUP_ERROR;
 	}
 	strcpy(selected, candidate);
 	if (options->setup || !selected[0] ||
-	    !XvtSetup_ResolveInstallation(selected, selected, sizeof selected,
-					  error, capacity)) {
+	    !xvt_setup_resolve_installation(selected, selected, sizeof selected,
+					    error, capacity)) {
 		if (!ui || options->game_data) {
 			if (!selected[0]) {
 				snprintf(
@@ -344,7 +346,7 @@ XvtSetupResult XvtSetup_Run(const struct XvtLaunchOptions *options,
 			}
 			return XVT_SETUP_ERROR;
 		}
-		XvtSetupResult result = XvtSetupUi_Run(
+		xvt_setup_result result = xvt_setup_ui_run(
 			ui, selected, sizeof selected, error, capacity);
 		if (result != XVT_SETUP_SUCCESS) {
 			return result;
@@ -362,20 +364,20 @@ XvtSetupResult XvtSetup_Run(const struct XvtLaunchOptions *options,
 	}
 	snprintf(g_installation, sizeof g_installation, "%s", selected);
 	if (options->import_config &&
-	    !XvtConfig_Import(options->import_config, error, capacity)) {
+	    !xvt_config_import(options->import_config, error, capacity)) {
 		return XVT_SETUP_ERROR;
 	}
 	if (options->import_pilot &&
-	    !XvtSetup_ImportPilot(options->import_pilot, options->pilot_name,
-				  error, capacity)) {
+	    !xvt_setup_import_pilot(options->import_pilot, options->pilot_name,
+				    error, capacity)) {
 		return XVT_SETUP_ERROR;
 	}
 	if (save_due) {
-		if (!XvtConfig_SetGameData(selected, 1, error, capacity)) {
+		if (!xvt_config_set_game_data(selected, 1, error, capacity)) {
 			return XVT_SETUP_ERROR;
 		}
 	}
-	if (ui && !Aeron_SetFullscreen(XvtConfig_Settings()->fullscreen)) {
+	if (ui && !Aeron_SetFullscreen(xvt_config_settings()->fullscreen)) {
 		snprintf(error, capacity, "Cannot apply video.window_mode.");
 		return XVT_SETUP_ERROR;
 	}

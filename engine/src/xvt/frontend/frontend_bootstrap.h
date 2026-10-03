@@ -8,10 +8,10 @@
 extern "C" {
 #endif
 
-int FrontendBootstrap_ExitIntroAndLoadCredits(int frameCounter);
-int FrontendBootstrap_PlayOpeningAndEnterCredits(int frameCounter);
-int FrontendBootstrap_InitMode(void);
-int FrontendBootstrap_ExitCreditsAndLoadFrontend(int frameCounter);
+int frontend_bootstrap_exit_intro_and_load_credits(int frame_counter);
+int frontend_bootstrap_play_opening_and_enter_credits(int frame_counter);
+int frontend_bootstrap_init_mode(void);
+int frontend_bootstrap_exit_credits_and_load_frontend(int frame_counter);
 
 #ifdef __cplusplus
 }

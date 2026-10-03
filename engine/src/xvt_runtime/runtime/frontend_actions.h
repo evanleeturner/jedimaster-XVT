@@ -18,13 +18,13 @@ enum {
 
 /* With nothing pending, records owner and action and returns 1 when pressed, else returns 0. With
  * an action pending, returns 1 only for the same owner and action, and records nothing. */
-int XvtFrontendAction_Trigger(int owner, int action, int pressed);
+int xvt_frontend_action_trigger(int owner, int action, int pressed);
 /* The action owner holds, or 0. */
-int XvtFrontendAction_Pending(int owner);
+int xvt_frontend_action_pending(int owner);
 /* Clears the pending action when owner holds it. */
-void XvtFrontendAction_Finish(int owner);
+void xvt_frontend_action_finish(int owner);
 /* Clears the pending action whoever holds it. */
-void XvtFrontendAction_Reset(void);
+void xvt_frontend_action_reset(void);
 
 #ifdef __cplusplus
 }

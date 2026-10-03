@@ -23,86 +23,87 @@
 
 static AeronWinmmJoystickState g_joystick;
 static int g_connected;
-static uint64_t g_reacquireFrame = UINT64_MAX;
+static uint64_t g_reacquire_frame = UINT64_MAX;
 
-static XvtKeyboardRoute g_keyboardRoute;
-static bool g_keyboardSuppressed;
-static uint64_t g_keyboardFrame = UINT64_MAX;
+static xvt_keyboard_route g_keyboard_route;
+static bool g_keyboard_suppressed;
+static uint64_t g_keyboard_frame = UINT64_MAX;
 
-XvtKeyboardRoute XvtInput_ReconcileKeyboard(void)
+xvt_keyboard_route xvt_input_reconcile_keyboard(void)
 {
 	const AeronInputSnapshot *input = Aeron_InputSnapshot();
-	XvtKeyboardRoute route = XVT_KEYBOARD_RAW;
-	if (g_keyboardSuppressed || !input || !input->has_focus ||
-	    XvtInput_IsCaptured() || Aeron_DebugUiVisible()) {
+	xvt_keyboard_route route = XVT_KEYBOARD_RAW;
+	if (g_keyboard_suppressed || !input || !input->has_focus ||
+	    xvt_input_is_captured() || Aeron_DebugUiVisible()) {
 		route = XVT_KEYBOARD_BLOCKED;
-	} else if (XvtFlightTask_IsActive() && !XvtFlightTask_IsLoading() &&
-		   !XvtDialog_IsActive() && !XvtMovieTask_IsActive() &&
-		   !XvtResync_IsActive() && (unsigned)g_localPlayer < 8 &&
-		   g_players[g_localPlayer].chatRecipientMode ==
+	} else if (xvt_flight_task_is_active() &&
+		   !xvt_flight_task_is_loading() && !xvt_dialog_is_active() &&
+		   !xvt_movie_task_is_active() && !xvt_resync_is_active() &&
+		   (unsigned)g_local_player < 8 &&
+		   g_players[g_local_player].chat_recipient_mode ==
 			   FLIGHT_CHAT_RECIPIENT_INACTIVE) {
 		route = XVT_KEYBOARD_GAMEPLAY;
 	}
-	if (route != g_keyboardRoute) {
+	if (route != g_keyboard_route) {
 		/* Commands and text never cross a routing transition. Held keys must be released. */
-		XvtInput_FlushKeyboard();
-		g_keyboardRoute = route;
+		xvt_input_flush_keyboard();
+		g_keyboard_route = route;
 	}
-	XvtKeyboardMapping_Enable(route == XVT_KEYBOARD_GAMEPLAY, input);
+	xvt_keyboard_mapping_enable(route == XVT_KEYBOARD_GAMEPLAY, input);
 	return route;
 }
 
-static void XvtInput_UpdateKeyboard(bool suppress)
+static void xvt_input_update_keyboard(bool suppress)
 {
 	const AeronInputSnapshot *input = Aeron_InputSnapshot();
-	g_keyboardSuppressed = suppress;
-	XvtKeyboardRoute route = XvtInput_ReconcileKeyboard();
-	if (!input || input->frame_id == g_keyboardFrame) {
+	g_keyboard_suppressed = suppress;
+	xvt_keyboard_route route = xvt_input_reconcile_keyboard();
+	if (!input || input->frame_id == g_keyboard_frame) {
 		return;
 	}
-	g_keyboardFrame = input->frame_id;
-	XvtKeyboardMapping_BeginFrame(input);
+	g_keyboard_frame = input->frame_id;
+	xvt_keyboard_mapping_begin_frame(input);
 	if (route == XVT_KEYBOARD_GAMEPLAY) {
 		for (uint16_t i = 0;
 		     !input->key_events_overflow && i < input->key_event_count;
 		     ++i) {
 			const AeronKeyEvent *event = &input->key_events[i];
-			XvtKeyboardMapping_Event(
+			xvt_keyboard_mapping_event(
 				event, AeronCompat_IsKeySuppressed(
 					       event->chord.key) != 0);
 		}
 		/* DirectInput still serves raw consumers, but owns no gameplay backlog. */
-		XvtInput_FlushRawKeyboard();
+		xvt_input_flush_raw_keyboard();
 	} else if (route == XVT_KEYBOARD_BLOCKED) {
-		XvtInput_FlushRawKeyboard();
+		xvt_input_flush_raw_keyboard();
 	}
 }
 
-void XvtInput_FrontendCursorPosition(int *x, int *y)
+void xvt_input_frontend_cursor_position(int *x, int *y)
 {
-	*x = g_frontState.mouseX;
-	*y = g_frontState.mouseY;
+	*x = g_front_state.mouse_x;
+	*y = g_front_state.mouse_y;
 }
 
-static int XvtInput_Joystick(AeronWinmmJoystickState *state, void *user)
+static int xvt_input_joystick(AeronWinmmJoystickState *state, void *user)
 {
 	(void)user;
 	*state = g_joystick;
 	return g_connected;
 }
 
-static void XvtInput_Append(unsigned int ch)
+static void xvt_input_append(unsigned int ch)
 {
-	int next = (g_frontState.charWriteIdx + 1) % 1024;
-	if (next == g_frontState.charReadIdx) {
-		g_frontState.charReadIdx =
-			(g_frontState.charReadIdx + 1) % 1024;
+	int next = (g_front_state.char_write_idx + 1) % 1024;
+	if (next == g_front_state.char_read_idx) {
+		g_front_state.char_read_idx =
+			(g_front_state.char_read_idx + 1) % 1024;
 	}
-	g_frontState.charRingBuffer[g_frontState.charWriteIdx] = (char)ch;
-	g_frontState.charWriteIdx = next;
+	g_front_state.char_ring_buffer[g_front_state.char_write_idx] = (char)ch;
+	g_front_state.char_write_idx = next;
 }
 
-static unsigned int XvtInput_VirtualKey(int key)
+static unsigned int xvt_input_virtual_key(int key)
 {
 	static const unsigned char controls[] = {
 		13,   27, 8,	9,    32,   0xbd, 0xbb, 0xdb, 0xdd,
@@ -142,7 +143,7 @@ static unsigned int XvtInput_VirtualKey(int key)
 	return 0;
 }
 
-static unsigned int XvtInput_Windows1252(unsigned int cp)
+static unsigned int xvt_input_windows1252(unsigned int cp)
 {
 	static const unsigned short extended[32] = {
 		0x20ac, 0,	0x201a, 0x0192, 0x201e, 0x2026, 0x2020, 0x2021,
@@ -161,7 +162,7 @@ static unsigned int XvtInput_Windows1252(unsigned int cp)
 	return 0;
 }
 
-static void XvtInput_Text(const AeronInputSnapshot *input)
+static void xvt_input_text(const AeronInputSnapshot *input)
 {
 	uint32_t i = 0;
 	while (i < input->text_length) {
@@ -193,16 +194,16 @@ static void XvtInput_Text(const AeronInputSnapshot *input)
 		if (cp < minimum) {
 			continue;
 		}
-		cp = XvtInput_Windows1252(cp);
+		cp = xvt_input_windows1252(cp);
 		if (cp) {
-			XvtInput_Append(cp);
+			xvt_input_append(cp);
 		}
 	}
 }
 
-static void XvtInput_UpdateJoystick(int suppress)
+static void xvt_input_update_joystick(int suppress)
 {
-	int connected = XvtControllerMapping_IsModelConnected();
+	int connected = xvt_controller_mapping_is_model_connected();
 	int changed = g_connected != connected;
 	g_connected = connected;
 	memset(&g_joystick, 0, sizeof g_joystick);
@@ -214,19 +215,19 @@ static void XvtInput_UpdateJoystick(int suppress)
 		g_joystick.axes[axis] = 32768;
 	}
 	if (changed) {
-		memset(g_frontState.joystickPresent, 0,
-		       sizeof g_frontState.joystickPresent);
-		memset(g_frontState.joystickButtonHeld, 0,
-		       sizeof g_frontState.joystickButtonHeld);
-		memset(g_frontState.joystickButtonReleased, 0,
-		       sizeof g_frontState.joystickButtonReleased);
-		memset(g_frontState.joystickAxisX, 0,
-		       sizeof g_frontState.joystickAxisX);
-		memset(g_frontState.joystickAxisY, 0,
-		       sizeof g_frontState.joystickAxisY);
-		memset(g_frontState.joystickPovDirection, 0,
-		       sizeof g_frontState.joystickPovDirection);
-		Joystick_InitDevices();
+		memset(g_front_state.joystick_present, 0,
+		       sizeof g_front_state.joystick_present);
+		memset(g_front_state.joystick_button_held, 0,
+		       sizeof g_front_state.joystick_button_held);
+		memset(g_front_state.joystick_button_released, 0,
+		       sizeof g_front_state.joystick_button_released);
+		memset(g_front_state.joystick_axis_x, 0,
+		       sizeof g_front_state.joystick_axis_x);
+		memset(g_front_state.joystick_axis_y, 0,
+		       sizeof g_front_state.joystick_axis_y);
+		memset(g_front_state.joystick_pov_direction, 0,
+		       sizeof g_front_state.joystick_pov_direction);
+		joystick_init_devices();
 	}
 	if (connected && !suppress) {
 		static const int channels[] = {XVT_INPUT_AXIS_YAW,
@@ -236,13 +237,13 @@ static void XvtInput_UpdateJoystick(int suppress)
 			if (channels[axis] >= 0) {
 				g_joystick.axes[axis] =
 					(uint32_t)(32768 +
-						   256 * XvtControllerMapping_MenuAxis(
-								 (XvtInputAxis)channels
+						   256 * xvt_controller_mapping_menu_axis(
+								 (xvt_input_axis)channels
 									 [axis]));
 			}
 		}
-		g_joystick.buttons = XvtControllerMapping_MenuButtons();
-		unsigned hat = XvtControllerMapping_MenuHat();
+		g_joystick.buttons = xvt_controller_mapping_menu_buttons();
+		unsigned hat = xvt_controller_mapping_menu_hat();
 		g_joystick.pov_direction = hat & 1   ? 0
 					   : hat & 2 ? 1
 					   : hat & 4 ? 2
@@ -250,138 +251,141 @@ static void XvtInput_UpdateJoystick(int suppress)
 						     : -1;
 	} else {
 		/* Suppression is a route transition, not a frontend button release. */
-		memset(g_frontState.joystickButtonHeld, 0,
-		       sizeof g_frontState.joystickButtonHeld);
-		memset(g_frontState.joystickButtonReleased, 0,
-		       sizeof g_frontState.joystickButtonReleased);
+		memset(g_front_state.joystick_button_held, 0,
+		       sizeof g_front_state.joystick_button_held);
+		memset(g_front_state.joystick_button_released, 0,
+		       sizeof g_front_state.joystick_button_released);
 	}
 }
 
-void XvtInput_Init(void)
+void xvt_input_init(void)
 {
-	const struct XvtSettings *settings = XvtConfig_Settings();
+	const struct xvt_settings *settings = xvt_config_settings();
 	if (!settings) {
 		return;
 	}
-	XvtControllerMapping_Init(&settings->controller);
-	XvtKeyboardMapping_Install(&settings->keyboard);
-	g_keyboardRoute = XVT_KEYBOARD_RAW;
-	g_keyboardSuppressed = true;
-	g_keyboardFrame = UINT64_MAX;
-	XvtFlightControls_Reset();
-	g_reacquireFrame = UINT64_MAX;
-	AeronCompat_SetJoystickSource(XvtInput_Joystick, NULL);
+	xvt_controller_mapping_init(&settings->controller);
+	xvt_keyboard_mapping_install(&settings->keyboard);
+	g_keyboard_route = XVT_KEYBOARD_RAW;
+	g_keyboard_suppressed = true;
+	g_keyboard_frame = UINT64_MAX;
+	xvt_flight_controls_reset();
+	g_reacquire_frame = UINT64_MAX;
+	AeronCompat_SetJoystickSource(xvt_input_joystick, NULL);
 }
 
-int XvtInput_ConsumeKeyboardReacquire(void)
+int xvt_input_consume_keyboard_reacquire(void)
 {
 	const AeronInputSnapshot *input = Aeron_InputSnapshot();
 	if (!input || !input->has_focus ||
-	    input->frame_id == g_reacquireFrame) {
+	    input->frame_id == g_reacquire_frame) {
 		return 0;
 	}
-	g_reacquireFrame = input->frame_id;
+	g_reacquire_frame = input->frame_id;
 	return 1;
 }
 
-void XvtInput_Update(int suppress)
+void xvt_input_update(int suppress)
 {
-	XvtInput_UpdateKeyboard(suppress != 0);
+	xvt_input_update_keyboard(suppress != 0);
 	const AeronInputSnapshot *input = Aeron_InputSnapshot();
 	int key;
 	if (!input) {
 		return;
 	}
-	suppress |= g_keyboardRoute == XVT_KEYBOARD_BLOCKED;
-	XvtControllerMapping_Update(input);
-	XvtFlightControls_UpdateThrottleContext();
-	XvtInput_UpdateJoystick(suppress);
-	memset(g_frontState.keyState, 0, sizeof(g_frontState.keyState));
+	suppress |= g_keyboard_route == XVT_KEYBOARD_BLOCKED;
+	xvt_controller_mapping_update(input);
+	xvt_flight_controls_update_throttle_context();
+	xvt_input_update_joystick(suppress);
+	memset(g_front_state.key_state, 0, sizeof(g_front_state.key_state));
 	if (suppress) {
-		Keyboard_FlushCharBuffer();
-		g_frontState.mouseLeftDown = g_frontState.mouseRightDown = 0;
-		g_frontState.mouseLeftClickLatch =
-			g_frontState.mouseRightClickLatch = 0;
+		keyboard_flush_char_buffer();
+		g_front_state.mouse_left_down = g_front_state.mouse_right_down =
+			0;
+		g_front_state.mouse_left_click_latch =
+			g_front_state.mouse_right_click_latch = 0;
 		return;
 	}
 	for (key = 0; key < AERON_KEY_COUNT; ++key) {
 		if (AeronCompat_IsKeySuppressed(key)) {
 			continue;
 		}
-		unsigned int vk = XvtInput_VirtualKey(key);
+		unsigned int vk = xvt_input_virtual_key(key);
 		if (vk && input->key_down[key]) {
-			g_frontState.keyState[vk] = 0x80;
+			g_front_state.key_state[vk] = 0x80;
 		}
 		if (vk == 8 || vk == 9 || vk == 13 || vk == 27) {
 			unsigned int repeat;
 			for (repeat = 0; repeat < input->key_typed[key];
 			     ++repeat) {
-				XvtInput_Append(vk);
+				xvt_input_append(vk);
 			}
 		}
 	}
-	g_frontState.keyState[0x10] =
-		g_frontState.keyState[0xa0] | g_frontState.keyState[0xa1];
-	g_frontState.keyState[0x11] =
-		g_frontState.keyState[0xa2] | g_frontState.keyState[0xa3];
-	g_frontState.keyState[0x12] =
-		g_frontState.keyState[0xa4] | g_frontState.keyState[0xa5];
-	XvtInput_Text(input);
+	g_front_state.key_state[0x10] =
+		g_front_state.key_state[0xa0] | g_front_state.key_state[0xa1];
+	g_front_state.key_state[0x11] =
+		g_front_state.key_state[0xa2] | g_front_state.key_state[0xa3];
+	g_front_state.key_state[0x12] =
+		g_front_state.key_state[0xa4] | g_front_state.key_state[0xa5];
+	xvt_input_text(input);
 	int x, y;
-	int inside = XvtPresentation_MouseToClassic(input, &x, &y);
+	int inside = xvt_presentation_mouse_to_classic(input, &x, &y);
 	if (inside) {
-		g_frontState.mouseX = x;
-		g_frontState.mouseY = y;
-		g_frontState.mouseLeftClickLatch |=
-			!!(XvtInput_FilterMouseButtons(
+		g_front_state.mouse_x = x;
+		g_front_state.mouse_y = y;
+		g_front_state.mouse_left_click_latch |=
+			!!(xvt_input_filter_mouse_buttons(
 				   input->mouse.released_buttons) &
 			   AERON_MOUSE_BUTTON_LEFT);
-		g_frontState.mouseRightClickLatch |=
-			!!(XvtInput_FilterMouseButtons(
+		g_front_state.mouse_right_click_latch |=
+			!!(xvt_input_filter_mouse_buttons(
 				   input->mouse.released_buttons) &
 			   AERON_MOUSE_BUTTON_RIGHT);
 	}
-	g_frontState.mouseLeftDown =
-		inside && (XvtInput_FilterMouseButtons(input->mouse.buttons) &
-			   AERON_MOUSE_BUTTON_LEFT);
-	g_frontState.mouseRightDown =
-		inside && (XvtInput_FilterMouseButtons(input->mouse.buttons) &
-			   AERON_MOUSE_BUTTON_RIGHT);
+	g_front_state.mouse_left_down =
+		inside &&
+		(xvt_input_filter_mouse_buttons(input->mouse.buttons) &
+		 AERON_MOUSE_BUTTON_LEFT);
+	g_front_state.mouse_right_down =
+		inside &&
+		(xvt_input_filter_mouse_buttons(input->mouse.buttons) &
+		 AERON_MOUSE_BUTTON_RIGHT);
 }
 
-int XvtInput_RendererShortcutAllowed(void)
+int xvt_input_renderer_shortcut_allowed(void)
 {
-	if (XvtInput_IsCaptured()) {
+	if (xvt_input_is_captured()) {
 		return 0;
 	}
-	const struct XvtRenderSnapshot *s = XvtRenderSnapshot_Current();
-	if (!s || s->text_entry_active || XvtDialog_IsTextPrompt()) {
+	const struct xvt_render_snapshot *s = xvt_render_snapshot_current();
+	if (!s || s->text_entry_active || xvt_dialog_is_text_prompt()) {
 		return 0;
 	}
-	return !XvtFlightTask_IsActive() || (unsigned)g_localPlayer >= 8 ||
-	       g_players[g_localPlayer].chatRecipientMode ==
+	return !xvt_flight_task_is_active() || (unsigned)g_local_player >= 8 ||
+	       g_players[g_local_player].chat_recipient_mode ==
 		       FLIGHT_CHAT_RECIPIENT_INACTIVE;
 }
 
-void XvtInput_UpdateFlight(int suppress)
+void xvt_input_update_flight(int suppress)
 {
-	XvtInput_UpdateKeyboard(suppress != 0);
+	xvt_input_update_keyboard(suppress != 0);
 	const AeronInputSnapshot *input = Aeron_InputSnapshot();
 	if (input) {
-		XvtControllerMapping_Update(input);
-		XvtFlightControls_UpdateThrottleContext();
-		XvtInput_UpdateJoystick(suppress || !input->has_focus ||
-					XvtInput_IsCaptured());
+		xvt_controller_mapping_update(input);
+		xvt_flight_controls_update_throttle_context();
+		xvt_input_update_joystick(suppress || !input->has_focus ||
+					  xvt_input_is_captured());
 	}
-	Keyboard_FlushCharBuffer();
+	keyboard_flush_char_buffer();
 }
 
-void XvtInput_Shutdown(void)
+void xvt_input_shutdown(void)
 {
-	XvtKeyboardMapping_Suspend();
-	XvtInput_ResetCapture();
-	XvtControllerMapping_Shutdown();
-	XvtFlightControls_Reset();
+	xvt_keyboard_mapping_suspend();
+	xvt_input_reset_capture();
+	xvt_controller_mapping_shutdown();
+	xvt_flight_controls_reset();
 	AeronCompat_SetKeySuppressed(AERON_KEY_TAB, 0);
 	AeronCompat_SetJoystickSource(NULL, NULL);
 	g_connected = 0;

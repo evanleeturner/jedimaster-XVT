@@ -4,23 +4,25 @@
 #include <string.h>
 
 static bool
-XvtControllerOptions_SameSource(const AeronControllerDigitalSource *left,
-				const AeronControllerDigitalSource *right)
+xvt_controller_options_same_source(const AeronControllerDigitalSource *left,
+				   const AeronControllerDigitalSource *right)
 {
 	return left->kind == right->kind && left->index == right->index &&
 	       (left->kind != AERON_CONTROLLER_DIGITAL_HAT ||
 		left->hat_direction == right->hat_direction);
 }
 
-bool XvtControllerOptions_ProfileEqual(const struct XvtControllerProfile *left,
-				       const struct XvtControllerProfile *right)
+bool xvt_controller_options_profile_equal(
+	const struct xvt_controller_profile *left,
+	const struct xvt_controller_profile *right)
 {
 	if (left->binding_count != right->binding_count) {
 		return false;
 	}
 	for (int axis = 0; axis < XVT_INPUT_AXIS_COUNT; ++axis) {
-		const struct XvtInputAxisBinding *a = &left->mapping.axes[axis];
-		const struct XvtInputAxisBinding *b =
+		const struct xvt_input_axis_binding *a =
+			&left->mapping.axes[axis];
+		const struct xvt_input_axis_binding *b =
 			&right->mapping.axes[axis];
 		if (a->source != b->source || a->invert != b->invert ||
 		    a->deadzone != b->deadzone) {
@@ -28,10 +30,13 @@ bool XvtControllerOptions_ProfileEqual(const struct XvtControllerProfile *left,
 		}
 	}
 	for (size_t index = 0; index < left->binding_count; ++index) {
-		const struct XvtInputActionBinding *a = &left->bindings[index];
-		const struct XvtInputActionBinding *b = &right->bindings[index];
+		const struct xvt_input_action_binding *a =
+			&left->bindings[index];
+		const struct xvt_input_action_binding *b =
+			&right->bindings[index];
 		if (a->action != b->action ||
-		    !XvtControllerOptions_SameSource(&a->source, &b->source) ||
+		    !xvt_controller_options_same_source(&a->source,
+							&b->source) ||
 		    a->source.threshold != b->source.threshold) {
 			return false;
 		}
@@ -39,8 +44,8 @@ bool XvtControllerOptions_ProfileEqual(const struct XvtControllerProfile *left,
 	return true;
 }
 
-bool XvtControllerOptions_Equals(const struct XvtControllerOptions *left,
-				 const struct XvtControllerOptions *right)
+bool xvt_controller_options_equals(const struct xvt_controller_options *left,
+				   const struct xvt_controller_options *right)
 {
 	if (!left || !right) {
 		return left == right;
@@ -49,20 +54,21 @@ bool XvtControllerOptions_Equals(const struct XvtControllerOptions *left,
 		return false;
 	}
 	for (size_t i = 0; i < left->count; ++i) {
-		const struct XvtControllerModel *a = &left->models[i],
-						*b = &right->models[i];
+		const struct xvt_controller_model *a = &left->models[i],
+						  *b = &right->models[i];
 		if (strcmp(a->guid, b->guid) || strcmp(a->name, b->name) ||
 		    a->kind != b->kind ||
-		    !XvtControllerOptions_ProfileEqual(&a->profile,
-						       &b->profile)) {
+		    !xvt_controller_options_profile_equal(&a->profile,
+							  &b->profile)) {
 			return false;
 		}
 	}
 	return true;
 }
 
-bool XvtControllerOptions_EffectiveAxisInvert(AeronControllerKind kind,
-					      XvtInputAxis axis, bool invert)
+bool xvt_controller_options_effective_axis_invert(AeronControllerKind kind,
+						  xvt_input_axis axis,
+						  bool invert)
 {
 	/* Gamepad Y is positive downward, while positive flight pitch raises the nose. */
 	return kind == AERON_CONTROLLER_KIND_GAMEPAD &&
@@ -71,8 +77,9 @@ bool XvtControllerOptions_EffectiveAxisInvert(AeronControllerKind kind,
 		       : invert;
 }
 
-static bool XvtControllerOptions_ValidationError(char *error, size_t capacity,
-						 const char *message)
+static bool xvt_controller_options_validation_error(char *error,
+						    size_t capacity,
+						    const char *message)
 {
 	if (error && capacity) {
 		snprintf(error, capacity, "%s", message);
@@ -80,8 +87,8 @@ static bool XvtControllerOptions_ValidationError(char *error, size_t capacity,
 	return false;
 }
 
-bool XvtControllerOptions_ValidateProfile(
-	const struct XvtControllerProfile *profile, AeronControllerKind kind,
+bool xvt_controller_options_validate_profile(
+	const struct xvt_controller_profile *profile, AeronControllerKind kind,
 	char *error, size_t capacity)
 {
 	const int axis_limit = kind == AERON_CONTROLLER_KIND_GAMEPAD
@@ -92,22 +99,22 @@ bool XvtControllerOptions_ValidateProfile(
 					 : AERON_CONTROLLER_BUTTON_MAX;
 	if (!profile || (kind != AERON_CONTROLLER_KIND_GAMEPAD &&
 			 kind != AERON_CONTROLLER_KIND_JOYSTICK)) {
-		return XvtControllerOptions_ValidationError(
+		return xvt_controller_options_validation_error(
 			error, capacity, "invalid controller profile");
 	}
 	if (profile->binding_count > XVT_CONTROLLER_BINDING_CAP) {
-		return XvtControllerOptions_ValidationError(
+		return xvt_controller_options_validation_error(
 			error, capacity,
 			"controller binding capacity exceeded");
 	}
 	for (int axis = 0; axis < XVT_INPUT_AXIS_COUNT; ++axis) {
-		const struct XvtInputAxisBinding *binding =
+		const struct xvt_input_axis_binding *binding =
 			&profile->mapping.axes[axis];
 		if (binding->source < -1 || binding->source >= axis_limit ||
 		    !isfinite(binding->deadzone) || binding->deadzone < 0.0f ||
 		    binding->deadzone >
 			    (axis == XVT_INPUT_AXIS_THROTTLE ? 0.0f : 1.0f)) {
-			return XvtControllerOptions_ValidationError(
+			return xvt_controller_options_validation_error(
 				error, capacity,
 				"controller axis binding is invalid");
 		}
@@ -117,32 +124,32 @@ bool XvtControllerOptions_ValidateProfile(
 		for (int prior = 0; prior < axis; ++prior) {
 			if (profile->mapping.axes[prior].source ==
 			    binding->source) {
-				return XvtControllerOptions_ValidationError(
+				return xvt_controller_options_validation_error(
 					error, capacity,
 					"controller axis source is assigned more than once");
 			}
 		}
 	}
 	for (size_t index = 0; index < profile->binding_count; ++index) {
-		const struct XvtInputActionBinding *binding =
+		const struct xvt_input_action_binding *binding =
 			&profile->bindings[index];
 		const AeronControllerDigitalSource *source = &binding->source;
 		if (binding->action <= XVT_INPUT_ACTION_NONE ||
 		    binding->action >= XVT_INPUT_ACTION_COUNT) {
-			return XvtControllerOptions_ValidationError(
+			return xvt_controller_options_validation_error(
 				error, capacity,
 				"controller action binding is invalid");
 		}
 		if (!isfinite(source->threshold) || source->threshold <= 0.0f ||
 		    source->threshold > 1.0f) {
-			return XvtControllerOptions_ValidationError(
+			return xvt_controller_options_validation_error(
 				error, capacity,
 				"controller digital threshold is invalid");
 		}
 		switch (source->kind) {
 		case AERON_CONTROLLER_DIGITAL_BUTTON:
 			if (source->index >= button_limit) {
-				return XvtControllerOptions_ValidationError(
+				return xvt_controller_options_validation_error(
 					error, capacity,
 					"controller button index is out of range");
 			}
@@ -150,7 +157,7 @@ bool XvtControllerOptions_ValidateProfile(
 		case AERON_CONTROLLER_DIGITAL_AXIS_POSITIVE:
 		case AERON_CONTROLLER_DIGITAL_AXIS_NEGATIVE:
 			if (source->index >= axis_limit) {
-				return XvtControllerOptions_ValidationError(
+				return xvt_controller_options_validation_error(
 					error, capacity,
 					"controller digital axis is invalid");
 			}
@@ -165,20 +172,20 @@ bool XvtControllerOptions_ValidateProfile(
 				     AERON_CONTROLLER_HAT_DOWN &&
 			     source->hat_direction !=
 				     AERON_CONTROLLER_HAT_LEFT)) {
-				return XvtControllerOptions_ValidationError(
+				return xvt_controller_options_validation_error(
 					error, capacity,
 					"controller hat binding is invalid");
 			}
 			break;
 		default:
-			return XvtControllerOptions_ValidationError(
+			return xvt_controller_options_validation_error(
 				error, capacity,
 				"controller source kind is invalid");
 		}
 		for (size_t prior = 0; prior < index; ++prior) {
-			if (XvtControllerOptions_SameSource(
+			if (xvt_controller_options_same_source(
 				    source, &profile->bindings[prior].source)) {
-				return XvtControllerOptions_ValidationError(
+				return xvt_controller_options_validation_error(
 					error, capacity,
 					"controller source is bound more than once");
 			}
@@ -187,8 +194,8 @@ bool XvtControllerOptions_ValidateProfile(
 	return true;
 }
 
-void XvtControllerOptions_ClearProfile(struct XvtControllerProfile *profile,
-				       AeronControllerKind kind)
+void xvt_controller_options_clear_profile(
+	struct xvt_controller_profile *profile, AeronControllerKind kind)
 {
 	memset(profile, 0, sizeof *profile);
 	for (int i = 0; i < XVT_INPUT_AXIS_COUNT; ++i) {
@@ -199,8 +206,8 @@ void XvtControllerOptions_ClearProfile(struct XvtControllerProfile *profile,
 		kind == AERON_CONTROLLER_KIND_JOYSTICK;
 }
 
-int XvtControllerOptions_FindModel(const struct XvtControllerOptions *options,
-				   const char *guid)
+int xvt_controller_options_find_model(
+	const struct xvt_controller_options *options, const char *guid)
 {
 	if (options && guid) {
 		for (size_t i = 0; i < options->count; ++i) {
@@ -212,7 +219,7 @@ int XvtControllerOptions_FindModel(const struct XvtControllerOptions *options,
 	return -1;
 }
 
-static bool GuidValid(const char *guid)
+static bool guid_valid(const char *guid)
 {
 	bool nonzero = false;
 	for (int i = 0; i < 32; ++i) {
@@ -225,28 +232,29 @@ static bool GuidValid(const char *guid)
 	return nonzero && guid[32] == 0;
 }
 
-bool XvtControllerOptions_Validate(const struct XvtControllerOptions *options,
-				   char *error, size_t capacity)
+bool xvt_controller_options_validate(
+	const struct xvt_controller_options *options, char *error,
+	size_t capacity)
 {
 	if (!options || options->count > XVT_CONTROLLER_MODEL_CAP) {
-		return XvtControllerOptions_ValidationError(
+		return xvt_controller_options_validation_error(
 			error, capacity, "controller model capacity exceeded");
 	}
 	for (size_t i = 0; i < options->count; ++i) {
-		const struct XvtControllerModel *m = &options->models[i];
-		if (!GuidValid(m->guid) ||
+		const struct xvt_controller_model *m = &options->models[i];
+		if (!guid_valid(m->guid) ||
 		    !memchr(m->name, 0, sizeof m->name)) {
-			return XvtControllerOptions_ValidationError(
+			return xvt_controller_options_validation_error(
 				error, capacity,
 				"invalid controller model identity");
 		}
-		if (!XvtControllerOptions_ValidateProfile(&m->profile, m->kind,
-							  error, capacity)) {
+		if (!xvt_controller_options_validate_profile(
+			    &m->profile, m->kind, error, capacity)) {
 			return false;
 		}
 		for (size_t j = 0; j < i; ++j) {
 			if (!strcmp(m->guid, options->models[j].guid)) {
-				return XvtControllerOptions_ValidationError(
+				return xvt_controller_options_validation_error(
 					error, capacity,
 					"duplicate controller model GUID");
 			}
@@ -256,7 +264,7 @@ bool XvtControllerOptions_Validate(const struct XvtControllerOptions *options,
 				    options->models[j]
 						    .profile.mapping.axes[axis]
 						    .source >= 0) {
-					return XvtControllerOptions_ValidationError(
+					return xvt_controller_options_validation_error(
 						error, capacity,
 						"logical axis has multiple model owners");
 				}
@@ -266,33 +274,33 @@ bool XvtControllerOptions_Validate(const struct XvtControllerOptions *options,
 	return true;
 }
 
-bool XvtControllerOptions_EnsureModel(struct XvtControllerOptions *options,
-				      const AeronControllerSnapshot *device,
-				      char *error, size_t capacity)
+bool xvt_controller_options_ensure_model(struct xvt_controller_options *options,
+					 const AeronControllerSnapshot *device,
+					 char *error, size_t capacity)
 {
-	if (!device || !GuidValid(device->guid)) {
-		return XvtControllerOptions_ValidationError(
+	if (!device || !guid_valid(device->guid)) {
+		return xvt_controller_options_validation_error(
 			error, capacity, "controller has no usable model GUID");
 	}
-	if (XvtControllerOptions_FindModel(options, device->guid) >= 0) {
+	if (xvt_controller_options_find_model(options, device->guid) >= 0) {
 		return true;
 	}
 	if (options->count >= XVT_CONTROLLER_MODEL_CAP) {
-		return XvtControllerOptions_ValidationError(
+		return xvt_controller_options_validation_error(
 			error, capacity, "controller model capacity exceeded");
 	}
-	struct XvtControllerModel *m = &options->models[options->count++];
+	struct xvt_controller_model *m = &options->models[options->count++];
 	memset(m, 0, sizeof *m);
 	memcpy(m->guid, device->guid, sizeof m->guid);
 	snprintf(m->name, sizeof m->name, "%s", device->name);
 	m->kind = device->kind;
-	XvtControllerOptions_ClearProfile(&m->profile, device->kind);
+	xvt_controller_options_clear_profile(&m->profile, device->kind);
 	return true;
 }
 
-bool XvtControllerOptions_AddNewGamepads(
-	struct XvtControllerOptions *options,
-	const struct XvtControllerProfile *defaults,
+bool xvt_controller_options_add_new_gamepads(
+	struct xvt_controller_options *options,
+	const struct xvt_controller_profile *defaults,
 	const AeronInputSnapshot *input, char *error, size_t capacity)
 {
 	const AeronControllerSnapshot *sorted[AERON_CONTROLLER_MAX];
@@ -313,15 +321,15 @@ bool XvtControllerOptions_AddNewGamepads(
 		sorted[j] = d;
 	}
 	for (int i = 0; i < count; ++i) {
-		if (XvtControllerOptions_FindModel(options, sorted[i]->guid) >=
-		    0) {
+		if (xvt_controller_options_find_model(options,
+						      sorted[i]->guid) >= 0) {
 			continue;
 		}
-		if (!XvtControllerOptions_EnsureModel(options, sorted[i], error,
-						      capacity)) {
+		if (!xvt_controller_options_ensure_model(options, sorted[i],
+							 error, capacity)) {
 			return false;
 		}
-		struct XvtControllerProfile *p =
+		struct xvt_controller_profile *p =
 			&options->models[options->count - 1].profile;
 		*p = *defaults;
 		for (size_t j = 0; j + 1 < options->count; ++j) {

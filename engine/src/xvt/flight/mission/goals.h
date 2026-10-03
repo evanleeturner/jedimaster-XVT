@@ -9,8 +9,8 @@
 extern "C" {
 #endif
 
-/* Stored as int8_t in the binary (IDB enum MissionGoalAmount). */
-typedef int8_t MissionGoalAmount;
+/* Stored as int8_t in the binary (IDB enum mission_goal_amount). */
+typedef int8_t mission_goal_amount;
 
 enum {
 	GOAL_AMT_100 = 0x0,
@@ -35,7 +35,7 @@ enum {
 	GOAL_AMT_33 = 0x11,
 };
 
-typedef enum MissionConditionType {
+typedef enum mission_condition_type {
 	MISSION_COND_ALWAYS_TRUE = 0,
 	MISSION_COND_ARRIVED = 1,
 	MISSION_COND_DESTROYED = 2,
@@ -78,77 +78,78 @@ typedef enum MissionConditionType {
 	MISSION_COND_CAPTURED_AND_DEPARTED = 44,
 	MISSION_COND_NOT_DEPARTED = 45,
 	MISSION_COND_CAPTURED_BY_DESTINATION = 46,
-} MissionConditionType;
+} mission_condition_type;
 
 #pragma pack(push, 1)
 
-struct MissionTrigger {
+struct mission_trigger {
 	uint8_t condition; /* A MISSION_COND_ value. */
 	/* What variable selects: a GOAL_TARGET_ trigger variable type. */
-	uint8_t variableType;
-	/* The flight group, species, team or other value variableType
+	uint8_t variable_type;
+	/* The flight group, species, team or other value variable_type
 	 * selects. */
 	uint8_t variable;
-	MissionGoalAmount
+	mission_goal_amount
 		amount; ///< Encoded goal amount threshold (100%, 75%, 50%, 25%, subset and special-cargo variants).
 };
 
 #pragma pack(pop)
-typedef char
-	xvt_size_MissionTrigger[(sizeof(struct MissionTrigger) == 4) ? 1 : -1];
-
-#pragma pack(push, 1)
-
-struct MissionTriggerPair {
-	struct MissionTrigger triggers[2]; /* The two conditions. */
-	uint8_t reserved[2]; /* Loaded with the record; nothing reads it. */
-	/* 1 joins the two conditions with OR, else AND. */
-	uint8_t trigger1OrTrigger2;
-};
-
-#pragma pack(pop)
-typedef char xvt_size_MissionTriggerPair
-	[(sizeof(struct MissionTriggerPair) == 11) ? 1 : -1];
-
-#pragma pack(push, 1)
-
-struct FlightGroupGoal {
-	uint8_t goalKind; /* 0 primary, 1 prevent, 2 bonus. */
-	/* The MISSION_COND_ value the goal tests on the group. */
-	uint8_t eventCondition;
-	MissionGoalAmount
-		amount; ///< Encoded goal amount threshold used by Mission_EvaluateCondition.
-	int8_t points;	/* Score unit; 250 times it is awarded. */
-	/* Per team, nonzero when the goal applies to it. */
-	uint8_t enabledTeams[10];
-	uint8_t timeLimit5s;	/* Time limit in 5-second units; 0 for none. */
-	uint8_t activeSequence; ///< Sequential-goal selector in the mission format; XVT loads it but has no
-	///< direct runtime read.
-	uint8_t reserved[62]; ///< Reserved mission-file storage.
-};
-
-#pragma pack(pop)
-typedef char xvt_size_FlightGroupGoal[(sizeof(struct FlightGroupGoal) == 78)
+typedef char xvt_size_mission_trigger[(sizeof(struct mission_trigger) == 4)
 					      ? 1
 					      : -1];
 
 #pragma pack(push, 1)
 
-struct GlobalGoal {
-	struct MissionTriggerPair triggerPairs
-		[2]; ///< Two trigger pairs evaluated to determine the goal state.
-	char name[16]; ///< Mission-file goal name.
-	uint8_t version; ///< Mission-file goal format version; not consumed by XVT runtime logic.
-	uint8_t triggerPair1OrTriggerPair2; ///< Value 1 combines the trigger-pair results with OR; other values
-					    ///< use AND.
-	uint8_t rawDelay; ///< Mission-file goal delay metadata; loaded but not consumed by XVT runtime logic.
-	int8_t rawPoints; ///< Signed score unit; XVT awards 250 times this value.
+struct mission_trigger_pair {
+	struct mission_trigger triggers[2]; /* The two conditions. */
+	uint8_t reserved[2]; /* Loaded with the record; nothing reads it. */
+	/* 1 joins the two conditions with OR, else AND. */
+	uint8_t trigger1_or_trigger2;
 };
 
 #pragma pack(pop)
-typedef char xvt_size_GlobalGoal[(sizeof(struct GlobalGoal) == 42) ? 1 : -1];
+typedef char xvt_size_mission_trigger_pair
+	[(sizeof(struct mission_trigger_pair) == 11) ? 1 : -1];
 
-typedef enum GoalTargetType {
+#pragma pack(push, 1)
+
+struct flight_group_goal {
+	uint8_t goal_kind; /* 0 primary, 1 prevent, 2 bonus. */
+	/* The MISSION_COND_ value the goal tests on the group. */
+	uint8_t event_condition;
+	mission_goal_amount
+		amount; ///< Encoded goal amount threshold used by mission_evaluate_condition.
+	int8_t points; /* Score unit; 250 times it is awarded. */
+	/* Per team, nonzero when the goal applies to it. */
+	uint8_t enabled_teams[10];
+	uint8_t time_limit5s; /* Time limit in 5-second units; 0 for none. */
+	uint8_t active_sequence; ///< Sequential-goal selector in the mission format; XVT loads it but has no
+	///< direct runtime read.
+	uint8_t reserved[62]; ///< Reserved mission-file storage.
+};
+
+#pragma pack(pop)
+typedef char xvt_size_flight_group_goal[(sizeof(struct flight_group_goal) == 78)
+						? 1
+						: -1];
+
+#pragma pack(push, 1)
+
+struct global_goal {
+	struct mission_trigger_pair trigger_pairs
+		[2]; ///< Two trigger pairs evaluated to determine the goal state.
+	char name[16]; ///< Mission-file goal name.
+	uint8_t version; ///< Mission-file goal format version; not consumed by XVT runtime logic.
+	uint8_t trigger_pair1_or_trigger_pair2; ///< Value 1 combines the trigger-pair results with OR; other values
+	///< use AND.
+	uint8_t raw_delay; ///< Mission-file goal delay metadata; loaded but not consumed by XVT runtime logic.
+	int8_t raw_points; ///< Signed score unit; XVT awards 250 times this value.
+};
+
+#pragma pack(pop)
+typedef char xvt_size_global_goal[(sizeof(struct global_goal) == 42) ? 1 : -1];
+
+typedef enum goal_target_type {
 	GOAL_TARGET_NONE = 0x0,
 	GOAL_TARGET_FLIGHT_GROUP = 0x1,
 	GOAL_TARGET_SPECIES = 0x2,
@@ -162,15 +163,15 @@ typedef enum GoalTargetType {
 	GOAL_TARGET_STATUS = 0xA,
 	GOAL_TARGET_TEAM = 0xC,
 	GOAL_TARGET_PLAYER_NUMBER = 0xD,
-} GoalTargetType;
+} goal_target_type;
 
-typedef enum GoalOperatorStringId {
+typedef enum goal_operator_string_id {
 	GOAL_OPERATOR_STR_AND = 0x0,
 	GOAL_OPERATOR_STR_OR = 0x1,
-} GoalOperatorStringId;
+} goal_operator_string_id;
 
-/* Stored as int16_t in the binary (IDB enum GoalTitleStringId). */
-typedef int16_t GoalTitleStringId;
+/* Stored as int16_t in the binary (IDB enum goal_title_string_id). */
+typedef int16_t goal_title_string_id;
 
 enum {
 	GOAL_TITLE_STR_FAILED_OBJECTIVES = 0x0,
@@ -184,7 +185,7 @@ enum {
 	GOAL_TITLE_STR_DRAW = 0x8,
 };
 
-typedef enum GoalPercentageStringId {
+typedef enum goal_percentage_string_id {
 	GOAL_PERCENT_STR_100 = 0x0,
 	GOAL_PERCENT_STR_75 = 0x1,
 	GOAL_PERCENT_STR_50 = 0x2,
@@ -199,9 +200,9 @@ typedef enum GoalPercentageStringId {
 	GOAL_PERCENT_STR_33 = 0xB,
 	GOAL_PERCENT_STR_PLACEHOLDER_12 = 0xC,
 	GOAL_PERCENT_STR_PLACEHOLDER_13 = 0xD,
-} GoalPercentageStringId;
+} goal_percentage_string_id;
 
-typedef enum GoalFamilyStringId {
+typedef enum goal_family_string_id {
 	GOAL_FAMILY_STR_SPACE_CRAFT = 0x0,
 	GOAL_FAMILY_STR_WEAPONS = 0x1,
 	GOAL_FAMILY_STR_SATELLITES = 0x2,
@@ -209,9 +210,9 @@ typedef enum GoalFamilyStringId {
 	GOAL_FAMILY_STR_PLACEHOLDER_4 = 0x4,
 	GOAL_FAMILY_STR_PLACEHOLDER_5 = 0x5,
 	GOAL_FAMILY_STR_PLACEHOLDER_6 = 0x6,
-} GoalFamilyStringId;
+} goal_family_string_id;
 
-typedef enum GoalGenusStringId {
+typedef enum goal_genus_string_id {
 	GOAL_GENUS_STR_STARFIGHTERS = 0x0,
 	GOAL_GENUS_STR_TRANSPORT_CRAFT = 0x1,
 	GOAL_GENUS_STR_UTILITY_CRAFT = 0x2,
@@ -228,9 +229,9 @@ typedef enum GoalGenusStringId {
 	GOAL_GENUS_STR_PLACEHOLDER_13 = 0xD,
 	GOAL_GENUS_STR_PLACEHOLDER_14 = 0xE,
 	GOAL_GENUS_STR_PLACEHOLDER_15 = 0xF,
-} GoalGenusStringId;
+} goal_genus_string_id;
 
-typedef enum GoalConjunctionStringId {
+typedef enum goal_conjunction_string_id {
 	GOAL_CONJ_STR_OF = 0x0,
 	GOAL_CONJ_STR_OF_ALL = 0x1,
 	GOAL_CONJ_STR_GROUP = 0x2,
@@ -239,15 +240,15 @@ typedef enum GoalConjunctionStringId {
 	GOAL_CONJ_STR_COMMA = 0x5,
 	GOAL_CONJ_STR_FLIGHT_GROUPS = 0x6,
 	GOAL_CONJ_STR_LESS_THAN = 0x7,
-} GoalConjunctionStringId;
+} goal_conjunction_string_id;
 
-typedef enum GoalSideStringId {
+typedef enum goal_side_string_id {
 	GOAL_SIDE_STR_REBEL_CRAFT = 0x0,
 	GOAL_SIDE_STR_IMPERIAL_CRAFT = 0x1,
 	GOAL_SIDE_STR_CRAFT = 0x2,
-} GoalSideStringId;
+} goal_side_string_id;
 
-typedef enum FlightGroupGoalStatusStringId {
+typedef enum flight_group_goal_status_string_id {
 	FG_GOAL_STATUS_STR_NONE = 0x0,
 	FG_GOAL_STATUS_STR_INSPECT = 0xF,
 	FG_GOAL_STATUS_STR_DESTROY = 0x10,
@@ -255,39 +256,41 @@ typedef enum FlightGroupGoalStatusStringId {
 	FG_GOAL_STATUS_STR_ATTACK = 0x12,
 	FG_GOAL_STATUS_STR_CAPTURE = 0x13,
 	FG_GOAL_STATUS_STR_BOARD = 0x14,
-} FlightGroupGoalStatusStringId;
+} flight_group_goal_status_string_id;
 
-extern uint8_t g_goalConditionTextVariantCount[48];
-extern uint8_t g_goalTitleColorByIndex[8];
-extern const char *g_strGoalCondFeminine[188][14];
-extern const char *g_strGoalCondNeutered[188][14];
-extern const char *g_strGoalCondMasculine[188][14];
-extern uint8_t g_craftGender[80];
-extern const char *g_strGoalOperators[2];
-extern const char *g_strGoalTitles[9];
-extern const char *g_strGoalPercentages[14];
-extern const char *g_strGoalFamilyNames[7];
-extern const char *g_strGoalGenusNames[16];
-extern const char *g_strGoalConjunctions[8];
-extern const char *g_strGoalEscape[3];
-extern const char *g_strGoalSides[3];
-extern const char *g_strUnknown;
-extern const char *g_strSatMineProbeBuoyPilotNames[16];
-extern const char *g_strStatusStrings[9];
-extern const char *g_strWarheadNames[13];
-extern const char *g_strSpeciesNamesPlural[73];
-extern const char *g_strWingmanCommands[10];
+extern uint8_t g_goal_condition_text_variant_count[48];
+extern uint8_t g_goal_title_color_by_index[8];
+extern const char *g_str_goal_cond_feminine[188][14];
+extern const char *g_str_goal_cond_neutered[188][14];
+extern const char *g_str_goal_cond_masculine[188][14];
+extern uint8_t g_craft_gender[80];
+extern const char *g_str_goal_operators[2];
+extern const char *g_str_goal_titles[9];
+extern const char *g_str_goal_percentages[14];
+extern const char *g_str_goal_family_names[7];
+extern const char *g_str_goal_genus_names[16];
+extern const char *g_str_goal_conjunctions[8];
+extern const char *g_str_goal_escape[3];
+extern const char *g_str_goal_sides[3];
+extern const char *g_str_unknown;
+extern const char *g_str_sat_mine_probe_buoy_pilot_names[16];
+extern const char *g_str_status_strings[9];
+extern const char *g_str_warhead_names[13];
+extern const char *g_str_species_names_plural[73];
+extern const char *g_str_wingman_commands[10];
 
-int16_t goals_outputgoal(uint16_t targetId, uint16_t condition,
-			 uint16_t targetType, uint16_t goalStatus,
-			 uint16_t amountOp, uint16_t timeLimit5SecUnits,
-			 const char *conditionTextOverride, int percentComplete,
-			 int goalTitleIndex);
-int16_t goals_DrawConditionText(unsigned int craftSpecies, uint16_t condition,
-				uint16_t amountTextVariant,
-				int16_t conditionRowBase);
-int16_t goals_DrawObjectTypeName(uint16_t craftSpecies, int16_t usePluralName,
-				 int16_t useShortName);
+int16_t goals_outputgoal(uint16_t target_id, uint16_t condition,
+			 uint16_t target_type, uint16_t goal_status,
+			 uint16_t amount_op, uint16_t time_limit5_sec_units,
+			 const char *condition_text_override,
+			 int percent_complete, int goal_title_index);
+int16_t goals_draw_condition_text(unsigned int craft_species,
+				  uint16_t condition,
+				  uint16_t amount_text_variant,
+				  int16_t condition_row_base);
+int16_t goals_draw_object_type_name(uint16_t craft_species,
+				    int16_t use_plural_name,
+				    int16_t use_short_name);
 
 #ifdef __cplusplus
 }

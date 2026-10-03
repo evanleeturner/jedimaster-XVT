@@ -23,7 +23,8 @@
  * paiorder_stillattackorder forgets an attacker that is not a warhead. Entry 3
  * is 0. Nothing writes it. */
 // GLOBAL: XVT 0x5243A8
-int g_aiStillAttackLastAttackerRangeBySkill[4] = {0x8000, 0xC000, 0xE000, 0};
+int g_ai_still_attack_last_attacker_range_by_skill[4] = {0x8000, 0xC000, 0xE000,
+							 0};
 
 /* Class 0, 1 or 2 of an object's bearing for each eighth of a circle (0x2000
  * angle units) it lies off the craft's yaw, counting from the yaw: 0 for the
@@ -31,31 +32,31 @@ int g_aiStillAttackLastAttackerRangeBySkill[4] = {0x8000, 0xC000, 0xE000, 0};
  * under-attack, on-tail and avoid-hit orders pick maneuvers by it. Nothing
  * writes it. */
 // GLOBAL: XVT 0x5243D8
-uint8_t g_aiThreatBearingClassByOctant[8] = {0, 1, 1, 2, 2, 1, 1, 0};
+uint8_t g_ai_threat_bearing_class_by_octant[8] = {0, 1, 1, 2, 2, 1, 1, 0};
 /* Rough distance in world units, by skill tier 0 to 2, within which
  * paiorder_underattackorder and paiorder_avoidhitorder look for an enemy
  * starfighter pointed at the craft. Entry 3 is 0. Nothing writes it. */
 // GLOBAL: XVT 0x5243B8
-int g_aiAttackerSearchRangeBySkill[4] = {0x2000, 0x3000, 0x4000, 0};
+int g_ai_attacker_search_range_by_skill[4] = {0x2000, 0x3000, 0x4000, 0};
 /* Rough distance in world units, by skill tier 0 to 2, within which a homing
  * warhead aimed at the craft counts as a threat; the under-attack and avoid-hit
  * orders triple it for a concussion missile, and avoid-hit for type 149 too.
  * paifight_gunnerselfdefenseorder reads it as well. Entry 3 is 0. Nothing
  * writes it. */
 // GLOBAL: XVT 0x5243C8
-int g_aiWarheadThreatRangeBySkill[4] = {0x800, 0x1000, 0x1800, 0};
+int g_ai_warhead_threat_range_by_skill[4] = {0x800, 0x1000, 0x1800, 0};
 /* Four maneuvers paiorder_underattackorder picks from by the low two bits of a
- * GameRand draw, for an attacker in bearing class 0 or 1; paiman_attackmaneuver
+ * game_rand draw, for an attacker in bearing class 0 or 1; paiman_attackmaneuver
  * reads it too. Nothing writes it. */
 // GLOBAL: XVT 0x5243E0
-uint8_t g_aiUnderAttackFrontSideManeuverChoices[4] = {
+uint8_t g_ai_under_attack_front_side_maneuver_choices[4] = {
 	AI_MANEUVER_MODE_ZOOM, AI_MANEUVER_MODE_DIVE,
 	AI_MANEUVER_MODE_SPLITS_DIVE, AI_MANEUVER_MODE_IMMELMANN};
 /* Eight maneuvers paiorder_underattackorder picks from by the low three bits of
- * a GameRand draw, for an attacker in bearing class 2; paiman_attackmaneuver
+ * a game_rand draw, for an attacker in bearing class 2; paiman_attackmaneuver
  * reads it too. Nothing writes it. */
 // GLOBAL: XVT 0x5243E8
-uint8_t g_aiUnderAttackRearManeuverChoices[8] = {
+uint8_t g_ai_under_attack_rear_maneuver_choices[8] = {
 	AI_MANEUVER_MODE_TURN_INSIDE,	 AI_MANEUVER_MODE_SPLITS_DIVE,
 	AI_MANEUVER_MODE_TURN_INSIDE,	 AI_MANEUVER_MODE_TURN_INSIDE,
 	AI_MANEUVER_MODE_AVOID_ATTACKER, AI_MANEUVER_MODE_AVOID_ATTACKER,
@@ -63,11 +64,11 @@ uint8_t g_aiUnderAttackRearManeuverChoices[8] = {
 };
 
 /* The order handlers by order id, as the plan text's order tokens number them;
- * pai_ProcessPlan calls them. A handler returns nonzero when its order fires,
+ * pai_process_plan calls them. A handler returns nonzero when its order fires,
  * which switches the craft to the plan paired with the order. Nothing writes
  * it. */
 // GLOBAL: XVT 0x5243F0
-PaiOrderFunc g_orderTable[48] = {
+pai_order_func g_order_table[48] = {
 	paiorder_nullhandler,
 	paiorder_updatecourseorder,
 	paiorder_underattackorder,
@@ -127,32 +128,32 @@ int16_t paiorder_playerinputorder(void) { return 0; }
 // FUNCTION: XVT 0x4661F0
 int16_t paiorder_nullhandler(void) { return 0; }
 
-/* Order 1: runs the step function of the craft's maneuverMode from
- * g_aiCourseOrderManeuverTable, through g_aiCurrentManeuverProc, which it sets,
- * and returns what that returns. Does not check maneuverMode against the
+/* Order 1: runs the step function of the craft's maneuver_mode from
+ * g_ai_course_order_maneuver_table, through g_ai_current_maneuver_proc, which it sets,
+ * and returns what that returns. Does not check maneuver_mode against the
  * table's 34 entries. */
 // FUNCTION: XVT 0x466200
 int16_t paiorder_updatecourseorder(void)
 {
-	g_aiCurrentManeuverProc =
-		g_aiCourseOrderManeuverTable[g_paiContext.controller
-						     ->maneuverMode];
-	return g_aiCurrentManeuverProc();
+	g_ai_current_maneuver_proc =
+		g_ai_course_order_maneuver_table[g_pai_context.controller
+							 ->maneuver_mode];
+	return g_ai_current_maneuver_proc();
 }
 
 /* Order 2: for a starfighter or transport still on its plan's own maneuver,
  * picks a maneuver against an attacker; returns 0 on every path. With no
  * attacker known it looks first for a homing warhead aimed at the craft within
- * g_aiWarheadThreatRangeBySkill (three times that for a concussion missile).
- * For one it records the warhead in lastAttackerObjIdx, turns away from it in
+ * g_ai_warhead_threat_range_by_skill (three times that for a concussion missile).
+ * For one it records the warhead in last_attacker_obj_idx, turns away from it in
  * bearing class 0 or turns inside otherwise, then, carrying countermeasures,
- * adds 10 to chaffActiveSeconds and uses a round (none when the flight group's
+ * adds 10 to chaff_active_seconds and uses a round (none when the flight group's
  * status1 or status2 is 21) for chaff with a working countermeasure system, or
- * else fires a countermeasure when cmFireCooldownTimer is 0, and returns. Next
+ * else fires a countermeasure when cm_fire_cooldown_timer is 0, and returns. Next
  * it looks for an AI-flown enemy starfighter within
- * g_aiAttackerSearchRangeBySkill whose nose points within 0x2000 angle units of
+ * g_ai_attacker_search_range_by_skill whose nose points within 0x2000 angle units of
  * the craft in yaw and pitch, only while the craft is active, and records the
- * first. For a known attacker it then picks by bearing class with GameRand: in
+ * first. For a known attacker it then picks by bearing class with game_rand: in
  * class 1, turns inside when closer than 0x2000 on a quarter of the draws, else
  * one of the front and side choices; in class 0, one of those choices on just
  * over half the draws, else a head-on attack; in class 2, one of the rear
@@ -162,97 +163,102 @@ int16_t paiorder_updatecourseorder(void)
 // FUNCTION: XVT 0x466220
 int16_t paiorder_underattackorder(void)
 {
-	unsigned int selfObjIdx;
-	uint16_t objectIdx;
-	int maxRangeScore;
+	unsigned int self_obj_idx;
+	uint16_t object_idx;
+	int max_range_score;
 
-	selfObjIdx = g_paiContext.objectIndex;
+	self_obj_idx = g_pai_context.object_index;
 
-	if (g_objectTable[selfObjIdx].genusId != CRAFT_GENUS_STARFIGHTER &&
-	    g_objectTable[selfObjIdx].genusId != CRAFT_GENUS_TRANSPORT) {
+	if (g_object_table[self_obj_idx].genus_id != CRAFT_GENUS_STARFIGHTER &&
+	    g_object_table[self_obj_idx].genus_id != CRAFT_GENUS_TRANSPORT) {
 		return 0;
 	}
-	if (g_paiContext.controller->maneuverMode ==
-	    g_paiContext.initialManeuverId) {
-		if (g_curCraft->lastAttackerObjIdx == UINT16_MAX) {
-			maxRangeScore = g_aiWarheadThreatRangeBySkill
-				[g_paiContext.skillTier];
-			for (objectIdx = (uint16_t)g_projectileObjectSlotStart;
-			     objectIdx < g_projectileObjectSlotEnd;
-			     ++objectIdx) {
-				uint8_t objectType =
-					g_objectTable[objectIdx].objectType;
-				if (objectType != 0 &&
-				    g_objectTable[objectIdx]
-						    .mobj->pWarheadGuidance
-						    ->homingTier != 0 &&
-				    g_objectTable[objectIdx]
-						    .mobj->pWarheadGuidance
-						    ->targetObjIdx ==
-					    g_paiContext.objectIndex) {
-					int threatRange = maxRangeScore * 3;
-					if (objectType !=
+	if (g_pai_context.controller->maneuver_mode ==
+	    g_pai_context.initial_maneuver_id) {
+		if (g_cur_craft->last_attacker_obj_idx == UINT16_MAX) {
+			max_range_score = g_ai_warhead_threat_range_by_skill
+				[g_pai_context.skill_tier];
+			for (object_idx =
+				     (uint16_t)g_projectile_object_slot_start;
+			     object_idx < g_projectile_object_slot_end;
+			     ++object_idx) {
+				uint8_t object_type =
+					g_object_table[object_idx].object_type;
+				if (object_type != 0 &&
+				    g_object_table[object_idx]
+						    .mobj->p_warhead_guidance
+						    ->homing_tier != 0 &&
+				    g_object_table[object_idx]
+						    .mobj->p_warhead_guidance
+						    ->target_obj_idx ==
+					    g_pai_context.object_index) {
+					int threat_range = max_range_score * 3;
+					if (object_type !=
 					    WARHEAD_OBJECT_TYPE_CONCUSSION_MISSILE) {
-						threatRange = maxRangeScore;
+						threat_range = max_range_score;
 					}
-					if (pai_IsObjectWithinRangeOfCraft(
-						    objectIdx,
+					if (pai_is_object_within_range_of_craft(
+						    object_idx,
 						    (unsigned int)
-							    threatRange) == 1) {
-						g_curCraft->lastAttackerObjIdx =
-							objectIdx;
-						pai_ObjectRefDirectionToObjectRef(
-							g_paiContext
-								.objectIndex,
-							objectIdx);
-						if (g_aiThreatBearingClassByOctant
+							    threat_range) ==
+					    1) {
+						g_cur_craft
+							->last_attacker_obj_idx =
+							object_idx;
+						pai_object_ref_direction_to_object_ref(
+							g_pai_context
+								.object_index,
+							object_idx);
+						if (g_ai_threat_bearing_class_by_octant
 							    [(uint16_t)(trig2_xyangle -
-									g_objectTable[g_paiContext
-											      .objectIndex]
+									g_object_table[g_pai_context
+											       .object_index]
 										.yaw) >>
 							     13] == 0) {
-							g_paiContext.controller
-								->maneuverMode =
+							g_pai_context
+								.controller
+								->maneuver_mode =
 								AI_MANEUVER_MODE_TURN_AWAY;
 						} else {
-							g_paiContext.controller
-								->maneuverMode =
+							g_pai_context
+								.controller
+								->maneuver_mode =
 								AI_MANEUVER_MODE_TURN_INSIDE;
 						}
 						paiman_initmaneuver();
-						if (g_curCraft->cmTypeId !=
+						if (g_cur_craft->cm_type_id !=
 							    COUNTERMEASURE_TYPE_NONE &&
-						    g_curCraft->cmAmmoCount !=
+						    g_cur_craft->cm_ammo_count !=
 							    0) {
-							if (g_curCraft->cmTypeId ==
+							if (g_cur_craft->cm_type_id ==
 								    COUNTERMEASURE_TYPE_CHAFF &&
-							    (g_curCraft
-								     ->workingSubsystems &
+							    (g_cur_craft
+								     ->working_subsystems &
 							     CRAFT_SUBSYSTEM_FLAG_COUNTERMEASURES) !=
 								    0) {
-								g_curCraft
-									->chaffActiveSeconds +=
+								g_cur_craft
+									->chaff_active_seconds +=
 									10;
-								if (g_missionFlightGroups[g_paiContext
-												  .craftFlightGroupIndex]
+								if (g_mission_flight_groups[g_pai_context
+												    .craft_flight_group_index]
 										    .fg
 										    .status1 !=
 									    21 &&
-								    g_missionFlightGroups[g_paiContext
-												  .craftFlightGroupIndex]
+								    g_mission_flight_groups[g_pai_context
+												    .craft_flight_group_index]
 										    .fg
 										    .status2 !=
 									    21) {
-									--g_curCraft
-										  ->cmAmmoCount;
+									--g_cur_craft
+										  ->cm_ammo_count;
 								}
 							} else if (
-								g_curCraft
-									->cmFireCooldownTimer ==
+								g_cur_craft
+									->cm_fire_cooldown_timer ==
 								0) {
 								laser_createcountermeasureprojectile(
-									g_paiContext
-										.objectIndex,
+									g_pai_context
+										.object_index,
 									COUNTERMEASURE_PROJECTILE_OBJECT_TYPE);
 							}
 						}
@@ -261,79 +267,79 @@ int16_t paiorder_underattackorder(void)
 				}
 			}
 
-			maxRangeScore = g_aiAttackerSearchRangeBySkill
-				[g_paiContext.skillTier];
-			if (g_curCraft->lastAttackerObjIdx == UINT16_MAX) {
-				for (objectIdx = (uint16_t)
-					     g_activeRegionObjectSlotStart;
-				     objectIdx <
-				     g_activeRegionCraftObjectSlotEnd;
-				     ++objectIdx) {
-					if (g_objectTable[objectIdx]
-							    .playerOwnerIdx ==
+			max_range_score = g_ai_attacker_search_range_by_skill
+				[g_pai_context.skill_tier];
+			if (g_cur_craft->last_attacker_obj_idx == UINT16_MAX) {
+				for (object_idx = (uint16_t)
+					     g_active_region_object_slot_start;
+				     object_idx <
+				     g_active_region_craft_object_slot_end;
+				     ++object_idx) {
+					if (g_object_table[object_idx]
+							    .player_owner_idx ==
 						    -1 &&
-					    g_objectTable[objectIdx]
-							    .objectType != 0) {
-						int objectTeam =
-							g_missionFlightGroups
-								[g_objectTable[objectIdx]
-									 .flightGroupIdx]
+					    g_object_table[object_idx]
+							    .object_type != 0) {
+						int object_team =
+							g_mission_flight_groups
+								[g_object_table[object_idx]
+									 .flight_group_idx]
 									.fg
 									.team;
-						int sourceTeam =
-							g_objectTable
-								[g_paiContext
-									 .objectIndex]
+						int source_team =
+							g_object_table
+								[g_pai_context
+									 .object_index]
 									.mobj
 									->team;
-						int isEnemy =
-							objectTeam == sourceTeam
+						int is_enemy =
+							object_team == source_team
 								? 0
-								: g_missionTeams[sourceTeam]
-										  .allies[objectTeam] ==
+								: g_mission_teams[source_team]
+										  .allies[object_team] ==
 									  0;
-						if (isEnemy &&
-						    g_curCraft->objectKind ==
+						if (is_enemy &&
+						    g_cur_craft->object_kind ==
 							    CRAFT_OBJECT_KIND_ACTIVE &&
-						    g_objectTable[objectIdx]
-								    .genusId ==
+						    g_object_table[object_idx]
+								    .genus_id ==
 							    CRAFT_GENUS_STARFIGHTER &&
-						    pai_IsObjectWithinRangeOfCraft(
-							    objectIdx,
+						    pai_is_object_within_range_of_craft(
+							    object_idx,
 							    (unsigned int)
-								    maxRangeScore) ==
+								    max_range_score) ==
 							    1) {
 							uint16_t
-								horizontalAngle;
-							uint16_t verticalAngle;
-							pai_ObjectRefDirectionToObjectRef(
-								objectIdx,
-								selfObjIdx);
-							horizontalAngle =
+								horizontal_angle;
+							uint16_t vertical_angle;
+							pai_object_ref_direction_to_object_ref(
+								object_idx,
+								self_obj_idx);
+							horizontal_angle =
 								(uint16_t)(trig2_xyangle -
-									   g_objectTable[objectIdx]
+									   g_object_table[object_idx]
 										   .yaw);
-							if (horizontalAngle >=
+							if (horizontal_angle >=
 							    0x8000) {
-								horizontalAngle =
-									(uint16_t)-horizontalAngle;
+								horizontal_angle =
+									(uint16_t)-horizontal_angle;
 							}
-							verticalAngle =
+							vertical_angle =
 								(uint16_t)(trig2_pitch -
-									   g_objectTable[objectIdx]
+									   g_object_table[object_idx]
 										   .pitch);
-							if (verticalAngle >=
+							if (vertical_angle >=
 							    0x8000) {
-								verticalAngle =
-									(uint16_t)-verticalAngle;
+								vertical_angle =
+									(uint16_t)-vertical_angle;
 							}
-							if (horizontalAngle <
+							if (horizontal_angle <
 								    0x2000 &&
-							    verticalAngle <
+							    vertical_angle <
 								    0x2000) {
-								g_curCraft
-									->lastAttackerObjIdx =
-									objectIdx;
+								g_cur_craft
+									->last_attacker_obj_idx =
+									object_idx;
 								break;
 							}
 						}
@@ -342,106 +348,111 @@ int16_t paiorder_underattackorder(void)
 			}
 		}
 
-		if (g_curCraft->lastAttackerObjIdx != UINT16_MAX) {
-			uint8_t threatBearing;
-			uint16_t attackerMaxSpeed;
-			struct MobileObject *attacker;
-			uint16_t ownMaxSpeed;
-			uint16_t randomValue;
-			uint8_t maneuverMode;
+		if (g_cur_craft->last_attacker_obj_idx != UINT16_MAX) {
+			uint8_t threat_bearing;
+			uint16_t attacker_max_speed;
+			struct mobile_object *attacker;
+			uint16_t own_max_speed;
+			uint16_t random_value;
+			uint8_t maneuver_mode;
 
-			pai_ObjectRefDirectionToObjectRef(
-				selfObjIdx, g_curCraft->lastAttackerObjIdx);
-			threatBearing = g_aiThreatBearingClassByOctant
+			pai_object_ref_direction_to_object_ref(
+				self_obj_idx,
+				g_cur_craft->last_attacker_obj_idx);
+			threat_bearing = g_ai_threat_bearing_class_by_octant
 				[(uint16_t)(trig2_xyangle -
-					    g_objectTable[selfObjIdx].yaw) >>
+					    g_object_table[self_obj_idx].yaw) >>
 				 13];
-			ownMaxSpeed =
-				g_modelDefs[g_curCraft->modelIndex].maxSpeed;
-			attacker = g_objectTable[g_curCraft->lastAttackerObjIdx]
-					   .mobj;
+			own_max_speed = g_model_defs[g_cur_craft->model_index]
+						.max_speed;
+			attacker =
+				g_object_table[g_cur_craft
+						       ->last_attacker_obj_idx]
+					.mobj;
 			if (attacker->family == 0) {
-				attackerMaxSpeed =
-					g_modelDefs[attacker->pCraft
-							    ->modelIndex]
-						.maxSpeed;
+				attacker_max_speed =
+					g_model_defs[attacker->p_craft
+							     ->model_index]
+						.max_speed;
 			} else {
-				attackerMaxSpeed = 900;
+				attacker_max_speed = 900;
 			}
-			randomValue = (uint16_t)GameRand();
-			if (threatBearing == 1) {
+			random_value = (uint16_t)game_rand();
+			if (threat_bearing == 1) {
 				if (trig2_polardistance >= 0x2000 ||
-				    randomValue >= 0x4000) {
-					maneuverMode =
-						g_aiUnderAttackFrontSideManeuverChoices
-							[randomValue & 3];
+				    random_value >= 0x4000) {
+					maneuver_mode =
+						g_ai_under_attack_front_side_maneuver_choices
+							[random_value & 3];
 				} else {
-					maneuverMode =
+					maneuver_mode =
 						AI_MANEUVER_MODE_TURN_INSIDE;
 				}
-			} else if (threatBearing == 0) {
-				maneuverMode =
-					randomValue <= 0x8000
-						? g_aiUnderAttackFrontSideManeuverChoices
-							  [randomValue & 3]
+			} else if (threat_bearing == 0) {
+				maneuver_mode =
+					random_value <= 0x8000
+						? g_ai_under_attack_front_side_maneuver_choices
+							  [random_value & 3]
 						: AI_MANEUVER_MODE_HEAD_ON_ATTACK;
 			} else {
-				if (ownMaxSpeed < attackerMaxSpeed ||
+				if (own_max_speed < attacker_max_speed ||
 				    trig2_polardistance <= 0x8000) {
-					maneuverMode =
-						g_aiUnderAttackRearManeuverChoices
-							[randomValue & 7];
+					maneuver_mode =
+						g_ai_under_attack_rear_maneuver_choices
+							[random_value & 7];
 				} else {
-					maneuverMode =
+					maneuver_mode =
 						AI_MANEUVER_MODE_SPEED_AWAY;
 				}
 			}
-			g_paiContext.controller->maneuverMode = maneuverMode;
+			g_pai_context.controller->maneuver_mode = maneuver_mode;
 			paiman_initmaneuver();
 		}
 	}
 	return 0;
 }
 
-/* Order 3: returns 1, after setting lastAttackerObjIdx to 0xFFFF, when the
+/* Order 3: returns 1, after setting last_attacker_obj_idx to 0xFFFF, when the
  * craft is off its plan's maneuver and its recorded attacker is done: an object
  * in the projectile slots that is gone or no longer targets the craft, or
- * another object not within g_aiStillAttackLastAttackerRangeBySkill. Else 0.
- * Sets g_lastRoughDistance for an attacker that is not a warhead. */
+ * another object not within g_ai_still_attack_last_attacker_range_by_skill. Else 0.
+ * Sets g_last_rough_distance for an attacker that is not a warhead. */
 // FUNCTION: XVT 0x4666E0
 int16_t paiorder_stillattackorder(void)
 {
-	uint16_t lastAttackerObjIdx;
-	unsigned int attackerIndex;
-	uint16_t *lastAttackerObjIdxPtr;
-	struct ObjectRecord *attacker;
-	struct WarheadGuidanceState *guidance;
+	uint16_t last_attacker_obj_idx;
+	unsigned int attacker_index;
+	uint16_t *last_attacker_obj_idx_ptr;
+	struct object_record *attacker;
+	struct warhead_guidance_state *guidance;
 
-	if (g_paiContext.controller->maneuverMode !=
-	    g_paiContext.initialManeuverId) {
-		lastAttackerObjIdxPtr = &g_curCraft->lastAttackerObjIdx;
-		lastAttackerObjIdx = *lastAttackerObjIdxPtr;
-		if (lastAttackerObjIdx != UINT16_MAX) {
-			attackerIndex = lastAttackerObjIdx;
-			if (g_projectileObjectSlotStart <= (int)attackerIndex &&
-			    g_projectileObjectSlotEnd > (int)attackerIndex) {
-				attacker = &g_objectTable[attackerIndex];
-				guidance = attacker->mobj->pWarheadGuidance;
-				if (attacker->objectType == 0 ||
-				    guidance->targetObjIdx !=
-					    g_paiContext.objectIndex) {
-					*lastAttackerObjIdxPtr = UINT16_MAX;
+	if (g_pai_context.controller->maneuver_mode !=
+	    g_pai_context.initial_maneuver_id) {
+		last_attacker_obj_idx_ptr = &g_cur_craft->last_attacker_obj_idx;
+		last_attacker_obj_idx = *last_attacker_obj_idx_ptr;
+		if (last_attacker_obj_idx != UINT16_MAX) {
+			attacker_index = last_attacker_obj_idx;
+			if (g_projectile_object_slot_start <=
+				    (int)attacker_index &&
+			    g_projectile_object_slot_end >
+				    (int)attacker_index) {
+				attacker = &g_object_table[attacker_index];
+				guidance = attacker->mobj->p_warhead_guidance;
+				if (attacker->object_type == 0 ||
+				    guidance->target_obj_idx !=
+					    g_pai_context.object_index) {
+					*last_attacker_obj_idx_ptr = UINT16_MAX;
 					return 1;
 				}
 			} else if (
-				lastAttackerObjIdx != UINT16_MAX &&
-				!pai_IsObjectWithinRangeOfCraft(
-					attackerIndex,
+				last_attacker_obj_idx != UINT16_MAX &&
+				!pai_is_object_within_range_of_craft(
+					attacker_index,
 					(unsigned int)
-						g_aiStillAttackLastAttackerRangeBySkill
-							[g_paiContext
-								 .skillTier])) {
-				g_curCraft->lastAttackerObjIdx = UINT16_MAX;
+						g_ai_still_attack_last_attacker_range_by_skill
+							[g_pai_context
+								 .skill_tier])) {
+				g_cur_craft->last_attacker_obj_idx = UINT16_MAX;
 				return 1;
 			}
 		}
@@ -453,7 +464,7 @@ int16_t paiorder_stillattackorder(void)
  * units of the outside hangar point of its mothership, else 0. Sets its
  * separation to 1. The mothership is the leader of the captured departure
  * mothership group for a captured craft whose group leaves by one, else of the
- * departure mothership group when departureMethod is set, else of the alternate
+ * departure mothership group when departure_method is set, else of the alternate
  * one when used; one in a player's flight group does not count. With one, it
  * targets it, aims at the outside hangar point of its model and, through
  * paiman_setspeed, slows to speed 150 within 0x10000, 100 within 0x8000 and 75
@@ -463,138 +474,143 @@ int16_t paiorder_stillattackorder(void)
 // FUNCTION: XVT 0x4667B0
 int16_t paiorder_flyhomeorder(void)
 {
-	uint16_t mothershipObject;
-	uint8_t mothershipFlightGroup;
-	int modelIndex;
+	uint16_t mothership_object;
+	uint8_t mothership_flight_group;
+	int model_index;
 
-	g_curCraft->aiFlight.separation = 1;
-	mothershipObject = UINT16_MAX;
-	if (g_curCraft->capturedByFlightGroup != 0) {
-		if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-			    .fg.capturedDepartViaMothership != 0) {
-			mothershipFlightGroup =
-				g_missionFlightGroups
-					[g_paiContext.craftFlightGroupIndex]
-						.fg.capturedDepartureMothership;
-			mothershipObject =
-				pai_FindMothershipObject(mothershipFlightGroup);
+	g_cur_craft->ai_flight.separation = 1;
+	mothership_object = UINT16_MAX;
+	if (g_cur_craft->captured_by_flight_group != 0) {
+		if (g_mission_flight_groups[g_pai_context
+						    .craft_flight_group_index]
+			    .fg.captured_depart_via_mothership != 0) {
+			mothership_flight_group =
+				g_mission_flight_groups
+					[g_pai_context.craft_flight_group_index]
+						.fg
+						.captured_departure_mothership;
+			mothership_object = pai_find_mothership_object(
+				mothership_flight_group);
 		}
 	} else {
-		if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-			    .fg.departureMethod != 0) {
-			mothershipObject = pai_FindMothershipObject(
-				g_missionFlightGroups
-					[g_paiContext.craftFlightGroupIndex]
-						.fg.departureMothership);
+		if (g_mission_flight_groups[g_pai_context
+						    .craft_flight_group_index]
+			    .fg.departure_method != 0) {
+			mothership_object = pai_find_mothership_object(
+				g_mission_flight_groups
+					[g_pai_context.craft_flight_group_index]
+						.fg.departure_mothership);
 		}
-		if (mothershipObject == UINT16_MAX &&
-		    g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-				    .fg.alternateMothershipUsed != 0) {
-			mothershipObject = pai_FindMothershipObject(
-				g_missionFlightGroups
-					[g_paiContext.craftFlightGroupIndex]
-						.fg.alternateMothership);
+		if (mothership_object == UINT16_MAX &&
+		    g_mission_flight_groups[g_pai_context
+						    .craft_flight_group_index]
+				    .fg.alternate_mothership_used != 0) {
+			mothership_object = pai_find_mothership_object(
+				g_mission_flight_groups
+					[g_pai_context.craft_flight_group_index]
+						.fg.alternate_mothership);
 		}
 	}
-	if (mothershipObject != UINT16_MAX &&
-	    g_missionFlightGroups[g_objectTable[mothershipObject]
-					  .flightGroupIdx]
-			    .playerOwnerIdx != -1) {
-		mothershipObject = UINT16_MAX;
+	if (mothership_object != UINT16_MAX &&
+	    g_mission_flight_groups[g_object_table[mothership_object]
+					    .flight_group_idx]
+			    .player_owner_idx != -1) {
+		mothership_object = UINT16_MAX;
 	}
-	if (mothershipObject != UINT16_MAX) {
-		g_paiContext.controller->targetObjIdx = mothershipObject;
-		g_paiContext.controller->targetSignature =
-			g_objectTable[mothershipObject].objectSignature;
-		g_paiContext.controller->hasLiveTarget = 0;
-		modelIndex = g_objectTable[mothershipObject]
-				     .mobj->pCraft->modelIndex;
-		pai_RotateLocalVectorToWorldScratch(
-			&g_objectTable[mothershipObject],
-			g_modelDefs[modelIndex].hangarPoints.outside.side,
-			g_modelDefs[modelIndex].hangarPoints.outside.up,
-			g_modelDefs[modelIndex].hangarPoints.outside.forward);
-		g_paiContext.controller->aimPointX =
-			g_rotatedX + g_objectTable[mothershipObject].world_x;
-		g_paiContext.controller->aimPointY =
-			g_rotatedY + g_objectTable[mothershipObject].world_y;
-		g_paiContext.controller->aimPointZ =
-			g_rotatedZ + g_objectTable[mothershipObject].world_z;
-		pai_CalcAnglesToAimPoint();
+	if (mothership_object != UINT16_MAX) {
+		g_pai_context.controller->target_obj_idx = mothership_object;
+		g_pai_context.controller->target_signature =
+			g_object_table[mothership_object].object_signature;
+		g_pai_context.controller->has_live_target = 0;
+		model_index = g_object_table[mothership_object]
+				      .mobj->p_craft->model_index;
+		pai_rotate_local_vector_to_world_scratch(
+			&g_object_table[mothership_object],
+			g_model_defs[model_index].hangar_points.outside.side,
+			g_model_defs[model_index].hangar_points.outside.up,
+			g_model_defs[model_index]
+				.hangar_points.outside.forward);
+		g_pai_context.controller->aim_point_x =
+			g_rotated_x + g_object_table[mothership_object].world_x;
+		g_pai_context.controller->aim_point_y =
+			g_rotated_y + g_object_table[mothership_object].world_y;
+		g_pai_context.controller->aim_point_z =
+			g_rotated_z + g_object_table[mothership_object].world_z;
+		pai_calc_angles_to_aim_point();
 		if (trig2_polardistance < 0x10000) {
-			paiman_setspeed(g_paiContext.objectIndex, 0x96);
+			paiman_setspeed(g_pai_context.object_index, 0x96);
 		}
 		if (trig2_polardistance < 0x8000) {
-			paiman_setspeed(g_paiContext.objectIndex, 0x64);
+			paiman_setspeed(g_pai_context.object_index, 0x64);
 		}
 		if (trig2_polardistance < 0x4000) {
-			paiman_setspeed(g_paiContext.objectIndex, 0x4B);
+			paiman_setspeed(g_pai_context.object_index, 0x4B);
 		}
 		return trig2_polardistance < 2048;
 	}
 
-	if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-		    .fg.missionPointEnabled[13] != 0) {
-		g_paiContext.controller->targetObjIdx = 0x800D;
+	if (g_mission_flight_groups[g_pai_context.craft_flight_group_index]
+		    .fg.mission_point_enabled[13] != 0) {
+		g_pai_context.controller->target_obj_idx = 0x800D;
 	} else {
-		g_paiContext.controller->targetObjIdx = 0x8000;
+		g_pai_context.controller->target_obj_idx = 0x8000;
 	}
-	g_paiContext.controller->targetSignature = 0;
-	g_paiContext.controller->hasLiveTarget = 0;
-	pai_UpdateAimPointFromOrderTarget();
+	g_pai_context.controller->target_signature = 0;
+	g_pai_context.controller->has_live_target = 0;
+	pai_update_aim_point_from_order_target();
 	return 0;
 }
 
 /* Order 45: aims the craft at formation slot 0 of flight group variable2 minus
- * 1, as Mission_ResolveFormationSlotWorldLoc places it, plus 932 in Z, and
- * returns 1 once within 2,048 world units, setting waypointIndex to 0; else 0.
+ * 1, as mission_resolve_formation_slot_world_loc places it, plus 932 in Z, and
+ * returns 1 once within 2,048 world units, setting waypoint_index to 0; else 0.
  * Returns 0 at once when that group has any arrived outcome. Sets the throttle
  * to 0xC000 within 0x4000 and to 0x6000 within 4,096. Sets the g_worldLoc and
  * trig2_ globals. */
 // FUNCTION: XVT 0x46A140
 int16_t paiorder_dropoffdestorder(void)
 {
-	struct MissionOrder *order =
-		&g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-			 .fg.orders[g_paiContext.orderSlot];
-	uint16_t destinationFlightGroup = (uint16_t)(order->variable2 - 1);
+	struct mission_order *order =
+		&g_mission_flight_groups[g_pai_context.craft_flight_group_index]
+			 .fg.orders[g_pai_context.order_slot];
+	uint16_t destination_flight_group = (uint16_t)(order->variable2 - 1);
 
-	if (g_missionFgStats[destinationFlightGroup]
-		    .outcomeCount[FLIGHT_GROUP_OUTCOME_ARRIVED] != 0) {
+	if (g_mission_fg_stats[destination_flight_group]
+		    .outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED] != 0) {
 		return 0;
 	}
 
-	Mission_ResolveFormationSlotWorldLoc(destinationFlightGroup, 0,
-					     UINT16_MAX);
-	g_paiContext.controller->aimPointX = g_worldLocX;
-	g_paiContext.controller->aimPointY = g_worldLocY;
-	g_paiContext.controller->aimPointZ = g_worldLocZ + 932;
-	pai_CalcAnglesToAimPoint();
+	mission_resolve_formation_slot_world_loc(destination_flight_group, 0,
+						 UINT16_MAX);
+	g_pai_context.controller->aim_point_x = g_world_loc_x;
+	g_pai_context.controller->aim_point_y = g_world_loc_y;
+	g_pai_context.controller->aim_point_z = g_world_loc_z + 932;
+	pai_calc_angles_to_aim_point();
 	if (trig2_polardistance < 0x4000) {
-		paiman_setpower(g_paiContext.objectIndex, 0xC000);
+		paiman_setpower(g_pai_context.object_index, 0xC000);
 	}
 	if (trig2_polardistance < 4096) {
-		paiman_setpower(g_paiContext.objectIndex, 0x6000);
+		paiman_setpower(g_pai_context.object_index, 0x6000);
 	}
 	if (trig2_polardistance >= 2048) {
 		return 0;
 	}
 
-	g_paiContext.controller->waypointIndex = 0;
+	g_pai_context.controller->waypoint_index = 0;
 	return 1;
 }
 
 /* Order 21: flies into the mothership's hangar and removes the craft there.
- * Sets its separation to 1 and thinkInterval to 29 ticks. The mothership is the
+ * Sets its separation to 1 and think_interval to 29 ticks. The mothership is the
  * leader of the captured departure mothership group for a captured craft, else
  * of the departure mothership group, else of the alternate one when used;
- * departureMethod, capturedDepartViaMothership and a player's ownership are not
+ * departure_method, captured_depart_via_mothership and a player's ownership are not
  * checked here. With one it targets it, aims at the inside hangar point of its
  * model and sets the speed to the mothership's plus 25, or 40 when the
  * mothership is below 25. Within 1,024 world units of that point (512 for a
  * craft not a starship) it removes every AI-flown craft of its flight group
  * that follows a leader in the follow-leader maneuver, then itself and the
- * object it carries: for each it adds to g_missionFgStats the departure
+ * object it carries: for each it adds to g_mission_fg_stats the departure
  * outcomes and team scores its flags call for, records the outcome by
  * mothership kind and frees the object, emitting message 141 for each craft.
  * Returns 0 with a mothership; with none, sets the speed to 35 and returns 1.
@@ -602,388 +618,412 @@ int16_t paiorder_dropoffdestorder(void)
 // FUNCTION: XVT 0x466A70
 int16_t paiorder_enterhangarorder(void)
 {
-	uint16_t objectIndex;
-	uint16_t mothershipObject;
-	uint16_t outcomeId;
+	uint16_t object_index;
+	uint16_t mothership_object;
+	uint16_t outcome_id;
 	unsigned int team;
-	unsigned int otherTeam;
-	uint16_t carriedObjectIndex;
-	uint16_t carriedGroupIndex;
-	struct CraftData *carriedCraft;
-	int specialCargo;
+	unsigned int other_team;
+	uint16_t carried_object_index;
+	uint16_t carried_group_index;
+	struct craft_data *carried_craft;
+	int special_cargo;
 
-	g_curCraft->aiFlight.separation = 1;
-	g_paiContext.controller->thinkInterval = 29;
-	if (g_curCraft->capturedByFlightGroup != 0) {
-		mothershipObject = pai_FindMothershipObject(
-			g_missionFlightGroups[g_paiContext
-						      .craftFlightGroupIndex]
-				.fg.capturedDepartureMothership);
-		outcomeId = FLIGHT_GROUP_OUTCOME_CAPTURED_MOTHERSHIP_DEPENDENT;
+	g_cur_craft->ai_flight.separation = 1;
+	g_pai_context.controller->think_interval = 29;
+	if (g_cur_craft->captured_by_flight_group != 0) {
+		mothership_object = pai_find_mothership_object(
+			g_mission_flight_groups
+				[g_pai_context.craft_flight_group_index]
+					.fg.captured_departure_mothership);
+		outcome_id = FLIGHT_GROUP_OUTCOME_CAPTURED_MOTHERSHIP_DEPENDENT;
 	} else {
-		mothershipObject = pai_FindMothershipObject(
-			g_missionFlightGroups[g_paiContext
-						      .craftFlightGroupIndex]
-				.fg.departureMothership);
-		outcomeId = FLIGHT_GROUP_OUTCOME_PRIMARY_MOTHERSHIP_DEPENDENT;
-		if (mothershipObject == UINT16_MAX &&
-		    g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-				    .fg.alternateMothershipUsed != 0) {
-			mothershipObject = pai_FindMothershipObject(
-				g_missionFlightGroups
-					[g_paiContext.craftFlightGroupIndex]
-						.fg.alternateMothership);
-			outcomeId =
+		mothership_object = pai_find_mothership_object(
+			g_mission_flight_groups
+				[g_pai_context.craft_flight_group_index]
+					.fg.departure_mothership);
+		outcome_id = FLIGHT_GROUP_OUTCOME_PRIMARY_MOTHERSHIP_DEPENDENT;
+		if (mothership_object == UINT16_MAX &&
+		    g_mission_flight_groups[g_pai_context
+						    .craft_flight_group_index]
+				    .fg.alternate_mothership_used != 0) {
+			mothership_object = pai_find_mothership_object(
+				g_mission_flight_groups
+					[g_pai_context.craft_flight_group_index]
+						.fg.alternate_mothership);
+			outcome_id =
 				FLIGHT_GROUP_OUTCOME_ALTERNATE_MOTHERSHIP_DEPENDENT;
 		}
 	}
-	if (mothershipObject != UINT16_MAX) {
-		uint16_t modelIndex;
+	if (mothership_object != UINT16_MAX) {
+		uint16_t model_index;
 
-		g_paiContext.controller->targetObjIdx = mothershipObject;
-		g_paiContext.controller->targetSignature =
-			g_objectTable[mothershipObject].objectSignature;
-		g_paiContext.controller->hasLiveTarget = 0;
-		modelIndex = g_objectTable[mothershipObject]
-				     .mobj->pCraft->modelIndex;
-		pai_RotateLocalVectorToWorldScratch(
-			&g_objectTable[mothershipObject],
-			g_modelDefs[modelIndex].hangarPoints.inside.side,
-			g_modelDefs[modelIndex].hangarPoints.inside.up,
-			g_modelDefs[modelIndex].hangarPoints.inside.forward);
-		g_paiContext.controller->aimPointX =
-			g_rotatedX + g_objectTable[mothershipObject].world_x;
-		g_paiContext.controller->aimPointY =
-			g_rotatedY + g_objectTable[mothershipObject].world_y;
-		g_paiContext.controller->aimPointZ =
-			g_rotatedZ + g_objectTable[mothershipObject].world_z;
+		g_pai_context.controller->target_obj_idx = mothership_object;
+		g_pai_context.controller->target_signature =
+			g_object_table[mothership_object].object_signature;
+		g_pai_context.controller->has_live_target = 0;
+		model_index = g_object_table[mothership_object]
+				      .mobj->p_craft->model_index;
+		pai_rotate_local_vector_to_world_scratch(
+			&g_object_table[mothership_object],
+			g_model_defs[model_index].hangar_points.inside.side,
+			g_model_defs[model_index].hangar_points.inside.up,
+			g_model_defs[model_index].hangar_points.inside.forward);
+		g_pai_context.controller->aim_point_x =
+			g_rotated_x + g_object_table[mothership_object].world_x;
+		g_pai_context.controller->aim_point_y =
+			g_rotated_y + g_object_table[mothership_object].world_y;
+		g_pai_context.controller->aim_point_z =
+			g_rotated_z + g_object_table[mothership_object].world_z;
 	}
-	pai_CalcAnglesToAimPoint();
-	if (mothershipObject != UINT16_MAX) {
-		if (g_objectTable[mothershipObject].mobj->speed >= 25) {
+	pai_calc_angles_to_aim_point();
+	if (mothership_object != UINT16_MAX) {
+		if (g_object_table[mothership_object].mobj->speed >= 25) {
 			paiman_setspeed(
-				g_paiContext.objectIndex,
-				g_objectTable[mothershipObject].mobj->speed +
+				g_pai_context.object_index,
+				g_object_table[mothership_object].mobj->speed +
 					25);
 		} else {
-			paiman_setspeed(g_paiContext.objectIndex, 40);
+			paiman_setspeed(g_pai_context.object_index, 40);
 		}
 
-		if ((g_objectTable[g_paiContext.objectIndex].genusId ==
+		if ((g_object_table[g_pai_context.object_index].genus_id ==
 				     CRAFT_GENUS_STARSHIP
 			     ? 1024
 			     : 512) > trig2_polardistance) {
-			for (objectIndex =
-				     (uint16_t)g_activeRegionObjectSlotStart;
-			     objectIndex < g_activeRegionCraftObjectSlotEnd;
-			     ++objectIndex) {
-				int tableIndex;
-				struct ObjectRecord *object;
-				struct CraftData *otherCraft;
-				struct AiController *otherController;
+			for (object_index = (uint16_t)
+				     g_active_region_object_slot_start;
+			     object_index <
+			     g_active_region_craft_object_slot_end;
+			     ++object_index) {
+				int table_index;
+				struct object_record *object;
+				struct craft_data *other_craft;
+				struct ai_controller *other_controller;
 
-				tableIndex = objectIndex;
-				object = &g_objectTable[tableIndex];
-				if (object->objectType == 0 ||
-				    object->flightGroupIdx !=
-					    g_paiContext
-						    .craftFlightGroupIndex) {
+				table_index = object_index;
+				object = &g_object_table[table_index];
+				if (object->object_type == 0 ||
+				    object->flight_group_idx !=
+					    g_pai_context
+						    .craft_flight_group_index) {
 					continue;
 				}
-				otherCraft = object->mobj->pCraft;
-				otherController = &otherCraft->aiController;
-				if (otherCraft->leader_obj_idx == UINT8_MAX ||
-				    otherController->maneuverMode !=
+				other_craft = object->mobj->p_craft;
+				other_controller = &other_craft->ai_controller;
+				if (other_craft->leader_obj_idx == UINT8_MAX ||
+				    other_controller->maneuver_mode !=
 					    AI_MANEUVER_MODE_FOLLOW_LEADER ||
-				    object->playerOwnerIdx != -1) {
+				    object->player_owner_idx != -1) {
 					continue;
 				}
-				if (otherCraft->capturedByFlightGroup == 0) {
-					if (otherController->skippedToOrder4 ==
+				if (other_craft->captured_by_flight_group ==
+				    0) {
+					if (other_controller->skipped_to_order4 ==
 						    0 &&
-					    (otherCraft->aiFlight.goHomeFlag !=
+					    (other_craft->ai_flight
+							     .go_home_flag !=
 						     0 ||
-					     (otherCraft->aiFlight
-							      .missionAbortedFlag ==
+					     (other_craft->ai_flight
+							      .mission_aborted_flag ==
 						      0 &&
-					      otherCraft->aiFlight
-							      .departTimerFlag ==
+					      other_craft->ai_flight
+							      .depart_timer_flag ==
 						      0))) {
-						specialCargo = 0;
-						++g_missionFgStats[g_paiContext
-									   .craftFlightGroupIndex]
-							  .outcomeCount
+						special_cargo = 0;
+						++g_mission_fg_stats[g_pai_context
+									     .craft_flight_group_index]
+							  .outcome_count
 								  [FLIGHT_GROUP_OUTCOME_DEPARTED];
-						if (g_missionFlightGroups
-							    [g_paiContext
-								     .craftFlightGroupIndex]
+						if (g_mission_flight_groups
+							    [g_pai_context
+								     .craft_flight_group_index]
 								    .fg
-								    .specialCargoCraft ==
-						    otherCraft->craftOrdinal) {
-							g_missionFgStats[g_paiContext
-										 .craftFlightGroupIndex]
-								.specialCargoOutcome
+								    .special_cargo_craft ==
+						    other_craft
+							    ->craft_ordinal) {
+							g_mission_fg_stats[g_pai_context
+										   .craft_flight_group_index]
+								.special_cargo_outcome
 									[FLIGHT_GROUP_OUTCOME_DEPARTED] =
 								1;
-							specialCargo = 1;
+							special_cargo = 1;
 						}
-						Mission_ApplyTeamGoalScoreAllEnabledTeams(
+						mission_apply_team_goal_score_all_enabled_teams(
 							12,
-							g_paiContext
-								.craftFlightGroupIndex,
-							specialCargo);
+							g_pai_context
+								.craft_flight_group_index,
+							special_cargo);
 					}
-					if (otherCraft->capturedByFlightGroup ==
+					if (other_craft->captured_by_flight_group ==
 						    0 &&
-					    otherController->skippedToOrder4 ==
+					    other_controller->skipped_to_order4 ==
 						    1 &&
-					    otherCraft->aiFlight
-							    .missionAbortedFlag ==
+					    other_craft->ai_flight
+							    .mission_aborted_flag ==
 						    0 &&
-					    otherCraft->aiFlight
-							    .departTimerFlag ==
+					    other_craft->ai_flight
+							    .depart_timer_flag ==
 						    0) {
-						++g_missionFgStats[g_paiContext
-									   .craftFlightGroupIndex]
-							  .outcomeCount
+						++g_mission_fg_stats[g_pai_context
+									     .craft_flight_group_index]
+							  .outcome_count
 								  [FLIGHT_GROUP_OUTCOME_DEPARTED_WITH_ORDER_INCOMPLETE];
-						if (g_missionFlightGroups
-							    [g_paiContext
-								     .craftFlightGroupIndex]
+						if (g_mission_flight_groups
+							    [g_pai_context
+								     .craft_flight_group_index]
 								    .fg
-								    .specialCargoCraft ==
-						    otherCraft->craftOrdinal) {
-							g_missionFgStats[g_paiContext
-										 .craftFlightGroupIndex]
-								.specialCargoOutcome
+								    .special_cargo_craft ==
+						    other_craft
+							    ->craft_ordinal) {
+							g_mission_fg_stats[g_pai_context
+										   .craft_flight_group_index]
+								.special_cargo_outcome
 									[FLIGHT_GROUP_OUTCOME_DEPARTED_WITH_ORDER_INCOMPLETE] =
 								1;
 						}
 					}
 				}
-				msg_emitCraftMessage(objectIndex, otherCraft,
-						     141);
-				Mission_RecordCraftOutcome(
-					objectIndex,
-					g_paiContext.craftFlightGroupIndex,
-					outcomeId);
-				g_objectTable[tableIndex].objectType = 0;
-				Craft_FreeLinkedObjects(otherCraft);
+				msg_emit_craft_message(object_index,
+						       other_craft, 141);
+				mission_record_craft_outcome(
+					object_index,
+					g_pai_context.craft_flight_group_index,
+					outcome_id);
+				g_object_table[table_index].object_type = 0;
+				craft_free_linked_objects(other_craft);
 			}
 
-			if (g_curCraft->capturedByFlightGroup == 0 &&
-			    g_paiContext.controller->skippedToOrder4 == 0 &&
-			    (g_curCraft->aiFlight.goHomeFlag != 0 ||
-			     (g_curCraft->aiFlight.missionAbortedFlag == 0 &&
-			      g_curCraft->aiFlight.departTimerFlag == 0))) {
-				++g_missionFgStats[g_paiContext
-							   .craftFlightGroupIndex]
-					  .outcomeCount
+			if (g_cur_craft->captured_by_flight_group == 0 &&
+			    g_pai_context.controller->skipped_to_order4 == 0 &&
+			    (g_cur_craft->ai_flight.go_home_flag != 0 ||
+			     (g_cur_craft->ai_flight.mission_aborted_flag ==
+				      0 &&
+			      g_cur_craft->ai_flight.depart_timer_flag == 0))) {
+				++g_mission_fg_stats[g_pai_context
+							     .craft_flight_group_index]
+					  .outcome_count
 						  [FLIGHT_GROUP_OUTCOME_DEPARTED];
-				specialCargo = 0;
-				if (g_missionFlightGroups
-					    [g_paiContext.craftFlightGroupIndex]
-						    .fg.specialCargoCraft ==
-				    g_curCraft->craftOrdinal) {
-					g_missionFgStats[g_paiContext
-								 .craftFlightGroupIndex]
-						.specialCargoOutcome
+				special_cargo = 0;
+				if (g_mission_flight_groups
+					    [g_pai_context
+						     .craft_flight_group_index]
+						    .fg.special_cargo_craft ==
+				    g_cur_craft->craft_ordinal) {
+					g_mission_fg_stats[g_pai_context
+								   .craft_flight_group_index]
+						.special_cargo_outcome
 							[FLIGHT_GROUP_OUTCOME_DEPARTED] =
 						1;
-					specialCargo = 1;
+					special_cargo = 1;
 				}
-				Mission_ApplyTeamGoalScoreAllEnabledTeams(
-					12, g_paiContext.craftFlightGroupIndex,
-					specialCargo);
+				mission_apply_team_goal_score_all_enabled_teams(
+					12,
+					g_pai_context.craft_flight_group_index,
+					special_cargo);
 			}
-			if (g_curCraft->capturedByFlightGroup == 0 &&
-			    g_paiContext.controller->skippedToOrder4 == 1 &&
-			    g_curCraft->aiFlight.missionAbortedFlag == 0 &&
-			    g_curCraft->aiFlight.departTimerFlag == 0) {
-				++g_missionFgStats[g_paiContext
-							   .craftFlightGroupIndex]
-					  .outcomeCount
+			if (g_cur_craft->captured_by_flight_group == 0 &&
+			    g_pai_context.controller->skipped_to_order4 == 1 &&
+			    g_cur_craft->ai_flight.mission_aborted_flag == 0 &&
+			    g_cur_craft->ai_flight.depart_timer_flag == 0) {
+				++g_mission_fg_stats[g_pai_context
+							     .craft_flight_group_index]
+					  .outcome_count
 						  [FLIGHT_GROUP_OUTCOME_DEPARTED_WITH_ORDER_INCOMPLETE];
-				if (g_missionFlightGroups
-					    [g_paiContext.craftFlightGroupIndex]
-						    .fg.specialCargoCraft ==
-				    g_curCraft->craftOrdinal) {
-					g_missionFgStats[g_paiContext
-								 .craftFlightGroupIndex]
-						.specialCargoOutcome
+				if (g_mission_flight_groups
+					    [g_pai_context
+						     .craft_flight_group_index]
+						    .fg.special_cargo_craft ==
+				    g_cur_craft->craft_ordinal) {
+					g_mission_fg_stats[g_pai_context
+								   .craft_flight_group_index]
+						.special_cargo_outcome
 							[FLIGHT_GROUP_OUTCOME_DEPARTED_WITH_ORDER_INCOMPLETE] =
 						1;
 				}
 			}
-			if (g_curCraft->capturedByFlightGroup != 0) {
-				team = g_objectTable[g_paiContext.objectIndex]
+			if (g_cur_craft->captured_by_flight_group != 0) {
+				team = g_object_table[g_pai_context
+							      .object_index]
 					       .mobj->team;
-				++g_missionFgStats
-					  [g_paiContext.craftFlightGroupIndex]
-						  .teamCapturedDepartedCount
+				++g_mission_fg_stats
+					  [g_pai_context
+						   .craft_flight_group_index]
+						  .team_captured_departed_count
 							  [team];
-				specialCargo = 0;
-				if (g_missionFlightGroups
-					    [g_paiContext.craftFlightGroupIndex]
-						    .fg.specialCargoCraft ==
-				    g_curCraft->craftOrdinal) {
-					++g_missionFgStats
-						  [g_paiContext
-							   .craftFlightGroupIndex]
-							  .teamSpecialCargoCapturedDeparted
+				special_cargo = 0;
+				if (g_mission_flight_groups
+					    [g_pai_context
+						     .craft_flight_group_index]
+						    .fg.special_cargo_craft ==
+				    g_cur_craft->craft_ordinal) {
+					++g_mission_fg_stats
+						  [g_pai_context
+							   .craft_flight_group_index]
+							  .team_special_cargo_captured_departed
 								  [team];
-					specialCargo = 1;
+					special_cargo = 1;
 				}
-				Mission_ApplyTeamGoalScoreForTeam(
-					44, g_paiContext.craftFlightGroupIndex,
-					specialCargo, (uint8_t)team);
-				for (otherTeam = 0; otherTeam < 10;
-				     ++otherTeam) {
-					if (otherTeam != team &&
-					    g_missionFlightGroups
-							    [g_paiContext
-								     .craftFlightGroupIndex]
+				mission_apply_team_goal_score_for_team(
+					44,
+					g_pai_context.craft_flight_group_index,
+					special_cargo, (uint8_t)team);
+				for (other_team = 0; other_team < 10;
+				     ++other_team) {
+					if (other_team != team &&
+					    g_mission_flight_groups
+							    [g_pai_context
+								     .craft_flight_group_index]
 								    .fg.team !=
-						    otherTeam) {
-						++g_missionFgStats[g_paiContext
-									   .craftFlightGroupIndex]
-							  .teamUncapturedLost
-								  [otherTeam];
-						if (g_missionFlightGroups
-							    [g_paiContext
-								     .craftFlightGroupIndex]
+						    other_team) {
+						++g_mission_fg_stats[g_pai_context
+									     .craft_flight_group_index]
+							  .team_uncaptured_lost
+								  [other_team];
+						if (g_mission_flight_groups
+							    [g_pai_context
+								     .craft_flight_group_index]
 								    .fg
-								    .specialCargoCraft ==
-						    g_curCraft->craftOrdinal) {
-							g_missionFgStats[g_paiContext
-										 .craftFlightGroupIndex]
-								.teamSpecialCargoUncapturedLost
-									[otherTeam] =
+								    .special_cargo_craft ==
+						    g_cur_craft
+							    ->craft_ordinal) {
+							g_mission_fg_stats[g_pai_context
+										   .craft_flight_group_index]
+								.team_special_cargo_uncaptured_lost
+									[other_team] =
 								1;
 						}
 					}
 				}
 			}
-			msg_emitCraftMessage(g_paiContext.objectIndex,
-					     g_curCraft, 141);
-			Mission_RecordCraftOutcome(
-				g_paiContext.objectIndex,
-				g_paiContext.craftFlightGroupIndex, outcomeId);
-			g_objectTable[g_paiContext.objectIndex].objectType = 0;
-			Craft_FreeLinkedObjects(g_curCraft);
+			msg_emit_craft_message(g_pai_context.object_index,
+					       g_cur_craft, 141);
+			mission_record_craft_outcome(
+				g_pai_context.object_index,
+				g_pai_context.craft_flight_group_index,
+				outcome_id);
+			g_object_table[g_pai_context.object_index].object_type =
+				0;
+			craft_free_linked_objects(g_cur_craft);
 
-			carriedObjectIndex = g_curCraft->carriedObjectIndex;
-			if (carriedObjectIndex != UINT16_MAX &&
-			    g_objectTable[carriedObjectIndex].mobj != NULL) {
-				carriedGroupIndex =
-					g_objectTable[carriedObjectIndex]
-						.flightGroupIdx;
-				Mission_RecordCraftOutcome(carriedObjectIndex,
-							   carriedGroupIndex,
-							   outcomeId);
-				carriedCraft = g_objectTable[carriedObjectIndex]
-						       .mobj->pCraft;
-				if (carriedCraft->capturedByFlightGroup != 0) {
-					team = g_objectTable[carriedObjectIndex]
-						       .mobj->team;
-					++g_missionFgStats[carriedGroupIndex]
-						  .teamCapturedDepartedCount
+			carried_object_index =
+				g_cur_craft->carried_object_index;
+			if (carried_object_index != UINT16_MAX &&
+			    g_object_table[carried_object_index].mobj != NULL) {
+				carried_group_index =
+					g_object_table[carried_object_index]
+						.flight_group_idx;
+				mission_record_craft_outcome(
+					carried_object_index,
+					carried_group_index, outcome_id);
+				carried_craft =
+					g_object_table[carried_object_index]
+						.mobj->p_craft;
+				if (carried_craft->captured_by_flight_group !=
+				    0) {
+					team = g_object_table
+						       [carried_object_index]
+							       .mobj->team;
+					++g_mission_fg_stats[carried_group_index]
+						  .team_captured_departed_count
 							  [team];
-					specialCargo = 0;
-					if (g_missionFlightGroups
-						    [carriedGroupIndex]
+					special_cargo = 0;
+					if (g_mission_flight_groups
+						    [carried_group_index]
 							    .fg
-							    .specialCargoCraft ==
-					    carriedCraft->craftOrdinal) {
-						++g_missionFgStats[carriedGroupIndex]
-							  .teamSpecialCargoCapturedDeparted
-								  [team];
-						specialCargo = 1;
+							    .special_cargo_craft ==
+					    carried_craft->craft_ordinal) {
+						++g_mission_fg_stats
+							  [carried_group_index]
+								  .team_special_cargo_captured_departed
+									  [team];
+						special_cargo = 1;
 					}
-					Mission_ApplyTeamGoalScoreForTeam(
-						44, carriedGroupIndex,
-						specialCargo, (uint8_t)team);
-					for (otherTeam = 0; otherTeam < 10;
-					     ++otherTeam) {
-						if (otherTeam != team &&
-						    g_missionFlightGroups
-								    [carriedGroupIndex]
+					mission_apply_team_goal_score_for_team(
+						44, carried_group_index,
+						special_cargo, (uint8_t)team);
+					for (other_team = 0; other_team < 10;
+					     ++other_team) {
+						if (other_team != team &&
+						    g_mission_flight_groups
+								    [carried_group_index]
 									    .fg
 									    .team !=
-							    otherTeam) {
-							++g_missionFgStats[carriedGroupIndex]
-								  .teamUncapturedLost
-									  [otherTeam];
-							if (g_missionFlightGroups
-								    [carriedGroupIndex]
+							    other_team) {
+							++g_mission_fg_stats[carried_group_index]
+								  .team_uncaptured_lost
+									  [other_team];
+							if (g_mission_flight_groups
+								    [carried_group_index]
 									    .fg
-									    .specialCargoCraft ==
-							    carriedCraft
-								    ->craftOrdinal) {
-								g_missionFgStats[carriedGroupIndex]
-									.teamSpecialCargoUncapturedLost
-										[otherTeam] =
+									    .special_cargo_craft ==
+							    carried_craft
+								    ->craft_ordinal) {
+								g_mission_fg_stats[carried_group_index]
+									.team_special_cargo_uncaptured_lost
+										[other_team] =
 									1;
 							}
 						}
 					}
-					++g_missionFgStats[carriedGroupIndex].outcomeCount
-						  [FLIGHT_GROUP_OUTCOME_NOT_CAPTURED_BY_DESTINATION];
-					if (g_missionFlightGroups
-						    [carriedGroupIndex]
+					++g_mission_fg_stats[carried_group_index]
+						  .outcome_count
+							  [FLIGHT_GROUP_OUTCOME_NOT_CAPTURED_BY_DESTINATION];
+					if (g_mission_flight_groups
+						    [carried_group_index]
 							    .fg
-							    .specialCargoCraft ==
-					    carriedCraft->craftOrdinal) {
-						g_missionFgStats[carriedGroupIndex]
-							.specialCargoOutcome
+							    .special_cargo_craft ==
+					    carried_craft->craft_ordinal) {
+						g_mission_fg_stats[carried_group_index]
+							.special_cargo_outcome
 								[FLIGHT_GROUP_OUTCOME_NOT_CAPTURED_BY_DESTINATION] =
 							1;
 					}
 				} else {
-					++g_missionFgStats[carriedGroupIndex].outcomeCount
-						  [FLIGHT_GROUP_OUTCOME_CAPTURED_BY_DESTINATION];
-					specialCargo = 0;
-					if (g_missionFlightGroups
-						    [carriedGroupIndex]
+					++g_mission_fg_stats[carried_group_index]
+						  .outcome_count
+							  [FLIGHT_GROUP_OUTCOME_CAPTURED_BY_DESTINATION];
+					special_cargo = 0;
+					if (g_mission_flight_groups
+						    [carried_group_index]
 							    .fg
-							    .specialCargoCraft ==
-					    carriedCraft->craftOrdinal) {
-						g_missionFgStats[carriedGroupIndex]
-							.specialCargoOutcome
+							    .special_cargo_craft ==
+					    carried_craft->craft_ordinal) {
+						g_mission_fg_stats[carried_group_index]
+							.special_cargo_outcome
 								[FLIGHT_GROUP_OUTCOME_CAPTURED_BY_DESTINATION] =
 							1;
-						specialCargo = 1;
+						special_cargo = 1;
 					}
-					Mission_ApplyTeamGoalScoreAllEnabledTeams(
-						46, carriedGroupIndex,
-						specialCargo);
+					mission_apply_team_goal_score_all_enabled_teams(
+						46, carried_group_index,
+						special_cargo);
 				}
-				g_objectTable[carriedObjectIndex].objectType =
-					0;
-				Craft_FreeLinkedObjects(carriedCraft);
+				g_object_table[carried_object_index]
+					.object_type = 0;
+				craft_free_linked_objects(carried_craft);
 			}
 		}
 		return 0;
 	}
-	paiman_setspeed(g_paiContext.objectIndex, 35);
+	paiman_setspeed(g_pai_context.object_index, 35);
 	return 1;
 }
 
 /* Order 10: returns 1 when the craft is on its plan's maneuver and its target
  * is closer, by rough distance, than its effective skill value plus 0x20000
- * world units; else 0. Does not check that targetObjIdx names an object. Sets
- * g_lastRoughDistance. */
+ * world units; else 0. Does not check that target_obj_idx names an object. Sets
+ * g_last_rough_distance. */
 // FUNCTION: XVT 0x467320
 int16_t paiorder_waitrunorder(void)
 {
-	uint16_t effectiveSkill;
+	uint16_t effective_skill;
 
-	if (g_paiContext.controller->maneuverMode ==
-	    g_paiContext.initialManeuverId) {
-		effectiveSkill = pai_GetEffectiveSkillValue(g_curCraft);
-		if (pai_IsObjectWithinRangeOfCraft(
-			    g_paiContext.controller->targetObjIdx,
-			    (unsigned int)effectiveSkill + 0x20000) == 1) {
+	if (g_pai_context.controller->maneuver_mode ==
+	    g_pai_context.initial_maneuver_id) {
+		effective_skill = pai_get_effective_skill_value(g_cur_craft);
+		if (pai_is_object_within_range_of_craft(
+			    g_pai_context.controller->target_obj_idx,
+			    (unsigned int)effective_skill + 0x20000) == 1) {
 			return 1;
 		}
 	}
@@ -997,87 +1037,91 @@ int16_t paiorder_waitrunorder(void)
  * clearing only the candidate. Then it drops the target and returns 1 when it
  * is a player's craft with its decoy beam on farther than 0x4000, or, in a
  * version 14 mission, has no working subsystems and is neither the candidate
- * nor a target of the current order. Else 0. Sets g_lastRoughDistance on the
+ * nor a target of the current order. Else 0. Sets g_last_rough_distance on the
  * decoy test. */
 // FUNCTION: XVT 0x467380
 int16_t paiorder_breakofforder(void)
 {
-	uint16_t targetObjIdx = g_paiContext.controller->targetObjIdx;
-	int targetValid;
-	uint16_t targetWorkingSubsystems;
+	uint16_t target_obj_idx = g_pai_context.controller->target_obj_idx;
+	int target_valid;
+	uint16_t target_working_subsystems;
 
-	if (g_curCraft->playerCommandAvoidTargetObjIdx == targetObjIdx) {
-		g_paiContext.controller->targetObjIdx = UINT16_MAX;
-		g_paiContext.controller->targetSignature = 0;
-		g_paiContext.controller->hasLiveTarget = 0;
-		g_paiContext.controller->candidateTargetIdx = UINT16_MAX;
+	if (g_cur_craft->player_command_avoid_target_obj_idx ==
+	    target_obj_idx) {
+		g_pai_context.controller->target_obj_idx = UINT16_MAX;
+		g_pai_context.controller->target_signature = 0;
+		g_pai_context.controller->has_live_target = 0;
+		g_pai_context.controller->candidate_target_idx = UINT16_MAX;
 		return 1;
 	}
 
-	targetValid = pai_IsObjectTargetable(targetObjIdx);
+	target_valid = pai_is_object_targetable(target_obj_idx);
 
-	if (targetValid == 0) {
-		g_paiContext.controller->targetObjIdx = UINT16_MAX;
-		g_paiContext.controller->targetSignature = 0;
-		g_paiContext.controller->hasLiveTarget = 0;
-		g_paiContext.controller->candidateTargetIdx = UINT16_MAX;
+	if (target_valid == 0) {
+		g_pai_context.controller->target_obj_idx = UINT16_MAX;
+		g_pai_context.controller->target_signature = 0;
+		g_pai_context.controller->has_live_target = 0;
+		g_pai_context.controller->candidate_target_idx = UINT16_MAX;
 		return 1;
 	}
 
-	if (g_paiContext.controller->targetSignature !=
-	    g_objectTable[targetObjIdx].objectSignature) {
-		g_paiContext.controller->targetObjIdx = UINT16_MAX;
-		g_paiContext.controller->targetSignature = 0;
-		g_paiContext.controller->hasLiveTarget = 0;
-		g_paiContext.controller->candidateTargetIdx = UINT16_MAX;
+	if (g_pai_context.controller->target_signature !=
+	    g_object_table[target_obj_idx].object_signature) {
+		g_pai_context.controller->target_obj_idx = UINT16_MAX;
+		g_pai_context.controller->target_signature = 0;
+		g_pai_context.controller->has_live_target = 0;
+		g_pai_context.controller->candidate_target_idx = UINT16_MAX;
 		return 1;
 	}
 
-	if (strcmp(g_planTable[g_paiContext.controller->currentPlanId].name,
+	if (strcmp(g_plan_table[g_pai_context.controller->current_plan_id].name,
 		   "disableldr1pln") == 0) {
-		if (g_activeRegionCraftObjectSlotEnd <= (int)targetObjIdx) {
-		} else if (g_objectTable[targetObjIdx]
-				   .mobj->pCraft->workingSubsystems == 0) {
-			g_paiContext.controller->candidateTargetIdx =
+		if (g_active_region_craft_object_slot_end <=
+		    (int)target_obj_idx) {
+		} else if (g_object_table[target_obj_idx]
+				   .mobj->p_craft->working_subsystems == 0) {
+			g_pai_context.controller->candidate_target_idx =
 				UINT16_MAX;
 			return 1;
 		}
 	}
 
-	if (g_objectTable[targetObjIdx].playerOwnerIdx != -1) {
-		if (g_activeRegionCraftObjectSlotEnd <= (int)targetObjIdx) {
-		} else if (Object_HasActiveDecoyBeam(targetObjIdx) == 1) {
-			pai_ObjectRefUpdateRoughDistance(
-				g_paiContext.objectIndex, targetObjIdx);
-			if (g_lastRoughDistance > 0x4000) {
-				g_paiContext.controller->targetObjIdx =
+	if (g_object_table[target_obj_idx].player_owner_idx != -1) {
+		if (g_active_region_craft_object_slot_end <=
+		    (int)target_obj_idx) {
+		} else if (object_has_active_decoy_beam(target_obj_idx) == 1) {
+			pai_object_ref_update_rough_distance(
+				g_pai_context.object_index, target_obj_idx);
+			if (g_last_rough_distance > 0x4000) {
+				g_pai_context.controller->target_obj_idx =
 					UINT16_MAX;
-				g_paiContext.controller->targetSignature = 0;
-				g_paiContext.controller->hasLiveTarget = 0;
-				g_paiContext.controller->candidateTargetIdx =
+				g_pai_context.controller->target_signature = 0;
+				g_pai_context.controller->has_live_target = 0;
+				g_pai_context.controller->candidate_target_idx =
 					UINT16_MAX;
 				return 1;
 			}
 		}
 	}
 
-	if (g_missionFileVersion == 14) {
-		targetWorkingSubsystems =
-			g_objectTable[targetObjIdx].typeSpecificWord;
-		if (g_objectTable[targetObjIdx].mobj != NULL &&
-		    g_objectTable[targetObjIdx].mobj->pCraft != NULL) {
-			targetWorkingSubsystems =
-				g_objectTable[targetObjIdx]
-					.mobj->pCraft->workingSubsystems;
+	if (g_mission_file_version == 14) {
+		target_working_subsystems =
+			g_object_table[target_obj_idx].type_specific_word;
+		if (g_object_table[target_obj_idx].mobj != NULL &&
+		    g_object_table[target_obj_idx].mobj->p_craft != NULL) {
+			target_working_subsystems =
+				g_object_table[target_obj_idx]
+					.mobj->p_craft->working_subsystems;
 		}
-		if (targetWorkingSubsystems == 0 &&
-		    g_paiContext.controller->candidateTargetIdx !=
-			    targetObjIdx &&
-		    pai_CurrentOrderTargetsMatchObject(targetObjIdx) == 0) {
-			g_paiContext.controller->targetObjIdx = UINT16_MAX;
-			g_paiContext.controller->targetSignature = 0;
-			g_paiContext.controller->hasLiveTarget = 0;
-			g_paiContext.controller->candidateTargetIdx =
+		if (target_working_subsystems == 0 &&
+		    g_pai_context.controller->candidate_target_idx !=
+			    target_obj_idx &&
+		    pai_current_order_targets_match_object(target_obj_idx) ==
+			    0) {
+			g_pai_context.controller->target_obj_idx = UINT16_MAX;
+			g_pai_context.controller->target_signature = 0;
+			g_pai_context.controller->has_live_target = 0;
+			g_pai_context.controller->candidate_target_idx =
 				UINT16_MAX;
 			return 1;
 		}
@@ -1086,329 +1130,344 @@ int16_t paiorder_breakofforder(void)
 }
 
 /* Order 15: returns 1 when the flight group's abort trigger holds for the
- * craft, else 0; 0 at once when maxSpeedCache is 0. Triggers 1 to 9: shields
+ * craft, else 0; 0 at once when max_speed_cache is 0. Triggers 1 to 9: shields
  * out (shield system down, or both banks empty on a freighter or starship),
  * cannons down, warheads out (launcher down or no rounds), hull damage reaching
- * half of hullMax, attacked by any team, shields down to half or to a quarter
+ * half of hull_max, attacked by any team, shields down to half or to a quarter
  * of the maximum, and hull damage reaching a quarter or three quarters. Trigger
  * 2 tests the cannons but reports IFMSG_394_WARHEADS_OUT. The first time it
  * aborts it counts the aborted outcome, undoes a not-departed count and clears
- * departTimerFlag, has the tactical officer announce the withdrawal, sends
+ * depart_timer_flag, has the tactical officer announce the withdrawal, sends
  * message 387 to the player who owns the flight group, and restores working
  * subsystems when the current order's leader plan is waitforboardpln and
- * subsystemDamage is 0. Sets missionAbortedFlag each time it aborts. */
+ * subsystem_damage is 0. Sets mission_aborted_flag each time it aborts. */
 // FUNCTION: XVT 0x467710
 int16_t paiorder_abortmissionorder(void)
 {
-	int abortReasonMessage;
-	int abortMission;
-	uint16_t launcherIndex;
-	uint8_t launcherCount;
-	uint16_t weaponSlotIndex;
-	uint16_t lastWeaponSlot;
-	int16_t hasWarheads;
+	int abort_reason_message;
+	int abort_mission;
+	uint16_t launcher_index;
+	uint8_t launcher_count;
+	uint16_t weapon_slot_index;
+	uint16_t last_weapon_slot;
+	int16_t has_warheads;
 
-	if (g_curCraft->aiFlight.maxSpeedCache == 0) {
+	if (g_cur_craft->ai_flight.max_speed_cache == 0) {
 		return 0;
 	}
 
-	abortMission = 0;
-	switch (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-			.fg.abortTrigger) {
+	abort_mission = 0;
+	switch (g_mission_flight_groups[g_pai_context.craft_flight_group_index]
+			.fg.abort_trigger) {
 	case 1:
-		if ((g_curCraft->workingSubsystems &
+		if ((g_cur_craft->working_subsystems &
 		     CRAFT_SUBSYSTEM_FLAG_SHIELDS) == 0) {
-			abortMission = 1;
+			abort_mission = 1;
 		}
-		if ((g_objectTable[g_paiContext.objectIndex].genusId == 3 ||
-		     g_objectTable[g_paiContext.objectIndex].genusId == 4) &&
-		    g_curCraft->shieldEnergy[0] + g_curCraft->shieldEnergy[1] ==
+		if ((g_object_table[g_pai_context.object_index].genus_id == 3 ||
+		     g_object_table[g_pai_context.object_index].genus_id ==
+			     4) &&
+		    g_cur_craft->shield_energy[0] +
+				    g_cur_craft->shield_energy[1] ==
 			    0) {
-			abortMission = 1;
+			abort_mission = 1;
 		}
-		abortReasonMessage = IFMSG_390_SHIELDS_OUT;
+		abort_reason_message = IFMSG_390_SHIELDS_OUT;
 		break;
 
 	case 2:
-		if ((g_curCraft->workingSubsystems &
+		if ((g_cur_craft->working_subsystems &
 		     CRAFT_SUBSYSTEM_FLAG_CANNONS) == 0) {
-			abortMission = 1;
+			abort_mission = 1;
 		}
-		abortReasonMessage = IFMSG_394_WARHEADS_OUT;
+		abort_reason_message = IFMSG_394_WARHEADS_OUT;
 		break;
 
 	case 3:
-		if ((g_curCraft->workingSubsystems &
+		if ((g_cur_craft->working_subsystems &
 		     CRAFT_SUBSYSTEM_FLAG_WARHEAD_LAUNCHER) == 0) {
-			abortMission = 1;
+			abort_mission = 1;
 		}
-		hasWarheads = 0;
-		launcherIndex = 0;
-		launcherCount = g_curCraft->warheadLauncherCount;
-		while (launcherIndex < launcherCount) {
-			if (g_curCraft->warheadSlotTypeIds[launcherIndex] !=
+		has_warheads = 0;
+		launcher_index = 0;
+		launcher_count = g_cur_craft->warhead_launcher_count;
+		while (launcher_index < launcher_count) {
+			if (g_cur_craft
+				    ->warhead_slot_type_ids[launcher_index] !=
 			    0) {
-				lastWeaponSlot =
-					g_modelDefs[g_curCraft->modelIndex]
-						.warheadLauncherLastSlot
-							[launcherIndex];
-				weaponSlotIndex =
-					g_modelDefs[g_curCraft->modelIndex]
-						.warheadLauncherFirstSlot
-							[launcherIndex];
-				while (!(lastWeaponSlot < weaponSlotIndex)) {
-					if (g_curCraft
-						    ->weaponSlots
-							    [weaponSlotIndex]
-						    .ammoCount != 0) {
-						hasWarheads = 1;
+				last_weapon_slot =
+					g_model_defs[g_cur_craft->model_index]
+						.warhead_launcher_last_slot
+							[launcher_index];
+				weapon_slot_index =
+					g_model_defs[g_cur_craft->model_index]
+						.warhead_launcher_first_slot
+							[launcher_index];
+				while (!(last_weapon_slot <
+					 weapon_slot_index)) {
+					if (g_cur_craft
+						    ->weapon_slots
+							    [weapon_slot_index]
+						    .ammo_count != 0) {
+						has_warheads = 1;
 					}
-					++weaponSlotIndex;
+					++weapon_slot_index;
 				}
 			}
-			++launcherIndex;
+			++launcher_index;
 		}
-		if (hasWarheads == 0) {
-			abortMission = 1;
+		if (has_warheads == 0) {
+			abort_mission = 1;
 		}
-		abortReasonMessage = IFMSG_394_WARHEADS_OUT;
+		abort_reason_message = IFMSG_394_WARHEADS_OUT;
 		break;
 
 	case 4:
-		if (MATH2_longfraction(g_curCraft->hullMax, 0x8000) <=
-		    g_curCraft->hullDamage) {
-			abortMission = 1;
+		if (math2_longfraction(g_cur_craft->hull_max, 0x8000) <=
+		    g_cur_craft->hull_damage) {
+			abort_mission = 1;
 		}
-		abortReasonMessage = IFMSG_392_HULL_AT_50;
+		abort_reason_message = IFMSG_392_HULL_AT_50;
 		break;
 
 	case 5:
-		/* The launcher counter is reused here as a team index over the ten attackedByTeam entries. */
-		for (launcherIndex = 0; launcherIndex < 10; ++launcherIndex) {
-			if (g_curCraft->attackedByTeam[launcherIndex] != 0) {
-				abortMission = 1;
+		/* The launcher counter is reused here as a team index over the ten attacked_by_team entries. */
+		for (launcher_index = 0; launcher_index < 10;
+		     ++launcher_index) {
+			if (g_cur_craft->attacked_by_team[launcher_index] !=
+			    0) {
+				abort_mission = 1;
 			}
 		}
-		abortReasonMessage = IFMSG_395_UNDER_ATTACK;
+		abort_reason_message = IFMSG_395_UNDER_ATTACK;
 		break;
 
 	case 6:
-		if ((unsigned int)(g_curCraft->shieldEnergy[0] +
-				   g_curCraft->shieldEnergy[1]) <=
-		    (uint16_t)MATH2_fraction((uint16_t)Craft_GetObjectMaxShield(
-						     g_paiContext.objectIndex),
-					     0x8000)) {
-			abortMission = 1;
+		if ((unsigned int)(g_cur_craft->shield_energy[0] +
+				   g_cur_craft->shield_energy[1]) <=
+		    (uint16_t)math2_fraction(
+			    (uint16_t)craft_get_object_max_shield(
+				    g_pai_context.object_index),
+			    0x8000)) {
+			abort_mission = 1;
 		}
-		abortReasonMessage = IFMSG_388_SHIELDS_AT_50;
+		abort_reason_message = IFMSG_388_SHIELDS_AT_50;
 		break;
 
 	case 7:
-		if ((unsigned int)(g_curCraft->shieldEnergy[0] +
-				   g_curCraft->shieldEnergy[1]) <=
-		    (uint16_t)MATH2_fraction((uint16_t)Craft_GetObjectMaxShield(
-						     g_paiContext.objectIndex),
-					     0x4000)) {
-			abortMission = 1;
+		if ((unsigned int)(g_cur_craft->shield_energy[0] +
+				   g_cur_craft->shield_energy[1]) <=
+		    (uint16_t)math2_fraction(
+			    (uint16_t)craft_get_object_max_shield(
+				    g_pai_context.object_index),
+			    0x4000)) {
+			abort_mission = 1;
 		}
-		abortReasonMessage = IFMSG_389_SHIELDS_AT_25;
+		abort_reason_message = IFMSG_389_SHIELDS_AT_25;
 		break;
 
 	case 8:
-		if (MATH2_longfraction(g_curCraft->hullMax, 0x4000) <=
-		    g_curCraft->hullDamage) {
-			abortMission = 1;
+		if (math2_longfraction(g_cur_craft->hull_max, 0x4000) <=
+		    g_cur_craft->hull_damage) {
+			abort_mission = 1;
 		}
-		abortReasonMessage = IFMSG_391_HULL_AT_75;
+		abort_reason_message = IFMSG_391_HULL_AT_75;
 		break;
 
 	case 9:
-		if (MATH2_longfraction(g_curCraft->hullMax, 0xC000) <=
-		    g_curCraft->hullDamage) {
-			abortMission = 1;
+		if (math2_longfraction(g_cur_craft->hull_max, 0xC000) <=
+		    g_cur_craft->hull_damage) {
+			abort_mission = 1;
 		}
-		abortReasonMessage = IFMSG_393_HULL_AT_25;
+		abort_reason_message = IFMSG_393_HULL_AT_25;
 		break;
 	}
 
-	if (abortMission != 0) {
-		if (g_curCraft->aiFlight.missionAbortedFlag == 0) {
-			++g_missionFgStats[g_paiContext.craftFlightGroupIndex]
-				  .outcomeCount[FLIGHT_GROUP_OUTCOME_ABORTED];
-			if (g_curCraft->craftOrdinal ==
-			    g_missionFlightGroups
-				    [g_paiContext.craftFlightGroupIndex]
-					    .fg.specialCargoCraft) {
-				g_missionFgStats[g_paiContext
-							 .craftFlightGroupIndex]
-					.specialCargoOutcome
+	if (abort_mission != 0) {
+		if (g_cur_craft->ai_flight.mission_aborted_flag == 0) {
+			++g_mission_fg_stats[g_pai_context
+						     .craft_flight_group_index]
+				  .outcome_count[FLIGHT_GROUP_OUTCOME_ABORTED];
+			if (g_cur_craft->craft_ordinal ==
+			    g_mission_flight_groups
+				    [g_pai_context.craft_flight_group_index]
+					    .fg.special_cargo_craft) {
+				g_mission_fg_stats[g_pai_context
+							   .craft_flight_group_index]
+					.special_cargo_outcome
 						[FLIGHT_GROUP_OUTCOME_ABORTED] =
 					1;
 			}
-			if (g_curCraft->aiFlight.departTimerFlag != 0) {
-				--g_missionFgStats[g_paiContext
-							   .craftFlightGroupIndex]
-					  .outcomeCount
+			if (g_cur_craft->ai_flight.depart_timer_flag != 0) {
+				--g_mission_fg_stats[g_pai_context
+							     .craft_flight_group_index]
+					  .outcome_count
 						  [FLIGHT_GROUP_OUTCOME_NOT_DEPARTED];
-				if (g_curCraft->craftOrdinal ==
-				    g_missionFlightGroups
-					    [g_paiContext.craftFlightGroupIndex]
-						    .fg.specialCargoCraft) {
-					g_missionFgStats[g_paiContext
-								 .craftFlightGroupIndex]
-						.specialCargoOutcome
+				if (g_cur_craft->craft_ordinal ==
+				    g_mission_flight_groups
+					    [g_pai_context
+						     .craft_flight_group_index]
+						    .fg.special_cargo_craft) {
+					g_mission_fg_stats[g_pai_context
+								   .craft_flight_group_index]
+						.special_cargo_outcome
 							[FLIGHT_GROUP_OUTCOME_NOT_DEPARTED] =
 						0;
 				}
-				g_curCraft->aiFlight.departTimerFlag = 0;
+				g_cur_craft->ai_flight.depart_timer_flag = 0;
 			}
 
-			fsfx_SpeakTacticalOfficerEvent(
+			fsfx_speak_tactical_officer_event(
 				TACTICAL_VOICE_STATUS, TACTICAL_MSG_WITHDRAWING,
-				g_paiContext.objectIndex, UINT16_MAX);
-			if (g_missionFlightGroups
-				    [g_paiContext.craftFlightGroupIndex]
-					    .playerOwnerIdx != -1) {
-				g_msgSenderIff =
-					(uint8_t)g_objectTable
-						[g_paiContext.objectIndex]
+				g_pai_context.object_index, UINT16_MAX);
+			if (g_mission_flight_groups
+				    [g_pai_context.craft_flight_group_index]
+					    .player_owner_idx != -1) {
+				g_msg_sender_iff =
+					(uint8_t)g_object_table
+						[g_pai_context.object_index]
 							.mobj->iff;
-				msg_addMessagePtr(
+				msg_add_message_ptr(
 					0,
-					g_missionFlightGroups
-						[g_paiContext
-							 .craftFlightGroupIndex]
+					g_mission_flight_groups
+						[g_pai_context
+							 .craft_flight_group_index]
 							.fg.name);
-				g_msgArgTable[1] = (uint16_t)
-					Hud_MissionFG_GetCraftNumberIfShown(
-						g_paiContext
-							.craftFlightGroupIndex,
-						g_curCraft);
-				g_msgArgTable[2] = (uint16_t)abortReasonMessage;
-				msg_emitInFlightMessage(
+				g_msg_arg_table[1] = (uint16_t)
+					hud_mission_fg_get_craft_number_if_shown(
+						g_pai_context
+							.craft_flight_group_index,
+						g_cur_craft);
+				g_msg_arg_table[2] =
+					(uint16_t)abort_reason_message;
+				msg_emit_in_flight_message(
 					IFMSG_387_WINGMAN_ARG_ARG_ABORTING_MISSION_ARG,
-					g_missionFlightGroups
-						[g_paiContext
-							 .craftFlightGroupIndex]
-							.playerOwnerIdx);
+					g_mission_flight_groups
+						[g_pai_context
+							 .craft_flight_group_index]
+							.player_owner_idx);
 			}
 
-			if (strcmp(g_planTable
-					   [g_builtinPlanIdByNameIndex
-						    [g_orderLeaderBuiltinPlanNameIndex
-							     [g_missionFlightGroups[g_paiContext
-											    .craftFlightGroupIndex]
+			if (strcmp(g_plan_table
+					   [g_builtin_plan_id_by_name_index
+						    [g_order_leader_builtin_plan_name_index
+							     [g_mission_flight_groups[g_pai_context
+											      .craft_flight_group_index]
 								      .fg
-								      .orders[g_paiContext
-										      .orderSlot]
+								      .orders[g_pai_context
+										      .order_slot]
 								      .order]]]
 						   .name,
 				   "waitforboardpln") == 0 &&
-			    g_curCraft->subsystemDamage == 0) {
-				g_curCraft->workingSubsystems =
-					g_curCraft->systemFlags;
+			    g_cur_craft->subsystem_damage == 0) {
+				g_cur_craft->working_subsystems =
+					g_cur_craft->system_flags;
 			}
 		}
-		g_curCraft->aiFlight.missionAbortedFlag = 1;
+		g_cur_craft->ai_flight.mission_aborted_flag = 1;
 	}
 
-	return (int16_t)abortMission;
+	return (int16_t)abort_mission;
 }
 
 /* Order 12: returns 1 and makes this craft the flight group's leader when its
  * leader is gone: an empty slot, in another flight group, breaking up or
  * exploding, aborted, or flown by a player. This craft then has no leader and
- * takes the old leader's separation, waypointIndex and target, with its aim
+ * takes the old leader's separation, waypoint_index and target, with its aim
  * point (in the modern build only when there is a target); every other craft of
  * the group in the active region's craft slots gets this craft as leader.
  * Returns 0 for a craft with no leader or a leader index at or past the end of
  * those slots. With the leader in place it returns 0, first setting
- * thinkInterval to 59 ticks when the leader runs enterhangarpln. */
+ * think_interval to 59 ticks when the leader runs enterhangarpln. */
 // FUNCTION: XVT 0x467C50
 int16_t paiorder_leaderdeadorder(void)
 {
-	uint8_t leaderObjectIndex;
-	struct ObjectRecord *leaderObject;
-	struct CraftData *leaderCraft;
-	struct AiController *leaderController;
-	uint8_t leaderInvalid;
-	uint16_t objectIndex;
-	struct ObjectRecord *object;
-	struct CraftData *craft;
-	struct AiController *controller;
+	uint8_t leader_object_index;
+	struct object_record *leader_object;
+	struct craft_data *leader_craft;
+	struct ai_controller *leader_controller;
+	uint8_t leader_invalid;
+	uint16_t object_index;
+	struct object_record *object;
+	struct craft_data *craft;
+	struct ai_controller *controller;
 
-	leaderObjectIndex = g_curCraft->leader_obj_idx;
-	if (leaderObjectIndex == UINT8_MAX) {
+	leader_object_index = g_cur_craft->leader_obj_idx;
+	if (leader_object_index == UINT8_MAX) {
 		return 0;
 	}
-	if (g_activeRegionCraftObjectSlotEnd <= (int)leaderObjectIndex) {
+	if (g_active_region_craft_object_slot_end <= (int)leader_object_index) {
 		return 0;
 	}
-	leaderObject = &g_objectTable[leaderObjectIndex];
-	leaderCraft = leaderObject->mobj->pCraft;
-	leaderController = &leaderCraft->aiController;
-	leaderInvalid = 0;
-	if (leaderObject->objectType == 0) {
-		leaderInvalid = 1;
+	leader_object = &g_object_table[leader_object_index];
+	leader_craft = leader_object->mobj->p_craft;
+	leader_controller = &leader_craft->ai_controller;
+	leader_invalid = 0;
+	if (leader_object->object_type == 0) {
+		leader_invalid = 1;
 	}
-	if (g_objectTable[g_paiContext.objectIndex].flightGroupIdx !=
-	    leaderObject->flightGroupIdx) {
-		leaderInvalid = 1;
+	if (g_object_table[g_pai_context.object_index].flight_group_idx !=
+	    leader_object->flight_group_idx) {
+		leader_invalid = 1;
 	}
-	if (leaderCraft->objectKind == CRAFT_OBJECT_KIND_BREAKING_UP ||
-	    leaderCraft->objectKind == CRAFT_OBJECT_KIND_EXPLODING) {
-		leaderInvalid = 1;
+	if (leader_craft->object_kind == CRAFT_OBJECT_KIND_BREAKING_UP ||
+	    leader_craft->object_kind == CRAFT_OBJECT_KIND_EXPLODING) {
+		leader_invalid = 1;
 	}
-	if (leaderCraft->aiFlight.missionAbortedFlag != 0) {
-		leaderInvalid = 1;
+	if (leader_craft->ai_flight.mission_aborted_flag != 0) {
+		leader_invalid = 1;
 	}
-	if (leaderObject->playerOwnerIdx != -1) {
-		leaderInvalid = 1;
+	if (leader_object->player_owner_idx != -1) {
+		leader_invalid = 1;
 	}
-	if (leaderInvalid != 0) {
-		for (objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
-		     objectIndex < (int)g_activeRegionCraftObjectSlotEnd;
-		     ++objectIndex) {
-			object = &g_objectTable[objectIndex];
-			craft = object->mobj->pCraft;
-			if (object->objectType != 0 &&
-			    object->flightGroupIdx ==
-				    g_paiContext.craftFlightGroupIndex) {
-				controller = &craft->aiController;
-				if (g_paiContext.objectIndex == objectIndex) {
+	if (leader_invalid != 0) {
+		for (object_index = (uint16_t)g_active_region_object_slot_start;
+		     object_index < (int)g_active_region_craft_object_slot_end;
+		     ++object_index) {
+			object = &g_object_table[object_index];
+			craft = object->mobj->p_craft;
+			if (object->object_type != 0 &&
+			    object->flight_group_idx ==
+				    g_pai_context.craft_flight_group_index) {
+				controller = &craft->ai_controller;
+				if (g_pai_context.object_index ==
+				    object_index) {
 					craft->leader_obj_idx = UINT8_MAX;
-					craft->aiFlight.separation =
-						leaderCraft->aiFlight
+					craft->ai_flight.separation =
+						leader_craft->ai_flight
 							.separation;
-					controller->waypointIndex =
-						leaderController->waypointIndex;
-					controller->targetObjIdx =
-						leaderController->targetObjIdx;
-					controller->targetSignature =
-						leaderController
-							->targetSignature;
-					controller->hasLiveTarget =
-						leaderController->hasLiveTarget;
+					controller->waypoint_index =
+						leader_controller
+							->waypoint_index;
+					controller->target_obj_idx =
+						leader_controller
+							->target_obj_idx;
+					controller->target_signature =
+						leader_controller
+							->target_signature;
+					controller->has_live_target =
+						leader_controller
+							->has_live_target;
 #ifdef XVT_MODERN
 					/* A leader without a target has no aim point to resolve. */
-					if (controller->targetObjIdx !=
+					if (controller->target_obj_idx !=
 					    UINT16_MAX)
 #endif
-						pai_UpdateAimPointFromOrderTarget();
+						pai_update_aim_point_from_order_target();
 				} else {
 					craft->leader_obj_idx =
-						(uint8_t)g_paiContext
-							.objectIndex;
+						(uint8_t)g_pai_context
+							.object_index;
 				}
 			}
 		}
-	} else if (strcmp(g_planTable[g_paiContext.leaderOrSelfCraft
-					      ->aiController.runningPlanId]
+	} else if (strcmp(g_plan_table[g_pai_context.leader_or_self_craft
+					       ->ai_controller.running_plan_id]
 				  .name,
 			  "enterhangarpln") == 0) {
-		g_paiContext.controller->thinkInterval = 59;
+		g_pai_context.controller->think_interval = 59;
 	}
-	return leaderInvalid;
+	return leader_invalid;
 }
 
 /* Order 16: when the craft is on its plan's maneuver and its recorded attacker
@@ -1417,31 +1476,31 @@ int16_t paiorder_leaderdeadorder(void)
 // FUNCTION: XVT 0x467E20
 int16_t paiorder_ontailorder(void)
 {
-	uint16_t objectIndex;
-	int16_t randomManeuver;
-	uint8_t maneuverMode;
+	uint16_t object_index;
+	int16_t random_maneuver;
+	uint8_t maneuver_mode;
 
-	objectIndex = g_paiContext.objectIndex;
-	if (g_paiContext.controller->maneuverMode ==
-		    g_paiContext.initialManeuverId &&
-	    g_curCraft->lastAttackerObjIdx != UINT16_MAX) {
-		pai_ObjectRefDirectionToObjectRef(
-			objectIndex, g_curCraft->lastAttackerObjIdx);
-		if (g_aiThreatBearingClassByOctant
+	object_index = g_pai_context.object_index;
+	if (g_pai_context.controller->maneuver_mode ==
+		    g_pai_context.initial_maneuver_id &&
+	    g_cur_craft->last_attacker_obj_idx != UINT16_MAX) {
+		pai_object_ref_direction_to_object_ref(
+			object_index, g_cur_craft->last_attacker_obj_idx);
+		if (g_ai_threat_bearing_class_by_octant
 			    [(uint16_t)(trig2_xyangle -
-					g_objectTable[objectIndex].yaw) >>
+					g_object_table[object_index].yaw) >>
 			     13] == 2) {
-			randomManeuver = GameRand() & 3;
-			if (randomManeuver == 0) {
-				maneuverMode = AI_MANEUVER_MODE_TURN_INSIDE;
-			} else if (randomManeuver == 1) {
-				maneuverMode = AI_MANEUVER_MODE_ZOOM;
-			} else if (randomManeuver == 2) {
-				maneuverMode = AI_MANEUVER_MODE_SCISSORS;
+			random_maneuver = game_rand() & 3;
+			if (random_maneuver == 0) {
+				maneuver_mode = AI_MANEUVER_MODE_TURN_INSIDE;
+			} else if (random_maneuver == 1) {
+				maneuver_mode = AI_MANEUVER_MODE_ZOOM;
+			} else if (random_maneuver == 2) {
+				maneuver_mode = AI_MANEUVER_MODE_SCISSORS;
 			} else {
-				maneuverMode = AI_MANEUVER_MODE_DIVE;
+				maneuver_mode = AI_MANEUVER_MODE_DIVE;
 			}
-			g_paiContext.controller->maneuverMode = maneuverMode;
+			g_pai_context.controller->maneuver_mode = maneuver_mode;
 			paiman_initmaneuver();
 		}
 	}
@@ -1457,82 +1516,86 @@ int16_t paiorder_alwaysorder(void) { return 1; }
 // FUNCTION: XVT 0x467EF0
 int16_t paiorder_leadergohomeorder(void)
 {
-	struct AiController *leaderController =
-		&g_paiContext.leaderOrSelfCraft->aiController;
+	struct ai_controller *leader_controller =
+		&g_pai_context.leader_or_self_craft->ai_controller;
 
-	return strcmp(g_planTable[leaderController->runningPlanId].name,
+	return strcmp(g_plan_table[leader_controller->running_plan_id].name,
 		      "flyhomepln") == 0 ||
-	       strcmp(g_planTable[leaderController->runningPlanId].name,
+	       strcmp(g_plan_table[leader_controller->running_plan_id].name,
 		      "flyhomeevadepln") == 0;
 }
 
 /* Order 20. A follower that has not aborted and is not on flyhomeevadepln jumps
  * with its leader: when its model has a hyperdrive, its group leaves by
- * hyperspace (departureMethod 0, or for a captured craft no departure by
+ * hyperspace (departure_method 0, or for a captured craft no departure by
  * mothership) and its leader is entering hyperspace, it switches straight to
- * intohyperspacepln with the into-hyperspace maneuver at maneuverPhase 1, a
+ * intohyperspacepln with the into-hyperspace maneuver at maneuver_phase 1, a
  * maneuver timer of 2,360 ticks and a second one of 944, clears its roll, pitch
- * and turn states and push, sets its objectKind to entering hyperspace and sets
+ * and turn states and push, sets its object_kind to entering hyperspace and sets
  * full power. Such a follower returns 0 either way. Any other craft returns 1
  * when its model has a hyperdrive and its group leaves by hyperspace; else
  * 0. */
 // FUNCTION: XVT 0x467F60
 int16_t paiorder_hyperspaceorder(void)
 {
-	int16_t canEnterHyperspace;
+	int16_t can_enter_hyperspace;
 
-	if (g_curCraft->leader_obj_idx != UINT8_MAX &&
-	    g_curCraft->aiFlight.missionAbortedFlag == 0 &&
-	    strcmp(g_planTable[g_paiContext.controller->runningPlanId].name,
+	if (g_cur_craft->leader_obj_idx != UINT8_MAX &&
+	    g_cur_craft->ai_flight.mission_aborted_flag == 0 &&
+	    strcmp(g_plan_table[g_pai_context.controller->running_plan_id].name,
 		   "flyhomeevadepln") != 0) {
-		canEnterHyperspace = 0;
-		if (g_modelDefs[g_curCraft->modelIndex].hasHyperdrive != 0) {
-			if (g_curCraft->capturedByFlightGroup == 0) {
-				if (g_missionFlightGroups
-					    [g_paiContext.craftFlightGroupIndex]
-						    .fg.departureMethod == 0) {
-					canEnterHyperspace = 1;
+		can_enter_hyperspace = 0;
+		if (g_model_defs[g_cur_craft->model_index].has_hyperdrive !=
+		    0) {
+			if (g_cur_craft->captured_by_flight_group == 0) {
+				if (g_mission_flight_groups
+					    [g_pai_context
+						     .craft_flight_group_index]
+						    .fg.departure_method == 0) {
+					can_enter_hyperspace = 1;
 				}
 			} else if (
-				g_missionFlightGroups
-					[g_paiContext.craftFlightGroupIndex]
+				g_mission_flight_groups
+					[g_pai_context.craft_flight_group_index]
 						.fg
-						.capturedDepartViaMothership ==
+						.captured_depart_via_mothership ==
 				0) {
-				canEnterHyperspace = 1;
+				can_enter_hyperspace = 1;
 			}
 		}
-		if (canEnterHyperspace != 0 &&
-		    g_paiContext.leaderOrSelfCraft->objectKind ==
+		if (can_enter_hyperspace != 0 &&
+		    g_pai_context.leader_or_self_craft->object_kind ==
 			    CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE) {
-			g_paiContext.controller->runningPlanId =
-				(uint8_t)pai_FindPlanIdByNameOrZero(
+			g_pai_context.controller->running_plan_id =
+				(uint8_t)pai_find_plan_id_by_name_or_zero(
 					"intohyperspacepln");
-			g_curCraft->objectKind =
+			g_cur_craft->object_kind =
 				CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE;
-			g_curCraft->aiFlight.rollState = 0;
-			g_curCraft->aiFlight.pitchState = 0;
-			g_curCraft->aiFlight.turnState = 0;
-			g_paiContext.controller->maneuverMode =
+			g_cur_craft->ai_flight.roll_state = 0;
+			g_cur_craft->ai_flight.pitch_state = 0;
+			g_cur_craft->ai_flight.turn_state = 0;
+			g_pai_context.controller->maneuver_mode =
 				AI_MANEUVER_MODE_INTO_HYPERSPACE;
-			g_curCraft->pushAccumX = 0;
-			g_curCraft->pushAccumY = g_curCraft->pushAccumX;
-			g_curCraft->pushAccumZ = g_curCraft->pushAccumY;
-			g_paiContext.controller->maneuverPhase = 1;
-			g_paiContext.controller->secondaryManeuverTimer = 944;
-			g_paiContext.controller->maneuverTimer = 2360;
-			paiman_setpower(g_paiContext.objectIndex, UINT16_MAX);
+			g_cur_craft->push_accum_x = 0;
+			g_cur_craft->push_accum_y = g_cur_craft->push_accum_x;
+			g_cur_craft->push_accum_z = g_cur_craft->push_accum_y;
+			g_pai_context.controller->maneuver_phase = 1;
+			g_pai_context.controller->secondary_maneuver_timer =
+				944;
+			g_pai_context.controller->maneuver_timer = 2360;
+			paiman_setpower(g_pai_context.object_index, UINT16_MAX);
 		}
-	} else if (g_modelDefs[g_curCraft->modelIndex].hasHyperdrive != 0) {
-		if (g_curCraft->capturedByFlightGroup == 0) {
-			if (g_missionFlightGroups
-				    [g_paiContext.craftFlightGroupIndex]
-					    .fg.departureMethod == 0) {
+	} else if (g_model_defs[g_cur_craft->model_index].has_hyperdrive != 0) {
+		if (g_cur_craft->captured_by_flight_group == 0) {
+			if (g_mission_flight_groups
+				    [g_pai_context.craft_flight_group_index]
+					    .fg.departure_method == 0) {
 				return 1;
 			}
-		} else if (g_missionFlightGroups[g_paiContext
-							 .craftFlightGroupIndex]
-				   .fg.capturedDepartViaMothership == 0) {
+		} else if (g_mission_flight_groups
+				   [g_pai_context.craft_flight_group_index]
+					   .fg.captured_depart_via_mothership ==
+			   0) {
 			return 1;
 		}
 	}
@@ -1544,106 +1607,107 @@ int16_t paiorder_hyperspaceorder(void)
 // FUNCTION: XVT 0x468180
 int16_t paiorder_mothershiporder(void)
 {
-	if (g_objectTable[g_paiContext.objectIndex].genusId ==
+	if (g_object_table[g_pai_context.object_index].genus_id ==
 	    CRAFT_GENUS_PLATFORM) {
 		return 0;
 	}
-	if (g_curCraft->leader_obj_idx == UINT8_MAX) {
-		return g_paiContext.controller->targetObjIdx == 0x800Du;
+	if (g_cur_craft->leader_obj_idx == UINT8_MAX) {
+		return g_pai_context.controller->target_obj_idx == 0x800Du;
 	}
-	return g_paiContext.leaderOrSelfCraft->aiController.targetObjIdx ==
-	       0x800Du;
+	return g_pai_context.leader_or_self_craft->ai_controller
+		       .target_obj_idx == 0x800Du;
 }
 
 /* Order 24: returns 1 after setting a boarding target, with its signature and
- * hasLiveTarget 1: the candidate target when there is one (not 0xFFFF or
+ * has_live_target 1: the candidate target when there is one (not 0xFFFF or
  * AI_TARGET_ABORT) and it can be targeted, else what
- * pai_FindBoardingTargetFromOrder finds for the current order slot. Clears a
+ * pai_find_boarding_target_from_order finds for the current order slot. Clears a
  * candidate that cannot be targeted. Returns 0 when there is none. */
 // FUNCTION: XVT 0x4681E0
 int16_t paiorder_lookforcrafttoboardorder(void)
 {
-	uint16_t candidateTargetIdx;
+	uint16_t candidate_target_idx;
 
-	candidateTargetIdx = g_paiContext.controller->candidateTargetIdx;
-	if (candidateTargetIdx != UINT16_MAX &&
-	    candidateTargetIdx != AI_TARGET_ABORT) {
-		if (pai_IsObjectTargetable(candidateTargetIdx) != 0) {
-			g_paiContext.controller->targetObjIdx =
-				candidateTargetIdx;
-			g_paiContext.controller->targetSignature =
-				g_objectTable[candidateTargetIdx]
-					.objectSignature;
-			g_paiContext.controller->hasLiveTarget = 1;
+	candidate_target_idx = g_pai_context.controller->candidate_target_idx;
+	if (candidate_target_idx != UINT16_MAX &&
+	    candidate_target_idx != AI_TARGET_ABORT) {
+		if (pai_is_object_targetable(candidate_target_idx) != 0) {
+			g_pai_context.controller->target_obj_idx =
+				candidate_target_idx;
+			g_pai_context.controller->target_signature =
+				g_object_table[candidate_target_idx]
+					.object_signature;
+			g_pai_context.controller->has_live_target = 1;
 			return 1;
 		}
-		g_paiContext.controller->candidateTargetIdx = UINT16_MAX;
+		g_pai_context.controller->candidate_target_idx = UINT16_MAX;
 	}
-	candidateTargetIdx = (uint16_t)pai_FindBoardingTargetFromOrder(
-		g_paiContext.orderSlot);
-	if (candidateTargetIdx != UINT16_MAX) {
-		g_paiContext.controller->targetObjIdx = candidateTargetIdx;
-		g_paiContext.controller->targetSignature =
-			g_objectTable[candidateTargetIdx].objectSignature;
-		g_paiContext.controller->hasLiveTarget = 1;
+	candidate_target_idx = (uint16_t)pai_find_boarding_target_from_order(
+		g_pai_context.order_slot);
+	if (candidate_target_idx != UINT16_MAX) {
+		g_pai_context.controller->target_obj_idx = candidate_target_idx;
+		g_pai_context.controller->target_signature =
+			g_object_table[candidate_target_idx].object_signature;
+		g_pai_context.controller->has_live_target = 1;
 		return 1;
 	}
 	return 0;
 }
 
-/* Order 25: returns 1 and gives up boarding when, with maneuverPhase below 3,
+/* Order 25: returns 1 and gives up boarding when, with maneuver_phase below 3,
  * the target's slot is empty, its mobile object family is 5, its signature
- * changed or the craft has no working subsystems, or, at maneuverPhase 1 or 2,
+ * changed or the craft has no working subsystems, or, at maneuver_phase 1 or 2,
  * a player flies the target and it moves. Giving up clears the push, targets
  * the group's current mission point and sets the aim point there. Else 0. Does
- * not check targetObjIdx for 0xFFFF. */
+ * not check target_obj_idx for 0xFFFF. */
 // FUNCTION: XVT 0x4683F0
 int16_t paiorder_abortboardorder(void)
 {
-	int16_t shouldAbort;
-	uint8_t maneuverPhase;
-	uint16_t targetObjIdx;
-	struct ObjectRecord *target;
+	int16_t should_abort;
+	uint8_t maneuver_phase;
+	uint16_t target_obj_idx;
+	struct object_record *target;
 
-	shouldAbort = 0;
-	maneuverPhase = g_paiContext.controller->maneuverPhase;
-	if (maneuverPhase < 3) {
-		targetObjIdx = g_paiContext.controller->targetObjIdx;
-		target = &g_objectTable[targetObjIdx];
+	should_abort = 0;
+	maneuver_phase = g_pai_context.controller->maneuver_phase;
+	if (maneuver_phase < 3) {
+		target_obj_idx = g_pai_context.controller->target_obj_idx;
+		target = &g_object_table[target_obj_idx];
 		if (target->mobj != NULL) {
-			if (target->objectType == 0) {
-				shouldAbort = 1;
+			if (target->object_type == 0) {
+				should_abort = 1;
 			}
 			if (target->mobj->family == 5) {
-				shouldAbort = 1;
+				should_abort = 1;
 			}
-		} else if (target->objectType == 0) {
-			shouldAbort = 1;
+		} else if (target->object_type == 0) {
+			should_abort = 1;
 		}
-		if (g_curCraft->workingSubsystems == 0) {
-			shouldAbort = 1;
+		if (g_cur_craft->working_subsystems == 0) {
+			should_abort = 1;
 		}
-		if (g_paiContext.controller->targetSignature !=
-		    target->objectSignature) {
-			shouldAbort = 1;
-		}
-	}
-
-	if (maneuverPhase == 1 || maneuverPhase == 2) {
-		target = &g_objectTable[targetObjIdx];
-		if (target->playerOwnerIdx != -1 && target->mobj->speed != 0) {
-			shouldAbort = 1;
+		if (g_pai_context.controller->target_signature !=
+		    target->object_signature) {
+			should_abort = 1;
 		}
 	}
 
-	if (shouldAbort) {
-		g_curCraft->pushAccumZ = 0;
-		g_curCraft->pushAccumY = g_curCraft->pushAccumZ;
-		g_curCraft->pushAccumX = g_curCraft->pushAccumY;
-		g_paiContext.controller->targetObjIdx = 0x8000;
-		g_paiContext.controller->targetSignature = 0;
-		g_paiContext.controller->hasLiveTarget = 0;
-		pai_UpdateAimPointFromOrderTarget();
+	if (maneuver_phase == 1 || maneuver_phase == 2) {
+		target = &g_object_table[target_obj_idx];
+		if (target->player_owner_idx != -1 &&
+		    target->mobj->speed != 0) {
+			should_abort = 1;
+		}
+	}
+
+	if (should_abort) {
+		g_cur_craft->push_accum_z = 0;
+		g_cur_craft->push_accum_y = g_cur_craft->push_accum_z;
+		g_cur_craft->push_accum_x = g_cur_craft->push_accum_y;
+		g_pai_context.controller->target_obj_idx = 0x8000;
+		g_pai_context.controller->target_signature = 0;
+		g_pai_context.controller->has_live_target = 0;
+		pai_update_aim_point_from_order_target();
 		return 1;
 	}
 	return 0;
@@ -1654,59 +1718,63 @@ int16_t paiorder_abortboardorder(void)
 // FUNCTION: XVT 0x468520
 int16_t paiorder_returnboardorder(void)
 {
-	pai_CalcAnglesToAimPoint();
+	pai_calc_angles_to_aim_point();
 	return trig2_polardistance < 0x4000;
 }
 
-/* Order 27: counts a boarding. When boardingState is 2 or 3 it adds 1 to the
- * current order slot's goalProgress; once timesBoarded reaches the order's
- * variable1 it restores the working subsystems and clears subsystemDamage,
+/* Order 27: counts a boarding. When boarding_state is 2 or 3 it adds 1 to the
+ * current order slot's goal_progress; once times_boarded reaches the order's
+ * variable1 it restores the working subsystems and clears subsystem_damage,
  * emitting "has been repaired" when they are equal on disabledpln; while
- * timesBoarded is below variable1 it sets boardingState to 0 instead. Returns 0
+ * times_boarded is below variable1 it sets boarding_state to 0 instead. Returns 0
  * on every path. */
 // FUNCTION: XVT 0x468540
 int16_t paiorder_awaitboardorder(void)
 {
-	uint8_t boardingState;
+	uint8_t boarding_state;
 
-	boardingState = g_curCraft->boardingState;
-	if (boardingState == 2 || boardingState == 3) {
-		++g_paiContext.controller->orderProgress
-			  .goalProgress[g_paiContext.orderSlot];
-		if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-			    .fg.orders[g_paiContext.orderSlot]
-			    .variable1 <= g_curCraft->aiFlight.timesBoarded) {
-			g_curCraft->workingSubsystems = g_curCraft->systemFlags;
-			g_curCraft->subsystemDamage = 0;
-			if (g_missionFlightGroups
-					    [g_paiContext.craftFlightGroupIndex]
+	boarding_state = g_cur_craft->boarding_state;
+	if (boarding_state == 2 || boarding_state == 3) {
+		++g_pai_context.controller->order_progress
+			  .goal_progress[g_pai_context.order_slot];
+		if (g_mission_flight_groups[g_pai_context
+						    .craft_flight_group_index]
+			    .fg.orders[g_pai_context.order_slot]
+			    .variable1 <=
+		    g_cur_craft->ai_flight.times_boarded) {
+			g_cur_craft->working_subsystems =
+				g_cur_craft->system_flags;
+			g_cur_craft->subsystem_damage = 0;
+			if (g_mission_flight_groups
+					    [g_pai_context
+						     .craft_flight_group_index]
 						    .fg
-						    .orders[g_paiContext
-								    .orderSlot]
+						    .orders[g_pai_context
+								    .order_slot]
 						    .variable1 ==
-				    g_curCraft->aiFlight.timesBoarded &&
-			    strcmp(g_planTable[g_paiContext.controller
-						       ->currentPlanId]
+				    g_cur_craft->ai_flight.times_boarded &&
+			    strcmp(g_plan_table[g_pai_context.controller
+							->current_plan_id]
 					   .name,
 				   "disabledpln") == 0) {
-				msg_emitCraftMessage(
-					g_paiContext.objectIndex, g_curCraft,
+				msg_emit_craft_message(
+					g_pai_context.object_index, g_cur_craft,
 					IFMSG_138_HAS_BEEN_REPAIRED);
 				return 0;
 			}
 		} else {
-			g_curCraft->boardingState = 0;
+			g_cur_craft->boarding_state = 0;
 		}
 	}
 	return 0;
 }
 
-/* Order 28: disables the craft, setting workingSubsystems to 0, and returns
+/* Order 28: disables the craft, setting working_subsystems to 0, and returns
  * 0. */
 // FUNCTION: XVT 0x468670
 int16_t paiorder_makedisabledorder(void)
 {
-	g_curCraft->workingSubsystems = 0;
+	g_cur_craft->working_subsystems = 0;
 	return 0;
 }
 
@@ -1715,7 +1783,7 @@ int16_t paiorder_makedisabledorder(void)
 // FUNCTION: XVT 0x468690
 int16_t paiorder_neartargetorder(void)
 {
-	pai_CalcAnglesToAimPoint();
+	pai_calc_angles_to_aim_point();
 	return trig2_polardistance < 0x4000;
 }
 
@@ -1728,62 +1796,65 @@ int16_t paiorder_neartargetorder(void)
 // FUNCTION: XVT 0x4686B0
 int16_t paiorder_rocketsonboardorder(void)
 {
-	unsigned int targetObjIdx;
-	int16_t targetGenus;
-	uint16_t requiredWarheadClass;
-	uint16_t launcherIndex;
-	uint8_t projectileType;
-	uint16_t matchesRequiredClass;
-	uint16_t weaponSlot;
-	uint16_t lastWeaponSlot;
+	unsigned int target_obj_idx;
+	int16_t target_genus;
+	uint16_t required_warhead_class;
+	uint16_t launcher_index;
+	uint8_t projectile_type;
+	uint16_t matches_required_class;
+	uint16_t weapon_slot;
+	uint16_t last_weapon_slot;
 
-	targetObjIdx = g_paiContext.controller->targetObjIdx;
-	if (g_activeRegionCraftObjectSlotEnd > (int)targetObjIdx) {
-		targetGenus = g_objectTable[targetObjIdx].genusId;
-		if (targetGenus == 3 || targetGenus == 5 || targetGenus == 4 ||
-		    (targetGenus == 1 && g_missionFileVersion == 14)) {
-			requiredWarheadClass = 2;
+	target_obj_idx = g_pai_context.controller->target_obj_idx;
+	if (g_active_region_craft_object_slot_end > (int)target_obj_idx) {
+		target_genus = g_object_table[target_obj_idx].genus_id;
+		if (target_genus == 3 || target_genus == 5 ||
+		    target_genus == 4 ||
+		    (target_genus == 1 && g_mission_file_version == 14)) {
+			required_warhead_class = 2;
 		} else {
-			requiredWarheadClass = 1;
+			required_warhead_class = 1;
 		}
 	} else {
-		requiredWarheadClass = 1;
+		required_warhead_class = 1;
 	}
 
-	for (launcherIndex = 0;
-	     launcherIndex < g_curCraft->warheadLauncherCount;
-	     ++launcherIndex) {
-		projectileType = g_curCraft->warheadSlotTypeIds[launcherIndex];
-		if (g_projectileTypeData
-			    .warheadClass[projectileType -
-					  PROJECTILE_OBJECT_TYPE_FIRST] !=
-		    requiredWarheadClass) {
-			if (g_missionFileVersion == 14 &&
-			    (projectileType ==
+	for (launcher_index = 0;
+	     launcher_index < g_cur_craft->warhead_launcher_count;
+	     ++launcher_index) {
+		projectile_type =
+			g_cur_craft->warhead_slot_type_ids[launcher_index];
+		if (g_projectile_type_data
+			    .warhead_class[projectile_type -
+					   PROJECTILE_OBJECT_TYPE_FIRST] !=
+		    required_warhead_class) {
+			if (g_mission_file_version == 14 &&
+			    (projectile_type ==
 				     WARHEAD_OBJECT_TYPE_MAGNETIC_PULSE ||
-			     projectileType == 153)) {
-				matchesRequiredClass = 1;
-				if (requiredWarheadClass != 2) {
-					matchesRequiredClass = 0;
+			     projectile_type == 153)) {
+				matches_required_class = 1;
+				if (required_warhead_class != 2) {
+					matches_required_class = 0;
 				}
 			} else {
-				matchesRequiredClass = 0;
+				matches_required_class = 0;
 			}
-			if (!matchesRequiredClass) {
+			if (!matches_required_class) {
 				continue;
 			}
 		}
-		lastWeaponSlot =
-			g_modelDefs[g_curCraft->modelIndex]
-				.warheadLauncherLastSlot[launcherIndex];
-		weaponSlot = g_modelDefs[g_curCraft->modelIndex]
-				     .warheadLauncherFirstSlot[launcherIndex];
-		while (weaponSlot <= lastWeaponSlot) {
-			if (g_curCraft->weaponSlots[weaponSlot].ammoCount !=
+		last_weapon_slot =
+			g_model_defs[g_cur_craft->model_index]
+				.warhead_launcher_last_slot[launcher_index];
+		weapon_slot =
+			g_model_defs[g_cur_craft->model_index]
+				.warhead_launcher_first_slot[launcher_index];
+		while (weapon_slot <= last_weapon_slot) {
+			if (g_cur_craft->weapon_slots[weapon_slot].ammo_count !=
 			    0) {
 				return 1;
 			}
-			++weaponSlot;
+			++weapon_slot;
 		}
 	}
 
@@ -1792,121 +1863,127 @@ int16_t paiorder_rocketsonboardorder(void)
 
 /* Order 31: for a craft not a freighter or starship, still on its plan's
  * maneuver, dodges threats; returns 0 on every path. With no attacker known it
- * looks for a homing warhead aimed at it within g_aiWarheadThreatRangeBySkill
+ * looks for a homing warhead aimed at it within g_ai_warhead_threat_range_by_skill
  * (three times that for a concussion missile or type 149). For one it records
- * it as lastAttackerObjIdx, turns inside in bearing class 0 or avoids the
+ * it as last_attacker_obj_idx, turns inside in bearing class 0 or avoids the
  * attacker otherwise, then with countermeasure rounds adds 10 to an empty
- * chaffActiveSeconds and uses a round (none when the flight group's status1 or
+ * chaff_active_seconds and uses a round (none when the flight group's status1 or
  * status2 is 21) for chaff with a working countermeasure system, or fires a
- * flare when cmFireCooldownTimer is 0, and returns. Next it looks, while the
+ * flare when cm_fire_cooldown_timer is 0, and returns. Next it looks, while the
  * craft is active, for an enemy starfighter within
- * g_aiAttackerSearchRangeBySkill pointed within 0x2000 angle units of it. With
+ * g_ai_attacker_search_range_by_skill pointed within 0x2000 angle units of it. With
  * an attacker known, a craft not a utility vehicle whose front shield is below
- * 500 with shields working, or whose hullDamage has reached
- * systemDamageHullThreshold, fires a flare when the attacker is within 0x8000,
+ * 500 with shields working, or whose hull_damage has reached
+ * system_damage_hull_threshold, fires a flare when the attacker is within 0x8000,
  * and when a player flies the attacker switches to avoiding it at full
  * power. */
 // FUNCTION: XVT 0x468820
 int16_t paiorder_avoidhitorder(void)
 {
-	uint16_t objectIdx;
-	int maxRangeScore;
-	uint8_t genusId = g_objectTable[g_paiContext.objectIndex].genusId;
+	uint16_t object_idx;
+	int max_range_score;
+	uint8_t genus_id = g_object_table[g_pai_context.object_index].genus_id;
 
-	if (genusId == CRAFT_GENUS_FREIGHTER ||
-	    genusId == CRAFT_GENUS_STARSHIP) {
+	if (genus_id == CRAFT_GENUS_FREIGHTER ||
+	    genus_id == CRAFT_GENUS_STARSHIP) {
 		return 0;
 	}
 
-	if (g_paiContext.controller->maneuverMode ==
-	    g_paiContext.initialManeuverId) {
-		int objectTeam;
-		int sourceTeam;
-		int isHostile;
+	if (g_pai_context.controller->maneuver_mode ==
+	    g_pai_context.initial_maneuver_id) {
+		int object_team;
+		int source_team;
+		int is_hostile;
 
-		if (g_curCraft->lastAttackerObjIdx == UINT16_MAX) {
-			maxRangeScore = g_aiWarheadThreatRangeBySkill
-				[g_paiContext.skillTier];
-			for (objectIdx = (uint16_t)g_projectileObjectSlotStart;
-			     objectIdx < g_projectileObjectSlotEnd;
-			     ++objectIdx) {
-				if (g_objectTable[objectIdx].objectType != 0 &&
-				    g_objectTable[objectIdx]
-						    .mobj->pWarheadGuidance
-						    ->homingTier != 0 &&
-				    g_objectTable[objectIdx]
-						    .mobj->pWarheadGuidance
-						    ->targetObjIdx ==
-					    g_paiContext.objectIndex) {
-					if (pai_IsObjectWithinRangeOfCraft(
-						    objectIdx,
-						    (unsigned int)((g_objectTable[objectIdx]
-										    .objectType ==
+		if (g_cur_craft->last_attacker_obj_idx == UINT16_MAX) {
+			max_range_score = g_ai_warhead_threat_range_by_skill
+				[g_pai_context.skill_tier];
+			for (object_idx =
+				     (uint16_t)g_projectile_object_slot_start;
+			     object_idx < g_projectile_object_slot_end;
+			     ++object_idx) {
+				if (g_object_table[object_idx].object_type !=
+					    0 &&
+				    g_object_table[object_idx]
+						    .mobj->p_warhead_guidance
+						    ->homing_tier != 0 &&
+				    g_object_table[object_idx]
+						    .mobj->p_warhead_guidance
+						    ->target_obj_idx ==
+					    g_pai_context.object_index) {
+					if (pai_is_object_within_range_of_craft(
+						    object_idx,
+						    (unsigned int)((g_object_table[object_idx]
+										    .object_type ==
 									    WARHEAD_OBJECT_TYPE_CONCUSSION_MISSILE ||
-								    g_objectTable[objectIdx]
-										    .objectType ==
+								    g_object_table[object_idx]
+										    .object_type ==
 									    149)
-									   ? maxRangeScore *
+									   ? max_range_score *
 										     3
-									   : maxRangeScore)) ==
+									   : max_range_score)) ==
 					    1) {
-						g_curCraft->lastAttackerObjIdx =
-							objectIdx;
-						pai_ObjectRefDirectionToObjectRef(
-							g_paiContext
-								.objectIndex,
-							objectIdx);
-						if (g_aiThreatBearingClassByOctant
+						g_cur_craft
+							->last_attacker_obj_idx =
+							object_idx;
+						pai_object_ref_direction_to_object_ref(
+							g_pai_context
+								.object_index,
+							object_idx);
+						if (g_ai_threat_bearing_class_by_octant
 							    [(uint16_t)(trig2_xyangle -
-									g_objectTable[g_paiContext
-											      .objectIndex]
+									g_object_table[g_pai_context
+											       .object_index]
 										.yaw) >>
 							     13] == 0) {
-							g_paiContext.controller
-								->maneuverMode =
+							g_pai_context
+								.controller
+								->maneuver_mode =
 								AI_MANEUVER_MODE_TURN_INSIDE;
 						} else {
-							g_paiContext.controller
-								->maneuverMode =
+							g_pai_context
+								.controller
+								->maneuver_mode =
 								AI_MANEUVER_MODE_AVOID_ATTACKER;
 						}
 						paiman_initmaneuver();
-						if (g_curCraft->cmAmmoCount !=
+						if (g_cur_craft
+							    ->cm_ammo_count !=
 						    0) {
-							if (g_curCraft->cmTypeId ==
+							if (g_cur_craft->cm_type_id ==
 								    COUNTERMEASURE_TYPE_CHAFF &&
-							    (g_curCraft
-								     ->workingSubsystems &
+							    (g_cur_craft
+								     ->working_subsystems &
 							     CRAFT_SUBSYSTEM_FLAG_COUNTERMEASURES) !=
 								    0) {
-								if (g_curCraft
-									    ->chaffActiveSeconds ==
+								if (g_cur_craft
+									    ->chaff_active_seconds ==
 								    0) {
-									g_curCraft
-										->chaffActiveSeconds +=
+									g_cur_craft
+										->chaff_active_seconds +=
 										10;
-									if (g_missionFlightGroups[g_paiContext
-													  .craftFlightGroupIndex]
+									if (g_mission_flight_groups[g_pai_context
+													    .craft_flight_group_index]
 											    .fg
 											    .status1 !=
 										    21 &&
-									    g_missionFlightGroups[g_paiContext
-													  .craftFlightGroupIndex]
+									    g_mission_flight_groups[g_pai_context
+													    .craft_flight_group_index]
 											    .fg
 											    .status2 !=
 										    21) {
-										--g_curCraft
-											  ->cmAmmoCount;
+										--g_cur_craft
+											  ->cm_ammo_count;
 									}
 								}
 							} else if (
-								g_curCraft->cmTypeId ==
+								g_cur_craft->cm_type_id ==
 									COUNTERMEASURE_TYPE_FLARE &&
-								g_curCraft->cmFireCooldownTimer ==
+								g_cur_craft->cm_fire_cooldown_timer ==
 									0) {
 								laser_createcountermeasureprojectile(
-									g_paiContext
-										.objectIndex,
+									g_pai_context
+										.object_index,
 									COUNTERMEASURE_PROJECTILE_OBJECT_TYPE);
 							}
 						}
@@ -1914,103 +1991,106 @@ int16_t paiorder_avoidhitorder(void)
 					}
 				}
 			}
-			maxRangeScore = g_aiAttackerSearchRangeBySkill
-				[g_paiContext.skillTier];
-			if (g_curCraft->lastAttackerObjIdx == UINT16_MAX) {
-				for (objectIdx = (uint16_t)
-					     g_activeRegionObjectSlotStart;
-				     objectIdx <
-				     g_activeRegionCraftObjectSlotEnd;
-				     ++objectIdx) {
-					if (g_objectTable[objectIdx]
-						    .objectType == 0) {
+			max_range_score = g_ai_attacker_search_range_by_skill
+				[g_pai_context.skill_tier];
+			if (g_cur_craft->last_attacker_obj_idx == UINT16_MAX) {
+				for (object_idx = (uint16_t)
+					     g_active_region_object_slot_start;
+				     object_idx <
+				     g_active_region_craft_object_slot_end;
+				     ++object_idx) {
+					if (g_object_table[object_idx]
+						    .object_type == 0) {
 						continue;
 					}
-					objectTeam =
-						g_missionFlightGroups
-							[g_objectTable[objectIdx]
-								 .flightGroupIdx]
+					object_team =
+						g_mission_flight_groups
+							[g_object_table[object_idx]
+								 .flight_group_idx]
 								.fg.team;
-					sourceTeam =
-						g_objectTable
-							[g_paiContext
-								 .objectIndex]
+					source_team =
+						g_object_table
+							[g_pai_context
+								 .object_index]
 								.mobj->team;
-					isHostile =
-						sourceTeam == objectTeam
+					is_hostile =
+						source_team == object_team
 							? 0
-							: g_missionTeams[sourceTeam]
-									  .allies[objectTeam] ==
+							: g_mission_teams[source_team]
+									  .allies[object_team] ==
 								  0;
-					if (isHostile &&
-					    g_curCraft->objectKind ==
+					if (is_hostile &&
+					    g_cur_craft->object_kind ==
 						    CRAFT_OBJECT_KIND_ACTIVE &&
-					    g_objectTable[objectIdx].genusId ==
+					    g_object_table[object_idx]
+							    .genus_id ==
 						    CRAFT_GENUS_STARFIGHTER &&
-					    pai_IsObjectWithinRangeOfCraft(
-						    objectIdx,
+					    pai_is_object_within_range_of_craft(
+						    object_idx,
 						    (unsigned int)
-							    maxRangeScore) ==
+							    max_range_score) ==
 						    1) {
-						uint16_t horizontalAngle;
-						uint16_t verticalAngle;
+						uint16_t horizontal_angle;
+						uint16_t vertical_angle;
 
-						pai_ObjectRefDirectionToObjectRef(
-							objectIdx,
-							g_paiContext
-								.objectIndex);
-						horizontalAngle =
+						pai_object_ref_direction_to_object_ref(
+							object_idx,
+							g_pai_context
+								.object_index);
+						horizontal_angle =
 							(uint16_t)(trig2_xyangle -
-								   g_objectTable[objectIdx]
+								   g_object_table[object_idx]
 									   .yaw);
-						if (horizontalAngle >= 0x8000) {
-							horizontalAngle =
-								(uint16_t)-horizontalAngle;
+						if (horizontal_angle >=
+						    0x8000) {
+							horizontal_angle =
+								(uint16_t)-horizontal_angle;
 						}
-						verticalAngle =
+						vertical_angle =
 							(uint16_t)(trig2_pitch -
-								   g_objectTable[objectIdx]
+								   g_object_table[object_idx]
 									   .pitch);
-						if (verticalAngle >= 0x8000) {
-							verticalAngle =
-								(uint16_t)-verticalAngle;
+						if (vertical_angle >= 0x8000) {
+							vertical_angle =
+								(uint16_t)-vertical_angle;
 						}
-						if (horizontalAngle < 0x2000 &&
-						    verticalAngle < 0x2000) {
-							g_curCraft
-								->lastAttackerObjIdx =
-								objectIdx;
+						if (horizontal_angle < 0x2000 &&
+						    vertical_angle < 0x2000) {
+							g_cur_craft
+								->last_attacker_obj_idx =
+								object_idx;
 							break;
 						}
 					}
 				}
 			}
 		}
-		if (g_curCraft->lastAttackerObjIdx != UINT16_MAX &&
-		    g_objectTable[g_paiContext.objectIndex].genusId !=
+		if (g_cur_craft->last_attacker_obj_idx != UINT16_MAX &&
+		    g_object_table[g_pai_context.object_index].genus_id !=
 			    CRAFT_GENUS_UTILITY_VEHICLE &&
-		    (((g_curCraft->workingSubsystems &
+		    (((g_cur_craft->working_subsystems &
 		       CRAFT_SUBSYSTEM_FLAG_SHIELDS) != 0 &&
-		      g_curCraft->shieldEnergy[0] < 500) ||
-		     g_curCraft->hullDamage >=
-			     g_curCraft->systemDamageHullThreshold)) {
-			pai_ObjectRefDirectionToObjectRef(
-				g_curCraft->lastAttackerObjIdx,
-				g_paiContext.objectIndex);
+		      g_cur_craft->shield_energy[0] < 500) ||
+		     g_cur_craft->hull_damage >=
+			     g_cur_craft->system_damage_hull_threshold)) {
+			pai_object_ref_direction_to_object_ref(
+				g_cur_craft->last_attacker_obj_idx,
+				g_pai_context.object_index);
 			if (trig2_polardistance < 0x8000 &&
-			    g_curCraft->cmTypeId == COUNTERMEASURE_TYPE_FLARE &&
-			    g_curCraft->cmAmmoCount != 0 &&
-			    g_curCraft->cmFireCooldownTimer == 0) {
+			    g_cur_craft->cm_type_id ==
+				    COUNTERMEASURE_TYPE_FLARE &&
+			    g_cur_craft->cm_ammo_count != 0 &&
+			    g_cur_craft->cm_fire_cooldown_timer == 0) {
 				laser_createcountermeasureprojectile(
-					g_paiContext.objectIndex,
+					g_pai_context.object_index,
 					COUNTERMEASURE_PROJECTILE_OBJECT_TYPE);
 			}
-			if (g_objectTable[g_curCraft->lastAttackerObjIdx]
-				    .playerOwnerIdx != -1) {
-				g_paiContext.controller->maneuverMode =
+			if (g_object_table[g_cur_craft->last_attacker_obj_idx]
+				    .player_owner_idx != -1) {
+				g_pai_context.controller->maneuver_mode =
 					AI_MANEUVER_MODE_AVOID_ATTACKER;
 				paiman_initmaneuver();
-				paiman_setpower(g_paiContext.objectIndex,
+				paiman_setpower(g_pai_context.object_index,
 						UINT16_MAX);
 			}
 		}
@@ -2020,87 +2100,87 @@ int16_t paiorder_avoidhitorder(void)
 }
 
 /* Order 32: returns 1 when every other flight group that departs to this
- * craft's group as its mothership has arrived, has wavesRemaining 0 and has no
+ * craft's group as its mothership has arrived, has waves_remaining 0 and has no
  * craft left in the active region's craft slots; else 0. A group whose
- * arrivalEnabled is 0 and that no player owns is left out. */
+ * arrival_enabled is 0 and that no player owns is left out. */
 // FUNCTION: XVT 0x468CF0
 int16_t paiorder_waitforallreturnorder(void)
 {
-	uint16_t flightGroupIndex;
-	uint16_t objectIndex;
-	struct ObjectRecord *object;
+	uint16_t flight_group_index;
+	uint16_t object_index;
+	struct object_record *object;
 
-	flightGroupIndex = 0;
-	if ((int16_t)g_missionHeader.numFlightGroups > 0) {
+	flight_group_index = 0;
+	if ((int16_t)g_mission_header.num_flight_groups > 0) {
 		do {
-			if (!((g_missionFgStats[flightGroupIndex]
-					       .arrivalEnabled == 0 &&
-			       g_missionFlightGroups[flightGroupIndex]
-					       .playerOwnerIdx == -1) ||
-			      g_paiContext.craftFlightGroupIndex ==
-				      flightGroupIndex ||
-			      g_missionFlightGroups[flightGroupIndex]
-					      .fg.departureMethod == 0 ||
-			      g_missionFlightGroups[flightGroupIndex]
-					      .fg.departureMothership !=
-				      g_paiContext.craftFlightGroupIndex)) {
-				if (g_missionFgStats[flightGroupIndex]
-						    .hasArrived == 0 ||
-				    g_missionFgStats[flightGroupIndex]
-						    .wavesRemaining != 0) {
+			if (!((g_mission_fg_stats[flight_group_index]
+					       .arrival_enabled == 0 &&
+			       g_mission_flight_groups[flight_group_index]
+					       .player_owner_idx == -1) ||
+			      g_pai_context.craft_flight_group_index ==
+				      flight_group_index ||
+			      g_mission_flight_groups[flight_group_index]
+					      .fg.departure_method == 0 ||
+			      g_mission_flight_groups[flight_group_index]
+					      .fg.departure_mothership !=
+				      g_pai_context.craft_flight_group_index)) {
+				if (g_mission_fg_stats[flight_group_index]
+						    .has_arrived == 0 ||
+				    g_mission_fg_stats[flight_group_index]
+						    .waves_remaining != 0) {
 					return 0;
 				}
-				for (objectIndex =
-					     g_activeRegionObjectSlotStart;
-				     objectIndex <
-				     g_activeRegionCraftObjectSlotEnd;
-				     ++objectIndex) {
-					object = &g_objectTable[objectIndex];
-					if (object->objectType != 0 &&
-					    object->flightGroupIdx ==
-						    flightGroupIndex) {
+				for (object_index =
+					     g_active_region_object_slot_start;
+				     object_index <
+				     g_active_region_craft_object_slot_end;
+				     ++object_index) {
+					object = &g_object_table[object_index];
+					if (object->object_type != 0 &&
+					    object->flight_group_idx ==
+						    flight_group_index) {
 						return 0;
 					}
 				}
 			}
-			++flightGroupIndex;
-		} while ((int16_t)g_missionHeader.numFlightGroups >
-			 (int)flightGroupIndex);
+			++flight_group_index;
+		} while ((int16_t)g_mission_header.num_flight_groups >
+			 (int)flight_group_index);
 	}
 	return 1;
 }
 
 /* Order 33: returns 1 when every other flight group that arrives from this
- * craft's group as its mothership has arrived with wavesRemaining 0; else 0. A
- * group whose arrivalEnabled is 0 and that no player owns is left out. */
+ * craft's group as its mothership has arrived with waves_remaining 0; else 0. A
+ * group whose arrival_enabled is 0 and that no player owns is left out. */
 // FUNCTION: XVT 0x468E40
 int16_t paiorder_waitforallcreateorder(void)
 {
-	uint16_t flightGroupIndex;
+	uint16_t flight_group_index;
 
-	flightGroupIndex = 0;
-	if ((int16_t)g_missionHeader.numFlightGroups > 0) {
+	flight_group_index = 0;
+	if ((int16_t)g_mission_header.num_flight_groups > 0) {
 		do {
-			if (!((g_missionFgStats[flightGroupIndex]
-					       .arrivalEnabled == 0 &&
-			       g_missionFlightGroups[flightGroupIndex]
-					       .playerOwnerIdx == -1) ||
-			      g_paiContext.craftFlightGroupIndex ==
-				      flightGroupIndex ||
-			      g_missionFlightGroups[flightGroupIndex]
-					      .fg.arrivalMethod == 0 ||
-			      g_missionFlightGroups[flightGroupIndex]
-					      .fg.arrivalMothership !=
-				      g_paiContext.craftFlightGroupIndex ||
-			      (g_missionFgStats[flightGroupIndex].hasArrived !=
-				       0 &&
-			       g_missionFgStats[flightGroupIndex]
-					       .wavesRemaining == 0))) {
+			if (!((g_mission_fg_stats[flight_group_index]
+					       .arrival_enabled == 0 &&
+			       g_mission_flight_groups[flight_group_index]
+					       .player_owner_idx == -1) ||
+			      g_pai_context.craft_flight_group_index ==
+				      flight_group_index ||
+			      g_mission_flight_groups[flight_group_index]
+					      .fg.arrival_method == 0 ||
+			      g_mission_flight_groups[flight_group_index]
+					      .fg.arrival_mothership !=
+				      g_pai_context.craft_flight_group_index ||
+			      (g_mission_fg_stats[flight_group_index]
+					       .has_arrived != 0 &&
+			       g_mission_fg_stats[flight_group_index]
+					       .waves_remaining == 0))) {
 				return 0;
 			}
-			++flightGroupIndex;
-		} while ((int16_t)g_missionHeader.numFlightGroups >
-			 (int)flightGroupIndex);
+			++flight_group_index;
+		} while ((int16_t)g_mission_header.num_flight_groups >
+			 (int)flight_group_index);
 	}
 
 	return 1;
@@ -2112,68 +2192,68 @@ int16_t paiorder_waitforallcreateorder(void)
 // FUNCTION: XVT 0x468F20
 int16_t paiorder_evasiveorder(void)
 {
-	if (g_paiContext.controller->maneuverMode !=
-		    g_paiContext.initialManeuverId ||
-	    g_paiContext.controller->candidateTargetIdx != AI_TARGET_ABORT) {
+	if (g_pai_context.controller->maneuver_mode !=
+		    g_pai_context.initial_maneuver_id ||
+	    g_pai_context.controller->candidate_target_idx != AI_TARGET_ABORT) {
 		return 0;
 	}
 
-	g_paiContext.controller->targetObjIdx = 0xffff;
-	g_paiContext.controller->targetSignature = 0;
-	g_paiContext.controller->hasLiveTarget = 0;
-	g_paiContext.controller->candidateTargetIdx = 0xffff;
+	g_pai_context.controller->target_obj_idx = 0xffff;
+	g_pai_context.controller->target_signature = 0;
+	g_pai_context.controller->has_live_target = 0;
+	g_pai_context.controller->candidate_target_idx = 0xffff;
 
 	return 1;
 }
 
 /* Order 35: makes the candidate target the craft's target, with its signature
- * and hasLiveTarget 1, when it names an object (not 0xFFFF or AI_TARGET_ABORT)
+ * and has_live_target 1, when it names an object (not 0xFFFF or AI_TARGET_ABORT)
  * that can be targeted and is not the target already; clears a candidate that
  * cannot be targeted. Returns 0 on every path. */
 // FUNCTION: XVT 0x468F80
 int16_t paiorder_targetfromplayerorder(void)
 {
-	uint16_t candidateTargetIdx;
-	unsigned int objectIndex;
-	int validTarget;
+	uint16_t candidate_target_idx;
+	unsigned int object_index;
+	int valid_target;
 
-	candidateTargetIdx = g_paiContext.controller->candidateTargetIdx;
-	if (candidateTargetIdx == UINT16_MAX ||
-	    candidateTargetIdx == AI_TARGET_ABORT) {
+	candidate_target_idx = g_pai_context.controller->candidate_target_idx;
+	if (candidate_target_idx == UINT16_MAX ||
+	    candidate_target_idx == AI_TARGET_ABORT) {
 		return 0;
 	}
-	objectIndex = g_paiContext.controller->candidateTargetIdx;
-	validTarget = pai_IsObjectTargetable(objectIndex);
-	if (validTarget != 0) {
-		candidateTargetIdx =
-			g_paiContext.controller->candidateTargetIdx;
-		if (g_paiContext.controller->targetObjIdx ==
-		    candidateTargetIdx) {
+	object_index = g_pai_context.controller->candidate_target_idx;
+	valid_target = pai_is_object_targetable(object_index);
+	if (valid_target != 0) {
+		candidate_target_idx =
+			g_pai_context.controller->candidate_target_idx;
+		if (g_pai_context.controller->target_obj_idx ==
+		    candidate_target_idx) {
 			return 0;
 		}
-		g_paiContext.controller->targetObjIdx = candidateTargetIdx;
-		g_paiContext.controller->targetSignature =
-			g_objectTable[g_paiContext.controller->targetObjIdx]
-				.objectSignature;
-		g_paiContext.controller->hasLiveTarget = 1;
+		g_pai_context.controller->target_obj_idx = candidate_target_idx;
+		g_pai_context.controller->target_signature =
+			g_object_table[g_pai_context.controller->target_obj_idx]
+				.object_signature;
+		g_pai_context.controller->has_live_target = 1;
 		return 0;
 	}
-	g_paiContext.controller->candidateTargetIdx = UINT16_MAX;
+	g_pai_context.controller->candidate_target_idx = UINT16_MAX;
 	return 0;
 }
 
 /* Order 36. Off the avoid-starship maneuver, it asks
  * collide_craftstarshipcollision whether the craft will hit something within 6
- * simulated seconds, restoring g_curCraft after. When it will, and the object
+ * simulated seconds, restoring g_cur_craft after. When it will, and the object
  * is neither the craft nor what it carries, nor the target it is attacking or
  * rocket attacking (a Calamari cruiser or Imperial Star Destroyer target still
- * counts), it sets targetXYAngle a quarter turn off its yaw (plus for an odd
- * craftOrdinal, minus for an even one) and targetZAngle a quarter turn off its
- * pitch (minus when the old targetZAngle is above 0x4000, else plus), and
+ * counts), it sets target_xy_angle a quarter turn off its yaw (plus for an odd
+ * craft_ordinal, minus for an even one) and target_z_angle a quarter turn off its
+ * pitch (minus when the old target_z_angle is above 0x4000, else plus), and
  * switches to the avoid-starship maneuver; for an object at or past the end of
- * the region's main slots it sets secondaryManeuverTimer to 3 to 6 times
+ * the region's main slots it sets secondary_maneuver_timer to 3 to 6 times
  * SIMULATION_TICKS_PER_SECOND at random. Returns 0 there. On the avoid-starship
- * maneuver it returns 1 once secondaryManeuverTimer has run out, else 0. */
+ * maneuver it returns 1 once secondary_maneuver_timer has run out, else 0. */
 // FUNCTION: XVT 0x469150
 int16_t paiorder_avoidstarshiporder(void)
 {
@@ -2184,78 +2264,83 @@ int16_t paiorder_avoidstarshiporder(void)
 		AVOIDANCE_DURATION_MASK = 3,
 	};
 
-	int16_t maneuverMode;
-	struct CraftData *savedCraft;
-	uint16_t collisionObjectIndex;
+	int16_t maneuver_mode;
+	struct craft_data *saved_craft;
+	uint16_t collision_object_index;
 
-	maneuverMode = g_paiContext.controller->maneuverMode;
-	if (maneuverMode != AI_MANEUVER_MODE_AVOID_STARSHIP) {
-		int16_t sourceObjectIndex = g_paiContext.objectIndex;
+	maneuver_mode = g_pai_context.controller->maneuver_mode;
+	if (maneuver_mode != AI_MANEUVER_MODE_AVOID_STARSHIP) {
+		int16_t source_object_index = g_pai_context.object_index;
 
-		savedCraft = g_curCraft;
-		collisionObjectIndex = collide_craftstarshipcollision(
-			sourceObjectIndex, COLLISION_LOOKAHEAD_SECONDS);
-		g_curCraft = savedCraft;
-		if (collisionObjectIndex != UINT16_MAX) {
-			if (g_paiContext.controller->targetObjIdx ==
-				    collisionObjectIndex &&
-			    (maneuverMode == AI_MANEUVER_MODE_ATTACK ||
-			     maneuverMode == AI_MANEUVER_MODE_ROCKET_ATTACK)) {
-				uint8_t objectType =
-					g_objectTable[collisionObjectIndex]
-						.objectType;
-				if (objectType !=
+		saved_craft = g_cur_craft;
+		collision_object_index = collide_craftstarshipcollision(
+			source_object_index, COLLISION_LOOKAHEAD_SECONDS);
+		g_cur_craft = saved_craft;
+		if (collision_object_index != UINT16_MAX) {
+			if (g_pai_context.controller->target_obj_idx ==
+				    collision_object_index &&
+			    (maneuver_mode == AI_MANEUVER_MODE_ATTACK ||
+			     maneuver_mode == AI_MANEUVER_MODE_ROCKET_ATTACK)) {
+				uint8_t object_type =
+					g_object_table[collision_object_index]
+						.object_type;
+				if (object_type !=
 					    CRAFT_SPECIES_CALAMARI_CRUISER &&
-				    objectType !=
+				    object_type !=
 					    CRAFT_SPECIES_IMPERIAL_STAR_DESTROYER) {
 					return 0;
 				}
 			}
-			if (collisionObjectIndex != g_paiContext.objectIndex &&
-			    savedCraft->carriedObjectIndex !=
-				    collisionObjectIndex) {
-				if ((savedCraft->craftOrdinal & 1) != 0) {
-					g_paiContext.controller->targetXYAngle =
-						(uint16_t)(g_objectTable
-								   [g_paiContext
-									    .objectIndex]
+			if (collision_object_index !=
+				    g_pai_context.object_index &&
+			    saved_craft->carried_object_index !=
+				    collision_object_index) {
+				if ((saved_craft->craft_ordinal & 1) != 0) {
+					g_pai_context.controller
+						->target_xy_angle =
+						(uint16_t)(g_object_table
+								   [g_pai_context
+									    .object_index]
 									   .yaw +
 							   QUARTER_TURN);
 				} else {
-					g_paiContext.controller->targetXYAngle =
-						(uint16_t)(g_objectTable
-								   [g_paiContext
-									    .objectIndex]
+					g_pai_context.controller
+						->target_xy_angle =
+						(uint16_t)(g_object_table
+								   [g_pai_context
+									    .object_index]
 									   .yaw -
 							   QUARTER_TURN);
 				}
 
-				if (g_paiContext.controller->targetZAngle >
+				if (g_pai_context.controller->target_z_angle >
 				    QUARTER_TURN) {
-					g_paiContext.controller->targetZAngle =
-						(uint16_t)(g_objectTable
-								   [g_paiContext
-									    .objectIndex]
+					g_pai_context.controller
+						->target_z_angle =
+						(uint16_t)(g_object_table
+								   [g_pai_context
+									    .object_index]
 									   .pitch -
 							   QUARTER_TURN);
 				} else {
-					g_paiContext.controller->targetZAngle =
-						(uint16_t)(g_objectTable
-								   [g_paiContext
-									    .objectIndex]
+					g_pai_context.controller
+						->target_z_angle =
+						(uint16_t)(g_object_table
+								   [g_pai_context
+									    .object_index]
 									   .pitch +
 							   QUARTER_TURN);
 				}
 
-				g_paiContext.controller->maneuverMode =
+				g_pai_context.controller->maneuver_mode =
 					AI_MANEUVER_MODE_AVOID_STARSHIP;
 				paiman_initmaneuver();
-				if (collisionObjectIndex >=
-				    g_regionMainObjectSlotEnd) {
-					g_paiContext.controller
-						->secondaryManeuverTimer =
+				if (collision_object_index >=
+				    g_region_main_object_slot_end) {
+					g_pai_context.controller
+						->secondary_maneuver_timer =
 						SIMULATION_TICKS_PER_SECOND *
-						((GameRand() &
+						((game_rand() &
 						  AVOIDANCE_DURATION_MASK) +
 						 MIN_AVOIDANCE_SECONDS);
 				}
@@ -2263,31 +2348,31 @@ int16_t paiorder_avoidstarshiporder(void)
 				return 0;
 			}
 		}
-	} else if (g_paiContext.controller->secondaryManeuverTimer == 0) {
+	} else if (g_pai_context.controller->secondary_maneuver_timer == 0) {
 		return 1;
 	}
 	return 0;
 }
 
-/* Order 37: returns 1 when the flight group's departureMethod is nonzero, which
+/* Order 37: returns 1 when the flight group's departure_method is nonzero, which
  * paiorder_flyhomeorder takes as a departure by mothership, else 0. */
 // FUNCTION: XVT 0x469310
 int16_t paiorder_checkhyperorder(void)
 {
-	return g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-		       .fg.departureMethod != 0;
+	return g_mission_flight_groups[g_pai_context.craft_flight_group_index]
+		       .fg.departure_method != 0;
 }
 
 /* Order 38: returns 1 when the flight group's departure is due for the craft,
- * else 0; 0 at once when maxSpeedCache is 0. The departure starts when the
+ * else 0; 0 at once when max_speed_cache is 0. The departure starts when the
  * mission clock's minutes and seconds reach the group's departure time, or when
  * its departure trigger pair has a condition and holds: the craft then records
- * the clock in departClockHours, departClockMinutes and departClockSeconds,
- * counts the not-departed outcome and sets departTimerFlag. Once the group's
+ * the clock in depart_clock_hours, depart_clock_minutes and depart_clock_seconds,
+ * counts the not-departed outcome and sets depart_timer_flag. Once the group's
  * departure delay has passed since then, it has the tactical officer announce
  * the withdrawal, sends message 385 or 386 to the local player, restores
  * working subsystems when the current order's leader plan is waitforboardpln
- * and subsystemDamage is 0, and returns 1. */
+ * and subsystem_damage is 0, and returns 1. */
 // FUNCTION: XVT 0x469340
 int16_t paiorder_stopgohomeorder(void)
 {
@@ -2299,137 +2384,144 @@ int16_t paiorder_stopgohomeorder(void)
 		MESSAGE_FLIGHT_GROUP_SLOT = 1,
 	};
 
-	int departNow;
-	uint8_t departureClockSeconds;
-	uint8_t departureClockMinutes;
+	int depart_now;
+	uint8_t departure_clock_seconds;
+	uint8_t departure_clock_minutes;
 
-	if (g_curCraft->aiFlight.maxSpeedCache == 0) {
+	if (g_cur_craft->ai_flight.max_speed_cache == 0) {
 		return 0;
 	}
 
-	departNow = 0;
-	departureClockSeconds =
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-			.fg.departureClockSec;
-	departureClockMinutes =
-		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-			.fg.departureClockMin;
-	if (departureClockSeconds + departureClockMinutes != 0) {
-		if (g_missionElapsedClock.minutes > departureClockMinutes) {
-			departNow = 1;
-		} else if (g_missionElapsedClock.minutes ==
-				   departureClockMinutes &&
-			   g_missionElapsedClock.seconds >=
-				   departureClockSeconds) {
-			departNow = 1;
+	depart_now = 0;
+	departure_clock_seconds =
+		g_mission_flight_groups[g_pai_context.craft_flight_group_index]
+			.fg.departure_clock_sec;
+	departure_clock_minutes =
+		g_mission_flight_groups[g_pai_context.craft_flight_group_index]
+			.fg.departure_clock_min;
+	if (departure_clock_seconds + departure_clock_minutes != 0) {
+		if (g_mission_elapsed_clock.minutes > departure_clock_minutes) {
+			depart_now = 1;
+		} else if (g_mission_elapsed_clock.minutes ==
+				   departure_clock_minutes &&
+			   g_mission_elapsed_clock.seconds >=
+				   departure_clock_seconds) {
+			depart_now = 1;
 		}
 	}
 
-	if (g_curCraft->aiFlight.departTimerFlag == 0) {
-		if ((g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-				     .fg.departureTrigger.triggers[0]
+	if (g_cur_craft->ai_flight.depart_timer_flag == 0) {
+		if ((g_mission_flight_groups[g_pai_context
+						     .craft_flight_group_index]
+				     .fg.departure_trigger.triggers[0]
 				     .condition != 0 ||
-		     g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-				     .fg.departureTrigger.triggers[1]
+		     g_mission_flight_groups[g_pai_context
+						     .craft_flight_group_index]
+				     .fg.departure_trigger.triggers[1]
 				     .condition != 0) &&
-		    (Mission_EvaluateTriggerPair(
-			     &g_missionFlightGroups
-				      [g_paiContext.craftFlightGroupIndex]
-					      .fg.departureTrigger,
+		    (mission_evaluate_trigger_pair(
+			     &g_mission_flight_groups
+				      [g_pai_context.craft_flight_group_index]
+					      .fg.departure_trigger,
 			     0) &
 		     1) != 0) {
-			departNow = 1;
+			depart_now = 1;
 		}
-		if (departNow == 1) {
-			uint8_t *departTimerFlag;
-			uint16_t flightGroupIndex;
+		if (depart_now == 1) {
+			uint8_t *depart_timer_flag;
+			uint16_t flight_group_index;
 
-			g_curCraft->aiFlight.departClockHours =
-				g_missionElapsedClock.hours;
-			g_curCraft->aiFlight.departClockMinutes =
-				g_missionElapsedClock.minutes;
-			g_curCraft->aiFlight.departClockSeconds =
-				g_missionElapsedClock.seconds;
-			departTimerFlag = &g_curCraft->aiFlight.departTimerFlag;
-			if (*departTimerFlag == 0) {
-				flightGroupIndex =
-					g_paiContext.craftFlightGroupIndex;
-				++g_missionFgStats[flightGroupIndex].outcomeCount
+			g_cur_craft->ai_flight.depart_clock_hours =
+				g_mission_elapsed_clock.hours;
+			g_cur_craft->ai_flight.depart_clock_minutes =
+				g_mission_elapsed_clock.minutes;
+			g_cur_craft->ai_flight.depart_clock_seconds =
+				g_mission_elapsed_clock.seconds;
+			depart_timer_flag =
+				&g_cur_craft->ai_flight.depart_timer_flag;
+			if (*depart_timer_flag == 0) {
+				flight_group_index =
+					g_pai_context.craft_flight_group_index;
+				++g_mission_fg_stats[flight_group_index].outcome_count
 					  [FLIGHT_GROUP_OUTCOME_NOT_DEPARTED];
-				if (g_missionFlightGroups[flightGroupIndex]
-					    .fg.specialCargoCraft ==
-				    g_curCraft->craftOrdinal) {
-					g_missionFgStats[flightGroupIndex].specialCargoOutcome
+				if (g_mission_flight_groups[flight_group_index]
+					    .fg.special_cargo_craft ==
+				    g_cur_craft->craft_ordinal) {
+					g_mission_fg_stats[flight_group_index].special_cargo_outcome
 						[FLIGHT_GROUP_OUTCOME_NOT_DEPARTED] =
 						1;
 				}
 			}
-			*departTimerFlag = DEPART_TIMER_ACTIVE;
+			*depart_timer_flag = DEPART_TIMER_ACTIVE;
 		}
 	}
 
-	if (g_curCraft->aiFlight.departTimerFlag == DEPART_TIMER_ACTIVE) {
-		unsigned int departureDelaySeconds;
-		unsigned int elapsedSeconds;
+	if (g_cur_craft->ai_flight.depart_timer_flag == DEPART_TIMER_ACTIVE) {
+		unsigned int departure_delay_seconds;
+		unsigned int elapsed_seconds;
 		uint16_t order;
-		uint8_t planId;
+		uint8_t plan_id;
 
-		departureDelaySeconds =
+		departure_delay_seconds =
 			SECONDS_PER_MINUTE *
-				g_missionFlightGroups
-					[g_paiContext.craftFlightGroupIndex]
-						.fg.departureDelayMinutes +
-			g_missionFlightGroups[g_paiContext
-						      .craftFlightGroupIndex]
-				.fg.departureDelaySeconds;
-		elapsedSeconds =
+				g_mission_flight_groups
+					[g_pai_context.craft_flight_group_index]
+						.fg.departure_delay_minutes +
+			g_mission_flight_groups
+				[g_pai_context.craft_flight_group_index]
+					.fg.departure_delay_seconds;
+		elapsed_seconds =
 			SECONDS_PER_MINUTE *
-				(g_missionElapsedClock.minutes +
+				(g_mission_elapsed_clock.minutes +
 				 MINUTES_PER_HOUR *
-					 (g_missionElapsedClock.hours -
-					  g_curCraft->aiFlight
-						  .departClockHours) -
-				 g_curCraft->aiFlight.departClockMinutes) -
-			g_curCraft->aiFlight.departClockSeconds +
-			g_missionElapsedClock.seconds;
-		if (departureDelaySeconds == 0 ||
-		    elapsedSeconds >= departureDelaySeconds) {
-			fsfx_SpeakTacticalOfficerEvent(
+					 (g_mission_elapsed_clock.hours -
+					  g_cur_craft->ai_flight
+						  .depart_clock_hours) -
+				 g_cur_craft->ai_flight.depart_clock_minutes) -
+			g_cur_craft->ai_flight.depart_clock_seconds +
+			g_mission_elapsed_clock.seconds;
+		if (departure_delay_seconds == 0 ||
+		    elapsed_seconds >= departure_delay_seconds) {
+			fsfx_speak_tactical_officer_event(
 				TACTICAL_VOICE_STATUS, TACTICAL_MSG_WITHDRAWING,
-				g_paiContext.objectIndex, UINT16_MAX);
-			g_msgSenderIff =
-				(uint8_t)g_objectTable[g_paiContext.objectIndex]
+				g_pai_context.object_index, UINT16_MAX);
+			g_msg_sender_iff =
+				(uint8_t)g_object_table[g_pai_context
+								.object_index]
 					.mobj->iff;
-			msg_addMessagePtr(MESSAGE_MODEL_SLOT,
-					  &g_modelDefs[g_curCraft->modelIndex]);
-			msg_addMessagePtr(
+			msg_add_message_ptr(
+				MESSAGE_MODEL_SLOT,
+				&g_model_defs[g_cur_craft->model_index]);
+			msg_add_message_ptr(
 				MESSAGE_FLIGHT_GROUP_SLOT,
-				&g_missionFlightGroups
-					[g_paiContext.craftFlightGroupIndex]);
-			if (Hud_MissionFG_GetCraftNumberIfShown(
-				    g_paiContext.craftFlightGroupIndex,
-				    g_curCraft) == 0) {
-				msg_emitInFlightMessage(
+				&g_mission_flight_groups
+					[g_pai_context
+						 .craft_flight_group_index]);
+			if (hud_mission_fg_get_craft_number_if_shown(
+				    g_pai_context.craft_flight_group_index,
+				    g_cur_craft) == 0) {
+				msg_emit_in_flight_message(
 					IFMSG_385_ARG_ARG_WITHDRAWING_FROM_COMBAT_AREA,
-					g_localPlayer);
+					g_local_player);
 			} else {
-				msg_emitInFlightMessage(
+				msg_emit_in_flight_message(
 					IFMSG_386_FLIGHT_GROUP_ARG_ARG_WITHDRAWING_FROM_COMBAT_AREA,
-					g_localPlayer);
+					g_local_player);
 			}
 
-			order = g_missionFlightGroups
-					[g_paiContext.craftFlightGroupIndex]
+			order = g_mission_flight_groups
+					[g_pai_context.craft_flight_group_index]
 						.fg
-						.orders[g_paiContext.orderSlot]
+						.orders[g_pai_context
+								.order_slot]
 						.order;
-			planId = g_builtinPlanIdByNameIndex
-				[g_orderLeaderBuiltinPlanNameIndex[order]];
-			if (strcmp(g_planTable[planId].name,
+			plan_id = g_builtin_plan_id_by_name_index
+				[g_order_leader_builtin_plan_name_index[order]];
+			if (strcmp(g_plan_table[plan_id].name,
 				   "waitforboardpln") == 0 &&
-			    g_curCraft->subsystemDamage == 0) {
-				g_curCraft->workingSubsystems =
-					g_curCraft->systemFlags;
+			    g_cur_craft->subsystem_damage == 0) {
+				g_cur_craft->working_subsystems =
+					g_cur_craft->system_flags;
 			}
 			return 1;
 		}
@@ -2439,92 +2531,93 @@ int16_t paiorder_stopgohomeorder(void)
 }
 
 /* Order 39: marks the current order slot done and returns 1 once all orders are
- * done; else 0. A slot whose completionState is not yet 2 or 3 becomes 2 when
- * pai_IsPlanCompleteForOrderSlot says its plan is complete, else 3 when
- * pai_IsBoardingPlanCompleteForOrderSlot does. With the slot done it returns 0
- * when maxSpeedCache is 0, 1 after skipping to order 4, else 1 when every order
- * the group has in slots 0 to 2 is 2 or 3. Sets goHomeFlag when they are all
+ * done; else 0. A slot whose completion_state is not yet 2 or 3 becomes 2 when
+ * pai_is_plan_complete_for_order_slot says its plan is complete, else 3 when
+ * pai_is_boarding_plan_complete_for_order_slot does. With the slot done it returns 0
+ * when max_speed_cache is 0, 1 after skipping to order 4, else 1 when every order
+ * the group has in slots 0 to 2 is 2 or 3. Sets go_home_flag when they are all
  * 2. */
 // FUNCTION: XVT 0x469690
 int16_t paiorder_completegohomeorder(void)
 {
-	uint8_t completionState;
-	uint16_t orderSlot;
-	unsigned int activeOrderCount;
-	uint16_t flightGroupIdx;
-	int completedOrderCount;
-	int completedBoardingOrderCount;
-	int16_t allOrdersComplete;
+	uint8_t completion_state;
+	uint16_t order_slot;
+	unsigned int active_order_count;
+	uint16_t flight_group_idx;
+	int completed_order_count;
+	int completed_boarding_order_count;
+	int16_t all_orders_complete;
 
-	completionState = g_paiContext.controller->orderProgress
-				  .completionState[g_paiContext.orderSlot];
-	if (completionState != 2 && completionState != 3) {
-		if (pai_IsPlanCompleteForOrderSlot(
-			    g_paiContext.controller->currentPlanId,
-			    g_paiContext.orderSlot) != 0) {
-			g_paiContext.controller->orderProgress
-				.completionState[g_paiContext.orderSlot] = 2;
-		} else if (pai_IsBoardingPlanCompleteForOrderSlot(
-				   g_paiContext.controller->currentPlanId,
-				   g_paiContext.orderSlot) != 0) {
-			g_paiContext.controller->orderProgress
-				.completionState[g_paiContext.orderSlot] = 3;
+	completion_state = g_pai_context.controller->order_progress
+				   .completion_state[g_pai_context.order_slot];
+	if (completion_state != 2 && completion_state != 3) {
+		if (pai_is_plan_complete_for_order_slot(
+			    g_pai_context.controller->current_plan_id,
+			    g_pai_context.order_slot) != 0) {
+			g_pai_context.controller->order_progress
+				.completion_state[g_pai_context.order_slot] = 2;
+		} else if (pai_is_boarding_plan_complete_for_order_slot(
+				   g_pai_context.controller->current_plan_id,
+				   g_pai_context.order_slot) != 0) {
+			g_pai_context.controller->order_progress
+				.completion_state[g_pai_context.order_slot] = 3;
 		}
 	}
 
-	completionState = g_paiContext.controller->orderProgress
-				  .completionState[g_paiContext.orderSlot];
-	if (completionState != 2 && completionState != 3) {
+	completion_state = g_pai_context.controller->order_progress
+				   .completion_state[g_pai_context.order_slot];
+	if (completion_state != 2 && completion_state != 3) {
 		return 0;
 	}
-	if (g_curCraft->aiFlight.maxSpeedCache == 0) {
+	if (g_cur_craft->ai_flight.max_speed_cache == 0) {
 		return 0;
 	}
-	if (g_paiContext.controller->skippedToOrder4 == 1) {
+	if (g_pai_context.controller->skipped_to_order4 == 1) {
 		return 1;
 	}
 
-	orderSlot = 0;
-	activeOrderCount = 0;
-	flightGroupIdx = g_paiContext.craftFlightGroupIndex;
-	completedOrderCount = 0;
-	completedBoardingOrderCount = 0;
+	order_slot = 0;
+	active_order_count = 0;
+	flight_group_idx = g_pai_context.craft_flight_group_index;
+	completed_order_count = 0;
+	completed_boarding_order_count = 0;
 	do {
-		if (g_missionFlightGroups[flightGroupIdx]
-			    .fg.orders[orderSlot]
+		if (g_mission_flight_groups[flight_group_idx]
+			    .fg.orders[order_slot]
 			    .order != 0) {
-			++activeOrderCount;
-			completionState = g_paiContext.controller->orderProgress
-						  .completionState[orderSlot];
-			if (completionState == 2) {
-				++completedOrderCount;
+			++active_order_count;
+			completion_state =
+				g_pai_context.controller->order_progress
+					.completion_state[order_slot];
+			if (completion_state == 2) {
+				++completed_order_count;
 			}
-			if (completionState == 3) {
-				++completedBoardingOrderCount;
+			if (completion_state == 3) {
+				++completed_boarding_order_count;
 			}
 		}
-		++orderSlot;
-	} while (orderSlot < 3);
-	if (activeOrderCount != 0 &&
-	    (unsigned int)completedOrderCount == activeOrderCount &&
-	    g_curCraft->aiFlight.goHomeFlag == 0) {
-		g_curCraft->aiFlight.goHomeFlag = 1;
+		++order_slot;
+	} while (order_slot < 3);
+	if (active_order_count != 0 &&
+	    (unsigned int)completed_order_count == active_order_count &&
+	    g_cur_craft->ai_flight.go_home_flag == 0) {
+		g_cur_craft->ai_flight.go_home_flag = 1;
 	}
-	allOrdersComplete =
-		(unsigned int)(completedBoardingOrderCount +
-			       completedOrderCount) >= activeOrderCount;
-	return allOrdersComplete;
+	all_orders_complete =
+		(unsigned int)(completed_boarding_order_count +
+			       completed_order_count) >= active_order_count;
+	return all_orders_complete;
 }
 
 /* Order 40: moves the craft to its next order and returns 1, else returns 0; 0
- * at once after skipping to order 4. First, unless g_paiSkipToOrder4Checked is
+ * at once after skipping to order 4. First, unless g_pai_skip_to_order4_checked is
  * set, it tests the flight group's skip-to-order-4 trigger pair when either
  * condition is not MISSION_COND_ALWAYS_TRUE: when it holds, the craft skips to
- * slot 3 (skippedToOrder4 1) and it returns 1; when not, it sets
- * g_paiSkipToOrder4Checked. Then, when the current slot's completionState is 2,
+ * slot 3 (skipped_to_order4 1) and it returns 1; when not, it sets
+ * g_pai_skip_to_order4_checked. Then, when the current slot's completion_state is 2,
  * the slot is below 2 and the next slot has an order, it moves to that slot. A
- * move sets the slot in g_paiContext and the controller, currentPlanId to the
- * order's leader plan, and g_paiContext.variablePlanId to the leader or
+ * move sets the slot in g_pai_context and the controller, current_plan_id to the
+ * order's leader plan, and g_pai_context.variable_plan_id to the leader or
  * follower plan, for the "variablepln" switch. */
 // FUNCTION: XVT 0x4697F0
 int16_t paiorder_completegootherorder(void)
@@ -2539,81 +2632,84 @@ int16_t paiorder_completegootherorder(void)
 
 	int order;
 
-	if (g_paiContext.controller->skippedToOrder4 ==
+	if (g_pai_context.controller->skipped_to_order4 ==
 	    ORDER_STATE_SKIPPED_TO_ORDER4) {
 		return 0;
 	}
-	if (g_paiSkipToOrder4Checked == 0) {
-		if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-				    .fg.skipToOrder4.triggers[0]
+	if (g_pai_skip_to_order4_checked == 0) {
+		if (g_mission_flight_groups[g_pai_context
+						    .craft_flight_group_index]
+				    .fg.skip_to_order4.triggers[0]
 				    .condition != MISSION_COND_ALWAYS_TRUE ||
-		    g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-				    .fg.skipToOrder4.triggers[1]
+		    g_mission_flight_groups[g_pai_context
+						    .craft_flight_group_index]
+				    .fg.skip_to_order4.triggers[1]
 				    .condition != MISSION_COND_ALWAYS_TRUE) {
-			if ((Mission_EvaluateTriggerPair(
-				     &g_missionFlightGroups
-					      [g_paiContext
-						       .craftFlightGroupIndex]
-						      .fg.skipToOrder4,
+			if ((mission_evaluate_trigger_pair(
+				     &g_mission_flight_groups
+					      [g_pai_context
+						       .craft_flight_group_index]
+						      .fg.skip_to_order4,
 				     0) &
 			     1) != 0) {
-				g_paiContext.controller->skippedToOrder4 =
+				g_pai_context.controller->skipped_to_order4 =
 					ORDER_STATE_SKIPPED_TO_ORDER4;
-				g_paiContext.orderSlot = FOURTH_ORDER_SLOT;
-				g_paiContext.controller->currentOrderSlot =
+				g_pai_context.order_slot = FOURTH_ORDER_SLOT;
+				g_pai_context.controller->current_order_slot =
 					FOURTH_ORDER_SLOT;
-				order = g_missionFlightGroups
-						[g_paiContext
-							 .craftFlightGroupIndex]
+				order = g_mission_flight_groups
+						[g_pai_context
+							 .craft_flight_group_index]
 							.fg
-							.orders[g_paiContext
-									.orderSlot]
+							.orders[g_pai_context
+									.order_slot]
 							.order;
-				g_paiContext.controller->currentPlanId =
-					g_builtinPlanIdByNameIndex
-						[g_orderLeaderBuiltinPlanNameIndex
+				g_pai_context.controller->current_plan_id =
+					g_builtin_plan_id_by_name_index
+						[g_order_leader_builtin_plan_name_index
 							 [order]];
-				if (g_curCraft->leader_obj_idx == UINT8_MAX) {
-					g_paiContext.variablePlanId =
-						g_builtinPlanIdByNameIndex
-							[g_orderLeaderBuiltinPlanNameIndex
+				if (g_cur_craft->leader_obj_idx == UINT8_MAX) {
+					g_pai_context.variable_plan_id =
+						g_builtin_plan_id_by_name_index
+							[g_order_leader_builtin_plan_name_index
 								 [order]];
 				} else {
-					g_paiContext.variablePlanId =
-						g_builtinPlanIdByNameIndex
-							[g_orderFollowerBuiltinPlanNameIndex
+					g_pai_context.variable_plan_id =
+						g_builtin_plan_id_by_name_index
+							[g_order_follower_builtin_plan_name_index
 								 [order]];
 				}
 				return 1;
 			}
-			g_paiSkipToOrder4Checked = 1;
+			g_pai_skip_to_order4_checked = 1;
 		}
 	}
 
-	if (g_paiContext.controller->orderProgress
-			    .completionState[g_paiContext.orderSlot] !=
+	if (g_pai_context.controller->order_progress
+			    .completion_state[g_pai_context.order_slot] !=
 		    ORDER_COMPLETION_COMPLETE ||
-	    g_paiContext.orderSlot == THIRD_ORDER_SLOT ||
-	    g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-			    .fg.orders[g_paiContext.orderSlot + 1]
+	    g_pai_context.order_slot == THIRD_ORDER_SLOT ||
+	    g_mission_flight_groups[g_pai_context.craft_flight_group_index]
+			    .fg.orders[g_pai_context.order_slot + 1]
 			    .order == ORDER_NONE) {
 		return 0;
 	}
 
-	++g_paiContext.orderSlot;
-	g_paiContext.controller->currentOrderSlot =
-		(uint8_t)g_paiContext.orderSlot;
-	order = g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-			.fg.orders[g_paiContext.orderSlot]
+	++g_pai_context.order_slot;
+	g_pai_context.controller->current_order_slot =
+		(uint8_t)g_pai_context.order_slot;
+	order = g_mission_flight_groups[g_pai_context.craft_flight_group_index]
+			.fg.orders[g_pai_context.order_slot]
 			.order;
-	g_paiContext.controller->currentPlanId = g_builtinPlanIdByNameIndex
-		[g_orderLeaderBuiltinPlanNameIndex[order]];
-	if (g_curCraft->leader_obj_idx == UINT8_MAX) {
-		g_paiContext.variablePlanId = g_builtinPlanIdByNameIndex
-			[g_orderLeaderBuiltinPlanNameIndex[order]];
+	g_pai_context.controller->current_plan_id =
+		g_builtin_plan_id_by_name_index
+			[g_order_leader_builtin_plan_name_index[order]];
+	if (g_cur_craft->leader_obj_idx == UINT8_MAX) {
+		g_pai_context.variable_plan_id = g_builtin_plan_id_by_name_index
+			[g_order_leader_builtin_plan_name_index[order]];
 	} else {
-		g_paiContext.variablePlanId = g_builtinPlanIdByNameIndex
-			[g_orderFollowerBuiltinPlanNameIndex[order]];
+		g_pai_context.variable_plan_id = g_builtin_plan_id_by_name_index
+			[g_order_follower_builtin_plan_name_index[order]];
 	}
 	return 1;
 }
@@ -2621,58 +2717,59 @@ int16_t paiorder_completegootherorder(void)
 /* Order 42: returns 1 after moving the craft to the first later order slot,
  * below 3, whose plan name is capldr1pln to capldr5pln, capescortersldr1pln,
  * caprespondldr1pln or capflw1pln to capflw4pln; else 0, and 0 at once after
- * skipping to order 4. It reads that name as g_planTable[order], by the mission
+ * skipping to order 4. It reads that name as g_plan_table[order], by the mission
  * order number itself, not by the order's plan id as the other order functions
- * do. A move sets the controller's currentOrderSlot, not
- * g_paiContext.orderSlot, currentPlanId to the order's leader plan and
- * g_paiContext.variablePlanId to the leader or follower plan. */
+ * do. A move sets the controller's current_order_slot, not
+ * g_pai_context.order_slot, current_plan_id to the order's leader plan and
+ * g_pai_context.variable_plan_id to the leader or follower plan. */
 // FUNCTION: XVT 0x469A10
 int16_t paiorder_waitgootherorder(void)
 {
 	uint16_t order;
-	uint16_t orderSlot;
-	const char *planName;
+	uint16_t order_slot;
+	const char *plan_name;
 
-	if (g_paiContext.controller->skippedToOrder4 == 1) {
+	if (g_pai_context.controller->skipped_to_order4 == 1) {
 		return 0;
 	}
-	orderSlot = g_paiContext.orderSlot + 1;
-	while (orderSlot < 3) {
-		order = g_missionFlightGroups[g_paiContext
-						      .craftFlightGroupIndex]
-				.fg.orders[orderSlot]
-				.order;
-		planName = g_planTable[order].name;
-		if (strcmp(planName, "capldr1pln") == 0 ||
-		    strcmp(planName, "capescortersldr1pln") == 0 ||
-		    strcmp(planName, "caprespondldr1pln") == 0 ||
-		    strcmp(planName, "capldr2pln") == 0 ||
-		    strcmp(planName, "capldr3pln") == 0 ||
-		    strcmp(planName, "capldr4pln") == 0 ||
-		    strcmp(planName, "capldr5pln") == 0 ||
-		    strcmp(planName, "capflw1pln") == 0 ||
-		    strcmp(planName, "capflw2pln") == 0 ||
-		    strcmp(planName, "capflw3pln") == 0 ||
-		    strcmp(planName, "capflw4pln") == 0) {
-			g_paiContext.controller->currentOrderSlot =
-				(uint8_t)orderSlot;
-			g_paiContext.controller
-				->currentPlanId = g_builtinPlanIdByNameIndex
-				[g_orderLeaderBuiltinPlanNameIndex[order]];
-			if (g_curCraft->leader_obj_idx == UINT8_MAX) {
-				g_paiContext.variablePlanId =
-					g_builtinPlanIdByNameIndex
-						[g_orderLeaderBuiltinPlanNameIndex
+	order_slot = g_pai_context.order_slot + 1;
+	while (order_slot < 3) {
+		order = g_mission_flight_groups
+				[g_pai_context.craft_flight_group_index]
+					.fg.orders[order_slot]
+					.order;
+		plan_name = g_plan_table[order].name;
+		if (strcmp(plan_name, "capldr1pln") == 0 ||
+		    strcmp(plan_name, "capescortersldr1pln") == 0 ||
+		    strcmp(plan_name, "caprespondldr1pln") == 0 ||
+		    strcmp(plan_name, "capldr2pln") == 0 ||
+		    strcmp(plan_name, "capldr3pln") == 0 ||
+		    strcmp(plan_name, "capldr4pln") == 0 ||
+		    strcmp(plan_name, "capldr5pln") == 0 ||
+		    strcmp(plan_name, "capflw1pln") == 0 ||
+		    strcmp(plan_name, "capflw2pln") == 0 ||
+		    strcmp(plan_name, "capflw3pln") == 0 ||
+		    strcmp(plan_name, "capflw4pln") == 0) {
+			g_pai_context.controller->current_order_slot =
+				(uint8_t)order_slot;
+			g_pai_context.controller->current_plan_id =
+				g_builtin_plan_id_by_name_index
+					[g_order_leader_builtin_plan_name_index
+						 [order]];
+			if (g_cur_craft->leader_obj_idx == UINT8_MAX) {
+				g_pai_context.variable_plan_id =
+					g_builtin_plan_id_by_name_index
+						[g_order_leader_builtin_plan_name_index
 							 [order]];
 			} else {
-				g_paiContext.variablePlanId =
-					g_builtinPlanIdByNameIndex
-						[g_orderFollowerBuiltinPlanNameIndex
+				g_pai_context.variable_plan_id =
+					g_builtin_plan_id_by_name_index
+						[g_order_follower_builtin_plan_name_index
 							 [order]];
 			}
 			return 1;
 		}
-		++orderSlot;
+		++order_slot;
 	}
 	return 0;
 }
@@ -2684,8 +2781,8 @@ int16_t paiorder_waitgootherorder(void)
  * whose leader plan is capfreeldr1pln, caprespondldr1pln, capescortersldr1pln
  * or disableldr1pln with a target found now, or a boardto plan other than
  * boardtopickuppln with a target it can board. The switch back sets the
- * controller's currentOrderSlot, not g_paiContext.orderSlot, currentPlanId and
- * g_paiContext.variablePlanId. */
+ * controller's current_order_slot, not g_pai_context.order_slot, current_plan_id and
+ * g_pai_context.variable_plan_id. */
 // FUNCTION: XVT 0x469BD0
 int16_t paiorder_orderswitchorder(void)
 {
@@ -2696,131 +2793,138 @@ int16_t paiorder_orderswitchorder(void)
 	};
 
 	int order;
-	int16_t foundOrder;
-	uint16_t orderSlot;
+	int16_t found_order;
+	uint16_t order_slot;
 
-	if (g_paiContext.controller->skippedToOrder4 ==
+	if (g_pai_context.controller->skipped_to_order4 ==
 	    ORDER_STATE_SKIPPED_TO_ORDER4) {
 		return 0;
 	}
 
-	if (g_paiSkipToOrder4Checked == 0) {
-		int flightGroupIndex;
+	if (g_pai_skip_to_order4_checked == 0) {
+		int flight_group_index;
 
-		flightGroupIndex = g_paiContext.craftFlightGroupIndex;
-		if (g_missionFlightGroups[flightGroupIndex]
-				    .fg.skipToOrder4.triggers[0]
+		flight_group_index = g_pai_context.craft_flight_group_index;
+		if (g_mission_flight_groups[flight_group_index]
+				    .fg.skip_to_order4.triggers[0]
 				    .condition != MISSION_COND_ALWAYS_TRUE ||
-		    g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-				    .fg.skipToOrder4.triggers[1]
+		    g_mission_flight_groups[g_pai_context
+						    .craft_flight_group_index]
+				    .fg.skip_to_order4.triggers[1]
 				    .condition != MISSION_COND_ALWAYS_TRUE) {
-			if ((Mission_EvaluateTriggerPair(
-				     &g_missionFlightGroups[flightGroupIndex]
-					      .fg.skipToOrder4,
+			if ((mission_evaluate_trigger_pair(
+				     &g_mission_flight_groups
+					      [flight_group_index]
+						      .fg.skip_to_order4,
 				     0) &
 			     1) != 0) {
-				g_paiContext.controller->skippedToOrder4 =
+				g_pai_context.controller->skipped_to_order4 =
 					ORDER_STATE_SKIPPED_TO_ORDER4;
-				g_paiContext.orderSlot = FOURTH_ORDER_SLOT;
-				g_paiContext.controller->currentOrderSlot =
+				g_pai_context.order_slot = FOURTH_ORDER_SLOT;
+				g_pai_context.controller->current_order_slot =
 					FOURTH_ORDER_SLOT;
-				order = g_missionFlightGroups
-						[g_paiContext
-							 .craftFlightGroupIndex]
+				order = g_mission_flight_groups
+						[g_pai_context
+							 .craft_flight_group_index]
 							.fg
-							.orders[g_paiContext
-									.orderSlot]
+							.orders[g_pai_context
+									.order_slot]
 							.order;
-				g_paiContext.controller->currentPlanId =
-					g_builtinPlanIdByNameIndex
-						[g_orderLeaderBuiltinPlanNameIndex
+				g_pai_context.controller->current_plan_id =
+					g_builtin_plan_id_by_name_index
+						[g_order_leader_builtin_plan_name_index
 							 [order]];
-				if (g_curCraft->leader_obj_idx == UINT8_MAX) {
-					g_paiContext.variablePlanId =
-						g_builtinPlanIdByNameIndex
-							[g_orderLeaderBuiltinPlanNameIndex
+				if (g_cur_craft->leader_obj_idx == UINT8_MAX) {
+					g_pai_context.variable_plan_id =
+						g_builtin_plan_id_by_name_index
+							[g_order_leader_builtin_plan_name_index
 								 [order]];
 				} else {
-					g_paiContext.variablePlanId =
-						g_builtinPlanIdByNameIndex
-							[g_orderFollowerBuiltinPlanNameIndex
+					g_pai_context.variable_plan_id =
+						g_builtin_plan_id_by_name_index
+							[g_order_follower_builtin_plan_name_index
 								 [order]];
 				}
 				return 1;
 			}
-			g_paiSkipToOrder4Checked = 1;
+			g_pai_skip_to_order4_checked = 1;
 		}
 	}
 
-	if (g_paiContext.orderSlot == 0) {
+	if (g_pai_context.order_slot == 0) {
 		return 0;
 	}
 
-	foundOrder = 0;
-	orderSlot = 0;
-	while (orderSlot < g_paiContext.orderSlot) {
-		const char *planName;
+	found_order = 0;
+	order_slot = 0;
+	while (order_slot < g_pai_context.order_slot) {
+		const char *plan_name;
 
-		if (foundOrder != 0) {
+		if (found_order != 0) {
 			break;
 		}
-		if (g_paiContext.controller->orderProgress
-			    .completionState[orderSlot] !=
+		if (g_pai_context.controller->order_progress
+			    .completion_state[order_slot] !=
 		    ORDER_COMPLETION_COMPLETE) {
-			order = g_missionFlightGroups
-					[g_paiContext.craftFlightGroupIndex]
-						.fg.orders[orderSlot]
+			order = g_mission_flight_groups
+					[g_pai_context.craft_flight_group_index]
+						.fg.orders[order_slot]
 						.order;
-			planName =
-				g_planTable
-					[g_builtinPlanIdByNameIndex
-						 [g_orderLeaderBuiltinPlanNameIndex
+			plan_name =
+				g_plan_table
+					[g_builtin_plan_id_by_name_index
+						 [g_order_leader_builtin_plan_name_index
 							  [order]]]
 						.name;
-			if (strcmp(planName, "capfreeldr1pln") == 0 ||
-			    strcmp(planName, "caprespondldr1pln") == 0 ||
-			    strcmp(planName, "capescortersldr1pln") == 0 ||
-			    strcmp(planName, "disableldr1pln") == 0) {
-				if (paifight_SearchOrderSlotTarget(orderSlot) !=
-				    0) {
-					foundOrder = 1;
+			if (strcmp(plan_name, "capfreeldr1pln") == 0 ||
+			    strcmp(plan_name, "caprespondldr1pln") == 0 ||
+			    strcmp(plan_name, "capescortersldr1pln") == 0 ||
+			    strcmp(plan_name, "disableldr1pln") == 0) {
+				if (paifight_search_order_slot_target(
+					    order_slot) != 0) {
+					found_order = 1;
 				}
-			} else if ((strcmp(planName, "boardtogivepln") == 0 ||
-				    strcmp(planName, "boardtotakepln") == 0 ||
-				    strcmp(planName, "boardtoexchangepln") ==
+			} else if ((strcmp(plan_name, "boardtogivepln") == 0 ||
+				    strcmp(plan_name, "boardtotakepln") == 0 ||
+				    strcmp(plan_name, "boardtoexchangepln") ==
 					    0 ||
-				    strcmp(planName, "boardtocapturepln") ==
+				    strcmp(plan_name, "boardtocapturepln") ==
 					    0 ||
-				    strcmp(planName, "boardtodestroypln") ==
+				    strcmp(plan_name, "boardtodestroypln") ==
 					    0 ||
-				    strcmp(planName, "boardtocontactpln") ==
+				    strcmp(plan_name, "boardtocontactpln") ==
 					    0 ||
-				    strcmp(planName, "boardtorepairpln") ==
+				    strcmp(plan_name, "boardtorepairpln") ==
 					    0) &&
-				   pai_OrderSlotCanBoardTarget(orderSlot) !=
-					   0) {
-				foundOrder = 1;
+				   pai_order_slot_can_board_target(
+					   order_slot) != 0) {
+				found_order = 1;
 			}
 		}
-		++orderSlot;
+		++order_slot;
 	}
 
-	if (foundOrder != 0) {
-		--orderSlot;
-		g_paiContext.controller->currentOrderSlot = (uint8_t)orderSlot;
-		order = g_missionFlightGroups[g_paiContext
-						      .craftFlightGroupIndex]
-				.fg.orders[orderSlot]
-				.order;
-		g_paiContext.controller->currentPlanId =
-			g_builtinPlanIdByNameIndex
-				[g_orderLeaderBuiltinPlanNameIndex[order]];
-		if (g_curCraft->leader_obj_idx == UINT8_MAX) {
-			g_paiContext.variablePlanId = g_builtinPlanIdByNameIndex
-				[g_orderLeaderBuiltinPlanNameIndex[order]];
+	if (found_order != 0) {
+		--order_slot;
+		g_pai_context.controller->current_order_slot =
+			(uint8_t)order_slot;
+		order = g_mission_flight_groups
+				[g_pai_context.craft_flight_group_index]
+					.fg.orders[order_slot]
+					.order;
+		g_pai_context.controller->current_plan_id =
+			g_builtin_plan_id_by_name_index
+				[g_order_leader_builtin_plan_name_index[order]];
+		if (g_cur_craft->leader_obj_idx == UINT8_MAX) {
+			g_pai_context.variable_plan_id =
+				g_builtin_plan_id_by_name_index
+					[g_order_leader_builtin_plan_name_index
+						 [order]];
 		} else {
-			g_paiContext.variablePlanId = g_builtinPlanIdByNameIndex
-				[g_orderFollowerBuiltinPlanNameIndex[order]];
+			g_pai_context.variable_plan_id =
+				g_builtin_plan_id_by_name_index
+					[g_order_follower_builtin_plan_name_index
+						 [order]];
 		}
 		return 1;
 	}
@@ -2829,101 +2933,110 @@ int16_t paiorder_orderswitchorder(void)
 }
 
 /* Order 41: keeps a follower on its leader's order. A follower takes on its
- * leader's goHomeFlag and departTimerFlag when they are set, counting the
+ * leader's go_home_flag and depart_timer_flag when they are set, counting the
  * not-departed outcome when it takes the second. When the leader's
- * currentOrderSlot differs from the craft's order slot, the craft moves to that
- * slot, with currentPlanId and g_paiContext.variablePlanId set as on any order
+ * current_order_slot differs from the craft's order slot, the craft moves to that
+ * slot, with current_plan_id and g_pai_context.variable_plan_id set as on any order
  * move, and it returns 1; else 0. */
 // FUNCTION: XVT 0x469F40
 int16_t paiorder_completefolloworder(void)
 {
-	struct AiController *leaderController;
-	uint16_t flightGroupIndex;
-	int runtimeFlightGroupIndex;
-	uint16_t currentOrderSlot;
+	struct ai_controller *leader_controller;
+	uint16_t flight_group_index;
+	int runtime_flight_group_index;
+	uint16_t current_order_slot;
 
-	leaderController = &g_paiContext.leaderOrSelfCraft->aiController;
-	if (g_paiContext.leaderObjectIndex != UINT8_MAX) {
-		if (g_paiContext.leaderOrSelfCraft->aiFlight.goHomeFlag == 1 &&
-		    g_curCraft->aiFlight.goHomeFlag == 0) {
-			g_curCraft->aiFlight.goHomeFlag = 1;
+	leader_controller = &g_pai_context.leader_or_self_craft->ai_controller;
+	if (g_pai_context.leader_object_index != UINT8_MAX) {
+		if (g_pai_context.leader_or_self_craft->ai_flight
+				    .go_home_flag == 1 &&
+		    g_cur_craft->ai_flight.go_home_flag == 0) {
+			g_cur_craft->ai_flight.go_home_flag = 1;
 		}
-		if (g_paiContext.leaderOrSelfCraft->aiFlight.departTimerFlag ==
-			    1 &&
-		    g_curCraft->aiFlight.departTimerFlag == 0) {
-			g_curCraft->aiFlight.departTimerFlag = 1;
-			flightGroupIndex = g_paiContext.craftFlightGroupIndex;
-			runtimeFlightGroupIndex =
-				g_paiContext.craftFlightGroupIndex;
-			++g_missionFgStats[runtimeFlightGroupIndex].outcomeCount
-				  [FLIGHT_GROUP_OUTCOME_NOT_DEPARTED];
-			if (g_missionFlightGroups[flightGroupIndex]
-				    .fg.specialCargoCraft ==
-			    g_curCraft->craftOrdinal) {
-				g_missionFgStats[runtimeFlightGroupIndex]
-					.specialCargoOutcome
+		if (g_pai_context.leader_or_self_craft->ai_flight
+				    .depart_timer_flag == 1 &&
+		    g_cur_craft->ai_flight.depart_timer_flag == 0) {
+			g_cur_craft->ai_flight.depart_timer_flag = 1;
+			flight_group_index =
+				g_pai_context.craft_flight_group_index;
+			runtime_flight_group_index =
+				g_pai_context.craft_flight_group_index;
+			++g_mission_fg_stats[runtime_flight_group_index]
+				  .outcome_count
+					  [FLIGHT_GROUP_OUTCOME_NOT_DEPARTED];
+			if (g_mission_flight_groups[flight_group_index]
+				    .fg.special_cargo_craft ==
+			    g_cur_craft->craft_ordinal) {
+				g_mission_fg_stats[runtime_flight_group_index]
+					.special_cargo_outcome
 						[FLIGHT_GROUP_OUTCOME_NOT_DEPARTED] =
 					1;
 			}
 		}
 	}
 
-	currentOrderSlot = leaderController->currentOrderSlot;
-	if (g_paiContext.orderSlot != currentOrderSlot) {
+	current_order_slot = leader_controller->current_order_slot;
+	if (g_pai_context.order_slot != current_order_slot) {
 		int order;
 
-		g_paiContext.orderSlot = currentOrderSlot;
-		g_paiContext.controller->currentOrderSlot =
-			(uint8_t)currentOrderSlot;
-		order = g_missionFlightGroups[g_paiContext
-						      .craftFlightGroupIndex]
-				.fg.orders[g_paiContext.orderSlot]
-				.order;
+		g_pai_context.order_slot = current_order_slot;
+		g_pai_context.controller->current_order_slot =
+			(uint8_t)current_order_slot;
+		order = g_mission_flight_groups
+				[g_pai_context.craft_flight_group_index]
+					.fg.orders[g_pai_context.order_slot]
+					.order;
 		{
-			struct AiController *currentController;
-			int planNameIndex;
+			struct ai_controller *current_controller;
+			int plan_name_index;
 
-			currentController = g_paiContext.controller;
-			planNameIndex =
-				g_orderLeaderBuiltinPlanNameIndex[order];
-			currentController->currentPlanId =
-				g_builtinPlanIdByNameIndex[planNameIndex];
+			current_controller = g_pai_context.controller;
+			plan_name_index =
+				g_order_leader_builtin_plan_name_index[order];
+			current_controller->current_plan_id =
+				g_builtin_plan_id_by_name_index
+					[plan_name_index];
 		}
-		if (g_paiContext.leaderObjectIndex == UINT8_MAX) {
-			g_paiContext.variablePlanId = g_builtinPlanIdByNameIndex
-				[g_orderLeaderBuiltinPlanNameIndex[order]];
+		if (g_pai_context.leader_object_index == UINT8_MAX) {
+			g_pai_context.variable_plan_id =
+				g_builtin_plan_id_by_name_index
+					[g_order_leader_builtin_plan_name_index
+						 [order]];
 			return 1;
 		}
-		g_paiContext.variablePlanId = g_builtinPlanIdByNameIndex
-			[g_orderFollowerBuiltinPlanNameIndex[order]];
+		g_pai_context.variable_plan_id = g_builtin_plan_id_by_name_index
+			[g_order_follower_builtin_plan_name_index[order]];
 		return 1;
 	}
 	return 0;
 }
 
 /* Order 44: starts the craft's self-destruct countdown when none runs: sets its
- * lifetimeTimer to variable1 of the current order times 1,180 ticks (five times
+ * lifetime_timer to variable1 of the current order times 1,180 ticks (five times
  * SIMULATION_TICKS_PER_SECOND), or, for variable1 0, 2 to 5 such units at
- * random. Object_UpdateLifetimeAndMovement destroys the craft when it runs out.
+ * random. object_update_lifetime_and_movement destroys the craft when it runs out.
  * Does not check that the product fits the 16-bit timer. Returns 0 on every
  * path. */
 // FUNCTION: XVT 0x46A0A0
 int16_t paiorder_killselforder(void)
 {
-	uint16_t delayFiveSecondUnits;
+	uint16_t delay_five_second_units;
 
-	if (g_objectTable[g_paiContext.objectIndex].mobj->lifetimeTimer == 0) {
-		delayFiveSecondUnits =
-			g_missionFlightGroups[g_paiContext
-						      .craftFlightGroupIndex]
-				.fg.orders[g_paiContext.orderSlot]
-				.variable1;
-		if (delayFiveSecondUnits == 0) {
-			delayFiveSecondUnits = ((uint16_t)GameRand() & 3) + 2;
+	if (g_object_table[g_pai_context.object_index].mobj->lifetime_timer ==
+	    0) {
+		delay_five_second_units =
+			g_mission_flight_groups
+				[g_pai_context.craft_flight_group_index]
+					.fg.orders[g_pai_context.order_slot]
+					.variable1;
+		if (delay_five_second_units == 0) {
+			delay_five_second_units =
+				((uint16_t)game_rand() & 3) + 2;
 		}
 
-		g_objectTable[g_paiContext.objectIndex].mobj->lifetimeTimer =
-			(uint16_t)(delayFiveSecondUnits * 1180u);
+		g_object_table[g_pai_context.object_index]
+			.mobj->lifetime_timer =
+			(uint16_t)(delay_five_second_units * 1180u);
 	}
 	return 0;
 }
@@ -2932,7 +3045,7 @@ int16_t paiorder_killselforder(void)
  * all arrived, comparing each group's FLIGHT_GROUP_OUTCOME_TOTAL and
  * FLIGHT_GROUP_OUTCOME_ARRIVED counts: for a captured craft, the captured
  * departure mothership group, and only when it departs by one; else the
- * departure mothership group when departureMethod is set and the alternate one
+ * departure mothership group when departure_method is set and the alternate one
  * when used, which with neither gives 1. Returns 0 when the target lies in the
  * active region's craft slots or below them, or the model has no hyperdrive. */
 // FUNCTION: XVT 0x46A250
@@ -2940,69 +3053,79 @@ int16_t paiorder_abortmotherwaitorder(void)
 {
 	int16_t result;
 
-	if ((int)g_paiContext.controller->targetObjIdx <
-	    g_activeRegionCraftObjectSlotEnd) {
+	if ((int)g_pai_context.controller->target_obj_idx <
+	    g_active_region_craft_object_slot_end) {
 		return 0;
 	}
-	if (g_modelDefs[g_curCraft->modelIndex].hasHyperdrive == 0) {
+	if (g_model_defs[g_cur_craft->model_index].has_hyperdrive == 0) {
 		return 0;
 	}
 
 	result = 0;
-	if (g_curCraft->capturedByFlightGroup != 0) {
-		if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-			    .fg.capturedDepartViaMothership != 0) {
-			uint16_t mothershipFlightGroup;
+	if (g_cur_craft->captured_by_flight_group != 0) {
+		if (g_mission_flight_groups[g_pai_context
+						    .craft_flight_group_index]
+			    .fg.captured_depart_via_mothership != 0) {
+			uint16_t mothership_flight_group;
 
-			mothershipFlightGroup =
-				g_missionFlightGroups
-					[g_paiContext.craftFlightGroupIndex]
-						.fg.capturedDepartureMothership;
-			if (g_missionFgStats[mothershipFlightGroup]
-				    .outcomeCount[FLIGHT_GROUP_OUTCOME_TOTAL] ==
-			    g_missionFgStats[mothershipFlightGroup].outcomeCount
-				    [FLIGHT_GROUP_OUTCOME_ARRIVED]) {
+			mothership_flight_group =
+				g_mission_flight_groups
+					[g_pai_context.craft_flight_group_index]
+						.fg
+						.captured_departure_mothership;
+			if (g_mission_fg_stats[mothership_flight_group]
+				    .outcome_count
+					    [FLIGHT_GROUP_OUTCOME_TOTAL] ==
+			    g_mission_fg_stats[mothership_flight_group]
+				    .outcome_count
+					    [FLIGHT_GROUP_OUTCOME_ARRIVED]) {
 				result = 1;
 			}
 		}
 	} else {
-		int16_t departureMothershipReady;
-		int16_t alternateMothershipReady;
+		int16_t departure_mothership_ready;
+		int16_t alternate_mothership_ready;
 
-		departureMothershipReady = 1;
-		alternateMothershipReady = 1;
-		if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-			    .fg.departureMethod != 0) {
-			uint16_t mothershipFlightGroup;
+		departure_mothership_ready = 1;
+		alternate_mothership_ready = 1;
+		if (g_mission_flight_groups[g_pai_context
+						    .craft_flight_group_index]
+			    .fg.departure_method != 0) {
+			uint16_t mothership_flight_group;
 
-			mothershipFlightGroup =
-				g_missionFlightGroups
-					[g_paiContext.craftFlightGroupIndex]
-						.fg.departureMothership;
-			if (g_missionFgStats[mothershipFlightGroup]
-				    .outcomeCount[FLIGHT_GROUP_OUTCOME_TOTAL] !=
-			    g_missionFgStats[mothershipFlightGroup].outcomeCount
-				    [FLIGHT_GROUP_OUTCOME_ARRIVED]) {
-				departureMothershipReady = 0;
+			mothership_flight_group =
+				g_mission_flight_groups
+					[g_pai_context.craft_flight_group_index]
+						.fg.departure_mothership;
+			if (g_mission_fg_stats[mothership_flight_group]
+				    .outcome_count
+					    [FLIGHT_GROUP_OUTCOME_TOTAL] !=
+			    g_mission_fg_stats[mothership_flight_group]
+				    .outcome_count
+					    [FLIGHT_GROUP_OUTCOME_ARRIVED]) {
+				departure_mothership_ready = 0;
 			}
 		}
-		if (g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
-			    .fg.alternateMothershipUsed != 0) {
-			uint16_t mothershipFlightGroup;
+		if (g_mission_flight_groups[g_pai_context
+						    .craft_flight_group_index]
+			    .fg.alternate_mothership_used != 0) {
+			uint16_t mothership_flight_group;
 
-			mothershipFlightGroup =
-				g_missionFlightGroups
-					[g_paiContext.craftFlightGroupIndex]
-						.fg.alternateMothership;
-			if (g_missionFgStats[mothershipFlightGroup]
-				    .outcomeCount[FLIGHT_GROUP_OUTCOME_TOTAL] !=
-			    g_missionFgStats[mothershipFlightGroup].outcomeCount
-				    [FLIGHT_GROUP_OUTCOME_ARRIVED]) {
-				alternateMothershipReady = 0;
+			mothership_flight_group =
+				g_mission_flight_groups
+					[g_pai_context.craft_flight_group_index]
+						.fg.alternate_mothership;
+			if (g_mission_fg_stats[mothership_flight_group]
+				    .outcome_count
+					    [FLIGHT_GROUP_OUTCOME_TOTAL] !=
+			    g_mission_fg_stats[mothership_flight_group]
+				    .outcome_count
+					    [FLIGHT_GROUP_OUTCOME_ARRIVED]) {
+				alternate_mothership_ready = 0;
 			}
 		}
-		result = (int16_t)(departureMothershipReady &
-				   alternateMothershipReady);
+		result = (int16_t)(departure_mothership_ready &
+				   alternate_mothership_ready);
 	}
 	return result;
 }

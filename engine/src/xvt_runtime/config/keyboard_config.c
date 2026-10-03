@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static bool ConfigError(char *error, size_t capacity, const char *format, ...)
+static bool config_error(char *error, size_t capacity, const char *format, ...)
 {
 	if (error && capacity) {
 		va_list args;
@@ -19,33 +19,34 @@ static bool ConfigError(char *error, size_t capacity, const char *format, ...)
 
 static const char *const modifier_names[] = {"shift", "ctrl", "alt", "gui"};
 
-static bool ReadSource(const AeronConfigNode *node, AeronKeyChord *source,
-		       char *error, size_t capacity)
+static bool read_source(const AeronConfigNode *node, AeronKeyChord *source,
+			char *error, size_t capacity)
 {
 	if (AeronConfigNode_Type(node) != AERON_CONFIG_MAP) {
-		return ConfigError(error, capacity,
-				   "keyboard source must be a key mapping");
+		return config_error(error, capacity,
+				    "keyboard source must be a key mapping");
 	}
 	for (size_t i = 0; i < AeronConfigNode_MapCount(node); ++i) {
 		const char *name = AeronConfigNode_MapKeyAt(node, i);
 		if (strcmp(name, "key") && strcmp(name, "modifiers")) {
-			return ConfigError(error, capacity,
-					   "unknown keyboard source field '%s'",
-					   name);
+			return config_error(
+				error, capacity,
+				"unknown keyboard source field '%s'", name);
 		}
 	}
 	const char *key = AeronConfigNode_String(
 		AeronConfigNode_MapGet(node, "key"), NULL);
 	AeronKey parsed;
 	if (!key || !AeronKey_FromName(key, &parsed)) {
-		return ConfigError(error, capacity, "unknown keyboard key '%s'",
-				   key ? key : "");
+		return config_error(error, capacity,
+				    "unknown keyboard key '%s'",
+				    key ? key : "");
 	}
 	*source = (AeronKeyChord){.key = (uint16_t)parsed};
 	const AeronConfigNode *mods = AeronConfigNode_MapGet(node, "modifiers");
 	if (mods && AeronConfigNode_Type(mods) != AERON_CONFIG_SEQUENCE) {
-		return ConfigError(error, capacity,
-				   "keyboard modifiers must be a sequence");
+		return config_error(error, capacity,
+				    "keyboard modifiers must be a sequence");
 	}
 	for (size_t i = 0; i < AeronConfigNode_SequenceCount(mods); ++i) {
 		const char *name = AeronConfigNode_String(
@@ -57,7 +58,7 @@ static bool ReadSource(const AeronConfigNode *node, AeronKeyChord *source,
 			}
 		}
 		if (bit == 4 || (source->modifiers & (1u << bit))) {
-			return ConfigError(
+			return config_error(
 				error, capacity,
 				"invalid or repeated keyboard modifier '%s'",
 				name ? name : "");
@@ -67,62 +68,63 @@ static bool ReadSource(const AeronConfigNode *node, AeronKeyChord *source,
 	return true;
 }
 
-static bool AddSource(struct XvtKeyboardBindings *profile,
-		      XvtInputAction action, AeronKeyChord source, char *error,
-		      size_t capacity)
+static bool add_source(struct xvt_keyboard_bindings *profile,
+		       xvt_input_action action, AeronKeyChord source,
+		       char *error, size_t capacity)
 {
-	if (!XvtKeyboardMapping_SourceValid(source)) {
-		return ConfigError(
+	if (!xvt_keyboard_mapping_source_valid(source)) {
+		return config_error(
 			error, capacity,
 			"keyboard source '%s' is reserved or unsupported",
 			AeronKey_Name((AeronKey)source.key));
 	}
-	if (XvtKeyboardMapping_Find(profile, source) != SIZE_MAX) {
-		return ConfigError(error, capacity,
-				   "keyboard source '%s' is bound twice",
-				   AeronKey_Name((AeronKey)source.key));
+	if (xvt_keyboard_mapping_find(profile, source) != SIZE_MAX) {
+		return config_error(error, capacity,
+				    "keyboard source '%s' is bound twice",
+				    AeronKey_Name((AeronKey)source.key));
 	}
 	if (profile->count == XVT_KEYBOARD_BINDING_CAP) {
-		return ConfigError(error, capacity,
-				   "keyboard binding capacity exceeded");
+		return config_error(error, capacity,
+				    "keyboard binding capacity exceeded");
 	}
 	profile->bindings[profile->count++] =
-		(struct XvtKeyboardBinding){source, action};
+		(struct xvt_keyboard_binding){source, action};
 	return true;
 }
 
-bool XvtKeyboardConfig_Read(const AeronConfigFile *document,
-			    struct XvtKeyboardBindings *profile, char *error,
-			    size_t capacity)
+bool xvt_keyboard_config_read(const AeronConfigFile *document,
+			      struct xvt_keyboard_bindings *profile,
+			      char *error, size_t capacity)
 {
 	memset(profile, 0, sizeof *profile);
 	const AeronConfigNode *map =
 		AeronConfigFile_GetNode(document, "input.keyboard");
 	if (AeronConfigNode_Type(map) != AERON_CONFIG_MAP) {
-		return ConfigError(error, capacity,
-				   "input.keyboard must be a mapping");
+		return config_error(error, capacity,
+				    "input.keyboard must be a mapping");
 	}
 	for (size_t i = 0; i < AeronConfigNode_MapCount(map); ++i) {
 		const char *name = AeronConfigNode_MapKeyAt(map, i);
-		const XvtInputAction action = XvtInputActions_FromName(name);
+		const xvt_input_action action =
+			xvt_input_actions_from_name(name);
 		const AeronConfigNode *value =
 			AeronConfigNode_MapValueAt(map, i);
-		if (!XvtInputActions_KeyboardBindable(action)) {
-			return ConfigError(error, capacity,
-					   "unknown keyboard action '%s'",
-					   name);
+		if (!xvt_input_actions_keyboard_bindable(action)) {
+			return config_error(error, capacity,
+					    "unknown keyboard action '%s'",
+					    name);
 		}
 		if (AeronConfigNode_Type(value) == AERON_CONFIG_STRING) {
 			AeronKey key;
 			const char *label = AeronConfigNode_String(value, NULL);
 			if (!AeronKey_FromName(label, &key)) {
-				return ConfigError(error, capacity,
-						   "unknown keyboard key '%s'",
-						   label);
+				return config_error(error, capacity,
+						    "unknown keyboard key '%s'",
+						    label);
 			}
-			if (!AddSource(profile, action,
-				       (AeronKeyChord){.key = (uint16_t)key},
-				       error, capacity)) {
+			if (!add_source(profile, action,
+					(AeronKeyChord){.key = (uint16_t)key},
+					error, capacity)) {
 				return false;
 			}
 		} else if (AeronConfigNode_Type(value) ==
@@ -130,35 +132,35 @@ bool XvtKeyboardConfig_Read(const AeronConfigFile *document,
 			for (size_t j = 0;
 			     j < AeronConfigNode_SequenceCount(value); ++j) {
 				AeronKeyChord source;
-				if (!ReadSource(AeronConfigNode_SequenceGet(
-							value, j),
-						&source, error, capacity) ||
-				    !AddSource(profile, action, source, error,
-					       capacity)) {
+				if (!read_source(AeronConfigNode_SequenceGet(
+							 value, j),
+						 &source, error, capacity) ||
+				    !add_source(profile, action, source, error,
+						capacity)) {
 					return false;
 				}
 			}
 		} else {
-			return ConfigError(
+			return config_error(
 				error, capacity,
 				"keyboard action '%s' requires a key name or sequence",
 				name);
 		}
 	}
-	XvtKeyboardMapping_Sort(profile);
+	xvt_keyboard_mapping_sort(profile);
 	return true;
 }
 
-struct SourceYaml {
+struct source_yaml {
 	AeronConfigMapValue fields[2];
 	AeronConfigValue key;
 	AeronConfigValue modifiers;
 	AeronConfigValue modifier_values[4];
 };
 
-bool XvtKeyboardConfig_Write(AeronConfigFile *document,
-			     const struct XvtKeyboardBindings *profile,
-			     AeronConfigError *error)
+bool xvt_keyboard_config_write(AeronConfigFile *document,
+			       const struct xvt_keyboard_bindings *profile,
+			       AeronConfigError *error)
 {
 	if (profile->count > XVT_KEYBOARD_BINDING_CAP) {
 		snprintf(error->message, sizeof error->message,
@@ -166,16 +168,16 @@ bool XvtKeyboardConfig_Write(AeronConfigFile *document,
 		return false;
 	}
 	for (size_t i = 0; i < profile->count; ++i) {
-		if (!XvtInputActions_KeyboardBindable(
+		if (!xvt_input_actions_keyboard_bindable(
 			    profile->bindings[i].action) ||
-		    !XvtKeyboardMapping_SourceValid(
+		    !xvt_keyboard_mapping_source_valid(
 			    profile->bindings[i].source)) {
 			snprintf(error->message, sizeof error->message,
 				 "invalid keyboard action");
 			return false;
 		}
 	}
-	struct SourceYaml *scratch =
+	struct source_yaml *scratch =
 		calloc(XVT_KEYBOARD_BINDING_CAP, sizeof *scratch);
 	if (!scratch) {
 		snprintf(error->message, sizeof error->message,
@@ -188,12 +190,13 @@ bool XvtKeyboardConfig_Write(AeronConfigFile *document,
 	size_t used = 0, entry_count = 0;
 	for (int action = XVT_INPUT_ACTION_NONE + 1;
 	     action < XVT_INPUT_ACTION_COUNT; ++action) {
-		if (!XvtInputActions_KeyboardBindable((XvtInputAction)action)) {
+		if (!xvt_input_actions_keyboard_bindable(
+			    (xvt_input_action)action)) {
 			continue;
 		}
 		size_t first = used;
 		for (size_t i = 0; i < profile->count; ++i) {
-			const struct XvtKeyboardBinding *b =
+			const struct xvt_keyboard_binding *b =
 				&profile->bindings[i];
 			if ((int)b->action != action) {
 				continue;
@@ -204,7 +207,7 @@ bool XvtKeyboardConfig_Write(AeronConfigFile *document,
 					 "keyboard binding capacity exceeded");
 				return false;
 			}
-			struct SourceYaml *s = &scratch[used];
+			struct source_yaml *s = &scratch[used];
 			s->key = (AeronConfigValue){
 				.type = AERON_CONFIG_STRING,
 				.value.string_value =
@@ -233,7 +236,7 @@ bool XvtKeyboardConfig_Write(AeronConfigFile *document,
 			.type = AERON_CONFIG_SEQUENCE,
 			.value.sequence = {sources + first, used - first}};
 		entries[entry_count++] = (AeronConfigMapValue){
-			XvtInputActions_ToName((XvtInputAction)action),
+			xvt_input_actions_to_name((xvt_input_action)action),
 			&actions[action - 1]};
 	}
 	AeronConfigValue value = {.type = AERON_CONFIG_MAP,
@@ -244,40 +247,40 @@ bool XvtKeyboardConfig_Write(AeronConfigFile *document,
 	return ok;
 }
 
-bool XvtKeyboardConfig_Resolve(const struct XvtKeyboardBindings *defaults,
-			       const AeronConfigFile *user,
-			       AeronConfigFile *merged, char *error,
-			       size_t capacity)
+bool xvt_keyboard_config_resolve(const struct xvt_keyboard_bindings *defaults,
+				 const AeronConfigFile *user,
+				 AeronConfigFile *merged, char *error,
+				 size_t capacity)
 {
 	if (!AeronConfigFile_Has(user, "input.keyboard")) {
 		return true;
 	}
-	struct XvtKeyboardBindings effective;
-	if (!XvtKeyboardConfig_Read(user, &effective, error, capacity)) {
+	struct xvt_keyboard_bindings effective;
+	if (!xvt_keyboard_config_read(user, &effective, error, capacity)) {
 		return false;
 	}
 	const AeronConfigNode *overrides =
 		AeronConfigFile_GetNode(user, "input.keyboard");
 	for (size_t i = 0; i < defaults->count; ++i) {
-		const struct XvtKeyboardBinding *binding =
+		const struct xvt_keyboard_binding *binding =
 			&defaults->bindings[i];
 		/* Explicit action lists replace their defaults, including empty lists.
 		 * Explicit sources also displace matching sources from inherited actions. */
 		if (AeronConfigNode_MapGet(
 			    overrides,
-			    XvtInputActions_ToName(binding->action)) ||
-		    XvtKeyboardMapping_Find(&effective, binding->source) !=
+			    xvt_input_actions_to_name(binding->action)) ||
+		    xvt_keyboard_mapping_find(&effective, binding->source) !=
 			    SIZE_MAX) {
 			continue;
 		}
-		if (!AddSource(&effective, binding->action, binding->source,
-			       error, capacity)) {
+		if (!add_source(&effective, binding->action, binding->source,
+				error, capacity)) {
 			return false;
 		}
 	}
 	AeronConfigError detail = {0};
-	if (!XvtKeyboardConfig_Write(merged, &effective, &detail)) {
-		return ConfigError(error, capacity, "%s", detail.message);
+	if (!xvt_keyboard_config_write(merged, &effective, &detail)) {
+		return config_error(error, capacity, "%s", detail.message);
 	}
 	return true;
 }

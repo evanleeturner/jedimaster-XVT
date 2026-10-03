@@ -9,20 +9,20 @@
 extern "C" {
 #endif
 
-extern const uint8_t g_dinputKeyCodeTable[256];
-extern const uint8_t g_dinputShiftKeyCodeTable[256];
-extern const uint8_t g_dinputCtrlKeyCodeTable[256];
-extern const uint8_t g_dinputAltKeyCodeTable[256];
-extern struct IDirectInputDeviceA *g_dinputKeyboardDevice;
-extern int g_dinputShiftDown, g_dinputCtrlDown, g_dinputAltDown;
+extern const uint8_t g_dinput_key_code_table[256];
+extern const uint8_t g_dinput_shift_key_code_table[256];
+extern const uint8_t g_dinput_ctrl_key_code_table[256];
+extern const uint8_t g_dinput_alt_key_code_table[256];
+extern struct IDirectInputDeviceA *g_dinput_keyboard_device;
+extern int g_dinput_shift_down, g_dinput_ctrl_down, g_dinput_alt_down;
 
-int DInput_Init(void);
-int DInput_SkipToPendingKeyPress(void);
-uint8_t DInput_GetKey(void);
-void DInput_UpdateKeyboardModifierState(void);
-HRESULT DInput_ProbeKeyboardState(void);
-void DInput_Shutdown(void);
-int DInput_ReacquireKeyboard(void);
+int dinput_init(void);
+int dinput_skip_to_pending_key_press(void);
+uint8_t dinput_get_key(void);
+void dinput_update_keyboard_modifier_state(void);
+HRESULT dinput_probe_keyboard_state(void);
+void dinput_shutdown(void);
+int dinput_reacquire_keyboard(void);
 
 #ifdef __cplusplus
 }

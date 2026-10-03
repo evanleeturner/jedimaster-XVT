@@ -6,24 +6,25 @@
 
 /* OpenXWA's render-only camera shadow. The source tag prevents a temporary
  * or independently written Q15 camera from borrowing another view's basis. */
-struct RenderCamera {
+struct render_camera {
 	double rows[9];
 	int32_t source[9];
 	int valid;
 };
 
-static struct RenderCamera g_camera, g_savedViewport;
+static struct render_camera g_camera, g_saved_viewport;
 
-static void CopySource(int32_t rows[9])
+static void copy_source(int32_t rows[9])
 {
-	const int32_t source[9] = {g_camMatR0_X, g_camMatR0_Y, g_camMatR0_Z,
-				   g_camMatR1_X, g_camMatR1_Y, g_camMatR1_Z,
-				   g_camMatR2_X, g_camMatR2_Y, g_camMatR2_Z};
+	const int32_t source[9] = {
+		g_cam_mat_r0_x, g_cam_mat_r0_y, g_cam_mat_r0_z,
+		g_cam_mat_r1_x, g_cam_mat_r1_y, g_cam_mat_r1_z,
+		g_cam_mat_r2_x, g_cam_mat_r2_y, g_cam_mat_r2_z};
 	memcpy(rows, source, sizeof source);
 }
 
-/* Mirror of FVIEW_calcrotatemove, using the same full-turn angle convention. */
-static void RotMove(double m[9], int16_t pitch, int16_t yaw)
+/* Mirror of fview_calcrotatemove, using the same full-turn angle convention. */
+static void rot_move(double m[9], int16_t pitch, int16_t yaw)
 {
 	const double scale = 6.283185307179586 / 65536.0;
 	double a = (double)(uint16_t)(0xc000 - pitch) * scale;
@@ -40,9 +41,9 @@ static void RotMove(double m[9], int16_t pitch, int16_t yaw)
 	m[8] = sa;
 }
 
-/* OpenXWA's double-precision mirror of FVIEW_transformaxes. */
-static void RotateAxes(double m[9], double ax, double ay, double az,
-		       int16_t angle)
+/* OpenXWA's double-precision mirror of fview_transformaxes. */
+static void rotate_axes(double m[9], double ax, double ay, double az,
+			int16_t angle)
 {
 	if (!angle) {
 		return;
@@ -68,28 +69,29 @@ static void RotateAxes(double m[9], double ax, double ay, double az,
 	}
 }
 
-void XvtRenderCamera_Build(int16_t roll, int16_t pitch, int16_t yaw,
-			   int16_t up_axis_angle, int16_t aim_x, int16_t aim_y)
+void xvt_render_camera_build(int16_t roll, int16_t pitch, int16_t yaw,
+			     int16_t up_axis_angle, int16_t aim_x,
+			     int16_t aim_y)
 {
 	double *m = g_camera.rows;
-	RotMove(m, pitch, yaw);
-	RotateAxes(m, m[3], m[4], m[5], up_axis_angle);
-	RotateAxes(m, m[6], m[7], m[8], roll);
+	rot_move(m, pitch, yaw);
+	rotate_axes(m, m[3], m[4], m[5], up_axis_angle);
+	rotate_axes(m, m[6], m[7], m[8], roll);
 	for (int i = 3; i < 9; ++i) {
 		m[i] = -m[i];
 	}
 	/* FVIEW saves the yaw axis before applying the HUD pitch offset. */
 	double axis[3] = {m[3], m[4], m[5]};
-	RotateAxes(m, m[0], m[1], m[2], aim_x);
-	RotateAxes(m, axis[0], axis[1], axis[2], aim_y);
-	CopySource(g_camera.source);
+	rotate_axes(m, m[0], m[1], m[2], aim_x);
+	rotate_axes(m, axis[0], axis[1], axis[2], aim_y);
+	copy_source(g_camera.source);
 	g_camera.valid = 1;
 }
 
-void XvtRenderCamera_CopyRows(float rows[9])
+void xvt_render_camera_copy_rows(float rows[9])
 {
 	int32_t source[9];
-	CopySource(source);
+	copy_source(source);
 	int precise = g_camera.valid &&
 		      !memcmp(source, g_camera.source, sizeof source);
 	for (int i = 0; i < 9; ++i) {
@@ -98,13 +100,13 @@ void XvtRenderCamera_CopyRows(float rows[9])
 	}
 }
 
-void XvtRenderCamera_SaveViewport(void) { g_savedViewport = g_camera; }
+void xvt_render_camera_save_viewport(void) { g_saved_viewport = g_camera; }
 
-void XvtRenderCamera_RestoreViewport(void)
+void xvt_render_camera_restore_viewport(void)
 {
 	int32_t source[9];
-	g_camera = g_savedViewport;
-	CopySource(source);
+	g_camera = g_saved_viewport;
+	copy_source(source);
 	if (memcmp(source, g_camera.source, sizeof source)) {
 		g_camera.valid = 0;
 	}

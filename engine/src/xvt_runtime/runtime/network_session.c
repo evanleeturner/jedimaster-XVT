@@ -39,7 +39,7 @@ static struct {
 	char rating_text[16], player_name[16], name[32];
 	uint64_t deadline, next_retry_us;
 	AeronDplayDirectoryError error;
-	struct XvtNetworkMetadata metadata;
+	struct xvt_network_metadata metadata;
 	AeronDplayRoomMetadata published;
 } g_session;
 
@@ -47,8 +47,8 @@ static char g_origin[AERON_DPLAY_DIRECTORY_URL_CAPACITY];
 static const GUID g_application = {
 	0x09438c20, 0xe06a, 0x11ce, {0x86, 0x81, 0, 0xaa, 0, 0x6c, 0x5d, 0x57}};
 
-int XvtNetworkSession_CopyPlayerNames(
-	const struct NetPlayerNameMessage *message, char *short_name,
+int xvt_network_session_copy_player_names(
+	const struct net_player_name_message *message, char *short_name,
 	size_t short_capacity, char *long_name, size_t long_capacity)
 {
 	const char *short_end;
@@ -85,9 +85,9 @@ int XvtNetworkSession_CopyPlayerNames(
 	return 1;
 }
 
-AeronDplayDirectoryError XvtNetworkSession_Configure(void)
+AeronDplayDirectoryError xvt_network_session_configure(void)
 {
-	const struct XvtSettings *settings = XvtConfig_Settings();
+	const struct xvt_settings *settings = xvt_config_settings();
 	const char *origin = settings ? settings->lobby_url : "";
 	if (!*origin) {
 		return AERON_DPLAY_DIRECTORY_ERROR_NOT_CONFIGURED;
@@ -110,21 +110,21 @@ AeronDplayDirectoryError XvtNetworkSession_Configure(void)
 	return error;
 }
 
-static const char *XvtNetworkSession_Role(void)
+static const char *xvt_network_session_role(void)
 {
 	return g_session.host ? "host" : "join";
 }
 
 /* Marks the session established and says so; the three ways in are the online host's registration,
  * the offline host's roster, and the client's admission. */
-static void XvtNetworkSession_Establish(void)
+static void xvt_network_session_establish(void)
 {
 	g_session.phase = SESSION_ESTABLISHED;
 	XVT_LOG_INFO("network.session_ready role=\"%s\" online=%d",
-		     XvtNetworkSession_Role(), g_session.online);
+		     xvt_network_session_role(), g_session.online);
 }
 
-void XvtNetworkSession_OnClose(void)
+void xvt_network_session_on_close(void)
 {
 	/* Every shutdown calls this, with or without a session; only a session under way is reported. */
 	if (g_session.phase != SESSION_IDLE &&
@@ -132,7 +132,7 @@ void XvtNetworkSession_OnClose(void)
 		XVT_LOG_INFO("network.session_closed phase=%d",
 			     g_session.phase);
 	}
-	XvtFlightNetwork_ClearCookies();
+	xvt_flight_network_clear_cookies();
 	if (g_session.registered) {
 		AeronDplayDirectory_StopHosting();
 	}
@@ -149,30 +149,30 @@ void XvtNetworkSession_OnClose(void)
 	g_session.phase = SESSION_IDLE;
 }
 
-void XvtNetworkSession_Leave(void) { Net_ShutdownDirectPlaySession(); }
+void xvt_network_session_leave(void) { net_shutdown_direct_play_session(); }
 
-void XvtNetworkSession_Cancel(void) { XvtNetworkSession_Leave(); }
+void xvt_network_session_cancel(void) { xvt_network_session_leave(); }
 
-static int XvtNetworkSession_Fail(AeronDplayDirectoryError error)
+static int xvt_network_session_fail(AeronDplayDirectoryError error)
 {
 	XVT_LOG_WARN("network.session_failed phase=%d error=%u",
 		     g_session.phase, (unsigned)error);
-	XvtNetworkSession_Leave();
+	xvt_network_session_leave();
 	g_session.error = error;
 	g_session.phase = SESSION_FAILED;
 	return 0;
 }
 
-static int XvtNetworkSession_Start(const char *rating_text,
-				   const char *player_name, const char *name,
-				   int host, int online, const GUID *room)
+static int xvt_network_session_start(const char *rating_text,
+				     const char *player_name, const char *name,
+				     int host, int online, const GUID *room)
 {
 	if (g_session.phase != SESSION_IDLE &&
 	    g_session.phase != SESSION_FAILED &&
 	    g_session.phase != SESSION_ESTABLISHED) {
 		return XVT_NETWORK_PENDING;
 	}
-	XvtNetworkSession_Leave();
+	xvt_network_session_leave();
 	/* Preserve completion of a preceding close while preparing the next session. */
 	int closing = g_session.closing, cancel_join = g_session.cancel_join;
 	memset(&g_session, 0, sizeof(g_session));
@@ -182,13 +182,13 @@ static int XvtNetworkSession_Start(const char *rating_text,
 	g_session.host = host;
 	g_session.online = online;
 	if (!rating_text || !player_name || !name || (!host && !room)) {
-		return XvtNetworkSession_Fail(
+		return xvt_network_session_fail(
 			AERON_DPLAY_DIRECTORY_ERROR_INVALID_REQUEST);
 	}
 	if (strlen(rating_text) >= sizeof(g_session.rating_text) ||
 	    strlen(player_name) >= sizeof(g_session.player_name) ||
 	    strlen(name) >= sizeof(g_session.name)) {
-		return XvtNetworkSession_Fail(
+		return xvt_network_session_fail(
 			AERON_DPLAY_DIRECTORY_ERROR_INVALID_REQUEST);
 	}
 	strcpy(g_session.rating_text, rating_text);
@@ -202,111 +202,113 @@ static int XvtNetworkSession_Start(const char *rating_text,
 	if (room) {
 		g_session.instance = *room;
 	}
-	g_missionSetupIsHost = host;
+	g_mission_setup_is_host = host;
 	if (online) {
-		g_frontendMissionSessionMode =
+		g_frontend_mission_session_mode =
 			host ? FRONTEND_MISSION_SESSION_NET_HOST
 			     : FRONTEND_MISSION_SESSION_NET_CLIENT;
 	}
 	g_session.phase = SESSION_CLOSE;
 	XVT_LOG_INFO("network.session_begin role=\"%s\" online=%d",
-		     XvtNetworkSession_Role(), online);
+		     xvt_network_session_role(), online);
 	XVT_LOG_DEBUG(
 		"network.session_names pilot=\"%s\" game=\"%s\" rating=\"%s\"",
 		g_session.player_name, g_session.name, g_session.rating_text);
 	return XVT_NETWORK_PENDING;
 }
 
-int XvtNetworkSession_BeginHost(const char *rating_text,
-				const char *player_name, const char *name,
-				int online)
+int xvt_network_session_begin_host(const char *rating_text,
+				   const char *player_name, const char *name,
+				   int online)
 {
-	return XvtNetworkSession_Start(rating_text, player_name, name, 1,
-				       online, NULL);
+	return xvt_network_session_start(rating_text, player_name, name, 1,
+					 online, NULL);
 }
 
-int XvtNetworkSession_BeginJoin(const char *rating_text,
-				const char *player_name, const GUID *room)
+int xvt_network_session_begin_join(const char *rating_text,
+				   const char *player_name, const GUID *room)
 {
-	return XvtNetworkSession_Start(rating_text, player_name, "", 0, 1,
-				       room);
+	return xvt_network_session_start(rating_text, player_name, "", 0, 1,
+					 room);
 }
 
 /* Clears the reliable-transport counters, peer slots, send history and connection stats, the player lists
  * and the roster; copies in this session's application GUID, host flag and names; then creates the
  * DirectPlay interface. Returns 0 without a TCP/IP provider or when the interface cannot be made. */
-static int XvtNetworkSession_Factory(void)
+static int xvt_network_session_factory(void)
 {
 	const GUID *provider =
-		Net_GetDirectPlayServiceProviderGuid(NET_TRANSPORT_TCPIP);
+		net_get_direct_play_service_provider_guid(NET_TRANSPORT_TCPIP);
 	IDirectPlay *temporary = NULL;
 	HRESULT result;
 	if (!provider) {
 		return 0;
 	}
-	g_frontState.netRuntimeSentHistoryWriteIndex = 0;
-	g_frontState.netRuntimeBroadcastSeqCounter =
-		g_frontState.netRuntimeGroupSeqCounter = 0;
-	g_frontState.netRuntimeBroadcastPendingPayload.piggybackEmpty = 1;
-	g_frontState.netRuntimeBroadcastPendingPayload.payload[0] =
+	g_front_state.net_runtime_sent_history_write_index = 0;
+	g_front_state.net_runtime_broadcast_seq_counter =
+		g_front_state.net_runtime_group_seq_counter = 0;
+	g_front_state.net_runtime_broadcast_pending_payload.piggyback_empty = 1;
+	g_front_state.net_runtime_broadcast_pending_payload.payload[0] =
 		NET_PACKET_NOP;
-	g_frontState.netRuntimeBroadcastPendingPayload.payloadLength = 1;
-	g_frontState.netRuntimeGroupPendingPayload.piggybackEmpty = 1;
-	g_frontState.netRuntimeGroupPendingPayload.payload[0] = NET_PACKET_NOP;
-	g_frontState.netRuntimeGroupPendingPayload.payloadLength = 1;
-	g_frontState.netReliablePeerSlotCount = 0;
-	g_frontState.netReliableRetryLongTimeoutMode = 0;
-	g_frontState.netGroupDplayId = 0;
-	g_frontState.netHostPlayerId = 0;
-	g_frontState.netFlightSentWorldMessageHistory = NULL;
-	g_frontState.netFlightSentWorldMessageWriteIndex = 0;
+	g_front_state.net_runtime_broadcast_pending_payload.payload_length = 1;
+	g_front_state.net_runtime_group_pending_payload.piggyback_empty = 1;
+	g_front_state.net_runtime_group_pending_payload.payload[0] =
+		NET_PACKET_NOP;
+	g_front_state.net_runtime_group_pending_payload.payload_length = 1;
+	g_front_state.net_reliable_peer_slot_count = 0;
+	g_front_state.net_reliable_retry_long_timeout_mode = 0;
+	g_front_state.net_group_dplay_id = 0;
+	g_front_state.net_host_player_id = 0;
+	g_front_state.net_flight_sent_world_message_history = NULL;
+	g_front_state.net_flight_sent_world_message_write_index = 0;
 	for (int i = 0; i < 40; ++i) {
-		struct NetReliablePeerSlot *peer =
-			&g_frontState.netRuntimeReliablePeerSlots[i];
-		peer->lastDeliveredSeqDefault = peer->lastDeliveredSeqChannelA =
-			peer->lastDeliveredSeqChannelB = 127;
-		peer->recvSeqDefault = peer->recvSeqChannelA =
-			peer->recvSeqChannelB = 127;
-		peer->sendSeq = 0;
-		peer->directPlayId = 0;
-		peer->lastPiggybackType = NET_PACKET_NOP;
-		peer->piggybackLength = 1;
-		peer->lastActivityMs = peer->lastHeardMs = 0;
-		peer->packetCount = peer->packetDropCount =
-			peer->packetRetryCount = 0;
+		struct net_reliable_peer_slot *peer =
+			&g_front_state.net_runtime_reliable_peer_slots[i];
+		peer->last_delivered_seq_default =
+			peer->last_delivered_seq_channel_a =
+				peer->last_delivered_seq_channel_b = 127;
+		peer->recv_seq_default = peer->recv_seq_channel_a =
+			peer->recv_seq_channel_b = 127;
+		peer->send_seq = 0;
+		peer->direct_play_id = 0;
+		peer->last_piggyback_type = NET_PACKET_NOP;
+		peer->piggyback_length = 1;
+		peer->last_activity_ms = peer->last_heard_ms = 0;
+		peer->packet_count = peer->packet_drop_count =
+			peer->packet_retry_count = 0;
 	}
-	memset(g_frontState.netRuntimeSentHistory, 0,
-	       sizeof(g_frontState.netRuntimeSentHistory));
-	memset(g_netPlayerConnectionStats, 0,
-	       sizeof(g_netPlayerConnectionStats));
+	memset(g_front_state.net_runtime_sent_history, 0,
+	       sizeof(g_front_state.net_runtime_sent_history));
+	memset(g_net_player_connection_stats, 0,
+	       sizeof(g_net_player_connection_stats));
 	/* A new session owns fresh admission state; browsing never resets this roster. */
-	memset(g_frontState.netPlayers, 0, sizeof(g_frontState.netPlayers));
-	memset(&g_frontState.netRuntimeLocalPlayer, 0,
-	       sizeof(g_frontState.netRuntimeLocalPlayer));
-	memset(g_mpRoster, 0, sizeof(g_mpRoster));
-	g_missionSetupRosterAuthoritative = 0;
-	g_frontState.netAppGuid = g_session.app;
-	g_frontState.netIsHost = g_session.host;
-	strcpy(g_frontState.netPlayers[0].longName, g_session.rating_text);
-	strcpy(g_frontState.netPlayers[0].playerName, g_session.player_name);
-	strcpy(g_frontState.netSessionName, g_session.name);
+	memset(g_front_state.net_players, 0, sizeof(g_front_state.net_players));
+	memset(&g_front_state.net_runtime_local_player, 0,
+	       sizeof(g_front_state.net_runtime_local_player));
+	memset(g_mp_roster, 0, sizeof(g_mp_roster));
+	g_mission_setup_roster_authoritative = 0;
+	g_front_state.net_app_guid = g_session.app;
+	g_front_state.net_is_host = g_session.host;
+	strcpy(g_front_state.net_players[0].long_name, g_session.rating_text);
+	strcpy(g_front_state.net_players[0].player_name, g_session.player_name);
+	strcpy(g_front_state.net_session_name, g_session.name);
 	result = DirectPlayCreate(provider, &temporary, NULL);
 	if (result) {
 		return 0;
 	}
 	result = temporary->lpVtbl->QueryInterface(
 		temporary, &IID_IDirectPlay2A,
-		(void **)&g_frontState.netDirectPlay);
+		(void **)&g_front_state.net_direct_play);
 	temporary->lpVtbl->Release(temporary);
 	return result == 0;
 }
 
-static int XvtNetworkSession_Handshake(void)
+static int xvt_network_session_handshake(void)
 {
 	DPID sender;
 	uint32_t size;
 	for (int count = 0; count < 32; ++count) {
-		int *packet = Net_GetNextAppPacket(&sender, &size);
+		int *packet = net_get_next_app_packet(&sender, &size);
 		if (!packet) {
 			break;
 		}
@@ -314,63 +316,66 @@ static int XvtNetworkSession_Handshake(void)
 			continue;
 		}
 		unsigned peers = (unsigned)packet[2];
-		struct NetReliablePeerSlot saved = {0};
+		struct net_reliable_peer_slot saved = {0};
 		if (peers > 40 || size < 16 + 8 * peers) {
 			continue;
 		}
-		g_frontState.netHostPlayerId = sender;
-		for (unsigned i = 0; i < g_frontState.netReliablePeerSlotCount;
-		     ++i) {
-			if (g_frontState.netRuntimeReliablePeerSlots[i]
-				    .directPlayId == sender) {
-				saved = g_frontState
-						.netRuntimeReliablePeerSlots[i];
+		g_front_state.net_host_player_id = sender;
+		for (unsigned i = 0;
+		     i < g_front_state.net_reliable_peer_slot_count; ++i) {
+			if (g_front_state.net_runtime_reliable_peer_slots[i]
+				    .direct_play_id == sender) {
+				saved = g_front_state
+						.net_runtime_reliable_peer_slots
+							[i];
 			}
 		}
-		g_frontState.netReliablePeerSlotCount = peers;
+		g_front_state.net_reliable_peer_slot_count = peers;
 		for (unsigned i = 0; i < peers; ++i) {
-			struct NetReliablePeerSlot *peer =
-				&g_frontState.netRuntimeReliablePeerSlots[i];
+			struct net_reliable_peer_slot *peer =
+				&g_front_state
+					 .net_runtime_reliable_peer_slots[i];
 			const uint8_t *row =
 				(const uint8_t *)packet + 16 + 8 * i;
-			memcpy(&peer->directPlayId, row, 4);
-			peer->lastDeliveredSeqChannelA = row[4];
-			peer->lastDeliveredSeqChannelB = row[5];
-			peer->recvSeqChannelA = row[6];
-			peer->recvSeqChannelB = row[7];
-			peer->lastDeliveredSeqDefault = peer->recvSeqDefault =
-				127;
-			peer->sendSeq = 0;
-			peer->lastPiggybackType = NET_PACKET_NOP;
-			peer->piggybackLength = 1;
-			peer->lastActivityMs = peer->lastHeardMs =
+			memcpy(&peer->direct_play_id, row, 4);
+			peer->last_delivered_seq_channel_a = row[4];
+			peer->last_delivered_seq_channel_b = row[5];
+			peer->recv_seq_channel_a = row[6];
+			peer->recv_seq_channel_b = row[7];
+			peer->last_delivered_seq_default =
+				peer->recv_seq_default = 127;
+			peer->send_seq = 0;
+			peer->last_piggyback_type = NET_PACKET_NOP;
+			peer->piggyback_length = 1;
+			peer->last_activity_ms = peer->last_heard_ms =
 				GetTickCount();
-			if (saved.directPlayId &&
-			    peer->directPlayId == saved.directPlayId) {
-				peer->lastDeliveredSeqDefault =
-					saved.lastDeliveredSeqDefault;
-				peer->recvSeqDefault = saved.recvSeqDefault;
-				peer->sendSeq = saved.sendSeq;
-				memcpy(&peer->lastPiggybackType,
-				       &saved.lastPiggybackType,
-				       saved.piggybackLength);
-				peer->piggybackLength = saved.piggybackLength;
-				peer->lastActivityMs = saved.lastActivityMs;
-				peer->lastHeardMs = saved.lastHeardMs;
+			if (saved.direct_play_id &&
+			    peer->direct_play_id == saved.direct_play_id) {
+				peer->last_delivered_seq_default =
+					saved.last_delivered_seq_default;
+				peer->recv_seq_default = saved.recv_seq_default;
+				peer->send_seq = saved.send_seq;
+				memcpy(&peer->last_piggyback_type,
+				       &saved.last_piggyback_type,
+				       saved.piggyback_length);
+				peer->piggyback_length = saved.piggyback_length;
+				peer->last_activity_ms = saved.last_activity_ms;
+				peer->last_heard_ms = saved.last_heard_ms;
 			}
 		}
 		int response[5] = {NET_PACKET_KEEPALIVE_ACK, packet[3], 0, 0,
 				   0};
-		Net_SendDirectPlayPacket(sender, response, sizeof(response), 0);
+		net_send_direct_play_packet(sender, response, sizeof(response),
+					    0);
 		int request[6] = {NET_PACKET_JOIN_REQUEST,
 				  FRONTEND_NET_PROTOCOL_VERSION,
 				  0,
 				  0,
 				  0,
 				  0};
-		memcpy(request + 2, g_gameConfig.password,
-		       sizeof(g_gameConfig.password));
-		Net_SendPacketAndFlush(sender, request, sizeof(request));
+		memcpy(request + 2, g_game_config.password,
+		       sizeof(g_game_config.password));
+		net_send_packet_and_flush(sender, request, sizeof(request));
 		XVT_LOG_DEBUG("network.handshake peers=%u", peers);
 		g_session.phase = SESSION_ADMISSION;
 		return 1;
@@ -378,15 +383,15 @@ static int XvtNetworkSession_Handshake(void)
 	return XVT_NETWORK_PENDING;
 }
 
-static int XvtNetworkSession_Register(void)
+static int xvt_network_session_register(void)
 {
 	if (!g_session.registered) {
-		XvtNetworkMetadata_Build(&g_session.metadata, 0);
+		xvt_network_metadata_build(&g_session.metadata, 0);
 		AeronDplayDirectoryError error =
 			AeronDplayDirectory_StartHosting(
 				&g_session.instance, &g_session.metadata.room);
 		if (error) {
-			return XvtNetworkSession_Fail(error);
+			return xvt_network_session_fail(error);
 		}
 		g_session.registered = 1;
 		g_session.published = g_session.metadata.room;
@@ -394,37 +399,37 @@ static int XvtNetworkSession_Register(void)
 	AeronDplayDirectoryStatus status;
 	AeronDplayDirectory_GetHostStatus(&status);
 	if (status.state == AERON_DPLAY_DIRECTORY_FAILED) {
-		return XvtNetworkSession_Fail(status.error);
+		return xvt_network_session_fail(status.error);
 	}
 	if (status.state != AERON_DPLAY_DIRECTORY_SUCCEEDED) {
 		return XVT_NETWORK_PENDING;
 	}
-	XvtNetworkSession_Establish();
+	xvt_network_session_establish();
 	return 1;
 }
 
 /* Starts the roster with the local player: the host lists itself and moves
  * on to registering (online) or straight to an established session; a
  * joining player moves on to the handshake. */
-static void XvtNetworkSession_Roster(void)
+static void xvt_network_session_roster(void)
 {
-	g_frontState.netPlayerCount = 1;
-	Net_RefreshPlayerRoster();
-	g_frontState.netRuntimeRecvQueueReadIndex =
-		g_frontState.netRuntimeRecvQueueWriteIndex = 0;
-	g_frontState.netRuntimeRecvQueueCount = 0;
+	g_front_state.net_player_count = 1;
+	net_refresh_player_roster();
+	g_front_state.net_runtime_recv_queue_read_index =
+		g_front_state.net_runtime_recv_queue_write_index = 0;
+	g_front_state.net_runtime_recv_queue_count = 0;
 	if (g_session.host) {
-		g_frontState.netHostPlayerId =
-			g_frontState.netRuntimeLocalPlayer.playerId;
-		Net_SetPlayerReady(Net_GetLocalPlayerId());
-		snprintf(g_mpRoster[0].name, sizeof(g_mpRoster[0].name), "%s",
+		g_front_state.net_host_player_id =
+			g_front_state.net_runtime_local_player.player_id;
+		net_set_player_ready(net_get_local_player_id());
+		snprintf(g_mp_roster[0].name, sizeof(g_mp_roster[0].name), "%s",
 			 g_session.player_name);
-		g_mpRoster[0].playerId = Net_GetLocalPlayerId();
-		g_mpRoster[0].pilotRating = g_pilotData.rating;
+		g_mp_roster[0].player_id = net_get_local_player_id();
+		g_mp_roster[0].pilot_rating = g_pilot_data.rating;
 		if (g_session.online) {
 			g_session.phase = SESSION_REGISTER;
 		} else {
-			XvtNetworkSession_Establish();
+			xvt_network_session_establish();
 		}
 	} else {
 		g_session.phase = SESSION_HANDSHAKE;
@@ -434,11 +439,11 @@ static void XvtNetworkSession_Roster(void)
 /* One update of the session state machine: each phase does its step (the
  * longer steps are the functions above) and names the next phase, so the
  * whole host and join sequence reads in one switch. */
-int XvtNetworkSession_Update(void)
+int xvt_network_session_update(void)
 {
 	HRESULT result;
 	if (g_session.lost && !g_session.flight) {
-		return XvtNetworkSession_Fail(
+		return xvt_network_session_fail(
 			AERON_DPLAY_DIRECTORY_ERROR_CONNECTION_FAILED);
 	}
 	switch (g_session.phase) {
@@ -447,19 +452,19 @@ int XvtNetworkSession_Update(void)
 			return XVT_NETWORK_PENDING;
 		}
 		AeronDplayDirectoryError error =
-			g_session.online ? XvtNetworkSession_Configure() : 0;
+			g_session.online ? xvt_network_session_configure() : 0;
 		if (error == AERON_DPLAY_DIRECTORY_ERROR_BUSY) {
 			return XVT_NETWORK_PENDING;
 		}
 		if (error) {
-			return XvtNetworkSession_Fail(error);
+			return xvt_network_session_fail(error);
 		}
 		g_session.phase = SESSION_FACTORY;
 		break;
 	}
 	case SESSION_FACTORY:
-		if (!XvtNetworkSession_Factory()) {
-			return XvtNetworkSession_Fail(
+		if (!xvt_network_session_factory()) {
+			return xvt_network_session_fail(
 				AERON_DPLAY_DIRECTORY_ERROR_CONNECTION_FAILED);
 		}
 		if (!g_session.host) {
@@ -467,7 +472,7 @@ int XvtNetworkSession_Update(void)
 				AeronDplayDirectory_BeginJoin(
 					&g_session.instance);
 			if (error) {
-				return XvtNetworkSession_Fail(error);
+				return xvt_network_session_fail(error);
 			}
 			AeronDplayJoinStatus join;
 			AeronDplayDirectory_GetJoinStatus(&join);
@@ -481,7 +486,7 @@ int XvtNetworkSession_Update(void)
 		AeronDplayDirectory_GetJoinStatus(&join);
 		if (join.preparation.state == AERON_DPLAY_DIRECTORY_FAILED ||
 		    join.preparation.state == AERON_DPLAY_DIRECTORY_CANCELLED) {
-			return XvtNetworkSession_Fail(join.preparation.error);
+			return xvt_network_session_fail(join.preparation.error);
 		}
 		if (join.preparation.state == AERON_DPLAY_DIRECTORY_SUCCEEDED) {
 			g_session.phase = SESSION_OPEN;
@@ -496,62 +501,63 @@ int XvtNetworkSession_Update(void)
 		desc.dwMaxPlayers = 16;
 		desc.lpszSessionNameA = g_session.name;
 		g_session.opened = 1;
-		result = g_frontState.netDirectPlay->lpVtbl->Open(
-			g_frontState.netDirectPlay, &desc,
+		result = g_front_state.net_direct_play->lpVtbl->Open(
+			g_front_state.net_direct_play, &desc,
 			g_session.host ? DPOPEN_CREATE : DPOPEN_JOIN);
 		if (result == DPERR_PENDING || result == DPERR_BUSY) {
 			break;
 		}
 		if (result) {
-			return XvtNetworkSession_Fail(
+			return xvt_network_session_fail(
 				AERON_DPLAY_DIRECTORY_ERROR_CONNECTION_FAILED);
 		}
-		g_session.instance = g_frontState.netJoinedSessionGuid =
+		g_session.instance = g_front_state.net_joined_session_guid =
 			desc.guidInstance;
-		g_netActiveTransportType = NET_TRANSPORT_TCPIP;
+		g_net_active_transport_type = NET_TRANSPORT_TCPIP;
 		g_session.phase = SESSION_PLAYER;
 		break;
 	}
 	case SESSION_PLAYER: {
-		int player = Net_CreateDirectPlayPlayer(g_session.rating_text,
-							g_session.player_name);
+		int player = net_create_direct_play_player(
+			g_session.rating_text, g_session.player_name);
 		if (player == XVT_NETWORK_PENDING) {
 			break;
 		}
 		if (!player) {
-			return XvtNetworkSession_Fail(
+			return xvt_network_session_fail(
 				AERON_DPLAY_DIRECTORY_ERROR_CONNECTION_FAILED);
 		}
-		g_frontState.netPlayers[0].playerId = player;
-		g_frontState.netRuntimeLocalPlayer = g_frontState.netPlayers[0];
+		g_front_state.net_players[0].player_id = player;
+		g_front_state.net_runtime_local_player =
+			g_front_state.net_players[0];
 		g_session.phase =
 			g_session.host ? SESSION_GROUP : SESSION_ROSTER;
 		break;
 	}
 	case SESSION_GROUP:
-		result = g_frontState.netDirectPlay->lpVtbl->CreateGroup(
-			g_frontState.netDirectPlay,
-			&g_frontState.netGroupDplayId, NULL, NULL, 0, 0);
+		result = g_front_state.net_direct_play->lpVtbl->CreateGroup(
+			g_front_state.net_direct_play,
+			&g_front_state.net_group_dplay_id, NULL, NULL, 0, 0);
 		if (result == DPERR_PENDING || result == DPERR_BUSY) {
 			break;
 		}
 		if (result) {
-			return XvtNetworkSession_Fail(
+			return xvt_network_session_fail(
 				AERON_DPLAY_DIRECTORY_ERROR_CONNECTION_FAILED);
 		}
-		g_frontState.netRuntimeReliablePeerSlots[0].directPlayId =
-			g_frontState.netGroupDplayId;
-		g_frontState.netReliablePeerSlotCount = 1;
+		g_front_state.net_runtime_reliable_peer_slots[0]
+			.direct_play_id = g_front_state.net_group_dplay_id;
+		g_front_state.net_reliable_peer_slot_count = 1;
 		g_session.phase = SESSION_ROSTER;
 		break;
 	case SESSION_ROSTER:
-		XvtNetworkSession_Roster();
+		xvt_network_session_roster();
 		break;
 	case SESSION_REGISTER:
-		Net_PumpIncomingPackets();
-		return XvtNetworkSession_Register();
+		net_pump_incoming_packets();
+		return xvt_network_session_register();
 	case SESSION_HANDSHAKE:
-		return XvtNetworkSession_Handshake();
+		return xvt_network_session_handshake();
 	case SESSION_ADMISSION:
 	case SESSION_ESTABLISHED:
 		return 1;
@@ -562,29 +568,29 @@ int XvtNetworkSession_Update(void)
 	return XVT_NETWORK_PENDING;
 }
 
-int XvtNetworkSession_AcceptAdmission(DPID sender, DPID player)
+int xvt_network_session_accept_admission(DPID sender, DPID player)
 {
 	if (g_session.phase != SESSION_ADMISSION ||
-	    sender != g_frontState.netHostPlayerId ||
-	    player != g_frontState.netRuntimeLocalPlayer.playerId ||
+	    sender != g_front_state.net_host_player_id ||
+	    player != g_front_state.net_runtime_local_player.player_id ||
 	    g_session.lost || Aeron_NowUs() >= g_session.deadline) {
 		return 0;
 	}
 	AeronDplayDirectory_FinishJoin();
 	g_session.deadline = 0;
-	XvtNetworkSession_Establish();
+	xvt_network_session_establish();
 	return 1;
 }
 
-void XvtNetworkSession_Reject(void)
+void xvt_network_session_reject(void)
 {
 	XVT_LOG_WARN("network.join_rejected");
-	XvtNetworkSession_Leave();
+	xvt_network_session_leave();
 	AeronDplayDirectory_FinishJoin();
 	g_session.cancel_join = 0;
 }
 
-void XvtNetworkSession_HostLost(void)
+void xvt_network_session_host_lost(void)
 {
 	if (!g_session.lost) {
 		XVT_LOG_WARN("network.host_lost flight=%d", g_session.flight);
@@ -592,12 +598,12 @@ void XvtNetworkSession_HostLost(void)
 	g_session.lost = 1;
 }
 
-int XvtNetworkSession_IsLost(void) { return g_session.lost; }
+int xvt_network_session_is_lost(void) { return g_session.lost; }
 
-struct XvtNetworkSessionStatus XvtNetworkSession_GetStatus(void)
+struct xvt_network_session_status xvt_network_session_get_status(void)
 {
-	struct XvtNetworkSessionStatus status = {XVT_NETWORK_SESSION_IDLE,
-						 g_session.error};
+	struct xvt_network_session_status status = {XVT_NETWORK_SESSION_IDLE,
+						    g_session.error};
 	if (g_session.phase == SESSION_FAILED) {
 		status.state = XVT_NETWORK_SESSION_FAILED;
 	} else if (g_session.phase == SESSION_ESTABLISHED) {
@@ -610,7 +616,7 @@ struct XvtNetworkSessionStatus XvtNetworkSession_GetStatus(void)
 	return status;
 }
 
-void XvtNetworkSession_Service(void)
+void xvt_network_session_service(void)
 {
 	if (g_session.closing && !AeronDplay_IsActive()) {
 		if (g_session.cancel_join) {
@@ -623,7 +629,7 @@ void XvtNetworkSession_Service(void)
 		return;
 	}
 	if (g_session.lost && !g_session.flight) {
-		XvtNetworkSession_Fail(
+		xvt_network_session_fail(
 			AERON_DPLAY_DIRECTORY_ERROR_CONNECTION_FAILED);
 		return;
 	}
@@ -632,7 +638,7 @@ void XvtNetworkSession_Service(void)
 		AeronDplayDirectory_GetJoinStatus(&join);
 		if (Aeron_NowUs() >= g_session.deadline ||
 		    join.preparation.state == AERON_DPLAY_DIRECTORY_FAILED) {
-			XvtNetworkSession_Fail(
+			xvt_network_session_fail(
 				join.preparation.error
 					? join.preparation.error
 					: AERON_DPLAY_DIRECTORY_ERROR_TIMEOUT);
@@ -643,18 +649,19 @@ void XvtNetworkSession_Service(void)
 	    g_session.phase != SESSION_ESTABLISHED || g_session.lost) {
 		return;
 	}
-	struct XvtNetworkMetadata current;
+	struct xvt_network_metadata current;
 	if (g_session.flight) {
 		current = g_session.metadata;
 		if (g_session.flight_ready) {
-			XvtNetworkMetadata_KeepActivePlayers(&current);
+			xvt_network_metadata_keep_active_players(&current);
 		}
 	} else {
 		int accepting =
-			g_frontState.screenStates[g_frontState.screenStackTop]
-					.updateFn == MissionSetup_Update &&
-			g_frontState.frameCounter > 0;
-		XvtNetworkMetadata_Build(&current, accepting);
+			g_front_state.screen_states[g_front_state
+							    .screen_stack_top]
+					.update_fn == mission_setup_update &&
+			g_front_state.frame_counter > 0;
+		xvt_network_metadata_build(&current, accepting);
 	}
 	if (!current.room.players) {
 		return;
@@ -676,14 +683,14 @@ void XvtNetworkSession_Service(void)
 	}
 }
 
-void XvtNetworkSession_BeginFlight(void)
+void xvt_network_session_begin_flight(void)
 {
 	if (g_session.phase != SESSION_ESTABLISHED) {
 		return;
 	}
 	if (g_session.host && g_session.registered) {
-		struct XvtNetworkMetadata current;
-		XvtNetworkMetadata_Build(&current, 0);
+		struct xvt_network_metadata current;
+		xvt_network_metadata_build(&current, 0);
 		if (current.room.players) {
 			g_session.metadata = current;
 		}
@@ -697,18 +704,18 @@ void XvtNetworkSession_BeginFlight(void)
 	g_session.flight_ready = 0;
 }
 
-void XvtNetworkSession_MarkFlightReady(void) { g_session.flight_ready = 1; }
+void xvt_network_session_mark_flight_ready(void) { g_session.flight_ready = 1; }
 
-void XvtNetworkSession_EndFlight(void)
+void xvt_network_session_end_flight(void)
 {
 	if (!g_session.flight) {
 		return;
 	}
 	g_session.flight = g_session.flight_ready = 0;
-	Net_RefreshPlayerRoster();
+	net_refresh_player_roster();
 }
 
-void XvtNetworkSession_Shutdown(void)
+void xvt_network_session_shutdown(void)
 {
 	memset(&g_session, 0, sizeof(g_session));
 	g_origin[0] = 0;

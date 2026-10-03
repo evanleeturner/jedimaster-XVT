@@ -24,792 +24,813 @@
 #include <stdint.h>
 #include <string.h>
 
-enum { kSlots = 6, kMainSlots = 4 };
+enum { SLOTS = 6, MAIN_SLOTS = 4 };
 
-static struct ObjectRecord g_testObjects[kSlots];
-static struct MobileObject g_testMobiles[kSlots];
-static struct CraftData g_testCraft;
+static struct object_record g_test_objects[SLOTS];
+static struct mobile_object g_test_mobiles[SLOTS];
+static struct craft_data g_test_craft;
 
-static void FreshWorld(XvtFlightTimingProfile profile)
+static void fresh_world(xvt_flight_timing_profile profile)
 {
-	memset(g_testObjects, 0, sizeof g_testObjects);
-	memset(g_testMobiles, 0, sizeof g_testMobiles);
-	memset(&g_testCraft, 0, sizeof g_testCraft);
-	for (int i = 0; i < kSlots; ++i) {
-		g_testObjects[i].objectType = 1;
-		g_testObjects[i].objectSignature = (uint16_t)(0x200 + i);
-		g_testObjects[i].world_x = 1000 * i;
-		g_testObjects[i].world_y = -100 * i;
-		g_testObjects[i].world_z = 10 * i;
-		g_testObjects[i].mobj = &g_testMobiles[i];
-		g_testMobiles[i].prevWorldX = -7 - i;
-		g_testMobiles[i].prevWorldY = -8 - i;
-		g_testMobiles[i].prevWorldZ = -9 - i;
+	memset(g_test_objects, 0, sizeof g_test_objects);
+	memset(g_test_mobiles, 0, sizeof g_test_mobiles);
+	memset(&g_test_craft, 0, sizeof g_test_craft);
+	for (int i = 0; i < SLOTS; ++i) {
+		g_test_objects[i].object_type = 1;
+		g_test_objects[i].object_signature = (uint16_t)(0x200 + i);
+		g_test_objects[i].world_x = 1000 * i;
+		g_test_objects[i].world_y = -100 * i;
+		g_test_objects[i].world_z = 10 * i;
+		g_test_objects[i].mobj = &g_test_mobiles[i];
+		g_test_mobiles[i].prev_world_x = -7 - i;
+		g_test_mobiles[i].prev_world_y = -8 - i;
+		g_test_mobiles[i].prev_world_z = -9 - i;
 	}
-	g_testMobiles[0].pCraft = &g_testCraft;
-	g_testCraft.workingSubsystems = CRAFT_SUBSYSTEM_FLAG_FLIGHT_CONTROLS;
-	g_objectTable = g_testObjects;
-	g_regionMainObjectSlotEnd = kMainSlots;
-	g_regionStaticObjectSlotCount = 1;
+	g_test_mobiles[0].p_craft = &g_test_craft;
+	g_test_craft.working_subsystems = CRAFT_SUBSYSTEM_FLAG_FLIGHT_CONTROLS;
+	g_object_table = g_test_objects;
+	g_region_main_object_slot_end = MAIN_SLOTS;
+	g_region_static_object_slot_count = 1;
 	memset(g_players, 0, sizeof g_players);
 	for (int i = 0; i < 8; ++i) {
-		g_players[i].objectIndex = -1;
-		g_players[i].currentTargetObjectIdx = -1;
+		g_players[i].object_index = -1;
+		g_players[i].current_target_object_idx = -1;
 	}
-	g_players[0].objectIndex = 0;
-	g_players[0].currentTargetObjectIdx = 2;
-	g_players[1].objectIndex = 1;
-	g_localPlayer = 0;
-	g_flightKeyMods = 0;
-	g_elapsedTicks = 1;
-	g_localTransientSlotStart = 0;
-	g_localDebrisSlotEnd = 0;
-	XvtFlightTiming_BeginSession(profile);
-	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Init(kSlots), 1);
-	XVT_ASSERT_INT_EQ(XvtReferenceMotion_Init(kSlots), 1);
-	XvtPlayerTiming_Reset();
+	g_players[0].object_index = 0;
+	g_players[0].current_target_object_idx = 2;
+	g_players[1].object_index = 1;
+	g_local_player = 0;
+	g_flight_key_mods = 0;
+	g_elapsed_ticks = 1;
+	g_local_transient_slot_start = 0;
+	g_local_debris_slot_end = 0;
+	xvt_flight_timing_begin_session(profile);
+	XVT_ASSERT_INT_EQ(xvt_flight_integration_init(SLOTS), 1);
+	XVT_ASSERT_INT_EQ(xvt_reference_motion_init(SLOTS), 1);
+	xvt_player_timing_reset();
 }
 
-static void Seed(unsigned player, unsigned channel)
+static void seed(unsigned player, unsigned channel)
 {
-	XvtPlayerTiming_Clear(player, channel);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Scale(player, channel, 3, 1, 4), 0);
+	xvt_player_timing_clear(player, channel);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_scale(player, channel, 3, 1, 4), 0);
 }
 
-static int Probe(unsigned player, unsigned channel)
+static int probe(unsigned player, unsigned channel)
 {
-	return XvtPlayerTiming_Scale(player, channel, 1, 1, 4);
+	return xvt_player_timing_scale(player, channel, 1, 1, 4);
 }
 
 /* Opens the next simulation step of `ticks` ticks. */
-static void Step(uint16_t ticks)
+static void step(uint16_t ticks)
 {
-	XvtFlightTiming_EndAdvance();
-	XvtFlightTiming_BeginAdvance(ticks);
+	xvt_flight_timing_end_advance();
+	xvt_flight_timing_begin_advance(ticks);
 }
 
-static void CheckScale(void)
+static void check_scale(void)
 {
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	/* Truncated toward zero. */
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Scale(0, XVT_PLAYER_YAW, -7, 1, 4),
+	XVT_ASSERT_INT_EQ(xvt_player_timing_scale(0, XVT_PLAYER_YAW, -7, 1, 4),
 			  -1);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Scale(0, XVT_PLAYER_PITCH, 7, 1, 4),
+	XVT_ASSERT_INT_EQ(xvt_player_timing_scale(0, XVT_PLAYER_PITCH, 7, 1, 4),
 			  1);
 
 	/* Ten short steps add up to one long one. */
 	int sum = 0, negative = 0;
 	for (int i = 0; i < 10; ++i) {
-		sum += XvtPlayerTiming_Scale(0, XVT_PLAYER_ROLL, 7, 1, 4);
-		negative += XvtPlayerTiming_Scale(1, XVT_PLAYER_ROLL, -7, 1, 4);
+		sum += xvt_player_timing_scale(0, XVT_PLAYER_ROLL, 7, 1, 4);
+		negative +=
+			xvt_player_timing_scale(1, XVT_PLAYER_ROLL, -7, 1, 4);
 	}
-	XVT_ASSERT_INT_EQ(sum,
-			  XvtPlayerTiming_Scale(0, XVT_PLAYER_ZOOM, 7, 10, 4));
+	XVT_ASSERT_INT_EQ(
+		sum, xvt_player_timing_scale(0, XVT_PLAYER_ZOOM, 7, 10, 4));
 	XVT_ASSERT_INT_EQ(sum, 70 / 4);
 	XVT_ASSERT_INT_EQ(negative, -70 / 4);
 
 	/* A new sign drops the carry; zero is a sign of its own. */
-	Seed(0, XVT_PLAYER_DISTANCE);
+	seed(0, XVT_PLAYER_DISTANCE);
 	XVT_ASSERT_INT_EQ(
-		XvtPlayerTiming_Scale(0, XVT_PLAYER_DISTANCE, -1, 1, 4), 0);
+		xvt_player_timing_scale(0, XVT_PLAYER_DISTANCE, -1, 1, 4), 0);
 	XVT_ASSERT_INT_EQ(
-		XvtPlayerTiming_Scale(0, XVT_PLAYER_DISTANCE, -3, 1, 4), -1);
-	Seed(0, XVT_PLAYER_SLEW_YAW);
+		xvt_player_timing_scale(0, XVT_PLAYER_DISTANCE, -3, 1, 4), -1);
+	seed(0, XVT_PLAYER_SLEW_YAW);
 	XVT_ASSERT_INT_EQ(
-		XvtPlayerTiming_Scale(0, XVT_PLAYER_SLEW_YAW, 0, 1, 4), 0);
+		xvt_player_timing_scale(0, XVT_PLAYER_SLEW_YAW, 0, 1, 4), 0);
 	XVT_ASSERT_INT_EQ(
-		XvtPlayerTiming_Scale(0, XVT_PLAYER_SLEW_YAW, 1, 1, 4), 0);
+		xvt_player_timing_scale(0, XVT_PLAYER_SLEW_YAW, 1, 1, 4), 0);
 
 	/* Clamped to int; 0 for a zero divisor or a channel past the enum. */
+	XVT_ASSERT_INT_EQ(xvt_player_timing_scale(0, XVT_PLAYER_CAMERA_YAW,
+						  INT_MAX, 4, 1),
+			  INT_MAX);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_scale(0, XVT_PLAYER_CAMERA_YAW,
+						  INT_MIN, 4, 1),
+			  INT_MIN);
 	XVT_ASSERT_INT_EQ(
-		XvtPlayerTiming_Scale(0, XVT_PLAYER_CAMERA_YAW, INT_MAX, 4, 1),
-		INT_MAX);
-	XVT_ASSERT_INT_EQ(
-		XvtPlayerTiming_Scale(0, XVT_PLAYER_CAMERA_YAW, INT_MIN, 4, 1),
-		INT_MIN);
-	XVT_ASSERT_INT_EQ(
-		XvtPlayerTiming_Scale(0, XVT_PLAYER_CAMERA_PITCH, 1000, 1, 0),
+		xvt_player_timing_scale(0, XVT_PLAYER_CAMERA_PITCH, 1000, 1, 0),
 		0);
 	XVT_ASSERT_INT_EQ(
-		XvtPlayerTiming_Scale(0, XVT_PLAYER_CHANNELS, 1000, 1, 1), 0);
+		xvt_player_timing_scale(0, XVT_PLAYER_CHANNELS, 1000, 1, 1), 0);
 
 	/* A player out of range gets the plain result with no carry. */
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Scale(XVT_FLIGHT_PLAYERS,
-						XVT_PLAYER_YAW, 3, 1, 4),
+	XVT_ASSERT_INT_EQ(xvt_player_timing_scale(XVT_FLIGHT_PLAYERS,
+						  XVT_PLAYER_YAW, 3, 1, 4),
 			  0);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Scale(XVT_FLIGHT_PLAYERS,
-						XVT_PLAYER_YAW, 3, 1, 4),
+	XVT_ASSERT_INT_EQ(xvt_player_timing_scale(XVT_FLIGHT_PLAYERS,
+						  XVT_PLAYER_YAW, 3, 1, 4),
 			  0);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Scale(XVT_FLIGHT_PLAYERS,
-						XVT_PLAYER_YAW, 7, 3, 4),
+	XVT_ASSERT_INT_EQ(xvt_player_timing_scale(XVT_FLIGHT_PLAYERS,
+						  XVT_PLAYER_YAW, 7, 3, 4),
 			  5);
 }
 
-static void CheckClearAndReset(void)
+static void check_clear_and_reset(void)
 {
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	Seed(0, XVT_PLAYER_YAW);
-	Seed(0, XVT_PLAYER_PITCH);
-	XvtPlayerTiming_Clear(0, XVT_PLAYER_YAW);
-	XVT_ASSERT_INT_EQ(Probe(0, XVT_PLAYER_YAW), 0);
-	XVT_ASSERT_INT_EQ(Probe(0, XVT_PLAYER_PITCH), 1);
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	seed(0, XVT_PLAYER_YAW);
+	seed(0, XVT_PLAYER_PITCH);
+	xvt_player_timing_clear(0, XVT_PLAYER_YAW);
+	XVT_ASSERT_INT_EQ(probe(0, XVT_PLAYER_YAW), 0);
+	XVT_ASSERT_INT_EQ(probe(0, XVT_PLAYER_PITCH), 1);
 
-	Seed(0, XVT_PLAYER_YAW);
-	Seed(1, XVT_PLAYER_YAW);
-	Seed(5, XVT_PLAYER_YAW);
-	XvtPlayerTiming_Reset();
-	XVT_ASSERT_INT_EQ(Probe(0, XVT_PLAYER_YAW), 0);
-	XVT_ASSERT_INT_EQ(Probe(1, XVT_PLAYER_YAW), 0);
-	XVT_ASSERT_INT_EQ(Probe(5, XVT_PLAYER_YAW), 0);
+	seed(0, XVT_PLAYER_YAW);
+	seed(1, XVT_PLAYER_YAW);
+	seed(5, XVT_PLAYER_YAW);
+	xvt_player_timing_reset();
+	XVT_ASSERT_INT_EQ(probe(0, XVT_PLAYER_YAW), 0);
+	XVT_ASSERT_INT_EQ(probe(1, XVT_PLAYER_YAW), 0);
+	XVT_ASSERT_INT_EQ(probe(5, XVT_PLAYER_YAW), 0);
 }
 
-static void CheckEntryFollowsObject(void)
+static void check_entry_follows_object(void)
 {
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	/* The object in the main region changes signature: the entry is cleared. */
-	Seed(0, XVT_PLAYER_YAW);
-	g_testObjects[0].objectSignature = 0x999;
-	XVT_ASSERT_INT_EQ(Probe(0, XVT_PLAYER_YAW), 0);
+	seed(0, XVT_PLAYER_YAW);
+	g_test_objects[0].object_signature = 0x999;
+	XVT_ASSERT_INT_EQ(probe(0, XVT_PLAYER_YAW), 0);
 
 	/* The player moves to another main slot: cleared. */
-	Seed(1, XVT_PLAYER_YAW);
-	g_players[1].objectIndex = 2;
-	XVT_ASSERT_INT_EQ(Probe(1, XVT_PLAYER_YAW), 0);
+	seed(1, XVT_PLAYER_YAW);
+	g_players[1].object_index = 2;
+	XVT_ASSERT_INT_EQ(probe(1, XVT_PLAYER_YAW), 0);
 
 	/* An object outside the main region, or none: the entry is kept. */
-	g_players[2].objectIndex = kMainSlots;
-	Seed(2, XVT_PLAYER_YAW);
-	g_testObjects[kMainSlots].objectSignature = 0x999;
-	XVT_ASSERT_INT_EQ(Probe(2, XVT_PLAYER_YAW), 1);
-	Seed(3, XVT_PLAYER_YAW);
-	XVT_ASSERT_INT_EQ(Probe(3, XVT_PLAYER_YAW), 1);
+	g_players[2].object_index = MAIN_SLOTS;
+	seed(2, XVT_PLAYER_YAW);
+	g_test_objects[MAIN_SLOTS].object_signature = 0x999;
+	XVT_ASSERT_INT_EQ(probe(2, XVT_PLAYER_YAW), 1);
+	seed(3, XVT_PLAYER_YAW);
+	XVT_ASSERT_INT_EQ(probe(3, XVT_PLAYER_YAW), 1);
 }
 
-static void CheckResetControls(void)
+static void check_reset_controls(void)
 {
 	static const unsigned camera[] = {XVT_PLAYER_CAMERA_YAW,
 					  XVT_PLAYER_CAMERA_PITCH,
 					  XVT_PLAYER_DISTANCE, XVT_PLAYER_ZOOM};
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	for (unsigned i = 0; i < 4; ++i) {
-		Seed(0, camera[i]);
+		seed(0, camera[i]);
 	}
-	Seed(0, XVT_PLAYER_YAW);
-	Seed(0, XVT_PLAYER_SLEW_YAW);
-	Seed(1, XVT_PLAYER_CAMERA_YAW);
-	XvtPlayerTiming_ResetControls();
+	seed(0, XVT_PLAYER_YAW);
+	seed(0, XVT_PLAYER_SLEW_YAW);
+	seed(1, XVT_PLAYER_CAMERA_YAW);
+	xvt_player_timing_reset_controls();
 	for (unsigned i = 0; i < 4; ++i) {
-		XVT_ASSERT_INT_EQ(Probe(0, camera[i]), 0);
+		XVT_ASSERT_INT_EQ(probe(0, camera[i]), 0);
 	}
-	XVT_ASSERT_INT_EQ(Probe(0, XVT_PLAYER_YAW), 1);
-	XVT_ASSERT_INT_EQ(Probe(0, XVT_PLAYER_SLEW_YAW), 1);
+	XVT_ASSERT_INT_EQ(probe(0, XVT_PLAYER_YAW), 1);
+	XVT_ASSERT_INT_EQ(probe(0, XVT_PLAYER_SLEW_YAW), 1);
 	/* Only the local player's. */
-	XVT_ASSERT_INT_EQ(Probe(1, XVT_PLAYER_CAMERA_YAW), 1);
+	XVT_ASSERT_INT_EQ(probe(1, XVT_PLAYER_CAMERA_YAW), 1);
 
-	FreshWorld(XVT_FLIGHT_TIMING_NATIVE);
-	Seed(0, XVT_PLAYER_ZOOM);
-	XvtPlayerTiming_ResetControls();
-	XVT_ASSERT_INT_EQ(Probe(0, XVT_PLAYER_ZOOM), 0);
+	fresh_world(XVT_FLIGHT_TIMING_NATIVE);
+	seed(0, XVT_PLAYER_ZOOM);
+	xvt_player_timing_reset_controls();
+	XVT_ASSERT_INT_EQ(probe(0, XVT_PLAYER_ZOOM), 0);
 
 	/* In NETWORK_125 it does nothing. */
-	FreshWorld(XVT_FLIGHT_TIMING_NETWORK_125);
-	Seed(0, XVT_PLAYER_CAMERA_YAW);
-	XvtPlayerTiming_ResetControls();
-	XVT_ASSERT_INT_EQ(Probe(0, XVT_PLAYER_CAMERA_YAW), 1);
+	fresh_world(XVT_FLIGHT_TIMING_NETWORK_125);
+	seed(0, XVT_PLAYER_CAMERA_YAW);
+	xvt_player_timing_reset_controls();
+	XVT_ASSERT_INT_EQ(probe(0, XVT_PLAYER_CAMERA_YAW), 1);
 }
 
 /* Seeds player 0's yaw, pitch, roll and slew channels, calls BeginControls, and checks whether the carry
  * survived on each. */
-static void ExpectControlsKeep(int kept)
+static void expect_controls_keep(int kept)
 {
 	static const unsigned flight[] = {XVT_PLAYER_YAW, XVT_PLAYER_PITCH,
 					  XVT_PLAYER_ROLL, XVT_PLAYER_SLEW_YAW,
 					  XVT_PLAYER_SLEW_PITCH};
 	for (unsigned i = 0; i < 5; ++i) {
-		Seed(0, flight[i]);
+		seed(0, flight[i]);
 	}
-	XvtPlayerTiming_BeginControls(0);
+	xvt_player_timing_begin_controls(0);
 	for (unsigned i = 0; i < 5; ++i) {
-		XVT_ASSERT_INT_EQ(Probe(0, flight[i]), kept);
+		XVT_ASSERT_INT_EQ(probe(0, flight[i]), kept);
 	}
 }
 
-static void CheckBeginControlsMode(void)
+static void check_begin_controls_mode(void)
 {
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	/* The first call clears; the same mode again keeps; another player is not touched. */
-	Seed(1, XVT_PLAYER_YAW);
-	ExpectControlsKeep(0);
-	ExpectControlsKeep(1);
-	XVT_ASSERT_INT_EQ(Probe(1, XVT_PLAYER_YAW), 1);
+	seed(1, XVT_PLAYER_YAW);
+	expect_controls_keep(0);
+	expect_controls_keep(1);
+	XVT_ASSERT_INT_EQ(probe(1, XVT_PLAYER_YAW), 1);
 
 	/* Each part of the mode is a change: roll modifier held, ... */
-	g_flightKeyMods = XVT_ROLL_MODIFIER;
-	ExpectControlsKeep(0);
-	ExpectControlsKeep(1);
-	g_flightKeyMods = 0;
-	ExpectControlsKeep(0);
+	g_flight_key_mods = XVT_ROLL_MODIFIER;
+	expect_controls_keep(0);
+	expect_controls_keep(1);
+	g_flight_key_mods = 0;
+	expect_controls_keep(0);
 
 	/* ...flight controls lost, ... */
-	g_testCraft.workingSubsystems = 0;
-	ExpectControlsKeep(0);
-	ExpectControlsKeep(1);
-	g_testCraft.workingSubsystems = CRAFT_SUBSYSTEM_FLAG_FLIGHT_CONTROLS;
-	ExpectControlsKeep(0);
+	g_test_craft.working_subsystems = 0;
+	expect_controls_keep(0);
+	expect_controls_keep(1);
+	g_test_craft.working_subsystems = CRAFT_SUBSYSTEM_FLAG_FLIGHT_CONTROLS;
+	expect_controls_keep(0);
 
-	/* ...beamEffectAccum[1] set, which disables only while no chaff is active, ... */
-	g_testCraft.beamEffectAccum[1] = 1;
-	g_testCraft.chaffActiveSeconds = 5;
-	ExpectControlsKeep(1);
-	g_testCraft.chaffActiveSeconds = 0;
-	ExpectControlsKeep(0);
-	g_testCraft.beamEffectAccum[1] = 0;
-	ExpectControlsKeep(0);
+	/* ...beam_effect_accum[1] set, which disables only while no chaff is active, ... */
+	g_test_craft.beam_effect_accum[1] = 1;
+	g_test_craft.chaff_active_seconds = 5;
+	expect_controls_keep(1);
+	g_test_craft.chaff_active_seconds = 0;
+	expect_controls_keep(0);
+	g_test_craft.beam_effect_accum[1] = 0;
+	expect_controls_keep(0);
 
 	/* ...input blocked, map view and hyperspace. */
-	g_players[0].viewState.playerInputBlocked = 1;
-	ExpectControlsKeep(0);
-	g_players[0].viewState.playerInputBlocked = 0;
-	ExpectControlsKeep(0);
-	g_players[0].mapCameraState = 1;
-	ExpectControlsKeep(0);
-	g_players[0].mapCameraState = 0;
-	ExpectControlsKeep(0);
-	g_players[0].hyperspacePhase = 2;
-	ExpectControlsKeep(0);
-	g_players[0].hyperspacePhase = 0;
-	ExpectControlsKeep(0);
-	ExpectControlsKeep(1);
+	g_players[0].view_state.player_input_blocked = 1;
+	expect_controls_keep(0);
+	g_players[0].view_state.player_input_blocked = 0;
+	expect_controls_keep(0);
+	g_players[0].map_camera_state = 1;
+	expect_controls_keep(0);
+	g_players[0].map_camera_state = 0;
+	expect_controls_keep(0);
+	g_players[0].hyperspace_phase = 2;
+	expect_controls_keep(0);
+	g_players[0].hyperspace_phase = 0;
+	expect_controls_keep(0);
+	expect_controls_keep(1);
 }
 
-static void CheckBeginControlsCamera(void)
+static void check_begin_controls_camera(void)
 {
 	static const unsigned camera[] = {XVT_PLAYER_CAMERA_YAW,
 					  XVT_PLAYER_CAMERA_PITCH,
 					  XVT_PLAYER_DISTANCE, XVT_PLAYER_ZOOM};
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	XvtPlayerTiming_BeginControls(0);
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	xvt_player_timing_begin_controls(0);
 
 	/* A new camera focus clears the camera channels and keeps the others. */
 	for (unsigned i = 0; i < 4; ++i) {
-		Seed(0, camera[i]);
+		seed(0, camera[i]);
 	}
-	Seed(0, XVT_PLAYER_YAW);
-	g_players[0].viewState.cameraFocusObjIdx = 3;
-	XvtPlayerTiming_BeginControls(0);
+	seed(0, XVT_PLAYER_YAW);
+	g_players[0].view_state.camera_focus_obj_idx = 3;
+	xvt_player_timing_begin_controls(0);
 	for (unsigned i = 0; i < 4; ++i) {
-		XVT_ASSERT_INT_EQ(Probe(0, camera[i]), 0);
+		XVT_ASSERT_INT_EQ(probe(0, camera[i]), 0);
 	}
-	XVT_ASSERT_INT_EQ(Probe(0, XVT_PLAYER_YAW), 1);
+	XVT_ASSERT_INT_EQ(probe(0, XVT_PLAYER_YAW), 1);
 
 	/* The same focus keeps them, and so does a change of mode. */
 	for (unsigned i = 0; i < 4; ++i) {
-		Seed(0, camera[i]);
+		seed(0, camera[i]);
 	}
-	XvtPlayerTiming_BeginControls(0);
-	g_flightKeyMods = XVT_ROLL_MODIFIER;
-	XvtPlayerTiming_BeginControls(0);
+	xvt_player_timing_begin_controls(0);
+	g_flight_key_mods = XVT_ROLL_MODIFIER;
+	xvt_player_timing_begin_controls(0);
 	for (unsigned i = 0; i < 4; ++i) {
-		XVT_ASSERT_INT_EQ(Probe(0, camera[i]), 1);
+		XVT_ASSERT_INT_EQ(probe(0, camera[i]), 1);
 	}
 }
 
-static void CheckSlew(void)
+static void check_slew(void)
 {
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	/* Under 8: all of it, and the carry is dropped. */
-	Seed(0, XVT_PLAYER_SLEW_YAW);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Slew(0, XVT_PLAYER_SLEW_YAW, 5), 5);
-	XVT_ASSERT_INT_EQ(Probe(0, XVT_PLAYER_SLEW_YAW), 0);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Slew(0, XVT_PLAYER_SLEW_PITCH, -7),
+	seed(0, XVT_PLAYER_SLEW_YAW);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_slew(0, XVT_PLAYER_SLEW_YAW, 5), 5);
+	XVT_ASSERT_INT_EQ(probe(0, XVT_PLAYER_SLEW_YAW), 0);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_slew(0, XVT_PLAYER_SLEW_PITCH, -7),
 			  -7);
 
 	/* Otherwise 4 * max(1, |difference| / 29) per 8 ticks, with the difference's sign. */
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	g_elapsedTicks = 8;
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Slew(0, XVT_PLAYER_SLEW_YAW, 100),
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	g_elapsed_ticks = 8;
+	XVT_ASSERT_INT_EQ(xvt_player_timing_slew(0, XVT_PLAYER_SLEW_YAW, 100),
 			  4 * (100 / 29));
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Slew(1, XVT_PLAYER_SLEW_YAW, -100),
+	XVT_ASSERT_INT_EQ(xvt_player_timing_slew(1, XVT_PLAYER_SLEW_YAW, -100),
 			  -4 * (100 / 29));
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Slew(1, XVT_PLAYER_SLEW_PITCH, 20),
+	XVT_ASSERT_INT_EQ(xvt_player_timing_slew(1, XVT_PLAYER_SLEW_PITCH, 20),
 			  4);
-	g_elapsedTicks = 16;
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Slew(0, XVT_PLAYER_CAMERA_YAW, 1000),
-			  2 * 4 * (1000 / 29));
+	g_elapsed_ticks = 16;
+	XVT_ASSERT_INT_EQ(
+		xvt_player_timing_slew(0, XVT_PLAYER_CAMERA_YAW, 1000),
+		2 * 4 * (1000 / 29));
 
 	/* One tick at a time it is carried: eight one-tick steps move what one eight-tick step does. */
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	g_elapsedTicks = 1;
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	g_elapsed_ticks = 1;
 	int sum = 0;
 	for (int i = 0; i < 8; ++i) {
-		sum += XvtPlayerTiming_Slew(0, XVT_PLAYER_SLEW_PITCH, 100);
+		sum += xvt_player_timing_slew(0, XVT_PLAYER_SLEW_PITCH, 100);
 	}
 	XVT_ASSERT_INT_EQ(sum, 4 * (100 / 29));
 
 	/* A step that would reach the difference returns all of it and drops the carry: 3 ticks of 4 per 8
 	 * leave 4/8 carried; 64 more ticks would pass 10; afterwards 4/8 alone makes nothing. */
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	g_elapsedTicks = 3;
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Slew(0, XVT_PLAYER_SLEW_YAW, 10), 1);
-	g_elapsedTicks = 64;
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Slew(0, XVT_PLAYER_SLEW_YAW, 10), 10);
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	g_elapsed_ticks = 3;
+	XVT_ASSERT_INT_EQ(xvt_player_timing_slew(0, XVT_PLAYER_SLEW_YAW, 10),
+			  1);
+	g_elapsed_ticks = 64;
+	XVT_ASSERT_INT_EQ(xvt_player_timing_slew(0, XVT_PLAYER_SLEW_YAW, 10),
+			  10);
 	XVT_ASSERT_INT_EQ(
-		XvtPlayerTiming_Scale(0, XVT_PLAYER_SLEW_YAW, 4, 1, 8), 0);
+		xvt_player_timing_scale(0, XVT_PLAYER_SLEW_YAW, 4, 1, 8), 0);
 }
 
 /* Known failure slew_int_min: the header promises a step for any difference, and INT_MIN's magnitude
  * is 2^31, so with 8 ticks the step is -4 * (2^31 / 29). The code takes abs(INT_MIN), which is undefined
  * behavior, and the sanitizer stops the program there. */
-static void CheckSlewMostNegative(void)
+static void check_slew_most_negative(void)
 {
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	g_elapsedTicks = 8;
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Slew(0, XVT_PLAYER_SLEW_YAW, INT_MIN),
-			  -4 * ((INT64_C(1) << 31) / 29));
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	g_elapsed_ticks = 8;
+	XVT_ASSERT_INT_EQ(
+		xvt_player_timing_slew(0, XVT_PLAYER_SLEW_YAW, INT_MIN),
+		-4 * ((INT64_C(1) << 31) / 29));
 }
 
-static void CheckLockHalfLocked(void)
+static void check_lock_half_locked(void)
 {
-	FreshWorld(XVT_FLIGHT_TIMING_NATIVE);
-	g_elapsedTicks = 7;
+	fresh_world(XVT_FLIGHT_TIMING_NATIVE);
+	g_elapsed_ticks = 7;
 	for (int i = 0; i < 3; ++i) {
-		Step(7);
+		step(7);
 		XVT_ASSERT_INT_EQ(
-			XvtPlayerTiming_LockHalf(0, XVT_LOCK_HALF_NONE), 3);
+			xvt_player_timing_lock_half(0, XVT_LOCK_HALF_NONE), 3);
 		XVT_ASSERT_INT_EQ(
-			XvtPlayerTiming_LockHalf(0, XVT_LOCK_HALF_CHAFF), 3);
+			xvt_player_timing_lock_half(0, XVT_LOCK_HALF_CHAFF), 3);
 		XVT_ASSERT_INT_EQ(
-			XvtPlayerTiming_LockHalf(XVT_FLIGHT_PLAYERS,
-						 XVT_LOCK_HALF_TARGET_LOSS),
+			xvt_player_timing_lock_half(XVT_FLIGHT_PLAYERS,
+						    XVT_LOCK_HALF_TARGET_LOSS),
 			3);
 	}
 }
 
-static void CheckLockHalfUnlocked(void)
+static void check_lock_half_unlocked(void)
 {
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	g_elapsedTicks = 3;
-	Step(3);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_LockHalf(0, XVT_LOCK_HALF_NONE), 0);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_LockHalf(XVT_FLIGHT_PLAYERS,
-						   XVT_LOCK_HALF_CHAFF),
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	g_elapsed_ticks = 3;
+	step(3);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_lock_half(0, XVT_LOCK_HALF_NONE),
+			  0);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_lock_half(XVT_FLIGHT_PLAYERS,
+						      XVT_LOCK_HALF_CHAFF),
 			  0);
 
 	/* Consecutive steps carry the odd tick: four steps of 3 ticks give 12 / 2. */
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	g_elapsedTicks = 3;
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	g_elapsed_ticks = 3;
 	unsigned sum = 0;
 	for (int i = 0; i < 4; ++i) {
-		Step(3);
-		sum += XvtPlayerTiming_LockHalf(0, XVT_LOCK_HALF_CHAFF);
+		step(3);
+		sum += xvt_player_timing_lock_half(0, XVT_LOCK_HALF_CHAFF);
 	}
 	XVT_ASSERT_INT_EQ(sum, 12 / 2);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_LockHalf(XVT_FLIGHT_PLAYERS,
-						   XVT_LOCK_HALF_CHAFF),
+	XVT_ASSERT_INT_EQ(xvt_player_timing_lock_half(XVT_FLIGHT_PLAYERS,
+						      XVT_LOCK_HALF_CHAFF),
 			  0);
 }
 
 /* Starts a fresh unlocked world in which player 0's lock timing carries an odd tick out of this step. */
-static void OddTickCarried(void)
+static void odd_tick_carried(void)
 {
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	g_elapsedTicks = 3;
-	Step(3);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_LockHalf(0, XVT_LOCK_HALF_CHAFF), 1);
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	g_elapsed_ticks = 3;
+	step(3);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_lock_half(0, XVT_LOCK_HALF_CHAFF),
+			  1);
 }
 
-static void CheckLockHalfCarryDropped(void)
+static void check_lock_half_carry_dropped(void)
 {
 	/* Kept: the next step with everything the same returns (3 + 1) / 2. */
-	OddTickCarried();
-	Step(3);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_LockHalf(0, XVT_LOCK_HALF_CHAFF), 2);
+	odd_tick_carried();
+	step(3);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_lock_half(0, XVT_LOCK_HALF_CHAFF),
+			  2);
 
 	/* Dropped: a step skipped, ... */
-	OddTickCarried();
-	Step(3);
-	Step(3);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_LockHalf(0, XVT_LOCK_HALF_CHAFF), 1);
+	odd_tick_carried();
+	step(3);
+	step(3);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_lock_half(0, XVT_LOCK_HALF_CHAFF),
+			  1);
 	/* ...a second call in the same step, ... */
-	OddTickCarried();
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_LockHalf(0, XVT_LOCK_HALF_CHAFF), 1);
+	odd_tick_carried();
+	XVT_ASSERT_INT_EQ(xvt_player_timing_lock_half(0, XVT_LOCK_HALF_CHAFF),
+			  1);
 	/* ...another mode, ... */
-	OddTickCarried();
-	Step(3);
+	odd_tick_carried();
+	step(3);
 	XVT_ASSERT_INT_EQ(
-		XvtPlayerTiming_LockHalf(0, XVT_LOCK_HALF_TARGET_LOSS), 1);
+		xvt_player_timing_lock_half(0, XVT_LOCK_HALF_TARGET_LOSS), 1);
 	/* ...another target, ... */
-	OddTickCarried();
-	g_players[0].currentTargetObjectIdx = 3;
-	Step(3);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_LockHalf(0, XVT_LOCK_HALF_CHAFF), 1);
+	odd_tick_carried();
+	g_players[0].current_target_object_idx = 3;
+	step(3);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_lock_half(0, XVT_LOCK_HALF_CHAFF),
+			  1);
 	/* ...another selected warhead, ... */
-	OddTickCarried();
-	g_players[0].selectedWeaponBank = 1;
-	Step(3);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_LockHalf(0, XVT_LOCK_HALF_CHAFF), 1);
+	odd_tick_carried();
+	g_players[0].selected_weapon_bank = 1;
+	step(3);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_lock_half(0, XVT_LOCK_HALF_CHAFF),
+			  1);
 	/* ...another player object, ... */
-	OddTickCarried();
-	g_testObjects[0].objectSignature = 0x999;
-	Step(3);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_LockHalf(0, XVT_LOCK_HALF_CHAFF), 1);
+	odd_tick_carried();
+	g_test_objects[0].object_signature = 0x999;
+	step(3);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_lock_half(0, XVT_LOCK_HALF_CHAFF),
+			  1);
 	/* ...or mode 0 in between. */
-	OddTickCarried();
-	Step(3);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_LockHalf(0, XVT_LOCK_HALF_NONE), 0);
-	Step(3);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_LockHalf(0, XVT_LOCK_HALF_CHAFF), 1);
+	odd_tick_carried();
+	step(3);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_lock_half(0, XVT_LOCK_HALF_NONE),
+			  0);
+	step(3);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_lock_half(0, XVT_LOCK_HALF_CHAFF),
+			  1);
 }
 
-static void ExpectPosition(const int32_t position[3], int32_t x, int32_t y,
-			   int32_t z)
+static void expect_position(const int32_t position[3], int32_t x, int32_t y,
+			    int32_t z)
 {
 	XVT_ASSERT_INT_EQ(position[0], x);
 	XVT_ASSERT_INT_EQ(position[1], y);
 	XVT_ASSERT_INT_EQ(position[2], z);
 }
 
-static void MoveObject(unsigned slot, int dx)
+static void move_object(unsigned slot, int dx)
 {
-	g_testObjects[slot].world_x += dx;
+	g_test_objects[slot].world_x += dx;
 }
 
-static void CheckRecordRecovery(void)
+static void check_record_recovery(void)
 {
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	XvtPlayerTiming_BeginWorld();
-	MoveObject(0, 50);
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	xvt_player_timing_begin_world();
+	move_object(0, 50);
 	int32_t position[3] = {1, 2, 3};
 
 	/* Outside a reference step nothing is written. */
-	Step(1);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_RecordRecovery(0, position), 0);
-	ExpectPosition(position, 1, 2, 3);
+	step(1);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_record_recovery(0, position), 0);
+	expect_position(position, 1, 2, 3);
 
 	/* In one: the position BeginWorld recorded, then the object's position now; once per step. */
-	Step(XVT_REFERENCE_TICKS);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_RecordRecovery(0, position), 1);
-	ExpectPosition(position, 0, 0, 0);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_RecordRecovery(0, position), 0);
-	MoveObject(0, 25);
-	Step(XVT_REFERENCE_TICKS);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_RecordRecovery(0, position), 1);
-	ExpectPosition(position, 50, 0, 0);
-	Step(XVT_REFERENCE_TICKS);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_RecordRecovery(0, position), 1);
-	ExpectPosition(position, 75, 0, 0);
+	step(XVT_REFERENCE_TICKS);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_record_recovery(0, position), 1);
+	expect_position(position, 0, 0, 0);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_record_recovery(0, position), 0);
+	move_object(0, 25);
+	step(XVT_REFERENCE_TICKS);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_record_recovery(0, position), 1);
+	expect_position(position, 50, 0, 0);
+	step(XVT_REFERENCE_TICKS);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_record_recovery(0, position), 1);
+	expect_position(position, 75, 0, 0);
 
 	/* A player out of range. */
 	XVT_ASSERT_INT_EQ(
-		XvtPlayerTiming_RecordRecovery(XVT_FLIGHT_PLAYERS, position),
+		xvt_player_timing_record_recovery(XVT_FLIGHT_PLAYERS, position),
 		0);
 
 	/* Locked flights: every step is a reference step. */
-	FreshWorld(XVT_FLIGHT_TIMING_NATIVE);
-	XvtPlayerTiming_BeginWorld();
-	Step(1);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_RecordRecovery(1, position), 1);
-	ExpectPosition(position, 1000, -100, 10);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_RecordRecovery(1, position), 0);
-	Step(1);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_RecordRecovery(1, position), 1);
+	fresh_world(XVT_FLIGHT_TIMING_NATIVE);
+	xvt_player_timing_begin_world();
+	step(1);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_record_recovery(1, position), 1);
+	expect_position(position, 1000, -100, 10);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_record_recovery(1, position), 0);
+	step(1);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_record_recovery(1, position), 1);
 }
 
-static void CheckBeginWorld(void)
+static void check_begin_world(void)
 {
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	Seed(0, XVT_PLAYER_YAW);
-	Seed(2, XVT_PLAYER_YAW);
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	seed(0, XVT_PLAYER_YAW);
+	seed(2, XVT_PLAYER_YAW);
 	/* Player 2 flies the static slot: not in the main region, so no recovery position. */
-	g_players[2].objectIndex = kMainSlots;
-	XvtPlayerTiming_BeginWorld();
-	XVT_ASSERT_INT_EQ(Probe(0, XVT_PLAYER_YAW), 0);
-	XVT_ASSERT_INT_EQ(Probe(2, XVT_PLAYER_YAW), 0);
+	g_players[2].object_index = MAIN_SLOTS;
+	xvt_player_timing_begin_world();
+	XVT_ASSERT_INT_EQ(probe(0, XVT_PLAYER_YAW), 0);
+	XVT_ASSERT_INT_EQ(probe(2, XVT_PLAYER_YAW), 0);
 
 	/* Without a recovery position, the object's previous-step position is written. */
 	int32_t position[3];
-	Step(XVT_REFERENCE_TICKS);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_RecordRecovery(2, position), 1);
-	ExpectPosition(position, -7 - kMainSlots, -8 - kMainSlots,
-		       -9 - kMainSlots);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_RecordRecovery(1, position), 1);
-	ExpectPosition(position, 1000, -100, 10);
+	step(XVT_REFERENCE_TICKS);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_record_recovery(2, position), 1);
+	expect_position(position, -7 - MAIN_SLOTS, -8 - MAIN_SLOTS,
+			-9 - MAIN_SLOTS);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_record_recovery(1, position), 1);
+	expect_position(position, 1000, -100, 10);
 }
 
-static void CheckRecover(void)
+static void check_recover(void)
 {
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	XvtPlayerTiming_BeginWorld();
-	XvtPlayerTiming_BeginControls(0);
-	g_elapsedTicks = 3;
-	Step(3);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_LockHalf(0, XVT_LOCK_HALF_CHAFF), 1);
-	Seed(0, XVT_PLAYER_YAW);
-	Seed(0, XVT_PLAYER_ZOOM);
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	xvt_player_timing_begin_world();
+	xvt_player_timing_begin_controls(0);
+	g_elapsed_ticks = 3;
+	step(3);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_lock_half(0, XVT_LOCK_HALF_CHAFF),
+			  1);
+	seed(0, XVT_PLAYER_YAW);
+	seed(0, XVT_PLAYER_ZOOM);
 	XVT_ASSERT_INT_EQ(
-		XvtFlightIntegration_Rate(0, XVT_INTEGRATE_PITCH, 3, 1, 4), 0);
-	struct XvtReferenceMotionWire motion;
-	XvtReferenceMotion_Encode(0, &motion);
+		xvt_flight_integration_rate(0, XVT_INTEGRATE_PITCH, 3, 1, 4),
+		0);
+	struct xvt_reference_motion_wire motion;
+	xvt_reference_motion_encode(0, &motion);
 	XVT_ASSERT_INT_EQ(motion.type, 1);
 
-	MoveObject(0, 40);
-	XvtPlayerTiming_Recover(0);
+	move_object(0, 40);
+	xvt_player_timing_recover(0);
 	/* Channels, the object's step remainders and its reference motion are gone. */
-	XVT_ASSERT_INT_EQ(Probe(0, XVT_PLAYER_YAW), 0);
-	XVT_ASSERT_INT_EQ(Probe(0, XVT_PLAYER_ZOOM), 0);
+	XVT_ASSERT_INT_EQ(probe(0, XVT_PLAYER_YAW), 0);
+	XVT_ASSERT_INT_EQ(probe(0, XVT_PLAYER_ZOOM), 0);
 	XVT_ASSERT_INT_EQ(
-		XvtFlightIntegration_Rate(0, XVT_INTEGRATE_PITCH, 1, 1, 4), 0);
-	XvtReferenceMotion_Encode(0, &motion);
+		xvt_flight_integration_rate(0, XVT_INTEGRATE_PITCH, 1, 1, 4),
+		0);
+	xvt_reference_motion_encode(0, &motion);
 	XVT_ASSERT_INT_EQ(motion.type, 0);
 
 	/* Lock timing is kept: the odd tick carries into the next step. */
-	Step(3);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_LockHalf(0, XVT_LOCK_HALF_CHAFF), 2);
+	step(3);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_lock_half(0, XVT_LOCK_HALF_CHAFF),
+			  2);
 	/* Control state is kept: the same mode is not a first call. */
-	Seed(0, XVT_PLAYER_YAW);
-	XvtPlayerTiming_BeginControls(0);
-	XVT_ASSERT_INT_EQ(Probe(0, XVT_PLAYER_YAW), 1);
+	seed(0, XVT_PLAYER_YAW);
+	xvt_player_timing_begin_controls(0);
+	XVT_ASSERT_INT_EQ(probe(0, XVT_PLAYER_YAW), 1);
 
 	/* The recovery position is where the object was at Recover. */
-	MoveObject(0, 5);
+	move_object(0, 5);
 	int32_t position[3];
-	Step(XVT_REFERENCE_TICKS);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_RecordRecovery(0, position), 1);
-	ExpectPosition(position, 40, 0, 0);
+	step(XVT_REFERENCE_TICKS);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_record_recovery(0, position), 1);
+	expect_position(position, 40, 0, 0);
 }
 
-static int RecordsEqual(const struct XvtPlayerTimingWire *a,
-			const struct XvtPlayerTimingWire *b)
+static int records_equal(const struct xvt_player_timing_wire *a,
+			 const struct xvt_player_timing_wire *b)
 {
 	return memcmp(a, b, sizeof *a) == 0;
 }
 
-static struct XvtPlayerTimingWire EmptyRecord(unsigned player)
+static struct xvt_player_timing_wire empty_record(unsigned player)
 {
-	struct XvtPlayerTimingWire record;
+	struct xvt_player_timing_wire record;
 	memset(&record, 0, sizeof record);
 	record.player = (uint8_t)player;
 	return record;
 }
 
 /* A well-formed record for player 0 in slot 0. */
-static struct XvtPlayerTimingWire GoodRecord(void)
+static struct xvt_player_timing_wire good_record(void)
 {
-	struct XvtPlayerTimingWire record = EmptyRecord(0);
+	struct xvt_player_timing_wire record = empty_record(0);
 	record.valid = 1;
-	XvtWire_Set16(record.slot, 0);
-	XvtWire_Set16(record.signature, 0x200);
+	xvt_wire_set16(record.slot, 0);
+	xvt_wire_set16(record.signature, 0x200);
 	for (unsigned i = 0; i < XVT_STATE_PLAYER_CHANNELS; ++i) {
-		XvtWire_Set64(record.remainder[i],
-			      (uint64_t)(int64_t)(i % 2 ? -(int)(10 * i)
-							: (int)(10 * i)));
+		xvt_wire_set64(record.remainder[i],
+			       (uint64_t)(int64_t)(i % 2 ? -(int)(10 * i)
+							 : (int)(10 * i)));
 		record.direction[i] = (int8_t)((int)(i % 3) - 1);
 	}
 	record.lock_mode = XVT_LOCK_HALF_CHAFF;
 	record.lock_odd_tick = 1;
 	record.control_valid = 1;
-	XvtWire_Set32(record.control_mode, XVT_CONTROL_ROLL | XVT_CONTROL_MAP);
-	XvtWire_Set16(record.lock_signature, 0x200);
-	XvtWire_Set16(record.lock_target, 2);
-	XvtWire_Set16(record.lock_target_signature, 0x202);
-	XvtWire_Set16(record.lock_weapon, 1);
-	XvtWire_Set64(record.lock_serial, 41);
-	XvtWire_Set16(record.camera_focus, 3);
+	xvt_wire_set32(record.control_mode, XVT_CONTROL_ROLL | XVT_CONTROL_MAP);
+	xvt_wire_set16(record.lock_signature, 0x200);
+	xvt_wire_set16(record.lock_target, 2);
+	xvt_wire_set16(record.lock_target_signature, 0x202);
+	xvt_wire_set16(record.lock_weapon, 1);
+	xvt_wire_set64(record.lock_serial, 41);
+	xvt_wire_set16(record.camera_focus, 3);
 	return record;
 }
 
-static void CheckEncodeDecode(void)
+static void check_encode_decode(void)
 {
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	const struct XvtPlayerTimingWire good = GoodRecord();
-	struct XvtPlayerTimingWire out;
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Decode(&good, 1), 1);
-	XvtPlayerTiming_Encode(0, &out);
-	XVT_ASSERT_TRUE(RecordsEqual(&out, &good));
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	const struct xvt_player_timing_wire good = good_record();
+	struct xvt_player_timing_wire out;
+	XVT_ASSERT_INT_EQ(xvt_player_timing_decode(&good, 1), 1);
+	xvt_player_timing_encode(0, &out);
+	XVT_ASSERT_TRUE(records_equal(&out, &good));
 
 	/* Carries built by Scale and lock timing survive a round trip into cleared state. */
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	XvtPlayerTiming_BeginControls(0);
-	g_elapsedTicks = 3;
-	Step(3);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_LockHalf(0, XVT_LOCK_HALF_CHAFF), 1);
-	Seed(0, XVT_PLAYER_SLEW_PITCH);
-	Seed(0, XVT_PLAYER_DISTANCE);
-	XvtPlayerTiming_Encode(0, &out);
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	xvt_player_timing_begin_controls(0);
+	g_elapsed_ticks = 3;
+	step(3);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_lock_half(0, XVT_LOCK_HALF_CHAFF),
+			  1);
+	seed(0, XVT_PLAYER_SLEW_PITCH);
+	seed(0, XVT_PLAYER_DISTANCE);
+	xvt_player_timing_encode(0, &out);
 	XVT_ASSERT_INT_EQ(out.valid, 1);
-	XvtPlayerTiming_Reset();
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Decode(&out, 1), 1);
-	XVT_ASSERT_INT_EQ(Probe(0, XVT_PLAYER_SLEW_PITCH), 1);
-	XVT_ASSERT_INT_EQ(Probe(0, XVT_PLAYER_DISTANCE), 1);
-	Step(3);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_LockHalf(0, XVT_LOCK_HALF_CHAFF), 2);
+	xvt_player_timing_reset();
+	XVT_ASSERT_INT_EQ(xvt_player_timing_decode(&out, 1), 1);
+	XVT_ASSERT_INT_EQ(probe(0, XVT_PLAYER_SLEW_PITCH), 1);
+	XVT_ASSERT_INT_EQ(probe(0, XVT_PLAYER_DISTANCE), 1);
+	step(3);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_lock_half(0, XVT_LOCK_HALF_CHAFF),
+			  2);
 
 	/* Without apply it is judged, not installed. */
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Decode(&good, 0), 1);
-	XvtPlayerTiming_Encode(0, &out);
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_decode(&good, 0), 1);
+	xvt_player_timing_encode(0, &out);
 	XVT_ASSERT_INT_EQ(out.valid, 0);
 }
 
-static void CheckRecoveryNotShared(void)
+static void check_recovery_not_shared(void)
 {
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	XvtPlayerTiming_BeginWorld();
-	Seed(0, XVT_PLAYER_YAW);
-	struct XvtPlayerTimingWire before, after;
-	XvtPlayerTiming_Encode(0, &before);
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	xvt_player_timing_begin_world();
+	seed(0, XVT_PLAYER_YAW);
+	struct xvt_player_timing_wire before, after;
+	xvt_player_timing_encode(0, &before);
 
 	/* The record does not carry the recovery position: moving it leaves the record as it was. */
-	MoveObject(0, 30);
+	move_object(0, 30);
 	int32_t position[3];
-	Step(XVT_REFERENCE_TICKS);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_RecordRecovery(0, position), 1);
-	XvtPlayerTiming_Encode(0, &after);
-	XVT_ASSERT_TRUE(RecordsEqual(&before, &after));
+	step(XVT_REFERENCE_TICKS);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_record_recovery(0, position), 1);
+	xvt_player_timing_encode(0, &after);
+	XVT_ASSERT_TRUE(records_equal(&before, &after));
 
 	/* Decode leaves the recovery position: the next record is the one taken above. */
-	const struct XvtPlayerTimingWire good = GoodRecord();
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Decode(&good, 1), 1);
-	Step(XVT_REFERENCE_TICKS);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_RecordRecovery(0, position), 1);
-	ExpectPosition(position, 30, 0, 0);
+	const struct xvt_player_timing_wire good = good_record();
+	XVT_ASSERT_INT_EQ(xvt_player_timing_decode(&good, 1), 1);
+	step(XVT_REFERENCE_TICKS);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_record_recovery(0, position), 1);
+	expect_position(position, 30, 0, 0);
 }
 
-static void CheckEncodeEmpty(void)
+static void check_encode_empty(void)
 {
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	const struct XvtPlayerTimingWire good = GoodRecord();
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Decode(&good, 1), 1);
-	struct XvtPlayerTimingWire out, empty;
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	const struct xvt_player_timing_wire good = good_record();
+	XVT_ASSERT_INT_EQ(xvt_player_timing_decode(&good, 1), 1);
+	struct xvt_player_timing_wire out, empty;
 
-	XvtPlayerTiming_Encode(XVT_FLIGHT_PLAYERS, &out);
-	empty = EmptyRecord(XVT_FLIGHT_PLAYERS);
-	XVT_ASSERT_TRUE(RecordsEqual(&out, &empty));
+	xvt_player_timing_encode(XVT_FLIGHT_PLAYERS, &out);
+	empty = empty_record(XVT_FLIGHT_PLAYERS);
+	XVT_ASSERT_TRUE(records_equal(&out, &empty));
 
 	/* Player 5 has no object. */
-	XvtPlayerTiming_Encode(5, &out);
-	empty = EmptyRecord(5);
-	XVT_ASSERT_TRUE(RecordsEqual(&out, &empty));
+	xvt_player_timing_encode(5, &out);
+	empty = empty_record(5);
+	XVT_ASSERT_TRUE(records_equal(&out, &empty));
 
 	/* Player 0's entry belongs to another object, its object is dead, it is outside the main region. */
-	empty = EmptyRecord(0);
-	g_testObjects[0].objectSignature = 0x999;
-	XvtPlayerTiming_Encode(0, &out);
-	XVT_ASSERT_TRUE(RecordsEqual(&out, &empty));
-	g_testObjects[0].objectSignature = 0x200;
-	g_testObjects[0].objectType = 0;
-	XvtPlayerTiming_Encode(0, &out);
-	XVT_ASSERT_TRUE(RecordsEqual(&out, &empty));
-	g_testObjects[0].objectType = 1;
-	g_regionMainObjectSlotEnd = 0;
-	XvtPlayerTiming_Encode(0, &out);
-	XVT_ASSERT_TRUE(RecordsEqual(&out, &empty));
-	g_regionMainObjectSlotEnd = kMainSlots;
-	XvtPlayerTiming_Encode(0, &out);
-	XVT_ASSERT_TRUE(RecordsEqual(&out, &good));
+	empty = empty_record(0);
+	g_test_objects[0].object_signature = 0x999;
+	xvt_player_timing_encode(0, &out);
+	XVT_ASSERT_TRUE(records_equal(&out, &empty));
+	g_test_objects[0].object_signature = 0x200;
+	g_test_objects[0].object_type = 0;
+	xvt_player_timing_encode(0, &out);
+	XVT_ASSERT_TRUE(records_equal(&out, &empty));
+	g_test_objects[0].object_type = 1;
+	g_region_main_object_slot_end = 0;
+	xvt_player_timing_encode(0, &out);
+	XVT_ASSERT_TRUE(records_equal(&out, &empty));
+	g_region_main_object_slot_end = MAIN_SLOTS;
+	xvt_player_timing_encode(0, &out);
+	XVT_ASSERT_TRUE(records_equal(&out, &good));
 }
 
-static void ExpectRefused(const struct XvtPlayerTimingWire *record)
+static void expect_refused(const struct xvt_player_timing_wire *record)
 {
-	struct XvtPlayerTimingWire before, after;
-	XvtPlayerTiming_Encode(0, &before);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Decode(record, 1), 0);
-	XvtPlayerTiming_Encode(0, &after);
-	XVT_ASSERT_TRUE(RecordsEqual(&before, &after));
+	struct xvt_player_timing_wire before, after;
+	xvt_player_timing_encode(0, &before);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_decode(record, 1), 0);
+	xvt_player_timing_encode(0, &after);
+	XVT_ASSERT_TRUE(records_equal(&before, &after));
 }
 
-static void CheckDecodeRefusals(void)
+static void check_decode_refusals(void)
 {
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	XvtPlayerTiming_BeginControls(0);
-	Seed(0, XVT_PLAYER_YAW);
-	const struct XvtPlayerTimingWire good = GoodRecord();
-	struct XvtPlayerTimingWire bad;
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	xvt_player_timing_begin_controls(0);
+	seed(0, XVT_PLAYER_YAW);
+	const struct xvt_player_timing_wire good = good_record();
+	struct xvt_player_timing_wire bad;
 
 	bad = good;
 	bad.player = XVT_FLIGHT_PLAYERS;
-	ExpectRefused(&bad);
+	expect_refused(&bad);
 	bad = good;
 	bad.valid = 2;
-	ExpectRefused(&bad);
+	expect_refused(&bad);
 	bad = good;
 	bad.lock_odd_tick = 2;
-	ExpectRefused(&bad);
+	expect_refused(&bad);
 	bad = good;
 	bad.control_valid = 2;
-	ExpectRefused(&bad);
+	expect_refused(&bad);
 	bad = good;
 	bad.lock_mode = XVT_LOCK_HALF_TARGET_LOSS + 1;
-	ExpectRefused(&bad);
+	expect_refused(&bad);
 	bad = good;
-	XvtWire_Set32(bad.control_mode, XVT_CONTROL_MASK + 1);
-	ExpectRefused(&bad);
+	xvt_wire_set32(bad.control_mode, XVT_CONTROL_MASK + 1);
+	expect_refused(&bad);
 	bad = good;
-	XvtWire_Set16(bad.reserved, 1);
-	ExpectRefused(&bad);
+	xvt_wire_set16(bad.reserved, 1);
+	expect_refused(&bad);
 	bad = good;
-	XvtWire_Set16(bad.reserved_tail, 1);
-	ExpectRefused(&bad);
+	xvt_wire_set16(bad.reserved_tail, 1);
+	expect_refused(&bad);
 
 	/* Not valid: exactly the empty record. */
-	bad = EmptyRecord(0);
-	XvtWire_Set16(bad.camera_focus, 1);
-	ExpectRefused(&bad);
+	bad = empty_record(0);
+	xvt_wire_set16(bad.camera_focus, 1);
+	expect_refused(&bad);
 
 	/* Valid: a main-region slot, directions -1 to 1, remainders under one second of ticks. */
 	bad = good;
-	XvtWire_Set16(bad.slot, kMainSlots);
-	ExpectRefused(&bad);
+	xvt_wire_set16(bad.slot, MAIN_SLOTS);
+	expect_refused(&bad);
 	bad = good;
 	bad.direction[4] = 2;
-	ExpectRefused(&bad);
+	expect_refused(&bad);
 	bad = good;
 	bad.direction[8] = -2;
-	ExpectRefused(&bad);
+	expect_refused(&bad);
 	bad = good;
-	XvtWire_Set64(bad.remainder[0], SIMULATION_TICKS_PER_SECOND);
-	ExpectRefused(&bad);
+	xvt_wire_set64(bad.remainder[0], SIMULATION_TICKS_PER_SECOND);
+	expect_refused(&bad);
 	bad = good;
-	XvtWire_Set64(bad.remainder[8],
-		      (uint64_t)-(int64_t)SIMULATION_TICKS_PER_SECOND);
-	ExpectRefused(&bad);
+	xvt_wire_set64(bad.remainder[8],
+		       (uint64_t)-(int64_t)SIMULATION_TICKS_PER_SECOND);
+	expect_refused(&bad);
 
 	/* One short of the bounds is accepted, and so is the empty record. */
 	bad = good;
-	XvtWire_Set64(bad.remainder[0], SIMULATION_TICKS_PER_SECOND - 1);
-	XvtWire_Set64(bad.remainder[8],
-		      (uint64_t)(1 - (int64_t)SIMULATION_TICKS_PER_SECOND));
-	XvtWire_Set16(bad.slot, kMainSlots - 1);
+	xvt_wire_set64(bad.remainder[0], SIMULATION_TICKS_PER_SECOND - 1);
+	xvt_wire_set64(bad.remainder[8],
+		       (uint64_t)(1 - (int64_t)SIMULATION_TICKS_PER_SECOND));
+	xvt_wire_set16(bad.slot, MAIN_SLOTS - 1);
 	bad.lock_mode = XVT_LOCK_HALF_TARGET_LOSS;
-	XvtWire_Set32(bad.control_mode, XVT_CONTROL_MASK);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Decode(&bad, 0), 1);
-	bad = EmptyRecord(7);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Decode(&bad, 0), 1);
+	xvt_wire_set32(bad.control_mode, XVT_CONTROL_MASK);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_decode(&bad, 0), 1);
+	bad = empty_record(7);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_decode(&bad, 0), 1);
 }
 
-static void CheckResetShared(void)
+static void check_reset_shared(void)
 {
-	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	XvtPlayerTiming_BeginWorld();
-	XvtPlayerTiming_BeginControls(0);
-	Seed(0, XVT_PLAYER_YAW);
-	MoveObject(0, 60);
+	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	xvt_player_timing_begin_world();
+	xvt_player_timing_begin_controls(0);
+	seed(0, XVT_PLAYER_YAW);
+	move_object(0, 60);
 	int32_t position[3];
-	Step(XVT_REFERENCE_TICKS);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_RecordRecovery(0, position), 1);
+	step(XVT_REFERENCE_TICKS);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_record_recovery(0, position), 1);
 
 	/* The shared state, the entry's object included, is gone: the record is empty. */
-	XvtPlayerTiming_ResetShared();
-	struct XvtPlayerTimingWire out, empty = EmptyRecord(0);
-	XvtPlayerTiming_Encode(0, &out);
-	XVT_ASSERT_TRUE(RecordsEqual(&out, &empty));
+	xvt_player_timing_reset_shared();
+	struct xvt_player_timing_wire out, empty = empty_record(0);
+	xvt_player_timing_encode(0, &out);
+	XVT_ASSERT_TRUE(records_equal(&out, &empty));
 
 	/* Restoring the shared state from a record finds the recovery position still there. */
-	const struct XvtPlayerTimingWire good = GoodRecord();
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Decode(&good, 1), 1);
-	Step(XVT_REFERENCE_TICKS);
-	XVT_ASSERT_INT_EQ(XvtPlayerTiming_RecordRecovery(0, position), 1);
-	ExpectPosition(position, 60, 0, 0);
+	const struct xvt_player_timing_wire good = good_record();
+	XVT_ASSERT_INT_EQ(xvt_player_timing_decode(&good, 1), 1);
+	step(XVT_REFERENCE_TICKS);
+	XVT_ASSERT_INT_EQ(xvt_player_timing_record_recovery(0, position), 1);
+	expect_position(position, 60, 0, 0);
 }
 
 int main(int argc, char **argv)
@@ -817,30 +838,30 @@ int main(int argc, char **argv)
 	/* "known-failure <check>" runs one check the code is known to fail; an unknown name runs nothing. */
 	if (argc == 3 && strcmp(argv[1], "known-failure") == 0) {
 		if (strcmp(argv[2], "slew_int_min") == 0) {
-			CheckSlewMostNegative();
+			check_slew_most_negative();
 		}
 		return 0;
 	}
-	CheckScale();
-	CheckClearAndReset();
-	CheckEntryFollowsObject();
-	CheckResetControls();
-	CheckBeginControlsMode();
-	CheckBeginControlsCamera();
-	CheckSlew();
-	CheckLockHalfLocked();
-	CheckLockHalfUnlocked();
-	CheckLockHalfCarryDropped();
-	CheckRecordRecovery();
-	CheckBeginWorld();
-	CheckRecover();
-	CheckEncodeDecode();
-	CheckRecoveryNotShared();
-	CheckEncodeEmpty();
-	CheckDecodeRefusals();
-	CheckResetShared();
-	XvtFlightIntegration_Shutdown();
-	XvtReferenceMotion_Shutdown();
-	XvtFlightTiming_EndSession();
+	check_scale();
+	check_clear_and_reset();
+	check_entry_follows_object();
+	check_reset_controls();
+	check_begin_controls_mode();
+	check_begin_controls_camera();
+	check_slew();
+	check_lock_half_locked();
+	check_lock_half_unlocked();
+	check_lock_half_carry_dropped();
+	check_record_recovery();
+	check_begin_world();
+	check_recover();
+	check_encode_decode();
+	check_recovery_not_shared();
+	check_encode_empty();
+	check_decode_refusals();
+	check_reset_shared();
+	xvt_flight_integration_shutdown();
+	xvt_reference_motion_shutdown();
+	xvt_flight_timing_end_session();
 	return 0;
 }

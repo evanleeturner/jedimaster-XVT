@@ -5,56 +5,56 @@
 #include "xvt_remaster/hud_panes.h"
 #include <string.h>
 
-struct HudPreparationKey {
+struct hud_preparation_key {
 	uint64_t definition, palette, artwork, instruments, radar, text, crt;
-	struct XvtRenderView view;
+	struct xvt_render_view view;
 	unsigned marker_count;
-	struct XvtSnapTargetBox markers[XVT_SNAP_TARGET_BOXES];
+	struct xvt_snap_target_box markers[XVT_SNAP_TARGET_BOXES];
 	int width, height;
 	uint8_t crt_visible;
 };
 
 static AeronDrawList2D *g_before, *g_after;
-static struct XvtHudLayoutCache g_layout;
-static struct HudPreparationKey g_key;
-static uint64_t g_worldGeneration;
+static struct xvt_hud_layout_cache g_layout;
+static struct hud_preparation_key g_key;
+static uint64_t g_world_generation;
 static int g_prepared, g_ready;
 
-void XvtHudRenderer_Invalidate(void)
+void xvt_hud_renderer_invalidate(void)
 {
 	g_prepared = g_ready = 0;
 	memset(&g_layout, 0, sizeof g_layout);
 }
 
-void XvtHudRenderer_Shutdown(void)
+void xvt_hud_renderer_shutdown(void)
 {
 	AeronDrawList_Destroy(g_before);
 	AeronDrawList_Destroy(g_after);
 	g_before = g_after = NULL;
-	XvtHudAssets_Shutdown();
-	XvtCrt_Shutdown();
-	XvtHudRenderer_Invalidate();
+	xvt_hud_assets_shutdown();
+	xvt_crt_shutdown();
+	xvt_hud_renderer_invalidate();
 }
 
-static int SelectAssets(const struct XvtCockpitState *state, int has_view)
+static int select_assets(const struct xvt_cockpit_state *state, int has_view)
 {
 	if (!has_view) {
 		memset(&g_layout, 0, sizeof g_layout);
 		g_layout.layout.source_width = state->view.screen_width;
 		g_layout.layout.source_height = state->view.screen_height;
-		return XvtHudAssets_Select(state, &g_layout.layout);
+		return xvt_hud_assets_select(state, &g_layout.layout);
 	}
-	return XvtHudLayout_Update(&g_layout, state) &&
-	       XvtHudAssets_Select(state, &g_layout.layout);
+	return xvt_hud_layout_update(&g_layout, state) &&
+	       xvt_hud_assets_select(state, &g_layout.layout);
 }
 
-static struct HudPreparationKey
-MakePreparationKey(const struct XvtCockpitState *state,
-		   const struct XvtSnapTargetBox *markers,
-		   unsigned marker_count, const struct XvtRenderView *view,
-		   int width, int height, int crt_visible)
+static struct hud_preparation_key
+make_preparation_key(const struct xvt_cockpit_state *state,
+		     const struct xvt_snap_target_box *markers,
+		     unsigned marker_count, const struct xvt_render_view *view,
+		     int width, int height, int crt_visible)
 {
-	struct HudPreparationKey key = {0};
+	struct hud_preparation_key key = {0};
 	key.definition = state->definition_generation;
 	key.palette = state->palette_generation;
 	key.artwork = state->artwork_generation;
@@ -70,7 +70,7 @@ MakePreparationKey(const struct XvtCockpitState *state,
 	}
 	key.marker_count = marker_count;
 	for (unsigned index = 0; index < marker_count; ++index) {
-		const struct XvtSnapTargetBox *marker = &markers[index];
+		const struct xvt_snap_target_box *marker = &markers[index];
 		key.markers[index].object = marker->object;
 		key.markers[index].component = marker->component;
 		key.markers[index].color_index = marker->color_index;
@@ -82,13 +82,13 @@ MakePreparationKey(const struct XvtCockpitState *state,
 	return key;
 }
 
-int XvtHudRenderer_Prepare(AeronCommandBuffer *cmd,
-			   const struct XvtCockpitState *state,
-			   uint64_t world_generation,
-			   const struct XvtSnapTargetBox *markers,
-			   unsigned marker_count,
-			   const struct XvtRenderView *view,
-			   AeronTexture *crt_color, int width, int height)
+int xvt_hud_renderer_prepare(AeronCommandBuffer *cmd,
+			     const struct xvt_cockpit_state *state,
+			     uint64_t world_generation,
+			     const struct xvt_snap_target_box *markers,
+			     unsigned marker_count,
+			     const struct xvt_render_view *view,
+			     AeronTexture *crt_color, int width, int height)
 {
 	g_ready = 0;
 	if (!cmd || !state || width <= 0 || height <= 0 ||
@@ -97,12 +97,12 @@ int XvtHudRenderer_Prepare(AeronCommandBuffer *cmd,
 		return 0;
 	}
 	if (!state->valid) {
-		XvtHudRenderer_Invalidate();
+		xvt_hud_renderer_invalidate();
 		return 1;
 	}
-	if (world_generation != g_worldGeneration) {
-		XvtHudRenderer_Invalidate();
-		g_worldGeneration = world_generation;
+	if (world_generation != g_world_generation) {
+		xvt_hud_renderer_invalidate();
+		g_world_generation = world_generation;
 	}
 	/* The bounded snapshot can emit three records per glyph plus artwork,
 	 * instruments and up to eight line records per world marker. */
@@ -112,25 +112,25 @@ int XvtHudRenderer_Prepare(AeronCommandBuffer *cmd,
 	if (!g_after) {
 		g_after = AeronDrawList_Create(65536);
 	}
-	if (!g_before || !g_after || !SelectAssets(state, view != NULL)) {
+	if (!g_before || !g_after || !select_assets(state, view != NULL)) {
 		goto failed;
 	}
-	struct XvtHudDraw draw = {.before = g_before,
-				  .after = g_after,
-				  .state = state,
-				  .layout = &g_layout.layout,
-				  .assets = XvtHudAssets_Current(),
-				  .width = width,
-				  .height = height};
-	XvtHudLayout_Fit(draw.layout, width, height, &draw.scale,
-			 &draw.offset_x, &draw.offset_y);
+	struct xvt_hud_draw draw = {.before = g_before,
+				    .after = g_after,
+				    .state = state,
+				    .layout = &g_layout.layout,
+				    .assets = xvt_hud_assets_current(),
+				    .width = width,
+				    .height = height};
+	xvt_hud_layout_fit(draw.layout, width, height, &draw.scale,
+			   &draw.offset_x, &draw.offset_y);
 	int crt_visible = state->crt.valid && crt_color;
-	if (!XvtCrt_PrepareView(&state->crt, &state->definition.layout,
-				crt_visible ? crt_color : NULL, width, height,
-				draw.scale, draw.offset_x, draw.offset_y)) {
+	if (!xvt_crt_prepare_view(&state->crt, &state->definition.layout,
+				  crt_visible ? crt_color : NULL, width, height,
+				  draw.scale, draw.offset_x, draw.offset_y)) {
 		goto failed;
 	}
-	struct HudPreparationKey key = MakePreparationKey(
+	struct hud_preparation_key key = make_preparation_key(
 		state, markers, marker_count, view, width, height, crt_visible);
 	if (g_prepared && !memcmp(&g_key, &key, sizeof key)) {
 		g_ready = 1;
@@ -141,21 +141,23 @@ int XvtHudRenderer_Prepare(AeronCommandBuffer *cmd,
 			    AERON_DRAWLIST2D_LOAD, NULL);
 	AeronDrawList_Begin(g_after, NULL, width, height, AERON_DRAWLIST2D_LOAD,
 			    NULL);
-	XvtHudInstruments_DrawWorldMarkers(&draw, markers, marker_count, view);
-	XvtHudDraw_Base(&draw);
-	XvtHudInstruments_DrawCovers(&draw);
-	XvtHudInstruments_DrawRadar(&draw);
-	XvtHudInstruments_DrawWidgets(&draw);
-	if (!XvtHudPanes_DrawReadouts(&draw, XVT_COCKPIT_BEFORE_CRT)) {
+	xvt_hud_instruments_draw_world_markers(&draw, markers, marker_count,
+					       view);
+	xvt_hud_draw_base(&draw);
+	xvt_hud_instruments_draw_covers(&draw);
+	xvt_hud_instruments_draw_radar(&draw);
+	xvt_hud_instruments_draw_widgets(&draw);
+	if (!xvt_hud_panes_draw_readouts(&draw, XVT_COCKPIT_BEFORE_CRT)) {
 		goto failed;
 	}
 	if (crt_visible) {
-		XvtHudInstruments_DrawCrtMarker(&draw);
+		xvt_hud_instruments_draw_crt_marker(&draw);
 	}
-	XvtHudInstruments_DrawMouseStick(&draw, view);
-	if (!XvtHudPanes_DrawReadouts(&draw, XVT_COCKPIT_AFTER_CRT) ||
-	    !XvtHudPanes_DrawMessages(&draw) || !XvtHudPanes_DrawPages(&draw) ||
-	    !XvtHudPanes_DrawOverlays(&draw) ||
+	xvt_hud_instruments_draw_mouse_stick(&draw, view);
+	if (!xvt_hud_panes_draw_readouts(&draw, XVT_COCKPIT_AFTER_CRT) ||
+	    !xvt_hud_panes_draw_messages(&draw) ||
+	    !xvt_hud_panes_draw_pages(&draw) ||
+	    !xvt_hud_panes_draw_overlays(&draw) ||
 	    !AeronDrawList_Prepare(g_before, cmd) ||
 	    !AeronDrawList_Prepare(g_after, cmd)) {
 		goto failed;
@@ -170,12 +172,11 @@ failed:
 	return 0;
 }
 
-int XvtHudRenderer_NeedsPreparation(const struct XvtCockpitState *state,
-				    uint64_t world_generation,
-				    const struct XvtSnapTargetBox *markers,
-				    unsigned marker_count,
-				    const struct XvtRenderView *view,
-				    int crt_visible, int width, int height)
+int xvt_hud_renderer_needs_preparation(
+	const struct xvt_cockpit_state *state, uint64_t world_generation,
+	const struct xvt_snap_target_box *markers, unsigned marker_count,
+	const struct xvt_render_view *view, int crt_visible, int width,
+	int height)
 {
 	if (!state || marker_count > XVT_SNAP_TARGET_BOXES) {
 		return 1;
@@ -183,21 +184,21 @@ int XvtHudRenderer_NeedsPreparation(const struct XvtCockpitState *state,
 	if (!state->valid) {
 		return g_ready;
 	}
-	if (!g_prepared || world_generation != g_worldGeneration) {
+	if (!g_prepared || world_generation != g_world_generation) {
 		return 1;
 	}
-	struct HudPreparationKey key = MakePreparationKey(
+	struct hud_preparation_key key = make_preparation_key(
 		state, markers, marker_count, view, width, height, crt_visible);
 	return memcmp(&g_key, &key, sizeof key) != 0;
 }
 
-void XvtHudRenderer_Draw(AeronCommandBuffer *cmd, AeronRenderPass *pass,
-			 AeronRenderTarget *target)
+void xvt_hud_renderer_draw(AeronCommandBuffer *cmd, AeronRenderPass *pass,
+			   AeronRenderTarget *target)
 {
 	if (!g_ready) {
 		return;
 	}
 	AeronDrawList_RenderIntoPass(g_before, cmd, pass, target);
-	XvtCrt_Draw(pass);
+	xvt_crt_draw(pass);
 	AeronDrawList_RenderIntoPass(g_after, cmd, pass, target);
 }

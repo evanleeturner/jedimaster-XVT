@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct XvtMovieTask {
+struct xvt_movie_task {
 	AeronVideoPlayer *player;
 	char name[256];
 	char path[XVT_PATH_CAPACITY];
@@ -40,47 +40,47 @@ struct XvtMovieTask {
 	int synchronize;
 };
 
-static struct XvtMovieTask g_movie;
-static AeronRenderSubmission g_subtitleSubmission;
+static struct xvt_movie_task g_movie;
+static AeronRenderSubmission g_subtitle_submission;
 
-void XvtMovieTask_SuppressClassicSubtitles(void)
+void xvt_movie_task_suppress_classic_subtitles(void)
 {
-	Aeron_CancelRenderSubmission(g_subtitleSubmission);
-	g_subtitleSubmission = 0;
+	Aeron_CancelRenderSubmission(g_subtitle_submission);
+	g_subtitle_submission = 0;
 }
 
-static void XvtMovieTask_Close(void)
+static void xvt_movie_task_close(void)
 {
 	if (g_movie.player) {
 		Aeron_VideoClose(g_movie.player);
 	}
 	g_movie.player = NULL;
-	if (g_movieSubtitleFile) {
-		File_Close(g_movieSubtitleFile);
+	if (g_movie_subtitle_file) {
+		file_close(g_movie_subtitle_file);
 	}
-	g_movieSubtitleFile = NULL;
+	g_movie_subtitle_file = NULL;
 	free(g_movie.overlay);
 	g_movie.overlay = NULL;
 }
 
-void XvtMovieTask_ReapFinished(void)
+void xvt_movie_task_reap_finished(void)
 {
 	if (g_movie.active || !g_movie.player) {
 		return;
 	}
 	/* Called at the next host frame, after the final decoder/overlay submission. */
-	XvtMovieTask_Close();
-	FrontendDisplay_SetWndProcMode(g_movie.saved_mode);
-	g_frontState.offscreenRestoreEnabled = g_movie.saved_restore;
+	xvt_movie_task_close();
+	frontend_display_set_wnd_proc_mode(g_movie.saved_mode);
+	g_front_state.offscreen_restore_enabled = g_movie.saved_restore;
 	if (g_movie.saved_lock) {
-		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
-	Keyboard_FlushCharBuffer();
-	g_frontState.mouseLeftClickLatch = 0;
-	g_frontState.mouseRightClickLatch = 0;
+	keyboard_flush_char_buffer();
+	g_front_state.mouse_left_click_latch = 0;
+	g_front_state.mouse_right_click_latch = 0;
 }
 
-int XvtMovieTask_Begin(const char *name, int synchronize)
+int xvt_movie_task_begin(const char *name, int synchronize)
 {
 	AeronVideoOpenDesc desc = {0};
 	char relative[XVT_PATH_CAPACITY];
@@ -94,15 +94,15 @@ int XvtMovieTask_Begin(const char *name, int synchronize)
 		return 2;
 	}
 	snprintf(relative, sizeof(relative), "movies/%s.smk", g_movie.name);
-	found = XvtStorage_ResolveAsset(relative, g_movie.path,
-					sizeof(g_movie.path));
+	found = xvt_storage_resolve_asset(relative, g_movie.path,
+					  sizeof(g_movie.path));
 	if (found != 1 && synchronize &&
-	    g_frontendMissionSessionMode !=
+	    g_frontend_mission_session_mode !=
 		    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 		strcpy(g_movie.name, "Flyby1a");
-		found = XvtStorage_ResolveAsset("movies/Flyby1a.smk",
-						g_movie.path,
-						sizeof(g_movie.path));
+		found = xvt_storage_resolve_asset("movies/Flyby1a.smk",
+						  g_movie.path,
+						  sizeof(g_movie.path));
 	}
 	if (found != 1) {
 		XVT_LOG_WARN("movie.open_failed name=\"%s\"", name);
@@ -112,39 +112,39 @@ int XvtMovieTask_Begin(const char *name, int synchronize)
 	if (!g_movie.overlay) {
 		return 2;
 	}
-	desc.vfs = XvtStorage_Vfs();
+	desc.vfs = xvt_storage_vfs();
 	desc.root = AERON_VFS_ROOT_ASSET;
 	desc.path = g_movie.path;
 	desc.autoplay = 1;
-	desc.gain = g_gameConfig.sfxDatapadEnabled
-			    ? (float)g_gameConfig.sfxDatapadVolume / 10.0f
+	desc.gain = g_game_config.sfx_datapad_enabled
+			    ? (float)g_game_config.sfx_datapad_volume / 10.0f
 			    : 0;
 	g_movie.player = Aeron_VideoOpen(&desc);
 	if (!g_movie.player) {
-		XvtMovieTask_Close();
+		xvt_movie_task_close();
 		return 2;
 	}
 	snprintf(relative, sizeof(relative), "movies/%s.txt", g_movie.name);
-	g_movieSubtitleFile = File_Open(relative, "r");
+	g_movie_subtitle_file = file_open(relative, "r");
 	memset(g_movie.lines, 0, sizeof(g_movie.lines));
 	g_movie.next_cue = 0;
-	g_movie.saved_mode = FrontendDisplay_GetWndProcMode();
-	g_movie.saved_restore = g_frontState.offscreenRestoreEnabled;
-	g_movie.saved_lock = g_frontState.backBufferLocked;
-	FrontendDisplay_UnlockBackBuffer();
-	FrontendDisplay_DisableOffscreenRestore();
-	FrontendDisplay_SetWndProcMode(2);
-	FrontendText_StopTextFade();
-	Keyboard_FlushCharBuffer();
-	g_movieSkipRequested = 0;
+	g_movie.saved_mode = frontend_display_get_wnd_proc_mode();
+	g_movie.saved_restore = g_front_state.offscreen_restore_enabled;
+	g_movie.saved_lock = g_front_state.back_buffer_locked;
+	frontend_display_unlock_back_buffer();
+	frontend_display_disable_offscreen_restore();
+	frontend_display_set_wnd_proc_mode(2);
+	frontend_text_stop_text_fade();
+	keyboard_flush_char_buffer();
+	g_movie_skip_requested = 0;
 	g_movie.synchronize =
-		synchronize && g_frontendMissionSessionMode !=
+		synchronize && g_frontend_mission_session_mode !=
 				       FRONTEND_MISSION_SESSION_SINGLEPLAYER;
-	g_moviePreviousWndProcMode = g_movie.saved_mode;
+	g_movie_previous_wnd_proc_mode = g_movie.saved_mode;
 	if (g_movie.synchronize) {
-		XvtMovieSync_Begin();
+		xvt_movie_sync_begin();
 	}
-	XvtPresentation_RequireClassic();
+	xvt_presentation_require_classic();
 	g_movie.active = 1;
 	g_movie.paused = 0;
 	g_movie.result = 0;
@@ -152,7 +152,7 @@ int XvtMovieTask_Begin(const char *name, int synchronize)
 	return XVT_MOVIE_PENDING;
 }
 
-static void XvtMovieTask_SubmitSubtitles(uint64_t frame, int margin_height)
+static void xvt_movie_task_submit_subtitles(uint64_t frame, int margin_height)
 {
 	AeronPixelLayerDesc layer = {0};
 	struct RECT clip;
@@ -160,15 +160,15 @@ static void XvtMovieTask_SubmitSubtitles(uint64_t frame, int margin_height)
 	uint8_t *saved_pixels;
 	int saved_pitch;
 	int line;
-	int waiting = g_movie.synchronize && g_moviePlaybackCompletionState;
-	if ((!g_movieSubtitleFile && !g_movie.synchronize) ||
+	int waiting = g_movie.synchronize && g_movie_playback_completion_state;
+	if ((!g_movie_subtitle_file && !g_movie.synchronize) ||
 	    margin_height <= 0) {
 		return;
 	}
 	/* Each file record supplies the next boundary and the text for this interval. */
-	while (!waiting && g_movieSubtitleFile &&
+	while (!waiting && g_movie_subtitle_file &&
 	       g_movie.next_cue != UINT16_MAX && g_movie.next_cue <= frame) {
-		g_movie.next_cue = Movie_ReadSubtitleCue(
+		g_movie.next_cue = movie_read_subtitle_cue(
 			g_movie.lines[0], g_movie.lines[1], g_movie.lines[2]);
 		if (g_movie.next_cue == UINT16_MAX) {
 			memset(g_movie.lines, 0, sizeof(g_movie.lines));
@@ -176,47 +176,47 @@ static void XvtMovieTask_SubmitSubtitles(uint64_t frame, int margin_height)
 		}
 	}
 	memset(g_movie.overlay, 0, 640 * 480 * sizeof(uint16_t));
-	saved_pixels = g_drawSurfacePtr;
-	saved_pitch = g_frontState.drawSurfacePitch;
-	FrontendDisplay_GetScreenClipRect(&clip);
+	saved_pixels = g_draw_surface_ptr;
+	saved_pitch = g_front_state.draw_surface_pitch;
+	frontend_display_get_screen_clip_rect(&clip);
 	rect = (struct RECT){0, 0, 639, 479};
-	FrontendDisplay_SetScreenClipRect640x480(&rect);
-	g_drawSurfacePtr = (uint8_t *)g_movie.overlay;
-	g_frontState.drawSurfacePitch = 640 * sizeof(uint16_t);
+	frontend_display_set_screen_clip_rect640x480(&rect);
+	g_draw_surface_ptr = (uint8_t *)g_movie.overlay;
+	g_front_state.draw_surface_pitch = 640 * sizeof(uint16_t);
 	rect.top = 480 - margin_height;
 	for (line = 0; !waiting && line < 3; ++line) {
 		rect.bottom = rect.top + margin_height / 3;
-		FrontendText_DrawCentered(12, g_movie.lines[line], &rect,
-					  0xffff);
+		frontend_text_draw_centered(12, g_movie.lines[line], &rect,
+					    0xffff);
 		rect.top = rect.bottom;
 	}
 	if (g_movie.synchronize) {
-		XvtMovieSync_Draw(margin_height, margin_height);
+		xvt_movie_sync_draw(margin_height, margin_height);
 	}
-	g_drawSurfacePtr = saved_pixels;
-	g_frontState.drawSurfacePitch = saved_pitch;
-	FrontendDisplay_SetScreenClipRect640x480(&clip);
+	g_draw_surface_ptr = saved_pixels;
+	g_front_state.draw_surface_pitch = saved_pitch;
+	frontend_display_set_screen_clip_rect640x480(&clip);
 	layer.frame.pixels = g_movie.overlay;
 	layer.frame.width = 640;
 	layer.frame.height = 480;
 	layer.frame.pitch = 1280;
-	layer.frame.format = g_frontState.pixelFormat555
+	layer.frame.format = g_front_state.pixel_format555
 				     ? AERON_PIXEL_FORMAT_RGB555
 				     : AERON_PIXEL_FORMAT_RGB565;
 	layer.frame.color_space = AERON_COLOR_SPACE_SRGB;
 	layer.frame.generation = ++g_movie.generation;
-	layer.logical_rect = XvtPresentation_ClassicRect();
+	layer.logical_rect = xvt_presentation_classic_rect();
 	layer.blend_mode = AERON_LAYER_BLEND_ALPHA;
 	layer.color_key_enabled = 1;
 	layer.color_key = 0;
 	layer.preserve_encoded_values = 1;
-	g_subtitleSubmission = Aeron_SubmitPixelLayer(&layer);
-	if (!g_subtitleSubmission) {
+	g_subtitle_submission = Aeron_SubmitPixelLayer(&layer);
+	if (!g_subtitle_submission) {
 		Aeron_RequestFatalRendererError("movie subtitles");
 	}
 }
 
-static void XvtMovieTask_Submit(void)
+static void xvt_movie_task_submit(void)
 {
 	AeronVideoPresentDesc desc = {0};
 	AeronVideoInfo info;
@@ -235,22 +235,22 @@ static void XvtMovieTask_Submit(void)
 		g_movie.complete = 1;
 		return;
 	}
-	desc.bounds = XvtPresentation_FromClassic((AeronRectI){
+	desc.bounds = xvt_presentation_from_classic((AeronRectI){
 		(640 - width) / 2, (480 - height) / 2, width, height});
 	desc.scale_mode = AERON_VIDEO_SCALE_CONTAIN;
 	desc.blend_mode = AERON_LAYER_BLEND_OPAQUE;
 	/* A skipped movie has no video frame, but its synchronization UI remains active. */
 	if (Aeron_VideoSubmit(g_movie.player, &desc) ||
-	    (g_movie.synchronize && g_moviePlaybackCompletionState)) {
-		XvtRenderFrontend_Movie(1);
-		XvtMovieTask_SubmitSubtitles(
+	    (g_movie.synchronize && g_movie_playback_completion_state)) {
+		xvt_render_frontend_movie(1);
+		xvt_movie_task_submit_subtitles(
 			Aeron_VideoGetPresentedFrameIndex(g_movie.player),
 			(480 - height) / 2);
-		XvtRenderFrontend_Movie(0);
+		xvt_render_frontend_movie(0);
 	}
 }
 
-void XvtMovieTask_Stop(void)
+void xvt_movie_task_stop(void)
 {
 	if (!g_movie.active) {
 		return;
@@ -258,11 +258,11 @@ void XvtMovieTask_Stop(void)
 	/* Skipping finishes local playback successfully; multiplayer still waits for peers. */
 	Aeron_VideoStop(g_movie.player);
 	if (g_movie.synchronize) {
-		XvtMovieSync_ReportFinished();
+		xvt_movie_sync_report_finished();
 	}
 }
 
-void XvtMovieTask_Update(void)
+void xvt_movie_task_update(void)
 {
 	AeronVideoState state;
 	int key;
@@ -275,28 +275,28 @@ void XvtMovieTask_Update(void)
 		g_movie.paused = 0;
 	}
 	Aeron_VideoUpdate(g_movie.player);
-	key = (unsigned char)Keyboard_DequeueChar();
+	key = (unsigned char)keyboard_dequeue_char();
 	if (g_movie.synchronize) {
 		uint32_t playing = 1;
 		if (key) {
-			Movie_MultiplayerInputCallback(0, 0x102, key, 0, 0,
-						       &playing);
+			movie_multiplayer_input_callback(0, 0x102, key, 0, 0,
+							 &playing);
 		}
-		if (g_frontState.mouseLeftClickLatch ||
-		    g_frontState.mouseRightClickLatch) {
-			Movie_MultiplayerInputCallback(0, 0x202, 0, 0, 0,
-						       &playing);
+		if (g_front_state.mouse_left_click_latch ||
+		    g_front_state.mouse_right_click_latch) {
+			movie_multiplayer_input_callback(0, 0x202, 0, 0, 0,
+							 &playing);
 		}
 		if (!playing) {
-			XvtMovieTask_Stop();
+			xvt_movie_task_stop();
 		}
-		synchronized = XvtMovieSync_Update();
-	} else if (key || g_frontState.mouseLeftClickLatch ||
-		   g_frontState.mouseRightClickLatch) {
-		XvtMovieTask_Stop();
+		synchronized = xvt_movie_sync_update();
+	} else if (key || g_front_state.mouse_left_click_latch ||
+		   g_front_state.mouse_right_click_latch) {
+		xvt_movie_task_stop();
 	}
-	g_frontState.mouseLeftClickLatch = g_frontState.mouseRightClickLatch =
-		0;
+	g_front_state.mouse_left_click_latch =
+		g_front_state.mouse_right_click_latch = 0;
 	state = Aeron_VideoGetState(g_movie.player);
 	if (state == AERON_VIDEO_ERROR) {
 		if (g_movie.result != 2) {
@@ -306,17 +306,17 @@ void XvtMovieTask_Update(void)
 		}
 		g_movie.result = 2;
 	} else {
-		XvtMovieTask_Submit();
+		xvt_movie_task_submit();
 	}
 	if (g_movie.synchronize &&
 	    (state == AERON_VIDEO_ENDED || state == AERON_VIDEO_ERROR)) {
-		XvtMovieSync_ReportFinished();
+		xvt_movie_sync_report_finished();
 	}
 	if ((!g_movie.synchronize &&
 	     (state == AERON_VIDEO_ENDED || state == AERON_VIDEO_ERROR)) ||
 	    (g_movie.synchronize &&
-	     (synchronized || g_movieSkipRequested == -1))) {
-		if (g_movieSkipRequested == -1) {
+	     (synchronized || g_movie_skip_requested == -1))) {
+		if (g_movie_skip_requested == -1) {
 			g_movie.result = 5;
 		}
 		g_movie.active = 0;
@@ -326,7 +326,7 @@ void XvtMovieTask_Update(void)
 	}
 }
 
-void XvtMovieTask_PausedFrame(void)
+void xvt_movie_task_paused_frame(void)
 {
 	if (!g_movie.active) {
 		return;
@@ -335,17 +335,17 @@ void XvtMovieTask_PausedFrame(void)
 		Aeron_VideoPause(g_movie.player);
 		g_movie.paused = 1;
 	}
-	XvtMovieTask_Submit();
+	xvt_movie_task_submit();
 }
 
-int XvtMovieTask_IsActive(void) { return g_movie.active; }
+int xvt_movie_task_is_active(void) { return g_movie.active; }
 
-int XvtMovieTask_ContinuesWithoutFocus(void)
+int xvt_movie_task_continues_without_focus(void)
 {
 	return g_movie.active && g_movie.synchronize;
 }
 
-int XvtMovieTask_TakeResult(int *result)
+int xvt_movie_task_take_result(int *result)
 {
 	if (!g_movie.complete || g_movie.player) {
 		return 0;
@@ -355,7 +355,7 @@ int XvtMovieTask_TakeResult(int *result)
 	return 1;
 }
 
-uint64_t XvtMovieTask_NextWakeDelayUs(void)
+uint64_t xvt_movie_task_next_wake_delay_us(void)
 {
 	uint64_t delay;
 	return g_movie.active && Aeron_VideoGetNextWakeDelayUs(g_movie.player,
@@ -364,8 +364,8 @@ uint64_t XvtMovieTask_NextWakeDelayUs(void)
 		       : 10000;
 }
 
-void XvtMovieTask_Shutdown(void)
+void xvt_movie_task_shutdown(void)
 {
-	XvtMovieTask_Close();
+	xvt_movie_task_close();
 	memset(&g_movie, 0, sizeof(g_movie));
 }

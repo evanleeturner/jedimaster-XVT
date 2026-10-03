@@ -6,28 +6,28 @@
 #include <stdio.h>
 #include <string.h>
 
-struct MeshEntry {
+struct mesh_entry {
 	char path[XVT_SNAP_PATH];
-	struct XvtMeshAsset asset;
+	struct xvt_mesh_asset asset;
 	int pending_new;
 };
 
-static struct MeshEntry g_meshes[XVT_SNAP_ASSETS], g_pending[XVT_SNAP_ASSETS];
+static struct mesh_entry g_meshes[XVT_SNAP_ASSETS], g_pending[XVT_SNAP_ASSETS];
 static char g_desired[XVT_SNAP_ASSETS][XVT_SNAP_PATH];
-static unsigned g_count, g_pendingCount;
-static uint64_t g_generation = UINT64_MAX, g_pendingGeneration = UINT64_MAX;
-static int g_batchActive, g_batchCompletes;
-static struct XvtModelSettings g_policy, g_pendingPolicy;
+static unsigned g_count, g_pending_count;
+static uint64_t g_generation = UINT64_MAX, g_pending_generation = UINT64_MAX;
+static int g_batch_active, g_batch_completes;
+static struct xvt_model_settings g_policy, g_pending_policy;
 
-static int SamePolicy(const struct XvtModelSettings *a,
-		      const struct XvtModelSettings *b)
+static int same_policy(const struct xvt_model_settings *a,
+		       const struct xvt_model_settings *b)
 {
 	/* Projectile/glow strengths are submission settings, not mesh build inputs. */
 	return a->smooth_angle_degrees == b->smooth_angle_degrees &&
 	       a->opt_emissive_strength == b->opt_emissive_strength;
 }
 
-static void Destroy(struct MeshEntry *entry)
+static void destroy(struct mesh_entry *entry)
 {
 	if (entry->asset.mesh) {
 		AeronScene_MeshDestroy(entry->asset.mesh);
@@ -35,32 +35,34 @@ static void Destroy(struct MeshEntry *entry)
 	memset(entry, 0, sizeof *entry);
 }
 
-static void DiscardPending(void)
+static void discard_pending(void)
 {
-	for (unsigned i = 0; i < g_pendingCount; ++i) {
+	for (unsigned i = 0; i < g_pending_count; ++i) {
 		if (g_pending[i].pending_new) {
-			Destroy(&g_pending[i]);
+			destroy(&g_pending[i]);
 		}
 	}
 	memset(g_pending, 0, sizeof g_pending);
-	g_pendingCount = 0;
-	g_pendingGeneration = UINT64_MAX;
+	g_pending_count = 0;
+	g_pending_generation = UINT64_MAX;
 }
 
-int XvtRemasterShip_AssetsNeedSync(const struct XvtRenderSnapshot *snapshot)
+int xvt_remaster_ship_assets_need_sync(
+	const struct xvt_render_snapshot *snapshot)
 {
 	return snapshot &&
 	       (snapshot->opt_asset_generation != g_generation ||
-		!SamePolicy(&g_policy, &XvtRemasterConfig_Effective()->models));
+		!same_policy(&g_policy,
+			     &xvt_remaster_config_effective()->models));
 }
 
-static int LoadMesh(AeronCommandBuffer *cmd, struct MeshEntry *entry)
+static int load_mesh(AeronCommandBuffer *cmd, struct mesh_entry *entry)
 {
 	AeronFlightModel model = {0};
 	char error[256];
-	if (!XvtRemasterOptMesh_Build(Aeron_GetVfs(), entry->path,
-				      &g_pendingPolicy, &model, error,
-				      sizeof error)) {
+	if (!xvt_remaster_opt_mesh_build(Aeron_GetVfs(), entry->path,
+					 &g_pending_policy, &model, error,
+					 sizeof error)) {
 		XVT_LOG_ERROR("remaster.opt_failed path=\"%s\" error=\"%s\"",
 			      entry->path, error);
 		Aeron_CommandBufferSetFailure(cmd, error);
@@ -82,29 +84,29 @@ static int LoadMesh(AeronCommandBuffer *cmd, struct MeshEntry *entry)
 	return 1;
 }
 
-XvtAssetSyncResult
-XvtRemasterShip_SyncAssets(AeronCommandBuffer *cmd,
-			   const struct XvtRenderSnapshot *snapshot,
-			   uint64_t byte_budget, uint32_t copy_budget)
+xvt_asset_sync_result
+xvt_remaster_ship_sync_assets(AeronCommandBuffer *cmd,
+			      const struct xvt_render_snapshot *snapshot,
+			      uint64_t byte_budget, uint32_t copy_budget)
 {
 	if (!cmd || !snapshot) {
 		return XVT_ASSET_SYNC_FAILED;
 	}
-	if (!XvtRemasterShip_AssetsNeedSync(snapshot)) {
+	if (!xvt_remaster_ship_assets_need_sync(snapshot)) {
 		return XVT_ASSET_SYNC_COMPLETE;
 	}
-	if (g_batchActive) {
+	if (g_batch_active) {
 		Aeron_CommandBufferSetFailure(cmd,
 					      "unfinished mesh upload batch");
 		return XVT_ASSET_SYNC_FAILED;
 	}
-	const struct XvtModelSettings *policy =
-		&XvtRemasterConfig_Effective()->models;
-	if (g_pendingGeneration != snapshot->opt_asset_generation ||
-	    !SamePolicy(&g_pendingPolicy, policy)) {
-		DiscardPending();
-		g_pendingGeneration = snapshot->opt_asset_generation;
-		g_pendingPolicy = *policy;
+	const struct xvt_model_settings *policy =
+		&xvt_remaster_config_effective()->models;
+	if (g_pending_generation != snapshot->opt_asset_generation ||
+	    !same_policy(&g_pending_policy, policy)) {
+		discard_pending();
+		g_pending_generation = snapshot->opt_asset_generation;
+		g_pending_policy = *policy;
 	}
 	unsigned desired_count = 0;
 	for (unsigned i = 0; i < snapshot->opt_asset_count; ++i) {
@@ -125,20 +127,20 @@ XvtRemasterShip_SyncAssets(AeronCommandBuffer *cmd,
 		}
 		snprintf(g_desired[desired_count++], XVT_SNAP_PATH, "%s", path);
 	}
-	g_batchActive = 1;
-	g_batchCompletes = 1;
+	g_batch_active = 1;
+	g_batch_completes = 1;
 	for (unsigned i = 0; i < desired_count; ++i) {
 		unsigned found;
-		for (found = 0; found < g_pendingCount; ++found) {
+		for (found = 0; found < g_pending_count; ++found) {
 			if (strcmp(g_pending[found].path, g_desired[i]) == 0) {
 				break;
 			}
 		}
-		if (found < g_pendingCount) {
+		if (found < g_pending_count) {
 			continue;
 		}
-		struct MeshEntry *entry = &g_pending[g_pendingCount];
-		if (SamePolicy(&g_policy, policy)) {
+		struct mesh_entry *entry = &g_pending[g_pending_count];
+		if (same_policy(&g_policy, policy)) {
 			for (unsigned j = 0; j < g_count; ++j) {
 				if (strcmp(g_meshes[j].path, g_desired[i]) !=
 				    0) {
@@ -146,20 +148,20 @@ XvtRemasterShip_SyncAssets(AeronCommandBuffer *cmd,
 				}
 				*entry = g_meshes[j];
 				entry->pending_new = 0;
-				++g_pendingCount;
+				++g_pending_count;
 				break;
 			}
 		}
-		if (g_pendingCount > found) {
+		if (g_pending_count > found) {
 			continue;
 		}
 		snprintf(entry->path, sizeof entry->path, "%s", g_desired[i]);
-		if (!LoadMesh(cmd, entry)) {
+		if (!load_mesh(cmd, entry)) {
 			memset(entry, 0, sizeof *entry);
 			return XVT_ASSET_SYNC_FAILED;
 		}
 		entry->pending_new = 1;
-		++g_pendingCount;
+		++g_pending_count;
 		AeronCommandBufferUploadUsage usage;
 		if (!Aeron_CommandBufferGetUploadUsage(cmd, &usage)) {
 			Aeron_CommandBufferSetFailure(
@@ -170,14 +172,14 @@ XvtRemasterShip_SyncAssets(AeronCommandBuffer *cmd,
 		    (copy_budget && usage.copy_count >= copy_budget)) {
 			for (unsigned j = i + 1; j < desired_count; ++j) {
 				unsigned k;
-				for (k = 0; k < g_pendingCount; ++k) {
+				for (k = 0; k < g_pending_count; ++k) {
 					if (strcmp(g_pending[k].path,
 						   g_desired[j]) == 0) {
 						break;
 					}
 				}
-				if (k == g_pendingCount) {
-					g_batchCompletes = 0;
+				if (k == g_pending_count) {
+					g_batch_completes = 0;
 					return XVT_ASSET_SYNC_MORE;
 				}
 			}
@@ -186,60 +188,60 @@ XvtRemasterShip_SyncAssets(AeronCommandBuffer *cmd,
 	return XVT_ASSET_SYNC_COMPLETE;
 }
 
-void XvtRemasterShip_CommitSyncBatch(void)
+void xvt_remaster_ship_commit_sync_batch(void)
 {
-	if (!g_batchActive) {
+	if (!g_batch_active) {
 		return;
 	}
-	if (g_batchCompletes) {
+	if (g_batch_completes) {
 		for (unsigned i = 0; i < g_count; ++i) {
 			unsigned j;
-			for (j = 0; j < g_pendingCount; ++j) {
+			for (j = 0; j < g_pending_count; ++j) {
 				if (g_meshes[i].asset.mesh ==
 				    g_pending[j].asset.mesh) {
 					break;
 				}
 			}
-			if (j == g_pendingCount) {
-				Destroy(&g_meshes[i]);
+			if (j == g_pending_count) {
+				destroy(&g_meshes[i]);
 			}
 		}
 		memset(g_meshes, 0, sizeof g_meshes);
-		g_count = g_pendingCount;
+		g_count = g_pending_count;
 		for (unsigned i = 0; i < g_count; ++i) {
 			g_meshes[i] = g_pending[i];
 			g_meshes[i].pending_new = 0;
 		}
-		g_generation = g_pendingGeneration;
-		g_policy = g_pendingPolicy;
+		g_generation = g_pending_generation;
+		g_policy = g_pending_policy;
 		memset(g_pending, 0, sizeof g_pending);
-		g_pendingCount = 0;
-		g_pendingGeneration = UINT64_MAX;
+		g_pending_count = 0;
+		g_pending_generation = UINT64_MAX;
 		XVT_LOG_DEBUG("remaster.mesh_assets generation=%llu unique=%u",
 			      (unsigned long long)g_generation, g_count);
 	}
-	g_batchActive = g_batchCompletes = 0;
+	g_batch_active = g_batch_completes = 0;
 }
 
-void XvtRemasterShip_Abort(void)
+void xvt_remaster_ship_abort(void)
 {
-	DiscardPending();
-	g_batchActive = g_batchCompletes = 0;
+	discard_pending();
+	g_batch_active = g_batch_completes = 0;
 }
 
-void XvtRemasterShip_Shutdown(void)
+void xvt_remaster_ship_shutdown(void)
 {
-	XvtRemasterShip_Abort();
+	xvt_remaster_ship_abort();
 	for (unsigned i = 0; i < g_count; ++i) {
-		Destroy(&g_meshes[i]);
+		destroy(&g_meshes[i]);
 	}
 	g_count = 0;
 	g_generation = UINT64_MAX;
 	memset(&g_policy, 0, sizeof g_policy);
 }
 
-const struct XvtMeshAsset *
-XvtRemasterShip_Mesh(const struct XvtRenderSnapshot *snapshot, uint64_t id)
+const struct xvt_mesh_asset *
+xvt_remaster_ship_mesh(const struct xvt_render_snapshot *snapshot, uint64_t id)
 {
 	if (!snapshot || !id) {
 		return NULL;

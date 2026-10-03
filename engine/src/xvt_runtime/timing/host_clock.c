@@ -2,24 +2,24 @@
 
 #include "xvt/util/time.h"
 
-static uint64_t g_xvtElapsedUs;
+static uint64_t g_xvt_elapsed_us;
 
-void XvtTime_Reset(void) { g_xvtElapsedUs = 0; }
+void xvt_time_reset(void) { g_xvt_elapsed_us = 0; }
 
-void XvtTime_AdvanceHostClock(int32_t delta_us)
+void xvt_time_advance_host_clock(int32_t delta_us)
 {
 	if (delta_us > 0) {
-		g_xvtElapsedUs += (uint32_t)delta_us;
+		g_xvt_elapsed_us += (uint32_t)delta_us;
 	}
 }
 
-uint64_t XvtTime_GetElapsedUs(void) { return g_xvtElapsedUs; }
+uint64_t xvt_time_get_elapsed_us(void) { return g_xvt_elapsed_us; }
 
-uint32_t XvtTime_GetElapsedMs(void)
+uint32_t xvt_time_get_elapsed_ms(void)
 {
-	return (uint32_t)(g_xvtElapsedUs / 1000u);
+	return (uint32_t)(g_xvt_elapsed_us / 1000u);
 }
 
-uint32_t timeGetTime(void) { return XvtTime_GetElapsedMs(); }
+uint32_t timeGetTime(void) { return xvt_time_get_elapsed_ms(); }
 
-uint32_t GetTickCount(void) { return XvtTime_GetElapsedMs(); }
+uint32_t GetTickCount(void) { return xvt_time_get_elapsed_ms(); }

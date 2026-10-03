@@ -34,15 +34,15 @@ enum {
 	VK_LSHIFT = 0xA0,
 };
 
-static AeronInputSnapshot *Host(void)
+static AeronInputSnapshot *input_bridge_host(void)
 {
 	return (AeronInputSnapshot *)Aeron_InputSnapshot();
 }
 
 /* An empty frame with focus, numbered after the last one. */
-static void NewFrame(void)
+static void new_frame(void)
 {
-	AeronInputSnapshot *host = Host();
+	AeronInputSnapshot *host = input_bridge_host();
 	uint64_t frame = host->frame_id;
 	memset(host, 0, sizeof *host);
 	host->frame_id = frame + 1;
@@ -50,34 +50,34 @@ static void NewFrame(void)
 }
 
 /* Nothing captured, blocked or mapped, an empty frontend, and an empty frame with focus. */
-static void Start(void)
+static void input_bridge_start(void)
 {
-	XvtInput_ResetCapture();
-	XvtKeyboardMapping_Suspend();
-	XvtControllerMapping_Shutdown();
-	Keyboard_FlushCharBuffer();
-	memset(g_frontState.keyState, 0, sizeof g_frontState.keyState);
-	g_frontState.mouseX = g_frontState.mouseY = 0;
-	g_frontState.mouseLeftDown = g_frontState.mouseRightDown = 0;
-	g_frontState.mouseLeftClickLatch = g_frontState.mouseRightClickLatch =
-		0;
-	NewFrame();
+	xvt_input_reset_capture();
+	xvt_keyboard_mapping_suspend();
+	xvt_controller_mapping_shutdown();
+	keyboard_flush_char_buffer();
+	memset(g_front_state.key_state, 0, sizeof g_front_state.key_state);
+	g_front_state.mouse_x = g_front_state.mouse_y = 0;
+	g_front_state.mouse_left_down = g_front_state.mouse_right_down = 0;
+	g_front_state.mouse_left_click_latch =
+		g_front_state.mouse_right_click_latch = 0;
+	new_frame();
 }
 
-static void SetText(const char *text)
+static void set_text(const char *text)
 {
 	size_t length = strlen(text);
 	XVT_ASSERT_TRUE(length <= AERON_TEXT_INPUT_CAPACITY);
-	memcpy(Host()->text, text, length);
-	Host()->text_length = (uint32_t)length;
+	memcpy(input_bridge_host()->text, text, length);
+	input_bridge_host()->text_length = (uint32_t)length;
 }
 
 /* Reads the frontend's typed characters into out; returns how many there were. */
-static size_t ReadTyped(unsigned char *out, size_t capacity)
+static size_t read_typed(unsigned char *out, size_t capacity)
 {
 	size_t count = 0;
-	while (g_frontState.charReadIdx != g_frontState.charWriteIdx) {
-		unsigned char c = (unsigned char)Keyboard_DequeueChar();
+	while (g_front_state.char_read_idx != g_front_state.char_write_idx) {
+		unsigned char c = (unsigned char)keyboard_dequeue_char();
 		if (count < capacity) {
 			out[count] = c;
 		}
@@ -86,117 +86,117 @@ static size_t ReadTyped(unsigned char *out, size_t capacity)
 	return count;
 }
 
-static void CheckRoute(void)
+static void check_route(void)
 {
-	Start();
-	XVT_ASSERT_INT_EQ(XvtFlightTask_IsActive(), 0);
-	XVT_ASSERT_INT_EQ(XvtInput_ReconcileKeyboard(), XVT_KEYBOARD_RAW);
+	input_bridge_start();
+	XVT_ASSERT_INT_EQ(xvt_flight_task_is_active(), 0);
+	XVT_ASSERT_INT_EQ(xvt_input_reconcile_keyboard(), XVT_KEYBOARD_RAW);
 
-	Host()->has_focus = 0;
-	XVT_ASSERT_INT_EQ(XvtInput_ReconcileKeyboard(), XVT_KEYBOARD_BLOCKED);
-	Host()->has_focus = 1;
-	XVT_ASSERT_INT_EQ(XvtInput_ReconcileKeyboard(), XVT_KEYBOARD_RAW);
+	input_bridge_host()->has_focus = 0;
+	XVT_ASSERT_INT_EQ(xvt_input_reconcile_keyboard(), XVT_KEYBOARD_BLOCKED);
+	input_bridge_host()->has_focus = 1;
+	XVT_ASSERT_INT_EQ(xvt_input_reconcile_keyboard(), XVT_KEYBOARD_RAW);
 
-	XvtInput_SetCaptured(true);
-	XVT_ASSERT_INT_EQ(XvtInput_ReconcileKeyboard(), XVT_KEYBOARD_BLOCKED);
-	XvtInput_SetCaptured(false);
-	XVT_ASSERT_INT_EQ(XvtInput_ReconcileKeyboard(), XVT_KEYBOARD_RAW);
+	xvt_input_set_captured(true);
+	XVT_ASSERT_INT_EQ(xvt_input_reconcile_keyboard(), XVT_KEYBOARD_BLOCKED);
+	xvt_input_set_captured(false);
+	XVT_ASSERT_INT_EQ(xvt_input_reconcile_keyboard(), XVT_KEYBOARD_RAW);
 
 	/* A suppressed Update blocks the route until an Update that is not. */
-	XvtInput_Update(1);
-	XVT_ASSERT_INT_EQ(XvtInput_ReconcileKeyboard(), XVT_KEYBOARD_BLOCKED);
-	NewFrame();
-	XvtInput_Update(0);
-	XVT_ASSERT_INT_EQ(XvtInput_ReconcileKeyboard(), XVT_KEYBOARD_RAW);
+	xvt_input_update(1);
+	XVT_ASSERT_INT_EQ(xvt_input_reconcile_keyboard(), XVT_KEYBOARD_BLOCKED);
+	new_frame();
+	xvt_input_update(0);
+	XVT_ASSERT_INT_EQ(xvt_input_reconcile_keyboard(), XVT_KEYBOARD_RAW);
 }
 
-static void CheckNewRouteFlushes(void)
+static void check_new_route_flushes(void)
 {
-	Start();
-	XVT_ASSERT_INT_EQ(XvtInput_ReconcileKeyboard(), XVT_KEYBOARD_RAW);
-	Host()->key_down[AERON_KEY_A] = 1;
-	g_keyReady = 1;
+	input_bridge_start();
+	XVT_ASSERT_INT_EQ(xvt_input_reconcile_keyboard(), XVT_KEYBOARD_RAW);
+	input_bridge_host()->key_down[AERON_KEY_A] = 1;
+	g_key_ready = 1;
 	XVT_ASSERT_INT_EQ(AeronCompat_IsKeySuppressed(AERON_KEY_A), 0);
 
 	/* Losing focus is a new route: the held key is blocked and the raw keyboard flushed. */
-	Host()->has_focus = 0;
-	XVT_ASSERT_INT_EQ(XvtInput_ReconcileKeyboard(), XVT_KEYBOARD_BLOCKED);
+	input_bridge_host()->has_focus = 0;
+	XVT_ASSERT_INT_EQ(xvt_input_reconcile_keyboard(), XVT_KEYBOARD_BLOCKED);
 	XVT_ASSERT_INT_EQ(AeronCompat_IsKeySuppressed(AERON_KEY_A), 1);
-	XVT_ASSERT_INT_EQ(g_keyReady, 0);
+	XVT_ASSERT_INT_EQ(g_key_ready, 0);
 }
 
-static void CheckMappingOnlyForGameplay(void)
+static void check_mapping_only_for_gameplay(void)
 {
 	/* The route settles on RAW first, so the next call is no new route and flushes nothing. */
-	Start();
-	XVT_ASSERT_INT_EQ(XvtInput_ReconcileKeyboard(), XVT_KEYBOARD_RAW);
-	static struct XvtKeyboardBindings profile;
+	input_bridge_start();
+	XVT_ASSERT_INT_EQ(xvt_input_reconcile_keyboard(), XVT_KEYBOARD_RAW);
+	static struct xvt_keyboard_bindings profile;
 	memset(&profile, 0, sizeof profile);
 	profile.bindings[0].source.key = AERON_KEY_A + ('t' - 'a');
 	profile.bindings[0].action = XVT_INPUT_ACTION_TARGET_NEXT;
 	profile.count = 1;
-	XvtKeyboardMapping_Install(&profile);
-	XvtKeyboardMapping_Enable(true, Host());
+	xvt_keyboard_mapping_install(&profile);
+	xvt_keyboard_mapping_enable(true, input_bridge_host());
 
-	XVT_ASSERT_INT_EQ(XvtInput_ReconcileKeyboard(), XVT_KEYBOARD_RAW);
+	XVT_ASSERT_INT_EQ(xvt_input_reconcile_keyboard(), XVT_KEYBOARD_RAW);
 	AeronKeyEvent press;
 	memset(&press, 0, sizeof press);
 	press.chord.key = AERON_KEY_A + ('t' - 'a');
 	press.down = 1;
-	XvtKeyboardMapping_Event(&press, false);
-	XVT_ASSERT_INT_EQ(XvtKeyboardMapping_ReadKey(), 0);
+	xvt_keyboard_mapping_event(&press, false);
+	XVT_ASSERT_INT_EQ(xvt_keyboard_mapping_read_key(), 0);
 }
 
-static void CheckCanReacquireKeyboard(void)
+static void check_can_reacquire_keyboard(void)
 {
-	Start();
-	XVT_ASSERT_INT_EQ(XvtInput_ConsumeKeyboardReacquire(), 1);
-	XVT_ASSERT_INT_EQ(XvtInput_ConsumeKeyboardReacquire(), 0);
-	NewFrame();
-	Host()->has_focus = 0;
-	XVT_ASSERT_INT_EQ(XvtInput_ConsumeKeyboardReacquire(), 0);
-	Host()->has_focus = 1;
-	XVT_ASSERT_INT_EQ(XvtInput_ConsumeKeyboardReacquire(), 1);
-	XVT_ASSERT_INT_EQ(XvtInput_ConsumeKeyboardReacquire(), 0);
+	input_bridge_start();
+	XVT_ASSERT_INT_EQ(xvt_input_consume_keyboard_reacquire(), 1);
+	XVT_ASSERT_INT_EQ(xvt_input_consume_keyboard_reacquire(), 0);
+	new_frame();
+	input_bridge_host()->has_focus = 0;
+	XVT_ASSERT_INT_EQ(xvt_input_consume_keyboard_reacquire(), 0);
+	input_bridge_host()->has_focus = 1;
+	XVT_ASSERT_INT_EQ(xvt_input_consume_keyboard_reacquire(), 1);
+	XVT_ASSERT_INT_EQ(xvt_input_consume_keyboard_reacquire(), 0);
 }
 
-static void CheckFrontendKeyStates(void)
+static void check_frontend_key_states(void)
 {
-	Start();
-	Host()->key_down[AERON_KEY_A] = 1;
-	Host()->key_down[AERON_KEY_1] = 1;
-	Host()->key_down[AERON_KEY_1 + 9] = 1;
-	Host()->key_down[AERON_KEY_F1] = 1;
-	Host()->key_down[AERON_KEY_RETURN] = 1;
-	Host()->key_down[AERON_KEY_LSHIFT] = 1;
-	XvtInput_Update(0);
-	XVT_ASSERT_TRUE(g_frontState.keyState['A'] & 0x80);
-	XVT_ASSERT_TRUE(g_frontState.keyState['1'] & 0x80);
-	XVT_ASSERT_TRUE(g_frontState.keyState['0'] & 0x80);
-	XVT_ASSERT_TRUE(g_frontState.keyState[VK_F1] & 0x80);
-	XVT_ASSERT_TRUE(g_frontState.keyState[VK_RETURN] & 0x80);
-	XVT_ASSERT_TRUE(g_frontState.keyState[VK_LSHIFT] & 0x80);
-	XVT_ASSERT_TRUE(g_frontState.keyState[VK_SHIFT] & 0x80);
-	XVT_ASSERT_INT_EQ(g_frontState.keyState['B'], 0);
-	XVT_ASSERT_INT_EQ(g_frontState.keyState['2'], 0);
+	input_bridge_start();
+	input_bridge_host()->key_down[AERON_KEY_A] = 1;
+	input_bridge_host()->key_down[AERON_KEY_1] = 1;
+	input_bridge_host()->key_down[AERON_KEY_1 + 9] = 1;
+	input_bridge_host()->key_down[AERON_KEY_F1] = 1;
+	input_bridge_host()->key_down[AERON_KEY_RETURN] = 1;
+	input_bridge_host()->key_down[AERON_KEY_LSHIFT] = 1;
+	xvt_input_update(0);
+	XVT_ASSERT_TRUE(g_front_state.key_state['A'] & 0x80);
+	XVT_ASSERT_TRUE(g_front_state.key_state['1'] & 0x80);
+	XVT_ASSERT_TRUE(g_front_state.key_state['0'] & 0x80);
+	XVT_ASSERT_TRUE(g_front_state.key_state[VK_F1] & 0x80);
+	XVT_ASSERT_TRUE(g_front_state.key_state[VK_RETURN] & 0x80);
+	XVT_ASSERT_TRUE(g_front_state.key_state[VK_LSHIFT] & 0x80);
+	XVT_ASSERT_TRUE(g_front_state.key_state[VK_SHIFT] & 0x80);
+	XVT_ASSERT_INT_EQ(g_front_state.key_state['B'], 0);
+	XVT_ASSERT_INT_EQ(g_front_state.key_state['2'], 0);
 
 	/* A key let go is up in the next frame's states. */
-	NewFrame();
-	XvtInput_Update(0);
-	XVT_ASSERT_INT_EQ(g_frontState.keyState['A'], 0);
-	XVT_ASSERT_INT_EQ(g_frontState.keyState[VK_SHIFT], 0);
+	new_frame();
+	xvt_input_update(0);
+	XVT_ASSERT_INT_EQ(g_front_state.key_state['A'], 0);
+	XVT_ASSERT_INT_EQ(g_front_state.key_state[VK_SHIFT], 0);
 }
 
-static void CheckTypedControlKeys(void)
+static void check_typed_control_keys(void)
 {
-	Start();
-	Host()->key_typed[AERON_KEY_BACKSPACE] = 2;
-	Host()->key_typed[AERON_KEY_TAB] = 1;
-	Host()->key_typed[AERON_KEY_RETURN] = 1;
-	Host()->key_typed[AERON_KEY_ESCAPE] = 1;
-	XvtInput_Update(0);
+	input_bridge_start();
+	input_bridge_host()->key_typed[AERON_KEY_BACKSPACE] = 2;
+	input_bridge_host()->key_typed[AERON_KEY_TAB] = 1;
+	input_bridge_host()->key_typed[AERON_KEY_RETURN] = 1;
+	input_bridge_host()->key_typed[AERON_KEY_ESCAPE] = 1;
+	xvt_input_update(0);
 	unsigned char typed[16];
-	size_t count = ReadTyped(typed, sizeof typed);
+	size_t count = read_typed(typed, sizeof typed);
 	XVT_ASSERT_INT_EQ(count, 5);
 	int seen[256] = {0};
 	for (size_t i = 0; i < count; ++i) {
@@ -208,15 +208,15 @@ static void CheckTypedControlKeys(void)
 	XVT_ASSERT_INT_EQ(seen[VK_ESCAPE], 1);
 }
 
-static void CheckTextWindows1252(void)
+static void check_text_windows1252(void)
 {
-	Start();
+	input_bridge_start();
 	/* a, e acute (U+00E9), the euro sign (U+20AC, 0x80 in Windows-1252), a four-byte emoji, A with
 	 * macron (U+0100, not in Windows-1252), then z. */
-	SetText("a\xC3\xA9\xE2\x82\xAC\xF0\x9F\x98\x80\xC4\x80z");
-	XvtInput_Update(0);
+	set_text("a\xC3\xA9\xE2\x82\xAC\xF0\x9F\x98\x80\xC4\x80z");
+	xvt_input_update(0);
 	unsigned char typed[16];
-	size_t count = ReadTyped(typed, sizeof typed);
+	size_t count = read_typed(typed, sizeof typed);
 	XVT_ASSERT_INT_EQ(count, 4);
 	XVT_ASSERT_INT_EQ(typed[0], 'a');
 	XVT_ASSERT_INT_EQ(typed[1], 0xE9);
@@ -224,9 +224,9 @@ static void CheckTextWindows1252(void)
 	XVT_ASSERT_INT_EQ(typed[3], 'z');
 }
 
-static void CheckTextRingDropsOldest(void)
+static void check_text_ring_drops_oldest(void)
 {
-	Start();
+	input_bridge_start();
 
 	enum { TYPED = 1500, PER_FRAME = 750 };
 
@@ -236,12 +236,12 @@ static void CheckTextRingDropsOldest(void)
 			text[i] = (char)('A' + (frame * PER_FRAME + i) % 26);
 		}
 		text[PER_FRAME] = '\0';
-		NewFrame();
-		SetText(text);
-		XvtInput_Update(0);
+		new_frame();
+		set_text(text);
+		xvt_input_update(0);
 	}
 	static unsigned char typed[TYPED];
-	size_t count = ReadTyped(typed, sizeof typed);
+	size_t count = read_typed(typed, sizeof typed);
 	XVT_ASSERT_TRUE(count >= 1023 && count <= 1024);
 	/* What is left is the newest characters, in order. */
 	for (size_t i = 0; i < count; ++i) {
@@ -249,202 +249,202 @@ static void CheckTextRingDropsOldest(void)
 	}
 }
 
-static void CheckFrontendMouse(void)
+static void check_frontend_mouse(void)
 {
-	Start();
-	Host()->window_width = 640;
-	Host()->window_height = 480;
-	Host()->mouse.raw_x = 100;
-	Host()->mouse.raw_y = 50;
-	Host()->mouse.inside_content = 1;
-	XvtInput_Update(0);
+	input_bridge_start();
+	input_bridge_host()->window_width = 640;
+	input_bridge_host()->window_height = 480;
+	input_bridge_host()->mouse.raw_x = 100;
+	input_bridge_host()->mouse.raw_y = 50;
+	input_bridge_host()->mouse.inside_content = 1;
+	xvt_input_update(0);
 	int x = -1, y = -1;
-	XvtInput_FrontendCursorPosition(&x, &y);
+	xvt_input_frontend_cursor_position(&x, &y);
 	XVT_ASSERT_INT_EQ(x, 100);
 	XVT_ASSERT_INT_EQ(y, 50);
 
 	/* A window twice the classic size: the same spot in classic coordinates. */
-	NewFrame();
-	Host()->window_width = 1280;
-	Host()->window_height = 960;
-	Host()->mouse.raw_x = 300;
-	Host()->mouse.raw_y = 140;
-	Host()->mouse.inside_content = 1;
-	XvtInput_Update(0);
-	XvtInput_FrontendCursorPosition(&x, &y);
+	new_frame();
+	input_bridge_host()->window_width = 1280;
+	input_bridge_host()->window_height = 960;
+	input_bridge_host()->mouse.raw_x = 300;
+	input_bridge_host()->mouse.raw_y = 140;
+	input_bridge_host()->mouse.inside_content = 1;
+	xvt_input_update(0);
+	xvt_input_frontend_cursor_position(&x, &y);
 	XVT_ASSERT_INT_EQ(x, 150);
 	XVT_ASSERT_INT_EQ(y, 70);
 
 	/* Outside the classic view the frontend keeps the last position. */
-	NewFrame();
-	Host()->window_width = 640;
-	Host()->window_height = 480;
-	Host()->mouse.raw_x = 10;
-	Host()->mouse.raw_y = 10;
-	Host()->mouse.inside_content = 0;
-	XvtInput_Update(0);
-	XvtInput_FrontendCursorPosition(&x, &y);
+	new_frame();
+	input_bridge_host()->window_width = 640;
+	input_bridge_host()->window_height = 480;
+	input_bridge_host()->mouse.raw_x = 10;
+	input_bridge_host()->mouse.raw_y = 10;
+	input_bridge_host()->mouse.inside_content = 0;
+	xvt_input_update(0);
+	xvt_input_frontend_cursor_position(&x, &y);
 	XVT_ASSERT_INT_EQ(x, 150);
 	XVT_ASSERT_INT_EQ(y, 70);
 }
 
 /* Held A, typed text, and pending clicks in the frontend. An empty frame first settles the route, since a
  * new route blocks keys already held. */
-static void FillFrontend(void)
+static void fill_frontend(void)
 {
-	XvtInput_Update(0);
-	NewFrame();
-	Host()->key_down[AERON_KEY_A] = 1;
-	SetText("hi");
-	XvtInput_Update(0);
-	XVT_ASSERT_TRUE(g_frontState.keyState['A'] & 0x80);
-	XVT_ASSERT_TRUE(Keyboard_PeekChar() == 'h');
-	g_frontState.mouseLeftDown = g_frontState.mouseRightDown = 1;
-	g_frontState.mouseLeftClickLatch = g_frontState.mouseRightClickLatch =
-		1;
+	xvt_input_update(0);
+	new_frame();
+	input_bridge_host()->key_down[AERON_KEY_A] = 1;
+	set_text("hi");
+	xvt_input_update(0);
+	XVT_ASSERT_TRUE(g_front_state.key_state['A'] & 0x80);
+	XVT_ASSERT_TRUE(keyboard_peek_char() == 'h');
+	g_front_state.mouse_left_down = g_front_state.mouse_right_down = 1;
+	g_front_state.mouse_left_click_latch =
+		g_front_state.mouse_right_click_latch = 1;
 }
 
-static void AssertFrontendCleared(void)
+static void assert_frontend_cleared(void)
 {
 	for (int vk = 0; vk < 256; ++vk) {
-		XVT_ASSERT_INT_EQ(g_frontState.keyState[vk], 0);
+		XVT_ASSERT_INT_EQ(g_front_state.key_state[vk], 0);
 	}
-	XVT_ASSERT_INT_EQ(Keyboard_PeekChar(), 0);
-	XVT_ASSERT_INT_EQ(g_frontState.mouseLeftDown, 0);
-	XVT_ASSERT_INT_EQ(g_frontState.mouseRightDown, 0);
-	XVT_ASSERT_INT_EQ(g_frontState.mouseLeftClickLatch, 0);
-	XVT_ASSERT_INT_EQ(g_frontState.mouseRightClickLatch, 0);
+	XVT_ASSERT_INT_EQ(keyboard_peek_char(), 0);
+	XVT_ASSERT_INT_EQ(g_front_state.mouse_left_down, 0);
+	XVT_ASSERT_INT_EQ(g_front_state.mouse_right_down, 0);
+	XVT_ASSERT_INT_EQ(g_front_state.mouse_left_click_latch, 0);
+	XVT_ASSERT_INT_EQ(g_front_state.mouse_right_click_latch, 0);
 }
 
-static void CheckSuppressedFrameClears(void)
+static void check_suppressed_frame_clears(void)
 {
-	Start();
-	FillFrontend();
-	NewFrame();
-	Host()->key_down[AERON_KEY_A] = 1;
-	SetText("x");
-	XvtInput_Update(1);
-	AssertFrontendCleared();
+	input_bridge_start();
+	fill_frontend();
+	new_frame();
+	input_bridge_host()->key_down[AERON_KEY_A] = 1;
+	set_text("x");
+	xvt_input_update(1);
+	assert_frontend_cleared();
 
 	/* A blocked route clears the same way. */
-	Start();
-	FillFrontend();
-	NewFrame();
-	Host()->key_down[AERON_KEY_A] = 1;
-	SetText("x");
-	Host()->has_focus = 0;
-	XvtInput_Update(0);
-	AssertFrontendCleared();
+	input_bridge_start();
+	fill_frontend();
+	new_frame();
+	input_bridge_host()->key_down[AERON_KEY_A] = 1;
+	set_text("x");
+	input_bridge_host()->has_focus = 0;
+	xvt_input_update(0);
+	assert_frontend_cleared();
 }
 
 /* A gamepad model and that gamepad connected in Aeron's snapshot. */
-static void ConnectController(void)
+static void connect_controller(void)
 {
-	static struct XvtControllerOptions options;
+	static struct xvt_controller_options options;
 	memset(&options, 0, sizeof options);
-	struct XvtControllerModel *model = &options.models[0];
+	struct xvt_controller_model *model = &options.models[0];
 	memcpy(model->guid, "0123456789abcdef0123456789abcdea",
 	       sizeof model->guid);
 	model->kind = AERON_CONTROLLER_KIND_GAMEPAD;
-	XvtControllerOptions_ClearProfile(&model->profile,
-					  AERON_CONTROLLER_KIND_GAMEPAD);
+	xvt_controller_options_clear_profile(&model->profile,
+					     AERON_CONTROLLER_KIND_GAMEPAD);
 	options.count = 1;
-	XvtControllerMapping_Init(&options);
-	AeronControllerSnapshot *pad = &Host()->controllers[0];
+	xvt_controller_mapping_init(&options);
+	AeronControllerSnapshot *pad = &input_bridge_host()->controllers[0];
 	pad->connected = 1;
 	pad->kind = AERON_CONTROLLER_KIND_GAMEPAD;
 	pad->instance_id = 5;
 	memcpy(pad->guid, model->guid, sizeof pad->guid);
 }
 
-static void CheckUpdateSamplesControllers(void)
+static void check_update_samples_controllers(void)
 {
-	Start();
-	ConnectController();
-	XvtInput_Update(0);
-	XVT_ASSERT_INT_EQ(XvtControllerMapping_IsModelConnected(), 1);
+	input_bridge_start();
+	connect_controller();
+	xvt_input_update(0);
+	XVT_ASSERT_INT_EQ(xvt_controller_mapping_is_model_connected(), 1);
 
-	Start();
-	ConnectController();
-	XvtInput_UpdateFlight(0);
-	XVT_ASSERT_INT_EQ(XvtControllerMapping_IsModelConnected(), 1);
+	input_bridge_start();
+	connect_controller();
+	xvt_input_update_flight(0);
+	XVT_ASSERT_INT_EQ(xvt_controller_mapping_is_model_connected(), 1);
 }
 
-static void CheckUpdateFlightDropsText(void)
+static void check_update_flight_drops_text(void)
 {
-	Start();
-	SetText("abc");
-	XvtInput_Update(0);
-	XVT_ASSERT_TRUE(Keyboard_PeekChar() == 'a');
-	NewFrame();
-	XvtInput_UpdateFlight(0);
-	XVT_ASSERT_INT_EQ(Keyboard_PeekChar(), 0);
+	input_bridge_start();
+	set_text("abc");
+	xvt_input_update(0);
+	XVT_ASSERT_TRUE(keyboard_peek_char() == 'a');
+	new_frame();
+	xvt_input_update_flight(0);
+	XVT_ASSERT_INT_EQ(keyboard_peek_char(), 0);
 }
 
-static void CheckInitWaitsForSettings(void)
+static void check_init_waits_for_settings(void)
 {
-	Start();
-	XVT_ASSERT_TRUE(XvtConfig_Settings() == NULL);
-	ConnectController();
-	XvtInput_Init();
-	XVT_ASSERT_INT_EQ(XvtControllerMapping_Options()->count, 1);
+	input_bridge_start();
+	XVT_ASSERT_TRUE(xvt_config_settings() == NULL);
+	connect_controller();
+	xvt_input_init();
+	XVT_ASSERT_INT_EQ(xvt_controller_mapping_options()->count, 1);
 }
 
-static void CheckShutdown(void)
+static void check_shutdown(void)
 {
-	Start();
-	ConnectController();
-	XvtInput_SuppressRendererTab(true);
-	XvtInput_SetCaptured(true);
-	static struct XvtKeyboardBindings profile;
+	input_bridge_start();
+	connect_controller();
+	xvt_input_suppress_renderer_tab(true);
+	xvt_input_set_captured(true);
+	static struct xvt_keyboard_bindings profile;
 	memset(&profile, 0, sizeof profile);
 	profile.bindings[0].source.key = AERON_KEY_A + ('t' - 'a');
 	profile.bindings[0].action = XVT_INPUT_ACTION_TARGET_NEXT;
 	profile.count = 1;
-	XvtKeyboardMapping_Install(&profile);
-	XvtKeyboardMapping_Enable(true, Host());
+	xvt_keyboard_mapping_install(&profile);
+	xvt_keyboard_mapping_enable(true, input_bridge_host());
 	AeronKeyEvent press;
 	memset(&press, 0, sizeof press);
 	press.chord.key = AERON_KEY_A + ('t' - 'a');
 	press.down = 1;
-	XvtKeyboardMapping_Event(&press, false);
-	g_xvtControlRoll = 5;
+	xvt_keyboard_mapping_event(&press, false);
+	g_xvt_control_roll = 5;
 
-	XvtInput_Shutdown();
-	XVT_ASSERT_INT_EQ(XvtKeyboardMapping_ReadKey(), 0);
-	XVT_ASSERT_INT_EQ(XvtInput_IsCaptured(), 0);
-	XVT_ASSERT_INT_EQ(XvtControllerMapping_Options()->count, 0);
-	XVT_ASSERT_INT_EQ(g_xvtControlRoll, 0);
+	xvt_input_shutdown();
+	XVT_ASSERT_INT_EQ(xvt_keyboard_mapping_read_key(), 0);
+	XVT_ASSERT_INT_EQ(xvt_input_is_captured(), 0);
+	XVT_ASSERT_INT_EQ(xvt_controller_mapping_options()->count, 0);
+	XVT_ASSERT_INT_EQ(g_xvt_control_roll, 0);
 	XVT_ASSERT_INT_EQ(AeronCompat_IsKeySuppressed(AERON_KEY_TAB), 0);
 }
 
-static void CheckRendererShortcutRefusals(void)
+static void check_renderer_shortcut_refusals(void)
 {
-	Start();
-	XVT_ASSERT_TRUE(XvtRenderSnapshot_Current() == NULL);
-	XVT_ASSERT_INT_EQ(XvtInput_RendererShortcutAllowed(), 0);
-	XvtInput_SetCaptured(true);
-	XVT_ASSERT_INT_EQ(XvtInput_RendererShortcutAllowed(), 0);
-	XvtInput_SetCaptured(false);
+	input_bridge_start();
+	XVT_ASSERT_TRUE(xvt_render_snapshot_current() == NULL);
+	XVT_ASSERT_INT_EQ(xvt_input_renderer_shortcut_allowed(), 0);
+	xvt_input_set_captured(true);
+	XVT_ASSERT_INT_EQ(xvt_input_renderer_shortcut_allowed(), 0);
+	xvt_input_set_captured(false);
 }
 
 int main(void)
 {
-	CheckRoute();
-	CheckNewRouteFlushes();
-	CheckMappingOnlyForGameplay();
-	CheckCanReacquireKeyboard();
-	CheckFrontendKeyStates();
-	CheckTypedControlKeys();
-	CheckTextWindows1252();
-	CheckTextRingDropsOldest();
-	CheckFrontendMouse();
-	CheckSuppressedFrameClears();
-	CheckUpdateSamplesControllers();
-	CheckUpdateFlightDropsText();
-	CheckInitWaitsForSettings();
-	CheckShutdown();
-	CheckRendererShortcutRefusals();
-	XvtInput_Shutdown();
+	check_route();
+	check_new_route_flushes();
+	check_mapping_only_for_gameplay();
+	check_can_reacquire_keyboard();
+	check_frontend_key_states();
+	check_typed_control_keys();
+	check_text_windows1252();
+	check_text_ring_drops_oldest();
+	check_frontend_mouse();
+	check_suppressed_frame_clears();
+	check_update_samples_controllers();
+	check_update_flight_drops_text();
+	check_init_waits_for_settings();
+	check_shutdown();
+	check_renderer_shortcut_refusals();
+	xvt_input_shutdown();
 	return 0;
 }

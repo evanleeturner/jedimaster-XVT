@@ -2,7 +2,7 @@
  * fade starts, the size and spacing of its steps, the steps applied together when several are due, the
  * overshoot and clamping of the last step, Cancel, and outside flight the resume delay and the end of a
  * track. The host clock moves only when the test advances it. The volume a step sets is read back from
- * the CD audio state, where CDAudio_SetAuxVolume records the level it sets. Every case starts from a
+ * the CD audio state, where cd_audio_set_aux_volume records the level it sets. Every case starts from a
  * cleared frontend state, the music CD device marked open, no flight, no fade and the clock at 0.
  *
  * Not checked here: replaying a looping track, and anything during a flight; both need a CD device or a
@@ -20,240 +20,240 @@
 /* A volume no step can produce: steps move the level from its start in multiples of 256. */
 enum { UNSET = 12345 };
 
-static void Fresh(void)
+static void fresh(void)
 {
-	XvtCdTask_CancelFade();
-	memset(&g_frontState, 0, sizeof g_frontState);
-	g_musicCdMciDeviceId = 1;
-	g_frontState.cdAudioTrackCache.currentAuxVolume = UNSET;
-	XvtTime_Reset();
+	xvt_cd_task_cancel_fade();
+	memset(&g_front_state, 0, sizeof g_front_state);
+	g_music_cd_mci_device_id = 1;
+	g_front_state.cd_audio_track_cache.current_aux_volume = UNSET;
+	xvt_time_reset();
 }
 
-static unsigned Volume(void)
+static unsigned volume(void)
 {
-	return g_frontState.cdAudioTrackCache.currentAuxVolume;
+	return g_front_state.cd_audio_track_cache.current_aux_volume;
 }
 
-static void AdvanceMs(int ms) { XvtTime_AdvanceHostClock(ms * 1000); }
+static void advance_ms(int ms) { xvt_time_advance_host_clock(ms * 1000); }
 
-static void CheckBeginNeedsADevice(void)
+static void check_begin_needs_a_device(void)
 {
-	Fresh();
-	g_musicCdMciDeviceId = 0;
-	XVT_ASSERT_INT_EQ(XvtCdTask_BeginFade(0, 2560, 1000), 0);
-	XVT_ASSERT_INT_EQ(XvtCdTask_IsFading(), 0);
+	fresh();
+	g_music_cd_mci_device_id = 0;
+	XVT_ASSERT_INT_EQ(xvt_cd_task_begin_fade(0, 2560, 1000), 0);
+	XVT_ASSERT_INT_EQ(xvt_cd_task_is_fading(), 0);
 
 	/* Either device will do. */
-	g_frontState.cdAudioMciDeviceId = 1;
-	XVT_ASSERT_INT_EQ(XvtCdTask_BeginFade(0, 2560, 1000), 1);
-	XVT_ASSERT_INT_EQ(XvtCdTask_IsFading(), 1);
-	g_frontState.cdAudioMciDeviceId = 0;
-	g_musicCdMciDeviceId = 1;
-	XVT_ASSERT_INT_EQ(XvtCdTask_BeginFade(0, 2560, 1000), 1);
-	XVT_ASSERT_INT_EQ(XvtCdTask_IsFading(), 1);
-	XvtCdTask_CancelFade();
+	g_front_state.cd_audio_mci_device_id = 1;
+	XVT_ASSERT_INT_EQ(xvt_cd_task_begin_fade(0, 2560, 1000), 1);
+	XVT_ASSERT_INT_EQ(xvt_cd_task_is_fading(), 1);
+	g_front_state.cd_audio_mci_device_id = 0;
+	g_music_cd_mci_device_id = 1;
+	XVT_ASSERT_INT_EQ(xvt_cd_task_begin_fade(0, 2560, 1000), 1);
+	XVT_ASSERT_INT_EQ(xvt_cd_task_is_fading(), 1);
+	xvt_cd_task_cancel_fade();
 }
 
-static void CheckEqualLevels(void)
+static void check_equal_levels(void)
 {
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtCdTask_BeginFade(1000, 1000, 1000), 1);
-	XVT_ASSERT_INT_EQ(XvtCdTask_IsFading(), 0);
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_cd_task_begin_fade(1000, 1000, 1000), 1);
+	XVT_ASSERT_INT_EQ(xvt_cd_task_is_fading(), 0);
 	/* Levels are clamped to 65535 before they are compared. */
-	XVT_ASSERT_INT_EQ(XvtCdTask_BeginFade(70000, 65535, 1000), 1);
-	XVT_ASSERT_INT_EQ(XvtCdTask_IsFading(), 0);
-	XVT_ASSERT_INT_EQ(XvtCdTask_NextWakeDelayUs(), UINT64_MAX);
-	AdvanceMs(5000);
-	XvtCdTask_Update();
-	XVT_ASSERT_INT_EQ(Volume(), UNSET);
+	XVT_ASSERT_INT_EQ(xvt_cd_task_begin_fade(70000, 65535, 1000), 1);
+	XVT_ASSERT_INT_EQ(xvt_cd_task_is_fading(), 0);
+	XVT_ASSERT_INT_EQ(xvt_cd_task_next_wake_delay_us(), UINT64_MAX);
+	advance_ms(5000);
+	xvt_cd_task_update();
+	XVT_ASSERT_INT_EQ(volume(), UNSET);
 }
 
-static void CheckStepTiming(void)
+static void check_step_timing(void)
 {
-	Fresh();
+	fresh();
 	/* 2560 apart over 1000 ms: a step of 256 every 1000 * 256 / 2560 + 1 = 101 ms, 10 steps. */
-	XVT_ASSERT_INT_EQ(XvtCdTask_BeginFade(0, 2560, 1000), 1);
-	XVT_ASSERT_INT_EQ(XvtCdTask_NextWakeDelayUs(), 101000);
+	XVT_ASSERT_INT_EQ(xvt_cd_task_begin_fade(0, 2560, 1000), 1);
+	XVT_ASSERT_INT_EQ(xvt_cd_task_next_wake_delay_us(), 101000);
 	/* The volume is not set to from at the start. */
-	XvtCdTask_Update();
-	XVT_ASSERT_INT_EQ(Volume(), UNSET);
+	xvt_cd_task_update();
+	XVT_ASSERT_INT_EQ(volume(), UNSET);
 
-	AdvanceMs(100);
-	XVT_ASSERT_INT_EQ(XvtCdTask_NextWakeDelayUs(), 1000);
-	XvtCdTask_Update();
-	XVT_ASSERT_INT_EQ(Volume(), UNSET);
+	advance_ms(100);
+	XVT_ASSERT_INT_EQ(xvt_cd_task_next_wake_delay_us(), 1000);
+	xvt_cd_task_update();
+	XVT_ASSERT_INT_EQ(volume(), UNSET);
 
-	AdvanceMs(1);
-	XvtCdTask_Update();
-	XVT_ASSERT_INT_EQ(Volume(), 256);
-	XVT_ASSERT_INT_EQ(XvtCdTask_NextWakeDelayUs(), 101000);
+	advance_ms(1);
+	xvt_cd_task_update();
+	XVT_ASSERT_INT_EQ(volume(), 256);
+	XVT_ASSERT_INT_EQ(xvt_cd_task_next_wake_delay_us(), 101000);
 
 	/* Three steps due at once are applied together. */
-	AdvanceMs(303);
-	XVT_ASSERT_INT_EQ(XvtCdTask_NextWakeDelayUs(), 0);
-	XvtCdTask_Update();
-	XVT_ASSERT_INT_EQ(Volume(), 4 * 256);
-	XVT_ASSERT_INT_EQ(XvtCdTask_IsFading(), 1);
-	XVT_ASSERT_INT_EQ(XvtCdTask_NextWakeDelayUs(), 101000);
+	advance_ms(303);
+	XVT_ASSERT_INT_EQ(xvt_cd_task_next_wake_delay_us(), 0);
+	xvt_cd_task_update();
+	XVT_ASSERT_INT_EQ(volume(), 4 * 256);
+	XVT_ASSERT_INT_EQ(xvt_cd_task_is_fading(), 1);
+	XVT_ASSERT_INT_EQ(xvt_cd_task_next_wake_delay_us(), 101000);
 
 	/* Long overdue: the remaining six steps, then the fade is over. */
-	AdvanceMs(10000);
-	XvtCdTask_Update();
-	XVT_ASSERT_INT_EQ(Volume(), 2560);
-	XVT_ASSERT_INT_EQ(XvtCdTask_IsFading(), 0);
-	XVT_ASSERT_INT_EQ(XvtCdTask_NextWakeDelayUs(), UINT64_MAX);
+	advance_ms(10000);
+	xvt_cd_task_update();
+	XVT_ASSERT_INT_EQ(volume(), 2560);
+	XVT_ASSERT_INT_EQ(xvt_cd_task_is_fading(), 0);
+	XVT_ASSERT_INT_EQ(xvt_cd_task_next_wake_delay_us(), UINT64_MAX);
 }
 
-static void CheckNonPositiveDuration(void)
+static void check_non_positive_duration(void)
 {
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtCdTask_BeginFade(0, 512, 0), 1);
-	XVT_ASSERT_INT_EQ(XvtCdTask_NextWakeDelayUs(), 1000);
-	XVT_ASSERT_INT_EQ(XvtCdTask_BeginFade(0, 512, -50), 1);
-	XVT_ASSERT_INT_EQ(XvtCdTask_NextWakeDelayUs(), 1000);
-	AdvanceMs(1);
-	XvtCdTask_Update();
-	XVT_ASSERT_INT_EQ(Volume(), 256);
-	AdvanceMs(1);
-	XvtCdTask_Update();
-	XVT_ASSERT_INT_EQ(Volume(), 512);
-	XVT_ASSERT_INT_EQ(XvtCdTask_IsFading(), 0);
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_cd_task_begin_fade(0, 512, 0), 1);
+	XVT_ASSERT_INT_EQ(xvt_cd_task_next_wake_delay_us(), 1000);
+	XVT_ASSERT_INT_EQ(xvt_cd_task_begin_fade(0, 512, -50), 1);
+	XVT_ASSERT_INT_EQ(xvt_cd_task_next_wake_delay_us(), 1000);
+	advance_ms(1);
+	xvt_cd_task_update();
+	XVT_ASSERT_INT_EQ(volume(), 256);
+	advance_ms(1);
+	xvt_cd_task_update();
+	XVT_ASSERT_INT_EQ(volume(), 512);
+	XVT_ASSERT_INT_EQ(xvt_cd_task_is_fading(), 0);
 }
 
-static void CheckLastStepOvershootsAndClamps(void)
+static void check_last_step_overshoots_and_clamps(void)
 {
 	/* 300 apart is two steps, rounded up: the fade ends 212 past to. */
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtCdTask_BeginFade(0, 300, 0), 1);
-	AdvanceMs(10);
-	XvtCdTask_Update();
-	XVT_ASSERT_INT_EQ(Volume(), 512);
-	XVT_ASSERT_TRUE(Volume() - 300 <= 255);
-	XVT_ASSERT_INT_EQ(XvtCdTask_IsFading(), 0);
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_cd_task_begin_fade(0, 300, 0), 1);
+	advance_ms(10);
+	xvt_cd_task_update();
+	XVT_ASSERT_INT_EQ(volume(), 512);
+	XVT_ASSERT_TRUE(volume() - 300 <= 255);
+	XVT_ASSERT_INT_EQ(xvt_cd_task_is_fading(), 0);
 
 	/* Downward, the overshoot is clamped to 0. */
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtCdTask_BeginFade(300, 0, 0), 1);
-	AdvanceMs(10);
-	XvtCdTask_Update();
-	XVT_ASSERT_INT_EQ(Volume(), 0);
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_cd_task_begin_fade(300, 0, 0), 1);
+	advance_ms(10);
+	xvt_cd_task_update();
+	XVT_ASSERT_INT_EQ(volume(), 0);
 
 	/* Upward, to 65535. */
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtCdTask_BeginFade(65400, 65535, 0), 1);
-	AdvanceMs(10);
-	XvtCdTask_Update();
-	XVT_ASSERT_INT_EQ(Volume(), 65535);
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_cd_task_begin_fade(65400, 65535, 0), 1);
+	advance_ms(10);
+	xvt_cd_task_update();
+	XVT_ASSERT_INT_EQ(volume(), 65535);
 
 	/* A start above 65535 is clamped first: 256 steps down from 65535 end at 0. */
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtCdTask_BeginFade(70000, 0, 0), 1);
-	AdvanceMs(255);
-	XvtCdTask_Update();
-	XVT_ASSERT_INT_EQ(Volume(), 65535 - 255 * 256);
-	AdvanceMs(1);
-	XvtCdTask_Update();
-	XVT_ASSERT_INT_EQ(Volume(), 0);
-	XVT_ASSERT_INT_EQ(XvtCdTask_IsFading(), 0);
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_cd_task_begin_fade(70000, 0, 0), 1);
+	advance_ms(255);
+	xvt_cd_task_update();
+	XVT_ASSERT_INT_EQ(volume(), 65535 - 255 * 256);
+	advance_ms(1);
+	xvt_cd_task_update();
+	XVT_ASSERT_INT_EQ(volume(), 0);
+	XVT_ASSERT_INT_EQ(xvt_cd_task_is_fading(), 0);
 }
 
-static void CheckBeginReplacesFade(void)
+static void check_begin_replaces_fade(void)
 {
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtCdTask_BeginFade(0, 2560, 1000), 1);
-	AdvanceMs(101);
-	XvtCdTask_Update();
-	XVT_ASSERT_INT_EQ(Volume(), 256);
-	XVT_ASSERT_INT_EQ(XvtCdTask_BeginFade(5000, 0, 0), 1);
-	XVT_ASSERT_INT_EQ(XvtCdTask_NextWakeDelayUs(), 1000);
-	AdvanceMs(1);
-	XvtCdTask_Update();
-	XVT_ASSERT_INT_EQ(Volume(), 5000 - 256);
-	XvtCdTask_CancelFade();
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_cd_task_begin_fade(0, 2560, 1000), 1);
+	advance_ms(101);
+	xvt_cd_task_update();
+	XVT_ASSERT_INT_EQ(volume(), 256);
+	XVT_ASSERT_INT_EQ(xvt_cd_task_begin_fade(5000, 0, 0), 1);
+	XVT_ASSERT_INT_EQ(xvt_cd_task_next_wake_delay_us(), 1000);
+	advance_ms(1);
+	xvt_cd_task_update();
+	XVT_ASSERT_INT_EQ(volume(), 5000 - 256);
+	xvt_cd_task_cancel_fade();
 }
 
-static void CheckCancel(void)
+static void check_cancel(void)
 {
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtCdTask_BeginFade(0, 2560, 1000), 1);
-	AdvanceMs(202);
-	XvtCdTask_Update();
-	XVT_ASSERT_INT_EQ(Volume(), 512);
-	XvtCdTask_CancelFade();
-	XVT_ASSERT_INT_EQ(XvtCdTask_IsFading(), 0);
-	XVT_ASSERT_INT_EQ(XvtCdTask_NextWakeDelayUs(), UINT64_MAX);
-	AdvanceMs(5000);
-	XvtCdTask_Update();
-	XVT_ASSERT_INT_EQ(Volume(), 512);
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_cd_task_begin_fade(0, 2560, 1000), 1);
+	advance_ms(202);
+	xvt_cd_task_update();
+	XVT_ASSERT_INT_EQ(volume(), 512);
+	xvt_cd_task_cancel_fade();
+	XVT_ASSERT_INT_EQ(xvt_cd_task_is_fading(), 0);
+	XVT_ASSERT_INT_EQ(xvt_cd_task_next_wake_delay_us(), UINT64_MAX);
+	advance_ms(5000);
+	xvt_cd_task_update();
+	XVT_ASSERT_INT_EQ(volume(), 512);
 }
 
-static void CheckResumeDelay(void)
+static void check_resume_delay(void)
 {
-	Fresh();
-	AdvanceMs(1000);
-	g_frontState.cdAudioSuspendState = CDAudio_ResumePending;
-	g_frontState.cdAudioResumeDueMs = 1500;
+	fresh();
+	advance_ms(1000);
+	g_front_state.cd_audio_suspend_state = CD_AUDIO_RESUME_PENDING;
+	g_front_state.cd_audio_resume_due_ms = 1500;
 
 	/* Due 500 ms out, woken 1 ms late to match the strict comparison. */
-	XVT_ASSERT_INT_EQ(XvtCdTask_NextWakeDelayUs(), 501000);
-	AdvanceMs(500);
-	XVT_ASSERT_INT_EQ(XvtCdTask_NextWakeDelayUs(), 1000);
-	XvtCdTask_Update();
-	XVT_ASSERT_INT_EQ(g_frontState.cdAudioSuspendState,
-			  CDAudio_ResumePending);
-	AdvanceMs(1);
-	XvtCdTask_Update();
-	XVT_ASSERT_INT_EQ(g_frontState.cdAudioSuspendState,
-			  CDAudio_NotSuspended);
+	XVT_ASSERT_INT_EQ(xvt_cd_task_next_wake_delay_us(), 501000);
+	advance_ms(500);
+	XVT_ASSERT_INT_EQ(xvt_cd_task_next_wake_delay_us(), 1000);
+	xvt_cd_task_update();
+	XVT_ASSERT_INT_EQ(g_front_state.cd_audio_suspend_state,
+			  CD_AUDIO_RESUME_PENDING);
+	advance_ms(1);
+	xvt_cd_task_update();
+	XVT_ASSERT_INT_EQ(g_front_state.cd_audio_suspend_state,
+			  CD_AUDIO_NOT_SUSPENDED);
 
 	/* Overdue reads as 0. */
-	g_frontState.cdAudioSuspendState = CDAudio_ResumePending;
-	g_frontState.cdAudioResumeDueMs = 100;
-	XVT_ASSERT_INT_EQ(XvtCdTask_NextWakeDelayUs(), 0);
+	g_front_state.cd_audio_suspend_state = CD_AUDIO_RESUME_PENDING;
+	g_front_state.cd_audio_resume_due_ms = 100;
+	XVT_ASSERT_INT_EQ(xvt_cd_task_next_wake_delay_us(), 0);
 }
 
-static void CheckTrackEnd(void)
+static void check_track_end(void)
 {
-	Fresh();
-	AdvanceMs(1000);
-	g_frontState.cdAudioCurrentTrack = 3;
-	g_frontState.cdAudioTrackEndMs = 1200;
-	XVT_ASSERT_INT_EQ(XvtCdTask_NextWakeDelayUs(), 201000);
-	AdvanceMs(200);
-	XvtCdTask_Update();
-	XVT_ASSERT_INT_EQ(g_frontState.cdAudioPlaybackComplete, 0);
+	fresh();
+	advance_ms(1000);
+	g_front_state.cd_audio_current_track = 3;
+	g_front_state.cd_audio_track_end_ms = 1200;
+	XVT_ASSERT_INT_EQ(xvt_cd_task_next_wake_delay_us(), 201000);
+	advance_ms(200);
+	xvt_cd_task_update();
+	XVT_ASSERT_INT_EQ(g_front_state.cd_audio_playback_complete, 0);
 
 	/* Past the end of a track that does not loop, playback is marked complete; nothing more is due. */
-	AdvanceMs(1);
-	XvtCdTask_Update();
-	XVT_ASSERT_INT_EQ(g_frontState.cdAudioPlaybackComplete, 1);
-	XVT_ASSERT_INT_EQ(XvtCdTask_NextWakeDelayUs(), UINT64_MAX);
+	advance_ms(1);
+	xvt_cd_task_update();
+	XVT_ASSERT_INT_EQ(g_front_state.cd_audio_playback_complete, 1);
+	XVT_ASSERT_INT_EQ(xvt_cd_task_next_wake_delay_us(), UINT64_MAX);
 }
 
-static void CheckSoonestWake(void)
+static void check_soonest_wake(void)
 {
-	Fresh();
-	XVT_ASSERT_INT_EQ(XvtCdTask_BeginFade(0, 2560, 1000), 1);
-	g_frontState.cdAudioCurrentTrack = 1;
-	g_frontState.cdAudioTrackEndMs = 49;
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_cd_task_begin_fade(0, 2560, 1000), 1);
+	g_front_state.cd_audio_current_track = 1;
+	g_front_state.cd_audio_track_end_ms = 49;
 	/* The track end, 49 ms out and woken 1 ms late, comes before the first fade step at 101 ms. */
-	XVT_ASSERT_INT_EQ(XvtCdTask_NextWakeDelayUs(), 50000);
-	g_frontState.cdAudioTrackEndMs = 200;
-	XVT_ASSERT_INT_EQ(XvtCdTask_NextWakeDelayUs(), 101000);
-	XvtCdTask_CancelFade();
+	XVT_ASSERT_INT_EQ(xvt_cd_task_next_wake_delay_us(), 50000);
+	g_front_state.cd_audio_track_end_ms = 200;
+	XVT_ASSERT_INT_EQ(xvt_cd_task_next_wake_delay_us(), 101000);
+	xvt_cd_task_cancel_fade();
 }
 
 int main(void)
 {
-	CheckBeginNeedsADevice();
-	CheckEqualLevels();
-	CheckStepTiming();
-	CheckNonPositiveDuration();
-	CheckLastStepOvershootsAndClamps();
-	CheckBeginReplacesFade();
-	CheckCancel();
-	CheckResumeDelay();
-	CheckTrackEnd();
-	CheckSoonestWake();
+	check_begin_needs_a_device();
+	check_equal_levels();
+	check_step_timing();
+	check_non_positive_duration();
+	check_last_step_overshoots_and_clamps();
+	check_begin_replaces_fade();
+	check_cancel();
+	check_resume_delay();
+	check_track_end();
+	check_soonest_wake();
 	return 0;
 }

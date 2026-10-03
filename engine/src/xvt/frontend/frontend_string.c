@@ -8,112 +8,112 @@
 /* Loads the frontend string table from the text file fileName, replacing the
  * one loaded before: each line that does not start with //, read up to 1,023
  * characters at a time with its line feed dropped, becomes the next entry.
- * Writes g_frontState.uiStringData, one heap block holding the strings end to
- * end, shrunk to fit at the end; uiStringOffsets, each entry's byte offset in
- * it, grown 64 entries at a time; uiStringCount and uiStringCapacity. Keeps the
+ * Writes g_front_state.ui_string_data, one heap block holding the strings end to
+ * end, shrunk to fit at the end; ui_string_offsets, each entry's byte offset in
+ * it, grown 64 entries at a time; ui_string_count and ui_string_capacity. Keeps the
  * old table when the file does not open. Leaves an empty table when the first
  * allocations fail or the final shrink returns NULL; a failed growth of the
  * offsets stops the reading with the table full. */
 // FUNCTION: XVT 0x4DD9D0
-void FrontendString_LoadTable(char *fileName)
+void frontend_string_load_table(char *file_name)
 {
-	unsigned int totalDataSize;
-	XvtFile *stream;
-	char *writePosition;
-	char *copyDestination;
-	char *resizedData;
-	unsigned int *resizedOffsets;
-	unsigned int lineLength;
-	unsigned int copyLength;
-	unsigned int stringOffset;
+	unsigned int total_data_size;
+	xvt_file *stream;
+	char *write_position;
+	char *copy_destination;
+	char *resized_data;
+	unsigned int *resized_offsets;
+	unsigned int line_length;
+	unsigned int copy_length;
+	unsigned int string_offset;
 	char line[1024];
 
-	totalDataSize = 0;
-	stream = File_Open(fileName, "r");
+	total_data_size = 0;
+	stream = file_open(file_name, "r");
 	if (stream == NULL) {
 		return;
 	}
 
-	FrontendString_UnloadTable();
-	g_frontState.uiStringOffsets =
-		malloc(64 * sizeof(*g_frontState.uiStringOffsets));
-	if (g_frontState.uiStringOffsets == NULL) {
-		File_Close(stream);
+	frontend_string_unload_table();
+	g_front_state.ui_string_offsets =
+		malloc(64 * sizeof(*g_front_state.ui_string_offsets));
+	if (g_front_state.ui_string_offsets == NULL) {
+		file_close(stream);
 		return;
 	}
 
-	g_frontState.uiStringCapacity = 64;
-	g_frontState.uiStringData = malloc(File_GetSize(stream));
-	if (g_frontState.uiStringData == NULL) {
-		FrontendString_UnloadTable();
-		File_Close(stream);
+	g_front_state.ui_string_capacity = 64;
+	g_front_state.ui_string_data = malloc(file_get_size(stream));
+	if (g_front_state.ui_string_data == NULL) {
+		frontend_string_unload_table();
+		file_close(stream);
 		return;
 	}
 
-	writePosition = g_frontState.uiStringData;
+	write_position = g_front_state.ui_string_data;
 	for (;;) {
-		if (File_Gets(line, sizeof(line), stream) == NULL) {
+		if (FILE_GETS(line, sizeof(line), stream) == NULL) {
 			break;
 		}
 		line[sizeof(line) - 1] = '\0';
 		if (line[0] != '/' || line[1] != '/') {
-			lineLength = strlen(line) + 1;
-			copyLength = lineLength - 1;
-			if (line[lineLength - 2] == '\n') {
-				--copyLength;
-				line[lineLength - 2] = '\0';
+			line_length = strlen(line) + 1;
+			copy_length = line_length - 1;
+			if (line[line_length - 2] == '\n') {
+				--copy_length;
+				line[line_length - 2] = '\0';
 			}
 
-			stringOffset =
-				writePosition - g_frontState.uiStringData;
-			copyDestination = writePosition;
-			totalDataSize += copyLength + 1;
-			writePosition += copyLength + 1;
-			g_frontState
-				.uiStringOffsets[g_frontState.uiStringCount] =
-				stringOffset;
-			memcpy(copyDestination, line, copyLength + 1);
-			++g_frontState.uiStringCount;
-			if (g_frontState.uiStringCapacity ==
-			    g_frontState.uiStringCount) {
-				resizedOffsets = realloc(
-					g_frontState.uiStringOffsets,
-					(g_frontState.uiStringCapacity +
-					 64) * sizeof(*g_frontState
-							       .uiStringOffsets));
-				if (resizedOffsets == NULL) {
+			string_offset =
+				write_position - g_front_state.ui_string_data;
+			copy_destination = write_position;
+			total_data_size += copy_length + 1;
+			write_position += copy_length + 1;
+			g_front_state.ui_string_offsets
+				[g_front_state.ui_string_count] = string_offset;
+			memcpy(copy_destination, line, copy_length + 1);
+			++g_front_state.ui_string_count;
+			if (g_front_state.ui_string_capacity ==
+			    g_front_state.ui_string_count) {
+				resized_offsets = realloc(
+					g_front_state.ui_string_offsets,
+					(g_front_state.ui_string_capacity +
+					 64) * sizeof(*g_front_state
+							       .ui_string_offsets));
+				if (resized_offsets == NULL) {
 					break;
 				}
-				g_frontState.uiStringOffsets = resizedOffsets;
-				g_frontState.uiStringCapacity += 64;
+				g_front_state.ui_string_offsets =
+					resized_offsets;
+				g_front_state.ui_string_capacity += 64;
 			}
 		}
 	}
 
-	resizedData = realloc(g_frontState.uiStringData, totalDataSize);
-	if (resizedData != NULL) {
-		g_frontState.uiStringData = resizedData;
+	resized_data = realloc(g_front_state.ui_string_data, total_data_size);
+	if (resized_data != NULL) {
+		g_front_state.ui_string_data = resized_data;
 	} else {
-		free(g_frontState.uiStringData);
-		free(g_frontState.uiStringOffsets);
-		g_frontState.uiStringCount = 0;
-		g_frontState.uiStringData = NULL;
-		g_frontState.uiStringOffsets = NULL;
+		free(g_front_state.ui_string_data);
+		free(g_front_state.ui_string_offsets);
+		g_front_state.ui_string_count = 0;
+		g_front_state.ui_string_data = NULL;
+		g_front_state.ui_string_offsets = NULL;
 	}
 
-	File_Close(stream);
+	file_close(stream);
 }
 
-/* Frees the frontend string table and sets g_frontState.uiStringOffsets and
- * uiStringData to NULL and uiStringCount and uiStringCapacity to 0. */
+/* Frees the frontend string table and sets g_front_state.ui_string_offsets and
+ * ui_string_data to NULL and ui_string_count and ui_string_capacity to 0. */
 // FUNCTION: XVT 0x4DDBC0
-void FrontendString_UnloadTable(void)
+void frontend_string_unload_table(void)
 {
 	unsigned int **offsets;
 	char **data;
 
-	offsets = &g_frontState.uiStringOffsets;
-	data = &g_frontState.uiStringData;
+	offsets = &g_front_state.ui_string_offsets;
+	data = &g_front_state.ui_string_data;
 	if (*offsets) {
 		free(*offsets);
 		*offsets = 0;
@@ -124,17 +124,18 @@ void FrontendString_UnloadTable(void)
 		*data = 0;
 	}
 
-	g_frontState.uiStringCount = 0;
-	g_frontState.uiStringCapacity = 0;
+	g_front_state.ui_string_count = 0;
+	g_front_state.ui_string_capacity = 0;
 }
 
 /* Returns entry index of the frontend string table, or the text "No text." when
- * index, read as unsigned, is not under g_frontState.uiStringCount. */
+ * index, read as unsigned, is not under g_front_state.ui_string_count. */
 // FUNCTION: XVT 0x4DDC10
-const char *FrontendString_Get(FrontendStringId index)
+const char *frontend_string_get(frontend_string_id index)
 {
-	if ((unsigned int)index >= g_frontState.uiStringCount) {
+	if ((unsigned int)index >= g_front_state.ui_string_count) {
 		return "No text.";
 	}
-	return &g_frontState.uiStringData[g_frontState.uiStringOffsets[index]];
+	return &g_front_state
+			.ui_string_data[g_front_state.ui_string_offsets[index]];
 }

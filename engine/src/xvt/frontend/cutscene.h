@@ -9,24 +9,24 @@ extern "C" {
 #endif
 
 /* One cutscene of movies\cutscene.lst. */
-struct CutsceneEntry {
-	char movieName[128]; /* Movie to play, without folder or extension. */
+struct cutscene_entry {
+	char movie_name[128]; /* Movie to play, without folder or extension. */
 	/* Image shown for it in the pilot record's cutscene viewer. */
-	char thumbnailSprite[32];
+	char thumbnail_sprite[32];
 	/* Text shown under the thumbnail in the cutscene viewer. */
 	char description[128];
-	int campaignId; /* Campaign it belongs to: the campaigns mission id. */
+	int campaign_id; /* Campaign it belongs to: the campaigns mission id. */
 	/* 0 to play before the mission, 1 after its debriefing. */
-	int playAfterDebriefing;
+	int play_after_debriefing;
 	/* Mission it goes with: the training-exercises mission id. */
-	int campaignMissionId;
+	int campaign_mission_id;
 };
 
-extern int g_cutsceneCount;
-extern struct CutsceneEntry *g_cutsceneTable;
+extern int g_cutscene_count;
+extern struct cutscene_entry *g_cutscene_table;
 
-int Cutscene_LoadTable(char *fileName);
-int Cutscene_PlayForCurrentMissionPhase(int phase);
+int cutscene_load_table(char *file_name);
+int cutscene_play_for_current_mission_phase(int phase);
 
 #ifdef __cplusplus
 }

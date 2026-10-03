@@ -2,34 +2,35 @@
 #include "xvt_remaster/ui_draw.h"
 #include <math.h>
 
-static void DrawIndicator(const struct XvtHudDraw *draw, XvtHudSpriteRole role,
-			  const struct XvtCockpitIndicator *indicator)
+static void draw_indicator(const struct xvt_hud_draw *draw,
+			   xvt_hud_sprite_role role,
+			   const struct xvt_cockpit_indicator *indicator)
 {
 	if (indicator->visible) {
-		XvtHudDraw_Part(draw, role, indicator->state, 0, 0,
-				indicator->phase);
+		xvt_hud_draw_part(draw, role, indicator->state, 0, 0,
+				  indicator->phase);
 	}
 }
 
-void XvtHudInstruments_DrawCovers(const struct XvtHudDraw *draw)
+void xvt_hud_instruments_draw_covers(const struct xvt_hud_draw *draw)
 {
-	const struct XvtCockpitSystems *systems = &draw->state->systems;
+	const struct xvt_cockpit_systems *systems = &draw->state->systems;
 	for (unsigned index = 0; index < 13; ++index) {
 		if (systems->feature_covers[index].visible) {
-			XvtHudDraw_Part(draw, XVT_HUD_FEATURE_COVER + index,
-					systems->feature_covers[index].state ==
-						13,
-					0, 0, XVT_COCKPIT_BEFORE_CRT);
+			xvt_hud_draw_part(
+				draw, XVT_HUD_FEATURE_COVER + index,
+				systems->feature_covers[index].state == 13, 0,
+				0, XVT_COCKPIT_BEFORE_CRT);
 		}
 	}
-	DrawIndicator(draw, XVT_HUD_UNAVAILABLE_SHIELDS,
-		      &systems->unavailable_shields);
-	DrawIndicator(draw, XVT_HUD_UNAVAILABLE_BEAM,
-		      &systems->unavailable_beam[0]);
-	DrawIndicator(draw, XVT_HUD_UNAVAILABLE_BEAM_POWER,
-		      &systems->unavailable_beam[1]);
+	draw_indicator(draw, XVT_HUD_UNAVAILABLE_SHIELDS,
+		       &systems->unavailable_shields);
+	draw_indicator(draw, XVT_HUD_UNAVAILABLE_BEAM,
+		       &systems->unavailable_beam[0]);
+	draw_indicator(draw, XVT_HUD_UNAVAILABLE_BEAM_POWER,
+		       &systems->unavailable_beam[1]);
 	if (draw->state->target.panel_cover) {
-		XvtHudDraw_Part(
+		xvt_hud_draw_part(
 			draw,
 			draw->state->target.cover_binding %
 						HUD_INSTRUMENTS_PER_SET ==
@@ -40,24 +41,25 @@ void XvtHudInstruments_DrawCovers(const struct XvtHudDraw *draw)
 	}
 }
 
-static void DrawPowerGauge(const struct XvtHudDraw *draw, XvtHudSpriteRole role,
-			   const struct XvtCockpitPowerGauge *gauge)
+static void draw_power_gauge(const struct xvt_hud_draw *draw,
+			     xvt_hud_sprite_role role,
+			     const struct xvt_cockpit_power_gauge *gauge)
 {
 	if (!gauge->visible) {
 		return;
 	}
 	for (unsigned segment = 0; segment < gauge->segments; ++segment) {
-		XvtHudDraw_Part(draw, role, segment < gauge->filled, 0,
-				-(int)segment * gauge->step_y,
-				XVT_COCKPIT_BEFORE_CRT);
+		xvt_hud_draw_part(draw, role, segment < gauge->filled, 0,
+				  -(int)segment * gauge->step_y,
+				  XVT_COCKPIT_BEFORE_CRT);
 	}
 }
 
-static void DrawWeapons(const struct XvtHudDraw *draw)
+static void draw_weapons(const struct xvt_hud_draw *draw)
 {
-	const struct XvtCockpitWeapons *weapons = &draw->state->weapons;
+	const struct xvt_cockpit_weapons *weapons = &draw->state->weapons;
 	for (unsigned index = 0; index < weapons->slot_count; ++index) {
-		const struct XvtCockpitWeaponSlot *slot =
+		const struct xvt_cockpit_weapon_slot *slot =
 			&weapons->slots[index];
 		if (!slot->visible) {
 			continue;
@@ -66,7 +68,7 @@ static void DrawWeapons(const struct XvtHudDraw *draw)
 		    draw->state->view.instrument_base ==
 			    HUD_COCKPIT_INSTRUMENT_BASE_INDEX) {
 			for (unsigned segment = 0; segment < 10; ++segment) {
-				XvtHudDraw_Part(
+				xvt_hud_draw_part(
 					draw, XVT_HUD_LASER_CHARGE + index,
 					segment < slot->segments
 						? slot->charge_band
@@ -81,25 +83,25 @@ static void DrawWeapons(const struct XvtHudDraw *draw)
 			}
 		}
 		if (slot->selection_visible) {
-			XvtHudDraw_Part(draw, XVT_HUD_LASER_SELECTION + index,
-					slot->selection_state, 0, 0,
-					XVT_COCKPIT_BEFORE_CRT);
+			xvt_hud_draw_part(draw, XVT_HUD_LASER_SELECTION + index,
+					  slot->selection_state, 0, 0,
+					  XVT_COCKPIT_BEFORE_CRT);
 		}
-		XvtHudDraw_Part(draw, XVT_HUD_LASER_READY + index,
-				slot->ready_state, 0, 0,
-				XVT_COCKPIT_BEFORE_CRT);
+		xvt_hud_draw_part(draw, XVT_HUD_LASER_READY + index,
+				  slot->ready_state, 0, 0,
+				  XVT_COCKPIT_BEFORE_CRT);
 		if (slot->lock_visible) {
-			XvtHudDraw_Part(draw, XVT_HUD_LASER_LOCK + index,
-					slot->locked, 0, 0,
-					XVT_COCKPIT_BEFORE_CRT);
+			xvt_hud_draw_part(draw, XVT_HUD_LASER_LOCK + index,
+					  slot->locked, 0, 0,
+					  XVT_COCKPIT_BEFORE_CRT);
 		}
 	}
-	DrawIndicator(draw, XVT_HUD_TARGET_LOCK, &weapons->lock_indicator);
+	draw_indicator(draw, XVT_HUD_TARGET_LOCK, &weapons->lock_indicator);
 	if (draw->state->view.instrument_base ==
 	    HUD_COCKPIT_INSTRUMENT_BASE_INDEX) {
 		for (unsigned launcher = 0; launcher < 4; ++launcher) {
 			if (weapons->launchers[launcher].visible) {
-				XvtHudDraw_Part(
+				xvt_hud_draw_part(
 					draw, XVT_HUD_LAUNCHER + launcher,
 					weapons->launchers[launcher].selection,
 					0, 0, XVT_COCKPIT_BEFORE_CRT);
@@ -108,8 +110,8 @@ static void DrawWeapons(const struct XvtHudDraw *draw)
 	}
 }
 
-void XvtHudInstruments_DrawMouseStick(const struct XvtHudDraw *draw,
-				      const struct XvtRenderView *view)
+void xvt_hud_instruments_draw_mouse_stick(const struct xvt_hud_draw *draw,
+					  const struct xvt_render_view *view)
 {
 	if (!view || !draw->state->mouse_stick_visible) {
 		return;
@@ -123,75 +125,76 @@ void XvtHudInstruments_DrawMouseStick(const struct XvtHudDraw *draw,
 		  (1 - camera->proj_y_offset) * camera->viewport.height * .5f -
 		  draw->state->mouse_stick_y * range / 127.0f;
 	float size = 4 * draw->scale, color[4];
-	XvtUi_Color(draw->state->palette_argb[63], color);
+	xvt_ui_color(draw->state->palette_argb[63], color);
 	AeronRectI clip = {0, 0, draw->width, draw->height};
 	AeronDrawList_AddFrame(draw->after, x - size / 2, y - size / 2, size,
 			       size, draw->scale, color, AERON_BLIT2D_BLEND_PMA,
 			       &clip);
 }
 
-void XvtHudInstruments_DrawWidgets(const struct XvtHudDraw *draw)
+void xvt_hud_instruments_draw_widgets(const struct xvt_hud_draw *draw)
 {
-	const struct XvtCockpitSystems *systems = &draw->state->systems;
-	DrawWeapons(draw);
+	const struct xvt_cockpit_systems *systems = &draw->state->systems;
+	draw_weapons(draw);
 	for (unsigned side = 0; side < 2; ++side) {
-		const struct XvtCockpitShield *shield = &systems->shields[side];
+		const struct xvt_cockpit_shield *shield =
+			&systems->shields[side];
 		if (shield->visible && !shield->text_mode) {
-			XvtHudDraw_Part(draw, XVT_HUD_SHIELD + side * 2,
-					shield->primary_level, 0, 0,
-					XVT_COCKPIT_BEFORE_CRT);
-			XvtHudDraw_Part(draw, XVT_HUD_SHIELD + side * 2 + 1,
-					shield->overcharge_level, 0, 0,
-					XVT_COCKPIT_BEFORE_CRT);
+			xvt_hud_draw_part(draw, XVT_HUD_SHIELD + side * 2,
+					  shield->primary_level, 0, 0,
+					  XVT_COCKPIT_BEFORE_CRT);
+			xvt_hud_draw_part(draw, XVT_HUD_SHIELD + side * 2 + 1,
+					  shield->overcharge_level, 0, 0,
+					  XVT_COCKPIT_BEFORE_CRT);
 		}
 	}
-	DrawIndicator(draw, XVT_HUD_HULL, &systems->hull_indicator);
-	DrawIndicator(draw, XVT_HUD_BEAM_ENABLED, &systems->beam_enabled);
+	draw_indicator(draw, XVT_HUD_HULL, &systems->hull_indicator);
+	draw_indicator(draw, XVT_HUD_BEAM_ENABLED, &systems->beam_enabled);
 	if (systems->beam_visible) {
 		for (unsigned segment = 0; segment < 9; ++segment) {
-			XvtHudDraw_Part(draw, XVT_HUD_BEAM,
-					segment * 4 +
-						systems->beam_segments[segment],
-					draw->layout->beam_offsets[segment][0],
-					draw->layout->beam_offsets[segment][1],
-					XVT_COCKPIT_BEFORE_CRT);
+			xvt_hud_draw_part(
+				draw, XVT_HUD_BEAM,
+				segment * 4 + systems->beam_segments[segment],
+				draw->layout->beam_offsets[segment][0],
+				draw->layout->beam_offsets[segment][1],
+				XVT_COCKPIT_BEFORE_CRT);
 		}
 	}
-	DrawPowerGauge(draw, XVT_HUD_ENGINE_POWER, &systems->engine_power);
-	DrawPowerGauge(draw, XVT_HUD_LASER_POWER, &systems->laser_power);
-	DrawPowerGauge(draw, XVT_HUD_SHIELD_POWER, &systems->shield_power);
-	DrawPowerGauge(draw, XVT_HUD_BEAM_POWER, &systems->beam_power);
-	DrawIndicator(draw, XVT_HUD_SHIELD_DISTRIBUTION,
-		      &systems->shield_distribution);
-	DrawIndicator(draw, XVT_HUD_SFOILS, &systems->sfoils);
-	DrawIndicator(draw, XVT_HUD_COUNTERMEASURE_SELECTION,
-		      &systems->countermeasure_active);
-	DrawIndicator(draw, XVT_HUD_CRITICAL_WARNING,
-		      &systems->critical_warning);
+	draw_power_gauge(draw, XVT_HUD_ENGINE_POWER, &systems->engine_power);
+	draw_power_gauge(draw, XVT_HUD_LASER_POWER, &systems->laser_power);
+	draw_power_gauge(draw, XVT_HUD_SHIELD_POWER, &systems->shield_power);
+	draw_power_gauge(draw, XVT_HUD_BEAM_POWER, &systems->beam_power);
+	draw_indicator(draw, XVT_HUD_SHIELD_DISTRIBUTION,
+		       &systems->shield_distribution);
+	draw_indicator(draw, XVT_HUD_SFOILS, &systems->sfoils);
+	draw_indicator(draw, XVT_HUD_COUNTERMEASURE_SELECTION,
+		       &systems->countermeasure_active);
+	draw_indicator(draw, XVT_HUD_CRITICAL_WARNING,
+		       &systems->critical_warning);
 	for (unsigned index = 0; index < 4; ++index) {
-		DrawIndicator(draw, XVT_HUD_THREAT + index,
-			      &systems->threats[index]);
-		DrawIndicator(draw, XVT_HUD_CMD_ARMAMENT + index,
-			      &draw->state->target.armament[index]);
+		draw_indicator(draw, XVT_HUD_THREAT + index,
+			       &systems->threats[index]);
+		draw_indicator(draw, XVT_HUD_CMD_ARMAMENT + index,
+			       &draw->state->target.armament[index]);
 	}
 }
 
-void XvtHudInstruments_DrawRadar(const struct XvtHudDraw *draw)
+void xvt_hud_instruments_draw_radar(const struct xvt_hud_draw *draw)
 {
-	const struct XvtCockpitRadar *radar = &draw->state->radar;
+	const struct xvt_cockpit_radar *radar = &draw->state->radar;
 	for (unsigned side = 0; side < 2; ++side) {
 		if (!radar->visible[side]) {
 			continue;
 		}
 		for (unsigned index = 0; index < radar->count[side]; ++index) {
-			const struct XvtSnapRadarBlip *blip =
+			const struct xvt_snap_radar_blip *blip =
 				&radar->blips[side][index];
 			for (unsigned row = 0; row < 2; ++row) {
 				if (radar->coverage[side][index] &
 				    (1u << row)) {
-					XvtHudDraw_Fill(
+					xvt_hud_draw_fill(
 						draw, XVT_COCKPIT_BEFORE_CRT,
-						(struct XvtSnapRect){
+						(struct xvt_snap_rect){
 							draw->layout->radar[side]
 									.x +
 								blip->x,
@@ -212,9 +215,9 @@ void XvtHudInstruments_DrawRadar(const struct XvtHudDraw *draw)
 			{-1, 1}, {-2, 1}, {-2, 0}, {-2, -1}, {-1, -1},
 			{1, -1}, {2, -1}, {2, 0},  {2, 1},   {1, 1}};
 		for (unsigned index = 0; index < 10; ++index) {
-			XvtHudDraw_Fill(
+			xvt_hud_draw_fill(
 				draw, XVT_COCKPIT_BEFORE_CRT,
-				(struct XvtSnapRect){
+				(struct xvt_snap_rect){
 					draw->layout->radar[radar->marker_side]
 							.x +
 						radar->marker_x +
@@ -229,20 +232,20 @@ void XvtHudInstruments_DrawRadar(const struct XvtHudDraw *draw)
 	}
 }
 
-void XvtHudInstruments_DrawWorldMarkers(const struct XvtHudDraw *draw,
-					const struct XvtSnapTargetBox *markers,
-					unsigned count,
-					const struct XvtRenderView *view)
+void xvt_hud_instruments_draw_world_markers(
+	const struct xvt_hud_draw *draw,
+	const struct xvt_snap_target_box *markers, unsigned count,
+	const struct xvt_render_view *view)
 {
 	if (!view) {
 		return;
 	}
 	for (unsigned index = 0; index < count; ++index) {
-		const struct XvtSnapTargetBox *marker = &markers[index];
+		const struct xvt_snap_target_box *marker = &markers[index];
 		float x, y, depth;
 		if (marker->scope != XVT_SCOPE_COCKPIT ||
-		    !XvtRenderMath_ProjectWorld(view, marker->world_pos, &x, &y,
-						&depth) ||
+		    !xvt_render_math_project_world(view, marker->world_pos, &x,
+						   &y, &depth) ||
 		    depth <= 0) {
 			continue;
 		}
@@ -256,7 +259,7 @@ void XvtHudInstruments_DrawWorldMarkers(const struct XvtHudDraw *draw,
 				    marker->extent * focal / depth)) +
 			4 * draw->scale;
 		float corner = fmaxf(3 * draw->scale, size / 8), color[4];
-		XvtUi_Color(
+		xvt_ui_color(
 			draw->state->palette_argb[marker->color_index & 255],
 			color);
 		AeronRectI clip = {0, 0, draw->width, draw->height};
@@ -279,24 +282,24 @@ void XvtHudInstruments_DrawWorldMarkers(const struct XvtHudDraw *draw,
 	}
 }
 
-void XvtHudInstruments_DrawCrtMarker(const struct XvtHudDraw *draw)
+void xvt_hud_instruments_draw_crt_marker(const struct xvt_hud_draw *draw)
 {
-	const struct XvtSnapPreview *crt = &draw->state->crt;
-	struct XvtRenderView view;
+	const struct xvt_snap_preview *crt = &draw->state->crt;
+	struct xvt_render_view view;
 	float x, y, depth;
 	if (!crt->valid || !crt->component_marker_valid ||
-	    !XvtRenderMath_BuildView(&crt->camera, crt->camera.world_pos,
-				     crt->destination.width,
-				     crt->destination.height, &view) ||
-	    !XvtRenderMath_ProjectWorld(&view, crt->component_marker_world, &x,
-					&y, &depth) ||
+	    !xvt_render_math_build_view(&crt->camera, crt->camera.world_pos,
+					crt->destination.width,
+					crt->destination.height, &view) ||
+	    !xvt_render_math_project_world(&view, crt->component_marker_world,
+					   &x, &y, &depth) ||
 	    depth <= 0) {
 		return;
 	}
-	struct XvtSnapRect rect = {crt->destination.x + (int)floorf(x) - 2,
-				   crt->destination.y + (int)floorf(y) - 2, 4,
-				   4};
-	XvtHudDraw_OutlineClipped(draw, XVT_COCKPIT_AFTER_CRT, rect,
-				  crt->destination,
-				  draw->state->palette_argb[206]);
+	struct xvt_snap_rect rect = {crt->destination.x + (int)floorf(x) - 2,
+				     crt->destination.y + (int)floorf(y) - 2, 4,
+				     4};
+	xvt_hud_draw_outline_clipped(draw, XVT_COCKPIT_AFTER_CRT, rect,
+				     crt->destination,
+				     draw->state->palette_argb[206]);
 }

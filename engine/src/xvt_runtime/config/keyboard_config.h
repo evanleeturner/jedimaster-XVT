@@ -11,21 +11,21 @@
  * a key, an unknown key or source field, a repeated modifier, a reserved or unsupported source, a source
  * bound twice, or more than XVT_KEYBOARD_BINDING_CAP bindings; *profile then holds the bindings read
  * before the failure. */
-bool XvtKeyboardConfig_Read(const AeronConfigFile *document,
-			    struct XvtKeyboardBindings *profile, char *error,
-			    size_t capacity);
+bool xvt_keyboard_config_read(const AeronConfigFile *document,
+			      struct xvt_keyboard_bindings *profile,
+			      char *error, size_t capacity);
 /* Replaces input.keyboard with profile, listing every action that can take a key, those with no source
  * as empty lists, so the result replaces every default. Fails, with the reason in error->message, for
  * too many bindings or an invalid action or source. */
-bool XvtKeyboardConfig_Write(AeronConfigFile *document,
-			     const struct XvtKeyboardBindings *profile,
-			     AeronConfigError *error);
+bool xvt_keyboard_config_write(AeronConfigFile *document,
+			       const struct xvt_keyboard_bindings *profile,
+			       AeronConfigError *error);
 /* Resolve user precedence into the temporary merged document without changing user overrides. */
 /* When user has input.keyboard, writes merged's input.keyboard as the user's bindings plus each
  * default whose action the user does not list and whose source the user has not bound; an action the
  * user lists, even as an empty list, loses its defaults. Without user bindings, changes nothing. */
-bool XvtKeyboardConfig_Resolve(const struct XvtKeyboardBindings *defaults,
-			       const AeronConfigFile *user,
-			       AeronConfigFile *merged, char *error,
-			       size_t capacity);
+bool xvt_keyboard_config_resolve(const struct xvt_keyboard_bindings *defaults,
+				 const AeronConfigFile *user,
+				 AeronConfigFile *merged, char *error,
+				 size_t capacity);
 #endif

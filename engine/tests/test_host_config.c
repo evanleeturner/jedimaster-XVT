@@ -10,27 +10,27 @@
 /* Parses the arguments after the program name. The argument array lives until the calling function
  * returns, so a later check can compare the pointers the parser kept with the strings in g_argv. */
 #define PARSE(options, ...)                                                    \
-	Parse((options), (char *[]){"OpenXvT", __VA_ARGS__, NULL})
+	parse((options), (char *[]){"OpenXvT", __VA_ARGS__, NULL})
 
 static char **g_argv;
 
 /* Parses the NULL-terminated argv, keeping it in g_argv so a check can compare the borrowed pointers. */
-static int Parse(struct XvtLaunchOptions *options, char **argv)
+static int parse(struct xvt_launch_options *options, char **argv)
 {
 	int argc = 0;
 	while (argv[argc]) {
 		++argc;
 	}
 	g_argv = argv;
-	return XvtLaunchOptions_Parse(argc, argv, options);
+	return xvt_launch_options_parse(argc, argv, options);
 }
 
-static void CheckZeroesOptions(void)
+static void check_zeroes_options(void)
 {
-	struct XvtLaunchOptions options;
+	struct xvt_launch_options options;
 	memset(&options, 0xFF, sizeof options);
 	char *argv[] = {"OpenXvT", NULL};
-	XVT_ASSERT_INT_EQ(XvtLaunchOptions_Parse(1, argv, &options), 1);
+	XVT_ASSERT_INT_EQ(xvt_launch_options_parse(1, argv, &options), 1);
 	XVT_ASSERT_TRUE(options.resource_root == NULL &&
 			options.game_data == NULL);
 	XVT_ASSERT_TRUE(options.import_config == NULL &&
@@ -46,9 +46,9 @@ static void CheckZeroesOptions(void)
 	XVT_ASSERT_INT_EQ(options.skip_intro, 0);
 }
 
-static void CheckFlags(void)
+static void check_flags(void)
 {
-	struct XvtLaunchOptions options;
+	struct xvt_launch_options options;
 	XVT_ASSERT_INT_EQ(PARSE(&options, "--help", "--skip-intro",
 				"--save-config", "--reset-config",
 				"--check-installation", "--skip-intro"),
@@ -71,9 +71,9 @@ static void CheckFlags(void)
 	XVT_ASSERT_INT_EQ(PARSE(&options, "setup"), 0);
 }
 
-static void CheckValues(void)
+static void check_values(void)
 {
-	struct XvtLaunchOptions options;
+	struct xvt_launch_options options;
 	/* After '=' or as the next argument; kept as text, unchecked, borrowed from argv. */
 	XVT_ASSERT_INT_EQ(PARSE(&options, "--resource-root=res", "--game-data",
 				"data dir", "--import-config=x.cfg",
@@ -96,9 +96,9 @@ static void CheckValues(void)
 	XVT_ASSERT_TRUE(options.log_file == g_argv[2]);
 }
 
-static void CheckValueRefusals(void)
+static void check_value_refusals(void)
 {
-	struct XvtLaunchOptions options;
+	struct xvt_launch_options options;
 	/* Missing, empty, or starting with '-'. */
 	XVT_ASSERT_INT_EQ(PARSE(&options, "--game-data"), 0);
 	XVT_ASSERT_INT_EQ(PARSE(&options, "--game-data="), 0);
@@ -131,9 +131,9 @@ static void CheckValueRefusals(void)
 	XVT_ASSERT_INT_EQ(options.skip_intro, 0);
 }
 
-static void CheckCombinationRefusals(void)
+static void check_combination_refusals(void)
 {
-	struct XvtLaunchOptions options;
+	struct xvt_launch_options options;
 	XVT_ASSERT_INT_EQ(PARSE(&options, "--pilot-name=Ace"), 0);
 	XVT_ASSERT_INT_EQ(
 		PARSE(&options, "--pilot-name=Ace", "--import-pilot=a.plt"), 1);
@@ -152,13 +152,13 @@ static void CheckCombinationRefusals(void)
 		1);
 }
 
-static void CheckInitAeron(void)
+static void check_init_aeron(void)
 {
-	struct XvtLaunchOptions options;
+	struct xvt_launch_options options;
 	XVT_ASSERT_INT_EQ(PARSE(&options, "--resource-root=res"), 1);
 	AeronConfig config;
 	memset(&config, 0xFF, sizeof config);
-	XvtHostConfig_FillAeronConfig(&options, &config);
+	xvt_host_config_fill_aeron_config(&options, &config);
 
 	XVT_ASSERT_INT_EQ(strcmp(config.org_name, "TotallyOpen"), 0);
 	XVT_ASSERT_INT_EQ(strcmp(config.app_name, "OpenXvT"), 0);
@@ -194,41 +194,41 @@ static void CheckInitAeron(void)
 
 	/* NULL options: no resource root. */
 	memset(&config, 0xFF, sizeof config);
-	XvtHostConfig_FillAeronConfig(NULL, &config);
+	xvt_host_config_fill_aeron_config(NULL, &config);
 	XVT_ASSERT_TRUE(config.resource_root == NULL);
 	XVT_ASSERT_INT_EQ(strcmp(config.resource_path, "resources"), 0);
 }
 
-static void CheckResolveResourceRoot(void)
+static void check_resolve_resource_root(void)
 {
-	struct XvtLaunchOptions options;
+	struct xvt_launch_options options;
 	char out[64];
 	XVT_ASSERT_INT_EQ(PARSE(&options, "--resource-root=abcd"), 1);
-	XVT_ASSERT_INT_EQ(
-		XvtHostConfig_ResolveResourceRoot(&options, out, sizeof out),
-		1);
+	XVT_ASSERT_INT_EQ(xvt_host_config_resolve_resource_root(&options, out,
+								sizeof out),
+			  1);
 	XVT_ASSERT_INT_EQ(strcmp(out, "abcd"), 0);
 
 	/* "abcd" needs five bytes with its terminator. */
-	XVT_ASSERT_INT_EQ(XvtHostConfig_ResolveResourceRoot(&options, out, 5),
-			  1);
-	XVT_ASSERT_INT_EQ(XvtHostConfig_ResolveResourceRoot(&options, out, 4),
-			  0);
+	XVT_ASSERT_INT_EQ(
+		xvt_host_config_resolve_resource_root(&options, out, 5), 1);
+	XVT_ASSERT_INT_EQ(
+		xvt_host_config_resolve_resource_root(&options, out, 4), 0);
 
 	/* Without a nonempty root, the answer is Aeron's for the "resources" folder. */
 	char aeron[4096], resolved[4096];
 	int expected = Aeron_ApplicationPath("resources", aeron, sizeof aeron);
 	memset(resolved, 0, sizeof resolved);
-	XVT_ASSERT_INT_EQ(XvtHostConfig_ResolveResourceRoot(NULL, resolved,
-							    sizeof resolved),
+	XVT_ASSERT_INT_EQ(xvt_host_config_resolve_resource_root(
+				  NULL, resolved, sizeof resolved),
 			  expected);
 	if (expected) {
 		XVT_ASSERT_INT_EQ(strcmp(resolved, aeron), 0);
 	}
 	options.resource_root = "";
 	memset(resolved, 0, sizeof resolved);
-	XVT_ASSERT_INT_EQ(XvtHostConfig_ResolveResourceRoot(&options, resolved,
-							    sizeof resolved),
+	XVT_ASSERT_INT_EQ(xvt_host_config_resolve_resource_root(
+				  &options, resolved, sizeof resolved),
 			  expected);
 	if (expected) {
 		XVT_ASSERT_INT_EQ(strcmp(resolved, aeron), 0);
@@ -237,12 +237,12 @@ static void CheckResolveResourceRoot(void)
 
 int main(void)
 {
-	CheckZeroesOptions();
-	CheckFlags();
-	CheckValues();
-	CheckValueRefusals();
-	CheckCombinationRefusals();
-	CheckInitAeron();
-	CheckResolveResourceRoot();
+	check_zeroes_options();
+	check_flags();
+	check_values();
+	check_value_refusals();
+	check_combination_refusals();
+	check_init_aeron();
+	check_resolve_resource_root();
 	return 0;
 }

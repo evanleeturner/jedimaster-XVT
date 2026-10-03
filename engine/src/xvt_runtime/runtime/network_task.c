@@ -31,11 +31,11 @@ static struct {
 	int selected_index, scroll, pending;
 	uint64_t refresh_at, updated_at;
 	AeronDplayDirectoryError error;
-	struct XvtNetworkPreview preview;
+	struct xvt_network_preview preview;
 } g_browser = {.selected_index = -1};
 
 /* Read mission setup's list/description formats into browser-owned storage. */
-static int XvtNetworkTask_FindMissionFileAndTitle(
+static int xvt_network_task_find_mission_file_and_title(
 	const AeronDplayDirectoryMission *mission, char *path, size_t capacity)
 {
 	char list[256], line[256], filename[256], title[256];
@@ -43,21 +43,21 @@ static int XvtNetworkTask_FindMissionFileAndTitle(
 		return 0;
 	}
 	snprintf(list, sizeof(list), "%s/mission.lst",
-		 g_missionDirectoryNames[mission->directory]);
-	XvtFile *file = File_Open(list, "r");
+		 g_mission_directory_names[mission->directory]);
+	xvt_file *file = file_open(list, "r");
 	if (!file) {
 		return 0;
 	}
 	int found = 0;
-	while (File_Gets(line, sizeof(line), file)) {
+	while (FILE_GETS(line, sizeof(line), file)) {
 		if (!line[0] || line[0] == '[' || line[0] == '\n' ||
 		    line[0] == '\r' || (line[0] == '/' && line[1] == '/')) {
 			continue;
 		}
 		char *end;
 		long id = strtol(line, &end, 10);
-		if (!File_Gets(filename, sizeof(filename), file) ||
-		    !File_Gets(title, sizeof(title), file)) {
+		if (!FILE_GETS(filename, sizeof(filename), file) ||
+		    !FILE_GETS(title, sizeof(title), file)) {
 			break;
 		}
 		if (end == line || id != mission->id) {
@@ -85,7 +85,7 @@ static int XvtNetworkTask_FindMissionFileAndTitle(
 		}
 		int length = snprintf(
 			path, capacity, "%s/%s",
-			g_missionDirectoryNames[mission->directory], name);
+			g_mission_directory_names[mission->directory], name);
 		if (length < 0 || (size_t)length >= capacity) {
 			break;
 		}
@@ -94,24 +94,24 @@ static int XvtNetworkTask_FindMissionFileAndTitle(
 		found = 1;
 		break;
 	}
-	File_Close(file);
+	file_close(file);
 	return found;
 }
 
-static void XvtNetworkTask_LoadPreview(void)
+static void xvt_network_task_load_preview(void)
 {
 	memset(&g_browser.preview, 0, sizeof(g_browser.preview));
-	const AeronDplayDirectoryRoom *room = XvtNetworkTask_SelectedRoom();
+	const AeronDplayDirectoryRoom *room = xvt_network_task_selected_room();
 	if (!room) {
 		return;
 	}
 	char path[512];
 	strcpy(g_browser.preview.text, "Description unavailable");
-	if (!XvtNetworkTask_FindMissionFileAndTitle(&room->metadata.mission,
-						    path, sizeof(path))) {
+	if (!xvt_network_task_find_mission_file_and_title(
+		    &room->metadata.mission, path, sizeof(path))) {
 		return;
 	}
-	XvtFile *file = File_Open(path, "rb");
+	xvt_file *file = file_open(path, "rb");
 	if (!file) {
 		return;
 	}
@@ -121,18 +121,18 @@ static void XvtNetworkTask_LoadPreview(void)
 	    directory == MISSION_DIRECTORY_BATTLES ||
 	    directory == MISSION_DIRECTORY_CAMPAIGNS) {
 		char line[256], *end;
-		if (File_Gets(line, sizeof(line), file)) {
+		if (FILE_GETS(line, sizeof(line), file)) {
 			long lines_to_skip = strtol(line, &end, 10);
 			if (end != line && lines_to_skip >= 0 &&
 			    lines_to_skip <= 65536) {
 				while (lines_to_skip > 0 &&
-				       File_Gets(line, sizeof(line), file)) {
+				       FILE_GETS(line, sizeof(line), file)) {
 					--lines_to_skip;
 				}
 				size_t used = 0;
 				while (!lines_to_skip &&
 				       used + 1 < sizeof(text) &&
-				       File_Gets(line, sizeof(line), file)) {
+				       FILE_GETS(line, sizeof(line), file)) {
 					for (size_t i = 0;
 					     line[i] && used + 1 < sizeof(text);
 					     ++i) {
@@ -146,30 +146,30 @@ static void XvtNetworkTask_LoadPreview(void)
 		}
 	} else {
 		uint16_t version = 0;
-		File_ReadWord(file, &version);
+		file_read_word(file, &version);
 		int size = version == 12		      ? 1024
 			   : (version == 13 || version == 14) ? 4096
 							      : 0;
-		if (size && File_GetSize(file) >= size + 2 &&
-		    !File_Seek(file, -size, SEEK_END)) {
-			if (!File_ReadBytes(file, text, (size_t)size)) {
+		if (size && file_get_size(file) >= size + 2 &&
+		    !file_seek(file, -size, SEEK_END)) {
+			if (!file_read_bytes(file, text, (size_t)size)) {
 				text[0] = 0;
 			}
 			text[size - 1] = 0;
 		}
 	}
-	if (text[0] && !File_HasError(file)) {
+	if (text[0] && !FILE_HAS_ERROR(file)) {
 		memcpy(g_browser.preview.text, text, sizeof(text));
 	}
-	File_Close(file);
+	file_close(file);
 }
 
-const AeronDplayDirectorySnapshot *XvtNetworkTask_Snapshot(void)
+const AeronDplayDirectorySnapshot *xvt_network_task_snapshot(void)
 {
 	return &g_browser.snapshot;
 }
 
-const AeronDplayDirectoryRoom *XvtNetworkTask_SelectedRoom(void)
+const AeronDplayDirectoryRoom *xvt_network_task_selected_room(void)
 {
 	int i = g_browser.selected_index;
 	return i >= 0 && (unsigned)i < g_browser.snapshot.room_count
@@ -177,21 +177,21 @@ const AeronDplayDirectoryRoom *XvtNetworkTask_SelectedRoom(void)
 		       : NULL;
 }
 
-int XvtNetworkTask_SelectedIndex(void) { return g_browser.selected_index; }
+int xvt_network_task_selected_index(void) { return g_browser.selected_index; }
 
-int *XvtNetworkTask_ScrollOffset(void) { return &g_browser.scroll; }
+int *xvt_network_task_scroll_offset(void) { return &g_browser.scroll; }
 
-struct XvtNetworkPreview *XvtNetworkTask_Preview(void)
+struct xvt_network_preview *xvt_network_task_preview(void)
 {
 	return &g_browser.preview;
 }
 
-AeronDplayDirectoryError XvtNetworkTask_BrowserError(void)
+AeronDplayDirectoryError xvt_network_task_browser_error(void)
 {
 	return g_browser.error;
 }
 
-unsigned XvtNetworkTask_SnapshotAge(void)
+unsigned xvt_network_task_snapshot_age(void)
 {
 	uint64_t seconds =
 		g_browser.updated_at
@@ -200,7 +200,7 @@ unsigned XvtNetworkTask_SnapshotAge(void)
 	return seconds > 359999 ? 359999 : (unsigned)seconds;
 }
 
-int XvtNetworkTask_Compatible(const AeronDplayDirectoryRoom *room)
+int xvt_network_task_compatible(const AeronDplayDirectoryRoom *room)
 {
 	char version[AERON_DPLAY_DIRECTORY_VERSION_CAPACITY];
 	snprintf(version, sizeof(version), "%d", FRONTEND_NET_PROTOCOL_VERSION);
@@ -208,16 +208,16 @@ int XvtNetworkTask_Compatible(const AeronDplayDirectoryRoom *room)
 	       !strcmp(room->game_version, version);
 }
 
-int XvtNetworkTask_CanJoin(void)
+int xvt_network_task_can_join(void)
 {
-	const AeronDplayDirectoryRoom *room = XvtNetworkTask_SelectedRoom();
+	const AeronDplayDirectoryRoom *room = xvt_network_task_selected_room();
 	return !g_network.active && !g_browser.error &&
 	       g_browser.snapshot.available &&
-	       XvtNetworkTask_Compatible(room) && room->metadata.joinable &&
+	       xvt_network_task_compatible(room) && room->metadata.joinable &&
 	       room->metadata.players < room->metadata.max_players;
 }
 
-void XvtNetworkTask_ToggleSelection(int index)
+void xvt_network_task_toggle_selection(int index)
 {
 	if (index == g_browser.selected_index || index < 0 ||
 	    (unsigned)index >= g_browser.snapshot.room_count) {
@@ -228,13 +228,13 @@ void XvtNetworkTask_ToggleSelection(int index)
 	if (index >= 0) {
 		g_browser.selected = g_browser.snapshot.rooms[index].room_id;
 	}
-	XvtNetworkTask_LoadPreview();
+	xvt_network_task_load_preview();
 }
 
-void XvtNetworkTask_Refresh(void)
+void xvt_network_task_refresh(void)
 {
 	g_browser.refresh_at = Aeron_NowUs() + BROWSER_REFRESH_US;
-	AeronDplayDirectoryError error = XvtNetworkSession_Configure();
+	AeronDplayDirectoryError error = xvt_network_session_configure();
 	if (!error) {
 		error = AeronDplayDirectory_Refresh();
 	}
@@ -246,34 +246,34 @@ void XvtNetworkTask_Refresh(void)
 	g_browser.pending = 1;
 }
 
-void XvtNetworkTask_OpenBrowser(void)
+void xvt_network_task_open_browser(void)
 {
-	XvtNetworkSession_Leave();
-	g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_NET_CLIENT;
-	XvtNetworkTask_Refresh();
+	xvt_network_session_leave();
+	g_frontend_mission_session_mode = FRONTEND_MISSION_SESSION_NET_CLIENT;
+	xvt_network_task_refresh();
 }
 
-int XvtNetworkTask_BrowserVisible(void)
+int xvt_network_task_browser_visible(void)
 {
-	for (int i = 0; i <= g_frontState.screenStackTop; ++i) {
-		if (g_frontState.screenStates[i].updateFn ==
-		    FrontendNet_JoinGameScreen) {
+	for (int i = 0; i <= g_front_state.screen_stack_top; ++i) {
+		if (g_front_state.screen_states[i].update_fn ==
+		    frontend_net_join_game_screen) {
 			return !g_network.active;
 		}
 	}
 	return 0;
 }
 
-void XvtNetworkTask_ServiceBrowser(void)
+void xvt_network_task_service_browser(void)
 {
-	if (!XvtNetworkTask_BrowserVisible()) {
+	if (!xvt_network_task_browser_visible()) {
 		return;
 	}
 	uint64_t now = Aeron_NowUs();
 	if (g_browser.pending) {
 		AeronDplayDirectoryMission previous = {0};
 		const AeronDplayDirectoryRoom *room =
-			XvtNetworkTask_SelectedRoom();
+			xvt_network_task_selected_room();
 		if (room) {
 			previous = room->metadata.mission;
 		}
@@ -320,10 +320,10 @@ void XvtNetworkTask_ServiceBrowser(void)
 						BROWSER_VISIBLE_ROWS + 1;
 				}
 			}
-			room = XvtNetworkTask_SelectedRoom();
+			room = xvt_network_task_selected_room();
 			if (!room || memcmp(&previous, &room->metadata.mission,
 					    sizeof(previous))) {
-				XvtNetworkTask_LoadPreview();
+				xvt_network_task_load_preview();
 			}
 		} else if (g_browser.snapshot.refresh.state ==
 			   AERON_DPLAY_DIRECTORY_FAILED) {
@@ -332,114 +332,114 @@ void XvtNetworkTask_ServiceBrowser(void)
 		}
 	}
 	if (now >= g_browser.refresh_at) {
-		XvtNetworkTask_Refresh();
+		xvt_network_task_refresh();
 	}
 }
 
-void XvtNetworkTask_Begin(int action)
+void xvt_network_task_begin(int action)
 {
 	if (g_network.active) {
 		return;
 	}
 	int host =
 		action == XVT_NETWORK_HOST || action == XVT_NETWORK_AUTO_HOST;
-	const AeronDplayDirectoryRoom *room = XvtNetworkTask_SelectedRoom();
-	if (!host && !XvtNetworkTask_CanJoin()) {
+	const AeronDplayDirectoryRoom *room = xvt_network_task_selected_room();
+	if (!host && !xvt_network_task_can_join()) {
 		return;
 	}
-	char rating_text[2] = {(char)(g_pilotData.rating + 1), 0};
+	char rating_text[2] = {(char)(g_pilot_data.rating + 1), 0};
 	g_network.action = action;
 	g_network.active = 1;
 	if (host) {
-		XvtNetworkSession_BeginHost(
-			rating_text, g_pilotData.name,
-			g_pilotData.multiplayerGameName,
-			g_frontendMissionSessionMode !=
+		xvt_network_session_begin_host(
+			rating_text, g_pilot_data.name,
+			g_pilot_data.multiplayer_game_name,
+			g_frontend_mission_session_mode !=
 				FRONTEND_MISSION_SESSION_SINGLEPLAYER);
 	} else {
-		XvtNetworkMetadata_FromUtf8(
-			g_pilotData.multiplayerGameName,
-			sizeof(g_pilotData.multiplayerGameName),
+		xvt_network_metadata_from_utf8(
+			g_pilot_data.multiplayer_game_name,
+			sizeof(g_pilot_data.multiplayer_game_name),
 			room->metadata.name);
-		XvtNetworkSession_BeginJoin(rating_text, g_pilotData.name,
-					    &room->room_id);
+		xvt_network_session_begin_join(rating_text, g_pilot_data.name,
+					       &room->room_id);
 	}
 }
 
-static void XvtNetworkTask_RestoreCursor(void)
+static void xvt_network_task_restore_cursor(void)
 {
-	FrontendDisplay_UnlockBackBuffer();
-	FrontendCursor_HideOsCursor();
-	g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	frontend_display_unlock_back_buffer();
+	frontend_cursor_hide_os_cursor();
+	g_draw_surface_ptr = frontend_display_lock_back_buffer();
 }
 
-static void XvtNetworkTask_FinishSession(int result)
+static void xvt_network_task_finish_session(int result)
 {
 	g_network.active = 0;
-	XvtNetworkTask_RestoreCursor();
+	xvt_network_task_restore_cursor();
 	/* Failure dialogs must capture the restored parent rendering state. */
 	if (g_network.action != XVT_NETWORK_AUTO_HOST) {
-		FrontendDisplay_EnableOffscreenRestore();
+		frontend_display_enable_offscreen_restore();
 	}
 	if (!result) {
-		XvtNetworkDialogs_ShowFailure(
-			XvtNetworkSession_GetStatus().error,
+		xvt_network_dialogs_show_failure(
+			xvt_network_session_get_status().error,
 			g_network.action != XVT_NETWORK_CONNECT);
 	} else if (g_network.action == XVT_NETWORK_CONNECT) {
-		FrontendScreen_SetCallbacks(
-			FrontendNet_AwaitJoinAdmissionScreen, NULL);
+		frontend_screen_set_callbacks(
+			frontend_net_await_join_admission_screen, NULL);
 	} else {
 		if (g_network.action == XVT_NETWORK_HOST) {
-			FrontendDisplay_ClearOffscreenSurface();
+			frontend_display_clear_offscreen_surface();
 		}
-		FrontendScreen_SetCallbacks(MissionSetup_Update,
-					    MissionSetup_Exit);
+		frontend_screen_set_callbacks(mission_setup_update,
+					      mission_setup_exit);
 	}
-	FrontendCursor_Show();
+	frontend_cursor_show();
 }
 
-int XvtNetworkTask_Resume(int *result)
+int xvt_network_task_resume(int *result)
 {
 	if (!g_network.active) {
-		struct XvtNetworkSessionStatus status =
-			XvtNetworkSession_GetStatus();
+		struct xvt_network_session_status status =
+			xvt_network_session_get_status();
 		if (status.state == XVT_NETWORK_SESSION_FAILED) {
 			*result = 0;
-			XvtNetworkDialogs_ShowFailure(status.error, 0);
+			xvt_network_dialogs_show_failure(status.error, 0);
 			return 1;
 		}
 		return 0;
 	}
 	*result = 0;
 	const AeronInputSnapshot *input = Aeron_InputSnapshot();
-	if ((input && input->has_focus && !XvtInput_IsCaptured() &&
+	if ((input && input->has_focus && !xvt_input_is_captured() &&
 	     input->key_pressed[AERON_KEY_ESCAPE]) ||
-	    XvtNetworkDialogs_Connecting()) {
-		XvtNetworkTask_Cancel();
+	    xvt_network_dialogs_connecting()) {
+		xvt_network_task_cancel();
 		return 1;
 	}
-	int status = XvtNetworkSession_Update();
+	int status = xvt_network_session_update();
 	if (status != XVT_NETWORK_PENDING) {
-		XvtNetworkTask_FinishSession(status);
+		xvt_network_task_finish_session(status);
 	}
 	return 1;
 }
 
-int XvtNetworkTask_IsActive(void) { return g_network.active; }
+int xvt_network_task_is_active(void) { return g_network.active; }
 
-void XvtNetworkTask_Cancel(void)
+void xvt_network_task_cancel(void)
 {
-	XvtNetworkSession_Cancel();
-	XvtNetworkTask_RestoreCursor();
-	FrontendDisplay_EnableOffscreenRestore();
-	XvtNetworkDialogs_Return(g_network.action == XVT_NETWORK_HOST ||
-				 g_network.action == XVT_NETWORK_AUTO_HOST);
+	xvt_network_session_cancel();
+	xvt_network_task_restore_cursor();
+	frontend_display_enable_offscreen_restore();
+	xvt_network_dialogs_return(g_network.action == XVT_NETWORK_HOST ||
+				   g_network.action == XVT_NETWORK_AUTO_HOST);
 	memset(&g_network, 0, sizeof(g_network));
 }
 
-void XvtNetworkTask_Shutdown(void)
+void xvt_network_task_shutdown(void)
 {
-	XvtNetworkSession_Leave();
+	xvt_network_session_leave();
 	memset(&g_network, 0, sizeof(g_network));
 	memset(&g_browser, 0, sizeof(g_browser));
 	g_browser.selected_index = -1;

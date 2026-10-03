@@ -20,11 +20,11 @@
 
 /* "openxvt-" + YYYYMMDD + "-" + HHMMSS + "-" + run id + ".log": the pattern's characters, where '9'
  * stands for a decimal digit and 'f' for a lowercase hex digit. */
-static const char g_runNamePattern[] = "openxvt-99999999-999999-ffffffff.log";
+static const char g_run_name_pattern[] = "openxvt-99999999-999999-ffffffff.log";
 
-int XvtLogFile_FormatName(char *out, size_t capacity, int year, int month,
-			  int day, int hour, int minute, int second,
-			  uint32_t run_id)
+int xvt_log_file_format_name(char *out, size_t capacity, int year, int month,
+			     int day, int hour, int minute, int second,
+			     uint32_t run_id)
 {
 	if (capacity == 0) {
 		return 0;
@@ -41,15 +41,15 @@ int XvtLogFile_FormatName(char *out, size_t capacity, int year, int month,
 	return 1;
 }
 
-int XvtLogFile_IsRunName(const char *name)
+int xvt_log_file_is_run_name(const char *name)
 {
 	size_t i;
 	if (!name) {
 		return 0;
 	}
-	for (i = 0; g_runNamePattern[i]; ++i) {
+	for (i = 0; g_run_name_pattern[i]; ++i) {
 		char c = name[i];
-		char want = g_runNamePattern[i];
+		char want = g_run_name_pattern[i];
 		int ok;
 		if (want == '9') {
 			ok = c >= '0' && c <= '9';
@@ -65,32 +65,34 @@ int XvtLogFile_IsRunName(const char *name)
 	return name[i] == 0;
 }
 
-static int XvtLogFile_CompareNames(const void *a, const void *b)
+static int xvt_log_file_compare_names(const void *a, const void *b)
 {
 	return strcmp(*(const char *const *)a, *(const char *const *)b);
 }
 
-size_t XvtLogFile_SelectExpired(const char **names, size_t count, size_t keep)
+size_t xvt_log_file_select_expired(const char **names, size_t count,
+				   size_t keep)
 {
 	size_t runs = 0;
 	if (keep == 0) {
 		keep = 1;
 	}
 	for (size_t i = 0; i < count; ++i) {
-		if (XvtLogFile_IsRunName(names[i])) {
+		if (xvt_log_file_is_run_name(names[i])) {
 			const char *name = names[i];
 			names[i] = names[runs];
 			names[runs++] = name;
 		}
 	}
 	if (runs > 1) {
-		qsort(names, runs, sizeof(names[0]), XvtLogFile_CompareNames);
+		qsort(names, runs, sizeof(names[0]),
+		      xvt_log_file_compare_names);
 	}
 	return runs > keep - 1 ? runs - (keep - 1) : 0;
 }
 
 /* Returns 1 when the length bytes at line start with the stamp "HH:MM:SS.mmm L ". */
-static int XvtLogFile_HasStamp(const char *line, size_t length)
+static int xvt_log_file_has_stamp(const char *line, size_t length)
 {
 	static const char shape[] = "99:99:99.999 L ";
 	if (length < sizeof(shape) - 1) {
@@ -108,7 +110,7 @@ static int XvtLogFile_HasStamp(const char *line, size_t length)
 }
 
 /* Returns 1 when the length bytes at line are a run's first header line, "= <program> run <id> fmt ...". */
-static int XvtLogFile_IsRunHeader(const char *line, size_t length)
+static int xvt_log_file_is_run_header(const char *line, size_t length)
 {
 	size_t i = 2;
 	if (length < 2 || line[0] != '=' || line[1] != ' ') {
@@ -121,8 +123,8 @@ static int XvtLogFile_IsRunHeader(const char *line, size_t length)
 }
 
 /* Returns 1 when the stamped line's event, after the 15-byte stamp, is exactly event. */
-static int XvtLogFile_EventIs(const char *line, size_t length,
-			      const char *event)
+static int xvt_log_file_event_is(const char *line, size_t length,
+				 const char *event)
 {
 	size_t event_length = strlen(event);
 	return length >= 15 + event_length &&
@@ -130,8 +132,8 @@ static int XvtLogFile_EventIs(const char *line, size_t length,
 	       (length == 15 + event_length || line[15 + event_length] == ' ');
 }
 
-XvtLogFileEnding XvtLogFile_ReadEnding(const char *tail, size_t length,
-				       char *last_event, size_t capacity)
+xvt_log_file_ending xvt_log_file_read_ending(const char *tail, size_t length,
+					     char *last_event, size_t capacity)
 {
 	const char *newest_run = tail;
 	const char *last = NULL;
@@ -145,7 +147,7 @@ XvtLogFileEnding XvtLogFile_ReadEnding(const char *tail, size_t length,
 			memchr(line, '\n', (size_t)(tail + length - line));
 		size_t line_length = end ? (size_t)(end - line)
 					 : (size_t)(tail + length - line);
-		if (XvtLogFile_IsRunHeader(line, line_length)) {
+		if (xvt_log_file_is_run_header(line, line_length)) {
 			newest_run = line;
 			header = 1;
 		}
@@ -159,15 +161,15 @@ XvtLogFileEnding XvtLogFile_ReadEnding(const char *tail, size_t length,
 			memchr(line, '\n', (size_t)(tail + length - line));
 		size_t line_length = end ? (size_t)(end - line)
 					 : (size_t)(tail + length - line);
-		if (XvtLogFile_HasStamp(line, line_length)) {
+		if (xvt_log_file_has_stamp(line, line_length)) {
 			last = line;
 			last_length = line_length;
-			stopped |= XvtLogFile_EventIs(line, line_length,
-						      "app.stop");
-			crashed |= XvtLogFile_EventIs(line, line_length,
-						      "app.crash_signal") ||
-				   XvtLogFile_EventIs(line, line_length,
-						      "app.crash_exception");
+			stopped |= xvt_log_file_event_is(line, line_length,
+							 "app.stop");
+			crashed |= xvt_log_file_event_is(line, line_length,
+							 "app.crash_signal") ||
+				   xvt_log_file_event_is(line, line_length,
+							 "app.crash_exception");
 		}
 		if (!end) {
 			break;
@@ -203,8 +205,8 @@ static void XvtLogFile_SystemError(char *error, size_t error_capacity)
 	}
 }
 
-XvtLogFileHandle XvtLogFile_Open(const char *path, char *error,
-				 size_t error_capacity)
+xvt_log_file_handle xvt_log_file_open(const char *path, char *error,
+				      size_t error_capacity)
 {
 	int length = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, path,
 					 -1, NULL, 0);
@@ -233,10 +235,11 @@ XvtLogFileHandle XvtLogFile_Open(const char *path, char *error,
 	}
 	free(wide);
 	return file == INVALID_HANDLE_VALUE ? XVT_LOG_FILE_NONE
-					    : (XvtLogFileHandle)file;
+					    : (xvt_log_file_handle)file;
 }
 
-int XvtLogFile_Write(XvtLogFileHandle file, const char *data, size_t length)
+int xvt_log_file_write(xvt_log_file_handle file, const char *data,
+		       size_t length)
 {
 	if (file == XVT_LOG_FILE_NONE) {
 		return 0;
@@ -255,7 +258,7 @@ int XvtLogFile_Write(XvtLogFileHandle file, const char *data, size_t length)
 	return 1;
 }
 
-void XvtLogFile_Close(XvtLogFileHandle file)
+void xvt_log_file_close(xvt_log_file_handle file)
 {
 	if (file != XVT_LOG_FILE_NONE) {
 		CloseHandle((HANDLE)file);
@@ -264,8 +267,8 @@ void XvtLogFile_Close(XvtLogFileHandle file)
 
 #else
 
-XvtLogFileHandle XvtLogFile_Open(const char *path, char *error,
-				 size_t error_capacity)
+xvt_log_file_handle xvt_log_file_open(const char *path, char *error,
+				      size_t error_capacity)
 {
 	int file = open(path, O_WRONLY | O_CREAT | O_APPEND | O_CLOEXEC, 0600);
 	if (file < 0) {
@@ -274,10 +277,11 @@ XvtLogFileHandle XvtLogFile_Open(const char *path, char *error,
 		}
 		return XVT_LOG_FILE_NONE;
 	}
-	return (XvtLogFileHandle)file;
+	return (xvt_log_file_handle)file;
 }
 
-int XvtLogFile_Write(XvtLogFileHandle file, const char *data, size_t length)
+int xvt_log_file_write(xvt_log_file_handle file, const char *data,
+		       size_t length)
 {
 	if (file == XVT_LOG_FILE_NONE) {
 		return 0;
@@ -296,7 +300,7 @@ int XvtLogFile_Write(XvtLogFileHandle file, const char *data, size_t length)
 	return 1;
 }
 
-void XvtLogFile_Close(XvtLogFileHandle file)
+void xvt_log_file_close(xvt_log_file_handle file)
 {
 	if (file != XVT_LOG_FILE_NONE) {
 		close((int)file);

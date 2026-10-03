@@ -8,8 +8,8 @@
 extern "C" {
 #endif
 
-uint16_t Endian_Swap16(uint16_t value);
-unsigned int Endian_Swap32(unsigned int value);
+uint16_t endian_swap16(uint16_t value);
+unsigned int endian_swap32(unsigned int value);
 
 #ifdef __cplusplus
 }

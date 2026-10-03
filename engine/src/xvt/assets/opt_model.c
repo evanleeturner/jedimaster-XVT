@@ -29,28 +29,28 @@ int access(const char *filename, int mode);
 #endif
 
 #ifndef XVT_MODERN
-struct InventorFieldRecord {
-	int fieldType; /* The InventorFieldType of the values in data. */
+struct inventor_field_record {
+	int field_type; /* The inventor_field_type of the values in data. */
 	/* Values in data: 1 for one value, the length of a list. */
-	int itemCount;
+	int item_count;
 	/* The values, stored in the model's block; for a string, its
 	 * characters. */
 	void *data;
 };
 
-struct OptExternalTexHeader {
+struct opt_external_tex_header {
 	/* The 8 bytes before the sizes; nothing reads them. */
 	uint8_t prefix[8];
 	/* Compared with width times height: when they are equal,
-	 * storedPayloadSize holds the texel bytes. */
-	int pixelCount;
-	/* Texel bytes, used when pixelCount equals width times height. */
-	int storedPayloadSize;
+	 * stored_payload_size holds the texel bytes. */
+	int pixel_count;
+	/* Texel bytes, used when pixel_count equals width times height. */
+	int stored_payload_size;
 	int width;  /* Texture width in texels. */
 	int height; /* Texture height in texels. */
 };
 
-typedef enum InventorFieldType {
+typedef enum inventor_field_type {
 	INVENTOR_FIELD_STRING = 1,
 	INVENTOR_FIELD_NODE = 3,
 	INVENTOR_FIELD_NODE_LIST = 4,
@@ -71,161 +71,163 @@ typedef enum InventorFieldType {
 	INVENTOR_FIELD_ROTATION_LIST = 20,
 	INVENTOR_FIELD_ENUM = 21,
 	INVENTOR_FIELD_ENUM_LIST = 22,
-} InventorFieldType;
+} inventor_field_type;
 
-struct InventorEnumDef {
-	/* Entries a lookup scans in valueNames and values. The component and
+struct inventor_enum_def {
+	/* Entries a lookup scans in value_names and values. The component and
 	 * hardpoint enums give 41 for tables of 32. */
-	int valueCount;
+	int value_count;
 	/* Names a value may take in the file, matched ignoring case; a word
 	 * matching none is read as a number. */
-	const char *const *valueNames;
+	const char *const *value_names;
 	const int *values; /* The value stored for each name. */
 };
 
-struct InventorFieldDef {
+struct inventor_field_def {
 	/* Name as written in the file. A word matches when, ignoring case, it
 	 * is this name or its start. */
-	const char *fieldName;
-	InventorFieldType fieldType; /* How the parser reads the value. */
+	const char *field_name;
+	inventor_field_type field_type; /* How the parser reads the value. */
 	/* Names and values of an enum field; NULL for others. */
-	const struct InventorEnumDef *enumDef;
+	const struct inventor_enum_def *enum_def;
 	/* Type and item count the record takes when the node leaves the field
 	 * out. */
-	const struct InventorFieldRecord *defaultRecord;
+	const struct inventor_field_record *default_record;
 	/* Values copied into the model when the node leaves the field out. */
-	const void *defaultData;
-	size_t defaultDataSize; /* Bytes of defaultData. */
+	const void *default_data;
+	size_t default_data_size; /* Bytes of default_data. */
 };
 
 /* Default record of an integer-list field: 4 items. */
 // GLOBAL: XVT 0x51AF28
-static const struct InventorFieldRecord g_defaultIntegerListRecord = {
+static const struct inventor_field_record g_default_integer_list_record = {
 	INVENTOR_FIELD_INTEGER_LIST, 4, NULL};
 /* Default of an integer-list field: 0, 1, 2, -1. */
 // GLOBAL: XVT 0x51AF38
-static const int g_defaultIntegerList[4] = {0, 1, 2, -1};
+static const int g_default_integer_list[4] = {0, 1, 2, -1};
 /* Default record of an integer field: 1 item. */
 // GLOBAL: XVT 0x51AF58
-static const struct InventorFieldRecord g_defaultIntegerRecord = {
+static const struct inventor_field_record g_default_integer_record = {
 	INVENTOR_FIELD_INTEGER, 1, NULL};
 /* Default of an integer field: 0. */
 // GLOBAL: XVT 0x51AF64
-static const int g_defaultInteger = 0;
+static const int g_default_integer = 0;
 /* Default record of a string field: 1 item. */
 // GLOBAL: XVT 0x51AF48
-static const struct InventorFieldRecord g_defaultStringRecord = {
+static const struct inventor_field_record g_default_string_record = {
 	INVENTOR_FIELD_STRING, 1, NULL};
 /* Default of a string field: the empty string. */
 // GLOBAL: XVT 0x51AF54
-static const char g_defaultString[1] = {'\0'};
+static const char g_default_string[1] = {'\0'};
 /* Default record of a list of 3-vectors: 1 item. */
 // GLOBAL: XVT 0x51AFB8
-static const struct InventorFieldRecord g_defaultVector3ListRecord = {
+static const struct inventor_field_record g_default_vector3_list_record = {
 	INVENTOR_FIELD_VECTOR3_LIST, 1, NULL};
 /* Default record of a single 3-vector: 1 item. */
 // GLOBAL: XVT 0x51AFF0
-static const struct InventorFieldRecord g_defaultVector3Record = {
+static const struct inventor_field_record g_default_vector3_record = {
 	INVENTOR_FIELD_VECTOR3, 1, NULL};
 /* Default of the point and vector lists: one (0, 0, 0). */
 // GLOBAL: XVT 0x51AFC8
-static const struct OptVector g_defaultZeroVector = {0.0f, 0.0f, 0.0f};
+static const struct opt_vector g_default_zero_vector = {0.0f, 0.0f, 0.0f};
 /* Default of translation, center, size, minvector, maxvector, groupcenter and
  * the three axes: (0, 0, 0). */
 // GLOBAL: XVT 0x51B000
-static const struct OptVector g_defaultZeroScalarVector = {0.0f, 0.0f, 0.0f};
+static const struct opt_vector g_default_zero_scalar_vector = {0.0f, 0.0f,
+							       0.0f};
 /* Default of scaleFactor: (1, 1, 1). */
 // GLOBAL: XVT 0x51B020
-static const struct OptVector g_defaultUnitVector = {1.0f, 1.0f, 1.0f};
+static const struct opt_vector g_default_unit_vector = {1.0f, 1.0f, 1.0f};
 /* Default record of a rotation: 1 item. */
 // GLOBAL: XVT 0x51B030
-static const struct InventorFieldRecord g_defaultRotationRecord = {
+static const struct inventor_field_record g_default_rotation_record = {
 	INVENTOR_FIELD_ROTATION, 1, NULL};
 /* Default of rotation and scaleOrientation: 0, 0, 1, 0. */
 // GLOBAL: XVT 0x51B040
-static const float g_defaultRotation[4] = {0.0f, 0.0f, 1.0f, 0.0f};
+static const float g_default_rotation[4] = {0.0f, 0.0f, 1.0f, 0.0f};
 /* Default record of a color list: 1 item. */
 // GLOBAL: XVT 0x51B050
-static const struct InventorFieldRecord g_defaultColorListRecord = {
+static const struct inventor_field_record g_default_color_list_record = {
 	INVENTOR_FIELD_COLOR_LIST, 1, NULL};
 /* Default record of a single color: 1 item. */
 // GLOBAL: XVT 0x51B090
-static const struct InventorFieldRecord g_defaultColorRecord = {
+static const struct inventor_field_record g_default_color_record = {
 	INVENTOR_FIELD_COLOR, 1, NULL};
 /* Default of ambientColor: (0.2, 0.2, 0.2). */
 // GLOBAL: XVT 0x51B060
-static const struct OptVector g_defaultAmbientColor = {0.2f, 0.2f, 0.2f};
+static const struct opt_vector g_default_ambient_color = {0.2f, 0.2f, 0.2f};
 /* Default of diffuseColor: (0.8, 0.8, 0.8). */
 // GLOBAL: XVT 0x51B070
-static const struct OptVector g_defaultDiffuseColor = {0.8f, 0.8f, 0.8f};
+static const struct opt_vector g_default_diffuse_color = {0.8f, 0.8f, 0.8f};
 /* Default of specularColor and emissiveColor: (0, 0, 0). */
 // GLOBAL: XVT 0x51B080
-static const struct OptVector g_defaultBlackColor = {0.0f, 0.0f, 0.0f};
+static const struct opt_vector g_default_black_color = {0.0f, 0.0f, 0.0f};
 /* Default of rgb and blendColor: (0.8, 0.8, 0.8). */
 // GLOBAL: XVT 0x51B0A0
-static const struct OptVector g_defaultRgbColor = {0.8f, 0.8f, 0.8f};
+static const struct opt_vector g_default_rgb_color = {0.8f, 0.8f, 0.8f};
 /* Default record of a float field: 1 item. */
 // GLOBAL: XVT 0x51B0B0
-static const struct InventorFieldRecord g_defaultFloatRecord = {
+static const struct inventor_field_record g_default_float_record = {
 	INVENTOR_FIELD_FLOAT, 1, NULL};
 /* Default of screenArea and transparency: 0. */
 // GLOBAL: XVT 0x51B0BC
-static const float g_defaultZeroFloat = 0.0f;
+static const float g_default_zero_float = 0.0f;
 /* Default of shininess: 0.2. */
 // GLOBAL: XVT 0x51B0C0
-static const float g_defaultShininess = 0.2f;
+static const float g_default_shininess = 0.2f;
 /* Default record of a list of 2-vectors: 1 item. */
 // GLOBAL: XVT 0x51AFD8
-static const struct InventorFieldRecord g_defaultVector2ListRecord = {
+static const struct inventor_field_record g_default_vector2_list_record = {
 	INVENTOR_FIELD_VECTOR2_LIST, 1, NULL};
 /* Default of the 2D point list: one (0, 0). */
 // GLOBAL: XVT 0x51AFE8
-static const float g_defaultVector2[2] = {0.0f, 0.0f};
+static const float g_default_vector2[2] = {0.0f, 0.0f};
 /* Default record of an enum field: 1 item. */
 // GLOBAL: XVT 0x51AF18
-static const struct InventorFieldRecord g_defaultEnumRecord = {
+static const struct inventor_field_record g_default_enum_record = {
 	INVENTOR_FIELD_ENUM, 1, NULL};
 /* Default of an enum field: 0, the value of each enum's first name. */
 // GLOBAL: XVT 0x51AF24
-static const int g_defaultEnum = 0;
+static const int g_default_enum = 0;
 
 /* Names of the binding enum, the value field of materialBinding, normalBinding
  * and textureCoordinateBinding. */
 // GLOBAL: XVT 0x51B320
-static const char *const g_bindingNames[9] = {
+static const char *const g_binding_names[9] = {
 	"DEFAULT",	     "NONE",	 "OVERALL",	     "PER_PART",
 	"PER_PART_INDEXED",  "PER_FACE", "PER_FACE_INDEXED", "PER_VERTEX",
 	"PER_VERTEX_INDEXED"};
 /* Values of the binding names: 0 to 8 in order. */
 // GLOBAL: XVT 0x51B348
-static const int g_bindingValues[9] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
+static const int g_binding_values[9] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
 /* The binding enum: 9 names. */
 // GLOBAL: XVT 0x51B370
-static const struct InventorEnumDef g_bindingEnum = {9, g_bindingNames,
-						     g_bindingValues};
+static const struct inventor_enum_def g_binding_enum = {9, g_binding_names,
+							g_binding_values};
 /* Names of the wrapS and wrapT enum. */
 // GLOBAL: XVT 0x51B400
-static const char *const g_wrapNames[2] = {"REPEAT", "CLAMP"};
+static const char *const g_wrap_names[2] = {"REPEAT", "CLAMP"};
 /* Values of the wrap names: 0 and 1. */
 // GLOBAL: XVT 0x51B408
-static const int g_wrapValues[2] = {0, 1};
+static const int g_wrap_values[2] = {0, 1};
 /* The wrap enum: 2 names. */
 // GLOBAL: XVT 0x51B410
-static const struct InventorEnumDef g_wrapEnum = {2, g_wrapNames, g_wrapValues};
+static const struct inventor_enum_def g_wrap_enum = {2, g_wrap_names,
+						     g_wrap_values};
 /* Names of the texture2 model enum. */
 // GLOBAL: XVT 0x51B460
-static const char *const g_textureModelNames[3] = {"MODULATE", "DECAL",
-						   "BLEND"};
+static const char *const g_texture_model_names[3] = {"MODULATE", "DECAL",
+						     "BLEND"};
 /* Values of the texture model names: 0 to 2. */
 // GLOBAL: XVT 0x51B470
-static const int g_textureModelValues[3] = {0, 1, 2};
+static const int g_texture_model_values[3] = {0, 1, 2};
 /* The texture model enum: 3 names. */
 // GLOBAL: XVT 0x51B480
-static const struct InventorEnumDef g_textureModelEnum = {
-	3, g_textureModelNames, g_textureModelValues};
+static const struct inventor_enum_def g_texture_model_enum = {
+	3, g_texture_model_names, g_texture_model_values};
 /* Names of the componentInfo type enum; name n stands for value n. */
 // GLOBAL: XVT 0x51B7A0
-static const char *const g_componentTypeNames[32] = {
+static const char *const g_component_type_names[32] = {
 	"COMPTYPE_DEFAULT",	"COMPTYPE_MAINHULL",
 	"COMPTYPE_WING",	"COMPTYPE_FUSELAGE",
 	"COMPTYPE_GUNTURRET",	"COMPTYPE_SMALLGUN",
@@ -245,18 +247,18 @@ static const char *const g_componentTypeNames[32] = {
 };
 /* Values of the component type names: 0 to 31 in order. */
 // GLOBAL: XVT 0x51B820
-static const int g_componentTypeValues[32] = {
+static const int g_component_type_values[32] = {
 	0,  1,	2,  3,	4,  5,	6,  7,	8,  9,	10, 11, 12, 13, 14, 15,
 	16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31};
 /* The component type enum. It claims 41 names for a table of 32, so a word that
  * matches none of the 32 sends the lookup past the end of
- * g_componentTypeNames. */
+ * g_component_type_names. */
 // GLOBAL: XVT 0x51B8A0
-static const struct InventorEnumDef g_componentTypeEnum = {
-	41, g_componentTypeNames, g_componentTypeValues};
+static const struct inventor_enum_def g_component_type_enum = {
+	41, g_component_type_names, g_component_type_values};
 /* Names of the hardpoint type enum; name n stands for value n. */
 // GLOBAL: XVT 0x51B958
-static const char *const g_hardpointTypeNames[32] = {
+static const char *const g_hardpoint_type_names[32] = {
 	"HARDPOINT_NONE",
 	"HARDPOINT_REBELLASER",
 	"HARDPOINT_TURBOREBELLASER",
@@ -292,571 +294,588 @@ static const char *const g_hardpointTypeNames[32] = {
 };
 /* Values of the hardpoint type names: 0 to 31 in order. */
 // GLOBAL: XVT 0x51B9D8
-static const int g_hardpointTypeValues[32] = {
+static const int g_hardpoint_type_values[32] = {
 	0,  1,	2,  3,	4,  5,	6,  7,	8,  9,	10, 11, 12, 13, 14, 15,
 	16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31};
 /* The hardpoint type enum. It claims 41 names for a table of 32, so a word that
  * matches none of the 32 sends the lookup past the end of
- * g_hardpointTypeNames. */
+ * g_hardpoint_type_names. */
 // GLOBAL: XVT 0x51BA58
-static const struct InventorEnumDef g_hardpointTypeEnum = {
-	41, g_hardpointTypeNames, g_hardpointTypeValues};
+static const struct inventor_enum_def g_hardpoint_type_enum = {
+	41, g_hardpoint_type_names, g_hardpoint_type_values};
 
 /* Field coordIndex: an integer list; the default is 0, 1, 2, -1. */
 // GLOBAL: XVT 0x51B0C8
-static const struct InventorFieldDef g_fieldCoordIndex = {
+static const struct inventor_field_def g_field_coord_index = {
 	"coordIndex",
 	INVENTOR_FIELD_INTEGER_LIST,
 	NULL,
-	&g_defaultIntegerListRecord,
-	&g_defaultIntegerList,
-	sizeof(g_defaultIntegerList)};
+	&g_default_integer_list_record,
+	&g_default_integer_list,
+	sizeof(g_default_integer_list)};
 /* Field materialIndex: an integer list; the default is 0, 1, 2, -1. */
 // GLOBAL: XVT 0x51B0E0
-static const struct InventorFieldDef g_fieldMaterialIndex = {
+static const struct inventor_field_def g_field_material_index = {
 	"materialIndex",
 	INVENTOR_FIELD_INTEGER_LIST,
 	NULL,
-	&g_defaultIntegerListRecord,
-	&g_defaultIntegerList,
-	sizeof(g_defaultIntegerList)};
-/* Field normalIndex: an integer list; the default is 0, 1, 2, -1. */
+	&g_default_integer_list_record,
+	&g_default_integer_list,
+	sizeof(g_default_integer_list)};
+/* Field normal_index: an integer list; the default is 0, 1, 2, -1. */
 // GLOBAL: XVT 0x51B0F8
-static const struct InventorFieldDef g_fieldNormalIndex = {
+static const struct inventor_field_def g_field_normal_index = {
 	"normalIndex",
 	INVENTOR_FIELD_INTEGER_LIST,
 	NULL,
-	&g_defaultIntegerListRecord,
-	&g_defaultIntegerList,
-	sizeof(g_defaultIntegerList)};
+	&g_default_integer_list_record,
+	&g_default_integer_list,
+	sizeof(g_default_integer_list)};
 /* Field textureCoordIndex: an integer list; the default is 0, 1, 2, -1. */
 // GLOBAL: XVT 0x51B110
-static const struct InventorFieldDef g_fieldTextureCoordIndex = {
+static const struct inventor_field_def g_field_texture_coord_index = {
 	"textureCoordIndex",
 	INVENTOR_FIELD_INTEGER_LIST,
 	NULL,
-	&g_defaultIntegerListRecord,
-	&g_defaultIntegerList,
-	sizeof(g_defaultIntegerList)};
+	&g_default_integer_list_record,
+	&g_default_integer_list,
+	sizeof(g_default_integer_list)};
 /* Field numVertices: an integer list; the default is 0, 1, 2, -1. */
 // GLOBAL: XVT 0x51B128
-static const struct InventorFieldDef g_fieldNumVertices = {
+static const struct inventor_field_def g_field_num_vertices = {
 	"numVertices",
 	INVENTOR_FIELD_INTEGER_LIST,
 	NULL,
-	&g_defaultIntegerListRecord,
-	&g_defaultIntegerList,
-	sizeof(g_defaultIntegerList)};
+	&g_default_integer_list_record,
+	&g_default_integer_list,
+	sizeof(g_default_integer_list)};
 /* Field startIndex: an integer; the default is 0. */
 // GLOBAL: XVT 0x51B140
-static const struct InventorFieldDef g_fieldStartIndex = {
+static const struct inventor_field_def g_field_start_index = {
 	"startIndex",
 	INVENTOR_FIELD_INTEGER,
 	NULL,
-	&g_defaultIntegerRecord,
-	&g_defaultInteger,
-	sizeof(g_defaultInteger)};
+	&g_default_integer_record,
+	&g_default_integer,
+	sizeof(g_default_integer)};
 /* Field verticesPerRow: an integer; the default is 0. */
 // GLOBAL: XVT 0x51B158
-static const struct InventorFieldDef g_fieldVerticesPerRow = {
+static const struct inventor_field_def g_field_vertices_per_row = {
 	"verticesPerRow",
 	INVENTOR_FIELD_INTEGER,
 	NULL,
-	&g_defaultIntegerRecord,
-	&g_defaultInteger,
-	sizeof(g_defaultInteger)};
+	&g_default_integer_record,
+	&g_default_integer,
+	sizeof(g_default_integer)};
 /* Field verticesPerColumn: an integer; the default is 0. */
 // GLOBAL: XVT 0x51B170
-static const struct InventorFieldDef g_fieldVerticesPerColumn = {
+static const struct inventor_field_def g_field_vertices_per_column = {
 	"verticesPerColumn",
 	INVENTOR_FIELD_INTEGER,
 	NULL,
-	&g_defaultIntegerRecord,
-	&g_defaultInteger,
-	sizeof(g_defaultInteger)};
+	&g_default_integer_record,
+	&g_default_integer,
+	sizeof(g_default_integer)};
 /* Field point of textureCoordinate2: a list of 2-vectors; the default is one
  * (0, 0). */
 // GLOBAL: XVT 0x51B1A0
-static const struct InventorFieldDef g_fieldPoint2 = {
+static const struct inventor_field_def g_field_point2 = {
 	"point",
 	INVENTOR_FIELD_VECTOR2_LIST,
 	NULL,
-	&g_defaultVector2ListRecord,
-	&g_defaultVector2,
-	sizeof(g_defaultVector2)};
+	&g_default_vector2_list_record,
+	&g_default_vector2,
+	sizeof(g_default_vector2)};
 /* Field point of coordinate3 and hardpoint: a list of 3-vectors; the default is
  * one (0, 0, 0). */
 // GLOBAL: XVT 0x51B1B8
-static const struct InventorFieldDef g_fieldPoint3 = {
+static const struct inventor_field_def g_field_point3 = {
 	"point",
 	INVENTOR_FIELD_VECTOR3_LIST,
 	NULL,
-	&g_defaultVector3ListRecord,
-	&g_defaultZeroVector,
-	sizeof(g_defaultZeroVector)};
+	&g_default_vector3_list_record,
+	&g_default_zero_vector,
+	sizeof(g_default_zero_vector)};
 /* Field vector of normal: a list of 3-vectors; the default is one (0, 0, 0). */
 // GLOBAL: XVT 0x51B1D0
-static const struct InventorFieldDef g_fieldVector = {
+static const struct inventor_field_def g_field_vector = {
 	"vector",
 	INVENTOR_FIELD_VECTOR3_LIST,
 	NULL,
-	&g_defaultVector3ListRecord,
-	&g_defaultZeroVector,
-	sizeof(g_defaultZeroVector)};
+	&g_default_vector3_list_record,
+	&g_default_zero_vector,
+	sizeof(g_default_zero_vector)};
 /* Field translation: a 3-vector; the default is (0, 0, 0). */
 // GLOBAL: XVT 0x51B1E8
-static const struct InventorFieldDef g_fieldTranslation = {
+static const struct inventor_field_def g_field_translation = {
 	"translation",
 	INVENTOR_FIELD_VECTOR3,
 	NULL,
-	&g_defaultVector3Record,
-	&g_defaultZeroScalarVector,
-	sizeof(g_defaultZeroScalarVector)};
+	&g_default_vector3_record,
+	&g_default_zero_scalar_vector,
+	sizeof(g_default_zero_scalar_vector)};
 /* Field scaleFactor: a 3-vector; the default is (1, 1, 1). */
 // GLOBAL: XVT 0x51B200
-static const struct InventorFieldDef g_fieldScaleFactor = {
+static const struct inventor_field_def g_field_scale_factor = {
 	"scaleFactor",
 	INVENTOR_FIELD_VECTOR3,
 	NULL,
-	&g_defaultVector3Record,
-	&g_defaultUnitVector,
-	sizeof(g_defaultUnitVector)};
+	&g_default_vector3_record,
+	&g_default_unit_vector,
+	sizeof(g_default_unit_vector)};
 /* Field center: a 3-vector; the default is (0, 0, 0). */
 // GLOBAL: XVT 0x51B218
-static const struct InventorFieldDef g_fieldCenter = {
+static const struct inventor_field_def g_field_center = {
 	"center",
 	INVENTOR_FIELD_VECTOR3,
 	NULL,
-	&g_defaultVector3Record,
-	&g_defaultZeroScalarVector,
-	sizeof(g_defaultZeroScalarVector)};
+	&g_default_vector3_record,
+	&g_default_zero_scalar_vector,
+	sizeof(g_default_zero_scalar_vector)};
 /* Field rotation: four floats; the default is 0, 0, 1, 0. */
 // GLOBAL: XVT 0x51B230
-static const struct InventorFieldDef g_fieldRotation = {
+static const struct inventor_field_def g_field_rotation = {
 	"rotation",
 	INVENTOR_FIELD_ROTATION,
 	NULL,
-	&g_defaultRotationRecord,
-	&g_defaultRotation,
-	sizeof(g_defaultRotation)};
+	&g_default_rotation_record,
+	&g_default_rotation,
+	sizeof(g_default_rotation)};
 /* Field scaleOrientation: four floats; the default is 0, 0, 1, 0. */
 // GLOBAL: XVT 0x51B248
-static const struct InventorFieldDef g_fieldScaleOrientation = {
+static const struct inventor_field_def g_field_scale_orientation = {
 	"scaleOrientation",
 	INVENTOR_FIELD_ROTATION,
 	NULL,
-	&g_defaultRotationRecord,
-	&g_defaultRotation,
-	sizeof(g_defaultRotation)};
+	&g_default_rotation_record,
+	&g_default_rotation,
+	sizeof(g_default_rotation)};
 /* Field ambientColor: a color list; the default is one (0.2, 0.2, 0.2). */
 // GLOBAL: XVT 0x51B260
-static const struct InventorFieldDef g_fieldAmbientColor = {
+static const struct inventor_field_def g_field_ambient_color = {
 	"ambientColor",
 	INVENTOR_FIELD_COLOR_LIST,
 	NULL,
-	&g_defaultColorListRecord,
-	&g_defaultAmbientColor,
-	sizeof(g_defaultAmbientColor)};
+	&g_default_color_list_record,
+	&g_default_ambient_color,
+	sizeof(g_default_ambient_color)};
 /* Field diffuseColor: a color list; the default is one (0.8, 0.8, 0.8). */
 // GLOBAL: XVT 0x51B278
-static const struct InventorFieldDef g_fieldDiffuseColor = {
+static const struct inventor_field_def g_field_diffuse_color = {
 	"diffuseColor",
 	INVENTOR_FIELD_COLOR_LIST,
 	NULL,
-	&g_defaultColorListRecord,
-	&g_defaultDiffuseColor,
-	sizeof(g_defaultDiffuseColor)};
+	&g_default_color_list_record,
+	&g_default_diffuse_color,
+	sizeof(g_default_diffuse_color)};
 /* Field specularColor: a color list; the default is one (0, 0, 0). */
 // GLOBAL: XVT 0x51B290
-static const struct InventorFieldDef g_fieldSpecularColor = {
+static const struct inventor_field_def g_field_specular_color = {
 	"specularColor",
 	INVENTOR_FIELD_COLOR_LIST,
 	NULL,
-	&g_defaultColorListRecord,
-	&g_defaultBlackColor,
-	sizeof(g_defaultBlackColor)};
+	&g_default_color_list_record,
+	&g_default_black_color,
+	sizeof(g_default_black_color)};
 /* Field emissiveColor: a color list; the default is one (0, 0, 0). */
 // GLOBAL: XVT 0x51B2A8
-static const struct InventorFieldDef g_fieldEmissiveColor = {
+static const struct inventor_field_def g_field_emissive_color = {
 	"emissiveColor",
 	INVENTOR_FIELD_COLOR_LIST,
 	NULL,
-	&g_defaultColorListRecord,
-	&g_defaultBlackColor,
-	sizeof(g_defaultBlackColor)};
+	&g_default_color_list_record,
+	&g_default_black_color,
+	sizeof(g_default_black_color)};
 /* Field rgb of baseColor: a color; the default is (0.8, 0.8, 0.8). */
 // GLOBAL: XVT 0x51B2C0
-static const struct InventorFieldDef g_fieldRgb = {"rgb",
-						   INVENTOR_FIELD_COLOR,
-						   NULL,
-						   &g_defaultColorRecord,
-						   &g_defaultRgbColor,
-						   sizeof(g_defaultRgbColor)};
+static const struct inventor_field_def g_field_rgb = {
+	"rgb",
+	INVENTOR_FIELD_COLOR,
+	NULL,
+	&g_default_color_record,
+	&g_default_rgb_color,
+	sizeof(g_default_rgb_color)};
 /* Field screenArea of levelofdetail: read as a float, or a list of floats in
  * brackets; the default is 0. */
 // GLOBAL: XVT 0x51B2D8
-static const struct InventorFieldDef g_fieldScreenArea = {
+static const struct inventor_field_def g_field_screen_area = {
 	"screenArea",
 	INVENTOR_FIELD_FLOAT,
 	NULL,
-	&g_defaultFloatRecord,
-	&g_defaultZeroFloat,
-	sizeof(g_defaultZeroFloat)};
+	&g_default_float_record,
+	&g_default_zero_float,
+	sizeof(g_default_zero_float)};
 /* Field shininess: read as a float, or a list of floats in brackets; the
  * default is 0.2. */
 // GLOBAL: XVT 0x51B2F0
-static const struct InventorFieldDef g_fieldShininess = {
+static const struct inventor_field_def g_field_shininess = {
 	"shininess",
 	INVENTOR_FIELD_FLOAT,
 	NULL,
-	&g_defaultFloatRecord,
-	&g_defaultShininess,
-	sizeof(g_defaultShininess)};
+	&g_default_float_record,
+	&g_default_shininess,
+	sizeof(g_default_shininess)};
 /* Field transparency: read as a float, or a list of floats in brackets; the
  * default is 0. */
 // GLOBAL: XVT 0x51B308
-static const struct InventorFieldDef g_fieldTransparency = {
+static const struct inventor_field_def g_field_transparency = {
 	"transparency",
 	INVENTOR_FIELD_FLOAT,
 	NULL,
-	&g_defaultFloatRecord,
-	&g_defaultZeroFloat,
-	sizeof(g_defaultZeroFloat)};
+	&g_default_float_record,
+	&g_default_zero_float,
+	sizeof(g_default_zero_float)};
 /* Field value of the three binding nodes: a binding enum; the default is 0,
  * DEFAULT. */
 // GLOBAL: XVT 0x51B380
-static const struct InventorFieldDef g_fieldBindingValue = {
-	"value",	INVENTOR_FIELD_ENUM,
-	&g_bindingEnum, &g_defaultEnumRecord,
-	&g_defaultEnum, sizeof(g_defaultEnum)};
+static const struct inventor_field_def g_field_binding_value = {
+	"value",	 INVENTOR_FIELD_ENUM,
+	&g_binding_enum, &g_default_enum_record,
+	&g_default_enum, sizeof(g_default_enum)};
 /* Field filename of use and texture2: a string; the default is empty. */
 // GLOBAL: XVT 0x51B3E8
-static const struct InventorFieldDef g_fieldFilename = {
-	"filename",	  INVENTOR_FIELD_STRING,  NULL, &g_defaultStringRecord,
-	&g_defaultString, sizeof(g_defaultString)};
+static const struct inventor_field_def g_field_filename = {
+	"filename",
+	INVENTOR_FIELD_STRING,
+	NULL,
+	&g_default_string_record,
+	&g_default_string,
+	sizeof(g_default_string)};
 /* Field wrapS: a wrap enum; the default is 0, REPEAT. */
 // GLOBAL: XVT 0x51B420
-static const struct InventorFieldDef g_fieldWrapS = {
-	"wrapS",	INVENTOR_FIELD_ENUM,  &g_wrapEnum, &g_defaultEnumRecord,
-	&g_defaultEnum, sizeof(g_defaultEnum)};
+static const struct inventor_field_def g_field_wrap_s = {
+	"wrapS",	 INVENTOR_FIELD_ENUM,
+	&g_wrap_enum,	 &g_default_enum_record,
+	&g_default_enum, sizeof(g_default_enum)};
 /* Field wrapT: a wrap enum; the default is 0, REPEAT. */
 // GLOBAL: XVT 0x51B448
-static const struct InventorFieldDef g_fieldWrapT = {
-	"wrapT",	INVENTOR_FIELD_ENUM,  &g_wrapEnum, &g_defaultEnumRecord,
-	&g_defaultEnum, sizeof(g_defaultEnum)};
+static const struct inventor_field_def g_field_wrap_t = {
+	"wrapT",	 INVENTOR_FIELD_ENUM,
+	&g_wrap_enum,	 &g_default_enum_record,
+	&g_default_enum, sizeof(g_default_enum)};
 /* Field model of texture2: a texture model enum; the default is 0, MODULATE. */
 // GLOBAL: XVT 0x51B490
-static const struct InventorFieldDef g_fieldTextureModel = {
+static const struct inventor_field_def g_field_texture_model = {
 	"model",
 	INVENTOR_FIELD_ENUM,
-	&g_textureModelEnum,
-	&g_defaultEnumRecord,
-	&g_defaultEnum,
-	sizeof(g_defaultEnum)};
+	&g_texture_model_enum,
+	&g_default_enum_record,
+	&g_default_enum,
+	sizeof(g_default_enum)};
 /* Field blendColor: a color; the default is (0.8, 0.8, 0.8). */
 // GLOBAL: XVT 0x51B4A8
-static const struct InventorFieldDef g_fieldBlendColor = {
-	"blendColor",	       INVENTOR_FIELD_COLOR, NULL,
-	&g_defaultColorRecord, &g_defaultRgbColor,   sizeof(g_defaultRgbColor)};
+static const struct inventor_field_def g_field_blend_color = {
+	"blendColor",
+	INVENTOR_FIELD_COLOR,
+	NULL,
+	&g_default_color_record,
+	&g_default_rgb_color,
+	sizeof(g_default_rgb_color)};
 /* Field type of componentInfo: a component type enum; the default is 0,
  * COMPTYPE_DEFAULT. */
 // GLOBAL: XVT 0x51B8B0
-static const struct InventorFieldDef g_fieldComponentType = {
+static const struct inventor_field_def g_field_component_type = {
 	"type",
 	INVENTOR_FIELD_ENUM,
-	&g_componentTypeEnum,
-	&g_defaultEnumRecord,
-	&g_defaultEnum,
-	sizeof(g_defaultEnum)};
+	&g_component_type_enum,
+	&g_default_enum_record,
+	&g_default_enum,
+	sizeof(g_default_enum)};
 /* Field size: a 3-vector; the default is (0, 0, 0). */
 // GLOBAL: XVT 0x51B8C8
-static const struct InventorFieldDef g_fieldSize = {
+static const struct inventor_field_def g_field_size = {
 	"size",
 	INVENTOR_FIELD_VECTOR3,
 	NULL,
-	&g_defaultVector3Record,
-	&g_defaultZeroScalarVector,
-	sizeof(g_defaultZeroScalarVector)};
+	&g_default_vector3_record,
+	&g_default_zero_scalar_vector,
+	sizeof(g_default_zero_scalar_vector)};
 /* Field minvector: a 3-vector; the default is (0, 0, 0). */
 // GLOBAL: XVT 0x51B8E0
-static const struct InventorFieldDef g_fieldMinVector = {
+static const struct inventor_field_def g_field_min_vector = {
 	"minvector",
 	INVENTOR_FIELD_VECTOR3,
 	NULL,
-	&g_defaultVector3Record,
-	&g_defaultZeroScalarVector,
-	sizeof(g_defaultZeroScalarVector)};
+	&g_default_vector3_record,
+	&g_default_zero_scalar_vector,
+	sizeof(g_default_zero_scalar_vector)};
 /* Field maxvector: a 3-vector; the default is (0, 0, 0). */
 // GLOBAL: XVT 0x51B8F8
-static const struct InventorFieldDef g_fieldMaxVector = {
+static const struct inventor_field_def g_field_max_vector = {
 	"maxvector",
 	INVENTOR_FIELD_VECTOR3,
 	NULL,
-	&g_defaultVector3Record,
-	&g_defaultZeroScalarVector,
-	sizeof(g_defaultZeroScalarVector)};
+	&g_default_vector3_record,
+	&g_default_zero_scalar_vector,
+	sizeof(g_default_zero_scalar_vector)};
 /* Field groupcenter: a 3-vector; the default is (0, 0, 0). */
 // GLOBAL: XVT 0x51B910
-static const struct InventorFieldDef g_fieldGroupCenter = {
+static const struct inventor_field_def g_field_group_center = {
 	"groupcenter",
 	INVENTOR_FIELD_VECTOR3,
 	NULL,
-	&g_defaultVector3Record,
-	&g_defaultZeroScalarVector,
-	sizeof(g_defaultZeroScalarVector)};
+	&g_default_vector3_record,
+	&g_default_zero_scalar_vector,
+	sizeof(g_default_zero_scalar_vector)};
 /* Field flags: an integer; the default is 0. */
 // GLOBAL: XVT 0x51B928
-static const struct InventorFieldDef g_fieldFlags = {"flags",
-						     INVENTOR_FIELD_INTEGER,
-						     NULL,
-						     &g_defaultIntegerRecord,
-						     &g_defaultInteger,
-						     sizeof(g_defaultInteger)};
+static const struct inventor_field_def g_field_flags = {
+	"flags",
+	INVENTOR_FIELD_INTEGER,
+	NULL,
+	&g_default_integer_record,
+	&g_default_integer,
+	sizeof(g_default_integer)};
 /* Field groupid: an integer; the default is 0. */
 // GLOBAL: XVT 0x51B940
-static const struct InventorFieldDef g_fieldGroupId = {
+static const struct inventor_field_def g_field_group_id = {
 	"groupid",
 	INVENTOR_FIELD_INTEGER,
 	NULL,
-	&g_defaultIntegerRecord,
-	&g_defaultInteger,
-	sizeof(g_defaultInteger)};
+	&g_default_integer_record,
+	&g_default_integer,
+	sizeof(g_default_integer)};
 /* Field type of hardpoint: a hardpoint type enum; the default is 0,
  * HARDPOINT_NONE. */
 // GLOBAL: XVT 0x51BA68
-static const struct InventorFieldDef g_fieldHardpointType = {
+static const struct inventor_field_def g_field_hardpoint_type = {
 	"type",
 	INVENTOR_FIELD_ENUM,
-	&g_hardpointTypeEnum,
-	&g_defaultEnumRecord,
-	&g_defaultEnum,
-	sizeof(g_defaultEnum)};
+	&g_hardpoint_type_enum,
+	&g_default_enum_record,
+	&g_default_enum,
+	sizeof(g_default_enum)};
 /* Field axis1: a 3-vector; the default is (0, 0, 0). */
 // GLOBAL: XVT 0x51BA80
-static const struct InventorFieldDef g_fieldAxis1 = {
+static const struct inventor_field_def g_field_axis1 = {
 	"axis1",
 	INVENTOR_FIELD_VECTOR3,
 	NULL,
-	&g_defaultVector3Record,
-	&g_defaultZeroScalarVector,
-	sizeof(g_defaultZeroScalarVector)};
+	&g_default_vector3_record,
+	&g_default_zero_scalar_vector,
+	sizeof(g_default_zero_scalar_vector)};
 /* Field axis2: a 3-vector; the default is (0, 0, 0). */
 // GLOBAL: XVT 0x51BA98
-static const struct InventorFieldDef g_fieldAxis2 = {
+static const struct inventor_field_def g_field_axis2 = {
 	"axis2",
 	INVENTOR_FIELD_VECTOR3,
 	NULL,
-	&g_defaultVector3Record,
-	&g_defaultZeroScalarVector,
-	sizeof(g_defaultZeroScalarVector)};
+	&g_default_vector3_record,
+	&g_default_zero_scalar_vector,
+	sizeof(g_default_zero_scalar_vector)};
 /* Field axis3: a 3-vector; the default is (0, 0, 0). */
 // GLOBAL: XVT 0x51BAB0
-static const struct InventorFieldDef g_fieldAxis3 = {
+static const struct inventor_field_def g_field_axis3 = {
 	"axis3",
 	INVENTOR_FIELD_VECTOR3,
 	NULL,
-	&g_defaultVector3Record,
-	&g_defaultZeroScalarVector,
-	sizeof(g_defaultZeroScalarVector)};
+	&g_default_vector3_record,
+	&g_default_zero_scalar_vector,
+	sizeof(g_default_zero_scalar_vector)};
 
 /* Fields of indexedFaceSet, in record order. */
 // GLOBAL: XVT 0x51BAD8
-static const struct InventorFieldDef *const g_fieldsIndexedFaceSet[] = {
-	&g_fieldCoordIndex, &g_fieldMaterialIndex, &g_fieldNormalIndex,
-	&g_fieldTextureCoordIndex};
+static const struct inventor_field_def *const g_fields_indexed_face_set[] = {
+	&g_field_coord_index, &g_field_material_index, &g_field_normal_index,
+	&g_field_texture_coord_index};
 /* Fields of transform, in record order. */
 // GLOBAL: XVT 0x51BAF8
-static const struct InventorFieldDef *const g_fieldsTransform[] = {
-	&g_fieldTranslation, &g_fieldRotation, &g_fieldScaleFactor,
-	&g_fieldScaleOrientation, &g_fieldCenter};
+static const struct inventor_field_def *const g_fields_transform[] = {
+	&g_field_translation, &g_field_rotation, &g_field_scale_factor,
+	&g_field_scale_orientation, &g_field_center};
 /* Fields of coordinate3. */
 // GLOBAL: XVT 0x51BB1C
-static const struct InventorFieldDef *const g_fieldsCoordinate3[] = {
-	&g_fieldPoint3};
+static const struct inventor_field_def *const g_fields_coordinate3[] = {
+	&g_field_point3};
 /* Fields of translation. */
 // GLOBAL: XVT 0x51BB2C
-static const struct InventorFieldDef *const g_fieldsTranslation[] = {
-	&g_fieldTranslation};
+static const struct inventor_field_def *const g_fields_translation[] = {
+	&g_field_translation};
 /* Fields of rotation. */
 // GLOBAL: XVT 0x51BB3C
-static const struct InventorFieldDef *const g_fieldsRotation[] = {
-	&g_fieldRotation};
+static const struct inventor_field_def *const g_fields_rotation[] = {
+	&g_field_rotation};
 /* Fields of scale. */
 // GLOBAL: XVT 0x51BB4C
-static const struct InventorFieldDef *const g_fieldsScale[] = {
-	&g_fieldScaleFactor};
+static const struct inventor_field_def *const g_fields_scale[] = {
+	&g_field_scale_factor};
 /* Fields of use. */
 // GLOBAL: XVT 0x51BB5C
-static const struct InventorFieldDef *const g_fieldsUse[] = {&g_fieldFilename};
+static const struct inventor_field_def *const g_fields_use[] = {
+	&g_field_filename};
 /* Fields of material, in record order. */
 // GLOBAL: XVT 0x51BB80
-static const struct InventorFieldDef *const g_fieldsMaterial[] = {
-	&g_fieldAmbientColor,  &g_fieldDiffuseColor, &g_fieldSpecularColor,
-	&g_fieldEmissiveColor, &g_fieldShininess,    &g_fieldTransparency};
+static const struct inventor_field_def *const g_fields_material[] = {
+	&g_field_ambient_color,	 &g_field_diffuse_color,
+	&g_field_specular_color, &g_field_emissive_color,
+	&g_field_shininess,	 &g_field_transparency};
 /* Fields of the three binding nodes. */
 // GLOBAL: XVT 0x51BBA4
-static const struct InventorFieldDef *const g_fieldsBinding[] = {
-	&g_fieldBindingValue};
+static const struct inventor_field_def *const g_fields_binding[] = {
+	&g_field_binding_value};
 /* Fields of normal. */
 // GLOBAL: XVT 0x51BBB4
-static const struct InventorFieldDef *const g_fieldsNormal[] = {&g_fieldVector};
+static const struct inventor_field_def *const g_fields_normal[] = {
+	&g_field_vector};
 /* Fields of textureCoordinate2. */
 // GLOBAL: XVT 0x51BBD4
-static const struct InventorFieldDef *const g_fieldsTextureCoordinate2[] = {
-	&g_fieldPoint2};
+static const struct inventor_field_def *const g_fields_texture_coordinate2[] = {
+	&g_field_point2};
 /* Fields of quadMesh, in record order. */
 // GLOBAL: XVT 0x51BBF8
-static const struct InventorFieldDef *const g_fieldsQuadMesh[] = {
-	&g_fieldStartIndex, &g_fieldVerticesPerRow, &g_fieldVerticesPerColumn};
+static const struct inventor_field_def *const g_fields_quad_mesh[] = {
+	&g_field_start_index, &g_field_vertices_per_row,
+	&g_field_vertices_per_column};
 /* Fields of faceSet and triangleStripSet. */
 // GLOBAL: XVT 0x51BC14
-static const struct InventorFieldDef *const g_fieldsFaceSet[] = {
-	&g_fieldNumVertices};
+static const struct inventor_field_def *const g_fields_face_set[] = {
+	&g_field_num_vertices};
 /* Fields of baseColor. */
 // GLOBAL: XVT 0x51BC44
-static const struct InventorFieldDef *const g_fieldsBaseColor[] = {&g_fieldRgb};
+static const struct inventor_field_def *const g_fields_base_color[] = {
+	&g_field_rgb};
 /* Fields of texture2, in record order. */
 // GLOBAL: XVT 0x51BC58
-static const struct InventorFieldDef *const g_fieldsTexture2[] = {
-	&g_fieldFilename, &g_fieldWrapS, &g_fieldWrapT, &g_fieldTextureModel,
-	&g_fieldBlendColor};
+static const struct inventor_field_def *const g_fields_texture2[] = {
+	&g_field_filename, &g_field_wrap_s, &g_field_wrap_t,
+	&g_field_texture_model, &g_field_blend_color};
 /* Fields of levelofdetail. */
 // GLOBAL: XVT 0x51BC7C
-static const struct InventorFieldDef *const g_fieldsLevelOfDetail[] = {
-	&g_fieldScreenArea};
+static const struct inventor_field_def *const g_fields_level_of_detail[] = {
+	&g_field_screen_area};
 /* Fields of hardpoint, in record order. */
 // GLOBAL: XVT 0x51BC90
-static const struct InventorFieldDef *const g_fieldsHardpoint[] = {
-	&g_fieldHardpointType, &g_fieldPoint3};
+static const struct inventor_field_def *const g_fields_hardpoint[] = {
+	&g_field_hardpoint_type, &g_field_point3};
 /* Fields of pivot, in record order. */
 // GLOBAL: XVT 0x51BCA8
-static const struct InventorFieldDef *const g_fieldsPivot[] = {
-	&g_fieldCenter, &g_fieldAxis1, &g_fieldAxis2, &g_fieldAxis3};
+static const struct inventor_field_def *const g_fields_pivot[] = {
+	&g_field_center, &g_field_axis1, &g_field_axis2, &g_field_axis3};
 /* Fields of componentInfo, in record order. */
 // GLOBAL: XVT 0x51BCD8
-static const struct InventorFieldDef *const g_fieldsComponentInfo[] = {
-	&g_fieldComponentType, &g_fieldFlags,	    &g_fieldSize,
-	&g_fieldCenter,	       &g_fieldMinVector,   &g_fieldMaxVector,
-	&g_fieldGroupId,       &g_fieldGroupCenter,
+static const struct inventor_field_def *const g_fields_component_info[] = {
+	&g_field_component_type, &g_field_flags,	&g_field_size,
+	&g_field_center,	 &g_field_min_vector,	&g_field_max_vector,
+	&g_field_group_id,	 &g_field_group_center,
 };
 
-/* The node types the Inventor importer knows, one row per OptNodeType value in
+/* The node types the Inventor importer knows, one row per opt_node_type value in
  * order: the name in the file, the field count and the fields. */
 // GLOBAL: XVT 0x51BAC8
-static const struct InventorNodeDef g_inventorNodeDefData[26] = {
+static const struct inventor_node_def g_inventor_node_def_data[26] = {
 	{"separator", 0, NULL},
-	{"indexedFaceSet", 4, g_fieldsIndexedFaceSet},
-	{"transform", 5, g_fieldsTransform},
-	{"coordinate3", 1, g_fieldsCoordinate3},
-	{"translation", 1, g_fieldsTranslation},
-	{"rotation", 1, g_fieldsRotation},
-	{"scale", 1, g_fieldsScale},
-	{"use", 1, g_fieldsUse},
+	{"indexedFaceSet", 4, g_fields_indexed_face_set},
+	{"transform", 5, g_fields_transform},
+	{"coordinate3", 1, g_fields_coordinate3},
+	{"translation", 1, g_fields_translation},
+	{"rotation", 1, g_fields_rotation},
+	{"scale", 1, g_fields_scale},
+	{"use", 1, g_fields_use},
 	{"def", 0, NULL},
-	{"material", 6, g_fieldsMaterial},
-	{"materialBinding", 1, g_fieldsBinding},
-	{"normal", 1, g_fieldsNormal},
-	{"normalBinding", 1, g_fieldsBinding},
-	{"textureCoordinate2", 1, g_fieldsTextureCoordinate2},
-	{"textureCoordinateBinding", 1, g_fieldsBinding},
-	{"quadMesh", 3, g_fieldsQuadMesh},
-	{"faceSet", 1, g_fieldsFaceSet},
-	{"triangleStripSet", 1, g_fieldsFaceSet},
+	{"material", 6, g_fields_material},
+	{"materialBinding", 1, g_fields_binding},
+	{"normal", 1, g_fields_normal},
+	{"normalBinding", 1, g_fields_binding},
+	{"textureCoordinate2", 1, g_fields_texture_coordinate2},
+	{"textureCoordinateBinding", 1, g_fields_binding},
+	{"quadMesh", 3, g_fields_quad_mesh},
+	{"faceSet", 1, g_fields_face_set},
+	{"triangleStripSet", 1, g_fields_face_set},
 	{"group", 0, NULL},
-	{"baseColor", 1, g_fieldsBaseColor},
-	{"texture2", 5, g_fieldsTexture2},
-	{"levelofdetail", 1, g_fieldsLevelOfDetail},
-	{"hardpoint", 2, g_fieldsHardpoint},
-	{"pivot", 4, g_fieldsPivot},
+	{"baseColor", 1, g_fields_base_color},
+	{"texture2", 5, g_fields_texture2},
+	{"levelofdetail", 1, g_fields_level_of_detail},
+	{"hardpoint", 2, g_fields_hardpoint},
+	{"pivot", 4, g_fields_pivot},
 	{"camoswitch", 0, NULL},
-	{"componentInfo", 8, g_fieldsComponentInfo},
+	{"componentInfo", 8, g_fields_component_info},
 };
 
-/* Pointers to the rows of g_inventorNodeDefData, the table
- * OptModel_ParseInventorAsciiNode searches in order. */
+/* Pointers to the rows of g_inventor_node_def_data, the table
+ * opt_model_parse_inventor_ascii_node searches in order. */
 // GLOBAL: XVT 0x51BD08
-const struct InventorNodeDef *const g_inventorNodeDefs[26] = {
-	&g_inventorNodeDefData[0],  &g_inventorNodeDefData[1],
-	&g_inventorNodeDefData[2],  &g_inventorNodeDefData[3],
-	&g_inventorNodeDefData[4],  &g_inventorNodeDefData[5],
-	&g_inventorNodeDefData[6],  &g_inventorNodeDefData[7],
-	&g_inventorNodeDefData[8],  &g_inventorNodeDefData[9],
-	&g_inventorNodeDefData[10], &g_inventorNodeDefData[11],
-	&g_inventorNodeDefData[12], &g_inventorNodeDefData[13],
-	&g_inventorNodeDefData[14], &g_inventorNodeDefData[15],
-	&g_inventorNodeDefData[16], &g_inventorNodeDefData[17],
-	&g_inventorNodeDefData[18], &g_inventorNodeDefData[19],
-	&g_inventorNodeDefData[20], &g_inventorNodeDefData[21],
-	&g_inventorNodeDefData[22], &g_inventorNodeDefData[23],
-	&g_inventorNodeDefData[24], &g_inventorNodeDefData[25],
+const struct inventor_node_def *const g_inventor_node_defs[26] = {
+	&g_inventor_node_def_data[0],  &g_inventor_node_def_data[1],
+	&g_inventor_node_def_data[2],  &g_inventor_node_def_data[3],
+	&g_inventor_node_def_data[4],  &g_inventor_node_def_data[5],
+	&g_inventor_node_def_data[6],  &g_inventor_node_def_data[7],
+	&g_inventor_node_def_data[8],  &g_inventor_node_def_data[9],
+	&g_inventor_node_def_data[10], &g_inventor_node_def_data[11],
+	&g_inventor_node_def_data[12], &g_inventor_node_def_data[13],
+	&g_inventor_node_def_data[14], &g_inventor_node_def_data[15],
+	&g_inventor_node_def_data[16], &g_inventor_node_def_data[17],
+	&g_inventor_node_def_data[18], &g_inventor_node_def_data[19],
+	&g_inventor_node_def_data[20], &g_inventor_node_def_data[21],
+	&g_inventor_node_def_data[22], &g_inventor_node_def_data[23],
+	&g_inventor_node_def_data[24], &g_inventor_node_def_data[25],
 };
 
-/* Per field of the node OptModel_ParseInventorAsciiNode is reading, 1 once the
+/* Per field of the node opt_model_parse_inventor_ascii_node is reading, 1 once the
  * file gave it; that function clears the node's entries before its fields and
  * fills the fields still at 0 from their defaults. Only that function writes
  * it. */
 // GLOBAL: XVT 0x5505F8
-uint8_t g_inventorFieldSeen[256] = {0};
+uint8_t g_inventor_field_seen[256] = {0};
 /* Scratch for one word read from an Inventor file, up to 256 characters and a
- * NUL, and for the model file name OptModel_LoadHandle tries. */
+ * NUL, and for the model file name opt_model_load_handle tries. */
 // GLOBAL: XVT 0x5506F8
-char g_optModelLoadScratchBuffer[257] = {0};
+char g_opt_model_load_scratch_buffer[257] = {0};
 #endif
 
-/* One row per model, indexed by ModelIndex: names, flight and combat figures,
+/* One row per model, indexed by model_index: names, flight and combat figures,
  * weapon groups and points; the starting values come from model_defs_data.inc.
- * FeDiskIo_BuildModelDef fills the bound sizes and the dock, hangar, primary
- * and weapon points from each loaded OPT model, and StringTable_LoadGameStrings
- * sets each nameLong. */
+ * fe_disk_io_build_model_def fills the bound sizes and the dock, hangar, primary
+ * and weapon points from each loaded OPT model, and string_table_load_game_strings
+ * sets each name_long. */
 // GLOBAL: XVT 0x51C560
-struct ModelDef g_modelDefs[73] = {
+struct model_def g_model_defs[73] = {
 #include "xvt/assets/model_defs_data.inc"
 };
 /* The float 1.0; the software renderer and this file's normal builders read
  * it. */
 // GLOBAL: XVT 0x5181C0
-const float g_sw3dUnitFloat = 1.0f;
-/* The float 3.0, the corner count sw3d_ProjectMeshVertices divides by a
+const float g_sw3d_unit_float = 1.0f;
+/* The float 3.0, the corner count sw3d_project_mesh_vertices divides by a
  * triangle's summed corner w values. */
 // GLOBAL: XVT 0x5181C4
-const float g_sw3dTriangleCornerCount = 3.0f;
-/* The float 4.0, the corner count sw3d_ProjectMeshVertices divides by a quad's
+const float g_sw3d_triangle_corner_count = 3.0f;
+/* The float 4.0, the corner count sw3d_project_mesh_vertices divides by a quad's
  * summed corner w values. */
 // GLOBAL: XVT 0x5181C8
-const float g_sw3dQuadCornerCount = 4.0f;
-/* The float 0.0; the software renderer, RenderScene_CullMeshFacesFromView and
+const float g_sw3d_quad_corner_count = 4.0f;
+/* The float 0.0; the software renderer, render_scene_cull_mesh_faces_from_view and
  * this file's normal builders compare with it. */
 // GLOBAL: XVT 0x5181B8
-const float g_sw3dZeroFloat = 0.0f;
-/* The float 100000.0: sw3d_ProjectMeshVerticesDistant multiplies its projection
+const float g_sw3d_zero_float = 0.0f;
+/* The float 100000.0: sw3d_project_mesh_vertices_distant multiplies its projection
  * scale by it and adds it to each transformed vertex's z. */
 // GLOBAL: XVT 0x5181CC
-const float g_sw3dDistantDepth = 100000.0f;
+const float g_sw3d_distant_depth = 100000.0f;
 /* 1 while the model walkers keep an OPT_NODEREF node's target in the node after
  * the first lookup: the original build in its pName, blanking the name, the
- * modern build through XvtOpt_ResolveCached. Nothing writes it, so it stays
+ * modern build through xvt_opt_resolve_cached. Nothing writes it, so it stays
  * 1. */
 // GLOBAL: XVT 0x5270B0
-int g_cacheResolvedOptNodeRefs = 1;
+int g_cache_resolved_opt_node_refs = 1;
 /* 1 while the model being loaded came from a version 0 file, whose face records
  * carry no normal indices: 48 bytes each where version 1 has 64. Only
- * OptModel_LoadFileToHandle writes it; the legacy converter reads it, and
- * OptModel_SaveHandleToFile picks its version marker from it. */
+ * opt_model_load_file_to_handle writes it; the legacy converter reads it, and
+ * opt_model_save_handle_to_file picks its version marker from it. */
 // GLOBAL: XVT 0x5272B0
-int g_optSourceIsVersion0 = 0;
+int g_opt_source_is_version0 = 0;
 #ifndef XVT_MODERN
 /* The extension "rgb", compared ignoring case by the texture loaders. */
 // GLOBAL: XVT 0x51AE00
-const char g_extRgb[4] = "rgb";
+const char g_ext_rgb[4] = "rgb";
 /* The extension "tex", compared ignoring case by the texture loaders. */
 // GLOBAL: XVT 0x5272CC
-const char g_extTex[4] = "tex";
+const char g_ext_tex[4] = "tex";
 #endif
 /* 1 / n at index n, from 1 to 69, with 1.0 at index 0; read by the software
- * renderer, FlightStarfield_Render, RenderScene_AllocateBuffers and
- * OptModel_BuildVertexNormalsFromFaces. */
+ * renderer, flight_starfield_render, render_scene_allocate_buffers and
+ * opt_model_build_vertex_normals_from_faces. */
 // GLOBAL: XVT 0x5270B8
-const float g_sw3dSpanLengthReciprocal[70] = {
+const float g_sw3d_span_length_reciprocal[70] = {
 	1.0f,	      1.0f,	    1.0f / 2.0f,  1.0f / 3.0f,	1.0f / 4.0f,
 	1.0f / 5.0f,  1.0f / 6.0f,  1.0f / 7.0f,  1.0f / 8.0f,	1.0f / 9.0f,
 	1.0f / 10.0f, 1.0f / 11.0f, 1.0f / 12.0f, 1.0f / 13.0f, 1.0f / 14.0f,
@@ -873,128 +892,128 @@ const float g_sw3dSpanLengthReciprocal[70] = {
 	1.0f / 65.0f, 1.0f / 66.0f, 1.0f / 67.0f, 1.0f / 68.0f, 1.0f / 69.0f,
 };
 /* Per object type, the Memory handle of its flight resource, a runtime model
- * from OptModel_LoadHandle or a texture block; 0 for none.
- * FeDiskIo_LoadResources fills it, FeDiskIo_FreeFlightResources clears it,
- * ModelPreview_LoadModel keeps the preview model in slot 0, and the modern
- * XvtFrontendTask_Shutdown clears it. */
+ * from opt_model_load_handle or a texture block; 0 for none.
+ * fe_disk_io_load_resources fills it, fe_disk_io_free_flight_resources clears it,
+ * model_preview_load_model keeps the preview model in slot 0, and the modern
+ * xvt_frontend_task_shutdown clears it. */
 // GLOBAL: XVT 0x9A7ED0
-uint16_t g_loadedModels[201] = {0};
-/* Where OptModel_RemapVectorIndex starts its next search: the index it last
+uint16_t g_loaded_models[201] = {0};
+/* Where opt_model_remap_vector_index starts its next search: the index it last
  * found, or the list length after a miss. Only that function writes it, and
  * nothing resets it between models. */
 // GLOBAL: XVT 0x60F1E4
-int g_optConvertVectorSearchCursor = 0;
-/* Where OptModel_RemapTexCoordIndex starts its next search: the index it last
+int g_opt_convert_vector_search_cursor = 0;
+/* Where opt_model_remap_tex_coord_index starts its next search: the index it last
  * found, or the list length after a miss. Only that function writes it, and
  * nothing resets it between models. */
 // GLOBAL: XVT 0x60F1FC
-int g_optConvertTexCoordSearchCursor = 0;
+int g_opt_convert_tex_coord_search_cursor = 0;
 /* Handle of the shared block a model file is loaded and converted in; kept and
  * regrown from one load to the next, 0 before the first. Only
- * OptModel_LoadFileToHandle and OptModel_ConvertLegacyModelToOptimized write
+ * opt_model_load_file_to_handle and opt_model_convert_legacy_model_to_optimized write
  * it. */
 // GLOBAL: XVT 0x5272A8
-uint16_t g_loadOptBufHandle = 0;
-/* Bytes allocated for g_loadOptBufHandle (the decoded size in the modern
+uint16_t g_load_opt_buf_handle = 0;
+/* Bytes allocated for g_load_opt_buf_handle (the decoded size in the modern
  * build); written by the same two functions. */
 // GLOBAL: XVT 0x5272AC
-int g_loadOptBufSize = 0;
-/* Handle of the copy OptModel_ConvertLegacyModelToOptimized converts from; it
+int g_load_opt_buf_size = 0;
+/* Handle of the copy opt_model_convert_legacy_model_to_optimized converts from; it
  * alone writes it, keeps it between calls, regrows it and never frees it. */
 // GLOBAL: XVT 0x5272B4
-uint16_t g_optConvertSourceHandle = 0;
-/* Bytes allocated for g_optConvertSourceHandle. */
+uint16_t g_opt_convert_source_handle = 0;
+/* Bytes allocated for g_opt_convert_source_handle. */
 // GLOBAL: XVT 0x5272B8
-unsigned int g_optConvertSourceBufSize = 0;
+unsigned int g_opt_convert_source_buf_size = 0;
 /* Vertex count of the OPT_MESHVERTS node the model walkers last passed. Many
  * functions write it, chiefly this file's walkers and RenderScene's, which set
  * it to 0 before a walk. */
 // GLOBAL: XVT 0x60F204
-int g_curVertexCount = 0;
+int g_cur_vertex_count = 0;
 /* Vertex list of the mesh node the model walkers last passed; the converters
  * and the normal builders read it. Set to NULL before each walk, here and in
  * RenderScene's walkers. */
 // GLOBAL: XVT 0x60F1C0
-void *g_curMeshVertices = NULL;
+void *g_cur_mesh_vertices = NULL;
 /* Material records of the OPT_MATERIAL node the model walkers last passed. Set
  * to NULL before each walk, here and in RenderScene's walkers. */
 // GLOBAL: XVT 0x60F1D8
-void *g_curMeshMaterials = NULL;
+void *g_cur_mesh_materials = NULL;
 /* Texture coordinates of the OPT_TEXCOORDS node the model walkers last passed.
  * Set to NULL before each walk, here and in RenderScene's walkers. */
 // GLOBAL: XVT 0x60F1E8
-void *g_curMeshTexCoords = NULL;
+void *g_cur_mesh_tex_coords = NULL;
 /* Every model walker sets it to NULL before it walks; nothing sets it to
  * anything else or reads it. */
 // GLOBAL: XVT 0x60F1F0
-void *g_modelNodeWalkUnusedScratch2 = NULL;
+void *g_model_node_walk_unused_scratch2 = NULL;
 /* Vertex normals of the OPT_VERTNORMALS node the model walkers last passed. Set
  * to NULL before each walk, here and in RenderScene's walkers. */
 // GLOBAL: XVT 0x60F208
-struct OptVector *g_curVertNormals = NULL;
+struct opt_vector *g_cur_vert_normals = NULL;
 #ifndef XVT_MODERN
-/* Vectors in the scratch block OptModel_ConvertImportedHandleToPacked
+/* Vectors in the scratch block opt_model_convert_imported_handle_to_packed
  * allocates; that function sets it to 1 and nothing raises it. */
 // GLOBAL: XVT 0x5272C0
-int g_optImportScratchVectorCount = 0;
-/* The scratch block OptModel_ConvertImportedHandleToPacked allocates and frees
+int g_opt_import_scratch_vector_count = 0;
+/* The scratch block opt_model_convert_imported_handle_to_packed allocates and frees
  * while it packs an import. Nothing reads it, and it keeps pointing at the
  * block after the block is freed. */
 // GLOBAL: XVT 0x5272C4
-struct OptVector *g_optImportScratchVectors = NULL;
-/* When nonzero, OptModel_BuildFaceNormalTangentData negates each face normal it
+struct opt_vector *g_opt_import_scratch_vectors = NULL;
+/* When nonzero, opt_model_build_face_normal_tangent_data negates each face normal it
  * builds. Nothing writes it, so it stays 0. */
 // GLOBAL: XVT 0x5271D0
-int g_optModelInvertFaceNormals = 0;
-/* Vertex normals OptModel_BuildFaceNormalTangentData last built after a face
+int g_opt_model_invert_face_normals = 0;
+/* Vertex normals opt_model_build_face_normal_tangent_data last built after a face
  * node's data: the vertex count when the mesh had no OPT_VERTNORMALS node, else
- * 0. OptModel_AppendPackedFaceDerivedData steps over that many. */
+ * 0. opt_model_append_packed_face_derived_data steps over that many. */
 // GLOBAL: XVT 0x60F1D4
-int g_generatedVertexNormalCount = 0;
+int g_generated_vertex_normal_count = 0;
 #endif
-/* 1 once OptModel_AppendConvertedFacesForNode has reached the face node it
- * merges faces into; OptModel_AppendConvertedFacesForCurrentMesh sets it to 0
+/* 1 once opt_model_append_converted_faces_for_node has reached the face node it
+ * merges faces into; opt_model_append_converted_faces_for_current_mesh sets it to 0
  * first. */
 // GLOBAL: XVT 0x5272BC
-static int g_optConvertTargetFaceFound = 0;
+static int g_opt_convert_target_face_found = 0;
 /* The OPT_FACEGROUP node the legacy converter last passed, whose children
- * OptModel_AppendConvertedFacesForCurrentMesh searches for faces to merge. */
+ * opt_model_append_converted_faces_for_current_mesh searches for faces to merge. */
 // GLOBAL: XVT 0x60F1C8
-struct OptNode *g_optConvertSourceMeshNode = NULL;
+struct opt_node *g_opt_convert_source_mesh_node = NULL;
 /* The merged OPT_VERTNORMALS node the legacy converter built for the current
- * root; NULL before it. OptModel_ConvertLegacyModelToOptimized clears it before
+ * root; NULL before it. opt_model_convert_legacy_model_to_optimized clears it before
  * each root. */
 // GLOBAL: XVT 0x60F1CC
-struct OptNode *g_optConvertVertexNormalNode = NULL;
+struct opt_node *g_opt_convert_vertex_normal_node = NULL;
 /* The texture the legacy converter last passed, directly or through an
  * OPT_NODEREF; faces merge only with faces under the same texture. */
 // GLOBAL: XVT 0x60F1DC
-struct OptNode *g_optConvertSourceTextureNode = NULL;
+struct opt_node *g_opt_convert_source_texture_node = NULL;
 /* The merged OPT_TEXCOORDS node the legacy converter built for the current
- * root; NULL before it. OptModel_ConvertLegacyModelToOptimized clears it before
+ * root; NULL before it. opt_model_convert_legacy_model_to_optimized clears it before
  * each root. */
 // GLOBAL: XVT 0x60F1F4
-struct OptNode *g_optConvertTexCoordNode = NULL;
-/* The texture OptModel_AppendConvertedFacesForNode last passed while it
+struct opt_node *g_opt_convert_tex_coord_node = NULL;
+/* The texture opt_model_append_converted_faces_for_node last passed while it
  * searches for faces to merge. */
 // GLOBAL: XVT 0x60F1F8
-struct OptNode *g_optConvertFaceTextureNode = NULL;
+struct opt_node *g_opt_convert_face_texture_node = NULL;
 /* The merged OPT_MESHVERTS node the legacy converter built for the current
  * root; NULL before it, and while NULL the next node with children builds the
- * merged nodes. OptModel_ConvertLegacyModelToOptimized clears it before each
+ * merged nodes. opt_model_convert_legacy_model_to_optimized clears it before each
  * root. */
 // GLOBAL: XVT 0x60F200
-struct OptNode *g_optConvertVertexNode = NULL;
+struct opt_node *g_opt_convert_vertex_node = NULL;
 
 /* Loads a model file and returns the Memory handle of its runtime copy
- * (OptModel_CreateRuntimeHandle), or 0. The modern build returns 0 for a NULL
- * name or one of 257 or more characters, and when OptModel_LoadFileToHandle
- * fails; it registers the copy with XvtRenderAssets_RegisterOpt. The original
+ * (opt_model_create_runtime_handle), or 0. The modern build returns 0 for a NULL
+ * name or one of 257 or more characters, and when opt_model_load_file_to_handle
+ * fails; it registers the copy with xvt_render_assets_register_opt. The original
  * build loads the OPT file when it opens. When it does not, it opens the same
  * name with ".iv" in place of everything from the first '.', checks the
  * "#Inventor" header and its format word, imports an "ascii" file with
- * OptModel_LoadInventorAsciiToHandle (a "binary" one with
- * OptModel_LoadInventorBinaryToHandle, which gives 0, and packing then locks
+ * opt_model_load_inventor_ascii_to_handle (a "binary" one with
+ * opt_model_load_inventor_binary_to_handle, which gives 0, and packing then locks
  * handle 0), packs it, saves the packed model under the OPT name and returns
  * its runtime copy. It returns 0 when the .iv file does not open or its header
  * is wrong; only a wrong format word closes the file first. Both builds pulse
@@ -1002,103 +1021,105 @@ struct OptNode *g_optConvertVertexNode = NULL;
  * file. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x411E00
-uint16_t OptModel_LoadHandle(const char *modelFilename)
+uint16_t opt_model_load_handle(const char *model_filename)
 {
 #ifdef XVT_MODERN
-	char fileName[257];
-	uint16_t fileHandle;
-	uint16_t runtimeHandle;
+	char file_name[257];
+	uint16_t file_handle;
+	uint16_t runtime_handle;
 
-	if (!modelFilename || strlen(modelFilename) >= sizeof(fileName)) {
+	if (!model_filename || strlen(model_filename) >= sizeof(file_name)) {
 		return 0;
 	}
-	strcpy(fileName, modelFilename);
-	fileHandle = OptModel_LoadFileToHandle(fileName);
-	if (!fileHandle) {
+	strcpy(file_name, model_filename);
+	file_handle = opt_model_load_file_to_handle(file_name);
+	if (!file_handle) {
 		return 0;
 	}
-	FlightLoading_PulseAndDrawProgressScreen();
-	runtimeHandle = OptModel_CreateRuntimeHandle(fileHandle);
-	XvtRenderAssets_RegisterOpt(runtimeHandle, modelFilename);
-	FlightLoading_PulseAndDrawProgressScreen();
-	return runtimeHandle;
+	flight_loading_pulse_and_draw_progress_screen();
+	runtime_handle = opt_model_create_runtime_handle(file_handle);
+	xvt_render_assets_register_opt(runtime_handle, model_filename);
+	flight_loading_pulse_and_draw_progress_screen();
+	return runtime_handle;
 #else
-	int extensionIndex;
-	uint16_t importedHandle;
-	XvtFile *stream;
-	uint16_t packedHandle;
-	uint16_t fileHandle;
-	uint16_t runtimeHandle;
-	int compareResult;
+	int extension_index;
+	uint16_t imported_handle;
+	xvt_file *stream;
+	uint16_t packed_handle;
+	uint16_t file_handle;
+	uint16_t runtime_handle;
+	int compare_result;
 
-	strcpy(g_optModelLoadScratchBuffer, modelFilename);
-	FeDiskIo_OpenGlobalStream(g_optModelLoadScratchBuffer,
-				  g_fileModeReadBinary, 0, 0);
+	strcpy(g_opt_model_load_scratch_buffer, model_filename);
+	fe_disk_io_open_global_stream(g_opt_model_load_scratch_buffer,
+				      g_file_mode_read_binary, 0, 0);
 	if (g_stream == NULL) {
-		for (extensionIndex = 0;
-		     g_optModelLoadScratchBuffer[extensionIndex] != '.';
-		     ++extensionIndex) {
+		for (extension_index = 0;
+		     g_opt_model_load_scratch_buffer[extension_index] != '.';
+		     ++extension_index) {
 		}
-		g_optModelLoadScratchBuffer[extensionIndex] = '\0';
-		strcat(g_optModelLoadScratchBuffer, ".iv");
-		FeDiskIo_OpenGlobalStream(g_optModelLoadScratchBuffer,
-					  g_fileModeReadBinary, 1, 0);
-		stream = (XvtFile *)g_stream;
+		g_opt_model_load_scratch_buffer[extension_index] = '\0';
+		strcat(g_opt_model_load_scratch_buffer, ".iv");
+		fe_disk_io_open_global_stream(g_opt_model_load_scratch_buffer,
+					      g_file_mode_read_binary, 1, 0);
+		stream = (xvt_file *)g_stream;
 		if (stream == NULL) {
 			return 0;
 		}
-		if (File_Scanf(stream, "%256s", g_optModelLoadScratchBuffer) !=
-		    1) {
+		if (FILE_SCANF(stream, "%256s",
+			       g_opt_model_load_scratch_buffer) != 1) {
 			return 0;
 		}
-		compareResult = _strnicmp(g_optModelLoadScratchBuffer,
-					  "#inventor", sizeof("#inventor") - 1);
-		if (compareResult != 0) {
+		compare_result =
+			_strnicmp(g_opt_model_load_scratch_buffer, "#inventor",
+				  sizeof("#inventor") - 1);
+		if (compare_result != 0) {
 			return 0;
 		}
-		if (File_Scanf(stream, " %256s", g_optModelLoadScratchBuffer) !=
-		    1) {
+		if (FILE_SCANF(stream, " %256s",
+			       g_opt_model_load_scratch_buffer) != 1) {
 			return 0;
 		}
-		if (File_Scanf(stream, " %256s", g_optModelLoadScratchBuffer) !=
-		    1) {
+		if (FILE_SCANF(stream, " %256s",
+			       g_opt_model_load_scratch_buffer) != 1) {
 			return 0;
 		}
 
-		compareResult = _strnicmp(g_optModelLoadScratchBuffer, "ascii",
-					  sizeof("ascii") - 1);
-		if (compareResult == 0) {
-			importedHandle =
-				OptModel_LoadInventorAsciiToHandle(stream);
+		compare_result = _strnicmp(g_opt_model_load_scratch_buffer,
+					   "ascii", sizeof("ascii") - 1);
+		if (compare_result == 0) {
+			imported_handle =
+				opt_model_load_inventor_ascii_to_handle(stream);
 		} else {
-			compareResult =
-				_strnicmp(g_optModelLoadScratchBuffer, "binary",
-					  sizeof("binary") - 1);
-			if (compareResult == 0) {
-				importedHandle =
-					OptModel_LoadInventorBinaryToHandle(
+			compare_result =
+				_strnicmp(g_opt_model_load_scratch_buffer,
+					  "binary", sizeof("binary") - 1);
+			if (compare_result == 0) {
+				imported_handle =
+					opt_model_load_inventor_binary_to_handle(
 						stream);
 			} else {
-				File_RawClose(stream);
+				FILE_RAW_CLOSE(stream);
 				return 0;
 			}
 		}
 
-		File_RawClose(stream);
-		packedHandle =
-			OptModel_ConvertImportedHandleToPacked(importedHandle);
-		strcpy(g_optModelLoadScratchBuffer, modelFilename);
-		OptModel_SaveHandleToFile(g_optModelLoadScratchBuffer,
-					  packedHandle);
-		return OptModel_CreateRuntimeHandle(packedHandle);
+		FILE_RAW_CLOSE(stream);
+		packed_handle = opt_model_convert_imported_handle_to_packed(
+			imported_handle);
+		strcpy(g_opt_model_load_scratch_buffer, model_filename);
+		opt_model_save_handle_to_file(g_opt_model_load_scratch_buffer,
+					      packed_handle);
+		return opt_model_create_runtime_handle(packed_handle);
 	}
 
-	File_RawClose((XvtFile *)g_stream);
-	fileHandle = OptModel_LoadFileToHandle(g_optModelLoadScratchBuffer);
-	FlightLoading_PulseAndDrawProgressScreen();
-	runtimeHandle = OptModel_CreateRuntimeHandle(fileHandle);
-	FlightLoading_PulseAndDrawProgressScreen();
-	return runtimeHandle;
+	FILE_RAW_CLOSE((xvt_file *)g_stream);
+	file_handle =
+		opt_model_load_file_to_handle(g_opt_model_load_scratch_buffer);
+	flight_loading_pulse_and_draw_progress_screen();
+	runtime_handle = opt_model_create_runtime_handle(file_handle);
+	flight_loading_pulse_and_draw_progress_screen();
+	return runtime_handle;
 #endif
 }
 
@@ -1106,7 +1127,7 @@ uint16_t OptModel_LoadHandle(const char *modelFilename)
 /* Returns 0: binary Inventor files are not read. Only the original build calls
  * this. */
 // FUNCTION: XVT 0x412030
-uint16_t OptModel_LoadInventorBinaryToHandle(XvtFile *stream)
+uint16_t opt_model_load_inventor_binary_to_handle(xvt_file *stream)
 {
 	(void)stream;
 
@@ -1115,77 +1136,77 @@ uint16_t OptModel_LoadInventorBinaryToHandle(XvtFile *stream)
 
 /* Imports the rest of an ASCII Inventor file and returns the Memory handle of
  * the model. It parses every top-level node once with
- * OptModel_ParseInventorAsciiNode to count the roots and bytes, seeks back,
- * then parses them again into one block: an OptimizedPolyObject (selfMarker its
+ * opt_model_parse_inventor_ascii_node to count the roots and bytes, seeks back,
+ * then parses them again into one block: an optimized_poly_object (self_marker its
  * address, reserved the handle), the root table, then the nodes. Does not check
  * the allocation. Only the original build calls this. */
 // FUNCTION: XVT 0x412040
-uint16_t OptModel_LoadInventorAsciiToHandle(XvtFile *stream)
+uint16_t opt_model_load_inventor_ascii_to_handle(xvt_file *stream)
 {
 
-	int rootNodeCount;
-	int rootPointerOffset;
-	int nodePayloadSize;
-	long streamStartOffset;
-	int parsedNodeSize;
-	int parsedRootCount;
+	int root_node_count;
+	int root_pointer_offset;
+	int node_payload_size;
+	long stream_start_offset;
+	int parsed_node_size;
+	int parsed_root_count;
 	uint16_t handle;
-	struct OptimizedPolyObject *model;
-	char *nodeWriteCursor;
+	struct optimized_poly_object *model;
+	char *node_write_cursor;
 
-	streamStartOffset = File_RawTell(stream);
-	rootNodeCount = 0;
-	nodePayloadSize = 0;
+	stream_start_offset = FILE_RAW_TELL(stream);
+	root_node_count = 0;
+	node_payload_size = 0;
 	while (1) {
-		parsedNodeSize =
-			OptModel_ParseInventorAsciiNode(stream, NULL, NULL);
-		if (parsedNodeSize == -1) {
+		parsed_node_size =
+			opt_model_parse_inventor_ascii_node(stream, NULL, NULL);
+		if (parsed_node_size == -1) {
 			break;
 		}
-		if (parsedNodeSize != 0) {
-			nodePayloadSize += parsedNodeSize;
-			++rootNodeCount;
+		if (parsed_node_size != 0) {
+			node_payload_size += parsed_node_size;
+			++root_node_count;
 		}
 	}
 
-	rootPointerOffset = 0;
-	File_RawSeek(stream, streamStartOffset, SEEK_SET);
-	handle = Memory_AllocHandle(
-		sizeof(*model) + rootNodeCount * sizeof(struct OptNode *) +
-			nodePayloadSize,
+	root_pointer_offset = 0;
+	FILE_RAW_SEEK(stream, stream_start_offset, SEEK_SET);
+	handle = memory_alloc_handle(
+		sizeof(*model) + root_node_count * sizeof(struct opt_node *) +
+			node_payload_size,
 		0);
-	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(handle);
-	nodeWriteCursor = (char *)model + sizeof(*model);
-	model->rootNodeCount = rootNodeCount;
-	parsedRootCount = 0;
-	model->selfMarker = model;
+	model = (struct optimized_poly_object *)memory_get_handle_block(handle);
+	node_write_cursor = (char *)model + sizeof(*model);
+	model->root_node_count = root_node_count;
+	parsed_root_count = 0;
+	model->self_marker = model;
 	model->reserved = handle;
-	model->rootNodes = (struct OptNode **)nodeWriteCursor;
-	nodeWriteCursor += rootNodeCount * sizeof(struct OptNode *);
+	model->root_nodes = (struct opt_node **)node_write_cursor;
+	node_write_cursor += root_node_count * sizeof(struct opt_node *);
 
-	for (; parsedRootCount < rootNodeCount;) {
-		parsedNodeSize = OptModel_ParseInventorAsciiNode(
-			stream, nodeWriteCursor,
-			(struct OptNode **)((char *)model->rootNodes +
-					    rootPointerOffset));
-		if (parsedNodeSize != 0) {
-			rootPointerOffset += sizeof(struct OptNode *);
-			nodeWriteCursor += parsedNodeSize;
-			++parsedRootCount;
+	for (; parsed_root_count < root_node_count;) {
+		parsed_node_size = opt_model_parse_inventor_ascii_node(
+			stream, node_write_cursor,
+			(struct opt_node **)((char *)model->root_nodes +
+					     root_pointer_offset));
+		if (parsed_node_size != 0) {
+			root_pointer_offset += sizeof(struct opt_node *);
+			node_write_cursor += parsed_node_size;
+			++parsed_root_count;
 		}
 	}
 
-	Memory_HandleBlockDoneStub(handle);
+	memory_handle_block_done_stub(handle);
 	return handle;
 }
 
 /* Reads one node of an ASCII Inventor file and returns its size in bytes, or -1
- * when no word is left. With nodeStorage NULL it only measures; otherwise it
- * writes there and stores the node's address in *outNode. A node starts with a
- * word naming a row of g_inventorNodeDefs (a word matches when it is the row's
+ * when no word is left. With node_storage NULL it only measures; otherwise it
+ * writes there and stores the node's address in *out_node. A node starts with a
+ * word naming a row of g_inventor_node_defs (a word matches when it is the row's
  * name or its start, ignoring case); "DEF name" first stores the name and makes
- * it the node's pName. The OptNode takes the row index as its nodeType and an
- * InventorFieldRecord per field as its payload, with payloadCount the field
+ * it the node's pName. The opt_node takes the row index as its nodeType and an
+ * inventor_field_record per field as its payload, with payload_count the field
  * count. Inside the braces it reads fields in any order, at most the field
  * count of them, until '}' or a word that names none; fills the fields left out
  * from their defaults; then reads child nodes up to '}' in two passes, counting
@@ -1194,190 +1215,198 @@ uint16_t OptModel_LoadInventorAsciiToHandle(XvtFile *stream)
  * following block up to its first '}', and returns 0, or the size of a DEF name
  * before it. A word starting with '#' skips the rest of its line and is then
  * treated as an unknown type. On a read error it prints a message and returns
- * the bytes counted so far. Writes g_inventorFieldSeen and
- * g_optModelLoadScratchBuffer. Only the original build calls this. */
+ * the bytes counted so far. Writes g_inventor_field_seen and
+ * g_opt_model_load_scratch_buffer. Only the original build calls this. */
 // FUNCTION: XVT 0x412120
-int OptModel_ParseInventorAsciiNode(XvtFile *stream, char *nodeStorage,
-				    struct OptNode **outNode)
+int opt_model_parse_inventor_ascii_node(xvt_file *stream, char *node_storage,
+					struct opt_node **out_node)
 {
 	char *cursor;
-	char *nodeName;
-	struct OptNode *node;
-	struct InventorFieldRecord *fieldRecords;
-	const struct InventorNodeDef *const *nodeDefSlot;
-	int nodeType;
-	int totalSize;
-	int fieldScanIndex;
-	int fieldIndex;
-	int itemIndex;
-	int itemCount;
-	int childCount;
-	int parsedSize;
-	/* Besides holding each parsed integer, integerValue counts the floats of a matrix or rotation item
+	char *node_name;
+	struct opt_node *node;
+	struct inventor_field_record *field_records;
+	const struct inventor_node_def *const *node_def_slot;
+	int node_type;
+	int total_size;
+	int field_scan_index;
+	int field_index;
+	int item_index;
+	int item_count;
+	int child_count;
+	int parsed_size;
+	/* Besides holding each parsed integer, integer_value counts the floats of a matrix or rotation item
 	 * and indexes an enum's name table while a name is looked up. */
-	int integerValue;
-	int compareResult;
-	long rewindPosition;
-	float floatValue;
+	int integer_value;
+	int compare_result;
+	long rewind_position;
+	float float_value;
 	float component0;
 	float component1;
 	float component2;
 	char character;
 
-	cursor = nodeStorage;
+	cursor = node_storage;
 	if (cursor != NULL) {
-		*outNode = (struct OptNode *)cursor;
+		*out_node = (struct opt_node *)cursor;
 	}
-	totalSize = 0;
-	if (File_Scanf(stream, " %256s", g_optModelLoadScratchBuffer) != 1) {
+	total_size = 0;
+	if (FILE_SCANF(stream, " %256s", g_opt_model_load_scratch_buffer) !=
+	    1) {
 		return -1;
 	}
-	compareResult = _strnicmp(g_optModelLoadScratchBuffer, "#", 1);
-	if (compareResult == 0) {
-		InventorAscii_SkipToEndOfLine(stream);
+	compare_result = _strnicmp(g_opt_model_load_scratch_buffer, "#", 1);
+	if (compare_result == 0) {
+		inventor_ascii_skip_to_end_of_line(stream);
 	}
 
-	for (nodeType = 0; nodeType < (int)(sizeof(g_inventorNodeDefs) /
-					    sizeof(g_inventorNodeDefs[0]));
-	     ++nodeType) {
-		nodeDefSlot = &g_inventorNodeDefs[nodeType];
-		compareResult = _strnicmp(g_optModelLoadScratchBuffer,
-					  (*nodeDefSlot)->nodeName,
-					  strlen(g_optModelLoadScratchBuffer));
-		if (compareResult == 0) {
+	for (node_type = 0; node_type < (int)(sizeof(g_inventor_node_defs) /
+					      sizeof(g_inventor_node_defs[0]));
+	     ++node_type) {
+		node_def_slot = &g_inventor_node_defs[node_type];
+		compare_result =
+			_strnicmp(g_opt_model_load_scratch_buffer,
+				  (*node_def_slot)->node_name,
+				  strlen(g_opt_model_load_scratch_buffer));
+		if (compare_result == 0) {
 			break;
 		}
 	}
 
-	nodeName = NULL;
-	if (nodeType == OPT_DEF) {
-		if (File_Scanf(stream, " %256s", g_optModelLoadScratchBuffer) !=
-		    1) {
+	node_name = NULL;
+	if (node_type == OPT_DEF) {
+		if (FILE_SCANF(stream, " %256s",
+			       g_opt_model_load_scratch_buffer) != 1) {
 			printf("READ NODE ERROR!\n");
 			return 0;
 		}
-		parsedSize = strlen(g_optModelLoadScratchBuffer) + 1;
-		totalSize = parsedSize;
+		parsed_size = strlen(g_opt_model_load_scratch_buffer) + 1;
+		total_size = parsed_size;
 		if (cursor != NULL) {
-			strcpy(cursor, g_optModelLoadScratchBuffer);
-			nodeName = cursor;
-			cursor += parsedSize;
-			*outNode = (struct OptNode *)cursor;
+			strcpy(cursor, g_opt_model_load_scratch_buffer);
+			node_name = cursor;
+			cursor += parsed_size;
+			*out_node = (struct opt_node *)cursor;
 		}
-		if (File_Scanf(stream, " %256s", g_optModelLoadScratchBuffer) !=
-		    1) {
+		if (FILE_SCANF(stream, " %256s",
+			       g_opt_model_load_scratch_buffer) != 1) {
 			printf("READ NODE ERROR!\n");
-			return parsedSize;
+			return parsed_size;
 		}
-		for (nodeType = 0;
-		     nodeType < (int)(sizeof(g_inventorNodeDefs) /
-				      sizeof(g_inventorNodeDefs[0]));
-		     ++nodeType) {
-			nodeDefSlot = &g_inventorNodeDefs[nodeType];
-			compareResult =
-				_strnicmp(g_optModelLoadScratchBuffer,
-					  (*nodeDefSlot)->nodeName,
-					  strlen(g_optModelLoadScratchBuffer));
-			if (compareResult == 0) {
+		for (node_type = 0;
+		     node_type < (int)(sizeof(g_inventor_node_defs) /
+				       sizeof(g_inventor_node_defs[0]));
+		     ++node_type) {
+			node_def_slot = &g_inventor_node_defs[node_type];
+			compare_result = _strnicmp(
+				g_opt_model_load_scratch_buffer,
+				(*node_def_slot)->node_name,
+				strlen(g_opt_model_load_scratch_buffer));
+			if (compare_result == 0) {
 				break;
 			}
 		}
 	}
 
-	if (nodeType <
-	    (int)(sizeof(g_inventorNodeDefs) / sizeof(g_inventorNodeDefs[0]))) {
-		fieldRecords = NULL;
+	if (node_type < (int)(sizeof(g_inventor_node_defs) /
+			      sizeof(g_inventor_node_defs[0]))) {
+		field_records = NULL;
 		if (cursor != NULL) {
-			node = (struct OptNode *)cursor;
-			node->pName = nodeName;
-			node->nodeType = (OptNodeType)nodeType;
+			node = (struct opt_node *)cursor;
+			node->p_name = node_name;
+			node->node_type = (opt_node_type)node_type;
 			cursor += sizeof(*node);
-			node->payloadCount = (*nodeDefSlot)->fieldCount;
+			node->payload_count = (*node_def_slot)->field_count;
 		}
-		totalSize += sizeof(struct OptNode);
+		total_size += sizeof(struct opt_node);
 		if (cursor != NULL) {
-			fieldRecords = (struct InventorFieldRecord *)cursor;
-			node->payload = fieldRecords;
-			cursor += (*nodeDefSlot)->fieldCount *
-				  sizeof(*fieldRecords);
+			field_records = (struct inventor_field_record *)cursor;
+			node->payload = field_records;
+			cursor += (*node_def_slot)->field_count *
+				  sizeof(*field_records);
 		}
-		totalSize += (*nodeDefSlot)->fieldCount *
-			     sizeof(struct InventorFieldRecord);
+		total_size += (*node_def_slot)->field_count *
+			      sizeof(struct inventor_field_record);
 
-		if (nodeType != OPT_NODEREF) {
-			InventorAscii_SkipPastOpenBrace(stream);
-			for (fieldIndex = 0;
-			     fieldIndex < (*nodeDefSlot)->fieldCount;
-			     ++fieldIndex) {
-				g_inventorFieldSeen[fieldIndex] = 0;
+		if (node_type != OPT_NODEREF) {
+			inventor_ascii_skip_past_open_brace(stream);
+			for (field_index = 0;
+			     field_index < (*node_def_slot)->field_count;
+			     ++field_index) {
+				g_inventor_field_seen[field_index] = 0;
 			}
 
-			for (fieldScanIndex = 0;
-			     fieldScanIndex < (*nodeDefSlot)->fieldCount;
-			     ++fieldScanIndex) {
-				struct InventorFieldRecord *fieldRecord;
+			for (field_scan_index = 0;
+			     field_scan_index < (*node_def_slot)->field_count;
+			     ++field_scan_index) {
+				struct inventor_field_record *field_record;
 
-				if (InventorAscii_PeekNextIsCloseBrace(
+				if (inventor_ascii_peek_next_is_close_brace(
 					    stream) != 0) {
 					break;
 				}
-				rewindPosition = File_RawTell(stream);
-				if (File_Scanf(stream, " %256s",
-					       g_optModelLoadScratchBuffer) !=
+				rewind_position = FILE_RAW_TELL(stream);
+				if (FILE_SCANF(
+					    stream, " %256s",
+					    g_opt_model_load_scratch_buffer) !=
 				    1) {
 					printf("READ NODE ERROR!\n");
-					return totalSize;
+					return total_size;
 				}
-				for (fieldIndex = 0;
-				     fieldIndex < (*nodeDefSlot)->fieldCount;
-				     ++fieldIndex) {
-					compareResult = _strnicmp(
-						g_optModelLoadScratchBuffer,
-						(*nodeDefSlot)
-							->fieldDefs[fieldIndex]
-							->fieldName,
-						strlen(g_optModelLoadScratchBuffer));
-					if (compareResult == 0) {
+				for (field_index = 0;
+				     field_index <
+				     (*node_def_slot)->field_count;
+				     ++field_index) {
+					compare_result = _strnicmp(
+						g_opt_model_load_scratch_buffer,
+						(*node_def_slot)
+							->field_defs
+								[field_index]
+							->field_name,
+						strlen(g_opt_model_load_scratch_buffer));
+					if (compare_result == 0) {
 						break;
 					}
 				}
-				if (fieldIndex == (*nodeDefSlot)->fieldCount) {
-					File_RawSeek(stream, rewindPosition,
-						     SEEK_SET);
+				if (field_index ==
+				    (*node_def_slot)->field_count) {
+					FILE_RAW_SEEK(stream, rewind_position,
+						      SEEK_SET);
 					break;
 				}
 
-				g_inventorFieldSeen[fieldIndex] = 1;
-				fieldRecord =
-					fieldRecords != NULL
-						? &fieldRecords[fieldIndex]
+				g_inventor_field_seen[field_index] = 1;
+				field_record =
+					field_records != NULL
+						? &field_records[field_index]
 						: NULL;
-				switch ((*nodeDefSlot)
-						->fieldDefs[fieldIndex]
-						->fieldType) {
+				switch ((*node_def_slot)
+						->field_defs[field_index]
+						->field_type) {
 				case INVENTOR_FIELD_STRING:
-					if (InventorAscii_PeekNextIsQuote(
+					if (inventor_ascii_peek_next_is_quote(
 						    stream) != 0) {
-						InventorAscii_SkipPastQuote(
+						inventor_ascii_skip_past_quote(
 							stream);
 						if (cursor != NULL) {
-							fieldRecord->data =
+							field_record->data =
 								cursor;
-							fieldRecord->itemCount =
+							field_record
+								->item_count =
 								1;
-							fieldRecord->fieldType =
+							field_record
+								->field_type =
 								INVENTOR_FIELD_STRING;
 						}
 						while (1) {
 							character =
-								(char)File_Getc(
+								(char)FILE_GETC(
 									stream);
 							if (character ==
 							    (char)EOF) {
 								printf("READ NODE ERROR!\n");
-								return totalSize;
+								return total_size;
 							}
-							++totalSize;
+							++total_size;
 							if (character == '"') {
 								break;
 							}
@@ -1390,157 +1419,164 @@ int OptModel_ParseInventorAsciiNode(XvtFile *stream, char *nodeStorage,
 							*cursor++ = '\0';
 						}
 					} else if (cursor != NULL) {
-						fieldRecord->data = cursor;
-						fieldRecord->itemCount = 1;
-						fieldRecord->fieldType =
+						field_record->data = cursor;
+						field_record->item_count = 1;
+						field_record->field_type =
 							INVENTOR_FIELD_STRING;
-						if (File_Scanf(stream, " %s",
+						if (FILE_SCANF(stream, " %s",
 							       cursor) != 1) {
 							printf("READ NODE ERROR!\n");
-							return totalSize;
+							return total_size;
 						}
-						parsedSize = strlen(cursor) + 1;
-						cursor += parsedSize;
-						totalSize += parsedSize;
+						parsed_size =
+							strlen(cursor) + 1;
+						cursor += parsed_size;
+						total_size += parsed_size;
 					} else {
-						if (File_Scanf(
+						if (FILE_SCANF(
 							    stream, " %256s",
-							    g_optModelLoadScratchBuffer) !=
+							    g_opt_model_load_scratch_buffer) !=
 						    1) {
 							printf("READ NODE ERROR!\n");
-							return totalSize;
+							return total_size;
 						}
-						totalSize +=
-							strlen(g_optModelLoadScratchBuffer) +
+						total_size +=
+							strlen(g_opt_model_load_scratch_buffer) +
 							1;
 					}
 					break;
 
 				case INVENTOR_FIELD_NODE:
 					if (cursor != NULL) {
-						parsedSize =
-							OptModel_ParseInventorAsciiNode(
+						parsed_size =
+							opt_model_parse_inventor_ascii_node(
 								stream, cursor,
 								(struct
-								 OptNode *
-									 *)&fieldRecord
+								 opt_node *
+									 *)&field_record
 									->data);
-						cursor += parsedSize;
-						fieldRecord->itemCount = 1;
-						fieldRecord->fieldType =
+						cursor += parsed_size;
+						field_record->item_count = 1;
+						field_record->field_type =
 							INVENTOR_FIELD_NODE;
-						totalSize += parsedSize;
+						total_size += parsed_size;
 					} else {
-						totalSize +=
-							OptModel_ParseInventorAsciiNode(
+						total_size +=
+							opt_model_parse_inventor_ascii_node(
 								stream, NULL,
 								NULL);
 					}
 					break;
 
 				case INVENTOR_FIELD_NODE_LIST:
-					if (InventorAscii_PeekNextIsOpenBracket(
+					if (inventor_ascii_peek_next_is_open_bracket(
 						    stream) != 0) {
-						InventorAscii_SkipPastOpenBracket(
+						inventor_ascii_skip_past_open_bracket(
 							stream);
-						rewindPosition =
-							File_RawTell(stream);
-						itemCount = 0;
-						while (InventorAscii_PeekNextIsCloseBracket(
+						rewind_position =
+							FILE_RAW_TELL(stream);
+						item_count = 0;
+						while (inventor_ascii_peek_next_is_close_bracket(
 							       stream) == 0) {
-							parsedSize =
-								OptModel_ParseInventorAsciiNode(
+							parsed_size =
+								opt_model_parse_inventor_ascii_node(
 									stream,
 									NULL,
 									NULL);
-							if (parsedSize != 0) {
-								++itemCount;
-								InventorAscii_SkipListSeparator(
+							if (parsed_size != 0) {
+								++item_count;
+								inventor_ascii_skip_list_separator(
 									stream);
 							}
 						}
-						File_RawSeek(stream,
-							     rewindPosition,
-							     SEEK_SET);
-						totalSize +=
-							itemCount *
-							sizeof(struct OptNode
+						FILE_RAW_SEEK(stream,
+							      rewind_position,
+							      SEEK_SET);
+						total_size +=
+							item_count *
+							sizeof(struct opt_node
 								       *);
 						if (cursor != NULL) {
-							fieldRecord->data =
+							field_record->data =
 								cursor;
 							cursor +=
-								itemCount *
+								item_count *
 								sizeof(struct
-								       OptNode *);
-							fieldRecord->itemCount =
-								itemCount;
-							fieldRecord->fieldType =
+								       opt_node
+									       *);
+							field_record
+								->item_count =
+								item_count;
+							field_record
+								->field_type =
 								INVENTOR_FIELD_NODE_LIST;
 						}
-						itemIndex = 0;
-						while (InventorAscii_PeekNextIsCloseBracket(
+						item_index = 0;
+						while (inventor_ascii_peek_next_is_close_bracket(
 							       stream) == 0) {
 							if (cursor != NULL) {
-								parsedSize = OptModel_ParseInventorAsciiNode(
+								parsed_size = opt_model_parse_inventor_ascii_node(
 									stream,
 									cursor,
 									&((struct
-									   OptNode *
-										   *)fieldRecord
+									   opt_node *
+										   *)field_record
 										  ->data)
-										[itemIndex]);
-								if (parsedSize !=
+										[item_index]);
+								if (parsed_size !=
 								    0) {
 									cursor +=
-										parsedSize;
-									++itemIndex;
-									totalSize +=
-										parsedSize;
-									InventorAscii_SkipListSeparator(
+										parsed_size;
+									++item_index;
+									total_size +=
+										parsed_size;
+									inventor_ascii_skip_list_separator(
 										stream);
 								}
 							} else {
-								parsedSize = OptModel_ParseInventorAsciiNode(
+								parsed_size = opt_model_parse_inventor_ascii_node(
 									stream,
 									NULL,
 									NULL);
-								if (parsedSize !=
+								if (parsed_size !=
 								    0) {
-									totalSize +=
-										parsedSize;
-									InventorAscii_SkipListSeparator(
+									total_size +=
+										parsed_size;
+									inventor_ascii_skip_list_separator(
 										stream);
 								}
 							}
 						}
-						InventorAscii_SkipPastCloseBracket(
+						inventor_ascii_skip_past_close_bracket(
 							stream);
 					} else {
-						totalSize += sizeof(
-							struct OptNode *);
+						total_size += sizeof(
+							struct opt_node *);
 						if (cursor != NULL) {
-							fieldRecord->data =
+							field_record->data =
 								cursor;
 							cursor += sizeof(
-								struct OptNode
+								struct opt_node
 									*);
-							fieldRecord->itemCount =
+							field_record
+								->item_count =
 								1;
-							fieldRecord->fieldType =
+							field_record
+								->field_type =
 								INVENTOR_FIELD_NODE_LIST;
-							parsedSize = OptModel_ParseInventorAsciiNode(
+							parsed_size = opt_model_parse_inventor_ascii_node(
 								stream, cursor,
 								&((struct
-								   OptNode *
-									   *)fieldRecord
+								   opt_node *
+									   *)field_record
 									  ->data)
 									[0]);
-							cursor += parsedSize;
-							totalSize += parsedSize;
+							cursor += parsed_size;
+							total_size +=
+								parsed_size;
 						} else {
-							totalSize +=
-								OptModel_ParseInventorAsciiNode(
+							total_size +=
+								opt_model_parse_inventor_ascii_node(
 									stream,
 									NULL,
 									NULL);
@@ -1549,228 +1585,237 @@ int OptModel_ParseInventorAsciiNode(XvtFile *stream, char *nodeStorage,
 					break;
 
 				case INVENTOR_FIELD_INTEGER:
-					parsedSize = File_Scanf(stream, " %li",
-								&integerValue);
-					if (parsedSize != 1) {
+					parsed_size = FILE_SCANF(
+						stream, " %li", &integer_value);
+					if (parsed_size != 1) {
 						printf("READ NODE ERROR!\n");
-						return totalSize;
+						return total_size;
 					}
 					if (cursor != NULL) {
-						fieldRecord->data = cursor;
-						*(int *)cursor = integerValue;
-						cursor += sizeof(integerValue);
-						fieldRecord->itemCount = 1;
-						fieldRecord->fieldType =
+						field_record->data = cursor;
+						*(int *)cursor = integer_value;
+						cursor += sizeof(integer_value);
+						field_record->item_count = 1;
+						field_record->field_type =
 							INVENTOR_FIELD_INTEGER;
 					}
-					totalSize += sizeof(integerValue);
+					total_size += sizeof(integer_value);
 					break;
 
 				case INVENTOR_FIELD_INTEGER_LIST:
-					if (InventorAscii_PeekNextIsOpenBracket(
+					if (inventor_ascii_peek_next_is_open_bracket(
 						    stream) != 0) {
-						InventorAscii_SkipPastOpenBracket(
+						inventor_ascii_skip_past_open_bracket(
 							stream);
 						if (cursor != NULL) {
-							fieldRecord->data =
+							field_record->data =
 								cursor;
 						}
-						itemCount = 0;
-						while (InventorAscii_PeekNextIsCloseBracket(
+						item_count = 0;
+						while (inventor_ascii_peek_next_is_close_bracket(
 							       stream) == 0) {
-							parsedSize = File_Scanf(
+							parsed_size = FILE_SCANF(
 								stream, " %li",
-								&integerValue);
-							if (parsedSize != 1) {
+								&integer_value);
+							if (parsed_size != 1) {
 								printf("READ NODE ERROR!\n");
-								return totalSize;
+								return total_size;
 							}
 							if (cursor != NULL) {
 								*(int *)cursor =
-									integerValue;
+									integer_value;
 								cursor += sizeof(
-									integerValue);
+									integer_value);
 							}
-							++itemCount;
-							totalSize += sizeof(
-								integerValue);
-							InventorAscii_SkipListSeparator(
+							++item_count;
+							total_size += sizeof(
+								integer_value);
+							inventor_ascii_skip_list_separator(
 								stream);
 						}
 						if (cursor != NULL) {
-							fieldRecord->itemCount =
-								itemCount;
-							fieldRecord->fieldType =
+							field_record
+								->item_count =
+								item_count;
+							field_record
+								->field_type =
 								INVENTOR_FIELD_INTEGER_LIST;
 						}
-						InventorAscii_SkipPastCloseBracket(
+						inventor_ascii_skip_past_close_bracket(
 							stream);
 					} else {
 						if (cursor != NULL) {
-							fieldRecord->data =
+							field_record->data =
 								cursor;
 						}
-						parsedSize = File_Scanf(
+						parsed_size = FILE_SCANF(
 							stream, " %li",
-							&integerValue);
-						if (parsedSize != 1) {
+							&integer_value);
+						if (parsed_size != 1) {
 							printf("READ NODE ERROR!\n");
-							return totalSize;
+							return total_size;
 						}
 						if (cursor != NULL) {
 							*(int *)cursor =
-								integerValue;
+								integer_value;
 							cursor += sizeof(
-								integerValue);
+								integer_value);
 						}
-						itemCount = 1;
-						totalSize +=
-							sizeof(integerValue);
+						item_count = 1;
+						total_size +=
+							sizeof(integer_value);
 						if (cursor != NULL) {
-							fieldRecord->itemCount =
-								itemCount;
-							fieldRecord->fieldType =
+							field_record
+								->item_count =
+								item_count;
+							field_record
+								->field_type =
 								INVENTOR_FIELD_INTEGER_LIST;
 						}
 					}
 					break;
 
 				case INVENTOR_FIELD_FLOAT_AS_INTEGER:
-					if (File_Scanf(stream, " %e",
-						       &floatValue) != 1) {
+					if (FILE_SCANF(stream, " %e",
+						       &float_value) != 1) {
 						printf("READ NODE WARNING!\n");
 					}
 					if (cursor != NULL) {
-						fieldRecord->data = cursor;
-						*(float *)cursor = floatValue;
-						cursor += sizeof(floatValue);
-						fieldRecord->itemCount = 0;
-						fieldRecord->fieldType =
+						field_record->data = cursor;
+						*(float *)cursor = float_value;
+						cursor += sizeof(float_value);
+						field_record->item_count = 0;
+						field_record->field_type =
 							INVENTOR_FIELD_INTEGER;
 					}
-					totalSize += sizeof(floatValue);
+					total_size += sizeof(float_value);
 					break;
 
 				case INVENTOR_FIELD_FLOAT:
-					if (InventorAscii_PeekNextIsOpenBracket(
+					if (inventor_ascii_peek_next_is_open_bracket(
 						    stream) != 0) {
-						InventorAscii_SkipPastOpenBracket(
+						inventor_ascii_skip_past_open_bracket(
 							stream);
 						if (cursor != NULL) {
-							fieldRecord->data =
+							field_record->data =
 								cursor;
 						}
-						itemCount = 0;
-						while (InventorAscii_PeekNextIsCloseBracket(
+						item_count = 0;
+						while (inventor_ascii_peek_next_is_close_bracket(
 							       stream) == 0) {
-							if (File_Scanf(
+							if (FILE_SCANF(
 								    stream,
 								    " %e",
-								    &floatValue) !=
+								    &float_value) !=
 							    1) {
 								printf("READ NODE WARNING!\n");
 							}
 							if (cursor != NULL) {
 								*(float *)
 									cursor =
-									floatValue;
+									float_value;
 								cursor += sizeof(
-									floatValue);
+									float_value);
 							}
-							++itemCount;
-							totalSize += sizeof(
-								floatValue);
-							InventorAscii_SkipListSeparator(
+							++item_count;
+							total_size += sizeof(
+								float_value);
+							inventor_ascii_skip_list_separator(
 								stream);
 						}
 						if (cursor != NULL) {
-							fieldRecord->itemCount =
-								itemCount;
-							fieldRecord->fieldType =
+							field_record
+								->item_count =
+								item_count;
+							field_record
+								->field_type =
 								INVENTOR_FIELD_FLOAT;
 						}
-						InventorAscii_SkipPastCloseBracket(
+						inventor_ascii_skip_past_close_bracket(
 							stream);
 					} else {
 						if (cursor != NULL) {
-							fieldRecord->data =
+							field_record->data =
 								cursor;
 						}
-						if (File_Scanf(stream, " %e",
-							       &floatValue) !=
+						if (FILE_SCANF(stream, " %e",
+							       &float_value) !=
 						    1) {
 							printf("READ NODE WARNING!\n");
 						}
 						if (cursor != NULL) {
 							*(float *)cursor =
-								floatValue;
+								float_value;
 							cursor += sizeof(
-								floatValue);
+								float_value);
 						}
-						itemCount = 1;
-						totalSize += sizeof(floatValue);
+						item_count = 1;
+						total_size +=
+							sizeof(float_value);
 						if (cursor != NULL) {
-							fieldRecord->itemCount =
-								itemCount;
-							fieldRecord->fieldType =
+							field_record
+								->item_count =
+								item_count;
+							field_record
+								->field_type =
 								INVENTOR_FIELD_FLOAT;
 						}
 					}
 					break;
 
 				case INVENTOR_FIELD_BOOLEAN:
-					if (File_Scanf(
+					if (FILE_SCANF(
 						    stream, " %256s",
-						    g_optModelLoadScratchBuffer) !=
+						    g_opt_model_load_scratch_buffer) !=
 					    1) {
 						printf("READ NODE ERROR!\n");
-						return totalSize;
+						return total_size;
 					}
 					/* Here character holds the parsed truth value, 1 or 0, not a character. */
 					if (_strcmpi(
-						    g_optModelLoadScratchBuffer,
+						    g_opt_model_load_scratch_buffer,
 						    "true") == 0 ||
 					    _strcmpi(
-						    g_optModelLoadScratchBuffer,
+						    g_opt_model_load_scratch_buffer,
 						    "1") == 0) {
 						character = 1;
 					} else if (
 						_strcmpi(
-							g_optModelLoadScratchBuffer,
+							g_opt_model_load_scratch_buffer,
 							"false") == 0 ||
 						_strcmpi(
-							g_optModelLoadScratchBuffer,
+							g_opt_model_load_scratch_buffer,
 							"0") == 0) {
 						character = 0;
 					} else {
 						printf("READ NODE ERROR!\n");
-						return totalSize;
+						return total_size;
 					}
-					++totalSize;
+					++total_size;
 					if (cursor != NULL) {
-						fieldRecord->data = cursor;
+						field_record->data = cursor;
 						*cursor++ = character;
-						fieldRecord->itemCount = 1;
-						fieldRecord->fieldType =
+						field_record->item_count = 1;
+						field_record->field_type =
 							INVENTOR_FIELD_BOOLEAN;
 					}
 					break;
 
 				case INVENTOR_FIELD_VECTOR3:
 				case INVENTOR_FIELD_COLOR:
-					if (File_Scanf(stream, " %e %e %e",
+					if (FILE_SCANF(stream, " %e %e %e",
 						       &component0, &component1,
 						       &component2) != 3) {
 						printf("READ NODE WARNING!\n");
 					}
 					if (cursor != NULL) {
-						fieldRecord->data = cursor;
-						fieldRecord->itemCount = 1;
-						fieldRecord->fieldType =
-							(*nodeDefSlot)
-								->fieldDefs
-									[fieldIndex]
-								->fieldType;
+						field_record->data = cursor;
+						field_record->item_count = 1;
+						field_record->field_type =
+							(*node_def_slot)
+								->field_defs
+									[field_index]
+								->field_type;
 						((float *)cursor)[0] =
 							component0;
 						((float *)cursor)[1] =
@@ -1779,23 +1824,23 @@ int OptModel_ParseInventorAsciiNode(XvtFile *stream, char *nodeStorage,
 							component2;
 						cursor += 3 * sizeof(float);
 					}
-					totalSize += 3 * sizeof(float);
+					total_size += 3 * sizeof(float);
 					break;
 
 				case INVENTOR_FIELD_VECTOR3_LIST:
 				case INVENTOR_FIELD_COLOR_LIST:
-					if (InventorAscii_PeekNextIsOpenBracket(
+					if (inventor_ascii_peek_next_is_open_bracket(
 						    stream) != 0) {
-						InventorAscii_SkipPastOpenBracket(
+						inventor_ascii_skip_past_open_bracket(
 							stream);
 						if (cursor != NULL) {
-							fieldRecord->data =
+							field_record->data =
 								cursor;
 						}
-						itemCount = 0;
-						while (InventorAscii_PeekNextIsCloseBracket(
+						item_count = 0;
+						while (inventor_ascii_peek_next_is_close_bracket(
 							       stream) == 0) {
-							if (File_Scanf(
+							if (FILE_SCANF(
 								    stream,
 								    " %e %e %e",
 								    &component0,
@@ -1818,30 +1863,32 @@ int OptModel_ParseInventorAsciiNode(XvtFile *stream, char *nodeStorage,
 									3 *
 									sizeof(float);
 							}
-							++itemCount;
-							totalSize +=
+							++item_count;
+							total_size +=
 								3 *
 								sizeof(float);
-							InventorAscii_SkipListSeparator(
+							inventor_ascii_skip_list_separator(
 								stream);
 						}
 						if (cursor != NULL) {
-							fieldRecord->itemCount =
-								itemCount;
-							fieldRecord->fieldType =
-								(*nodeDefSlot)
-									->fieldDefs
-										[fieldIndex]
-									->fieldType;
+							field_record
+								->item_count =
+								item_count;
+							field_record
+								->field_type =
+								(*node_def_slot)
+									->field_defs
+										[field_index]
+									->field_type;
 						}
-						InventorAscii_SkipPastCloseBracket(
+						inventor_ascii_skip_past_close_bracket(
 							stream);
 					} else {
 						if (cursor != NULL) {
-							fieldRecord->data =
+							field_record->data =
 								cursor;
 						}
-						if (File_Scanf(
+						if (FILE_SCANF(
 							    stream, " %e %e %e",
 							    &component0,
 							    &component1,
@@ -1858,66 +1905,68 @@ int OptModel_ParseInventorAsciiNode(XvtFile *stream, char *nodeStorage,
 							cursor += 3 *
 								  sizeof(float);
 						}
-						itemCount = 1;
-						totalSize += 3 * sizeof(float);
+						item_count = 1;
+						total_size += 3 * sizeof(float);
 						if (cursor != NULL) {
-							fieldRecord->itemCount =
-								itemCount;
-							fieldRecord->fieldType =
-								(*nodeDefSlot)
-									->fieldDefs
-										[fieldIndex]
-									->fieldType;
+							field_record
+								->item_count =
+								item_count;
+							field_record
+								->field_type =
+								(*node_def_slot)
+									->field_defs
+										[field_index]
+									->field_type;
 						}
 					}
 					break;
 
 				case INVENTOR_FIELD_MATRIX:
 					if (cursor != NULL) {
-						fieldRecord->data = cursor;
-						fieldRecord->itemCount = 1;
-						fieldRecord->fieldType =
-							(*nodeDefSlot)
-								->fieldDefs
-									[fieldIndex]
-								->fieldType;
+						field_record->data = cursor;
+						field_record->item_count = 1;
+						field_record->field_type =
+							(*node_def_slot)
+								->field_defs
+									[field_index]
+								->field_type;
 					}
-					totalSize += 16 * sizeof(float);
-					for (itemCount = 16; itemCount > 0;
-					     --itemCount) {
-						if (File_Scanf(stream, " %e",
-							       &floatValue) !=
+					total_size += 16 * sizeof(float);
+					for (item_count = 16; item_count > 0;
+					     --item_count) {
+						if (FILE_SCANF(stream, " %e",
+							       &float_value) !=
 						    1) {
 							printf("READ NODE WARNING!\n");
 						}
 						if (cursor != NULL) {
 							*(float *)cursor =
-								floatValue;
+								float_value;
 							cursor += sizeof(
-								floatValue);
+								float_value);
 						}
 					}
 					break;
 
 				case INVENTOR_FIELD_MATRIX_LIST:
-					if (InventorAscii_PeekNextIsOpenBracket(
+					if (inventor_ascii_peek_next_is_open_bracket(
 						    stream) != 0) {
-						InventorAscii_SkipPastOpenBracket(
+						inventor_ascii_skip_past_open_bracket(
 							stream);
 						if (cursor != NULL) {
-							fieldRecord->data =
+							field_record->data =
 								cursor;
 						}
-						itemCount = 0;
-						while (InventorAscii_PeekNextIsCloseBracket(
+						item_count = 0;
+						while (inventor_ascii_peek_next_is_close_bracket(
 							       stream) == 0) {
-							for (integerValue = 0;
-							     integerValue < 16;
-							     ++integerValue) {
-								if (File_Scanf(
+							for (integer_value = 0;
+							     integer_value < 16;
+							     ++integer_value) {
+								if (FILE_SCANF(
 									    stream,
 									    " %e",
-									    &floatValue) !=
+									    &float_value) !=
 								    1) {
 									printf("READ NODE WARNING!\n");
 								}
@@ -1925,112 +1974,116 @@ int OptModel_ParseInventorAsciiNode(XvtFile *stream, char *nodeStorage,
 								    NULL) {
 									*(float *)
 										cursor =
-										floatValue;
+										float_value;
 									cursor += sizeof(
-										floatValue);
+										float_value);
 								}
-								totalSize += sizeof(
-									floatValue);
+								total_size += sizeof(
+									float_value);
 							}
-							++itemCount;
-							InventorAscii_SkipListSeparator(
+							++item_count;
+							inventor_ascii_skip_list_separator(
 								stream);
 						}
 						if (cursor != NULL) {
-							fieldRecord->itemCount =
-								itemCount;
-							fieldRecord->fieldType =
-								(*nodeDefSlot)
-									->fieldDefs
-										[fieldIndex]
-									->fieldType;
+							field_record
+								->item_count =
+								item_count;
+							field_record
+								->field_type =
+								(*node_def_slot)
+									->field_defs
+										[field_index]
+									->field_type;
 						}
-						InventorAscii_SkipPastCloseBracket(
+						inventor_ascii_skip_past_close_bracket(
 							stream);
 					} else {
 						if (cursor != NULL) {
-							fieldRecord->data =
+							field_record->data =
 								cursor;
 						}
-						for (integerValue = 0;
-						     integerValue < 16;
-						     ++integerValue) {
-							if (File_Scanf(
+						for (integer_value = 0;
+						     integer_value < 16;
+						     ++integer_value) {
+							if (FILE_SCANF(
 								    stream,
 								    " %e",
-								    &floatValue) !=
+								    &float_value) !=
 							    1) {
 								printf("READ NODE WARNING!\n");
 							}
 							if (cursor != NULL) {
 								*(float *)
 									cursor =
-									floatValue;
+									float_value;
 								cursor += sizeof(
-									floatValue);
+									float_value);
 							}
-							totalSize += sizeof(
-								floatValue);
+							total_size += sizeof(
+								float_value);
 						}
-						itemCount = 1;
+						item_count = 1;
 						if (cursor != NULL) {
-							fieldRecord->itemCount =
-								itemCount;
-							fieldRecord->fieldType =
-								(*nodeDefSlot)
-									->fieldDefs
-										[fieldIndex]
-									->fieldType;
+							field_record
+								->item_count =
+								item_count;
+							field_record
+								->field_type =
+								(*node_def_slot)
+									->field_defs
+										[field_index]
+									->field_type;
 						}
 					}
 					break;
 
 				case INVENTOR_FIELD_ROTATION:
 					if (cursor != NULL) {
-						fieldRecord->data = cursor;
-						fieldRecord->itemCount = 1;
-						fieldRecord->fieldType =
-							(*nodeDefSlot)
-								->fieldDefs
-									[fieldIndex]
-								->fieldType;
+						field_record->data = cursor;
+						field_record->item_count = 1;
+						field_record->field_type =
+							(*node_def_slot)
+								->field_defs
+									[field_index]
+								->field_type;
 					}
-					totalSize += 4 * sizeof(float);
-					for (itemCount = 4; itemCount > 0;
-					     --itemCount) {
-						if (File_Scanf(stream, " %e",
-							       &floatValue) !=
+					total_size += 4 * sizeof(float);
+					for (item_count = 4; item_count > 0;
+					     --item_count) {
+						if (FILE_SCANF(stream, " %e",
+							       &float_value) !=
 						    1) {
 							printf("READ NODE WARNING!\n");
 						}
 						if (cursor != NULL) {
 							*(float *)cursor =
-								floatValue;
+								float_value;
 							cursor += sizeof(
-								floatValue);
+								float_value);
 						}
 					}
 					break;
 
 				case INVENTOR_FIELD_ROTATION_LIST:
-					if (InventorAscii_PeekNextIsOpenBracket(
+					if (inventor_ascii_peek_next_is_open_bracket(
 						    stream) != 0) {
-						InventorAscii_SkipPastOpenBracket(
+						inventor_ascii_skip_past_open_bracket(
 							stream);
 						if (cursor != NULL) {
-							fieldRecord->data =
+							field_record->data =
 								cursor;
 						}
-						itemCount = 0;
-						while (InventorAscii_PeekNextIsCloseBracket(
+						item_count = 0;
+						while (inventor_ascii_peek_next_is_close_bracket(
 							       stream) == 0) {
-							for (integerValue = 0;
-							     integerValue < 4;
-							     ++integerValue) {
-								if (File_Scanf(
+							for (integer_value = 0;
+							     integer_value < 4;
+							     ++integer_value) {
+								if (FILE_SCANF(
 									    stream,
 									    " %e",
-									    &floatValue) !=
+									    &float_value) !=
 								    1) {
 									printf("READ NODE WARNING!\n");
 								}
@@ -2038,102 +2091,106 @@ int OptModel_ParseInventorAsciiNode(XvtFile *stream, char *nodeStorage,
 								    NULL) {
 									*(float *)
 										cursor =
-										floatValue;
+										float_value;
 									cursor += sizeof(
-										floatValue);
+										float_value);
 								}
-								totalSize += sizeof(
-									floatValue);
+								total_size += sizeof(
+									float_value);
 							}
-							++itemCount;
-							InventorAscii_SkipListSeparator(
+							++item_count;
+							inventor_ascii_skip_list_separator(
 								stream);
 						}
 						if (cursor != NULL) {
-							fieldRecord->itemCount =
-								itemCount;
-							fieldRecord->fieldType =
-								(*nodeDefSlot)
-									->fieldDefs
-										[fieldIndex]
-									->fieldType;
+							field_record
+								->item_count =
+								item_count;
+							field_record
+								->field_type =
+								(*node_def_slot)
+									->field_defs
+										[field_index]
+									->field_type;
 						}
-						InventorAscii_SkipPastCloseBracket(
+						inventor_ascii_skip_past_close_bracket(
 							stream);
 					} else {
 						if (cursor != NULL) {
-							fieldRecord->data =
+							field_record->data =
 								cursor;
 						}
-						for (integerValue = 0;
-						     integerValue < 4;
-						     ++integerValue) {
-							if (File_Scanf(
+						for (integer_value = 0;
+						     integer_value < 4;
+						     ++integer_value) {
+							if (FILE_SCANF(
 								    stream,
 								    " %e",
-								    &floatValue) !=
+								    &float_value) !=
 							    1) {
 								printf("READ NODE WARNING!\n");
 							}
 							if (cursor != NULL) {
 								*(float *)
 									cursor =
-									floatValue;
+									float_value;
 								cursor += sizeof(
-									floatValue);
+									float_value);
 							}
-							totalSize += sizeof(
-								floatValue);
+							total_size += sizeof(
+								float_value);
 						}
-						itemCount = 1;
+						item_count = 1;
 						if (cursor != NULL) {
-							fieldRecord->itemCount =
-								itemCount;
-							fieldRecord->fieldType =
-								(*nodeDefSlot)
-									->fieldDefs
-										[fieldIndex]
-									->fieldType;
+							field_record
+								->item_count =
+								item_count;
+							field_record
+								->field_type =
+								(*node_def_slot)
+									->field_defs
+										[field_index]
+									->field_type;
 						}
 					}
 					break;
 
 				case INVENTOR_FIELD_VECTOR2:
-					if (File_Scanf(stream, " %e %e",
+					if (FILE_SCANF(stream, " %e %e",
 						       &component0,
 						       &component1) != 2) {
 						printf("READ NODE WARNING!\n");
 					}
 					if (cursor != NULL) {
-						fieldRecord->data = cursor;
-						fieldRecord->itemCount = 1;
-						fieldRecord->fieldType =
-							(*nodeDefSlot)
-								->fieldDefs
-									[fieldIndex]
-								->fieldType;
+						field_record->data = cursor;
+						field_record->item_count = 1;
+						field_record->field_type =
+							(*node_def_slot)
+								->field_defs
+									[field_index]
+								->field_type;
 						((float *)cursor)[0] =
 							component0;
 						((float *)cursor)[1] =
 							component1;
 						cursor += 2 * sizeof(float);
 					}
-					totalSize += 2 * sizeof(float);
+					total_size += 2 * sizeof(float);
 					break;
 
 				case INVENTOR_FIELD_VECTOR2_LIST:
-					if (InventorAscii_PeekNextIsOpenBracket(
+					if (inventor_ascii_peek_next_is_open_bracket(
 						    stream) != 0) {
-						InventorAscii_SkipPastOpenBracket(
+						inventor_ascii_skip_past_open_bracket(
 							stream);
 						if (cursor != NULL) {
-							fieldRecord->data =
+							field_record->data =
 								cursor;
 						}
-						itemCount = 0;
-						while (InventorAscii_PeekNextIsCloseBracket(
+						item_count = 0;
+						while (inventor_ascii_peek_next_is_close_bracket(
 							       stream) == 0) {
-							if (File_Scanf(
+							if (FILE_SCANF(
 								    stream,
 								    " %e %e",
 								    &component0,
@@ -2152,30 +2209,32 @@ int OptModel_ParseInventorAsciiNode(XvtFile *stream, char *nodeStorage,
 									2 *
 									sizeof(float);
 							}
-							++itemCount;
-							totalSize +=
+							++item_count;
+							total_size +=
 								2 *
 								sizeof(float);
-							InventorAscii_SkipListSeparator(
+							inventor_ascii_skip_list_separator(
 								stream);
 						}
 						if (cursor != NULL) {
-							fieldRecord->itemCount =
-								itemCount;
-							fieldRecord->fieldType =
-								(*nodeDefSlot)
-									->fieldDefs
-										[fieldIndex]
-									->fieldType;
+							field_record
+								->item_count =
+								item_count;
+							field_record
+								->field_type =
+								(*node_def_slot)
+									->field_defs
+										[field_index]
+									->field_type;
 						}
-						InventorAscii_SkipPastCloseBracket(
+						inventor_ascii_skip_past_close_bracket(
 							stream);
 					} else {
 						if (cursor != NULL) {
-							fieldRecord->data =
+							field_record->data =
 								cursor;
 						}
-						if (File_Scanf(stream, " %e %e",
+						if (FILE_SCANF(stream, " %e %e",
 							       &component0,
 							       &component1) !=
 						    2) {
@@ -2189,209 +2248,219 @@ int OptModel_ParseInventorAsciiNode(XvtFile *stream, char *nodeStorage,
 							cursor += 2 *
 								  sizeof(float);
 						}
-						itemCount = 1;
-						totalSize += 2 * sizeof(float);
+						item_count = 1;
+						total_size += 2 * sizeof(float);
 						if (cursor != NULL) {
-							fieldRecord->itemCount =
-								itemCount;
-							fieldRecord->fieldType =
-								(*nodeDefSlot)
-									->fieldDefs
-										[fieldIndex]
-									->fieldType;
+							field_record
+								->item_count =
+								item_count;
+							field_record
+								->field_type =
+								(*node_def_slot)
+									->field_defs
+										[field_index]
+									->field_type;
 						}
 					}
 					break;
 
 				case INVENTOR_FIELD_ENUM: {
-					const struct InventorEnumDef *enumDef;
-					const char *const *enumValueNames;
-					const int *enumValues;
+					const struct inventor_enum_def
+						*enum_def;
+					const char *const *enum_value_names;
+					const int *enum_values;
 
-					if (InventorAscii_PeekNextIsCloseBrace(
+					if (inventor_ascii_peek_next_is_close_brace(
 						    stream) != 0) {
-						strcpy(g_optModelLoadScratchBuffer,
+						strcpy(g_opt_model_load_scratch_buffer,
 						       "DEFAULT");
 					} else if (
-						File_Scanf(
+						FILE_SCANF(
 							stream, " %256s",
-							g_optModelLoadScratchBuffer) !=
+							g_opt_model_load_scratch_buffer) !=
 						1) {
 						printf("READ NODE ERROR!\n");
-						return totalSize;
+						return total_size;
 					}
-					enumDef =
-						(*nodeDefSlot)
-							->fieldDefs[fieldIndex]
-							->enumDef;
-					enumValueNames = enumDef->valueNames;
-					enumValues = enumDef->values;
-					for (integerValue = 0;
-					     integerValue < enumDef->valueCount;
-					     ++integerValue) {
-						compareResult = _strcmpi(
-							g_optModelLoadScratchBuffer,
-							enumValueNames
-								[integerValue]);
-						if (compareResult == 0) {
+					enum_def = (*node_def_slot)
+							   ->field_defs
+								   [field_index]
+							   ->enum_def;
+					enum_value_names =
+						enum_def->value_names;
+					enum_values = enum_def->values;
+					for (integer_value = 0;
+					     integer_value <
+					     enum_def->value_count;
+					     ++integer_value) {
+						compare_result = _strcmpi(
+							g_opt_model_load_scratch_buffer,
+							enum_value_names
+								[integer_value]);
+						if (compare_result == 0) {
 							break;
 						}
 					}
-					if (integerValue ==
-					    enumDef->valueCount) {
-						integerValue = atoi(
-							g_optModelLoadScratchBuffer);
+					if (integer_value ==
+					    enum_def->value_count) {
+						integer_value = atoi(
+							g_opt_model_load_scratch_buffer);
 					} else {
-						integerValue = enumValues
-							[integerValue];
+						integer_value = enum_values
+							[integer_value];
 					}
 					if (cursor != NULL) {
-						fieldRecord->data = cursor;
-						*(int *)cursor = integerValue;
-						cursor += sizeof(integerValue);
-						fieldRecord->itemCount = 1;
-						fieldRecord->fieldType =
+						field_record->data = cursor;
+						*(int *)cursor = integer_value;
+						cursor += sizeof(integer_value);
+						field_record->item_count = 1;
+						field_record->field_type =
 							INVENTOR_FIELD_ENUM;
 					}
-					totalSize += sizeof(integerValue);
+					total_size += sizeof(integer_value);
 					break;
 				}
 
 				case INVENTOR_FIELD_ENUM_LIST: {
-					const struct InventorEnumDef *enumDef;
-					const char *const *enumValueNames;
-					const int *enumValues;
+					const struct inventor_enum_def
+						*enum_def;
+					const char *const *enum_value_names;
+					const int *enum_values;
 
-					if (InventorAscii_PeekNextIsOpenBracket(
+					if (inventor_ascii_peek_next_is_open_bracket(
 						    stream) != 0) {
-						InventorAscii_SkipPastOpenBracket(
+						inventor_ascii_skip_past_open_bracket(
 							stream);
 						if (cursor != NULL) {
-							fieldRecord->data =
+							field_record->data =
 								cursor;
 						}
-						itemCount = 0;
-						while (InventorAscii_PeekNextIsCloseBracket(
+						item_count = 0;
+						while (inventor_ascii_peek_next_is_close_bracket(
 							       stream) == 0) {
-							if (File_Scanf(
+							if (FILE_SCANF(
 								    stream,
 								    " %256s",
-								    g_optModelLoadScratchBuffer) !=
+								    g_opt_model_load_scratch_buffer) !=
 							    1) {
 								printf("READ NODE ERROR!\n");
-								return totalSize;
+								return total_size;
 							}
-							enumDef =
-								(*nodeDefSlot)
-									->fieldDefs
-										[fieldIndex]
-									->enumDef;
-							enumValueNames =
-								enumDef->valueNames;
-							enumValues =
-								enumDef->values;
-							for (integerValue = 0;
-							     integerValue <
-							     enumDef->valueCount;
-							     ++integerValue) {
-								compareResult = _strcmpi(
-									g_optModelLoadScratchBuffer,
-									enumValueNames
-										[integerValue]);
-								if (compareResult ==
+							enum_def =
+								(*node_def_slot)
+									->field_defs
+										[field_index]
+									->enum_def;
+							enum_value_names =
+								enum_def->value_names;
+							enum_values =
+								enum_def->values;
+							for (integer_value = 0;
+							     integer_value <
+							     enum_def->value_count;
+							     ++integer_value) {
+								compare_result = _strcmpi(
+									g_opt_model_load_scratch_buffer,
+									enum_value_names
+										[integer_value]);
+								if (compare_result ==
 								    0) {
 									break;
 								}
 							}
-							if (integerValue ==
-							    enumDef->valueCount) {
-								integerValue = atoi(
-									g_optModelLoadScratchBuffer);
+							if (integer_value ==
+							    enum_def->value_count) {
+								integer_value = atoi(
+									g_opt_model_load_scratch_buffer);
 							} else {
-								integerValue = enumValues
-									[integerValue];
+								integer_value = enum_values
+									[integer_value];
 							}
 							if (cursor != NULL) {
 								*(int *)cursor =
-									integerValue;
+									integer_value;
 								cursor += sizeof(
-									integerValue);
+									integer_value);
 							}
-							totalSize += sizeof(
-								integerValue);
-							++itemCount;
-							InventorAscii_SkipListSeparator(
+							total_size += sizeof(
+								integer_value);
+							++item_count;
+							inventor_ascii_skip_list_separator(
 								stream);
 						}
 						if (cursor != NULL) {
-							fieldRecord->itemCount =
-								itemCount;
-							fieldRecord->fieldType =
-								(*nodeDefSlot)
-									->fieldDefs
-										[fieldIndex]
-									->fieldType;
+							field_record
+								->item_count =
+								item_count;
+							field_record
+								->field_type =
+								(*node_def_slot)
+									->field_defs
+										[field_index]
+									->field_type;
 						}
-						InventorAscii_SkipPastCloseBracket(
+						inventor_ascii_skip_past_close_bracket(
 							stream);
 					} else {
 						if (cursor != NULL) {
-							fieldRecord->data =
+							field_record->data =
 								cursor;
 						}
-						if (File_Scanf(
+						if (FILE_SCANF(
 							    stream, " %256s",
-							    g_optModelLoadScratchBuffer) !=
+							    g_opt_model_load_scratch_buffer) !=
 						    1) {
 							printf("READ NODE ERROR!\n");
-							return totalSize;
+							return total_size;
 						}
-						enumDef =
-							(*nodeDefSlot)
-								->fieldDefs
-									[fieldIndex]
-								->enumDef;
-						enumValueNames =
-							enumDef->valueNames;
-						enumValues = enumDef->values;
-						for (integerValue = 0;
-						     integerValue <
-						     enumDef->valueCount;
-						     ++integerValue) {
-							compareResult = _strcmpi(
-								g_optModelLoadScratchBuffer,
-								enumValueNames
-									[integerValue]);
-							if (compareResult ==
+						enum_def =
+							(*node_def_slot)
+								->field_defs
+									[field_index]
+								->enum_def;
+						enum_value_names =
+							enum_def->value_names;
+						enum_values = enum_def->values;
+						for (integer_value = 0;
+						     integer_value <
+						     enum_def->value_count;
+						     ++integer_value) {
+							compare_result = _strcmpi(
+								g_opt_model_load_scratch_buffer,
+								enum_value_names
+									[integer_value]);
+							if (compare_result ==
 							    0) {
 								break;
 							}
 						}
-						if (integerValue ==
-						    enumDef->valueCount) {
-							integerValue = atoi(
-								g_optModelLoadScratchBuffer);
+						if (integer_value ==
+						    enum_def->value_count) {
+							integer_value = atoi(
+								g_opt_model_load_scratch_buffer);
 						} else {
-							integerValue = enumValues
-								[integerValue];
+							integer_value = enum_values
+								[integer_value];
 						}
 						if (cursor != NULL) {
 							*(int *)cursor =
-								integerValue;
+								integer_value;
 							cursor += sizeof(
-								integerValue);
+								integer_value);
 						}
-						itemCount = 1;
-						totalSize +=
-							sizeof(integerValue);
+						item_count = 1;
+						total_size +=
+							sizeof(integer_value);
 						if (cursor != NULL) {
-							fieldRecord->itemCount =
-								itemCount;
-							fieldRecord->fieldType =
-								(*nodeDefSlot)
-									->fieldDefs
-										[fieldIndex]
-									->fieldType;
+							field_record
+								->item_count =
+								item_count;
+							field_record
+								->field_type =
+								(*node_def_slot)
+									->field_defs
+										[field_index]
+									->field_type;
 						}
 					}
 					break;
@@ -2402,305 +2471,314 @@ int OptModel_ParseInventorAsciiNode(XvtFile *stream, char *nodeStorage,
 				}
 			}
 
-			for (fieldIndex = 0;
-			     fieldIndex < (*nodeDefSlot)->fieldCount;
-			     ++fieldIndex) {
-				if (g_inventorFieldSeen[fieldIndex] == 0) {
+			for (field_index = 0;
+			     field_index < (*node_def_slot)->field_count;
+			     ++field_index) {
+				if (g_inventor_field_seen[field_index] == 0) {
 					if (cursor != NULL) {
-						const struct InventorFieldDef
-							*fieldDef;
+						const struct inventor_field_def
+							*field_def;
 
-						fieldDef =
-							(*nodeDefSlot)
-								->fieldDefs
-									[fieldIndex];
-						fieldRecords[fieldIndex] =
-							*fieldDef->defaultRecord;
-						fieldRecords[fieldIndex].data =
-							cursor;
+						field_def =
+							(*node_def_slot)
+								->field_defs
+									[field_index];
+						field_records[field_index] =
+							*field_def
+								 ->default_record;
+						field_records[field_index]
+							.data = cursor;
 						memcpy(cursor,
-						       fieldDef->defaultData,
-						       fieldDef->defaultDataSize);
+						       field_def->default_data,
+						       field_def
+							       ->default_data_size);
 						cursor +=
-							fieldDef->defaultDataSize;
+							field_def
+								->default_data_size;
 					}
-					totalSize +=
-						(*nodeDefSlot)
-							->fieldDefs[fieldIndex]
-							->defaultDataSize;
+					total_size +=
+						(*node_def_slot)
+							->field_defs
+								[field_index]
+							->default_data_size;
 				}
 			}
 
-			childCount = 0;
-			rewindPosition = File_RawTell(stream);
-			while (InventorAscii_PeekNextIsCloseBrace(stream) ==
-			       0) {
-				if (OptModel_ParseInventorAsciiNode(
+			child_count = 0;
+			rewind_position = FILE_RAW_TELL(stream);
+			while (inventor_ascii_peek_next_is_close_brace(
+				       stream) == 0) {
+				if (opt_model_parse_inventor_ascii_node(
 					    stream, NULL, NULL) != 0) {
-					++childCount;
+					++child_count;
 				}
 			}
-			File_RawSeek(stream, rewindPosition, SEEK_SET);
-			if (childCount != 0) {
-				struct OptNode **childSlots;
+			FILE_RAW_SEEK(stream, rewind_position, SEEK_SET);
+			if (child_count != 0) {
+				struct opt_node **child_slots;
 
-				totalSize +=
-					childCount * sizeof(struct OptNode *);
-				childSlots = NULL;
+				total_size +=
+					child_count * sizeof(struct opt_node *);
+				child_slots = NULL;
 				if (cursor != NULL) {
-					node->pChildren =
-						(struct OptNode **)cursor;
-					node->childCount = childCount;
-					childSlots = node->pChildren;
-					cursor += childCount *
-						  sizeof(struct OptNode *);
+					node->p_children =
+						(struct opt_node **)cursor;
+					node->child_count = child_count;
+					child_slots = node->p_children;
+					cursor += child_count *
+						  sizeof(struct opt_node *);
 				}
-				while (InventorAscii_PeekNextIsCloseBrace(
+				while (inventor_ascii_peek_next_is_close_brace(
 					       stream) == 0) {
 					if (cursor != NULL) {
-						parsedSize =
-							OptModel_ParseInventorAsciiNode(
+						parsed_size =
+							opt_model_parse_inventor_ascii_node(
 								stream, cursor,
-								childSlots);
-						if (parsedSize != 0) {
-							cursor += parsedSize;
-							++childSlots;
-							totalSize += parsedSize;
+								child_slots);
+						if (parsed_size != 0) {
+							cursor += parsed_size;
+							++child_slots;
+							total_size +=
+								parsed_size;
 						}
 					} else {
-						parsedSize =
-							OptModel_ParseInventorAsciiNode(
+						parsed_size =
+							opt_model_parse_inventor_ascii_node(
 								stream, NULL,
 								NULL);
-						if (parsedSize != 0) {
-							totalSize += parsedSize;
+						if (parsed_size != 0) {
+							total_size +=
+								parsed_size;
 						}
 					}
 				}
 			} else if (cursor != NULL) {
-				node->pChildren = NULL;
-				node->childCount = 0;
+				node->p_children = NULL;
+				node->child_count = 0;
 			}
-			InventorAscii_SkipPastCloseBrace(stream);
-			return totalSize;
+			inventor_ascii_skip_past_close_brace(stream);
+			return total_size;
 		} else {
-			if (InventorAscii_PeekNextIsQuote(stream) != 0) {
-				InventorAscii_SkipPastQuote(stream);
+			if (inventor_ascii_peek_next_is_quote(stream) != 0) {
+				inventor_ascii_skip_past_quote(stream);
 				if (cursor != NULL) {
-					fieldRecords[0].data = cursor;
-					fieldRecords[0].itemCount = 1;
-					fieldRecords[0].fieldType =
+					field_records[0].data = cursor;
+					field_records[0].item_count = 1;
+					field_records[0].field_type =
 						INVENTOR_FIELD_STRING;
 				}
 				while (1) {
-					character = (char)File_Getc(stream);
+					character = (char)FILE_GETC(stream);
 					if (character == (char)EOF) {
 						break;
 					}
-					++totalSize;
+					++total_size;
 					if (character == '"') {
 						if (cursor != NULL) {
 							*cursor++ = '\0';
-							node->pChildren = NULL;
-							node->childCount = 0;
+							node->p_children = NULL;
+							node->child_count = 0;
 						}
-						return totalSize;
+						return total_size;
 					}
 					if (cursor != NULL) {
 						*cursor++ = character;
 					}
 				}
 				printf("READ NODE ERROR!\n");
-				return totalSize;
+				return total_size;
 			} else {
-				if (File_Scanf(stream, " %256s",
-					       g_optModelLoadScratchBuffer) !=
+				if (FILE_SCANF(
+					    stream, " %256s",
+					    g_opt_model_load_scratch_buffer) !=
 				    1) {
 					printf("READ NODE ERROR!\n");
-					return totalSize;
+					return total_size;
 				}
-				parsedSize =
-					strlen(g_optModelLoadScratchBuffer) + 1;
+				parsed_size =
+					strlen(g_opt_model_load_scratch_buffer) +
+					1;
 				if (cursor != NULL) {
 					strcpy(cursor,
-					       g_optModelLoadScratchBuffer);
-					fieldRecords[0].data = cursor;
-					cursor += parsedSize;
-					fieldRecords[0].itemCount = 1;
-					fieldRecords[0].fieldType =
+					       g_opt_model_load_scratch_buffer);
+					field_records[0].data = cursor;
+					cursor += parsed_size;
+					field_records[0].item_count = 1;
+					field_records[0].field_type =
 						INVENTOR_FIELD_STRING;
 				}
-				totalSize += parsedSize;
+				total_size += parsed_size;
 			}
 			if (cursor != NULL) {
-				node->pChildren = NULL;
-				node->childCount = 0;
+				node->p_children = NULL;
+				node->child_count = 0;
 			}
-			return totalSize;
+			return total_size;
 		}
 	}
 
 	printf("Node Type Not Supported, ignored\n");
-	if (InventorAscii_PeekNextIsOpenBrace(stream) != 0) {
-		InventorAscii_SkipPastOpenBrace(stream);
-		InventorAscii_SkipPastCloseBrace(stream);
+	if (inventor_ascii_peek_next_is_open_brace(stream) != 0) {
+		inventor_ascii_skip_past_open_brace(stream);
+		inventor_ascii_skip_past_close_brace(stream);
 	}
-	return totalSize;
+	return total_size;
 }
 #endif
 
 /* Adds translation, three floats, to every vertex of each OPT_MESHVERTS node at
  * or below node, following OPT_NODEREF links and stopping at one that does not
  * resolve; a node reached through two links moves twice. Only
- * OptModel_TranslateVertices calls this, and nothing calls that. */
+ * opt_model_translate_vertices calls this, and nothing calls that. */
 // FUNCTION: XVT 0x42ABA0
-void OptModel_TranslateNodeVerticesRecursive(struct OptNode *node,
-					     struct OptimizedPolyObject *model,
-					     const float *translation)
+void opt_model_translate_node_vertices_recursive(
+	struct opt_node *node, struct optimized_poly_object *model,
+	const float *translation)
 {
-	int vertexCount;
+	int vertex_count;
 	float *vertex;
 	const float *delta;
-	int childIndex;
+	int child_index;
 
 	if (node != NULL) {
-		while (node->nodeType == OPT_NODEREF) {
-			node = OptModel_ResolveNodeRef(
+		while (node->node_type == OPT_NODEREF) {
+			node = opt_model_resolve_node_ref(
 				model, (const char *)node->payload);
 			if (node == NULL) {
 				return;
 			}
 		}
 
-		if (node->nodeType == OPT_MESHVERTS) {
-			vertexCount = node->payloadCount;
+		if (node->node_type == OPT_MESHVERTS) {
+			vertex_count = node->payload_count;
 			vertex = node->payload;
 			delta = translation;
-			if (vertexCount > 0) {
+			if (vertex_count > 0) {
 				do {
 					vertex[0] += delta[0];
 					vertex[1] += delta[1];
 					vertex[2] += delta[2];
 					vertex += 3;
-					--vertexCount;
-				} while (vertexCount != 0);
+					--vertex_count;
+				} while (vertex_count != 0);
 			}
 		} else {
 			delta = translation;
 		}
 
-		childIndex = 0;
-		if (node->childCount > 0) {
+		child_index = 0;
+		if (node->child_count > 0) {
 			do {
-				OptModel_TranslateNodeVerticesRecursive(
-					node->pChildren[childIndex], model,
+				opt_model_translate_node_vertices_recursive(
+					node->p_children[child_index], model,
 					delta);
-				++childIndex;
-			} while (node->childCount > childIndex);
+				++child_index;
+			} while (node->child_count > child_index);
 		}
 	}
 }
 
-/* Runs OptModel_TranslateNodeVerticesRecursive on each root of model. Nothing
+/* Runs opt_model_translate_node_vertices_recursive on each root of model. Nothing
  * calls this. */
 // FUNCTION: XVT 0x42ACD0
-void OptModel_TranslateVertices(struct OptimizedPolyObject *model,
-				const float *translation)
+void opt_model_translate_vertices(struct optimized_poly_object *model,
+				  const float *translation)
 {
-	int rootIndex;
+	int root_index;
 
-	rootIndex = 0;
-	if (model->rootNodeCount > 0) {
+	root_index = 0;
+	if (model->root_node_count > 0) {
 		do {
-			OptModel_TranslateNodeVerticesRecursive(
-				model->rootNodes[rootIndex], model,
+			opt_model_translate_node_vertices_recursive(
+				model->root_nodes[root_index], model,
 				translation);
-			++rootIndex;
-		} while (model->rootNodeCount > rootIndex);
+			++root_index;
+		} while (model->root_node_count > root_index);
 	}
 }
 
 #ifndef XVT_MODERN
 /* Moves the pointers of an imported Inventor model by the distance its block
- * moved since selfMarker was set: selfMarker itself, the root table, each root
- * and, through OptModel_RelocateNodePointersRecursive, everything below. NULL
+ * moved since self_marker was set: self_marker itself, the root table, each root
+ * and, through opt_model_relocate_node_pointers_recursive, everything below. NULL
  * pointers stay NULL. Only the original build calls this, from
- * OptModel_ConvertImportedHandleToPacked. */
+ * opt_model_convert_imported_handle_to_packed. */
 // FUNCTION: XVT 0x471F00
-void OptModel_RelocateLoadedPointers(struct OptimizedPolyObject *model)
+void opt_model_relocate_loaded_pointers(struct optimized_poly_object *model)
 {
 
-	XvtOptValue relocationDelta;
-	int rootIndex;
+	xvt_opt_value relocation_delta;
+	int root_index;
 
-	relocationDelta = (uint8_t *)model - (uint8_t *)model->selfMarker;
-	model->selfMarker = (uint8_t *)model->selfMarker + relocationDelta;
-	if (model->rootNodes != NULL) {
-		model->rootNodes =
-			(struct OptNode **)((uint8_t *)model->rootNodes +
-					    relocationDelta);
-		for (rootIndex = 0; rootIndex < model->rootNodeCount;
-		     ++rootIndex) {
-			struct OptNode **rootSlot;
+	relocation_delta = (uint8_t *)model - (uint8_t *)model->self_marker;
+	model->self_marker = (uint8_t *)model->self_marker + relocation_delta;
+	if (model->root_nodes != NULL) {
+		model->root_nodes =
+			(struct opt_node **)((uint8_t *)model->root_nodes +
+					     relocation_delta);
+		for (root_index = 0; root_index < model->root_node_count;
+		     ++root_index) {
+			struct opt_node **root_slot;
 
-			rootSlot = &model->rootNodes[rootIndex];
-			if (*rootSlot != NULL) {
-				*rootSlot = (struct OptNode
-						     *)((uint8_t *)*rootSlot +
-							relocationDelta);
-				OptModel_RelocateNodePointersRecursive(
-					model->rootNodes[rootIndex],
-					relocationDelta);
+			root_slot = &model->root_nodes[root_index];
+			if (*root_slot != NULL) {
+				*root_slot = (struct opt_node
+						      *)((uint8_t *)*root_slot +
+							 relocation_delta);
+				opt_model_relocate_node_pointers_recursive(
+					model->root_nodes[root_index],
+					relocation_delta);
 			}
 		}
 	}
 }
 
-/* Adds relocationDelta to node's name, payload and child table pointers, to the
- * data pointer of each of its payloadCount InventorFieldRecords and to each
+/* Adds relocation_delta to node's name, payload and child table pointers, to the
+ * data pointer of each of its payload_count InventorFieldRecords and to each
  * child pointer, then does the same below each child. NULL pointers stay NULL.
  * Only the original build calls this. */
 // FUNCTION: XVT 0x471F60
-void OptModel_RelocateNodePointersRecursive(struct OptNode *node,
-					    XvtOptValue relocationDelta)
+void opt_model_relocate_node_pointers_recursive(struct opt_node *node,
+						xvt_opt_value relocation_delta)
 {
 
-	int paramIndex;
-	int childIndex;
+	int param_index;
+	int child_index;
 
-	if (node->pName != NULL) {
-		node->pName += relocationDelta;
+	if (node->p_name != NULL) {
+		node->p_name += relocation_delta;
 	}
 	if (node->payload != NULL) {
-		struct InventorFieldRecord *records;
+		struct inventor_field_record *records;
 
-		node->payload = (uint8_t *)node->payload + relocationDelta;
-		records = (struct InventorFieldRecord *)node->payload;
-		for (paramIndex = 0; paramIndex < node->payloadCount;
-		     ++paramIndex) {
+		node->payload = (uint8_t *)node->payload + relocation_delta;
+		records = (struct inventor_field_record *)node->payload;
+		for (param_index = 0; param_index < node->payload_count;
+		     ++param_index) {
 			if (records->data != NULL) {
 				records->data = (uint8_t *)records->data +
-						relocationDelta;
+						relocation_delta;
 			}
 			++records;
 		}
 	}
-	if (node->pChildren != NULL) {
-		node->pChildren =
-			(struct OptNode **)((uint8_t *)node->pChildren +
-					    relocationDelta);
-		for (childIndex = 0; childIndex < node->childCount;
-		     ++childIndex) {
-			struct OptNode **childSlot;
+	if (node->p_children != NULL) {
+		node->p_children =
+			(struct opt_node **)((uint8_t *)node->p_children +
+					     relocation_delta);
+		for (child_index = 0; child_index < node->child_count;
+		     ++child_index) {
+			struct opt_node **child_slot;
 
-			childSlot = &node->pChildren[childIndex];
-			if (*childSlot != NULL) {
-				*childSlot = (struct OptNode
-						      *)((uint8_t *)*childSlot +
-							 relocationDelta);
-				OptModel_RelocateNodePointersRecursive(
-					node->pChildren[childIndex],
-					relocationDelta);
+			child_slot = &node->p_children[child_index];
+			if (*child_slot != NULL) {
+				*child_slot =
+					(struct opt_node
+						 *)((uint8_t *)*child_slot +
+						    relocation_delta);
+				opt_model_relocate_node_pointers_recursive(
+					node->p_children[child_index],
+					relocation_delta);
 			}
 		}
 	}
@@ -2708,39 +2786,39 @@ void OptModel_RelocateNodePointersRecursive(struct OptNode *node,
 #endif
 
 /* Moves every pointer inside a packed model by the distance its block moved
- * since selfMarker was recorded, and records the new address. The modern build
- * calls XvtOpt_Relocate. The original build moves selfMarker, the root table
- * and each root, then runs OptModel_AdjustOptimizedNodePointers on each root.
- * Most callers call it only when selfMarker is not the block's address. */
+ * since self_marker was recorded, and records the new address. The modern build
+ * calls xvt_opt_relocate. The original build moves self_marker, the root table
+ * and each root, then runs opt_model_adjust_optimized_node_pointers on each root.
+ * Most callers call it only when self_marker is not the block's address. */
 // FUNCTION: XVT 0x471FF0
-void OptModel_AdjustOptimizedPolyObjectPointers(
-	struct OptimizedPolyObject *model)
+void opt_model_adjust_optimized_poly_object_pointers(
+	struct optimized_poly_object *model)
 {
 #ifdef XVT_MODERN
-	XvtOpt_Relocate(model);
+	xvt_opt_relocate(model);
 #else
 
-	XvtOptValue relocationDelta;
-	int rootIndex;
+	xvt_opt_value relocation_delta;
+	int root_index;
 
-	relocationDelta = (uint8_t *)model - (uint8_t *)model->selfMarker;
-	model->selfMarker = (uint8_t *)model->selfMarker + relocationDelta;
-	if (model->rootNodes != NULL) {
-		model->rootNodes =
-			(struct OptNode **)((uint8_t *)model->rootNodes +
-					    relocationDelta);
-		for (rootIndex = 0; rootIndex < model->rootNodeCount;
-		     ++rootIndex) {
-			struct OptNode **rootSlot;
+	relocation_delta = (uint8_t *)model - (uint8_t *)model->self_marker;
+	model->self_marker = (uint8_t *)model->self_marker + relocation_delta;
+	if (model->root_nodes != NULL) {
+		model->root_nodes =
+			(struct opt_node **)((uint8_t *)model->root_nodes +
+					     relocation_delta);
+		for (root_index = 0; root_index < model->root_node_count;
+		     ++root_index) {
+			struct opt_node **root_slot;
 
-			rootSlot = &model->rootNodes[rootIndex];
-			if (*rootSlot != NULL) {
-				*rootSlot = (struct OptNode
-						     *)((uint8_t *)*rootSlot +
-							relocationDelta);
-				OptModel_AdjustOptimizedNodePointers(
-					model->rootNodes[rootIndex],
-					relocationDelta);
+			root_slot = &model->root_nodes[root_index];
+			if (*root_slot != NULL) {
+				*root_slot = (struct opt_node
+						      *)((uint8_t *)*root_slot +
+							 relocation_delta);
+				opt_model_adjust_optimized_node_pointers(
+					model->root_nodes[root_index],
+					relocation_delta);
 			}
 		}
 	}
@@ -2748,53 +2826,54 @@ void OptModel_AdjustOptimizedPolyObjectPointers(
 #endif
 }
 
-/* Adds relocationDelta to node's name, payload and child table pointers and to
+/* Adds relocation_delta to node's name, payload and child table pointers and to
  * each child pointer, and to the palette pointer of an OPT_TEXTURE node whose
- * inlinePaletteCount is 0, then does the same below each child. NULL pointers
- * stay NULL. The modern arm calls XvtOpt_RelocateNode, but only the original
+ * inline_palette_count is 0, then does the same below each child. NULL pointers
+ * stay NULL. The modern arm calls xvt_opt_relocate_node, but only the original
  * build calls this. */
 // FUNCTION: XVT 0x472050
-void OptModel_AdjustOptimizedNodePointers(struct OptNode *node,
-					  XvtOptValue relocationDelta)
+void opt_model_adjust_optimized_node_pointers(struct opt_node *node,
+					      xvt_opt_value relocation_delta)
 {
 #ifdef XVT_MODERN
-	XvtOpt_RelocateNode(node, relocationDelta);
+	xvt_opt_relocate_node(node, relocation_delta);
 #else
 
-	int childIndex;
+	int child_index;
 
-	if (node->pName != NULL) {
-		node->pName += relocationDelta;
+	if (node->p_name != NULL) {
+		node->p_name += relocation_delta;
 	}
 	if (node->payload != NULL) {
-		node->payload = (uint8_t *)node->payload + relocationDelta;
+		node->payload = (uint8_t *)node->payload + relocation_delta;
 	}
-	if (node->nodeType == OPT_TEXTURE) {
-		struct OptTextureData *textureData;
+	if (node->node_type == OPT_TEXTURE) {
+		struct opt_texture_data *texture_data;
 
-		textureData = (struct OptTextureData *)node->payload;
-		if (textureData->inlinePaletteCount == 0) {
-			textureData->palette =
-				(uint16_t *)((uint8_t *)textureData->palette +
-					     relocationDelta);
+		texture_data = (struct opt_texture_data *)node->payload;
+		if (texture_data->inline_palette_count == 0) {
+			texture_data->palette =
+				(uint16_t *)((uint8_t *)texture_data->palette +
+					     relocation_delta);
 		}
 	}
-	if (node->pChildren != NULL) {
-		node->pChildren =
-			(struct OptNode **)((uint8_t *)node->pChildren +
-					    relocationDelta);
-		for (childIndex = 0; childIndex < node->childCount;
-		     ++childIndex) {
-			struct OptNode **childSlot;
+	if (node->p_children != NULL) {
+		node->p_children =
+			(struct opt_node **)((uint8_t *)node->p_children +
+					     relocation_delta);
+		for (child_index = 0; child_index < node->child_count;
+		     ++child_index) {
+			struct opt_node **child_slot;
 
-			childSlot = &node->pChildren[childIndex];
-			if (*childSlot != NULL) {
-				*childSlot = (struct OptNode
-						      *)((uint8_t *)*childSlot +
-							 relocationDelta);
-				OptModel_AdjustOptimizedNodePointers(
-					node->pChildren[childIndex],
-					relocationDelta);
+			child_slot = &node->p_children[child_index];
+			if (*child_slot != NULL) {
+				*child_slot =
+					(struct opt_node
+						 *)((uint8_t *)*child_slot +
+						    relocation_delta);
+				opt_model_adjust_optimized_node_pointers(
+					node->p_children[child_index],
+					relocation_delta);
 			}
 		}
 	}
@@ -2802,667 +2881,682 @@ void OptModel_AdjustOptimizedNodePointers(struct OptNode *node,
 #endif
 }
 
-/* Loads an OPT file into g_loadOptBufHandle, converts a version 0 or 1 model to
- * version 2 with OptModel_ConvertLegacyModelToOptimized, and returns that
+/* Loads an OPT file into g_load_opt_buf_handle, converts a version 0 or 1 model to
+ * version 2 with opt_model_convert_legacy_model_to_optimized, and returns that
  * handle; it is reused by the next load. Then it measures each root with
- * OptModel_MeasureNodeAndRaiseCapacities, which raises the renderer's capacity
- * counts, after setting g_curMeshVertices, g_curMeshTexCoords,
- * g_curVertNormals, g_modelNodeWalkUnusedScratch2 and g_curMeshMaterials to
- * NULL and g_curVertexCount to 0. The file starts with a 4-byte word: a
+ * opt_model_measure_node_and_raise_capacities, which raises the renderer's capacity
+ * counts, after setting g_cur_mesh_vertices, g_cur_mesh_tex_coords,
+ * g_cur_vert_normals, g_model_node_walk_unused_scratch2 and g_cur_mesh_materials to
+ * NULL and g_cur_vertex_count to 0. The file starts with a 4-byte word: a
  * positive one is the body size of version 0; -1 or -2 (versions 1 and 2) is
- * followed by the size. Sets g_optSourceIsVersion0. The modern build decodes
- * the file with XvtOpt_Load, keeps the result as g_loadOptBufHandle in place of
- * the one before, and ends the program through XvtStorage_Fatal when that
+ * followed by the size. Sets g_opt_source_is_version0. The modern build decodes
+ * the file with xvt_opt_load, keeps the result as g_load_opt_buf_handle in place of
+ * the one before, and ends the program through xvt_storage_fatal when that
  * fails. The original build returns 0 when the file does not open and regrows
- * g_loadOptBufHandle when the body is bigger; running out of memory ends the
- * program through FeDiskIo_FatalError. For a version 0 or 1 file it also writes
+ * g_load_opt_buf_handle when the body is bigger; running out of memory ends the
+ * program through fe_disk_io_fatal_error. For a version 0 or 1 file it also writes
  * the body as read to the name with its last character changed to '0' or '1',
  * and, when the original name is writable, writes the converted model over it
  * with the marker -1 (from version 0) or -2 (from version 1). */
 // FUNCTION: XVT 0x4742A0
-uint16_t OptModel_LoadFileToHandle(char *filename)
+uint16_t opt_model_load_file_to_handle(char *filename)
 {
 #ifdef XVT_MODERN
-	unsigned int nativeSize = 0;
+	unsigned int native_size = 0;
 	int version = 0;
-	int rootIndex;
-	struct OptimizedPolyObject *model;
-	struct SceneMesh meshState;
-	uint16_t handle = XvtOpt_Load(filename, &version, &nativeSize);
+	int root_index;
+	struct optimized_poly_object *model;
+	struct scene_mesh mesh_state;
+	uint16_t handle = xvt_opt_load(filename, &version, &native_size);
 	if (!handle) {
-		XvtStorage_Fatal("Invalid required OPT model", 1);
+		xvt_storage_fatal("Invalid required OPT model", 1);
 		return 0;
 	}
-	if (g_loadOptBufHandle) {
-		Memory_FreeHandle(g_loadOptBufHandle);
+	if (g_load_opt_buf_handle) {
+		memory_free_handle(g_load_opt_buf_handle);
 	}
-	g_loadOptBufHandle = handle;
-	g_loadOptBufSize = (int)nativeSize;
-	g_optSourceIsVersion0 = version == 0;
+	g_load_opt_buf_handle = handle;
+	g_load_opt_buf_size = (int)native_size;
+	g_opt_source_is_version0 = version == 0;
 	if (version < 2) {
-		nativeSize = OptModel_ConvertLegacyModelToOptimized(nativeSize);
-		if (!nativeSize) {
+		native_size = opt_model_convert_legacy_model_to_optimized(
+			native_size);
+		if (!native_size) {
 			return 0;
 		}
-		handle = g_loadOptBufHandle;
+		handle = g_load_opt_buf_handle;
 	}
-	model = Memory_GetHandleBlock(handle);
-	memset(&meshState, 0, sizeof(meshState));
-	g_curMeshVertices = NULL;
-	g_curMeshTexCoords = NULL;
-	g_curVertNormals = NULL;
-	g_modelNodeWalkUnusedScratch2 = NULL;
-	g_curMeshMaterials = NULL;
-	g_curVertexCount = 0;
-	for (rootIndex = 0; rootIndex < model->rootNodeCount; ++rootIndex) {
-		OptModel_MeasureNodeAndRaiseCapacities(
-			model->rootNodes[rootIndex], &meshState);
+	model = memory_get_handle_block(handle);
+	memset(&mesh_state, 0, sizeof(mesh_state));
+	g_cur_mesh_vertices = NULL;
+	g_cur_mesh_tex_coords = NULL;
+	g_cur_vert_normals = NULL;
+	g_model_node_walk_unused_scratch2 = NULL;
+	g_cur_mesh_materials = NULL;
+	g_cur_vertex_count = 0;
+	for (root_index = 0; root_index < model->root_node_count;
+	     ++root_index) {
+		opt_model_measure_node_and_raise_capacities(
+			model->root_nodes[root_index], &mesh_state);
 	}
-	Memory_HandleBlockDoneStub(handle);
+	memory_handle_block_done_stub(handle);
 	return handle;
 #else
 
-	XvtFile *stream;
+	xvt_file *stream;
 	uint16_t handle;
-	struct OptimizedPolyObject *model;
-	char savedVersionChar;
-	int fileVersion;
-	size_t serializedSize;
-	struct SceneMesh meshState;
-	int rootIndex;
+	struct optimized_poly_object *model;
+	char saved_version_char;
+	int file_version;
+	size_t serialized_size;
+	struct scene_mesh mesh_state;
+	int root_index;
 
-	FeDiskIo_OpenGlobalStream(filename, g_fileModeReadBinary, 1, 0);
+	fe_disk_io_open_global_stream(filename, g_file_mode_read_binary, 1, 0);
 	stream = g_stream;
 	if (stream == NULL) {
 		return 0;
 	}
-	g_optSourceIsVersion0 = 0;
-	File_RawRead(&fileVersion, 1, sizeof(fileVersion), stream);
-	if (fileVersion > 0) {
-		serializedSize = (size_t)fileVersion;
-		fileVersion = 0;
-		g_optSourceIsVersion0 = 1;
+	g_opt_source_is_version0 = 0;
+	FILE_RAW_READ(&file_version, 1, sizeof(file_version), stream);
+	if (file_version > 0) {
+		serialized_size = (size_t)file_version;
+		file_version = 0;
+		g_opt_source_is_version0 = 1;
 	} else {
-		fileVersion = -fileVersion;
-		if (fileVersion == 1) {
-			fileVersion = 0;
+		file_version = -file_version;
+		if (file_version == 1) {
+			file_version = 0;
 		}
-		g_optSourceIsVersion0 = 0;
-		File_RawRead(&serializedSize, 1, sizeof(serializedSize),
-			     stream);
+		g_opt_source_is_version0 = 0;
+		FILE_RAW_READ(&serialized_size, 1, sizeof(serialized_size),
+			      stream);
 	}
-	if ((int)serializedSize > g_loadOptBufSize && g_loadOptBufHandle != 0) {
-		unsigned int oldHandle;
+	if ((int)serialized_size > g_load_opt_buf_size &&
+	    g_load_opt_buf_handle != 0) {
+		unsigned int old_handle;
 
-		oldHandle = g_loadOptBufHandle;
-		Memory_FreeHandle((uint16_t)oldHandle);
-		g_loadOptBufHandle = 0;
-		g_loadOptBufSize = 0;
+		old_handle = g_load_opt_buf_handle;
+		memory_free_handle((uint16_t)old_handle);
+		g_load_opt_buf_handle = 0;
+		g_load_opt_buf_size = 0;
 	}
-	if (g_loadOptBufHandle == 0) {
-		g_loadOptBufHandle = Memory_AllocHandle(serializedSize, 0);
-		if (g_loadOptBufHandle == 0) {
-			FeDiskIo_FatalError(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
+	if (g_load_opt_buf_handle == 0) {
+		g_load_opt_buf_handle = memory_alloc_handle(serialized_size, 0);
+		if (g_load_opt_buf_handle == 0) {
+			fe_disk_io_fatal_error(
+				FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 		}
-		g_loadOptBufSize = (int)serializedSize;
+		g_load_opt_buf_size = (int)serialized_size;
 	}
-	handle = g_loadOptBufHandle;
-	model = Memory_GetHandleBlock(handle);
-	File_RawRead(model, 1, serializedSize, stream);
-	File_RawClose(stream);
-	if (model->selfMarker != model) {
-		OptModel_AdjustOptimizedPolyObjectPointers(model);
+	handle = g_load_opt_buf_handle;
+	model = memory_get_handle_block(handle);
+	FILE_RAW_READ(model, 1, serialized_size, stream);
+	FILE_RAW_CLOSE(stream);
+	if (model->self_marker != model) {
+		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	if (fileVersion == 0) {
-		savedVersionChar = filename[strlen(filename) - 1];
-		if (g_optSourceIsVersion0) {
+	if (file_version == 0) {
+		saved_version_char = filename[strlen(filename) - 1];
+		if (g_opt_source_is_version0) {
 			filename[strlen(filename) - 1] = '0';
 		} else {
 			filename[strlen(filename) - 1] = '1';
 		}
 
-		FeDiskIo_OpenGlobalStream(filename, "wb", 0, 1);
+		fe_disk_io_open_global_stream(filename, "wb", 0, 1);
 		stream = g_stream;
 		if (stream != NULL) {
-			if (!g_optSourceIsVersion0) {
-				fileVersion = -1;
-				File_RawWrite(&fileVersion, 1,
-					      sizeof(fileVersion), stream);
+			if (!g_opt_source_is_version0) {
+				file_version = -1;
+				FILE_RAW_WRITE(&file_version, 1,
+					       sizeof(file_version), stream);
 			}
-			File_RawWrite(&serializedSize, 1,
-				      sizeof(serializedSize), stream);
-			File_RawWrite(model, 1, serializedSize, stream);
-			File_RawClose(stream);
+			FILE_RAW_WRITE(&serialized_size, 1,
+				       sizeof(serialized_size), stream);
+			FILE_RAW_WRITE(model, 1, serialized_size, stream);
+			FILE_RAW_CLOSE(stream);
 		}
 
-		filename[strlen(filename) - 1] = savedVersionChar;
-		Memory_HandleBlockDoneStub(handle);
-		serializedSize = OptModel_ConvertLegacyModelToOptimized(
-			(unsigned int)serializedSize);
-		handle = g_loadOptBufHandle;
-		model = Memory_GetHandleBlock(handle);
-		if (model->selfMarker != model) {
-			OptModel_AdjustOptimizedPolyObjectPointers(model);
+		filename[strlen(filename) - 1] = saved_version_char;
+		memory_handle_block_done_stub(handle);
+		serialized_size = opt_model_convert_legacy_model_to_optimized(
+			(unsigned int)serialized_size);
+		handle = g_load_opt_buf_handle;
+		model = memory_get_handle_block(handle);
+		if (model->self_marker != model) {
+			opt_model_adjust_optimized_poly_object_pointers(model);
 		}
 
-		fileVersion = -1;
-		if (!g_optSourceIsVersion0) {
-			fileVersion = -2;
+		file_version = -1;
+		if (!g_opt_source_is_version0) {
+			file_version = -2;
 		}
 		if (_access(filename, 2) == 0) {
-			FeDiskIo_OpenGlobalStream(filename, "wb", 0, 1);
+			fe_disk_io_open_global_stream(filename, "wb", 0, 1);
 			stream = g_stream;
 			if (stream != NULL) {
-				File_RawWrite(&fileVersion, 1,
-					      sizeof(fileVersion), stream);
-				File_RawWrite(&serializedSize, 1,
-					      sizeof(serializedSize), stream);
-				File_RawWrite(model, 1, serializedSize, stream);
-				File_RawClose(stream);
+				FILE_RAW_WRITE(&file_version, 1,
+					       sizeof(file_version), stream);
+				FILE_RAW_WRITE(&serialized_size, 1,
+					       sizeof(serialized_size), stream);
+				FILE_RAW_WRITE(model, 1, serialized_size,
+					       stream);
+				FILE_RAW_CLOSE(stream);
 			}
 		}
-		fileVersion = -fileVersion;
+		file_version = -file_version;
 	}
 
-	memset(&meshState, 0, sizeof(meshState));
-	g_curMeshVertices = NULL;
-	g_curMeshTexCoords = NULL;
-	g_curVertNormals = NULL;
-	g_modelNodeWalkUnusedScratch2 = NULL;
-	g_curMeshMaterials = NULL;
-	g_curVertexCount = 0;
-	serializedSize = sizeof(*model) +
-			 sizeof(*model->rootNodes) * model->rootNodeCount;
-	for (rootIndex = 0; rootIndex < model->rootNodeCount; ++rootIndex) {
-		serializedSize += OptModel_MeasureNodeAndRaiseCapacities(
-			model->rootNodes[rootIndex], &meshState);
+	memset(&mesh_state, 0, sizeof(mesh_state));
+	g_cur_mesh_vertices = NULL;
+	g_cur_mesh_tex_coords = NULL;
+	g_cur_vert_normals = NULL;
+	g_model_node_walk_unused_scratch2 = NULL;
+	g_cur_mesh_materials = NULL;
+	g_cur_vertex_count = 0;
+	serialized_size = sizeof(*model) +
+			  sizeof(*model->root_nodes) * model->root_node_count;
+	for (root_index = 0; root_index < model->root_node_count;
+	     ++root_index) {
+		serialized_size += opt_model_measure_node_and_raise_capacities(
+			model->root_nodes[root_index], &mesh_state);
 	}
-	Memory_HandleBlockDoneStub(handle);
+	memory_handle_block_done_stub(handle);
 	return handle;
 
 #endif
 }
 
-/* Converts the version 0 or 1 model of sourceSize bytes in g_loadOptBufHandle
+/* Converts the version 0 or 1 model of source_size bytes in g_load_opt_buf_handle
  * to version 2 in the same handle and returns the new size in bytes. It copies
- * the source into g_optConvertSourceHandle, regrowing that when smaller, makes
- * g_loadOptBufHandle hold at least twice sourceSize, and rebuilds each root
- * there with OptModel_ConvertLegacyNodeToOptimized, setting
- * g_optConvertVertexNode, g_optConvertTexCoordNode and
- * g_optConvertVertexNormalNode to NULL before each. Sets g_curMeshVertices,
- * g_curMeshTexCoords, g_curVertNormals, g_modelNodeWalkUnusedScratch2 and
- * g_curMeshMaterials to NULL and g_curVertexCount to 0 first. Running out of
- * memory ends the program through FeDiskIo_FatalError. Does not check that the
+ * the source into g_opt_convert_source_handle, regrowing that when smaller, makes
+ * g_load_opt_buf_handle hold at least twice source_size, and rebuilds each root
+ * there with opt_model_convert_legacy_node_to_optimized, setting
+ * g_opt_convert_vertex_node, g_opt_convert_tex_coord_node and
+ * g_opt_convert_vertex_normal_node to NULL before each. Sets g_cur_mesh_vertices,
+ * g_cur_mesh_tex_coords, g_cur_vert_normals, g_model_node_walk_unused_scratch2 and
+ * g_cur_mesh_materials to NULL and g_cur_vertex_count to 0 first. Running out of
+ * memory ends the program through fe_disk_io_fatal_error. Does not check that the
  * result fits in twice the source size. */
 // FUNCTION: XVT 0x474610
-unsigned int OptModel_ConvertLegacyModelToOptimized(unsigned int sourceSize)
+unsigned int
+opt_model_convert_legacy_model_to_optimized(unsigned int source_size)
 {
 	/* Convert a legacy model stream into the optimized runtime representation. */
-	struct OptimizedPolyObject *sourceModel;
-	struct OptimizedPolyObject *destinationModel;
-	struct SceneMesh meshState;
-	uint8_t *destinationNode;
-	unsigned int serializedSize;
-	int destinationCapacity;
-	int rootIndex;
-	int rootNodeCount;
+	struct optimized_poly_object *source_model;
+	struct optimized_poly_object *destination_model;
+	struct scene_mesh mesh_state;
+	uint8_t *destination_node;
+	unsigned int serialized_size;
+	int destination_capacity;
+	int root_index;
+	int root_node_count;
 
-	if ((int)g_optConvertSourceBufSize < (int)sourceSize &&
-	    g_optConvertSourceHandle != 0) {
-		Memory_FreeHandle(g_optConvertSourceHandle);
-		g_optConvertSourceHandle = 0;
-		g_optConvertSourceBufSize = 0;
+	if ((int)g_opt_convert_source_buf_size < (int)source_size &&
+	    g_opt_convert_source_handle != 0) {
+		memory_free_handle(g_opt_convert_source_handle);
+		g_opt_convert_source_handle = 0;
+		g_opt_convert_source_buf_size = 0;
 	}
-	if (g_optConvertSourceHandle == 0) {
-		g_optConvertSourceHandle = Memory_AllocHandle(sourceSize, 0);
-		if (g_optConvertSourceHandle == 0) {
-			FeDiskIo_FatalError(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
+	if (g_opt_convert_source_handle == 0) {
+		g_opt_convert_source_handle =
+			memory_alloc_handle(source_size, 0);
+		if (g_opt_convert_source_handle == 0) {
+			fe_disk_io_fatal_error(
+				FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 		}
-		g_optConvertSourceBufSize = sourceSize;
+		g_opt_convert_source_buf_size = source_size;
 	}
-	sourceModel = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		g_optConvertSourceHandle);
-	memcpy(sourceModel, Memory_GetHandleBlock(g_loadOptBufHandle),
-	       sourceSize);
-	if (sourceModel->selfMarker != sourceModel) {
-		OptModel_AdjustOptimizedPolyObjectPointers(sourceModel);
+	source_model = (struct optimized_poly_object *)memory_get_handle_block(
+		g_opt_convert_source_handle);
+	memcpy(source_model, memory_get_handle_block(g_load_opt_buf_handle),
+	       source_size);
+	if (source_model->self_marker != source_model) {
+		opt_model_adjust_optimized_poly_object_pointers(source_model);
 	}
-	Memory_HandleBlockDoneStub(g_loadOptBufHandle);
-	destinationCapacity = (int)(sourceSize * 2u);
-	if (destinationCapacity > g_loadOptBufSize && g_loadOptBufHandle != 0) {
-		Memory_FreeHandle(g_loadOptBufHandle);
-		g_loadOptBufHandle = 0;
-		g_loadOptBufSize = 0;
+	memory_handle_block_done_stub(g_load_opt_buf_handle);
+	destination_capacity = (int)(source_size * 2u);
+	if (destination_capacity > g_load_opt_buf_size &&
+	    g_load_opt_buf_handle != 0) {
+		memory_free_handle(g_load_opt_buf_handle);
+		g_load_opt_buf_handle = 0;
+		g_load_opt_buf_size = 0;
 	}
-	if (g_loadOptBufHandle == 0) {
-		g_loadOptBufHandle = Memory_AllocHandle(
-			(unsigned int)destinationCapacity, 0);
-		if (g_loadOptBufHandle == 0) {
-			FeDiskIo_FatalError(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
+	if (g_load_opt_buf_handle == 0) {
+		g_load_opt_buf_handle = memory_alloc_handle(
+			(unsigned int)destination_capacity, 0);
+		if (g_load_opt_buf_handle == 0) {
+			fe_disk_io_fatal_error(
+				FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 		}
-		g_loadOptBufSize = destinationCapacity;
+		g_load_opt_buf_size = destination_capacity;
 	}
-	destinationModel = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		g_loadOptBufHandle);
-	memcpy(destinationModel, sourceModel, sizeof(*destinationModel));
-	destinationModel->selfMarker = destinationModel;
-	destinationModel->rootNodes =
-		(struct OptNode **)((uint8_t *)destinationModel +
-				    sizeof(*destinationModel));
-	rootNodeCount = sourceModel->rootNodeCount;
-	destinationNode =
-		(uint8_t *)(destinationModel->rootNodes + rootNodeCount);
-	serializedSize = (unsigned int)(sizeof(*destinationModel) +
-					sizeof(struct OptNode *) *
-						(unsigned int)rootNodeCount);
-	memset(&meshState, 0, sizeof(meshState));
-	g_curMeshVertices = NULL;
-	g_curMeshTexCoords = NULL;
-	g_curVertNormals = NULL;
-	g_modelNodeWalkUnusedScratch2 = NULL;
-	g_curMeshMaterials = NULL;
-	g_curVertexCount = 0;
-	destinationModel->rootNodeCount = 0;
-	rootIndex = 0;
-	if (rootNodeCount > 0) {
+	destination_model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			g_load_opt_buf_handle);
+	memcpy(destination_model, source_model, sizeof(*destination_model));
+	destination_model->self_marker = destination_model;
+	destination_model->root_nodes =
+		(struct opt_node **)((uint8_t *)destination_model +
+				     sizeof(*destination_model));
+	root_node_count = source_model->root_node_count;
+	destination_node =
+		(uint8_t *)(destination_model->root_nodes + root_node_count);
+	serialized_size = (unsigned int)(sizeof(*destination_model) +
+					 sizeof(struct opt_node *) *
+						 (unsigned int)root_node_count);
+	memset(&mesh_state, 0, sizeof(mesh_state));
+	g_cur_mesh_vertices = NULL;
+	g_cur_mesh_tex_coords = NULL;
+	g_cur_vert_normals = NULL;
+	g_model_node_walk_unused_scratch2 = NULL;
+	g_cur_mesh_materials = NULL;
+	g_cur_vertex_count = 0;
+	destination_model->root_node_count = 0;
+	root_index = 0;
+	if (root_node_count > 0) {
 		do {
-			unsigned int nodeSize;
-			++rootIndex;
-			++destinationModel->rootNodeCount;
-			destinationModel->rootNodes[rootIndex - 1] =
-				(struct OptNode *)destinationNode;
-			g_optConvertVertexNode = NULL;
-			g_optConvertTexCoordNode = NULL;
-			g_optConvertVertexNormalNode = NULL;
-			nodeSize = OptModel_ConvertLegacyNodeToOptimized(
-				destinationNode,
-				sourceModel->rootNodes[rootIndex - 1],
-				sourceModel, destinationModel, &meshState);
-			destinationNode += nodeSize;
-			serializedSize += nodeSize;
-		} while (rootNodeCount > rootIndex);
+			unsigned int node_size;
+			++root_index;
+			++destination_model->root_node_count;
+			destination_model->root_nodes[root_index - 1] =
+				(struct opt_node *)destination_node;
+			g_opt_convert_vertex_node = NULL;
+			g_opt_convert_tex_coord_node = NULL;
+			g_opt_convert_vertex_normal_node = NULL;
+			node_size = opt_model_convert_legacy_node_to_optimized(
+				destination_node,
+				source_model->root_nodes[root_index - 1],
+				source_model, destination_model, &mesh_state);
+			destination_node += node_size;
+			serialized_size += node_size;
+		} while (root_node_count > root_index);
 	}
-	return serializedSize;
+	return serialized_size;
 }
 
 /* Searches node and the nodes below it, depth first, for a texture whose own
- * palette holds the same 8192 bytes of RGB565 colors as textureData does after
+ * palette holds the same 8192 bytes of RGB565 colors as texture_data does after
  * its first 4096 bytes, and returns the start of that palette, or NULL. When
- * stopNode is among a node's children, the search of that node ends there, but
+ * stop_node is among a node's children, the search of that node ends there, but
  * the levels above go on to their later children. A texture with
- * inlinePaletteCount 0 counts only when its palette pointer is its own embedded
- * palette. A texture compared without a match passes textureData 4096 bytes on
+ * inline_palette_count 0 counts only when its palette pointer is its own embedded
+ * palette. A texture compared without a match passes texture_data 4096 bytes on
  * to its own children. */
 // FUNCTION: XVT 0x474830
-void *
-OptModel_FindSharedTextureDataInNodeBeforeTarget(const void *textureData,
-						 struct OptNode *node,
-						 const struct OptNode *stopNode)
+void *opt_model_find_shared_texture_data_in_node_before_target(
+	const void *texture_data, struct opt_node *node,
+	const struct opt_node *stop_node)
 {
-	int textureByteCount;
-	struct OptTextureData *nodeTexture;
-	uint8_t *nodeTextureData;
-	int childIndex;
-	int childOffset;
-	struct OptNode *child;
+	int texture_byte_count;
+	struct opt_texture_data *node_texture;
+	uint8_t *node_texture_data;
+	int child_index;
+	int child_offset;
+	struct opt_node *child;
 	void *result;
 
 	if (node == NULL) {
 		return NULL;
 	}
 
-	if (node->nodeType == OPT_TEXTURE) {
-		nodeTexture = node->payload;
-		nodeTextureData = (uint8_t *)nodeTexture + sizeof(*nodeTexture);
-		textureByteCount = nodeTexture->height;
-		textureByteCount *= nodeTexture->width;
-		if (nodeTexture->textureSize == textureByteCount) {
-			textureByteCount = nodeTexture->dataSize;
+	if (node->node_type == OPT_TEXTURE) {
+		node_texture = node->payload;
+		node_texture_data =
+			(uint8_t *)node_texture + sizeof(*node_texture);
+		texture_byte_count = node_texture->height;
+		texture_byte_count *= node_texture->width;
+		if (node_texture->texture_size == texture_byte_count) {
+			texture_byte_count = node_texture->data_size;
 		}
-		nodeTextureData += textureByteCount;
-		if (nodeTexture->inlinePaletteCount == 0) {
-			if (nodeTexture->palette ==
-			    (uint16_t *)nodeTextureData) {
-				textureData =
-					(const uint8_t *)textureData + 4096;
-				nodeTextureData += 4096;
-				if (memcmp(textureData, nodeTextureData,
+		node_texture_data += texture_byte_count;
+		if (node_texture->inline_palette_count == 0) {
+			if (node_texture->palette ==
+			    (uint16_t *)node_texture_data) {
+				texture_data =
+					(const uint8_t *)texture_data + 4096;
+				node_texture_data += 4096;
+				if (memcmp(texture_data, node_texture_data,
 					   8192) == 0) {
-					nodeTextureData -= 4096;
-					return nodeTextureData;
+					node_texture_data -= 4096;
+					return node_texture_data;
 				}
 			}
 		} else {
-			textureData = (const uint8_t *)textureData + 4096;
-			nodeTextureData += 4096;
-			if (memcmp(textureData, nodeTextureData, 8192) == 0) {
-				nodeTextureData -= 4096;
-				return nodeTextureData;
+			texture_data = (const uint8_t *)texture_data + 4096;
+			node_texture_data += 4096;
+			if (memcmp(texture_data, node_texture_data, 8192) ==
+			    0) {
+				node_texture_data -= 4096;
+				return node_texture_data;
 			}
 		}
 	}
 
-	childOffset = 0;
-	childIndex = 0;
-	if (node->childCount > 0) {
+	child_offset = 0;
+	child_index = 0;
+	if (node->child_count > 0) {
 		do {
-			child = *(
-				struct OptNode **)((uint8_t *)node->pChildren +
-						   childOffset);
-			if (stopNode == child) {
+			child = *(struct opt_node **)((uint8_t *)
+							      node->p_children +
+						      child_offset);
+			if (stop_node == child) {
 				return NULL;
 			}
 			result =
-				OptModel_FindSharedTextureDataInNodeBeforeTarget(
-					textureData, child, stopNode);
+				opt_model_find_shared_texture_data_in_node_before_target(
+					texture_data, child, stop_node);
 			if (result != NULL) {
 				return result;
 			}
-			childOffset += sizeof(*node->pChildren);
-			++childIndex;
-		} while (node->childCount > childIndex);
+			child_offset += sizeof(*node->p_children);
+			++child_index;
+		} while (node->child_count > child_index);
 	}
 
 	return NULL;
 }
 
-/* Runs OptModel_FindSharedTextureDataInNodeBeforeTarget on each root of model
+/* Runs opt_model_find_shared_texture_data_in_node_before_target on each root of model
  * in order and returns its first match, or NULL; stops, returning NULL, at a
- * root that is stopNode. */
+ * root that is stop_node. */
 // FUNCTION: XVT 0x474910
-void *OptModel_FindEarlierSharedTextureData(const void *textureData,
-					    struct OptimizedPolyObject *model,
-					    const struct OptNode *stopNode)
+void *
+opt_model_find_earlier_shared_texture_data(const void *texture_data,
+					   struct optimized_poly_object *model,
+					   const struct opt_node *stop_node)
 {
-	struct OptimizedPolyObject *object;
-	int rootIndex;
-	unsigned int rootOffset;
-	struct OptNode *rootNode;
+	struct optimized_poly_object *object;
+	int root_index;
+	unsigned int root_offset;
+	struct opt_node *root_node;
 	void *result;
 
 	object = model;
-	rootIndex = 0;
-	rootOffset = 0;
-	if (object->rootNodeCount > 0) {
+	root_index = 0;
+	root_offset = 0;
+	if (object->root_node_count > 0) {
 		do {
-			rootNode =
-				*(struct OptNode **)((uint8_t *)
-							     object->rootNodes +
-						     rootOffset);
-			if (stopNode == rootNode) {
+			root_node = *(struct opt_node **)((uint8_t *)object
+								  ->root_nodes +
+							  root_offset);
+			if (stop_node == root_node) {
 				return NULL;
 			}
 			result =
-				OptModel_FindSharedTextureDataInNodeBeforeTarget(
-					textureData, rootNode, stopNode);
+				opt_model_find_shared_texture_data_in_node_before_target(
+					texture_data, root_node, stop_node);
 			if (result != NULL) {
 				return result;
 			}
-			rootOffset += sizeof(*object->rootNodes);
-			++rootIndex;
-		} while (object->rootNodeCount > rootIndex);
+			root_offset += sizeof(*object->root_nodes);
+			++root_index;
+		} while (object->root_node_count > root_index);
 	}
 
 	return NULL;
 }
 
-/* Writes at dst the version 2 form of srcNode and everything below it, and
+/* Writes at dst the version 2 form of src_node and everything below it, and
  * returns the bytes written: 0 for a NULL node, and for a node the conversion
  * drops that has no children, whose slot in the parent's child table becomes
  * NULL. In the modern build every node starts aligned and the size is rounded
  * up.
  *
- * While g_optConvertVertexNode is NULL, as it is at each root, a node with
+ * While g_opt_convert_vertex_node is NULL, as it is at each root, a node with
  * children gets three new first children: an OPT_MESHVERTS, an OPT_TEXCOORDS
  * and an OPT_VERTNORMALS node holding each distinct vertex, texture coordinate
  * and vertex normal found below it. When the merged vertices' last two are not
  * the bounding box's minimum and maximum corners, those two corners are
- * appended. These nodes become g_optConvertVertexNode, g_optConvertTexCoordNode
- * and g_optConvertVertexNormalNode. An OPT_FACEGROUP in that state gets them
+ * appended. These nodes become g_opt_convert_vertex_node, g_opt_convert_tex_coord_node
+ * and g_opt_convert_vertex_normal_node. An OPT_FACEGROUP in that state gets them
  * through a new OPT_GROUP above it. From then on the source's own vertex,
  * texture coordinate and normal nodes are dropped, and each face node takes,
- * through OptModel_AppendConvertedFacesForCurrentMesh, the faces of itself and
+ * through opt_model_append_converted_faces_for_current_mesh, the faces of itself and
  * of the face nodes after it under the same texture, within the same child of
  * the last OPT_FACEGROUP passed, renumbered into the merged lists. Face nodes
  * whose faces were taken this way (edge count -1) are dropped.
  *
  * An OPT_FACEGROUP keeps its list of one float per child, padded with zeros or
- * cut to its child count. A texture with inlinePaletteCount 0 whose palette
+ * cut to its child count. A texture with inline_palette_count 0 whose palette
  * lies outside its own data is pointed at an earlier texture with the same
- * colors (OptModel_FindEarlierSharedTextureData) or given a copy of the
+ * colors (opt_model_find_earlier_shared_texture_data) or given a copy of the
  * palette. A face node met before any merged lists exist is copied: its edge
  * count and records, 16 more bytes per face taken again from the start of its
- * payload, its 36 bytes per face of normal and gradients, and, while meshState
- * has no vertex normal list, g_curVertexCount vertex normals. A dropped node
+ * payload, its 36 bytes per face of normal and gradients, and, while mesh_state
+ * has no vertex normal list, g_cur_vertex_count vertex normals. A dropped node
  * that has children becomes an OPT_GROUP. Other nodes are copied with their
- * payloads. Writes g_curMeshVertices, g_curVertexCount, g_curMeshMaterials,
- * g_curVertNormals and g_curMeshTexCoords as it passes those nodes, and
- * g_optConvertSourceTextureNode and g_optConvertSourceMeshNode. */
+ * payloads. Writes g_cur_mesh_vertices, g_cur_vertex_count, g_cur_mesh_materials,
+ * g_cur_vert_normals and g_cur_mesh_tex_coords as it passes those nodes, and
+ * g_opt_convert_source_texture_node and g_opt_convert_source_mesh_node. */
 // FUNCTION: XVT 0x474960
-unsigned int
-OptModel_ConvertLegacyNodeToOptimized(uint8_t *dst, struct OptNode *srcNode,
-				      struct OptimizedPolyObject *srcModel,
-				      struct OptimizedPolyObject *dstModel,
-				      struct SceneMesh *meshState)
+unsigned int opt_model_convert_legacy_node_to_optimized(
+	uint8_t *dst, struct opt_node *src_node,
+	struct optimized_poly_object *src_model,
+	struct optimized_poly_object *dst_model, struct scene_mesh *mesh_state)
 {
-	struct OptNode *destinationNode;
+	struct opt_node *destination_node;
 	uint8_t *cursor;
-	struct OptNode **sourceNode;
-	struct SceneMesh childMesh;
-	struct OptVector minimum;
-	struct OptVector maximum;
-	unsigned int payloadSize;
-	int emitNode;
-	int firstChildIndex;
-	int childIndex;
+	struct opt_node **source_node;
+	struct scene_mesh child_mesh;
+	struct opt_vector minimum;
+	struct opt_vector maximum;
+	unsigned int payload_size;
+	int emit_node;
+	int first_child_index;
+	int child_index;
 
-	if (srcNode == NULL) {
+	if (src_node == NULL) {
 		return 0;
 	}
 
 	cursor = dst;
-	sourceNode = &srcNode;
-	emitNode = 1;
-	payloadSize = 0;
-	destinationNode = NULL;
+	source_node = &src_node;
+	emit_node = 1;
+	payload_size = 0;
+	destination_node = NULL;
 
-	switch ((*sourceNode)->nodeType) {
+	switch ((*source_node)->node_type) {
 	case OPT_FACEDATA:
 	case OPT_FACEDATA_QUAD_MESH:
 	case OPT_FACEDATA_FACE_SET:
 	case OPT_FACEDATA_TRIANGLE_STRIP_SET:
-		if (*(int *)(*sourceNode)->payload < 0) {
-			emitNode = 0;
+		if (*(int *)(*source_node)->payload < 0) {
+			emit_node = 0;
 			break;
 		}
 #ifdef XVT_MODERN
-		cursor = XvtOpt_AlignPointer(cursor);
+		cursor = xvt_opt_align_pointer(cursor);
 #endif
-		destinationNode = (struct OptNode *)cursor;
-		if (g_optConvertVertexNode != NULL) {
-			cursor += sizeof(*destinationNode);
-			destinationNode->nodeType = (*sourceNode)->nodeType;
-			if ((*sourceNode)->pName != NULL) {
-				destinationNode->pName = (char *)cursor;
-				strcpy((char *)cursor, (*sourceNode)->pName);
-				cursor += strlen((*sourceNode)->pName) + 1;
+		destination_node = (struct opt_node *)cursor;
+		if (g_opt_convert_vertex_node != NULL) {
+			cursor += sizeof(*destination_node);
+			destination_node->node_type = (*source_node)->node_type;
+			if ((*source_node)->p_name != NULL) {
+				destination_node->p_name = (char *)cursor;
+				strcpy((char *)cursor, (*source_node)->p_name);
+				cursor += strlen((*source_node)->p_name) + 1;
 			} else {
-				destinationNode->pName = NULL;
+				destination_node->p_name = NULL;
 			}
-			destinationNode->payloadCount = 0;
+			destination_node->payload_count = 0;
 #ifdef XVT_MODERN
-			cursor = XvtOpt_AlignPointer(cursor);
+			cursor = xvt_opt_align_pointer(cursor);
 #endif
-			destinationNode->payload = cursor;
+			destination_node->payload = cursor;
 			*(int *)cursor = 0;
-			OptModel_AppendConvertedFacesForCurrentMesh(
-				destinationNode, (*sourceNode), srcModel,
-				meshState);
-			emitNode = 0;
+			opt_model_append_converted_faces_for_current_mesh(
+				destination_node, (*source_node), src_model,
+				mesh_state);
+			emit_node = 0;
 			cursor += sizeof(int) +
-				  100 * destinationNode->payloadCount;
+				  100 * destination_node->payload_count;
 		} else {
-			unsigned int faceRecordSize;
-			unsigned int trailingSize;
-			uint8_t *sourceTrailingData;
+			unsigned int face_record_size;
+			unsigned int trailing_size;
+			uint8_t *source_trailing_data;
 
-			cursor += sizeof(*destinationNode);
-			destinationNode->nodeType = (*sourceNode)->nodeType;
-			if ((*sourceNode)->pName != NULL) {
-				destinationNode->pName = (char *)cursor;
-				strcpy((char *)cursor, (*sourceNode)->pName);
-				cursor += strlen((*sourceNode)->pName) + 1;
+			cursor += sizeof(*destination_node);
+			destination_node->node_type = (*source_node)->node_type;
+			if ((*source_node)->p_name != NULL) {
+				destination_node->p_name = (char *)cursor;
+				strcpy((char *)cursor, (*source_node)->p_name);
+				cursor += strlen((*source_node)->p_name) + 1;
 			} else {
-				destinationNode->pName = NULL;
+				destination_node->p_name = NULL;
 			}
-			destinationNode->payloadCount =
-				(*sourceNode)->payloadCount;
+			destination_node->payload_count =
+				(*source_node)->payload_count;
 #ifdef XVT_MODERN
-			cursor = XvtOpt_AlignPointer(cursor);
+			cursor = xvt_opt_align_pointer(cursor);
 #endif
-			destinationNode->payload = cursor;
-			if (g_optSourceIsVersion0) {
-				faceRecordSize =
+			destination_node->payload = cursor;
+			if (g_opt_source_is_version0) {
+				face_record_size =
 					sizeof(int) +
-					48 * (*sourceNode)->payloadCount;
+					48 * (*source_node)->payload_count;
 			} else {
-				faceRecordSize =
+				face_record_size =
 					sizeof(int) +
-					64 * (*sourceNode)->payloadCount;
+					64 * (*source_node)->payload_count;
 			}
-			memcpy(cursor, (*sourceNode)->payload, faceRecordSize);
-			cursor += faceRecordSize;
-			trailingSize = 16 * (*sourceNode)->payloadCount;
-			memcpy(cursor, (*sourceNode)->payload, trailingSize);
-			cursor += trailingSize;
-			payloadSize = 36 * (*sourceNode)->payloadCount;
-			if (g_optSourceIsVersion0) {
-				sourceTrailingData =
-					(uint8_t *)(*sourceNode)->payload +
+			memcpy(cursor, (*source_node)->payload,
+			       face_record_size);
+			cursor += face_record_size;
+			trailing_size = 16 * (*source_node)->payload_count;
+			memcpy(cursor, (*source_node)->payload, trailing_size);
+			cursor += trailing_size;
+			payload_size = 36 * (*source_node)->payload_count;
+			if (g_opt_source_is_version0) {
+				source_trailing_data =
+					(uint8_t *)(*source_node)->payload +
 					sizeof(int) +
-					48 * (*sourceNode)->payloadCount;
+					48 * (*source_node)->payload_count;
 			} else {
-				sourceTrailingData =
-					(uint8_t *)(*sourceNode)->payload +
+				source_trailing_data =
+					(uint8_t *)(*source_node)->payload +
 					sizeof(int) +
-					64 * (*sourceNode)->payloadCount;
+					64 * (*source_node)->payload_count;
 			}
-			memcpy(cursor, sourceTrailingData, payloadSize);
-			cursor += payloadSize;
-			sourceTrailingData += payloadSize;
-			if (meshState->pVertNormals == NULL) {
-				payloadSize = sizeof(struct OptVector) *
-					      g_curVertexCount;
-				memcpy(cursor, sourceTrailingData, payloadSize);
-				cursor += payloadSize;
+			memcpy(cursor, source_trailing_data, payload_size);
+			cursor += payload_size;
+			source_trailing_data += payload_size;
+			if (mesh_state->p_vert_normals == NULL) {
+				payload_size = sizeof(struct opt_vector) *
+					       g_cur_vertex_count;
+				memcpy(cursor, source_trailing_data,
+				       payload_size);
+				cursor += payload_size;
 			}
-			emitNode = 0;
+			emit_node = 0;
 		}
 		break;
 
 	case OPT_TRANSFORM:
-		payloadSize = 48;
+		payload_size = 48;
 		break;
 
 	case OPT_MESHVERTS:
-		g_curMeshVertices = (*sourceNode)->payload;
-		g_curVertexCount = (*sourceNode)->payloadCount;
-		if (g_optConvertVertexNode != NULL) {
-			emitNode = 0;
+		g_cur_mesh_vertices = (*source_node)->payload;
+		g_cur_vertex_count = (*source_node)->payload_count;
+		if (g_opt_convert_vertex_node != NULL) {
+			emit_node = 0;
 		} else {
-			payloadSize = sizeof(struct OptVector) *
-				      (*sourceNode)->payloadCount;
+			payload_size = sizeof(struct opt_vector) *
+				       (*source_node)->payload_count;
 		}
 		break;
 
 	case OPT_TRANSLATION:
-		payloadSize = 12;
+		payload_size = 12;
 		break;
 
 	case OPT_ROTATION:
-		payloadSize = 36;
+		payload_size = 36;
 		break;
 
 	case OPT_SCALE:
-		payloadSize = 12;
+		payload_size = 12;
 		break;
 
 	case OPT_NODEREF:
-		destinationNode = (*sourceNode);
-		payloadSize = (unsigned int)strlen(
-				      (const char *)(*sourceNode)->payload) +
-			      1;
-		while (destinationNode->nodeType == OPT_NODEREF) {
-			destinationNode = OptModel_ResolveNodeRef(
-				srcModel,
-				(const char *)destinationNode->payload);
-			if (destinationNode == NULL) {
+		destination_node = (*source_node);
+		payload_size = (unsigned int)strlen(
+				       (const char *)(*source_node)->payload) +
+			       1;
+		while (destination_node->node_type == OPT_NODEREF) {
+			destination_node = opt_model_resolve_node_ref(
+				src_model,
+				(const char *)destination_node->payload);
+			if (destination_node == NULL) {
 				break;
 			}
 		}
-		if (destinationNode != NULL &&
-		    destinationNode->nodeType == OPT_TEXTURE) {
-			g_optConvertSourceTextureNode = destinationNode;
+		if (destination_node != NULL &&
+		    destination_node->node_type == OPT_TEXTURE) {
+			g_opt_convert_source_texture_node = destination_node;
 		}
 		break;
 
 	case OPT_MATERIAL:
-		payloadSize = 56 * (*sourceNode)->payloadCount;
-		g_curMeshMaterials = (*sourceNode)->payload;
+		payload_size = 56 * (*source_node)->payload_count;
+		g_cur_mesh_materials = (*source_node)->payload;
 		break;
 
 	case OPT_VERTNORMALS:
-		g_curVertNormals = (struct OptVector *)(*sourceNode)->payload;
-		meshState->pVertNormals = g_curVertNormals;
-		if (g_optConvertVertexNormalNode != NULL) {
-			emitNode = 0;
+		g_cur_vert_normals =
+			(struct opt_vector *)(*source_node)->payload;
+		mesh_state->p_vert_normals = g_cur_vert_normals;
+		if (g_opt_convert_vertex_normal_node != NULL) {
+			emit_node = 0;
 		} else {
-			payloadSize = sizeof(struct OptVector) *
-				      (*sourceNode)->payloadCount;
+			payload_size = sizeof(struct opt_vector) *
+				       (*source_node)->payload_count;
 		}
 		break;
 
 	case OPT_TEXCOORDS:
-		g_curMeshTexCoords = (*sourceNode)->payload;
-		if (g_optConvertTexCoordNode != NULL) {
-			emitNode = 0;
+		g_cur_mesh_tex_coords = (*source_node)->payload;
+		if (g_opt_convert_tex_coord_node != NULL) {
+			emit_node = 0;
 		} else {
-			payloadSize = sizeof(struct OptTexCoord) *
-				      (*sourceNode)->payloadCount;
+			payload_size = sizeof(struct opt_tex_coord) *
+				       (*source_node)->payload_count;
 		}
 		break;
 
 	case OPT_BASE_COLOR:
-		payloadSize = 12;
+		payload_size = 12;
 		break;
 
 	case OPT_TEXTURE: {
-		struct OptTextureData *texture;
-		uint16_t *embeddedPalette;
-		int textureDataSize;
+		struct opt_texture_data *texture;
+		uint16_t *embedded_palette;
+		int texture_data_size;
 
-		g_optConvertSourceTextureNode = (*sourceNode);
-		texture = (struct OptTextureData *)(*sourceNode)->payload;
-		textureDataSize = texture->width * texture->height;
-		if (textureDataSize == texture->textureSize) {
-			payloadSize = sizeof(*texture) + texture->dataSize;
+		g_opt_convert_source_texture_node = (*source_node);
+		texture = (struct opt_texture_data *)(*source_node)->payload;
+		texture_data_size = texture->width * texture->height;
+		if (texture_data_size == texture->texture_size) {
+			payload_size = sizeof(*texture) + texture->data_size;
 		} else {
-			payloadSize = sizeof(*texture) + textureDataSize;
+			payload_size = sizeof(*texture) + texture_data_size;
 		}
-		if (texture->inlinePaletteCount != 0) {
-			payloadSize += 768 * texture->inlinePaletteCount;
+		if (texture->inline_palette_count != 0) {
+			payload_size += 768 * texture->inline_palette_count;
 		} else {
-			embeddedPalette = (uint16_t *)((uint8_t *)texture +
-						       sizeof(*texture));
-			if (textureDataSize == texture->textureSize) {
-				textureDataSize = texture->dataSize;
+			embedded_palette = (uint16_t *)((uint8_t *)texture +
+							sizeof(*texture));
+			if (texture_data_size == texture->texture_size) {
+				texture_data_size = texture->data_size;
 			}
-			embeddedPalette =
-				(uint16_t *)((uint8_t *)embeddedPalette +
-					     textureDataSize);
-			if (texture->palette == embeddedPalette) {
-				payloadSize += 12288;
+			embedded_palette =
+				(uint16_t *)((uint8_t *)embedded_palette +
+					     texture_data_size);
+			if (texture->palette == embedded_palette) {
+				payload_size += 12288;
 			}
 		}
 		break;
@@ -3470,60 +3564,62 @@ OptModel_ConvertLegacyNodeToOptimized(uint8_t *dst, struct OptNode *srcNode,
 
 	case OPT_FACEGROUP:
 #ifdef XVT_MODERN
-		cursor = XvtOpt_AlignPointer(cursor);
+		cursor = xvt_opt_align_pointer(cursor);
 #endif
-		destinationNode = (struct OptNode *)cursor;
-		g_optConvertSourceMeshNode = (*sourceNode);
-		if (g_optConvertVertexNode == NULL) {
-			struct OptNode *vertexNode;
-			struct OptNode *texCoordNode;
-			struct OptNode *normalNode;
-			struct OptNode **generatedChildren;
-			struct OptVector *vectors;
-			struct OptVector *savedNormals;
-			int savedVertexCount;
+		destination_node = (struct opt_node *)cursor;
+		g_opt_convert_source_mesh_node = (*source_node);
+		if (g_opt_convert_vertex_node == NULL) {
+			struct opt_node *vertex_node;
+			struct opt_node *tex_coord_node;
+			struct opt_node *normal_node;
+			struct opt_node **generated_children;
+			struct opt_vector *vectors;
+			struct opt_vector *saved_normals;
+			int saved_vertex_count;
 			int remaining;
 
-			destinationNode->nodeType = OPT_GROUP;
-			cursor += sizeof(*destinationNode);
-			if ((*sourceNode)->pName != NULL) {
-				destinationNode->pName = (char *)cursor;
-				strcpy((char *)cursor, (*sourceNode)->pName);
-				cursor += strlen((*sourceNode)->pName) + 1;
+			destination_node->node_type = OPT_GROUP;
+			cursor += sizeof(*destination_node);
+			if ((*source_node)->p_name != NULL) {
+				destination_node->p_name = (char *)cursor;
+				strcpy((char *)cursor, (*source_node)->p_name);
+				cursor += strlen((*source_node)->p_name) + 1;
 			} else {
-				destinationNode->pName = NULL;
+				destination_node->p_name = NULL;
 			}
-			destinationNode->payload = NULL;
-			destinationNode->payloadCount = 0;
-			destinationNode->childCount = 4;
+			destination_node->payload = NULL;
+			destination_node->payload_count = 0;
+			destination_node->child_count = 4;
 #ifdef XVT_MODERN
-			cursor = XvtOpt_AlignPointer(cursor);
+			cursor = xvt_opt_align_pointer(cursor);
 #endif
-			destinationNode->pChildren = (struct OptNode **)cursor;
-			generatedChildren = destinationNode->pChildren;
-			cursor += sizeof(struct OptNode *) * 4;
+			destination_node->p_children =
+				(struct opt_node **)cursor;
+			generated_children = destination_node->p_children;
+			cursor += sizeof(struct opt_node *) * 4;
 
 #ifdef XVT_MODERN
-			cursor = XvtOpt_AlignPointer(cursor);
+			cursor = xvt_opt_align_pointer(cursor);
 #endif
-			vertexNode = (struct OptNode *)cursor;
-			generatedChildren[0] = vertexNode;
-			vertexNode->nodeType = OPT_MESHVERTS;
-			cursor += sizeof(*vertexNode);
-			vertexNode->pName = NULL;
-			vertexNode->payload = cursor;
-			vertexNode->payloadCount = 0;
-			vertexNode->childCount = 0;
-			vertexNode->pChildren = NULL;
-			OptModel_CollectUniqueVertices(
-				vertexNode, (*sourceNode), srcModel, meshState);
-			g_optConvertVertexNode = vertexNode;
+			vertex_node = (struct opt_node *)cursor;
+			generated_children[0] = vertex_node;
+			vertex_node->node_type = OPT_MESHVERTS;
+			cursor += sizeof(*vertex_node);
+			vertex_node->p_name = NULL;
+			vertex_node->payload = cursor;
+			vertex_node->payload_count = 0;
+			vertex_node->child_count = 0;
+			vertex_node->p_children = NULL;
+			opt_model_collect_unique_vertices(
+				vertex_node, (*source_node), src_model,
+				mesh_state);
+			g_opt_convert_vertex_node = vertex_node;
 
-			vectors = (struct OptVector *)vertexNode->payload;
+			vectors = (struct opt_vector *)vertex_node->payload;
 			minimum.x = maximum.x = vectors->x;
 			minimum.y = maximum.y = vectors->y;
 			minimum.z = maximum.z = vectors->z;
-			remaining = vertexNode->payloadCount;
+			remaining = vertex_node->payload_count;
 			if (remaining > 0) {
 				do {
 					if (vectors->x < minimum.x) {
@@ -3563,311 +3659,316 @@ OptModel_ConvertLegacyNodeToOptimized(uint8_t *dst, struct OptNode *srcNode,
 				vectors[0].x = maximum.x;
 				vectors[0].y = maximum.y;
 				vectors[0].z = maximum.z;
-				vertexNode->payloadCount += 2;
+				vertex_node->payload_count += 2;
 			}
-			cursor += sizeof(struct OptVector) *
-				  vertexNode->payloadCount;
+			cursor += sizeof(struct opt_vector) *
+				  vertex_node->payload_count;
 
 #ifdef XVT_MODERN
-			cursor = XvtOpt_AlignPointer(cursor);
+			cursor = xvt_opt_align_pointer(cursor);
 #endif
-			texCoordNode = (struct OptNode *)cursor;
-			generatedChildren[1] = texCoordNode;
-			texCoordNode->nodeType = OPT_TEXCOORDS;
-			cursor += sizeof(*texCoordNode);
-			texCoordNode->pName = NULL;
-			texCoordNode->payload = cursor;
-			texCoordNode->payloadCount = 0;
-			texCoordNode->childCount = 0;
-			texCoordNode->pChildren = NULL;
-			OptModel_CollectUniqueTexCoords(texCoordNode,
-							(*sourceNode), srcModel,
-							meshState);
-			g_optConvertTexCoordNode = texCoordNode;
-			cursor += sizeof(struct OptTexCoord) *
-				  texCoordNode->payloadCount;
+			tex_coord_node = (struct opt_node *)cursor;
+			generated_children[1] = tex_coord_node;
+			tex_coord_node->node_type = OPT_TEXCOORDS;
+			cursor += sizeof(*tex_coord_node);
+			tex_coord_node->p_name = NULL;
+			tex_coord_node->payload = cursor;
+			tex_coord_node->payload_count = 0;
+			tex_coord_node->child_count = 0;
+			tex_coord_node->p_children = NULL;
+			opt_model_collect_unique_tex_coords(
+				tex_coord_node, (*source_node), src_model,
+				mesh_state);
+			g_opt_convert_tex_coord_node = tex_coord_node;
+			cursor += sizeof(struct opt_tex_coord) *
+				  tex_coord_node->payload_count;
 
 #ifdef XVT_MODERN
-			cursor = XvtOpt_AlignPointer(cursor);
+			cursor = xvt_opt_align_pointer(cursor);
 #endif
-			normalNode = (struct OptNode *)cursor;
-			generatedChildren[2] = normalNode;
-			normalNode->nodeType = OPT_VERTNORMALS;
-			cursor += sizeof(*normalNode);
-			normalNode->pName = NULL;
-			normalNode->payload = cursor;
-			normalNode->payloadCount = 0;
-			normalNode->childCount = 0;
-			normalNode->pChildren = NULL;
-			savedNormals = meshState->pVertNormals;
-			savedVertexCount = g_curVertexCount;
-			meshState->pVertNormals = NULL;
-			OptModel_CollectUniqueVertexNormals(
-				normalNode, (*sourceNode), srcModel, meshState);
-			meshState->pVertNormals = savedNormals;
-			g_optConvertVertexNormalNode = normalNode;
-			g_curVertexCount = savedVertexCount;
-			cursor += sizeof(struct OptVector) *
-				  normalNode->payloadCount;
+			normal_node = (struct opt_node *)cursor;
+			generated_children[2] = normal_node;
+			normal_node->node_type = OPT_VERTNORMALS;
+			cursor += sizeof(*normal_node);
+			normal_node->p_name = NULL;
+			normal_node->payload = cursor;
+			normal_node->payload_count = 0;
+			normal_node->child_count = 0;
+			normal_node->p_children = NULL;
+			saved_normals = mesh_state->p_vert_normals;
+			saved_vertex_count = g_cur_vertex_count;
+			mesh_state->p_vert_normals = NULL;
+			opt_model_collect_unique_vertex_normals(
+				normal_node, (*source_node), src_model,
+				mesh_state);
+			mesh_state->p_vert_normals = saved_normals;
+			g_opt_convert_vertex_normal_node = normal_node;
+			g_cur_vertex_count = saved_vertex_count;
+			cursor += sizeof(struct opt_vector) *
+				  normal_node->payload_count;
 
 #ifdef XVT_MODERN
-			cursor = XvtOpt_AlignPointer(cursor);
+			cursor = xvt_opt_align_pointer(cursor);
 #endif
-			destinationNode = (struct OptNode *)cursor;
-			generatedChildren[3] = destinationNode;
-			destinationNode->nodeType = OPT_FACEGROUP;
-			cursor += sizeof(*destinationNode);
-			destinationNode->pName = NULL;
+			destination_node = (struct opt_node *)cursor;
+			generated_children[3] = destination_node;
+			destination_node->node_type = OPT_FACEGROUP;
+			cursor += sizeof(*destination_node);
+			destination_node->p_name = NULL;
 #ifdef XVT_MODERN
-			cursor = XvtOpt_AlignPointer(cursor);
+			cursor = xvt_opt_align_pointer(cursor);
 #endif
-			destinationNode->payload = cursor;
-			destinationNode->payloadCount =
-				(*sourceNode)->payloadCount;
-			memcpy(cursor, (*sourceNode)->payload,
-			       sizeof(int) * (*sourceNode)->payloadCount);
-			cursor += sizeof(int) * (*sourceNode)->payloadCount;
-			if ((*sourceNode)->childCount >
-			    (*sourceNode)->payloadCount) {
-				destinationNode->payloadCount =
-					(*sourceNode)->childCount;
+			destination_node->payload = cursor;
+			destination_node->payload_count =
+				(*source_node)->payload_count;
+			memcpy(cursor, (*source_node)->payload,
+			       sizeof(int) * (*source_node)->payload_count);
+			cursor += sizeof(int) * (*source_node)->payload_count;
+			if ((*source_node)->child_count >
+			    (*source_node)->payload_count) {
+				destination_node->payload_count =
+					(*source_node)->child_count;
 				memset(cursor, 0,
 				       sizeof(int) *
-					       ((*sourceNode)->childCount -
-						(*sourceNode)->payloadCount));
+					       ((*source_node)->child_count -
+						(*source_node)->payload_count));
 				cursor += sizeof(int) *
-					  ((*sourceNode)->childCount -
-					   (*sourceNode)->payloadCount);
-			} else if ((*sourceNode)->childCount <
-				   (*sourceNode)->payloadCount) {
-				destinationNode->payloadCount =
-					(*sourceNode)->childCount;
+					  ((*source_node)->child_count -
+					   (*source_node)->payload_count);
+			} else if ((*source_node)->child_count <
+				   (*source_node)->payload_count) {
+				destination_node->payload_count =
+					(*source_node)->child_count;
 				cursor += sizeof(int) *
-					  ((*sourceNode)->childCount -
-					   (*sourceNode)->payloadCount);
+					  ((*source_node)->child_count -
+					   (*source_node)->payload_count);
 			}
 		} else {
-			destinationNode->nodeType = OPT_FACEGROUP;
-			cursor += sizeof(*destinationNode);
-			destinationNode->pName = NULL;
+			destination_node->node_type = OPT_FACEGROUP;
+			cursor += sizeof(*destination_node);
+			destination_node->p_name = NULL;
 #ifdef XVT_MODERN
-			cursor = XvtOpt_AlignPointer(cursor);
+			cursor = xvt_opt_align_pointer(cursor);
 #endif
-			destinationNode->payload = cursor;
-			destinationNode->payloadCount =
-				(*sourceNode)->payloadCount;
-			memcpy(cursor, (*sourceNode)->payload,
-			       sizeof(int) * (*sourceNode)->payloadCount);
-			cursor += sizeof(int) * (*sourceNode)->payloadCount;
-			if ((*sourceNode)->childCount >
-			    (*sourceNode)->payloadCount) {
-				destinationNode->payloadCount =
-					(*sourceNode)->childCount;
+			destination_node->payload = cursor;
+			destination_node->payload_count =
+				(*source_node)->payload_count;
+			memcpy(cursor, (*source_node)->payload,
+			       sizeof(int) * (*source_node)->payload_count);
+			cursor += sizeof(int) * (*source_node)->payload_count;
+			if ((*source_node)->child_count >
+			    (*source_node)->payload_count) {
+				destination_node->payload_count =
+					(*source_node)->child_count;
 				memset(cursor, 0,
 				       sizeof(int) *
-					       ((*sourceNode)->childCount -
-						(*sourceNode)->payloadCount));
+					       ((*source_node)->child_count -
+						(*source_node)->payload_count));
 				cursor += sizeof(int) *
-					  ((*sourceNode)->childCount -
-					   (*sourceNode)->payloadCount);
-			} else if ((*sourceNode)->childCount <
-				   (*sourceNode)->payloadCount) {
-				destinationNode->payloadCount =
-					(*sourceNode)->childCount;
+					  ((*source_node)->child_count -
+					   (*source_node)->payload_count);
+			} else if ((*source_node)->child_count <
+				   (*source_node)->payload_count) {
+				destination_node->payload_count =
+					(*source_node)->child_count;
 				cursor += sizeof(int) *
-					  ((*sourceNode)->childCount -
-					   (*sourceNode)->payloadCount);
+					  ((*source_node)->child_count -
+					   (*source_node)->payload_count);
 			}
 		}
-		emitNode = 0;
+		emit_node = 0;
 		break;
 
 	case OPT_HARDPOINT:
-		payloadSize = 16;
+		payload_size = 16;
 		break;
 
 	case OPT_ROTSCALE:
-		payloadSize = 48;
+		payload_size = 48;
 		break;
 
 	case OPT_MESHDESC:
-		payloadSize = 72;
+		payload_size = 72;
 		break;
 
 	default:
 		break;
 	}
 
-	if (emitNode == 1) {
+	if (emit_node == 1) {
 #ifdef XVT_MODERN
-		cursor = XvtOpt_AlignPointer(cursor);
+		cursor = xvt_opt_align_pointer(cursor);
 #endif
-		destinationNode = (struct OptNode *)cursor;
-		cursor += sizeof(*destinationNode);
-		destinationNode->nodeType = (*sourceNode)->nodeType;
-		if ((*sourceNode)->pName != NULL) {
-			destinationNode->pName = (char *)cursor;
-			strcpy((char *)cursor, (*sourceNode)->pName);
-			cursor += strlen((*sourceNode)->pName) + 1;
+		destination_node = (struct opt_node *)cursor;
+		cursor += sizeof(*destination_node);
+		destination_node->node_type = (*source_node)->node_type;
+		if ((*source_node)->p_name != NULL) {
+			destination_node->p_name = (char *)cursor;
+			strcpy((char *)cursor, (*source_node)->p_name);
+			cursor += strlen((*source_node)->p_name) + 1;
 		} else {
-			destinationNode->pName = NULL;
+			destination_node->p_name = NULL;
 		}
-		destinationNode->payloadCount = (*sourceNode)->payloadCount;
+		destination_node->payload_count = (*source_node)->payload_count;
 #ifdef XVT_MODERN
-		cursor = XvtOpt_AlignPointer(cursor);
+		cursor = xvt_opt_align_pointer(cursor);
 #endif
-		destinationNode->payload = cursor;
-		memcpy(cursor, (*sourceNode)->payload, payloadSize);
-		cursor += payloadSize;
-		if ((*sourceNode)->nodeType == OPT_TEXTURE) {
-			struct OptTextureData *sourceTexture;
-			uint16_t *embeddedPalette;
-			int textureDataSize;
+		destination_node->payload = cursor;
+		memcpy(cursor, (*source_node)->payload, payload_size);
+		cursor += payload_size;
+		if ((*source_node)->node_type == OPT_TEXTURE) {
+			struct opt_texture_data *source_texture;
+			uint16_t *embedded_palette;
+			int texture_data_size;
 
-			sourceTexture =
-				(struct OptTextureData *)(*sourceNode)->payload;
-			if (sourceTexture->inlinePaletteCount == 0) {
-				embeddedPalette =
-					(uint16_t *)((uint8_t *)sourceTexture +
-						     sizeof(*sourceTexture));
-				textureDataSize = sourceTexture->width *
-						  sourceTexture->height;
-				if (sourceTexture->textureSize ==
-				    textureDataSize) {
-					textureDataSize =
-						sourceTexture->dataSize;
+			source_texture =
+				(struct opt_texture_data *)(*source_node)
+					->payload;
+			if (source_texture->inline_palette_count == 0) {
+				embedded_palette =
+					(uint16_t *)((uint8_t *)source_texture +
+						     sizeof(*source_texture));
+				texture_data_size = source_texture->width *
+						    source_texture->height;
+				if (source_texture->texture_size ==
+				    texture_data_size) {
+					texture_data_size =
+						source_texture->data_size;
 				}
-				embeddedPalette =
+				embedded_palette =
 					(uint16_t *)((uint8_t *)
-							     embeddedPalette +
-						     textureDataSize);
-				if (sourceTexture->palette != embeddedPalette) {
-					void *sharedTextureData;
+							     embedded_palette +
+						     texture_data_size);
+				if (source_texture->palette !=
+				    embedded_palette) {
+					void *shared_texture_data;
 
-					sharedTextureData =
-						OptModel_FindEarlierSharedTextureData(
-							sourceTexture->palette,
-							dstModel,
-							destinationNode);
-					if (sharedTextureData != NULL) {
-						struct OptTextureData
-							*destinationTexture;
+					shared_texture_data =
+						opt_model_find_earlier_shared_texture_data(
+							source_texture->palette,
+							dst_model,
+							destination_node);
+					if (shared_texture_data != NULL) {
+						struct opt_texture_data
+							*destination_texture;
 
-						destinationTexture =
-							(struct OptTextureData
-								 *)destinationNode
+						destination_texture =
+							(struct opt_texture_data
+								 *)destination_node
 								->payload;
-						destinationTexture->palette =
-							sharedTextureData;
+						destination_texture->palette =
+							shared_texture_data;
 					} else {
-						const void *sourcePalette;
-						struct OptTextureData
-							*destinationTexture;
+						const void *source_palette;
+						struct opt_texture_data
+							*destination_texture;
 
-						sourcePalette =
-							sourceTexture->palette;
-						destinationTexture =
-							(struct OptTextureData
-								 *)destinationNode
+						source_palette =
+							source_texture->palette;
+						destination_texture =
+							(struct opt_texture_data
+								 *)destination_node
 								->payload;
-						destinationTexture->palette =
+						destination_texture->palette =
 							(uint16_t *)cursor;
-						memcpy(cursor, sourcePalette,
+						memcpy(cursor, source_palette,
 						       12288);
 						cursor += 12288;
 					}
 				} else {
-					struct OptTextureData
-						*destinationTexture;
-					uint16_t *destinationPalette;
+					struct opt_texture_data
+						*destination_texture;
+					uint16_t *destination_palette;
 
-					destinationTexture =
-						(struct OptTextureData *)
-							destinationNode
+					destination_texture =
+						(struct opt_texture_data *)
+							destination_node
 								->payload;
-					destinationPalette =
+					destination_palette =
 						(uint16_t
 							 *)((uint8_t *)
-								    destinationTexture +
-							    sizeof(*destinationTexture));
-					textureDataSize =
-						destinationTexture->width *
-						destinationTexture->height;
-					if (destinationTexture->textureSize ==
-					    textureDataSize) {
-						textureDataSize =
-							destinationTexture
-								->dataSize;
+								    destination_texture +
+							    sizeof(*destination_texture));
+					texture_data_size =
+						destination_texture->width *
+						destination_texture->height;
+					if (destination_texture->texture_size ==
+					    texture_data_size) {
+						texture_data_size =
+							destination_texture
+								->data_size;
 					}
-					destinationPalette =
+					destination_palette =
 						(uint16_t
 							 *)((uint8_t *)
-								    destinationPalette +
-							    textureDataSize);
-					destinationTexture->palette =
-						destinationPalette;
+								    destination_palette +
+							    texture_data_size);
+					destination_texture->palette =
+						destination_palette;
 				}
 			}
 		}
 	}
 
-	if (destinationNode == NULL) {
-		if ((*sourceNode)->childCount == 0) {
+	if (destination_node == NULL) {
+		if ((*source_node)->child_count == 0) {
 			return 0;
 		}
 #ifdef XVT_MODERN
-		cursor = XvtOpt_AlignPointer(cursor);
+		cursor = xvt_opt_align_pointer(cursor);
 #endif
-		destinationNode = (struct OptNode *)cursor;
-		cursor += sizeof(*destinationNode);
-		destinationNode->pName = NULL;
-		destinationNode->nodeType = OPT_GROUP;
-		destinationNode->payloadCount = 0;
-		destinationNode->payload = NULL;
+		destination_node = (struct opt_node *)cursor;
+		cursor += sizeof(*destination_node);
+		destination_node->p_name = NULL;
+		destination_node->node_type = OPT_GROUP;
+		destination_node->payload_count = 0;
+		destination_node->payload = NULL;
 	}
 
-	destinationNode->childCount = 0;
-	destinationNode->pChildren = NULL;
-	if ((*sourceNode)->childCount != 0) {
-		if (g_optConvertVertexNode == NULL) {
-			struct OptNode *vertexNode;
-			struct OptNode *texCoordNode;
-			struct OptNode *normalNode;
-			struct OptVector *vectors;
-			struct OptVector *savedNormals;
-			int savedVertexCount;
+	destination_node->child_count = 0;
+	destination_node->p_children = NULL;
+	if ((*source_node)->child_count != 0) {
+		if (g_opt_convert_vertex_node == NULL) {
+			struct opt_node *vertex_node;
+			struct opt_node *tex_coord_node;
+			struct opt_node *normal_node;
+			struct opt_vector *vectors;
+			struct opt_vector *saved_normals;
+			int saved_vertex_count;
 			int remaining;
 
-			destinationNode->childCount =
-				(*sourceNode)->childCount + 3;
+			destination_node->child_count =
+				(*source_node)->child_count + 3;
 #ifdef XVT_MODERN
-			cursor = XvtOpt_AlignPointer(cursor);
+			cursor = xvt_opt_align_pointer(cursor);
 #endif
-			destinationNode->pChildren = (struct OptNode **)cursor;
-			cursor += sizeof(struct OptNode *) *
-				  destinationNode->childCount;
+			destination_node->p_children =
+				(struct opt_node **)cursor;
+			cursor += sizeof(struct opt_node *) *
+				  destination_node->child_count;
 
 #ifdef XVT_MODERN
-			cursor = XvtOpt_AlignPointer(cursor);
+			cursor = xvt_opt_align_pointer(cursor);
 #endif
-			vertexNode = (struct OptNode *)cursor;
-			destinationNode->pChildren[0] = vertexNode;
-			vertexNode->nodeType = OPT_MESHVERTS;
-			cursor += sizeof(*vertexNode);
-			vertexNode->pName = NULL;
-			vertexNode->payload = cursor;
-			vertexNode->payloadCount = 0;
-			vertexNode->childCount = 0;
-			vertexNode->pChildren = NULL;
-			OptModel_CollectUniqueVertices(
-				vertexNode, (*sourceNode), srcModel, meshState);
-			g_optConvertVertexNode = vertexNode;
+			vertex_node = (struct opt_node *)cursor;
+			destination_node->p_children[0] = vertex_node;
+			vertex_node->node_type = OPT_MESHVERTS;
+			cursor += sizeof(*vertex_node);
+			vertex_node->p_name = NULL;
+			vertex_node->payload = cursor;
+			vertex_node->payload_count = 0;
+			vertex_node->child_count = 0;
+			vertex_node->p_children = NULL;
+			opt_model_collect_unique_vertices(
+				vertex_node, (*source_node), src_model,
+				mesh_state);
+			g_opt_convert_vertex_node = vertex_node;
 
-			vectors = (struct OptVector *)vertexNode->payload;
+			vectors = (struct opt_vector *)vertex_node->payload;
 			minimum.x = maximum.x = vectors->x;
 			minimum.y = maximum.y = vectors->y;
 			minimum.z = maximum.z = vectors->z;
-			remaining = vertexNode->payloadCount;
+			remaining = vertex_node->payload_count;
 			if (remaining > 0) {
 				do {
 					if (vectors->x < minimum.x) {
@@ -3907,381 +4008,390 @@ OptModel_ConvertLegacyNodeToOptimized(uint8_t *dst, struct OptNode *srcNode,
 				vectors[0].x = maximum.x;
 				vectors[0].y = maximum.y;
 				vectors[0].z = maximum.z;
-				vertexNode->payloadCount += 2;
+				vertex_node->payload_count += 2;
 			}
-			cursor += sizeof(struct OptVector) *
-				  vertexNode->payloadCount;
+			cursor += sizeof(struct opt_vector) *
+				  vertex_node->payload_count;
 
 #ifdef XVT_MODERN
-			cursor = XvtOpt_AlignPointer(cursor);
+			cursor = xvt_opt_align_pointer(cursor);
 #endif
-			texCoordNode = (struct OptNode *)cursor;
-			destinationNode->pChildren[1] = texCoordNode;
-			texCoordNode->nodeType = OPT_TEXCOORDS;
-			cursor += sizeof(*texCoordNode);
-			texCoordNode->pName = NULL;
-			texCoordNode->payload = cursor;
-			texCoordNode->payloadCount = 0;
-			texCoordNode->childCount = 0;
-			texCoordNode->pChildren = NULL;
-			OptModel_CollectUniqueTexCoords(texCoordNode,
-							(*sourceNode), srcModel,
-							meshState);
-			g_optConvertTexCoordNode = texCoordNode;
-			cursor += sizeof(struct OptTexCoord) *
-				  texCoordNode->payloadCount;
+			tex_coord_node = (struct opt_node *)cursor;
+			destination_node->p_children[1] = tex_coord_node;
+			tex_coord_node->node_type = OPT_TEXCOORDS;
+			cursor += sizeof(*tex_coord_node);
+			tex_coord_node->p_name = NULL;
+			tex_coord_node->payload = cursor;
+			tex_coord_node->payload_count = 0;
+			tex_coord_node->child_count = 0;
+			tex_coord_node->p_children = NULL;
+			opt_model_collect_unique_tex_coords(
+				tex_coord_node, (*source_node), src_model,
+				mesh_state);
+			g_opt_convert_tex_coord_node = tex_coord_node;
+			cursor += sizeof(struct opt_tex_coord) *
+				  tex_coord_node->payload_count;
 
 #ifdef XVT_MODERN
-			cursor = XvtOpt_AlignPointer(cursor);
+			cursor = xvt_opt_align_pointer(cursor);
 #endif
-			normalNode = (struct OptNode *)cursor;
-			destinationNode->pChildren[2] = normalNode;
-			normalNode->nodeType = OPT_VERTNORMALS;
-			cursor += sizeof(*normalNode);
-			normalNode->pName = NULL;
-			normalNode->payload = cursor;
-			normalNode->payloadCount = 0;
-			normalNode->childCount = 0;
-			normalNode->pChildren = NULL;
-			savedNormals = meshState->pVertNormals;
-			savedVertexCount = g_curVertexCount;
-			meshState->pVertNormals = NULL;
-			OptModel_CollectUniqueVertexNormals(
-				normalNode, (*sourceNode), srcModel, meshState);
-			meshState->pVertNormals = savedNormals;
-			g_optConvertVertexNormalNode = normalNode;
-			g_curVertexCount = savedVertexCount;
-			firstChildIndex = 3;
-			cursor += sizeof(struct OptVector) *
-				  normalNode->payloadCount;
+			normal_node = (struct opt_node *)cursor;
+			destination_node->p_children[2] = normal_node;
+			normal_node->node_type = OPT_VERTNORMALS;
+			cursor += sizeof(*normal_node);
+			normal_node->p_name = NULL;
+			normal_node->payload = cursor;
+			normal_node->payload_count = 0;
+			normal_node->child_count = 0;
+			normal_node->p_children = NULL;
+			saved_normals = mesh_state->p_vert_normals;
+			saved_vertex_count = g_cur_vertex_count;
+			mesh_state->p_vert_normals = NULL;
+			opt_model_collect_unique_vertex_normals(
+				normal_node, (*source_node), src_model,
+				mesh_state);
+			mesh_state->p_vert_normals = saved_normals;
+			g_opt_convert_vertex_normal_node = normal_node;
+			g_cur_vertex_count = saved_vertex_count;
+			first_child_index = 3;
+			cursor += sizeof(struct opt_vector) *
+				  normal_node->payload_count;
 		} else {
-			firstChildIndex = 0;
-			destinationNode->childCount = (*sourceNode)->childCount;
+			first_child_index = 0;
+			destination_node->child_count =
+				(*source_node)->child_count;
 #ifdef XVT_MODERN
-			cursor = XvtOpt_AlignPointer(cursor);
+			cursor = xvt_opt_align_pointer(cursor);
 #endif
-			destinationNode->pChildren = (struct OptNode **)cursor;
-			cursor += sizeof(struct OptNode *) *
-				  destinationNode->childCount;
+			destination_node->p_children =
+				(struct opt_node **)cursor;
+			cursor += sizeof(struct opt_node *) *
+				  destination_node->child_count;
 		}
 
-		childMesh = *meshState;
-		for (childIndex = 0; childIndex < (*sourceNode)->childCount;
-		     ++childIndex) {
-			unsigned int childSize;
+		child_mesh = *mesh_state;
+		for (child_index = 0; child_index < (*source_node)->child_count;
+		     ++child_index) {
+			unsigned int child_size;
 
 #ifdef XVT_MODERN
-			cursor = XvtOpt_AlignPointer(cursor);
+			cursor = xvt_opt_align_pointer(cursor);
 #endif
-			destinationNode
-				->pChildren[firstChildIndex + childIndex] =
-				(struct OptNode *)cursor;
-			childSize = OptModel_ConvertLegacyNodeToOptimized(
-				cursor, (*sourceNode)->pChildren[childIndex],
-				srcModel, dstModel, &childMesh);
-			if (childSize == 0) {
-				destinationNode->pChildren[firstChildIndex +
-							   childIndex] = NULL;
+			destination_node
+				->p_children[first_child_index + child_index] =
+				(struct opt_node *)cursor;
+			child_size = opt_model_convert_legacy_node_to_optimized(
+				cursor, (*source_node)->p_children[child_index],
+				src_model, dst_model, &child_mesh);
+			if (child_size == 0) {
+				destination_node->p_children[first_child_index +
+							     child_index] =
+					NULL;
 			}
-			cursor += childSize;
+			cursor += child_size;
 		}
 	}
 
 #ifdef XVT_MODERN
-	return (unsigned int)XvtOpt_AlignSize((size_t)(cursor - dst));
+	return (unsigned int)xvt_opt_align_size((size_t)(cursor - dst));
 #else
 	return (unsigned int)(cursor - dst);
 #endif
 }
 
-/* Appends to dstVertexNode's list each vertex of every OPT_MESHVERTS node at or
- * below srcNode that is not already in it, comparing the floats exactly, and
- * raises its payloadCount. Follows OPT_NODEREF links and stops at one that does
- * not resolve. Does not check the list's room; meshState is unused. */
+/* Appends to dst_vertex_node's list each vertex of every OPT_MESHVERTS node at or
+ * below src_node that is not already in it, comparing the floats exactly, and
+ * raises its payload_count. Follows OPT_NODEREF links and stops at one that does
+ * not resolve. Does not check the list's room; mesh_state is unused. */
 // FUNCTION: XVT 0x475740
-void OptModel_CollectUniqueVertices(struct OptNode *dstVertexNode,
-				    struct OptNode *srcNode,
-				    struct OptimizedPolyObject *srcModel,
-				    struct SceneMesh *meshState)
+void opt_model_collect_unique_vertices(struct opt_node *dst_vertex_node,
+				       struct opt_node *src_node,
+				       struct optimized_poly_object *src_model,
+				       struct scene_mesh *mesh_state)
 {
-	float *sourceVertex;
-	int childIndex;
+	float *source_vertex;
+	int child_index;
 
-	if (srcNode == NULL) {
+	if (src_node == NULL) {
 		return;
 	}
-	while (srcNode->nodeType == OPT_NODEREF) {
-		srcNode = OptModel_ResolveNodeRef(
-			srcModel, (const char *)srcNode->payload);
-		if (srcNode == NULL) {
+	while (src_node->node_type == OPT_NODEREF) {
+		src_node = opt_model_resolve_node_ref(
+			src_model, (const char *)src_node->payload);
+		if (src_node == NULL) {
 			return;
 		}
 	}
 
-	if (srcNode->nodeType == OPT_MESHVERTS) {
-		int sourceIndex;
+	if (src_node->node_type == OPT_MESHVERTS) {
+		int source_index;
 
-		sourceVertex = (float *)srcNode->payload;
-		for (sourceIndex = 0; sourceIndex < srcNode->payloadCount;
-		     ++sourceIndex) {
-			float *destinationVertex;
-			int destinationCount;
-			int destinationIndex;
+		source_vertex = (float *)src_node->payload;
+		for (source_index = 0; source_index < src_node->payload_count;
+		     ++source_index) {
+			float *destination_vertex;
+			int destination_count;
+			int destination_index;
 
-			destinationVertex = (float *)dstVertexNode->payload;
-			destinationIndex = 0;
-			destinationCount = dstVertexNode->payloadCount;
-			while (destinationIndex < destinationCount) {
-				if (sourceVertex[0] == destinationVertex[0] &&
-				    sourceVertex[1] == destinationVertex[1] &&
-				    sourceVertex[2] == destinationVertex[2]) {
+			destination_vertex = (float *)dst_vertex_node->payload;
+			destination_index = 0;
+			destination_count = dst_vertex_node->payload_count;
+			while (destination_index < destination_count) {
+				if (source_vertex[0] == destination_vertex[0] &&
+				    source_vertex[1] == destination_vertex[1] &&
+				    source_vertex[2] == destination_vertex[2]) {
 					break;
 				}
-				destinationVertex += 3;
-				++destinationIndex;
+				destination_vertex += 3;
+				++destination_index;
 			}
-			if (destinationIndex == destinationCount) {
-				destinationVertex[0] = sourceVertex[0];
-				destinationVertex[1] = sourceVertex[1];
-				destinationVertex[2] = sourceVertex[2];
-				++dstVertexNode->payloadCount;
+			if (destination_index == destination_count) {
+				destination_vertex[0] = source_vertex[0];
+				destination_vertex[1] = source_vertex[1];
+				destination_vertex[2] = source_vertex[2];
+				++dst_vertex_node->payload_count;
 			}
-			sourceVertex += 3;
+			source_vertex += 3;
 		}
 	}
 
-	childIndex = 0;
-	while (srcNode->childCount > childIndex) {
-		OptModel_CollectUniqueVertices(dstVertexNode,
-					       srcNode->pChildren[childIndex],
-					       srcModel, meshState);
-		++childIndex;
+	child_index = 0;
+	while (src_node->child_count > child_index) {
+		opt_model_collect_unique_vertices(
+			dst_vertex_node, src_node->p_children[child_index],
+			src_model, mesh_state);
+		++child_index;
 	}
 }
 
-/* Appends to dstTexCoordNode's list each texture coordinate of every
- * OPT_TEXCOORDS node at or below srcNode that is not already in it, comparing
- * the floats exactly, and raises its payloadCount. Follows OPT_NODEREF links
+/* Appends to dst_tex_coord_node's list each texture coordinate of every
+ * OPT_TEXCOORDS node at or below src_node that is not already in it, comparing
+ * the floats exactly, and raises its payload_count. Follows OPT_NODEREF links
  * and stops at one that does not resolve. Does not check the list's room;
- * meshState is unused. */
+ * mesh_state is unused. */
 // FUNCTION: XVT 0x475850
-void OptModel_CollectUniqueTexCoords(struct OptNode *dstTexCoordNode,
-				     struct OptNode *srcNode,
-				     struct OptimizedPolyObject *srcModel,
-				     struct SceneMesh *meshState)
+void opt_model_collect_unique_tex_coords(
+	struct opt_node *dst_tex_coord_node, struct opt_node *src_node,
+	struct optimized_poly_object *src_model, struct scene_mesh *mesh_state)
 {
-	struct OptNode *destinationNode;
-	int childIndex;
+	struct opt_node *destination_node;
+	int child_index;
 
-	if (srcNode == NULL) {
+	if (src_node == NULL) {
 		return;
 	}
-	while (srcNode->nodeType == OPT_NODEREF) {
-		srcNode = OptModel_ResolveNodeRef(
-			srcModel, (const char *)srcNode->payload);
-		if (srcNode == NULL) {
+	while (src_node->node_type == OPT_NODEREF) {
+		src_node = opt_model_resolve_node_ref(
+			src_model, (const char *)src_node->payload);
+		if (src_node == NULL) {
 			return;
 		}
 	}
 
-	if (srcNode->nodeType == OPT_TEXCOORDS) {
-		float *sourceTexCoord;
-		int sourceIndex;
+	if (src_node->node_type == OPT_TEXCOORDS) {
+		float *source_tex_coord;
+		int source_index;
 
-		sourceTexCoord = (float *)srcNode->payload;
-		destinationNode = dstTexCoordNode;
-		sourceIndex = 0;
-		while (sourceIndex < srcNode->payloadCount) {
-			float *destinationTexCoord;
-			int destinationIndex;
-			int destinationCount;
+		source_tex_coord = (float *)src_node->payload;
+		destination_node = dst_tex_coord_node;
+		source_index = 0;
+		while (source_index < src_node->payload_count) {
+			float *destination_tex_coord;
+			int destination_index;
+			int destination_count;
 
-			destinationTexCoord = (float *)destinationNode->payload;
-			destinationIndex = 0;
-			destinationCount = destinationNode->payloadCount;
-			while (destinationIndex < destinationCount) {
-				if (sourceTexCoord[0] ==
-					    destinationTexCoord[0] &&
-				    sourceTexCoord[1] ==
-					    destinationTexCoord[1]) {
+			destination_tex_coord =
+				(float *)destination_node->payload;
+			destination_index = 0;
+			destination_count = destination_node->payload_count;
+			while (destination_index < destination_count) {
+				if (source_tex_coord[0] ==
+					    destination_tex_coord[0] &&
+				    source_tex_coord[1] ==
+					    destination_tex_coord[1]) {
 					break;
 				}
-				destinationTexCoord += 2;
-				++destinationIndex;
+				destination_tex_coord += 2;
+				++destination_index;
 			}
-			if (destinationIndex == destinationCount) {
-				destinationTexCoord[0] = sourceTexCoord[0];
-				destinationTexCoord[1] = sourceTexCoord[1];
-				++destinationNode->payloadCount;
+			if (destination_index == destination_count) {
+				destination_tex_coord[0] = source_tex_coord[0];
+				destination_tex_coord[1] = source_tex_coord[1];
+				++destination_node->payload_count;
 			}
-			sourceTexCoord += 2;
-			++sourceIndex;
+			source_tex_coord += 2;
+			++source_index;
 		}
 	} else {
-		destinationNode = dstTexCoordNode;
+		destination_node = dst_tex_coord_node;
 	}
 
-	childIndex = 0;
-	while (childIndex < srcNode->childCount) {
-		OptModel_CollectUniqueTexCoords(destinationNode,
-						srcNode->pChildren[childIndex],
-						srcModel, meshState);
-		++childIndex;
+	child_index = 0;
+	while (child_index < src_node->child_count) {
+		opt_model_collect_unique_tex_coords(
+			destination_node, src_node->p_children[child_index],
+			src_model, mesh_state);
+		++child_index;
 	}
 }
 
-/* Appends to dstNormalNode's list each vertex normal at or below srcNode that
+/* Appends to dst_normal_node's list each vertex normal at or below src_node that
  * is not already in it, comparing the floats exactly, and raises its
- * payloadCount. Normals come from OPT_VERTNORMALS nodes, which also become
- * meshState->pVertNormals, and, while meshState has none, from the
- * g_curVertexCount normals stored after each face node's data. Sets
- * g_curVertexCount at each OPT_MESHVERTS node. For a version 0 source it clears
- * meshState->pVertNormals after every node. Follows OPT_NODEREF links and stops
+ * payload_count. Normals come from OPT_VERTNORMALS nodes, which also become
+ * mesh_state->p_vert_normals, and, while mesh_state has none, from the
+ * g_cur_vertex_count normals stored after each face node's data. Sets
+ * g_cur_vertex_count at each OPT_MESHVERTS node. For a version 0 source it clears
+ * mesh_state->p_vert_normals after every node. Follows OPT_NODEREF links and stops
  * at one that does not resolve. Does not check the list's room. */
 // FUNCTION: XVT 0x475940
-void OptModel_CollectUniqueVertexNormals(struct OptNode *dstNormalNode,
-					 struct OptNode *srcNode,
-					 struct OptimizedPolyObject *srcModel,
-					 struct SceneMesh *meshState)
+void opt_model_collect_unique_vertex_normals(
+	struct opt_node *dst_normal_node, struct opt_node *src_node,
+	struct optimized_poly_object *src_model, struct scene_mesh *mesh_state)
 {
-	struct OptNode *node;
-	struct OptNode *destinationNode;
-	struct OptVector *sourceNormal;
-	int sourceIndex;
-	int childIndex;
+	struct opt_node *node;
+	struct opt_node *destination_node;
+	struct opt_vector *source_normal;
+	int source_index;
+	int child_index;
 
-	node = srcNode;
+	node = src_node;
 	if (node == NULL) {
 		return;
 	}
-	while (node->nodeType == OPT_NODEREF) {
-		node = OptModel_ResolveNodeRef(srcModel,
-					       (const char *)node->payload);
+	while (node->node_type == OPT_NODEREF) {
+		node = opt_model_resolve_node_ref(src_model,
+						  (const char *)node->payload);
 		if (node == NULL) {
 			return;
 		}
 	}
 
-	destinationNode = dstNormalNode;
-	switch (node->nodeType) {
+	destination_node = dst_normal_node;
+	switch (node->node_type) {
 	case OPT_FACEDATA:
 	case OPT_FACEDATA_QUAD_MESH:
 	case OPT_FACEDATA_FACE_SET:
 	case OPT_FACEDATA_TRIANGLE_STRIP_SET:
-		if (meshState->pVertNormals == NULL) {
-			struct OptLegacyFacePayload *faceData;
+		if (mesh_state->p_vert_normals == NULL) {
+			struct opt_legacy_face_payload *face_data;
 
-			faceData = (struct OptLegacyFacePayload *)node->payload;
-			if (g_optSourceIsVersion0) {
-				sourceNormal =
-					(struct OptVector *)&(
-						(struct OptLegacyFacePayloadV0
-							 *)faceData)
-						->storage[node->payloadCount];
+			face_data =
+				(struct opt_legacy_face_payload *)node->payload;
+			if (g_opt_source_is_version0) {
+				source_normal =
+					(struct opt_vector *)&(
+						(struct
+						 opt_legacy_face_payload_v0 *)
+							face_data)
+						->storage[node->payload_count];
 			} else {
-				sourceNormal =
-					(struct OptVector *)&faceData
-						->storage[node->payloadCount];
+				source_normal =
+					(struct opt_vector *)&face_data
+						->storage[node->payload_count];
 			}
-			sourceIndex = 0;
-			if (g_curVertexCount > 0) {
+			source_index = 0;
+			if (g_cur_vertex_count > 0) {
 				do {
-					struct OptVector *destinationNormal;
-					int destinationCount;
-					int destinationIndex;
+					struct opt_vector *destination_normal;
+					int destination_count;
+					int destination_index;
 
-					destinationNormal =
-						(struct OptVector *)
-							destinationNode
+					destination_normal =
+						(struct opt_vector *)
+							destination_node
 								->payload;
-					destinationIndex = 0;
-					destinationCount =
-						destinationNode->payloadCount;
-					if (destinationIndex <
-					    destinationCount) {
+					destination_index = 0;
+					destination_count =
+						destination_node->payload_count;
+					if (destination_index <
+					    destination_count) {
 						do {
-							if (destinationNormal
+							if (destination_normal
 								    ->x ==
-							    sourceNormal->x) {
-								if (sourceNormal->y ==
-									    destinationNormal
+							    source_normal->x) {
+								if (source_normal->y ==
+									    destination_normal
 										    ->y &&
-								    sourceNormal->z ==
-									    destinationNormal
+								    source_normal->z ==
+									    destination_normal
 										    ->z) {
 									break;
 								}
 							}
-							++destinationNormal;
-							++destinationIndex;
-						} while (destinationIndex <
-							 destinationCount);
+							++destination_normal;
+							++destination_index;
+						} while (destination_index <
+							 destination_count);
 					}
-					if (destinationIndex ==
-					    destinationCount) {
-						destinationNormal->x =
-							sourceNormal->x;
-						destinationNormal->y =
-							sourceNormal->y;
-						destinationNormal->z =
-							sourceNormal->z;
-						++destinationNode->payloadCount;
+					if (destination_index ==
+					    destination_count) {
+						destination_normal->x =
+							source_normal->x;
+						destination_normal->y =
+							source_normal->y;
+						destination_normal->z =
+							source_normal->z;
+						++destination_node
+							  ->payload_count;
 					}
-					++sourceNormal;
-					++sourceIndex;
-				} while (sourceIndex < g_curVertexCount);
+					++source_normal;
+					++source_index;
+				} while (source_index < g_cur_vertex_count);
 			}
 		}
 		break;
 
 	case OPT_MESHVERTS:
-		g_curVertexCount = node->payloadCount;
+		g_cur_vertex_count = node->payload_count;
 		break;
 
 	case OPT_VERTNORMALS:
-		meshState->pVertNormals = (struct OptVector *)node->payload;
-		sourceNormal = (struct OptVector *)node->payload;
-		sourceIndex = 0;
-		if (node->payloadCount > 0) {
+		mesh_state->p_vert_normals = (struct opt_vector *)node->payload;
+		source_normal = (struct opt_vector *)node->payload;
+		source_index = 0;
+		if (node->payload_count > 0) {
 			do {
-				struct OptVector *destinationNormal;
-				int destinationCount;
-				int destinationIndex;
+				struct opt_vector *destination_normal;
+				int destination_count;
+				int destination_index;
 
-				destinationNormal =
-					(struct OptVector *)
-						destinationNode->payload;
-				destinationIndex = 0;
-				destinationCount =
-					destinationNode->payloadCount;
-				if (destinationIndex < destinationCount) {
+				destination_normal =
+					(struct opt_vector *)
+						destination_node->payload;
+				destination_index = 0;
+				destination_count =
+					destination_node->payload_count;
+				if (destination_index < destination_count) {
 					do {
-						if (destinationNormal->x ==
-						    sourceNormal->x) {
-							if (sourceNormal->y ==
-								    destinationNormal
+						if (destination_normal->x ==
+						    source_normal->x) {
+							if (source_normal->y ==
+								    destination_normal
 									    ->y &&
-							    destinationNormal
+							    destination_normal
 									    ->z ==
-								    sourceNormal
+								    source_normal
 									    ->z) {
 								break;
 							}
 						}
-						++destinationNormal;
-						++destinationIndex;
-					} while (destinationIndex <
-						 destinationCount);
+						++destination_normal;
+						++destination_index;
+					} while (destination_index <
+						 destination_count);
 				}
-				if (destinationIndex == destinationCount) {
-					destinationNormal->x = sourceNormal->x;
-					destinationNormal->y = sourceNormal->y;
-					destinationNormal->z = sourceNormal->z;
-					++destinationNode->payloadCount;
+				if (destination_index == destination_count) {
+					destination_normal->x =
+						source_normal->x;
+					destination_normal->y =
+						source_normal->y;
+					destination_normal->z =
+						source_normal->z;
+					++destination_node->payload_count;
 				}
-				++sourceNormal;
-				++sourceIndex;
-			} while (sourceIndex < node->payloadCount);
+				++source_normal;
+				++source_index;
+			} while (source_index < node->payload_count);
 		}
 		break;
 
@@ -4289,1147 +4399,1164 @@ void OptModel_CollectUniqueVertexNormals(struct OptNode *dstNormalNode,
 		break;
 	}
 
-	if (g_optSourceIsVersion0) {
-		meshState->pVertNormals = NULL;
+	if (g_opt_source_is_version0) {
+		mesh_state->p_vert_normals = NULL;
 	}
-	childIndex = 0;
-	while (childIndex < node->childCount) {
-		OptModel_CollectUniqueVertexNormals(destinationNode,
-						    node->pChildren[childIndex],
-						    srcModel, meshState);
-		++childIndex;
+	child_index = 0;
+	while (child_index < node->child_count) {
+		opt_model_collect_unique_vertex_normals(
+			destination_node, node->p_children[child_index],
+			src_model, mesh_state);
+		++child_index;
 	}
 }
 
-/* Returns the index in uniqueVectorNode's list of sourceVectors[sourceIndex],
+/* Returns the index in unique_vector_node's list of source_vectors[sourceIndex],
  * or -1 for a negative sourceIndex. The search starts at
- * g_optConvertVectorSearchCursor minus (sourceIndex >> 1), or at 0 when that is
+ * g_opt_convert_vector_search_cursor minus (sourceIndex >> 1), or at 0 when that is
  * negative or over the list length, runs to the end, then runs over the whole
- * list from 0. Leaves g_optConvertVectorSearchCursor at the index found.
+ * list from 0. Leaves g_opt_convert_vector_search_cursor at the index found.
  * Returns 0 when the vector is not in the list, leaving the cursor at the list
  * length. */
 // FUNCTION: XVT 0x475B70
-int OptModel_RemapVectorIndex(const struct OptNode *uniqueVectorNode,
-			      const struct OptVector *sourceVectors,
-			      int sourceIndex)
+int opt_model_remap_vector_index(const struct opt_node *unique_vector_node,
+				 const struct opt_vector *source_vectors,
+				 int source_index)
 {
-	const float *uniqueVectors;
+	const float *unique_vectors;
 	int cursor;
 
-	if (sourceIndex < 0) {
+	if (source_index < 0) {
 		return -1;
 	}
 
-	sourceVectors += sourceIndex;
-	uniqueVectors = uniqueVectorNode->payload;
-	cursor = g_optConvertVectorSearchCursor;
-	cursor -= sourceIndex >> 1;
-	g_optConvertVectorSearchCursor = cursor;
-	if (cursor < 0 || uniqueVectorNode->payloadCount < cursor) {
-		g_optConvertVectorSearchCursor = 0;
+	source_vectors += source_index;
+	unique_vectors = unique_vector_node->payload;
+	cursor = g_opt_convert_vector_search_cursor;
+	cursor -= source_index >> 1;
+	g_opt_convert_vector_search_cursor = cursor;
+	if (cursor < 0 || unique_vector_node->payload_count < cursor) {
+		g_opt_convert_vector_search_cursor = 0;
 		cursor = 0;
 	}
 
-	uniqueVectors += 3 * g_optConvertVectorSearchCursor;
-	if (uniqueVectorNode->payloadCount > g_optConvertVectorSearchCursor) {
+	unique_vectors += 3 * g_opt_convert_vector_search_cursor;
+	if (unique_vector_node->payload_count >
+	    g_opt_convert_vector_search_cursor) {
 		do {
-			if (uniqueVectors[0] != sourceVectors->x ||
-			    uniqueVectors[1] != sourceVectors->y ||
-			    sourceVectors->z != uniqueVectors[2]) {
-				uniqueVectors += 3;
-				cursor = g_optConvertVectorSearchCursor;
+			if (unique_vectors[0] != source_vectors->x ||
+			    unique_vectors[1] != source_vectors->y ||
+			    source_vectors->z != unique_vectors[2]) {
+				unique_vectors += 3;
+				cursor = g_opt_convert_vector_search_cursor;
 				++cursor;
-				g_optConvertVectorSearchCursor = cursor;
+				g_opt_convert_vector_search_cursor = cursor;
 			} else {
-				return g_optConvertVectorSearchCursor;
+				return g_opt_convert_vector_search_cursor;
 			}
-		} while (uniqueVectorNode->payloadCount >
-			 g_optConvertVectorSearchCursor);
+		} while (unique_vector_node->payload_count >
+			 g_opt_convert_vector_search_cursor);
 	}
 
-	g_optConvertVectorSearchCursor = 0;
-	uniqueVectors = uniqueVectorNode->payload;
-	if (uniqueVectorNode->payloadCount > 0) {
+	g_opt_convert_vector_search_cursor = 0;
+	unique_vectors = unique_vector_node->payload;
+	if (unique_vector_node->payload_count > 0) {
 		do {
-			if (uniqueVectors[0] != sourceVectors->x ||
-			    uniqueVectors[1] != sourceVectors->y ||
-			    sourceVectors->z != uniqueVectors[2]) {
-				uniqueVectors += 3;
-				cursor = g_optConvertVectorSearchCursor;
+			if (unique_vectors[0] != source_vectors->x ||
+			    unique_vectors[1] != source_vectors->y ||
+			    source_vectors->z != unique_vectors[2]) {
+				unique_vectors += 3;
+				cursor = g_opt_convert_vector_search_cursor;
 				++cursor;
-				g_optConvertVectorSearchCursor = cursor;
+				g_opt_convert_vector_search_cursor = cursor;
 			} else {
-				return g_optConvertVectorSearchCursor;
+				return g_opt_convert_vector_search_cursor;
 			}
-		} while (uniqueVectorNode->payloadCount >
-			 g_optConvertVectorSearchCursor);
+		} while (unique_vector_node->payload_count >
+			 g_opt_convert_vector_search_cursor);
 	}
 
 	return 0;
 }
 
-/* Returns the index in uniqueTexCoordNode's list of
- * sourceTexCoords[sourceIndex], or -1 for a negative sourceIndex. The search
- * starts at g_optConvertTexCoordSearchCursor minus (sourceIndex >> 1), or at 0
+/* Returns the index in unique_tex_coord_node's list of
+ * source_tex_coords[sourceIndex], or -1 for a negative sourceIndex. The search
+ * starts at g_opt_convert_tex_coord_search_cursor minus (sourceIndex >> 1), or at 0
  * when that is negative or over the list length, runs to the end, then runs
- * over the whole list from 0. Leaves g_optConvertTexCoordSearchCursor at the
+ * over the whole list from 0. Leaves g_opt_convert_tex_coord_search_cursor at the
  * index found. Returns 0 when the coordinate is not in the list, leaving the
  * cursor at the list length. */
 // FUNCTION: XVT 0x475C70
-int OptModel_RemapTexCoordIndex(const struct OptNode *uniqueTexCoordNode,
-				const struct OptTexCoord *sourceTexCoords,
-				int sourceIndex)
+int opt_model_remap_tex_coord_index(
+	const struct opt_node *unique_tex_coord_node,
+	const struct opt_tex_coord *source_tex_coords, int source_index)
 {
-	const float *uniqueTexCoords;
+	const float *unique_tex_coords;
 
-	if (sourceIndex < 0) {
+	if (source_index < 0) {
 		return -1;
 	}
 
-	sourceTexCoords += sourceIndex;
-	uniqueTexCoords = uniqueTexCoordNode->payload;
-	g_optConvertTexCoordSearchCursor -= sourceIndex >> 1;
-	if (g_optConvertTexCoordSearchCursor < 0 ||
-	    uniqueTexCoordNode->payloadCount <
-		    g_optConvertTexCoordSearchCursor) {
-		g_optConvertTexCoordSearchCursor = 0;
+	source_tex_coords += source_index;
+	unique_tex_coords = unique_tex_coord_node->payload;
+	g_opt_convert_tex_coord_search_cursor -= source_index >> 1;
+	if (g_opt_convert_tex_coord_search_cursor < 0 ||
+	    unique_tex_coord_node->payload_count <
+		    g_opt_convert_tex_coord_search_cursor) {
+		g_opt_convert_tex_coord_search_cursor = 0;
 	}
 
-	uniqueTexCoords += 2 * g_optConvertTexCoordSearchCursor;
-	if (uniqueTexCoordNode->payloadCount >
-	    g_optConvertTexCoordSearchCursor) {
+	unique_tex_coords += 2 * g_opt_convert_tex_coord_search_cursor;
+	if (unique_tex_coord_node->payload_count >
+	    g_opt_convert_tex_coord_search_cursor) {
 		do {
-			if (uniqueTexCoords[0] != sourceTexCoords->u ||
-			    uniqueTexCoords[1] != sourceTexCoords->v) {
-				uniqueTexCoords += 2;
-				++g_optConvertTexCoordSearchCursor;
+			if (unique_tex_coords[0] != source_tex_coords->u ||
+			    unique_tex_coords[1] != source_tex_coords->v) {
+				unique_tex_coords += 2;
+				++g_opt_convert_tex_coord_search_cursor;
 			} else {
-				return g_optConvertTexCoordSearchCursor;
+				return g_opt_convert_tex_coord_search_cursor;
 			}
-		} while (uniqueTexCoordNode->payloadCount >
-			 g_optConvertTexCoordSearchCursor);
+		} while (unique_tex_coord_node->payload_count >
+			 g_opt_convert_tex_coord_search_cursor);
 	}
 
-	g_optConvertTexCoordSearchCursor = 0;
-	uniqueTexCoords = uniqueTexCoordNode->payload;
-	if (uniqueTexCoordNode->payloadCount > 0) {
+	g_opt_convert_tex_coord_search_cursor = 0;
+	unique_tex_coords = unique_tex_coord_node->payload;
+	if (unique_tex_coord_node->payload_count > 0) {
 		do {
-			if (uniqueTexCoords[0] != sourceTexCoords->u ||
-			    uniqueTexCoords[1] != sourceTexCoords->v) {
-				uniqueTexCoords += 2;
-				++g_optConvertTexCoordSearchCursor;
+			if (unique_tex_coords[0] != source_tex_coords->u ||
+			    unique_tex_coords[1] != source_tex_coords->v) {
+				unique_tex_coords += 2;
+				++g_opt_convert_tex_coord_search_cursor;
 			} else {
-				return g_optConvertTexCoordSearchCursor;
+				return g_opt_convert_tex_coord_search_cursor;
 			}
-		} while (uniqueTexCoordNode->payloadCount >
-			 g_optConvertTexCoordSearchCursor);
+		} while (unique_tex_coord_node->payload_count >
+			 g_opt_convert_tex_coord_search_cursor);
 	}
 
 	return 0;
 }
 
 /* Walks node and the nodes below it, following OPT_NODEREF links, and moves
- * into dstFaceNode the faces of every face node from targetFaceNode on that has
+ * into dst_face_node the faces of every face node from target_face_node on that has
  * a positive edge count while the last texture passed
- * (g_optConvertFaceTextureNode) is g_optConvertSourceTextureNode. Each moved
+ * (g_opt_convert_face_texture_node) is g_opt_convert_source_texture_node. Each moved
  * face's vertex, texture coordinate and normal indices are renumbered into the
- * merged lists (OptModel_RemapVectorIndex, OptModel_RemapTexCoordIndex) and its
- * edge numbers raised by dstFaceNode's edge count, a fourth edge of -1 kept.
- * The new faces go in front of dstFaceNode's faces, in each of its three parts:
+ * merged lists (opt_model_remap_vector_index, opt_model_remap_tex_coord_index) and its
+ * edge numbers raised by dst_face_node's edge count, a fourth edge of -1 kept.
+ * The new faces go in front of dst_face_node's faces, in each of its three parts:
  * the 64-byte records, the face normals and the two texture gradient vectors. A
  * version 0 source has no normal indices, so its vertex indices serve. Adds the
- * moved node's face and edge counts to dstFaceNode's and sets the moved node's
- * edge count to -1. Updates g_optConvertTargetFaceFound,
- * g_optConvertFaceTextureNode, g_curMeshVertices, g_curMeshTexCoords and
- * meshState->pVertNormals as it passes those nodes. Does not check
- * dstFaceNode's room. */
+ * moved node's face and edge counts to dst_face_node's and sets the moved node's
+ * edge count to -1. Updates g_opt_convert_target_face_found,
+ * g_opt_convert_face_texture_node, g_cur_mesh_vertices, g_cur_mesh_tex_coords and
+ * mesh_state->p_vert_normals as it passes those nodes. Does not check
+ * dst_face_node's room. */
 // FUNCTION: XVT 0x475D50
-void OptModel_AppendConvertedFacesForNode(struct OptNode *dstFaceNode,
-					  struct OptNode *targetFaceNode,
-					  struct OptNode *node,
-					  struct OptimizedPolyObject *srcModel,
-					  struct SceneMesh *meshState)
+void opt_model_append_converted_faces_for_node(
+	struct opt_node *dst_face_node, struct opt_node *target_face_node,
+	struct opt_node *node, struct optimized_poly_object *src_model,
+	struct scene_mesh *mesh_state)
 {
-	uint8_t *destinationBytes;
-	uint8_t *destinationTrailingBytes;
-	uint8_t *destinationData;
-	int *destinationCursor;
-	const int *sourceCursor;
-	const struct OptVector *sourceVectors;
-	const struct OptVector *sourceFaceNormals;
-	const struct OptVector *sourceTextureGradients;
-	struct OptVector *destinationFaceNormals;
-	struct OptVector *destinationTextureGradients;
-	int destinationEdgeCount;
-	int faceIndex;
-	int childIndex;
+	uint8_t *destination_bytes;
+	uint8_t *destination_trailing_bytes;
+	uint8_t *destination_data;
+	int *destination_cursor;
+	const int *source_cursor;
+	const struct opt_vector *source_vectors;
+	const struct opt_vector *source_face_normals;
+	const struct opt_vector *source_texture_gradients;
+	struct opt_vector *destination_face_normals;
+	struct opt_vector *destination_texture_gradients;
+	int destination_edge_count;
+	int face_index;
+	int child_index;
 	if (node == NULL) {
 		return;
 	}
 
-	while (node->nodeType == OPT_NODEREF) {
-		node = OptModel_ResolveNodeRef(srcModel,
-					       (const char *)node->payload);
+	while (node->node_type == OPT_NODEREF) {
+		node = opt_model_resolve_node_ref(src_model,
+						  (const char *)node->payload);
 		if (node == NULL) {
 			return;
 		}
 	}
 
-	if (g_optConvertTargetFaceFound == 0 && node == targetFaceNode) {
-		g_optConvertTargetFaceFound = 1;
+	if (g_opt_convert_target_face_found == 0 && node == target_face_node) {
+		g_opt_convert_target_face_found = 1;
 	}
 
-	switch (node->nodeType) {
+	switch (node->node_type) {
 	case OPT_FACEDATA:
 	case OPT_FACEDATA_QUAD_MESH:
 	case OPT_FACEDATA_FACE_SET:
 	case OPT_FACEDATA_TRIANGLE_STRIP_SET:
-		if (g_optConvertTargetFaceFound != 0 &&
-		    g_optConvertFaceTextureNode ==
-			    g_optConvertSourceTextureNode &&
+		if (g_opt_convert_target_face_found != 0 &&
+		    g_opt_convert_face_texture_node ==
+			    g_opt_convert_source_texture_node &&
 		    *(int *)node->payload > 0) {
-			destinationData = dstFaceNode->payload;
-			destinationBytes = destinationData + sizeof(int);
-			destinationEdgeCount = *(int *)destinationData;
+			destination_data = dst_face_node->payload;
+			destination_bytes = destination_data + sizeof(int);
+			destination_edge_count = *(int *)destination_data;
 #ifdef XVT_MODERN
-			memmove(destinationBytes + 64 * node->payloadCount,
-				destinationBytes,
-				100 * dstFaceNode->payloadCount);
+			memmove(destination_bytes + 64 * node->payload_count,
+				destination_bytes,
+				100 * dst_face_node->payload_count);
 #else
-			memcpy(destinationBytes + 64 * node->payloadCount,
-			       destinationBytes,
-			       100 * dstFaceNode->payloadCount);
+			memcpy(destination_bytes + 64 * node->payload_count,
+			       destination_bytes,
+			       100 * dst_face_node->payload_count);
 #endif
 
-			sourceCursor = (const int *)node->payload + 1;
-			sourceVectors = meshState->pVertNormals;
-			if (sourceVectors == NULL) {
-				if (g_optSourceIsVersion0) {
-					sourceVectors =
-						(const struct OptVector
+			source_cursor = (const int *)node->payload + 1;
+			source_vectors = mesh_state->p_vert_normals;
+			if (source_vectors == NULL) {
+				if (g_opt_source_is_version0) {
+					source_vectors =
+						(const struct opt_vector
 							 *)((const uint8_t *)
-								    sourceCursor +
-							    48 * node->payloadCount +
-							    36 * node->payloadCount);
+								    source_cursor +
+							    48 * node->payload_count +
+							    36 * node->payload_count);
 				} else {
-					sourceVectors =
-						(const struct OptVector
+					source_vectors =
+						(const struct opt_vector
 							 *)((const uint8_t *)
-								    sourceCursor +
-							    64 * node->payloadCount +
-							    36 * node->payloadCount);
+								    source_cursor +
+							    64 * node->payload_count +
+							    36 * node->payload_count);
 				}
 			}
 
-			destinationCursor = (int *)destinationBytes;
-			for (faceIndex = 0; faceIndex < node->payloadCount;
-			     ++faceIndex) {
-				int sourceEdgeIndex;
+			destination_cursor = (int *)destination_bytes;
+			for (face_index = 0; face_index < node->payload_count;
+			     ++face_index) {
+				int source_edge_index;
 
-				*destinationCursor++ =
-					OptModel_RemapVectorIndex(
-						g_optConvertVertexNode,
-						(const struct OptVector *)
-							g_curMeshVertices,
-						*sourceCursor++);
-				*destinationCursor++ =
-					OptModel_RemapVectorIndex(
-						g_optConvertVertexNode,
-						(const struct OptVector *)
-							g_curMeshVertices,
-						*sourceCursor++);
-				*destinationCursor++ =
-					OptModel_RemapVectorIndex(
-						g_optConvertVertexNode,
-						(const struct OptVector *)
-							g_curMeshVertices,
-						*sourceCursor++);
-				*destinationCursor++ =
-					OptModel_RemapVectorIndex(
-						g_optConvertVertexNode,
-						(const struct OptVector *)
-							g_curMeshVertices,
-						*sourceCursor++);
+				*destination_cursor++ =
+					opt_model_remap_vector_index(
+						g_opt_convert_vertex_node,
+						(const struct opt_vector *)
+							g_cur_mesh_vertices,
+						*source_cursor++);
+				*destination_cursor++ =
+					opt_model_remap_vector_index(
+						g_opt_convert_vertex_node,
+						(const struct opt_vector *)
+							g_cur_mesh_vertices,
+						*source_cursor++);
+				*destination_cursor++ =
+					opt_model_remap_vector_index(
+						g_opt_convert_vertex_node,
+						(const struct opt_vector *)
+							g_cur_mesh_vertices,
+						*source_cursor++);
+				*destination_cursor++ =
+					opt_model_remap_vector_index(
+						g_opt_convert_vertex_node,
+						(const struct opt_vector *)
+							g_cur_mesh_vertices,
+						*source_cursor++);
 
-				*destinationCursor++ =
-					destinationEdgeCount + *sourceCursor++;
-				*destinationCursor++ =
-					destinationEdgeCount + *sourceCursor++;
-				*destinationCursor++ =
-					destinationEdgeCount + *sourceCursor++;
-				sourceEdgeIndex = *sourceCursor++;
-				if (sourceEdgeIndex == -1) {
-					*destinationCursor++ = -1;
+				*destination_cursor++ = destination_edge_count +
+							*source_cursor++;
+				*destination_cursor++ = destination_edge_count +
+							*source_cursor++;
+				*destination_cursor++ = destination_edge_count +
+							*source_cursor++;
+				source_edge_index = *source_cursor++;
+				if (source_edge_index == -1) {
+					*destination_cursor++ = -1;
 				} else {
-					*destinationCursor++ =
-						destinationEdgeCount +
-						sourceEdgeIndex;
+					*destination_cursor++ =
+						destination_edge_count +
+						source_edge_index;
 				}
 
-				*destinationCursor++ =
-					OptModel_RemapTexCoordIndex(
-						g_optConvertTexCoordNode,
-						(const struct OptTexCoord *)
-							g_curMeshTexCoords,
-						*sourceCursor++);
-				*destinationCursor++ =
-					OptModel_RemapTexCoordIndex(
-						g_optConvertTexCoordNode,
-						(const struct OptTexCoord *)
-							g_curMeshTexCoords,
-						*sourceCursor++);
-				*destinationCursor++ =
-					OptModel_RemapTexCoordIndex(
-						g_optConvertTexCoordNode,
-						(const struct OptTexCoord *)
-							g_curMeshTexCoords,
-						*sourceCursor++);
-				*destinationCursor++ =
-					OptModel_RemapTexCoordIndex(
-						g_optConvertTexCoordNode,
-						(const struct OptTexCoord *)
-							g_curMeshTexCoords,
-						*sourceCursor++);
+				*destination_cursor++ =
+					opt_model_remap_tex_coord_index(
+						g_opt_convert_tex_coord_node,
+						(const struct opt_tex_coord *)
+							g_cur_mesh_tex_coords,
+						*source_cursor++);
+				*destination_cursor++ =
+					opt_model_remap_tex_coord_index(
+						g_opt_convert_tex_coord_node,
+						(const struct opt_tex_coord *)
+							g_cur_mesh_tex_coords,
+						*source_cursor++);
+				*destination_cursor++ =
+					opt_model_remap_tex_coord_index(
+						g_opt_convert_tex_coord_node,
+						(const struct opt_tex_coord *)
+							g_cur_mesh_tex_coords,
+						*source_cursor++);
+				*destination_cursor++ =
+					opt_model_remap_tex_coord_index(
+						g_opt_convert_tex_coord_node,
+						(const struct opt_tex_coord *)
+							g_cur_mesh_tex_coords,
+						*source_cursor++);
 
-				if (g_optSourceIsVersion0) {
-					sourceCursor -= 12;
+				if (g_opt_source_is_version0) {
+					source_cursor -= 12;
 				}
-				*destinationCursor++ =
-					OptModel_RemapVectorIndex(
-						g_optConvertVertexNormalNode,
-						sourceVectors, *sourceCursor++);
-				*destinationCursor++ =
-					OptModel_RemapVectorIndex(
-						g_optConvertVertexNormalNode,
-						sourceVectors, *sourceCursor++);
-				*destinationCursor++ =
-					OptModel_RemapVectorIndex(
-						g_optConvertVertexNormalNode,
-						sourceVectors, *sourceCursor++);
-				*destinationCursor++ =
-					OptModel_RemapVectorIndex(
-						g_optConvertVertexNormalNode,
-						sourceVectors, *sourceCursor++);
-				if (g_optSourceIsVersion0) {
-					sourceCursor += 8;
+				*destination_cursor++ =
+					opt_model_remap_vector_index(
+						g_opt_convert_vertex_normal_node,
+						source_vectors,
+						*source_cursor++);
+				*destination_cursor++ =
+					opt_model_remap_vector_index(
+						g_opt_convert_vertex_normal_node,
+						source_vectors,
+						*source_cursor++);
+				*destination_cursor++ =
+					opt_model_remap_vector_index(
+						g_opt_convert_vertex_normal_node,
+						source_vectors,
+						*source_cursor++);
+				*destination_cursor++ =
+					opt_model_remap_vector_index(
+						g_opt_convert_vertex_normal_node,
+						source_vectors,
+						*source_cursor++);
+				if (g_opt_source_is_version0) {
+					source_cursor += 8;
 				}
 			}
 
-			destinationTrailingBytes =
-				destinationBytes +
-				64 * (node->payloadCount +
-				      dstFaceNode->payloadCount);
-			destinationFaceNormals =
-				(struct OptVector *)destinationTrailingBytes;
+			destination_trailing_bytes =
+				destination_bytes +
+				64 * (node->payload_count +
+				      dst_face_node->payload_count);
+			destination_face_normals =
+				(struct opt_vector *)destination_trailing_bytes;
 #ifdef XVT_MODERN
-			memmove(destinationTrailingBytes +
-					12 * node->payloadCount,
-				destinationTrailingBytes,
-				36 * dstFaceNode->payloadCount);
+			memmove(destination_trailing_bytes +
+					12 * node->payload_count,
+				destination_trailing_bytes,
+				36 * dst_face_node->payload_count);
 #else
-			memcpy(destinationTrailingBytes +
-				       12 * node->payloadCount,
-			       destinationTrailingBytes,
-			       36 * dstFaceNode->payloadCount);
+			memcpy(destination_trailing_bytes +
+				       12 * node->payload_count,
+			       destination_trailing_bytes,
+			       36 * dst_face_node->payload_count);
 #endif
-			if (g_optSourceIsVersion0) {
-				sourceFaceNormals =
-					(const struct OptVector
+			if (g_opt_source_is_version0) {
+				source_face_normals =
+					(const struct opt_vector
 						 *)((const uint8_t *)
 							    node->payload +
 						    sizeof(int) +
-						    48 * node->payloadCount);
+						    48 * node->payload_count);
 			} else {
-				sourceFaceNormals =
-					(const struct OptVector
+				source_face_normals =
+					(const struct opt_vector
 						 *)((const uint8_t *)
 							    node->payload +
 						    sizeof(int) +
-						    64 * node->payloadCount);
+						    64 * node->payload_count);
 			}
-			for (faceIndex = 0; faceIndex < node->payloadCount;
-			     ++faceIndex) {
-				destinationFaceNormals[faceIndex] =
-					sourceFaceNormals[faceIndex];
+			for (face_index = 0; face_index < node->payload_count;
+			     ++face_index) {
+				destination_face_normals[face_index] =
+					source_face_normals[face_index];
 			}
 
-			destinationTrailingBytes =
-				(uint8_t *)&destinationFaceNormals
-					[node->payloadCount +
-					 dstFaceNode->payloadCount];
-			destinationTextureGradients =
-				(struct OptVector *)destinationTrailingBytes;
+			destination_trailing_bytes =
+				(uint8_t *)&destination_face_normals
+					[node->payload_count +
+					 dst_face_node->payload_count];
+			destination_texture_gradients =
+				(struct opt_vector *)destination_trailing_bytes;
 #ifdef XVT_MODERN
-			memmove(destinationTrailingBytes +
-					24 * node->payloadCount,
-				destinationTrailingBytes,
-				24 * dstFaceNode->payloadCount);
+			memmove(destination_trailing_bytes +
+					24 * node->payload_count,
+				destination_trailing_bytes,
+				24 * dst_face_node->payload_count);
 #else
-			memcpy(destinationTrailingBytes +
-				       24 * node->payloadCount,
-			       destinationTrailingBytes,
-			       24 * dstFaceNode->payloadCount);
+			memcpy(destination_trailing_bytes +
+				       24 * node->payload_count,
+			       destination_trailing_bytes,
+			       24 * dst_face_node->payload_count);
 #endif
-			sourceTextureGradients =
-				sourceFaceNormals + node->payloadCount;
-			for (faceIndex = 0; faceIndex < node->payloadCount;
-			     ++faceIndex) {
-				destinationTextureGradients[2 * faceIndex] =
-					sourceTextureGradients[2 * faceIndex];
-				destinationTextureGradients[2 * faceIndex + 1] =
-					sourceTextureGradients[2 * faceIndex +
-							       1];
+			source_texture_gradients =
+				source_face_normals + node->payload_count;
+			for (face_index = 0; face_index < node->payload_count;
+			     ++face_index) {
+				destination_texture_gradients[2 * face_index] =
+					source_texture_gradients[2 *
+								 face_index];
+				destination_texture_gradients[2 * face_index +
+							      1] =
+					source_texture_gradients
+						[2 * face_index + 1];
 			}
 
-			dstFaceNode->payloadCount += node->payloadCount;
-			*(int *)destinationData += *(int *)node->payload;
+			dst_face_node->payload_count += node->payload_count;
+			*(int *)destination_data += *(int *)node->payload;
 			*(int *)node->payload = -1;
 		}
 		break;
 
 	case OPT_MESHVERTS:
-		g_curMeshVertices = node->payload;
+		g_cur_mesh_vertices = node->payload;
 		break;
 
 	case OPT_VERTNORMALS:
-		meshState->pVertNormals = (struct OptVector *)node->payload;
+		mesh_state->p_vert_normals = (struct opt_vector *)node->payload;
 		break;
 
 	case OPT_TEXCOORDS:
-		g_curMeshTexCoords = node->payload;
+		g_cur_mesh_tex_coords = node->payload;
 		break;
 
 	case OPT_TEXTURE:
-		g_optConvertFaceTextureNode = node;
+		g_opt_convert_face_texture_node = node;
 		break;
 
 	default:
 		break;
 	}
 
-	for (childIndex = 0; childIndex < node->childCount; ++childIndex) {
-		OptModel_AppendConvertedFacesForNode(
-			dstFaceNode, targetFaceNode,
-			node->pChildren[childIndex], srcModel, meshState);
+	for (child_index = 0; child_index < node->child_count; ++child_index) {
+		opt_model_append_converted_faces_for_node(
+			dst_face_node, target_face_node,
+			node->p_children[child_index], src_model, mesh_state);
 	}
 }
 
-/* Moves into dstFaceNode, with OptModel_AppendConvertedFacesForNode, the faces
- * of targetFaceNode and of the later face nodes under the same texture, within
- * the child of g_optConvertSourceMeshNode that holds targetFaceNode; children
- * before it are walked but give no faces. Sets g_optConvertFaceTextureNode to
- * g_optConvertSourceTextureNode and g_optConvertTargetFaceFound to 0 first. */
+/* Moves into dst_face_node, with opt_model_append_converted_faces_for_node, the faces
+ * of target_face_node and of the later face nodes under the same texture, within
+ * the child of g_opt_convert_source_mesh_node that holds target_face_node; children
+ * before it are walked but give no faces. Sets g_opt_convert_face_texture_node to
+ * g_opt_convert_source_texture_node and g_opt_convert_target_face_found to 0 first. */
 // FUNCTION: XVT 0x476280
-void OptModel_AppendConvertedFacesForCurrentMesh(
-	struct OptNode *dstFaceNode, struct OptNode *targetFaceNode,
-	struct OptimizedPolyObject *srcModel, struct SceneMesh *meshState)
+void opt_model_append_converted_faces_for_current_mesh(
+	struct opt_node *dst_face_node, struct opt_node *target_face_node,
+	struct optimized_poly_object *src_model, struct scene_mesh *mesh_state)
 {
-	int childOffset;
-	int childIndex;
+	int child_offset;
+	int child_index;
 
-	g_optConvertFaceTextureNode = g_optConvertSourceTextureNode;
-	childIndex = 0;
-	g_optConvertTargetFaceFound = 0;
-	if (g_optConvertSourceMeshNode->childCount > 0) {
-		childOffset = 0;
+	g_opt_convert_face_texture_node = g_opt_convert_source_texture_node;
+	child_index = 0;
+	g_opt_convert_target_face_found = 0;
+	if (g_opt_convert_source_mesh_node->child_count > 0) {
+		child_offset = 0;
 		do {
-			OptModel_AppendConvertedFacesForNode(
-				dstFaceNode, targetFaceNode,
-				*(struct OptNode *
+			opt_model_append_converted_faces_for_node(
+				dst_face_node, target_face_node,
+				*(struct opt_node *
 					  *)((uint8_t *)
-						     g_optConvertSourceMeshNode
-							     ->pChildren +
-					     childOffset),
-				srcModel, meshState);
-			if (g_optConvertTargetFaceFound != 0) {
+						     g_opt_convert_source_mesh_node
+							     ->p_children +
+					     child_offset),
+				src_model, mesh_state);
+			if (g_opt_convert_target_face_found != 0) {
 				break;
 			}
-			childOffset += sizeof(struct OptNode *);
-			++childIndex;
-		} while (g_optConvertSourceMeshNode->childCount > childIndex);
+			child_offset += sizeof(struct opt_node *);
+			++child_index;
+		} while (g_opt_convert_source_mesh_node->child_count >
+			 child_index);
 	}
 }
 
-/* Builds a runtime copy of the packed model in sourceHandle and returns its new
- * Memory handle. It measures the copy with OptModel_BuildRuntimeNode, allocates
+/* Builds a runtime copy of the packed model in source_handle and returns its new
+ * Memory handle. It measures the copy with opt_model_build_runtime_node, allocates
  * it, builds it, then fixes its texture palette pointers with
- * OptModel_FixupRuntimeTexturePointers. Sets g_curMeshVertices,
- * g_curMeshTexCoords, g_curVertNormals, g_modelNodeWalkUnusedScratch2 and
- * g_curMeshMaterials to NULL and g_curVertexCount to 0 first. A failed
- * allocation ends the program through FeDiskIo_FatalError. The modern build
- * returns 0 for a sourceHandle of 0. */
+ * opt_model_fixup_runtime_texture_pointers. Sets g_cur_mesh_vertices,
+ * g_cur_mesh_tex_coords, g_cur_vert_normals, g_model_node_walk_unused_scratch2 and
+ * g_cur_mesh_materials to NULL and g_cur_vertex_count to 0 first. A failed
+ * allocation ends the program through fe_disk_io_fatal_error. The modern build
+ * returns 0 for a source_handle of 0. */
 // FUNCTION: XVT 0x4762F0
-uint16_t OptModel_CreateRuntimeHandle(unsigned int sourceHandle)
+uint16_t opt_model_create_runtime_handle(unsigned int source_handle)
 {
-	struct OptimizedPolyObject *sourceModel;
-	struct OptimizedPolyObject *runtimeModel;
-	struct SceneMesh meshState;
-	unsigned int serializedSize;
-	int rootIndex;
-	uint16_t runtimeHandle;
-	uint8_t *nodeStorage;
+	struct optimized_poly_object *source_model;
+	struct optimized_poly_object *runtime_model;
+	struct scene_mesh mesh_state;
+	unsigned int serialized_size;
+	int root_index;
+	uint16_t runtime_handle;
+	uint8_t *node_storage;
 
 #ifdef XVT_MODERN
-	if (!sourceHandle) {
+	if (!source_handle) {
 		return 0;
 	}
 #endif
-	sourceModel = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		sourceHandle);
-	if (sourceModel->selfMarker != sourceModel) {
-		OptModel_AdjustOptimizedPolyObjectPointers(sourceModel);
+	source_model = (struct optimized_poly_object *)memory_get_handle_block(
+		source_handle);
+	if (source_model->self_marker != source_model) {
+		opt_model_adjust_optimized_poly_object_pointers(source_model);
 	}
-	memset(&meshState, 0, sizeof(meshState));
-	g_curMeshVertices = NULL;
-	g_curMeshTexCoords = NULL;
-	g_curVertNormals = NULL;
-	g_modelNodeWalkUnusedScratch2 = NULL;
-	g_curMeshMaterials = NULL;
-	g_curVertexCount = 0;
+	memset(&mesh_state, 0, sizeof(mesh_state));
+	g_cur_mesh_vertices = NULL;
+	g_cur_mesh_tex_coords = NULL;
+	g_cur_vert_normals = NULL;
+	g_model_node_walk_unused_scratch2 = NULL;
+	g_cur_mesh_materials = NULL;
+	g_cur_vertex_count = 0;
 
-	serializedSize = sizeof(struct OptNode *) *
-				 (unsigned int)sourceModel->rootNodeCount +
-			 sizeof(*runtimeModel);
+	serialized_size = sizeof(struct opt_node *) *
+				  (unsigned int)source_model->root_node_count +
+			  sizeof(*runtime_model);
 
-	for (rootIndex = 0; rootIndex < sourceModel->rootNodeCount;
-	     ++rootIndex) {
-		serializedSize += OptModel_BuildRuntimeNode(
-			sourceModel->rootNodes[rootIndex], &meshState, NULL);
+	for (root_index = 0; root_index < source_model->root_node_count;
+	     ++root_index) {
+		serialized_size += opt_model_build_runtime_node(
+			source_model->root_nodes[root_index], &mesh_state,
+			NULL);
 	}
-	Memory_HandleBlockDoneStub(sourceHandle);
-	runtimeHandle = Memory_AllocHandle(serializedSize, 0);
-	if (runtimeHandle == 0) {
-		FeDiskIo_FatalError(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
+	memory_handle_block_done_stub(source_handle);
+	runtime_handle = memory_alloc_handle(serialized_size, 0);
+	if (runtime_handle == 0) {
+		fe_disk_io_fatal_error(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 #ifdef XVT_MODERN
 		return 0;
 #endif
 	}
 
 #ifdef XVT_MODERN
-	if (!sourceHandle) {
+	if (!source_handle) {
 		return 0;
 	}
 #endif
-	sourceModel = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		sourceHandle);
-	if (sourceModel->selfMarker != sourceModel) {
-		OptModel_AdjustOptimizedPolyObjectPointers(sourceModel);
+	source_model = (struct optimized_poly_object *)memory_get_handle_block(
+		source_handle);
+	if (source_model->self_marker != source_model) {
+		opt_model_adjust_optimized_poly_object_pointers(source_model);
 	}
-	runtimeModel = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
-		runtimeHandle);
-	memcpy(runtimeModel, sourceModel, sizeof(*runtimeModel));
-	runtimeModel->selfMarker = runtimeModel;
-	runtimeModel->rootNodes = (struct OptNode **)((uint8_t *)runtimeModel +
-						      sizeof(*runtimeModel));
-	nodeStorage = (uint8_t *)(runtimeModel->rootNodes +
-				  sourceModel->rootNodeCount);
-	for (rootIndex = 0; rootIndex < sourceModel->rootNodeCount;
-	     ++rootIndex) {
-		runtimeModel->rootNodes[rootIndex] =
-			(struct OptNode *)nodeStorage;
-		nodeStorage += OptModel_BuildRuntimeNode(
-			sourceModel->rootNodes[rootIndex], &meshState,
-			nodeStorage);
+	runtime_model = (struct optimized_poly_object *)memory_get_handle_block(
+		runtime_handle);
+	memcpy(runtime_model, source_model, sizeof(*runtime_model));
+	runtime_model->self_marker = runtime_model;
+	runtime_model->root_nodes =
+		(struct opt_node **)((uint8_t *)runtime_model +
+				     sizeof(*runtime_model));
+	node_storage = (uint8_t *)(runtime_model->root_nodes +
+				   source_model->root_node_count);
+	for (root_index = 0; root_index < source_model->root_node_count;
+	     ++root_index) {
+		runtime_model->root_nodes[root_index] =
+			(struct opt_node *)node_storage;
+		node_storage += opt_model_build_runtime_node(
+			source_model->root_nodes[root_index], &mesh_state,
+			node_storage);
 	}
-	for (rootIndex = 0; rootIndex < runtimeModel->rootNodeCount;
-	     ++rootIndex) {
-		OptModel_FixupRuntimeTexturePointers(
-			runtimeModel->rootNodes[rootIndex], runtimeModel,
-			sourceModel);
+	for (root_index = 0; root_index < runtime_model->root_node_count;
+	     ++root_index) {
+		opt_model_fixup_runtime_texture_pointers(
+			runtime_model->root_nodes[root_index], runtime_model,
+			source_model);
 	}
-	Memory_HandleBlockDoneStub(runtimeHandle);
-	Memory_HandleBlockDoneStub(sourceHandle);
-	return runtimeHandle;
+	memory_handle_block_done_stub(runtime_handle);
+	memory_handle_block_done_stub(source_handle);
+	return runtime_handle;
 }
 
 /* Fixes the palette pointer of every texture at or below node in a runtime
- * copy, following OPT_NODEREF links in dstModel. A texture with an inline
- * palette gets inlinePaletteCount 0 and its pointer set to the palette copied
+ * copy, following OPT_NODEREF links in dst_model. A texture with an inline
+ * palette gets inline_palette_count 0 and its pointer set to the palette copied
  * after its texels. A texture whose palette is not its own is pointed at the
- * palette copy of the texture that owned that palette in srcModel, when
- * OptModel_FindCorrespondingTextureNodeInModel finds it. On a 16-bit display
+ * palette copy of the texture that owned that palette in src_model, when
+ * opt_model_find_corresponding_texture_node_in_model finds it. On a 16-bit display
  * each pointer is set 4096 bytes before the copy. */
 // FUNCTION: XVT 0x476490
-void OptModel_FixupRuntimeTexturePointers(struct OptNode *node,
-					  struct OptimizedPolyObject *dstModel,
-					  struct OptimizedPolyObject *srcModel)
+void opt_model_fixup_runtime_texture_pointers(
+	struct opt_node *node, struct optimized_poly_object *dst_model,
+	struct optimized_poly_object *src_model)
 {
-	struct OptNode *currentNode;
-	struct OptTextureData *textureData;
+	struct opt_node *current_node;
+	struct opt_texture_data *texture_data;
 	uint8_t *palette;
-	int textureDataSize;
-	struct OptNode *correspondingNode;
-	struct OptTextureData *correspondingTextureData;
-	uint16_t *sourcePalette;
-	int childCount;
-	int childOffset;
-	int childIndex;
+	int texture_data_size;
+	struct opt_node *corresponding_node;
+	struct opt_texture_data *corresponding_texture_data;
+	uint16_t *source_palette;
+	int child_count;
+	int child_offset;
+	int child_index;
 
-	currentNode = node;
-	if (currentNode != NULL) {
-		while (currentNode->nodeType == OPT_NODEREF) {
-			currentNode = OptModel_ResolveNodeRef(
-				dstModel, (const char *)currentNode->payload);
-			if (currentNode == NULL) {
+	current_node = node;
+	if (current_node != NULL) {
+		while (current_node->node_type == OPT_NODEREF) {
+			current_node = opt_model_resolve_node_ref(
+				dst_model, (const char *)current_node->payload);
+			if (current_node == NULL) {
 				return;
 			}
 		}
 
-		if (currentNode->nodeType == OPT_TEXTURE) {
-			textureData =
-				(struct OptTextureData *)currentNode->payload;
-			if (textureData->inlinePaletteCount != 0) {
-				textureData->inlinePaletteCount = 0;
-				palette = (uint8_t *)textureData +
-					  sizeof(*textureData);
-				textureDataSize = textureData->width *
-						  textureData->height;
-				if (textureData->textureSize ==
-				    textureDataSize) {
-					textureDataSize = textureData->dataSize;
+		if (current_node->node_type == OPT_TEXTURE) {
+			texture_data = (struct opt_texture_data *)
+					       current_node->payload;
+			if (texture_data->inline_palette_count != 0) {
+				texture_data->inline_palette_count = 0;
+				palette = (uint8_t *)texture_data +
+					  sizeof(*texture_data);
+				texture_data_size = texture_data->width *
+						    texture_data->height;
+				if (texture_data->texture_size ==
+				    texture_data_size) {
+					texture_data_size =
+						texture_data->data_size;
 				}
-				palette += textureDataSize;
-				if (g_flightBytesPerPixel == 2) {
+				palette += texture_data_size;
+				if (g_flight_bytes_per_pixel == 2) {
 					palette -= 4096;
 				}
-				textureData->palette = (uint16_t *)palette;
+				texture_data->palette = (uint16_t *)palette;
 			} else {
-				sourcePalette = textureData->palette;
-				palette = (uint8_t *)sourcePalette;
-				if (g_flightBytesPerPixel == 2) {
+				source_palette = texture_data->palette;
+				palette = (uint8_t *)source_palette;
+				if (g_flight_bytes_per_pixel == 2) {
 					palette += 4096;
 				}
-				palette -= sizeof(*textureData);
-				textureDataSize = textureData->width *
-						  textureData->height;
-				if (textureData->textureSize ==
-				    textureDataSize) {
-					textureDataSize = textureData->dataSize;
+				palette -= sizeof(*texture_data);
+				texture_data_size = texture_data->width *
+						    texture_data->height;
+				if (texture_data->texture_size ==
+				    texture_data_size) {
+					texture_data_size =
+						texture_data->data_size;
 				}
-				palette -= textureDataSize;
-				if (palette != (uint8_t *)textureData) {
-					correspondingNode =
-						OptModel_FindCorrespondingTextureNodeInModel(
-							dstModel, srcModel,
-							sourcePalette);
-					if (correspondingNode != NULL) {
-						correspondingTextureData =
-							(struct OptTextureData
-								 *)correspondingNode
+				palette -= texture_data_size;
+				if (palette != (uint8_t *)texture_data) {
+					corresponding_node =
+						opt_model_find_corresponding_texture_node_in_model(
+							dst_model, src_model,
+							source_palette);
+					if (corresponding_node != NULL) {
+						corresponding_texture_data =
+							(struct opt_texture_data
+								 *)corresponding_node
 								->payload;
 						palette =
 							(uint8_t *)
-								correspondingTextureData +
-							sizeof(*correspondingTextureData);
-						textureDataSize =
-							correspondingTextureData
+								corresponding_texture_data +
+							sizeof(*corresponding_texture_data);
+						texture_data_size =
+							corresponding_texture_data
 								->width *
-							correspondingTextureData
+							corresponding_texture_data
 								->height;
-						if (correspondingTextureData
-							    ->textureSize ==
-						    textureDataSize) {
-							textureDataSize =
-								correspondingTextureData
-									->dataSize;
+						if (corresponding_texture_data
+							    ->texture_size ==
+						    texture_data_size) {
+							texture_data_size =
+								corresponding_texture_data
+									->data_size;
 						}
-						palette += textureDataSize;
-						if (g_flightBytesPerPixel ==
+						palette += texture_data_size;
+						if (g_flight_bytes_per_pixel ==
 						    2) {
 							palette -= 4096;
 						}
-						textureData->palette =
+						texture_data->palette =
 							(uint16_t *)palette;
 					}
 				}
 			}
 		}
 
-		childIndex = 0;
-		childOffset = 0;
-		if (currentNode->childCount > childIndex) {
+		child_index = 0;
+		child_offset = 0;
+		if (current_node->child_count > child_index) {
 			do {
-				OptModel_FixupRuntimeTexturePointers(
-					*(struct OptNode *
-						  *)((uint8_t *)currentNode
-							     ->pChildren +
-						     childOffset),
-					dstModel, srcModel);
-				childOffset += sizeof(*currentNode->pChildren);
-				++childIndex;
-				childCount = currentNode->childCount;
-			} while (childCount > childIndex);
+				opt_model_fixup_runtime_texture_pointers(
+					*(struct opt_node *
+						  *)((uint8_t *)current_node
+							     ->p_children +
+						     child_offset),
+					dst_model, src_model);
+				child_offset +=
+					sizeof(*current_node->p_children);
+				++child_index;
+				child_count = current_node->child_count;
+			} while (child_count > child_index);
 		}
 	}
 }
 
-/* Walks srcNode and dstNode side by side and returns the node of dstNode's tree
- * that stands where the source texture whose own palette is sourcePalette
+/* Walks src_node and dst_node side by side and returns the node of dst_node's tree
+ * that stands where the source texture whose own palette is source_palette
  * stands, or NULL. A pair of nodes counts only when their types match, and
  * their children are searched only when their child counts match. Does not
  * follow OPT_NODEREF links. */
 // FUNCTION: XVT 0x4765B0
-struct OptNode *
-OptModel_FindCorrespondingTextureNode(struct OptNode *srcNode,
-				      struct OptNode *dstNode,
-				      const uint16_t *sourcePalette)
+struct opt_node *
+opt_model_find_corresponding_texture_node(struct opt_node *src_node,
+					  struct opt_node *dst_node,
+					  const uint16_t *source_palette)
 {
-	struct OptNode *destination;
-	struct OptNode *source;
-	struct OptTextureData *textureData;
-	int textureDataSize;
-	uint16_t *embeddedPalette;
-	int childOffset;
-	int childIndex;
-	struct OptNode *result;
+	struct opt_node *destination;
+	struct opt_node *source;
+	struct opt_texture_data *texture_data;
+	int texture_data_size;
+	uint16_t *embedded_palette;
+	int child_offset;
+	int child_index;
+	struct opt_node *result;
 
-	source = srcNode;
+	source = src_node;
 	if (source == NULL) {
 		return NULL;
 	}
-	destination = dstNode;
+	destination = dst_node;
 	if (destination == NULL) {
 		return NULL;
 	}
-	if (destination->nodeType != source->nodeType) {
+	if (destination->node_type != source->node_type) {
 		return NULL;
 	}
 
-	if (source->nodeType == OPT_TEXTURE) {
-		textureData = (struct OptTextureData *)source->payload;
-		embeddedPalette = (uint16_t *)((uint8_t *)textureData +
-					       sizeof(*textureData));
-		textureDataSize = textureData->width * textureData->height;
-		if (textureData->textureSize == textureDataSize) {
-			textureDataSize = textureData->dataSize;
+	if (source->node_type == OPT_TEXTURE) {
+		texture_data = (struct opt_texture_data *)source->payload;
+		embedded_palette = (uint16_t *)((uint8_t *)texture_data +
+						sizeof(*texture_data));
+		texture_data_size = texture_data->width * texture_data->height;
+		if (texture_data->texture_size == texture_data_size) {
+			texture_data_size = texture_data->data_size;
 		}
-		embeddedPalette = (uint16_t *)((uint8_t *)embeddedPalette +
-					       textureDataSize);
-		if ((textureData->palette == embeddedPalette ||
-		     textureData->inlinePaletteCount != 0) &&
-		    sourcePalette == embeddedPalette) {
+		embedded_palette = (uint16_t *)((uint8_t *)embedded_palette +
+						texture_data_size);
+		if ((texture_data->palette == embedded_palette ||
+		     texture_data->inline_palette_count != 0) &&
+		    source_palette == embedded_palette) {
 			return destination;
 		}
 	}
 
-	if (destination->childCount != source->childCount) {
+	if (destination->child_count != source->child_count) {
 		return NULL;
 	}
-	childIndex = 0;
-	childOffset = 0;
-	if (source->childCount > 0) {
+	child_index = 0;
+	child_offset = 0;
+	if (source->child_count > 0) {
 		do {
-			result = OptModel_FindCorrespondingTextureNode(
-				*(struct OptNode **)((uint8_t *)
-							     source->pChildren +
-						     childOffset),
-				*(struct OptNode **)((uint8_t *)destination
-							     ->pChildren +
-						     childOffset),
-				sourcePalette);
+			result = opt_model_find_corresponding_texture_node(
+				*(struct opt_node **)((uint8_t *)source
+							      ->p_children +
+						      child_offset),
+				*(struct opt_node **)((uint8_t *)destination
+							      ->p_children +
+						      child_offset),
+				source_palette);
 			if (result != NULL) {
 				return result;
 			}
-			childOffset += sizeof(*source->pChildren);
-			++childIndex;
-		} while (source->childCount > childIndex);
+			child_offset += sizeof(*source->p_children);
+			++child_index;
+		} while (source->child_count > child_index);
 	}
 	return NULL;
 }
 
-/* Runs OptModel_FindCorrespondingTextureNode on each pair of roots of srcModel
- * and dstModel, in order, and returns its first match, or NULL. Uses srcModel's
+/* Runs opt_model_find_corresponding_texture_node on each pair of roots of src_model
+ * and dst_model, in order, and returns its first match, or NULL. Uses src_model's
  * root count for both. */
 // FUNCTION: XVT 0x476670
-struct OptNode *OptModel_FindCorrespondingTextureNodeInModel(
-	struct OptimizedPolyObject *dstModel,
-	struct OptimizedPolyObject *srcModel, const uint16_t *sourcePalette)
+struct opt_node *opt_model_find_corresponding_texture_node_in_model(
+	struct optimized_poly_object *dst_model,
+	struct optimized_poly_object *src_model, const uint16_t *source_palette)
 {
-	int rootOffset;
-	int rootIndex;
-	struct OptNode *result;
+	int root_offset;
+	int root_index;
+	struct opt_node *result;
 
-	rootOffset = 0;
-	rootIndex = 0;
-	if (srcModel->rootNodeCount > 0) {
+	root_offset = 0;
+	root_index = 0;
+	if (src_model->root_node_count > 0) {
 		do {
-			result = OptModel_FindCorrespondingTextureNode(
-				*(struct OptNode **)((uint8_t *)srcModel
-							     ->rootNodes +
-						     rootOffset),
-				*(struct OptNode **)((uint8_t *)dstModel
-							     ->rootNodes +
-						     rootOffset),
-				sourcePalette);
+			result = opt_model_find_corresponding_texture_node(
+				*(struct opt_node **)((uint8_t *)src_model
+							      ->root_nodes +
+						      root_offset),
+				*(struct opt_node **)((uint8_t *)dst_model
+							      ->root_nodes +
+						      root_offset),
+				source_palette);
 			if (result != NULL) {
 				return result;
 			}
-			rootOffset += sizeof(*srcModel->rootNodes);
-			++rootIndex;
-		} while (srcModel->rootNodeCount > rootIndex);
+			root_offset += sizeof(*src_model->root_nodes);
+			++root_index;
+		} while (src_model->root_node_count > root_index);
 	}
 	return NULL;
 }
 
 #ifndef XVT_MODERN
-/* Writes a packed model to filename: the marker -1 when g_optSourceIsVersion0
+/* Writes a packed model to filename: the marker -1 when g_opt_source_is_version0
  * is set, else -2, then the size, then that many bytes of the model's block.
  * The size is 4 bytes per root plus 14 plus what
- * OptModel_MeasureNodeAndRaiseCapacities gives for each root, which also raises
- * the renderer's capacity counts. Sets g_curMeshVertices, g_curMeshTexCoords,
- * g_curVertNormals, g_modelNodeWalkUnusedScratch2 and g_curMeshMaterials to
- * NULL and g_curVertexCount to 0 first. Does nothing when the file does not
+ * opt_model_measure_node_and_raise_capacities gives for each root, which also raises
+ * the renderer's capacity counts. Sets g_cur_mesh_vertices, g_cur_mesh_tex_coords,
+ * g_cur_vert_normals, g_model_node_walk_unused_scratch2 and g_cur_mesh_materials to
+ * NULL and g_cur_vertex_count to 0 first. Does nothing when the file does not
  * open. Only the original build calls this. */
 // FUNCTION: XVT 0x4766C0
-void OptModel_SaveHandleToFile(const char *filename, uint16_t handle)
+void opt_model_save_handle_to_file(const char *filename, uint16_t handle)
 {
-	XvtFile *stream;
-	struct OptimizedPolyObject *model;
-	int rootIndex;
-	int rootOffset;
-	int fileVersion;
-	size_t serializedSize;
-	struct SceneMesh parentState;
+	xvt_file *stream;
+	struct optimized_poly_object *model;
+	int root_index;
+	int root_offset;
+	int file_version;
+	size_t serialized_size;
+	struct scene_mesh parent_state;
 
-	FeDiskIo_OpenGlobalStream(filename, "wb", 0, 1);
+	fe_disk_io_open_global_stream(filename, "wb", 0, 1);
 	stream = g_stream;
 	if (stream != NULL) {
-		model = Memory_GetHandleBlock(handle);
-		if (model->selfMarker != model) {
-			OptModel_AdjustOptimizedPolyObjectPointers(model);
+		model = memory_get_handle_block(handle);
+		if (model->self_marker != model) {
+			opt_model_adjust_optimized_poly_object_pointers(model);
 		}
-		memset(&parentState, 0, sizeof(parentState));
-		rootIndex = 0;
-		g_curMeshVertices = NULL;
-		g_curMeshTexCoords = NULL;
-		g_curVertNormals = NULL;
-		g_modelNodeWalkUnusedScratch2 = NULL;
-		g_curMeshMaterials = NULL;
-		g_curVertexCount = 0;
-		serializedSize = 4 * model->rootNodeCount + 14;
-		if (model->rootNodeCount > 0) {
-			rootOffset = 0;
+		memset(&parent_state, 0, sizeof(parent_state));
+		root_index = 0;
+		g_cur_mesh_vertices = NULL;
+		g_cur_mesh_tex_coords = NULL;
+		g_cur_vert_normals = NULL;
+		g_model_node_walk_unused_scratch2 = NULL;
+		g_cur_mesh_materials = NULL;
+		g_cur_vertex_count = 0;
+		serialized_size = 4 * model->root_node_count + 14;
+		if (model->root_node_count > 0) {
+			root_offset = 0;
 			do {
-				serializedSize +=
-					OptModel_MeasureNodeAndRaiseCapacities(
-						*(struct OptNode *
+				serialized_size +=
+					opt_model_measure_node_and_raise_capacities(
+						*(struct opt_node *
 							  *)((uint8_t *)model
-								     ->rootNodes +
-							     rootOffset),
-						&parentState);
-				rootOffset += sizeof(*model->rootNodes);
-				++rootIndex;
-			} while (model->rootNodeCount > rootIndex);
+								     ->root_nodes +
+							     root_offset),
+						&parent_state);
+				root_offset += sizeof(*model->root_nodes);
+				++root_index;
+			} while (model->root_node_count > root_index);
 		}
-		fileVersion = 1;
-		if (!g_optSourceIsVersion0) {
-			fileVersion = 2;
+		file_version = 1;
+		if (!g_opt_source_is_version0) {
+			file_version = 2;
 		}
-		fileVersion = -fileVersion;
-		File_RawWrite(&fileVersion, 1, sizeof(fileVersion), stream);
-		fileVersion = -fileVersion;
-		File_RawWrite(&serializedSize, 1, sizeof(serializedSize),
-			      stream);
-		File_RawWrite(model, 1, serializedSize, stream);
-		File_RawClose(stream);
-		Memory_HandleBlockDoneStub(handle);
+		file_version = -file_version;
+		FILE_RAW_WRITE(&file_version, 1, sizeof(file_version), stream);
+		file_version = -file_version;
+		FILE_RAW_WRITE(&serialized_size, 1, sizeof(serialized_size),
+			       stream);
+		FILE_RAW_WRITE(model, 1, serialized_size, stream);
+		FILE_RAW_CLOSE(stream);
+		memory_handle_block_done_stub(handle);
 	}
 }
 #endif
 
 /* Returns the bytes node and everything below it take in a packed model: the
- * OptNode, its name and the payload of its type. A face node counts its edge
+ * opt_node, its name and the payload of its type. A face node counts its edge
  * count word, 64 bytes per face for the records and 36 for the normal and
- * gradients, and room for g_curVertexCount vertex normals when
- * parentState->pVertNormals is NULL. Raises g_sceneEdgeFlagsCapacity to the
- * largest face node edge count and g_vertexRemapCapacity to the largest vertex
- * count. Sets g_curVertexCount, g_curMeshMaterials, g_curVertNormals and
- * parentState->pVertNormals at those nodes, and sets g_curMeshVertices,
- * g_curMeshTexCoords, g_curVertNormals, g_modelNodeWalkUnusedScratch2 and
- * g_curMeshMaterials to NULL before a node's children. Returns 0 for a NULL
+ * gradients, and room for g_cur_vertex_count vertex normals when
+ * parent_state->p_vert_normals is NULL. Raises g_scene_edge_flags_capacity to the
+ * largest face node edge count and g_vertex_remap_capacity to the largest vertex
+ * count. Sets g_cur_vertex_count, g_cur_mesh_materials, g_cur_vert_normals and
+ * parent_state->p_vert_normals at those nodes, and sets g_cur_mesh_vertices,
+ * g_cur_mesh_tex_coords, g_cur_vert_normals, g_model_node_walk_unused_scratch2 and
+ * g_cur_mesh_materials to NULL before a node's children. Returns 0 for a NULL
  * node. An OPT_TEXTURE node with a NULL payload is read through that NULL
  * pointer. */
 // FUNCTION: XVT 0x476810
 unsigned int
-OptModel_MeasureNodeAndRaiseCapacities(struct OptNode *node,
-				       struct SceneMesh *parentState)
+opt_model_measure_node_and_raise_capacities(struct opt_node *node,
+					    struct scene_mesh *parent_state)
 {
-	unsigned int serializedSize;
-	int *paramData;
-	OptNodeType nodeType;
-	int childIndex;
-	int childOffset;
-	struct SceneMesh childState;
+	unsigned int serialized_size;
+	int *param_data;
+	opt_node_type node_type;
+	int child_index;
+	int child_offset;
+	struct scene_mesh child_state;
 
 	if (node == NULL) {
 		return 0;
 	}
 
-	serializedSize = sizeof(struct OptNode);
+	serialized_size = sizeof(struct opt_node);
 
-	if (node->pName != NULL) {
+	if (node->p_name != NULL) {
 
-		serializedSize = (unsigned int)strlen(node->pName) +
-				 sizeof(struct OptNode) + 1;
+		serialized_size = (unsigned int)strlen(node->p_name) +
+				  sizeof(struct opt_node) + 1;
 	}
 
-	paramData = node->payload;
-	nodeType = node->nodeType;
-	if (paramData != NULL) {
-		switch (nodeType) {
+	param_data = node->payload;
+	node_type = node->node_type;
+	if (param_data != NULL) {
+		switch (node_type) {
 		case OPT_FACEDATA:
 		case OPT_FACEDATA_QUAD_MESH:
 		case OPT_FACEDATA_FACE_SET:
 		case OPT_FACEDATA_TRIANGLE_STRIP_SET:
-			if (g_sceneEdgeFlagsCapacity < paramData[0]) {
-				g_sceneEdgeFlagsCapacity = paramData[0];
+			if (g_scene_edge_flags_capacity < param_data[0]) {
+				g_scene_edge_flags_capacity = param_data[0];
 			}
-			serializedSize += 4;
-			serializedSize += (unsigned int)node->payloadCount << 6;
-			serializedSize += 36 * node->payloadCount;
-			if (parentState->pVertNormals == NULL) {
-				serializedSize += 12 * g_curVertexCount;
+			serialized_size += 4;
+			serialized_size += (unsigned int)node->payload_count
+					   << 6;
+			serialized_size += 36 * node->payload_count;
+			if (parent_state->p_vert_normals == NULL) {
+				serialized_size += 12 * g_cur_vertex_count;
 			}
 			break;
 
 		case OPT_TRANSFORM:
-			serializedSize += 48;
+			serialized_size += 48;
 			break;
 
 		case OPT_MESHVERTS:
-			g_curVertexCount = node->payloadCount;
-			serializedSize += 12 * g_curVertexCount;
-			if (g_vertexRemapCapacity < node->payloadCount) {
-				g_vertexRemapCapacity = node->payloadCount;
+			g_cur_vertex_count = node->payload_count;
+			serialized_size += 12 * g_cur_vertex_count;
+			if (g_vertex_remap_capacity < node->payload_count) {
+				g_vertex_remap_capacity = node->payload_count;
 			}
 			break;
 
 		case OPT_TRANSLATION:
-			serializedSize += 12;
+			serialized_size += 12;
 			break;
 
 		case OPT_ROTATION:
-			serializedSize += 36;
+			serialized_size += 36;
 			break;
 
 		case OPT_SCALE:
-			serializedSize += 12;
+			serialized_size += 12;
 			break;
 
 		case OPT_NODEREF:
-			serializedSize +=
-				(unsigned int)strlen((const char *)paramData) +
+			serialized_size +=
+				(unsigned int)strlen((const char *)param_data) +
 				1;
 			break;
 
 		case OPT_MATERIAL: {
-			int recordCount;
-			int scaledRecordCount;
+			int record_count;
+			int scaled_record_count;
 
-			recordCount = node->payloadCount;
-			g_curMeshMaterials = node->payload;
-			scaledRecordCount = recordCount << 3;
-			scaledRecordCount -= recordCount;
-			serializedSize += scaledRecordCount << 3;
+			record_count = node->payload_count;
+			g_cur_mesh_materials = node->payload;
+			scaled_record_count = record_count << 3;
+			scaled_record_count -= record_count;
+			serialized_size += scaled_record_count << 3;
 			break;
 		}
 
 		case OPT_VERTNORMALS: {
-			int vectorValueCount;
+			int vector_value_count;
 
-			vectorValueCount = 3 * node->payloadCount;
-			g_curVertNormals = node->payload;
-			serializedSize += 4 * vectorValueCount;
-			parentState->pVertNormals =
-				(struct OptVector *)paramData;
+			vector_value_count = 3 * node->payload_count;
+			g_cur_vert_normals = node->payload;
+			serialized_size += 4 * vector_value_count;
+			parent_state->p_vert_normals =
+				(struct opt_vector *)param_data;
 			break;
 		}
 
 		case OPT_TEXCOORDS:
-			serializedSize += 8 * node->payloadCount;
+			serialized_size += 8 * node->payload_count;
 			break;
 
 		case OPT_BASE_COLOR:
-			serializedSize += 12;
+			serialized_size += 12;
 			break;
 
 		case OPT_TEXTURE: {
-			struct OptTextureData *textureData;
-			int textureByteCount;
-			uint8_t *embeddedPalette;
+			struct opt_texture_data *texture_data;
+			int texture_byte_count;
+			uint8_t *embedded_palette;
 
-			textureData = node->payload;
-			serializedSize += sizeof(*textureData);
-			textureByteCount =
-				textureData->height * textureData->width;
-			if (textureByteCount == textureData->textureSize) {
-				serializedSize += textureData->dataSize;
+			texture_data = node->payload;
+			serialized_size += sizeof(*texture_data);
+			texture_byte_count =
+				texture_data->height * texture_data->width;
+			if (texture_byte_count == texture_data->texture_size) {
+				serialized_size += texture_data->data_size;
 			} else {
-				serializedSize += textureByteCount;
+				serialized_size += texture_byte_count;
 			}
-			if (textureData->inlinePaletteCount != 0) {
-				serializedSize +=
-					768 * textureData->inlinePaletteCount;
+			if (texture_data->inline_palette_count != 0) {
+				serialized_size +=
+					768 *
+					texture_data->inline_palette_count;
 			} else {
-				embeddedPalette = (uint8_t *)(textureData + 1);
-				if (textureByteCount ==
-				    textureData->textureSize) {
-					embeddedPalette +=
-						textureData->dataSize;
+				embedded_palette =
+					(uint8_t *)(texture_data + 1);
+				if (texture_byte_count ==
+				    texture_data->texture_size) {
+					embedded_palette +=
+						texture_data->data_size;
 				} else {
-					embeddedPalette += textureByteCount;
+					embedded_palette += texture_byte_count;
 				}
-				if ((uint8_t *)textureData->palette ==
-				    embeddedPalette) {
-					serializedSize += 12288;
+				if ((uint8_t *)texture_data->palette ==
+				    embedded_palette) {
+					serialized_size += 12288;
 				}
 			}
 			break;
 		}
 
 		case OPT_FACEGROUP:
-			serializedSize += 4 * node->payloadCount;
+			serialized_size += 4 * node->payload_count;
 			break;
 
 		case OPT_HARDPOINT:
-			serializedSize += 16;
+			serialized_size += 16;
 			break;
 
 		case OPT_ROTSCALE:
-			serializedSize += 48;
+			serialized_size += 48;
 			break;
 
 		case OPT_MESHDESC:
-			serializedSize += 72;
+			serialized_size += 72;
 			break;
 
 		default:
 			break;
 		}
-	} else if (nodeType == OPT_TEXTURE) {
-		struct OptTextureData *textureData;
-		int textureByteCount;
-		uint8_t *embeddedPalette;
+	} else if (node_type == OPT_TEXTURE) {
+		struct opt_texture_data *texture_data;
+		int texture_byte_count;
+		uint8_t *embedded_palette;
 
-		textureData = node->payload;
-		serializedSize += sizeof(*textureData);
-		textureByteCount = textureData->height * textureData->width;
-		if (textureByteCount == textureData->textureSize) {
-			serializedSize += textureData->dataSize;
+		texture_data = node->payload;
+		serialized_size += sizeof(*texture_data);
+		texture_byte_count = texture_data->height * texture_data->width;
+		if (texture_byte_count == texture_data->texture_size) {
+			serialized_size += texture_data->data_size;
 		} else {
-			serializedSize += textureByteCount;
+			serialized_size += texture_byte_count;
 		}
-		if (textureData->inlinePaletteCount != 0) {
-			serializedSize += 768 * textureData->inlinePaletteCount;
+		if (texture_data->inline_palette_count != 0) {
+			serialized_size +=
+				768 * texture_data->inline_palette_count;
 		} else {
-			embeddedPalette = (uint8_t *)(textureData + 1);
-			if (textureByteCount == textureData->textureSize) {
-				embeddedPalette += textureData->dataSize;
+			embedded_palette = (uint8_t *)(texture_data + 1);
+			if (texture_byte_count == texture_data->texture_size) {
+				embedded_palette += texture_data->data_size;
 			} else {
-				embeddedPalette += textureByteCount;
+				embedded_palette += texture_byte_count;
 			}
-			if ((uint8_t *)textureData->palette ==
-			    embeddedPalette) {
-				serializedSize += 12288;
+			if ((uint8_t *)texture_data->palette ==
+			    embedded_palette) {
+				serialized_size += 12288;
 			}
 		}
 	}
 
-	if (node->childCount != 0) {
-		childState = *parentState;
-		g_curMeshVertices = NULL;
-		g_curMeshTexCoords = NULL;
-		g_curVertNormals = NULL;
-		g_modelNodeWalkUnusedScratch2 = NULL;
-		g_curMeshMaterials = NULL;
-		childIndex = 0;
+	if (node->child_count != 0) {
+		child_state = *parent_state;
+		g_cur_mesh_vertices = NULL;
+		g_cur_mesh_tex_coords = NULL;
+		g_cur_vert_normals = NULL;
+		g_model_node_walk_unused_scratch2 = NULL;
+		g_cur_mesh_materials = NULL;
+		child_index = 0;
 
-		serializedSize += sizeof(struct OptNode *) * node->childCount;
+		serialized_size +=
+			sizeof(struct opt_node *) * node->child_count;
 
-		if (node->childCount > 0) {
-			childOffset = 0;
+		if (node->child_count > 0) {
+			child_offset = 0;
 			do {
-				serializedSize +=
-					OptModel_MeasureNodeAndRaiseCapacities(
-						*(struct OptNode *
+				serialized_size +=
+					opt_model_measure_node_and_raise_capacities(
+						*(struct opt_node *
 							  *)((uint8_t *)node
-								     ->pChildren +
-							     childOffset),
-						&childState);
-				childOffset += sizeof(*node->pChildren);
-				++childIndex;
-			} while (node->childCount > childIndex);
+								     ->p_children +
+							     child_offset),
+						&child_state);
+				child_offset += sizeof(*node->p_children);
+				++child_index;
+			} while (node->child_count > child_index);
 		}
 	}
-	return serializedSize;
+	return serialized_size;
 }
 
-/* Rewrites entryCount RGB565 entries of palette, in place, in the display's
- * 16-bit format at the current brightness (FlightPalette_Build16BppRange). With
- * g_useHardware3D set it first runs ModelTexture_FilterHardwarePalette on the
- * palette. Does not check entryCount against its 4096-entry buffer. */
+/* Rewrites entry_count RGB565 entries of palette, in place, in the display's
+ * 16-bit format at the current brightness (flight_palette_build16_bpp_range). With
+ * g_use_hardware3d set it first runs model_texture_filter_hardware_palette on the
+ * palette. Does not check entry_count against its 4096-entry buffer. */
 // FUNCTION: XVT 0x476B90
-void OptModel_PrepareTexturePalette(uint16_t *palette, int entryCount)
+void opt_model_prepare_texture_palette(uint16_t *palette, int entry_count)
 {
-	struct RgbTriplet srcRgb[4096];
-	uint8_t *rgbCursor;
-	uint16_t *paletteEntry;
-	int entriesRemaining;
-	unsigned int packedColor;
+	struct rgb_triplet src_rgb[4096];
+	uint8_t *rgb_cursor;
+	uint16_t *palette_entry;
+	int entries_remaining;
+	unsigned int packed_color;
 	uint8_t blue;
 	uint8_t green;
 	uint8_t red;
 
-	if (g_useHardware3D != 0) {
-		ModelTexture_FilterHardwarePalette(palette);
+	if (g_use_hardware3d != 0) {
+		model_texture_filter_hardware_palette(palette);
 	}
 
-	if (entryCount > 0) {
-		rgbCursor = (uint8_t *)srcRgb;
-		paletteEntry = palette;
-		entriesRemaining = entryCount;
+	if (entry_count > 0) {
+		rgb_cursor = (uint8_t *)src_rgb;
+		palette_entry = palette;
+		entries_remaining = entry_count;
 		do {
-			packedColor = *paletteEntry++;
-			blue = (uint8_t)(packedColor & 0x1Fu);
-			packedColor >>= 5;
-			rgbCursor[2] = (uint8_t)(2 * blue);
-			green = (uint8_t)(packedColor & 0x3Fu);
-			packedColor >>= 6;
-			red = (uint8_t)(packedColor & 0x1Fu);
-			rgbCursor[1] = green;
-			rgbCursor[0] = (uint8_t)(2 * red);
-			rgbCursor += 3;
-		} while (--entriesRemaining != 0);
+			packed_color = *palette_entry++;
+			blue = (uint8_t)(packed_color & 0x1Fu);
+			packed_color >>= 5;
+			rgb_cursor[2] = (uint8_t)(2 * blue);
+			green = (uint8_t)(packed_color & 0x3Fu);
+			packed_color >>= 6;
+			red = (uint8_t)(packed_color & 0x1Fu);
+			rgb_cursor[1] = green;
+			rgb_cursor[0] = (uint8_t)(2 * red);
+			rgb_cursor += 3;
+		} while (--entries_remaining != 0);
 	}
 
-	FlightPalette_Build16BppRange(srcRgb, palette, 0, entryCount);
+	flight_palette_build16_bpp_range(src_rgb, palette, 0, entry_count);
 }
 
-/* Returns the bytes srcNode and everything below it take in a runtime model;
+/* Returns the bytes src_node and everything below it take in a runtime model;
  * with dst NULL it only measures, otherwise it also writes them there. Copies
- * each node with its name, child table and payload. A texture whose textureSize
+ * each node with its name, child table and payload. A texture whose texture_size
  * equals width times height, its data holding the mip levels, drops the top
- * level when g_textureResolutionLevel is 0 and both sides are over 8. Any other
+ * level when g_texture_resolution_level is 0 and both sides are over 8. Any other
  * texture copies its top level and gets mip levels added until a side is 1.
- * With g_mipmappingEnabled set each new texel is the 2-by-2 average of the
+ * With g_mipmapping_enabled set each new texel is the 2-by-2 average of the
  * colors 8192 bytes into the palette, matched back to the nearest of the 256
  * there; otherwise the levels' bytes are left unwritten. Palettes are converted
  * for the display: on an 8-bit display the 4096 RGB565 colors map through
- * g_activeRgb565ToPaletteIndexLut to 4096 bytes, and with
- * g_generateMissionPalette set the texels feed
- * ImageQuantizer_ClassifyIndexedRgb565Image once per 256-color sub-palette; on
+ * g_active_rgb565_to_palette_index_lut to 4096 bytes, and with
+ * g_generate_mission_palette set the texels feed
+ * image_quantizer_classify_indexed_rgb565_image once per 256-color sub-palette; on
  * a 16-bit display the 8192 bytes are copied and repacked by
- * OptModel_PrepareTexturePalette. A texture that uses another's palette copies
- * none. Raises g_sceneEdgeFlagsCapacity and g_vertexRemapCapacity, sets
- * g_curVertexCount, g_curMeshMaterials, g_curVertNormals and
- * meshState->pVertNormals at those nodes, and sets g_curMeshVertices,
- * g_curMeshTexCoords, g_curVertNormals, g_modelNodeWalkUnusedScratch2 and
- * g_curMeshMaterials to NULL before a node's children. A child of size 0 leaves
+ * opt_model_prepare_texture_palette. A texture that uses another's palette copies
+ * none. Raises g_scene_edge_flags_capacity and g_vertex_remap_capacity, sets
+ * g_cur_vertex_count, g_cur_mesh_materials, g_cur_vert_normals and
+ * mesh_state->p_vert_normals at those nodes, and sets g_cur_mesh_vertices,
+ * g_cur_mesh_tex_coords, g_cur_vert_normals, g_model_node_walk_unused_scratch2 and
+ * g_cur_mesh_materials to NULL before a node's children. A child of size 0 leaves
  * a NULL slot. The modern build aligns each node. */
 // FUNCTION: XVT 0x476C20
-unsigned int OptModel_BuildRuntimeNode(const struct OptNode *srcNode,
-				       struct SceneMesh *meshState,
-				       uint8_t *dst)
+unsigned int opt_model_build_runtime_node(const struct opt_node *src_node,
+					  struct scene_mesh *mesh_state,
+					  uint8_t *dst)
 {
 	enum {
 		OPT_TEXTURE_PALETTE_ENTRY_COUNT = 4096,
@@ -5442,763 +5569,783 @@ unsigned int OptModel_BuildRuntimeNode(const struct OptNode *srcNode,
 		RGB565_RED_BLUE_MASK = 0x1f,
 	};
 
-	unsigned int totalSize;
-	unsigned int payloadSize;
-	int childIndex;
-	void *sourcePayload;
-	struct SceneMesh childMesh;
-	struct OptNode *runtimeNode;
+	unsigned int total_size;
+	unsigned int payload_size;
+	int child_index;
+	void *source_payload;
+	struct scene_mesh child_mesh;
+	struct opt_node *runtime_node;
 
-	if (srcNode == NULL) {
+	if (src_node == NULL) {
 		return 0;
 	}
 	if (dst != NULL) {
-		memcpy(dst, srcNode, sizeof(*srcNode));
-		runtimeNode = (struct OptNode *)dst;
-		dst += sizeof(*srcNode);
+		memcpy(dst, src_node, sizeof(*src_node));
+		runtime_node = (struct opt_node *)dst;
+		dst += sizeof(*src_node);
 	}
-	totalSize = sizeof(*srcNode);
-	if (srcNode->pName != NULL) {
+	total_size = sizeof(*src_node);
+	if (src_node->p_name != NULL) {
 		if (dst != NULL) {
-			runtimeNode->pName = (char *)dst;
-			strcpy((char *)dst, srcNode->pName);
-			dst += strlen(srcNode->pName) + 1;
+			runtime_node->p_name = (char *)dst;
+			strcpy((char *)dst, src_node->p_name);
+			dst += strlen(src_node->p_name) + 1;
 		}
-		totalSize = (unsigned int)strlen(srcNode->pName) +
-			    sizeof(*srcNode) + 1;
+		total_size = (unsigned int)strlen(src_node->p_name) +
+			     sizeof(*src_node) + 1;
 	}
 #ifdef XVT_MODERN
-	totalSize = (unsigned int)XvtOpt_AlignSize(totalSize);
+	total_size = (unsigned int)xvt_opt_align_size(total_size);
 	if (dst) {
-		dst = XvtOpt_AlignPointer(dst);
+		dst = xvt_opt_align_pointer(dst);
 	}
 #endif
-	if (srcNode->childCount != 0) {
+	if (src_node->child_count != 0) {
 		if (dst != NULL) {
-			runtimeNode->pChildren = (struct OptNode **)dst;
-			dst += sizeof(*srcNode->pChildren) *
-			       (unsigned int)srcNode->childCount;
+			runtime_node->p_children = (struct opt_node **)dst;
+			dst += sizeof(*src_node->p_children) *
+			       (unsigned int)src_node->child_count;
 		}
-		totalSize += sizeof(*srcNode->pChildren) *
-			     (unsigned int)srcNode->childCount;
+		total_size += sizeof(*src_node->p_children) *
+			      (unsigned int)src_node->child_count;
 	}
 
-	sourcePayload = srcNode->payload;
-	switch (srcNode->nodeType) {
+	source_payload = src_node->payload;
+	switch (src_node->node_type) {
 	case OPT_FACEDATA:
 	case OPT_FACEDATA_QUAD_MESH:
 	case OPT_FACEDATA_FACE_SET:
 	case OPT_FACEDATA_TRIANGLE_STRIP_SET:
-		if (g_sceneEdgeFlagsCapacity < *(const int *)sourcePayload) {
-			g_sceneEdgeFlagsCapacity = *(const int *)sourcePayload;
+		if (g_scene_edge_flags_capacity <
+		    *(const int *)source_payload) {
+			g_scene_edge_flags_capacity =
+				*(const int *)source_payload;
 		}
-		payloadSize =
+		payload_size =
 			sizeof(int) +
-			(unsigned int)srcNode->payloadCount *
-				(sizeof(struct OptPackedFaceRecord) + 36u);
-		if (meshState->pVertNormals == NULL) {
-			payloadSize += sizeof(struct OptVector) *
-				       (unsigned int)g_curVertexCount;
+			(unsigned int)src_node->payload_count *
+				(sizeof(struct opt_packed_face_record) + 36u);
+		if (mesh_state->p_vert_normals == NULL) {
+			payload_size += sizeof(struct opt_vector) *
+					(unsigned int)g_cur_vertex_count;
 		}
 		if (dst != NULL) {
-			runtimeNode->payload = dst;
-			memcpy(dst, srcNode->payload, payloadSize);
-			dst += payloadSize;
+			runtime_node->payload = dst;
+			memcpy(dst, src_node->payload, payload_size);
+			dst += payload_size;
 		}
-		totalSize += payloadSize;
+		total_size += payload_size;
 		break;
 	case OPT_TRANSFORM:
-		payloadSize = 48;
+		payload_size = 48;
 		if (dst != NULL) {
-			runtimeNode->payload = dst;
-			memcpy(dst, srcNode->payload, payloadSize);
-			dst += payloadSize;
+			runtime_node->payload = dst;
+			memcpy(dst, src_node->payload, payload_size);
+			dst += payload_size;
 		}
-		totalSize += payloadSize;
+		total_size += payload_size;
 		break;
 	case OPT_MESHVERTS:
-		payloadSize = sizeof(struct OptVector) *
-			      (unsigned int)srcNode->payloadCount;
+		payload_size = sizeof(struct opt_vector) *
+			       (unsigned int)src_node->payload_count;
 		if (dst != NULL) {
-			runtimeNode->payload = dst;
-			memcpy(dst, srcNode->payload, payloadSize);
-			dst += payloadSize;
+			runtime_node->payload = dst;
+			memcpy(dst, src_node->payload, payload_size);
+			dst += payload_size;
 		}
-		totalSize += payloadSize;
-		g_curVertexCount = srcNode->payloadCount;
-		if (srcNode->payloadCount > g_vertexRemapCapacity) {
-			g_vertexRemapCapacity = srcNode->payloadCount;
+		total_size += payload_size;
+		g_cur_vertex_count = src_node->payload_count;
+		if (src_node->payload_count > g_vertex_remap_capacity) {
+			g_vertex_remap_capacity = src_node->payload_count;
 		}
 		break;
 	case OPT_TRANSLATION:
-		payloadSize = 12;
+		payload_size = 12;
 		if (dst != NULL) {
-			runtimeNode->payload = dst;
-			memcpy(dst, srcNode->payload, payloadSize);
-			dst += payloadSize;
+			runtime_node->payload = dst;
+			memcpy(dst, src_node->payload, payload_size);
+			dst += payload_size;
 		}
-		totalSize += payloadSize;
+		total_size += payload_size;
 		break;
 	case OPT_ROTATION:
-		payloadSize = 36;
+		payload_size = 36;
 		if (dst != NULL) {
-			runtimeNode->payload = dst;
-			memcpy(dst, srcNode->payload, payloadSize);
-			dst += payloadSize;
+			runtime_node->payload = dst;
+			memcpy(dst, src_node->payload, payload_size);
+			dst += payload_size;
 		}
-		totalSize += payloadSize;
+		total_size += payload_size;
 		break;
 	case OPT_SCALE:
-		payloadSize = 12;
+		payload_size = 12;
 		if (dst != NULL) {
-			runtimeNode->payload = dst;
-			memcpy(dst, srcNode->payload, payloadSize);
-			dst += payloadSize;
+			runtime_node->payload = dst;
+			memcpy(dst, src_node->payload, payload_size);
+			dst += payload_size;
 		}
-		totalSize += payloadSize;
+		total_size += payload_size;
 		break;
 	case OPT_NODEREF:
-		payloadSize =
-			(unsigned int)strlen((const char *)sourcePayload) + 1;
+		payload_size =
+			(unsigned int)strlen((const char *)source_payload) + 1;
 		if (dst != NULL) {
-			runtimeNode->payload = dst;
-			memcpy(dst, srcNode->payload, payloadSize);
-			dst += payloadSize;
+			runtime_node->payload = dst;
+			memcpy(dst, src_node->payload, payload_size);
+			dst += payload_size;
 		}
-		totalSize += payloadSize;
+		total_size += payload_size;
 		break;
 	case OPT_MATERIAL:
-		payloadSize = 56u * (unsigned int)srcNode->payloadCount;
+		payload_size = 56u * (unsigned int)src_node->payload_count;
 		if (dst != NULL) {
-			runtimeNode->payload = dst;
-			memcpy(dst, srcNode->payload, payloadSize);
-			dst += payloadSize;
+			runtime_node->payload = dst;
+			memcpy(dst, src_node->payload, payload_size);
+			dst += payload_size;
 		}
-		g_curMeshMaterials = sourcePayload;
-		totalSize += payloadSize;
+		g_cur_mesh_materials = source_payload;
+		total_size += payload_size;
 		break;
 	case OPT_VERTNORMALS:
-		payloadSize = sizeof(struct OptVector) *
-			      (unsigned int)srcNode->payloadCount;
+		payload_size = sizeof(struct opt_vector) *
+			       (unsigned int)src_node->payload_count;
 		if (dst != NULL) {
-			runtimeNode->payload = dst;
-			memcpy(dst, srcNode->payload, payloadSize);
-			dst += payloadSize;
+			runtime_node->payload = dst;
+			memcpy(dst, src_node->payload, payload_size);
+			dst += payload_size;
 		}
-		g_curVertNormals = (struct OptVector *)sourcePayload;
-		totalSize += payloadSize;
-		meshState->pVertNormals = (struct OptVector *)sourcePayload;
+		g_cur_vert_normals = (struct opt_vector *)source_payload;
+		total_size += payload_size;
+		mesh_state->p_vert_normals =
+			(struct opt_vector *)source_payload;
 		break;
 	case OPT_TEXCOORDS:
-		payloadSize = 8u * (unsigned int)srcNode->payloadCount;
+		payload_size = 8u * (unsigned int)src_node->payload_count;
 		if (dst != NULL) {
-			runtimeNode->payload = dst;
-			memcpy(dst, srcNode->payload, payloadSize);
-			dst += payloadSize;
+			runtime_node->payload = dst;
+			memcpy(dst, src_node->payload, payload_size);
+			dst += payload_size;
 		}
-		totalSize += payloadSize;
+		total_size += payload_size;
 		break;
 	case OPT_BASE_COLOR:
-		payloadSize = 12;
+		payload_size = 12;
 		if (dst != NULL) {
-			runtimeNode->payload = dst;
-			memcpy(dst, srcNode->payload, payloadSize);
-			dst += payloadSize;
+			runtime_node->payload = dst;
+			memcpy(dst, src_node->payload, payload_size);
+			dst += payload_size;
 		}
-		totalSize += payloadSize;
+		total_size += payload_size;
 		break;
 	case OPT_TEXTURE: {
-		const struct OptTextureData *sourceTexture;
-		int paletteIndex;
-		const uint8_t *sourcePalette;
-		const uint16_t *sourcePalette16;
-		struct OptTextureData *runtimeTexture;
-		const uint8_t *sourceTexels;
-		const uint8_t *mipTopRow;
-		const uint8_t *mipBottomRow;
-		const uint8_t *topTexel;
-		const uint8_t *bottomTexel;
-		uint8_t *mipRow;
-		unsigned int texturePayloadSize;
-		unsigned int sourcePaletteOffset;
-		unsigned int paletteBytes;
+		const struct opt_texture_data *source_texture;
+		int palette_index;
+		const uint8_t *source_palette;
+		const uint16_t *source_palette16;
+		struct opt_texture_data *runtime_texture;
+		const uint8_t *source_texels;
+		const uint8_t *mip_top_row;
+		const uint8_t *mip_bottom_row;
+		const uint8_t *top_texel;
+		const uint8_t *bottom_texel;
+		uint8_t *mip_row;
+		unsigned int texture_payload_size;
+		unsigned int source_palette_offset;
+		unsigned int palette_bytes;
 		int width;
 		int height;
-		int mipPixelCount;
-		int previousWidth;
-		int rowStep;
-		int mipX;
-		int mipY;
-		uint16_t packedColor;
+		int mip_pixel_count;
+		int previous_width;
+		int row_step;
+		int mip_x;
+		int mip_y;
+		uint16_t packed_color;
 		int red;
 		int green;
 		int blue;
 
-		sourceTexture = (const struct OptTextureData *)srcNode->payload;
-		if (dst != NULL && g_generateMissionPalette != 0 &&
-		    g_flightBytesPerPixel == 1) {
-			sourceTexels = (const uint8_t *)sourceTexture +
-				       sizeof(*sourceTexture);
-			sourcePalette =
-				sourceTexels +
-				sourceTexture->height * sourceTexture->width;
-			if ((unsigned int)sourceTexture->textureSize ==
-			    (unsigned int)(sourceTexture->height *
-					   sourceTexture->width)) {
-				sourcePalette =
-					sourceTexels + sourceTexture->dataSize;
+		source_texture =
+			(const struct opt_texture_data *)src_node->payload;
+		if (dst != NULL && g_generate_mission_palette != 0 &&
+		    g_flight_bytes_per_pixel == 1) {
+			source_texels = (const uint8_t *)source_texture +
+					sizeof(*source_texture);
+			source_palette =
+				source_texels +
+				source_texture->height * source_texture->width;
+			if ((unsigned int)source_texture->texture_size ==
+			    (unsigned int)(source_texture->height *
+					   source_texture->width)) {
+				source_palette = source_texels +
+						 source_texture->data_size;
 			}
-			sourcePalette16 =
+			source_palette16 =
 				(const uint16_t
-					 *)(sourcePalette +
+					 *)(source_palette +
 					    OPT_TEXTURE_PALETTE_ENTRY_COUNT);
-			for (paletteIndex = OPT_TEXTURE_SUBPALETTE_COUNT;
-			     paletteIndex != 0; --paletteIndex) {
-				ImageQuantizer_ClassifyIndexedRgb565Image(
-					sourceTexels, sourcePalette16,
-					(unsigned int)sourceTexture->width,
-					(unsigned int)sourceTexture->height);
-				sourcePalette16 +=
+			for (palette_index = OPT_TEXTURE_SUBPALETTE_COUNT;
+			     palette_index != 0; --palette_index) {
+				image_quantizer_classify_indexed_rgb565_image(
+					source_texels, source_palette16,
+					(unsigned int)source_texture->width,
+					(unsigned int)source_texture->height);
+				source_palette16 +=
 					OPT_TEXTURE_SUBPALETTE_ENTRY_COUNT;
 			}
 		}
 
-		if ((unsigned int)sourceTexture->textureSize ==
-		    (unsigned int)(sourceTexture->height *
-				   sourceTexture->width)) {
+		if ((unsigned int)source_texture->texture_size ==
+		    (unsigned int)(source_texture->height *
+				   source_texture->width)) {
 			if (dst != NULL) {
-				runtimeNode->payload = dst;
-				memcpy(dst, srcNode->payload,
-				       sizeof(*sourceTexture));
-				sourceTexels = (const uint8_t *)sourceTexture +
-					       sizeof(*sourceTexture);
-				dst += sizeof(*sourceTexture);
-				runtimeTexture = (struct OptTextureData *)
-							 runtimeNode->payload;
-				if (g_textureResolutionLevel == 0 &&
-				    runtimeTexture->width >
+				runtime_node->payload = dst;
+				memcpy(dst, src_node->payload,
+				       sizeof(*source_texture));
+				source_texels =
+					(const uint8_t *)source_texture +
+					sizeof(*source_texture);
+				dst += sizeof(*source_texture);
+				runtime_texture = (struct opt_texture_data *)
+							  runtime_node->payload;
+				if (g_texture_resolution_level == 0 &&
+				    runtime_texture->width >
 					    OPT_TEXTURE_FULL_RES_THRESHOLD &&
-				    runtimeTexture->height >
+				    runtime_texture->height >
 					    OPT_TEXTURE_FULL_RES_THRESHOLD) {
-					sourceTexels += runtimeTexture->height *
-							runtimeTexture->width;
-					runtimeTexture->dataSize -=
-						runtimeTexture->height *
-						runtimeTexture->width;
-					runtimeTexture->width >>= 1;
-					runtimeTexture->height >>= 1;
-					runtimeTexture->textureSize =
-						runtimeTexture->width *
-						runtimeTexture->height;
+					source_texels +=
+						runtime_texture->height *
+						runtime_texture->width;
+					runtime_texture->data_size -=
+						runtime_texture->height *
+						runtime_texture->width;
+					runtime_texture->width >>= 1;
+					runtime_texture->height >>= 1;
+					runtime_texture->texture_size =
+						runtime_texture->width *
+						runtime_texture->height;
 				}
-				memcpy(dst, sourceTexels,
-				       (unsigned int)runtimeTexture->dataSize);
-				dst += runtimeTexture->dataSize;
-				texturePayloadSize =
-					(unsigned int)runtimeTexture->dataSize +
-					sizeof(*sourceTexture);
+				memcpy(dst, source_texels,
+				       (unsigned int)
+					       runtime_texture->data_size);
+				dst += runtime_texture->data_size;
+				texture_payload_size =
+					(unsigned int)
+						runtime_texture->data_size +
+					sizeof(*source_texture);
 			} else {
-				texturePayloadSize =
-					(unsigned int)sourceTexture->dataSize +
-					sizeof(*sourceTexture);
-				if (g_textureResolutionLevel == 0 &&
-				    sourceTexture->width >
+				texture_payload_size =
+					(unsigned int)
+						source_texture->data_size +
+					sizeof(*source_texture);
+				if (g_texture_resolution_level == 0 &&
+				    source_texture->width >
 					    OPT_TEXTURE_FULL_RES_THRESHOLD &&
-				    sourceTexture->height >
+				    source_texture->height >
 					    OPT_TEXTURE_FULL_RES_THRESHOLD) {
-					texturePayloadSize -=
-						(unsigned int)(sourceTexture
+					texture_payload_size -=
+						(unsigned int)(source_texture
 								       ->height *
-							       sourceTexture
+							       source_texture
 								       ->width);
 				}
 			}
 		} else {
-			texturePayloadSize =
-				(unsigned int)(sourceTexture->height *
-					       sourceTexture->width) +
-				sizeof(*sourceTexture);
+			texture_payload_size =
+				(unsigned int)(source_texture->height *
+					       source_texture->width) +
+				sizeof(*source_texture);
 			if (dst != NULL) {
-				runtimeNode->payload = dst;
-				memcpy(dst, srcNode->payload,
-				       texturePayloadSize);
-				dst += texturePayloadSize;
-				sourceTexels = (const uint8_t *)sourceTexture +
-					       sizeof(*sourceTexture);
-				if (sourceTexture->inlinePaletteCount == 0) {
-					sourcePalette =
+				runtime_node->payload = dst;
+				memcpy(dst, src_node->payload,
+				       texture_payload_size);
+				dst += texture_payload_size;
+				source_texels =
+					(const uint8_t *)source_texture +
+					sizeof(*source_texture);
+				if (source_texture->inline_palette_count == 0) {
+					source_palette =
 						(const uint8_t *)
-							sourceTexture->palette;
+							source_texture->palette;
 				} else {
-					sourcePalette =
-						sourceTexels +
-						sourceTexture->height *
-							sourceTexture->width;
+					source_palette =
+						source_texels +
+						source_texture->height *
+							source_texture->width;
 				}
-				sourcePalette16 =
+				source_palette16 =
 					(const uint16_t
-						 *)(sourcePalette +
+						 *)(source_palette +
 						    2 * OPT_TEXTURE_PALETTE_ENTRY_COUNT);
-				width = sourceTexture->width;
-				height = sourceTexture->height;
-				runtimeTexture = (struct OptTextureData *)
-							 runtimeNode->payload;
-				runtimeTexture->textureSize = width * height;
-				runtimeTexture->dataSize = width * height;
+				width = source_texture->width;
+				height = source_texture->height;
+				runtime_texture = (struct opt_texture_data *)
+							  runtime_node->payload;
+				runtime_texture->texture_size = width * height;
+				runtime_texture->data_size = width * height;
 				while (width > 1 && height > 1) {
 					width >>= 1;
 					height >>= 1;
-					mipPixelCount = width * height;
-					runtimeTexture->dataSize +=
-						mipPixelCount;
-					if (g_mipmappingEnabled != 0 &&
+					mip_pixel_count = width * height;
+					runtime_texture->data_size +=
+						mip_pixel_count;
+					if (g_mipmapping_enabled != 0 &&
 					    height > 0) {
-						previousWidth = 2 * width;
-						rowStep = 4 * width;
-						mipRow = dst;
-						mipTopRow = sourceTexels;
-						mipBottomRow = sourceTexels +
-							       previousWidth;
-						for (mipY = 0; mipY < height;
-						     ++mipY) {
-							topTexel = mipTopRow;
-							bottomTexel =
-								mipBottomRow;
-							for (mipX = 0;
-							     mipX < width;
-							     ++mipX) {
-								packedColor = sourcePalette16
-									[topTexel[0]];
-								blue = packedColor &
-								       RGB565_RED_BLUE_MASK;
-								packedColor >>=
-									RGB565_GREEN_SHIFT;
-								green = packedColor &
-									RGB565_GREEN_MASK;
-								packedColor >>=
-									RGB565_GREEN_BITS;
-								red = packedColor &
-								      RGB565_RED_BLUE_MASK;
-								packedColor = sourcePalette16
-									[topTexel[1]];
-								blue += packedColor &
-									RGB565_RED_BLUE_MASK;
-								packedColor >>=
-									RGB565_GREEN_SHIFT;
-								green +=
-									packedColor &
-									RGB565_GREEN_MASK;
-								packedColor >>=
-									RGB565_GREEN_BITS;
-								red += packedColor &
-								       RGB565_RED_BLUE_MASK;
-								packedColor = sourcePalette16
-									[bottomTexel
+						previous_width = 2 * width;
+						row_step = 4 * width;
+						mip_row = dst;
+						mip_top_row = source_texels;
+						mip_bottom_row = source_texels +
+								 previous_width;
+						for (mip_y = 0; mip_y < height;
+						     ++mip_y) {
+							top_texel = mip_top_row;
+							bottom_texel =
+								mip_bottom_row;
+							for (mip_x = 0;
+							     mip_x < width;
+							     ++mip_x) {
+								packed_color = source_palette16
+									[top_texel
 										 [0]];
-								blue += packedColor &
-									RGB565_RED_BLUE_MASK;
-								packedColor >>=
-									RGB565_GREEN_SHIFT;
-								green +=
-									packedColor &
-									RGB565_GREEN_MASK;
-								packedColor >>=
-									RGB565_GREEN_BITS;
-								red += packedColor &
+								blue = packed_color &
 								       RGB565_RED_BLUE_MASK;
-								packedColor = sourcePalette16
-									[bottomTexel
+								packed_color >>=
+									RGB565_GREEN_SHIFT;
+								green = packed_color &
+									RGB565_GREEN_MASK;
+								packed_color >>=
+									RGB565_GREEN_BITS;
+								red = packed_color &
+								      RGB565_RED_BLUE_MASK;
+								packed_color = source_palette16
+									[top_texel
 										 [1]];
-								blue += packedColor &
+								blue += packed_color &
 									RGB565_RED_BLUE_MASK;
-								packedColor >>=
+								packed_color >>=
 									RGB565_GREEN_SHIFT;
 								green +=
-									packedColor &
+									packed_color &
 									RGB565_GREEN_MASK;
-								packedColor >>=
+								packed_color >>=
 									RGB565_GREEN_BITS;
-								red += packedColor &
+								red += packed_color &
+								       RGB565_RED_BLUE_MASK;
+								packed_color = source_palette16
+									[bottom_texel
+										 [0]];
+								blue += packed_color &
+									RGB565_RED_BLUE_MASK;
+								packed_color >>=
+									RGB565_GREEN_SHIFT;
+								green +=
+									packed_color &
+									RGB565_GREEN_MASK;
+								packed_color >>=
+									RGB565_GREEN_BITS;
+								red += packed_color &
+								       RGB565_RED_BLUE_MASK;
+								packed_color = source_palette16
+									[bottom_texel
+										 [1]];
+								blue += packed_color &
+									RGB565_RED_BLUE_MASK;
+								packed_color >>=
+									RGB565_GREEN_SHIFT;
+								green +=
+									packed_color &
+									RGB565_GREEN_MASK;
+								packed_color >>=
+									RGB565_GREEN_BITS;
+								red += packed_color &
 								       RGB565_RED_BLUE_MASK;
 								blue >>= 2;
 								green >>= 2;
 								red >>= 2;
-								mipRow[mipX] = Color_FindNearestRgb565Index(
-									sourcePalette16,
+								mip_row[mip_x] = color_find_nearest_rgb565_index(
+									source_palette16,
 									red,
 									green,
 									blue, 0,
 									OPT_TEXTURE_SUBPALETTE_ENTRY_COUNT);
-								topTexel += 2;
-								bottomTexel +=
+								top_texel += 2;
+								bottom_texel +=
 									2;
 							}
-							mipRow += width;
-							mipTopRow += rowStep;
-							mipBottomRow += rowStep;
+							mip_row += width;
+							mip_top_row += row_step;
+							mip_bottom_row +=
+								row_step;
 						}
 					}
-					sourceTexels = dst;
-					dst += mipPixelCount;
-					texturePayloadSize +=
-						(unsigned int)mipPixelCount;
+					source_texels = dst;
+					dst += mip_pixel_count;
+					texture_payload_size +=
+						(unsigned int)mip_pixel_count;
 				}
 			} else {
-				width = sourceTexture->width;
-				height = sourceTexture->height;
+				width = source_texture->width;
+				height = source_texture->height;
 				while (width > 1 && height > 1) {
 					width >>= 1;
 					height >>= 1;
-					texturePayloadSize +=
+					texture_payload_size +=
 						(unsigned int)(width * height);
 				}
 			}
 		}
 
-		sourceTexture = (const struct OptTextureData *)srcNode->payload;
-		if (sourceTexture->inlinePaletteCount != 0) {
-			texturePayloadSize +=
-				(unsigned int)(sourceTexture
-						       ->inlinePaletteCount *
-					       g_flightBytesPerPixel) *
+		source_texture =
+			(const struct opt_texture_data *)src_node->payload;
+		if (source_texture->inline_palette_count != 0) {
+			texture_payload_size +=
+				(unsigned int)(source_texture
+						       ->inline_palette_count *
+					       g_flight_bytes_per_pixel) *
 				OPT_TEXTURE_SUBPALETTE_ENTRY_COUNT;
 			if (dst != NULL) {
-				sourcePalette = (const uint8_t *)sourceTexture +
-						sizeof(*sourceTexture);
-				sourcePaletteOffset =
-					(unsigned int)(sourceTexture->height *
-						       sourceTexture->width);
-				if ((unsigned int)sourceTexture->textureSize ==
-				    sourcePaletteOffset) {
-					sourcePaletteOffset =
-						(unsigned int)
-							sourceTexture->dataSize;
+				source_palette =
+					(const uint8_t *)source_texture +
+					sizeof(*source_texture);
+				source_palette_offset =
+					(unsigned int)(source_texture->height *
+						       source_texture->width);
+				if ((unsigned int)
+					    source_texture->texture_size ==
+				    source_palette_offset) {
+					source_palette_offset =
+						(unsigned int)source_texture
+							->data_size;
 				}
-				sourcePalette += sourcePaletteOffset;
-				if (g_flightBytesPerPixel == 2) {
-					sourcePalette +=
-						(unsigned int)sourceTexture
-							->inlinePaletteCount *
+				source_palette += source_palette_offset;
+				if (g_flight_bytes_per_pixel == 2) {
+					source_palette +=
+						(unsigned int)source_texture
+							->inline_palette_count *
 						OPT_TEXTURE_SUBPALETTE_ENTRY_COUNT;
 				}
-				if (g_flightBytesPerPixel == 1) {
-					sourcePalette16 =
+				if (g_flight_bytes_per_pixel == 1) {
+					source_palette16 =
 						(const uint16_t
-							 *)(sourcePalette +
+							 *)(source_palette +
 							    OPT_TEXTURE_PALETTE_ENTRY_COUNT);
-					for (paletteIndex = 0;
-					     paletteIndex <
+					for (palette_index = 0;
+					     palette_index <
 					     OPT_TEXTURE_PALETTE_ENTRY_COUNT;
-					     ++paletteIndex) {
-						dst[paletteIndex] = g_activeRgb565ToPaletteIndexLut
-							[sourcePalette16
-								 [paletteIndex]];
+					     ++palette_index) {
+						dst[palette_index] = g_active_rgb565_to_palette_index_lut
+							[source_palette16
+								 [palette_index]];
 					}
 				} else {
-					memcpy(dst, sourcePalette,
-					       (unsigned int)(g_flightBytesPerPixel *
+					memcpy(dst, source_palette,
+					       (unsigned int)(g_flight_bytes_per_pixel *
 							      OPT_TEXTURE_PALETTE_ENTRY_COUNT));
 				}
-				if (g_flightBytesPerPixel == 2) {
-					if (srcNode->pName != NULL) {
-						DebugPrintf("%s:",
-							    srcNode->pName);
+				if (g_flight_bytes_per_pixel == 2) {
+					if (src_node->p_name != NULL) {
+						debug_printf("%s:",
+							     src_node->p_name);
 					}
-					OptModel_PrepareTexturePalette(
+					opt_model_prepare_texture_palette(
 						(uint16_t *)dst,
 						OPT_TEXTURE_PALETTE_ENTRY_COUNT);
 				}
-				dst += (unsigned int)(sourceTexture
-							      ->inlinePaletteCount *
-						      g_flightBytesPerPixel) *
+				dst += (unsigned int)(source_texture
+							      ->inline_palette_count *
+						      g_flight_bytes_per_pixel) *
 				       OPT_TEXTURE_SUBPALETTE_ENTRY_COUNT;
 			}
 		} else {
-			sourcePalette = (const uint8_t *)sourceTexture +
-					sizeof(*sourceTexture);
-			sourcePaletteOffset =
-				(unsigned int)(sourceTexture->height *
-					       sourceTexture->width);
-			if ((unsigned int)sourceTexture->textureSize ==
-			    sourcePaletteOffset) {
-				sourcePaletteOffset =
-					(unsigned int)sourceTexture->dataSize;
+			source_palette = (const uint8_t *)source_texture +
+					 sizeof(*source_texture);
+			source_palette_offset =
+				(unsigned int)(source_texture->height *
+					       source_texture->width);
+			if ((unsigned int)source_texture->texture_size ==
+			    source_palette_offset) {
+				source_palette_offset =
+					(unsigned int)source_texture->data_size;
 			}
-			sourcePalette += sourcePaletteOffset;
-			if ((const uint8_t *)sourceTexture->palette ==
-			    sourcePalette) {
-				paletteBytes =
-					(unsigned int)g_flightBytesPerPixel *
+			source_palette += source_palette_offset;
+			if ((const uint8_t *)source_texture->palette ==
+			    source_palette) {
+				palette_bytes =
+					(unsigned int)g_flight_bytes_per_pixel *
 					OPT_TEXTURE_PALETTE_ENTRY_COUNT;
-				texturePayloadSize += paletteBytes;
+				texture_payload_size += palette_bytes;
 				if (dst != NULL) {
-					if (g_flightBytesPerPixel == 2) {
-						sourcePalette +=
+					if (g_flight_bytes_per_pixel == 2) {
+						source_palette +=
 							OPT_TEXTURE_PALETTE_ENTRY_COUNT;
 					}
-					if (g_flightBytesPerPixel == 1) {
-						sourcePalette16 =
+					if (g_flight_bytes_per_pixel == 1) {
+						source_palette16 =
 							(const uint16_t
-								 *)(sourcePalette +
+								 *)(source_palette +
 								    OPT_TEXTURE_PALETTE_ENTRY_COUNT);
-						for (paletteIndex = 0;
-						     paletteIndex <
+						for (palette_index = 0;
+						     palette_index <
 						     OPT_TEXTURE_PALETTE_ENTRY_COUNT;
-						     ++paletteIndex) {
-							dst[paletteIndex] = g_activeRgb565ToPaletteIndexLut
-								[sourcePalette16
-									 [paletteIndex]];
+						     ++palette_index) {
+							dst[palette_index] = g_active_rgb565_to_palette_index_lut
+								[source_palette16
+									 [palette_index]];
 						}
 					} else {
-						memcpy(dst, sourcePalette,
-						       paletteBytes);
+						memcpy(dst, source_palette,
+						       palette_bytes);
 					}
-					if (g_flightBytesPerPixel == 2) {
-						if (srcNode->pName != NULL) {
-							DebugPrintf(
+					if (g_flight_bytes_per_pixel == 2) {
+						if (src_node->p_name != NULL) {
+							debug_printf(
 								"%s:",
-								srcNode->pName);
+								src_node->p_name);
 						}
-						OptModel_PrepareTexturePalette(
+						opt_model_prepare_texture_palette(
 							(uint16_t *)dst,
 							OPT_TEXTURE_PALETTE_ENTRY_COUNT);
 					}
 					dst += (unsigned int)
-						       g_flightBytesPerPixel *
+						       g_flight_bytes_per_pixel *
 					       OPT_TEXTURE_PALETTE_ENTRY_COUNT;
 				}
 			}
 		}
-		totalSize += texturePayloadSize;
+		total_size += texture_payload_size;
 		break;
 	}
 	case OPT_FACEGROUP:
-		payloadSize = 4u * (unsigned int)srcNode->payloadCount;
+		payload_size = 4u * (unsigned int)src_node->payload_count;
 		if (dst != NULL) {
-			runtimeNode->payload = dst;
-			memcpy(dst, srcNode->payload, payloadSize);
-			dst += payloadSize;
+			runtime_node->payload = dst;
+			memcpy(dst, src_node->payload, payload_size);
+			dst += payload_size;
 		}
-		totalSize += payloadSize;
+		total_size += payload_size;
 		break;
 	case OPT_HARDPOINT:
-		payloadSize = 16;
+		payload_size = 16;
 		if (dst != NULL) {
-			runtimeNode->payload = dst;
-			memcpy(dst, srcNode->payload, payloadSize);
-			dst += payloadSize;
+			runtime_node->payload = dst;
+			memcpy(dst, src_node->payload, payload_size);
+			dst += payload_size;
 		}
-		totalSize += payloadSize;
+		total_size += payload_size;
 		break;
 	case OPT_ROTSCALE:
-		payloadSize = 48;
+		payload_size = 48;
 		if (dst != NULL) {
-			runtimeNode->payload = dst;
-			memcpy(dst, srcNode->payload, payloadSize);
-			dst += payloadSize;
+			runtime_node->payload = dst;
+			memcpy(dst, src_node->payload, payload_size);
+			dst += payload_size;
 		}
-		totalSize += payloadSize;
+		total_size += payload_size;
 		break;
 	case OPT_MESHDESC:
-		payloadSize = 72;
+		payload_size = 72;
 		if (dst != NULL) {
-			runtimeNode->payload = dst;
-			memcpy(dst, srcNode->payload, payloadSize);
-			dst += payloadSize;
+			runtime_node->payload = dst;
+			memcpy(dst, src_node->payload, payload_size);
+			dst += payload_size;
 		}
-		totalSize += payloadSize;
+		total_size += payload_size;
 		break;
 	default:
 		break;
 	}
 #ifdef XVT_MODERN
-	totalSize = (unsigned int)XvtOpt_AlignSize(totalSize);
+	total_size = (unsigned int)xvt_opt_align_size(total_size);
 	if (dst) {
-		dst = XvtOpt_AlignPointer(dst);
+		dst = xvt_opt_align_pointer(dst);
 	}
 #endif
-	if (srcNode->childCount != 0) {
-		childMesh = *meshState;
-		g_curMeshVertices = NULL;
-		g_curMeshTexCoords = NULL;
-		g_curVertNormals = NULL;
-		g_modelNodeWalkUnusedScratch2 = NULL;
-		g_curMeshMaterials = NULL;
-		for (childIndex = 0; childIndex < srcNode->childCount;
-		     ++childIndex) {
+	if (src_node->child_count != 0) {
+		child_mesh = *mesh_state;
+		g_cur_mesh_vertices = NULL;
+		g_cur_mesh_tex_coords = NULL;
+		g_cur_vert_normals = NULL;
+		g_model_node_walk_unused_scratch2 = NULL;
+		g_cur_mesh_materials = NULL;
+		for (child_index = 0; child_index < src_node->child_count;
+		     ++child_index) {
 			if (dst != NULL) {
-				((struct OptNode **)
-					 runtimeNode->pChildren)[childIndex] =
-					(struct OptNode *)dst;
+				((struct opt_node **)runtime_node
+					 ->p_children)[child_index] =
+					(struct opt_node *)dst;
 			}
-			payloadSize = OptModel_BuildRuntimeNode(
-				srcNode->pChildren[childIndex], &childMesh,
+			payload_size = opt_model_build_runtime_node(
+				src_node->p_children[child_index], &child_mesh,
 				dst);
 			if (dst != NULL) {
-				if (payloadSize == 0) {
-					((struct OptNode **)runtimeNode
-						 ->pChildren)[childIndex] =
+				if (payload_size == 0) {
+					((struct opt_node **)runtime_node
+						 ->p_children)[child_index] =
 						NULL;
 				}
-				dst += payloadSize;
+				dst += payload_size;
 			}
-			totalSize += payloadSize;
+			total_size += payload_size;
 		}
 	}
 #ifdef XVT_MODERN
-	return (unsigned int)XvtOpt_AlignSize(totalSize);
+	return (unsigned int)xvt_opt_align_size(total_size);
 #else
-	return totalSize;
+	return total_size;
 #endif
 }
 
 #ifndef XVT_MODERN
 /* Packs an imported Inventor model into the model layout the game reads and
  * returns the new handle. It measures each root with
- * OptModel_CalculatePackedNodeSizeRecursive, allocates the packed block and a
- * scratch block of g_optImportScratchVectorCount vectors (set to 1), packs each
- * root with OptModel_ConvertImportedNodeToPackedRecursive, frees sourceHandle
+ * opt_model_calculate_packed_node_size_recursive, allocates the packed block and a
+ * scratch block of g_opt_import_scratch_vector_count vectors (set to 1), packs each
+ * root with opt_model_convert_imported_node_to_packed_recursive, frees source_handle
  * and the scratch block, then copies the packed bytes into a block of the exact
- * size, fixes its pointers with OptModel_AdjustOptimizedPolyObjectPointers and
+ * size, fixes its pointers with opt_model_adjust_optimized_poly_object_pointers and
  * frees the first block. The conversion state starts zeroed with identity view
- * matrices. Sets g_curMeshVertices, g_curMeshTexCoords, g_curVertNormals,
- * g_modelNodeWalkUnusedScratch2 and g_curMeshMaterials to NULL and
- * g_curVertexCount to 0 before each pass. Does not check its allocations. Only
+ * matrices. Sets g_cur_mesh_vertices, g_cur_mesh_tex_coords, g_cur_vert_normals,
+ * g_model_node_walk_unused_scratch2 and g_cur_mesh_materials to NULL and
+ * g_cur_vertex_count to 0 before each pass. Does not check its allocations. Only
  * the original build calls this. */
 // FUNCTION: XVT 0x477950
-uint16_t OptModel_ConvertImportedHandleToPacked(uint16_t sourceHandle)
+uint16_t opt_model_convert_imported_handle_to_packed(uint16_t source_handle)
 {
-	struct OptimizedPolyObject *sourceModel;
-	struct OptimizedPolyObject *packedModel;
-	struct OptimizedPolyObject *finalModel;
-	uint8_t *packedCursor;
-	void *packedStorage;
-	uint16_t packedHandle;
-	uint16_t scratchHandle;
-	uint16_t finalHandle;
-	size_t allocatedSize;
-	size_t packedSize;
-	int rootIndex;
-	struct SceneMesh conversionState;
+	struct optimized_poly_object *source_model;
+	struct optimized_poly_object *packed_model;
+	struct optimized_poly_object *final_model;
+	uint8_t *packed_cursor;
+	void *packed_storage;
+	uint16_t packed_handle;
+	uint16_t scratch_handle;
+	uint16_t final_handle;
+	size_t allocated_size;
+	size_t packed_size;
+	int root_index;
+	struct scene_mesh conversion_state;
 
-	memset(&conversionState, 0, sizeof(conversionState));
-	conversionState.viewOrient[0] = 1.0f;
-	conversionState.viewOrient[1] = 0.0f;
-	conversionState.viewOrient[2] = 0.0f;
-	conversionState.viewOrient[3] = 0.0f;
-	conversionState.viewOrient[4] = 1.0f;
-	conversionState.viewOrient[5] = 0.0f;
-	conversionState.viewOrient[6] = 0.0f;
-	conversionState.viewOrient[7] = 0.0f;
-	conversionState.viewOrient[8] = 1.0f;
-	conversionState.viewToModelOrient[0] = 1.0f;
-	conversionState.viewToModelOrient[1] = 0.0f;
-	conversionState.viewToModelOrient[2] = 0.0f;
-	conversionState.viewToModelOrient[3] = 0.0f;
-	conversionState.viewToModelOrient[4] = 1.0f;
-	conversionState.viewToModelOrient[5] = 0.0f;
-	conversionState.viewToModelOrient[6] = 0.0f;
-	conversionState.viewToModelOrient[7] = 0.0f;
-	conversionState.viewToModelOrient[8] = 1.0f;
-	sourceModel = Memory_GetHandleBlock(sourceHandle);
-	if (sourceModel->selfMarker != sourceModel) {
-		OptModel_RelocateLoadedPointers(sourceModel);
+	memset(&conversion_state, 0, sizeof(conversion_state));
+	conversion_state.view_orient[0] = 1.0f;
+	conversion_state.view_orient[1] = 0.0f;
+	conversion_state.view_orient[2] = 0.0f;
+	conversion_state.view_orient[3] = 0.0f;
+	conversion_state.view_orient[4] = 1.0f;
+	conversion_state.view_orient[5] = 0.0f;
+	conversion_state.view_orient[6] = 0.0f;
+	conversion_state.view_orient[7] = 0.0f;
+	conversion_state.view_orient[8] = 1.0f;
+	conversion_state.view_to_model_orient[0] = 1.0f;
+	conversion_state.view_to_model_orient[1] = 0.0f;
+	conversion_state.view_to_model_orient[2] = 0.0f;
+	conversion_state.view_to_model_orient[3] = 0.0f;
+	conversion_state.view_to_model_orient[4] = 1.0f;
+	conversion_state.view_to_model_orient[5] = 0.0f;
+	conversion_state.view_to_model_orient[6] = 0.0f;
+	conversion_state.view_to_model_orient[7] = 0.0f;
+	conversion_state.view_to_model_orient[8] = 1.0f;
+	source_model = memory_get_handle_block(source_handle);
+	if (source_model->self_marker != source_model) {
+		opt_model_relocate_loaded_pointers(source_model);
 	}
-	g_curMeshVertices = NULL;
-	g_curMeshTexCoords = NULL;
-	g_curVertNormals = NULL;
-	g_modelNodeWalkUnusedScratch2 = NULL;
-	g_curMeshMaterials = NULL;
-	g_curVertexCount = 0;
-	g_optImportScratchVectorCount = 1;
-	allocatedSize =
-		sizeof(*sourceModel) +
-		sizeof(*sourceModel->rootNodes) * sourceModel->rootNodeCount;
-	for (rootIndex = 0; rootIndex < sourceModel->rootNodeCount;
-	     ++rootIndex) {
-		allocatedSize += OptModel_CalculatePackedNodeSizeRecursive(
-			sourceModel, sourceModel->rootNodes[rootIndex],
-			&conversionState);
+	g_cur_mesh_vertices = NULL;
+	g_cur_mesh_tex_coords = NULL;
+	g_cur_vert_normals = NULL;
+	g_model_node_walk_unused_scratch2 = NULL;
+	g_cur_mesh_materials = NULL;
+	g_cur_vertex_count = 0;
+	g_opt_import_scratch_vector_count = 1;
+	allocated_size =
+		sizeof(*source_model) + sizeof(*source_model->root_nodes) *
+						source_model->root_node_count;
+	for (root_index = 0; root_index < source_model->root_node_count;
+	     ++root_index) {
+		allocated_size +=
+			opt_model_calculate_packed_node_size_recursive(
+				source_model,
+				source_model->root_nodes[root_index],
+				&conversion_state);
 	}
-	Memory_HandleBlockDoneStub(sourceHandle);
+	memory_handle_block_done_stub(source_handle);
 
-	packedHandle = Memory_AllocHandle(allocatedSize, 0);
-	scratchHandle =
-		Memory_AllocHandle(sizeof(*g_optImportScratchVectors) *
-					   g_optImportScratchVectorCount,
-				   0);
-	sourceModel = Memory_GetHandleBlock(sourceHandle);
-	if (sourceModel->selfMarker != sourceModel) {
-		OptModel_RelocateLoadedPointers(sourceModel);
+	packed_handle = memory_alloc_handle(allocated_size, 0);
+	scratch_handle =
+		memory_alloc_handle(sizeof(*g_opt_import_scratch_vectors) *
+					    g_opt_import_scratch_vector_count,
+				    0);
+	source_model = memory_get_handle_block(source_handle);
+	if (source_model->self_marker != source_model) {
+		opt_model_relocate_loaded_pointers(source_model);
 	}
-	packedModel = Memory_GetHandleBlock(packedHandle);
-	g_optImportScratchVectors = Memory_GetHandleBlock(scratchHandle);
-	packedModel->selfMarker = packedModel;
-	packedModel->reserved = packedHandle;
-	packedModel->rootNodeCount = sourceModel->rootNodeCount;
-	packedModel->rootNodes = (struct OptNode **)((uint8_t *)packedModel +
-						     sizeof(*packedModel));
-	packedCursor =
-		(uint8_t *)packedModel + sizeof(*packedModel) +
-		sizeof(*packedModel->rootNodes) * packedModel->rootNodeCount;
-	packedSize = sizeof(*packedModel) + sizeof(*packedModel->rootNodes) *
-						    packedModel->rootNodeCount;
+	packed_model = memory_get_handle_block(packed_handle);
+	g_opt_import_scratch_vectors = memory_get_handle_block(scratch_handle);
+	packed_model->self_marker = packed_model;
+	packed_model->reserved = packed_handle;
+	packed_model->root_node_count = source_model->root_node_count;
+	packed_model->root_nodes =
+		(struct opt_node **)((uint8_t *)packed_model +
+				     sizeof(*packed_model));
+	packed_cursor = (uint8_t *)packed_model + sizeof(*packed_model) +
+			sizeof(*packed_model->root_nodes) *
+				packed_model->root_node_count;
+	packed_size =
+		sizeof(*packed_model) + sizeof(*packed_model->root_nodes) *
+						packed_model->root_node_count;
 
-	memset(&conversionState, 0, sizeof(conversionState));
-	conversionState.viewOrient[0] = 1.0f;
-	conversionState.viewOrient[1] = 0.0f;
-	conversionState.viewOrient[2] = 0.0f;
-	conversionState.viewOrient[3] = 0.0f;
-	conversionState.viewOrient[4] = 1.0f;
-	conversionState.viewOrient[5] = 0.0f;
-	conversionState.viewOrient[6] = 0.0f;
-	conversionState.viewOrient[7] = 0.0f;
-	conversionState.viewOrient[8] = 1.0f;
-	conversionState.viewToModelOrient[0] = 1.0f;
-	conversionState.viewToModelOrient[1] = 0.0f;
-	conversionState.viewToModelOrient[2] = 0.0f;
-	conversionState.viewToModelOrient[3] = 0.0f;
-	conversionState.viewToModelOrient[4] = 1.0f;
-	conversionState.viewToModelOrient[5] = 0.0f;
-	conversionState.viewToModelOrient[6] = 0.0f;
-	conversionState.viewToModelOrient[7] = 0.0f;
-	conversionState.viewToModelOrient[8] = 1.0f;
-	g_curMeshVertices = NULL;
-	g_curMeshTexCoords = NULL;
-	g_curVertNormals = NULL;
-	g_modelNodeWalkUnusedScratch2 = NULL;
-	g_curMeshMaterials = NULL;
-	g_curVertexCount = 0;
-	for (rootIndex = 0; rootIndex < sourceModel->rootNodeCount;
-	     ++rootIndex) {
-		size_t nodeSize;
-		packedModel->rootNodes[rootIndex] =
-			(struct OptNode *)packedCursor;
-		nodeSize = OptModel_ConvertImportedNodeToPackedRecursive(
-			sourceModel, sourceModel->rootNodes[rootIndex],
-			&conversionState, packedCursor);
-		packedCursor += nodeSize;
-		packedSize += nodeSize;
+	memset(&conversion_state, 0, sizeof(conversion_state));
+	conversion_state.view_orient[0] = 1.0f;
+	conversion_state.view_orient[1] = 0.0f;
+	conversion_state.view_orient[2] = 0.0f;
+	conversion_state.view_orient[3] = 0.0f;
+	conversion_state.view_orient[4] = 1.0f;
+	conversion_state.view_orient[5] = 0.0f;
+	conversion_state.view_orient[6] = 0.0f;
+	conversion_state.view_orient[7] = 0.0f;
+	conversion_state.view_orient[8] = 1.0f;
+	conversion_state.view_to_model_orient[0] = 1.0f;
+	conversion_state.view_to_model_orient[1] = 0.0f;
+	conversion_state.view_to_model_orient[2] = 0.0f;
+	conversion_state.view_to_model_orient[3] = 0.0f;
+	conversion_state.view_to_model_orient[4] = 1.0f;
+	conversion_state.view_to_model_orient[5] = 0.0f;
+	conversion_state.view_to_model_orient[6] = 0.0f;
+	conversion_state.view_to_model_orient[7] = 0.0f;
+	conversion_state.view_to_model_orient[8] = 1.0f;
+	g_cur_mesh_vertices = NULL;
+	g_cur_mesh_tex_coords = NULL;
+	g_cur_vert_normals = NULL;
+	g_model_node_walk_unused_scratch2 = NULL;
+	g_cur_mesh_materials = NULL;
+	g_cur_vertex_count = 0;
+	for (root_index = 0; root_index < source_model->root_node_count;
+	     ++root_index) {
+		size_t node_size;
+		packed_model->root_nodes[root_index] =
+			(struct opt_node *)packed_cursor;
+		node_size = opt_model_convert_imported_node_to_packed_recursive(
+			source_model, source_model->root_nodes[root_index],
+			&conversion_state, packed_cursor);
+		packed_cursor += node_size;
+		packed_size += node_size;
 	}
 
-	Memory_HandleBlockDoneStub(sourceHandle);
-	Memory_HandleBlockDoneStub(packedHandle);
-	Memory_HandleBlockDoneStub(scratchHandle);
-	Memory_FreeHandle(sourceHandle);
-	Memory_FreeHandle(scratchHandle);
-	finalHandle = Memory_AllocHandle(packedSize, 0);
-	packedStorage = Memory_GetHandleBlock(packedHandle);
-	finalModel = Memory_GetHandleBlock(finalHandle);
-	memcpy(finalModel, packedStorage, packedSize);
-	OptModel_AdjustOptimizedPolyObjectPointers(finalModel);
-	Memory_HandleBlockDoneStub(finalHandle);
-	Memory_HandleBlockDoneStub(packedHandle);
-	Memory_FreeHandle(packedHandle);
-	return finalHandle;
+	memory_handle_block_done_stub(source_handle);
+	memory_handle_block_done_stub(packed_handle);
+	memory_handle_block_done_stub(scratch_handle);
+	memory_free_handle(source_handle);
+	memory_free_handle(scratch_handle);
+	final_handle = memory_alloc_handle(packed_size, 0);
+	packed_storage = memory_get_handle_block(packed_handle);
+	final_model = memory_get_handle_block(final_handle);
+	memcpy(final_model, packed_storage, packed_size);
+	opt_model_adjust_optimized_poly_object_pointers(final_model);
+	memory_handle_block_done_stub(final_handle);
+	memory_handle_block_done_stub(packed_handle);
+	memory_free_handle(packed_handle);
+	return final_handle;
 }
 
-/* Packs one imported node and everything below it at destBuffer and returns the
- * bytes written. Each node gets its name, payloadCount 1 and no payload bytes
+/* Packs one imported node and everything below it at dest_buffer and returns the
+ * bytes written. Each node gets its name, payload_count 1 and no payload bytes
  * unless it has records and the first holds data. A face node's polygons, ended
  * by -1, split into a fan of quads around their first vertex, the last one a
  * triangle or a quad; a faceSet splits polygons of consecutive vertices from 0
@@ -6207,249 +6354,257 @@ uint16_t OptModel_ConvertImportedHandleToPacked(uint16_t sourceHandle)
  * of alternating order, both from startIndex. Texture coordinate and normal
  * indices copy the vertex indices unless an indexedFaceSet gave lists of the
  * same length. Edges get numbers, an indexedFaceSet's shared ones found with
- * OptModel_FindUniqueEdgeIndex; then OptModel_AppendPackedFaceDerivedData adds
+ * opt_model_find_unique_edge_index; then opt_model_append_packed_face_derived_data adds
  * the normals and gradients. A transform becomes an offset worked out from its
  * center, scaleOrientation, scaleFactor, rotation and translation, followed by
  * the rotation's 3-by-3 matrix (the scaled matrix it built first is
  * overwritten); a rotation becomes a 3-by-3 matrix. A material pads each of its
  * six lists to the longest by repeating the last entry. materialBinding and
- * textureCoordinateBinding store their value in payloadCount. A texture loads
- * its file with ModelTexture_LoadRgbOrTexFile. A levelofdetail keeps each
+ * textureCoordinateBinding store their value in payload_count. A texture loads
+ * its file with model_texture_load_rgb_or_tex_file. A levelofdetail keeps each
  * screenArea value that differs from the one before and has a child, and
  * compacts the source node's children to match. Other nodes copy their values.
- * Writes g_curMeshVertices, g_curVertexCount, g_curVertNormals,
- * g_curMeshTexCoords, conversionState->pVertNormals, g_sceneEdgeFlagsCapacity
- * and g_vertexRemapCapacity, and sets g_curVertNormals,
- * g_modelNodeWalkUnusedScratch2 and g_curMeshMaterials to NULL before a node's
+ * Writes g_cur_mesh_vertices, g_cur_vertex_count, g_cur_vert_normals,
+ * g_cur_mesh_tex_coords, conversion_state->p_vert_normals, g_scene_edge_flags_capacity
+ * and g_vertex_remap_capacity, and sets g_cur_vert_normals,
+ * g_model_node_walk_unused_scratch2 and g_cur_mesh_materials to NULL before a node's
  * children. Only the original build calls this. */
 // FUNCTION: XVT 0x477C80
-size_t OptModel_ConvertImportedNodeToPackedRecursive(
-	const struct OptimizedPolyObject *sourceModel,
-	const struct OptNode *sourceNode, void *conversionState,
-	uint8_t *destBuffer)
+size_t opt_model_convert_imported_node_to_packed_recursive(
+	const struct optimized_poly_object *source_model,
+	const struct opt_node *source_node, void *conversion_state,
+	uint8_t *dest_buffer)
 {
-	struct OptNode *packedNode;
-	struct InventorFieldRecord *params;
-	OptNodeType nodeType;
+	struct opt_node *packed_node;
+	struct inventor_field_record *params;
+	opt_node_type node_type;
 	uint8_t *dest;
-	int childIndex;
-	struct SceneMesh childState;
+	int child_index;
+	struct scene_mesh child_state;
 
-	if (sourceNode == NULL) {
+	if (source_node == NULL) {
 		return 0;
 	}
 
-	nodeType = sourceNode->nodeType;
-	packedNode = (struct OptNode *)destBuffer;
-	dest = destBuffer + sizeof(*packedNode);
-	packedNode->nodeType = nodeType;
-	if (sourceNode->pName != NULL) {
-		packedNode->pName = (char *)dest;
-		strcpy((char *)dest, sourceNode->pName);
-		dest += strlen(sourceNode->pName) + 1;
+	node_type = source_node->node_type;
+	packed_node = (struct opt_node *)dest_buffer;
+	dest = dest_buffer + sizeof(*packed_node);
+	packed_node->node_type = node_type;
+	if (source_node->p_name != NULL) {
+		packed_node->p_name = (char *)dest;
+		strcpy((char *)dest, source_node->p_name);
+		dest += strlen(source_node->p_name) + 1;
 	} else {
-		packedNode->pName = NULL;
+		packed_node->p_name = NULL;
 	}
-	packedNode->payloadCount = 1;
-	packedNode->payload = dest;
-	packedNode->childCount = 0;
-	packedNode->pChildren = NULL;
+	packed_node->payload_count = 1;
+	packed_node->payload = dest;
+	packed_node->child_count = 0;
+	packed_node->p_children = NULL;
 
-	params = sourceNode->payload;
-	if (params != NULL && sourceNode->payloadCount != 0 &&
+	params = source_node->payload;
+	if (params != NULL && source_node->payload_count != 0 &&
 	    params->data != NULL) {
-		switch (nodeType) {
+		switch (node_type) {
 		case OPT_FACEDATA: {
-			struct OptPackedFaceNode *faceNode =
-				(struct OptPackedFaceNode *)packedNode;
-			struct OptPackedFaceData *faceData =
-				(struct OptPackedFaceData *)dest;
-			const int *vertexIndices = params[0].data;
-			const int *normalIndices = NULL;
-			const int *texCoordIndices = NULL;
-			int dataIndex = 0;
-			int edgeCount = 0;
+			struct opt_packed_face_node *face_node =
+				(struct opt_packed_face_node *)packed_node;
+			struct opt_packed_face_data *face_data =
+				(struct opt_packed_face_data *)dest;
+			const int *vertex_indices = params[0].data;
+			const int *normal_indices = NULL;
+			const int *tex_coord_indices = NULL;
+			int data_index = 0;
+			int edge_count = 0;
 
-			faceNode->faceCount = 0;
-			dest += sizeof(faceData->edgeCount);
-			if (params[3].itemCount == params[0].itemCount) {
-				texCoordIndices = params[3].data;
+			face_node->face_count = 0;
+			dest += sizeof(face_data->edge_count);
+			if (params[3].item_count == params[0].item_count) {
+				tex_coord_indices = params[3].data;
 			}
-			if (params[2].itemCount == params[0].itemCount) {
-				normalIndices = params[2].data;
+			if (params[2].item_count == params[0].item_count) {
+				normal_indices = params[2].data;
 			}
-			while (dataIndex < params[0].itemCount) {
-				int polygonStart = dataIndex;
-				int scanIndex = dataIndex + 1;
+			while (data_index < params[0].item_count) {
+				int polygon_start = data_index;
+				int scan_index = data_index + 1;
 				while (1) {
-					struct OptPackedFaceRecord *face =
-						&faceData->records
-							 [faceNode->faceCount];
-					int edgeIndex;
+					struct opt_packed_face_record *face =
+						&face_data->records
+							 [face_node
+								  ->face_count];
+					int edge_index;
 
-					scanIndex += 2;
-					face->vertexIndices[0] =
-						vertexIndices[polygonStart];
-					face->vertexIndices[1] =
-						vertexIndices[scanIndex - 2];
-					face->vertexIndices[2] =
-						vertexIndices[scanIndex - 1];
-					face->vertexIndices[3] =
-						vertexIndices[scanIndex];
-					if (texCoordIndices != NULL) {
-						face->texCoordIndices[0] =
-							texCoordIndices
-								[polygonStart];
-						face->texCoordIndices[1] =
-							texCoordIndices
-								[scanIndex - 2];
-						face->texCoordIndices[2] =
-							texCoordIndices
-								[scanIndex - 1];
-						face->texCoordIndices[3] =
-							texCoordIndices
-								[scanIndex];
+					scan_index += 2;
+					face->vertex_indices[0] =
+						vertex_indices[polygon_start];
+					face->vertex_indices[1] =
+						vertex_indices[scan_index - 2];
+					face->vertex_indices[2] =
+						vertex_indices[scan_index - 1];
+					face->vertex_indices[3] =
+						vertex_indices[scan_index];
+					if (tex_coord_indices != NULL) {
+						face->tex_coord_indices[0] =
+							tex_coord_indices
+								[polygon_start];
+						face->tex_coord_indices[1] =
+							tex_coord_indices
+								[scan_index -
+								 2];
+						face->tex_coord_indices[2] =
+							tex_coord_indices
+								[scan_index -
+								 1];
+						face->tex_coord_indices[3] =
+							tex_coord_indices
+								[scan_index];
 					} else {
-						face->texCoordIndices[0] =
-							face->vertexIndices[0];
-						face->texCoordIndices[1] =
-							face->vertexIndices[1];
-						face->texCoordIndices[2] =
-							face->vertexIndices[2];
-						face->texCoordIndices[3] =
-							face->vertexIndices[3];
+						face->tex_coord_indices[0] =
+							face->vertex_indices[0];
+						face->tex_coord_indices[1] =
+							face->vertex_indices[1];
+						face->tex_coord_indices[2] =
+							face->vertex_indices[2];
+						face->tex_coord_indices[3] =
+							face->vertex_indices[3];
 					}
-					if (normalIndices != NULL) {
-						face->normalIndices[0] =
-							normalIndices
-								[polygonStart];
-						face->normalIndices[1] =
-							normalIndices
-								[scanIndex - 2];
-						face->normalIndices[2] =
-							normalIndices
-								[scanIndex - 1];
-						face->normalIndices[3] =
-							normalIndices
-								[scanIndex];
+					if (normal_indices != NULL) {
+						face->normal_indices[0] =
+							normal_indices
+								[polygon_start];
+						face->normal_indices[1] =
+							normal_indices
+								[scan_index -
+								 2];
+						face->normal_indices[2] =
+							normal_indices
+								[scan_index -
+								 1];
+						face->normal_indices[3] =
+							normal_indices
+								[scan_index];
 					} else {
-						face->normalIndices[0] =
-							face->vertexIndices[0];
-						face->normalIndices[1] =
-							face->vertexIndices[1];
-						face->normalIndices[2] =
-							face->vertexIndices[2];
-						face->normalIndices[3] =
-							face->vertexIndices[3];
+						face->normal_indices[0] =
+							face->vertex_indices[0];
+						face->normal_indices[1] =
+							face->vertex_indices[1];
+						face->normal_indices[2] =
+							face->vertex_indices[2];
+						face->normal_indices[3] =
+							face->vertex_indices[3];
 					}
 
-					edgeIndex =
-						OptModel_FindUniqueEdgeIndex(
-							faceNode,
-							face->vertexIndices[0],
-							face->vertexIndices[1]);
-					face->edgeIndices[0] = edgeIndex;
-					if (edgeIndex == -1) {
-						face->edgeIndices[0] =
-							edgeCount++;
+					edge_index =
+						opt_model_find_unique_edge_index(
+							face_node,
+							face->vertex_indices[0],
+							face->vertex_indices
+								[1]);
+					face->edge_indices[0] = edge_index;
+					if (edge_index == -1) {
+						face->edge_indices[0] =
+							edge_count++;
 					}
-					edgeIndex =
-						OptModel_FindUniqueEdgeIndex(
-							faceNode,
-							face->vertexIndices[1],
-							face->vertexIndices[2]);
-					face->edgeIndices[1] = edgeIndex;
-					if (edgeIndex == -1) {
-						face->edgeIndices[1] =
-							edgeCount++;
+					edge_index =
+						opt_model_find_unique_edge_index(
+							face_node,
+							face->vertex_indices[1],
+							face->vertex_indices
+								[2]);
+					face->edge_indices[1] = edge_index;
+					if (edge_index == -1) {
+						face->edge_indices[1] =
+							edge_count++;
 					}
-					if (face->vertexIndices[3] == -1) {
-						edgeIndex =
-							OptModel_FindUniqueEdgeIndex(
-								faceNode,
-								face->vertexIndices
+					if (face->vertex_indices[3] == -1) {
+						edge_index =
+							opt_model_find_unique_edge_index(
+								face_node,
+								face->vertex_indices
 									[2],
-								face->vertexIndices
+								face->vertex_indices
 									[0]);
-						face->edgeIndices[2] =
-							edgeIndex;
-						if (edgeIndex == -1) {
-							face->edgeIndices[2] =
-								edgeCount++;
+						face->edge_indices[2] =
+							edge_index;
+						if (edge_index == -1) {
+							face->edge_indices[2] =
+								edge_count++;
 						}
-						face->edgeIndices[3] = -1;
+						face->edge_indices[3] = -1;
 					} else {
-						edgeIndex =
-							OptModel_FindUniqueEdgeIndex(
-								faceNode,
-								face->vertexIndices
+						edge_index =
+							opt_model_find_unique_edge_index(
+								face_node,
+								face->vertex_indices
 									[2],
-								face->vertexIndices
+								face->vertex_indices
 									[3]);
-						face->edgeIndices[2] =
-							edgeIndex;
-						if (edgeIndex == -1) {
-							face->edgeIndices[2] =
-								edgeCount++;
+						face->edge_indices[2] =
+							edge_index;
+						if (edge_index == -1) {
+							face->edge_indices[2] =
+								edge_count++;
 						}
-						edgeIndex =
-							OptModel_FindUniqueEdgeIndex(
-								faceNode,
-								face->vertexIndices
+						edge_index =
+							opt_model_find_unique_edge_index(
+								face_node,
+								face->vertex_indices
 									[3],
-								face->vertexIndices
+								face->vertex_indices
 									[0]);
-						face->edgeIndices[3] =
-							edgeIndex;
-						if (edgeIndex == -1) {
-							face->edgeIndices[3] =
-								edgeCount++;
+						face->edge_indices[3] =
+							edge_index;
+						if (edge_index == -1) {
+							face->edge_indices[3] =
+								edge_count++;
 						}
 					}
-					++faceNode->faceCount;
-					if (vertexIndices[scanIndex] == -1) {
-						dataIndex = scanIndex + 1;
+					++face_node->face_count;
+					if (vertex_indices[scan_index] == -1) {
+						data_index = scan_index + 1;
 						break;
 					}
-					if (vertexIndices[scanIndex + 1] ==
+					if (vertex_indices[scan_index + 1] ==
 					    -1) {
-						dataIndex = scanIndex + 2;
+						data_index = scan_index + 2;
 						break;
 					}
 				}
 			}
-			dest = (uint8_t *)OptModel_AppendPackedFaceDerivedData(
-				faceNode, dest, conversionState);
-			faceData->edgeCount = edgeCount;
-			if (edgeCount > g_sceneEdgeFlagsCapacity) {
-				g_sceneEdgeFlagsCapacity = edgeCount;
+			dest = (uint8_t *)
+				opt_model_append_packed_face_derived_data(
+					face_node, dest, conversion_state);
+			face_data->edge_count = edge_count;
+			if (edge_count > g_scene_edge_flags_capacity) {
+				g_scene_edge_flags_capacity = edge_count;
 			}
 			break;
 		}
 
 		case OPT_TRANSFORM: {
 			float *transform = (float *)dest;
-			const struct OptVector *pivot = params[4].data;
-			float pivotX;
-			float pivotY;
-			float pivotZ;
+			const struct opt_vector *pivot = params[4].data;
+			float pivot_x;
+			float pivot_y;
+			float pivot_z;
 			dest += 12 * sizeof(float);
 			if (pivot != NULL) {
 				transform[0] = -pivot->x;
-				pivotX = transform[0];
+				pivot_x = transform[0];
 				transform[1] = -pivot->y;
-				pivotY = transform[1];
+				pivot_y = transform[1];
 				transform[2] = -pivot->z;
-				pivotZ = transform[2];
+				pivot_z = transform[2];
 				if (params[3].data != NULL) {
-					const struct OptVector *scale;
-					Math3D_BuildAxisAngleMatrix(
+					const struct opt_vector *scale;
+					math3d_build_axis_angle_matrix(
 						&transform[3], params[3].data);
-					Math3D_RotateVec3(transform,
-							  &transform[3]);
-					transform[0] -= pivotX;
-					transform[1] -= pivotY;
-					transform[2] -= pivotZ;
+					math3d_rotate_vec3(transform,
+							   &transform[3]);
+					transform[0] -= pivot_x;
+					transform[1] -= pivot_y;
+					transform[2] -= pivot_z;
 					scale = params[2].data;
 					if (scale != NULL) {
 						transform[3] *= scale->x;
@@ -6465,20 +6620,20 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(
 						transform[1] *= scale->y;
 						transform[2] *= scale->z;
 						if (params[1].data != NULL) {
-							const struct OptVector
+							const struct opt_vector
 								*translation;
-							transform[0] += pivotX;
-							transform[1] += pivotY;
-							transform[2] += pivotZ;
-							Math3D_BuildAxisAngleMatrix(
+							transform[0] += pivot_x;
+							transform[1] += pivot_y;
+							transform[2] += pivot_z;
+							math3d_build_axis_angle_matrix(
 								&transform[3],
 								params[1].data);
-							Math3D_RotateVec3(
+							math3d_rotate_vec3(
 								transform,
 								&transform[3]);
-							transform[0] -= pivotX;
-							transform[1] -= pivotY;
-							transform[2] -= pivotZ;
+							transform[0] -= pivot_x;
+							transform[1] -= pivot_y;
+							transform[2] -= pivot_z;
 							translation =
 								params[0].data;
 							if (translation !=
@@ -6501,170 +6656,179 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(
 		}
 
 		case OPT_MESHVERTS:
-			packedNode->payloadCount = params[0].itemCount;
+			packed_node->payload_count = params[0].item_count;
 			memcpy(dest, params[0].data,
-			       sizeof(struct OptVector) *
-				       (size_t)packedNode->payloadCount);
-			g_curMeshVertices = dest;
-			g_curVertexCount = packedNode->payloadCount;
-			dest += sizeof(struct OptVector) *
-				(size_t)g_curVertexCount;
-			if (packedNode->payloadCount > g_vertexRemapCapacity) {
-				g_vertexRemapCapacity =
-					packedNode->payloadCount;
+			       sizeof(struct opt_vector) *
+				       (size_t)packed_node->payload_count);
+			g_cur_mesh_vertices = dest;
+			g_cur_vertex_count = packed_node->payload_count;
+			dest += sizeof(struct opt_vector) *
+				(size_t)g_cur_vertex_count;
+			if (packed_node->payload_count >
+			    g_vertex_remap_capacity) {
+				g_vertex_remap_capacity =
+					packed_node->payload_count;
 			}
 			break;
 
 		case OPT_TRANSLATION:
-			*(struct OptVector *)dest =
-				*(const struct OptVector *)params[0].data;
-			dest += sizeof(struct OptVector);
+			*(struct opt_vector *)dest =
+				*(const struct opt_vector *)params[0].data;
+			dest += sizeof(struct opt_vector);
 			break;
 
 		case OPT_ROTATION: {
 			float *matrix = (float *)dest;
 			dest += 9 * sizeof(float);
-			Math3D_BuildAxisAngleMatrix(matrix, params[0].data);
+			math3d_build_axis_angle_matrix(matrix, params[0].data);
 			break;
 		}
 
 		case OPT_SCALE:
-			*(struct OptVector *)dest =
-				*(const struct OptVector *)params[0].data;
-			dest += sizeof(struct OptVector);
+			*(struct opt_vector *)dest =
+				*(const struct opt_vector *)params[0].data;
+			dest += sizeof(struct opt_vector);
 			break;
 
 		case OPT_NODEREF: {
-			const char *nodeName = params[0].data;
-			packedNode->payloadCount = 1;
-			packedNode->payload = dest;
-			strcpy((char *)dest, nodeName);
-			dest += strlen(nodeName) + 1;
+			const char *node_name = params[0].data;
+			packed_node->payload_count = 1;
+			packed_node->payload = dest;
+			strcpy((char *)dest, node_name);
+			dest += strlen(node_name) + 1;
 			break;
 		}
 
 		case OPT_MATERIAL: {
-			int maxRecordCount = params[0].itemCount;
-			const float *sourceValues;
-			float *destValues;
-			int fillCount;
-			if (maxRecordCount < params[1].itemCount) {
-				maxRecordCount = params[1].itemCount;
+			int max_record_count = params[0].item_count;
+			const float *source_values;
+			float *dest_values;
+			int fill_count;
+			if (max_record_count < params[1].item_count) {
+				max_record_count = params[1].item_count;
 			}
-			if (maxRecordCount < params[2].itemCount) {
-				maxRecordCount = params[2].itemCount;
+			if (max_record_count < params[2].item_count) {
+				max_record_count = params[2].item_count;
 			}
-			if (maxRecordCount < params[3].itemCount) {
-				maxRecordCount = params[3].itemCount;
+			if (max_record_count < params[3].item_count) {
+				max_record_count = params[3].item_count;
 			}
-			if (maxRecordCount < params[4].itemCount) {
-				maxRecordCount = params[4].itemCount;
+			if (max_record_count < params[4].item_count) {
+				max_record_count = params[4].item_count;
 			}
-			if (maxRecordCount < params[5].itemCount) {
-				maxRecordCount = params[5].itemCount;
+			if (max_record_count < params[5].item_count) {
+				max_record_count = params[5].item_count;
 			}
-			packedNode->payloadCount = maxRecordCount;
+			packed_node->payload_count = max_record_count;
 
 			memcpy(dest, params[0].data,
-			       sizeof(struct OptVector) *
-				       (size_t)params[0].itemCount);
-			destValues = (float *)dest + 3 * params[0].itemCount;
-			dest += sizeof(struct OptVector) *
-				(size_t)maxRecordCount;
-			if (params[0].itemCount < maxRecordCount) {
-				sourceValues = (const float *)params[0].data +
-					       3 * params[0].itemCount - 3;
-				fillCount =
-					maxRecordCount - params[0].itemCount;
+			       sizeof(struct opt_vector) *
+				       (size_t)params[0].item_count);
+			dest_values = (float *)dest + 3 * params[0].item_count;
+			dest += sizeof(struct opt_vector) *
+				(size_t)max_record_count;
+			if (params[0].item_count < max_record_count) {
+				source_values = (const float *)params[0].data +
+						3 * params[0].item_count - 3;
+				fill_count =
+					max_record_count - params[0].item_count;
 				do {
-					destValues[0] = sourceValues[0];
-					destValues[1] = sourceValues[1];
-					destValues[2] = sourceValues[2];
-					destValues += 3;
-				} while (--fillCount != 0);
+					dest_values[0] = source_values[0];
+					dest_values[1] = source_values[1];
+					dest_values[2] = source_values[2];
+					dest_values += 3;
+				} while (--fill_count != 0);
 			}
 			if (params[1].data != NULL) {
 				memcpy(dest, params[1].data,
-				       sizeof(struct OptVector) *
-					       (size_t)params[1].itemCount);
-				destValues =
-					(float *)dest + 3 * params[1].itemCount;
-				dest += sizeof(struct OptVector) *
-					(size_t)maxRecordCount;
-				if (params[1].itemCount < maxRecordCount) {
-					sourceValues =
+				       sizeof(struct opt_vector) *
+					       (size_t)params[1].item_count);
+				dest_values = (float *)dest +
+					      3 * params[1].item_count;
+				dest += sizeof(struct opt_vector) *
+					(size_t)max_record_count;
+				if (params[1].item_count < max_record_count) {
+					source_values =
 						(const float *)params[1].data +
-						3 * params[1].itemCount - 3;
-					fillCount = maxRecordCount -
-						    params[1].itemCount;
+						3 * params[1].item_count - 3;
+					fill_count = max_record_count -
+						     params[1].item_count;
 					do {
-						destValues[0] = sourceValues[0];
-						destValues[1] = sourceValues[1];
-						destValues[2] = sourceValues[2];
-						destValues += 3;
-					} while (--fillCount != 0);
+						dest_values[0] =
+							source_values[0];
+						dest_values[1] =
+							source_values[1];
+						dest_values[2] =
+							source_values[2];
+						dest_values += 3;
+					} while (--fill_count != 0);
 				}
 				if (params[2].data != NULL) {
 					memcpy(dest, params[2].data,
-					       sizeof(struct OptVector) *
+					       sizeof(struct opt_vector) *
 						       (size_t)params[2]
-							       .itemCount);
-					destValues = (float *)dest +
-						     3 * params[2].itemCount;
-					dest += sizeof(struct OptVector) *
-						(size_t)maxRecordCount;
-					if (params[2].itemCount <
-					    maxRecordCount) {
-						sourceValues =
+							       .item_count);
+					dest_values = (float *)dest +
+						      3 * params[2].item_count;
+					dest += sizeof(struct opt_vector) *
+						(size_t)max_record_count;
+					if (params[2].item_count <
+					    max_record_count) {
+						source_values =
 							(const float *)params[2]
 								.data +
-							3 * params[2].itemCount -
+							3 * params[2].item_count -
 							3;
-						fillCount = maxRecordCount -
-							    params[2].itemCount;
+						fill_count =
+							max_record_count -
+							params[2].item_count;
 						do {
-							destValues[0] =
-								sourceValues[0];
-							destValues[1] =
-								sourceValues[1];
-							destValues[2] =
-								sourceValues[2];
-							destValues += 3;
-						} while (--fillCount != 0);
+							dest_values[0] =
+								source_values
+									[0];
+							dest_values[1] =
+								source_values
+									[1];
+							dest_values[2] =
+								source_values
+									[2];
+							dest_values += 3;
+						} while (--fill_count != 0);
 					}
 					if (params[3].data != NULL) {
 						memcpy(dest, params[3].data,
 						       sizeof(struct
-							      OptVector) *
+							      opt_vector) *
 							       (size_t)params[3]
-								       .itemCount);
-						destValues =
+								       .item_count);
+						dest_values =
 							(float *)dest +
-							3 * params[3].itemCount;
+							3 * params[3].item_count;
 						dest += sizeof(struct
-							       OptVector) *
-							(size_t)maxRecordCount;
-						if (params[3].itemCount <
-						    maxRecordCount) {
-							sourceValues =
+							       opt_vector) *
+							(size_t)max_record_count;
+						if (params[3].item_count <
+						    max_record_count) {
+							source_values =
 								(const float
 									 *)params[3]
 									.data +
-								3 * params[3].itemCount -
+								3 * params[3].item_count -
 								3;
-							fillCount =
-								maxRecordCount -
+							fill_count =
+								max_record_count -
 								params[3]
-									.itemCount;
+									.item_count;
 							do {
-								destValues[0] = sourceValues
+								dest_values[0] = source_values
 									[0];
-								destValues[1] = sourceValues
+								dest_values[1] = source_values
 									[1];
-								destValues[2] = sourceValues
+								dest_values[2] = source_values
 									[2];
-								destValues += 3;
-							} while (--fillCount !=
+								dest_values +=
+									3;
+							} while (--fill_count !=
 								 0);
 						}
 						if (params[4].data != NULL) {
@@ -6672,33 +6836,33 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(
 							       params[4].data,
 							       sizeof(float) *
 								       (size_t)params[4]
-									       .itemCount);
-							destValues =
+									       .item_count);
+							dest_values =
 								(float *)dest +
 								params[4]
-									.itemCount;
+									.item_count;
 							dest += sizeof(float) *
-								(size_t)maxRecordCount;
+								(size_t)max_record_count;
 							if (params[4]
-								    .itemCount <
-							    maxRecordCount) {
-								sourceValues =
+								    .item_count <
+							    max_record_count) {
+								source_values =
 									(const float
 										 *)params
 										[4]
 											.data +
 									params[4]
-										.itemCount -
+										.item_count -
 									1;
-								fillCount =
-									maxRecordCount -
+								fill_count =
+									max_record_count -
 									params[4]
-										.itemCount;
+										.item_count;
 								do {
-									*destValues++ =
-										*sourceValues;
+									*dest_values++ =
+										*source_values;
 								} while (
-									--fillCount !=
+									--fill_count !=
 									0);
 							}
 							if (params[5].data !=
@@ -6708,34 +6872,34 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(
 									       .data,
 								       sizeof(float) *
 									       (size_t)params[5]
-										       .itemCount);
-								destValues =
+										       .item_count);
+								dest_values =
 									(float *)
 										dest +
 									params[5]
-										.itemCount;
+										.item_count;
 								dest += sizeof(float) *
-									(size_t)maxRecordCount;
+									(size_t)max_record_count;
 								if (params[5]
-									    .itemCount <
-								    maxRecordCount) {
-									sourceValues =
+									    .item_count <
+								    max_record_count) {
+									source_values =
 										(const float
 											 *)params
 											[5]
 												.data +
 										params[5]
-											.itemCount -
+											.item_count -
 										1;
-									fillCount =
-										maxRecordCount -
+									fill_count =
+										max_record_count -
 										params[5]
-											.itemCount;
+											.item_count;
 									do {
-										*destValues++ =
-											*sourceValues;
+										*dest_values++ =
+											*source_values;
 									} while (
-										--fillCount !=
+										--fill_count !=
 										0);
 								}
 							}
@@ -6748,386 +6912,405 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(
 
 		case OPT_MATERIAL_BINDING:
 		case OPT_TEXCOORD_BINDING:
-			packedNode->payloadCount = *(const int *)params[0].data;
+			packed_node->payload_count =
+				*(const int *)params[0].data;
 			break;
 
 		case OPT_VERTNORMALS:
-			packedNode->payloadCount = params[0].itemCount;
+			packed_node->payload_count = params[0].item_count;
 			memcpy(dest, params[0].data,
-			       sizeof(struct OptVector) *
-				       (size_t)packedNode->payloadCount);
-			g_curVertNormals = (struct OptVector *)dest;
-			((struct SceneMesh *)conversionState)->pVertNormals =
-				(struct OptVector *)dest;
-			dest += sizeof(struct OptVector) *
-				(size_t)packedNode->payloadCount;
+			       sizeof(struct opt_vector) *
+				       (size_t)packed_node->payload_count);
+			g_cur_vert_normals = (struct opt_vector *)dest;
+			((struct scene_mesh *)conversion_state)
+				->p_vert_normals = (struct opt_vector *)dest;
+			dest += sizeof(struct opt_vector) *
+				(size_t)packed_node->payload_count;
 			break;
 
 		case OPT_TEXCOORDS:
-			packedNode->payloadCount = params[0].itemCount;
+			packed_node->payload_count = params[0].item_count;
 			memcpy(dest, params[0].data,
-			       sizeof(struct OptTexCoord) *
-				       (size_t)packedNode->payloadCount);
-			g_curMeshTexCoords = dest;
-			dest += sizeof(struct OptTexCoord) *
-				(size_t)packedNode->payloadCount;
+			       sizeof(struct opt_tex_coord) *
+				       (size_t)packed_node->payload_count);
+			g_cur_mesh_tex_coords = dest;
+			dest += sizeof(struct opt_tex_coord) *
+				(size_t)packed_node->payload_count;
 			break;
 
 		case OPT_FACEDATA_QUAD_MESH: {
-			struct OptPackedFaceNode *faceNode =
-				(struct OptPackedFaceNode *)packedNode;
-			struct OptPackedFaceData *faceData =
-				(struct OptPackedFaceData *)dest;
-			const int *widthData = params[1].data;
-			const int *heightData = params[2].data;
-			int edgeCount = 0;
-			int rowIndex;
-			dest += sizeof(faceData->edgeCount);
-			if (widthData != NULL && heightData != NULL) {
-				int width = *widthData;
-				int height = *heightData;
-				int firstVertex = *(const int *)params[0].data;
-				for (rowIndex = 0; rowIndex < height - 1;
-				     ++rowIndex) {
-					int columnIndex;
-					for (columnIndex = 0;
-					     columnIndex < width - 1;
-					     ++columnIndex) {
-						struct OptPackedFaceRecord *face =
-							&faceData->records
-								 [rowIndex *
+			struct opt_packed_face_node *face_node =
+				(struct opt_packed_face_node *)packed_node;
+			struct opt_packed_face_data *face_data =
+				(struct opt_packed_face_data *)dest;
+			const int *width_data = params[1].data;
+			const int *height_data = params[2].data;
+			int edge_count = 0;
+			int row_index;
+			dest += sizeof(face_data->edge_count);
+			if (width_data != NULL && height_data != NULL) {
+				int width = *width_data;
+				int height = *height_data;
+				int first_vertex = *(const int *)params[0].data;
+				for (row_index = 0; row_index < height - 1;
+				     ++row_index) {
+					int column_index;
+					for (column_index = 0;
+					     column_index < width - 1;
+					     ++column_index) {
+						struct opt_packed_face_record *face =
+							&face_data->records
+								 [row_index *
 									  (width -
 									   1) +
-								  columnIndex];
-						face->vertexIndices[0] =
-							firstVertex +
-							rowIndex * width +
-							columnIndex;
-						face->vertexIndices[1] =
-							face->vertexIndices[0] +
+								  column_index];
+						face->vertex_indices[0] =
+							first_vertex +
+							row_index * width +
+							column_index;
+						face->vertex_indices[1] =
+							face->vertex_indices
+								[0] +
 							1;
-						face->vertexIndices[2] =
-							face->vertexIndices[1] +
+						face->vertex_indices[2] =
+							face->vertex_indices
+								[1] +
 							width;
-						face->vertexIndices[3] =
-							face->vertexIndices[0] +
+						face->vertex_indices[3] =
+							face->vertex_indices
+								[0] +
 							width;
-						face->texCoordIndices[0] =
-							face->vertexIndices[0];
-						face->texCoordIndices[1] =
-							face->vertexIndices[1];
-						face->texCoordIndices[2] =
-							face->vertexIndices[2];
-						face->texCoordIndices[3] =
-							face->vertexIndices[3];
-						face->normalIndices[0] =
-							face->vertexIndices[0];
-						face->normalIndices[1] =
-							face->vertexIndices[1];
-						face->normalIndices[2] =
-							face->vertexIndices[2];
-						face->normalIndices[3] =
-							face->vertexIndices[3];
-						if (rowIndex == 0) {
-							face->edgeIndices[0] =
-								edgeCount++;
-						} else if (rowIndex == 1) {
-							face->edgeIndices[0] =
-								columnIndex +
-								edgeCount -
+						face->tex_coord_indices[0] =
+							face->vertex_indices[0];
+						face->tex_coord_indices[1] =
+							face->vertex_indices[1];
+						face->tex_coord_indices[2] =
+							face->vertex_indices[2];
+						face->tex_coord_indices[3] =
+							face->vertex_indices[3];
+						face->normal_indices[0] =
+							face->vertex_indices[0];
+						face->normal_indices[1] =
+							face->vertex_indices[1];
+						face->normal_indices[2] =
+							face->vertex_indices[2];
+						face->normal_indices[3] =
+							face->vertex_indices[3];
+						if (row_index == 0) {
+							face->edge_indices[0] =
+								edge_count++;
+						} else if (row_index == 1) {
+							face->edge_indices[0] =
+								column_index +
+								edge_count -
 								3 * width + 4;
 						} else {
-							face->edgeIndices[0] =
-								edgeCount -
+							face->edge_indices[0] =
+								edge_count -
 								2 * width;
 						}
-						face->edgeIndices[1] =
-							edgeCount++;
-						face->edgeIndices[2] =
-							edgeCount++;
-						if (columnIndex == 0) {
-							face->edgeIndices[3] =
-								edgeCount++;
+						face->edge_indices[1] =
+							edge_count++;
+						face->edge_indices[2] =
+							edge_count++;
+						if (column_index == 0) {
+							face->edge_indices[3] =
+								edge_count++;
 						} else {
-							face->edgeIndices[3] =
-								edgeCount - 4;
-							if (rowIndex == 0) {
-								--face->edgeIndices
+							face->edge_indices[3] =
+								edge_count - 4;
+							if (row_index == 0) {
+								--face->edge_indices
 									  [3];
 							}
-							if (columnIndex == 1) {
-								--face->edgeIndices
+							if (column_index == 1) {
+								--face->edge_indices
 									  [3];
 							}
 						}
 					}
 				}
-				faceNode->faceCount =
+				face_node->face_count =
 					(height - 1) * (width - 1);
 				dest = (uint8_t *)
-					OptModel_AppendPackedFaceDerivedData(
-						faceNode, dest,
-						conversionState);
-				faceData->edgeCount = edgeCount;
-				if (edgeCount > g_sceneEdgeFlagsCapacity) {
-					g_sceneEdgeFlagsCapacity = edgeCount;
+					opt_model_append_packed_face_derived_data(
+						face_node, dest,
+						conversion_state);
+				face_data->edge_count = edge_count;
+				if (edge_count > g_scene_edge_flags_capacity) {
+					g_scene_edge_flags_capacity =
+						edge_count;
 				}
 			}
 			break;
 		}
 
 		case OPT_FACEDATA_FACE_SET: {
-			struct OptPackedFaceNode *faceNode =
-				(struct OptPackedFaceNode *)packedNode;
-			struct OptPackedFaceData *faceData =
-				(struct OptPackedFaceData *)dest;
-			const int *polygonVertexCounts = params[0].data;
-			int vertexCursor = 0;
-			int edgeCursor = 0;
-			int polygonIndex;
-			dest += sizeof(faceData->edgeCount);
-			faceNode->faceCount = 0;
-			for (polygonIndex = 0;
-			     polygonIndex < params[0].itemCount;
-			     ++polygonIndex) {
-				int polygonVertexCount =
-					polygonVertexCounts[polygonIndex];
-				if (polygonVertexCount >= 3) {
-					int polygonStart = vertexCursor;
-					int firstEdge = edgeCursor;
-					++vertexCursor;
-					++edgeCursor;
-					while (vertexCursor - polygonStart <
-					       polygonVertexCount) {
-						struct OptPackedFaceRecord *face =
-							&faceData->records
-								 [faceNode->faceCount];
-						++faceNode->faceCount;
-						face->vertexIndices[0] =
-							polygonStart;
-						face->vertexIndices[1] =
-							vertexCursor;
-						face->vertexIndices[2] =
-							++vertexCursor;
-						++vertexCursor;
-						if (vertexCursor -
-							    polygonVertexCount ==
-						    polygonStart) {
-							face->vertexIndices[3] =
-								-1;
-							face->edgeIndices[0] =
-								firstEdge;
-							face->edgeIndices[1] =
-								edgeCursor;
-							face->edgeIndices[2] =
-								++edgeCursor;
-							++edgeCursor;
-							face->edgeIndices[3] =
+			struct opt_packed_face_node *face_node =
+				(struct opt_packed_face_node *)packed_node;
+			struct opt_packed_face_data *face_data =
+				(struct opt_packed_face_data *)dest;
+			const int *polygon_vertex_counts = params[0].data;
+			int vertex_cursor = 0;
+			int edge_cursor = 0;
+			int polygon_index;
+			dest += sizeof(face_data->edge_count);
+			face_node->face_count = 0;
+			for (polygon_index = 0;
+			     polygon_index < params[0].item_count;
+			     ++polygon_index) {
+				int polygon_vertex_count =
+					polygon_vertex_counts[polygon_index];
+				if (polygon_vertex_count >= 3) {
+					int polygon_start = vertex_cursor;
+					int first_edge = edge_cursor;
+					++vertex_cursor;
+					++edge_cursor;
+					while (vertex_cursor - polygon_start <
+					       polygon_vertex_count) {
+						struct opt_packed_face_record *face =
+							&face_data->records
+								 [face_node
+									  ->face_count];
+						++face_node->face_count;
+						face->vertex_indices[0] =
+							polygon_start;
+						face->vertex_indices[1] =
+							vertex_cursor;
+						face->vertex_indices[2] =
+							++vertex_cursor;
+						++vertex_cursor;
+						if (vertex_cursor -
+							    polygon_vertex_count ==
+						    polygon_start) {
+							face->vertex_indices
+								[3] = -1;
+							face->edge_indices[0] =
+								first_edge;
+							face->edge_indices[1] =
+								edge_cursor;
+							face->edge_indices[2] =
+								++edge_cursor;
+							++edge_cursor;
+							face->edge_indices[3] =
 								-1;
 						} else {
-							face->vertexIndices[3] =
-								vertexCursor;
-							if (++vertexCursor -
-								    polygonVertexCount !=
-							    polygonStart) {
-								--vertexCursor;
+							face->vertex_indices
+								[3] =
+								vertex_cursor;
+							if (++vertex_cursor -
+								    polygon_vertex_count !=
+							    polygon_start) {
+								--vertex_cursor;
 							}
-							face->edgeIndices[0] =
-								firstEdge;
-							face->edgeIndices[1] =
-								edgeCursor;
-							face->edgeIndices[2] =
-								++edgeCursor;
-							firstEdge =
-								++edgeCursor;
-							face->edgeIndices[3] =
-								firstEdge;
-							++edgeCursor;
+							face->edge_indices[0] =
+								first_edge;
+							face->edge_indices[1] =
+								edge_cursor;
+							face->edge_indices[2] =
+								++edge_cursor;
+							first_edge =
+								++edge_cursor;
+							face->edge_indices[3] =
+								first_edge;
+							++edge_cursor;
 						}
-						face->texCoordIndices[0] =
-							face->vertexIndices[0];
-						face->texCoordIndices[1] =
-							face->vertexIndices[1];
-						face->texCoordIndices[2] =
-							face->vertexIndices[2];
-						face->texCoordIndices[3] =
-							face->vertexIndices[3];
-						face->normalIndices[0] =
-							face->vertexIndices[0];
-						face->normalIndices[1] =
-							face->vertexIndices[1];
-						face->normalIndices[2] =
-							face->vertexIndices[2];
-						face->normalIndices[3] =
-							face->vertexIndices[3];
+						face->tex_coord_indices[0] =
+							face->vertex_indices[0];
+						face->tex_coord_indices[1] =
+							face->vertex_indices[1];
+						face->tex_coord_indices[2] =
+							face->vertex_indices[2];
+						face->tex_coord_indices[3] =
+							face->vertex_indices[3];
+						face->normal_indices[0] =
+							face->vertex_indices[0];
+						face->normal_indices[1] =
+							face->vertex_indices[1];
+						face->normal_indices[2] =
+							face->vertex_indices[2];
+						face->normal_indices[3] =
+							face->vertex_indices[3];
 					}
 				}
 			}
-			dest = (uint8_t *)OptModel_AppendPackedFaceDerivedData(
-				faceNode, dest, conversionState);
-			faceData->edgeCount = edgeCursor;
-			if (edgeCursor > g_sceneEdgeFlagsCapacity) {
-				g_sceneEdgeFlagsCapacity = edgeCursor;
+			dest = (uint8_t *)
+				opt_model_append_packed_face_derived_data(
+					face_node, dest, conversion_state);
+			face_data->edge_count = edge_cursor;
+			if (edge_cursor > g_scene_edge_flags_capacity) {
+				g_scene_edge_flags_capacity = edge_cursor;
 			}
 			break;
 		}
 
 		case OPT_FACEDATA_TRIANGLE_STRIP_SET: {
-			struct OptPackedFaceNode *faceNode =
-				(struct OptPackedFaceNode *)packedNode;
-			struct OptPackedFaceData *faceData =
-				(struct OptPackedFaceData *)dest;
-			const int *stripVertexCounts = params[1].data;
-			int firstVertex = *(const int *)params[0].data;
-			int edgeCursor = *(const int *)conversionState;
-			int stripIndex;
-			dest += sizeof(faceData->edgeCount);
-			if (stripVertexCounts != NULL) {
-				faceNode->faceCount = 0;
-				for (stripIndex = 0;
-				     stripIndex < params[1].itemCount;
-				     ++stripIndex) {
-					int stripVertexCount =
-						stripVertexCounts[stripIndex];
-					int vertexIndex;
-					for (vertexIndex = 2;
-					     vertexIndex < stripVertexCount;
-					     ++vertexIndex) {
-						struct OptPackedFaceRecord *face =
-							&faceData->records
-								 [faceNode->faceCount];
-						int currentVertex =
-							firstVertex +
-							vertexIndex;
-						if ((vertexIndex & 1) != 0) {
-							face->vertexIndices[0] =
-								currentVertex;
-							face->vertexIndices[1] =
-								currentVertex -
+			struct opt_packed_face_node *face_node =
+				(struct opt_packed_face_node *)packed_node;
+			struct opt_packed_face_data *face_data =
+				(struct opt_packed_face_data *)dest;
+			const int *strip_vertex_counts = params[1].data;
+			int first_vertex = *(const int *)params[0].data;
+			int edge_cursor = *(const int *)conversion_state;
+			int strip_index;
+			dest += sizeof(face_data->edge_count);
+			if (strip_vertex_counts != NULL) {
+				face_node->face_count = 0;
+				for (strip_index = 0;
+				     strip_index < params[1].item_count;
+				     ++strip_index) {
+					int strip_vertex_count =
+						strip_vertex_counts
+							[strip_index];
+					int vertex_index;
+					for (vertex_index = 2;
+					     vertex_index < strip_vertex_count;
+					     ++vertex_index) {
+						struct opt_packed_face_record *face =
+							&face_data->records
+								 [face_node
+									  ->face_count];
+						int current_vertex =
+							first_vertex +
+							vertex_index;
+						if ((vertex_index & 1) != 0) {
+							face->vertex_indices
+								[0] =
+								current_vertex;
+							face->vertex_indices
+								[1] =
+								current_vertex -
 								1;
-							face->vertexIndices[2] =
-								currentVertex -
+							face->vertex_indices
+								[2] =
+								current_vertex -
 								2;
-							face->edgeIndices[0] =
-								edgeCursor;
-							face->edgeIndices[1] =
-								edgeCursor - 2;
+							face->edge_indices[0] =
+								edge_cursor;
+							face->edge_indices[1] =
+								edge_cursor - 2;
 						} else {
-							face->vertexIndices[0] =
-								currentVertex -
+							face->vertex_indices
+								[0] =
+								current_vertex -
 								2;
-							face->vertexIndices[1] =
-								currentVertex -
+							face->vertex_indices
+								[1] =
+								current_vertex -
 								1;
-							face->vertexIndices[2] =
-								currentVertex;
-							if (vertexIndex == 2) {
-								face->edgeIndices
+							face->vertex_indices
+								[2] =
+								current_vertex;
+							if (vertex_index == 2) {
+								face->edge_indices
 									[0] =
-									edgeCursor++;
+									edge_cursor++;
 							} else {
-								face->edgeIndices
+								face->edge_indices
 									[0] =
-									edgeCursor -
+									edge_cursor -
 									2;
 							}
-							face->edgeIndices[1] =
-								edgeCursor;
+							face->edge_indices[1] =
+								edge_cursor;
 						}
-						face->vertexIndices[3] = -1;
-						face->edgeIndices[2] =
-							++edgeCursor;
-						++edgeCursor;
-						face->edgeIndices[3] = -1;
-						face->texCoordIndices[0] =
-							face->vertexIndices[0];
-						face->texCoordIndices[1] =
-							face->vertexIndices[1];
-						face->texCoordIndices[2] =
-							face->vertexIndices[2];
-						face->texCoordIndices[3] =
-							face->vertexIndices[3];
-						face->normalIndices[0] =
-							face->vertexIndices[0];
-						face->normalIndices[1] =
-							face->vertexIndices[1];
-						face->normalIndices[2] =
-							face->vertexIndices[2];
-						face->normalIndices[3] =
-							face->vertexIndices[3];
-						++faceNode->faceCount;
+						face->vertex_indices[3] = -1;
+						face->edge_indices[2] =
+							++edge_cursor;
+						++edge_cursor;
+						face->edge_indices[3] = -1;
+						face->tex_coord_indices[0] =
+							face->vertex_indices[0];
+						face->tex_coord_indices[1] =
+							face->vertex_indices[1];
+						face->tex_coord_indices[2] =
+							face->vertex_indices[2];
+						face->tex_coord_indices[3] =
+							face->vertex_indices[3];
+						face->normal_indices[0] =
+							face->vertex_indices[0];
+						face->normal_indices[1] =
+							face->vertex_indices[1];
+						face->normal_indices[2] =
+							face->vertex_indices[2];
+						face->normal_indices[3] =
+							face->vertex_indices[3];
+						++face_node->face_count;
 					}
-					firstVertex += stripVertexCount;
+					first_vertex += strip_vertex_count;
 				}
 				dest = (uint8_t *)
-					OptModel_AppendPackedFaceDerivedData(
-						faceNode, dest,
-						conversionState);
-				faceData->edgeCount = edgeCursor;
-				if (edgeCursor > g_sceneEdgeFlagsCapacity) {
-					g_sceneEdgeFlagsCapacity = edgeCursor;
+					opt_model_append_packed_face_derived_data(
+						face_node, dest,
+						conversion_state);
+				face_data->edge_count = edge_cursor;
+				if (edge_cursor > g_scene_edge_flags_capacity) {
+					g_scene_edge_flags_capacity =
+						edge_cursor;
 				}
 			}
 			break;
 		}
 
 		case OPT_TEXTURE:
-			packedNode->payload = dest;
-			dest += ModelTexture_LoadRgbOrTexFile(dest,
-							      params[0].data);
+			packed_node->payload = dest;
+			dest += model_texture_load_rgb_or_tex_file(
+				dest, params[0].data);
 			break;
 
 		case OPT_FACEGROUP: {
-			struct OptNode *mutableSourceNode =
-				(struct OptNode *)sourceNode;
-			const float *sourceValues = params[0].data;
-			int sourceIndex;
-			packedNode->payloadCount = 0;
-			for (sourceIndex = 0; sourceIndex < params[0].itemCount;
-			     ++sourceIndex) {
-				if (mutableSourceNode->pChildren[sourceIndex] !=
-					    NULL &&
-				    (sourceIndex == 0 ||
-				     sourceValues[sourceIndex - 1] !=
-					     sourceValues[sourceIndex])) {
+			struct opt_node *mutable_source_node =
+				(struct opt_node *)source_node;
+			const float *source_values = params[0].data;
+			int source_index;
+			packed_node->payload_count = 0;
+			for (source_index = 0;
+			     source_index < params[0].item_count;
+			     ++source_index) {
+				if (mutable_source_node->p_children
+						    [source_index] != NULL &&
+				    (source_index == 0 ||
+				     source_values[source_index - 1] !=
+					     source_values[source_index])) {
 					*(float *)dest =
-						sourceValues[sourceIndex];
+						source_values[source_index];
 					dest += sizeof(float);
-					mutableSourceNode->pChildren
-						[packedNode->payloadCount] =
-						mutableSourceNode->pChildren
-							[sourceIndex];
-					++packedNode->payloadCount;
+					mutable_source_node->p_children
+						[packed_node->payload_count] =
+						mutable_source_node->p_children
+							[source_index];
+					++packed_node->payload_count;
 				}
 			}
-			mutableSourceNode->childCount =
-				packedNode->payloadCount;
+			mutable_source_node->child_count =
+				packed_node->payload_count;
 			break;
 		}
 
 		case OPT_HARDPOINT: {
-			const struct OptVector *position = params[1].data;
-			struct OptHardpoint *hardpoint =
-				(struct OptHardpoint *)dest;
-			hardpoint->hardpointType = *(const int *)params[0].data;
+			const struct opt_vector *position = params[1].data;
+			struct opt_hardpoint *hardpoint =
+				(struct opt_hardpoint *)dest;
+			hardpoint->hardpoint_type =
+				*(const int *)params[0].data;
 			hardpoint->position = *position;
 			dest += sizeof(*hardpoint);
 			break;
 		}
 
 		case OPT_ROTSCALE: {
-			*(struct OptVector *)dest =
-				*(const struct OptVector *)params[0].data;
-			dest += sizeof(struct OptVector);
-			*(struct OptVector *)dest =
-				*(const struct OptVector *)params[1].data;
-			dest += sizeof(struct OptVector);
-			*(struct OptVector *)dest =
-				*(const struct OptVector *)params[2].data;
-			dest += sizeof(struct OptVector);
-			*(struct OptVector *)dest =
-				*(const struct OptVector *)params[3].data;
-			dest += sizeof(struct OptVector);
+			*(struct opt_vector *)dest =
+				*(const struct opt_vector *)params[0].data;
+			dest += sizeof(struct opt_vector);
+			*(struct opt_vector *)dest =
+				*(const struct opt_vector *)params[1].data;
+			dest += sizeof(struct opt_vector);
+			*(struct opt_vector *)dest =
+				*(const struct opt_vector *)params[2].data;
+			dest += sizeof(struct opt_vector);
+			*(struct opt_vector *)dest =
+				*(const struct opt_vector *)params[3].data;
+			dest += sizeof(struct opt_vector);
 			break;
 		}
 
@@ -7136,17 +7319,17 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(
 			dest += 18 * sizeof(float);
 			values[0] = *(const float *)params[0].data;
 			((int *)values)[1] = *(const int *)params[1].data;
-			*(struct OptVector *)&values[2] =
-				*(const struct OptVector *)params[2].data;
-			*(struct OptVector *)&values[5] =
-				*(const struct OptVector *)params[3].data;
-			*(struct OptVector *)&values[8] =
-				*(const struct OptVector *)params[4].data;
-			*(struct OptVector *)&values[11] =
-				*(const struct OptVector *)params[5].data;
+			*(struct opt_vector *)&values[2] =
+				*(const struct opt_vector *)params[2].data;
+			*(struct opt_vector *)&values[5] =
+				*(const struct opt_vector *)params[3].data;
+			*(struct opt_vector *)&values[8] =
+				*(const struct opt_vector *)params[4].data;
+			*(struct opt_vector *)&values[11] =
+				*(const struct opt_vector *)params[5].data;
 			values[14] = *(const float *)params[6].data;
-			*(struct OptVector *)&values[15] =
-				*(const struct OptVector *)params[7].data;
+			*(struct opt_vector *)&values[15] =
+				*(const struct opt_vector *)params[7].data;
 			break;
 		}
 
@@ -7155,261 +7338,263 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(
 		}
 	}
 
-	if (sourceNode->childCount != 0) {
-		childState = *(struct SceneMesh *)conversionState;
-		g_curVertNormals = NULL;
-		g_modelNodeWalkUnusedScratch2 = NULL;
-		g_curMeshMaterials = NULL;
-		packedNode->childCount = sourceNode->childCount;
-		packedNode->pChildren = (struct OptNode **)dest;
-		dest += sizeof(*packedNode->pChildren) *
-			(size_t)packedNode->childCount;
-		for (childIndex = 0; childIndex < sourceNode->childCount;
-		     ++childIndex) {
-			packedNode->pChildren[childIndex] =
-				(struct OptNode *)dest;
-			dest += OptModel_ConvertImportedNodeToPackedRecursive(
-				sourceModel, sourceNode->pChildren[childIndex],
-				&childState, dest);
+	if (source_node->child_count != 0) {
+		child_state = *(struct scene_mesh *)conversion_state;
+		g_cur_vert_normals = NULL;
+		g_model_node_walk_unused_scratch2 = NULL;
+		g_cur_mesh_materials = NULL;
+		packed_node->child_count = source_node->child_count;
+		packed_node->p_children = (struct opt_node **)dest;
+		dest += sizeof(*packed_node->p_children) *
+			(size_t)packed_node->child_count;
+		for (child_index = 0; child_index < source_node->child_count;
+		     ++child_index) {
+			packed_node->p_children[child_index] =
+				(struct opt_node *)dest;
+			dest += opt_model_convert_imported_node_to_packed_recursive(
+				source_model,
+				source_node->p_children[child_index],
+				&child_state, dest);
 		}
 	}
-	return (size_t)(dest - destBuffer);
+	return (size_t)(dest - dest_buffer);
 }
 
-/* Returns the bytes OptModel_ConvertImportedNodeToPackedRecursive will need for
- * sourceNode and everything below it: a 24-byte node, its name, and its
- * payload. A face node counts its faces and adds room for g_curVertexCount
+/* Returns the bytes opt_model_convert_imported_node_to_packed_recursive will need for
+ * source_node and everything below it: a 24-byte node, its name, and its
+ * payload. A face node counts its faces and adds room for g_cur_vertex_count
  * vertex normals. A material counts the longest of its first five lists only,
  * while the packer pads to the longest of all six. A texture asks
- * OptModel_GetExternalTextureSerializedSize. Writes g_curVertexCount,
- * g_curVertNormals and conversionState->pVertNormals as it passes those nodes,
- * and sets g_curVertNormals, g_modelNodeWalkUnusedScratch2 and
- * g_curMeshMaterials to NULL before a node's children. Only the original build
+ * opt_model_get_external_texture_serialized_size. Writes g_cur_vertex_count,
+ * g_cur_vert_normals and conversion_state->p_vert_normals as it passes those nodes,
+ * and sets g_cur_vert_normals, g_model_node_walk_unused_scratch2 and
+ * g_cur_mesh_materials to NULL before a node's children. Only the original build
  * calls this. */
 // FUNCTION: XVT 0x478F50
-size_t OptModel_CalculatePackedNodeSizeRecursive(
-	const struct OptimizedPolyObject *sourceModel,
-	const struct OptNode *sourceNode, void *conversionState)
+size_t opt_model_calculate_packed_node_size_recursive(
+	const struct optimized_poly_object *source_model,
+	const struct opt_node *source_node, void *conversion_state)
 {
-	size_t packedSize;
-	struct InventorFieldRecord *params;
-	OptNodeType nodeType;
+	size_t packed_size;
+	struct inventor_field_record *params;
+	opt_node_type node_type;
 	int *data;
-	int *scanData;
-	int faceCount;
-	int dataIndex;
-	int recordCount;
+	int *scan_data;
+	int face_count;
+	int data_index;
+	int record_count;
 	int marker;
-	int maxRecordCount;
-	int polygonVertexCount;
-	int polygonStart;
-	int childIndex;
-	int childOffset;
-	struct SceneMesh childState;
+	int max_record_count;
+	int polygon_vertex_count;
+	int polygon_start;
+	int child_index;
+	int child_offset;
+	struct scene_mesh child_state;
 
-	if (sourceNode == NULL) {
+	if (source_node == NULL) {
 		return 0;
 	}
 
-	packedSize = 24;
+	packed_size = 24;
 
-	nodeType = sourceNode->nodeType;
-	if (sourceNode->pName != NULL) {
+	node_type = source_node->node_type;
+	if (source_node->p_name != NULL) {
 
-		packedSize = strlen(sourceNode->pName) + 25;
+		packed_size = strlen(source_node->p_name) + 25;
 	}
-	params = sourceNode->payload;
-	if (params != NULL && sourceNode->payloadCount != 0 &&
+	params = source_node->payload;
+	if (params != NULL && source_node->payload_count != 0 &&
 	    params->data != NULL) {
 		data = params->data;
-		switch (nodeType) {
+		switch (node_type) {
 		case OPT_FACEDATA:
-			faceCount = 0;
-			dataIndex = 0;
-			recordCount = params->itemCount;
-			if (recordCount > 0) {
+			face_count = 0;
+			data_index = 0;
+			record_count = params->item_count;
+			if (record_count > 0) {
 				do {
-					scanData = &data[dataIndex + 1];
-					++dataIndex;
+					scan_data = &data[data_index + 1];
+					++data_index;
 					while (1) {
-						marker = scanData[2];
-						++faceCount;
-						scanData += 2;
-						dataIndex += 2;
+						marker = scan_data[2];
+						++face_count;
+						scan_data += 2;
+						data_index += 2;
 						if (marker == -1) {
-							++dataIndex;
+							++data_index;
 							break;
 						}
-						if (scanData[1] == -1) {
-							dataIndex += 2;
+						if (scan_data[1] == -1) {
+							data_index += 2;
 							break;
 						}
 					}
-				} while (dataIndex < recordCount);
+				} while (data_index < record_count);
 			}
-			packedSize += 4;
-			packedSize += (unsigned int)faceCount << 6;
-			packedSize += 36 * faceCount;
-			packedSize += 12 * g_curVertexCount;
+			packed_size += 4;
+			packed_size += (unsigned int)face_count << 6;
+			packed_size += 36 * face_count;
+			packed_size += 12 * g_cur_vertex_count;
 			break;
 
 		case OPT_TRANSFORM:
-			packedSize += 48;
+			packed_size += 48;
 			break;
 
 		case OPT_MESHVERTS:
-			g_curVertexCount = params->itemCount;
-			packedSize += 12 * g_curVertexCount;
+			g_cur_vertex_count = params->item_count;
+			packed_size += 12 * g_cur_vertex_count;
 			break;
 
 		case OPT_TRANSLATION:
-			packedSize += 12;
+			packed_size += 12;
 			break;
 
 		case OPT_ROTATION:
-			packedSize += 36;
+			packed_size += 36;
 			break;
 
 		case OPT_SCALE:
-			packedSize += 12;
+			packed_size += 12;
 			break;
 
 		case OPT_NODEREF:
-			packedSize += strlen((const char *)params->data) + 1;
+			packed_size += strlen((const char *)params->data) + 1;
 			break;
 
 		case OPT_MATERIAL:
-			maxRecordCount = params->itemCount;
-			marker = params[1].itemCount;
+			max_record_count = params->item_count;
+			marker = params[1].item_count;
 			++params;
-			if (marker > maxRecordCount) {
-				maxRecordCount = marker;
+			if (marker > max_record_count) {
+				max_record_count = marker;
 			}
-			marker = params[1].itemCount;
+			marker = params[1].item_count;
 			++params;
-			if (marker > maxRecordCount) {
-				maxRecordCount = marker;
+			if (marker > max_record_count) {
+				max_record_count = marker;
 			}
-			marker = params[1].itemCount;
+			marker = params[1].item_count;
 			++params;
-			if (marker > maxRecordCount) {
-				maxRecordCount = marker;
+			if (marker > max_record_count) {
+				max_record_count = marker;
 			}
-			marker = params[1].itemCount;
-			if (marker > maxRecordCount) {
-				maxRecordCount = marker;
+			marker = params[1].item_count;
+			if (marker > max_record_count) {
+				max_record_count = marker;
 			}
-			packedSize += 48 * maxRecordCount;
-			packedSize += 8 * maxRecordCount;
+			packed_size += 48 * max_record_count;
+			packed_size += 8 * max_record_count;
 			break;
 
 		case OPT_VERTNORMALS:
-			recordCount = 3 * params->itemCount;
-			g_curVertNormals =
-				(struct OptVector *)sourceNode->payload;
-			packedSize += 4 * recordCount;
-			((struct SceneMesh *)conversionState)->pVertNormals =
-				(struct OptVector *)params;
+			record_count = 3 * params->item_count;
+			g_cur_vert_normals =
+				(struct opt_vector *)source_node->payload;
+			packed_size += 4 * record_count;
+			((struct scene_mesh *)conversion_state)
+				->p_vert_normals = (struct opt_vector *)params;
 			break;
 
 		case OPT_TEXCOORDS:
-			packedSize += 8 * params->itemCount;
+			packed_size += 8 * params->item_count;
 			break;
 
 		case OPT_FACEDATA_QUAD_MESH:
 			data = params[1].data;
 			++params;
 			if (data != NULL) {
-				recordCount = *data;
+				record_count = *data;
 				data = params[1].data;
 				if (data != NULL) {
-					faceCount =
-						(recordCount - 1) * (*data - 1);
-					packedSize += 4;
-					packedSize += (unsigned int)faceCount
-						      << 6;
-					packedSize += 36 * faceCount;
-					packedSize += 12 * g_curVertexCount;
+					face_count = (record_count - 1) *
+						     (*data - 1);
+					packed_size += 4;
+					packed_size += (unsigned int)face_count
+						       << 6;
+					packed_size += 36 * face_count;
+					packed_size += 12 * g_cur_vertex_count;
 				}
 			}
 			break;
 
 		case OPT_FACEDATA_FACE_SET:
-			dataIndex = 0;
-			faceCount = 0;
-			recordCount = params->itemCount;
-			if (recordCount > 0) {
+			data_index = 0;
+			face_count = 0;
+			record_count = params->item_count;
+			if (record_count > 0) {
 				do {
-					polygonVertexCount = *data;
-					if (polygonVertexCount >= 3) {
-						polygonStart = dataIndex++;
-						while (dataIndex -
-							       polygonStart <
-						       polygonVertexCount) {
-							++faceCount;
-							dataIndex += 2;
-							if (dataIndex -
-								    polygonVertexCount !=
-							    polygonStart) {
-								++dataIndex;
-								if (dataIndex -
-									    polygonVertexCount ==
-								    polygonStart) {
+					polygon_vertex_count = *data;
+					if (polygon_vertex_count >= 3) {
+						polygon_start = data_index++;
+						while (data_index -
+							       polygon_start <
+						       polygon_vertex_count) {
+							++face_count;
+							data_index += 2;
+							if (data_index -
+								    polygon_vertex_count !=
+							    polygon_start) {
+								++data_index;
+								if (data_index -
+									    polygon_vertex_count ==
+								    polygon_start) {
 									break;
 								}
-								--dataIndex;
+								--data_index;
 							}
 						}
 					}
 					++data;
-					--recordCount;
-				} while (recordCount != 0);
+					--record_count;
+				} while (record_count != 0);
 			}
-			packedSize += 4;
-			packedSize += (unsigned int)faceCount << 6;
-			packedSize += 36 * faceCount;
-			packedSize += 12 * g_curVertexCount;
+			packed_size += 4;
+			packed_size += (unsigned int)face_count << 6;
+			packed_size += 36 * face_count;
+			packed_size += 12 * g_cur_vertex_count;
 			break;
 
 		case OPT_FACEDATA_TRIANGLE_STRIP_SET:
 			data = params[1].data;
 			++params;
 			if (data != NULL) {
-				faceCount = 0;
-				recordCount = params->itemCount;
-				if (recordCount > 0) {
+				face_count = 0;
+				record_count = params->item_count;
+				if (record_count > 0) {
 					do {
-						faceCount += *data - 2;
+						face_count += *data - 2;
 						++data;
-						--recordCount;
-					} while (recordCount != 0);
+						--record_count;
+					} while (record_count != 0);
 				}
-				packedSize += 4;
-				packedSize += (unsigned int)faceCount << 6;
-				packedSize += 36 * faceCount;
-				packedSize += 12 * g_curVertexCount;
+				packed_size += 4;
+				packed_size += (unsigned int)face_count << 6;
+				packed_size += 36 * face_count;
+				packed_size += 12 * g_cur_vertex_count;
 			}
 			break;
 
 		case OPT_TEXTURE:
-			packedSize += OptModel_GetExternalTextureSerializedSize(
-				(const char *)params->data);
+			packed_size +=
+				opt_model_get_external_texture_serialized_size(
+					(const char *)params->data);
 			break;
 
 		case OPT_FACEGROUP:
-			packedSize += 4 * params->itemCount;
+			packed_size += 4 * params->item_count;
 			break;
 
 		case OPT_HARDPOINT:
-			packedSize += 16;
+			packed_size += 16;
 			break;
 
 		case OPT_ROTSCALE:
-			packedSize += 48;
+			packed_size += 48;
 			break;
 
 		case OPT_MESHDESC:
-			packedSize += 72;
+			packed_size += 72;
 			break;
 
 		default:
@@ -7417,323 +7602,337 @@ size_t OptModel_CalculatePackedNodeSizeRecursive(
 		}
 	}
 
-	childOffset = 0;
-	if (sourceNode->childCount != 0) {
-		childState = *(struct SceneMesh *)conversionState;
-		childIndex = 0;
-		g_curVertNormals = NULL;
-		g_modelNodeWalkUnusedScratch2 = NULL;
-		g_curMeshMaterials = NULL;
+	child_offset = 0;
+	if (source_node->child_count != 0) {
+		child_state = *(struct scene_mesh *)conversion_state;
+		child_index = 0;
+		g_cur_vert_normals = NULL;
+		g_model_node_walk_unused_scratch2 = NULL;
+		g_cur_mesh_materials = NULL;
 
-		packedSize += 4 * sourceNode->childCount;
+		packed_size += 4 * source_node->child_count;
 
-		if (sourceNode->childCount > 0) {
+		if (source_node->child_count > 0) {
 			do {
-				packedSize +=
-					OptModel_CalculatePackedNodeSizeRecursive(
-						sourceModel,
-						*(struct OptNode *
-							  *)((uint8_t *)sourceNode
-								     ->pChildren +
-							     childOffset),
-						&childState);
-				childOffset += sizeof(*sourceNode->pChildren);
-				++childIndex;
-			} while (sourceNode->childCount > childIndex);
+				packed_size +=
+					opt_model_calculate_packed_node_size_recursive(
+						source_model,
+						*(struct opt_node *
+							  *)((uint8_t *)source_node
+								     ->p_children +
+							     child_offset),
+						&child_state);
+				child_offset +=
+					sizeof(*source_node->p_children);
+				++child_index;
+			} while (source_node->child_count > child_index);
 		}
 	}
-	return packedSize;
+	return packed_size;
 }
 
-/* Returns the edge number of the one face, among the faceCount already in
- * faceNode, that has an edge from vertexIndexA to vertexIndexB in either
+/* Returns the edge number of the one face, among the face_count already in
+ * face_node, that has an edge from vertex_index_a to vertex_index_b in either
  * direction; -1 when no face has it, and also when two or more do. Only the
  * original build calls this. */
 // FUNCTION: XVT 0x4792F0
-int OptModel_FindUniqueEdgeIndex(const struct OptPackedFaceNode *faceNode,
-				 int vertexIndexA, int vertexIndexB)
+int opt_model_find_unique_edge_index(
+	const struct opt_packed_face_node *face_node, int vertex_index_a,
+	int vertex_index_b)
 {
 	int result;
-	const struct OptPackedFaceRecord *face;
-	int faceIndex;
+	const struct opt_packed_face_record *face;
+	int face_index;
 
-	face = faceNode->faceData->records;
+	face = face_node->face_data->records;
 	result = -1;
-	faceIndex = 0;
-	while (faceIndex < faceNode->faceCount) {
-		if (vertexIndexA == face->vertexIndices[0] &&
-		    vertexIndexB == face->vertexIndices[1]) {
-			result = face->edgeIndices[0];
+	face_index = 0;
+	while (face_index < face_node->face_count) {
+		if (vertex_index_a == face->vertex_indices[0] &&
+		    vertex_index_b == face->vertex_indices[1]) {
+			result = face->edge_indices[0];
 			break;
 		}
-		if (vertexIndexA == face->vertexIndices[1] &&
-		    vertexIndexB == face->vertexIndices[0]) {
-			result = face->edgeIndices[0];
+		if (vertex_index_a == face->vertex_indices[1] &&
+		    vertex_index_b == face->vertex_indices[0]) {
+			result = face->edge_indices[0];
 			break;
 		}
-		if (vertexIndexA == face->vertexIndices[1] &&
-		    vertexIndexB == face->vertexIndices[2]) {
-			result = face->edgeIndices[1];
+		if (vertex_index_a == face->vertex_indices[1] &&
+		    vertex_index_b == face->vertex_indices[2]) {
+			result = face->edge_indices[1];
 			break;
 		}
-		if (vertexIndexA == face->vertexIndices[2] &&
-		    vertexIndexB == face->vertexIndices[1]) {
-			result = face->edgeIndices[1];
+		if (vertex_index_a == face->vertex_indices[2] &&
+		    vertex_index_b == face->vertex_indices[1]) {
+			result = face->edge_indices[1];
 			break;
 		}
-		if (face->vertexIndices[3] == -1) {
-			if (vertexIndexA == face->vertexIndices[0] &&
-			    vertexIndexB == face->vertexIndices[2]) {
-				result = face->edgeIndices[2];
+		if (face->vertex_indices[3] == -1) {
+			if (vertex_index_a == face->vertex_indices[0] &&
+			    vertex_index_b == face->vertex_indices[2]) {
+				result = face->edge_indices[2];
 				break;
 			}
-			if (vertexIndexA == face->vertexIndices[2] &&
-			    vertexIndexB == face->vertexIndices[0]) {
-				result = face->edgeIndices[2];
+			if (vertex_index_a == face->vertex_indices[2] &&
+			    vertex_index_b == face->vertex_indices[0]) {
+				result = face->edge_indices[2];
 				break;
 			}
 		} else {
-			if (vertexIndexA == face->vertexIndices[2] &&
-			    vertexIndexB == face->vertexIndices[3]) {
-				result = face->edgeIndices[2];
+			if (vertex_index_a == face->vertex_indices[2] &&
+			    vertex_index_b == face->vertex_indices[3]) {
+				result = face->edge_indices[2];
 				break;
 			}
-			if (vertexIndexA == face->vertexIndices[3] &&
-			    vertexIndexB == face->vertexIndices[2]) {
-				result = face->edgeIndices[2];
+			if (vertex_index_a == face->vertex_indices[3] &&
+			    vertex_index_b == face->vertex_indices[2]) {
+				result = face->edge_indices[2];
 				break;
 			}
-			if (vertexIndexA == face->vertexIndices[0] &&
-			    vertexIndexB == face->vertexIndices[3]) {
-				result = face->edgeIndices[3];
+			if (vertex_index_a == face->vertex_indices[0] &&
+			    vertex_index_b == face->vertex_indices[3]) {
+				result = face->edge_indices[3];
 				break;
 			}
-			if (vertexIndexA == face->vertexIndices[3] &&
-			    vertexIndexB == face->vertexIndices[0]) {
-				result = face->edgeIndices[3];
+			if (vertex_index_a == face->vertex_indices[3] &&
+			    vertex_index_b == face->vertex_indices[0]) {
+				result = face->edge_indices[3];
 				break;
 			}
 		}
 		face++;
-		faceIndex++;
+		face_index++;
 	}
 
 	if (result != -1) {
 		face++;
-		faceIndex++;
-		while (faceIndex < faceNode->faceCount) {
-			if (vertexIndexA == face->vertexIndices[0] &&
-			    vertexIndexB == face->vertexIndices[1]) {
+		face_index++;
+		while (face_index < face_node->face_count) {
+			if (vertex_index_a == face->vertex_indices[0] &&
+			    vertex_index_b == face->vertex_indices[1]) {
 				return -1;
 			}
-			if (vertexIndexA == face->vertexIndices[1] &&
-			    vertexIndexB == face->vertexIndices[0]) {
+			if (vertex_index_a == face->vertex_indices[1] &&
+			    vertex_index_b == face->vertex_indices[0]) {
 				return -1;
 			}
-			if (vertexIndexA == face->vertexIndices[1] &&
-			    vertexIndexB == face->vertexIndices[2]) {
+			if (vertex_index_a == face->vertex_indices[1] &&
+			    vertex_index_b == face->vertex_indices[2]) {
 				return -1;
 			}
-			if (vertexIndexA == face->vertexIndices[2] &&
-			    vertexIndexB == face->vertexIndices[1]) {
+			if (vertex_index_a == face->vertex_indices[2] &&
+			    vertex_index_b == face->vertex_indices[1]) {
 				return -1;
 			}
-			if (face->vertexIndices[3] == -1) {
-				if (vertexIndexA == face->vertexIndices[0] &&
-				    vertexIndexB == face->vertexIndices[2]) {
+			if (face->vertex_indices[3] == -1) {
+				if (vertex_index_a == face->vertex_indices[0] &&
+				    vertex_index_b == face->vertex_indices[2]) {
 					return -1;
 				}
-				if (vertexIndexA == face->vertexIndices[2] &&
-				    vertexIndexB == face->vertexIndices[0]) {
+				if (vertex_index_a == face->vertex_indices[2] &&
+				    vertex_index_b == face->vertex_indices[0]) {
 					return -1;
 				}
 			} else {
-				if (vertexIndexA == face->vertexIndices[2] &&
-				    vertexIndexB == face->vertexIndices[3]) {
+				if (vertex_index_a == face->vertex_indices[2] &&
+				    vertex_index_b == face->vertex_indices[3]) {
 					return -1;
 				}
-				if (vertexIndexA == face->vertexIndices[3] &&
-				    vertexIndexB == face->vertexIndices[2]) {
+				if (vertex_index_a == face->vertex_indices[3] &&
+				    vertex_index_b == face->vertex_indices[2]) {
 					return -1;
 				}
-				if (vertexIndexA == face->vertexIndices[0] &&
-				    vertexIndexB == face->vertexIndices[3]) {
+				if (vertex_index_a == face->vertex_indices[0] &&
+				    vertex_index_b == face->vertex_indices[3]) {
 					return -1;
 				}
-				if (vertexIndexA == face->vertexIndices[3] &&
-				    vertexIndexB == face->vertexIndices[0]) {
+				if (vertex_index_a == face->vertex_indices[3] &&
+				    vertex_index_b == face->vertex_indices[0]) {
 					return -1;
 				}
 			}
 			face++;
-			faceIndex++;
+			face_index++;
 		}
 	}
 	return result;
 }
 
-/* Writes after faceNode's face records the per-face normals and texture
+/* Writes after face_node's face records the per-face normals and texture
  * gradients and, when the mesh has no normal list, the per-vertex normals, with
- * OptModel_BuildFaceNormalTangentData, and returns the address after them.
+ * opt_model_build_face_normal_tangent_data, and returns the address after them.
  * Steps 36 bytes per face and 12 per vertex normal counted in
- * g_generatedVertexNormalCount. Only the original build calls this. */
+ * g_generated_vertex_normal_count. Only the original build calls this. */
 // FUNCTION: XVT 0x4794C0
-float *OptModel_AppendPackedFaceDerivedData(struct OptPackedFaceNode *faceNode,
-					    uint8_t *dest,
-					    void *conversionState)
+float *opt_model_append_packed_face_derived_data(
+	struct opt_packed_face_node *face_node, uint8_t *dest,
+	void *conversion_state)
 {
-	dest += sizeof(struct OptPackedFaceRecord) * faceNode->faceCount;
-	OptModel_BuildFaceNormalTangentData((float *)dest, faceNode->faceData,
-					    faceNode->faceCount,
-					    conversionState);
-	dest += 3 * sizeof(struct OptVector) * faceNode->faceCount;
-	dest += 3 * sizeof(float) * g_generatedVertexNormalCount;
+	dest += sizeof(struct opt_packed_face_record) * face_node->face_count;
+	opt_model_build_face_normal_tangent_data(
+		(float *)dest, face_node->face_data, face_node->face_count,
+		conversion_state);
+	dest += 3 * sizeof(struct opt_vector) * face_node->face_count;
+	dest += 3 * sizeof(float) * g_generated_vertex_normal_count;
 	return (float *)dest;
 }
 
 /* Writes at dest one unit normal per face, (v1 - v0) cross (v1 - v2), using v3
  * in place of v1 for a quad whose first result is zero length (a zero result
- * stays zero; g_optModelInvertFaceNormals would negate it); then, when
- * g_curMeshTexCoords is set, two texture gradient vectors per face from its
+ * stays zero; g_opt_model_invert_face_normals would negate it); then, when
+ * g_cur_mesh_tex_coords is set, two texture gradient vectors per face from its
  * positions and texture coordinates, trying other corners for a degenerate
  * face; then, when the conversion state has no vertex normal list, one averaged
- * normal per vertex (OptModel_BuildVertexNormalsFromFaces). Sets
- * g_generatedVertexNormalCount to the vertex count or 0. Returns at once,
- * writing nothing, when g_curMeshVertices is NULL. Without texture coordinates
+ * normal per vertex (opt_model_build_vertex_normals_from_faces). Sets
+ * g_generated_vertex_normal_count to the vertex count or 0. Returns at once,
+ * writing nothing, when g_cur_mesh_vertices is NULL. Without texture coordinates
  * it skips 24 floats per face where the packed layout holds 6; the XVT_MODERN
  * arm that skips 6 sits inside this #ifndef XVT_MODERN block, so no build
  * compiles it. Only the original build calls this. */
 // FUNCTION: XVT 0x479510
-void OptModel_BuildFaceNormalTangentData(
-	float *dest, const struct OptPackedFaceData *faceData, int faceCount,
-	const void *conversionState)
+void opt_model_build_face_normal_tangent_data(
+	float *dest, const struct opt_packed_face_data *face_data,
+	int face_count, const void *conversion_state)
 {
-	const struct OptPackedFaceRecord *records;
-	int faceIndex;
-	float edgeAx, edgeAy, edgeAz, edgeBx, edgeBy, edgeBz;
-	float duA, dvA, duB, dvB, determinant;
-	float normalLengthSquared;
+	const struct opt_packed_face_record *records;
+	int face_index;
+	float edge_ax, edge_ay, edge_az, edge_bx, edge_by, edge_bz;
+	float du_a, dv_a, du_b, dv_b, determinant;
+	float normal_length_squared;
 
-	if (g_curMeshVertices == NULL) {
+	if (g_cur_mesh_vertices == NULL) {
 		return;
 	}
-	records = faceData->records;
-	if (faceCount > 0) {
-		const struct OptPackedFaceRecord *face = records;
-		for (faceIndex = 0; faceIndex < faceCount; ++faceIndex) {
-			edgeAx = ((const struct OptVector *)g_curMeshVertices)
-					 [face->vertexIndices[1]]
-						 .x -
-				 ((const struct OptVector *)g_curMeshVertices)
-					 [face->vertexIndices[0]]
-						 .x;
-			edgeAy = ((const struct OptVector *)g_curMeshVertices)
-					 [face->vertexIndices[1]]
-						 .y -
-				 ((const struct OptVector *)g_curMeshVertices)
-					 [face->vertexIndices[0]]
-						 .y;
-			edgeAz = ((const struct OptVector *)g_curMeshVertices)
-					 [face->vertexIndices[1]]
-						 .z -
-				 ((const struct OptVector *)g_curMeshVertices)
-					 [face->vertexIndices[0]]
-						 .z;
-			edgeBx = ((const struct OptVector *)g_curMeshVertices)
-					 [face->vertexIndices[1]]
-						 .x -
-				 ((const struct OptVector *)g_curMeshVertices)
-					 [face->vertexIndices[2]]
-						 .x;
-			edgeBy = ((const struct OptVector *)g_curMeshVertices)
-					 [face->vertexIndices[1]]
-						 .y -
-				 ((const struct OptVector *)g_curMeshVertices)
-					 [face->vertexIndices[2]]
-						 .y;
-			edgeBz = ((const struct OptVector *)g_curMeshVertices)
-					 [face->vertexIndices[1]]
-						 .z -
-				 ((const struct OptVector *)g_curMeshVertices)
-					 [face->vertexIndices[2]]
-						 .z;
-			dest[0] = edgeBz * edgeAy - edgeBy * edgeAz;
-			dest[1] = edgeBx * edgeAz - edgeBz * edgeAx;
-			dest[2] = edgeBy * edgeAx - edgeBx * edgeAy;
-			normalLengthSquared = dest[2] * dest[2] +
-					      dest[0] * dest[0] +
-					      dest[1] * dest[1];
-			if (normalLengthSquared == g_sw3dZeroFloat) {
-				if (face->vertexIndices[3] != -1) {
-					edgeAx =
-						((const struct OptVector *)
-							 g_curMeshVertices)
-							[face->vertexIndices[3]]
-								.x -
-						((const struct OptVector *)
-							 g_curMeshVertices)
-							[face->vertexIndices[0]]
-								.x;
-					edgeAy =
-						((const struct OptVector *)
-							 g_curMeshVertices)
-							[face->vertexIndices[3]]
-								.y -
-						((const struct OptVector *)
-							 g_curMeshVertices)
-							[face->vertexIndices[0]]
-								.y;
-					edgeAz =
-						((const struct OptVector *)
-							 g_curMeshVertices)
-							[face->vertexIndices[3]]
-								.z -
-						((const struct OptVector *)
-							 g_curMeshVertices)
-							[face->vertexIndices[0]]
-								.z;
-					edgeBx =
-						((const struct OptVector *)
-							 g_curMeshVertices)
-							[face->vertexIndices[3]]
-								.x -
-						((const struct OptVector *)
-							 g_curMeshVertices)
-							[face->vertexIndices[2]]
-								.x;
-					edgeBy =
-						((const struct OptVector *)
-							 g_curMeshVertices)
-							[face->vertexIndices[3]]
-								.y -
-						((const struct OptVector *)
-							 g_curMeshVertices)
-							[face->vertexIndices[2]]
-								.y;
-					edgeBz =
-						((const struct OptVector *)
-							 g_curMeshVertices)
-							[face->vertexIndices[3]]
-								.z -
-						((const struct OptVector *)
-							 g_curMeshVertices)
-							[face->vertexIndices[2]]
-								.z;
-					dest[0] = edgeBz * edgeAy -
-						  edgeBy * edgeAz;
-					dest[1] = edgeBx * edgeAz -
-						  edgeBz * edgeAx;
-					dest[2] = edgeBy * edgeAx -
-						  edgeBx * edgeAy;
-					normalLengthSquared =
+	records = face_data->records;
+	if (face_count > 0) {
+		const struct opt_packed_face_record *face = records;
+		for (face_index = 0; face_index < face_count; ++face_index) {
+			edge_ax =
+				((const struct opt_vector *)g_cur_mesh_vertices)
+					[face->vertex_indices[1]]
+						.x -
+				((const struct opt_vector *)g_cur_mesh_vertices)
+					[face->vertex_indices[0]]
+						.x;
+			edge_ay =
+				((const struct opt_vector *)g_cur_mesh_vertices)
+					[face->vertex_indices[1]]
+						.y -
+				((const struct opt_vector *)g_cur_mesh_vertices)
+					[face->vertex_indices[0]]
+						.y;
+			edge_az =
+				((const struct opt_vector *)g_cur_mesh_vertices)
+					[face->vertex_indices[1]]
+						.z -
+				((const struct opt_vector *)g_cur_mesh_vertices)
+					[face->vertex_indices[0]]
+						.z;
+			edge_bx =
+				((const struct opt_vector *)g_cur_mesh_vertices)
+					[face->vertex_indices[1]]
+						.x -
+				((const struct opt_vector *)g_cur_mesh_vertices)
+					[face->vertex_indices[2]]
+						.x;
+			edge_by =
+				((const struct opt_vector *)g_cur_mesh_vertices)
+					[face->vertex_indices[1]]
+						.y -
+				((const struct opt_vector *)g_cur_mesh_vertices)
+					[face->vertex_indices[2]]
+						.y;
+			edge_bz =
+				((const struct opt_vector *)g_cur_mesh_vertices)
+					[face->vertex_indices[1]]
+						.z -
+				((const struct opt_vector *)g_cur_mesh_vertices)
+					[face->vertex_indices[2]]
+						.z;
+			dest[0] = edge_bz * edge_ay - edge_by * edge_az;
+			dest[1] = edge_bx * edge_az - edge_bz * edge_ax;
+			dest[2] = edge_by * edge_ax - edge_bx * edge_ay;
+			normal_length_squared = dest[2] * dest[2] +
+						dest[0] * dest[0] +
+						dest[1] * dest[1];
+			if (normal_length_squared == g_sw3d_zero_float) {
+				if (face->vertex_indices[3] != -1) {
+					edge_ax = ((const struct opt_vector *)
+							   g_cur_mesh_vertices)
+							  [face->vertex_indices
+								   [3]]
+								  .x -
+						  ((const struct opt_vector *)
+							   g_cur_mesh_vertices)
+							  [face->vertex_indices
+								   [0]]
+								  .x;
+					edge_ay = ((const struct opt_vector *)
+							   g_cur_mesh_vertices)
+							  [face->vertex_indices
+								   [3]]
+								  .y -
+						  ((const struct opt_vector *)
+							   g_cur_mesh_vertices)
+							  [face->vertex_indices
+								   [0]]
+								  .y;
+					edge_az = ((const struct opt_vector *)
+							   g_cur_mesh_vertices)
+							  [face->vertex_indices
+								   [3]]
+								  .z -
+						  ((const struct opt_vector *)
+							   g_cur_mesh_vertices)
+							  [face->vertex_indices
+								   [0]]
+								  .z;
+					edge_bx = ((const struct opt_vector *)
+							   g_cur_mesh_vertices)
+							  [face->vertex_indices
+								   [3]]
+								  .x -
+						  ((const struct opt_vector *)
+							   g_cur_mesh_vertices)
+							  [face->vertex_indices
+								   [2]]
+								  .x;
+					edge_by = ((const struct opt_vector *)
+							   g_cur_mesh_vertices)
+							  [face->vertex_indices
+								   [3]]
+								  .y -
+						  ((const struct opt_vector *)
+							   g_cur_mesh_vertices)
+							  [face->vertex_indices
+								   [2]]
+								  .y;
+					edge_bz = ((const struct opt_vector *)
+							   g_cur_mesh_vertices)
+							  [face->vertex_indices
+								   [3]]
+								  .z -
+						  ((const struct opt_vector *)
+							   g_cur_mesh_vertices)
+							  [face->vertex_indices
+								   [2]]
+								  .z;
+					dest[0] = edge_bz * edge_ay -
+						  edge_by * edge_az;
+					dest[1] = edge_bx * edge_az -
+						  edge_bz * edge_ax;
+					dest[2] = edge_by * edge_ax -
+						  edge_bx * edge_ay;
+					normal_length_squared =
 						dest[2] * dest[2] +
 						dest[0] * dest[0] +
 						dest[1] * dest[1];
-					if (normalLengthSquared !=
-					    g_sw3dZeroFloat) {
+					if (normal_length_squared !=
+					    g_sw3d_zero_float) {
 						const float scale =
-							(float)(g_sw3dUnitFloat /
-								sqrt(normalLengthSquared));
+							(float)(g_sw3d_unit_float /
+								sqrt(normal_length_squared));
 						dest[0] *= scale;
 						dest[1] *= scale;
 						dest[2] *= scale;
@@ -7741,13 +7940,13 @@ void OptModel_BuildFaceNormalTangentData(
 				}
 			} else {
 				const float scale =
-					(float)(g_sw3dUnitFloat /
-						sqrt(normalLengthSquared));
+					(float)(g_sw3d_unit_float /
+						sqrt(normal_length_squared));
 				dest[0] *= scale;
 				dest[1] *= scale;
 				dest[2] *= scale;
 			}
-			if (g_optModelInvertFaceNormals != 0) {
+			if (g_opt_model_invert_face_normals != 0) {
 				dest[0] = -dest[0];
 				dest[1] = -dest[1];
 				dest[2] = -dest[2];
@@ -7756,237 +7955,246 @@ void OptModel_BuildFaceNormalTangentData(
 			++face;
 		}
 	}
-	records = faceData->records;
-	if (g_curMeshTexCoords != NULL) {
-		int tangentFaceIndex;
-		if (faceCount > 0) {
-			for (tangentFaceIndex = 0; tangentFaceIndex < faceCount;
-			     ++tangentFaceIndex) {
-				const struct OptPackedFaceRecord *face =
+	records = face_data->records;
+	if (g_cur_mesh_tex_coords != NULL) {
+		int tangent_face_index;
+		if (face_count > 0) {
+			for (tangent_face_index = 0;
+			     tangent_face_index < face_count;
+			     ++tangent_face_index) {
+				const struct opt_packed_face_record *face =
 					records;
-				float lengthSquared;
-				const struct OptVector *vertices;
-				const struct OptTexCoord *texCoords;
-				vertices = (const struct OptVector *)
-					g_curMeshVertices;
-				edgeAx = vertices[face->vertexIndices[0]].x -
-					 vertices[face->vertexIndices[1]].x;
-				edgeAy = vertices[face->vertexIndices[0]].y -
-					 vertices[face->vertexIndices[1]].y;
-				edgeAz = vertices[face->vertexIndices[0]].z -
-					 vertices[face->vertexIndices[1]].z;
-				edgeBx = vertices[face->vertexIndices[0]].x -
-					 vertices[face->vertexIndices[2]].x;
-				edgeBy = vertices[face->vertexIndices[0]].y -
-					 vertices[face->vertexIndices[2]].y;
-				edgeBz = vertices[face->vertexIndices[0]].z -
-					 vertices[face->vertexIndices[2]].z;
-				texCoords = (const struct OptTexCoord *)
-					g_curMeshTexCoords;
-				duA = texCoords[face->texCoordIndices[0]].u -
-				      texCoords[face->texCoordIndices[1]].u;
-				dvA = texCoords[face->texCoordIndices[0]].v -
-				      texCoords[face->texCoordIndices[1]].v;
-				duB = texCoords[face->texCoordIndices[0]].u -
-				      texCoords[face->texCoordIndices[2]].u;
-				dvB = texCoords[face->texCoordIndices[0]].v -
-				      texCoords[face->texCoordIndices[2]].v;
-				determinant = duB * dvA - duA * dvB;
-				dest[0] = edgeBx * dvA - dvB * edgeAx;
-				dest[1] = edgeBy * dvA - dvB * edgeAy;
-				dest[2] = edgeBz * dvA - dvB * edgeAz;
-				lengthSquared = dest[2] * dest[2] +
-						dest[0] * dest[0] +
-						dest[1] * dest[1];
+				float length_squared;
+				const struct opt_vector *vertices;
+				const struct opt_tex_coord *tex_coords;
+				vertices = (const struct opt_vector *)
+					g_cur_mesh_vertices;
+				edge_ax = vertices[face->vertex_indices[0]].x -
+					  vertices[face->vertex_indices[1]].x;
+				edge_ay = vertices[face->vertex_indices[0]].y -
+					  vertices[face->vertex_indices[1]].y;
+				edge_az = vertices[face->vertex_indices[0]].z -
+					  vertices[face->vertex_indices[1]].z;
+				edge_bx = vertices[face->vertex_indices[0]].x -
+					  vertices[face->vertex_indices[2]].x;
+				edge_by = vertices[face->vertex_indices[0]].y -
+					  vertices[face->vertex_indices[2]].y;
+				edge_bz = vertices[face->vertex_indices[0]].z -
+					  vertices[face->vertex_indices[2]].z;
+				tex_coords = (const struct opt_tex_coord *)
+					g_cur_mesh_tex_coords;
+				du_a = tex_coords[face->tex_coord_indices[0]]
+					       .u -
+				       tex_coords[face->tex_coord_indices[1]].u;
+				dv_a = tex_coords[face->tex_coord_indices[0]]
+					       .v -
+				       tex_coords[face->tex_coord_indices[1]].v;
+				du_b = tex_coords[face->tex_coord_indices[0]]
+					       .u -
+				       tex_coords[face->tex_coord_indices[2]].u;
+				dv_b = tex_coords[face->tex_coord_indices[0]]
+					       .v -
+				       tex_coords[face->tex_coord_indices[2]].v;
+				determinant = du_b * dv_a - du_a * dv_b;
+				dest[0] = edge_bx * dv_a - dv_b * edge_ax;
+				dest[1] = edge_by * dv_a - dv_b * edge_ay;
+				dest[2] = edge_bz * dv_a - dv_b * edge_az;
+				length_squared = dest[2] * dest[2] +
+						 dest[0] * dest[0] +
+						 dest[1] * dest[1];
 				if (determinant == 0.0f ||
-				    lengthSquared == g_sw3dZeroFloat) {
-					if (face->vertexIndices[3] != -1) {
+				    length_squared == g_sw3d_zero_float) {
+					if (face->vertex_indices[3] != -1) {
 						vertices = (const struct
-							    OptVector *)
-							g_curMeshVertices;
-						edgeAx =
-							vertices[face->vertexIndices
+							    opt_vector *)
+							g_cur_mesh_vertices;
+						edge_ax =
+							vertices[face->vertex_indices
 									 [0]]
 								.x -
-							vertices[face->vertexIndices
+							vertices[face->vertex_indices
 									 [1]]
 								.x;
-						edgeAy =
-							vertices[face->vertexIndices
+						edge_ay =
+							vertices[face->vertex_indices
 									 [0]]
 								.y -
-							vertices[face->vertexIndices
+							vertices[face->vertex_indices
 									 [1]]
 								.y;
-						edgeAz =
-							vertices[face->vertexIndices
+						edge_az =
+							vertices[face->vertex_indices
 									 [0]]
 								.z -
-							vertices[face->vertexIndices
+							vertices[face->vertex_indices
 									 [1]]
 								.z;
-						edgeBx =
-							vertices[face->vertexIndices
+						edge_bx =
+							vertices[face->vertex_indices
 									 [0]]
 								.x -
-							vertices[face->vertexIndices
+							vertices[face->vertex_indices
 									 [3]]
 								.x;
-						edgeBy =
-							vertices[face->vertexIndices
+						edge_by =
+							vertices[face->vertex_indices
 									 [0]]
 								.y -
-							vertices[face->vertexIndices
+							vertices[face->vertex_indices
 									 [3]]
 								.y;
-						edgeBz =
-							vertices[face->vertexIndices
+						edge_bz =
+							vertices[face->vertex_indices
 									 [0]]
 								.z -
-							vertices[face->vertexIndices
+							vertices[face->vertex_indices
 									 [3]]
 								.z;
-						texCoords = (const struct
-							     OptTexCoord *)
-							g_curMeshTexCoords;
-						duA = texCoords
-							      [face->texCoordIndices
-								       [0]]
-								      .u -
-						      texCoords
-							      [face->texCoordIndices
-								       [1]]
-								      .u;
-						dvA = texCoords
-							      [face->texCoordIndices
-								       [0]]
-								      .v -
-						      texCoords
-							      [face->texCoordIndices
-								       [1]]
-								      .v;
-						duB = texCoords
-							      [face->texCoordIndices
-								       [0]]
-								      .u -
-						      texCoords
-							      [face->texCoordIndices
-								       [3]]
-								      .u;
-						dvB = texCoords
-							      [face->texCoordIndices
-								       [0]]
-								      .v -
-						      texCoords
-							      [face->texCoordIndices
-								       [3]]
-								      .v;
-						determinant =
-							duB * dvA - duA * dvB;
-						dest[0] = edgeBx * dvA -
-							  dvB * edgeAx;
-						dest[1] = edgeBy * dvA -
-							  dvB * edgeAy;
-						dest[2] = edgeBz * dvA -
-							  dvB * edgeAz;
-						lengthSquared =
+						tex_coords = (const struct
+							      opt_tex_coord *)
+							g_cur_mesh_tex_coords;
+						du_a = tex_coords
+							       [face->tex_coord_indices
+									[0]]
+								       .u -
+						       tex_coords
+							       [face->tex_coord_indices
+									[1]]
+								       .u;
+						dv_a = tex_coords
+							       [face->tex_coord_indices
+									[0]]
+								       .v -
+						       tex_coords
+							       [face->tex_coord_indices
+									[1]]
+								       .v;
+						du_b = tex_coords
+							       [face->tex_coord_indices
+									[0]]
+								       .u -
+						       tex_coords
+							       [face->tex_coord_indices
+									[3]]
+								       .u;
+						dv_b = tex_coords
+							       [face->tex_coord_indices
+									[0]]
+								       .v -
+						       tex_coords
+							       [face->tex_coord_indices
+									[3]]
+								       .v;
+						determinant = du_b * dv_a -
+							      du_a * dv_b;
+						dest[0] = edge_bx * dv_a -
+							  dv_b * edge_ax;
+						dest[1] = edge_by * dv_a -
+							  dv_b * edge_ay;
+						dest[2] = edge_bz * dv_a -
+							  dv_b * edge_az;
+						length_squared =
 							dest[2] * dest[2] +
 							dest[0] * dest[0] +
 							dest[1] * dest[1];
 						if (determinant == 0.0f ||
-						    lengthSquared ==
-							    g_sw3dZeroFloat) {
+						    length_squared ==
+							    g_sw3d_zero_float) {
 							vertices = (const struct
-								    OptVector *)
-								g_curMeshVertices;
-							edgeAx =
-								vertices[face->vertexIndices
+								    opt_vector
+									    *)
+								g_cur_mesh_vertices;
+							edge_ax =
+								vertices[face->vertex_indices
 										 [0]]
 									.x -
-								vertices[face->vertexIndices
+								vertices[face->vertex_indices
 										 [2]]
 									.x;
-							edgeAy =
-								vertices[face->vertexIndices
+							edge_ay =
+								vertices[face->vertex_indices
 										 [0]]
 									.y -
-								vertices[face->vertexIndices
+								vertices[face->vertex_indices
 										 [2]]
 									.y;
-							edgeAz =
-								vertices[face->vertexIndices
+							edge_az =
+								vertices[face->vertex_indices
 										 [0]]
 									.z -
-								vertices[face->vertexIndices
+								vertices[face->vertex_indices
 										 [2]]
 									.z;
-							edgeBx =
-								vertices[face->vertexIndices
+							edge_bx =
+								vertices[face->vertex_indices
 										 [0]]
 									.x -
-								vertices[face->vertexIndices
+								vertices[face->vertex_indices
 										 [3]]
 									.x;
-							edgeBy =
-								vertices[face->vertexIndices
+							edge_by =
+								vertices[face->vertex_indices
 										 [0]]
 									.y -
-								vertices[face->vertexIndices
+								vertices[face->vertex_indices
 										 [3]]
 									.y;
-							edgeBz =
-								vertices[face->vertexIndices
+							edge_bz =
+								vertices[face->vertex_indices
 										 [0]]
 									.z -
-								vertices[face->vertexIndices
+								vertices[face->vertex_indices
 										 [3]]
 									.z;
-							texCoords = (const struct
-								     OptTexCoord
-									     *)
-								g_curMeshTexCoords;
-							duA = texCoords
-								      [face->texCoordIndices
-									       [0]]
-									      .u -
-							      texCoords
-								      [face->texCoordIndices
-									       [2]]
-									      .u;
-							dvA = texCoords
-								      [face->texCoordIndices
-									       [0]]
-									      .v -
-							      texCoords
-								      [face->texCoordIndices
-									       [2]]
-									      .v;
-							duB = texCoords
-								      [face->texCoordIndices
-									       [0]]
-									      .u -
-							      texCoords
-								      [face->texCoordIndices
-									       [3]]
-									      .u;
-							dvB = texCoords
-								      [face->texCoordIndices
-									       [0]]
-									      .v -
-							      texCoords
-								      [face->texCoordIndices
-									       [3]]
-									      .v;
+							tex_coords = (const struct
+								      opt_tex_coord
+									      *)
+								g_cur_mesh_tex_coords;
+							du_a = tex_coords
+								       [face->tex_coord_indices
+										[0]]
+									       .u -
+							       tex_coords
+								       [face->tex_coord_indices
+										[2]]
+									       .u;
+							dv_a = tex_coords
+								       [face->tex_coord_indices
+										[0]]
+									       .v -
+							       tex_coords
+								       [face->tex_coord_indices
+										[2]]
+									       .v;
+							du_b = tex_coords
+								       [face->tex_coord_indices
+										[0]]
+									       .u -
+							       tex_coords
+								       [face->tex_coord_indices
+										[3]]
+									       .u;
+							dv_b = tex_coords
+								       [face->tex_coord_indices
+										[0]]
+									       .v -
+							       tex_coords
+								       [face->tex_coord_indices
+										[3]]
+									       .v;
 							determinant =
-								duB * dvA -
-								duA * dvB;
-							dest[0] = edgeBx * dvA -
-								  dvB * edgeAx;
-							dest[1] = edgeBy * dvA -
-								  dvB * edgeAy;
-							dest[2] = edgeBz * dvA -
-								  dvB * edgeAz;
-							lengthSquared =
+								du_b * dv_a -
+								du_a * dv_b;
+							dest[0] =
+								edge_bx * dv_a -
+								dv_b * edge_ax;
+							dest[1] =
+								edge_by * dv_a -
+								dv_b * edge_ay;
+							dest[2] =
+								edge_bz * dv_a -
+								dv_b * edge_az;
+							length_squared =
 								dest[2] *
 									dest[2] +
 								dest[0] *
@@ -7995,99 +8203,99 @@ void OptModel_BuildFaceNormalTangentData(
 									dest[1];
 							if (determinant ==
 								    0.0f ||
-							    lengthSquared ==
-								    g_sw3dZeroFloat) {
+							    length_squared ==
+								    g_sw3d_zero_float) {
 								vertices = (const struct
-									    OptVector
+									    opt_vector
 										    *)
-									g_curMeshVertices;
-								edgeAx =
-									vertices[face->vertexIndices
+									g_cur_mesh_vertices;
+								edge_ax =
+									vertices[face->vertex_indices
 											 [1]]
 										.x -
-									vertices[face->vertexIndices
+									vertices[face->vertex_indices
 											 [2]]
 										.x;
-								edgeAy =
-									vertices[face->vertexIndices
+								edge_ay =
+									vertices[face->vertex_indices
 											 [1]]
 										.y -
-									vertices[face->vertexIndices
+									vertices[face->vertex_indices
 											 [2]]
 										.y;
-								edgeAz =
-									vertices[face->vertexIndices
+								edge_az =
+									vertices[face->vertex_indices
 											 [1]]
 										.z -
-									vertices[face->vertexIndices
+									vertices[face->vertex_indices
 											 [2]]
 										.z;
-								edgeBx =
-									vertices[face->vertexIndices
+								edge_bx =
+									vertices[face->vertex_indices
 											 [1]]
 										.x -
-									vertices[face->vertexIndices
+									vertices[face->vertex_indices
 											 [3]]
 										.x;
-								edgeBy =
-									vertices[face->vertexIndices
+								edge_by =
+									vertices[face->vertex_indices
 											 [1]]
 										.y -
-									vertices[face->vertexIndices
+									vertices[face->vertex_indices
 											 [3]]
 										.y;
-								edgeBz =
-									vertices[face->vertexIndices
+								edge_bz =
+									vertices[face->vertex_indices
 											 [1]]
 										.z -
-									vertices[face->vertexIndices
+									vertices[face->vertex_indices
 											 [3]]
 										.z;
-								texCoords =
+								tex_coords =
 									(const struct
-									 OptTexCoord
+									 opt_tex_coord
 										 *)
-										g_curMeshTexCoords;
-								duA = texCoords[face->texCoordIndices
-											[1]]
-									      .u -
-								      texCoords[face->texCoordIndices
-											[2]]
-									      .u;
-								dvA = texCoords[face->texCoordIndices
-											[1]]
-									      .v -
-								      texCoords[face->texCoordIndices
-											[2]]
-									      .v;
-								duB = texCoords[face->texCoordIndices
-											[1]]
-									      .u -
-								      texCoords[face->texCoordIndices
-											[3]]
-									      .u;
-								dvB = texCoords[face->texCoordIndices
-											[1]]
-									      .v -
-								      texCoords[face->texCoordIndices
-											[3]]
-									      .v;
+										g_cur_mesh_tex_coords;
+								du_a = tex_coords[face->tex_coord_indices
+											  [1]]
+									       .u -
+								       tex_coords[face->tex_coord_indices
+											  [2]]
+									       .u;
+								dv_a = tex_coords[face->tex_coord_indices
+											  [1]]
+									       .v -
+								       tex_coords[face->tex_coord_indices
+											  [2]]
+									       .v;
+								du_b = tex_coords[face->tex_coord_indices
+											  [1]]
+									       .u -
+								       tex_coords[face->tex_coord_indices
+											  [3]]
+									       .u;
+								dv_b = tex_coords[face->tex_coord_indices
+											  [1]]
+									       .v -
+								       tex_coords[face->tex_coord_indices
+											  [3]]
+									       .v;
 								determinant =
-									duB * dvA -
-									duA * dvB;
+									du_b * dv_a -
+									du_a * dv_b;
 								dest[0] =
-									edgeBx *
-										dvA -
-									dvB * edgeAx;
+									edge_bx *
+										dv_a -
+									dv_b * edge_ax;
 								dest[1] =
-									edgeBy *
-										dvA -
-									dvB * edgeAy;
+									edge_by *
+										dv_a -
+									dv_b * edge_ay;
 								dest[2] =
-									edgeBz *
-										dvA -
-									dvB * edgeAz;
-								lengthSquared =
+									edge_bz *
+										dv_a -
+									dv_b * edge_az;
+								length_squared =
 									dest[2] *
 										dest[2] +
 									dest[0] *
@@ -8096,49 +8304,49 @@ void OptModel_BuildFaceNormalTangentData(
 										dest[1];
 								if (determinant ==
 									    0.0f ||
-								    lengthSquared ==
-									    g_sw3dZeroFloat) {
+								    length_squared ==
+									    g_sw3d_zero_float) {
 									dest[0] =
-										edgeBx;
+										edge_bx;
 									dest[1] =
-										edgeBy;
+										edge_by;
 									dest[2] =
-										edgeBz;
+										edge_bz;
 									determinant =
 										1.0f;
-									duA = 0.0f;
-									duB = 1.0f;
+									du_a = 0.0f;
+									du_b = 1.0f;
 								}
 							}
 						}
 					} else {
-						dest[0] = edgeBx;
-						dest[1] = edgeBy;
-						dest[2] = edgeBz;
+						dest[0] = edge_bx;
+						dest[1] = edge_by;
+						dest[2] = edge_bz;
 						determinant = 1.0f;
-						duA = 0.0f;
-						duB = 1.0f;
+						du_a = 0.0f;
+						du_b = 1.0f;
 					}
 				}
 				{
 					float reciprocal =
-						g_sw3dUnitFloat / determinant;
+						g_sw3d_unit_float / determinant;
 					dest[0] *= reciprocal;
 					dest[1] *= reciprocal;
 					dest[2] *= reciprocal;
 					reciprocal = -reciprocal;
-					dest[3] =
-						(duA * edgeBx - duB * edgeAx) *
-						reciprocal;
-					dest[4] =
-						(duA * edgeBy - duB * edgeAy) *
-						reciprocal;
-					dest[5] =
-						(duA * edgeBz - duB * edgeAz) *
-						reciprocal;
+					dest[3] = (du_a * edge_bx -
+						   du_b * edge_ax) *
+						  reciprocal;
+					dest[4] = (du_a * edge_by -
+						   du_b * edge_ay) *
+						  reciprocal;
+					dest[5] = (du_a * edge_bz -
+						   du_b * edge_az) *
+						  reciprocal;
 				}
-				if (duA == 0.0f) {
-					if (duB == 0.0f) {
+				if (du_a == 0.0f) {
+					if (du_b == 0.0f) {
 						dest[4] = 1.0f;
 					}
 				}
@@ -8149,102 +8357,107 @@ void OptModel_BuildFaceNormalTangentData(
 	} else {
 #ifdef XVT_MODERN
 		// The packed buffer reserves two tangent vectors per face.
-		dest += 6 * faceCount;
+		dest += 6 * face_count;
 #else
-		dest += 24 * faceCount;
+		dest += 24 * face_count;
 #endif
 	}
-	if (((const struct SceneMesh *)conversionState)->pVertNormals != NULL) {
-		g_generatedVertexNormalCount = 0;
+	if (((const struct scene_mesh *)conversion_state)->p_vert_normals !=
+	    NULL) {
+		g_generated_vertex_normal_count = 0;
 	} else {
-		g_generatedVertexNormalCount = g_curVertexCount;
-		OptModel_BuildVertexNormalsFromFaces(dest, faceData, faceCount);
+		g_generated_vertex_normal_count = g_cur_vertex_count;
+		opt_model_build_vertex_normals_from_faces(dest, face_data,
+							  face_count);
 	}
 }
 
-/* Writes at dest, for each of the g_curVertexCount vertices, the mean of the
- * normals of the faces that use it, read after faceData's records; leaves the
+/* Writes at dest, for each of the g_cur_vertex_count vertices, the mean of the
+ * normals of the faces that use it, read after face_data's records; leaves the
  * entry as it was when no face uses it. Does not normalize the mean. Only the
  * original build calls this. */
 // FUNCTION: XVT 0x479CE0
-void OptModel_BuildVertexNormalsFromFaces(
-	float *dest, const struct OptPackedFaceData *faceData, int faceCount)
+void opt_model_build_vertex_normals_from_faces(
+	float *dest, const struct opt_packed_face_data *face_data,
+	int face_count)
 {
-	int vertexIndex;
-	int incidentFaceCount;
-	const struct OptPackedFaceRecord *face;
-	const float *faceNormal;
-	int remainingFaces;
+	int vertex_index;
+	int incident_face_count;
+	const struct opt_packed_face_record *face;
+	const float *face_normal;
+	int remaining_faces;
 	float scale;
-	int faceRecordBytes;
+	int face_record_bytes;
 
-	vertexIndex = 0;
-	if (g_curVertexCount <= 0) {
+	vertex_index = 0;
+	if (g_cur_vertex_count <= 0) {
 		return;
 	}
-	faceRecordBytes = faceCount * (int)sizeof(struct OptPackedFaceRecord);
+	face_record_bytes =
+		face_count * (int)sizeof(struct opt_packed_face_record);
 	do {
-		incidentFaceCount = 0;
-		face = faceData->records;
-		faceNormal = (const float *)((const uint8_t *)faceData +
-					     sizeof(faceData->edgeCount) +
-					     faceRecordBytes);
-		remainingFaces = faceCount;
-		if (remainingFaces > 0) {
+		incident_face_count = 0;
+		face = face_data->records;
+		face_normal = (const float *)((const uint8_t *)face_data +
+					      sizeof(face_data->edge_count) +
+					      face_record_bytes);
+		remaining_faces = face_count;
+		if (remaining_faces > 0) {
 			do {
-				if (face->vertexIndices[0] == vertexIndex ||
-				    face->vertexIndices[1] == vertexIndex ||
-				    face->vertexIndices[2] == vertexIndex ||
-				    face->vertexIndices[3] == vertexIndex) {
-					++incidentFaceCount;
-					if (incidentFaceCount == 1) {
-						dest[0] = faceNormal[0];
-						dest[1] = faceNormal[1];
-						dest[2] = faceNormal[2];
+				if (face->vertex_indices[0] == vertex_index ||
+				    face->vertex_indices[1] == vertex_index ||
+				    face->vertex_indices[2] == vertex_index ||
+				    face->vertex_indices[3] == vertex_index) {
+					++incident_face_count;
+					if (incident_face_count == 1) {
+						dest[0] = face_normal[0];
+						dest[1] = face_normal[1];
+						dest[2] = face_normal[2];
 					} else {
-						dest[0] =
-							dest[0] + faceNormal[0];
-						dest[1] =
-							faceNormal[1] + dest[1];
-						dest[2] =
-							faceNormal[2] + dest[2];
+						dest[0] = dest[0] +
+							  face_normal[0];
+						dest[1] = face_normal[1] +
+							  dest[1];
+						dest[2] = face_normal[2] +
+							  dest[2];
 					}
 				}
 				++face;
-				faceNormal += 3;
-				--remainingFaces;
-			} while (remainingFaces != 0);
+				face_normal += 3;
+				--remaining_faces;
+			} while (remaining_faces != 0);
 		}
-		if (incidentFaceCount > 1) {
-			if (incidentFaceCount < 65) {
-				scale = g_sw3dSpanLengthReciprocal
-					[incidentFaceCount];
+		if (incident_face_count > 1) {
+			if (incident_face_count < 65) {
+				scale = g_sw3d_span_length_reciprocal
+					[incident_face_count];
 			} else {
-				scale = g_sw3dUnitFloat / incidentFaceCount;
+				scale = g_sw3d_unit_float / incident_face_count;
 			}
 			dest[0] *= scale;
 			dest[1] *= scale;
 			dest[2] *= scale;
 		}
 		dest += 3;
-		++vertexIndex;
-	} while (vertexIndex < g_curVertexCount);
+		++vertex_index;
+	} while (vertex_index < g_cur_vertex_count);
 }
 #endif
 
 /* Returns the first node, roots in order and each depth first, whose name is
- * name ignoring case (OptModel_FindNodeByName), or NULL. */
+ * name ignoring case (opt_model_find_node_by_name), or NULL. */
 // FUNCTION: XVT 0x479DE0
-struct OptNode *
-OptModel_ResolveNodeRef(const struct OptimizedPolyObject *object,
-			const char *name)
+struct opt_node *
+opt_model_resolve_node_ref(const struct optimized_poly_object *object,
+			   const char *name)
 {
-	struct OptNode *result;
-	int rootIndex;
+	struct opt_node *result;
+	int root_index;
 
-	for (rootIndex = 0; rootIndex < object->rootNodeCount; ++rootIndex) {
-		result = OptModel_FindNodeByName(object->rootNodes[rootIndex],
-						 name);
+	for (root_index = 0; root_index < object->root_node_count;
+	     ++root_index) {
+		result = opt_model_find_node_by_name(
+			object->root_nodes[root_index], name);
 		if (result != NULL) {
 			return result;
 		}
@@ -8256,29 +8469,30 @@ OptModel_ResolveNodeRef(const struct OptimizedPolyObject *object,
 /* Returns node or the first node below it, depth first, whose name is name
  * ignoring case, or NULL. Does not follow OPT_NODEREF links. */
 // FUNCTION: XVT 0x479E20
-struct OptNode *OptModel_FindNodeByName(struct OptNode *node, const char *name)
+struct opt_node *opt_model_find_node_by_name(struct opt_node *node,
+					     const char *name)
 {
-	struct OptNode *result;
-	int childIndex;
-	int nameCompare;
+	struct opt_node *result;
+	int child_index;
+	int name_compare;
 
 	if (node == NULL) {
 		return NULL;
 	}
-	if (node->pName != NULL) {
+	if (node->p_name != NULL) {
 #ifdef XVT_MODERN
-		nameCompare = strcasecmp(node->pName, name);
+		name_compare = strcasecmp(node->p_name, name);
 #else
-		nameCompare = _strcmpi(node->pName, name);
+		name_compare = _strcmpi(node->p_name, name);
 #endif
-		if (nameCompare == 0) {
+		if (name_compare == 0) {
 			return node;
 		}
 	}
 
-	for (childIndex = 0; childIndex < node->childCount; ++childIndex) {
-		result = OptModel_FindNodeByName(node->pChildren[childIndex],
-						 name);
+	for (child_index = 0; child_index < node->child_count; ++child_index) {
+		result = opt_model_find_node_by_name(
+			node->p_children[child_index], name);
 		if (result != NULL) {
 			return result;
 		}
@@ -8288,71 +8502,75 @@ struct OptNode *OptModel_FindNodeByName(struct OptNode *node, const char *name)
 }
 
 #ifndef XVT_MODERN
-/* Returns the bytes a packed texture for sourceFileName will take. A name
+/* Returns the bytes a packed texture for source_file_name will take. A name
  * ending in "rgb", ignoring case, is tried first as the same name ending in
  * "tex", then as the .rgb file; a name ending in "tex" is read directly. For a
  * .tex file it reads the header and returns 12312 plus the texel bytes:
- * storedPayloadSize when pixelCount equals width times height, else width times
+ * stored_payload_size when pixel_count equals width times height, else width times
  * height. For an .rgb file it reads the big-endian width and height at bytes 6
  * and 8 and returns 3 times their product plus 13056. Returns 12376, the size
- * of a ModelTextureDefaultTexture in the original build, when no file opens or
+ * of a model_texture_default_texture in the original build, when no file opens or
  * the extension is neither. Only the original build calls this. */
 // FUNCTION: XVT 0x47A430
-int OptModel_GetExternalTextureSerializedSize(const char *sourceFileName)
+int opt_model_get_external_texture_serialized_size(const char *source_file_name)
 {
 	char *extension;
-	XvtFile *textureStream;
-	int pixelCount;
-	int payloadSize;
-	int serializedSize;
-	struct OptExternalTexHeader texHeader;
-	uint8_t rgbHeader[32];
-	char fileName[256];
+	xvt_file *texture_stream;
+	int pixel_count;
+	int payload_size;
+	int serialized_size;
+	struct opt_external_tex_header tex_header;
+	uint8_t rgb_header[32];
+	char file_name[256];
 
-	strcpy(fileName, sourceFileName);
-	extension = fileName + strlen(fileName) - 3;
-	if (_strcmpi(extension, g_extRgb) == 0) {
+	strcpy(file_name, source_file_name);
+	extension = file_name + strlen(file_name) - 3;
+	if (_strcmpi(extension, g_ext_rgb) == 0) {
 		extension[0] = 't';
 		extension[1] = 'e';
 		extension[2] = 'x';
-		FeDiskIo_OpenGlobalStream(fileName, g_fileModeReadBinary, 0, 0);
-		textureStream = g_stream;
+		fe_disk_io_open_global_stream(file_name,
+					      g_file_mode_read_binary, 0, 0);
+		texture_stream = g_stream;
 		extension[0] = 'r';
 		extension[1] = 'g';
 		extension[2] = 'b';
-		if (textureStream == NULL) {
-			FeDiskIo_OpenGlobalStream(fileName,
-						  g_fileModeReadBinary, 0, 0);
-			textureStream = g_stream;
-			if (textureStream != NULL) {
-				File_RawRead(rgbHeader, 16, 1, textureStream);
-				pixelCount = ((unsigned int)rgbHeader[6] << 8) +
-					     rgbHeader[7];
-				pixelCount *=
-					((unsigned int)rgbHeader[8] << 8) +
-					rgbHeader[9];
-				File_RawClose(textureStream);
-				serializedSize = 3 * pixelCount + 13056;
-				return serializedSize;
+		if (texture_stream == NULL) {
+			fe_disk_io_open_global_stream(
+				file_name, g_file_mode_read_binary, 0, 0);
+			texture_stream = g_stream;
+			if (texture_stream != NULL) {
+				FILE_RAW_READ(rgb_header, 16, 1,
+					      texture_stream);
+				pixel_count =
+					((unsigned int)rgb_header[6] << 8) +
+					rgb_header[7];
+				pixel_count *=
+					((unsigned int)rgb_header[8] << 8) +
+					rgb_header[9];
+				FILE_RAW_CLOSE(texture_stream);
+				serialized_size = 3 * pixel_count + 13056;
+				return serialized_size;
 			}
 			return 12376;
 		}
 	} else {
-		if (_strcmpi(extension, g_extTex) != 0) {
+		if (_strcmpi(extension, g_ext_tex) != 0) {
 			return 12376;
 		}
-		FeDiskIo_OpenGlobalStream(fileName, g_fileModeReadBinary, 0, 0);
-		textureStream = g_stream;
-		if (textureStream == NULL) {
+		fe_disk_io_open_global_stream(file_name,
+					      g_file_mode_read_binary, 0, 0);
+		texture_stream = g_stream;
+		if (texture_stream == NULL) {
 			return 12376;
 		}
 	}
-	File_RawRead(&texHeader, sizeof(texHeader), 1, textureStream);
-	File_RawClose(textureStream);
-	payloadSize = texHeader.width * texHeader.height;
-	if (texHeader.pixelCount == payloadSize) {
-		payloadSize = texHeader.storedPayloadSize;
+	FILE_RAW_READ(&tex_header, sizeof(tex_header), 1, texture_stream);
+	FILE_RAW_CLOSE(texture_stream);
+	payload_size = tex_header.width * tex_header.height;
+	if (tex_header.pixel_count == payload_size) {
+		payload_size = tex_header.stored_payload_size;
 	}
-	return payloadSize + 12312;
+	return payload_size + 12312;
 }
 #endif

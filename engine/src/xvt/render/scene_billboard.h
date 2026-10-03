@@ -8,36 +8,37 @@
 extern "C" {
 #endif
 
-struct SceneBillboardQueueEntry {
-	/* Object or type index RenderQuad_DrawModelTexture draws for. */
-	uint16_t objectOrTypeIndex;
+struct scene_billboard_queue_entry {
+	/* Object or type index render_quad_draw_model_texture draws for. */
+	uint16_t object_or_type_index;
 	/* Texture frame, 0x8000 to 0xFEFF from
-	 * SceneBillboard_DrawOrQueueObject. */
+	 * scene_billboard_draw_or_queue_object. */
 	int16_t frame;
-	/* Size, before RenderQuad_DrawModelTexture scales it by depth. */
-	int16_t screenSize;
-	int16_t screenX; /* Projected X on the viewport. */
-	/* Projected Y, from SceneBillboard_DrawOrQueueObject counted up from
+	/* Size, before render_quad_draw_model_texture scales it by depth. */
+	int16_t screen_size;
+	int16_t screen_x; /* Projected X on the viewport. */
+	/* Projected Y, from scene_billboard_draw_or_queue_object counted up from
 	 * the viewport's bottom. */
-	int16_t screenY;
-	int depthZ; /* View depth; the queue is drawn largest first. */
-	int16_t rotationAngle; /* Roll on screen, in angle units. */
+	int16_t screen_y;
+	int depth_z; /* View depth; the queue is drawn largest first. */
+	int16_t rotation_angle; /* Roll on screen, in angle units. */
 };
 
-extern uint16_t g_billboardModelNodeSwitchIndex;
-extern uint16_t g_billboardTargetSelectionState;
-extern uint16_t g_billboardObjectOrTypeIndex;
-extern int16_t g_sceneBillboardQueueCount;
+extern uint16_t g_billboard_model_node_switch_index;
+extern uint16_t g_billboard_target_selection_state;
+extern uint16_t g_billboard_object_or_type_index;
+extern int16_t g_scene_billboard_queue_count;
 
-void SceneBillboard_DrawOrQueueObject(int objectIndex);
-void SceneBillboard_QueueProjectedTextured(int objectOrTypeIndex, int frame,
-					   int screenSize, int screenX,
-					   int screenY, int depthZ,
-					   int rotationAngle);
-void SceneBillboard_RenderQueuedTextured(int16_t drawTargetMarkers);
-void SceneBillboard_DrawRollAlignedObjectModel(uint16_t objectIndex);
-int SceneBillboard_ComputeProjectedSize(int depthZ, uint16_t modelMaxExtent,
-					uint16_t baseScreenSize);
+void scene_billboard_draw_or_queue_object(int object_index);
+void scene_billboard_queue_projected_textured(int object_or_type_index,
+					      int frame, int screen_size,
+					      int screen_x, int screen_y,
+					      int depth_z, int rotation_angle);
+void scene_billboard_render_queued_textured(int16_t draw_target_markers);
+void scene_billboard_draw_roll_aligned_object_model(uint16_t object_index);
+int scene_billboard_compute_projected_size(int depth_z,
+					   uint16_t model_max_extent,
+					   uint16_t base_screen_size);
 
 #ifdef __cplusplus
 }

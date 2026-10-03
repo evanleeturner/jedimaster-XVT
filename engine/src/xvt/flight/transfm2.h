@@ -8,30 +8,30 @@
 extern "C" {
 #endif
 
-extern int g_camMatR0_X;
-extern int g_camMatR0_Y;
-extern int g_camMatR0_Z;
-extern int g_camMatR1_X;
-extern int g_camMatR1_Y;
-extern int g_camMatR1_Z;
-extern int g_camMatR2_X;
-extern int g_camMatR2_Y;
-extern int g_camMatR2_Z;
-extern int g_viewSpaceX;
-extern int g_viewSpaceY;
-extern int g_viewSpaceDepth;
-extern int32_t g_projScaleHalfInt;
-extern uint8_t g_perspectiveShift;
-extern uint16_t g_projAspectY;
+extern int g_cam_mat_r0_x;
+extern int g_cam_mat_r0_y;
+extern int g_cam_mat_r0_z;
+extern int g_cam_mat_r1_x;
+extern int g_cam_mat_r1_y;
+extern int g_cam_mat_r1_z;
+extern int g_cam_mat_r2_x;
+extern int g_cam_mat_r2_y;
+extern int g_cam_mat_r2_z;
+extern int g_view_space_x;
+extern int g_view_space_y;
+extern int g_view_space_depth;
+extern int32_t g_proj_scale_half_int;
+extern uint8_t g_perspective_shift;
+extern uint16_t g_proj_aspect_y;
 
-int TRANSFM2_clipobjecteyez(int x, int y, int z);
-int TRANSFM2_CamMatDotRow0(int x, int y, int z);
-int TRANSFM2_CamMatDotRow1(int x, int y, int z);
-int TRANSFM2_CamMatDotRow2(int x, int y, int z);
-int TRANSFM2_ProjectScreenX(int viewX, int viewZ);
-int TRANSFM2_ProjectScreenY(int viewY, int viewZ);
-int TRANSFM2_ProjectScreenXFixedPoint(int viewX, unsigned int depth);
-int TRANSFM2_ProjectScreenYFixedPoint(int viewY, unsigned int depth);
+int transfm2_clipobjecteyez(int x, int y, int z);
+int transfm2_cam_mat_dot_row0(int x, int y, int z);
+int transfm2_cam_mat_dot_row1(int x, int y, int z);
+int transfm2_cam_mat_dot_row2(int x, int y, int z);
+int transfm2_project_screen_x(int view_x, int view_z);
+int transfm2_project_screen_y(int view_y, int view_z);
+int transfm2_project_screen_x_fixed_point(int view_x, unsigned int depth);
+int transfm2_project_screen_y_fixed_point(int view_y, unsigned int depth);
 
 #ifdef __cplusplus
 }

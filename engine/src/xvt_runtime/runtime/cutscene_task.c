@@ -17,25 +17,25 @@ static struct {
 	int waiting;
 } g_cutscene;
 
-static void XvtCutsceneTask_Restore(void)
+static void xvt_cutscene_task_restore(void)
 {
-	FrontendDisplay_ClearBackBuffer();
-	FrontendDisplay_PresentFrame();
-	FrontendDisplay_ClearBackBuffer();
-	FrontendDisplay_ClearOffscreenSurface();
-	g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
-	FrontendDisplay_EnableOffscreenRestore();
-	CDAudio_RequestResumePlayback();
+	frontend_display_clear_back_buffer();
+	frontend_display_present_frame();
+	frontend_display_clear_back_buffer();
+	frontend_display_clear_offscreen_surface();
+	g_draw_surface_ptr = frontend_display_lock_back_buffer();
+	frontend_display_enable_offscreen_restore();
+	cd_audio_request_resume_playback();
 }
 
-int XvtCutsceneTask_Play(int phase)
+int xvt_cutscene_task_play(int phase)
 {
 	int result;
 	if (!g_cutscene.active) {
-		if (g_pilotData.missionDirectoryId !=
+		if (g_pilot_data.mission_directory_id !=
 			    MISSION_DIRECTORY_TRAINING_EXERCISES ||
-		    g_pilotData.missionSequenceActive != 1 ||
-		    !g_cutsceneTable) {
+		    g_pilot_data.mission_sequence_active != 1 ||
+		    !g_cutscene_table) {
 			return 0;
 		}
 		g_cutscene.phase = phase;
@@ -43,46 +43,50 @@ int XvtCutsceneTask_Play(int phase)
 		g_cutscene.active = 1;
 	}
 	if (g_cutscene.waiting) {
-		if (!XvtMovieTask_TakeResult(&result)) {
+		if (!xvt_movie_task_take_result(&result)) {
 			return XVT_MOVIE_PENDING;
 		}
 		g_cutscene.waiting = 0;
-		XvtCutsceneTask_Restore();
+		xvt_cutscene_task_restore();
 		if (result != 0) {
-			XvtCutsceneTask_Reset();
+			xvt_cutscene_task_reset();
 			return 0;
 		}
 		++g_cutscene.entry_index;
 	}
-	for (; g_cutscene.entry_index < (unsigned int)g_cutsceneCount;
+	for (; g_cutscene.entry_index < (unsigned int)g_cutscene_count;
 	     ++g_cutscene.entry_index) {
-		const struct CutsceneEntry *entry =
-			&g_cutsceneTable[g_cutscene.entry_index];
-		if (entry->campaignId != g_pilotData.missionDescriptionIds[5] ||
-		    entry->playAfterDebriefing != g_cutscene.phase ||
-		    entry->campaignMissionId !=
-			    g_pilotData.missionDescriptionIds[0]) {
+		const struct cutscene_entry *entry =
+			&g_cutscene_table[g_cutscene.entry_index];
+		if (entry->campaign_id !=
+			    g_pilot_data.mission_description_ids[5] ||
+		    entry->play_after_debriefing != g_cutscene.phase ||
+		    entry->campaign_mission_id !=
+			    g_pilot_data.mission_description_ids[0]) {
 			continue;
 		}
-		CDAudio_SuspendPlayback();
-		FrontendDisplay_DisableOffscreenRestore();
-		FrontendDisplay_UnlockBackBuffer();
-		FrontendDisplay_ClearBackBuffer();
-		FrontendDisplay_PresentFrame();
-		FrontendDisplay_ClearBackBuffer();
-		result = XvtMovieTask_Begin(entry->movieName, 1);
+		cd_audio_suspend_playback();
+		frontend_display_disable_offscreen_restore();
+		frontend_display_unlock_back_buffer();
+		frontend_display_clear_back_buffer();
+		frontend_display_present_frame();
+		frontend_display_clear_back_buffer();
+		result = xvt_movie_task_begin(entry->movie_name, 1);
 		if (result == XVT_MOVIE_PENDING) {
 			g_cutscene.waiting = 1;
 			return XVT_MOVIE_PENDING;
 		}
-		XvtCutsceneTask_Restore();
+		xvt_cutscene_task_restore();
 		if (result != 0) {
-			XvtCutsceneTask_Reset();
+			xvt_cutscene_task_reset();
 			return 0;
 		}
 	}
-	XvtCutsceneTask_Reset();
+	xvt_cutscene_task_reset();
 	return 1;
 }
 
-void XvtCutsceneTask_Reset(void) { memset(&g_cutscene, 0, sizeof(g_cutscene)); }
+void xvt_cutscene_task_reset(void)
+{
+	memset(&g_cutscene, 0, sizeof(g_cutscene));
+}

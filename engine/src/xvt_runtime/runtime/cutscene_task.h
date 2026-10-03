@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-/* The modern body of Cutscene_PlayForCurrentMissionPhase: plays the cutscenes that match the
+/* The modern body of cutscene_play_for_current_mission_phase: plays the cutscenes that match the
  * current mission and phase one movie at a time, returning to the caller while each plays. */
 
 /* Starts a run only in the training-exercise mission directory with a mission sequence active and
@@ -17,10 +17,10 @@ extern "C" {
  * result is nonzero, skipping the remaining matches. Every return other than -1 leaves no run
  * active. */
 /* Returns -1 while a movie is pending, otherwise the recovered cutscene result. */
-int XvtCutsceneTask_Play(int phase);
+int xvt_cutscene_task_play(int phase);
 /* Ends any run without stopping a pending movie or touching display or audio; the next Play starts
  * over. */
-void XvtCutsceneTask_Reset(void);
+void xvt_cutscene_task_reset(void);
 
 #ifdef __cplusplus
 }

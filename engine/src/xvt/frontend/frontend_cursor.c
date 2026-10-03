@@ -20,12 +20,12 @@ __declspec(dllimport) int __stdcall SetCursorPos(int x, int y);
 
 /* The built-in cursor, a 10 by 10 arrow pointing up and left, one byte per
  * pixel, row by row: 0 is transparent, 1 the outline and 0xFF the fill.
- * FrontendCursor_Draw draws 1 as 31 (blue) and 0xFF as 0xFFFF (white) at 16
- * bits per pixel, and the byte as the palette index at 8. FrontendCursor_Init
- * copies it into g_frontState.cursorDefaultMask; the modern build's renderer
+ * frontend_cursor_draw draws 1 as 31 (blue) and 0xFF as 0xFFFF (white) at 16
+ * bits per pixel, and the byte as the palette index at 8. frontend_cursor_init
+ * copies it into g_front_state.cursor_default_mask; the modern build's renderer
  * also reads it. */
 // GLOBAL: XVT 0x52C100
-const uint8_t g_defaultCursorBitmap[100] = {
+const uint8_t g_default_cursor_bitmap[100] = {
 	1,    1,    1,	  1,	1,    1,    1,	  1,	1,    0,    1,	  0xFF,
 	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 1,    0,	  0,	1,    0xFF, 0xFF, 0xFF,
 	0xFF, 0xFF, 1,	  0,	0,    0,    1,	  0xFF, 0xFF, 0xFF, 0xFF, 1,
@@ -37,255 +37,271 @@ const uint8_t g_defaultCursorBitmap[100] = {
 	0,    1,    1,	  0,
 };
 
-/* Makes the registered image resourceName the frontend cursor, with saveBuf as
- * the buffer for the pixels under it: points g_frontState.cursorMaskPixels at
- * the image's pixels, sets g_frontState.cursorSaveBuf, sets cursorWidth and
- * cursorHeight to the image's width and height plus 1 (the right and bottom of
- * FrontImage_GetResourceRect's rect, plus 1) and copies the name into
- * cursorSpriteName, after which FrontendCursor_Draw draws it with
- * FrontImage_DrawSprite. Returns 0, changing nothing, when no resource has the
+/* Makes the registered image resource_name the frontend cursor, with save_buf as
+ * the buffer for the pixels under it: points g_front_state.cursor_mask_pixels at
+ * the image's pixels, sets g_front_state.cursor_save_buf, sets cursor_width and
+ * cursor_height to the image's width and height plus 1 (the right and bottom of
+ * front_image_get_resource_rect's rect, plus 1) and copies the name into
+ * cursor_sprite_name, after which frontend_cursor_draw draws it with
+ * front_image_draw_sprite. Returns 0, changing nothing, when no resource has the
  * name or its image is RLE-compressed. On success the modern build returns 0;
  * the original build's function ends without a return statement there. Does not
- * check saveBuf's size or the name's length (63 characters fit). */
+ * check save_buf's size or the name's length (63 characters fit). */
 // FUNCTION: XVT 0x4B49A0
-int FrontendCursor_SetImageFromResourceName(const char *resourceName,
-					    void *saveBuf)
+int frontend_cursor_set_image_from_resource_name(const char *resource_name,
+						 void *save_buf)
 {
-	struct RECT resourceRect;
-	int resourceIndex;
+	struct RECT resource_rect;
+	int resource_index;
 
-	resourceIndex = FrontImage_FindResourceByName(resourceName);
-	if (resourceIndex == -1) {
+	resource_index = front_image_find_resource_by_name(resource_name);
+	if (resource_index == -1) {
 		return 0;
 	}
-	if (g_frontState.resourceTable[resourceIndex].image->isCompressed !=
+	if (g_front_state.resource_table[resource_index].image->is_compressed !=
 	    0) {
 		return 0;
 	}
-	FrontImage_GetResourceRect(resourceName, &resourceRect);
-	g_frontState.cursorMaskPixels =
-		g_frontState.resourceTable[resourceIndex].image->pixels;
-	g_frontState.cursorSaveBuf = (uint8_t *)saveBuf;
-	g_frontState.cursorWidth = resourceRect.right - resourceRect.left + 1;
-	g_frontState.cursorHeight = resourceRect.bottom - resourceRect.top + 1;
-	strcpy(g_frontState.cursorSpriteName, resourceName);
+	front_image_get_resource_rect(resource_name, &resource_rect);
+	g_front_state.cursor_mask_pixels =
+		g_front_state.resource_table[resource_index].image->pixels;
+	g_front_state.cursor_save_buf = (uint8_t *)save_buf;
+	g_front_state.cursor_width =
+		resource_rect.right - resource_rect.left + 1;
+	g_front_state.cursor_height =
+		resource_rect.bottom - resource_rect.top + 1;
+	strcpy(g_front_state.cursor_sprite_name, resource_name);
 #ifdef XVT_MODERN
 	return 0;
 #endif
 }
 
 /* Sets the frontend cursor to the built-in 10 by 10 arrow: copies
- * g_defaultCursorBitmap into g_frontState.cursorDefaultMask, points
- * cursorMaskPixels and cursorSaveBuf at the state's default mask and save
- * buffer, sets cursorWidth and cursorHeight to 10 and clears
- * cursorSpriteName. */
+ * g_default_cursor_bitmap into g_front_state.cursor_default_mask, points
+ * cursor_mask_pixels and cursor_save_buf at the state's default mask and save
+ * buffer, sets cursor_width and cursor_height to 10 and clears
+ * cursor_sprite_name. */
 // FUNCTION: XVT 0x4DDC40
-void FrontendCursor_Init(void)
+void frontend_cursor_init(void)
 {
-	g_frontState.cursorWidth = 10;
-	g_frontState.cursorHeight = 10;
-	g_frontState.cursorMaskPixels = g_frontState.cursorDefaultMask;
-	g_frontState.cursorSaveBuf = g_frontState.cursorDefaultSaveBuf;
-	memcpy(g_frontState.cursorDefaultMask, g_defaultCursorBitmap,
-	       sizeof(g_frontState.cursorDefaultMask));
-	memset(g_frontState.cursorSpriteName, 0,
-	       sizeof(g_frontState.cursorSpriteName));
+	g_front_state.cursor_width = 10;
+	g_front_state.cursor_height = 10;
+	g_front_state.cursor_mask_pixels = g_front_state.cursor_default_mask;
+	g_front_state.cursor_save_buf = g_front_state.cursor_default_save_buf;
+	memcpy(g_front_state.cursor_default_mask, g_default_cursor_bitmap,
+	       sizeof(g_front_state.cursor_default_mask));
+	memset(g_front_state.cursor_sprite_name, 0,
+	       sizeof(g_front_state.cursor_sprite_name));
 }
 
-/* Draws the frontend cursor on the back buffer at g_frontState.mouseX and
- * mouseY, first copying the pixels it covers into g_frontState.cursorSaveBuf.
- * With a cursorSpriteName set it draws that image with FrontImage_DrawSprite.
- * Else it draws the mask at cursorMaskPixels, one byte per pixel, where 0 is
+/* Draws the frontend cursor on the back buffer at g_front_state.mouse_x and
+ * mouse_y, first copying the pixels it covers into g_front_state.cursor_save_buf.
+ * With a cursor_sprite_name set it draws that image with front_image_draw_sprite.
+ * Else it draws the mask at cursor_mask_pixels, one byte per pixel, where 0 is
  * transparent: at 16 bits per pixel 1 is drawn as 31 and 0xFF as 0xFFFF and
  * other values not at all, at 8 bits each nonzero byte is drawn as the palette
  * index. The save and the mask clip only their right and bottom edges, to the
  * clip bounds. Draws and saves nothing when the cursor position is outside 0 to
- * 639 by 0 to 479. Locks the back buffer into g_drawSurfacePtr and unlocks it
+ * 639 by 0 to 479. Locks the back buffer into g_draw_surface_ptr and unlocks it
  * at the end, leaving the pointer set. Records the position and the visible
- * size in g_frontState.cursorPrevDrawX, cursorPrevDrawY, cursorPrevDrawWidth
- * and cursorPrevDrawHeight. The modern build also marks the cursor for its
+ * size in g_front_state.cursor_prev_draw_x, cursor_prev_draw_y, cursor_prev_draw_width
+ * and cursor_prev_draw_height. The modern build also marks the cursor for its
  * renderer. */
 // FUNCTION: XVT 0x4DDC90
-void FrontendCursor_Draw(void)
+void frontend_cursor_draw(void)
 {
-	struct RECT clippedRect;
-	struct RECT originalRect;
-	int cursorWidth;
-	int cursorHeight;
-	int visibleWidth;
-	int visibleHeight;
-	int displayBpp;
-	uint8_t *backBuffer;
-	uint8_t *cursorPixels;
-	uint8_t *saveBuffer;
-	uint8_t *backBufferRow;
-	int rowsRemaining;
+	struct RECT clipped_rect;
+	struct RECT original_rect;
+	int cursor_width;
+	int cursor_height;
+	int visible_width;
+	int visible_height;
+	int display_bpp;
+	uint8_t *back_buffer;
+	uint8_t *cursor_pixels;
+	uint8_t *save_buffer;
+	uint8_t *back_buffer_row;
+	int rows_remaining;
 	int column;
-	int maskValue;
+	int mask_value;
 
-	if (g_frontState.mouseX < 0 || g_frontState.mouseX >= 640 ||
-	    g_frontState.mouseY < 0 || g_frontState.mouseY >= 480) {
+	if (g_front_state.mouse_x < 0 || g_front_state.mouse_x >= 640 ||
+	    g_front_state.mouse_y < 0 || g_front_state.mouse_y >= 480) {
 		return;
 	}
 
-	cursorHeight = g_frontState.cursorHeight;
-	clippedRect.left = 0;
-	cursorWidth = g_frontState.cursorWidth;
-	clippedRect.top = 0;
-	clippedRect.right = g_frontState.cursorWidth - 1;
-	clippedRect.bottom = g_frontState.cursorHeight - 1;
-	FrontendDraw_RectOffsetXY(&clippedRect, g_frontState.mouseX,
-				  g_frontState.mouseY);
-	FrontendDraw_RectCopy(&originalRect, &clippedRect);
-	FrontendDraw_RectClipToBounds(&clippedRect);
-	visibleWidth = clippedRect.right - originalRect.right + cursorWidth;
-	visibleHeight = cursorHeight + clippedRect.bottom - originalRect.bottom;
-	backBuffer = FrontendDisplay_LockBackBuffer();
-	cursorPixels = g_frontState.cursorMaskPixels;
-	saveBuffer = g_frontState.cursorSaveBuf;
-	displayBpp = g_frontState.displayBpp;
-	g_drawSurfacePtr = backBuffer;
+	cursor_height = g_front_state.cursor_height;
+	clipped_rect.left = 0;
+	cursor_width = g_front_state.cursor_width;
+	clipped_rect.top = 0;
+	clipped_rect.right = g_front_state.cursor_width - 1;
+	clipped_rect.bottom = g_front_state.cursor_height - 1;
+	frontend_draw_rect_offset_xy(&clipped_rect, g_front_state.mouse_x,
+				     g_front_state.mouse_y);
+	frontend_draw_rect_copy(&original_rect, &clipped_rect);
+	frontend_draw_rect_clip_to_bounds(&clipped_rect);
+	visible_width = clipped_rect.right - original_rect.right + cursor_width;
+	visible_height =
+		cursor_height + clipped_rect.bottom - original_rect.bottom;
+	back_buffer = frontend_display_lock_back_buffer();
+	cursor_pixels = g_front_state.cursor_mask_pixels;
+	save_buffer = g_front_state.cursor_save_buf;
+	display_bpp = g_front_state.display_bpp;
+	g_draw_surface_ptr = back_buffer;
 
 #ifdef XVT_MODERN
-	XvtRenderFrontend_Cursor(0);
+	xvt_render_frontend_cursor(0);
 #endif
-	if (g_frontState.cursorSpriteName[0] != '\0') {
-		switch (displayBpp) {
+	if (g_front_state.cursor_sprite_name[0] != '\0') {
+		switch (display_bpp) {
 		case 8: {
-			backBufferRow =
-				&backBuffer[g_frontState.mouseX +
-					    g_frontState.mouseY *
-						    g_frontState
-							    .drawSurfacePitch];
-			if (visibleHeight > 0) {
-				rowsRemaining = visibleHeight;
+			back_buffer_row =
+				&back_buffer
+					[g_front_state.mouse_x +
+					 g_front_state.mouse_y *
+						 g_front_state
+							 .draw_surface_pitch];
+			if (visible_height > 0) {
+				rows_remaining = visible_height;
 				do {
-					memcpy(saveBuffer, backBufferRow,
-					       visibleWidth);
-					saveBuffer += cursorWidth;
-					backBufferRow +=
-						g_frontState.drawSurfacePitch;
-					--rowsRemaining;
-				} while (rowsRemaining != 0);
+					memcpy(save_buffer, back_buffer_row,
+					       visible_width);
+					save_buffer += cursor_width;
+					back_buffer_row +=
+						g_front_state
+							.draw_surface_pitch;
+					--rows_remaining;
+				} while (rows_remaining != 0);
 			}
 			break;
 		}
 		case 16: {
-			backBufferRow =
-				&backBuffer[2 * g_frontState.mouseX +
-					    g_frontState.mouseY *
-						    g_frontState
-							    .drawSurfacePitch];
-			if (visibleHeight > 0) {
-				rowsRemaining = visibleHeight;
+			back_buffer_row =
+				&back_buffer
+					[2 * g_front_state.mouse_x +
+					 g_front_state.mouse_y *
+						 g_front_state
+							 .draw_surface_pitch];
+			if (visible_height > 0) {
+				rows_remaining = visible_height;
 				do {
-					if (visibleWidth > 0) {
-						uint16_t *sourcePixel;
-						uint16_t *savedPixel;
-						int pixelsRemaining;
+					if (visible_width > 0) {
+						uint16_t *source_pixel;
+						uint16_t *saved_pixel;
+						int pixels_remaining;
 
-						sourcePixel = (uint16_t *)
-							backBufferRow;
-						savedPixel =
-							(uint16_t *)saveBuffer;
-						pixelsRemaining = visibleWidth;
+						source_pixel = (uint16_t *)
+							back_buffer_row;
+						saved_pixel =
+							(uint16_t *)save_buffer;
+						pixels_remaining =
+							visible_width;
 						do {
-							*savedPixel++ =
-								*sourcePixel++;
-							--pixelsRemaining;
-						} while (pixelsRemaining != 0);
+							*saved_pixel++ =
+								*source_pixel++;
+							--pixels_remaining;
+						} while (pixels_remaining != 0);
 					}
-					saveBuffer += 2 * cursorWidth;
-					backBufferRow +=
-						g_frontState.drawSurfacePitch &
+					save_buffer += 2 * cursor_width;
+					back_buffer_row +=
+						g_front_state
+							.draw_surface_pitch &
 						~1;
-					--rowsRemaining;
-				} while (rowsRemaining != 0);
+					--rows_remaining;
+				} while (rows_remaining != 0);
 			}
 			break;
 		}
 		default:
 			break;
 		}
-		FrontImage_DrawSprite(g_frontState.cursorSpriteName,
-				      g_frontState.mouseX, g_frontState.mouseY);
+		front_image_draw_sprite(g_front_state.cursor_sprite_name,
+					g_front_state.mouse_x,
+					g_front_state.mouse_y);
 	} else {
-		switch (displayBpp) {
+		switch (display_bpp) {
 		case 8: {
-			backBufferRow =
-				&backBuffer[g_frontState.mouseX +
-					    g_frontState.mouseY *
-						    g_frontState
-							    .drawSurfacePitch];
-			if (visibleHeight > 0) {
-				rowsRemaining = visibleHeight;
+			back_buffer_row =
+				&back_buffer
+					[g_front_state.mouse_x +
+					 g_front_state.mouse_y *
+						 g_front_state
+							 .draw_surface_pitch];
+			if (visible_height > 0) {
+				rows_remaining = visible_height;
 				do {
-					memcpy(saveBuffer, backBufferRow,
-					       visibleWidth);
-					for (column = 0; column < visibleWidth;
+					memcpy(save_buffer, back_buffer_row,
+					       visible_width);
+					for (column = 0; column < visible_width;
 					     ++column) {
-						if (cursorPixels[column] != 0) {
-							backBufferRow[column] =
-								cursorPixels
+						if (cursor_pixels[column] !=
+						    0) {
+							back_buffer_row[column] =
+								cursor_pixels
 									[column];
 						}
 					}
-					saveBuffer += cursorWidth;
-					cursorPixels += cursorWidth;
-					backBufferRow +=
-						g_frontState.drawSurfacePitch;
-					--rowsRemaining;
-				} while (rowsRemaining != 0);
+					save_buffer += cursor_width;
+					cursor_pixels += cursor_width;
+					back_buffer_row +=
+						g_front_state
+							.draw_surface_pitch;
+					--rows_remaining;
+				} while (rows_remaining != 0);
 			}
 			break;
 		}
 		case 16: {
-			backBufferRow =
-				&backBuffer[2 * g_frontState.mouseX +
-					    g_frontState.mouseY *
-						    g_frontState
-							    .drawSurfacePitch];
-			if (visibleHeight > 0) {
-				rowsRemaining = visibleHeight;
+			back_buffer_row =
+				&back_buffer
+					[2 * g_front_state.mouse_x +
+					 g_front_state.mouse_y *
+						 g_front_state
+							 .draw_surface_pitch];
+			if (visible_height > 0) {
+				rows_remaining = visible_height;
 				do {
 					column = 0;
-					if (visibleWidth > 0) {
-						uint16_t *destinationPixel;
-						uint16_t *savedPixel;
+					if (visible_width > 0) {
+						uint16_t *destination_pixel;
+						uint16_t *saved_pixel;
 
-						destinationPixel = (uint16_t *)
-							backBufferRow;
-						savedPixel =
-							(uint16_t *)saveBuffer;
+						destination_pixel = (uint16_t *)
+							back_buffer_row;
+						saved_pixel =
+							(uint16_t *)save_buffer;
 						do {
-							*savedPixel =
-								*destinationPixel;
-							maskValue = cursorPixels
-								[column];
-							switch (maskValue) {
+							*saved_pixel =
+								*destination_pixel;
+							mask_value =
+								cursor_pixels
+									[column];
+							switch (mask_value) {
 							case 1:
-								*destinationPixel =
+								*destination_pixel =
 									31;
 								break;
 							case 0xFF:
-								*destinationPixel =
+								*destination_pixel =
 									0xFFFF;
 								break;
 							default:
 								break;
 							}
-							++destinationPixel;
-							++savedPixel;
+							++destination_pixel;
+							++saved_pixel;
 							++column;
-						} while (column < visibleWidth);
+						} while (column <
+							 visible_width);
 					}
-					cursorPixels += cursorWidth;
-					saveBuffer += 2 * cursorWidth;
-					backBufferRow +=
-						g_frontState.drawSurfacePitch &
+					cursor_pixels += cursor_width;
+					save_buffer += 2 * cursor_width;
+					back_buffer_row +=
+						g_front_state
+							.draw_surface_pitch &
 						~1;
-					--rowsRemaining;
-				} while (rowsRemaining != 0);
+					--rows_remaining;
+				} while (rows_remaining != 0);
 			}
 			break;
 		}
@@ -295,120 +311,120 @@ void FrontendCursor_Draw(void)
 	}
 
 #ifdef XVT_MODERN
-	XvtRenderFrontend_EndCursor();
+	xvt_render_frontend_end_cursor();
 #endif
-	FrontendDisplay_UnlockBackBuffer();
-	g_frontState.cursorPrevDrawX = g_frontState.mouseX;
-	g_frontState.cursorPrevDrawY = g_frontState.mouseY;
-	g_frontState.cursorPrevDrawWidth = visibleWidth;
-	g_frontState.cursorPrevDrawHeight = visibleHeight;
+	frontend_display_unlock_back_buffer();
+	g_front_state.cursor_prev_draw_x = g_front_state.mouse_x;
+	g_front_state.cursor_prev_draw_y = g_front_state.mouse_y;
+	g_front_state.cursor_prev_draw_width = visible_width;
+	g_front_state.cursor_prev_draw_height = visible_height;
 }
 
-/* Nothing calls this. Copies the pixels FrontendCursor_Draw saved back to the
- * back buffer at g_frontState.cursorPrevDrawX and cursorPrevDrawY, over the
+/* Nothing calls this. Copies the pixels frontend_cursor_draw saved back to the
+ * back buffer at g_front_state.cursor_prev_draw_x and cursor_prev_draw_y, over the
  * visible size it recorded, which erases the cursor. Locks the back buffer into
- * g_drawSurfacePtr and unlocks it at the end. The modern build also marks the
+ * g_draw_surface_ptr and unlocks it at the end. The modern build also marks the
  * restore for its renderer. */
 // FUNCTION: XVT 0x4DDF90
-void FrontendCursor_Restore(void)
+void frontend_cursor_restore(void)
 {
 	uint8_t *destination;
 	uint8_t *source;
-	int displayBpp;
+	int display_bpp;
 
-	destination = FrontendDisplay_LockBackBuffer();
-	source = g_frontState.cursorSaveBuf;
-	displayBpp = g_frontState.displayBpp;
-	g_drawSurfacePtr = destination;
+	destination = frontend_display_lock_back_buffer();
+	source = g_front_state.cursor_save_buf;
+	display_bpp = g_front_state.display_bpp;
+	g_draw_surface_ptr = destination;
 #ifdef XVT_MODERN
-	XvtRenderFrontend_Cursor(1);
+	xvt_render_frontend_cursor(1);
 #endif
 
-	switch (displayBpp) {
+	switch (display_bpp) {
 	case 8: {
-		int sourcePitch;
-		int copyWidth;
-		int remainingRows;
-		int rowOffset;
+		int source_pitch;
+		int copy_width;
+		int remaining_rows;
+		int row_offset;
 
-		rowOffset = g_frontState.drawSurfacePitch;
-		rowOffset *= g_frontState.cursorPrevDrawY;
-		rowOffset += g_frontState.cursorPrevDrawX;
-		destination += rowOffset;
-		sourcePitch = g_frontState.cursorWidth;
-		copyWidth = g_frontState.cursorPrevDrawWidth;
-		if (g_frontState.cursorPrevDrawHeight > 0) {
-			remainingRows = g_frontState.cursorPrevDrawHeight;
+		row_offset = g_front_state.draw_surface_pitch;
+		row_offset *= g_front_state.cursor_prev_draw_y;
+		row_offset += g_front_state.cursor_prev_draw_x;
+		destination += row_offset;
+		source_pitch = g_front_state.cursor_width;
+		copy_width = g_front_state.cursor_prev_draw_width;
+		if (g_front_state.cursor_prev_draw_height > 0) {
+			remaining_rows = g_front_state.cursor_prev_draw_height;
 			do {
-				memcpy(destination, source, copyWidth);
-				source += sourcePitch;
-				destination += g_frontState.drawSurfacePitch;
-				--remainingRows;
-			} while (remainingRows != 0);
+				memcpy(destination, source, copy_width);
+				source += source_pitch;
+				destination += g_front_state.draw_surface_pitch;
+				--remaining_rows;
+			} while (remaining_rows != 0);
 		}
 		break;
 	}
 	case 16: {
-		int copyWidth;
-		int sourcePitch;
-		int remainingRows;
-		int rowOffset;
-		uint8_t *rowDestination;
+		int copy_width;
+		int source_pitch;
+		int remaining_rows;
+		int row_offset;
+		uint8_t *row_destination;
 
-		rowOffset = g_frontState.drawSurfacePitch;
-		rowOffset *= g_frontState.cursorPrevDrawY;
-		rowOffset += 2 * g_frontState.cursorPrevDrawX;
-		rowDestination = destination + rowOffset;
-		copyWidth = g_frontState.cursorPrevDrawWidth;
-		sourcePitch = g_frontState.cursorWidth;
-		if (g_frontState.cursorPrevDrawHeight > 0) {
-			remainingRows = g_frontState.cursorPrevDrawHeight;
+		row_offset = g_front_state.draw_surface_pitch;
+		row_offset *= g_front_state.cursor_prev_draw_y;
+		row_offset += 2 * g_front_state.cursor_prev_draw_x;
+		row_destination = destination + row_offset;
+		copy_width = g_front_state.cursor_prev_draw_width;
+		source_pitch = g_front_state.cursor_width;
+		if (g_front_state.cursor_prev_draw_height > 0) {
+			remaining_rows = g_front_state.cursor_prev_draw_height;
 			do {
-				if (copyWidth > 0) {
-					uint16_t *sourcePixel;
-					uint16_t *destinationPixel;
-					int remainingPixels;
+				if (copy_width > 0) {
+					uint16_t *source_pixel;
+					uint16_t *destination_pixel;
+					int remaining_pixels;
 
-					sourcePixel = (uint16_t *)source;
-					destinationPixel =
-						(uint16_t *)rowDestination;
-					remainingPixels = copyWidth;
+					source_pixel = (uint16_t *)source;
+					destination_pixel =
+						(uint16_t *)row_destination;
+					remaining_pixels = copy_width;
 					do {
-						*destinationPixel++ =
-							*sourcePixel++;
-						--remainingPixels;
-					} while (remainingPixels != 0);
+						*destination_pixel++ =
+							*source_pixel++;
+						--remaining_pixels;
+					} while (remaining_pixels != 0);
 				}
-				source += 2 * sourcePitch;
-				rowDestination +=
-					g_frontState.drawSurfacePitch &
+				source += 2 * source_pitch;
+				row_destination +=
+					g_front_state.draw_surface_pitch &
 					0xFFFFFFFE;
-				--remainingRows;
-			} while (remainingRows != 0);
+				--remaining_rows;
+			} while (remaining_rows != 0);
 		}
 		break;
 	}
 	default:
 		break;
 	}
-	FrontendDisplay_UnlockBackBuffer();
+	frontend_display_unlock_back_buffer();
 }
 
-/* Copies g_frontState.mouseX and mouseY to *outX and *outY. Returns outX. */
+/* Copies g_front_state.mouse_x and mouse_y to *outX and *outY. Returns outX. */
 // FUNCTION: XVT 0x4DE090
-int *FrontendCursor_GetPos(int *outX, int *outY)
+int *frontend_cursor_get_pos(int *out_x, int *out_y)
 {
-	*outX = g_frontState.mouseX;
-	*outY = g_frontState.mouseY;
-	return outX;
+	*out_x = g_front_state.mouse_x;
+	*out_y = g_front_state.mouse_y;
+	return out_x;
 }
 
 /* Moves the cursor: clamps x to 0 to 640 and y to 0 to 480, stores them in
- * g_frontState.mouseX and mouseY and moves the system cursor there. Returns
- * SetCursorPos's result in the original build and XvtPresentation_WarpClassic's
+ * g_front_state.mouse_x and mouse_y and moves the system cursor there. Returns
+ * SetCursorPos's result in the original build and xvt_presentation_warp_classic's
  * in the modern build. */
 // FUNCTION: XVT 0x4DE0B0
-int FrontendCursor_SetPos(int x, int y)
+int frontend_cursor_set_pos(int x, int y)
 {
 	if (x > 640) {
 		x = 640;
@@ -422,36 +438,36 @@ int FrontendCursor_SetPos(int x, int y)
 		y = 0;
 	}
 
-	g_frontState.mouseX = x;
-	g_frontState.mouseY = y;
+	g_front_state.mouse_x = x;
+	g_front_state.mouse_y = y;
 #ifdef XVT_MODERN
-	return XvtPresentation_WarpClassic(x, y);
+	return xvt_presentation_warp_classic(x, y);
 #else
 	return SetCursorPos(x, y);
 #endif
 }
 
-/* Sets g_frontState.cursorVisible to 1: the frame loop draws the cursor after
+/* Sets g_front_state.cursor_visible to 1: the frame loop draws the cursor after
  * each update. */
 // FUNCTION: XVT 0x4DE100
-void FrontendCursor_Show(void) { g_frontState.cursorVisible = 1; }
+void frontend_cursor_show(void) { g_front_state.cursor_visible = 1; }
 
-/* Sets g_frontState.cursorVisible to 0: the frame loop stops drawing the
+/* Sets g_front_state.cursor_visible to 0: the frame loop stops drawing the
  * cursor. */
 // FUNCTION: XVT 0x4DE110
-void FrontendCursor_Hide(void) { g_frontState.cursorVisible = 0; }
+void frontend_cursor_hide(void) { g_front_state.cursor_visible = 0; }
 
-/* Nothing calls this. Returns g_frontState.cursorVisible. */
+/* Nothing calls this. Returns g_front_state.cursor_visible. */
 // FUNCTION: XVT 0x4DE120
-int FrontendCursor_IsVisible(void) { return g_frontState.cursorVisible; }
+int frontend_cursor_is_visible(void) { return g_front_state.cursor_visible; }
 
-/* Copies g_frontState.cursorWidth and cursorHeight to *outWidth and *outHeight.
+/* Copies g_front_state.cursor_width and cursor_height to *out_width and *out_height.
  * Returns 1. */
 // FUNCTION: XVT 0x4DE130
-int FrontendCursor_GetDimensions(int *outWidth, int *outHeight)
+int frontend_cursor_get_dimensions(int *out_width, int *out_height)
 {
-	*outWidth = g_frontState.cursorWidth;
-	*outHeight = g_frontState.cursorHeight;
+	*out_width = g_front_state.cursor_width;
+	*out_height = g_front_state.cursor_height;
 	return 1;
 }
 
@@ -459,7 +475,7 @@ int FrontendCursor_GetDimensions(int *outWidth, int *outHeight)
  * until the display count is under 0 and returns 1; the modern build hides the
  * host cursor and returns Aeron_SetHostCursorVisible's result, 1 on success. */
 // FUNCTION: XVT 0x4DE150
-int FrontendCursor_HideOsCursor(void)
+int frontend_cursor_hide_os_cursor(void)
 {
 #ifdef XVT_MODERN
 	return Aeron_SetHostCursorVisible(0);
@@ -474,7 +490,7 @@ int FrontendCursor_HideOsCursor(void)
  * count is 0 or more and returns 1. The modern build's body keeps the host
  * cursor hidden and returns Aeron_SetHostCursorVisible's result. */
 // FUNCTION: XVT 0x4DE170
-int FrontendCursor_ShowOsCursor(void)
+int frontend_cursor_show_os_cursor(void)
 {
 #ifdef XVT_MODERN
 	/* The port renders its own cursor, so legacy show requests keep the host cursor hidden. */

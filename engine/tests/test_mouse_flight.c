@@ -12,22 +12,22 @@
 
 #include <string.h>
 
-static AeronInputSnapshot *Host(void)
+static AeronInputSnapshot *mouse_flight_host(void)
 {
 	return (AeronInputSnapshot *)Aeron_InputSnapshot();
 }
 
 /* Mouse flight switched on in the module's options, with the host showing motion and every button. */
-static void Start(void)
+static void mouse_flight_start(void)
 {
-	XvtInput_ResetCapture();
-	XvtMouseFlight_Reset();
-	struct XvtMouseOptions options;
+	xvt_input_reset_capture();
+	xvt_mouse_flight_reset();
+	struct xvt_mouse_options options;
 	memset(&options, 0, sizeof options);
 	options.mouse_flight_enabled = true;
 	options.mouse_sensitivity = XVT_MOUSE_SENSITIVITY_MIN;
-	XvtMouseFlight_SetOptions(&options);
-	AeronInputSnapshot *host = Host();
+	xvt_mouse_flight_set_options(&options);
+	AeronInputSnapshot *host = mouse_flight_host();
 	++host->frame_id;
 	host->has_focus = 1;
 	host->mouse.relative_x = 40.0f;
@@ -36,48 +36,48 @@ static void Start(void)
 	host->mouse.pressed_buttons = 0x1F;
 }
 
-static void CheckNothingWhileNotAllowed(void)
+static void check_nothing_while_not_allowed(void)
 {
-	Start();
-	XVT_ASSERT_INT_EQ(XvtInput_MouseFlightAllowed(), 0);
-	XvtMouseFlight_Pump();
-	XVT_ASSERT_INT_EQ(XvtMouseFlight_Sample(), 0);
-	XVT_ASSERT_INT_EQ(XvtMouseFlight_ReadKey(), 0);
+	mouse_flight_start();
+	XVT_ASSERT_INT_EQ(xvt_input_mouse_flight_allowed(), 0);
+	xvt_mouse_flight_pump();
+	XVT_ASSERT_INT_EQ(xvt_mouse_flight_sample(), 0);
+	XVT_ASSERT_INT_EQ(xvt_mouse_flight_read_key(), 0);
 	int yaw = 1, pitch = 1;
-	XVT_ASSERT_INT_EQ(XvtMouseFlight_GetHudMarker(&yaw, &pitch), 0);
-	XVT_ASSERT_INT_EQ(XvtMouseFlight_GetHudMarker(NULL, NULL), 0);
+	XVT_ASSERT_INT_EQ(xvt_mouse_flight_get_hud_marker(&yaw, &pitch), 0);
+	XVT_ASSERT_INT_EQ(xvt_mouse_flight_get_hud_marker(NULL, NULL), 0);
 }
 
-static void CheckCenteredAxes(void)
+static void check_centered_axes(void)
 {
-	Start();
-	XvtMouseFlight_Pump();
-	XvtMouseFlight_Sample();
-	XvtMouseFlight_Reset();
+	mouse_flight_start();
+	xvt_mouse_flight_pump();
+	xvt_mouse_flight_sample();
+	xvt_mouse_flight_reset();
 
 	/* Recentered: every axis reads 0, and any pointer may be NULL. */
 	int yaw = 9, pitch = 9, roll = 9;
-	XvtMouseFlight_GetAxes(&yaw, &pitch, &roll);
+	xvt_mouse_flight_get_axes(&yaw, &pitch, &roll);
 	XVT_ASSERT_INT_EQ(yaw, 0);
 	XVT_ASSERT_INT_EQ(pitch, 0);
 	XVT_ASSERT_INT_EQ(roll, 0);
-	XvtMouseFlight_GetAxes(NULL, NULL, NULL);
+	xvt_mouse_flight_get_axes(NULL, NULL, NULL);
 	yaw = 9;
-	XvtMouseFlight_GetAxes(&yaw, NULL, NULL);
+	xvt_mouse_flight_get_axes(&yaw, NULL, NULL);
 	XVT_ASSERT_INT_EQ(yaw, 0);
 	pitch = 9;
-	XvtMouseFlight_GetAxes(NULL, &pitch, NULL);
+	xvt_mouse_flight_get_axes(NULL, &pitch, NULL);
 	XVT_ASSERT_INT_EQ(pitch, 0);
 	roll = 9;
-	XvtMouseFlight_GetAxes(NULL, NULL, &roll);
+	xvt_mouse_flight_get_axes(NULL, NULL, &roll);
 	XVT_ASSERT_INT_EQ(roll, 0);
 }
 
 int main(void)
 {
-	CheckNothingWhileNotAllowed();
-	CheckCenteredAxes();
-	XvtMouseFlight_Reset();
-	XvtInput_ResetCapture();
+	check_nothing_while_not_allowed();
+	check_centered_axes();
+	xvt_mouse_flight_reset();
+	xvt_input_reset_capture();
 	return 0;
 }

@@ -8,11 +8,11 @@
 extern "C" {
 #endif
 
-int Keyboard_IsKeyDown(uint8_t virtualKey);
-char Keyboard_DequeueChar(void);
-char Keyboard_PeekChar(void);
-int Keyboard_FlushCharBuffer(void);
-int Keyboard_DiscardChar(void);
+int keyboard_is_key_down(uint8_t virtual_key);
+char keyboard_dequeue_char(void);
+char keyboard_peek_char(void);
+int keyboard_flush_char_buffer(void);
+int keyboard_discard_char(void);
 
 #ifdef __cplusplus
 }

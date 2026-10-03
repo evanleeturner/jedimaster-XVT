@@ -9,19 +9,19 @@
 extern "C" {
 #endif
 
-extern struct OptVector g_modelBoundsMin[201];
-extern int g_modelBoundsCached[202];
-extern struct OptVector g_modelBoundsMax[201];
+extern struct opt_vector g_model_bounds_min[201];
+extern int g_model_bounds_cached[202];
+extern struct opt_vector g_model_bounds_max[201];
 
-void ModelBounds_EnsureCached(int objectType);
-int ModelBounds_GetMaxExtent(int objectType);
-int ModelBounds_GetMinY(int objectType);
-int ModelBounds_GetMinZ(int objectType);
-int ModelBounds_GetMaxY(int objectType);
-int ModelBounds_GetMaxZ(int objectType);
-int ModelBounds_GetSizeX(int objectType);
-int ModelBounds_GetSizeY(int objectType);
-int ModelBounds_GetSizeZ(int objectType);
+void model_bounds_ensure_cached(int object_type);
+int model_bounds_get_max_extent(int object_type);
+int model_bounds_get_min_y(int object_type);
+int model_bounds_get_min_z(int object_type);
+int model_bounds_get_max_y(int object_type);
+int model_bounds_get_max_z(int object_type);
+int model_bounds_get_size_x(int object_type);
+int model_bounds_get_size_y(int object_type);
+int model_bounds_get_size_z(int object_type);
 
 #ifdef __cplusplus
 }

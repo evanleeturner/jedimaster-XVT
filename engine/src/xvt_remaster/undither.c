@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static unsigned ColorDistance(const uint8_t a[3], const uint8_t b[3])
+static unsigned color_distance(const uint8_t a[3], const uint8_t b[3])
 {
 	unsigned distance = 0;
 	for (unsigned channel = 0; channel < 3; ++channel) {
@@ -16,8 +16,8 @@ static unsigned ColorDistance(const uint8_t a[3], const uint8_t b[3])
 	return distance;
 }
 
-static unsigned PaletteWeight(const uint8_t palette[256][4], unsigned count,
-			      uint8_t *weights, unsigned a, unsigned b)
+static unsigned palette_weight(const uint8_t palette[256][4], unsigned count,
+			       uint8_t *weights, unsigned a, unsigned b)
 {
 	if (weights[a * count + b] != 255) {
 		return weights[a * count + b];
@@ -35,13 +35,13 @@ static unsigned PaletteWeight(const uint8_t palette[256][4], unsigned count,
 		midpoint[channel] =
 			(palette[a][channel] + palette[b][channel]) / 2;
 	}
-	unsigned distance = ColorDistance(midpoint, palette[a]);
+	unsigned distance = color_distance(midpoint, palette[a]);
 	unsigned nearest = UINT32_MAX;
 	for (unsigned other = 0; other < count; ++other) {
 		if (other == a || other == b) {
 			continue;
 		}
-		unsigned candidate = ColorDistance(midpoint, palette[other]);
+		unsigned candidate = color_distance(midpoint, palette[other]);
 		if (candidate < nearest) {
 			nearest = candidate;
 		}
@@ -54,9 +54,9 @@ static unsigned PaletteWeight(const uint8_t palette[256][4], unsigned count,
 	return weight;
 }
 
-static void FilterPixel(const AeronIndexedFrame *image,
-			const uint8_t palette[256][4], unsigned count,
-			uint8_t *weights, int x, int y, uint8_t *output)
+static void filter_pixel(const AeronIndexedFrame *image,
+			 const uint8_t palette[256][4], unsigned count,
+			 uint8_t *weights, int x, int y, uint8_t *output)
 {
 	unsigned center = image->indices[(size_t)y * image->width + x];
 	unsigned total = 8;
@@ -89,7 +89,8 @@ static void FilterPixel(const AeronIndexedFrame *image,
 				continue;
 			}
 			unsigned index = image->indices[pixel],
-				 weight = PaletteWeight(palette, count, weights,
+				 weight =
+					 palette_weight(palette, count, weights,
 							center, index);
 			total += weight;
 			for (unsigned channel = 0; channel < 3; ++channel) {
@@ -103,9 +104,9 @@ static void FilterPixel(const AeronIndexedFrame *image,
 	}
 }
 
-int XvtUndither_Apply(const AeronIndexedFrame *image,
-		      const uint8_t palette[256][4], unsigned palette_count,
-		      uint8_t *rgba)
+int xvt_undither_apply(const AeronIndexedFrame *image,
+		       const uint8_t palette[256][4], unsigned palette_count,
+		       uint8_t *rgba)
 {
 	if (!image || !rgba || !palette || !image->indices ||
 	    !image->coverage || image->width <= 0 || image->height <= 0 ||
@@ -128,8 +129,8 @@ int XvtUndither_Apply(const AeronIndexedFrame *image,
 		for (int x = 0; x < image->width; ++x) {
 			size_t pixel = (size_t)y * image->width + x;
 			if (image->coverage[pixel]) {
-				FilterPixel(image, palette, palette_count,
-					    weights, x, y, rgba + pixel * 4);
+				filter_pixel(image, palette, palette_count,
+					     weights, x, y, rgba + pixel * 4);
 			}
 		}
 	}

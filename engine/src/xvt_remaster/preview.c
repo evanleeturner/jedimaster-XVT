@@ -16,40 +16,40 @@ enum {
 	PREVIEW_HEIGHT = 1536
 };
 
-static AeronScene3D *g_scene, *g_crtScene;
+static AeronScene3D *g_scene, *g_crt_scene;
 
 static struct {
 	AeronScene3D *scene;
 	int width, height, samples;
-} g_crtViews[3];
+} g_crt_views[3];
 
 static AeronRenderTarget *g_targets[PREVIEW_SLOTS];
-static struct XvtPreviewOutput g_outputs[PREVIEW_SLOTS];
+static struct xvt_preview_output g_outputs[PREVIEW_SLOTS];
 static AeronScenePresentChain *g_chain;
 static AeronSampler *g_sampler;
-static int g_sceneWidth, g_sceneHeight, g_samples;
+static int g_scene_width, g_scene_height, g_samples;
 static AeronSceneMeshTable g_table;
 
-struct CrtDependencies {
+struct crt_dependencies {
 	uint64_t world, mission, config, models, textures, component_pose;
-	struct XvtSnapPreview preview;
-	struct XvtSnapLighting effect_lighting;
-	struct XvtSnapType types[XVT_SNAP_TYPES];
+	struct xvt_snap_preview preview;
+	struct xvt_snap_lighting effect_lighting;
+	struct xvt_snap_type types[XVT_SNAP_TYPES];
 	int16_t fuselage[25];
 	uint16_t craft_slot_end, checkpoint;
 	uint8_t debris, proving_grounds;
 	int width, height;
 	unsigned object_count;
-	struct XvtSnapObject objects[XVT_SNAP_OBJECTS];
+	struct xvt_snap_object objects[XVT_SNAP_OBJECTS];
 };
 
-static struct CrtDependencies g_crtDependencies, g_crtCandidate;
-static int g_crtValid;
+static struct crt_dependencies g_crt_dependencies, g_crt_candidate;
+static int g_crt_valid;
 
-static int EnsureScene(AeronScene3D **scene, int *old_width, int *old_height,
-		       int *old_samples, int width, int height)
+static int ensure_scene(AeronScene3D **scene, int *old_width, int *old_height,
+			int *old_samples, int width, int height)
 {
-	int samples = XvtRemasterConfig_Effective()->msaa_samples;
+	int samples = xvt_remaster_config_effective()->msaa_samples;
 	if (*scene && width == *old_width && height == *old_height &&
 	    samples == *old_samples) {
 		return 1;
@@ -73,21 +73,21 @@ static int EnsureScene(AeronScene3D **scene, int *old_width, int *old_height,
 	return 1;
 }
 
-static int Ensure(unsigned slot, int width, int height)
+static int ensure(unsigned slot, int width, int height)
 {
 	if (slot == XVT_SNAP_PREVIEWS) {
 		for (unsigned index = 0; index < 3; ++index) {
-			if (g_crtViews[index].scene &&
-			    g_crtViews[index].width == width &&
-			    g_crtViews[index].height == height) {
-				g_crtScene = g_crtViews[index].scene;
+			if (g_crt_views[index].scene &&
+			    g_crt_views[index].width == width &&
+			    g_crt_views[index].height == height) {
+				g_crt_scene = g_crt_views[index].scene;
 				return 1;
 			}
 		}
 		return 0;
 	}
-	if (!EnsureScene(&g_scene, &g_sceneWidth, &g_sceneHeight, &g_samples,
-			 width, height)) {
+	if (!ensure_scene(&g_scene, &g_scene_width, &g_scene_height, &g_samples,
+			  width, height)) {
 		return 0;
 	}
 	if (!g_chain) {
@@ -120,8 +120,9 @@ static int Ensure(unsigned slot, int width, int height)
 	return g_chain && g_sampler;
 }
 
-static const struct XvtSnapObject *Target(const struct XvtRenderSnapshot *s,
-					  struct XvtSnapObjectId id)
+static const struct xvt_snap_object *
+preview_target(const struct xvt_render_snapshot *s,
+	       struct xvt_snap_object_id id)
 {
 	for (unsigned i = 0; i < s->object_count; ++i) {
 		if (s->objects[i].id.slot == id.slot &&
@@ -132,8 +133,8 @@ static const struct XvtSnapObject *Target(const struct XvtRenderSnapshot *s,
 	return NULL;
 }
 
-static int IncludesCrtProjectile(const struct XvtSnapObject *object,
-				 const struct XvtSnapPreview *preview)
+static int includes_crt_projectile(const struct xvt_snap_object *object,
+				   const struct xvt_snap_preview *preview)
 {
 	if (object->genus != CRAFT_GENUS_PLAYER_PROJECTILE &&
 	    object->genus != CRAFT_GENUS_OTHER_PROJECTILE) {
@@ -148,14 +149,14 @@ static int IncludesCrtProjectile(const struct XvtSnapObject *object,
 		object->source_slot == preview->camera.player.slot);
 }
 
-void XvtRemasterPreview_InvalidateCrt(void)
+void xvt_remaster_preview_invalidate_crt(void)
 {
-	g_crtValid = 0;
+	g_crt_valid = 0;
 	g_outputs[XVT_SNAP_PREVIEWS].texture = NULL;
 }
 
-int XvtRemasterPreview_PrepareCrtResources(
-	const struct XvtCockpitResources *resources, int width, int height)
+int xvt_remaster_preview_prepare_crt_resources(
+	const struct xvt_cockpit_resources *resources, int width, int height)
 {
 	if (!resources->view.screen_width || !resources->view.screen_height) {
 		return 0;
@@ -164,7 +165,7 @@ int XvtRemasterPreview_PrepareCrtResources(
 			    (float)height / resources->view.screen_height);
 	unsigned count = 0;
 	for (unsigned index = 0; index < 3; ++index) {
-		const struct XvtSnapHudElement *element =
+		const struct xvt_snap_hud_element *element =
 			&resources->definition.layout
 				 .elements[index * HUD_INSTRUMENTS_PER_SET + 2];
 		if (!element->selector || !element->color_index) {
@@ -174,61 +175,62 @@ int XvtRemasterPreview_PrepareCrtResources(
 		    h = (int)ceilf(element->color_index * scale);
 		unsigned existing = 0;
 		for (; existing < count; ++existing) {
-			if (g_crtViews[existing].width == w &&
-			    g_crtViews[existing].height == h) {
+			if (g_crt_views[existing].width == w &&
+			    g_crt_views[existing].height == h) {
 				break;
 			}
 		}
 		if (existing < count) {
 			continue;
 		}
-		if (!g_crtViews[count].scene || g_crtViews[count].width != w ||
-		    g_crtViews[count].height != h ||
-		    g_crtViews[count].samples !=
-			    XvtRemasterConfig_Effective()->msaa_samples) {
-			XvtRemasterPreview_InvalidateCrt();
+		if (!g_crt_views[count].scene ||
+		    g_crt_views[count].width != w ||
+		    g_crt_views[count].height != h ||
+		    g_crt_views[count].samples !=
+			    xvt_remaster_config_effective()->msaa_samples) {
+			xvt_remaster_preview_invalidate_crt();
 		}
-		AeronScene3D *previous = g_crtViews[count].scene;
-		if (!EnsureScene(&g_crtViews[count].scene,
-				 &g_crtViews[count].width,
-				 &g_crtViews[count].height,
-				 &g_crtViews[count].samples, w, h)) {
+		AeronScene3D *previous = g_crt_views[count].scene;
+		if (!ensure_scene(&g_crt_views[count].scene,
+				  &g_crt_views[count].width,
+				  &g_crt_views[count].height,
+				  &g_crt_views[count].samples, w, h)) {
 			return 0;
 		}
-		if (previous != g_crtViews[count].scene &&
-		    !XvtFlightPipeline_PrepareSceneResources(
-			    g_crtViews[count].scene, 0)) {
+		if (previous != g_crt_views[count].scene &&
+		    !xvt_flight_pipeline_prepare_scene_resources(
+			    g_crt_views[count].scene, 0)) {
 			return 0;
 		}
 		++count;
 	}
 	for (unsigned index = count; index < 3; ++index) {
-		if (g_crtViews[index].scene) {
-			XvtRemasterPreview_InvalidateCrt();
+		if (g_crt_views[index].scene) {
+			xvt_remaster_preview_invalidate_crt();
 		}
-		AeronScene_Destroy(g_crtViews[index].scene);
-		memset(&g_crtViews[index], 0, sizeof g_crtViews[index]);
+		AeronScene_Destroy(g_crt_views[index].scene);
+		memset(&g_crt_views[index], 0, sizeof g_crt_views[index]);
 	}
 	return 1;
 }
 
-int XvtRemasterPreview_CrtNeedsRender(const struct XvtRenderSnapshot *s,
-				      int width, int height)
+int xvt_remaster_preview_crt_needs_render(const struct xvt_render_snapshot *s,
+					  int width, int height)
 {
-	const struct XvtSnapPreview *preview = &s->cockpit.crt;
-	if (!preview->valid || !Target(s, preview->object)) {
-		XvtRemasterPreview_InvalidateCrt();
+	const struct xvt_snap_preview *preview = &s->cockpit.crt;
+	if (!preview->valid || !preview_target(s, preview->object)) {
+		xvt_remaster_preview_invalidate_crt();
 		return 0;
 	}
-	struct CrtDependencies *key = &g_crtCandidate;
-	memset(key, 0, offsetof(struct CrtDependencies, objects));
+	struct crt_dependencies *key = &g_crt_candidate;
+	memset(key, 0, offsetof(struct crt_dependencies, objects));
 	key->component_pose = s->flight_unlocked
-				      ? XvtComponentAnimation_ObjectRevision(
+				      ? xvt_component_animation_object_revision(
 						preview->object.slot)
 				      : 0;
 	key->world = s->world_generation;
 	key->mission = s->mission_generation;
-	key->config = XvtRemasterConfig_Generation();
+	key->config = xvt_remaster_config_generation();
 	key->models = s->opt_asset_generation;
 	key->textures = s->texture_asset_generation;
 	key->preview = *preview;
@@ -250,34 +252,34 @@ int XvtRemasterPreview_CrtNeedsRender(const struct XvtRenderSnapshot *s,
 	/* Animation is already resolved into type/component frame state. No host tick
 	 * or wall clock participates in these transparent CRT draws. */
 	for (unsigned i = 0; i < s->object_count; ++i) {
-		const struct XvtSnapObject *object = &s->objects[i];
+		const struct xvt_snap_object *object = &s->objects[i];
 		if ((object->id.slot == preview->object.slot &&
 		     object->id.signature == preview->object.signature) ||
-		    IncludesCrtProjectile(object, preview) ||
+		    includes_crt_projectile(object, preview) ||
 		    object->genus == CRAFT_GENUS_EXPLOSION) {
 			key->objects[key->object_count++] = *object;
 		}
 	}
-	size_t bytes = offsetof(struct CrtDependencies, objects) +
+	size_t bytes = offsetof(struct crt_dependencies, objects) +
 		       key->object_count * sizeof *key->objects;
-	return !g_crtValid || memcmp(&g_crtDependencies, key, bytes) != 0;
+	return !g_crt_valid || memcmp(&g_crt_dependencies, key, bytes) != 0;
 }
 
-static void CrtProjectiles(AeronScene3D *scene,
-			   const struct XvtRenderSnapshot *s,
-			   const struct XvtSnapPreview *p)
+static void crt_projectiles(AeronScene3D *scene,
+			    const struct xvt_render_snapshot *s,
+			    const struct xvt_snap_preview *p)
 {
 	for (unsigned i = 0; i < s->object_count; ++i) {
-		const struct XvtSnapObject *o = &s->objects[i];
-		if (!IncludesCrtProjectile(o, p)) {
+		const struct xvt_snap_object *o = &s->objects[i];
+		if (!includes_crt_projectile(o, p)) {
 			continue;
 		}
-		struct XvtShipSelection selection;
-		if (!XvtRemasterShip_Select(s, o, &selection)) {
+		struct xvt_ship_selection selection;
+		if (!xvt_remaster_ship_select(s, o, &selection)) {
 			continue;
 		}
-		const struct XvtMeshAsset *mesh =
-			XvtRemasterShip_Mesh(s, selection.asset_id);
+		const struct xvt_mesh_asset *mesh =
+			xvt_remaster_ship_mesh(s, selection.asset_id);
 		if (!mesh) {
 			continue;
 		}
@@ -287,13 +289,13 @@ static void CrtProjectiles(AeronScene3D *scene,
 			.zero_velocity = 1,
 			.no_local_lights = 1,
 			.base_color_emissive_strength =
-				XvtRemasterConfig_Effective()
+				xvt_remaster_config_effective()
 					->models
 					.opt_projectile_emissive_strength,
 			.cull_mode = AERON_CULL_NONE};
-		XvtEffects_ProjectileMatrix(o, p->camera.world_pos,
-					    p->camera.world_pos,
-					    instance.transform);
+		xvt_effects_projectile_matrix(o, p->camera.world_pos,
+					      p->camera.world_pos,
+					      instance.transform);
 		memcpy(instance.prev_transform, instance.transform,
 		       sizeof instance.transform);
 		AeronScene_AddMeshInstance(scene, &instance);
@@ -305,23 +307,24 @@ static void CrtProjectiles(AeronScene3D *scene,
  * effects. Both kinds run the same steps on one size, scene, camera and mesh
  * instance, with the kind deciding a small part of most steps, so keeping them
  * in one function keeps each step's two cases side by side. */
-static int RenderOne(AeronCommandBuffer *cmd, const struct XvtRenderSnapshot *s,
-		     const struct XvtSnapPreview *p, unsigned slot, int tw,
-		     int th, int crt)
+static int render_one(AeronCommandBuffer *cmd,
+		      const struct xvt_render_snapshot *s,
+		      const struct xvt_snap_preview *p, unsigned slot, int tw,
+		      int th, int crt)
 {
 	if (!p->valid || p->destination.width <= 0 ||
 	    p->destination.height <= 0) {
 		return 1;
 	}
-	const struct XvtMeshAsset *mesh =
-		XvtRemasterShip_Mesh(s, p->opt_asset_id);
+	const struct xvt_mesh_asset *mesh =
+		xvt_remaster_ship_mesh(s, p->opt_asset_id);
 	if (!mesh && !crt) {
 		return 1;
 	}
-	struct XvtLayoutTransform layout;
-	if (!XvtRenderMath_Layout(p->camera.screen_width,
-				  p->camera.screen_height, (float)tw, (float)th,
-				  &layout)) {
+	struct xvt_layout_transform layout;
+	if (!xvt_render_math_layout(p->camera.screen_width,
+				    p->camera.screen_height, (float)tw,
+				    (float)th, &layout)) {
 		return 0;
 	}
 	float scale = fminf((float)tw / p->camera.screen_width,
@@ -330,10 +333,10 @@ static int RenderOne(AeronCommandBuffer *cmd, const struct XvtRenderSnapshot *s,
 		crt ? (int)ceilf(p->destination.width * scale) : PREVIEW_WIDTH;
 	int height = crt ? (int)ceilf(p->destination.height * scale)
 			 : PREVIEW_HEIGHT;
-	if (!Ensure(slot, width, height)) {
+	if (!ensure(slot, width, height)) {
 		return 0;
 	}
-	AeronScene3D *scene = crt ? g_crtScene : g_scene;
+	AeronScene3D *scene = crt ? g_crt_scene : g_scene;
 	AeronSceneCamera camera = {0};
 	AeronSceneMeshInstance instance = {.mesh = mesh ? mesh->mesh : NULL,
 					   .variant = p->node_switch,
@@ -341,26 +344,27 @@ static int RenderOne(AeronCommandBuffer *cmd, const struct XvtRenderSnapshot *s,
 					   .no_local_lights = 1,
 					   .cull_mode = AERON_CULL_BACK,
 					   .mesh_table = &g_table};
-	const struct XvtSnapObject *object = crt ? Target(s, p->object) : NULL;
+	const struct xvt_snap_object *object =
+		crt ? preview_target(s, p->object) : NULL;
 	if (crt) {
 		if (!object) {
 			return 1;
 		}
-		struct XvtRenderView view;
-		if (!XvtRenderMath_BuildView(&p->camera, p->camera.world_pos,
-					     p->destination.width,
-					     p->destination.height, &view)) {
+		struct xvt_render_view view;
+		if (!xvt_render_math_build_view(&p->camera, p->camera.world_pos,
+						p->destination.width,
+						p->destination.height, &view)) {
 			return 0;
 		}
 		camera = view.camera;
 		camera.viewport = (AeronRectI){0, 0, width, height};
-		XvtRenderMath_ObjectMatrix(object, p->camera.world_pos,
-					   instance.transform);
+		xvt_render_math_object_matrix(object, p->camera.world_pos,
+					      instance.transform);
 		if (object->genus == CRAFT_GENUS_PLAYER_PROJECTILE ||
 		    object->genus == CRAFT_GENUS_OTHER_PROJECTILE) {
-			XvtEffects_ProjectileMatrix(object, p->camera.world_pos,
-						    p->camera.world_pos,
-						    instance.transform);
+			xvt_effects_projectile_matrix(
+				object, p->camera.world_pos,
+				p->camera.world_pos, instance.transform);
 		}
 	} else {
 		camera.ori[0] = 1;
@@ -396,10 +400,10 @@ static int RenderOne(AeronCommandBuffer *cmd, const struct XvtRenderSnapshot *s,
 	}
 	if (mesh) {
 		float visual[XVT_SNAP_COMPONENTS];
-		XvtRemasterShip_BuildMeshTable(
+		xvt_remaster_ship_build_mesh_table(
 			mesh, object, UINT16_MAX,
-			crt ? XvtComponentAnimation_Angles(s, object, mesh,
-							   visual)
+			crt ? xvt_component_animation_angles(s, object, mesh,
+							     visual)
 			    : NULL,
 			&g_table);
 	}
@@ -409,18 +413,18 @@ static int RenderOne(AeronCommandBuffer *cmd, const struct XvtRenderSnapshot *s,
 		return 0;
 	}
 	if (!AeronScene_SetMeshSampler(scene,
-				       XvtRemasterConfig_MeshSampler())) {
+				       xvt_remaster_config_mesh_sampler())) {
 		return 0;
 	}
-	XvtFlightPipeline_Post(scene, 0, 0);
-	XvtRemasterShip_SetEnvironment(scene, &p->lighting,
-				       crt ? NULL : &p->camera, camera.pos);
+	xvt_flight_pipeline_post(scene, 0, 0);
+	xvt_remaster_ship_set_environment(scene, &p->lighting,
+					  crt ? NULL : &p->camera, camera.pos);
 	if (mesh) {
 		AeronScene_AddMeshInstance(scene, &instance);
 	}
 	if (crt) {
-		CrtProjectiles(scene, s, p);
-		XvtEffects_Submit(scene, s, NULL, &p->camera, NULL, 0, p);
+		crt_projectiles(scene, s, p);
+		xvt_effects_submit(scene, s, NULL, &p->camera, NULL, 0, p);
 	}
 	if (!AeronScene_Render(scene, cmd)) {
 		return 0;
@@ -443,7 +447,7 @@ static int RenderOne(AeronCommandBuffer *cmd, const struct XvtRenderSnapshot *s,
 			(const float[4]){1, 1, 1, 1}, 1);
 		Aeron_EndRenderPass(pass);
 	}
-	struct XvtPreviewOutput *out = &g_outputs[slot];
+	struct xvt_preview_output *out = &g_outputs[slot];
 	out->snapshot_serial = s->snapshot_serial;
 	out->texture = crt ? AeronScene_ColorTexture(scene)
 			   : Aeron_RenderTargetGetTexture(g_targets[slot]);
@@ -455,59 +459,59 @@ static int RenderOne(AeronCommandBuffer *cmd, const struct XvtRenderSnapshot *s,
 	return 1;
 }
 
-int XvtRemasterPreview_Render(AeronCommandBuffer *cmd,
-			      const struct XvtRenderSnapshot *s, int width,
-			      int height)
+int xvt_remaster_preview_render(AeronCommandBuffer *cmd,
+				const struct xvt_render_snapshot *s, int width,
+				int height)
 {
-	XvtRemasterPreview_BeginFrame();
+	xvt_remaster_preview_begin_frame();
 	for (unsigned i = 0; i < s->preview_count; ++i) {
-		if (!RenderOne(cmd, s, &s->previews[i], i, width, height, 0)) {
+		if (!render_one(cmd, s, &s->previews[i], i, width, height, 0)) {
 			return 0;
 		}
 	}
 	return 1;
 }
 
-int XvtRemasterPreview_RenderCrt(AeronCommandBuffer *cmd,
-				 const struct XvtRenderSnapshot *s, int width,
-				 int height)
+int xvt_remaster_preview_render_crt(AeronCommandBuffer *cmd,
+				    const struct xvt_render_snapshot *s,
+				    int width, int height)
 {
-	if (!XvtRemasterPreview_CrtNeedsRender(s, width, height)) {
+	if (!xvt_remaster_preview_crt_needs_render(s, width, height)) {
 		return 1;
 	}
-	if (!RenderOne(cmd, s, &s->cockpit.crt, XVT_SNAP_PREVIEWS, width,
-		       height, 1)) {
-		XvtRemasterPreview_InvalidateCrt();
+	if (!render_one(cmd, s, &s->cockpit.crt, XVT_SNAP_PREVIEWS, width,
+			height, 1)) {
+		xvt_remaster_preview_invalidate_crt();
 		return 0;
 	}
 	size_t bytes =
-		offsetof(struct CrtDependencies, objects) +
-		g_crtCandidate.object_count * sizeof *g_crtCandidate.objects;
-	memcpy(&g_crtDependencies, &g_crtCandidate, bytes);
-	g_crtValid = 1;
+		offsetof(struct crt_dependencies, objects) +
+		g_crt_candidate.object_count * sizeof *g_crt_candidate.objects;
+	memcpy(&g_crt_dependencies, &g_crt_candidate, bytes);
+	g_crt_valid = 1;
 	return 1;
 }
 
-void XvtRemasterPreview_BeginFrame(void)
+void xvt_remaster_preview_begin_frame(void)
 {
 	for (unsigned i = 0; i < XVT_SNAP_PREVIEWS; ++i) {
 		g_outputs[i].texture = NULL;
 	}
 }
 
-AeronTexture *XvtRemasterPreview_CrtLinear(void)
+AeronTexture *xvt_remaster_preview_crt_linear(void)
 {
 	return g_outputs[XVT_SNAP_PREVIEWS].texture;
 }
 
-const struct XvtPreviewOutput *XvtRemasterPreview_Output(unsigned slot)
+const struct xvt_preview_output *xvt_remaster_preview_output(unsigned slot)
 {
 	return slot < PREVIEW_SLOTS && g_outputs[slot].texture
 		       ? &g_outputs[slot]
 		       : NULL;
 }
 
-void XvtRemasterPreview_ReleaseFrontend(void)
+void xvt_remaster_preview_release_frontend(void)
 {
 	AeronScene_Destroy(g_scene);
 	g_scene = NULL;
@@ -520,18 +524,18 @@ void XvtRemasterPreview_ReleaseFrontend(void)
 		g_targets[i] = NULL;
 		memset(&g_outputs[i], 0, sizeof g_outputs[i]);
 	}
-	g_sceneWidth = g_sceneHeight = g_samples = 0;
+	g_scene_width = g_scene_height = g_samples = 0;
 }
 
-void XvtRemasterPreview_Shutdown(void)
+void xvt_remaster_preview_shutdown(void)
 {
-	XvtRemasterPreview_ReleaseFrontend();
-	XvtRemasterPreview_InvalidateCrt();
+	xvt_remaster_preview_release_frontend();
+	xvt_remaster_preview_invalidate_crt();
 	for (unsigned index = 0; index < 3; ++index) {
-		AeronScene_Destroy(g_crtViews[index].scene);
+		AeronScene_Destroy(g_crt_views[index].scene);
 	}
-	memset(g_crtViews, 0, sizeof g_crtViews);
-	g_crtScene = NULL;
+	memset(g_crt_views, 0, sizeof g_crt_views);
+	g_crt_scene = NULL;
 	memset(&g_outputs[XVT_SNAP_PREVIEWS], 0,
 	       sizeof g_outputs[XVT_SNAP_PREVIEWS]);
 }

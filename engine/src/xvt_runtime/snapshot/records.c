@@ -3,9 +3,9 @@
 #include <stddef.h>
 #include <string.h>
 
-struct XvtSnapshotField {
-	size_t nativeOffset;
-	size_t recordOffset;
+struct xvt_snapshot_field {
+	size_t native_offset;
+	size_t record_offset;
 	size_t size;
 };
 
@@ -18,13 +18,13 @@ struct XvtSnapshotField {
 	 sizeof(((record *)0)->field)}
 
 /* Copy declared fields only: native padding never enters a snapshot or checksum. */
-static void XvtSnapshot_CopyFields(void *record, void *live,
-				   const struct XvtSnapshotField *fields,
-				   size_t count, int restore)
+static void xvt_snapshot_copy_fields(void *record, void *live,
+				     const struct xvt_snapshot_field *fields,
+				     size_t count, int restore)
 {
 	for (size_t i = 0; i < count; ++i) {
-		void *disk = (uint8_t *)record + fields[i].recordOffset;
-		void *native = (uint8_t *)live + fields[i].nativeOffset;
+		void *disk = (uint8_t *)record + fields[i].record_offset;
+		void *native = (uint8_t *)live + fields[i].native_offset;
 		if (restore) {
 			memcpy(native, disk, fields[i].size);
 		} else {
@@ -34,599 +34,620 @@ static void XvtSnapshot_CopyFields(void *record, void *live,
 }
 
 #define OBJECT_RECORD_FIELD(field)                                             \
-	SNAPSHOT_FIELD(struct ObjectRecord, struct XvtSnapshotObjectRecord,    \
-		       field)
-static const struct XvtSnapshotField g_ObjectRecordFields[] = {
-	OBJECT_RECORD_FIELD(objectSignature),
-	OBJECT_RECORD_FIELD(genusId),
-	OBJECT_RECORD_FIELD(objectType),
+	SNAPSHOT_FIELD(struct object_record,                                   \
+		       struct xvt_snapshot_object_record, field)
+static const struct xvt_snapshot_field g_object_record_fields[] = {
+	OBJECT_RECORD_FIELD(object_signature),
+	OBJECT_RECORD_FIELD(genus_id),
+	OBJECT_RECORD_FIELD(object_type),
 	OBJECT_RECORD_FIELD(world_x),
 	OBJECT_RECORD_FIELD(world_y),
 	OBJECT_RECORD_FIELD(world_z),
 	OBJECT_RECORD_FIELD(yaw),
 	OBJECT_RECORD_FIELD(pitch),
 	OBJECT_RECORD_FIELD(roll),
-	OBJECT_RECORD_FIELD(flightGroupIdx),
-	OBJECT_RECORD_FIELD(typeSpecificWord),
-	OBJECT_RECORD_FIELD(typeSpecificByte),
-	OBJECT_RECORD_FIELD(playerOwnerIdx),
+	OBJECT_RECORD_FIELD(flight_group_idx),
+	OBJECT_RECORD_FIELD(type_specific_word),
+	OBJECT_RECORD_FIELD(type_specific_byte),
+	OBJECT_RECORD_FIELD(player_owner_idx),
 };
 #undef OBJECT_RECORD_FIELD
 
-void XvtSnapshot_EncodeObjectRecord(struct XvtSnapshotObjectRecord *record,
-				    const struct ObjectRecord *live)
+void xvt_snapshot_encode_object_record(
+	struct xvt_snapshot_object_record *record,
+	const struct object_record *live)
 {
-	XvtSnapshot_CopyFields(
-		(void *)record, (void *)live, g_ObjectRecordFields,
-		sizeof(g_ObjectRecordFields) / sizeof(g_ObjectRecordFields[0]),
-		0);
+	xvt_snapshot_copy_fields((void *)record, (void *)live,
+				 g_object_record_fields,
+				 sizeof(g_object_record_fields) /
+					 sizeof(g_object_record_fields[0]),
+				 0);
 	record->mobj =
 		live->mobj
-			? (uint32_t)((live->mobj - g_mobileObjectPoolBase) *
+			? (uint32_t)((live->mobj - g_mobile_object_pool_base) *
 					     sizeof(struct
-						    XvtSnapshotMobileObject) +
+						    xvt_snapshot_mobile_object) +
 				     1)
 			: 0;
 }
 
-void XvtSnapshot_DecodeObjectRecord(
-	struct ObjectRecord *live, const struct XvtSnapshotObjectRecord *record)
+void xvt_snapshot_decode_object_record(
+	struct object_record *live,
+	const struct xvt_snapshot_object_record *record)
 {
-	XvtSnapshot_CopyFields(
-		(void *)record, (void *)live, g_ObjectRecordFields,
-		sizeof(g_ObjectRecordFields) / sizeof(g_ObjectRecordFields[0]),
-		1);
-	live->mobj = record->mobj
-			     ? &g_mobileObjectPoolBase
-				       [(record->mobj - 1) /
-					sizeof(struct XvtSnapshotMobileObject)]
-			     : NULL;
+	xvt_snapshot_copy_fields((void *)record, (void *)live,
+				 g_object_record_fields,
+				 sizeof(g_object_record_fields) /
+					 sizeof(g_object_record_fields[0]),
+				 1);
+	live->mobj =
+		record->mobj
+			? &g_mobile_object_pool_base
+				  [(record->mobj - 1) /
+				   sizeof(struct xvt_snapshot_mobile_object)]
+			: NULL;
 }
 
 #define MOBILE_OBJECT_FIELD(field)                                             \
-	SNAPSHOT_FIELD(struct MobileObject, struct XvtSnapshotMobileObject,    \
-		       field)
-static const struct XvtSnapshotField g_MobileObjectFields[] = {
+	SNAPSHOT_FIELD(struct mobile_object,                                   \
+		       struct xvt_snapshot_mobile_object, field)
+static const struct xvt_snapshot_field g_mobile_object_fields[] = {
 	MOBILE_OBJECT_FIELD(family),
-	MOBILE_OBJECT_FIELD(effectSize),
-	MOBILE_OBJECT_FIELD(simStateTimestamp),
-	MOBILE_OBJECT_FIELD(prevWorldX),
-	MOBILE_OBJECT_FIELD(prevWorldY),
-	MOBILE_OBJECT_FIELD(prevWorldZ),
-	MOBILE_OBJECT_FIELD(proximityList.count),
-	MOBILE_OBJECT_FIELD(proximityList.contactTicks),
-	MOBILE_OBJECT_FIELD(proximityList.objIdx),
-	MOBILE_OBJECT_FIELD(proximityList.rebuildTicks),
-	MOBILE_OBJECT_FIELD(rollImpulseRate),
+	MOBILE_OBJECT_FIELD(effect_size),
+	MOBILE_OBJECT_FIELD(sim_state_timestamp),
+	MOBILE_OBJECT_FIELD(prev_world_x),
+	MOBILE_OBJECT_FIELD(prev_world_y),
+	MOBILE_OBJECT_FIELD(prev_world_z),
+	MOBILE_OBJECT_FIELD(proximity_list.count),
+	MOBILE_OBJECT_FIELD(proximity_list.contact_ticks),
+	MOBILE_OBJECT_FIELD(proximity_list.obj_idx),
+	MOBILE_OBJECT_FIELD(proximity_list.rebuild_ticks),
+	MOBILE_OBJECT_FIELD(roll_impulse_rate),
 	MOBILE_OBJECT_FIELD(speed),
-	MOBILE_OBJECT_FIELD(speedRemainder),
-	MOBILE_OBJECT_FIELD(damageAmount),
-	MOBILE_OBJECT_FIELD(lifetimeTimer),
-	MOBILE_OBJECT_FIELD(secondsAlive),
-	MOBILE_OBJECT_FIELD(sourceObjIdx),
-	MOBILE_OBJECT_FIELD(sourceObjectType),
+	MOBILE_OBJECT_FIELD(speed_remainder),
+	MOBILE_OBJECT_FIELD(damage_amount),
+	MOBILE_OBJECT_FIELD(lifetime_timer),
+	MOBILE_OBJECT_FIELD(seconds_alive),
+	MOBILE_OBJECT_FIELD(source_obj_idx),
+	MOBILE_OBJECT_FIELD(source_object_type),
 	MOBILE_OBJECT_FIELD(iff),
 	MOBILE_OBJECT_FIELD(team),
-	MOBILE_OBJECT_FIELD(nodeSwitchIndex),
-	MOBILE_OBJECT_FIELD(moveVectorDirty),
-	MOBILE_OBJECT_FIELD(moveX),
-	MOBILE_OBJECT_FIELD(moveY),
-	MOBILE_OBJECT_FIELD(moveZ),
-	MOBILE_OBJECT_FIELD(orientMatrixDirty),
-	MOBILE_OBJECT_FIELD(cachedFwdX),
-	MOBILE_OBJECT_FIELD(cachedFwdY),
-	MOBILE_OBJECT_FIELD(cachedFwdZ),
-	MOBILE_OBJECT_FIELD(cachedSideX),
-	MOBILE_OBJECT_FIELD(cachedSideY),
-	MOBILE_OBJECT_FIELD(cachedSideZ),
-	MOBILE_OBJECT_FIELD(cachedUpX),
-	MOBILE_OBJECT_FIELD(cachedUpY),
-	MOBILE_OBJECT_FIELD(cachedUpZ),
+	MOBILE_OBJECT_FIELD(node_switch_index),
+	MOBILE_OBJECT_FIELD(move_vector_dirty),
+	MOBILE_OBJECT_FIELD(move_x),
+	MOBILE_OBJECT_FIELD(move_y),
+	MOBILE_OBJECT_FIELD(move_z),
+	MOBILE_OBJECT_FIELD(orient_matrix_dirty),
+	MOBILE_OBJECT_FIELD(cached_fwd_x),
+	MOBILE_OBJECT_FIELD(cached_fwd_y),
+	MOBILE_OBJECT_FIELD(cached_fwd_z),
+	MOBILE_OBJECT_FIELD(cached_side_x),
+	MOBILE_OBJECT_FIELD(cached_side_y),
+	MOBILE_OBJECT_FIELD(cached_side_z),
+	MOBILE_OBJECT_FIELD(cached_up_x),
+	MOBILE_OBJECT_FIELD(cached_up_y),
+	MOBILE_OBJECT_FIELD(cached_up_z),
 };
 #undef MOBILE_OBJECT_FIELD
 
-void XvtSnapshot_EncodeMobileObject(struct XvtSnapshotMobileObject *record,
-				    const struct MobileObject *live)
+void xvt_snapshot_encode_mobile_object(
+	struct xvt_snapshot_mobile_object *record,
+	const struct mobile_object *live)
 {
-	XvtSnapshot_CopyFields(
-		(void *)record, (void *)live, g_MobileObjectFields,
-		sizeof(g_MobileObjectFields) / sizeof(g_MobileObjectFields[0]),
-		0);
-	record->pWarheadGuidance =
-		live->pWarheadGuidance
-			? (uint32_t)((live->pWarheadGuidance -
-				      g_projectileGuidanceStates) *
+	xvt_snapshot_copy_fields((void *)record, (void *)live,
+				 g_mobile_object_fields,
+				 sizeof(g_mobile_object_fields) /
+					 sizeof(g_mobile_object_fields[0]),
+				 0);
+	record->p_warhead_guidance =
+		live->p_warhead_guidance
+			? (uint32_t)((live->p_warhead_guidance -
+				      g_projectile_guidance_states) *
 					     sizeof(struct
-						    WarheadGuidanceState) +
+						    warhead_guidance_state) +
 				     1)
 			: 0;
-	record->pCraft =
-		live->pCraft ? (uint32_t)((live->pCraft - g_craftDataPoolBase) *
-						  sizeof(struct
-							 XvtSnapshotCraftData) +
-					  1)
-			     : 0;
-	record->pCharData =
-		live->pCharData
-			? (uint32_t)((live->pCharData -
-				      g_mobileObjectCharDataPool) *
+	record->p_craft =
+		live->p_craft
+			? (uint32_t)((live->p_craft - g_craft_data_pool_base) *
 					     sizeof(struct
-						    XvtSnapshotMobileObjectCharData) +
+						    xvt_snapshot_craft_data) +
+				     1)
+			: 0;
+	record->p_char_data =
+		live->p_char_data
+			? (uint32_t)((live->p_char_data -
+				      g_mobile_object_char_data_pool) *
+					     sizeof(struct
+						    xvt_snapshot_mobile_object_char_data) +
 				     1)
 			: 0;
 }
 
-void XvtSnapshot_DecodeMobileObject(
-	struct MobileObject *live, const struct XvtSnapshotMobileObject *record)
+void xvt_snapshot_decode_mobile_object(
+	struct mobile_object *live,
+	const struct xvt_snapshot_mobile_object *record)
 {
-	XvtSnapshot_CopyFields(
-		(void *)record, (void *)live, g_MobileObjectFields,
-		sizeof(g_MobileObjectFields) / sizeof(g_MobileObjectFields[0]),
-		1);
-	live->pWarheadGuidance =
-		record->pWarheadGuidance
-			? &g_projectileGuidanceStates
-				  [(record->pWarheadGuidance - 1) /
-				   sizeof(struct WarheadGuidanceState)]
+	xvt_snapshot_copy_fields((void *)record, (void *)live,
+				 g_mobile_object_fields,
+				 sizeof(g_mobile_object_fields) /
+					 sizeof(g_mobile_object_fields[0]),
+				 1);
+	live->p_warhead_guidance =
+		record->p_warhead_guidance
+			? &g_projectile_guidance_states
+				  [(record->p_warhead_guidance - 1) /
+				   sizeof(struct warhead_guidance_state)]
 			: NULL;
-	live->pCraft = record->pCraft
-			       ? &g_craftDataPoolBase
-					 [(record->pCraft - 1) /
-					  sizeof(struct XvtSnapshotCraftData)]
-			       : NULL;
-	live->pCharData =
-		record->pCharData
-			? &g_mobileObjectCharDataPool
-				  [(record->pCharData - 1) /
+	live->p_craft =
+		record->p_craft
+			? &g_craft_data_pool_base
+				  [(record->p_craft - 1) /
+				   sizeof(struct xvt_snapshot_craft_data)]
+			: NULL;
+	live->p_char_data =
+		record->p_char_data
+			? &g_mobile_object_char_data_pool
+				  [(record->p_char_data - 1) /
 				   sizeof(struct
-					  XvtSnapshotMobileObjectCharData)]
+					  xvt_snapshot_mobile_object_char_data)]
 			: NULL;
 }
 
 #define CRAFT_DATA_FIELD(field)                                                \
-	SNAPSHOT_FIELD(struct CraftData, struct XvtSnapshotCraftData, field)
-static const struct XvtSnapshotField g_CraftDataFields[] = {
-	CRAFT_DATA_FIELD(craftIndexInGroup),
-	CRAFT_DATA_FIELD(modelIndex),
+	SNAPSHOT_FIELD(struct craft_data, struct xvt_snapshot_craft_data, field)
+static const struct xvt_snapshot_field g_craft_data_fields[] = {
+	CRAFT_DATA_FIELD(craft_index_in_group),
+	CRAFT_DATA_FIELD(model_index),
 	CRAFT_DATA_FIELD(leader_obj_idx),
 	CRAFT_DATA_FIELD(unused006),
-	CRAFT_DATA_FIELD(objectKind),
-	CRAFT_DATA_FIELD(missionAccountingDone),
-	CRAFT_DATA_FIELD(aiSkill),
-	CRAFT_DATA_FIELD(unused00B),
+	CRAFT_DATA_FIELD(object_kind),
+	CRAFT_DATA_FIELD(mission_accounting_done),
+	CRAFT_DATA_FIELD(ai_skill),
+	CRAFT_DATA_FIELD(unused00b),
 	CRAFT_DATA_FIELD(pitch),
 	CRAFT_DATA_FIELD(yaw),
-	CRAFT_DATA_FIELD(breakupPitchRate),
-	CRAFT_DATA_FIELD(breakupYawRate),
-	CRAFT_DATA_FIELD(beamEffectAccum),
-	CRAFT_DATA_FIELD(sFoilState),
-	CRAFT_DATA_FIELD(aiController.currentOrderSlot),
-	CRAFT_DATA_FIELD(aiController.orderProgress),
-	CRAFT_DATA_FIELD(aiController.skippedToOrder4),
-	CRAFT_DATA_FIELD(aiController.runningPlanId),
-	CRAFT_DATA_FIELD(aiController.currentPlanId),
-	CRAFT_DATA_FIELD(aiController.waypointIndex),
-	CRAFT_DATA_FIELD(aiController.savedPlanId),
-	CRAFT_DATA_FIELD(aiController.thinkInterval),
-	CRAFT_DATA_FIELD(aiController.thinkTimer),
-	CRAFT_DATA_FIELD(aiController.savedRandSeed),
-	CRAFT_DATA_FIELD(aiController.targetObjIdx),
-	CRAFT_DATA_FIELD(aiController.targetSignature),
-	CRAFT_DATA_FIELD(aiController.targetComponent),
-	CRAFT_DATA_FIELD(aiController.hasLiveTarget),
-	CRAFT_DATA_FIELD(aiController.aimPointX),
-	CRAFT_DATA_FIELD(aiController.aimPointY),
-	CRAFT_DATA_FIELD(aiController.aimPointZ),
-	CRAFT_DATA_FIELD(aiController.candidateTargetIdx),
-	CRAFT_DATA_FIELD(aiController.escortTargetFG),
-	CRAFT_DATA_FIELD(aiController.targetZAngle),
-	CRAFT_DATA_FIELD(aiController.targetRoll),
-	CRAFT_DATA_FIELD(aiController.targetXYAngle),
-	CRAFT_DATA_FIELD(aiController.maneuverMode),
-	CRAFT_DATA_FIELD(aiController.maneuverPhase),
-	CRAFT_DATA_FIELD(aiController.maneuverTimer),
-	CRAFT_DATA_FIELD(aiController.secondaryManeuverTimer),
-	CRAFT_DATA_FIELD(carriedObjectIndex),
-	CRAFT_DATA_FIELD(carrierObjIdx),
-	CRAFT_DATA_FIELD(lastAttackerObjIdx),
-	CRAFT_DATA_FIELD(lastHitMissionSecond),
-	CRAFT_DATA_FIELD(aiFlight.threatObjIdx),
-	CRAFT_DATA_FIELD(aiFlight.impactObjIdx),
-	CRAFT_DATA_FIELD(aiFlight.goHomeFlag),
-	CRAFT_DATA_FIELD(aiFlight.missionAbortedFlag),
-	CRAFT_DATA_FIELD(aiFlight.departTimerFlag),
-	CRAFT_DATA_FIELD(aiFlight.departClockHours),
-	CRAFT_DATA_FIELD(aiFlight.departClockMinutes),
-	CRAFT_DATA_FIELD(aiFlight.departClockSeconds),
-	CRAFT_DATA_FIELD(aiFlight.warheadsFiredThisManeuver),
-	CRAFT_DATA_FIELD(aiFlight.hitsThisManeuver),
-	CRAFT_DATA_FIELD(aiFlight.boardedAccountingDone),
-	CRAFT_DATA_FIELD(aiFlight.timesBoarded),
-	CRAFT_DATA_FIELD(aiFlight.dockingAccountingDone),
-	CRAFT_DATA_FIELD(aiFlight.dockedTargetCount),
-	CRAFT_DATA_FIELD(aiFlight.dockedTargetSignatures),
-	CRAFT_DATA_FIELD(aiFlight.maxSpeedCache),
-	CRAFT_DATA_FIELD(aiFlight.motionScale),
-	CRAFT_DATA_FIELD(aiFlight.climbState),
-	CRAFT_DATA_FIELD(aiFlight.diveState),
-	CRAFT_DATA_FIELD(aiFlight.pitchRate),
-	CRAFT_DATA_FIELD(aiFlight.pitchAccel),
-	CRAFT_DATA_FIELD(aiFlight.pitchState),
-	CRAFT_DATA_FIELD(aiFlight.pitchThroughLoop),
-	CRAFT_DATA_FIELD(aiFlight.pitchStepScale),
-	CRAFT_DATA_FIELD(aiFlight.rollRate),
-	CRAFT_DATA_FIELD(aiFlight.rollAccel),
-	CRAFT_DATA_FIELD(aiFlight.rollState),
-	CRAFT_DATA_FIELD(aiFlight.rollStep),
-	CRAFT_DATA_FIELD(aiFlight.turnRate),
-	CRAFT_DATA_FIELD(aiFlight.turnAccel),
-	CRAFT_DATA_FIELD(aiFlight.turnState),
-	CRAFT_DATA_FIELD(aiFlight.turnStep),
-	CRAFT_DATA_FIELD(aiFlight.formationType),
-	CRAFT_DATA_FIELD(aiFlight.separation),
-	CRAFT_DATA_FIELD(craftOrdinal),
-	CRAFT_DATA_FIELD(pushAccumX),
-	CRAFT_DATA_FIELD(pushAccumY),
-	CRAFT_DATA_FIELD(pushAccumZ),
-	CRAFT_DATA_FIELD(throttleSpeed),
-	CRAFT_DATA_FIELD(engineOverdriveOff),
-	CRAFT_DATA_FIELD(commandedSpeed),
-	CRAFT_DATA_FIELD(hullDamage),
-	CRAFT_DATA_FIELD(systemDamageHullThreshold),
-	CRAFT_DATA_FIELD(hullMax),
-	CRAFT_DATA_FIELD(subsystemDamage),
-	CRAFT_DATA_FIELD(damageStats.lastSystemHitTime),
-	CRAFT_DATA_FIELD(damageStats.damageReceivedTotal),
-	CRAFT_DATA_FIELD(damageStats.damageReceivedByPlayerOwnedCraft),
-	CRAFT_DATA_FIELD(damageStats.damageFromCollision),
-	CRAFT_DATA_FIELD(damageStats.damageFromStarship),
-	CRAFT_DATA_FIELD(damageStats.damageFromMine),
-	CRAFT_DATA_FIELD(damageStats.damageFromFlightGroupAmount),
-	CRAFT_DATA_FIELD(damageStats.damageFromPlayer),
-	CRAFT_DATA_FIELD(damageStats.damageFromAiSkill),
-	CRAFT_DATA_FIELD(damageStats.installedHudFeatureMask),
-	CRAFT_DATA_FIELD(damageStats.activeHudFeatureMask),
-	CRAFT_DATA_FIELD(systemFlags),
-	CRAFT_DATA_FIELD(workingSubsystems),
-	CRAFT_DATA_FIELD(weaponFireInhibitTimer),
-	CRAFT_DATA_FIELD(unusedMissionFlag),
-	CRAFT_DATA_FIELD(notDisabledAccountingSuppress),
-	CRAFT_DATA_FIELD(capturedByFlightGroup),
-	CRAFT_DATA_FIELD(attackedByTeam),
-	CRAFT_DATA_FIELD(identifiedOrderByTeam),
-	CRAFT_DATA_FIELD(boardingState),
-	CRAFT_DATA_FIELD(specialCargoName),
-	CRAFT_DATA_FIELD(shieldEnergy),
-	CRAFT_DATA_FIELD(shieldRechargeLevel),
-	CRAFT_DATA_FIELD(shieldDistribMode),
-	CRAFT_DATA_FIELD(cannonGroupCount),
-	CRAFT_DATA_FIELD(laserRechargeLevel),
-	CRAFT_DATA_FIELD(laserSlotCount),
-	CRAFT_DATA_FIELD(laserState),
-	CRAFT_DATA_FIELD(warheadLauncherCount),
-	CRAFT_DATA_FIELD(warheadSlotTypeIds),
-	CRAFT_DATA_FIELD(warheadLauncherFlags),
-	CRAFT_DATA_FIELD(warheadLauncherCooldownTicks),
-	CRAFT_DATA_FIELD(warheadLockTicks),
-	CRAFT_DATA_FIELD(beamTypeId),
-	CRAFT_DATA_FIELD(beamRechargeLevel),
-	CRAFT_DATA_FIELD(beamCharge),
-	CRAFT_DATA_FIELD(beamActive),
-	CRAFT_DATA_FIELD(beamOutput),
-	CRAFT_DATA_FIELD(beamTargetObjIdx),
-	CRAFT_DATA_FIELD(cmTypeId),
-	CRAFT_DATA_FIELD(cmAmmoCount),
-	CRAFT_DATA_FIELD(chaffActiveSeconds),
-	CRAFT_DATA_FIELD(cmFireCooldownTimer),
-	CRAFT_DATA_FIELD(weaponStats),
+	CRAFT_DATA_FIELD(breakup_pitch_rate),
+	CRAFT_DATA_FIELD(breakup_yaw_rate),
+	CRAFT_DATA_FIELD(beam_effect_accum),
+	CRAFT_DATA_FIELD(s_foil_state),
+	CRAFT_DATA_FIELD(ai_controller.current_order_slot),
+	CRAFT_DATA_FIELD(ai_controller.order_progress),
+	CRAFT_DATA_FIELD(ai_controller.skipped_to_order4),
+	CRAFT_DATA_FIELD(ai_controller.running_plan_id),
+	CRAFT_DATA_FIELD(ai_controller.current_plan_id),
+	CRAFT_DATA_FIELD(ai_controller.waypoint_index),
+	CRAFT_DATA_FIELD(ai_controller.saved_plan_id),
+	CRAFT_DATA_FIELD(ai_controller.think_interval),
+	CRAFT_DATA_FIELD(ai_controller.think_timer),
+	CRAFT_DATA_FIELD(ai_controller.saved_rand_seed),
+	CRAFT_DATA_FIELD(ai_controller.target_obj_idx),
+	CRAFT_DATA_FIELD(ai_controller.target_signature),
+	CRAFT_DATA_FIELD(ai_controller.target_component),
+	CRAFT_DATA_FIELD(ai_controller.has_live_target),
+	CRAFT_DATA_FIELD(ai_controller.aim_point_x),
+	CRAFT_DATA_FIELD(ai_controller.aim_point_y),
+	CRAFT_DATA_FIELD(ai_controller.aim_point_z),
+	CRAFT_DATA_FIELD(ai_controller.candidate_target_idx),
+	CRAFT_DATA_FIELD(ai_controller.escort_target_fg),
+	CRAFT_DATA_FIELD(ai_controller.target_z_angle),
+	CRAFT_DATA_FIELD(ai_controller.target_roll),
+	CRAFT_DATA_FIELD(ai_controller.target_xy_angle),
+	CRAFT_DATA_FIELD(ai_controller.maneuver_mode),
+	CRAFT_DATA_FIELD(ai_controller.maneuver_phase),
+	CRAFT_DATA_FIELD(ai_controller.maneuver_timer),
+	CRAFT_DATA_FIELD(ai_controller.secondary_maneuver_timer),
+	CRAFT_DATA_FIELD(carried_object_index),
+	CRAFT_DATA_FIELD(carrier_obj_idx),
+	CRAFT_DATA_FIELD(last_attacker_obj_idx),
+	CRAFT_DATA_FIELD(last_hit_mission_second),
+	CRAFT_DATA_FIELD(ai_flight.threat_obj_idx),
+	CRAFT_DATA_FIELD(ai_flight.impact_obj_idx),
+	CRAFT_DATA_FIELD(ai_flight.go_home_flag),
+	CRAFT_DATA_FIELD(ai_flight.mission_aborted_flag),
+	CRAFT_DATA_FIELD(ai_flight.depart_timer_flag),
+	CRAFT_DATA_FIELD(ai_flight.depart_clock_hours),
+	CRAFT_DATA_FIELD(ai_flight.depart_clock_minutes),
+	CRAFT_DATA_FIELD(ai_flight.depart_clock_seconds),
+	CRAFT_DATA_FIELD(ai_flight.warheads_fired_this_maneuver),
+	CRAFT_DATA_FIELD(ai_flight.hits_this_maneuver),
+	CRAFT_DATA_FIELD(ai_flight.boarded_accounting_done),
+	CRAFT_DATA_FIELD(ai_flight.times_boarded),
+	CRAFT_DATA_FIELD(ai_flight.docking_accounting_done),
+	CRAFT_DATA_FIELD(ai_flight.docked_target_count),
+	CRAFT_DATA_FIELD(ai_flight.docked_target_signatures),
+	CRAFT_DATA_FIELD(ai_flight.max_speed_cache),
+	CRAFT_DATA_FIELD(ai_flight.motion_scale),
+	CRAFT_DATA_FIELD(ai_flight.climb_state),
+	CRAFT_DATA_FIELD(ai_flight.dive_state),
+	CRAFT_DATA_FIELD(ai_flight.pitch_rate),
+	CRAFT_DATA_FIELD(ai_flight.pitch_accel),
+	CRAFT_DATA_FIELD(ai_flight.pitch_state),
+	CRAFT_DATA_FIELD(ai_flight.pitch_through_loop),
+	CRAFT_DATA_FIELD(ai_flight.pitch_step_scale),
+	CRAFT_DATA_FIELD(ai_flight.roll_rate),
+	CRAFT_DATA_FIELD(ai_flight.roll_accel),
+	CRAFT_DATA_FIELD(ai_flight.roll_state),
+	CRAFT_DATA_FIELD(ai_flight.roll_step),
+	CRAFT_DATA_FIELD(ai_flight.turn_rate),
+	CRAFT_DATA_FIELD(ai_flight.turn_accel),
+	CRAFT_DATA_FIELD(ai_flight.turn_state),
+	CRAFT_DATA_FIELD(ai_flight.turn_step),
+	CRAFT_DATA_FIELD(ai_flight.formation_type),
+	CRAFT_DATA_FIELD(ai_flight.separation),
+	CRAFT_DATA_FIELD(craft_ordinal),
+	CRAFT_DATA_FIELD(push_accum_x),
+	CRAFT_DATA_FIELD(push_accum_y),
+	CRAFT_DATA_FIELD(push_accum_z),
+	CRAFT_DATA_FIELD(throttle_speed),
+	CRAFT_DATA_FIELD(engine_overdrive_off),
+	CRAFT_DATA_FIELD(commanded_speed),
+	CRAFT_DATA_FIELD(hull_damage),
+	CRAFT_DATA_FIELD(system_damage_hull_threshold),
+	CRAFT_DATA_FIELD(hull_max),
+	CRAFT_DATA_FIELD(subsystem_damage),
+	CRAFT_DATA_FIELD(damage_stats.last_system_hit_time),
+	CRAFT_DATA_FIELD(damage_stats.damage_received_total),
+	CRAFT_DATA_FIELD(damage_stats.damage_received_by_player_owned_craft),
+	CRAFT_DATA_FIELD(damage_stats.damage_from_collision),
+	CRAFT_DATA_FIELD(damage_stats.damage_from_starship),
+	CRAFT_DATA_FIELD(damage_stats.damage_from_mine),
+	CRAFT_DATA_FIELD(damage_stats.damage_from_flight_group_amount),
+	CRAFT_DATA_FIELD(damage_stats.damage_from_player),
+	CRAFT_DATA_FIELD(damage_stats.damage_from_ai_skill),
+	CRAFT_DATA_FIELD(damage_stats.installed_hud_feature_mask),
+	CRAFT_DATA_FIELD(damage_stats.active_hud_feature_mask),
+	CRAFT_DATA_FIELD(system_flags),
+	CRAFT_DATA_FIELD(working_subsystems),
+	CRAFT_DATA_FIELD(weapon_fire_inhibit_timer),
+	CRAFT_DATA_FIELD(unused_mission_flag),
+	CRAFT_DATA_FIELD(not_disabled_accounting_suppress),
+	CRAFT_DATA_FIELD(captured_by_flight_group),
+	CRAFT_DATA_FIELD(attacked_by_team),
+	CRAFT_DATA_FIELD(identified_order_by_team),
+	CRAFT_DATA_FIELD(boarding_state),
+	CRAFT_DATA_FIELD(special_cargo_name),
+	CRAFT_DATA_FIELD(shield_energy),
+	CRAFT_DATA_FIELD(shield_recharge_level),
+	CRAFT_DATA_FIELD(shield_distrib_mode),
+	CRAFT_DATA_FIELD(cannon_group_count),
+	CRAFT_DATA_FIELD(laser_recharge_level),
+	CRAFT_DATA_FIELD(laser_slot_count),
+	CRAFT_DATA_FIELD(laser_state),
+	CRAFT_DATA_FIELD(warhead_launcher_count),
+	CRAFT_DATA_FIELD(warhead_slot_type_ids),
+	CRAFT_DATA_FIELD(warhead_launcher_flags),
+	CRAFT_DATA_FIELD(warhead_launcher_cooldown_ticks),
+	CRAFT_DATA_FIELD(warhead_lock_ticks),
+	CRAFT_DATA_FIELD(beam_type_id),
+	CRAFT_DATA_FIELD(beam_recharge_level),
+	CRAFT_DATA_FIELD(beam_charge),
+	CRAFT_DATA_FIELD(beam_active),
+	CRAFT_DATA_FIELD(beam_output),
+	CRAFT_DATA_FIELD(beam_target_obj_idx),
+	CRAFT_DATA_FIELD(cm_type_id),
+	CRAFT_DATA_FIELD(cm_ammo_count),
+	CRAFT_DATA_FIELD(chaff_active_seconds),
+	CRAFT_DATA_FIELD(cm_fire_cooldown_timer),
+	CRAFT_DATA_FIELD(weapon_stats),
 	CRAFT_DATA_FIELD(unused256),
-	CRAFT_DATA_FIELD(field_29F),
-	CRAFT_DATA_FIELD(systemDisplaySlotBySystem),
-	CRAFT_DATA_FIELD(systemHealth),
-	CRAFT_DATA_FIELD(systemRepairSeconds),
-	CRAFT_DATA_FIELD(componentState),
-	CRAFT_DATA_FIELD(meshRotation),
-	CRAFT_DATA_FIELD(componentHp),
-	CRAFT_DATA_FIELD(playerCommandAvoidTargetObjIdx),
-	CRAFT_DATA_FIELD(weaponSlots),
-	CRAFT_DATA_FIELD(effectiveAiObjectSignature),
-	CRAFT_DATA_FIELD(turretTargetStates),
-	CRAFT_DATA_FIELD(unused3F2),
+	CRAFT_DATA_FIELD(field_29f),
+	CRAFT_DATA_FIELD(system_display_slot_by_system),
+	CRAFT_DATA_FIELD(system_health),
+	CRAFT_DATA_FIELD(system_repair_seconds),
+	CRAFT_DATA_FIELD(component_state),
+	CRAFT_DATA_FIELD(mesh_rotation),
+	CRAFT_DATA_FIELD(component_hp),
+	CRAFT_DATA_FIELD(player_command_avoid_target_obj_idx),
+	CRAFT_DATA_FIELD(weapon_slots),
+	CRAFT_DATA_FIELD(effective_ai_object_signature),
+	CRAFT_DATA_FIELD(turret_target_states),
+	CRAFT_DATA_FIELD(unused3f2),
 };
 #undef CRAFT_DATA_FIELD
 
-void XvtSnapshot_EncodeCraftData(struct XvtSnapshotCraftData *record,
-				 const struct CraftData *live)
+void xvt_snapshot_encode_craft_data(struct xvt_snapshot_craft_data *record,
+				    const struct craft_data *live)
 {
-	XvtSnapshot_CopyFields(
-		(void *)record, (void *)live, g_CraftDataFields,
-		sizeof(g_CraftDataFields) / sizeof(g_CraftDataFields[0]), 0);
-	for (size_t i = 0; i < sizeof(record->turretObjectLinks) /
-				       sizeof(record->turretObjectLinks[0]);
+	xvt_snapshot_copy_fields(
+		(void *)record, (void *)live, g_craft_data_fields,
+		sizeof(g_craft_data_fields) / sizeof(g_craft_data_fields[0]),
+		0);
+	for (size_t i = 0; i < sizeof(record->turret_object_links) /
+				       sizeof(record->turret_object_links[0]);
 	     ++i) {
-		record->turretObjectLinks[i] =
-			live->turretObjectLinks[i]
-				? (uint32_t)((live->turretObjectLinks[i] -
-					      g_objectTable) *
+		record->turret_object_links[i] =
+			live->turret_object_links[i]
+				? (uint32_t)((live->turret_object_links[i] -
+					      g_object_table) *
 						     sizeof(struct
-							    XvtSnapshotObjectRecord) +
+							    xvt_snapshot_object_record) +
 					     1)
 				: 0;
 	}
-	record->effectiveAiObjectLink =
-		live->effectiveAiObjectLink
-			? (uint32_t)((live->effectiveAiObjectLink -
-				      g_objectTable) *
+	record->effective_ai_object_link =
+		live->effective_ai_object_link
+			? (uint32_t)((live->effective_ai_object_link -
+				      g_object_table) *
 					     sizeof(struct
-						    XvtSnapshotObjectRecord) +
+						    xvt_snapshot_object_record) +
 				     1)
 			: 0;
 }
 
-void XvtSnapshot_DecodeCraftData(struct CraftData *live,
-				 const struct XvtSnapshotCraftData *record)
+void xvt_snapshot_decode_craft_data(
+	struct craft_data *live, const struct xvt_snapshot_craft_data *record)
 {
-	XvtSnapshot_CopyFields(
-		(void *)record, (void *)live, g_CraftDataFields,
-		sizeof(g_CraftDataFields) / sizeof(g_CraftDataFields[0]), 1);
-	for (size_t i = 0; i < sizeof(record->turretObjectLinks) /
-				       sizeof(record->turretObjectLinks[0]);
+	xvt_snapshot_copy_fields(
+		(void *)record, (void *)live, g_craft_data_fields,
+		sizeof(g_craft_data_fields) / sizeof(g_craft_data_fields[0]),
+		1);
+	for (size_t i = 0; i < sizeof(record->turret_object_links) /
+				       sizeof(record->turret_object_links[0]);
 	     ++i) {
-		live->turretObjectLinks[i] =
-			record->turretObjectLinks[i]
-				? &g_objectTable
-					  [(record->turretObjectLinks[i] - 1) /
+		live->turret_object_links[i] =
+			record->turret_object_links[i]
+				? &g_object_table
+					  [(record->turret_object_links[i] -
+					    1) /
 					   sizeof(struct
-						  XvtSnapshotObjectRecord)]
+						  xvt_snapshot_object_record)]
 				: NULL;
 	}
-	live->effectiveAiObjectLink =
-		record->effectiveAiObjectLink
-			? &g_objectTable[(record->effectiveAiObjectLink - 1) /
-					 sizeof(struct XvtSnapshotObjectRecord)]
+	live->effective_ai_object_link =
+		record->effective_ai_object_link
+			? &g_object_table
+				  [(record->effective_ai_object_link - 1) /
+				   sizeof(struct xvt_snapshot_object_record)]
 			: NULL;
 }
 
 #define MOBILE_OBJECT_CHAR_DATA_FIELD(field)                                   \
-	SNAPSHOT_FIELD(struct MobileObjectCharData,                            \
-		       struct XvtSnapshotMobileObjectCharData, field)
-static const struct XvtSnapshotField g_MobileObjectCharDataFields[] = {
-	MOBILE_OBJECT_CHAR_DATA_FIELD(skillValue),
+	SNAPSHOT_FIELD(struct mobile_object_char_data,                         \
+		       struct xvt_snapshot_mobile_object_char_data, field)
+static const struct xvt_snapshot_field g_mobile_object_char_data_fields[] = {
+	MOBILE_OBJECT_CHAR_DATA_FIELD(skill_value),
 	MOBILE_OBJECT_CHAR_DATA_FIELD(unused02),
-	MOBILE_OBJECT_CHAR_DATA_FIELD(aiController.currentOrderSlot),
-	MOBILE_OBJECT_CHAR_DATA_FIELD(aiController.orderProgress),
-	MOBILE_OBJECT_CHAR_DATA_FIELD(aiController.skippedToOrder4),
-	MOBILE_OBJECT_CHAR_DATA_FIELD(aiController.runningPlanId),
-	MOBILE_OBJECT_CHAR_DATA_FIELD(aiController.currentPlanId),
-	MOBILE_OBJECT_CHAR_DATA_FIELD(aiController.waypointIndex),
-	MOBILE_OBJECT_CHAR_DATA_FIELD(aiController.savedPlanId),
-	MOBILE_OBJECT_CHAR_DATA_FIELD(aiController.thinkInterval),
-	MOBILE_OBJECT_CHAR_DATA_FIELD(aiController.thinkTimer),
-	MOBILE_OBJECT_CHAR_DATA_FIELD(aiController.savedRandSeed),
-	MOBILE_OBJECT_CHAR_DATA_FIELD(aiController.targetObjIdx),
-	MOBILE_OBJECT_CHAR_DATA_FIELD(aiController.targetSignature),
-	MOBILE_OBJECT_CHAR_DATA_FIELD(aiController.targetComponent),
-	MOBILE_OBJECT_CHAR_DATA_FIELD(aiController.hasLiveTarget),
-	MOBILE_OBJECT_CHAR_DATA_FIELD(aiController.aimPointX),
-	MOBILE_OBJECT_CHAR_DATA_FIELD(aiController.aimPointY),
-	MOBILE_OBJECT_CHAR_DATA_FIELD(aiController.aimPointZ),
-	MOBILE_OBJECT_CHAR_DATA_FIELD(aiController.candidateTargetIdx),
-	MOBILE_OBJECT_CHAR_DATA_FIELD(aiController.escortTargetFG),
-	MOBILE_OBJECT_CHAR_DATA_FIELD(aiController.targetZAngle),
-	MOBILE_OBJECT_CHAR_DATA_FIELD(aiController.targetRoll),
-	MOBILE_OBJECT_CHAR_DATA_FIELD(aiController.targetXYAngle),
-	MOBILE_OBJECT_CHAR_DATA_FIELD(aiController.maneuverMode),
-	MOBILE_OBJECT_CHAR_DATA_FIELD(aiController.maneuverPhase),
-	MOBILE_OBJECT_CHAR_DATA_FIELD(aiController.maneuverTimer),
-	MOBILE_OBJECT_CHAR_DATA_FIELD(aiController.secondaryManeuverTimer),
+	MOBILE_OBJECT_CHAR_DATA_FIELD(ai_controller.current_order_slot),
+	MOBILE_OBJECT_CHAR_DATA_FIELD(ai_controller.order_progress),
+	MOBILE_OBJECT_CHAR_DATA_FIELD(ai_controller.skipped_to_order4),
+	MOBILE_OBJECT_CHAR_DATA_FIELD(ai_controller.running_plan_id),
+	MOBILE_OBJECT_CHAR_DATA_FIELD(ai_controller.current_plan_id),
+	MOBILE_OBJECT_CHAR_DATA_FIELD(ai_controller.waypoint_index),
+	MOBILE_OBJECT_CHAR_DATA_FIELD(ai_controller.saved_plan_id),
+	MOBILE_OBJECT_CHAR_DATA_FIELD(ai_controller.think_interval),
+	MOBILE_OBJECT_CHAR_DATA_FIELD(ai_controller.think_timer),
+	MOBILE_OBJECT_CHAR_DATA_FIELD(ai_controller.saved_rand_seed),
+	MOBILE_OBJECT_CHAR_DATA_FIELD(ai_controller.target_obj_idx),
+	MOBILE_OBJECT_CHAR_DATA_FIELD(ai_controller.target_signature),
+	MOBILE_OBJECT_CHAR_DATA_FIELD(ai_controller.target_component),
+	MOBILE_OBJECT_CHAR_DATA_FIELD(ai_controller.has_live_target),
+	MOBILE_OBJECT_CHAR_DATA_FIELD(ai_controller.aim_point_x),
+	MOBILE_OBJECT_CHAR_DATA_FIELD(ai_controller.aim_point_y),
+	MOBILE_OBJECT_CHAR_DATA_FIELD(ai_controller.aim_point_z),
+	MOBILE_OBJECT_CHAR_DATA_FIELD(ai_controller.candidate_target_idx),
+	MOBILE_OBJECT_CHAR_DATA_FIELD(ai_controller.escort_target_fg),
+	MOBILE_OBJECT_CHAR_DATA_FIELD(ai_controller.target_z_angle),
+	MOBILE_OBJECT_CHAR_DATA_FIELD(ai_controller.target_roll),
+	MOBILE_OBJECT_CHAR_DATA_FIELD(ai_controller.target_xy_angle),
+	MOBILE_OBJECT_CHAR_DATA_FIELD(ai_controller.maneuver_mode),
+	MOBILE_OBJECT_CHAR_DATA_FIELD(ai_controller.maneuver_phase),
+	MOBILE_OBJECT_CHAR_DATA_FIELD(ai_controller.maneuver_timer),
+	MOBILE_OBJECT_CHAR_DATA_FIELD(ai_controller.secondary_maneuver_timer),
 	MOBILE_OBJECT_CHAR_DATA_FIELD(unused40),
 };
 #undef MOBILE_OBJECT_CHAR_DATA_FIELD
 
-void XvtSnapshot_EncodeMobileObjectCharData(
-	struct XvtSnapshotMobileObjectCharData *record,
-	const struct MobileObjectCharData *live)
+void xvt_snapshot_encode_mobile_object_char_data(
+	struct xvt_snapshot_mobile_object_char_data *record,
+	const struct mobile_object_char_data *live)
 {
-	XvtSnapshot_CopyFields((void *)record, (void *)live,
-			       g_MobileObjectCharDataFields,
-			       sizeof(g_MobileObjectCharDataFields) /
-				       sizeof(g_MobileObjectCharDataFields[0]),
-			       0);
+	xvt_snapshot_copy_fields(
+		(void *)record, (void *)live, g_mobile_object_char_data_fields,
+		sizeof(g_mobile_object_char_data_fields) /
+			sizeof(g_mobile_object_char_data_fields[0]),
+		0);
 }
 
-void XvtSnapshot_DecodeMobileObjectCharData(
-	struct MobileObjectCharData *live,
-	const struct XvtSnapshotMobileObjectCharData *record)
+void xvt_snapshot_decode_mobile_object_char_data(
+	struct mobile_object_char_data *live,
+	const struct xvt_snapshot_mobile_object_char_data *record)
 {
-	XvtSnapshot_CopyFields((void *)record, (void *)live,
-			       g_MobileObjectCharDataFields,
-			       sizeof(g_MobileObjectCharDataFields) /
-				       sizeof(g_MobileObjectCharDataFields[0]),
-			       1);
+	xvt_snapshot_copy_fields(
+		(void *)record, (void *)live, g_mobile_object_char_data_fields,
+		sizeof(g_mobile_object_char_data_fields) /
+			sizeof(g_mobile_object_char_data_fields[0]),
+		1);
 }
 
 #define PLAYER_DATA_FIELD(field)                                               \
-	SNAPSHOT_FIELD(struct PlayerData, struct XvtSnapshotPlayerData, field)
-static const struct XvtSnapshotField g_PlayerDataFields[] = {
-	PLAYER_DATA_FIELD(objectIndex),
-	PLAYER_DATA_FIELD(boundObjectSignature),
-	PLAYER_DATA_FIELD(pilotRating),
+	SNAPSHOT_FIELD(struct player_data, struct xvt_snapshot_player_data,    \
+		       field)
+static const struct xvt_snapshot_field g_player_data_fields[] = {
+	PLAYER_DATA_FIELD(object_index),
+	PLAYER_DATA_FIELD(bound_object_signature),
+	PLAYER_DATA_FIELD(pilot_rating),
 	PLAYER_DATA_FIELD(iff),
 	PLAYER_DATA_FIELD(team),
-	PLAYER_DATA_FIELD(boundFlightGroupIdx),
-	PLAYER_DATA_FIELD(participationState),
-	PLAYER_DATA_FIELD(awaitingNewCraft),
-	PLAYER_DATA_FIELD(boundCraftEngineGlowCount),
-	PLAYER_DATA_FIELD(mapCameraState),
-	PLAYER_DATA_FIELD(hyperspacePhase),
-	PLAYER_DATA_FIELD(hyperspaceRuntime),
-	PLAYER_DATA_FIELD(targetBoxEnabled),
-	PLAYER_DATA_FIELD(currentTargetObjectIdx),
-	PLAYER_DATA_FIELD(targetCycleStart),
-	PLAYER_DATA_FIELD(targetPresetSlot),
-	PLAYER_DATA_FIELD(missileLockState),
-	PLAYER_DATA_FIELD(selectedWeaponBank),
-	PLAYER_DATA_FIELD(selectedWeaponMode),
-	PLAYER_DATA_FIELD(selectedTargetComponent),
-	PLAYER_DATA_FIELD(targetingState),
-	PLAYER_DATA_FIELD(engineWashSourceObjIdx),
-	PLAYER_DATA_FIELD(engineWashStrength),
-	PLAYER_DATA_FIELD(throttlePreset),
-	PLAYER_DATA_FIELD(laserPreset),
-	PLAYER_DATA_FIELD(shieldPreset),
-	PLAYER_DATA_FIELD(beamPreset),
-	PLAYER_DATA_FIELD(savedCraftSettings),
-	PLAYER_DATA_FIELD(savedHudViewState),
-	PLAYER_DATA_FIELD(pendingActionId),
-	PLAYER_DATA_FIELD(pendingActionParam),
-	PLAYER_DATA_FIELD(pendingActionIssuerPlayerIdx),
-	PLAYER_DATA_FIELD(yawRollSwap),
-	PLAYER_DATA_FIELD(smoothedInputYaw),
-	PLAYER_DATA_FIELD(smoothedInputPitch),
-	PLAYER_DATA_FIELD(savedKeyMods),
-	PLAYER_DATA_FIELD(keyModsHoldTimer),
-	PLAYER_DATA_FIELD(hardpointWorldX),
-	PLAYER_DATA_FIELD(hardpointWorldY),
-	PLAYER_DATA_FIELD(hardpointWorldZ),
-	PLAYER_DATA_FIELD(prevHardpointWorldX),
-	PLAYER_DATA_FIELD(prevHardpointWorldY),
-	PLAYER_DATA_FIELD(prevHardpointWorldZ),
-	PLAYER_DATA_FIELD(missionStats),
-	PLAYER_DATA_FIELD(warheadsFired),
-	PLAYER_DATA_FIELD(perMissionKills),
-	PLAYER_DATA_FIELD(msgText),
-	PLAYER_DATA_FIELD(msgLength),
-	PLAYER_DATA_FIELD(chatRecipientMode),
-	PLAYER_DATA_FIELD(viewState.cameraWorldX),
-	PLAYER_DATA_FIELD(viewState.cameraWorldY),
-	PLAYER_DATA_FIELD(viewState.cameraWorldZ),
-	PLAYER_DATA_FIELD(viewState.cameraFocusObjIdx),
-	PLAYER_DATA_FIELD(viewState.aimTargetIdx),
-	PLAYER_DATA_FIELD(viewState.viewPitch),
-	PLAYER_DATA_FIELD(viewState.viewYaw),
-	PLAYER_DATA_FIELD(viewState.viewRoll),
-	PLAYER_DATA_FIELD(viewState.viewAngleD),
-	PLAYER_DATA_FIELD(viewState.hudAimX),
-	PLAYER_DATA_FIELD(viewState.hudAimY),
-	PLAYER_DATA_FIELD(viewState.hudStateLive),
-	PLAYER_DATA_FIELD(viewState.hudStateMirror),
-	PLAYER_DATA_FIELD(viewState.hudAimXSnapState),
-	PLAYER_DATA_FIELD(viewState.savedHudStateByte),
-	PLAYER_DATA_FIELD(viewState.unused20),
-	PLAYER_DATA_FIELD(viewState.savedHudAimX),
-	PLAYER_DATA_FIELD(viewState.savedHudAimY),
-	PLAYER_DATA_FIELD(viewState.playerInputBlocked),
-	PLAYER_DATA_FIELD(viewState.cameraDistanceStep),
-	PLAYER_DATA_FIELD(viewState.externalCameraActive),
-	PLAYER_DATA_FIELD(viewState.cameraDistance),
-	PLAYER_DATA_FIELD(viewState.targetCameraActive),
-	PLAYER_DATA_FIELD(viewState.cameraRollHistory),
-	PLAYER_DATA_FIELD(viewState.cameraPitchHistory),
-	PLAYER_DATA_FIELD(viewState.cameraYawHistory),
-	PLAYER_DATA_FIELD(viewState.unused199),
-	PLAYER_DATA_FIELD(network.flightResolutionMode),
-	PLAYER_DATA_FIELD(network.directPlayId),
-	PLAYER_DATA_FIELD(lockstepTimestamp),
-	PLAYER_DATA_FIELD(savedX),
-	PLAYER_DATA_FIELD(savedY),
-	PLAYER_DATA_FIELD(savedZ),
-	PLAYER_DATA_FIELD(savedRoll),
-	PLAYER_DATA_FIELD(savedPitch),
-	PLAYER_DATA_FIELD(savedYaw),
-	PLAYER_DATA_FIELD(savedLifetimeTimer),
-	PLAYER_DATA_FIELD(savedSpeed),
-	PLAYER_DATA_FIELD(savedSpeedRemainder),
-	PLAYER_DATA_FIELD(savedRollImpulseRate),
-	PLAYER_DATA_FIELD(savedObjectSignature),
-	PLAYER_DATA_FIELD(savedAwaitingNewCraft),
-	PLAYER_DATA_FIELD(pendingActionTimer),
-	PLAYER_DATA_FIELD(beamFireCooldownTimer),
-	PLAYER_DATA_FIELD(field_5B5),
-	PLAYER_DATA_FIELD(nextEngineWashCheckTime),
+	PLAYER_DATA_FIELD(bound_flight_group_idx),
+	PLAYER_DATA_FIELD(participation_state),
+	PLAYER_DATA_FIELD(awaiting_new_craft),
+	PLAYER_DATA_FIELD(bound_craft_engine_glow_count),
+	PLAYER_DATA_FIELD(map_camera_state),
+	PLAYER_DATA_FIELD(hyperspace_phase),
+	PLAYER_DATA_FIELD(hyperspace_runtime),
+	PLAYER_DATA_FIELD(target_box_enabled),
+	PLAYER_DATA_FIELD(current_target_object_idx),
+	PLAYER_DATA_FIELD(target_cycle_start),
+	PLAYER_DATA_FIELD(target_preset_slot),
+	PLAYER_DATA_FIELD(missile_lock_state),
+	PLAYER_DATA_FIELD(selected_weapon_bank),
+	PLAYER_DATA_FIELD(selected_weapon_mode),
+	PLAYER_DATA_FIELD(selected_target_component),
+	PLAYER_DATA_FIELD(targeting_state),
+	PLAYER_DATA_FIELD(engine_wash_source_obj_idx),
+	PLAYER_DATA_FIELD(engine_wash_strength),
+	PLAYER_DATA_FIELD(throttle_preset),
+	PLAYER_DATA_FIELD(laser_preset),
+	PLAYER_DATA_FIELD(shield_preset),
+	PLAYER_DATA_FIELD(beam_preset),
+	PLAYER_DATA_FIELD(saved_craft_settings),
+	PLAYER_DATA_FIELD(saved_hud_view_state),
+	PLAYER_DATA_FIELD(pending_action_id),
+	PLAYER_DATA_FIELD(pending_action_param),
+	PLAYER_DATA_FIELD(pending_action_issuer_player_idx),
+	PLAYER_DATA_FIELD(yaw_roll_swap),
+	PLAYER_DATA_FIELD(smoothed_input_yaw),
+	PLAYER_DATA_FIELD(smoothed_input_pitch),
+	PLAYER_DATA_FIELD(saved_key_mods),
+	PLAYER_DATA_FIELD(key_mods_hold_timer),
+	PLAYER_DATA_FIELD(hardpoint_world_x),
+	PLAYER_DATA_FIELD(hardpoint_world_y),
+	PLAYER_DATA_FIELD(hardpoint_world_z),
+	PLAYER_DATA_FIELD(prev_hardpoint_world_x),
+	PLAYER_DATA_FIELD(prev_hardpoint_world_y),
+	PLAYER_DATA_FIELD(prev_hardpoint_world_z),
+	PLAYER_DATA_FIELD(mission_stats),
+	PLAYER_DATA_FIELD(warheads_fired),
+	PLAYER_DATA_FIELD(per_mission_kills),
+	PLAYER_DATA_FIELD(msg_text),
+	PLAYER_DATA_FIELD(msg_length),
+	PLAYER_DATA_FIELD(chat_recipient_mode),
+	PLAYER_DATA_FIELD(view_state.camera_world_x),
+	PLAYER_DATA_FIELD(view_state.camera_world_y),
+	PLAYER_DATA_FIELD(view_state.camera_world_z),
+	PLAYER_DATA_FIELD(view_state.camera_focus_obj_idx),
+	PLAYER_DATA_FIELD(view_state.aim_target_idx),
+	PLAYER_DATA_FIELD(view_state.view_pitch),
+	PLAYER_DATA_FIELD(view_state.view_yaw),
+	PLAYER_DATA_FIELD(view_state.view_roll),
+	PLAYER_DATA_FIELD(view_state.view_angle_d),
+	PLAYER_DATA_FIELD(view_state.hud_aim_x),
+	PLAYER_DATA_FIELD(view_state.hud_aim_y),
+	PLAYER_DATA_FIELD(view_state.hud_state_live),
+	PLAYER_DATA_FIELD(view_state.hud_state_mirror),
+	PLAYER_DATA_FIELD(view_state.hud_aim_x_snap_state),
+	PLAYER_DATA_FIELD(view_state.saved_hud_state_byte),
+	PLAYER_DATA_FIELD(view_state.unused20),
+	PLAYER_DATA_FIELD(view_state.saved_hud_aim_x),
+	PLAYER_DATA_FIELD(view_state.saved_hud_aim_y),
+	PLAYER_DATA_FIELD(view_state.player_input_blocked),
+	PLAYER_DATA_FIELD(view_state.camera_distance_step),
+	PLAYER_DATA_FIELD(view_state.external_camera_active),
+	PLAYER_DATA_FIELD(view_state.camera_distance),
+	PLAYER_DATA_FIELD(view_state.target_camera_active),
+	PLAYER_DATA_FIELD(view_state.camera_roll_history),
+	PLAYER_DATA_FIELD(view_state.camera_pitch_history),
+	PLAYER_DATA_FIELD(view_state.camera_yaw_history),
+	PLAYER_DATA_FIELD(view_state.unused199),
+	PLAYER_DATA_FIELD(network.flight_resolution_mode),
+	PLAYER_DATA_FIELD(network.direct_play_id),
+	PLAYER_DATA_FIELD(lockstep_timestamp),
+	PLAYER_DATA_FIELD(saved_x),
+	PLAYER_DATA_FIELD(saved_y),
+	PLAYER_DATA_FIELD(saved_z),
+	PLAYER_DATA_FIELD(saved_roll),
+	PLAYER_DATA_FIELD(saved_pitch),
+	PLAYER_DATA_FIELD(saved_yaw),
+	PLAYER_DATA_FIELD(saved_lifetime_timer),
+	PLAYER_DATA_FIELD(saved_speed),
+	PLAYER_DATA_FIELD(saved_speed_remainder),
+	PLAYER_DATA_FIELD(saved_roll_impulse_rate),
+	PLAYER_DATA_FIELD(saved_object_signature),
+	PLAYER_DATA_FIELD(saved_awaiting_new_craft),
+	PLAYER_DATA_FIELD(pending_action_timer),
+	PLAYER_DATA_FIELD(beam_fire_cooldown_timer),
+	PLAYER_DATA_FIELD(field_5b5),
+	PLAYER_DATA_FIELD(next_engine_wash_check_time),
 };
 #undef PLAYER_DATA_FIELD
 
-void XvtSnapshot_EncodePlayerData(struct XvtSnapshotPlayerData *record,
-				  const struct PlayerData *live)
+void xvt_snapshot_encode_player_data(struct xvt_snapshot_player_data *record,
+				     const struct player_data *live)
 {
-	XvtSnapshot_CopyFields(
-		(void *)record, (void *)live, g_PlayerDataFields,
-		sizeof(g_PlayerDataFields) / sizeof(g_PlayerDataFields[0]), 0);
+	xvt_snapshot_copy_fields(
+		(void *)record, (void *)live, g_player_data_fields,
+		sizeof(g_player_data_fields) / sizeof(g_player_data_fields[0]),
+		0);
 }
 
-void XvtSnapshot_DecodePlayerData(struct PlayerData *live,
-				  const struct XvtSnapshotPlayerData *record)
+void xvt_snapshot_decode_player_data(
+	struct player_data *live, const struct xvt_snapshot_player_data *record)
 {
-	XvtSnapshot_CopyFields(
-		(void *)record, (void *)live, g_PlayerDataFields,
-		sizeof(g_PlayerDataFields) / sizeof(g_PlayerDataFields[0]), 1);
+	xvt_snapshot_copy_fields(
+		(void *)record, (void *)live, g_player_data_fields,
+		sizeof(g_player_data_fields) / sizeof(g_player_data_fields[0]),
+		1);
 }
 
 #define FLIGHT_MISSION_STATE_FIELD(field)                                      \
-	SNAPSHOT_FIELD(struct FlightMissionState,                              \
-		       struct XvtSnapshotFlightMissionState, field)
-static const struct XvtSnapshotField g_FlightMissionStateFields[] = {
-	FLIGHT_MISSION_STATE_FIELD(missionEndPending),
-	FLIGHT_MISSION_STATE_FIELD(provingGroundsModeActive),
-	FLIGHT_MISSION_STATE_FIELD(provingGroundsCraftType),
-	FLIGHT_MISSION_STATE_FIELD(provingGroundsLevel),
-	FLIGHT_MISSION_STATE_FIELD(provingGroundsScore),
+	SNAPSHOT_FIELD(struct flight_mission_state,                            \
+		       struct xvt_snapshot_flight_mission_state, field)
+static const struct xvt_snapshot_field g_flight_mission_state_fields[] = {
+	FLIGHT_MISSION_STATE_FIELD(mission_end_pending),
+	FLIGHT_MISSION_STATE_FIELD(proving_grounds_mode_active),
+	FLIGHT_MISSION_STATE_FIELD(proving_grounds_craft_type),
+	FLIGHT_MISSION_STATE_FIELD(proving_grounds_level),
+	FLIGHT_MISSION_STATE_FIELD(proving_grounds_score),
 	FLIGHT_MISSION_STATE_FIELD(unused08),
-	FLIGHT_MISSION_STATE_FIELD(provingGroundsCheckpointsPassed),
-	FLIGHT_MISSION_STATE_FIELD(unused0C),
-	FLIGHT_MISSION_STATE_FIELD(provingGroundsCheckpointsRemaining),
-	FLIGHT_MISSION_STATE_FIELD(provingGroundsTargetsDestroyed),
-	FLIGHT_MISSION_STATE_FIELD(provingGroundsTimeBonus),
+	FLIGHT_MISSION_STATE_FIELD(proving_grounds_checkpoints_passed),
+	FLIGHT_MISSION_STATE_FIELD(unused0c),
+	FLIGHT_MISSION_STATE_FIELD(proving_grounds_checkpoints_remaining),
+	FLIGHT_MISSION_STATE_FIELD(proving_grounds_targets_destroyed),
+	FLIGHT_MISSION_STATE_FIELD(proving_grounds_time_bonus),
 	FLIGHT_MISSION_STATE_FIELD(difficulty),
-	FLIGHT_MISSION_STATE_FIELD(collisionsEnabled),
-	FLIGHT_MISSION_STATE_FIELD(craftJumpingEnabled),
-	FLIGHT_MISSION_STATE_FIELD(randomVariationEnabled),
-	FLIGHT_MISSION_STATE_FIELD(battleLengthIndex),
-	FLIGHT_MISSION_STATE_FIELD(locatePlayersEnabled),
-	FLIGHT_MISSION_STATE_FIELD(aiOpponentsEnabled),
-	FLIGHT_MISSION_STATE_FIELD(playerFlightGroupWaveMode),
-	FLIGHT_MISSION_STATE_FIELD(missionTimeLimitMinutes),
-	FLIGHT_MISSION_STATE_FIELD(teamVictoryTimeLimitMinutes),
-	FLIGHT_MISSION_STATE_FIELD(teamVictoryTimeLimitStarted),
-	FLIGHT_MISSION_STATE_FIELD(craftImpactBounceEnabled),
-	FLIGHT_MISSION_STATE_FIELD(connectedPlayerCount),
-	FLIGHT_MISSION_STATE_FIELD(maxConnectedPlayerCountThisMission),
-	FLIGHT_MISSION_STATE_FIELD(runtime.teamScores),
-	FLIGHT_MISSION_STATE_FIELD(runtime.teamKillStats),
-	FLIGHT_MISSION_STATE_FIELD(runtime.teamFgInspectedCapturedCounts),
-	FLIGHT_MISSION_STATE_FIELD(runtime.teamFgDesignationCode),
-	FLIGHT_MISSION_STATE_FIELD(runtime.globalPrimaryGoalStatus),
-	FLIGHT_MISSION_STATE_FIELD(runtime.globalGoalStatusUnused),
-	FLIGHT_MISSION_STATE_FIELD(runtime.globalBonusGoalStatus),
-	FLIGHT_MISSION_STATE_FIELD(runtime.teamGlobalGoalState),
-	FLIGHT_MISSION_STATE_FIELD(runtime.teamGoalStatus),
-	FLIGHT_MISSION_STATE_FIELD(runtime.globalGoalTriggerCounts),
-	FLIGHT_MISSION_STATE_FIELD(runtime.teamMissionCompletionTimeSeconds),
-	FLIGHT_MISSION_STATE_FIELD(runtime.teamHasCountableCraft),
-	FLIGHT_MISSION_STATE_FIELD(runtime.teamReinforcementsCalled),
-	FLIGHT_MISSION_STATE_FIELD(messageTriggered),
-	FLIGHT_MISSION_STATE_FIELD(messageDelayCountdown),
-	FLIGHT_MISSION_STATE_FIELD(globalUnitCraftCount),
+	FLIGHT_MISSION_STATE_FIELD(collisions_enabled),
+	FLIGHT_MISSION_STATE_FIELD(craft_jumping_enabled),
+	FLIGHT_MISSION_STATE_FIELD(random_variation_enabled),
+	FLIGHT_MISSION_STATE_FIELD(battle_length_index),
+	FLIGHT_MISSION_STATE_FIELD(locate_players_enabled),
+	FLIGHT_MISSION_STATE_FIELD(ai_opponents_enabled),
+	FLIGHT_MISSION_STATE_FIELD(player_flight_group_wave_mode),
+	FLIGHT_MISSION_STATE_FIELD(mission_time_limit_minutes),
+	FLIGHT_MISSION_STATE_FIELD(team_victory_time_limit_minutes),
+	FLIGHT_MISSION_STATE_FIELD(team_victory_time_limit_started),
+	FLIGHT_MISSION_STATE_FIELD(craft_impact_bounce_enabled),
+	FLIGHT_MISSION_STATE_FIELD(connected_player_count),
+	FLIGHT_MISSION_STATE_FIELD(max_connected_player_count_this_mission),
+	FLIGHT_MISSION_STATE_FIELD(runtime.team_scores),
+	FLIGHT_MISSION_STATE_FIELD(runtime.team_kill_stats),
+	FLIGHT_MISSION_STATE_FIELD(runtime.team_fg_inspected_captured_counts),
+	FLIGHT_MISSION_STATE_FIELD(runtime.team_fg_designation_code),
+	FLIGHT_MISSION_STATE_FIELD(runtime.global_primary_goal_status),
+	FLIGHT_MISSION_STATE_FIELD(runtime.global_goal_status_unused),
+	FLIGHT_MISSION_STATE_FIELD(runtime.global_bonus_goal_status),
+	FLIGHT_MISSION_STATE_FIELD(runtime.team_global_goal_state),
+	FLIGHT_MISSION_STATE_FIELD(runtime.team_goal_status),
+	FLIGHT_MISSION_STATE_FIELD(runtime.global_goal_trigger_counts),
+	FLIGHT_MISSION_STATE_FIELD(
+		runtime.team_mission_completion_time_seconds),
+	FLIGHT_MISSION_STATE_FIELD(runtime.team_has_countable_craft),
+	FLIGHT_MISSION_STATE_FIELD(runtime.team_reinforcements_called),
+	FLIGHT_MISSION_STATE_FIELD(message_triggered),
+	FLIGHT_MISSION_STATE_FIELD(message_delay_countdown),
+	FLIGHT_MISSION_STATE_FIELD(global_unit_craft_count),
 };
 #undef FLIGHT_MISSION_STATE_FIELD
 #undef SNAPSHOT_FIELD
 
-void XvtSnapshot_EncodeFlightMissionState(
-	struct XvtSnapshotFlightMissionState *record,
-	const struct FlightMissionState *live)
+void xvt_snapshot_encode_flight_mission_state(
+	struct xvt_snapshot_flight_mission_state *record,
+	const struct flight_mission_state *live)
 {
-	XvtSnapshot_CopyFields(record, (void *)live, g_FlightMissionStateFields,
-			       sizeof(g_FlightMissionStateFields) /
-				       sizeof(g_FlightMissionStateFields[0]),
-			       0);
+	xvt_snapshot_copy_fields(
+		record, (void *)live, g_flight_mission_state_fields,
+		sizeof(g_flight_mission_state_fields) /
+			sizeof(g_flight_mission_state_fields[0]),
+		0);
 }
 
-void XvtSnapshot_DecodeFlightMissionState(
-	struct FlightMissionState *live,
-	const struct XvtSnapshotFlightMissionState *record)
+void xvt_snapshot_decode_flight_mission_state(
+	struct flight_mission_state *live,
+	const struct xvt_snapshot_flight_mission_state *record)
 {
-	XvtSnapshot_CopyFields((void *)record, live, g_FlightMissionStateFields,
-			       sizeof(g_FlightMissionStateFields) /
-				       sizeof(g_FlightMissionStateFields[0]),
-			       1);
+	xvt_snapshot_copy_fields(
+		(void *)record, live, g_flight_mission_state_fields,
+		sizeof(g_flight_mission_state_fields) /
+			sizeof(g_flight_mission_state_fields[0]),
+		1);
 }

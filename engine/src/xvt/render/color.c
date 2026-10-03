@@ -3,126 +3,126 @@
 #include "xvt/render/flight_palette.h"
 
 /* Returns the index, from startIndex up to endIndex - 1, of the color in
- * palette (three bytes per entry, counted from entry 0) nearest targetRgb by
+ * palette (three bytes per entry, counted from entry 0) nearest target_rgb by
  * the sum of the squared channel differences; the first one on a tie. Returns
  * startIndex when endIndex is not above it. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x40E940
-unsigned int Color_FindNearestRgbTripletIndex(const uint8_t *targetRgb,
-					      const uint8_t *palette,
-					      unsigned int startIndex,
-					      unsigned int endIndex)
+unsigned int color_find_nearest_rgb_triplet_index(const uint8_t *target_rgb,
+						  const uint8_t *palette,
+						  unsigned int start_index,
+						  unsigned int end_index)
 {
-	unsigned int nearestIndex;
-	unsigned int paletteIndex;
-	int nearestDistance;
-	const uint8_t *paletteEntry;
-	int targetComponents[3];
+	unsigned int nearest_index;
+	unsigned int palette_index;
+	int nearest_distance;
+	const uint8_t *palette_entry;
+	int target_components[3];
 
-	nearestIndex = startIndex;
-	paletteIndex = startIndex;
-	nearestDistance = INT32_MAX;
-	if (endIndex > startIndex) {
-		int redDistance;
-		int blueDistance;
+	nearest_index = start_index;
+	palette_index = start_index;
+	nearest_distance = INT32_MAX;
+	if (end_index > start_index) {
+		int red_distance;
+		int blue_distance;
 		int distance;
 
-		paletteEntry = &palette[3 * startIndex];
-		targetComponents[0] = targetRgb[0];
-		targetComponents[1] = targetRgb[1];
-		targetComponents[2] = targetRgb[2];
+		palette_entry = &palette[3 * start_index];
+		target_components[0] = target_rgb[0];
+		target_components[1] = target_rgb[1];
+		target_components[2] = target_rgb[2];
 		do {
-			redDistance = targetComponents[0] - paletteEntry[0];
-			blueDistance = targetComponents[2] - paletteEntry[2];
-			distance = redDistance * redDistance +
-				   (targetComponents[1] - paletteEntry[1]) *
-					   (targetComponents[1] -
-					    paletteEntry[1]) +
-				   blueDistance * blueDistance;
-			if (nearestDistance > distance) {
-				nearestIndex = paletteIndex;
-				nearestDistance = distance;
+			red_distance = target_components[0] - palette_entry[0];
+			blue_distance = target_components[2] - palette_entry[2];
+			distance = red_distance * red_distance +
+				   (target_components[1] - palette_entry[1]) *
+					   (target_components[1] -
+					    palette_entry[1]) +
+				   blue_distance * blue_distance;
+			if (nearest_distance > distance) {
+				nearest_index = palette_index;
+				nearest_distance = distance;
 			}
-			paletteEntry += 3;
-			++paletteIndex;
-		} while (endIndex > paletteIndex);
+			palette_entry += 3;
+			++palette_index;
+		} while (end_index > palette_index);
 	}
-	return nearestIndex;
+	return nearest_index;
 }
 
-/* Fills the 65536 entries of outTable: entry v gets the index, from startIndex
- * up to endIndex - 1, of the g_swPalette color nearest the 5-6-5 color v, its
+/* Fills the 65536 entries of out_table: entry v gets the index, from startIndex
+ * up to endIndex - 1, of the g_sw_palette color nearest the 5-6-5 color v, its
  * 5-bit red and blue doubled to the palette's 0 to 63 scale, by
- * Color_FindNearestRgbTripletIndex. FeDiskIo_InitResources is its only
+ * color_find_nearest_rgb_triplet_index. fe_disk_io_init_resources is its only
  * caller. */
 // FUNCTION: XVT 0x40E9E0
-void Color_BuildRgb565ToPaletteIndexLut(uint8_t *outTable,
-					unsigned int startIndex,
-					unsigned int endIndex)
+void color_build_rgb565_to_palette_index_lut(uint8_t *out_table,
+					     unsigned int start_index,
+					     unsigned int end_index)
 {
-	int rgb565Value;
-	int shiftedValue;
-	uint8_t targetRgb[3];
+	int rgb565_value;
+	int shifted_value;
+	uint8_t target_rgb[3];
 	uint8_t *output;
-	unsigned int firstPaletteIndex;
-	unsigned int lastPaletteIndex;
+	unsigned int first_palette_index;
+	unsigned int last_palette_index;
 
-	firstPaletteIndex = startIndex;
-	lastPaletteIndex = endIndex;
-	output = outTable;
-	rgb565Value = 0;
+	first_palette_index = start_index;
+	last_palette_index = end_index;
+	output = out_table;
+	rgb565_value = 0;
 	do {
-		shiftedValue = rgb565Value >> 5;
-		targetRgb[1] = shiftedValue & 0x3F;
-		targetRgb[0] = 2 * (((unsigned int)shiftedValue >> 6) & 0x1F);
-		shiftedValue = rgb565Value++;
-		targetRgb[2] = 2 * (shiftedValue & 0x1F);
-		output[rgb565Value - 1] =
-			(uint8_t)Color_FindNearestRgbTripletIndex(
-				targetRgb, (const uint8_t *)g_swPalette,
-				firstPaletteIndex, lastPaletteIndex);
-	} while (rgb565Value < 0x10000);
+		shifted_value = rgb565_value >> 5;
+		target_rgb[1] = shifted_value & 0x3F;
+		target_rgb[0] = 2 * (((unsigned int)shifted_value >> 6) & 0x1F);
+		shifted_value = rgb565_value++;
+		target_rgb[2] = 2 * (shifted_value & 0x1F);
+		output[rgb565_value - 1] =
+			(uint8_t)color_find_nearest_rgb_triplet_index(
+				target_rgb, (const uint8_t *)g_sw_palette,
+				first_palette_index, last_palette_index);
+	} while (rgb565_value < 0x10000);
 }
 
 /* Returns, cut to 8 bits, the index from startIndex up to endIndex - 1 of the
- * 5-6-5 color in palette nearest targetRed, targetGreen and targetBlue (on the
+ * 5-6-5 color in palette nearest target_red, target_green and target_blue (on the
  * 5-, 6- and 5-bit scales) by the sum of the squared differences: the first
  * exact match at once, else the first nearest. With an empty range it returns
- * an index it never set. OptModel_BuildRuntimeNode is its only caller. */
+ * an index it never set. opt_model_build_runtime_node is its only caller. */
 // FUNCTION: XVT 0x476B00
-uint8_t Color_FindNearestRgb565Index(const uint16_t *palette, int targetRed,
-				     int targetGreen, int targetBlue,
-				     int startIndex, int endIndex)
+uint8_t color_find_nearest_rgb565_index(const uint16_t *palette, int target_red,
+					int target_green, int target_blue,
+					int start_index, int end_index)
 {
-	int nearestDistance;
-	int nearestIndex;
-	int paletteIndex;
+	int nearest_distance;
+	int nearest_index;
+	int palette_index;
 
-	nearestDistance = INT32_MAX;
-	for (paletteIndex = startIndex; paletteIndex < endIndex;
-	     ++paletteIndex) {
+	nearest_distance = INT32_MAX;
+	for (palette_index = start_index; palette_index < end_index;
+	     ++palette_index) {
 		uint16_t color;
 		int blue;
 		int green;
 		int red;
 		int distance;
 
-		color = palette[paletteIndex];
+		color = palette[palette_index];
 		blue = color & 0x1F;
 		color >>= 5;
 		green = color & 0x3F;
 		color >>= 6;
 		red = color & 0x1F;
-		distance = (blue - targetBlue) * (blue - targetBlue) +
-			   (green - targetGreen) * (green - targetGreen) +
-			   (red - targetRed) * (red - targetRed);
+		distance = (blue - target_blue) * (blue - target_blue) +
+			   (green - target_green) * (green - target_green) +
+			   (red - target_red) * (red - target_red);
 		if (distance == 0) {
-			return (uint8_t)paletteIndex;
+			return (uint8_t)palette_index;
 		}
-		if (nearestDistance > distance) {
-			nearestDistance = distance;
-			nearestIndex = paletteIndex;
+		if (nearest_distance > distance) {
+			nearest_distance = distance;
+			nearest_index = palette_index;
 		}
 	}
-	return (uint8_t)nearestIndex;
+	return (uint8_t)nearest_index;
 }

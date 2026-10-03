@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-typedef enum FlightActionKey {
+typedef enum flight_action_key {
 	FLIGHT_KEY_NONE = 0x000,
 	FLIGHT_KEY_BACKSPACE = 0x008,
 	FLIGHT_KEY_TAB = 0x009,
@@ -167,7 +167,7 @@ typedef enum FlightActionKey {
 	FLIGHT_KEY_THROTTLE_13 = 0x0E6,
 	FLIGHT_KEY_THROTTLE_14 = 0x0E7,
 	FLIGHT_KEY_SCREENSHOT = 0x0E8,
-} FlightActionKey;
+} flight_action_key;
 
 #ifdef XVT_MODERN
 enum { XVT_INPUT_THROTTLE_PRESENT = 1 };
@@ -175,77 +175,77 @@ enum { XVT_INPUT_THROTTLE_PRESENT = 1 };
 /* One player's input for one simulation step, as recorded, sent between players
  * and replayed. The modern build's layout differs (8 bytes, with roll, flags
  * and throttle). */
-struct FlightInputFrameRecord {
+struct flight_input_frame_record {
 #ifdef XVT_MODERN
 	/* Roll axis, signed, low bit cleared where sampled; replayed into
-	 * g_xvtControlRoll. */
-	int8_t axisR;
+	 * g_xvt_control_roll. */
+	int8_t axis_r;
 	/* XVT_INPUT_THROTTLE_PRESENT when throttle holds a new position. */
 	uint8_t flags;
 #else
 	uint16_t reserved0; /* Never read or written by name. */
 #endif
-	uint8_t key;	 /* Action key, a FlightActionKey; 0 for none. */
-	int8_t axisX;	 /* Stick X axis, signed; replayed into g_ctrlAxisX. */
-	int8_t axisY;	 /* Stick Y axis, signed; replayed into g_ctrlAxisY. */
-	uint8_t keyMods; /* Button bits: bit 0 fire, bit 1 target. */
+	uint8_t key;   /* Action key, a flight_action_key; 0 for none. */
+	int8_t axis_x; /* Stick X axis, signed; replayed into g_ctrl_axis_x. */
+	int8_t axis_y; /* Stick Y axis, signed; replayed into g_ctrl_axis_y. */
+	uint8_t key_mods; /* Button bits: bit 0 fire, bit 1 target. */
 #ifdef XVT_MODERN
 	/* Throttle position, 0 to 65,535, when flags says so. */
 	uint16_t throttle;
 #endif
 };
 
-/* One entry of a player's input history (g_inputHistory): an input with its
+/* One entry of a player's input history (g_input_history): an input with its
  * time stamp and where it came from. */
-struct InputFrame {
+struct input_frame {
 	/* Nonzero while the frame still awaits relay to the other players. */
-	int awaitingRelay;
+	int awaiting_relay;
 	/* Source: 0 server's world message, 1 real input, 2 predicted. */
-	int inputSource;
-	int timestamp;		      /* Tick the input applies at. */
-	struct FlightInputFrameRecord input; /* The input itself. */
+	int input_source;
+	int timestamp;				/* Tick the input applies at. */
+	struct flight_input_frame_record input; /* The input itself. */
 };
 #ifdef XVT_MODERN
-typedef char XvtFlightInputRecordSize
-	[(sizeof(struct FlightInputFrameRecord) == 8) ? 1 : -1];
+typedef char xvt_flight_input_record_size
+	[(sizeof(struct flight_input_frame_record) == 8) ? 1 : -1];
 #endif
 
-extern int16_t g_scaledInputYaw;
-extern int16_t g_absScaledInputYaw;
-extern int16_t g_scaledInputPitch;
-extern int16_t g_ctrlAxisX;
-extern int16_t g_ctrlAxisY;
-extern uint16_t g_actionKey;
-extern uint16_t g_currentActionKey;
-extern uint16_t g_flightKeyMods;
-extern uint16_t g_flightMouseEnabled;
-extern uint16_t g_joystickAvailable;
-extern int16_t g_flightMouseDeltaX;
-extern int16_t g_flightMouseDeltaY;
-extern uint16_t g_mouseButtons;
-extern uint16_t g_keyMods;
-extern uint16_t g_joystickDetectResultWord;
-extern uint8_t g_throttleKeyTable[17];
-extern struct FlightInputFrameRecord g_replayInputs[8];
-extern int16_t g_flightMouseX;
-extern int16_t g_flightMouseY;
-extern int g_flightConfDirectInput;
-extern int g_flightInputNonBlockingMsgPump;
-extern uint8_t g_lastKeyCode;
-extern int g_keyReady;
+extern int16_t g_scaled_input_yaw;
+extern int16_t g_abs_scaled_input_yaw;
+extern int16_t g_scaled_input_pitch;
+extern int16_t g_ctrl_axis_x;
+extern int16_t g_ctrl_axis_y;
+extern uint16_t g_action_key;
+extern uint16_t g_current_action_key;
+extern uint16_t g_flight_key_mods;
+extern uint16_t g_flight_mouse_enabled;
+extern uint16_t g_joystick_available;
+extern int16_t g_flight_mouse_delta_x;
+extern int16_t g_flight_mouse_delta_y;
+extern uint16_t g_mouse_buttons;
+extern uint16_t g_key_mods;
+extern uint16_t g_joystick_detect_result_word;
+extern uint8_t g_throttle_key_table[17];
+extern struct flight_input_frame_record g_replay_inputs[8];
+extern int16_t g_flight_mouse_x;
+extern int16_t g_flight_mouse_y;
+extern int g_flight_conf_direct_input;
+extern int g_flight_input_non_blocking_msg_pump;
+extern uint8_t g_last_key_code;
+extern int g_key_ready;
 
-void FlightInput_LatchFlightControls(void);
-void FlightInput_ApplyDeadzone(void);
-void FlightInput_ReadAndApplyFlightDeadzone(int playerIdxOrSentinel);
-void FlightInput_WaitForActionKeyRelease(void);
-void FlightInput_WaitForPress(void);
-void FlightInput_ClearButtonsAndDebounce(void);
-void FlightInput_ResetRuntimeState(void);
-void FlightInput_ClearAxesAndModifiers(void);
-void FlightInput_ResetControlState(void);
-uint16_t FlightInput_Read(int playerIdxOrSentinel);
-int FlightInput_HasKeyReady(void);
-int FlightInput_GetNextKey(void);
+void flight_input_latch_flight_controls(void);
+void flight_input_apply_deadzone(void);
+void flight_input_read_and_apply_flight_deadzone(int player_idx_or_sentinel);
+void flight_input_wait_for_action_key_release(void);
+void flight_input_wait_for_press(void);
+void flight_input_clear_buttons_and_debounce(void);
+void flight_input_reset_runtime_state(void);
+void flight_input_clear_axes_and_modifiers(void);
+void flight_input_reset_control_state(void);
+uint16_t flight_input_read(int player_idx_or_sentinel);
+int flight_input_has_key_ready(void);
+int flight_input_get_next_key(void);
 
 #ifdef __cplusplus
 }

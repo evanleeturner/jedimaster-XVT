@@ -17,7 +17,7 @@ extern "C" {
  *   HH:MM:SS.mmm L event key=value ...
  * in UTC. Lines Aeron or SDL write pass through the same function; an SDL line outside the application
  * category gets the event "sdl". Every line and the header's three paths write the user's home folder as
- * ~ (XvtLog_ShortenHome), because on most systems that folder's name is the user's name and a log may be
+ * ~ (xvt_log_shorten_home), because on most systems that folder's name is the user's name and a log may be
  * pasted into a public bug report. The preferences folder is SDL's for the host's organization and
  * application names, and SDL creates it when it is missing, as Aeron's file system does later.
  *
@@ -31,7 +31,7 @@ extern "C" {
  * Install also installs the crash note (crash_note.h) on the same file, so a crash ends the log with what
  * happened and where.
  *
- * Every run that ends the normal way ends its log with app.stop (XvtLogSink_Finish). Before this run opens
+ * Every run that ends the normal way ends its log with app.stop (xvt_log_sink_finish). Before this run opens
  * its file, Install reads the end of the previous run's log (the named file itself, or the newest run log
  * in the default folder) and, after the header, warns with app.previous_run when that run did not end with
  * app.stop: ended="crash" when the log holds a crash note, ended="without_stop" when it simply stops (the
@@ -43,11 +43,11 @@ extern "C" {
  * changed, no file opened and a message on stderr, when the option or the environment variable names a
  * level that is not debug, info, warn or error in any letter case. An empty environment value counts as
  * unset, for the level and the file alike. */
-int XvtLogSink_Install(const struct XvtLaunchOptions *options);
+int xvt_log_sink_install(const struct xvt_launch_options *options);
 /* Writes the run's last line, app.stop with exit_code, at whatever level is in force: a level above info is
  * lowered to info for it. Does nothing when Install has not succeeded. Call once, after every other thread
  * that logs has stopped. */
-void XvtLogSink_Finish(int exit_code);
+void xvt_log_sink_finish(int exit_code);
 
 #ifdef __cplusplus
 }

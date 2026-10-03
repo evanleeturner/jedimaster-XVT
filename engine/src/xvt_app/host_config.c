@@ -4,8 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 
-int XvtLaunchOptions_Parse(int argc, char *argv[],
-			   struct XvtLaunchOptions *options)
+int xvt_launch_options_parse(int argc, char *argv[],
+			     struct xvt_launch_options *options)
 {
 	memset(options, 0, sizeof(*options));
 	for (int index = 1; index < argc; ++index) {
@@ -86,8 +86,8 @@ int XvtLaunchOptions_Parse(int argc, char *argv[],
 	return 1;
 }
 
-void XvtHostConfig_FillAeronConfig(const struct XvtLaunchOptions *options,
-				   AeronConfig *config)
+void xvt_host_config_fill_aeron_config(const struct xvt_launch_options *options,
+				       AeronConfig *config)
 {
 	memset(config, 0, sizeof(*config));
 	config->org_name = "TotallyOpen";
@@ -105,11 +105,11 @@ void XvtHostConfig_FillAeronConfig(const struct XvtLaunchOptions *options,
 	config->clear_color_rgba[3] = 1.0f;
 }
 
-int XvtHostConfig_ResolveResourceRoot(const struct XvtLaunchOptions *options,
-				      char *out, size_t capacity)
+int xvt_host_config_resolve_resource_root(
+	const struct xvt_launch_options *options, char *out, size_t capacity)
 {
 	AeronConfig config;
-	XvtHostConfig_FillAeronConfig(options, &config);
+	xvt_host_config_fill_aeron_config(options, &config);
 	if (config.resource_root && config.resource_root[0]) {
 		if (strlen(config.resource_root) >= capacity) {
 			return 0;

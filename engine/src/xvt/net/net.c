@@ -21,34 +21,34 @@
 
 #ifndef XVT_MODERN
 __declspec(dllimport) int __stdcall
-RegOpenKeyExA(uintptr_t key, const char *subKey, unsigned int options,
+RegOpenKeyExA(uintptr_t key, const char *sub_key, unsigned int options,
 	      unsigned int access, void **result);
 __declspec(dllimport) int __stdcall
-RegQueryValueExA(void *key, const char *valueName, unsigned int *reserved,
-		 unsigned int *type, void *data, unsigned int *dataSize);
+RegQueryValueExA(void *key, const char *value_name, unsigned int *reserved,
+		 unsigned int *type, void *data, unsigned int *data_size);
 __declspec(dllimport) int __stdcall
-RegSetValueExA(void *key, const char *valueName, unsigned int reserved,
-	       unsigned int type, const void *data, unsigned int dataSize);
+RegSetValueExA(void *key, const char *value_name, unsigned int reserved,
+	       unsigned int type, const void *data, unsigned int data_size);
 __declspec(dllimport) int __stdcall RegCloseKey(void *key);
 __declspec(dllimport) void *__stdcall GlobalAlloc(unsigned int flags,
 						  size_t size);
-__declspec(dllimport) void *__stdcall GlobalLock(void *memoryHandle);
+__declspec(dllimport) void *__stdcall GlobalLock(void *memory_handle);
 __declspec(dllimport) void *__stdcall GlobalHandle(const void *memory);
-__declspec(dllimport) int __stdcall GlobalUnlock(void *memoryHandle);
-__declspec(dllimport) void *__stdcall GlobalFree(void *memoryHandle);
-__declspec(dllimport) void __stdcall ExitProcess(unsigned int exitCode);
+__declspec(dllimport) int __stdcall GlobalUnlock(void *memory_handle);
+__declspec(dllimport) void *__stdcall GlobalFree(void *memory_handle);
+__declspec(dllimport) void __stdcall ExitProcess(unsigned int exit_code);
 __declspec(dllimport) void *__stdcall GetCurrentProcess(void);
 __declspec(dllimport) int __stdcall SetWindowTextA(void *window,
 						   const char *text);
 __declspec(dllimport) int __stdcall TerminateProcess(void *process,
-						     unsigned int exitCode);
-HRESULT __stdcall DirectPlayCreate(const GUID *serviceProviderGuid,
-				   IDirectPlay **outDirectPlay,
-				   void *outerUnknown);
-HRESULT __stdcall DirectPlayLobbyCreateA(const GUID *lobbyProviderGuid,
-					 IDirectPlayLobbyA **outLobby,
-					 void *outerUnknown, void *data,
-					 uint32_t dataSize);
+						     unsigned int exit_code);
+HRESULT __stdcall DirectPlayCreate(const GUID *service_provider_guid,
+				   IDirectPlay **out_direct_play,
+				   void *outer_unknown);
+HRESULT __stdcall DirectPlayLobbyCreateA(const GUID *lobby_provider_guid,
+					 IDirectPlayLobbyA **out_lobby,
+					 void *outer_unknown, void *data,
+					 uint32_t data_size);
 
 enum {
 	NET_REGISTRY_ALL_ACCESS = 0xF003F,
@@ -56,32 +56,32 @@ enum {
 };
 
 /* The EnableAutodial value, up to 5 bytes, that
- * Net_DisableAutoDialRegistrySetting reads from the Internet Settings
- * registry key and Net_RestoreAutoDialRegistrySetting writes back. */
+ * net_disable_auto_dial_registry_setting reads from the Internet Settings
+ * registry key and net_restore_auto_dial_registry_setting writes back. */
 // GLOBAL: XVT 0x665018
-static uint8_t g_netSavedEnableAutoDialValue[5] = {0};
-/* 1 while Net_DisableAutoDialRegistrySetting has turned autodial off and
- * Net_RestoreAutoDialRegistrySetting has not yet put the saved value back. */
+static uint8_t g_net_saved_enable_auto_dial_value[5] = {0};
+/* 1 while net_disable_auto_dial_registry_setting has turned autodial off and
+ * net_restore_auto_dial_registry_setting has not yet put the saved value back. */
 // GLOBAL: XVT 0x665418
-static int g_netAutoDialRegistryChanged = 0;
+static int g_net_auto_dial_registry_changed = 0;
 #endif
 
-/* Transport of the open lobby session. Written by Net_StartNetworkSession on
- * success, by XvtNetworkSession_Update (TCP/IP) in the modern build, and
- * reset to IPX by Net_ShutdownDirectPlaySessionEx when it closes DirectPlay.
+/* Transport of the open lobby session. Written by net_start_network_session on
+ * success, by xvt_network_session_update (TCP/IP) in the modern build, and
+ * reset to IPX by net_shutdown_direct_play_session_ex when it closes DirectPlay.
  * Only the original build reads it, to wait for shutdown acks on TCP/IP. */
 // GLOBAL: XVT 0x665020
-NetworkTransportType g_netActiveTransportType = NET_TRANSPORT_IPX;
+network_transport_type g_net_active_transport_type = NET_TRANSPORT_IPX;
 
 /* A game packet as the lobby sends it through DirectPlay. */
-struct NetDirectPlayEncodedPacket {
+struct net_direct_play_encoded_packet {
 	/* Bits 0-6 the packet type, bits 8-14 the sequence. Bits 15 and 7 are
 	 * set for the group; bit 15 alone for a sequenced packet to one
 	 * player. */
-	int16_t packetTypeHeader;
+	int16_t packet_type_header;
 	/* Body length, present only outside types 60-63 for a type with no
 	 * fixed size; otherwise the body starts here. */
-	int16_t payloadSize;
+	int16_t payload_size;
 	/* The body, then, outside types 60-63, a trailer: a NOP byte, or the
 	 * type byte and body of the previous packet on the channel. */
 	uint8_t payload[1020];
@@ -90,27 +90,27 @@ struct NetDirectPlayEncodedPacket {
 #pragma pack(push, 1)
 
 /* A resent packet as the lobby sends it through DirectPlay. */
-struct NetDirectPlaySequencedPacket {
-	/* Type and sequence as in NetDirectPlayEncodedPacket, with bit 7 set
+struct net_direct_play_sequenced_packet {
+	/* Type and sequence as in net_direct_play_encoded_packet, with bit 7 set
 	 * and bit 15 clear, which marks a resend. */
-	int16_t packetTypeHeader;
-	uint8_t packetClass; /* Channel: 0 broadcast, 1 one player, 2 group. */
+	int16_t packet_type_header;
+	uint8_t packet_class; /* Channel: 0 broadcast, 1 one player, 2 group. */
 	/* Body length, present only outside types 60-63 for a type with no
 	 * fixed size; otherwise the body starts here. */
-	int16_t payloadSize;
+	int16_t payload_size;
 	/* The body, then, outside types 60-63, a NOP byte. */
 	uint8_t payload[1019];
 };
 
 #pragma pack(pop)
-typedef char xvt_size_NetDirectPlaySequencedPacket
-	[(sizeof(struct NetDirectPlaySequencedPacket) == 1024) ? 1 : -1];
+typedef char xvt_size_net_direct_play_sequenced_packet
+	[(sizeof(struct net_direct_play_sequenced_packet) == 1024) ? 1 : -1];
 
 #ifndef XVT_MODERN
-/* Fixed instance GUID that Net_OpenDirectPlaySession puts in the session
+/* Fixed instance GUID that net_open_direct_play_session puts in the session
  * description it hands DirectPlay's lobby for a modem or TCP/IP game. */
 // GLOBAL: XVT 0x518290
-const GUID g_netLobbySessionInstanceGuid = {
+const GUID g_net_lobby_session_instance_guid = {
 	0x09438C20,
 	0xE01F,
 	0x11CF,
@@ -119,7 +119,7 @@ const GUID g_netLobbySessionInstanceGuid = {
 #endif
 /* Service provider GUID the game passes to DirectPlay for an IPX game. */
 // GLOBAL: XVT 0x5182A0
-const GUID g_netDirectPlayIpxServiceProviderGuid = {
+const GUID g_net_direct_play_ipx_service_provider_guid = {
 	0x685BC400,
 	0x9D2C,
 	0x11CF,
@@ -127,7 +127,7 @@ const GUID g_netDirectPlayIpxServiceProviderGuid = {
 };
 /* Service provider GUID the game passes to DirectPlay for a modem game. */
 // GLOBAL: XVT 0x5182B0
-const GUID g_netDirectPlayModemServiceProviderGuid = {
+const GUID g_net_direct_play_modem_service_provider_guid = {
 	0x44EAA760,
 	0xCB68,
 	0x11CF,
@@ -136,7 +136,7 @@ const GUID g_netDirectPlayModemServiceProviderGuid = {
 /* Service provider GUID the game passes to DirectPlay for a TCP/IP game, the
  * only transport the modern build uses. */
 // GLOBAL: XVT 0x5182C0
-const GUID g_netDirectPlayTcpIpServiceProviderGuid = {
+const GUID g_net_direct_play_tcp_ip_service_provider_guid = {
 	0x36E95EE0,
 	0x8577,
 	0x11CF,
@@ -144,15 +144,15 @@ const GUID g_netDirectPlayTcpIpServiceProviderGuid = {
 };
 /* Service provider GUID the game passes to DirectPlay for a serial game. */
 // GLOBAL: XVT 0x5182D0
-const GUID g_netDirectPlaySerialServiceProviderGuid = {
+const GUID g_net_direct_play_serial_service_provider_guid = {
 	0x0F1D6860,
 	0x88D9,
 	0x11CF,
 	{0x9C, 0x4E, 0x00, 0xA0, 0xC9, 0x05, 0x42, 0x5E},
 };
-/* Interface id that Net_StartNetworkSession, Net_EnumerateAppSessions and
- * XvtNetworkSession_Factory pass to QueryInterface to get the IDirectPlay2A
- * interface kept in g_frontState.netDirectPlay. */
+/* Interface id that net_start_network_session, net_enumerate_app_sessions and
+ * xvt_network_session_factory pass to QueryInterface to get the IDirectPlay2A
+ * interface kept in g_front_state.net_direct_play. */
 // GLOBAL: XVT 0x518EF0
 const GUID IID_IDirectPlay2A = {
 	0x9D460580,
@@ -161,70 +161,70 @@ const GUID IID_IDirectPlay2A = {
 	{0x96, 0x0C, 0x00, 0x80, 0xC7, 0x53, 0x4E, 0x82},
 };
 #ifndef XVT_MODERN
-/* Address type Net_OpenDirectPlaySession gives a serial game's COM port
+/* Address type net_open_direct_play_session gives a serial game's COM port
  * settings. */
 // GLOBAL: XVT 0x518F00
-const GUID g_netDirectPlayComPortAddressTypeGuid = {
+const GUID g_net_direct_play_com_port_address_type_guid = {
 	0xF2F0CE00,
 	0xE0AF,
 	0x11CF,
 	{0x9C, 0x4E, 0x00, 0xA0, 0xC9, 0x05, 0x42, 0x5E},
 };
-/* Address type Net_OpenDirectPlaySession gives a modem game's address. */
+/* Address type net_open_direct_play_session gives a modem game's address. */
 // GLOBAL: XVT 0x518F10
-const GUID g_netDirectPlayPhoneAddressTypeGuid = {
+const GUID g_net_direct_play_phone_address_type_guid = {
 	0x78EC89A0,
 	0xE0AF,
 	0x11CF,
 	{0x9C, 0x4E, 0x00, 0xA0, 0xC9, 0x05, 0x42, 0x5E},
 };
-/* Address type Net_OpenDirectPlaySession gives a TCP/IP game's address. */
+/* Address type net_open_direct_play_session gives a TCP/IP game's address. */
 // GLOBAL: XVT 0x518F20
-const GUID g_netDirectPlayInetAddressTypeGuid = {
+const GUID g_net_direct_play_inet_address_type_guid = {
 	0xC4A54DA0,
 	0xE0AF,
 	0x11CF,
 	{0x9C, 0x4E, 0x00, 0xA0, 0xC9, 0x05, 0x42, 0x5E},
 };
 #endif
-/* Copy of the provider GUID that Net_GetDirectPlayServiceProviderGuid last
+/* Copy of the provider GUID that net_get_direct_play_service_provider_guid last
  * looked up; that function returns this copy's address. */
 // GLOBAL: XVT 0x665040
-GUID g_netDirectPlayServiceProviderGuidScratch = {0};
+GUID g_net_direct_play_service_provider_guid_scratch = {0};
 /* Link figures for up to 40 players, keyed by DirectPlay id. On the host,
- * Net_PumpIncomingPackets fills them from each player's keepalive acks; on
+ * net_pump_incoming_packets fills them from each player's keepalive acks; on
  * the other players, the Net_SetPlayer* setters store what the host's lobby
- * packets report. Eight writers in all. Cleared by Net_StartNetworkSession
- * and XvtNetworkSession_Factory; the host clears a player's entry when the
- * player leaves (Net_HandleDirectPlaySystemMessage). */
+ * packets report. Eight writers in all. Cleared by net_start_network_session
+ * and xvt_network_session_factory; the host clears a player's entry when the
+ * player leaves (net_handle_direct_play_system_message). */
 // GLOBAL: XVT 0x665050
-struct NetPlayerConnectionStats g_netPlayerConnectionStats[40];
-/* Instance GUID of the session Net_EnumSessionsMatchNameCallback last found
- * by name; Net_FindSessionByName returns its address. Never cleared. */
+struct net_player_connection_stats g_net_player_connection_stats[40];
+/* Instance GUID of the session net_enum_sessions_match_name_callback last found
+ * by name; net_find_session_by_name returns its address. Never cleared. */
 // GLOBAL: XVT 0x665028
-GUID g_netMatchedSessionInstanceGuid = {0};
-/* Sessions Net_EnumerateAppSessionsCallback has stored so far; set to 0 by
- * Net_EnumerateAppSessions before each enumeration. */
+GUID g_net_matched_session_instance_guid = {0};
+/* Sessions net_enumerate_app_sessions_callback has stored so far; set to 0 by
+ * net_enumerate_app_sessions before each enumeration. */
 // GLOBAL: XVT 0x665410
-int g_netEnumSessionCount = 0;
+int g_net_enum_session_count = 0;
 /* Room in the caller's session array for the enumeration under way; set by
- * Net_EnumerateAppSessions. */
+ * net_enumerate_app_sessions. */
 // GLOBAL: XVT 0x665414
-int g_netEnumSessionCapacity = 0;
+int g_net_enum_session_capacity = 0;
 
 #ifndef XVT_MODERN
 /* Opens a lobby session. It first resets the lobby's reliable layer in
- * g_frontState (sequence counters, trailers, the 40 peer slots, sent history,
- * host and group ids), clears g_netPlayerConnectionStats and flips DirectDraw
+ * g_front_state (sequence counters, trailers, the 40 peer slots, sent history,
+ * host and group ids), clears g_net_player_connection_stats and flips DirectDraw
  * to the GDI surface, then returns 0 at once when a DirectPlay interface
  * already exists. IPX and serial create DirectPlay for the transport's
- * provider, then host (isHost 1) or join, by instance GUID or else by name,
- * a session named sessionName, "<name>'s Game." when that is empty, or
+ * provider, then host (is_host 1) or join, by instance GUID or else by name,
+ * a session named session_name, "<name>'s Game." when that is empty, or
  * "Direct serial game." for serial. Modem and TCP/IP go through
- * Net_OpenDirectPlaySession with the session name "Dial a New Number."
- * whatever sessionName holds. It then creates the local player; a host also
+ * net_open_direct_play_session with the session name "Dial a New Number."
+ * whatever session_name holds. It then creates the local player; a host also
  * creates the group, which takes the first peer slot. It refreshes the
- * roster and empties the receive queue. With waitForPlayerCount above 0 it
+ * roster and empties the receive queue. With wait_for_player_count above 0 it
  * pumps packets until that many players are in, with no time limit, and sets
  * no host id. Otherwise a host takes its own id, and a joiner waits for the
  * host's NET_PACKET_SEQUENCE_STATUS (5 seconds per wait, any other packet
@@ -232,21 +232,25 @@ int g_netEnumSessionCapacity = 0;
  * keeping its own one-player state with the host, and answers with a
  * NET_PACKET_KEEPALIVE_ACK that echoes the host's time stamp. The packet's
  * peer count is not checked against the 40 slots. Returns 1 and sets
- * g_netActiveTransportType on success, or 0 on any failure, after releasing
+ * g_net_active_transport_type on success, or 0 on any failure, after releasing
  * what it opened. Autodial is off for the call and the back buffer unlocked;
  * both are restored on every return. Only the original build calls this. */
 // FUNCTION: XVT 0x4CCF90
-int Net_StartNetworkSession(
-	int appGuidData1, int appGuidData2, int appGuidData3, int appGuidData4,
-	const char *localPlayerInfo, const char *localPlayerName, int isHost,
-	const char *sessionName, NetworkTransportType networkType,
-	int waitForPlayerCount, int unusedA11, const char *connectionAddress,
-	const GUID *joinSessionInstanceGuid)
+int net_start_network_session(int app_guid_data1, int app_guid_data2,
+			      int app_guid_data3, int app_guid_data4,
+			      const char *local_player_info,
+			      const char *local_player_name, int is_host,
+			      const char *session_name,
+			      network_transport_type network_type,
+			      int wait_for_player_count, int unused_a11,
+			      const char *connection_address,
+			      const GUID *join_session_instance_guid)
 {
 	enum {
 		NET_RELIABLE_PEER_CAPACITY =
-			sizeof(g_frontState.netRuntimeReliablePeerSlots) /
-			sizeof(g_frontState.netRuntimeReliablePeerSlots[0]),
+			sizeof(g_front_state.net_runtime_reliable_peer_slots) /
+			sizeof(g_front_state
+				       .net_runtime_reliable_peer_slots[0]),
 		NET_RELIABLE_SEQUENCE_INITIAL = 127,
 		NET_JOIN_TIMEOUT_SECONDS = 5,
 		NET_PLAYER_NAME_TERMINATOR_INDEX = 15,
@@ -256,838 +260,876 @@ int Net_StartNetworkSession(
 		NET_JOIN_RESPONSE_SIZE = 20,
 	};
 
-	DPID senderId;
+	DPID sender_id;
 	HRESULT result;
-	int backBufferLocked;
-	char gameSessionName[32];
+	int back_buffer_locked;
+	char game_session_name[32];
 
 	struct {
 		int words[10];
-		uint32_t receivedSize;
-	} packetWorkspace;
+		uint32_t received_size;
+	} packet_workspace;
 
-	char dialNumber[32] = "Dial a New Number.";
-	char directSerialName[32] = "Direct serial game.";
-	DPCAPS directPlayCaps;
-	struct NetReliablePeerSlot savedHostSlot;
-	char errorMessage[256];
-	int peerIndex;
-	NetworkTransportType selectedNetworkType;
-	const GUID *serviceProviderGuid;
-	DPID directPlayPlayer;
-	int *receivedPacket;
-	const uint8_t *peerSequenceRecords;
-	uint32_t peerSlotIndex;
-	int sequenceRecordOffset;
+	char dial_number[32] = "Dial a New Number.";
+	char direct_serial_name[32] = "Direct serial game.";
+	DPCAPS direct_play_caps;
+	struct net_reliable_peer_slot saved_host_slot;
+	char error_message[256];
+	int peer_index;
+	network_transport_type selected_network_type;
+	const GUID *service_provider_guid;
+	DPID direct_play_player;
+	int *received_packet;
+	const uint8_t *peer_sequence_records;
+	uint32_t peer_slot_index;
+	int sequence_record_offset;
 
-	(void)unusedA11;
+	(void)unused_a11;
 
-	backBufferLocked = g_frontState.backBufferLocked;
-	FrontendDisplay_UnlockBackBuffer();
-	Net_DisableAutoDialRegistrySetting();
-	g_frontState.netRuntimeSentHistoryWriteIndex = 0;
-	g_frontState.netRuntimeBroadcastSeqCounter = 0;
-	g_frontState.netRuntimeBroadcastPendingPayload.piggybackEmpty = 1;
-	g_frontState.netRuntimeBroadcastPendingPayload.payload[0] =
+	back_buffer_locked = g_front_state.back_buffer_locked;
+	frontend_display_unlock_back_buffer();
+	net_disable_auto_dial_registry_setting();
+	g_front_state.net_runtime_sent_history_write_index = 0;
+	g_front_state.net_runtime_broadcast_seq_counter = 0;
+	g_front_state.net_runtime_broadcast_pending_payload.piggyback_empty = 1;
+	g_front_state.net_runtime_broadcast_pending_payload.payload[0] =
 		NET_PACKET_NOP;
-	g_frontState.netRuntimeBroadcastPendingPayload.payloadLength = 1;
-	g_frontState.netRuntimeGroupSeqCounter = 0;
-	g_frontState.netRuntimeGroupPendingPayload.piggybackEmpty = 1;
-	g_frontState.netRuntimeGroupPendingPayload.payload[0] = NET_PACKET_NOP;
-	g_frontState.netRuntimeGroupPendingPayload.payloadLength = 1;
-	g_frontState.netReliablePeerSlotCount = 0;
-	g_frontState.netReliableRetryLongTimeoutMode = 0;
-	g_frontState.netGroupDplayId = 0;
-	g_frontState.netHostPlayerId = 0;
-	g_frontState.netFlightSentWorldMessageHistory = NULL;
-	g_frontState.netFlightSentWorldMessageWriteIndex = 0;
-	for (peerIndex = 0; peerIndex < NET_RELIABLE_PEER_CAPACITY;
-	     ++peerIndex) {
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-			.lastDeliveredSeqDefault =
+	g_front_state.net_runtime_broadcast_pending_payload.payload_length = 1;
+	g_front_state.net_runtime_group_seq_counter = 0;
+	g_front_state.net_runtime_group_pending_payload.piggyback_empty = 1;
+	g_front_state.net_runtime_group_pending_payload.payload[0] =
+		NET_PACKET_NOP;
+	g_front_state.net_runtime_group_pending_payload.payload_length = 1;
+	g_front_state.net_reliable_peer_slot_count = 0;
+	g_front_state.net_reliable_retry_long_timeout_mode = 0;
+	g_front_state.net_group_dplay_id = 0;
+	g_front_state.net_host_player_id = 0;
+	g_front_state.net_flight_sent_world_message_history = NULL;
+	g_front_state.net_flight_sent_world_message_write_index = 0;
+	for (peer_index = 0; peer_index < NET_RELIABLE_PEER_CAPACITY;
+	     ++peer_index) {
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.last_delivered_seq_default =
 			NET_RELIABLE_SEQUENCE_INITIAL;
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-			.lastDeliveredSeqChannelA =
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.last_delivered_seq_channel_a =
 			NET_RELIABLE_SEQUENCE_INITIAL;
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-			.lastDeliveredSeqChannelB =
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.last_delivered_seq_channel_b =
 			NET_RELIABLE_SEQUENCE_INITIAL;
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-			.recvSeqDefault = NET_RELIABLE_SEQUENCE_INITIAL;
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-			.recvSeqChannelA = NET_RELIABLE_SEQUENCE_INITIAL;
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-			.recvSeqChannelB = NET_RELIABLE_SEQUENCE_INITIAL;
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex].sendSeq = 0;
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-			.directPlayId = 0;
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-			.lastPiggybackType = NET_PACKET_NOP;
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-			.piggybackLength = 1;
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-			.lastActivityMs = 0;
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-			.lastHeardMs = 0;
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-			.packetCount = 0;
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-			.packetDropCount = 0;
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-			.packetRetryCount = 0;
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.recv_seq_default = NET_RELIABLE_SEQUENCE_INITIAL;
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.recv_seq_channel_a = NET_RELIABLE_SEQUENCE_INITIAL;
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.recv_seq_channel_b = NET_RELIABLE_SEQUENCE_INITIAL;
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.send_seq = 0;
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.direct_play_id = 0;
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.last_piggyback_type = NET_PACKET_NOP;
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.piggyback_length = 1;
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.last_activity_ms = 0;
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.last_heard_ms = 0;
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.packet_count = 0;
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.packet_drop_count = 0;
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.packet_retry_count = 0;
 	}
-	memset(g_frontState.netRuntimeSentHistory, 0,
-	       sizeof(g_frontState.netRuntimeSentHistory));
-	memset(g_netPlayerConnectionStats, 0,
-	       sizeof(g_netPlayerConnectionStats));
-	g_frontState.directDraw->lpVtbl->FlipToGDISurface(
-		g_frontState.directDraw);
+	memset(g_front_state.net_runtime_sent_history, 0,
+	       sizeof(g_front_state.net_runtime_sent_history));
+	memset(g_net_player_connection_stats, 0,
+	       sizeof(g_net_player_connection_stats));
+	g_front_state.direct_draw->lpVtbl->FlipToGDISurface(
+		g_front_state.direct_draw);
 
-	if (g_frontState.netDirectPlay != NULL) {
-		if (backBufferLocked != 0) {
-			g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	if (g_front_state.net_direct_play != NULL) {
+		if (back_buffer_locked != 0) {
+			g_draw_surface_ptr =
+				frontend_display_lock_back_buffer();
 		}
-		Net_RestoreAutoDialRegistrySetting();
+		net_restore_auto_dial_registry_setting();
 		return 0;
 	}
-	selectedNetworkType = networkType;
-	switch (selectedNetworkType) {
+	selected_network_type = network_type;
+	switch (selected_network_type) {
 	case NET_TRANSPORT_IPX:
-		memcpy(&packetWorkspace.words[6],
-		       &g_netDirectPlayIpxServiceProviderGuid, sizeof(GUID));
+		memcpy(&packet_workspace.words[6],
+		       &g_net_direct_play_ipx_service_provider_guid,
+		       sizeof(GUID));
 		break;
 	case NET_TRANSPORT_TCPIP:
-		memcpy(&packetWorkspace.words[6],
-		       &g_netDirectPlayTcpIpServiceProviderGuid, sizeof(GUID));
+		memcpy(&packet_workspace.words[6],
+		       &g_net_direct_play_tcp_ip_service_provider_guid,
+		       sizeof(GUID));
 		break;
 	case NET_TRANSPORT_MODEM:
-		memcpy(&packetWorkspace.words[6],
-		       &g_netDirectPlayModemServiceProviderGuid, sizeof(GUID));
+		memcpy(&packet_workspace.words[6],
+		       &g_net_direct_play_modem_service_provider_guid,
+		       sizeof(GUID));
 		break;
 	case NET_TRANSPORT_SERIAL:
-		memcpy(&packetWorkspace.words[6],
-		       &g_netDirectPlaySerialServiceProviderGuid, sizeof(GUID));
+		memcpy(&packet_workspace.words[6],
+		       &g_net_direct_play_serial_service_provider_guid,
+		       sizeof(GUID));
 		break;
 	}
 
-	if (selectedNetworkType != NET_TRANSPORT_MODEM &&
-	    selectedNetworkType != NET_TRANSPORT_TCPIP) {
-		serviceProviderGuid = Net_GetDirectPlayServiceProviderGuid(
-			selectedNetworkType);
-		if (serviceProviderGuid == NULL) {
-			if (backBufferLocked != 0) {
-				g_drawSurfacePtr =
-					FrontendDisplay_LockBackBuffer();
+	if (selected_network_type != NET_TRANSPORT_MODEM &&
+	    selected_network_type != NET_TRANSPORT_TCPIP) {
+		service_provider_guid =
+			net_get_direct_play_service_provider_guid(
+				selected_network_type);
+		if (service_provider_guid == NULL) {
+			if (back_buffer_locked != 0) {
+				g_draw_surface_ptr =
+					frontend_display_lock_back_buffer();
 			}
-			Net_RestoreAutoDialRegistrySetting();
+			net_restore_auto_dial_registry_setting();
 			return 0;
 		}
-		if (DirectPlayCreate(serviceProviderGuid,
-				     &g_frontState.netTempDirectPlay,
+		if (DirectPlayCreate(service_provider_guid,
+				     &g_front_state.net_temp_direct_play,
 				     NULL) != 0) {
-			if (ErrorText_LoadLine(6, errorMessage) == 0) {
-				FrontendDisplay_ShowGameMessageBox(
+			if (error_text_load_line(6, error_message) == 0) {
+				frontend_display_show_game_message_box(
 					"WARNING:  Connection failure!\n\nMake sure your Windows 95 network\nsettings are "
 					"properly configured\nfor this type of network game.\n\nPress Enter to continue.");
 			} else {
-				FrontendDisplay_ShowGameMessageBox(
-					errorMessage);
+				frontend_display_show_game_message_box(
+					error_message);
 			}
-			if (backBufferLocked != 0) {
-				g_drawSurfacePtr =
-					FrontendDisplay_LockBackBuffer();
+			if (back_buffer_locked != 0) {
+				g_draw_surface_ptr =
+					frontend_display_lock_back_buffer();
 			}
-			Net_RestoreAutoDialRegistrySetting();
+			net_restore_auto_dial_registry_setting();
 			return 0;
 		}
-		result = g_frontState.netTempDirectPlay->lpVtbl->QueryInterface(
-			g_frontState.netTempDirectPlay, &IID_IDirectPlay2A,
-			(void **)&g_frontState.netDirectPlay);
-		g_frontState.netTempDirectPlay->lpVtbl->Release(
-			g_frontState.netTempDirectPlay);
-		g_frontState.netTempDirectPlay = NULL;
+		result = g_front_state.net_temp_direct_play->lpVtbl
+				 ->QueryInterface(
+					 g_front_state.net_temp_direct_play,
+					 &IID_IDirectPlay2A,
+					 (void **)&g_front_state
+						 .net_direct_play);
+		g_front_state.net_temp_direct_play->lpVtbl->Release(
+			g_front_state.net_temp_direct_play);
+		g_front_state.net_temp_direct_play = NULL;
 		if (result != 0) {
-			if (backBufferLocked != 0) {
-				g_drawSurfacePtr =
-					FrontendDisplay_LockBackBuffer();
+			if (back_buffer_locked != 0) {
+				g_draw_surface_ptr =
+					frontend_display_lock_back_buffer();
 			}
-			Net_RestoreAutoDialRegistrySetting();
+			net_restore_auto_dial_registry_setting();
 			return 0;
 		}
 
-		strncpy(g_frontState.netPlayers[0].longName, localPlayerInfo,
-			sizeof(g_frontState.netPlayers[0].longName));
-		g_frontState.netPlayers[0]
-			.longName[NET_PLAYER_NAME_TERMINATOR_INDEX] = '\0';
-		strncpy(g_frontState.netPlayers[0].playerName, localPlayerName,
-			sizeof(g_frontState.netPlayers[0].playerName));
-		g_frontState.netPlayers[0]
-			.playerName[NET_PLAYER_NAME_TERMINATOR_INDEX] = '\0';
-		if (selectedNetworkType == NET_TRANSPORT_MODEM) {
-			strcpy(gameSessionName, dialNumber);
-		} else if (selectedNetworkType == NET_TRANSPORT_SERIAL) {
-			strcpy(gameSessionName, directSerialName);
-		} else if (sessionName[0] == '\0') {
-			sprintf(gameSessionName, "%s's Game.", localPlayerName);
+		strncpy(g_front_state.net_players[0].long_name,
+			local_player_info,
+			sizeof(g_front_state.net_players[0].long_name));
+		g_front_state.net_players[0]
+			.long_name[NET_PLAYER_NAME_TERMINATOR_INDEX] = '\0';
+		strncpy(g_front_state.net_players[0].player_name,
+			local_player_name,
+			sizeof(g_front_state.net_players[0].player_name));
+		g_front_state.net_players[0]
+			.player_name[NET_PLAYER_NAME_TERMINATOR_INDEX] = '\0';
+		if (selected_network_type == NET_TRANSPORT_MODEM) {
+			strcpy(game_session_name, dial_number);
+		} else if (selected_network_type == NET_TRANSPORT_SERIAL) {
+			strcpy(game_session_name, direct_serial_name);
+		} else if (session_name[0] == '\0') {
+			sprintf(game_session_name, "%s's Game.",
+				local_player_name);
 		} else {
-			strcpy(gameSessionName, sessionName);
+			strcpy(game_session_name, session_name);
 		}
-		strncpy(g_frontState.netSessionName, gameSessionName,
-			sizeof(g_frontState.netSessionName));
-		g_frontState.netSessionName[NET_SESSION_NAME_TERMINATOR_INDEX] =
+		strncpy(g_front_state.net_session_name, game_session_name,
+			sizeof(g_front_state.net_session_name));
+		g_front_state
+			.net_session_name[NET_SESSION_NAME_TERMINATOR_INDEX] =
 			'\0';
-		g_frontState.netIsHost = isHost;
-		g_frontState.netAppGuid = *(const GUID *)&appGuidData1;
-		switch (isHost) {
+		g_front_state.net_is_host = is_host;
+		g_front_state.net_app_guid = *(const GUID *)&app_guid_data1;
+		switch (is_host) {
 		case 0:
-			result = Net_JoinDirectPlaySession(
-				gameSessionName, joinSessionInstanceGuid);
+			result = net_join_direct_play_session(
+				game_session_name, join_session_instance_guid);
 			break;
 		case 1:
-			result = Net_HostDirectPlaySession(gameSessionName);
+			result =
+				net_host_direct_play_session(game_session_name);
 			break;
 		default:
 			break;
 		}
 		if (result == 0) {
-			g_frontState.netDirectPlay->lpVtbl->Release(
-				g_frontState.netDirectPlay);
-			g_frontState.netDirectPlay = NULL;
-			if (backBufferLocked != 0) {
-				g_drawSurfacePtr =
-					FrontendDisplay_LockBackBuffer();
+			g_front_state.net_direct_play->lpVtbl->Release(
+				g_front_state.net_direct_play);
+			g_front_state.net_direct_play = NULL;
+			if (back_buffer_locked != 0) {
+				g_draw_surface_ptr =
+					frontend_display_lock_back_buffer();
 			}
-			Net_RestoreAutoDialRegistrySetting();
+			net_restore_auto_dial_registry_setting();
 			return 0;
 		}
 	} else {
-		serviceProviderGuid = Net_GetDirectPlayServiceProviderGuid(
-			selectedNetworkType);
-		if (serviceProviderGuid == NULL) {
-			if (backBufferLocked != 0) {
-				g_drawSurfacePtr =
-					FrontendDisplay_LockBackBuffer();
+		service_provider_guid =
+			net_get_direct_play_service_provider_guid(
+				selected_network_type);
+		if (service_provider_guid == NULL) {
+			if (back_buffer_locked != 0) {
+				g_draw_surface_ptr =
+					frontend_display_lock_back_buffer();
 			}
-			Net_RestoreAutoDialRegistrySetting();
+			net_restore_auto_dial_registry_setting();
 			return 0;
 		}
-		if (DirectPlayCreate(serviceProviderGuid,
-				     &g_frontState.netTempDirectPlay,
+		if (DirectPlayCreate(service_provider_guid,
+				     &g_front_state.net_temp_direct_play,
 				     NULL) != 0) {
-			if (ErrorText_LoadLine(6, errorMessage) == 0) {
-				FrontendDisplay_ShowGameMessageBox(
+			if (error_text_load_line(6, error_message) == 0) {
+				frontend_display_show_game_message_box(
 					"WARNING:  Connection failure!\n\nMake sure your Windows 95 network\nsettings are "
 					"properly configured\nfor this type of network game.\n\nPress Enter to continue.");
 			} else {
-				FrontendDisplay_ShowGameMessageBox(
-					errorMessage);
+				frontend_display_show_game_message_box(
+					error_message);
 			}
-			if (backBufferLocked != 0) {
-				g_drawSurfacePtr =
-					FrontendDisplay_LockBackBuffer();
+			if (back_buffer_locked != 0) {
+				g_draw_surface_ptr =
+					frontend_display_lock_back_buffer();
 			}
-			Net_RestoreAutoDialRegistrySetting();
+			net_restore_auto_dial_registry_setting();
 			return 0;
 		}
-		g_frontState.netTempDirectPlay->lpVtbl->Release(
-			g_frontState.netTempDirectPlay);
-		g_frontState.netTempDirectPlay = NULL;
-		g_frontState.netIsHost = isHost;
-		strncpy(g_frontState.netPlayers[0].longName, localPlayerInfo,
-			sizeof(g_frontState.netPlayers[0].longName));
-		g_frontState.netPlayers[0]
-			.longName[NET_PLAYER_NAME_TERMINATOR_INDEX] = '\0';
-		strncpy(g_frontState.netPlayers[0].playerName, localPlayerName,
-			sizeof(g_frontState.netPlayers[0].playerName));
-		g_frontState.netPlayers[0]
-			.playerName[NET_PLAYER_NAME_TERMINATOR_INDEX] = '\0';
-		if (Net_OpenDirectPlaySession(
-			    *(const GUID *)&appGuidData1, localPlayerInfo,
-			    localPlayerName, isHost, dialNumber,
-			    selectedNetworkType, connectionAddress) == 0) {
-			if (backBufferLocked != 0) {
-				g_drawSurfacePtr =
-					FrontendDisplay_LockBackBuffer();
+		g_front_state.net_temp_direct_play->lpVtbl->Release(
+			g_front_state.net_temp_direct_play);
+		g_front_state.net_temp_direct_play = NULL;
+		g_front_state.net_is_host = is_host;
+		strncpy(g_front_state.net_players[0].long_name,
+			local_player_info,
+			sizeof(g_front_state.net_players[0].long_name));
+		g_front_state.net_players[0]
+			.long_name[NET_PLAYER_NAME_TERMINATOR_INDEX] = '\0';
+		strncpy(g_front_state.net_players[0].player_name,
+			local_player_name,
+			sizeof(g_front_state.net_players[0].player_name));
+		g_front_state.net_players[0]
+			.player_name[NET_PLAYER_NAME_TERMINATOR_INDEX] = '\0';
+		if (net_open_direct_play_session(
+			    *(const GUID *)&app_guid_data1, local_player_info,
+			    local_player_name, is_host, dial_number,
+			    selected_network_type, connection_address) == 0) {
+			if (back_buffer_locked != 0) {
+				g_draw_surface_ptr =
+					frontend_display_lock_back_buffer();
 			}
-			Net_RestoreAutoDialRegistrySetting();
+			net_restore_auto_dial_registry_setting();
 			return 0;
 		}
 	}
 
-	memset(&directPlayCaps, 0, sizeof(directPlayCaps));
-	directPlayCaps.dwSize = sizeof(directPlayCaps);
-	g_frontState.netDirectPlay->lpVtbl->GetCaps(g_frontState.netDirectPlay,
-						    &directPlayCaps, 0);
-	directPlayPlayer =
-		Net_CreateDirectPlayPlayer(localPlayerInfo, localPlayerName);
-	if (directPlayPlayer == 0) {
-		g_frontState.netDirectPlay->lpVtbl->Close(
-			g_frontState.netDirectPlay);
-		g_frontState.netDirectPlay->lpVtbl->Release(
-			g_frontState.netDirectPlay);
-		g_frontState.netDirectPlay = NULL;
-		if (g_frontState.netDirectPlayLobby != NULL) {
-			g_frontState.netDirectPlayLobby->lpVtbl->Release(
-				g_frontState.netDirectPlayLobby);
-			g_frontState.netDirectPlayLobby = NULL;
+	memset(&direct_play_caps, 0, sizeof(direct_play_caps));
+	direct_play_caps.dwSize = sizeof(direct_play_caps);
+	g_front_state.net_direct_play->lpVtbl->GetCaps(
+		g_front_state.net_direct_play, &direct_play_caps, 0);
+	direct_play_player = net_create_direct_play_player(local_player_info,
+							   local_player_name);
+	if (direct_play_player == 0) {
+		g_front_state.net_direct_play->lpVtbl->Close(
+			g_front_state.net_direct_play);
+		g_front_state.net_direct_play->lpVtbl->Release(
+			g_front_state.net_direct_play);
+		g_front_state.net_direct_play = NULL;
+		if (g_front_state.net_direct_play_lobby != NULL) {
+			g_front_state.net_direct_play_lobby->lpVtbl->Release(
+				g_front_state.net_direct_play_lobby);
+			g_front_state.net_direct_play_lobby = NULL;
 		}
-		if (backBufferLocked != 0) {
-			g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+		if (back_buffer_locked != 0) {
+			g_draw_surface_ptr =
+				frontend_display_lock_back_buffer();
 		}
-		Net_RestoreAutoDialRegistrySetting();
+		net_restore_auto_dial_registry_setting();
 		return 0;
 	}
-	g_frontState.netPlayers[0].playerId = directPlayPlayer;
-	g_frontState.netRuntimeLocalPlayer = g_frontState.netPlayers[0];
-	if (isHost != 0) {
-		if (g_frontState.netDirectPlay->lpVtbl->CreateGroup(
-			    g_frontState.netDirectPlay,
-			    &g_frontState.netGroupDplayId, NULL, NULL, 0,
+	g_front_state.net_players[0].player_id = direct_play_player;
+	g_front_state.net_runtime_local_player = g_front_state.net_players[0];
+	if (is_host != 0) {
+		if (g_front_state.net_direct_play->lpVtbl->CreateGroup(
+			    g_front_state.net_direct_play,
+			    &g_front_state.net_group_dplay_id, NULL, NULL, 0,
 			    0) != 0) {
-			g_frontState.netDirectPlay->lpVtbl->DestroyPlayer(
-				g_frontState.netDirectPlay,
-				g_frontState.netRuntimeLocalPlayer.playerId);
-			g_frontState.netDirectPlay->lpVtbl->Close(
-				g_frontState.netDirectPlay);
-			g_frontState.netDirectPlay->lpVtbl->Release(
-				g_frontState.netDirectPlay);
-			g_frontState.netDirectPlay = NULL;
-			if (g_frontState.netDirectPlayLobby != NULL) {
-				g_frontState.netDirectPlayLobby->lpVtbl
-					->Release(g_frontState
-							  .netDirectPlayLobby);
-				g_frontState.netDirectPlayLobby = NULL;
+			g_front_state.net_direct_play->lpVtbl->DestroyPlayer(
+				g_front_state.net_direct_play,
+				g_front_state.net_runtime_local_player
+					.player_id);
+			g_front_state.net_direct_play->lpVtbl->Close(
+				g_front_state.net_direct_play);
+			g_front_state.net_direct_play->lpVtbl->Release(
+				g_front_state.net_direct_play);
+			g_front_state.net_direct_play = NULL;
+			if (g_front_state.net_direct_play_lobby != NULL) {
+				g_front_state.net_direct_play_lobby->lpVtbl
+					->Release(
+						g_front_state
+							.net_direct_play_lobby);
+				g_front_state.net_direct_play_lobby = NULL;
 			}
-			if (backBufferLocked != 0) {
-				g_drawSurfacePtr =
-					FrontendDisplay_LockBackBuffer();
+			if (back_buffer_locked != 0) {
+				g_draw_surface_ptr =
+					frontend_display_lock_back_buffer();
 			}
-			Net_RestoreAutoDialRegistrySetting();
+			net_restore_auto_dial_registry_setting();
 			return 0;
 		}
-		g_frontState.netRuntimeReliablePeerSlots[0].directPlayId =
-			g_frontState.netGroupDplayId;
-		g_frontState.netReliablePeerSlotCount = 1;
-		sprintf(gameSessionName, "My id%u\n",
-			g_frontState.netRuntimeLocalPlayer.playerId);
-		sprintf(gameSessionName, "Group id%u\n",
-			g_frontState.netGroupDplayId);
+		g_front_state.net_runtime_reliable_peer_slots[0]
+			.direct_play_id = g_front_state.net_group_dplay_id;
+		g_front_state.net_reliable_peer_slot_count = 1;
+		sprintf(game_session_name, "My id%u\n",
+			g_front_state.net_runtime_local_player.player_id);
+		sprintf(game_session_name, "Group id%u\n",
+			g_front_state.net_group_dplay_id);
 	}
-	g_frontState.netPlayerCount = 1;
-	Net_RefreshPlayerRoster();
-	g_frontState.netRuntimeRecvQueueWriteIndex = 0;
-	g_frontState.netRuntimeRecvQueueReadIndex = 0;
-	g_frontState.netRuntimeRecvQueueCount = 0;
+	g_front_state.net_player_count = 1;
+	net_refresh_player_roster();
+	g_front_state.net_runtime_recv_queue_write_index = 0;
+	g_front_state.net_runtime_recv_queue_read_index = 0;
+	g_front_state.net_runtime_recv_queue_count = 0;
 
-	if (waitForPlayerCount > 0) {
-		while (Net_GetPlayerCount() < waitForPlayerCount) {
-			Net_PumpIncomingPackets();
+	if (wait_for_player_count > 0) {
+		while (net_get_player_count() < wait_for_player_count) {
+			net_pump_incoming_packets();
 		}
 	}
-	if (waitForPlayerCount <= 0) {
-		if (isHost != 0) {
-			g_frontState.netHostPlayerId =
-				g_frontState.netRuntimeLocalPlayer.playerId;
+	if (wait_for_player_count <= 0) {
+		if (is_host != 0) {
+			g_front_state.net_host_player_id =
+				g_front_state.net_runtime_local_player
+					.player_id;
 		} else {
 			do {
-				receivedPacket = Net_WaitForAppPacket(
-					&senderId,
-					&packetWorkspace.receivedSize,
+				received_packet = net_wait_for_app_packet(
+					&sender_id,
+					&packet_workspace.received_size,
 					NET_JOIN_TIMEOUT_SECONDS);
-				if (receivedPacket == NULL) {
-					g_frontState.netDirectPlay->lpVtbl
+				if (received_packet == NULL) {
+					g_front_state.net_direct_play->lpVtbl
 						->DestroyPlayer(
-							g_frontState
-								.netDirectPlay,
-							g_frontState
-								.netRuntimeLocalPlayer
-								.playerId);
-					g_frontState.netDirectPlay->lpVtbl
-						->Close(g_frontState
-								.netDirectPlay);
-					g_frontState.netDirectPlay->lpVtbl
+							g_front_state
+								.net_direct_play,
+							g_front_state
+								.net_runtime_local_player
+								.player_id);
+					g_front_state.net_direct_play->lpVtbl
+						->Close(g_front_state
+								.net_direct_play);
+					g_front_state.net_direct_play->lpVtbl
 						->Release(
-							g_frontState
-								.netDirectPlay);
-					g_frontState.netDirectPlay = NULL;
-					if (g_frontState.netDirectPlayLobby !=
+							g_front_state
+								.net_direct_play);
+					g_front_state.net_direct_play = NULL;
+					if (g_front_state
+						    .net_direct_play_lobby !=
 					    NULL) {
-						g_frontState.netDirectPlayLobby
+						g_front_state
+							.net_direct_play_lobby
 							->lpVtbl->Release(
-								g_frontState
-									.netDirectPlayLobby);
-						g_frontState
-							.netDirectPlayLobby =
+								g_front_state
+									.net_direct_play_lobby);
+						g_front_state
+							.net_direct_play_lobby =
 							NULL;
 					}
-					if (backBufferLocked != 0) {
-						g_drawSurfacePtr =
-							FrontendDisplay_LockBackBuffer();
+					if (back_buffer_locked != 0) {
+						g_draw_surface_ptr =
+							frontend_display_lock_back_buffer();
 					}
-					Net_RestoreAutoDialRegistrySetting();
+					net_restore_auto_dial_registry_setting();
 					return 0;
 				}
-			} while (receivedPacket[0] !=
+			} while (received_packet[0] !=
 				 NET_PACKET_SEQUENCE_STATUS);
 
-			g_frontState.netHostPlayerId = senderId;
-			memset(&savedHostSlot, 0, sizeof(savedHostSlot));
-			for (peerSlotIndex = 0;
-			     g_frontState.netReliablePeerSlotCount >
-			     peerSlotIndex;
-			     ++peerSlotIndex) {
-				if (g_frontState
-					    .netRuntimeReliablePeerSlots
-						    [peerSlotIndex]
-					    .directPlayId ==
-				    g_frontState.netHostPlayerId) {
-					memcpy(&savedHostSlot,
-					       &g_frontState
-							.netRuntimeReliablePeerSlots
-								[peerSlotIndex],
-					       sizeof(savedHostSlot));
+			g_front_state.net_host_player_id = sender_id;
+			memset(&saved_host_slot, 0, sizeof(saved_host_slot));
+			for (peer_slot_index = 0;
+			     g_front_state.net_reliable_peer_slot_count >
+			     peer_slot_index;
+			     ++peer_slot_index) {
+				if (g_front_state
+					    .net_runtime_reliable_peer_slots
+						    [peer_slot_index]
+					    .direct_play_id ==
+				    g_front_state.net_host_player_id) {
+					memcpy(&saved_host_slot,
+					       &g_front_state
+							.net_runtime_reliable_peer_slots
+								[peer_slot_index],
+					       sizeof(saved_host_slot));
 					break;
 				}
 			}
 
-			g_frontState.netReliablePeerSlotCount =
-				(uint32_t)receivedPacket[2];
+			g_front_state.net_reliable_peer_slot_count =
+				(uint32_t)received_packet[2];
 			/* From here result holds the host's time stamp in ms, echoed back below in the keepalive ack. */
-			result = receivedPacket[3];
-			peerSequenceRecords = (const uint8_t *)receivedPacket +
-					      NET_JOIN_SEQUENCE_RECORD_OFFSET;
-			for (peerSlotIndex = 0;
-			     g_frontState.netReliablePeerSlotCount >
-			     peerSlotIndex;
-			     ++peerSlotIndex) {
-				sequenceRecordOffset =
-					peerSlotIndex *
+			result = received_packet[3];
+			peer_sequence_records =
+				(const uint8_t *)received_packet +
+				NET_JOIN_SEQUENCE_RECORD_OFFSET;
+			for (peer_slot_index = 0;
+			     g_front_state.net_reliable_peer_slot_count >
+			     peer_slot_index;
+			     ++peer_slot_index) {
+				sequence_record_offset =
+					peer_slot_index *
 					NET_JOIN_SEQUENCE_RECORD_SIZE;
-				memcpy(&g_frontState
-						.netRuntimeReliablePeerSlots
-							[peerSlotIndex]
-						.directPlayId,
-				       &peerSequenceRecords
-					       [sequenceRecordOffset],
-				       sizeof(g_frontState
-						      .netRuntimeReliablePeerSlots
-							      [peerSlotIndex]
-						      .directPlayId));
-				g_frontState
-					.netRuntimeReliablePeerSlots
-						[peerSlotIndex]
-					.lastDeliveredSeqChannelA =
-					peerSequenceRecords
-						[sequenceRecordOffset + 4];
-				g_frontState
-					.netRuntimeReliablePeerSlots
-						[peerSlotIndex]
-					.lastDeliveredSeqChannelB =
-					peerSequenceRecords
-						[sequenceRecordOffset + 5];
-				g_frontState
-					.netRuntimeReliablePeerSlots
-						[peerSlotIndex]
-					.recvSeqChannelA = peerSequenceRecords
-					[sequenceRecordOffset + 6];
-				g_frontState
-					.netRuntimeReliablePeerSlots
-						[peerSlotIndex]
-					.recvSeqChannelB = peerSequenceRecords
-					[sequenceRecordOffset + 7];
-				g_frontState
-					.netRuntimeReliablePeerSlots
-						[peerSlotIndex]
-					.lastDeliveredSeqDefault =
+				memcpy(&g_front_state
+						.net_runtime_reliable_peer_slots
+							[peer_slot_index]
+						.direct_play_id,
+				       &peer_sequence_records
+					       [sequence_record_offset],
+				       sizeof(g_front_state
+						      .net_runtime_reliable_peer_slots
+							      [peer_slot_index]
+						      .direct_play_id));
+				g_front_state
+					.net_runtime_reliable_peer_slots
+						[peer_slot_index]
+					.last_delivered_seq_channel_a =
+					peer_sequence_records
+						[sequence_record_offset + 4];
+				g_front_state
+					.net_runtime_reliable_peer_slots
+						[peer_slot_index]
+					.last_delivered_seq_channel_b =
+					peer_sequence_records
+						[sequence_record_offset + 5];
+				g_front_state
+					.net_runtime_reliable_peer_slots
+						[peer_slot_index]
+					.recv_seq_channel_a =
+					peer_sequence_records
+						[sequence_record_offset + 6];
+				g_front_state
+					.net_runtime_reliable_peer_slots
+						[peer_slot_index]
+					.recv_seq_channel_b =
+					peer_sequence_records
+						[sequence_record_offset + 7];
+				g_front_state
+					.net_runtime_reliable_peer_slots
+						[peer_slot_index]
+					.last_delivered_seq_default =
 					NET_RELIABLE_SEQUENCE_INITIAL;
-				g_frontState
-					.netRuntimeReliablePeerSlots
-						[peerSlotIndex]
-					.recvSeqDefault =
+				g_front_state
+					.net_runtime_reliable_peer_slots
+						[peer_slot_index]
+					.recv_seq_default =
 					NET_RELIABLE_SEQUENCE_INITIAL;
-				g_frontState
-					.netRuntimeReliablePeerSlots
-						[peerSlotIndex]
-					.sendSeq = 0;
-				g_frontState
-					.netRuntimeReliablePeerSlots
-						[peerSlotIndex]
-					.lastPiggybackType = NET_PACKET_NOP;
-				g_frontState
-					.netRuntimeReliablePeerSlots
-						[peerSlotIndex]
-					.piggybackLength = 1;
-				g_frontState
-					.netRuntimeReliablePeerSlots
-						[peerSlotIndex]
-					.lastActivityMs = GetTickCount();
-				g_frontState
-					.netRuntimeReliablePeerSlots
-						[peerSlotIndex]
-					.lastHeardMs = GetTickCount();
+				g_front_state
+					.net_runtime_reliable_peer_slots
+						[peer_slot_index]
+					.send_seq = 0;
+				g_front_state
+					.net_runtime_reliable_peer_slots
+						[peer_slot_index]
+					.last_piggyback_type = NET_PACKET_NOP;
+				g_front_state
+					.net_runtime_reliable_peer_slots
+						[peer_slot_index]
+					.piggyback_length = 1;
+				g_front_state
+					.net_runtime_reliable_peer_slots
+						[peer_slot_index]
+					.last_activity_ms = GetTickCount();
+				g_front_state
+					.net_runtime_reliable_peer_slots
+						[peer_slot_index]
+					.last_heard_ms = GetTickCount();
 			}
 
-			if (savedHostSlot.directPlayId != 0) {
-				for (peerSlotIndex = 0;
-				     g_frontState.netReliablePeerSlotCount >
-				     peerSlotIndex;
-				     ++peerSlotIndex) {
-					if (g_frontState
-						    .netRuntimeReliablePeerSlots
-							    [peerSlotIndex]
-						    .directPlayId ==
-					    g_frontState.netHostPlayerId) {
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[peerSlotIndex]
-							.lastDeliveredSeqDefault =
-							savedHostSlot
-								.lastDeliveredSeqDefault;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[peerSlotIndex]
-							.recvSeqDefault =
-							savedHostSlot
-								.recvSeqDefault;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[peerSlotIndex]
-							.sendSeq =
-							savedHostSlot.sendSeq;
-						memcpy(&g_frontState
-								.netRuntimeReliablePeerSlots
-									[peerSlotIndex]
-								.lastPiggybackType,
-						       &savedHostSlot
-								.lastPiggybackType,
-						       savedHostSlot
-							       .piggybackLength);
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[peerSlotIndex]
-							.piggybackLength =
-							savedHostSlot
-								.piggybackLength;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[peerSlotIndex]
-							.lastActivityMs =
-							savedHostSlot
-								.lastActivityMs;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[peerSlotIndex]
-							.lastHeardMs =
-							savedHostSlot
-								.lastHeardMs;
+			if (saved_host_slot.direct_play_id != 0) {
+				for (peer_slot_index = 0;
+				     g_front_state
+					     .net_reliable_peer_slot_count >
+				     peer_slot_index;
+				     ++peer_slot_index) {
+					if (g_front_state
+						    .net_runtime_reliable_peer_slots
+							    [peer_slot_index]
+						    .direct_play_id ==
+					    g_front_state.net_host_player_id) {
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[peer_slot_index]
+							.last_delivered_seq_default =
+							saved_host_slot
+								.last_delivered_seq_default;
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[peer_slot_index]
+							.recv_seq_default =
+							saved_host_slot
+								.recv_seq_default;
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[peer_slot_index]
+							.send_seq =
+							saved_host_slot
+								.send_seq;
+						memcpy(&g_front_state
+								.net_runtime_reliable_peer_slots
+									[peer_slot_index]
+								.last_piggyback_type,
+						       &saved_host_slot
+								.last_piggyback_type,
+						       saved_host_slot
+							       .piggyback_length);
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[peer_slot_index]
+							.piggyback_length =
+							saved_host_slot
+								.piggyback_length;
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[peer_slot_index]
+							.last_activity_ms =
+							saved_host_slot
+								.last_activity_ms;
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[peer_slot_index]
+							.last_heard_ms =
+							saved_host_slot
+								.last_heard_ms;
 					}
 				}
 			}
-			packetWorkspace.words[0] = NET_PACKET_KEEPALIVE_ACK;
-			memcpy(&packetWorkspace.words[1], &result,
-			       sizeof(packetWorkspace.words[1]));
-			memset(&packetWorkspace.words[2], 0,
+			packet_workspace.words[0] = NET_PACKET_KEEPALIVE_ACK;
+			memcpy(&packet_workspace.words[1], &result,
+			       sizeof(packet_workspace.words[1]));
+			memset(&packet_workspace.words[2], 0,
 			       NET_JOIN_RESPONSE_SIZE -
-				       2 * sizeof(packetWorkspace.words[0]));
-			Net_SendDirectPlayPacket(g_frontState.netHostPlayerId,
-						 packetWorkspace.words,
-						 NET_JOIN_RESPONSE_SIZE, 0);
+				       2 * sizeof(packet_workspace.words[0]));
+			net_send_direct_play_packet(
+				g_front_state.net_host_player_id,
+				packet_workspace.words, NET_JOIN_RESPONSE_SIZE,
+				0);
 		}
 	}
 
-	if (backBufferLocked != 0) {
-		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	if (back_buffer_locked != 0) {
+		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
-	Net_RestoreAutoDialRegistrySetting();
-	g_netActiveTransportType = selectedNetworkType;
+	net_restore_auto_dial_registry_setting();
+	g_net_active_transport_type = selected_network_type;
 	return 1;
 }
 #endif
 
-/* Net_ShutdownDirectPlaySessionEx(1, 1): in the original build, with the
+/* net_shutdown_direct_play_session_ex(1, 1): in the original build, with the
  * TCP/IP shutdown handshake and no relaunch when it fails. */
 // FUNCTION: XVT 0x4CD9C0
-void Net_ShutdownDirectPlaySessionForQuit(void)
+void net_shutdown_direct_play_session_for_quit(void)
 {
-	Net_ShutdownDirectPlaySessionEx(1, 1);
+	net_shutdown_direct_play_session_ex(1, 1);
 }
 
-/* Net_ShutdownDirectPlaySessionEx(0, 1): in the original build, with the
+/* net_shutdown_direct_play_session_ex(0, 1): in the original build, with the
  * TCP/IP shutdown handshake, relaunching the game when it fails. */
 // FUNCTION: XVT 0x4CD9D0
-void Net_ShutdownDirectPlaySession(void)
+void net_shutdown_direct_play_session(void)
 {
-	Net_ShutdownDirectPlaySessionEx(0, 1);
+	net_shutdown_direct_play_session_ex(0, 1);
 }
 
-/* Net_ShutdownDirectPlaySessionEx(0, 0): without the shutdown handshake. Only
+/* net_shutdown_direct_play_session_ex(0, 0): without the shutdown handshake. Only
  * the original build calls this. */
 // FUNCTION: XVT 0x4CD9E0
-void Net_ShutdownDirectPlaySessionNoHandshake(void)
+void net_shutdown_direct_play_session_no_handshake(void)
 {
-	Net_ShutdownDirectPlaySessionEx(0, 0);
+	net_shutdown_direct_play_session_ex(0, 0);
 }
 
 /* Closes the lobby session. The modern build first calls
- * XvtNetworkSession_OnClose. When DirectPlay is open: in the original build
- * a TCP/IP session with waitForHandshakeAcks runs
- * Net_WaitForShutdownHandshakeAcks, and when that fails saves the persistent
+ * xvt_network_session_on_close. When DirectPlay is open: in the original build
+ * a TCP/IP session with wait_for_handshake_acks runs
+ * net_wait_for_shutdown_handshake_acks, and when that fails saves the persistent
  * state, shuts the display and CD audio and exits the process, first
- * starting "z_xvt__.exe skipintro" unless suppressRestart is set. It then
- * sets g_netActiveTransportType to IPX and destroys the local player; in the
+ * starting "z_xvt__.exe skipintro" unless suppress_restart is set. It then
+ * sets g_net_active_transport_type to IPX and destroys the local player; in the
  * original build, when that takes over 20 seconds, it shows a DirectPlay
- * error (unless suppressRestart is set) and terminates the process. It
+ * error (unless suppress_restart is set) and terminates the process. It
  * destroys the group, closes and releases DirectPlay. In every case it
  * empties the receive queue and resets the broadcast and group counters and
  * the 40 peer slots. Returns 1. The back buffer is unlocked meanwhile and
  * relocked when it was locked. */
 // FUNCTION: XVT 0x4CD9F0
-int Net_ShutdownDirectPlaySessionEx(int suppressRestart,
-				    int waitForHandshakeAcks)
+int net_shutdown_direct_play_session_ex(int suppress_restart,
+					int wait_for_handshake_acks)
 {
 	enum {
 		NET_DESTROY_PLAYER_TIMEOUT_MS = 20000,
 		NET_RELIABLE_PEER_CAPACITY =
-			sizeof(g_frontState.netRuntimeReliablePeerSlots) /
-			sizeof(g_frontState.netRuntimeReliablePeerSlots[0]),
+			sizeof(g_front_state.net_runtime_reliable_peer_slots) /
+			sizeof(g_front_state
+				       .net_runtime_reliable_peer_slots[0]),
 		NET_RELIABLE_SEQUENCE_INITIAL = 127
 	};
 
-	int backBufferLocked;
-	int peerIndex;
+	int back_buffer_locked;
+	int peer_index;
 #ifndef XVT_MODERN
-	uint32_t destroyPlayerStartTime;
-	void *currentProcess;
+	uint32_t destroy_player_start_time;
+	void *current_process;
 #endif
 
-	backBufferLocked = g_frontState.backBufferLocked;
-	FrontendDisplay_UnlockBackBuffer();
+	back_buffer_locked = g_front_state.back_buffer_locked;
+	frontend_display_unlock_back_buffer();
 #ifdef XVT_MODERN
-	XvtNetworkSession_OnClose();
+	xvt_network_session_on_close();
 #endif
-	if (g_frontState.netDirectPlay != NULL) {
+	if (g_front_state.net_direct_play != NULL) {
 #ifndef XVT_MODERN
-		if (g_netActiveTransportType == NET_TRANSPORT_TCPIP &&
-		    waitForHandshakeAcks != 0) {
-			if (Net_WaitForShutdownHandshakeAcks() == 0) {
-				if (suppressRestart != 0) {
-					Frontend_SavePersistentState();
-					FrontendDisplay_Shutdown(0);
-					CDAudio_CloseDevice();
+		if (g_net_active_transport_type == NET_TRANSPORT_TCPIP &&
+		    wait_for_handshake_acks != 0) {
+			if (net_wait_for_shutdown_handshake_acks() == 0) {
+				if (suppress_restart != 0) {
+					frontend_save_persistent_state();
+					frontend_display_shutdown(0);
+					cd_audio_close_device();
 					ExitProcess(0);
 				} else {
-					Frontend_SavePersistentState();
-					FrontendDisplay_Shutdown(0);
-					CDAudio_CloseDevice();
-					if (g_frontState.hWnd != NULL) {
+					frontend_save_persistent_state();
+					frontend_display_shutdown(0);
+					cd_audio_close_device();
+					if (g_front_state.h_wnd != NULL) {
 						SetWindowTextA(
-							g_frontState.hWnd,
+							g_front_state.h_wnd,
 							"XvT - Exiting");
 					}
-					Win32_CreateProcessFromCommandLine(
+					win32_create_process_from_command_line(
 						"z_xvt__.exe skipintro");
 					ExitProcess(0);
 				}
 			}
 		}
 #else
-		(void)suppressRestart;
-		(void)waitForHandshakeAcks;
+		(void)suppress_restart;
+		(void)wait_for_handshake_acks;
 #endif
-		g_netActiveTransportType = NET_TRANSPORT_IPX;
+		g_net_active_transport_type = NET_TRANSPORT_IPX;
 #ifndef XVT_MODERN
-		destroyPlayerStartTime = GetTickCount();
+		destroy_player_start_time = GetTickCount();
 #endif
-		g_frontState.netDirectPlay->lpVtbl->DestroyPlayer(
-			g_frontState.netDirectPlay,
-			g_frontState.netRuntimeLocalPlayer.playerId);
+		g_front_state.net_direct_play->lpVtbl->DestroyPlayer(
+			g_front_state.net_direct_play,
+			g_front_state.net_runtime_local_player.player_id);
 #ifndef XVT_MODERN
-		if (GetTickCount() - destroyPlayerStartTime >
+		if (GetTickCount() - destroy_player_start_time >
 		    NET_DESTROY_PLAYER_TIMEOUT_MS) {
-			if (suppressRestart == 0) {
-				FrontendDialog_ShowNetworkAbortError(
-					FrontendString_Get(
+			if (suppress_restart == 0) {
+				frontend_dialog_show_network_abort_error(
+					frontend_string_get(
 						FRONTSTR_762_DIRECT_PLAY_ERROR_FAILED_TO_DISCONNECT),
-					FrontendString_Get(
+					frontend_string_get(
 						FRONTSTR_763_ATTEMPTING_TO_EXIT_TO_WINDOWS),
-					FrontendString_Get(
+					frontend_string_get(
 						FRONTSTR_764_YOUR_COMPUTER_MAY_STOP_RESPONDING),
-					FrontendString_Get(
+					frontend_string_get(
 						FRONTSTR_006_EXIT_TO_WINDOWS),
 					NULL);
 			}
-			FrontendSound_ShutdownDirectSound();
-			CDAudio_CloseDevice();
-			currentProcess = GetCurrentProcess();
-			TerminateProcess(currentProcess, 0);
+			frontend_sound_shutdown_direct_sound();
+			cd_audio_close_device();
+			current_process = GetCurrentProcess();
+			TerminateProcess(current_process, 0);
 		}
 #endif
-		if (g_frontState.netGroupDplayId != 0) {
-			g_frontState.netDirectPlay->lpVtbl->DestroyGroup(
-				g_frontState.netDirectPlay,
-				g_frontState.netGroupDplayId);
-			g_frontState.netGroupDplayId = 0;
+		if (g_front_state.net_group_dplay_id != 0) {
+			g_front_state.net_direct_play->lpVtbl->DestroyGroup(
+				g_front_state.net_direct_play,
+				g_front_state.net_group_dplay_id);
+			g_front_state.net_group_dplay_id = 0;
 		}
-		g_frontState.netDirectPlay->lpVtbl->Close(
-			g_frontState.netDirectPlay);
-		g_frontState.netDirectPlay->lpVtbl->Release(
-			g_frontState.netDirectPlay);
-		g_frontState.netDirectPlay = NULL;
+		g_front_state.net_direct_play->lpVtbl->Close(
+			g_front_state.net_direct_play);
+		g_front_state.net_direct_play->lpVtbl->Release(
+			g_front_state.net_direct_play);
+		g_front_state.net_direct_play = NULL;
 	}
 
-	g_frontState.netRuntimeRecvQueueWriteIndex = 0;
-	g_frontState.netRuntimeRecvQueueReadIndex = 0;
-	g_frontState.netRuntimeRecvQueueCount = 0;
-	g_frontState.netRuntimeBroadcastSeqCounter = 0;
-	g_frontState.netRuntimeBroadcastPendingPayload.piggybackEmpty = 1;
-	g_frontState.netRuntimeGroupSeqCounter = 0;
-	g_frontState.netRuntimeGroupPendingPayload.piggybackEmpty = 1;
-	g_frontState.netReliablePeerSlotCount = 0;
-	g_frontState.netReliableRetryLongTimeoutMode = 0;
-	for (peerIndex = 0; peerIndex < NET_RELIABLE_PEER_CAPACITY;
-	     ++peerIndex) {
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-			.lastDeliveredSeqDefault =
+	g_front_state.net_runtime_recv_queue_write_index = 0;
+	g_front_state.net_runtime_recv_queue_read_index = 0;
+	g_front_state.net_runtime_recv_queue_count = 0;
+	g_front_state.net_runtime_broadcast_seq_counter = 0;
+	g_front_state.net_runtime_broadcast_pending_payload.piggyback_empty = 1;
+	g_front_state.net_runtime_group_seq_counter = 0;
+	g_front_state.net_runtime_group_pending_payload.piggyback_empty = 1;
+	g_front_state.net_reliable_peer_slot_count = 0;
+	g_front_state.net_reliable_retry_long_timeout_mode = 0;
+	for (peer_index = 0; peer_index < NET_RELIABLE_PEER_CAPACITY;
+	     ++peer_index) {
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.last_delivered_seq_default =
 			NET_RELIABLE_SEQUENCE_INITIAL;
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-			.lastDeliveredSeqChannelA =
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.last_delivered_seq_channel_a =
 			NET_RELIABLE_SEQUENCE_INITIAL;
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-			.lastDeliveredSeqChannelB =
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.last_delivered_seq_channel_b =
 			NET_RELIABLE_SEQUENCE_INITIAL;
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-			.recvSeqDefault = NET_RELIABLE_SEQUENCE_INITIAL;
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-			.recvSeqChannelA = NET_RELIABLE_SEQUENCE_INITIAL;
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-			.recvSeqChannelB = NET_RELIABLE_SEQUENCE_INITIAL;
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex].sendSeq = 0;
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-			.directPlayId = 0;
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-			.lastPiggybackType = NET_PACKET_NOP;
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-			.piggybackLength = 1;
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-			.lastActivityMs = 0;
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-			.lastHeardMs = 0;
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-			.packetCount = 0;
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-			.packetDropCount = 0;
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-			.packetRetryCount = 0;
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.recv_seq_default = NET_RELIABLE_SEQUENCE_INITIAL;
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.recv_seq_channel_a = NET_RELIABLE_SEQUENCE_INITIAL;
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.recv_seq_channel_b = NET_RELIABLE_SEQUENCE_INITIAL;
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.send_seq = 0;
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.direct_play_id = 0;
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.last_piggyback_type = NET_PACKET_NOP;
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.piggyback_length = 1;
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.last_activity_ms = 0;
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.last_heard_ms = 0;
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.packet_count = 0;
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.packet_drop_count = 0;
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.packet_retry_count = 0;
 	}
-	if (backBufferLocked != 0) {
-		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	if (back_buffer_locked != 0) {
+		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
 	return 1;
 }
 
-/* Rebuilds the lobby roster, g_frontState.netPlayers, from DirectPlay's
+/* Rebuilds the lobby roster, g_front_state.net_players, from DirectPlay's
  * players: keeps entry 0 (the local player), clears the rest, sets
- * g_frontState.netPlayerCount to 1 and enumerates through
- * Net_EnumPlayersCallback, then carries each player's ready flag over by id.
+ * g_front_state.net_player_count to 1 and enumerates through
+ * net_enum_players_callback, then carries each player's ready flag over by id.
  * Returns 0 without DirectPlay, else 1. The back buffer is unlocked
  * meanwhile and relocked when it was locked. */
 // FUNCTION: XVT 0x4CDC20
-int Net_RefreshPlayerRoster(void)
+int net_refresh_player_roster(void)
 {
-	int wasBackBufferLocked;
-	int playerIndex;
-	int oldPlayerIndex;
-	struct NetPlayerInfo oldPlayers[32];
+	int was_back_buffer_locked;
+	int player_index;
+	int old_player_index;
+	struct net_player_info old_players[32];
 
-	if (g_frontState.netDirectPlay == NULL) {
+	if (g_front_state.net_direct_play == NULL) {
 		return 0;
 	}
-	wasBackBufferLocked = g_frontState.backBufferLocked;
-	FrontendDisplay_UnlockBackBuffer();
-	memcpy(oldPlayers, g_frontState.netPlayers, sizeof(oldPlayers));
-	memset(&g_frontState.netPlayers[1], 0,
-	       sizeof(g_frontState.netPlayers) -
-		       sizeof(g_frontState.netPlayers[0]));
-	g_frontState.netPlayerCount = 1;
-	g_frontState.netDirectPlay->lpVtbl->EnumPlayers(
-		g_frontState.netDirectPlay, NULL, Net_EnumPlayersCallback, NULL,
-		0);
-	for (playerIndex = 0; playerIndex < g_frontState.netPlayerCount;
-	     ++playerIndex) {
-		for (oldPlayerIndex = 0; oldPlayerIndex < 32;
-		     ++oldPlayerIndex) {
-			if (oldPlayers[oldPlayerIndex].playerId ==
-			    g_frontState.netPlayers[playerIndex].playerId) {
-				g_frontState.netPlayers[playerIndex].readyFlag =
-					oldPlayers[oldPlayerIndex].readyFlag;
+	was_back_buffer_locked = g_front_state.back_buffer_locked;
+	frontend_display_unlock_back_buffer();
+	memcpy(old_players, g_front_state.net_players, sizeof(old_players));
+	memset(&g_front_state.net_players[1], 0,
+	       sizeof(g_front_state.net_players) -
+		       sizeof(g_front_state.net_players[0]));
+	g_front_state.net_player_count = 1;
+	g_front_state.net_direct_play->lpVtbl->EnumPlayers(
+		g_front_state.net_direct_play, NULL, net_enum_players_callback,
+		NULL, 0);
+	for (player_index = 0; player_index < g_front_state.net_player_count;
+	     ++player_index) {
+		for (old_player_index = 0; old_player_index < 32;
+		     ++old_player_index) {
+			if (old_players[old_player_index].player_id ==
+			    g_front_state.net_players[player_index].player_id) {
+				g_front_state.net_players[player_index]
+					.ready_flag =
+					old_players[old_player_index]
+						.ready_flag;
 				break;
 			}
 		}
 	}
-	if (wasBackBufferLocked != 0) {
-		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	if (was_back_buffer_locked != 0) {
+		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
 	return 1;
 }
 
 /* Player enumeration callback: adds one DirectPlay player to the roster (long
- * name to longName and short name to playerName, each cut to 15
- * characters, its id, not ready) and raises g_frontState.netPlayerCount.
+ * name to long_name and short name to playerName, each cut to 15
+ * characters, its id, not ready) and raises g_front_state.net_player_count.
  * Skips entries of type 0 and the local player. Returns 0, which stops the
  * enumeration, once 32 players are listed; else 1. */
 // FUNCTION: XVT 0x4CDCF0
-int AERON_DXAPI Net_EnumPlayersCallback(DPID playerId, uint32_t playerType,
-					const DPNAME *nameDesc, uint32_t flags,
-					void *context)
+int AERON_DXAPI net_enum_players_callback(DPID player_id, uint32_t player_type,
+					  const DPNAME *name_desc,
+					  uint32_t flags, void *context)
 {
 	(void)flags;
 	(void)context;
 
-	if (g_frontState.netPlayerCount >= 32) {
+	if (g_front_state.net_player_count >= 32) {
 		return 0;
 	}
-	if (playerType == 0) {
+	if (player_type == 0) {
 		return 1;
 	}
-	if (g_frontState.netPlayers[0].playerId == playerId) {
+	if (g_front_state.net_players[0].player_id == player_id) {
 		return 1;
 	}
-	strncpy(g_frontState.netPlayers[g_frontState.netPlayerCount].longName,
-		nameDesc->lpszLongNameA,
-		sizeof(g_frontState.netPlayers[g_frontState.netPlayerCount]
-			       .longName));
-	strncpy(g_frontState.netPlayers[g_frontState.netPlayerCount].playerName,
-		nameDesc->lpszShortNameA,
-		sizeof(g_frontState.netPlayers[g_frontState.netPlayerCount]
-			       .playerName));
-	g_frontState.netPlayers[g_frontState.netPlayerCount].longName[15] =
-		'\0';
-	g_frontState.netPlayers[g_frontState.netPlayerCount].playerName[15] =
-		'\0';
-	g_frontState.netPlayers[g_frontState.netPlayerCount].playerId =
-		playerId;
-	g_frontState.netPlayers[g_frontState.netPlayerCount++].readyFlag = 0;
+	strncpy(g_front_state.net_players[g_front_state.net_player_count]
+			.long_name,
+		name_desc->lpszLongNameA,
+		sizeof(g_front_state.net_players[g_front_state.net_player_count]
+			       .long_name));
+	strncpy(g_front_state.net_players[g_front_state.net_player_count]
+			.player_name,
+		name_desc->lpszShortNameA,
+		sizeof(g_front_state.net_players[g_front_state.net_player_count]
+			       .player_name));
+	g_front_state.net_players[g_front_state.net_player_count]
+		.long_name[15] = '\0';
+	g_front_state.net_players[g_front_state.net_player_count]
+		.player_name[15] = '\0';
+	g_front_state.net_players[g_front_state.net_player_count].player_id =
+		player_id;
+	g_front_state.net_players[g_front_state.net_player_count++].ready_flag =
+		0;
 	return 1;
 }
 
 #ifndef XVT_MODERN
 /* Creates a DirectPlay session for up to 32 players under
- * g_frontState.netAppGuid with the given name. Returns 1 when Open succeeds,
+ * g_front_state.net_app_guid with the given name. Returns 1 when Open succeeds,
  * else 0. Only the original build calls this. */
 // FUNCTION: XVT 0x4CDDC0
-int Net_HostDirectPlaySession(const char *sessionName)
+int net_host_direct_play_session(const char *session_name)
 {
-	DPSESSIONDESC2 sessionDesc;
+	DPSESSIONDESC2 session_desc;
 
-	memset(&sessionDesc, 0, sizeof(sessionDesc));
-	sessionDesc.dwSize = sizeof(sessionDesc);
-	sessionDesc.dwFlags = 0x40;
-	sessionDesc.guidApplication = g_frontState.netAppGuid;
-	sessionDesc.dwMaxPlayers = 32;
-	sessionDesc.lpszSessionNameA = (char *)sessionName;
+	memset(&session_desc, 0, sizeof(session_desc));
+	session_desc.dwSize = sizeof(session_desc);
+	session_desc.dwFlags = 0x40;
+	session_desc.guidApplication = g_front_state.net_app_guid;
+	session_desc.dwMaxPlayers = 32;
+	session_desc.lpszSessionNameA = (char *)session_name;
 
-	return g_frontState.netDirectPlay->lpVtbl->Open(
-		       g_frontState.netDirectPlay, &sessionDesc, 2) == 0;
+	return g_front_state.net_direct_play->lpVtbl->Open(
+		       g_front_state.net_direct_play, &session_desc, 2) == 0;
 }
 #endif
 
@@ -1096,118 +1138,121 @@ int Net_HostDirectPlaySession(const char *sessionName)
  * times; the modern build tries once and returns XVT_NETWORK_PENDING while
  * DirectPlay reports the call pending. */
 // FUNCTION: XVT 0x4CDE40
-int Net_CreateDirectPlayPlayer(const char *longPlayerInfo,
-			       const char *shortPlayerName)
+int net_create_direct_play_player(const char *long_player_info,
+				  const char *short_player_name)
 {
 #ifdef XVT_MODERN
 	DPID player = 0;
-	DPNAME name = {sizeof(name), 0, (char *)shortPlayerName,
-		       (char *)longPlayerInfo};
-	HRESULT result = g_frontState.netDirectPlay->lpVtbl->CreatePlayer(
-		g_frontState.netDirectPlay, &player, &name, NULL, NULL, 0, 0);
+	DPNAME name = {sizeof(name), 0, (char *)short_player_name,
+		       (char *)long_player_info};
+	HRESULT result = g_front_state.net_direct_play->lpVtbl->CreatePlayer(
+		g_front_state.net_direct_play, &player, &name, NULL, NULL, 0,
+		0);
 	return result == DPERR_PENDING ? XVT_NETWORK_PENDING
 	       : result == 0	       ? (int)player
 				       : 0;
 #else
-	int attemptsRemaining;
-	DPID playerId;
-	DPNAME playerName;
+	int attempts_remaining;
+	DPID player_id;
+	DPNAME player_name;
 
-	attemptsRemaining = 5;
-	memset(&playerName, 0, sizeof(playerName));
-	playerName.lpszShortNameA = (char *)shortPlayerName;
-	playerName.lpszLongNameA = (char *)longPlayerInfo;
-	playerName.dwSize = sizeof(playerName);
+	attempts_remaining = 5;
+	memset(&player_name, 0, sizeof(player_name));
+	player_name.lpszShortNameA = (char *)short_player_name;
+	player_name.lpszLongNameA = (char *)long_player_info;
+	player_name.dwSize = sizeof(player_name);
 	do {
-		if (g_frontState.netDirectPlay->lpVtbl->CreatePlayer(
-			    g_frontState.netDirectPlay, &playerId, &playerName,
-			    NULL, NULL, 0, 0) == 0) {
+		if (g_front_state.net_direct_play->lpVtbl->CreatePlayer(
+			    g_front_state.net_direct_play, &player_id,
+			    &player_name, NULL, NULL, 0, 0) == 0) {
 			break;
 		}
-		--attemptsRemaining;
-	} while (attemptsRemaining != 0);
-	if (attemptsRemaining == 0) {
+		--attempts_remaining;
+	} while (attempts_remaining != 0);
+	if (attempts_remaining == 0) {
 		return 0;
 	}
-	return playerId;
+	return player_id;
 #endif
 }
 
 #ifndef XVT_MODERN
-/* Joins the session with sessionInstanceGuid or, when that is NULL, the one
- * Net_FindSessionByName finds by name. Stores its GUID in
- * g_frontState.netJoinedSessionGuid and returns 1; returns 0 when no session
+/* Joins the session with session_instance_guid or, when that is NULL, the one
+ * net_find_session_by_name finds by name. Stores its GUID in
+ * g_front_state.net_joined_session_guid and returns 1; returns 0 when no session
  * is found or Open fails. Only the original build calls this. */
 // FUNCTION: XVT 0x4CDEB0
-int Net_JoinDirectPlaySession(const char *sessionName,
-			      const GUID *sessionInstanceGuid)
+int net_join_direct_play_session(const char *session_name,
+				 const GUID *session_instance_guid)
 {
-	const GUID *resolvedSessionGuid;
-	DPSESSIONDESC2 sessionDesc;
+	const GUID *resolved_session_guid;
+	DPSESSIONDESC2 session_desc;
 
-	resolvedSessionGuid = sessionInstanceGuid;
-	if (resolvedSessionGuid == 0) {
-		resolvedSessionGuid = Net_FindSessionByName(sessionName);
-		if (resolvedSessionGuid == 0) {
+	resolved_session_guid = session_instance_guid;
+	if (resolved_session_guid == 0) {
+		resolved_session_guid = net_find_session_by_name(session_name);
+		if (resolved_session_guid == 0) {
 			return 0;
 		}
 	}
 
-	memset(&sessionDesc, 0, sizeof(sessionDesc));
-	sessionDesc.dwSize = sizeof(sessionDesc);
-	sessionDesc.dwFlags = 0x40;
-	sessionDesc.guidInstance = *resolvedSessionGuid;
-	if (g_frontState.netDirectPlay->lpVtbl->Open(g_frontState.netDirectPlay,
-						     &sessionDesc, 1) != 0) {
+	memset(&session_desc, 0, sizeof(session_desc));
+	session_desc.dwSize = sizeof(session_desc);
+	session_desc.dwFlags = 0x40;
+	session_desc.guidInstance = *resolved_session_guid;
+	if (g_front_state.net_direct_play->lpVtbl->Open(
+		    g_front_state.net_direct_play, &session_desc, 1) != 0) {
 		return 0;
 	}
 
-	g_frontState.netJoinedSessionGuid = *resolvedSessionGuid;
+	g_front_state.net_joined_session_guid = *resolved_session_guid;
 	return 1;
 }
 #endif
 
 #ifndef XVT_MODERN
 /* Enumerates the application's sessions, letting
- * Net_EnumSessionsMatchNameCallback record the one named sessionName, and
- * returns &g_netMatchedSessionInstanceGuid when EnumSessions succeeds, else
+ * net_enum_sessions_match_name_callback record the one named session_name, and
+ * returns &g_net_matched_session_instance_guid when EnumSessions succeeds, else
  * NULL. It does not check that a session matched: with no match it returns
  * whatever GUID the global last held. Only the original build calls this. */
 // FUNCTION: XVT 0x4CDF60
-const GUID *Net_FindSessionByName(const char *sessionName)
+const GUID *net_find_session_by_name(const char *session_name)
 {
-	DPSESSIONDESC2 sessionDesc;
+	DPSESSIONDESC2 session_desc;
 
-	memset(&sessionDesc, 0, sizeof(sessionDesc));
-	sessionDesc.dwSize = sizeof(sessionDesc);
-	sessionDesc.guidApplication = g_frontState.netAppGuid;
+	memset(&session_desc, 0, sizeof(session_desc));
+	session_desc.dwSize = sizeof(session_desc);
+	session_desc.guidApplication = g_front_state.net_app_guid;
 
-	return g_frontState.netDirectPlay->lpVtbl->EnumSessions(
-		       g_frontState.netDirectPlay, &sessionDesc, 0,
-		       Net_EnumSessionsMatchNameCallback, (void *)sessionName,
-		       1) == 0
-		       ? &g_netMatchedSessionInstanceGuid
+	return g_front_state.net_direct_play->lpVtbl->EnumSessions(
+		       g_front_state.net_direct_play, &session_desc, 0,
+		       net_enum_sessions_match_name_callback,
+		       (void *)session_name, 1) == 0
+		       ? &g_net_matched_session_instance_guid
 		       : 0;
 }
 #endif
 
 #ifndef XVT_MODERN
 /* Session enumeration callback: copies the instance GUID of the session
- * named context into g_netMatchedSessionInstanceGuid and returns 0 to stop.
+ * named context into g_net_matched_session_instance_guid and returns 0 to stop.
  * Also stops on a timeout or a NULL description; otherwise returns 1 to go
  * on. Only the original build calls this. */
 // FUNCTION: XVT 0x4CDFD0
-int AERON_DXAPI Net_EnumSessionsMatchNameCallback(
-	const DPSESSIONDESC2 *sessionDesc, uint32_t *timeoutMs, uint32_t flags,
-	void *context)
+int AERON_DXAPI net_enum_sessions_match_name_callback(
+	const DPSESSIONDESC2 *session_desc, uint32_t *timeout_ms,
+	uint32_t flags, void *context)
 {
-	(void)timeoutMs;
+	(void)timeout_ms;
 
-	if (sessionDesc == 0 || (flags & 1) != 0) {
+	if (session_desc == 0 || (flags & 1) != 0) {
 		return 0;
 	}
-	if (strcmp(sessionDesc->lpszSessionNameA, (const char *)context) == 0) {
-		g_netMatchedSessionInstanceGuid = sessionDesc->guidInstance;
+	if (strcmp(session_desc->lpszSessionNameA, (const char *)context) ==
+	    0) {
+		g_net_matched_session_instance_guid =
+			session_desc->guidInstance;
 		return 0;
 	}
 
@@ -1216,34 +1261,34 @@ int AERON_DXAPI Net_EnumSessionsMatchNameCallback(
 #endif
 
 /* Copies the DirectPlay service provider GUID for a transport into
- * g_netDirectPlayServiceProviderGuidScratch and returns its address; returns
+ * g_net_direct_play_service_provider_guid_scratch and returns its address; returns
  * NULL for an unknown transport. */
 // FUNCTION: XVT 0x4CE050
 const GUID *
-Net_GetDirectPlayServiceProviderGuid(NetworkTransportType networkType)
+net_get_direct_play_service_provider_guid(network_transport_type network_type)
 {
 	const GUID *result;
 
-	switch (networkType) {
+	switch (network_type) {
 	case NET_TRANSPORT_IPX:
-		g_netDirectPlayServiceProviderGuidScratch =
-			g_netDirectPlayIpxServiceProviderGuid;
-		result = &g_netDirectPlayServiceProviderGuidScratch;
+		g_net_direct_play_service_provider_guid_scratch =
+			g_net_direct_play_ipx_service_provider_guid;
+		result = &g_net_direct_play_service_provider_guid_scratch;
 		break;
 	case NET_TRANSPORT_TCPIP:
-		g_netDirectPlayServiceProviderGuidScratch =
-			g_netDirectPlayTcpIpServiceProviderGuid;
-		result = &g_netDirectPlayServiceProviderGuidScratch;
+		g_net_direct_play_service_provider_guid_scratch =
+			g_net_direct_play_tcp_ip_service_provider_guid;
+		result = &g_net_direct_play_service_provider_guid_scratch;
 		break;
 	case NET_TRANSPORT_MODEM:
-		g_netDirectPlayServiceProviderGuidScratch =
-			g_netDirectPlayModemServiceProviderGuid;
-		result = &g_netDirectPlayServiceProviderGuidScratch;
+		g_net_direct_play_service_provider_guid_scratch =
+			g_net_direct_play_modem_service_provider_guid;
+		result = &g_net_direct_play_service_provider_guid_scratch;
 		break;
 	case NET_TRANSPORT_SERIAL:
-		g_netDirectPlayServiceProviderGuidScratch =
-			g_netDirectPlaySerialServiceProviderGuid;
-		result = &g_netDirectPlayServiceProviderGuidScratch;
+		g_net_direct_play_service_provider_guid_scratch =
+			g_net_direct_play_serial_service_provider_guid;
+		result = &g_net_direct_play_service_provider_guid_scratch;
 		break;
 	default:
 		result = NULL;
@@ -1253,13 +1298,13 @@ Net_GetDirectPlayServiceProviderGuid(NetworkTransportType networkType)
 }
 
 /* Reads every waiting DirectPlay message into the lobby receive queue,
- * g_frontState.netRuntimeRecvQueue, after sending due keepalives
- * (Net_SendSequenceKeepalives) and checking for silent peers
- * (Net_DropSilentPeers). Stops when DirectPlay has nothing more or 1023
+ * g_front_state.net_runtime_recv_queue, after sending due keepalives
+ * (net_send_sequence_keepalives) and checking for silent peers
+ * (net_drop_silent_peers). Stops when DirectPlay has nothing more or 1023
  * entries are queued, and does nothing without DirectPlay. System messages
  * (sender 0) are queued whole, up to 512 bytes; messages for anyone but the
  * local player are dropped. A PING is answered with a PONG. A KEEPALIVE_ACK
- * stamps the sender's lastHeardMs and updates its g_netPlayerConnectionStats
+ * stamps the sender's last_heard_ms and updates its g_net_player_connection_stats
  * entry: the counts it carries, and a latency sample (the time since the
  * echoed stamp, less 40 ms) when under 750 ms and not over half above the
  * average; a new entry starts with the sample capped at 750. A NACK, or a
@@ -1269,13 +1314,13 @@ Net_GetDirectPlayServiceProviderGuid(NetworkTransportType networkType)
  * first 20 packets. A KEEPALIVE from the host is answered with a
  * KEEPALIVE_ACK carrying this side's counts; any KEEPALIVE makes it resend,
  * on each channel whose counter has moved on, the packet the sender expects
- * next. Every other packet stamps the sender's lastHeardMs and is queued with
+ * next. Every other packet stamps the sender's last_heard_ms and is queued with
  * its channel and sequence: a resend as a resent copy; otherwise its trailer
  * first, when the previous sequence was not seen (a drop), then the packet
  * itself unless its sequence was already seen. Bodies are cut to 508 bytes.
  * The back buffer is unlocked meanwhile and relocked when it was locked. */
 // FUNCTION: XVT 0x4CE130
-void Net_PumpIncomingPackets(void)
+void net_pump_incoming_packets(void)
 {
 	enum {
 		QUEUE_CAPACITY = 1024,
@@ -1296,1057 +1341,1080 @@ void Net_PumpIncomingPackets(void)
 	struct {
 		uint16_t header;
 		uint8_t data[1022];
-	} wirePacket;
+	} wire_packet;
 
-	DPID fromId;
-	DPID toId;
-	uint32_t wireSize;
-	int backBufferLocked;
-	int packetWords[6];
+	DPID from_id;
+	DPID to_id;
+	uint32_t wire_size;
+	int back_buffer_locked;
+	int packet_words[6];
 
-	backBufferLocked = g_frontState.backBufferLocked;
+	back_buffer_locked = g_front_state.back_buffer_locked;
 
-	FrontendDisplay_UnlockBackBuffer();
-	if (g_frontState.netDirectPlay != NULL) {
-		Net_SendSequenceKeepalives();
-		Net_DropSilentPeers();
+	frontend_display_unlock_back_buffer();
+	if (g_front_state.net_direct_play != NULL) {
+		net_send_sequence_keepalives();
+		net_drop_silent_peers();
 		for (;;) {
 			int *payload;
-			uint32_t payloadSize;
-			unsigned int packetType;
-			int broadcastChannel;
-			int groupChannel;
+			uint32_t payload_size;
+			unsigned int packet_type;
+			int broadcast_channel;
+			int group_channel;
 			int sequence;
-			int hasLength;
-			unsigned int peerIndex;
+			int has_length;
+			unsigned int peer_index;
 
-			if (g_frontState.netRuntimeRecvQueueCount >=
+			if (g_front_state.net_runtime_recv_queue_count >=
 			    QUEUE_LIMIT) {
-				if (backBufferLocked != 0) {
-					g_drawSurfacePtr =
-						FrontendDisplay_LockBackBuffer();
+				if (back_buffer_locked != 0) {
+					g_draw_surface_ptr =
+						frontend_display_lock_back_buffer();
 				}
 				return;
 			}
-			wireSize = sizeof(wirePacket);
-			if (g_frontState.netDirectPlay->lpVtbl->Receive(
-				    g_frontState.netDirectPlay, &fromId, &toId,
-				    1, &wirePacket, &wireSize) != 0) {
-				if (backBufferLocked != 0) {
-					g_drawSurfacePtr =
-						FrontendDisplay_LockBackBuffer();
+			wire_size = sizeof(wire_packet);
+			if (g_front_state.net_direct_play->lpVtbl->Receive(
+				    g_front_state.net_direct_play, &from_id,
+				    &to_id, 1, &wire_packet, &wire_size) != 0) {
+				if (back_buffer_locked != 0) {
+					g_draw_surface_ptr =
+						frontend_display_lock_back_buffer();
 				}
 				return;
 			}
-			if (fromId == 0) {
-				if (wireSize > SYSTEM_PACKET_SIZE_LIMIT) {
-					wireSize = SYSTEM_PACKET_SIZE_LIMIT;
+			if (from_id == 0) {
+				if (wire_size > SYSTEM_PACKET_SIZE_LIMIT) {
+					wire_size = SYSTEM_PACKET_SIZE_LIMIT;
 				}
-				g_frontState
-					.netRuntimeRecvQueue
-						[g_frontState
-							 .netRuntimeRecvQueueWriteIndex]
-					.directPlayId = fromId;
-				g_frontState
-					.netRuntimeRecvQueue
-						[g_frontState
-							 .netRuntimeRecvQueueWriteIndex]
-					.payloadSize = wireSize;
-				g_frontState
-					.netRuntimeRecvQueue
-						[g_frontState
-							 .netRuntimeRecvQueueWriteIndex]
-					.isResentCopy = 0;
-				memcpy(g_frontState
-					       .netRuntimeRecvQueue
-						       [g_frontState
-								.netRuntimeRecvQueueWriteIndex]
+				g_front_state
+					.net_runtime_recv_queue
+						[g_front_state
+							 .net_runtime_recv_queue_write_index]
+					.direct_play_id = from_id;
+				g_front_state
+					.net_runtime_recv_queue
+						[g_front_state
+							 .net_runtime_recv_queue_write_index]
+					.payload_size = wire_size;
+				g_front_state
+					.net_runtime_recv_queue
+						[g_front_state
+							 .net_runtime_recv_queue_write_index]
+					.is_resent_copy = 0;
+				memcpy(g_front_state
+					       .net_runtime_recv_queue
+						       [g_front_state
+								.net_runtime_recv_queue_write_index]
 					       .payload,
-				       &wirePacket.header, wireSize);
-				++g_frontState.netRuntimeRecvQueueWriteIndex;
-				++g_frontState.netRuntimeRecvQueueCount;
-				if (g_frontState
-					    .netRuntimeRecvQueueWriteIndex >=
+				       &wire_packet.header, wire_size);
+				++g_front_state
+					  .net_runtime_recv_queue_write_index;
+				++g_front_state.net_runtime_recv_queue_count;
+				if (g_front_state
+					    .net_runtime_recv_queue_write_index >=
 				    QUEUE_CAPACITY) {
-					g_frontState
-						.netRuntimeRecvQueueWriteIndex =
+					g_front_state
+						.net_runtime_recv_queue_write_index =
 						0;
 				}
 				continue;
 			}
-			if (toId !=
-			    g_frontState.netRuntimeLocalPlayer.playerId) {
+			if (to_id !=
+			    g_front_state.net_runtime_local_player.player_id) {
 				continue;
 			}
 
-			payload = (int *)wirePacket.data;
-			packetType = wirePacket.header & 0x7F;
-			groupChannel = (wirePacket.header & 0x80) != 0;
-			broadcastChannel = (wirePacket.header & 0x8000) == 0;
-			sequence = (wirePacket.header >> 8) & 0x7F;
+			payload = (int *)wire_packet.data;
+			packet_type = wire_packet.header & 0x7F;
+			group_channel = (wire_packet.header & 0x80) != 0;
+			broadcast_channel = (wire_packet.header & 0x8000) == 0;
+			sequence = (wire_packet.header >> 8) & 0x7F;
 			/* Outside the resync types (60-63) every packet carries a piggyback trailer after its payload,
-			 * and a type with no fixed size also starts with a length word; hasLength stands for both. */
-			hasLength = packetType < NET_PACKET_RESYNC_CHECKSUMS ||
-				    packetType >= NET_PACKET_RESYNC_CHUNK + 1;
-			if (hasLength) {
-				payloadSize = (uint32_t)
-					NetSession_GetFixedPayloadSize(
-						(int)packetType);
-				if (payloadSize == 0) {
-					payloadSize = *(const uint16_t *)
-							       wirePacket.data;
-					payload = (int *)(wirePacket.data +
+			 * and a type with no fixed size also starts with a length word; has_length stands for both. */
+			has_length =
+				packet_type < NET_PACKET_RESYNC_CHECKSUMS ||
+				packet_type >= NET_PACKET_RESYNC_CHUNK + 1;
+			if (has_length) {
+				payload_size = (uint32_t)
+					net_session_get_fixed_payload_size(
+						(int)packet_type);
+				if (payload_size == 0) {
+					payload_size =
+						*(const uint16_t *)
+							 wire_packet.data;
+					payload = (int *)(wire_packet.data +
 							  sizeof(uint16_t));
 				}
 			}
-			if (packetType == NET_PACKET_PING) {
-				packetWords[0] = NET_PACKET_PONG;
-				Net_SendPacketAndFlush((int)fromId, packetWords,
-						       sizeof(packetWords[0]));
+			if (packet_type == NET_PACKET_PING) {
+				packet_words[0] = NET_PACKET_PONG;
+				net_send_packet_and_flush(
+					(int)from_id, packet_words,
+					sizeof(packet_words[0]));
 				continue;
 			}
 
-			if (packetType == NET_PACKET_KEEPALIVE_ACK) {
-				uint32_t latencyMs;
-				uint32_t echoedSendMs;
-				uint32_t averageLatencyMs;
-				unsigned int statsIndex;
+			if (packet_type == NET_PACKET_KEEPALIVE_ACK) {
+				uint32_t latency_ms;
+				uint32_t echoed_send_ms;
+				uint32_t average_latency_ms;
+				unsigned int stats_index;
 
-				peerIndex =
-					Net_FindOrCreatePeerSlot((int)fromId);
-				g_frontState
-					.netRuntimeReliablePeerSlots[peerIndex]
-					.lastHeardMs = GetTickCount();
-				echoedSendMs = (uint32_t)payload[0];
-				/* Until the average is computed below, averageLatencyMs holds the current time less
+				peer_index = net_find_or_create_peer_slot(
+					(int)from_id);
+				g_front_state
+					.net_runtime_reliable_peer_slots
+						[peer_index]
+					.last_heard_ms = GetTickCount();
+				echoed_send_ms = (uint32_t)payload[0];
+				/* Until the average is computed below, average_latency_ms holds the current time less
 				 * LATENCY_SEND_BIAS_MS, the clock the echoed send time is measured against. */
-				averageLatencyMs =
+				average_latency_ms =
 					GetTickCount() - LATENCY_SEND_BIAS_MS;
-				if (echoedSendMs >= averageLatencyMs) {
-					latencyMs = 1;
+				if (echoed_send_ms >= average_latency_ms) {
+					latency_ms = 1;
 				} else {
-					latencyMs =
-						averageLatencyMs - echoedSendMs;
+					latency_ms = average_latency_ms -
+						     echoed_send_ms;
 				}
 
-				statsIndex = 0;
-				while (statsIndex < PEER_CAPACITY &&
-				       g_netPlayerConnectionStats[statsIndex]
-						       .playerId !=
-					       (int)fromId) {
-					++statsIndex;
+				stats_index = 0;
+				while (stats_index < PEER_CAPACITY &&
+				       g_net_player_connection_stats
+						       [stats_index]
+							       .player_id !=
+					       (int)from_id) {
+					++stats_index;
 				}
-				if (statsIndex < PEER_CAPACITY) {
-					if (latencyMs < LATENCY_MAX_MS) {
-						if (g_netPlayerConnectionStats
-							    [statsIndex]
-								    .latencySampleCount !=
+				if (stats_index < PEER_CAPACITY) {
+					if (latency_ms < LATENCY_MAX_MS) {
+						if (g_net_player_connection_stats
+							    [stats_index]
+								    .latency_sample_count !=
 						    0) {
-							uint32_t latencyTotalMs =
-								g_netPlayerConnectionStats
-									[statsIndex]
-										.latencyTotalMs;
-							averageLatencyMs =
-								latencyTotalMs /
-								g_netPlayerConnectionStats
-									[statsIndex]
-										.latencySampleCount;
-							if (latencyMs >
-							    averageLatencyMs) {
+							uint32_t latency_total_ms =
+								g_net_player_connection_stats
+									[stats_index]
+										.latency_total_ms;
+							average_latency_ms =
+								latency_total_ms /
+								g_net_player_connection_stats
+									[stats_index]
+										.latency_sample_count;
+							if (latency_ms >
+							    average_latency_ms) {
 								if (100 *
-									    (latencyMs -
-									     averageLatencyMs) /
-									    averageLatencyMs >
+									    (latency_ms -
+									     average_latency_ms) /
+									    average_latency_ms >
 								    LATENCY_OUTLIER_PERCENT) {
-									g_netPlayerConnectionStats
-										[statsIndex]
-											.packetCount = payload
+									g_net_player_connection_stats
+										[stats_index]
+											.packet_count = payload
 										[1];
-									g_netPlayerConnectionStats
-										[statsIndex]
-											.packetDropCount = payload
-										[2];
-									g_netPlayerConnectionStats
-										[statsIndex]
-											.packetRetryCount =
+									g_net_player_connection_stats
+										[stats_index]
+											.packet_drop_count =
+										payload[2];
+									g_net_player_connection_stats
+										[stats_index]
+											.packet_retry_count =
 										payload[3];
 								} else {
-									g_netPlayerConnectionStats
-										[statsIndex]
-											.latencyTotalMs =
-										latencyMs +
-										latencyTotalMs;
-									g_netPlayerConnectionStats
-										[statsIndex]
-											.packetCount = payload
+									g_net_player_connection_stats
+										[stats_index]
+											.latency_total_ms =
+										latency_ms +
+										latency_total_ms;
+									g_net_player_connection_stats
+										[stats_index]
+											.packet_count = payload
 										[1];
-									g_netPlayerConnectionStats
-										[statsIndex]
-											.packetDropCount = payload
-										[2];
-									g_netPlayerConnectionStats
-										[statsIndex]
-											.packetRetryCount =
+									g_net_player_connection_stats
+										[stats_index]
+											.packet_drop_count =
+										payload[2];
+									g_net_player_connection_stats
+										[stats_index]
+											.packet_retry_count =
 										payload[3];
-									++g_netPlayerConnectionStats
-										  [statsIndex]
-											  .latencySampleCount;
+									++g_net_player_connection_stats
+										  [stats_index]
+											  .latency_sample_count;
 								}
 							} else {
-								g_netPlayerConnectionStats
-									[statsIndex]
-										.latencyTotalMs =
-									latencyMs +
-									latencyTotalMs;
-								g_netPlayerConnectionStats
-									[statsIndex]
-										.packetCount =
+								g_net_player_connection_stats
+									[stats_index]
+										.latency_total_ms =
+									latency_ms +
+									latency_total_ms;
+								g_net_player_connection_stats
+									[stats_index]
+										.packet_count =
 									payload[1];
-								g_netPlayerConnectionStats
-									[statsIndex]
-										.packetDropCount =
+								g_net_player_connection_stats
+									[stats_index]
+										.packet_drop_count =
 									payload[2];
-								g_netPlayerConnectionStats
-									[statsIndex]
-										.packetRetryCount =
+								g_net_player_connection_stats
+									[stats_index]
+										.packet_retry_count =
 									payload[3];
-								++g_netPlayerConnectionStats
-									  [statsIndex]
-										  .latencySampleCount;
+								++g_net_player_connection_stats
+									  [stats_index]
+										  .latency_sample_count;
 							}
 						}
 					} else {
-						g_netPlayerConnectionStats
-							[statsIndex]
-								.packetCount =
+						g_net_player_connection_stats
+							[stats_index]
+								.packet_count =
 							payload[1];
-						g_netPlayerConnectionStats
-							[statsIndex]
-								.packetDropCount =
+						g_net_player_connection_stats
+							[stats_index]
+								.packet_drop_count =
 							payload[2];
-						g_netPlayerConnectionStats
-							[statsIndex]
-								.packetRetryCount =
+						g_net_player_connection_stats
+							[stats_index]
+								.packet_retry_count =
 							payload[3];
 					}
 				}
 
-				if (statsIndex >= PEER_CAPACITY) {
-					statsIndex = 0;
-					while (statsIndex < PEER_CAPACITY &&
-					       g_netPlayerConnectionStats
-							       [statsIndex]
-								       .playerId !=
+				if (stats_index >= PEER_CAPACITY) {
+					stats_index = 0;
+					while (stats_index < PEER_CAPACITY &&
+					       g_net_player_connection_stats
+							       [stats_index]
+								       .player_id !=
 						       0) {
-						++statsIndex;
+						++stats_index;
 					}
-					if (statsIndex < PEER_CAPACITY) {
-						if (latencyMs >
+					if (stats_index < PEER_CAPACITY) {
+						if (latency_ms >
 						    LATENCY_MAX_MS) {
-							latencyMs =
+							latency_ms =
 								LATENCY_MAX_MS;
 						}
-						g_netPlayerConnectionStats
-							[statsIndex]
-								.playerId =
-							(int)fromId;
-						g_netPlayerConnectionStats
-							[statsIndex]
-								.latencyTotalMs =
-							latencyMs;
-						g_netPlayerConnectionStats
-							[statsIndex]
-								.packetCount =
+						g_net_player_connection_stats
+							[stats_index]
+								.player_id =
+							(int)from_id;
+						g_net_player_connection_stats
+							[stats_index]
+								.latency_total_ms =
+							latency_ms;
+						g_net_player_connection_stats
+							[stats_index]
+								.packet_count =
 							payload[1];
-						g_netPlayerConnectionStats
-							[statsIndex]
-								.packetDropCount =
+						g_net_player_connection_stats
+							[stats_index]
+								.packet_drop_count =
 							payload[2];
-						g_netPlayerConnectionStats
-							[statsIndex]
-								.packetRetryCount =
+						g_net_player_connection_stats
+							[stats_index]
+								.packet_retry_count =
 							payload[3];
-						g_netPlayerConnectionStats
-							[statsIndex]
-								.latencySampleCount =
+						g_net_player_connection_stats
+							[stats_index]
+								.latency_sample_count =
 							1;
 					}
 				}
 				continue;
 			}
 
-			if (packetType == NET_PACKET_WORLD_NACK) {
-				struct NetQueuedPacket *queued;
-				int missingWorldTick;
-				int controlValue1;
-				int searchIndex;
-				unsigned int searchCount;
+			if (packet_type == NET_PACKET_WORLD_NACK) {
+				struct net_queued_packet *queued;
+				int missing_world_tick;
+				int control_value1;
+				int search_index;
+				unsigned int search_count;
 
-				if (g_frontState
-					    .netFlightSentWorldMessageHistory !=
+				if (g_front_state
+					    .net_flight_sent_world_message_history !=
 				    NULL) {
-					missingWorldTick = payload[0];
-					controlValue1 = payload[1];
-					peerIndex = Net_FindOrCreatePeerSlot(
-						(int)fromId);
-					if ((unsigned int)g_frontState
-						    .netRuntimeReliablePeerSlots
-							    [peerIndex]
-						    .packetCount >
+					missing_world_tick = payload[0];
+					control_value1 = payload[1];
+					peer_index =
+						net_find_or_create_peer_slot(
+							(int)from_id);
+					if ((unsigned int)g_front_state
+						    .net_runtime_reliable_peer_slots
+							    [peer_index]
+						    .packet_count >
 					    PACKET_DROP_WARMUP_COUNT) {
-						++g_frontState
-							  .netRuntimeReliablePeerSlots
-								  [peerIndex]
-							  .packetDropCount;
+						++g_front_state
+							  .net_runtime_reliable_peer_slots
+								  [peer_index]
+							  .packet_drop_count;
 					}
 
-					searchIndex =
-						g_frontState
-							.netFlightSentWorldMessageWriteIndex;
-					searchCount = 0;
-					while (searchCount <
+					search_index =
+						g_front_state
+							.net_flight_sent_world_message_write_index;
+					search_count = 0;
+					while (search_count <
 					       SENT_WORLD_MESSAGE_HISTORY_CAPACITY) {
 						queued =
-							&g_frontState.netFlightSentWorldMessageHistory
-								 [searchIndex];
-						if (queued->payloadSize != 0) {
+							&g_front_state.net_flight_sent_world_message_history
+								 [search_index];
+						if (queued->payload_size != 0) {
 							if ((*(const uint32_t
 								       *)&queued->payload
 								      [sizeof(int)] &
 							     0x7FFFFFFF) ==
 							    (uint32_t)
-								    missingWorldTick) {
+								    missing_world_tick) {
 								break;
 							}
 						}
-						++searchCount;
-						++searchIndex;
-						if ((unsigned int)searchIndex >=
+						++search_count;
+						++search_index;
+						if ((unsigned int)
+							    search_index >=
 						    SENT_WORLD_MESSAGE_HISTORY_CAPACITY) {
-							searchIndex = 0;
+							search_index = 0;
 						}
 					}
-					if (searchCount <
+					if (search_count <
 					    SENT_WORLD_MESSAGE_HISTORY_CAPACITY) {
 						queued =
-							&g_frontState.netFlightSentWorldMessageHistory
-								 [searchIndex];
-						Net_SendSequencedDirectPlayPacket(
-							(int)fromId, 0,
-							queued->sequenceByte,
+							&g_front_state.net_flight_sent_world_message_history
+								 [search_index];
+						net_send_sequenced_direct_play_packet(
+							(int)from_id, 0,
+							queued->sequence_byte,
 							queued->payload,
-							queued->payloadSize);
+							queued->payload_size);
 					}
-					if (searchCount >=
+					if (search_count >=
 					    SENT_WORLD_MESSAGE_HISTORY_CAPACITY) {
-						packetWords[0] = NET_PACKET_NOP;
-						Net_SendSequencedDirectPlayPacket(
-							(int)fromId, 0,
-							controlValue1,
-							packetWords,
-							sizeof(packetWords[0]));
+						packet_words[0] =
+							NET_PACKET_NOP;
+						net_send_sequenced_direct_play_packet(
+							(int)from_id, 0,
+							control_value1,
+							packet_words,
+							sizeof(packet_words
+								       [0]));
 					}
 				}
 				continue;
 			}
 
-			if (packetType == NET_PACKET_NACK) {
-				int expectedBroadcastSequence;
-				int controlValue1;
-				int searchIndex;
-				unsigned int searchCount;
+			if (packet_type == NET_PACKET_NACK) {
+				int expected_broadcast_sequence;
+				int control_value1;
+				int search_index;
+				unsigned int search_count;
 
-				expectedBroadcastSequence = payload[0];
-				controlValue1 = payload[1];
-				peerIndex =
-					Net_FindOrCreatePeerSlot((int)fromId);
-				g_frontState
-					.netRuntimeReliablePeerSlots[peerIndex]
-					.lastHeardMs = GetTickCount();
-				if ((unsigned int)g_frontState
-					    .netRuntimeReliablePeerSlots
-						    [peerIndex]
-					    .packetCount >
+				expected_broadcast_sequence = payload[0];
+				control_value1 = payload[1];
+				peer_index = net_find_or_create_peer_slot(
+					(int)from_id);
+				g_front_state
+					.net_runtime_reliable_peer_slots
+						[peer_index]
+					.last_heard_ms = GetTickCount();
+				if ((unsigned int)g_front_state
+					    .net_runtime_reliable_peer_slots
+						    [peer_index]
+					    .packet_count >
 				    PACKET_DROP_WARMUP_COUNT) {
-					++g_frontState
-						  .netRuntimeReliablePeerSlots
-							  [peerIndex]
-						  .packetDropCount;
+					++g_front_state
+						  .net_runtime_reliable_peer_slots
+							  [peer_index]
+						  .packet_drop_count;
 				}
 
-				searchIndex =
-					g_frontState
-						.netRuntimeSentHistoryWriteIndex;
-				searchCount = 0;
-				while (searchCount < HISTORY_CAPACITY) {
-					if (g_frontState
-						    .netRuntimeSentHistory
-							    [searchIndex]
-						    .payloadSize != 0) {
-						if (controlValue1 == 0 ||
-						    controlValue1 == 2) {
-							if (g_frontState.netRuntimeSentHistory
-									    [searchIndex]
-										    .sequenceByte ==
-								    expectedBroadcastSequence &&
-							    g_frontState.netRuntimeSentHistory
-									    [searchIndex]
-										    .packetClass ==
-								    controlValue1) {
+				search_index =
+					g_front_state
+						.net_runtime_sent_history_write_index;
+				search_count = 0;
+				while (search_count < HISTORY_CAPACITY) {
+					if (g_front_state
+						    .net_runtime_sent_history
+							    [search_index]
+						    .payload_size != 0) {
+						if (control_value1 == 0 ||
+						    control_value1 == 2) {
+							if (g_front_state.net_runtime_sent_history
+									    [search_index]
+										    .sequence_byte ==
+								    expected_broadcast_sequence &&
+							    g_front_state.net_runtime_sent_history
+									    [search_index]
+										    .packet_class ==
+								    control_value1) {
 								break;
 							}
 						} else if (
-							g_frontState.netRuntimeSentHistory
-									[searchIndex]
-										.directPlayId ==
-								fromId &&
-							g_frontState.netRuntimeSentHistory
-									[searchIndex]
-										.sequenceByte ==
-								expectedBroadcastSequence &&
-							g_frontState.netRuntimeSentHistory
-									[searchIndex]
-										.packetClass ==
-								controlValue1) {
+							g_front_state.net_runtime_sent_history
+									[search_index]
+										.direct_play_id ==
+								from_id &&
+							g_front_state.net_runtime_sent_history
+									[search_index]
+										.sequence_byte ==
+								expected_broadcast_sequence &&
+							g_front_state.net_runtime_sent_history
+									[search_index]
+										.packet_class ==
+								control_value1) {
 							break;
 						}
 					}
-					++searchCount;
-					++searchIndex;
-					if ((unsigned int)searchIndex >=
+					++search_count;
+					++search_index;
+					if ((unsigned int)search_index >=
 					    HISTORY_CAPACITY) {
-						searchIndex = 0;
+						search_index = 0;
 					}
 				}
-				if (searchCount < HISTORY_CAPACITY) {
-					Net_SendSequencedDirectPlayPacket(
-						(int)fromId, controlValue1,
-						expectedBroadcastSequence,
-						g_frontState
-							.netRuntimeSentHistory
-								[searchIndex]
+				if (search_count < HISTORY_CAPACITY) {
+					net_send_sequenced_direct_play_packet(
+						(int)from_id, control_value1,
+						expected_broadcast_sequence,
+						g_front_state
+							.net_runtime_sent_history
+								[search_index]
 							.payload,
-						g_frontState
-							.netRuntimeSentHistory
-								[searchIndex]
-							.payloadSize);
+						g_front_state
+							.net_runtime_sent_history
+								[search_index]
+							.payload_size);
 				}
-				if (searchCount >= HISTORY_CAPACITY) {
-					packetWords[0] = NET_PACKET_NOP;
-					Net_SendSequencedDirectPlayPacket(
-						(int)fromId, controlValue1,
-						expectedBroadcastSequence,
-						packetWords,
-						sizeof(packetWords[0]));
+				if (search_count >= HISTORY_CAPACITY) {
+					packet_words[0] = NET_PACKET_NOP;
+					net_send_sequenced_direct_play_packet(
+						(int)from_id, control_value1,
+						expected_broadcast_sequence,
+						packet_words,
+						sizeof(packet_words[0]));
 				}
 				continue;
 			}
 
-			if (packetType == NET_PACKET_KEEPALIVE) {
-				int controlValue0;
-				int expectedGroupSequence;
-				int expectedDirectSequence;
-				int searchIndex;
-				unsigned int searchCount;
+			if (packet_type == NET_PACKET_KEEPALIVE) {
+				int control_value0;
+				int expected_group_sequence;
+				int expected_direct_sequence;
+				int search_index;
+				unsigned int search_count;
 
-				controlValue0 = payload[0];
-				expectedGroupSequence = payload[1];
-				expectedDirectSequence = payload[2];
-				if (g_frontState.netHostPlayerId == fromId) {
-					peerIndex = Net_FindOrCreatePeerSlot(
-						(int)fromId);
-					g_frontState
-						.netRuntimeReliablePeerSlots
-							[peerIndex]
-						.lastHeardMs = GetTickCount();
-					packetWords[0] =
+				control_value0 = payload[0];
+				expected_group_sequence = payload[1];
+				expected_direct_sequence = payload[2];
+				if (g_front_state.net_host_player_id ==
+				    from_id) {
+					peer_index =
+						net_find_or_create_peer_slot(
+							(int)from_id);
+					g_front_state
+						.net_runtime_reliable_peer_slots
+							[peer_index]
+						.last_heard_ms = GetTickCount();
+					packet_words[0] =
 						NET_PACKET_KEEPALIVE_ACK;
-					packetWords[1] = payload[3];
-					packetWords[2] =
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[peerIndex]
-							.packetCount;
-					packetWords[3] =
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[peerIndex]
-							.packetDropCount;
-					packetWords[4] =
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[peerIndex]
-							.packetRetryCount;
-					Net_SendDirectPlayPacket(
-						(int)g_frontState
-							.netHostPlayerId,
-						packetWords,
-						5 * sizeof(packetWords[0]), 0);
+					packet_words[1] = payload[3];
+					packet_words[2] =
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[peer_index]
+							.packet_count;
+					packet_words[3] =
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[peer_index]
+							.packet_drop_count;
+					packet_words[4] =
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[peer_index]
+							.packet_retry_count;
+					net_send_direct_play_packet(
+						(int)g_front_state
+							.net_host_player_id,
+						packet_words,
+						5 * sizeof(packet_words[0]), 0);
 				}
-				if (g_frontState
-					    .netRuntimeBroadcastSeqCounter ==
-				    controlValue0) {
-					controlValue0 =
+				if (g_front_state
+					    .net_runtime_broadcast_seq_counter ==
+				    control_value0) {
+					control_value0 =
 						SEQUENCE_NOTHING_TO_RESEND;
 				}
-				if (g_frontState.netRuntimeGroupSeqCounter ==
-				    expectedGroupSequence) {
-					expectedGroupSequence =
+				if (g_front_state
+					    .net_runtime_group_seq_counter ==
+				    expected_group_sequence) {
+					expected_group_sequence =
 						SEQUENCE_NOTHING_TO_RESEND;
 				}
-				peerIndex =
-					Net_FindOrCreatePeerSlot((int)fromId);
-				if (g_frontState.netReliablePeerSlotCount ==
-					    peerIndex ||
-				    g_frontState.netRuntimeReliablePeerSlots
-						    [peerIndex]
-							    .sendSeq ==
-					    expectedDirectSequence) {
-					expectedDirectSequence =
+				peer_index = net_find_or_create_peer_slot(
+					(int)from_id);
+				if (g_front_state.net_reliable_peer_slot_count ==
+					    peer_index ||
+				    g_front_state.net_runtime_reliable_peer_slots
+						    [peer_index]
+							    .send_seq ==
+					    expected_direct_sequence) {
+					expected_direct_sequence =
 						SEQUENCE_NOTHING_TO_RESEND;
 				}
 
-				searchCount = HISTORY_CAPACITY;
-				searchIndex =
-					g_frontState
-						.netRuntimeSentHistoryWriteIndex;
+				search_count = HISTORY_CAPACITY;
+				search_index =
+					g_front_state
+						.net_runtime_sent_history_write_index;
 				do {
-					if (controlValue0 ==
+					if (control_value0 ==
 						    SEQUENCE_NOTHING_TO_RESEND &&
-					    expectedGroupSequence ==
+					    expected_group_sequence ==
 						    SEQUENCE_NOTHING_TO_RESEND &&
-					    expectedDirectSequence ==
+					    expected_direct_sequence ==
 						    SEQUENCE_NOTHING_TO_RESEND) {
 						break;
 					}
-					if (g_frontState
-						    .netRuntimeSentHistory
-							    [searchIndex]
-						    .payloadSize != 0) {
-						uint8_t packetClass =
-							g_frontState
-								.netRuntimeSentHistory
-									[searchIndex]
-								.packetClass;
-						if (packetClass == 0) {
-							if (g_frontState
-								    .netRuntimeSentHistory
-									    [searchIndex]
-								    .sequenceByte ==
-							    controlValue0) {
-								Net_SendSequencedDirectPlayPacket(
-									(int)fromId,
+					if (g_front_state
+						    .net_runtime_sent_history
+							    [search_index]
+						    .payload_size != 0) {
+						uint8_t packet_class =
+							g_front_state
+								.net_runtime_sent_history
+									[search_index]
+								.packet_class;
+						if (packet_class == 0) {
+							if (g_front_state
+								    .net_runtime_sent_history
+									    [search_index]
+								    .sequence_byte ==
+							    control_value0) {
+								net_send_sequenced_direct_play_packet(
+									(int)from_id,
 									0,
-									controlValue0,
-									g_frontState
-										.netRuntimeSentHistory
-											[searchIndex]
+									control_value0,
+									g_front_state
+										.net_runtime_sent_history
+											[search_index]
 										.payload,
-									g_frontState
-										.netRuntimeSentHistory
-											[searchIndex]
-										.payloadSize);
-								controlValue0 =
+									g_front_state
+										.net_runtime_sent_history
+											[search_index]
+										.payload_size);
+								control_value0 =
 									SEQUENCE_NOTHING_TO_RESEND;
 							}
-						} else if (packetClass == 2) {
-							if (g_frontState
-								    .netRuntimeSentHistory
-									    [searchIndex]
-								    .sequenceByte ==
-							    expectedGroupSequence) {
-								Net_SendSequencedDirectPlayPacket(
-									(int)fromId,
+						} else if (packet_class == 2) {
+							if (g_front_state
+								    .net_runtime_sent_history
+									    [search_index]
+								    .sequence_byte ==
+							    expected_group_sequence) {
+								net_send_sequenced_direct_play_packet(
+									(int)from_id,
 									2,
-									expectedGroupSequence,
-									g_frontState
-										.netRuntimeSentHistory
-											[searchIndex]
+									expected_group_sequence,
+									g_front_state
+										.net_runtime_sent_history
+											[search_index]
 										.payload,
-									g_frontState
-										.netRuntimeSentHistory
-											[searchIndex]
-										.payloadSize);
-								expectedGroupSequence =
+									g_front_state
+										.net_runtime_sent_history
+											[search_index]
+										.payload_size);
+								expected_group_sequence =
 									SEQUENCE_NOTHING_TO_RESEND;
 							}
 						} else {
-							if (g_frontState.netRuntimeSentHistory
-									    [searchIndex]
-										    .directPlayId ==
-								    fromId &&
-							    g_frontState.netRuntimeSentHistory
-									    [searchIndex]
-										    .sequenceByte ==
-								    expectedDirectSequence) {
-								Net_SendSequencedDirectPlayPacket(
-									(int)fromId,
+							if (g_front_state.net_runtime_sent_history
+									    [search_index]
+										    .direct_play_id ==
+								    from_id &&
+							    g_front_state.net_runtime_sent_history
+									    [search_index]
+										    .sequence_byte ==
+								    expected_direct_sequence) {
+								net_send_sequenced_direct_play_packet(
+									(int)from_id,
 									1,
-									expectedDirectSequence,
-									g_frontState
-										.netRuntimeSentHistory
-											[searchIndex]
+									expected_direct_sequence,
+									g_front_state
+										.net_runtime_sent_history
+											[search_index]
 										.payload,
-									g_frontState
-										.netRuntimeSentHistory
-											[searchIndex]
-										.payloadSize);
-								expectedDirectSequence =
+									g_front_state
+										.net_runtime_sent_history
+											[search_index]
+										.payload_size);
+								expected_direct_sequence =
 									SEQUENCE_NOTHING_TO_RESEND;
 							}
 						}
 					}
-					if ((unsigned int)++searchIndex >=
+					if ((unsigned int)++search_index >=
 					    HISTORY_CAPACITY) {
-						searchIndex = 0;
+						search_index = 0;
 					}
-				} while (--searchCount != 0);
+				} while (--search_count != 0);
 				/* Keepalives are unsequenced control packets. */
 				continue;
 			}
 
-			peerIndex = Net_FindOrCreatePeerSlot((int)fromId);
-			g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-				.lastHeardMs = GetTickCount();
+			peer_index = net_find_or_create_peer_slot((int)from_id);
+			g_front_state
+				.net_runtime_reliable_peer_slots[peer_index]
+				.last_heard_ms = GetTickCount();
 
-			if (broadcastChannel != 0 && groupChannel != 0) {
-				uint8_t *retransmissionPayload;
-				if (wirePacket.data[0] != 0) {
-					groupChannel = wirePacket.data[0] == 2;
-					broadcastChannel = 0;
+			if (broadcast_channel != 0 && group_channel != 0) {
+				uint8_t *retransmission_payload;
+				if (wire_packet.data[0] != 0) {
+					group_channel =
+						wire_packet.data[0] == 2;
+					broadcast_channel = 0;
 				} else {
-					groupChannel = 0;
-					broadcastChannel = 1;
+					group_channel = 0;
+					broadcast_channel = 1;
 				}
-				retransmissionPayload = wirePacket.data + 1;
-				if (hasLength) {
-					payloadSize = (uint32_t)
-						NetSession_GetFixedPayloadSize(
-							(int)packetType);
-					if (payloadSize == 0) {
+				retransmission_payload = wire_packet.data + 1;
+				if (has_length) {
+					payload_size = (uint32_t)
+						net_session_get_fixed_payload_size(
+							(int)packet_type);
+					if (payload_size == 0) {
 #ifdef XVT_MODERN
-						uint16_t encodedSize;
-						memcpy(&encodedSize,
-						       wirePacket.data + 1,
-						       sizeof(encodedSize));
-						payloadSize = encodedSize;
+						uint16_t encoded_size;
+						memcpy(&encoded_size,
+						       wire_packet.data + 1,
+						       sizeof(encoded_size));
+						payload_size = encoded_size;
 #else
-						payloadSize = *(
+						payload_size = *(
 							const uint16_t
-								*)(wirePacket
+								*)(wire_packet
 									   .data +
 								   1);
 #endif
-						retransmissionPayload =
-							wirePacket.data + 1 +
+						retransmission_payload =
+							wire_packet.data + 1 +
 							sizeof(uint16_t);
 					}
 				} else {
-					payloadSize = wireSize -
-						      sizeof(wirePacket.header);
+					payload_size =
+						wire_size -
+						sizeof(wire_packet.header);
 				}
-				if (payloadSize > MAX_PAYLOAD_SIZE) {
-					payloadSize = MAX_PAYLOAD_SIZE;
+				if (payload_size > MAX_PAYLOAD_SIZE) {
+					payload_size = MAX_PAYLOAD_SIZE;
 				}
 
-				*(uint32_t *)g_frontState
-					 .netRuntimeRecvQueue
-						 [g_frontState
-							  .netRuntimeRecvQueueWriteIndex]
-					 .payload = packetType;
-				memcpy(g_frontState.netRuntimeRecvQueue
-						       [g_frontState
-								.netRuntimeRecvQueueWriteIndex]
+				*(uint32_t *)g_front_state
+					 .net_runtime_recv_queue
+						 [g_front_state
+							  .net_runtime_recv_queue_write_index]
+					 .payload = packet_type;
+				memcpy(g_front_state.net_runtime_recv_queue
+						       [g_front_state
+								.net_runtime_recv_queue_write_index]
 							       .payload +
-					       sizeof(packetType),
-				       retransmissionPayload, payloadSize);
-				g_frontState
-					.netRuntimeRecvQueue
-						[g_frontState
-							 .netRuntimeRecvQueueWriteIndex]
-					.directPlayId = fromId;
-				g_frontState
-					.netRuntimeRecvQueue
-						[g_frontState
-							 .netRuntimeRecvQueueWriteIndex]
-					.payloadSize =
-					payloadSize + sizeof(packetType);
-				g_frontState
-					.netRuntimeRecvQueue
-						[g_frontState
-							 .netRuntimeRecvQueueWriteIndex]
-					.lastNackMs = 0;
-				g_frontState
-					.netRuntimeRecvQueue
-						[g_frontState
-							 .netRuntimeRecvQueueWriteIndex]
-					.nackRetryCount = 0;
-				g_frontState
-					.netRuntimeRecvQueue
-						[g_frontState
-							 .netRuntimeRecvQueueWriteIndex]
-					.isResentCopy = 1;
-				peerIndex =
-					Net_FindOrCreatePeerSlot((int)fromId);
-				if (broadcastChannel != 0) {
-					g_frontState
-						.netRuntimeRecvQueue
-							[g_frontState
-								 .netRuntimeRecvQueueWriteIndex]
-						.packetClass = 0;
-					if (g_frontState.netReliablePeerSlotCount >
-						    peerIndex &&
-					    peerIndex < PEER_CAPACITY) {
-						unsigned int nextSequence =
-							(unsigned int)g_frontState
-								.netRuntimeReliablePeerSlots
-									[peerIndex]
-								.recvSeqChannelA +
+					       sizeof(packet_type),
+				       retransmission_payload, payload_size);
+				g_front_state
+					.net_runtime_recv_queue
+						[g_front_state
+							 .net_runtime_recv_queue_write_index]
+					.direct_play_id = from_id;
+				g_front_state
+					.net_runtime_recv_queue
+						[g_front_state
+							 .net_runtime_recv_queue_write_index]
+					.payload_size =
+					payload_size + sizeof(packet_type);
+				g_front_state
+					.net_runtime_recv_queue
+						[g_front_state
+							 .net_runtime_recv_queue_write_index]
+					.last_nack_ms = 0;
+				g_front_state
+					.net_runtime_recv_queue
+						[g_front_state
+							 .net_runtime_recv_queue_write_index]
+					.nack_retry_count = 0;
+				g_front_state
+					.net_runtime_recv_queue
+						[g_front_state
+							 .net_runtime_recv_queue_write_index]
+					.is_resent_copy = 1;
+				peer_index = net_find_or_create_peer_slot(
+					(int)from_id);
+				if (broadcast_channel != 0) {
+					g_front_state
+						.net_runtime_recv_queue
+							[g_front_state
+								 .net_runtime_recv_queue_write_index]
+						.packet_class = 0;
+					if (g_front_state.net_reliable_peer_slot_count >
+						    peer_index &&
+					    peer_index < PEER_CAPACITY) {
+						unsigned int next_sequence =
+							(unsigned int)g_front_state
+								.net_runtime_reliable_peer_slots
+									[peer_index]
+								.recv_seq_channel_a +
 							1;
-						if (nextSequence >
+						if (next_sequence >
 						    SEQUENCE_LIMIT) {
-							nextSequence = 0;
+							next_sequence = 0;
 						}
-						if (nextSequence ==
+						if (next_sequence ==
 						    (unsigned int)sequence) {
-							g_frontState
-								.netRuntimeReliablePeerSlots
-									[peerIndex]
-								.recvSeqChannelA =
-								(int)nextSequence;
+							g_front_state
+								.net_runtime_reliable_peer_slots
+									[peer_index]
+								.recv_seq_channel_a =
+								(int)next_sequence;
 						}
 					}
-				} else if (groupChannel != 0) {
-					g_frontState
-						.netRuntimeRecvQueue
-							[g_frontState
-								 .netRuntimeRecvQueueWriteIndex]
-						.packetClass = 2;
-					if (g_frontState.netReliablePeerSlotCount >
-						    peerIndex &&
-					    peerIndex < PEER_CAPACITY) {
-						unsigned int nextSequence =
-							(unsigned int)g_frontState
-								.netRuntimeReliablePeerSlots
-									[peerIndex]
-								.recvSeqChannelB +
+				} else if (group_channel != 0) {
+					g_front_state
+						.net_runtime_recv_queue
+							[g_front_state
+								 .net_runtime_recv_queue_write_index]
+						.packet_class = 2;
+					if (g_front_state.net_reliable_peer_slot_count >
+						    peer_index &&
+					    peer_index < PEER_CAPACITY) {
+						unsigned int next_sequence =
+							(unsigned int)g_front_state
+								.net_runtime_reliable_peer_slots
+									[peer_index]
+								.recv_seq_channel_b +
 							1;
-						if (nextSequence >
+						if (next_sequence >
 						    SEQUENCE_LIMIT) {
-							nextSequence = 0;
+							next_sequence = 0;
 						}
-						if (nextSequence ==
+						if (next_sequence ==
 						    (unsigned int)sequence) {
-							g_frontState
-								.netRuntimeReliablePeerSlots
-									[peerIndex]
-								.recvSeqChannelB =
-								(int)nextSequence;
+							g_front_state
+								.net_runtime_reliable_peer_slots
+									[peer_index]
+								.recv_seq_channel_b =
+								(int)next_sequence;
 						}
 					}
 				} else {
-					g_frontState
-						.netRuntimeRecvQueue
-							[g_frontState
-								 .netRuntimeRecvQueueWriteIndex]
-						.packetClass = 1;
-					if (g_frontState.netReliablePeerSlotCount >
-						    peerIndex &&
-					    peerIndex < PEER_CAPACITY) {
-						unsigned int nextSequence =
-							(unsigned int)g_frontState
-								.netRuntimeReliablePeerSlots
-									[peerIndex]
-								.recvSeqDefault +
+					g_front_state
+						.net_runtime_recv_queue
+							[g_front_state
+								 .net_runtime_recv_queue_write_index]
+						.packet_class = 1;
+					if (g_front_state.net_reliable_peer_slot_count >
+						    peer_index &&
+					    peer_index < PEER_CAPACITY) {
+						unsigned int next_sequence =
+							(unsigned int)g_front_state
+								.net_runtime_reliable_peer_slots
+									[peer_index]
+								.recv_seq_default +
 							1;
-						if (nextSequence >
+						if (next_sequence >
 						    SEQUENCE_LIMIT) {
-							nextSequence = 0;
+							next_sequence = 0;
 						}
-						if (nextSequence ==
+						if (next_sequence ==
 						    (unsigned int)sequence) {
-							g_frontState
-								.netRuntimeReliablePeerSlots
-									[peerIndex]
-								.recvSeqDefault =
-								(int)nextSequence;
+							g_front_state
+								.net_runtime_reliable_peer_slots
+									[peer_index]
+								.recv_seq_default =
+								(int)next_sequence;
 						}
 					}
 				}
-				g_frontState
-					.netRuntimeRecvQueue
-						[g_frontState
-							 .netRuntimeRecvQueueWriteIndex]
-					.sequenceByte = (uint8_t)sequence;
-				++g_frontState.netRuntimeRecvQueueWriteIndex;
-				++g_frontState.netRuntimeRecvQueueCount;
-				if (g_frontState
-					    .netRuntimeRecvQueueWriteIndex >=
+				g_front_state
+					.net_runtime_recv_queue
+						[g_front_state
+							 .net_runtime_recv_queue_write_index]
+					.sequence_byte = (uint8_t)sequence;
+				++g_front_state
+					  .net_runtime_recv_queue_write_index;
+				++g_front_state.net_runtime_recv_queue_count;
+				if (g_front_state
+					    .net_runtime_recv_queue_write_index >=
 				    QUEUE_CAPACITY) {
-					g_frontState
-						.netRuntimeRecvQueueWriteIndex =
+					g_front_state
+						.net_runtime_recv_queue_write_index =
 						0;
 				}
 				continue;
 			}
 
-			if (hasLength) {
-				uint8_t *piggybackPayload;
-				unsigned int piggybackSize;
-				int previousSequence;
-				int previousPacketType;
+			if (has_length) {
+				uint8_t *piggyback_payload;
+				unsigned int piggyback_size;
+				int previous_sequence;
+				int previous_packet_type;
 
-				previousSequence = sequence == 0
-							   ? SEQUENCE_LIMIT
-							   : sequence - 1;
-				if (Net_CheckAndRecordIncomingSequence(
-					    (int)fromId, previousSequence,
-					    broadcastChannel,
-					    groupChannel) == 0) {
-					if ((unsigned int)g_frontState
-						    .netRuntimeReliablePeerSlots
-							    [peerIndex]
-						    .packetCount >
+				previous_sequence = sequence == 0
+							    ? SEQUENCE_LIMIT
+							    : sequence - 1;
+				if (net_check_and_record_incoming_sequence(
+					    (int)from_id, previous_sequence,
+					    broadcast_channel,
+					    group_channel) == 0) {
+					if ((unsigned int)g_front_state
+						    .net_runtime_reliable_peer_slots
+							    [peer_index]
+						    .packet_count >
 					    PACKET_DROP_WARMUP_COUNT) {
-						++g_frontState
-							  .netRuntimeReliablePeerSlots
-								  [peerIndex]
-							  .packetDropCount;
+						++g_front_state
+							  .net_runtime_reliable_peer_slots
+								  [peer_index]
+							  .packet_drop_count;
 					}
-					piggybackPayload = (uint8_t *)payload +
-							   payloadSize;
-					previousPacketType =
-						*piggybackPayload++;
-					if (previousPacketType !=
+					piggyback_payload = (uint8_t *)payload +
+							    payload_size;
+					previous_packet_type =
+						*piggyback_payload++;
+					if (previous_packet_type !=
 					    NET_PACKET_NOP) {
-						piggybackSize =
-							wireSize -
-							(uint16_t)(piggybackPayload -
-								   (uint8_t *)&wirePacket
+						piggyback_size =
+							wire_size -
+							(uint16_t)(piggyback_payload -
+								   (uint8_t *)&wire_packet
 									   .header);
-						if (piggybackSize >
+						if (piggyback_size >
 						    MAX_PAYLOAD_SIZE) {
-							piggybackSize =
+							piggyback_size =
 								MAX_PAYLOAD_SIZE;
 						}
-						*(uint32_t *)g_frontState
-							 .netRuntimeRecvQueue
-								 [g_frontState
-									  .netRuntimeRecvQueueWriteIndex]
+						*(uint32_t *)g_front_state
+							 .net_runtime_recv_queue
+								 [g_front_state
+									  .net_runtime_recv_queue_write_index]
 							 .payload =
-							previousPacketType;
-						memcpy(g_frontState.netRuntimeRecvQueue
-								       [g_frontState
-										.netRuntimeRecvQueueWriteIndex]
+							previous_packet_type;
+						memcpy(g_front_state.net_runtime_recv_queue
+								       [g_front_state
+										.net_runtime_recv_queue_write_index]
 									       .payload +
 							       sizeof(int),
-						       piggybackPayload,
-						       piggybackSize);
-						g_frontState
-							.netRuntimeRecvQueue
-								[g_frontState
-									 .netRuntimeRecvQueueWriteIndex]
-							.directPlayId = fromId;
-						g_frontState
-							.netRuntimeRecvQueue
-								[g_frontState
-									 .netRuntimeRecvQueueWriteIndex]
-							.payloadSize =
-							piggybackSize +
+						       piggyback_payload,
+						       piggyback_size);
+						g_front_state
+							.net_runtime_recv_queue
+								[g_front_state
+									 .net_runtime_recv_queue_write_index]
+							.direct_play_id =
+							from_id;
+						g_front_state
+							.net_runtime_recv_queue
+								[g_front_state
+									 .net_runtime_recv_queue_write_index]
+							.payload_size =
+							piggyback_size +
 							sizeof(int);
-						g_frontState
-							.netRuntimeRecvQueue
-								[g_frontState
-									 .netRuntimeRecvQueueWriteIndex]
-							.lastNackMs = 0;
-						g_frontState
-							.netRuntimeRecvQueue
-								[g_frontState
-									 .netRuntimeRecvQueueWriteIndex]
-							.nackRetryCount = 0;
-						g_frontState
-							.netRuntimeRecvQueue
-								[g_frontState
-									 .netRuntimeRecvQueueWriteIndex]
-							.isResentCopy = 0;
-						if (broadcastChannel != 0) {
-							g_frontState
-								.netRuntimeRecvQueue
-									[g_frontState
-										 .netRuntimeRecvQueueWriteIndex]
-								.packetClass =
+						g_front_state
+							.net_runtime_recv_queue
+								[g_front_state
+									 .net_runtime_recv_queue_write_index]
+							.last_nack_ms = 0;
+						g_front_state
+							.net_runtime_recv_queue
+								[g_front_state
+									 .net_runtime_recv_queue_write_index]
+							.nack_retry_count = 0;
+						g_front_state
+							.net_runtime_recv_queue
+								[g_front_state
+									 .net_runtime_recv_queue_write_index]
+							.is_resent_copy = 0;
+						if (broadcast_channel != 0) {
+							g_front_state
+								.net_runtime_recv_queue
+									[g_front_state
+										 .net_runtime_recv_queue_write_index]
+								.packet_class =
 								0;
-						} else if (groupChannel != 0) {
-							g_frontState
-								.netRuntimeRecvQueue
-									[g_frontState
-										 .netRuntimeRecvQueueWriteIndex]
-								.packetClass =
+						} else if (group_channel != 0) {
+							g_front_state
+								.net_runtime_recv_queue
+									[g_front_state
+										 .net_runtime_recv_queue_write_index]
+								.packet_class =
 								2;
 						} else {
-							g_frontState
-								.netRuntimeRecvQueue
-									[g_frontState
-										 .netRuntimeRecvQueueWriteIndex]
-								.packetClass =
+							g_front_state
+								.net_runtime_recv_queue
+									[g_front_state
+										 .net_runtime_recv_queue_write_index]
+								.packet_class =
 								1;
 						}
 						if (sequence == 0) {
-							g_frontState
-								.netRuntimeRecvQueue
-									[g_frontState
-										 .netRuntimeRecvQueueWriteIndex]
-								.sequenceByte =
+							g_front_state
+								.net_runtime_recv_queue
+									[g_front_state
+										 .net_runtime_recv_queue_write_index]
+								.sequence_byte =
 								SEQUENCE_LIMIT;
 						} else {
-							g_frontState
-								.netRuntimeRecvQueue
-									[g_frontState
-										 .netRuntimeRecvQueueWriteIndex]
-								.sequenceByte =
+							g_front_state
+								.net_runtime_recv_queue
+									[g_front_state
+										 .net_runtime_recv_queue_write_index]
+								.sequence_byte =
 								(uint8_t)(sequence -
 									  1);
 						}
-						++g_frontState
-							  .netRuntimeRecvQueueWriteIndex;
-						++g_frontState
-							  .netRuntimeRecvQueueCount;
-						if (g_frontState
-							    .netRuntimeRecvQueueWriteIndex >=
+						++g_front_state
+							  .net_runtime_recv_queue_write_index;
+						++g_front_state
+							  .net_runtime_recv_queue_count;
+						if (g_front_state
+							    .net_runtime_recv_queue_write_index >=
 						    QUEUE_CAPACITY) {
-							g_frontState
-								.netRuntimeRecvQueueWriteIndex =
+							g_front_state
+								.net_runtime_recv_queue_write_index =
 								0;
 						}
 					}
 				}
 			}
 
-			/* peerIndex is reused here as a flag: 1 when the sequence is stale or out of range (skipped). */
-			peerIndex = Net_CheckAndRecordIncomingSequence(
-				(int)fromId, sequence, broadcastChannel,
-				groupChannel);
-			if (peerIndex != 0) {
+			/* peer_index is reused here as a flag: 1 when the sequence is stale or out of range (skipped). */
+			peer_index = net_check_and_record_incoming_sequence(
+				(int)from_id, sequence, broadcast_channel,
+				group_channel);
+			if (peer_index != 0) {
 				continue;
 			}
-			payload = (int *)wirePacket.data;
-			if (hasLength) {
-				payloadSize = (uint32_t)
-					NetSession_GetFixedPayloadSize(
-						(int)packetType);
-				if (payloadSize == 0) {
-					payloadSize = *(const uint16_t *)
-							       wirePacket.data;
-					payload = (int *)(wirePacket.data +
+			payload = (int *)wire_packet.data;
+			if (has_length) {
+				payload_size = (uint32_t)
+					net_session_get_fixed_payload_size(
+						(int)packet_type);
+				if (payload_size == 0) {
+					payload_size =
+						*(const uint16_t *)
+							 wire_packet.data;
+					payload = (int *)(wire_packet.data +
 							  sizeof(uint16_t));
 				}
 			} else {
-				payloadSize =
-					wireSize - sizeof(wirePacket.header);
+				payload_size =
+					wire_size - sizeof(wire_packet.header);
 			}
-			if (payloadSize > MAX_PAYLOAD_SIZE) {
-				payloadSize = MAX_PAYLOAD_SIZE;
+			if (payload_size > MAX_PAYLOAD_SIZE) {
+				payload_size = MAX_PAYLOAD_SIZE;
 			}
-			*(uint32_t *)g_frontState
-				 .netRuntimeRecvQueue
-					 [g_frontState
-						  .netRuntimeRecvQueueWriteIndex]
-				 .payload = packetType;
-			memcpy(g_frontState.netRuntimeRecvQueue
-					       [g_frontState
-							.netRuntimeRecvQueueWriteIndex]
+			*(uint32_t *)g_front_state
+				 .net_runtime_recv_queue
+					 [g_front_state
+						  .net_runtime_recv_queue_write_index]
+				 .payload = packet_type;
+			memcpy(g_front_state.net_runtime_recv_queue
+					       [g_front_state
+							.net_runtime_recv_queue_write_index]
 						       .payload +
-				       sizeof(packetType),
-			       payload, payloadSize);
-			g_frontState
-				.netRuntimeRecvQueue
-					[g_frontState
-						 .netRuntimeRecvQueueWriteIndex]
-				.directPlayId = fromId;
-			g_frontState
-				.netRuntimeRecvQueue
-					[g_frontState
-						 .netRuntimeRecvQueueWriteIndex]
-				.payloadSize = payloadSize + sizeof(packetType);
-			g_frontState
-				.netRuntimeRecvQueue
-					[g_frontState
-						 .netRuntimeRecvQueueWriteIndex]
-				.lastNackMs = 0;
-			g_frontState
-				.netRuntimeRecvQueue
-					[g_frontState
-						 .netRuntimeRecvQueueWriteIndex]
-				.nackRetryCount = 0;
-			g_frontState
-				.netRuntimeRecvQueue
-					[g_frontState
-						 .netRuntimeRecvQueueWriteIndex]
-				.isResentCopy = 0;
-			g_frontState
-				.netRuntimeRecvQueue
-					[g_frontState
-						 .netRuntimeRecvQueueWriteIndex]
-				.isResentCopy = peerIndex != 0;
-			if (broadcastChannel != 0) {
-				g_frontState
-					.netRuntimeRecvQueue
-						[g_frontState
-							 .netRuntimeRecvQueueWriteIndex]
-					.packetClass = 0;
-			} else if (groupChannel != 0) {
-				g_frontState
-					.netRuntimeRecvQueue
-						[g_frontState
-							 .netRuntimeRecvQueueWriteIndex]
-					.packetClass = 2;
+				       sizeof(packet_type),
+			       payload, payload_size);
+			g_front_state
+				.net_runtime_recv_queue
+					[g_front_state
+						 .net_runtime_recv_queue_write_index]
+				.direct_play_id = from_id;
+			g_front_state
+				.net_runtime_recv_queue
+					[g_front_state
+						 .net_runtime_recv_queue_write_index]
+				.payload_size =
+				payload_size + sizeof(packet_type);
+			g_front_state
+				.net_runtime_recv_queue
+					[g_front_state
+						 .net_runtime_recv_queue_write_index]
+				.last_nack_ms = 0;
+			g_front_state
+				.net_runtime_recv_queue
+					[g_front_state
+						 .net_runtime_recv_queue_write_index]
+				.nack_retry_count = 0;
+			g_front_state
+				.net_runtime_recv_queue
+					[g_front_state
+						 .net_runtime_recv_queue_write_index]
+				.is_resent_copy = 0;
+			g_front_state
+				.net_runtime_recv_queue
+					[g_front_state
+						 .net_runtime_recv_queue_write_index]
+				.is_resent_copy = peer_index != 0;
+			if (broadcast_channel != 0) {
+				g_front_state
+					.net_runtime_recv_queue
+						[g_front_state
+							 .net_runtime_recv_queue_write_index]
+					.packet_class = 0;
+			} else if (group_channel != 0) {
+				g_front_state
+					.net_runtime_recv_queue
+						[g_front_state
+							 .net_runtime_recv_queue_write_index]
+					.packet_class = 2;
 			} else {
-				g_frontState
-					.netRuntimeRecvQueue
-						[g_frontState
-							 .netRuntimeRecvQueueWriteIndex]
-					.packetClass = 1;
+				g_front_state
+					.net_runtime_recv_queue
+						[g_front_state
+							 .net_runtime_recv_queue_write_index]
+					.packet_class = 1;
 			}
-			g_frontState
-				.netRuntimeRecvQueue
-					[g_frontState
-						 .netRuntimeRecvQueueWriteIndex]
-				.sequenceByte = (uint8_t)sequence;
-			++g_frontState.netRuntimeRecvQueueWriteIndex;
-			++g_frontState.netRuntimeRecvQueueCount;
-			if (g_frontState.netRuntimeRecvQueueWriteIndex >=
+			g_front_state
+				.net_runtime_recv_queue
+					[g_front_state
+						 .net_runtime_recv_queue_write_index]
+				.sequence_byte = (uint8_t)sequence;
+			++g_front_state.net_runtime_recv_queue_write_index;
+			++g_front_state.net_runtime_recv_queue_count;
+			if (g_front_state.net_runtime_recv_queue_write_index >=
 			    QUEUE_CAPACITY) {
-				g_frontState.netRuntimeRecvQueueWriteIndex = 0;
+				g_front_state
+					.net_runtime_recv_queue_write_index = 0;
 			}
 		}
 	}
-	if (backBufferLocked != 0) {
-		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	if (back_buffer_locked != 0) {
+		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
 }
 
-/* Sends a packet through Net_SendPacketInternal, then a NOP to the same
+/* Sends a packet through net_send_packet_internal, then a NOP to the same
  * player, whose trailer carries a second copy of the packet at once. Returns
  * the first send's result, or 1 without DirectPlay. The back buffer is
  * unlocked meanwhile and relocked when it was locked. */
 // FUNCTION: XVT 0x4CEF70
-int Net_SendPacketAndFlush(int toPlayerId, const void *packet,
-			   unsigned int packetSize)
+int net_send_packet_and_flush(int to_player_id, const void *packet,
+			      unsigned int packet_size)
 {
-	int backBufferLocked;
-	int flushPacket;
+	int back_buffer_locked;
+	int flush_packet;
 	int result;
 
-	if (g_frontState.netDirectPlay == NULL) {
+	if (g_front_state.net_direct_play == NULL) {
 		return 1;
 	}
-	backBufferLocked = g_frontState.backBufferLocked;
-	FrontendDisplay_UnlockBackBuffer();
-	result = Net_SendPacketInternal(toPlayerId, packet, packetSize);
-	flushPacket = NET_PACKET_NOP;
-	Net_SendPacketInternal(toPlayerId, &flushPacket, sizeof(flushPacket));
-	if (backBufferLocked != 0) {
-		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	back_buffer_locked = g_front_state.back_buffer_locked;
+	frontend_display_unlock_back_buffer();
+	result = net_send_packet_internal(to_player_id, packet, packet_size);
+	flush_packet = NET_PACKET_NOP;
+	net_send_packet_internal(to_player_id, &flush_packet,
+				 sizeof(flush_packet));
+	if (back_buffer_locked != 0) {
+		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
 	return result;
 }
@@ -2363,652 +2431,695 @@ int Net_SendPacketAndFlush(int toPlayerId, const void *packet,
  * received from the local player (when fewer than 1024 are queued), setting
  * the local peer slot's newest received sequence. Returns 1 without
  * DirectPlay, when Send succeeds or when nothing needs sending, else 0. Does
- * not check packetSize against the 512-byte history and queue entries; with
+ * not check packet_size against the 512-byte history and queue entries; with
  * the peer table full, the one-player path uses slot 40, one past the end of
  * the table. */
 // FUNCTION: XVT 0x4CEFE0
-int Net_SendPacketInternal(int toPlayerId, const void *packet,
-			   unsigned int packetSize)
+int net_send_packet_internal(int to_player_id, const void *packet,
+			     unsigned int packet_size)
 {
-	unsigned int packetType;
-	int appendPending;
-	uint16_t packetHeader;
-	int sendResult = 0;
-	char debugText[256];
-	struct NetDirectPlayEncodedPacket encodedPacket;
-	uint8_t *encodedPayload;
-	unsigned int encodedSize;
-	uint8_t packetTypeByte;
+	unsigned int packet_type;
+	int append_pending;
+	uint16_t packet_header;
+	int send_result = 0;
+	char debug_text[256];
+	struct net_direct_play_encoded_packet encoded_packet;
+	uint8_t *encoded_payload;
+	unsigned int encoded_size;
+	uint8_t packet_type_byte;
 
-	packetType = *(const unsigned int *)packet;
-	packetTypeByte = packetType & 0x7F;
-	packetHeader = packetTypeByte;
-	if (packetType >= NET_PACKET_RESYNC_CHECKSUMS &&
-	    packetType < NET_PACKET_PROBE_REQUEST) {
-		appendPending = 0;
+	packet_type = *(const unsigned int *)packet;
+	packet_type_byte = packet_type & 0x7F;
+	packet_header = packet_type_byte;
+	if (packet_type >= NET_PACKET_RESYNC_CHECKSUMS &&
+	    packet_type < NET_PACKET_PROBE_REQUEST) {
+		append_pending = 0;
 	} else {
-		appendPending = 1;
+		append_pending = 1;
 	}
-	if (toPlayerId == 0) {
-		sprintf(debugText, "(SB %u) ",
-			g_frontState.netRuntimeBroadcastSeqCounter);
-		packetHeader |=
-			(g_frontState.netRuntimeBroadcastSeqCounter & 0x7F)
+	if (to_player_id == 0) {
+		sprintf(debug_text, "(SB %u) ",
+			g_front_state.net_runtime_broadcast_seq_counter);
+		packet_header |=
+			(g_front_state.net_runtime_broadcast_seq_counter & 0x7F)
 			<< 8;
-		++g_frontState.netRuntimeBroadcastSeqCounter;
-		if (g_frontState.netRuntimeBroadcastSeqCounter > 127) {
-			g_frontState.netRuntimeBroadcastSeqCounter = 0;
+		++g_front_state.net_runtime_broadcast_seq_counter;
+		if (g_front_state.net_runtime_broadcast_seq_counter > 127) {
+			g_front_state.net_runtime_broadcast_seq_counter = 0;
 		}
-		encodedPacket.packetTypeHeader = packetHeader;
-		encodedPayload = (uint8_t *)&encodedPacket.payloadSize;
-		encodedSize = 2;
-		if (appendPending &&
-		    NetSession_GetFixedPayloadSize(packetType) == 0) {
-			encodedPacket.payloadSize = packetSize - 4;
-			encodedPayload = encodedPacket.payload;
-			encodedSize = 4;
+		encoded_packet.packet_type_header = packet_header;
+		encoded_payload = (uint8_t *)&encoded_packet.payload_size;
+		encoded_size = 2;
+		if (append_pending &&
+		    net_session_get_fixed_payload_size(packet_type) == 0) {
+			encoded_packet.payload_size = packet_size - 4;
+			encoded_payload = encoded_packet.payload;
+			encoded_size = 4;
 		}
-		memcpy(encodedPayload, (const uint8_t *)packet + 4,
-		       packetSize - 4);
-		encodedPayload += packetSize - 4;
-		encodedSize += packetSize - 4;
-		if (appendPending) {
-			if (g_frontState.netRuntimeBroadcastPendingPayload
-				    .piggybackEmpty != 0) {
-				*encodedPayload = NET_PACKET_NOP;
-				++encodedSize;
-				g_frontState.netRuntimeBroadcastPendingPayload
-					.piggybackEmpty = 0;
+		memcpy(encoded_payload, (const uint8_t *)packet + 4,
+		       packet_size - 4);
+		encoded_payload += packet_size - 4;
+		encoded_size += packet_size - 4;
+		if (append_pending) {
+			if (g_front_state.net_runtime_broadcast_pending_payload
+				    .piggyback_empty != 0) {
+				*encoded_payload = NET_PACKET_NOP;
+				++encoded_size;
+				g_front_state
+					.net_runtime_broadcast_pending_payload
+					.piggyback_empty = 0;
 			} else {
-				memcpy(encodedPayload,
-				       g_frontState
-					       .netRuntimeBroadcastPendingPayload
+				memcpy(encoded_payload,
+				       g_front_state
+					       .net_runtime_broadcast_pending_payload
 					       .payload,
-				       g_frontState
-					       .netRuntimeBroadcastPendingPayload
-					       .payloadLength);
-				encodedSize +=
-					g_frontState
-						.netRuntimeBroadcastPendingPayload
-						.payloadLength;
+				       g_front_state
+					       .net_runtime_broadcast_pending_payload
+					       .payload_length);
+				encoded_size +=
+					g_front_state
+						.net_runtime_broadcast_pending_payload
+						.payload_length;
 			}
 		}
-		g_frontState.netRuntimeBroadcastPendingPayload.payload[0] =
-			packetTypeByte;
-		memcpy(g_frontState.netRuntimeBroadcastPendingPayload.payload +
+		g_front_state.net_runtime_broadcast_pending_payload.payload[0] =
+			packet_type_byte;
+		memcpy(g_front_state.net_runtime_broadcast_pending_payload
+				       .payload +
 			       1,
-		       (const uint8_t *)packet + 4, packetSize - 4);
-		g_frontState.netRuntimeBroadcastPendingPayload.payloadLength =
-			packetSize - 3;
-	} else if (g_frontState.netGroupDplayId == (DPID)toPlayerId) {
-		sprintf(debugText, "(SG %u) ",
-			g_frontState.netRuntimeBroadcastSeqCounter);
-		packetHeader |= (g_frontState.netRuntimeGroupSeqCounter & 0x7F)
-				<< 8;
-		++g_frontState.netRuntimeGroupSeqCounter;
-		packetHeader |= 0x8080;
-		if (g_frontState.netRuntimeGroupSeqCounter > 127) {
-			g_frontState.netRuntimeGroupSeqCounter = 0;
+		       (const uint8_t *)packet + 4, packet_size - 4);
+		g_front_state.net_runtime_broadcast_pending_payload
+			.payload_length = packet_size - 3;
+	} else if (g_front_state.net_group_dplay_id == (DPID)to_player_id) {
+		sprintf(debug_text, "(SG %u) ",
+			g_front_state.net_runtime_broadcast_seq_counter);
+		packet_header |=
+			(g_front_state.net_runtime_group_seq_counter & 0x7F)
+			<< 8;
+		++g_front_state.net_runtime_group_seq_counter;
+		packet_header |= 0x8080;
+		if (g_front_state.net_runtime_group_seq_counter > 127) {
+			g_front_state.net_runtime_group_seq_counter = 0;
 		}
-		encodedPacket.packetTypeHeader = packetHeader;
-		encodedPayload = (uint8_t *)&encodedPacket.payloadSize;
-		encodedSize = 2;
-		if (appendPending &&
-		    NetSession_GetFixedPayloadSize(packetType) == 0) {
-			encodedPacket.payloadSize = packetSize - 4;
-			encodedPayload = encodedPacket.payload;
-			encodedSize = 4;
+		encoded_packet.packet_type_header = packet_header;
+		encoded_payload = (uint8_t *)&encoded_packet.payload_size;
+		encoded_size = 2;
+		if (append_pending &&
+		    net_session_get_fixed_payload_size(packet_type) == 0) {
+			encoded_packet.payload_size = packet_size - 4;
+			encoded_payload = encoded_packet.payload;
+			encoded_size = 4;
 		}
-		memcpy(encodedPayload, (const uint8_t *)packet + 4,
-		       packetSize - 4);
-		encodedPayload += packetSize - 4;
-		encodedSize += packetSize - 4;
-		if (appendPending) {
-			if (g_frontState.netRuntimeGroupPendingPayload
-				    .piggybackEmpty != 0) {
-				*encodedPayload = NET_PACKET_NOP;
-				++encodedSize;
-				g_frontState.netRuntimeGroupPendingPayload
-					.piggybackEmpty = 0;
+		memcpy(encoded_payload, (const uint8_t *)packet + 4,
+		       packet_size - 4);
+		encoded_payload += packet_size - 4;
+		encoded_size += packet_size - 4;
+		if (append_pending) {
+			if (g_front_state.net_runtime_group_pending_payload
+				    .piggyback_empty != 0) {
+				*encoded_payload = NET_PACKET_NOP;
+				++encoded_size;
+				g_front_state.net_runtime_group_pending_payload
+					.piggyback_empty = 0;
 			} else {
-				memcpy(encodedPayload,
-				       g_frontState
-					       .netRuntimeGroupPendingPayload
+				memcpy(encoded_payload,
+				       g_front_state
+					       .net_runtime_group_pending_payload
 					       .payload,
-				       g_frontState
-					       .netRuntimeGroupPendingPayload
-					       .payloadLength);
-				encodedSize +=
-					g_frontState
-						.netRuntimeGroupPendingPayload
-						.payloadLength;
+				       g_front_state
+					       .net_runtime_group_pending_payload
+					       .payload_length);
+				encoded_size +=
+					g_front_state
+						.net_runtime_group_pending_payload
+						.payload_length;
 			}
 		}
-		g_frontState.netRuntimeGroupPendingPayload.payload[0] =
-			packetTypeByte;
-		memcpy(g_frontState.netRuntimeGroupPendingPayload.payload + 1,
-		       (const uint8_t *)packet + 4, packetSize - 4);
-		g_frontState.netRuntimeGroupPendingPayload.payloadLength =
-			packetSize - 3;
+		g_front_state.net_runtime_group_pending_payload.payload[0] =
+			packet_type_byte;
+		memcpy(g_front_state.net_runtime_group_pending_payload.payload +
+			       1,
+		       (const uint8_t *)packet + 4, packet_size - 4);
+		g_front_state.net_runtime_group_pending_payload.payload_length =
+			packet_size - 3;
 	} else {
-		unsigned int peerIndex = Net_FindOrCreatePeerSlot(toPlayerId);
-		if (g_frontState.netReliablePeerSlotCount > peerIndex &&
-		    peerIndex < 40) {
-			int sendSequence;
-			sprintf(debugText, "(SS %u) ",
-				g_frontState
-					.netRuntimeReliablePeerSlots[peerIndex]
-					.sendSeq);
-			sendSequence =
-				g_frontState
-					.netRuntimeReliablePeerSlots[peerIndex]
-					.sendSeq;
-			packetHeader |= (sendSequence++ & 0x7F) << 8;
-			g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-				.sendSeq = sendSequence;
-			if (sendSequence > 127) {
-				g_frontState
-					.netRuntimeReliablePeerSlots[peerIndex]
-					.sendSeq = 0;
+		unsigned int peer_index =
+			net_find_or_create_peer_slot(to_player_id);
+		if (g_front_state.net_reliable_peer_slot_count > peer_index &&
+		    peer_index < 40) {
+			int send_sequence;
+			sprintf(debug_text, "(SS %u) ",
+				g_front_state
+					.net_runtime_reliable_peer_slots
+						[peer_index]
+					.send_seq);
+			send_sequence = g_front_state
+						.net_runtime_reliable_peer_slots
+							[peer_index]
+						.send_seq;
+			packet_header |= (send_sequence++ & 0x7F) << 8;
+			g_front_state
+				.net_runtime_reliable_peer_slots[peer_index]
+				.send_seq = send_sequence;
+			if (send_sequence > 127) {
+				g_front_state
+					.net_runtime_reliable_peer_slots
+						[peer_index]
+					.send_seq = 0;
 			}
 		}
-		packetHeader |= 0x8000;
-		encodedPacket.packetTypeHeader = packetHeader;
-		encodedPayload = (uint8_t *)&encodedPacket.payloadSize;
-		encodedSize = 2;
-		if (appendPending &&
-		    NetSession_GetFixedPayloadSize(packetType) == 0) {
-			encodedPacket.payloadSize = packetSize - 4;
-			encodedPayload = encodedPacket.payload;
-			encodedSize = 4;
+		packet_header |= 0x8000;
+		encoded_packet.packet_type_header = packet_header;
+		encoded_payload = (uint8_t *)&encoded_packet.payload_size;
+		encoded_size = 2;
+		if (append_pending &&
+		    net_session_get_fixed_payload_size(packet_type) == 0) {
+			encoded_packet.payload_size = packet_size - 4;
+			encoded_payload = encoded_packet.payload;
+			encoded_size = 4;
 		}
-		memcpy(encodedPayload, (const uint8_t *)packet + 4,
-		       packetSize - 4);
-		encodedPayload += packetSize - 4;
-		encodedSize += packetSize - 4;
-		if (appendPending) {
-			memcpy(encodedPayload,
-			       &g_frontState
-					.netRuntimeReliablePeerSlots[peerIndex]
-					.lastPiggybackType,
-			       g_frontState
-				       .netRuntimeReliablePeerSlots[peerIndex]
-				       .piggybackLength);
-			encodedSize +=
-				g_frontState
-					.netRuntimeReliablePeerSlots[peerIndex]
-					.piggybackLength;
+		memcpy(encoded_payload, (const uint8_t *)packet + 4,
+		       packet_size - 4);
+		encoded_payload += packet_size - 4;
+		encoded_size += packet_size - 4;
+		if (append_pending) {
+			memcpy(encoded_payload,
+			       &g_front_state
+					.net_runtime_reliable_peer_slots
+						[peer_index]
+					.last_piggyback_type,
+			       g_front_state
+				       .net_runtime_reliable_peer_slots
+					       [peer_index]
+				       .piggyback_length);
+			encoded_size += g_front_state
+						.net_runtime_reliable_peer_slots
+							[peer_index]
+						.piggyback_length;
 		}
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-			.lastPiggybackType = packetTypeByte;
-		memcpy(g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-			       .piggybackPayload,
-		       (const uint8_t *)packet + 4, packetSize - 4);
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-			.piggybackLength = packetSize - 3;
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.last_piggyback_type = packet_type_byte;
+		memcpy(g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			       .piggyback_payload,
+		       (const uint8_t *)packet + 4, packet_size - 4);
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.piggyback_length = packet_size - 3;
 	}
 
-	if (g_frontState.netRuntimeLocalPlayer.playerId != (DPID)toPlayerId) {
-		memcpy(g_frontState
-			       .netRuntimeSentHistory
-				       [g_frontState
-						.netRuntimeSentHistoryWriteIndex]
+	if (g_front_state.net_runtime_local_player.player_id !=
+	    (DPID)to_player_id) {
+		memcpy(g_front_state
+			       .net_runtime_sent_history
+				       [g_front_state
+						.net_runtime_sent_history_write_index]
 			       .payload,
-		       packet, packetSize);
-		g_frontState
-			.netRuntimeSentHistory
-				[g_frontState.netRuntimeSentHistoryWriteIndex]
-			.directPlayId = toPlayerId;
-		g_frontState
-			.netRuntimeSentHistory
-				[g_frontState.netRuntimeSentHistoryWriteIndex]
-			.payloadSize = packetSize;
-		g_frontState
-			.netRuntimeSentHistory
-				[g_frontState.netRuntimeSentHistoryWriteIndex]
-			.lastNackMs = 0;
-		g_frontState
-			.netRuntimeSentHistory
-				[g_frontState.netRuntimeSentHistoryWriteIndex]
-			.nackRetryCount = 0;
-		if (toPlayerId == 0) {
-			g_frontState
-				.netRuntimeSentHistory
-					[g_frontState
-						 .netRuntimeSentHistoryWriteIndex]
-				.packetClass = 0;
-		} else if (g_frontState.netGroupDplayId == (DPID)toPlayerId) {
-			g_frontState
-				.netRuntimeSentHistory
-					[g_frontState
-						 .netRuntimeSentHistoryWriteIndex]
-				.packetClass = 2;
+		       packet, packet_size);
+		g_front_state
+			.net_runtime_sent_history
+				[g_front_state
+					 .net_runtime_sent_history_write_index]
+			.direct_play_id = to_player_id;
+		g_front_state
+			.net_runtime_sent_history
+				[g_front_state
+					 .net_runtime_sent_history_write_index]
+			.payload_size = packet_size;
+		g_front_state
+			.net_runtime_sent_history
+				[g_front_state
+					 .net_runtime_sent_history_write_index]
+			.last_nack_ms = 0;
+		g_front_state
+			.net_runtime_sent_history
+				[g_front_state
+					 .net_runtime_sent_history_write_index]
+			.nack_retry_count = 0;
+		if (to_player_id == 0) {
+			g_front_state
+				.net_runtime_sent_history
+					[g_front_state
+						 .net_runtime_sent_history_write_index]
+				.packet_class = 0;
+		} else if (g_front_state.net_group_dplay_id ==
+			   (DPID)to_player_id) {
+			g_front_state
+				.net_runtime_sent_history
+					[g_front_state
+						 .net_runtime_sent_history_write_index]
+				.packet_class = 2;
 		} else {
-			g_frontState
-				.netRuntimeSentHistory
-					[g_frontState
-						 .netRuntimeSentHistoryWriteIndex]
-				.packetClass = 1;
+			g_front_state
+				.net_runtime_sent_history
+					[g_front_state
+						 .net_runtime_sent_history_write_index]
+				.packet_class = 1;
 		}
-		packetHeader = encodedPacket.packetTypeHeader;
-		g_frontState
-			.netRuntimeSentHistory
-				[g_frontState.netRuntimeSentHistoryWriteIndex]
-			.sequenceByte = (packetHeader & 0x7F00) >> 8;
-		++g_frontState.netRuntimeSentHistoryWriteIndex;
-		if (g_frontState.netRuntimeSentHistoryWriteIndex >= 128) {
-			g_frontState.netRuntimeSentHistoryWriteIndex = 0;
+		packet_header = encoded_packet.packet_type_header;
+		g_front_state
+			.net_runtime_sent_history
+				[g_front_state
+					 .net_runtime_sent_history_write_index]
+			.sequence_byte = (packet_header & 0x7F00) >> 8;
+		++g_front_state.net_runtime_sent_history_write_index;
+		if (g_front_state.net_runtime_sent_history_write_index >= 128) {
+			g_front_state.net_runtime_sent_history_write_index = 0;
 		}
 	}
 
-	if ((g_frontState.netRuntimeLocalPlayer.playerId == (DPID)toPlayerId ||
-	     toPlayerId == 0 || g_frontState.netDirectPlay == NULL ||
-	     g_frontState.netGroupDplayId == (DPID)toPlayerId) &&
-	    g_frontState.netRuntimeRecvQueueCount < 1024) {
-		unsigned int peerIndex;
-		memcpy(g_frontState
-			       .netRuntimeRecvQueue
-				       [g_frontState
-						.netRuntimeRecvQueueWriteIndex]
+	if ((g_front_state.net_runtime_local_player.player_id ==
+		     (DPID)to_player_id ||
+	     to_player_id == 0 || g_front_state.net_direct_play == NULL ||
+	     g_front_state.net_group_dplay_id == (DPID)to_player_id) &&
+	    g_front_state.net_runtime_recv_queue_count < 1024) {
+		unsigned int peer_index;
+		memcpy(g_front_state
+			       .net_runtime_recv_queue
+				       [g_front_state
+						.net_runtime_recv_queue_write_index]
 			       .payload,
-		       packet, packetSize);
-		g_frontState
-			.netRuntimeRecvQueue
-				[g_frontState.netRuntimeRecvQueueWriteIndex]
-			.directPlayId =
-			g_frontState.netRuntimeLocalPlayer.playerId;
-		g_frontState
-			.netRuntimeRecvQueue
-				[g_frontState.netRuntimeRecvQueueWriteIndex]
-			.payloadSize = packetSize;
-		g_frontState
-			.netRuntimeRecvQueue
-				[g_frontState.netRuntimeRecvQueueWriteIndex]
-			.lastNackMs = 0;
-		g_frontState
-			.netRuntimeRecvQueue
-				[g_frontState.netRuntimeRecvQueueWriteIndex]
-			.nackRetryCount = 0;
-		g_frontState
-			.netRuntimeRecvQueue
-				[g_frontState.netRuntimeRecvQueueWriteIndex]
-			.isResentCopy = 0;
-		peerIndex = Net_FindOrCreatePeerSlot(
-			g_frontState.netRuntimeLocalPlayer.playerId);
-		if (toPlayerId == 0) {
-			g_frontState
-				.netRuntimeRecvQueue
-					[g_frontState
-						 .netRuntimeRecvQueueWriteIndex]
-				.packetClass = 0;
-			if (g_frontState.netReliablePeerSlotCount > peerIndex &&
-			    peerIndex < 40) {
-				g_frontState
-					.netRuntimeReliablePeerSlots[peerIndex]
-					.recvSeqChannelA =
-					(packetHeader & 0x7F00) >> 8;
+		       packet, packet_size);
+		g_front_state
+			.net_runtime_recv_queue
+				[g_front_state
+					 .net_runtime_recv_queue_write_index]
+			.direct_play_id =
+			g_front_state.net_runtime_local_player.player_id;
+		g_front_state
+			.net_runtime_recv_queue
+				[g_front_state
+					 .net_runtime_recv_queue_write_index]
+			.payload_size = packet_size;
+		g_front_state
+			.net_runtime_recv_queue
+				[g_front_state
+					 .net_runtime_recv_queue_write_index]
+			.last_nack_ms = 0;
+		g_front_state
+			.net_runtime_recv_queue
+				[g_front_state
+					 .net_runtime_recv_queue_write_index]
+			.nack_retry_count = 0;
+		g_front_state
+			.net_runtime_recv_queue
+				[g_front_state
+					 .net_runtime_recv_queue_write_index]
+			.is_resent_copy = 0;
+		peer_index = net_find_or_create_peer_slot(
+			g_front_state.net_runtime_local_player.player_id);
+		if (to_player_id == 0) {
+			g_front_state
+				.net_runtime_recv_queue
+					[g_front_state
+						 .net_runtime_recv_queue_write_index]
+				.packet_class = 0;
+			if (g_front_state.net_reliable_peer_slot_count >
+				    peer_index &&
+			    peer_index < 40) {
+				g_front_state
+					.net_runtime_reliable_peer_slots
+						[peer_index]
+					.recv_seq_channel_a =
+					(packet_header & 0x7F00) >> 8;
 			}
-		} else if (g_frontState.netGroupDplayId == (DPID)toPlayerId) {
-			g_frontState
-				.netRuntimeRecvQueue
-					[g_frontState
-						 .netRuntimeRecvQueueWriteIndex]
-				.packetClass = 2;
-			if (g_frontState.netReliablePeerSlotCount > peerIndex &&
-			    peerIndex < 40) {
-				g_frontState
-					.netRuntimeReliablePeerSlots[peerIndex]
-					.recvSeqChannelB =
-					(packetHeader & 0x7F00) >> 8;
+		} else if (g_front_state.net_group_dplay_id ==
+			   (DPID)to_player_id) {
+			g_front_state
+				.net_runtime_recv_queue
+					[g_front_state
+						 .net_runtime_recv_queue_write_index]
+				.packet_class = 2;
+			if (g_front_state.net_reliable_peer_slot_count >
+				    peer_index &&
+			    peer_index < 40) {
+				g_front_state
+					.net_runtime_reliable_peer_slots
+						[peer_index]
+					.recv_seq_channel_b =
+					(packet_header & 0x7F00) >> 8;
 			}
 		} else {
-			g_frontState
-				.netRuntimeRecvQueue
-					[g_frontState
-						 .netRuntimeRecvQueueWriteIndex]
-				.packetClass = 1;
-			if (g_frontState.netReliablePeerSlotCount > peerIndex &&
-			    peerIndex < 40) {
-				g_frontState
-					.netRuntimeReliablePeerSlots[peerIndex]
-					.recvSeqDefault =
-					(packetHeader & 0x7F00) >> 8;
+			g_front_state
+				.net_runtime_recv_queue
+					[g_front_state
+						 .net_runtime_recv_queue_write_index]
+				.packet_class = 1;
+			if (g_front_state.net_reliable_peer_slot_count >
+				    peer_index &&
+			    peer_index < 40) {
+				g_front_state
+					.net_runtime_reliable_peer_slots
+						[peer_index]
+					.recv_seq_default =
+					(packet_header & 0x7F00) >> 8;
 			}
 		}
-		g_frontState
-			.netRuntimeRecvQueue
-				[g_frontState.netRuntimeRecvQueueWriteIndex]
-			.sequenceByte =
-			(encodedPacket.packetTypeHeader & 0x7F00) >> 8;
-		++g_frontState.netRuntimeRecvQueueCount;
-		++g_frontState.netRuntimeRecvQueueWriteIndex;
-		if (g_frontState.netRuntimeRecvQueueWriteIndex >= 1024) {
-			g_frontState.netRuntimeRecvQueueWriteIndex = 0;
+		g_front_state
+			.net_runtime_recv_queue
+				[g_front_state
+					 .net_runtime_recv_queue_write_index]
+			.sequence_byte =
+			(encoded_packet.packet_type_header & 0x7F00) >> 8;
+		++g_front_state.net_runtime_recv_queue_count;
+		++g_front_state.net_runtime_recv_queue_write_index;
+		if (g_front_state.net_runtime_recv_queue_write_index >= 1024) {
+			g_front_state.net_runtime_recv_queue_write_index = 0;
 		}
 	}
 
-	if (g_frontState.netDirectPlay == NULL) {
+	if (g_front_state.net_direct_play == NULL) {
 		return 1;
 	}
-	if (g_frontState.netRuntimeLocalPlayer.playerId != (DPID)toPlayerId) {
-		sendResult = g_frontState.netDirectPlay->lpVtbl->Send(
-			g_frontState.netDirectPlay,
-			g_frontState.netRuntimeLocalPlayer.playerId, toPlayerId,
-			0, &encodedPacket.packetTypeHeader, encodedSize);
+	if (g_front_state.net_runtime_local_player.player_id !=
+	    (DPID)to_player_id) {
+		send_result = g_front_state.net_direct_play->lpVtbl->Send(
+			g_front_state.net_direct_play,
+			g_front_state.net_runtime_local_player.player_id,
+			to_player_id, 0, &encoded_packet.packet_type_header,
+			encoded_size);
 	}
-	if (sendResult != 0) {
-		char errorText[80];
-		sprintf(errorText, "Send Returned: %-8x\n", sendResult);
+	if (send_result != 0) {
+		char error_text[80];
+		sprintf(error_text, "Send Returned: %-8x\n", send_result);
 	}
-	return sendResult == 0;
+	return send_result == 0;
 }
 
 /* Sends one packet outside the sequence scheme: sequence 0, no sent-history
  * entry, no local copy. A packet to the group carries the group bits; any
- * other carries its type alone, since the one-player mode (deliveryMode 1)
+ * other carries its type alone, since the one-player mode (delivery_mode 1)
  * is never chosen. Outside types 60-63 a type with no fixed size gets a
  * length word, and every packet a NOP trailer. Nothing is sent to the local
  * player. Returns 1 without DirectPlay, when Send succeeds or when nothing
  * is sent, else 0. The last argument is ignored. */
 // FUNCTION: XVT 0x4CF830
-int Net_SendDirectPlayPacket(int destPlayerId, const void *packet,
-			     int packetSize, int unusedSendMode)
+int net_send_direct_play_packet(int dest_player_id, const void *packet,
+				int packet_size, int unused_send_mode)
 {
-	int appendTerminator;
-	HRESULT sendResult;
-	struct NetDirectPlayEncodedPacket encodedPacket;
-	uint32_t packetType;
-	uint16_t packetFlags;
-	int deliveryMode;
-	uint8_t *encodedPayload;
-	int encodedHeaderSize;
-	int encodedSize;
+	int append_terminator;
+	HRESULT send_result;
+	struct net_direct_play_encoded_packet encoded_packet;
+	uint32_t packet_type;
+	uint16_t packet_flags;
+	int delivery_mode;
+	uint8_t *encoded_payload;
+	int encoded_header_size;
+	int encoded_size;
 
-	(void)unusedSendMode;
+	(void)unused_send_mode;
 
-	sendResult = 0;
-	if (g_frontState.netDirectPlay == NULL) {
+	send_result = 0;
+	if (g_front_state.net_direct_play == NULL) {
 		return 1;
 	}
 
-	packetType = *(const uint32_t *)packet;
-	packetFlags = (uint8_t)packetType & 0x7F;
-	appendTerminator = packetType < NET_PACKET_RESYNC_CHECKSUMS ||
-			   packetType >= NET_PACKET_PROBE_REQUEST;
-	deliveryMode = 0;
-	if (destPlayerId != 0) {
-		deliveryMode =
-			g_frontState.netGroupDplayId == (DPID)destPlayerId ? 2
-									   : 0;
+	packet_type = *(const uint32_t *)packet;
+	packet_flags = (uint8_t)packet_type & 0x7F;
+	append_terminator = packet_type < NET_PACKET_RESYNC_CHECKSUMS ||
+			    packet_type >= NET_PACKET_PROBE_REQUEST;
+	delivery_mode = 0;
+	if (dest_player_id != 0) {
+		delivery_mode =
+			g_front_state.net_group_dplay_id == (DPID)dest_player_id
+				? 2
+				: 0;
 	}
-	if (deliveryMode == 2) {
-		packetFlags |= 0x8080;
-	} else if (deliveryMode == 1) {
-		packetFlags |= 0x8000;
+	if (delivery_mode == 2) {
+		packet_flags |= 0x8080;
+	} else if (delivery_mode == 1) {
+		packet_flags |= 0x8000;
 	}
 
-	encodedPacket.packetTypeHeader = packetFlags;
-	encodedPayload = (uint8_t *)&encodedPacket.payloadSize;
-	encodedHeaderSize = 2;
-	if (appendTerminator) {
-		if (NetSession_GetFixedPayloadSize(packetType) == 0) {
-			encodedPayload = encodedPacket.payload;
-			encodedPacket.payloadSize = packetSize - 4;
-			encodedHeaderSize = 4;
+	encoded_packet.packet_type_header = packet_flags;
+	encoded_payload = (uint8_t *)&encoded_packet.payload_size;
+	encoded_header_size = 2;
+	if (append_terminator) {
+		if (net_session_get_fixed_payload_size(packet_type) == 0) {
+			encoded_payload = encoded_packet.payload;
+			encoded_packet.payload_size = packet_size - 4;
+			encoded_header_size = 4;
 		}
 	}
-	memcpy(encodedPayload, (const uint8_t *)packet + 4, packetSize - 4);
-	encodedPayload += packetSize - 4;
-	encodedSize = packetSize + encodedHeaderSize - 4;
-	if (appendTerminator) {
-		++encodedSize;
-		*encodedPayload = NET_PACKET_NOP;
+	memcpy(encoded_payload, (const uint8_t *)packet + 4, packet_size - 4);
+	encoded_payload += packet_size - 4;
+	encoded_size = packet_size + encoded_header_size - 4;
+	if (append_terminator) {
+		++encoded_size;
+		*encoded_payload = NET_PACKET_NOP;
 	}
-	if (g_frontState.netRuntimeLocalPlayer.playerId != (DPID)destPlayerId) {
-		sendResult = g_frontState.netDirectPlay->lpVtbl->Send(
-			g_frontState.netDirectPlay,
-			g_frontState.netRuntimeLocalPlayer.playerId,
-			destPlayerId, 0, &encodedPacket.packetTypeHeader,
-			encodedSize);
+	if (g_front_state.net_runtime_local_player.player_id !=
+	    (DPID)dest_player_id) {
+		send_result = g_front_state.net_direct_play->lpVtbl->Send(
+			g_front_state.net_direct_play,
+			g_front_state.net_runtime_local_player.player_id,
+			dest_player_id, 0, &encoded_packet.packet_type_header,
+			encoded_size);
 	}
-	return sendResult == 0;
+	return send_result == 0;
 }
 
-/* Resends a packet with a given channel (packetClass) and sequence: the
+/* Resends a packet with a given channel (packet_class) and sequence: the
  * header carries the resend bits and a channel byte follows. Outside types
  * 60-63 a type with no fixed size gets a length word, and every packet a NOP
  * trailer. For the local player it queues the packet locally as a resent
  * copy instead (when fewer than 1024 are queued). Returns 1 without
  * DirectPlay, when Send succeeds, or for the local player; else 0. */
 // FUNCTION: XVT 0x4CF980
-int Net_SendSequencedDirectPlayPacket(int destPlayerId, int packetClass,
-				      int sequenceId, const void *packet,
-				      unsigned int packetSize)
+int net_send_sequenced_direct_play_packet(int dest_player_id, int packet_class,
+					  int sequence_id, const void *packet,
+					  unsigned int packet_size)
 {
-	unsigned int packetType;
-	uint8_t packetTypeByte;
-	int appendTerminator;
-	int sendResult;
-	char debugText[256];
-	struct NetDirectPlaySequencedPacket encodedPacket;
-	uint8_t *encodedPayload;
-	int encodedHeaderSize;
-	unsigned int encodedSize;
+	unsigned int packet_type;
+	uint8_t packet_type_byte;
+	int append_terminator;
+	int send_result;
+	char debug_text[256];
+	struct net_direct_play_sequenced_packet encoded_packet;
+	uint8_t *encoded_payload;
+	int encoded_header_size;
+	unsigned int encoded_size;
 
-	sendResult = 0;
-	if (g_frontState.netDirectPlay == NULL) {
+	send_result = 0;
+	if (g_front_state.net_direct_play == NULL) {
 		return 1;
 	}
 
-	packetType = *(const uint32_t *)packet;
-	packetTypeByte = (uint8_t)packetType & 0x7F;
-	appendTerminator = packetType < NET_PACKET_RESYNC_CHECKSUMS ||
-			   packetType >= NET_PACKET_PROBE_REQUEST;
-	switch (packetClass) {
+	packet_type = *(const uint32_t *)packet;
+	packet_type_byte = (uint8_t)packet_type & 0x7F;
+	append_terminator = packet_type < NET_PACKET_RESYNC_CHECKSUMS ||
+			    packet_type >= NET_PACKET_PROBE_REQUEST;
+	switch (packet_class) {
 	case 0:
-		sprintf(debugText, "(RSB %u) ", sequenceId);
+		sprintf(debug_text, "(RSB %u) ", sequence_id);
 		break;
 	case 2:
-		sprintf(debugText, "(RSG %u) ", sequenceId);
+		sprintf(debug_text, "(RSG %u) ", sequence_id);
 		break;
 	default:
-		sprintf(debugText, "(RSS %u) ", sequenceId);
+		sprintf(debug_text, "(RSS %u) ", sequence_id);
 	}
 
-	encodedPayload = (uint8_t *)&encodedPacket.payloadSize;
-	encodedHeaderSize = 3;
-	encodedPacket.packetTypeHeader =
-		(int16_t)(((((sequenceId & 0x7F) << 8) | packetTypeByte) &
+	encoded_payload = (uint8_t *)&encoded_packet.payload_size;
+	encoded_header_size = 3;
+	encoded_packet.packet_type_header =
+		(int16_t)(((((sequence_id & 0x7F) << 8) | packet_type_byte) &
 			   0x7F7F) |
 			  0x80);
-	encodedPacket.packetClass = (uint8_t)packetClass;
-	if (appendTerminator) {
-		if (NetSession_GetFixedPayloadSize(packetType) == 0) {
-			encodedPayload = encodedPacket.payload;
-			encodedPacket.payloadSize = (int16_t)(packetSize - 4);
-			encodedHeaderSize = 5;
+	encoded_packet.packet_class = (uint8_t)packet_class;
+	if (append_terminator) {
+		if (net_session_get_fixed_payload_size(packet_type) == 0) {
+			encoded_payload = encoded_packet.payload;
+			encoded_packet.payload_size =
+				(int16_t)(packet_size - 4);
+			encoded_header_size = 5;
 		}
 	}
 
-	memcpy(encodedPayload, (const uint8_t *)packet + 4, packetSize - 4);
-	encodedPayload += packetSize - 4;
-	encodedSize = packetSize + encodedHeaderSize - 4;
-	if (appendTerminator) {
-		++encodedSize;
-		*encodedPayload = NET_PACKET_NOP;
+	memcpy(encoded_payload, (const uint8_t *)packet + 4, packet_size - 4);
+	encoded_payload += packet_size - 4;
+	encoded_size = packet_size + encoded_header_size - 4;
+	if (append_terminator) {
+		++encoded_size;
+		*encoded_payload = NET_PACKET_NOP;
 	}
 
-	if (g_frontState.netRuntimeLocalPlayer.playerId != (DPID)destPlayerId) {
-		sendResult = g_frontState.netDirectPlay->lpVtbl->Send(
-			g_frontState.netDirectPlay,
-			g_frontState.netRuntimeLocalPlayer.playerId,
-			destPlayerId, 0, &encodedPacket.packetTypeHeader,
-			encodedSize);
+	if (g_front_state.net_runtime_local_player.player_id !=
+	    (DPID)dest_player_id) {
+		send_result = g_front_state.net_direct_play->lpVtbl->Send(
+			g_front_state.net_direct_play,
+			g_front_state.net_runtime_local_player.player_id,
+			dest_player_id, 0, &encoded_packet.packet_type_header,
+			encoded_size);
 	} else {
-		if (g_frontState.netRuntimeRecvQueueCount < 1024) {
-			memcpy(g_frontState
-				       .netRuntimeRecvQueue
-					       [g_frontState
-							.netRuntimeRecvQueueWriteIndex]
+		if (g_front_state.net_runtime_recv_queue_count < 1024) {
+			memcpy(g_front_state
+				       .net_runtime_recv_queue
+					       [g_front_state
+							.net_runtime_recv_queue_write_index]
 				       .payload,
-			       packet, packetSize);
-			g_frontState
-				.netRuntimeRecvQueue
-					[g_frontState
-						 .netRuntimeRecvQueueWriteIndex]
-				.directPlayId =
-				g_frontState.netRuntimeLocalPlayer.playerId;
-			g_frontState
-				.netRuntimeRecvQueue
-					[g_frontState
-						 .netRuntimeRecvQueueWriteIndex]
-				.payloadSize = packetSize;
-			g_frontState
-				.netRuntimeRecvQueue
-					[g_frontState
-						 .netRuntimeRecvQueueWriteIndex]
-				.packetClass = (uint8_t)packetClass;
-			g_frontState
-				.netRuntimeRecvQueue
-					[g_frontState
-						 .netRuntimeRecvQueueWriteIndex]
-				.sequenceByte = (uint8_t)sequenceId;
-			g_frontState
-				.netRuntimeRecvQueue
-					[g_frontState
-						 .netRuntimeRecvQueueWriteIndex]
-				.isResentCopy = 1;
-			g_frontState
-				.netRuntimeRecvQueue
-					[g_frontState
-						 .netRuntimeRecvQueueWriteIndex]
-				.lastNackMs = 0;
-			g_frontState
-				.netRuntimeRecvQueue
-					[g_frontState
-						 .netRuntimeRecvQueueWriteIndex]
-				.nackRetryCount = 0;
-			++g_frontState.netRuntimeRecvQueueCount;
-			++g_frontState.netRuntimeRecvQueueWriteIndex;
-			if (g_frontState.netRuntimeRecvQueueWriteIndex >=
+			       packet, packet_size);
+			g_front_state
+				.net_runtime_recv_queue
+					[g_front_state
+						 .net_runtime_recv_queue_write_index]
+				.direct_play_id =
+				g_front_state.net_runtime_local_player
+					.player_id;
+			g_front_state
+				.net_runtime_recv_queue
+					[g_front_state
+						 .net_runtime_recv_queue_write_index]
+				.payload_size = packet_size;
+			g_front_state
+				.net_runtime_recv_queue
+					[g_front_state
+						 .net_runtime_recv_queue_write_index]
+				.packet_class = (uint8_t)packet_class;
+			g_front_state
+				.net_runtime_recv_queue
+					[g_front_state
+						 .net_runtime_recv_queue_write_index]
+				.sequence_byte = (uint8_t)sequence_id;
+			g_front_state
+				.net_runtime_recv_queue
+					[g_front_state
+						 .net_runtime_recv_queue_write_index]
+				.is_resent_copy = 1;
+			g_front_state
+				.net_runtime_recv_queue
+					[g_front_state
+						 .net_runtime_recv_queue_write_index]
+				.last_nack_ms = 0;
+			g_front_state
+				.net_runtime_recv_queue
+					[g_front_state
+						 .net_runtime_recv_queue_write_index]
+				.nack_retry_count = 0;
+			++g_front_state.net_runtime_recv_queue_count;
+			++g_front_state.net_runtime_recv_queue_write_index;
+			if (g_front_state.net_runtime_recv_queue_write_index >=
 			    1024) {
-				g_frontState.netRuntimeRecvQueueWriteIndex = 0;
+				g_front_state
+					.net_runtime_recv_queue_write_index = 0;
 			}
 		}
 	}
-	return sendResult == 0;
+	return send_result == 0;
 }
 
 #ifndef XVT_MODERN
-/* Lists into outSessions, sorted by name, up to maxSessions DirectPlay
+/* Lists into out_sessions, sorted by name, up to max_sessions DirectPlay
  * sessions of the application whose GUID the first four arguments make, and
  * returns how many. Without a DirectPlay interface it creates one for
- * networkType; it returns 0 when the provider is unknown, or after a warning
+ * network_type; it returns 0 when the provider is unknown, or after a warning
  * box when creation fails, and does not check that QueryInterface succeeded.
- * Afterwards it releases g_frontState.netDirectPlay in every case, even one
- * it did not create. Writes g_netEnumSessionCapacity and
- * g_netEnumSessionCount. The back buffer is unlocked meanwhile and relocked
+ * Afterwards it releases g_front_state.net_direct_play in every case, even one
+ * it did not create. Writes g_net_enum_session_capacity and
+ * g_net_enum_session_count. The back buffer is unlocked meanwhile and relocked
  * when it was locked. Only the original build calls this. */
 // FUNCTION: XVT 0x4CFC20
-int Net_EnumerateAppSessions(unsigned int appGuid0, unsigned int appGuid1,
-			     unsigned int appGuid2, unsigned int appGuid3,
-			     struct NetSessionEnumEntry *outSessions,
-			     int maxSessions, NetworkTransportType networkType)
+int net_enumerate_app_sessions(unsigned int app_guid0, unsigned int app_guid1,
+			       unsigned int app_guid2, unsigned int app_guid3,
+			       struct net_session_enum_entry *out_sessions,
+			       int max_sessions,
+			       network_transport_type network_type)
 {
-	int wasBackBufferLocked;
-	const GUID *serviceProviderGuid;
-	char errorMessage[256];
-	DPSESSIONDESC2 sessionDesc;
+	int was_back_buffer_locked;
+	const GUID *service_provider_guid;
+	char error_message[256];
+	DPSESSIONDESC2 session_desc;
 
-	wasBackBufferLocked = g_frontState.backBufferLocked;
-	FrontendDisplay_UnlockBackBuffer();
-	if (g_frontState.netDirectPlay == NULL) {
-		serviceProviderGuid =
-			Net_GetDirectPlayServiceProviderGuid(networkType);
-		if (serviceProviderGuid == NULL) {
-			if (wasBackBufferLocked != 0) {
-				g_drawSurfacePtr =
-					FrontendDisplay_LockBackBuffer();
+	was_back_buffer_locked = g_front_state.back_buffer_locked;
+	frontend_display_unlock_back_buffer();
+	if (g_front_state.net_direct_play == NULL) {
+		service_provider_guid =
+			net_get_direct_play_service_provider_guid(network_type);
+		if (service_provider_guid == NULL) {
+			if (was_back_buffer_locked != 0) {
+				g_draw_surface_ptr =
+					frontend_display_lock_back_buffer();
 			}
 			return 0;
 		}
-		if (DirectPlayCreate(serviceProviderGuid,
-				     &g_frontState.netTempDirectPlay,
+		if (DirectPlayCreate(service_provider_guid,
+				     &g_front_state.net_temp_direct_play,
 				     NULL) != 0) {
-			if (ErrorText_LoadLine(6, errorMessage) == 0) {
-				FrontendDisplay_ShowGameMessageBox(
+			if (error_text_load_line(6, error_message) == 0) {
+				frontend_display_show_game_message_box(
 					"WARNING:  Connection failure!\n\nMake sure your Windows 95 network\nsettings are "
 					"properly "
 					"configured\nfor this type of network game.\n\nPress Enter to continue.");
 			} else {
-				FrontendDisplay_ShowGameMessageBox(
-					errorMessage);
+				frontend_display_show_game_message_box(
+					error_message);
 			}
-			if (wasBackBufferLocked != 0) {
-				g_drawSurfacePtr =
-					FrontendDisplay_LockBackBuffer();
+			if (was_back_buffer_locked != 0) {
+				g_draw_surface_ptr =
+					frontend_display_lock_back_buffer();
 			}
 			return 0;
 		}
-		g_frontState.netTempDirectPlay->lpVtbl->QueryInterface(
-			g_frontState.netTempDirectPlay, &IID_IDirectPlay2A,
-			(void **)&g_frontState.netDirectPlay);
-		g_frontState.netTempDirectPlay->lpVtbl->Release(
-			g_frontState.netTempDirectPlay);
-		g_frontState.netTempDirectPlay = NULL;
+		g_front_state.net_temp_direct_play->lpVtbl->QueryInterface(
+			g_front_state.net_temp_direct_play, &IID_IDirectPlay2A,
+			(void **)&g_front_state.net_direct_play);
+		g_front_state.net_temp_direct_play->lpVtbl->Release(
+			g_front_state.net_temp_direct_play);
+		g_front_state.net_temp_direct_play = NULL;
 	}
 
-	g_netEnumSessionCapacity = maxSessions;
-	g_netEnumSessionCount = 0;
-	memset(&sessionDesc, 0, sizeof(sessionDesc));
-	sessionDesc.dwSize = sizeof(sessionDesc);
-	sessionDesc.guidApplication = *(const GUID *)&appGuid0;
-	g_frontState.netDirectPlay->lpVtbl->EnumSessions(
-		g_frontState.netDirectPlay, &sessionDesc, 0,
-		Net_EnumerateAppSessionsCallback, outSessions, 1);
-	g_frontState.netDirectPlay->lpVtbl->Release(g_frontState.netDirectPlay);
-	g_frontState.netDirectPlay = NULL;
-	if (wasBackBufferLocked != 0) {
-		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	g_net_enum_session_capacity = max_sessions;
+	g_net_enum_session_count = 0;
+	memset(&session_desc, 0, sizeof(session_desc));
+	session_desc.dwSize = sizeof(session_desc);
+	session_desc.guidApplication = *(const GUID *)&app_guid0;
+	g_front_state.net_direct_play->lpVtbl->EnumSessions(
+		g_front_state.net_direct_play, &session_desc, 0,
+		net_enumerate_app_sessions_callback, out_sessions, 1);
+	g_front_state.net_direct_play->lpVtbl->Release(
+		g_front_state.net_direct_play);
+	g_front_state.net_direct_play = NULL;
+	if (was_back_buffer_locked != 0) {
+		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
-	qsort(outSessions, g_netEnumSessionCount, sizeof(*outSessions),
+	qsort(out_sessions, g_net_enum_session_count, sizeof(*out_sessions),
 	      (int (*)(const void *,
-		       const void *))Net_CompareSessionEnumEntriesByName);
-	return g_netEnumSessionCount;
+		       const void *))net_compare_session_enum_entries_by_name);
+	return g_net_enum_session_count;
 }
 #endif
 
 #ifndef XVT_MODERN
-/* Session enumeration callback: while g_netEnumSessionCount is below
- * g_netEnumSessionCapacity, copies the session's name, cut to 31
+/* Session enumeration callback: while g_net_enum_session_count is below
+ * g_net_enum_session_capacity, copies the session's name, cut to 31
  * characters, and instance GUID into the next entry of the array in
  * userData, raises the count and returns 1 to go on. Returns 0 to stop when
  * the array is full, on a timeout or for a NULL description. Only the
  * original build calls this. */
 // FUNCTION: XVT 0x4CFDB0
-int AERON_DXAPI Net_EnumerateAppSessionsCallback(
-	const DPSESSIONDESC2 *sessionDesc, uint32_t *timeoutMs, uint32_t flags,
-	void *userData)
+int AERON_DXAPI net_enumerate_app_sessions_callback(
+	const DPSESSIONDESC2 *session_desc, uint32_t *timeout_ms,
+	uint32_t flags, void *user_data)
 {
-	struct NetSessionEnumEntry *outSessions = userData;
+	struct net_session_enum_entry *out_sessions = user_data;
 
-	(void)timeoutMs;
+	(void)timeout_ms;
 
-	if (sessionDesc == NULL || (flags & 1) != 0) {
+	if (session_desc == NULL || (flags & 1) != 0) {
 		return 0;
 	}
-	if (g_netEnumSessionCapacity > g_netEnumSessionCount) {
-		strncpy(outSessions[g_netEnumSessionCount].sessionName,
-			sessionDesc->lpszSessionNameA,
-			sizeof(outSessions[g_netEnumSessionCount].sessionName));
-		outSessions[g_netEnumSessionCount]
-			.sessionName[sizeof(outSessions[g_netEnumSessionCount]
-						    .sessionName) -
-				     1] = '\0';
-		memcpy(&outSessions[g_netEnumSessionCount].sessionGuid,
-		       &sessionDesc->guidInstance,
-		       sizeof(outSessions[g_netEnumSessionCount].sessionGuid));
-		++g_netEnumSessionCount;
+	if (g_net_enum_session_capacity > g_net_enum_session_count) {
+		strncpy(out_sessions[g_net_enum_session_count].session_name,
+			session_desc->lpszSessionNameA,
+			sizeof(out_sessions[g_net_enum_session_count]
+				       .session_name));
+		out_sessions[g_net_enum_session_count].session_name
+			[sizeof(out_sessions[g_net_enum_session_count]
+					.session_name) -
+			 1] = '\0';
+		memcpy(&out_sessions[g_net_enum_session_count].session_guid,
+		       &session_desc->guidInstance,
+		       sizeof(out_sessions[g_net_enum_session_count]
+				      .session_guid));
+		++g_net_enum_session_count;
 		return 1;
 	}
 
@@ -3020,173 +3131,179 @@ int AERON_DXAPI Net_EnumerateAppSessionsCallback(
 /* qsort comparison of two session entries by name, as strcmp orders them.
  * Only the original build calls this. */
 // FUNCTION: XVT 0x4CFE50
-int Net_CompareSessionEnumEntriesByName(const struct NetSessionEnumEntry *lhs,
-					const struct NetSessionEnumEntry *rhs)
+int net_compare_session_enum_entries_by_name(
+	const struct net_session_enum_entry *lhs,
+	const struct net_session_enum_entry *rhs)
 {
-	return strcmp(lhs->sessionName, rhs->sessionName);
+	return strcmp(lhs->session_name, rhs->session_name);
 }
 #endif
 
-/* Returns the lobby roster, g_frontState.netPlayers, with its count in
+/* Returns the lobby roster, g_front_state.net_players, with its count in
  * *outCount. */
 // FUNCTION: XVT 0x4CFE80
-struct NetPlayerInfo *Net_GetPlayerRoster(int *outCount)
+struct net_player_info *net_get_player_roster(int *out_count)
 {
-	*outCount = g_frontState.netPlayerCount;
-	return g_frontState.netPlayers;
+	*out_count = g_front_state.net_player_count;
+	return g_front_state.net_players;
 }
 
 /* Returns the lobby roster count, or 1 when it is 0. Only the original build
  * calls this. */
 // FUNCTION: XVT 0x4CFEA0
-int Net_GetPlayerCount(void)
+int net_get_player_count(void)
 {
-	if (g_frontState.netPlayerCount == 0) {
+	if (g_front_state.net_player_count == 0) {
 		return 1;
 	}
-	return g_frontState.netPlayerCount;
+	return g_front_state.net_player_count;
 }
 
-/* Returns g_frontState.netReadyPlayerLeftThisFrame, which
- * Net_HandleDirectPlaySystemMessage sets on the host when a ready player
+/* Returns g_front_state.net_ready_player_left_this_frame, which
+ * net_handle_direct_play_system_message sets on the host when a ready player
  * leaves and the frontend's frame loop clears every frame. */
 // FUNCTION: XVT 0x4CFED0
-int Net_DidReadyPlayerLeaveThisFrame(void)
+int net_did_ready_player_leave_this_frame(void)
 {
-	return g_frontState.netReadyPlayerLeftThisFrame;
+	return g_front_state.net_ready_player_left_this_frame;
 }
 
-/* Returns g_frontState.netIsHost, nonzero on the lobby session's host. */
+/* Returns g_front_state.net_is_host, nonzero on the lobby session's host. */
 // FUNCTION: XVT 0x4CFEE0
-int Net_IsHost(void) { return g_frontState.netIsHost; }
+int net_is_host(void) { return g_front_state.net_is_host; }
 
 /* Pumps incoming packets, then returns 1 when more than 512 packets are
  * queued or a queued packet from a player has the given type, else 0; 0
  * also without DirectPlay. Nothing is taken from the queue. The back buffer
  * is unlocked meanwhile and relocked when it was locked. */
 // FUNCTION: XVT 0x4CFEF0
-int Net_PollForPacketTypeOrBacklog(int packetType)
+int net_poll_for_packet_type_or_backlog(int packet_type)
 {
 	enum {
-		QUEUE_CAPACITY = sizeof(g_frontState.netRuntimeRecvQueue) /
-				 sizeof(g_frontState.netRuntimeRecvQueue[0]),
+		QUEUE_CAPACITY =
+			sizeof(g_front_state.net_runtime_recv_queue) /
+			sizeof(g_front_state.net_runtime_recv_queue[0]),
 		BACKLOG_THRESHOLD = QUEUE_CAPACITY / 2,
 	};
 
-	int backBufferLocked;
-	int queueIndex;
+	int back_buffer_locked;
+	int queue_index;
 	int remaining;
 
-	if (g_frontState.netDirectPlay == NULL) {
+	if (g_front_state.net_direct_play == NULL) {
 		return 0;
 	}
-	backBufferLocked = g_frontState.backBufferLocked;
-	FrontendDisplay_UnlockBackBuffer();
-	Net_PumpIncomingPackets();
-	if (g_frontState.netRuntimeRecvQueueCount > BACKLOG_THRESHOLD) {
-		if (backBufferLocked != 0) {
-			g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	back_buffer_locked = g_front_state.back_buffer_locked;
+	frontend_display_unlock_back_buffer();
+	net_pump_incoming_packets();
+	if (g_front_state.net_runtime_recv_queue_count > BACKLOG_THRESHOLD) {
+		if (back_buffer_locked != 0) {
+			g_draw_surface_ptr =
+				frontend_display_lock_back_buffer();
 		}
 		return 1;
 	}
-	queueIndex = g_frontState.netRuntimeRecvQueueReadIndex;
-	remaining = g_frontState.netRuntimeRecvQueueCount;
+	queue_index = g_front_state.net_runtime_recv_queue_read_index;
+	remaining = g_front_state.net_runtime_recv_queue_count;
 	while (remaining > 0) {
-		if (g_frontState.netRuntimeRecvQueue[queueIndex].directPlayId !=
-			    0 &&
-		    *(int *)g_frontState.netRuntimeRecvQueue[queueIndex]
-				    .payload == packetType) {
-			if (backBufferLocked != 0) {
-				g_drawSurfacePtr =
-					FrontendDisplay_LockBackBuffer();
+		if (g_front_state.net_runtime_recv_queue[queue_index]
+				    .direct_play_id != 0 &&
+		    *(int *)g_front_state.net_runtime_recv_queue[queue_index]
+				    .payload == packet_type) {
+			if (back_buffer_locked != 0) {
+				g_draw_surface_ptr =
+					frontend_display_lock_back_buffer();
 			}
 			return 1;
 		}
-		if (++queueIndex >= QUEUE_CAPACITY) {
-			queueIndex = 0;
+		if (++queue_index >= QUEUE_CAPACITY) {
+			queue_index = 0;
 		}
 		--remaining;
 	}
-	if (backBufferLocked != 0) {
-		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	if (back_buffer_locked != 0) {
+		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
 	return 0;
 }
 
-/* As Net_PollForPacketTypeOrBacklog, looking instead for a queued DirectPlay
+/* As net_poll_for_packet_type_or_backlog, looking instead for a queued DirectPlay
  * system message that announces a new player or group
  * (DPSYS_CREATEPLAYERORGROUP). */
 // FUNCTION: XVT 0x4CFFB0
-int Net_PollForPlayerCreatedOrBacklog(void)
+int net_poll_for_player_created_or_backlog(void)
 {
 	enum {
-		QUEUE_CAPACITY = sizeof(g_frontState.netRuntimeRecvQueue) /
-				 sizeof(g_frontState.netRuntimeRecvQueue[0]),
+		QUEUE_CAPACITY =
+			sizeof(g_front_state.net_runtime_recv_queue) /
+			sizeof(g_front_state.net_runtime_recv_queue[0]),
 		BACKLOG_THRESHOLD = QUEUE_CAPACITY / 2,
 	};
 
-	int backBufferLocked;
-	int queueIndex;
+	int back_buffer_locked;
+	int queue_index;
 	int remaining;
 
-	if (g_frontState.netDirectPlay == NULL) {
+	if (g_front_state.net_direct_play == NULL) {
 		return 0;
 	}
-	backBufferLocked = g_frontState.backBufferLocked;
-	FrontendDisplay_UnlockBackBuffer();
-	Net_PumpIncomingPackets();
-	if (g_frontState.netRuntimeRecvQueueCount > BACKLOG_THRESHOLD) {
-		if (backBufferLocked != 0) {
-			g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	back_buffer_locked = g_front_state.back_buffer_locked;
+	frontend_display_unlock_back_buffer();
+	net_pump_incoming_packets();
+	if (g_front_state.net_runtime_recv_queue_count > BACKLOG_THRESHOLD) {
+		if (back_buffer_locked != 0) {
+			g_draw_surface_ptr =
+				frontend_display_lock_back_buffer();
 		}
 		return 1;
 	}
-	queueIndex = g_frontState.netRuntimeRecvQueueReadIndex;
-	remaining = g_frontState.netRuntimeRecvQueueCount;
+	queue_index = g_front_state.net_runtime_recv_queue_read_index;
+	remaining = g_front_state.net_runtime_recv_queue_count;
 	while (remaining > 0) {
-		if (g_frontState.netRuntimeRecvQueue[queueIndex].directPlayId ==
-			    0 &&
-		    *(int *)g_frontState.netRuntimeRecvQueue[queueIndex]
+		if (g_front_state.net_runtime_recv_queue[queue_index]
+				    .direct_play_id == 0 &&
+		    *(int *)g_front_state.net_runtime_recv_queue[queue_index]
 				    .payload == DPSYS_CREATEPLAYERORGROUP) {
-			if (backBufferLocked != 0) {
-				g_drawSurfacePtr =
-					FrontendDisplay_LockBackBuffer();
+			if (back_buffer_locked != 0) {
+				g_draw_surface_ptr =
+					frontend_display_lock_back_buffer();
 			}
 			return 1;
 		}
-		if (++queueIndex >= QUEUE_CAPACITY) {
-			queueIndex = 0;
+		if (++queue_index >= QUEUE_CAPACITY) {
+			queue_index = 0;
 		}
 		--remaining;
 	}
-	if (backBufferLocked != 0) {
-		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	if (back_buffer_locked != 0) {
+		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
 	return 0;
 }
 
 /* Returns the next game packet from the lobby queue, taken through
- * Net_DequeueIncomingPacket, after handing every DirectPlay system message
- * that comes first to Net_HandleDirectPlaySystemMessage; NULL when none is
+ * net_dequeue_incoming_packet, after handing every DirectPlay system message
+ * that comes first to net_handle_direct_play_system_message; NULL when none is
  * ready. The packet stays valid until the next dequeue. The back buffer is
  * unlocked meanwhile and relocked when it was locked. */
 // FUNCTION: XVT 0x4D0070
-int *Net_GetNextAppPacket(DPID *outSenderId, uint32_t *outPacketSize)
+int *net_get_next_app_packet(DPID *out_sender_id, uint32_t *out_packet_size)
 {
-	int backBufferLocked;
+	int back_buffer_locked;
 	int *packet;
 
-	backBufferLocked = g_frontState.backBufferLocked;
-	FrontendDisplay_UnlockBackBuffer();
+	back_buffer_locked = g_front_state.back_buffer_locked;
+	frontend_display_unlock_back_buffer();
 	do {
-		packet = Net_DequeueIncomingPacket(outSenderId, outPacketSize);
-		if (packet == NULL || *outSenderId != 0) {
+		packet = net_dequeue_incoming_packet(out_sender_id,
+						     out_packet_size);
+		if (packet == NULL || *out_sender_id != 0) {
 			break;
 		}
-		Net_HandleDirectPlaySystemMessage(*packet, packet);
+		net_handle_direct_play_system_message(*packet, packet);
 	} while (1);
-	if (backBufferLocked != 0) {
-		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	if (back_buffer_locked != 0) {
+		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
 	return packet;
 }
@@ -3196,17 +3313,18 @@ int *Net_GetNextAppPacket(DPID *outSenderId, uint32_t *outPacketSize)
  * and sends the new player a NET_PACKET_SEQUENCE_STATUS with the player
  * count, the peer slot table and its time in ms; a client refreshes the
  * roster. A player destroyed: in the modern build, the host's departure
- * calls XvtNetworkSession_HostLost. The host clears the leaver's ready flag,
- * setting g_frontState.netReadyPlayerLeftThisFrame when it was set, frees
+ * calls xvt_network_session_host_lost. The host clears the leaver's ready flag,
+ * setting g_front_state.net_ready_player_left_this_frame when it was set, frees
  * its peer slot by moving the last slot into it, and clears its
- * g_netPlayerConnectionStats entry; a client whose host left queues a
+ * g_net_player_connection_stats entry; a client whose host left queues a
  * NET_PACKET_HOST_CANCELLED to itself. The roster is then refreshed. A
  * player renamed: its roster entry takes the new short and long names, cut
  * to 12 characters. The original build copies them with strcpy, unbounded,
  * into 16-byte fields; the modern build bounds them
- * (XvtNetworkSession_CopyPlayerNames) and skips a malformed message. */
+ * (xvt_network_session_copy_player_names) and skips a malformed message. */
 // FUNCTION: XVT 0x4D00D0
-void Net_HandleDirectPlaySystemMessage(int packetType, const void *packetData)
+void net_handle_direct_play_system_message(int packet_type,
+					   const void *packet_data)
 {
 	enum {
 		SEQUENCE_STATUS_PACKET_SIZE = 512,
@@ -3214,340 +3332,347 @@ void Net_HandleDirectPlaySystemMessage(int packetType, const void *packetData)
 		PLAYER_NAME_TRUNCATION_INDEX = 12,
 	};
 
-	const int *packetWords = (const int *)packetData;
+	const int *packet_words = (const int *)packet_data;
 
-	switch (packetType) {
+	switch (packet_type) {
 	case DPSYS_CREATEPLAYERORGROUP: {
-		if (g_frontState.netIsHost != 0) {
-			if (packetWords[1] == DPPLAYERTYPE_PLAYER &&
-			    packetWords[2] !=
-				    (int)g_frontState.netHostPlayerId) {
-				struct NetSequenceStatusRecord {
-					int playerId;
-					uint8_t previousChannelA;
-					uint8_t previousChannelB;
-					uint8_t channelA;
-					uint8_t channelB;
+		if (g_front_state.net_is_host != 0) {
+			if (packet_words[1] == DPPLAYERTYPE_PLAYER &&
+			    packet_words[2] !=
+				    (int)g_front_state.net_host_player_id) {
+				struct net_sequence_status_record {
+					int player_id;
+					uint8_t previous_channel_a;
+					uint8_t previous_channel_b;
+					uint8_t channel_a;
+					uint8_t channel_b;
 				};
 
-				struct NetSequenceStatusPacket {
-					int packetType;
-					int playerCount;
-					int peerSlotCount;
-					uint32_t timestampMs;
-					struct NetSequenceStatusRecord records
+				struct net_sequence_status_packet {
+					int packet_type;
+					int player_count;
+					int peer_slot_count;
+					uint32_t timestamp_ms;
+					struct net_sequence_status_record records
 						[(SEQUENCE_STATUS_PACKET_SIZE -
 						  4 * sizeof(int)) /
 						 sizeof(struct
-							NetSequenceStatusRecord)];
+							net_sequence_status_record)];
 				};
 
-				struct NetSequenceStatusRecord *statusRecords;
-				struct NetSequenceStatusPacket statusPacket;
-				unsigned int peerIndex;
-				uint32_t nowMs;
+				struct net_sequence_status_record
+					*status_records;
+				struct net_sequence_status_packet status_packet;
+				unsigned int peer_index;
+				uint32_t now_ms;
 
-				g_frontState.netPlayerCount = 1;
-				Net_RefreshPlayerRoster();
-				statusPacket.playerCount =
-					g_frontState.netPlayerCount;
-				statusPacket.peerSlotCount =
-					g_frontState.netReliablePeerSlotCount;
-				statusPacket.packetType =
+				g_front_state.net_player_count = 1;
+				net_refresh_player_roster();
+				status_packet.player_count =
+					g_front_state.net_player_count;
+				status_packet.peer_slot_count =
+					g_front_state
+						.net_reliable_peer_slot_count;
+				status_packet.packet_type =
 					NET_PACKET_SEQUENCE_STATUS;
-				nowMs = GetTickCount();
-				peerIndex = 0;
-				statusRecords = statusPacket.records;
-				statusPacket.timestampMs = nowMs;
-				if (g_frontState.netReliablePeerSlotCount > 0) {
+				now_ms = GetTickCount();
+				peer_index = 0;
+				status_records = status_packet.records;
+				status_packet.timestamp_ms = now_ms;
+				if (g_front_state.net_reliable_peer_slot_count >
+				    0) {
 					do {
-						const struct NetReliablePeerSlot *peer =
-							&g_frontState.netRuntimeReliablePeerSlots
-								 [peerIndex];
-						struct NetSequenceStatusRecord
+						const struct net_reliable_peer_slot
+							*peer = &g_front_state.net_runtime_reliable_peer_slots
+									 [peer_index];
+						struct net_sequence_status_record
 							*record =
-								&statusRecords
-									[peerIndex];
-						record->playerId =
-							peer->directPlayId;
-						record->previousChannelA =
+								&status_records
+									[peer_index];
+						record->player_id =
+							peer->direct_play_id;
+						record->previous_channel_a =
 							(uint8_t)peer
-								->lastDeliveredSeqChannelA;
-						record->previousChannelB =
+								->last_delivered_seq_channel_a;
+						record->previous_channel_b =
 							(uint8_t)peer
-								->lastDeliveredSeqChannelB;
-						record->channelA =
+								->last_delivered_seq_channel_b;
+						record->channel_a =
 							(uint8_t)peer
-								->recvSeqChannelA;
-						record->channelB =
+								->recv_seq_channel_a;
+						record->channel_b =
 							(uint8_t)peer
-								->recvSeqChannelB;
-						++peerIndex;
+								->recv_seq_channel_b;
+						++peer_index;
 					} while (
-						g_frontState
-							.netReliablePeerSlotCount >
-						peerIndex);
+						g_front_state
+							.net_reliable_peer_slot_count >
+						peer_index);
 				}
-				Net_SendPacketAndFlush(
-					packetWords[2], &statusPacket,
-					(unsigned int)(sizeof(statusPacket
-								      .packetType) +
-						       g_frontState.netReliablePeerSlotCount *
-							       sizeof(statusPacket
+				net_send_packet_and_flush(
+					packet_words[2], &status_packet,
+					(unsigned int)(sizeof(status_packet
+								      .packet_type) +
+						       g_front_state.net_reliable_peer_slot_count *
+							       sizeof(status_packet
 									      .records[0]) +
 						       3 * sizeof(int)));
 			}
 		} else {
-			g_frontState.netPlayerCount = 1;
-			Net_RefreshPlayerRoster();
+			g_front_state.net_player_count = 1;
+			net_refresh_player_roster();
 		}
 		break;
 	}
 	case DPSYS_DESTROYPLAYERORGROUP: {
 #ifdef XVT_MODERN
-		if (packetWords[1] == DPPLAYERTYPE_PLAYER &&
-		    (DPID)packetWords[2] == g_frontState.netHostPlayerId) {
-			XvtNetworkSession_HostLost();
+		if (packet_words[1] == DPPLAYERTYPE_PLAYER &&
+		    (DPID)packet_words[2] == g_front_state.net_host_player_id) {
+			xvt_network_session_host_lost();
 		}
 #endif
-		if (g_frontState.netIsHost != 0) {
-			if (packetWords[1] == DPPLAYERTYPE_PLAYER) {
-				unsigned int playerIndex;
-				unsigned int peerIndex;
+		if (g_front_state.net_is_host != 0) {
+			if (packet_words[1] == DPPLAYERTYPE_PLAYER) {
+				unsigned int player_index;
+				unsigned int peer_index;
 
-				for (playerIndex = 0;
-				     playerIndex <
-				     (unsigned int)g_frontState.netPlayerCount;
-				     ++playerIndex) {
-					if (g_frontState.netPlayers[playerIndex]
-						    .playerId ==
-					    (DPID)packetWords[2]) {
-						if (g_frontState
-							    .netPlayers
-								    [playerIndex]
-							    .readyFlag != 0) {
-							g_frontState
-								.netReadyPlayerLeftThisFrame =
+				for (player_index = 0;
+				     player_index < (unsigned int)g_front_state
+							    .net_player_count;
+				     ++player_index) {
+					if (g_front_state
+						    .net_players[player_index]
+						    .player_id ==
+					    (DPID)packet_words[2]) {
+						if (g_front_state
+							    .net_players
+								    [player_index]
+							    .ready_flag != 0) {
+							g_front_state
+								.net_ready_player_left_this_frame =
 								1;
 						}
 						break;
 					}
 				}
-				Net_ClearPlayerReadyFlagWithLockGuard(
-					(DPID)packetWords[2]);
-				for (peerIndex = 0;
-				     peerIndex <
-				     g_frontState.netReliablePeerSlotCount;
-				     ++peerIndex) {
-					if (g_frontState
-						    .netRuntimeReliablePeerSlots
-							    [peerIndex]
-						    .directPlayId ==
-					    (DPID)packetWords[2]) {
-						--g_frontState
-							  .netReliablePeerSlotCount;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[peerIndex] =
-							g_frontState.netRuntimeReliablePeerSlots
-								[g_frontState
-									 .netReliablePeerSlotCount];
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[g_frontState
-									 .netReliablePeerSlotCount]
-							.directPlayId = 0;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[g_frontState
-									 .netReliablePeerSlotCount]
-							.lastDeliveredSeqDefault =
+				net_clear_player_ready_flag_with_lock_guard(
+					(DPID)packet_words[2]);
+				for (peer_index = 0;
+				     peer_index <
+				     g_front_state.net_reliable_peer_slot_count;
+				     ++peer_index) {
+					if (g_front_state
+						    .net_runtime_reliable_peer_slots
+							    [peer_index]
+						    .direct_play_id ==
+					    (DPID)packet_words[2]) {
+						--g_front_state
+							  .net_reliable_peer_slot_count;
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[peer_index] =
+							g_front_state.net_runtime_reliable_peer_slots
+								[g_front_state
+									 .net_reliable_peer_slot_count];
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[g_front_state
+									 .net_reliable_peer_slot_count]
+							.direct_play_id = 0;
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[g_front_state
+									 .net_reliable_peer_slot_count]
+							.last_delivered_seq_default =
 							SEQUENCE_INITIAL_VALUE;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[g_frontState
-									 .netReliablePeerSlotCount]
-							.lastDeliveredSeqChannelA =
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[g_front_state
+									 .net_reliable_peer_slot_count]
+							.last_delivered_seq_channel_a =
 							SEQUENCE_INITIAL_VALUE;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[g_frontState
-									 .netReliablePeerSlotCount]
-							.lastDeliveredSeqChannelB =
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[g_front_state
+									 .net_reliable_peer_slot_count]
+							.last_delivered_seq_channel_b =
 							SEQUENCE_INITIAL_VALUE;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[g_frontState
-									 .netReliablePeerSlotCount]
-							.recvSeqDefault =
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[g_front_state
+									 .net_reliable_peer_slot_count]
+							.recv_seq_default =
 							SEQUENCE_INITIAL_VALUE;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[g_frontState
-									 .netReliablePeerSlotCount]
-							.recvSeqChannelA =
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[g_front_state
+									 .net_reliable_peer_slot_count]
+							.recv_seq_channel_a =
 							SEQUENCE_INITIAL_VALUE;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[g_frontState
-									 .netReliablePeerSlotCount]
-							.recvSeqChannelB =
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[g_front_state
+									 .net_reliable_peer_slot_count]
+							.recv_seq_channel_b =
 							SEQUENCE_INITIAL_VALUE;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[g_frontState
-									 .netReliablePeerSlotCount]
-							.sendSeq = 0;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[g_frontState
-									 .netReliablePeerSlotCount]
-							.lastPiggybackType =
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[g_front_state
+									 .net_reliable_peer_slot_count]
+							.send_seq = 0;
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[g_front_state
+									 .net_reliable_peer_slot_count]
+							.last_piggyback_type =
 							NET_PACKET_NOP;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[g_frontState
-									 .netReliablePeerSlotCount]
-							.piggybackLength = 1;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[g_frontState
-									 .netReliablePeerSlotCount]
-							.lastHeardMs = 0;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[g_frontState
-									 .netReliablePeerSlotCount]
-							.lastActivityMs = 0;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[g_frontState
-									 .netReliablePeerSlotCount]
-							.packetCount = 0;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[g_frontState
-									 .netReliablePeerSlotCount]
-							.packetDropCount = 0;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[g_frontState
-									 .netReliablePeerSlotCount]
-							.packetRetryCount = 0;
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[g_front_state
+									 .net_reliable_peer_slot_count]
+							.piggyback_length = 1;
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[g_front_state
+									 .net_reliable_peer_slot_count]
+							.last_heard_ms = 0;
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[g_front_state
+									 .net_reliable_peer_slot_count]
+							.last_activity_ms = 0;
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[g_front_state
+									 .net_reliable_peer_slot_count]
+							.packet_count = 0;
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[g_front_state
+									 .net_reliable_peer_slot_count]
+							.packet_drop_count = 0;
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[g_front_state
+									 .net_reliable_peer_slot_count]
+							.packet_retry_count = 0;
 						break;
 					}
 				}
-				for (playerIndex = 0;
-				     playerIndex <
-				     (unsigned int)(sizeof(g_netPlayerConnectionStats) /
-						    sizeof(g_netPlayerConnectionStats
+				for (player_index = 0;
+				     player_index <
+				     (unsigned int)(sizeof(g_net_player_connection_stats) /
+						    sizeof(g_net_player_connection_stats
 								   [0]));
-				     ++playerIndex) {
-					if (g_netPlayerConnectionStats
-						    [playerIndex]
-							    .playerId ==
-					    packetWords[2]) {
-						g_netPlayerConnectionStats
-							[playerIndex]
-								.playerId = 0;
-						g_netPlayerConnectionStats
-							[playerIndex]
-								.latencyTotalMs =
+				     ++player_index) {
+					if (g_net_player_connection_stats
+						    [player_index]
+							    .player_id ==
+					    packet_words[2]) {
+						g_net_player_connection_stats
+							[player_index]
+								.player_id = 0;
+						g_net_player_connection_stats
+							[player_index]
+								.latency_total_ms =
 							0;
-						g_netPlayerConnectionStats
-							[playerIndex]
-								.packetCount =
+						g_net_player_connection_stats
+							[player_index]
+								.packet_count =
 							0;
-						g_netPlayerConnectionStats
-							[playerIndex]
-								.packetDropCount =
+						g_net_player_connection_stats
+							[player_index]
+								.packet_drop_count =
 							0;
-						g_netPlayerConnectionStats
-							[playerIndex]
-								.packetRetryCount =
+						g_net_player_connection_stats
+							[player_index]
+								.packet_retry_count =
 							0;
-						g_netPlayerConnectionStats
-							[playerIndex]
-								.latencySampleCount =
+						g_net_player_connection_stats
+							[player_index]
+								.latency_sample_count =
 							0;
 						break;
 					}
 				}
 			}
-		} else if (packetWords[1] == DPPLAYERTYPE_PLAYER &&
-			   (DPID)packetWords[2] ==
-				   g_frontState.netHostPlayerId) {
-			const int hostCancelledPacket =
+		} else if (packet_words[1] == DPPLAYERTYPE_PLAYER &&
+			   (DPID)packet_words[2] ==
+				   g_front_state.net_host_player_id) {
+			const int host_cancelled_packet =
 				NET_PACKET_HOST_CANCELLED;
-			Net_SendPacketAndFlush(
-				g_frontState.netRuntimeLocalPlayer.playerId,
-				&hostCancelledPacket,
-				sizeof(hostCancelledPacket));
+			net_send_packet_and_flush(
+				g_front_state.net_runtime_local_player
+					.player_id,
+				&host_cancelled_packet,
+				sizeof(host_cancelled_packet));
 		}
-		g_frontState.netPlayerCount = 1;
-		Net_RefreshPlayerRoster();
+		g_front_state.net_player_count = 1;
+		net_refresh_player_roster();
 		break;
 	}
 	case DPSYS_SETPLAYERORGROUPNAME:
-		if (((const struct NetPlayerNameMessage *)packetData)
+		if (((const struct net_player_name_message *)packet_data)
 			    ->header.dwPlayerType == DPPLAYERTYPE_PLAYER) {
-			unsigned int playerIndex;
-			for (playerIndex = 0;
-			     playerIndex <
-			     (unsigned int)g_frontState.netPlayerCount;
-			     ++playerIndex) {
-				if (g_frontState.netPlayers[playerIndex]
-					    .playerId ==
-				    ((const struct NetPlayerNameMessage *)
-					     packetData)
+			unsigned int player_index;
+			for (player_index = 0;
+			     player_index <
+			     (unsigned int)g_front_state.net_player_count;
+			     ++player_index) {
+				if (g_front_state.net_players[player_index]
+					    .player_id ==
+				    ((const struct net_player_name_message *)
+					     packet_data)
 					    ->header.dpId) {
 #ifdef XVT_MODERN
-					if (!XvtNetworkSession_CopyPlayerNames(
+					if (!xvt_network_session_copy_player_names(
 						    (const struct
-						     NetPlayerNameMessage *)
-							    packetData,
-						    g_frontState
-							    .netPlayers
-								    [playerIndex]
-							    .playerName,
-						    sizeof(g_frontState
-								   .netPlayers
-									   [playerIndex]
-								   .playerName),
-						    g_frontState
-							    .netPlayers
-								    [playerIndex]
-							    .longName,
-						    sizeof(g_frontState
-								   .netPlayers
-									   [playerIndex]
-								   .longName))) {
+						     net_player_name_message *)
+							    packet_data,
+						    g_front_state
+							    .net_players
+								    [player_index]
+							    .player_name,
+						    sizeof(g_front_state
+								   .net_players
+									   [player_index]
+								   .player_name),
+						    g_front_state
+							    .net_players
+								    [player_index]
+							    .long_name,
+						    sizeof(g_front_state
+								   .net_players
+									   [player_index]
+								   .long_name))) {
 						continue;
 					}
 #else
-					strcpy(g_frontState
-						       .netPlayers[playerIndex]
-						       .playerName,
+					strcpy(g_front_state
+						       .net_players
+							       [player_index]
+						       .player_name,
 					       ((const struct
-						 NetPlayerNameMessage *)
-							packetData)
+						 net_player_name_message *)
+							packet_data)
 						       ->names);
-					strcpy(g_frontState
-						       .netPlayers[playerIndex]
-						       .longName,
+					strcpy(g_front_state
+						       .net_players
+							       [player_index]
+						       .long_name,
 					       &((const struct
-						  NetPlayerNameMessage *)
-							 packetData)
-							->names[strlen(g_frontState
-									       .netPlayers
-										       [playerIndex]
-									       .playerName) +
+						  net_player_name_message *)
+							 packet_data)
+							->names[strlen(g_front_state
+									       .net_players
+										       [player_index]
+									       .player_name) +
 								1]);
 #endif
-					g_frontState.netPlayers[playerIndex].playerName
+					g_front_state.net_players[player_index].player_name
 						[PLAYER_NAME_TRUNCATION_INDEX] =
 						'\0';
-					g_frontState.netPlayers[playerIndex].longName
+					g_front_state.net_players[player_index].long_name
 						[PLAYER_NAME_TRUNCATION_INDEX] =
 						'\0';
 				}
@@ -3573,11 +3698,12 @@ void Net_HandleDirectPlaySystemMessage(int packetType, const void *packetData)
  * of the queue; packets from a sender that gets no peer slot (the table is
  * full) go at once. When 1023 or more stay queued, stale ones are dropped
  * and the first one already asked about is delivered past its gap. It
- * returns g_frontState.netRuntimeRecvScratchPacket.payload, valid until the
+ * returns g_front_state.net_runtime_recv_scratch_packet.payload, valid until the
  * next call, with the sender and size in the out arguments. Updates the
  * peer slots' delivered sequences, counts and times. */
 // FUNCTION: XVT 0x4D0540
-void *Net_DequeueIncomingPacket(DPID *outSenderId, uint32_t *outPacketSize)
+void *net_dequeue_incoming_packet(DPID *out_sender_id,
+				  uint32_t *out_packet_size)
 {
 	enum {
 		NET_RECV_QUEUE_CAPACITY = 1024,
@@ -3602,852 +3728,877 @@ void *Net_DequeueIncomingPacket(DPID *outSenderId, uint32_t *outPacketSize)
 		NET_RELIABLE_LONG_RETRY_TIMEOUT_MS = 20000
 	};
 
-	int receivedSequence;
-	int expectedSequence = 0;
+	int received_sequence;
+	int expected_sequence = 0;
 
-	int queuedPacketIndex;
-	int useChannelA;
-	int useChannelB;
-	int remainingPacketCount;
-	int missingPacketCount;
-	int channelIndex;
-	int sentRetryRequest;
-	int firstMissingSequence;
-	uint8_t lastSeenSequences[NET_RELIABLE_PEER_CAPACITY]
-				 [NET_RELIABLE_CHANNEL_COUNT];
-	uint8_t processedPacketCounts[NET_RELIABLE_PEER_CAPACITY];
-	uint8_t reorderAllowances[NET_RELIABLE_PEER_CAPACITY];
-	char debugText[256];
-	uint32_t retryPacket[128];
+	int queued_packet_index;
+	int use_channel_a;
+	int use_channel_b;
+	int remaining_packet_count;
+	int missing_packet_count;
+	int channel_index;
+	int sent_retry_request;
+	int first_missing_sequence;
+	uint8_t last_seen_sequences[NET_RELIABLE_PEER_CAPACITY]
+				   [NET_RELIABLE_CHANNEL_COUNT];
+	uint8_t processed_packet_counts[NET_RELIABLE_PEER_CAPACITY];
+	uint8_t reorder_allowances[NET_RELIABLE_PEER_CAPACITY];
+	char debug_text[256];
+	uint32_t retry_packet[128];
 
-	unsigned int peerIndex;
-	int sequenceCursor;
-	uint32_t retryTimeoutMs;
+	unsigned int peer_index;
+	int sequence_cursor;
+	uint32_t retry_timeout_ms;
 	uint32_t now;
-	int scanIndex;
-	int packetType;
-	int sequenceDelta;
+	int scan_index;
+	int packet_type;
+	int sequence_delta;
 
-	Net_PumpIncomingPackets();
-	Net_SendSequenceKeepalives();
-	if (g_frontState.netRuntimeRecvQueueCount == 0) {
+	net_pump_incoming_packets();
+	net_send_sequence_keepalives();
+	if (g_front_state.net_runtime_recv_queue_count == 0) {
 		return NULL;
 	}
 
-	memset(processedPacketCounts, 0, sizeof(processedPacketCounts));
-	memset(reorderAllowances, NET_RELIABLE_REORDER_ALLOWANCE,
-	       sizeof(reorderAllowances));
-	memset(lastSeenSequences, 0, sizeof(lastSeenSequences));
-	/* channelIndex first walks the peer slots; the test below compares the slot count it is left at with
-	 * peerIndex to spot a new slot. Only later does it hold a channel. */
-	for (channelIndex = 0;
-	     channelIndex < (int)g_frontState.netReliablePeerSlotCount;
-	     ++channelIndex) {
-		lastSeenSequences[channelIndex][NET_RELIABLE_CHANNEL_A] =
-			(uint8_t)g_frontState
-				.netRuntimeReliablePeerSlots[channelIndex]
-				.lastDeliveredSeqChannelA;
-		lastSeenSequences[channelIndex][NET_RELIABLE_CHANNEL_DEFAULT] =
-			(uint8_t)g_frontState
-				.netRuntimeReliablePeerSlots[channelIndex]
-				.lastDeliveredSeqDefault;
-		lastSeenSequences[channelIndex][NET_RELIABLE_CHANNEL_B] =
-			(uint8_t)g_frontState
-				.netRuntimeReliablePeerSlots[channelIndex]
-				.lastDeliveredSeqChannelB;
+	memset(processed_packet_counts, 0, sizeof(processed_packet_counts));
+	memset(reorder_allowances, NET_RELIABLE_REORDER_ALLOWANCE,
+	       sizeof(reorder_allowances));
+	memset(last_seen_sequences, 0, sizeof(last_seen_sequences));
+	/* channel_index first walks the peer slots; the test below compares the slot count it is left at with
+	 * peer_index to spot a new slot. Only later does it hold a channel. */
+	for (channel_index = 0;
+	     channel_index < (int)g_front_state.net_reliable_peer_slot_count;
+	     ++channel_index) {
+		last_seen_sequences[channel_index][NET_RELIABLE_CHANNEL_A] =
+			(uint8_t)g_front_state
+				.net_runtime_reliable_peer_slots[channel_index]
+				.last_delivered_seq_channel_a;
+		last_seen_sequences
+			[channel_index][NET_RELIABLE_CHANNEL_DEFAULT] =
+				(uint8_t)g_front_state
+					.net_runtime_reliable_peer_slots
+						[channel_index]
+					.last_delivered_seq_default;
+		last_seen_sequences[channel_index][NET_RELIABLE_CHANNEL_B] =
+			(uint8_t)g_front_state
+				.net_runtime_reliable_peer_slots[channel_index]
+				.last_delivered_seq_channel_b;
 	}
 
-	scanIndex = g_frontState.netRuntimeRecvQueueReadIndex;
-	remainingPacketCount = g_frontState.netRuntimeRecvQueueCount;
-	for (; remainingPacketCount > 0; --remainingPacketCount) {
-		if (g_frontState.netRuntimeRecvQueue[scanIndex].directPlayId ==
-		    0) {
-			if (g_frontState.netRuntimeRecvQueueReadIndex !=
-			    scanIndex) {
-				if (++scanIndex >= NET_RECV_QUEUE_CAPACITY) {
-					scanIndex = 0;
+	scan_index = g_front_state.net_runtime_recv_queue_read_index;
+	remaining_packet_count = g_front_state.net_runtime_recv_queue_count;
+	for (; remaining_packet_count > 0; --remaining_packet_count) {
+		if (g_front_state.net_runtime_recv_queue[scan_index]
+			    .direct_play_id == 0) {
+			if (g_front_state.net_runtime_recv_queue_read_index !=
+			    scan_index) {
+				if (++scan_index >= NET_RECV_QUEUE_CAPACITY) {
+					scan_index = 0;
 				}
 				continue;
 			}
 			{
-				g_frontState.netRuntimeRecvScratchPacket =
-					g_frontState
-						.netRuntimeRecvQueue[scanIndex];
-				*outSenderId =
-					g_frontState
-						.netRuntimeRecvQueue[scanIndex]
-						.directPlayId;
-				*outPacketSize =
-					g_frontState
-						.netRuntimeRecvQueue[scanIndex]
-						.payloadSize;
-				--g_frontState.netRuntimeRecvQueueCount;
-				++g_frontState.netRuntimeRecvQueueReadIndex;
-				if (g_frontState.netRuntimeRecvQueueReadIndex >=
+				g_front_state.net_runtime_recv_scratch_packet =
+					g_front_state.net_runtime_recv_queue
+						[scan_index];
+				*out_sender_id = g_front_state
+							 .net_runtime_recv_queue
+								 [scan_index]
+							 .direct_play_id;
+				*out_packet_size =
+					g_front_state
+						.net_runtime_recv_queue
+							[scan_index]
+						.payload_size;
+				--g_front_state.net_runtime_recv_queue_count;
+				++g_front_state
+					  .net_runtime_recv_queue_read_index;
+				if (g_front_state
+					    .net_runtime_recv_queue_read_index >=
 				    NET_RECV_QUEUE_CAPACITY) {
-					g_frontState
-						.netRuntimeRecvQueueReadIndex =
+					g_front_state
+						.net_runtime_recv_queue_read_index =
 						0;
 				}
-				return g_frontState.netRuntimeRecvScratchPacket
+				return g_front_state
+					.net_runtime_recv_scratch_packet
 					.payload;
 			}
 		} else {
-			receivedSequence =
-				g_frontState.netRuntimeRecvQueue[scanIndex]
-					.sequenceByte;
-			useChannelA =
-				g_frontState.netRuntimeRecvQueue[scanIndex]
-					.packetClass == NET_RELIABLE_CHANNEL_A;
-			useChannelB =
-				g_frontState.netRuntimeRecvQueue[scanIndex]
-					.packetClass == NET_RELIABLE_CHANNEL_B;
-			packetType = *(const int *)g_frontState
-					      .netRuntimeRecvQueue[scanIndex]
-					      .payload;
-			peerIndex = Net_FindOrCreatePeerSlot(
-				(int)g_frontState.netRuntimeRecvQueue[scanIndex]
-					.directPlayId);
-			if (channelIndex == (int)peerIndex &&
-			    peerIndex < NET_RELIABLE_PEER_CAPACITY) {
-				lastSeenSequences
-					[peerIndex][NET_RELIABLE_CHANNEL_A] =
+			received_sequence =
+				g_front_state.net_runtime_recv_queue[scan_index]
+					.sequence_byte;
+			use_channel_a =
+				g_front_state.net_runtime_recv_queue[scan_index]
+					.packet_class == NET_RELIABLE_CHANNEL_A;
+			use_channel_b =
+				g_front_state.net_runtime_recv_queue[scan_index]
+					.packet_class == NET_RELIABLE_CHANNEL_B;
+			packet_type =
+				*(const int *)g_front_state
+					 .net_runtime_recv_queue[scan_index]
+					 .payload;
+			peer_index = net_find_or_create_peer_slot(
+				(int)g_front_state
+					.net_runtime_recv_queue[scan_index]
+					.direct_play_id);
+			if (channel_index == (int)peer_index &&
+			    peer_index < NET_RELIABLE_PEER_CAPACITY) {
+				last_seen_sequences
+					[peer_index][NET_RELIABLE_CHANNEL_A] =
 						NET_RELIABLE_SEQUENCE_LIMIT;
-				lastSeenSequences
-					[peerIndex]
+				last_seen_sequences
+					[peer_index]
 					[NET_RELIABLE_CHANNEL_DEFAULT] =
 						NET_RELIABLE_SEQUENCE_LIMIT;
-				lastSeenSequences
-					[peerIndex][NET_RELIABLE_CHANNEL_B] =
+				last_seen_sequences
+					[peer_index][NET_RELIABLE_CHANNEL_B] =
 						NET_RELIABLE_SEQUENCE_LIMIT;
 			}
 
-			if (g_frontState.netReliablePeerSlotCount > peerIndex) {
-				if ((unsigned int)packetType <
+			if (g_front_state.net_reliable_peer_slot_count >
+			    peer_index) {
+				if ((unsigned int)packet_type <
 				    NET_FIRST_NON_FLIGHT_PACKET_TYPE) {
-					if (g_frontState
-						    .netRuntimeRecvQueue
-							    [scanIndex]
-						    .isResentCopy == 0) {
-						if (useChannelA != 0) {
-							lastSeenSequences
-								[peerIndex]
+					if (g_front_state
+						    .net_runtime_recv_queue
+							    [scan_index]
+						    .is_resent_copy == 0) {
+						if (use_channel_a != 0) {
+							last_seen_sequences
+								[peer_index]
 								[NET_RELIABLE_CHANNEL_A] =
 									(uint8_t)
-										receivedSequence;
-							g_frontState
-								.netRuntimeReliablePeerSlots
-									[peerIndex]
-								.lastDeliveredSeqChannelA =
-								receivedSequence;
-						} else if (useChannelB != 0) {
-							g_frontState
-								.netRuntimeReliablePeerSlots
-									[peerIndex]
-								.lastDeliveredSeqChannelB =
-								receivedSequence;
-							lastSeenSequences
-								[peerIndex]
+										received_sequence;
+							g_front_state
+								.net_runtime_reliable_peer_slots
+									[peer_index]
+								.last_delivered_seq_channel_a =
+								received_sequence;
+						} else if (use_channel_b != 0) {
+							g_front_state
+								.net_runtime_reliable_peer_slots
+									[peer_index]
+								.last_delivered_seq_channel_b =
+								received_sequence;
+							last_seen_sequences
+								[peer_index]
 								[NET_RELIABLE_CHANNEL_B] =
 									(uint8_t)
-										receivedSequence;
+										received_sequence;
 						} else {
-							g_frontState
-								.netRuntimeReliablePeerSlots
-									[peerIndex]
-								.lastDeliveredSeqDefault =
-								receivedSequence;
-							lastSeenSequences
-								[peerIndex]
+							g_front_state
+								.net_runtime_reliable_peer_slots
+									[peer_index]
+								.last_delivered_seq_default =
+								received_sequence;
+							last_seen_sequences
+								[peer_index]
 								[NET_RELIABLE_CHANNEL_DEFAULT] =
 									(uint8_t)
-										receivedSequence;
+										received_sequence;
 						}
 					}
-					if (Net_RemoveIncomingPacketAtIndex(
-						    (unsigned int)scanIndex) ==
+					if (net_remove_incoming_packet_at_index(
+						    (unsigned int)scan_index) ==
 					    0) {
 						continue;
 					}
-					if (++scanIndex >=
+					if (++scan_index >=
 					    NET_RECV_QUEUE_CAPACITY) {
-						scanIndex = 0;
+						scan_index = 0;
 					}
 					continue;
 				}
-				if (reorderAllowances[peerIndex] <
-				    processedPacketCounts[peerIndex]) {
-					if (++scanIndex >=
+				if (reorder_allowances[peer_index] <
+				    processed_packet_counts[peer_index]) {
+					if (++scan_index >=
 					    NET_RECV_QUEUE_CAPACITY) {
-						scanIndex = 0;
+						scan_index = 0;
 					}
 					continue;
 				}
-				g_frontState
-					.netRuntimeReliablePeerSlots[peerIndex]
-					.lastHeardMs = GetTickCount();
-				if (g_frontState.netRuntimeRecvQueue[scanIndex]
-					    .isResentCopy == 0) {
-					++processedPacketCounts[peerIndex];
+				g_front_state
+					.net_runtime_reliable_peer_slots
+						[peer_index]
+					.last_heard_ms = GetTickCount();
+				if (g_front_state
+					    .net_runtime_recv_queue[scan_index]
+					    .is_resent_copy == 0) {
+					++processed_packet_counts[peer_index];
 				}
 
-				if (useChannelA != 0) {
-					expectedSequence =
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[peerIndex]
-							.lastDeliveredSeqChannelA +
+				if (use_channel_a != 0) {
+					expected_sequence =
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[peer_index]
+							.last_delivered_seq_channel_a +
 						1;
-					if (expectedSequence >
+					if (expected_sequence >
 					    NET_RELIABLE_SEQUENCE_LIMIT) {
-						expectedSequence = 0;
+						expected_sequence = 0;
 					}
-				} else if (useChannelB != 0) {
-					expectedSequence =
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[peerIndex]
-							.lastDeliveredSeqChannelB +
+				} else if (use_channel_b != 0) {
+					expected_sequence =
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[peer_index]
+							.last_delivered_seq_channel_b +
 						1;
-					if (expectedSequence >
+					if (expected_sequence >
 					    NET_RELIABLE_SEQUENCE_LIMIT) {
-						expectedSequence = 0;
+						expected_sequence = 0;
 					}
 				} else {
-					expectedSequence =
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[peerIndex]
-							.lastDeliveredSeqDefault +
+					expected_sequence =
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[peer_index]
+							.last_delivered_seq_default +
 						1;
-					if (expectedSequence >
+					if (expected_sequence >
 					    NET_RELIABLE_SEQUENCE_LIMIT) {
-						expectedSequence = 0;
+						expected_sequence = 0;
 					}
 				}
 			}
-			sequenceDelta = receivedSequence - expectedSequence;
-			if (g_frontState.netReliablePeerSlotCount > peerIndex &&
-			    (sequenceDelta < NET_RELIABLE_NEGATIVE_WINDOW ||
-			     (sequenceDelta >= 0 &&
-			      sequenceDelta < NET_RELIABLE_POSITIVE_WINDOW))) {
-				if (expectedSequence == receivedSequence) {
-					g_frontState
-						.netRuntimeReliablePeerSlots
-							[peerIndex]
-						.lastActivityMs =
+			sequence_delta = received_sequence - expected_sequence;
+			if (g_front_state.net_reliable_peer_slot_count >
+				    peer_index &&
+			    (sequence_delta < NET_RELIABLE_NEGATIVE_WINDOW ||
+			     (sequence_delta >= 0 &&
+			      sequence_delta < NET_RELIABLE_POSITIVE_WINDOW))) {
+				if (expected_sequence == received_sequence) {
+					g_front_state
+						.net_runtime_reliable_peer_slots
+							[peer_index]
+						.last_activity_ms =
 						GetTickCount();
-					if (useChannelA != 0) {
-						sprintf(debugText, "(RB %u) ",
-							receivedSequence);
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[peerIndex]
-							.lastDeliveredSeqChannelA =
-							receivedSequence;
-					} else if (useChannelB != 0) {
-						sprintf(debugText, "(RG %u) ",
-							receivedSequence);
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[peerIndex]
-							.lastDeliveredSeqChannelB =
-							receivedSequence;
+					if (use_channel_a != 0) {
+						sprintf(debug_text, "(RB %u) ",
+							received_sequence);
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[peer_index]
+							.last_delivered_seq_channel_a =
+							received_sequence;
+					} else if (use_channel_b != 0) {
+						sprintf(debug_text, "(RG %u) ",
+							received_sequence);
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[peer_index]
+							.last_delivered_seq_channel_b =
+							received_sequence;
 					} else {
-						sprintf(debugText, "(RS %u) ",
-							receivedSequence);
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[peerIndex]
-							.lastDeliveredSeqDefault =
-							receivedSequence;
+						sprintf(debug_text, "(RS %u) ",
+							received_sequence);
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[peer_index]
+							.last_delivered_seq_default =
+							received_sequence;
 					}
-					++g_frontState
-						  .netRuntimeReliablePeerSlots
-							  [peerIndex]
-						  .packetCount;
-					g_frontState
-						.netRuntimeRecvScratchPacket =
-						g_frontState.netRuntimeRecvQueue
-							[scanIndex];
-					Net_RemoveIncomingPacketAtIndex(
-						(unsigned int)scanIndex);
-					*outSenderId =
-						g_frontState
-							.netRuntimeRecvScratchPacket
-							.directPlayId;
-					*outPacketSize =
-						g_frontState
-							.netRuntimeRecvScratchPacket
-							.payloadSize;
-					return g_frontState
-						.netRuntimeRecvScratchPacket
+					++g_front_state
+						  .net_runtime_reliable_peer_slots
+							  [peer_index]
+						  .packet_count;
+					g_front_state
+						.net_runtime_recv_scratch_packet =
+						g_front_state
+							.net_runtime_recv_queue
+								[scan_index];
+					net_remove_incoming_packet_at_index(
+						(unsigned int)scan_index);
+					*out_sender_id =
+						g_front_state
+							.net_runtime_recv_scratch_packet
+							.direct_play_id;
+					*out_packet_size =
+						g_front_state
+							.net_runtime_recv_scratch_packet
+							.payload_size;
+					return g_front_state
+						.net_runtime_recv_scratch_packet
 						.payload;
 				}
-				if (g_frontState.netRuntimeRecvQueue[scanIndex]
-					    .isResentCopy == 0) {
-					if (useChannelA != 0) {
-						channelIndex =
+				if (g_front_state
+					    .net_runtime_recv_queue[scan_index]
+					    .is_resent_copy == 0) {
+					if (use_channel_a != 0) {
+						channel_index =
 							NET_RELIABLE_CHANNEL_A;
-					} else if (useChannelB != 0) {
-						channelIndex =
+					} else if (use_channel_b != 0) {
+						channel_index =
 							NET_RELIABLE_CHANNEL_B;
 					} else {
-						channelIndex =
+						channel_index =
 							NET_RELIABLE_CHANNEL_DEFAULT;
 					}
-					sequenceCursor =
-						(int)lastSeenSequences
-							[peerIndex]
-							[channelIndex] +
+					sequence_cursor =
+						(int)last_seen_sequences
+							[peer_index]
+							[channel_index] +
 						1;
-					lastSeenSequences
-						[peerIndex]
-						[channelIndex] = (uint8_t)
-							receivedSequence;
-					if (sequenceCursor >
+					last_seen_sequences
+						[peer_index]
+						[channel_index] = (uint8_t)
+							received_sequence;
+					if (sequence_cursor >
 					    NET_RELIABLE_SEQUENCE_LIMIT) {
-						sequenceCursor = 0;
+						sequence_cursor = 0;
 					}
-					missingPacketCount =
-						receivedSequence -
-						(int)sequenceCursor;
-					if (missingPacketCount < 0) {
-						missingPacketCount +=
+					missing_packet_count =
+						received_sequence -
+						(int)sequence_cursor;
+					if (missing_packet_count < 0) {
+						missing_packet_count +=
 							NET_RELIABLE_SEQUENCE_COUNT;
 					}
-					if (reorderAllowances[peerIndex] >=
-					    missingPacketCount) {
-						reorderAllowances[peerIndex] -=
+					if (reorder_allowances[peer_index] >=
+					    missing_packet_count) {
+						reorder_allowances
+							[peer_index] -=
 							(uint8_t)
-								missingPacketCount;
+								missing_packet_count;
 					} else {
-						reorderAllowances[peerIndex] =
+						reorder_allowances[peer_index] =
 							0;
 					}
-					sentRetryRequest = 0;
-					firstMissingSequence = sequenceCursor;
-					while (sequenceCursor !=
-					       receivedSequence) {
-						queuedPacketIndex =
-							Net_FindQueuedSequencedPacket(
-								scanIndex,
-								(int)sequenceCursor,
-								useChannelA,
-								useChannelB,
-								(int)peerIndex);
-						if (queuedPacketIndex <
+					sent_retry_request = 0;
+					first_missing_sequence =
+						sequence_cursor;
+					while (sequence_cursor !=
+					       received_sequence) {
+						queued_packet_index =
+							net_find_queued_sequenced_packet(
+								scan_index,
+								(int)sequence_cursor,
+								use_channel_a,
+								use_channel_b,
+								(int)peer_index);
+						if (queued_packet_index <
 							    NET_RECV_QUEUE_CAPACITY &&
-						    queuedPacketIndex >= 0) {
-							if (expectedSequence ==
-							    (int)sequenceCursor) {
-								g_frontState
-									.netRuntimeReliablePeerSlots
-										[peerIndex]
-									.lastActivityMs =
+						    queued_packet_index >= 0) {
+							if (expected_sequence ==
+							    (int)sequence_cursor) {
+								g_front_state
+									.net_runtime_reliable_peer_slots
+										[peer_index]
+									.last_activity_ms =
 									GetTickCount();
-								g_frontState
-									.netRuntimeRecvScratchPacket =
-									g_frontState
-										.netRuntimeRecvQueue
-											[queuedPacketIndex];
-								if (useChannelA !=
+								g_front_state
+									.net_runtime_recv_scratch_packet =
+									g_front_state
+										.net_runtime_recv_queue
+											[queued_packet_index];
+								if (use_channel_a !=
 								    0) {
-									sprintf(debugText,
+									sprintf(debug_text,
 										"(ROOB %u) ",
-										expectedSequence);
-									g_frontState
-										.netRuntimeReliablePeerSlots
-											[peerIndex]
-										.lastDeliveredSeqChannelA =
-										expectedSequence;
+										expected_sequence);
+									g_front_state
+										.net_runtime_reliable_peer_slots
+											[peer_index]
+										.last_delivered_seq_channel_a =
+										expected_sequence;
 								} else if (
-									useChannelB !=
+									use_channel_b !=
 									0) {
-									sprintf(debugText,
+									sprintf(debug_text,
 										"(ROOG %u) ",
-										expectedSequence);
-									g_frontState
-										.netRuntimeReliablePeerSlots
-											[peerIndex]
-										.lastDeliveredSeqChannelB =
-										expectedSequence;
+										expected_sequence);
+									g_front_state
+										.net_runtime_reliable_peer_slots
+											[peer_index]
+										.last_delivered_seq_channel_b =
+										expected_sequence;
 								} else {
-									sprintf(debugText,
+									sprintf(debug_text,
 										"(ROOS %u) ",
-										expectedSequence);
-									g_frontState
-										.netRuntimeReliablePeerSlots
-											[peerIndex]
-										.lastDeliveredSeqDefault =
-										expectedSequence;
+										expected_sequence);
+									g_front_state
+										.net_runtime_reliable_peer_slots
+											[peer_index]
+										.last_delivered_seq_default =
+										expected_sequence;
 								}
-								++g_frontState
-									  .netRuntimeReliablePeerSlots
-										  [peerIndex]
-									  .packetCount;
-								*outSenderId =
-									g_frontState
-										.netRuntimeRecvScratchPacket
-										.directPlayId;
-								*outPacketSize =
-									g_frontState
-										.netRuntimeRecvScratchPacket
-										.payloadSize;
-								if (missingPacketCount <=
+								++g_front_state
+									  .net_runtime_reliable_peer_slots
+										  [peer_index]
+									  .packet_count;
+								*out_sender_id =
+									g_front_state
+										.net_runtime_recv_scratch_packet
+										.direct_play_id;
+								*out_packet_size =
+									g_front_state
+										.net_runtime_recv_scratch_packet
+										.payload_size;
+								if (missing_packet_count <=
 								    1) {
-									g_frontState
-										.netRuntimeRecvQueue
-											[scanIndex]
-										.nackRetryCount =
+									g_front_state
+										.net_runtime_recv_queue
+											[scan_index]
+										.nack_retry_count =
 										0;
-									g_frontState
-										.netRuntimeRecvQueue
-											[scanIndex]
-										.lastNackMs =
+									g_front_state
+										.net_runtime_recv_queue
+											[scan_index]
+										.last_nack_ms =
 										0;
 								}
-								Net_RemoveIncomingPacketAtIndex(
-									queuedPacketIndex);
-								return g_frontState
-									.netRuntimeRecvScratchPacket
+								net_remove_incoming_packet_at_index(
+									queued_packet_index);
+								return g_front_state
+									.net_runtime_recv_scratch_packet
 									.payload;
 							}
-							--missingPacketCount;
+							--missing_packet_count;
 						} else if (
-							g_frontState
-								.netRuntimeRecvQueue
-									[scanIndex]
-								.nackRetryCount ==
+							g_front_state
+								.net_runtime_recv_queue
+									[scan_index]
+								.nack_retry_count ==
 							0) {
-							sprintf(debugText,
+							sprintf(debug_text,
 								"(RP %d) ",
-								sequenceCursor);
-							if ((unsigned int)g_frontState
-								    .netRuntimeReliablePeerSlots
-									    [peerIndex]
-								    .packetCount >
+								sequence_cursor);
+							if ((unsigned int)g_front_state
+								    .net_runtime_reliable_peer_slots
+									    [peer_index]
+								    .packet_count >
 							    NET_RELIABLE_RETRY_COUNT_THRESHOLD) {
-								++g_frontState
-									  .netRuntimeReliablePeerSlots
-										  [peerIndex]
-									  .packetRetryCount;
+								++g_front_state
+									  .net_runtime_reliable_peer_slots
+										  [peer_index]
+									  .packet_retry_count;
 							}
-							retryPacket[1] =
-								sequenceCursor;
-							retryPacket[0] =
+							retry_packet[1] =
+								sequence_cursor;
+							retry_packet[0] =
 								NET_PACKET_NACK;
-							retryPacket[2] =
-								useChannelA
+							retry_packet[2] =
+								use_channel_a
 									? NET_RELIABLE_CHANNEL_A
-									: (useChannelB
+									: (use_channel_b
 										   ? NET_RELIABLE_CHANNEL_B
 										   : NET_RELIABLE_CHANNEL_DEFAULT);
-							Net_SendDirectPlayPacket(
-								(int)g_frontState
-									.netRuntimeRecvQueue
-										[scanIndex]
-									.directPlayId,
-								retryPacket,
+							net_send_direct_play_packet(
+								(int)g_front_state
+									.net_runtime_recv_queue
+										[scan_index]
+									.direct_play_id,
+								retry_packet,
 								NET_RELIABLE_RETRY_PACKET_WORD_COUNT *
-									sizeof(retryPacket
+									sizeof(retry_packet
 										       [0]),
 								1);
-							sentRetryRequest = 1;
+							sent_retry_request = 1;
 						} else {
 							now = GetTickCount();
-							/* queuedPacketIndex is reused here as the NACK retry limit. */
-							if (g_frontState
-								    .netReliableRetryLongTimeoutMode ==
+							/* queued_packet_index is reused here as the NACK retry limit. */
+							if (g_front_state
+								    .net_reliable_retry_long_timeout_mode ==
 							    1) {
-								queuedPacketIndex =
+								queued_packet_index =
 									NET_RELIABLE_LONG_RETRY_LIMIT;
-								retryTimeoutMs =
+								retry_timeout_ms =
 									NET_RELIABLE_LONG_RETRY_TIMEOUT_MS;
 							} else {
-								queuedPacketIndex =
+								queued_packet_index =
 									NET_RELIABLE_SHORT_RETRY_LIMIT;
-								retryTimeoutMs =
+								retry_timeout_ms =
 									NET_RELIABLE_SHORT_RETRY_TIMEOUT_MS;
 							}
-							if (now - (uint32_t)g_frontState
-									    .netRuntimeRecvQueue
-										    [scanIndex]
-									    .lastNackMs >
-							    retryTimeoutMs) {
-								if (g_frontState
-									    .netRuntimeRecvQueue
-										    [scanIndex]
-									    .nackRetryCount <=
+							if (now - (uint32_t)g_front_state
+									    .net_runtime_recv_queue
+										    [scan_index]
+									    .last_nack_ms >
+							    retry_timeout_ms) {
+								if (g_front_state
+									    .net_runtime_recv_queue
+										    [scan_index]
+									    .nack_retry_count <=
 								    (unsigned int)
-									    queuedPacketIndex) {
-									sprintf(debugText,
+									    queued_packet_index) {
+									sprintf(debug_text,
 										"(RP %d) ",
-										sequenceCursor);
-									retryPacket[1] =
-										sequenceCursor;
-									retryPacket[0] =
-										NET_PACKET_NACK;
-									retryPacket[2] =
-										useChannelA
+										sequence_cursor);
+									retry_packet
+										[1] = sequence_cursor;
+									retry_packet
+										[0] = NET_PACKET_NACK;
+									retry_packet[2] =
+										use_channel_a
 											? NET_RELIABLE_CHANNEL_A
-											: (useChannelB
+											: (use_channel_b
 												   ? NET_RELIABLE_CHANNEL_B
 												   : NET_RELIABLE_CHANNEL_DEFAULT);
-									Net_SendDirectPlayPacket(
-										(int)g_frontState
-											.netRuntimeRecvQueue
-												[scanIndex]
-											.directPlayId,
-										retryPacket,
+									net_send_direct_play_packet(
+										(int)g_front_state
+											.net_runtime_recv_queue
+												[scan_index]
+											.direct_play_id,
+										retry_packet,
 										NET_RELIABLE_RETRY_PACKET_WORD_COUNT *
-											sizeof(retryPacket
+											sizeof(retry_packet
 												       [0]),
 										1);
-									sentRetryRequest =
+									sent_retry_request =
 										1;
 								} else {
-									sequenceCursor =
-										firstMissingSequence;
-									g_frontState
-										.netRuntimeReliablePeerSlots
-											[peerIndex]
-										.lastActivityMs =
+									sequence_cursor =
+										first_missing_sequence;
+									g_front_state
+										.net_runtime_reliable_peer_slots
+											[peer_index]
+										.last_activity_ms =
 										GetTickCount();
 									for (;
 									     ;) {
-										queuedPacketIndex = Net_FindQueuedSequencedPacket(
-											scanIndex,
-											(int)sequenceCursor,
-											useChannelA,
-											useChannelB,
-											(int)peerIndex);
-										if (queuedPacketIndex >=
+										queued_packet_index = net_find_queued_sequenced_packet(
+											scan_index,
+											(int)sequence_cursor,
+											use_channel_a,
+											use_channel_b,
+											(int)peer_index);
+										if (queued_packet_index >=
 											    0 &&
-										    queuedPacketIndex <=
+										    queued_packet_index <=
 											    NET_RECV_QUEUE_CAPACITY) {
-											g_frontState
-												.netRuntimeRecvScratchPacket =
-												g_frontState
-													.netRuntimeRecvQueue
-														[queuedPacketIndex];
-											Net_RemoveIncomingPacketAtIndex(
-												queuedPacketIndex);
-											if (useChannelA !=
+											g_front_state
+												.net_runtime_recv_scratch_packet =
+												g_front_state
+													.net_runtime_recv_queue
+														[queued_packet_index];
+											net_remove_incoming_packet_at_index(
+												queued_packet_index);
+											if (use_channel_a !=
 											    0) {
-												sprintf(debugText,
+												sprintf(debug_text,
 													"(ROOB %u) ",
-													expectedSequence);
-												g_frontState
-													.netRuntimeReliablePeerSlots
-														[peerIndex]
-													.lastDeliveredSeqChannelA =
-													(int)sequenceCursor;
+													expected_sequence);
+												g_front_state
+													.net_runtime_reliable_peer_slots
+														[peer_index]
+													.last_delivered_seq_channel_a =
+													(int)sequence_cursor;
 											} else if (
-												useChannelB !=
+												use_channel_b !=
 												0) {
-												sprintf(debugText,
+												sprintf(debug_text,
 													"(ROOG %u) ",
-													expectedSequence);
-												g_frontState
-													.netRuntimeReliablePeerSlots
-														[peerIndex]
-													.lastDeliveredSeqChannelB =
-													(int)sequenceCursor;
+													expected_sequence);
+												g_front_state
+													.net_runtime_reliable_peer_slots
+														[peer_index]
+													.last_delivered_seq_channel_b =
+													(int)sequence_cursor;
 											} else {
-												sprintf(debugText,
+												sprintf(debug_text,
 													"(ROOS %u) ",
-													expectedSequence);
-												g_frontState
-													.netRuntimeReliablePeerSlots
-														[peerIndex]
-													.lastDeliveredSeqDefault =
-													(int)sequenceCursor;
+													expected_sequence);
+												g_front_state
+													.net_runtime_reliable_peer_slots
+														[peer_index]
+													.last_delivered_seq_default =
+													(int)sequence_cursor;
 											}
-											++g_frontState
-												  .netRuntimeReliablePeerSlots
-													  [peerIndex]
-												  .packetCount;
-											*outSenderId =
-												g_frontState
-													.netRuntimeRecvScratchPacket
-													.directPlayId;
-											*outPacketSize =
-												g_frontState
-													.netRuntimeRecvScratchPacket
-													.payloadSize;
-											return g_frontState
-												.netRuntimeRecvScratchPacket
+											++g_front_state
+												  .net_runtime_reliable_peer_slots
+													  [peer_index]
+												  .packet_count;
+											*out_sender_id =
+												g_front_state
+													.net_runtime_recv_scratch_packet
+													.direct_play_id;
+											*out_packet_size =
+												g_front_state
+													.net_runtime_recv_scratch_packet
+													.payload_size;
+											return g_front_state
+												.net_runtime_recv_scratch_packet
 												.payload;
 										}
-										if (receivedSequence ==
-										    (int)sequenceCursor) {
-											if (useChannelA !=
+										if (received_sequence ==
+										    (int)sequence_cursor) {
+											if (use_channel_a !=
 											    0) {
-												sprintf(debugText,
+												sprintf(debug_text,
 													"(ROOB %u) ",
-													receivedSequence);
-												g_frontState
-													.netRuntimeReliablePeerSlots
-														[peerIndex]
-													.lastDeliveredSeqChannelA =
-													receivedSequence;
+													received_sequence);
+												g_front_state
+													.net_runtime_reliable_peer_slots
+														[peer_index]
+													.last_delivered_seq_channel_a =
+													received_sequence;
 											} else if (
-												useChannelB !=
+												use_channel_b !=
 												0) {
-												sprintf(debugText,
+												sprintf(debug_text,
 													"(ROOG %u) ",
-													receivedSequence);
-												g_frontState
-													.netRuntimeReliablePeerSlots
-														[peerIndex]
-													.lastDeliveredSeqChannelB =
-													receivedSequence;
+													received_sequence);
+												g_front_state
+													.net_runtime_reliable_peer_slots
+														[peer_index]
+													.last_delivered_seq_channel_b =
+													received_sequence;
 											} else {
-												sprintf(debugText,
+												sprintf(debug_text,
 													"(ROOS %u) ",
-													receivedSequence);
-												g_frontState
-													.netRuntimeReliablePeerSlots
-														[peerIndex]
-													.lastDeliveredSeqDefault =
-													receivedSequence;
+													received_sequence);
+												g_front_state
+													.net_runtime_reliable_peer_slots
+														[peer_index]
+													.last_delivered_seq_default =
+													received_sequence;
 											}
-											++g_frontState
-												  .netRuntimeReliablePeerSlots
-													  [peerIndex]
-												  .packetCount;
-											g_frontState
-												.netRuntimeRecvScratchPacket =
-												g_frontState
-													.netRuntimeRecvQueue
-														[scanIndex];
-											Net_RemoveIncomingPacketAtIndex(
+											++g_front_state
+												  .net_runtime_reliable_peer_slots
+													  [peer_index]
+												  .packet_count;
+											g_front_state
+												.net_runtime_recv_scratch_packet =
+												g_front_state
+													.net_runtime_recv_queue
+														[scan_index];
+											net_remove_incoming_packet_at_index(
 												(unsigned int)
-													scanIndex);
-											*outSenderId =
-												g_frontState
-													.netRuntimeRecvScratchPacket
-													.directPlayId;
-											*outPacketSize =
-												g_frontState
-													.netRuntimeRecvScratchPacket
-													.payloadSize;
-											return g_frontState
-												.netRuntimeRecvScratchPacket
+													scan_index);
+											*out_sender_id =
+												g_front_state
+													.net_runtime_recv_scratch_packet
+													.direct_play_id;
+											*out_packet_size =
+												g_front_state
+													.net_runtime_recv_scratch_packet
+													.payload_size;
+											return g_front_state
+												.net_runtime_recv_scratch_packet
 												.payload;
 										}
-										++sequenceCursor;
-										if (sequenceCursor >
+										++sequence_cursor;
+										if (sequence_cursor >
 										    NET_RELIABLE_SEQUENCE_LIMIT) {
-											sequenceCursor =
+											sequence_cursor =
 												0;
 										}
 									}
 								}
 							}
 						}
-						++sequenceCursor;
-						if (sequenceCursor >
+						++sequence_cursor;
+						if (sequence_cursor >
 						    NET_RELIABLE_SEQUENCE_LIMIT) {
-							sequenceCursor = 0;
+							sequence_cursor = 0;
 						}
 					}
 
-					if (missingPacketCount <= 0) {
-						g_frontState
-							.netRuntimeRecvQueue
-								[scanIndex]
-							.nackRetryCount = 0;
-						g_frontState
-							.netRuntimeRecvQueue
-								[scanIndex]
-							.lastNackMs = 0;
+					if (missing_packet_count <= 0) {
+						g_front_state
+							.net_runtime_recv_queue
+								[scan_index]
+							.nack_retry_count = 0;
+						g_front_state
+							.net_runtime_recv_queue
+								[scan_index]
+							.last_nack_ms = 0;
 					} else {
-						if (sentRetryRequest == 1) {
-							++g_frontState
-								  .netRuntimeRecvQueue
-									  [scanIndex]
-								  .nackRetryCount;
-							g_frontState
-								.netRuntimeRecvQueue
-									[scanIndex]
-								.lastNackMs = (int)
-								GetTickCount();
+						if (sent_retry_request == 1) {
+							++g_front_state
+								  .net_runtime_recv_queue
+									  [scan_index]
+								  .nack_retry_count;
+							g_front_state
+								.net_runtime_recv_queue
+									[scan_index]
+								.last_nack_ms =
+								(int)GetTickCount();
 						}
 					}
 				} else {
-					if (g_frontState
-						    .netRuntimeRecvQueueReadIndex ==
-					    scanIndex) {
-						if (Net_RemoveIncomingPacketAtIndex(
+					if (g_front_state
+						    .net_runtime_recv_queue_read_index ==
+					    scan_index) {
+						if (net_remove_incoming_packet_at_index(
 							    (unsigned int)
-								    scanIndex) ==
+								    scan_index) ==
 						    0) {
 							continue;
 						}
 					}
 				}
 			} else {
-				if (Net_RemoveIncomingPacketAtIndex(
-					    (unsigned int)scanIndex) == 0) {
+				if (net_remove_incoming_packet_at_index(
+					    (unsigned int)scan_index) == 0) {
 					continue;
 				}
 			}
 		}
 
-		if (++scanIndex >= NET_RECV_QUEUE_CAPACITY) {
-			scanIndex = 0;
+		if (++scan_index >= NET_RECV_QUEUE_CAPACITY) {
+			scan_index = 0;
 		}
 	}
 
-	if (g_frontState.netRuntimeRecvQueueCount <
+	if (g_front_state.net_runtime_recv_queue_count <
 	    NET_RECV_QUEUE_PRESSURE_THRESHOLD) {
 		return NULL;
 	}
-	scanIndex = g_frontState.netRuntimeRecvQueueReadIndex;
-	remainingPacketCount = g_frontState.netRuntimeRecvQueueCount;
-	for (; remainingPacketCount > 0; --remainingPacketCount) {
-		if (g_frontState.netRuntimeRecvQueue[scanIndex].directPlayId !=
-		    0) {
-			receivedSequence =
-				g_frontState.netRuntimeRecvQueue[scanIndex]
-					.sequenceByte;
-			useChannelA =
-				g_frontState.netRuntimeRecvQueue[scanIndex]
-					.packetClass == NET_RELIABLE_CHANNEL_A;
-			useChannelB =
-				g_frontState.netRuntimeRecvQueue[scanIndex]
-					.packetClass == NET_RELIABLE_CHANNEL_B;
-			peerIndex = Net_FindOrCreatePeerSlot(
-				(int)g_frontState.netRuntimeRecvQueue[scanIndex]
-					.directPlayId);
-			expectedSequence = 0;
-			if (peerIndex < g_frontState.netReliablePeerSlotCount &&
-			    peerIndex < NET_RELIABLE_PEER_CAPACITY) {
-				if (useChannelA != 0) {
-					expectedSequence =
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[peerIndex]
-							.lastDeliveredSeqChannelA +
+	scan_index = g_front_state.net_runtime_recv_queue_read_index;
+	remaining_packet_count = g_front_state.net_runtime_recv_queue_count;
+	for (; remaining_packet_count > 0; --remaining_packet_count) {
+		if (g_front_state.net_runtime_recv_queue[scan_index]
+			    .direct_play_id != 0) {
+			received_sequence =
+				g_front_state.net_runtime_recv_queue[scan_index]
+					.sequence_byte;
+			use_channel_a =
+				g_front_state.net_runtime_recv_queue[scan_index]
+					.packet_class == NET_RELIABLE_CHANNEL_A;
+			use_channel_b =
+				g_front_state.net_runtime_recv_queue[scan_index]
+					.packet_class == NET_RELIABLE_CHANNEL_B;
+			peer_index = net_find_or_create_peer_slot(
+				(int)g_front_state
+					.net_runtime_recv_queue[scan_index]
+					.direct_play_id);
+			expected_sequence = 0;
+			if (peer_index <
+				    g_front_state
+					    .net_reliable_peer_slot_count &&
+			    peer_index < NET_RELIABLE_PEER_CAPACITY) {
+				if (use_channel_a != 0) {
+					expected_sequence =
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[peer_index]
+							.last_delivered_seq_channel_a +
 						1;
-					if (expectedSequence >
+					if (expected_sequence >
 					    NET_RELIABLE_SEQUENCE_LIMIT) {
-						expectedSequence = 0;
+						expected_sequence = 0;
 					}
-				} else if (useChannelB != 0) {
-					expectedSequence =
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[peerIndex]
-							.lastDeliveredSeqChannelB +
+				} else if (use_channel_b != 0) {
+					expected_sequence =
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[peer_index]
+							.last_delivered_seq_channel_b +
 						1;
-					if (expectedSequence >
+					if (expected_sequence >
 					    NET_RELIABLE_SEQUENCE_LIMIT) {
-						expectedSequence = 0;
+						expected_sequence = 0;
 					}
 				} else {
-					expectedSequence =
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[peerIndex]
-							.lastDeliveredSeqDefault +
+					expected_sequence =
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[peer_index]
+							.last_delivered_seq_default +
 						1;
-					if (expectedSequence >
+					if (expected_sequence >
 					    NET_RELIABLE_SEQUENCE_LIMIT) {
-						expectedSequence = 0;
+						expected_sequence = 0;
 					}
 				}
 			}
-			sequenceDelta = receivedSequence - expectedSequence;
-			if (peerIndex >=
-				    g_frontState.netReliablePeerSlotCount ||
-			    (sequenceDelta >=
+			sequence_delta = received_sequence - expected_sequence;
+			if (peer_index >=
+				    g_front_state
+					    .net_reliable_peer_slot_count ||
+			    (sequence_delta >=
 				     NET_RELIABLE_PRESSURE_NEGATIVE_WINDOW &&
-			     (sequenceDelta < 0 ||
-			      sequenceDelta >= NET_RELIABLE_POSITIVE_WINDOW))) {
-				if (Net_RemoveIncomingPacketAtIndex(
-					    (unsigned int)scanIndex) == 0) {
+			     (sequence_delta < 0 ||
+			      sequence_delta >=
+				      NET_RELIABLE_POSITIVE_WINDOW))) {
+				if (net_remove_incoming_packet_at_index(
+					    (unsigned int)scan_index) == 0) {
 					continue;
 				}
-			} else if (g_frontState.netRuntimeRecvQueue[scanIndex]
-					   .nackRetryCount != 0) {
-				if (useChannelA != 0) {
-					sprintf(debugText, "(ROOB %u) ",
-						receivedSequence);
-					g_frontState
-						.netRuntimeReliablePeerSlots
-							[peerIndex]
-						.lastDeliveredSeqChannelA =
-						receivedSequence;
-				} else if (useChannelB != 0) {
-					sprintf(debugText, "(ROOG %u) ",
-						receivedSequence);
-					g_frontState
-						.netRuntimeReliablePeerSlots
-							[peerIndex]
-						.lastDeliveredSeqChannelB =
-						receivedSequence;
+			} else if (g_front_state
+					   .net_runtime_recv_queue[scan_index]
+					   .nack_retry_count != 0) {
+				if (use_channel_a != 0) {
+					sprintf(debug_text, "(ROOB %u) ",
+						received_sequence);
+					g_front_state
+						.net_runtime_reliable_peer_slots
+							[peer_index]
+						.last_delivered_seq_channel_a =
+						received_sequence;
+				} else if (use_channel_b != 0) {
+					sprintf(debug_text, "(ROOG %u) ",
+						received_sequence);
+					g_front_state
+						.net_runtime_reliable_peer_slots
+							[peer_index]
+						.last_delivered_seq_channel_b =
+						received_sequence;
 				} else {
-					sprintf(debugText, "(ROOS %u) ",
-						receivedSequence);
-					g_frontState
-						.netRuntimeReliablePeerSlots
-							[peerIndex]
-						.lastDeliveredSeqDefault =
-						receivedSequence;
+					sprintf(debug_text, "(ROOS %u) ",
+						received_sequence);
+					g_front_state
+						.net_runtime_reliable_peer_slots
+							[peer_index]
+						.last_delivered_seq_default =
+						received_sequence;
 				}
-				++g_frontState
-					  .netRuntimeReliablePeerSlots
-						  [peerIndex]
-					  .packetCount;
-				g_frontState.netRuntimeRecvScratchPacket =
-					g_frontState
-						.netRuntimeRecvQueue[scanIndex];
-				Net_RemoveIncomingPacketAtIndex(
-					(unsigned int)scanIndex);
-				*outSenderId =
-					g_frontState.netRuntimeRecvScratchPacket
-						.directPlayId;
-				*outPacketSize =
-					g_frontState.netRuntimeRecvScratchPacket
-						.payloadSize;
-				return g_frontState.netRuntimeRecvScratchPacket
+				++g_front_state
+					  .net_runtime_reliable_peer_slots
+						  [peer_index]
+					  .packet_count;
+				g_front_state.net_runtime_recv_scratch_packet =
+					g_front_state.net_runtime_recv_queue
+						[scan_index];
+				net_remove_incoming_packet_at_index(
+					(unsigned int)scan_index);
+				*out_sender_id =
+					g_front_state
+						.net_runtime_recv_scratch_packet
+						.direct_play_id;
+				*out_packet_size =
+					g_front_state
+						.net_runtime_recv_scratch_packet
+						.payload_size;
+				return g_front_state
+					.net_runtime_recv_scratch_packet
 					.payload;
 			}
 		}
-		if (++scanIndex >= NET_RECV_QUEUE_CAPACITY) {
-			scanIndex = 0;
+		if (++scan_index >= NET_RECV_QUEUE_CAPACITY) {
+			scan_index = 0;
 		}
 	}
 	return NULL;
 }
 
 #ifndef XVT_MODERN
-/* Polls Net_GetNextAppPacket until a game packet arrives and returns it, with
- * its sender and size in the out arguments; returns NULL once timeoutSeconds
+/* Polls net_get_next_app_packet until a game packet arrives and returns it, with
+ * its sender and size in the out arguments; returns NULL once timeout_seconds
  * have passed. Only the original build calls this. */
 // FUNCTION: XVT 0x4D1130
-int *Net_WaitForAppPacket(DPID *outSenderId, uint32_t *outPacketSize,
-			  int timeoutSeconds)
+int *net_wait_for_app_packet(DPID *out_sender_id, uint32_t *out_packet_size,
+			     int timeout_seconds)
 {
-	DPID senderId;
-	uint32_t packetSize;
-	uint32_t startTime;
-	uint32_t timeoutMs;
+	DPID sender_id;
+	uint32_t packet_size;
+	uint32_t start_time;
+	uint32_t timeout_ms;
 	int *packet;
 
-	timeoutMs = (uint32_t)timeoutSeconds * 1000;
-	startTime = GetTickCount();
+	timeout_ms = (uint32_t)timeout_seconds * 1000;
+	start_time = GetTickCount();
 	do {
-		if (GetTickCount() - startTime > timeoutMs) {
+		if (GetTickCount() - start_time > timeout_ms) {
 			return NULL;
 		}
-		packet = Net_GetNextAppPacket(&senderId, &packetSize);
+		packet = net_get_next_app_packet(&sender_id, &packet_size);
 	} while (packet == NULL);
-	*outSenderId = senderId;
-	*outPacketSize = packetSize;
+	*out_sender_id = sender_id;
+	*out_packet_size = packet_size;
 	return packet;
 }
 #endif
@@ -4455,179 +4606,184 @@ int *Net_WaitForAppPacket(DPID *outSenderId, uint32_t *outPacketSize,
 /* Returns how many roster players have a DirectPlay id below playerId.
  * Nothing in the engine calls this. */
 // FUNCTION: XVT 0x4D11A0
-int Net_CountPlayersWithLowerId(DPID playerId)
+int net_count_players_with_lower_id(DPID player_id)
 {
-	int lowerPlayerIdCount;
-	int remainingPlayerCount;
-	struct NetPlayerInfo *player;
+	int lower_player_id_count;
+	int remaining_player_count;
+	struct net_player_info *player;
 
-	lowerPlayerIdCount = 0;
-	if (g_frontState.netPlayerCount > 0) {
-		player = g_frontState.netPlayers;
-		remainingPlayerCount = g_frontState.netPlayerCount;
+	lower_player_id_count = 0;
+	if (g_front_state.net_player_count > 0) {
+		player = g_front_state.net_players;
+		remaining_player_count = g_front_state.net_player_count;
 		do {
-			if (player->playerId < playerId) {
-				lowerPlayerIdCount++;
+			if (player->player_id < player_id) {
+				lower_player_id_count++;
 			}
 			player++;
-			remainingPlayerCount--;
-		} while (remainingPlayerCount != 0);
+			remaining_player_count--;
+		} while (remaining_player_count != 0);
 	}
 
-	return lowerPlayerIdCount;
+	return lower_player_id_count;
 }
 
-/* Returns g_frontState.netHostPlayerId, the host's DirectPlay id; 0 until it
+/* Returns g_front_state.net_host_player_id, the host's DirectPlay id; 0 until it
  * is known. */
 // FUNCTION: XVT 0x4D11D0
-int Net_GetHostPlayerId(void) { return g_frontState.netHostPlayerId; }
+int net_get_host_player_id(void) { return g_front_state.net_host_player_id; }
 
 /* Returns the local player's DirectPlay id, kept in roster entry 0. */
 // FUNCTION: XVT 0x4D11E0
-int Net_GetLocalPlayerId(void) { return g_frontState.netPlayers[0].playerId; }
+int net_get_local_player_id(void)
+{
+	return g_front_state.net_players[0].player_id;
+}
 
 /* Sets the ready flag of the roster player with that id; does nothing when
- * there is none. Unlike Net_SetPlayerReady it leaves the back buffer alone
+ * there is none. Unlike net_set_player_ready it leaves the back buffer alone
  * and works without DirectPlay. */
 // FUNCTION: XVT 0x4D1240
-void Net_MarkPlayerReadyNoLock(int playerId)
+void net_mark_player_ready_no_lock(int player_id)
 {
-	int playerIndex;
+	int player_index;
 
-	for (playerIndex = 0; playerIndex < g_frontState.netPlayerCount;
-	     ++playerIndex) {
-		if (g_frontState.netPlayers[playerIndex].playerId ==
-		    (DPID)playerId) {
+	for (player_index = 0; player_index < g_front_state.net_player_count;
+	     ++player_index) {
+		if (g_front_state.net_players[player_index].player_id ==
+		    (DPID)player_id) {
 			break;
 		}
 	}
-	if (playerIndex != g_frontState.netPlayerCount) {
-		g_frontState.netPlayers[playerIndex].readyFlag = 1;
+	if (player_index != g_front_state.net_player_count) {
+		g_front_state.net_players[player_index].ready_flag = 1;
 	}
 }
 
 /* Clears the ready flag of the roster entry with that id, searching all 32
  * entries rather than only those in use. */
 // FUNCTION: XVT 0x4D1280
-void Net_ClearPlayerReadyFlag(int playerId)
+void net_clear_player_ready_flag(int player_id)
 {
-	int playerIndex;
+	int player_index;
 
-	for (playerIndex = 0; playerIndex < 32; playerIndex++) {
-		if (g_frontState.netPlayers[playerIndex].playerId ==
-		    (DPID)playerId) {
+	for (player_index = 0; player_index < 32; player_index++) {
+		if (g_front_state.net_players[player_index].player_id ==
+		    (DPID)player_id) {
 			break;
 		}
 	}
-	if (playerIndex != 32) {
-		g_frontState.netPlayers[playerIndex].readyFlag = 0;
+	if (player_index != 32) {
+		g_front_state.net_players[player_index].ready_flag = 0;
 	}
 }
 
 /* Returns the ready flag of the roster player with that id, or 0 when there
  * is none. */
 // FUNCTION: XVT 0x4D12B0
-int Net_IsPlayerReady(int playerId)
+int net_is_player_ready(int player_id)
 {
-	int playerIndex;
+	int player_index;
 
-	for (playerIndex = 0; playerIndex < g_frontState.netPlayerCount;
-	     ++playerIndex) {
-		if (g_frontState.netPlayers[playerIndex].playerId ==
-		    (DPID)playerId) {
+	for (player_index = 0; player_index < g_front_state.net_player_count;
+	     ++player_index) {
+		if (g_front_state.net_players[player_index].player_id ==
+		    (DPID)player_id) {
 			break;
 		}
 	}
-	if (playerIndex == g_frontState.netPlayerCount) {
+	if (player_index == g_front_state.net_player_count) {
 		return 0;
 	}
-	return g_frontState.netPlayers[playerIndex].readyFlag;
+	return g_front_state.net_players[player_index].ready_flag;
 }
 
 /* Returns the roster entry of the player with that id, or NULL. */
 // FUNCTION: XVT 0x4D12F0
-struct NetPlayerInfo *Net_FindPlayer(int playerId)
+struct net_player_info *net_find_player(int player_id)
 {
-	int playerIndex;
+	int player_index;
 
-	for (playerIndex = 0; playerIndex < g_frontState.netPlayerCount;
-	     ++playerIndex) {
-		if (g_frontState.netPlayers[playerIndex].playerId ==
-		    (DPID)playerId) {
+	for (player_index = 0; player_index < g_front_state.net_player_count;
+	     ++player_index) {
+		if (g_front_state.net_players[player_index].player_id ==
+		    (DPID)player_id) {
 			break;
 		}
 	}
-	if (playerIndex == g_frontState.netPlayerCount) {
+	if (player_index == g_front_state.net_player_count) {
 		return 0;
 	}
-	return &g_frontState.netPlayers[playerIndex];
+	return &g_front_state.net_players[player_index];
 }
 
 /* Sets the ready flag of the roster player with that id and returns 1;
  * returns 0 without DirectPlay or when the id is not in the roster. The back
  * buffer is unlocked meanwhile and relocked when it was locked. */
 // FUNCTION: XVT 0x4D1330
-int Net_SetPlayerReady(int playerId)
+int net_set_player_ready(int player_id)
 {
-	int wasBackBufferLocked;
-	int playerIndex;
+	int was_back_buffer_locked;
+	int player_index;
 
-	if (g_frontState.netDirectPlay == NULL) {
+	if (g_front_state.net_direct_play == NULL) {
 		return 0;
 	}
 
-	wasBackBufferLocked = g_frontState.backBufferLocked;
-	FrontendDisplay_UnlockBackBuffer();
-	playerIndex = 0;
-	if (g_frontState.netPlayerCount > 0) {
+	was_back_buffer_locked = g_front_state.back_buffer_locked;
+	frontend_display_unlock_back_buffer();
+	player_index = 0;
+	if (g_front_state.net_player_count > 0) {
 		do {
-			if (g_frontState.netPlayers[playerIndex].playerId ==
-			    (DPID)playerId) {
+			if (g_front_state.net_players[player_index].player_id ==
+			    (DPID)player_id) {
 				break;
 			}
-			++playerIndex;
-		} while (playerIndex < g_frontState.netPlayerCount);
+			++player_index;
+		} while (player_index < g_front_state.net_player_count);
 	}
-	if (playerIndex == g_frontState.netPlayerCount) {
-		if (wasBackBufferLocked != 0) {
-			g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	if (player_index == g_front_state.net_player_count) {
+		if (was_back_buffer_locked != 0) {
+			g_draw_surface_ptr =
+				frontend_display_lock_back_buffer();
 		}
 		return 0;
 	}
 
-	g_frontState.netPlayers[playerIndex].readyFlag = 1;
-	if (wasBackBufferLocked != 0) {
-		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	g_front_state.net_players[player_index].ready_flag = 1;
+	if (was_back_buffer_locked != 0) {
+		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
 	return 1;
 }
 
-/* Net_ClearPlayerReadyFlag with the back buffer unlocked meanwhile and
+/* net_clear_player_ready_flag with the back buffer unlocked meanwhile and
  * relocked when it was locked; does nothing without DirectPlay. */
 // FUNCTION: XVT 0x4D13B0
-void Net_ClearPlayerReadyFlagWithLockGuard(int playerId)
+void net_clear_player_ready_flag_with_lock_guard(int player_id)
 {
-	int wasBackBufferLocked;
+	int was_back_buffer_locked;
 
-	if (g_frontState.netDirectPlay != NULL) {
-		wasBackBufferLocked = g_frontState.backBufferLocked;
-		FrontendDisplay_UnlockBackBuffer();
-		Net_ClearPlayerReadyFlag(playerId);
-		if (wasBackBufferLocked != 0) {
-			g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	if (g_front_state.net_direct_play != NULL) {
+		was_back_buffer_locked = g_front_state.back_buffer_locked;
+		frontend_display_unlock_back_buffer();
+		net_clear_player_ready_flag(player_id);
+		if (was_back_buffer_locked != 0) {
+			g_draw_surface_ptr =
+				frontend_display_lock_back_buffer();
 		}
 	}
 }
 
 /* Counts the roster entries whose ready flag is 1, over all 32 entries. */
 // FUNCTION: XVT 0x4D1400
-int Net_CountReadyPlayers(void)
+int net_count_ready_players(void)
 {
 	int count = 0;
-	int playerIndex;
+	int player_index;
 
-	for (playerIndex = 0; playerIndex < 32; ++playerIndex) {
-		if (g_frontState.netPlayers[playerIndex].readyFlag == 1) {
+	for (player_index = 0; player_index < 32; ++player_index) {
+		if (g_front_state.net_players[player_index].ready_flag == 1) {
 			++count;
 		}
 	}
@@ -4636,104 +4792,109 @@ int Net_CountReadyPlayers(void)
 
 /* Clears the ready flag of all 32 roster entries. */
 // FUNCTION: XVT 0x4D1420
-void Net_ClearPlayerReadyFlags(void)
+void net_clear_player_ready_flags(void)
 {
-	int playerIndex;
+	int player_index;
 
-	for (playerIndex = 0; playerIndex < 32; ++playerIndex) {
-		g_frontState.netPlayers[playerIndex].readyFlag = 0;
+	for (player_index = 0; player_index < 32; ++player_index) {
+		g_front_state.net_players[player_index].ready_flag = 0;
 	}
 }
 
 #ifndef XVT_MODERN
 /* Opens a session through DirectPlay's lobby: creates the lobby object in
- * g_frontState.netDirectPlayLobby, builds an address from connectionAddress
- * with the transport's address type (Net_BuildDirectPlayAddress), hands the
+ * g_front_state.net_direct_play_lobby, builds an address from connection_address
+ * with the transport's address type (net_build_direct_play_address), hands the
  * lobby connection settings for a session of up to 16 players named
- * sessionName under g_netLobbySessionInstanceGuid, flagged for a host or a
- * joiner by isHost, and connects, which fills g_frontState.netDirectPlay.
+ * session_name under g_net_lobby_session_instance_guid, flagged for a host or a
+ * joiner by is_host, and connects, which fills g_front_state.net_direct_play.
  * Releases the lobby object on every path. Returns 1 when Connect succeeds,
  * else 0. The address buffer is never freed. For IPX it leaves the address
  * type unset; the serial settings (COM2, 9600 baud) and the IPX arm are
  * never reached, since its one caller passes only modem and TCP/IP. Only the
  * original build calls this. */
 // FUNCTION: XVT 0x4D1440
-int Net_OpenDirectPlaySession(GUID appGuid, const char *localPlayerInfo,
-			      const char *localPlayerName, int isHost,
-			      const char *sessionName,
-			      NetworkTransportType networkType,
-			      const char *connectionAddress)
+int net_open_direct_play_session(GUID app_guid, const char *local_player_info,
+				 const char *local_player_name, int is_host,
+				 const char *session_name,
+				 network_transport_type network_type,
+				 const char *connection_address)
 {
-	GUID serviceProviderGuid;
-	void *connectionBuffer;
-	size_t connectionBufferSize;
-	DPNAME playerName;
-	DPCOMPORTADDRESS serialAddress;
-	GUID addressTypeGuid;
+	GUID service_provider_guid;
+	void *connection_buffer;
+	size_t connection_buffer_size;
+	DPNAME player_name;
+	DPCOMPORTADDRESS serial_address;
+	GUID address_type_guid;
 	DPLCONNECTION connection;
 	DPSESSIONDESC2 session;
-	char defaultSessionName[64] = "modem game";
-	const GUID *selectedServiceProviderGuid;
+	char default_session_name[64] = "modem game";
+	const GUID *selected_service_provider_guid;
 	const char *address;
-	HRESULT connectResult;
+	HRESULT connect_result;
 
-	(void)defaultSessionName;
-	switch (networkType) {
+	(void)default_session_name;
+	switch (network_type) {
 	case NET_TRANSPORT_IPX:
-		serviceProviderGuid = g_netDirectPlayIpxServiceProviderGuid;
-		selectedServiceProviderGuid = &serviceProviderGuid;
-		address = connectionAddress;
+		service_provider_guid =
+			g_net_direct_play_ipx_service_provider_guid;
+		selected_service_provider_guid = &service_provider_guid;
+		address = connection_address;
 		break;
 	case NET_TRANSPORT_TCPIP:
-		serviceProviderGuid = g_netDirectPlayTcpIpServiceProviderGuid;
-		addressTypeGuid = g_netDirectPlayInetAddressTypeGuid;
-		selectedServiceProviderGuid = &serviceProviderGuid;
-		address = connectionAddress;
+		service_provider_guid =
+			g_net_direct_play_tcp_ip_service_provider_guid;
+		address_type_guid = g_net_direct_play_inet_address_type_guid;
+		selected_service_provider_guid = &service_provider_guid;
+		address = connection_address;
 		break;
 	case NET_TRANSPORT_MODEM:
-		serviceProviderGuid = g_netDirectPlayModemServiceProviderGuid;
-		addressTypeGuid = g_netDirectPlayPhoneAddressTypeGuid;
-		selectedServiceProviderGuid = &serviceProviderGuid;
-		address = connectionAddress;
+		service_provider_guid =
+			g_net_direct_play_modem_service_provider_guid;
+		address_type_guid = g_net_direct_play_phone_address_type_guid;
+		selected_service_provider_guid = &service_provider_guid;
+		address = connection_address;
 		break;
 	case NET_TRANSPORT_SERIAL:
-		serviceProviderGuid = g_netDirectPlaySerialServiceProviderGuid;
-		serialAddress.dwComPort = 2;
-		serialAddress.dwBaudRate = 9600;
-		serialAddress.dwFlowControl = 1;
-		addressTypeGuid = g_netDirectPlayComPortAddressTypeGuid;
-		selectedServiceProviderGuid = &serviceProviderGuid;
-		address = (const char *)&serialAddress;
-		serialAddress.dwStopBits = 0;
-		serialAddress.dwParity = 0;
+		service_provider_guid =
+			g_net_direct_play_serial_service_provider_guid;
+		serial_address.dwComPort = 2;
+		serial_address.dwBaudRate = 9600;
+		serial_address.dwFlowControl = 1;
+		address_type_guid =
+			g_net_direct_play_com_port_address_type_guid;
+		selected_service_provider_guid = &service_provider_guid;
+		address = (const char *)&serial_address;
+		serial_address.dwStopBits = 0;
+		serial_address.dwParity = 0;
 		break;
 	default:
-		address = connectionAddress;
+		address = connection_address;
 		break;
 	}
 
-	if (DirectPlayLobbyCreateA(NULL, &g_frontState.netDirectPlayLobby, NULL,
-				   NULL, 0) != 0) {
+	if (DirectPlayLobbyCreateA(NULL, &g_front_state.net_direct_play_lobby,
+				   NULL, NULL, 0) != 0) {
 		return 0;
 	}
-	if (Net_BuildDirectPlayAddress(
-		    g_frontState.netDirectPlayLobby,
-		    selectedServiceProviderGuid, &addressTypeGuid, address,
-		    &connectionBuffer, &connectionBufferSize) != 0) {
-		g_frontState.netDirectPlayLobby->lpVtbl->Release(
-			g_frontState.netDirectPlayLobby);
-		g_frontState.netDirectPlayLobby = NULL;
+	if (net_build_direct_play_address(
+		    g_front_state.net_direct_play_lobby,
+		    selected_service_provider_guid, &address_type_guid, address,
+		    &connection_buffer, &connection_buffer_size) != 0) {
+		g_front_state.net_direct_play_lobby->lpVtbl->Release(
+			g_front_state.net_direct_play_lobby);
+		g_front_state.net_direct_play_lobby = NULL;
 		return 0;
 	}
 
 	memset(&session, 0, sizeof(session));
 	session.dwSize = sizeof(session);
 	session.dwFlags = 0;
-	session.guidInstance = g_netLobbySessionInstanceGuid;
-	session.guidApplication = appGuid;
+	session.guidInstance = g_net_lobby_session_instance_guid;
+	session.guidApplication = app_guid;
 	session.dwMaxPlayers = 16;
 	session.dwCurrentPlayers = 0;
-	session.lpszSessionNameA = (char *)sessionName;
+	session.lpszSessionNameA = (char *)session_name;
 	session.lpszPasswordA = NULL;
 	session.dwReserved1 = 0;
 	session.dwReserved2 = 0;
@@ -4742,38 +4903,39 @@ int Net_OpenDirectPlaySession(GUID appGuid, const char *localPlayerInfo,
 	session.dwUser3 = 0;
 	session.dwUser4 = 0;
 
-	memset(&playerName, 0, sizeof(playerName));
-	playerName.dwSize = sizeof(playerName);
-	playerName.dwFlags = 0;
-	playerName.lpszShortNameA = (char *)localPlayerName;
-	playerName.lpszLongNameA = (char *)localPlayerInfo;
+	memset(&player_name, 0, sizeof(player_name));
+	player_name.dwSize = sizeof(player_name);
+	player_name.dwFlags = 0;
+	player_name.lpszShortNameA = (char *)local_player_name;
+	player_name.lpszLongNameA = (char *)local_player_info;
 
 	memset(&connection, 0, sizeof(connection));
 	connection.dwSize = sizeof(connection);
 	connection.dwFlags = 2;
-	if (isHost == 0) {
+	if (is_host == 0) {
 		connection.dwFlags = 1;
 	}
 	connection.lpSessionDesc = &session;
-	connection.lpPlayerName = &playerName;
-	connection.guidSP = serviceProviderGuid;
-	connection.lpAddress = connectionBuffer;
-	connection.dwAddressSize = connectionBufferSize;
-	if (g_frontState.netDirectPlayLobby->lpVtbl->SetConnectionSettings(
-		    g_frontState.netDirectPlayLobby, 0, 0, &connection) != 0) {
-		g_frontState.netDirectPlayLobby->lpVtbl->Release(
-			g_frontState.netDirectPlayLobby);
-		g_frontState.netDirectPlayLobby = NULL;
+	connection.lpPlayerName = &player_name;
+	connection.guidSP = service_provider_guid;
+	connection.lpAddress = connection_buffer;
+	connection.dwAddressSize = connection_buffer_size;
+	if (g_front_state.net_direct_play_lobby->lpVtbl->SetConnectionSettings(
+		    g_front_state.net_direct_play_lobby, 0, 0, &connection) !=
+	    0) {
+		g_front_state.net_direct_play_lobby->lpVtbl->Release(
+			g_front_state.net_direct_play_lobby);
+		g_front_state.net_direct_play_lobby = NULL;
 		return 0;
 	}
 
-	connectResult = g_frontState.netDirectPlayLobby->lpVtbl->Connect(
-		g_frontState.netDirectPlayLobby, 0, &g_frontState.netDirectPlay,
-		NULL);
-	g_frontState.netDirectPlayLobby->lpVtbl->Release(
-		g_frontState.netDirectPlayLobby);
-	g_frontState.netDirectPlayLobby = NULL;
-	return connectResult == 0;
+	connect_result = g_front_state.net_direct_play_lobby->lpVtbl->Connect(
+		g_front_state.net_direct_play_lobby, 0,
+		&g_front_state.net_direct_play, NULL);
+	g_front_state.net_direct_play_lobby->lpVtbl->Release(
+		g_front_state.net_direct_play_lobby);
+	g_front_state.net_direct_play_lobby = NULL;
+	return connect_result == 0;
 }
 #endif
 
@@ -4787,469 +4949,491 @@ int Net_OpenDirectPlaySession(GUID appGuid, const char *localPlayerInfo,
  * anything but DPERR_BUFFERTOOSMALL is returned as is, out arguments
  * untouched. Only the original build calls this. */
 // FUNCTION: XVT 0x4D1840
-HRESULT Net_BuildDirectPlayAddress(IDirectPlayLobbyA *directPlayLobby,
-				   const GUID *serviceProviderGuid,
-				   const GUID *addressTypeGuid,
-				   const char *address,
-				   void **outConnectionBuffer,
-				   size_t *outConnectionBufferSize)
+HRESULT net_build_direct_play_address(IDirectPlayLobbyA *direct_play_lobby,
+				      const GUID *service_provider_guid,
+				      const GUID *address_type_guid,
+				      const char *address,
+				      void **out_connection_buffer,
+				      size_t *out_connection_buffer_size)
 {
-	void *connectionBuffer;
+	void *connection_buffer;
 	HRESULT result;
-	uint32_t addressSize;
-	const char *addressValue;
+	uint32_t address_size;
+	const char *address_value;
 	IDirectPlayLobbyA *lobby;
 
-	connectionBuffer = NULL;
-	addressSize = 0;
-	if (memcmp(addressTypeGuid, "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
+	connection_buffer = NULL;
+	address_size = 0;
+	if (memcmp(address_type_guid, "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
 		   sizeof(GUID)) == 0) {
 		return DX_E_INVALIDARG;
 	}
-	addressValue = address;
-	lobby = directPlayLobby;
+	address_value = address;
+	lobby = direct_play_lobby;
 	result = lobby->lpVtbl->CreateAddress(
-		lobby, serviceProviderGuid, addressTypeGuid, addressValue,
-		strlen(addressValue) + 1, NULL, &addressSize);
+		lobby, service_provider_guid, address_type_guid, address_value,
+		strlen(address_value) + 1, NULL, &address_size);
 	if (result == (HRESULT)0x8877001E) {
-		connectionBuffer = GlobalLock(GlobalAlloc(0x42, addressSize));
-		if (connectionBuffer == NULL) {
+		connection_buffer = GlobalLock(GlobalAlloc(0x42, address_size));
+		if (connection_buffer == NULL) {
 			result = (HRESULT)0x8007000E;
 		} else {
 			result = lobby->lpVtbl->CreateAddress(
-				lobby, serviceProviderGuid, addressTypeGuid,
-				addressValue, strlen(addressValue) + 1,
-				connectionBuffer, &addressSize);
+				lobby, service_provider_guid, address_type_guid,
+				address_value, strlen(address_value) + 1,
+				connection_buffer, &address_size);
 			if (result >= 0) {
-				*outConnectionBuffer = connectionBuffer;
-				*outConnectionBufferSize = addressSize;
+				*out_connection_buffer = connection_buffer;
+				*out_connection_buffer_size = address_size;
 				return 0;
 			}
 		}
 	}
-	if (connectionBuffer != NULL) {
-		GlobalUnlock(GlobalHandle(connectionBuffer));
-		GlobalFree(GlobalHandle(connectionBuffer));
+	if (connection_buffer != NULL) {
+		GlobalUnlock(GlobalHandle(connection_buffer));
+		GlobalFree(GlobalHandle(connection_buffer));
 	}
 	return result;
 }
 #endif
 
-/* Copies the lobby's DirectPlay state from g_frontState into the flight
+/* Copies the lobby's DirectPlay state from g_front_state into the flight
  * session's variables when a flight starts: the interface, application and
  * session GUIDs, group and host ids, local player, receive queue (entries
  * kept at their indices) with its indices and count, peer slots, broadcast
  * and group counters and trailers, and the 128-entry sent history. Returns
- * 1. Only NetSession_InitGameSession calls it. */
+ * 1. Only net_session_init_game_session calls it. */
 // FUNCTION: XVT 0x4D1940
-int NetSession_ImportRuntimeState(
-	void **dplayInterfaceOut, GUID *appGuidOut, GUID *sessionGuidOut,
-	int32_t *groupIdOut, int *hostPlayerIdOut,
-	struct NetPlayerInfo *localPlayerInfoOut,
-	struct NetQueuedPacket *recvQueueOut, int32_t *recvQueueReadOut,
-	int *recvQueueCountOut, int *recvQueueWriteOut,
-	struct NetReliablePeerSlot *reliablePeerSlotsOut,
-	uint32_t *reliablePeerSlotCountOut, uint32_t *broadcastSeqCounterOut,
-	char *broadcastPayloadOut, int *broadcastPayloadLengthOut,
-	int *broadcastPiggybackEmptyOut, uint32_t *groupSeqCounterOut,
-	char *groupPayloadOut, int *groupPayloadLengthOut,
-	int *groupPiggybackEmptyOut, struct NetQueuedPacket *sentHistoryOut,
-	int *sentHistoryWriteIndexOut)
+int net_session_import_runtime_state(
+	void **dplay_interface_out, GUID *app_guid_out, GUID *session_guid_out,
+	int32_t *group_id_out, int *host_player_id_out,
+	struct net_player_info *local_player_info_out,
+	struct net_queued_packet *recv_queue_out, int32_t *recv_queue_read_out,
+	int *recv_queue_count_out, int *recv_queue_write_out,
+	struct net_reliable_peer_slot *reliable_peer_slots_out,
+	uint32_t *reliable_peer_slot_count_out,
+	uint32_t *broadcast_seq_counter_out, char *broadcast_payload_out,
+	int *broadcast_payload_length_out, int *broadcast_piggyback_empty_out,
+	uint32_t *group_seq_counter_out, char *group_payload_out,
+	int *group_payload_length_out, int *group_piggyback_empty_out,
+	struct net_queued_packet *sent_history_out,
+	int *sent_history_write_index_out)
 {
-	int packetIndex;
-	int queueIndex;
+	int packet_index;
+	int queue_index;
 
-	*dplayInterfaceOut = g_frontState.netDirectPlay;
-	*appGuidOut = g_frontState.netAppGuid;
-	*sessionGuidOut = g_frontState.netJoinedSessionGuid;
-	*groupIdOut = g_frontState.netGroupDplayId;
-	*hostPlayerIdOut = g_frontState.netHostPlayerId;
-	*localPlayerInfoOut = g_frontState.netRuntimeLocalPlayer;
-	*recvQueueCountOut = g_frontState.netRuntimeRecvQueueCount;
-	*recvQueueReadOut = g_frontState.netRuntimeRecvQueueReadIndex;
-	*recvQueueWriteOut = g_frontState.netRuntimeRecvQueueWriteIndex;
-	queueIndex = g_frontState.netRuntimeRecvQueueReadIndex;
-	for (packetIndex = 0;
-	     packetIndex < g_frontState.netRuntimeRecvQueueCount;
-	     packetIndex++) {
-		memcpy(&recvQueueOut[queueIndex],
-		       &g_frontState.netRuntimeRecvQueue[queueIndex],
-		       sizeof(recvQueueOut[queueIndex]));
-		queueIndex++;
-		if (queueIndex >= 1024) {
-			queueIndex = 0;
+	*dplay_interface_out = g_front_state.net_direct_play;
+	*app_guid_out = g_front_state.net_app_guid;
+	*session_guid_out = g_front_state.net_joined_session_guid;
+	*group_id_out = g_front_state.net_group_dplay_id;
+	*host_player_id_out = g_front_state.net_host_player_id;
+	*local_player_info_out = g_front_state.net_runtime_local_player;
+	*recv_queue_count_out = g_front_state.net_runtime_recv_queue_count;
+	*recv_queue_read_out = g_front_state.net_runtime_recv_queue_read_index;
+	*recv_queue_write_out =
+		g_front_state.net_runtime_recv_queue_write_index;
+	queue_index = g_front_state.net_runtime_recv_queue_read_index;
+	for (packet_index = 0;
+	     packet_index < g_front_state.net_runtime_recv_queue_count;
+	     packet_index++) {
+		memcpy(&recv_queue_out[queue_index],
+		       &g_front_state.net_runtime_recv_queue[queue_index],
+		       sizeof(recv_queue_out[queue_index]));
+		queue_index++;
+		if (queue_index >= 1024) {
+			queue_index = 0;
 		}
 	}
 
-	*reliablePeerSlotCountOut = g_frontState.netReliablePeerSlotCount;
-	for (packetIndex = 0;
-	     packetIndex < (int)g_frontState.netReliablePeerSlotCount;
-	     packetIndex++) {
-		memcpy(&reliablePeerSlotsOut[packetIndex],
-		       &g_frontState.netRuntimeReliablePeerSlots[packetIndex],
-		       sizeof(reliablePeerSlotsOut[packetIndex]));
+	*reliable_peer_slot_count_out =
+		g_front_state.net_reliable_peer_slot_count;
+	for (packet_index = 0;
+	     packet_index < (int)g_front_state.net_reliable_peer_slot_count;
+	     packet_index++) {
+		memcpy(&reliable_peer_slots_out[packet_index],
+		       &g_front_state
+				.net_runtime_reliable_peer_slots[packet_index],
+		       sizeof(reliable_peer_slots_out[packet_index]));
 	}
 
-	*broadcastSeqCounterOut = g_frontState.netRuntimeBroadcastSeqCounter;
-	memcpy(broadcastPayloadOut,
-	       g_frontState.netRuntimeBroadcastPendingPayload.payload,
-	       sizeof(g_frontState.netRuntimeBroadcastPendingPayload.payload));
-	*broadcastPayloadLengthOut =
-		g_frontState.netRuntimeBroadcastPendingPayload.payloadLength;
-	*broadcastPiggybackEmptyOut =
-		g_frontState.netRuntimeBroadcastPendingPayload.piggybackEmpty;
-	*groupSeqCounterOut = g_frontState.netRuntimeGroupSeqCounter;
-	memcpy(groupPayloadOut,
-	       g_frontState.netRuntimeGroupPendingPayload.payload,
-	       sizeof(g_frontState.netRuntimeGroupPendingPayload.payload));
-	*groupPayloadLengthOut =
-		g_frontState.netRuntimeGroupPendingPayload.payloadLength;
-	*groupPiggybackEmptyOut =
-		g_frontState.netRuntimeGroupPendingPayload.piggybackEmpty;
+	*broadcast_seq_counter_out =
+		g_front_state.net_runtime_broadcast_seq_counter;
+	memcpy(broadcast_payload_out,
+	       g_front_state.net_runtime_broadcast_pending_payload.payload,
+	       sizeof(g_front_state.net_runtime_broadcast_pending_payload
+			      .payload));
+	*broadcast_payload_length_out =
+		g_front_state.net_runtime_broadcast_pending_payload
+			.payload_length;
+	*broadcast_piggyback_empty_out =
+		g_front_state.net_runtime_broadcast_pending_payload
+			.piggyback_empty;
+	*group_seq_counter_out = g_front_state.net_runtime_group_seq_counter;
+	memcpy(group_payload_out,
+	       g_front_state.net_runtime_group_pending_payload.payload,
+	       sizeof(g_front_state.net_runtime_group_pending_payload.payload));
+	*group_payload_length_out =
+		g_front_state.net_runtime_group_pending_payload.payload_length;
+	*group_piggyback_empty_out =
+		g_front_state.net_runtime_group_pending_payload.piggyback_empty;
 
-	memset(sentHistoryOut, 0, sizeof(g_frontState.netRuntimeSentHistory));
-	for (packetIndex = 0; packetIndex < 128; packetIndex++) {
-		memcpy(&sentHistoryOut[packetIndex],
-		       &g_frontState.netRuntimeSentHistory[packetIndex],
-		       sizeof(sentHistoryOut[packetIndex]));
+	memset(sent_history_out, 0,
+	       sizeof(g_front_state.net_runtime_sent_history));
+	for (packet_index = 0; packet_index < 128; packet_index++) {
+		memcpy(&sent_history_out[packet_index],
+		       &g_front_state.net_runtime_sent_history[packet_index],
+		       sizeof(sent_history_out[packet_index]));
 	}
-	*sentHistoryWriteIndexOut =
-		g_frontState.netRuntimeSentHistoryWriteIndex;
+	*sent_history_write_index_out =
+		g_front_state.net_runtime_sent_history_write_index;
 	return 1;
 }
 
-/* Copies the flight session's state back into g_frontState when it shuts
- * down (NetSession_Shutdown): the local player, receive queue with its
- * indices, peer slots (each lastHeardMs set to the current time), broadcast
+/* Copies the flight session's state back into g_front_state when it shuts
+ * down (net_session_shutdown): the local player, receive queue with its
+ * indices, peer slots (each last_heard_ms set to the current time), broadcast
  * and group counters and trailers, and sent history. It also keeps a pointer
  * to the flight's 256-entry world-message history, and that history's write
- * index, in g_frontState.netFlightSentWorldMessageHistory and
- * netFlightSentWorldMessageWriteIndex; Net_PumpIncomingPackets resends from
+ * index, in g_front_state.net_flight_sent_world_message_history and
+ * net_flight_sent_world_message_write_index; net_pump_incoming_packets resends from
  * that history on a WORLD_NACK. The interface, GUID, group and host arguments
  * are ignored. Returns 1. */
 // FUNCTION: XVT 0x4D1B10
-int NetSession_ExportRuntimeState(
-	void **dplayInterface, const void *appGuid, const void *sessionGuid,
-	int *groupId, int *hostPlayerId, const void *localPlayerInfo,
-	const struct NetQueuedPacket *recvQueueEntries, int *recvQueueRead,
-	int *recvQueueCount, int *recvQueueWrite,
-	const struct NetReliablePeerSlot *reliablePeerSlots,
-	int *reliablePeerSlotCount, int *broadcastSeqCounter,
-	const void *broadcastPayload, int *broadcastPayloadLength,
-	int *broadcastPiggybackEmpty, int *groupSeqCounter,
-	const void *groupPayload, int *groupPayloadLength,
-	int *groupPiggybackEmpty, const struct NetQueuedPacket *sentHistory,
-	int *sentHistoryWriteIndex,
-	struct NetQueuedPacket *sentWorldMessageHistory,
-	int *sentWorldMessageWriteIndex)
+int net_session_export_runtime_state(
+	void **dplay_interface, const void *app_guid, const void *session_guid,
+	int *group_id, int *host_player_id, const void *local_player_info,
+	const struct net_queued_packet *recv_queue_entries,
+	int *recv_queue_read, int *recv_queue_count, int *recv_queue_write,
+	const struct net_reliable_peer_slot *reliable_peer_slots,
+	int *reliable_peer_slot_count, int *broadcast_seq_counter,
+	const void *broadcast_payload, int *broadcast_payload_length,
+	int *broadcast_piggyback_empty, int *group_seq_counter,
+	const void *group_payload, int *group_payload_length,
+	int *group_piggyback_empty,
+	const struct net_queued_packet *sent_history,
+	int *sent_history_write_index,
+	struct net_queued_packet *sent_world_message_history,
+	int *sent_world_message_write_index)
 {
-	int queueIndex;
-	int packetIndex;
-	int peerIndex;
+	int queue_index;
+	int packet_index;
+	int peer_index;
 
-	(void)dplayInterface;
-	(void)appGuid;
-	(void)sessionGuid;
-	(void)groupId;
-	(void)hostPlayerId;
+	(void)dplay_interface;
+	(void)app_guid;
+	(void)session_guid;
+	(void)group_id;
+	(void)host_player_id;
 
-	memcpy(&g_frontState.netRuntimeLocalPlayer, localPlayerInfo,
-	       sizeof(g_frontState.netRuntimeLocalPlayer));
-	g_frontState.netRuntimeRecvQueueCount = *recvQueueCount;
-	queueIndex = *recvQueueRead;
-	g_frontState.netRuntimeRecvQueueReadIndex = *recvQueueRead;
-	g_frontState.netRuntimeRecvQueueWriteIndex = *recvQueueWrite;
-	for (packetIndex = 0;
-	     packetIndex < g_frontState.netRuntimeRecvQueueCount;
-	     ++packetIndex) {
-		memcpy(&g_frontState.netRuntimeRecvQueue[queueIndex],
-		       &recvQueueEntries[queueIndex],
-		       sizeof(g_frontState.netRuntimeRecvQueue[queueIndex]));
-		++queueIndex;
-		if (queueIndex >= 1024) {
-			queueIndex = 0;
+	memcpy(&g_front_state.net_runtime_local_player, local_player_info,
+	       sizeof(g_front_state.net_runtime_local_player));
+	g_front_state.net_runtime_recv_queue_count = *recv_queue_count;
+	queue_index = *recv_queue_read;
+	g_front_state.net_runtime_recv_queue_read_index = *recv_queue_read;
+	g_front_state.net_runtime_recv_queue_write_index = *recv_queue_write;
+	for (packet_index = 0;
+	     packet_index < g_front_state.net_runtime_recv_queue_count;
+	     ++packet_index) {
+		memcpy(&g_front_state.net_runtime_recv_queue[queue_index],
+		       &recv_queue_entries[queue_index],
+		       sizeof(g_front_state
+				      .net_runtime_recv_queue[queue_index]));
+		++queue_index;
+		if (queue_index >= 1024) {
+			queue_index = 0;
 		}
 	}
 
-	g_frontState.netReliablePeerSlotCount = *reliablePeerSlotCount;
-	for (peerIndex = 0;
-	     peerIndex < (int)g_frontState.netReliablePeerSlotCount;
-	     ++peerIndex) {
-		memcpy(&g_frontState.netRuntimeReliablePeerSlots[peerIndex],
-		       &reliablePeerSlots[peerIndex],
-		       sizeof(g_frontState
-				      .netRuntimeReliablePeerSlots[peerIndex]));
-		g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-			.lastHeardMs = GetTickCount();
+	g_front_state.net_reliable_peer_slot_count = *reliable_peer_slot_count;
+	for (peer_index = 0;
+	     peer_index < (int)g_front_state.net_reliable_peer_slot_count;
+	     ++peer_index) {
+		memcpy(&g_front_state
+				.net_runtime_reliable_peer_slots[peer_index],
+		       &reliable_peer_slots[peer_index],
+		       sizeof(g_front_state.net_runtime_reliable_peer_slots
+				      [peer_index]));
+		g_front_state.net_runtime_reliable_peer_slots[peer_index]
+			.last_heard_ms = GetTickCount();
 	}
 
-	g_frontState.netRuntimeBroadcastSeqCounter = *broadcastSeqCounter;
-	memcpy(g_frontState.netRuntimeBroadcastPendingPayload.payload,
-	       broadcastPayload,
-	       sizeof(g_frontState.netRuntimeBroadcastPendingPayload.payload));
-	g_frontState.netRuntimeBroadcastPendingPayload.payloadLength =
-		*broadcastPayloadLength;
-	g_frontState.netRuntimeBroadcastPendingPayload.piggybackEmpty =
-		*broadcastPiggybackEmpty;
-	g_frontState.netRuntimeGroupSeqCounter = *groupSeqCounter;
-	memcpy(g_frontState.netRuntimeGroupPendingPayload.payload, groupPayload,
-	       sizeof(g_frontState.netRuntimeGroupPendingPayload.payload));
-	g_frontState.netRuntimeGroupPendingPayload.payloadLength =
-		*groupPayloadLength;
-	g_frontState.netRuntimeGroupPendingPayload.piggybackEmpty =
-		*groupPiggybackEmpty;
+	g_front_state.net_runtime_broadcast_seq_counter =
+		*broadcast_seq_counter;
+	memcpy(g_front_state.net_runtime_broadcast_pending_payload.payload,
+	       broadcast_payload,
+	       sizeof(g_front_state.net_runtime_broadcast_pending_payload
+			      .payload));
+	g_front_state.net_runtime_broadcast_pending_payload.payload_length =
+		*broadcast_payload_length;
+	g_front_state.net_runtime_broadcast_pending_payload.piggyback_empty =
+		*broadcast_piggyback_empty;
+	g_front_state.net_runtime_group_seq_counter = *group_seq_counter;
+	memcpy(g_front_state.net_runtime_group_pending_payload.payload,
+	       group_payload,
+	       sizeof(g_front_state.net_runtime_group_pending_payload.payload));
+	g_front_state.net_runtime_group_pending_payload.payload_length =
+		*group_payload_length;
+	g_front_state.net_runtime_group_pending_payload.piggyback_empty =
+		*group_piggyback_empty;
 
-	memset(g_frontState.netRuntimeSentHistory, 0,
-	       sizeof(g_frontState.netRuntimeSentHistory));
-	for (packetIndex = 0; packetIndex < 128; ++packetIndex) {
-		memcpy(&g_frontState.netRuntimeSentHistory[packetIndex],
-		       &sentHistory[packetIndex],
-		       sizeof(g_frontState.netRuntimeSentHistory[packetIndex]));
+	memset(g_front_state.net_runtime_sent_history, 0,
+	       sizeof(g_front_state.net_runtime_sent_history));
+	for (packet_index = 0; packet_index < 128; ++packet_index) {
+		memcpy(&g_front_state.net_runtime_sent_history[packet_index],
+		       &sent_history[packet_index],
+		       sizeof(g_front_state
+				      .net_runtime_sent_history[packet_index]));
 	}
-	g_frontState.netRuntimeSentHistoryWriteIndex = *sentHistoryWriteIndex;
-	g_frontState.netFlightSentWorldMessageHistory = sentWorldMessageHistory;
-	g_frontState.netFlightSentWorldMessageWriteIndex =
-		*sentWorldMessageWriteIndex;
+	g_front_state.net_runtime_sent_history_write_index =
+		*sent_history_write_index;
+	g_front_state.net_flight_sent_world_message_history =
+		sent_world_message_history;
+	g_front_state.net_flight_sent_world_message_write_index =
+		*sent_world_message_write_index;
 	return 1;
 }
 
 /* Frees every lobby peer slot whose DirectPlay id is neither in the roster
  * nor the group's, moves later slots down into the gaps, and recounts
- * g_frontState.netReliablePeerSlotCount over all 40 slots. Returns 1. */
+ * g_front_state.net_reliable_peer_slot_count over all 40 slots. Returns 1. */
 // FUNCTION: XVT 0x4D1CA0
-int Net_CompactReliablePeerSlotsForRoster(void)
+int net_compact_reliable_peer_slots_for_roster(void)
 {
-	int playerCount;
-	struct NetPlayerInfo *playerRoster;
-	int slotIndex;
-	struct NetReliablePeerSlot *slot;
-	int playerIndex;
-	struct NetPlayerInfo *rosterPlayer;
-	int nextSlotIndex;
-	struct NetReliablePeerSlot *nextSlot;
+	int player_count;
+	struct net_player_info *player_roster;
+	int slot_index;
+	struct net_reliable_peer_slot *slot;
+	int player_index;
+	struct net_player_info *roster_player;
+	int next_slot_index;
+	struct net_reliable_peer_slot *next_slot;
 
-	slotIndex = 0;
-	playerRoster = Net_GetPlayerRoster(&playerCount);
-	if ((int)g_frontState.netReliablePeerSlotCount > 0) {
-		slot = g_frontState.netRuntimeReliablePeerSlots;
+	slot_index = 0;
+	player_roster = net_get_player_roster(&player_count);
+	if ((int)g_front_state.net_reliable_peer_slot_count > 0) {
+		slot = g_front_state.net_runtime_reliable_peer_slots;
 		do {
-			playerIndex = 0;
-			if (playerCount > 0) {
-				rosterPlayer = playerRoster;
+			player_index = 0;
+			if (player_count > 0) {
+				roster_player = player_roster;
 				do {
-					if (rosterPlayer->playerId ==
-					    slot->directPlayId) {
+					if (roster_player->player_id ==
+					    slot->direct_play_id) {
 						break;
 					}
-					++rosterPlayer;
-					++playerIndex;
-				} while (playerIndex < playerCount);
+					++roster_player;
+					++player_index;
+				} while (player_index < player_count);
 			}
 
-			if (playerIndex >= playerCount &&
-			    slot->directPlayId !=
-				    g_frontState.netGroupDplayId) {
-				slot->directPlayId = 0;
-				slot->lastDeliveredSeqDefault = 127;
-				slot->lastDeliveredSeqChannelA = 127;
-				slot->lastDeliveredSeqChannelB = 127;
-				slot->recvSeqDefault = 127;
-				slot->recvSeqChannelA = 127;
-				slot->recvSeqChannelB = 127;
-				slot->sendSeq = 0;
-				slot->lastPiggybackType = NET_PACKET_NOP;
-				slot->piggybackLength = 1;
-				slot->lastActivityMs = 0;
-				slot->lastHeardMs = 0;
-				slot->packetCount = 0;
-				slot->packetDropCount = 0;
-				slot->packetRetryCount = 0;
+			if (player_index >= player_count &&
+			    slot->direct_play_id !=
+				    g_front_state.net_group_dplay_id) {
+				slot->direct_play_id = 0;
+				slot->last_delivered_seq_default = 127;
+				slot->last_delivered_seq_channel_a = 127;
+				slot->last_delivered_seq_channel_b = 127;
+				slot->recv_seq_default = 127;
+				slot->recv_seq_channel_a = 127;
+				slot->recv_seq_channel_b = 127;
+				slot->send_seq = 0;
+				slot->last_piggyback_type = NET_PACKET_NOP;
+				slot->piggyback_length = 1;
+				slot->last_activity_ms = 0;
+				slot->last_heard_ms = 0;
+				slot->packet_count = 0;
+				slot->packet_drop_count = 0;
+				slot->packet_retry_count = 0;
 			}
 			++slot;
-			++slotIndex;
-		} while ((int)g_frontState.netReliablePeerSlotCount >
-			 slotIndex);
+			++slot_index;
+		} while ((int)g_front_state.net_reliable_peer_slot_count >
+			 slot_index);
 	}
 
-	slotIndex = 0;
-	if ((int)(g_frontState.netReliablePeerSlotCount - 1) > 0) {
-		slot = g_frontState.netRuntimeReliablePeerSlots;
+	slot_index = 0;
+	if ((int)(g_front_state.net_reliable_peer_slot_count - 1) > 0) {
+		slot = g_front_state.net_runtime_reliable_peer_slots;
 		do {
-			if (slot->directPlayId == 0) {
-				nextSlotIndex = slotIndex + 1;
-				if (nextSlotIndex <
-				    (int)g_frontState
-					    .netReliablePeerSlotCount) {
-					nextSlot =
-						&g_frontState
-							 .netRuntimeReliablePeerSlots
-								 [nextSlotIndex];
-					while (nextSlot->directPlayId == 0) {
-						++nextSlot;
-						++nextSlotIndex;
-						if (nextSlotIndex >=
-						    (int)g_frontState
-							    .netReliablePeerSlotCount) {
+			if (slot->direct_play_id == 0) {
+				next_slot_index = slot_index + 1;
+				if (next_slot_index <
+				    (int)g_front_state
+					    .net_reliable_peer_slot_count) {
+					next_slot =
+						&g_front_state.net_runtime_reliable_peer_slots
+							 [next_slot_index];
+					while (next_slot->direct_play_id == 0) {
+						++next_slot;
+						++next_slot_index;
+						if (next_slot_index >=
+						    (int)g_front_state
+							    .net_reliable_peer_slot_count) {
 							break;
 						}
 					}
-					if (nextSlotIndex <
-					    (int)g_frontState
-						    .netReliablePeerSlotCount) {
+					if (next_slot_index <
+					    (int)g_front_state
+						    .net_reliable_peer_slot_count) {
 						memcpy(slot,
-						       &g_frontState.netRuntimeReliablePeerSlots
-								[nextSlotIndex],
+						       &g_front_state.net_runtime_reliable_peer_slots
+								[next_slot_index],
 						       sizeof(*slot));
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[nextSlotIndex]
-							.directPlayId = 0;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[nextSlotIndex]
-							.lastDeliveredSeqDefault =
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[next_slot_index]
+							.direct_play_id = 0;
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[next_slot_index]
+							.last_delivered_seq_default =
 							127;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[nextSlotIndex]
-							.lastDeliveredSeqChannelA =
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[next_slot_index]
+							.last_delivered_seq_channel_a =
 							127;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[nextSlotIndex]
-							.lastDeliveredSeqChannelB =
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[next_slot_index]
+							.last_delivered_seq_channel_b =
 							127;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[nextSlotIndex]
-							.recvSeqDefault = 127;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[nextSlotIndex]
-							.recvSeqChannelA = 127;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[nextSlotIndex]
-							.recvSeqChannelB = 127;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[nextSlotIndex]
-							.sendSeq = 0;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[nextSlotIndex]
-							.lastPiggybackType =
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[next_slot_index]
+							.recv_seq_default = 127;
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[next_slot_index]
+							.recv_seq_channel_a =
+							127;
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[next_slot_index]
+							.recv_seq_channel_b =
+							127;
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[next_slot_index]
+							.send_seq = 0;
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[next_slot_index]
+							.last_piggyback_type =
 							NET_PACKET_NOP;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[nextSlotIndex]
-							.piggybackLength = 1;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[nextSlotIndex]
-							.lastActivityMs = 0;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[nextSlotIndex]
-							.lastHeardMs = 0;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[nextSlotIndex]
-							.packetCount = 0;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[nextSlotIndex]
-							.packetDropCount = 0;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[nextSlotIndex]
-							.packetRetryCount = 0;
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[next_slot_index]
+							.piggyback_length = 1;
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[next_slot_index]
+							.last_activity_ms = 0;
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[next_slot_index]
+							.last_heard_ms = 0;
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[next_slot_index]
+							.packet_count = 0;
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[next_slot_index]
+							.packet_drop_count = 0;
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[next_slot_index]
+							.packet_retry_count = 0;
 					}
 				}
 			}
 			++slot;
-			++slotIndex;
-		} while ((int)(g_frontState.netReliablePeerSlotCount - 1) >
-			 slotIndex);
+			++slot_index;
+		} while ((int)(g_front_state.net_reliable_peer_slot_count - 1) >
+			 slot_index);
 	}
 
-	g_frontState.netReliablePeerSlotCount = 0;
-	for (slot = g_frontState.netRuntimeReliablePeerSlots;
-	     slot < &g_frontState.netRuntimeReliablePeerSlots[40]; ++slot) {
-		if (slot->directPlayId != 0) {
-			++g_frontState.netReliablePeerSlotCount;
+	g_front_state.net_reliable_peer_slot_count = 0;
+	for (slot = g_front_state.net_runtime_reliable_peer_slots;
+	     slot < &g_front_state.net_runtime_reliable_peer_slots[40];
+	     ++slot) {
+		if (slot->direct_play_id != 0) {
+			++g_front_state.net_reliable_peer_slot_count;
 		}
 	}
 	return 1;
 }
 
 /* For each roster player but the local one whose peer slot has had no
- * delivery or keepalive for over 3,000 ms (lastActivityMs), sends a
+ * delivery or keepalive for over 3,000 ms (last_activity_ms), sends a
  * NET_PACKET_KEEPALIVE outside the sequence scheme, carrying the next
  * sequence this side expects from it on the broadcast, group and one-player
- * channels and the current time in ms, and stamps lastActivityMs. Adds a
+ * channels and the current time in ms, and stamps last_activity_ms. Adds a
  * peer slot for any roster player that has none. Returns 1. */
 // FUNCTION: XVT 0x4D1EA0
-int Net_SendSequenceKeepalives(void)
+int net_send_sequence_keepalives(void)
 {
-	int playerCount;
+	int player_count;
 	int packet[128];
-	struct NetPlayerInfo *playerRoster;
-	unsigned int playerIndex;
+	struct net_player_info *player_roster;
+	unsigned int player_index;
 
-	playerIndex = 0;
-	playerRoster = Net_GetPlayerRoster(&playerCount);
-	if ((unsigned int)playerCount > 0) {
+	player_index = 0;
+	player_roster = net_get_player_roster(&player_count);
+	if ((unsigned int)player_count > 0) {
 		do {
-			unsigned int nowMs;
+			unsigned int now_ms;
 
-			nowMs = GetTickCount();
-			if (g_frontState.netRuntimeLocalPlayer.playerId !=
-			    playerRoster[playerIndex].playerId) {
-				unsigned int peerIndex;
+			now_ms = GetTickCount();
+			if (g_front_state.net_runtime_local_player.player_id !=
+			    player_roster[player_index].player_id) {
+				unsigned int peer_index;
 
-				peerIndex = Net_FindOrCreatePeerSlot(
-					playerRoster[playerIndex].playerId);
-				if (g_frontState.netReliablePeerSlotCount >
-					    peerIndex &&
-				    peerIndex < 40) {
+				peer_index = net_find_or_create_peer_slot(
+					player_roster[player_index].player_id);
+				if (g_front_state.net_reliable_peer_slot_count >
+					    peer_index &&
+				    peer_index < 40) {
 					unsigned int sequence;
-					if (nowMs - g_frontState
-							    .netRuntimeReliablePeerSlots
-								    [peerIndex]
-							    .lastActivityMs >
+					if (now_ms -
+						    g_front_state
+							    .net_runtime_reliable_peer_slots
+								    [peer_index]
+							    .last_activity_ms >
 					    3000) {
 						packet[0] =
 							NET_PACKET_KEEPALIVE;
-						g_frontState
-							.netRuntimeReliablePeerSlots
-								[peerIndex]
-							.lastActivityMs = nowMs;
+						g_front_state
+							.net_runtime_reliable_peer_slots
+								[peer_index]
+							.last_activity_ms =
+							now_ms;
 						sequence =
-							g_frontState
-								.netRuntimeReliablePeerSlots
-									[peerIndex]
-								.recvSeqChannelA +
+							g_front_state
+								.net_runtime_reliable_peer_slots
+									[peer_index]
+								.recv_seq_channel_a +
 							1;
 						if (sequence > 127) {
 							sequence = 0;
 						}
 						packet[1] = sequence;
 						sequence =
-							g_frontState
-								.netRuntimeReliablePeerSlots
-									[peerIndex]
-								.recvSeqChannelB +
+							g_front_state
+								.net_runtime_reliable_peer_slots
+									[peer_index]
+								.recv_seq_channel_b +
 							1;
 						if (sequence > 127) {
 							sequence = 0;
 						}
 						packet[2] = sequence;
 						sequence =
-							g_frontState
-								.netRuntimeReliablePeerSlots
-									[peerIndex]
-								.recvSeqDefault +
+							g_front_state
+								.net_runtime_reliable_peer_slots
+									[peer_index]
+								.recv_seq_default +
 							1;
 						if (sequence > 127) {
 							sequence = 0;
@@ -5258,144 +5442,153 @@ int Net_SendSequenceKeepalives(void)
 						packet[4] = GetTickCount();
 						((int (*)(int, const void *,
 							  int, int))
-							 Net_SendDirectPlayPacket)(
-							g_frontState
-								.netRuntimeReliablePeerSlots
-									[peerIndex]
-								.directPlayId,
+							 net_send_direct_play_packet)(
+							g_front_state
+								.net_runtime_reliable_peer_slots
+									[peer_index]
+								.direct_play_id,
 							packet, 20, 0);
 					}
 				}
 			}
-			++playerIndex;
-		} while (playerIndex < (unsigned int)playerCount);
+			++player_index;
+		} while (player_index < (unsigned int)player_count);
 	}
 	return 1;
 }
 
 /* Tells whether a lobby packet's sequence was already received from that
- * player on its channel: broadcast when useChannel0 is set, else group when
- * useChannel2 is set, else one-player. Returns 1 when the sequence is not 1
+ * player on its channel: broadcast when use_channel0 is set, else group when
+ * use_channel2 is set, else one-player. Returns 1 when the sequence is not 1
  * to 63 ahead of the newest one received, counting modulo 128 (a duplicate
  * or a stale packet). Otherwise records it as the newest in the player's
  * peer slot and returns 0. Also returns 0, recording nothing, when the call
  * had to add a peer slot or the 40-slot table is full. */
 // FUNCTION: XVT 0x4D1FA0
-int Net_CheckAndRecordIncomingSequence(int playerId, int sequenceId,
-				       int useChannel0, int useChannel2)
+int net_check_and_record_incoming_sequence(int player_id, int sequence_id,
+					   int use_channel0, int use_channel2)
 {
-	unsigned int previousPeerSlotCount;
-	unsigned int peerIndex;
-	struct NetReliablePeerSlot *peer;
-	int previousSequence;
-	int sequenceDelta;
+	unsigned int previous_peer_slot_count;
+	unsigned int peer_index;
+	struct net_reliable_peer_slot *peer;
+	int previous_sequence;
+	int sequence_delta;
 
-	previousPeerSlotCount = g_frontState.netReliablePeerSlotCount;
-	peerIndex = Net_FindOrCreatePeerSlot(playerId);
-	if (previousPeerSlotCount != g_frontState.netReliablePeerSlotCount ||
-	    peerIndex >= 40) {
+	previous_peer_slot_count = g_front_state.net_reliable_peer_slot_count;
+	peer_index = net_find_or_create_peer_slot(player_id);
+	if (previous_peer_slot_count !=
+		    g_front_state.net_reliable_peer_slot_count ||
+	    peer_index >= 40) {
 		return 0;
 	}
 
-	if (useChannel0 != 0) {
-		peer = &g_frontState.netRuntimeReliablePeerSlots[peerIndex];
-		previousSequence = peer->recvSeqChannelA;
-	} else if (useChannel2 != 0) {
-		peer = &g_frontState.netRuntimeReliablePeerSlots[peerIndex];
-		previousSequence = peer->recvSeqChannelB;
+	if (use_channel0 != 0) {
+		peer = &g_front_state
+				.net_runtime_reliable_peer_slots[peer_index];
+		previous_sequence = peer->recv_seq_channel_a;
+	} else if (use_channel2 != 0) {
+		peer = &g_front_state
+				.net_runtime_reliable_peer_slots[peer_index];
+		previous_sequence = peer->recv_seq_channel_b;
 	} else {
-		peer = &g_frontState.netRuntimeReliablePeerSlots[peerIndex];
-		previousSequence = peer->recvSeqDefault;
+		peer = &g_front_state
+				.net_runtime_reliable_peer_slots[peer_index];
+		previous_sequence = peer->recv_seq_default;
 	}
 
-	sequenceDelta = sequenceId - previousSequence;
-	if (sequenceDelta >= -64 &&
-	    (sequenceDelta <= 0 || sequenceDelta >= 64)) {
+	sequence_delta = sequence_id - previous_sequence;
+	if (sequence_delta >= -64 &&
+	    (sequence_delta <= 0 || sequence_delta >= 64)) {
 		return 1;
 	}
 
-	if (useChannel0 != 0) {
-		peer->recvSeqChannelA = sequenceId;
-	} else if (useChannel2 != 0) {
-		peer->recvSeqChannelB = sequenceId;
+	if (use_channel0 != 0) {
+		peer->recv_seq_channel_a = sequence_id;
+	} else if (use_channel2 != 0) {
+		peer->recv_seq_channel_b = sequence_id;
 	} else {
-		peer->recvSeqDefault = sequenceId;
+		peer->recv_seq_default = sequence_id;
 	}
 	return 0;
 }
 
 /* Searches the lobby receive queue from the oldest entry for a resent copy
- * whose sender holds peer slot peerSlotIndex (a sender with no slot counts
- * as the slot count), whose sequence is sequenceId, and whose class is 0
- * when useChannel0 is set, 2 when useChannel2 is set, else neither. Returns
+ * whose sender holds peer slot peer_slot_index (a sender with no slot counts
+ * as the slot count), whose sequence is sequence_id, and whose class is 0
+ * when use_channel0 is set, 2 when use_channel2 is set, else neither. Returns
  * its queue index, or -1. The first argument is ignored. */
 // FUNCTION: XVT 0x4D2080
-int Net_FindQueuedSequencedPacket(int unusedQueueIndex, int sequenceId,
-				  int useChannel0, int useChannel2,
-				  int peerSlotIndex)
+int net_find_queued_sequenced_packet(int unused_queue_index, int sequence_id,
+				     int use_channel0, int use_channel2,
+				     int peer_slot_index)
 {
 	int remaining;
-	int queueIndex;
-	int sequenceByte;
-	int isClass0;
-	int isClass2;
+	int queue_index;
+	int sequence_byte;
+	int is_class0;
+	int is_class2;
 	unsigned int slot;
-	DPID directPlayId;
-	struct NetReliablePeerSlot *peer;
+	DPID direct_play_id;
+	struct net_reliable_peer_slot *peer;
 
-	(void)unusedQueueIndex;
+	(void)unused_queue_index;
 
-	queueIndex = g_frontState.netRuntimeRecvQueueReadIndex;
-	for (remaining = g_frontState.netRuntimeRecvQueueCount; remaining != 0;
-	     --remaining) {
-		if (g_frontState.netRuntimeRecvQueue[queueIndex].isResentCopy !=
-		    0) {
-			directPlayId =
-				g_frontState.netRuntimeRecvQueue[queueIndex]
-					.directPlayId;
-			sequenceByte =
-				g_frontState.netRuntimeRecvQueue[queueIndex]
-					.sequenceByte;
-			isClass0 = g_frontState.netRuntimeRecvQueue[queueIndex]
-					   .packetClass == 0;
-			isClass2 = g_frontState.netRuntimeRecvQueue[queueIndex]
-					   .packetClass == 2;
+	queue_index = g_front_state.net_runtime_recv_queue_read_index;
+	for (remaining = g_front_state.net_runtime_recv_queue_count;
+	     remaining != 0; --remaining) {
+		if (g_front_state.net_runtime_recv_queue[queue_index]
+			    .is_resent_copy != 0) {
+			direct_play_id =
+				g_front_state
+					.net_runtime_recv_queue[queue_index]
+					.direct_play_id;
+			sequence_byte =
+				g_front_state
+					.net_runtime_recv_queue[queue_index]
+					.sequence_byte;
+			is_class0 = g_front_state
+					    .net_runtime_recv_queue[queue_index]
+					    .packet_class == 0;
+			is_class2 = g_front_state
+					    .net_runtime_recv_queue[queue_index]
+					    .packet_class == 2;
 			slot = 0;
-			if (g_frontState.netReliablePeerSlotCount > slot) {
-				peer = g_frontState.netRuntimeReliablePeerSlots;
+			if (g_front_state.net_reliable_peer_slot_count > slot) {
+				peer = g_front_state
+					       .net_runtime_reliable_peer_slots;
 				for (;;) {
-					if (peer->directPlayId ==
-					    directPlayId) {
+					if (peer->direct_play_id ==
+					    direct_play_id) {
 						break;
 					}
 					++peer;
 					++slot;
-					if (g_frontState
-						    .netReliablePeerSlotCount <=
+					if (g_front_state
+						    .net_reliable_peer_slot_count <=
 					    slot) {
 						break;
 					}
 				}
 			}
-			if (slot == (unsigned int)peerSlotIndex) {
-				if (useChannel0 != 0) {
-					if (isClass0 &&
-					    sequenceByte == sequenceId) {
-						return queueIndex;
+			if (slot == (unsigned int)peer_slot_index) {
+				if (use_channel0 != 0) {
+					if (is_class0 &&
+					    sequence_byte == sequence_id) {
+						return queue_index;
 					}
-				} else if (useChannel2 != 0) {
-					if (isClass2 &&
-					    sequenceByte == sequenceId) {
-						return queueIndex;
+				} else if (use_channel2 != 0) {
+					if (is_class2 &&
+					    sequence_byte == sequence_id) {
+						return queue_index;
 					}
-				} else if (!isClass0 && !isClass2 &&
-					   sequenceByte == sequenceId) {
-					return queueIndex;
+				} else if (!is_class0 && !is_class2 &&
+					   sequence_byte == sequence_id) {
+					return queue_index;
 				}
 			}
 		}
-		if ((unsigned int)++queueIndex >= 1024) {
-			queueIndex = 0;
+		if ((unsigned int)++queue_index >= 1024) {
+			queue_index = 0;
 		}
 	}
 	return -1;
@@ -5407,108 +5600,113 @@ int Net_FindQueuedSequencedPacket(int unusedQueueIndex, int sequenceId,
  * index back and returns 0. Does not check that an entry is queued at
  * queueIndex. */
 // FUNCTION: XVT 0x4D2170
-int Net_RemoveIncomingPacketAtIndex(unsigned int queueIndex)
+int net_remove_incoming_packet_at_index(unsigned int queue_index)
 {
-	if (g_frontState.netRuntimeRecvQueueReadIndex == (int)queueIndex) {
-		++g_frontState.netRuntimeRecvQueueReadIndex;
-		--g_frontState.netRuntimeRecvQueueCount;
-		if (g_frontState.netRuntimeRecvQueueReadIndex >= 1024) {
-			g_frontState.netRuntimeRecvQueueReadIndex = 0;
+	if (g_front_state.net_runtime_recv_queue_read_index ==
+	    (int)queue_index) {
+		++g_front_state.net_runtime_recv_queue_read_index;
+		--g_front_state.net_runtime_recv_queue_count;
+		if (g_front_state.net_runtime_recv_queue_read_index >= 1024) {
+			g_front_state.net_runtime_recv_queue_read_index = 0;
 		}
 		return 1;
 	}
 
 	{
-		unsigned int destinationIndex;
-		unsigned int nextIndex;
-		unsigned int endIndex;
+		unsigned int destination_index;
+		unsigned int next_index;
+		unsigned int end_index;
 
-		destinationIndex = queueIndex;
-		nextIndex = queueIndex + 1;
-		if (nextIndex >= 1024) {
-			nextIndex = 0;
+		destination_index = queue_index;
+		next_index = queue_index + 1;
+		if (next_index >= 1024) {
+			next_index = 0;
 		}
-		endIndex =
-			(unsigned int)g_frontState.netRuntimeRecvQueueReadIndex;
-		endIndex += (unsigned int)g_frontState.netRuntimeRecvQueueCount;
-		if (endIndex >= 1024) {
-			endIndex -= 1024;
+		end_index =
+			(unsigned int)
+				g_front_state.net_runtime_recv_queue_read_index;
+		end_index += (unsigned int)
+				     g_front_state.net_runtime_recv_queue_count;
+		if (end_index >= 1024) {
+			end_index -= 1024;
 		}
-		while (nextIndex != endIndex) {
-			memcpy(&g_frontState
-					.netRuntimeRecvQueue[destinationIndex],
-			       &g_frontState.netRuntimeRecvQueue[nextIndex],
-			       sizeof(g_frontState.netRuntimeRecvQueue
-					      [destinationIndex]));
-			++destinationIndex;
-			if (destinationIndex >= 1024) {
-				destinationIndex = 0;
+		while (next_index != end_index) {
+			memcpy(&g_front_state.net_runtime_recv_queue
+					[destination_index],
+			       &g_front_state
+					.net_runtime_recv_queue[next_index],
+			       sizeof(g_front_state.net_runtime_recv_queue
+					      [destination_index]));
+			++destination_index;
+			if (destination_index >= 1024) {
+				destination_index = 0;
 			}
-			++nextIndex;
-			if (nextIndex >= 1024) {
-				nextIndex = 0;
+			++next_index;
+			if (next_index >= 1024) {
+				next_index = 0;
 			}
 		}
 	}
 
-	--g_frontState.netRuntimeRecvQueueCount;
-	if (g_frontState.netRuntimeRecvQueueWriteIndex == 0) {
-		g_frontState.netRuntimeRecvQueueWriteIndex = 1023;
+	--g_front_state.net_runtime_recv_queue_count;
+	if (g_front_state.net_runtime_recv_queue_write_index == 0) {
+		g_front_state.net_runtime_recv_queue_write_index = 1023;
 	} else {
-		--g_frontState.netRuntimeRecvQueueWriteIndex;
+		--g_front_state.net_runtime_recv_queue_write_index;
 	}
 	return 0;
 }
 
 /* Returns the player's average latency in ms from its
- * g_netPlayerConnectionStats entry; 1 when the entry has no samples, 0 when
+ * g_net_player_connection_stats entry; 1 when the entry has no samples, 0 when
  * the player has no entry. */
 // FUNCTION: XVT 0x4D2250
-unsigned int Net_GetAverageLatencyMs(int playerId)
+unsigned int net_get_average_latency_ms(int player_id)
 {
-	int playerIndex;
+	int player_index;
 
-	for (playerIndex = 0; playerIndex < 40; playerIndex++) {
-		if (g_netPlayerConnectionStats[playerIndex].playerId ==
-		    playerId) {
-			if (g_netPlayerConnectionStats[playerIndex]
-				    .latencySampleCount == 0) {
+	for (player_index = 0; player_index < 40; player_index++) {
+		if (g_net_player_connection_stats[player_index].player_id ==
+		    player_id) {
+			if (g_net_player_connection_stats[player_index]
+				    .latency_sample_count == 0) {
 				return 1;
 			}
-			return g_netPlayerConnectionStats[playerIndex]
-				       .latencyTotalMs /
-			       g_netPlayerConnectionStats[playerIndex]
-				       .latencySampleCount;
+			return g_net_player_connection_stats[player_index]
+				       .latency_total_ms /
+			       g_net_player_connection_stats[player_index]
+				       .latency_sample_count;
 		}
 	}
 	return 0;
 }
 
-/* Makes latencyMs the only latency sample of the player's
- * g_netPlayerConnectionStats entry, claiming the first free entry when the
+/* Makes latency_ms the only latency sample of the player's
+ * g_net_player_connection_stats entry, claiming the first free entry when the
  * search meets one before the player's. Returns 1, also when all 40 entries
  * belong to other players and nothing changes. */
 // FUNCTION: XVT 0x4D2290
-int Net_SetPlayerLatencyMs(int playerId, int latencyMs)
+int net_set_player_latency_ms(int player_id, int latency_ms)
 {
-	int playerIndex;
+	int player_index;
 
-	playerIndex = 0;
-	while (g_netPlayerConnectionStats[playerIndex].playerId != playerId &&
-	       g_netPlayerConnectionStats[playerIndex].playerId != 0) {
-		playerIndex++;
-		if (playerIndex >= 40) {
+	player_index = 0;
+	while (g_net_player_connection_stats[player_index].player_id !=
+		       player_id &&
+	       g_net_player_connection_stats[player_index].player_id != 0) {
+		player_index++;
+		if (player_index >= 40) {
 			return 1;
 		}
 	}
 
 	{
-		struct NetPlayerConnectionStats *stats =
-			&g_netPlayerConnectionStats[playerIndex];
-		stats->playerId = playerId;
-		stats->latencySampleCount = 1;
-		stats->latencyTotalMs = latencyMs;
-		return stats->latencySampleCount;
+		struct net_player_connection_stats *stats =
+			&g_net_player_connection_stats[player_index];
+		stats->player_id = player_id;
+		stats->latency_sample_count = 1;
+		stats->latency_total_ms = latency_ms;
+		return stats->latency_sample_count;
 	}
 }
 
@@ -5518,28 +5716,29 @@ int Net_SetPlayerLatencyMs(int playerId, int latencyMs)
  * returns 0 with the back buffer unlocked and not locked again; otherwise
  * it relocks the back buffer when it was locked. */
 // FUNCTION: XVT 0x4D22E0
-int Net_SetPlayerNameWithLockGuard(unsigned int playerId, const char *longName,
-				   const char *shortName)
+int net_set_player_name_with_lock_guard(unsigned int player_id,
+					const char *long_name,
+					const char *short_name)
 {
-	int wasBackBufferLocked;
-	DPNAME playerName;
+	int was_back_buffer_locked;
+	DPNAME player_name;
 	HRESULT result;
 
-	wasBackBufferLocked = g_frontState.backBufferLocked;
-	FrontendDisplay_UnlockBackBuffer();
-	if (g_frontState.netDirectPlay == NULL) {
+	was_back_buffer_locked = g_front_state.back_buffer_locked;
+	frontend_display_unlock_back_buffer();
+	if (g_front_state.net_direct_play == NULL) {
 		return 0;
 	}
 
-	memset(&playerName, 0, sizeof(playerName));
-	playerName.lpszShortNameA = (char *)shortName;
-	playerName.lpszLongNameA = (char *)longName;
-	playerName.dwSize = sizeof(playerName);
-	result = g_frontState.netDirectPlay->lpVtbl->SetPlayerName(
-		g_frontState.netDirectPlay, playerId, &playerName, 0);
+	memset(&player_name, 0, sizeof(player_name));
+	player_name.lpszShortNameA = (char *)short_name;
+	player_name.lpszLongNameA = (char *)long_name;
+	player_name.dwSize = sizeof(player_name);
+	result = g_front_state.net_direct_play->lpVtbl->SetPlayerName(
+		g_front_state.net_direct_play, player_id, &player_name, 0);
 
-	if (wasBackBufferLocked != 0) {
-		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	if (was_back_buffer_locked != 0) {
+		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
 #ifdef XVT_MODERN
 	if (result == DPERR_PENDING) {
@@ -5549,168 +5748,176 @@ int Net_SetPlayerNameWithLockGuard(unsigned int playerId, const char *longName,
 	return result == 0;
 }
 
-/* Net_RefreshPlayerRoster with the back buffer unlocked meanwhile and
+/* net_refresh_player_roster with the back buffer unlocked meanwhile and
  * relocked when it was locked. Returns 0 without DirectPlay, else 1. */
 // FUNCTION: XVT 0x4D2370
-int Net_RefreshPlayerRosterWithLockGuard(void)
+int net_refresh_player_roster_with_lock_guard(void)
 {
-	int wasBackBufferLocked;
+	int was_back_buffer_locked;
 
-	if (g_frontState.netDirectPlay == NULL) {
+	if (g_front_state.net_direct_play == NULL) {
 		return 0;
 	}
-	wasBackBufferLocked = g_frontState.backBufferLocked;
-	FrontendDisplay_UnlockBackBuffer();
-	g_frontState.netPlayerCount = 1;
-	Net_RefreshPlayerRoster();
-	if (wasBackBufferLocked != 0) {
-		g_drawSurfacePtr = FrontendDisplay_LockBackBuffer();
+	was_back_buffer_locked = g_front_state.back_buffer_locked;
+	frontend_display_unlock_back_buffer();
+	g_front_state.net_player_count = 1;
+	net_refresh_player_roster();
+	if (was_back_buffer_locked != 0) {
+		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
 	return 1;
 }
 
 /* Returns the index of the lobby peer slot for a DirectPlay id. With none, it
- * adds one at the end of g_frontState.netRuntimeReliablePeerSlots, raising
- * g_frontState.netReliablePeerSlotCount: sequences 127 (so 0 comes next),
- * send sequence 0, a NOP trailer, all counts 0, and lastActivityMs and
- * lastHeardMs set to the current time. Returns 40, one past the table, when
+ * adds one at the end of g_front_state.net_runtime_reliable_peer_slots, raising
+ * g_front_state.net_reliable_peer_slot_count: sequences 127 (so 0 comes next),
+ * send sequence 0, a NOP trailer, all counts 0, and last_activity_ms and
+ * last_heard_ms set to the current time. Returns 40, one past the table, when
  * the table is full. */
 // FUNCTION: XVT 0x4D23B0
-unsigned int Net_FindOrCreatePeerSlot(int directPlayId)
+unsigned int net_find_or_create_peer_slot(int direct_play_id)
 {
 	unsigned int slot;
-	struct NetReliablePeerSlot *peers;
+	struct net_reliable_peer_slot *peers;
 	char message[256];
 
 	slot = 0;
-	peers = g_frontState.netRuntimeReliablePeerSlots;
-	if (g_frontState.netReliablePeerSlotCount > slot) {
+	peers = g_front_state.net_runtime_reliable_peer_slots;
+	if (g_front_state.net_reliable_peer_slot_count > slot) {
 		do {
-			if (peers[slot].directPlayId == (DPID)directPlayId) {
+			if (peers[slot].direct_play_id ==
+			    (DPID)direct_play_id) {
 				return slot;
 			}
 			++slot;
-			if (slot < g_frontState.netReliablePeerSlotCount) {
+			if (slot < g_front_state.net_reliable_peer_slot_count) {
 				continue;
 			}
 			break;
 		} while (1);
 	}
 
-	if (g_frontState.netReliablePeerSlotCount == slot && slot < 40) {
-		g_frontState.netRuntimeReliablePeerSlots[slot].directPlayId =
-			directPlayId;
-		g_frontState.netRuntimeReliablePeerSlots[slot]
-			.lastDeliveredSeqDefault = 127;
-		g_frontState.netRuntimeReliablePeerSlots[slot]
-			.lastDeliveredSeqChannelA = 127;
-		g_frontState.netRuntimeReliablePeerSlots[slot]
-			.lastDeliveredSeqChannelB = 127;
-		g_frontState.netRuntimeReliablePeerSlots[slot].recvSeqDefault =
-			127;
-		g_frontState.netRuntimeReliablePeerSlots[slot].recvSeqChannelA =
-			127;
-		g_frontState.netRuntimeReliablePeerSlots[slot].recvSeqChannelB =
-			127;
-		g_frontState.netRuntimeReliablePeerSlots[slot].sendSeq = 0;
-		g_frontState.netRuntimeReliablePeerSlots[slot]
-			.lastPiggybackType = NET_PACKET_NOP;
-		g_frontState.netRuntimeReliablePeerSlots[slot].piggybackLength =
-			1;
-		g_frontState.netRuntimeReliablePeerSlots[slot].lastActivityMs =
-			GetTickCount();
-		g_frontState.netRuntimeReliablePeerSlots[slot].lastHeardMs =
-			GetTickCount();
-		g_frontState.netRuntimeReliablePeerSlots[slot].packetCount = 0;
-		g_frontState.netRuntimeReliablePeerSlots[slot].packetDropCount =
+	if (g_front_state.net_reliable_peer_slot_count == slot && slot < 40) {
+		g_front_state.net_runtime_reliable_peer_slots[slot]
+			.direct_play_id = direct_play_id;
+		g_front_state.net_runtime_reliable_peer_slots[slot]
+			.last_delivered_seq_default = 127;
+		g_front_state.net_runtime_reliable_peer_slots[slot]
+			.last_delivered_seq_channel_a = 127;
+		g_front_state.net_runtime_reliable_peer_slots[slot]
+			.last_delivered_seq_channel_b = 127;
+		g_front_state.net_runtime_reliable_peer_slots[slot]
+			.recv_seq_default = 127;
+		g_front_state.net_runtime_reliable_peer_slots[slot]
+			.recv_seq_channel_a = 127;
+		g_front_state.net_runtime_reliable_peer_slots[slot]
+			.recv_seq_channel_b = 127;
+		g_front_state.net_runtime_reliable_peer_slots[slot].send_seq =
 			0;
-		g_frontState.netRuntimeReliablePeerSlots[slot]
-			.packetRetryCount = 0;
-		++g_frontState.netReliablePeerSlotCount;
-		sprintf(message, "SAdding new net sequence %u\n", directPlayId);
+		g_front_state.net_runtime_reliable_peer_slots[slot]
+			.last_piggyback_type = NET_PACKET_NOP;
+		g_front_state.net_runtime_reliable_peer_slots[slot]
+			.piggyback_length = 1;
+		g_front_state.net_runtime_reliable_peer_slots[slot]
+			.last_activity_ms = GetTickCount();
+		g_front_state.net_runtime_reliable_peer_slots[slot]
+			.last_heard_ms = GetTickCount();
+		g_front_state.net_runtime_reliable_peer_slots[slot]
+			.packet_count = 0;
+		g_front_state.net_runtime_reliable_peer_slots[slot]
+			.packet_drop_count = 0;
+		g_front_state.net_runtime_reliable_peer_slots[slot]
+			.packet_retry_count = 0;
+		++g_front_state.net_reliable_peer_slot_count;
+		sprintf(message, "SAdding new net sequence %u\n",
+			direct_play_id);
 	}
 	return slot;
 }
 
-/* Uses Net_FindOrCreatePeerSlot, so asking about an unknown player adds a reliable peer slot for it. */
+/* Uses net_find_or_create_peer_slot, so asking about an unknown player adds a reliable peer slot for it. */
 /* Returns a player's loss rate in hundredths of a percent, at most 10,000:
  * drops plus twice the retries, per 10,000 packets. The host adds its own
- * peer slot counts for the player to the player's g_netPlayerConnectionStats
+ * peer slot counts for the player to the player's g_net_player_connection_stats
  * entry; another player uses the entry alone and returns 0 when there is
  * none. A packet count of 0 counts as 1. */
 // FUNCTION: XVT 0x4D24C0
-int Net_GetPacketDropRateBasisPoints(int playerId)
+int net_get_packet_drop_rate_basis_points(int player_id)
 {
 	int result;
 
-	if (g_frontState.netIsHost != 0) {
-		unsigned int peerIndex;
-		int packetCount;
-		int weightedDropCount;
-		int playerIndex;
+	if (g_front_state.net_is_host != 0) {
+		unsigned int peer_index;
+		int packet_count;
+		int weighted_drop_count;
+		int player_index;
 
-		peerIndex = Net_FindOrCreatePeerSlot(playerId);
-		if (g_frontState.netReliablePeerSlotCount > peerIndex &&
-		    peerIndex < 40) {
-			packetCount =
-				g_frontState
-					.netRuntimeReliablePeerSlots[peerIndex]
-					.packetCount;
-			weightedDropCount =
-				g_frontState
-					.netRuntimeReliablePeerSlots[peerIndex]
-					.packetDropCount +
-				2 * g_frontState.netRuntimeReliablePeerSlots
-						[peerIndex]
-							.packetRetryCount;
+		peer_index = net_find_or_create_peer_slot(player_id);
+		if (g_front_state.net_reliable_peer_slot_count > peer_index &&
+		    peer_index < 40) {
+			packet_count = g_front_state
+					       .net_runtime_reliable_peer_slots
+						       [peer_index]
+					       .packet_count;
+			weighted_drop_count =
+				g_front_state
+					.net_runtime_reliable_peer_slots
+						[peer_index]
+					.packet_drop_count +
+				2 * g_front_state
+						.net_runtime_reliable_peer_slots
+							[peer_index]
+						.packet_retry_count;
 		} else {
-			packetCount = 0;
-			weightedDropCount = 0;
+			packet_count = 0;
+			weighted_drop_count = 0;
 		}
-		for (playerIndex = 0; playerIndex < 40; ++playerIndex) {
-			if (g_netPlayerConnectionStats[playerIndex].playerId ==
-			    playerId) {
-				packetCount +=
-					g_netPlayerConnectionStats[playerIndex]
-						.packetCount;
-				weightedDropCount +=
-					g_netPlayerConnectionStats[playerIndex]
-						.packetDropCount +
-					2 * g_netPlayerConnectionStats
-							[playerIndex]
-								.packetRetryCount;
+		for (player_index = 0; player_index < 40; ++player_index) {
+			if (g_net_player_connection_stats[player_index]
+				    .player_id == player_id) {
+				packet_count += g_net_player_connection_stats
+							[player_index]
+								.packet_count;
+				weighted_drop_count +=
+					g_net_player_connection_stats
+						[player_index]
+							.packet_drop_count +
+					2 * g_net_player_connection_stats
+							[player_index]
+								.packet_retry_count;
 			}
 		}
-		if (packetCount == 0) {
-			packetCount = 1;
+		if (packet_count == 0) {
+			packet_count = 1;
 		}
-		result = weightedDropCount * 10000 / packetCount;
+		result = weighted_drop_count * 10000 / packet_count;
 		if (result > 10000) {
 			result = 10000;
 		}
 	} else {
-		int playerIndex;
-		unsigned int packetCount;
+		int player_index;
+		unsigned int packet_count;
 
-		playerIndex = 0;
-		while (g_netPlayerConnectionStats[playerIndex].playerId !=
-		       playerId) {
-			++playerIndex;
-			if (playerIndex >= 40) {
+		player_index = 0;
+		while (g_net_player_connection_stats[player_index].player_id !=
+		       player_id) {
+			++player_index;
+			if (player_index >= 40) {
 				return 0;
 			}
 		}
-		packetCount =
-			(unsigned int)g_netPlayerConnectionStats[playerIndex]
-				.packetCount;
-		if (packetCount == 0) {
-			packetCount = 1;
+		packet_count =
+			(unsigned int)
+				g_net_player_connection_stats[player_index]
+					.packet_count;
+		if (packet_count == 0) {
+			packet_count = 1;
 		}
-		result = (g_netPlayerConnectionStats[playerIndex]
-				  .packetDropCount +
-			  2 * g_netPlayerConnectionStats[playerIndex]
-					  .packetRetryCount) *
-			 10000u / packetCount;
+		result = (g_net_player_connection_stats[player_index]
+				  .packet_drop_count +
+			  2 * g_net_player_connection_stats[player_index]
+					  .packet_retry_count) *
+			 10000u / packet_count;
 		if (result > 10000) {
 			result = 10000;
 		}
@@ -5718,7 +5925,7 @@ int Net_GetPacketDropRateBasisPoints(int playerId)
 	return result;
 }
 
-/* Deals with peers silent for over 45,000 ms (lastHeardMs). On the host, for
+/* Deals with peers silent for over 45,000 ms (last_heard_ms). On the host, for
  * each ready roster player other than itself and the group, it sends the
  * player NET_PACKET_PLAYER_KICKED and queues NET_PACKET_PLAYER_LEFT locally
  * as if from that player, on the one-player channel at its next sequence. On
@@ -5727,7 +5934,7 @@ int Net_GetPacketDropRateBasisPoints(int playerId)
  * silence timer, and does nothing more while the receive queue is full.
  * Returns 0 on a client when no peer slot can be had for the host, else 1. */
 // FUNCTION: XVT 0x4D25D0
-int Net_DropSilentPeers(void)
+int net_drop_silent_peers(void)
 {
 	enum {
 		PEER_SILENCE_TIMEOUT_MS = 45000,
@@ -5736,184 +5943,196 @@ int Net_DropSilentPeers(void)
 	};
 
 	int packet[2];
-	int playerIndex;
+	int player_index;
 
-	if (g_frontState.netIsHost != 0) {
-		for (playerIndex = 0;
-		     playerIndex < (int)(sizeof(g_frontState.netPlayers) /
-					 sizeof(g_frontState.netPlayers[0]));
-		     ++playerIndex) {
-			unsigned int peerIndex;
+	if (g_front_state.net_is_host != 0) {
+		for (player_index = 0;
+		     player_index < (int)(sizeof(g_front_state.net_players) /
+					  sizeof(g_front_state.net_players[0]));
+		     ++player_index) {
+			unsigned int peer_index;
 			unsigned int sequence;
-			unsigned int nowMs;
+			unsigned int now_ms;
 
-			if (g_frontState.netPlayers[playerIndex].playerId ==
+			if (g_front_state.net_players[player_index].player_id ==
 				    0 ||
-			    g_frontState.netPlayers[playerIndex].playerId ==
-				    g_frontState.netRuntimeLocalPlayer
-					    .playerId ||
-			    g_frontState.netPlayers[playerIndex].playerId ==
-				    g_frontState.netGroupDplayId ||
-			    g_frontState.netPlayers[playerIndex].readyFlag ==
-				    0) {
+			    g_front_state.net_players[player_index].player_id ==
+				    g_front_state.net_runtime_local_player
+					    .player_id ||
+			    g_front_state.net_players[player_index].player_id ==
+				    g_front_state.net_group_dplay_id ||
+			    g_front_state.net_players[player_index]
+					    .ready_flag == 0) {
 				continue;
 			}
-			peerIndex = Net_FindOrCreatePeerSlot(
-				g_frontState.netPlayers[playerIndex].playerId);
-			if (g_frontState.netReliablePeerSlotCount <=
-			    peerIndex) {
+			peer_index = net_find_or_create_peer_slot(
+				g_front_state.net_players[player_index]
+					.player_id);
+			if (g_front_state.net_reliable_peer_slot_count <=
+			    peer_index) {
 				continue;
 			}
-			nowMs = GetTickCount();
-			if (nowMs - g_frontState
-					    .netRuntimeReliablePeerSlots
-						    [peerIndex]
-					    .lastHeardMs <=
+			now_ms = GetTickCount();
+			if (now_ms - g_front_state
+					     .net_runtime_reliable_peer_slots
+						     [peer_index]
+					     .last_heard_ms <=
 			    PEER_SILENCE_TIMEOUT_MS) {
 				continue;
 			}
-			g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-				.lastHeardMs = GetTickCount();
-			if (g_frontState.netRuntimeRecvQueueCount >=
+			g_front_state
+				.net_runtime_reliable_peer_slots[peer_index]
+				.last_heard_ms = GetTickCount();
+			if (g_front_state.net_runtime_recv_queue_count >=
 			    RECV_QUEUE_CAPACITY) {
 				continue;
 			}
 			packet[0] = NET_PACKET_PLAYER_KICKED;
-			Net_SendPacketAndFlush(
-				g_frontState.netPlayers[playerIndex].playerId,
+			net_send_packet_and_flush(
+				g_front_state.net_players[player_index]
+					.player_id,
 				packet, sizeof(packet[0]));
-			*(int *)g_frontState
-				 .netRuntimeRecvQueue
-					 [g_frontState
-						  .netRuntimeRecvQueueWriteIndex]
+			*(int *)g_front_state
+				 .net_runtime_recv_queue
+					 [g_front_state
+						  .net_runtime_recv_queue_write_index]
 				 .payload = NET_PACKET_PLAYER_LEFT;
-			g_frontState
-				.netRuntimeRecvQueue
-					[g_frontState
-						 .netRuntimeRecvQueueWriteIndex]
-				.directPlayId =
-				g_frontState.netPlayers[playerIndex].playerId;
-			g_frontState
-				.netRuntimeRecvQueue
-					[g_frontState
-						 .netRuntimeRecvQueueWriteIndex]
-				.payloadSize = sizeof(int);
-			g_frontState
-				.netRuntimeRecvQueue
-					[g_frontState
-						 .netRuntimeRecvQueueWriteIndex]
-				.lastNackMs = 0;
-			g_frontState
-				.netRuntimeRecvQueue
-					[g_frontState
-						 .netRuntimeRecvQueueWriteIndex]
-				.nackRetryCount = 0;
-			g_frontState
-				.netRuntimeRecvQueue
-					[g_frontState
-						 .netRuntimeRecvQueueWriteIndex]
-				.isResentCopy = 0;
-			g_frontState
-				.netRuntimeRecvQueue
-					[g_frontState
-						 .netRuntimeRecvQueueWriteIndex]
-				.packetClass = 1;
-			sequence =
-				g_frontState
-					.netRuntimeReliablePeerSlots[peerIndex]
-					.recvSeqDefault +
-				1;
+			g_front_state
+				.net_runtime_recv_queue
+					[g_front_state
+						 .net_runtime_recv_queue_write_index]
+				.direct_play_id =
+				g_front_state.net_players[player_index]
+					.player_id;
+			g_front_state
+				.net_runtime_recv_queue
+					[g_front_state
+						 .net_runtime_recv_queue_write_index]
+				.payload_size = sizeof(int);
+			g_front_state
+				.net_runtime_recv_queue
+					[g_front_state
+						 .net_runtime_recv_queue_write_index]
+				.last_nack_ms = 0;
+			g_front_state
+				.net_runtime_recv_queue
+					[g_front_state
+						 .net_runtime_recv_queue_write_index]
+				.nack_retry_count = 0;
+			g_front_state
+				.net_runtime_recv_queue
+					[g_front_state
+						 .net_runtime_recv_queue_write_index]
+				.is_resent_copy = 0;
+			g_front_state
+				.net_runtime_recv_queue
+					[g_front_state
+						 .net_runtime_recv_queue_write_index]
+				.packet_class = 1;
+			sequence = g_front_state
+					   .net_runtime_reliable_peer_slots
+						   [peer_index]
+					   .recv_seq_default +
+				   1;
 			if (sequence > MAX_SEQUENCE) {
 				sequence = 0;
 			}
-			g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-				.recvSeqDefault = sequence;
-			g_frontState
-				.netRuntimeRecvQueue
-					[g_frontState
-						 .netRuntimeRecvQueueWriteIndex]
-				.sequenceByte = (uint8_t)sequence;
-			++g_frontState.netRuntimeRecvQueueCount;
-			if (++g_frontState.netRuntimeRecvQueueWriteIndex >=
+			g_front_state
+				.net_runtime_reliable_peer_slots[peer_index]
+				.recv_seq_default = sequence;
+			g_front_state
+				.net_runtime_recv_queue
+					[g_front_state
+						 .net_runtime_recv_queue_write_index]
+				.sequence_byte = (uint8_t)sequence;
+			++g_front_state.net_runtime_recv_queue_count;
+			if (++g_front_state
+				      .net_runtime_recv_queue_write_index >=
 			    RECV_QUEUE_CAPACITY) {
-				g_frontState.netRuntimeRecvQueueWriteIndex = 0;
+				g_front_state
+					.net_runtime_recv_queue_write_index = 0;
 			}
 		}
 	} else {
-		unsigned int peerIndex =
-			Net_FindOrCreatePeerSlot(g_frontState.netHostPlayerId);
+		unsigned int peer_index = net_find_or_create_peer_slot(
+			g_front_state.net_host_player_id);
 		unsigned int sequence;
-		unsigned int nowMs;
+		unsigned int now_ms;
 
-		if (g_frontState.netReliablePeerSlotCount <= peerIndex) {
+		if (g_front_state.net_reliable_peer_slot_count <= peer_index) {
 			return 0;
 		}
-		nowMs = GetTickCount();
-		if (nowMs - g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-				    .lastHeardMs >
+		now_ms = GetTickCount();
+		if (now_ms -
+			    g_front_state
+				    .net_runtime_reliable_peer_slots[peer_index]
+				    .last_heard_ms >
 		    PEER_SILENCE_TIMEOUT_MS) {
-			g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-				.lastHeardMs = GetTickCount();
-			if (g_frontState.netRuntimeRecvQueueCount <
+			g_front_state
+				.net_runtime_reliable_peer_slots[peer_index]
+				.last_heard_ms = GetTickCount();
+			if (g_front_state.net_runtime_recv_queue_count <
 			    RECV_QUEUE_CAPACITY) {
-				*(int *)g_frontState
-					 .netRuntimeRecvQueue
-						 [g_frontState
-							  .netRuntimeRecvQueueWriteIndex]
+				*(int *)g_front_state
+					 .net_runtime_recv_queue
+						 [g_front_state
+							  .net_runtime_recv_queue_write_index]
 					 .payload = NET_PACKET_HOST_CANCELLED;
-				g_frontState
-					.netRuntimeRecvQueue
-						[g_frontState
-							 .netRuntimeRecvQueueWriteIndex]
-					.directPlayId =
-					g_frontState.netHostPlayerId;
-				g_frontState
-					.netRuntimeRecvQueue
-						[g_frontState
-							 .netRuntimeRecvQueueWriteIndex]
-					.payloadSize = sizeof(int);
-				g_frontState
-					.netRuntimeRecvQueue
-						[g_frontState
-							 .netRuntimeRecvQueueWriteIndex]
-					.lastNackMs = 0;
-				g_frontState
-					.netRuntimeRecvQueue
-						[g_frontState
-							 .netRuntimeRecvQueueWriteIndex]
-					.nackRetryCount = 0;
-				g_frontState
-					.netRuntimeRecvQueue
-						[g_frontState
-							 .netRuntimeRecvQueueWriteIndex]
-					.isResentCopy = 0;
-				g_frontState
-					.netRuntimeRecvQueue
-						[g_frontState
-							 .netRuntimeRecvQueueWriteIndex]
-					.packetClass = 0;
-				sequence = g_frontState
-						   .netRuntimeReliablePeerSlots
-							   [peerIndex]
-						   .recvSeqChannelA +
-					   1;
+				g_front_state
+					.net_runtime_recv_queue
+						[g_front_state
+							 .net_runtime_recv_queue_write_index]
+					.direct_play_id =
+					g_front_state.net_host_player_id;
+				g_front_state
+					.net_runtime_recv_queue
+						[g_front_state
+							 .net_runtime_recv_queue_write_index]
+					.payload_size = sizeof(int);
+				g_front_state
+					.net_runtime_recv_queue
+						[g_front_state
+							 .net_runtime_recv_queue_write_index]
+					.last_nack_ms = 0;
+				g_front_state
+					.net_runtime_recv_queue
+						[g_front_state
+							 .net_runtime_recv_queue_write_index]
+					.nack_retry_count = 0;
+				g_front_state
+					.net_runtime_recv_queue
+						[g_front_state
+							 .net_runtime_recv_queue_write_index]
+					.is_resent_copy = 0;
+				g_front_state
+					.net_runtime_recv_queue
+						[g_front_state
+							 .net_runtime_recv_queue_write_index]
+					.packet_class = 0;
+				sequence =
+					g_front_state
+						.net_runtime_reliable_peer_slots
+							[peer_index]
+						.recv_seq_channel_a +
+					1;
 				if (sequence > MAX_SEQUENCE) {
 					sequence = 0;
 				}
-				g_frontState
-					.netRuntimeReliablePeerSlots[peerIndex]
-					.recvSeqChannelA = sequence;
-				g_frontState
-					.netRuntimeRecvQueue
-						[g_frontState
-							 .netRuntimeRecvQueueWriteIndex]
-					.sequenceByte = (uint8_t)sequence;
-				++g_frontState.netRuntimeRecvQueueCount;
-				if (++g_frontState
-					      .netRuntimeRecvQueueWriteIndex >=
+				g_front_state
+					.net_runtime_reliable_peer_slots
+						[peer_index]
+					.recv_seq_channel_a = sequence;
+				g_front_state
+					.net_runtime_recv_queue
+						[g_front_state
+							 .net_runtime_recv_queue_write_index]
+					.sequence_byte = (uint8_t)sequence;
+				++g_front_state.net_runtime_recv_queue_count;
+				if (++g_front_state
+					      .net_runtime_recv_queue_write_index >=
 				    RECV_QUEUE_CAPACITY) {
-					g_frontState
-						.netRuntimeRecvQueueWriteIndex =
+					g_front_state
+						.net_runtime_recv_queue_write_index =
 						0;
 				}
 			}
@@ -5922,137 +6141,140 @@ int Net_DropSilentPeers(void)
 	return 1;
 }
 
-/* Uses Net_FindOrCreatePeerSlot, so asking about an unknown player adds a reliable peer slot for it. */
+/* Uses net_find_or_create_peer_slot, so asking about an unknown player adds a reliable peer slot for it. */
 /* Returns the player's delivered-packet count: its lobby peer slot's plus its
- * g_netPlayerConnectionStats entry's. */
+ * g_net_player_connection_stats entry's. */
 // FUNCTION: XVT 0x4D28F0
-int Net_GetPlayerPacketCount(int playerId)
+int net_get_player_packet_count(int player_id)
 {
-	unsigned int peerIndex;
-	int packetCount;
-	int playerIndex;
+	unsigned int peer_index;
+	int packet_count;
+	int player_index;
 
-	peerIndex = Net_FindOrCreatePeerSlot(playerId);
-	if (g_frontState.netReliablePeerSlotCount > peerIndex &&
-	    peerIndex < 40) {
-		packetCount =
-			g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-				.packetCount;
+	peer_index = net_find_or_create_peer_slot(player_id);
+	if (g_front_state.net_reliable_peer_slot_count > peer_index &&
+	    peer_index < 40) {
+		packet_count =
+			g_front_state
+				.net_runtime_reliable_peer_slots[peer_index]
+				.packet_count;
 	} else {
-		packetCount = 0;
+		packet_count = 0;
 	}
-	for (playerIndex = 0; playerIndex < 40; ++playerIndex) {
-		if (g_netPlayerConnectionStats[playerIndex].playerId ==
-		    playerId) {
-			return packetCount +
-			       g_netPlayerConnectionStats[playerIndex]
-				       .packetCount;
+	for (player_index = 0; player_index < 40; ++player_index) {
+		if (g_net_player_connection_stats[player_index].player_id ==
+		    player_id) {
+			return packet_count +
+			       g_net_player_connection_stats[player_index]
+				       .packet_count;
 		}
 	}
-	return packetCount;
+	return packet_count;
 }
 
-/* Uses Net_FindOrCreatePeerSlot, so asking about an unknown player adds a reliable peer slot for it. */
+/* Uses net_find_or_create_peer_slot, so asking about an unknown player adds a reliable peer slot for it. */
 /* Returns the player's drop count: its lobby peer slot's plus its
- * g_netPlayerConnectionStats entry's. */
+ * g_net_player_connection_stats entry's. */
 // FUNCTION: XVT 0x4D2950
-int Net_GetPlayerPacketDropCount(int playerId)
+int net_get_player_packet_drop_count(int player_id)
 {
-	unsigned int peerIndex;
-	int packetDropCount;
-	int playerIndex;
+	unsigned int peer_index;
+	int packet_drop_count;
+	int player_index;
 
-	peerIndex = Net_FindOrCreatePeerSlot(playerId);
-	if (g_frontState.netReliablePeerSlotCount > peerIndex &&
-	    peerIndex < 40) {
-		packetDropCount =
-			g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-				.packetDropCount;
+	peer_index = net_find_or_create_peer_slot(player_id);
+	if (g_front_state.net_reliable_peer_slot_count > peer_index &&
+	    peer_index < 40) {
+		packet_drop_count =
+			g_front_state
+				.net_runtime_reliable_peer_slots[peer_index]
+				.packet_drop_count;
 	} else {
-		packetDropCount = 0;
+		packet_drop_count = 0;
 	}
-	for (playerIndex = 0; playerIndex < 40; ++playerIndex) {
-		if (g_netPlayerConnectionStats[playerIndex].playerId ==
-		    playerId) {
-			Net_FindOrCreatePeerSlot(playerId);
-			return packetDropCount +
-			       g_netPlayerConnectionStats[playerIndex]
-				       .packetDropCount;
+	for (player_index = 0; player_index < 40; ++player_index) {
+		if (g_net_player_connection_stats[player_index].player_id ==
+		    player_id) {
+			net_find_or_create_peer_slot(player_id);
+			return packet_drop_count +
+			       g_net_player_connection_stats[player_index]
+				       .packet_drop_count;
 		}
 	}
-	return packetDropCount;
+	return packet_drop_count;
 }
 
-/* Uses Net_FindOrCreatePeerSlot, so asking about an unknown player adds a reliable peer slot for it. */
+/* Uses net_find_or_create_peer_slot, so asking about an unknown player adds a reliable peer slot for it. */
 /* Returns the player's retry count: its lobby peer slot's plus its
- * g_netPlayerConnectionStats entry's. */
+ * g_net_player_connection_stats entry's. */
 // FUNCTION: XVT 0x4D29C0
-int Net_GetPlayerPacketRetryCount(int playerId)
+int net_get_player_packet_retry_count(int player_id)
 {
-	unsigned int peerIndex;
-	int packetRetryCount;
-	int playerIndex;
+	unsigned int peer_index;
+	int packet_retry_count;
+	int player_index;
 
-	peerIndex = Net_FindOrCreatePeerSlot(playerId);
-	if (g_frontState.netReliablePeerSlotCount > peerIndex &&
-	    peerIndex < 40) {
-		packetRetryCount =
-			g_frontState.netRuntimeReliablePeerSlots[peerIndex]
-				.packetRetryCount;
+	peer_index = net_find_or_create_peer_slot(player_id);
+	if (g_front_state.net_reliable_peer_slot_count > peer_index &&
+	    peer_index < 40) {
+		packet_retry_count =
+			g_front_state
+				.net_runtime_reliable_peer_slots[peer_index]
+				.packet_retry_count;
 	} else {
-		packetRetryCount = 0;
+		packet_retry_count = 0;
 	}
-	for (playerIndex = 0; playerIndex < 40; ++playerIndex) {
-		if (g_netPlayerConnectionStats[playerIndex].playerId ==
-		    playerId) {
-			return packetRetryCount +
-			       g_netPlayerConnectionStats[playerIndex]
-				       .packetRetryCount;
+	for (player_index = 0; player_index < 40; ++player_index) {
+		if (g_net_player_connection_stats[player_index].player_id ==
+		    player_id) {
+			return packet_retry_count +
+			       g_net_player_connection_stats[player_index]
+				       .packet_retry_count;
 		}
 	}
-	return packetRetryCount;
+	return packet_retry_count;
 }
 
-/* Stores packetCount in the player's g_netPlayerConnectionStats entry, or
- * else in the first free entry, which it claims with latencyTotalMs 1 and
+/* Stores packet_count in the player's g_net_player_connection_stats entry, or
+ * else in the first free entry, which it claims with latency_total_ms 1 and
  * drop and retry counts 0. Returns 1, also when no entry is free. */
 // FUNCTION: XVT 0x4D2A20
-int Net_SetPlayerPacketCount(int playerId, int packetCount)
+int net_set_player_packet_count(int player_id, int packet_count)
 {
-	int playerIndex;
+	int player_index;
 
-	playerIndex = 0;
+	player_index = 0;
 	do {
-		if (g_netPlayerConnectionStats[playerIndex].playerId ==
-		    playerId) {
-			g_netPlayerConnectionStats[playerIndex].playerId =
-				playerId;
-			g_netPlayerConnectionStats[playerIndex].packetCount =
-				packetCount;
+		if (g_net_player_connection_stats[player_index].player_id ==
+		    player_id) {
+			g_net_player_connection_stats[player_index].player_id =
+				player_id;
+			g_net_player_connection_stats[player_index]
+				.packet_count = packet_count;
 			break;
 		}
-		++playerIndex;
-	} while (playerIndex < 40);
+		++player_index;
+	} while (player_index < 40);
 
-	if (playerIndex == 40) {
-		playerIndex = 0;
+	if (player_index == 40) {
+		player_index = 0;
 		do {
-			if (g_netPlayerConnectionStats[playerIndex].playerId ==
-			    0) {
-				g_netPlayerConnectionStats[playerIndex]
-					.playerId = playerId;
-				g_netPlayerConnectionStats[playerIndex]
-					.latencyTotalMs = 1;
-				g_netPlayerConnectionStats[playerIndex]
-					.packetCount = packetCount;
-				g_netPlayerConnectionStats[playerIndex]
-					.packetDropCount = 0;
-				g_netPlayerConnectionStats[playerIndex]
-					.packetRetryCount = 0;
+			if (g_net_player_connection_stats[player_index]
+				    .player_id == 0) {
+				g_net_player_connection_stats[player_index]
+					.player_id = player_id;
+				g_net_player_connection_stats[player_index]
+					.latency_total_ms = 1;
+				g_net_player_connection_stats[player_index]
+					.packet_count = packet_count;
+				g_net_player_connection_stats[player_index]
+					.packet_drop_count = 0;
+				g_net_player_connection_stats[player_index]
+					.packet_retry_count = 0;
 				break;
 			}
-			++playerIndex;
-			if (playerIndex >= 40) {
+			++player_index;
+			if (player_index >= 40) {
 				return 1;
 			}
 		} while (1);
@@ -6061,46 +6283,46 @@ int Net_SetPlayerPacketCount(int playerId, int packetCount)
 	return 1;
 }
 
-/* Stores packetDropCount in the player's g_netPlayerConnectionStats entry,
- * or else in the first free entry, which it claims with latencyTotalMs 1 and
+/* Stores packet_drop_count in the player's g_net_player_connection_stats entry,
+ * or else in the first free entry, which it claims with latency_total_ms 1 and
  * packet and retry counts 0. Returns 1, also when no entry is free. */
 // FUNCTION: XVT 0x4D2AB0
-int Net_SetPlayerPacketDropCount(int playerId, int packetDropCount)
+int net_set_player_packet_drop_count(int player_id, int packet_drop_count)
 {
-	int playerIndex;
+	int player_index;
 
-	playerIndex = 0;
+	player_index = 0;
 	do {
-		if (g_netPlayerConnectionStats[playerIndex].playerId ==
-		    playerId) {
-			g_netPlayerConnectionStats[playerIndex].playerId =
-				playerId;
-			g_netPlayerConnectionStats[playerIndex]
-				.packetDropCount = packetDropCount;
+		if (g_net_player_connection_stats[player_index].player_id ==
+		    player_id) {
+			g_net_player_connection_stats[player_index].player_id =
+				player_id;
+			g_net_player_connection_stats[player_index]
+				.packet_drop_count = packet_drop_count;
 			break;
 		}
-		++playerIndex;
-	} while (playerIndex < 40);
+		++player_index;
+	} while (player_index < 40);
 
-	if (playerIndex == 40) {
-		playerIndex = 0;
+	if (player_index == 40) {
+		player_index = 0;
 		do {
-			if (g_netPlayerConnectionStats[playerIndex].playerId ==
-			    0) {
-				g_netPlayerConnectionStats[playerIndex]
-					.playerId = playerId;
-				g_netPlayerConnectionStats[playerIndex]
-					.latencyTotalMs = 1;
-				g_netPlayerConnectionStats[playerIndex]
-					.packetCount = 0;
-				g_netPlayerConnectionStats[playerIndex]
-					.packetDropCount = packetDropCount;
-				g_netPlayerConnectionStats[playerIndex]
-					.packetRetryCount = 0;
+			if (g_net_player_connection_stats[player_index]
+				    .player_id == 0) {
+				g_net_player_connection_stats[player_index]
+					.player_id = player_id;
+				g_net_player_connection_stats[player_index]
+					.latency_total_ms = 1;
+				g_net_player_connection_stats[player_index]
+					.packet_count = 0;
+				g_net_player_connection_stats[player_index]
+					.packet_drop_count = packet_drop_count;
+				g_net_player_connection_stats[player_index]
+					.packet_retry_count = 0;
 				break;
 			}
-			++playerIndex;
-			if (playerIndex >= 40) {
+			++player_index;
+			if (player_index >= 40) {
 				return 1;
 			}
 		} while (1);
@@ -6109,46 +6331,47 @@ int Net_SetPlayerPacketDropCount(int playerId, int packetDropCount)
 	return 1;
 }
 
-/* Stores packetRetryCount in the player's g_netPlayerConnectionStats entry,
- * or else in the first free entry, which it claims with latencyTotalMs 1 and
+/* Stores packet_retry_count in the player's g_net_player_connection_stats entry,
+ * or else in the first free entry, which it claims with latency_total_ms 1 and
  * packet and drop counts 0. Returns 1, also when no entry is free. */
 // FUNCTION: XVT 0x4D2B40
-int Net_SetPlayerPacketRetryCount(int playerId, int packetRetryCount)
+int net_set_player_packet_retry_count(int player_id, int packet_retry_count)
 {
-	int playerIndex;
+	int player_index;
 
-	playerIndex = 0;
+	player_index = 0;
 	do {
-		if (g_netPlayerConnectionStats[playerIndex].playerId ==
-		    playerId) {
-			g_netPlayerConnectionStats[playerIndex].playerId =
-				playerId;
-			g_netPlayerConnectionStats[playerIndex]
-				.packetRetryCount = packetRetryCount;
+		if (g_net_player_connection_stats[player_index].player_id ==
+		    player_id) {
+			g_net_player_connection_stats[player_index].player_id =
+				player_id;
+			g_net_player_connection_stats[player_index]
+				.packet_retry_count = packet_retry_count;
 			break;
 		}
-		++playerIndex;
-	} while (playerIndex < 40);
+		++player_index;
+	} while (player_index < 40);
 
-	if (playerIndex == 40) {
-		playerIndex = 0;
+	if (player_index == 40) {
+		player_index = 0;
 		do {
-			if (g_netPlayerConnectionStats[playerIndex].playerId ==
-			    0) {
-				g_netPlayerConnectionStats[playerIndex]
-					.playerId = playerId;
-				g_netPlayerConnectionStats[playerIndex]
-					.latencyTotalMs = 1;
-				g_netPlayerConnectionStats[playerIndex]
-					.packetCount = 0;
-				g_netPlayerConnectionStats[playerIndex]
-					.packetDropCount = 0;
-				g_netPlayerConnectionStats[playerIndex]
-					.packetRetryCount = packetRetryCount;
+			if (g_net_player_connection_stats[player_index]
+				    .player_id == 0) {
+				g_net_player_connection_stats[player_index]
+					.player_id = player_id;
+				g_net_player_connection_stats[player_index]
+					.latency_total_ms = 1;
+				g_net_player_connection_stats[player_index]
+					.packet_count = 0;
+				g_net_player_connection_stats[player_index]
+					.packet_drop_count = 0;
+				g_net_player_connection_stats[player_index]
+					.packet_retry_count =
+					packet_retry_count;
 				break;
 			}
-			++playerIndex;
-			if (playerIndex >= 40) {
+			++player_index;
+			if (player_index >= 40) {
 				return 1;
 			}
 		} while (1);
@@ -6158,78 +6381,79 @@ int Net_SetPlayerPacketRetryCount(int playerId, int packetRetryCount)
 }
 
 /* Turns autodial off: reads EnableAutodial from the Internet Settings
- * registry key into g_netSavedEnableAutoDialValue and, when its first byte
+ * registry key into g_net_saved_enable_auto_dial_value and, when its first byte
  * is nonzero, writes 4 zero bytes in its place and sets
- * g_netAutoDialRegistryChanged. Returns 1 when it wrote, else 0. The modern
+ * g_net_auto_dial_registry_changed. Returns 1 when it wrote, else 0. The modern
  * build does nothing and returns 0. Only the original build calls this. */
 // FUNCTION: XVT 0x4D2BD0
-int Net_DisableAutoDialRegistrySetting(void)
+int net_disable_auto_dial_registry_setting(void)
 {
 #ifdef XVT_MODERN
 	return 0;
 #else
-	void *registryKey;
-	unsigned int dataSize;
-	unsigned int disabledValue;
+	void *registry_key;
+	unsigned int data_size;
+	unsigned int disabled_value;
 
-	g_netAutoDialRegistryChanged = 0;
+	g_net_auto_dial_registry_changed = 0;
 	if (RegOpenKeyExA(
 		    0x80000001u,
 		    "Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings",
-		    0, NET_REGISTRY_ALL_ACCESS, &registryKey) != 0) {
+		    0, NET_REGISTRY_ALL_ACCESS, &registry_key) != 0) {
 		return 0;
 	}
-	dataSize = 5;
-	if (RegQueryValueExA(registryKey, "EnableAutodial", NULL, NULL,
-			     g_netSavedEnableAutoDialValue, &dataSize) != 0) {
-		RegCloseKey(registryKey);
+	data_size = 5;
+	if (RegQueryValueExA(registry_key, "EnableAutodial", NULL, NULL,
+			     g_net_saved_enable_auto_dial_value,
+			     &data_size) != 0) {
+		RegCloseKey(registry_key);
 		return 0;
 	}
-	if (g_netSavedEnableAutoDialValue[0] == 0) {
-		RegCloseKey(registryKey);
+	if (g_net_saved_enable_auto_dial_value[0] == 0) {
+		RegCloseKey(registry_key);
 		return 0;
 	}
-	disabledValue = 0;
-	if (RegSetValueExA(registryKey, "EnableAutodial", 0,
-			   NET_REGISTRY_BINARY, &disabledValue, 4) != 0) {
-		RegCloseKey(registryKey);
+	disabled_value = 0;
+	if (RegSetValueExA(registry_key, "EnableAutodial", 0,
+			   NET_REGISTRY_BINARY, &disabled_value, 4) != 0) {
+		RegCloseKey(registry_key);
 		return 0;
 	}
-	g_netAutoDialRegistryChanged = 1;
-	RegCloseKey(registryKey);
+	g_net_auto_dial_registry_changed = 1;
+	RegCloseKey(registry_key);
 	return 1;
 #endif
 }
 
-/* When g_netAutoDialRegistryChanged is set, writes the first 4 bytes of
- * g_netSavedEnableAutoDialValue back to EnableAutodial, clears the flag and
+/* When g_net_auto_dial_registry_changed is set, writes the first 4 bytes of
+ * g_net_saved_enable_auto_dial_value back to EnableAutodial, clears the flag and
  * returns 1; else returns 0. The modern build does nothing and returns 0.
  * Only the original build calls this. */
 // FUNCTION: XVT 0x4D2CB0
-int Net_RestoreAutoDialRegistrySetting(void)
+int net_restore_auto_dial_registry_setting(void)
 {
 #ifdef XVT_MODERN
 	return 0;
 #else
-	void *registryKey;
+	void *registry_key;
 
-	if (g_netAutoDialRegistryChanged == 0) {
+	if (g_net_auto_dial_registry_changed == 0) {
 		return 0;
 	}
 	if (RegOpenKeyExA(
 		    0x80000001u,
 		    "Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings",
-		    0, NET_REGISTRY_ALL_ACCESS, &registryKey) != 0) {
+		    0, NET_REGISTRY_ALL_ACCESS, &registry_key) != 0) {
 		return 0;
 	}
-	if (RegSetValueExA(registryKey, "EnableAutodial", 0,
-			   NET_REGISTRY_BINARY, g_netSavedEnableAutoDialValue,
-			   4) != 0) {
-		RegCloseKey(registryKey);
+	if (RegSetValueExA(registry_key, "EnableAutodial", 0,
+			   NET_REGISTRY_BINARY,
+			   g_net_saved_enable_auto_dial_value, 4) != 0) {
+		RegCloseKey(registry_key);
 		return 0;
 	}
-	g_netAutoDialRegistryChanged = 0;
-	RegCloseKey(registryKey);
+	g_net_auto_dial_registry_changed = 0;
+	RegCloseKey(registry_key);
 	return 1;
 #endif
 }
@@ -6240,7 +6464,7 @@ int Net_RestoreAutoDialRegistrySetting(void)
  * player make up the roster count, or 0 after 10 seconds. Any other packet
  * read meanwhile is lost. Only the original build calls this. */
 // FUNCTION: XVT 0x4D2D40
-int Net_WaitForShutdownHandshakeAcks(void)
+int net_wait_for_shutdown_handshake_acks(void)
 {
 	enum {
 		NET_MAX_PLAYERS = 32,
@@ -6248,57 +6472,59 @@ int Net_WaitForShutdownHandshakeAcks(void)
 		NET_SHUTDOWN_TIMEOUT_MS = 10000
 	};
 
-	int shutdownPacket;
-	DPID senderId;
-	DPID acknowledgedPlayerIds[NET_MAX_PLAYERS];
-	uint32_t packetSize;
-	uint32_t currentTime;
-	uint32_t startTime;
-	uint32_t lastSendTime;
-	int acknowledgedPlayerCount;
-	unsigned int playerIndex;
+	int shutdown_packet;
+	DPID sender_id;
+	DPID acknowledged_player_ids[NET_MAX_PLAYERS];
+	uint32_t packet_size;
+	uint32_t current_time;
+	uint32_t start_time;
+	uint32_t last_send_time;
+	int acknowledged_player_count;
+	unsigned int player_index;
 	int *packet;
 
-	memset(acknowledgedPlayerIds, 0, sizeof(acknowledgedPlayerIds));
-	shutdownPacket = NET_PACKET_PING;
-	Net_SendDirectPlayPacket(0, &shutdownPacket, sizeof(shutdownPacket), 0);
-	acknowledgedPlayerCount = 1;
-	startTime = GetTickCount();
-	currentTime = startTime;
-	lastSendTime = GetTickCount();
-	while (currentTime - startTime < NET_SHUTDOWN_TIMEOUT_MS) {
-		currentTime = GetTickCount();
-		if (currentTime - lastSendTime >
+	memset(acknowledged_player_ids, 0, sizeof(acknowledged_player_ids));
+	shutdown_packet = NET_PACKET_PING;
+	net_send_direct_play_packet(0, &shutdown_packet,
+				    sizeof(shutdown_packet), 0);
+	acknowledged_player_count = 1;
+	start_time = GetTickCount();
+	current_time = start_time;
+	last_send_time = GetTickCount();
+	while (current_time - start_time < NET_SHUTDOWN_TIMEOUT_MS) {
+		current_time = GetTickCount();
+		if (current_time - last_send_time >
 		    NET_SHUTDOWN_RESEND_INTERVAL_MS) {
-			lastSendTime = currentTime;
-			Net_SendDirectPlayPacket(0, &shutdownPacket,
-						 sizeof(shutdownPacket), 0);
+			last_send_time = current_time;
+			net_send_direct_play_packet(0, &shutdown_packet,
+						    sizeof(shutdown_packet), 0);
 		}
-		packet = Net_GetNextAppPacket(&senderId, &packetSize);
+		packet = net_get_next_app_packet(&sender_id, &packet_size);
 		if (packet != NULL && *packet == NET_PACKET_PONG) {
-			for (playerIndex = 0; playerIndex < NET_MAX_PLAYERS;
-			     ++playerIndex) {
-				if (acknowledgedPlayerIds[playerIndex] ==
-				    senderId) {
+			for (player_index = 0; player_index < NET_MAX_PLAYERS;
+			     ++player_index) {
+				if (acknowledged_player_ids[player_index] ==
+				    sender_id) {
 					break;
 				}
 			}
-			if (playerIndex == NET_MAX_PLAYERS) {
-				++acknowledgedPlayerCount;
-				for (playerIndex = 0;
-				     playerIndex < NET_MAX_PLAYERS;
-				     ++playerIndex) {
-					if (acknowledgedPlayerIds
-						    [playerIndex] == 0) {
-						acknowledgedPlayerIds
-							[playerIndex] =
-								senderId;
+			if (player_index == NET_MAX_PLAYERS) {
+				++acknowledged_player_count;
+				for (player_index = 0;
+				     player_index < NET_MAX_PLAYERS;
+				     ++player_index) {
+					if (acknowledged_player_ids
+						    [player_index] == 0) {
+						acknowledged_player_ids
+							[player_index] =
+								sender_id;
 						break;
 					}
 				}
 			}
 		}
-		if (g_frontState.netPlayerCount <= acknowledgedPlayerCount) {
+		if (g_front_state.net_player_count <=
+		    acknowledged_player_count) {
 			return 1;
 		}
 	}

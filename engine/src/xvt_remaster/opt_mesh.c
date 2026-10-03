@@ -11,11 +11,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-static const uint64_t kRuntimeOptMaxBytes = 64u * 1024u * 1024u;
+static const uint64_t k_runtime_opt_max_bytes = 64u * 1024u * 1024u;
 
 #define OPT_ALPHA_OVERRIDE_MAX 256
 
-struct OptAlphaOverrideEntry {
+struct opt_alpha_override_entry {
 	char model[1024];
 	char texture[64];
 	AeronGltfAlphaMode mode;
@@ -26,7 +26,7 @@ static struct {
 	int loaded;
 	int valid;
 	size_t count;
-	struct OptAlphaOverrideEntry entries[OPT_ALPHA_OVERRIDE_MAX];
+	struct opt_alpha_override_entry entries[OPT_ALPHA_OVERRIDE_MAX];
 } s_alpha_overrides;
 
 static void opt_mesh_error(char *error, size_t error_size, const char *message)
@@ -126,7 +126,7 @@ static int opt_load_alpha_overrides(AeronVfs *vfs, char *error,
 		const char *mode_name = AeronConfigNode_String(mode_node, NULL);
 		const AeronConfigNodeType cutoff_type =
 			AeronConfigNode_Type(cutoff_node);
-		struct OptAlphaOverrideEntry *entry =
+		struct opt_alpha_override_entry *entry =
 			&s_alpha_overrides.entries[index];
 		if (AeronConfigNode_Type(node) != AERON_CONFIG_MAP || !model ||
 		    !model[0] || !texture || !texture[0] ||
@@ -153,7 +153,7 @@ static int opt_load_alpha_overrides(AeronVfs *vfs, char *error,
 		opt_normalize_path(entry->texture, sizeof entry->texture,
 				   texture);
 		for (size_t previous = 0; previous < index; ++previous) {
-			const struct OptAlphaOverrideEntry *other =
+			const struct opt_alpha_override_entry *other =
 				&s_alpha_overrides.entries[previous];
 			if (strcmp(entry->model, other->model) == 0 &&
 			    strcmp(entry->texture, other->texture) == 0) {
@@ -170,7 +170,7 @@ static int opt_load_alpha_overrides(AeronVfs *vfs, char *error,
 	return 1;
 }
 
-bool XvtRemasterOptMesh_Init(AeronVfs *vfs, char *error, size_t error_size)
+bool xvt_remaster_opt_mesh_init(AeronVfs *vfs, char *error, size_t error_size)
 {
 	if (error && error_size) {
 		error[0] = '\0';
@@ -195,7 +195,7 @@ static size_t opt_resolve_alpha_overrides(const char *model_path,
 	}
 	size_t count = 0;
 	for (size_t index = 0; index < s_alpha_overrides.count; ++index) {
-		const struct OptAlphaOverrideEntry *entry =
+		const struct opt_alpha_override_entry *entry =
 			&s_alpha_overrides.entries[index];
 		if (strcmp(normalized, entry->model) != 0 &&
 		    strcmp(installation_relative, entry->model) != 0) {
@@ -216,10 +216,10 @@ static size_t opt_resolve_alpha_overrides(const char *model_path,
 	return count;
 }
 
-bool XvtRemasterOptMesh_Build(AeronVfs *vfs, const char *resolved_path,
-			      const struct XvtModelSettings *settings,
-			      AeronFlightModel *out, char *error,
-			      size_t error_size)
+bool xvt_remaster_opt_mesh_build(AeronVfs *vfs, const char *resolved_path,
+				 const struct xvt_model_settings *settings,
+				 AeronFlightModel *out, char *error,
+				 size_t error_size)
 {
 	if (out) {
 		memset(out, 0, sizeof *out);
@@ -241,7 +241,7 @@ bool XvtRemasterOptMesh_Build(AeronVfs *vfs, const char *resolved_path,
 	size_t size = 0;
 	const char *path = resolved_path;
 	if (!AeronVfs_ReadAll(vfs, AERON_VFS_ROOT_ASSET, path,
-			      (size_t)kRuntimeOptMaxBytes, &bytes, &size)) {
+			      (size_t)k_runtime_opt_max_bytes, &bytes, &size)) {
 		opt_mesh_error(error, error_size,
 			       "original OPT not found or unreadable");
 		return false;
@@ -270,7 +270,7 @@ bool XvtRemasterOptMesh_Build(AeronVfs *vfs, const char *resolved_path,
 	return built;
 }
 
-void XvtRemasterOptMesh_Shutdown(void)
+void xvt_remaster_opt_mesh_shutdown(void)
 {
 	memset(&s_alpha_overrides, 0, sizeof s_alpha_overrides);
 }

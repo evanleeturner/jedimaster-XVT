@@ -8,38 +8,38 @@
 extern "C" {
 #endif
 
-struct CDAudioTrackCache {
-	/* CD volume, 0 to 65535, CDAudio_SetAuxVolume last set;
-	 * FrontendDisplay_Init and
-	 * FrontendDisplay_ResetGlobalStatePreservingNetworkSession clear it
-	 * with the rest of g_frontState. */
-	unsigned int currentAuxVolume;
+struct cd_audio_track_cache {
+	/* CD volume, 0 to 65535, cd_audio_set_aux_volume last set;
+	 * frontend_display_init and
+	 * frontend_display_reset_global_state_preserving_network_session clear it
+	 * with the rest of g_front_state. */
+	unsigned int current_aux_volume;
 	/* Length of track n + 1 in entry n, as MCI minutes, seconds and frames;
-	 * CDAudio_Initialize fills it, CDAudio_CloseDevice clears it. */
-	unsigned int trackLengthMsfByTrack[40];
+	 * cd_audio_initialize fills it, cd_audio_close_device clears it. */
+	unsigned int track_length_msf_by_track[40];
 };
 
-typedef enum CDAudioSuspendState {
-	CDAudio_NotSuspended = 0x0,
-	CDAudio_Suspended = 0x1,
-	CDAudio_ResumePending = 0x2,
-} CDAudioSuspendState;
+typedef enum cd_audio_suspend_state {
+	CD_AUDIO_NOT_SUSPENDED = 0x0,
+	CD_AUDIO_SUSPENDED = 0x1,
+	CD_AUDIO_RESUME_PENDING = 0x2,
+} cd_audio_suspend_state;
 
-int CDAudio_Initialize(void);
-int CDAudio_PlayTrackFromTime(int trackNumber, uint16_t startMinute,
-			      uint8_t startSecond);
-int CDAudio_StopCurrentTrack(void);
-void CDAudio_CloseDevice(void);
-int CDAudio_IsPlaybackComplete(void);
-int CDAudio_GetTrackLengthMs(int trackNumber);
-int CDAudio_EnableLoopCurrentTrack(void);
-int CDAudio_DisableLoopCurrentTrack(void);
-int CDAudio_SuspendPlayback(void);
-int CDAudio_RequestResumePlayback(void);
-int CDAudio_ResumeSuspendedPlayback(void);
-int CDAudio_SetAuxVolume(unsigned int volume0To65535);
-int CDAudio_FadeAuxVolume(unsigned int fromVolume, unsigned int toVolume,
-			  int fadeDurationMs);
+int cd_audio_initialize(void);
+int cd_audio_play_track_from_time(int track_number, uint16_t start_minute,
+				  uint8_t start_second);
+int cd_audio_stop_current_track(void);
+void cd_audio_close_device(void);
+int cd_audio_is_playback_complete(void);
+int cd_audio_get_track_length_ms(int track_number);
+int cd_audio_enable_loop_current_track(void);
+int cd_audio_disable_loop_current_track(void);
+int cd_audio_suspend_playback(void);
+int cd_audio_request_resume_playback(void);
+int cd_audio_resume_suspended_playback(void);
+int cd_audio_set_aux_volume(unsigned int volume0_to65535);
+int cd_audio_fade_aux_volume(unsigned int from_volume, unsigned int to_volume,
+			     int fade_duration_ms);
 
 #ifdef __cplusplus
 }

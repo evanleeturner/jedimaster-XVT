@@ -10,116 +10,116 @@
 #include <string.h>
 
 /* The joystick slot the centering prompt is waiting on, 0 to 2; 2 ends it.
- * Written only by FrontendJoystick_BeginCenteringPrompt, which sets it to 0 and
- * which nothing calls, and FrontendJoystick_UpdateCenteringPrompt. */
+ * Written only by frontend_joystick_begin_centering_prompt, which sets it to 0 and
+ * which nothing calls, and frontend_joystick_update_centering_prompt. */
 // GLOBAL: XVT 0x665430
-int g_frontendJoystickCenteringSlot = 0;
+int g_frontend_joystick_centering_slot = 0;
 /* The centering prompt's background color, the low byte of
- * FrontendDisplay_PackRGB(0, 0, 255). Written only by
- * FrontendJoystick_BeginCenteringPrompt, which nothing calls. */
+ * frontend_display_pack_rgb(0, 0, 255). Written only by
+ * frontend_joystick_begin_centering_prompt, which nothing calls. */
 // GLOBAL: XVT 0x665434
-uint8_t g_frontendJoystickCenteringFillColor = 0;
+uint8_t g_frontend_joystick_centering_fill_color = 0;
 
 /* Finds up to two joysticks through the system's joystick API and records them
- * in g_frontState, in slot order: for each device from 0 that reports its
+ * in g_front_state, in slot order: for each device from 0 that reports its
  * capabilities and then its position, the button count, whether it has a
  * point-of-view hat, its axis ranges, its current x and y as the center, the
  * scales (center - min) / 255 and (max - center) / 255 for each axis, its
- * device id, and joystickPresent 1. First clears joystickPresent and sets both
- * joystickInitFlags to 1, which nothing reads, unless the system reports no
+ * device id, and joystick_present 1. First clears joystick_present and sets both
+ * joystick_init_flags to 1, which nothing reads, unless the system reports no
  * device at all. Returns 1 when it found one or two, else 0. The modern build
  * raises each scale under 1 to 1. */
 // FUNCTION: XVT 0x4D5E70
-int Joystick_InitDevices(void)
+int joystick_init_devices(void)
 {
-	JOYINFOEX joystickInfo;
-	JOYCAPSA joystickCaps;
-	int deviceCount;
+	JOYINFOEX joystick_info;
+	JOYCAPSA joystick_caps;
+	int device_count;
 	int device;
 	int slot;
-	int initializedCount;
+	int initialized_count;
 
-	deviceCount = (int)joyGetNumDevs();
-	if (deviceCount == 0) {
+	device_count = (int)joyGetNumDevs();
+	if (device_count == 0) {
 		return 0;
 	}
 	slot = 0;
-	g_frontState.joystickPresent[1] = 0;
-	g_frontState.joystickPresent[0] = 0;
-	initializedCount = 0;
-	g_frontState.joystickInitFlags[1] = 1;
-	g_frontState.joystickInitFlags[0] = 1;
-	for (device = 0; device < deviceCount; ++device) {
-		if (joyGetDevCapsA((uint32_t)device, &joystickCaps,
-				   sizeof(joystickCaps)) == JOYERR_NOERROR) {
-			g_frontState.joystickButtonCount[slot] =
-				(uint8_t)joystickCaps.wNumButtons;
-			joystickInfo.dwSize = sizeof(joystickInfo);
-			joystickInfo.dwFlags = JOY_RETURNX | JOY_RETURNY |
-					       JOY_RETURNBUTTONS |
-					       JOY_RETURNCENTERED;
-			g_frontState.joystickHasPov[slot] =
-				(joystickCaps.wCaps & JOYCAPS_HASPOV) != 0;
-			if (joyGetPosEx((uint32_t)device, &joystickInfo) ==
+	g_front_state.joystick_present[1] = 0;
+	g_front_state.joystick_present[0] = 0;
+	initialized_count = 0;
+	g_front_state.joystick_init_flags[1] = 1;
+	g_front_state.joystick_init_flags[0] = 1;
+	for (device = 0; device < device_count; ++device) {
+		if (joyGetDevCapsA((uint32_t)device, &joystick_caps,
+				   sizeof(joystick_caps)) == JOYERR_NOERROR) {
+			g_front_state.joystick_button_count[slot] =
+				(uint8_t)joystick_caps.wNumButtons;
+			joystick_info.dwSize = sizeof(joystick_info);
+			joystick_info.dwFlags = JOY_RETURNX | JOY_RETURNY |
+						JOY_RETURNBUTTONS |
+						JOY_RETURNCENTERED;
+			g_front_state.joystick_has_pov[slot] =
+				(joystick_caps.wCaps & JOYCAPS_HASPOV) != 0;
+			if (joyGetPosEx((uint32_t)device, &joystick_info) ==
 			    JOYERR_NOERROR) {
-				g_frontState.joystickXMin[slot] =
-					joystickCaps.wXmin;
-				g_frontState.joystickXMax[slot] =
-					joystickCaps.wXmax;
-				g_frontState.joystickYMin[slot] =
-					joystickCaps.wYmin;
-				g_frontState.joystickYMax[slot] =
-					joystickCaps.wYmax;
-				g_frontState.joystickXCenter[slot] =
-					joystickInfo.dwXpos;
-				g_frontState.joystickYCenter[slot] =
-					joystickInfo.dwYpos;
-				g_frontState.joystickXNegativeScale[slot] =
-					(joystickInfo.dwXpos -
-					 joystickCaps.wXmin) /
+				g_front_state.joystick_x_min[slot] =
+					joystick_caps.wXmin;
+				g_front_state.joystick_x_max[slot] =
+					joystick_caps.wXmax;
+				g_front_state.joystick_y_min[slot] =
+					joystick_caps.wYmin;
+				g_front_state.joystick_y_max[slot] =
+					joystick_caps.wYmax;
+				g_front_state.joystick_x_center[slot] =
+					joystick_info.dwXpos;
+				g_front_state.joystick_y_center[slot] =
+					joystick_info.dwYpos;
+				g_front_state.joystick_x_negative_scale[slot] =
+					(joystick_info.dwXpos -
+					 joystick_caps.wXmin) /
 					255;
-				g_frontState.joystickXPositiveScale[slot] =
-					(joystickCaps.wXmax -
-					 joystickInfo.dwXpos) /
+				g_front_state.joystick_x_positive_scale[slot] =
+					(joystick_caps.wXmax -
+					 joystick_info.dwXpos) /
 					255;
-				g_frontState.joystickYNegativeScale[slot] =
-					(joystickInfo.dwYpos -
-					 joystickCaps.wYmin) /
+				g_front_state.joystick_y_negative_scale[slot] =
+					(joystick_info.dwYpos -
+					 joystick_caps.wYmin) /
 					255;
-				g_frontState.joystickYPositiveScale[slot] =
-					(joystickCaps.wYmax -
-					 joystickInfo.dwYpos) /
+				g_front_state.joystick_y_positive_scale[slot] =
+					(joystick_caps.wYmax -
+					 joystick_info.dwYpos) /
 					255;
 #ifdef XVT_MODERN
-				if (g_frontState.joystickXNegativeScale[slot] <
+				if (g_front_state
+					    .joystick_x_negative_scale[slot] <
 				    1) {
-					g_frontState
-						.joystickXNegativeScale[slot] =
-						1;
+					g_front_state.joystick_x_negative_scale
+						[slot] = 1;
 				}
-				if (g_frontState.joystickXPositiveScale[slot] <
+				if (g_front_state
+					    .joystick_x_positive_scale[slot] <
 				    1) {
-					g_frontState
-						.joystickXPositiveScale[slot] =
-						1;
+					g_front_state.joystick_x_positive_scale
+						[slot] = 1;
 				}
-				if (g_frontState.joystickYNegativeScale[slot] <
+				if (g_front_state
+					    .joystick_y_negative_scale[slot] <
 				    1) {
-					g_frontState
-						.joystickYNegativeScale[slot] =
-						1;
+					g_front_state.joystick_y_negative_scale
+						[slot] = 1;
 				}
-				if (g_frontState.joystickYPositiveScale[slot] <
+				if (g_front_state
+					    .joystick_y_positive_scale[slot] <
 				    1) {
-					g_frontState
-						.joystickYPositiveScale[slot] =
-						1;
+					g_front_state.joystick_y_positive_scale
+						[slot] = 1;
 				}
 #endif
-				g_frontState.joyDeviceIds[slot] =
+				g_front_state.joy_device_ids[slot] =
 					(unsigned int)device;
-				g_frontState.joystickPresent[slot] = 1;
-				++initializedCount;
+				g_front_state.joystick_present[slot] = 1;
+				++initialized_count;
 				++slot;
 				if (slot >= 2) {
 					break;
@@ -127,184 +127,189 @@ int Joystick_InitDevices(void)
 			}
 		}
 	}
-	return initializedCount != 0;
+	return initialized_count != 0;
 }
 
 /* Only the original build calls this. Returns how many of the two slots hold a
  * joystick, 0 to 2. */
 // FUNCTION: XVT 0x4D5FC0
-int Joystick_GetCount(void)
+int joystick_get_count(void)
 {
-	int joystickCount = 0;
-	if (g_frontState.joystickPresent[0] != 0) {
-		joystickCount = 1;
+	int joystick_count = 0;
+	if (g_front_state.joystick_present[0] != 0) {
+		joystick_count = 1;
 	}
-	if (g_frontState.joystickPresent[1] != 0) {
-		++joystickCount;
+	if (g_front_state.joystick_present[1] != 0) {
+		++joystick_count;
 	}
-	return joystickCount;
+	return joystick_count;
 }
 
-/* Reads joystick slot joySlot's position, buttons and hat into g_frontState;
+/* Reads joystick slot joy_slot's position, buttons and hat into g_front_state;
  * the frame loops call it for both slots every 100 ms. Does nothing for a slot
- * over 1 or without a joystick. Sets joystickAxisX and joystickAxisY to the
+ * over 1 or without a joystick. Sets joystick_axis_x and joystick_axis_y to the
  * offset from the center divided by that side's scale, or 0 while the offset is
- * from -1000 to 1000. For each of 32 buttons sets joystickButtonHeld to 1 when
- * it is down and joystickButtonReleased to 1 when it is up now but was held at
- * the last read. With a hat it sets joystickPovDirection to 0 when centered,
+ * from -1000 to 1000. For each of 32 buttons sets joystick_button_held to 1 when
+ * it is down and joystick_button_released to 1 when it is up now but was held at
+ * the last read. With a hat it sets joystick_pov_direction to 0 when centered,
  * else to dwPOV / 9000 + 1, dwPOV being hundredths of a degree clockwise from
  * forward. The modern build also refuses negative slots, and a failed read
  * clears the slot's buttons and axes and marks it absent; the original build
  * does not check the read. */
 // FUNCTION: XVT 0x4D5FE0
-void Joystick_UpdateState(int joySlot)
+void joystick_update_state(int joy_slot)
 {
-	JOYINFOEX joystickInfo;
-	int axisDeltaX;
-	int axisDeltaY;
-	unsigned int buttonMask;
-	int buttonIndex;
+	JOYINFOEX joystick_info;
+	int axis_delta_x;
+	int axis_delta_y;
+	unsigned int button_mask;
+	int button_index;
 
 #ifdef XVT_MODERN
-	if ((unsigned int)joySlot >= 2 ||
-	    g_frontState.joystickPresent[joySlot] == 0) {
+	if ((unsigned int)joy_slot >= 2 ||
+	    g_front_state.joystick_present[joy_slot] == 0) {
 #else
-	if (joySlot > 1 || g_frontState.joystickPresent[joySlot] == 0) {
+	if (joy_slot > 1 || g_front_state.joystick_present[joy_slot] == 0) {
 #endif
 		return;
 	}
-	joystickInfo.dwSize = sizeof(joystickInfo);
-	joystickInfo.dwFlags = JOY_RETURNX | JOY_RETURNY | JOY_RETURNBUTTONS |
-			       JOY_RETURNPOV | JOY_RETURNCENTERED;
+	joystick_info.dwSize = sizeof(joystick_info);
+	joystick_info.dwFlags = JOY_RETURNX | JOY_RETURNY | JOY_RETURNBUTTONS |
+				JOY_RETURNPOV | JOY_RETURNCENTERED;
 #ifdef XVT_MODERN
-	if (joyGetPosEx(g_frontState.joyDeviceIds[joySlot], &joystickInfo) !=
-	    JOYERR_NOERROR) {
-		memset(g_frontState.joystickButtonHeld[joySlot], 0,
-		       sizeof(g_frontState.joystickButtonHeld[joySlot]));
-		memset(g_frontState.joystickButtonReleased[joySlot], 0,
-		       sizeof(g_frontState.joystickButtonReleased[joySlot]));
-		g_frontState.joystickAxisX[joySlot] =
-			g_frontState.joystickAxisY[joySlot] = 0;
-		g_frontState.joystickPresent[joySlot] = 0;
+	if (joyGetPosEx(g_front_state.joy_device_ids[joy_slot],
+			&joystick_info) != JOYERR_NOERROR) {
+		memset(g_front_state.joystick_button_held[joy_slot], 0,
+		       sizeof(g_front_state.joystick_button_held[joy_slot]));
+		memset(g_front_state.joystick_button_released[joy_slot], 0,
+		       sizeof(g_front_state
+				      .joystick_button_released[joy_slot]));
+		g_front_state.joystick_axis_x[joy_slot] =
+			g_front_state.joystick_axis_y[joy_slot] = 0;
+		g_front_state.joystick_present[joy_slot] = 0;
 		return;
 	}
 #else
-	joyGetPosEx(g_frontState.joyDeviceIds[joySlot], &joystickInfo);
+	joyGetPosEx(g_front_state.joy_device_ids[joy_slot], &joystick_info);
 #endif
 
-	axisDeltaX = (int)joystickInfo.dwXpos -
-		     g_frontState.joystickXCenter[joySlot];
-	axisDeltaY = (int)joystickInfo.dwYpos -
-		     g_frontState.joystickYCenter[joySlot];
-	if (axisDeltaX > 1000 || axisDeltaX < -1000) {
-		if (axisDeltaX < 0) {
-			g_frontState.joystickAxisX[joySlot] =
-				axisDeltaX /
-				g_frontState.joystickXNegativeScale[joySlot];
+	axis_delta_x = (int)joystick_info.dwXpos -
+		       g_front_state.joystick_x_center[joy_slot];
+	axis_delta_y = (int)joystick_info.dwYpos -
+		       g_front_state.joystick_y_center[joy_slot];
+	if (axis_delta_x > 1000 || axis_delta_x < -1000) {
+		if (axis_delta_x < 0) {
+			g_front_state.joystick_axis_x[joy_slot] =
+				axis_delta_x /
+				g_front_state
+					.joystick_x_negative_scale[joy_slot];
 		} else {
-			g_frontState.joystickAxisX[joySlot] =
-				axisDeltaX /
-				g_frontState.joystickXPositiveScale[joySlot];
+			g_front_state.joystick_axis_x[joy_slot] =
+				axis_delta_x /
+				g_front_state
+					.joystick_x_positive_scale[joy_slot];
 		}
 	} else {
-		g_frontState.joystickAxisX[joySlot] = 0;
+		g_front_state.joystick_axis_x[joy_slot] = 0;
 	}
-	if (axisDeltaY > 1000 || axisDeltaY < -1000) {
-		if (axisDeltaY < 0) {
-			g_frontState.joystickAxisY[joySlot] =
-				axisDeltaY /
-				g_frontState.joystickYNegativeScale[joySlot];
+	if (axis_delta_y > 1000 || axis_delta_y < -1000) {
+		if (axis_delta_y < 0) {
+			g_front_state.joystick_axis_y[joy_slot] =
+				axis_delta_y /
+				g_front_state
+					.joystick_y_negative_scale[joy_slot];
 		} else {
-			g_frontState.joystickAxisY[joySlot] =
-				axisDeltaY /
-				g_frontState.joystickYPositiveScale[joySlot];
+			g_front_state.joystick_axis_y[joy_slot] =
+				axis_delta_y /
+				g_front_state
+					.joystick_y_positive_scale[joy_slot];
 		}
 	} else {
-		g_frontState.joystickAxisY[joySlot] = 0;
+		g_front_state.joystick_axis_y[joy_slot] = 0;
 	}
 
-	buttonMask = 1;
-	for (buttonIndex = 0; buttonIndex < 32; ++buttonIndex) {
-		g_frontState.joystickButtonReleased[joySlot][buttonIndex] =
-			(joystickInfo.dwButtons & buttonMask) == 0 &&
-			g_frontState.joystickButtonHeld[joySlot][buttonIndex] ==
-				1;
-		g_frontState.joystickButtonHeld[joySlot][buttonIndex] =
-			(joystickInfo.dwButtons & buttonMask) != 0;
-		buttonMask <<= 1;
+	button_mask = 1;
+	for (button_index = 0; button_index < 32; ++button_index) {
+		g_front_state.joystick_button_released[joy_slot][button_index] =
+			(joystick_info.dwButtons & button_mask) == 0 &&
+			g_front_state.joystick_button_held[joy_slot]
+							  [button_index] == 1;
+		g_front_state.joystick_button_held[joy_slot][button_index] =
+			(joystick_info.dwButtons & button_mask) != 0;
+		button_mask <<= 1;
 	}
 
-	if (g_frontState.joystickHasPov[joySlot] != 0) {
-		if (joystickInfo.dwPOV == JOY_POVCENTERED) {
-			g_frontState.joystickPovDirection[joySlot] = 0;
+	if (g_front_state.joystick_has_pov[joy_slot] != 0) {
+		if (joystick_info.dwPOV == JOY_POVCENTERED) {
+			g_front_state.joystick_pov_direction[joy_slot] = 0;
 		} else {
-			g_frontState.joystickPovDirection[joySlot] =
-				(uint8_t)(joystickInfo.dwPOV / 0x2328u) + 1;
+			g_front_state.joystick_pov_direction[joy_slot] =
+				(uint8_t)(joystick_info.dwPOV / 0x2328u) + 1;
 		}
 	}
 }
 
-/* Only FrontendJoystick_UpdateCenteringPrompt calls this, and nothing reaches
+/* Only frontend_joystick_update_centering_prompt calls this, and nothing reaches
  * that. Returns 1 when button 0 of the slot's joystick came up at the last read
  * and no frame has cleared the flag since; 0 for a slot over 1 or without a
  * joystick. */
 // FUNCTION: XVT 0x4D61E0
-int Joystick_IsButton0Released(int joystickSlot)
+int joystick_is_button0_released(int joystick_slot)
 {
 #ifdef XVT_MODERN
-	if ((unsigned int)joystickSlot >= 2) {
+	if ((unsigned int)joystick_slot >= 2) {
 #else
-	if (joystickSlot > 1) {
+	if (joystick_slot > 1) {
 #endif
 		return 0;
 	}
-	if (g_frontState.joystickPresent[joystickSlot] == 0) {
+	if (g_front_state.joystick_present[joystick_slot] == 0) {
 		return 0;
 	}
-	return g_frontState.joystickButtonReleased[joystickSlot][0];
+	return g_front_state.joystick_button_released[joystick_slot][0];
 }
 
-/* Only FrontendJoystick_UpdateCenteringPrompt calls this, and nothing reaches
+/* Only frontend_joystick_update_centering_prompt calls this, and nothing reaches
  * that. Returns 1 when button 1 of the slot's joystick came up at the last read
  * and no frame has cleared the flag since; 0 for a slot over 1 or without a
  * joystick. */
 // FUNCTION: XVT 0x4D6210
-int Joystick_IsButton1Released(int joystickSlot)
+int joystick_is_button1_released(int joystick_slot)
 {
 #ifdef XVT_MODERN
-	if ((unsigned int)joystickSlot >= 2) {
+	if ((unsigned int)joystick_slot >= 2) {
 #else
-	if (joystickSlot > 1) {
+	if (joystick_slot > 1) {
 #endif
 		return 0;
 	}
-	if (g_frontState.joystickPresent[joystickSlot] == 0) {
+	if (g_front_state.joystick_present[joystick_slot] == 0) {
 		return 0;
 	}
-	return g_frontState.joystickButtonReleased[joystickSlot][1];
+	return g_front_state.joystick_button_released[joystick_slot][1];
 }
 
 /* Returns the lowest-numbered button, 0 to 31, held at the slot's last read, or
  * -1 when none is, the slot is over 1 or it has no joystick. */
 // FUNCTION: XVT 0x4D6240
-int Joystick_GetFirstPressedButton(int joySlot)
+int joystick_get_first_pressed_button(int joy_slot)
 {
-	int buttonIndex;
+	int button_index;
 
 #ifdef XVT_MODERN
-	if ((unsigned int)joySlot >= 2)
+	if ((unsigned int)joy_slot >= 2)
 #else
-	if (joySlot > 1)
+	if (joy_slot > 1)
 #endif
 		return -1;
-	if (g_frontState.joystickPresent[joySlot] == 0) {
+	if (g_front_state.joystick_present[joy_slot] == 0) {
 		return -1;
 	}
 
-	for (buttonIndex = 0; buttonIndex < 32; ++buttonIndex) {
-		if (g_frontState.joystickButtonHeld[joySlot][buttonIndex] !=
-		    0) {
-			return buttonIndex;
+	for (button_index = 0; button_index < 32; ++button_index) {
+		if (g_front_state.joystick_button_held[joy_slot]
+						      [button_index] != 0) {
+			return button_index;
 		}
 	}
 	return -1;
@@ -314,153 +319,155 @@ int Joystick_GetFirstPressedButton(int joySlot)
  * released flag is set, or -1 when none is, the slot is over 1 or it has no
  * joystick. */
 // FUNCTION: XVT 0x4D6280
-int Joystick_GetFirstReleasedButton(int joystickSlot)
+int joystick_get_first_released_button(int joystick_slot)
 {
-	int buttonIndex;
+	int button_index;
 
 #ifdef XVT_MODERN
-	if ((unsigned int)joystickSlot >= 2)
+	if ((unsigned int)joystick_slot >= 2)
 #else
-	if (joystickSlot > 1)
+	if (joystick_slot > 1)
 #endif
 		return -1;
-	if (g_frontState.joystickPresent[joystickSlot] == 0) {
+	if (g_front_state.joystick_present[joystick_slot] == 0) {
 		return -1;
 	}
 
-	for (buttonIndex = 0; buttonIndex < 32; ++buttonIndex) {
-		if (g_frontState.joystickButtonReleased[joystickSlot]
-						       [buttonIndex] != 0) {
-			return buttonIndex;
+	for (button_index = 0; button_index < 32; ++button_index) {
+		if (g_front_state.joystick_button_released[joystick_slot]
+							  [button_index] != 0) {
+			return button_index;
 		}
 	}
 	return -1;
 }
 
-/* Returns the slot's joystickPovDirection, 0 when the hat is centered or
+/* Returns the slot's joystick_pov_direction, 0 when the hat is centered or
  * absent, else dwPOV / 9000 + 1 from the last read; 0 for a slot over 1. Does
  * not check that a joystick is present. */
 // FUNCTION: XVT 0x4D62C0
-int Joystick_GetPovDirection(int joySlot)
+int joystick_get_pov_direction(int joy_slot)
 {
 #ifdef XVT_MODERN
-	if ((unsigned int)joySlot >= 2)
+	if ((unsigned int)joy_slot >= 2)
 #else
-	if (joySlot > 1)
+	if (joy_slot > 1)
 #endif
 		return 0;
-	return g_frontState.joystickPovDirection[joySlot];
+	return g_front_state.joystick_pov_direction[joy_slot];
 }
 
 /* Returns 1 when the slot's joystick reported a point-of-view hat, else 0; 0
  * for a slot over 1. */
 // FUNCTION: XVT 0x4D62E0
-int Joystick_HasPov(int joySlot)
+int joystick_has_pov(int joy_slot)
 {
 #ifdef XVT_MODERN
-	if ((unsigned int)joySlot >= 2)
+	if ((unsigned int)joy_slot >= 2)
 #else
-	if (joySlot > 1)
+	if (joy_slot > 1)
 #endif
 		return 0;
-	return g_frontState.joystickHasPov[joySlot];
+	return g_front_state.joystick_has_pov[joy_slot];
 }
 
 /* Returns the button count the slot's joystick reported, or 0 for a slot over
  * 1. */
 // FUNCTION: XVT 0x4D6300
-int Joystick_GetButtonCount(int joySlot)
+int joystick_get_button_count(int joy_slot)
 {
 #ifdef XVT_MODERN
-	if ((unsigned int)joySlot >= 2)
+	if ((unsigned int)joy_slot >= 2)
 #else
-	if (joySlot > 1)
+	if (joy_slot > 1)
 #endif
 		return 0;
-	return g_frontState.joystickButtonCount[joySlot];
+	return g_front_state.joystick_button_count[joy_slot];
 }
 
-/* Nothing calls this. Sets g_frontendJoystickCenteringSlot to 0 and
- * g_frontendJoystickCenteringFillColor to the low byte of
- * FrontendDisplay_PackRGB(0, 0, 255), then queues
- * FrontendJoystick_UpdateCenteringPrompt as a screen over the rect from (120,
- * 190) to (520, 290) and returns FrontendScreen_QueuePush's 1. */
+/* Nothing calls this. Sets g_frontend_joystick_centering_slot to 0 and
+ * g_frontend_joystick_centering_fill_color to the low byte of
+ * frontend_display_pack_rgb(0, 0, 255), then queues
+ * frontend_joystick_update_centering_prompt as a screen over the rect from (120,
+ * 190) to (520, 290) and returns frontend_screen_queue_push's 1. */
 // FUNCTION: XVT 0x4D6320
-int FrontendJoystick_BeginCenteringPrompt(void)
+int frontend_joystick_begin_centering_prompt(void)
 {
-	struct RECT screenRect;
-	int fillColor;
+	struct RECT screen_rect;
+	int fill_color;
 
-	screenRect.left = 120;
-	screenRect.right = 520;
-	screenRect.top = 190;
-	screenRect.bottom = 290;
-	fillColor = FrontendDisplay_PackRGB(0, 0, 255);
-	g_frontendJoystickCenteringFillColor = (uint8_t)fillColor;
-	g_frontendJoystickCenteringSlot = 0;
-	return FrontendScreen_QueuePush(FrontendJoystick_UpdateCenteringPrompt,
-					&screenRect);
+	screen_rect.left = 120;
+	screen_rect.right = 520;
+	screen_rect.top = 190;
+	screen_rect.bottom = 290;
+	fill_color = frontend_display_pack_rgb(0, 0, 255);
+	g_frontend_joystick_centering_fill_color = (uint8_t)fill_color;
+	g_frontend_joystick_centering_slot = 0;
+	return frontend_screen_queue_push(
+		frontend_joystick_update_centering_prompt, &screen_rect);
 }
 
 /* The centering prompt's frame function, reached only through
- * FrontendJoystick_BeginCenteringPrompt, which nothing calls. For each slot
+ * frontend_joystick_begin_centering_prompt, which nothing calls. For each slot
  * with a joystick in turn it fills the screen's rect in
- * g_frontendJoystickCenteringFillColor, draws "Center joystick <n> and press a
+ * g_frontend_joystick_centering_fill_color, draws "Center joystick <n> and press a
  * button." centered in the size-20 font in color 255, and waits for button 0 or
  * 1 to come up; empty slots are skipped. After slot 1 it flushes the typed
  * characters and pops the screen. It records no center: the centers stay what
- * Joystick_InitDevices read. Returns 0. Ignores frameCounter. */
+ * joystick_init_devices read. Returns 0. Ignores frame_counter. */
 // FUNCTION: XVT 0x4D6380
-int FrontendJoystick_UpdateCenteringPrompt(int frameCounter)
+int frontend_joystick_update_centering_prompt(int frame_counter)
 {
-	int joystickSlot;
-	struct RECT *screenRect;
-	char promptText[100];
+	int joystick_slot;
+	struct RECT *screen_rect;
+	char prompt_text[100];
 
-	(void)frameCounter;
-	joystickSlot = g_frontendJoystickCenteringSlot;
-	if (g_frontState.joystickPresent[g_frontendJoystickCenteringSlot] ==
+	(void)frame_counter;
+	joystick_slot = g_frontend_joystick_centering_slot;
+	if (g_front_state
+		    .joystick_present[g_frontend_joystick_centering_slot] ==
 	    0) {
-		++joystickSlot;
+		++joystick_slot;
 	} else {
-		screenRect =
-			&g_frontState
-				 .screenStates[g_frontState.screenStackTop - 1]
-				 .savedRect;
-		FrontendDraw_Rect(screenRect, 0, 0,
-				  g_frontendJoystickCenteringFillColor, 1);
-		sprintf(promptText, "Center joystick %d and press a button.",
-			g_frontendJoystickCenteringSlot + 1);
-		FrontendText_DrawCentered(20, promptText, screenRect, 255);
-		if (Joystick_IsButton0Released(
-			    g_frontendJoystickCenteringSlot) != 0 ||
-		    Joystick_IsButton1Released(
-			    g_frontendJoystickCenteringSlot) != 0) {
-			joystickSlot = g_frontendJoystickCenteringSlot + 1;
+		screen_rect =
+			&g_front_state
+				 .screen_states[g_front_state.screen_stack_top -
+						1]
+				 .saved_rect;
+		frontend_draw_rect(screen_rect, 0, 0,
+				   g_frontend_joystick_centering_fill_color, 1);
+		sprintf(prompt_text, "Center joystick %d and press a button.",
+			g_frontend_joystick_centering_slot + 1);
+		frontend_text_draw_centered(20, prompt_text, screen_rect, 255);
+		if (joystick_is_button0_released(
+			    g_frontend_joystick_centering_slot) != 0 ||
+		    joystick_is_button1_released(
+			    g_frontend_joystick_centering_slot) != 0) {
+			joystick_slot = g_frontend_joystick_centering_slot + 1;
 		} else {
-			joystickSlot = g_frontendJoystickCenteringSlot;
+			joystick_slot = g_frontend_joystick_centering_slot;
 		}
 	}
-	g_frontendJoystickCenteringSlot = joystickSlot;
-	if (joystickSlot >= 2) {
-		Keyboard_FlushCharBuffer();
-		FrontendScreen_PopState();
+	g_frontend_joystick_centering_slot = joystick_slot;
+	if (joystick_slot >= 2) {
+		keyboard_flush_char_buffer();
+		frontend_screen_pop_state();
 	}
 	return 0;
 }
 
-/* Returns the system device id of the joystick in slot joySlot, or 0 for a slot
+/* Returns the system device id of the joystick in slot joy_slot, or 0 for a slot
  * out of range: over 1 in the modern build, over 2 in the original build, which
- * for slot 2 reads joyDeviceIds[2], past the array's end. Does not check that a
+ * for slot 2 reads joy_device_ids[2], past the array's end. Does not check that a
  * joystick is present. */
 // FUNCTION: XVT 0x4D6440
-unsigned int Joystick_GetDeviceId(int joySlot)
+unsigned int joystick_get_device_id(int joy_slot)
 {
 #ifdef XVT_MODERN
-	if ((unsigned int)joySlot >= 2)
+	if ((unsigned int)joy_slot >= 2)
 #else
-	if (joySlot > 2)
+	if (joy_slot > 2)
 #endif
 		return 0;
-	return g_frontState.joyDeviceIds[joySlot];
+	return g_front_state.joy_device_ids[joy_slot];
 }

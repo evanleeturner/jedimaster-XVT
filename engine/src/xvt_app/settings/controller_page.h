@@ -21,11 +21,11 @@
  * active_kind the one whose edit state is current; pending_axis, pending_axis_source, pending_digital,
  * conflicting_action and conflict_text feed the conflict dialogs; discover_failed marks an error that
  * Discover owns and clears. */
-struct XvtControllerSettings {
-	struct XvtBindingsEditor editor;
-	struct XvtControllerOptions original;
-	struct XvtControllerOptions draft;
-	struct XvtControllerProfile unconfigured;
+struct xvt_controller_settings {
+	struct xvt_bindings_editor editor;
+	struct xvt_controller_options original;
+	struct xvt_controller_options draft;
+	struct xvt_controller_profile unconfigured;
 	char selected_guid[33];
 	uint32_t selected_instance;
 	AeronControllerKind active_kind;
@@ -33,10 +33,10 @@ struct XvtControllerSettings {
 	bool discover_failed;
 	int page;
 	int selected_axis;
-	XvtInputAxis pending_axis;
+	xvt_input_axis pending_axis;
 	int pending_axis_source;
 	AeronControllerDigitalSource pending_digital;
-	XvtInputAction conflicting_action;
+	xvt_input_action conflicting_action;
 	uint32_t active_instance;
 	int axis_conflict_open;
 	int binding_conflict_open;
@@ -48,14 +48,14 @@ struct XvtControllerSettings {
 /* Adds each connected gamepad without a model to the draft, with the defaults profile; when the count
  * grew, resets the edit state, marks the draft dirty and hands it to the mapping. A failure's message
  * stays in error until a later call succeeds. */
-void XvtControllerSettings_Discover(
-	struct XvtControllerSettings *settings, AeronUiContext *ui,
+void xvt_controller_settings_discover(
+	struct xvt_controller_settings *settings, AeronUiContext *ui,
 	const AeronInputSnapshot *input,
-	const struct XvtControllerProfile *defaults);
+	const struct xvt_controller_profile *defaults);
 /* Nothing for a NULL argument. Zeroes settings, takes config's controller models as the original and the
  * draft, clears the editor, starts at the Yaw axis and clears the unconfigured profile as a joystick's. */
-void XvtControllerSettings_Open(struct XvtControllerSettings *settings,
-				const struct XvtSettings *config);
+void xvt_controller_settings_open(struct xvt_controller_settings *settings,
+				  const struct xvt_settings *config);
 /* Nothing for a NULL argument. Draws the Device selector over the connected controllers (a repeated name
  * gets "#<slot>"; with none, a hint, and the selection and edit state are dropped), resets the edit state
  * when the selected device or its kind changed, notes when several controllers share the model and which
@@ -68,9 +68,9 @@ void XvtControllerSettings_Open(struct XvtControllerSettings *settings,
  * Deadzone (not for the throttle) and Clear Binding. Then the error with Dismiss Error, and
  * Restore Controller Defaults, enabled with a device selected, which opens the
  * restore modal. */
-void XvtControllerSettings_Draw(struct XvtControllerSettings *settings,
-				AeronUiContext *ui,
-				const AeronInputSnapshot *input);
+void xvt_controller_settings_draw(struct xvt_controller_settings *settings,
+				  AeronUiContext *ui,
+				  const AeronInputSnapshot *input);
 /* Nothing for a NULL argument. With no compatible device selected, cancels the capture and closes the
  * conflict and detail modals. Draws at most one modal: the axis conflict (Replace installs the pending
  * source on the pending axis, unbinding that axis on every other model and that source from this
@@ -81,18 +81,17 @@ void XvtControllerSettings_Draw(struct XvtControllerSettings *settings,
  * Threshold slider (5 to 100 %) for an axis-direction binding, Remove, and Add Binding, where a control
  * bound to another action opens the conflict dialog, one bound to this action is highlighted, and a full
  * profile is refused with a message. */
-void XvtControllerSettings_DrawModals(struct XvtControllerSettings *settings,
-				      AeronUiContext *ui,
-				      const AeronInputSnapshot *input,
-				      const struct XvtSettings *config);
+void xvt_controller_settings_draw_modals(
+	struct xvt_controller_settings *settings, AeronUiContext *ui,
+	const AeronInputSnapshot *input, const struct xvt_settings *config);
 /* false with "controller settings are unavailable" for NULL settings or no loaded settings. Nothing when
  * the draft is unchanged. Stores the draft as the user's controller list (false with error on failure);
  * on success the stored list becomes the original and the draft. */
-bool XvtControllerSettings_Commit(struct XvtControllerSettings *settings,
-				  char *error, size_t error_capacity);
+bool xvt_controller_settings_commit(struct xvt_controller_settings *settings,
+				    char *error, size_t error_capacity);
 /* Cancels the UI's controller capture (with a ui) and closes the axis conflict, binding conflict and
  * detail modals (with settings). */
-void XvtControllerSettings_CancelCapture(struct XvtControllerSettings *settings,
-					 AeronUiContext *ui);
+void xvt_controller_settings_cancel_capture(
+	struct xvt_controller_settings *settings, AeronUiContext *ui);
 
 #endif

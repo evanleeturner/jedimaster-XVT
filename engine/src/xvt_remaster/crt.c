@@ -5,7 +5,7 @@
 
 static AeronShader *g_vs, *g_fs;
 static AeronGraphicsPipeline *g_pipeline;
-static AeronSampler *g_colorSampler, *g_maskSampler;
+static AeronSampler *g_color_sampler, *g_mask_sampler;
 static AeronTexture *g_mask, *g_color;
 
 static struct {
@@ -18,7 +18,7 @@ static struct {
 static float g_uniform[8];
 static AeronRectI g_viewport;
 
-static int Resources(void)
+static int crt_resources(void)
 {
 	if (g_pipeline) {
 		return 1;
@@ -54,15 +54,15 @@ static int Resources(void)
 				    .mag_filter = AERON_FILTER_LINEAR,
 				    .address_u = AERON_ADDRESS_CLAMP_TO_EDGE,
 				    .address_v = AERON_ADDRESS_CLAMP_TO_EDGE};
-	g_colorSampler = Aeron_CreateSampler(&sampler);
+	g_color_sampler = Aeron_CreateSampler(&sampler);
 	sampler.min_filter = sampler.mag_filter = AERON_FILTER_NEAREST;
-	g_maskSampler = Aeron_CreateSampler(&sampler);
-	return g_pipeline && g_colorSampler && g_maskSampler;
+	g_mask_sampler = Aeron_CreateSampler(&sampler);
+	return g_pipeline && g_color_sampler && g_mask_sampler;
 }
 
-static int PrepareMask(AeronCommandBuffer *cmd, unsigned index,
-		       const uint8_t *bytes, unsigned size, int width,
-		       int height)
+static int prepare_mask(AeronCommandBuffer *cmd, unsigned index,
+			const uint8_t *bytes, unsigned size, int width,
+			int height)
 {
 	if (g_masks[index].texture && width == g_masks[index].width &&
 	    height == g_masks[index].height && size == g_masks[index].size &&
@@ -138,16 +138,16 @@ invalid:
 	return 0;
 }
 
-int XvtCrt_PrepareView(const struct XvtSnapPreview *preview,
-		       const struct XvtSnapCockpitLayout *layout,
-		       AeronTexture *color, int width, int height, float scale,
-		       float ox, float oy)
+int xvt_crt_prepare_view(const struct xvt_snap_preview *preview,
+			 const struct xvt_snap_cockpit_layout *layout,
+			 AeronTexture *color, int width, int height,
+			 float scale, float ox, float oy)
 {
 	g_color = NULL;
 	if (!preview || !color) {
 		return 1;
 	}
-	struct XvtSnapRect r = preview->destination;
+	struct xvt_snap_rect r = preview->destination;
 	unsigned index = preview->mask_index;
 	unsigned size = index < 3 ? layout->mask_bytes[index] : 0;
 	if (size > sizeof g_masks[0].bytes || r.width <= 0 || r.height <= 0 ||
@@ -176,7 +176,7 @@ int XvtCrt_PrepareView(const struct XvtSnapPreview *preview,
 	return 1;
 }
 
-void XvtCrt_Draw(AeronRenderPass *pass)
+void xvt_crt_draw(AeronRenderPass *pass)
 {
 	if (!g_color) {
 		return;
@@ -185,15 +185,15 @@ void XvtCrt_Draw(AeronRenderPass *pass)
 	Aeron_SetScissor(pass, &g_viewport);
 	Aeron_BindGraphicsPipeline(pass, g_pipeline);
 	Aeron_BindTextureSampler(pass, AERON_SHADER_STAGE_FRAGMENT, 0, g_color,
-				 g_colorSampler);
+				 g_color_sampler);
 	Aeron_BindTextureSampler(pass, AERON_SHADER_STAGE_FRAGMENT, 1, g_mask,
-				 g_maskSampler);
+				 g_mask_sampler);
 	Aeron_BindUniformData(pass, AERON_SHADER_STAGE_VERTEX, 0, g_uniform,
 			      sizeof g_uniform);
 	Aeron_Draw(pass, 4, 0);
 }
 
-void XvtCrt_Shutdown(void)
+void xvt_crt_shutdown(void)
 {
 	g_color = NULL;
 	for (unsigned index = 0; index < 3; ++index) {
@@ -206,19 +206,19 @@ void XvtCrt_Shutdown(void)
 	Aeron_DestroyShader(g_vs);
 	Aeron_DestroyShader(g_fs);
 	g_vs = g_fs = NULL;
-	Aeron_DestroySampler(g_colorSampler);
-	Aeron_DestroySampler(g_maskSampler);
-	g_colorSampler = g_maskSampler = NULL;
+	Aeron_DestroySampler(g_color_sampler);
+	Aeron_DestroySampler(g_mask_sampler);
+	g_color_sampler = g_mask_sampler = NULL;
 }
 
-int XvtCrt_PrepareResources(AeronCommandBuffer *cmd,
-			    const struct XvtCockpitResources *resources)
+int xvt_crt_prepare_resources(AeronCommandBuffer *cmd,
+			      const struct xvt_cockpit_resources *resources)
 {
-	if (!Resources()) {
+	if (!crt_resources()) {
 		return 0;
 	}
 	for (unsigned index = 0; index < 3; ++index) {
-		const struct XvtSnapHudElement *element =
+		const struct xvt_snap_hud_element *element =
 			&resources->definition.layout
 				 .elements[index * HUD_INSTRUMENTS_PER_SET + 2];
 		unsigned size = resources->definition.layout.mask_bytes[index];
@@ -226,10 +226,10 @@ int XvtCrt_PrepareResources(AeronCommandBuffer *cmd,
 			continue;
 		}
 		if (size > sizeof g_masks[index].bytes ||
-		    !PrepareMask(cmd, index,
-				 resources->definition.layout.masks[index],
-				 size, element->selector,
-				 element->color_index)) {
+		    !prepare_mask(cmd, index,
+				  resources->definition.layout.masks[index],
+				  size, element->selector,
+				  element->color_index)) {
 			return 0;
 		}
 	}

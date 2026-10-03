@@ -12,40 +12,40 @@
 #include "xvt/util/memory.h"
 #include <string.h>
 
-/* The four file error messages, indexed by FileErrorStringId: the first four
- * lines of the block StringTable_LoadGameStrings reads after the damage system
- * names, before g_strDiskIoMessages. The original build's FeDiskIo_FatalError
- * and FeDiskIo_ShowFatalErrorMessageAndWaitKey show them. */
+/* The four file error messages, indexed by file_error_string_id: the first four
+ * lines of the block string_table_load_game_strings reads after the damage system
+ * names, before g_str_disk_io_messages. The original build's fe_disk_io_fatal_error
+ * and fe_disk_io_show_fatal_error_message_and_wait_key show them. */
 // GLOBAL: XVT 0xA60A40
-char *g_strFileErrorMessages[4] = {0};
+char *g_str_file_error_messages[4] = {0};
 
-/* Reads strings.txt into the g_stringDataHandle block and points the string
- * tables at its lines; does nothing when loadFromDisk is 0. A file over 0x7D00
+/* Reads strings.txt into the g_string_data_handle block and points the string
+ * tables at its lines; does nothing when load_from_disk is 0. A file over 0x7D00
  * bytes gets a new block of its size in place of the old one. The tables come
- * in the file's order: g_strDamageSystemNames; g_strFileErrorMessages and
- * g_strDiskIoMessages, 36 lines; g_provingGroundsStatusLabels;
- * g_strGoalEscape[0]; g_strGoalCondMasculine, 188 rows of
- * g_goalConditionTextVariantCount[row % 47] lines; g_strGoalPercentages,
- * g_strGoalOperators, g_strGoalTitles, g_strGoalConjunctions, g_strGoalSides,
- * g_strGoalFamilyNames and g_strGoalGenusNames; g_strMapRoomText;
- * g_strInFlightMessages; g_strCmdThreatDisplayText, g_strWaypointNames,
- * g_strMeshComponentNames, g_strCockpitOverlayText, g_strThreatDisplayText and
- * g_strStatusStrings; g_strWarheadNames, then g_strUnknown;
- * g_strSatMineProbeBuoyPilotNames; the 73 g_modelDefs nameLong entries;
- * g_strSpeciesNamesPlural; g_strWingmanCommands; then g_strGoalCondFeminine and
- * g_strGoalCondNeutered, laid out like the masculine rows, each read only when
+ * in the file's order: g_str_damage_system_names; g_str_file_error_messages and
+ * g_str_disk_io_messages, 36 lines; g_proving_grounds_status_labels;
+ * g_str_goal_escape[0]; g_str_goal_cond_masculine, 188 rows of
+ * g_goal_condition_text_variant_count[row % 47] lines; g_str_goal_percentages,
+ * g_str_goal_operators, g_str_goal_titles, g_str_goal_conjunctions, g_str_goal_sides,
+ * g_str_goal_family_names and g_str_goal_genus_names; g_str_map_room_text;
+ * g_str_in_flight_messages; g_str_cmd_threat_display_text, g_str_waypoint_names,
+ * g_str_mesh_component_names, g_str_cockpit_overlay_text, g_str_threat_display_text and
+ * g_str_status_strings; g_str_warhead_names, then g_str_unknown;
+ * g_str_sat_mine_probe_buoy_pilot_names; the 73 g_model_defs name_long entries;
+ * g_str_species_names_plural; g_str_wingman_commands; then g_str_goal_cond_feminine and
+ * g_str_goal_cond_neutered, laid out like the masculine rows, each read only when
  * some model has that gender. Lines starting with "//" are skipped, a final
  * newline is dropped, and a line of 1023 or more characters is read in pieces.
- * A model line starts with m, f or n, which sets g_craftGender for it, and one
+ * A model line starts with m, f or n, which sets g_craft_gender for it, and one
  * character more, which is dropped; any other first character ends the program
  * with FILE_ERROR_STR_PRESS_KEY_TO_EXIT. In an in-flight message a backslash
  * and the two characters after it become one byte: the last minus '0' when the
  * middle one is '0', else the last minus '('. When the file does not open or
- * ends early it calls File_RawClose on the stream, even a NULL one, and ends
+ * ends early it calls FILE_RAW_CLOSE on the stream, even a NULL one, and ends
  * the program with FILE_ERROR_STR_STRINGS_OUT_OF_SYNC. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4248B0
-void StringTable_LoadGameStrings(int loadFromDisk)
+void string_table_load_game_strings(int load_from_disk)
 {
 	enum {
 		STRING_LINE_CAPACITY = 1024,
@@ -57,165 +57,173 @@ void StringTable_LoadGameStrings(int loadFromDisk)
 		GOAL_CONDITIONS_PER_ROW_BLOCK = 47,
 	};
 
-	XvtFile *stream;
-	int genderUsedByAnyCraft;
-	int entryIndex;
-	char *writePtr;
-	char **modelName;
+	xvt_file *stream;
+	int gender_used_by_any_craft;
+	int entry_index;
+	char *write_ptr;
+	char **model_name;
 	char line[STRING_LINE_CAPACITY];
-	size_t fileSize;
-	int lineLength;
-	int conditionIndex;
-	int variantIndex;
+	size_t file_size;
+	int line_length;
+	int condition_index;
+	int variant_index;
 
-	if (loadFromDisk == 0) {
+	if (load_from_disk == 0) {
 		return;
 	}
 
-	FeDiskIo_OpenGlobalStream("strings.txt", "r", 1, 0);
-	stream = (XvtFile *)g_stream;
+	fe_disk_io_open_global_stream("strings.txt", "r", 1, 0);
+	stream = (xvt_file *)g_stream;
 	if (stream != NULL) {
-		File_RawSeek(stream, 0, SEEK_END);
-		fileSize = (size_t)File_RawTell(stream);
-		if (fileSize > DEFAULT_STRING_DATA_CAPACITY) {
-			Memory_FreeHandle(g_stringDataHandle);
-			g_stringDataHandle = Memory_AllocHandle(fileSize, 0);
-			if (g_stringDataHandle == 0) {
-				FeDiskIo_FatalError(
+		FILE_RAW_SEEK(stream, 0, SEEK_END);
+		file_size = (size_t)FILE_RAW_TELL(stream);
+		if (file_size > DEFAULT_STRING_DATA_CAPACITY) {
+			memory_free_handle(g_string_data_handle);
+			g_string_data_handle =
+				memory_alloc_handle(file_size, 0);
+			if (g_string_data_handle == 0) {
+				fe_disk_io_fatal_error(
 					FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 			}
 		}
-		writePtr = (char *)Memory_GetHandleBlock(g_stringDataHandle);
-		File_RawSeek(stream, 0, SEEK_SET);
-		if (File_RawTell(stream) != 0) {
-			File_RawClose(stream);
-			FeDiskIo_OpenGlobalStream("strings.txt", "r", 1, 0);
-			stream = (XvtFile *)g_stream;
+		write_ptr =
+			(char *)memory_get_handle_block(g_string_data_handle);
+		FILE_RAW_SEEK(stream, 0, SEEK_SET);
+		if (FILE_RAW_TELL(stream) != 0) {
+			FILE_RAW_CLOSE(stream);
+			fe_disk_io_open_global_stream("strings.txt", "r", 1, 0);
+			stream = (xvt_file *)g_stream;
 		}
 		if (stream != NULL) {
-			if (writePtr != NULL) {
-				for (entryIndex = 0;
-				     entryIndex <
-				     (int)(sizeof(g_strDamageSystemNames) /
-					   sizeof(g_strDamageSystemNames[0]));
-				     ++entryIndex) {
+			if (write_ptr != NULL) {
+				for (entry_index = 0;
+				     entry_index <
+				     (int)(sizeof(g_str_damage_system_names) /
+					   sizeof(g_str_damage_system_names
+							  [0]));
+				     ++entry_index) {
 					int length;
 
-					length = StringTable_ReadNonCommentLine(
-						stream, line);
+					length =
+						string_table_read_non_comment_line(
+							stream, line);
 					if (length == -1) {
-						writePtr = NULL;
+						write_ptr = NULL;
 						break;
 					}
-					memcpy(writePtr, line,
+					memcpy(write_ptr, line,
 					       (size_t)length + 1);
-					g_strDamageSystemNames[entryIndex] =
-						writePtr;
-					writePtr += length + 1;
+					g_str_damage_system_names[entry_index] =
+						write_ptr;
+					write_ptr += length + 1;
 				}
 			}
 
-			if (writePtr != NULL) {
-				entryIndex = 0;
-				while (entryIndex <
+			if (write_ptr != NULL) {
+				entry_index = 0;
+				while (entry_index <
 				       FILE_AND_DISK_IO_STRING_COUNT) {
-					if (File_Gets(line, sizeof(line),
+					if (FILE_GETS(line, sizeof(line),
 						      stream) == NULL) {
-						writePtr = NULL;
+						write_ptr = NULL;
 						break;
 					}
 					line[sizeof(line) - 1] = '\0';
 					if (line[0] == '/' && line[1] == '/') {
 						continue;
 					}
-					lineLength = (int)strlen(line);
-					if (line[lineLength - 1] == '\n') {
-						line[--lineLength] = '\0';
+					line_length = (int)strlen(line);
+					if (line[line_length - 1] == '\n') {
+						line[--line_length] = '\0';
 					}
-					if (entryIndex <
+					if (entry_index <
 					    FILE_ERROR_MESSAGE_COUNT) {
-						memcpy(writePtr, line,
-						       lineLength + 1);
-						g_strFileErrorMessages
-							[entryIndex] = writePtr;
+						memcpy(write_ptr, line,
+						       line_length + 1);
+						g_str_file_error_messages
+							[entry_index] =
+								write_ptr;
 					} else {
-						memcpy(writePtr, line,
-						       lineLength + 1);
-						g_strDiskIoMessages
-							[entryIndex -
+						memcpy(write_ptr, line,
+						       line_length + 1);
+						g_str_disk_io_messages
+							[entry_index -
 							 FILE_ERROR_MESSAGE_COUNT] =
-								writePtr;
+								write_ptr;
 					}
-					writePtr += lineLength + 1;
-					++entryIndex;
+					write_ptr += line_length + 1;
+					++entry_index;
 				}
 			}
 
-			if (writePtr != NULL) {
-				entryIndex = 0;
-				while (entryIndex <
-				       (int)(sizeof(g_provingGroundsStatusLabels) /
-					     sizeof(g_provingGroundsStatusLabels
+			if (write_ptr != NULL) {
+				entry_index = 0;
+				while (entry_index <
+				       (int)(sizeof(g_proving_grounds_status_labels) /
+					     sizeof(g_proving_grounds_status_labels
 							    [0]))) {
-					if (File_Gets(line, sizeof(line),
+					if (FILE_GETS(line, sizeof(line),
 						      stream) == NULL) {
-						writePtr = NULL;
+						write_ptr = NULL;
 						break;
 					}
 					line[sizeof(line) - 1] = '\0';
 					if (line[0] == '/' && line[1] == '/') {
 						continue;
 					}
-					lineLength = (int)strlen(line);
-					if (line[lineLength - 1] == '\n') {
-						line[--lineLength] = '\0';
+					line_length = (int)strlen(line);
+					if (line[line_length - 1] == '\n') {
+						line[--line_length] = '\0';
 					}
-					memcpy(writePtr, line, lineLength + 1);
-					g_provingGroundsStatusLabels
-						[entryIndex] = writePtr;
-					writePtr += lineLength + 1;
-					++entryIndex;
+					memcpy(write_ptr, line,
+					       line_length + 1);
+					g_proving_grounds_status_labels
+						[entry_index] = write_ptr;
+					write_ptr += line_length + 1;
+					++entry_index;
 				}
 			}
 
-			if (writePtr != NULL) {
-				entryIndex = 0;
-				while (entryIndex < 1) {
-					if (File_Gets(line, sizeof(line),
+			if (write_ptr != NULL) {
+				entry_index = 0;
+				while (entry_index < 1) {
+					if (FILE_GETS(line, sizeof(line),
 						      stream) == NULL) {
-						writePtr = NULL;
+						write_ptr = NULL;
 						break;
 					}
 					line[sizeof(line) - 1] = '\0';
 					if (line[0] == '/' && line[1] == '/') {
 						continue;
 					}
-					lineLength = (int)strlen(line);
-					if (line[lineLength - 1] == '\n') {
-						line[--lineLength] = '\0';
+					line_length = (int)strlen(line);
+					if (line[line_length - 1] == '\n') {
+						line[--line_length] = '\0';
 					}
-					memcpy(writePtr, line, lineLength + 1);
-					g_strGoalEscape[0] = writePtr;
-					writePtr += lineLength + 1;
-					++entryIndex;
+					memcpy(write_ptr, line,
+					       line_length + 1);
+					g_str_goal_escape[0] = write_ptr;
+					write_ptr += line_length + 1;
+					++entry_index;
 				}
 			}
 
-			if (writePtr != NULL) {
-				for (entryIndex = 0;
-				     entryIndex < GOAL_CONDITION_TEXT_ROW_COUNT;
-				     ++entryIndex) {
-					conditionIndex =
-						entryIndex %
+			if (write_ptr != NULL) {
+				for (entry_index = 0;
+				     entry_index <
+				     GOAL_CONDITION_TEXT_ROW_COUNT;
+				     ++entry_index) {
+					condition_index =
+						entry_index %
 						GOAL_CONDITIONS_PER_ROW_BLOCK;
-					variantIndex = 0;
-					while (variantIndex <
-					       g_goalConditionTextVariantCount
-						       [conditionIndex]) {
-						if (File_Gets(line,
+					variant_index = 0;
+					while (variant_index <
+					       g_goal_condition_text_variant_count
+						       [condition_index]) {
+						if (FILE_GETS(line,
 							      sizeof(line),
 							      stream) == NULL) {
-							writePtr = NULL;
+							write_ptr = NULL;
 							break;
 						}
 						line[sizeof(line) - 1] = '\0';
@@ -223,628 +231,655 @@ void StringTable_LoadGameStrings(int loadFromDisk)
 						    line[1] == '/') {
 							continue;
 						}
-						lineLength = (int)strlen(line);
-						if (line[lineLength - 1] ==
+						line_length = (int)strlen(line);
+						if (line[line_length - 1] ==
 						    '\n') {
-							line[--lineLength] =
+							line[--line_length] =
 								'\0';
 						}
-						memcpy(writePtr, line,
-						       lineLength + 1);
-						g_strGoalCondMasculine
-							[entryIndex]
-							[variantIndex] =
-								writePtr;
-						writePtr += lineLength + 1;
-						++variantIndex;
+						memcpy(write_ptr, line,
+						       line_length + 1);
+						g_str_goal_cond_masculine
+							[entry_index]
+							[variant_index] =
+								write_ptr;
+						write_ptr += line_length + 1;
+						++variant_index;
 					}
-					if (writePtr == NULL) {
+					if (write_ptr == NULL) {
 						break;
 					}
 				}
 			}
 
-			if (writePtr != NULL) {
-				entryIndex = 0;
-				while (entryIndex <
-				       (int)(sizeof(g_strGoalPercentages) /
-					     sizeof(g_strGoalPercentages[0]))) {
-					if (File_Gets(line, sizeof(line),
-						      stream) == NULL) {
-						writePtr = NULL;
-						break;
-					}
-					line[sizeof(line) - 1] = '\0';
-					if (line[0] == '/' && line[1] == '/') {
-						continue;
-					}
-					lineLength = (int)strlen(line);
-					if (line[lineLength - 1] == '\n') {
-						line[--lineLength] = '\0';
-					}
-					memcpy(writePtr, line, lineLength + 1);
-					g_strGoalPercentages[entryIndex] =
-						writePtr;
-					writePtr += lineLength + 1;
-					++entryIndex;
-				}
-			}
-
-			if (writePtr != NULL) {
-				entryIndex = 0;
-				while (entryIndex <
-				       (int)(sizeof(g_strGoalOperators) /
-					     sizeof(g_strGoalOperators[0]))) {
-					if (File_Gets(line, sizeof(line),
-						      stream) == NULL) {
-						writePtr = NULL;
-						break;
-					}
-					line[sizeof(line) - 1] = '\0';
-					if (line[0] == '/' && line[1] == '/') {
-						continue;
-					}
-					lineLength = (int)strlen(line);
-					if (line[lineLength - 1] == '\n') {
-						line[--lineLength] = '\0';
-					}
-					memcpy(writePtr, line, lineLength + 1);
-					g_strGoalOperators[entryIndex] =
-						writePtr;
-					writePtr += lineLength + 1;
-					++entryIndex;
-				}
-			}
-
-			if (writePtr != NULL) {
-				entryIndex = 0;
-				while (entryIndex <
-				       (int)(sizeof(g_strGoalTitles) /
-					     sizeof(g_strGoalTitles[0]))) {
-					if (File_Gets(line, sizeof(line),
-						      stream) == NULL) {
-						writePtr = NULL;
-						break;
-					}
-					line[sizeof(line) - 1] = '\0';
-					if (line[0] == '/' && line[1] == '/') {
-						continue;
-					}
-					lineLength = (int)strlen(line);
-					if (line[lineLength - 1] == '\n') {
-						line[--lineLength] = '\0';
-					}
-					memcpy(writePtr, line, lineLength + 1);
-					g_strGoalTitles[entryIndex] = writePtr;
-					writePtr += lineLength + 1;
-					++entryIndex;
-				}
-			}
-
-			if (writePtr != NULL) {
-				entryIndex = 0;
-				while (entryIndex <
-				       (int)(sizeof(g_strGoalConjunctions) /
-					     sizeof(g_strGoalConjunctions
+			if (write_ptr != NULL) {
+				entry_index = 0;
+				while (entry_index <
+				       (int)(sizeof(g_str_goal_percentages) /
+					     sizeof(g_str_goal_percentages
 							    [0]))) {
-					if (File_Gets(line, sizeof(line),
+					if (FILE_GETS(line, sizeof(line),
 						      stream) == NULL) {
-						writePtr = NULL;
+						write_ptr = NULL;
 						break;
 					}
 					line[sizeof(line) - 1] = '\0';
 					if (line[0] == '/' && line[1] == '/') {
 						continue;
 					}
-					lineLength = (int)strlen(line);
-					if (line[lineLength - 1] == '\n') {
-						line[--lineLength] = '\0';
+					line_length = (int)strlen(line);
+					if (line[line_length - 1] == '\n') {
+						line[--line_length] = '\0';
 					}
-					memcpy(writePtr, line, lineLength + 1);
-					g_strGoalConjunctions[entryIndex] =
-						writePtr;
-					writePtr += lineLength + 1;
-					++entryIndex;
+					memcpy(write_ptr, line,
+					       line_length + 1);
+					g_str_goal_percentages[entry_index] =
+						write_ptr;
+					write_ptr += line_length + 1;
+					++entry_index;
 				}
 			}
 
-			if (writePtr != NULL) {
-				entryIndex = 0;
-				while (entryIndex <
-				       (int)(sizeof(g_strGoalSides) /
-					     sizeof(g_strGoalSides[0]))) {
-					if (File_Gets(line, sizeof(line),
+			if (write_ptr != NULL) {
+				entry_index = 0;
+				while (entry_index <
+				       (int)(sizeof(g_str_goal_operators) /
+					     sizeof(g_str_goal_operators[0]))) {
+					if (FILE_GETS(line, sizeof(line),
 						      stream) == NULL) {
-						writePtr = NULL;
+						write_ptr = NULL;
 						break;
 					}
 					line[sizeof(line) - 1] = '\0';
 					if (line[0] == '/' && line[1] == '/') {
 						continue;
 					}
-					lineLength = (int)strlen(line);
-					if (line[lineLength - 1] == '\n') {
-						line[--lineLength] = '\0';
+					line_length = (int)strlen(line);
+					if (line[line_length - 1] == '\n') {
+						line[--line_length] = '\0';
 					}
-					memcpy(writePtr, line, lineLength + 1);
-					g_strGoalSides[entryIndex] = writePtr;
-					writePtr += lineLength + 1;
-					++entryIndex;
+					memcpy(write_ptr, line,
+					       line_length + 1);
+					g_str_goal_operators[entry_index] =
+						write_ptr;
+					write_ptr += line_length + 1;
+					++entry_index;
 				}
 			}
 
-			if (writePtr != NULL) {
-				entryIndex = 0;
-				while (entryIndex <
-				       (int)(sizeof(g_strGoalFamilyNames) /
-					     sizeof(g_strGoalFamilyNames[0]))) {
-					if (File_Gets(line, sizeof(line),
+			if (write_ptr != NULL) {
+				entry_index = 0;
+				while (entry_index <
+				       (int)(sizeof(g_str_goal_titles) /
+					     sizeof(g_str_goal_titles[0]))) {
+					if (FILE_GETS(line, sizeof(line),
 						      stream) == NULL) {
-						writePtr = NULL;
+						write_ptr = NULL;
 						break;
 					}
 					line[sizeof(line) - 1] = '\0';
 					if (line[0] == '/' && line[1] == '/') {
 						continue;
 					}
-					lineLength = (int)strlen(line);
-					if (line[lineLength - 1] == '\n') {
-						line[--lineLength] = '\0';
+					line_length = (int)strlen(line);
+					if (line[line_length - 1] == '\n') {
+						line[--line_length] = '\0';
 					}
-					memcpy(writePtr, line, lineLength + 1);
-					g_strGoalFamilyNames[entryIndex] =
-						writePtr;
-					writePtr += lineLength + 1;
-					++entryIndex;
+					memcpy(write_ptr, line,
+					       line_length + 1);
+					g_str_goal_titles[entry_index] =
+						write_ptr;
+					write_ptr += line_length + 1;
+					++entry_index;
 				}
 			}
 
-			if (writePtr != NULL) {
-				entryIndex = 0;
-				while (entryIndex <
-				       (int)(sizeof(g_strGoalGenusNames) /
-					     sizeof(g_strGoalGenusNames[0]))) {
-					if (File_Gets(line, sizeof(line),
-						      stream) == NULL) {
-						writePtr = NULL;
-						break;
-					}
-					line[sizeof(line) - 1] = '\0';
-					if (line[0] == '/' && line[1] == '/') {
-						continue;
-					}
-					lineLength = (int)strlen(line);
-					if (line[lineLength - 1] == '\n') {
-						line[--lineLength] = '\0';
-					}
-					memcpy(writePtr, line, lineLength + 1);
-					g_strGoalGenusNames[entryIndex] =
-						writePtr;
-					writePtr += lineLength + 1;
-					++entryIndex;
-				}
-			}
-
-			if (writePtr != NULL) {
-				entryIndex = 0;
-				while (entryIndex <
-				       (int)(sizeof(g_strMapRoomText) /
-					     sizeof(g_strMapRoomText[0]))) {
-					if (File_Gets(line, sizeof(line),
-						      stream) == NULL) {
-						writePtr = NULL;
-						break;
-					}
-					line[sizeof(line) - 1] = '\0';
-					if (line[0] == '/' && line[1] == '/') {
-						continue;
-					}
-					lineLength = (int)strlen(line);
-					if (line[lineLength - 1] == '\n') {
-						line[--lineLength] = '\0';
-					}
-					memcpy(writePtr, line, lineLength + 1);
-					g_strMapRoomText[entryIndex] = writePtr;
-					writePtr += lineLength + 1;
-					++entryIndex;
-				}
-			}
-
-			if (writePtr != NULL) {
-				entryIndex = 0;
-				while (entryIndex <
-				       (int)(sizeof(g_strInFlightMessages) /
-					     sizeof(g_strInFlightMessages
+			if (write_ptr != NULL) {
+				entry_index = 0;
+				while (entry_index <
+				       (int)(sizeof(g_str_goal_conjunctions) /
+					     sizeof(g_str_goal_conjunctions
 							    [0]))) {
-					int sourceIndex;
-					char *readPtr;
-
-					if (File_Gets(line, sizeof(line),
+					if (FILE_GETS(line, sizeof(line),
 						      stream) == NULL) {
-						writePtr = NULL;
+						write_ptr = NULL;
 						break;
 					}
 					line[sizeof(line) - 1] = '\0';
 					if (line[0] == '/' && line[1] == '/') {
 						continue;
 					}
-					lineLength = (int)strlen(line);
-					if (line[lineLength - 1] == '\n') {
-						line[--lineLength] = '\0';
+					line_length = (int)strlen(line);
+					if (line[line_length - 1] == '\n') {
+						line[--line_length] = '\0';
 					}
-					g_strInFlightMessages[entryIndex] =
-						writePtr;
-					readPtr = line;
-					sourceIndex = 0;
-					while (lineLength > sourceIndex) {
-						if (*readPtr == '\\') {
-							if (readPtr[1] == '0') {
-								*writePtr++ =
-									(char)(readPtr[2] -
+					memcpy(write_ptr, line,
+					       line_length + 1);
+					g_str_goal_conjunctions[entry_index] =
+						write_ptr;
+					write_ptr += line_length + 1;
+					++entry_index;
+				}
+			}
+
+			if (write_ptr != NULL) {
+				entry_index = 0;
+				while (entry_index <
+				       (int)(sizeof(g_str_goal_sides) /
+					     sizeof(g_str_goal_sides[0]))) {
+					if (FILE_GETS(line, sizeof(line),
+						      stream) == NULL) {
+						write_ptr = NULL;
+						break;
+					}
+					line[sizeof(line) - 1] = '\0';
+					if (line[0] == '/' && line[1] == '/') {
+						continue;
+					}
+					line_length = (int)strlen(line);
+					if (line[line_length - 1] == '\n') {
+						line[--line_length] = '\0';
+					}
+					memcpy(write_ptr, line,
+					       line_length + 1);
+					g_str_goal_sides[entry_index] =
+						write_ptr;
+					write_ptr += line_length + 1;
+					++entry_index;
+				}
+			}
+
+			if (write_ptr != NULL) {
+				entry_index = 0;
+				while (entry_index <
+				       (int)(sizeof(g_str_goal_family_names) /
+					     sizeof(g_str_goal_family_names
+							    [0]))) {
+					if (FILE_GETS(line, sizeof(line),
+						      stream) == NULL) {
+						write_ptr = NULL;
+						break;
+					}
+					line[sizeof(line) - 1] = '\0';
+					if (line[0] == '/' && line[1] == '/') {
+						continue;
+					}
+					line_length = (int)strlen(line);
+					if (line[line_length - 1] == '\n') {
+						line[--line_length] = '\0';
+					}
+					memcpy(write_ptr, line,
+					       line_length + 1);
+					g_str_goal_family_names[entry_index] =
+						write_ptr;
+					write_ptr += line_length + 1;
+					++entry_index;
+				}
+			}
+
+			if (write_ptr != NULL) {
+				entry_index = 0;
+				while (entry_index <
+				       (int)(sizeof(g_str_goal_genus_names) /
+					     sizeof(g_str_goal_genus_names
+							    [0]))) {
+					if (FILE_GETS(line, sizeof(line),
+						      stream) == NULL) {
+						write_ptr = NULL;
+						break;
+					}
+					line[sizeof(line) - 1] = '\0';
+					if (line[0] == '/' && line[1] == '/') {
+						continue;
+					}
+					line_length = (int)strlen(line);
+					if (line[line_length - 1] == '\n') {
+						line[--line_length] = '\0';
+					}
+					memcpy(write_ptr, line,
+					       line_length + 1);
+					g_str_goal_genus_names[entry_index] =
+						write_ptr;
+					write_ptr += line_length + 1;
+					++entry_index;
+				}
+			}
+
+			if (write_ptr != NULL) {
+				entry_index = 0;
+				while (entry_index <
+				       (int)(sizeof(g_str_map_room_text) /
+					     sizeof(g_str_map_room_text[0]))) {
+					if (FILE_GETS(line, sizeof(line),
+						      stream) == NULL) {
+						write_ptr = NULL;
+						break;
+					}
+					line[sizeof(line) - 1] = '\0';
+					if (line[0] == '/' && line[1] == '/') {
+						continue;
+					}
+					line_length = (int)strlen(line);
+					if (line[line_length - 1] == '\n') {
+						line[--line_length] = '\0';
+					}
+					memcpy(write_ptr, line,
+					       line_length + 1);
+					g_str_map_room_text[entry_index] =
+						write_ptr;
+					write_ptr += line_length + 1;
+					++entry_index;
+				}
+			}
+
+			if (write_ptr != NULL) {
+				entry_index = 0;
+				while (entry_index <
+				       (int)(sizeof(g_str_in_flight_messages) /
+					     sizeof(g_str_in_flight_messages
+							    [0]))) {
+					int source_index;
+					char *read_ptr;
+
+					if (FILE_GETS(line, sizeof(line),
+						      stream) == NULL) {
+						write_ptr = NULL;
+						break;
+					}
+					line[sizeof(line) - 1] = '\0';
+					if (line[0] == '/' && line[1] == '/') {
+						continue;
+					}
+					line_length = (int)strlen(line);
+					if (line[line_length - 1] == '\n') {
+						line[--line_length] = '\0';
+					}
+					g_str_in_flight_messages[entry_index] =
+						write_ptr;
+					read_ptr = line;
+					source_index = 0;
+					while (line_length > source_index) {
+						if (*read_ptr == '\\') {
+							if (read_ptr[1] ==
+							    '0') {
+								*write_ptr++ =
+									(char)(read_ptr[2] -
 									       '0');
 							} else {
-								*writePtr++ =
-									(char)(readPtr[2] -
+								*write_ptr++ =
+									(char)(read_ptr[2] -
 									       '(');
 							}
-							readPtr += 3;
-							sourceIndex += 3;
+							read_ptr += 3;
+							source_index += 3;
 						} else {
-							*writePtr++ =
-								*readPtr++;
-							++sourceIndex;
+							*write_ptr++ =
+								*read_ptr++;
+							++source_index;
 						}
 					}
-					*writePtr++ = '\0';
-					++entryIndex;
+					*write_ptr++ = '\0';
+					++entry_index;
 				}
 			}
 
-			if (writePtr != NULL) {
-				entryIndex = 0;
-				while (entryIndex <
-				       (int)(sizeof(g_strCmdThreatDisplayText) /
-					     sizeof(g_strCmdThreatDisplayText
+			if (write_ptr != NULL) {
+				entry_index = 0;
+				while (entry_index <
+				       (int)(sizeof(g_str_cmd_threat_display_text) /
+					     sizeof(g_str_cmd_threat_display_text
 							    [0]))) {
-					if (File_Gets(line, sizeof(line),
+					if (FILE_GETS(line, sizeof(line),
 						      stream) == NULL) {
-						writePtr = NULL;
+						write_ptr = NULL;
 						break;
 					}
 					line[sizeof(line) - 1] = '\0';
 					if (line[0] == '/' && line[1] == '/') {
 						continue;
 					}
-					lineLength = (int)strlen(line);
-					if (line[lineLength - 1] == '\n') {
-						line[--lineLength] = '\0';
+					line_length = (int)strlen(line);
+					if (line[line_length - 1] == '\n') {
+						line[--line_length] = '\0';
 					}
-					memcpy(writePtr, line, lineLength + 1);
-					g_strCmdThreatDisplayText[entryIndex] =
-						writePtr;
-					writePtr += lineLength + 1;
-					++entryIndex;
+					memcpy(write_ptr, line,
+					       line_length + 1);
+					g_str_cmd_threat_display_text
+						[entry_index] = write_ptr;
+					write_ptr += line_length + 1;
+					++entry_index;
 				}
 			}
 
-			if (writePtr != NULL) {
-				entryIndex = 0;
-				while (entryIndex <
-				       (int)(sizeof(g_strWaypointNames) /
-					     sizeof(g_strWaypointNames[0]))) {
-					if (File_Gets(line, sizeof(line),
+			if (write_ptr != NULL) {
+				entry_index = 0;
+				while (entry_index <
+				       (int)(sizeof(g_str_waypoint_names) /
+					     sizeof(g_str_waypoint_names[0]))) {
+					if (FILE_GETS(line, sizeof(line),
 						      stream) == NULL) {
-						writePtr = NULL;
+						write_ptr = NULL;
 						break;
 					}
 					line[sizeof(line) - 1] = '\0';
 					if (line[0] == '/' && line[1] == '/') {
 						continue;
 					}
-					lineLength = (int)strlen(line);
-					if (line[lineLength - 1] == '\n') {
-						line[--lineLength] = '\0';
+					line_length = (int)strlen(line);
+					if (line[line_length - 1] == '\n') {
+						line[--line_length] = '\0';
 					}
-					memcpy(writePtr, line, lineLength + 1);
-					g_strWaypointNames[entryIndex] =
-						writePtr;
-					writePtr += lineLength + 1;
-					++entryIndex;
+					memcpy(write_ptr, line,
+					       line_length + 1);
+					g_str_waypoint_names[entry_index] =
+						write_ptr;
+					write_ptr += line_length + 1;
+					++entry_index;
 				}
 			}
 
-			if (writePtr != NULL) {
-				entryIndex = 0;
-				while (entryIndex <
-				       (int)(sizeof(g_strMeshComponentNames) /
-					     sizeof(g_strMeshComponentNames
+			if (write_ptr != NULL) {
+				entry_index = 0;
+				while (entry_index <
+				       (int)(sizeof(g_str_mesh_component_names) /
+					     sizeof(g_str_mesh_component_names
 							    [0]))) {
-					if (File_Gets(line, sizeof(line),
+					if (FILE_GETS(line, sizeof(line),
 						      stream) == NULL) {
-						writePtr = NULL;
+						write_ptr = NULL;
 						break;
 					}
 					line[sizeof(line) - 1] = '\0';
 					if (line[0] == '/' && line[1] == '/') {
 						continue;
 					}
-					lineLength = (int)strlen(line);
-					if (line[lineLength - 1] == '\n') {
-						line[--lineLength] = '\0';
+					line_length = (int)strlen(line);
+					if (line[line_length - 1] == '\n') {
+						line[--line_length] = '\0';
 					}
-					memcpy(writePtr, line, lineLength + 1);
-					g_strMeshComponentNames[entryIndex] =
-						writePtr;
-					writePtr += lineLength + 1;
-					++entryIndex;
+					memcpy(write_ptr, line,
+					       line_length + 1);
+					g_str_mesh_component_names
+						[entry_index] = write_ptr;
+					write_ptr += line_length + 1;
+					++entry_index;
 				}
 			}
 
-			if (writePtr != NULL) {
-				entryIndex = 0;
-				while (entryIndex <
-				       (int)(sizeof(g_strCockpitOverlayText) /
-					     sizeof(g_strCockpitOverlayText
+			if (write_ptr != NULL) {
+				entry_index = 0;
+				while (entry_index <
+				       (int)(sizeof(g_str_cockpit_overlay_text) /
+					     sizeof(g_str_cockpit_overlay_text
 							    [0]))) {
-					if (File_Gets(line, sizeof(line),
+					if (FILE_GETS(line, sizeof(line),
 						      stream) == NULL) {
-						writePtr = NULL;
+						write_ptr = NULL;
 						break;
 					}
 					line[sizeof(line) - 1] = '\0';
 					if (line[0] == '/' && line[1] == '/') {
 						continue;
 					}
-					lineLength = (int)strlen(line);
-					if (line[lineLength - 1] == '\n') {
-						line[--lineLength] = '\0';
+					line_length = (int)strlen(line);
+					if (line[line_length - 1] == '\n') {
+						line[--line_length] = '\0';
 					}
-					memcpy(writePtr, line, lineLength + 1);
-					g_strCockpitOverlayText[entryIndex] =
-						writePtr;
-					writePtr += lineLength + 1;
-					++entryIndex;
+					memcpy(write_ptr, line,
+					       line_length + 1);
+					g_str_cockpit_overlay_text
+						[entry_index] = write_ptr;
+					write_ptr += line_length + 1;
+					++entry_index;
 				}
 			}
 
-			if (writePtr != NULL) {
-				entryIndex = 0;
-				while (entryIndex <
-				       (int)(sizeof(g_strThreatDisplayText) /
-					     sizeof(g_strThreatDisplayText
+			if (write_ptr != NULL) {
+				entry_index = 0;
+				while (entry_index <
+				       (int)(sizeof(g_str_threat_display_text) /
+					     sizeof(g_str_threat_display_text
 							    [0]))) {
-					if (File_Gets(line, sizeof(line),
+					if (FILE_GETS(line, sizeof(line),
 						      stream) == NULL) {
-						writePtr = NULL;
+						write_ptr = NULL;
 						break;
 					}
 					line[sizeof(line) - 1] = '\0';
 					if (line[0] == '/' && line[1] == '/') {
 						continue;
 					}
-					lineLength = (int)strlen(line);
-					if (line[lineLength - 1] == '\n') {
-						line[--lineLength] = '\0';
+					line_length = (int)strlen(line);
+					if (line[line_length - 1] == '\n') {
+						line[--line_length] = '\0';
 					}
-					memcpy(writePtr, line, lineLength + 1);
-					g_strThreatDisplayText[entryIndex] =
-						writePtr;
-					writePtr += lineLength + 1;
-					++entryIndex;
+					memcpy(write_ptr, line,
+					       line_length + 1);
+					g_str_threat_display_text[entry_index] =
+						write_ptr;
+					write_ptr += line_length + 1;
+					++entry_index;
 				}
 			}
 
-			if (writePtr != NULL) {
-				entryIndex = 0;
-				while (entryIndex <
-				       (int)(sizeof(g_strStatusStrings) /
-					     sizeof(g_strStatusStrings[0]))) {
-					if (File_Gets(line, sizeof(line),
+			if (write_ptr != NULL) {
+				entry_index = 0;
+				while (entry_index <
+				       (int)(sizeof(g_str_status_strings) /
+					     sizeof(g_str_status_strings[0]))) {
+					if (FILE_GETS(line, sizeof(line),
 						      stream) == NULL) {
-						writePtr = NULL;
+						write_ptr = NULL;
 						break;
 					}
 					line[sizeof(line) - 1] = '\0';
 					if (line[0] == '/' && line[1] == '/') {
 						continue;
 					}
-					lineLength = (int)strlen(line);
-					if (line[lineLength - 1] == '\n') {
-						line[--lineLength] = '\0';
+					line_length = (int)strlen(line);
+					if (line[line_length - 1] == '\n') {
+						line[--line_length] = '\0';
 					}
-					memcpy(writePtr, line, lineLength + 1);
-					g_strStatusStrings[entryIndex] =
-						writePtr;
-					writePtr += lineLength + 1;
-					++entryIndex;
+					memcpy(write_ptr, line,
+					       line_length + 1);
+					g_str_status_strings[entry_index] =
+						write_ptr;
+					write_ptr += line_length + 1;
+					++entry_index;
 				}
 			}
 
-			if (writePtr != NULL) {
-				entryIndex = 0;
-				while (entryIndex <
-				       (int)(sizeof(g_strWarheadNames) /
-					     sizeof(g_strWarheadNames[0])) +
+			if (write_ptr != NULL) {
+				entry_index = 0;
+				while (entry_index <
+				       (int)(sizeof(g_str_warhead_names) /
+					     sizeof(g_str_warhead_names[0])) +
 					       1) {
-					if (File_Gets(line, sizeof(line),
+					if (FILE_GETS(line, sizeof(line),
 						      stream) == NULL) {
-						writePtr = NULL;
+						write_ptr = NULL;
 						break;
 					}
 					line[sizeof(line) - 1] = '\0';
 					if (line[0] == '/' && line[1] == '/') {
 						continue;
 					}
-					lineLength = (int)strlen(line);
-					if (line[lineLength - 1] == '\n') {
-						line[--lineLength] = '\0';
+					line_length = (int)strlen(line);
+					if (line[line_length - 1] == '\n') {
+						line[--line_length] = '\0';
 					}
-					if (entryIndex ==
-					    (int)(sizeof(g_strWarheadNames) /
-						  sizeof(g_strWarheadNames
+					if (entry_index ==
+					    (int)(sizeof(g_str_warhead_names) /
+						  sizeof(g_str_warhead_names
 								 [0]))) {
-						memcpy(writePtr, line,
-						       lineLength + 1);
-						g_strUnknown = writePtr;
+						memcpy(write_ptr, line,
+						       line_length + 1);
+						g_str_unknown = write_ptr;
 					} else {
-						memcpy(writePtr, line,
-						       lineLength + 1);
-						g_strWarheadNames[entryIndex] =
-							writePtr;
+						memcpy(write_ptr, line,
+						       line_length + 1);
+						g_str_warhead_names
+							[entry_index] =
+								write_ptr;
 					}
-					writePtr += lineLength + 1;
-					++entryIndex;
+					write_ptr += line_length + 1;
+					++entry_index;
 				}
 			}
 
-			if (writePtr != NULL) {
-				entryIndex = 0;
-				while (entryIndex <
-				       (int)(sizeof(g_strSatMineProbeBuoyPilotNames) /
-					     sizeof(g_strSatMineProbeBuoyPilotNames
+			if (write_ptr != NULL) {
+				entry_index = 0;
+				while (entry_index <
+				       (int)(sizeof(g_str_sat_mine_probe_buoy_pilot_names) /
+					     sizeof(g_str_sat_mine_probe_buoy_pilot_names
 							    [0]))) {
-					if (File_Gets(line, sizeof(line),
+					if (FILE_GETS(line, sizeof(line),
 						      stream) == NULL) {
-						writePtr = NULL;
+						write_ptr = NULL;
 						break;
 					}
 					line[sizeof(line) - 1] = '\0';
 					if (line[0] == '/' && line[1] == '/') {
 						continue;
 					}
-					lineLength = (int)strlen(line);
-					if (line[lineLength - 1] == '\n') {
-						line[--lineLength] = '\0';
+					line_length = (int)strlen(line);
+					if (line[line_length - 1] == '\n') {
+						line[--line_length] = '\0';
 					}
-					memcpy(writePtr, line, lineLength + 1);
-					g_strSatMineProbeBuoyPilotNames
-						[entryIndex] = writePtr;
-					writePtr += lineLength + 1;
-					++entryIndex;
+					memcpy(write_ptr, line,
+					       line_length + 1);
+					g_str_sat_mine_probe_buoy_pilot_names
+						[entry_index] = write_ptr;
+					write_ptr += line_length + 1;
+					++entry_index;
 				}
 			}
 
-			if (writePtr != NULL) {
-				for (entryIndex = 0;
-				     entryIndex < MODEL_STRING_COUNT;) {
-					modelName = &g_modelDefs[entryIndex]
-							     .nameLong;
-					if (File_Gets(line, sizeof(line),
+			if (write_ptr != NULL) {
+				for (entry_index = 0;
+				     entry_index < MODEL_STRING_COUNT;) {
+					model_name = &g_model_defs[entry_index]
+							      .name_long;
+					if (FILE_GETS(line, sizeof(line),
 						      stream) == NULL) {
-						writePtr = NULL;
+						write_ptr = NULL;
 						break;
 					}
 					line[sizeof(line) - 1] = '\0';
 					if (line[0] == '/' && line[1] == '/') {
 						continue;
 					}
-					lineLength = (int)strlen(line);
-					if (line[lineLength - 1] == '\n') {
-						line[--lineLength] = '\0';
+					line_length = (int)strlen(line);
+					if (line[line_length - 1] == '\n') {
+						line[--line_length] = '\0';
 					}
-					*modelName = writePtr;
+					*model_name = write_ptr;
 					if (line[0] == 'm') {
-						g_craftGender[entryIndex] =
+						g_craft_gender[entry_index] =
 							CRAFT_GENDER_MASCULINE;
 					} else if (line[0] == 'f') {
-						g_craftGender[entryIndex] =
+						g_craft_gender[entry_index] =
 							CRAFT_GENDER_FEMININE;
 					} else if (line[0] == 'n') {
-						g_craftGender[entryIndex] =
+						g_craft_gender[entry_index] =
 							CRAFT_GENDER_NEUTERED;
 					} else {
-						FeDiskIo_FatalError(
+						fe_disk_io_fatal_error(
 							FILE_ERROR_STR_PRESS_KEY_TO_EXIT);
 					}
-					memcpy(writePtr, &line[2],
-					       lineLength - 1);
-					writePtr += lineLength - 1;
-					++entryIndex;
+					memcpy(write_ptr, &line[2],
+					       line_length - 1);
+					write_ptr += line_length - 1;
+					++entry_index;
 				}
 			}
 
-			if (writePtr != NULL) {
-				entryIndex = 0;
-				while (entryIndex <
-				       (int)(sizeof(g_strSpeciesNamesPlural) /
-					     sizeof(g_strSpeciesNamesPlural
+			if (write_ptr != NULL) {
+				entry_index = 0;
+				while (entry_index <
+				       (int)(sizeof(g_str_species_names_plural) /
+					     sizeof(g_str_species_names_plural
 							    [0]))) {
-					if (File_Gets(line, sizeof(line),
+					if (FILE_GETS(line, sizeof(line),
 						      stream) == NULL) {
-						writePtr = NULL;
+						write_ptr = NULL;
 						break;
 					}
 					line[sizeof(line) - 1] = '\0';
 					if (line[0] == '/' && line[1] == '/') {
 						continue;
 					}
-					lineLength = (int)strlen(line);
-					if (line[lineLength - 1] == '\n') {
-						line[--lineLength] = '\0';
+					line_length = (int)strlen(line);
+					if (line[line_length - 1] == '\n') {
+						line[--line_length] = '\0';
 					}
-					memcpy(writePtr, line, lineLength + 1);
-					g_strSpeciesNamesPlural[entryIndex] =
-						writePtr;
-					writePtr += lineLength + 1;
-					++entryIndex;
+					memcpy(write_ptr, line,
+					       line_length + 1);
+					g_str_species_names_plural
+						[entry_index] = write_ptr;
+					write_ptr += line_length + 1;
+					++entry_index;
 				}
 			}
 
-			if (writePtr != NULL) {
-				entryIndex = 0;
-				while (entryIndex <
-				       (int)(sizeof(g_strWingmanCommands) /
-					     sizeof(g_strWingmanCommands[0]))) {
-					if (File_Gets(line, sizeof(line),
+			if (write_ptr != NULL) {
+				entry_index = 0;
+				while (entry_index <
+				       (int)(sizeof(g_str_wingman_commands) /
+					     sizeof(g_str_wingman_commands
+							    [0]))) {
+					if (FILE_GETS(line, sizeof(line),
 						      stream) == NULL) {
-						writePtr = NULL;
+						write_ptr = NULL;
 						break;
 					}
 					line[sizeof(line) - 1] = '\0';
 					if (line[0] == '/' && line[1] == '/') {
 						continue;
 					}
-					lineLength = (int)strlen(line);
-					if (line[lineLength - 1] == '\n') {
-						line[--lineLength] = '\0';
+					line_length = (int)strlen(line);
+					if (line[line_length - 1] == '\n') {
+						line[--line_length] = '\0';
 					}
-					memcpy(writePtr, line, lineLength + 1);
-					g_strWingmanCommands[entryIndex] =
-						writePtr;
-					writePtr += lineLength + 1;
-					++entryIndex;
+					memcpy(write_ptr, line,
+					       line_length + 1);
+					g_str_wingman_commands[entry_index] =
+						write_ptr;
+					write_ptr += line_length + 1;
+					++entry_index;
 				}
 			}
 
-			if (writePtr != NULL) {
-				entryIndex = 0;
-				genderUsedByAnyCraft = 0;
-				while (entryIndex < MODEL_STRING_COUNT) {
-					if (g_craftGender[entryIndex] ==
+			if (write_ptr != NULL) {
+				entry_index = 0;
+				gender_used_by_any_craft = 0;
+				while (entry_index < MODEL_STRING_COUNT) {
+					if (g_craft_gender[entry_index] ==
 					    CRAFT_GENDER_FEMININE) {
-						genderUsedByAnyCraft = 1;
+						gender_used_by_any_craft = 1;
 						break;
 					}
-					++entryIndex;
+					++entry_index;
 				}
-				if (genderUsedByAnyCraft != 0) {
-					for (entryIndex = 0;
-					     entryIndex <
+				if (gender_used_by_any_craft != 0) {
+					for (entry_index = 0;
+					     entry_index <
 					     GOAL_CONDITION_TEXT_ROW_COUNT;
-					     ++entryIndex) {
-						conditionIndex =
-							entryIndex %
+					     ++entry_index) {
+						condition_index =
+							entry_index %
 							GOAL_CONDITIONS_PER_ROW_BLOCK;
-						variantIndex = 0;
-						while (variantIndex <
-						       g_goalConditionTextVariantCount
-							       [conditionIndex]) {
-							if (File_Gets(
+						variant_index = 0;
+						while (variant_index <
+						       g_goal_condition_text_variant_count
+							       [condition_index]) {
+							if (FILE_GETS(
 								    line,
 								    sizeof(line),
 								    stream) ==
 							    NULL) {
-								writePtr = NULL;
+								write_ptr =
+									NULL;
 								break;
 							}
 							line[sizeof(line) - 1] =
@@ -853,60 +888,61 @@ void StringTable_LoadGameStrings(int loadFromDisk)
 							    line[1] == '/') {
 								continue;
 							}
-							lineLength =
+							line_length =
 								(int)strlen(
 									line);
-							if (line[lineLength -
+							if (line[line_length -
 								 1] == '\n') {
-								line[--lineLength] =
+								line[--line_length] =
 									'\0';
 							}
-							memcpy(writePtr, line,
-							       lineLength + 1);
-							g_strGoalCondFeminine
-								[entryIndex]
-								[variantIndex] =
-									writePtr;
-							writePtr +=
-								lineLength + 1;
-							++variantIndex;
+							memcpy(write_ptr, line,
+							       line_length + 1);
+							g_str_goal_cond_feminine
+								[entry_index]
+								[variant_index] =
+									write_ptr;
+							write_ptr +=
+								line_length + 1;
+							++variant_index;
 						}
-						if (writePtr == NULL) {
+						if (write_ptr == NULL) {
 							break;
 						}
 					}
 				}
 			}
 
-			if (writePtr != NULL) {
-				entryIndex = 0;
-				genderUsedByAnyCraft = 0;
-				while (entryIndex < MODEL_STRING_COUNT) {
-					if (g_craftGender[entryIndex] ==
+			if (write_ptr != NULL) {
+				entry_index = 0;
+				gender_used_by_any_craft = 0;
+				while (entry_index < MODEL_STRING_COUNT) {
+					if (g_craft_gender[entry_index] ==
 					    CRAFT_GENDER_NEUTERED) {
-						genderUsedByAnyCraft = 1;
+						gender_used_by_any_craft = 1;
 						break;
 					}
-					++entryIndex;
+					++entry_index;
 				}
-				if (genderUsedByAnyCraft != 0) {
-					for (entryIndex = 0;
-					     entryIndex <
+				if (gender_used_by_any_craft != 0) {
+					for (entry_index = 0;
+					     entry_index <
 					     GOAL_CONDITION_TEXT_ROW_COUNT;
-					     ++entryIndex) {
-						conditionIndex =
-							entryIndex %
+					     ++entry_index) {
+						condition_index =
+							entry_index %
 							GOAL_CONDITIONS_PER_ROW_BLOCK;
-						variantIndex = 0;
-						while (variantIndex <
-						       g_goalConditionTextVariantCount
-							       [conditionIndex]) {
-							if (File_Gets(
+						variant_index = 0;
+						while (variant_index <
+						       g_goal_condition_text_variant_count
+							       [condition_index]) {
+							if (FILE_GETS(
 								    line,
 								    sizeof(line),
 								    stream) ==
 							    NULL) {
-								writePtr = NULL;
+								write_ptr =
+									NULL;
 								break;
 							}
 							line[sizeof(line) - 1] =
@@ -915,61 +951,61 @@ void StringTable_LoadGameStrings(int loadFromDisk)
 							    line[1] == '/') {
 								continue;
 							}
-							lineLength =
+							line_length =
 								(int)strlen(
 									line);
-							if (line[lineLength -
+							if (line[line_length -
 								 1] == '\n') {
-								line[--lineLength] =
+								line[--line_length] =
 									'\0';
 							}
-							memcpy(writePtr, line,
-							       lineLength + 1);
-							g_strGoalCondNeutered
-								[entryIndex]
-								[variantIndex] =
-									writePtr;
-							writePtr +=
-								lineLength + 1;
-							++variantIndex;
+							memcpy(write_ptr, line,
+							       line_length + 1);
+							g_str_goal_cond_neutered
+								[entry_index]
+								[variant_index] =
+									write_ptr;
+							write_ptr +=
+								line_length + 1;
+							++variant_index;
 						}
-						if (writePtr == NULL) {
+						if (write_ptr == NULL) {
 							break;
 						}
 					}
 				}
 			}
 
-			if (writePtr != NULL) {
-				File_RawClose(stream);
+			if (write_ptr != NULL) {
+				FILE_RAW_CLOSE(stream);
 				return;
 			}
 		}
 	}
-	File_RawClose(stream);
-	FeDiskIo_FatalError(FILE_ERROR_STR_STRINGS_OUT_OF_SYNC);
+	FILE_RAW_CLOSE(stream);
+	fe_disk_io_fatal_error(FILE_ERROR_STR_STRINGS_OUT_OF_SYNC);
 }
 
 /* Reads into buffer, 1024 bytes, the next line that does not start with "//",
  * drops its final newline and returns its length; -1 at the end of the file. A
  * line of 1023 or more characters comes back in pieces. Only
- * StringTable_LoadGameStrings calls this, for g_strDamageSystemNames. */
+ * string_table_load_game_strings calls this, for g_str_damage_system_names. */
 // FUNCTION: XVT 0x425A70
-int StringTable_ReadNonCommentLine(XvtFile *stream, char *buffer)
+int string_table_read_non_comment_line(xvt_file *stream, char *buffer)
 {
-	int lineLength;
+	int line_length;
 
 	do {
-		if (File_Gets(buffer, 1024, stream) == 0) {
+		if (FILE_GETS(buffer, 1024, stream) == 0) {
 			return -1;
 		}
 		buffer[1023] = 0;
 	} while (buffer[0] == '/' && buffer[1] == '/');
 
-	lineLength = strlen(buffer);
-	if (buffer[lineLength - 1] == '\n') {
-		buffer[lineLength - 1] = 0;
-		--lineLength;
+	line_length = strlen(buffer);
+	if (buffer[line_length - 1] == '\n') {
+		buffer[line_length - 1] = 0;
+		--line_length;
 	}
-	return lineLength;
+	return line_length;
 }

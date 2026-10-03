@@ -19,68 +19,69 @@
 
 #include <string.h>
 
-int XvtNetworkDialogs_Resume(int result, int action)
+int xvt_network_dialogs_resume(int result, int action)
 {
 	(void)result;
 	struct RECT screen = {0, 0, 640, 480};
-	switch ((XvtNetworkDialogAction)action) {
+	switch ((xvt_network_dialog_action)action) {
 	case XVT_NETWORK_ACCESS_REJECTED:
 	case XVT_NETWORK_ACCESS_PASSWORD:
 		if (action == XVT_NETWORK_ACCESS_PASSWORD) {
-			FrontendScreen_QueuePush(Config_OptionsDatapadUpdate,
-						 &screen);
+			frontend_screen_queue_push(
+				config_options_datapad_update, &screen);
 		}
-		XvtNetworkDialogs_Return(0);
+		xvt_network_dialogs_return(0);
 		break;
 	}
 	return 0;
 }
 
-int XvtNetworkDialogs_Connecting(void)
+int xvt_network_dialogs_connecting(void)
 {
 	struct RECT message = {0, 0, 640, 480}, cancel = {85, 447, 176, 471};
-	FrontImage_DrawSpriteOpaque("background", 0, 0);
-	FrontendText_DrawCentered(15,
-				  FrontendString_Get(FRONTSTR_645_CONNECTING),
-				  &message, 0xffff);
-	FrontendCursor_Show();
-	return FrontendButton_HandleSpriteButton(
+	front_image_draw_sprite_opaque("background", 0, 0);
+	frontend_text_draw_centered(
+		15, frontend_string_get(FRONTSTR_645_CONNECTING), &message,
+		0xffff);
+	frontend_cursor_show();
+	return frontend_button_handle_sprite_button(
 		       &cancel, "leaveup", "leavedown",
-		       FrontendString_Get(FRONTSTR_019_CANCEL), 12, 0, 8,
+		       frontend_string_get(FRONTSTR_019_CANCEL), 12, 0, 8,
 		       "buttonsound") != 0;
 }
 
-void XvtNetworkDialogs_Return(int host)
+void xvt_network_dialogs_return(int host)
 {
-	g_frontendSkipScreenEntrySetup = 1;
-	g_frontendMissionSessionMode =
+	g_frontend_skip_screen_entry_setup = 1;
+	g_frontend_mission_session_mode =
 		host ? FRONTEND_MISSION_SESSION_NET_HOST
 		     : FRONTEND_MISSION_SESSION_NET_CLIENT;
-	g_frontendNetSelectedSessionIdx = -1;
-	g_frontendNetProbeMissionElapsedSeconds = 0;
-	g_frontendNetReceivedMissionDescriptionId = -1;
-	memset(g_frontendNetSelectedGameName, 0,
-	       sizeof(g_frontendNetSelectedGameName));
-	if (g_missionText) {
-		memset(g_missionText, 0, 4096);
+	g_frontend_net_selected_session_idx = -1;
+	g_frontend_net_probe_mission_elapsed_seconds = 0;
+	g_frontend_net_received_mission_description_id = -1;
+	memset(g_frontend_net_selected_game_name, 0,
+	       sizeof(g_frontend_net_selected_game_name));
+	if (g_mission_text) {
+		memset(g_mission_text, 0, 4096);
 	}
-	FrontendScreen_SetCallbacks(
-		host ? FrontendNet_HostGameScreen : FrontendNet_JoinGameScreen,
-		host ? FrontendNet_HostGameExit
-		     : FrontendMissionList_FreeScreenResources);
+	frontend_screen_set_callbacks(
+		host ? frontend_net_host_game_screen
+		     : frontend_net_join_game_screen,
+		host ? frontend_net_host_game_exit
+		     : frontend_mission_list_free_screen_resources);
 }
 
-static int XvtNetworkDialogs_AfterFailure(int result, int host)
+static int xvt_network_dialogs_after_failure(int result, int host)
 {
 	(void)result;
-	XvtNetworkDialogs_Return(host);
+	xvt_network_dialogs_return(host);
 	return 0;
 }
 
-void XvtNetworkDialogs_ShowFailure(AeronDplayDirectoryError error, int host)
+void xvt_network_dialogs_show_failure(AeronDplayDirectoryError error, int host)
 {
 	const char *message;
-	XvtNetworkSession_Leave();
+	xvt_network_session_leave();
 	switch (error) {
 	case AERON_DPLAY_DIRECTORY_ERROR_NOT_CONFIGURED:
 		message = "The multiplayer directory is not configured.";
@@ -114,22 +115,24 @@ void XvtNetworkDialogs_ShowFailure(AeronDplayDirectoryError error, int host)
 			"The multiplayer directory is unavailable. Please try again.";
 		break;
 	}
-	int result = XvtDialog_Confirm(message, "", "",
-				       FrontendString_Get(FRONTSTR_523_OKAY),
-				       NULL, 0);
+	int result = xvt_dialog_confirm(message, "", "",
+					frontend_string_get(FRONTSTR_523_OKAY),
+					NULL, 0);
 	if (result == XVT_DIALOG_PENDING) {
-		XvtDialog_ContinueWith(XvtNetworkDialogs_AfterFailure, host);
+		xvt_dialog_continue_with(xvt_network_dialogs_after_failure,
+					 host);
 	} else {
-		XvtNetworkDialogs_Return(host);
+		xvt_network_dialogs_return(host);
 	}
 }
 
-int XvtNetworkDialogs_ReportAdmissionFailure(void)
+int xvt_network_dialogs_report_admission_failure(void)
 {
-	struct XvtNetworkSessionStatus status = XvtNetworkSession_GetStatus();
+	struct xvt_network_session_status status =
+		xvt_network_session_get_status();
 	if (status.state != XVT_NETWORK_SESSION_FAILED) {
 		return 0;
 	}
-	XvtNetworkDialogs_ShowFailure(status.error, 0);
+	xvt_network_dialogs_show_failure(status.error, 0);
 	return 1;
 }

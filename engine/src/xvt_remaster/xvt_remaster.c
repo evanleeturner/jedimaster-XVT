@@ -17,10 +17,10 @@
 #include "xvt_runtime/snapshot/render_snapshot.h"
 
 static int g_initialized;
-static uint32_t g_lastScene;
-static int g_frontendSurfacesReleased;
+static uint32_t g_last_scene;
+static int g_frontend_surfaces_released;
 
-int XvtRemaster_Init(void)
+int xvt_remaster_init(void)
 {
 	int width;
 	int height;
@@ -32,77 +32,79 @@ int XvtRemaster_Init(void)
 		XVT_LOG_ERROR("remaster.host_missing");
 		return 0;
 	}
-	if (!XvtRemasterConfig_Sync()) {
+	if (!xvt_remaster_config_sync()) {
 		return 0;
 	}
-	if (!XvtRemasterAssets_Init()) {
-		XvtRemasterAssets_Shutdown();
-		XvtRemasterConfig_Shutdown();
+	if (!xvt_remaster_assets_init()) {
+		xvt_remaster_assets_shutdown();
+		xvt_remaster_config_shutdown();
 		return 0;
 	}
-	g_lastScene = XVT_SCENE_NONE;
-	g_frontendSurfacesReleased = 0;
-	XvtRemasterView_Init();
+	g_last_scene = XVT_SCENE_NONE;
+	g_frontend_surfaces_released = 0;
+	xvt_remaster_view_init();
 	g_initialized = 1;
 	XVT_LOG_INFO("remaster.ready");
 	return 1;
 }
 
-void XvtRemaster_BeginFrame(const struct AeronInputSnapshot *input)
+void xvt_remaster_begin_frame(const struct AeronInputSnapshot *input)
 {
 	if (!g_initialized) {
 		return;
 	}
-	if (!XvtRemasterConfig_Sync()) {
+	if (!xvt_remaster_config_sync()) {
 		Aeron_RequestFatalRendererError(
 			"rendering configuration update");
 		return;
 	}
-	XvtRemasterView_BeginFrame(input);
+	xvt_remaster_view_begin_frame(input);
 }
 
 /* Runs the remaster renderer for one frame: uploads assets until they are ready, prepares the flight
  * view and the cockpit, records and submits the presentation, then presents. It stays one function
  * because each step decides from flags the earlier steps set (assets ready, world needed, frontend
  * replay, HUD dirty, direct). */
-void XvtRemaster_Frame(int32_t delta_us)
+void xvt_remaster_frame(int32_t delta_us)
 {
-	const struct XvtRenderSnapshot *snapshot;
+	const struct xvt_render_snapshot *snapshot;
 	int assets_ready = 1;
 	if (!g_initialized) {
 		return;
 	}
-	snapshot = XvtRenderSnapshot_Current();
+	snapshot = xvt_render_snapshot_current();
 	if (!snapshot) {
 		return;
 	}
-	XvtComponentAnimation_Prepare(snapshot);
-	XvtRemasterPreview_BeginFrame();
-	if (snapshot->scene_kind != g_lastScene) {
-		XvtRemasterFlight_Invalidate();
-		g_lastScene = snapshot->scene_kind;
-		XVT_LOG_DEBUG("remaster.scene kind=%u", g_lastScene);
+	xvt_component_animation_prepare(snapshot);
+	xvt_remaster_preview_begin_frame();
+	if (snapshot->scene_kind != g_last_scene) {
+		xvt_remaster_flight_invalidate();
+		g_last_scene = snapshot->scene_kind;
+		XVT_LOG_DEBUG("remaster.scene kind=%u", g_last_scene);
 	}
 	int width = 0, height = 0;
 	if (!Aeron_GetPresentationPixelSize(&width, &height) || width <= 0 ||
 	    height <= 0) {
-		XvtRemasterFlight_Invalidate();
+		xvt_remaster_flight_invalidate();
 		return;
 	}
-	int world_needed = XvtRemasterView_NeedsWorld(snapshot);
+	int world_needed = xvt_remaster_view_needs_world(snapshot);
 	int loading_assets = snapshot->cockpit_resources.valid &&
-			     !XvtHudAssets_HasResources(
+			     !xvt_hud_assets_has_resources(
 				     snapshot->cockpit_resources.definition
 					     .resource_generation);
 	int prepare_assets = world_needed || loading_assets;
-	int frontend_replay = XvtFrontend_NeedsReplay(snapshot, width, height);
+	int frontend_replay =
+		xvt_frontend_needs_replay(snapshot, width, height);
 	if ((prepare_assets || frontend_replay) &&
-	    (XvtRemasterAssets_ImagesNeedSync(snapshot) ||
-	     (frontend_replay && XvtFrontend_AssetsNeedPreparation(snapshot)) ||
+	    (xvt_remaster_assets_images_need_sync(snapshot) ||
+	     (frontend_replay &&
+	      xvt_frontend_assets_need_preparation(snapshot)) ||
 	     (prepare_assets &&
-	      (XvtRemasterShip_AssetsNeedSync(snapshot) ||
-	       XvtRemasterAssets_TexturesNeedSync(snapshot))))) {
-		XvtHudRenderer_Invalidate();
+	      (xvt_remaster_ship_assets_need_sync(snapshot) ||
+	       xvt_remaster_assets_textures_need_sync(snapshot))))) {
+		xvt_hud_renderer_invalidate();
 		do {
 			AeronCommandBuffer *cmd = Aeron_AcquireCommandBuffer();
 			if (!cmd) {
@@ -110,42 +112,44 @@ void XvtRemaster_Frame(int32_t delta_us)
 					"asset upload command buffer");
 				return;
 			}
-			XvtAssetSyncResult result = XVT_ASSET_SYNC_FAILED;
-			if (XvtRemasterAssets_SyncImages(cmd, snapshot)) {
-				result = prepare_assets
-						 ? XvtRemasterShip_SyncAssets(
-							   cmd, snapshot,
-							   64u * 1024u * 1024u,
-							   4096)
-						 : XVT_ASSET_SYNC_COMPLETE;
+			xvt_asset_sync_result result = XVT_ASSET_SYNC_FAILED;
+			if (xvt_remaster_assets_sync_images(cmd, snapshot)) {
+				result =
+					prepare_assets
+						? xvt_remaster_ship_sync_assets(
+							  cmd, snapshot,
+							  64u * 1024u * 1024u,
+							  4096)
+						: XVT_ASSET_SYNC_COMPLETE;
 				if (prepare_assets &&
 				    result == XVT_ASSET_SYNC_COMPLETE &&
-				    !XvtRemasterAssets_SyncTextures(cmd,
-								    snapshot)) {
+				    !xvt_remaster_assets_sync_textures(
+					    cmd, snapshot)) {
 					result = XVT_ASSET_SYNC_FAILED;
 				}
 				if (frontend_replay &&
 				    result != XVT_ASSET_SYNC_FAILED &&
-				    !XvtFrontend_PrepareAssets(cmd, snapshot)) {
+				    !xvt_frontend_prepare_assets(cmd,
+								 snapshot)) {
 					result = XVT_ASSET_SYNC_FAILED;
 				}
 			}
 			if (result == XVT_ASSET_SYNC_FAILED) {
 				Aeron_CancelCommandBuffer(cmd);
-				XvtRemasterAssets_Abort();
+				xvt_remaster_assets_abort();
 				Aeron_RequestFatalRendererError(
 					"original asset synchronization");
 				return;
 			}
 			if (!Aeron_SubmitCommandBuffer(cmd)) {
-				XvtRemasterAssets_Abort();
+				xvt_remaster_assets_abort();
 				Aeron_RequestFatalRendererError(
 					"asset upload submission");
 				return;
 			}
-			XvtRemasterAssets_CommitImages();
-			XvtRemasterShip_CommitSyncBatch();
-			XvtRemasterAssets_CommitTextures();
+			xvt_remaster_assets_commit_images();
+			xvt_remaster_ship_commit_sync_batch();
+			xvt_remaster_assets_commit_textures();
 			assets_ready = result == XVT_ASSET_SYNC_COMPLETE;
 			/* Frontend previews must be available before their once-only ordered replay.
 			 * Submit the existing bounded upload batches before consuming that stream. */
@@ -155,51 +159,51 @@ void XvtRemaster_Frame(int32_t delta_us)
 	/* From here assets_ready also requires the flight world: it means the flight view may be prepared. */
 	assets_ready = assets_ready && world_needed;
 	if (assets_ready &&
-	    !XvtRemasterFlight_Prepare(snapshot, XvtRenderSnapshot_Previous(),
-				       width, height)) {
+	    !xvt_remaster_flight_prepare(
+		    snapshot, xvt_render_snapshot_previous(), width, height)) {
 		Aeron_RequestFatalRendererError("flight view preparation");
 		return;
 	}
-	const struct XvtPreparedFlight *frame =
-		assets_ready ? XvtRemasterFlight_Current() : NULL;
+	const struct xvt_prepared_flight *frame =
+		assets_ready ? xvt_remaster_flight_current() : NULL;
 	if (frame) {
 		width = frame->view.camera.viewport.width;
 		height = frame->view.camera.viewport.height;
 	}
 	if (resources_ready &&
 	    (prepare_assets || !snapshot->cockpit_resources.valid) &&
-	    !XvtCockpitLoading_Prepare(snapshot, width, height)) {
+	    !xvt_cockpit_loading_prepare(snapshot, width, height)) {
 		Aeron_RequestFatalRendererError(
 			"cockpit resource preparation during loading");
 		return;
 	}
 	if (!assets_ready) {
-		XvtRemasterFlight_Invalidate();
+		xvt_remaster_flight_invalidate();
 	}
-	XvtFlightPipeline_SetDirect(0, width, height);
-	int direct = assets_ready &&
-		     XvtRemasterView_TryEnableDirect(snapshot, width, height);
+	xvt_flight_pipeline_set_direct(0, width, height);
+	int direct = assets_ready && xvt_remaster_view_try_enable_direct(
+					     snapshot, width, height);
 	int standalone = world_needed && !snapshot->flight_valid &&
 			 snapshot->cockpit.valid &&
 			 snapshot->presented_target == XVT_TARGET_FLIGHT_MAIN;
-	int crt_dirty = frame && XvtRemasterPreview_CrtNeedsRender(
+	int crt_dirty = frame && xvt_remaster_preview_crt_needs_render(
 					 snapshot, width, height);
 	int crt_visible = frame && snapshot->cockpit.crt.valid &&
-			  (crt_dirty || XvtRemasterPreview_CrtLinear());
+			  (crt_dirty || xvt_remaster_preview_crt_linear());
 	int hud_dirty = (frame || standalone) &&
-			XvtHudRenderer_NeedsPreparation(
+			xvt_hud_renderer_needs_preparation(
 				&snapshot->cockpit, snapshot->world_generation,
 				frame ? snapshot->target_boxes : NULL,
 				frame ? snapshot->target_box_count : 0,
 				frame ? &frame->view : NULL, crt_visible, width,
 				height);
 	if (frame && (hud_dirty || crt_dirty)) {
-		XvtRemasterFlight_RequestComposition();
+		xvt_remaster_flight_request_composition();
 	}
-	int render_flight =
-		frame && (frame->render_needed || !XvtRemasterFlight_Output());
+	int render_flight = frame && (frame->render_needed ||
+				      !xvt_remaster_flight_output());
 	if (render_flight || (standalone && hud_dirty) || frontend_replay ||
-	    XvtFlightPipeline_NeedsRetain()) {
+	    xvt_flight_pipeline_needs_retain()) {
 		AeronCommandBuffer *cmd = Aeron_AcquireCommandBuffer();
 		if (!cmd) {
 			Aeron_RequestFatalRendererError(
@@ -208,104 +212,105 @@ void XvtRemaster_Frame(int32_t delta_us)
 		}
 		int ok = 1;
 		if (render_flight) {
-			ok = XvtRemasterPreview_RenderCrt(cmd, snapshot, width,
-							  height);
+			ok = xvt_remaster_preview_render_crt(cmd, snapshot,
+							     width, height);
 		}
 		if (ok && (render_flight || (standalone && hud_dirty))) {
-			ok = XvtHudRenderer_Prepare(
+			ok = xvt_hud_renderer_prepare(
 				cmd, &snapshot->cockpit,
 				snapshot->world_generation,
 				frame ? snapshot->target_boxes : NULL,
 				frame ? snapshot->target_box_count : 0,
 				frame ? &frame->view : NULL,
-				frame ? XvtRemasterPreview_CrtLinear() : NULL,
+				frame ? xvt_remaster_preview_crt_linear()
+				      : NULL,
 				width, height);
 		}
 		if (ok && render_flight) {
-			ok = XvtRemasterFlight_Render(
-				cmd, snapshot, XvtRenderSnapshot_Previous());
+			ok = xvt_remaster_flight_render(
+				cmd, snapshot, xvt_render_snapshot_previous());
 		}
 		if (ok && standalone && hud_dirty) {
-			ok = XvtFlightPipeline_DrawStandaloneHud(cmd, width,
-								 height);
+			ok = xvt_flight_pipeline_draw_standalone_hud(cmd, width,
+								     height);
 		}
 		if (ok && !direct) {
-			ok = XvtFlightPipeline_Retain(cmd);
+			ok = xvt_flight_pipeline_retain(cmd);
 		}
 		if (ok && frontend_replay) {
-			ok = XvtRemasterPreview_Render(cmd, snapshot, width,
-						       height) &&
-			     XvtFrontend_Replay(cmd, snapshot, width, height);
+			ok = xvt_remaster_preview_render(cmd, snapshot, width,
+							 height) &&
+			     xvt_frontend_replay(cmd, snapshot, width, height);
 		}
 		if (!ok) {
 			Aeron_CancelCommandBuffer(cmd);
-			XvtHudRenderer_Invalidate();
-			XvtRemasterPreview_InvalidateCrt();
+			xvt_hud_renderer_invalidate();
+			xvt_remaster_preview_invalidate_crt();
 			Aeron_RequestFatalRendererError(
 				"presentation recording");
 			return;
 		}
 		if (!Aeron_SubmitCommandBuffer(cmd)) {
-			XvtHudRenderer_Invalidate();
-			XvtRemasterPreview_InvalidateCrt();
+			xvt_hud_renderer_invalidate();
+			xvt_remaster_preview_invalidate_crt();
 			Aeron_RequestFatalRendererError(
 				"presentation submission");
 			return;
 		}
-		XvtRemasterAssets_CommitImages();
+		xvt_remaster_assets_commit_images();
 	}
 	/* Finish the last ordered frontend replay before retiring its GPU sources. */
 	if (snapshot->frontend_surfaces_released &&
-	    !g_frontendSurfacesReleased) {
-		XvtFrontend_ReleaseForFlight();
-		XvtRemasterPreview_ReleaseFrontend();
+	    !g_frontend_surfaces_released) {
+		xvt_frontend_release_for_flight();
+		xvt_remaster_preview_release_frontend();
 	}
-	g_frontendSurfacesReleased = snapshot->frontend_surfaces_released;
-	XvtRenderAssets_Consumed(snapshot->snapshot_serial);
-	XvtRemasterView_Present(snapshot, delta_us,
-				assets_ready && snapshot->cockpit.valid &&
-					XvtRemasterFlight_Output() != NULL,
-				direct);
+	g_frontend_surfaces_released = snapshot->frontend_surfaces_released;
+	xvt_render_assets_consumed(snapshot->snapshot_serial);
+	xvt_remaster_view_present(snapshot, delta_us,
+				  assets_ready && snapshot->cockpit.valid &&
+					  xvt_remaster_flight_output() != NULL,
+				  direct);
 }
 
-void XvtRemaster_Shutdown(void)
+void xvt_remaster_shutdown(void)
 {
-	XvtComponentAnimation_Reset();
-	XvtRemasterView_Shutdown();
-	XvtFrontend_Shutdown();
-	XvtRemasterPreview_Shutdown();
-	XvtRemasterFlight_Shutdown();
+	xvt_component_animation_reset();
+	xvt_remaster_view_shutdown();
+	xvt_frontend_shutdown();
+	xvt_remaster_preview_shutdown();
+	xvt_remaster_flight_shutdown();
 
-	XvtHudRenderer_Shutdown();
-	XvtCockpitLoading_Reset();
-	XvtRemasterAssets_Shutdown();
-	XvtRemasterConfig_Shutdown();
+	xvt_hud_renderer_shutdown();
+	xvt_cockpit_loading_reset();
+	xvt_remaster_assets_shutdown();
+	xvt_remaster_config_shutdown();
 	if (!g_initialized) {
 		return;
 	}
 	AeronDx5_SetClassicFlightRenderingSuppressed(0);
 	g_initialized = 0;
-	g_lastScene = XVT_SCENE_NONE;
+	g_last_scene = XVT_SCENE_NONE;
 	XVT_LOG_INFO("remaster.stopped");
 }
 
-struct AeronTexture *XvtRemaster_Output(void)
+struct AeronTexture *xvt_remaster_output(void)
 {
-	const struct XvtRenderSnapshot *s = XvtRenderSnapshot_Current();
+	const struct xvt_render_snapshot *s = xvt_render_snapshot_current();
 	if (!s || s->scene_kind == XVT_SCENE_MOVIE) {
 		return NULL;
 	}
 	/* The successful presentation survives task teardown and invalid cameras. */
 	if (s->presented_target != XVT_TARGET_FLIGHT_MAIN) {
-		return XvtFrontend_Output();
+		return xvt_frontend_output();
 	}
-	return XvtFlightPipeline_Output();
+	return xvt_flight_pipeline_output();
 }
 
-struct AeronTexture *XvtRemaster_MovieOverlay(void)
+struct AeronTexture *xvt_remaster_movie_overlay(void)
 {
-	const struct XvtRenderSnapshot *s = XvtRenderSnapshot_Current();
+	const struct xvt_render_snapshot *s = xvt_render_snapshot_current();
 	return s && s->scene_kind == XVT_SCENE_MOVIE
-		       ? XvtFrontend_MovieOverlay()
+		       ? xvt_frontend_movie_overlay()
 		       : NULL;
 }

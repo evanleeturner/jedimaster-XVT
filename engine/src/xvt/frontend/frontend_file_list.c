@@ -8,105 +8,107 @@
 #ifndef XVT_MODERN
 #include <direct.h>
 
-typedef int FrontendFindHandle;
+typedef int frontend_find_handle;
 
 /* The original build's copy of the Windows find record (WIN32_FIND_DATAA),
  * which FindFirstFileA and FindNextFileA fill; only the file name is used. */
-struct FrontendFindData {
-	uint32_t fileAttributes;     /* Never read or written by name. */
-	uint32_t creationTimeLow;    /* Never read or written by name. */
-	uint32_t creationTimeHigh;   /* Never read or written by name. */
-	uint32_t lastAccessTimeLow;  /* Never read or written by name. */
-	uint32_t lastAccessTimeHigh; /* Never read or written by name. */
-	uint32_t lastWriteTimeLow;   /* Never read or written by name. */
-	uint32_t lastWriteTimeHigh;  /* Never read or written by name. */
-	uint32_t fileSizeHigh;	     /* Never read or written by name. */
-	uint32_t fileSizeLow;	     /* Never read or written by name. */
-	uint32_t reserved0;	     /* Never read or written by name. */
-	uint32_t reserved1;	     /* Never read or written by name. */
+struct frontend_find_data {
+	uint32_t file_attributes;	/* Never read or written by name. */
+	uint32_t creation_time_low;	/* Never read or written by name. */
+	uint32_t creation_time_high;	/* Never read or written by name. */
+	uint32_t last_access_time_low;	/* Never read or written by name. */
+	uint32_t last_access_time_high; /* Never read or written by name. */
+	uint32_t last_write_time_low;	/* Never read or written by name. */
+	uint32_t last_write_time_high;	/* Never read or written by name. */
+	uint32_t file_size_high;	/* Never read or written by name. */
+	uint32_t file_size_low;		/* Never read or written by name. */
+	uint32_t reserved0;		/* Never read or written by name. */
+	uint32_t reserved1;		/* Never read or written by name. */
 	/* Name of the file found, without its folder, ended by a 0. */
-	char fileName[260];
-	char alternateFileName[14]; /* Never read or written by name. */
-	uint8_t trailingPadding[2]; /* Never read or written by name. */
+	char file_name[260];
+	char alternate_file_name[14]; /* Never read or written by name. */
+	uint8_t trailing_padding[2];  /* Never read or written by name. */
 };
 
-__declspec(dllimport) FrontendFindHandle __stdcall
-FindFirstFileA(const char *fileName, struct FrontendFindData *findData);
+__declspec(dllimport) frontend_find_handle __stdcall
+FindFirstFileA(const char *file_name, struct frontend_find_data *find_data);
 __declspec(dllimport) int __stdcall
-FindNextFileA(FrontendFindHandle findHandle, struct FrontendFindData *findData);
-__declspec(dllimport) int __stdcall FindClose(FrontendFindHandle findHandle);
+FindNextFileA(frontend_find_handle find_handle,
+	      struct frontend_find_data *find_data);
+__declspec(dllimport) int __stdcall FindClose(frontend_find_handle find_handle);
 
 #endif
 
-/* Lists the files matching wildcard in a new list for FrontendFileList_Free,
+/* Lists the files matching wildcard in a new list for frontend_file_list_free,
  * sorted by strcmp of their names: byte order, so capitals sort before small
  * letters. The original build stores bare file names, lists matching folders
  * too, returns an empty list when nothing matches, NULL when memory runs out
  * before the first name is stored, and keeps the names it has when memory
  * runs out later. It saves the working directory and changes back to it on
  * every path, though nothing between changes it. The modern build hands the
- * whole job to FrontendFileList_BuildSortedModern, which differs as its
+ * whole job to frontend_file_list_build_sorted_modern, which differs as its
  * header says. */
 // FUNCTION: XVT 0x4DFA10
-struct FrontendFileList *FrontendFileList_BuildSorted(const char *wildcard)
+struct frontend_file_list *frontend_file_list_build_sorted(const char *wildcard)
 {
 #ifdef XVT_MODERN
-	return FrontendFileList_BuildSortedModern(wildcard);
+	return frontend_file_list_build_sorted_modern(wildcard);
 #else
-	char currentDirectory[256];
-	struct FrontendFileList *list;
-	struct FrontendFileListNode *node;
-	FrontendFindHandle findHandle;
-	extern struct FrontendFindData FindFileData;
+	char current_directory[256];
+	struct frontend_file_list *list;
+	struct frontend_file_list_node *node;
+	frontend_find_handle find_handle;
+	extern struct frontend_find_data find_file_data;
 
-	_getcwd(currentDirectory, sizeof(currentDirectory));
-	list = (struct FrontendFileList *)malloc(sizeof(*list));
+	_getcwd(current_directory, sizeof(current_directory));
+	list = (struct frontend_file_list *)malloc(sizeof(*list));
 	if (list == NULL) {
-		_chdir(currentDirectory);
+		_chdir(current_directory);
 		return NULL;
 	}
-	findHandle = FindFirstFileA(wildcard, &FindFileData);
-	if (findHandle == -1) {
-		_chdir(currentDirectory);
+	find_handle = FindFirstFileA(wildcard, &find_file_data);
+	if (find_handle == -1) {
+		_chdir(current_directory);
 		list->head = NULL;
 		list->count = 0;
 		return list;
 	}
-	node = (struct FrontendFileListNode *)malloc(sizeof(*node));
+	node = (struct frontend_file_list_node *)malloc(sizeof(*node));
 	if (node == NULL) {
-		_chdir(currentDirectory);
+		_chdir(current_directory);
 		free(list);
-		FindClose(findHandle);
+		FindClose(find_handle);
 		return NULL;
 	}
-	node->path = (char *)malloc(strlen(FindFileData.fileName) + 2);
+	node->path = (char *)malloc(strlen(find_file_data.file_name) + 2);
 	if (node->path == NULL) {
-		_chdir(currentDirectory);
+		_chdir(current_directory);
 		free(node);
 		free(list);
-		FindClose(findHandle);
+		FindClose(find_handle);
 		return NULL;
 	}
-	strcpy(node->path, FindFileData.fileName);
+	strcpy(node->path, find_file_data.file_name);
 	node->next = NULL;
 	list->head = node;
 	list->count = 1;
-	while (FindNextFileA(findHandle, &FindFileData)) {
-		node = (struct FrontendFileListNode *)malloc(sizeof(*node));
+	while (FindNextFileA(find_handle, &find_file_data)) {
+		node = (struct frontend_file_list_node *)malloc(sizeof(*node));
 		if (node == NULL) {
 			break;
 		}
-		node->path = (char *)malloc(strlen(FindFileData.fileName) + 2);
+		node->path =
+			(char *)malloc(strlen(find_file_data.file_name) + 2);
 		if (node->path == NULL) {
 			free(node);
 			break;
 		}
-		strcpy(node->path, FindFileData.fileName);
+		strcpy(node->path, find_file_data.file_name);
 		node->next = NULL;
-		FrontendFileList_InsertNodeSorted(list, node);
+		frontend_file_list_insert_node_sorted(list, node);
 	}
-	_chdir(currentDirectory);
-	FindClose(findHandle);
+	_chdir(current_directory);
+	FindClose(find_handle);
 	return list;
 #endif
 }
@@ -114,10 +116,10 @@ struct FrontendFileList *FrontendFileList_BuildSorted(const char *wildcard)
 /* Frees every node's path, every node and the list itself; does nothing for
  * NULL. */
 // FUNCTION: XVT 0x4DFC30
-void FrontendFileList_Free(struct FrontendFileList *list)
+void frontend_file_list_free(struct frontend_file_list *list)
 {
-	struct FrontendFileListNode *node;
-	struct FrontendFileListNode *next;
+	struct frontend_file_list_node *node;
+	struct frontend_file_list_node *next;
 
 	if (list != NULL) {
 		node = list->head;
@@ -134,13 +136,13 @@ void FrontendFileList_Free(struct FrontendFileList *list)
 /* Inserts a filename node into a lexicographically sorted singly linked list
  * and increments the list count. The head node is assumed to exist. */
 /* A node whose path equals one already listed goes after it. Called by
- * FrontendFileList_BuildSorted for every file after the first; in the modern
- * build by FrontendFileList_CollectModernFile. */
+ * frontend_file_list_build_sorted for every file after the first; in the modern
+ * build by frontend_file_list_collect_modern_file. */
 // FUNCTION: XVT 0x4DFC70
-void FrontendFileList_InsertNodeSorted(struct FrontendFileList *list,
-				       struct FrontendFileListNode *node)
+void frontend_file_list_insert_node_sorted(struct frontend_file_list *list,
+					   struct frontend_file_list_node *node)
 {
-	struct FrontendFileListNode *cursor;
+	struct frontend_file_list_node *cursor;
 
 	cursor = list->head;
 	if (strcmp(node->path, cursor->path) < 0) {

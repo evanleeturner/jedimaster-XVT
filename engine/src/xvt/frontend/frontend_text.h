@@ -9,72 +9,75 @@
 extern "C" {
 #endif
 
-struct BitmapFont {
-	/* Each glyph's rows, encoded by FrontImage_EncodeGlyphRow, end to end;
+struct bitmap_font {
+	/* Each glyph's rows, encoded by front_image_encode_glyph_row, end to end;
 	 * a font built through GDI starts at glyph 1. */
 	uint8_t *
-		pGlyphBits; ///< Runtime pointer to the compressed glyph-byte blob; serialized in the .ABP header
-			    ///< as the blob byte count.
-	unsigned int glyphBitOffset
-		[256]; ///< Per-character byte offsets into pGlyphBits.
+		p_glyph_bits; ///< Runtime pointer to the compressed glyph-byte blob; serialized in the .ABP header
+			      ///< as the blob byte count.
+	unsigned int glyph_bit_offset
+		[256]; ///< Per-character byte offsets into p_glyph_bits.
 	/* Each character's height in pixels. Entry 0 is the font's height that
-	 * FrontendText_GetFontHeight returns; a font built through GDI copies
+	 * frontend_text_get_font_height returns; a font built through GDI copies
 	 * it from entry 1. */
-	uint8_t glyphHeight[256];
-	/* Each character's width in pixels, its advance before charSpacing; 0
+	uint8_t glyph_height[256];
+	/* Each character's width in pixels, its advance before char_spacing; 0
 	 * for character 0 in a font built through GDI. */
-	uint8_t glyphWidth[256];
+	uint8_t glyph_width[256];
 	/* The size the font was built at, its index in
-	 * g_frontState.fontBySize. */
-	unsigned int pointSize;
+	 * g_front_state.font_by_size. */
+	unsigned int point_size;
 	/* 1 while the slot holds a font; the free functions compare it with 1,
 	 * and a loaded file sets it from its own header. */
-	uint8_t inUse; ///< Font-slot occupancy flag; scanned when allocating and cleared when freeing.
+	uint8_t in_use; ///< Font-slot occupancy flag; scanned when allocating and cleared when freeing.
 	/* Pixels added after each glyph's width: 0 in a font built through GDI,
 	 * else what the file holds. */
-	uint8_t charSpacing;
-	/* FrontendText_LoadFont sets it to 1 and a loaded file sets it from its
+	uint8_t char_spacing;
+	/* frontend_text_load_font sets it to 1 and a loaded file sets it from its
 	 * header. No code reads the field itself;
-	 * FrontendText_SaveFontAtlasFile copies it with the header. */
-	uint8_t field_60A; ///< Set to 1 for generated fonts and persisted in the 1547-byte .ABP header; no
+	 * frontend_text_save_font_atlas_file copies it with the header. */
+	uint8_t field_60a; ///< Set to 1 for generated fonts and persisted in the 1547-byte .ABP header; no
 	///< runtime consumer is identified.
 };
 
-typedef uint16_t TextFadeColorCache[65536];
+typedef uint16_t text_fade_color_cache[65536];
 
-extern int g_activeTextFieldId;
+extern int g_active_text_field_id;
 
-int FrontendText_HandleEditableField(struct RECT *rect, char *text,
-				     int maxChars, int fieldId,
-				     unsigned int fontSize,
-				     const char *ignoredChars);
-int FrontendText_LoadFont(int pointSize);
-void FrontendText_FreeAllFonts(void);
-void FrontendText_FreeFont(unsigned int pointSize);
-int FrontendText_Draw(int fontSize, const char *str, int x, int y, int color);
-int FrontendText_DrawCentered(int fontSize, const char *str, struct RECT *rect,
-			      int color);
-int FrontendText_DrawAlignedInRect(int fontSize, const char *str,
-				   struct RECT *rect, int centerH, int centerV,
-				   int color);
-int FrontendText_DrawLineArrayInRect(int fontSize, const char **lines,
-				     int lineCount, const struct RECT *rect,
-				     int color, int centerHorizontally,
-				     int centerVertically, int lineSpacing);
-int FrontendText_DrawWrapped(int fontSize, const char *str, struct RECT *rect,
-			     int color, int lineSpacing, int firstVisibleLine);
-int FrontendText_GetFontHeight(int fontSize);
-int FrontendText_MeasureWidth(const char *str, int fontSize);
-void FrontendText_SaveFontAtlasFile(char *fileName, void **font,
-				    unsigned int glyphBlobSize);
-int FrontendText_LoadFontAtlasFile(const char *fileName, int slotIndex);
-int FrontendText_StartTextFadeIn(int frames);
-int FrontendText_StopTextFade(void);
-int FrontendText_SuspendTextFade(void);
-int FrontendText_ResumeTextFade(void);
-void FrontendText_DrawFormattedWrappedText(struct RECT *rect,
-					   const uint8_t *text,
-					   int suppressCenteredHeadings);
+int frontend_text_handle_editable_field(struct RECT *rect, char *text,
+					int max_chars, int field_id,
+					unsigned int font_size,
+					const char *ignored_chars);
+int frontend_text_load_font(int point_size);
+void frontend_text_free_all_fonts(void);
+void frontend_text_free_font(unsigned int point_size);
+int frontend_text_draw(int font_size, const char *str, int x, int y, int color);
+int frontend_text_draw_centered(int font_size, const char *str,
+				struct RECT *rect, int color);
+int frontend_text_draw_aligned_in_rect(int font_size, const char *str,
+				       struct RECT *rect, int center_h,
+				       int center_v, int color);
+int frontend_text_draw_line_array_in_rect(int font_size, const char **lines,
+					  int line_count,
+					  const struct RECT *rect, int color,
+					  int center_horizontally,
+					  int center_vertically,
+					  int line_spacing);
+int frontend_text_draw_wrapped(int font_size, const char *str,
+			       struct RECT *rect, int color, int line_spacing,
+			       int first_visible_line);
+int frontend_text_get_font_height(int font_size);
+int frontend_text_measure_width(const char *str, int font_size);
+void frontend_text_save_font_atlas_file(char *file_name, void **font,
+					unsigned int glyph_blob_size);
+int frontend_text_load_font_atlas_file(const char *file_name, int slot_index);
+int frontend_text_start_text_fade_in(int frames);
+int frontend_text_stop_text_fade(void);
+int frontend_text_suspend_text_fade(void);
+int frontend_text_resume_text_fade(void);
+void frontend_text_draw_formatted_wrapped_text(struct RECT *rect,
+					       const uint8_t *text,
+					       int suppress_centered_headings);
 
 #ifdef __cplusplus
 }

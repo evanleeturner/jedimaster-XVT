@@ -7,10 +7,10 @@
 
 /* The radar's blip limits at 320x240: per 443-unit step of angle from
  * vertical (entry 0) toward level (entry 36), the largest sideways and
- * vertical offsets in pixels. MATH2_getradarcoord copies it into
- * g_radarEllipseClampTable in that mode; nothing writes it. */
+ * vertical offsets in pixels. math2_getradarcoord copies it into
+ * g_radar_ellipse_clamp_table in that mode; nothing writes it. */
 // GLOBAL: XVT 0x51C4C0
-struct RadarEllipseClampLimit g_radarEllipseClamp320x240Preset[37] = {
+struct radar_ellipse_clamp_limit g_radar_ellipse_clamp320x240_preset[37] = {
 	{0, 18},  {1, 18},  {2, 18},  {3, 18},	{4, 17},  {5, 17},  {6, 17},
 	{7, 17},  {8, 16},  {9, 16},  {10, 16}, {10, 15}, {11, 15}, {12, 15},
 	{12, 14}, {13, 14}, {14, 14}, {14, 13}, {15, 13}, {15, 12}, {16, 12},
@@ -18,11 +18,11 @@ struct RadarEllipseClampLimit g_radarEllipseClamp320x240Preset[37] = {
 	{19, 7},  {19, 6},  {20, 6},  {20, 5},	{21, 4},  {21, 3},  {21, 2},
 	{21, 1},  {21, 0},
 };
-/* The blip limits MATH2_getradarcoord clamps to, in the same 443-unit steps,
- * built for the resolution in g_radarEllipseClampCachedResolutionMode;
- * starts as the 320x240 values. Only MATH2_getradarcoord writes it. */
+/* The blip limits math2_getradarcoord clamps to, in the same 443-unit steps,
+ * built for the resolution in g_radar_ellipse_clamp_cached_resolution_mode;
+ * starts as the 320x240 values. Only math2_getradarcoord writes it. */
 // GLOBAL: XVT 0x51C510
-struct RadarEllipseClampLimit g_radarEllipseClampTable[37] = {
+struct radar_ellipse_clamp_limit g_radar_ellipse_clamp_table[37] = {
 	{0, 18},  {1, 18},  {2, 18},  {3, 18},	{4, 17},  {5, 17},  {6, 17},
 	{7, 17},  {8, 16},  {9, 16},  {10, 16}, {10, 15}, {11, 15}, {12, 15},
 	{12, 14}, {13, 14}, {14, 14}, {14, 13}, {15, 13}, {15, 12}, {16, 12},
@@ -30,18 +30,18 @@ struct RadarEllipseClampLimit g_radarEllipseClampTable[37] = {
 	{19, 7},  {19, 6},  {20, 6},  {20, 5},	{21, 4},  {21, 3},  {21, 2},
 	{21, 1},  {21, 0},
 };
-/* The g_flightResolutionMode g_radarEllipseClampTable was last built for;
+/* The g_flight_resolution_mode g_radar_ellipse_clamp_table was last built for;
  * starts at FLIGHT_RESOLUTION_320X240 to match the table's first values. Only
- * MATH2_getradarcoord writes it. */
+ * math2_getradarcoord writes it. */
 // GLOBAL: XVT 0x51C55C
-int g_radarEllipseClampCachedResolutionMode = FLIGHT_RESOLUTION_320X240;
-/* The blip's vertical offset in pixels that MATH2_getradarcoord last
- * computed, negative when its up argument was. Hud_AddBlipToRadar then adds
+int g_radar_ellipse_clamp_cached_resolution_mode = FLIGHT_RESOLUTION_320X240;
+/* The blip's vertical offset in pixels that math2_getradarcoord last
+ * computed, negative when its up argument was. hud_add_blip_to_radar then adds
  * the radar's screen position and raises a negative result to 0. */
 // GLOBAL: XVT 0xA08C78
 int16_t radary = 0;
-/* The blip's sideways offset in pixels that MATH2_getradarcoord last
- * computed, negative when its side argument was. Hud_AddBlipToRadar then adds
+/* The blip's sideways offset in pixels that math2_getradarcoord last
+ * computed, negative when its side argument was. hud_add_blip_to_radar then adds
  * the radar's screen position. */
 // GLOBAL: XVT 0xA08C7C
 int16_t radarx = 0;
@@ -53,7 +53,7 @@ int16_t radarx = 0;
  * from 0x80000000 to 0xFFFFFFFF, which comes back with its sign flipped. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x425AE0
-int MATH2_ABoverC32(int a, int b, int c)
+int math2_ab_over_c32(int a, int b, int c)
 {
 	uint64_t product;
 	int negative;
@@ -92,17 +92,17 @@ int MATH2_ABoverC32(int a, int b, int c)
 	return a;
 }
 
-/* Scales value by fracQ16 over 65536: (value * fracQ16 + 0x8000) >> 16.
- * A fracQ16 of 0xFFFF counts as a whole and returns value. */
+/* Scales value by frac_q16 over 65536: (value * frac_q16 + 0x8000) >> 16.
+ * A frac_q16 of 0xFFFF counts as a whole and returns value. */
 // FUNCTION: XVT 0x425B70
-unsigned int MATH2_fraction(uint16_t value, uint16_t fracQ16)
+unsigned int math2_fraction(uint16_t value, uint16_t frac_q16)
 {
 	unsigned int product;
 	unsigned int result;
 
 	result = value;
-	if (fracQ16 != 0xffffu) {
-		product = (unsigned int)value * fracQ16;
+	if (frac_q16 != 0xffffu) {
+		product = (unsigned int)value * frac_q16;
 		result = product + 0x8000u;
 		result >>= 16;
 	}
@@ -110,24 +110,24 @@ unsigned int MATH2_fraction(uint16_t value, uint16_t fracQ16)
 	return result;
 }
 
-/* Scales a 32-bit value by fracQ16 over 65536, in two 16-bit halves:
- * ((value & 0xFFFF) * fracQ16 >> 16) + (value >> 16) * fracQ16, truncated.
- * A fracQ16 of 0xFFFF counts as a whole and returns value. */
+/* Scales a 32-bit value by frac_q16 over 65536, in two 16-bit halves:
+ * ((value & 0xFFFF) * frac_q16 >> 16) + (value >> 16) * frac_q16, truncated.
+ * A frac_q16 of 0xFFFF counts as a whole and returns value. */
 // FUNCTION: XVT 0x425BA0
-unsigned int MATH2_longfraction(unsigned int value, uint16_t fracQ16)
+unsigned int math2_longfraction(unsigned int value, uint16_t frac_q16)
 {
-	if (fracQ16 == 0xffffu) {
+	if (frac_q16 == 0xffffu) {
 		return value;
 	}
-	return (((value & 0xffffu) * fracQ16) >> 16) +
-	       ((value >> 16) * fracQ16);
+	return (((value & 0xffffu) * frac_q16) >> 16) +
+	       ((value >> 16) * frac_q16);
 }
 
 /* Returns numerator over denominator as a fraction of 65536:
  * (numerator << 16) / denominator when numerator is the smaller; 0 when
  * denominator is 0 and numerator is not; else 0xFFFF. */
 // FUNCTION: XVT 0x425C20
-uint16_t MATH2_ratioQ16(uint16_t numerator, uint16_t denominator)
+uint16_t math2_ratio_q16(uint16_t numerator, uint16_t denominator)
 {
 	if (numerator == denominator) {
 		return 0xffffu;
@@ -147,8 +147,8 @@ uint16_t MATH2_ratioQ16(uint16_t numerator, uint16_t denominator)
  * can make the two equal, and then it returns 0x10000 (0x20000 over 0x20001
  * does), which a caller that keeps 16 bits reads as 0. */
 // FUNCTION: XVT 0x425C60
-unsigned int MATH2_longratioQ16(unsigned int numerator,
-				unsigned int denominator)
+unsigned int math2_longratio_q16(unsigned int numerator,
+				 unsigned int denominator)
 {
 	if (numerator == denominator) {
 		return 0xFFFF;
@@ -169,156 +169,160 @@ unsigned int MATH2_longratioQ16(unsigned int numerator,
 }
 
 /* Converts a speed to a per-step distance: scaled = (4660 * speed + 128) >> 8,
- * divided by divisor (callers pass g_simStepsPerSecond), plus 1 when
+ * divided by divisor (callers pass g_sim_steps_per_second), plus 1 when
  * (scaled & divisor) is over scaled >> 1. Does not check for a 0 divisor or
  * a negative speed. */
 // FUNCTION: XVT 0x425D80
-unsigned int MATH2_mphconvert(int16_t speed, uint16_t divisor)
+unsigned int math2_mphconvert(int16_t speed, uint16_t divisor)
 {
-	unsigned int framesPerSecond;
-	unsigned int scaledValue;
+	unsigned int frames_per_second;
+	unsigned int scaled_value;
 	unsigned int result;
 
-	scaledValue = 4660 * speed + 128;
-	scaledValue >>= 8;
-	framesPerSecond = divisor;
-	result = scaledValue / framesPerSecond;
-	if ((scaledValue & framesPerSecond) > (scaledValue >> 1)) {
+	scaled_value = 4660 * speed + 128;
+	scaled_value >>= 8;
+	frames_per_second = divisor;
+	result = scaled_value / frames_per_second;
+	if ((scaled_value & frames_per_second) > (scaled_value >> 1)) {
 		result++;
 	}
 	return result;
 }
 
 /* Places one radar blip and returns radary. Scales side and up, made
- * positive, left by g_perspectiveShift - 5 bits, divides each by forward
+ * positive, left by g_perspective_shift - 5 bits, divides each by forward
  * unless it is 0, and caps each at 0x7FFF. Then clamps them to the entry of
- * g_radarEllipseClampTable for their direction (0x4000 minus
+ * g_radar_ellipse_clamp_table for their direction (0x4000 minus
  * trig2_calcarctan_core's angle, over 443), puts back the signs of side and
  * up, and stores them in radarx and radary. First rebuilds the table when
- * g_flightResolutionMode differs from
- * g_radarEllipseClampCachedResolutionMode: a copy of the 320x240 preset in
+ * g_flight_resolution_mode differs from
+ * g_radar_ellipse_clamp_cached_resolution_mode: a copy of the 320x240 preset in
  * that mode, else 30 (480x360) or 44 (any other mode) through
  * trig2_sinewordmult for x and trig2_cosinewordmult for y at each step's
- * angle. trig2_calcarctan_core also sets trig2_legsSwapped and trig2_largerLeg.
+ * angle. trig2_calcarctan_core also sets trig2_legs_swapped and trig2_larger_leg.
  * Does not check that forward is positive. */
 // FUNCTION: XVT 0x425E30
-int16_t MATH2_getradarcoord(int side, int up, int forward)
+int16_t math2_getradarcoord(int side, int up, int forward)
 {
 	int angle;
-	int tableIndex;
-	int projectedY;
-	int projectedX;
-	int16_t arctanValues[2];
-	uint16_t angleDivisor;
+	int table_index;
+	int projected_y;
+	int projected_x;
+	int16_t arctan_values[2];
+	uint16_t angle_divisor;
 	uint8_t shift;
 
-	if (g_flightResolutionMode != g_radarEllipseClampCachedResolutionMode) {
-		if (g_flightResolutionMode == FLIGHT_RESOLUTION_320X240) {
-			uint8_t yLimit;
+	if (g_flight_resolution_mode !=
+	    g_radar_ellipse_clamp_cached_resolution_mode) {
+		if (g_flight_resolution_mode == FLIGHT_RESOLUTION_320X240) {
+			uint8_t y_limit;
 			int remaining;
 
-			tableIndex = 0;
+			table_index = 0;
 			remaining = 37;
 			do {
-				yLimit = g_radarEllipseClamp320x240Preset
-						 [tableIndex]
-							 .yLimit;
-				g_radarEllipseClampTable[tableIndex].xLimit =
-					g_radarEllipseClamp320x240Preset
-						[tableIndex]
-							.xLimit;
-				g_radarEllipseClampTable[tableIndex].yLimit =
-					yLimit;
-				++tableIndex;
+				y_limit = g_radar_ellipse_clamp320x240_preset
+						  [table_index]
+							  .y_limit;
+				g_radar_ellipse_clamp_table[table_index]
+					.x_limit =
+					g_radar_ellipse_clamp320x240_preset
+						[table_index]
+							.x_limit;
+				g_radar_ellipse_clamp_table[table_index]
+					.y_limit = y_limit;
+				++table_index;
 				--remaining;
 			} while (remaining != 0);
-		} else if (g_flightResolutionMode ==
+		} else if (g_flight_resolution_mode ==
 			   FLIGHT_RESOLUTION_480X360) {
-			tableIndex = 0;
+			table_index = 0;
 			angle = 0;
 			do {
-				g_radarEllipseClampTable[tableIndex].xLimit =
-					(uint8_t)trig2_sinewordmult(
-						30, (int16_t)angle);
-				g_radarEllipseClampTable[tableIndex].yLimit =
+				g_radar_ellipse_clamp_table[table_index]
+					.x_limit = (uint8_t)trig2_sinewordmult(
+					30, (int16_t)angle);
+				g_radar_ellipse_clamp_table[table_index]
+					.y_limit =
 					(uint8_t)trig2_cosinewordmult(
 						30, (int16_t)angle);
-				++tableIndex;
+				++table_index;
 				angle += 443;
 			} while (angle < 0x4000);
 		} else {
-			tableIndex = 0;
+			table_index = 0;
 			angle = 0;
 			do {
-				g_radarEllipseClampTable[tableIndex].xLimit =
-					(uint8_t)trig2_sinewordmult(
-						44, (int16_t)angle);
-				g_radarEllipseClampTable[tableIndex].yLimit =
+				g_radar_ellipse_clamp_table[table_index]
+					.x_limit = (uint8_t)trig2_sinewordmult(
+					44, (int16_t)angle);
+				g_radar_ellipse_clamp_table[table_index]
+					.y_limit =
 					(uint8_t)trig2_cosinewordmult(
 						44, (int16_t)angle);
-				++tableIndex;
+				++table_index;
 				angle += 443;
 			} while (angle < 0x4000);
 		}
-		g_radarEllipseClampCachedResolutionMode =
-			g_flightResolutionMode;
+		g_radar_ellipse_clamp_cached_resolution_mode =
+			g_flight_resolution_mode;
 	}
 
-	projectedY = up;
-	projectedX = side;
+	projected_y = up;
+	projected_x = side;
 	if (side < 0) {
-		projectedX = (int)(0u - (uint32_t)side);
+		projected_x = (int)(0u - (uint32_t)side);
 	}
 #ifdef XVT_MODERN
-	shift = (uint8_t)(g_perspectiveShift - 5);
-	projectedX = (int)((uint32_t)projectedX << (shift & 31u));
+	shift = (uint8_t)(g_perspective_shift - 5);
+	projected_x = (int)((uint32_t)projected_x << (shift & 31u));
 #else
-	shift = g_perspectiveShift - 5;
-	projectedX <<= shift;
+	shift = g_perspective_shift - 5;
+	projected_x <<= shift;
 #endif
 	if (forward != 0) {
-		projectedX /= forward;
+		projected_x /= forward;
 	}
-	if (projectedX > INT16_MAX) {
-		projectedX = INT16_MAX;
+	if (projected_x > INT16_MAX) {
+		projected_x = INT16_MAX;
 	}
 
 	if (up < 0) {
-		projectedY = (int)(0u - (uint32_t)up);
+		projected_y = (int)(0u - (uint32_t)up);
 	}
 #ifdef XVT_MODERN
-	projectedY = (int)((uint32_t)projectedY << (shift & 31u));
+	projected_y = (int)((uint32_t)projected_y << (shift & 31u));
 #else
-	projectedY <<= shift;
+	projected_y <<= shift;
 #endif
 	if (forward != 0) {
-		projectedY /= forward;
+		projected_y /= forward;
 	}
-	if (projectedY > INT16_MAX) {
-		projectedY = INT16_MAX;
+	if (projected_y > INT16_MAX) {
+		projected_y = INT16_MAX;
 	}
 
-	radarx = (int16_t)projectedX;
-	radary = (int16_t)projectedY;
-	trig2_calcarctan_core(projectedX, projectedY, &arctanValues[1],
-			      arctanValues);
-	arctanValues[1] = (int16_t)-arctanValues[1];
-	angleDivisor = 443;
-	arctanValues[1] += 0x4000;
-	arctanValues[1] = (uint16_t)arctanValues[1] / angleDivisor;
-	tableIndex = (uint16_t)arctanValues[1];
+	radarx = (int16_t)projected_x;
+	radary = (int16_t)projected_y;
+	trig2_calcarctan_core(projected_x, projected_y, &arctan_values[1],
+			      arctan_values);
+	arctan_values[1] = (int16_t)-arctan_values[1];
+	angle_divisor = 443;
+	arctan_values[1] += 0x4000;
+	arctan_values[1] = (uint16_t)arctan_values[1] / angle_divisor;
+	table_index = (uint16_t)arctan_values[1];
 
-	arctanValues[0] = g_radarEllipseClampTable[tableIndex].xLimit;
-	if (radarx > (int)(uint16_t)arctanValues[0]) {
-		radarx = arctanValues[0];
+	arctan_values[0] = g_radar_ellipse_clamp_table[table_index].x_limit;
+	if (radarx > (int)(uint16_t)arctan_values[0]) {
+		radarx = arctan_values[0];
 	}
 	if (side < 0) {
 		radarx = (int16_t)-radarx;
 	}
 
-	arctanValues[0] = g_radarEllipseClampTable[tableIndex].yLimit;
-	if (radary > (int)(uint16_t)arctanValues[0]) {
-		radary = arctanValues[0];
+	arctan_values[0] = g_radar_ellipse_clamp_table[table_index].y_limit;
+	if (radary > (int)(uint16_t)arctan_values[0]) {
+		radary = arctan_values[0];
 	}
 	if (up < 0) {
 		radary = (int16_t)-radary;

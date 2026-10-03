@@ -17,220 +17,220 @@
 extern "C" {
 #endif
 
-struct ModelWeaponHardpoint {
+struct model_weapon_hardpoint {
 	/* Side offset from the model's origin, the OPT hardpoint's x; readers
 	 * pass x, z and y to pai_calcrotatedpoint as side, up and forward. */
 	int16_t x;
 	int16_t z; /* Up offset, the OPT hardpoint's z. */
 	/* Forward offset: the OPT hardpoint's y negated, as
-	 * ModelMesh_GetHardpoint gives it. */
+	 * model_mesh_get_hardpoint gives it. */
 	int16_t y;
 	/* For a laser slot on a turret mesh, the index in that mesh of its next
 	 * hardpoint of the same type; 0xFF when there is none.
 	 * laser_fireturretslot fires from it instead while
-	 * g_missionElapsedClock.subsecondTicks is odd, except on
+	 * g_mission_elapsed_clock.subsecond_ticks is odd, except on
 	 * SUPER_STAR_DESTROYER_OBJECT_TYPE. Launcher slots keep the table's
 	 * value. */
-	uint8_t alternateMeshHardpointIdx;
+	uint8_t alternate_mesh_hardpoint_idx;
 	/* Mesh that carries the point; readers skip the slot while the craft's
-	 * componentHp for that mesh is 0. */
-	uint8_t meshIdx;
+	 * component_hp for that mesh is 0. */
+	uint8_t mesh_idx;
 };
 
-struct ModelLocalPoint {
+struct model_local_point {
 	int side;    /* Side offset, the OPT hardpoint's x. */
 	int up;	     /* Up offset, the OPT hardpoint's z. */
 	int forward; /* Forward offset, the OPT hardpoint's y negated. */
 };
 
-struct ModelHangarPoints {
-	struct ModelLocalPoint inside;	/* From the hardpoint of type 25. */
-	struct ModelLocalPoint outside; /* From the hardpoint of type 26. */
+struct model_hangar_points {
+	struct model_local_point inside;  /* From the hardpoint of type 25. */
+	struct model_local_point outside; /* From the hardpoint of type 26. */
 };
 
-struct ModelDef {
+struct model_def {
 	/* Short name such as "X-W"; the HUD, radio messages and goal text show
 	 * it. */
 	char name[10];
 	/* Full name such as "X-wing", shown by messages and goal text; NULL in
-	 * the table until StringTable_LoadGameStrings sets it. */
-	char *nameLong;
+	 * the table until string_table_load_game_strings sets it. */
+	char *name_long;
 	/* Points the craft is worth; the scoring code multiplies it, by 40 in
-	 * Mission_ComputeCraftPointValue. */
-	uint8_t craftPointValue;
-	/* Weight in rating awards: Mission_CreditDestructionDamageContributors
+	 * mission_compute_craft_point_value. */
+	uint8_t craft_point_value;
+	/* Weight in rating awards: mission_credit_destruction_damage_contributors
 	 * multiplies a kill's rating points by the victim's weight and divides
 	 * by the attacker's craft's; a victim with 0 gets the minimum award
 	 * instead. */
-	uint8_t ratingWeight;
-	/* Copied into a player's boundCraftEngineGlowCount when the player's
+	uint8_t rating_weight;
+	/* Copied into a player's bound_craft_engine_glow_count when the player's
 	 * craft spawns; the game code never reads that copy, only the modern
 	 * build's state records. */
-	uint8_t engineGlowCount;
+	uint8_t engine_glow_count;
 	/* 0 for a model without a hyperdrive: spawning then flips
-	 * CRAFT_SUBSYSTEM_FLAG_HYPERDRIVE in the craft's systemFlags unless a
+	 * CRAFT_SUBSYSTEM_FLAG_HYPERDRIVE in the craft's system_flags unless a
 	 * spawn status is 9 or 16. The AI's orders check it before a hyperspace
 	 * exit. */
-	uint8_t hasHyperdrive;
+	uint8_t has_hyperdrive;
 	/* 0 for a model without shields: spawning then flips
 	 * CRAFT_SUBSYSTEM_FLAG_SHIELDS and empties the shields unless a spawn
-	 * status is 8 or 16, and BuildCraftTechStats rates the shields 0. */
-	uint8_t hasShields;
+	 * status is 8 or 16, and build_craft_tech_stats rates the shields 0. */
+	uint8_t has_shields;
 	/* Half the most each of the craft's two shield energies holds:
-	 * Craft_GetObjectMaxShield returns 2 times it. BuildCraftTechStats
+	 * craft_get_object_max_shield returns 2 times it. build_craft_tech_stats
 	 * rates it divided by 50. */
-	int shieldStrength;
+	int shield_strength;
 	/* Hits paiman_attackmaneuver lets the craft take before it breaks off;
 	 * halved with the front shield under an eighth, 1 at
-	 * systemDamageHullThreshold, both only for a craft with shields. */
-	uint8_t reactionThreshold;
+	 * system_damage_hull_threshold, both only for a craft with shields. */
+	uint8_t reaction_threshold;
 	/* Nothing reads or writes it by name. */
-	uint8_t modelClassFlag; ///< Static 0/1 model-class discriminator; exact runtime behavior is not yet
+	uint8_t model_class_flag; ///< Static 0/1 model-class discriminator; exact runtime behavior is not yet
 	///< identified.
-	/* Hull strength: copied into the craft's hullMax at spawn;
-	 * BuildCraftTechStats rates it divided by 105. */
-	int hullStrength;
+	/* Hull strength: copied into the craft's hull_max at spawn;
+	 * build_craft_tech_stats rates it divided by 105. */
+	int hull_strength;
 	/* Hull damage from which hits reach the craft's systems; copied into
-	 * the craft's systemDamageHullThreshold at spawn. */
-	int systemDamageHullThreshold;
+	 * the craft's system_damage_hull_threshold at spawn. */
+	int system_damage_hull_threshold;
 	/* Ion damage the craft's systems stand: collide_damagecraft compares
-	 * the craft's subsystemDamage with it, and the HUD shows what is
+	 * the craft's subsystem_damage with it, and the HUD shows what is
 	 * left. */
-	uint16_t systemStrength;
+	uint16_t system_strength;
 	/* Top speed, in an object's speed units: the base of the AI's speeds
-	 * (aiFlight.maxSpeedCache) and of the spawn speed; BuildCraftTechStats
+	 * (ai_flight.max_speed_cache) and of the spawn speed; build_craft_tech_stats
 	 * rates it. */
-	uint16_t maxSpeed;
-	/* Speed gained per simulated second: Flight_SlewObjectSpeedTowardTarget
+	uint16_t max_speed;
+	/* Speed gained per simulated second: flight_slew_object_speed_toward_target
 	 * accelerates by a quarter of it, at least 1, plus the rest times the
-	 * throttle fraction over 65,536, tripled unless engineOverdriveOff is
-	 * set. BuildCraftTechStats rates it. */
-	uint16_t accelRate;
-	/* Speed lost per simulated second: Flight_SlewObjectSpeedTowardTarget
+	 * throttle fraction over 65,536, tripled unless engine_overdrive_off is
+	 * set. build_craft_tech_stats rates it. */
+	uint16_t accel_rate;
+	/* Speed lost per simulated second: flight_slew_object_speed_toward_target
 	 * decelerates by a quarter of it, at least 1, plus the rest times
 	 * 65,535 less the throttle fraction over 65,536. */
-	uint16_t decelRate;
+	uint16_t decel_rate;
 	/* Yaw rate in angle units per SIMULATION_TICKS_PER_SECOND ticks at a
-	 * full step; copied into aiFlight.turnRate at spawn. */
-	int16_t yawRate;
+	 * full step; copied into ai_flight.turn_rate at spawn. */
+	int16_t yaw_rate;
 	/* Fraction of 65,536 of each AI yaw step that
-	 * Flight_UpdateCraftSteeringAndSpeed also applies to roll while
-	 * aiFlight.rollState is 0 or 4. */
-	uint16_t autoBankFactor;
+	 * flight_update_craft_steering_and_speed also applies to roll while
+	 * ai_flight.roll_state is 0 or 4. */
+	uint16_t auto_bank_factor;
 	/* Roll rate in angle units per SIMULATION_TICKS_PER_SECOND ticks at a
-	 * full step; copied into aiFlight.rollRate at spawn.
-	 * BuildCraftTechStats adds it to pitchRate for the maneuver rating. */
-	int16_t rollRate;
+	 * full step; copied into ai_flight.roll_rate at spawn.
+	 * build_craft_tech_stats adds it to pitch_rate for the maneuver rating. */
+	int16_t roll_rate;
 	/* Pitch rate in angle units per SIMULATION_TICKS_PER_SECOND ticks at a
-	 * full step; copied into aiFlight.pitchRate at spawn. */
-	int16_t pitchRate;
+	 * full step; copied into ai_flight.pitch_rate at spawn. */
+	int16_t pitch_rate;
 	/* Limit on a destroyed craft's tumble: its random roll rate, 0x2000
-	 * plus GameRand() & 0x3FFF, is halved while it is over this value,
-	 * then becomes its rollImpulseRate. */
-	uint16_t maxTumbleRate;
-	/* Most a craft's pushAccumX moves it per SIMULATION_TICKS_PER_SECOND
-	 * ticks (Object_UpdateLifetimeAndMovement), except in the board and
+	 * plus game_rand() & 0x3FFF, is halved while it is over this value,
+	 * then becomes its roll_impulse_rate. */
+	uint16_t max_tumble_rate;
+	/* Most a craft's push_accum_x moves it per SIMULATION_TICKS_PER_SECOND
+	 * ticks (object_update_lifetime_and_movement), except in the board and
 	 * dropoff maneuvers, which use BOARDING_PUSH_RATE and
 	 * DROPOFF_PUSH_RATE. */
-	uint16_t maxPushRate;
+	uint16_t max_push_rate;
 	/* Base name of the model's cockpit files, which
-	 * Hud_LoadCockpitResources appends to the resolution's cockpit folder
+	 * hud_load_cockpit_resources appends to the resolution's cockpit folder
 	 * for the local player's craft. */
-	char cockpitResourceName[9];
+	char cockpit_resource_name[9];
 	/* Projectile type of each of the two laser groups, 0 for none.
-	 * FeDiskIo_BuildModelDef fills an empty group with the type, minus 120
-	 * as a byte, of a hardpoint whose g_optHardpointWeaponGroupKindByType
-	 * entry is 1. Spawning copies it into laserState.projectileTypeId. */
-	uint8_t laserGroupWeaponType[2];
-	/* First weaponHardpoints slot of each laser group. */
-	uint8_t laserGroupFirstSlot[2];
-	/* Last weaponHardpoints slot of each laser group. */
-	uint8_t laserGroupLastSlot[2];
+	 * fe_disk_io_build_model_def fills an empty group with the type, minus 120
+	 * as a byte, of a hardpoint whose g_opt_hardpoint_weapon_group_kind_by_type
+	 * entry is 1. Spawning copies it into laser_state.projectile_type_id. */
+	uint8_t laser_group_weapon_type[2];
+	/* First weapon_hardpoints slot of each laser group. */
+	uint8_t laser_group_first_slot[2];
+	/* Last weapon_hardpoints slot of each laser group. */
+	uint8_t laser_group_last_slot[2];
 	/* Slots in each laser group. */
-	uint8_t laserGroupSlotCount[2];
+	uint8_t laser_group_slot_count[2];
 	/* 2 for a gunner group, whose slots fire turret projectiles: the
 	 * builder gives it to a group on a laser turret or gun mesh, or on a
-	 * freighter, platform or starship. Otherwise FeDiskIo_BuildModelDef
+	 * freighter, platform or starship. Otherwise fe_disk_io_build_model_def
 	 * sets 1 for hardpoint types 5 and 16, else 0. */
-	uint8_t laserGroupMountType[2];
+	uint8_t laser_group_mount_type[2];
 	/* Projectile type of each of the two warhead launchers, 0 for none; the
-	 * builder fills an empty one like a laser group. BuildCraftTechStats
+	 * builder fills an empty one like a laser group. build_craft_tech_stats
 	 * counts a launcher that has one; spawning loads the flight group's
 	 * warhead instead. */
-	uint8_t warheadLauncherType[2];
-	/* First weaponHardpoints slot of each warhead launcher. */
-	uint8_t warheadLauncherFirstSlot[2];
-	/* Last weaponHardpoints slot of each warhead launcher. */
-	uint8_t warheadLauncherLastSlot[2];
+	uint8_t warhead_launcher_type[2];
+	/* First weapon_hardpoints slot of each warhead launcher. */
+	uint8_t warhead_launcher_first_slot[2];
+	/* Last weapon_hardpoints slot of each warhead launcher. */
+	uint8_t warhead_launcher_last_slot[2];
 	/* Slots in each warhead launcher. */
-	uint8_t warheadLauncherSlotCount[2];
+	uint8_t warhead_launcher_slot_count[2];
 	/* Full load per launcher slot: spawning scales it by the flight group's
-	 * warhead fraction (g_warheadAmmoFractionQ16), at least 1, then doubles
+	 * warhead fraction (g_warhead_ammo_fraction_q16), at least 1, then doubles
 	 * or halves it for spawn statuses 1 and 2. */
-	uint8_t warheadLauncherCapacity[2];
+	uint8_t warhead_launcher_capacity[2];
 	/* The weapon slots, the laser groups' first and then the launchers',
-	 * which FeDiskIo_BuildModelDef fills from the model's hardpoints. */
-	struct ModelWeaponHardpoint weaponHardpoints[16];
-	/* Countermeasures a craft carries: its cmAmmoCount at spawn, 0xAAAC
+	 * which fe_disk_io_build_model_def fills from the model's hardpoints. */
+	struct model_weapon_hardpoint weapon_hardpoints[16];
+	/* Countermeasures a craft carries: its cm_ammo_count at spawn, 0xAAAC
 	 * over 65,536 of it for flares, and again when paiman_boardmaneuver
 	 * resupplies it. */
-	uint8_t countermeasureCount;
+	uint8_t countermeasure_count;
 	/* Forward offset of the model's hardpoint of type 31, HARDPOINT_COCKPIT
 	 * among the importer's names; the player code turns it into the
 	 * player's hardpointWorld position. */
-	int16_t primaryHardpointY;
+	int16_t primary_hardpoint_y;
 	/* Up offset of that type 31 hardpoint. */
-	int16_t primaryHardpointZ;
-	/* Read by paiman_boardmaneuver and Object_UpdateLifetimeAndMovement. */
-	int16_t dockForward; ///< Shared local-forward coordinate from OPT docking hardpoints 27-30.
-	/* FeDiskIo_BuildModelDef sets both from the model's largest z when the
+	int16_t primary_hardpoint_z;
+	/* Read by paiman_boardmaneuver and object_update_lifetime_and_movement. */
+	int16_t dock_forward; ///< Shared local-forward coordinate from OPT docking hardpoints 27-30.
+	/* fe_disk_io_build_model_def sets both from the model's largest z when the
 	 * table's first is 0, before the hardpoints. */
-	int16_t dockFromUp
+	int16_t dock_from_up
 		[2]; ///< Local-up coordinates from OPT DockFromSmall (index 0) and DockFromBig (index
 	///< 1); defaults to the model maximum up bound.
-	/* FeDiskIo_BuildModelDef sets both from the model's smallest z when the
+	/* fe_disk_io_build_model_def sets both from the model's smallest z when the
 	 * table's first is 0, before the hardpoints. */
-	int16_t dockToUp
+	int16_t dock_to_up
 		[2]; ///< Local-up coordinates from OPT DockToSmall (index 0) and DockToBig (index 1);
 	///< defaults to the model minimum up bound.
-	/* Read by the hangar orders, Mission_SpawnFlightGroupWaveCraft and the
+	/* Read by the hangar orders, mission_spawn_flight_group_wave_craft and the
 	 * collision code. */
-	struct ModelHangarPoints
-		hangarPoints; ///< Local-space hangar path points from OPT hardpoints 25 (inside) and 26 (outside).
-	/* Times FeDiskIo_BuildModelDef halved the bound sizes to bring each to
+	struct model_hangar_points
+		hangar_points; ///< Local-space hangar path points from OPT hardpoints 25 (inside) and 26 (outside).
+	/* Times fe_disk_io_build_model_def halved the bound sizes to bring each to
 	 * 0x280 or under; readers shift the sizes left by it. */
-	uint16_t boundSizeShift;
-	/* The model's size along x (ModelBounds_GetSizeX) shifted right by
-	 * boundSizeShift; the targeting and HUD code use the three sizes'
+	uint16_t bound_size_shift;
+	/* The model's size along x (model_bounds_get_size_x) shifted right by
+	 * bound_size_shift; the targeting and HUD code use the three sizes'
 	 * mean. */
-	int16_t boundSizeX;
-	int16_t boundSizeZ; /* Size along z, shifted the same way. */
-	int16_t boundSizeY; /* Size along y, shifted the same way. */
+	int16_t bound_size_x;
+	int16_t bound_size_z; /* Size along z, shifted the same way. */
+	int16_t bound_size_y; /* Size along y, shifted the same way. */
 };
 
-extern struct ModelDef g_modelDefs[73];
-extern const float g_sw3dUnitFloat;
-extern const float g_sw3dTriangleCornerCount;
-extern const float g_sw3dQuadCornerCount;
-extern const float g_sw3dZeroFloat;
-extern const float g_sw3dDistantDepth;
-extern const float g_sw3dSpanLengthReciprocal[70];
+extern struct model_def g_model_defs[73];
+extern const float g_sw3d_unit_float;
+extern const float g_sw3d_triangle_corner_count;
+extern const float g_sw3d_quad_corner_count;
+extern const float g_sw3d_zero_float;
+extern const float g_sw3d_distant_depth;
+extern const float g_sw3d_span_length_reciprocal[70];
 
-struct OptVector {
+struct opt_vector {
 	/* First component: x of a position or normal, red of a color. */
 	float x;
 	float y; /* Second component: y, or green. */
 	float z; /* Third component: z, or blue. */
 };
 
-extern void *g_curMeshVertices;
-extern void *g_curMeshTexCoords;
-extern void *g_modelNodeWalkUnusedScratch2;
-extern void *g_curMeshMaterials;
-extern int g_curVertexCount;
-extern struct OptVector *g_curVertNormals;
+extern void *g_cur_mesh_vertices;
+extern void *g_cur_mesh_tex_coords;
+extern void *g_model_node_walk_unused_scratch2;
+extern void *g_cur_mesh_materials;
+extern int g_cur_vertex_count;
+extern struct opt_vector *g_cur_vert_normals;
 
-typedef enum OptNodeType {
+typedef enum opt_node_type {
 	OPT_GROUP = 0x0,
 	OPT_FACEDATA = 0x1,
 	OPT_TRANSFORM = 0x2,
@@ -257,75 +257,76 @@ typedef enum OptNodeType {
 	OPT_ROTSCALE = 0x17,
 	OPT_NODESWITCH = 0x18,
 	OPT_MESHDESC = 0x19,
-} OptNodeType;
+} opt_node_type;
 
 #ifdef XVT_MODERN
-typedef intptr_t XvtOptValue;
+typedef intptr_t xvt_opt_value;
 #else
-typedef int XvtOptValue;
+typedef int xvt_opt_value;
 #endif
 
-struct OptNode {
+struct opt_node {
 	/* The node's name, or NULL; OPT_NODEREF links find nodes by it. The
 	 * original build's walkers reuse an OPT_NODEREF node's pName to keep
 	 * its target. */
-	char *pName;
-	OptNodeType nodeType; /* What the node is; sets its payload's layout. */
-	int childCount;	      /* Entries in pChildren. */
+	char *p_name;
+	opt_node_type
+		node_type; /* What the node is; sets its payload's layout. */
+	int child_count;   /* Entries in p_children. */
 	/* The children, NULL when none; a slot may be NULL. */
-	struct OptNode **pChildren;
+	struct opt_node **p_children;
 	/* Items in the payload for a list node; faces for a face node; the
 	 * binding for a binding node; records for an imported Inventor node. */
-	XvtOptValue
-		payloadCount; ///< Node-type-dependent scalar/count; OPT_NODEREF may store a relocated OptNode
+	xvt_opt_value
+		payload_count; ///< Node-type-dependent scalar/count; OPT_NODEREF may store a relocated opt_node
 	///< pointer value.
 	/* For an OPT_NODEREF, the referenced name; for an imported Inventor
-	 * node, its InventorFieldRecord array. */
+	 * node, its inventor_field_record array. */
 	void *payload; ///< Relocated pointer to node-type-dependent payload data.
 };
 
-struct OptimizedPolyObject {
+struct optimized_poly_object {
 	/* The block's address when its pointers were last fixed; when it is not
-	 * where the block is, OptModel_AdjustOptimizedPolyObjectPointers moves
+	 * where the block is, opt_model_adjust_optimized_poly_object_pointers moves
 	 * them. */
-	void *selfMarker;
+	void *self_marker;
 	/* The modern decoder sets it from the 2 bytes at its place in the
 	 * file's body. */
 	uint16_t
 		reserved; ///< Import packing stores the temporary packed-block handle here; the final returned
 	///< block preserves the now-stale value. No runtime consumer is identified.
-	int rootNodeCount;   /* Entries in rootNodes. */
-	struct OptNode **rootNodes; /* The top-level nodes. */
+	int root_node_count;	      /* Entries in root_nodes. */
+	struct opt_node **root_nodes; /* The top-level nodes. */
 };
 
-extern uint16_t g_loadedModels[201];
-extern int g_cacheResolvedOptNodeRefs;
-extern int g_optSourceIsVersion0;
+extern uint16_t g_loaded_models[201];
+extern int g_cache_resolved_opt_node_refs;
+extern int g_opt_source_is_version0;
 #ifndef XVT_MODERN
-extern int g_optModelInvertFaceNormals;
-extern int g_generatedVertexNormalCount;
-extern const char g_extRgb[4];
-extern const char g_extTex[4];
+extern int g_opt_model_invert_face_normals;
+extern int g_generated_vertex_normal_count;
+extern const char g_ext_rgb[4];
+extern const char g_ext_tex[4];
 #endif
 
-struct FaceRecord {
+struct face_record {
 	/* Corner vertex indices; the fourth is -1 for a triangle. The
-	 * renderer's name for the layout of OptPackedFaceRecord. */
-	int vertexIdx[4];
+	 * renderer's name for the layout of opt_packed_face_record. */
+	int vertex_idx[4];
 	/* Edge number of each side; -1 for a triangle's fourth. */
-	int edgeIdx[4];
-	int uvIdx[4];	  /* Texture coordinate index of each corner. */
-	int normalIdx[4]; /* Vertex normal index of each corner. */
+	int edge_idx[4];
+	int uv_idx[4];	   /* Texture coordinate index of each corner. */
+	int normal_idx[4]; /* Vertex normal index of each corner. */
 };
 
-struct OptTexCoord {
+struct opt_tex_coord {
 	float u; /* Horizontal texture coordinate. */
 	float v; /* Vertical texture coordinate. */
 };
 
-struct OptTextureData {
+struct opt_texture_data {
 	/* The palette block, 4096 one-byte entries then 4096 RGB565 colors as
-	 * 16 sub-palettes of 256. With inlinePaletteCount 0 it points at the
+	 * 16 sub-palettes of 256. With inline_palette_count 0 it points at the
 	 * texture's own block after its texels or at another texture's. With an
 	 * inline palette the importer and the default texture store 256 here
 	 * until a runtime copy points it at the copy. In a runtime model on a
@@ -334,215 +335,220 @@ struct OptTextureData {
 	/* Nonzero when the palette is stored inline after the texels: its count
 	 * of 256-color sub-palettes, 16 from the importer, 768 bytes each in a
 	 * packed model. A runtime copy sets it to 0. */
-	int inlinePaletteCount;
+	int inline_palette_count;
 	/* Compared with width times height: when equal, the texels take
 	 * dataSize bytes, else width times height. A runtime copy sets it to
 	 * width times height. */
-	int textureSize;
-	/* Texel bytes, mip levels included, when textureSize equals width times
+	int texture_size;
+	/* Texel bytes, mip levels included, when texture_size equals width times
 	 * height. */
-	int dataSize;
+	int data_size;
 	int width;  /* Width of the top level in texels. */
 	int height; /* Height of the top level in texels. */
 };
 
-struct OptPackedFaceRecord {
+struct opt_packed_face_record {
 	/* Corner vertex indices; the fourth is -1 for a triangle. */
-	int vertexIndices[4];
+	int vertex_indices[4];
 	/* Edge number of the side from each corner to the next, the last back
 	 * to corner 0; the fourth is -1 for a triangle. */
-	int edgeIndices[4];
-	int texCoordIndices[4]; /* Texture coordinate index of each corner. */
-	int normalIndices[4];	/* Vertex normal index of each corner. */
+	int edge_indices[4];
+	int tex_coord_indices[4]; /* Texture coordinate index of each corner. */
+	int normal_indices[4];	  /* Vertex normal index of each corner. */
 };
 
-struct OptLegacyFaceRecordV0 {
+struct opt_legacy_face_record_v0 {
 	/* Corner vertex indices. No field of this record is read or written by
 	 * name; the converter reads version 0 records as plain ints. */
-	int vertexIndices[4];
-	int edgeIndices[4];	/* Edge number of each side. */
-	int texCoordIndices[4]; /* Texture coordinate index of each corner. */
+	int vertex_indices[4];
+	int edge_indices[4];	  /* Edge number of each side. */
+	int tex_coord_indices[4]; /* Texture coordinate index of each corner. */
 };
 
-struct OptLegacyFaceDataV0 {
+struct opt_legacy_face_data_v0 {
 	/* Nothing uses this structure. */
-	int edgeCount;
-	struct OptLegacyFaceRecordV0
+	int edge_count;
+	struct opt_legacy_face_record_v0
 		records[1]; /* Nothing uses this structure. */
 };
 
-struct OptLegacyFaceStorageV0 {
+struct opt_legacy_face_storage_v0 {
 	/* Not read or written by name: only the size of this structure is used,
 	 * to find where a version 0 face node's data ends. The data holds all
 	 * the records first, then all the normals, then all the gradients. */
-	struct OptLegacyFaceRecordV0 faceRecord;
-	struct OptVector faceNormal;	      /* Not read or written by name. */
-	struct OptVector textureGradients[2]; /* Not read or written by name. */
+	struct opt_legacy_face_record_v0 face_record;
+	struct opt_vector face_normal; /* Not read or written by name. */
+	struct opt_vector
+		texture_gradients[2]; /* Not read or written by name. */
 };
 
-struct OptLegacyFaceStorage {
+struct opt_legacy_face_storage {
 	/* Not read or written by name: only the size of this structure is used,
 	 * to find where a version 1 face node's data ends. The data holds all
 	 * the records first, then all the normals, then all the gradients. */
-	struct OptPackedFaceRecord faceRecord;
-	struct OptVector faceNormal;	      /* Not read or written by name. */
-	struct OptVector textureGradients[2]; /* Not read or written by name. */
+	struct opt_packed_face_record face_record;
+	struct opt_vector face_normal; /* Not read or written by name. */
+	struct opt_vector
+		texture_gradients[2]; /* Not read or written by name. */
 };
 
-struct OptLegacyFacePayloadV0 {
+struct opt_legacy_face_payload_v0 {
 	/* The face node's edge count; the converter reads it as the payload's
 	 * first int, never by this name. */
-	int edgeCount;
-	/* Only &storage[payloadCount] is used: the end of the face data, where
+	int edge_count;
+	/* Only &storage[payload_count] is used: the end of the face data, where
 	 * the vertex normals of a mesh without a normal node follow. */
-	struct OptLegacyFaceStorageV0 storage[1];
+	struct opt_legacy_face_storage_v0 storage[1];
 };
 
-struct OptLegacyFacePayload {
+struct opt_legacy_face_payload {
 	/* The face node's edge count; the converter reads it as the payload's
 	 * first int, never by this name. */
-	int edgeCount;
-	/* Only &storage[payloadCount] is used: the end of the face data, where
+	int edge_count;
+	/* Only &storage[payload_count] is used: the end of the face data, where
 	 * the vertex normals of a mesh without a normal node follow. */
-	struct OptLegacyFaceStorage storage[1];
+	struct opt_legacy_face_storage storage[1];
 };
 
 #ifndef XVT_MODERN
-struct OptPackedFaceNode {
-	char *name;		     /* OptNode's pName. */
-	int nodeType;		     /* OptNode's nodeType. */
-	int childCount;		     /* OptNode's childCount. */
-	struct OptNode **children;   /* OptNode's pChildren. */
-	int faceCount;		     /* OptNode's payloadCount: the faces. */
-	struct OptPackedFaceData
-		*faceData; /* OptNode's payload: the face data. */
+struct opt_packed_face_node {
+	char *name;		    /* opt_node's pName. */
+	int node_type;		    /* opt_node's nodeType. */
+	int child_count;	    /* opt_node's child_count. */
+	struct opt_node **children; /* opt_node's p_children. */
+	int face_count;		    /* opt_node's payload_count: the faces. */
+	struct opt_packed_face_data
+		*face_data; /* opt_node's payload: the face data. */
 };
 #endif
 
-struct OptPackedFaceData {
+struct opt_packed_face_data {
 	/* Edges the faces number; the renderer's edge flag table holds at least
-	 * this many (g_sceneEdgeFlagsCapacity). */
-	int edgeCount;
+	 * this many (g_scene_edge_flags_capacity). */
+	int edge_count;
 	/* The face records, then one normal and two texture gradient vectors
 	 * per face, then, when the mesh has no normal node, one normal per
 	 * vertex. */
-	struct OptPackedFaceRecord records[1];
+	struct opt_packed_face_record records[1];
 };
 
-struct OptHardpoint {
-	/* Type 0 to 31, named in g_hardpointTypeNames: weapons, then hangar,
+struct opt_hardpoint {
+	/* Type 0 to 31, named in g_hardpoint_type_names: weapons, then hangar,
 	 * dock and cockpit points. */
-	int hardpointType;
-	struct OptVector position; /* Position in the model's coordinates. */
+	int hardpoint_type;
+	struct opt_vector position; /* Position in the model's coordinates. */
 };
 
-uint16_t OptModel_LoadHandle(const char *modelFilename);
+uint16_t opt_model_load_handle(const char *model_filename);
 #ifndef XVT_MODERN
-uint16_t OptModel_LoadInventorBinaryToHandle(XvtFile *stream);
-uint16_t OptModel_LoadInventorAsciiToHandle(XvtFile *stream);
-int OptModel_ParseInventorAsciiNode(XvtFile *stream, char *nodeStorage,
-				    struct OptNode **outNode);
+uint16_t opt_model_load_inventor_binary_to_handle(xvt_file *stream);
+uint16_t opt_model_load_inventor_ascii_to_handle(xvt_file *stream);
+int opt_model_parse_inventor_ascii_node(xvt_file *stream, char *node_storage,
+					struct opt_node **out_node);
 #endif
-void OptModel_TranslateNodeVerticesRecursive(struct OptNode *node,
-					     struct OptimizedPolyObject *model,
-					     const float *translation);
-void OptModel_TranslateVertices(struct OptimizedPolyObject *model,
-				const float *translation);
+void opt_model_translate_node_vertices_recursive(
+	struct opt_node *node, struct optimized_poly_object *model,
+	const float *translation);
+void opt_model_translate_vertices(struct optimized_poly_object *model,
+				  const float *translation);
 #ifndef XVT_MODERN
-void OptModel_RelocateLoadedPointers(struct OptimizedPolyObject *model);
-void OptModel_RelocateNodePointersRecursive(struct OptNode *node,
-					    XvtOptValue relocationDelta);
+void opt_model_relocate_loaded_pointers(struct optimized_poly_object *model);
+void opt_model_relocate_node_pointers_recursive(struct opt_node *node,
+						xvt_opt_value relocation_delta);
 #endif
-void OptModel_AdjustOptimizedPolyObjectPointers(
-	struct OptimizedPolyObject *model);
-void OptModel_AdjustOptimizedNodePointers(struct OptNode *node,
-					  XvtOptValue relocationDelta);
-uint16_t OptModel_LoadFileToHandle(char *filename);
-unsigned int OptModel_ConvertLegacyModelToOptimized(unsigned int sourceSize);
-void *OptModel_FindSharedTextureDataInNodeBeforeTarget(
-	const void *textureData, struct OptNode *node,
-	const struct OptNode *stopNode);
-void *OptModel_FindEarlierSharedTextureData(const void *textureData,
-					    struct OptimizedPolyObject *model,
-					    const struct OptNode *stopNode);
+void opt_model_adjust_optimized_poly_object_pointers(
+	struct optimized_poly_object *model);
+void opt_model_adjust_optimized_node_pointers(struct opt_node *node,
+					      xvt_opt_value relocation_delta);
+uint16_t opt_model_load_file_to_handle(char *filename);
 unsigned int
-OptModel_ConvertLegacyNodeToOptimized(uint8_t *dst, struct OptNode *srcNode,
-				      struct OptimizedPolyObject *srcModel,
-				      struct OptimizedPolyObject *dstModel,
-				      struct SceneMesh *meshState);
-void OptModel_CollectUniqueVertices(struct OptNode *dstVertexNode,
-				    struct OptNode *srcNode,
-				    struct OptimizedPolyObject *srcModel,
-				    struct SceneMesh *meshState);
-void OptModel_CollectUniqueTexCoords(struct OptNode *dstTexCoordNode,
-				     struct OptNode *srcNode,
-				     struct OptimizedPolyObject *srcModel,
-				     struct SceneMesh *meshState);
-void OptModel_CollectUniqueVertexNormals(struct OptNode *dstNormalNode,
-					 struct OptNode *srcNode,
-					 struct OptimizedPolyObject *srcModel,
-					 struct SceneMesh *meshState);
-int OptModel_RemapVectorIndex(const struct OptNode *uniqueVectorNode,
-			      const struct OptVector *sourceVectors,
-			      int sourceIndex);
-int OptModel_RemapTexCoordIndex(const struct OptNode *uniqueTexCoordNode,
-				const struct OptTexCoord *sourceTexCoords,
-				int sourceIndex);
-void OptModel_AppendConvertedFacesForNode(struct OptNode *dstFaceNode,
-					  struct OptNode *targetFaceNode,
-					  struct OptNode *node,
-					  struct OptimizedPolyObject *srcModel,
-					  struct SceneMesh *meshState);
-void OptModel_AppendConvertedFacesForCurrentMesh(
-	struct OptNode *dstFaceNode, struct OptNode *targetFaceNode,
-	struct OptimizedPolyObject *srcModel, struct SceneMesh *meshState);
-uint16_t OptModel_CreateRuntimeHandle(unsigned int sourceHandle);
-void OptModel_FixupRuntimeTexturePointers(struct OptNode *node,
-					  struct OptimizedPolyObject *dstModel,
-					  struct OptimizedPolyObject *srcModel);
-struct OptNode *
-OptModel_FindCorrespondingTextureNode(struct OptNode *srcNode,
-				      struct OptNode *dstNode,
-				      const uint16_t *sourcePalette);
-struct OptNode *OptModel_FindCorrespondingTextureNodeInModel(
-	struct OptimizedPolyObject *dstModel,
-	struct OptimizedPolyObject *srcModel, const uint16_t *sourcePalette);
+opt_model_convert_legacy_model_to_optimized(unsigned int source_size);
+void *opt_model_find_shared_texture_data_in_node_before_target(
+	const void *texture_data, struct opt_node *node,
+	const struct opt_node *stop_node);
+void *
+opt_model_find_earlier_shared_texture_data(const void *texture_data,
+					   struct optimized_poly_object *model,
+					   const struct opt_node *stop_node);
+unsigned int opt_model_convert_legacy_node_to_optimized(
+	uint8_t *dst, struct opt_node *src_node,
+	struct optimized_poly_object *src_model,
+	struct optimized_poly_object *dst_model, struct scene_mesh *mesh_state);
+void opt_model_collect_unique_vertices(struct opt_node *dst_vertex_node,
+				       struct opt_node *src_node,
+				       struct optimized_poly_object *src_model,
+				       struct scene_mesh *mesh_state);
+void opt_model_collect_unique_tex_coords(
+	struct opt_node *dst_tex_coord_node, struct opt_node *src_node,
+	struct optimized_poly_object *src_model, struct scene_mesh *mesh_state);
+void opt_model_collect_unique_vertex_normals(
+	struct opt_node *dst_normal_node, struct opt_node *src_node,
+	struct optimized_poly_object *src_model, struct scene_mesh *mesh_state);
+int opt_model_remap_vector_index(const struct opt_node *unique_vector_node,
+				 const struct opt_vector *source_vectors,
+				 int source_index);
+int opt_model_remap_tex_coord_index(
+	const struct opt_node *unique_tex_coord_node,
+	const struct opt_tex_coord *source_tex_coords, int source_index);
+void opt_model_append_converted_faces_for_node(
+	struct opt_node *dst_face_node, struct opt_node *target_face_node,
+	struct opt_node *node, struct optimized_poly_object *src_model,
+	struct scene_mesh *mesh_state);
+void opt_model_append_converted_faces_for_current_mesh(
+	struct opt_node *dst_face_node, struct opt_node *target_face_node,
+	struct optimized_poly_object *src_model, struct scene_mesh *mesh_state);
+uint16_t opt_model_create_runtime_handle(unsigned int source_handle);
+void opt_model_fixup_runtime_texture_pointers(
+	struct opt_node *node, struct optimized_poly_object *dst_model,
+	struct optimized_poly_object *src_model);
+struct opt_node *
+opt_model_find_corresponding_texture_node(struct opt_node *src_node,
+					  struct opt_node *dst_node,
+					  const uint16_t *source_palette);
+struct opt_node *opt_model_find_corresponding_texture_node_in_model(
+	struct optimized_poly_object *dst_model,
+	struct optimized_poly_object *src_model,
+	const uint16_t *source_palette);
 #ifndef XVT_MODERN
-void OptModel_SaveHandleToFile(const char *filename, uint16_t handle);
+void opt_model_save_handle_to_file(const char *filename, uint16_t handle);
 #endif
 unsigned int
-OptModel_MeasureNodeAndRaiseCapacities(struct OptNode *node,
-				       struct SceneMesh *parentState);
-void OptModel_PrepareTexturePalette(uint16_t *palette, int entryCount);
-unsigned int OptModel_BuildRuntimeNode(const struct OptNode *srcNode,
-				       struct SceneMesh *meshState,
-				       uint8_t *dst);
+opt_model_measure_node_and_raise_capacities(struct opt_node *node,
+					    struct scene_mesh *parent_state);
+void opt_model_prepare_texture_palette(uint16_t *palette, int entry_count);
+unsigned int opt_model_build_runtime_node(const struct opt_node *src_node,
+					  struct scene_mesh *mesh_state,
+					  uint8_t *dst);
 #ifndef XVT_MODERN
-uint16_t OptModel_ConvertImportedHandleToPacked(uint16_t sourceHandle);
-size_t OptModel_ConvertImportedNodeToPackedRecursive(
-	const struct OptimizedPolyObject *sourceModel,
-	const struct OptNode *sourceNode, void *conversionState,
-	uint8_t *destBuffer);
-size_t OptModel_CalculatePackedNodeSizeRecursive(
-	const struct OptimizedPolyObject *sourceModel,
-	const struct OptNode *sourceNode, void *conversionState);
-int OptModel_FindUniqueEdgeIndex(const struct OptPackedFaceNode *faceNode,
-				 int vertexIndexA, int vertexIndexB);
-float *OptModel_AppendPackedFaceDerivedData(struct OptPackedFaceNode *faceNode,
-					    uint8_t *dest,
-					    void *conversionState);
-void OptModel_BuildFaceNormalTangentData(
-	float *dest, const struct OptPackedFaceData *faceData, int faceCount,
-	const void *conversionState);
-void OptModel_BuildVertexNormalsFromFaces(
-	float *dest, const struct OptPackedFaceData *faceData, int faceCount);
+uint16_t opt_model_convert_imported_handle_to_packed(uint16_t source_handle);
+size_t opt_model_convert_imported_node_to_packed_recursive(
+	const struct optimized_poly_object *source_model,
+	const struct opt_node *source_node, void *conversion_state,
+	uint8_t *dest_buffer);
+size_t opt_model_calculate_packed_node_size_recursive(
+	const struct optimized_poly_object *source_model,
+	const struct opt_node *source_node, void *conversion_state);
+int opt_model_find_unique_edge_index(
+	const struct opt_packed_face_node *face_node, int vertex_index_a,
+	int vertex_index_b);
+float *opt_model_append_packed_face_derived_data(
+	struct opt_packed_face_node *face_node, uint8_t *dest,
+	void *conversion_state);
+void opt_model_build_face_normal_tangent_data(
+	float *dest, const struct opt_packed_face_data *face_data,
+	int face_count, const void *conversion_state);
+void opt_model_build_vertex_normals_from_faces(
+	float *dest, const struct opt_packed_face_data *face_data,
+	int face_count);
 #endif
-struct OptNode *
-OptModel_ResolveNodeRef(const struct OptimizedPolyObject *object,
-			const char *name);
-struct OptNode *OptModel_FindNodeByName(struct OptNode *node, const char *name);
+struct opt_node *
+opt_model_resolve_node_ref(const struct optimized_poly_object *object,
+			   const char *name);
+struct opt_node *opt_model_find_node_by_name(struct opt_node *node,
+					     const char *name);
 #ifndef XVT_MODERN
-int OptModel_GetExternalTextureSerializedSize(const char *sourceFileName);
+int opt_model_get_external_texture_serialized_size(
+	const char *source_file_name);
 #endif
 
 #ifdef __cplusplus

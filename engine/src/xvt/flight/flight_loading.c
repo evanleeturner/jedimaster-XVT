@@ -12,164 +12,164 @@
 #include "xvt/render/renderer.h"
 #include "xvt/util/time.h"
 
-/* Calls made to FlightLoading_PulseAndDrawProgressScreen since the last
+/* Calls made to flight_loading_pulse_and_draw_progress_screen since the last
  * reset; its low 7 bits are the bar's fill. Three functions write it:
- * FlightLoading_ResetProgressState sets 0 at flight start,
- * FlightLoading_PulseAndDrawProgressScreen adds 1 per call, and, in the
- * modern build, XvtFlightTask_Update sets its low 7 bits to fill the bar. */
+ * flight_loading_reset_progress_state sets 0 at flight start,
+ * flight_loading_pulse_and_draw_progress_screen adds 1 per call, and, in the
+ * modern build, xvt_flight_task_update sets its low 7 bits to fill the bar. */
 // GLOBAL: XVT 0x5236A8
-uint32_t g_flightLoadingProgressStep;
+uint32_t g_flight_loading_progress_step;
 /* timeGetTime, in ms, when the loading bar was last drawn. Written only by
- * FlightLoading_ResetProgressState and
- * FlightLoading_PulseAndDrawProgressScreen. */
+ * flight_loading_reset_progress_state and
+ * flight_loading_pulse_and_draw_progress_screen. */
 // GLOBAL: XVT 0x5236AC
-uint32_t g_flightLoadingProgressLastDrawMs;
+uint32_t g_flight_loading_progress_last_draw_ms;
 
-/* Sets g_flightLoadingProgressStep to 0 and
- * g_flightLoadingProgressLastDrawMs to now; the modern build also clears its
- * record of the bar (XvtCockpitMessages_ClearProgress). */
+/* Sets g_flight_loading_progress_step to 0 and
+ * g_flight_loading_progress_last_draw_ms to now; the modern build also clears its
+ * record of the bar (xvt_cockpit_messages_clear_progress). */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x449110
-void FlightLoading_ResetProgressState(void)
+void flight_loading_reset_progress_state(void)
 {
 #ifdef XVT_MODERN
-	XvtCockpitMessages_ClearProgress();
+	xvt_cockpit_messages_clear_progress();
 #endif
-	g_flightLoadingProgressStep = 0;
-	g_flightLoadingProgressLastDrawMs = timeGetTime();
+	g_flight_loading_progress_step = 0;
+	g_flight_loading_progress_last_draw_ms = timeGetTime();
 }
 
-/* Called between loading steps: adds 1 to g_flightLoadingProgressStep and,
+/* Called between loading steps: adds 1 to g_flight_loading_progress_step and,
  * when 200 ms have passed since the last draw or the step's low 6 bits were
  * 63, draws the loading bar and shows it. On the 63 case it first sends the
- * other players a still-loading packet (FlightNet_BroadcastStillLoadingPulse).
+ * other players a still-loading packet (flight_net_broadcast_still_loading_pulse).
  * The bar sits at mid-height from a quarter to three quarters of the screen
  * width, filled in 128 steps that start again from empty, its color index
  * 48 plus the step divided by 128. To draw, it unlocks the surface fully,
- * locks it once, then blits and flips (FlightDisplay_BlitRenderSurface,
- * FlightDisplay_Flip) and locks it back to the count it found. The text
+ * locks it once, then blits and flips (flight_display_blit_render_surface,
+ * flight_display_flip) and locks it back to the count it found. The text
  * cursor, clip rectangle and text colors are saved and put back. The modern
  * build also marks the drawing as an overlay and records the bar for its own
  * renderer. */
 // FUNCTION: XVT 0x449130
-void FlightLoading_PulseAndDrawProgressScreen(void)
+void flight_loading_pulse_and_draw_progress_screen(void)
 {
 	/* Advance the progress pulse and redraw the loading bar when due. */
 	uint32_t now;
-	uint32_t stepPhase;
-	int16_t savedCursorX;
-	int16_t savedCursorY;
-	int16_t savedClipLeft;
-	int16_t savedClipTop;
-	int16_t savedClipRight;
-	int16_t savedClipBottom;
-	int16_t savedWordWrap;
-	int16_t savedUnusedState;
-	uint8_t savedTextColor;
-	int16_t savedClearLineBackground;
-	uint8_t savedBackgroundColor;
-	uint8_t savedShadowColor;
-	uint8_t savedShadowEnabled;
-	int lockCount;
-	int unlockCount;
-	unsigned int barLeft;
-	unsigned int barTop;
-	uint8_t lineHeight;
-	uint32_t barStep;
-	unsigned int barWidth;
+	uint32_t step_phase;
+	int16_t saved_cursor_x;
+	int16_t saved_cursor_y;
+	int16_t saved_clip_left;
+	int16_t saved_clip_top;
+	int16_t saved_clip_right;
+	int16_t saved_clip_bottom;
+	int16_t saved_word_wrap;
+	int16_t saved_unused_state;
+	uint8_t saved_text_color;
+	int16_t saved_clear_line_background;
+	uint8_t saved_background_color;
+	uint8_t saved_shadow_color;
+	uint8_t saved_shadow_enabled;
+	int lock_count;
+	int unlock_count;
+	unsigned int bar_left;
+	unsigned int bar_top;
+	uint8_t line_height;
+	uint32_t bar_step;
+	unsigned int bar_width;
 
 	now = timeGetTime();
-	stepPhase = g_flightLoadingProgressStep & 0x3fu;
-	if (stepPhase != 63u &&
-	    (int32_t)(now - g_flightLoadingProgressLastDrawMs) < 200) {
-		++g_flightLoadingProgressStep;
+	step_phase = g_flight_loading_progress_step & 0x3fu;
+	if (step_phase != 63u &&
+	    (int32_t)(now - g_flight_loading_progress_last_draw_ms) < 200) {
+		++g_flight_loading_progress_step;
 		return;
 	}
 
 #ifdef XVT_MODERN
-	XvtRenderCapture_BeginOverlay();
+	xvt_render_capture_begin_overlay();
 #endif
-	g_flightLoadingProgressLastDrawMs = now;
-	if (stepPhase == 63u) {
-		FlightNet_BroadcastStillLoadingPulse();
+	g_flight_loading_progress_last_draw_ms = now;
+	if (step_phase == 63u) {
+		flight_net_broadcast_still_loading_pulse();
 	}
 
-	savedCursorX = g_flightCursorX;
-	savedCursorY = g_flightCursorY;
-	savedClipLeft = g_flightClipLeft;
-	savedClipTop = g_flightClipTop;
-	savedClipRight = g_flightClipRight;
-	savedClipBottom = g_flightClipBottom;
-	savedWordWrap = g_flightWordWrapEnabled;
-	savedUnusedState = g_flightTextUnusedState;
-	savedTextColor = g_flightTextColorIndex;
-	savedClearLineBackground = g_flightClearLineBgEnabled;
-	savedBackgroundColor = g_flightTextBgColor;
-	savedShadowColor = g_flightTextShadowColor;
-	savedShadowEnabled = g_flightTextShadowEnabled;
+	saved_cursor_x = g_flight_cursor_x;
+	saved_cursor_y = g_flight_cursor_y;
+	saved_clip_left = g_flight_clip_left;
+	saved_clip_top = g_flight_clip_top;
+	saved_clip_right = g_flight_clip_right;
+	saved_clip_bottom = g_flight_clip_bottom;
+	saved_word_wrap = g_flight_word_wrap_enabled;
+	saved_unused_state = g_flight_text_unused_state;
+	saved_text_color = g_flight_text_color_index;
+	saved_clear_line_background = g_flight_clear_line_bg_enabled;
+	saved_background_color = g_flight_text_bg_color;
+	saved_shadow_color = g_flight_text_shadow_color;
+	saved_shadow_enabled = g_flight_text_shadow_enabled;
 
-	lockCount = FlightSurface_GetLockCount();
-	unlockCount = lockCount;
-	while (unlockCount > 0) {
-		FlightSurface_Unlock();
-		--unlockCount;
+	lock_count = flight_surface_get_lock_count();
+	unlock_count = lock_count;
+	while (unlock_count > 0) {
+		flight_surface_unlock();
+		--unlock_count;
 	}
-	FlightSurface_Lock();
+	flight_surface_lock();
 
-	barLeft = g_screenWidth >> 2;
-	barTop = g_screenHeight >> 1;
-	lineHeight = g_flightFontLineHeight;
-	barStep = (g_flightLoadingProgressStep & 0x7fu) + 1u;
-	++g_flightLoadingProgressStep;
-	barWidth = (g_screenWidth * barStep) >> 8;
+	bar_left = g_screen_width >> 2;
+	bar_top = g_screen_height >> 1;
+	line_height = g_flight_font_line_height;
+	bar_step = (g_flight_loading_progress_step & 0x7fu) + 1u;
+	++g_flight_loading_progress_step;
+	bar_width = (g_screen_width * bar_step) >> 8;
 
-	FlightText_SetClipRect((int16_t)barLeft - 2, (int16_t)barTop - 2,
-			       (int16_t)(g_screenWidth - barLeft + 2),
-			       (int16_t)(barTop + lineHeight + 2));
-	g_flightTextBgColor =
-		(uint8_t)(g_flightLoadingProgressStep / 128u + 48u);
-	g_flightFillClipRectFn();
-	FlightText_SetClipRect((int16_t)barLeft - 1, (int16_t)barTop - 1,
-			       (int16_t)(g_screenWidth - barLeft + 1),
-			       (int16_t)(barTop + lineHeight + 1));
-	g_flightTextBgColor = 0;
-	g_flightFillClipRectFn();
-	FlightText_SetClipRect((int16_t)barLeft, (int16_t)barTop,
-			       (int16_t)(barLeft + barWidth),
-			       (int16_t)(barTop + lineHeight));
-	g_flightTextBgColor =
-		(uint8_t)(g_flightLoadingProgressStep / 128u + 48u);
-	g_flightFillClipRectFn();
+	flight_text_set_clip_rect((int16_t)bar_left - 2, (int16_t)bar_top - 2,
+				  (int16_t)(g_screen_width - bar_left + 2),
+				  (int16_t)(bar_top + line_height + 2));
+	g_flight_text_bg_color =
+		(uint8_t)(g_flight_loading_progress_step / 128u + 48u);
+	g_flight_fill_clip_rect_fn();
+	flight_text_set_clip_rect((int16_t)bar_left - 1, (int16_t)bar_top - 1,
+				  (int16_t)(g_screen_width - bar_left + 1),
+				  (int16_t)(bar_top + line_height + 1));
+	g_flight_text_bg_color = 0;
+	g_flight_fill_clip_rect_fn();
+	flight_text_set_clip_rect((int16_t)bar_left, (int16_t)bar_top,
+				  (int16_t)(bar_left + bar_width),
+				  (int16_t)(bar_top + line_height));
+	g_flight_text_bg_color =
+		(uint8_t)(g_flight_loading_progress_step / 128u + 48u);
+	g_flight_fill_clip_rect_fn();
 
 #ifdef XVT_MODERN
-	XvtCockpitMessages_RecordProgress(barStep, barLeft, barTop,
-					  g_screenWidth - 2 * barLeft,
-					  lineHeight, barWidth);
+	xvt_cockpit_messages_record_progress(bar_step, bar_left, bar_top,
+					     g_screen_width - 2 * bar_left,
+					     line_height, bar_width);
 #endif
-	FlightSurface_Unlock();
-	FlightDisplay_BlitRenderSurface();
-	FlightDisplay_Flip();
-	while (lockCount > 0) {
-		FlightSurface_Lock();
-		--lockCount;
+	flight_surface_unlock();
+	flight_display_blit_render_surface();
+	flight_display_flip();
+	while (lock_count > 0) {
+		flight_surface_lock();
+		--lock_count;
 	}
 
-	g_flightCursorX = savedCursorX;
-	g_flightCursorY = savedCursorY;
-	g_flightClipLeft = savedClipLeft;
-	g_flightClipTop = savedClipTop;
-	g_flightClipRight = savedClipRight;
-	g_flightClipBottom = savedClipBottom;
-	g_flightWordWrapEnabled = savedWordWrap;
-	g_flightTextUnusedState = savedUnusedState;
-	g_flightTextColorIndex = savedTextColor;
-	g_flightClearLineBgEnabled = savedClearLineBackground;
-	g_flightTextBgColor = savedBackgroundColor;
-	g_flightTextShadowColor = savedShadowColor;
-	g_flightTextShadowEnabled = savedShadowEnabled;
+	g_flight_cursor_x = saved_cursor_x;
+	g_flight_cursor_y = saved_cursor_y;
+	g_flight_clip_left = saved_clip_left;
+	g_flight_clip_top = saved_clip_top;
+	g_flight_clip_right = saved_clip_right;
+	g_flight_clip_bottom = saved_clip_bottom;
+	g_flight_word_wrap_enabled = saved_word_wrap;
+	g_flight_text_unused_state = saved_unused_state;
+	g_flight_text_color_index = saved_text_color;
+	g_flight_clear_line_bg_enabled = saved_clear_line_background;
+	g_flight_text_bg_color = saved_background_color;
+	g_flight_text_shadow_color = saved_shadow_color;
+	g_flight_text_shadow_enabled = saved_shadow_enabled;
 
 #ifdef XVT_MODERN
-	XvtRenderCapture_EndOverlay();
+	xvt_render_capture_end_overlay();
 #endif
 }
 
@@ -177,24 +177,25 @@ void FlightLoading_PulseAndDrawProgressScreen(void)
  * which always draws it full. Only the original build calls this; the modern
  * build sets the bits itself and pulses once. */
 // FUNCTION: XVT 0x4493C0
-void FlightLoading_DrawProgressToCompletion(void)
+void flight_loading_draw_progress_to_completion(void)
 {
-	while ((g_flightLoadingProgressStep & 0x7fu) != 0x7fu) {
-		FlightLoading_PulseAndDrawProgressScreen();
+	while ((g_flight_loading_progress_step & 0x7fu) != 0x7fu) {
+		flight_loading_pulse_and_draw_progress_screen();
 	}
-	FlightLoading_PulseAndDrawProgressScreen();
+	flight_loading_pulse_and_draw_progress_screen();
 }
 
 /* Returns 1 when dpid is nonzero and matches the DirectPlay id of one of the
- * 8 entries of g_pilotData.networkPlayers, else 0. */
+ * 8 entries of g_pilot_data.network_players, else 0. */
 // FUNCTION: XVT 0x4493E0
-int PilotData_HasNetworkPlayerDpid(int dpid)
+int pilot_data_has_network_player_dpid(int dpid)
 {
-	int playerIndex;
+	int player_index;
 
-	for (playerIndex = 0; playerIndex < 8; ++playerIndex) {
-		if (g_pilotData.networkPlayers[playerIndex].directPlayId != 0 &&
-		    g_pilotData.networkPlayers[playerIndex].directPlayId ==
+	for (player_index = 0; player_index < 8; ++player_index) {
+		if (g_pilot_data.network_players[player_index].direct_play_id !=
+			    0 &&
+		    g_pilot_data.network_players[player_index].direct_play_id ==
 			    dpid) {
 			return 1;
 		}

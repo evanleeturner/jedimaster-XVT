@@ -22,229 +22,234 @@
 #include "xvt_runtime/timing/flight_timing.h"
 #include "xvt_runtime/timing/player_timing.h"
 #include <string.h>
-int16_t g_xvtControlRoll;
+int16_t g_xvt_control_roll;
 
 static struct {
 	bool valid;
 	uint16_t position;
 	uint32_t generation, signature;
 	int object;
-} g_throttleBaseline;
+} g_throttle_baseline;
 
-static void XvtFlightControls_ResetThrottle(void)
+static void xvt_flight_controls_reset_throttle(void)
 {
-	g_throttleBaseline.valid = false;
+	g_throttle_baseline.valid = false;
 }
 
-void XvtFlightControls_Reset(void)
+void xvt_flight_controls_reset(void)
 {
-	XvtPlayerTiming_ResetControls();
-	g_xvtControlRoll = 0;
-	XvtFlightControls_ResetThrottle();
+	xvt_player_timing_reset_controls();
+	g_xvt_control_roll = 0;
+	xvt_flight_controls_reset_throttle();
 }
 
-bool XvtFlightControls_ThrottleEligible(unsigned player)
+bool xvt_flight_controls_throttle_eligible(unsigned player)
 {
-	if (player >= 8 || !g_players[player].participationState ||
-	    g_flightMissionState.missionEndPending ||
-	    (g_flightRuntimeStateInitialized > 1 &&
-	     g_dormantFlightRegionSessionEarlyReturnFlag) ||
-	    g_players[player].awaitingNewCraft ||
-	    g_players[player].hyperspacePhase ||
-	    g_players[player].mapCameraState ||
-	    g_players[player].viewState.playerInputBlocked ||
-	    g_players[player].chatRecipientMode !=
+	if (player >= 8 || !g_players[player].participation_state ||
+	    g_flight_mission_state.mission_end_pending ||
+	    (g_flight_runtime_state_initialized > 1 &&
+	     g_dormant_flight_region_session_early_return_flag) ||
+	    g_players[player].awaiting_new_craft ||
+	    g_players[player].hyperspace_phase ||
+	    g_players[player].map_camera_state ||
+	    g_players[player].view_state.player_input_blocked ||
+	    g_players[player].chat_recipient_mode !=
 		    FLIGHT_CHAT_RECIPIENT_INACTIVE) {
 		return false;
 	}
-	int index = g_players[player].objectIndex;
-	if (!g_objectTable || index < 0 || index >= g_regionMainObjectSlotEnd) {
+	int index = g_players[player].object_index;
+	if (!g_object_table || index < 0 ||
+	    index >= g_region_main_object_slot_end) {
 		return false;
 	}
-	const struct ObjectRecord *object = &g_objectTable[index];
-	return object->objectType &&
-	       object->objectSignature ==
-		       g_players[player].boundObjectSignature &&
-	       object->mobj && object->mobj->pCraft;
+	const struct object_record *object = &g_object_table[index];
+	return object->object_type &&
+	       object->object_signature ==
+		       g_players[player].bound_object_signature &&
+	       object->mobj && object->mobj->p_craft;
 }
 
-static bool XvtFlightControls_LocalThrottleEligible(void)
+static bool xvt_flight_controls_local_throttle_eligible(void)
 {
 	const AeronInputSnapshot *input = Aeron_InputSnapshot();
-	return input && input->has_focus && !XvtInput_IsCaptured() &&
+	return input && input->has_focus && !xvt_input_is_captured() &&
 	       !Aeron_DebugUiVisible() &&
-	       XvtInput_ReconcileKeyboard() != XVT_KEYBOARD_BLOCKED &&
-	       XvtFlightTask_IsActive() && !XvtFlightTask_IsLoading() &&
-	       !XvtFlightSim_IsPaused() && !XvtDialog_IsActive() &&
-	       !XvtMovieTask_IsActive() && !XvtResync_IsActive() &&
-	       XvtFlightControls_ThrottleEligible((unsigned)g_localPlayer);
+	       xvt_input_reconcile_keyboard() != XVT_KEYBOARD_BLOCKED &&
+	       xvt_flight_task_is_active() && !xvt_flight_task_is_loading() &&
+	       !xvt_flight_sim_is_paused() && !xvt_dialog_is_active() &&
+	       !xvt_movie_task_is_active() && !xvt_resync_is_active() &&
+	       xvt_flight_controls_throttle_eligible((unsigned)g_local_player);
 }
 
-void XvtFlightControls_UpdateThrottleContext(void)
+void xvt_flight_controls_update_throttle_context(void)
 {
-	if (!XvtFlightControls_LocalThrottleEligible()) {
-		XvtFlightControls_ResetThrottle();
+	if (!xvt_flight_controls_local_throttle_eligible()) {
+		xvt_flight_controls_reset_throttle();
 	}
 }
 
-void XvtFlightControls_SampleThrottle(struct FlightInputFrameRecord *record)
+void xvt_flight_controls_sample_throttle(
+	struct flight_input_frame_record *record)
 {
 	uint16_t position;
 	uint32_t generation;
 	record->flags = 0;
 	record->throttle = 0;
 	bool pause = record->key == FLIGHT_KEY_ALT_P &&
-		     g_flightPlayerCount == 1 &&
-		     !XvtPort_NetworkRequiresProgress();
-	if (pause || !XvtFlightControls_LocalThrottleEligible() ||
-	    !XvtControllerMapping_ThrottleSample(&position, &generation)) {
-		XvtFlightControls_ResetThrottle();
+		     g_flight_player_count == 1 &&
+		     !xvt_port_network_requires_progress();
+	if (pause || !xvt_flight_controls_local_throttle_eligible() ||
+	    !xvt_controller_mapping_throttle_sample(&position, &generation)) {
+		xvt_flight_controls_reset_throttle();
 		return;
 	}
-	int object = g_players[g_localPlayer].objectIndex;
-	uint32_t signature = g_players[g_localPlayer].boundObjectSignature;
-	if (!g_throttleBaseline.valid ||
-	    g_throttleBaseline.generation != generation ||
-	    g_throttleBaseline.object != object ||
-	    g_throttleBaseline.signature != signature) {
-		g_throttleBaseline.valid = true;
-		g_throttleBaseline.position = position;
-		g_throttleBaseline.generation = generation;
-		g_throttleBaseline.object = object;
-		g_throttleBaseline.signature = signature;
+	int object = g_players[g_local_player].object_index;
+	uint32_t signature = g_players[g_local_player].bound_object_signature;
+	if (!g_throttle_baseline.valid ||
+	    g_throttle_baseline.generation != generation ||
+	    g_throttle_baseline.object != object ||
+	    g_throttle_baseline.signature != signature) {
+		g_throttle_baseline.valid = true;
+		g_throttle_baseline.position = position;
+		g_throttle_baseline.generation = generation;
+		g_throttle_baseline.object = object;
+		g_throttle_baseline.signature = signature;
 		return;
 	}
-	int delta = (int)position - g_throttleBaseline.position;
+	int delta = (int)position - g_throttle_baseline.position;
 	if (delta < 0) {
 		delta = -delta;
 	}
 	/* 0.1% jitter threshold; small movements accumulate against the last accepted position. */
 	if (delta && (delta >= 66 || position == 0 || position == UINT16_MAX)) {
-		g_throttleBaseline.position = position;
+		g_throttle_baseline.position = position;
 		record->flags = XVT_INPUT_THROTTLE_PRESENT;
 		record->throttle = position;
 	}
 }
 
-void XvtFlightControls_ApplyThrottle(unsigned player,
-				     const struct FlightInputFrameRecord *input)
+void xvt_flight_controls_apply_throttle(
+	unsigned player, const struct flight_input_frame_record *input)
 {
 	if ((input->flags & XVT_INPUT_THROTTLE_PRESENT) &&
-	    XvtFlightControls_ThrottleEligible(player)) {
-		g_objectTable[g_players[player].objectIndex]
-			.mobj->pCraft->throttleSpeed = input->throttle;
+	    xvt_flight_controls_throttle_eligible(player)) {
+		g_object_table[g_players[player].object_index]
+			.mobj->p_craft->throttle_speed = input->throttle;
 	}
 }
 
-uint16_t XvtFlightControls_ReadLocal(void)
+uint16_t xvt_flight_controls_read_local(void)
 {
-	XvtKeyboardRoute keyboard = XvtInput_ReconcileKeyboard();
-	g_ctrlAxisX = g_ctrlAxisY = g_xvtControlRoll = 0;
-	g_keyMods = g_mouseButtons = g_actionKey = 0;
-	g_flightMouseDeltaX = g_flightMouseDeltaY = 0;
+	xvt_keyboard_route keyboard = xvt_input_reconcile_keyboard();
+	g_ctrl_axis_x = g_ctrl_axis_y = g_xvt_control_roll = 0;
+	g_key_mods = g_mouse_buttons = g_action_key = 0;
+	g_flight_mouse_delta_x = g_flight_mouse_delta_y = 0;
 	if (keyboard == XVT_KEYBOARD_BLOCKED) {
-		XvtFlightControls_Reset();
+		xvt_flight_controls_reset();
 		return 0;
 	}
-	g_ctrlAxisX = (int16_t)XvtControllerMapping_Axis(XVT_INPUT_AXIS_YAW);
-	g_ctrlAxisY = (int16_t)XvtControllerMapping_Axis(XVT_INPUT_AXIS_PITCH);
-	g_xvtControlRoll =
-		(int16_t)XvtControllerMapping_Axis(XVT_INPUT_AXIS_ROLL);
-	g_keyMods = XvtControllerMapping_Modifiers();
+	g_ctrl_axis_x =
+		(int16_t)xvt_controller_mapping_axis(XVT_INPUT_AXIS_YAW);
+	g_ctrl_axis_y =
+		(int16_t)xvt_controller_mapping_axis(XVT_INPUT_AXIS_PITCH);
+	g_xvt_control_roll =
+		(int16_t)xvt_controller_mapping_axis(XVT_INPUT_AXIS_ROLL);
+	g_key_mods = xvt_controller_mapping_modifiers();
 	if (keyboard == XVT_KEYBOARD_GAMEPLAY) {
-		g_keyMods |= XvtKeyboardMapping_ReadButtons();
+		g_key_mods |= xvt_keyboard_mapping_read_buttons();
 	}
-	if (XvtConfig_Settings()->mouse.mouse_flight_enabled) {
-		if (XvtMouseFlight_Sample()) {
+	if (xvt_config_settings()->mouse.mouse_flight_enabled) {
+		if (xvt_mouse_flight_sample()) {
 			int yaw, pitch, roll;
-			XvtMouseFlight_GetAxes(&yaw, &pitch, &roll);
+			xvt_mouse_flight_get_axes(&yaw, &pitch, &roll);
 			if (yaw) {
-				g_ctrlAxisX = (int16_t)yaw;
+				g_ctrl_axis_x = (int16_t)yaw;
 			}
 			if (pitch) {
-				g_ctrlAxisY = (int16_t)pitch;
+				g_ctrl_axis_y = (int16_t)pitch;
 			}
 			if (roll) {
-				g_xvtControlRoll = (int16_t)roll;
+				g_xvt_control_roll = (int16_t)roll;
 			}
-			g_keyMods |= XvtMouseFlight_ButtonsMask();
+			g_key_mods |= xvt_mouse_flight_buttons_mask();
 		}
-	} else if (g_flightMouseEnabled) {
-		g_mouseButtons = (uint16_t)Mouse_ReadPositionAndButtons(
-			&g_flightMouseX, &g_flightMouseY);
-		Mouse_ReadDelta(&g_flightMouseDeltaX, &g_flightMouseDeltaY);
-		if (g_flightMouseDeltaX < -191) {
-			g_flightMouseDeltaX = -191;
+	} else if (g_flight_mouse_enabled) {
+		g_mouse_buttons = (uint16_t)mouse_read_position_and_buttons(
+			&g_flight_mouse_x, &g_flight_mouse_y);
+		mouse_read_delta(&g_flight_mouse_delta_x,
+				 &g_flight_mouse_delta_y);
+		if (g_flight_mouse_delta_x < -191) {
+			g_flight_mouse_delta_x = -191;
 		}
-		if (g_flightMouseDeltaX > 191) {
-			g_flightMouseDeltaX = 191;
+		if (g_flight_mouse_delta_x > 191) {
+			g_flight_mouse_delta_x = 191;
 		}
-		if (g_flightMouseDeltaY < -127) {
-			g_flightMouseDeltaY = -127;
+		if (g_flight_mouse_delta_y < -127) {
+			g_flight_mouse_delta_y = -127;
 		}
-		if (g_flightMouseDeltaY > 127) {
-			g_flightMouseDeltaY = 127;
+		if (g_flight_mouse_delta_y > 127) {
+			g_flight_mouse_delta_y = 127;
 		}
 	}
 	uint16_t key =
 		keyboard == XVT_KEYBOARD_GAMEPLAY
-			? XvtKeyboardMapping_ReadKey()
-			: (DInput_SkipToPendingKeyPress() ? DInput_GetKey()
-							  : 0);
+			? xvt_keyboard_mapping_read_key()
+			: (dinput_skip_to_pending_key_press() ? dinput_get_key()
+							      : 0);
 	if (!key) {
-		key = XvtControllerMapping_ReadKey();
+		key = xvt_controller_mapping_read_key();
 	}
 	if (!key) {
-		key = XvtMouseFlight_ReadKey();
+		key = xvt_mouse_flight_read_key();
 	}
-	g_actionKey = key;
-	return g_actionKey;
+	g_action_key = key;
+	return g_action_key;
 }
 
-void XvtFlightControls_EncodeAxes(uint8_t *bytes,
-				  const struct FlightInputFrameRecord *input)
+void xvt_flight_controls_encode_axes(
+	uint8_t *bytes, const struct flight_input_frame_record *input)
 {
-	bytes[0] = ((uint8_t)input->axisX & 0xfeu) | (input->keyMods & 1u);
-	bytes[1] =
-		((uint8_t)input->axisY & 0xfeu) | ((input->keyMods >> 1) & 1u);
-	bytes[2] = (uint8_t)input->axisR & 0xfeu;
+	bytes[0] = ((uint8_t)input->axis_x & 0xfeu) | (input->key_mods & 1u);
+	bytes[1] = ((uint8_t)input->axis_y & 0xfeu) |
+		   ((input->key_mods >> 1) & 1u);
+	bytes[2] = (uint8_t)input->axis_r & 0xfeu;
 }
 
-void XvtFlightControls_DecodeAxes(const uint8_t *bytes,
-				  struct FlightInputFrameRecord *input)
+void xvt_flight_controls_decode_axes(const uint8_t *bytes,
+				     struct flight_input_frame_record *input)
 {
-	input->axisX = (int8_t)(bytes[0] & 0xfeu);
-	input->axisY = (int8_t)(bytes[1] & 0xfeu);
-	input->axisR = (int8_t)(bytes[2] & 0xfeu);
-	input->keyMods = (bytes[0] & 1u) | ((bytes[1] & 1u) << 1);
+	input->axis_x = (int8_t)(bytes[0] & 0xfeu);
+	input->axis_y = (int8_t)(bytes[1] & 0xfeu);
+	input->axis_r = (int8_t)(bytes[2] & 0xfeu);
+	input->key_mods = (bytes[0] & 1u) | ((bytes[1] & 1u) << 1);
 }
 
-int16_t XvtFlightControls_RollStep(unsigned player, uint16_t roll_rate,
-				   int16_t modifier_step)
+int16_t xvt_flight_controls_roll_step(unsigned player, uint16_t roll_rate,
+				      int16_t modifier_step)
 {
-	if (!g_xvtControlRoll) {
-		XvtPlayerTiming_Clear(player, XVT_PLAYER_ROLL);
+	if (!g_xvt_control_roll) {
+		xvt_player_timing_clear(player, XVT_PLAYER_ROLL);
 		return modifier_step;
 	}
-	int raw = g_xvtControlRoll * 120;
+	int raw = g_xvt_control_roll * 120;
 	unsigned magnitude = (unsigned)(raw < 0 ? -raw : raw);
 	unsigned whole = roll_rate / 0x3800;
 	uint16_t fraction =
-		(uint16_t)MATH2_ratioQ16(roll_rate % 0x3800, 0x3800);
+		(uint16_t)math2_ratio_q16(roll_rate % 0x3800, 0x3800);
 	int target =
-		(int)(magnitude * whole + MATH2_fraction(magnitude, fraction));
+		(int)(magnitude * whole + math2_fraction(magnitude, fraction));
 	if (raw < 0) {
 		target = -target;
 	}
-	int step = XvtFlightTiming_IsUnlocked()
-			   ? XvtPlayerTiming_Scale(player, XVT_PLAYER_ROLL,
-						   (int16_t)target,
-						   g_elapsedTicks, 236)
-			   : Player_ScaleControlStepByElapsedTicks(
+	int step = xvt_flight_timing_is_unlocked()
+			   ? xvt_player_timing_scale(player, XVT_PLAYER_ROLL,
+						     (int16_t)target,
+						     g_elapsed_ticks, 236)
+			   : player_scale_control_step_by_elapsed_ticks(
 				     (int16_t)target);
-	int limit = Player_ScaleControlStepByElapsedTicks(
+	int limit = player_scale_control_step_by_elapsed_ticks(
 		(int16_t)(127 * 120 * whole +
-			  MATH2_fraction(127 * 120, fraction)));
+			  math2_fraction(127 * 120, fraction)));
 	step += modifier_step;
 	if (step > limit) {
 		step = limit;
@@ -255,7 +260,8 @@ int16_t XvtFlightControls_RollStep(unsigned player, uint16_t roll_rate,
 	return (int16_t)step;
 }
 
-void XvtFlightControls_SampleRecorded(struct FlightInputFrameRecord *input)
+void xvt_flight_controls_sample_recorded(
+	struct flight_input_frame_record *input)
 {
 	enum {
 		AXIS_QUANTIZATION_MASK = 0xfe,
@@ -267,39 +273,39 @@ void XvtFlightControls_SampleRecorded(struct FlightInputFrameRecord *input)
 		MAX_AXIS = INT8_MAX & AXIS_QUANTIZATION_MASK
 	};
 
-	FlightInput_Read(-2);
+	flight_input_read(-2);
 	memset(input, 0, sizeof *input);
-	input->key = (uint8_t)g_actionKey;
-	input->axisX = (int8_t)(g_ctrlAxisX & AXIS_QUANTIZATION_MASK);
-	input->axisY = (int8_t)(g_ctrlAxisY & AXIS_QUANTIZATION_MASK);
-	input->axisR = (int8_t)(g_xvtControlRoll & AXIS_QUANTIZATION_MASK);
-	input->keyMods = (g_keyMods | g_mouseButtons) & RECORDED_MODIFIERS;
-	XvtFlightControls_SampleThrottle(input);
-	if (g_flightMouseEnabled) {
-		int yaw = g_flightMouseDeltaX * MOUSE_YAW_SCALE /
+	input->key = (uint8_t)g_action_key;
+	input->axis_x = (int8_t)(g_ctrl_axis_x & AXIS_QUANTIZATION_MASK);
+	input->axis_y = (int8_t)(g_ctrl_axis_y & AXIS_QUANTIZATION_MASK);
+	input->axis_r = (int8_t)(g_xvt_control_roll & AXIS_QUANTIZATION_MASK);
+	input->key_mods = (g_key_mods | g_mouse_buttons) & RECORDED_MODIFIERS;
+	xvt_flight_controls_sample_throttle(input);
+	if (g_flight_mouse_enabled) {
+		int yaw = g_flight_mouse_delta_x * MOUSE_YAW_SCALE /
 			  YAW_AXIS_SCALE,
-		    pitch = g_flightMouseDeltaY * MOUSE_PITCH_SCALE /
+		    pitch = g_flight_mouse_delta_y * MOUSE_PITCH_SCALE /
 			    PITCH_AXIS_SCALE;
 		if (yaw) {
-			input->axisX = (int8_t)((yaw < INT8_MIN	  ? INT8_MIN
-						 : yaw > MAX_AXIS ? MAX_AXIS
-								  : yaw) &
-						AXIS_QUANTIZATION_MASK);
+			input->axis_x = (int8_t)((yaw < INT8_MIN   ? INT8_MIN
+						  : yaw > MAX_AXIS ? MAX_AXIS
+								   : yaw) &
+						 AXIS_QUANTIZATION_MASK);
 		}
 		if (pitch) {
-			input->axisY = (int8_t)((pitch < INT8_MIN   ? INT8_MIN
-						 : pitch > MAX_AXIS ? MAX_AXIS
-								    : pitch) &
-						AXIS_QUANTIZATION_MASK);
+			input->axis_y = (int8_t)((pitch < INT8_MIN   ? INT8_MIN
+						  : pitch > MAX_AXIS ? MAX_AXIS
+								     : pitch) &
+						 AXIS_QUANTIZATION_MASK);
 		}
 	}
 }
 
-void XvtFlightControls_Recover(void)
+void xvt_flight_controls_recover(void)
 {
-	XvtInput_FlushKeyboard();
-	XvtControllerMapping_DropCommands();
-	XvtMouseFlight_DiscardPending();
-	g_actionKey = 0;
-	XvtFlightControls_ResetThrottle();
+	xvt_input_flush_keyboard();
+	xvt_controller_mapping_drop_commands();
+	xvt_mouse_flight_discard_pending();
+	g_action_key = 0;
+	xvt_flight_controls_reset_throttle();
 }

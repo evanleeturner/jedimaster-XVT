@@ -33,532 +33,546 @@ enum {
 	DISPLAY_INIT_SOUND_ERROR = 13,
 };
 
-static int g_gameSessionStarted;
-static int g_soundEngineStarted;
-static int g_flightDevicesCreated;
+static int g_game_session_started;
+static int g_sound_engine_started;
+static int g_flight_devices_created;
 
 /* Sets the flight's start-up flags: flicker (off when a flicker.txt file exists), laser timing,
  * the async option and the launch switches. Each switch is found by substring anywhere in the
  * mission command line, so a pilot or game name containing a switch's word sets it too. */
-static void XvtFlightEntry_ReadLaunchSwitches(char *missionCmdLine)
+static void xvt_flight_entry_read_launch_switches(char *mission_cmd_line)
 {
-	XvtFile *flickerFile;
-	char *optionMatch;
+	xvt_file *flicker_file;
+	char *option_match;
 
-	flickerFile = File_Open("flicker.txt", "r");
-	if (flickerFile != NULL) {
-		File_Close(flickerFile);
-		g_flightConfFlicker = 0;
+	flicker_file = file_open("flicker.txt", "r");
+	if (flicker_file != NULL) {
+		file_close(flicker_file);
+		g_flight_conf_flicker = 0;
 	} else {
-		g_flightConfFlicker = 1;
+		g_flight_conf_flicker = 1;
 	}
 
-	g_laserFireTimestampTrackingEnabled = 1;
-	g_internetPlayEnabled = g_gameConfig.internetPlay;
-	optionMatch = strstr(missionCmdLine, "traincourse");
-	g_flightConfTrainCourse = 1;
-	if (optionMatch == NULL) {
-		g_flightConfTrainCourse = 0;
+	g_laser_fire_timestamp_tracking_enabled = 1;
+	g_internet_play_enabled = g_game_config.internet_play;
+	option_match = strstr(mission_cmd_line, "traincourse");
+	g_flight_conf_train_course = 1;
+	if (option_match == NULL) {
+		g_flight_conf_train_course = 0;
 	}
-	optionMatch = strstr(missionCmdLine, "nopilot");
-	g_flightConfNoPilot = 1;
-	if (optionMatch == NULL) {
-		g_flightConfNoPilot = 0;
+	option_match = strstr(mission_cmd_line, "nopilot");
+	g_flight_conf_no_pilot = 1;
+	if (option_match == NULL) {
+		g_flight_conf_no_pilot = 0;
 	}
-	if (strstr(missionCmdLine, "nodinput") != NULL) {
-		g_flightConfDirectInput = 0;
-	} else if (strstr(missionCmdLine, "dinput") != NULL) {
-		g_flightConfDirectInput = 1;
+	if (strstr(mission_cmd_line, "nodinput") != NULL) {
+		g_flight_conf_direct_input = 0;
+	} else if (strstr(mission_cmd_line, "dinput") != NULL) {
+		g_flight_conf_direct_input = 1;
 	} else {
-		g_flightConfDirectInput = 1;
+		g_flight_conf_direct_input = 1;
 	}
-	if (strstr(missionCmdLine, "nosfx") != NULL) {
-		g_flightConfSfxEnabled = 0;
-	} else if (strstr(missionCmdLine, "sfx") != NULL) {
-		g_flightConfSfxEnabled = 1;
+	if (strstr(mission_cmd_line, "nosfx") != NULL) {
+		g_flight_conf_sfx_enabled = 0;
+	} else if (strstr(mission_cmd_line, "sfx") != NULL) {
+		g_flight_conf_sfx_enabled = 1;
 	} else {
-		g_flightConfSfxEnabled = 1;
+		g_flight_conf_sfx_enabled = 1;
 	}
-	if (strstr(missionCmdLine, "nomusic") != NULL) {
-		g_flightConfMusicEnabled = 0;
-	} else if (strstr(missionCmdLine, "music") != NULL) {
-		g_flightConfMusicEnabled = 1;
+	if (strstr(mission_cmd_line, "nomusic") != NULL) {
+		g_flight_conf_music_enabled = 0;
+	} else if (strstr(mission_cmd_line, "music") != NULL) {
+		g_flight_conf_music_enabled = 1;
 	} else {
-		g_flightConfMusicEnabled = 1;
+		g_flight_conf_music_enabled = 1;
 	}
-	if (strstr(missionCmdLine, "novoice") != NULL) {
-		g_flightConfVoiceEnabled = 0;
-	} else if (strstr(missionCmdLine, "voice") != NULL) {
-		g_flightConfVoiceEnabled = 1;
+	if (strstr(mission_cmd_line, "novoice") != NULL) {
+		g_flight_conf_voice_enabled = 0;
+	} else if (strstr(mission_cmd_line, "voice") != NULL) {
+		g_flight_conf_voice_enabled = 1;
 	} else {
-		g_flightConfVoiceEnabled = 1;
+		g_flight_conf_voice_enabled = 1;
 	}
-	if (strstr(missionCmdLine, "notickcounter") != NULL) {
-		g_flightConfTickCounterEnabled = 0;
-	} else if (strstr(missionCmdLine, "tickcounter") != NULL) {
-		g_flightConfTickCounterEnabled = 1;
+	if (strstr(mission_cmd_line, "notickcounter") != NULL) {
+		g_flight_conf_tick_counter_enabled = 0;
+	} else if (strstr(mission_cmd_line, "tickcounter") != NULL) {
+		g_flight_conf_tick_counter_enabled = 1;
 	} else {
-		g_flightConfTickCounterEnabled = 0;
+		g_flight_conf_tick_counter_enabled = 0;
 	}
-	if (strstr(missionCmdLine, "nomipmaps") != NULL) {
-		g_mipmappingEnabled = 0;
-	} else if (strstr(missionCmdLine, "mipmaps") != NULL) {
-		g_mipmappingEnabled = 1;
+	if (strstr(mission_cmd_line, "nomipmaps") != NULL) {
+		g_mipmapping_enabled = 0;
+	} else if (strstr(mission_cmd_line, "mipmaps") != NULL) {
+		g_mipmapping_enabled = 1;
 	} else {
-		g_mipmappingEnabled = 1;
+		g_mipmapping_enabled = 1;
 	}
-	optionMatch = strstr(missionCmdLine, "inprogress");
-	g_flightInProgressLaunch = 1;
-	if (optionMatch == NULL) {
-		g_flightInProgressLaunch = 0;
+	option_match = strstr(mission_cmd_line, "inprogress");
+	g_flight_in_progress_launch = 1;
+	if (option_match == NULL) {
+		g_flight_in_progress_launch = 0;
 	}
-	optionMatch = strstr(missionCmdLine, "newnet");
-	g_flightConfNewNet = 1;
-	if (optionMatch == NULL) {
-		g_flightConfNewNet = 0;
+	option_match = strstr(mission_cmd_line, "newnet");
+	g_flight_conf_new_net = 1;
+	if (option_match == NULL) {
+		g_flight_conf_new_net = 0;
 	}
-	optionMatch = strstr(missionCmdLine, "nolauncher");
-	g_flightConfNoLauncher = 1;
-	if (optionMatch == NULL) {
-		g_flightConfNoLauncher = 0;
+	option_match = strstr(mission_cmd_line, "nolauncher");
+	g_flight_conf_no_launcher = 1;
+	if (option_match == NULL) {
+		g_flight_conf_no_launcher = 0;
 	}
-	if (strstr(missionCmdLine, "nofullscreen") != NULL) {
-		g_flightFullscreen = 0;
-	} else if (strstr(missionCmdLine, "fullscreen") != NULL) {
-		g_flightFullscreen = 1;
+	if (strstr(mission_cmd_line, "nofullscreen") != NULL) {
+		g_flight_fullscreen = 0;
+	} else if (strstr(mission_cmd_line, "fullscreen") != NULL) {
+		g_flight_fullscreen = 1;
 	}
-	if (strstr(missionCmdLine, "nopageflip") != NULL) {
-		g_flightPageFlip = 0;
-	} else if (strstr(missionCmdLine, "pageflip") != NULL) {
-		g_flightPageFlip = 1;
+	if (strstr(mission_cmd_line, "nopageflip") != NULL) {
+		g_flight_page_flip = 0;
+	} else if (strstr(mission_cmd_line, "pageflip") != NULL) {
+		g_flight_page_flip = 1;
 	}
-	if (missionCmdLine[0] == '-') {
-		g_flightStartedWithDashArg = 1;
-	} else if (missionCmdLine[0] == '/' && missionCmdLine[1] == '+') {
-		g_unusedFlightCmdLinePlusSwitchFlag = 1;
+	if (mission_cmd_line[0] == '-') {
+		g_flight_started_with_dash_arg = 1;
+	} else if (mission_cmd_line[0] == '/' && mission_cmd_line[1] == '+') {
+		g_unused_flight_cmd_line_plus_switch_flag = 1;
 	}
 }
 
-int XvtFlightEntry_Prepare(char *missionCmdLine)
+int xvt_flight_entry_prepare(char *mission_cmd_line)
 {
-	NetworkTransportType networkType;
-	const char *connectionAddress;
-	int argumentCount;
-	int argumentIndex;
-	int commandLineOffset;
-	int quotedArgument;
+	network_transport_type network_type;
+	const char *connection_address;
+	int argument_count;
+	int argument_index;
+	int command_line_offset;
+	int quoted_argument;
 
-	g_gameSessionStarted = g_soundEngineStarted = g_flightDevicesCreated =
-		0;
-	ModelPreview_FreeResources();
-	g_flightRenderToFrontend = 0;
-	if (missionCmdLine == NULL) {
+	g_game_session_started = g_sound_engine_started =
+		g_flight_devices_created = 0;
+	model_preview_free_resources();
+	g_flight_render_to_frontend = 0;
+	if (mission_cmd_line == NULL) {
 		return 0;
 	}
 
-	Config_Load();
-	XvtFlightEntry_ReadLaunchSwitches(missionCmdLine);
+	config_load();
+	xvt_flight_entry_read_launch_switches(mission_cmd_line);
 
-	if (Flight_UpdateAndFocusMainWindow() == 0) {
+	if (flight_update_and_focus_main_window() == 0) {
 		return 0;
 	}
 
-	commandLineOffset = 0;
-	quotedArgument = 0;
-	argumentCount = BUILTIN_ARGUMENT_COUNT;
-	g_flightLaunchArgs.programName = "xtie";
-	g_flightLaunchArgs.sentinel = "/trebla";
-	if (missionCmdLine[0] != '\0') {
-		for (argumentIndex = 0; argumentIndex < PARSED_ARGUMENT_COUNT;
-		     ++argumentIndex) {
-			g_flightLaunchArgs.arguments[argumentIndex] =
-				&missionCmdLine[commandLineOffset];
+	command_line_offset = 0;
+	quoted_argument = 0;
+	argument_count = BUILTIN_ARGUMENT_COUNT;
+	g_flight_launch_args.program_name = "xtie";
+	g_flight_launch_args.sentinel = "/trebla";
+	if (mission_cmd_line[0] != '\0') {
+		for (argument_index = 0; argument_index < PARSED_ARGUMENT_COUNT;
+		     ++argument_index) {
+			g_flight_launch_args.arguments[argument_index] =
+				&mission_cmd_line[command_line_offset];
 			while (1) {
 				char character;
 
-				character = missionCmdLine[commandLineOffset];
+				character =
+					mission_cmd_line[command_line_offset];
 				if (character == ' ') {
-					if (quotedArgument != 1) {
+					if (quoted_argument != 1) {
 						break;
 					}
 				} else if (character == '\0') {
 					break;
 				}
 				if (character == '~') {
-					if (quotedArgument != 0) {
-						quotedArgument = 0;
-						missionCmdLine
-							[commandLineOffset] =
+					if (quoted_argument != 0) {
+						quoted_argument = 0;
+						mission_cmd_line
+							[command_line_offset] =
 								'\0';
-						++commandLineOffset;
+						++command_line_offset;
 					} else {
-						quotedArgument = 1;
-						++commandLineOffset;
-						g_flightLaunchArgs.arguments
-							[argumentIndex] =
-							&missionCmdLine
-								[commandLineOffset];
+						quoted_argument = 1;
+						++command_line_offset;
+						g_flight_launch_args.arguments
+							[argument_index] =
+							&mission_cmd_line
+								[command_line_offset];
 					}
 				} else {
-					++commandLineOffset;
+					++command_line_offset;
 				}
 			}
-			++argumentCount;
-			if (missionCmdLine[commandLineOffset] == '\0') {
+			++argument_count;
+			if (mission_cmd_line[command_line_offset] == '\0') {
 				break;
 			}
-			missionCmdLine[commandLineOffset] = '\0';
-			++commandLineOffset;
-			if (missionCmdLine[commandLineOffset] == '\0') {
+			mission_cmd_line[command_line_offset] = '\0';
+			++command_line_offset;
+			if (mission_cmd_line[command_line_offset] == '\0') {
 				break;
 			}
 		}
 	}
-	if (argumentCount < REQUIRED_ARGUMENT_COUNT) {
+	if (argument_count < REQUIRED_ARGUMENT_COUNT) {
 		return 0;
 	}
 
-	networkType = (NetworkTransportType)g_gameConfig.networkType;
-	switch (networkType) {
+	network_type = (network_transport_type)g_game_config.network_type;
+	switch (network_type) {
 	case NET_TRANSPORT_TCPIP:
-		connectionAddress = g_gameConfig.ipAddress;
+		connection_address = g_game_config.ip_address;
 		break;
 	case NET_TRANSPORT_MODEM:
-		connectionAddress = g_gameConfig.phoneNumber;
+		connection_address = g_game_config.phone_number;
 		break;
 	default:
 	case NET_TRANSPORT_IPX:
-		connectionAddress = NULL;
+		connection_address = NULL;
 		break;
 	}
-	g_gameSessionStarted = 1;
-	return NetSession_InitGameSession(
-		g_flightLaunchArgs.arguments[FLIGHT_LAUNCH_ARG_FORMAL_NAME],
-		g_flightLaunchArgs.arguments[FLIGHT_LAUNCH_ARG_PILOT_NAME],
-		atoi(g_flightLaunchArgs.arguments[FLIGHT_LAUNCH_ARG_IS_HOST]),
-		g_flightLaunchArgs.arguments[FLIGHT_LAUNCH_ARG_MP_GAME_NAME],
-		networkType,
-		atoi(g_flightLaunchArgs
+	g_game_session_started = 1;
+	return net_session_init_game_session(
+		g_flight_launch_args.arguments[FLIGHT_LAUNCH_ARG_FORMAL_NAME],
+		g_flight_launch_args.arguments[FLIGHT_LAUNCH_ARG_PILOT_NAME],
+		atoi(g_flight_launch_args.arguments[FLIGHT_LAUNCH_ARG_IS_HOST]),
+		g_flight_launch_args.arguments[FLIGHT_LAUNCH_ARG_MP_GAME_NAME],
+		network_type,
+		atoi(g_flight_launch_args
 			     .arguments[FLIGHT_LAUNCH_ARG_NUM_PLAYERS]),
-		g_flightInProgressLaunch, connectionAddress);
+		g_flight_in_progress_launch, connection_address);
 }
 
 /* Sets the distance scale for model detail levels from the level-of-detail setting, capped at its
  * maximum, bent by the configured curve and inverted; clears any forced detail level. */
-static void XvtFlightEntry_ConfigureLodDistance(void)
+static void xvt_flight_entry_configure_lod_distance(void)
 {
-	int lodConfigValue;
+	int lod_config_value;
 
-	lodConfigValue = g_gameConfig.lod[NetSession_GetPlayerCount() > 1] +
-			 LOD_CONFIG_OFFSET;
-	g_lodDistanceScale = (float)lodConfigValue;
-	if (g_lodDistanceScale > g_lodConfigMaxValue) {
-		g_lodDistanceScale = (float)LOD_CONFIG_MAX_VALUE;
+	lod_config_value =
+		g_game_config.lod[net_session_get_player_count() > 1] +
+		LOD_CONFIG_OFFSET;
+	g_lod_distance_scale = (float)lod_config_value;
+	if (g_lod_distance_scale > g_lod_config_max_value) {
+		g_lod_distance_scale = (float)LOD_CONFIG_MAX_VALUE;
 	}
-	g_lodDistanceScale = g_lodDistanceScale * g_lodConfigScaleFactor;
-	g_lodDistanceScale = g_lodDistanceScale * g_lodConfigCurveDouble;
-	if (g_lodDistanceScale > g_lodConfigCurveThreshold) {
-		g_lodDistanceScale =
-			g_lodConfigCurveThreshold /
-			(g_lodConfigCurveDouble - g_lodDistanceScale);
+	g_lod_distance_scale = g_lod_distance_scale * g_lod_config_scale_factor;
+	g_lod_distance_scale = g_lod_distance_scale * g_lod_config_curve_double;
+	if (g_lod_distance_scale > g_lod_config_curve_threshold) {
+		g_lod_distance_scale =
+			g_lod_config_curve_threshold /
+			(g_lod_config_curve_double - g_lod_distance_scale);
 	}
-	g_forcedLodLevel = 0;
-	g_lodDistanceScale =
-		(float)LOD_SCALE_INVERSION_NUMERATOR / g_lodDistanceScale;
+	g_forced_lod_level = 0;
+	g_lod_distance_scale =
+		(float)LOD_SCALE_INVERSION_NUMERATOR / g_lod_distance_scale;
 }
 
 /* Turns mipmapping off when the mipmap setting is at its disabled value; otherwise turns it on and
  * sets the mip distance scale from the setting through the same curve and inversion as the
  * detail levels. */
-static void XvtFlightEntry_ConfigureMipmaps(void)
+static void xvt_flight_entry_configure_mipmaps(void)
 {
-	int mipmapConfigOption;
+	int mipmap_config_option;
 
-	mipmapConfigOption =
-		g_gameConfig.mipmap[NetSession_GetPlayerCount() > 1];
-	if (mipmapConfigOption != MIPMAPPING_DISABLED_VALUE) {
-		int64_t mipmapConfigValue;
+	mipmap_config_option =
+		g_game_config.mipmap[net_session_get_player_count() > 1];
+	if (mipmap_config_option != MIPMAPPING_DISABLED_VALUE) {
+		int64_t mipmap_config_value;
 
-		mipmapConfigValue =
-			g_gameConfig.mipmap[NetSession_GetPlayerCount() > 1];
-		g_mipLodScale = (float)mipmapConfigValue;
-		g_mipLodScale = g_mipLodScale * g_mipmapConfigScaleFactor;
-		g_mipLodScale = g_mipLodScale * g_lodConfigCurveDouble;
-		if (g_mipLodScale > g_lodConfigCurveThreshold) {
-			g_mipLodScale =
-				g_lodConfigCurveThreshold /
-				(g_lodConfigCurveDouble - g_mipLodScale);
+		mipmap_config_value =
+			g_game_config
+				.mipmap[net_session_get_player_count() > 1];
+		g_mip_lod_scale = (float)mipmap_config_value;
+		g_mip_lod_scale =
+			g_mip_lod_scale * g_mipmap_config_scale_factor;
+		g_mip_lod_scale = g_mip_lod_scale * g_lod_config_curve_double;
+		if (g_mip_lod_scale > g_lod_config_curve_threshold) {
+			g_mip_lod_scale =
+				g_lod_config_curve_threshold /
+				(g_lod_config_curve_double - g_mip_lod_scale);
 		}
-		g_mipmappingEnabled = 1;
-		g_mipLodScale =
-			(float)LOD_SCALE_INVERSION_NUMERATOR / g_mipLodScale;
+		g_mipmapping_enabled = 1;
+		g_mip_lod_scale =
+			(float)LOD_SCALE_INVERSION_NUMERATOR / g_mip_lod_scale;
 	} else {
-		g_mipmappingEnabled = 0;
+		g_mipmapping_enabled = 0;
 	}
 }
 
 /* Sets the render size from the screen resolution setting and the window surface size from the
  * window size setting, then the render target width. */
-static void XvtFlightEntry_ConfigureDisplaySize(void)
+static void xvt_flight_entry_configure_display_size(void)
 {
-	switch (g_gameConfig.screenRes[NetSession_GetPlayerCount() > 1]) {
+	switch (g_game_config.screen_res[net_session_get_player_count() > 1]) {
 	case DISPLAY_CONFIG_LOW:
-		g_displayModeWidth = DISPLAY_WIDTH_LOW;
-		g_displayModeHeight = DISPLAY_HEIGHT_LOW;
+		g_display_mode_width = DISPLAY_WIDTH_LOW;
+		g_display_mode_height = DISPLAY_HEIGHT_LOW;
 		break;
 	case DISPLAY_CONFIG_MEDIUM:
-		g_displayModeWidth = DISPLAY_WIDTH_MEDIUM;
-		g_displayModeHeight = DISPLAY_HEIGHT_MEDIUM;
+		g_display_mode_width = DISPLAY_WIDTH_MEDIUM;
+		g_display_mode_height = DISPLAY_HEIGHT_MEDIUM;
 		break;
 	default:
-		g_displayModeWidth = DISPLAY_WIDTH_HIGH;
-		g_displayModeHeight = DISPLAY_HEIGHT_HIGH;
+		g_display_mode_width = DISPLAY_WIDTH_HIGH;
+		g_display_mode_height = DISPLAY_HEIGHT_HIGH;
 		break;
 	}
-	switch (g_gameConfig.windowSize[NetSession_GetPlayerCount() > 1]) {
+	switch (g_game_config.window_size[net_session_get_player_count() > 1]) {
 	case DISPLAY_CONFIG_LOW:
-		g_surfaceWidth = DISPLAY_WIDTH_LOW;
-		g_surfaceHeight = DISPLAY_HEIGHT_LOW;
+		g_surface_width = DISPLAY_WIDTH_LOW;
+		g_surface_height = DISPLAY_HEIGHT_LOW;
 		break;
 	case DISPLAY_CONFIG_MEDIUM:
-		g_surfaceWidth = WINDOW_WIDTH_MEDIUM;
-		g_surfaceHeight = WINDOW_HEIGHT_MEDIUM;
+		g_surface_width = WINDOW_WIDTH_MEDIUM;
+		g_surface_height = WINDOW_HEIGHT_MEDIUM;
 		break;
 	default:
-		g_surfaceWidth = DISPLAY_WIDTH_HIGH;
-		g_surfaceHeight = DISPLAY_HEIGHT_HIGH;
+		g_surface_width = DISPLAY_WIDTH_HIGH;
+		g_surface_height = DISPLAY_HEIGHT_HIGH;
 		break;
 	}
-	g_renderTargetWidth = g_displayModeWidth;
+	g_render_target_width = g_display_mode_width;
 }
 
-static void XvtFlightEntry_Configure(void)
+static void xvt_flight_entry_configure(void)
 {
-	int brightnessLimit;
-	g_flightBrightnessScaleQ8 =
-		(g_gameConfig.brightness[NetSession_GetPlayerCount() > 1] +
+	int brightness_limit;
+	g_flight_brightness_scale_q8 =
+		(g_game_config.brightness[net_session_get_player_count() > 1] +
 		 BRIGHTNESS_CONFIG_OFFSET)
 		<< BRIGHTNESS_CONFIG_SHIFT;
-	brightnessLimit = BRIGHTNESS_SCALE_MIN;
-	if ((unsigned int)g_flightBrightnessScaleQ8 < BRIGHTNESS_SCALE_MIN) {
-		g_flightBrightnessScaleQ8 = brightnessLimit;
+	brightness_limit = BRIGHTNESS_SCALE_MIN;
+	if ((unsigned int)g_flight_brightness_scale_q8 < BRIGHTNESS_SCALE_MIN) {
+		g_flight_brightness_scale_q8 = brightness_limit;
 	} else {
-		brightnessLimit = BRIGHTNESS_SCALE_MAX;
-		if ((unsigned int)g_flightBrightnessScaleQ8 >
+		brightness_limit = BRIGHTNESS_SCALE_MAX;
+		if ((unsigned int)g_flight_brightness_scale_q8 >
 		    BRIGHTNESS_SCALE_MAX) {
-			g_flightBrightnessScaleQ8 = brightnessLimit;
+			g_flight_brightness_scale_q8 = brightness_limit;
 		}
 	}
-	g_backdropsEnabled =
-		g_gameConfig.backdrop[NetSession_GetPlayerCount() > 1];
-	g_debrisEnabled = g_gameConfig.debris[NetSession_GetPlayerCount() > 1];
-	switch (g_gameConfig.starDensity[NetSession_GetPlayerCount() > 1]) {
+	g_backdrops_enabled =
+		g_game_config.backdrop[net_session_get_player_count() > 1];
+	g_debris_enabled =
+		g_game_config.debris[net_session_get_player_count() > 1];
+	switch (g_game_config
+			.star_density[net_session_get_player_count() > 1]) {
 	case 0:
-		g_starGridDivisor = STAR_GRID_DIVISOR_LOW_DENSITY;
+		g_star_grid_divisor = STAR_GRID_DIVISOR_LOW_DENSITY;
 		break;
 	case 1:
-		g_starGridDivisor = STAR_GRID_DIVISOR_MEDIUM_DENSITY;
+		g_star_grid_divisor = STAR_GRID_DIVISOR_MEDIUM_DENSITY;
 		break;
 	case 2:
-		g_starGridDivisor = STAR_GRID_DIVISOR_HIGH_DENSITY;
+		g_star_grid_divisor = STAR_GRID_DIVISOR_HIGH_DENSITY;
 		break;
 	default:
 		break;
 	}
-	g_useHardware3D =
-		g_gameConfig.use3dHardware[NetSession_GetPlayerCount() > 1];
-	g_bilinearEnabled =
-		g_gameConfig.bilinear[NetSession_GetPlayerCount() > 1];
+	g_use_hardware3d =
+		g_game_config
+			.use3d_hardware[net_session_get_player_count() > 1];
+	g_bilinear_enabled =
+		g_game_config.bilinear[net_session_get_player_count() > 1];
 	{
-		int bppConfigValue;
+		int bpp_config_value;
 
-		bppConfigValue =
-			g_gameConfig
-				.colorDepthChoice[NetSession_GetPlayerCount() >
-						  1];
-		switch (bppConfigValue) {
+		bpp_config_value = g_game_config.color_depth_choice
+					   [net_session_get_player_count() > 1];
+		switch (bpp_config_value) {
 		case DISPLAY_CONFIG_LOW:
-			g_flightBytesPerPixel = PALETTED_BYTES_PER_PIXEL;
+			g_flight_bytes_per_pixel = PALETTED_BYTES_PER_PIXEL;
 			break;
 		case DISPLAY_CONFIG_MEDIUM:
-			g_flightBytesPerPixel = HIGH_COLOR_BYTES_PER_PIXEL;
+			g_flight_bytes_per_pixel = HIGH_COLOR_BYTES_PER_PIXEL;
 			break;
 		default:
-			g_flightBytesPerPixel = PALETTED_BYTES_PER_PIXEL;
+			g_flight_bytes_per_pixel = PALETTED_BYTES_PER_PIXEL;
 			break;
 		}
 	}
-	NetSession_GetPlayerCount();
-	XvtFlightEntry_ConfigureLodDistance();
-	XvtFlightEntry_ConfigureMipmaps();
-	switch (g_gameConfig.textureRes[NetSession_GetPlayerCount() > 1]) {
+	net_session_get_player_count();
+	xvt_flight_entry_configure_lod_distance();
+	xvt_flight_entry_configure_mipmaps();
+	switch (g_game_config.texture_res[net_session_get_player_count() > 1]) {
 	case 0:
-		g_textureResolutionLevel = 0;
+		g_texture_resolution_level = 0;
 		break;
 	case 1:
-		g_textureResolutionLevel = 1;
+		g_texture_resolution_level = 1;
 		break;
 	default:
-		g_textureResolutionLevel = 2;
+		g_texture_resolution_level = 2;
 		break;
 	}
 	{
-		int localLightsEnabled;
+		int local_lights_enabled;
 
-		localLightsEnabled =
-			g_gameConfig
-				.localLights[NetSession_GetPlayerCount() > 1];
-		g_localLightsEnabled = 1;
-		if (localLightsEnabled == 0) {
-			g_localLightsEnabled = 0;
+		local_lights_enabled =
+			g_game_config
+				.local_lights[net_session_get_player_count() >
+					      1];
+		g_local_lights_enabled = 1;
+		if (local_lights_enabled == 0) {
+			g_local_lights_enabled = 0;
 		}
 	}
 	{
-		int specularEnabled;
+		int specular_enabled;
 
-		specularEnabled =
-			g_gameConfig.specular[NetSession_GetPlayerCount() > 1];
-		g_specularEnabled = 1;
-		if (specularEnabled == 0) {
-			g_specularEnabled = 0;
+		specular_enabled =
+			g_game_config
+				.specular[net_session_get_player_count() > 1];
+		g_specular_enabled = 1;
+		if (specular_enabled == 0) {
+			g_specular_enabled = 0;
 		}
 	}
 	{
-		int diffuseLightingEnabled;
+		int diffuse_lighting_enabled;
 
-		diffuseLightingEnabled =
-			g_gameConfig.diffuse[NetSession_GetPlayerCount() > 1];
-		g_dirLightingEnabled = 1;
-		if (diffuseLightingEnabled == 0) {
-			g_dirLightingEnabled = 0;
+		diffuse_lighting_enabled =
+			g_game_config
+				.diffuse[net_session_get_player_count() > 1];
+		g_dir_lighting_enabled = 1;
+		if (diffuse_lighting_enabled == 0) {
+			g_dir_lighting_enabled = 0;
 		}
 	}
 	{
-		int ditheringEnabled;
+		int dithering_enabled;
 
-		ditheringEnabled =
-			g_gameConfig.dither[NetSession_GetPlayerCount() > 1];
-		g_ditheringEnabled = 1;
-		if (ditheringEnabled == 0) {
-			g_ditheringEnabled = 0;
+		dithering_enabled =
+			g_game_config
+				.dither[net_session_get_player_count() > 1];
+		g_dithering_enabled = 1;
+		if (dithering_enabled == 0) {
+			g_dithering_enabled = 0;
 		}
 	}
-	XvtFlightEntry_ConfigureDisplaySize();
-	g_requestedFlightBytesPerPixel = g_flightBytesPerPixel;
-	g_requestedFlightHardware3D = g_useHardware3D;
+	xvt_flight_entry_configure_display_size();
+	g_requested_flight_bytes_per_pixel = g_flight_bytes_per_pixel;
+	g_requested_flight_hardware3d = g_use_hardware3d;
 }
 
-int XvtFlightEntry_CreateDevices(void)
+int xvt_flight_entry_create_devices(void)
 {
-	XvtFlightEntry_Configure();
-	g_flightDevicesCreated = 1;
-	if (FlightDisplay_Init() == 0) {
+	xvt_flight_entry_configure();
+	g_flight_devices_created = 1;
+	if (flight_display_init() == 0) {
 		return 0;
 	}
 
-	switch (g_displayModeWidth) {
+	switch (g_display_mode_width) {
 	case DISPLAY_WIDTH_LOW:
-		g_gameConfig.screenRes[NetSession_GetPlayerCount() > 1] =
+		g_game_config.screen_res[net_session_get_player_count() > 1] =
 			DISPLAY_CONFIG_LOW;
 		break;
 	case DISPLAY_WIDTH_MEDIUM:
-		g_gameConfig.screenRes[NetSession_GetPlayerCount() > 1] =
+		g_game_config.screen_res[net_session_get_player_count() > 1] =
 			DISPLAY_CONFIG_MEDIUM;
 		break;
 	case DISPLAY_WIDTH_HIGH:
-		g_gameConfig.screenRes[NetSession_GetPlayerCount() > 1] =
+		g_game_config.screen_res[net_session_get_player_count() > 1] =
 			DISPLAY_CONFIG_HIGH;
 		break;
 	default:
 		break;
 	}
-	switch (g_flightBytesPerPixel) {
+	switch (g_flight_bytes_per_pixel) {
 	case PALETTED_BYTES_PER_PIXEL:
-		g_gameConfig.colorDepthChoice[NetSession_GetPlayerCount() > 1] =
-			DISPLAY_CONFIG_LOW;
+		g_game_config
+			.color_depth_choice[net_session_get_player_count() >
+					    1] = DISPLAY_CONFIG_LOW;
 		break;
 	case HIGH_COLOR_BYTES_PER_PIXEL:
-		g_gameConfig.colorDepthChoice[NetSession_GetPlayerCount() > 1] =
-			DISPLAY_CONFIG_MEDIUM;
+		g_game_config
+			.color_depth_choice[net_session_get_player_count() >
+					    1] = DISPLAY_CONFIG_MEDIUM;
 		break;
 	default:
 		break;
 	}
-	g_gameConfig.use3dHardware[NetSession_GetPlayerCount() > 1] =
-		(uint8_t)g_useHardware3D;
-	DebugPrintf("Init Dinput\n");
-	if (g_flightConfDirectInput != 0 && DInput_Init() == 0) {
-		g_flightConfDirectInput = 0;
+	g_game_config.use3d_hardware[net_session_get_player_count() > 1] =
+		(uint8_t)g_use_hardware3d;
+	debug_printf("Init Dinput\n");
+	if (g_flight_conf_direct_input != 0 && dinput_init() == 0) {
+		g_flight_conf_direct_input = 0;
 	}
-	DebugPrintf("Init Dsound\n");
-	g_flightSoundInitStartTimeMs = timeGetTime();
-	g_soundEngineStarted = 1;
-	if (Sound_Init_Sound_Engine(g_flightMainWindowHandle) == 0) {
-		FlightDisplay_CleanupAndReportError(DISPLAY_INIT_SOUND_ERROR);
+	debug_printf("Init Dsound\n");
+	g_flight_sound_init_start_time_ms = timeGetTime();
+	g_sound_engine_started = 1;
+	if (sound_init_sound_engine(g_flight_main_window_handle) == 0) {
+		flight_display_cleanup_and_report_error(
+			DISPLAY_INIT_SOUND_ERROR);
 		return 0;
 	}
 
-	strcpy(g_currentMissionFile,
-	       g_flightLaunchArgs.arguments[FLIGHT_LAUNCH_ARG_MISSION_PATH]);
+	strcpy(g_current_mission_file,
+	       g_flight_launch_args.arguments[FLIGHT_LAUNCH_ARG_MISSION_PATH]);
 	return 1;
 }
 
-void XvtFlightEntry_Cleanup(void)
+void xvt_flight_entry_cleanup(void)
 {
-	g_sw3dSkipOddScanlines = 0;
-	if (g_soundEngineStarted) {
-		Sound_Shutdown_Sound_Engine();
+	g_sw3d_skip_odd_scanlines = 0;
+	if (g_sound_engine_started) {
+		sound_shutdown_sound_engine();
 	}
-	g_soundEngineStarted = 0;
-	if (g_flightDevicesCreated) {
-		DInput_Shutdown();
+	g_sound_engine_started = 0;
+	if (g_flight_devices_created) {
+		dinput_shutdown();
 	}
-	if (g_gameSessionStarted) {
-		NetSession_Shutdown();
-		XvtNetworkSession_EndFlight();
+	if (g_game_session_started) {
+		net_session_shutdown();
+		xvt_network_session_end_flight();
 	}
-	g_gameSessionStarted = 0;
-	if (g_flightDevicesCreated && g_useHardware3D != 0) {
-		std3D_DetachAndReleaseZBufferSurface();
-		std3D_Close();
-		std3D_Shutdown();
+	g_game_session_started = 0;
+	if (g_flight_devices_created && g_use_hardware3d != 0) {
+		std3d_detach_and_release_z_buffer_surface();
+		std3d_close();
+		std3d_shutdown();
 	}
-	if (g_flightDevicesCreated && g_flightFullscreen != 0) {
-		if (g_flightPrimarySurface) {
-			FlightDisplay_ClearSurface(g_flightPrimarySurface);
+	if (g_flight_devices_created && g_flight_fullscreen != 0) {
+		if (g_flight_primary_surface) {
+			flight_display_clear_surface(g_flight_primary_surface);
 		}
-		if (g_flightPageFlip != 0) {
-			if (g_flightBackBuffer) {
-				FlightDisplay_ClearSurface(g_flightBackBuffer);
+		if (g_flight_page_flip != 0) {
+			if (g_flight_back_buffer) {
+				flight_display_clear_surface(
+					g_flight_back_buffer);
 			}
-			if (g_flightOffscreenSurface) {
-				FlightDisplay_ClearSurface(
-					g_flightOffscreenSurface);
+			if (g_flight_offscreen_surface) {
+				flight_display_clear_surface(
+					g_flight_offscreen_surface);
 			}
 		}
 	}
-	while (FlightSurface_GetLockCount() > 0) {
-		FlightSurface_Unlock();
+	while (flight_surface_get_lock_count() > 0) {
+		flight_surface_unlock();
 	}
-	if (g_flightBackBuffer) {
-		g_flightBackBuffer->lpVtbl->Release(g_flightBackBuffer);
-		g_flightBackBuffer = NULL;
+	if (g_flight_back_buffer) {
+		g_flight_back_buffer->lpVtbl->Release(g_flight_back_buffer);
+		g_flight_back_buffer = NULL;
 	}
-	if (g_flightPrimarySurface != NULL) {
-		g_flightPrimarySurface->lpVtbl->Release(g_flightPrimarySurface);
-		g_flightPrimarySurface = NULL;
+	if (g_flight_primary_surface != NULL) {
+		g_flight_primary_surface->lpVtbl->Release(
+			g_flight_primary_surface);
+		g_flight_primary_surface = NULL;
 	}
-	if (g_flightPalette != NULL) {
-		g_flightPalette->lpVtbl->Release(g_flightPalette);
-		g_flightPalette = NULL;
+	if (g_flight_palette != NULL) {
+		g_flight_palette->lpVtbl->Release(g_flight_palette);
+		g_flight_palette = NULL;
 	}
-	if (g_flightPageFlip != 0 && g_flightOffscreenSurface != NULL) {
-		g_flightOffscreenSurface->lpVtbl->Release(
-			g_flightOffscreenSurface);
-		g_flightOffscreenSurface = NULL;
+	if (g_flight_page_flip != 0 && g_flight_offscreen_surface != NULL) {
+		g_flight_offscreen_surface->lpVtbl->Release(
+			g_flight_offscreen_surface);
+		g_flight_offscreen_surface = NULL;
 	}
-	g_flightRenderToFrontend = 1;
-	g_useHardware3D = 0;
-	g_flightDevicesCreated = 0;
-	g_flightRenderSurface = NULL;
+	g_flight_render_to_frontend = 1;
+	g_use_hardware3d = 0;
+	g_flight_devices_created = 0;
+	g_flight_render_surface = NULL;
 }

@@ -9,12 +9,12 @@
 extern "C" {
 #endif
 
-/* Stored as int32_t in the binary (IDB enum FrontendStringId). */
-typedef int32_t FrontendStringId;
+/* Stored as int32_t in the binary (IDB enum frontend_string_id). */
+typedef int32_t frontend_string_id;
 
-/* Indexes into the frontend string table, which Frontend_LoadResources loads
- * from fronttxt.txt with FrontendString_LoadTable: entry n is the n-th line,
- * counting from 0, that does not start with //. FrontendString_Get takes
+/* Indexes into the frontend string table, which frontend_load_resources loads
+ * from fronttxt.txt with frontend_string_load_table: entry n is the n-th line,
+ * counting from 0, that does not start with //. frontend_string_get takes
  * them. */
 enum {
 	FRONTSTR_000_PILOT_RECORDS = 0x0,
@@ -39,7 +39,7 @@ enum {
 	FRONTSTR_019_CANCEL = 0x13,
 	FRONTSTR_020_ACCESSING_IMPERIAL_NETWORK = 0x14,
 	FRONTSTR_021_UNKNOWN =
-		0x15, ///< Base of the 101-entry fronttxt craft long-name block; add CraftSpecies to select a name.
+		0x15, ///< Base of the 101-entry fronttxt craft long-name block; add craft_species to select a name.
 	FRONTSTR_022_X_WING = 0x16,
 	FRONTSTR_023_Y_WING = 0x17,
 	FRONTSTR_024_A_WING = 0x18,
@@ -858,9 +858,9 @@ enum {
 	FRONTSTR_829_EMPTY_TRANSLATION_PLACEHOLDER = 0x33D,
 };
 
-void FrontendString_LoadTable(char *fileName);
-void FrontendString_UnloadTable(void);
-const char *FrontendString_Get(FrontendStringId index);
+void frontend_string_load_table(char *file_name);
+void frontend_string_unload_table(void);
+const char *frontend_string_get(frontend_string_id index);
 
 #ifdef __cplusplus
 }

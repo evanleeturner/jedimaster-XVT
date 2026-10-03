@@ -80,255 +80,255 @@ enum {
 
 /* Page of the pilot record shown on the concourse: 0 pilot statistics, 1 pilot
  * awards, 2 pilot rating, 3 mission achievements, 4 campaign medals, 5
- * cutscenes. Concourse_Update sets 0 when it starts;
- * PilotRecord_UpdateNavigationControls changes it when a page button is
+ * cutscenes. concourse_update sets 0 when it starts;
+ * pilot_record_update_navigation_controls changes it when a page button is
  * clicked. */
 // GLOBAL: XVT 0xB6A2B0
-int g_pilotRecordPage = 0;
+int g_pilot_record_page = 0;
 /* The loaded pilot's whole record, the pilot file's contents, and the
  * frontend's working state for the mission being set up, flown and debriefed.
- * Frontend_LoadResources zeroes it; the pilot code loads, creates and saves it;
- * many functions write it, chiefly FeDiskIo_CommitFlightResults with each
+ * frontend_load_resources zeroes it; the pilot code loads, creates and saves it;
+ * many functions write it, chiefly fe_disk_io_commit_flight_results with each
  * mission's results. An empty name means no pilot is loaded. */
 // GLOBAL: XVT 0xB6A2E0
-struct PilotData g_pilotData;
-/* Records read into g_campaignAwardSprites. Set by
- * PilotRecord_LoadCampaignAwardSpriteTable; set to 0 when GameMain or, in the
- * modern build, XvtFrontendTask_Shutdown frees the table. */
+struct pilot_data g_pilot_data;
+/* Records read into g_campaign_award_sprites. Set by
+ * pilot_record_load_campaign_award_sprite_table; set to 0 when game_main or, in the
+ * modern build, xvt_frontend_task_shutdown frees the table. */
 // GLOBAL: XVT 0xB69CC8
-unsigned int g_campaignAwardSpriteCount = 0;
+unsigned int g_campaign_award_sprite_count = 0;
 /* Heap table of campaign medal sprites read from frontres\campawds.lst, one
- * record per campaign. PilotRecord_LoadCampaignAwardSpriteTable allocates it
- * for the count on the file's first line; GameMain or, in the modern build,
- * XvtFrontendTask_Shutdown frees it. NULL until loaded or when loading failed;
+ * record per campaign. pilot_record_load_campaign_award_sprite_table allocates it
+ * for the count on the file's first line; game_main or, in the modern build,
+ * xvt_frontend_task_shutdown frees it. NULL until loaded or when loading failed;
  * the campaign medals page then draws only its title. */
 // GLOBAL: XVT 0xB69CD8
-struct CampaignAwardSpriteEntry *g_campaignAwardSprites = NULL;
+struct campaign_award_sprite_entry *g_campaign_award_sprites = NULL;
 /* Single-player mission awards of the last campaign
- * PilotRecord_DrawCampaignMedalsPage looked at when it rebuilt: the campaign's
+ * pilot_record_draw_campaign_medals_page looked at when it rebuilt: the campaign's
  * missions flown that are award eligible. That page draws the single-player
  * award sprites only when it is not 0. */
 // GLOBAL: XVT 0x664EC8
-int g_campaignSingleplayerAwardCount = 0;
+int g_campaign_singleplayer_award_count = 0;
 /* Which campaign the campaign medals page shows, counting the attempted
  * campaigns that have a medal record; 0 when the page rebuilds, then the scroll
  * bar's position when there is more than one. */
 // GLOBAL: XVT 0x664ED0
-int g_campaignMedalScrollOffset = 0;
+int g_campaign_medal_scroll_offset = 0;
 /* Per mission position within a campaign, 1 when that single-player campaign
  * mission was flown and is award eligible; the campaign medals page draws the
- * matching sprites of singleplayerMissionAwardSpriteNames for positions 0 to
- * 14. PilotRecord_DrawCampaignMedalsPage clears it once per rebuild and then
+ * matching sprites of singleplayer_mission_award_sprite_names for positions 0 to
+ * 14. pilot_record_draw_campaign_medals_page clears it once per rebuild and then
  * sets flags for every campaign in turn without clearing between them. */
 // GLOBAL: XVT 0x664EE8
-int g_campaignSingleplayerAwardFlags[CAMPAIGN_AWARD_FLAG_COUNT] = {0};
-/* Multiplayer counterpart of g_campaignSingleplayerAwardCount, from
- * mpCampaignMissions. */
+int g_campaign_singleplayer_award_flags[CAMPAIGN_AWARD_FLAG_COUNT] = {0};
+/* Multiplayer counterpart of g_campaign_singleplayer_award_count, from
+ * mp_campaign_missions. */
 // GLOBAL: XVT 0x664F28
-int g_campaignMultiplayerAwardCount = 0;
-/* Multiplayer counterpart of g_campaignSingleplayerAwardFlags, from
- * mpCampaignMissions, drawn with multiplayerMissionAwardSpriteNames. */
+int g_campaign_multiplayer_award_count = 0;
+/* Multiplayer counterpart of g_campaign_singleplayer_award_flags, from
+ * mp_campaign_missions, drawn with multiplayer_mission_award_sprite_names. */
 // GLOBAL: XVT 0x664F60
-int g_campaignMultiplayerAwardFlags[CAMPAIGN_AWARD_FLAG_COUNT] = {0};
+int g_campaign_multiplayer_award_flags[CAMPAIGN_AWARD_FLAG_COUNT] = {0};
 /* Campaigns the current faction attempted, single player or multiplayer, that
- * have a record in g_campaignAwardSprites; the campaign medals page shows one
- * at a time. Counted by PilotRecord_DrawCampaignMedalsPage when it rebuilds. */
+ * have a record in g_campaign_award_sprites; the campaign medals page shows one
+ * at a time. Counted by pilot_record_draw_campaign_medals_page when it rebuilds. */
 // GLOBAL: XVT 0x664FBC
-int g_campaignMedalEntryCount = 0;
+int g_campaign_medal_entry_count = 0;
 /* First 15-pixel row shown on the cutscene page; 0 when
- * PilotRecord_DrawCutsceneViewerPage rebuilds, then the scroll bar's position
+ * pilot_record_draw_cutscene_viewer_page rebuilds, then the scroll bar's position
  * when there are more than 21 rows. */
 // GLOBAL: XVT 0x664EAC
-int g_cutsceneViewerScrollRow = 0;
+int g_cutscene_viewer_scroll_row = 0;
 /* Tournaments the current faction attempted in single player: entries of
- * g_pilotRecordTournamentMissionList whose spTournaments entry has an
- * attemptCount not 0; the rows of that section of the mission achievements
- * page. -1 at start; PilotRecord_DrawMissionAchievementsPage sets it to 0 and
+ * g_pilot_record_tournament_mission_list whose sp_tournaments entry has an
+ * attempt_count not 0; the rows of that section of the mission achievements
+ * page. -1 at start; pilot_record_draw_mission_achievements_page sets it to 0 and
  * counts it when it rebuilds. */
 // GLOBAL: XVT 0x664EA0
-int g_pilotSpTournamentHistoryCount = -1;
+int g_pilot_sp_tournament_history_count = -1;
 /* Combat engagements the current faction flew in multiplayer: entries of
- * g_pilotRecordMultiplayerCombatMissionList whose mpCombatMissions entry has a
- * numberTimesFlown not 0; the rows of that section of the mission achievements
- * page. -1 at start; PilotRecord_DrawMissionAchievementsPage sets it to 0 and
+ * g_pilot_record_multiplayer_combat_mission_list whose mp_combat_missions entry has a
+ * number_times_flown not 0; the rows of that section of the mission achievements
+ * page. -1 at start; pilot_record_draw_mission_achievements_page sets it to 0 and
  * counts it when it rebuilds. */
 // GLOBAL: XVT 0x664EA4
-int g_pilotMpCombatHistoryCount = -1;
+int g_pilot_mp_combat_history_count = -1;
 /* Tournaments the current faction attempted in multiplayer: entries of
- * g_pilotRecordTournamentMissionList whose mpTournaments entry has an
- * attemptCount not 0; the rows of that section of the mission achievements
- * page. -1 at start; PilotRecord_DrawMissionAchievementsPage sets it to 0 and
+ * g_pilot_record_tournament_mission_list whose mp_tournaments entry has an
+ * attempt_count not 0; the rows of that section of the mission achievements
+ * page. -1 at start; pilot_record_draw_mission_achievements_page sets it to 0 and
  * counts it when it rebuilds. */
 // GLOBAL: XVT 0x664EA8
-int g_pilotMpTournamentHistoryCount = -1;
+int g_pilot_mp_tournament_history_count = -1;
 /* Training missions the current faction flew in multiplayer: entries of
- * g_pilotRecordMultiplayerTrainingMissionList whose mpTrainingMissions entry
- * has a numberTimesFlown not 0; the rows of that section of the mission
- * achievements page. -1 at start; PilotRecord_DrawMissionAchievementsPage sets
+ * g_pilot_record_multiplayer_training_mission_list whose mp_training_missions entry
+ * has a number_times_flown not 0; the rows of that section of the mission
+ * achievements page. -1 at start; pilot_record_draw_mission_achievements_page sets
  * it to 0 and counts it when it rebuilds. */
 // GLOBAL: XVT 0x664EB0
-int g_pilotMpTrainingHistoryCount = -1;
+int g_pilot_mp_training_history_count = -1;
 /* Melees the current faction flew in multiplayer: entries of
- * g_pilotRecordMeleeMissionList whose mpMeleeMissions entry has a
- * numberTimesFlown not 0; the rows of that section of the mission achievements
- * page. -1 at start; PilotRecord_DrawMissionAchievementsPage sets it to 0 and
+ * g_pilot_record_melee_mission_list whose mp_melee_missions entry has a
+ * number_times_flown not 0; the rows of that section of the mission achievements
+ * page. -1 at start; pilot_record_draw_mission_achievements_page sets it to 0 and
  * counts it when it rebuilds. */
 // GLOBAL: XVT 0x664ECC
-int g_pilotMpMeleeHistoryCount = -1;
-/* Rows of the cutscene page, counted when PilotRecord_DrawCutsceneViewerPage
+int g_pilot_mp_melee_history_count = -1;
+/* Rows of the cutscene page, counted when pilot_record_draw_cutscene_viewer_page
  * rebuilds: 2 for each campaign title, then for each unlocked cutscene 1 for
  * its title plus its thumbnail's height + 18 pixels, divided by 15. */
 // GLOBAL: XVT 0x664FB8
-int g_cutsceneViewerTotalRows = 0;
+int g_cutscene_viewer_total_rows = 0;
 /* Pilot name being typed in the roster panel's name field, at most 13
- * characters and a terminating 0. PilotRecord_UpdatePilotSelectionPanel clears
+ * characters and a terminating 0. pilot_record_update_pilot_selection_panel clears
  * it on its first frame and after it uses a name or a pilot is clicked. */
 // GLOBAL: XVT 0x664FA8
-char g_pilotRecordNameInput[14] = {0};
+char g_pilot_record_name_input[14] = {0};
 /* First pilot shown in the roster panel's 13-row list. Set by its scroll bar
- * when there are more than 13 pilots, by PilotRecord_RebuildPilotList to the
+ * when there are more than 13 pilots, by pilot_record_rebuild_pilot_list to the
  * current pilot's position when the panel opens or makes a pilot with more than
  * 13, and to 0 after Delete Pilot. */
 // GLOBAL: XVT 0x52B0E0
-int g_pilotListScrollOffset = 0;
+int g_pilot_list_scroll_offset = 0;
 /* Kill assists of the current faction's career, per mission type (0 exercise, 1
  * melee, 2 combat), summed over craft types. -1 at start;
- * PilotRecord_DrawPilotStatisticsPage sets each to 0 and sums them when it
+ * pilot_record_draw_pilot_statistics_page sets each to 0 and sums them when it
  * rebuilds. */
 // GLOBAL: XVT 0x664EB8
-int g_pilotStatsAssists[3] = {-1, -1, -1};
+int g_pilot_stats_assists[3] = {-1, -1, -1};
 /* Full kills on human pilots in the current faction's career, per mission type,
  * summed over the victims' 25 ratings. -1 at start;
- * PilotRecord_DrawPilotStatisticsPage sets each to 0 and sums them when it
+ * pilot_record_draw_pilot_statistics_page sets each to 0 and sums them when it
  * rebuilds. */
 // GLOBAL: XVT 0x664ED8
-int g_pilotStatsPlayerKills[3] = {-1, -1, -1};
+int g_pilot_stats_player_kills[3] = {-1, -1, -1};
 /* Times AI pilots killed the pilot in the current faction's career, per mission
  * type, summed over their 6 ratings. -1 at start;
- * PilotRecord_DrawPilotStatisticsPage sets each to 0 and sums them when it
+ * pilot_record_draw_pilot_statistics_page sets each to 0 and sums them when it
  * rebuilds. */
 // GLOBAL: XVT 0x664F30
-int g_pilotStatsLossesToNonPlayers[3] = {-1, -1, -1};
+int g_pilot_stats_losses_to_non_players[3] = {-1, -1, -1};
 /* First row shown on the mission achievements page, which shows 21. -1 at
- * start; PilotRecord_DrawMissionAchievementsPage sets 0 when it rebuilds, then
+ * start; pilot_record_draw_mission_achievements_page sets 0 when it rebuilds, then
  * the scroll bar's position when there are more than 21 rows. */
 // GLOBAL: XVT 0x664F3C
-int g_pilotAchievementsScrollOffset = -1;
+int g_pilot_achievements_scroll_offset = -1;
 /* Training missions the current faction flew in single player: entries of
- * g_pilotRecordSingleplayerTrainingMissionList whose spTrainingMissions entry
- * has a numberTimesFlown not 0; the rows of that section of the mission
- * achievements page. -1 at start; PilotRecord_DrawMissionAchievementsPage sets
+ * g_pilot_record_singleplayer_training_mission_list whose sp_training_missions entry
+ * has a number_times_flown not 0; the rows of that section of the mission
+ * achievements page. -1 at start; pilot_record_draw_mission_achievements_page sets
  * it to 0 and counts it when it rebuilds. */
 // GLOBAL: XVT 0x664F44
-int g_pilotSpTrainingHistoryCount = -1;
+int g_pilot_sp_training_history_count = -1;
 /* Melees the current faction flew in single player: entries of
- * g_pilotRecordMeleeMissionList whose spMeleeMissions entry has a
- * numberTimesFlown not 0; the rows of that section of the mission achievements
- * page. -1 at start; PilotRecord_DrawMissionAchievementsPage sets it to 0 and
+ * g_pilot_record_melee_mission_list whose sp_melee_missions entry has a
+ * number_times_flown not 0; the rows of that section of the mission achievements
+ * page. -1 at start; pilot_record_draw_mission_achievements_page sets it to 0 and
  * counts it when it rebuilds. */
 // GLOBAL: XVT 0x664F48
-int g_pilotSpMeleeHistoryCount = -1;
+int g_pilot_sp_melee_history_count = -1;
 /* Combat engagements the current faction flew in single player: entries of
- * g_pilotRecordSingleplayerCombatMissionList whose spCombatMissions entry has a
- * numberTimesFlown not 0; the rows of that section of the mission achievements
- * page. -1 at start; PilotRecord_DrawMissionAchievementsPage sets it to 0 and
+ * g_pilot_record_singleplayer_combat_mission_list whose sp_combat_missions entry has a
+ * number_times_flown not 0; the rows of that section of the mission achievements
+ * page. -1 at start; pilot_record_draw_mission_achievements_page sets it to 0 and
  * counts it when it rebuilds. */
 // GLOBAL: XVT 0x664F4C
-int g_pilotSpCombatHistoryCount = -1;
+int g_pilot_sp_combat_history_count = -1;
 /* Battles the current faction attempted in multiplayer: entries of
- * g_battleMissionList whose mpBattles entry has an attemptCount not 0; the rows
+ * g_battle_mission_list whose mp_battles entry has an attempt_count not 0; the rows
  * of that section of the mission achievements page. -1 at start;
- * PilotRecord_DrawMissionAchievementsPage sets it to 0 and counts it when it
+ * pilot_record_draw_mission_achievements_page sets it to 0 and counts it when it
  * rebuilds. */
 // GLOBAL: XVT 0x664F50
-int g_pilotMpBattleHistoryCount = -1;
+int g_pilot_mp_battle_history_count = -1;
 /* 1 when the current faction's career has a full or shared kill of any craft
  * type, so the pilot statistics page shows its craft-kills-by-type section. -1
- * at start; only PilotRecord_DrawPilotStatisticsPage writes it, when it
+ * at start; only pilot_record_draw_pilot_statistics_page writes it, when it
  * rebuilds. */
 // GLOBAL: XVT 0x664F40
-int g_pilotStatsHasCraftKillsByType = -1;
-/* Scratch flag of PilotRecord_DrawPilotStatisticsPage, its only user: 1 when
+int g_pilot_stats_has_craft_kills_by_type = -1;
+/* Scratch flag of pilot_record_draw_pilot_statistics_page, its only user: 1 when
  * the craft type or rating being looked at has a count in any mission type. -1
  * at start. */
 // GLOBAL: XVT 0x664F54
-int g_pilotStatsRowHasData = -1;
+int g_pilot_stats_row_has_data = -1;
 /* 1 when human pilots of any rating killed the pilot in the current faction's
  * career, so the pilot statistics page shows its losses-to-players-by-rank
- * section. -1 at start; only PilotRecord_DrawPilotStatisticsPage writes it,
+ * section. -1 at start; only pilot_record_draw_pilot_statistics_page writes it,
  * when it rebuilds. */
 // GLOBAL: XVT 0x664F58
-int g_pilotStatsHasLossesToPlayersByRank = -1;
+int g_pilot_stats_has_losses_to_players_by_rank = -1;
 /* First row shown on the pilot statistics page, which shows 21. -1 at start;
- * PilotRecord_DrawPilotStatisticsPage sets 0 when it rebuilds, then the scroll
+ * pilot_record_draw_pilot_statistics_page sets 0 when it rebuilds, then the scroll
  * bar's position when there are more than 21 rows. */
 // GLOBAL: XVT 0x664F5C
-int g_pilotStatisticsScrollOffset = -1;
+int g_pilot_statistics_scroll_offset = -1;
 /* Shared kills on AI pilots in the current faction's career, per mission type,
- * summed over their 6 ratings. -1 at start; PilotRecord_DrawPilotStatisticsPage
+ * summed over their 6 ratings. -1 at start; pilot_record_draw_pilot_statistics_page
  * sets each to 0 and sums them when it rebuilds. */
 // GLOBAL: XVT 0x664FC0
-int g_pilotStatsNonPlayerKillsShared[3] = {-1, -1, -1};
+int g_pilot_stats_non_player_kills_shared[3] = {-1, -1, -1};
 /* Shared kills of the current faction's career, per mission type, summed over
- * craft types. -1 at start; PilotRecord_DrawPilotStatisticsPage sets each to 0
+ * craft types. -1 at start; pilot_record_draw_pilot_statistics_page sets each to 0
  * and sums them when it rebuilds. */
 // GLOBAL: XVT 0x664FD0
-int g_pilotStatsTotalKillsShared[3] = {-1, -1, -1};
+int g_pilot_stats_total_kills_shared[3] = {-1, -1, -1};
 /* Full kills on AI pilots in the current faction's career, per mission type,
- * summed over their 6 ratings. -1 at start; PilotRecord_DrawPilotStatisticsPage
+ * summed over their 6 ratings. -1 at start; pilot_record_draw_pilot_statistics_page
  * sets each to 0 and sums them when it rebuilds. */
 // GLOBAL: XVT 0x664FE0
-int g_pilotStatsNonPlayerKills[3] = {-1, -1, -1};
+int g_pilot_stats_non_player_kills[3] = {-1, -1, -1};
 /* 1 when the current faction's career has a full or shared kill on a human
  * pilot of any rating, so the pilot statistics page shows its
  * player-kills-by-rank section. -1 at start; only
- * PilotRecord_DrawPilotStatisticsPage writes it, when it rebuilds. */
+ * pilot_record_draw_pilot_statistics_page writes it, when it rebuilds. */
 // GLOBAL: XVT 0x664FEC
-int g_pilotStatsHasPlayerKillsByRating = -1;
+int g_pilot_stats_has_player_kills_by_rating = -1;
 /* Shared kills on human pilots in the current faction's career, per mission
  * type, summed over the victims' 25 ratings. -1 at start;
- * PilotRecord_DrawPilotStatisticsPage sets each to 0 and sums them when it
+ * pilot_record_draw_pilot_statistics_page sets each to 0 and sums them when it
  * rebuilds. */
 // GLOBAL: XVT 0x664FF0
-int g_pilotStatsPlayerKillsShared[3] = {-1, -1, -1};
+int g_pilot_stats_player_kills_shared[3] = {-1, -1, -1};
 /* Rows of the pilot record page last rebuilt, for its scroll bar: set by
- * PilotRecord_DrawPilotStatisticsPage (25, 26 below Jedi Master, plus its
- * sections) and by PilotRecord_DrawMissionAchievementsPage (each history's
+ * pilot_record_draw_pilot_statistics_page (25, 26 below Jedi Master, plus its
+ * sections) and by pilot_record_draw_mission_achievements_page (each history's
  * entries plus 2 header rows per section and a blank row between sections). -1
  * at start. */
 // GLOBAL: XVT 0x665000
-int g_pilotRecordPageRowCount = -1;
+int g_pilot_record_page_row_count = -1;
 /* Rows of the single-player campaign section of the mission achievements page:
- * campaigns of g_pilotRecordSingleplayerCampaignMissionList with an spCampaigns
- * attemptCount not 0, plus missions of the single-player training list whose
- * spCampaignMissions entry (mission id - 1) has a numberTimesFlown not 0. -1 at
- * start; PilotRecord_DrawMissionAchievementsPage sets it to 0 and counts it
+ * campaigns of g_pilot_record_singleplayer_campaign_mission_list with an sp_campaigns
+ * attempt_count not 0, plus missions of the single-player training list whose
+ * sp_campaign_missions entry (mission id - 1) has a number_times_flown not 0. -1 at
+ * start; pilot_record_draw_mission_achievements_page sets it to 0 and counts it
  * when it rebuilds. */
 // GLOBAL: XVT 0x664FA0
-int g_pilotSpCampaignHistoryRowCount = -1;
+int g_pilot_sp_campaign_history_row_count = -1;
 /* Battles the current faction attempted in single player: entries of
- * g_battleMissionList whose spBattles entry has an attemptCount not 0; the rows
+ * g_battle_mission_list whose sp_battles entry has an attempt_count not 0; the rows
  * of that section of the mission achievements page. -1 at start;
- * PilotRecord_DrawMissionAchievementsPage sets it to 0 and counts it when it
+ * pilot_record_draw_mission_achievements_page sets it to 0 and counts it when it
  * rebuilds. */
 // GLOBAL: XVT 0x664FFC
-int g_pilotSpBattleHistoryCount = -1;
+int g_pilot_sp_battle_history_count = -1;
 /* Times human pilots killed the pilot in the current faction's career, per
  * mission type, summed over their 25 ratings. -1 at start;
- * PilotRecord_DrawPilotStatisticsPage sets each to 0 and sums them when it
+ * pilot_record_draw_pilot_statistics_page sets each to 0 and sums them when it
  * rebuilds. */
 // GLOBAL: XVT 0x665008
-int g_pilotStatsLossesToPlayers[3] = {-1, -1, -1};
-/* Multiplayer counterpart of g_pilotSpCampaignHistoryRowCount: campaigns of
- * g_pilotRecordMultiplayerCampaignMissionList with an mpCampaigns attemptCount
+int g_pilot_stats_losses_to_players[3] = {-1, -1, -1};
+/* Multiplayer counterpart of g_pilot_sp_campaign_history_row_count: campaigns of
+ * g_pilot_record_multiplayer_campaign_mission_list with an mp_campaigns attempt_count
  * not 0, plus missions of the multiplayer training list whose
- * mpCampaignMissions entry has a numberTimesFlown not 0. */
+ * mp_campaign_missions entry has a number_times_flown not 0. */
 // GLOBAL: XVT 0x665014
-int g_pilotMpCampaignHistoryRowCount = -1;
+int g_pilot_mp_campaign_history_row_count = -1;
 /* Screen position of each rating's rank sprite (rank0 to rank24) on the pilot
  * rating page, by rating from target drone (0) to Jedi Master (24). */
 // GLOBAL: XVT 0x52B018
-struct POINT g_pilotRatingIconPos[25] = {
+struct POINT g_pilot_rating_icon_pos[25] = {
 	{364, 397}, {364, 381}, {364, 365}, {364, 349}, {197, 397},
 	{197, 381}, {197, 365}, {197, 349}, {364, 322}, {364, 306},
 	{364, 290}, {364, 274}, {197, 322}, {197, 306}, {197, 290},
@@ -337,273 +337,279 @@ struct POINT g_pilotRatingIconPos[25] = {
 
 /* Runs one frame of the concourse's pilot roster panel: the list of saved
  * pilots, a name field and the Delete Pilot button. On its first frame
- * (frameCounter 0) it flushes the keyboard, clears g_pilotRecordNameInput and
+ * (frame_counter 0) it flushes the keyboard, clears g_pilot_record_name_input and
  * rebuilds the list, scrolled to the current pilot when there are more than 13.
  * Clicking a pilot other than the current one (names compared case-blind over
- * 12 characters) loads it with Pilot_LoadFromPath and, when that succeeds,
+ * 12 characters) loads it with pilot_load_from_path and, when that succeeds,
  * copies its current faction's team, mission directory, mission ids and
- * sequence fields into g_pilotData; any click then rebuilds the list, redraws
- * the background and sets g_pilotRecordPagesNeedRebuild. A name finished in the
+ * sequence fields into g_pilot_data; any click then rebuilds the list, redraws
+ * the background and sets g_pilot_record_pages_need_rebuild. A name finished in the
  * field loads the listed pilot of that name, compared case-blind, or else
- * Pilot_CreateNew makes a new pilot of that name; that also sets
- * g_pilotRecordPagesNeedRebuild. With no saved pilots it asks for a name in a
+ * pilot_create_new makes a new pilot of that name; that also sets
+ * g_pilot_record_pages_need_rebuild. With no saved pilots it asks for a name in a
  * dialog. Delete Pilot, or the Delete key, with a pilot loaded asks for
- * confirmation, calls Pilot_DeleteCurrent when confirmed and sets
- * g_pilotListScrollOffset to 0. A scroll bar sets g_pilotListScrollOffset when
+ * confirmation, calls pilot_delete_current when confirmed and sets
+ * g_pilot_list_scroll_offset to 0. A scroll bar sets g_pilot_list_scroll_offset when
  * there are more than 13 pilots. Returns 1. The modern build runs the dialogs
- * as pending actions, returning 1 while one is open, and calls XvtStorage_Fatal
+ * as pending actions, returning 1 while one is open, and calls xvt_storage_fatal
  * when the list is missing or a pilot cannot be saved or deleted; only it
  * rebuilds the list after a delete. In the original build, which never marks a
  * match, a typed name that matches a pilot loads it and then also creates a new
- * pilot of that name. Does not check g_pilotFileList for NULL in the original
+ * pilot of that name. Does not check g_pilot_file_list for NULL in the original
  * build. */
 // FUNCTION: XVT 0x4BEA50
-int PilotRecord_UpdatePilotSelectionPanel(int frameCounter)
+int pilot_record_update_pilot_selection_panel(int frame_counter)
 {
 	struct RECT rect;
-	struct FrontendFileListNode *node;
-	int selectedIndex;
-	int pilotIndex;
+	struct frontend_file_list_node *node;
+	int selected_index;
+	int pilot_index;
 	int accepted;
 
 #ifdef XVT_MODERN
-	if (XvtFrontendAction_Pending(XVT_ACTION_OWNER_PILOT) == 2) {
-		if (!XvtDialog_TakeResult(&accepted)) {
+	if (xvt_frontend_action_pending(XVT_ACTION_OWNER_PILOT) == 2) {
+		if (!xvt_dialog_take_result(&accepted)) {
 			return 1;
 		}
-		XvtFrontendAction_Finish(XVT_ACTION_OWNER_PILOT);
-		if (accepted && !Pilot_DeleteCurrent()) {
-			XvtStorage_Fatal("Cannot delete the selected pilot", 1);
+		xvt_frontend_action_finish(XVT_ACTION_OWNER_PILOT);
+		if (accepted && !pilot_delete_current()) {
+			xvt_storage_fatal("Cannot delete the selected pilot",
+					  1);
 		}
-		g_pilotListScrollOffset = 0;
-		PilotRecord_RebuildPilotList(&selectedIndex);
-		PilotRecord_RedrawBackground();
-		g_pilotRecordPagesNeedRebuild = 1;
+		g_pilot_list_scroll_offset = 0;
+		pilot_record_rebuild_pilot_list(&selected_index);
+		pilot_record_redraw_background();
+		g_pilot_record_pages_need_rebuild = 1;
 		return 1;
 	}
-	if (XvtFrontendAction_Pending(XVT_ACTION_OWNER_PILOT) == 1) {
-		selectedIndex = FrontendDialog_PromptForPilotName(
-			g_pilotRecordNameInput);
-		if (selectedIndex == XVT_DIALOG_PENDING) {
+	if (xvt_frontend_action_pending(XVT_ACTION_OWNER_PILOT) == 1) {
+		selected_index = frontend_dialog_prompt_for_pilot_name(
+			g_pilot_record_name_input);
+		if (selected_index == XVT_DIALOG_PENDING) {
 			return 1;
 		}
-		XvtFrontendAction_Finish(XVT_ACTION_OWNER_PILOT);
+		xvt_frontend_action_finish(XVT_ACTION_OWNER_PILOT);
 	} else {
 #endif
-		FrontendDraw_RectAssign(&rect, 451, 90, 605, 106);
-		FrontendText_DrawCentered(
-			12, FrontendString_Get(FRONTSTR_463_PILOT_ROSTER),
+		frontend_draw_rect_assign(&rect, 451, 90, 605, 106);
+		frontend_text_draw_centered(
+			12, frontend_string_get(FRONTSTR_463_PILOT_ROSTER),
 			&rect, 0xFFFF);
-		if (frameCounter == 0) {
-			Keyboard_FlushCharBuffer();
-			memset(g_pilotRecordNameInput, 0,
-			       sizeof(g_pilotRecordNameInput));
-			if (g_pilotFileList != NULL &&
-			    g_pilotFileList->count > PILOT_LIST_VISIBLE_COUNT) {
-				PilotRecord_RebuildPilotList(
-					&g_pilotListScrollOffset);
+		if (frame_counter == 0) {
+			keyboard_flush_char_buffer();
+			memset(g_pilot_record_name_input, 0,
+			       sizeof(g_pilot_record_name_input));
+			if (g_pilot_file_list != NULL &&
+			    g_pilot_file_list->count >
+				    PILOT_LIST_VISIBLE_COUNT) {
+				pilot_record_rebuild_pilot_list(
+					&g_pilot_list_scroll_offset);
 			} else {
-				PilotRecord_RebuildPilotList(&selectedIndex);
+				pilot_record_rebuild_pilot_list(
+					&selected_index);
 			}
 		}
 
-		if (g_pilotFileList != NULL &&
-		    g_pilotFileList->count > PILOT_LIST_VISIBLE_COUNT) {
-			FrontendDraw_RectAssign(&rect, 596, 117, 605, 320);
-			g_pilotListScrollOffset = FrontendScrollbar_Draw(
-				&rect, g_pilotListScrollOffset,
-				g_pilotFileList->count, 0, PILOT_LIST_PAGE_STEP,
-				g_colorNavy, PILOT_LIST_SCROLLBAR_CONTROL_ID);
+		if (g_pilot_file_list != NULL &&
+		    g_pilot_file_list->count > PILOT_LIST_VISIBLE_COUNT) {
+			frontend_draw_rect_assign(&rect, 596, 117, 605, 320);
+			g_pilot_list_scroll_offset = frontend_scrollbar_draw(
+				&rect, g_pilot_list_scroll_offset,
+				g_pilot_file_list->count, 0,
+				PILOT_LIST_PAGE_STEP, g_color_navy,
+				PILOT_LIST_SCROLLBAR_CONTROL_ID);
 		}
 
-		FrontendDraw_RectAssign(&rect, 461, 117, 595, 320);
-		/* selectedIndex holds the clicked pilot row plus one here, or 0. */
-		selectedIndex = PilotRecord_DrawPilotList(
-			&rect, g_pilotListScrollOffset);
+		frontend_draw_rect_assign(&rect, 461, 117, 595, 320);
+		/* selected_index holds the clicked pilot row plus one here, or 0. */
+		selected_index = pilot_record_draw_pilot_list(
+			&rect, g_pilot_list_scroll_offset);
 		/* accepted holds a name comparison in this block: nonzero means the clicked pilot is not the
 		 * current one. */
-		if (selectedIndex != 0) {
+		if (selected_index != 0) {
 #ifdef XVT_MODERN
 			accepted = strncasecmp(
-				g_pilotData.name,
-				g_pilotListDisplayNames[selectedIndex - 1],
+				g_pilot_data.name,
+				g_pilot_list_display_names[selected_index - 1],
 				PILOT_NAME_COMPARE_LENGTH);
 #else
-		accepted = _strnicmp(g_pilotData.name,
-				     g_pilotListDisplayNames[selectedIndex - 1],
-				     PILOT_NAME_COMPARE_LENGTH);
+		accepted = _strnicmp(
+			g_pilot_data.name,
+			g_pilot_list_display_names[selected_index - 1],
+			PILOT_NAME_COMPARE_LENGTH);
 #endif
 			if (accepted != 0) {
-				node = g_pilotFileList->head;
-				pilotIndex = selectedIndex - 1;
-				for (; pilotIndex > 0; --pilotIndex) {
+				node = g_pilot_file_list->head;
+				pilot_index = selected_index - 1;
+				for (; pilot_index > 0; --pilot_index) {
 					node = node->next;
 				}
-				if (Pilot_LoadFromPath(node->path) != 0) {
-					if (g_gameConfig.sfxDatapadEnabled !=
+				if (pilot_load_from_path(node->path) != 0) {
+					if (g_game_config.sfx_datapad_enabled !=
 					    0) {
-						FrontendSound_PlayUISound(
+						frontend_sound_play_ui_sound(
 							"logonsound", 1, 0,
 							PILOT_UI_SOUND_PRIORITY,
 							PILOT_UI_SOUND_VOLUME_SCALE *
-								g_gameConfig
-									.sfxDatapadVolume,
+								g_game_config
+									.sfx_datapad_volume,
 							PILOT_UI_SOUND_CENTER_PAN);
 					}
-					g_pilotData.team =
-						g_pilotData
-							.factionStatistics
-								[g_pilotData
-									 .currentFactionId]
+					g_pilot_data.team =
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
 							.team;
-					g_pilotData.missionDirectoryId =
-						g_pilotData
-							.factionStatistics
-								[g_pilotData
-									 .currentFactionId]
-							.missionDirectoryId;
-					memcpy(g_pilotData
-						       .missionDescriptionIds,
-					       g_pilotData
-						       .factionStatistics
-							       [g_pilotData
-									.currentFactionId]
-						       .missionDescriptionIds,
-					       sizeof(g_pilotData
-							      .missionDescriptionIds));
-					g_pilotData.missionSequenceActive =
-						g_pilotData
-							.factionStatistics
-								[g_pilotData
-									 .currentFactionId]
-							.missionSequenceActive;
-					g_pilotData.savedMissionDescriptionId =
-						g_pilotData
-							.factionStatistics
-								[g_pilotData
-									 .currentFactionId]
-							.savedMissionDescriptionId;
+					g_pilot_data.mission_directory_id =
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.mission_directory_id;
+					memcpy(g_pilot_data
+						       .mission_description_ids,
+					       g_pilot_data
+						       .faction_statistics
+							       [g_pilot_data
+									.current_faction_id]
+						       .mission_description_ids,
+					       sizeof(g_pilot_data
+							      .mission_description_ids));
+					g_pilot_data.mission_sequence_active =
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.mission_sequence_active;
+					g_pilot_data
+						.saved_mission_description_id =
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.saved_mission_description_id;
 				}
 			}
-			memset(g_pilotRecordNameInput, 0,
-			       sizeof(g_pilotRecordNameInput));
-			PilotRecord_RebuildPilotList(&selectedIndex);
-			PilotRecord_RedrawBackground();
-			g_pilotRecordPagesNeedRebuild = 1;
+			memset(g_pilot_record_name_input, 0,
+			       sizeof(g_pilot_record_name_input));
+			pilot_record_rebuild_pilot_list(&selected_index);
+			pilot_record_redraw_background();
+			g_pilot_record_pages_need_rebuild = 1;
 		}
 
 #ifdef XVT_MODERN
-		if (!g_pilotFileList) {
-			XvtStorage_Fatal("Cannot enumerate saved pilots", 1);
+		if (!g_pilot_file_list) {
+			xvt_storage_fatal("Cannot enumerate saved pilots", 1);
 			return 1;
 		}
 #endif
-		if (g_pilotFileList->count == 0) {
+		if (g_pilot_file_list->count == 0) {
 #ifdef XVT_MODERN
-			if (frameCounter == 0) {
-				XvtFrontendAction_Trigger(
+			if (frame_counter == 0) {
+				xvt_frontend_action_trigger(
 					XVT_ACTION_OWNER_PILOT, 1, 1);
-				FrontendDialog_PromptForPilotName(
-					g_pilotRecordNameInput);
+				frontend_dialog_prompt_for_pilot_name(
+					g_pilot_record_name_input);
 				return 1;
 			}
-			FrontendDraw_RectAssign(&rect, 461, 321, 595, 340);
-			selectedIndex = FrontendText_HandleEditableField(
-				&rect, g_pilotRecordNameInput,
+			frontend_draw_rect_assign(&rect, 461, 321, 595, 340);
+			selected_index = frontend_text_handle_editable_field(
+				&rect, g_pilot_record_name_input,
 				PILOT_NAME_MAX_CHARS, 0, 12, "\\*$~|:<>?/\t\"");
 #else
-		selectedIndex = FrontendDialog_PromptForPilotName(
-			g_pilotRecordNameInput);
+		selected_index = frontend_dialog_prompt_for_pilot_name(
+			g_pilot_record_name_input);
 #endif
 		} else {
-			FrontendDraw_RectAssign(&rect, 461, 321, 595, 340);
-			selectedIndex = FrontendText_HandleEditableField(
-				&rect, g_pilotRecordNameInput,
+			frontend_draw_rect_assign(&rect, 461, 321, 595, 340);
+			selected_index = frontend_text_handle_editable_field(
+				&rect, g_pilot_record_name_input,
 				PILOT_NAME_MAX_CHARS, 0, 12, "\\*$~|:<>?/\t\"");
 		}
 
 #ifdef XVT_MODERN
 	}
 #endif
-	/* selectedIndex says here whether the name entry was finished; it is then reused to say whether the
+	/* selected_index says here whether the name entry was finished; it is then reused to say whether the
 	 * name matched an existing pilot, which only the modern build sets. */
-	if (selectedIndex != 0 && g_pilotRecordNameInput[0] != '\0') {
-		selectedIndex = 0;
-		g_pilotRecordPagesNeedRebuild = 1;
-		if (g_pilotFileList != NULL) {
-			pilotIndex = 0;
-			node = g_pilotFileList->head;
-			if (g_pilotListDisplayNames != NULL &&
-			    g_pilotFileList->count > 0) {
+	if (selected_index != 0 && g_pilot_record_name_input[0] != '\0') {
+		selected_index = 0;
+		g_pilot_record_pages_need_rebuild = 1;
+		if (g_pilot_file_list != NULL) {
+			pilot_index = 0;
+			node = g_pilot_file_list->head;
+			if (g_pilot_list_display_names != NULL &&
+			    g_pilot_file_list->count > 0) {
 				/* accepted holds a name comparison in this loop: 0 means the typed name matches this
 				 * pilot. */
-				for (; pilotIndex < g_pilotFileList->count;
-				     ++pilotIndex) {
+				for (; pilot_index < g_pilot_file_list->count;
+				     ++pilot_index) {
 #ifdef XVT_MODERN
 					accepted = strcasecmp(
-						g_pilotListDisplayNames
-							[pilotIndex],
-						g_pilotRecordNameInput);
+						g_pilot_list_display_names
+							[pilot_index],
+						g_pilot_record_name_input);
 #else
 					accepted = _strcmpi(
-						g_pilotListDisplayNames
-							[pilotIndex],
-						g_pilotRecordNameInput);
+						g_pilot_list_display_names
+							[pilot_index],
+						g_pilot_record_name_input);
 #endif
 					if (accepted == 0) {
 #ifdef XVT_MODERN
-						selectedIndex = 1;
+						selected_index = 1;
 #endif
-						if (Pilot_LoadFromPath(
+						if (pilot_load_from_path(
 							    node->path) != 0) {
-							if (g_gameConfig
-								    .sfxDatapadEnabled !=
+							if (g_game_config
+								    .sfx_datapad_enabled !=
 							    0) {
-								FrontendSound_PlayUISound(
+								frontend_sound_play_ui_sound(
 									"logonsound",
 									1, 0,
 									PILOT_UI_SOUND_PRIORITY,
 									PILOT_UI_SOUND_VOLUME_SCALE *
-										g_gameConfig
-											.sfxDatapadVolume,
+										g_game_config
+											.sfx_datapad_volume,
 									PILOT_UI_SOUND_CENTER_PAN);
 							}
-							g_pilotData.team =
-								g_pilotData
-									.factionStatistics
-										[g_pilotData
-											 .currentFactionId]
+							g_pilot_data.team =
+								g_pilot_data
+									.faction_statistics
+										[g_pilot_data
+											 .current_faction_id]
 									.team;
-							g_pilotData
-								.missionDirectoryId =
-								g_pilotData
-									.factionStatistics
-										[g_pilotData
-											 .currentFactionId]
-									.missionDirectoryId;
-							memcpy(g_pilotData
-								       .missionDescriptionIds,
-							       g_pilotData
-								       .factionStatistics
-									       [g_pilotData
-											.currentFactionId]
-								       .missionDescriptionIds,
-							       sizeof(g_pilotData
-									      .missionDescriptionIds));
-							g_pilotData
-								.missionSequenceActive =
-								g_pilotData
-									.factionStatistics
-										[g_pilotData
-											 .currentFactionId]
-									.missionSequenceActive;
-							g_pilotData
-								.savedMissionDescriptionId =
-								g_pilotData
-									.factionStatistics
-										[g_pilotData
-											 .currentFactionId]
-									.savedMissionDescriptionId;
+							g_pilot_data
+								.mission_directory_id =
+								g_pilot_data
+									.faction_statistics
+										[g_pilot_data
+											 .current_faction_id]
+									.mission_directory_id;
+							memcpy(g_pilot_data
+								       .mission_description_ids,
+							       g_pilot_data
+								       .faction_statistics
+									       [g_pilot_data
+											.current_faction_id]
+								       .mission_description_ids,
+							       sizeof(g_pilot_data
+									      .mission_description_ids));
+							g_pilot_data
+								.mission_sequence_active =
+								g_pilot_data
+									.faction_statistics
+										[g_pilot_data
+											 .current_faction_id]
+									.mission_sequence_active;
+							g_pilot_data
+								.saved_mission_description_id =
+								g_pilot_data
+									.faction_statistics
+										[g_pilot_data
+											 .current_faction_id]
+									.saved_mission_description_id;
 						}
 						break;
 					}
@@ -611,241 +617,247 @@ int PilotRecord_UpdatePilotSelectionPanel(int frameCounter)
 				}
 			}
 		}
-		if (selectedIndex == 0) {
-			if (g_gameConfig.sfxDatapadEnabled != 0) {
-				FrontendSound_PlayUISound(
+		if (selected_index == 0) {
+			if (g_game_config.sfx_datapad_enabled != 0) {
+				frontend_sound_play_ui_sound(
 					"logonsound", 1, 0,
 					PILOT_UI_SOUND_PRIORITY,
 					PILOT_UI_SOUND_VOLUME_SCALE *
-						g_gameConfig.sfxDatapadVolume,
+						g_game_config
+							.sfx_datapad_volume,
 					PILOT_UI_SOUND_CENTER_PAN);
 			}
 #ifdef XVT_MODERN
-			if (!Pilot_CreateNew(g_pilotRecordNameInput)) {
-				XvtStorage_Fatal("Cannot save the new pilot",
-						 1);
+			if (!pilot_create_new(g_pilot_record_name_input)) {
+				xvt_storage_fatal("Cannot save the new pilot",
+						  1);
 				return 1;
 			}
 #else
-			Pilot_CreateNew(g_pilotRecordNameInput);
+			pilot_create_new(g_pilot_record_name_input);
 #endif
-			if (g_pilotFileList != NULL &&
-			    g_pilotFileList->count > PILOT_LIST_VISIBLE_COUNT) {
-				PilotRecord_RebuildPilotList(
-					&g_pilotListScrollOffset);
+			if (g_pilot_file_list != NULL &&
+			    g_pilot_file_list->count >
+				    PILOT_LIST_VISIBLE_COUNT) {
+				pilot_record_rebuild_pilot_list(
+					&g_pilot_list_scroll_offset);
 			} else {
-				PilotRecord_RebuildPilotList(&selectedIndex);
+				pilot_record_rebuild_pilot_list(
+					&selected_index);
 			}
 		}
-		memset(g_pilotRecordNameInput, 0,
-		       sizeof(g_pilotRecordNameInput));
-		PilotRecord_RedrawBackground();
+		memset(g_pilot_record_name_input, 0,
+		       sizeof(g_pilot_record_name_input));
+		pilot_record_redraw_background();
 	}
 
-	FrontendDraw_RectAssign(&rect, 451, 358, 605, 378);
-	/* selectedIndex now holds the Delete Pilot button's result. */
-	selectedIndex = FrontendButton_HandleTextButton(
-		&rect, FrontendString_Get(FRONTSTR_464_DELETE_PILOT), 15,
+	frontend_draw_rect_assign(&rect, 451, 358, 605, 378);
+	/* selected_index now holds the Delete Pilot button's result. */
+	selected_index = frontend_button_handle_text_button(
+		&rect, frontend_string_get(FRONTSTR_464_DELETE_PILOT), 15,
 		0xFFFF, 20, "buttonsound");
-	if ((selectedIndex != 0 ||
-	     Keyboard_IsKeyDown(PILOT_DELETE_VIRTUAL_KEY)) &&
-	    g_pilotData.name[0] != '\0') {
+	if ((selected_index != 0 ||
+	     keyboard_is_key_down(PILOT_DELETE_VIRTUAL_KEY)) &&
+	    g_pilot_data.name[0] != '\0') {
 #ifdef XVT_MODERN
-		XvtFrontendAction_Trigger(XVT_ACTION_OWNER_PILOT, 2, 1);
-		FrontendDialog_ShowConfirmDialog(
-			FrontendString_Get(FRONTSTR_527_ARE_YOU_SURE_YOU_WANT),
-			FrontendString_Get(FRONTSTR_528_TO_DELETE_THIS_PILOT),
-			NULL, FrontendString_Get(FRONTSTR_529_YES),
-			FrontendString_Get(FRONTSTR_530_NO));
+		xvt_frontend_action_trigger(XVT_ACTION_OWNER_PILOT, 2, 1);
+		frontend_dialog_show_confirm_dialog(
+			frontend_string_get(FRONTSTR_527_ARE_YOU_SURE_YOU_WANT),
+			frontend_string_get(FRONTSTR_528_TO_DELETE_THIS_PILOT),
+			NULL, frontend_string_get(FRONTSTR_529_YES),
+			frontend_string_get(FRONTSTR_530_NO));
 		return 1;
 #else
-		if (FrontendDialog_ShowConfirmDialog(
-			    FrontendString_Get(
+		if (frontend_dialog_show_confirm_dialog(
+			    frontend_string_get(
 				    FRONTSTR_527_ARE_YOU_SURE_YOU_WANT),
-			    FrontendString_Get(
+			    frontend_string_get(
 				    FRONTSTR_528_TO_DELETE_THIS_PILOT),
-			    NULL, FrontendString_Get(FRONTSTR_529_YES),
-			    FrontendString_Get(FRONTSTR_530_NO)) != 0) {
-			Pilot_DeleteCurrent();
+			    NULL, frontend_string_get(FRONTSTR_529_YES),
+			    frontend_string_get(FRONTSTR_530_NO)) != 0) {
+			pilot_delete_current();
 		}
-		g_pilotListScrollOffset = 0;
+		g_pilot_list_scroll_offset = 0;
 #endif
 	}
 
 	return 1;
 }
 
-/* Draws up to 13 pilot names of g_pilotListDisplayNames from firstVisibleIndex
+/* Draws up to 13 pilot names of g_pilot_list_display_names from first_visible_index
  * in bounds, 15 pixels apart, the current pilot's name (compared case-blind) in
  * yellow and the row under the cursor filled translucent green. Returns the
  * clicked row's pilot index plus 1 on a left or right click, else 0; also 0,
- * drawing nothing, when g_pilotFileList or g_pilotListDisplayNames is NULL. */
+ * drawing nothing, when g_pilot_file_list or g_pilot_list_display_names is NULL. */
 // FUNCTION: XVT 0x4BEF80
-int PilotRecord_DrawPilotList(const struct RECT *bounds, int firstVisibleIndex)
+int pilot_record_draw_pilot_list(const struct RECT *bounds,
+				 int first_visible_index)
 {
 	struct RECT rect;
-	struct RECT previousClipRect;
-	int mouseX;
-	int mouseY;
-	int selectedIndex;
-	int firstIndex;
-	int pilotIndex;
-	int displayNameIndex;
+	struct RECT previous_clip_rect;
+	int mouse_x;
+	int mouse_y;
+	int selected_index;
+	int first_index;
+	int pilot_index;
+	int display_name_index;
 	int count;
 
-	if (g_pilotFileList == NULL) {
+	if (g_pilot_file_list == NULL) {
 		return 0;
 	}
 
-	FrontendDraw_RectCopy(&rect, bounds);
-	FrontendCursor_GetPos(&mouseX, &mouseY);
+	frontend_draw_rect_copy(&rect, bounds);
+	frontend_cursor_get_pos(&mouse_x, &mouse_y);
 	rect.bottom = rect.top + 14;
-	count = g_pilotFileList->count;
-	selectedIndex = 0;
-	if (g_pilotListDisplayNames != NULL) {
-		firstIndex = firstVisibleIndex;
-		pilotIndex = firstIndex;
-		if (pilotIndex < firstIndex + 13) {
-			displayNameIndex = firstIndex;
+	count = g_pilot_file_list->count;
+	selected_index = 0;
+	if (g_pilot_list_display_names != NULL) {
+		first_index = first_visible_index;
+		pilot_index = first_index;
+		if (pilot_index < first_index + 13) {
+			display_name_index = first_index;
 			do {
-				if (pilotIndex >= count) {
+				if (pilot_index >= count) {
 					break;
 				}
-				if (FrontendDraw_PointInRect(&rect, mouseX,
-							     mouseY)) {
-					FrontendDraw_FillRectTranslucent(
-						&rect, 0, 0, g_colorGreen);
-					if (FrontendMouse_GetLeftClick() ||
-					    FrontendMouse_GetRightClick()) {
-						selectedIndex = pilotIndex + 1;
+				if (frontend_draw_point_in_rect(&rect, mouse_x,
+								mouse_y)) {
+					frontend_draw_fill_rect_translucent(
+						&rect, 0, 0, g_color_green);
+					if (frontend_mouse_get_left_click() ||
+					    frontend_mouse_get_right_click()) {
+						selected_index =
+							pilot_index + 1;
 					}
 				}
-				FrontendDisplay_GetScreenClipRect(
-					&previousClipRect);
-				FrontendDisplay_SetScreenClipRect640x480(&rect);
+				frontend_display_get_screen_clip_rect(
+					&previous_clip_rect);
+				frontend_display_set_screen_clip_rect640x480(
+					&rect);
 #ifdef XVT_MODERN
-				if (strcasecmp(g_pilotListDisplayNames
-						       [displayNameIndex],
-					       g_pilotData.name) == 0) {
-					FrontendText_DrawAlignedInRect(
+				if (strcasecmp(g_pilot_list_display_names
+						       [display_name_index],
+					       g_pilot_data.name) == 0) {
+					frontend_text_draw_aligned_in_rect(
 						12,
-						g_pilotListDisplayNames
-							[displayNameIndex],
-						&rect, 0, 1, g_colorYellow);
+						g_pilot_list_display_names
+							[display_name_index],
+						&rect, 0, 1, g_color_yellow);
 				} else {
-					FrontendText_DrawAlignedInRect(
+					frontend_text_draw_aligned_in_rect(
 						12,
-						g_pilotListDisplayNames
-							[displayNameIndex],
+						g_pilot_list_display_names
+							[display_name_index],
 						&rect, 0, 1, 0xFFFF);
 				}
 #else
-				if (_strcmpi(g_pilotListDisplayNames
-						     [displayNameIndex],
-					     g_pilotData.name) == 0) {
-					FrontendText_DrawAlignedInRect(
+				if (_strcmpi(g_pilot_list_display_names
+						     [display_name_index],
+					     g_pilot_data.name) == 0) {
+					frontend_text_draw_aligned_in_rect(
 						12,
-						g_pilotListDisplayNames
-							[displayNameIndex],
-						&rect, 0, 1, g_colorYellow);
+						g_pilot_list_display_names
+							[display_name_index],
+						&rect, 0, 1, g_color_yellow);
 				} else {
-					FrontendText_DrawAlignedInRect(
+					frontend_text_draw_aligned_in_rect(
 						12,
-						g_pilotListDisplayNames
-							[displayNameIndex],
+						g_pilot_list_display_names
+							[display_name_index],
 						&rect, 0, 1, 0xFFFF);
 				}
 #endif
-				++pilotIndex;
-				++displayNameIndex;
-				FrontendDisplay_SetScreenClipRect640x480(
-					&previousClipRect);
-				FrontendDraw_RectOffsetXY(&rect, 0, 15);
-			} while (pilotIndex < firstIndex + 13);
+				++pilot_index;
+				++display_name_index;
+				frontend_display_set_screen_clip_rect640x480(
+					&previous_clip_rect);
+				frontend_draw_rect_offset_xy(&rect, 0, 15);
+			} while (pilot_index < first_index + 13);
 		}
 	}
 
-	return selectedIndex;
+	return selected_index;
 }
 
-/* Rebuilds the roster: frees g_pilotListDisplayNames and g_pilotFileList, lists
- * the *.plt files of the base game's install folder into g_pilotFileList,
+/* Rebuilds the roster: frees g_pilot_list_display_names and g_pilot_file_list, lists
+ * the *.plt files of the base game's install folder into g_pilot_file_list,
  * sorted, and reads the first 12 bytes of each, the pilot's name, into a
- * 14-byte slot of a new g_pilotListDisplayNames. Stores the position of the
- * pilot named like g_pilotData.name, compared case-blind, in *selectedIndex,
+ * 14-byte slot of a new g_pilot_list_display_names. Stores the position of the
+ * pilot named like g_pilot_data.name, compared case-blind, in *selected_index,
  * which it leaves alone when there is none. Returns 1, or 0 when the file list
  * cannot be built, there are no pilots, or, in the modern build, the names
  * cannot be allocated. A file that does not open is skipped, so the names after
- * it no longer sit at their files' positions in g_pilotFileList. */
+ * it no longer sit at their files' positions in g_pilot_file_list. */
 // FUNCTION: XVT 0x4BF100
-int PilotRecord_RebuildPilotList(int *selectedIndex)
+int pilot_record_rebuild_pilot_list(int *selected_index)
 {
-	struct FrontendFileListNode *node;
-	int displayOffset;
-	int pilotIndex;
+	struct frontend_file_list_node *node;
+	int display_offset;
+	int pilot_index;
 
-	if (g_pilotListDisplayNames != NULL) {
-		free(g_pilotListDisplayNames);
-		g_pilotListDisplayNames = NULL;
+	if (g_pilot_list_display_names != NULL) {
+		free(g_pilot_list_display_names);
+		g_pilot_list_display_names = NULL;
 	}
-	if (g_pilotFileList != NULL) {
-		FrontendFileList_Free(g_pilotFileList);
-		g_pilotFileList = NULL;
+	if (g_pilot_file_list != NULL) {
+		frontend_file_list_free(g_pilot_file_list);
+		g_pilot_file_list = NULL;
 	}
-	File_ChangeToBaseGameInstallPath();
-	g_pilotFileList = FrontendFileList_BuildSorted("*.plt");
-	File_ChangeToInstallPath();
-	if (g_pilotFileList == NULL) {
+	file_change_to_base_game_install_path();
+	g_pilot_file_list = frontend_file_list_build_sorted("*.plt");
+	file_change_to_install_path();
+	if (g_pilot_file_list == NULL) {
 		return 0;
 	}
 
-	node = g_pilotFileList->head;
-	if (g_pilotFileList->count > 0) {
-		g_pilotListDisplayNames =
-			(char (*)[14])malloc(sizeof(*g_pilotListDisplayNames) *
-					     g_pilotFileList->count);
+	node = g_pilot_file_list->head;
+	if (g_pilot_file_list->count > 0) {
+		g_pilot_list_display_names = (char (*)[14])malloc(
+			sizeof(*g_pilot_list_display_names) *
+			g_pilot_file_list->count);
 #ifdef XVT_MODERN
-		if (!g_pilotListDisplayNames) {
+		if (!g_pilot_list_display_names) {
 			return 0;
 		}
 #endif
-		memset(g_pilotListDisplayNames, 0,
-		       sizeof(*g_pilotListDisplayNames) *
-			       g_pilotFileList->count);
+		memset(g_pilot_list_display_names, 0,
+		       sizeof(*g_pilot_list_display_names) *
+			       g_pilot_file_list->count);
 	} else {
-		g_pilotListDisplayNames = NULL;
+		g_pilot_list_display_names = NULL;
 	}
-	if (g_pilotListDisplayNames != NULL) {
-		pilotIndex = 0;
+	if (g_pilot_list_display_names != NULL) {
+		pilot_index = 0;
 		if (node != NULL) {
-			displayOffset = 0;
+			display_offset = 0;
 			do {
-				XvtFile *stream = File_Open(node->path, "rb");
+				xvt_file *stream = file_open(node->path, "rb");
 
 				if (stream != NULL) {
-					File_ReadBytes(
+					file_read_bytes(
 						stream,
-						(char *)g_pilotListDisplayNames +
-							displayOffset,
+						(char *)g_pilot_list_display_names +
+							display_offset,
 						12);
-					((char *)g_pilotListDisplayNames)
-						[displayOffset + 12] = '\0';
+					((char *)g_pilot_list_display_names)
+						[display_offset + 12] = '\0';
 #ifdef XVT_MODERN
 					if (strcasecmp(
-						    (char *)g_pilotListDisplayNames +
-							    displayOffset,
-						    g_pilotData.name) == 0) {
+						    (char *)g_pilot_list_display_names +
+							    display_offset,
+						    g_pilot_data.name) == 0) {
 #else
 					if (_strcmpi(
-						    (char *)g_pilotListDisplayNames +
-							    displayOffset,
-						    g_pilotData.name) == 0) {
+						    (char *)g_pilot_list_display_names +
+							    display_offset,
+						    g_pilot_data.name) == 0) {
 #endif
-						*selectedIndex = pilotIndex;
+						*selected_index = pilot_index;
 					}
-					File_Close(stream);
-					displayOffset += 14;
-					++pilotIndex;
+					file_close(stream);
+					display_offset += 14;
+					++pilot_index;
 				}
 				node = node->next;
 			} while (node != NULL);
@@ -857,19 +869,19 @@ int PilotRecord_RebuildPilotList(int *selectedIndex)
 }
 
 /* Draws the pilot statistics page for the current faction's career,
- * g_pilotData.factionStatistics[currentFactionId].stats: total score, rating
+ * g_pilot_data.faction_statistics[current_faction_id].stats: total score, rating
  * and, below Jedi Master, the promotion percentage; then, in columns for
  * exercise, melee and combat (mission types 0, 1 and 2), kills, player and
  * non-player kills, assists, hidden cargo found, laser and warhead accuracy,
  * kills by victim rank and by craft type, averages per mission, and losses by
  * cause and to players by rank. 21 rows show from
- * g_pilotStatisticsScrollOffset, with a scroll bar when there are more. When
- * g_pilotRecordPagesNeedRebuild is set it first clears it, scrolls to row 0,
- * counts the rows into g_pilotRecordPageRowCount and sums the g_pilotStats
+ * g_pilot_statistics_scroll_offset, with a scroll bar when there are more. When
+ * g_pilot_record_pages_need_rebuild is set it first clears it, scrolls to row 0,
+ * counts the rows into g_pilot_record_page_row_count and sums the g_pilotStats
  * totals and flags. Returns 0, having drawn only the title, when no pilot is
  * loaded (empty name); else 1. */
 // FUNCTION: XVT 0x4C0D70
-int PilotRecord_DrawPilotStatisticsPage(void)
+int pilot_record_draw_pilot_statistics_page(void)
 {
 	enum {
 		MISSION_TYPE_COUNT = 3,
@@ -893,1503 +905,1576 @@ int PilotRecord_DrawPilotStatisticsPage(void)
 	};
 
 	struct RECT rect;
-	int missionType;
-	int craftType;
+	int mission_type;
+	int craft_type;
 	int rating;
 	int row;
 	int y;
 	int value;
-	int sharedValue;
-	int exerciseMissionCount;
-	int meleeMissionCount;
-	int combatMissionCount;
-	float sharedAverage;
-	unsigned int shotsFired;
+	int shared_value;
+	int exercise_mission_count;
+	int melee_mission_count;
+	int combat_mission_count;
+	float shared_average;
+	unsigned int shots_fired;
 
-	FrontendDraw_RectAssign(&rect, 84, 90, 434, 106);
-	if (g_pilotData.name[0] == '\0') {
-		sprintf(g_frontendScratchBuffer, "%s",
-			FrontendString_Get(FRONTSTR_007_PILOT_STATISTICS));
+	frontend_draw_rect_assign(&rect, 84, 90, 434, 106);
+	if (g_pilot_data.name[0] == '\0') {
+		sprintf(g_frontend_scratch_buffer, "%s",
+			frontend_string_get(FRONTSTR_007_PILOT_STATISTICS));
 	} else {
-		sprintf(g_frontendScratchBuffer, "%s: %c%s %c%s",
-			FrontendString_Get(FRONTSTR_007_PILOT_STATISTICS), 6,
-			g_pilotData.ratingName, 4, g_pilotData.name);
+		sprintf(g_frontend_scratch_buffer, "%s: %c%s %c%s",
+			frontend_string_get(FRONTSTR_007_PILOT_STATISTICS), 6,
+			g_pilot_data.rating_name, 4, g_pilot_data.name);
 	}
-	FrontendText_DrawCentered(TITLE_FONT_SIZE, g_frontendScratchBuffer,
-				  &rect, TEXT_COLOR_WHITE);
-	if (g_pilotData.name[0] == '\0') {
+	frontend_text_draw_centered(TITLE_FONT_SIZE, g_frontend_scratch_buffer,
+				    &rect, TEXT_COLOR_WHITE);
+	if (g_pilot_data.name[0] == '\0') {
 		return 0;
 	}
 
-	if (g_pilotRecordPagesNeedRebuild != 0) {
-		g_pilotStatisticsScrollOffset = 0;
-		g_pilotRecordPagesNeedRebuild = 0;
-		g_pilotRecordPageRowCount = 25;
-		if ((unsigned int)g_pilotData.rating <
+	if (g_pilot_record_pages_need_rebuild != 0) {
+		g_pilot_statistics_scroll_offset = 0;
+		g_pilot_record_pages_need_rebuild = 0;
+		g_pilot_record_page_row_count = 25;
+		if ((unsigned int)g_pilot_data.rating <
 		    PILOT_RATING_JEDI_MASTER) {
-			g_pilotRecordPageRowCount = 26;
+			g_pilot_record_page_row_count = 26;
 		}
 
-		g_pilotStatsLossesToNonPlayers[0] = 0;
-		g_pilotStatsLossesToPlayers[0] = 0;
-		g_pilotStatsLossesToNonPlayers[1] = 0;
-		g_pilotStatsLossesToPlayers[1] = 0;
-		g_pilotStatsLossesToNonPlayers[2] = 0;
-		g_pilotStatsLossesToPlayers[2] = 0;
-		g_pilotStatsNonPlayerKillsShared[0] = 0;
-		g_pilotStatsNonPlayerKillsShared[1] = 0;
-		g_pilotStatsNonPlayerKills[0] = 0;
-		g_pilotStatsNonPlayerKillsShared[2] = 0;
-		g_pilotStatsNonPlayerKills[1] = 0;
-		g_pilotStatsNonPlayerKills[2] = 0;
-		g_pilotStatsPlayerKillsShared[0] = 0;
-		g_pilotStatsPlayerKills[0] = 0;
-		g_pilotStatsPlayerKillsShared[1] = 0;
-		g_pilotStatsPlayerKills[1] = 0;
-		g_pilotStatsPlayerKillsShared[2] = 0;
-		g_pilotStatsPlayerKills[2] = 0;
-		g_pilotStatsTotalKillsShared[0] = 0;
-		g_pilotStatsTotalKillsShared[1] = 0;
-		g_pilotStatsTotalKillsShared[2] = 0;
-		g_pilotStatsAssists[0] = 0;
-		g_pilotStatsAssists[1] = 0;
-		g_pilotStatsAssists[2] = 0;
+		g_pilot_stats_losses_to_non_players[0] = 0;
+		g_pilot_stats_losses_to_players[0] = 0;
+		g_pilot_stats_losses_to_non_players[1] = 0;
+		g_pilot_stats_losses_to_players[1] = 0;
+		g_pilot_stats_losses_to_non_players[2] = 0;
+		g_pilot_stats_losses_to_players[2] = 0;
+		g_pilot_stats_non_player_kills_shared[0] = 0;
+		g_pilot_stats_non_player_kills_shared[1] = 0;
+		g_pilot_stats_non_player_kills[0] = 0;
+		g_pilot_stats_non_player_kills_shared[2] = 0;
+		g_pilot_stats_non_player_kills[1] = 0;
+		g_pilot_stats_non_player_kills[2] = 0;
+		g_pilot_stats_player_kills_shared[0] = 0;
+		g_pilot_stats_player_kills[0] = 0;
+		g_pilot_stats_player_kills_shared[1] = 0;
+		g_pilot_stats_player_kills[1] = 0;
+		g_pilot_stats_player_kills_shared[2] = 0;
+		g_pilot_stats_player_kills[2] = 0;
+		g_pilot_stats_total_kills_shared[0] = 0;
+		g_pilot_stats_total_kills_shared[1] = 0;
+		g_pilot_stats_total_kills_shared[2] = 0;
+		g_pilot_stats_assists[0] = 0;
+		g_pilot_stats_assists[1] = 0;
+		g_pilot_stats_assists[2] = 0;
 
-		g_pilotStatsHasCraftKillsByType = 0;
-		for (craftType = 0; craftType < CRAFT_TYPE_COUNT; ++craftType) {
-			g_pilotStatsRowHasData = 0;
-			for (missionType = 0; missionType < MISSION_TYPE_COUNT;
-			     ++missionType) {
-				if (g_pilotData.factionStatistics
-						    [g_pilotData
-							     .currentFactionId]
+		g_pilot_stats_has_craft_kills_by_type = 0;
+		for (craft_type = 0; craft_type < CRAFT_TYPE_COUNT;
+		     ++craft_type) {
+			g_pilot_stats_row_has_data = 0;
+			for (mission_type = 0;
+			     mission_type < MISSION_TYPE_COUNT;
+			     ++mission_type) {
+				if (g_pilot_data.faction_statistics
+						    [g_pilot_data
+							     .current_faction_id]
 							    .stats
-							    .killsPerCraftPerMT
-								    [missionType]
-								    [craftType] !=
+							    .kills_per_craft_per_mt
+								    [mission_type]
+								    [craft_type] !=
 					    0 ||
-				    g_pilotData.factionStatistics
-						    [g_pilotData
-							     .currentFactionId]
+				    g_pilot_data.faction_statistics
+						    [g_pilot_data
+							     .current_faction_id]
 							    .stats
-							    .killsSharedPerCraftPerMT
-								    [missionType]
-								    [craftType] !=
+							    .kills_shared_per_craft_per_mt
+								    [mission_type]
+								    [craft_type] !=
 					    0) {
-					g_pilotStatsRowHasData = 1;
-					g_pilotStatsHasCraftKillsByType = 1;
-				}
-			}
-			if (g_pilotStatsRowHasData != 0) {
-				++g_pilotRecordPageRowCount;
-			}
-		}
-		if (g_pilotStatsHasCraftKillsByType != 0) {
-			g_pilotRecordPageRowCount += 2;
-		}
-
-		g_pilotStatsHasPlayerKillsByRating = 0;
-		for (rating = 0; rating < PLAYER_RATING_COUNT; ++rating) {
-			g_pilotStatsRowHasData = 0;
-			for (missionType = 0; missionType < MISSION_TYPE_COUNT;
-			     ++missionType) {
-				if (g_pilotData.factionStatistics
-						    [g_pilotData
-							     .currentFactionId]
-							    .stats
-							    .killsFullOnPlayerRatingPerMT
-								    [missionType]
-								    [rating] !=
-					    0 ||
-				    g_pilotData.factionStatistics
-						    [g_pilotData
-							     .currentFactionId]
-							    .stats
-							    .killsSharedOnPlayerRatingPerMT
-								    [missionType]
-								    [rating] !=
-					    0) {
-					g_pilotStatsRowHasData = 1;
-					g_pilotStatsHasPlayerKillsByRating = 1;
-				}
-			}
-			if (g_pilotStatsRowHasData != 0) {
-				++g_pilotRecordPageRowCount;
-			}
-		}
-		if (g_pilotStatsHasPlayerKillsByRating != 0) {
-			g_pilotRecordPageRowCount += 2;
-		}
-
-		g_pilotStatsHasLossesToPlayersByRank = 0;
-		for (rating = 0; rating < PLAYER_RATING_COUNT; ++rating) {
-			g_pilotStatsRowHasData = 0;
-			for (missionType = 0; missionType < MISSION_TYPE_COUNT;
-			     ++missionType) {
-				if (g_pilotData
-					    .factionStatistics
-						    [g_pilotData
-							     .currentFactionId]
-					    .stats.killedByPlayerRatingPerMT
-						    [missionType][rating] !=
-				    0) {
-					g_pilotStatsRowHasData = 1;
-					g_pilotStatsHasLossesToPlayersByRank =
+					g_pilot_stats_row_has_data = 1;
+					g_pilot_stats_has_craft_kills_by_type =
 						1;
 				}
 			}
-			if (g_pilotStatsRowHasData != 0) {
-				++g_pilotRecordPageRowCount;
+			if (g_pilot_stats_row_has_data != 0) {
+				++g_pilot_record_page_row_count;
 			}
 		}
-		if (g_pilotStatsHasLossesToPlayersByRank != 0) {
-			g_pilotRecordPageRowCount += 2;
+		if (g_pilot_stats_has_craft_kills_by_type != 0) {
+			g_pilot_record_page_row_count += 2;
 		}
 
-		for (missionType = 0; missionType < MISSION_TYPE_COUNT;
-		     ++missionType) {
-			for (craftType = 0; craftType < CRAFT_TYPE_COUNT;
-			     ++craftType) {
-				g_pilotStatsAssists[missionType] +=
-					g_pilotData
-						.factionStatistics
-							[g_pilotData
-								 .currentFactionId]
-						.stats.killsAssistsPerCraftPerMT
-							[missionType]
-							[craftType];
-				g_pilotStatsTotalKillsShared[missionType] +=
-					g_pilotData
-						.factionStatistics
-							[g_pilotData
-								 .currentFactionId]
-						.stats.killsSharedPerCraftPerMT
-							[missionType]
-							[craftType];
+		g_pilot_stats_has_player_kills_by_rating = 0;
+		for (rating = 0; rating < PLAYER_RATING_COUNT; ++rating) {
+			g_pilot_stats_row_has_data = 0;
+			for (mission_type = 0;
+			     mission_type < MISSION_TYPE_COUNT;
+			     ++mission_type) {
+				if (g_pilot_data.faction_statistics
+						    [g_pilot_data
+							     .current_faction_id]
+							    .stats
+							    .kills_full_on_player_rating_per_mt
+								    [mission_type]
+								    [rating] !=
+					    0 ||
+				    g_pilot_data.faction_statistics
+						    [g_pilot_data
+							     .current_faction_id]
+							    .stats
+							    .kills_shared_on_player_rating_per_mt
+								    [mission_type]
+								    [rating] !=
+					    0) {
+					g_pilot_stats_row_has_data = 1;
+					g_pilot_stats_has_player_kills_by_rating =
+						1;
+				}
+			}
+			if (g_pilot_stats_row_has_data != 0) {
+				++g_pilot_record_page_row_count;
 			}
 		}
-		for (missionType = 0; missionType < MISSION_TYPE_COUNT;
-		     ++missionType) {
+		if (g_pilot_stats_has_player_kills_by_rating != 0) {
+			g_pilot_record_page_row_count += 2;
+		}
+
+		g_pilot_stats_has_losses_to_players_by_rank = 0;
+		for (rating = 0; rating < PLAYER_RATING_COUNT; ++rating) {
+			g_pilot_stats_row_has_data = 0;
+			for (mission_type = 0;
+			     mission_type < MISSION_TYPE_COUNT;
+			     ++mission_type) {
+				if (g_pilot_data
+					    .faction_statistics
+						    [g_pilot_data
+							     .current_faction_id]
+					    .stats
+					    .killed_by_player_rating_per_mt
+						    [mission_type][rating] !=
+				    0) {
+					g_pilot_stats_row_has_data = 1;
+					g_pilot_stats_has_losses_to_players_by_rank =
+						1;
+				}
+			}
+			if (g_pilot_stats_row_has_data != 0) {
+				++g_pilot_record_page_row_count;
+			}
+		}
+		if (g_pilot_stats_has_losses_to_players_by_rank != 0) {
+			g_pilot_record_page_row_count += 2;
+		}
+
+		for (mission_type = 0; mission_type < MISSION_TYPE_COUNT;
+		     ++mission_type) {
+			for (craft_type = 0; craft_type < CRAFT_TYPE_COUNT;
+			     ++craft_type) {
+				g_pilot_stats_assists[mission_type] +=
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.stats
+						.kills_assists_per_craft_per_mt
+							[mission_type]
+							[craft_type];
+				g_pilot_stats_total_kills_shared
+					[mission_type] +=
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.stats
+						.kills_shared_per_craft_per_mt
+							[mission_type]
+							[craft_type];
+			}
+		}
+		for (mission_type = 0; mission_type < MISSION_TYPE_COUNT;
+		     ++mission_type) {
 			for (rating = 0; rating < PLAYER_RATING_COUNT;
 			     ++rating) {
-				g_pilotStatsPlayerKills[missionType] +=
-					g_pilotData
-						.factionStatistics
-							[g_pilotData
-								 .currentFactionId]
+				g_pilot_stats_player_kills[mission_type] +=
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
 						.stats
-						.killsFullOnPlayerRatingPerMT
-							[missionType][rating];
-				g_pilotStatsPlayerKillsShared[missionType] +=
-					g_pilotData
-						.factionStatistics
-							[g_pilotData
-								 .currentFactionId]
+						.kills_full_on_player_rating_per_mt
+							[mission_type][rating];
+				g_pilot_stats_player_kills_shared
+					[mission_type] +=
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
 						.stats
-						.killsSharedOnPlayerRatingPerMT
-							[missionType][rating];
+						.kills_shared_on_player_rating_per_mt
+							[mission_type][rating];
 			}
 		}
-		for (missionType = 0; missionType < MISSION_TYPE_COUNT;
-		     ++missionType) {
+		for (mission_type = 0; mission_type < MISSION_TYPE_COUNT;
+		     ++mission_type) {
 			for (rating = 0; rating < AI_RATING_COUNT; ++rating) {
-				g_pilotStatsNonPlayerKills[missionType] +=
-					g_pilotData
-						.factionStatistics
-							[g_pilotData
-								 .currentFactionId]
-						.stats.killsFullOnAIRatingPerMT
-							[missionType][rating];
-				g_pilotStatsNonPlayerKillsShared[missionType] +=
-					g_pilotData
-						.factionStatistics
-							[g_pilotData
-								 .currentFactionId]
+				g_pilot_stats_non_player_kills[mission_type] +=
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
 						.stats
-						.killsSharedOnAIRatingPerMT
-							[missionType][rating];
+						.kills_full_on_ai_rating_per_mt
+							[mission_type][rating];
+				g_pilot_stats_non_player_kills_shared
+					[mission_type] +=
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.stats
+						.kills_shared_on_ai_rating_per_mt
+							[mission_type][rating];
 			}
 		}
-		for (missionType = 0; missionType < MISSION_TYPE_COUNT;
-		     ++missionType) {
+		for (mission_type = 0; mission_type < MISSION_TYPE_COUNT;
+		     ++mission_type) {
 			for (rating = 0; rating < PLAYER_RATING_COUNT;
 			     ++rating) {
-				g_pilotStatsLossesToPlayers[missionType] +=
-					g_pilotData
-						.factionStatistics
-							[g_pilotData
-								 .currentFactionId]
-						.stats.killedByPlayerRatingPerMT
-							[missionType][rating];
+				g_pilot_stats_losses_to_players[mission_type] +=
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.stats
+						.killed_by_player_rating_per_mt
+							[mission_type][rating];
 			}
 		}
-		for (missionType = 0; missionType < MISSION_TYPE_COUNT;
-		     ++missionType) {
+		for (mission_type = 0; mission_type < MISSION_TYPE_COUNT;
+		     ++mission_type) {
 			for (rating = 0; rating < AI_RATING_COUNT; ++rating) {
-				g_pilotStatsLossesToNonPlayers[missionType] +=
-					g_pilotData
-						.factionStatistics
-							[g_pilotData
-								 .currentFactionId]
-						.stats.killedByAIRatingPerMT
-							[missionType][rating];
+				g_pilot_stats_losses_to_non_players
+					[mission_type] +=
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.stats
+						.killed_by_ai_rating_per_mt
+							[mission_type][rating];
 			}
 		}
 	}
 
-	FrontendDraw_RectAssign(&rect, 425, 107, 434, 433);
-	if (g_pilotRecordPageRowCount > VISIBLE_ROW_COUNT) {
-		g_pilotStatisticsScrollOffset = FrontendScrollbar_Draw(
-			&rect, g_pilotStatisticsScrollOffset,
-			g_pilotRecordPageRowCount, 0, SCROLLBAR_PAGE_STEP,
-			g_colorNavy, SCROLLBAR_CONTROL_ID);
+	frontend_draw_rect_assign(&rect, 425, 107, 434, 433);
+	if (g_pilot_record_page_row_count > VISIBLE_ROW_COUNT) {
+		g_pilot_statistics_scroll_offset = frontend_scrollbar_draw(
+			&rect, g_pilot_statistics_scroll_offset,
+			g_pilot_record_page_row_count, 0, SCROLLBAR_PAGE_STEP,
+			g_color_navy, SCROLLBAR_CONTROL_ID);
 	}
 	row = 0;
 	y = FIRST_ROW_Y;
 
-	if (row >= g_pilotStatisticsScrollOffset &&
-	    row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
-		sprintf(g_frontendScratchBuffer, "%c%s: %c%d", 4,
-			FrontendString_Get(FRONTSTR_011_TOTAL_SCORE), 1,
-			g_pilotData.totalScore);
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  TEXT_X, y, TEXT_COLOR_WHITE);
+	if (row >= g_pilot_statistics_scroll_offset &&
+	    row - g_pilot_statistics_scroll_offset < VISIBLE_ROW_COUNT) {
+		sprintf(g_frontend_scratch_buffer, "%c%s: %c%d", 4,
+			frontend_string_get(FRONTSTR_011_TOTAL_SCORE), 1,
+			g_pilot_data.total_score);
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   TEXT_X, y, TEXT_COLOR_WHITE);
 		y += ROW_HEIGHT;
 	}
 	++row;
-	if (row >= g_pilotStatisticsScrollOffset &&
-	    row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
-		sprintf(g_frontendScratchBuffer, "%c%s %c%s", 4,
-			FrontendString_Get(FRONTSTR_348_PILOT_RATING), 6,
-			FrontendString_Get(
-				(FrontendStringId)(g_pilotData.rating +
-						   PILOT_RATING_STRING_BASE)));
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  TEXT_X, y, TEXT_COLOR_WHITE);
+	if (row >= g_pilot_statistics_scroll_offset &&
+	    row - g_pilot_statistics_scroll_offset < VISIBLE_ROW_COUNT) {
+		sprintf(g_frontend_scratch_buffer, "%c%s %c%s", 4,
+			frontend_string_get(FRONTSTR_348_PILOT_RATING), 6,
+			frontend_string_get((
+				frontend_string_id)(g_pilot_data.rating +
+						    PILOT_RATING_STRING_BASE)));
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   TEXT_X, y, TEXT_COLOR_WHITE);
 		y += ROW_HEIGHT;
 	}
 	++row;
-	if ((unsigned int)g_pilotData.rating < PILOT_RATING_JEDI_MASTER) {
-		if (row >= g_pilotStatisticsScrollOffset &&
-		    row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
-			sprintf(g_frontendScratchBuffer, "%c%s %c%d%%", 4,
-				FrontendString_Get(
+	if ((unsigned int)g_pilot_data.rating < PILOT_RATING_JEDI_MASTER) {
+		if (row >= g_pilot_statistics_scroll_offset &&
+		    row - g_pilot_statistics_scroll_offset <
+			    VISIBLE_ROW_COUNT) {
+			sprintf(g_frontend_scratch_buffer, "%c%s %c%d%%", 4,
+				frontend_string_get(
 					FRONTSTR_349_ADVANCEMENT_TOWARD_NEXT_PROMOTION),
-				1, g_pilotData.nextPromotionPercent);
-			FrontendText_Draw(TEXT_FONT_SIZE,
-					  g_frontendScratchBuffer, TEXT_X, y,
-					  TEXT_COLOR_WHITE);
+				1, g_pilot_data.next_promotion_percent);
+			frontend_text_draw(TEXT_FONT_SIZE,
+					   g_frontend_scratch_buffer, TEXT_X, y,
+					   TEXT_COLOR_WHITE);
 			y += ROW_HEIGHT;
 		}
 		++row;
 	}
-	if (row >= g_pilotStatisticsScrollOffset &&
-	    row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
+	if (row >= g_pilot_statistics_scroll_offset &&
+	    row - g_pilot_statistics_scroll_offset < VISIBLE_ROW_COUNT) {
 		y += ROW_HEIGHT;
 	}
 	++row;
 
-	if (row >= g_pilotStatisticsScrollOffset &&
-	    row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
-		FrontendText_Draw(
+	if (row >= g_pilot_statistics_scroll_offset &&
+	    row - g_pilot_statistics_scroll_offset < VISIBLE_ROW_COUNT) {
+		frontend_text_draw(
 			TEXT_FONT_SIZE,
-			FrontendString_Get(FRONTSTR_350_SUMMARY_OF_KILLS),
-			TEXT_X, y, g_colorYellow);
-		FrontendText_Draw(TEXT_FONT_SIZE,
-				  FrontendString_Get(FRONTSTR_189_EXERCISE),
-				  EXERCISE_X, y, g_colorYellow);
-		FrontendText_Draw(TEXT_FONT_SIZE,
-				  FrontendString_Get(FRONTSTR_013_MELEE),
-				  MELEE_X, y, g_colorYellow);
-		FrontendText_Draw(TEXT_FONT_SIZE,
-				  FrontendString_Get(FRONTSTR_014_COMBAT),
-				  COMBAT_X, y, g_colorYellow);
+			frontend_string_get(FRONTSTR_350_SUMMARY_OF_KILLS),
+			TEXT_X, y, g_color_yellow);
+		frontend_text_draw(TEXT_FONT_SIZE,
+				   frontend_string_get(FRONTSTR_189_EXERCISE),
+				   EXERCISE_X, y, g_color_yellow);
+		frontend_text_draw(TEXT_FONT_SIZE,
+				   frontend_string_get(FRONTSTR_013_MELEE),
+				   MELEE_X, y, g_color_yellow);
+		frontend_text_draw(TEXT_FONT_SIZE,
+				   frontend_string_get(FRONTSTR_014_COMBAT),
+				   COMBAT_X, y, g_color_yellow);
 		y += ROW_HEIGHT;
 	}
 	++row;
 
-	if (row >= g_pilotStatisticsScrollOffset &&
-	    row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
-		FrontendText_Draw(TEXT_FONT_SIZE,
-				  FrontendString_Get(FRONTSTR_297_TOTAL_KILLS),
-				  TEXT_X, y, g_colorYellow);
-		if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
-				    .stats.totalKillsPerMT[0] != 0 ||
-		    g_pilotStatsTotalKillsShared[0] != 0) {
-			sprintf(g_frontendScratchBuffer, "%d (%d)",
-				g_pilotData
-					.factionStatistics
-						[g_pilotData.currentFactionId]
-					.stats.totalKillsPerMT[0],
-				g_pilotStatsTotalKillsShared[0]);
-		} else {
-			sprintf(g_frontendScratchBuffer, "----");
-		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  EXERCISE_X, y, TEXT_COLOR_WHITE);
-		if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
-				    .stats.totalKillsPerMT[1] != 0 ||
-		    g_pilotStatsTotalKillsShared[1] != 0) {
-			sprintf(g_frontendScratchBuffer, "%d (%d)",
-				g_pilotData
-					.factionStatistics
-						[g_pilotData.currentFactionId]
-					.stats.totalKillsPerMT[1],
-				g_pilotStatsTotalKillsShared[1]);
-		} else {
-			sprintf(g_frontendScratchBuffer, "----");
-		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  MELEE_X, y, TEXT_COLOR_WHITE);
-		if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
-				    .stats.totalKillsPerMT[2] != 0 ||
-		    g_pilotStatsTotalKillsShared[2] != 0) {
-			sprintf(g_frontendScratchBuffer, "%d (%d)",
-				g_pilotData
-					.factionStatistics
-						[g_pilotData.currentFactionId]
-					.stats.totalKillsPerMT[2],
-				g_pilotStatsTotalKillsShared[2]);
-		} else {
-			sprintf(g_frontendScratchBuffer, "----");
-		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  COMBAT_X, y, TEXT_COLOR_WHITE);
-		y += ROW_HEIGHT;
-	}
-	++row;
-
-	if (row >= g_pilotStatisticsScrollOffset &&
-	    row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
-		FrontendText_Draw(TEXT_FONT_SIZE,
-				  FrontendString_Get(FRONTSTR_351_PLAYER_KILLS),
-				  TEXT_X, y, g_colorYellow);
-		sprintf(g_frontendScratchBuffer, "----");
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  EXERCISE_X, y, TEXT_COLOR_WHITE);
-		if (g_pilotStatsPlayerKills[1] != 0 ||
-		    g_pilotStatsPlayerKillsShared[1] != 0) {
-			sprintf(g_frontendScratchBuffer, "%d (%d)",
-				g_pilotStatsPlayerKills[1],
-				g_pilotStatsPlayerKillsShared[1]);
-		} else {
-			sprintf(g_frontendScratchBuffer, "----");
-		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  MELEE_X, y, TEXT_COLOR_WHITE);
-		if (g_pilotStatsPlayerKills[2] != 0 ||
-		    g_pilotStatsPlayerKillsShared[2] != 0) {
-			sprintf(g_frontendScratchBuffer, "%d (%d)",
-				g_pilotStatsPlayerKills[2],
-				g_pilotStatsPlayerKillsShared[2]);
-		} else {
-			sprintf(g_frontendScratchBuffer, "----");
-		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  COMBAT_X, y, TEXT_COLOR_WHITE);
-		y += ROW_HEIGHT;
-	}
-	++row;
-
-	if (row >= g_pilotStatisticsScrollOffset &&
-	    row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
-		FrontendText_Draw(
+	if (row >= g_pilot_statistics_scroll_offset &&
+	    row - g_pilot_statistics_scroll_offset < VISIBLE_ROW_COUNT) {
+		frontend_text_draw(
 			TEXT_FONT_SIZE,
-			FrontendString_Get(FRONTSTR_352_NON_PLAYER_KILLS),
-			TEXT_X, y, g_colorYellow);
-		if (g_pilotStatsNonPlayerKills[0] != 0 ||
-		    g_pilotStatsNonPlayerKillsShared[0] != 0) {
-			sprintf(g_frontendScratchBuffer, "%d (%d)",
-				g_pilotStatsNonPlayerKills[0],
-				g_pilotStatsNonPlayerKillsShared[0]);
+			frontend_string_get(FRONTSTR_297_TOTAL_KILLS), TEXT_X,
+			y, g_color_yellow);
+		if (g_pilot_data.faction_statistics[g_pilot_data
+							    .current_faction_id]
+				    .stats.total_kills_per_mt[0] != 0 ||
+		    g_pilot_stats_total_kills_shared[0] != 0) {
+			sprintf(g_frontend_scratch_buffer, "%d (%d)",
+				g_pilot_data
+					.faction_statistics
+						[g_pilot_data
+							 .current_faction_id]
+					.stats.total_kills_per_mt[0],
+				g_pilot_stats_total_kills_shared[0]);
 		} else {
-			sprintf(g_frontendScratchBuffer, "----");
+			sprintf(g_frontend_scratch_buffer, "----");
 		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  EXERCISE_X, y, TEXT_COLOR_WHITE);
-		if (g_pilotStatsNonPlayerKills[1] != 0 ||
-		    g_pilotStatsNonPlayerKillsShared[1] != 0) {
-			sprintf(g_frontendScratchBuffer, "%d (%d)",
-				g_pilotStatsNonPlayerKills[1],
-				g_pilotStatsNonPlayerKillsShared[1]);
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   EXERCISE_X, y, TEXT_COLOR_WHITE);
+		if (g_pilot_data.faction_statistics[g_pilot_data
+							    .current_faction_id]
+				    .stats.total_kills_per_mt[1] != 0 ||
+		    g_pilot_stats_total_kills_shared[1] != 0) {
+			sprintf(g_frontend_scratch_buffer, "%d (%d)",
+				g_pilot_data
+					.faction_statistics
+						[g_pilot_data
+							 .current_faction_id]
+					.stats.total_kills_per_mt[1],
+				g_pilot_stats_total_kills_shared[1]);
 		} else {
-			sprintf(g_frontendScratchBuffer, "----");
+			sprintf(g_frontend_scratch_buffer, "----");
 		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  MELEE_X, y, TEXT_COLOR_WHITE);
-		if (g_pilotStatsNonPlayerKills[2] != 0 ||
-		    g_pilotStatsNonPlayerKillsShared[2] != 0) {
-			sprintf(g_frontendScratchBuffer, "%d (%d)",
-				g_pilotStatsNonPlayerKills[2],
-				g_pilotStatsNonPlayerKillsShared[2]);
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   MELEE_X, y, TEXT_COLOR_WHITE);
+		if (g_pilot_data.faction_statistics[g_pilot_data
+							    .current_faction_id]
+				    .stats.total_kills_per_mt[2] != 0 ||
+		    g_pilot_stats_total_kills_shared[2] != 0) {
+			sprintf(g_frontend_scratch_buffer, "%d (%d)",
+				g_pilot_data
+					.faction_statistics
+						[g_pilot_data
+							 .current_faction_id]
+					.stats.total_kills_per_mt[2],
+				g_pilot_stats_total_kills_shared[2]);
 		} else {
-			sprintf(g_frontendScratchBuffer, "----");
+			sprintf(g_frontend_scratch_buffer, "----");
 		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  COMBAT_X, y, TEXT_COLOR_WHITE);
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   COMBAT_X, y, TEXT_COLOR_WHITE);
 		y += ROW_HEIGHT;
 	}
 	++row;
 
-	if (row >= g_pilotStatisticsScrollOffset &&
-	    row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
-		FrontendText_Draw(TEXT_FONT_SIZE,
-				  FrontendString_Get(FRONTSTR_353_ASSISTS),
-				  TEXT_X, y, g_colorYellow);
-		if (g_pilotStatsAssists[0] == 0) {
-			sprintf(g_frontendScratchBuffer, "----");
-		} else {
-			sprintf(g_frontendScratchBuffer, "%d",
-				g_pilotStatsAssists[0]);
-		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  EXERCISE_X, y, TEXT_COLOR_WHITE);
-		if (g_pilotStatsAssists[1] == 0) {
-			sprintf(g_frontendScratchBuffer, "----");
-		} else {
-			sprintf(g_frontendScratchBuffer, "%d",
-				g_pilotStatsAssists[1]);
-		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  MELEE_X, y, TEXT_COLOR_WHITE);
-		if (g_pilotStatsAssists[2] == 0) {
-			sprintf(g_frontendScratchBuffer, "----");
-		} else {
-			sprintf(g_frontendScratchBuffer, "%d",
-				g_pilotStatsAssists[2]);
-		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  COMBAT_X, y, TEXT_COLOR_WHITE);
-		y += ROW_HEIGHT;
-	}
-	++row;
-
-	if (row >= g_pilotStatisticsScrollOffset &&
-	    row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
-		FrontendText_Draw(
+	if (row >= g_pilot_statistics_scroll_offset &&
+	    row - g_pilot_statistics_scroll_offset < VISIBLE_ROW_COUNT) {
+		frontend_text_draw(
 			TEXT_FONT_SIZE,
-			FrontendString_Get(FRONTSTR_354_HIDDEN_CARGO_FOUND),
-			TEXT_X, y, g_colorYellow);
-		value = g_pilotData
-				.factionStatistics[g_pilotData.currentFactionId]
-				.stats.numSpecialInspectedPerMT[0];
+			frontend_string_get(FRONTSTR_351_PLAYER_KILLS), TEXT_X,
+			y, g_color_yellow);
+		sprintf(g_frontend_scratch_buffer, "----");
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   EXERCISE_X, y, TEXT_COLOR_WHITE);
+		if (g_pilot_stats_player_kills[1] != 0 ||
+		    g_pilot_stats_player_kills_shared[1] != 0) {
+			sprintf(g_frontend_scratch_buffer, "%d (%d)",
+				g_pilot_stats_player_kills[1],
+				g_pilot_stats_player_kills_shared[1]);
+		} else {
+			sprintf(g_frontend_scratch_buffer, "----");
+		}
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   MELEE_X, y, TEXT_COLOR_WHITE);
+		if (g_pilot_stats_player_kills[2] != 0 ||
+		    g_pilot_stats_player_kills_shared[2] != 0) {
+			sprintf(g_frontend_scratch_buffer, "%d (%d)",
+				g_pilot_stats_player_kills[2],
+				g_pilot_stats_player_kills_shared[2]);
+		} else {
+			sprintf(g_frontend_scratch_buffer, "----");
+		}
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   COMBAT_X, y, TEXT_COLOR_WHITE);
+		y += ROW_HEIGHT;
+	}
+	++row;
+
+	if (row >= g_pilot_statistics_scroll_offset &&
+	    row - g_pilot_statistics_scroll_offset < VISIBLE_ROW_COUNT) {
+		frontend_text_draw(
+			TEXT_FONT_SIZE,
+			frontend_string_get(FRONTSTR_352_NON_PLAYER_KILLS),
+			TEXT_X, y, g_color_yellow);
+		if (g_pilot_stats_non_player_kills[0] != 0 ||
+		    g_pilot_stats_non_player_kills_shared[0] != 0) {
+			sprintf(g_frontend_scratch_buffer, "%d (%d)",
+				g_pilot_stats_non_player_kills[0],
+				g_pilot_stats_non_player_kills_shared[0]);
+		} else {
+			sprintf(g_frontend_scratch_buffer, "----");
+		}
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   EXERCISE_X, y, TEXT_COLOR_WHITE);
+		if (g_pilot_stats_non_player_kills[1] != 0 ||
+		    g_pilot_stats_non_player_kills_shared[1] != 0) {
+			sprintf(g_frontend_scratch_buffer, "%d (%d)",
+				g_pilot_stats_non_player_kills[1],
+				g_pilot_stats_non_player_kills_shared[1]);
+		} else {
+			sprintf(g_frontend_scratch_buffer, "----");
+		}
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   MELEE_X, y, TEXT_COLOR_WHITE);
+		if (g_pilot_stats_non_player_kills[2] != 0 ||
+		    g_pilot_stats_non_player_kills_shared[2] != 0) {
+			sprintf(g_frontend_scratch_buffer, "%d (%d)",
+				g_pilot_stats_non_player_kills[2],
+				g_pilot_stats_non_player_kills_shared[2]);
+		} else {
+			sprintf(g_frontend_scratch_buffer, "----");
+		}
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   COMBAT_X, y, TEXT_COLOR_WHITE);
+		y += ROW_HEIGHT;
+	}
+	++row;
+
+	if (row >= g_pilot_statistics_scroll_offset &&
+	    row - g_pilot_statistics_scroll_offset < VISIBLE_ROW_COUNT) {
+		frontend_text_draw(TEXT_FONT_SIZE,
+				   frontend_string_get(FRONTSTR_353_ASSISTS),
+				   TEXT_X, y, g_color_yellow);
+		if (g_pilot_stats_assists[0] == 0) {
+			sprintf(g_frontend_scratch_buffer, "----");
+		} else {
+			sprintf(g_frontend_scratch_buffer, "%d",
+				g_pilot_stats_assists[0]);
+		}
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   EXERCISE_X, y, TEXT_COLOR_WHITE);
+		if (g_pilot_stats_assists[1] == 0) {
+			sprintf(g_frontend_scratch_buffer, "----");
+		} else {
+			sprintf(g_frontend_scratch_buffer, "%d",
+				g_pilot_stats_assists[1]);
+		}
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   MELEE_X, y, TEXT_COLOR_WHITE);
+		if (g_pilot_stats_assists[2] == 0) {
+			sprintf(g_frontend_scratch_buffer, "----");
+		} else {
+			sprintf(g_frontend_scratch_buffer, "%d",
+				g_pilot_stats_assists[2]);
+		}
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   COMBAT_X, y, TEXT_COLOR_WHITE);
+		y += ROW_HEIGHT;
+	}
+	++row;
+
+	if (row >= g_pilot_statistics_scroll_offset &&
+	    row - g_pilot_statistics_scroll_offset < VISIBLE_ROW_COUNT) {
+		frontend_text_draw(
+			TEXT_FONT_SIZE,
+			frontend_string_get(FRONTSTR_354_HIDDEN_CARGO_FOUND),
+			TEXT_X, y, g_color_yellow);
+		value = g_pilot_data
+				.faction_statistics[g_pilot_data
+							    .current_faction_id]
+				.stats.num_special_inspected_per_mt[0];
 		if (value == 0) {
-			sprintf(g_frontendScratchBuffer, "----");
+			sprintf(g_frontend_scratch_buffer, "----");
 		} else {
-			sprintf(g_frontendScratchBuffer, "%d", value);
+			sprintf(g_frontend_scratch_buffer, "%d", value);
 		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  EXERCISE_X, y, TEXT_COLOR_WHITE);
-		value = g_pilotData
-				.factionStatistics[g_pilotData.currentFactionId]
-				.stats.numSpecialInspectedPerMT[1];
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   EXERCISE_X, y, TEXT_COLOR_WHITE);
+		value = g_pilot_data
+				.faction_statistics[g_pilot_data
+							    .current_faction_id]
+				.stats.num_special_inspected_per_mt[1];
 		if (value == 0) {
-			sprintf(g_frontendScratchBuffer, "----");
+			sprintf(g_frontend_scratch_buffer, "----");
 		} else {
-			sprintf(g_frontendScratchBuffer, "%d", value);
+			sprintf(g_frontend_scratch_buffer, "%d", value);
 		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  MELEE_X, y, TEXT_COLOR_WHITE);
-		value = g_pilotData
-				.factionStatistics[g_pilotData.currentFactionId]
-				.stats.numSpecialInspectedPerMT[2];
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   MELEE_X, y, TEXT_COLOR_WHITE);
+		value = g_pilot_data
+				.faction_statistics[g_pilot_data
+							    .current_faction_id]
+				.stats.num_special_inspected_per_mt[2];
 		if (value == 0) {
-			sprintf(g_frontendScratchBuffer, "----");
+			sprintf(g_frontend_scratch_buffer, "----");
 		} else {
-			sprintf(g_frontendScratchBuffer, "%d", value);
+			sprintf(g_frontend_scratch_buffer, "%d", value);
 		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  COMBAT_X, y, TEXT_COLOR_WHITE);
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   COMBAT_X, y, TEXT_COLOR_WHITE);
 		y += ROW_HEIGHT;
 	}
 	++row;
 
-	if (row >= g_pilotStatisticsScrollOffset &&
-	    row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
-		FrontendText_Draw(
+	if (row >= g_pilot_statistics_scroll_offset &&
+	    row - g_pilot_statistics_scroll_offset < VISIBLE_ROW_COUNT) {
+		frontend_text_draw(
 			TEXT_FONT_SIZE,
-			FrontendString_Get(FRONTSTR_355_LASER_ACCURACY), TEXT_X,
-			y, g_colorYellow);
-		shotsFired =
-			(unsigned int)g_pilotData
-				.factionStatistics[g_pilotData.currentFactionId]
-				.stats.energyFiredPerMT[0];
-		if (shotsFired == 0) {
-			sprintf(g_frontendScratchBuffer, "----");
+			frontend_string_get(FRONTSTR_355_LASER_ACCURACY),
+			TEXT_X, y, g_color_yellow);
+		shots_fired =
+			(unsigned int)g_pilot_data
+				.faction_statistics[g_pilot_data
+							    .current_faction_id]
+				.stats.energy_fired_per_mt[0];
+		if (shots_fired == 0) {
+			sprintf(g_frontend_scratch_buffer, "----");
 		} else {
-			sprintf(g_frontendScratchBuffer, "%d%%",
+			sprintf(g_frontend_scratch_buffer, "%d%%",
 				100 *
-					g_pilotData
-						.factionStatistics
-							[g_pilotData
-								 .currentFactionId]
-						.stats.energyHitsPerMT[0] /
-					shotsFired);
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.stats.energy_hits_per_mt[0] /
+					shots_fired);
 		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  EXERCISE_X, y, TEXT_COLOR_WHITE);
-		shotsFired =
-			(unsigned int)g_pilotData
-				.factionStatistics[g_pilotData.currentFactionId]
-				.stats.energyFiredPerMT[1];
-		if (shotsFired == 0) {
-			sprintf(g_frontendScratchBuffer, "----");
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   EXERCISE_X, y, TEXT_COLOR_WHITE);
+		shots_fired =
+			(unsigned int)g_pilot_data
+				.faction_statistics[g_pilot_data
+							    .current_faction_id]
+				.stats.energy_fired_per_mt[1];
+		if (shots_fired == 0) {
+			sprintf(g_frontend_scratch_buffer, "----");
 		} else {
-			sprintf(g_frontendScratchBuffer, "%d%%",
+			sprintf(g_frontend_scratch_buffer, "%d%%",
 				100 *
-					g_pilotData
-						.factionStatistics
-							[g_pilotData
-								 .currentFactionId]
-						.stats.energyHitsPerMT[1] /
-					shotsFired);
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.stats.energy_hits_per_mt[1] /
+					shots_fired);
 		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  MELEE_X, y, TEXT_COLOR_WHITE);
-		shotsFired =
-			(unsigned int)g_pilotData
-				.factionStatistics[g_pilotData.currentFactionId]
-				.stats.energyFiredPerMT[2];
-		if (shotsFired == 0) {
-			sprintf(g_frontendScratchBuffer, "----");
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   MELEE_X, y, TEXT_COLOR_WHITE);
+		shots_fired =
+			(unsigned int)g_pilot_data
+				.faction_statistics[g_pilot_data
+							    .current_faction_id]
+				.stats.energy_fired_per_mt[2];
+		if (shots_fired == 0) {
+			sprintf(g_frontend_scratch_buffer, "----");
 		} else {
-			sprintf(g_frontendScratchBuffer, "%d%%",
+			sprintf(g_frontend_scratch_buffer, "%d%%",
 				100 *
-					g_pilotData
-						.factionStatistics
-							[g_pilotData
-								 .currentFactionId]
-						.stats.energyHitsPerMT[2] /
-					shotsFired);
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.stats.energy_hits_per_mt[2] /
+					shots_fired);
 		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  COMBAT_X, y, TEXT_COLOR_WHITE);
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   COMBAT_X, y, TEXT_COLOR_WHITE);
 		y += ROW_HEIGHT;
 	}
 	++row;
 
-	if (row >= g_pilotStatisticsScrollOffset &&
-	    row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
-		FrontendText_Draw(
+	if (row >= g_pilot_statistics_scroll_offset &&
+	    row - g_pilot_statistics_scroll_offset < VISIBLE_ROW_COUNT) {
+		frontend_text_draw(
 			TEXT_FONT_SIZE,
-			FrontendString_Get(FRONTSTR_356_WARHEAD_ACCURACY),
-			TEXT_X, y, g_colorYellow);
-		shotsFired =
-			(unsigned int)g_pilotData
-				.factionStatistics[g_pilotData.currentFactionId]
-				.stats.warheadsFiredPerMT[0];
-		if (shotsFired == 0) {
-			sprintf(g_frontendScratchBuffer, "----");
+			frontend_string_get(FRONTSTR_356_WARHEAD_ACCURACY),
+			TEXT_X, y, g_color_yellow);
+		shots_fired =
+			(unsigned int)g_pilot_data
+				.faction_statistics[g_pilot_data
+							    .current_faction_id]
+				.stats.warheads_fired_per_mt[0];
+		if (shots_fired == 0) {
+			sprintf(g_frontend_scratch_buffer, "----");
 		} else {
-			sprintf(g_frontendScratchBuffer, "%d%%",
+			sprintf(g_frontend_scratch_buffer, "%d%%",
 				100 *
-					g_pilotData
-						.factionStatistics
-							[g_pilotData
-								 .currentFactionId]
-						.stats.warheadsHitsPerMT[0] /
-					shotsFired);
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.stats.warheads_hits_per_mt[0] /
+					shots_fired);
 		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  EXERCISE_X, y, TEXT_COLOR_WHITE);
-		shotsFired =
-			(unsigned int)g_pilotData
-				.factionStatistics[g_pilotData.currentFactionId]
-				.stats.warheadsFiredPerMT[1];
-		if (shotsFired == 0) {
-			sprintf(g_frontendScratchBuffer, "----");
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   EXERCISE_X, y, TEXT_COLOR_WHITE);
+		shots_fired =
+			(unsigned int)g_pilot_data
+				.faction_statistics[g_pilot_data
+							    .current_faction_id]
+				.stats.warheads_fired_per_mt[1];
+		if (shots_fired == 0) {
+			sprintf(g_frontend_scratch_buffer, "----");
 		} else {
-			sprintf(g_frontendScratchBuffer, "%d%%",
+			sprintf(g_frontend_scratch_buffer, "%d%%",
 				100 *
-					g_pilotData
-						.factionStatistics
-							[g_pilotData
-								 .currentFactionId]
-						.stats.warheadsHitsPerMT[1] /
-					shotsFired);
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.stats.warheads_hits_per_mt[1] /
+					shots_fired);
 		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  MELEE_X, y, TEXT_COLOR_WHITE);
-		shotsFired =
-			(unsigned int)g_pilotData
-				.factionStatistics[g_pilotData.currentFactionId]
-				.stats.warheadsFiredPerMT[2];
-		if (shotsFired == 0) {
-			sprintf(g_frontendScratchBuffer, "----");
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   MELEE_X, y, TEXT_COLOR_WHITE);
+		shots_fired =
+			(unsigned int)g_pilot_data
+				.faction_statistics[g_pilot_data
+							    .current_faction_id]
+				.stats.warheads_fired_per_mt[2];
+		if (shots_fired == 0) {
+			sprintf(g_frontend_scratch_buffer, "----");
 		} else {
-			sprintf(g_frontendScratchBuffer, "%d%%",
+			sprintf(g_frontend_scratch_buffer, "%d%%",
 				100 *
-					g_pilotData
-						.factionStatistics
-							[g_pilotData
-								 .currentFactionId]
-						.stats.warheadsHitsPerMT[2] /
-					shotsFired);
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.stats.warheads_hits_per_mt[2] /
+					shots_fired);
 		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  COMBAT_X, y, TEXT_COLOR_WHITE);
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   COMBAT_X, y, TEXT_COLOR_WHITE);
 		y += ROW_HEIGHT;
 	}
 	++row;
 
-	if (g_pilotStatsHasPlayerKillsByRating != 0) {
-		if (row >= g_pilotStatisticsScrollOffset &&
-		    row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
+	if (g_pilot_stats_has_player_kills_by_rating != 0) {
+		if (row >= g_pilot_statistics_scroll_offset &&
+		    row - g_pilot_statistics_scroll_offset <
+			    VISIBLE_ROW_COUNT) {
 			y += ROW_HEIGHT;
 		}
 		++row;
-		if (row >= g_pilotStatisticsScrollOffset &&
-		    row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
-			FrontendText_Draw(
+		if (row >= g_pilot_statistics_scroll_offset &&
+		    row - g_pilot_statistics_scroll_offset <
+			    VISIBLE_ROW_COUNT) {
+			frontend_text_draw(
 				TEXT_FONT_SIZE,
-				FrontendString_Get(
+				frontend_string_get(
 					FRONTSTR_357_PLAYER_KILLS_BY_RANK),
-				TEXT_X, y, g_colorYellow);
-			FrontendText_Draw(
+				TEXT_X, y, g_color_yellow);
+			frontend_text_draw(
 				TEXT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_013_MELEE), MELEE_X,
-				y, g_colorYellow);
-			FrontendText_Draw(
+				frontend_string_get(FRONTSTR_013_MELEE),
+				MELEE_X, y, g_color_yellow);
+			frontend_text_draw(
 				TEXT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_014_COMBAT),
-				COMBAT_X, y, g_colorYellow);
+				frontend_string_get(FRONTSTR_014_COMBAT),
+				COMBAT_X, y, g_color_yellow);
 			y += ROW_HEIGHT;
 		}
 		++row;
 	}
 	for (rating = PLAYER_RATING_COUNT - 1; rating >= 0; --rating) {
-		if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
-				    .stats
-				    .killsFullOnPlayerRatingPerMT[1][rating] !=
-			    0 ||
-		    g_pilotData.factionStatistics[g_pilotData.currentFactionId]
-				    .stats
-				    .killsSharedOnPlayerRatingPerMT[1]
-								   [rating] !=
-			    0 ||
-		    g_pilotData.factionStatistics[g_pilotData.currentFactionId]
-				    .stats
-				    .killsFullOnPlayerRatingPerMT[2][rating] !=
-			    0 ||
-		    g_pilotData.factionStatistics[g_pilotData.currentFactionId]
-				    .stats
-				    .killsSharedOnPlayerRatingPerMT[2]
-								   [rating] !=
-			    0) {
-			if (row >= g_pilotStatisticsScrollOffset &&
-			    row - g_pilotStatisticsScrollOffset <
+		if (g_pilot_data.faction_statistics[g_pilot_data
+							    .current_faction_id]
+				    .stats.kills_full_on_player_rating_per_mt
+					    [1][rating] != 0 ||
+		    g_pilot_data.faction_statistics[g_pilot_data
+							    .current_faction_id]
+				    .stats.kills_shared_on_player_rating_per_mt
+					    [1][rating] != 0 ||
+		    g_pilot_data.faction_statistics[g_pilot_data
+							    .current_faction_id]
+				    .stats.kills_full_on_player_rating_per_mt
+					    [2][rating] != 0 ||
+		    g_pilot_data.faction_statistics[g_pilot_data
+							    .current_faction_id]
+				    .stats.kills_shared_on_player_rating_per_mt
+					    [2][rating] != 0) {
+			if (row >= g_pilot_statistics_scroll_offset &&
+			    row - g_pilot_statistics_scroll_offset <
 				    VISIBLE_ROW_COUNT) {
-				sprintf(g_frontendScratchBuffer, "%c%s", 6,
-					FrontendString_Get((
-						FrontendStringId)(rating +
-								  PILOT_RATING_STRING_BASE)));
-				FrontendText_Draw(TEXT_FONT_SIZE,
-						  g_frontendScratchBuffer,
-						  TEXT_X, y, g_colorYellow);
-				if (g_pilotData.factionStatistics
-						    [g_pilotData
-							     .currentFactionId]
+				sprintf(g_frontend_scratch_buffer, "%c%s", 6,
+					frontend_string_get((
+						frontend_string_id)(rating +
+								    PILOT_RATING_STRING_BASE)));
+				frontend_text_draw(TEXT_FONT_SIZE,
+						   g_frontend_scratch_buffer,
+						   TEXT_X, y, g_color_yellow);
+				if (g_pilot_data.faction_statistics
+						    [g_pilot_data
+							     .current_faction_id]
 							    .stats
-							    .killsFullOnPlayerRatingPerMT
+							    .kills_full_on_player_rating_per_mt
 								    [1]
 								    [rating] ==
 					    0 &&
-				    g_pilotData.factionStatistics
-						    [g_pilotData
-							     .currentFactionId]
+				    g_pilot_data.faction_statistics
+						    [g_pilot_data
+							     .current_faction_id]
 							    .stats
-							    .killsSharedOnPlayerRatingPerMT
+							    .kills_shared_on_player_rating_per_mt
 								    [1]
 								    [rating] ==
 					    0) {
-					sprintf(g_frontendScratchBuffer,
+					sprintf(g_frontend_scratch_buffer,
 						"----");
 				} else {
-					sprintf(g_frontendScratchBuffer,
+					sprintf(g_frontend_scratch_buffer,
 						"%d (%d)",
-						g_pilotData
-							.factionStatistics
-								[g_pilotData
-									 .currentFactionId]
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
 							.stats
-							.killsFullOnPlayerRatingPerMT
+							.kills_full_on_player_rating_per_mt
 								[1][rating],
-						g_pilotData
-							.factionStatistics
-								[g_pilotData
-									 .currentFactionId]
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
 							.stats
-							.killsSharedOnPlayerRatingPerMT
+							.kills_shared_on_player_rating_per_mt
 								[1][rating]);
 				}
-				FrontendText_Draw(TEXT_FONT_SIZE,
-						  g_frontendScratchBuffer,
-						  MELEE_X, y, TEXT_COLOR_WHITE);
-				if (g_pilotData.factionStatistics
-						    [g_pilotData
-							     .currentFactionId]
+				frontend_text_draw(TEXT_FONT_SIZE,
+						   g_frontend_scratch_buffer,
+						   MELEE_X, y,
+						   TEXT_COLOR_WHITE);
+				if (g_pilot_data.faction_statistics
+						    [g_pilot_data
+							     .current_faction_id]
 							    .stats
-							    .killsFullOnPlayerRatingPerMT
+							    .kills_full_on_player_rating_per_mt
 								    [2]
 								    [rating] ==
 					    0 &&
-				    g_pilotData.factionStatistics
-						    [g_pilotData
-							     .currentFactionId]
+				    g_pilot_data.faction_statistics
+						    [g_pilot_data
+							     .current_faction_id]
 							    .stats
-							    .killsSharedOnPlayerRatingPerMT
+							    .kills_shared_on_player_rating_per_mt
 								    [2]
 								    [rating] ==
 					    0) {
-					sprintf(g_frontendScratchBuffer,
+					sprintf(g_frontend_scratch_buffer,
 						"----");
 				} else {
-					sprintf(g_frontendScratchBuffer,
+					sprintf(g_frontend_scratch_buffer,
 						"%d (%d)",
-						g_pilotData
-							.factionStatistics
-								[g_pilotData
-									 .currentFactionId]
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
 							.stats
-							.killsFullOnPlayerRatingPerMT
+							.kills_full_on_player_rating_per_mt
 								[2][rating],
-						g_pilotData
-							.factionStatistics
-								[g_pilotData
-									 .currentFactionId]
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
 							.stats
-							.killsSharedOnPlayerRatingPerMT
+							.kills_shared_on_player_rating_per_mt
 								[2][rating]);
 				}
-				FrontendText_Draw(
-					TEXT_FONT_SIZE, g_frontendScratchBuffer,
-					COMBAT_X, y, TEXT_COLOR_WHITE);
+				frontend_text_draw(TEXT_FONT_SIZE,
+						   g_frontend_scratch_buffer,
+						   COMBAT_X, y,
+						   TEXT_COLOR_WHITE);
 				y += ROW_HEIGHT;
 			}
 			++row;
 		}
 	}
 
-	if (g_pilotStatsHasCraftKillsByType != 0) {
-		if (row >= g_pilotStatisticsScrollOffset &&
-		    row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
+	if (g_pilot_stats_has_craft_kills_by_type != 0) {
+		if (row >= g_pilot_statistics_scroll_offset &&
+		    row - g_pilot_statistics_scroll_offset <
+			    VISIBLE_ROW_COUNT) {
 			y += ROW_HEIGHT;
 		}
 		++row;
-		if (row >= g_pilotStatisticsScrollOffset &&
-		    row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
-			FrontendText_Draw(
+		if (row >= g_pilot_statistics_scroll_offset &&
+		    row - g_pilot_statistics_scroll_offset <
+			    VISIBLE_ROW_COUNT) {
+			frontend_text_draw(
 				TEXT_FONT_SIZE,
-				FrontendString_Get(
+				frontend_string_get(
 					FRONTSTR_358_CRAFT_KILLS_BY_TYPE),
-				TEXT_X, y, g_colorYellow);
-			FrontendText_Draw(
+				TEXT_X, y, g_color_yellow);
+			frontend_text_draw(
 				TEXT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_189_EXERCISE),
-				EXERCISE_X, y, g_colorYellow);
-			FrontendText_Draw(
+				frontend_string_get(FRONTSTR_189_EXERCISE),
+				EXERCISE_X, y, g_color_yellow);
+			frontend_text_draw(
 				TEXT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_013_MELEE), MELEE_X,
-				y, g_colorYellow);
-			FrontendText_Draw(
+				frontend_string_get(FRONTSTR_013_MELEE),
+				MELEE_X, y, g_color_yellow);
+			frontend_text_draw(
 				TEXT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_014_COMBAT),
-				COMBAT_X, y, g_colorYellow);
+				frontend_string_get(FRONTSTR_014_COMBAT),
+				COMBAT_X, y, g_color_yellow);
 			y += ROW_HEIGHT;
 		}
 		++row;
 	}
-	for (craftType = 0; craftType < CRAFT_TYPE_COUNT; ++craftType) {
-		g_pilotStatsRowHasData = 0;
-		for (missionType = 0; missionType < MISSION_TYPE_COUNT;
-		     ++missionType) {
-			if (g_pilotData.factionStatistics
-					    [g_pilotData.currentFactionId]
-						    .stats.killsPerCraftPerMT
-							    [missionType]
-							    [craftType] != 0 ||
-			    g_pilotData.factionStatistics
-					    [g_pilotData.currentFactionId]
+	for (craft_type = 0; craft_type < CRAFT_TYPE_COUNT; ++craft_type) {
+		g_pilot_stats_row_has_data = 0;
+		for (mission_type = 0; mission_type < MISSION_TYPE_COUNT;
+		     ++mission_type) {
+			if (g_pilot_data.faction_statistics
+					    [g_pilot_data.current_faction_id]
 						    .stats
-						    .killsSharedPerCraftPerMT
-							    [missionType]
-							    [craftType] != 0) {
-				g_pilotStatsRowHasData = 1;
+						    .kills_per_craft_per_mt
+							    [mission_type]
+							    [craft_type] != 0 ||
+			    g_pilot_data
+					    .faction_statistics
+						    [g_pilot_data
+							     .current_faction_id]
+					    .stats.kills_shared_per_craft_per_mt
+						    [mission_type]
+						    [craft_type] != 0) {
+				g_pilot_stats_row_has_data = 1;
 			}
 		}
-		if (g_pilotStatsRowHasData != 0) {
-			if (row >= g_pilotStatisticsScrollOffset &&
-			    row - g_pilotStatisticsScrollOffset <
+		if (g_pilot_stats_row_has_data != 0) {
+			if (row >= g_pilot_statistics_scroll_offset &&
+			    row - g_pilot_statistics_scroll_offset <
 				    VISIBLE_ROW_COUNT) {
-				FrontendText_Draw(
+				frontend_text_draw(
 					TEXT_FONT_SIZE,
-					FrontendString_Get((
-						FrontendStringId)(craftType +
-								  CRAFT_NAME_STRING_BASE)),
-					TEXT_X, y, g_colorRed);
-				sharedValue =
-					g_pilotData
-						.factionStatistics
-							[g_pilotData
-								 .currentFactionId]
-						.stats.killsSharedPerCraftPerMT
-							[0][craftType];
-				value = g_pilotData
-						.factionStatistics
-							[g_pilotData
-								 .currentFactionId]
+					frontend_string_get((
+						frontend_string_id)(craft_type +
+								    CRAFT_NAME_STRING_BASE)),
+					TEXT_X, y, g_color_red);
+				shared_value =
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
 						.stats
-						.killsPerCraftPerMT[0]
-								   [craftType];
-				if (value == 0 && sharedValue == 0) {
-					sprintf(g_frontendScratchBuffer,
+						.kills_shared_per_craft_per_mt
+							[0][craft_type];
+				value = g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.stats.kills_per_craft_per_mt
+							[0][craft_type];
+				if (value == 0 && shared_value == 0) {
+					sprintf(g_frontend_scratch_buffer,
 						"----");
 				} else {
-					sprintf(g_frontendScratchBuffer,
-						"%d (%d)", value, sharedValue);
+					sprintf(g_frontend_scratch_buffer,
+						"%d (%d)", value, shared_value);
 				}
-				FrontendText_Draw(
-					TEXT_FONT_SIZE, g_frontendScratchBuffer,
-					EXERCISE_X, y, TEXT_COLOR_WHITE);
-				sharedValue =
-					g_pilotData
-						.factionStatistics
-							[g_pilotData
-								 .currentFactionId]
-						.stats.killsSharedPerCraftPerMT
-							[1][craftType];
-				value = g_pilotData
-						.factionStatistics
-							[g_pilotData
-								 .currentFactionId]
+				frontend_text_draw(TEXT_FONT_SIZE,
+						   g_frontend_scratch_buffer,
+						   EXERCISE_X, y,
+						   TEXT_COLOR_WHITE);
+				shared_value =
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
 						.stats
-						.killsPerCraftPerMT[1]
-								   [craftType];
-				if (value == 0 && sharedValue == 0) {
-					sprintf(g_frontendScratchBuffer,
+						.kills_shared_per_craft_per_mt
+							[1][craft_type];
+				value = g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.stats.kills_per_craft_per_mt
+							[1][craft_type];
+				if (value == 0 && shared_value == 0) {
+					sprintf(g_frontend_scratch_buffer,
 						"----");
 				} else {
-					sprintf(g_frontendScratchBuffer,
-						"%d (%d)", value, sharedValue);
+					sprintf(g_frontend_scratch_buffer,
+						"%d (%d)", value, shared_value);
 				}
-				FrontendText_Draw(TEXT_FONT_SIZE,
-						  g_frontendScratchBuffer,
-						  MELEE_X, y, TEXT_COLOR_WHITE);
-				sharedValue =
-					g_pilotData
-						.factionStatistics
-							[g_pilotData
-								 .currentFactionId]
-						.stats.killsSharedPerCraftPerMT
-							[2][craftType];
-				value = g_pilotData
-						.factionStatistics
-							[g_pilotData
-								 .currentFactionId]
+				frontend_text_draw(TEXT_FONT_SIZE,
+						   g_frontend_scratch_buffer,
+						   MELEE_X, y,
+						   TEXT_COLOR_WHITE);
+				shared_value =
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
 						.stats
-						.killsPerCraftPerMT[2]
-								   [craftType];
-				if (value == 0 && sharedValue == 0) {
-					sprintf(g_frontendScratchBuffer,
+						.kills_shared_per_craft_per_mt
+							[2][craft_type];
+				value = g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.stats.kills_per_craft_per_mt
+							[2][craft_type];
+				if (value == 0 && shared_value == 0) {
+					sprintf(g_frontend_scratch_buffer,
 						"----");
 				} else {
-					sprintf(g_frontendScratchBuffer,
-						"%d (%d)", value, sharedValue);
+					sprintf(g_frontend_scratch_buffer,
+						"%d (%d)", value, shared_value);
 				}
-				FrontendText_Draw(
-					TEXT_FONT_SIZE, g_frontendScratchBuffer,
-					COMBAT_X, y, TEXT_COLOR_WHITE);
+				frontend_text_draw(TEXT_FONT_SIZE,
+						   g_frontend_scratch_buffer,
+						   COMBAT_X, y,
+						   TEXT_COLOR_WHITE);
 				y += ROW_HEIGHT;
 			}
 			++row;
 		}
 	}
 
-	if (row >= g_pilotStatisticsScrollOffset &&
-	    row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
+	if (row >= g_pilot_statistics_scroll_offset &&
+	    row - g_pilot_statistics_scroll_offset < VISIBLE_ROW_COUNT) {
 		y += ROW_HEIGHT;
 	}
 	++row;
-	if (row >= g_pilotStatisticsScrollOffset &&
-	    row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
-		FrontendText_Draw(
+	if (row >= g_pilot_statistics_scroll_offset &&
+	    row - g_pilot_statistics_scroll_offset < VISIBLE_ROW_COUNT) {
+		frontend_text_draw(
 			TEXT_FONT_SIZE,
-			FrontendString_Get(FRONTSTR_359_AVGS_PER_MISSION),
-			TEXT_X, y, g_colorYellow);
-		FrontendText_Draw(TEXT_FONT_SIZE,
-				  FrontendString_Get(FRONTSTR_189_EXERCISE),
-				  EXERCISE_X, y, g_colorYellow);
-		FrontendText_Draw(TEXT_FONT_SIZE,
-				  FrontendString_Get(FRONTSTR_013_MELEE),
-				  MELEE_X, y, g_colorYellow);
-		FrontendText_Draw(TEXT_FONT_SIZE,
-				  FrontendString_Get(FRONTSTR_014_COMBAT),
-				  COMBAT_X, y, g_colorYellow);
+			frontend_string_get(FRONTSTR_359_AVGS_PER_MISSION),
+			TEXT_X, y, g_color_yellow);
+		frontend_text_draw(TEXT_FONT_SIZE,
+				   frontend_string_get(FRONTSTR_189_EXERCISE),
+				   EXERCISE_X, y, g_color_yellow);
+		frontend_text_draw(TEXT_FONT_SIZE,
+				   frontend_string_get(FRONTSTR_013_MELEE),
+				   MELEE_X, y, g_color_yellow);
+		frontend_text_draw(TEXT_FONT_SIZE,
+				   frontend_string_get(FRONTSTR_014_COMBAT),
+				   COMBAT_X, y, g_color_yellow);
 		y += ROW_HEIGHT;
 	}
 	++row;
-	exerciseMissionCount =
-		g_pilotData.factionStatistics[g_pilotData.currentFactionId]
-			.stats.standaloneMissionsPlayedPerMT[0] +
-		g_pilotData.factionStatistics[g_pilotData.currentFactionId]
-			.stats.sequenceMissionsPlayedPerMT[0];
-	if (exerciseMissionCount == 0) {
-		exerciseMissionCount = 1;
+	exercise_mission_count =
+		g_pilot_data.faction_statistics[g_pilot_data.current_faction_id]
+			.stats.standalone_missions_played_per_mt[0] +
+		g_pilot_data.faction_statistics[g_pilot_data.current_faction_id]
+			.stats.sequence_missions_played_per_mt[0];
+	if (exercise_mission_count == 0) {
+		exercise_mission_count = 1;
 	}
-	meleeMissionCount =
-		g_pilotData.factionStatistics[g_pilotData.currentFactionId]
-			.stats.standaloneMissionsPlayedPerMT[1] +
-		g_pilotData.factionStatistics[g_pilotData.currentFactionId]
-			.stats.sequenceMissionsPlayedPerMT[1];
-	if (meleeMissionCount == 0) {
-		meleeMissionCount = 1;
+	melee_mission_count =
+		g_pilot_data.faction_statistics[g_pilot_data.current_faction_id]
+			.stats.standalone_missions_played_per_mt[1] +
+		g_pilot_data.faction_statistics[g_pilot_data.current_faction_id]
+			.stats.sequence_missions_played_per_mt[1];
+	if (melee_mission_count == 0) {
+		melee_mission_count = 1;
 	}
-	combatMissionCount =
-		g_pilotData.factionStatistics[g_pilotData.currentFactionId]
-			.stats.standaloneMissionsPlayedPerMT[2] +
-		g_pilotData.factionStatistics[g_pilotData.currentFactionId]
-			.stats.sequenceMissionsPlayedPerMT[2];
-	if (combatMissionCount == 0) {
-		combatMissionCount = 1;
+	combat_mission_count =
+		g_pilot_data.faction_statistics[g_pilot_data.current_faction_id]
+			.stats.standalone_missions_played_per_mt[2] +
+		g_pilot_data.faction_statistics[g_pilot_data.current_faction_id]
+			.stats.sequence_missions_played_per_mt[2];
+	if (combat_mission_count == 0) {
+		combat_mission_count = 1;
 	}
 
-	if (row >= g_pilotStatisticsScrollOffset &&
-	    row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
-		FrontendText_Draw(TEXT_FONT_SIZE,
-				  FrontendString_Get(FRONTSTR_297_TOTAL_KILLS),
-				  TEXT_X, y, g_colorYellow);
-		sharedAverage = (double)g_pilotStatsTotalKillsShared[0] /
-				(double)exerciseMissionCount;
-		if ((double)(unsigned int)g_pilotData
-					    .factionStatistics
-						    [g_pilotData
-							     .currentFactionId]
-					    .stats.totalKillsPerMT[0] /
-				    (double)exerciseMissionCount !=
-			    0.0 ||
-		    sharedAverage != 0.0f) {
-			sprintf(g_frontendScratchBuffer, "%.1f (%.1f)",
-				(double)(unsigned int)g_pilotData
-						.factionStatistics
-							[g_pilotData
-								 .currentFactionId]
-						.stats.totalKillsPerMT[0] /
-					(double)exerciseMissionCount,
-				(double)sharedAverage);
-		} else {
-			sprintf(g_frontendScratchBuffer, "----");
-		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  EXERCISE_X, y, TEXT_COLOR_WHITE);
-		sharedAverage = (double)g_pilotStatsTotalKillsShared[1] /
-				(double)meleeMissionCount;
-		if ((double)(unsigned int)g_pilotData
-					    .factionStatistics
-						    [g_pilotData
-							     .currentFactionId]
-					    .stats.totalKillsPerMT[1] /
-				    (double)meleeMissionCount !=
-			    0.0 ||
-		    sharedAverage != 0.0f) {
-			sprintf(g_frontendScratchBuffer, "%.1f (%.1f)",
-				(double)(unsigned int)g_pilotData
-						.factionStatistics
-							[g_pilotData
-								 .currentFactionId]
-						.stats.totalKillsPerMT[1] /
-					(double)meleeMissionCount,
-				(double)sharedAverage);
-		} else {
-			sprintf(g_frontendScratchBuffer, "----");
-		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  MELEE_X, y, TEXT_COLOR_WHITE);
-		sharedAverage = (double)g_pilotStatsTotalKillsShared[2] /
-				(double)combatMissionCount;
-		if ((double)(unsigned int)g_pilotData
-					    .factionStatistics
-						    [g_pilotData
-							     .currentFactionId]
-					    .stats.totalKillsPerMT[2] /
-				    (double)combatMissionCount !=
-			    0.0 ||
-		    sharedAverage != 0.0f) {
-			sprintf(g_frontendScratchBuffer, "%.1f (%.1f)",
-				(double)(unsigned int)g_pilotData
-						.factionStatistics
-							[g_pilotData
-								 .currentFactionId]
-						.stats.totalKillsPerMT[2] /
-					(double)combatMissionCount,
-				(double)sharedAverage);
-		} else {
-			sprintf(g_frontendScratchBuffer, "----");
-		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  COMBAT_X, y, TEXT_COLOR_WHITE);
-		y += ROW_HEIGHT;
-	}
-	++row;
-	if (row >= g_pilotStatisticsScrollOffset &&
-	    row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
-		FrontendText_Draw(TEXT_FONT_SIZE,
-				  FrontendString_Get(FRONTSTR_351_PLAYER_KILLS),
-				  TEXT_X, y, g_colorYellow);
-		sprintf(g_frontendScratchBuffer, "----");
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  EXERCISE_X, y, TEXT_COLOR_WHITE);
-		sharedAverage = (double)g_pilotStatsPlayerKillsShared[1] /
-				(double)meleeMissionCount;
-		if ((double)g_pilotStatsPlayerKills[1] /
-				    (double)meleeMissionCount !=
-			    0.0 ||
-		    sharedAverage != 0.0f) {
-			sprintf(g_frontendScratchBuffer, "%.1f (%.1f)",
-				(double)g_pilotStatsPlayerKills[1] /
-					(double)meleeMissionCount,
-				(double)sharedAverage);
-		} else {
-			sprintf(g_frontendScratchBuffer, "----");
-		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  MELEE_X, y, TEXT_COLOR_WHITE);
-		sharedAverage = (double)g_pilotStatsPlayerKillsShared[2] /
-				(double)combatMissionCount;
-		if ((double)g_pilotStatsPlayerKills[2] /
-				    (double)combatMissionCount !=
-			    0.0 ||
-		    sharedAverage != 0.0f) {
-			sprintf(g_frontendScratchBuffer, "%.1f (%.1f)",
-				(double)g_pilotStatsPlayerKills[2] /
-					(double)combatMissionCount,
-				(double)sharedAverage);
-		} else {
-			sprintf(g_frontendScratchBuffer, "----");
-		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  COMBAT_X, y, TEXT_COLOR_WHITE);
-		y += ROW_HEIGHT;
-	}
-	++row;
-	if (row >= g_pilotStatisticsScrollOffset &&
-	    row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
-		FrontendText_Draw(
+	if (row >= g_pilot_statistics_scroll_offset &&
+	    row - g_pilot_statistics_scroll_offset < VISIBLE_ROW_COUNT) {
+		frontend_text_draw(
 			TEXT_FONT_SIZE,
-			FrontendString_Get(FRONTSTR_352_NON_PLAYER_KILLS),
-			TEXT_X, y, g_colorYellow);
-		sharedAverage = (double)g_pilotStatsNonPlayerKillsShared[0] /
-				(double)exerciseMissionCount;
-		if ((double)g_pilotStatsNonPlayerKills[0] /
-				    (double)exerciseMissionCount !=
+			frontend_string_get(FRONTSTR_297_TOTAL_KILLS), TEXT_X,
+			y, g_color_yellow);
+		shared_average = (double)g_pilot_stats_total_kills_shared[0] /
+				 (double)exercise_mission_count;
+		if ((double)(unsigned int)g_pilot_data
+					    .faction_statistics
+						    [g_pilot_data
+							     .current_faction_id]
+					    .stats.total_kills_per_mt[0] /
+				    (double)exercise_mission_count !=
 			    0.0 ||
-		    sharedAverage != 0.0f) {
-			sprintf(g_frontendScratchBuffer, "%.1f (%.1f)",
-				(double)g_pilotStatsNonPlayerKills[0] /
-					(double)exerciseMissionCount,
-				(double)sharedAverage);
+		    shared_average != 0.0f) {
+			sprintf(g_frontend_scratch_buffer, "%.1f (%.1f)",
+				(double)(unsigned int)g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.stats.total_kills_per_mt[0] /
+					(double)exercise_mission_count,
+				(double)shared_average);
 		} else {
-			sprintf(g_frontendScratchBuffer, "----");
+			sprintf(g_frontend_scratch_buffer, "----");
 		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  EXERCISE_X, y, TEXT_COLOR_WHITE);
-		sharedAverage = (double)g_pilotStatsNonPlayerKillsShared[1] /
-				(double)meleeMissionCount;
-		if ((double)g_pilotStatsNonPlayerKills[1] /
-				    (double)meleeMissionCount !=
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   EXERCISE_X, y, TEXT_COLOR_WHITE);
+		shared_average = (double)g_pilot_stats_total_kills_shared[1] /
+				 (double)melee_mission_count;
+		if ((double)(unsigned int)g_pilot_data
+					    .faction_statistics
+						    [g_pilot_data
+							     .current_faction_id]
+					    .stats.total_kills_per_mt[1] /
+				    (double)melee_mission_count !=
 			    0.0 ||
-		    sharedAverage != 0.0f) {
-			sprintf(g_frontendScratchBuffer, "%.1f (%.1f)",
-				(double)g_pilotStatsNonPlayerKills[1] /
-					(double)meleeMissionCount,
-				(double)sharedAverage);
+		    shared_average != 0.0f) {
+			sprintf(g_frontend_scratch_buffer, "%.1f (%.1f)",
+				(double)(unsigned int)g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.stats.total_kills_per_mt[1] /
+					(double)melee_mission_count,
+				(double)shared_average);
 		} else {
-			sprintf(g_frontendScratchBuffer, "----");
+			sprintf(g_frontend_scratch_buffer, "----");
 		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  MELEE_X, y, TEXT_COLOR_WHITE);
-		sharedAverage = (double)g_pilotStatsNonPlayerKillsShared[2] /
-				(double)combatMissionCount;
-		if ((double)g_pilotStatsNonPlayerKills[2] /
-				    (double)combatMissionCount !=
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   MELEE_X, y, TEXT_COLOR_WHITE);
+		shared_average = (double)g_pilot_stats_total_kills_shared[2] /
+				 (double)combat_mission_count;
+		if ((double)(unsigned int)g_pilot_data
+					    .faction_statistics
+						    [g_pilot_data
+							     .current_faction_id]
+					    .stats.total_kills_per_mt[2] /
+				    (double)combat_mission_count !=
 			    0.0 ||
-		    sharedAverage != 0.0f) {
-			sprintf(g_frontendScratchBuffer, "%.1f (%.1f)",
-				(double)g_pilotStatsNonPlayerKills[2] /
-					(double)combatMissionCount,
-				(double)sharedAverage);
+		    shared_average != 0.0f) {
+			sprintf(g_frontend_scratch_buffer, "%.1f (%.1f)",
+				(double)(unsigned int)g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.stats.total_kills_per_mt[2] /
+					(double)combat_mission_count,
+				(double)shared_average);
 		} else {
-			sprintf(g_frontendScratchBuffer, "----");
+			sprintf(g_frontend_scratch_buffer, "----");
 		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  COMBAT_X, y, TEXT_COLOR_WHITE);
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   COMBAT_X, y, TEXT_COLOR_WHITE);
 		y += ROW_HEIGHT;
 	}
 	++row;
-	if (row >= g_pilotStatisticsScrollOffset &&
-	    row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
-		FrontendText_Draw(TEXT_FONT_SIZE,
-				  FrontendString_Get(FRONTSTR_353_ASSISTS),
-				  TEXT_X, y, g_colorYellow);
-		if ((double)g_pilotStatsAssists[0] /
-			    (double)exerciseMissionCount ==
+	if (row >= g_pilot_statistics_scroll_offset &&
+	    row - g_pilot_statistics_scroll_offset < VISIBLE_ROW_COUNT) {
+		frontend_text_draw(
+			TEXT_FONT_SIZE,
+			frontend_string_get(FRONTSTR_351_PLAYER_KILLS), TEXT_X,
+			y, g_color_yellow);
+		sprintf(g_frontend_scratch_buffer, "----");
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   EXERCISE_X, y, TEXT_COLOR_WHITE);
+		shared_average = (double)g_pilot_stats_player_kills_shared[1] /
+				 (double)melee_mission_count;
+		if ((double)g_pilot_stats_player_kills[1] /
+				    (double)melee_mission_count !=
+			    0.0 ||
+		    shared_average != 0.0f) {
+			sprintf(g_frontend_scratch_buffer, "%.1f (%.1f)",
+				(double)g_pilot_stats_player_kills[1] /
+					(double)melee_mission_count,
+				(double)shared_average);
+		} else {
+			sprintf(g_frontend_scratch_buffer, "----");
+		}
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   MELEE_X, y, TEXT_COLOR_WHITE);
+		shared_average = (double)g_pilot_stats_player_kills_shared[2] /
+				 (double)combat_mission_count;
+		if ((double)g_pilot_stats_player_kills[2] /
+				    (double)combat_mission_count !=
+			    0.0 ||
+		    shared_average != 0.0f) {
+			sprintf(g_frontend_scratch_buffer, "%.1f (%.1f)",
+				(double)g_pilot_stats_player_kills[2] /
+					(double)combat_mission_count,
+				(double)shared_average);
+		} else {
+			sprintf(g_frontend_scratch_buffer, "----");
+		}
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   COMBAT_X, y, TEXT_COLOR_WHITE);
+		y += ROW_HEIGHT;
+	}
+	++row;
+	if (row >= g_pilot_statistics_scroll_offset &&
+	    row - g_pilot_statistics_scroll_offset < VISIBLE_ROW_COUNT) {
+		frontend_text_draw(
+			TEXT_FONT_SIZE,
+			frontend_string_get(FRONTSTR_352_NON_PLAYER_KILLS),
+			TEXT_X, y, g_color_yellow);
+		shared_average =
+			(double)g_pilot_stats_non_player_kills_shared[0] /
+			(double)exercise_mission_count;
+		if ((double)g_pilot_stats_non_player_kills[0] /
+				    (double)exercise_mission_count !=
+			    0.0 ||
+		    shared_average != 0.0f) {
+			sprintf(g_frontend_scratch_buffer, "%.1f (%.1f)",
+				(double)g_pilot_stats_non_player_kills[0] /
+					(double)exercise_mission_count,
+				(double)shared_average);
+		} else {
+			sprintf(g_frontend_scratch_buffer, "----");
+		}
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   EXERCISE_X, y, TEXT_COLOR_WHITE);
+		shared_average =
+			(double)g_pilot_stats_non_player_kills_shared[1] /
+			(double)melee_mission_count;
+		if ((double)g_pilot_stats_non_player_kills[1] /
+				    (double)melee_mission_count !=
+			    0.0 ||
+		    shared_average != 0.0f) {
+			sprintf(g_frontend_scratch_buffer, "%.1f (%.1f)",
+				(double)g_pilot_stats_non_player_kills[1] /
+					(double)melee_mission_count,
+				(double)shared_average);
+		} else {
+			sprintf(g_frontend_scratch_buffer, "----");
+		}
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   MELEE_X, y, TEXT_COLOR_WHITE);
+		shared_average =
+			(double)g_pilot_stats_non_player_kills_shared[2] /
+			(double)combat_mission_count;
+		if ((double)g_pilot_stats_non_player_kills[2] /
+				    (double)combat_mission_count !=
+			    0.0 ||
+		    shared_average != 0.0f) {
+			sprintf(g_frontend_scratch_buffer, "%.1f (%.1f)",
+				(double)g_pilot_stats_non_player_kills[2] /
+					(double)combat_mission_count,
+				(double)shared_average);
+		} else {
+			sprintf(g_frontend_scratch_buffer, "----");
+		}
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   COMBAT_X, y, TEXT_COLOR_WHITE);
+		y += ROW_HEIGHT;
+	}
+	++row;
+	if (row >= g_pilot_statistics_scroll_offset &&
+	    row - g_pilot_statistics_scroll_offset < VISIBLE_ROW_COUNT) {
+		frontend_text_draw(TEXT_FONT_SIZE,
+				   frontend_string_get(FRONTSTR_353_ASSISTS),
+				   TEXT_X, y, g_color_yellow);
+		if ((double)g_pilot_stats_assists[0] /
+			    (double)exercise_mission_count ==
 		    0.0) {
-			sprintf(g_frontendScratchBuffer, "----");
+			sprintf(g_frontend_scratch_buffer, "----");
 		} else {
-			sprintf(g_frontendScratchBuffer, "%.1f",
-				(double)g_pilotStatsAssists[0] /
-					(double)exerciseMissionCount);
+			sprintf(g_frontend_scratch_buffer, "%.1f",
+				(double)g_pilot_stats_assists[0] /
+					(double)exercise_mission_count);
 		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  EXERCISE_X, y, TEXT_COLOR_WHITE);
-		if ((double)g_pilotStatsAssists[1] /
-			    (double)meleeMissionCount ==
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   EXERCISE_X, y, TEXT_COLOR_WHITE);
+		if ((double)g_pilot_stats_assists[1] /
+			    (double)melee_mission_count ==
 		    0.0) {
-			sprintf(g_frontendScratchBuffer, "----");
+			sprintf(g_frontend_scratch_buffer, "----");
 		} else {
-			sprintf(g_frontendScratchBuffer, "%.1f",
-				(double)g_pilotStatsAssists[1] /
-					(double)meleeMissionCount);
+			sprintf(g_frontend_scratch_buffer, "%.1f",
+				(double)g_pilot_stats_assists[1] /
+					(double)melee_mission_count);
 		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  MELEE_X, y, TEXT_COLOR_WHITE);
-		if ((double)g_pilotStatsAssists[2] /
-			    (double)combatMissionCount ==
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   MELEE_X, y, TEXT_COLOR_WHITE);
+		if ((double)g_pilot_stats_assists[2] /
+			    (double)combat_mission_count ==
 		    0.0) {
-			sprintf(g_frontendScratchBuffer, "----");
+			sprintf(g_frontend_scratch_buffer, "----");
 		} else {
-			sprintf(g_frontendScratchBuffer, "%.1f",
-				(double)g_pilotStatsAssists[2] /
-					(double)combatMissionCount);
+			sprintf(g_frontend_scratch_buffer, "%.1f",
+				(double)g_pilot_stats_assists[2] /
+					(double)combat_mission_count);
 		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  COMBAT_X, y, TEXT_COLOR_WHITE);
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   COMBAT_X, y, TEXT_COLOR_WHITE);
 		y += ROW_HEIGHT;
 	}
 	++row;
 
-	if (row >= g_pilotStatisticsScrollOffset &&
-	    row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
+	if (row >= g_pilot_statistics_scroll_offset &&
+	    row - g_pilot_statistics_scroll_offset < VISIBLE_ROW_COUNT) {
 		y += ROW_HEIGHT;
 	}
 	++row;
-	if (row >= g_pilotStatisticsScrollOffset &&
-	    row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
-		FrontendText_Draw(TEXT_FONT_SIZE,
-				  FrontendString_Get(FRONTSTR_360_TOTAL_LOSSES),
-				  TEXT_X, y, g_colorYellow);
-		FrontendText_Draw(TEXT_FONT_SIZE,
-				  FrontendString_Get(FRONTSTR_189_EXERCISE),
-				  EXERCISE_X, y, g_colorYellow);
-		FrontendText_Draw(TEXT_FONT_SIZE,
-				  FrontendString_Get(FRONTSTR_013_MELEE),
-				  MELEE_X, y, g_colorYellow);
-		FrontendText_Draw(TEXT_FONT_SIZE,
-				  FrontendString_Get(FRONTSTR_014_COMBAT),
-				  COMBAT_X, y, g_colorYellow);
+	if (row >= g_pilot_statistics_scroll_offset &&
+	    row - g_pilot_statistics_scroll_offset < VISIBLE_ROW_COUNT) {
+		frontend_text_draw(
+			TEXT_FONT_SIZE,
+			frontend_string_get(FRONTSTR_360_TOTAL_LOSSES), TEXT_X,
+			y, g_color_yellow);
+		frontend_text_draw(TEXT_FONT_SIZE,
+				   frontend_string_get(FRONTSTR_189_EXERCISE),
+				   EXERCISE_X, y, g_color_yellow);
+		frontend_text_draw(TEXT_FONT_SIZE,
+				   frontend_string_get(FRONTSTR_013_MELEE),
+				   MELEE_X, y, g_color_yellow);
+		frontend_text_draw(TEXT_FONT_SIZE,
+				   frontend_string_get(FRONTSTR_014_COMBAT),
+				   COMBAT_X, y, g_color_yellow);
 		y += ROW_HEIGHT;
 	}
 	++row;
 
-	if (row >= g_pilotStatisticsScrollOffset &&
-	    row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
-		FrontendText_Draw(
+	if (row >= g_pilot_statistics_scroll_offset &&
+	    row - g_pilot_statistics_scroll_offset < VISIBLE_ROW_COUNT) {
+		frontend_text_draw(
 			TEXT_FONT_SIZE,
-			FrontendString_Get(FRONTSTR_361_TOTAL_CRAFT_LOSSES),
-			TEXT_X, y, g_colorYellow);
-		if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
-			    .stats.totalCraftLossesPerMT[0] == 0) {
-			sprintf(g_frontendScratchBuffer, "----");
+			frontend_string_get(FRONTSTR_361_TOTAL_CRAFT_LOSSES),
+			TEXT_X, y, g_color_yellow);
+		if (g_pilot_data
+			    .faction_statistics[g_pilot_data.current_faction_id]
+			    .stats.total_craft_losses_per_mt[0] == 0) {
+			sprintf(g_frontend_scratch_buffer, "----");
 		} else {
-			sprintf(g_frontendScratchBuffer, "%d",
-				g_pilotData
-					.factionStatistics
-						[g_pilotData.currentFactionId]
-					.stats.totalCraftLossesPerMT[0]);
+			sprintf(g_frontend_scratch_buffer, "%d",
+				g_pilot_data
+					.faction_statistics
+						[g_pilot_data
+							 .current_faction_id]
+					.stats.total_craft_losses_per_mt[0]);
 		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  EXERCISE_X, y, TEXT_COLOR_WHITE);
-		value = g_pilotData
-				.factionStatistics[g_pilotData.currentFactionId]
-				.stats.totalCraftLossesPerMT[1];
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   EXERCISE_X, y, TEXT_COLOR_WHITE);
+		value = g_pilot_data
+				.faction_statistics[g_pilot_data
+							    .current_faction_id]
+				.stats.total_craft_losses_per_mt[1];
 		if (value == 0) {
-			sprintf(g_frontendScratchBuffer, "----");
+			sprintf(g_frontend_scratch_buffer, "----");
 		} else {
-			sprintf(g_frontendScratchBuffer, "%d", value);
+			sprintf(g_frontend_scratch_buffer, "%d", value);
 		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  MELEE_X, y, TEXT_COLOR_WHITE);
-		value = g_pilotData
-				.factionStatistics[g_pilotData.currentFactionId]
-				.stats.totalCraftLossesPerMT[2];
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   MELEE_X, y, TEXT_COLOR_WHITE);
+		value = g_pilot_data
+				.faction_statistics[g_pilot_data
+							    .current_faction_id]
+				.stats.total_craft_losses_per_mt[2];
 		if (value == 0) {
-			sprintf(g_frontendScratchBuffer, "----");
+			sprintf(g_frontend_scratch_buffer, "----");
 		} else {
-			sprintf(g_frontendScratchBuffer, "%d", value);
+			sprintf(g_frontend_scratch_buffer, "%d", value);
 		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  COMBAT_X, y, TEXT_COLOR_WHITE);
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   COMBAT_X, y, TEXT_COLOR_WHITE);
 		y += ROW_HEIGHT;
 	}
 	++row;
-	if (row >= g_pilotStatisticsScrollOffset &&
-	    row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
-		FrontendText_Draw(
+	if (row >= g_pilot_statistics_scroll_offset &&
+	    row - g_pilot_statistics_scroll_offset < VISIBLE_ROW_COUNT) {
+		frontend_text_draw(
 			TEXT_FONT_SIZE,
-			FrontendString_Get(FRONTSTR_362_TO_PLAYER_PILOTS),
-			TEXT_X, y, g_colorYellow);
-		if (g_pilotStatsLossesToPlayers[0] == 0) {
-			sprintf(g_frontendScratchBuffer, "----");
+			frontend_string_get(FRONTSTR_362_TO_PLAYER_PILOTS),
+			TEXT_X, y, g_color_yellow);
+		if (g_pilot_stats_losses_to_players[0] == 0) {
+			sprintf(g_frontend_scratch_buffer, "----");
 		} else {
-			sprintf(g_frontendScratchBuffer, "%d",
-				g_pilotStatsLossesToPlayers[0]);
+			sprintf(g_frontend_scratch_buffer, "%d",
+				g_pilot_stats_losses_to_players[0]);
 		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  EXERCISE_X, y, TEXT_COLOR_WHITE);
-		if (g_pilotStatsLossesToPlayers[1] == 0) {
-			sprintf(g_frontendScratchBuffer, "----");
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   EXERCISE_X, y, TEXT_COLOR_WHITE);
+		if (g_pilot_stats_losses_to_players[1] == 0) {
+			sprintf(g_frontend_scratch_buffer, "----");
 		} else {
-			sprintf(g_frontendScratchBuffer, "%d",
-				g_pilotStatsLossesToPlayers[1]);
+			sprintf(g_frontend_scratch_buffer, "%d",
+				g_pilot_stats_losses_to_players[1]);
 		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  MELEE_X, y, TEXT_COLOR_WHITE);
-		if (g_pilotStatsLossesToPlayers[2] == 0) {
-			sprintf(g_frontendScratchBuffer, "----");
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   MELEE_X, y, TEXT_COLOR_WHITE);
+		if (g_pilot_stats_losses_to_players[2] == 0) {
+			sprintf(g_frontend_scratch_buffer, "----");
 		} else {
-			sprintf(g_frontendScratchBuffer, "%d",
-				g_pilotStatsLossesToPlayers[2]);
+			sprintf(g_frontend_scratch_buffer, "%d",
+				g_pilot_stats_losses_to_players[2]);
 		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  COMBAT_X, y, TEXT_COLOR_WHITE);
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   COMBAT_X, y, TEXT_COLOR_WHITE);
 		y += ROW_HEIGHT;
 	}
 	++row;
-	if (row >= g_pilotStatisticsScrollOffset &&
-	    row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
-		FrontendText_Draw(
+	if (row >= g_pilot_statistics_scroll_offset &&
+	    row - g_pilot_statistics_scroll_offset < VISIBLE_ROW_COUNT) {
+		frontend_text_draw(
 			TEXT_FONT_SIZE,
-			FrontendString_Get(FRONTSTR_363_TO_NON_PLAYER_PILOTS),
-			TEXT_X, y, g_colorYellow);
-		if (g_pilotStatsLossesToNonPlayers[0] == 0) {
-			sprintf(g_frontendScratchBuffer, "----");
+			frontend_string_get(FRONTSTR_363_TO_NON_PLAYER_PILOTS),
+			TEXT_X, y, g_color_yellow);
+		if (g_pilot_stats_losses_to_non_players[0] == 0) {
+			sprintf(g_frontend_scratch_buffer, "----");
 		} else {
-			sprintf(g_frontendScratchBuffer, "%d",
-				g_pilotStatsLossesToNonPlayers[0]);
+			sprintf(g_frontend_scratch_buffer, "%d",
+				g_pilot_stats_losses_to_non_players[0]);
 		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  EXERCISE_X, y, TEXT_COLOR_WHITE);
-		if (g_pilotStatsLossesToNonPlayers[1] == 0) {
-			sprintf(g_frontendScratchBuffer, "----");
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   EXERCISE_X, y, TEXT_COLOR_WHITE);
+		if (g_pilot_stats_losses_to_non_players[1] == 0) {
+			sprintf(g_frontend_scratch_buffer, "----");
 		} else {
-			sprintf(g_frontendScratchBuffer, "%d",
-				g_pilotStatsLossesToNonPlayers[1]);
+			sprintf(g_frontend_scratch_buffer, "%d",
+				g_pilot_stats_losses_to_non_players[1]);
 		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  MELEE_X, y, TEXT_COLOR_WHITE);
-		if (g_pilotStatsLossesToNonPlayers[2] == 0) {
-			sprintf(g_frontendScratchBuffer, "----");
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   MELEE_X, y, TEXT_COLOR_WHITE);
+		if (g_pilot_stats_losses_to_non_players[2] == 0) {
+			sprintf(g_frontend_scratch_buffer, "----");
 		} else {
-			sprintf(g_frontendScratchBuffer, "%d",
-				g_pilotStatsLossesToNonPlayers[2]);
+			sprintf(g_frontend_scratch_buffer, "%d",
+				g_pilot_stats_losses_to_non_players[2]);
 		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  COMBAT_X, y, TEXT_COLOR_WHITE);
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   COMBAT_X, y, TEXT_COLOR_WHITE);
 		y += ROW_HEIGHT;
 	}
 	++row;
 
-	if (row >= g_pilotStatisticsScrollOffset &&
-	    row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
-		FrontendText_Draw(TEXT_FONT_SIZE,
-				  FrontendString_Get(FRONTSTR_364_TO_STARSHIPS),
-				  TEXT_X, y, g_colorYellow);
-		value = g_pilotData
-				.factionStatistics[g_pilotData.currentFactionId]
-				.stats.lossesByStarshipsPerMT[0];
-		if (value == 0) {
-			sprintf(g_frontendScratchBuffer, "----");
-		} else {
-			sprintf(g_frontendScratchBuffer, "%d", value);
-		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  EXERCISE_X, y, TEXT_COLOR_WHITE);
-		value = g_pilotData
-				.factionStatistics[g_pilotData.currentFactionId]
-				.stats.lossesByStarshipsPerMT[1];
-		if (value == 0) {
-			sprintf(g_frontendScratchBuffer, "----");
-		} else {
-			sprintf(g_frontendScratchBuffer, "%d", value);
-		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  MELEE_X, y, TEXT_COLOR_WHITE);
-		value = g_pilotData
-				.factionStatistics[g_pilotData.currentFactionId]
-				.stats.lossesByStarshipsPerMT[2];
-		if (value == 0) {
-			sprintf(g_frontendScratchBuffer, "----");
-		} else {
-			sprintf(g_frontendScratchBuffer, "%d", value);
-		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  COMBAT_X, y, TEXT_COLOR_WHITE);
-		y += ROW_HEIGHT;
-	}
-	++row;
-	if (row >= g_pilotStatisticsScrollOffset &&
-	    row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
-		FrontendText_Draw(TEXT_FONT_SIZE,
-				  FrontendString_Get(FRONTSTR_365_TO_MINES),
-				  TEXT_X, y, g_colorYellow);
-		value = g_pilotData
-				.factionStatistics[g_pilotData.currentFactionId]
-				.stats.lossesByMinesPerMT[0];
-		if (value == 0) {
-			sprintf(g_frontendScratchBuffer, "----");
-		} else {
-			sprintf(g_frontendScratchBuffer, "%d", value);
-		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  EXERCISE_X, y, TEXT_COLOR_WHITE);
-		value = g_pilotData
-				.factionStatistics[g_pilotData.currentFactionId]
-				.stats.lossesByMinesPerMT[1];
-		if (value == 0) {
-			sprintf(g_frontendScratchBuffer, "----");
-		} else {
-			sprintf(g_frontendScratchBuffer, "%d", value);
-		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  MELEE_X, y, TEXT_COLOR_WHITE);
-		value = g_pilotData
-				.factionStatistics[g_pilotData.currentFactionId]
-				.stats.lossesByMinesPerMT[2];
-		if (value == 0) {
-			sprintf(g_frontendScratchBuffer, "----");
-		} else {
-			sprintf(g_frontendScratchBuffer, "%d", value);
-		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  COMBAT_X, y, TEXT_COLOR_WHITE);
-		y += ROW_HEIGHT;
-	}
-	++row;
-	if (row >= g_pilotStatisticsScrollOffset &&
-	    row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
-		FrontendText_Draw(
+	if (row >= g_pilot_statistics_scroll_offset &&
+	    row - g_pilot_statistics_scroll_offset < VISIBLE_ROW_COUNT) {
+		frontend_text_draw(
 			TEXT_FONT_SIZE,
-			FrontendString_Get(FRONTSTR_366_FROM_COLLISIONS),
-			TEXT_X, y, g_colorYellow);
-		value = g_pilotData
-				.factionStatistics[g_pilotData.currentFactionId]
-				.stats.lossesByCollisionsPerMT[0];
+			frontend_string_get(FRONTSTR_364_TO_STARSHIPS), TEXT_X,
+			y, g_color_yellow);
+		value = g_pilot_data
+				.faction_statistics[g_pilot_data
+							    .current_faction_id]
+				.stats.losses_by_starships_per_mt[0];
 		if (value == 0) {
-			sprintf(g_frontendScratchBuffer, "----");
+			sprintf(g_frontend_scratch_buffer, "----");
 		} else {
-			sprintf(g_frontendScratchBuffer, "%d", value);
+			sprintf(g_frontend_scratch_buffer, "%d", value);
 		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  EXERCISE_X, y, TEXT_COLOR_WHITE);
-		value = g_pilotData
-				.factionStatistics[g_pilotData.currentFactionId]
-				.stats.lossesByCollisionsPerMT[1];
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   EXERCISE_X, y, TEXT_COLOR_WHITE);
+		value = g_pilot_data
+				.faction_statistics[g_pilot_data
+							    .current_faction_id]
+				.stats.losses_by_starships_per_mt[1];
 		if (value == 0) {
-			sprintf(g_frontendScratchBuffer, "----");
+			sprintf(g_frontend_scratch_buffer, "----");
 		} else {
-			sprintf(g_frontendScratchBuffer, "%d", value);
+			sprintf(g_frontend_scratch_buffer, "%d", value);
 		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  MELEE_X, y, TEXT_COLOR_WHITE);
-		value = g_pilotData
-				.factionStatistics[g_pilotData.currentFactionId]
-				.stats.lossesByCollisionsPerMT[2];
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   MELEE_X, y, TEXT_COLOR_WHITE);
+		value = g_pilot_data
+				.faction_statistics[g_pilot_data
+							    .current_faction_id]
+				.stats.losses_by_starships_per_mt[2];
 		if (value == 0) {
-			sprintf(g_frontendScratchBuffer, "----");
+			sprintf(g_frontend_scratch_buffer, "----");
 		} else {
-			sprintf(g_frontendScratchBuffer, "%d", value);
+			sprintf(g_frontend_scratch_buffer, "%d", value);
 		}
-		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
-				  COMBAT_X, y, TEXT_COLOR_WHITE);
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   COMBAT_X, y, TEXT_COLOR_WHITE);
+		y += ROW_HEIGHT;
+	}
+	++row;
+	if (row >= g_pilot_statistics_scroll_offset &&
+	    row - g_pilot_statistics_scroll_offset < VISIBLE_ROW_COUNT) {
+		frontend_text_draw(TEXT_FONT_SIZE,
+				   frontend_string_get(FRONTSTR_365_TO_MINES),
+				   TEXT_X, y, g_color_yellow);
+		value = g_pilot_data
+				.faction_statistics[g_pilot_data
+							    .current_faction_id]
+				.stats.losses_by_mines_per_mt[0];
+		if (value == 0) {
+			sprintf(g_frontend_scratch_buffer, "----");
+		} else {
+			sprintf(g_frontend_scratch_buffer, "%d", value);
+		}
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   EXERCISE_X, y, TEXT_COLOR_WHITE);
+		value = g_pilot_data
+				.faction_statistics[g_pilot_data
+							    .current_faction_id]
+				.stats.losses_by_mines_per_mt[1];
+		if (value == 0) {
+			sprintf(g_frontend_scratch_buffer, "----");
+		} else {
+			sprintf(g_frontend_scratch_buffer, "%d", value);
+		}
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   MELEE_X, y, TEXT_COLOR_WHITE);
+		value = g_pilot_data
+				.faction_statistics[g_pilot_data
+							    .current_faction_id]
+				.stats.losses_by_mines_per_mt[2];
+		if (value == 0) {
+			sprintf(g_frontend_scratch_buffer, "----");
+		} else {
+			sprintf(g_frontend_scratch_buffer, "%d", value);
+		}
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   COMBAT_X, y, TEXT_COLOR_WHITE);
+		y += ROW_HEIGHT;
+	}
+	++row;
+	if (row >= g_pilot_statistics_scroll_offset &&
+	    row - g_pilot_statistics_scroll_offset < VISIBLE_ROW_COUNT) {
+		frontend_text_draw(
+			TEXT_FONT_SIZE,
+			frontend_string_get(FRONTSTR_366_FROM_COLLISIONS),
+			TEXT_X, y, g_color_yellow);
+		value = g_pilot_data
+				.faction_statistics[g_pilot_data
+							    .current_faction_id]
+				.stats.losses_by_collisions_per_mt[0];
+		if (value == 0) {
+			sprintf(g_frontend_scratch_buffer, "----");
+		} else {
+			sprintf(g_frontend_scratch_buffer, "%d", value);
+		}
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   EXERCISE_X, y, TEXT_COLOR_WHITE);
+		value = g_pilot_data
+				.faction_statistics[g_pilot_data
+							    .current_faction_id]
+				.stats.losses_by_collisions_per_mt[1];
+		if (value == 0) {
+			sprintf(g_frontend_scratch_buffer, "----");
+		} else {
+			sprintf(g_frontend_scratch_buffer, "%d", value);
+		}
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   MELEE_X, y, TEXT_COLOR_WHITE);
+		value = g_pilot_data
+				.faction_statistics[g_pilot_data
+							    .current_faction_id]
+				.stats.losses_by_collisions_per_mt[2];
+		if (value == 0) {
+			sprintf(g_frontend_scratch_buffer, "----");
+		} else {
+			sprintf(g_frontend_scratch_buffer, "%d", value);
+		}
+		frontend_text_draw(TEXT_FONT_SIZE, g_frontend_scratch_buffer,
+				   COMBAT_X, y, TEXT_COLOR_WHITE);
 		y += ROW_HEIGHT;
 	}
 	++row;
 
-	if (g_pilotStatsHasLossesToPlayersByRank != 0) {
-		if (row >= g_pilotStatisticsScrollOffset &&
-		    row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
+	if (g_pilot_stats_has_losses_to_players_by_rank != 0) {
+		if (row >= g_pilot_statistics_scroll_offset &&
+		    row - g_pilot_statistics_scroll_offset <
+			    VISIBLE_ROW_COUNT) {
 			y += ROW_HEIGHT;
 		}
 		++row;
-		if (row >= g_pilotStatisticsScrollOffset &&
-		    row - g_pilotStatisticsScrollOffset < VISIBLE_ROW_COUNT) {
-			FrontendText_Draw(
+		if (row >= g_pilot_statistics_scroll_offset &&
+		    row - g_pilot_statistics_scroll_offset <
+			    VISIBLE_ROW_COUNT) {
+			frontend_text_draw(
 				TEXT_FONT_SIZE,
-				FrontendString_Get(
+				frontend_string_get(
 					FRONTSTR_534_LOSSES_TO_PLAYERS_BY_RANK),
-				TEXT_X, y, g_colorYellow);
-			FrontendText_Draw(
+				TEXT_X, y, g_color_yellow);
+			frontend_text_draw(
 				TEXT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_013_MELEE), MELEE_X,
-				y, g_colorYellow);
-			FrontendText_Draw(
+				frontend_string_get(FRONTSTR_013_MELEE),
+				MELEE_X, y, g_color_yellow);
+			frontend_text_draw(
 				TEXT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_014_COMBAT),
-				COMBAT_X, y, g_colorYellow);
+				frontend_string_get(FRONTSTR_014_COMBAT),
+				COMBAT_X, y, g_color_yellow);
 			y += ROW_HEIGHT;
 		}
 		++row;
 	}
 	for (rating = PLAYER_RATING_COUNT - 1; rating >= 0; --rating) {
-		if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
+		if (g_pilot_data.faction_statistics[g_pilot_data
+							    .current_faction_id]
 				    .stats
-				    .killedByPlayerRatingPerMT[1][rating] !=
+				    .killed_by_player_rating_per_mt[1]
+								   [rating] !=
 			    0 ||
-		    g_pilotData.factionStatistics[g_pilotData.currentFactionId]
+		    g_pilot_data.faction_statistics[g_pilot_data
+							    .current_faction_id]
 				    .stats
-				    .killedByPlayerRatingPerMT[2][rating] !=
+				    .killed_by_player_rating_per_mt[2]
+								   [rating] !=
 			    0) {
-			if (row >= g_pilotStatisticsScrollOffset &&
-			    row - g_pilotStatisticsScrollOffset <
+			if (row >= g_pilot_statistics_scroll_offset &&
+			    row - g_pilot_statistics_scroll_offset <
 				    VISIBLE_ROW_COUNT) {
-				sprintf(g_frontendScratchBuffer, "%c%s", 6,
-					FrontendString_Get((
-						FrontendStringId)(rating +
-								  PILOT_RATING_STRING_BASE)));
-				FrontendText_Draw(TEXT_FONT_SIZE,
-						  g_frontendScratchBuffer,
-						  TEXT_X, y, g_colorYellow);
-				value = g_pilotData
-						.factionStatistics
-							[g_pilotData
-								 .currentFactionId]
-						.stats.killedByPlayerRatingPerMT
+				sprintf(g_frontend_scratch_buffer, "%c%s", 6,
+					frontend_string_get((
+						frontend_string_id)(rating +
+								    PILOT_RATING_STRING_BASE)));
+				frontend_text_draw(TEXT_FONT_SIZE,
+						   g_frontend_scratch_buffer,
+						   TEXT_X, y, g_color_yellow);
+				value = g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.stats
+						.killed_by_player_rating_per_mt
 							[1][rating];
 				if (value == 0) {
-					sprintf(g_frontendScratchBuffer,
+					sprintf(g_frontend_scratch_buffer,
 						"----");
 				} else {
-					sprintf(g_frontendScratchBuffer, "%d",
+					sprintf(g_frontend_scratch_buffer, "%d",
 						value);
 				}
-				FrontendText_Draw(TEXT_FONT_SIZE,
-						  g_frontendScratchBuffer,
-						  MELEE_X, y, TEXT_COLOR_WHITE);
-				value = g_pilotData
-						.factionStatistics
-							[g_pilotData
-								 .currentFactionId]
-						.stats.killedByPlayerRatingPerMT
+				frontend_text_draw(TEXT_FONT_SIZE,
+						   g_frontend_scratch_buffer,
+						   MELEE_X, y,
+						   TEXT_COLOR_WHITE);
+				value = g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.stats
+						.killed_by_player_rating_per_mt
 							[2][rating];
 				if (value == 0) {
-					sprintf(g_frontendScratchBuffer,
+					sprintf(g_frontend_scratch_buffer,
 						"----");
 				} else {
-					sprintf(g_frontendScratchBuffer, "%d",
+					sprintf(g_frontend_scratch_buffer, "%d",
 						value);
 				}
-				FrontendText_Draw(
-					TEXT_FONT_SIZE, g_frontendScratchBuffer,
-					COMBAT_X, y, TEXT_COLOR_WHITE);
+				frontend_text_draw(TEXT_FONT_SIZE,
+						   g_frontend_scratch_buffer,
+						   COMBAT_X, y,
+						   TEXT_COLOR_WHITE);
 				y += ROW_HEIGHT;
 			}
 			++row;
@@ -2406,757 +2491,798 @@ int PilotRecord_DrawPilotStatisticsPage(void)
  * follow it in gray. A second pass draws, beside each row with an award level,
  * its sprite and tooltip: a citation for training, combat and campaign
  * missions, a medal for melees, tournaments and battles. 21 rows show from
- * g_pilotAchievementsScrollOffset, with a scroll bar when there are more. When
- * g_pilotRecordPagesNeedRebuild is set it first frees and reloads every
+ * g_pilot_achievements_scroll_offset, with a scroll bar when there are more. When
+ * g_pilot_record_pages_need_rebuild is set it first frees and reloads every
  * directory's mission list into the g_pilotRecord lists and
- * g_battleMissionList, the multiplayer training, combat and campaign lists with
- * g_frontendMissionSessionMode set to NET_HOST and then left at NONE, cuts each
+ * g_battle_mission_list, the multiplayer training, combat and campaign lists with
+ * g_frontend_mission_session_mode set to NET_HOST and then left at NONE, cuts each
  * description at its last '(' in place, clears the flag and counts each
- * section's rows into the history counts and g_pilotRecordPageRowCount. Returns
+ * section's rows into the history counts and g_pilot_record_page_row_count. Returns
  * 0, having drawn only the title, when no pilot is loaded; else 1. */
 // FUNCTION: XVT 0x4C3590
-int PilotRecord_DrawMissionAchievementsPage(void)
+int pilot_record_draw_mission_achievements_page(void)
 {
 	struct RECT rect;
-	struct RECT previousClipRect;
-	const char *awardSpriteFormat;
-	int listIndex;
-	int childListIndex;
-	int awardId;
+	struct RECT previous_clip_rect;
+	const char *award_sprite_format;
+	int list_index;
+	int child_list_index;
+	int award_id;
 	int row;
 	int y;
-	int hasPrevious;
-	int drawFlags;
+	int has_previous;
+	int draw_flags;
 
-	FrontendDraw_RectAssign(&rect, MISSION_ACHIEVEMENT_TITLE_LEFT,
-				MISSION_ACHIEVEMENT_TITLE_TOP,
-				MISSION_ACHIEVEMENT_TITLE_RIGHT,
-				MISSION_ACHIEVEMENT_TITLE_BOTTOM);
-	if (g_pilotData.name[0] == '\0') {
-		sprintf(g_frontendScratchBuffer, "%s",
-			FrontendString_Get(FRONTSTR_010_MISSION_ACHIEVEMENTS));
+	frontend_draw_rect_assign(&rect, MISSION_ACHIEVEMENT_TITLE_LEFT,
+				  MISSION_ACHIEVEMENT_TITLE_TOP,
+				  MISSION_ACHIEVEMENT_TITLE_RIGHT,
+				  MISSION_ACHIEVEMENT_TITLE_BOTTOM);
+	if (g_pilot_data.name[0] == '\0') {
+		sprintf(g_frontend_scratch_buffer, "%s",
+			frontend_string_get(FRONTSTR_010_MISSION_ACHIEVEMENTS));
 	} else {
-		sprintf(g_frontendScratchBuffer, "%s: %c%s %c%s",
-			FrontendString_Get(FRONTSTR_010_MISSION_ACHIEVEMENTS),
+		sprintf(g_frontend_scratch_buffer, "%s: %c%s %c%s",
+			frontend_string_get(FRONTSTR_010_MISSION_ACHIEVEMENTS),
 			MISSION_ACHIEVEMENT_RATING_TEXT_CODE,
-			g_pilotData.ratingName,
-			MISSION_ACHIEVEMENT_NAME_TEXT_CODE, g_pilotData.name);
+			g_pilot_data.rating_name,
+			MISSION_ACHIEVEMENT_NAME_TEXT_CODE, g_pilot_data.name);
 	}
-	FrontendText_DrawCentered(MISSION_ACHIEVEMENT_TITLE_FONT_SIZE,
-				  g_frontendScratchBuffer, &rect,
-				  MISSION_ACHIEVEMENT_TEXT_COLOR);
-	if (g_pilotData.name[0] == '\0') {
+	frontend_text_draw_centered(MISSION_ACHIEVEMENT_TITLE_FONT_SIZE,
+				    g_frontend_scratch_buffer, &rect,
+				    MISSION_ACHIEVEMENT_TEXT_COLOR);
+	if (g_pilot_data.name[0] == '\0') {
 		return 0;
 	}
 
-	if (g_pilotRecordPagesNeedRebuild != 0) {
-		if (g_pilotRecordSingleplayerTrainingMissionList != NULL) {
-			free(g_pilotRecordSingleplayerTrainingMissionList);
-			g_pilotRecordSingleplayerTrainingMissionList = NULL;
+	if (g_pilot_record_pages_need_rebuild != 0) {
+		if (g_pilot_record_singleplayer_training_mission_list != NULL) {
+			free(g_pilot_record_singleplayer_training_mission_list);
+			g_pilot_record_singleplayer_training_mission_list =
+				NULL;
 		}
-		if (g_pilotRecordMultiplayerTrainingMissionList != NULL) {
-			free(g_pilotRecordMultiplayerTrainingMissionList);
-			g_pilotRecordMultiplayerTrainingMissionList = NULL;
+		if (g_pilot_record_multiplayer_training_mission_list != NULL) {
+			free(g_pilot_record_multiplayer_training_mission_list);
+			g_pilot_record_multiplayer_training_mission_list = NULL;
 		}
-		if (g_pilotRecordMeleeMissionList != NULL) {
-			free(g_pilotRecordMeleeMissionList);
-			g_pilotRecordMeleeMissionList = NULL;
+		if (g_pilot_record_melee_mission_list != NULL) {
+			free(g_pilot_record_melee_mission_list);
+			g_pilot_record_melee_mission_list = NULL;
 		}
-		if (g_pilotRecordTournamentMissionList != NULL) {
-			free(g_pilotRecordTournamentMissionList);
-			g_pilotRecordTournamentMissionList = NULL;
+		if (g_pilot_record_tournament_mission_list != NULL) {
+			free(g_pilot_record_tournament_mission_list);
+			g_pilot_record_tournament_mission_list = NULL;
 		}
-		if (g_pilotRecordSingleplayerCombatMissionList != NULL) {
-			free(g_pilotRecordSingleplayerCombatMissionList);
-			g_pilotRecordSingleplayerCombatMissionList = NULL;
+		if (g_pilot_record_singleplayer_combat_mission_list != NULL) {
+			free(g_pilot_record_singleplayer_combat_mission_list);
+			g_pilot_record_singleplayer_combat_mission_list = NULL;
 		}
-		if (g_pilotRecordMultiplayerCombatMissionList != NULL) {
-			free(g_pilotRecordMultiplayerCombatMissionList);
-			g_pilotRecordMultiplayerCombatMissionList = NULL;
+		if (g_pilot_record_multiplayer_combat_mission_list != NULL) {
+			free(g_pilot_record_multiplayer_combat_mission_list);
+			g_pilot_record_multiplayer_combat_mission_list = NULL;
 		}
-		if (g_battleMissionList != NULL) {
-			free(g_battleMissionList);
-			g_battleMissionList = NULL;
+		if (g_battle_mission_list != NULL) {
+			free(g_battle_mission_list);
+			g_battle_mission_list = NULL;
 		}
-		if (g_pilotRecordSingleplayerCampaignMissionList != NULL) {
-			free(g_pilotRecordSingleplayerCampaignMissionList);
-			g_pilotRecordSingleplayerCampaignMissionList = NULL;
+		if (g_pilot_record_singleplayer_campaign_mission_list != NULL) {
+			free(g_pilot_record_singleplayer_campaign_mission_list);
+			g_pilot_record_singleplayer_campaign_mission_list =
+				NULL;
 		}
-		if (g_pilotRecordMultiplayerCampaignMissionList != NULL) {
-			free(g_pilotRecordMultiplayerCampaignMissionList);
-			g_pilotRecordMultiplayerCampaignMissionList = NULL;
+		if (g_pilot_record_multiplayer_campaign_mission_list != NULL) {
+			free(g_pilot_record_multiplayer_campaign_mission_list);
+			g_pilot_record_multiplayer_campaign_mission_list = NULL;
 		}
-		MissionSetup_LoadMissionList(
+		mission_setup_load_mission_list(
 			MISSION_DIRECTORY_TRAINING_EXERCISES);
-		g_pilotRecordSingleplayerTrainingMissionList = g_missionList;
-		g_pilotRecordSingleplayerTrainingMissionCount = g_missionCount;
-		g_missionList = NULL;
-		for (listIndex = 0;
-		     listIndex < g_pilotRecordSingleplayerTrainingMissionCount;
-		     ++listIndex) {
-			/* awardId is a character position in these trim loops: each mission description is cut at its
+		g_pilot_record_singleplayer_training_mission_list =
+			g_mission_list;
+		g_pilot_record_singleplayer_training_mission_count =
+			g_mission_count;
+		g_mission_list = NULL;
+		for (list_index = 0;
+		     list_index <
+		     g_pilot_record_singleplayer_training_mission_count;
+		     ++list_index) {
+			/* award_id is a character position in these trim loops: each mission description is cut at its
 			 * last '('. */
-			awardId =
+			award_id =
 				(int)strlen(
-					g_pilotRecordSingleplayerTrainingMissionList
-						[listIndex]
+					g_pilot_record_singleplayer_training_mission_list
+						[list_index]
 							.description) -
 				1;
-			for (; awardId > 0; --awardId) {
-				if (g_pilotRecordSingleplayerTrainingMissionList
-					    [listIndex]
-						    .description[awardId] ==
+			for (; award_id > 0; --award_id) {
+				if (g_pilot_record_singleplayer_training_mission_list
+					    [list_index]
+						    .description[award_id] ==
 				    '(') {
-					g_pilotRecordSingleplayerTrainingMissionList
-						[listIndex]
-							.description[awardId] =
+					g_pilot_record_singleplayer_training_mission_list
+						[list_index]
+							.description[award_id] =
 						'\0';
 					break;
 				}
 			}
 		}
-		g_frontendMissionSessionMode =
+		g_frontend_mission_session_mode =
 			FRONTEND_MISSION_SESSION_NET_HOST;
-		MissionSetup_LoadMissionList(
+		mission_setup_load_mission_list(
 			MISSION_DIRECTORY_TRAINING_EXERCISES);
-		g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_NONE;
-		g_pilotRecordMultiplayerTrainingMissionList = g_missionList;
-		g_pilotRecordMultiplayerTrainingMissionCount = g_missionCount;
-		g_missionList = NULL;
-		for (listIndex = 0;
-		     listIndex < g_pilotRecordMultiplayerTrainingMissionCount;
-		     ++listIndex) {
-			awardId =
+		g_frontend_mission_session_mode = FRONTEND_MISSION_SESSION_NONE;
+		g_pilot_record_multiplayer_training_mission_list =
+			g_mission_list;
+		g_pilot_record_multiplayer_training_mission_count =
+			g_mission_count;
+		g_mission_list = NULL;
+		for (list_index = 0;
+		     list_index <
+		     g_pilot_record_multiplayer_training_mission_count;
+		     ++list_index) {
+			award_id =
 				(int)strlen(
-					g_pilotRecordMultiplayerTrainingMissionList
-						[listIndex]
+					g_pilot_record_multiplayer_training_mission_list
+						[list_index]
 							.description) -
 				1;
-			for (; awardId > 0; --awardId) {
-				if (g_pilotRecordMultiplayerTrainingMissionList
-					    [listIndex]
-						    .description[awardId] ==
+			for (; award_id > 0; --award_id) {
+				if (g_pilot_record_multiplayer_training_mission_list
+					    [list_index]
+						    .description[award_id] ==
 				    '(') {
-					g_pilotRecordMultiplayerTrainingMissionList
-						[listIndex]
-							.description[awardId] =
+					g_pilot_record_multiplayer_training_mission_list
+						[list_index]
+							.description[award_id] =
 						'\0';
 					break;
 				}
 			}
 		}
-		MissionSetup_LoadMissionList(MISSION_DIRECTORY_MELEES);
-		g_pilotRecordMeleeMissionList = g_missionList;
-		g_pilotRecordMeleeMissionCount = g_missionCount;
-		g_missionList = NULL;
-		for (listIndex = 0; listIndex < g_pilotRecordMeleeMissionCount;
-		     ++listIndex) {
-			awardId =
+		mission_setup_load_mission_list(MISSION_DIRECTORY_MELEES);
+		g_pilot_record_melee_mission_list = g_mission_list;
+		g_pilot_record_melee_mission_count = g_mission_count;
+		g_mission_list = NULL;
+		for (list_index = 0;
+		     list_index < g_pilot_record_melee_mission_count;
+		     ++list_index) {
+			award_id = (int)strlen(g_pilot_record_melee_mission_list
+						       [list_index]
+							       .description) -
+				   1;
+			for (; award_id > 0; --award_id) {
+				if (g_pilot_record_melee_mission_list
+					    [list_index]
+						    .description[award_id] ==
+				    '(') {
+					g_pilot_record_melee_mission_list
+						[list_index]
+							.description[award_id] =
+						'\0';
+					break;
+				}
+			}
+		}
+		mission_setup_load_mission_list(MISSION_DIRECTORY_TOURNAMENTS);
+		g_pilot_record_tournament_mission_list = g_mission_list;
+		g_pilot_record_tournament_mission_count = g_mission_count;
+		g_mission_list = NULL;
+		for (list_index = 0;
+		     list_index < g_pilot_record_tournament_mission_count;
+		     ++list_index) {
+			award_id =
 				(int)strlen(
-					g_pilotRecordMeleeMissionList[listIndex]
-						.description) -
+					g_pilot_record_tournament_mission_list
+						[list_index]
+							.description) -
 				1;
-			for (; awardId > 0; --awardId) {
-				if (g_pilotRecordMeleeMissionList[listIndex]
-					    .description[awardId] == '(') {
-					g_pilotRecordMeleeMissionList[listIndex]
-						.description[awardId] = '\0';
-					break;
-				}
-			}
-		}
-		MissionSetup_LoadMissionList(MISSION_DIRECTORY_TOURNAMENTS);
-		g_pilotRecordTournamentMissionList = g_missionList;
-		g_pilotRecordTournamentMissionCount = g_missionCount;
-		g_missionList = NULL;
-		for (listIndex = 0;
-		     listIndex < g_pilotRecordTournamentMissionCount;
-		     ++listIndex) {
-			awardId = (int)strlen(g_pilotRecordTournamentMissionList
-						      [listIndex]
-							      .description) -
-				  1;
-			for (; awardId > 0; --awardId) {
-				if (g_pilotRecordTournamentMissionList
-					    [listIndex]
-						    .description[awardId] ==
+			for (; award_id > 0; --award_id) {
+				if (g_pilot_record_tournament_mission_list
+					    [list_index]
+						    .description[award_id] ==
 				    '(') {
-					g_pilotRecordTournamentMissionList
-						[listIndex]
-							.description[awardId] =
+					g_pilot_record_tournament_mission_list
+						[list_index]
+							.description[award_id] =
 						'\0';
 					break;
 				}
 			}
 		}
-		MissionSetup_LoadMissionList(
+		mission_setup_load_mission_list(
 			MISSION_DIRECTORY_COMBAT_ENGAGEMENTS);
-		g_pilotRecordSingleplayerCombatMissionList = g_missionList;
-		g_pilotRecordSingleplayerCombatMissionCount = g_missionCount;
-		g_missionList = NULL;
-		for (listIndex = 0;
-		     listIndex < g_pilotRecordSingleplayerCombatMissionCount;
-		     ++listIndex) {
-			awardId =
+		g_pilot_record_singleplayer_combat_mission_list =
+			g_mission_list;
+		g_pilot_record_singleplayer_combat_mission_count =
+			g_mission_count;
+		g_mission_list = NULL;
+		for (list_index = 0;
+		     list_index <
+		     g_pilot_record_singleplayer_combat_mission_count;
+		     ++list_index) {
+			award_id =
 				(int)strlen(
-					g_pilotRecordSingleplayerCombatMissionList
-						[listIndex]
+					g_pilot_record_singleplayer_combat_mission_list
+						[list_index]
 							.description) -
 				1;
-			for (; awardId > 0; --awardId) {
-				if (g_pilotRecordSingleplayerCombatMissionList
-					    [listIndex]
-						    .description[awardId] ==
+			for (; award_id > 0; --award_id) {
+				if (g_pilot_record_singleplayer_combat_mission_list
+					    [list_index]
+						    .description[award_id] ==
 				    '(') {
-					g_pilotRecordSingleplayerCombatMissionList
-						[listIndex]
-							.description[awardId] =
+					g_pilot_record_singleplayer_combat_mission_list
+						[list_index]
+							.description[award_id] =
 						'\0';
 					break;
 				}
 			}
 		}
-		g_frontendMissionSessionMode =
+		g_frontend_mission_session_mode =
 			FRONTEND_MISSION_SESSION_NET_HOST;
-		MissionSetup_LoadMissionList(
+		mission_setup_load_mission_list(
 			MISSION_DIRECTORY_COMBAT_ENGAGEMENTS);
-		g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_NONE;
-		g_pilotRecordMultiplayerCombatMissionList = g_missionList;
-		g_pilotRecordMultiplayerCombatMissionCount = g_missionCount;
-		g_missionList = NULL;
-		for (listIndex = 0;
-		     listIndex < g_pilotRecordMultiplayerCombatMissionCount;
-		     ++listIndex) {
-			awardId =
+		g_frontend_mission_session_mode = FRONTEND_MISSION_SESSION_NONE;
+		g_pilot_record_multiplayer_combat_mission_list = g_mission_list;
+		g_pilot_record_multiplayer_combat_mission_count =
+			g_mission_count;
+		g_mission_list = NULL;
+		for (list_index = 0;
+		     list_index <
+		     g_pilot_record_multiplayer_combat_mission_count;
+		     ++list_index) {
+			award_id =
 				(int)strlen(
-					g_pilotRecordMultiplayerCombatMissionList
-						[listIndex]
+					g_pilot_record_multiplayer_combat_mission_list
+						[list_index]
 							.description) -
 				1;
-			for (; awardId > 0; --awardId) {
-				if (g_pilotRecordMultiplayerCombatMissionList
-					    [listIndex]
-						    .description[awardId] ==
+			for (; award_id > 0; --award_id) {
+				if (g_pilot_record_multiplayer_combat_mission_list
+					    [list_index]
+						    .description[award_id] ==
 				    '(') {
-					g_pilotRecordMultiplayerCombatMissionList
-						[listIndex]
-							.description[awardId] =
+					g_pilot_record_multiplayer_combat_mission_list
+						[list_index]
+							.description[award_id] =
 						'\0';
 					break;
 				}
 			}
 		}
-		MissionSetup_LoadMissionList(MISSION_DIRECTORY_BATTLES);
-		g_battleMissionList = g_missionList;
-		g_battleMissionListCount = g_missionCount;
-		g_missionList = NULL;
-		for (listIndex = 0; listIndex < g_battleMissionListCount;
-		     ++listIndex) {
-			awardId = (int)strlen(g_battleMissionList[listIndex]
-						      .description) -
-				  1;
-			for (; awardId > 0; --awardId) {
-				if (g_battleMissionList[listIndex]
-					    .description[awardId] == '(') {
-					g_battleMissionList[listIndex]
-						.description[awardId] = '\0';
+		mission_setup_load_mission_list(MISSION_DIRECTORY_BATTLES);
+		g_battle_mission_list = g_mission_list;
+		g_battle_mission_list_count = g_mission_count;
+		g_mission_list = NULL;
+		for (list_index = 0; list_index < g_battle_mission_list_count;
+		     ++list_index) {
+			award_id = (int)strlen(g_battle_mission_list[list_index]
+						       .description) -
+				   1;
+			for (; award_id > 0; --award_id) {
+				if (g_battle_mission_list[list_index]
+					    .description[award_id] == '(') {
+					g_battle_mission_list[list_index]
+						.description[award_id] = '\0';
 					break;
 				}
 			}
 		}
-		MissionSetup_LoadMissionList(MISSION_DIRECTORY_CAMPAIGNS);
-		g_pilotRecordSingleplayerCampaignMissionList = g_missionList;
-		g_pilotRecordSingleplayerCampaignMissionCount = g_missionCount;
-		g_missionList = NULL;
-		for (listIndex = 0;
-		     listIndex < g_pilotRecordSingleplayerCampaignMissionCount;
-		     ++listIndex) {
-			awardId =
+		mission_setup_load_mission_list(MISSION_DIRECTORY_CAMPAIGNS);
+		g_pilot_record_singleplayer_campaign_mission_list =
+			g_mission_list;
+		g_pilot_record_singleplayer_campaign_mission_count =
+			g_mission_count;
+		g_mission_list = NULL;
+		for (list_index = 0;
+		     list_index <
+		     g_pilot_record_singleplayer_campaign_mission_count;
+		     ++list_index) {
+			award_id =
 				(int)strlen(
-					g_pilotRecordSingleplayerCampaignMissionList
-						[listIndex]
+					g_pilot_record_singleplayer_campaign_mission_list
+						[list_index]
 							.description) -
 				1;
-			for (; awardId > 0; --awardId) {
-				if (g_pilotRecordSingleplayerCampaignMissionList
-					    [listIndex]
-						    .description[awardId] ==
+			for (; award_id > 0; --award_id) {
+				if (g_pilot_record_singleplayer_campaign_mission_list
+					    [list_index]
+						    .description[award_id] ==
 				    '(') {
-					g_pilotRecordSingleplayerCampaignMissionList
-						[listIndex]
-							.description[awardId] =
+					g_pilot_record_singleplayer_campaign_mission_list
+						[list_index]
+							.description[award_id] =
 						'\0';
 					break;
 				}
 			}
 		}
-		g_frontendMissionSessionMode =
+		g_frontend_mission_session_mode =
 			FRONTEND_MISSION_SESSION_NET_HOST;
-		MissionSetup_LoadMissionList(MISSION_DIRECTORY_CAMPAIGNS);
-		g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_NONE;
-		g_pilotRecordMultiplayerCampaignMissionList = g_missionList;
-		g_pilotRecordMultiplayerCampaignMissionCount = g_missionCount;
-		g_missionList = NULL;
-		for (listIndex = 0;
-		     listIndex < g_pilotRecordMultiplayerCampaignMissionCount;
-		     ++listIndex) {
-			awardId =
+		mission_setup_load_mission_list(MISSION_DIRECTORY_CAMPAIGNS);
+		g_frontend_mission_session_mode = FRONTEND_MISSION_SESSION_NONE;
+		g_pilot_record_multiplayer_campaign_mission_list =
+			g_mission_list;
+		g_pilot_record_multiplayer_campaign_mission_count =
+			g_mission_count;
+		g_mission_list = NULL;
+		for (list_index = 0;
+		     list_index <
+		     g_pilot_record_multiplayer_campaign_mission_count;
+		     ++list_index) {
+			award_id =
 				(int)strlen(
-					g_pilotRecordMultiplayerCampaignMissionList
-						[listIndex]
+					g_pilot_record_multiplayer_campaign_mission_list
+						[list_index]
 							.description) -
 				1;
-			for (; awardId > 0; --awardId) {
-				if (g_pilotRecordMultiplayerCampaignMissionList
-					    [listIndex]
-						    .description[awardId] ==
+			for (; award_id > 0; --award_id) {
+				if (g_pilot_record_multiplayer_campaign_mission_list
+					    [list_index]
+						    .description[award_id] ==
 				    '(') {
-					g_pilotRecordMultiplayerCampaignMissionList
-						[listIndex]
-							.description[awardId] =
+					g_pilot_record_multiplayer_campaign_mission_list
+						[list_index]
+							.description[award_id] =
 						'\0';
 					break;
 				}
 			}
 		}
-		g_pilotAchievementsScrollOffset = 0;
-		g_pilotRecordPagesNeedRebuild = 0;
-		g_pilotRecordPageRowCount = 0;
-		g_pilotSpCampaignHistoryRowCount = 0;
-		g_pilotSpBattleHistoryCount = 0;
-		g_pilotSpTournamentHistoryCount = 0;
-		g_pilotSpTrainingHistoryCount = 0;
-		g_pilotSpCombatHistoryCount = 0;
-		g_pilotSpMeleeHistoryCount = 0;
-		g_pilotMpCampaignHistoryRowCount = 0;
-		g_pilotMpBattleHistoryCount = 0;
-		g_pilotMpTournamentHistoryCount = 0;
-		g_pilotMpTrainingHistoryCount = 0;
-		g_pilotMpCombatHistoryCount = 0;
-		g_pilotMpMeleeHistoryCount = 0;
+		g_pilot_achievements_scroll_offset = 0;
+		g_pilot_record_pages_need_rebuild = 0;
+		g_pilot_record_page_row_count = 0;
+		g_pilot_sp_campaign_history_row_count = 0;
+		g_pilot_sp_battle_history_count = 0;
+		g_pilot_sp_tournament_history_count = 0;
+		g_pilot_sp_training_history_count = 0;
+		g_pilot_sp_combat_history_count = 0;
+		g_pilot_sp_melee_history_count = 0;
+		g_pilot_mp_campaign_history_row_count = 0;
+		g_pilot_mp_battle_history_count = 0;
+		g_pilot_mp_tournament_history_count = 0;
+		g_pilot_mp_training_history_count = 0;
+		g_pilot_mp_combat_history_count = 0;
+		g_pilot_mp_melee_history_count = 0;
 
-		for (listIndex = 0;
-		     listIndex < g_pilotRecordSingleplayerTrainingMissionCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .spTrainingMissions
-					    [g_pilotRecordSingleplayerTrainingMissionList
-						     [listIndex]
-							     .missionIdx]
-				    .numberTimesFlown != 0) {
-				++g_pilotSpTrainingHistoryCount;
+		for (list_index = 0;
+		     list_index <
+		     g_pilot_record_singleplayer_training_mission_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .sp_training_missions
+					    [g_pilot_record_singleplayer_training_mission_list
+						     [list_index]
+							     .mission_idx]
+				    .number_times_flown != 0) {
+				++g_pilot_sp_training_history_count;
 			}
 		}
-		for (listIndex = 0;
-		     listIndex < g_pilotRecordMultiplayerTrainingMissionCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .mpTrainingMissions
-					    [g_pilotRecordMultiplayerTrainingMissionList
-						     [listIndex]
-							     .missionIdx]
-				    .numberTimesFlown != 0) {
-				++g_pilotMpTrainingHistoryCount;
+		for (list_index = 0;
+		     list_index <
+		     g_pilot_record_multiplayer_training_mission_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .mp_training_missions
+					    [g_pilot_record_multiplayer_training_mission_list
+						     [list_index]
+							     .mission_idx]
+				    .number_times_flown != 0) {
+				++g_pilot_mp_training_history_count;
 			}
 		}
-		for (listIndex = 0; listIndex < g_pilotRecordMeleeMissionCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .spMeleeMissions
-					    [g_pilotRecordMeleeMissionList
-						     [listIndex]
-							     .missionIdx]
-				    .numberTimesFlown != 0) {
-				++g_pilotSpMeleeHistoryCount;
+		for (list_index = 0;
+		     list_index < g_pilot_record_melee_mission_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .sp_melee_missions
+					    [g_pilot_record_melee_mission_list
+						     [list_index]
+							     .mission_idx]
+				    .number_times_flown != 0) {
+				++g_pilot_sp_melee_history_count;
 			}
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .mpMeleeMissions
-					    [g_pilotRecordMeleeMissionList
-						     [listIndex]
-							     .missionIdx]
-				    .numberTimesFlown != 0) {
-				++g_pilotMpMeleeHistoryCount;
-			}
-		}
-		for (listIndex = 0;
-		     listIndex < g_pilotRecordSingleplayerCombatMissionCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .spCombatMissions
-					    [g_pilotRecordSingleplayerCombatMissionList
-						     [listIndex]
-							     .missionIdx]
-				    .numberTimesFlown != 0) {
-				++g_pilotSpCombatHistoryCount;
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .mp_melee_missions
+					    [g_pilot_record_melee_mission_list
+						     [list_index]
+							     .mission_idx]
+				    .number_times_flown != 0) {
+				++g_pilot_mp_melee_history_count;
 			}
 		}
-		for (listIndex = 0;
-		     listIndex < g_pilotRecordMultiplayerCombatMissionCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .mpCombatMissions
-					    [g_pilotRecordMultiplayerCombatMissionList
-						     [listIndex]
-							     .missionIdx]
-				    .numberTimesFlown != 0) {
-				++g_pilotMpCombatHistoryCount;
+		for (list_index = 0;
+		     list_index <
+		     g_pilot_record_singleplayer_combat_mission_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .sp_combat_missions
+					    [g_pilot_record_singleplayer_combat_mission_list
+						     [list_index]
+							     .mission_idx]
+				    .number_times_flown != 0) {
+				++g_pilot_sp_combat_history_count;
 			}
 		}
-		for (listIndex = 0;
-		     listIndex < g_pilotRecordTournamentMissionCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .spTournaments
-					    [g_pilotRecordTournamentMissionList
-						     [listIndex]
-							     .missionIdx]
-				    .attemptCount != 0) {
-				++g_pilotSpTournamentHistoryCount;
-			}
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .mpTournaments
-					    [g_pilotRecordTournamentMissionList
-						     [listIndex]
-							     .missionIdx]
-				    .attemptCount != 0) {
-				++g_pilotMpTournamentHistoryCount;
+		for (list_index = 0;
+		     list_index <
+		     g_pilot_record_multiplayer_combat_mission_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .mp_combat_missions
+					    [g_pilot_record_multiplayer_combat_mission_list
+						     [list_index]
+							     .mission_idx]
+				    .number_times_flown != 0) {
+				++g_pilot_mp_combat_history_count;
 			}
 		}
-		for (listIndex = 0; listIndex < g_battleMissionListCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .spBattles[g_battleMissionList[listIndex]
-						       .missionIdx]
-				    .attemptCount != 0) {
-				++g_pilotSpBattleHistoryCount;
+		for (list_index = 0;
+		     list_index < g_pilot_record_tournament_mission_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .sp_tournaments
+					    [g_pilot_record_tournament_mission_list
+						     [list_index]
+							     .mission_idx]
+				    .attempt_count != 0) {
+				++g_pilot_sp_tournament_history_count;
 			}
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .mpBattles[g_battleMissionList[listIndex]
-						       .missionIdx]
-				    .attemptCount != 0) {
-				++g_pilotMpBattleHistoryCount;
-			}
-		}
-		for (listIndex = 0;
-		     listIndex < g_pilotRecordSingleplayerCampaignMissionCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .spCampaigns
-					    [g_pilotRecordSingleplayerCampaignMissionList
-						     [listIndex]
-							     .missionIdx]
-				    .attemptCount != 0) {
-				++g_pilotSpCampaignHistoryRowCount;
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .mp_tournaments
+					    [g_pilot_record_tournament_mission_list
+						     [list_index]
+							     .mission_idx]
+				    .attempt_count != 0) {
+				++g_pilot_mp_tournament_history_count;
 			}
 		}
-		for (listIndex = 0;
-		     listIndex < g_pilotRecordSingleplayerTrainingMissionCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .spCampaignMissions
-					    [g_pilotRecordSingleplayerTrainingMissionList
-						     [listIndex]
-							     .missionIdx -
+		for (list_index = 0; list_index < g_battle_mission_list_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .sp_battles
+					    [g_battle_mission_list[list_index]
+						     .mission_idx]
+				    .attempt_count != 0) {
+				++g_pilot_sp_battle_history_count;
+			}
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .mp_battles
+					    [g_battle_mission_list[list_index]
+						     .mission_idx]
+				    .attempt_count != 0) {
+				++g_pilot_mp_battle_history_count;
+			}
+		}
+		for (list_index = 0;
+		     list_index <
+		     g_pilot_record_singleplayer_campaign_mission_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .sp_campaigns
+					    [g_pilot_record_singleplayer_campaign_mission_list
+						     [list_index]
+							     .mission_idx]
+				    .attempt_count != 0) {
+				++g_pilot_sp_campaign_history_row_count;
+			}
+		}
+		for (list_index = 0;
+		     list_index <
+		     g_pilot_record_singleplayer_training_mission_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .sp_campaign_missions
+					    [g_pilot_record_singleplayer_training_mission_list
+						     [list_index]
+							     .mission_idx -
 					     1]
-				    .numberTimesFlown != 0) {
-				++g_pilotSpCampaignHistoryRowCount;
+				    .number_times_flown != 0) {
+				++g_pilot_sp_campaign_history_row_count;
 			}
 		}
-		for (listIndex = 0;
-		     listIndex < g_pilotRecordMultiplayerCampaignMissionCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .mpCampaigns
-					    [g_pilotRecordMultiplayerCampaignMissionList
-						     [listIndex]
-							     .missionIdx]
-				    .attemptCount != 0) {
-				++g_pilotMpCampaignHistoryRowCount;
+		for (list_index = 0;
+		     list_index <
+		     g_pilot_record_multiplayer_campaign_mission_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .mp_campaigns
+					    [g_pilot_record_multiplayer_campaign_mission_list
+						     [list_index]
+							     .mission_idx]
+				    .attempt_count != 0) {
+				++g_pilot_mp_campaign_history_row_count;
 			}
 		}
-		for (listIndex = 0;
-		     listIndex < g_pilotRecordMultiplayerTrainingMissionCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .mpCampaignMissions
-					    [g_pilotRecordMultiplayerTrainingMissionList
-						     [listIndex]
-							     .missionIdx -
+		for (list_index = 0;
+		     list_index <
+		     g_pilot_record_multiplayer_training_mission_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .mp_campaign_missions
+					    [g_pilot_record_multiplayer_training_mission_list
+						     [list_index]
+							     .mission_idx -
 					     1]
-				    .numberTimesFlown != 0) {
-				++g_pilotMpCampaignHistoryRowCount;
+				    .number_times_flown != 0) {
+				++g_pilot_mp_campaign_history_row_count;
 			}
 		}
-		row = g_pilotSpBattleHistoryCount;
-		row += g_pilotSpTournamentHistoryCount;
-		row += g_pilotMpCampaignHistoryRowCount;
-		row += g_pilotSpTrainingHistoryCount;
-		row += g_pilotMpBattleHistoryCount;
-		row += g_pilotSpCombatHistoryCount;
-		row += g_pilotSpMeleeHistoryCount;
-		row += g_pilotMpTournamentHistoryCount;
-		row += g_pilotMpTrainingHistoryCount;
-		row += g_pilotMpCombatHistoryCount;
-		row += g_pilotMpMeleeHistoryCount;
-		row += g_pilotSpCampaignHistoryRowCount;
-		g_pilotRecordPageRowCount = row;
-		hasPrevious = 0;
-		if (g_pilotSpTrainingHistoryCount != 0) {
-			g_pilotRecordPageRowCount += 2;
-			hasPrevious = 1;
+		row = g_pilot_sp_battle_history_count;
+		row += g_pilot_sp_tournament_history_count;
+		row += g_pilot_mp_campaign_history_row_count;
+		row += g_pilot_sp_training_history_count;
+		row += g_pilot_mp_battle_history_count;
+		row += g_pilot_sp_combat_history_count;
+		row += g_pilot_sp_melee_history_count;
+		row += g_pilot_mp_tournament_history_count;
+		row += g_pilot_mp_training_history_count;
+		row += g_pilot_mp_combat_history_count;
+		row += g_pilot_mp_melee_history_count;
+		row += g_pilot_sp_campaign_history_row_count;
+		g_pilot_record_page_row_count = row;
+		has_previous = 0;
+		if (g_pilot_sp_training_history_count != 0) {
+			g_pilot_record_page_row_count += 2;
+			has_previous = 1;
 		}
-		if (g_pilotSpMeleeHistoryCount != 0) {
-			g_pilotRecordPageRowCount += 2;
-			if (hasPrevious == 1) {
-				++g_pilotRecordPageRowCount;
+		if (g_pilot_sp_melee_history_count != 0) {
+			g_pilot_record_page_row_count += 2;
+			if (has_previous == 1) {
+				++g_pilot_record_page_row_count;
 			}
-			hasPrevious = 1;
+			has_previous = 1;
 		}
-		if (g_pilotSpCombatHistoryCount != 0) {
-			g_pilotRecordPageRowCount += 2;
-			if (hasPrevious == 1) {
-				++g_pilotRecordPageRowCount;
+		if (g_pilot_sp_combat_history_count != 0) {
+			g_pilot_record_page_row_count += 2;
+			if (has_previous == 1) {
+				++g_pilot_record_page_row_count;
 			}
-			hasPrevious = 1;
+			has_previous = 1;
 		}
-		if (g_pilotSpTournamentHistoryCount != 0) {
-			g_pilotRecordPageRowCount += 2;
-			if (hasPrevious == 1) {
-				++g_pilotRecordPageRowCount;
+		if (g_pilot_sp_tournament_history_count != 0) {
+			g_pilot_record_page_row_count += 2;
+			if (has_previous == 1) {
+				++g_pilot_record_page_row_count;
 			}
-			hasPrevious = 1;
+			has_previous = 1;
 		}
-		if (g_pilotSpBattleHistoryCount != 0) {
-			g_pilotRecordPageRowCount += 2;
-			if (hasPrevious == 1) {
-				++g_pilotRecordPageRowCount;
+		if (g_pilot_sp_battle_history_count != 0) {
+			g_pilot_record_page_row_count += 2;
+			if (has_previous == 1) {
+				++g_pilot_record_page_row_count;
 			}
-			hasPrevious = 1;
+			has_previous = 1;
 		}
-		if (g_pilotSpCampaignHistoryRowCount != 0) {
-			g_pilotRecordPageRowCount += 2;
-			if (hasPrevious == 1) {
-				++g_pilotRecordPageRowCount;
+		if (g_pilot_sp_campaign_history_row_count != 0) {
+			g_pilot_record_page_row_count += 2;
+			if (has_previous == 1) {
+				++g_pilot_record_page_row_count;
 			}
-			hasPrevious = 1;
+			has_previous = 1;
 		}
-		if (g_pilotMpTrainingHistoryCount != 0) {
-			g_pilotRecordPageRowCount += 2;
-			if (hasPrevious == 1) {
-				++g_pilotRecordPageRowCount;
+		if (g_pilot_mp_training_history_count != 0) {
+			g_pilot_record_page_row_count += 2;
+			if (has_previous == 1) {
+				++g_pilot_record_page_row_count;
 			}
-			hasPrevious = 1;
+			has_previous = 1;
 		}
-		if (g_pilotMpMeleeHistoryCount != 0) {
-			g_pilotRecordPageRowCount += 2;
-			if (hasPrevious == 1) {
-				++g_pilotRecordPageRowCount;
+		if (g_pilot_mp_melee_history_count != 0) {
+			g_pilot_record_page_row_count += 2;
+			if (has_previous == 1) {
+				++g_pilot_record_page_row_count;
 			}
-			hasPrevious = 1;
+			has_previous = 1;
 		}
-		if (g_pilotMpCombatHistoryCount != 0) {
-			g_pilotRecordPageRowCount += 2;
-			if (hasPrevious == 1) {
-				++g_pilotRecordPageRowCount;
+		if (g_pilot_mp_combat_history_count != 0) {
+			g_pilot_record_page_row_count += 2;
+			if (has_previous == 1) {
+				++g_pilot_record_page_row_count;
 			}
-			hasPrevious = 1;
+			has_previous = 1;
 		}
-		if (g_pilotMpTournamentHistoryCount != 0) {
-			g_pilotRecordPageRowCount += 2;
-			if (hasPrevious == 1) {
-				++g_pilotRecordPageRowCount;
+		if (g_pilot_mp_tournament_history_count != 0) {
+			g_pilot_record_page_row_count += 2;
+			if (has_previous == 1) {
+				++g_pilot_record_page_row_count;
 			}
-			hasPrevious = 1;
+			has_previous = 1;
 		}
-		if (g_pilotMpBattleHistoryCount != 0) {
-			g_pilotRecordPageRowCount += 2;
-			if (hasPrevious == 0) {
-				hasPrevious = 1;
-				++g_pilotRecordPageRowCount;
+		if (g_pilot_mp_battle_history_count != 0) {
+			g_pilot_record_page_row_count += 2;
+			if (has_previous == 0) {
+				has_previous = 1;
+				++g_pilot_record_page_row_count;
 			}
 		}
-		if (g_pilotMpCampaignHistoryRowCount != 0) {
-			g_pilotRecordPageRowCount += 2;
-			if (hasPrevious == 1) {
-				++g_pilotRecordPageRowCount;
+		if (g_pilot_mp_campaign_history_row_count != 0) {
+			g_pilot_record_page_row_count += 2;
+			if (has_previous == 1) {
+				++g_pilot_record_page_row_count;
 			}
 		}
 	}
 
-	FrontendDraw_RectAssign(&rect, MISSION_ACHIEVEMENT_SCROLL_LEFT,
-				MISSION_ACHIEVEMENT_SCROLL_TOP,
-				MISSION_ACHIEVEMENT_SCROLL_RIGHT,
-				MISSION_ACHIEVEMENT_SCROLL_BOTTOM);
-	if (g_pilotRecordPageRowCount > MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-		g_pilotAchievementsScrollOffset = FrontendScrollbar_Draw(
-			&rect, g_pilotAchievementsScrollOffset,
-			g_pilotRecordPageRowCount, 0,
-			MISSION_ACHIEVEMENT_SCROLL_PAGE_STEP, g_colorNavy,
+	frontend_draw_rect_assign(&rect, MISSION_ACHIEVEMENT_SCROLL_LEFT,
+				  MISSION_ACHIEVEMENT_SCROLL_TOP,
+				  MISSION_ACHIEVEMENT_SCROLL_RIGHT,
+				  MISSION_ACHIEVEMENT_SCROLL_BOTTOM);
+	if (g_pilot_record_page_row_count > MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
+		g_pilot_achievements_scroll_offset = frontend_scrollbar_draw(
+			&rect, g_pilot_achievements_scroll_offset,
+			g_pilot_record_page_row_count, 0,
+			MISSION_ACHIEVEMENT_SCROLL_PAGE_STEP, g_color_navy,
 			MISSION_ACHIEVEMENT_SCROLL_CONTROL_ID);
 	}
 
 	row = 0;
 	y = MISSION_ACHIEVEMENT_FIRST_Y;
-	hasPrevious = 0;
-	if (g_pilotSpTrainingHistoryCount != 0) {
-		if (hasPrevious != 0) {
-			if (g_pilotAchievementsScrollOffset <= row &&
-			    row - g_pilotAchievementsScrollOffset <
+	has_previous = 0;
+	if (g_pilot_sp_training_history_count != 0) {
+		if (has_previous != 0) {
+			if (g_pilot_achievements_scroll_offset <= row &&
+			    row - g_pilot_achievements_scroll_offset <
 				    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 				y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 			}
 			++row;
 		}
-		hasPrevious = 1;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		has_previous = 1;
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-			FrontendText_Draw(
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_451_SINGLE_PLAYER),
-				MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
-			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
-					  FrontendString_Get(FRONTSTR_459_BEST),
-					  MISSION_ACHIEVEMENT_SCORE_X, y,
-					  g_colorYellow);
-			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
-					  FrontendString_Get(FRONTSTR_459_BEST),
-					  MISSION_ACHIEVEMENT_DETAIL_X, y,
-					  g_colorYellow);
+				frontend_string_get(FRONTSTR_451_SINGLE_PLAYER),
+				MISSION_ACHIEVEMENT_HEADER_X, y,
+				g_color_yellow);
+			frontend_text_draw(
+				MISSION_ACHIEVEMENT_FONT_SIZE,
+				frontend_string_get(FRONTSTR_459_BEST),
+				MISSION_ACHIEVEMENT_SCORE_X, y, g_color_yellow);
+			frontend_text_draw(
+				MISSION_ACHIEVEMENT_FONT_SIZE,
+				frontend_string_get(FRONTSTR_459_BEST),
+				MISSION_ACHIEVEMENT_DETAIL_X, y,
+				g_color_yellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-			FrontendText_Draw(
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(
+				frontend_string_get(
 					FRONTSTR_453_TRAINING_HISTORY),
-				MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
-			FrontendText_Draw(
+				MISSION_ACHIEVEMENT_HEADER_X, y,
+				g_color_yellow);
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_460_SCORE),
-				MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
-			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
-					  FrontendString_Get(FRONTSTR_461_TIME),
-					  MISSION_ACHIEVEMENT_DETAIL_X, y,
-					  g_colorYellow);
+				frontend_string_get(FRONTSTR_460_SCORE),
+				MISSION_ACHIEVEMENT_SCORE_X, y, g_color_yellow);
+			frontend_text_draw(
+				MISSION_ACHIEVEMENT_FONT_SIZE,
+				frontend_string_get(FRONTSTR_461_TIME),
+				MISSION_ACHIEVEMENT_DETAIL_X, y,
+				g_color_yellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		for (listIndex = 0;
-		     listIndex < g_pilotRecordSingleplayerTrainingMissionCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .spTrainingMissions
-					    [g_pilotRecordSingleplayerTrainingMissionList
-						     [listIndex]
-							     .missionIdx]
-				    .numberTimesFlown != 0) {
-				if (g_pilotAchievementsScrollOffset <= row &&
-				    row - g_pilotAchievementsScrollOffset <
+		for (list_index = 0;
+		     list_index <
+		     g_pilot_record_singleplayer_training_mission_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .sp_training_missions
+					    [g_pilot_record_singleplayer_training_mission_list
+						     [list_index]
+							     .mission_idx]
+				    .number_times_flown != 0) {
+				if (g_pilot_achievements_scroll_offset <= row &&
+				    row - g_pilot_achievements_scroll_offset <
 					    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-					FrontendDisplay_GetScreenClipRect(
-						&previousClipRect);
-					FrontendDraw_RectAssign(
+					frontend_display_get_screen_clip_rect(
+						&previous_clip_rect);
+					frontend_draw_rect_assign(
 						&rect,
 						MISSION_ACHIEVEMENT_TEXT_X, y,
 						MISSION_ACHIEVEMENT_TEXT_RIGHT,
 						y + MISSION_ACHIEVEMENT_ROW_HEIGHT);
-					FrontendDisplay_SetScreenClipRect640x480(
+					frontend_display_set_screen_clip_rect640x480(
 						&rect);
-					drawFlags = FrontendText_Draw(
+					draw_flags = frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_pilotRecordSingleplayerTrainingMissionList
-							[listIndex]
+						g_pilot_record_singleplayer_training_mission_list
+							[list_index]
 								.description,
 						MISSION_ACHIEVEMENT_TEXT_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
-					FrontendDisplay_SetScreenClipRect640x480(
-						&previousClipRect);
-					if ((drawFlags &
+					frontend_display_set_screen_clip_rect640x480(
+						&previous_clip_rect);
+					if ((draw_flags &
 					     MISSION_ACHIEVEMENT_TEXT_TRUNCATED_FLAG) !=
 					    0) {
-						FrontendText_Draw(
+						frontend_text_draw(
 							MISSION_ACHIEVEMENT_FONT_SIZE,
 							"....",
 							MISSION_ACHIEVEMENT_TEXT_RIGHT,
 							y,
 							MISSION_ACHIEVEMENT_TEXT_COLOR);
 					}
-					sprintf(g_frontendScratchBuffer, "%d",
-						g_pilotData
-							.factionStatistics
-								[g_pilotData
-									 .currentFactionId]
-							.spTrainingMissions
-								[g_pilotRecordSingleplayerTrainingMissionList
-									 [listIndex]
-										 .missionIdx]
-							.bestScore);
-					FrontendText_Draw(
+					sprintf(g_frontend_scratch_buffer, "%d",
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.sp_training_missions
+								[g_pilot_record_singleplayer_training_mission_list
+									 [list_index]
+										 .mission_idx]
+							.best_score);
+					frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_frontendScratchBuffer,
+						g_frontend_scratch_buffer,
 						MISSION_ACHIEVEMENT_SCORE_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
-					if (g_pilotData
-						    .factionStatistics
-							    [g_pilotData
-								     .currentFactionId]
-						    .spTrainingMissions
-							    [g_pilotRecordSingleplayerTrainingMissionList
-								     [listIndex]
-									     .missionIdx]
-						    .bestTime == 0) {
-						strcpy(g_frontendScratchBuffer,
-						       FrontendString_Get(
+					if (g_pilot_data
+						    .faction_statistics
+							    [g_pilot_data
+								     .current_faction_id]
+						    .sp_training_missions
+							    [g_pilot_record_singleplayer_training_mission_list
+								     [list_index]
+									     .mission_idx]
+						    .best_time == 0) {
+						strcpy(g_frontend_scratch_buffer,
+						       frontend_string_get(
 							       FRONTSTR_535_DASH_PLACEHOLDER));
 					} else {
-						Frontend_FormatSecondsToClockString(
-							g_pilotData
-								.factionStatistics
-									[g_pilotData
-										 .currentFactionId]
-								.spTrainingMissions
-									[g_pilotRecordSingleplayerTrainingMissionList
-										 [listIndex]
-											 .missionIdx]
-								.bestTime);
+						frontend_format_seconds_to_clock_string(
+							g_pilot_data
+								.faction_statistics
+									[g_pilot_data
+										 .current_faction_id]
+								.sp_training_missions
+									[g_pilot_record_singleplayer_training_mission_list
+										 [list_index]
+											 .mission_idx]
+								.best_time);
 					}
-					FrontendText_Draw(
+					frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_frontendScratchBuffer,
+						g_frontend_scratch_buffer,
 						MISSION_ACHIEVEMENT_DETAIL_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
 					y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
@@ -3165,137 +3291,142 @@ int PilotRecord_DrawMissionAchievementsPage(void)
 			}
 		}
 	}
-	if (g_pilotSpMeleeHistoryCount != 0) {
-		if (hasPrevious != 0) {
-			if (g_pilotAchievementsScrollOffset <= row &&
-			    row - g_pilotAchievementsScrollOffset <
+	if (g_pilot_sp_melee_history_count != 0) {
+		if (has_previous != 0) {
+			if (g_pilot_achievements_scroll_offset <= row &&
+			    row - g_pilot_achievements_scroll_offset <
 				    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 				y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 			}
 			++row;
 		}
-		hasPrevious = 1;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		has_previous = 1;
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-			FrontendText_Draw(
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_451_SINGLE_PLAYER),
-				MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
-			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
-					  FrontendString_Get(FRONTSTR_459_BEST),
-					  MISSION_ACHIEVEMENT_SCORE_X, y,
-					  g_colorYellow);
-			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
-					  FrontendString_Get(FRONTSTR_459_BEST),
-					  MISSION_ACHIEVEMENT_DETAIL_X, y,
-					  g_colorYellow);
+				frontend_string_get(FRONTSTR_451_SINGLE_PLAYER),
+				MISSION_ACHIEVEMENT_HEADER_X, y,
+				g_color_yellow);
+			frontend_text_draw(
+				MISSION_ACHIEVEMENT_FONT_SIZE,
+				frontend_string_get(FRONTSTR_459_BEST),
+				MISSION_ACHIEVEMENT_SCORE_X, y, g_color_yellow);
+			frontend_text_draw(
+				MISSION_ACHIEVEMENT_FONT_SIZE,
+				frontend_string_get(FRONTSTR_459_BEST),
+				MISSION_ACHIEVEMENT_DETAIL_X, y,
+				g_color_yellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-			FrontendText_Draw(
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_454_MELEE_HISTORY),
-				MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
-			FrontendText_Draw(
+				frontend_string_get(FRONTSTR_454_MELEE_HISTORY),
+				MISSION_ACHIEVEMENT_HEADER_X, y,
+				g_color_yellow);
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_460_SCORE),
-				MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
-			FrontendText_Draw(
+				frontend_string_get(FRONTSTR_460_SCORE),
+				MISSION_ACHIEVEMENT_SCORE_X, y, g_color_yellow);
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_462_FINISH),
-				MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorYellow);
+				frontend_string_get(FRONTSTR_462_FINISH),
+				MISSION_ACHIEVEMENT_DETAIL_X, y,
+				g_color_yellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		for (listIndex = 0; listIndex < g_pilotRecordMeleeMissionCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .spMeleeMissions
-					    [g_pilotRecordMeleeMissionList
-						     [listIndex]
-							     .missionIdx]
-				    .numberTimesFlown != 0) {
-				if (g_pilotAchievementsScrollOffset <= row &&
-				    row - g_pilotAchievementsScrollOffset <
+		for (list_index = 0;
+		     list_index < g_pilot_record_melee_mission_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .sp_melee_missions
+					    [g_pilot_record_melee_mission_list
+						     [list_index]
+							     .mission_idx]
+				    .number_times_flown != 0) {
+				if (g_pilot_achievements_scroll_offset <= row &&
+				    row - g_pilot_achievements_scroll_offset <
 					    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-					FrontendDisplay_GetScreenClipRect(
-						&previousClipRect);
-					FrontendDraw_RectAssign(
+					frontend_display_get_screen_clip_rect(
+						&previous_clip_rect);
+					frontend_draw_rect_assign(
 						&rect,
 						MISSION_ACHIEVEMENT_TEXT_X, y,
 						MISSION_ACHIEVEMENT_TEXT_RIGHT,
 						y + MISSION_ACHIEVEMENT_ROW_HEIGHT);
-					FrontendDisplay_SetScreenClipRect640x480(
+					frontend_display_set_screen_clip_rect640x480(
 						&rect);
-					drawFlags = FrontendText_Draw(
+					draw_flags = frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_pilotRecordMeleeMissionList
-							[listIndex]
+						g_pilot_record_melee_mission_list
+							[list_index]
 								.description,
 						MISSION_ACHIEVEMENT_TEXT_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
-					FrontendDisplay_SetScreenClipRect640x480(
-						&previousClipRect);
-					if ((drawFlags &
+					frontend_display_set_screen_clip_rect640x480(
+						&previous_clip_rect);
+					if ((draw_flags &
 					     MISSION_ACHIEVEMENT_TEXT_TRUNCATED_FLAG) !=
 					    0) {
-						FrontendText_Draw(
+						frontend_text_draw(
 							MISSION_ACHIEVEMENT_FONT_SIZE,
 							"....",
 							MISSION_ACHIEVEMENT_TEXT_RIGHT,
 							y,
 							MISSION_ACHIEVEMENT_TEXT_COLOR);
 					}
-					sprintf(g_frontendScratchBuffer, "%d",
-						g_pilotData
-							.factionStatistics
-								[g_pilotData
-									 .currentFactionId]
-							.spMeleeMissions
-								[g_pilotRecordMeleeMissionList
-									 [listIndex]
-										 .missionIdx]
-							.bestScore);
-					FrontendText_Draw(
+					sprintf(g_frontend_scratch_buffer, "%d",
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.sp_melee_missions
+								[g_pilot_record_melee_mission_list
+									 [list_index]
+										 .mission_idx]
+							.best_score);
+					frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_frontendScratchBuffer,
+						g_frontend_scratch_buffer,
 						MISSION_ACHIEVEMENT_SCORE_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
-					if (g_pilotData
-						    .factionStatistics
-							    [g_pilotData
-								     .currentFactionId]
-						    .spMeleeMissions
-							    [g_pilotRecordMeleeMissionList
-								     [listIndex]
-									     .missionIdx]
-						    .bestPlacement != 0) {
-						sprintf(g_frontendScratchBuffer,
+					if (g_pilot_data
+						    .faction_statistics
+							    [g_pilot_data
+								     .current_faction_id]
+						    .sp_melee_missions
+							    [g_pilot_record_melee_mission_list
+								     [list_index]
+									     .mission_idx]
+						    .best_placement != 0) {
+						sprintf(g_frontend_scratch_buffer,
 							"%s",
-							FrontendString_Get((
-								FrontendStringId)(g_pilotData
-											  .factionStatistics
-												  [g_pilotData
-													   .currentFactionId]
-											  .spMeleeMissions
-												  [g_pilotRecordMeleeMissionList
-													   [listIndex]
-														   .missionIdx]
-											  .bestPlacement +
-										  317)));
+							frontend_string_get((
+								frontend_string_id)(g_pilot_data
+											    .faction_statistics
+												    [g_pilot_data
+													     .current_faction_id]
+											    .sp_melee_missions
+												    [g_pilot_record_melee_mission_list
+													     [list_index]
+														     .mission_idx]
+											    .best_placement +
+										    317)));
 					} else {
-						sprintf(g_frontendScratchBuffer,
+						sprintf(g_frontend_scratch_buffer,
 							"---");
 					}
-					FrontendText_Draw(
+					frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_frontendScratchBuffer,
+						g_frontend_scratch_buffer,
 						MISSION_ACHIEVEMENT_DETAIL_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
 					y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
@@ -3304,139 +3435,143 @@ int PilotRecord_DrawMissionAchievementsPage(void)
 			}
 		}
 	}
-	if (g_pilotSpTournamentHistoryCount != 0) {
-		if (hasPrevious != 0) {
-			if (g_pilotAchievementsScrollOffset <= row &&
-			    row - g_pilotAchievementsScrollOffset <
+	if (g_pilot_sp_tournament_history_count != 0) {
+		if (has_previous != 0) {
+			if (g_pilot_achievements_scroll_offset <= row &&
+			    row - g_pilot_achievements_scroll_offset <
 				    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 				y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 			}
 			++row;
 		}
-		hasPrevious = 1;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		has_previous = 1;
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-			FrontendText_Draw(
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_451_SINGLE_PLAYER),
-				MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
-			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
-					  FrontendString_Get(FRONTSTR_459_BEST),
-					  MISSION_ACHIEVEMENT_SCORE_X, y,
-					  g_colorYellow);
-			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
-					  FrontendString_Get(FRONTSTR_459_BEST),
-					  MISSION_ACHIEVEMENT_DETAIL_X, y,
-					  g_colorYellow);
+				frontend_string_get(FRONTSTR_451_SINGLE_PLAYER),
+				MISSION_ACHIEVEMENT_HEADER_X, y,
+				g_color_yellow);
+			frontend_text_draw(
+				MISSION_ACHIEVEMENT_FONT_SIZE,
+				frontend_string_get(FRONTSTR_459_BEST),
+				MISSION_ACHIEVEMENT_SCORE_X, y, g_color_yellow);
+			frontend_text_draw(
+				MISSION_ACHIEVEMENT_FONT_SIZE,
+				frontend_string_get(FRONTSTR_459_BEST),
+				MISSION_ACHIEVEMENT_DETAIL_X, y,
+				g_color_yellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-			FrontendText_Draw(
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(
+				frontend_string_get(
 					FRONTSTR_456_TOURNAMENT_HISTORY),
-				MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
-			FrontendText_Draw(
+				MISSION_ACHIEVEMENT_HEADER_X, y,
+				g_color_yellow);
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_460_SCORE),
-				MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
-			FrontendText_Draw(
+				frontend_string_get(FRONTSTR_460_SCORE),
+				MISSION_ACHIEVEMENT_SCORE_X, y, g_color_yellow);
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_462_FINISH),
-				MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorYellow);
+				frontend_string_get(FRONTSTR_462_FINISH),
+				MISSION_ACHIEVEMENT_DETAIL_X, y,
+				g_color_yellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		for (listIndex = 0;
-		     listIndex < g_pilotRecordTournamentMissionCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .spTournaments
-					    [g_pilotRecordTournamentMissionList
-						     [listIndex]
-							     .missionIdx]
-				    .attemptCount != 0) {
-				if (g_pilotAchievementsScrollOffset <= row &&
-				    row - g_pilotAchievementsScrollOffset <
+		for (list_index = 0;
+		     list_index < g_pilot_record_tournament_mission_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .sp_tournaments
+					    [g_pilot_record_tournament_mission_list
+						     [list_index]
+							     .mission_idx]
+				    .attempt_count != 0) {
+				if (g_pilot_achievements_scroll_offset <= row &&
+				    row - g_pilot_achievements_scroll_offset <
 					    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-					FrontendDisplay_GetScreenClipRect(
-						&previousClipRect);
-					FrontendDraw_RectAssign(
+					frontend_display_get_screen_clip_rect(
+						&previous_clip_rect);
+					frontend_draw_rect_assign(
 						&rect,
 						MISSION_ACHIEVEMENT_TEXT_X, y,
 						MISSION_ACHIEVEMENT_TEXT_RIGHT,
 						y + MISSION_ACHIEVEMENT_ROW_HEIGHT);
-					FrontendDisplay_SetScreenClipRect640x480(
+					frontend_display_set_screen_clip_rect640x480(
 						&rect);
-					drawFlags = FrontendText_Draw(
+					draw_flags = frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_pilotRecordTournamentMissionList
-							[listIndex]
+						g_pilot_record_tournament_mission_list
+							[list_index]
 								.description,
 						MISSION_ACHIEVEMENT_TEXT_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
-					FrontendDisplay_SetScreenClipRect640x480(
-						&previousClipRect);
-					if ((drawFlags &
+					frontend_display_set_screen_clip_rect640x480(
+						&previous_clip_rect);
+					if ((draw_flags &
 					     MISSION_ACHIEVEMENT_TEXT_TRUNCATED_FLAG) !=
 					    0) {
-						FrontendText_Draw(
+						frontend_text_draw(
 							MISSION_ACHIEVEMENT_FONT_SIZE,
 							"...",
 							MISSION_ACHIEVEMENT_TEXT_RIGHT,
 							y,
 							MISSION_ACHIEVEMENT_TEXT_COLOR);
 					}
-					sprintf(g_frontendScratchBuffer, "%d",
-						g_pilotData
-							.factionStatistics
-								[g_pilotData
-									 .currentFactionId]
-							.spTournaments
-								[g_pilotRecordTournamentMissionList
-									 [listIndex]
-										 .missionIdx]
-							.bestScore);
-					FrontendText_Draw(
+					sprintf(g_frontend_scratch_buffer, "%d",
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.sp_tournaments
+								[g_pilot_record_tournament_mission_list
+									 [list_index]
+										 .mission_idx]
+							.best_score);
+					frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_frontendScratchBuffer,
+						g_frontend_scratch_buffer,
 						MISSION_ACHIEVEMENT_SCORE_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
-					if (g_pilotData
-						    .factionStatistics
-							    [g_pilotData
-								     .currentFactionId]
-						    .spTournaments
-							    [g_pilotRecordTournamentMissionList
-								     [listIndex]
-									     .missionIdx]
-						    .bestPlacement != 0) {
-						sprintf(g_frontendScratchBuffer,
+					if (g_pilot_data
+						    .faction_statistics
+							    [g_pilot_data
+								     .current_faction_id]
+						    .sp_tournaments
+							    [g_pilot_record_tournament_mission_list
+								     [list_index]
+									     .mission_idx]
+						    .best_placement != 0) {
+						sprintf(g_frontend_scratch_buffer,
 							"%s",
-							FrontendString_Get((
-								FrontendStringId)(g_pilotData
-											  .factionStatistics
-												  [g_pilotData
-													   .currentFactionId]
-											  .spTournaments
-												  [g_pilotRecordTournamentMissionList
-													   [listIndex]
-														   .missionIdx]
-											  .bestPlacement +
-										  317)));
+							frontend_string_get((
+								frontend_string_id)(g_pilot_data
+											    .faction_statistics
+												    [g_pilot_data
+													     .current_faction_id]
+											    .sp_tournaments
+												    [g_pilot_record_tournament_mission_list
+													     [list_index]
+														     .mission_idx]
+											    .best_placement +
+										    317)));
 					} else {
-						sprintf(g_frontendScratchBuffer,
+						sprintf(g_frontend_scratch_buffer,
 							"---");
 					}
-					FrontendText_Draw(
+					frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_frontendScratchBuffer,
+						g_frontend_scratch_buffer,
 						MISSION_ACHIEVEMENT_DETAIL_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
 					y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
@@ -3445,136 +3580,141 @@ int PilotRecord_DrawMissionAchievementsPage(void)
 			}
 		}
 	}
-	if (g_pilotSpCombatHistoryCount != 0) {
-		if (hasPrevious != 0) {
-			if (g_pilotAchievementsScrollOffset <= row &&
-			    row - g_pilotAchievementsScrollOffset <
+	if (g_pilot_sp_combat_history_count != 0) {
+		if (has_previous != 0) {
+			if (g_pilot_achievements_scroll_offset <= row &&
+			    row - g_pilot_achievements_scroll_offset <
 				    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 				y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 			}
 			++row;
 		}
-		hasPrevious = 1;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		has_previous = 1;
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-			FrontendText_Draw(
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_451_SINGLE_PLAYER),
-				MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
-			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
-					  FrontendString_Get(FRONTSTR_459_BEST),
-					  MISSION_ACHIEVEMENT_SCORE_X, y,
-					  g_colorYellow);
-			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
-					  FrontendString_Get(FRONTSTR_459_BEST),
-					  MISSION_ACHIEVEMENT_DETAIL_X, y,
-					  g_colorYellow);
+				frontend_string_get(FRONTSTR_451_SINGLE_PLAYER),
+				MISSION_ACHIEVEMENT_HEADER_X, y,
+				g_color_yellow);
+			frontend_text_draw(
+				MISSION_ACHIEVEMENT_FONT_SIZE,
+				frontend_string_get(FRONTSTR_459_BEST),
+				MISSION_ACHIEVEMENT_SCORE_X, y, g_color_yellow);
+			frontend_text_draw(
+				MISSION_ACHIEVEMENT_FONT_SIZE,
+				frontend_string_get(FRONTSTR_459_BEST),
+				MISSION_ACHIEVEMENT_DETAIL_X, y,
+				g_color_yellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-			FrontendText_Draw(
+			frontend_text_draw(MISSION_ACHIEVEMENT_FONT_SIZE,
+					   frontend_string_get(
+						   FRONTSTR_455_COMBAT_HISTORY),
+					   MISSION_ACHIEVEMENT_HEADER_X, y,
+					   g_color_yellow);
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_455_COMBAT_HISTORY),
-				MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
-			FrontendText_Draw(
+				frontend_string_get(FRONTSTR_460_SCORE),
+				MISSION_ACHIEVEMENT_SCORE_X, y, g_color_yellow);
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_460_SCORE),
-				MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
-			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
-					  FrontendString_Get(FRONTSTR_461_TIME),
-					  MISSION_ACHIEVEMENT_DETAIL_X, y,
-					  g_colorYellow);
+				frontend_string_get(FRONTSTR_461_TIME),
+				MISSION_ACHIEVEMENT_DETAIL_X, y,
+				g_color_yellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		for (listIndex = 0;
-		     listIndex < g_pilotRecordSingleplayerCombatMissionCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .spCombatMissions
-					    [g_pilotRecordSingleplayerCombatMissionList
-						     [listIndex]
-							     .missionIdx]
-				    .numberTimesFlown != 0) {
-				if (g_pilotAchievementsScrollOffset <= row &&
-				    row - g_pilotAchievementsScrollOffset <
+		for (list_index = 0;
+		     list_index <
+		     g_pilot_record_singleplayer_combat_mission_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .sp_combat_missions
+					    [g_pilot_record_singleplayer_combat_mission_list
+						     [list_index]
+							     .mission_idx]
+				    .number_times_flown != 0) {
+				if (g_pilot_achievements_scroll_offset <= row &&
+				    row - g_pilot_achievements_scroll_offset <
 					    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-					FrontendDisplay_GetScreenClipRect(
-						&previousClipRect);
-					FrontendDraw_RectAssign(
+					frontend_display_get_screen_clip_rect(
+						&previous_clip_rect);
+					frontend_draw_rect_assign(
 						&rect,
 						MISSION_ACHIEVEMENT_TEXT_X, y,
 						MISSION_ACHIEVEMENT_TEXT_RIGHT,
 						y + MISSION_ACHIEVEMENT_ROW_HEIGHT);
-					FrontendDisplay_SetScreenClipRect640x480(
+					frontend_display_set_screen_clip_rect640x480(
 						&rect);
-					drawFlags = FrontendText_Draw(
+					draw_flags = frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_pilotRecordSingleplayerCombatMissionList
-							[listIndex]
+						g_pilot_record_singleplayer_combat_mission_list
+							[list_index]
 								.description,
 						MISSION_ACHIEVEMENT_TEXT_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
-					FrontendDisplay_SetScreenClipRect640x480(
-						&previousClipRect);
-					if ((drawFlags &
+					frontend_display_set_screen_clip_rect640x480(
+						&previous_clip_rect);
+					if ((draw_flags &
 					     MISSION_ACHIEVEMENT_TEXT_TRUNCATED_FLAG) !=
 					    0) {
-						FrontendText_Draw(
+						frontend_text_draw(
 							MISSION_ACHIEVEMENT_FONT_SIZE,
 							"...",
 							MISSION_ACHIEVEMENT_TEXT_RIGHT,
 							y,
 							MISSION_ACHIEVEMENT_TEXT_COLOR);
 					}
-					sprintf(g_frontendScratchBuffer, "%d",
-						g_pilotData
-							.factionStatistics
-								[g_pilotData
-									 .currentFactionId]
-							.spCombatMissions
-								[g_pilotRecordSingleplayerCombatMissionList
-									 [listIndex]
-										 .missionIdx]
-							.bestScore);
-					FrontendText_Draw(
+					sprintf(g_frontend_scratch_buffer, "%d",
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.sp_combat_missions
+								[g_pilot_record_singleplayer_combat_mission_list
+									 [list_index]
+										 .mission_idx]
+							.best_score);
+					frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_frontendScratchBuffer,
+						g_frontend_scratch_buffer,
 						MISSION_ACHIEVEMENT_SCORE_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
-					if (g_pilotData
-						    .factionStatistics
-							    [g_pilotData
-								     .currentFactionId]
-						    .spCombatMissions
-							    [g_pilotRecordSingleplayerCombatMissionList
-								     [listIndex]
-									     .missionIdx]
-						    .bestTime == 0) {
-						strcpy(g_frontendScratchBuffer,
-						       FrontendString_Get(
+					if (g_pilot_data
+						    .faction_statistics
+							    [g_pilot_data
+								     .current_faction_id]
+						    .sp_combat_missions
+							    [g_pilot_record_singleplayer_combat_mission_list
+								     [list_index]
+									     .mission_idx]
+						    .best_time == 0) {
+						strcpy(g_frontend_scratch_buffer,
+						       frontend_string_get(
 							       FRONTSTR_535_DASH_PLACEHOLDER));
 					} else {
-						Frontend_FormatSecondsToClockString(
-							g_pilotData
-								.factionStatistics
-									[g_pilotData
-										 .currentFactionId]
-								.spCombatMissions
-									[g_pilotRecordSingleplayerCombatMissionList
-										 [listIndex]
-											 .missionIdx]
-								.bestTime);
+						frontend_format_seconds_to_clock_string(
+							g_pilot_data
+								.faction_statistics
+									[g_pilot_data
+										 .current_faction_id]
+								.sp_combat_missions
+									[g_pilot_record_singleplayer_combat_mission_list
+										 [list_index]
+											 .mission_idx]
+								.best_time);
 					}
-					FrontendText_Draw(
+					frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_frontendScratchBuffer,
+						g_frontend_scratch_buffer,
 						MISSION_ACHIEVEMENT_DETAIL_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
 					y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
@@ -3583,134 +3723,140 @@ int PilotRecord_DrawMissionAchievementsPage(void)
 			}
 		}
 	}
-	if (g_pilotSpBattleHistoryCount != 0) {
-		if (hasPrevious != 0) {
-			if (g_pilotAchievementsScrollOffset <= row &&
-			    row - g_pilotAchievementsScrollOffset <
+	if (g_pilot_sp_battle_history_count != 0) {
+		if (has_previous != 0) {
+			if (g_pilot_achievements_scroll_offset <= row &&
+			    row - g_pilot_achievements_scroll_offset <
 				    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 				y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 			}
 			++row;
 		}
-		hasPrevious = 1;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		has_previous = 1;
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-			FrontendText_Draw(
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_451_SINGLE_PLAYER),
-				MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
-			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
-					  FrontendString_Get(FRONTSTR_459_BEST),
-					  MISSION_ACHIEVEMENT_SCORE_X, y,
-					  g_colorYellow);
-			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
-					  FrontendString_Get(FRONTSTR_459_BEST),
-					  MISSION_ACHIEVEMENT_DETAIL_X, y,
-					  g_colorYellow);
+				frontend_string_get(FRONTSTR_451_SINGLE_PLAYER),
+				MISSION_ACHIEVEMENT_HEADER_X, y,
+				g_color_yellow);
+			frontend_text_draw(
+				MISSION_ACHIEVEMENT_FONT_SIZE,
+				frontend_string_get(FRONTSTR_459_BEST),
+				MISSION_ACHIEVEMENT_SCORE_X, y, g_color_yellow);
+			frontend_text_draw(
+				MISSION_ACHIEVEMENT_FONT_SIZE,
+				frontend_string_get(FRONTSTR_459_BEST),
+				MISSION_ACHIEVEMENT_DETAIL_X, y,
+				g_color_yellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-			FrontendText_Draw(
+			frontend_text_draw(MISSION_ACHIEVEMENT_FONT_SIZE,
+					   frontend_string_get(
+						   FRONTSTR_457_BATTLE_HISTORY),
+					   MISSION_ACHIEVEMENT_HEADER_X, y,
+					   g_color_yellow);
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_457_BATTLE_HISTORY),
-				MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
-			FrontendText_Draw(
+				frontend_string_get(FRONTSTR_460_SCORE),
+				MISSION_ACHIEVEMENT_SCORE_X, y, g_color_yellow);
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_460_SCORE),
-				MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
-			FrontendText_Draw(
-				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_718_MARGIN),
-				MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorYellow);
+				frontend_string_get(FRONTSTR_718_MARGIN),
+				MISSION_ACHIEVEMENT_DETAIL_X, y,
+				g_color_yellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		for (listIndex = 0; listIndex < g_battleMissionListCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .spBattles[g_battleMissionList[listIndex]
-						       .missionIdx]
-				    .attemptCount != 0) {
-				if (g_pilotAchievementsScrollOffset <= row &&
-				    row - g_pilotAchievementsScrollOffset <
+		for (list_index = 0; list_index < g_battle_mission_list_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .sp_battles
+					    [g_battle_mission_list[list_index]
+						     .mission_idx]
+				    .attempt_count != 0) {
+				if (g_pilot_achievements_scroll_offset <= row &&
+				    row - g_pilot_achievements_scroll_offset <
 					    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-					FrontendDisplay_GetScreenClipRect(
-						&previousClipRect);
-					FrontendDraw_RectAssign(
+					frontend_display_get_screen_clip_rect(
+						&previous_clip_rect);
+					frontend_draw_rect_assign(
 						&rect,
 						MISSION_ACHIEVEMENT_TEXT_X, y,
 						MISSION_ACHIEVEMENT_TEXT_RIGHT,
 						y + MISSION_ACHIEVEMENT_ROW_HEIGHT);
-					FrontendDisplay_SetScreenClipRect640x480(
+					frontend_display_set_screen_clip_rect640x480(
 						&rect);
-					drawFlags = FrontendText_Draw(
+					draw_flags = frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_battleMissionList[listIndex]
-							.description,
+						g_battle_mission_list
+							[list_index]
+								.description,
 						MISSION_ACHIEVEMENT_TEXT_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
-					FrontendDisplay_SetScreenClipRect640x480(
-						&previousClipRect);
-					if ((drawFlags &
+					frontend_display_set_screen_clip_rect640x480(
+						&previous_clip_rect);
+					if ((draw_flags &
 					     MISSION_ACHIEVEMENT_TEXT_TRUNCATED_FLAG) !=
 					    0) {
-						FrontendText_Draw(
+						frontend_text_draw(
 							MISSION_ACHIEVEMENT_FONT_SIZE,
 							"...",
 							MISSION_ACHIEVEMENT_TEXT_RIGHT,
 							y,
 							MISSION_ACHIEVEMENT_TEXT_COLOR);
 					}
-					sprintf(g_frontendScratchBuffer, "%d",
-						g_pilotData
-							.factionStatistics
-								[g_pilotData
-									 .currentFactionId]
-							.spBattles
-								[g_battleMissionList
-									 [listIndex]
-										 .missionIdx]
-							.bestScore);
-					FrontendText_Draw(
+					sprintf(g_frontend_scratch_buffer, "%d",
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.sp_battles
+								[g_battle_mission_list
+									 [list_index]
+										 .mission_idx]
+							.best_score);
+					frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_frontendScratchBuffer,
+						g_frontend_scratch_buffer,
 						MISSION_ACHIEVEMENT_SCORE_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
-					if (g_pilotData
-						    .factionStatistics
-							    [g_pilotData
-								     .currentFactionId]
-						    .spBattles
-							    [g_battleMissionList
-								     [listIndex]
-									     .missionIdx]
-						    .victoryCount != 0) {
-						sprintf(g_frontendScratchBuffer,
+					if (g_pilot_data
+						    .faction_statistics
+							    [g_pilot_data
+								     .current_faction_id]
+						    .sp_battles
+							    [g_battle_mission_list
+								     [list_index]
+									     .mission_idx]
+						    .victory_count != 0) {
+						sprintf(g_frontend_scratch_buffer,
 							"%d %s",
-							g_pilotData
-								.factionStatistics
-									[g_pilotData
-										 .currentFactionId]
-								.spBattles
-									[g_battleMissionList
-										 [listIndex]
-											 .missionIdx]
-								.bestVictoryMargin,
-							FrontendString_Get(
+							g_pilot_data
+								.faction_statistics
+									[g_pilot_data
+										 .current_faction_id]
+								.sp_battles
+									[g_battle_mission_list
+										 [list_index]
+											 .mission_idx]
+								.best_victory_margin,
+							frontend_string_get(
 								FRONTSTR_719_VICTS));
 					} else {
-						sprintf(g_frontendScratchBuffer,
+						sprintf(g_frontend_scratch_buffer,
 							"---");
 					}
-					FrontendText_Draw(
+					frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_frontendScratchBuffer,
+						g_frontend_scratch_buffer,
 						MISSION_ACHIEVEMENT_DETAIL_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
 					y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
@@ -3719,207 +3865,213 @@ int PilotRecord_DrawMissionAchievementsPage(void)
 			}
 		}
 	}
-	if (g_pilotSpCampaignHistoryRowCount != 0) {
-		if (hasPrevious != 0) {
-			if (g_pilotAchievementsScrollOffset <= row &&
-			    row - g_pilotAchievementsScrollOffset <
+	if (g_pilot_sp_campaign_history_row_count != 0) {
+		if (has_previous != 0) {
+			if (g_pilot_achievements_scroll_offset <= row &&
+			    row - g_pilot_achievements_scroll_offset <
 				    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 				y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 			}
 			++row;
 		}
-		hasPrevious = 1;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		has_previous = 1;
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-			FrontendText_Draw(
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_451_SINGLE_PLAYER),
-				MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
-			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
-					  FrontendString_Get(FRONTSTR_459_BEST),
-					  MISSION_ACHIEVEMENT_SCORE_X, y,
-					  g_colorYellow);
-			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
-					  FrontendString_Get(FRONTSTR_459_BEST),
-					  MISSION_ACHIEVEMENT_DETAIL_X, y,
-					  g_colorYellow);
+				frontend_string_get(FRONTSTR_451_SINGLE_PLAYER),
+				MISSION_ACHIEVEMENT_HEADER_X, y,
+				g_color_yellow);
+			frontend_text_draw(
+				MISSION_ACHIEVEMENT_FONT_SIZE,
+				frontend_string_get(FRONTSTR_459_BEST),
+				MISSION_ACHIEVEMENT_SCORE_X, y, g_color_yellow);
+			frontend_text_draw(
+				MISSION_ACHIEVEMENT_FONT_SIZE,
+				frontend_string_get(FRONTSTR_459_BEST),
+				MISSION_ACHIEVEMENT_DETAIL_X, y,
+				g_color_yellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-			FrontendText_Draw(
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(
+				frontend_string_get(
 					FRONTSTR_458_CAMPAIGN_HISTORY),
-				MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
-			FrontendText_Draw(
+				MISSION_ACHIEVEMENT_HEADER_X, y,
+				g_color_yellow);
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_460_SCORE),
-				MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
-			FrontendText_Draw(
+				frontend_string_get(FRONTSTR_460_SCORE),
+				MISSION_ACHIEVEMENT_SCORE_X, y, g_color_yellow);
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_787_PROGRESS),
-				MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorYellow);
+				frontend_string_get(FRONTSTR_787_PROGRESS),
+				MISSION_ACHIEVEMENT_DETAIL_X, y,
+				g_color_yellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		for (listIndex = 0;
-		     listIndex < g_pilotRecordSingleplayerCampaignMissionCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .spCampaigns
-					    [g_pilotRecordSingleplayerCampaignMissionList
-						     [listIndex]
-							     .missionIdx]
-				    .attemptCount != 0) {
-				if (g_pilotAchievementsScrollOffset <= row &&
-				    row - g_pilotAchievementsScrollOffset <
+		for (list_index = 0;
+		     list_index <
+		     g_pilot_record_singleplayer_campaign_mission_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .sp_campaigns
+					    [g_pilot_record_singleplayer_campaign_mission_list
+						     [list_index]
+							     .mission_idx]
+				    .attempt_count != 0) {
+				if (g_pilot_achievements_scroll_offset <= row &&
+				    row - g_pilot_achievements_scroll_offset <
 					    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-					FrontendDisplay_GetScreenClipRect(
-						&previousClipRect);
-					FrontendDraw_RectAssign(
+					frontend_display_get_screen_clip_rect(
+						&previous_clip_rect);
+					frontend_draw_rect_assign(
 						&rect,
 						MISSION_ACHIEVEMENT_TEXT_X, y,
 						MISSION_ACHIEVEMENT_TEXT_RIGHT,
 						y + MISSION_ACHIEVEMENT_ROW_HEIGHT);
-					FrontendDisplay_SetScreenClipRect640x480(
+					frontend_display_set_screen_clip_rect640x480(
 						&rect);
-					drawFlags = FrontendText_Draw(
+					draw_flags = frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_pilotRecordSingleplayerCampaignMissionList
-							[listIndex]
+						g_pilot_record_singleplayer_campaign_mission_list
+							[list_index]
 								.description,
 						MISSION_ACHIEVEMENT_TEXT_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
-					FrontendDisplay_SetScreenClipRect640x480(
-						&previousClipRect);
-					if ((drawFlags &
+					frontend_display_set_screen_clip_rect640x480(
+						&previous_clip_rect);
+					if ((draw_flags &
 					     MISSION_ACHIEVEMENT_TEXT_TRUNCATED_FLAG) !=
 					    0) {
-						FrontendText_Draw(
+						frontend_text_draw(
 							MISSION_ACHIEVEMENT_FONT_SIZE,
 							"...",
 							MISSION_ACHIEVEMENT_TEXT_RIGHT,
 							y,
 							MISSION_ACHIEVEMENT_TEXT_COLOR);
 					}
-					sprintf(g_frontendScratchBuffer, "%d",
-						g_pilotData
-							.factionStatistics
-								[g_pilotData
-									 .currentFactionId]
-							.spCampaigns
-								[g_pilotRecordSingleplayerCampaignMissionList
-									 [listIndex]
-										 .missionIdx]
-							.bestScore);
-					FrontendText_Draw(
+					sprintf(g_frontend_scratch_buffer, "%d",
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.sp_campaigns
+								[g_pilot_record_singleplayer_campaign_mission_list
+									 [list_index]
+										 .mission_idx]
+							.best_score);
+					frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_frontendScratchBuffer,
+						g_frontend_scratch_buffer,
 						MISSION_ACHIEVEMENT_SCORE_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
-					if (g_pilotData
-						    .factionStatistics
-							    [g_pilotData
-								     .currentFactionId]
-						    .spCampaigns
-							    [g_pilotRecordSingleplayerCampaignMissionList
-								     [listIndex]
-									     .missionIdx]
-						    .isFinished != 0) {
-						strcpy(g_frontendScratchBuffer,
-						       FrontendString_Get(
+					if (g_pilot_data
+						    .faction_statistics
+							    [g_pilot_data
+								     .current_faction_id]
+						    .sp_campaigns
+							    [g_pilot_record_singleplayer_campaign_mission_list
+								     [list_index]
+									     .mission_idx]
+						    .is_finished != 0) {
+						strcpy(g_frontend_scratch_buffer,
+						       frontend_string_get(
 							       FRONTSTR_789_FINISHED));
 					} else {
-						sprintf(g_frontendScratchBuffer,
+						sprintf(g_frontend_scratch_buffer,
 							"%s %d",
-							FrontendString_Get(
+							frontend_string_get(
 								FRONTSTR_788_MIS),
-							g_pilotData
-									.factionStatistics
-										[g_pilotData
-											 .currentFactionId]
-									.spCampaigns
-										[g_pilotRecordSingleplayerCampaignMissionList
-											 [listIndex]
-												 .missionIdx]
-									.nextMissionIndex +
+							g_pilot_data
+									.faction_statistics
+										[g_pilot_data
+											 .current_faction_id]
+									.sp_campaigns
+										[g_pilot_record_singleplayer_campaign_mission_list
+											 [list_index]
+												 .mission_idx]
+									.next_mission_index +
 								1);
 					}
-					FrontendText_Draw(
+					frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_frontendScratchBuffer,
+						g_frontend_scratch_buffer,
 						MISSION_ACHIEVEMENT_DETAIL_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
 					y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 				}
 				++row;
-				for (childListIndex = 0;
-				     childListIndex <
-				     g_pilotRecordSingleplayerTrainingMissionCount;
-				     ++childListIndex) {
-					/* awardId holds a mission id here, used to index the pilot's campaign mission records. */
-					awardId =
-						g_pilotRecordSingleplayerTrainingMissionList
-							[childListIndex]
-								.missionIdx;
-					if (g_pilotData
-							    .factionStatistics
-								    [g_pilotData
-									     .currentFactionId]
-							    .spCampaignMissions
-								    [awardId -
+				for (child_list_index = 0;
+				     child_list_index <
+				     g_pilot_record_singleplayer_training_mission_count;
+				     ++child_list_index) {
+					/* award_id holds a mission id here, used to index the pilot's campaign mission records. */
+					award_id =
+						g_pilot_record_singleplayer_training_mission_list
+							[child_list_index]
+								.mission_idx;
+					if (g_pilot_data
+							    .faction_statistics
+								    [g_pilot_data
+									     .current_faction_id]
+							    .sp_campaign_missions
+								    [award_id -
 								     1]
-							    .numberTimesFlown !=
+							    .number_times_flown !=
 						    0 &&
-					    g_pilotData
-							    .factionStatistics
-								    [g_pilotData
-									     .currentFactionId]
-							    .spCampaignMissions
-								    [awardId -
+					    g_pilot_data
+							    .faction_statistics
+								    [g_pilot_data
+									     .current_faction_id]
+							    .sp_campaign_missions
+								    [award_id -
 								     1]
-							    .campaignId ==
-						    g_pilotRecordSingleplayerCampaignMissionList
-							    [listIndex]
-								    .missionIdx) {
-						if (g_pilotAchievementsScrollOffset <=
+							    .campaign_id ==
+						    g_pilot_record_singleplayer_campaign_mission_list
+							    [list_index]
+								    .mission_idx) {
+						if (g_pilot_achievements_scroll_offset <=
 							    row &&
-						    row - g_pilotAchievementsScrollOffset <
+						    row - g_pilot_achievements_scroll_offset <
 							    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-							FrontendDisplay_GetScreenClipRect(
-								&previousClipRect);
-							FrontendDraw_RectAssign(
+							frontend_display_get_screen_clip_rect(
+								&previous_clip_rect);
+							frontend_draw_rect_assign(
 								&rect,
 								MISSION_ACHIEVEMENT_TEXT_X,
 								y,
 								MISSION_ACHIEVEMENT_TEXT_RIGHT,
 								y + MISSION_ACHIEVEMENT_ROW_HEIGHT);
-							FrontendDisplay_SetScreenClipRect640x480(
+							frontend_display_set_screen_clip_rect640x480(
 								&rect);
-							drawFlags = FrontendText_Draw(
+							draw_flags = frontend_text_draw(
 								MISSION_ACHIEVEMENT_FONT_SIZE,
-								g_pilotRecordSingleplayerTrainingMissionList
-									[childListIndex]
+								g_pilot_record_singleplayer_training_mission_list
+									[child_list_index]
 										.description,
 								MISSION_ACHIEVEMENT_TEXT_X,
-								y, g_colorGray);
-							FrontendDisplay_SetScreenClipRect640x480(
-								&previousClipRect);
-							if ((drawFlags &
+								y,
+								g_color_gray);
+							frontend_display_set_screen_clip_rect640x480(
+								&previous_clip_rect);
+							if ((draw_flags &
 							     MISSION_ACHIEVEMENT_TEXT_TRUNCATED_FLAG) !=
 							    0) {
-								FrontendText_Draw(
+								frontend_text_draw(
 									MISSION_ACHIEVEMENT_FONT_SIZE,
 									"...",
 									MISSION_ACHIEVEMENT_TEXT_RIGHT,
 									y,
-									g_colorGray);
+									g_color_gray);
 							}
 							y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 						}
@@ -3929,137 +4081,142 @@ int PilotRecord_DrawMissionAchievementsPage(void)
 			}
 		}
 	}
-	if (g_pilotMpTrainingHistoryCount != 0) {
-		if (hasPrevious != 0) {
-			if (g_pilotAchievementsScrollOffset <= row &&
-			    row - g_pilotAchievementsScrollOffset <
+	if (g_pilot_mp_training_history_count != 0) {
+		if (has_previous != 0) {
+			if (g_pilot_achievements_scroll_offset <= row &&
+			    row - g_pilot_achievements_scroll_offset <
 				    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 				y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 			}
 			++row;
 		}
-		hasPrevious = 1;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		has_previous = 1;
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-			FrontendText_Draw(
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_452_MULTIPLAYER),
-				MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
-			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
-					  FrontendString_Get(FRONTSTR_459_BEST),
-					  MISSION_ACHIEVEMENT_SCORE_X, y,
-					  g_colorYellow);
-			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
-					  FrontendString_Get(FRONTSTR_459_BEST),
-					  MISSION_ACHIEVEMENT_DETAIL_X, y,
-					  g_colorYellow);
+				frontend_string_get(FRONTSTR_452_MULTIPLAYER),
+				MISSION_ACHIEVEMENT_HEADER_X, y,
+				g_color_yellow);
+			frontend_text_draw(
+				MISSION_ACHIEVEMENT_FONT_SIZE,
+				frontend_string_get(FRONTSTR_459_BEST),
+				MISSION_ACHIEVEMENT_SCORE_X, y, g_color_yellow);
+			frontend_text_draw(
+				MISSION_ACHIEVEMENT_FONT_SIZE,
+				frontend_string_get(FRONTSTR_459_BEST),
+				MISSION_ACHIEVEMENT_DETAIL_X, y,
+				g_color_yellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-			FrontendText_Draw(
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(
+				frontend_string_get(
 					FRONTSTR_453_TRAINING_HISTORY),
-				MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
-			FrontendText_Draw(
+				MISSION_ACHIEVEMENT_HEADER_X, y,
+				g_color_yellow);
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_460_SCORE),
-				MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
-			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
-					  FrontendString_Get(FRONTSTR_461_TIME),
-					  MISSION_ACHIEVEMENT_DETAIL_X, y,
-					  g_colorYellow);
+				frontend_string_get(FRONTSTR_460_SCORE),
+				MISSION_ACHIEVEMENT_SCORE_X, y, g_color_yellow);
+			frontend_text_draw(
+				MISSION_ACHIEVEMENT_FONT_SIZE,
+				frontend_string_get(FRONTSTR_461_TIME),
+				MISSION_ACHIEVEMENT_DETAIL_X, y,
+				g_color_yellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		for (listIndex = 0;
-		     listIndex < g_pilotRecordMultiplayerTrainingMissionCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .mpTrainingMissions
-					    [g_pilotRecordMultiplayerTrainingMissionList
-						     [listIndex]
-							     .missionIdx]
-				    .numberTimesFlown != 0) {
-				if (g_pilotAchievementsScrollOffset <= row &&
-				    row - g_pilotAchievementsScrollOffset <
+		for (list_index = 0;
+		     list_index <
+		     g_pilot_record_multiplayer_training_mission_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .mp_training_missions
+					    [g_pilot_record_multiplayer_training_mission_list
+						     [list_index]
+							     .mission_idx]
+				    .number_times_flown != 0) {
+				if (g_pilot_achievements_scroll_offset <= row &&
+				    row - g_pilot_achievements_scroll_offset <
 					    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-					FrontendDisplay_GetScreenClipRect(
-						&previousClipRect);
-					FrontendDraw_RectAssign(
+					frontend_display_get_screen_clip_rect(
+						&previous_clip_rect);
+					frontend_draw_rect_assign(
 						&rect,
 						MISSION_ACHIEVEMENT_TEXT_X, y,
 						MISSION_ACHIEVEMENT_TEXT_RIGHT,
 						y + MISSION_ACHIEVEMENT_ROW_HEIGHT);
-					FrontendDisplay_SetScreenClipRect640x480(
+					frontend_display_set_screen_clip_rect640x480(
 						&rect);
-					drawFlags = FrontendText_Draw(
+					draw_flags = frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_pilotRecordMultiplayerTrainingMissionList
-							[listIndex]
+						g_pilot_record_multiplayer_training_mission_list
+							[list_index]
 								.description,
 						MISSION_ACHIEVEMENT_TEXT_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
-					FrontendDisplay_SetScreenClipRect640x480(
-						&previousClipRect);
-					if ((drawFlags &
+					frontend_display_set_screen_clip_rect640x480(
+						&previous_clip_rect);
+					if ((draw_flags &
 					     MISSION_ACHIEVEMENT_TEXT_TRUNCATED_FLAG) !=
 					    0) {
-						FrontendText_Draw(
+						frontend_text_draw(
 							MISSION_ACHIEVEMENT_FONT_SIZE,
 							"....",
 							MISSION_ACHIEVEMENT_TEXT_RIGHT,
 							y,
 							MISSION_ACHIEVEMENT_TEXT_COLOR);
 					}
-					sprintf(g_frontendScratchBuffer, "%d",
-						g_pilotData
-							.factionStatistics
-								[g_pilotData
-									 .currentFactionId]
-							.mpTrainingMissions
-								[g_pilotRecordMultiplayerTrainingMissionList
-									 [listIndex]
-										 .missionIdx]
-							.bestScore);
-					FrontendText_Draw(
+					sprintf(g_frontend_scratch_buffer, "%d",
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.mp_training_missions
+								[g_pilot_record_multiplayer_training_mission_list
+									 [list_index]
+										 .mission_idx]
+							.best_score);
+					frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_frontendScratchBuffer,
+						g_frontend_scratch_buffer,
 						MISSION_ACHIEVEMENT_SCORE_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
-					if (g_pilotData
-						    .factionStatistics
-							    [g_pilotData
-								     .currentFactionId]
-						    .mpTrainingMissions
-							    [g_pilotRecordMultiplayerTrainingMissionList
-								     [listIndex]
-									     .missionIdx]
-						    .bestTime == 0) {
-						strcpy(g_frontendScratchBuffer,
-						       FrontendString_Get(
+					if (g_pilot_data
+						    .faction_statistics
+							    [g_pilot_data
+								     .current_faction_id]
+						    .mp_training_missions
+							    [g_pilot_record_multiplayer_training_mission_list
+								     [list_index]
+									     .mission_idx]
+						    .best_time == 0) {
+						strcpy(g_frontend_scratch_buffer,
+						       frontend_string_get(
 							       FRONTSTR_535_DASH_PLACEHOLDER));
 					} else {
-						Frontend_FormatSecondsToClockString(
-							g_pilotData
-								.factionStatistics
-									[g_pilotData
-										 .currentFactionId]
-								.mpTrainingMissions
-									[g_pilotRecordMultiplayerTrainingMissionList
-										 [listIndex]
-											 .missionIdx]
-								.bestTime);
+						frontend_format_seconds_to_clock_string(
+							g_pilot_data
+								.faction_statistics
+									[g_pilot_data
+										 .current_faction_id]
+								.mp_training_missions
+									[g_pilot_record_multiplayer_training_mission_list
+										 [list_index]
+											 .mission_idx]
+								.best_time);
 					}
-					FrontendText_Draw(
+					frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_frontendScratchBuffer,
+						g_frontend_scratch_buffer,
 						MISSION_ACHIEVEMENT_DETAIL_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
 					y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
@@ -4068,137 +4225,142 @@ int PilotRecord_DrawMissionAchievementsPage(void)
 			}
 		}
 	}
-	if (g_pilotMpMeleeHistoryCount != 0) {
-		if (hasPrevious != 0) {
-			if (g_pilotAchievementsScrollOffset <= row &&
-			    row - g_pilotAchievementsScrollOffset <
+	if (g_pilot_mp_melee_history_count != 0) {
+		if (has_previous != 0) {
+			if (g_pilot_achievements_scroll_offset <= row &&
+			    row - g_pilot_achievements_scroll_offset <
 				    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 				y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 			}
 			++row;
 		}
-		hasPrevious = 1;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		has_previous = 1;
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-			FrontendText_Draw(
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_452_MULTIPLAYER),
-				MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
-			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
-					  FrontendString_Get(FRONTSTR_459_BEST),
-					  MISSION_ACHIEVEMENT_SCORE_X, y,
-					  g_colorYellow);
-			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
-					  FrontendString_Get(FRONTSTR_459_BEST),
-					  MISSION_ACHIEVEMENT_DETAIL_X, y,
-					  g_colorYellow);
+				frontend_string_get(FRONTSTR_452_MULTIPLAYER),
+				MISSION_ACHIEVEMENT_HEADER_X, y,
+				g_color_yellow);
+			frontend_text_draw(
+				MISSION_ACHIEVEMENT_FONT_SIZE,
+				frontend_string_get(FRONTSTR_459_BEST),
+				MISSION_ACHIEVEMENT_SCORE_X, y, g_color_yellow);
+			frontend_text_draw(
+				MISSION_ACHIEVEMENT_FONT_SIZE,
+				frontend_string_get(FRONTSTR_459_BEST),
+				MISSION_ACHIEVEMENT_DETAIL_X, y,
+				g_color_yellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-			FrontendText_Draw(
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_454_MELEE_HISTORY),
-				MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
-			FrontendText_Draw(
+				frontend_string_get(FRONTSTR_454_MELEE_HISTORY),
+				MISSION_ACHIEVEMENT_HEADER_X, y,
+				g_color_yellow);
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_460_SCORE),
-				MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
-			FrontendText_Draw(
+				frontend_string_get(FRONTSTR_460_SCORE),
+				MISSION_ACHIEVEMENT_SCORE_X, y, g_color_yellow);
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_462_FINISH),
-				MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorYellow);
+				frontend_string_get(FRONTSTR_462_FINISH),
+				MISSION_ACHIEVEMENT_DETAIL_X, y,
+				g_color_yellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		for (listIndex = 0; listIndex < g_pilotRecordMeleeMissionCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .mpMeleeMissions
-					    [g_pilotRecordMeleeMissionList
-						     [listIndex]
-							     .missionIdx]
-				    .numberTimesFlown != 0) {
-				if (g_pilotAchievementsScrollOffset <= row &&
-				    row - g_pilotAchievementsScrollOffset <
+		for (list_index = 0;
+		     list_index < g_pilot_record_melee_mission_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .mp_melee_missions
+					    [g_pilot_record_melee_mission_list
+						     [list_index]
+							     .mission_idx]
+				    .number_times_flown != 0) {
+				if (g_pilot_achievements_scroll_offset <= row &&
+				    row - g_pilot_achievements_scroll_offset <
 					    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-					FrontendDisplay_GetScreenClipRect(
-						&previousClipRect);
-					FrontendDraw_RectAssign(
+					frontend_display_get_screen_clip_rect(
+						&previous_clip_rect);
+					frontend_draw_rect_assign(
 						&rect,
 						MISSION_ACHIEVEMENT_TEXT_X, y,
 						MISSION_ACHIEVEMENT_TEXT_RIGHT,
 						y + MISSION_ACHIEVEMENT_ROW_HEIGHT);
-					FrontendDisplay_SetScreenClipRect640x480(
+					frontend_display_set_screen_clip_rect640x480(
 						&rect);
-					drawFlags = FrontendText_Draw(
+					draw_flags = frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_pilotRecordMeleeMissionList
-							[listIndex]
+						g_pilot_record_melee_mission_list
+							[list_index]
 								.description,
 						MISSION_ACHIEVEMENT_TEXT_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
-					FrontendDisplay_SetScreenClipRect640x480(
-						&previousClipRect);
-					if ((drawFlags &
+					frontend_display_set_screen_clip_rect640x480(
+						&previous_clip_rect);
+					if ((draw_flags &
 					     MISSION_ACHIEVEMENT_TEXT_TRUNCATED_FLAG) !=
 					    0) {
-						FrontendText_Draw(
+						frontend_text_draw(
 							MISSION_ACHIEVEMENT_FONT_SIZE,
 							"....",
 							MISSION_ACHIEVEMENT_TEXT_RIGHT,
 							y,
 							MISSION_ACHIEVEMENT_TEXT_COLOR);
 					}
-					sprintf(g_frontendScratchBuffer, "%d",
-						g_pilotData
-							.factionStatistics
-								[g_pilotData
-									 .currentFactionId]
-							.mpMeleeMissions
-								[g_pilotRecordMeleeMissionList
-									 [listIndex]
-										 .missionIdx]
-							.bestScore);
-					FrontendText_Draw(
+					sprintf(g_frontend_scratch_buffer, "%d",
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.mp_melee_missions
+								[g_pilot_record_melee_mission_list
+									 [list_index]
+										 .mission_idx]
+							.best_score);
+					frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_frontendScratchBuffer,
+						g_frontend_scratch_buffer,
 						MISSION_ACHIEVEMENT_SCORE_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
-					if (g_pilotData
-						    .factionStatistics
-							    [g_pilotData
-								     .currentFactionId]
-						    .mpMeleeMissions
-							    [g_pilotRecordMeleeMissionList
-								     [listIndex]
-									     .missionIdx]
-						    .bestPlacement != 0) {
-						sprintf(g_frontendScratchBuffer,
+					if (g_pilot_data
+						    .faction_statistics
+							    [g_pilot_data
+								     .current_faction_id]
+						    .mp_melee_missions
+							    [g_pilot_record_melee_mission_list
+								     [list_index]
+									     .mission_idx]
+						    .best_placement != 0) {
+						sprintf(g_frontend_scratch_buffer,
 							"%s",
-							FrontendString_Get((
-								FrontendStringId)(g_pilotData
-											  .factionStatistics
-												  [g_pilotData
-													   .currentFactionId]
-											  .mpMeleeMissions
-												  [g_pilotRecordMeleeMissionList
-													   [listIndex]
-														   .missionIdx]
-											  .bestPlacement +
-										  317)));
+							frontend_string_get((
+								frontend_string_id)(g_pilot_data
+											    .faction_statistics
+												    [g_pilot_data
+													     .current_faction_id]
+											    .mp_melee_missions
+												    [g_pilot_record_melee_mission_list
+													     [list_index]
+														     .mission_idx]
+											    .best_placement +
+										    317)));
 					} else {
-						sprintf(g_frontendScratchBuffer,
+						sprintf(g_frontend_scratch_buffer,
 							"---");
 					}
-					FrontendText_Draw(
+					frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_frontendScratchBuffer,
+						g_frontend_scratch_buffer,
 						MISSION_ACHIEVEMENT_DETAIL_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
 					y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
@@ -4207,139 +4369,143 @@ int PilotRecord_DrawMissionAchievementsPage(void)
 			}
 		}
 	}
-	if (g_pilotMpTournamentHistoryCount != 0) {
-		if (hasPrevious != 0) {
-			if (g_pilotAchievementsScrollOffset <= row &&
-			    row - g_pilotAchievementsScrollOffset <
+	if (g_pilot_mp_tournament_history_count != 0) {
+		if (has_previous != 0) {
+			if (g_pilot_achievements_scroll_offset <= row &&
+			    row - g_pilot_achievements_scroll_offset <
 				    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 				y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 			}
 			++row;
 		}
-		hasPrevious = 1;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		has_previous = 1;
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-			FrontendText_Draw(
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_452_MULTIPLAYER),
-				MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
-			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
-					  FrontendString_Get(FRONTSTR_459_BEST),
-					  MISSION_ACHIEVEMENT_SCORE_X, y,
-					  g_colorYellow);
-			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
-					  FrontendString_Get(FRONTSTR_459_BEST),
-					  MISSION_ACHIEVEMENT_DETAIL_X, y,
-					  g_colorYellow);
+				frontend_string_get(FRONTSTR_452_MULTIPLAYER),
+				MISSION_ACHIEVEMENT_HEADER_X, y,
+				g_color_yellow);
+			frontend_text_draw(
+				MISSION_ACHIEVEMENT_FONT_SIZE,
+				frontend_string_get(FRONTSTR_459_BEST),
+				MISSION_ACHIEVEMENT_SCORE_X, y, g_color_yellow);
+			frontend_text_draw(
+				MISSION_ACHIEVEMENT_FONT_SIZE,
+				frontend_string_get(FRONTSTR_459_BEST),
+				MISSION_ACHIEVEMENT_DETAIL_X, y,
+				g_color_yellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-			FrontendText_Draw(
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(
+				frontend_string_get(
 					FRONTSTR_456_TOURNAMENT_HISTORY),
-				MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
-			FrontendText_Draw(
+				MISSION_ACHIEVEMENT_HEADER_X, y,
+				g_color_yellow);
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_460_SCORE),
-				MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
-			FrontendText_Draw(
+				frontend_string_get(FRONTSTR_460_SCORE),
+				MISSION_ACHIEVEMENT_SCORE_X, y, g_color_yellow);
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_462_FINISH),
-				MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorYellow);
+				frontend_string_get(FRONTSTR_462_FINISH),
+				MISSION_ACHIEVEMENT_DETAIL_X, y,
+				g_color_yellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		for (listIndex = 0;
-		     listIndex < g_pilotRecordTournamentMissionCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .mpTournaments
-					    [g_pilotRecordTournamentMissionList
-						     [listIndex]
-							     .missionIdx]
-				    .attemptCount != 0) {
-				if (g_pilotAchievementsScrollOffset <= row &&
-				    row - g_pilotAchievementsScrollOffset <
+		for (list_index = 0;
+		     list_index < g_pilot_record_tournament_mission_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .mp_tournaments
+					    [g_pilot_record_tournament_mission_list
+						     [list_index]
+							     .mission_idx]
+				    .attempt_count != 0) {
+				if (g_pilot_achievements_scroll_offset <= row &&
+				    row - g_pilot_achievements_scroll_offset <
 					    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-					FrontendDisplay_GetScreenClipRect(
-						&previousClipRect);
-					FrontendDraw_RectAssign(
+					frontend_display_get_screen_clip_rect(
+						&previous_clip_rect);
+					frontend_draw_rect_assign(
 						&rect,
 						MISSION_ACHIEVEMENT_TEXT_X, y,
 						MISSION_ACHIEVEMENT_TEXT_RIGHT,
 						y + MISSION_ACHIEVEMENT_ROW_HEIGHT);
-					FrontendDisplay_SetScreenClipRect640x480(
+					frontend_display_set_screen_clip_rect640x480(
 						&rect);
-					drawFlags = FrontendText_Draw(
+					draw_flags = frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_pilotRecordTournamentMissionList
-							[listIndex]
+						g_pilot_record_tournament_mission_list
+							[list_index]
 								.description,
 						MISSION_ACHIEVEMENT_TEXT_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
-					FrontendDisplay_SetScreenClipRect640x480(
-						&previousClipRect);
-					if ((drawFlags &
+					frontend_display_set_screen_clip_rect640x480(
+						&previous_clip_rect);
+					if ((draw_flags &
 					     MISSION_ACHIEVEMENT_TEXT_TRUNCATED_FLAG) !=
 					    0) {
-						FrontendText_Draw(
+						frontend_text_draw(
 							MISSION_ACHIEVEMENT_FONT_SIZE,
 							"...",
 							MISSION_ACHIEVEMENT_TEXT_RIGHT,
 							y,
 							MISSION_ACHIEVEMENT_TEXT_COLOR);
 					}
-					sprintf(g_frontendScratchBuffer, "%d",
-						g_pilotData
-							.factionStatistics
-								[g_pilotData
-									 .currentFactionId]
-							.mpTournaments
-								[g_pilotRecordTournamentMissionList
-									 [listIndex]
-										 .missionIdx]
-							.bestScore);
-					FrontendText_Draw(
+					sprintf(g_frontend_scratch_buffer, "%d",
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.mp_tournaments
+								[g_pilot_record_tournament_mission_list
+									 [list_index]
+										 .mission_idx]
+							.best_score);
+					frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_frontendScratchBuffer,
+						g_frontend_scratch_buffer,
 						MISSION_ACHIEVEMENT_SCORE_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
-					if (g_pilotData
-						    .factionStatistics
-							    [g_pilotData
-								     .currentFactionId]
-						    .mpTournaments
-							    [g_pilotRecordTournamentMissionList
-								     [listIndex]
-									     .missionIdx]
-						    .bestPlacement != 0) {
-						sprintf(g_frontendScratchBuffer,
+					if (g_pilot_data
+						    .faction_statistics
+							    [g_pilot_data
+								     .current_faction_id]
+						    .mp_tournaments
+							    [g_pilot_record_tournament_mission_list
+								     [list_index]
+									     .mission_idx]
+						    .best_placement != 0) {
+						sprintf(g_frontend_scratch_buffer,
 							"%s",
-							FrontendString_Get((
-								FrontendStringId)(g_pilotData
-											  .factionStatistics
-												  [g_pilotData
-													   .currentFactionId]
-											  .mpTournaments
-												  [g_pilotRecordTournamentMissionList
-													   [listIndex]
-														   .missionIdx]
-											  .bestPlacement +
-										  317)));
+							frontend_string_get((
+								frontend_string_id)(g_pilot_data
+											    .faction_statistics
+												    [g_pilot_data
+													     .current_faction_id]
+											    .mp_tournaments
+												    [g_pilot_record_tournament_mission_list
+													     [list_index]
+														     .mission_idx]
+											    .best_placement +
+										    317)));
 					} else {
-						sprintf(g_frontendScratchBuffer,
+						sprintf(g_frontend_scratch_buffer,
 							"---");
 					}
-					FrontendText_Draw(
+					frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_frontendScratchBuffer,
+						g_frontend_scratch_buffer,
 						MISSION_ACHIEVEMENT_DETAIL_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
 					y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
@@ -4348,136 +4514,141 @@ int PilotRecord_DrawMissionAchievementsPage(void)
 			}
 		}
 	}
-	if (g_pilotMpCombatHistoryCount != 0) {
-		if (hasPrevious != 0) {
-			if (g_pilotAchievementsScrollOffset <= row &&
-			    row - g_pilotAchievementsScrollOffset <
+	if (g_pilot_mp_combat_history_count != 0) {
+		if (has_previous != 0) {
+			if (g_pilot_achievements_scroll_offset <= row &&
+			    row - g_pilot_achievements_scroll_offset <
 				    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 				y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 			}
 			++row;
 		}
-		hasPrevious = 1;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		has_previous = 1;
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-			FrontendText_Draw(
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_452_MULTIPLAYER),
-				MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
-			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
-					  FrontendString_Get(FRONTSTR_459_BEST),
-					  MISSION_ACHIEVEMENT_SCORE_X, y,
-					  g_colorYellow);
-			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
-					  FrontendString_Get(FRONTSTR_459_BEST),
-					  MISSION_ACHIEVEMENT_DETAIL_X, y,
-					  g_colorYellow);
+				frontend_string_get(FRONTSTR_452_MULTIPLAYER),
+				MISSION_ACHIEVEMENT_HEADER_X, y,
+				g_color_yellow);
+			frontend_text_draw(
+				MISSION_ACHIEVEMENT_FONT_SIZE,
+				frontend_string_get(FRONTSTR_459_BEST),
+				MISSION_ACHIEVEMENT_SCORE_X, y, g_color_yellow);
+			frontend_text_draw(
+				MISSION_ACHIEVEMENT_FONT_SIZE,
+				frontend_string_get(FRONTSTR_459_BEST),
+				MISSION_ACHIEVEMENT_DETAIL_X, y,
+				g_color_yellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-			FrontendText_Draw(
+			frontend_text_draw(MISSION_ACHIEVEMENT_FONT_SIZE,
+					   frontend_string_get(
+						   FRONTSTR_455_COMBAT_HISTORY),
+					   MISSION_ACHIEVEMENT_HEADER_X, y,
+					   g_color_yellow);
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_455_COMBAT_HISTORY),
-				MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
-			FrontendText_Draw(
+				frontend_string_get(FRONTSTR_460_SCORE),
+				MISSION_ACHIEVEMENT_SCORE_X, y, g_color_yellow);
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_460_SCORE),
-				MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
-			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
-					  FrontendString_Get(FRONTSTR_461_TIME),
-					  MISSION_ACHIEVEMENT_DETAIL_X, y,
-					  g_colorYellow);
+				frontend_string_get(FRONTSTR_461_TIME),
+				MISSION_ACHIEVEMENT_DETAIL_X, y,
+				g_color_yellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		for (listIndex = 0;
-		     listIndex < g_pilotRecordMultiplayerCombatMissionCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .mpCombatMissions
-					    [g_pilotRecordMultiplayerCombatMissionList
-						     [listIndex]
-							     .missionIdx]
-				    .numberTimesFlown != 0) {
-				if (g_pilotAchievementsScrollOffset <= row &&
-				    row - g_pilotAchievementsScrollOffset <
+		for (list_index = 0;
+		     list_index <
+		     g_pilot_record_multiplayer_combat_mission_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .mp_combat_missions
+					    [g_pilot_record_multiplayer_combat_mission_list
+						     [list_index]
+							     .mission_idx]
+				    .number_times_flown != 0) {
+				if (g_pilot_achievements_scroll_offset <= row &&
+				    row - g_pilot_achievements_scroll_offset <
 					    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-					FrontendDisplay_GetScreenClipRect(
-						&previousClipRect);
-					FrontendDraw_RectAssign(
+					frontend_display_get_screen_clip_rect(
+						&previous_clip_rect);
+					frontend_draw_rect_assign(
 						&rect,
 						MISSION_ACHIEVEMENT_TEXT_X, y,
 						MISSION_ACHIEVEMENT_TEXT_RIGHT,
 						y + MISSION_ACHIEVEMENT_ROW_HEIGHT);
-					FrontendDisplay_SetScreenClipRect640x480(
+					frontend_display_set_screen_clip_rect640x480(
 						&rect);
-					drawFlags = FrontendText_Draw(
+					draw_flags = frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_pilotRecordMultiplayerCombatMissionList
-							[listIndex]
+						g_pilot_record_multiplayer_combat_mission_list
+							[list_index]
 								.description,
 						MISSION_ACHIEVEMENT_TEXT_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
-					FrontendDisplay_SetScreenClipRect640x480(
-						&previousClipRect);
-					if ((drawFlags &
+					frontend_display_set_screen_clip_rect640x480(
+						&previous_clip_rect);
+					if ((draw_flags &
 					     MISSION_ACHIEVEMENT_TEXT_TRUNCATED_FLAG) !=
 					    0) {
-						FrontendText_Draw(
+						frontend_text_draw(
 							MISSION_ACHIEVEMENT_FONT_SIZE,
 							"...",
 							MISSION_ACHIEVEMENT_TEXT_RIGHT,
 							y,
 							MISSION_ACHIEVEMENT_TEXT_COLOR);
 					}
-					sprintf(g_frontendScratchBuffer, "%d",
-						g_pilotData
-							.factionStatistics
-								[g_pilotData
-									 .currentFactionId]
-							.mpCombatMissions
-								[g_pilotRecordMultiplayerCombatMissionList
-									 [listIndex]
-										 .missionIdx]
-							.bestScore);
-					FrontendText_Draw(
+					sprintf(g_frontend_scratch_buffer, "%d",
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.mp_combat_missions
+								[g_pilot_record_multiplayer_combat_mission_list
+									 [list_index]
+										 .mission_idx]
+							.best_score);
+					frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_frontendScratchBuffer,
+						g_frontend_scratch_buffer,
 						MISSION_ACHIEVEMENT_SCORE_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
-					if (g_pilotData
-						    .factionStatistics
-							    [g_pilotData
-								     .currentFactionId]
-						    .mpCombatMissions
-							    [g_pilotRecordMultiplayerCombatMissionList
-								     [listIndex]
-									     .missionIdx]
-						    .bestTime == 0) {
-						strcpy(g_frontendScratchBuffer,
-						       FrontendString_Get(
+					if (g_pilot_data
+						    .faction_statistics
+							    [g_pilot_data
+								     .current_faction_id]
+						    .mp_combat_missions
+							    [g_pilot_record_multiplayer_combat_mission_list
+								     [list_index]
+									     .mission_idx]
+						    .best_time == 0) {
+						strcpy(g_frontend_scratch_buffer,
+						       frontend_string_get(
 							       FRONTSTR_535_DASH_PLACEHOLDER));
 					} else {
-						Frontend_FormatSecondsToClockString(
-							g_pilotData
-								.factionStatistics
-									[g_pilotData
-										 .currentFactionId]
-								.mpCombatMissions
-									[g_pilotRecordMultiplayerCombatMissionList
-										 [listIndex]
-											 .missionIdx]
-								.bestTime);
+						frontend_format_seconds_to_clock_string(
+							g_pilot_data
+								.faction_statistics
+									[g_pilot_data
+										 .current_faction_id]
+								.mp_combat_missions
+									[g_pilot_record_multiplayer_combat_mission_list
+										 [list_index]
+											 .mission_idx]
+								.best_time);
 					}
-					FrontendText_Draw(
+					frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_frontendScratchBuffer,
+						g_frontend_scratch_buffer,
 						MISSION_ACHIEVEMENT_DETAIL_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
 					y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
@@ -4486,134 +4657,140 @@ int PilotRecord_DrawMissionAchievementsPage(void)
 			}
 		}
 	}
-	if (g_pilotMpBattleHistoryCount != 0) {
-		if (hasPrevious != 0) {
-			if (g_pilotAchievementsScrollOffset <= row &&
-			    row - g_pilotAchievementsScrollOffset <
+	if (g_pilot_mp_battle_history_count != 0) {
+		if (has_previous != 0) {
+			if (g_pilot_achievements_scroll_offset <= row &&
+			    row - g_pilot_achievements_scroll_offset <
 				    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 				y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 			}
 			++row;
 		}
-		hasPrevious = 1;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		has_previous = 1;
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-			FrontendText_Draw(
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_452_MULTIPLAYER),
-				MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
-			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
-					  FrontendString_Get(FRONTSTR_459_BEST),
-					  MISSION_ACHIEVEMENT_SCORE_X, y,
-					  g_colorYellow);
-			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
-					  FrontendString_Get(FRONTSTR_459_BEST),
-					  MISSION_ACHIEVEMENT_DETAIL_X, y,
-					  g_colorYellow);
+				frontend_string_get(FRONTSTR_452_MULTIPLAYER),
+				MISSION_ACHIEVEMENT_HEADER_X, y,
+				g_color_yellow);
+			frontend_text_draw(
+				MISSION_ACHIEVEMENT_FONT_SIZE,
+				frontend_string_get(FRONTSTR_459_BEST),
+				MISSION_ACHIEVEMENT_SCORE_X, y, g_color_yellow);
+			frontend_text_draw(
+				MISSION_ACHIEVEMENT_FONT_SIZE,
+				frontend_string_get(FRONTSTR_459_BEST),
+				MISSION_ACHIEVEMENT_DETAIL_X, y,
+				g_color_yellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-			FrontendText_Draw(
+			frontend_text_draw(MISSION_ACHIEVEMENT_FONT_SIZE,
+					   frontend_string_get(
+						   FRONTSTR_457_BATTLE_HISTORY),
+					   MISSION_ACHIEVEMENT_HEADER_X, y,
+					   g_color_yellow);
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_457_BATTLE_HISTORY),
-				MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
-			FrontendText_Draw(
+				frontend_string_get(FRONTSTR_460_SCORE),
+				MISSION_ACHIEVEMENT_SCORE_X, y, g_color_yellow);
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_460_SCORE),
-				MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
-			FrontendText_Draw(
-				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_718_MARGIN),
-				MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorYellow);
+				frontend_string_get(FRONTSTR_718_MARGIN),
+				MISSION_ACHIEVEMENT_DETAIL_X, y,
+				g_color_yellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		for (listIndex = 0; listIndex < g_battleMissionListCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .mpBattles[g_battleMissionList[listIndex]
-						       .missionIdx]
-				    .attemptCount != 0) {
-				if (g_pilotAchievementsScrollOffset <= row &&
-				    row - g_pilotAchievementsScrollOffset <
+		for (list_index = 0; list_index < g_battle_mission_list_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .mp_battles
+					    [g_battle_mission_list[list_index]
+						     .mission_idx]
+				    .attempt_count != 0) {
+				if (g_pilot_achievements_scroll_offset <= row &&
+				    row - g_pilot_achievements_scroll_offset <
 					    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-					FrontendDisplay_GetScreenClipRect(
-						&previousClipRect);
-					FrontendDraw_RectAssign(
+					frontend_display_get_screen_clip_rect(
+						&previous_clip_rect);
+					frontend_draw_rect_assign(
 						&rect,
 						MISSION_ACHIEVEMENT_TEXT_X, y,
 						MISSION_ACHIEVEMENT_TEXT_RIGHT,
 						y + MISSION_ACHIEVEMENT_ROW_HEIGHT);
-					FrontendDisplay_SetScreenClipRect640x480(
+					frontend_display_set_screen_clip_rect640x480(
 						&rect);
-					drawFlags = FrontendText_Draw(
+					draw_flags = frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_battleMissionList[listIndex]
-							.description,
+						g_battle_mission_list
+							[list_index]
+								.description,
 						MISSION_ACHIEVEMENT_TEXT_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
-					FrontendDisplay_SetScreenClipRect640x480(
-						&previousClipRect);
-					if ((drawFlags &
+					frontend_display_set_screen_clip_rect640x480(
+						&previous_clip_rect);
+					if ((draw_flags &
 					     MISSION_ACHIEVEMENT_TEXT_TRUNCATED_FLAG) !=
 					    0) {
-						FrontendText_Draw(
+						frontend_text_draw(
 							MISSION_ACHIEVEMENT_FONT_SIZE,
 							"...",
 							MISSION_ACHIEVEMENT_TEXT_RIGHT,
 							y,
 							MISSION_ACHIEVEMENT_TEXT_COLOR);
 					}
-					sprintf(g_frontendScratchBuffer, "%d",
-						g_pilotData
-							.factionStatistics
-								[g_pilotData
-									 .currentFactionId]
-							.mpBattles
-								[g_battleMissionList
-									 [listIndex]
-										 .missionIdx]
-							.bestScore);
-					FrontendText_Draw(
+					sprintf(g_frontend_scratch_buffer, "%d",
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.mp_battles
+								[g_battle_mission_list
+									 [list_index]
+										 .mission_idx]
+							.best_score);
+					frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_frontendScratchBuffer,
+						g_frontend_scratch_buffer,
 						MISSION_ACHIEVEMENT_SCORE_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
-					if (g_pilotData
-						    .factionStatistics
-							    [g_pilotData
-								     .currentFactionId]
-						    .mpBattles
-							    [g_battleMissionList
-								     [listIndex]
-									     .missionIdx]
-						    .victoryCount != 0) {
-						sprintf(g_frontendScratchBuffer,
+					if (g_pilot_data
+						    .faction_statistics
+							    [g_pilot_data
+								     .current_faction_id]
+						    .mp_battles
+							    [g_battle_mission_list
+								     [list_index]
+									     .mission_idx]
+						    .victory_count != 0) {
+						sprintf(g_frontend_scratch_buffer,
 							"%d %s",
-							g_pilotData
-								.factionStatistics
-									[g_pilotData
-										 .currentFactionId]
-								.mpBattles
-									[g_battleMissionList
-										 [listIndex]
-											 .missionIdx]
-								.bestVictoryMargin,
-							FrontendString_Get(
+							g_pilot_data
+								.faction_statistics
+									[g_pilot_data
+										 .current_faction_id]
+								.mp_battles
+									[g_battle_mission_list
+										 [list_index]
+											 .mission_idx]
+								.best_victory_margin,
+							frontend_string_get(
 								FRONTSTR_719_VICTS));
 					} else {
-						sprintf(g_frontendScratchBuffer,
+						sprintf(g_frontend_scratch_buffer,
 							"---");
 					}
-					FrontendText_Draw(
+					frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_frontendScratchBuffer,
+						g_frontend_scratch_buffer,
 						MISSION_ACHIEVEMENT_DETAIL_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
 					y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
@@ -4622,206 +4799,212 @@ int PilotRecord_DrawMissionAchievementsPage(void)
 			}
 		}
 	}
-	if (g_pilotMpCampaignHistoryRowCount != 0) {
-		if (hasPrevious != 0) {
-			if (g_pilotAchievementsScrollOffset <= row &&
-			    row - g_pilotAchievementsScrollOffset <
+	if (g_pilot_mp_campaign_history_row_count != 0) {
+		if (has_previous != 0) {
+			if (g_pilot_achievements_scroll_offset <= row &&
+			    row - g_pilot_achievements_scroll_offset <
 				    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 				y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 			}
 			++row;
 		}
-		hasPrevious = 1;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		has_previous = 1;
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-			FrontendText_Draw(
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_452_MULTIPLAYER),
-				MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
-			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
-					  FrontendString_Get(FRONTSTR_459_BEST),
-					  MISSION_ACHIEVEMENT_SCORE_X, y,
-					  g_colorYellow);
-			FrontendText_Draw(MISSION_ACHIEVEMENT_FONT_SIZE,
-					  FrontendString_Get(FRONTSTR_459_BEST),
-					  MISSION_ACHIEVEMENT_DETAIL_X, y,
-					  g_colorYellow);
+				frontend_string_get(FRONTSTR_452_MULTIPLAYER),
+				MISSION_ACHIEVEMENT_HEADER_X, y,
+				g_color_yellow);
+			frontend_text_draw(
+				MISSION_ACHIEVEMENT_FONT_SIZE,
+				frontend_string_get(FRONTSTR_459_BEST),
+				MISSION_ACHIEVEMENT_SCORE_X, y, g_color_yellow);
+			frontend_text_draw(
+				MISSION_ACHIEVEMENT_FONT_SIZE,
+				frontend_string_get(FRONTSTR_459_BEST),
+				MISSION_ACHIEVEMENT_DETAIL_X, y,
+				g_color_yellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-			FrontendText_Draw(
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(
+				frontend_string_get(
 					FRONTSTR_458_CAMPAIGN_HISTORY),
-				MISSION_ACHIEVEMENT_HEADER_X, y, g_colorYellow);
-			FrontendText_Draw(
+				MISSION_ACHIEVEMENT_HEADER_X, y,
+				g_color_yellow);
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_460_SCORE),
-				MISSION_ACHIEVEMENT_SCORE_X, y, g_colorYellow);
-			FrontendText_Draw(
+				frontend_string_get(FRONTSTR_460_SCORE),
+				MISSION_ACHIEVEMENT_SCORE_X, y, g_color_yellow);
+			frontend_text_draw(
 				MISSION_ACHIEVEMENT_FONT_SIZE,
-				FrontendString_Get(FRONTSTR_787_PROGRESS),
-				MISSION_ACHIEVEMENT_DETAIL_X, y, g_colorYellow);
+				frontend_string_get(FRONTSTR_787_PROGRESS),
+				MISSION_ACHIEVEMENT_DETAIL_X, y,
+				g_color_yellow);
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		for (listIndex = 0;
-		     listIndex < g_pilotRecordMultiplayerCampaignMissionCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .mpCampaigns
-					    [g_pilotRecordMultiplayerCampaignMissionList
-						     [listIndex]
-							     .missionIdx]
-				    .attemptCount != 0) {
-				if (g_pilotAchievementsScrollOffset <= row &&
-				    row - g_pilotAchievementsScrollOffset <
+		for (list_index = 0;
+		     list_index <
+		     g_pilot_record_multiplayer_campaign_mission_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .mp_campaigns
+					    [g_pilot_record_multiplayer_campaign_mission_list
+						     [list_index]
+							     .mission_idx]
+				    .attempt_count != 0) {
+				if (g_pilot_achievements_scroll_offset <= row &&
+				    row - g_pilot_achievements_scroll_offset <
 					    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-					FrontendDisplay_GetScreenClipRect(
-						&previousClipRect);
-					FrontendDraw_RectAssign(
+					frontend_display_get_screen_clip_rect(
+						&previous_clip_rect);
+					frontend_draw_rect_assign(
 						&rect,
 						MISSION_ACHIEVEMENT_TEXT_X, y,
 						MISSION_ACHIEVEMENT_TEXT_RIGHT,
 						y + MISSION_ACHIEVEMENT_ROW_HEIGHT);
-					FrontendDisplay_SetScreenClipRect640x480(
+					frontend_display_set_screen_clip_rect640x480(
 						&rect);
-					drawFlags = FrontendText_Draw(
+					draw_flags = frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_pilotRecordMultiplayerCampaignMissionList
-							[listIndex]
+						g_pilot_record_multiplayer_campaign_mission_list
+							[list_index]
 								.description,
 						MISSION_ACHIEVEMENT_TEXT_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
-					FrontendDisplay_SetScreenClipRect640x480(
-						&previousClipRect);
-					if ((drawFlags &
+					frontend_display_set_screen_clip_rect640x480(
+						&previous_clip_rect);
+					if ((draw_flags &
 					     MISSION_ACHIEVEMENT_TEXT_TRUNCATED_FLAG) !=
 					    0) {
-						FrontendText_Draw(
+						frontend_text_draw(
 							MISSION_ACHIEVEMENT_FONT_SIZE,
 							"...",
 							MISSION_ACHIEVEMENT_TEXT_RIGHT,
 							y,
 							MISSION_ACHIEVEMENT_TEXT_COLOR);
 					}
-					sprintf(g_frontendScratchBuffer, "%d",
-						g_pilotData
-							.factionStatistics
-								[g_pilotData
-									 .currentFactionId]
-							.mpCampaigns
-								[g_pilotRecordMultiplayerCampaignMissionList
-									 [listIndex]
-										 .missionIdx]
-							.bestScore);
-					FrontendText_Draw(
+					sprintf(g_frontend_scratch_buffer, "%d",
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.mp_campaigns
+								[g_pilot_record_multiplayer_campaign_mission_list
+									 [list_index]
+										 .mission_idx]
+							.best_score);
+					frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_frontendScratchBuffer,
+						g_frontend_scratch_buffer,
 						MISSION_ACHIEVEMENT_SCORE_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
-					if (g_pilotData
-						    .factionStatistics
-							    [g_pilotData
-								     .currentFactionId]
-						    .mpCampaigns
-							    [g_pilotRecordMultiplayerCampaignMissionList
-								     [listIndex]
-									     .missionIdx]
-						    .isFinished != 0) {
-						strcpy(g_frontendScratchBuffer,
-						       FrontendString_Get(
+					if (g_pilot_data
+						    .faction_statistics
+							    [g_pilot_data
+								     .current_faction_id]
+						    .mp_campaigns
+							    [g_pilot_record_multiplayer_campaign_mission_list
+								     [list_index]
+									     .mission_idx]
+						    .is_finished != 0) {
+						strcpy(g_frontend_scratch_buffer,
+						       frontend_string_get(
 							       FRONTSTR_789_FINISHED));
 					} else {
-						sprintf(g_frontendScratchBuffer,
+						sprintf(g_frontend_scratch_buffer,
 							"%s %d",
-							FrontendString_Get(
+							frontend_string_get(
 								FRONTSTR_788_MIS),
-							g_pilotData
-									.factionStatistics
-										[g_pilotData
-											 .currentFactionId]
-									.mpCampaigns
-										[g_pilotRecordMultiplayerCampaignMissionList
-											 [listIndex]
-												 .missionIdx]
-									.nextMissionIndex +
+							g_pilot_data
+									.faction_statistics
+										[g_pilot_data
+											 .current_faction_id]
+									.mp_campaigns
+										[g_pilot_record_multiplayer_campaign_mission_list
+											 [list_index]
+												 .mission_idx]
+									.next_mission_index +
 								1);
 					}
-					FrontendText_Draw(
+					frontend_text_draw(
 						MISSION_ACHIEVEMENT_FONT_SIZE,
-						g_frontendScratchBuffer,
+						g_frontend_scratch_buffer,
 						MISSION_ACHIEVEMENT_DETAIL_X, y,
 						MISSION_ACHIEVEMENT_TEXT_COLOR);
 					y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 				}
 				++row;
-				for (childListIndex = 0;
-				     childListIndex <
-				     g_pilotRecordMultiplayerTrainingMissionCount;
-				     ++childListIndex) {
-					awardId =
-						g_pilotRecordMultiplayerTrainingMissionList
-							[childListIndex]
-								.missionIdx;
-					if (g_pilotData
-							    .factionStatistics
-								    [g_pilotData
-									     .currentFactionId]
-							    .mpCampaignMissions
-								    [awardId -
+				for (child_list_index = 0;
+				     child_list_index <
+				     g_pilot_record_multiplayer_training_mission_count;
+				     ++child_list_index) {
+					award_id =
+						g_pilot_record_multiplayer_training_mission_list
+							[child_list_index]
+								.mission_idx;
+					if (g_pilot_data
+							    .faction_statistics
+								    [g_pilot_data
+									     .current_faction_id]
+							    .mp_campaign_missions
+								    [award_id -
 								     1]
-							    .numberTimesFlown !=
+							    .number_times_flown !=
 						    0 &&
-					    g_pilotData
-							    .factionStatistics
-								    [g_pilotData
-									     .currentFactionId]
-							    .mpCampaignMissions
-								    [awardId -
+					    g_pilot_data
+							    .faction_statistics
+								    [g_pilot_data
+									     .current_faction_id]
+							    .mp_campaign_missions
+								    [award_id -
 								     1]
-							    .campaignId ==
-						    g_pilotRecordMultiplayerCampaignMissionList
-							    [listIndex]
-								    .missionIdx) {
-						if (g_pilotAchievementsScrollOffset <=
+							    .campaign_id ==
+						    g_pilot_record_multiplayer_campaign_mission_list
+							    [list_index]
+								    .mission_idx) {
+						if (g_pilot_achievements_scroll_offset <=
 							    row &&
-						    row - g_pilotAchievementsScrollOffset <
+						    row - g_pilot_achievements_scroll_offset <
 							    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-							FrontendDisplay_GetScreenClipRect(
-								&previousClipRect);
-							FrontendDraw_RectAssign(
+							frontend_display_get_screen_clip_rect(
+								&previous_clip_rect);
+							frontend_draw_rect_assign(
 								&rect,
 								MISSION_ACHIEVEMENT_TEXT_X,
 								y,
 								MISSION_ACHIEVEMENT_TEXT_RIGHT,
 								y + MISSION_ACHIEVEMENT_ROW_HEIGHT);
-							FrontendDisplay_SetScreenClipRect640x480(
+							frontend_display_set_screen_clip_rect640x480(
 								&rect);
-							drawFlags = FrontendText_Draw(
+							draw_flags = frontend_text_draw(
 								MISSION_ACHIEVEMENT_FONT_SIZE,
-								g_pilotRecordMultiplayerTrainingMissionList
-									[childListIndex]
+								g_pilot_record_multiplayer_training_mission_list
+									[child_list_index]
 										.description,
 								MISSION_ACHIEVEMENT_TEXT_X,
-								y, g_colorGray);
-							FrontendDisplay_SetScreenClipRect640x480(
-								&previousClipRect);
-							if ((drawFlags &
+								y,
+								g_color_gray);
+							frontend_display_set_screen_clip_rect640x480(
+								&previous_clip_rect);
+							if ((draw_flags &
 							     MISSION_ACHIEVEMENT_TEXT_TRUNCATED_FLAG) !=
 							    0) {
-								FrontendText_Draw(
+								frontend_text_draw(
 									MISSION_ACHIEVEMENT_FONT_SIZE,
 									"...",
 									MISSION_ACHIEVEMENT_TEXT_RIGHT,
 									y,
-									g_colorGray);
+									g_color_gray);
 							}
 							y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 						}
@@ -4834,81 +5017,82 @@ int PilotRecord_DrawMissionAchievementsPage(void)
 
 	row = 0;
 	y = MISSION_ACHIEVEMENT_FIRST_Y;
-	hasPrevious = 0;
-	if (g_pilotSpTrainingHistoryCount != 0) {
-		if (hasPrevious != 0) {
-			if (g_pilotAchievementsScrollOffset <= row &&
-			    row - g_pilotAchievementsScrollOffset <
+	has_previous = 0;
+	if (g_pilot_sp_training_history_count != 0) {
+		if (has_previous != 0) {
+			if (g_pilot_achievements_scroll_offset <= row &&
+			    row - g_pilot_achievements_scroll_offset <
 				    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 				y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 			}
 			++row;
 		}
-		hasPrevious = 1;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		has_previous = 1;
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		for (listIndex = 0;
-		     listIndex < g_pilotRecordSingleplayerTrainingMissionCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .spTrainingMissions
-					    [g_pilotRecordSingleplayerTrainingMissionList
-						     [listIndex]
-							     .missionIdx]
-				    .numberTimesFlown != 0) {
-				if (g_pilotAchievementsScrollOffset <= row &&
-				    row - g_pilotAchievementsScrollOffset <
+		for (list_index = 0;
+		     list_index <
+		     g_pilot_record_singleplayer_training_mission_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .sp_training_missions
+					    [g_pilot_record_singleplayer_training_mission_list
+						     [list_index]
+							     .mission_idx]
+				    .number_times_flown != 0) {
+				if (g_pilot_achievements_scroll_offset <= row &&
+				    row - g_pilot_achievements_scroll_offset <
 					    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-					awardId =
-						g_pilotData
-							.factionStatistics
-								[g_pilotData
-									 .currentFactionId]
-							.spTrainingMissions
-								[g_pilotRecordSingleplayerTrainingMissionList
-									 [listIndex]
-										 .missionIdx]
-							.awardLevel;
-					if (awardId != 0) {
-						FrontendDraw_RectAssign(
+					award_id =
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.sp_training_missions
+								[g_pilot_record_singleplayer_training_mission_list
+									 [list_index]
+										 .mission_idx]
+							.award_level;
+					if (award_id != 0) {
+						frontend_draw_rect_assign(
 							&rect,
 							MISSION_ACHIEVEMENT_HEADER_X,
 							y,
 							MISSION_ACHIEVEMENT_AWARD_RIGHT,
 							y + MISSION_ACHIEVEMENT_AWARD_HEIGHT);
-						if (g_pilotData
-							    .currentFactionId !=
+						if (g_pilot_data
+							    .current_faction_id !=
 						    0) {
-							awardSpriteFormat =
+							award_sprite_format =
 								"citlvl%d";
 						} else {
-							awardSpriteFormat =
+							award_sprite_format =
 								"rcitlvl%d";
 						}
-						sprintf(g_frontendScratchBuffer,
-							awardSpriteFormat,
-							awardId);
-						FrontImage_DrawSprite(
-							g_frontendScratchBuffer,
+						sprintf(g_frontend_scratch_buffer,
+							award_sprite_format,
+							award_id);
+						front_image_draw_sprite(
+							g_frontend_scratch_buffer,
 							MISSION_ACHIEVEMENT_HEADER_X,
 							y);
-						FrontendButton_DrawSpriteAndTooltip(
+						frontend_button_draw_sprite_and_tooltip(
 							&rect, NULL,
-							FrontendString_Get((
-								FrontendStringId)(awardId +
-										  MISSION_ACHIEVEMENT_CITATION_TOOLTIP_OFFSET)),
+							frontend_string_get((
+								frontend_string_id)(award_id +
+										    MISSION_ACHIEVEMENT_CITATION_TOOLTIP_OFFSET)),
 							MISSION_ACHIEVEMENT_FONT_SIZE,
 							MISSION_ACHIEVEMENT_TEXT_COLOR);
 					}
@@ -4918,69 +5102,70 @@ int PilotRecord_DrawMissionAchievementsPage(void)
 			}
 		}
 	}
-	if (g_pilotSpMeleeHistoryCount != 0) {
-		if (hasPrevious != 0) {
-			if (g_pilotAchievementsScrollOffset <= row &&
-			    row - g_pilotAchievementsScrollOffset <
+	if (g_pilot_sp_melee_history_count != 0) {
+		if (has_previous != 0) {
+			if (g_pilot_achievements_scroll_offset <= row &&
+			    row - g_pilot_achievements_scroll_offset <
 				    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 				y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 			}
 			++row;
 		}
-		hasPrevious = 1;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		has_previous = 1;
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		for (listIndex = 0; listIndex < g_pilotRecordMeleeMissionCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .spMeleeMissions
-					    [g_pilotRecordMeleeMissionList
-						     [listIndex]
-							     .missionIdx]
-				    .numberTimesFlown != 0) {
-				if (g_pilotAchievementsScrollOffset <= row &&
-				    row - g_pilotAchievementsScrollOffset <
+		for (list_index = 0;
+		     list_index < g_pilot_record_melee_mission_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .sp_melee_missions
+					    [g_pilot_record_melee_mission_list
+						     [list_index]
+							     .mission_idx]
+				    .number_times_flown != 0) {
+				if (g_pilot_achievements_scroll_offset <= row &&
+				    row - g_pilot_achievements_scroll_offset <
 					    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-					awardId =
-						g_pilotData
-							.factionStatistics
-								[g_pilotData
-									 .currentFactionId]
-							.spMeleeMissions
-								[g_pilotRecordMeleeMissionList
-									 [listIndex]
-										 .missionIdx]
-							.awardLevel;
-					if (awardId != 0) {
-						FrontendDraw_RectAssign(
+					award_id =
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.sp_melee_missions
+								[g_pilot_record_melee_mission_list
+									 [list_index]
+										 .mission_idx]
+							.award_level;
+					if (award_id != 0) {
+						frontend_draw_rect_assign(
 							&rect,
 							MISSION_ACHIEVEMENT_HEADER_X,
 							y,
 							MISSION_ACHIEVEMENT_AWARD_RIGHT,
 							y + MISSION_ACHIEVEMENT_AWARD_HEIGHT);
-						sprintf(g_frontendScratchBuffer,
-							"medlvl%d", awardId);
-						FrontImage_DrawSprite(
-							g_frontendScratchBuffer,
+						sprintf(g_frontend_scratch_buffer,
+							"medlvl%d", award_id);
+						front_image_draw_sprite(
+							g_frontend_scratch_buffer,
 							MISSION_ACHIEVEMENT_HEADER_X,
 							y);
-						FrontendButton_DrawSpriteAndTooltip(
+						frontend_button_draw_sprite_and_tooltip(
 							&rect, NULL,
-							FrontendString_Get((
-								FrontendStringId)(awardId +
-										  MISSION_ACHIEVEMENT_MEDAL_TOOLTIP_OFFSET)),
+							frontend_string_get((
+								frontend_string_id)(award_id +
+										    MISSION_ACHIEVEMENT_MEDAL_TOOLTIP_OFFSET)),
 							MISSION_ACHIEVEMENT_FONT_SIZE,
 							MISSION_ACHIEVEMENT_TEXT_COLOR);
 					}
@@ -4990,70 +5175,70 @@ int PilotRecord_DrawMissionAchievementsPage(void)
 			}
 		}
 	}
-	if (g_pilotSpTournamentHistoryCount != 0) {
-		if (hasPrevious != 0) {
-			if (g_pilotAchievementsScrollOffset <= row &&
-			    row - g_pilotAchievementsScrollOffset <
+	if (g_pilot_sp_tournament_history_count != 0) {
+		if (has_previous != 0) {
+			if (g_pilot_achievements_scroll_offset <= row &&
+			    row - g_pilot_achievements_scroll_offset <
 				    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 				y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 			}
 			++row;
 		}
-		hasPrevious = 1;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		has_previous = 1;
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		for (listIndex = 0;
-		     listIndex < g_pilotRecordTournamentMissionCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .spTournaments
-					    [g_pilotRecordTournamentMissionList
-						     [listIndex]
-							     .missionIdx]
-				    .attemptCount != 0) {
-				if (g_pilotAchievementsScrollOffset <= row &&
-				    row - g_pilotAchievementsScrollOffset <
+		for (list_index = 0;
+		     list_index < g_pilot_record_tournament_mission_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .sp_tournaments
+					    [g_pilot_record_tournament_mission_list
+						     [list_index]
+							     .mission_idx]
+				    .attempt_count != 0) {
+				if (g_pilot_achievements_scroll_offset <= row &&
+				    row - g_pilot_achievements_scroll_offset <
 					    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-					awardId =
-						g_pilotData
-							.factionStatistics
-								[g_pilotData
-									 .currentFactionId]
-							.spTournaments
-								[g_pilotRecordTournamentMissionList
-									 [listIndex]
-										 .missionIdx]
-							.awardLevel;
-					if (awardId != 0) {
-						FrontendDraw_RectAssign(
+					award_id =
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.sp_tournaments
+								[g_pilot_record_tournament_mission_list
+									 [list_index]
+										 .mission_idx]
+							.award_level;
+					if (award_id != 0) {
+						frontend_draw_rect_assign(
 							&rect,
 							MISSION_ACHIEVEMENT_HEADER_X,
 							y,
 							MISSION_ACHIEVEMENT_AWARD_RIGHT,
 							y + MISSION_ACHIEVEMENT_AWARD_HEIGHT);
-						sprintf(g_frontendScratchBuffer,
-							"medlvl%d", awardId);
-						FrontImage_DrawSprite(
-							g_frontendScratchBuffer,
+						sprintf(g_frontend_scratch_buffer,
+							"medlvl%d", award_id);
+						front_image_draw_sprite(
+							g_frontend_scratch_buffer,
 							MISSION_ACHIEVEMENT_HEADER_X,
 							y);
-						FrontendButton_DrawSpriteAndTooltip(
+						frontend_button_draw_sprite_and_tooltip(
 							&rect, NULL,
-							FrontendString_Get((
-								FrontendStringId)(awardId +
-										  MISSION_ACHIEVEMENT_MEDAL_TOOLTIP_OFFSET)),
+							frontend_string_get((
+								frontend_string_id)(award_id +
+										    MISSION_ACHIEVEMENT_MEDAL_TOOLTIP_OFFSET)),
 							MISSION_ACHIEVEMENT_FONT_SIZE,
 							MISSION_ACHIEVEMENT_TEXT_COLOR);
 					}
@@ -5063,80 +5248,81 @@ int PilotRecord_DrawMissionAchievementsPage(void)
 			}
 		}
 	}
-	if (g_pilotSpCombatHistoryCount != 0) {
-		if (hasPrevious != 0) {
-			if (g_pilotAchievementsScrollOffset <= row &&
-			    row - g_pilotAchievementsScrollOffset <
+	if (g_pilot_sp_combat_history_count != 0) {
+		if (has_previous != 0) {
+			if (g_pilot_achievements_scroll_offset <= row &&
+			    row - g_pilot_achievements_scroll_offset <
 				    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 				y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 			}
 			++row;
 		}
-		hasPrevious = 1;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		has_previous = 1;
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		for (listIndex = 0;
-		     listIndex < g_pilotRecordSingleplayerCombatMissionCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .spCombatMissions
-					    [g_pilotRecordSingleplayerCombatMissionList
-						     [listIndex]
-							     .missionIdx]
-				    .numberTimesFlown != 0) {
-				if (g_pilotAchievementsScrollOffset <= row &&
-				    row - g_pilotAchievementsScrollOffset <
+		for (list_index = 0;
+		     list_index <
+		     g_pilot_record_singleplayer_combat_mission_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .sp_combat_missions
+					    [g_pilot_record_singleplayer_combat_mission_list
+						     [list_index]
+							     .mission_idx]
+				    .number_times_flown != 0) {
+				if (g_pilot_achievements_scroll_offset <= row &&
+				    row - g_pilot_achievements_scroll_offset <
 					    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-					awardId =
-						g_pilotData
-							.factionStatistics
-								[g_pilotData
-									 .currentFactionId]
-							.spCombatMissions
-								[g_pilotRecordSingleplayerCombatMissionList
-									 [listIndex]
-										 .missionIdx]
-							.awardLevel;
-					if (awardId != 0) {
-						FrontendDraw_RectAssign(
+					award_id =
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.sp_combat_missions
+								[g_pilot_record_singleplayer_combat_mission_list
+									 [list_index]
+										 .mission_idx]
+							.award_level;
+					if (award_id != 0) {
+						frontend_draw_rect_assign(
 							&rect,
 							MISSION_ACHIEVEMENT_HEADER_X,
 							y,
 							MISSION_ACHIEVEMENT_AWARD_RIGHT,
 							y + MISSION_ACHIEVEMENT_AWARD_HEIGHT);
-						if (g_pilotData
-							    .currentFactionId !=
+						if (g_pilot_data
+							    .current_faction_id !=
 						    0) {
-							awardSpriteFormat =
+							award_sprite_format =
 								"citlvl%d";
 						} else {
-							awardSpriteFormat =
+							award_sprite_format =
 								"rcitlvl%d";
 						}
-						sprintf(g_frontendScratchBuffer,
-							awardSpriteFormat,
-							awardId);
-						FrontImage_DrawSprite(
-							g_frontendScratchBuffer,
+						sprintf(g_frontend_scratch_buffer,
+							award_sprite_format,
+							award_id);
+						front_image_draw_sprite(
+							g_frontend_scratch_buffer,
 							MISSION_ACHIEVEMENT_HEADER_X,
 							y);
-						FrontendButton_DrawSpriteAndTooltip(
+						frontend_button_draw_sprite_and_tooltip(
 							&rect, NULL,
-							FrontendString_Get((
-								FrontendStringId)(awardId +
-										  MISSION_ACHIEVEMENT_CITATION_TOOLTIP_OFFSET)),
+							frontend_string_get((
+								frontend_string_id)(award_id +
+										    MISSION_ACHIEVEMENT_CITATION_TOOLTIP_OFFSET)),
 							MISSION_ACHIEVEMENT_FONT_SIZE,
 							MISSION_ACHIEVEMENT_TEXT_COLOR);
 					}
@@ -5146,67 +5332,68 @@ int PilotRecord_DrawMissionAchievementsPage(void)
 			}
 		}
 	}
-	if (g_pilotSpBattleHistoryCount != 0) {
-		if (hasPrevious != 0) {
-			if (g_pilotAchievementsScrollOffset <= row &&
-			    row - g_pilotAchievementsScrollOffset <
+	if (g_pilot_sp_battle_history_count != 0) {
+		if (has_previous != 0) {
+			if (g_pilot_achievements_scroll_offset <= row &&
+			    row - g_pilot_achievements_scroll_offset <
 				    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 				y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 			}
 			++row;
 		}
-		hasPrevious = 1;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		has_previous = 1;
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		for (listIndex = 0; listIndex < g_battleMissionListCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .spBattles[g_battleMissionList[listIndex]
-						       .missionIdx]
-				    .attemptCount != 0) {
-				if (g_pilotAchievementsScrollOffset <= row &&
-				    row - g_pilotAchievementsScrollOffset <
+		for (list_index = 0; list_index < g_battle_mission_list_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .sp_battles
+					    [g_battle_mission_list[list_index]
+						     .mission_idx]
+				    .attempt_count != 0) {
+				if (g_pilot_achievements_scroll_offset <= row &&
+				    row - g_pilot_achievements_scroll_offset <
 					    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-					awardId =
-						g_pilotData
-							.factionStatistics
-								[g_pilotData
-									 .currentFactionId]
-							.spBattles
-								[g_battleMissionList
-									 [listIndex]
-										 .missionIdx]
-							.awardLevel;
-					if (awardId != 0) {
-						FrontendDraw_RectAssign(
+					award_id =
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.sp_battles
+								[g_battle_mission_list
+									 [list_index]
+										 .mission_idx]
+							.award_level;
+					if (award_id != 0) {
+						frontend_draw_rect_assign(
 							&rect,
 							MISSION_ACHIEVEMENT_HEADER_X,
 							y,
 							MISSION_ACHIEVEMENT_AWARD_RIGHT,
 							y + MISSION_ACHIEVEMENT_AWARD_HEIGHT);
-						sprintf(g_frontendScratchBuffer,
-							"medlvl%d", awardId);
-						FrontImage_DrawSprite(
-							g_frontendScratchBuffer,
+						sprintf(g_frontend_scratch_buffer,
+							"medlvl%d", award_id);
+						front_image_draw_sprite(
+							g_frontend_scratch_buffer,
 							MISSION_ACHIEVEMENT_HEADER_X,
 							y);
-						FrontendButton_DrawSpriteAndTooltip(
+						frontend_button_draw_sprite_and_tooltip(
 							&rect, NULL,
-							FrontendString_Get((
-								FrontendStringId)(awardId +
-										  MISSION_ACHIEVEMENT_MEDAL_TOOLTIP_OFFSET)),
+							frontend_string_get((
+								frontend_string_id)(award_id +
+										    MISSION_ACHIEVEMENT_MEDAL_TOOLTIP_OFFSET)),
 							MISSION_ACHIEVEMENT_FONT_SIZE,
 							MISSION_ACHIEVEMENT_TEXT_COLOR);
 					}
@@ -5216,117 +5403,118 @@ int PilotRecord_DrawMissionAchievementsPage(void)
 			}
 		}
 	}
-	if (g_pilotSpCampaignHistoryRowCount != 0) {
-		if (hasPrevious != 0) {
-			if (g_pilotAchievementsScrollOffset <= row &&
-			    row - g_pilotAchievementsScrollOffset <
+	if (g_pilot_sp_campaign_history_row_count != 0) {
+		if (has_previous != 0) {
+			if (g_pilot_achievements_scroll_offset <= row &&
+			    row - g_pilot_achievements_scroll_offset <
 				    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 				y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 			}
 			++row;
 		}
-		hasPrevious = 1;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		has_previous = 1;
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		for (listIndex = 0;
-		     listIndex < g_pilotRecordSingleplayerCampaignMissionCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .spCampaigns
-					    [g_pilotRecordSingleplayerCampaignMissionList
-						     [listIndex]
-							     .missionIdx]
-				    .attemptCount != 0) {
-				if (g_pilotAchievementsScrollOffset <= row &&
-				    row - g_pilotAchievementsScrollOffset <
+		for (list_index = 0;
+		     list_index <
+		     g_pilot_record_singleplayer_campaign_mission_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .sp_campaigns
+					    [g_pilot_record_singleplayer_campaign_mission_list
+						     [list_index]
+							     .mission_idx]
+				    .attempt_count != 0) {
+				if (g_pilot_achievements_scroll_offset <= row &&
+				    row - g_pilot_achievements_scroll_offset <
 					    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 					y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 				}
 				++row;
-				for (childListIndex = 0;
-				     childListIndex <
-				     g_pilotRecordSingleplayerTrainingMissionCount;
-				     ++childListIndex) {
-					awardId =
-						g_pilotRecordSingleplayerTrainingMissionList
-							[childListIndex]
-								.missionIdx;
-					if (g_pilotData
-							    .factionStatistics
-								    [g_pilotData
-									     .currentFactionId]
-							    .spCampaignMissions
-								    [awardId -
+				for (child_list_index = 0;
+				     child_list_index <
+				     g_pilot_record_singleplayer_training_mission_count;
+				     ++child_list_index) {
+					award_id =
+						g_pilot_record_singleplayer_training_mission_list
+							[child_list_index]
+								.mission_idx;
+					if (g_pilot_data
+							    .faction_statistics
+								    [g_pilot_data
+									     .current_faction_id]
+							    .sp_campaign_missions
+								    [award_id -
 								     1]
-							    .numberTimesFlown !=
+							    .number_times_flown !=
 						    0 &&
-					    g_pilotData
-							    .factionStatistics
-								    [g_pilotData
-									     .currentFactionId]
-							    .spCampaignMissions
-								    [awardId -
+					    g_pilot_data
+							    .faction_statistics
+								    [g_pilot_data
+									     .current_faction_id]
+							    .sp_campaign_missions
+								    [award_id -
 								     1]
-							    .campaignId ==
-						    g_pilotRecordSingleplayerCampaignMissionList
-							    [listIndex]
-								    .missionIdx) {
-						if (g_pilotAchievementsScrollOffset <=
+							    .campaign_id ==
+						    g_pilot_record_singleplayer_campaign_mission_list
+							    [list_index]
+								    .mission_idx) {
+						if (g_pilot_achievements_scroll_offset <=
 							    row &&
-						    row - g_pilotAchievementsScrollOffset <
+						    row - g_pilot_achievements_scroll_offset <
 							    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-							/* This statement turns awardId from the mission id into that mission's award
+							/* This statement turns award_id from the mission id into that mission's award
 							 * level. */
-							awardId =
-								g_pilotData
-									.factionStatistics
-										[g_pilotData
-											 .currentFactionId]
-									.spCampaignMissions
-										[awardId -
+							award_id =
+								g_pilot_data
+									.faction_statistics
+										[g_pilot_data
+											 .current_faction_id]
+									.sp_campaign_missions
+										[award_id -
 										 1]
-									.awardLevel;
-							if (awardId != 0) {
-								FrontendDraw_RectAssign(
+									.award_level;
+							if (award_id != 0) {
+								frontend_draw_rect_assign(
 									&rect,
 									MISSION_ACHIEVEMENT_HEADER_X,
 									y,
 									MISSION_ACHIEVEMENT_AWARD_RIGHT,
 									y + MISSION_ACHIEVEMENT_AWARD_HEIGHT);
-								if (g_pilotData
-									    .currentFactionId !=
+								if (g_pilot_data
+									    .current_faction_id !=
 								    0) {
-									awardSpriteFormat =
+									award_sprite_format =
 										"citlvl%d";
 								} else {
-									awardSpriteFormat =
+									award_sprite_format =
 										"rcitlvl%d";
 								}
-								sprintf(g_frontendScratchBuffer,
-									awardSpriteFormat,
-									awardId);
-								FrontImage_DrawSprite(
-									g_frontendScratchBuffer,
+								sprintf(g_frontend_scratch_buffer,
+									award_sprite_format,
+									award_id);
+								front_image_draw_sprite(
+									g_frontend_scratch_buffer,
 									MISSION_ACHIEVEMENT_HEADER_X,
 									y);
-								FrontendButton_DrawSpriteAndTooltip(
+								frontend_button_draw_sprite_and_tooltip(
 									&rect,
 									NULL,
-									FrontendString_Get(
-										(FrontendStringId)(awardId +
-												   659)),
+									frontend_string_get(
+										(frontend_string_id)(award_id +
+												     659)),
 									MISSION_ACHIEVEMENT_FONT_SIZE,
 									MISSION_ACHIEVEMENT_TEXT_COLOR);
 							}
@@ -5338,80 +5526,81 @@ int PilotRecord_DrawMissionAchievementsPage(void)
 			}
 		}
 	}
-	if (g_pilotMpTrainingHistoryCount != 0) {
-		if (hasPrevious != 0) {
-			if (g_pilotAchievementsScrollOffset <= row &&
-			    row - g_pilotAchievementsScrollOffset <
+	if (g_pilot_mp_training_history_count != 0) {
+		if (has_previous != 0) {
+			if (g_pilot_achievements_scroll_offset <= row &&
+			    row - g_pilot_achievements_scroll_offset <
 				    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 				y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 			}
 			++row;
 		}
-		hasPrevious = 1;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		has_previous = 1;
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		for (listIndex = 0;
-		     listIndex < g_pilotRecordMultiplayerTrainingMissionCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .mpTrainingMissions
-					    [g_pilotRecordMultiplayerTrainingMissionList
-						     [listIndex]
-							     .missionIdx]
-				    .numberTimesFlown != 0) {
-				if (g_pilotAchievementsScrollOffset <= row &&
-				    row - g_pilotAchievementsScrollOffset <
+		for (list_index = 0;
+		     list_index <
+		     g_pilot_record_multiplayer_training_mission_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .mp_training_missions
+					    [g_pilot_record_multiplayer_training_mission_list
+						     [list_index]
+							     .mission_idx]
+				    .number_times_flown != 0) {
+				if (g_pilot_achievements_scroll_offset <= row &&
+				    row - g_pilot_achievements_scroll_offset <
 					    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-					awardId =
-						g_pilotData
-							.factionStatistics
-								[g_pilotData
-									 .currentFactionId]
-							.mpTrainingMissions
-								[g_pilotRecordMultiplayerTrainingMissionList
-									 [listIndex]
-										 .missionIdx]
-							.awardLevel;
-					if (awardId != 0) {
-						FrontendDraw_RectAssign(
+					award_id =
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.mp_training_missions
+								[g_pilot_record_multiplayer_training_mission_list
+									 [list_index]
+										 .mission_idx]
+							.award_level;
+					if (award_id != 0) {
+						frontend_draw_rect_assign(
 							&rect,
 							MISSION_ACHIEVEMENT_HEADER_X,
 							y,
 							MISSION_ACHIEVEMENT_AWARD_RIGHT,
 							y + MISSION_ACHIEVEMENT_AWARD_HEIGHT);
-						if (g_pilotData
-							    .currentFactionId !=
+						if (g_pilot_data
+							    .current_faction_id !=
 						    0) {
-							awardSpriteFormat =
+							award_sprite_format =
 								"citlvl%d";
 						} else {
-							awardSpriteFormat =
+							award_sprite_format =
 								"rcitlvl%d";
 						}
-						sprintf(g_frontendScratchBuffer,
-							awardSpriteFormat,
-							awardId);
-						FrontImage_DrawSprite(
-							g_frontendScratchBuffer,
+						sprintf(g_frontend_scratch_buffer,
+							award_sprite_format,
+							award_id);
+						front_image_draw_sprite(
+							g_frontend_scratch_buffer,
 							MISSION_ACHIEVEMENT_HEADER_X,
 							y);
-						FrontendButton_DrawSpriteAndTooltip(
+						frontend_button_draw_sprite_and_tooltip(
 							&rect, NULL,
-							FrontendString_Get((
-								FrontendStringId)(awardId +
-										  MISSION_ACHIEVEMENT_CITATION_TOOLTIP_OFFSET)),
+							frontend_string_get((
+								frontend_string_id)(award_id +
+										    MISSION_ACHIEVEMENT_CITATION_TOOLTIP_OFFSET)),
 							MISSION_ACHIEVEMENT_FONT_SIZE,
 							MISSION_ACHIEVEMENT_TEXT_COLOR);
 					}
@@ -5421,69 +5610,70 @@ int PilotRecord_DrawMissionAchievementsPage(void)
 			}
 		}
 	}
-	if (g_pilotMpMeleeHistoryCount != 0) {
-		if (hasPrevious != 0) {
-			if (g_pilotAchievementsScrollOffset <= row &&
-			    row - g_pilotAchievementsScrollOffset <
+	if (g_pilot_mp_melee_history_count != 0) {
+		if (has_previous != 0) {
+			if (g_pilot_achievements_scroll_offset <= row &&
+			    row - g_pilot_achievements_scroll_offset <
 				    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 				y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 			}
 			++row;
 		}
-		hasPrevious = 1;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		has_previous = 1;
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		for (listIndex = 0; listIndex < g_pilotRecordMeleeMissionCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .mpMeleeMissions
-					    [g_pilotRecordMeleeMissionList
-						     [listIndex]
-							     .missionIdx]
-				    .numberTimesFlown != 0) {
-				if (g_pilotAchievementsScrollOffset <= row &&
-				    row - g_pilotAchievementsScrollOffset <
+		for (list_index = 0;
+		     list_index < g_pilot_record_melee_mission_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .mp_melee_missions
+					    [g_pilot_record_melee_mission_list
+						     [list_index]
+							     .mission_idx]
+				    .number_times_flown != 0) {
+				if (g_pilot_achievements_scroll_offset <= row &&
+				    row - g_pilot_achievements_scroll_offset <
 					    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-					awardId =
-						g_pilotData
-							.factionStatistics
-								[g_pilotData
-									 .currentFactionId]
-							.mpMeleeMissions
-								[g_pilotRecordMeleeMissionList
-									 [listIndex]
-										 .missionIdx]
-							.awardLevel;
-					if (awardId != 0) {
-						FrontendDraw_RectAssign(
+					award_id =
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.mp_melee_missions
+								[g_pilot_record_melee_mission_list
+									 [list_index]
+										 .mission_idx]
+							.award_level;
+					if (award_id != 0) {
+						frontend_draw_rect_assign(
 							&rect,
 							MISSION_ACHIEVEMENT_HEADER_X,
 							y,
 							MISSION_ACHIEVEMENT_AWARD_RIGHT,
 							y + MISSION_ACHIEVEMENT_AWARD_HEIGHT);
-						sprintf(g_frontendScratchBuffer,
-							"medlvl%d", awardId);
-						FrontImage_DrawSprite(
-							g_frontendScratchBuffer,
+						sprintf(g_frontend_scratch_buffer,
+							"medlvl%d", award_id);
+						front_image_draw_sprite(
+							g_frontend_scratch_buffer,
 							MISSION_ACHIEVEMENT_HEADER_X,
 							y);
-						FrontendButton_DrawSpriteAndTooltip(
+						frontend_button_draw_sprite_and_tooltip(
 							&rect, NULL,
-							FrontendString_Get((
-								FrontendStringId)(awardId +
-										  MISSION_ACHIEVEMENT_MEDAL_TOOLTIP_OFFSET)),
+							frontend_string_get((
+								frontend_string_id)(award_id +
+										    MISSION_ACHIEVEMENT_MEDAL_TOOLTIP_OFFSET)),
 							MISSION_ACHIEVEMENT_FONT_SIZE,
 							MISSION_ACHIEVEMENT_TEXT_COLOR);
 					}
@@ -5493,70 +5683,70 @@ int PilotRecord_DrawMissionAchievementsPage(void)
 			}
 		}
 	}
-	if (g_pilotMpTournamentHistoryCount != 0) {
-		if (hasPrevious != 0) {
-			if (g_pilotAchievementsScrollOffset <= row &&
-			    row - g_pilotAchievementsScrollOffset <
+	if (g_pilot_mp_tournament_history_count != 0) {
+		if (has_previous != 0) {
+			if (g_pilot_achievements_scroll_offset <= row &&
+			    row - g_pilot_achievements_scroll_offset <
 				    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 				y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 			}
 			++row;
 		}
-		hasPrevious = 1;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		has_previous = 1;
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		for (listIndex = 0;
-		     listIndex < g_pilotRecordTournamentMissionCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .mpTournaments
-					    [g_pilotRecordTournamentMissionList
-						     [listIndex]
-							     .missionIdx]
-				    .attemptCount != 0) {
-				if (g_pilotAchievementsScrollOffset <= row &&
-				    row - g_pilotAchievementsScrollOffset <
+		for (list_index = 0;
+		     list_index < g_pilot_record_tournament_mission_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .mp_tournaments
+					    [g_pilot_record_tournament_mission_list
+						     [list_index]
+							     .mission_idx]
+				    .attempt_count != 0) {
+				if (g_pilot_achievements_scroll_offset <= row &&
+				    row - g_pilot_achievements_scroll_offset <
 					    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-					awardId =
-						g_pilotData
-							.factionStatistics
-								[g_pilotData
-									 .currentFactionId]
-							.mpTournaments
-								[g_pilotRecordTournamentMissionList
-									 [listIndex]
-										 .missionIdx]
-							.awardLevel;
-					if (awardId != 0) {
-						FrontendDraw_RectAssign(
+					award_id =
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.mp_tournaments
+								[g_pilot_record_tournament_mission_list
+									 [list_index]
+										 .mission_idx]
+							.award_level;
+					if (award_id != 0) {
+						frontend_draw_rect_assign(
 							&rect,
 							MISSION_ACHIEVEMENT_HEADER_X,
 							y,
 							MISSION_ACHIEVEMENT_AWARD_RIGHT,
 							y + MISSION_ACHIEVEMENT_AWARD_HEIGHT);
-						sprintf(g_frontendScratchBuffer,
-							"medlvl%d", awardId);
-						FrontImage_DrawSprite(
-							g_frontendScratchBuffer,
+						sprintf(g_frontend_scratch_buffer,
+							"medlvl%d", award_id);
+						front_image_draw_sprite(
+							g_frontend_scratch_buffer,
 							MISSION_ACHIEVEMENT_HEADER_X,
 							y);
-						FrontendButton_DrawSpriteAndTooltip(
+						frontend_button_draw_sprite_and_tooltip(
 							&rect, NULL,
-							FrontendString_Get((
-								FrontendStringId)(awardId +
-										  MISSION_ACHIEVEMENT_MEDAL_TOOLTIP_OFFSET)),
+							frontend_string_get((
+								frontend_string_id)(award_id +
+										    MISSION_ACHIEVEMENT_MEDAL_TOOLTIP_OFFSET)),
 							MISSION_ACHIEVEMENT_FONT_SIZE,
 							MISSION_ACHIEVEMENT_TEXT_COLOR);
 					}
@@ -5566,80 +5756,81 @@ int PilotRecord_DrawMissionAchievementsPage(void)
 			}
 		}
 	}
-	if (g_pilotMpCombatHistoryCount != 0) {
-		if (hasPrevious != 0) {
-			if (g_pilotAchievementsScrollOffset <= row &&
-			    row - g_pilotAchievementsScrollOffset <
+	if (g_pilot_mp_combat_history_count != 0) {
+		if (has_previous != 0) {
+			if (g_pilot_achievements_scroll_offset <= row &&
+			    row - g_pilot_achievements_scroll_offset <
 				    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 				y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 			}
 			++row;
 		}
-		hasPrevious = 1;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		has_previous = 1;
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		for (listIndex = 0;
-		     listIndex < g_pilotRecordMultiplayerCombatMissionCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .mpCombatMissions
-					    [g_pilotRecordMultiplayerCombatMissionList
-						     [listIndex]
-							     .missionIdx]
-				    .numberTimesFlown != 0) {
-				if (g_pilotAchievementsScrollOffset <= row &&
-				    row - g_pilotAchievementsScrollOffset <
+		for (list_index = 0;
+		     list_index <
+		     g_pilot_record_multiplayer_combat_mission_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .mp_combat_missions
+					    [g_pilot_record_multiplayer_combat_mission_list
+						     [list_index]
+							     .mission_idx]
+				    .number_times_flown != 0) {
+				if (g_pilot_achievements_scroll_offset <= row &&
+				    row - g_pilot_achievements_scroll_offset <
 					    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-					awardId =
-						g_pilotData
-							.factionStatistics
-								[g_pilotData
-									 .currentFactionId]
-							.mpCombatMissions
-								[g_pilotRecordMultiplayerCombatMissionList
-									 [listIndex]
-										 .missionIdx]
-							.awardLevel;
-					if (awardId != 0) {
-						FrontendDraw_RectAssign(
+					award_id =
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.mp_combat_missions
+								[g_pilot_record_multiplayer_combat_mission_list
+									 [list_index]
+										 .mission_idx]
+							.award_level;
+					if (award_id != 0) {
+						frontend_draw_rect_assign(
 							&rect,
 							MISSION_ACHIEVEMENT_HEADER_X,
 							y,
 							MISSION_ACHIEVEMENT_AWARD_RIGHT,
 							y + MISSION_ACHIEVEMENT_AWARD_HEIGHT);
-						if (g_pilotData
-							    .currentFactionId !=
+						if (g_pilot_data
+							    .current_faction_id !=
 						    0) {
-							awardSpriteFormat =
+							award_sprite_format =
 								"citlvl%d";
 						} else {
-							awardSpriteFormat =
+							award_sprite_format =
 								"rcitlvl%d";
 						}
-						sprintf(g_frontendScratchBuffer,
-							awardSpriteFormat,
-							awardId);
-						FrontImage_DrawSprite(
-							g_frontendScratchBuffer,
+						sprintf(g_frontend_scratch_buffer,
+							award_sprite_format,
+							award_id);
+						front_image_draw_sprite(
+							g_frontend_scratch_buffer,
 							MISSION_ACHIEVEMENT_HEADER_X,
 							y);
-						FrontendButton_DrawSpriteAndTooltip(
+						frontend_button_draw_sprite_and_tooltip(
 							&rect, NULL,
-							FrontendString_Get((
-								FrontendStringId)(awardId +
-										  MISSION_ACHIEVEMENT_CITATION_TOOLTIP_OFFSET)),
+							frontend_string_get((
+								frontend_string_id)(award_id +
+										    MISSION_ACHIEVEMENT_CITATION_TOOLTIP_OFFSET)),
 							MISSION_ACHIEVEMENT_FONT_SIZE,
 							MISSION_ACHIEVEMENT_TEXT_COLOR);
 					}
@@ -5649,67 +5840,68 @@ int PilotRecord_DrawMissionAchievementsPage(void)
 			}
 		}
 	}
-	if (g_pilotMpBattleHistoryCount != 0) {
-		if (hasPrevious != 0) {
-			if (g_pilotAchievementsScrollOffset <= row &&
-			    row - g_pilotAchievementsScrollOffset <
+	if (g_pilot_mp_battle_history_count != 0) {
+		if (has_previous != 0) {
+			if (g_pilot_achievements_scroll_offset <= row &&
+			    row - g_pilot_achievements_scroll_offset <
 				    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 				y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 			}
 			++row;
 		}
-		hasPrevious = 1;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		has_previous = 1;
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		for (listIndex = 0; listIndex < g_battleMissionListCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .mpBattles[g_battleMissionList[listIndex]
-						       .missionIdx]
-				    .attemptCount != 0) {
-				if (g_pilotAchievementsScrollOffset <= row &&
-				    row - g_pilotAchievementsScrollOffset <
+		for (list_index = 0; list_index < g_battle_mission_list_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .mp_battles
+					    [g_battle_mission_list[list_index]
+						     .mission_idx]
+				    .attempt_count != 0) {
+				if (g_pilot_achievements_scroll_offset <= row &&
+				    row - g_pilot_achievements_scroll_offset <
 					    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-					awardId =
-						g_pilotData
-							.factionStatistics
-								[g_pilotData
-									 .currentFactionId]
-							.mpBattles
-								[g_battleMissionList
-									 [listIndex]
-										 .missionIdx]
-							.awardLevel;
-					if (awardId != 0) {
-						FrontendDraw_RectAssign(
+					award_id =
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.mp_battles
+								[g_battle_mission_list
+									 [list_index]
+										 .mission_idx]
+							.award_level;
+					if (award_id != 0) {
+						frontend_draw_rect_assign(
 							&rect,
 							MISSION_ACHIEVEMENT_HEADER_X,
 							y,
 							MISSION_ACHIEVEMENT_AWARD_RIGHT,
 							y + MISSION_ACHIEVEMENT_AWARD_HEIGHT);
-						sprintf(g_frontendScratchBuffer,
-							"medlvl%d", awardId);
-						FrontImage_DrawSprite(
-							g_frontendScratchBuffer,
+						sprintf(g_frontend_scratch_buffer,
+							"medlvl%d", award_id);
+						front_image_draw_sprite(
+							g_frontend_scratch_buffer,
 							MISSION_ACHIEVEMENT_HEADER_X,
 							y);
-						FrontendButton_DrawSpriteAndTooltip(
+						frontend_button_draw_sprite_and_tooltip(
 							&rect, NULL,
-							FrontendString_Get((
-								FrontendStringId)(awardId +
-										  MISSION_ACHIEVEMENT_MEDAL_TOOLTIP_OFFSET)),
+							frontend_string_get((
+								frontend_string_id)(award_id +
+										    MISSION_ACHIEVEMENT_MEDAL_TOOLTIP_OFFSET)),
 							MISSION_ACHIEVEMENT_FONT_SIZE,
 							MISSION_ACHIEVEMENT_TEXT_COLOR);
 					}
@@ -5719,115 +5911,116 @@ int PilotRecord_DrawMissionAchievementsPage(void)
 			}
 		}
 	}
-	if (g_pilotMpCampaignHistoryRowCount != 0) {
-		if (hasPrevious != 0) {
-			if (g_pilotAchievementsScrollOffset <= row &&
-			    row - g_pilotAchievementsScrollOffset <
+	if (g_pilot_mp_campaign_history_row_count != 0) {
+		if (has_previous != 0) {
+			if (g_pilot_achievements_scroll_offset <= row &&
+			    row - g_pilot_achievements_scroll_offset <
 				    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 				y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 			}
 			++row;
 		}
-		hasPrevious = 1;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		has_previous = 1;
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		if (g_pilotAchievementsScrollOffset <= row &&
-		    row - g_pilotAchievementsScrollOffset <
+		if (g_pilot_achievements_scroll_offset <= row &&
+		    row - g_pilot_achievements_scroll_offset <
 			    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 			y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 		}
 		++row;
-		for (listIndex = 0;
-		     listIndex < g_pilotRecordMultiplayerCampaignMissionCount;
-		     ++listIndex) {
-			if (g_pilotData
-				    .factionStatistics
-					    [g_pilotData.currentFactionId]
-				    .mpCampaigns
-					    [g_pilotRecordMultiplayerCampaignMissionList
-						     [listIndex]
-							     .missionIdx]
-				    .attemptCount != 0) {
-				if (g_pilotAchievementsScrollOffset <= row &&
-				    row - g_pilotAchievementsScrollOffset <
+		for (list_index = 0;
+		     list_index <
+		     g_pilot_record_multiplayer_campaign_mission_count;
+		     ++list_index) {
+			if (g_pilot_data
+				    .faction_statistics
+					    [g_pilot_data.current_faction_id]
+				    .mp_campaigns
+					    [g_pilot_record_multiplayer_campaign_mission_list
+						     [list_index]
+							     .mission_idx]
+				    .attempt_count != 0) {
+				if (g_pilot_achievements_scroll_offset <= row &&
+				    row - g_pilot_achievements_scroll_offset <
 					    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
 					y += MISSION_ACHIEVEMENT_ROW_HEIGHT;
 				}
 				++row;
-				for (childListIndex = 0;
-				     childListIndex <
-				     g_pilotRecordMultiplayerTrainingMissionCount;
-				     ++childListIndex) {
-					awardId =
-						g_pilotRecordMultiplayerTrainingMissionList
-							[childListIndex]
-								.missionIdx;
-					if (g_pilotData
-							    .factionStatistics
-								    [g_pilotData
-									     .currentFactionId]
-							    .mpCampaignMissions
-								    [awardId -
+				for (child_list_index = 0;
+				     child_list_index <
+				     g_pilot_record_multiplayer_training_mission_count;
+				     ++child_list_index) {
+					award_id =
+						g_pilot_record_multiplayer_training_mission_list
+							[child_list_index]
+								.mission_idx;
+					if (g_pilot_data
+							    .faction_statistics
+								    [g_pilot_data
+									     .current_faction_id]
+							    .mp_campaign_missions
+								    [award_id -
 								     1]
-							    .numberTimesFlown !=
+							    .number_times_flown !=
 						    0 &&
-					    g_pilotData
-							    .factionStatistics
-								    [g_pilotData
-									     .currentFactionId]
-							    .mpCampaignMissions
-								    [awardId -
+					    g_pilot_data
+							    .faction_statistics
+								    [g_pilot_data
+									     .current_faction_id]
+							    .mp_campaign_missions
+								    [award_id -
 								     1]
-							    .campaignId ==
-						    g_pilotRecordMultiplayerCampaignMissionList
-							    [listIndex]
-								    .missionIdx) {
-						if (g_pilotAchievementsScrollOffset <=
+							    .campaign_id ==
+						    g_pilot_record_multiplayer_campaign_mission_list
+							    [list_index]
+								    .mission_idx) {
+						if (g_pilot_achievements_scroll_offset <=
 							    row &&
-						    row - g_pilotAchievementsScrollOffset <
+						    row - g_pilot_achievements_scroll_offset <
 							    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-							awardId =
-								g_pilotData
-									.factionStatistics
-										[g_pilotData
-											 .currentFactionId]
-									.mpCampaignMissions
-										[awardId -
+							award_id =
+								g_pilot_data
+									.faction_statistics
+										[g_pilot_data
+											 .current_faction_id]
+									.mp_campaign_missions
+										[award_id -
 										 1]
-									.awardLevel;
-							if (awardId != 0) {
-								FrontendDraw_RectAssign(
+									.award_level;
+							if (award_id != 0) {
+								frontend_draw_rect_assign(
 									&rect,
 									MISSION_ACHIEVEMENT_HEADER_X,
 									y,
 									MISSION_ACHIEVEMENT_AWARD_RIGHT,
 									y + MISSION_ACHIEVEMENT_AWARD_HEIGHT);
-								if (g_pilotData
-									    .currentFactionId !=
+								if (g_pilot_data
+									    .current_faction_id !=
 								    0) {
-									awardSpriteFormat =
+									award_sprite_format =
 										"citlvl%d";
 								} else {
-									awardSpriteFormat =
+									award_sprite_format =
 										"rcitlvl%d";
 								}
-								sprintf(g_frontendScratchBuffer,
-									awardSpriteFormat,
-									awardId);
-								FrontImage_DrawSprite(
-									g_frontendScratchBuffer,
+								sprintf(g_frontend_scratch_buffer,
+									award_sprite_format,
+									award_id);
+								front_image_draw_sprite(
+									g_frontend_scratch_buffer,
 									MISSION_ACHIEVEMENT_HEADER_X,
 									y);
-								FrontendButton_DrawSpriteAndTooltip(
+								frontend_button_draw_sprite_and_tooltip(
 									&rect,
 									NULL,
-									FrontendString_Get(
-										(FrontendStringId)(awardId +
-												   659)),
+									frontend_string_get(
+										(frontend_string_id)(award_id +
+												     659)),
 									MISSION_ACHIEVEMENT_FONT_SIZE,
 									MISSION_ACHIEVEMENT_TEXT_COLOR);
 							}
@@ -5844,322 +6037,333 @@ int PilotRecord_DrawMissionAchievementsPage(void)
 
 /* Draws the cutscene page: for each campaign the current faction attempted,
  * single player or multiplayer, its title and each of its cutscenes the pilot
- * has unlocked, with a thumbnail: one not marked playAfterDebriefing once its
+ * has unlocked, with a thumbnail: one not marked play_after_debriefing once its
  * campaign mission was flown, one marked so once that mission was completed. It
  * stops drawing once y passes 433. Clicking a thumbnail suspends CD audio,
  * clears the screen, plays the cutscene's movie, redraws the background and
  * resumes the audio; the modern build returns 1 at once when
- * XvtFrontendMovies_PlayViewer returns nonzero. When
- * g_pilotRecordPagesNeedRebuild is set it first reloads the campaign list into
- * g_pilotRecordSingleplayerCampaignMissionList, cuts each description at its
- * last '(', counts g_cutsceneViewerTotalRows, sets g_cutsceneViewerScrollRow to
+ * xvt_frontend_movies_play_viewer returns nonzero. When
+ * g_pilot_record_pages_need_rebuild is set it first reloads the campaign list into
+ * g_pilot_record_singleplayer_campaign_mission_list, cuts each description at its
+ * last '(', counts g_cutscene_viewer_total_rows, sets g_cutscene_viewer_scroll_row to
  * 0 and clears the flag; a scroll bar sets the row past 21 rows. Returns 0 when
- * no pilot is loaded or g_cutsceneTable is NULL, else 1. */
+ * no pilot is loaded or g_cutscene_table is NULL, else 1. */
 // FUNCTION: XVT 0x4C7CC0
-int PilotRecord_DrawCutsceneViewerPage(void)
+int pilot_record_draw_cutscene_viewer_page(void)
 {
 	struct RECT rect;
-	struct RECT textRect;
-	struct RECT previousClipRect;
-	struct MissionListEntry *campaignEntry;
-	int campaignIndex;
-	unsigned int cutsceneIndex;
-	unsigned int searchIndex;
-	int mouseX;
-	int mouseY;
-	int hasCampaignCutscene;
-	int selectedCutscene;
+	struct RECT text_rect;
+	struct RECT previous_clip_rect;
+	struct mission_list_entry *campaign_entry;
+	int campaign_index;
+	unsigned int cutscene_index;
+	unsigned int search_index;
+	int mouse_x;
+	int mouse_y;
+	int has_campaign_cutscene;
+	int selected_cutscene;
 	int y;
-	int thumbnailX;
-	int thumbnailHeight;
+	int thumbnail_x;
+	int thumbnail_height;
 
-	FrontendCursor_GetPos(&mouseX, &mouseY);
-	FrontendDraw_RectAssign(&textRect, 84, 90, 404, 106);
-	if (g_pilotData.name[0] == '\0') {
-		sprintf(g_frontendScratchBuffer, "%s",
-			FrontendString_Get(FRONTSTR_796_VIEW_CUTSCENES));
+	frontend_cursor_get_pos(&mouse_x, &mouse_y);
+	frontend_draw_rect_assign(&text_rect, 84, 90, 404, 106);
+	if (g_pilot_data.name[0] == '\0') {
+		sprintf(g_frontend_scratch_buffer, "%s",
+			frontend_string_get(FRONTSTR_796_VIEW_CUTSCENES));
 	} else {
-		sprintf(g_frontendScratchBuffer, "%s: %c%s %c%s",
-			FrontendString_Get(FRONTSTR_796_VIEW_CUTSCENES), 6,
-			g_pilotData.ratingName, 4, g_pilotData.name);
+		sprintf(g_frontend_scratch_buffer, "%s: %c%s %c%s",
+			frontend_string_get(FRONTSTR_796_VIEW_CUTSCENES), 6,
+			g_pilot_data.rating_name, 4, g_pilot_data.name);
 	}
-	FrontendText_DrawCentered(15, g_frontendScratchBuffer, &textRect,
-				  0xFFFF);
-	if (g_pilotData.name[0] == '\0') {
+	frontend_text_draw_centered(15, g_frontend_scratch_buffer, &text_rect,
+				    0xFFFF);
+	if (g_pilot_data.name[0] == '\0') {
 		return 0;
 	}
-	if (g_cutsceneTable == NULL) {
+	if (g_cutscene_table == NULL) {
 		return 0;
 	}
 
-	if (g_pilotRecordPagesNeedRebuild != 0) {
-		if (g_pilotRecordSingleplayerCampaignMissionList != NULL) {
-			free(g_pilotRecordSingleplayerCampaignMissionList);
-			g_pilotRecordSingleplayerCampaignMissionList = NULL;
+	if (g_pilot_record_pages_need_rebuild != 0) {
+		if (g_pilot_record_singleplayer_campaign_mission_list != NULL) {
+			free(g_pilot_record_singleplayer_campaign_mission_list);
+			g_pilot_record_singleplayer_campaign_mission_list =
+				NULL;
 		}
-		MissionSetup_LoadMissionList(MISSION_DIRECTORY_CAMPAIGNS);
-		g_pilotRecordSingleplayerCampaignMissionList = g_missionList;
-		g_pilotRecordSingleplayerCampaignMissionCount = g_missionCount;
-		g_missionList = NULL;
-		for (campaignIndex = 0;
-		     campaignIndex <
-		     g_pilotRecordSingleplayerCampaignMissionCount;
-		     ++campaignIndex) {
-			searchIndex =
+		mission_setup_load_mission_list(MISSION_DIRECTORY_CAMPAIGNS);
+		g_pilot_record_singleplayer_campaign_mission_list =
+			g_mission_list;
+		g_pilot_record_singleplayer_campaign_mission_count =
+			g_mission_count;
+		g_mission_list = NULL;
+		for (campaign_index = 0;
+		     campaign_index <
+		     g_pilot_record_singleplayer_campaign_mission_count;
+		     ++campaign_index) {
+			search_index =
 				(unsigned int)strlen(
-					g_pilotRecordSingleplayerCampaignMissionList
-						[campaignIndex]
+					g_pilot_record_singleplayer_campaign_mission_list
+						[campaign_index]
 							.description) +
 				1;
-			searchIndex -= 2;
-			if (searchIndex != 0) {
-				campaignEntry =
-					&g_pilotRecordSingleplayerCampaignMissionList
-						[campaignIndex];
+			search_index -= 2;
+			if (search_index != 0) {
+				campaign_entry =
+					&g_pilot_record_singleplayer_campaign_mission_list
+						[campaign_index];
 				do {
-					if (campaignEntry->description
-						    [searchIndex] == '(') {
-						campaignEntry->description
-							[searchIndex] = '\0';
+					if (campaign_entry->description
+						    [search_index] == '(') {
+						campaign_entry->description
+							[search_index] = '\0';
 						break;
 					}
-					--searchIndex;
-				} while (searchIndex != 0);
+					--search_index;
+				} while (search_index != 0);
 			}
 		}
 
-		g_cutsceneViewerScrollRow = 0;
-		g_cutsceneViewerTotalRows = 0;
-		for (campaignIndex = 0;
-		     campaignIndex <
-		     g_pilotRecordSingleplayerCampaignMissionCount;
-		     ++campaignIndex) {
-			if (g_pilotData
-					    .factionStatistics
-						    [g_pilotData
-							     .currentFactionId]
-					    .spCampaigns
-						    [g_pilotRecordSingleplayerCampaignMissionList
-							     [campaignIndex]
-								     .missionIdx]
-					    .attemptCount == 0 &&
-			    g_pilotData
-					    .factionStatistics
-						    [g_pilotData
-							     .currentFactionId]
-					    .mpCampaigns
-						    [g_pilotRecordSingleplayerCampaignMissionList
-							     [campaignIndex]
-								     .missionIdx]
-					    .attemptCount == 0) {
+		g_cutscene_viewer_scroll_row = 0;
+		g_cutscene_viewer_total_rows = 0;
+		for (campaign_index = 0;
+		     campaign_index <
+		     g_pilot_record_singleplayer_campaign_mission_count;
+		     ++campaign_index) {
+			if (g_pilot_data
+					    .faction_statistics
+						    [g_pilot_data
+							     .current_faction_id]
+					    .sp_campaigns
+						    [g_pilot_record_singleplayer_campaign_mission_list
+							     [campaign_index]
+								     .mission_idx]
+					    .attempt_count == 0 &&
+			    g_pilot_data
+					    .faction_statistics
+						    [g_pilot_data
+							     .current_faction_id]
+					    .mp_campaigns
+						    [g_pilot_record_singleplayer_campaign_mission_list
+							     [campaign_index]
+								     .mission_idx]
+					    .attempt_count == 0) {
 				continue;
 			}
-			hasCampaignCutscene = 0;
-			for (cutsceneIndex = 0;
-			     cutsceneIndex < (unsigned int)g_cutsceneCount;
-			     ++cutsceneIndex) {
-				if (g_pilotRecordSingleplayerCampaignMissionList
-					    [campaignIndex]
-						    .missionIdx !=
-				    g_cutsceneTable[cutsceneIndex].campaignId) {
+			has_campaign_cutscene = 0;
+			for (cutscene_index = 0;
+			     cutscene_index < (unsigned int)g_cutscene_count;
+			     ++cutscene_index) {
+				if (g_pilot_record_singleplayer_campaign_mission_list
+					    [campaign_index]
+						    .mission_idx !=
+				    g_cutscene_table[cutscene_index]
+					    .campaign_id) {
 					continue;
 				}
-				if (g_cutsceneTable[cutsceneIndex]
-					    .playAfterDebriefing == 0) {
-					if (g_pilotData
-							    .factionStatistics
-								    [g_pilotData
-									     .currentFactionId]
-							    .spCampaignMissions
-								    [g_cutsceneTable[cutsceneIndex]
-									     .campaignMissionId -
+				if (g_cutscene_table[cutscene_index]
+					    .play_after_debriefing == 0) {
+					if (g_pilot_data
+							    .faction_statistics
+								    [g_pilot_data
+									     .current_faction_id]
+							    .sp_campaign_missions
+								    [g_cutscene_table[cutscene_index]
+									     .campaign_mission_id -
 								     1]
-							    .numberTimesFlown ==
+							    .number_times_flown ==
 						    0 &&
-					    g_pilotData
-							    .factionStatistics
-								    [g_pilotData
-									     .currentFactionId]
-							    .mpCampaignMissions
-								    [g_cutsceneTable[cutsceneIndex]
-									     .campaignMissionId -
+					    g_pilot_data
+							    .faction_statistics
+								    [g_pilot_data
+									     .current_faction_id]
+							    .mp_campaign_missions
+								    [g_cutscene_table[cutscene_index]
+									     .campaign_mission_id -
 								     1]
-							    .numberTimesFlown ==
+							    .number_times_flown ==
 						    0) {
 						continue;
 					}
 				} else if (
-					g_pilotData
-							.factionStatistics
-								[g_pilotData
-									 .currentFactionId]
-							.spCampaignMissions
-								[g_cutsceneTable[cutsceneIndex]
-									 .campaignMissionId -
+					g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.sp_campaign_missions
+								[g_cutscene_table[cutscene_index]
+									 .campaign_mission_id -
 								 1]
-							.isCompleted == 0 &&
-					g_pilotData
-							.factionStatistics
-								[g_pilotData
-									 .currentFactionId]
-							.mpCampaignMissions
-								[g_cutsceneTable[cutsceneIndex]
-									 .campaignMissionId -
+							.is_completed == 0 &&
+					g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.mp_campaign_missions
+								[g_cutscene_table[cutscene_index]
+									 .campaign_mission_id -
 								 1]
-							.isCompleted == 0) {
+							.is_completed == 0) {
 					continue;
 				}
-				if (hasCampaignCutscene == 0) {
-					hasCampaignCutscene = 1;
-					g_cutsceneViewerTotalRows += 2;
+				if (has_campaign_cutscene == 0) {
+					has_campaign_cutscene = 1;
+					g_cutscene_viewer_total_rows += 2;
 				}
-				++g_cutsceneViewerTotalRows;
-				FrontImage_GetResourceRect(
-					g_cutsceneTable[cutsceneIndex]
-						.thumbnailSprite,
+				++g_cutscene_viewer_total_rows;
+				front_image_get_resource_rect(
+					g_cutscene_table[cutscene_index]
+						.thumbnail_sprite,
 					&rect);
-				g_cutsceneViewerTotalRows +=
+				g_cutscene_viewer_total_rows +=
 					(unsigned int)(rect.bottom - rect.top +
 						       CUTSCENE_VIEWER_ROW_HEIGHT +
 						       3) /
 					CUTSCENE_VIEWER_ROW_HEIGHT;
 			}
 		}
-		g_pilotRecordPagesNeedRebuild = 0;
+		g_pilot_record_pages_need_rebuild = 0;
 	}
 
-	FrontendDraw_RectAssign(&textRect, 425, 107, 434, 433);
-	if ((unsigned int)g_cutsceneViewerTotalRows >
+	frontend_draw_rect_assign(&text_rect, 425, 107, 434, 433);
+	if ((unsigned int)g_cutscene_viewer_total_rows >
 	    CUTSCENE_VIEWER_VISIBLE_ROW_COUNT) {
-		g_cutsceneViewerScrollRow = FrontendScrollbar_Draw(
-			&textRect, g_cutsceneViewerScrollRow,
-			g_cutsceneViewerTotalRows, 0, 5,
-			(unsigned int)g_colorNavy, 11);
+		g_cutscene_viewer_scroll_row = frontend_scrollbar_draw(
+			&text_rect, g_cutscene_viewer_scroll_row,
+			g_cutscene_viewer_total_rows, 0, 5,
+			(unsigned int)g_color_navy, 11);
 	}
-	FrontendDisplay_GetScreenClipRect(&previousClipRect);
-	FrontendDraw_RectAssign(&textRect, 88, 111, 424, 433);
-	FrontendDisplay_SetScreenClipRect640x480(&textRect);
-	selectedCutscene = 0;
-	y = 111 - CUTSCENE_VIEWER_ROW_HEIGHT * g_cutsceneViewerScrollRow;
-	FrontendDraw_RectAssign(&textRect, 88, y, 424,
-				y + CUTSCENE_VIEWER_ROW_HEIGHT - 1);
-	for (campaignIndex = 0;
-	     campaignIndex < g_pilotRecordSingleplayerCampaignMissionCount;
-	     ++campaignIndex) {
-		if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
-				    .spCampaigns
-					    [g_pilotRecordSingleplayerCampaignMissionList
-						     [campaignIndex]
-							     .missionIdx]
-				    .attemptCount == 0 &&
-		    g_pilotData.factionStatistics[g_pilotData.currentFactionId]
-				    .mpCampaigns
-					    [g_pilotRecordSingleplayerCampaignMissionList
-						     [campaignIndex]
-							     .missionIdx]
-				    .attemptCount == 0) {
+	frontend_display_get_screen_clip_rect(&previous_clip_rect);
+	frontend_draw_rect_assign(&text_rect, 88, 111, 424, 433);
+	frontend_display_set_screen_clip_rect640x480(&text_rect);
+	selected_cutscene = 0;
+	y = 111 - CUTSCENE_VIEWER_ROW_HEIGHT * g_cutscene_viewer_scroll_row;
+	frontend_draw_rect_assign(&text_rect, 88, y, 424,
+				  y + CUTSCENE_VIEWER_ROW_HEIGHT - 1);
+	for (campaign_index = 0;
+	     campaign_index <
+	     g_pilot_record_singleplayer_campaign_mission_count;
+	     ++campaign_index) {
+		if (g_pilot_data.faction_statistics[g_pilot_data
+							    .current_faction_id]
+				    .sp_campaigns
+					    [g_pilot_record_singleplayer_campaign_mission_list
+						     [campaign_index]
+							     .mission_idx]
+				    .attempt_count == 0 &&
+		    g_pilot_data.faction_statistics[g_pilot_data
+							    .current_faction_id]
+				    .mp_campaigns
+					    [g_pilot_record_singleplayer_campaign_mission_list
+						     [campaign_index]
+							     .mission_idx]
+				    .attempt_count == 0) {
 			continue;
 		}
-		hasCampaignCutscene = 0;
-		for (cutsceneIndex = 0;
-		     cutsceneIndex < (unsigned int)g_cutsceneCount;
-		     ++cutsceneIndex) {
-			if (g_pilotRecordSingleplayerCampaignMissionList
-				    [campaignIndex]
-					    .missionIdx !=
-			    g_cutsceneTable[cutsceneIndex].campaignId) {
+		has_campaign_cutscene = 0;
+		for (cutscene_index = 0;
+		     cutscene_index < (unsigned int)g_cutscene_count;
+		     ++cutscene_index) {
+			if (g_pilot_record_singleplayer_campaign_mission_list
+				    [campaign_index]
+					    .mission_idx !=
+			    g_cutscene_table[cutscene_index].campaign_id) {
 				continue;
 			}
-			if (g_cutsceneTable[cutsceneIndex]
-				    .playAfterDebriefing == 0) {
-				if (g_pilotData
-						    .factionStatistics
-							    [g_pilotData
-								     .currentFactionId]
-						    .spCampaignMissions
-							    [g_cutsceneTable[cutsceneIndex]
-								     .campaignMissionId -
+			if (g_cutscene_table[cutscene_index]
+				    .play_after_debriefing == 0) {
+				if (g_pilot_data
+						    .faction_statistics
+							    [g_pilot_data
+								     .current_faction_id]
+						    .sp_campaign_missions
+							    [g_cutscene_table[cutscene_index]
+								     .campaign_mission_id -
 							     1]
-						    .numberTimesFlown == 0 &&
-				    g_pilotData
-						    .factionStatistics
-							    [g_pilotData
-								     .currentFactionId]
-						    .mpCampaignMissions
-							    [g_cutsceneTable[cutsceneIndex]
-								     .campaignMissionId -
+						    .number_times_flown == 0 &&
+				    g_pilot_data
+						    .faction_statistics
+							    [g_pilot_data
+								     .current_faction_id]
+						    .mp_campaign_missions
+							    [g_cutscene_table[cutscene_index]
+								     .campaign_mission_id -
 							     1]
-						    .numberTimesFlown == 0) {
+						    .number_times_flown == 0) {
 					continue;
 				}
 			} else if (
-				g_pilotData
-						.factionStatistics
-							[g_pilotData
-								 .currentFactionId]
-						.spCampaignMissions
-							[g_cutsceneTable[cutsceneIndex]
-								 .campaignMissionId -
+				g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_campaign_missions
+							[g_cutscene_table[cutscene_index]
+								 .campaign_mission_id -
 							 1]
-						.isCompleted == 0 &&
-				g_pilotData
-						.factionStatistics
-							[g_pilotData
-								 .currentFactionId]
-						.mpCampaignMissions
-							[g_cutsceneTable[cutsceneIndex]
-								 .campaignMissionId -
+						.is_completed == 0 &&
+				g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_campaign_missions
+							[g_cutscene_table[cutscene_index]
+								 .campaign_mission_id -
 							 1]
-						.isCompleted == 0) {
+						.is_completed == 0) {
 				continue;
 			}
-			if (hasCampaignCutscene == 0) {
-				hasCampaignCutscene = 1;
-				FrontendText_DrawCentered(
+			if (has_campaign_cutscene == 0) {
+				has_campaign_cutscene = 1;
+				frontend_text_draw_centered(
 					12,
-					g_pilotRecordSingleplayerCampaignMissionList
-						[campaignIndex]
+					g_pilot_record_singleplayer_campaign_mission_list
+						[campaign_index]
 							.description,
-					&textRect, g_colorYellow);
+					&text_rect, g_color_yellow);
 				y += 30;
-				FrontendDraw_RectOffsetXY(&textRect, 0, 30);
+				frontend_draw_rect_offset_xy(&text_rect, 0, 30);
 			}
-			FrontendText_DrawCentered(
-				12, g_cutsceneTable[cutsceneIndex].description,
-				&textRect, 0xFFFF);
+			frontend_text_draw_centered(
+				12,
+				g_cutscene_table[cutscene_index].description,
+				&text_rect, 0xFFFF);
 			y += CUTSCENE_VIEWER_ROW_HEIGHT;
-			FrontendDraw_RectOffsetXY(&textRect, 0,
-						  CUTSCENE_VIEWER_ROW_HEIGHT);
-			FrontImage_GetResourceRect(
-				g_cutsceneTable[cutsceneIndex].thumbnailSprite,
+			frontend_draw_rect_offset_xy(
+				&text_rect, 0, CUTSCENE_VIEWER_ROW_HEIGHT);
+			front_image_get_resource_rect(
+				g_cutscene_table[cutscene_index]
+					.thumbnail_sprite,
 				&rect);
-			thumbnailX =
+			thumbnail_x =
 				256 -
 				((unsigned int)(rect.right - rect.left + 1) >>
 				 1);
-			thumbnailHeight =
+			thumbnail_height =
 				CUTSCENE_VIEWER_ROW_HEIGHT *
 				((unsigned int)(rect.bottom - rect.top +
 						CUTSCENE_VIEWER_ROW_HEIGHT +
 						3) /
 				 CUTSCENE_VIEWER_ROW_HEIGHT);
-			FrontImage_DrawSpriteOpaque(
-				g_cutsceneTable[cutsceneIndex].thumbnailSprite,
-				thumbnailX, y + 3);
-			FrontendDraw_RectOffsetXY(&rect, thumbnailX, y + 3);
-			if (FrontendDraw_PointInRect(&rect, mouseX, mouseY)) {
-				FrontendDraw_RectOutline(&rect, 0, 0,
-							 g_colorGreen);
-				if (FrontendButton_HandleSpriteButton(
+			front_image_draw_sprite_opaque(
+				g_cutscene_table[cutscene_index]
+					.thumbnail_sprite,
+				thumbnail_x, y + 3);
+			frontend_draw_rect_offset_xy(&rect, thumbnail_x, y + 3);
+			if (frontend_draw_point_in_rect(&rect, mouse_x,
+							mouse_y)) {
+				frontend_draw_rect_outline(&rect, 0, 0,
+							   g_color_green);
+				if (frontend_button_handle_sprite_button(
 					    &rect, "", "", NULL, 15, 0xFFFF, 36,
 					    "jewelsound") != 0) {
-					selectedCutscene =
-						(int)cutsceneIndex + 1;
+					selected_cutscene =
+						(int)cutscene_index + 1;
 				}
 			}
-			y += thumbnailHeight;
-			FrontendDraw_RectOffsetXY(&textRect, 0,
-						  thumbnailHeight);
+			y += thumbnail_height;
+			frontend_draw_rect_offset_xy(&text_rect, 0,
+						     thumbnail_height);
 			if (y > 433) {
 				break;
 			}
@@ -6168,413 +6372,426 @@ int PilotRecord_DrawCutsceneViewerPage(void)
 			break;
 		}
 	}
-	FrontendDisplay_SetScreenClipRect640x480(&previousClipRect);
-	if (selectedCutscene != 0) {
-		CDAudio_SuspendPlayback();
-		FrontendDisplay_DisableOffscreenRestore();
-		FrontendDisplay_UnlockBackBuffer();
-		FrontendDisplay_ClearBackBuffer();
-		FrontendDisplay_PresentFrame();
-		FrontendDisplay_ClearBackBuffer();
+	frontend_display_set_screen_clip_rect640x480(&previous_clip_rect);
+	if (selected_cutscene != 0) {
+		cd_audio_suspend_playback();
+		frontend_display_disable_offscreen_restore();
+		frontend_display_unlock_back_buffer();
+		frontend_display_clear_back_buffer();
+		frontend_display_present_frame();
+		frontend_display_clear_back_buffer();
 #ifdef XVT_MODERN
-		if (XvtFrontendMovies_PlayViewer(
-			    g_cutsceneTable[selectedCutscene - 1].movieName)) {
+		if (xvt_frontend_movies_play_viewer(
+			    g_cutscene_table[selected_cutscene - 1]
+				    .movie_name)) {
 			return 1;
 		}
 #else
-		Movie_Play(g_cutsceneTable[selectedCutscene - 1].movieName, 0);
+		movie_play(g_cutscene_table[selected_cutscene - 1].movie_name,
+			   0);
 #endif
-		FrontendDisplay_ClearBackBuffer();
-		FrontendDisplay_PresentFrame();
-		FrontendDisplay_ClearBackBuffer();
-		FrontendDisplay_EnableOffscreenRestore();
-		PilotRecord_RedrawBackground();
-		CDAudio_RequestResumePlayback();
+		frontend_display_clear_back_buffer();
+		frontend_display_present_frame();
+		frontend_display_clear_back_buffer();
+		frontend_display_enable_offscreen_restore();
+		pilot_record_redraw_background();
+		cd_audio_request_resume_playback();
 	}
 	return 1;
 }
 
 /* Draws the campaign medals page: one campaign at a time, at
- * g_campaignMedalScrollOffset among the campaigns the current faction attempted
- * that have a record in g_campaignAwardSprites, with its title, its main medal
+ * g_campaign_medal_scroll_offset among the campaigns the current faction attempted
+ * that have a record in g_campaign_award_sprites, with its title, its main medal
  * sprite centered on (256, 279), and on it the mission award sprites of
- * positions 0 to 14 set in g_campaignSingleplayerAwardFlags and
- * g_campaignMultiplayerAwardFlags. When g_pilotRecordPagesNeedRebuild is set it
+ * positions 0 to 14 set in g_campaign_singleplayer_award_flags and
+ * g_campaign_multiplayer_award_flags. When g_pilot_record_pages_need_rebuild is set it
  * first reloads the campaign list and the single-player and multiplayer
- * training lists, the last with g_frontendMissionSessionMode set to NET_HOST
+ * training lists, the last with g_frontend_mission_session_mode set to NET_HOST
  * and then left at NONE, cuts the campaign descriptions at their last '(',
- * rebuilds the award flags and counts and g_campaignMedalEntryCount, sets
- * g_campaignMedalScrollOffset to 0 and clears the flag. Returns 0 when no pilot
- * is loaded or g_campaignAwardSprites is NULL, else 1. The flags are not
+ * rebuilds the award flags and counts and g_campaign_medal_entry_count, sets
+ * g_campaign_medal_scroll_offset to 0 and clears the flag. Returns 0 when no pilot
+ * is loaded or g_campaign_award_sprites is NULL, else 1. The flags are not
  * cleared between campaigns, so the medal shown carries the award positions of
  * every attempted campaign that has a record, and the counts are those of the
  * last such campaign. */
 // FUNCTION: XVT 0x4C83A0
-int PilotRecord_DrawCampaignMedalsPage(void)
+int pilot_record_draw_campaign_medals_page(void)
 {
 	struct RECT rect;
-	struct RECT awardRect;
-	struct MissionListEntry *campaignEntry;
-	int *campaignId;
-	unsigned int campaignIndex;
-	unsigned int trainingMissionIndex;
-	unsigned int searchIndex;
-	unsigned int awardSpriteIndex;
-	unsigned int awardIndex;
-	unsigned int remainingCampaignCount;
-	int campaignMissionId;
-	int eligibleCampaignIndex;
-	int awardX;
-	int awardY;
+	struct RECT award_rect;
+	struct mission_list_entry *campaign_entry;
+	int *campaign_id;
+	unsigned int campaign_index;
+	unsigned int training_mission_index;
+	unsigned int search_index;
+	unsigned int award_sprite_index;
+	unsigned int award_index;
+	unsigned int remaining_campaign_count;
+	int campaign_mission_id;
+	int eligible_campaign_index;
+	int award_x;
+	int award_y;
 
-	FrontendDraw_RectAssign(&rect, 84, 90, 404, 106);
-	if (g_pilotData.name[0] == '\0') {
-		sprintf(g_frontendScratchBuffer, "%s",
-			FrontendString_Get(FRONTSTR_826_CAMPAIGN_MEDALS));
+	frontend_draw_rect_assign(&rect, 84, 90, 404, 106);
+	if (g_pilot_data.name[0] == '\0') {
+		sprintf(g_frontend_scratch_buffer, "%s",
+			frontend_string_get(FRONTSTR_826_CAMPAIGN_MEDALS));
 	} else {
-		sprintf(g_frontendScratchBuffer, "%s: %c%s %c%s",
-			FrontendString_Get(FRONTSTR_826_CAMPAIGN_MEDALS), 6,
-			g_pilotData.ratingName, 4, g_pilotData.name);
+		sprintf(g_frontend_scratch_buffer, "%s: %c%s %c%s",
+			frontend_string_get(FRONTSTR_826_CAMPAIGN_MEDALS), 6,
+			g_pilot_data.rating_name, 4, g_pilot_data.name);
 	}
-	FrontendText_DrawCentered(15, g_frontendScratchBuffer, &rect, 0xFFFF);
-	if (g_pilotData.name[0] == '\0') {
+	frontend_text_draw_centered(15, g_frontend_scratch_buffer, &rect,
+				    0xFFFF);
+	if (g_pilot_data.name[0] == '\0') {
 		return 0;
 	}
-	if (g_campaignAwardSprites == NULL) {
+	if (g_campaign_award_sprites == NULL) {
 		return 0;
 	}
 
-	if (g_pilotRecordPagesNeedRebuild != 0) {
-		if (g_pilotRecordSingleplayerCampaignMissionList != NULL) {
-			free(g_pilotRecordSingleplayerCampaignMissionList);
-			g_pilotRecordSingleplayerCampaignMissionList = NULL;
+	if (g_pilot_record_pages_need_rebuild != 0) {
+		if (g_pilot_record_singleplayer_campaign_mission_list != NULL) {
+			free(g_pilot_record_singleplayer_campaign_mission_list);
+			g_pilot_record_singleplayer_campaign_mission_list =
+				NULL;
 		}
-		if (g_pilotRecordSingleplayerTrainingMissionList != NULL) {
-			free(g_pilotRecordSingleplayerTrainingMissionList);
-			g_pilotRecordSingleplayerTrainingMissionList = NULL;
+		if (g_pilot_record_singleplayer_training_mission_list != NULL) {
+			free(g_pilot_record_singleplayer_training_mission_list);
+			g_pilot_record_singleplayer_training_mission_list =
+				NULL;
 		}
-		if (g_pilotRecordMultiplayerTrainingMissionList != NULL) {
-			free(g_pilotRecordMultiplayerTrainingMissionList);
-			g_pilotRecordMultiplayerTrainingMissionList = NULL;
+		if (g_pilot_record_multiplayer_training_mission_list != NULL) {
+			free(g_pilot_record_multiplayer_training_mission_list);
+			g_pilot_record_multiplayer_training_mission_list = NULL;
 		}
 
-		MissionSetup_LoadMissionList(MISSION_DIRECTORY_CAMPAIGNS);
-		g_pilotRecordSingleplayerCampaignMissionList = g_missionList;
-		g_pilotRecordSingleplayerCampaignMissionCount = g_missionCount;
-		g_missionList = NULL;
-		MissionSetup_LoadMissionList(
+		mission_setup_load_mission_list(MISSION_DIRECTORY_CAMPAIGNS);
+		g_pilot_record_singleplayer_campaign_mission_list =
+			g_mission_list;
+		g_pilot_record_singleplayer_campaign_mission_count =
+			g_mission_count;
+		g_mission_list = NULL;
+		mission_setup_load_mission_list(
 			MISSION_DIRECTORY_TRAINING_EXERCISES);
-		g_pilotRecordSingleplayerTrainingMissionList = g_missionList;
-		g_pilotRecordSingleplayerTrainingMissionCount = g_missionCount;
-		g_frontendMissionSessionMode =
+		g_pilot_record_singleplayer_training_mission_list =
+			g_mission_list;
+		g_pilot_record_singleplayer_training_mission_count =
+			g_mission_count;
+		g_frontend_mission_session_mode =
 			FRONTEND_MISSION_SESSION_NET_HOST;
-		g_missionList = NULL;
-		MissionSetup_LoadMissionList(
+		g_mission_list = NULL;
+		mission_setup_load_mission_list(
 			MISSION_DIRECTORY_TRAINING_EXERCISES);
-		g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_NONE;
-		g_pilotRecordMultiplayerTrainingMissionList = g_missionList;
-		g_pilotRecordMultiplayerTrainingMissionCount = g_missionCount;
-		g_missionList = NULL;
+		g_frontend_mission_session_mode = FRONTEND_MISSION_SESSION_NONE;
+		g_pilot_record_multiplayer_training_mission_list =
+			g_mission_list;
+		g_pilot_record_multiplayer_training_mission_count =
+			g_mission_count;
+		g_mission_list = NULL;
 
-		memset(g_campaignSingleplayerAwardFlags, 0,
-		       sizeof(g_campaignSingleplayerAwardFlags));
-		memset(g_campaignMultiplayerAwardFlags, 0,
-		       sizeof(g_campaignMultiplayerAwardFlags));
-		campaignIndex = 0;
-		if (campaignIndex <
-		    g_pilotRecordSingleplayerCampaignMissionCount) {
+		memset(g_campaign_singleplayer_award_flags, 0,
+		       sizeof(g_campaign_singleplayer_award_flags));
+		memset(g_campaign_multiplayer_award_flags, 0,
+		       sizeof(g_campaign_multiplayer_award_flags));
+		campaign_index = 0;
+		if (campaign_index <
+		    g_pilot_record_singleplayer_campaign_mission_count) {
 			do {
-				searchIndex =
+				search_index =
 					(unsigned int)strlen(
-						g_pilotRecordSingleplayerCampaignMissionList
-							[campaignIndex]
+						g_pilot_record_singleplayer_campaign_mission_list
+							[campaign_index]
 								.description) +
 					1;
-				searchIndex -= 2;
-				if (searchIndex != 0) {
-					campaignEntry =
-						&g_pilotRecordSingleplayerCampaignMissionList
-							[campaignIndex];
+				search_index -= 2;
+				if (search_index != 0) {
+					campaign_entry =
+						&g_pilot_record_singleplayer_campaign_mission_list
+							[campaign_index];
 					do {
-						if (campaignEntry->description
-							    [searchIndex] ==
+						if (campaign_entry->description
+							    [search_index] ==
 						    '(') {
-							campaignEntry->description
-								[searchIndex] =
+							campaign_entry->description
+								[search_index] =
 								'\0';
 							break;
 						}
-						--searchIndex;
-					} while (searchIndex != 0);
+						--search_index;
+					} while (search_index != 0);
 				}
-				++campaignIndex;
-			} while (campaignIndex <
-				 g_pilotRecordSingleplayerCampaignMissionCount);
+				++campaign_index;
+			} while (
+				campaign_index <
+				g_pilot_record_singleplayer_campaign_mission_count);
 		}
 
-		g_campaignMedalScrollOffset = 0;
-		g_campaignMedalEntryCount = 0;
-		remainingCampaignCount =
-			g_pilotRecordSingleplayerCampaignMissionCount;
-		campaignIndex = 0;
-		if (remainingCampaignCount) {
+		g_campaign_medal_scroll_offset = 0;
+		g_campaign_medal_entry_count = 0;
+		remaining_campaign_count =
+			g_pilot_record_singleplayer_campaign_mission_count;
+		campaign_index = 0;
+		if (remaining_campaign_count) {
 			do {
-				campaignId =
-					&g_pilotRecordSingleplayerCampaignMissionList
-						 [campaignIndex]
-							 .missionIdx;
-				if (g_pilotData.factionStatistics
-						    [g_pilotData
-							     .currentFactionId]
-							    .spCampaigns
-								    [*campaignId]
-							    .attemptCount !=
+				campaign_id =
+					&g_pilot_record_singleplayer_campaign_mission_list
+						 [campaign_index]
+							 .mission_idx;
+				if (g_pilot_data.faction_statistics
+						    [g_pilot_data
+							     .current_faction_id]
+							    .sp_campaigns
+								    [*campaign_id]
+							    .attempt_count !=
 					    0 ||
-				    g_pilotData.factionStatistics
-						    [g_pilotData
-							     .currentFactionId]
-							    .mpCampaigns
-								    [*campaignId]
-							    .attemptCount !=
+				    g_pilot_data.faction_statistics
+						    [g_pilot_data
+							     .current_faction_id]
+							    .mp_campaigns
+								    [*campaign_id]
+							    .attempt_count !=
 					    0) {
-					for (awardSpriteIndex = 0;
-					     awardSpriteIndex <
-					     g_campaignAwardSpriteCount;
-					     ++awardSpriteIndex) {
-						if (g_campaignAwardSprites
-							    [awardSpriteIndex]
-								    .campaignId ==
-						    *campaignId) {
+					for (award_sprite_index = 0;
+					     award_sprite_index <
+					     g_campaign_award_sprite_count;
+					     ++award_sprite_index) {
+						if (g_campaign_award_sprites
+							    [award_sprite_index]
+								    .campaign_id ==
+						    *campaign_id) {
 							break;
 						}
 					}
-					if (awardSpriteIndex !=
-					    g_campaignAwardSpriteCount) {
-						awardIndex = 0;
-						g_campaignSingleplayerAwardCount =
+					if (award_sprite_index !=
+					    g_campaign_award_sprite_count) {
+						award_index = 0;
+						g_campaign_singleplayer_award_count =
 							0;
-						for (trainingMissionIndex = 0;
-						     trainingMissionIndex <
-						     g_pilotRecordSingleplayerTrainingMissionCount;
-						     ++trainingMissionIndex) {
-							campaignMissionId =
-								g_pilotRecordSingleplayerTrainingMissionList
-									[trainingMissionIndex]
-										.missionIdx;
-							if (g_pilotData
-									    .factionStatistics
-										    [g_pilotData
-											     .currentFactionId]
-									    .spCampaignMissions
-										    [campaignMissionId -
+						for (training_mission_index = 0;
+						     training_mission_index <
+						     g_pilot_record_singleplayer_training_mission_count;
+						     ++training_mission_index) {
+							campaign_mission_id =
+								g_pilot_record_singleplayer_training_mission_list
+									[training_mission_index]
+										.mission_idx;
+							if (g_pilot_data
+									    .faction_statistics
+										    [g_pilot_data
+											     .current_faction_id]
+									    .sp_campaign_missions
+										    [campaign_mission_id -
 										     1]
-									    .campaignId ==
-								    *campaignId &&
-							    g_pilotData
-									    .factionStatistics
-										    [g_pilotData
-											     .currentFactionId]
-									    .spCampaignMissions
-										    [campaignMissionId -
+									    .campaign_id ==
+								    *campaign_id &&
+							    g_pilot_data
+									    .faction_statistics
+										    [g_pilot_data
+											     .current_faction_id]
+									    .sp_campaign_missions
+										    [campaign_mission_id -
 										     1]
-									    .numberTimesFlown !=
+									    .number_times_flown !=
 								    0) {
-								if (g_pilotData
-									    .factionStatistics
-										    [g_pilotData
-											     .currentFactionId]
-									    .spCampaignMissions
-										    [campaignMissionId -
+								if (g_pilot_data
+									    .faction_statistics
+										    [g_pilot_data
+											     .current_faction_id]
+									    .sp_campaign_missions
+										    [campaign_mission_id -
 										     1]
-									    .awardEligible !=
+									    .award_eligible !=
 								    0) {
-									g_campaignSingleplayerAwardFlags
-										[awardIndex] =
+									g_campaign_singleplayer_award_flags
+										[award_index] =
 											1;
-									++g_campaignSingleplayerAwardCount;
+									++g_campaign_singleplayer_award_count;
 								}
-								++awardIndex;
-								if (awardIndex >=
-								    sizeof(g_campaignSingleplayerAwardFlags) /
-									    sizeof(g_campaignSingleplayerAwardFlags
+								++award_index;
+								if (award_index >=
+								    sizeof(g_campaign_singleplayer_award_flags) /
+									    sizeof(g_campaign_singleplayer_award_flags
 											   [0])) {
 									break;
 								}
 							}
 						}
 
-						awardIndex = 0;
-						g_campaignMultiplayerAwardCount =
+						award_index = 0;
+						g_campaign_multiplayer_award_count =
 							0;
-						for (trainingMissionIndex = 0;
-						     trainingMissionIndex <
-						     g_pilotRecordMultiplayerTrainingMissionCount;
-						     ++trainingMissionIndex) {
-							campaignMissionId =
-								g_pilotRecordMultiplayerTrainingMissionList
-									[trainingMissionIndex]
-										.missionIdx;
-							if (g_pilotData
-									    .factionStatistics
-										    [g_pilotData
-											     .currentFactionId]
-									    .mpCampaignMissions
-										    [campaignMissionId -
+						for (training_mission_index = 0;
+						     training_mission_index <
+						     g_pilot_record_multiplayer_training_mission_count;
+						     ++training_mission_index) {
+							campaign_mission_id =
+								g_pilot_record_multiplayer_training_mission_list
+									[training_mission_index]
+										.mission_idx;
+							if (g_pilot_data
+									    .faction_statistics
+										    [g_pilot_data
+											     .current_faction_id]
+									    .mp_campaign_missions
+										    [campaign_mission_id -
 										     1]
-									    .campaignId ==
-								    *campaignId &&
-							    g_pilotData
-									    .factionStatistics
-										    [g_pilotData
-											     .currentFactionId]
-									    .mpCampaignMissions
-										    [campaignMissionId -
+									    .campaign_id ==
+								    *campaign_id &&
+							    g_pilot_data
+									    .faction_statistics
+										    [g_pilot_data
+											     .current_faction_id]
+									    .mp_campaign_missions
+										    [campaign_mission_id -
 										     1]
-									    .numberTimesFlown !=
+									    .number_times_flown !=
 								    0) {
-								if (g_pilotData
-									    .factionStatistics
-										    [g_pilotData
-											     .currentFactionId]
-									    .mpCampaignMissions
-										    [campaignMissionId -
+								if (g_pilot_data
+									    .faction_statistics
+										    [g_pilot_data
+											     .current_faction_id]
+									    .mp_campaign_missions
+										    [campaign_mission_id -
 										     1]
-									    .awardEligible !=
+									    .award_eligible !=
 								    0) {
-									g_campaignMultiplayerAwardFlags
-										[awardIndex] =
+									g_campaign_multiplayer_award_flags
+										[award_index] =
 											1;
-									++g_campaignMultiplayerAwardCount;
+									++g_campaign_multiplayer_award_count;
 								}
-								++awardIndex;
-								if (awardIndex >=
-								    sizeof(g_campaignMultiplayerAwardFlags) /
-									    sizeof(g_campaignMultiplayerAwardFlags
+								++award_index;
+								if (award_index >=
+								    sizeof(g_campaign_multiplayer_award_flags) /
+									    sizeof(g_campaign_multiplayer_award_flags
 											   [0])) {
 									break;
 								}
 							}
 						}
-						++g_campaignMedalEntryCount;
+						++g_campaign_medal_entry_count;
 					}
 				}
-				++campaignIndex;
-			} while (--remainingCampaignCount != 0);
+				++campaign_index;
+			} while (--remaining_campaign_count != 0);
 		}
-		g_pilotRecordPagesNeedRebuild = 0;
+		g_pilot_record_pages_need_rebuild = 0;
 	}
 
-	FrontendDraw_RectAssign(&rect, 425, 107, 434, 433);
-	if ((unsigned int)g_campaignMedalEntryCount > 1) {
-		g_campaignMedalScrollOffset = FrontendScrollbar_Draw(
-			&rect, g_campaignMedalScrollOffset,
-			g_campaignMedalEntryCount, 0, 5,
-			(unsigned int)g_colorNavy, 12);
+	frontend_draw_rect_assign(&rect, 425, 107, 434, 433);
+	if ((unsigned int)g_campaign_medal_entry_count > 1) {
+		g_campaign_medal_scroll_offset = frontend_scrollbar_draw(
+			&rect, g_campaign_medal_scroll_offset,
+			g_campaign_medal_entry_count, 0, 5,
+			(unsigned int)g_color_navy, 12);
 	}
 
-	eligibleCampaignIndex = 0;
-	campaignIndex = 0;
-	if (g_pilotRecordSingleplayerCampaignMissionCount != 0) {
+	eligible_campaign_index = 0;
+	campaign_index = 0;
+	if (g_pilot_record_singleplayer_campaign_mission_count != 0) {
 		do {
-			campaignId =
-				&g_pilotRecordSingleplayerCampaignMissionList
-					 [campaignIndex]
-						 .missionIdx;
-			if (g_pilotData.factionStatistics
-					    [g_pilotData.currentFactionId]
-						    .spCampaigns[*campaignId]
-						    .attemptCount != 0 ||
-			    g_pilotData.factionStatistics
-					    [g_pilotData.currentFactionId]
-						    .mpCampaigns[*campaignId]
-						    .attemptCount != 0) {
-				for (awardSpriteIndex = 0;
-				     awardSpriteIndex <
-				     g_campaignAwardSpriteCount;
-				     ++awardSpriteIndex) {
-					if (g_campaignAwardSprites
-						    [awardSpriteIndex]
-							    .campaignId ==
-					    *campaignId) {
+			campaign_id =
+				&g_pilot_record_singleplayer_campaign_mission_list
+					 [campaign_index]
+						 .mission_idx;
+			if (g_pilot_data.faction_statistics
+					    [g_pilot_data.current_faction_id]
+						    .sp_campaigns[*campaign_id]
+						    .attempt_count != 0 ||
+			    g_pilot_data.faction_statistics
+					    [g_pilot_data.current_faction_id]
+						    .mp_campaigns[*campaign_id]
+						    .attempt_count != 0) {
+				for (award_sprite_index = 0;
+				     award_sprite_index <
+				     g_campaign_award_sprite_count;
+				     ++award_sprite_index) {
+					if (g_campaign_award_sprites
+						    [award_sprite_index]
+							    .campaign_id ==
+					    *campaign_id) {
 						break;
 					}
 				}
-				if (awardSpriteIndex !=
-				    g_campaignAwardSpriteCount) {
-					if (eligibleCampaignIndex ==
-					    g_campaignMedalScrollOffset) {
-						FrontendDraw_RectAssign(
+				if (award_sprite_index !=
+				    g_campaign_award_sprite_count) {
+					if (eligible_campaign_index ==
+					    g_campaign_medal_scroll_offset) {
+						frontend_draw_rect_assign(
 							&rect, 88, 111, 424,
 							125);
-						FrontendText_DrawCentered(
+						frontend_text_draw_centered(
 							12,
-							g_pilotRecordSingleplayerCampaignMissionList
-								[campaignIndex]
+							g_pilot_record_singleplayer_campaign_mission_list
+								[campaign_index]
 									.description,
-							&rect, g_colorYellow);
-						FrontImage_GetResourceRect(
-							g_campaignAwardSprites
-								[awardSpriteIndex]
-									.mainAwardSpriteName,
-							&awardRect);
-						awardX =
-							256 -
-							((awardRect.right -
-							  awardRect.left + 1) >>
+							&rect, g_color_yellow);
+						front_image_get_resource_rect(
+							g_campaign_award_sprites
+								[award_sprite_index]
+									.main_award_sprite_name,
+							&award_rect);
+						award_x = 256 -
+							  ((award_rect.right -
+							    award_rect.left +
+							    1) >>
+							   1);
+						award_y =
+							279 -
+							((award_rect.bottom -
+							  award_rect.top + 1) >>
 							 1);
-						awardY = 279 -
-							 ((awardRect.bottom -
-							   awardRect.top + 1) >>
-							  1);
-						FrontImage_DrawSprite(
-							g_campaignAwardSprites
-								[awardSpriteIndex]
-									.mainAwardSpriteName,
-							awardX, awardY);
-						if (g_campaignSingleplayerAwardCount !=
+						front_image_draw_sprite(
+							g_campaign_award_sprites
+								[award_sprite_index]
+									.main_award_sprite_name,
+							award_x, award_y);
+						if (g_campaign_singleplayer_award_count !=
 						    0) {
-							for (awardIndex = 0;
-							     awardIndex <
+							for (award_index = 0;
+							     award_index <
 							     CAMPAIGN_AWARD_VISIBLE_FLAG_COUNT;
-							     ++awardIndex) {
-								if (g_campaignSingleplayerAwardFlags
-									    [awardIndex] !=
+							     ++award_index) {
+								if (g_campaign_singleplayer_award_flags
+									    [award_index] !=
 								    0) {
-									FrontImage_DrawSprite(
-										g_campaignAwardSprites[awardSpriteIndex]
-											.singleplayerMissionAwardSpriteNames
-												[awardIndex],
-										awardX,
-										awardY);
+									front_image_draw_sprite(
+										g_campaign_award_sprites[award_sprite_index]
+											.singleplayer_mission_award_sprite_names
+												[award_index],
+										award_x,
+										award_y);
 								}
 							}
 						}
-						if (g_campaignMultiplayerAwardCount !=
+						if (g_campaign_multiplayer_award_count !=
 						    0) {
-							for (awardIndex = 0;
-							     awardIndex <
+							for (award_index = 0;
+							     award_index <
 							     CAMPAIGN_AWARD_VISIBLE_FLAG_COUNT;
-							     ++awardIndex) {
-								if (g_campaignMultiplayerAwardFlags
-									    [awardIndex] !=
+							     ++award_index) {
+								if (g_campaign_multiplayer_award_flags
+									    [award_index] !=
 								    0) {
-									FrontImage_DrawSprite(
-										g_campaignAwardSprites[awardSpriteIndex]
-											.multiplayerMissionAwardSpriteNames
-												[awardIndex],
-										awardX,
-										awardY);
+									front_image_draw_sprite(
+										g_campaign_award_sprites[award_sprite_index]
+											.multiplayer_mission_award_sprite_names
+												[award_index],
+										award_x,
+										award_y);
 								}
 							}
 						}
 						break;
 					}
-					++eligibleCampaignIndex;
+					++eligible_campaign_index;
 				}
 			}
-			++campaignIndex;
-		} while (campaignIndex <
-			 g_pilotRecordSingleplayerCampaignMissionCount);
+			++campaign_index;
+		} while (campaign_index <
+			 g_pilot_record_singleplayer_campaign_mission_count);
 	}
 	return 1;
 }
@@ -6585,182 +6802,196 @@ int PilotRecord_DrawCampaignMedalsPage(void)
  * the level. Returns 0, having drawn only the title, when no pilot is loaded;
  * else 1. */
 // FUNCTION: XVT 0x4C8990
-int PilotRecord_DrawPilotAwardsPage(void)
+int pilot_record_draw_pilot_awards_page(void)
 {
 	struct RECT rect;
 	int y;
-	int awardIndex;
-	int factionId;
+	int award_index;
+	int faction_id;
 
-	FrontendDraw_RectAssign(&rect, 84, 90, 404, 106);
-	if (g_pilotData.name[0] == '\0') {
-		sprintf(g_frontendScratchBuffer, "%s",
-			FrontendString_Get(FRONTSTR_009_PILOT_AWARDS));
+	frontend_draw_rect_assign(&rect, 84, 90, 404, 106);
+	if (g_pilot_data.name[0] == '\0') {
+		sprintf(g_frontend_scratch_buffer, "%s",
+			frontend_string_get(FRONTSTR_009_PILOT_AWARDS));
 	} else {
-		sprintf(g_frontendScratchBuffer, "%s: %c%s %c%s",
-			FrontendString_Get(FRONTSTR_009_PILOT_AWARDS), 6,
-			g_pilotData.ratingName, 4, g_pilotData.name);
+		sprintf(g_frontend_scratch_buffer, "%s: %c%s %c%s",
+			frontend_string_get(FRONTSTR_009_PILOT_AWARDS), 6,
+			g_pilot_data.rating_name, 4, g_pilot_data.name);
 	}
-	FrontendText_DrawCentered(15, g_frontendScratchBuffer, &rect, 0xFFFF);
-	if (g_pilotData.name[0] == '\0') {
+	frontend_text_draw_centered(15, g_frontend_scratch_buffer, &rect,
+				    0xFFFF);
+	if (g_pilot_data.name[0] == '\0') {
 		return 0;
 	}
-	FrontendDraw_RectAssign(&rect, 268, 118, 424, 132);
-	FrontendText_DrawCentered(
-		12, FrontendString_Get(FRONTSTR_379_TOURNAMENT_TROPHY), &rect,
+	frontend_draw_rect_assign(&rect, 268, 118, 424, 132);
+	frontend_text_draw_centered(
+		12, frontend_string_get(FRONTSTR_379_TOURNAMENT_TROPHY), &rect,
 		0xFFFF);
 	y = 133;
-	FrontendDraw_RectAssign(&rect, 353, 133, 387, 146);
-	for (awardIndex = 0; awardIndex < 6; ++awardIndex) {
-		if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
-			    .tournamentTrophies[awardIndex] != 0) {
-			sprintf(g_frontendScratchBuffer, "medlvl%d",
-				(int)awardIndex + 1);
-			FrontImage_DrawSprite(g_frontendScratchBuffer, 353, y);
-			sprintf(g_frontendScratchBuffer, "%d",
-				g_pilotData
-					.factionStatistics
-						[g_pilotData.currentFactionId]
-					.tournamentTrophies[awardIndex]);
-			FrontendText_Draw(10, g_frontendScratchBuffer, 403,
-					  y + 1, 0xFFFF);
+	frontend_draw_rect_assign(&rect, 353, 133, 387, 146);
+	for (award_index = 0; award_index < 6; ++award_index) {
+		if (g_pilot_data
+			    .faction_statistics[g_pilot_data.current_faction_id]
+			    .tournament_trophies[award_index] != 0) {
+			sprintf(g_frontend_scratch_buffer, "medlvl%d",
+				(int)award_index + 1);
+			front_image_draw_sprite(g_frontend_scratch_buffer, 353,
+						y);
+			sprintf(g_frontend_scratch_buffer, "%d",
+				g_pilot_data
+					.faction_statistics
+						[g_pilot_data
+							 .current_faction_id]
+					.tournament_trophies[award_index]);
+			frontend_text_draw(10, g_frontend_scratch_buffer, 403,
+					   y + 1, 0xFFFF);
 		}
 		y += 22;
-		FrontendDraw_RectOffsetXY(&rect, 0, 22);
+		frontend_draw_rect_offset_xy(&rect, 0, 22);
 	}
 
-	FrontendDraw_RectAssign(&rect, 97, 118, 253, 132);
-	FrontendText_DrawCentered(12,
-				  FrontendString_Get(FRONTSTR_378_MELEE_PLAQUE),
-				  &rect, 0xFFFF);
+	frontend_draw_rect_assign(&rect, 97, 118, 253, 132);
+	frontend_text_draw_centered(
+		12, frontend_string_get(FRONTSTR_378_MELEE_PLAQUE), &rect,
+		0xFFFF);
 	y = 133;
-	FrontendDraw_RectAssign(&rect, 182, 133, 216, 146);
-	for (awardIndex = 0; awardIndex < 6; ++awardIndex) {
-		if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
-			    .meleePlaques[awardIndex] != 0) {
-			sprintf(g_frontendScratchBuffer, "medlvl%d",
-				(int)awardIndex + 1);
-			FrontImage_DrawSprite(g_frontendScratchBuffer, 182, y);
-			sprintf(g_frontendScratchBuffer, "%d",
-				g_pilotData
-					.factionStatistics
-						[g_pilotData.currentFactionId]
-					.meleePlaques[awardIndex]);
-			FrontendText_Draw(10, g_frontendScratchBuffer, 232,
-					  y + 1, 0xFFFF);
+	frontend_draw_rect_assign(&rect, 182, 133, 216, 146);
+	for (award_index = 0; award_index < 6; ++award_index) {
+		if (g_pilot_data
+			    .faction_statistics[g_pilot_data.current_faction_id]
+			    .melee_plaques[award_index] != 0) {
+			sprintf(g_frontend_scratch_buffer, "medlvl%d",
+				(int)award_index + 1);
+			front_image_draw_sprite(g_frontend_scratch_buffer, 182,
+						y);
+			sprintf(g_frontend_scratch_buffer, "%d",
+				g_pilot_data
+					.faction_statistics
+						[g_pilot_data
+							 .current_faction_id]
+					.melee_plaques[award_index]);
+			frontend_text_draw(10, g_frontend_scratch_buffer, 232,
+					   y + 1, 0xFFFF);
 		}
 		y += 22;
-		FrontendDraw_RectOffsetXY(&rect, 0, 22);
+		frontend_draw_rect_offset_xy(&rect, 0, 22);
 	}
 
-	FrontendDraw_RectAssign(&rect, 268, 269, 424, 283);
-	FrontendText_DrawCentered(
-		12, FrontendString_Get(FRONTSTR_381_BATTLE_MEDALLION), &rect,
+	frontend_draw_rect_assign(&rect, 268, 269, 424, 283);
+	frontend_text_draw_centered(
+		12, frontend_string_get(FRONTSTR_381_BATTLE_MEDALLION), &rect,
 		0xFFFF);
 	y = 284;
-	FrontendDraw_RectAssign(&rect, 353, 284, 387, 297);
-	for (awardIndex = 0; awardIndex < 6; ++awardIndex) {
-		if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
-			    .battleMedallions[awardIndex] != 0) {
-			if (g_pilotData.currentFactionId == 0) {
-				factionId = g_pilotData.currentFactionId;
+	frontend_draw_rect_assign(&rect, 353, 284, 387, 297);
+	for (award_index = 0; award_index < 6; ++award_index) {
+		if (g_pilot_data
+			    .faction_statistics[g_pilot_data.current_faction_id]
+			    .battle_medallions[award_index] != 0) {
+			if (g_pilot_data.current_faction_id == 0) {
+				faction_id = g_pilot_data.current_faction_id;
 			}
-			sprintf(g_frontendScratchBuffer, "medlvl%d",
-				(int)awardIndex + 1);
-			FrontImage_DrawSprite(g_frontendScratchBuffer, 353, y);
-			factionId = g_pilotData.currentFactionId;
-			sprintf(g_frontendScratchBuffer, "%d",
-				g_pilotData.factionStatistics[factionId]
-					.battleMedallions[awardIndex]);
-			FrontendText_Draw(10, g_frontendScratchBuffer, 403,
-					  y + 1, 0xFFFF);
+			sprintf(g_frontend_scratch_buffer, "medlvl%d",
+				(int)award_index + 1);
+			front_image_draw_sprite(g_frontend_scratch_buffer, 353,
+						y);
+			faction_id = g_pilot_data.current_faction_id;
+			sprintf(g_frontend_scratch_buffer, "%d",
+				g_pilot_data.faction_statistics[faction_id]
+					.battle_medallions[award_index]);
+			frontend_text_draw(10, g_frontend_scratch_buffer, 403,
+					   y + 1, 0xFFFF);
 		}
 		y += 22;
-		FrontendDraw_RectOffsetXY(&rect, 0, 22);
+		frontend_draw_rect_offset_xy(&rect, 0, 22);
 	}
 
-	FrontendDraw_RectAssign(&rect, 97, 269, 253, 283);
-	FrontendText_DrawCentered(
-		12, FrontendString_Get(FRONTSTR_380_MISSION_EVALUATION), &rect,
+	frontend_draw_rect_assign(&rect, 97, 269, 253, 283);
+	frontend_text_draw_centered(
+		12, frontend_string_get(FRONTSTR_380_MISSION_EVALUATION), &rect,
 		0xFFFF);
 	y = 284;
-	FrontendDraw_RectAssign(&rect, 182, 284, 216, 297);
-	for (awardIndex = 0; awardIndex < 6; ++awardIndex) {
-		if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
-			    .missionEvaluations[awardIndex] != 0) {
-			if (g_pilotData.currentFactionId == 0) {
-				sprintf(g_frontendScratchBuffer, "rcitlvl%d",
-					(int)awardIndex + 1);
+	frontend_draw_rect_assign(&rect, 182, 284, 216, 297);
+	for (award_index = 0; award_index < 6; ++award_index) {
+		if (g_pilot_data
+			    .faction_statistics[g_pilot_data.current_faction_id]
+			    .mission_evaluations[award_index] != 0) {
+			if (g_pilot_data.current_faction_id == 0) {
+				sprintf(g_frontend_scratch_buffer, "rcitlvl%d",
+					(int)award_index + 1);
 			} else {
-				sprintf(g_frontendScratchBuffer, "citlvl%d",
-					(int)awardIndex + 1);
+				sprintf(g_frontend_scratch_buffer, "citlvl%d",
+					(int)award_index + 1);
 			}
-			FrontImage_DrawSprite(g_frontendScratchBuffer, 182, y);
-			sprintf(g_frontendScratchBuffer, "%d",
-				g_pilotData
-					.factionStatistics
-						[g_pilotData.currentFactionId]
-					.missionEvaluations[awardIndex]);
-			FrontendText_Draw(10, g_frontendScratchBuffer, 232,
-					  y + 1, 0xFFFF);
+			front_image_draw_sprite(g_frontend_scratch_buffer, 182,
+						y);
+			sprintf(g_frontend_scratch_buffer, "%d",
+				g_pilot_data
+					.faction_statistics
+						[g_pilot_data
+							 .current_faction_id]
+					.mission_evaluations[award_index]);
+			frontend_text_draw(10, g_frontend_scratch_buffer, 232,
+					   y + 1, 0xFFFF);
 		}
 		y += 22;
-		FrontendDraw_RectOffsetXY(&rect, 0, 22);
+		frontend_draw_rect_offset_xy(&rect, 0, 22);
 	}
 
-	FrontendDraw_RectAssign(&rect, 353, 133, 387, 146);
-	for (awardIndex = 0; awardIndex < 6; ++awardIndex) {
-		if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
-			    .tournamentTrophies[awardIndex] != 0) {
-			FrontendButton_DrawSpriteAndTooltip(
+	frontend_draw_rect_assign(&rect, 353, 133, 387, 146);
+	for (award_index = 0; award_index < 6; ++award_index) {
+		if (g_pilot_data
+			    .faction_statistics[g_pilot_data.current_faction_id]
+			    .tournament_trophies[award_index] != 0) {
+			frontend_button_draw_sprite_and_tooltip(
 				&rect, NULL,
-				FrontendString_Get(
-					(FrontendStringId)(FRONTSTR_382_GOLD +
-							   awardIndex)),
+				frontend_string_get(
+					(frontend_string_id)(FRONTSTR_382_GOLD +
+							     award_index)),
 				12, 0xFFFF);
 		}
-		FrontendDraw_RectOffsetXY(&rect, 0, 22);
+		frontend_draw_rect_offset_xy(&rect, 0, 22);
 	}
-	FrontendDraw_RectAssign(&rect, 182, 133, 216, 146);
-	for (awardIndex = 0; awardIndex < 6; ++awardIndex) {
-		if (g_pilotData.factionStatistics[g_pilotData.currentFactionId]
-			    .meleePlaques[awardIndex] != 0) {
-			FrontendButton_DrawSpriteAndTooltip(
+	frontend_draw_rect_assign(&rect, 182, 133, 216, 146);
+	for (award_index = 0; award_index < 6; ++award_index) {
+		if (g_pilot_data
+			    .faction_statistics[g_pilot_data.current_faction_id]
+			    .melee_plaques[award_index] != 0) {
+			frontend_button_draw_sprite_and_tooltip(
 				&rect, NULL,
-				FrontendString_Get(
-					(FrontendStringId)(FRONTSTR_382_GOLD +
-							   awardIndex)),
+				frontend_string_get(
+					(frontend_string_id)(FRONTSTR_382_GOLD +
+							     award_index)),
 				12, 0xFFFF);
 		}
-		FrontendDraw_RectOffsetXY(&rect, 0, 22);
+		frontend_draw_rect_offset_xy(&rect, 0, 22);
 	}
-	FrontendDraw_RectAssign(&rect, 353, 284, 387, 297);
-	for (awardIndex = 0; awardIndex < 6; ++awardIndex) {
-		factionId = g_pilotData.currentFactionId;
-		if (g_pilotData.factionStatistics[factionId]
-			    .battleMedallions[awardIndex] != 0) {
-			FrontendButton_DrawSpriteAndTooltip(
+	frontend_draw_rect_assign(&rect, 353, 284, 387, 297);
+	for (award_index = 0; award_index < 6; ++award_index) {
+		faction_id = g_pilot_data.current_faction_id;
+		if (g_pilot_data.faction_statistics[faction_id]
+			    .battle_medallions[award_index] != 0) {
+			frontend_button_draw_sprite_and_tooltip(
 				&rect, NULL,
-				FrontendString_Get(
-					(FrontendStringId)(FRONTSTR_382_GOLD +
-							   awardIndex)),
+				frontend_string_get(
+					(frontend_string_id)(FRONTSTR_382_GOLD +
+							     award_index)),
 				12, 0xFFFF);
 		}
-		FrontendDraw_RectOffsetXY(&rect, 0, 22);
+		frontend_draw_rect_offset_xy(&rect, 0, 22);
 	}
-	FrontendDraw_RectAssign(&rect, 182, 284, 216, 297);
-	for (awardIndex = 0; awardIndex < 6; ++awardIndex) {
-		factionId = g_pilotData.currentFactionId;
-		if (g_pilotData.factionStatistics[factionId]
-			    .missionEvaluations[awardIndex] != 0) {
-			FrontendButton_DrawSpriteAndTooltip(
+	frontend_draw_rect_assign(&rect, 182, 284, 216, 297);
+	for (award_index = 0; award_index < 6; ++award_index) {
+		faction_id = g_pilot_data.current_faction_id;
+		if (g_pilot_data.faction_statistics[faction_id]
+			    .mission_evaluations[award_index] != 0) {
+			frontend_button_draw_sprite_and_tooltip(
 				&rect, NULL,
-				FrontendString_Get((
-					FrontendStringId)(FRONTSTR_660_TOP_PERFORMANCE +
-							  awardIndex)),
+				frontend_string_get((
+					frontend_string_id)(FRONTSTR_660_TOP_PERFORMANCE +
+							    award_index)),
 				12, 0xFFFF);
 		}
-		FrontendDraw_RectOffsetXY(&rect, 0, 22);
+		frontend_draw_rect_offset_xy(&rect, 0, 22);
 	}
 	return 1;
 }
@@ -6768,140 +6999,141 @@ int PilotRecord_DrawPilotAwardsPage(void)
 /* Draws the pilot rating page: the class insignia the pilot's rating has
  * reached, from cadet to Jedi Master; the rank sprite of every rating from
  * trainee up to the pilot's, and of target drone and ground crew when their
- * ratingAchievedOnMission is not 0, at g_pilotRatingIconPos, each with a
- * tooltip giving its mission number from ratingAchievedOnMission. Returns 0,
+ * rating_achieved_on_mission is not 0, at g_pilot_rating_icon_pos, each with a
+ * tooltip giving its mission number from rating_achieved_on_mission. Returns 0,
  * having drawn only the title, when no pilot is loaded; else 1. */
 // FUNCTION: XVT 0x4C90C0
-int PilotRecord_DrawPilotRatingPage(void)
+int pilot_record_draw_pilot_rating_page(void)
 {
 	struct RECT rect;
-	int ratingIndex;
-	int mouseX;
-	int mouseY;
+	int rating_index;
+	int mouse_x;
+	int mouse_y;
 
-	FrontendCursor_GetPos(&mouseX, &mouseY);
-	FrontendDraw_RectAssign(&rect, 84, 90, 404, 106);
-	if (g_pilotData.name[0] == '\0') {
-		sprintf(g_frontendScratchBuffer, "%s",
-			FrontendString_Get(FRONTSTR_008_PILOT_RATING));
+	frontend_cursor_get_pos(&mouse_x, &mouse_y);
+	frontend_draw_rect_assign(&rect, 84, 90, 404, 106);
+	if (g_pilot_data.name[0] == '\0') {
+		sprintf(g_frontend_scratch_buffer, "%s",
+			frontend_string_get(FRONTSTR_008_PILOT_RATING));
 	} else {
-		sprintf(g_frontendScratchBuffer, "%s: %c%s %c%s",
-			FrontendString_Get(FRONTSTR_008_PILOT_RATING), 6,
-			g_pilotData.ratingName, 4, g_pilotData.name);
+		sprintf(g_frontend_scratch_buffer, "%s: %c%s %c%s",
+			frontend_string_get(FRONTSTR_008_PILOT_RATING), 6,
+			g_pilot_data.rating_name, 4, g_pilot_data.name);
 	}
-	FrontendText_DrawCentered(15, g_frontendScratchBuffer, &rect, 0xFFFF);
-	if (g_pilotData.name[0] == '\0') {
+	frontend_text_draw_centered(15, g_frontend_scratch_buffer, &rect,
+				    0xFFFF);
+	if (g_pilot_data.name[0] == '\0') {
 		return 0;
 	}
-	if ((unsigned)g_pilotData.rating >= PILOT_RATING_FLIGHT_CADET) {
-		FrontImage_DrawSprite("cadet", 270, 349);
-		FrontendDraw_RectAssign(&rect, 270, 334, 415, 348);
-		FrontendText_DrawCentered(
-			12, FrontendString_Get(FRONTSTR_393_CADET), &rect,
+	if ((unsigned)g_pilot_data.rating >= PILOT_RATING_FLIGHT_CADET) {
+		front_image_draw_sprite("cadet", 270, 349);
+		frontend_draw_rect_assign(&rect, 270, 334, 415, 348);
+		frontend_text_draw_centered(
+			12, frontend_string_get(FRONTSTR_393_CADET), &rect,
 			0xFFFF);
 	}
-	if ((unsigned)g_pilotData.rating >= PILOT_RATING_OFFICER_4TH_CLASS) {
-		FrontImage_DrawSprite("officer", 103, 349);
-		FrontendDraw_RectAssign(&rect, 103, 334, 248, 348);
-		FrontendText_DrawCentered(
-			12, FrontendString_Get(FRONTSTR_394_OFFICER), &rect,
+	if ((unsigned)g_pilot_data.rating >= PILOT_RATING_OFFICER_4TH_CLASS) {
+		front_image_draw_sprite("officer", 103, 349);
+		frontend_draw_rect_assign(&rect, 103, 334, 248, 348);
+		frontend_text_draw_centered(
+			12, frontend_string_get(FRONTSTR_394_OFFICER), &rect,
 			0xFFFF);
 	}
-	if ((unsigned)g_pilotData.rating >= PILOT_RATING_VETERAN_4TH_GRADE) {
-		FrontImage_DrawSprite("veteran", 270, 274);
-		FrontendDraw_RectAssign(&rect, 270, 259, 415, 273);
-		FrontendText_DrawCentered(
-			12, FrontendString_Get(FRONTSTR_395_VETERAN), &rect,
+	if ((unsigned)g_pilot_data.rating >= PILOT_RATING_VETERAN_4TH_GRADE) {
+		front_image_draw_sprite("veteran", 270, 274);
+		frontend_draw_rect_assign(&rect, 270, 259, 415, 273);
+		frontend_text_draw_centered(
+			12, frontend_string_get(FRONTSTR_395_VETERAN), &rect,
 			0xFFFF);
 	}
-	if ((unsigned)g_pilotData.rating >= PILOT_RATING_ACE_4TH_LEVEL) {
-		FrontImage_DrawSprite("ace", 103, 274);
-		FrontendDraw_RectAssign(&rect, 103, 259, 248, 273);
-		FrontendText_DrawCentered(12,
-					  FrontendString_Get(FRONTSTR_396_ACE),
-					  &rect, 0xFFFF);
-	}
-	if ((unsigned)g_pilotData.rating >= PILOT_RATING_TOP_ACE_4TH_ORDER) {
-		FrontImage_DrawSprite("topace", 270, 199);
-		FrontendDraw_RectAssign(&rect, 270, 184, 415, 198);
-		FrontendText_DrawCentered(
-			12, FrontendString_Get(FRONTSTR_397_TOP_ACE), &rect,
+	if ((unsigned)g_pilot_data.rating >= PILOT_RATING_ACE_4TH_LEVEL) {
+		front_image_draw_sprite("ace", 103, 274);
+		frontend_draw_rect_assign(&rect, 103, 259, 248, 273);
+		frontend_text_draw_centered(
+			12, frontend_string_get(FRONTSTR_396_ACE), &rect,
 			0xFFFF);
 	}
-	if ((unsigned)g_pilotData.rating >= PILOT_RATING_JEDI_4TH_DEGREE) {
-		FrontImage_DrawSprite("master", 103, 199);
-		FrontendDraw_RectAssign(&rect, 103, 184, 248, 199);
-		FrontendText_DrawCentered(12,
-					  FrontendString_Get(FRONTSTR_398_JEDI),
-					  &rect, 0xFFFF);
-	}
-	if ((unsigned)g_pilotData.rating >= PILOT_RATING_JEDI_MASTER) {
-		FrontendDraw_RectAssign(&rect, 187, 107, 323, 121);
-		FrontendText_DrawCentered(
-			12, FrontendString_Get(FRONTSTR_399_JEDI_MASTER), &rect,
+	if ((unsigned)g_pilot_data.rating >= PILOT_RATING_TOP_ACE_4TH_ORDER) {
+		front_image_draw_sprite("topace", 270, 199);
+		frontend_draw_rect_assign(&rect, 270, 184, 415, 198);
+		frontend_text_draw_centered(
+			12, frontend_string_get(FRONTSTR_397_TOP_ACE), &rect,
 			0xFFFF);
 	}
-	if (g_pilotData.ratingAchievedOnMission[0] != 0) {
-		FrontImage_DrawSprite("rank0", g_pilotRatingIconPos[0].x,
-				      g_pilotRatingIconPos[0].y);
-		FrontendDraw_RectAssign(&rect, g_pilotRatingIconPos[0].x,
-					g_pilotRatingIconPos[0].y,
-					g_pilotRatingIconPos[0].x + 51,
-					g_pilotRatingIconPos[0].y + 11);
-		if (FrontendDraw_PointInRect(&rect, mouseX, mouseY)) {
-			sprintf(g_frontendScratchBuffer, "%s %s %d",
-				FrontendString_Get(FRONTSTR_122_TARGET_DRONE),
-				FrontendString_Get(
+	if ((unsigned)g_pilot_data.rating >= PILOT_RATING_JEDI_4TH_DEGREE) {
+		front_image_draw_sprite("master", 103, 199);
+		frontend_draw_rect_assign(&rect, 103, 184, 248, 199);
+		frontend_text_draw_centered(
+			12, frontend_string_get(FRONTSTR_398_JEDI), &rect,
+			0xFFFF);
+	}
+	if ((unsigned)g_pilot_data.rating >= PILOT_RATING_JEDI_MASTER) {
+		frontend_draw_rect_assign(&rect, 187, 107, 323, 121);
+		frontend_text_draw_centered(
+			12, frontend_string_get(FRONTSTR_399_JEDI_MASTER),
+			&rect, 0xFFFF);
+	}
+	if (g_pilot_data.rating_achieved_on_mission[0] != 0) {
+		front_image_draw_sprite("rank0", g_pilot_rating_icon_pos[0].x,
+					g_pilot_rating_icon_pos[0].y);
+		frontend_draw_rect_assign(&rect, g_pilot_rating_icon_pos[0].x,
+					  g_pilot_rating_icon_pos[0].y,
+					  g_pilot_rating_icon_pos[0].x + 51,
+					  g_pilot_rating_icon_pos[0].y + 11);
+		if (frontend_draw_point_in_rect(&rect, mouse_x, mouse_y)) {
+			sprintf(g_frontend_scratch_buffer, "%s %s %d",
+				frontend_string_get(FRONTSTR_122_TARGET_DRONE),
+				frontend_string_get(
 					FRONTSTR_644_ACHIEVED_ON_MISSION),
-				g_pilotData.ratingAchievedOnMission[0]);
-			FrontendButton_DrawSpriteAndTooltip(
-				&rect, NULL, g_frontendScratchBuffer, 12,
+				g_pilot_data.rating_achieved_on_mission[0]);
+			frontend_button_draw_sprite_and_tooltip(
+				&rect, NULL, g_frontend_scratch_buffer, 12,
 				0xFFFF);
 		}
 	}
-	if (g_pilotData.ratingAchievedOnMission[1] != 0) {
-		FrontImage_DrawSprite("rank1", g_pilotRatingIconPos[1].x,
-				      g_pilotRatingIconPos[1].y);
-		FrontendDraw_RectAssign(&rect, g_pilotRatingIconPos[1].x,
-					g_pilotRatingIconPos[1].y,
-					g_pilotRatingIconPos[1].x + 51,
-					g_pilotRatingIconPos[1].y + 11);
-		if (FrontendDraw_PointInRect(&rect, mouseX, mouseY)) {
-			sprintf(g_frontendScratchBuffer, "%s %s %d",
-				FrontendString_Get(FRONTSTR_122_TARGET_DRONE +
-						   1),
-				FrontendString_Get(
+	if (g_pilot_data.rating_achieved_on_mission[1] != 0) {
+		front_image_draw_sprite("rank1", g_pilot_rating_icon_pos[1].x,
+					g_pilot_rating_icon_pos[1].y);
+		frontend_draw_rect_assign(&rect, g_pilot_rating_icon_pos[1].x,
+					  g_pilot_rating_icon_pos[1].y,
+					  g_pilot_rating_icon_pos[1].x + 51,
+					  g_pilot_rating_icon_pos[1].y + 11);
+		if (frontend_draw_point_in_rect(&rect, mouse_x, mouse_y)) {
+			sprintf(g_frontend_scratch_buffer, "%s %s %d",
+				frontend_string_get(FRONTSTR_122_TARGET_DRONE +
+						    1),
+				frontend_string_get(
 					FRONTSTR_644_ACHIEVED_ON_MISSION),
-				g_pilotData.ratingAchievedOnMission[1]);
-			FrontendButton_DrawSpriteAndTooltip(
-				&rect, NULL, g_frontendScratchBuffer, 12,
+				g_pilot_data.rating_achieved_on_mission[1]);
+			frontend_button_draw_sprite_and_tooltip(
+				&rect, NULL, g_frontend_scratch_buffer, 12,
 				0xFFFF);
 		}
 	}
-	for (ratingIndex = PILOT_RATING_TRAINEE;
-	     (unsigned)ratingIndex <= (unsigned)g_pilotData.rating;
-	     ++ratingIndex) {
-		struct POINT *icon = &g_pilotRatingIconPos[ratingIndex];
-		sprintf(g_frontendScratchBuffer, "rank%d", ratingIndex);
-		FrontImage_DrawSprite(g_frontendScratchBuffer, icon->x,
-				      icon->y);
-		if ((unsigned)ratingIndex >= 24) {
-			FrontendDraw_RectAssign(&rect, icon->x, icon->y,
-						icon->x + 138, icon->y + 59);
+	for (rating_index = PILOT_RATING_TRAINEE;
+	     (unsigned)rating_index <= (unsigned)g_pilot_data.rating;
+	     ++rating_index) {
+		struct POINT *icon = &g_pilot_rating_icon_pos[rating_index];
+		sprintf(g_frontend_scratch_buffer, "rank%d", rating_index);
+		front_image_draw_sprite(g_frontend_scratch_buffer, icon->x,
+					icon->y);
+		if ((unsigned)rating_index >= 24) {
+			frontend_draw_rect_assign(&rect, icon->x, icon->y,
+						  icon->x + 138, icon->y + 59);
 		} else {
-			FrontendDraw_RectAssign(&rect, icon->x, icon->y,
-						icon->x + 51, icon->y + 11);
+			frontend_draw_rect_assign(&rect, icon->x, icon->y,
+						  icon->x + 51, icon->y + 11);
 		}
-		if (FrontendDraw_PointInRect(&rect, mouseX, mouseY)) {
-			sprintf(g_frontendScratchBuffer, "%s %s %d",
-				FrontendString_Get(FRONTSTR_122_TARGET_DRONE +
-						   ratingIndex),
-				FrontendString_Get(
+		if (frontend_draw_point_in_rect(&rect, mouse_x, mouse_y)) {
+			sprintf(g_frontend_scratch_buffer, "%s %s %d",
+				frontend_string_get(FRONTSTR_122_TARGET_DRONE +
+						    rating_index),
+				frontend_string_get(
 					FRONTSTR_644_ACHIEVED_ON_MISSION),
-				g_pilotData
-					.ratingAchievedOnMission[ratingIndex]);
-			FrontendButton_DrawSpriteAndTooltip(
-				&rect, NULL, g_frontendScratchBuffer, 12,
+				g_pilot_data.rating_achieved_on_mission
+					[rating_index]);
+			frontend_button_draw_sprite_and_tooltip(
+				&rect, NULL, g_frontend_scratch_buffer, 12,
 				0xFFFF);
 		}
 	}
@@ -6910,15 +7142,15 @@ int PilotRecord_DrawPilotRatingPage(void)
 
 /* Draws the pilot record's buttons: one per page and the Rebel and Imperial
  * pilot buttons, with the current page and faction selected. A page button sets
- * g_pilotRecordPage; a faction button sets g_pilotData.currentFactionId to 0
+ * g_pilot_record_page; a faction button sets g_pilot_data.current_faction_id to 0
  * (Rebel) or 1 (Imperial) and copies that faction's team, mission directory,
- * mission ids and sequence fields into g_pilotData. Either sets
- * g_pilotRecordPagesNeedRebuild and redraws the background. Returns 1. */
+ * mission ids and sequence fields into g_pilot_data. Either sets
+ * g_pilot_record_pages_need_rebuild and redraws the background. Returns 1. */
 // FUNCTION: XVT 0x4C9660
-int PilotRecord_UpdateNavigationControls(void)
+int pilot_record_update_navigation_controls(void)
 {
 	struct RECT rect;
-	FrontendNavigationSlotState slotStates[8] = {
+	frontend_navigation_slot_state slot_states[8] = {
 		FRONTEND_NAVIGATION_SLOT_ACTIVE,
 		FRONTEND_NAVIGATION_SLOT_ACTIVE,
 		FRONTEND_NAVIGATION_SLOT_ACTIVE,
@@ -6929,159 +7161,163 @@ int PilotRecord_UpdateNavigationControls(void)
 		FRONTEND_NAVIGATION_SLOT_ACTIVE,
 	};
 
-	if (g_pilotRecordPage == 5) {
-		slotStates[7] = FRONTEND_NAVIGATION_SLOT_SELECTED;
+	if (g_pilot_record_page == 5) {
+		slot_states[7] = FRONTEND_NAVIGATION_SLOT_SELECTED;
 	} else {
-		slotStates[g_pilotRecordPage] =
+		slot_states[g_pilot_record_page] =
 			FRONTEND_NAVIGATION_SLOT_SELECTED;
 	}
-	slotStates[5 + g_pilotData.currentFactionId] =
+	slot_states[5 + g_pilot_data.current_faction_id] =
 		FRONTEND_NAVIGATION_SLOT_SELECTED;
-	FrontendButton_DrawEightSlotNavigationState(slotStates);
+	frontend_button_draw_eight_slot_navigation_state(slot_states);
 
-	FrontendDraw_RectAssign(&rect, 22, 334, 42, 358);
-	if (g_pilotData.currentFactionId == 1) {
-		FrontendButton_DrawSpriteAndTooltip(
+	frontend_draw_rect_assign(&rect, 22, 334, 42, 358);
+	if (g_pilot_data.current_faction_id == 1) {
+		frontend_button_draw_sprite_and_tooltip(
 			&rect, "reg7d",
-			FrontendString_Get(FRONTSTR_643_IMPERIAL_PILOT), 12, 0);
-	} else if (FrontendButton_HandleSpriteButton(
+			frontend_string_get(FRONTSTR_643_IMPERIAL_PILOT), 12,
+			0);
+	} else if (frontend_button_handle_sprite_button(
 			   &rect, "reg7u", "reg7u",
-			   FrontendString_Get(FRONTSTR_643_IMPERIAL_PILOT), 12,
+			   frontend_string_get(FRONTSTR_643_IMPERIAL_PILOT), 12,
 			   0, 17, "jewelsound")) {
-		g_pilotRecordPagesNeedRebuild = 1;
-		g_pilotData.currentFactionId = 1;
-		g_pilotData.team = g_pilotData.factionStatistics[1].team;
-		g_pilotData.missionDirectoryId =
-			g_pilotData.factionStatistics[1].missionDirectoryId;
-		memcpy(g_pilotData.missionDescriptionIds,
-		       g_pilotData.factionStatistics[1].missionDescriptionIds,
-		       sizeof(g_pilotData.missionDescriptionIds));
-		g_pilotData.missionSequenceActive =
-			g_pilotData.factionStatistics[1].missionSequenceActive;
-		g_pilotData.savedMissionDescriptionId =
-			g_pilotData.factionStatistics[1]
-				.savedMissionDescriptionId;
-		PilotRecord_RedrawBackground();
+		g_pilot_record_pages_need_rebuild = 1;
+		g_pilot_data.current_faction_id = 1;
+		g_pilot_data.team = g_pilot_data.faction_statistics[1].team;
+		g_pilot_data.mission_directory_id =
+			g_pilot_data.faction_statistics[1].mission_directory_id;
+		memcpy(g_pilot_data.mission_description_ids,
+		       g_pilot_data.faction_statistics[1]
+			       .mission_description_ids,
+		       sizeof(g_pilot_data.mission_description_ids));
+		g_pilot_data.mission_sequence_active =
+			g_pilot_data.faction_statistics[1]
+				.mission_sequence_active;
+		g_pilot_data.saved_mission_description_id =
+			g_pilot_data.faction_statistics[1]
+				.saved_mission_description_id;
+		pilot_record_redraw_background();
 	}
 
-	FrontendDraw_RectOffsetXY(&rect, 0, -28);
-	if (g_pilotData.currentFactionId != 0) {
-		if (FrontendButton_HandleSpriteButton(
+	frontend_draw_rect_offset_xy(&rect, 0, -28);
+	if (g_pilot_data.current_faction_id != 0) {
+		if (frontend_button_handle_sprite_button(
 			    &rect, "reg6u", "reg6u",
-			    FrontendString_Get(FRONTSTR_642_REBEL_PILOT), 12, 0,
-			    16, "jewelsound")) {
-			g_pilotRecordPagesNeedRebuild = 1;
-			g_pilotData.currentFactionId = 0;
-			g_pilotData.team =
-				g_pilotData.factionStatistics[0].team;
-			g_pilotData.missionDirectoryId =
-				g_pilotData.factionStatistics[0]
-					.missionDirectoryId;
-			memcpy(g_pilotData.missionDescriptionIds,
-			       g_pilotData.factionStatistics[0]
-				       .missionDescriptionIds,
-			       sizeof(g_pilotData.missionDescriptionIds));
-			g_pilotData.missionSequenceActive =
-				g_pilotData.factionStatistics[0]
-					.missionSequenceActive;
-			g_pilotData.savedMissionDescriptionId =
-				g_pilotData.factionStatistics[0]
-					.savedMissionDescriptionId;
-			PilotRecord_RedrawBackground();
+			    frontend_string_get(FRONTSTR_642_REBEL_PILOT), 12,
+			    0, 16, "jewelsound")) {
+			g_pilot_record_pages_need_rebuild = 1;
+			g_pilot_data.current_faction_id = 0;
+			g_pilot_data.team =
+				g_pilot_data.faction_statistics[0].team;
+			g_pilot_data.mission_directory_id =
+				g_pilot_data.faction_statistics[0]
+					.mission_directory_id;
+			memcpy(g_pilot_data.mission_description_ids,
+			       g_pilot_data.faction_statistics[0]
+				       .mission_description_ids,
+			       sizeof(g_pilot_data.mission_description_ids));
+			g_pilot_data.mission_sequence_active =
+				g_pilot_data.faction_statistics[0]
+					.mission_sequence_active;
+			g_pilot_data.saved_mission_description_id =
+				g_pilot_data.faction_statistics[0]
+					.saved_mission_description_id;
+			pilot_record_redraw_background();
 		}
 	} else {
-		FrontendButton_DrawSpriteAndTooltip(
+		frontend_button_draw_sprite_and_tooltip(
 			&rect, "reg6d",
-			FrontendString_Get(FRONTSTR_642_REBEL_PILOT), 12, 0);
+			frontend_string_get(FRONTSTR_642_REBEL_PILOT), 12, 0);
 	}
 
-	FrontendDraw_RectAssign(&rect, 22, 254, 42, 278);
-	if (g_pilotRecordPage == 5) {
-		FrontendButton_DrawSpriteAndTooltip(
+	frontend_draw_rect_assign(&rect, 22, 254, 42, 278);
+	if (g_pilot_record_page == 5) {
+		frontend_button_draw_sprite_and_tooltip(
 			&rect, "reg8d",
-			FrontendString_Get(FRONTSTR_796_VIEW_CUTSCENES), 12, 0);
-	} else if (FrontendButton_HandleSpriteButton(
-			   &rect, "reg8u", "reg8u",
-			   FrontendString_Get(FRONTSTR_796_VIEW_CUTSCENES), 12,
-			   0, 18, "jewelsound")) {
-		g_pilotRecordPagesNeedRebuild = 1;
-		g_pilotRecordPage = 5;
-		PilotRecord_RedrawBackground();
-	}
-
-	FrontendDraw_RectOffsetXY(&rect, 0, -28);
-	if (g_pilotRecordPage == 4) {
-		FrontendButton_DrawSpriteAndTooltip(
-			&rect, "reg5d",
-			FrontendString_Get(FRONTSTR_826_CAMPAIGN_MEDALS), 12,
+			frontend_string_get(FRONTSTR_796_VIEW_CUTSCENES), 12,
 			0);
-	} else if (FrontendButton_HandleSpriteButton(
-			   &rect, "reg5u", "reg5u",
-			   FrontendString_Get(FRONTSTR_826_CAMPAIGN_MEDALS), 12,
-			   0, 15, "jewelsound")) {
-		g_pilotRecordPagesNeedRebuild = 1;
-		g_pilotRecordPage = 4;
-		PilotRecord_RedrawBackground();
+	} else if (frontend_button_handle_sprite_button(
+			   &rect, "reg8u", "reg8u",
+			   frontend_string_get(FRONTSTR_796_VIEW_CUTSCENES), 12,
+			   0, 18, "jewelsound")) {
+		g_pilot_record_pages_need_rebuild = 1;
+		g_pilot_record_page = 5;
+		pilot_record_redraw_background();
 	}
 
-	FrontendDraw_RectOffsetXY(&rect, 0, -28);
-	if (g_pilotRecordPage == 3) {
-		FrontendButton_DrawSpriteAndTooltip(
+	frontend_draw_rect_offset_xy(&rect, 0, -28);
+	if (g_pilot_record_page == 4) {
+		frontend_button_draw_sprite_and_tooltip(
+			&rect, "reg5d",
+			frontend_string_get(FRONTSTR_826_CAMPAIGN_MEDALS), 12,
+			0);
+	} else if (frontend_button_handle_sprite_button(
+			   &rect, "reg5u", "reg5u",
+			   frontend_string_get(FRONTSTR_826_CAMPAIGN_MEDALS),
+			   12, 0, 15, "jewelsound")) {
+		g_pilot_record_pages_need_rebuild = 1;
+		g_pilot_record_page = 4;
+		pilot_record_redraw_background();
+	}
+
+	frontend_draw_rect_offset_xy(&rect, 0, -28);
+	if (g_pilot_record_page == 3) {
+		frontend_button_draw_sprite_and_tooltip(
 			&rect, "reg4d",
-			FrontendString_Get(FRONTSTR_010_MISSION_ACHIEVEMENTS),
+			frontend_string_get(FRONTSTR_010_MISSION_ACHIEVEMENTS),
 			12, 0);
-	} else if (FrontendButton_HandleSpriteButton(
+	} else if (frontend_button_handle_sprite_button(
 			   &rect, "reg4u", "reg4u",
-			   FrontendString_Get(
+			   frontend_string_get(
 				   FRONTSTR_010_MISSION_ACHIEVEMENTS),
 			   12, 0, 14, "jewelsound")) {
-		g_pilotRecordPagesNeedRebuild = 1;
-		g_pilotRecordPage = 3;
-		PilotRecord_RedrawBackground();
+		g_pilot_record_pages_need_rebuild = 1;
+		g_pilot_record_page = 3;
+		pilot_record_redraw_background();
 	}
 
-	FrontendDraw_RectOffsetXY(&rect, 0, -28);
-	if (g_pilotRecordPage == 2) {
-		FrontendButton_DrawSpriteAndTooltip(
+	frontend_draw_rect_offset_xy(&rect, 0, -28);
+	if (g_pilot_record_page == 2) {
+		frontend_button_draw_sprite_and_tooltip(
 			&rect, "reg3d",
-			FrontendString_Get(FRONTSTR_008_PILOT_RATING), 12, 0);
-	} else if (FrontendButton_HandleSpriteButton(
+			frontend_string_get(FRONTSTR_008_PILOT_RATING), 12, 0);
+	} else if (frontend_button_handle_sprite_button(
 			   &rect, "reg3u", "reg3u",
-			   FrontendString_Get(FRONTSTR_008_PILOT_RATING), 12, 0,
-			   13, "jewelsound")) {
-		g_pilotRecordPagesNeedRebuild = 1;
-		g_pilotRecordPage = 2;
-		PilotRecord_RedrawBackground();
+			   frontend_string_get(FRONTSTR_008_PILOT_RATING), 12,
+			   0, 13, "jewelsound")) {
+		g_pilot_record_pages_need_rebuild = 1;
+		g_pilot_record_page = 2;
+		pilot_record_redraw_background();
 	}
 
-	FrontendDraw_RectOffsetXY(&rect, 0, -28);
-	if (g_pilotRecordPage == 1) {
-		FrontendButton_DrawSpriteAndTooltip(
+	frontend_draw_rect_offset_xy(&rect, 0, -28);
+	if (g_pilot_record_page == 1) {
+		frontend_button_draw_sprite_and_tooltip(
 			&rect, "reg2d",
-			FrontendString_Get(FRONTSTR_009_PILOT_AWARDS), 12, 0);
-	} else if (FrontendButton_HandleSpriteButton(
+			frontend_string_get(FRONTSTR_009_PILOT_AWARDS), 12, 0);
+	} else if (frontend_button_handle_sprite_button(
 			   &rect, "reg2u", "reg2u",
-			   FrontendString_Get(FRONTSTR_009_PILOT_AWARDS), 12, 0,
-			   12, "jewelsound")) {
-		g_pilotRecordPagesNeedRebuild = 1;
-		g_pilotRecordPage = 1;
-		PilotRecord_RedrawBackground();
+			   frontend_string_get(FRONTSTR_009_PILOT_AWARDS), 12,
+			   0, 12, "jewelsound")) {
+		g_pilot_record_pages_need_rebuild = 1;
+		g_pilot_record_page = 1;
+		pilot_record_redraw_background();
 	}
 
-	FrontendDraw_RectOffsetXY(&rect, 0, -28);
-	if (g_pilotRecordPage != 0) {
-		if (FrontendButton_HandleSpriteButton(
+	frontend_draw_rect_offset_xy(&rect, 0, -28);
+	if (g_pilot_record_page != 0) {
+		if (frontend_button_handle_sprite_button(
 			    &rect, "reg1u", "reg1u",
-			    FrontendString_Get(FRONTSTR_007_PILOT_STATISTICS),
+			    frontend_string_get(FRONTSTR_007_PILOT_STATISTICS),
 			    12, 0, 11, "jewelsound")) {
-			g_pilotRecordPagesNeedRebuild = 1;
-			g_pilotRecordPage = 0;
-			PilotRecord_RedrawBackground();
+			g_pilot_record_pages_need_rebuild = 1;
+			g_pilot_record_page = 0;
+			pilot_record_redraw_background();
 		}
 	} else {
-		FrontendButton_DrawSpriteAndTooltip(
+		frontend_button_draw_sprite_and_tooltip(
 			&rect, "reg1d",
-			FrontendString_Get(FRONTSTR_007_PILOT_STATISTICS), 12,
+			frontend_string_get(FRONTSTR_007_PILOT_STATISTICS), 12,
 			0);
 	}
 	return 1;
@@ -7089,238 +7325,241 @@ int PilotRecord_UpdateNavigationControls(void)
 
 /* Redraws the pilot record's background on the offscreen surface: background0
  * for faction 0, else background1, the frame, allactive or clientactive by
- * g_hostCdAvailable, the name overlay and the current page's overlay, none on
+ * g_host_cd_available, the name overlay and the current page's overlay, none on
  * the cutscene page, with the faction's award sprites on the awards page.
  * Returns 1. */
 // FUNCTION: XVT 0x4CAF60
-int PilotRecord_RedrawBackground(void)
+int pilot_record_redraw_background(void)
 {
-	FrontendDisplay_ClearOffscreenSurface();
-	FrontendDisplay_LockOffscreenSurface();
-	if (g_pilotData.currentFactionId == 0) {
-		FrontImage_DrawSpriteOpaque("background0", 0, 0);
+	frontend_display_clear_offscreen_surface();
+	frontend_display_lock_offscreen_surface();
+	if (g_pilot_data.current_faction_id == 0) {
+		front_image_draw_sprite_opaque("background0", 0, 0);
 	} else {
-		FrontImage_DrawSpriteOpaque("background1", 0, 0);
+		front_image_draw_sprite_opaque("background1", 0, 0);
 	}
-	FrontImage_DrawSprite("frame", 0, 0);
-	if (g_hostCdAvailable != 0) {
-		FrontImage_DrawSprite("allactive", 0, 0);
+	front_image_draw_sprite("frame", 0, 0);
+	if (g_host_cd_available != 0) {
+		front_image_draw_sprite("allactive", 0, 0);
 	} else {
-		FrontImage_DrawSprite("clientactive", 0, 0);
+		front_image_draw_sprite("clientactive", 0, 0);
 	}
-	FrontImage_DrawSpriteTranslucent("nameoverlay", 0, 0);
+	front_image_draw_sprite_translucent("nameoverlay", 0, 0);
 
-	switch (g_pilotRecordPage) {
+	switch (g_pilot_record_page) {
 	case 2:
-		FrontImage_DrawSpriteTranslucent("promotionoverlay", 0, 0);
+		front_image_draw_sprite_translucent("promotionoverlay", 0, 0);
 		break;
 	case 1:
-		FrontImage_DrawSpriteTranslucent("awardoverlay", 0, 0);
-		if (g_pilotData.currentFactionId == 0) {
-			FrontImage_DrawSprite("rebplaque", 0, 0);
-			FrontImage_DrawSprite("rebmedal", 0, 0);
-			FrontImage_DrawSprite("rebtrophy", 0, 0);
-			FrontImage_DrawSprite("rebcitation", 0, 0);
+		front_image_draw_sprite_translucent("awardoverlay", 0, 0);
+		if (g_pilot_data.current_faction_id == 0) {
+			front_image_draw_sprite("rebplaque", 0, 0);
+			front_image_draw_sprite("rebmedal", 0, 0);
+			front_image_draw_sprite("rebtrophy", 0, 0);
+			front_image_draw_sprite("rebcitation", 0, 0);
 		} else {
-			FrontImage_DrawSprite("impplaque", 0, 0);
-			FrontImage_DrawSprite("impmedal", 0, 0);
-			FrontImage_DrawSprite("imptrophy", 0, 0);
-			FrontImage_DrawSprite("impcitation", 0, 0);
+			front_image_draw_sprite("impplaque", 0, 0);
+			front_image_draw_sprite("impmedal", 0, 0);
+			front_image_draw_sprite("imptrophy", 0, 0);
+			front_image_draw_sprite("impcitation", 0, 0);
 		}
 		break;
 	case 0:
 	case 3:
 	case 4:
-		FrontImage_DrawSpriteTranslucent("regoverlay", 0, 0);
+		front_image_draw_sprite_translucent("regoverlay", 0, 0);
 		break;
 	default:
 		break;
 	}
 
-	FrontendDisplay_UnlockOffscreenSurface(1);
+	frontend_display_unlock_offscreen_surface(1);
 	return 1;
 }
 
 /* Loads the campaign medal sprite table from fileName into
- * g_campaignAwardSprites, freeing any old one. The first line gives the record
+ * g_campaign_award_sprites, freeing any old one. The first line gives the record
  * count to allocate. Each record is a campaign id line, the main sprite name
  * and 15 multiplayer then 15 single-player mission award sprite names, one per
  * line, lines starting with // skipped; names are cut to 31 characters and the
- * 16th slots stay empty. g_campaignAwardSpriteCount counts the complete
+ * 16th slots stay empty. g_campaign_award_sprite_count counts the complete
  * records. Returns 0 when the file does not open, its first line cannot be read
  * or the allocation fails, which the original build returns from with the file
  * left open; else 1, also when the file ends early, a record cut short getting
- * campaignId 0. In the original build the record loop stops at 15 records
+ * campaign_id 0. In the original build the record loop stops at 15 records
  * rather than at the count read, and nothing checks that the records fit the
  * allocation; the modern build stops at the count. */
 // FUNCTION: XVT 0x4CC060
-int PilotRecord_LoadCampaignAwardSpriteTable(const char *fileName)
+int pilot_record_load_campaign_award_sprite_table(const char *file_name)
 {
-	XvtFile *stream;
+	xvt_file *stream;
 	char *line;
-	unsigned int recordCountOrIndex;
-	unsigned int spriteNameByteOffset;
+	unsigned int record_count_or_index;
+	unsigned int sprite_name_byte_offset;
 #ifdef XVT_MODERN
-	unsigned int recordCapacity;
+	unsigned int record_capacity;
 #endif
 
-	if (g_campaignAwardSprites != NULL) {
-		free(g_campaignAwardSprites);
-		g_campaignAwardSprites = NULL;
+	if (g_campaign_award_sprites != NULL) {
+		free(g_campaign_award_sprites);
+		g_campaign_award_sprites = NULL;
 	}
-	stream = File_Open(fileName, "r");
+	stream = file_open(file_name, "r");
 	if (stream == NULL) {
 		return 0;
 	}
-	if (File_Gets(g_frontendScratchBuffer, 255, stream) == NULL) {
-		File_Close(stream);
+	if (FILE_GETS(g_frontend_scratch_buffer, 255, stream) == NULL) {
+		file_close(stream);
 		return 0;
 	}
-	recordCountOrIndex = (unsigned int)atoi(g_frontendScratchBuffer);
+	record_count_or_index = (unsigned int)atoi(g_frontend_scratch_buffer);
 #ifdef XVT_MODERN
-	recordCapacity = recordCountOrIndex;
+	record_capacity = record_count_or_index;
 #endif
-	g_campaignAwardSprites = (struct CampaignAwardSpriteEntry *)malloc(
-		sizeof(*g_campaignAwardSprites) * recordCountOrIndex);
-	if (g_campaignAwardSprites == NULL) {
+	g_campaign_award_sprites = (struct campaign_award_sprite_entry *)malloc(
+		sizeof(*g_campaign_award_sprites) * record_count_or_index);
+	if (g_campaign_award_sprites == NULL) {
 #ifdef XVT_MODERN
-		File_Close(stream);
+		file_close(stream);
 #endif
 		return 0;
 	}
-	memset(g_campaignAwardSprites, 0,
-	       sizeof(*g_campaignAwardSprites) * recordCountOrIndex);
-	g_campaignAwardSpriteCount = 0;
+	memset(g_campaign_award_sprites, 0,
+	       sizeof(*g_campaign_award_sprites) * record_count_or_index);
+	g_campaign_award_sprite_count = 0;
 
 #ifdef XVT_MODERN
-	while (g_campaignAwardSpriteCount < recordCapacity) {
+	while (g_campaign_award_sprite_count < record_capacity) {
 #else
 	while (1) {
-		if (recordCountOrIndex <= g_campaignAwardSpriteCount) {
+		if (record_count_or_index <= g_campaign_award_sprite_count) {
 			break;
 		}
 #endif
 		do {
-			line = File_Gets(g_frontendScratchBuffer, 255, stream);
+			line = FILE_GETS(g_frontend_scratch_buffer, 255,
+					 stream);
 			if (line == NULL) {
-				File_Close(stream);
+				file_close(stream);
 				return 1;
 			}
 		} while (line[0] == '/' && line[1] == '/');
 
-		if (g_frontendScratchBuffer[strlen(g_frontendScratchBuffer) -
-					    1] == '\n') {
-			g_frontendScratchBuffer
-				[strlen(g_frontendScratchBuffer) - 1] = '\0';
+		if (g_frontend_scratch_buffer
+			    [strlen(g_frontend_scratch_buffer) - 1] == '\n') {
+			g_frontend_scratch_buffer
+				[strlen(g_frontend_scratch_buffer) - 1] = '\0';
 		}
-		g_campaignAwardSprites[g_campaignAwardSpriteCount].campaignId =
-			atoi(g_frontendScratchBuffer);
+		g_campaign_award_sprites[g_campaign_award_sprite_count]
+			.campaign_id = atoi(g_frontend_scratch_buffer);
 
 		do {
-			line = File_Gets(g_frontendScratchBuffer, 255, stream);
+			line = FILE_GETS(g_frontend_scratch_buffer, 255,
+					 stream);
 			if (line == NULL) {
-				g_campaignAwardSprites
-					[g_campaignAwardSpriteCount]
-						.campaignId = 0;
-				File_Close(stream);
+				g_campaign_award_sprites
+					[g_campaign_award_sprite_count]
+						.campaign_id = 0;
+				file_close(stream);
 				return 1;
 			}
 		} while (line[0] == '/' && line[1] == '/');
 
-		if (g_frontendScratchBuffer[strlen(g_frontendScratchBuffer) -
-					    1] == '\n') {
-			g_frontendScratchBuffer
-				[strlen(g_frontendScratchBuffer) - 1] = '\0';
+		if (g_frontend_scratch_buffer
+			    [strlen(g_frontend_scratch_buffer) - 1] == '\n') {
+			g_frontend_scratch_buffer
+				[strlen(g_frontend_scratch_buffer) - 1] = '\0';
 		}
-		memcpy(g_campaignAwardSprites[g_campaignAwardSpriteCount]
-			       .mainAwardSpriteName,
-		       g_frontendScratchBuffer,
-		       sizeof(g_campaignAwardSprites[g_campaignAwardSpriteCount]
-				      .mainAwardSpriteName));
-		g_campaignAwardSprites[g_campaignAwardSpriteCount]
-			.mainAwardSpriteName[31] = '\0';
+		memcpy(g_campaign_award_sprites[g_campaign_award_sprite_count]
+			       .main_award_sprite_name,
+		       g_frontend_scratch_buffer,
+		       sizeof(g_campaign_award_sprites
+				      [g_campaign_award_sprite_count]
+					      .main_award_sprite_name));
+		g_campaign_award_sprites[g_campaign_award_sprite_count]
+			.main_award_sprite_name[31] = '\0';
 
-		spriteNameByteOffset = 0;
-		while (spriteNameByteOffset < 15 * 32) {
+		sprite_name_byte_offset = 0;
+		while (sprite_name_byte_offset < 15 * 32) {
 			do {
-				line = File_Gets(g_frontendScratchBuffer, 255,
+				line = FILE_GETS(g_frontend_scratch_buffer, 255,
 						 stream);
 				if (line == NULL) {
-					g_campaignAwardSprites
-						[g_campaignAwardSpriteCount]
-							.campaignId = 0;
-					File_Close(stream);
+					g_campaign_award_sprites
+						[g_campaign_award_sprite_count]
+							.campaign_id = 0;
+					file_close(stream);
 					return 1;
 				}
 			} while (line[0] == '/' && line[1] == '/');
 
-			if (g_frontendScratchBuffer
-				    [strlen(g_frontendScratchBuffer) - 1] ==
+			if (g_frontend_scratch_buffer
+				    [strlen(g_frontend_scratch_buffer) - 1] ==
 			    '\n') {
-				g_frontendScratchBuffer
-					[strlen(g_frontendScratchBuffer) - 1] =
-						'\0';
+				g_frontend_scratch_buffer
+					[strlen(g_frontend_scratch_buffer) -
+					 1] = '\0';
 			}
-			memcpy((char *)g_campaignAwardSprites
-					       [g_campaignAwardSpriteCount]
-						       .multiplayerMissionAwardSpriteNames +
-				       spriteNameByteOffset,
-			       g_frontendScratchBuffer,
-			       sizeof(g_campaignAwardSprites
-					      [g_campaignAwardSpriteCount]
-						      .multiplayerMissionAwardSpriteNames
+			memcpy((char *)g_campaign_award_sprites
+					       [g_campaign_award_sprite_count]
+						       .multiplayer_mission_award_sprite_names +
+				       sprite_name_byte_offset,
+			       g_frontend_scratch_buffer,
+			       sizeof(g_campaign_award_sprites
+					      [g_campaign_award_sprite_count]
+						      .multiplayer_mission_award_sprite_names
 							      [0]));
-			*((char *)g_campaignAwardSprites
-				  [g_campaignAwardSpriteCount]
-					  .multiplayerMissionAwardSpriteNames +
-			  spriteNameByteOffset + 31) = '\0';
-			spriteNameByteOffset += 32;
+			*((char *)g_campaign_award_sprites
+				  [g_campaign_award_sprite_count]
+					  .multiplayer_mission_award_sprite_names +
+			  sprite_name_byte_offset + 31) = '\0';
+			sprite_name_byte_offset += 32;
 		}
 
-		/* From here recordCountOrIndex counts the single-player sprite names read, so in the original
+		/* From here record_count_or_index counts the single-player sprite names read, so in the original
 		 * build the record loop stops at 15 records instead of the file's count; the modern build keeps
-		 * the count in recordCapacity. */
-		recordCountOrIndex = 0;
-		spriteNameByteOffset = 0;
-		while (spriteNameByteOffset < 15 * 32) {
+		 * the count in record_capacity. */
+		record_count_or_index = 0;
+		sprite_name_byte_offset = 0;
+		while (sprite_name_byte_offset < 15 * 32) {
 			do {
-				line = File_Gets(g_frontendScratchBuffer, 255,
+				line = FILE_GETS(g_frontend_scratch_buffer, 255,
 						 stream);
 				if (line == NULL) {
-					g_campaignAwardSprites
-						[g_campaignAwardSpriteCount]
-							.campaignId = 0;
-					File_Close(stream);
+					g_campaign_award_sprites
+						[g_campaign_award_sprite_count]
+							.campaign_id = 0;
+					file_close(stream);
 					return 1;
 				}
 			} while (line[0] == '/' && line[1] == '/');
 
-			if (g_frontendScratchBuffer
-				    [strlen(g_frontendScratchBuffer) - 1] ==
+			if (g_frontend_scratch_buffer
+				    [strlen(g_frontend_scratch_buffer) - 1] ==
 			    '\n') {
-				g_frontendScratchBuffer
-					[strlen(g_frontendScratchBuffer) - 1] =
-						'\0';
+				g_frontend_scratch_buffer
+					[strlen(g_frontend_scratch_buffer) -
+					 1] = '\0';
 			}
-			memcpy((char *)g_campaignAwardSprites
-					       [g_campaignAwardSpriteCount]
-						       .singleplayerMissionAwardSpriteNames +
-				       spriteNameByteOffset,
-			       g_frontendScratchBuffer,
-			       sizeof(g_campaignAwardSprites
-					      [g_campaignAwardSpriteCount]
-						      .singleplayerMissionAwardSpriteNames
+			memcpy((char *)g_campaign_award_sprites
+					       [g_campaign_award_sprite_count]
+						       .singleplayer_mission_award_sprite_names +
+				       sprite_name_byte_offset,
+			       g_frontend_scratch_buffer,
+			       sizeof(g_campaign_award_sprites
+					      [g_campaign_award_sprite_count]
+						      .singleplayer_mission_award_sprite_names
 							      [0]));
-			*((char *)g_campaignAwardSprites
-				  [g_campaignAwardSpriteCount]
-					  .singleplayerMissionAwardSpriteNames +
-			  spriteNameByteOffset + 31) = '\0';
-			spriteNameByteOffset += 32;
-			++recordCountOrIndex;
+			*((char *)g_campaign_award_sprites
+				  [g_campaign_award_sprite_count]
+					  .singleplayer_mission_award_sprite_names +
+			  sprite_name_byte_offset + 31) = '\0';
+			sprite_name_byte_offset += 32;
+			++record_count_or_index;
 		}
-		++g_campaignAwardSpriteCount;
+		++g_campaign_award_sprite_count;
 	}
 
-	File_Close(stream);
+	file_close(stream);
 	return 1;
 }
