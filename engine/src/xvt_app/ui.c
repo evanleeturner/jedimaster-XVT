@@ -27,7 +27,7 @@ static void XvtAppUi_ApplyTheme(AeronUiContext *context)
 	AeronUi_SetTheme(context, &theme);
 }
 
-bool XvtAppUi_Init(XvtAppUi *ui, const char *font, char *error,
+bool XvtAppUi_Init(struct XvtAppUi *ui, const char *font, char *error,
 		   size_t error_capacity)
 {
 	if (!ui || !font || !font[0]) {
@@ -84,7 +84,7 @@ bool XvtAppUi_Init(XvtAppUi *ui, const char *font, char *error,
 	return true;
 }
 
-void XvtAppUi_Shutdown(XvtAppUi *ui)
+void XvtAppUi_Shutdown(struct XvtAppUi *ui)
 {
 	if (!ui) {
 		return;
@@ -94,7 +94,7 @@ void XvtAppUi_Shutdown(XvtAppUi *ui)
 	memset(ui, 0, sizeof *ui);
 }
 
-AeronUiContext *XvtAppUi_Context(XvtAppUi *ui)
+AeronUiContext *XvtAppUi_Context(struct XvtAppUi *ui)
 {
 	return ui ? ui->context : NULL;
 }

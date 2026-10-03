@@ -32,14 +32,14 @@
 /* One in-progress view; completed views live in the root snapshot slots.
  * Failed later flips cannot overwrite an earlier successful view in the tick. */
 static struct {
-	XvtSnapCamera camera;
-	XvtSnapLighting lighting;
-	XvtSnapMap map;
-	XvtSnapPreview crt;
-	XvtSnapSky sky;
-	XvtSnapHyperspace hyperspace;
-	XvtSnapObject objects[XVT_SNAP_OBJECTS];
-	XvtSnapType types[XVT_SNAP_TYPES];
+	struct XvtSnapCamera camera;
+	struct XvtSnapLighting lighting;
+	struct XvtSnapMap map;
+	struct XvtSnapPreview crt;
+	struct XvtSnapSky sky;
+	struct XvtSnapHyperspace hyperspace;
+	struct XvtSnapObject objects[XVT_SNAP_OBJECTS];
+	struct XvtSnapType types[XVT_SNAP_TYPES];
 	int16_t fuselage[25];
 	uint32_t object_count, dropped;
 	int32_t time;
@@ -49,13 +49,13 @@ static struct {
 	int valid, sealed;
 } g_pending;
 
-typedef struct XvtAuthoritativePose {
+struct XvtAuthoritativePose {
 	int32_t position[3];
 	uint16_t signature, yaw, pitch, roll;
 	uint8_t type, mesh_rotation[50];
-} XvtAuthoritativePose;
+};
 
-static XvtAuthoritativePose g_authoritativePoses[XVT_SNAP_OBJECTS],
+static struct XvtAuthoritativePose g_authoritativePoses[XVT_SNAP_OBJECTS],
 	g_candidatePoses[XVT_SNAP_OBJECTS];
 static int g_candidateTick = -1;
 static int g_authoritativeTick = -1, g_networkCorrection;
@@ -104,7 +104,7 @@ static void InvalidateWorldHistory(void)
 	g_networkCorrection = 0;
 	++g_world;
 	g_pending.valid = g_pending.sealed = g_published = g_hasViewTime = 0;
-	XvtRenderSnapshot *writer = XvtRenderSnapshot_Writer();
+	struct XvtRenderSnapshot *writer = XvtRenderSnapshot_Writer();
 	if (writer) {
 		writer->flight_valid = writer->camera.valid = 0;
 	}
@@ -132,9 +132,9 @@ void XvtRenderCapture_EndMission(void)
 	XvtRenderCapture_WorldChanged();
 }
 
-static XvtSnapObjectId ObjectId(unsigned slot, unsigned capacity)
+static struct XvtSnapObjectId ObjectId(unsigned slot, unsigned capacity)
 {
-	XvtSnapObjectId id = {UINT16_MAX, 0};
+	struct XvtSnapObjectId id = {UINT16_MAX, 0};
 	if (slot < capacity && g_objectTable[slot].objectType) {
 		id.slot = (uint16_t)slot;
 		id.signature = g_objectTable[slot].objectSignature;
@@ -142,18 +142,18 @@ static XvtSnapObjectId ObjectId(unsigned slot, unsigned capacity)
 	return id;
 }
 
-static void CaptureCamera(XvtSnapCamera *out, XvtSnapLighting *lighting,
-			  unsigned capacity)
+static void CaptureCamera(struct XvtSnapCamera *out,
+			  struct XvtSnapLighting *lighting, unsigned capacity)
 {
-	const PlayerData *p = &g_players[g_localPlayer];
-	const PlayerViewState *v = &p->viewState;
+	const struct PlayerData *p = &g_players[g_localPlayer];
+	const struct PlayerViewState *v = &p->viewState;
 	memset(out, 0, sizeof *out);
 	out->world_pos[0] = v->cameraWorldX;
 	out->world_pos[1] = v->cameraWorldY;
 	out->world_pos[2] = v->cameraWorldZ;
 	XvtRenderCamera_CopyRows(out->rows);
-	out->viewport = (XvtSnapRect){g_flightVpX, g_flightVpY, g_flightVpWidth,
-				      g_flightVpHeight};
+	out->viewport = (struct XvtSnapRect){g_flightVpX, g_flightVpY,
+					     g_flightVpWidth, g_flightVpHeight};
 	out->center_x = g_flightVpCenterX;
 	out->center_y = g_flightVpCenterY;
 	out->projection_offset_y = g_projOffsetY;
@@ -176,16 +176,16 @@ static void CaptureCamera(XvtSnapCamera *out, XvtSnapLighting *lighting,
 	out->hud_state = v->hudStateLive;
 	out->valid = g_flightVpWidth && g_flightVpHeight && g_screenWidth &&
 		     g_screenHeight;
-	*lighting = (XvtSnapLighting){{g_worldLightDirectionX,
-				       g_worldLightDirectionY,
-				       g_worldLightDirectionZ},
-				      g_localLightsEnabled,
-				      g_dirLightingEnabled};
+	*lighting = (struct XvtSnapLighting){{g_worldLightDirectionX,
+					      g_worldLightDirectionY,
+					      g_worldLightDirectionZ},
+					     g_localLightsEnabled,
+					     g_dirLightingEnabled};
 }
 
 static void CaptureObject(unsigned slot)
 {
-	const ObjectRecord *o = &g_objectTable[slot];
+	const struct ObjectRecord *o = &g_objectTable[slot];
 	if (!o->objectType) {
 		return;
 	}
@@ -193,9 +193,10 @@ static void CaptureObject(unsigned slot)
 		++g_pending.dropped;
 		return;
 	}
-	XvtSnapObject *out = &g_pending.objects[g_pending.object_count++];
+	struct XvtSnapObject *out =
+		&g_pending.objects[g_pending.object_count++];
 	memset(out, 0, sizeof *out);
-	out->id = (XvtSnapObjectId){(uint16_t)slot, o->objectSignature};
+	out->id = (struct XvtSnapObjectId){(uint16_t)slot, o->objectSignature};
 	out->object_type = o->objectType;
 	out->genus = o->genusId;
 	out->flight_group = o->flightGroupIdx;
@@ -217,7 +218,7 @@ static void CaptureObject(unsigned slot)
 	out->type_specific_word = o->typeSpecificWord;
 	memcpy(out->type_specific, o->typeSpecificByte,
 	       sizeof out->type_specific);
-	const MobileObject *m = o->mobj;
+	const struct MobileObject *m = o->mobj;
 	if (!m) {
 		return;
 	}
@@ -242,7 +243,7 @@ static void CaptureObject(unsigned slot)
 				 m->cachedFwdX,	 m->cachedFwdY,	 m->cachedFwdZ,
 				 m->cachedUpX,	 m->cachedUpY,	 m->cachedUpZ};
 	memcpy(out->cached_rows_q15, rows, sizeof rows);
-	const CraftData *c = m->pCraft;
+	const struct CraftData *c = m->pCraft;
 	if (!c) {
 		return;
 	}
@@ -263,12 +264,12 @@ static void CaptureObject(unsigned slot)
 	memcpy(out->mesh_rotation, c->meshRotation, sizeof out->mesh_rotation);
 }
 
-typedef struct Sequence {
+struct Sequence {
 	const int16_t *data;
 	size_t count;
-} Sequence;
+};
 
-static const Sequence g_sequences[] = {
+static const struct Sequence g_sequences[] = {
 	{g_objectType127TextureFrameSequence,
 	 sizeof g_objectType127TextureFrameSequence / sizeof(int16_t)},
 	{g_objectType131TextureFrameSequence,
@@ -301,8 +302,8 @@ static const Sequence g_sequences[] = {
 static void CaptureTypes(void)
 {
 	for (unsigned i = 0; i < XVT_SNAP_TYPES; ++i) {
-		const ObjectTypeInfo *t = &g_objectTypeTable[i];
-		XvtSnapType *out = &g_pending.types[i];
+		const struct ObjectTypeInfo *t = &g_objectTypeTable[i];
+		struct XvtSnapType *out = &g_pending.types[i];
 		memset(out, 0, sizeof *out);
 		uint64_t id = XvtRenderAssets_HandleId(t->resourceHandle);
 		if (t->assetFlags & 1) {
@@ -363,7 +364,7 @@ void XvtRenderCapture_CaptureView(void)
 		return;
 	}
 	size_t capacity = g_handleTables.sizeTable[g_objectTableHandle - 1] /
-			  sizeof(ObjectRecord);
+			  sizeof(struct ObjectRecord);
 	if (g_handleTables.ptrTable[g_objectTableHandle - 1] != g_objectTable ||
 	    g_regionMainObjectSlotEnd < 0 ||
 	    g_regionStaticObjectSlotCount < 0) {
@@ -433,7 +434,7 @@ void XvtRenderCapture_EndPresentation(void)
 
 void XvtRenderCapture_Presented(int succeeded)
 {
-	XvtRenderSnapshot *out = XvtRenderSnapshot_Writer();
+	struct XvtRenderSnapshot *out = XvtRenderSnapshot_Writer();
 	if (!succeeded || !out) {
 		return;
 	}
@@ -489,8 +490,8 @@ void XvtRenderCapture_Presented(int succeeded)
 	g_pending.sealed = 0;
 }
 
-void XvtRenderCapture_Commit(XvtRenderSnapshot *out,
-			     const XvtRenderSnapshot *previous)
+void XvtRenderCapture_Commit(struct XvtRenderSnapshot *out,
+			     const struct XvtRenderSnapshot *previous)
 {
 	XvtCockpit_Export(&out->cockpit);
 	XvtCockpit_ExportResources(&out->cockpit_resources);
@@ -549,7 +550,7 @@ void XvtRenderCapture_Hyperspace(unsigned count, const int *x, const int *y,
 	}
 	g_pending.hyperspace.count = count;
 	for (unsigned i = 0; i < count; ++i) {
-		g_pending.hyperspace.streaks[i] = (XvtSnapStreak){
+		g_pending.hyperspace.streaks[i] = (struct XvtSnapStreak){
 			{x[i], y[i], z[i]}, half_width[i], (uint16_t)roll[i]};
 	}
 }
@@ -559,7 +560,7 @@ void XvtRenderCapture_FrontendPreview(uint16_t handle, const float position[3],
 				      uint16_t node_switch, int x, int y,
 				      int width, int height)
 {
-	XvtRenderSnapshot *s = XvtRenderSnapshot_Writer();
+	struct XvtRenderSnapshot *s = XvtRenderSnapshot_Writer();
 	if (!s || width <= 0 || height <= 0 || (unsigned)g_localPlayer >= 8) {
 		return;
 	}
@@ -567,7 +568,7 @@ void XvtRenderCapture_FrontendPreview(uint16_t handle, const float position[3],
 		++s->dropped_records;
 		return;
 	}
-	XvtSnapPreview *out = &s->previews[s->preview_count++];
+	struct XvtSnapPreview *out = &s->previews[s->preview_count++];
 	memset(out, 0, sizeof *out);
 	out->opt_asset_id = XvtRenderAssets_HandleId(handle);
 	CaptureCamera(&out->camera, &out->lighting, 0);
@@ -582,7 +583,7 @@ void XvtRenderCapture_FrontendPreview(uint16_t handle, const float position[3],
 	out->component = UINT16_MAX;
 	out->object.slot = UINT16_MAX;
 	out->mask_index = UINT8_MAX;
-	out->destination = (XvtSnapRect){x, y, width, height};
+	out->destination = (struct XvtSnapRect){x, y, width, height};
 
 	out->valid = out->opt_asset_id != 0;
 }
@@ -595,15 +596,15 @@ void XvtRenderCapture_Crt(int x, int y, int width, int height, int masked)
 	}
 	unsigned capacity =
 		(unsigned)(g_handleTables.sizeTable[g_objectTableHandle - 1] /
-			   sizeof(ObjectRecord));
+			   sizeof(struct ObjectRecord));
 	unsigned target = g_players[g_localPlayer].currentTargetObjectIdx;
-	XvtSnapPreview *out = &g_pending.crt;
+	struct XvtSnapPreview *out = &g_pending.crt;
 	memset(out, 0, sizeof *out);
 	out->object = ObjectId(target, capacity);
 	if (out->object.slot == UINT16_MAX) {
 		return;
 	}
-	const ObjectRecord *object = &g_objectTable[target];
+	const struct ObjectRecord *object = &g_objectTable[target];
 	if (object->objectType >= XVT_SNAP_TYPES) {
 		return;
 	}
@@ -617,7 +618,7 @@ void XvtRenderCapture_Crt(int x, int y, int width, int height, int masked)
 	/* The argument requests refreshing the mask, not disabling an existing mask. */
 	(void)masked;
 	out->mask_index = (uint8_t)(g_hudInstrumentSetBaseIndex / 144);
-	out->destination = (XvtSnapRect){x, y, width, height};
+	out->destination = (struct XvtSnapRect){x, y, width, height};
 
 	out->valid = out->camera.valid;
 }
@@ -633,10 +634,11 @@ void XvtRenderCapture_CrtMarker(int x, int y, int z)
 	}
 }
 
-static XvtAuthoritativePose XvtRenderCapture_CaptureLivePose(unsigned slot)
+static struct XvtAuthoritativePose
+XvtRenderCapture_CaptureLivePose(unsigned slot)
 {
-	XvtAuthoritativePose pose = {0};
-	const ObjectRecord *o = &g_objectTable[slot];
+	struct XvtAuthoritativePose pose = {0};
+	const struct ObjectRecord *o = &g_objectTable[slot];
 	if (!o->objectType) {
 		return pose;
 	}
@@ -671,9 +673,9 @@ void XvtRenderCapture_CheckNetworkCorrection(void)
 		    slot < (unsigned)g_localDebrisSlotEnd) {
 			continue;
 		}
-		XvtAuthoritativePose pose =
+		struct XvtAuthoritativePose pose =
 			XvtRenderCapture_CaptureLivePose(slot);
-		const XvtAuthoritativePose *previous =
+		const struct XvtAuthoritativePose *previous =
 			&g_authoritativePoses[slot];
 		if (pose.type != previous->type ||
 		    pose.signature != previous->signature ||

@@ -25,9 +25,9 @@
 
 enum { PLAYER = 3, SLOT = 1, SIGNATURE = 0x0155 };
 
-static ObjectRecord g_testObjects[2];
-static MobileObject g_testMobiles[2];
-static CraftData g_testCraft[1];
+static struct ObjectRecord g_testObjects[2];
+static struct MobileObject g_testMobiles[2];
+static struct CraftData g_testCraft[1];
 
 static AeronInputSnapshot *Host(void)
 {
@@ -84,9 +84,9 @@ static void SetGameInput(void)
  * Aeron's snapshot with the stick pushed and fire held after a first frame with it released. */
 static void ControllerFiring(void)
 {
-	static XvtControllerOptions options;
+	static struct XvtControllerOptions options;
 	memset(&options, 0, sizeof options);
-	XvtControllerModel *model = &options.models[0];
+	struct XvtControllerModel *model = &options.models[0];
 	memcpy(model->guid, "0123456789abcdef0123456789abcdea",
 	       sizeof model->guid);
 	model->kind = AERON_CONTROLLER_KIND_GAMEPAD;
@@ -123,7 +123,7 @@ static void CheckEncodeDecode(void)
 {
 	for (int axis = -128; axis <= 127; ++axis) {
 		for (int mods = 0; mods < 4; ++mods) {
-			FlightInputFrameRecord in, out;
+			struct FlightInputFrameRecord in, out;
 			memset(&in, 0, sizeof in);
 			in.axisX = (int8_t)axis;
 			in.axisY = (int8_t)(-1 - axis);
@@ -196,7 +196,7 @@ static void CheckThrottleEligible(void)
 
 static void CheckApplyThrottle(void)
 {
-	FlightInputFrameRecord record;
+	struct FlightInputFrameRecord record;
 	memset(&record, 0, sizeof record);
 	record.flags = XVT_INPUT_THROTTLE_PRESENT;
 	record.throttle = 1234;
@@ -224,7 +224,7 @@ static void CheckApplyThrottle(void)
 
 static void CheckSampleThrottleSendsNothing(void)
 {
-	FlightInputFrameRecord record;
+	struct FlightInputFrameRecord record;
 
 	/* No lever was read: no controller mapping is installed. */
 	World();
@@ -362,7 +362,7 @@ static void CheckRecover(void)
 	World();
 	ControllerFiring();
 
-	static XvtKeyboardBindings profile;
+	static struct XvtKeyboardBindings profile;
 	memset(&profile, 0, sizeof profile);
 	profile.bindings[0].source.key = AERON_KEY_A;
 	profile.bindings[0].action = XVT_INPUT_ACTION_TARGET_NEXT;

@@ -14,7 +14,7 @@ extern int g_worldLightDirectionY;
 extern int g_worldLightDirectionZ;
 extern int g_modelPreviewSkipSceneReset;
 extern int g_modelPreviewRenderResourcesInitialized;
-extern OptimizedPolyObject *g_modelPreviewModelData;
+extern struct OptimizedPolyObject *g_modelPreviewModelData;
 extern uint16_t g_modelPreviewAuxBufferHandle;
 extern unsigned int g_modelPreviewAuxBufferCapacityBytes;
 
@@ -29,15 +29,19 @@ struct ModelPreviewCraftPosition {
 int ModelPreview_LoadModel(const char *modelFileName);
 void ModelPreview_FreeResources(void);
 int ModelPreview_RenderViewport(int x, int y, int width, int height, ...);
-void ModelPreview_ScaleOptNodeTree(OptNode *node, OptimizedPolyObject *opt,
+void ModelPreview_ScaleOptNodeTree(struct OptNode *node,
+				   struct OptimizedPolyObject *opt,
 				   double scale);
-void ModelPreview_UnscaleOptNodeTree(OptNode *node, OptimizedPolyObject *opt,
+void ModelPreview_UnscaleOptNodeTree(struct OptNode *node,
+				     struct OptimizedPolyObject *opt,
 				     double scale);
-void ModelPreview_ScaleOptRootNodes(OptimizedPolyObject *opt, double scale);
-void ModelPreview_UnscaleOptRootNodes(OptimizedPolyObject *opt, double scale);
-void ModelPreview_AccumulateOptNodeBounds(OptNode *node,
-					  OptimizedPolyObject *object);
-double ModelPreview_ComputeOptBoundsExtent(OptimizedPolyObject *object,
+void ModelPreview_ScaleOptRootNodes(struct OptimizedPolyObject *opt,
+				    double scale);
+void ModelPreview_UnscaleOptRootNodes(struct OptimizedPolyObject *opt,
+				      double scale);
+void ModelPreview_AccumulateOptNodeBounds(struct OptNode *node,
+					  struct OptimizedPolyObject *object);
+double ModelPreview_ComputeOptBoundsExtent(struct OptimizedPolyObject *object,
 					   int axis);
 int ModelPreview_ResetViewAndRenderState(void);
 void ModelPreview_SetLightDirection(int x, int y, int z);

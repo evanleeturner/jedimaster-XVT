@@ -15,18 +15,18 @@ static const uint64_t kRuntimeOptMaxBytes = 64u * 1024u * 1024u;
 
 #define OPT_ALPHA_OVERRIDE_MAX 256
 
-typedef struct OptAlphaOverrideEntry {
+struct OptAlphaOverrideEntry {
 	char model[1024];
 	char texture[64];
 	AeronGltfAlphaMode mode;
 	float cutoff;
-} OptAlphaOverrideEntry;
+};
 
 static struct {
 	int loaded;
 	int valid;
 	size_t count;
-	OptAlphaOverrideEntry entries[OPT_ALPHA_OVERRIDE_MAX];
+	struct OptAlphaOverrideEntry entries[OPT_ALPHA_OVERRIDE_MAX];
 } s_alpha_overrides;
 
 static void opt_mesh_error(char *error, size_t error_size, const char *message)
@@ -126,7 +126,7 @@ static int opt_load_alpha_overrides(AeronVfs *vfs, char *error,
 		const char *mode_name = AeronConfigNode_String(mode_node, NULL);
 		const AeronConfigNodeType cutoff_type =
 			AeronConfigNode_Type(cutoff_node);
-		OptAlphaOverrideEntry *entry =
+		struct OptAlphaOverrideEntry *entry =
 			&s_alpha_overrides.entries[index];
 		if (AeronConfigNode_Type(node) != AERON_CONFIG_MAP || !model ||
 		    !model[0] || !texture || !texture[0] ||
@@ -153,7 +153,7 @@ static int opt_load_alpha_overrides(AeronVfs *vfs, char *error,
 		opt_normalize_path(entry->texture, sizeof entry->texture,
 				   texture);
 		for (size_t previous = 0; previous < index; ++previous) {
-			const OptAlphaOverrideEntry *other =
+			const struct OptAlphaOverrideEntry *other =
 				&s_alpha_overrides.entries[previous];
 			if (strcmp(entry->model, other->model) == 0 &&
 			    strcmp(entry->texture, other->texture) == 0) {
@@ -195,7 +195,7 @@ static size_t opt_resolve_alpha_overrides(const char *model_path,
 	}
 	size_t count = 0;
 	for (size_t index = 0; index < s_alpha_overrides.count; ++index) {
-		const OptAlphaOverrideEntry *entry =
+		const struct OptAlphaOverrideEntry *entry =
 			&s_alpha_overrides.entries[index];
 		if (strcmp(normalized, entry->model) != 0 &&
 		    strcmp(installation_relative, entry->model) != 0) {
@@ -217,7 +217,7 @@ static size_t opt_resolve_alpha_overrides(const char *model_path,
 }
 
 bool XvtRemasterOptMesh_Build(AeronVfs *vfs, const char *resolved_path,
-			      const XvtModelSettings *settings,
+			      const struct XvtModelSettings *settings,
 			      AeronFlightModel *out, char *error,
 			      size_t error_size)
 {

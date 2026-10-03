@@ -26,7 +26,7 @@
 static char g_folder[XVT_TEST_PATH_CAPACITY];
 static char g_asset[XVT_TEST_PATH_CAPACITY];
 static AeronVfs *g_vfs;
-static XvtRenderSnapshot *g_snapshot;
+static struct XvtRenderSnapshot *g_snapshot;
 static int g_ownerA, g_ownerB;
 
 /* A fresh folder whose asset root holds every file the checks register, bound to storage. */
@@ -89,7 +89,7 @@ static int ListsOpt(uint64_t id)
 }
 
 /* The exported texture entry for id, or NULL. */
-static const XvtSnapTextureAsset *TextureEntry(uint64_t id)
+static const struct XvtSnapTextureAsset *TextureEntry(uint64_t id)
 {
 	for (uint32_t i = 0; i < g_snapshot->texture_asset_count; ++i) {
 		if (g_snapshot->texture_assets[i].id == id) {
@@ -100,7 +100,7 @@ static const XvtSnapTextureAsset *TextureEntry(uint64_t id)
 }
 
 /* The exported image entry for id, or NULL. */
-static const XvtSnapImageAsset *ImageEntry(uint64_t id)
+static const struct XvtSnapImageAsset *ImageEntry(uint64_t id)
 {
 	for (uint32_t i = 0; i < g_snapshot->image_asset_count; ++i) {
 		if (g_snapshot->image_assets[i].id == id) {
@@ -129,7 +129,7 @@ static void CheckBeforeInit(void)
 	XVT_ASSERT_INT_EQ(g_snapshot->opt_asset_count, 77);
 	XVT_ASSERT_INT_EQ(g_snapshot->image_asset_count, 77);
 	XVT_ASSERT_INT_EQ(g_snapshot->image_asset_generation, 0);
-	XvtFrontendImageColors colors;
+	struct XvtFrontendImageColors colors;
 	XVT_ASSERT_INT_EQ(XvtRenderAssets_CopyFrontendColors(1, &colors), 0);
 	XvtRenderAssets_RetireHandle(3);
 	XvtRenderAssets_RetireImage(&g_ownerA);
@@ -238,14 +238,14 @@ static void CheckPathCase(void)
 static void CheckRegisterCockpit(void)
 {
 	Fresh();
-	XvtSnapRect viewport = {0, 0, 640, 300};
+	struct XvtSnapRect viewport = {0, 0, 640, 300};
 	uint64_t id = XvtRenderAssets_RegisterCockpit(&g_ownerA, 12,
 						      "cockpit.lfd", &viewport);
 	XVT_ASSERT_TRUE(id != 0);
 	XVT_ASSERT_INT_EQ(XvtRenderAssets_RegisterCockpit(
 				  &g_ownerA, 12, "cockpit.lfd", &viewport),
 			  id);
-	XvtSnapRect moved = {0, 10, 640, 300};
+	struct XvtSnapRect moved = {0, 10, 640, 300};
 	uint64_t again = XvtRenderAssets_RegisterCockpit(&g_ownerA, 12,
 							 "cockpit.lfd", &moved);
 	XVT_ASSERT_TRUE(again != 0 && again != id);
@@ -442,7 +442,7 @@ static void CheckShutdown(void)
 static void CheckFrontendColors(void)
 {
 	Fresh();
-	static ImageResource image;
+	static struct ImageResource image;
 	memset(&image, 0, sizeof image);
 	for (int i = 0; i < 256; ++i) {
 		image.colorLUT[i] = i * 37;
@@ -451,7 +451,7 @@ static void CheckFrontendColors(void)
 	uint64_t id = XvtRenderAssets_ImageId(&image);
 	XVT_ASSERT_TRUE(id != 0);
 
-	XvtFrontendImageColors colors;
+	struct XvtFrontendImageColors colors;
 	memset(&colors, 0, sizeof colors);
 	XVT_ASSERT_INT_EQ(XvtRenderAssets_CopyFrontendColors(id, &colors), 1);
 	for (int i = 0; i < 256; ++i) {
@@ -481,9 +481,9 @@ static void CheckExportPalette(void)
 {
 	Fresh();
 	for (int i = 0; i < 256; ++i) {
-		g_swPalette[i] =
-			(RgbTriplet){(uint8_t)(i & 63), (uint8_t)((i * 3) & 63),
-				     (uint8_t)((i * 7) & 63)};
+		g_swPalette[i] = (struct RgbTriplet){(uint8_t)(i & 63),
+						     (uint8_t)((i * 3) & 63),
+						     (uint8_t)((i * 7) & 63)};
 	}
 	Export();
 	for (unsigned i = 0; i < 256; ++i) {
@@ -508,7 +508,7 @@ static void CheckRetiredLifetime(void)
 
 	/* Frame 1 publishes a flight view whose model type 3 uses the source. */
 	XvtRenderSnapshot_BeginFrame();
-	XvtRenderSnapshot *writer = XvtRenderSnapshot_Writer();
+	struct XvtRenderSnapshot *writer = XvtRenderSnapshot_Writer();
 	writer->flight_valid = 1;
 	writer->types[3].model_asset_id = id;
 	XvtRenderSnapshot_Commit(1, 1, 0);
@@ -519,7 +519,7 @@ static void CheckRetiredLifetime(void)
 	/* Frame 2: the export of frame 1 is not consumed yet, and frame 1 uses the source. */
 	XvtRenderSnapshot_BeginFrame();
 	XvtRenderSnapshot_Commit(2, 1, 0);
-	const XvtRenderSnapshot *current = XvtRenderSnapshot_Current();
+	const struct XvtRenderSnapshot *current = XvtRenderSnapshot_Current();
 	int listed = 0;
 	for (uint32_t i = 0; i < current->opt_asset_count; ++i) {
 		listed |= current->opt_assets[i].id == id;

@@ -74,8 +74,8 @@ void paiman_initescortmaneuver(void);
 int16_t paiman_escortmaneuver(void);
 void paiman_initboardmaneuver(void);
 int16_t paiman_boardmaneuver(void);
-void paiman_TransferObjectToAiTeam(unsigned int objectIdx, CraftData *craft,
-				   uint8_t ownerFlag);
+void paiman_TransferObjectToAiTeam(unsigned int objectIdx,
+				   struct CraftData *craft, uint8_t ownerFlag);
 void paiman_initawaitboardmaneuver(void);
 int16_t paiman_awaitboardmaneuver(void);
 void paiman_initheadtowardmaneuver(void);

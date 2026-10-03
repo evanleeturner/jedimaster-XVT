@@ -37,11 +37,11 @@
 #include <string.h>
 
 #ifndef XVT_MODERN
-typedef struct Msvc42FilePrefix {
+struct Msvc42FilePrefix {
 	/* Stream bytes before flags; nothing names them. */
 	uint8_t reserved[12];
 	int flags; /* Flag word; bit 0x20 set marks a failed stream. */
-} Msvc42FilePrefix;
+};
 #endif
 
 /* Path of the file FeDiskIo_OpenGlobalStream opened or tried last: in the
@@ -1051,7 +1051,7 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2)
 		}
 
 		for (teamIdx = 0; teamIdx < PLAYER_COUNT; ++teamIdx) {
-			PilotTeam *team;
+			struct PilotTeam *team;
 
 			team = &g_pilotData.teams[teamIdx];
 			team->isMissionCompleted =
@@ -5175,7 +5175,7 @@ unsigned int FeDiskIo_InitResources(void)
 	ModelMesh_BuildObjectTypeMeshCache();
 
 	{
-		RgbTriplet targetRgb;
+		struct RgbTriplet targetRgb;
 
 		if (g_generateMissionPalette != 0 &&
 		    g_flightBytesPerPixel == 1) {
@@ -5243,45 +5243,48 @@ unsigned int FeDiskIo_InitResources(void)
 				g_flightAuxBuffer);
 			for (paletteOffset = 0;
 			     paletteOffset < PALETTE_BYTE_COUNT / 2;
-			     paletteOffset += sizeof(RgbTriplet)) {
+			     paletteOffset += sizeof(struct RgbTriplet)) {
 				temporaryComponent =
 					g_flightAuxBuffer[paletteOffset] >> 2;
 				g_flightAuxBuffer[paletteOffset] =
-					g_flightAuxBuffer[PALETTE_BYTE_COUNT -
-							  sizeof(RgbTriplet) -
-							  paletteOffset] >>
+					g_flightAuxBuffer
+						[PALETTE_BYTE_COUNT -
+						 sizeof(struct RgbTriplet) -
+						 paletteOffset] >>
 					2;
 				g_flightAuxBuffer[PALETTE_BYTE_COUNT -
-						  sizeof(RgbTriplet) -
+						  sizeof(struct RgbTriplet) -
 						  paletteOffset] =
 					temporaryComponent;
 				temporaryComponent =
 					g_flightAuxBuffer[paletteOffset + 1] >>
 					2;
 				g_flightAuxBuffer[paletteOffset + 1] =
-					g_flightAuxBuffer[PALETTE_BYTE_COUNT -
-							  sizeof(RgbTriplet) -
-							  paletteOffset + 1] >>
+					g_flightAuxBuffer
+						[PALETTE_BYTE_COUNT -
+						 sizeof(struct RgbTriplet) -
+						 paletteOffset + 1] >>
 					2;
 				g_flightAuxBuffer[PALETTE_BYTE_COUNT -
-						  sizeof(RgbTriplet) -
+						  sizeof(struct RgbTriplet) -
 						  paletteOffset + 1] =
 					temporaryComponent;
 				temporaryComponent =
 					g_flightAuxBuffer[paletteOffset + 2] >>
 					2;
 				g_flightAuxBuffer[paletteOffset + 2] =
-					g_flightAuxBuffer[PALETTE_BYTE_COUNT -
-							  sizeof(RgbTriplet) -
-							  paletteOffset + 2] >>
+					g_flightAuxBuffer
+						[PALETTE_BYTE_COUNT -
+						 sizeof(struct RgbTriplet) -
+						 paletteOffset + 2] >>
 					2;
 				g_flightAuxBuffer[PALETTE_BYTE_COUNT -
-						  sizeof(RgbTriplet) -
+						  sizeof(struct RgbTriplet) -
 						  paletteOffset + 2] =
 					temporaryComponent;
 			}
 			g_flightSetPaletteRangeFn(
-				(RgbTriplet *)g_flightAuxBuffer, 0,
+				(struct RgbTriplet *)g_flightAuxBuffer, 0,
 				PALETTE_COLOR_COUNT);
 		}
 
@@ -6128,7 +6131,7 @@ int16_t FeDiskIo_CloseGlobalStream(int16_t removeFileOnError)
 	int16_t closeError;
 
 	closeError = 0;
-	if ((((Msvc42FilePrefix *)g_stream)->flags & 0x20) != 0 ||
+	if ((((struct Msvc42FilePrefix *)g_stream)->flags & 0x20) != 0 ||
 	    File_RawClose((XvtFile *)g_stream) == EOF) {
 		closeError = 1;
 	}

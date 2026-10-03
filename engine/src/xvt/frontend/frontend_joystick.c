@@ -388,7 +388,7 @@ int Joystick_GetButtonCount(int joySlot)
 // FUNCTION: XVT 0x4D6320
 int FrontendJoystick_BeginCenteringPrompt(void)
 {
-	RECT screenRect;
+	struct RECT screenRect;
 	int fillColor;
 
 	screenRect.left = 120;
@@ -414,7 +414,7 @@ int FrontendJoystick_BeginCenteringPrompt(void)
 int FrontendJoystick_UpdateCenteringPrompt(int frameCounter)
 {
 	int joystickSlot;
-	RECT *screenRect;
+	struct RECT *screenRect;
 	char promptText[100];
 
 	(void)frameCounter;

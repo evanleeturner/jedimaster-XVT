@@ -221,7 +221,7 @@ int FlightDisplay_PostPrimarySurfaceCreateOrRestoreStub(void) { return 1; }
 
 /* The start of the driver capability block FlightDisplay_Init asks DirectDraw
  * for with GetCaps. */
-typedef struct FlightDisplayDriverCaps {
+struct FlightDisplayDriverCaps {
 	uint32_t dwSize; /* Size of this block, set before GetCaps. */
 	/* Capability bits; FlightDisplay_Init tests 0x400000. */
 	uint32_t dwCaps;
@@ -229,16 +229,16 @@ typedef struct FlightDisplayDriverCaps {
 	/* Color key bits; FlightDisplay_Init tests 0x1 and 0x200. */
 	uint32_t dwCKeyCaps;
 	uint32_t reserved[87]; /* The rest of the driver's block, unread. */
-} FlightDisplayDriverCaps;
+};
 
 /* One palette entry as FlightDisplay_Init hands it to CreatePalette. */
-typedef struct FlightDisplayPaletteEntry {
+struct FlightDisplayPaletteEntry {
 	/* Red, 0 to 255; FlightDisplay_Init sets the entry's index. */
 	uint8_t red;
 	uint8_t green; /* Green, set like red. */
 	uint8_t blue;  /* Blue, set like red. */
 	uint8_t flags; /* Never set: CreatePalette gets what the stack held. */
-} FlightDisplayPaletteEntry;
+};
 
 enum { FLIGHT_DDPCAPS_INITIALIZE = 0x8 };
 
@@ -263,8 +263,8 @@ enum { FLIGHT_DDPCAPS_INITIALIZE = 0x8 };
 // FUNCTION: XVT 0x4AAFF0
 int FlightDisplay_Init(void)
 {
-	FlightDisplayPaletteEntry paletteEntries[256];
-	FlightDisplayDriverCaps driverCaps;
+	struct FlightDisplayPaletteEntry paletteEntries[256];
+	struct FlightDisplayDriverCaps driverCaps;
 	DDSURFACEDESC surfaceDesc;
 	DDSCAPS attachedCaps;
 	HRESULT result;

@@ -67,8 +67,9 @@ static bool ReadSource(const AeronConfigNode *node, AeronKeyChord *source,
 	return true;
 }
 
-static bool AddSource(XvtKeyboardBindings *profile, XvtInputAction action,
-		      AeronKeyChord source, char *error, size_t capacity)
+static bool AddSource(struct XvtKeyboardBindings *profile,
+		      XvtInputAction action, AeronKeyChord source, char *error,
+		      size_t capacity)
 {
 	if (!XvtKeyboardMapping_SourceValid(source)) {
 		return ConfigError(
@@ -86,12 +87,12 @@ static bool AddSource(XvtKeyboardBindings *profile, XvtInputAction action,
 				   "keyboard binding capacity exceeded");
 	}
 	profile->bindings[profile->count++] =
-		(XvtKeyboardBinding){source, action};
+		(struct XvtKeyboardBinding){source, action};
 	return true;
 }
 
 bool XvtKeyboardConfig_Read(const AeronConfigFile *document,
-			    XvtKeyboardBindings *profile, char *error,
+			    struct XvtKeyboardBindings *profile, char *error,
 			    size_t capacity)
 {
 	memset(profile, 0, sizeof *profile);
@@ -148,15 +149,15 @@ bool XvtKeyboardConfig_Read(const AeronConfigFile *document,
 	return true;
 }
 
-typedef struct SourceYaml {
+struct SourceYaml {
 	AeronConfigMapValue fields[2];
 	AeronConfigValue key;
 	AeronConfigValue modifiers;
 	AeronConfigValue modifier_values[4];
-} SourceYaml;
+};
 
 bool XvtKeyboardConfig_Write(AeronConfigFile *document,
-			     const XvtKeyboardBindings *profile,
+			     const struct XvtKeyboardBindings *profile,
 			     AeronConfigError *error)
 {
 	if (profile->count > XVT_KEYBOARD_BINDING_CAP) {
@@ -174,7 +175,8 @@ bool XvtKeyboardConfig_Write(AeronConfigFile *document,
 			return false;
 		}
 	}
-	SourceYaml *scratch = calloc(XVT_KEYBOARD_BINDING_CAP, sizeof *scratch);
+	struct SourceYaml *scratch =
+		calloc(XVT_KEYBOARD_BINDING_CAP, sizeof *scratch);
 	if (!scratch) {
 		snprintf(error->message, sizeof error->message,
 			 "keyboard serialization allocation failed");
@@ -191,7 +193,8 @@ bool XvtKeyboardConfig_Write(AeronConfigFile *document,
 		}
 		size_t first = used;
 		for (size_t i = 0; i < profile->count; ++i) {
-			const XvtKeyboardBinding *b = &profile->bindings[i];
+			const struct XvtKeyboardBinding *b =
+				&profile->bindings[i];
 			if ((int)b->action != action) {
 				continue;
 			}
@@ -201,7 +204,7 @@ bool XvtKeyboardConfig_Write(AeronConfigFile *document,
 					 "keyboard binding capacity exceeded");
 				return false;
 			}
-			SourceYaml *s = &scratch[used];
+			struct SourceYaml *s = &scratch[used];
 			s->key = (AeronConfigValue){
 				.type = AERON_CONFIG_STRING,
 				.value.string_value =
@@ -241,7 +244,7 @@ bool XvtKeyboardConfig_Write(AeronConfigFile *document,
 	return ok;
 }
 
-bool XvtKeyboardConfig_Resolve(const XvtKeyboardBindings *defaults,
+bool XvtKeyboardConfig_Resolve(const struct XvtKeyboardBindings *defaults,
 			       const AeronConfigFile *user,
 			       AeronConfigFile *merged, char *error,
 			       size_t capacity)
@@ -249,14 +252,15 @@ bool XvtKeyboardConfig_Resolve(const XvtKeyboardBindings *defaults,
 	if (!AeronConfigFile_Has(user, "input.keyboard")) {
 		return true;
 	}
-	XvtKeyboardBindings effective;
+	struct XvtKeyboardBindings effective;
 	if (!XvtKeyboardConfig_Read(user, &effective, error, capacity)) {
 		return false;
 	}
 	const AeronConfigNode *overrides =
 		AeronConfigFile_GetNode(user, "input.keyboard");
 	for (size_t i = 0; i < defaults->count; ++i) {
-		const XvtKeyboardBinding *binding = &defaults->bindings[i];
+		const struct XvtKeyboardBinding *binding =
+			&defaults->bindings[i];
 		/* Explicit action lists replace their defaults, including empty lists.
 		 * Explicit sources also displace matching sources from inherited actions. */
 		if (AeronConfigNode_MapGet(

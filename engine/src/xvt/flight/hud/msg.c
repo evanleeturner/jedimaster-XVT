@@ -58,7 +58,7 @@ static const void *g_msgPtrs[4];
  * msg_emitInFlightMessage writes each logged message at
  * g_messageLogWriteIndex. */
 // GLOBAL: XVT 0x9993FC
-HudInFlightMessageRecord *g_messageLogRecords = NULL;
+struct HudInFlightMessageRecord *g_messageLogRecords = NULL;
 /* IFF of the next message's sender, copied into its senderIff. Many
  * functions write it, chiefly the msg functions and
  * Flight_ProcessPlayerActions; nothing resets it, so a message whose caller
@@ -103,7 +103,7 @@ void msg_writeMessageLogFile(void)
 	XvtFile *stream;
 	int messageIndex;
 	int recordOffset;
-	HudInFlightMessageRecord *record;
+	struct HudInFlightMessageRecord *record;
 	int prefix;
 	char *text;
 
@@ -136,7 +136,7 @@ void msg_writeMessageLogFile(void)
 			recordOffset = 0;
 			do {
 				record =
-					(HudInFlightMessageRecord
+					(struct HudInFlightMessageRecord
 						 *)((uint8_t *)
 							    g_messageLogRecords +
 						    recordOffset);
@@ -190,7 +190,7 @@ void msg_writeMessageLogFile(void)
 // FUNCTION: XVT 0x450650
 void msg_emitInFlightMessage(InFlightMessageId messageId, int playerIdx)
 {
-	HudInFlightMessageRecord message;
+	struct HudInFlightMessageRecord message;
 	const uint8_t *templateCursor;
 	const char *argumentText;
 	uint16_t textLength;
@@ -311,9 +311,8 @@ void msg_emitInFlightMessage(InFlightMessageId messageId, int playerIdx)
 			g_messageLogWriteIndex = 0;
 			g_messageLogWrapped = 1;
 		}
-		g_messageLogRecords =
-			(HudInFlightMessageRecord *)Memory_GetHandleBlock(
-				g_messageLogHandle);
+		g_messageLogRecords = (struct HudInFlightMessageRecord *)
+			Memory_GetHandleBlock(g_messageLogHandle);
 		Memory_HandleBlockDoneStub(g_messageLogHandle);
 		g_messageLogRecords[g_messageLogWriteIndex] = message;
 	}
@@ -419,9 +418,9 @@ void msg_reportfgcreation(uint16_t flightGroupIndex, uint16_t modelIndex)
 {
 	int flightGroupIdx;
 	uint16_t objectIndex;
-	ObjectRecord *object;
-	CraftData *craft;
-	ObjectRecord *localPlayerObject;
+	struct ObjectRecord *object;
+	struct CraftData *craft;
+	struct ObjectRecord *localPlayerObject;
 	uint16_t rangeKm;
 	uint8_t iff;
 	uint16_t numberOfCraft;
@@ -518,10 +517,10 @@ void msg_addMessagePtr(uint16_t slot, const void *value)
  * (message 133, else 134), followed by message msgTemplateId's text. Sets
  * g_msgSenderIff to the object's IFF and fills the message arguments. */
 // FUNCTION: XVT 0x451C20
-void msg_emitCraftMessage(uint16_t objIdx, CraftData *craft,
+void msg_emitCraftMessage(uint16_t objIdx, struct CraftData *craft,
 			  int16_t msgTemplateId)
 {
-	ObjectRecord *object;
+	struct ObjectRecord *object;
 	int flightGroupIdx;
 	uint16_t craftNumber;
 
@@ -577,7 +576,7 @@ void msg_radioMessage(uint16_t senderObjIdx, uint8_t *senderCraft,
 		msg_addMessagePtr(0, &g_modelDefs[senderCraft[4]]);
 		msg_addMessagePtr(1, &g_missionFlightGroups[flightGroupIdx]);
 		craftNumber = (uint16_t)Hud_MissionFG_GetCraftNumberIfShown(
-			flightGroupIdx, (CraftData *)senderCraft);
+			flightGroupIdx, (struct CraftData *)senderCraft);
 		if (craftNumber != 0) {
 			g_msgArgTable[2] = craftNumber;
 			g_msgArgTable[3] = commandId;
@@ -598,7 +597,8 @@ void msg_radioMessage(uint16_t senderObjIdx, uint8_t *senderCraft,
 /* As msg_emitCraftMessage, with messages 157 and 158, reporting in, and
  * g_msgSenderIff set from the flight group's IFF instead of the object's. */
 // FUNCTION: XVT 0x451E70
-void msg_reportmessage(uint16_t objIdx, CraftData *craft, int16_t msgTemplateId)
+void msg_reportmessage(uint16_t objIdx, struct CraftData *craft,
+		       int16_t msgTemplateId)
 {
 	int flightGroupIdx;
 	uint16_t craftNumber;
@@ -652,7 +652,7 @@ int msg_BuildTargetDescription(uint16_t targetObjIdx, int playerIdx,
 {
 	int flightGroupIdx;
 	int team;
-	CraftData *craft;
+	struct CraftData *craft;
 	int inspectFlag;
 	int disableFlag;
 	int captureFlag;
@@ -764,8 +764,9 @@ int msg_BuildTargetDescription(uint16_t targetObjIdx, int playerIdx,
 	boardedFlag = 0;
 	specialCargoRelevant = 0;
 	for (goalIndex = 0; goalIndex < 8; ++goalIndex) {
-		FlightGroupGoal *goal = &g_missionFlightGroups[flightGroupIdx]
-						 .fg.goals[goalIndex];
+		struct FlightGroupGoal *goal =
+			&g_missionFlightGroups[flightGroupIdx]
+				 .fg.goals[goalIndex];
 		int eventCondition;
 		int playerTeam = (uint16_t)g_players[playerIdx].team;
 		if (goal->enabledTeams[playerTeam] == 0 ||
@@ -801,12 +802,12 @@ int msg_BuildTargetDescription(uint16_t targetObjIdx, int playerIdx,
 	{
 		unsigned int pairOffset;
 		for (pairOffset = 0;
-		     pairOffset < 2 * sizeof(MissionTriggerPair);
-		     pairOffset += sizeof(MissionTriggerPair)) {
+		     pairOffset < 2 * sizeof(struct MissionTriggerPair);
+		     pairOffset += sizeof(struct MissionTriggerPair)) {
 			unsigned int triggerOffset;
 			for (triggerOffset = 0;
-			     triggerOffset < 2 * sizeof(MissionTrigger);
-			     triggerOffset += sizeof(MissionTrigger)) {
+			     triggerOffset < 2 * sizeof(struct MissionTrigger);
+			     triggerOffset += sizeof(struct MissionTrigger)) {
 				unsigned int triggerByteIndex =
 					pairOffset + triggerOffset +
 					sizeof(g_missionGlobalGoals[0]) *
@@ -814,20 +815,22 @@ int msg_BuildTargetDescription(uint16_t targetObjIdx, int playerIdx,
 							.team;
 				const uint8_t *globalGoalBytes =
 					(const uint8_t *)g_missionGlobalGoals;
-				int eventCondition =
-					globalGoalBytes[triggerByteIndex +
-							offsetof(MissionTrigger,
-								 condition)];
+				int eventCondition = globalGoalBytes
+					[triggerByteIndex +
+					 offsetof(struct MissionTrigger,
+						  condition)];
 				if (eventCondition != 10 &&
 				    Mission_FlightGroupMatchesTriggerVariable(
 					    flightGroupIdx,
 					    globalGoalBytes
 						    [triggerByteIndex +
-						     offsetof(MissionTrigger,
+						     offsetof(struct
+							      MissionTrigger,
 							      variableType)],
 					    globalGoalBytes
 						    [triggerByteIndex +
-						     offsetof(MissionTrigger,
+						     offsetof(struct
+							      MissionTrigger,
 							      variable)]) !=
 					    0) {
 					if (eventCondition == 2) {
@@ -941,12 +944,12 @@ void msg_formatObjectName(uint16_t objIdx, uint16_t nameMode, char *outName)
 {
 	int16_t namePartCount;
 	int objectIndex;
-	ObjectRecord *object;
-	MobileObject *mobileObject;
+	struct ObjectRecord *object;
+	struct MobileObject *mobileObject;
 	uint16_t objectType;
-	CraftData *craft;
+	struct CraftData *craft;
 	uint16_t flightGroupIdx;
-	MissionFlightGroup *flightGroup;
+	struct MissionFlightGroup *flightGroup;
 	uint16_t craftNumber;
 
 	namePartCount = 0;

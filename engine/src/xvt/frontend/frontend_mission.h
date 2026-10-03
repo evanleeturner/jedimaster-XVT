@@ -39,7 +39,7 @@ struct FrontendMissionHeader {
 
 #pragma pack(pop)
 typedef char xvt_size_FrontendMissionHeader
-	[(sizeof(FrontendMissionHeader) == 158) ? 1 : -1];
+	[(sizeof(struct FrontendMissionHeader) == 158) ? 1 : -1];
 
 #pragma pack(push, 1)
 
@@ -47,17 +47,17 @@ typedef char xvt_size_FrontendMissionHeader
 struct FrontendMission {
 	/* The mission's flight groups; the first flightGroupCount are
 	 * loaded. */
-	XvtFlightGroup flightGroups[48];
+	struct XvtFlightGroup flightGroups[48];
 	/* In-flight messages, each in the slot the file gives before it; only
 	 * the loaders touch them. */
-	MissionMessage messages[64];
+	struct MissionMessage messages[64];
 	/* Each team's global goals, as many as the file gives for it; only the
 	 * loaders touch them. */
-	GlobalGoal globalGoals[10][7];
-	FrontendMissionHeader header; /* The file's header. */
+	struct GlobalGoal globalGoals[10][7];
+	struct FrontendMissionHeader header; /* The file's header. */
 	/* Team records; those the file flags absent stay zero. The screens
 	 * read their names. */
-	Team teams[10];
+	struct Team teams[10];
 	/* Flight groups loaded; most readers take it as a signed 16-bit
 	 * count. */
 	uint16_t flightGroupCount;
@@ -70,8 +70,9 @@ struct FrontendMission {
 };
 
 #pragma pack(pop)
-typedef char
-	xvt_size_FrontendMission[(sizeof(FrontendMission) == 81396) ? 1 : -1];
+typedef char xvt_size_FrontendMission[(sizeof(struct FrontendMission) == 81396)
+					      ? 1
+					      : -1];
 
 typedef enum FrontendMissionSessionMode {
 	FRONTEND_MISSION_SESSION_NONE = 0x0,
@@ -80,14 +81,14 @@ typedef enum FrontendMissionSessionMode {
 	FRONTEND_MISSION_SESSION_NET_HOST = 0x4,
 } FrontendMissionSessionMode;
 
-extern FrontendMission g_frontendMission;
+extern struct FrontendMission g_frontendMission;
 extern FrontendMissionSessionMode g_frontendMissionSessionMode;
 
 int FrontendMission_LoadForBriefing(void);
 void FrontendMission_InitForBriefing(void);
 void FrontendMission_LoadCurrentWithBriefing(void);
 void FrontendMission_LoadFile(const char *fileName,
-			      FrontendMission *outMission);
+			      struct FrontendMission *outMission);
 void FrontendMission_LoadCurrent(void);
 void FrontendMission_InitPlayerState(void);
 

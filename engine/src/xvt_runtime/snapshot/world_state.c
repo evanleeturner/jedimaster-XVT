@@ -12,11 +12,11 @@
 #include <string.h>
 
 /* These trailer records already have their original fixed-width layout. */
-typedef char
-	xvt_snapshot_fg_size[(sizeof(MissionFgRuntimeStats) == 294) ? 1 : -1];
-typedef char xvt_snapshot_guidance_size[(sizeof(WarheadGuidanceState) == 10)
-						? 1
-						: -1];
+typedef char xvt_snapshot_fg_size[(sizeof(struct MissionFgRuntimeStats) == 294)
+					  ? 1
+					  : -1];
+typedef char xvt_snapshot_guidance_size
+	[(sizeof(struct WarheadGuidanceState) == 10) ? 1 : -1];
 
 static uint8_t *XvtSnapshot_SaveObjects(uint8_t *cursor)
 {
@@ -27,36 +27,39 @@ static uint8_t *XvtSnapshot_SaveObjects(uint8_t *cursor)
 		    i < g_localDebrisSlotEnd) {
 			continue;
 		}
-		const ObjectRecord *object = &g_objectTable[i];
+		const struct ObjectRecord *object = &g_objectTable[i];
 		*cursor++ = object->objectType;
 		if (!object->objectType) {
 			continue;
 		}
 		XvtSnapshot_EncodeObjectRecord(
-			(XvtSnapshotObjectRecord *)cursor, object);
-		cursor += sizeof(XvtSnapshotObjectRecord);
-		const MobileObject *mobile = object->mobj;
+			(struct XvtSnapshotObjectRecord *)cursor, object);
+		cursor += sizeof(struct XvtSnapshotObjectRecord);
+		const struct MobileObject *mobile = object->mobj;
 		if (!mobile) {
 			continue;
 		}
 		XvtSnapshot_EncodeMobileObject(
-			(XvtSnapshotMobileObject *)cursor, mobile);
-		cursor += sizeof(XvtSnapshotMobileObject);
+			(struct XvtSnapshotMobileObject *)cursor, mobile);
+		cursor += sizeof(struct XvtSnapshotMobileObject);
 		if (mobile->pCraft) {
 			XvtSnapshot_EncodeCraftData(
-				(XvtSnapshotCraftData *)cursor, mobile->pCraft);
-			cursor += sizeof(XvtSnapshotCraftData);
+				(struct XvtSnapshotCraftData *)cursor,
+				mobile->pCraft);
+			cursor += sizeof(struct XvtSnapshotCraftData);
 		}
 		if (mobile->pWarheadGuidance) {
 			memcpy(cursor, mobile->pWarheadGuidance,
-			       sizeof(WarheadGuidanceState));
-			cursor += sizeof(WarheadGuidanceState);
+			       sizeof(struct WarheadGuidanceState));
+			cursor += sizeof(struct WarheadGuidanceState);
 		}
 		if (mobile->pCharData) {
 			XvtSnapshot_EncodeMobileObjectCharData(
-				(XvtSnapshotMobileObjectCharData *)cursor,
+				(struct XvtSnapshotMobileObjectCharData *)
+					cursor,
 				mobile->pCharData);
-			cursor += sizeof(XvtSnapshotMobileObjectCharData);
+			cursor +=
+				sizeof(struct XvtSnapshotMobileObjectCharData);
 		}
 	}
 	return cursor;
@@ -71,20 +74,21 @@ static uint8_t *XvtSnapshot_RestoreObjects(uint8_t *cursor)
 		    i < g_localDebrisSlotEnd) {
 			continue;
 		}
-		ObjectRecord *object = &g_objectTable[i];
+		struct ObjectRecord *object = &g_objectTable[i];
 		object->objectType = *cursor++;
 		if (!object->objectType) {
 			/* The original clears only the scalar prefix, preserving pool ownership. */
-			MobileObject *mobile = object->mobj;
+			struct MobileObject *mobile = object->mobj;
 			memset(object, 0, sizeof(*object));
 			object->mobj = mobile;
 			object->playerOwnerIdx = -1;
 			if (mobile) {
 				memset(mobile, 0,
-				       offsetof(MobileObject, moveVectorDirty));
+				       offsetof(struct MobileObject,
+						moveVectorDirty));
 				mobile->iff = UINT8_MAX;
 				if (mobile->pCraft) {
-					XvtSnapshotCraftData craft;
+					struct XvtSnapshotCraftData craft;
 					XvtSnapshot_EncodeCraftData(
 						&craft, mobile->pCraft);
 					memset(&craft, 0, 0x412);
@@ -93,42 +97,45 @@ static uint8_t *XvtSnapshot_RestoreObjects(uint8_t *cursor)
 				}
 				if (mobile->pWarheadGuidance) {
 					memset(mobile->pWarheadGuidance, 0,
-					       sizeof(WarheadGuidanceState));
+					       sizeof(struct
+						      WarheadGuidanceState));
 				}
 				if (mobile->pCharData) {
 					memset(mobile->pCharData, 0,
-					       sizeof(MobileObjectCharData));
+					       sizeof(struct
+						      MobileObjectCharData));
 				}
 			}
 			continue;
 		}
 		XvtSnapshot_DecodeObjectRecord(
-			object, (const XvtSnapshotObjectRecord *)cursor);
-		cursor += sizeof(XvtSnapshotObjectRecord);
-		MobileObject *mobile = object->mobj;
+			object, (const struct XvtSnapshotObjectRecord *)cursor);
+		cursor += sizeof(struct XvtSnapshotObjectRecord);
+		struct MobileObject *mobile = object->mobj;
 		if (!mobile) {
 			continue;
 		}
 		XvtSnapshot_DecodeMobileObject(
-			mobile, (const XvtSnapshotMobileObject *)cursor);
-		cursor += sizeof(XvtSnapshotMobileObject);
+			mobile, (const struct XvtSnapshotMobileObject *)cursor);
+		cursor += sizeof(struct XvtSnapshotMobileObject);
 		if (mobile->pCraft) {
 			XvtSnapshot_DecodeCraftData(
 				mobile->pCraft,
-				(const XvtSnapshotCraftData *)cursor);
-			cursor += sizeof(XvtSnapshotCraftData);
+				(const struct XvtSnapshotCraftData *)cursor);
+			cursor += sizeof(struct XvtSnapshotCraftData);
 		}
 		if (mobile->pWarheadGuidance) {
 			memcpy(mobile->pWarheadGuidance, cursor,
-			       sizeof(WarheadGuidanceState));
-			cursor += sizeof(WarheadGuidanceState);
+			       sizeof(struct WarheadGuidanceState));
+			cursor += sizeof(struct WarheadGuidanceState);
 		}
 		if (mobile->pCharData) {
 			XvtSnapshot_DecodeMobileObjectCharData(
 				mobile->pCharData,
-				(const XvtSnapshotMobileObjectCharData *)
+				(const struct XvtSnapshotMobileObjectCharData *)
 					cursor);
-			cursor += sizeof(XvtSnapshotMobileObjectCharData);
+			cursor +=
+				sizeof(struct XvtSnapshotMobileObjectCharData);
 		}
 	}
 	return cursor;
@@ -155,7 +162,8 @@ size_t XvtSnapshot_Encode(uint8_t *image, size_t capacity)
 	       1382 * (int16_t)g_missionHeader.numFlightGroups);
 	cursor += 1382 * (int16_t)g_missionHeader.numFlightGroups;
 	XvtSnapshot_EncodeFlightMissionState(
-		(XvtSnapshotFlightMissionState *)cursor, &g_flightMissionState);
+		(struct XvtSnapshotFlightMissionState *)cursor,
+		&g_flightMissionState);
 	cursor += 3376;
 	memcpy(cursor, &g_flightGlobalCountdownTimers, 22);
 	cursor += 22;
@@ -240,9 +248,9 @@ size_t XvtSnapshot_Encode(uint8_t *image, size_t capacity)
 	       sizeof(g_laserFireTimestampTrackingEnabled));
 	cursor += sizeof(g_laserFireTimestampTrackingEnabled);
 	for (int i = 0; i < 8; ++i) {
-		XvtSnapshot_EncodePlayerData((XvtSnapshotPlayerData *)cursor,
-					     &g_players[i]);
-		cursor += sizeof(XvtSnapshotPlayerData);
+		XvtSnapshot_EncodePlayerData(
+			(struct XvtSnapshotPlayerData *)cursor, &g_players[i]);
+		cursor += sizeof(struct XvtSnapshotPlayerData);
 	}
 	return XvtFlightTiming_IsNetwork125()
 		       ? XvtFlightCheckpoint_Append(image, cursor - image)
@@ -269,8 +277,8 @@ static void XvtSnapshot_DecodePrefix(const uint8_t *image)
 		  g_missionHeader.numFlightGroups;
 	XvtSnapshot_DecodeFlightMissionState(
 		&g_flightMissionState,
-		(const XvtSnapshotFlightMissionState *)cursor);
-	cursor += sizeof(XvtSnapshotFlightMissionState);
+		(const struct XvtSnapshotFlightMissionState *)cursor);
+	cursor += sizeof(struct XvtSnapshotFlightMissionState);
 	memcpy(&g_flightGlobalCountdownTimers, cursor,
 	       sizeof(g_flightGlobalCountdownTimers));
 	cursor += sizeof(g_flightGlobalCountdownTimers);
@@ -356,8 +364,9 @@ static void XvtSnapshot_DecodePrefix(const uint8_t *image)
 	cursor += sizeof(g_laserFireTimestampTrackingEnabled);
 	for (int i = 0; i < 8; ++i) {
 		XvtSnapshot_DecodePlayerData(
-			&g_players[i], (const XvtSnapshotPlayerData *)cursor);
-		cursor += sizeof(XvtSnapshotPlayerData);
+			&g_players[i],
+			(const struct XvtSnapshotPlayerData *)cursor);
+		cursor += sizeof(struct XvtSnapshotPlayerData);
 	}
 }
 
@@ -387,26 +396,29 @@ size_t XvtSnapshot_CalculateSize(void)
 	}
 
 	/* The fixed trailer contains 24 dwords, three words, and one byte around the fixed arrays. */
-	size = (int)(2 * sizeof(MissionClock) + sizeof(MissionHeader) +
-		     sizeof(XvtSnapshotFlightMissionState) +
-		     sizeof(FlightGlobalCountdownTimers) + sizeof(g_planTable) +
-		     sizeof(g_builtinPlanIdByNameIndex) +
-		     8 * sizeof(XvtSnapshotPlayerData) + 24 * sizeof(uint32_t) +
-		     3 * sizeof(uint16_t) + sizeof(uint8_t) +
-		     sizeof(WarheadGuidanceState));
-	size += (int)(sizeof(MissionFgRuntimeStats) +
-		      sizeof(MissionFlightGroup)) *
+	size = (int)(2 * sizeof(struct MissionClock) +
+		     sizeof(struct MissionHeader) +
+		     sizeof(struct XvtSnapshotFlightMissionState) +
+		     sizeof(struct FlightGlobalCountdownTimers) +
+		     sizeof(g_planTable) + sizeof(g_builtinPlanIdByNameIndex) +
+		     8 * sizeof(struct XvtSnapshotPlayerData) +
+		     24 * sizeof(uint32_t) + 3 * sizeof(uint16_t) +
+		     sizeof(uint8_t) + sizeof(struct WarheadGuidanceState));
+	size += (int)(sizeof(struct MissionFgRuntimeStats) +
+		      sizeof(struct MissionFlightGroup)) *
 		g_missionHeader.numFlightGroups;
-	size += (int)(sizeof(uint8_t) + sizeof(XvtSnapshotObjectRecord)) *
+	size += (int)(sizeof(uint8_t) +
+		      sizeof(struct XvtSnapshotObjectRecord)) *
 		g_regionStaticObjectSlotCount;
-	size += (int)(sizeof(uint8_t) + sizeof(XvtSnapshotObjectRecord) +
-		      sizeof(XvtSnapshotMobileObject)) *
+	size += (int)(sizeof(uint8_t) + sizeof(struct XvtSnapshotObjectRecord) +
+		      sizeof(struct XvtSnapshotMobileObject)) *
 		g_regionMainObjectSlotEnd;
-	size += (int)sizeof(XvtSnapshotMobileObjectCharData) *
+	size += (int)sizeof(struct XvtSnapshotMobileObjectCharData) *
 		(int)g_mobileObjectCharDataCount;
-	size += (int)sizeof(WarheadGuidanceState) *
+	size += (int)sizeof(struct WarheadGuidanceState) *
 		(int)g_projectileObjectSlotsTotal;
-	size += (int)sizeof(XvtSnapshotCraftData) * g_craftDataPoolCapacity;
+	size += (int)sizeof(struct XvtSnapshotCraftData) *
+		g_craftDataPoolCapacity;
 	return (size_t)size + (XvtFlightTiming_IsNetwork125()
 				       ? XvtFlightCheckpoint_Maximum()
 				       : 0);
@@ -435,17 +447,19 @@ int XvtSnapshot_BuildPresenceMap(uint8_t *outMap, uint8_t *worldState)
 
 			componentFlags = 0;
 			if (*worldState++ != 0) {
-				const XvtSnapshotObjectRecord *objectState;
+				const struct XvtSnapshotObjectRecord
+					*objectState;
 				uint32_t mobileObjectPresent;
 
 				componentFlags = FLIGHT_WORLDSTATE_HAS_OBJECT;
-				objectState = (const XvtSnapshotObjectRecord *)
-					worldState;
+				objectState =
+					(const struct XvtSnapshotObjectRecord *)
+						worldState;
 				worldState += sizeof(*objectState);
 				memcpy(&mobileObjectPresent, &objectState->mobj,
 				       sizeof(mobileObjectPresent));
 				if (mobileObjectPresent != 0) {
-					const XvtSnapshotMobileObject
+					const struct XvtSnapshotMobileObject
 						*mobileObjectState;
 					uint32_t craftPresent;
 					uint32_t warheadGuidancePresent;
@@ -454,8 +468,9 @@ int XvtSnapshot_BuildPresenceMap(uint8_t *outMap, uint8_t *worldState)
 					componentFlags |=
 						FLIGHT_WORLDSTATE_HAS_MOBILE;
 					mobileObjectState =
-						(const XvtSnapshotMobileObject
-							 *)worldState;
+						(const struct
+						 XvtSnapshotMobileObject *)
+							worldState;
 					worldState +=
 						sizeof(*mobileObjectState);
 					memcpy(&craftPresent,
@@ -465,6 +480,7 @@ int XvtSnapshot_BuildPresenceMap(uint8_t *outMap, uint8_t *worldState)
 						componentFlags |=
 							FLIGHT_WORLDSTATE_HAS_CRAFT;
 						worldState += sizeof(
+							struct
 							XvtSnapshotCraftData);
 					}
 					memcpy(&warheadGuidancePresent,
@@ -475,6 +491,7 @@ int XvtSnapshot_BuildPresenceMap(uint8_t *outMap, uint8_t *worldState)
 						componentFlags |=
 							FLIGHT_WORLDSTATE_HAS_WARHEAD_GUIDANCE;
 						worldState += sizeof(
+							struct
 							WarheadGuidanceState);
 					}
 					memcpy(&charDataPresent,
@@ -484,6 +501,7 @@ int XvtSnapshot_BuildPresenceMap(uint8_t *outMap, uint8_t *worldState)
 						componentFlags |=
 							FLIGHT_WORLDSTATE_HAS_CHAR_DATA;
 						worldState += sizeof(
+							struct
 							XvtSnapshotMobileObjectCharData);
 					}
 				}
@@ -592,33 +610,37 @@ void XvtSnapshot_ApplyPresenceMap(const uint8_t *presenceMap)
 			objectType = *cursor++;
 			if (XvtSnapshot_MatchBlock(
 				    &cursor, &end,
-				    sizeof(XvtSnapshotObjectRecord),
+				    sizeof(struct XvtSnapshotObjectRecord),
 				    objectType != 0,
 				    (presence & FLIGHT_WORLDSTATE_HAS_OBJECT) !=
 					    0)) {
-				const XvtSnapshotObjectRecord *objectState;
+				const struct XvtSnapshotObjectRecord
+					*objectState;
 				uint32_t mobilePresent;
 
-				objectState = (const XvtSnapshotObjectRecord
-						       *)(cursor -
-							  sizeof(*objectState));
+				objectState =
+					(const struct XvtSnapshotObjectRecord
+						 *)(cursor -
+						    sizeof(*objectState));
 				memcpy(&mobilePresent, &objectState->mobj,
 				       sizeof(mobilePresent));
 				if (XvtSnapshot_MatchBlock(
 					    &cursor, &end,
-					    sizeof(XvtSnapshotMobileObject),
+					    sizeof(struct
+						   XvtSnapshotMobileObject),
 					    mobilePresent != 0,
 					    (presence &
 					     FLIGHT_WORLDSTATE_HAS_MOBILE) !=
 						    0)) {
-					const XvtSnapshotMobileObject
+					const struct XvtSnapshotMobileObject
 						*mobileState;
 					uint32_t craftPresent;
 					uint32_t warheadGuidancePresent;
 					uint32_t charDataPresent;
 
 					mobileState =
-						(const XvtSnapshotMobileObject
+						(const struct
+						 XvtSnapshotMobileObject
 							 *)(cursor -
 							    sizeof(*mobileState));
 					memcpy(&craftPresent,
@@ -626,7 +648,8 @@ void XvtSnapshot_ApplyPresenceMap(const uint8_t *presenceMap)
 					       sizeof(craftPresent));
 					XvtSnapshot_MatchBlock(
 						&cursor, &end,
-						sizeof(XvtSnapshotCraftData),
+						sizeof(struct
+						       XvtSnapshotCraftData),
 						craftPresent != 0,
 						(presence &
 						 FLIGHT_WORLDSTATE_HAS_CRAFT) !=
@@ -636,7 +659,8 @@ void XvtSnapshot_ApplyPresenceMap(const uint8_t *presenceMap)
 					       sizeof(warheadGuidancePresent));
 					XvtSnapshot_MatchBlock(
 						&cursor, &end,
-						sizeof(WarheadGuidanceState),
+						sizeof(struct
+						       WarheadGuidanceState),
 						warheadGuidancePresent != 0,
 						(presence &
 						 FLIGHT_WORLDSTATE_HAS_WARHEAD_GUIDANCE) !=
@@ -646,7 +670,8 @@ void XvtSnapshot_ApplyPresenceMap(const uint8_t *presenceMap)
 					       sizeof(charDataPresent));
 					XvtSnapshot_MatchBlock(
 						&cursor, &end,
-						sizeof(XvtSnapshotMobileObjectCharData),
+						sizeof(struct
+						       XvtSnapshotMobileObjectCharData),
 						charDataPresent != 0,
 						(presence &
 						 FLIGHT_WORLDSTATE_HAS_CHAR_DATA) !=
@@ -666,7 +691,7 @@ static int XvtSnapshot_IsPoolLink(uint32_t value, size_t stride, unsigned count)
 	       ((value - 1) % stride == 0 && (value - 1) / stride < count);
 }
 
-typedef struct XvtSnapshotWorldRanges {
+struct XvtSnapshotWorldRanges {
 	int32_t craft_capacity, character_count, projectile_count, debris_count,
 		debris_slot_count;
 	int32_t local_debris_slot_count, active_start, craft_end,
@@ -674,15 +699,15 @@ typedef struct XvtSnapshotWorldRanges {
 	int32_t projectile_start, projectile_end, debris_start, debris_end,
 		explosion_start, explosion_end;
 	int32_t local_start, local_end, main_end, static_count;
-} XvtSnapshotWorldRanges;
+};
 
 /* Returns 1 when the 20 dwords at image_ranges (pool sizes, the world-state debris slot count and the
  * slot-range bounds) equal this flight's live values, else 0. */
 static int XvtSnapshot_RangesMatchLive(const uint8_t *image_ranges)
 {
-	XvtSnapshotWorldRanges ranges;
+	struct XvtSnapshotWorldRanges ranges;
 	memcpy(&ranges, image_ranges, sizeof ranges);
-	const XvtSnapshotWorldRanges expected = {
+	const struct XvtSnapshotWorldRanges expected = {
 		.craft_capacity = g_craftDataPoolCapacity,
 		.character_count = g_mobileObjectCharDataCount,
 		.projectile_count = g_projectileObjectSlotsTotal,
@@ -710,30 +735,32 @@ static int XvtSnapshot_RangesMatchLive(const uint8_t *image_ranges)
  * then each object slot (against the checkpoint's timing rows in the network
  * profile), then the fixed tables. Each check reads the cursor and the bytes
  * left where the previous check stopped, so the walk stays in one place. */
-static int XvtSnapshot_ValidatePrefix(const uint8_t *image, size_t size,
-				      const XvtFlightCheckpointView *timing)
+static int
+XvtSnapshot_ValidatePrefix(const uint8_t *image, size_t size,
+			   const struct XvtFlightCheckpointView *timing)
 {
 	int network = timing != NULL;
 	unsigned row = 0;
-	XvtPlayerTimingWire player_timing[XVT_FLIGHT_PLAYERS];
+	struct XvtPlayerTimingWire player_timing[XVT_FLIGHT_PLAYERS];
 	if (network) {
 		memcpy(player_timing, timing->players, sizeof player_timing);
 	}
-	if (size < XVT_FLIGHT_PLAYERS * sizeof(XvtSnapshotPlayerData)) {
+	if (size < XVT_FLIGHT_PLAYERS * sizeof(struct XvtSnapshotPlayerData)) {
 		return 0;
 	}
 	const uint8_t *players =
 		image + size -
-		XVT_FLIGHT_PLAYERS * sizeof(XvtSnapshotPlayerData);
+		XVT_FLIGHT_PLAYERS * sizeof(struct XvtSnapshotPlayerData);
 	for (unsigned i = 0; i < XVT_FLIGHT_PLAYERS; ++i) {
 		int slot = (int32_t)XvtWire_Get32(
-			players + i * sizeof(XvtSnapshotPlayerData) +
-			offsetof(XvtSnapshotPlayerData, objectIndex));
+			players + i * sizeof(struct XvtSnapshotPlayerData) +
+			offsetof(struct XvtSnapshotPlayerData, objectIndex));
 		if (slot < -1 || slot >= g_regionMainObjectSlotEnd) {
 			return 0;
 		}
 		if (network) {
-			const XvtPlayerTimingWire *state = &player_timing[i];
+			const struct XvtPlayerTimingWire *state =
+				&player_timing[i];
 			if (state->valid &&
 			    XvtWire_Get16(state->slot) != (unsigned)slot) {
 				return 0;
@@ -754,8 +781,8 @@ static int XvtSnapshot_ValidatePrefix(const uint8_t *image, size_t size,
 		}
 		uint8_t type = *cursor++;
 		--left;
-		XvtReferenceMotionWire reference = {0};
-		XvtIntegrationWire integration = {0};
+		struct XvtReferenceMotionWire reference = {0};
+		struct XvtIntegrationWire integration = {0};
 		if (network) {
 			memcpy(&reference,
 			       timing->reference + row * sizeof reference,
@@ -771,10 +798,10 @@ static int XvtSnapshot_ValidatePrefix(const uint8_t *image, size_t size,
 			}
 			continue;
 		}
-		if (left < sizeof(XvtSnapshotObjectRecord)) {
+		if (left < sizeof(struct XvtSnapshotObjectRecord)) {
 			return 0;
 		}
-		XvtSnapshotObjectRecord object;
+		struct XvtSnapshotObjectRecord object;
 		memcpy(&object, cursor, sizeof object);
 		cursor += sizeof object;
 		left -= sizeof object;
@@ -790,7 +817,7 @@ static int XvtSnapshot_ValidatePrefix(const uint8_t *image, size_t size,
 				return 0;
 			}
 			for (unsigned i = 0; i < XVT_FLIGHT_PLAYERS; ++i) {
-				const XvtPlayerTimingWire *state =
+				const struct XvtPlayerTimingWire *state =
 					&player_timing[i];
 				if (state->valid &&
 				    XvtWire_Get16(state->slot) ==
@@ -802,18 +829,18 @@ static int XvtSnapshot_ValidatePrefix(const uint8_t *image, size_t size,
 			}
 		}
 		if (object.objectType != type ||
-		    !XvtSnapshot_IsPoolLink(object.mobj,
-					    sizeof(XvtSnapshotMobileObject),
-					    g_regionMainObjectSlotEnd)) {
+		    !XvtSnapshot_IsPoolLink(
+			    object.mobj, sizeof(struct XvtSnapshotMobileObject),
+			    g_regionMainObjectSlotEnd)) {
 			return 0;
 		}
 		if (!object.mobj) {
 			continue;
 		}
-		if (left < sizeof(XvtSnapshotMobileObject)) {
+		if (left < sizeof(struct XvtSnapshotMobileObject)) {
 			return 0;
 		}
-		XvtSnapshotMobileObject mobile;
+		struct XvtSnapshotMobileObject mobile;
 		memcpy(&mobile, cursor, sizeof mobile);
 		cursor += sizeof mobile;
 		left -= sizeof mobile;
@@ -822,23 +849,26 @@ static int XvtSnapshot_ValidatePrefix(const uint8_t *image, size_t size,
 			return 0;
 		}
 		if (!XvtSnapshot_IsPoolLink(mobile.pCraft,
-					    sizeof(XvtSnapshotCraftData),
+					    sizeof(struct XvtSnapshotCraftData),
 					    g_craftDataPoolCapacity) ||
 		    !XvtSnapshot_IsPoolLink(mobile.pWarheadGuidance,
-					    sizeof(WarheadGuidanceState),
+					    sizeof(struct WarheadGuidanceState),
 					    g_projectileObjectSlotsTotal) ||
 		    !XvtSnapshot_IsPoolLink(
 			    mobile.pCharData,
-			    sizeof(XvtSnapshotMobileObjectCharData),
+			    sizeof(struct XvtSnapshotMobileObjectCharData),
 			    g_mobileObjectCharDataCount)) {
 			return 0;
 		}
 		size_t extra =
-			(mobile.pCraft ? sizeof(XvtSnapshotCraftData) : 0) +
-			(mobile.pWarheadGuidance ? sizeof(WarheadGuidanceState)
-						 : 0) +
+			(mobile.pCraft ? sizeof(struct XvtSnapshotCraftData)
+				       : 0) +
+			(mobile.pWarheadGuidance
+				 ? sizeof(struct WarheadGuidanceState)
+				 : 0) +
 			(mobile.pCharData
-				 ? sizeof(XvtSnapshotMobileObjectCharData)
+				 ? sizeof(struct
+					  XvtSnapshotMobileObjectCharData)
 				 : 0);
 		if (left < extra) {
 			return 0;
@@ -849,11 +879,11 @@ static int XvtSnapshot_ValidatePrefix(const uint8_t *image, size_t size,
 
 	size_t clocks_and_header = sizeof(g_missionElapsedClock) +
 				   sizeof(g_missionCountdownClock) +
-				   sizeof(MissionHeader);
+				   sizeof(struct MissionHeader);
 	if (left < clocks_and_header) {
 		return 0;
 	}
-	MissionHeader header;
+	struct MissionHeader header;
 	memcpy(&header,
 	       cursor + sizeof(g_missionElapsedClock) +
 		       sizeof(g_missionCountdownClock),
@@ -861,11 +891,11 @@ static int XvtSnapshot_ValidatePrefix(const uint8_t *image, size_t size,
 	if (header.numFlightGroups != g_missionHeader.numFlightGroups) {
 		return 0;
 	}
-	size_t groups =
-		(sizeof(MissionFgRuntimeStats) + sizeof(MissionFlightGroup)) *
-		header.numFlightGroups;
+	size_t groups = (sizeof(struct MissionFgRuntimeStats) +
+			 sizeof(struct MissionFlightGroup)) *
+			header.numFlightGroups;
 	size_t before_ranges = clocks_and_header + groups +
-			       sizeof(XvtSnapshotFlightMissionState) +
+			       sizeof(struct XvtSnapshotFlightMissionState) +
 			       sizeof(g_flightGlobalCountdownTimers) +
 			       sizeof(g_missionFileVersion) +
 			       sizeof(g_flightPlayerCount) +
@@ -877,16 +907,16 @@ static int XvtSnapshot_ValidatePrefix(const uint8_t *image, size_t size,
 		sizeof(g_gameRandFeedbackState) +
 		sizeof(g_nextObjectSignature) +
 		sizeof(g_laserFireTimestampTrackingEnabled) +
-		XVT_FLIGHT_PLAYERS * sizeof(XvtSnapshotPlayerData);
-	if (left !=
-	    before_ranges + sizeof(XvtSnapshotWorldRanges) + after_ranges) {
+		XVT_FLIGHT_PLAYERS * sizeof(struct XvtSnapshotPlayerData);
+	if (left != before_ranges + sizeof(struct XvtSnapshotWorldRanges) +
+			    after_ranges) {
 		return 0;
 	}
 	return XvtSnapshot_RangesMatchLive(cursor + before_ranges);
 }
 
 static int XvtSnapshot_ReadImage(const uint8_t *image, size_t size,
-				 XvtFlightCheckpointView *timing)
+				 struct XvtFlightCheckpointView *timing)
 {
 	if (!image || size > XvtSnapshot_CalculateSize()) {
 		return 0;
@@ -904,13 +934,13 @@ static int XvtSnapshot_ReadImage(const uint8_t *image, size_t size,
 
 int XvtSnapshot_Validate(const uint8_t *image, size_t size)
 {
-	XvtFlightCheckpointView timing;
+	struct XvtFlightCheckpointView timing;
 	return XvtSnapshot_ReadImage(image, size, &timing);
 }
 
 int XvtSnapshot_Decode(const uint8_t *image, size_t size)
 {
-	XvtFlightCheckpointView timing;
+	struct XvtFlightCheckpointView timing;
 	if (!XvtSnapshot_ReadImage(image, size, &timing)) {
 		return 0;
 	}
@@ -938,7 +968,7 @@ int XvtSnapshot_ChecksumImage(const uint8_t *image, size_t size,
 			      unsigned checksums[XVT_WORLD_CHECKSUM_REGIONS],
 			      unsigned lengths[XVT_WORLD_CHECKSUM_REGIONS])
 {
-	XvtFlightCheckpointView timing;
+	struct XvtFlightCheckpointView timing;
 	if (!XvtSnapshot_ReadImage(image, size, &timing)) {
 		return 0;
 	}

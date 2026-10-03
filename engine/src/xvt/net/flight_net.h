@@ -30,7 +30,7 @@ struct FlightNetScratchPacket {
 
 #pragma pack(pop)
 typedef char xvt_size_FlightNetScratchPacket
-	[(sizeof(FlightNetScratchPacket) == 512) ? 1 : -1];
+	[(sizeof(struct FlightNetScratchPacket) == 512) ? 1 : -1];
 
 #pragma pack(push, 1)
 
@@ -44,7 +44,7 @@ struct FlightNetInputBatchPacket {
 
 #pragma pack(pop)
 typedef char xvt_size_FlightNetInputBatchPacket
-	[(sizeof(FlightNetInputBatchPacket) == 512) ? 1 : -1];
+	[(sizeof(struct FlightNetInputBatchPacket) == 512) ? 1 : -1];
 
 #pragma pack(push, 1)
 
@@ -59,39 +59,40 @@ struct FlightNetWorldStateChunkPacket {
 
 #pragma pack(pop)
 typedef char xvt_size_FlightNetWorldStateChunkPacket
-	[(sizeof(FlightNetWorldStateChunkPacket) == 512) ? 1 : -1];
+	[(sizeof(struct FlightNetWorldStateChunkPacket) == 512) ? 1 : -1];
 
 #pragma pack(push, 1)
 
-typedef struct FlightNetWorldStateChunkRecordHeader {
+struct FlightNetWorldStateChunkRecordHeader {
 	int worldOffset; /* Byte offset in the world state; -1 ends */
 	int dataSize;	 /* Bytes that follow this header */
-} FlightNetWorldStateChunkRecordHeader;
+};
 
 #pragma pack(pop)
 typedef char xvt_size_FlightNetWorldStateChunkRecordHeader
-	[(sizeof(FlightNetWorldStateChunkRecordHeader) == 8) ? 1 : -1];
+	[(sizeof(struct FlightNetWorldStateChunkRecordHeader) == 8) ? 1 : -1];
 
 extern int g_playerAbortFlags[8];
 extern int g_inputTimestamp;
 extern int g_flightNetHostAbortReceived;
 extern int g_flightNetWorldChecksumPeerStatus[8];
 extern int g_playerConnected[8];
-extern FlightInputFrameRecord g_currentInputFrame;
-extern FlightNetScratchPacket g_flightNetScratchPacket;
+extern struct FlightInputFrameRecord g_currentInputFrame;
+extern struct FlightNetScratchPacket g_flightNetScratchPacket;
 extern int g_flightNetLastInputTimestampByPlayer[8];
 extern int g_flightNetPeerSilenceTicks[8];
 extern int g_lastSentInputTimestamp;
 extern int g_lastKeyframeTime;
 extern int g_flightNetLastInputBatchSendTime;
-extern FlightNetInputBatchPacket g_flightNetInputBatchPacket;
+extern struct FlightNetInputBatchPacket g_flightNetInputBatchPacket;
 extern int g_flightNetInputBatchLen;
 extern int g_flightNetInputBatchIntervalTicks;
 extern int g_flightNetWorldStateAckReceivedFlag;
 extern int g_flightNetWorldStateChunkAcked[16];
 extern int g_flightNetLocalResyncChecksums[126];
 extern int g_flightNetRemoteResyncChecksums[126];
-extern FlightNetWorldStateChunkPacket g_flightNetWorldStateChunkPackets[16];
+extern struct FlightNetWorldStateChunkPacket
+	g_flightNetWorldStateChunkPackets[16];
 extern int g_flightNetRemoteResyncChecksumsReceivedFlag;
 extern int g_flightNetResyncPlayerDplayId;
 extern int g_flightNetRecoveryUiActive;

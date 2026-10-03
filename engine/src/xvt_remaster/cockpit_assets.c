@@ -6,7 +6,8 @@
 #include <string.h>
 
 int XvtCockpitAssets_DecodeLfd(const void *bytes, size_t size,
-			       XvtOriginal2d *out, AeronDecodeError *error)
+			       struct XvtOriginal2d *out,
+			       AeronDecodeError *error)
 {
 	AeronLfd lfd = {0};
 	if (!AeronLfd_Parse(bytes, size, &lfd, error)) {
@@ -113,7 +114,8 @@ static int MaskRun(const uint8_t **cursor, const uint8_t *end, int screen_width)
 	return 511 + (uint8_t)(*(*cursor)++ + 1);
 }
 
-int XvtCockpitAssets_ApplyMask(XvtOriginal2d *image, const XvtSnapRect *rect)
+int XvtCockpitAssets_ApplyMask(struct XvtOriginal2d *image,
+			       const struct XvtSnapRect *rect)
 {
 	if (!image->images.count || !image->cockpit_mask || !rect) {
 		return 0;

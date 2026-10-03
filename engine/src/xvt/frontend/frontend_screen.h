@@ -22,10 +22,10 @@ struct FrontendScreenState {
 	 * FrontendScreen_PopState: at 8 bits per pixel RLE-compressed when
 	 * FrontImage_CompressRLE succeeds, else raw; raw at 16. 0 by 0 with no
 	 * data when that push had no rect. */
-	ImageResource savedImage;
+	struct ImageResource savedImage;
 	/* The rect of the screen pushed over this one, clamped to 0 to 639 by 0
 	 * to 479. */
-	RECT savedRect;
+	struct RECT savedRect;
 	/* Clip left edge before the push. FrontendScreen_PopState reads these
 	 * four fields as one RECT to restore the clip. */
 	int savedClipMinX;
@@ -45,9 +45,12 @@ struct FrontendScreenState {
 
 void FrontendScreen_SetCallbacks(FrontendScreenUpdateFn updateFn,
 				 FrontendScreenExitFn exitFn);
-int FrontendScreen_QueuePush(int (*updateFn)(int), const RECT *screenRect);
-int FrontendScreen_RunModal(FrontendScreenUpdateFn updateFn, RECT *screenRect);
-int FrontendScreen_PushState(FrontendScreenUpdateFn updateFn, RECT *screenRect);
+int FrontendScreen_QueuePush(int (*updateFn)(int),
+			     const struct RECT *screenRect);
+int FrontendScreen_RunModal(FrontendScreenUpdateFn updateFn,
+			    struct RECT *screenRect);
+int FrontendScreen_PushState(FrontendScreenUpdateFn updateFn,
+			     struct RECT *screenRect);
 void FrontendScreen_PopState(void);
 
 #ifdef __cplusplus

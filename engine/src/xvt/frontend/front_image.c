@@ -21,7 +21,7 @@
 
 /* A .bmp file's first header, as FrontImage_SaveBmpFile writes it and
  * FrontImage_LoadBmpPaletteFile reads it. */
-typedef struct FrontImageBmpFileHeader {
+struct FrontImageBmpFileHeader {
 	/* 0x4D42, "BM": written by the save, checked by the palette load. */
 	uint16_t signature;
 	uint32_t fileSize; /* The file's size in bytes; written, never read. */
@@ -30,11 +30,11 @@ typedef struct FrontImageBmpFileHeader {
 	/* Left unset by the save, which writes whatever it holds; not read. */
 	uint16_t reserved1;
 	uint32_t pixelOffset; /* Where the pixels start, 54; not read. */
-} FrontImageBmpFileHeader;
+};
 
 /* A .bmp file's 40-byte info header, as FrontImage_SaveBmpFile writes it and
  * FrontImage_LoadBmpPaletteFile reads it. */
-typedef struct FrontImageBmpInfoHeader {
+struct FrontImageBmpInfoHeader {
 	uint32_t headerSize; /* This header's size, written as 40; not read. */
 	/* Width in pixels, written rounded up to even; not read. */
 	int32_t width;
@@ -49,13 +49,13 @@ typedef struct FrontImageBmpInfoHeader {
 	int32_t pixelsPerMeterY;  /* Written as 0; not read. */
 	uint32_t colorsUsed;	  /* Written as 0; not read. */
 	uint32_t colorsImportant; /* Written as 0; not read. */
-} FrontImageBmpInfoHeader;
+};
 
 #pragma pack(pop)
 typedef char xvt_size_FrontImageBmpFileHeader
-	[(sizeof(FrontImageBmpFileHeader) == 14) ? 1 : -1];
+	[(sizeof(struct FrontImageBmpFileHeader) == 14) ? 1 : -1];
 typedef char xvt_size_FrontImageBmpInfoHeader
-	[(sizeof(FrontImageBmpInfoHeader) == 40) ? 1 : -1];
+	[(sizeof(struct FrontImageBmpInfoHeader) == 40) ? 1 : -1];
 
 /* Per palette index of the image being remapped, the display palette index
  * FrontImage_RemapPaletteIndex chose for it, or 0x100 while none is chosen.
@@ -73,8 +73,8 @@ static int16_t g_paletteRemapCache[256] = {0};
 // FUNCTION: XVT 0x4B4A60
 int FrontImage_RegisterResourceDefault(const char *fileName, const char *name)
 {
-	ImageResource *image;
-	FrontImageResourceRecord entry;
+	struct ImageResource *image;
+	struct FrontImageResourceRecord entry;
 
 	if (*fileName == '\0') {
 		return 0;
@@ -108,8 +108,8 @@ int FrontImage_RegisterResourceDefault(const char *fileName, const char *name)
 int FrontImage_RegisterResource(const char *fileName, const char *name,
 				int remapToDisplayPalette, int compressRLE)
 {
-	ImageResource *image;
-	FrontImageResourceRecord entry;
+	struct ImageResource *image;
+	struct FrontImageResourceRecord entry;
 
 	if (*fileName == '\0') {
 		return 0;
@@ -203,7 +203,7 @@ int FrontImage_ResourceExists(const char *name)
  * right and bottom are one past its last column and row, and returns 1. Sets it
  * to all 0 and returns 0 when name is empty or not registered. */
 // FUNCTION: XVT 0x4B4CC0
-int FrontImage_GetResourceRect(const char *name, RECT *outRect)
+int FrontImage_GetResourceRect(const char *name, struct RECT *outRect)
 {
 	int resourceIndex;
 
@@ -232,7 +232,7 @@ int FrontImage_GetResourceRect(const char *name, RECT *outRect)
 int FrontImage_DrawSpriteTranslucent(const char *name, int x, int y)
 {
 	int resourceIndex;
-	ImageResource *image;
+	struct ImageResource *image;
 
 	resourceIndex = FrontImage_FindResourceByName(name);
 	if (resourceIndex == -1) {
@@ -256,7 +256,7 @@ int FrontImage_DrawSpriteTranslucent(const char *name, int x, int y)
  * the image is uncompressed. The modern build also records the draw for its
  * renderer. */
 // FUNCTION: XVT 0x4B4D90
-int FrontImage_BlitTranslucent(ImageResource *image, int x, int y)
+int FrontImage_BlitTranslucent(struct ImageResource *image, int x, int y)
 {
 	int clipOffsetX;
 	int clipOffsetY;
@@ -267,8 +267,8 @@ int FrontImage_BlitTranslucent(ImageResource *image, int x, int y)
 	int displayBpp;
 	uint8_t *source;
 	uint8_t *destination;
-	RECT clippedRect;
-	RECT unclippedRect;
+	struct RECT clippedRect;
+	struct RECT unclippedRect;
 
 	if (image == NULL) {
 		return 0;
@@ -507,11 +507,11 @@ int FrontImage_BlitTranslucent(ImageResource *image, int x, int y)
  * FrontImage_BlitRectTransparent and returns its result; returns 0 when the
  * name is not registered or the image is RLE-compressed. */
 // FUNCTION: XVT 0x4B50B0
-int FrontImage_DrawSpriteRectTransparent(const char *name, RECT *srcRect,
+int FrontImage_DrawSpriteRectTransparent(const char *name, struct RECT *srcRect,
 					 int dstX, int dstY)
 {
 	int resourceIndex;
-	ImageResource *image;
+	struct ImageResource *image;
 
 	resourceIndex = FrontImage_FindResourceByName(name);
 	if (resourceIndex == -1) {
@@ -531,8 +531,8 @@ int FrontImage_DrawSpriteRectTransparent(const char *name, RECT *srcRect,
  * image is NULL. Does not check that srcRect lies inside the image. The modern
  * build also records the draw for its renderer. */
 // FUNCTION: XVT 0x4B5100
-int FrontImage_BlitRectTransparent(ImageResource *image, RECT *srcRect,
-				   int dstX, int dstY)
+int FrontImage_BlitRectTransparent(struct ImageResource *image,
+				   struct RECT *srcRect, int dstX, int dstY)
 {
 	int rowsRemaining;
 	int displayBpp;
@@ -541,8 +541,8 @@ int FrontImage_BlitRectTransparent(ImageResource *image, RECT *srcRect,
 	int clipOffsetY;
 	int visibleWidth;
 	int clipResult;
-	RECT destinationRect;
-	RECT unclippedRect;
+	struct RECT destinationRect;
+	struct RECT unclippedRect;
 
 	if (image == NULL) {
 		return 0;
@@ -675,11 +675,11 @@ int FrontImage_BlitRectTransparent(ImageResource *image, RECT *srcRect,
  * FrontImage_BlitRectTinted and returns its result; returns 0 when the name is
  * not registered or the image is RLE-compressed. */
 // FUNCTION: XVT 0x4B52C0
-int FrontImage_DrawSpriteRectTinted(const char *name, RECT *srcRect, int dstX,
-				    int dstY, unsigned int tintColor)
+int FrontImage_DrawSpriteRectTinted(const char *name, struct RECT *srcRect,
+				    int dstX, int dstY, unsigned int tintColor)
 {
 	int resourceIndex;
-	ImageResource *image;
+	struct ImageResource *image;
 
 	resourceIndex = FrontImage_FindResourceByName(name);
 	if (resourceIndex == -1) {
@@ -701,8 +701,9 @@ int FrontImage_DrawSpriteRectTinted(const char *name, RECT *srcRect, int dstX,
  * FrontendDraw_RectClipToBounds, or 0 when image is NULL. The modern build also
  * records the draw for its renderer. */
 // FUNCTION: XVT 0x4B5310
-int FrontImage_BlitRectTinted(ImageResource *image, const RECT *srcRect,
-			      int dstX, int dstY, unsigned int tintColor)
+int FrontImage_BlitRectTinted(struct ImageResource *image,
+			      const struct RECT *srcRect, int dstX, int dstY,
+			      unsigned int tintColor)
 {
 	int visibleHeight;
 	int displayBpp;
@@ -712,13 +713,13 @@ int FrontImage_BlitRectTinted(ImageResource *image, const RECT *srcRect,
 	int clipOffsetY;
 	int visibleWidth;
 	int clipResult;
-	RECT destinationRect;
+	struct RECT destinationRect;
 	uint8_t *source;
 	uint8_t *destination;
 	int rowsRemaining;
-	RECT unclippedRect;
+	struct RECT unclippedRect;
 	int column;
-	const RECT *sourceRect;
+	const struct RECT *sourceRect;
 	int destinationY;
 	uint8_t sourcePixel;
 	int intensity;
@@ -877,10 +878,10 @@ int FrontImage_DrawSprite(const char *name, int x, int y)
  * Returns the clip-edge bits of FrontendDraw_RectClipToBounds, or 0 when image
  * is NULL. The modern build also records the draw for its renderer. */
 // FUNCTION: XVT 0x4B55B0
-int FrontImage_BlitTransparent(ImageResource *image, int x, int y)
+int FrontImage_BlitTransparent(struct ImageResource *image, int x, int y)
 {
-	RECT clippedRect;
-	RECT originalRect;
+	struct RECT clippedRect;
+	struct RECT originalRect;
 	int clipResult;
 	int sourceX;
 	int sourceY;
@@ -992,7 +993,7 @@ int FrontImage_BlitTransparent(ImageResource *image, int x, int y)
  * When visibleWidth is the image's width it draws whole rows and ignores
  * srcLeft. The caller has clipped; nothing is checked. */
 // FUNCTION: XVT 0x4B5770
-void FrontImage_BlitRLE8(ImageResource *image, int destX, int destY,
+void FrontImage_BlitRLE8(struct ImageResource *image, int destX, int destY,
 			 int srcLeft, int srcTop, int visibleWidth,
 			 int visibleHeight)
 {
@@ -1215,7 +1216,7 @@ void FrontImage_BlitRLE8(ImageResource *image, int destX, int destY,
 /* Does what FrontImage_BlitRLE8 does at 16 bits per pixel, writing each pixel's
  * colorLUT value. */
 // FUNCTION: XVT 0x4B5A80
-void FrontImage_BlitRLE16(ImageResource *image, int destX, int destY,
+void FrontImage_BlitRLE16(struct ImageResource *image, int destX, int destY,
 			  int srcLeft, int srcTop, int visibleWidth,
 			  int visibleHeight)
 {
@@ -1512,11 +1513,11 @@ int FrontImage_DrawSpriteOpaque(const char *name, int x, int y)
  * clip-edge bits of FrontendDraw_RectClipToBounds, or 0 when image is NULL. The
  * modern build also records the draw for its renderer. */
 // FUNCTION: XVT 0x4B5E20
-int FrontImage_BlitOpaque(ImageResource *image, int x, int y)
+int FrontImage_BlitOpaque(struct ImageResource *image, int x, int y)
 {
 	int clipResult;
-	RECT clippedRect;
-	RECT originalRect;
+	struct RECT clippedRect;
+	struct RECT originalRect;
 	int sourceX;
 	int sourceY;
 	int width;
@@ -1623,9 +1624,9 @@ int FrontImage_BlitOpaque(ImageResource *image, int x, int y)
 /* Does what FrontImage_BlitRLE8 does, but fills the pixels of skip tokens with
  * index 0 instead of leaving them. */
 // FUNCTION: XVT 0x4B5FE0
-void FrontImage_BlitRLE8Opaque(ImageResource *image, int destX, int destY,
-			       int srcLeft, int srcTop, int visibleWidth,
-			       int visibleHeight)
+void FrontImage_BlitRLE8Opaque(struct ImageResource *image, int destX,
+			       int destY, int srcLeft, int srcTop,
+			       int visibleWidth, int visibleHeight)
 {
 	const uint8_t *row;
 	const uint8_t *rowStart;
@@ -1860,9 +1861,9 @@ void FrontImage_BlitRLE8Opaque(ImageResource *image, int destX, int destY,
 /* Does what FrontImage_BlitRLE16 does, but fills the pixels of skip tokens with
  * colorLUT[0] instead of leaving them. */
 // FUNCTION: XVT 0x4B6340
-void FrontImage_BlitRLE16Opaque(ImageResource *image, int destX, int destY,
-				int srcLeft, int srcTop, int visibleWidth,
-				int visibleHeight)
+void FrontImage_BlitRLE16Opaque(struct ImageResource *image, int destX,
+				int destY, int srcLeft, int srcTop,
+				int visibleWidth, int visibleHeight)
 {
 	const uint8_t *row;
 	const uint8_t *rowStart;
@@ -2170,12 +2171,12 @@ void FrontImage_BlitRLE16Opaque(ImageResource *image, int destX, int destY,
  * FrontendDraw_RectClipToBounds, or 0 when glyph is NULL. The modern build also
  * records the glyph for its renderer. */
 // FUNCTION: XVT 0x4B6780
-int FrontImage_DrawGlyph(ImageResource *glyph, int x, int y, unsigned int color,
-			 int applyTextFade)
+int FrontImage_DrawGlyph(struct ImageResource *glyph, int x, int y,
+			 unsigned int color, int applyTextFade)
 {
 	int clipResult;
-	RECT clippedRect;
-	RECT originalRect;
+	struct RECT clippedRect;
+	struct RECT originalRect;
 
 	if (glyph == NULL) {
 		return 0;
@@ -2333,8 +2334,8 @@ int FrontImage_DrawGlyph(ImageResource *glyph, int x, int y, unsigned int color,
  * tokens left as they are. When visibleWidth is the glyph's width it draws
  * whole rows. */
 // FUNCTION: XVT 0x4B69B0
-void FrontImage_BlitGlyphRLE_8bpp(ImageResource *glyph, int destX, int destY,
-				  int clipLeftSkip, int clipTopSkip,
+void FrontImage_BlitGlyphRLE_8bpp(struct ImageResource *glyph, int destX,
+				  int destY, int clipLeftSkip, int clipTopSkip,
 				  int visibleWidth, int visibleRows,
 				  uint8_t color)
 {
@@ -2546,8 +2547,8 @@ void FrontImage_BlitGlyphRLE_8bpp(ImageResource *glyph, int destX, int destY,
 
 /* Does what FrontImage_BlitGlyphRLE_8bpp does at 16 bits per pixel. */
 // FUNCTION: XVT 0x4B6CA0
-void FrontImage_BlitGlyphRLE_16bpp(ImageResource *glyph, int destX, int destY,
-				   int clipLeftSkip, int clipTopSkip,
+void FrontImage_BlitGlyphRLE_16bpp(struct ImageResource *glyph, int destX,
+				   int destY, int clipLeftSkip, int clipTopSkip,
 				   int visibleWidth, int visibleRows,
 				   unsigned int color)
 {
@@ -2840,14 +2841,14 @@ void FrontImage_BlitGlyphRLE_16bpp(ImageResource *glyph, int destX, int destY,
  * allocation or decoding fails. Does not handle a top-down file's negative
  * height. The modern build also registers the image with its renderer. */
 // FUNCTION: XVT 0x4B6FB0
-int FrontImage_LoadBmpFile(const char *fileName, ImageResource *image,
+int FrontImage_LoadBmpFile(const char *fileName, struct ImageResource *image,
 			   int remapToDisplayPalette, int compressRLE)
 {
 	uint8_t *pixels;
 	XvtFile *stream;
 	int result;
-	BITMAPINFOHEADER infoHeader;
-	BITMAPFILEHEADER fileHeader;
+	struct BITMAPINFOHEADER infoHeader;
+	struct BITMAPFILEHEADER fileHeader;
 	uint8_t palette[256 * 4];
 
 	pixels = NULL;
@@ -3014,8 +3015,8 @@ int FrontImage_LoadBmpFile(const char *fileName, ImageResource *image,
  * data cannot be allocated. */
 // FUNCTION: XVT 0x4B7240
 int FrontImage_DecodeBmp4bpp(XvtFile *stream, void *dstPixels,
-			     const BITMAPFILEHEADER *fileHeader,
-			     const BITMAPINFOHEADER *infoHeader)
+			     const struct BITMAPFILEHEADER *fileHeader,
+			     const struct BITMAPINFOHEADER *infoHeader)
 {
 	size_t dataSize;
 	uint8_t *data;
@@ -3076,8 +3077,8 @@ int FrontImage_DecodeBmp4bpp(XvtFile *stream, void *dstPixels,
  * cannot be allocated. Does not check that the data stays inside dstPixels. */
 // FUNCTION: XVT 0x4B7320
 int FrontImage_DecodeBmp8bpp(XvtFile *stream, void *dstPixels,
-			     const BITMAPFILEHEADER *fileHeader,
-			     const BITMAPINFOHEADER *infoHeader)
+			     const struct BITMAPFILEHEADER *fileHeader,
+			     const struct BITMAPINFOHEADER *infoHeader)
 {
 	int rowPadding;
 	uint8_t *data;
@@ -3212,7 +3213,7 @@ int FrontImage_DecodeBmp8bpp(XvtFile *stream, void *dstPixels,
  * g_paletteRemapCache to 0x100, so each image is mapped afresh. */
 // FUNCTION: XVT 0x4B7510
 void FrontImage_RemapPalette(uint8_t *pixels, const uint8_t *srcPalette,
-			     const BITMAPINFOHEADER *infoHeader)
+			     const struct BITMAPINFOHEADER *infoHeader)
 {
 	int width;
 	int height;
@@ -3284,7 +3285,7 @@ char FrontImage_RemapPaletteIndex(const uint8_t *srcRgb, int srcIndex)
  * the buffer cannot be allocated. Checks the old pointer instead of realloc's
  * result when shrinking, so a failed shrink leaves pixels NULL. */
 // FUNCTION: XVT 0x4B75B0
-int FrontImage_CompressRLE(ImageResource *image)
+int FrontImage_CompressRLE(struct ImageResource *image)
 {
 	uint8_t *lastToken;
 	uint8_t *compressedPixels;
@@ -3475,7 +3476,7 @@ int FrontImage_CompressRLE(ImageResource *image)
  * with no 640-pixel limit, sets rowBuffer->encodedSize and returns it, the
  * row's size in bytes. Does not check that the row fits the buffer. */
 // FUNCTION: XVT 0x4B7840
-int FrontImage_EncodeGlyphRow(FrontImageRleRowBuffer *rowBuffer,
+int FrontImage_EncodeGlyphRow(struct FrontImageRleRowBuffer *rowBuffer,
 			      const uint8_t *srcPixels, int width)
 {
 	uint8_t *tokenWrite;
@@ -3582,7 +3583,8 @@ int FrontImage_EncodeGlyphRow(FrontImageRleRowBuffer *rowBuffer,
  * (strncmp over 64 bytes, after equal names), moving later records up one, and
  * raises g_frontState.resourceCount. Does not check that the table has room. */
 // FUNCTION: XVT 0x4B7970
-void FrontImage_InsertResourceSorted(const FrontImageResourceRecord *entry)
+void FrontImage_InsertResourceSorted(
+	const struct FrontImageResourceRecord *entry)
 {
 	int insertIndex;
 	int entriesToShift;
@@ -3622,7 +3624,7 @@ void FrontImage_RemoveResourceAt(int index)
 {
 	int destinationIndex;
 	int currentIndex;
-	FrontImageResourceRecord *resource;
+	struct FrontImageResourceRecord *resource;
 
 	currentIndex = index;
 	if (index < 0) {
@@ -3662,14 +3664,14 @@ int FrontImage_FindResourceByName(const char *name)
  * bytes with strncmp. Returns the matching index, or -1 when none matches or hi
  * is under 0. */
 // FUNCTION: XVT 0x4B7AA0
-int FrontImage_BSearchResource(const FrontImageResourceRecord *table, int hi,
-			       const char *key)
+int FrontImage_BSearchResource(const struct FrontImageResourceRecord *table,
+			       int hi, const char *key)
 {
 	int baseIndex;
 	int searchHi;
 	int middle;
 	int comparison;
-	const FrontImageResourceRecord *middleEntry;
+	const struct FrontImageResourceRecord *middleEntry;
 
 	baseIndex = 0;
 	searchHi = hi;
@@ -3713,8 +3715,8 @@ int FrontImage_SaveBmpFile(char *fileName, const void *pixels, int width,
 {
 	int y;
 	int x;
-	FrontImageBmpInfoHeader infoHeader;
-	FrontImageBmpFileHeader fileHeader;
+	struct FrontImageBmpInfoHeader infoHeader;
+	struct FrontImageBmpFileHeader fileHeader;
 	const uint8_t *colorTable;
 	XvtFile *stream;
 	int fileSize;
@@ -3900,8 +3902,8 @@ int FrontImage_LoadBmpPaletteFile(const char *fileName, uint8_t *destRgba)
 	XvtFile *stream;
 	int result;
 	unsigned int bitsPerPixel;
-	FrontImageBmpFileHeader fileHeader;
-	FrontImageBmpInfoHeader infoHeader;
+	struct FrontImageBmpFileHeader fileHeader;
+	struct FrontImageBmpInfoHeader infoHeader;
 
 	if (destRgba == NULL) {
 		return 0;

@@ -19,15 +19,15 @@
 #include <string.h>
 
 /* What a refused call must leave as it was: the generation, both documents and the typed settings. */
-typedef struct State {
+struct State {
 	uint64_t generation;
 	AeronConfigFile *user;
 	AeronConfigFile *resolved;
 	int has_settings;
-	XvtSettings settings;
-} State;
+	struct XvtSettings settings;
+};
 
-static State g_state;
+static struct State g_state;
 
 static void Snapshot(void)
 {
@@ -89,15 +89,15 @@ static void Accept(AeronConfigFile *candidate)
 }
 
 /* Two bindings that replace the whole keyboard when stored. */
-static void TwoBindings(XvtKeyboardBindings *bindings)
+static void TwoBindings(struct XvtKeyboardBindings *bindings)
 {
 	AeronKey a, b;
 	XVT_ASSERT_TRUE(AeronKey_FromName("A", &a));
 	XVT_ASSERT_TRUE(AeronKey_FromName("B", &b));
 	memset(bindings, 0, sizeof *bindings);
-	bindings->bindings[0] = (XvtKeyboardBinding){
+	bindings->bindings[0] = (struct XvtKeyboardBinding){
 		{.key = (uint16_t)b}, XVT_INPUT_ACTION_TARGET_NEXT};
-	bindings->bindings[1] = (XvtKeyboardBinding){
+	bindings->bindings[1] = (struct XvtKeyboardBinding){
 		{.key = (uint16_t)a}, XVT_INPUT_ACTION_FIRE_WEAPON};
 	bindings->count = 2;
 }
@@ -106,9 +106,9 @@ static void CheckBeforeLoad(void)
 {
 	Fixture_Begin();
 	char error[1024];
-	static XvtKeyboardBindings bindings;
+	static struct XvtKeyboardBindings bindings;
 	TwoBindings(&bindings);
-	static GameConfig game, before;
+	static struct GameConfig game, before;
 	memset(&game, 0x77, sizeof game);
 	before = game;
 	Fixture_WriteText("asset/legacy.txt", "difficulty 2\n");
@@ -155,8 +155,8 @@ static void CheckLoadWithoutUserFile(void)
 	XVT_ASSERT_INT_EQ(XvtConfig_CanResetToDefaults(), 1);
 	XVT_ASSERT_TRUE(XvtConfig_UserDocument() != NULL);
 	XVT_ASSERT_TRUE(XvtConfig_ResolvedDocument() != NULL);
-	const XvtSettings *settings = XvtConfig_Settings();
-	const XvtSettings *defaults = XvtConfig_DefaultSettings();
+	const struct XvtSettings *settings = XvtConfig_Settings();
+	const struct XvtSettings *defaults = XvtConfig_DefaultSettings();
 	XVT_ASSERT_TRUE(settings != NULL && defaults != NULL);
 	/* With no overrides, the settings are the shipped ones. */
 	XVT_ASSERT_INT_EQ(settings->skip_intro, defaults->skip_intro);
@@ -430,7 +430,7 @@ static void CheckKeyboardSetters(void)
 	Fixture_Begin();
 	Fixture_Load();
 	char error[1024];
-	static XvtKeyboardBindings bindings;
+	static struct XvtKeyboardBindings bindings;
 	TwoBindings(&bindings);
 
 	/* The stored bindings replace the shipped ones; memory only. */
@@ -445,7 +445,7 @@ static void CheckKeyboardSetters(void)
 	/* A reserved key is refused before anything changes. */
 	AeronKey escape;
 	XVT_ASSERT_TRUE(AeronKey_FromName("Escape", &escape));
-	static XvtKeyboardBindings bad;
+	static struct XvtKeyboardBindings bad;
 	bad = bindings;
 	bad.bindings[0].source.key = (uint16_t)escape;
 	Snapshot();
@@ -511,7 +511,7 @@ static void CheckApply(void)
 						  "Wedge", &detail));
 	Accept(candidate);
 
-	static GameConfig game;
+	static struct GameConfig game;
 	memset(&game, 0x77, sizeof game);
 	char error[1024];
 	XVT_ASSERT_INT_EQ(XvtConfig_Apply(&game, error, sizeof error), 1);
@@ -536,7 +536,7 @@ static void CheckWrite(void)
 	Fixture_Begin();
 	Fixture_Load();
 	char error[1024];
-	static GameConfig game, again, bad;
+	static struct GameConfig game, again, bad;
 	XVT_ASSERT_INT_EQ(XvtConfig_Apply(&game, error, sizeof error), 1);
 	/* An override that equals the shipped value, to see Write remove it. */
 	Accept(UserWithInt("game.collisions", game.collisions));

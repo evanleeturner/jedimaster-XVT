@@ -65,11 +65,11 @@ int XvtFrontendTask_Init(int skip_intro)
 	g_noPageFlip = 1;
 	g_optNoFullscreen = 0;
 	g_frontState.frontendSoundBuffers =
-		calloc(128, sizeof(FrontendSoundBufferRecord));
+		calloc(128, sizeof(struct FrontendSoundBufferRecord));
 	g_frontState.frontendSoundVoices =
-		calloc(12, sizeof(FrontendSoundVoice));
+		calloc(12, sizeof(struct FrontendSoundVoice));
 	g_frontState.resourceTable =
-		calloc(512, sizeof(FrontImageResourceRecord));
+		calloc(512, sizeof(struct FrontImageResourceRecord));
 	if (!g_frontState.frontendSoundBuffers ||
 	    !g_frontState.frontendSoundVoices || !g_frontState.resourceTable) {
 		return 0;

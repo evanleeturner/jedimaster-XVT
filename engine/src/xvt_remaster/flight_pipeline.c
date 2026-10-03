@@ -87,9 +87,10 @@ static int Ensure(int width, int height)
 
 void XvtFlightPipeline_Post(AeronScene3D *scene, float shutter, int motion)
 {
-	const XvtRenderSettings *settings = XvtRemasterConfig_Effective();
+	const struct XvtRenderSettings *settings =
+		XvtRemasterConfig_Effective();
 	const AeronSceneSsaoSettings *a = &settings->scene.ssao;
-	const XvtMotionBlurSettings *m = &settings->motion_blur;
+	const struct XvtMotionBlurSettings *m = &settings->motion_blur;
 	AeronScene_SetPost(
 		scene, &(AeronScenePostDesc){
 			       .ssao_quality = a->ssao_quality,
@@ -109,10 +110,12 @@ void XvtFlightPipeline_Post(AeronScene3D *scene, float shutter, int motion)
 			       .mb_fsr_direct_motion = m->fsr_direct_motion});
 }
 
-int XvtFlightPipeline_Begin(AeronScene3D *scene, const XvtRenderSnapshot *s,
-			    const XvtPreparedFlight *frame, int reset)
+int XvtFlightPipeline_Begin(AeronScene3D *scene,
+			    const struct XvtRenderSnapshot *s,
+			    const struct XvtPreparedFlight *frame, int reset)
 {
-	const XvtRenderSettings *settings = XvtRemasterConfig_Effective();
+	const struct XvtRenderSettings *settings =
+		XvtRemasterConfig_Effective();
 	uint64_t now = Aeron_NowUs();
 	float delta_ms = g_lastHostUs && now > g_lastHostUs
 				 ? (float)(now - g_lastHostUs) / 1000
@@ -154,7 +157,8 @@ int XvtFlightPipeline_PrepareSceneResources(AeronScene3D *scene, int flight)
 {
 	int width, height;
 	AeronScene_RtDims(scene, &width, &height);
-	const XvtRenderSettings *settings = XvtRemasterConfig_Effective();
+	const struct XvtRenderSettings *settings =
+		XvtRemasterConfig_Effective();
 	AeronScene_SetTemporal(
 		scene, &(AeronSceneTemporalDesc){
 			       .mode = flight ? settings->temporal_mode
@@ -186,7 +190,7 @@ int XvtFlightPipeline_Finish(AeronCommandBuffer *cmd, AeronScene3D *scene)
 
 static int PrepareBars(AeronCommandBuffer *cmd, int width, int height)
 {
-	const XvtPreparedFlight *frame = XvtRemasterFlight_Current();
+	const struct XvtPreparedFlight *frame = XvtRemasterFlight_Current();
 	g_barsVisible = frame && (frame->content_rect.width != width ||
 				  frame->content_rect.height != height);
 	if (!g_barsVisible) {

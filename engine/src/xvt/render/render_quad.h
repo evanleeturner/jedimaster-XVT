@@ -10,7 +10,7 @@ extern "C" {
 
 extern const uint32_t g_explosionBillboardColorByFrame[32];
 
-void RenderQuad_DrawModelTexture(SceneBillboardQueueEntry *quadRecord);
+void RenderQuad_DrawModelTexture(struct SceneBillboardQueueEntry *quadRecord);
 void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY,
 				  uint16_t screenSize,
 				  const void *textureImage);

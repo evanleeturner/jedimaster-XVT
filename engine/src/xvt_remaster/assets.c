@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct ImageVariant {
+struct ImageVariant {
 	AeronRuntimeAtlas atlas;
 	uint32_t palette[256];
 	uint16_t key, key_alt;
@@ -16,28 +16,28 @@ typedef struct ImageVariant {
 	uint8_t frontend_kind;
 	uint32_t tint_color;
 	struct ImageVariant *next;
-} ImageVariant;
+};
 
-typedef struct ImageAsset {
+struct ImageAsset {
 	uint64_t id, seen_generation;
 	int is_texture, pending_new;
 	uint32_t kind;
 	uint8_t frontend_pixel_format_555;
 	char path[XVT_SNAP_PATH];
-	XvtOriginal2d decoded;
-	XvtFontAtlas foreground, shadow;
+	struct XvtOriginal2d decoded;
+	struct XvtFontAtlas foreground, shadow;
 	uint32_t default_palette[256];
-	ImageVariant *variants;
-} ImageAsset;
+	struct ImageVariant *variants;
+};
 
 /* Leave room for replacements until their upload submission retires the old set. */
-static ImageAsset g_images[2 * (XVT_SNAP_ASSETS + XVT_SNAP_TYPES)];
+static struct ImageAsset g_images[2 * (XVT_SNAP_ASSETS + XVT_SNAP_TYPES)];
 static uint64_t g_generations[2] = {UINT64_MAX, UINT64_MAX};
 static uint64_t g_batchGeneration[2];
 static int g_batchActive[2];
 static uint32_t g_palette[256], g_pendingPalette[256];
 
-static int PalettesMatch(const XvtOriginal2d *image, const uint32_t *a,
+static int PalettesMatch(const struct XvtOriginal2d *image, const uint32_t *a,
 			 const uint32_t *b)
 {
 	if (!image->external_palette) {
@@ -55,7 +55,7 @@ static int PalettesMatch(const XvtOriginal2d *image, const uint32_t *a,
 	return 1;
 }
 
-static ImageAsset *Find(uint64_t id)
+static struct ImageAsset *Find(uint64_t id)
 {
 	if (!id) {
 		return NULL;
@@ -68,10 +68,10 @@ static ImageAsset *Find(uint64_t id)
 	return NULL;
 }
 
-static void Release(ImageAsset *image)
+static void Release(struct ImageAsset *image)
 {
 	while (image->variants) {
-		ImageVariant *next = image->variants->next;
+		struct ImageVariant *next = image->variants->next;
 		Aeron_RuntimeAtlasRelease(&image->variants->atlas);
 		free(image->variants);
 		image->variants = next;
@@ -84,13 +84,14 @@ static void Release(ImageAsset *image)
 	memset(image, 0, sizeof *image);
 }
 
-static ImageVariant *FindVariant(ImageAsset *image, const uint32_t palette[256],
-				 uint16_t key, uint16_t alt)
+static struct ImageVariant *FindVariant(struct ImageAsset *image,
+					const uint32_t palette[256],
+					uint16_t key, uint16_t alt)
 {
 	if (!palette) {
 		palette = image->default_palette;
 	}
-	for (ImageVariant *v = image->variants; v; v = v->next) {
+	for (struct ImageVariant *v = image->variants; v; v = v->next) {
 		if (!v->map_style && !v->frontend_kind && v->key == key &&
 		    v->key_alt == alt &&
 		    PalettesMatch(&image->decoded, v->palette, palette)) {
@@ -105,11 +106,11 @@ XvtRemasterAssets_PrepareImage(AeronCommandBuffer *cmd, uint64_t id,
 			       const uint32_t palette[256], uint16_t key,
 			       uint16_t alt)
 {
-	ImageAsset *image = Find(id);
+	struct ImageAsset *image = Find(id);
 	if (!image || !image->decoded.images.count) {
 		return NULL;
 	}
-	ImageVariant *v = FindVariant(image, palette, key, alt);
+	struct ImageVariant *v = FindVariant(image, palette, key, alt);
 	if (v) {
 		return &v->atlas;
 	}
@@ -141,18 +142,20 @@ const AeronRuntimeAtlas *XvtRemasterAssets_Image(uint64_t id,
 						 const uint32_t palette[256],
 						 uint16_t key, uint16_t alt)
 {
-	ImageAsset *image = Find(id);
-	ImageVariant *v = image ? FindVariant(image, palette, key, alt) : NULL;
+	struct ImageAsset *image = Find(id);
+	struct ImageVariant *v =
+		image ? FindVariant(image, palette, key, alt) : NULL;
 	return v && v->committed ? &v->atlas : NULL;
 }
 
-const XvtFontAtlas *XvtRemasterAssets_Font(uint64_t id, int shadow)
+const struct XvtFontAtlas *XvtRemasterAssets_Font(uint64_t id, int shadow)
 {
-	ImageAsset *image = Find(id);
+	struct ImageAsset *image = Find(id);
 	if (!image || image->pending_new) {
 		return NULL;
 	}
-	const XvtFontAtlas *font = shadow ? &image->shadow : &image->foreground;
+	const struct XvtFontAtlas *font =
+		shadow ? &image->shadow : &image->foreground;
 	return font->atlas.loaded ? font : NULL;
 }
 
@@ -168,7 +171,7 @@ static uint32_t DecodeFrontendColor(uint32_t color, int pixel_format_555)
 	return 0xff000000u | (red << 16) | (green << 8) | blue;
 }
 
-static unsigned GetFrontendVariantKind(const XvtSnapSprite *sprite)
+static unsigned GetFrontendVariantKind(const struct XvtSnapSprite *sprite)
 {
 	/* Translucency is applied by the compositor to the keyed image. */
 	return 1 + (sprite->kind == XVT_SPRITE_FRONT_TRANSLUCENT
@@ -176,11 +179,12 @@ static unsigned GetFrontendVariantKind(const XvtSnapSprite *sprite)
 			    : sprite->kind);
 }
 
-static ImageVariant *FindFrontendVariant(const ImageAsset *image,
-					 const XvtSnapSprite *sprite)
+static struct ImageVariant *
+FindFrontendVariant(const struct ImageAsset *image,
+		    const struct XvtSnapSprite *sprite)
 {
 	unsigned kind = GetFrontendVariantKind(sprite);
-	for (ImageVariant *variant = image->variants; variant;
+	for (struct ImageVariant *variant = image->variants; variant;
 	     variant = variant->next) {
 		if (variant->frontend_kind == kind &&
 		    variant->tint_color == sprite->tint_color) {
@@ -191,25 +195,25 @@ static ImageVariant *FindFrontendVariant(const ImageAsset *image,
 }
 
 const AeronRuntimeAtlas *
-XvtRemasterAssets_FindFrontendImage(const XvtSnapSprite *sprite)
+XvtRemasterAssets_FindFrontendImage(const struct XvtSnapSprite *sprite)
 {
-	const ImageAsset *image = Find(sprite->asset_id);
-	const ImageVariant *variant =
+	const struct ImageAsset *image = Find(sprite->asset_id);
+	const struct ImageVariant *variant =
 		image ? FindFrontendVariant(image, sprite) : NULL;
 	return variant && variant->committed ? &variant->atlas : NULL;
 }
 
 int XvtRemasterAssets_PrepareFrontendImage(AeronCommandBuffer *cmd,
-					   const XvtSnapSprite *sprite)
+					   const struct XvtSnapSprite *sprite)
 {
-	ImageAsset *image = Find(sprite->asset_id);
+	struct ImageAsset *image = Find(sprite->asset_id);
 	if (!image || !image->decoded.images.count) {
 		return 0;
 	}
 	if (FindFrontendVariant(image, sprite)) {
 		return 1;
 	}
-	ImageVariant *variant = calloc(1, sizeof *variant);
+	struct ImageVariant *variant = calloc(1, sizeof *variant);
 	if (!variant) {
 		return 0;
 	}
@@ -252,8 +256,8 @@ int XvtRemasterAssets_PrepareFrontendImage(AeronCommandBuffer *cmd,
 	return 1;
 }
 
-static int MapPaletteMatches(const ImageAsset *image,
-			     const ImageVariant *variant,
+static int MapPaletteMatches(const struct ImageAsset *image,
+			     const struct ImageVariant *variant,
 			     const uint32_t palette[256], int remap)
 {
 	for (unsigned index = 0; index < 256; ++index) {
@@ -271,19 +275,19 @@ const AeronRuntimeAtlas *
 XvtRemasterAssets_PrepareMapIcons(AeronCommandBuffer *cmd, uint64_t id,
 				  const uint32_t palette[256], int remap)
 {
-	ImageAsset *image = Find(id);
+	struct ImageAsset *image = Find(id);
 	if (!image || !image->decoded.panel_bytes) {
 		return NULL;
 	}
 	unsigned style = remap ? 2 : 1;
-	for (ImageVariant *variant = image->variants; variant;
+	for (struct ImageVariant *variant = image->variants; variant;
 	     variant = variant->next) {
 		if (variant->map_style == style &&
 		    MapPaletteMatches(image, variant, palette, remap)) {
 			return &variant->atlas;
 		}
 	}
-	ImageVariant *variant = calloc(1, sizeof *variant);
+	struct ImageVariant *variant = calloc(1, sizeof *variant);
 	if (!variant) {
 		return NULL;
 	}
@@ -300,16 +304,16 @@ XvtRemasterAssets_PrepareMapIcons(AeronCommandBuffer *cmd, uint64_t id,
 	return &variant->atlas;
 }
 
-const XvtOriginal2d *XvtRemasterAssets_FindDecodedImage(uint64_t id)
+const struct XvtOriginal2d *XvtRemasterAssets_FindDecodedImage(uint64_t id)
 {
-	const ImageAsset *image = Find(id);
+	const struct ImageAsset *image = Find(id);
 	return image ? &image->decoded : NULL;
 }
 
-static int Load(AeronCommandBuffer *cmd, const XvtSnapImageAsset *source,
-		const XvtRenderSnapshot *snapshot, int is_texture)
+static int Load(AeronCommandBuffer *cmd, const struct XvtSnapImageAsset *source,
+		const struct XvtRenderSnapshot *snapshot, int is_texture)
 {
-	ImageAsset *image = Find(source->id);
+	struct ImageAsset *image = Find(source->id);
 	if (image) {
 		image->seen_generation = g_batchGeneration[is_texture];
 		if (image->kind == XVT_IMAGE_BMP ||
@@ -354,7 +358,7 @@ static int Load(AeronCommandBuffer *cmd, const XvtSnapImageAsset *source,
 	memcpy(image->default_palette, snapshot->flight_palette_argb,
 	       sizeof image->default_palette);
 	if (source->kind == XVT_IMAGE_BMP) {
-		XvtFrontendImageColors colors;
+		struct XvtFrontendImageColors colors;
 		if (!XvtRenderAssets_CopyFrontendColors(source->id, &colors)) {
 			Aeron_CommandBufferSetFailure(
 				cmd, "frontend image color table unavailable");
@@ -427,18 +431,18 @@ int XvtRemasterAssets_Init(void)
 	return 1;
 }
 
-int XvtRemasterAssets_ImagesNeedSync(const XvtRenderSnapshot *snapshot)
+int XvtRemasterAssets_ImagesNeedSync(const struct XvtRenderSnapshot *snapshot)
 {
 	return snapshot && snapshot->image_asset_generation != g_generations[0];
 }
 
-int XvtRemasterAssets_TexturesNeedSync(const XvtRenderSnapshot *s)
+int XvtRemasterAssets_TexturesNeedSync(const struct XvtRenderSnapshot *s)
 {
 	return s && s->texture_asset_generation != g_generations[1];
 }
 
 int XvtRemasterAssets_SyncImages(AeronCommandBuffer *cmd,
-				 const XvtRenderSnapshot *s)
+				 const struct XvtRenderSnapshot *s)
 {
 	if (!XvtRemasterAssets_ImagesNeedSync(s)) {
 		return 1;
@@ -461,7 +465,7 @@ int XvtRemasterAssets_SyncImages(AeronCommandBuffer *cmd,
 }
 
 int XvtRemasterAssets_SyncTextures(AeronCommandBuffer *cmd,
-				   const XvtRenderSnapshot *s)
+				   const struct XvtRenderSnapshot *s)
 {
 	if (!XvtRemasterAssets_TexturesNeedSync(s)) {
 		return 1;
@@ -474,7 +478,7 @@ int XvtRemasterAssets_SyncTextures(AeronCommandBuffer *cmd,
 	g_batchActive[1] = 1;
 	g_batchGeneration[1] = s->texture_asset_generation;
 	for (unsigned i = 0; i < s->texture_asset_count; ++i) {
-		XvtSnapImageAsset source = {0};
+		struct XvtSnapImageAsset source = {0};
 		source.id = s->texture_assets[i].id;
 		memcpy(source.path, s->texture_assets[i].path,
 		       sizeof source.path);
@@ -488,7 +492,7 @@ int XvtRemasterAssets_SyncTextures(AeronCommandBuffer *cmd,
 static void Commit(int is_texture)
 {
 	for (unsigned i = 0; i < sizeof g_images / sizeof g_images[0]; ++i) {
-		ImageAsset *image = &g_images[i];
+		struct ImageAsset *image = &g_images[i];
 		if (!image->id || image->is_texture != is_texture) {
 			continue;
 		}
@@ -498,7 +502,7 @@ static void Commit(int is_texture)
 			continue;
 		}
 		image->pending_new = 0;
-		for (ImageVariant *variant = image->variants; variant;
+		for (struct ImageVariant *variant = image->variants; variant;
 		     variant = variant->next) {
 			variant->committed = 1;
 		}
@@ -519,7 +523,7 @@ void XvtRemasterAssets_CommitTextures(void) { Commit(1); }
 void XvtRemasterAssets_Abort(void)
 {
 	for (unsigned i = 0; i < sizeof g_images / sizeof g_images[0]; ++i) {
-		ImageAsset *image = &g_images[i];
+		struct ImageAsset *image = &g_images[i];
 		if (image->pending_new) {
 			Release(image);
 			continue;
@@ -528,9 +532,9 @@ void XvtRemasterAssets_Abort(void)
 			memcpy(image->default_palette, g_palette,
 			       sizeof image->default_palette);
 		}
-		ImageVariant **link = &image->variants;
+		struct ImageVariant **link = &image->variants;
 		while (*link) {
-			ImageVariant *v = *link;
+			struct ImageVariant *v = *link;
 			if (!v->committed) {
 				*link = v->next;
 				Aeron_RuntimeAtlasRelease(&v->atlas);

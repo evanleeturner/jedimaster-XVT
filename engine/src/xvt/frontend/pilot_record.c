@@ -91,7 +91,7 @@ int g_pilotRecordPage = 0;
  * many functions write it, chiefly FeDiskIo_CommitFlightResults with each
  * mission's results. An empty name means no pilot is loaded. */
 // GLOBAL: XVT 0xB6A2E0
-PilotData g_pilotData;
+struct PilotData g_pilotData;
 /* Records read into g_campaignAwardSprites. Set by
  * PilotRecord_LoadCampaignAwardSpriteTable; set to 0 when GameMain or, in the
  * modern build, XvtFrontendTask_Shutdown frees the table. */
@@ -103,7 +103,7 @@ unsigned int g_campaignAwardSpriteCount = 0;
  * XvtFrontendTask_Shutdown frees it. NULL until loaded or when loading failed;
  * the campaign medals page then draws only its title. */
 // GLOBAL: XVT 0xB69CD8
-CampaignAwardSpriteEntry *g_campaignAwardSprites = NULL;
+struct CampaignAwardSpriteEntry *g_campaignAwardSprites = NULL;
 /* Single-player mission awards of the last campaign
  * PilotRecord_DrawCampaignMedalsPage looked at when it rebuilt: the campaign's
  * missions flown that are award eligible. That page draws the single-player
@@ -328,7 +328,7 @@ int g_pilotMpCampaignHistoryRowCount = -1;
 /* Screen position of each rating's rank sprite (rank0 to rank24) on the pilot
  * rating page, by rating from target drone (0) to Jedi Master (24). */
 // GLOBAL: XVT 0x52B018
-POINT g_pilotRatingIconPos[25] = {
+struct POINT g_pilotRatingIconPos[25] = {
 	{364, 397}, {364, 381}, {364, 365}, {364, 349}, {197, 397},
 	{197, 381}, {197, 365}, {197, 349}, {364, 322}, {364, 306},
 	{364, 290}, {364, 274}, {197, 322}, {197, 306}, {197, 290},
@@ -360,8 +360,8 @@ POINT g_pilotRatingIconPos[25] = {
 // FUNCTION: XVT 0x4BEA50
 int PilotRecord_UpdatePilotSelectionPanel(int frameCounter)
 {
-	RECT rect;
-	FrontendFileListNode *node;
+	struct RECT rect;
+	struct FrontendFileListNode *node;
 	int selectedIndex;
 	int pilotIndex;
 	int accepted;
@@ -681,10 +681,10 @@ int PilotRecord_UpdatePilotSelectionPanel(int frameCounter)
  * clicked row's pilot index plus 1 on a left or right click, else 0; also 0,
  * drawing nothing, when g_pilotFileList or g_pilotListDisplayNames is NULL. */
 // FUNCTION: XVT 0x4BEF80
-int PilotRecord_DrawPilotList(const RECT *bounds, int firstVisibleIndex)
+int PilotRecord_DrawPilotList(const struct RECT *bounds, int firstVisibleIndex)
 {
-	RECT rect;
-	RECT previousClipRect;
+	struct RECT rect;
+	struct RECT previousClipRect;
 	int mouseX;
 	int mouseY;
 	int selectedIndex;
@@ -780,7 +780,7 @@ int PilotRecord_DrawPilotList(const RECT *bounds, int firstVisibleIndex)
 // FUNCTION: XVT 0x4BF100
 int PilotRecord_RebuildPilotList(int *selectedIndex)
 {
-	FrontendFileListNode *node;
+	struct FrontendFileListNode *node;
 	int displayOffset;
 	int pilotIndex;
 
@@ -892,7 +892,7 @@ int PilotRecord_DrawPilotStatisticsPage(void)
 		CRAFT_NAME_STRING_BASE = 21,
 	};
 
-	RECT rect;
+	struct RECT rect;
 	int missionType;
 	int craftType;
 	int rating;
@@ -2417,8 +2417,8 @@ int PilotRecord_DrawPilotStatisticsPage(void)
 // FUNCTION: XVT 0x4C3590
 int PilotRecord_DrawMissionAchievementsPage(void)
 {
-	RECT rect;
-	RECT previousClipRect;
+	struct RECT rect;
+	struct RECT previousClipRect;
 	const char *awardSpriteFormat;
 	int listIndex;
 	int childListIndex;
@@ -5858,10 +5858,10 @@ int PilotRecord_DrawMissionAchievementsPage(void)
 // FUNCTION: XVT 0x4C7CC0
 int PilotRecord_DrawCutsceneViewerPage(void)
 {
-	RECT rect;
-	RECT textRect;
-	RECT previousClipRect;
-	MissionListEntry *campaignEntry;
+	struct RECT rect;
+	struct RECT textRect;
+	struct RECT previousClipRect;
+	struct MissionListEntry *campaignEntry;
 	int campaignIndex;
 	unsigned int cutsceneIndex;
 	unsigned int searchIndex;
@@ -6212,9 +6212,9 @@ int PilotRecord_DrawCutsceneViewerPage(void)
 // FUNCTION: XVT 0x4C83A0
 int PilotRecord_DrawCampaignMedalsPage(void)
 {
-	RECT rect;
-	RECT awardRect;
-	MissionListEntry *campaignEntry;
+	struct RECT rect;
+	struct RECT awardRect;
+	struct MissionListEntry *campaignEntry;
 	int *campaignId;
 	unsigned int campaignIndex;
 	unsigned int trainingMissionIndex;
@@ -6587,7 +6587,7 @@ int PilotRecord_DrawCampaignMedalsPage(void)
 // FUNCTION: XVT 0x4C8990
 int PilotRecord_DrawPilotAwardsPage(void)
 {
-	RECT rect;
+	struct RECT rect;
 	int y;
 	int awardIndex;
 	int factionId;
@@ -6774,7 +6774,7 @@ int PilotRecord_DrawPilotAwardsPage(void)
 // FUNCTION: XVT 0x4C90C0
 int PilotRecord_DrawPilotRatingPage(void)
 {
-	RECT rect;
+	struct RECT rect;
 	int ratingIndex;
 	int mouseX;
 	int mouseY;
@@ -6881,7 +6881,7 @@ int PilotRecord_DrawPilotRatingPage(void)
 	for (ratingIndex = PILOT_RATING_TRAINEE;
 	     (unsigned)ratingIndex <= (unsigned)g_pilotData.rating;
 	     ++ratingIndex) {
-		POINT *icon = &g_pilotRatingIconPos[ratingIndex];
+		struct POINT *icon = &g_pilotRatingIconPos[ratingIndex];
 		sprintf(g_frontendScratchBuffer, "rank%d", ratingIndex);
 		FrontImage_DrawSprite(g_frontendScratchBuffer, icon->x,
 				      icon->y);
@@ -6917,7 +6917,7 @@ int PilotRecord_DrawPilotRatingPage(void)
 // FUNCTION: XVT 0x4C9660
 int PilotRecord_UpdateNavigationControls(void)
 {
-	RECT rect;
+	struct RECT rect;
 	FrontendNavigationSlotState slotStates[8] = {
 		FRONTEND_NAVIGATION_SLOT_ACTIVE,
 		FRONTEND_NAVIGATION_SLOT_ACTIVE,
@@ -7180,7 +7180,7 @@ int PilotRecord_LoadCampaignAwardSpriteTable(const char *fileName)
 #ifdef XVT_MODERN
 	recordCapacity = recordCountOrIndex;
 #endif
-	g_campaignAwardSprites = (CampaignAwardSpriteEntry *)malloc(
+	g_campaignAwardSprites = (struct CampaignAwardSpriteEntry *)malloc(
 		sizeof(*g_campaignAwardSprites) * recordCountOrIndex);
 	if (g_campaignAwardSprites == NULL) {
 #ifdef XVT_MODERN

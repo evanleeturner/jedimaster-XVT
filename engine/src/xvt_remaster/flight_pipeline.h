@@ -19,8 +19,8 @@ void XvtFlightPipeline_Post(AeronScene3D *scene, float shutter, int motion);
  * previous view-projection when regenerating, the current one when not, none on reset). Returns 0 when
  * the scene's Begin or the sampler fails. */
 int XvtFlightPipeline_Begin(AeronScene3D *scene,
-			    const XvtRenderSnapshot *snapshot,
-			    const XvtPreparedFlight *frame, int reset);
+			    const struct XvtRenderSnapshot *snapshot,
+			    const struct XvtPreparedFlight *frame, int reset);
 /* Renders scene and resolves its color with bloom on. Returns 0 on failure. */
 int XvtFlightPipeline_Finish(AeronCommandBuffer *cmd, AeronScene3D *scene);
 /* Makes color, width x height, the frame's source: ensures the present chain, sampler, bloom and target

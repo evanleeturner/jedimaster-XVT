@@ -56,7 +56,7 @@ char (*g_pilotListDisplayNames)[14] = NULL;
  * MissionSetup_LoadMissionList. Freed and set NULL by Concourse_Exit and
  * before each reload. */
 // GLOBAL: XVT 0xB69CD4
-MissionListEntry *g_pilotRecordTournamentMissionList = NULL;
+struct MissionListEntry *g_pilotRecordTournamentMissionList = NULL;
 /* Entries in g_pilotRecordMeleeMissionList, set when it loads; freeing the
  * list leaves the count as it was. */
 // GLOBAL: XVT 0xB69E20
@@ -65,21 +65,21 @@ int g_pilotRecordMeleeMissionCount = 0;
  * PilotRecord_RebuildPilotList builds it. Freed and set NULL by
  * Concourse_Exit and before each rebuild. */
 // GLOBAL: XVT 0xB69E28
-FrontendFileList *g_pilotFileList = NULL;
+struct FrontendFileList *g_pilotFileList = NULL;
 /* The combat engagements directory's single-player mission list for the
  * pilot record pages, loaded like g_pilotRecordTournamentMissionList. */
 // GLOBAL: XVT 0xB69E2C
-MissionListEntry *g_pilotRecordSingleplayerCombatMissionList = NULL;
+struct MissionListEntry *g_pilotRecordSingleplayerCombatMissionList = NULL;
 /* The campaigns directory's multiplayer mission list for the pilot record
  * pages: loaded like g_pilotRecordTournamentMissionList, but with
  * g_frontendMissionSessionMode at the network host mode during the load. */
 // GLOBAL: XVT 0xB6A240
-MissionListEntry *g_pilotRecordMultiplayerCampaignMissionList = NULL;
+struct MissionListEntry *g_pilotRecordMultiplayerCampaignMissionList = NULL;
 /* The campaigns directory's single-player mission list for the pilot record
  * pages, loaded like g_pilotRecordTournamentMissionList, and also by
  * PilotRecord_DrawCutsceneViewerPage and PilotRecord_DrawCampaignMedalsPage. */
 // GLOBAL: XVT 0xB6A258
-MissionListEntry *g_pilotRecordSingleplayerCampaignMissionList = NULL;
+struct MissionListEntry *g_pilotRecordSingleplayerCampaignMissionList = NULL;
 /* Entries in g_pilotRecordSingleplayerCampaignMissionList, set when it
  * loads; freeing the list leaves the count as it was. */
 // GLOBAL: XVT 0xB6A25C
@@ -91,21 +91,21 @@ int g_pilotRecordSingleplayerCombatMissionCount = 0;
 /* The combat engagements directory's multiplayer mission list for the pilot
  * record pages, loaded like g_pilotRecordMultiplayerCampaignMissionList. */
 // GLOBAL: XVT 0xB6A2B8
-MissionListEntry *g_pilotRecordMultiplayerCombatMissionList = NULL;
+struct MissionListEntry *g_pilotRecordMultiplayerCombatMissionList = NULL;
 /* The training exercises directory's multiplayer mission list for the pilot
  * record pages, loaded like g_pilotRecordMultiplayerCampaignMissionList and
  * also by PilotRecord_DrawCampaignMedalsPage. */
 // GLOBAL: XVT 0xB6A2CC
-MissionListEntry *g_pilotRecordMultiplayerTrainingMissionList = NULL;
+struct MissionListEntry *g_pilotRecordMultiplayerTrainingMissionList = NULL;
 /* The melees directory's mission list for the pilot record pages, loaded
  * like g_pilotRecordTournamentMissionList. */
 // GLOBAL: XVT 0xB6A2D0
-MissionListEntry *g_pilotRecordMeleeMissionList = NULL;
+struct MissionListEntry *g_pilotRecordMeleeMissionList = NULL;
 /* The training exercises directory's single-player mission list for the
  * pilot record pages, loaded like g_pilotRecordTournamentMissionList and also
  * by PilotRecord_DrawCampaignMedalsPage. */
 // GLOBAL: XVT 0xB6A2D4
-MissionListEntry *g_pilotRecordSingleplayerTrainingMissionList = NULL;
+struct MissionListEntry *g_pilotRecordSingleplayerTrainingMissionList = NULL;
 /* Entries in g_pilotRecordSingleplayerTrainingMissionList, set when it
  * loads; freeing the list leaves the count as it was. */
 // GLOBAL: XVT 0xB69D18
@@ -217,7 +217,7 @@ int Concourse_Exit(int frameCounter)
 // FUNCTION: XVT 0x4BE1B0
 int Concourse_Update(int frameCounter)
 {
-	RECT rect;
+	struct RECT rect;
 #ifndef XVT_MODERN
 	char localPlayerInfo[2];
 	int localPlayerId;

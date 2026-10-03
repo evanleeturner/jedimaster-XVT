@@ -24,14 +24,15 @@ typedef enum XvtInputInsertStatus {
  * unknown flags, a throttle without its flag, or a corrupt count. */
 XvtInputInsertStatus
 XvtFlightHistory_Insert(unsigned player, int tick,
-			const FlightInputFrameRecord *input, InputFrame **out);
+			const struct FlightInputFrameRecord *input,
+			struct InputFrame **out);
 /* Insert for received input: a full history first drops its predicted frames and retries. A new
  * frame is marked authoritative and unapplied, or real, and applied on the host. An authoritative
  * duplicate must match the frames already at tick, which then become authoritative and unapplied;
  * a mismatch logs an error and returns CONFLICT. Otherwise returns Insert's status. */
 XvtInputInsertStatus
 XvtFlightHistory_InsertReal(unsigned player, int tick,
-			    const FlightInputFrameRecord *input,
+			    const struct FlightInputFrameRecord *input,
 			    int authoritative);
 
 /* Clears the step, pause and replay state and the prediction fallback. */

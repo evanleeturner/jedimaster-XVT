@@ -135,7 +135,7 @@ static void CheckSplit(void)
 static void CheckLoadsConfig(void)
 {
 	/* Prepare loads the config: the game config is what the config load makes of the settings. */
-	static GameConfig loaded;
+	static struct GameConfig loaded;
 	Fixture_Begin();
 	Fixture_Load();
 	memset(&g_gameConfig, 0xAB, sizeof g_gameConfig);

@@ -33,15 +33,15 @@
 
 enum { LOCAL = 0, BYPASS = 9, BACKGROUND = 4 };
 
-static XvtCockpitState g_out, g_expected;
-static XvtSnapPreview g_crt;
+static struct XvtCockpitState g_out, g_expected;
+static struct XvtSnapPreview g_crt;
 static uint8_t g_framebuffer[16];
 
 static void Palette(void)
 {
 	for (unsigned index = 0; index < 256; ++index) {
-		g_swPalette[index] = (RgbTriplet){(uint8_t)(index & 63),
-						  (uint8_t)(index >> 6), 7};
+		g_swPalette[index] = (struct RgbTriplet){
+			(uint8_t)(index & 63), (uint8_t)(index >> 6), 7};
 	}
 }
 
@@ -69,16 +69,16 @@ static void World(void)
 	memset(g_hudElementLayouts, 0, sizeof g_hudElementLayouts);
 	g_hudInstrumentSetBaseIndex = HUD_COCKPIT_INSTRUMENT_BASE_INDEX;
 	g_hudElementLayouts[HUD_MFD_GOALS_ELEMENT] =
-		(HudElementLayout){.x = 10, .y = 20};
+		(struct HudElementLayout){.x = 10, .y = 20};
 	g_hudElementLayouts[HUD_MFD_DAMAGE_ELEMENT] =
-		(HudElementLayout){.x = 30, .y = 40};
+		(struct HudElementLayout){.x = 30, .y = 40};
 	g_hudElementLayouts[HUD_MFD_MAP_OR_COMMAND_ELEMENT] =
-		(HudElementLayout){.x = 50,
-				   .y = 60,
-				   .clipWidth = 70,
-				   .clipHeightOrForegroundColor = 80};
+		(struct HudElementLayout){.x = 50,
+					  .y = 60,
+					  .clipWidth = 70,
+					  .clipHeightOrForegroundColor = 80};
 	g_hudElementLayouts[HUD_MFD_MESSAGE_LOG_ELEMENT] =
-		(HudElementLayout){.x = 90, .y = 100};
+		(struct HudElementLayout){.x = 90, .y = 100};
 	memset(g_mfdPageStates, 0, sizeof g_mfdPageStates);
 	g_mfdActivePage = MFD_PAGE_NONE;
 	g_mfdGoalsBlitWidth = 50;
@@ -117,7 +117,7 @@ static void World(void)
 	g_crt.mask_index = 2;
 }
 
-static const XvtCockpitState *Presented(void)
+static const struct XvtCockpitState *Presented(void)
 {
 	XvtCockpit_Export(&g_out);
 	return &g_out;
@@ -131,7 +131,7 @@ static void Compose(void)
 	XvtCockpit_LatchComposition();
 }
 
-static const XvtCockpitState *SealAndPresent(void)
+static const struct XvtCockpitState *SealAndPresent(void)
 {
 	XvtCockpit_Seal(&g_crt);
 	XvtCockpit_Presented(0);
@@ -140,7 +140,7 @@ static const XvtCockpitState *SealAndPresent(void)
 
 static void CheckCopyState(void)
 {
-	static XvtCockpitState source, destination;
+	static struct XvtCockpitState source, destination;
 	memset(&source, 0x11, sizeof source);
 	memset(&destination, 0xCD, sizeof destination);
 	source.page_content.row_count = 2;
@@ -148,14 +148,15 @@ static void CheckCopyState(void)
 	source.overlay_content.glyph_count = 2;
 	XvtCockpit_CopyState(&destination, &source);
 
-	XVT_ASSERT_INT_EQ(memcmp(&destination, &source,
-				 offsetof(XvtCockpitState, page_content)),
-			  0);
+	XVT_ASSERT_INT_EQ(
+		memcmp(&destination, &source,
+		       offsetof(struct XvtCockpitState, page_content)),
+		0);
 	XVT_ASSERT_INT_EQ(destination.page_content.row_count, 2);
 	XVT_ASSERT_INT_EQ(destination.page_content.glyph_count, 3);
 	XVT_ASSERT_INT_EQ(destination.overlay_content.glyph_count, 2);
-	const XvtCockpitPageStore *from = &source.page_content;
-	XvtCockpitPageStore *to = &destination.page_content;
+	const struct XvtCockpitPageStore *from = &source.page_content;
+	struct XvtCockpitPageStore *to = &destination.page_content;
 	XVT_ASSERT_INT_EQ(memcmp(to->rows, from->rows, 2 * sizeof to->rows[0]),
 			  0);
 	XVT_ASSERT_INT_EQ(
@@ -183,7 +184,7 @@ static void CheckComposeSealPresent(void)
 {
 	World();
 	Compose();
-	const XvtCockpitState *state = SealAndPresent();
+	const struct XvtCockpitState *state = SealAndPresent();
 	XVT_ASSERT_INT_EQ(state->valid, 1);
 	XVT_ASSERT_TRUE(state->presentation_serial != 0);
 	/* The sealed CRT is the one handed in. */
@@ -259,7 +260,7 @@ static void CheckWorkingFollowsLayout(void)
 
 	XvtRenderAssets_CaptureCockpit(0);
 	Compose();
-	const XvtCockpitState *state = SealAndPresent();
+	const struct XvtCockpitState *state = SealAndPresent();
 	XVT_ASSERT_INT_EQ(state->valid, 1);
 	XVT_ASSERT_INT_EQ(state->view.screen_width, 640);
 
@@ -313,9 +314,10 @@ static void CheckReset(void)
 	XVT_ASSERT_INT_EQ(SealAndPresent()->valid, 1);
 
 	XvtCockpit_Reset();
-	const XvtCockpitState *state = Presented();
+	const struct XvtCockpitState *state = Presented();
 	XVT_ASSERT_INT_EQ(
-		AllZero(state, offsetof(XvtCockpitState, page_content)), 1);
+		AllZero(state, offsetof(struct XvtCockpitState, page_content)),
+		1);
 	XVT_ASSERT_INT_EQ(state->page_content.glyph_count, 0);
 	XVT_ASSERT_INT_EQ(state->overlay_content.glyph_count, 0);
 	/* The messages were reset with it: the progress bar is gone. */
@@ -329,7 +331,7 @@ static void CheckStandaloneOverlay(void)
 	XvtRenderCockpit_Reset();
 	/* No composition and nothing to show: published, but not valid. */
 	XvtCockpit_Presented(1);
-	const XvtCockpitState *state = Presented();
+	const struct XvtCockpitState *state = Presented();
 	uint64_t serial = state->presentation_serial;
 	XVT_ASSERT_TRUE(serial != 0);
 	XVT_ASSERT_INT_EQ(state->valid, 0);
@@ -364,7 +366,7 @@ static void CheckGenerations(void)
 
 	/* Nothing changed: no generation rises. */
 	XvtCockpit_Presented(1);
-	const XvtCockpitState *state = Presented();
+	const struct XvtCockpitState *state = Presented();
 	XVT_ASSERT_INT_EQ(state->definition_generation,
 			  g_expected.definition_generation);
 	XVT_ASSERT_INT_EQ(state->palette_generation,
@@ -413,7 +415,7 @@ static void CheckLatchPages(void)
 	/* Off the map: open pages are placed except the command page; closed ones and the log are not. */
 	XvtCockpit_LatchPages();
 	XvtCockpit_Presented(1);
-	const XvtCockpitPage *pages = Presented()->pages;
+	const struct XvtCockpitPage *pages = Presented()->pages;
 	XVT_ASSERT_INT_EQ(pages[MFD_PAGE_GOALS].visible, 1);
 	XVT_ASSERT_INT_EQ(pages[MFD_PAGE_DAMAGE].visible, 1);
 	XVT_ASSERT_INT_EQ(pages[MFD_PAGE_MAP_HELP].visible, 0);
@@ -439,7 +441,7 @@ static void CheckSealExportsLatchedPages(void)
 	XvtCockpitPages_EndSection();
 	Compose();
 	XvtCockpit_LatchPages();
-	const XvtCockpitState *state = SealAndPresent();
+	const struct XvtCockpitState *state = SealAndPresent();
 	XVT_ASSERT_INT_EQ(state->valid, 1);
 	XVT_ASSERT_INT_EQ(state->pages[MFD_PAGE_GOALS].visible, 1);
 	XVT_ASSERT_INT_EQ(state->pages[MFD_PAGE_GOALS].glyph_count, 1);
@@ -463,7 +465,8 @@ static void CheckLatchMessages(void)
 	g_mfdPageStates[MFD_PAGE_MESSAGE_LOG] = MFD_PAGE_STATE_OPEN;
 	XvtCockpit_LatchMessages();
 	XvtCockpit_Presented(1);
-	const XvtCockpitPage *page = &Presented()->pages[MFD_PAGE_MESSAGE_LOG];
+	const struct XvtCockpitPage *page =
+		&Presented()->pages[MFD_PAGE_MESSAGE_LOG];
 	XVT_ASSERT_INT_EQ(page->visible, 1);
 	int narrow = page->placement.width;
 	g_flightPlayerCount = 1;
@@ -490,8 +493,8 @@ static void CheckLatchLauncher(void)
 	/* Launchers from 4 up are ignored. */
 	XvtCockpit_LatchLauncher(4, 1, 1, 1, 1);
 	XvtCockpit_Presented(1);
-	const XvtCockpitWeapons *weapons = &Presented()->weapons;
-	const XvtCockpitNumber *count = &weapons->launchers[2].count;
+	const struct XvtCockpitWeapons *weapons = &Presented()->weapons;
+	const struct XvtCockpitNumber *count = &weapons->launchers[2].count;
 	XVT_ASSERT_INT_EQ(weapons->launchers[2].visible, 1);
 	XVT_ASSERT_INT_EQ(count->value, 7);
 	XVT_ASSERT_INT_EQ(count->x, 100);
@@ -530,15 +533,15 @@ static void CheckLatchMessage(void)
 	XvtCockpit_LatchMessage(XVT_COCKPIT_MESSAGE_READY, 40, 55, 300, 400,
 				120, 30);
 	XvtCockpit_Presented(1);
-	const XvtCockpitState *state = Presented();
+	const struct XvtCockpitState *state = Presented();
 	XVT_ASSERT_INT_EQ(
 		state->messages.panes[XVT_COCKPIT_MESSAGE_READY].visible, 1);
 	XVT_ASSERT_INT_EQ(
 		state->messages.panes[XVT_COCKPIT_MESSAGE_READY].placement.x,
 		300);
-	const XvtCockpitTextField *ping =
+	const struct XvtCockpitTextField *ping =
 		&state->text_fields[XVT_COCKPIT_TEXT_NETWORK_PING];
-	const XvtCockpitTextField *lag =
+	const struct XvtCockpitTextField *lag =
 		&state->text_fields[XVT_COCKPIT_TEXT_NETWORK_LAG];
 	XVT_ASSERT_INT_EQ(strcmp(ping->caption.text, "12"), 0);
 	XVT_ASSERT_INT_EQ(ping->x, 70 + (300 - 40));
@@ -610,7 +613,7 @@ static void CheckRetainPresentedFrame(void)
 	XvtCockpit_LatchLauncher(3, 20, 20, 5, 5);
 	XvtCockpit_RetainPresentedFrame();
 	XvtCockpit_Presented(1);
-	const XvtCockpitState *state = Presented();
+	const struct XvtCockpitState *state = Presented();
 	XVT_ASSERT_INT_EQ(state->weapons.launchers[1].visible, 1);
 	XVT_ASSERT_INT_EQ(state->weapons.launchers[3].visible, 0);
 
@@ -625,7 +628,7 @@ static void CheckRetainPresentedFrame(void)
 
 static void CheckExportResourcesRefusals(void)
 {
-	static XvtCockpitResources resources;
+	static struct XvtCockpitResources resources;
 	World();
 	/* Working is invalid. */
 	g_hudCockpitResourcesLoaded = 1;
@@ -651,7 +654,7 @@ static void CheckExportResourcesRefusals(void)
  * the cockpit definition into it before it looks at panel 0, and returns with that definition in place. */
 static void CheckExportResourcesClearedWithoutPanel(void)
 {
-	static XvtCockpitResources resources;
+	static struct XvtCockpitResources resources;
 	World();
 	Compose();
 	g_hudCockpitResourcesLoaded = 1;

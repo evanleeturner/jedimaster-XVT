@@ -72,8 +72,9 @@ static uint8_t g_buttonHeldState[256] = {0};
  * checking that the slot is under 256. unusedColor is passed on and never
  * used. */
 // FUNCTION: XVT 0x4DA650
-int FrontendButton_HandleTextButton(RECT *rect, const char *text, int fontSize,
-				    int unusedColor, int heldStateSlot,
+int FrontendButton_HandleTextButton(struct RECT *rect, const char *text,
+				    int fontSize, int unusedColor,
+				    int heldStateSlot,
 				    const char *clickSoundName)
 {
 	int cursorX;
@@ -122,7 +123,8 @@ int FrontendButton_HandleTextButton(RECT *rect, const char *text, int fontSize,
  * release frame, not checking that the slot is under 256. unusedColor is passed
  * on and never used. */
 // FUNCTION: XVT 0x4DA780
-int FrontendButton_HandleSpriteButton(RECT *rect, const char *normalSprite,
+int FrontendButton_HandleSpriteButton(struct RECT *rect,
+				      const char *normalSprite,
 				      const char *pressedSprite,
 				      const char *tooltipText, int fontSize,
 				      int unusedColor, int heldStateSlot,
@@ -174,11 +176,11 @@ int FrontendButton_HandleSpriteButton(RECT *rect, const char *normalSprite,
  * color is g_frontButtonLightColor, else g_frontButtonDarkColor; the first call
  * computes both. Returns FrontendText_DrawCentered's result. */
 // FUNCTION: XVT 0x4DA8E0
-int FrontendButton_DrawTextButtonState(RECT *rect, const char *text,
+int FrontendButton_DrawTextButtonState(struct RECT *rect, const char *text,
 				       int fontSize, int unusedColor,
 				       char isPressed)
 {
-	RECT innerRect;
+	struct RECT innerRect;
 	int textColor;
 
 	(void)unusedColor;
@@ -226,7 +228,8 @@ int FrontendButton_DrawTextButtonState(RECT *rect, const char *text,
  * fontSize + 5 reaches 480 the top becomes 474 - fontSize. The first call
  * computes the gray. unusedColor is never used. */
 // FUNCTION: XVT 0x4DAA20
-void FrontendButton_DrawSpriteAndTooltip(RECT *rect, const char *spriteName,
+void FrontendButton_DrawSpriteAndTooltip(struct RECT *rect,
+					 const char *spriteName,
 					 const char *tooltipText, int fontSize,
 					 int unusedColor)
 {
@@ -235,7 +238,7 @@ void FrontendButton_DrawSpriteAndTooltip(RECT *rect, const char *spriteName,
 	int cursorWidth;
 	int cursorHeight;
 	int textWidth;
-	RECT tooltipRect;
+	struct RECT tooltipRect;
 
 	(void)unusedColor;
 
@@ -333,7 +336,7 @@ void FrontendButton_DrawEightSlotNavigationState(
  * sets g_buttonOverlayPressedStyle to 0. Moves *rect and moves it back. Returns
  * the second FrontendText_DrawCentered result. */
 // FUNCTION: XVT 0x4DACA0
-int FrontendButton_DrawOverlayText(RECT *rect, const char *str)
+int FrontendButton_DrawOverlayText(struct RECT *rect, const char *str)
 {
 	int result;
 

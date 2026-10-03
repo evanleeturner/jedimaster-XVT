@@ -28,7 +28,7 @@ int g_rotatedZ = 0;
  * type and descriptor. Only ModelMesh_BuildObjectTypeMeshCache fills it, after
  * the flight resources load. */
 // GLOBAL: XVT 0xA00870
-ModelMeshObjectTypeCache g_objectTypeMeshCache[73] = {0};
+struct ModelMeshObjectTypeCache g_objectTypeMeshCache[73] = {0};
 /* Hardpoints passed so far in the current ModelMesh_FindNthHardpointNode
  * search: that function sets it to 0 and
  * ModelMesh_FindNthHardpointNodeRecursive raises it. */
@@ -152,7 +152,7 @@ void ModelMesh_ApplyAnimatedMeshRotationToPoint(int16_t angleQ16,
 int ModelMesh_GetObjectTypeMeshCount(int objectType)
 {
 	uint16_t modelHandle;
-	OptimizedPolyObject *model;
+	struct OptimizedPolyObject *model;
 	int meshCount;
 
 	modelHandle = g_loadedModels[objectType];
@@ -163,7 +163,8 @@ int ModelMesh_GetObjectTypeMeshCount(int objectType)
 		return 0;
 	}
 
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(modelHandle);
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
+		modelHandle);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 	}
@@ -183,9 +184,9 @@ int ModelMesh_GetObjectTypeMeshCount(int objectType)
 /* Returns the first OPT_MESHVERTS node at or below node, depth first, or NULL.
  * Skips NULL child slots and does not follow OPT_NODEREF links. */
 // FUNCTION: XVT 0x4ADCC0
-OptNode *ModelMesh_FindFirstMeshVertsNode(OptNode *node)
+struct OptNode *ModelMesh_FindFirstMeshVertsNode(struct OptNode *node)
 {
-	OptNode *result;
+	struct OptNode *result;
 	int childIndex;
 
 	if (node == 0) {
@@ -212,9 +213,9 @@ OptNode *ModelMesh_FindFirstMeshVertsNode(OptNode *node)
 /* Returns the first OPT_ROTSCALE node at or below node, depth first, or NULL.
  * Skips NULL child slots and does not follow OPT_NODEREF links. */
 // FUNCTION: XVT 0x4ADD10
-OptNode *ModelMesh_FindFirstRotScaleNode(OptNode *node)
+struct OptNode *ModelMesh_FindFirstRotScaleNode(struct OptNode *node)
 {
-	OptNode *result;
+	struct OptNode *result;
 	int childIndex;
 
 	if (node == 0) {
@@ -242,17 +243,18 @@ OptNode *ModelMesh_FindFirstRotScaleNode(OptNode *node)
  * or below node, depth first, or NULL. Skips NULL child slots, does not follow
  * OPT_NODEREF links and ignores model. */
 // FUNCTION: XVT 0x4AE1A0
-MeshDescriptor *
-ModelMesh_FindDescriptorNodeRecursive(OptNode *node, OptimizedPolyObject *model)
+struct MeshDescriptor *
+ModelMesh_FindDescriptorNodeRecursive(struct OptNode *node,
+				      struct OptimizedPolyObject *model)
 {
-	MeshDescriptor *descriptor;
+	struct MeshDescriptor *descriptor;
 	int childIndex;
 
 	if (node == NULL) {
 		return NULL;
 	}
 	if (node->nodeType == OPT_MESHDESC) {
-		return (MeshDescriptor *)node->payload;
+		return (struct MeshDescriptor *)node->payload;
 	}
 
 	for (childIndex = 0; childIndex < node->childCount; ++childIndex) {
@@ -274,11 +276,11 @@ ModelMesh_FindDescriptorNodeRecursive(OptNode *node, OptimizedPolyObject *model)
  * when the first root is an OPT_TEXTURE, cut to the last root; the other
  * ModelMesh getters find a mesh the same way. */
 // FUNCTION: XVT 0x4AE200
-MeshDescriptor *ModelMesh_GetDescriptor(int objectType, int meshIndex)
+struct MeshDescriptor *ModelMesh_GetDescriptor(int objectType, int meshIndex)
 {
 	uint16_t modelHandle;
-	OptimizedPolyObject *model;
-	OptNode **rootNodes;
+	struct OptimizedPolyObject *model;
+	struct OptNode **rootNodes;
 
 	modelHandle = g_loadedModels[objectType];
 	if (modelHandle == 0) {
@@ -291,7 +293,8 @@ MeshDescriptor *ModelMesh_GetDescriptor(int objectType, int meshIndex)
 		return NULL;
 	}
 
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(modelHandle);
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
+		modelHandle);
 	Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
@@ -315,9 +318,9 @@ MeshDescriptor *ModelMesh_GetDescriptor(int objectType, int meshIndex)
 MeshComponentType ModelMesh_GetObjectTypeMeshType(int objectType, int meshIndex)
 {
 	uint16_t modelHandle;
-	OptimizedPolyObject *model;
-	OptNode **rootNodes;
-	MeshDescriptor *descriptor;
+	struct OptimizedPolyObject *model;
+	struct OptNode **rootNodes;
+	struct MeshDescriptor *descriptor;
 
 	modelHandle = g_loadedModels[objectType];
 	if (modelHandle == 0) {
@@ -330,7 +333,8 @@ MeshComponentType ModelMesh_GetObjectTypeMeshType(int objectType, int meshIndex)
 		return MESH_COMPONENT_00_DEFAULT;
 	}
 
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(modelHandle);
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
+		modelHandle);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 	}
@@ -363,17 +367,17 @@ MeshComponentType ModelMesh_GetObjectTypeMeshType(int objectType, int meshIndex)
 // FUNCTION: XVT 0x4AE340
 int ModelMesh_GetVertexCount(int objectType, int meshIndex)
 {
-	OptimizedPolyObject *model;
-	OptNode **rootNodes;
+	struct OptimizedPolyObject *model;
+	struct OptNode **rootNodes;
 	int nodeType;
-	OptNode *vertexNode;
+	struct OptNode *vertexNode;
 	int vertexCount;
 
 	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
 		return 0;
 	}
 
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadedModels[objectType]);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
@@ -402,10 +406,10 @@ int ModelMesh_GetVertexCount(int objectType, int meshIndex)
 // FUNCTION: XVT 0x4AE3C0
 int ModelMesh_GetVertexX(int objectType, int meshIndex, int vertexIndex)
 {
-	OptimizedPolyObject *model;
-	OptNode **rootNodes;
-	OptNode *vertexNode;
-	OptVector *vertices;
+	struct OptimizedPolyObject *model;
+	struct OptNode **rootNodes;
+	struct OptNode *vertexNode;
+	struct OptVector *vertices;
 	int clampedVertexIndex;
 	int result;
 
@@ -413,7 +417,7 @@ int ModelMesh_GetVertexX(int objectType, int meshIndex, int vertexIndex)
 		return 0;
 	}
 
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadedModels[objectType]);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
@@ -428,7 +432,7 @@ int ModelMesh_GetVertexX(int objectType, int meshIndex, int vertexIndex)
 	}
 
 	vertexNode = ModelMesh_FindFirstMeshVertsNode(rootNodes[meshIndex]);
-	vertices = (OptVector *)vertexNode->payload;
+	vertices = (struct OptVector *)vertexNode->payload;
 	clampedVertexIndex = vertexIndex;
 	if (clampedVertexIndex >= vertexNode->payloadCount) {
 		clampedVertexIndex = vertexNode->payloadCount - 1;
@@ -446,10 +450,10 @@ int ModelMesh_GetVertexX(int objectType, int meshIndex, int vertexIndex)
 // FUNCTION: XVT 0x4AE460
 int ModelMesh_GetVertexY(int objectType, int meshIndex, int vertexIndex)
 {
-	OptimizedPolyObject *model;
-	OptNode **rootNodes;
-	OptNode *vertexNode;
-	OptVector *vertices;
+	struct OptimizedPolyObject *model;
+	struct OptNode **rootNodes;
+	struct OptNode *vertexNode;
+	struct OptVector *vertices;
 	int clampedVertexIndex;
 	int result;
 
@@ -457,7 +461,7 @@ int ModelMesh_GetVertexY(int objectType, int meshIndex, int vertexIndex)
 		return 0;
 	}
 
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadedModels[objectType]);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
@@ -472,7 +476,7 @@ int ModelMesh_GetVertexY(int objectType, int meshIndex, int vertexIndex)
 	}
 
 	vertexNode = ModelMesh_FindFirstMeshVertsNode(rootNodes[meshIndex]);
-	vertices = (OptVector *)vertexNode->payload;
+	vertices = (struct OptVector *)vertexNode->payload;
 	clampedVertexIndex = vertexIndex;
 	if (clampedVertexIndex >= vertexNode->payloadCount) {
 		clampedVertexIndex = vertexNode->payloadCount - 1;
@@ -490,10 +494,10 @@ int ModelMesh_GetVertexY(int objectType, int meshIndex, int vertexIndex)
 // FUNCTION: XVT 0x4AE500
 int ModelMesh_GetVertexZ(int objectType, int meshIndex, int vertexIndex)
 {
-	OptimizedPolyObject *model;
-	OptNode **rootNodes;
-	OptNode *vertexNode;
-	OptVector *vertices;
+	struct OptimizedPolyObject *model;
+	struct OptNode **rootNodes;
+	struct OptNode *vertexNode;
+	struct OptVector *vertices;
 	int clampedVertexIndex;
 	int result;
 
@@ -501,7 +505,7 @@ int ModelMesh_GetVertexZ(int objectType, int meshIndex, int vertexIndex)
 		return 0;
 	}
 
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadedModels[objectType]);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
@@ -516,7 +520,7 @@ int ModelMesh_GetVertexZ(int objectType, int meshIndex, int vertexIndex)
 	}
 
 	vertexNode = ModelMesh_FindFirstMeshVertsNode(rootNodes[meshIndex]);
-	vertices = (OptVector *)vertexNode->payload;
+	vertices = (struct OptVector *)vertexNode->payload;
 	clampedVertexIndex = vertexIndex;
 	if (clampedVertexIndex >= vertexNode->payloadCount) {
 		clampedVertexIndex = vertexNode->payloadCount - 1;
@@ -533,9 +537,9 @@ int ModelMesh_GetVertexZ(int objectType, int meshIndex, int vertexIndex)
 // FUNCTION: XVT 0x4AE5A0
 int ModelMesh_GetCenterX(int objectType, int meshIndex)
 {
-	OptimizedPolyObject *model;
-	OptNode **rootNodes;
-	MeshDescriptor *descriptor;
+	struct OptimizedPolyObject *model;
+	struct OptNode **rootNodes;
+	struct MeshDescriptor *descriptor;
 	int nodeIndex;
 	int result;
 
@@ -546,7 +550,7 @@ int ModelMesh_GetCenterX(int objectType, int meshIndex)
 		return 0;
 	}
 
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadedModels[objectType]);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
@@ -579,9 +583,9 @@ int ModelMesh_GetCenterX(int objectType, int meshIndex)
 // FUNCTION: XVT 0x4AE640
 int ModelMesh_GetCenterY(int objectType, int meshIndex)
 {
-	OptimizedPolyObject *model;
-	OptNode **rootNodes;
-	MeshDescriptor *descriptor;
+	struct OptimizedPolyObject *model;
+	struct OptNode **rootNodes;
+	struct MeshDescriptor *descriptor;
 	int rootNodeCount;
 	int result;
 
@@ -592,7 +596,7 @@ int ModelMesh_GetCenterY(int objectType, int meshIndex)
 		return 0;
 	}
 
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadedModels[objectType]);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
@@ -625,9 +629,9 @@ int ModelMesh_GetCenterY(int objectType, int meshIndex)
 // FUNCTION: XVT 0x4AE6E0
 int ModelMesh_GetCenterZ(int objectType, int meshIndex)
 {
-	OptimizedPolyObject *model;
-	OptNode **rootNodes;
-	MeshDescriptor *descriptor;
+	struct OptimizedPolyObject *model;
+	struct OptNode **rootNodes;
+	struct MeshDescriptor *descriptor;
 	int result;
 
 	if (meshIndex < 0) {
@@ -637,7 +641,7 @@ int ModelMesh_GetCenterZ(int objectType, int meshIndex)
 		return 0;
 	}
 
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadedModels[objectType]);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
@@ -668,9 +672,9 @@ int ModelMesh_GetCenterZ(int objectType, int meshIndex)
 // FUNCTION: XVT 0x4AE780
 int ModelMesh_GetBoundsMinX(int objectType, int meshIndex)
 {
-	OptimizedPolyObject *model;
-	OptNode **rootNodes;
-	MeshDescriptor *descriptor;
+	struct OptimizedPolyObject *model;
+	struct OptNode **rootNodes;
+	struct MeshDescriptor *descriptor;
 	int nodeIndex;
 	int result;
 
@@ -681,7 +685,7 @@ int ModelMesh_GetBoundsMinX(int objectType, int meshIndex)
 		return 0;
 	}
 
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadedModels[objectType]);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
@@ -714,9 +718,9 @@ int ModelMesh_GetBoundsMinX(int objectType, int meshIndex)
 // FUNCTION: XVT 0x4AE820
 int ModelMesh_GetBoundsMinY(int objectType, int meshIndex)
 {
-	OptimizedPolyObject *model;
-	OptNode **rootNodes;
-	MeshDescriptor *descriptor;
+	struct OptimizedPolyObject *model;
+	struct OptNode **rootNodes;
+	struct MeshDescriptor *descriptor;
 	int nodeIndex;
 	int result;
 
@@ -727,7 +731,7 @@ int ModelMesh_GetBoundsMinY(int objectType, int meshIndex)
 		return 0;
 	}
 
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadedModels[objectType]);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
@@ -759,9 +763,9 @@ int ModelMesh_GetBoundsMinY(int objectType, int meshIndex)
 // FUNCTION: XVT 0x4AE8C0
 int ModelMesh_GetBoundsMinZ(int objectType, int meshIndex)
 {
-	OptimizedPolyObject *model;
-	OptNode **rootNodes;
-	MeshDescriptor *descriptor;
+	struct OptimizedPolyObject *model;
+	struct OptNode **rootNodes;
+	struct MeshDescriptor *descriptor;
 	int result;
 
 	if (meshIndex < 0) {
@@ -771,7 +775,7 @@ int ModelMesh_GetBoundsMinZ(int objectType, int meshIndex)
 		return 0;
 	}
 
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadedModels[objectType]);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
@@ -802,9 +806,9 @@ int ModelMesh_GetBoundsMinZ(int objectType, int meshIndex)
 // FUNCTION: XVT 0x4AE960
 int ModelMesh_GetBoundsMaxX(int objectType, int meshIndex)
 {
-	OptimizedPolyObject *model;
-	OptNode **rootNodes;
-	MeshDescriptor *descriptor;
+	struct OptimizedPolyObject *model;
+	struct OptNode **rootNodes;
+	struct MeshDescriptor *descriptor;
 	int nodeIndex;
 	int result;
 
@@ -815,7 +819,7 @@ int ModelMesh_GetBoundsMaxX(int objectType, int meshIndex)
 		return 0;
 	}
 
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadedModels[objectType]);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
@@ -848,9 +852,9 @@ int ModelMesh_GetBoundsMaxX(int objectType, int meshIndex)
 // FUNCTION: XVT 0x4AEA00
 int ModelMesh_GetBoundsMaxY(int objectType, int meshIndex)
 {
-	OptimizedPolyObject *model;
-	OptNode **rootNodes;
-	MeshDescriptor *descriptor;
+	struct OptimizedPolyObject *model;
+	struct OptNode **rootNodes;
+	struct MeshDescriptor *descriptor;
 	int result;
 
 	if (meshIndex < 0) {
@@ -860,7 +864,7 @@ int ModelMesh_GetBoundsMaxY(int objectType, int meshIndex)
 		return 0;
 	}
 
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadedModels[objectType]);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
@@ -891,9 +895,9 @@ int ModelMesh_GetBoundsMaxY(int objectType, int meshIndex)
 // FUNCTION: XVT 0x4AEAA0
 int ModelMesh_GetBoundsMaxZ(int objectType, int meshIndex)
 {
-	OptimizedPolyObject *model;
-	OptNode **rootNodes;
-	MeshDescriptor *descriptor;
+	struct OptimizedPolyObject *model;
+	struct OptNode **rootNodes;
+	struct MeshDescriptor *descriptor;
 	int result;
 
 	if (meshIndex < 0) {
@@ -903,7 +907,7 @@ int ModelMesh_GetBoundsMaxZ(int objectType, int meshIndex)
 		return 0;
 	}
 
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadedModels[objectType]);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
@@ -934,9 +938,9 @@ int ModelMesh_GetBoundsMaxZ(int objectType, int meshIndex)
 // FUNCTION: XVT 0x4AEB40
 int ModelMesh_GetTargetId(int objectType, int meshIndex)
 {
-	OptimizedPolyObject *model;
-	OptNode **rootNodes;
-	MeshDescriptor *descriptor;
+	struct OptimizedPolyObject *model;
+	struct OptNode **rootNodes;
+	struct MeshDescriptor *descriptor;
 
 	if (meshIndex < 0) {
 		return 0;
@@ -945,7 +949,7 @@ int ModelMesh_GetTargetId(int objectType, int meshIndex)
 		return 0;
 	}
 
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadedModels[objectType]);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
@@ -979,9 +983,9 @@ int ModelMesh_GetTargetId(int objectType, int meshIndex)
 // FUNCTION: XVT 0x4AEBE0
 int ModelMesh_GetComponentFocusX(int objectType, int meshIndex)
 {
-	OptimizedPolyObject *model;
-	OptNode **rootNodes;
-	MeshDescriptor *descriptor;
+	struct OptimizedPolyObject *model;
+	struct OptNode **rootNodes;
+	struct MeshDescriptor *descriptor;
 	int value;
 
 	if (meshIndex < 0) {
@@ -991,7 +995,7 @@ int ModelMesh_GetComponentFocusX(int objectType, int meshIndex)
 		return 0;
 	}
 
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadedModels[objectType]);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
@@ -1027,9 +1031,9 @@ int ModelMesh_GetComponentFocusX(int objectType, int meshIndex)
 // FUNCTION: XVT 0x4AEC90
 int ModelMesh_GetComponentFocusY(int objectType, int meshIndex)
 {
-	OptimizedPolyObject *model;
-	OptNode **rootNodes;
-	MeshDescriptor *descriptor;
+	struct OptimizedPolyObject *model;
+	struct OptNode **rootNodes;
+	struct MeshDescriptor *descriptor;
 	int value;
 
 	if (meshIndex < 0) {
@@ -1039,7 +1043,7 @@ int ModelMesh_GetComponentFocusY(int objectType, int meshIndex)
 		return 0;
 	}
 
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadedModels[objectType]);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
@@ -1075,9 +1079,9 @@ int ModelMesh_GetComponentFocusY(int objectType, int meshIndex)
 // FUNCTION: XVT 0x4AED40
 int ModelMesh_GetComponentFocusZ(int objectType, int meshIndex)
 {
-	OptimizedPolyObject *model;
-	OptNode **rootNodes;
-	MeshDescriptor *descriptor;
+	struct OptimizedPolyObject *model;
+	struct OptNode **rootNodes;
+	struct MeshDescriptor *descriptor;
 	int value;
 
 	if (meshIndex < 0) {
@@ -1087,7 +1091,7 @@ int ModelMesh_GetComponentFocusZ(int objectType, int meshIndex)
 		return 0;
 	}
 
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadedModels[objectType]);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
@@ -1123,9 +1127,9 @@ int ModelMesh_GetComponentFocusZ(int objectType, int meshIndex)
 // FUNCTION: XVT 0x4AEDF0
 int ModelMesh_GetComponentMaxExtent(int objectType, int meshIndex)
 {
-	OptimizedPolyObject *model;
-	OptNode **rootNodes;
-	MeshDescriptor *descriptor;
+	struct OptimizedPolyObject *model;
+	struct OptNode **rootNodes;
+	struct MeshDescriptor *descriptor;
 	int extentX;
 	int extentY;
 	int extentZ;
@@ -1136,7 +1140,7 @@ int ModelMesh_GetComponentMaxExtent(int objectType, int meshIndex)
 	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
 		return 0;
 	}
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadedModels[objectType]);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
@@ -1173,9 +1177,9 @@ int ModelMesh_GetComponentMaxExtent(int objectType, int meshIndex)
 // FUNCTION: XVT 0x4AEEC0
 int ModelMesh_IsObjectTypeMeshDamageable(int objectType, int meshIndex)
 {
-	OptimizedPolyObject *model;
-	OptNode **rootNodes;
-	MeshDescriptor *descriptor;
+	struct OptimizedPolyObject *model;
+	struct OptNode **rootNodes;
+	struct MeshDescriptor *descriptor;
 
 	if (meshIndex < 0) {
 		return 0;
@@ -1184,7 +1188,7 @@ int ModelMesh_IsObjectTypeMeshDamageable(int objectType, int meshIndex)
 		return 0;
 	}
 
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadedModels[objectType]);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
@@ -1220,9 +1224,9 @@ int ModelMesh_IsObjectTypeMeshDamageable(int objectType, int meshIndex)
 // FUNCTION: XVT 0x4AEF60
 int ModelMesh_HasExplosionTypeBit0(int objectType, int meshIndex)
 {
-	OptimizedPolyObject *model;
-	OptNode **rootNodes;
-	MeshDescriptor *descriptor;
+	struct OptimizedPolyObject *model;
+	struct OptNode **rootNodes;
+	struct MeshDescriptor *descriptor;
 
 	if (meshIndex < 0) {
 		return 0;
@@ -1231,7 +1235,7 @@ int ModelMesh_HasExplosionTypeBit0(int objectType, int meshIndex)
 		return 0;
 	}
 
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadedModels[objectType]);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
@@ -1265,16 +1269,16 @@ int ModelMesh_HasExplosionTypeBit0(int objectType, int meshIndex)
 // FUNCTION: XVT 0x4AF000
 float *ModelMesh_GetRotScaleData(int objectType, int meshIndex)
 {
-	OptimizedPolyObject *model;
-	OptNode **rootNodes;
-	OptNode *rotScaleNode;
+	struct OptimizedPolyObject *model;
+	struct OptNode **rootNodes;
+	struct OptNode *rotScaleNode;
 	float *result;
 
 	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
 		return 0;
 	}
 
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadedModels[objectType]);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
@@ -1307,12 +1311,13 @@ float *ModelMesh_GetRotScaleData(int objectType, int meshIndex)
  * in its pName, blanking the first character of its name. A link that does not
  * resolve ends that branch. */
 // FUNCTION: XVT 0x4AF090
-OptNode *ModelMesh_FindNthHardpointNodeRecursive(OptNode *node,
-						 OptimizedPolyObject *model,
-						 int hardpointIndex)
+struct OptNode *
+ModelMesh_FindNthHardpointNodeRecursive(struct OptNode *node,
+					struct OptimizedPolyObject *model,
+					int hardpointIndex)
 {
-	OptNode *resolvedNode;
-	OptNode *result;
+	struct OptNode *resolvedNode;
+	struct OptNode *result;
 	int childIndex;
 	int visitedChildCount;
 #ifndef XVT_MODERN
@@ -1332,13 +1337,15 @@ OptNode *ModelMesh_FindNthHardpointNodeRecursive(OptNode *node,
 
 			referenceName = (char **)&resolvedNode->payload;
 			if (**referenceName == '\0') {
-				resolvedNode = (OptNode *)resolvedNode->pName;
+				resolvedNode =
+					(struct OptNode *)resolvedNode->pName;
 			} else {
 				resolvedNode->pName =
 					(char *)OptModel_ResolveNodeRef(
 						model, *referenceName);
 				**referenceName = '\0';
-				resolvedNode = (OptNode *)resolvedNode->pName;
+				resolvedNode =
+					(struct OptNode *)resolvedNode->pName;
 			}
 #endif
 		} else {
@@ -1374,9 +1381,10 @@ OptNode *ModelMesh_FindNthHardpointNodeRecursive(OptNode *node,
  * hardpointIndex, from 0, at or below node
  * (ModelMesh_FindNthHardpointNodeRecursive), or NULL. */
 // FUNCTION: XVT 0x4AF150
-OptNode *ModelMesh_FindNthHardpointNode(OptNode *node,
-					OptimizedPolyObject *model,
-					int hardpointIndex)
+struct OptNode *
+ModelMesh_FindNthHardpointNode(struct OptNode *node,
+			       struct OptimizedPolyObject *model,
+			       int hardpointIndex)
 {
 	g_optHardpointSearchIndex = 0;
 	return ModelMesh_FindNthHardpointNodeRecursive(node, model,
@@ -1387,10 +1395,10 @@ OptNode *ModelMesh_FindNthHardpointNode(OptNode *node,
  * OPT_NODEREF links as ModelMesh_FindNthHardpointNodeRecursive does; a node
  * reached through two links counts twice. */
 // FUNCTION: XVT 0x4AF180
-int ModelMesh_CountHardpointNodesRecursive(OptNode *node,
-					   OptimizedPolyObject *model)
+int ModelMesh_CountHardpointNodesRecursive(struct OptNode *node,
+					   struct OptimizedPolyObject *model)
 {
-	OptNode *resolvedNode;
+	struct OptNode *resolvedNode;
 	int count;
 	int childIndex;
 	int visitedChildCount;
@@ -1412,13 +1420,15 @@ int ModelMesh_CountHardpointNodesRecursive(OptNode *node,
 
 			referenceName = (char **)&resolvedNode->payload;
 			if (**referenceName == '\0') {
-				resolvedNode = (OptNode *)resolvedNode->pName;
+				resolvedNode =
+					(struct OptNode *)resolvedNode->pName;
 			} else {
 				resolvedNode->pName =
 					(char *)OptModel_ResolveNodeRef(
 						model, *referenceName);
 				**referenceName = '\0';
-				resolvedNode = (OptNode *)resolvedNode->pName;
+				resolvedNode =
+					(struct OptNode *)resolvedNode->pName;
 			}
 #endif
 		} else {
@@ -1450,14 +1460,14 @@ int ModelMesh_CountHardpointNodesRecursive(OptNode *node,
 // FUNCTION: XVT 0x4AF250
 int ModelMesh_CountHardpoints(int objectType, int meshIndex)
 {
-	OptimizedPolyObject *model;
-	OptNode **rootNodes;
+	struct OptimizedPolyObject *model;
+	struct OptNode **rootNodes;
 	int hardpointCount;
 
 	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
 		return 0;
 	}
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadedModels[objectType]);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
@@ -1494,16 +1504,16 @@ int ModelMesh_GetHardpointIndex(int objectType, int meshIndex,
 // FUNCTION: XVT 0x4AF2E0
 int ModelMesh_GetHardpointX(int objectType, int meshIndex, int hardpointIndex)
 {
-	OptimizedPolyObject *model;
-	OptNode **rootNodes;
-	OptNode *rootNode;
-	OptNode *hardpointNode;
+	struct OptimizedPolyObject *model;
+	struct OptNode **rootNodes;
+	struct OptNode *rootNode;
+	struct OptNode *hardpointNode;
 	int result;
 
 	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
 		return 0;
 	}
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadedModels[objectType]);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
@@ -1519,7 +1529,7 @@ int ModelMesh_GetHardpointX(int objectType, int meshIndex, int hardpointIndex)
 	hardpointNode =
 		ModelMesh_FindNthHardpointNode(rootNode, model, hardpointIndex);
 	if (hardpointNode != NULL) {
-		result = (int)((OptHardpoint *)hardpointNode->payload)
+		result = (int)((struct OptHardpoint *)hardpointNode->payload)
 				 ->position.x;
 	} else {
 		result = 0;
@@ -1534,16 +1544,16 @@ int ModelMesh_GetHardpointX(int objectType, int meshIndex, int hardpointIndex)
 // FUNCTION: XVT 0x4AF380
 int ModelMesh_GetHardpointY(int objectType, int meshIndex, int hardpointIndex)
 {
-	OptimizedPolyObject *model;
-	OptNode **rootNodes;
-	OptNode *rootNode;
-	OptNode *hardpointNode;
+	struct OptimizedPolyObject *model;
+	struct OptNode **rootNodes;
+	struct OptNode *rootNode;
+	struct OptNode *hardpointNode;
 	int result;
 
 	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
 		return 0;
 	}
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadedModels[objectType]);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
@@ -1559,7 +1569,7 @@ int ModelMesh_GetHardpointY(int objectType, int meshIndex, int hardpointIndex)
 	hardpointNode =
 		ModelMesh_FindNthHardpointNode(rootNode, model, hardpointIndex);
 	if (hardpointNode != NULL) {
-		result = (int)((OptHardpoint *)hardpointNode->payload)
+		result = (int)((struct OptHardpoint *)hardpointNode->payload)
 				 ->position.y;
 	} else {
 		result = 0;
@@ -1574,17 +1584,17 @@ int ModelMesh_GetHardpointY(int objectType, int meshIndex, int hardpointIndex)
 // FUNCTION: XVT 0x4AF420
 int ModelMesh_GetHardpointZ(int objectType, int meshIndex, int hardpointIndex)
 {
-	OptimizedPolyObject *model;
-	OptNode **rootNodes;
-	OptNode *rootNode;
-	OptNode *hardpointNode;
+	struct OptimizedPolyObject *model;
+	struct OptNode **rootNodes;
+	struct OptNode *rootNode;
+	struct OptNode *hardpointNode;
 	int rootNodeCount;
 	int result;
 
 	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
 		return 0;
 	}
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadedModels[objectType]);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
@@ -1601,7 +1611,7 @@ int ModelMesh_GetHardpointZ(int objectType, int meshIndex, int hardpointIndex)
 	hardpointNode =
 		ModelMesh_FindNthHardpointNode(rootNode, model, hardpointIndex);
 	if (hardpointNode != NULL) {
-		result = (int)((OptHardpoint *)hardpointNode->payload)
+		result = (int)((struct OptHardpoint *)hardpointNode->payload)
 				 ->position.z;
 	} else {
 		result = 0;
@@ -1618,17 +1628,17 @@ int ModelMesh_GetHardpointZ(int objectType, int meshIndex, int hardpointIndex)
 void ModelMesh_GetHardpoint(int objectType, int meshIndex, int hardpointIndex,
 			    int *outType, int *outX, int *outY, int *outZ)
 {
-	OptimizedPolyObject *model;
-	OptNode **rootNodes;
-	OptNode *hardpointNode;
-	const OptHardpoint *hardpoint;
-	const OptVector *position;
+	struct OptimizedPolyObject *model;
+	struct OptNode **rootNodes;
+	struct OptNode *hardpointNode;
+	const struct OptHardpoint *hardpoint;
+	const struct OptVector *position;
 
 	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
 		return;
 	}
 
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadedModels[objectType]);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
@@ -1649,7 +1659,7 @@ void ModelMesh_GetHardpoint(int objectType, int meshIndex, int hardpointIndex,
 		*outY = 0;
 		*outZ = 0;
 	} else {
-		hardpoint = (const OptHardpoint *)hardpointNode->payload;
+		hardpoint = (const struct OptHardpoint *)hardpointNode->payload;
 		position = &hardpoint->position;
 		*outType = hardpoint->hardpointType;
 		*outX = (int)position->x;
@@ -1666,22 +1676,22 @@ void ModelMesh_GetHardpoint(int objectType, int meshIndex, int hardpointIndex,
 // FUNCTION: XVT 0x4AF5B0
 int ModelMesh_HasFuselage(int objectType)
 {
-	OptimizedPolyObject *model;
+	struct OptimizedPolyObject *model;
 	int rootIndex;
 
 	if ((g_objectTypeTable[objectType].assetFlags & 1) == 0) {
 		return 0;
 	}
 
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadedModels[objectType]);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 	}
 
 	for (rootIndex = 0; rootIndex < model->rootNodeCount; ++rootIndex) {
-		OptNode *rootNode;
-		MeshDescriptor *descriptor;
+		struct OptNode *rootNode;
+		struct MeshDescriptor *descriptor;
 
 		rootNode = model->rootNodes[rootIndex];
 		if (rootNode != NULL && rootNode->nodeType != OPT_TEXTURE) {
@@ -1718,9 +1728,9 @@ int ModelMesh_FindNearestMainHullByBounds(int objectType, int localX,
 	float axisDistance;
 	int nearestMeshIndex;
 	int rootNodeIndex;
-	OptimizedPolyObject *model;
-	OptNode *rootNode;
-	MeshDescriptor *descriptor;
+	struct OptimizedPolyObject *model;
+	struct OptNode *rootNode;
+	struct MeshDescriptor *descriptor;
 
 	pointX = (float)localX;
 	pointY = (float)localY;
@@ -1730,7 +1740,7 @@ int ModelMesh_FindNearestMainHullByBounds(int objectType, int localX,
 		return 0;
 	}
 
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadedModels[objectType]);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
@@ -1814,10 +1824,10 @@ int ModelMesh_FindNearestVertexForPoint(int objectType, int localX, int localY,
 	float pointZ;
 	float vertexDistanceSq[256];
 	int vertexIndices[256];
-	OptimizedPolyObject *model;
-	OptNode **rootNodes;
-	OptNode *verticesNode;
-	OptVector *vertices;
+	struct OptimizedPolyObject *model;
+	struct OptNode **rootNodes;
+	struct OptNode *verticesNode;
+	struct OptVector *vertices;
 	int rootNodeIndex;
 	int vertexCount;
 	int vertexIndex;
@@ -1837,7 +1847,7 @@ int ModelMesh_FindNearestVertexForPoint(int objectType, int localX, int localY,
 		return 0;
 	}
 
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadedModels[objectType]);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
@@ -1852,7 +1862,7 @@ int ModelMesh_FindNearestVertexForPoint(int objectType, int localX, int localY,
 	}
 	verticesNode =
 		ModelMesh_FindFirstMeshVertsNode(rootNodes[rootNodeIndex]);
-	vertices = (OptVector *)verticesNode->payload;
+	vertices = (struct OptVector *)verticesNode->payload;
 	vertexCount = verticesNode->payloadCount;
 	if (vertexCount > 2) {
 		vertexCount -= 2;
@@ -1906,15 +1916,15 @@ int ModelMesh_FindNearestVertexForPoint(int objectType, int localX, int localY,
  * the first mesh whose descriptor type is MESH_COMPONENT_07_BRIDGE, or -1 when
  * there is none. */
 // FUNCTION: XVT 0x4AFA30
-int ModelMesh_FindBridgeIndex(OptimizedPolyObject *model)
+int ModelMesh_FindBridgeIndex(struct OptimizedPolyObject *model)
 {
 	int rootIndex;
 	int meshIndex;
 
 	meshIndex = 0;
 	for (rootIndex = 0; rootIndex < model->rootNodeCount; ++rootIndex) {
-		OptNode *rootNode;
-		MeshDescriptor *descriptor;
+		struct OptNode *rootNode;
+		struct MeshDescriptor *descriptor;
 
 		rootNode = model->rootNodes[rootIndex];
 		if (rootNode->nodeType == OPT_TEXTURE) {
@@ -1941,9 +1951,9 @@ int ModelMesh_FindBridgeIndex(OptimizedPolyObject *model)
  * descriptor. FeDiskIo_InitResources calls this after
  * FeDiskIo_LoadResources. */
 // FUNCTION: XVT 0x4AFA90
-ModelMeshObjectTypeCache *ModelMesh_BuildObjectTypeMeshCache(void)
+struct ModelMeshObjectTypeCache *ModelMesh_BuildObjectTypeMeshCache(void)
 {
-	ModelMeshObjectTypeCache *cache;
+	struct ModelMeshObjectTypeCache *cache;
 	int objectType;
 
 	objectType = 0;

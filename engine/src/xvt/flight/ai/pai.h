@@ -57,7 +57,7 @@ struct AiController {
 	 * the order-switching orders, 3 after a skip to order 4. */
 	uint8_t currentOrderSlot;
 	/* Completion state and goal progress of each order slot. */
-	AiOrderProgress orderProgress;
+	struct AiOrderProgress orderProgress;
 	/* 1 once the skip-to-order-4 trigger moved the craft to slot 3. */
 	uint8_t skippedToOrder4;
 	/* The plan the craft runs now: pai_setupcraftcontext reads its orders,
@@ -264,16 +264,17 @@ struct PaiPlanRecord {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_PaiPlanRecord[(sizeof(PaiPlanRecord) == 85) ? 1 : -1];
+typedef char
+	xvt_size_PaiPlanRecord[(sizeof(struct PaiPlanRecord) == 85) ? 1 : -1];
 
 struct PaiContext {
 	uint16_t objectIndex;	  /* Object index of the craft. */
-	CraftData *craft;	  /* The craft's data. */
-	AiController *controller; /* The craft's AI controller. */
+	struct CraftData *craft;  /* The craft's data. */
+	struct AiController *controller; /* The craft's AI controller. */
 	/* The leader's object index, 255 when the craft has none. */
 	uint16_t leaderObjectIndex;
 	/* The leader's craft data, or the craft's own when it has no leader. */
-	CraftData *leaderOrSelfCraft;
+	struct CraftData *leaderOrSelfCraft;
 	uint16_t craftFlightGroupIndex; /* The craft's flight group. */
 	/* Order slot being worked on: the craft's currentOrderSlot at setup,
 	 * moved by the order-switching orders. */
@@ -309,12 +310,12 @@ struct PaiContext {
 	int32_t targetSearchOriginZ; /* Z of that search origin. */
 };
 
-extern PaiContext g_paiContext;
+extern struct PaiContext g_paiContext;
 extern int g_paiSkipToOrder4Checked;
 extern int g_lastRoughDistance;
 extern uint16_t g_aiSkillValueQ16ByLevel[8];
 extern const uint16_t g_aiThinkIntervalBySkill[8];
-extern PaiPlanRecord g_planTable[256];
+extern struct PaiPlanRecord g_planTable[256];
 extern uint8_t g_planOrderData[0x20000];
 extern int g_rotatedX;
 extern int g_rotatedY;
@@ -351,10 +352,11 @@ void pai_SetFlightGroupFormation(unsigned int flightGroupIdx,
 void pai_ObjectRefDirectionToObjectRef(unsigned int fromRef,
 				       unsigned int toRef);
 void pai_ObjectRefUpdateRoughDistance(unsigned int fromRef, unsigned int toRef);
-void pai_calcrotatedpoint(ObjectRecord *obj, int16_t sideArg, int16_t upArg,
-			  int16_t fwdArg);
-void pai_RotateLocalVectorToWorldScratch(ObjectRecord *objRecord, int localSide,
-					 int localUp, int localFwd);
+void pai_calcrotatedpoint(struct ObjectRecord *obj, int16_t sideArg,
+			  int16_t upArg, int16_t fwdArg);
+void pai_RotateLocalVectorToWorldScratch(struct ObjectRecord *objRecord,
+					 int localSide, int localUp,
+					 int localFwd);
 void pai_CalcAnglesToAimPoint(void);
 int16_t pai_FindNearestBoardingTarget(uint16_t target1Type, uint16_t target1,
 				      int16_t targetOrMode,
@@ -363,7 +365,7 @@ int16_t pai_IsPlanCompleteForOrderSlot(uint16_t planId, uint16_t orderSlot);
 int16_t pai_IsBoardingPlanCompleteForOrderSlot(uint16_t planId,
 					       uint16_t orderSlot);
 int16_t pai_CurrentOrderTargetsMatchObject(uint16_t objectIdx);
-uint16_t pai_GetEffectiveSkillValue(CraftData *craft);
+uint16_t pai_GetEffectiveSkillValue(struct CraftData *craft);
 int pai_SetupContextAndFindOrderPlanOnTarget(int objectIdx,
 					     int leaderPlanNameIndex,
 					     int targetObjIdx);

@@ -23,34 +23,34 @@ int g_objectPointLightCount = 0;
  * FlightLight_SetupObjectLighting found them; it fills up to 8 of the 10
  * entries. */
 // GLOBAL: XVT 0x9FD3B0
-ObjectPointLight g_objectPointLights[10] = {{0}};
+struct ObjectPointLight g_objectPointLights[10] = {{0}};
 
 /* Object whose lights FlightLight_ComputeSoftwareFaceSampleIntensity has
  * cached; FlightLight_ResetSoftwareFaceSampleCache sets NULL. */
 // GLOBAL: XVT 0x51C00C
-static ObjectRecord *g_swFaceLightCachedObject;
+static struct ObjectRecord *g_swFaceLightCachedObject;
 /* Face whose view-space normal FlightLight_ComputeSoftwareFaceSampleIntensity
  * has cached in g_swFaceLightFaceNormal;
  * FlightLight_ResetSoftwareFaceSampleCache sets NULL. */
 // GLOBAL: XVT 0x51C014
-static SceneFace *g_swFaceLightCachedFace;
+static struct SceneFace *g_swFaceLightCachedFace;
 /* g_objectPointLightCount when the cached object's lights were taken. */
 // GLOBAL: XVT 0x51C010
 static int g_swFaceLightCachedPointLightCount = 0;
 /* The cached object's point lights in view space, turned by its mesh's view
  * orientation and moved by its view position. */
 // GLOBAL: XVT 0x550C10
-static OptVector g_swFaceLightPointPositions[10] = {{0.0f, 0.0f, 0.0f}};
+static struct OptVector g_swFaceLightPointPositions[10] = {{0.0f, 0.0f, 0.0f}};
 /* Intensity of each cached point light, as a float. */
 // GLOBAL: XVT 0x550BE0
 static float g_swFaceLightPointIntensities[10] = {0.0f};
 /* The cached object's light direction in view space, g_objectLightDirection
  * scaled from Q15 and turned by its mesh's view orientation. */
 // GLOBAL: XVT 0x550C00
-static OptVector g_swFaceLightDir = {0.0f, 0.0f, 0.0f};
+static struct OptVector g_swFaceLightDir = {0.0f, 0.0f, 0.0f};
 /* View-space normal of the cached face. */
 // GLOBAL: XVT 0x550C70
-static OptVector g_swFaceLightFaceNormal = {0.0f, 0.0f, 0.0f};
+static struct OptVector g_swFaceLightFaceNormal = {0.0f, 0.0f, 0.0f};
 
 /* Clears the face lighting cache: g_swFaceLightCachedObject and
  * g_swFaceLightCachedFace to NULL. sw3d_DrawVisibleFacesToSurface calls it
@@ -78,13 +78,13 @@ void FlightLight_ResetSoftwareFaceSampleCache(void)
  * sample position and e a rough length of v; the sum stops at 1. There is no
  * diffuse term from the light direction. */
 // FUNCTION: XVT 0x4206B0
-float FlightLight_ComputeSoftwareFaceSampleIntensity(SceneFace *face,
+float FlightLight_ComputeSoftwareFaceSampleIntensity(struct SceneFace *face,
 						     int screenX, int screenY,
 						     float reciprocalDepth)
 {
-	SceneMesh *mesh;
-	OptVector normal;
-	OptVector vector;
+	struct SceneMesh *mesh;
+	struct OptVector normal;
+	struct OptVector vector;
 	float screenToViewScale;
 	float sampleX;
 	float sampleY;
@@ -113,7 +113,7 @@ float FlightLight_ComputeSoftwareFaceSampleIntensity(SceneFace *face,
 		g_swFaceLightCachedObject = mesh->pObject;
 		for (lightIndex = 0; g_objectPointLightCount > lightIndex;
 		     ++lightIndex) {
-			OptVector *position =
+			struct OptVector *position =
 				&g_swFaceLightPointPositions[lightIndex];
 
 			position->x = (float)g_objectPointLights[lightIndex].x;
@@ -209,7 +209,7 @@ float FlightLight_ComputeSoftwareFaceSampleIntensity(SceneFace *face,
 
 	for (lightIndex = 0; lightIndex < g_swFaceLightCachedPointLightCount;
 	     ++lightIndex) {
-		const OptVector *position =
+		const struct OptVector *position =
 			&g_swFaceLightPointPositions[lightIndex];
 
 		dx = position->x - sampleX;
@@ -332,7 +332,7 @@ float FlightLight_ComputeSoftwareFaceSampleIntensity(SceneFace *face,
  * g_flightBrightnessScaleQ8 - 256. Every intensity is then multiplied by 8.
  * Sets the count to 0 and stops when g_localLightsEnabled is 0. */
 // FUNCTION: XVT 0x44F880
-void FlightLight_SetupObjectLighting(ObjectRecord *object)
+void FlightLight_SetupObjectLighting(struct ObjectRecord *object)
 {
 	int lightCount;
 	int objectIdx;
@@ -340,7 +340,7 @@ void FlightLight_SetupObjectLighting(ObjectRecord *object)
 	int worldX;
 	int worldY;
 	int worldZ;
-	ObjectRecord *lightObject;
+	struct ObjectRecord *lightObject;
 
 	g_objectPointLightCount = 0;
 	if (g_localLightsEnabled == 0) {

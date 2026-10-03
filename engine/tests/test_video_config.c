@@ -13,9 +13,9 @@
 #include <string.h>
 
 /* A record with a distinctive value in every field, for the copying checks; it is never validated. */
-static XvtVideoSettings Distinct(void)
+static struct XvtVideoSettings Distinct(void)
 {
-	XvtVideoSettings v;
+	struct XvtVideoSettings v;
 	memset(&v, 0, sizeof v);
 	v.cockpit_undither = 1;
 	v.fullscreen = 0;
@@ -35,10 +35,10 @@ static XvtVideoSettings Distinct(void)
 
 /* The shipped defaults' video fields with temporal upscaling off, so any MSAA count is allowed: the record
  * the video page starts from, which it must be able to check and store. */
-static XvtVideoSettings ShippedRecord(void)
+static struct XvtVideoSettings ShippedRecord(void)
 {
-	static XvtSettings settings;
-	XvtSceneSettings scene;
+	static struct XvtSettings settings;
+	struct XvtSceneSettings scene;
 	char error[512] = "";
 	AeronConfigFile *shipped = Fixture_ShippedDocument();
 	Fixture_ShippedScene(&scene);
@@ -46,7 +46,7 @@ static XvtVideoSettings ShippedRecord(void)
 					    sizeof error),
 			  1);
 	AeronConfigFile_Destroy(shipped);
-	XvtVideoSettings v;
+	struct XvtVideoSettings v;
 	XvtVideoSettings_Read(&settings, &v);
 	v.fsr_mode = AERON_TEMPORAL_OFF;
 	return v;
@@ -54,9 +54,9 @@ static XvtVideoSettings ShippedRecord(void)
 
 /* base with every field changed whose choices a header lists: the four flags, the gamma, the luminance,
  * the temporal mode and MSAA (1 under temporal upscaling). The other fields keep base's values. */
-static XvtVideoSettings ChangedFrom(const XvtVideoSettings *base)
+static struct XvtVideoSettings ChangedFrom(const struct XvtVideoSettings *base)
 {
-	XvtVideoSettings v = *base;
+	struct XvtVideoSettings v = *base;
 	v.cockpit_undither = !base->cockpit_undither;
 	v.fullscreen = !base->fullscreen;
 	v.hdr = !base->hdr;
@@ -74,7 +74,7 @@ static XvtVideoSettings ChangedFrom(const XvtVideoSettings *base)
 
 static void CheckRead(void)
 {
-	static XvtSettings settings;
+	static struct XvtSettings settings;
 	memset(&settings, 0, sizeof settings);
 	settings.render.cockpit_undither = 1;
 	settings.fullscreen = 1;
@@ -89,7 +89,7 @@ static void CheckRead(void)
 	settings.render.msaa_samples = 1;
 	settings.render.motion_blur.quality = 2;
 	settings.render.motion_blur.shutter = 0.125f;
-	XvtVideoSettings v;
+	struct XvtVideoSettings v;
 	XvtVideoSettings_Read(&settings, &v);
 	XVT_ASSERT_INT_EQ(v.cockpit_undither, 1);
 	XVT_ASSERT_INT_EQ(v.fullscreen, 1);
@@ -109,7 +109,7 @@ static void CheckRead(void)
 }
 
 /* Changes field number field (0 to 12, in the record's order) of *v. */
-static void Change(XvtVideoSettings *v, int field)
+static void Change(struct XvtVideoSettings *v, int field)
 {
 	switch (field) {
 	case 0:
@@ -158,8 +158,8 @@ static void Change(XvtVideoSettings *v, int field)
 
 static void CheckEquals(void)
 {
-	const XvtVideoSettings a = Distinct();
-	XvtVideoSettings b = a;
+	const struct XvtVideoSettings a = Distinct();
+	struct XvtVideoSettings b = a;
 	XVT_ASSERT_TRUE(XvtVideoSettings_Equals(&a, &b));
 	for (int field = 0; field < 13; ++field) {
 		b = a;
@@ -170,7 +170,7 @@ static void CheckEquals(void)
 }
 
 /* Expects v refused with the header's message; what names the bad field, printed if the check fails. */
-static void ExpectInvalid(const XvtVideoSettings *v, const char *what)
+static void ExpectInvalid(const struct XvtVideoSettings *v, const char *what)
 {
 	char error[64];
 	memset(error, 'x', sizeof error);
@@ -183,10 +183,10 @@ static void ExpectInvalid(const XvtVideoSettings *v, const char *what)
 static void CheckValidate(void)
 {
 	Fixture_Begin();
-	const XvtVideoSettings good = ShippedRecord();
+	const struct XvtVideoSettings good = ShippedRecord();
 	char error[64] = "";
 	XVT_ASSERT_TRUE(XvtVideoSettings_Validate(&good, error, sizeof error));
-	XvtVideoSettings v;
+	struct XvtVideoSettings v;
 
 	/* Each flag is 0 or 1. */
 	v = good;
@@ -247,11 +247,11 @@ static void CheckValidate(void)
 
 static void CheckApplyTo(void)
 {
-	static XvtRenderSettings render;
+	static struct XvtRenderSettings render;
 	memset(&render, 0, sizeof render);
 	render.anisotropic = 7;
 	render.bloom_intensity = 0.5f;
-	const XvtVideoSettings v = Distinct();
+	const struct XvtVideoSettings v = Distinct();
 	XvtVideoSettings_ApplyTo(&v, &render);
 	XVT_ASSERT_INT_EQ(render.cockpit_undither, v.cockpit_undither);
 	XVT_ASSERT_INT_EQ(render.presentation.hdr_output, v.hdr);
@@ -276,11 +276,11 @@ static void CheckApplyTo(void)
 
 	/* Applying a record and reading it back, with fullscreen kept outside the render settings, gives the
 	 * record again. */
-	static XvtSettings settings;
+	static struct XvtSettings settings;
 	memset(&settings, 0, sizeof settings);
 	settings.fullscreen = v.fullscreen;
 	XvtVideoSettings_ApplyTo(&v, &settings.render);
-	XvtVideoSettings back;
+	struct XvtVideoSettings back;
 	XvtVideoSettings_Read(&settings, &back);
 	XVT_ASSERT_TRUE(XvtVideoSettings_Equals(&back, &v));
 }
@@ -289,13 +289,13 @@ static void CheckSetAndRestore(void)
 {
 	Fixture_Begin();
 	char error[512];
-	const XvtVideoSettings shipped = ShippedRecord();
+	const struct XvtVideoSettings shipped = ShippedRecord();
 	/* Needs loaded settings. */
 	XVT_ASSERT_TRUE(!XvtConfig_SetVideo(&shipped, error, sizeof error));
 	XVT_ASSERT_TRUE(!XvtConfig_RestoreVideo(error, sizeof error));
 
 	Fixture_Load();
-	XvtVideoSettings defaults, now;
+	struct XvtVideoSettings defaults, now;
 	XvtVideoSettings_Read(XvtConfig_DefaultSettings(), &defaults);
 
 	/* Every field is written, even one equal to the shipped value: the settings.h paths of the window
@@ -315,7 +315,7 @@ static void CheckSetAndRestore(void)
 	XVT_ASSERT_TRUE(XvtVideoSettings_Equals(&now, &defaults));
 
 	/* A different record is stored and read back from the resolved settings; memory only. */
-	const XvtVideoSettings changed = ChangedFrom(&defaults);
+	const struct XvtVideoSettings changed = ChangedFrom(&defaults);
 	XVT_ASSERT_TRUE(!XvtVideoSettings_Equals(&changed, &defaults));
 	XVT_ASSERT_TRUE(XvtConfig_SetVideo(&changed, error, sizeof error));
 	XvtVideoSettings_Read(XvtConfig_Settings(), &now);
@@ -325,7 +325,7 @@ static void CheckSetAndRestore(void)
 	/* An invalid record is refused before anything changes. */
 	generation = XvtConfig_Generation();
 	AeronConfigFile *before = Fixture_UserCopy();
-	XvtVideoSettings bad = changed;
+	struct XvtVideoSettings bad = changed;
 	bad.fsr_mode = AERON_TEMPORAL_PERFORMANCE;
 	bad.msaa_samples = 2;
 	XVT_ASSERT_TRUE(!XvtConfig_SetVideo(&bad, error, sizeof error));

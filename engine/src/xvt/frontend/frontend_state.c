@@ -6,4 +6,4 @@
  * display starts, and by XvtFrontendTask_Init in the modern build. Many
  * functions write it. */
 // GLOBAL: XVT 0xAA6D00
-FrontendGlobalState g_frontState = {0};
+struct FrontendGlobalState g_frontState = {0};

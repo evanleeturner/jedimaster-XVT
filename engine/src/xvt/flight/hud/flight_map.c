@@ -469,7 +469,7 @@ void FlightMap_DrawObjectPass(int drawAboveGridPlane)
 		MAP_TARGET_BOX_COLOR = 59,
 	};
 
-	RenderObjectListEntry *savedRenderListHead;
+	struct RenderObjectListEntry *savedRenderListHead;
 
 	g_sceneBillboardQueueCount = 0;
 	savedRenderListHead = g_renderListHead;
@@ -688,8 +688,8 @@ void FlightMap_DrawOtherPlayerObjectBox(int objectIdx)
 		COLOR_DEFAULT = 59,
 	};
 
-	MobileObject *mobileObject;
-	CraftData *craft;
+	struct MobileObject *mobileObject;
+	struct CraftData *craft;
 	uint8_t colorIndex;
 	int playerTeam;
 	int team;
@@ -801,10 +801,10 @@ void FlightMap_DrawObjectOverlay(int objectIdx)
 					    .mobj->pCraft->aiController
 					    .targetObjIdx;
 		} else {
-			MobileObject *mobileObject =
+			struct MobileObject *mobileObject =
 				g_objectTable[objectIdx].mobj;
 			if (mobileObject != NULL) {
-				CraftData *craft = mobileObject->pCraft;
+				struct CraftData *craft = mobileObject->pCraft;
 				if (craft != NULL) {
 					memcpy(&packedTargetRef,
 					       &craft->modelIndex,
@@ -1029,8 +1029,8 @@ void FlightMap_DrawObjectOverlay(int objectIdx)
 void FlightMap_DrawObjectIconAtViewPos(int objectIdx, int viewX, int viewY,
 				       int viewZ)
 {
-	ObjectRecord *object;
-	MobileObject *mobileObject;
+	struct ObjectRecord *object;
+	struct MobileObject *mobileObject;
 	int objectType;
 	int useMapIconBlitter;
 	int iff;

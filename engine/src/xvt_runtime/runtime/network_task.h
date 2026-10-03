@@ -10,10 +10,10 @@ extern "C" {
 
 enum { XVT_NETWORK_HOST, XVT_NETWORK_AUTO_HOST, XVT_NETWORK_CONNECT };
 
-typedef struct XvtNetworkPreview {
+struct XvtNetworkPreview {
 	char title[256], text[4096];
 	int scroll;
-} XvtNetworkPreview;
+};
 
 /* Starts a host (either host action) or a join of the selected room (CONNECT), sending the
  * pilot's rating and name; a join first copies the room name into the pilot's game name. Ignored
@@ -44,7 +44,7 @@ int XvtNetworkTask_SelectedIndex(void);
 int *XvtNetworkTask_ScrollOffset(void);
 /* The selected room's mission title and description, read from the mission files; the text is
  * "Description unavailable" when they cannot be read, and both are empty with no selection. */
-XvtNetworkPreview *XvtNetworkTask_Preview(void);
+struct XvtNetworkPreview *XvtNetworkTask_Preview(void);
 /* Seconds since the last successful refresh, 0 before one, at most 359999. */
 unsigned XvtNetworkTask_SnapshotAge(void);
 /* The last refresh error, cleared by the next successful refresh. */

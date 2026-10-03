@@ -6,7 +6,7 @@
 /* Per object type, the smallest corner of its model's box, which
  * ModelBounds_EnsureCached fills; only that function writes it. */
 // GLOBAL: XVT 0x662CE8
-OptVector g_modelBoundsMin[201] = {{0}};
+struct OptVector g_modelBoundsMin[201] = {{0}};
 /* Per object type, 1 once ModelBounds_EnsureCached has filled its bounds, so
  * the getters stop calling it. Only that function writes it and nothing sets it
  * back to 0, so a model loaded later for the same type keeps the first bounds.
@@ -16,7 +16,7 @@ int g_modelBoundsCached[202] = {0};
 /* Per object type, the largest corner of its model's box, which
  * ModelBounds_EnsureCached fills; only that function writes it. */
 // GLOBAL: XVT 0x663980
-OptVector g_modelBoundsMax[201] = {{0}};
+struct OptVector g_modelBoundsMax[201] = {{0}};
 
 /* Fills g_modelBoundsMin and g_modelBoundsMax for the object type and sets its
  * g_modelBoundsCached entry to 1. From the first OPT_MESHVERTS node of each
@@ -31,20 +31,20 @@ OptVector g_modelBoundsMax[201] = {{0}};
 // FUNCTION: XVT 0x4ADD60
 void ModelBounds_EnsureCached(int objectType)
 {
-	OptimizedPolyObject *model;
+	struct OptimizedPolyObject *model;
 	int rootNodeIndex;
-	OptNode *rootNode;
-	OptNode *vertexNode;
+	struct OptNode *rootNode;
+	struct OptNode *vertexNode;
 	float *vertexData;
 	float *bounds;
 	int vertexCount;
-	OptVector minBounds;
-	OptVector maxBounds;
+	struct OptVector minBounds;
+	struct OptVector maxBounds;
 
 	minBounds.x = minBounds.y = minBounds.z = 1073741800.0f;
 	maxBounds.x = maxBounds.y = maxBounds.z = -1073741800.0f;
 	if ((g_objectTypeTable[objectType].assetFlags & 1) != 0) {
-		model = (OptimizedPolyObject *)Memory_GetHandleBlock(
+		model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 			g_loadedModels[objectType]);
 		if (model->selfMarker != model) {
 			OptModel_AdjustOptimizedPolyObjectPointers(model);

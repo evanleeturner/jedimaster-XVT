@@ -49,12 +49,12 @@ static void FreshRoots(void)
 }
 
 /* Checks that list holds exactly the count paths given, in that order, and that count matches. */
-static void ExpectPaths(const FrontendFileList *list, const char *const *paths,
-			int count)
+static void ExpectPaths(const struct FrontendFileList *list,
+			const char *const *paths, int count)
 {
 	XVT_ASSERT_TRUE(list != NULL);
 	XVT_ASSERT_INT_EQ(list->count, count);
-	const FrontendFileListNode *node = list->head;
+	const struct FrontendFileListNode *node = list->head;
 	for (int i = 0; i < count; ++i) {
 		XVT_ASSERT_TRUE(node != NULL);
 		XVT_ASSERT_INT_EQ(strcmp(node->path, paths[i]), 0);
@@ -81,7 +81,7 @@ static void CheckSortedFiles(void)
 	static const char *const expected[] = {
 		"pilots/Ace.PLT", "pilots/Carl.plt", "pilots/bob.plt",
 		"pilots/dave.plt"};
-	FrontendFileList *list =
+	struct FrontendFileList *list =
 		FrontendFileList_BuildSortedModern("pilots/*.plt");
 	ExpectPaths(list, expected, 4);
 	FrontendFileList_Free(list);
@@ -95,7 +95,8 @@ static void CheckBareNames(void)
 	XvtTest_WriteText(g_user, "b.pl2", "x");
 	XvtTest_WriteText(g_user, "a.pl2", "x");
 	static const char *const expected[] = {"a.pl2", "b.pl2"};
-	FrontendFileList *list = FrontendFileList_BuildSortedModern("*.pl2");
+	struct FrontendFileList *list =
+		FrontendFileList_BuildSortedModern("*.pl2");
 	ExpectPaths(list, expected, 2);
 	FrontendFileList_Free(list);
 	EndRoots();
@@ -107,7 +108,8 @@ static void CheckEmptyAndRefused(void)
 	XvtTest_WriteText(g_user, "a.pl2", "x");
 
 	/* Nothing matched: an empty list, not NULL. */
-	FrontendFileList *list = FrontendFileList_BuildSortedModern("*.zzz");
+	struct FrontendFileList *list =
+		FrontendFileList_BuildSortedModern("*.zzz");
 	ExpectPaths(list, NULL, 0);
 	FrontendFileList_Free(list);
 

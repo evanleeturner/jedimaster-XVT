@@ -59,13 +59,13 @@ int g_frontendNetReceivedMissionDirectoryId = 0;
  * sent. 37 functions write it, most in the mission setup, briefing and debrief
  * screens, 5 in this file. */
 // GLOBAL: XVT 0xAA6AF0
-FrontendNetPacketScratch g_frontendNetPacketScratch = {0};
+struct FrontendNetPacketScratch g_frontendNetPacketScratch = {0};
 /* The games the join screen lists, kept sorted by FrontendNet_SortSessions.
  * Written by FrontendNet_RefreshSessionList, FrontendNet_ProbeSessionByIndex
  * and FrontendNet_JoinGameScreen, which clears it on entry unless
  * g_frontendSkipScreenEntrySetup is set. Only the original build uses it. */
 // GLOBAL: XVT 0xAA62B0
-FrontendNetSessionEntry g_frontendNetSessionList[32] = {{0}};
+struct FrontendNetSessionEntry g_frontendNetSessionList[32] = {{0}};
 /* Entries in use in g_frontendNetSessionList; FrontendNet_RefreshSessionList
  * recounts it, at most 32, and FrontendNet_JoinGameScreen zeroes it with the
  * list. Only the original build uses it. */
@@ -195,8 +195,8 @@ int FrontendNet_DrawJoinGameList(int frameCounter)
 	(void)frameCounter;
 	return XvtNetworkBrowser_DrawList();
 #else
-	RECT rect;
-	RECT destination;
+	struct RECT rect;
+	struct RECT destination;
 	uint32_t nowMs;
 	int mouseX;
 	int mouseY;
@@ -350,8 +350,8 @@ int FrontendNet_JoinGameScreen(int frameCounter)
 	int clickedSessionIndex;
 	int animationFrame;
 	int hostPlayerId;
-	RECT rect;
-	RECT screenRect;
+	struct RECT rect;
+	struct RECT screenRect;
 
 	g_configConnectionTypeEditable = 0;
 	if (g_gameConfig.networkType != NET_TRANSPORT_IPX) {
@@ -775,8 +775,8 @@ int FrontendNet_AwaitJoinAdmissionScreen(int frameCounter)
 	int networkResult;
 	int animationFrame;
 	int cancelPressed;
-	RECT rect;
-	RECT screenRect;
+	struct RECT rect;
+	struct RECT screenRect;
 
 	if (frameCounter == 0) {
 		FrontImage_RegisterResourceDefault("frontres\\joinback.bmp",
@@ -982,7 +982,7 @@ int FrontendNet_DrawJoinGameMissionBriefing(void)
 #ifdef XVT_MODERN
 	return XvtNetworkBrowser_DrawMission();
 #else
-	RECT rect;
+	struct RECT rect;
 
 	FrontendDraw_RectAssign(&rect, 88, 309, 430, 324);
 	if (g_frontendNetReceivedMissionDescriptionId != -1) {
@@ -1038,8 +1038,8 @@ int FrontendNet_DrawJoinGamePlayerRoster(void)
 #ifdef XVT_MODERN
 	return XvtNetworkBrowser_DrawRoster();
 #else
-	RECT rect;
-	RECT previousClipRect;
+	struct RECT rect;
+	struct RECT previousClipRect;
 	int displayedCount;
 	int rosterIndex;
 
@@ -1095,7 +1095,7 @@ int FrontendNet_DrawJoinGamePlayerRoster(void)
 // FUNCTION: XVT 0x4D8690
 int FrontendNet_UpdateAndDrawChatPanel(int frameCounter)
 {
-	RECT rect;
+	struct RECT rect;
 	int cursorX;
 	int cursorY;
 	int localPlayerId;
@@ -1290,7 +1290,7 @@ int FrontendNet_ConnectToSelectedGameScreen(int frameCounter)
 		JOIN_REQUEST_PACKET_SIZE = 24,
 	};
 
-	RECT rect;
+	struct RECT rect;
 	char playerInfo[2];
 	int hostPlayerId;
 	unsigned int networkType;
@@ -1531,7 +1531,7 @@ int FrontendNet_DrawJoinGameSidebarsAndQueryAll(void)
 	int cursorX;
 	int cursorY;
 	FrontendNavigationSlotState slotStates[8];
-	RECT rect;
+	struct RECT rect;
 
 	slotStates[1] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
 	slotStates[2] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
@@ -1579,7 +1579,7 @@ int FrontendNet_DrawJoinGameSidebarsAndQueryAll(void)
  * GUIDs can share a key, and a key of 0 marks an empty list entry. Only the
  * original build calls this. */
 // FUNCTION: XVT 0x4D9280
-int FrontendNet_MakeSessionGuidKey(NetSessionGuid guid)
+int FrontendNet_MakeSessionGuidKey(struct NetSessionGuid guid)
 {
 	return (int)(((unsigned int)guid.data2 << 16) + guid.data3 +
 		     guid.data4[1] + guid.data4[0] + guid.data1);
@@ -1608,7 +1608,8 @@ int FrontendNet_RefreshSessionList(void)
 		FRONTEND_NET_UI_SOUND_CENTER_PAN = 63
 	};
 
-	NetSessionEnumEntry enumeratedSessions[FRONTEND_NET_SESSION_CAPACITY];
+	struct NetSessionEnumEntry
+		enumeratedSessions[FRONTEND_NET_SESSION_CAPACITY];
 	unsigned int enumeratedSessionCount;
 	unsigned int enumeratedIndex;
 	int addedSession;
@@ -1762,8 +1763,9 @@ int FrontendNet_RefreshSessionList(void)
  * 8 (not yet probed), then by name. Returns a negative number, 0 or a positive
  * number. Only the original build calls this. */
 // FUNCTION: XVT 0x4D95D0
-int FrontendNet_CompareSessionListEntries(const FrontendNetSessionEntry *lhs,
-					  const FrontendNetSessionEntry *rhs)
+int FrontendNet_CompareSessionListEntries(
+	const struct FrontendNetSessionEntry *lhs,
+	const struct FrontendNetSessionEntry *rhs)
 {
 	int result;
 	unsigned int rhsPlayersNeeded;
@@ -2080,7 +2082,7 @@ int FrontendNet_HostGameScreen(int frameCounter)
 	int localPlayerId;
 	int networkType;
 #endif
-	RECT rect;
+	struct RECT rect;
 
 	if (frameCounter == 0) {
 		g_hostGameStartPending = 0;
@@ -2362,7 +2364,7 @@ int FrontendNet_ProcessNetworkPackets(void)
 	uint8_t *chatChunkBytes;
 	uint32_t packetSize;
 	DPID senderPlayerId;
-	NetPlayerInfo *netPlayer;
+	struct NetPlayerInfo *netPlayer;
 	int packetType;
 	int packetWordIndex;
 	int rosterIndex;

@@ -24,7 +24,8 @@ int XvtSetupUi_OpenPicker(AeronUiFilePicker *picker, const char *path,
  * unconsumed cancel press end it CANCELLED. Each frame then waits about 16.7 ms. After the loop, a fatal host
  * error is ERROR ("Setup interrupted by a fatal host error.") and a quit request is CANCELLED. The picker is
  * destroyed; SUCCESS clears error. */
-XvtSetupResult XvtSetupUi_Run(XvtAppUi *ui, char *path, size_t path_capacity,
-			      char *error, size_t capacity);
+XvtSetupResult XvtSetupUi_Run(struct XvtAppUi *ui, char *path,
+			      size_t path_capacity, char *error,
+			      size_t capacity);
 
 #endif

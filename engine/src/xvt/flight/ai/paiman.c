@@ -584,7 +584,7 @@ int16_t paiman_cruisemaneuver(void)
 	uint8_t waypointIndex;
 	uint8_t genusId;
 	int zDistance;
-	ObjectRecord *object;
+	struct ObjectRecord *object;
 	uint16_t yawDifference;
 	uint16_t throttleIndex;
 
@@ -809,7 +809,7 @@ void paiman_initfollowleadermaneuver(void) {}
 int16_t paiman_followleadermaneuver(void)
 {
 	uint16_t leaderObjectIdx = (uint8_t)g_curCraft->leader_obj_idx;
-	ObjectRecord *object;
+	struct ObjectRecord *object;
 	uint16_t effectiveSkillValue;
 	int16_t yaw;
 	uint16_t targetAngle;
@@ -853,7 +853,7 @@ int16_t paiman_followleadermaneuver(void)
 	}
 
 	{
-		ObjectRecord *leader = &g_objectTable[leaderObjectIdx];
+		struct ObjectRecord *leader = &g_objectTable[leaderObjectIdx];
 		if (leader->playerOwnerIdx != -1) {
 			uint16_t speed;
 			uint16_t objectSpeed;
@@ -1045,7 +1045,7 @@ int16_t paiman_attackmaneuver(void)
 		    g_paiContext.controller->targetObjIdx) {
 			breakOffDistance = 0x1400;
 		} else {
-			ObjectRecord *target =
+			struct ObjectRecord *target =
 				&g_objectTable[g_paiContext.controller
 						       ->targetObjIdx];
 			if (target->genusId == CRAFT_GENUS_STARSHIP ||
@@ -1079,7 +1079,7 @@ int16_t paiman_attackmaneuver(void)
 						[g_paiContext
 							 .craftFlightGroupIndex]
 							.fg.groupAI;
-				ObjectRecord *own;
+				struct ObjectRecord *own;
 				uint16_t yawDifference;
 				uint16_t pitchDifference;
 
@@ -1152,7 +1152,7 @@ int16_t paiman_attackmaneuver(void)
 								.objectIndex,
 							fullThrottle);
 					} else {
-						ObjectRecord *target =
+						struct ObjectRecord *target =
 							&g_objectTable
 								[targetObjectIndex];
 
@@ -1227,7 +1227,7 @@ int16_t paiman_attackmaneuver(void)
 						0xC000);
 			}
 			if (g_curCraft->craftOrdinal != 0) {
-				CraftData *wingman;
+				struct CraftData *wingman;
 				unsigned int objectIndex;
 				int nearestWingman = -1;
 				uint8_t nearestWave = UINT8_MAX;
@@ -1361,7 +1361,7 @@ int16_t paiman_attackmaneuver(void)
 		}
 
 		{
-			ObjectRecord *threat =
+			struct ObjectRecord *threat =
 				&g_objectTable[g_curCraft->aiFlight
 						       .threatObjIdx];
 			uint16_t pitchDifference;
@@ -1588,7 +1588,7 @@ int16_t paiman_intohyperspacemaneuver(void)
 	uint16_t flightGroupIdx;
 	uint8_t specialCargoCraft;
 	uint8_t otherTeamCount;
-	CraftData *carriedCraft;
+	struct CraftData *carriedCraft;
 	int specialCargo;
 
 	switch (g_paiContext.controller->maneuverPhase) {
@@ -1862,7 +1862,7 @@ void paiman_initoutofhyperspacemaneuver(void)
 // FUNCTION: XVT 0x4A17F0
 int16_t paiman_outofhyperspacemaneuver(void)
 {
-	AiController *leaderController;
+	struct AiController *leaderController;
 	uint8_t reached;
 	uint16_t order;
 	uint8_t planId;
@@ -1962,8 +1962,8 @@ int16_t paiman_escortmaneuver(void)
 	uint16_t objectIndex = g_paiContext.objectIndex;
 	uint16_t targetIdx;
 	uint16_t objectIdx;
-	CraftData *targetCraft;
-	AiController *targetController;
+	struct CraftData *targetCraft;
+	struct AiController *targetController;
 	unsigned int escortRange;
 	int variable1;
 
@@ -1971,7 +1971,7 @@ int16_t paiman_escortmaneuver(void)
 	for (objectIdx = (uint16_t)g_activeRegionObjectSlotStart;
 	     objectIdx < g_activeRegionCraftObjectSlotEnd; ++objectIdx) {
 		if (g_objectTable[objectIdx].objectType != 0) {
-			CraftData *candidateCraft =
+			struct CraftData *candidateCraft =
 				g_objectTable[objectIdx].mobj->pCraft;
 			if (g_objectTable[objectIdx].flightGroupIdx ==
 				    escortTargetFG &&
@@ -2223,12 +2223,12 @@ int16_t paiman_boardmaneuver(void)
 		g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 			.fg.orders[g_paiContext.orderSlot]
 			.variable1;
-	MobileObject *targetMobileObject =
+	struct MobileObject *targetMobileObject =
 		g_objectTable[targetObjectIndex].mobj;
 	uint8_t *targetFlightGroupIndexPtr =
 		&g_objectTable[targetObjectIndex].flightGroupIdx;
-	CraftData *targetCraft = NULL;
-	AiController *targetController = NULL;
+	struct CraftData *targetCraft = NULL;
+	struct AiController *targetController = NULL;
 	uint16_t targetModelIndex = UINT8_MAX;
 	uint16_t targetFlightGroupIndex = *targetFlightGroupIndexPtr;
 	uint16_t targetSignature =
@@ -2845,8 +2845,8 @@ int16_t paiman_boardmaneuver(void)
 				IFMSG_156_REPORTS_DOCKING_OPERATION_COMPLETE);
 		} else if (strcmp(planName, "boardtocapturepln") == 0) {
 			if (targetMobileObject != NULL) {
-				PaiContext savedContext;
-				CraftData *savedCraft;
+				struct PaiContext savedContext;
+				struct CraftData *savedCraft;
 
 				paiman_TransferObjectToAiTeam(
 					targetObjectIndex, targetCraft,
@@ -2904,8 +2904,8 @@ int16_t paiman_boardmaneuver(void)
 			}
 		} else if (strcmp(planName, "boardtodestroypln") == 0) {
 			if (targetMobileObject != NULL) {
-				PaiContext savedContext;
-				CraftData *savedCraft;
+				struct PaiContext savedContext;
+				struct CraftData *savedCraft;
 
 				Mission_CreditDestructionDamageContributors(
 					g_paiContext.objectIndex,
@@ -2987,7 +2987,7 @@ int16_t paiman_boardmaneuver(void)
 		}
 
 		if (targetMobileObject != NULL) {
-			MobileObject *boardingMobileObject =
+			struct MobileObject *boardingMobileObject =
 				g_objectTable[g_paiContext.objectIndex].mobj;
 
 			if (boardingMobileObject->iff ==
@@ -3127,11 +3127,11 @@ int16_t paiman_boardmaneuver(void)
  * new team, moving it from an earlier captor's team, and sets
  * capturedByFlightGroup to ownerFlag with the capturing flight group. */
 // FUNCTION: XVT 0x4A3750
-void paiman_TransferObjectToAiTeam(unsigned int objectIdx, CraftData *craft,
-				   uint8_t ownerFlag)
+void paiman_TransferObjectToAiTeam(unsigned int objectIdx,
+				   struct CraftData *craft, uint8_t ownerFlag)
 {
-	ObjectRecord *object;
-	MobileObject **currentMobileObjectPtr;
+	struct ObjectRecord *object;
+	struct MobileObject **currentMobileObjectPtr;
 	uint8_t objectTeam;
 	int flightGroupIdx;
 	uint8_t missionTeam;
@@ -3431,7 +3431,8 @@ int16_t paiman_dropoffmaneuver(void)
 		for (objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
 		     (int)objectIndex < g_activeRegionCraftObjectSlotEnd;
 		     ++objectIndex) {
-			ObjectRecord *object = &g_objectTable[objectIndex];
+			struct ObjectRecord *object =
+				&g_objectTable[objectIndex];
 
 			if (object->objectType != 0 &&
 			    object->flightGroupIdx ==
@@ -3481,8 +3482,8 @@ int16_t paiman_dropoffmaneuver(void)
 		}
 		if (distanceX + distanceY + distanceZ <
 		    ARRIVAL_DISTANCE_THRESHOLD) {
-			PaiContext savedContext = g_paiContext;
-			CraftData *savedCraft;
+			struct PaiContext savedContext = g_paiContext;
+			struct CraftData *savedCraft;
 
 			g_currentFlightGroupIdx = destinationFlightGroupIndex;
 			savedCraft = g_curCraft;
@@ -3844,7 +3845,7 @@ void paiman_calcplanelead(int targetObjIdx)
 	uint16_t leadFrames;
 	int deltaY;
 	int deltaZ;
-	MobileObject *targetMobile;
+	struct MobileObject *targetMobile;
 
 	if (g_objectTable[targetObjIdx].mobj->speed == 0) {
 		leadFrames = 0;
@@ -4027,7 +4028,7 @@ void paiman_setturn(int turnStep)
 	uint16_t *yaw;
 	uint16_t targetYaw;
 	uint16_t yawDifference;
-	MobileObject *mobileObject;
+	struct MobileObject *mobileObject;
 
 	yaw = &g_objectTable[g_paiContext.objectIndex].yaw;
 	targetYaw = g_paiContext.controller->targetXYAngle;
@@ -4067,7 +4068,7 @@ void paiman_setpower(int ignoredObjIdx, int throttle)
 void paiman_setspeed(int objIdx, unsigned int desiredSpeed)
 {
 	uint16_t powerDelta;
-	CraftData *craft;
+	struct CraftData *craft;
 	int16_t maxSpeedCache;
 	uint16_t adjustedMaxSpeed;
 

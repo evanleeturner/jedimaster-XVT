@@ -22,40 +22,41 @@ enum {
 /* The face data block of the built-in streak model, laid out as the renderer
  * reads an OPT_FACEDATA payload: the edge count, then per face its record, its
  * normal and its texture axes. */
-typedef struct HyperspaceFacePayload {
+struct HyperspaceFacePayload {
 	int edgeCount; /* Edge count the renderer takes for the mesh: 4. */
-	OptPackedFaceRecord face; /* The one face: its index lists. */
-	OptVector faceNormal;	  /* The face's normal, (0, 0, 1). */
+	struct OptPackedFaceRecord face; /* The one face: its index lists. */
+	struct OptVector faceNormal;	 /* The face's normal, (0, 0, 1). */
 	/* Texture axes, (1, 0, 0) and (0, 1, 0). */
-	OptVector textureGradients[2];
-} HyperspaceFacePayload;
+	struct OptVector textureGradients[2];
+};
 
 /* The built-in model a hyperspace streak is drawn with: one textured quad as a
  * group of four OPT nodes, all in one block. */
-typedef struct HyperspaceStreakEmbeddedModelData {
+struct HyperspaceStreakEmbeddedModelData {
 	/* Vertex node: the 4 corners in g_hyperspaceStreakQuadVertices. */
-	OptNode verticesNode;
-	OptTexCoord texCoords[4]; /* The corners' texture coordinates. */
+	struct OptNode verticesNode;
+	struct OptTexCoord texCoords[4]; /* The corners' texture coordinates. */
 	/* Texture coordinate node: the 4 in texCoords. */
-	OptNode texCoordsNode;
-	OptVector normal;      /* The one vertex normal, (0, 0, 1). */
+	struct OptNode texCoordsNode;
+	struct OptVector normal; /* The one vertex normal, (0, 0, 1). */
 	int normalNodePadding; /* 0; not used by name. */
-	OptNode normalsNode;   /* Vertex normal node: the 1 in normal. */
+	struct OptNode normalsNode; /* Vertex normal node: the 1 in normal. */
 	/* The face data the face node points at. */
-	HyperspaceFacePayload facePayload;
-	OptNode faceNode;	/* Face data node: 1 face, facePayload. */
-	OptNode *childNodes[4]; /* The four nodes above, in order. */
-	OptNode rootNode;	/* Group node holding childNodes. */
-	OptNode *rootNodes[1];	/* Points at rootNode: the model's root list. */
+	struct HyperspaceFacePayload facePayload;
+	struct OptNode faceNode; /* Face data node: 1 face, facePayload. */
+	struct OptNode *childNodes[4]; /* The four nodes above, in order. */
+	struct OptNode rootNode;       /* Group node holding childNodes. */
+	struct OptNode
+		*rootNodes[1];	/* Points at rootNode: the model's root list. */
 	int trailingPadding;	/* 0; not used by name. */
-} HyperspaceStreakEmbeddedModelData;
+};
 
 /* The streak quad's four corners: x is plus or minus the streak's half width, y
  * runs from 0 to the stretched length. Starts with x at 64 or -64 and y at 0 or
  * -256; FlightHyperspace_RenderTransitionEffect, its only writer, sets the x of
  * all four and the y of corners 1 and 2 before each streak is drawn. */
 // GLOBAL: XVT 0x51C340
-OptVector g_hyperspaceStreakQuadVertices[4] = {
+struct OptVector g_hyperspaceStreakQuadVertices[4] = {
 	{64.0f, 0.0f, 0.0f},
 	{64.0f, -256.0f, 0.0f},
 	{-64.0f, -256.0f, 0.0f},
@@ -64,7 +65,7 @@ OptVector g_hyperspaceStreakQuadVertices[4] = {
 /* The built-in streak model: one quad over g_hyperspaceStreakQuadVertices, set
  * up in its initializer; nothing writes it by name. */
 // GLOBAL: XVT 0x51C370
-HyperspaceStreakEmbeddedModelData g_hyperspaceStreakEmbeddedModelData = {
+struct HyperspaceStreakEmbeddedModelData g_hyperspaceStreakEmbeddedModelData = {
 	{NULL, OPT_MESHVERTS, 0, NULL, 4, g_hyperspaceStreakQuadVertices},
 	{{1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}, {0.0f, 0.0f}},
 	{NULL, OPT_TEXCOORDS, 0, NULL, 4,
@@ -98,7 +99,7 @@ HyperspaceStreakEmbeddedModelData g_hyperspaceStreakEmbeddedModelData = {
  * g_hyperspaceStreakEmbeddedModelData.rootNodes); that function, its only
  * writer, sets selfMarker to the model it covers. */
 // GLOBAL: XVT 0x51C498
-OptimizedPolyObject g_hyperspaceModelHeaderPatch = {
+struct OptimizedPolyObject g_hyperspaceModelHeaderPatch = {
 	&g_hyperspaceModelHeaderPatch, 0, 1,
 	g_hyperspaceStreakEmbeddedModelData.rootNodes};
 
@@ -152,11 +153,11 @@ int g_hyperspaceStreakRollAngle[1024] = {0};
 // FUNCTION: XVT 0x424410
 void FlightHyperspace_DrawTransitionEffectObject(void)
 {
-	OptimizedPolyObject *model;
-	OptimizedPolyObject savedHeader;
-	ObjectRecord *object;
+	struct OptimizedPolyObject *model;
+	struct OptimizedPolyObject savedHeader;
+	struct ObjectRecord *object;
 
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadedModels[HYPERSPACE_TRANSITION_OBJECT_TYPE]);
 	memcpy(&savedHeader, model, sizeof(savedHeader));
 	g_hyperspaceModelHeaderPatch.selfMarker = model;
@@ -213,8 +214,8 @@ void FlightHyperspace_RenderTransitionEffect(void)
 	};
 
 	const float fullyStretchedLength = 16000.0f;
-	ObjectRecord savedObject;
-	MobileObject savedMobileObject;
+	struct ObjectRecord savedObject;
+	struct MobileObject savedMobileObject;
 	int savedBilinearEnabled;
 	int streakCount;
 	int streakIndex;

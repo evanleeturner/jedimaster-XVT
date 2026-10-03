@@ -18,11 +18,11 @@
 #include <stdint.h>
 #include <string.h>
 
-static ImageResource g_image;
-static ImageResource g_cursorImage;
+static struct ImageResource g_image;
+static struct ImageResource g_cursorImage;
 static uint8_t g_pixels[64];
 static uint8_t g_glyphBits[256 * 4];
-static FrontImageResourceRecord g_preparedResourceGeneration[1];
+static struct FrontImageResourceRecord g_preparedResourceGeneration[1];
 
 /* A fresh snapshot with its first tick open, a 16-bit 565 frontend clipped to (5, 6)-(600, 400), and one
  * registered 32 x 16 image. */
@@ -39,20 +39,23 @@ static void Fresh(void)
 	XvtRenderSnapshot_Init();
 	XvtRenderSnapshot_BeginFrame();
 	XVT_ASSERT_TRUE(XvtRenderSnapshot_Writer() != NULL);
-	g_image =
-		(ImageResource){.width = 32, .height = 16, .pixels = g_pixels};
+	g_image = (struct ImageResource){
+		.width = 32, .height = 16, .pixels = g_pixels};
 	XVT_ASSERT_TRUE(XvtRenderAssets_RegisterImage(&g_image, 0, "",
 						      XVT_IMAGE_BUILTIN_CURSOR,
 						      0, 1, 0, 0, 0) != 0);
 }
 
-static XvtRenderSnapshot *Writer(void) { return XvtRenderSnapshot_Writer(); }
+static struct XvtRenderSnapshot *Writer(void)
+{
+	return XvtRenderSnapshot_Writer();
+}
 
 /* Commits the open tick and opens the next; returns the snapshot just committed. */
-static const XvtRenderSnapshot *NextTick(void)
+static const struct XvtRenderSnapshot *NextTick(void)
 {
 	XvtRenderSnapshot_Commit(0, 1, 0);
-	const XvtRenderSnapshot *committed = XvtRenderSnapshot_Current();
+	const struct XvtRenderSnapshot *committed = XvtRenderSnapshot_Current();
 	XvtRenderSnapshot_BeginFrame();
 	return committed;
 }
@@ -68,7 +71,7 @@ static void CheckColorConversion(void)
 	Fresh();
 	g_frontState.displayBpp = 8;
 	g_frontState.displayPalette[7] =
-		(FrontendPaletteEntry){0x12, 0x34, 0x56, 0};
+		(struct FrontendPaletteEntry){0x12, 0x34, 0x56, 0};
 	XVT_ASSERT_INT_EQ(PaintColor(7), 0xFF123456u);
 
 	/* 16 bits, 565: each full channel is 255, an empty one 0. */
@@ -95,8 +98,8 @@ static void CheckPaintRecord(void)
 	XvtRenderFrontend_Paint(XVT_PAINT_LINE, 1, 2, 3, 4, 0xFFFF);
 	XvtRenderFrontend_Paint(XVT_PAINT_FRAME, 9, 8, 7, 6, 0);
 	XVT_ASSERT_INT_EQ(Writer()->paint_count, 2);
-	const XvtSnapPaint *first = &Writer()->paint[0];
-	const XvtSnapPaint *second = &Writer()->paint[1];
+	const struct XvtSnapPaint *first = &Writer()->paint[0];
+	const struct XvtSnapPaint *second = &Writer()->paint[1];
 	XVT_ASSERT_INT_EQ(first->kind, XVT_PAINT_LINE);
 	XVT_ASSERT_INT_EQ(first->x0, 1);
 	XVT_ASSERT_INT_EQ(first->y0, 2);
@@ -161,7 +164,7 @@ static void CheckNoTick(void)
 {
 	Fresh();
 	XvtRenderSnapshot_Commit(0, 1, 0);
-	const XvtRenderSnapshot *current = XvtRenderSnapshot_Current();
+	const struct XvtRenderSnapshot *current = XvtRenderSnapshot_Current();
 	XvtRenderFrontend_Paint(XVT_PAINT_FILL, 0, 0, 1, 1, 0);
 	XvtRenderFrontend_Image(&g_image, 0, 0, 0, 0, 4, 4,
 				XVT_SPRITE_FRONT_OPAQUE, 0);
@@ -225,7 +228,7 @@ static void CheckImage(void)
 	XvtRenderFrontend_Image(&g_image, 3, 4, 100, 200, 10, 12,
 				XVT_SPRITE_FRONT_TINTED, 0x11223344u);
 	XVT_ASSERT_INT_EQ(Writer()->sprite_count, 1);
-	const XvtSnapSprite *sprite = &Writer()->sprites[0];
+	const struct XvtSnapSprite *sprite = &Writer()->sprites[0];
 	XVT_ASSERT_INT_EQ(sprite->asset_id, id);
 	XVT_ASSERT_INT_EQ(sprite->kind, XVT_SPRITE_FRONT_TINTED);
 	XVT_ASSERT_INT_EQ(sprite->tint_color, 0x11223344u);
@@ -250,7 +253,8 @@ static void CheckImage(void)
 				XVT_SPRITE_FRONT_OPAQUE, 0);
 	XVT_ASSERT_INT_EQ(Writer()->sprite_count, 1);
 	XVT_ASSERT_INT_EQ(Writer()->dropped_records, 0);
-	ImageResource unknown = {.width = 8, .height = 8, .pixels = g_pixels};
+	struct ImageResource unknown = {
+		.width = 8, .height = 8, .pixels = g_pixels};
 	XvtRenderFrontend_Image(&unknown, 0, 0, 0, 0, 4, 4,
 				XVT_SPRITE_FRONT_OPAQUE, 0);
 	XVT_ASSERT_INT_EQ(Writer()->sprite_count, 1);
@@ -265,10 +269,11 @@ static void CheckCopyAndClear(void)
 	XvtRenderFrontend_Copy(XVT_TARGET_FRONT_OFFSCREEN,
 			       XVT_TARGET_FRONT_BACKUP);
 	XVT_ASSERT_INT_EQ(Writer()->copy_count, 1);
-	const XvtSnapCopyRect *copy = &Writer()->copies[0];
+	const struct XvtSnapCopyRect *copy = &Writer()->copies[0];
 	XVT_ASSERT_INT_EQ(copy->source_target, XVT_TARGET_FRONT_OFFSCREEN);
 	XVT_ASSERT_INT_EQ(copy->draw.target, XVT_TARGET_FRONT_BACKUP);
-	const XvtSnapRect *rects[2] = {&copy->source, &copy->destination};
+	const struct XvtSnapRect *rects[2] = {&copy->source,
+					      &copy->destination};
 	for (int i = 0; i < 2; ++i) {
 		XVT_ASSERT_INT_EQ(rects[i]->x, 0);
 		XVT_ASSERT_INT_EQ(rects[i]->y, 0);
@@ -278,7 +283,7 @@ static void CheckCopyAndClear(void)
 
 	XvtRenderFrontend_Clear(XVT_TARGET_FRONT_OFFSCREEN, 0x07E0);
 	XVT_ASSERT_INT_EQ(Writer()->surface_event_count, 1);
-	const XvtSnapSurfaceEvent *clear = &Writer()->surface_events[0];
+	const struct XvtSnapSurfaceEvent *clear = &Writer()->surface_events[0];
 	XVT_ASSERT_INT_EQ(clear->kind, XVT_SURFACE_CLEAR);
 	XVT_ASSERT_INT_EQ(clear->target, XVT_TARGET_FRONT_OFFSCREEN);
 	XVT_ASSERT_INT_EQ(clear->color_argb, 0xFF00FF00u);
@@ -302,7 +307,7 @@ static void CheckDefaultCursor(void)
 	XvtRenderFrontend_Cursor(0);
 	XvtRenderFrontend_EndCursor();
 	XvtRenderFrontend_Present();
-	XvtRenderSnapshot *s = Writer();
+	struct XvtRenderSnapshot *s = Writer();
 	XVT_ASSERT_INT_EQ(s->cursor.visible, 1);
 	XVT_ASSERT_INT_EQ(
 		s->cursor.asset_id,
@@ -326,8 +331,8 @@ static void CheckDefaultCursor(void)
 static void CheckNamedCursor(void)
 {
 	Fresh();
-	g_cursorImage =
-		(ImageResource){.width = 24, .height = 30, .pixels = g_pixels};
+	g_cursorImage = (struct ImageResource){
+		.width = 24, .height = 30, .pixels = g_pixels};
 	uint64_t id = XvtRenderAssets_RegisterImage(
 		&g_cursorImage, 0, "", XVT_IMAGE_BUILTIN_CURSOR, 0, 1, 0, 0, 0);
 	XVT_ASSERT_TRUE(id != 0);
@@ -362,7 +367,7 @@ static void CheckImageWhileDrawingCursor(void)
 	XVT_ASSERT_INT_EQ(Writer()->sprite_count, 0);
 	XvtRenderFrontend_Present();
 	XVT_ASSERT_INT_EQ(Writer()->sprite_count, 1);
-	const XvtSnapSprite *cursor = &Writer()->sprites[0];
+	const struct XvtSnapSprite *cursor = &Writer()->sprites[0];
 	XVT_ASSERT_INT_EQ(cursor->asset_id, XvtRenderAssets_ImageId(&g_image));
 	XVT_ASSERT_INT_EQ(cursor->source.width, g_image.width);
 	XVT_ASSERT_INT_EQ(cursor->source.height, g_image.height);
@@ -442,7 +447,7 @@ static void CheckPresentScene(void)
 	Fresh();
 	uint64_t serial = NextTick()->presentation_serial;
 	XvtRenderFrontend_Present();
-	const XvtRenderSnapshot *committed = NextTick();
+	const struct XvtRenderSnapshot *committed = NextTick();
 	XVT_ASSERT_INT_EQ(committed->presented_scene, XVT_SCENE_FRONTEND);
 	XVT_ASSERT_INT_EQ(committed->presented_target, XVT_TARGET_FRONT_BACK);
 	XVT_ASSERT_TRUE(committed->presentation_serial > serial);
@@ -468,7 +473,7 @@ static void CheckPresentedScene(void)
 	uint64_t serial = NextTick()->presentation_serial;
 	for (size_t i = 0; i < sizeof kScenes / sizeof kScenes[0]; ++i) {
 		XvtRenderFrontend_PresentedScene(kScenes[i].kind);
-		const XvtRenderSnapshot *committed = NextTick();
+		const struct XvtRenderSnapshot *committed = NextTick();
 		XVT_ASSERT_INT_EQ(committed->presented_scene, kScenes[i].kind);
 		XVT_ASSERT_INT_EQ(committed->presented_target,
 				  kScenes[i].target);
@@ -476,7 +481,7 @@ static void CheckPresentedScene(void)
 		serial = committed->presentation_serial;
 	}
 	XvtRenderFrontend_FlightUiScene(XVT_SCENE_LOADING);
-	const XvtRenderSnapshot *committed = NextTick();
+	const struct XvtRenderSnapshot *committed = NextTick();
 	XVT_ASSERT_INT_EQ(committed->presented_scene, XVT_SCENE_LOADING);
 	XVT_ASSERT_INT_EQ(committed->presented_target, XVT_TARGET_FLIGHT_MAIN);
 	XVT_ASSERT_TRUE(committed->presentation_serial > serial);
@@ -486,7 +491,7 @@ static void CheckResetAndRelease(void)
 {
 	Fresh();
 	XvtRenderFrontend_ReleaseSurfaces();
-	const XvtRenderSnapshot *committed = NextTick();
+	const struct XvtRenderSnapshot *committed = NextTick();
 	uint64_t generation = committed->frontend_generation;
 	XVT_ASSERT_INT_EQ(committed->frontend_surfaces_released, 1);
 	XVT_ASSERT_INT_EQ(NextTick()->frontend_surfaces_released, 1);
@@ -508,15 +513,15 @@ static void CheckResetAndRelease(void)
 static void CheckScreen(void)
 {
 	Fresh();
-	g_frontState.screenStates[3].savedRect = (RECT){10, 20, 109, 69};
+	g_frontState.screenStates[3].savedRect = (struct RECT){10, 20, 109, 69};
 	XvtRenderFrontend_Screen(3, 0);
 	XvtRenderFrontend_Screen(3, 1);
 	g_frontState.offscreenRestoreEnabled = 1;
 	XvtRenderFrontend_Screen(3, 1);
 	XVT_ASSERT_INT_EQ(Writer()->copy_count, 3);
-	const XvtSnapCopyRect *save = &Writer()->copies[0];
-	const XvtSnapCopyRect *restore = &Writer()->copies[1];
-	const XvtSnapCopyRect *offscreen = &Writer()->copies[2];
+	const struct XvtSnapCopyRect *save = &Writer()->copies[0];
+	const struct XvtSnapCopyRect *restore = &Writer()->copies[1];
+	const struct XvtSnapCopyRect *offscreen = &Writer()->copies[2];
 	XVT_ASSERT_INT_EQ(save->source_target, XVT_TARGET_FRONT_BACK);
 	XVT_ASSERT_INT_EQ(save->draw.target, XVT_TARGET_FRONT_SAVED_FIRST + 3);
 	XVT_ASSERT_INT_EQ(restore->source_target,
@@ -526,7 +531,7 @@ static void CheckScreen(void)
 			  XVT_TARGET_FRONT_SAVED_FIRST + 3);
 	XVT_ASSERT_INT_EQ(offscreen->draw.target, XVT_TARGET_FRONT_OFFSCREEN);
 	for (int i = 0; i < 3; ++i) {
-		const XvtSnapCopyRect *copy = &Writer()->copies[i];
+		const struct XvtSnapCopyRect *copy = &Writer()->copies[i];
 		XVT_ASSERT_INT_EQ(copy->source.x, 10);
 		XVT_ASSERT_INT_EQ(copy->source.y, 20);
 		XVT_ASSERT_INT_EQ(memcmp(&copy->source, &copy->destination,
@@ -580,9 +585,9 @@ static void CheckTextEntry(void)
 }
 
 /* Slot 2 holds a font whose glyph c is 4 bytes into the bits per character, 3 to 7 pixels wide. */
-static BitmapFont *LoadTestFont(void)
+static struct BitmapFont *LoadTestFont(void)
 {
-	BitmapFont *font = &g_frontState.fontSlots[2];
+	struct BitmapFont *font = &g_frontState.fontSlots[2];
 	font->pGlyphBits = g_glyphBits;
 	for (unsigned c = 0; c < 256; ++c) {
 		font->glyphBitOffset[c] = c * 4;
@@ -594,19 +599,20 @@ static BitmapFont *LoadTestFont(void)
 	return font;
 }
 
-static ImageResource GlyphImage(const BitmapFont *font, unsigned c)
+static struct ImageResource GlyphImage(const struct BitmapFont *font,
+				       unsigned c)
 {
-	return (ImageResource){.width = font->glyphWidth[c],
-			       .height = font->glyphHeight[c],
-			       .pixels = font->pGlyphBits +
-					 font->glyphBitOffset[c]};
+	return (struct ImageResource){.width = font->glyphWidth[c],
+				      .height = font->glyphHeight[c],
+				      .pixels = font->pGlyphBits +
+						font->glyphBitOffset[c]};
 }
 
 static void CheckGlyph(void)
 {
 	Fresh();
 	g_frontState.pixelFormat555 = 0;
-	BitmapFont *font = LoadTestFont();
+	struct BitmapFont *font = LoadTestFont();
 	uint64_t id = XvtRenderAssets_RegisterImage(
 		font, 0, "", XVT_IMAGE_BUILTIN_CURSOR, 0, 1, 10, 0, 0);
 	XVT_ASSERT_TRUE(id != 0);
@@ -616,11 +622,11 @@ static void CheckGlyph(void)
 						      XVT_IMAGE_BUILTIN_CURSOR,
 						      0, 1, 12, 0, 0) != id);
 
-	ImageResource a = GlyphImage(font, 'A');
+	struct ImageResource a = GlyphImage(font, 'A');
 	XvtRenderFrontend_Select(XVT_TARGET_FRONT_BACKUP);
 	XvtRenderFrontend_Glyph(&a, 40, 50, 0xF800, 0);
 	XVT_ASSERT_INT_EQ(Writer()->glyph_count, 1);
-	const XvtSnapGlyph *glyph = &Writer()->glyphs[0];
+	const struct XvtSnapGlyph *glyph = &Writer()->glyphs[0];
 	XVT_ASSERT_INT_EQ(glyph->character, 'A');
 	XVT_ASSERT_INT_EQ(glyph->x, 40);
 	XVT_ASSERT_INT_EQ(glyph->y, 50);
@@ -630,9 +636,10 @@ static void CheckGlyph(void)
 	XVT_ASSERT_INT_EQ(Writer()->dropped_records, 0);
 
 	/* A glyph found in no slot counts as dropped: wrong pixels, wrong size, or a slot not in use. */
-	ImageResource stray = {.width = 3, .height = 9, .pixels = g_pixels};
+	struct ImageResource stray = {
+		.width = 3, .height = 9, .pixels = g_pixels};
 	XvtRenderFrontend_Glyph(&stray, 0, 0, 0, 0);
-	ImageResource resized = GlyphImage(font, 'B');
+	struct ImageResource resized = GlyphImage(font, 'B');
 	resized.height = 8;
 	XvtRenderFrontend_Glyph(&resized, 0, 0, 0, 0);
 	XVT_ASSERT_INT_EQ(Writer()->dropped_records, 2);
@@ -646,7 +653,7 @@ static void CheckGlyph(void)
 static void CheckFontOutsideSlots(void)
 {
 	Fresh();
-	static BitmapFont outside;
+	static struct BitmapFont outside;
 	memset(&outside, 0, sizeof outside);
 	outside.pGlyphBits = g_glyphBits;
 	outside.glyphWidth['Q'] = 4;
@@ -655,7 +662,7 @@ static void CheckFontOutsideSlots(void)
 	outside.inUse = 1;
 	g_frontState.fontSlots[0].inUse = 1;
 	XvtRenderFrontend_FontLoaded(&outside);
-	ImageResource q = GlyphImage(&outside, 'Q');
+	struct ImageResource q = GlyphImage(&outside, 'Q');
 	XvtRenderFrontend_Glyph(&q, 0, 0, 0, 0);
 	XVT_ASSERT_INT_EQ(Writer()->glyph_count, 0);
 	XVT_ASSERT_INT_EQ(Writer()->dropped_records, 1);

@@ -5,18 +5,18 @@
 #include "xvt_remaster/hud_panes.h"
 #include <string.h>
 
-typedef struct HudPreparationKey {
+struct HudPreparationKey {
 	uint64_t definition, palette, artwork, instruments, radar, text, crt;
-	XvtRenderView view;
+	struct XvtRenderView view;
 	unsigned marker_count;
-	XvtSnapTargetBox markers[XVT_SNAP_TARGET_BOXES];
+	struct XvtSnapTargetBox markers[XVT_SNAP_TARGET_BOXES];
 	int width, height;
 	uint8_t crt_visible;
-} HudPreparationKey;
+};
 
 static AeronDrawList2D *g_before, *g_after;
-static XvtHudLayoutCache g_layout;
-static HudPreparationKey g_key;
+static struct XvtHudLayoutCache g_layout;
+static struct HudPreparationKey g_key;
 static uint64_t g_worldGeneration;
 static int g_prepared, g_ready;
 
@@ -36,7 +36,7 @@ void XvtHudRenderer_Shutdown(void)
 	XvtHudRenderer_Invalidate();
 }
 
-static int SelectAssets(const XvtCockpitState *state, int has_view)
+static int SelectAssets(const struct XvtCockpitState *state, int has_view)
 {
 	if (!has_view) {
 		memset(&g_layout, 0, sizeof g_layout);
@@ -48,14 +48,13 @@ static int SelectAssets(const XvtCockpitState *state, int has_view)
 	       XvtHudAssets_Select(state, &g_layout.layout);
 }
 
-static HudPreparationKey MakePreparationKey(const XvtCockpitState *state,
-					    const XvtSnapTargetBox *markers,
-					    unsigned marker_count,
-					    const XvtRenderView *view,
-					    int width, int height,
-					    int crt_visible)
+static struct HudPreparationKey
+MakePreparationKey(const struct XvtCockpitState *state,
+		   const struct XvtSnapTargetBox *markers,
+		   unsigned marker_count, const struct XvtRenderView *view,
+		   int width, int height, int crt_visible)
 {
-	HudPreparationKey key = {0};
+	struct HudPreparationKey key = {0};
 	key.definition = state->definition_generation;
 	key.palette = state->palette_generation;
 	key.artwork = state->artwork_generation;
@@ -71,7 +70,7 @@ static HudPreparationKey MakePreparationKey(const XvtCockpitState *state,
 	}
 	key.marker_count = marker_count;
 	for (unsigned index = 0; index < marker_count; ++index) {
-		const XvtSnapTargetBox *marker = &markers[index];
+		const struct XvtSnapTargetBox *marker = &markers[index];
 		key.markers[index].object = marker->object;
 		key.markers[index].component = marker->component;
 		key.markers[index].color_index = marker->color_index;
@@ -84,10 +83,11 @@ static HudPreparationKey MakePreparationKey(const XvtCockpitState *state,
 }
 
 int XvtHudRenderer_Prepare(AeronCommandBuffer *cmd,
-			   const XvtCockpitState *state,
+			   const struct XvtCockpitState *state,
 			   uint64_t world_generation,
-			   const XvtSnapTargetBox *markers,
-			   unsigned marker_count, const XvtRenderView *view,
+			   const struct XvtSnapTargetBox *markers,
+			   unsigned marker_count,
+			   const struct XvtRenderView *view,
 			   AeronTexture *crt_color, int width, int height)
 {
 	g_ready = 0;
@@ -115,13 +115,13 @@ int XvtHudRenderer_Prepare(AeronCommandBuffer *cmd,
 	if (!g_before || !g_after || !SelectAssets(state, view != NULL)) {
 		goto failed;
 	}
-	XvtHudDraw draw = {.before = g_before,
-			   .after = g_after,
-			   .state = state,
-			   .layout = &g_layout.layout,
-			   .assets = XvtHudAssets_Current(),
-			   .width = width,
-			   .height = height};
+	struct XvtHudDraw draw = {.before = g_before,
+				  .after = g_after,
+				  .state = state,
+				  .layout = &g_layout.layout,
+				  .assets = XvtHudAssets_Current(),
+				  .width = width,
+				  .height = height};
 	XvtHudLayout_Fit(draw.layout, width, height, &draw.scale,
 			 &draw.offset_x, &draw.offset_y);
 	int crt_visible = state->crt.valid && crt_color;
@@ -130,7 +130,7 @@ int XvtHudRenderer_Prepare(AeronCommandBuffer *cmd,
 				draw.scale, draw.offset_x, draw.offset_y)) {
 		goto failed;
 	}
-	HudPreparationKey key = MakePreparationKey(
+	struct HudPreparationKey key = MakePreparationKey(
 		state, markers, marker_count, view, width, height, crt_visible);
 	if (g_prepared && !memcmp(&g_key, &key, sizeof key)) {
 		g_ready = 1;
@@ -170,12 +170,12 @@ failed:
 	return 0;
 }
 
-int XvtHudRenderer_NeedsPreparation(const XvtCockpitState *state,
+int XvtHudRenderer_NeedsPreparation(const struct XvtCockpitState *state,
 				    uint64_t world_generation,
-				    const XvtSnapTargetBox *markers,
+				    const struct XvtSnapTargetBox *markers,
 				    unsigned marker_count,
-				    const XvtRenderView *view, int crt_visible,
-				    int width, int height)
+				    const struct XvtRenderView *view,
+				    int crt_visible, int width, int height)
 {
 	if (!state || marker_count > XVT_SNAP_TARGET_BOXES) {
 		return 1;
@@ -186,7 +186,7 @@ int XvtHudRenderer_NeedsPreparation(const XvtCockpitState *state,
 	if (!g_prepared || world_generation != g_worldGeneration) {
 		return 1;
 	}
-	HudPreparationKey key = MakePreparationKey(
+	struct HudPreparationKey key = MakePreparationKey(
 		state, markers, marker_count, view, width, height, crt_visible);
 	return memcmp(&g_key, &key, sizeof key) != 0;
 }

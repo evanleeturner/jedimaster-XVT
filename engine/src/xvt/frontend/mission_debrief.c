@@ -313,11 +313,11 @@ int MissionDebrief_Update(int frameCounter)
 	int showSequenceContinueButton = 0;
 	int localNetworkPlayerIndex = 0;
 	int battleResultCounts[BATTLE_RESULT_COUNT];
-	RECT rect;
+	struct RECT rect;
 #ifndef XVT_MODERN
 	char longName[16];
 #endif
-	RECT savedClipRect;
+	struct RECT savedClipRect;
 
 	if (frameCounter == 0) {
 #ifdef XVT_MODERN
@@ -1407,7 +1407,7 @@ int MissionDebrief_Update(int frameCounter)
 				for (localNetworkPlayerIndex = 0;
 				     localNetworkPlayerIndex < PLAYER_COUNT;
 				     ++localNetworkPlayerIndex) {
-					PilotNetworkPlayer *networkPlayer =
+					struct PilotNetworkPlayer *networkPlayer =
 						&g_pilotData.networkPlayers
 							 [localNetworkPlayerIndex];
 
@@ -2531,7 +2531,7 @@ int MissionDebrief_Update(int frameCounter)
 						     localNetworkPlayerIndex <
 						     PLAYER_COUNT;
 						     ++localNetworkPlayerIndex) {
-							PilotNetworkPlayer *networkPlayer =
+							struct PilotNetworkPlayer *networkPlayer =
 								&g_pilotData.networkPlayers
 									 [localNetworkPlayerIndex];
 
@@ -2682,8 +2682,8 @@ int MissionDebrief_DrawMissionOverviewPage(int frameCounter)
 	int teamPosition;
 	int textY;
 	int textX;
-	RECT rect;
-	RECT savedClipRect;
+	struct RECT rect;
+	struct RECT savedClipRect;
 
 	if (Keyboard_IsKeyDown(0x12) && Keyboard_IsKeyDown(0x10) &&
 	    Keyboard_IsKeyDown(0x11)) {
@@ -3622,7 +3622,7 @@ int MissionDebrief_DrawPlayerStatisticsPage(void)
 		HIGHEST_RATING = PLAYER_RATING_COUNT - 1,
 	};
 
-	RECT rect;
+	struct RECT rect;
 	char missionTimeText[20];
 	int localPlayerIndex;
 	int scrollRow;
@@ -4530,7 +4530,7 @@ int MissionDebrief_DrawPlayerStatisticsPage(void)
 // FUNCTION: XVT 0x502A50
 int MissionDebrief_DrawTeamStatisticsPage(void)
 {
-	RECT titleRect;
+	struct RECT titleRect;
 	int totalKills;
 	int totalSharedKills;
 	int totalDamaged;
@@ -4539,7 +4539,7 @@ int MissionDebrief_DrawTeamStatisticsPage(void)
 	int playerIndex;
 	int textX;
 	int textY;
-	PilotNetworkPlayer *player;
+	struct PilotNetworkPlayer *player;
 
 	FrontendDraw_RectAssign(&titleRect, 84, 90, 434, 106);
 	FrontendText_DrawCentered(
@@ -4629,8 +4629,8 @@ int MissionDebrief_DrawTeamStatisticsPage(void)
 // FUNCTION: XVT 0x502E20
 int MissionDebrief_DrawBattleSummaryPage(void)
 {
-	RECT rect;
-	RECT resourceRect;
+	struct RECT rect;
+	struct RECT resourceRect;
 	int awardTextWidth;
 	int imperialVictories = 0;
 	int rebelVictories = 0;
@@ -4856,10 +4856,10 @@ int MissionDebrief_DrawTournamentSummaryPage(int frameCounter)
 		TEXT_CODE_RATING = 6,
 	};
 
-	RECT rect;
-	RECT resourceRect;
-	RECT playerNameClipRect;
-	RECT savedClipRect;
+	struct RECT rect;
+	struct RECT resourceRect;
+	struct RECT playerNameClipRect;
+	struct RECT savedClipRect;
 	int textY;
 	int standingIndex;
 	int rankStart;
@@ -4899,7 +4899,7 @@ int MissionDebrief_DrawTournamentSummaryPage(int frameCounter)
 					for (playerIndex = 0;
 					     playerIndex < PLAYER_COUNT;
 					     ++playerIndex) {
-						PilotNetworkPlayer *player =
+						struct PilotNetworkPlayer *player =
 							&g_pilotData.networkPlayers
 								 [playerIndex];
 
@@ -5753,7 +5753,7 @@ int MissionDebrief_DrawTournamentSummaryPage(int frameCounter)
 // FUNCTION: XVT 0x504360
 int MissionDebrief_DrawTabBar(void)
 {
-	RECT rect;
+	struct RECT rect;
 	FrontendNavigationSlotState slotStates[8];
 
 	slotStates[0] =
@@ -6419,7 +6419,7 @@ void MissionDebrief_ReadOutcomeText(char *outResults, int useWinText)
 // FUNCTION: XVT 0x504F50
 int MissionDebrief_DrawNarrativeTextPage(void)
 {
-	RECT rect;
+	struct RECT rect;
 	int lineCount;
 
 	if (g_missionText == NULL) {

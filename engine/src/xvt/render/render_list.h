@@ -15,8 +15,8 @@ struct RenderObjectListEntry {
 	struct RenderObjectListEntry *next;
 };
 
-extern RenderObjectListEntry *g_renderListHead;
-extern RenderObjectListEntry *g_renderObjectListEntries;
+extern struct RenderObjectListEntry *g_renderListHead;
+extern struct RenderObjectListEntry *g_renderObjectListEntries;
 
 void RenderList_QueueObject(int objectIdx, int sortDepth);
 void RenderList_Reset(void);

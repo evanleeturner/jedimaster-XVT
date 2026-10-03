@@ -61,7 +61,7 @@ void XvtCockpitPages_Latch(unsigned page);
  * each page that state already shows and that was latched this frame, packing its header and
  * then its body into the page store; other pages are hidden. Overflowing the store logs an error
  * and marks state invalid, leaving later pages unwritten. */
-void XvtCockpitPages_Export(XvtCockpitState *state);
+void XvtCockpitPages_Export(struct XvtCockpitState *state);
 #ifdef __cplusplus
 }
 #endif

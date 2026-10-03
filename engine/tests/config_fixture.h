@@ -249,7 +249,7 @@ static inline AeronConfigFile *Fixture_ShippedDocument(void)
 }
 
 /* The shipped scene defaults, read from the fixture's copy. */
-static inline void Fixture_ShippedScene(XvtSceneSettings *scene)
+static inline void Fixture_ShippedScene(struct XvtSceneSettings *scene)
 {
 	AeronConfigFile *document = NULL;
 	AeronConfigError detail;

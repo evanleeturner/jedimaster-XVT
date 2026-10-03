@@ -24,26 +24,26 @@ static struct {
 } g_crtViews[3];
 
 static AeronRenderTarget *g_targets[PREVIEW_SLOTS];
-static XvtPreviewOutput g_outputs[PREVIEW_SLOTS];
+static struct XvtPreviewOutput g_outputs[PREVIEW_SLOTS];
 static AeronScenePresentChain *g_chain;
 static AeronSampler *g_sampler;
 static int g_sceneWidth, g_sceneHeight, g_samples;
 static AeronSceneMeshTable g_table;
 
-typedef struct CrtDependencies {
+struct CrtDependencies {
 	uint64_t world, mission, config, models, textures, component_pose;
-	XvtSnapPreview preview;
-	XvtSnapLighting effect_lighting;
-	XvtSnapType types[XVT_SNAP_TYPES];
+	struct XvtSnapPreview preview;
+	struct XvtSnapLighting effect_lighting;
+	struct XvtSnapType types[XVT_SNAP_TYPES];
 	int16_t fuselage[25];
 	uint16_t craft_slot_end, checkpoint;
 	uint8_t debris, proving_grounds;
 	int width, height;
 	unsigned object_count;
-	XvtSnapObject objects[XVT_SNAP_OBJECTS];
-} CrtDependencies;
+	struct XvtSnapObject objects[XVT_SNAP_OBJECTS];
+};
 
-static CrtDependencies g_crtDependencies, g_crtCandidate;
+static struct CrtDependencies g_crtDependencies, g_crtCandidate;
 static int g_crtValid;
 
 static int EnsureScene(AeronScene3D **scene, int *old_width, int *old_height,
@@ -120,8 +120,8 @@ static int Ensure(unsigned slot, int width, int height)
 	return g_chain && g_sampler;
 }
 
-static const XvtSnapObject *Target(const XvtRenderSnapshot *s,
-				   XvtSnapObjectId id)
+static const struct XvtSnapObject *Target(const struct XvtRenderSnapshot *s,
+					  struct XvtSnapObjectId id)
 {
 	for (unsigned i = 0; i < s->object_count; ++i) {
 		if (s->objects[i].id.slot == id.slot &&
@@ -132,8 +132,8 @@ static const XvtSnapObject *Target(const XvtRenderSnapshot *s,
 	return NULL;
 }
 
-static int IncludesCrtProjectile(const XvtSnapObject *object,
-				 const XvtSnapPreview *preview)
+static int IncludesCrtProjectile(const struct XvtSnapObject *object,
+				 const struct XvtSnapPreview *preview)
 {
 	if (object->genus != CRAFT_GENUS_PLAYER_PROJECTILE &&
 	    object->genus != CRAFT_GENUS_OTHER_PROJECTILE) {
@@ -154,8 +154,8 @@ void XvtRemasterPreview_InvalidateCrt(void)
 	g_outputs[XVT_SNAP_PREVIEWS].texture = NULL;
 }
 
-int XvtRemasterPreview_PrepareCrtResources(const XvtCockpitResources *resources,
-					   int width, int height)
+int XvtRemasterPreview_PrepareCrtResources(
+	const struct XvtCockpitResources *resources, int width, int height)
 {
 	if (!resources->view.screen_width || !resources->view.screen_height) {
 		return 0;
@@ -164,7 +164,7 @@ int XvtRemasterPreview_PrepareCrtResources(const XvtCockpitResources *resources,
 			    (float)height / resources->view.screen_height);
 	unsigned count = 0;
 	for (unsigned index = 0; index < 3; ++index) {
-		const XvtSnapHudElement *element =
+		const struct XvtSnapHudElement *element =
 			&resources->definition.layout
 				 .elements[index * HUD_INSTRUMENTS_PER_SET + 2];
 		if (!element->selector || !element->color_index) {
@@ -212,16 +212,16 @@ int XvtRemasterPreview_PrepareCrtResources(const XvtCockpitResources *resources,
 	return 1;
 }
 
-int XvtRemasterPreview_CrtNeedsRender(const XvtRenderSnapshot *s, int width,
-				      int height)
+int XvtRemasterPreview_CrtNeedsRender(const struct XvtRenderSnapshot *s,
+				      int width, int height)
 {
-	const XvtSnapPreview *preview = &s->cockpit.crt;
+	const struct XvtSnapPreview *preview = &s->cockpit.crt;
 	if (!preview->valid || !Target(s, preview->object)) {
 		XvtRemasterPreview_InvalidateCrt();
 		return 0;
 	}
-	CrtDependencies *key = &g_crtCandidate;
-	memset(key, 0, offsetof(CrtDependencies, objects));
+	struct CrtDependencies *key = &g_crtCandidate;
+	memset(key, 0, offsetof(struct CrtDependencies, objects));
 	key->component_pose = s->flight_unlocked
 				      ? XvtComponentAnimation_ObjectRevision(
 						preview->object.slot)
@@ -250,7 +250,7 @@ int XvtRemasterPreview_CrtNeedsRender(const XvtRenderSnapshot *s, int width,
 	/* Animation is already resolved into type/component frame state. No host tick
 	 * or wall clock participates in these transparent CRT draws. */
 	for (unsigned i = 0; i < s->object_count; ++i) {
-		const XvtSnapObject *object = &s->objects[i];
+		const struct XvtSnapObject *object = &s->objects[i];
 		if ((object->id.slot == preview->object.slot &&
 		     object->id.signature == preview->object.signature) ||
 		    IncludesCrtProjectile(object, preview) ||
@@ -258,24 +258,25 @@ int XvtRemasterPreview_CrtNeedsRender(const XvtRenderSnapshot *s, int width,
 			key->objects[key->object_count++] = *object;
 		}
 	}
-	size_t bytes = offsetof(CrtDependencies, objects) +
+	size_t bytes = offsetof(struct CrtDependencies, objects) +
 		       key->object_count * sizeof *key->objects;
 	return !g_crtValid || memcmp(&g_crtDependencies, key, bytes) != 0;
 }
 
-static void CrtProjectiles(AeronScene3D *scene, const XvtRenderSnapshot *s,
-			   const XvtSnapPreview *p)
+static void CrtProjectiles(AeronScene3D *scene,
+			   const struct XvtRenderSnapshot *s,
+			   const struct XvtSnapPreview *p)
 {
 	for (unsigned i = 0; i < s->object_count; ++i) {
-		const XvtSnapObject *o = &s->objects[i];
+		const struct XvtSnapObject *o = &s->objects[i];
 		if (!IncludesCrtProjectile(o, p)) {
 			continue;
 		}
-		XvtShipSelection selection;
+		struct XvtShipSelection selection;
 		if (!XvtRemasterShip_Select(s, o, &selection)) {
 			continue;
 		}
-		const XvtMeshAsset *mesh =
+		const struct XvtMeshAsset *mesh =
 			XvtRemasterShip_Mesh(s, selection.asset_id);
 		if (!mesh) {
 			continue;
@@ -304,19 +305,20 @@ static void CrtProjectiles(AeronScene3D *scene, const XvtRenderSnapshot *s,
  * effects. Both kinds run the same steps on one size, scene, camera and mesh
  * instance, with the kind deciding a small part of most steps, so keeping them
  * in one function keeps each step's two cases side by side. */
-static int RenderOne(AeronCommandBuffer *cmd, const XvtRenderSnapshot *s,
-		     const XvtSnapPreview *p, unsigned slot, int tw, int th,
-		     int crt)
+static int RenderOne(AeronCommandBuffer *cmd, const struct XvtRenderSnapshot *s,
+		     const struct XvtSnapPreview *p, unsigned slot, int tw,
+		     int th, int crt)
 {
 	if (!p->valid || p->destination.width <= 0 ||
 	    p->destination.height <= 0) {
 		return 1;
 	}
-	const XvtMeshAsset *mesh = XvtRemasterShip_Mesh(s, p->opt_asset_id);
+	const struct XvtMeshAsset *mesh =
+		XvtRemasterShip_Mesh(s, p->opt_asset_id);
 	if (!mesh && !crt) {
 		return 1;
 	}
-	XvtLayoutTransform layout;
+	struct XvtLayoutTransform layout;
 	if (!XvtRenderMath_Layout(p->camera.screen_width,
 				  p->camera.screen_height, (float)tw, (float)th,
 				  &layout)) {
@@ -339,12 +341,12 @@ static int RenderOne(AeronCommandBuffer *cmd, const XvtRenderSnapshot *s,
 					   .no_local_lights = 1,
 					   .cull_mode = AERON_CULL_BACK,
 					   .mesh_table = &g_table};
-	const XvtSnapObject *object = crt ? Target(s, p->object) : NULL;
+	const struct XvtSnapObject *object = crt ? Target(s, p->object) : NULL;
 	if (crt) {
 		if (!object) {
 			return 1;
 		}
-		XvtRenderView view;
+		struct XvtRenderView view;
 		if (!XvtRenderMath_BuildView(&p->camera, p->camera.world_pos,
 					     p->destination.width,
 					     p->destination.height, &view)) {
@@ -441,7 +443,7 @@ static int RenderOne(AeronCommandBuffer *cmd, const XvtRenderSnapshot *s,
 			(const float[4]){1, 1, 1, 1}, 1);
 		Aeron_EndRenderPass(pass);
 	}
-	XvtPreviewOutput *out = &g_outputs[slot];
+	struct XvtPreviewOutput *out = &g_outputs[slot];
 	out->snapshot_serial = s->snapshot_serial;
 	out->texture = crt ? AeronScene_ColorTexture(scene)
 			   : Aeron_RenderTargetGetTexture(g_targets[slot]);
@@ -454,7 +456,8 @@ static int RenderOne(AeronCommandBuffer *cmd, const XvtRenderSnapshot *s,
 }
 
 int XvtRemasterPreview_Render(AeronCommandBuffer *cmd,
-			      const XvtRenderSnapshot *s, int width, int height)
+			      const struct XvtRenderSnapshot *s, int width,
+			      int height)
 {
 	XvtRemasterPreview_BeginFrame();
 	for (unsigned i = 0; i < s->preview_count; ++i) {
@@ -466,7 +469,7 @@ int XvtRemasterPreview_Render(AeronCommandBuffer *cmd,
 }
 
 int XvtRemasterPreview_RenderCrt(AeronCommandBuffer *cmd,
-				 const XvtRenderSnapshot *s, int width,
+				 const struct XvtRenderSnapshot *s, int width,
 				 int height)
 {
 	if (!XvtRemasterPreview_CrtNeedsRender(s, width, height)) {
@@ -478,7 +481,7 @@ int XvtRemasterPreview_RenderCrt(AeronCommandBuffer *cmd,
 		return 0;
 	}
 	size_t bytes =
-		offsetof(CrtDependencies, objects) +
+		offsetof(struct CrtDependencies, objects) +
 		g_crtCandidate.object_count * sizeof *g_crtCandidate.objects;
 	memcpy(&g_crtDependencies, &g_crtCandidate, bytes);
 	g_crtValid = 1;
@@ -497,7 +500,7 @@ AeronTexture *XvtRemasterPreview_CrtLinear(void)
 	return g_outputs[XVT_SNAP_PREVIEWS].texture;
 }
 
-const XvtPreviewOutput *XvtRemasterPreview_Output(unsigned slot)
+const struct XvtPreviewOutput *XvtRemasterPreview_Output(unsigned slot)
 {
 	return slot < PREVIEW_SLOTS && g_outputs[slot].texture
 		       ? &g_outputs[slot]

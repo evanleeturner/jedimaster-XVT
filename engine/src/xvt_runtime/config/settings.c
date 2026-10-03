@@ -14,24 +14,25 @@ typedef enum XvtSettingType {
 	XVT_SETTING_STRING
 } XvtSettingType;
 
-typedef struct XvtSettingField {
+struct XvtSettingField {
 	const char *path;
 	size_t offset;
 	XvtSettingType type;
 	double minimum, maximum;
-} XvtSettingField;
+};
 
 #define SETTING_BOOL(path, member)                                             \
-	{path, offsetof(XvtSettings, member), XVT_SETTING_BOOL, 0, 1}
+	{path, offsetof(struct XvtSettings, member), XVT_SETTING_BOOL, 0, 1}
 #define SETTING_INT(path, member, low, high)                                   \
-	{path, offsetof(XvtSettings, member), XVT_SETTING_INT, low, high}
+	{path, offsetof(struct XvtSettings, member), XVT_SETTING_INT, low, high}
 #define SETTING_FLOAT(path, member, low, high)                                 \
-	{path, offsetof(XvtSettings, member), XVT_SETTING_FLOAT, low, high}
+	{path, offsetof(struct XvtSettings, member), XVT_SETTING_FLOAT, low,   \
+	 high}
 #define SETTING_STRING(path, member)                                           \
-	{path, offsetof(XvtSettings, member), XVT_SETTING_STRING, 0,           \
-	 sizeof(((XvtSettings *)0)->member)}
+	{path, offsetof(struct XvtSettings, member), XVT_SETTING_STRING, 0,    \
+	 sizeof(((struct XvtSettings *)0)->member)}
 
-static const XvtSettingField g_fields[] = {
+static const struct XvtSettingField g_fields[] = {
 	SETTING_BOOL("startup.skip_intro", skip_intro),
 	SETTING_STRING("paths.game_data", game_data),
 	SETTING_STRING("ui.font", ui_font),
@@ -201,8 +202,8 @@ int XvtSettings_NodeError(const AeronConfigFile *document, const char *path,
 }
 
 static int XvtSettings_ReadField(const AeronConfigFile *document,
-				 const XvtSettingField *field,
-				 XvtSettings *settings, char *error,
+				 const struct XvtSettingField *field,
+				 struct XvtSettings *settings, char *error,
 				 size_t capacity)
 {
 	const AeronConfigNode *node =
@@ -269,8 +270,8 @@ static int XvtSettings_ReadChoice(const AeronConfigFile *document,
 }
 
 static int XvtSettings_ReadDisplay(const AeronConfigFile *document,
-				   XvtPresentationSettings *out, char *error,
-				   size_t capacity)
+				   struct XvtPresentationSettings *out,
+				   char *error, size_t capacity)
 {
 	const char *gamma_path = "presentation.sdr_gamma";
 	const char *white_path = "presentation.paper_white_nits";
@@ -309,10 +310,10 @@ static int XvtSettings_ReadDisplay(const AeronConfigFile *document,
 }
 
 int XvtSettings_Parse(const AeronConfigFile *document,
-		      const XvtSceneSettings *scene_defaults, XvtSettings *out,
-		      char *error, size_t capacity)
+		      const struct XvtSceneSettings *scene_defaults,
+		      struct XvtSettings *out, char *error, size_t capacity)
 {
-	XvtSettings candidate = {0};
+	struct XvtSettings candidate = {0};
 	AeronConfigError detail;
 	static const char *const flight_rates[] = {"native", "unlocked"};
 	static const char *const window_modes[] = {"windowed", "fullscreen"};

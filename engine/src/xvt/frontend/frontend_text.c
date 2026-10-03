@@ -27,18 +27,19 @@ CreateFontA(int height, int width, int escapement, int orientation, int weight,
 	    unsigned int pitchAndFamily, const char *faceName);
 __declspec(dllimport) int __stdcall DeleteObject(void *object);
 __declspec(dllimport) int __stdcall
-ExtTextOutA(void *dc, int x, int y, unsigned int options, const RECT *rect,
-	    const char *text, unsigned int count, const int *dx);
+ExtTextOutA(void *dc, int x, int y, unsigned int options,
+	    const struct RECT *rect, const char *text, unsigned int count,
+	    const int *dx);
 __declspec(dllimport) void *__stdcall GetDC(void *hWnd);
 __declspec(dllimport) int __stdcall
-GetTextExtentPoint32A(void *dc, const char *text, int count, SIZE *size);
+GetTextExtentPoint32A(void *dc, const char *text, int count, struct SIZE *size);
 __declspec(dllimport) int __stdcall ReleaseDC(void *hWnd, void *dc);
 __declspec(dllimport) void *__stdcall SelectObject(void *dc, void *object);
 __declspec(dllimport) uint32_t __stdcall SetBkColor(void *dc, uint32_t color);
 __declspec(dllimport) int __stdcall SetBkMode(void *dc, int mode);
 __declspec(dllimport) int __stdcall SetMapMode(void *dc, int mode);
-__declspec(dllimport) int __stdcall SetRect(RECT *rect, int left, int top,
-					    int right, int bottom);
+__declspec(dllimport) int __stdcall SetRect(struct RECT *rect, int left,
+					    int top, int right, int bottom);
 __declspec(dllimport) uint32_t __stdcall SetTextColor(void *dc, uint32_t color);
 __declspec(dllimport) int __stdcall SetTextCharacterExtra(void *dc, int extra);
 
@@ -96,15 +97,16 @@ static int g_textFieldLength = 0;
  * build treats every byte from 32 but 127 as printable and records the field
  * for its renderer. */
 // FUNCTION: XVT 0x4DA380
-int FrontendText_HandleEditableField(RECT *rect, char *text, int maxChars,
-				     int fieldId, unsigned int fontSize,
+int FrontendText_HandleEditableField(struct RECT *rect, char *text,
+				     int maxChars, int fieldId,
+				     unsigned int fontSize,
 				     const char *ignoredChars)
 {
 	int mouseX;
 	int completed;
 	int mouseY;
-	RECT previousClipRect;
-	RECT textClipRect;
+	struct RECT previousClipRect;
+	struct RECT textClipRect;
 	int textWidth;
 	int rectWidth;
 
@@ -226,7 +228,7 @@ int FrontendText_HandleEditableField(RECT *rect, char *text, int maxChars,
 int FrontendText_LoadFont(int pointSize)
 {
 	char scratchBuffer[1024];
-	BitmapFont *font;
+	struct BitmapFont *font;
 	XvtFile *stream;
 	int slotIndex;
 #ifndef XVT_MODERN
@@ -240,9 +242,9 @@ int FrontendText_LoadFont(int pointSize)
 	unsigned int rowIndex;
 	int rowSize;
 	uint8_t *writeCursor;
-	SIZE glyphExtent;
-	RECT surfaceRect;
-	RECT textRect;
+	struct SIZE glyphExtent;
+	struct RECT surfaceRect;
+	struct RECT textRect;
 	char glyphText[2];
 	HRESULT result;
 #endif
@@ -561,11 +563,11 @@ void FrontendText_FreeFont(unsigned int pointSize)
 // FUNCTION: XVT 0x4DB4E0
 int FrontendText_Draw(int fontSize, const char *str, int x, int y, int color)
 {
-	BitmapFont *font;
+	struct BitmapFont *font;
 	int currentColor;
 	int textIndex;
 	int result;
-	ImageResource glyph;
+	struct ImageResource glyph;
 
 	if (str == NULL) {
 		return 0;
@@ -619,16 +621,16 @@ int FrontendText_Draw(int fontSize, const char *str, int x, int y, int color)
  * ((rect->bottom - rect->top) >> 1) - (font height >> 1). Returns what
  * FrontendText_Draw would. */
 // FUNCTION: XVT 0x4DB640
-int FrontendText_DrawCentered(int fontSize, const char *str, RECT *rect,
+int FrontendText_DrawCentered(int fontSize, const char *str, struct RECT *rect,
 			      int color)
 {
-	BitmapFont *font;
+	struct BitmapFont *font;
 	int currentColor;
 	int x;
 	int textIndex;
 	int y;
 	int result;
-	ImageResource glyph;
+	struct ImageResource glyph;
 
 	if (str == NULL) {
 		return 0;
@@ -686,17 +688,18 @@ int FrontendText_DrawCentered(int fontSize, const char *str, RECT *rect,
  * and centered down it when centerV is nonzero, else from rect->top. Returns
  * what FrontendText_Draw would. */
 // FUNCTION: XVT 0x4DB7D0
-int FrontendText_DrawAlignedInRect(int fontSize, const char *str, RECT *rect,
-				   int centerH, int centerV, int color)
+int FrontendText_DrawAlignedInRect(int fontSize, const char *str,
+				   struct RECT *rect, int centerH, int centerV,
+				   int color)
 {
 	int currentColor;
 	int halfWidth;
 	int x;
 	int textIndex;
-	BitmapFont *font;
+	struct BitmapFont *font;
 	int y;
 	int result;
-	ImageResource glyph;
+	struct ImageResource glyph;
 
 	if (str == NULL) {
 		return 0;
@@ -768,8 +771,8 @@ int FrontendText_DrawAlignedInRect(int fontSize, const char *str, RECT *rect,
  * fontSize is outside 0 to 255 or that font is not loaded. */
 // FUNCTION: XVT 0x4DB980
 int FrontendText_DrawLineArrayInRect(int fontSize, const char **lines,
-				     int lineCount, const RECT *rect, int color,
-				     int centerHorizontally,
+				     int lineCount, const struct RECT *rect,
+				     int color, int centerHorizontally,
 				     int centerVertically, int lineSpacing)
 {
 	const char **lineCursor;
@@ -779,11 +782,11 @@ int FrontendText_DrawLineArrayInRect(int fontSize, const char **lines,
 	int linesRemaining;
 	int halfLineWidth;
 	int drawX;
-	BitmapFont *font;
+	struct BitmapFont *font;
 	int charIndex;
 	const char *charPtr;
 	int fontHeight;
-	ImageResource glyph;
+	struct ImageResource glyph;
 
 	lineCursor = lines;
 	if (lineCursor == NULL) {
@@ -889,15 +892,15 @@ int FrontendText_DrawLineArrayInRect(int fontSize, const char **lines,
  * past the array's end. Returns 0 when str is NULL or empty, fontSize is
  * outside 0 to 255 or that font is not loaded. */
 // FUNCTION: XVT 0x4DBBD0
-int FrontendText_DrawWrapped(int fontSize, const char *str, RECT *rect,
+int FrontendText_DrawWrapped(int fontSize, const char *str, struct RECT *rect,
 			     int color, int lineSpacing, int firstVisibleLine)
 {
-	BitmapFont *font;
+	struct BitmapFont *font;
 	int x;
 	int lineIndex;
 	char word[256];
-	ImageResource glyph;
-	RECT savedClip;
+	struct ImageResource glyph;
+	struct RECT savedClip;
 	int index;
 	int y;
 	int wordLength;
@@ -1030,7 +1033,7 @@ int FrontendText_DrawWrapped(int fontSize, const char *str, RECT *rect,
 // FUNCTION: XVT 0x4DBF70
 int FrontendText_GetFontHeight(int fontSize)
 {
-	BitmapFont *font;
+	struct BitmapFont *font;
 
 	if (fontSize < 0 || fontSize > 255) {
 		return 0;
@@ -1049,7 +1052,7 @@ int FrontendText_GetFontHeight(int fontSize)
 // FUNCTION: XVT 0x4DBFA0
 int FrontendText_MeasureWidth(const char *str, int fontSize)
 {
-	BitmapFont *font;
+	struct BitmapFont *font;
 	int width;
 	int index;
 
@@ -1118,7 +1121,7 @@ void FrontendText_SaveFontAtlasFile(char *fileName, void **font,
 // FUNCTION: XVT 0x4DC0A0
 int FrontendText_LoadFontAtlasFile(const char *fileName, int slotIndex)
 {
-	BitmapFont *font;
+	struct BitmapFont *font;
 	XvtFile *stream;
 	size_t glyphBlobSize;
 	void *glyphBits;
@@ -1226,10 +1229,11 @@ int FrontendText_ResumeTextFade(void)
  * dropped, while with it nonzero the '$' is drawn as a glyph. Does not check
  * that a line fits its 320-byte buffer. */
 // FUNCTION: XVT 0x4F8620
-void FrontendText_DrawFormattedWrappedText(RECT *rect, const uint8_t *text,
+void FrontendText_DrawFormattedWrappedText(struct RECT *rect,
+					   const uint8_t *text,
 					   int suppressCenteredHeadings)
 {
-	RECT drawRect;
+	struct RECT drawRect;
 	char lineBuffer[320];
 	int16_t lineStart;
 	int16_t scanIndex;

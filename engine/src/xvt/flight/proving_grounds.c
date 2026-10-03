@@ -99,7 +99,7 @@ uint16_t g_provingGroundsCurrentCheckpointObjIdx = 0;
 void ProvingGrounds_RecordLocalPlayerPoseHistory(void)
 {
 	uint16_t historyIndex;
-	ObjectRecord *object;
+	struct ObjectRecord *object;
 #ifdef XVT_MODERN
 	int32_t referencePosition[3];
 	if (XvtFlightTiming_IsUnlocked() &&
@@ -826,8 +826,8 @@ int ProvingGrounds_HasPlayerCrossedCheckpoint(uint16_t checkpointObjIdx)
 	uint16_t checkpointIndex;
 	uint16_t modelType;
 	int16_t checkpointOffset;
-	ObjectRecord *checkpoint;
-	ObjectRecord *playerObject;
+	struct ObjectRecord *checkpoint;
+	struct ObjectRecord *playerObject;
 	int checkpointX;
 	int checkpointY;
 	int checkpointZ;

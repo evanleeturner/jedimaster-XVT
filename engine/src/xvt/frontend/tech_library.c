@@ -32,12 +32,12 @@
  * own button among the common screen controls, frees it and sets NULL, as
  * does XvtFrontendTask_Shutdown in the modern build. */
 // GLOBAL: XVT 0xAA6110
-TechLibrarySpecText *g_techLibrarySpecTextTable = NULL;
+struct TechLibrarySpecText *g_techLibrarySpecTextTable = NULL;
 
 /* Ratings of the craft shown, from BuildCraftTechStats; zeroed and rebuilt on
  * the craft database's first frame and at each change of craft. */
 // GLOBAL: XVT 0x665D38
-CraftTechStats g_techLibraryCraftStats = {0};
+struct CraftTechStats g_techLibraryCraftStats = {0};
 /* Degrees the model turns each frame a rotate button is held: 5. */
 // GLOBAL: XVT 0x5182EC
 const float g_techLibraryRotationStepDegrees = 5.0f;
@@ -126,7 +126,7 @@ int TechLibrary_Update(int frameCounter)
 		DONE_BUTTON_HELD_SLOT = 8,
 	};
 
-	RECT rect;
+	struct RECT rect;
 	int animationFrame;
 	int buttonPressed;
 	int selectedCraftType;
@@ -295,7 +295,7 @@ int TechLibrary_UpdateModelControls(void)
 
 	int mouseY;
 	int mouseX;
-	RECT rect;
+	struct RECT rect;
 	FrontendNavigationSlotState slotStates[NAVIGATION_SLOT_COUNT] = {
 		FRONTEND_NAVIGATION_SLOT_ACTIVE,
 		FRONTEND_NAVIGATION_SLOT_ACTIVE,
@@ -482,8 +482,8 @@ int TechLibrary_UpdateModelControls(void)
 // FUNCTION: XVT 0x4EA090
 int TechLibrary_DrawCraftSpecPanel(void)
 {
-	RECT rect;
-	RECT descriptionRect;
+	struct RECT rect;
+	struct RECT descriptionRect;
 	int craftSpecIndex;
 	int textLines;
 	const char *label;
@@ -664,11 +664,11 @@ int TechLibrary_LoadSpecTextTable(void)
 		g_techLibrarySpecTextTable = NULL;
 	}
 
-	g_techLibrarySpecTextTable = (TechLibrarySpecText *)malloc(
-		sizeof(TechLibrarySpecText) * 93u);
+	g_techLibrarySpecTextTable = (struct TechLibrarySpecText *)malloc(
+		sizeof(struct TechLibrarySpecText) * 93u);
 #ifndef XVT_MODERN
 	memset(g_techLibrarySpecTextTable, 0,
-	       sizeof(TechLibrarySpecText) * 93u);
+	       sizeof(struct TechLibrarySpecText) * 93u);
 #endif
 	if (g_techLibrarySpecTextTable == NULL) {
 		File_Close(stream);
@@ -677,7 +677,7 @@ int TechLibrary_LoadSpecTextTable(void)
 
 #ifdef XVT_MODERN
 	memset(g_techLibrarySpecTextTable, 0,
-	       sizeof(TechLibrarySpecText) * 93u);
+	       sizeof(struct TechLibrarySpecText) * 93u);
 #endif
 	for (entryIndex = 0; entryIndex < 93; ++entryIndex) {
 		fieldIndex = 0;

@@ -51,7 +51,8 @@ static int Ensure(int width, int height)
 	return 1;
 }
 
-static int Eligible(const XvtRenderSnapshot *s, const XvtSnapObject *o)
+static int Eligible(const struct XvtRenderSnapshot *s,
+		    const struct XvtSnapObject *o)
 {
 	if (o->slot_class == XVT_SLOT_STATIC &&
 	    (o->genus < CRAFT_GENUS_MINE ||
@@ -95,10 +96,10 @@ static void DrawHudAfterUpscale(AeronCommandBuffer *cmd, AeronRenderPass *pass,
  * then effects and the HUD pass. It stays one function because each object's steps read and change
  * the same instance, pose and frame flags. */
 int XvtRemasterFlight_Render(AeronCommandBuffer *cmd,
-			     const XvtRenderSnapshot *s,
-			     const XvtRenderSnapshot *p)
+			     const struct XvtRenderSnapshot *s,
+			     const struct XvtRenderSnapshot *p)
 {
-	const XvtPreparedFlight *frame = XvtRemasterFlight_Current();
+	const struct XvtPreparedFlight *frame = XvtRemasterFlight_Current();
 	if (!frame || !s->flight_valid) {
 		g_outputValid = 0;
 		return 1;
@@ -134,24 +135,25 @@ int XvtRemasterFlight_Render(AeronCommandBuffer *cmd,
 	int streaks =
 		s->hyperspace.phase == XVT_SNAP_HYPERSPACE_TRANSITION &&
 		s->hyperspace.elapsed_ticks < XVT_SNAP_HYPERSPACE_STREAK_END;
-	const XvtRenderSettings *settings = XvtRemasterConfig_Effective();
+	const struct XvtRenderSettings *settings =
+		XvtRemasterConfig_Effective();
 	int camera_motion = settings->motion_blur.camera_blur ||
 			    settings->temporal_mode != AERON_TEMPORAL_OFF;
 	for (unsigned i = 0; !streaks && i < s->object_count; ++i) {
-		const XvtSnapObject *object = &s->objects[i];
+		const struct XvtSnapObject *object = &s->objects[i];
 		if (!Eligible(s, object)) {
 			continue;
 		}
-		XvtShipSelection selection;
+		struct XvtShipSelection selection;
 		if (!XvtRemasterShip_Select(s, object, &selection)) {
 			continue;
 		}
-		const XvtMeshAsset *asset =
+		const struct XvtMeshAsset *asset =
 			XvtRemasterShip_Mesh(s, selection.asset_id);
 		if (!asset) {
 			continue;
 		}
-		const XvtPreparedObject *pose = &frame->objects[i];
+		const struct XvtPreparedObject *pose = &frame->objects[i];
 		int hidden_owner = object->id.slot == s->camera.focus.slot &&
 				   !s->camera.external &&
 				   !s->camera.replay_view;
@@ -186,9 +188,9 @@ int XvtRemasterFlight_Render(AeronCommandBuffer *cmd,
 		if (frame->regenerate_motion && !instance.zero_velocity && p &&
 		    pose->previous_index >= 0 &&
 		    (unsigned)pose->previous_index < p->object_count) {
-			const XvtSnapObject *old =
+			const struct XvtSnapObject *old =
 				&p->objects[pose->previous_index];
-			XvtShipSelection old_selection;
+			struct XvtShipSelection old_selection;
 			if (XvtRemasterShip_Select(p, old, &old_selection) &&
 			    old_selection.asset_id == selection.asset_id) {
 				if (s->flight_unlocked ||

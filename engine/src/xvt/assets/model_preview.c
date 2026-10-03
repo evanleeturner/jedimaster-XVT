@@ -58,7 +58,7 @@ int16_t g_modelPreviewUpAxisAngle;
 /* The preview model's block, locked by ModelPreview_LoadModel; NULL until the
  * first load. The modern XvtFrontendTask_Shutdown sets it back to NULL. */
 // GLOBAL: XVT 0x520EC4
-OptimizedPolyObject *g_modelPreviewModelData = NULL;
+struct OptimizedPolyObject *g_modelPreviewModelData = NULL;
 /* Nothing sets this flag, and ModelPreview_LoadModel clears it through ModelPreview_FreeResources before
  * testing it, so every load resets the preview object, view and light. */
 /* Only ModelPreview_FreeResources writes it, and it writes 0. */
@@ -93,7 +93,7 @@ int g_nodeSwitchIndex;
  * g_loadedModels[0]; its mobj is g_modelPreviewMobileObject. Each successful
  * load resets its position and angles to 0. */
 // GLOBAL: XVT 0x5561E8
-ObjectRecord g_modelPreviewObject;
+struct ObjectRecord g_modelPreviewObject;
 /* Factor ModelPreview_LoadModel scaled the preview model by:
  * g_modelPreviewTargetBoundsExtent over g_modelPreviewBoundsExtent. */
 // GLOBAL: XVT 0x5561E0
@@ -101,7 +101,7 @@ double g_modelPreviewScale = 0.0;
 /* The preview object's mobile part, cleared by each successful load, with
  * g_modelPreviewCraftScratch as its craft. */
 // GLOBAL: XVT 0x556218
-MobileObject g_modelPreviewMobileObject = {0};
+struct MobileObject g_modelPreviewMobileObject = {0};
 /* Name of the preview's OPT file, set by ModelPreview_LoadModel once the file
  * is loaded; ModelPreview_SaveState copies it. */
 // GLOBAL: XVT 0x555CC8
@@ -157,7 +157,7 @@ static float g_modelPreviewBoundsMinY = 0.0f;
 /* Craft record the preview's mobile object points at, cleared by each
  * successful load. */
 // GLOBAL: XVT 0x555D78
-CraftData g_modelPreviewCraftScratch = {0};
+struct CraftData g_modelPreviewCraftScratch = {0};
 /* Light direction y saved by ModelPreview_SaveState, put back by
  * ModelPreview_RestoreState. */
 // GLOBAL: XVT 0x555D70
@@ -203,7 +203,7 @@ int g_worldLightDirectionZ;
  * g_viewSpaceDepth. The modern build passes it to
  * XvtRenderCapture_FrontendPreview. */
 // GLOBAL: XVT 0xA60710
-OptVector g_modelPreviewViewDelta = {0.0f, 0.0f, 0.0f};
+struct OptVector g_modelPreviewViewDelta = {0.0f, 0.0f, 0.0f};
 /* ModelPreview_RenderViewport's float copy of a 1.15 matrix: first the camera
  * rotation, used to turn g_modelPreviewViewDelta, then the object-to-view
  * rotation, which the modern build passes to
@@ -214,7 +214,7 @@ float g_modelPreviewMatrix[9] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
 /* Minus g_modelPreviewViewDelta turned by g_modelPreviewObjectViewMatrix, set
  * each draw by ModelPreview_RenderViewport; nothing reads it. */
 // GLOBAL: XVT 0xA60740
-OptVector g_modelPreviewNegViewDelta = {0.0f, 0.0f, 0.0f};
+struct OptVector g_modelPreviewNegViewDelta = {0.0f, 0.0f, 0.0f};
 /* The object-to-view rotation transposed, set each draw by
  * ModelPreview_RenderViewport only to turn g_modelPreviewNegViewDelta. */
 // GLOBAL: XVT 0xA6074C
@@ -397,8 +397,9 @@ int ModelPreview_LoadModel(const char *modelFileName)
 	XvtRenderAssets_BindType(MODEL_PREVIEW_SLOT,
 				 g_loadedModels[MODEL_PREVIEW_SLOT]);
 #endif
-	g_modelPreviewModelData = (OptimizedPolyObject *)Memory_GetHandleBlock(
-		g_loadedModels[MODEL_PREVIEW_SLOT]);
+	g_modelPreviewModelData =
+		(struct OptimizedPolyObject *)Memory_GetHandleBlock(
+			g_loadedModels[MODEL_PREVIEW_SLOT]);
 	if (g_modelPreviewModelData->selfMarker != g_modelPreviewModelData) {
 		OptModel_AdjustOptimizedPolyObjectPointers(
 			g_modelPreviewModelData);
@@ -674,10 +675,11 @@ int ModelPreview_RenderViewport(int x, int y, int width, int height, ...)
  * reached through two links is scaled twice. Other face node types keep their
  * gradients. */
 // FUNCTION: XVT 0x42A920
-void ModelPreview_ScaleOptNodeTree(OptNode *node, OptimizedPolyObject *opt,
+void ModelPreview_ScaleOptNodeTree(struct OptNode *node,
+				   struct OptimizedPolyObject *opt,
 				   double scale)
 {
-	OptNode *resolvedNode;
+	struct OptNode *resolvedNode;
 	int childIndex;
 
 	resolvedNode = node;
@@ -695,15 +697,15 @@ void ModelPreview_ScaleOptNodeTree(OptNode *node, OptimizedPolyObject *opt,
 	switch (resolvedNode->nodeType) {
 	case OPT_FACEDATA: {
 		int count;
-		OptPackedFaceData *faceData;
-		OptVector *faceNormals;
-		FaceTextureGradients *gradients;
+		struct OptPackedFaceData *faceData;
+		struct OptVector *faceNormals;
+		struct FaceTextureGradients *gradients;
 		float *points;
 
 		count = resolvedNode->payloadCount;
-		faceData = (OptPackedFaceData *)resolvedNode->payload;
-		faceNormals = (OptVector *)&faceData->records[count];
-		gradients = (FaceTextureGradients *)&faceNormals[count];
+		faceData = (struct OptPackedFaceData *)resolvedNode->payload;
+		faceNormals = (struct OptVector *)&faceData->records[count];
+		gradients = (struct FaceTextureGradients *)&faceNormals[count];
 		points = (float *)gradients;
 		if (count > 0) {
 			do {
@@ -768,10 +770,11 @@ void ModelPreview_ScaleOptNodeTree(OptNode *node, OptimizedPolyObject *opt,
  * multiplies where it divides. Only ModelPreview_UnscaleOptRootNodes calls
  * this, and nothing calls that. */
 // FUNCTION: XVT 0x42AA60
-void ModelPreview_UnscaleOptNodeTree(OptNode *node, OptimizedPolyObject *opt,
+void ModelPreview_UnscaleOptNodeTree(struct OptNode *node,
+				     struct OptimizedPolyObject *opt,
 				     double scale)
 {
-	OptNode *resolvedNode;
+	struct OptNode *resolvedNode;
 	int childIndex;
 
 	resolvedNode = node;
@@ -789,15 +792,15 @@ void ModelPreview_UnscaleOptNodeTree(OptNode *node, OptimizedPolyObject *opt,
 	switch (resolvedNode->nodeType) {
 	case OPT_FACEDATA: {
 		int count;
-		OptPackedFaceData *faceData;
-		OptVector *faceNormals;
-		FaceTextureGradients *gradients;
+		struct OptPackedFaceData *faceData;
+		struct OptVector *faceNormals;
+		struct FaceTextureGradients *gradients;
 		float *points;
 
 		count = resolvedNode->payloadCount;
-		faceData = (OptPackedFaceData *)resolvedNode->payload;
-		faceNormals = (OptVector *)&faceData->records[count];
-		gradients = (FaceTextureGradients *)&faceNormals[count];
+		faceData = (struct OptPackedFaceData *)resolvedNode->payload;
+		faceNormals = (struct OptVector *)&faceData->records[count];
+		gradients = (struct FaceTextureGradients *)&faceNormals[count];
 		points = (float *)gradients;
 		if (count > 0) {
 			do {
@@ -860,7 +863,8 @@ void ModelPreview_UnscaleOptNodeTree(OptNode *node, OptimizedPolyObject *opt,
 
 /* Runs ModelPreview_ScaleOptNodeTree on each root of opt. */
 // FUNCTION: XVT 0x42AC50
-void ModelPreview_ScaleOptRootNodes(OptimizedPolyObject *opt, double scale)
+void ModelPreview_ScaleOptRootNodes(struct OptimizedPolyObject *opt,
+				    double scale)
 {
 	int rootIndex;
 
@@ -873,7 +877,8 @@ void ModelPreview_ScaleOptRootNodes(OptimizedPolyObject *opt, double scale)
 /* Runs ModelPreview_UnscaleOptNodeTree on each root of opt. Nothing calls
  * this. */
 // FUNCTION: XVT 0x42AC90
-void ModelPreview_UnscaleOptRootNodes(OptimizedPolyObject *opt, double scale)
+void ModelPreview_UnscaleOptRootNodes(struct OptimizedPolyObject *opt,
+				      double scale)
 {
 	int rootIndex;
 
@@ -888,10 +893,10 @@ void ModelPreview_UnscaleOptRootNodes(OptimizedPolyObject *opt, double scale)
  * or below node. Follows OPT_NODEREF links and stops at one that does not
  * resolve. */
 // FUNCTION: XVT 0x42AD10
-void ModelPreview_AccumulateOptNodeBounds(OptNode *node,
-					  OptimizedPolyObject *object)
+void ModelPreview_AccumulateOptNodeBounds(struct OptNode *node,
+					  struct OptimizedPolyObject *object)
 {
-	OptNode *currentNode;
+	struct OptNode *currentNode;
 	int vertexCount;
 	float *vertex;
 	int childIndex;
@@ -962,7 +967,7 @@ void ModelPreview_AccumulateOptNodeBounds(OptNode *node,
  * the x and y extents are equal and both larger than the z extent, it returns
  * the z extent. Any axis other than 0 to 3 returns an uninitialized value. */
 // FUNCTION: XVT 0x42AE30
-double ModelPreview_ComputeOptBoundsExtent(OptimizedPolyObject *object,
+double ModelPreview_ComputeOptBoundsExtent(struct OptimizedPolyObject *object,
 					   int axis)
 {
 	int rootNodeIndex;
@@ -1019,7 +1024,7 @@ double ModelPreview_ComputeOptBoundsExtent(OptimizedPolyObject *object,
 // FUNCTION: XVT 0x42AF90
 int ModelPreview_ResetViewAndRenderState(void)
 {
-	PlayerData *player = &g_players[g_localPlayer];
+	struct PlayerData *player = &g_players[g_localPlayer];
 
 	g_projOffsetY = 0;
 	player->viewState.cameraWorldX = 0;

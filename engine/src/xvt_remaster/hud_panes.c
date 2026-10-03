@@ -1,17 +1,17 @@
 #include "xvt_remaster/hud_panes.h"
 #include "xvt_remaster/hud_text.h"
 
-static int DrawNumberInPhase(const XvtHudDraw *draw,
-			     const XvtCockpitNumber *number, unsigned phase,
-			     int signed_value)
+static int DrawNumberInPhase(const struct XvtHudDraw *draw,
+			     const struct XvtCockpitNumber *number,
+			     unsigned phase, int signed_value)
 {
 	return number->phase != phase ||
 	       XvtHudText_DrawNumber(draw, number, signed_value);
 }
 
-int XvtHudPanes_DrawReadouts(const XvtHudDraw *draw, unsigned phase)
+int XvtHudPanes_DrawReadouts(const struct XvtHudDraw *draw, unsigned phase)
 {
-	const XvtCockpitState *state = draw->state;
+	const struct XvtCockpitState *state = draw->state;
 	for (unsigned field = 0; field < XVT_COCKPIT_TEXT_CLOCK_SEPARATOR;
 	     ++field) {
 		if (phase == XVT_COCKPIT_AFTER_CRT &&
@@ -24,7 +24,7 @@ int XvtHudPanes_DrawReadouts(const XvtHudDraw *draw, unsigned phase)
 			return 0;
 		}
 	}
-	const XvtCockpitNumber *numbers[] = {
+	const struct XvtCockpitNumber *numbers[] = {
 		&state->readouts.speed,
 		&state->readouts.throttle,
 		&state->readouts.clock_minutes,
@@ -81,7 +81,8 @@ int XvtHudPanes_DrawReadouts(const XvtHudDraw *draw, unsigned phase)
 	return 1;
 }
 
-static XvtSnapRect PlaceBounds(XvtSnapRect bounds, XvtSnapRect placement)
+static struct XvtSnapRect PlaceBounds(struct XvtSnapRect bounds,
+				      struct XvtSnapRect placement)
 {
 	bounds.x += placement.x;
 	bounds.y += placement.y;
@@ -103,10 +104,10 @@ static XvtSnapRect PlaceBounds(XvtSnapRect bounds, XvtSnapRect placement)
 	return bounds;
 }
 
-static int DrawPage(const XvtHudDraw *draw, unsigned page_id)
+static int DrawPage(const struct XvtHudDraw *draw, unsigned page_id)
 {
-	const XvtCockpitPage *page = &draw->state->pages[page_id];
-	const XvtCockpitPageStore *content = &draw->state->page_content;
+	const struct XvtCockpitPage *page = &draw->state->pages[page_id];
+	const struct XvtCockpitPageStore *content = &draw->state->page_content;
 	if (!page->visible) {
 		return 1;
 	}
@@ -119,13 +120,13 @@ static int DrawPage(const XvtHudDraw *draw, unsigned page_id)
 	XvtHudDraw_Fill(draw, XVT_COCKPIT_AFTER_CRT,
 			PlaceBounds(page->background_bounds, page->placement),
 			page->background_argb);
-	XvtSnapRect border = page->border_bounds;
+	struct XvtSnapRect border = page->border_bounds;
 	border.x += page->placement.x;
 	border.y += page->placement.y;
 	XvtHudDraw_OutlineClipped(draw, XVT_COCKPIT_AFTER_CRT, border,
 				  page->placement, page->border_argb);
 	for (unsigned index = 0; index < page->row_count; ++index) {
-		const XvtCockpitPageRow *row =
+		const struct XvtCockpitPageRow *row =
 			&content->rows[page->first_store_row + index];
 		XvtHudDraw_Fill(draw, XVT_COCKPIT_AFTER_CRT,
 				PlaceBounds(row->bounds, page->placement),
@@ -142,7 +143,7 @@ static int DrawPage(const XvtHudDraw *draw, unsigned page_id)
 	return 1;
 }
 
-int XvtHudPanes_DrawPages(const XvtHudDraw *draw)
+int XvtHudPanes_DrawPages(const struct XvtHudDraw *draw)
 {
 	for (unsigned page = 0; page < MFD_PAGE_COUNT; ++page) {
 		if (page != MFD_PAGE_MESSAGE_LOG && !DrawPage(draw, page)) {
@@ -161,8 +162,8 @@ int XvtHudPanes_DrawPages(const XvtHudDraw *draw)
 	return 1;
 }
 
-static int DrawOverlayGlyphs(const XvtHudDraw *draw, unsigned first,
-			     unsigned count, XvtSnapRect placement,
+static int DrawOverlayGlyphs(const struct XvtHudDraw *draw, unsigned first,
+			     unsigned count, struct XvtSnapRect placement,
 			     unsigned phase)
 {
 	if (first + count > draw->state->overlay_content.glyph_count) {
@@ -179,13 +180,13 @@ static int DrawOverlayGlyphs(const XvtHudDraw *draw, unsigned first,
 	return 1;
 }
 
-int XvtHudPanes_DrawMessages(const XvtHudDraw *draw)
+int XvtHudPanes_DrawMessages(const struct XvtHudDraw *draw)
 {
 	if (!DrawPage(draw, MFD_PAGE_MESSAGE_LOG)) {
 		return 0;
 	}
 	for (unsigned pane = 0; pane < XVT_COCKPIT_MESSAGE_COUNT; ++pane) {
-		const XvtCockpitMessage *message =
+		const struct XvtCockpitMessage *message =
 			&draw->state->messages.panes[pane];
 		if (message->visible &&
 		    !DrawOverlayGlyphs(draw, message->first_glyph,
@@ -210,25 +211,25 @@ int XvtHudPanes_DrawMessages(const XvtHudDraw *draw)
 	return 1;
 }
 
-int XvtHudPanes_DrawOverlays(const XvtHudDraw *draw)
+int XvtHudPanes_DrawOverlays(const struct XvtHudDraw *draw)
 {
-	const XvtCockpitLoading *loading = &draw->state->loading;
+	const struct XvtCockpitLoading *loading = &draw->state->loading;
 	if (loading->text_visible &&
 	    !DrawOverlayGlyphs(draw, loading->first_glyph, loading->glyph_count,
 			       loading->text_bounds, XVT_COCKPIT_ALERT)) {
 		return 0;
 	}
 	if (loading->progress_visible) {
-		XvtSnapRect bounds = loading->progress_placement;
+		struct XvtSnapRect bounds = loading->progress_placement;
 		XvtHudDraw_Fill(draw, XVT_COCKPIT_ALERT,
-				(XvtSnapRect){bounds.x - 2, bounds.y - 2,
-					      bounds.width + 4,
-					      bounds.height + 4},
+				(struct XvtSnapRect){bounds.x - 2, bounds.y - 2,
+						     bounds.width + 4,
+						     bounds.height + 4},
 				loading->foreground_argb);
 		XvtHudDraw_Fill(draw, XVT_COCKPIT_ALERT,
-				(XvtSnapRect){bounds.x - 1, bounds.y - 1,
-					      bounds.width + 2,
-					      bounds.height + 2},
+				(struct XvtSnapRect){bounds.x - 1, bounds.y - 1,
+						     bounds.width + 2,
+						     bounds.height + 2},
 				loading->background_argb);
 		bounds.width = loading->filled_width < bounds.width
 				       ? loading->filled_width
@@ -236,18 +237,18 @@ int XvtHudPanes_DrawOverlays(const XvtHudDraw *draw)
 		XvtHudDraw_Fill(draw, XVT_COCKPIT_ALERT, bounds,
 				loading->foreground_argb);
 	}
-	const XvtCockpitAlert *alert = &draw->state->alert;
+	const struct XvtCockpitAlert *alert = &draw->state->alert;
 	if (alert->active) {
-		XvtSnapRect bounds = alert->placement;
+		struct XvtSnapRect bounds = alert->placement;
 		XvtHudDraw_Outline(draw, XVT_COCKPIT_ALERT,
-				   (XvtSnapRect){bounds.x - 1, bounds.y - 1,
-						 bounds.width + 2,
-						 bounds.height + 2},
+				   (struct XvtSnapRect){
+					   bounds.x - 1, bounds.y - 1,
+					   bounds.width + 2, bounds.height + 2},
 				   alert->border_argb);
 		for (unsigned row = 0; row < 5; ++row) {
 			XvtHudDraw_Fill(
 				draw, XVT_COCKPIT_ALERT,
-				(XvtSnapRect){
+				(struct XvtSnapRect){
 					bounds.x,
 					bounds.y + (int)row * bounds.height / 5,
 					bounds.width, bounds.height / 5},

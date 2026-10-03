@@ -51,7 +51,7 @@ const uint8_t g_defaultCursorBitmap[100] = {
 int FrontendCursor_SetImageFromResourceName(const char *resourceName,
 					    void *saveBuf)
 {
-	RECT resourceRect;
+	struct RECT resourceRect;
 	int resourceIndex;
 
 	resourceIndex = FrontImage_FindResourceByName(resourceName);
@@ -108,8 +108,8 @@ void FrontendCursor_Init(void)
 // FUNCTION: XVT 0x4DDC90
 void FrontendCursor_Draw(void)
 {
-	RECT clippedRect;
-	RECT originalRect;
+	struct RECT clippedRect;
+	struct RECT originalRect;
 	int cursorWidth;
 	int cursorHeight;
 	int visibleWidth;

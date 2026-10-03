@@ -44,22 +44,24 @@ typedef uint16_t TextFadeColorCache[65536];
 
 extern int g_activeTextFieldId;
 
-int FrontendText_HandleEditableField(RECT *rect, char *text, int maxChars,
-				     int fieldId, unsigned int fontSize,
+int FrontendText_HandleEditableField(struct RECT *rect, char *text,
+				     int maxChars, int fieldId,
+				     unsigned int fontSize,
 				     const char *ignoredChars);
 int FrontendText_LoadFont(int pointSize);
 void FrontendText_FreeAllFonts(void);
 void FrontendText_FreeFont(unsigned int pointSize);
 int FrontendText_Draw(int fontSize, const char *str, int x, int y, int color);
-int FrontendText_DrawCentered(int fontSize, const char *str, RECT *rect,
+int FrontendText_DrawCentered(int fontSize, const char *str, struct RECT *rect,
 			      int color);
-int FrontendText_DrawAlignedInRect(int fontSize, const char *str, RECT *rect,
-				   int centerH, int centerV, int color);
+int FrontendText_DrawAlignedInRect(int fontSize, const char *str,
+				   struct RECT *rect, int centerH, int centerV,
+				   int color);
 int FrontendText_DrawLineArrayInRect(int fontSize, const char **lines,
-				     int lineCount, const RECT *rect, int color,
-				     int centerHorizontally,
+				     int lineCount, const struct RECT *rect,
+				     int color, int centerHorizontally,
 				     int centerVertically, int lineSpacing);
-int FrontendText_DrawWrapped(int fontSize, const char *str, RECT *rect,
+int FrontendText_DrawWrapped(int fontSize, const char *str, struct RECT *rect,
 			     int color, int lineSpacing, int firstVisibleLine);
 int FrontendText_GetFontHeight(int fontSize);
 int FrontendText_MeasureWidth(const char *str, int fontSize);
@@ -70,7 +72,8 @@ int FrontendText_StartTextFadeIn(int frames);
 int FrontendText_StopTextFade(void);
 int FrontendText_SuspendTextFade(void);
 int FrontendText_ResumeTextFade(void);
-void FrontendText_DrawFormattedWrappedText(RECT *rect, const uint8_t *text,
+void FrontendText_DrawFormattedWrappedText(struct RECT *rect,
+					   const uint8_t *text,
 					   int suppressCenteredHeadings);
 
 #ifdef __cplusplus

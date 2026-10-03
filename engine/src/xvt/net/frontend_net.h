@@ -27,12 +27,12 @@ struct FrontendNetPacketScratch {
 
 #pragma pack(pop)
 typedef char xvt_size_FrontendNetPacketScratch
-	[(sizeof(FrontendNetPacketScratch) == 512) ? 1 : -1];
+	[(sizeof(struct FrontendNetPacketScratch) == 512) ? 1 : -1];
 
 struct FrontendNetSessionEntry {
 	char gameName[32]; /* Session name from DirectPlay */
 	/* DirectPlay session GUID; a key of 0 marks an empty entry */
-	NetSessionGuid sessionGuid;
+	struct NetSessionGuid sessionGuid;
 	/* Players needed: 9 until probed, 0 if full or no answer came */
 	unsigned int playersNeeded;
 	/* GetTickCount ms of the last probe; 0 before any */
@@ -47,8 +47,8 @@ extern int g_frontendNetSessionCount;
 extern int g_frontendNetReceivedMissionDescriptionId;
 extern int g_frontendNetReceivedMissionDirectoryId;
 extern const unsigned int g_frontendNetXvtDirectPlayAppGuid[4];
-extern FrontendNetPacketScratch g_frontendNetPacketScratch;
-extern FrontendNetSessionEntry g_frontendNetSessionList[32];
+extern struct FrontendNetPacketScratch g_frontendNetPacketScratch;
+extern struct FrontendNetSessionEntry g_frontendNetSessionList[32];
 extern int g_frontendNetSessionListScrollOffset;
 extern int g_frontendNetSelectedSessionIdx;
 extern int g_frontendNetPacketSenderPlayerId;
@@ -81,10 +81,11 @@ int FrontendNet_ProcessNetworkPackets(void);
 
 #ifndef XVT_MODERN
 int FrontendNet_ConnectToSelectedGameScreen(int frameCounter);
-int FrontendNet_MakeSessionGuidKey(NetSessionGuid guid);
+int FrontendNet_MakeSessionGuidKey(struct NetSessionGuid guid);
 int FrontendNet_RefreshSessionList(void);
-int FrontendNet_CompareSessionListEntries(const FrontendNetSessionEntry *lhs,
-					  const FrontendNetSessionEntry *rhs);
+int FrontendNet_CompareSessionListEntries(
+	const struct FrontendNetSessionEntry *lhs,
+	const struct FrontendNetSessionEntry *rhs);
 int FrontendNet_SortSessions(void);
 int FrontendNet_ProbeAllSessions(void);
 int FrontendNet_ProbeSessionByIndex(int sessionIdx);

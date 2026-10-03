@@ -469,8 +469,8 @@ int fsfx_PlaySound(unsigned int soundId, int emitterObjIdx, int playerIdx)
 	int objectType;
 	int priority;
 	int pan;
-	ObjectRecord *sourceObject;
-	MobileObject *sourceMobileObject;
+	struct ObjectRecord *sourceObject;
+	struct MobileObject *sourceMobileObject;
 	int volume;
 
 	if (g_flightSfxSideEffectGate != 0) {
@@ -652,7 +652,7 @@ unsigned int fsfx_ComputeSourceVolume(int emitterObjIdx, unsigned int soundId)
 	unsigned int distanceSpan;
 	unsigned int volumeRange;
 	unsigned int volume;
-	PlayerData *listener;
+	struct PlayerData *listener;
 	int deltaX;
 	int deltaY;
 	int worldZ;
@@ -733,7 +733,7 @@ unsigned int fsfx_ComputeSourceVolume(int emitterObjIdx, unsigned int soundId)
 // FUNCTION: XVT 0x42E9A0
 int fsfx_ComputeSourcePan(int emitterObjIdx, int *volume)
 {
-	MobileObject *sourceMobileObject;
+	struct MobileObject *sourceMobileObject;
 	int dx;
 	int dy;
 	int dz;
@@ -884,7 +884,7 @@ int fsfx_UpdateTargetingTone(unsigned int toneState)
 // FUNCTION: XVT 0x42EDC0
 void fsfx_UpdateBeamSystemLoop(int active, int playerIdx)
 {
-	CraftData *craft;
+	struct CraftData *craft;
 	BeamType beamType;
 	int pairedSoundId;
 	int soundId;
@@ -1029,8 +1029,8 @@ void fsfx_UpdateIncomingMissileWarning(int warningState)
 void fsfx_UpdateChaffLoop(void)
 {
 	int playerObjectIndex;
-	ObjectRecord *playerObject;
-	CraftData *craft;
+	struct ObjectRecord *playerObject;
+	struct CraftData *craft;
 	int volume;
 	int interiorVolume;
 
@@ -1109,7 +1109,7 @@ void fsfx_UpdatePlayerEngineLoop(void)
 	int objectIndex;
 	int baseFrequency;
 	uint8_t objectType;
-	CraftData *craft;
+	struct CraftData *craft;
 	uint16_t configVolume;
 	int frequency;
 	int volume;
@@ -1259,7 +1259,7 @@ void fsfx_UpdateBeamEffectLoops(void)
 	int volume;
 	int interiorVolume;
 	int objectIndex;
-	CraftData *craft;
+	struct CraftData *craft;
 
 	if (g_flightSimSideEffectsSuppressed != 0) {
 		return;
@@ -1358,9 +1358,9 @@ void fsfx_UpdateFlightSfx(void)
 	int washSoundId;
 	int washVolume;
 	int objectIndex;
-	ObjectRecord *object;
-	MobileObject *mobileObject;
-	CraftData *craft;
+	struct ObjectRecord *object;
+	struct MobileObject *mobileObject;
+	struct CraftData *craft;
 	uint16_t flybySoundId;
 	uint8_t objectType;
 	int currentDistance;
@@ -1582,7 +1582,7 @@ int fsfx_SpeakWingmanEvent(int playerIdx, int speakerObjIdx, int voiceCategory,
 	int baseOffset;
 	unsigned int candidateIndex;
 	unsigned int alternateIndex;
-	CraftData *craft;
+	struct CraftData *craft;
 	int craftOrdinal;
 	int targetCraftOrdinal;
 	uint16_t objectSignature;

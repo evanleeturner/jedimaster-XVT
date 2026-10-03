@@ -6,13 +6,13 @@
 
 /* OpenXWA's render-only camera shadow. The source tag prevents a temporary
  * or independently written Q15 camera from borrowing another view's basis. */
-typedef struct RenderCamera {
+struct RenderCamera {
 	double rows[9];
 	int32_t source[9];
 	int valid;
-} RenderCamera;
+};
 
-static RenderCamera g_camera, g_savedViewport;
+static struct RenderCamera g_camera, g_savedViewport;
 
 static void CopySource(int32_t rows[9])
 {

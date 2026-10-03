@@ -93,7 +93,7 @@ uint8_t g_throttleKeyTable[17] = {0x5C, 0xDB, 0xDC, 0xDD, 0xDE, 0x5B,
  * XvtFlightSim_UpdatePlayerStep, which clears its flags and throttle on a
  * pause, in the modern one. */
 // GLOBAL: XVT 0x9A7B70
-FlightInputFrameRecord g_replayInputs[8] = {{0}};
+struct FlightInputFrameRecord g_replayInputs[8] = {{0}};
 /* Stick X axis of the input being applied: the local joystick's on a local
  * read, else the replayed record's. FlightInput_LatchFlightControls turns it
  * into g_scaledInputYaw (times 120) when the mouse gives no yaw. Written by

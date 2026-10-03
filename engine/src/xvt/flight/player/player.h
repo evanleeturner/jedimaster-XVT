@@ -202,8 +202,9 @@ struct PerMissionKills {
 };
 
 #pragma pack(pop)
-typedef char
-	xvt_size_PerMissionKills[(sizeof(PerMissionKills) == 808) ? 1 : -1];
+typedef char xvt_size_PerMissionKills[(sizeof(struct PerMissionKills) == 808)
+					      ? 1
+					      : -1];
 
 /* Stored as int8_t in the binary (IDB enum FlightChatRecipientMode). */
 typedef int8_t FlightChatRecipientMode;
@@ -255,7 +256,7 @@ struct PlayerData {
 	/* Hyperspace jump stage: 0 none, 1 lining up, 2 leaving. */
 	uint8_t hyperspacePhase;
 	/* Timing for the hyperspace jump. */
-	PlayerHyperspaceRuntime hyperspaceRuntime;
+	struct PlayerHyperspaceRuntime hyperspaceRuntime;
 	/* 1 to draw target boxes; only ever set to 1, at flight start and on a
 	 * reset bind. */
 	uint8_t targetBoxEnabled;
@@ -301,7 +302,7 @@ struct PlayerData {
 	PowerRechargeLevel beamPreset[2];
 	/* Settings of the last craft flown, written by Player_SaveCraftSettings
 	 * and restored on binding. */
-	PlayerSavedCraftSettings savedCraftSettings;
+	struct PlayerSavedCraftSettings savedCraftSettings;
 	/* View the cockpit returns to, HUD only or forward; the view key sets
 	 * it, forward at flight start. */
 	uint8_t savedHudViewState;
@@ -338,17 +339,18 @@ struct PlayerData {
 	int prevHardpointWorldY; /* hardpointWorldY before its last update. */
 	int prevHardpointWorldZ; /* hardpointWorldZ before its last update. */
 	/* Score, promotion points and shots for this mission. */
-	PlayerMissionRuntimeStats missionStats;
+	struct PlayerMissionRuntimeStats missionStats;
 	/* Warheads this player fired this mission (laser_firemissile). */
 	uint16_t warheadsFired;
 	/* Kill and loss tallies for this mission. */
-	PerMissionKills perMissionKills;
+	struct PerMissionKills perMissionKills;
 	char msgText[50];  /* Chat line being typed, followed by a cursor _. */
 	uint8_t msgLength; /* Characters typed into msgText, at most 48. */
 	/* Who a chat line goes to; inactive when not typing. */
 	FlightChatRecipientMode chatRecipientMode;
-	PlayerViewState viewState;	  /* Camera and HUD view state. */
-	PlayerNetworkRuntimeTail network; /* Network identity and resolution. */
+	struct PlayerViewState viewState; /* Camera and HUD view state. */
+	struct PlayerNetworkRuntimeTail
+		network; /* Network identity and resolution. */
 	/* Game time of the last input frame applied to the player's craft
 	 * (Flight_AdvanceOneStep, XvtFlightSim_Advance in the modern build); 0
 	 * at flight start. */
@@ -407,9 +409,9 @@ struct PlayerFlightTransientTimers {
 		missionGoalsRefreshTimer; ///< Two-second countdown; expiry forces a mission-goals MFD redraw.
 };
 
-extern PlayerFlightTransientTimers g_playerFlightTransientTimers[8];
+extern struct PlayerFlightTransientTimers g_playerFlightTransientTimers[8];
 extern int g_localPlayer;
-extern PlayerData g_players[8];
+extern struct PlayerData g_players[8];
 extern char g_playerTauntText[8][4][70];
 
 struct RemotePlayerRenderSample {
@@ -474,7 +476,8 @@ void Player_SetTarget(int newTargetObjIdx, int playerIdx);
 uint16_t Player_SelectTargetComponentMesh(uint16_t targetObjIdx,
 					  unsigned int playerIdx);
 int16_t Player_ApplyPitchYawSteps(int16_t pitchAngleQ16, int16_t yawAngleQ16,
-				  uint16_t objectIndex, CraftData *craft);
+				  uint16_t objectIndex,
+				  struct CraftData *craft);
 int16_t Player_CanRadioCommandCraft(int playerIdx);
 void Player_IssueAiWingmanTargetOrder(uint16_t targetObjIdx, uint16_t commandId,
 				      uint16_t responseIndex, int playerIdx);

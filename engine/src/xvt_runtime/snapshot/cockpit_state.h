@@ -63,83 +63,83 @@ typedef enum XvtCockpitFontTier {
 	XVT_COCKPIT_FONT_INSTRUMENT
 } XvtCockpitFontTier;
 
-typedef struct XvtCockpitGlyph {
+struct XvtCockpitGlyph {
 	uint64_t font_asset_id;
-	XvtSnapRect clip;
+	struct XvtSnapRect clip;
 	uint32_t foreground_argb, background_argb, shadow_argb;
 	int16_t x, y;
 	uint16_t character, advance, height;
 	uint8_t narrow, shadow_enabled;
-} XvtCockpitGlyph;
+};
 
-typedef struct XvtCockpitPageRow {
+struct XvtCockpitPageRow {
 	uint32_t key, background_argb;
-	XvtSnapRect bounds;
+	struct XvtSnapRect bounds;
 	uint16_t first_glyph, glyph_count;
 	uint8_t selected;
-} XvtCockpitPageRow;
+};
 
-typedef struct XvtCockpitPage {
+struct XvtCockpitPage {
 	uint64_t content_generation;
 	uint16_t page_id, layout_id;
 	uint8_t visible, focused;
 	int16_t first_visible_row, selected_row;
 	uint16_t total_rows, first_store_row, row_count;
 	uint16_t first_glyph, glyph_count, header_glyph_count;
-	XvtSnapRect placement, background_bounds, border_bounds;
+	struct XvtSnapRect placement, background_bounds, border_bounds;
 	uint32_t background_argb, border_argb;
 	uint16_t command_text_mode, phase;
 	int16_t original_state;
-} XvtCockpitPage;
+};
 
-typedef struct XvtCockpitPageStore {
+struct XvtCockpitPageStore {
 	uint16_t row_count, glyph_count;
-	XvtCockpitPageRow rows[XVT_HUD_PAGE_ROW_CAPACITY];
-	XvtCockpitGlyph glyphs[XVT_HUD_PAGE_GLYPH_CAPACITY];
-} XvtCockpitPageStore;
+	struct XvtCockpitPageRow rows[XVT_HUD_PAGE_ROW_CAPACITY];
+	struct XvtCockpitGlyph glyphs[XVT_HUD_PAGE_GLYPH_CAPACITY];
+};
 
-typedef struct XvtCockpitAssetBinding {
+struct XvtCockpitAssetBinding {
 	uint64_t asset_id;
 	uint32_t frame;
-} XvtCockpitAssetBinding;
+};
 
-typedef struct XvtCockpitFontBinding {
+struct XvtCockpitFontBinding {
 	uint64_t asset_id;
 	uint16_t line_height, half_height;
-} XvtCockpitFontBinding;
+};
 
-typedef struct XvtCockpitDefinition {
+struct XvtCockpitDefinition {
 	uint64_t resource_generation;
-	XvtSnapCockpitLayout layout;
-	XvtCockpitAssetBinding panels[XVT_HUD_PANEL_BINDINGS];
-	XvtCockpitFontBinding fonts[XVT_HUD_FONT_TIERS];
+	struct XvtSnapCockpitLayout layout;
+	struct XvtCockpitAssetBinding panels[XVT_HUD_PANEL_BINDINGS];
+	struct XvtCockpitFontBinding fonts[XVT_HUD_FONT_TIERS];
 	uint8_t beam_segment_colors[4], shield_colors[11];
 	int16_t beam_offsets[9][2];
-} XvtCockpitDefinition;
+};
 
-typedef struct XvtCockpitView {
+struct XvtCockpitView {
 	uint16_t screen_width, screen_height, hud_state, instrument_base;
 	uint16_t resource_descriptor, viewport_descriptor, panel_set;
 	uint16_t active_page, secondary_page;
 	uint8_t mirrored, map_active, external_camera, instruments_visible;
 	uint8_t mission_ending, awaiting_new_craft;
 	uint8_t rebel_fighter, laser_slots;
-	XvtSnapRect viewport;
+	struct XvtSnapRect viewport;
 	int16_t projection_offset_y;
-} XvtCockpitView;
+};
 
 /* Loaded-resource description is independent of the last presented cockpit. */
-typedef struct XvtCockpitResources {
-	XvtCockpitDefinition definition;
-	XvtCockpitView view;
+struct XvtCockpitResources {
+	struct XvtCockpitDefinition definition;
+	struct XvtCockpitView view;
 	uint32_t installed_hud_features;
 	uint32_t palette[256], view_palette[28][64];
 	uint8_t valid;
-} XvtCockpitResources;
+};
 
-typedef struct XvtCockpitNumber {
+struct XvtCockpitNumber {
 	int32_t value;
-	XvtSnapRect bounds;
+	struct XvtSnapRect bounds;
 	int16_t x, y;
 	uint16_t minimum_digits, field_width;
 	uint8_t visible, font_tier, alignment, foreground, background;
@@ -147,7 +147,7 @@ typedef struct XvtCockpitNumber {
 	uint8_t clear_background, trailing_space;
 	uint8_t word_wrap, clear_line, narrow, keyed;
 	uint32_t color_key_argb;
-} XvtCockpitNumber;
+};
 
 typedef enum XvtCockpitNumberId {
 	XVT_COCKPIT_NUMBER_SPEED,
@@ -178,25 +178,25 @@ typedef enum XvtCockpitNumberId {
 	XVT_COCKPIT_NUMBER_COUNT
 } XvtCockpitNumberId;
 
-typedef struct XvtCockpitShield {
+struct XvtCockpitShield {
 	uint8_t visible, text_mode, primary_level, overcharge_level;
 	uint8_t primary_color, overcharge_color, hit_flash;
-} XvtCockpitShield;
+};
 
-typedef struct XvtCockpitPowerGauge {
+struct XvtCockpitPowerGauge {
 	uint8_t visible, filled, segments, rebel_fighter;
 	int16_t step_y;
-} XvtCockpitPowerGauge;
+};
 
-typedef struct XvtCockpitIndicator {
+struct XvtCockpitIndicator {
 	/* No code reads color; every indicator is built with 0 in it. */
 	uint8_t visible, state, color, phase;
-} XvtCockpitIndicator;
+};
 
-typedef struct XvtCockpitCaption {
+struct XvtCockpitCaption {
 	uint8_t visible, font_tier, foreground, background, alignment, phase;
 	char text[256];
-} XvtCockpitCaption;
+};
 
 typedef enum XvtCockpitTextFieldId {
 	XVT_COCKPIT_TEXT_TARGET_NAME,
@@ -253,86 +253,87 @@ typedef enum XvtCockpitTextFieldId {
 
 /* A named field owns the last text actually selected by the original HUD.
  * Bounds describe layout and clipping; they never refer to saved pixels. */
-typedef struct XvtCockpitTextField {
+struct XvtCockpitTextField {
 	uint64_t generation;
-	XvtCockpitCaption caption;
-	XvtSnapRect bounds;
+	struct XvtCockpitCaption caption;
+	struct XvtSnapRect bounds;
 	int16_t x, y;
 	uint8_t shadow_enabled, shadow_color, lowercase, word_wrap;
 	uint8_t clear_background;
 	uint8_t keyed;
 	uint8_t clear_line, narrow;
 	uint32_t color_key_argb;
-} XvtCockpitTextField;
+};
 
-typedef struct XvtCockpitSystems {
+struct XvtCockpitSystems {
 	uint32_t installed, working, active_hud_features,
 		installed_hud_features;
-	XvtCockpitShield shields[2];
-	XvtCockpitPowerGauge engine_power, laser_power, shield_power,
+	struct XvtCockpitShield shields[2];
+	struct XvtCockpitPowerGauge engine_power, laser_power, shield_power,
 		beam_power;
-	XvtCockpitIndicator beam_enabled, sfoils, shield_distribution,
+	struct XvtCockpitIndicator beam_enabled, sfoils, shield_distribution,
 		countermeasure_active;
-	XvtCockpitIndicator threats[4], critical_warning, hull_indicator;
-	XvtCockpitIndicator feature_covers[13], unavailable_shields,
+	struct XvtCockpitIndicator threats[4], critical_warning, hull_indicator;
+	struct XvtCockpitIndicator feature_covers[13], unavailable_shields,
 		unavailable_beam[2];
-	XvtCockpitNumber countermeasure_count;
+	struct XvtCockpitNumber countermeasure_count;
 	uint8_t beam_visible, beam_segments[9];
-} XvtCockpitSystems;
+};
 
-typedef struct XvtCockpitWeaponSlot {
+struct XvtCockpitWeaponSlot {
 	uint8_t visible, bank, hud_slot, charge_band, segments;
 	uint8_t selection_state, ready_state, locked, unused;
 	uint8_t charge_visible, selection_visible, lock_visible, empty_band;
-	XvtCockpitNumber charge_percent;
-} XvtCockpitWeaponSlot;
+	struct XvtCockpitNumber charge_percent;
+};
 
-typedef struct XvtCockpitLauncher {
-	XvtCockpitNumber count;
+struct XvtCockpitLauncher {
+	struct XvtCockpitNumber count;
 	uint8_t visible, bank, weapon_slot, selection;
-} XvtCockpitLauncher;
+};
 
-typedef struct XvtCockpitWarheadBank {
+struct XvtCockpitWarheadBank {
 	uint16_t type;
 	uint8_t visible, selected;
-} XvtCockpitWarheadBank;
+};
 
-typedef struct XvtCockpitWeapons {
+struct XvtCockpitWeapons {
 	uint8_t slot_count, selected_bank;
-	XvtCockpitWeaponSlot slots[XVT_HUD_WEAPON_SLOTS];
-	XvtCockpitWarheadBank warheads[2];
-	XvtCockpitLauncher launchers[4];
-	XvtCockpitIndicator lock_indicator;
-} XvtCockpitWeapons;
+	struct XvtCockpitWeaponSlot slots[XVT_HUD_WEAPON_SLOTS];
+	struct XvtCockpitWarheadBank warheads[2];
+	struct XvtCockpitLauncher launchers[4];
+	struct XvtCockpitIndicator lock_indicator;
+};
 
-typedef struct XvtCockpitTarget {
-	XvtSnapObjectId object;
+struct XvtCockpitTarget {
+	struct XvtSnapObjectId object;
 	uint16_t type, component;
 	uint8_t visible, box_visible;
-	XvtCockpitNumber hull, shields, systems, distance, distance_fraction;
+	struct XvtCockpitNumber hull, shields, systems, distance,
+		distance_fraction;
 	uint8_t panel_cover, labels_visible, cmd_mode;
 	uint16_t cover_binding;
-	XvtCockpitIndicator armament[4];
-	XvtCockpitNumber order_distance, order_distance_fraction, order_minutes,
-		order_seconds;
-} XvtCockpitTarget;
+	struct XvtCockpitIndicator armament[4];
+	struct XvtCockpitNumber order_distance, order_distance_fraction,
+		order_minutes, order_seconds;
+};
 
-typedef struct XvtCockpitRadar {
+struct XvtCockpitRadar {
 	uint8_t visible[2], count[2], marker_visible, marker_side;
 	int16_t marker_x, marker_y;
-	XvtSnapRadarBlip blips[2][48];
+	struct XvtSnapRadarBlip blips[2][48];
 	uint8_t coverage[2][48];
-} XvtCockpitRadar;
+};
 
-typedef struct XvtCockpitReadouts {
-	XvtCockpitNumber speed, throttle, clock_minutes, clock_seconds;
-} XvtCockpitReadouts;
+struct XvtCockpitReadouts {
+	struct XvtCockpitNumber speed, throttle, clock_minutes, clock_seconds;
+};
 
-typedef struct XvtCockpitProvingGrounds {
+struct XvtCockpitProvingGrounds {
 	uint8_t visible;
-	XvtSnapRect bounds;
-	XvtCockpitNumber level, remaining, passed, targets, score;
-} XvtCockpitProvingGrounds;
+	struct XvtSnapRect bounds;
+	struct XvtCockpitNumber level, remaining, passed, targets, score;
+};
 
 typedef enum XvtCockpitMessageId {
 	XVT_COCKPIT_MESSAGE_READY,
@@ -341,70 +342,70 @@ typedef enum XvtCockpitMessageId {
 	XVT_COCKPIT_MESSAGE_COUNT
 } XvtCockpitMessageId;
 
-typedef struct XvtCockpitMessage {
+struct XvtCockpitMessage {
 	uint64_t generation;
-	XvtSnapRect placement;
+	struct XvtSnapRect placement;
 	uint16_t message_id, revealed_characters, age_seconds, timer_ticks;
 	uint8_t visible, sender_iff, pane_type, font_tier;
 	uint16_t first_glyph, glyph_count;
-} XvtCockpitMessage;
+};
 
-typedef struct XvtCockpitMessages {
-	XvtCockpitMessage panes[XVT_COCKPIT_MESSAGE_COUNT];
-} XvtCockpitMessages;
+struct XvtCockpitMessages {
+	struct XvtCockpitMessage panes[XVT_COCKPIT_MESSAGE_COUNT];
+};
 
-typedef struct XvtCockpitAlert {
+struct XvtCockpitAlert {
 	uint64_t generation;
-	XvtSnapRect placement;
+	struct XvtSnapRect placement;
 	uint8_t active;
 	uint32_t border_argb, row_background_argb[5];
 	uint8_t line_visible[3];
 	uint16_t first_glyph[3], glyph_count[3];
-} XvtCockpitAlert;
+};
 
-typedef struct XvtCockpitLoading {
+struct XvtCockpitLoading {
 	uint64_t generation;
 	uint64_t text_generation;
-	XvtSnapRect text_bounds;
+	struct XvtSnapRect text_bounds;
 	uint16_t first_glyph, glyph_count;
 	uint8_t text_visible;
-	XvtSnapRect progress_placement;
+	struct XvtSnapRect progress_placement;
 	uint16_t progress_step;
 	uint16_t filled_width;
 	uint8_t progress_visible;
 	uint32_t foreground_argb, background_argb;
-} XvtCockpitLoading;
+};
 
-typedef struct XvtCockpitOverlayStore {
+struct XvtCockpitOverlayStore {
 	uint16_t glyph_count;
-	XvtCockpitGlyph glyphs[XVT_HUD_OVERLAY_GLYPHS];
-} XvtCockpitOverlayStore;
+	struct XvtCockpitGlyph glyphs[XVT_HUD_OVERLAY_GLYPHS];
+};
 
-typedef struct XvtCockpitState {
+struct XvtCockpitState {
 	uint64_t presentation_serial, definition_generation, palette_generation;
 	uint64_t artwork_generation, instruments_generation, radar_generation;
 	uint64_t text_generation, crt_generation;
 	uint8_t valid;
-	XvtCockpitView view;
-	XvtCockpitDefinition definition;
-	XvtCockpitSystems systems;
-	XvtCockpitWeapons weapons;
-	XvtCockpitTarget target;
+	struct XvtCockpitView view;
+	struct XvtCockpitDefinition definition;
+	struct XvtCockpitSystems systems;
+	struct XvtCockpitWeapons weapons;
+	struct XvtCockpitTarget target;
 	uint8_t mouse_stick_visible;
 	int8_t mouse_stick_x, mouse_stick_y;
-	XvtCockpitRadar radar;
-	XvtCockpitReadouts readouts;
-	XvtCockpitProvingGrounds proving_grounds;
-	XvtCockpitTextField text_fields[XVT_COCKPIT_TEXT_FIELD_COUNT];
-	XvtCockpitPage pages[MFD_PAGE_COUNT];
-	XvtCockpitMessages messages;
-	XvtCockpitAlert alert;
-	XvtCockpitLoading loading;
-	XvtSnapPreview crt;
+	struct XvtCockpitRadar radar;
+	struct XvtCockpitReadouts readouts;
+	struct XvtCockpitProvingGrounds proving_grounds;
+	struct XvtCockpitTextField text_fields[XVT_COCKPIT_TEXT_FIELD_COUNT];
+	struct XvtCockpitPage pages[MFD_PAGE_COUNT];
+	struct XvtCockpitMessages messages;
+	struct XvtCockpitAlert alert;
+	struct XvtCockpitLoading loading;
+	struct XvtSnapPreview crt;
 	uint32_t palette_argb[256];
-	XvtCockpitPageStore page_content;
-	XvtCockpitOverlayStore overlay_content;
-} XvtCockpitState;
+	struct XvtCockpitPageStore page_content;
+	struct XvtCockpitOverlayStore overlay_content;
+};
 
 #ifdef __cplusplus
 }

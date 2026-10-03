@@ -10,7 +10,7 @@ extern "C" {
 
 #pragma pack(push, 1)
 
-typedef struct TexLevelHeader {
+struct TexLevelHeader {
 	/* Bytes of the block as read; the converted palettes go right after
 	 * them. */
 	uint32_t dataSize;
@@ -36,9 +36,9 @@ typedef struct TexLevelHeader {
 	/* 24 when the block's palette is to be converted. */
 	uint32_t bitsPerPixel;
 	uint32_t paletteColorCount; /* Colors in the block's own palette. */
-} TexLevelHeader;
+};
 
-typedef struct TexLevelImageHeader {
+struct TexLevelImageHeader {
 	uint32_t reserved00; /* Nothing reads or writes it by name. */
 	/* Offset of the image's palette from this header, 4 bytes per color. */
 	uint32_t paletteOffset;
@@ -56,13 +56,14 @@ typedef struct TexLevelImageHeader {
 	/* 24 when the image's palette is to be converted. */
 	uint32_t bitsPerPixel;
 	uint32_t paletteColorCount; /* Colors in the image's palette. */
-} TexLevelImageHeader;
+};
 
 #pragma pack(pop)
-typedef char xvt_size_TexLevelHeader[(sizeof(TexLevelHeader) == 0x34) ? 1 : -1];
-typedef char xvt_size_TexLevelImageHeader[(sizeof(TexLevelImageHeader) == 0x2C)
-						  ? 1
-						  : -1];
+typedef char xvt_size_TexLevelHeader[(sizeof(struct TexLevelHeader) == 0x34)
+					     ? 1
+					     : -1];
+typedef char xvt_size_TexLevelImageHeader
+	[(sizeof(struct TexLevelImageHeader) == 0x2C) ? 1 : -1];
 
 unsigned int TexLevel_Convert24BppPalettesTo16Bpp(unsigned int *texLevel);
 unsigned int TexLevel_Convert24BppPalettesTo8Bpp(unsigned int *texLevel);

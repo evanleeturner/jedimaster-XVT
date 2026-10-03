@@ -10,7 +10,7 @@
  * vertical offsets in pixels. MATH2_getradarcoord copies it into
  * g_radarEllipseClampTable in that mode; nothing writes it. */
 // GLOBAL: XVT 0x51C4C0
-RadarEllipseClampLimit g_radarEllipseClamp320x240Preset[37] = {
+struct RadarEllipseClampLimit g_radarEllipseClamp320x240Preset[37] = {
 	{0, 18},  {1, 18},  {2, 18},  {3, 18},	{4, 17},  {5, 17},  {6, 17},
 	{7, 17},  {8, 16},  {9, 16},  {10, 16}, {10, 15}, {11, 15}, {12, 15},
 	{12, 14}, {13, 14}, {14, 14}, {14, 13}, {15, 13}, {15, 12}, {16, 12},
@@ -22,7 +22,7 @@ RadarEllipseClampLimit g_radarEllipseClamp320x240Preset[37] = {
  * built for the resolution in g_radarEllipseClampCachedResolutionMode;
  * starts as the 320x240 values. Only MATH2_getradarcoord writes it. */
 // GLOBAL: XVT 0x51C510
-RadarEllipseClampLimit g_radarEllipseClampTable[37] = {
+struct RadarEllipseClampLimit g_radarEllipseClampTable[37] = {
 	{0, 18},  {1, 18},  {2, 18},  {3, 18},	{4, 17},  {5, 17},  {6, 17},
 	{7, 17},  {8, 16},  {9, 16},  {10, 16}, {10, 15}, {11, 15}, {12, 15},
 	{12, 14}, {13, 14}, {14, 14}, {14, 13}, {15, 13}, {15, 12}, {16, 12},

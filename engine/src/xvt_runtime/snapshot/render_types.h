@@ -62,31 +62,31 @@ typedef enum XvtSceneKind {
 	XVT_SCENE_MOVIE
 } XvtSceneKind;
 
-typedef struct XvtSnapRect {
+struct XvtSnapRect {
 	int32_t x, y, width, height;
-} XvtSnapRect;
+};
 
-typedef struct XvtSnapObjectId {
+struct XvtSnapObjectId {
 	uint16_t slot, signature;
-} XvtSnapObjectId;
+};
 
-typedef struct XvtSnapCamera {
+struct XvtSnapCamera {
 	int32_t world_pos[3];
 	float rows
 		[9]; /* Precise render camera, with Q15 fallback for other camera writers. */
-	XvtSnapRect viewport;
+	struct XvtSnapRect viewport;
 	int32_t center_x, center_y, projection_offset_y;
 	uint16_t screen_width, screen_height, aspect_y_q16;
 	uint8_t perspective_shift, valid;
-	XvtSnapObjectId player, focus;
+	struct XvtSnapObjectId player, focus;
 	uint16_t view_pitch, view_yaw, view_roll, view_up_axis_angle;
 	int16_t hud_aim_x, hud_aim_y;
 	uint16_t external, replay_view;
 	uint8_t map_mode, hyperspace_phase, hud_state;
-} XvtSnapCamera;
+};
 
-typedef struct XvtSnapObject {
-	XvtSnapObjectId id;
+struct XvtSnapObject {
+	struct XvtSnapObjectId id;
 	uint8_t object_type, genus, flight_group, slot_class;
 	int32_t world_pos[3], prev_world_pos[3], player_owner;
 	uint16_t yaw, pitch, roll, type_specific_word;
@@ -103,11 +103,11 @@ typedef struct XvtSnapObject {
 	int16_t max_speed;
 	uint8_t laser_recharge_level, shield_recharge_level,
 		beam_recharge_level;
-} XvtSnapObject;
+};
 
 enum { XVT_SLOT_MAIN, XVT_SLOT_LOCAL_TRANSIENT, XVT_SLOT_STATIC };
 
-typedef struct XvtSnapType {
+struct XvtSnapType {
 	uint64_t model_asset_id, texture_asset_id;
 	int32_t max_extent, half_extent;
 	uint8_t record_flags, asset_flags, behavior_flags, model_index;
@@ -116,24 +116,24 @@ typedef struct XvtSnapType {
 	uint8_t sequence_count, remap_count;
 	int16_t sequence[32];
 	uint8_t remap[16];
-} XvtSnapType;
+};
 
-typedef struct XvtSnapLighting {
+struct XvtSnapLighting {
 	int32_t direction_q15[3];
 	int32_t local_lights_level, directional_enabled;
-} XvtSnapLighting;
+};
 
-typedef struct XvtSnapOptAsset {
+struct XvtSnapOptAsset {
 	uint64_t id;
 	uint16_t classic_handle;
 	char path[XVT_SNAP_PATH];
-} XvtSnapOptAsset;
+};
 
-typedef struct XvtSnapTextureAsset {
+struct XvtSnapTextureAsset {
 	uint64_t id;
 	uint16_t classic_handle, model_type;
 	char path[XVT_SNAP_PATH];
-} XvtSnapTextureAsset;
+};
 
 typedef enum XvtSnapImageKind {
 	XVT_IMAGE_BMP = 1,
@@ -145,7 +145,7 @@ typedef enum XvtSnapImageKind {
 	XVT_IMAGE_BUILTIN_CURSOR
 } XvtSnapImageKind;
 
-typedef struct XvtSnapImageAsset {
+struct XvtSnapImageAsset {
 	uint64_t id;
 	uint32_t kind;
 	char path[XVT_SNAP_PATH];
@@ -153,8 +153,8 @@ typedef struct XvtSnapImageAsset {
 	uint16_t font_point_size;
 	uint8_t font_row_bytes, make_palette;
 	/* Captured with an LFD load; remains valid after cockpit layout replacement. */
-	XvtSnapRect cockpit_viewport;
-} XvtSnapImageAsset;
+	struct XvtSnapRect cockpit_viewport;
+};
 
 enum {
 	XVT_TARGET_FRONT_BACK,
@@ -186,71 +186,71 @@ enum { XVT_SURFACE_CLEAR, XVT_SURFACE_PRESENT, XVT_SURFACE_RESET };
 
 enum { XVT_SCOPE_FRONTEND, XVT_SCOPE_COCKPIT, XVT_SCOPE_MAP, XVT_SCOPE_CRT };
 
-typedef struct XvtSnapDrawHeader {
+struct XvtSnapDrawHeader {
 	uint32_t z_order;
 	uint16_t target, scope;
-	XvtSnapRect clip;
-} XvtSnapDrawHeader;
+	struct XvtSnapRect clip;
+};
 
-typedef struct XvtSnapSprite {
-	XvtSnapDrawHeader draw;
+struct XvtSnapSprite {
+	struct XvtSnapDrawHeader draw;
 	uint64_t asset_id;
 	uint32_t frame;
-	XvtSnapRect source, destination;
+	struct XvtSnapRect source, destination;
 	uint32_t kind, tint_color;
-} XvtSnapSprite;
+};
 
-typedef struct XvtSnapGlyph {
-	XvtSnapDrawHeader draw;
+struct XvtSnapGlyph {
+	struct XvtSnapDrawHeader draw;
 	uint64_t font_asset_id;
 	int32_t x, y;
 	uint32_t foreground_argb, background_argb, shadow_argb;
 	uint16_t character, advance;
 	uint8_t narrow, shadow_enabled;
 	uint8_t background_enabled;
-} XvtSnapGlyph;
+};
 
-typedef struct XvtSnapPaint {
-	XvtSnapDrawHeader draw;
+struct XvtSnapPaint {
+	struct XvtSnapDrawHeader draw;
 	uint32_t kind, color_argb;
 	int32_t x0, y0, x1, y1;
-} XvtSnapPaint;
+};
 
-typedef struct XvtSnapSurfaceEvent {
+struct XvtSnapSurfaceEvent {
 	uint32_t z_order;
 	uint16_t kind, target, source_target;
-	XvtSnapRect rect;
+	struct XvtSnapRect rect;
 	uint32_t color_argb, save_id;
-} XvtSnapSurfaceEvent;
+};
 
-typedef struct XvtSnapCopyRect {
-	XvtSnapDrawHeader draw;
+struct XvtSnapCopyRect {
+	struct XvtSnapDrawHeader draw;
 	uint16_t source_target;
-	XvtSnapRect source, destination;
-} XvtSnapCopyRect;
+	struct XvtSnapRect source, destination;
+};
 
-typedef struct XvtSnapRadarBlip {
-	XvtSnapObjectId object;
+struct XvtSnapRadarBlip {
+	struct XvtSnapObjectId object;
 	int16_t x, y;
 	uint16_t color_index;
 	uint8_t targeted;
-} XvtSnapRadarBlip;
+};
 
-typedef struct XvtSnapTargetBox {
-	XvtSnapObjectId object;
+struct XvtSnapTargetBox {
+	struct XvtSnapObjectId object;
 	uint16_t component, color_index;
 	uint8_t scope;
 	int32_t extent;
 	int32_t world_pos[3];
-} XvtSnapTargetBox;
+};
 
-typedef struct XvtSnapPreview {
-	XvtSnapDrawHeader draw;
+struct XvtSnapPreview {
+	struct XvtSnapDrawHeader draw;
 	uint64_t opt_asset_id;
-	XvtSnapCamera camera;
-	XvtSnapLighting lighting;
-	XvtSnapObjectId object;
-	XvtSnapRect destination;
+	struct XvtSnapCamera camera;
+	struct XvtSnapLighting lighting;
+	struct XvtSnapObjectId object;
+	struct XvtSnapRect destination;
 	float view_pos[3], view_orient[9];
 	/* Frontend OPT normalization is applied to original model vertices at load. */
 	float model_scale;
@@ -258,31 +258,31 @@ typedef struct XvtSnapPreview {
 	uint8_t mask_index, valid;
 	uint8_t component_marker_valid;
 	int32_t component_marker_world[3];
-} XvtSnapPreview;
+};
 
-typedef struct XvtSnapCockpitDescriptor {
+struct XvtSnapCockpitDescriptor {
 	uint64_t lfd_asset_id;
 	uint8_t enabled;
 	char lfd_name[10], display_name[17];
-	XvtSnapRect viewport;
+	struct XvtSnapRect viewport;
 	int16_t projection_offset_y;
-} XvtSnapCockpitDescriptor;
+};
 
-typedef struct XvtSnapHudElement {
+struct XvtSnapHudElement {
 	uint16_t x, y, selector, color_index, clip_width;
 	int16_t clip_height_or_foreground;
-} XvtSnapHudElement;
+};
 
-typedef struct XvtSnapCockpitLayout {
+struct XvtSnapCockpitLayout {
 	uint64_t generation, panel_asset_id;
 	uint8_t valid;
-	XvtSnapCockpitDescriptor descriptors[28];
-	XvtSnapHudElement elements[432];
+	struct XvtSnapCockpitDescriptor descriptors[28];
+	struct XvtSnapHudElement elements[432];
 	uint16_t mask_bytes[3];
 	uint8_t masks[3][480];
 	char panel_basename[10];
 	uint8_t sprite_count, sprite_count_addend;
-} XvtSnapCockpitLayout;
+};
 
 #ifdef __cplusplus
 }

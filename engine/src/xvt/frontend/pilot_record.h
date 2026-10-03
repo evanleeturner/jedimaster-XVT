@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 extern int g_pilotRecordPage;
-extern POINT g_pilotRatingIconPos[25];
+extern struct POINT g_pilotRatingIconPos[25];
 extern int g_campaignSingleplayerAwardCount;
 extern int g_campaignMedalScrollOffset;
 extern int g_campaignSingleplayerAwardFlags[];
@@ -85,9 +85,8 @@ struct PilotNetworkPlayer {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_PilotNetworkPlayer[(sizeof(PilotNetworkPlayer) == 88)
-						 ? 1
-						 : -1];
+typedef char xvt_size_PilotNetworkPlayer
+	[(sizeof(struct PilotNetworkPlayer) == 88) ? 1 : -1];
 
 #pragma pack(push, 1)
 
@@ -114,7 +113,7 @@ struct PilotTeam {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_PilotTeam[(sizeof(PilotTeam) == 28) ? 1 : -1];
+typedef char xvt_size_PilotTeam[(sizeof(struct PilotTeam) == 28) ? 1 : -1];
 
 #pragma pack(push, 1)
 
@@ -157,7 +156,8 @@ struct PilotMission {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_PilotMission[(sizeof(PilotMission) == 36) ? 1 : -1];
+typedef char
+	xvt_size_PilotMission[(sizeof(struct PilotMission) == 36) ? 1 : -1];
 
 #pragma pack(push, 1)
 
@@ -209,7 +209,7 @@ struct PilotMultiplayerMission {
 
 #pragma pack(pop)
 typedef char xvt_size_PilotMultiplayerMission
-	[(sizeof(PilotMultiplayerMission) == 48) ? 1 : -1];
+	[(sizeof(struct PilotMultiplayerMission) == 48) ? 1 : -1];
 
 #pragma pack(push, 1)
 
@@ -252,7 +252,9 @@ struct PilotTournament {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_PilotTournament[(sizeof(PilotTournament) == 40) ? 1 : -1];
+typedef char xvt_size_PilotTournament[(sizeof(struct PilotTournament) == 40)
+					      ? 1
+					      : -1];
 
 #pragma pack(push, 1)
 
@@ -300,7 +302,7 @@ struct PilotMultiplayerTournament {
 
 #pragma pack(pop)
 typedef char xvt_size_PilotMultiplayerTournament
-	[(sizeof(PilotMultiplayerTournament) == 44) ? 1 : -1];
+	[(sizeof(struct PilotMultiplayerTournament) == 44) ? 1 : -1];
 
 #pragma pack(push, 1)
 
@@ -345,7 +347,7 @@ struct PilotBattle {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_PilotBattle[(sizeof(PilotBattle) == 36) ? 1 : -1];
+typedef char xvt_size_PilotBattle[(sizeof(struct PilotBattle) == 36) ? 1 : -1];
 
 #pragma pack(push, 1)
 
@@ -392,7 +394,7 @@ struct PilotMultiplayerBattle {
 
 #pragma pack(pop)
 typedef char xvt_size_PilotMultiplayerBattle
-	[(sizeof(PilotMultiplayerBattle) == 40) ? 1 : -1];
+	[(sizeof(struct PilotMultiplayerBattle) == 40) ? 1 : -1];
 
 #pragma pack(push, 1)
 
@@ -431,7 +433,8 @@ struct PilotCampaign {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_PilotCampaign[(sizeof(PilotCampaign) == 36) ? 1 : -1];
+typedef char
+	xvt_size_PilotCampaign[(sizeof(struct PilotCampaign) == 36) ? 1 : -1];
 
 #pragma pack(push, 1)
 
@@ -473,9 +476,8 @@ struct PilotCampaignMission {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_PilotCampaignMission[(sizeof(PilotCampaignMission) == 32)
-						   ? 1
-						   : -1];
+typedef char xvt_size_PilotCampaignMission
+	[(sizeof(struct PilotCampaignMission) == 32) ? 1 : -1];
 
 #pragma pack(push, 1)
 
@@ -538,7 +540,7 @@ struct PilotStats {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_PilotStats[(sizeof(PilotStats) == 5256) ? 1 : -1];
+typedef char xvt_size_PilotStats[(sizeof(struct PilotStats) == 5256) ? 1 : -1];
 
 #pragma pack(push, 1)
 
@@ -577,36 +579,37 @@ struct PilotFaction {
 	 * base-game record; nothing else reads it. */
 	uint8_t fieldBC[16];
 	int totalScore;	  ///< Overall score for this faction.
-	PilotStats stats; ///< Accumulated combat statistics for this faction.
+	struct PilotStats
+		stats; ///< Accumulated combat statistics for this faction.
 	/* Pilot_LoadXvtRecord and Pilot_WriteXvtRecord copy the base-game record's history blocks from and to
 	 * 4 bytes before each array below: the first block from here, each later one from the last field of the
 	 * array before it. So in that record each history entry starts with the 4 bytes this layout gives to
 	 * the end of the entry before it, and mpBattles[24].field24 is not copied. No code reads these words
 	 * by name. */
 	uint8_t field1558[4];
-	PilotMission spTrainingMissions
+	struct PilotMission spTrainingMissions
 		[100]; ///< Single-player training history (100 records).
-	PilotMission spMeleeMissions
+	struct PilotMission spMeleeMissions
 		[250]; ///< Single-player melee history (250 records).
-	PilotMission spCombatMissions
+	struct PilotMission spCombatMissions
 		[250]; ///< Single-player combat history (250 records).
-	PilotMultiplayerMission mpTrainingMissions
+	struct PilotMultiplayerMission mpTrainingMissions
 		[100]; ///< Multiplayer training history (100 records).
-	PilotMultiplayerMission mpMeleeMissions
+	struct PilotMultiplayerMission mpMeleeMissions
 		[250]; ///< Multiplayer melee history (250 records).
-	PilotMultiplayerMission mpCombatMissions
+	struct PilotMultiplayerMission mpCombatMissions
 		[250]; ///< Multiplayer combat history (250 records).
-	PilotTournament spTournaments
+	struct PilotTournament spTournaments
 		[25]; ///< Single-player tournament history (25 records).
-	PilotMultiplayerTournament mpTournaments
+	struct PilotMultiplayerTournament mpTournaments
 		[25]; ///< Multiplayer tournament history (25 records).
-	PilotBattle
+	struct PilotBattle
 		spBattles[25]; ///< Single-player battle history (25 records).
-	PilotMultiplayerBattle
+	struct PilotMultiplayerBattle
 		mpBattles[25]; ///< Multiplayer battle history (25 records).
-	PilotCampaign spCampaigns
+	struct PilotCampaign spCampaigns
 		[25]; ///< Single-player campaign history (25 records).
-	PilotCampaign
+	struct PilotCampaign
 		mpCampaigns[25]; ///< Multiplayer campaign history (25 records).
 	/* No code reads or writes it by name; it is saved with the pilot
 	 * file. */
@@ -620,20 +623,21 @@ struct PilotFaction {
 	 * CONCOURSE_CD_MOVIE_CHECK_LIMIT (5). */
 	uint32_t
 		cdMovieCheckCounter; ///< Concourse CD movie-check retry counter.
-	PilotCampaignMission spCampaignMissions
+	struct PilotCampaignMission spCampaignMissions
 		[99]; ///< Single-player campaign mission history indexed by
 		      ///< one-based mission ID 1-99.
 	/* No code reads or writes it by name; it is saved with the pilot
 	 * file. */
 	uint8_t unusedFD60
 		[32]; ///< Unresolved bytes preceding multiplayer campaign mission history.
-	PilotCampaignMission mpCampaignMissions
+	struct PilotCampaignMission mpCampaignMissions
 		[99]; ///< Multiplayer campaign mission history indexed by
-		      ///< one-based mission ID 1-99.
+	///< one-based mission ID 1-99.
 };
 
 #pragma pack(pop)
-typedef char xvt_size_PilotFaction[(sizeof(PilotFaction) == 68064) ? 1 : -1];
+typedef char
+	xvt_size_PilotFaction[(sizeof(struct PilotFaction) == 68064) ? 1 : -1];
 
 #pragma pack(push, 1)
 
@@ -735,15 +739,15 @@ struct PilotData {
 	 * demotion, and for a target drone with negative points. The pilot
 	 * statistics page shows it below Jedi Master. */
 	int nextPromotionPercent;
-	PilotStats mainStats; ///< Pilot combat statistics.
+	struct PilotStats mainStats; ///< Pilot combat statistics.
 	/* Progress and team standings of the tournament being played. Many
 	 * functions write it, chiefly the MissionSetup sequence functions,
 	 * FeDiskIo_CommitFlightResults and MissionDebrief_Update. */
-	MeleeTournamentSequenceState meleeTournamentSequenceState;
+	struct MeleeTournamentSequenceState meleeTournamentSequenceState;
 	/* Progress and mission results of the battle being played. Many
 	 * functions write it, chiefly the MissionSetup sequence functions,
 	 * FeDiskIo_CommitFlightResults and MissionDebrief_Update. */
-	BattleSequenceState battleSequenceState;
+	struct BattleSequenceState battleSequenceState;
 	/* The pilot's rating, PILOT_RATING_TARGET_DRONE (0) to
 	 * PILOT_RATING_JEDI_MASTER (24); a new pilot starts as a trainee.
 	 * FeDiskIo_CommitFlightResults raises and lowers it. */
@@ -803,39 +807,39 @@ struct PilotData {
 	 * it for a melee outside a sequence or on a tournament's first
 	 * mission. */
 	int flightGroupRating[48];
-	PilotStats
+	struct PilotStats
 		lastMissionStats; ///< Statistics of the most recent mission, shown on the debriefing.
-	PilotNetworkPlayer
-		networkPlayers[8]; ///< Persisted network-player results (8).
-	PilotTeam teams[10];	   ///< Persisted team results (10).
+	struct PilotNetworkPlayer
+		networkPlayers[8];  ///< Persisted network-player results (8).
+	struct PilotTeam teams[10]; ///< Persisted team results (10).
 	/* 0 Rebel, 1 Imperial, as the pilot record's faction buttons set it. At
 	 * launch FrontendMission_InitPlayerState sets it: in a melee or
 	 * tournament 0 when the local player's craft is type 1 to 4 or 14, else
 	 * 1; otherwise the IFF of the local player's flight group. Entry 2 of
 	 * factionStatistics keeps network play's selections. */
 	int currentFactionId;	   ///< Selected faction-statistics record.
-	PilotFaction factionStatistics
+	struct PilotFaction factionStatistics
 		[4]; ///< Per-faction pilot records (4 records, 0x109E0 bytes each).
-	CampaignSequenceState
+	struct CampaignSequenceState
 		campaignSequenceState; ///< Runtime state for an active campaign sequence.
-	BattleContinuation spBattleContinuations
+	struct BattleContinuation spBattleContinuations
 		[25]; ///< Saved single-player battle continuation slots indexed by battle ID.
-	BattleContinuation mpBattleContinuations
+	struct BattleContinuation mpBattleContinuations
 		[25]; ///< Saved multiplayer battle continuation slots indexed by battle ID.
-	CampaignContinuation spCampaignContinuations
+	struct CampaignContinuation spCampaignContinuations
 		[25]; ///< Saved single-player campaign continuation slots
 		      ///< indexed by campaign ID.
-	CampaignContinuation mpCampaignContinuations
+	struct CampaignContinuation mpCampaignContinuations
 		[25]; ///< Saved multiplayer campaign continuation slots;
-		      ///< client state uses the ID+12 partition.
+	///< client state uses the ID+12 partition.
 };
 
 #pragma pack(pop)
-typedef char xvt_size_PilotData[(sizeof(PilotData) == 296238) ? 1 : -1];
+typedef char xvt_size_PilotData[(sizeof(struct PilotData) == 296238) ? 1 : -1];
 
-extern PilotData g_pilotData;
+extern struct PilotData g_pilotData;
 extern unsigned int g_campaignAwardSpriteCount;
-extern CampaignAwardSpriteEntry *g_campaignAwardSprites;
+extern struct CampaignAwardSpriteEntry *g_campaignAwardSprites;
 extern int g_pilotStatsAssists[3];
 extern int g_pilotStatsPlayerKills[3];
 extern int g_pilotStatsLossesToNonPlayers[3];
@@ -865,7 +869,7 @@ extern int g_pilotStatsLossesToPlayers[3];
 extern int g_pilotMpCampaignHistoryRowCount;
 
 int PilotRecord_UpdatePilotSelectionPanel(int frameCounter);
-int PilotRecord_DrawPilotList(const RECT *bounds, int firstVisibleIndex);
+int PilotRecord_DrawPilotList(const struct RECT *bounds, int firstVisibleIndex);
 int PilotRecord_RebuildPilotList(int *selectedIndex);
 int PilotRecord_DrawPilotStatisticsPage(void);
 int PilotRecord_DrawMissionAchievementsPage(void);

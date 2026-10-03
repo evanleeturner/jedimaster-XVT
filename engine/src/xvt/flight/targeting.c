@@ -49,7 +49,7 @@ int16_t Targeting_TestAimCone(uint16_t objectIdx, int16_t narrowCone,
 	int16_t scaleShift;
 	int dx;
 	int16_t dy, dz;
-	ObjectRecord *target;
+	struct ObjectRecord *target;
 	int objectType;
 	uint16_t meshIndex;
 	int forward;
@@ -63,7 +63,7 @@ int16_t Targeting_TestAimCone(uint16_t objectIdx, int16_t narrowCone,
 	int upScore;
 	int16_t boundSum;
 	uint8_t boundShift;
-	MobileObject **playerMobileObject;
+	struct MobileObject **playerMobileObject;
 	uint16_t objectIndex;
 
 	g_targetAngleScore = -1;
@@ -270,7 +270,7 @@ void Targeting_DrawSceneObjectBoxes(void)
 
 	for (objectIdx = g_activeRegionObjectSlotStart;
 	     objectIdx < (int)g_activeRegionCraftObjectSlotEnd; ++objectIdx) {
-		ObjectRecord *object;
+		struct ObjectRecord *object;
 		uint8_t colorIndex;
 		int team;
 		int teamScore;
@@ -349,7 +349,7 @@ void Targeting_DrawSceneObjectBoxes(void)
 		}
 
 		if (colorIndex != 0) {
-			CraftData *craft;
+			struct CraftData *craft;
 			int playerTeam;
 			int craftTeam;
 			int isHostile;
@@ -490,9 +490,9 @@ void Targeting_DrawObjectBox(uint16_t objectIdx, uint16_t componentIdx,
 // FUNCTION: XVT 0x483030
 int Targeting_GetObjectBoxExtent(unsigned int objectIdx)
 {
-	ObjectRecord *object;
-	MobileObject *mobileObject;
-	CraftData *craft;
+	struct ObjectRecord *object;
+	struct MobileObject *mobileObject;
+	struct CraftData *craft;
 	unsigned int modelIndex;
 	int averageExtent;
 
@@ -534,7 +534,7 @@ void Targeting_ProjectObjectOrMissionPoint(unsigned int objOrMissionPointRef,
 	int viewX;
 	int viewY;
 	int viewZ;
-	ObjectRecord *object;
+	struct ObjectRecord *object;
 	int objectType;
 	int localFwd;
 	int localUp;
@@ -588,8 +588,8 @@ void Targeting_ComputeProjectedObjectExtent(uint16_t objectIdx,
 	int deltaZ;
 	uint16_t distanceShift;
 	int viewDepth;
-	MobileObject *mobileObject;
-	CraftData *craft;
+	struct MobileObject *mobileObject;
+	struct CraftData *craft;
 	int16_t averageExtent;
 	int maxBoundsExtent;
 	unsigned int projectedExtent;

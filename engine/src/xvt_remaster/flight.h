@@ -13,11 +13,11 @@ extern "C" {
 /* transform, previous_transform: the object's model matrices for the current and the previous snapshot,
  * equal when no previous pose exists. previous_index: the matching object's index in the previous
  * snapshot (same slot, signature and type), or -1. zero_velocity: no previous pose, so no motion. */
-typedef struct XvtPreparedObject {
+struct XvtPreparedObject {
 	float transform[16], previous_transform[16];
 	int32_t previous_index;
 	uint8_t zero_velocity;
-} XvtPreparedObject;
+};
 
 /* view, previous_view: main views from the current and previous cameras, about the current camera's
  * position; equal after a reset. cockpit_layout: the fit of the original screen into the window;
@@ -27,18 +27,18 @@ typedef struct XvtPreparedObject {
  * original's assumed rate; real ticks run 250 a second), 0 after a reset; nothing reads it.
  * reset_history: motion history restarts. regenerate_motion: the poses advanced this frame.
  * render_needed: the frame must be drawn again. */
-typedef struct XvtPreparedFlight {
-	XvtRenderView view, previous_view;
-	XvtLayoutTransform cockpit_layout, frontend_layout;
+struct XvtPreparedFlight {
+	struct XvtRenderView view, previous_view;
+	struct XvtLayoutTransform cockpit_layout, frontend_layout;
 	AeronRectI content_rect;
-	XvtPreparedObject objects[XVT_SNAP_OBJECTS];
+	struct XvtPreparedObject objects[XVT_SNAP_OBJECTS];
 	uint32_t object_count;
 	uint64_t snapshot_serial, flight_frame_serial;
 	float delta_sim_seconds;
 	/* Host span between changed poses, matching XWA's held-velocity timing. */
 	uint64_t velocity_span_us;
 	int valid, reset_history, regenerate_motion, render_needed;
-} XvtPreparedFlight;
+};
 
 /* Owns all matrices across snapshot rotation. When regenerate_motion is false,
  * retain the prior velocity result instead of resubmitting a stale previous index. */
@@ -53,11 +53,11 @@ typedef struct XvtPreparedFlight {
  * types, fuselage sequence, hyperspace, or the map in map mode), any temporal mode, an HDR or headroom
  * change, a pause change, or a change of the advance flag unless pause_keep_blur. Returns 0 with the
  * frame invalidated when a view or layout cannot be built. */
-int XvtRemasterFlight_Prepare(const XvtRenderSnapshot *current,
-			      const XvtRenderSnapshot *previous, int width,
-			      int height);
+int XvtRemasterFlight_Prepare(const struct XvtRenderSnapshot *current,
+			      const struct XvtRenderSnapshot *previous,
+			      int width, int height);
 /* The prepared frame, or NULL while invalid. */
-const XvtPreparedFlight *XvtRemasterFlight_Current(void);
+const struct XvtPreparedFlight *XvtRemasterFlight_Current(void);
 /* Marks the frame invalid; the next Prepare resets. */
 void XvtRemasterFlight_Invalidate(void);
 /* Marks the frame as needing a render, for a HUD or CRT change. */
@@ -77,8 +77,8 @@ void XvtRemasterFlight_RequestComposition(void);
  * serves motion only with camera blur or a temporal mode on. Then the effects, the HUD hook after
  * upscale, and the pipeline's finish. Returns 0 on any failure, the output invalid. */
 int XvtRemasterFlight_Render(AeronCommandBuffer *cmd,
-			     const XvtRenderSnapshot *current,
-			     const XvtRenderSnapshot *previous);
+			     const struct XvtRenderSnapshot *current,
+			     const struct XvtRenderSnapshot *previous);
 /* Borrowed tonemapped SDR/HDR presentation output for the composition driver. */
 /* The pipeline's output while the last Render succeeded, else NULL. */
 AeronTexture *XvtRemasterFlight_Output(void);

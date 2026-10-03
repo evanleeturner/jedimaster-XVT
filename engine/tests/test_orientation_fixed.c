@@ -15,8 +15,6 @@
 #include <stdint.h>
 #include <stdio.h>
 
-typedef XvtOrientationAngles Angles;
-
 /* Each call rounds every angle to a whole unit, 1/65536 of a turn, and the float path works in
  * single-precision radians; a few chained calls measured within 4 units of each other. 8 units (0.044
  * degrees) leaves room for that, while a turn about the wrong axis, in the wrong order or the wrong way is
@@ -29,7 +27,9 @@ static int Gap(uint16_t a, uint16_t b)
 	return gap < 0 ? -gap : gap;
 }
 
-static void ExpectSameOrientation(Angles actual, Angles expected, int line)
+static void ExpectSameOrientation(struct XvtOrientationAngles actual,
+				  struct XvtOrientationAngles expected,
+				  int line)
 {
 	int ok = Gap(actual.yaw, expected.yaw) <= kRoundingUnits &&
 		 Gap(actual.pitch, expected.pitch) <= kRoundingUnits &&
@@ -49,18 +49,20 @@ static void ExpectSameOrientation(Angles actual, Angles expected, int line)
 
 #define EXPECT_EQUAL_ANGLES(actual, expected)                                  \
 	do {                                                                   \
-		Angles actual_ = (actual), expected_ = (expected);             \
+		struct XvtOrientationAngles actual_ = (actual),                \
+					    expected_ = (expected);            \
 		XVT_ASSERT_INT_EQ(actual_.yaw, expected_.yaw);                 \
 		XVT_ASSERT_INT_EQ(actual_.pitch, expected_.pitch);             \
 		XVT_ASSERT_INT_EQ(actual_.roll, expected_.roll);               \
 	} while (0)
 
-static Angles Fixed(Angles current, int pitch, int neg_yaw)
+static struct XvtOrientationAngles Fixed(struct XvtOrientationAngles current,
+					 int pitch, int neg_yaw)
 {
 	return XvtOrientation_ApplyPitchYawFixed(current, pitch, neg_yaw);
 }
 
-static const Angles kSeeds[] = {
+static const struct XvtOrientationAngles kSeeds[] = {
 	{0x1234, 0x3000, 0x0400}, {0x9000, 0x5000, 0xF000},
 	{0xE000, 0x4800, 0x7000}, {0x4321, 0xC800, 0x2222},
 	{0x0000, 0xC000, 0x0000},
@@ -77,17 +79,18 @@ static const int kDeltas[][2] = {
 enum { kDeltaCount = sizeof kDeltas / sizeof kDeltas[0] };
 
 /* A starting orientation in the form this function returns. */
-static Angles Start(unsigned seed)
+static struct XvtOrientationAngles Start(unsigned seed)
 {
 	return Fixed(kSeeds[seed], 0x0100, 0x0100);
 }
 
 static void CheckZeroTurnsReturnInput(void)
 {
-	static const Angles inputs[] = {{0x1234, 0x3000, 0x0400},
-					{0x0000, 0xC000, 0x0000},
-					{0xFFFF, 0x8000, 0x8001},
-					{0x4000, 0x0000, 0x2000}};
+	static const struct XvtOrientationAngles inputs[] = {
+		{0x1234, 0x3000, 0x0400},
+		{0x0000, 0xC000, 0x0000},
+		{0xFFFF, 0x8000, 0x8001},
+		{0x4000, 0x0000, 0x2000}};
 	static const int zero[][2] = {
 		{0, 0}, {0x10000, 0}, {0, -0x10000}, {-0x20000, 0x30000}};
 	for (unsigned i = 0; i < sizeof inputs / sizeof inputs[0]; ++i) {
@@ -121,7 +124,7 @@ static void CheckAgreesWithFloat(void)
 static void CheckInverse(void)
 {
 	for (unsigned s = 0; s < kSeedCount; ++s) {
-		Angles start = Start(s);
+		struct XvtOrientationAngles start = Start(s);
 		for (unsigned d = 0; d < kDeltaCount; ++d) {
 			int pitch = kDeltas[d][0], neg_yaw = kDeltas[d][1];
 			EXPECT_SAME_ORIENTATION(
@@ -143,7 +146,7 @@ static void CheckInverse(void)
 static void CheckSameAxisAdds(void)
 {
 	for (unsigned s = 0; s < kSeedCount; ++s) {
-		Angles start = Start(s);
+		struct XvtOrientationAngles start = Start(s);
 		EXPECT_SAME_ORIENTATION(
 			Fixed(Fixed(start, 0, 0x0700), 0, 0x0900),
 			Fixed(start, 0, 0x1000));
@@ -155,7 +158,7 @@ static void CheckSameAxisAdds(void)
 			Fixed(start, -0x0200, 0));
 
 		/* Four quarter turns about one axis are a whole turn. */
-		Angles yawed = start, pitched = start;
+		struct XvtOrientationAngles yawed = start, pitched = start;
 		for (int i = 0; i < 4; ++i) {
 			yawed = Fixed(yawed, 0, 0x4000);
 			pitched = Fixed(pitched, 0x4000, 0);
@@ -168,7 +171,7 @@ static void CheckSameAxisAdds(void)
 static void CheckYawThenPitch(void)
 {
 	for (unsigned s = 0; s < kSeedCount; ++s) {
-		Angles start = Start(s);
+		struct XvtOrientationAngles start = Start(s);
 		for (unsigned d = 0; d < kDeltaCount; ++d) {
 			int pitch = kDeltas[d][0], neg_yaw = kDeltas[d][1];
 			EXPECT_SAME_ORIENTATION(
@@ -182,10 +185,11 @@ static void CheckDeltaWrap(void)
 {
 	/* 65536 units are a turn: a whole turn more or less on either delta is the same turn. */
 	for (unsigned s = 0; s < kSeedCount; ++s) {
-		Angles start = Start(s);
+		struct XvtOrientationAngles start = Start(s);
 		for (unsigned d = 0; d < kDeltaCount; ++d) {
 			int pitch = kDeltas[d][0], neg_yaw = kDeltas[d][1];
-			Angles turned = Fixed(start, pitch, neg_yaw);
+			struct XvtOrientationAngles turned =
+				Fixed(start, pitch, neg_yaw);
 			EXPECT_SAME_ORIENTATION(Fixed(start, pitch + 0x10000,
 						      neg_yaw - 0x10000),
 						turned);

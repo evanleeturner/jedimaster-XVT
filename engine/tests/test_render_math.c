@@ -24,9 +24,9 @@ static const double kTol = 1e-5;
 
 /* A camera record at world (100, -200, 300) with orthonormal rows, a 320 x 200 viewport whose
  * projection center is its middle, a focal length of 2^8 and no aspect scaling. */
-static XvtSnapCamera CleanCamera(void)
+static struct XvtSnapCamera CleanCamera(void)
 {
-	XvtSnapCamera camera;
+	struct XvtSnapCamera camera;
 	memset(&camera, 0, sizeof camera);
 	camera.valid = 1;
 	camera.world_pos[0] = 100;
@@ -50,7 +50,7 @@ static const int32_t kOrigin[3] = {90, -190, 310};
 
 static void CheckLayout(void)
 {
-	XvtLayoutTransform layout;
+	struct XvtLayoutTransform layout;
 	XVT_ASSERT_INT_EQ(XvtRenderMath_Layout(640, 480, 1280, 1024, &layout),
 			  1);
 	XVT_ASSERT_CLOSE(layout.scale, 2.0, kTol, WHY_FLOAT);
@@ -81,7 +81,7 @@ static void CheckLayout(void)
 		for (unsigned b = 0; b < 4; ++b) {
 			float args[4] = {640, 480, 1280, 1024};
 			args[which] = bad[b];
-			XvtLayoutTransform before, after;
+			struct XvtLayoutTransform before, after;
 			memset(&before, 0xA5, sizeof before);
 			after = before;
 			XVT_ASSERT_INT_EQ(XvtRenderMath_Layout(args[0], args[1],
@@ -97,7 +97,7 @@ static void CheckLayout(void)
 static void CheckLayoutPoints(void)
 {
 	/* A 4:3 surface in a 16:9 window: scale 2, 320 units left over across, none down. */
-	XvtLayoutTransform layout;
+	struct XvtLayoutTransform layout;
 	XVT_ASSERT_INT_EQ(XvtRenderMath_Layout(640, 480, 1600, 960, &layout),
 			  1);
 	float x, y;
@@ -142,10 +142,10 @@ static void CheckLayoutPoints(void)
 }
 
 /* Calls BuildView on a view filled with a marker and checks it is refused with the view untouched. */
-static void ExpectRefusedUntouched(const XvtSnapCamera *camera,
+static void ExpectRefusedUntouched(const struct XvtSnapCamera *camera,
 				   const int32_t *origin, int width, int height)
 {
-	XvtRenderView before, after;
+	struct XvtRenderView before, after;
 	memset(&before, 0xA5, sizeof before);
 	after = before;
 	XVT_ASSERT_INT_EQ(
@@ -160,9 +160,9 @@ static void ExpectRefusedUntouched(const XvtSnapCamera *camera,
 }
 
 /* Calls BuildView with a bad row and checks it is refused with the view zeroed. */
-static void ExpectRefusedZeroed(const XvtSnapCamera *camera)
+static void ExpectRefusedZeroed(const struct XvtSnapCamera *camera)
 {
-	XvtRenderView view, zero;
+	struct XvtRenderView view, zero;
 	memset(&view, 0xA5, sizeof view);
 	memset(&zero, 0, sizeof zero);
 	XVT_ASSERT_INT_EQ(
@@ -172,8 +172,8 @@ static void ExpectRefusedZeroed(const XvtSnapCamera *camera)
 
 static void CheckBuildViewRefusals(void)
 {
-	XvtSnapCamera camera = CleanCamera();
-	XvtRenderView view;
+	struct XvtSnapCamera camera = CleanCamera();
+	struct XvtRenderView view;
 	XVT_ASSERT_INT_EQ(
 		XvtRenderMath_BuildView(&camera, kOrigin, 640, 400, &view), 1);
 	XVT_ASSERT_INT_EQ(
@@ -220,8 +220,8 @@ static void CheckBuildViewRefusals(void)
 
 static void CheckBuildViewFields(void)
 {
-	XvtSnapCamera camera = CleanCamera();
-	XvtRenderView view;
+	struct XvtSnapCamera camera = CleanCamera();
+	struct XvtRenderView view;
 	XVT_ASSERT_INT_EQ(
 		XvtRenderMath_BuildView(&camera, kOrigin, 640, 600, &view), 1);
 
@@ -277,7 +277,7 @@ static void CheckBuildViewFields(void)
 
 static void CheckBuildViewRows(void)
 {
-	XvtSnapCamera clean = CleanCamera(), messy = CleanCamera();
+	struct XvtSnapCamera clean = CleanCamera(), messy = CleanCamera();
 	/* The first row scaled, the second leaning toward the first and scaled, the third anything. */
 	messy.rows[1] = 3.0f;
 	messy.rows[3] = 0.0f;
@@ -286,7 +286,7 @@ static void CheckBuildViewRows(void)
 	messy.rows[6] = 7.0f;
 	messy.rows[7] = -3.0f;
 	messy.rows[8] = 2.0f;
-	XvtRenderView a, b;
+	struct XvtRenderView a, b;
 	XVT_ASSERT_INT_EQ(
 		XvtRenderMath_BuildView(&clean, kOrigin, 640, 400, &a), 1);
 	XVT_ASSERT_INT_EQ(
@@ -299,7 +299,8 @@ static void CheckBuildViewRows(void)
 	XVT_ASSERT_CLOSE(fabs(dot), 1.0, kTol, WHY_FLOAT);
 }
 
-static float Depth(const XvtRenderView *view, int32_t x, int32_t y, int32_t z)
+static float Depth(const struct XvtRenderView *view, int32_t x, int32_t y,
+		   int32_t z)
 {
 	const int32_t world[3] = {x, y, z};
 	float px, py, depth = NAN;
@@ -308,7 +309,7 @@ static float Depth(const XvtRenderView *view, int32_t x, int32_t y, int32_t z)
 }
 
 /* The view axis in world terms, from depth's change over 1000 units along each world axis. */
-static void ViewAxis(const XvtRenderView *view, const int32_t at[3],
+static void ViewAxis(const struct XvtRenderView *view, const int32_t at[3],
 		     double axis[3])
 {
 	double base = Depth(view, at[0], at[1], at[2]);
@@ -328,8 +329,8 @@ static void Along(const int32_t at[3], const double axis[3], int32_t d,
 
 static void CheckProjectWorld(void)
 {
-	XvtSnapCamera camera = CleanCamera();
-	XvtRenderView view;
+	struct XvtSnapCamera camera = CleanCamera();
+	struct XvtRenderView view;
 	XVT_ASSERT_INT_EQ(
 		XvtRenderMath_BuildView(&camera, kOrigin, 640, 400, &view), 1);
 	double axis[3];
@@ -403,12 +404,12 @@ static void CheckIntegerOrigin(void)
 {
 	/* Far from 0 a float cannot hold a world coordinate to the unit, but positions are measured from
 	 * the integer origin first: one unit along the view axis is a depth of one. */
-	XvtSnapCamera camera = CleanCamera();
+	struct XvtSnapCamera camera = CleanCamera();
 	camera.world_pos[0] = 2000000000;
 	camera.world_pos[1] = -2000000000;
 	camera.world_pos[2] = 1500000003;
 	const int32_t origin[3] = {2000000000, -2000000000, 1500000000};
-	XvtRenderView view;
+	struct XvtRenderView view;
 	XVT_ASSERT_INT_EQ(
 		XvtRenderMath_BuildView(&camera, origin, 640, 400, &view), 1);
 	XVT_ASSERT_CLOSE(view.camera.pos[2], 3, kTol,
@@ -423,7 +424,7 @@ static void CheckIntegerOrigin(void)
 
 static void CheckBuildMainView(void)
 {
-	XvtSnapCamera camera = CleanCamera();
+	struct XvtSnapCamera camera = CleanCamera();
 	camera.viewport.x = 16;
 	camera.viewport.y = 8;
 	camera.viewport.width = 288;
@@ -431,10 +432,10 @@ static void CheckBuildMainView(void)
 	camera.center_x = 144;
 	camera.center_y = 70;
 	camera.projection_offset_y = 10;
-	XvtRenderView view;
+	struct XvtRenderView view;
 
 	/* The uniform fit of the record's 320 x 200 screen, as Layout computes it. */
-	XvtLayoutTransform layout;
+	struct XvtLayoutTransform layout;
 	XVT_ASSERT_INT_EQ(
 		XvtRenderMath_BuildMainView(&camera, kOrigin, 800, 400, &view),
 		1);
@@ -465,7 +466,7 @@ static void CheckBuildMainView(void)
 	XVT_ASSERT_CLOSE(y, (8 + 70 + 10) * 2.0, kTol, WHY_FLOAT);
 
 	/* No screen size: refused, with BuildView's result left in out. */
-	XvtRenderView built, main_view;
+	struct XvtRenderView built, main_view;
 	camera.screen_height = 0;
 	XVT_ASSERT_INT_EQ(
 		XvtRenderMath_BuildView(&camera, kOrigin, 640, 400, &built), 1);
@@ -493,7 +494,7 @@ static void ExpectRotationColumns(const float m[16], double length)
 
 static void CheckObjectMatrix(void)
 {
-	XvtSnapObject object;
+	struct XvtSnapObject object;
 	memset(&object, 0, sizeof object);
 	object.world_pos[0] = 1000;
 	object.world_pos[1] = 2000;
@@ -554,8 +555,8 @@ static void CheckObjectMatrix(void)
 			      AERON_OPT_UNITS_PER_METER * 32767.0 / 32768.0);
 }
 
-static XvtRenderSnapshot *g_current;
-static XvtRenderSnapshot *g_previous;
+static struct XvtRenderSnapshot *g_current;
+static struct XvtRenderSnapshot *g_previous;
 
 /* Two identical snapshots of a valid locked flight with a camera and two objects. */
 static void SameSnapshots(void)
@@ -565,7 +566,7 @@ static void SameSnapshots(void)
 	g_current->camera = CleanCamera();
 	g_current->object_count = 2;
 	for (int i = 0; i < 2; ++i) {
-		XvtSnapObject *o = &g_current->objects[i];
+		struct XvtSnapObject *o = &g_current->objects[i];
 		o->id.slot = (uint16_t)(i + 3);
 		o->id.signature = (uint16_t)(0x40 + i);
 		o->object_type = 1;
@@ -587,17 +588,17 @@ static int ChangedWithByteFlipped(size_t offset)
 	return changed;
 }
 
-typedef struct Field {
+struct Field {
 	size_t offset, size;
 	int compared;
 	const char *name;
-} Field;
+};
 
 #define OBJECT_FIELD(member, compared)                                         \
-	{offsetof(XvtSnapObject, member),                                      \
-	 sizeof(((XvtSnapObject *)0)->member), compared, #member}
+	{offsetof(struct XvtSnapObject, member),                               \
+	 sizeof(((struct XvtSnapObject *)0)->member), compared, #member}
 
-static const Field kObjectFields[] = {
+static const struct Field kObjectFields[] = {
 	OBJECT_FIELD(id.slot, 1),
 	OBJECT_FIELD(id.signature, 1),
 	OBJECT_FIELD(object_type, 1),
@@ -642,12 +643,12 @@ static const Field kObjectFields[] = {
 };
 
 #define SNAPSHOT_FIELD(member)                                                 \
-	{offsetof(XvtRenderSnapshot, member),                                  \
-	 sizeof(((XvtRenderSnapshot *)0)->member), 0, #member}
+	{offsetof(struct XvtRenderSnapshot, member),                           \
+	 sizeof(((struct XvtRenderSnapshot *)0)->member), 0, #member}
 
 /* Every snapshot field PoseChanged does not compare. view_time_ticks and flight_unlocked count only while
  * the component animation reports movement, which it does not here. */
-static const Field kOtherFields[] = {
+static const struct Field kOtherFields[] = {
 	SNAPSHOT_FIELD(snapshot_serial),
 	SNAPSHOT_FIELD(flight_frame_serial),
 	SNAPSHOT_FIELD(capture_host_us),
@@ -703,7 +704,7 @@ static const Field kOtherFields[] = {
 	SNAPSHOT_FIELD(image_asset_count),
 };
 
-static void ExpectFieldResult(size_t base, const Field *field)
+static void ExpectFieldResult(size_t base, const struct Field *field)
 {
 	int first = ChangedWithByteFlipped(base + field->offset);
 	int last =
@@ -739,8 +740,8 @@ static void CheckPoseChanged(void)
 
 	/* Any byte of the camera record. */
 	SameSnapshots();
-	const size_t camera = offsetof(XvtRenderSnapshot, camera);
-	for (size_t i = 0; i < sizeof(XvtSnapCamera); ++i) {
+	const size_t camera = offsetof(struct XvtRenderSnapshot, camera);
+	for (size_t i = 0; i < sizeof(struct XvtSnapCamera); ++i) {
 		XVT_ASSERT_INT_EQ(ChangedWithByteFlipped(camera + i), 1);
 	}
 
@@ -751,8 +752,9 @@ static void CheckPoseChanged(void)
 
 	/* Each field of each object in the count: compared, or one of the fields the header leaves out. */
 	for (unsigned o = 0; o < 2; ++o) {
-		const size_t base = offsetof(XvtRenderSnapshot, objects) +
-				    o * sizeof(XvtSnapObject);
+		const size_t base =
+			offsetof(struct XvtRenderSnapshot, objects) +
+			o * sizeof(struct XvtSnapObject);
 		for (unsigned f = 0;
 		     f < sizeof kObjectFields / sizeof kObjectFields[0]; ++f) {
 			ExpectFieldResult(base, &kObjectFields[f]);
@@ -760,9 +762,10 @@ static void CheckPoseChanged(void)
 	}
 
 	/* Nothing else: an object past the count, and every other snapshot field. */
-	const Field past = {offsetof(XvtRenderSnapshot, objects) +
-				    2 * sizeof(XvtSnapObject),
-			    sizeof(XvtSnapObject), 0, "objects[object_count]"};
+	const struct Field past = {offsetof(struct XvtRenderSnapshot, objects) +
+					   2 * sizeof(struct XvtSnapObject),
+				   sizeof(struct XvtSnapObject), 0,
+				   "objects[object_count]"};
 	ExpectFieldResult(0, &past);
 	for (unsigned f = 0; f < sizeof kOtherFields / sizeof kOtherFields[0];
 	     ++f) {
@@ -774,7 +777,7 @@ static void CheckPoseChanged(void)
 static void AnimationMoves(void)
 {
 	XvtComponentAnimation_Reset();
-	XvtRenderSnapshot *frame = g_current;
+	struct XvtRenderSnapshot *frame = g_current;
 	memset(frame, 0, sizeof *frame);
 	frame->flight_valid = 1;
 	frame->flight_unlocked = 1;

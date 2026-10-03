@@ -25,7 +25,7 @@ struct SceneEdge {
 	float dLightIntensityDy; /* Change in light level per row. */
 	/* The vertex sw3d_SetupClippedEdge made where the edge crosses view
 	 * depth 1, set by sw3d_RasterizeMeshFaces; NULL when it made none. */
-	ProjVertex *pClipVert;
+	struct ProjVertex *pClipVert;
 };
 
 extern IDirectDrawSurface *g_std3DZBufferSurface;
@@ -51,7 +51,7 @@ extern int g_d3dVertexAlphaStateResetSlot;
 extern int g_maxBatchTris;
 extern D3DTLVERTEX *g_flightVertexBuffer;
 extern float g_flightVpOriginY;
-extern Std3DRenderTri *g_triBuffer;
+extern struct Std3DRenderTri *g_triBuffer;
 extern int g_clipInputProjVertEndIndex;
 extern int g_maxBatchVerts;
 extern int g_d3dVertexCount;
@@ -62,10 +62,10 @@ extern uint16_t g_sceneSpanPtrListHandle;
 extern uint16_t g_sceneLightSampleDataHandle;
 extern uint16_t g_visFaceListHandle;
 extern uint16_t g_projVertListHandle;
-extern ProjVertex *g_projVertList;
+extern struct ProjVertex *g_projVertList;
 extern int g_projVertCount;
 extern uint16_t g_sceneEdgeListHandle;
-extern SceneEdge *g_sceneEdgeList;
+extern struct SceneEdge *g_sceneEdgeList;
 extern int g_sceneEdgeCursor;
 extern uint16_t g_vertexRemapHandle;
 extern uint16_t g_sceneEdgeFlagsHandle;
@@ -74,19 +74,19 @@ extern int g_vertexRemapCapacity;
 extern int g_sceneEdgeFlagsCapacity;
 extern uint16_t g_sceneSclEdgeListHandle;
 extern uint16_t g_scanlineSpanHeadsHandle;
-extern SceneSpan **g_scanlineSpanHeads;
+extern struct SceneSpan **g_scanlineSpanHeads;
 extern uint16_t g_meshQueueHandle;
 extern int g_sceneSpanDataCapacity;
-extern SceneSpan *g_pSceneSpanDataCur;
-extern SceneSpan *g_pSceneSpanDataEnd;
-extern SceneSpan **g_sceneSpanPtrList;
+extern struct SceneSpan *g_pSceneSpanDataCur;
+extern struct SceneSpan *g_pSceneSpanDataEnd;
+extern struct SceneSpan **g_sceneSpanPtrList;
 extern int g_sceneSpanPtrAvail;
-extern SceneFace *g_visFaceList;
+extern struct SceneFace *g_visFaceList;
 extern int g_renderSceneResetPending;
 extern int g_visFaceCount;
 extern int g_visFacePassStart;
 extern int *g_vertexRemap;
-extern OptVector g_meshEyePos;
+extern struct OptVector g_meshEyePos;
 extern uint8_t *g_activeRgb565ToPaletteIndexLut;
 extern uint8_t g_defaultWhiteTextureRgb24[8 * 8 * 3];
 
@@ -115,7 +115,7 @@ struct ProjVertex {
 /* One mesh of an object's model on its way to the screen: the walk of the
  * model's nodes fills it, and the draw functions queue a copy. */
 struct SceneMesh {
-	ObjectRecord *pObject; /* Object the model belongs to. */
+	struct ObjectRecord *pObject; /* Object the model belongs to. */
 	/* Radians the next rotate-and-scale node turns this part by, from the
 	 * craft's meshRotation byte; 0 for none. */
 	float rotAngle;
@@ -138,23 +138,24 @@ struct SceneMesh {
 		[4]; ///< Elements 0-2 come from the OPT_BASE_COLOR payload; element 3 receives
 	///< g_curMeshMaterials from OPT_MATERIAL_BINDING for selectors outside 5-8.
 	int vertexCount;	/* Vertices in pModelVerts. */
-	OptVector *pModelVerts; /* Vertex positions in model space. */
-	OptTexCoord *pUVs;	/* Texture coordinates, by face uv index. */
+	struct OptVector *pModelVerts; /* Vertex positions in model space. */
+	struct OptTexCoord *pUVs; /* Texture coordinates, by face uv index. */
 	/* Vertex normals: the model's own, else those that follow the face
 	 * data. */
-	OptVector *pVertNormals;
+	struct OptVector *pVertNormals;
 	/* Nothing reads it. */
 	int perVertexMaterials; ///< Receives g_curMeshMaterials when OPT_MATERIAL_BINDING payloadCount is 7 or 8;
 				///< no downstream consumer is identified.
 	int faceCount;		/* Faces in pFaceGeom. */
 	int edgeCount;		/* Edges the faces share. */
-	OptVector *pFaceNormals;	      /* One normal per face. */
-	FaceTextureGradients *pFaceTexturing; /* Texture axes per face. */
+	struct OptVector *pFaceNormals; /* One normal per face. */
+	struct FaceTextureGradients
+		*pFaceTexturing; /* Texture axes per face. */
 	/* Nothing reads it. */
 	int perFaceMaterials; ///< Receives g_curMeshMaterials when OPT_MATERIAL_BINDING payloadCount is 5 or 6;
 			      ///< no downstream consumer is identified.
 	/* Corner, uv, normal and edge indices per face. */
-	FaceRecord *pFaceGeom;
+	struct FaceRecord *pFaceGeom;
 	/* Name of the texture node; RenderScene_DrawMeshFaces sets its first
 	 * character to '_' when no color-key texture could be made for it. */
 	char *pTextureName;
@@ -181,7 +182,7 @@ struct SceneMesh {
 /* One face that passed the cull, in g_visFaceList. */
 struct SceneFace {
 	int faceIndex;	  /* Index of the face in its mesh. */
-	SceneMesh *pMesh; /* The queued mesh it belongs to. */
+	struct SceneMesh *pMesh; /* The queued mesh it belongs to. */
 	/* faceIndex plus g_curLayerId << 16; nothing reads it. */
 	int faceAndLayerId;
 	/* -1 when a corner is closer than view depth 1 and the face needs the
@@ -195,7 +196,7 @@ struct SceneFace {
 	float spanLightIntensityDx; /* Change in light level per pixel. */
 	/* The left edge sw3d_ScanConvertFace is filling spans from; NULL from
 	 * the cull until then. */
-	SceneEdge *pScanEdge;
+	struct SceneEdge *pScanEdge;
 	/* The face's row of 12-byte light samples in g_sceneLightSampleData. */
 	void *pLightSamples;
 	int yTop; /* First row of the face's spans. */
@@ -205,10 +206,10 @@ struct SceneFace {
 	float maxScaledInverseDepth;
 	float minScaledInverseDepth; /* Smallest, counted the same way. */
 	/* Its edges as sw3d_RasterizeMeshFaces set them. */
-	SceneEdge *edges[5];
+	struct SceneEdge *edges[5];
 	int edgeCount; /* Edges in edges. */
 	/* One span pointer per row from yTop, taken from g_sceneSpanPtrList. */
-	SceneSpan **pSpans;
+	struct SceneSpan **pSpans;
 	/* Estimated texels per viewport pixel, times 256, for choosing a mip
 	 * level. */
 	int texelsPerPixelQ8;
@@ -217,14 +218,14 @@ struct SceneFace {
 /* One run of pixels on a viewport row that a single face covers, in the
  * software renderer's per-row lists. */
 struct SceneSpan {
-	SceneSpan *next;	 /* Next span on the row; NULL at the end. */
+	struct SceneSpan *next;	 /* Next span on the row; NULL at the end. */
 	int xStart;		 /* First pixel. */
 	int xEnd;		 /* Pixel after the last. */
 	float lightIntensity;	 /* Light level at xStart. */
 	float dLightIntensityDx; /* Change in light level per pixel. */
 	/* The face drawn there; g_sw3dCockpitMaskSentinelFace for a run the
 	 * cockpit covers. */
-	SceneFace *face;
+	struct SceneFace *face;
 };
 
 static __inline float RenderScene_AddTranslation(float position,
@@ -233,26 +234,28 @@ static __inline float RenderScene_AddTranslation(float position,
 	return position + translation;
 }
 
-void RenderScene_ProjectMeshVertices(SceneMesh *mesh);
-void RenderScene_ProjectDistantMeshVertices(SceneMesh *mesh);
-void RenderScene_DrawMeshFaces(const SceneMesh *mesh);
-void RenderScene_DrawMeshHardware(const SceneMesh *mesh);
+void RenderScene_ProjectMeshVertices(struct SceneMesh *mesh);
+void RenderScene_ProjectDistantMeshVertices(struct SceneMesh *mesh);
+void RenderScene_DrawMeshFaces(const struct SceneMesh *mesh);
+void RenderScene_DrawMeshHardware(const struct SceneMesh *mesh);
 void RenderScene_InitHardwareFrame(void);
 extern int g_sceneFlushDrawTargetMarkers;
 void RenderScene_FlushGeometry(void);
 int RenderScene_EmitFlightVertex(int vertexIndex,
-				 const RenderClipVertex *vertices,
-				 const SceneFace *face);
+				 const struct RenderClipVertex *vertices,
+				 const struct SceneFace *face);
 void nullsub_2(void);
 void std3D_FillZBufferFromViewportMask(void);
 int RenderScene_ClearFrameBuffers(void);
 void std3D_DetachAndReleaseZBufferSurface(void);
-void RenderScene_ComputeVertexLighting(SceneMesh *mesh, ProjVertex *outVert,
-				       const OptVector *normal,
-				       const OptVector *pos,
-				       const OptVector *eyePos);
+void RenderScene_ComputeVertexLighting(struct SceneMesh *mesh,
+				       struct ProjVertex *outVert,
+				       const struct OptVector *normal,
+				       const struct OptVector *pos,
+				       const struct OptVector *eyePos);
 void RenderScene_TransformFaceTextureGradients(
-	SceneFace *face, const FaceTextureGradients *faceTexGradients,
+	struct SceneFace *face,
+	const struct FaceTextureGradients *faceTexGradients,
 	const float *viewPosAndOrient);
 void RenderScene_TransformProjectLegacyPoint(float outProjected[3],
 					     const float point[3],
@@ -260,27 +263,28 @@ void RenderScene_TransformProjectLegacyPoint(float outProjected[3],
 void RenderScene_TransformProjectLegacyDistantPoint(
 	float outProjected[3], const float point[3],
 	const float viewPosAndOrient[12]);
-void RenderScene_CullMeshFacesFromView(SceneMesh *mesh);
-void RenderScene_DrawSceneMesh(SceneMesh *mesh);
-void RenderScene_ApplyBwingBridgeRotation(OptimizedPolyObject *unusedModel,
-					  ObjectRecord *obj, SceneMesh *mesh,
-					  int bridgeMeshIndex);
-void RenderScene_DrawObjectModel(ObjectRecord *obj);
-void RenderScene_DrawSelectedRootNode(ObjectRecord *obj, int rootNodeIndex);
-void RenderScene_DrawModelNode(OptimizedPolyObject *model, OptNode *node,
-			       SceneMesh *mesh);
+void RenderScene_CullMeshFacesFromView(struct SceneMesh *mesh);
+void RenderScene_DrawSceneMesh(struct SceneMesh *mesh);
+void RenderScene_ApplyBwingBridgeRotation(
+	struct OptimizedPolyObject *unusedModel, struct ObjectRecord *obj,
+	struct SceneMesh *mesh, int bridgeMeshIndex);
+void RenderScene_DrawObjectModel(struct ObjectRecord *obj);
+void RenderScene_DrawSelectedRootNode(struct ObjectRecord *obj,
+				      int rootNodeIndex);
+void RenderScene_DrawModelNode(struct OptimizedPolyObject *model,
+			       struct OptNode *node, struct SceneMesh *mesh);
 void RenderScene_ToggleVertexLightOcclusion(void);
 int RenderScene_GetVertexLightOcclusionEnabled(void);
-int RenderScene_IsSegmentOccludedByObjectModel(ObjectRecord *object,
-					       const OptVector *segmentStart,
-					       const OptVector *segmentEnd);
-int RenderScene_TestSegmentAgainstModelNode(OptimizedPolyObject *model,
-					    OptNode *node, SceneMesh *mesh,
-					    const OptVector *segmentStart,
-					    const OptVector *segmentEnd);
-int RenderScene_TestSegmentAgainstMeshFaces(const SceneMesh *mesh,
-					    const OptVector *segmentStart,
-					    const OptVector *segmentEnd);
+int RenderScene_IsSegmentOccludedByObjectModel(
+	struct ObjectRecord *object, const struct OptVector *segmentStart,
+	const struct OptVector *segmentEnd);
+int RenderScene_TestSegmentAgainstModelNode(
+	struct OptimizedPolyObject *model, struct OptNode *node,
+	struct SceneMesh *mesh, const struct OptVector *segmentStart,
+	const struct OptVector *segmentEnd);
+int RenderScene_TestSegmentAgainstMeshFaces(
+	const struct SceneMesh *mesh, const struct OptVector *segmentStart,
+	const struct OptVector *segmentEnd);
 void RenderScene_AllocateBuffers(void);
 void RenderScene_Initialize(int resetSceneState);
 int RenderScene_UnlockBuffers(void);

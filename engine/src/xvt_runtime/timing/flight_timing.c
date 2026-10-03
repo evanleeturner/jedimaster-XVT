@@ -76,9 +76,9 @@ uint16_t XvtFlightTiming_ReferenceElapsed(void)
 
 uint64_t XvtFlightTiming_AdvanceSerial(void) { return g_timing.serial; }
 
-XvtFlightClock XvtFlightTiming_EnterReference(void)
+struct XvtFlightClock XvtFlightTiming_EnterReference(void)
 {
-	XvtFlightClock saved = {g_elapsedTicks, g_simStepsPerSecond};
+	struct XvtFlightClock saved = {g_elapsedTicks, g_simStepsPerSecond};
 	if (g_timing.unlocked) {
 		g_elapsedTicks = XVT_REFERENCE_TICKS;
 		g_simStepsPerSecond =
@@ -87,7 +87,7 @@ XvtFlightClock XvtFlightTiming_EnterReference(void)
 	return saved;
 }
 
-void XvtFlightTiming_RestoreClock(XvtFlightClock saved)
+void XvtFlightTiming_RestoreClock(struct XvtFlightClock saved)
 {
 	g_elapsedTicks = saved.elapsed;
 	g_simStepsPerSecond = saved.steps_per_second;

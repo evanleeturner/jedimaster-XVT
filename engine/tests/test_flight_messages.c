@@ -16,14 +16,14 @@
 
 enum { COOKIE = 0x5A17, TARGET = 256 };
 
-static XvtFlightMessage g_message, g_other, g_out;
+static struct XvtFlightMessage g_message, g_other, g_out;
 static uint8_t g_part[XVT_FLIGHT_PACKET_BYTES];
 static uint8_t g_bytes[XVT_FLIGHT_PACKET_BYTES];
 
-static FlightInputFrameRecord Input(uint8_t key, int8_t axis, uint8_t mods,
-				    int throttle)
+static struct FlightInputFrameRecord Input(uint8_t key, int8_t axis,
+					   uint8_t mods, int throttle)
 {
-	FlightInputFrameRecord input;
+	struct FlightInputFrameRecord input;
 	memset(&input, 0, sizeof input);
 	input.key = key;
 	input.axisX = axis;
@@ -39,7 +39,7 @@ static FlightInputFrameRecord Input(uint8_t key, int8_t axis, uint8_t mods,
 
 /* A world message for target with count records, ordered by player then rising tick: the players are the
  * set bits of mask, taken in turn, each with ticks 2, 4, 6 ... up to the target. */
-static void MakeMessage(XvtFlightMessage *message, unsigned target,
+static void MakeMessage(struct XvtFlightMessage *message, unsigned target,
 			uint8_t mask, unsigned count)
 {
 	memset(message, 0, sizeof *message);
@@ -58,9 +58,9 @@ static void MakeMessage(XvtFlightMessage *message, unsigned target,
 			continue;
 		}
 		for (unsigned i = 0; i < per_player && written < count; ++i) {
-			XvtFlightWorldInputWire *record =
+			struct XvtFlightWorldInputWire *record =
 				&message->records[written++];
-			FlightInputFrameRecord input =
+			struct FlightInputFrameRecord input =
 				Input((uint8_t)(player + i), (int8_t)(2 * i), 1,
 				      (int)(100 * i));
 			record->player = (uint8_t)player;
@@ -73,7 +73,7 @@ static void MakeMessage(XvtFlightMessage *message, unsigned target,
 	message->count = (uint16_t)written;
 }
 
-static size_t Part(const XvtFlightMessage *message, unsigned part)
+static size_t Part(const struct XvtFlightMessage *message, unsigned part)
 {
 	size_t size =
 		XvtFlightMessages_EncodePart(g_part, message, COOKIE, part);
@@ -81,7 +81,8 @@ static size_t Part(const XvtFlightMessage *message, unsigned part)
 	return size;
 }
 
-static int SameMessage(const XvtFlightMessage *a, const XvtFlightMessage *b)
+static int SameMessage(const struct XvtFlightMessage *a,
+		       const struct XvtFlightMessage *b)
 {
 	return a->target_flags == b->target_flags &&
 	       a->participant_mask == b->participant_mask &&
@@ -95,12 +96,11 @@ static void CheckInputRoundTrip(void)
 	for (size_t t = 0; t < sizeof throttles / sizeof throttles[0]; ++t) {
 		for (int axis = -128; axis <= 126; axis += 2) {
 			for (uint8_t mods = 0; mods < 4; ++mods) {
-				FlightInputFrameRecord in = Input(0x41,
-								  (int8_t)axis,
-								  mods,
-								  throttles[t]),
-						       out;
-				XvtFlightInputWire record;
+				struct FlightInputFrameRecord
+					in = Input(0x41, (int8_t)axis, mods,
+						   throttles[t]),
+					out;
+				struct XvtFlightInputWire record;
 				XvtFlightWire_EncodeInput(&record, 1000, &in);
 				XVT_ASSERT_INT_EQ(XvtWire_Get32(record.tick),
 						  1000);
@@ -129,17 +129,17 @@ static void CheckInputRoundTrip(void)
 	}
 
 	/* An absent throttle is written as 0, whatever the record held. */
-	FlightInputFrameRecord in = Input(0, 0, 0, -1);
+	struct FlightInputFrameRecord in = Input(0, 0, 0, -1);
 	in.throttle = 1234;
-	XvtFlightInputWire record;
+	struct XvtFlightInputWire record;
 	XvtFlightWire_EncodeInput(&record, 2, &in);
 	XVT_ASSERT_INT_EQ(XvtWire_Get16(record.throttle), 0);
 }
 
 static void CheckDecodeInputRefusals(void)
 {
-	FlightInputFrameRecord in = Input(7, 10, 2, 500), out, untouched;
-	XvtFlightInputWire record;
+	struct FlightInputFrameRecord in = Input(7, 10, 2, 500), out, untouched;
+	struct XvtFlightInputWire record;
 	int tick;
 	memset(&untouched, 0xAB, sizeof untouched);
 
@@ -176,9 +176,9 @@ static void CheckDecodeInputRefusals(void)
 
 static void CheckBatch(void)
 {
-	XvtFlightInputWire records[XVT_INPUT_BATCH_RECORDS + 1];
+	struct XvtFlightInputWire records[XVT_INPUT_BATCH_RECORDS + 1];
 	for (unsigned i = 0; i < XVT_INPUT_BATCH_RECORDS + 1; ++i) {
-		FlightInputFrameRecord input =
+		struct FlightInputFrameRecord input =
 			Input((uint8_t)i, (int8_t)i, 0, i % 2 ? (int)i : -1);
 		XvtFlightWire_EncodeInput(
 			&records[i], (int)(XVT_NETWORK_STEP_TICKS * (i + 1)),
@@ -198,9 +198,10 @@ static void CheckBatch(void)
 	for (unsigned count = 1; count <= XVT_INPUT_BATCH_RECORDS; ++count) {
 		size_t size = XvtFlightMessages_EncodeBatch(g_bytes, COOKIE,
 							    records, count);
-		XVT_ASSERT_INT_EQ(size,
-				  sizeof(XvtFlightBatchHeader) +
-					  count * sizeof(XvtFlightInputWire));
+		XVT_ASSERT_INT_EQ(
+			size,
+			sizeof(struct XvtFlightBatchHeader) +
+				count * sizeof(struct XvtFlightInputWire));
 		XVT_ASSERT_INT_EQ(
 			XvtFlightMessages_ValidateBatch(g_bytes, size, COOKIE),
 			1);
@@ -220,7 +221,7 @@ static void CheckBatch(void)
 
 	size_t size =
 		XvtFlightMessages_EncodeBatch(g_bytes, COOKIE, records, 4);
-	XvtFlightBatchHeader header;
+	struct XvtFlightBatchHeader header;
 	memcpy(&header, g_bytes, sizeof header);
 
 	/* Another opcode. */
@@ -232,7 +233,7 @@ static void CheckBatch(void)
 		XvtFlightMessages_ValidateBatch(g_bytes, size, COOKIE), 1);
 
 	/* Ticks must rise strictly: a repeat of the previous tick is refused. */
-	XvtFlightInputWire copy = records[1];
+	struct XvtFlightInputWire copy = records[1];
 	XvtWire_Set32(copy.tick, XvtWire_Get32(records[0].tick));
 	memcpy(g_bytes + sizeof header + sizeof copy, &copy, sizeof copy);
 	XVT_ASSERT_INT_EQ(
@@ -285,15 +286,18 @@ static void CheckEncodePart(void)
 	/* The parts carry every record once: their payloads add up to the message's records. */
 	size_t total = 0;
 	for (unsigned part = 0; part < parts; ++part) {
-		total += Part(&g_message, part) - sizeof(XvtFlightWorldHeader);
+		total += Part(&g_message, part) -
+			 sizeof(struct XvtFlightWorldHeader);
 	}
 	XVT_ASSERT_INT_EQ(total,
-			  g_message.count * sizeof(XvtFlightWorldInputWire));
+			  g_message.count *
+				  sizeof(struct XvtFlightWorldInputWire));
 
 	/* An empty message is one part with no records. */
 	MakeMessage(&g_other, TARGET, 0x01, 1);
 	g_other.count = 0;
-	XVT_ASSERT_INT_EQ(Part(&g_other, 0), sizeof(XvtFlightWorldHeader));
+	XVT_ASSERT_INT_EQ(Part(&g_other, 0),
+			  sizeof(struct XvtFlightWorldHeader));
 }
 
 static void CheckAssembly(void)
@@ -329,8 +333,8 @@ static void CheckAssembly(void)
 	XVT_ASSERT_INT_EQ(
 		XvtFlightMessages_ReceivePart(g_part, size, COOKIE, 0, &g_out),
 		0);
-	g_part[sizeof(XvtFlightWorldHeader) +
-	       offsetof(XvtFlightWorldInputWire, input.key)] ^= 0x10;
+	g_part[sizeof(struct XvtFlightWorldHeader) +
+	       offsetof(struct XvtFlightWorldInputWire, input.key)] ^= 0x10;
 	XVT_ASSERT_INT_EQ(
 		XvtFlightMessages_ReceivePart(g_part, size, COOKIE, 0, &g_out),
 		-1);
@@ -383,7 +387,8 @@ static void CheckAssemblyRefusals(void)
 							COOKIE, 0, &g_out),
 			  -1);
 	XVT_ASSERT_INT_EQ(XvtFlightMessages_ReceivePart(
-				  g_part, sizeof(XvtFlightWorldHeader) - 1,
+				  g_part,
+				  sizeof(struct XvtFlightWorldHeader) - 1,
 				  COOKIE, 0, &g_out),
 			  -1);
 	XvtWire_Set32(g_part, NET_PACKET_INPUT_BATCH);
@@ -430,8 +435,8 @@ static void CheckAssemblyConflicts(void)
 		XvtFlightMessages_ReceivePart(g_part, size, COOKIE, 0, &g_out),
 		-1);
 	size = Part(&g_message, 0);
-	g_part[sizeof(XvtFlightWorldHeader) +
-	       offsetof(XvtFlightWorldInputWire, input.key)] ^= 0x10;
+	g_part[sizeof(struct XvtFlightWorldHeader) +
+	       offsetof(struct XvtFlightWorldInputWire, input.key)] ^= 0x10;
 	XVT_ASSERT_INT_EQ(
 		XvtFlightMessages_ReceivePart(g_part, size, COOKIE, 0, &g_out),
 		-1);
@@ -448,7 +453,7 @@ static void CheckUnorderedMessageStays(void)
 	/* A complete message whose records are not ordered by player then rising tick is invalid... */
 	XvtFlightMessages_Reset();
 	MakeMessage(&g_message, TARGET, 0x03, 4);
-	XvtFlightWorldInputWire first = g_message.records[0];
+	struct XvtFlightWorldInputWire first = g_message.records[0];
 	g_message.records[0] = g_message.records[g_message.count - 1];
 	g_message.records[g_message.count - 1] = first;
 	size_t size = Part(&g_message, 0);
@@ -689,8 +694,8 @@ static void CheckEnqueue(void)
 	size_t one =
 		XvtFlightMessages_Peek(XVT_QUEUE_PENDING, &g_out, sizeof g_out);
 	XVT_ASSERT_TRUE(SameMessage(&g_out, &g_other));
-	XVT_ASSERT_INT_EQ(two - one, sizeof(XvtFlightWorldInputWire));
-	XVT_ASSERT_TRUE(two < sizeof(XvtFlightMessage));
+	XVT_ASSERT_INT_EQ(two - one, sizeof(struct XvtFlightWorldInputWire));
+	XVT_ASSERT_TRUE(two < sizeof(struct XvtFlightMessage));
 }
 
 /* The target ticks of the messages on queue, oldest first; returns how many. */

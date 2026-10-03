@@ -42,10 +42,10 @@ static uint32_t Magnitude(int32_t value)
 	return value < 0 ? 0u - (uint32_t)value : (uint32_t)value;
 }
 
-static int OtherPlayerBox(const PlayerData *p, const ObjectRecord *o,
-			  unsigned slot)
+static int OtherPlayerBox(const struct PlayerData *p,
+			  const struct ObjectRecord *o, unsigned slot)
 {
-	const CraftData *c = o->mobj ? o->mobj->pCraft : NULL;
+	const struct CraftData *c = o->mobj ? o->mobj->pCraft : NULL;
 	if (!c || o->playerOwnerIdx == -1) {
 		return 0;
 	}
@@ -64,26 +64,26 @@ static int OtherPlayerBox(const PlayerData *p, const ObjectRecord *o,
 		 c->beamOutput);
 }
 
-static int Extent(const ObjectRecord *o)
+static int Extent(const struct ObjectRecord *o)
 {
-	const CraftData *c = o->mobj ? o->mobj->pCraft : NULL;
+	const struct CraftData *c = o->mobj ? o->mobj->pCraft : NULL;
 	if (!c) {
 		return g_objectTypeTable[o->objectType].maxBoundsExtent;
 	}
-	const ModelDef *d = &g_modelDefs[c->modelIndex];
+	const struct ModelDef *d = &g_modelDefs[c->modelIndex];
 	return (int)((uint32_t)((d->boundSizeX + d->boundSizeY +
 				 d->boundSizeZ) /
 				3)
 		     << d->boundSizeShift);
 }
 
-static void Endpoint(XvtSnapMap *map, unsigned slot)
+static void Endpoint(struct XvtSnapMap *map, unsigned slot)
 {
-	const ObjectRecord *o = &g_objectTable[slot];
+	const struct ObjectRecord *o = &g_objectTable[slot];
 	if (!o->mobj || !o->mobj->pCraft) {
 		return;
 	}
-	const CraftData *craft = o->mobj->pCraft;
+	const struct CraftData *craft = o->mobj->pCraft;
 	uint16_t ref;
 	if (slot < (unsigned)g_craftDataPoolCapacity) {
 		ref = craft->aiController.targetObjIdx;
@@ -125,18 +125,19 @@ static void Endpoint(XvtSnapMap *map, unsigned slot)
 	map->endpoint_valid = 1;
 }
 
-static void Label(XvtSnapMap *map, XvtSnapMapObject *m, const ObjectRecord *o)
+static void Label(struct XvtSnapMap *map, struct XvtSnapMapObject *m,
+		  const struct ObjectRecord *o)
 {
 	char text[96] = {0};
 	unsigned fg = o->flightGroupIdx;
 	if (fg >= 48 || (!o->mobj && o->genusId == CRAFT_GENUS_MINE)) {
 		return;
 	}
-	const CraftData *craft = o->mobj ? o->mobj->pCraft : NULL;
+	const struct CraftData *craft = o->mobj ? o->mobj->pCraft : NULL;
 	if (o->mobj && (o->mobj->family != 0 || !craft)) {
 		return;
 	}
-	const XvtFlightGroup *group = &g_missionFlightGroups[fg].fg;
+	const struct XvtFlightGroup *group = &g_missionFlightGroups[fg].fg;
 	unsigned number = 0;
 	if (craft && group->disableWaveNumbering != 1 &&
 	    (group->globalUnit || group->numberOfCraft != 1 ||
@@ -169,8 +170,8 @@ static void Label(XvtSnapMap *map, XvtSnapMapObject *m, const ObjectRecord *o)
 /* Sets an object's map icon from its object type and IFF color group in the
  * current icon set: the icon's width and height and, once icons are loaded,
  * its frame and the map's icon asset id. */
-static void Icon(XvtSnapMap *map, XvtSnapMapObject *m, const uint8_t *frames,
-		 unsigned object_type, unsigned group)
+static void Icon(struct XvtSnapMap *map, struct XvtSnapMapObject *m,
+		 const uint8_t *frames, unsigned object_type, unsigned group)
 {
 	unsigned base_frame = object_type < 106 ? frames[object_type] : 19;
 	const uint8_t *widths = g_flightIcons640WidthByFrame,
@@ -196,8 +197,8 @@ static void Icon(XvtSnapMap *map, XvtSnapMapObject *m, const uint8_t *frames,
 /* Sets an object's range to the camera's focus object, capped at 9999, when
  * the focus is a valid slot; the range shows only with the object's overlay
  * and never for a projectile. */
-static void Range(XvtSnapMapObject *m, const PlayerData *p,
-		  const ObjectRecord *o, unsigned genus)
+static void Range(struct XvtSnapMapObject *m, const struct PlayerData *p,
+		  const struct ObjectRecord *o, unsigned genus)
 {
 	unsigned focus = p->viewState.cameraFocusObjIdx;
 	if (focus < (unsigned)(g_regionMainObjectSlotEnd +
@@ -221,11 +222,11 @@ static void Range(XvtSnapMapObject *m, const PlayerData *p,
 	}
 }
 
-void XvtRenderMap_Capture(XvtSnapMap *map, const XvtSnapObject *objects,
-			  unsigned count)
+void XvtRenderMap_Capture(struct XvtSnapMap *map,
+			  const struct XvtSnapObject *objects, unsigned count)
 {
 	memset(map, 0, sizeof *map);
-	const PlayerData *p = &g_players[g_localPlayer];
+	const struct PlayerData *p = &g_players[g_localPlayer];
 	if (!p->mapCameraState) {
 		return;
 	}
@@ -235,7 +236,7 @@ void XvtRenderMap_Capture(XvtSnapMap *map, const XvtSnapObject *objects,
 		g_flightResolutionMode == FLIGHT_RESOLUTION_640X480
 			? g_flightFontSmallSw
 			: g_flightFontMicroSw);
-	map->target = (XvtSnapObjectId){UINT16_MAX, 0};
+	map->target = (struct XvtSnapObjectId){UINT16_MAX, 0};
 	const uint8_t *frames = g_flightIcons640FrameByObjectType;
 	if (g_flightIconResourcePath == g_flightMapIcons320x240ResourcePath) {
 		frames = g_flightMapIcons320x240FrameByObjectType;
@@ -244,7 +245,7 @@ void XvtRenderMap_Capture(XvtSnapMap *map, const XvtSnapObject *objects,
 		frames = g_flightMapIcons480x360FrameByObjectType;
 	}
 	for (unsigned i = 0; i < count; ++i) {
-		const XvtSnapObject *snap = &objects[i];
+		const struct XvtSnapObject *snap = &objects[i];
 		unsigned slot = snap->id.slot, genus = snap->genus;
 		int box = genus <= CRAFT_GENUS_PLATFORM ||
 			  (snap->slot_class == XVT_SLOT_STATIC &&
@@ -260,8 +261,8 @@ void XvtRenderMap_Capture(XvtSnapMap *map, const XvtSnapObject *objects,
 			       (!box && !sphere))) {
 			continue;
 		}
-		const ObjectRecord *o = &g_objectTable[slot];
-		XvtSnapMapObject *m = &map->objects[map->object_count++];
+		const struct ObjectRecord *o = &g_objectTable[slot];
+		struct XvtSnapMapObject *m = &map->objects[map->object_count++];
 		m->object_index = (uint16_t)i;
 		m->render_kind =
 			(uint8_t)(box ? XVT_MAP_MODEL_OR_ICON : XVT_MAP_EFFECT);

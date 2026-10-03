@@ -100,11 +100,11 @@ void XvtRenderCapture_EndPresentation(void);
  * serial into out. While capture is inactive it clears out's flight view. When no view was
  * published this frame, it copies previous's view, target boxes included, if previous is valid
  * and has the same mission and world generation; otherwise out keeps no flight view. */
-void XvtRenderCapture_Commit(XvtRenderSnapshot *out,
-			     const XvtRenderSnapshot *previous);
+void XvtRenderCapture_Commit(struct XvtRenderSnapshot *out,
+			     const struct XvtRenderSnapshot *previous);
 /* Capture-side access only; invalid outside an open host frame. */
 /* Returns NULL outside an open frame. */
-XvtRenderSnapshot *XvtRenderSnapshot_Writer(void);
+struct XvtRenderSnapshot *XvtRenderSnapshot_Writer(void);
 #ifdef __cplusplus
 }
 #endif

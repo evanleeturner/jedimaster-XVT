@@ -35,7 +35,7 @@ __declspec(dllimport) int __stdcall
 TranslateMessage(const struct WinMouseWin32Message *message);
 __declspec(dllimport) int32_t __stdcall
 DispatchMessageA(const struct WinMouseWin32Message *message);
-__declspec(dllimport) int __stdcall GetCursorPos(POINT *point);
+__declspec(dllimport) int __stdcall GetCursorPos(struct POINT *point);
 __declspec(dllimport) int __stdcall SetCursorPos(int x, int y);
 #endif
 
@@ -45,18 +45,18 @@ __declspec(dllimport) int __stdcall SetCursorPos(int x, int y);
  * polled point while XvtInput_MouseMotionAllowed is false, so that poll finds
  * no movement. */
 // GLOBAL: XVT 0x527ED8
-POINT g_winMousePrevPos;
+struct POINT g_winMousePrevPos;
 /* Cursor point WinMouse_PollState last read: from GetCursorPos in the original
  * build; in the modern one from XvtPresentation_MouseToClassic, or the old
  * point kept when that call returns 0. WinMouse_SetPosition also sets it. */
 // GLOBAL: XVT 0x527EE0
-POINT g_winMouseCursorPos;
+struct POINT g_winMouseCursorPos;
 /* The game's mouse position: each poll adds the movement and clamps it to
  * g_winMouseMinX to g_winMouseMaxX and g_winMouseMinY to g_winMouseMaxY;
  * WinMouse_SetPosition sets it. Polls return it times g_winMouseScaleX and
  * g_winMouseScaleY. */
 // GLOBAL: XVT 0x527EE8
-POINT g_winMousePos;
+struct POINT g_winMousePos;
 /* Left, right and middle button held, 1 or 0. Only the modern build's
  * WinMouse_PollState writes it, from Aeron's input snapshot; in the original
  * build nothing in the engine writes it, so it stays 0. */
@@ -101,7 +101,7 @@ int g_winMouseScaleY;
 /* Point each poll warps the cursor to: the middle of the bounds on each axis,
  * (min + max) / 2. Only the two bounds setters write it, so it stays 0, 0. */
 // GLOBAL: XVT 0x527F2C
-POINT g_winMouseCenterPos;
+struct POINT g_winMouseCenterPos;
 
 /* Reads the mouse once and puts the cursor back at the center. The original
  * build first handles one window message, waiting for it in GetMessageA unless
@@ -124,7 +124,7 @@ void WinMouse_PollState(int *positionX, int *positionY, int *deltaX,
 			int *deltaY, int *buttonDown, int *buttonPressed,
 			int *buttonReleased)
 {
-	POINT point;
+	struct POINT point;
 
 #ifdef XVT_MODERN
 	const AeronInputSnapshot *input;

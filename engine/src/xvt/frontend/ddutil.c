@@ -50,7 +50,7 @@ IDirectDrawSurface *DDUtil_LoadBitmapSurface(IDirectDraw *directDraw,
 	void *bitmap;
 	IDirectDrawSurface *surface;
 	DDSURFACEDESC surfaceDesc;
-	BITMAP bitmapInfo;
+	struct BITMAP bitmapInfo;
 
 	bitmap = LoadImageA(NULL, bitmapName, 0, width, height, 0x2010);
 	if (bitmap == NULL) {

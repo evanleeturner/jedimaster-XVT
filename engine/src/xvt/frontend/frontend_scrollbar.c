@@ -67,16 +67,16 @@ int FrontendScrollbar_RestoreState(void)
  * currentValue there, drawing nothing, as it does whenever their difference is
  * under 1. */
 // FUNCTION: XVT 0x4D9D70
-int FrontendScrollbar_Draw(const RECT *barRect, int currentValue,
+int FrontendScrollbar_Draw(const struct RECT *barRect, int currentValue,
 			   int maximumExclusive, int minimum, int pageStep,
 			   unsigned int color, int controlId)
 {
-	RECT thumb;
+	struct RECT thumb;
 
 	struct {
 		/* The part of the bar being drawn or tested: the track, an
 		 * arrow button or the thumb during a drag. */
-		RECT partRect;
+		struct RECT partRect;
 		int cursorX; /* Cursor x, from FrontendCursor_GetPos. */
 		/* controlId + 1000, the id this bar holds the mouse input gate
 		 * with during a thumb drag. */

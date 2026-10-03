@@ -11,9 +11,9 @@ extern "C" {
 
 extern int g_sw3dSkipOddScanlines;
 
-extern ProjVertex *g_sw3dGeneratedClipVertex;
-extern ProjVertex *g_sw3dLatestClipVertex;
-extern ProjVertex *g_sw3dPreviousClipVertex;
+extern struct ProjVertex *g_sw3dGeneratedClipVertex;
+extern struct ProjVertex *g_sw3dLatestClipVertex;
+extern struct ProjVertex *g_sw3dPreviousClipVertex;
 extern int g_sw3dLightSampleBlockSize;
 extern int g_sw3dLightSampleBlockMask;
 extern float g_sw3dLightSampleInvBlockSize;
@@ -22,17 +22,17 @@ extern int g_sw3dLightSampleBlockShift;
 extern uint32_t g_sw3dFpuControlWordScratch;
 extern uint32_t g_sw3dInitializeSceneSavedFpuControl;
 extern int g_sw3dLightSampleCacheSceneStampBase;
-extern SceneFace g_sw3dCockpitMaskSentinelFace;
-extern SceneFace *g_sw3dCurrentFace;
+extern struct SceneFace g_sw3dCockpitMaskSentinelFace;
+extern struct SceneFace *g_sw3dCurrentFace;
 extern int g_sw3dCurrentScanlineY;
 
 struct FaceTextureGradients {
 	/* The face's texture u axis in model space;
 	 * RenderScene_TransformFaceTextureGradients turns it into view space as
 	 * gradients 0 to 2. */
-	OptVector uAxis;
+	struct OptVector uAxis;
 	/* The texture v axis, the same way, as gradients 3 to 5. */
-	OptVector vAxis;
+	struct OptVector vAxis;
 };
 
 extern int g_sw3dSpanFramebufferRowOffset;
@@ -50,17 +50,19 @@ extern int g_sw3dSpanShadeQ8;
 extern int g_sw3dSpanStepVQ8;
 extern int g_sw3dSpanStepUQ8;
 
-void sw3d_ProjectMeshVertices(SceneMesh *mesh);
-void sw3d_ProjectMeshVerticesDistant(SceneMesh *mesh);
-void sw3d_RasterizeMeshFaces(SceneMesh *mesh);
-void sw3d_ScanConvertFace(SceneFace *face);
-int sw3d_SetupClippedEdge(SceneMesh *mesh, SceneEdge *edge,
-			  const ProjVertex *first, const ProjVertex *second);
-int sw3d_SetupEdge(SceneEdge *edge, const ProjVertex *first,
-		   const ProjVertex *second);
+void sw3d_ProjectMeshVertices(struct SceneMesh *mesh);
+void sw3d_ProjectMeshVerticesDistant(struct SceneMesh *mesh);
+void sw3d_RasterizeMeshFaces(struct SceneMesh *mesh);
+void sw3d_ScanConvertFace(struct SceneFace *face);
+int sw3d_SetupClippedEdge(struct SceneMesh *mesh, struct SceneEdge *edge,
+			  const struct ProjVertex *first,
+			  const struct ProjVertex *second);
+int sw3d_SetupEdge(struct SceneEdge *edge, const struct ProjVertex *first,
+		   const struct ProjVertex *second);
 void sw3d_DrawVisibleFacesToSurface(void);
 void sw3d_DrawTexturedSpan(int startX, int endX, float spanStartW);
-void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace *face);
+void sw3d_InsertSpan(float xLeft, float xRight, int scanY,
+		     struct SceneFace *face);
 int sw3d_DrawTexturedShadeSpanGeneric16bpp(void);
 void sw3d_BlitOccludedSpan(const uint8_t *pSrcRaster, int startX, int endX,
 			   int scanY, float spriteW);

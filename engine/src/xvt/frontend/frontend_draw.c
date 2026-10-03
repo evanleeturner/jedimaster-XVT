@@ -21,7 +21,7 @@ uint8_t *g_drawSurfacePtr;
 
 /* Sets the four edges of *rect. */
 // FUNCTION: XVT 0x4D6460
-void FrontendDraw_RectAssign(RECT *rect, int32_t left, int32_t top,
+void FrontendDraw_RectAssign(struct RECT *rect, int32_t left, int32_t top,
 			     int32_t right, int32_t bottom)
 {
 	rect->left = left;
@@ -32,11 +32,14 @@ void FrontendDraw_RectAssign(RECT *rect, int32_t left, int32_t top,
 
 /* Copies *src into *dst. */
 // FUNCTION: XVT 0x4D6480
-void FrontendDraw_RectCopy(RECT *dst, const RECT *src) { *dst = *src; }
+void FrontendDraw_RectCopy(struct RECT *dst, const struct RECT *src)
+{
+	*dst = *src;
+}
 
 /* Moves *rect right by dx and down by dy. */
 // FUNCTION: XVT 0x4D64A0
-void FrontendDraw_RectOffsetXY(RECT *rect, int dx, int dy)
+void FrontendDraw_RectOffsetXY(struct RECT *rect, int dx, int dy)
 {
 	rect->left += dx;
 	rect->right += dx;
@@ -47,7 +50,7 @@ void FrontendDraw_RectOffsetXY(RECT *rect, int dx, int dy)
 /* Shrinks *rect by dx at the left and the right and by dy at the top and the
  * bottom; negative values grow it. */
 // FUNCTION: XVT 0x4D64C0
-void FrontendDraw_RectInsetXY(RECT *rect, int dx, int dy)
+void FrontendDraw_RectInsetXY(struct RECT *rect, int dx, int dy)
 {
 	rect->left += dx;
 	rect->right -= dx;
@@ -61,7 +64,7 @@ void FrontendDraw_RectInsetXY(RECT *rect, int dx, int dy)
  * bound is left with its far edge one pixel beyond that bound (for example
  * right = clipMinX - 1), so its inclusive width or height is 0. */
 // FUNCTION: XVT 0x4D64E0
-int FrontendDraw_RectClipToBounds(RECT *rect)
+int FrontendDraw_RectClipToBounds(struct RECT *rect)
 {
 	int result;
 	int bound;
@@ -116,13 +119,13 @@ int FrontendDraw_RectClipToBounds(RECT *rect)
  * right < 0, top > 480 or bottom < 0. Writes through g_drawSurfacePtr. The
  * modern build also records the fill for its renderer. */
 // FUNCTION: XVT 0x4D6550
-void FrontendDraw_FillRectTranslucent(const RECT *src, int dx, int dy,
+void FrontendDraw_FillRectTranslucent(const struct RECT *src, int dx, int dy,
 				      unsigned int color)
 {
 	int drawSurfacePitch;
 	int width;
 	uint8_t *destination;
-	RECT clippedRect;
+	struct RECT clippedRect;
 	int bottomEnd;
 	int remainingRows;
 
@@ -267,9 +270,9 @@ void FrontendDraw_FillRectTranslucent(const RECT *src, int dx, int dy,
  * 640, right < 0, top > 480 or bottom < 0. Writes through g_drawSurfacePtr. The
  * modern build also records the fill for its renderer. */
 // FUNCTION: XVT 0x4D67E0
-void FrontendDraw_Rect(RECT *rect, int dx, int dy, int color, int filled)
+void FrontendDraw_Rect(struct RECT *rect, int dx, int dy, int color, int filled)
 {
-	RECT clippedRect;
+	struct RECT clippedRect;
 	int bottomEnd;
 	int width;
 	int drawSurfacePitch;
@@ -358,7 +361,7 @@ void FrontendDraw_Rect(RECT *rect, int dx, int dy, int color, int filled)
  * through g_drawSurfacePtr. The modern build also records the unclipped outline
  * for its renderer. */
 // FUNCTION: XVT 0x4D6950
-void FrontendDraw_RectOutline(RECT *rect, int dx, int dy, int color)
+void FrontendDraw_RectOutline(struct RECT *rect, int dx, int dy, int color)
 {
 	int width;
 	int drawSurfacePitch;
@@ -367,8 +370,8 @@ void FrontendDraw_RectOutline(RECT *rect, int dx, int dy, int color)
 	int drawLeft;
 	int drawTop;
 	int bottom;
-	RECT clippedRect;
-	RECT unclippedRect;
+	struct RECT clippedRect;
+	struct RECT unclippedRect;
 	int displayBpp;
 	int interiorTop;
 
@@ -486,7 +489,7 @@ void FrontendDraw_RectOutline(RECT *rect, int dx, int dy, int color)
 
 /* Returns 1 when (x, y) lies in *rect, edges included, else 0. */
 // FUNCTION: XVT 0x4D6B90
-int FrontendDraw_PointInRect(const RECT *rect, int x, int y)
+int FrontendDraw_PointInRect(const struct RECT *rect, int x, int y)
 {
 	if (rect->left > x || rect->right < x) {
 		return 0;

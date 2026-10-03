@@ -24,8 +24,8 @@ static struct {
 	int page;
 	int exit_confirmation_open;
 	char error[1024];
-	XvtControllerSettings controller;
-	XvtKeyboardSettings keyboard;
+	struct XvtControllerSettings controller;
+	struct XvtKeyboardSettings keyboard;
 
 	struct {
 		uint32_t instance;
@@ -82,7 +82,7 @@ static void XvtSettingsMenu_DrawKeyboard(AeronUiContext *ui,
 	XvtKeyboardSettings_Draw(&g_menu.keyboard, ui);
 }
 
-bool XvtSettingsMenu_Init(XvtAppUi *ui, char *error, size_t capacity)
+bool XvtSettingsMenu_Init(struct XvtAppUi *ui, char *error, size_t capacity)
 {
 	memset(&g_menu, 0, sizeof g_menu);
 	g_menu.ui = XvtAppUi_Context(ui);
@@ -303,7 +303,8 @@ static bool XvtSettingsMenu_PollStartPress(const AeronInputSnapshot *input)
 		memset(g_menu.start, 0, sizeof g_menu.start);
 		return false;
 	}
-	const XvtControllerOptions *options = XvtControllerMapping_Options();
+	const struct XvtControllerOptions *options =
+		XvtControllerMapping_Options();
 	bool pressed = false;
 	for (int i = 0; i < AERON_CONTROLLER_MAX; ++i) {
 		const AeronControllerSnapshot *device = &input->controllers[i];

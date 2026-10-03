@@ -87,7 +87,7 @@ void FlightObject_UpdateSpecialBehavior(void)
 
 	uint16_t objectIndex;
 #ifdef XVT_MODERN
-	XvtFlightClock animationClock;
+	struct XvtFlightClock animationClock;
 #endif
 
 	if (g_flightMissionState.provingGroundsModeActive != 0) {
@@ -137,7 +137,7 @@ void FlightObject_UpdateSpecialBehavior(void)
 
 		if (g_objectTable[objectIndex].mobj != NULL) {
 			uint16_t objectType;
-			CraftData *craft;
+			struct CraftData *craft;
 
 			objectType = g_objectTable[objectIndex].objectType;
 			if (objectType == 0) {
@@ -203,7 +203,8 @@ void FlightObject_UpdateSpecialBehavior(void)
 						unsigned int turretMeshIndex;
 						MeshComponentType
 							turretMeshType;
-						TurretTargetState *turretTarget;
+						struct TurretTargetState
+							*turretTarget;
 
 						if (g_curCraft
 							    ->weaponSlots
@@ -244,7 +245,8 @@ void FlightObject_UpdateSpecialBehavior(void)
 						if (turretTarget
 							    ->targetObjIdx !=
 						    UINT16_MAX) {
-							ObjectRecord *object;
+							struct ObjectRecord
+								*object;
 							float *rotationScale;
 							int turretSide;
 							int turretForward;
@@ -664,7 +666,7 @@ void FlightObject_UpdateSpecialBehavior(void)
 void FlightObject_AdvanceTextureFrameSequence(unsigned int objectIdx)
 {
 	int16_t sequenceValue;
-	MobileObject *mobileObject;
+	struct MobileObject *mobileObject;
 
 	if (g_billboardTextureFrameSequence == NULL) {
 		return;
@@ -726,8 +728,8 @@ void FlightObject_UpdatePlayerHyperspaceTransition(int playerIdx)
 	};
 
 	int objectIdx;
-	ObjectRecord *playerObject;
-	CraftData *craft;
+	struct ObjectRecord *playerObject;
+	struct CraftData *craft;
 	uint16_t tickDelta;
 	unsigned int phaseElapsedTicks;
 	int hyperspacePhase;
@@ -840,8 +842,8 @@ void FlightObject_UpdatePlayerHyperspaceTransition(int playerIdx)
 				     candidateIdx <
 				     g_activeRegionCraftObjectSlotEnd;
 				     ++candidateIdx) {
-					ObjectRecord *candidate;
-					ObjectRecord *playerCraftObject;
+					struct ObjectRecord *candidate;
+					struct ObjectRecord *playerCraftObject;
 					int deltaX;
 					int deltaY;
 					int deltaZ;
@@ -903,8 +905,9 @@ void FlightObject_UpdatePlayerHyperspaceTransition(int playerIdx)
 					for (;
 					     candidateIdx < staticObjectSlotEnd;
 					     ++candidateIdx) {
-						ObjectRecord *candidate;
-						ObjectRecord *playerCraftObject;
+						struct ObjectRecord *candidate;
+						struct ObjectRecord
+							*playerCraftObject;
 						int deltaX;
 						int deltaY;
 						int deltaZ;
@@ -1109,8 +1112,8 @@ void FlightObject_RecycleLocalDebrisNearPlayer(void)
 	int deltaY;
 	int deltaZ;
 	int16_t randomOffset;
-	ObjectRecord *playerObject;
-	MobileObject *mobileObject;
+	struct ObjectRecord *playerObject;
+	struct MobileObject *mobileObject;
 	int worldZ;
 	int16_t offsetX;
 	int16_t offsetY;

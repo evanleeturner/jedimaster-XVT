@@ -56,11 +56,12 @@ int FrontendSound_GetNewestVoicePanByName(const char *name);
 int FrontendSound_SetBufferPriorityByName(const char *name, int priority0To255);
 int FrontendSound_GetBufferPriorityByName(const char *name);
 int FrontendSound_GetPlayingCount(const char *name);
-void FrontendSound_InsertSortedBuffer(const FrontendSoundBufferRecord *record);
+void FrontendSound_InsertSortedBuffer(
+	const struct FrontendSoundBufferRecord *record);
 void FrontendSound_RemoveBufferRecord(int bufferIndex);
 int FrontendSound_FindBufferByName(const char *name);
 int FrontendSound_BinarySearchBufferByName(
-	const FrontendSoundBufferRecord *records, int lastIndex,
+	const struct FrontendSoundBufferRecord *records, int lastIndex,
 	const char *name);
 int FrontendSound_LoadList(const char *fileName);
 int FrontendSound_UnloadList(char *fileName);

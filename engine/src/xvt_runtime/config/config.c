@@ -13,272 +13,295 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct XvtConfigField {
+struct XvtConfigField {
 	const char *legacy;
 	const char *path;
 	size_t offset;
 	size_t size;
 	int string;
 	int64_t maximum;
-} XvtConfigField;
+};
 
-static const XvtConfigField g_fields[] = {
-	{"lastpilot", "game.lastpilot", offsetof(GameConfig, lastPilotName),
-	 sizeof(((GameConfig *)0)->lastPilotName), 1, 1},
+static const struct XvtConfigField g_fields[] = {
+	{"lastpilot", "game.lastpilot",
+	 offsetof(struct GameConfig, lastPilotName),
+	 sizeof(((struct GameConfig *)0)->lastPilotName), 1, 1},
 	{"backdrop1", "game.single_player.backdrop",
-	 offsetof(GameConfig, backdrop[0]),
-	 sizeof(((GameConfig *)0)->backdrop[0]), 0, 1},
+	 offsetof(struct GameConfig, backdrop[0]),
+	 sizeof(((struct GameConfig *)0)->backdrop[0]), 0, 1},
 	{"backdrop2", "game.multiplayer.backdrop",
-	 offsetof(GameConfig, backdrop[1]),
-	 sizeof(((GameConfig *)0)->backdrop[1]), 0, 1},
+	 offsetof(struct GameConfig, backdrop[1]),
+	 sizeof(((struct GameConfig *)0)->backdrop[1]), 0, 1},
 	{"stardensity1", "game.single_player.stardensity",
-	 offsetof(GameConfig, starDensity[0]),
-	 sizeof(((GameConfig *)0)->starDensity[0]), 0, 2},
+	 offsetof(struct GameConfig, starDensity[0]),
+	 sizeof(((struct GameConfig *)0)->starDensity[0]), 0, 2},
 	{"stardensity2", "game.multiplayer.stardensity",
-	 offsetof(GameConfig, starDensity[1]),
-	 sizeof(((GameConfig *)0)->starDensity[1]), 0, 2},
+	 offsetof(struct GameConfig, starDensity[1]),
+	 sizeof(((struct GameConfig *)0)->starDensity[1]), 0, 2},
 	{"debris1", "game.single_player.debris",
-	 offsetof(GameConfig, debris[0]), sizeof(((GameConfig *)0)->debris[0]),
-	 0, 1},
-	{"debris2", "game.multiplayer.debris", offsetof(GameConfig, debris[1]),
-	 sizeof(((GameConfig *)0)->debris[1]), 0, 1},
+	 offsetof(struct GameConfig, debris[0]),
+	 sizeof(((struct GameConfig *)0)->debris[0]), 0, 1},
+	{"debris2", "game.multiplayer.debris",
+	 offsetof(struct GameConfig, debris[1]),
+	 sizeof(((struct GameConfig *)0)->debris[1]), 0, 1},
 	{"locallights1", "game.single_player.locallights",
-	 offsetof(GameConfig, localLights[0]),
-	 sizeof(((GameConfig *)0)->localLights[0]), 0, 1},
+	 offsetof(struct GameConfig, localLights[0]),
+	 sizeof(((struct GameConfig *)0)->localLights[0]), 0, 1},
 	{"locallights2", "game.multiplayer.locallights",
-	 offsetof(GameConfig, localLights[1]),
-	 sizeof(((GameConfig *)0)->localLights[1]), 0, 1},
+	 offsetof(struct GameConfig, localLights[1]),
+	 sizeof(((struct GameConfig *)0)->localLights[1]), 0, 1},
 	{"specular1", "game.single_player.specular",
-	 offsetof(GameConfig, specular[0]),
-	 sizeof(((GameConfig *)0)->specular[0]), 0, 1},
+	 offsetof(struct GameConfig, specular[0]),
+	 sizeof(((struct GameConfig *)0)->specular[0]), 0, 1},
 	{"specular2", "game.multiplayer.specular",
-	 offsetof(GameConfig, specular[1]),
-	 sizeof(((GameConfig *)0)->specular[1]), 0, 1},
+	 offsetof(struct GameConfig, specular[1]),
+	 sizeof(((struct GameConfig *)0)->specular[1]), 0, 1},
 	{"diffuse1", "game.single_player.diffuse",
-	 offsetof(GameConfig, diffuse[0]),
-	 sizeof(((GameConfig *)0)->diffuse[0]), 0, 1},
+	 offsetof(struct GameConfig, diffuse[0]),
+	 sizeof(((struct GameConfig *)0)->diffuse[0]), 0, 1},
 	{"diffuse2", "game.multiplayer.diffuse",
-	 offsetof(GameConfig, diffuse[1]),
-	 sizeof(((GameConfig *)0)->diffuse[1]), 0, 1},
+	 offsetof(struct GameConfig, diffuse[1]),
+	 sizeof(((struct GameConfig *)0)->diffuse[1]), 0, 1},
 	{"dither1", "game.single_player.dither",
-	 offsetof(GameConfig, dither[0]), sizeof(((GameConfig *)0)->dither[0]),
-	 0, 1},
-	{"dither2", "game.multiplayer.dither", offsetof(GameConfig, dither[1]),
-	 sizeof(((GameConfig *)0)->dither[1]), 0, 1},
+	 offsetof(struct GameConfig, dither[0]),
+	 sizeof(((struct GameConfig *)0)->dither[0]), 0, 1},
+	{"dither2", "game.multiplayer.dither",
+	 offsetof(struct GameConfig, dither[1]),
+	 sizeof(((struct GameConfig *)0)->dither[1]), 0, 1},
 	{"textureres1", "game.single_player.textureres",
-	 offsetof(GameConfig, textureRes[0]),
-	 sizeof(((GameConfig *)0)->textureRes[0]), 0, 2},
+	 offsetof(struct GameConfig, textureRes[0]),
+	 sizeof(((struct GameConfig *)0)->textureRes[0]), 0, 2},
 	{"textureres2", "game.multiplayer.textureres",
-	 offsetof(GameConfig, textureRes[1]),
-	 sizeof(((GameConfig *)0)->textureRes[1]), 0, 2},
+	 offsetof(struct GameConfig, textureRes[1]),
+	 sizeof(((struct GameConfig *)0)->textureRes[1]), 0, 2},
 	{"mipmap1", "game.single_player.mipmap",
-	 offsetof(GameConfig, mipmap[0]), sizeof(((GameConfig *)0)->mipmap[0]),
-	 0, 19},
-	{"mipmap2", "game.multiplayer.mipmap", offsetof(GameConfig, mipmap[1]),
-	 sizeof(((GameConfig *)0)->mipmap[1]), 0, 19},
-	{"lod1", "game.single_player.lod", offsetof(GameConfig, lod[0]),
-	 sizeof(((GameConfig *)0)->lod[0]), 0, 19},
-	{"lod2", "game.multiplayer.lod", offsetof(GameConfig, lod[1]),
-	 sizeof(((GameConfig *)0)->lod[1]), 0, 19},
+	 offsetof(struct GameConfig, mipmap[0]),
+	 sizeof(((struct GameConfig *)0)->mipmap[0]), 0, 19},
+	{"mipmap2", "game.multiplayer.mipmap",
+	 offsetof(struct GameConfig, mipmap[1]),
+	 sizeof(((struct GameConfig *)0)->mipmap[1]), 0, 19},
+	{"lod1", "game.single_player.lod", offsetof(struct GameConfig, lod[0]),
+	 sizeof(((struct GameConfig *)0)->lod[0]), 0, 19},
+	{"lod2", "game.multiplayer.lod", offsetof(struct GameConfig, lod[1]),
+	 sizeof(((struct GameConfig *)0)->lod[1]), 0, 19},
 	{"screenres1", "game.single_player.screenres",
-	 offsetof(GameConfig, screenRes[0]),
-	 sizeof(((GameConfig *)0)->screenRes[0]), 0, 2},
+	 offsetof(struct GameConfig, screenRes[0]),
+	 sizeof(((struct GameConfig *)0)->screenRes[0]), 0, 2},
 	{"screenres2", "game.multiplayer.screenres",
-	 offsetof(GameConfig, screenRes[1]),
-	 sizeof(((GameConfig *)0)->screenRes[1]), 0, 2},
+	 offsetof(struct GameConfig, screenRes[1]),
+	 sizeof(((struct GameConfig *)0)->screenRes[1]), 0, 2},
 	{"windowsize1", "game.single_player.windowsize",
-	 offsetof(GameConfig, windowSize[0]),
-	 sizeof(((GameConfig *)0)->windowSize[0]), 0, 2},
+	 offsetof(struct GameConfig, windowSize[0]),
+	 sizeof(((struct GameConfig *)0)->windowSize[0]), 0, 2},
 	{"windowsize2", "game.multiplayer.windowsize",
-	 offsetof(GameConfig, windowSize[1]),
-	 sizeof(((GameConfig *)0)->windowSize[1]), 0, 2},
+	 offsetof(struct GameConfig, windowSize[1]),
+	 sizeof(((struct GameConfig *)0)->windowSize[1]), 0, 2},
 	{"bpp1", "game.single_player.bpp",
-	 offsetof(GameConfig, colorDepthChoice[0]),
-	 sizeof(((GameConfig *)0)->colorDepthChoice[0]), 0, 1},
+	 offsetof(struct GameConfig, colorDepthChoice[0]),
+	 sizeof(((struct GameConfig *)0)->colorDepthChoice[0]), 0, 1},
 	{"bpp2", "game.multiplayer.bpp",
-	 offsetof(GameConfig, colorDepthChoice[1]),
-	 sizeof(((GameConfig *)0)->colorDepthChoice[1]), 0, 1},
+	 offsetof(struct GameConfig, colorDepthChoice[1]),
+	 sizeof(((struct GameConfig *)0)->colorDepthChoice[1]), 0, 1},
 	{"brightness1", "game.single_player.brightness",
-	 offsetof(GameConfig, brightness[0]),
-	 sizeof(((GameConfig *)0)->brightness[0]), 0, 7},
+	 offsetof(struct GameConfig, brightness[0]),
+	 sizeof(((struct GameConfig *)0)->brightness[0]), 0, 7},
 	{"brightness2", "game.multiplayer.brightness",
-	 offsetof(GameConfig, brightness[1]),
-	 sizeof(((GameConfig *)0)->brightness[1]), 0, 7},
+	 offsetof(struct GameConfig, brightness[1]),
+	 sizeof(((struct GameConfig *)0)->brightness[1]), 0, 7},
 	{"use_3d_hardware1", "game.single_player.use_3d_hardware",
-	 offsetof(GameConfig, use3dHardware[0]),
-	 sizeof(((GameConfig *)0)->use3dHardware[0]), 0, 1},
+	 offsetof(struct GameConfig, use3dHardware[0]),
+	 sizeof(((struct GameConfig *)0)->use3dHardware[0]), 0, 1},
 	{"use_3d_hardware2", "game.multiplayer.use_3d_hardware",
-	 offsetof(GameConfig, use3dHardware[1]),
-	 sizeof(((GameConfig *)0)->use3dHardware[1]), 0, 1},
+	 offsetof(struct GameConfig, use3dHardware[1]),
+	 sizeof(((struct GameConfig *)0)->use3dHardware[1]), 0, 1},
 	{"bilinear1", "game.single_player.bilinear",
-	 offsetof(GameConfig, bilinear[0]),
-	 sizeof(((GameConfig *)0)->bilinear[0]), 0, 1},
+	 offsetof(struct GameConfig, bilinear[0]),
+	 sizeof(((struct GameConfig *)0)->bilinear[0]), 0, 1},
 	{"bilinear2", "game.multiplayer.bilinear",
-	 offsetof(GameConfig, bilinear[1]),
-	 sizeof(((GameConfig *)0)->bilinear[1]), 0, 1},
+	 offsetof(struct GameConfig, bilinear[1]),
+	 sizeof(((struct GameConfig *)0)->bilinear[1]), 0, 1},
 	{"server_update_rate", "game.server_update_rate",
-	 offsetof(GameConfig, serverUpdateRate),
-	 sizeof(((GameConfig *)0)->serverUpdateRate), 0, 255},
+	 offsetof(struct GameConfig, serverUpdateRate),
+	 sizeof(((struct GameConfig *)0)->serverUpdateRate), 0, 255},
 	{"sfx_exterior", "game.sfx_exterior",
-	 offsetof(GameConfig, sfxExteriorEnabled),
-	 sizeof(((GameConfig *)0)->sfxExteriorEnabled), 0, 1},
+	 offsetof(struct GameConfig, sfxExteriorEnabled),
+	 sizeof(((struct GameConfig *)0)->sfxExteriorEnabled), 0, 1},
 	{"sfx_interior", "game.sfx_interior",
-	 offsetof(GameConfig, sfxInteriorEnabled),
-	 sizeof(((GameConfig *)0)->sfxInteriorEnabled), 0, 1},
+	 offsetof(struct GameConfig, sfxInteriorEnabled),
+	 sizeof(((struct GameConfig *)0)->sfxInteriorEnabled), 0, 1},
 	{"sfx_engine", "game.sfx_engine",
-	 offsetof(GameConfig, sfxEngineEnabled),
-	 sizeof(((GameConfig *)0)->sfxEngineEnabled), 0, 1},
+	 offsetof(struct GameConfig, sfxEngineEnabled),
+	 sizeof(((struct GameConfig *)0)->sfxEngineEnabled), 0, 1},
 	{"sfx_datapad", "game.sfx_datapad",
-	 offsetof(GameConfig, sfxDatapadEnabled),
-	 sizeof(((GameConfig *)0)->sfxDatapadEnabled), 0, 1},
+	 offsetof(struct GameConfig, sfxDatapadEnabled),
+	 sizeof(((struct GameConfig *)0)->sfxDatapadEnabled), 0, 1},
 	{"voice_pilot", "game.voice_pilot",
-	 offsetof(GameConfig, voicePilotLevel),
-	 sizeof(((GameConfig *)0)->voicePilotLevel), 0, 2},
+	 offsetof(struct GameConfig, voicePilotLevel),
+	 sizeof(((struct GameConfig *)0)->voicePilotLevel), 0, 2},
 	{"voice_tactical_officer", "game.voice_tactical_officer",
-	 offsetof(GameConfig, voiceTacticalOfficerLevel),
-	 sizeof(((GameConfig *)0)->voiceTacticalOfficerLevel), 0, 2},
+	 offsetof(struct GameConfig, voiceTacticalOfficerLevel),
+	 sizeof(((struct GameConfig *)0)->voiceTacticalOfficerLevel), 0, 2},
 	{"voice_commander", "game.voice_commander",
-	 offsetof(GameConfig, voiceCommanderEnabled),
-	 sizeof(((GameConfig *)0)->voiceCommanderEnabled), 0, 1},
+	 offsetof(struct GameConfig, voiceCommanderEnabled),
+	 sizeof(((struct GameConfig *)0)->voiceCommanderEnabled), 0, 1},
 	{"voice_special", "game.voice_special",
-	 offsetof(GameConfig, voiceSpecialEnabled),
-	 sizeof(((GameConfig *)0)->voiceSpecialEnabled), 0, 1},
-	{"music", "game.music", offsetof(GameConfig, musicEnabled),
-	 sizeof(((GameConfig *)0)->musicEnabled), 0, 1},
+	 offsetof(struct GameConfig, voiceSpecialEnabled),
+	 sizeof(((struct GameConfig *)0)->voiceSpecialEnabled), 0, 1},
+	{"music", "game.music", offsetof(struct GameConfig, musicEnabled),
+	 sizeof(((struct GameConfig *)0)->musicEnabled), 0, 1},
 	{"sfx_datapad_volume", "game.sfx_datapad_volume",
-	 offsetof(GameConfig, sfxDatapadVolume),
-	 sizeof(((GameConfig *)0)->sfxDatapadVolume), 0, 9},
+	 offsetof(struct GameConfig, sfxDatapadVolume),
+	 sizeof(((struct GameConfig *)0)->sfxDatapadVolume), 0, 9},
 	{"sfx_exterior_volume", "game.sfx_exterior_volume",
-	 offsetof(GameConfig, sfxExteriorVolume),
-	 sizeof(((GameConfig *)0)->sfxExteriorVolume), 0, 9},
+	 offsetof(struct GameConfig, sfxExteriorVolume),
+	 sizeof(((struct GameConfig *)0)->sfxExteriorVolume), 0, 9},
 	{"sfx_interior_volume", "game.sfx_interior_volume",
-	 offsetof(GameConfig, sfxInteriorVolume),
-	 sizeof(((GameConfig *)0)->sfxInteriorVolume), 0, 9},
+	 offsetof(struct GameConfig, sfxInteriorVolume),
+	 sizeof(((struct GameConfig *)0)->sfxInteriorVolume), 0, 9},
 	{"sfx_engine_volume", "game.sfx_engine_volume",
-	 offsetof(GameConfig, sfxEngineVolume),
-	 sizeof(((GameConfig *)0)->sfxEngineVolume), 0, 9},
-	{"voice_volume", "game.voice_volume", offsetof(GameConfig, voiceVolume),
-	 sizeof(((GameConfig *)0)->voiceVolume), 0, 9},
-	{"music_volume", "game.music_volume", offsetof(GameConfig, musicVolume),
-	 sizeof(((GameConfig *)0)->musicVolume), 0, 9},
+	 offsetof(struct GameConfig, sfxEngineVolume),
+	 sizeof(((struct GameConfig *)0)->sfxEngineVolume), 0, 9},
+	{"voice_volume", "game.voice_volume",
+	 offsetof(struct GameConfig, voiceVolume),
+	 sizeof(((struct GameConfig *)0)->voiceVolume), 0, 9},
+	{"music_volume", "game.music_volume",
+	 offsetof(struct GameConfig, musicVolume),
+	 sizeof(((struct GameConfig *)0)->musicVolume), 0, 9},
 	{"datapad_music", "game.datapad_music",
-	 offsetof(GameConfig, datapadMusicEnabled),
-	 sizeof(((GameConfig *)0)->datapadMusicEnabled), 0, 1},
-	{"joybutton1", "game.joybutton1", offsetof(GameConfig, joyButtons[0]),
-	 sizeof(((GameConfig *)0)->joyButtons[0]), 0, 255},
-	{"joybutton2", "game.joybutton2", offsetof(GameConfig, joyButtons[1]),
-	 sizeof(((GameConfig *)0)->joyButtons[1]), 0, 255},
-	{"joybutton3", "game.joybutton3", offsetof(GameConfig, joyButtons[2]),
-	 sizeof(((GameConfig *)0)->joyButtons[2]), 0, 255},
-	{"joybutton4", "game.joybutton4", offsetof(GameConfig, joyButtons[3]),
-	 sizeof(((GameConfig *)0)->joyButtons[3]), 0, 255},
-	{"joybutton5", "game.joybutton5", offsetof(GameConfig, joyButtons[4]),
-	 sizeof(((GameConfig *)0)->joyButtons[4]), 0, 255},
-	{"joybutton6", "game.joybutton6", offsetof(GameConfig, joyButtons[5]),
-	 sizeof(((GameConfig *)0)->joyButtons[5]), 0, 255},
-	{"joybutton7", "game.joybutton7", offsetof(GameConfig, joyButtons[6]),
-	 sizeof(((GameConfig *)0)->joyButtons[6]), 0, 255},
-	{"joybutton8", "game.joybutton8", offsetof(GameConfig, joyButtons[7]),
-	 sizeof(((GameConfig *)0)->joyButtons[7]), 0, 255},
-	{"joybutton9", "game.joybutton9", offsetof(GameConfig, joyButtons[8]),
-	 sizeof(((GameConfig *)0)->joyButtons[8]), 0, 255},
-	{"joybutton10", "game.joybutton10", offsetof(GameConfig, joyButtons[9]),
-	 sizeof(((GameConfig *)0)->joyButtons[9]), 0, 255},
+	 offsetof(struct GameConfig, datapadMusicEnabled),
+	 sizeof(((struct GameConfig *)0)->datapadMusicEnabled), 0, 1},
+	{"joybutton1", "game.joybutton1",
+	 offsetof(struct GameConfig, joyButtons[0]),
+	 sizeof(((struct GameConfig *)0)->joyButtons[0]), 0, 255},
+	{"joybutton2", "game.joybutton2",
+	 offsetof(struct GameConfig, joyButtons[1]),
+	 sizeof(((struct GameConfig *)0)->joyButtons[1]), 0, 255},
+	{"joybutton3", "game.joybutton3",
+	 offsetof(struct GameConfig, joyButtons[2]),
+	 sizeof(((struct GameConfig *)0)->joyButtons[2]), 0, 255},
+	{"joybutton4", "game.joybutton4",
+	 offsetof(struct GameConfig, joyButtons[3]),
+	 sizeof(((struct GameConfig *)0)->joyButtons[3]), 0, 255},
+	{"joybutton5", "game.joybutton5",
+	 offsetof(struct GameConfig, joyButtons[4]),
+	 sizeof(((struct GameConfig *)0)->joyButtons[4]), 0, 255},
+	{"joybutton6", "game.joybutton6",
+	 offsetof(struct GameConfig, joyButtons[5]),
+	 sizeof(((struct GameConfig *)0)->joyButtons[5]), 0, 255},
+	{"joybutton7", "game.joybutton7",
+	 offsetof(struct GameConfig, joyButtons[6]),
+	 sizeof(((struct GameConfig *)0)->joyButtons[6]), 0, 255},
+	{"joybutton8", "game.joybutton8",
+	 offsetof(struct GameConfig, joyButtons[7]),
+	 sizeof(((struct GameConfig *)0)->joyButtons[7]), 0, 255},
+	{"joybutton9", "game.joybutton9",
+	 offsetof(struct GameConfig, joyButtons[8]),
+	 sizeof(((struct GameConfig *)0)->joyButtons[8]), 0, 255},
+	{"joybutton10", "game.joybutton10",
+	 offsetof(struct GameConfig, joyButtons[9]),
+	 sizeof(((struct GameConfig *)0)->joyButtons[9]), 0, 255},
 	{"joybutton11", "game.joybutton11",
-	 offsetof(GameConfig, joyButtons[10]),
-	 sizeof(((GameConfig *)0)->joyButtons[10]), 0, 255},
+	 offsetof(struct GameConfig, joyButtons[10]),
+	 sizeof(((struct GameConfig *)0)->joyButtons[10]), 0, 255},
 	{"joybutton12", "game.joybutton12",
-	 offsetof(GameConfig, joyButtons[11]),
-	 sizeof(((GameConfig *)0)->joyButtons[11]), 0, 255},
+	 offsetof(struct GameConfig, joyButtons[11]),
+	 sizeof(((struct GameConfig *)0)->joyButtons[11]), 0, 255},
 	{"joybutton13", "game.joybutton13",
-	 offsetof(GameConfig, joyButtons[12]),
-	 sizeof(((GameConfig *)0)->joyButtons[12]), 0, 255},
+	 offsetof(struct GameConfig, joyButtons[12]),
+	 sizeof(((struct GameConfig *)0)->joyButtons[12]), 0, 255},
 	{"joybutton14", "game.joybutton14",
-	 offsetof(GameConfig, joyButtons[13]),
-	 sizeof(((GameConfig *)0)->joyButtons[13]), 0, 255},
+	 offsetof(struct GameConfig, joyButtons[13]),
+	 sizeof(((struct GameConfig *)0)->joyButtons[13]), 0, 255},
 	{"joybutton15", "game.joybutton15",
-	 offsetof(GameConfig, joyButtons[14]),
-	 sizeof(((GameConfig *)0)->joyButtons[14]), 0, 255},
+	 offsetof(struct GameConfig, joyButtons[14]),
+	 sizeof(((struct GameConfig *)0)->joyButtons[14]), 0, 255},
 	{"joybutton16", "game.joybutton16",
-	 offsetof(GameConfig, joyButtons[15]),
-	 sizeof(((GameConfig *)0)->joyButtons[15]), 0, 255},
+	 offsetof(struct GameConfig, joyButtons[15]),
+	 sizeof(((struct GameConfig *)0)->joyButtons[15]), 0, 255},
 	{"joybutton17", "game.joybutton17",
-	 offsetof(GameConfig, joyButtons[16]),
-	 sizeof(((GameConfig *)0)->joyButtons[16]), 0, 255},
+	 offsetof(struct GameConfig, joyButtons[16]),
+	 sizeof(((struct GameConfig *)0)->joyButtons[16]), 0, 255},
 	{"joybutton18", "game.joybutton18",
-	 offsetof(GameConfig, joyButtons[17]),
-	 sizeof(((GameConfig *)0)->joyButtons[17]), 0, 255},
+	 offsetof(struct GameConfig, joyButtons[17]),
+	 sizeof(((struct GameConfig *)0)->joyButtons[17]), 0, 255},
 	{"joybutton19", "game.joybutton19",
-	 offsetof(GameConfig, joyButtons[18]),
-	 sizeof(((GameConfig *)0)->joyButtons[18]), 0, 255},
+	 offsetof(struct GameConfig, joyButtons[18]),
+	 sizeof(((struct GameConfig *)0)->joyButtons[18]), 0, 255},
 	{"joybutton20", "game.joybutton20",
-	 offsetof(GameConfig, joyButtons[19]),
-	 sizeof(((GameConfig *)0)->joyButtons[19]), 0, 255},
-	{"difficulty", "game.difficulty", offsetof(GameConfig, difficulty),
-	 sizeof(((GameConfig *)0)->difficulty), 0, 3},
-	{"collisions", "game.collisions", offsetof(GameConfig, collisions),
-	 sizeof(((GameConfig *)0)->collisions), 0, 1},
+	 offsetof(struct GameConfig, joyButtons[19]),
+	 sizeof(((struct GameConfig *)0)->joyButtons[19]), 0, 255},
+	{"difficulty", "game.difficulty",
+	 offsetof(struct GameConfig, difficulty),
+	 sizeof(((struct GameConfig *)0)->difficulty), 0, 3},
+	{"collisions", "game.collisions",
+	 offsetof(struct GameConfig, collisions),
+	 sizeof(((struct GameConfig *)0)->collisions), 0, 1},
 	{"craft_jumping", "game.craft_jumping",
-	 offsetof(GameConfig, craftJumping),
-	 sizeof(((GameConfig *)0)->craftJumping), 0, 1},
-	{"random_setup", "game.random_setup", offsetof(GameConfig, randomSetup),
-	 sizeof(((GameConfig *)0)->randomSetup), 0, 1},
+	 offsetof(struct GameConfig, craftJumping),
+	 sizeof(((struct GameConfig *)0)->craftJumping), 0, 1},
+	{"random_setup", "game.random_setup",
+	 offsetof(struct GameConfig, randomSetup),
+	 sizeof(((struct GameConfig *)0)->randomSetup), 0, 1},
 	/* Battle length, 0 to 2 for two to four wins; the YAML path still calls it handicapping. */
 	{"handicapping", "game.handicapping",
-	 offsetof(GameConfig, battleLengthIndex),
-	 sizeof(((GameConfig *)0)->battleLengthIndex), 0, 2},
+	 offsetof(struct GameConfig, battleLengthIndex),
+	 sizeof(((struct GameConfig *)0)->battleLengthIndex), 0, 2},
 	{"require_password", "game.require_password",
-	 offsetof(GameConfig, requirePassword),
-	 sizeof(((GameConfig *)0)->requirePassword), 0, 1},
+	 offsetof(struct GameConfig, requirePassword),
+	 sizeof(((struct GameConfig *)0)->requirePassword), 0, 1},
 	{"in_progress_join", "game.in_progress_join",
-	 offsetof(GameConfig, inProgressJoin),
-	 sizeof(((GameConfig *)0)->inProgressJoin), 0, 1},
+	 offsetof(struct GameConfig, inProgressJoin),
+	 sizeof(((struct GameConfig *)0)->inProgressJoin), 0, 1},
 	{"craft_selection", "game.craft_selection",
-	 offsetof(GameConfig, craftSelection),
-	 sizeof(((GameConfig *)0)->craftSelection), 0, 2},
+	 offsetof(struct GameConfig, craftSelection),
+	 sizeof(((struct GameConfig *)0)->craftSelection), 0, 2},
 	{"locate_players", "game.locate_players",
-	 offsetof(GameConfig, locatePlayers),
-	 sizeof(((GameConfig *)0)->locatePlayers), 0, 1},
-	{"craft_waves", "game.craft_waves", offsetof(GameConfig, craftWaves),
-	 sizeof(((GameConfig *)0)->craftWaves), 0, 2},
+	 offsetof(struct GameConfig, locatePlayers),
+	 sizeof(((struct GameConfig *)0)->locatePlayers), 0, 1},
+	{"craft_waves", "game.craft_waves",
+	 offsetof(struct GameConfig, craftWaves),
+	 sizeof(((struct GameConfig *)0)->craftWaves), 0, 2},
 	{"mission_time_limit", "game.mission_time_limit",
-	 offsetof(GameConfig, missionTimeLimit),
-	 sizeof(((GameConfig *)0)->missionTimeLimit), 0, 255},
+	 offsetof(struct GameConfig, missionTimeLimit),
+	 sizeof(((struct GameConfig *)0)->missionTimeLimit), 0, 255},
 	{"last_time_limit", "game.last_time_limit",
-	 offsetof(GameConfig, lastTeamTimeLimitMinutes),
-	 sizeof(((GameConfig *)0)->lastTeamTimeLimitMinutes), 0, 255},
-	{"random_seed", "game.random_seed", offsetof(GameConfig, randomSeed),
-	 sizeof(((GameConfig *)0)->randomSeed), 0, 4294967295},
-	{"password", "game.password", offsetof(GameConfig, password),
-	 sizeof(((GameConfig *)0)->password), 1, 1},
-	{"async_flag", "game.async_flag", offsetof(GameConfig, internetPlay),
-	 sizeof(((GameConfig *)0)->internetPlay), 0, 1},
-	{"ai_opponents", "game.ai_opponents", offsetof(GameConfig, aiOpponents),
-	 sizeof(((GameConfig *)0)->aiOpponents), 0, 1},
-	{"help_on", "game.help_on", offsetof(GameConfig, helpOn),
-	 sizeof(((GameConfig *)0)->helpOn), 0, 1},
+	 offsetof(struct GameConfig, lastTeamTimeLimitMinutes),
+	 sizeof(((struct GameConfig *)0)->lastTeamTimeLimitMinutes), 0, 255},
+	{"random_seed", "game.random_seed",
+	 offsetof(struct GameConfig, randomSeed),
+	 sizeof(((struct GameConfig *)0)->randomSeed), 0, 4294967295},
+	{"password", "game.password", offsetof(struct GameConfig, password),
+	 sizeof(((struct GameConfig *)0)->password), 1, 1},
+	{"async_flag", "game.async_flag",
+	 offsetof(struct GameConfig, internetPlay),
+	 sizeof(((struct GameConfig *)0)->internetPlay), 0, 1},
+	{"ai_opponents", "game.ai_opponents",
+	 offsetof(struct GameConfig, aiOpponents),
+	 sizeof(((struct GameConfig *)0)->aiOpponents), 0, 1},
+	{"help_on", "game.help_on", offsetof(struct GameConfig, helpOn),
+	 sizeof(((struct GameConfig *)0)->helpOn), 0, 1},
 	{"combat_balance", "game.combat_balance",
-	 offsetof(GameConfig, combatBalance),
-	 sizeof(((GameConfig *)0)->combatBalance), 0, 3},
-	{"taunt1", "game.taunt1", offsetof(GameConfig, taunts[0]),
-	 sizeof(((GameConfig *)0)->taunts[0]), 1, 1},
-	{"taunt2", "game.taunt2", offsetof(GameConfig, taunts[1]),
-	 sizeof(((GameConfig *)0)->taunts[1]), 1, 1},
-	{"taunt3", "game.taunt3", offsetof(GameConfig, taunts[2]),
-	 sizeof(((GameConfig *)0)->taunts[2]), 1, 1},
-	{"taunt4", "game.taunt4", offsetof(GameConfig, taunts[3]),
-	 sizeof(((GameConfig *)0)->taunts[3]), 1, 1},
+	 offsetof(struct GameConfig, combatBalance),
+	 sizeof(((struct GameConfig *)0)->combatBalance), 0, 3},
+	{"taunt1", "game.taunt1", offsetof(struct GameConfig, taunts[0]),
+	 sizeof(((struct GameConfig *)0)->taunts[0]), 1, 1},
+	{"taunt2", "game.taunt2", offsetof(struct GameConfig, taunts[1]),
+	 sizeof(((struct GameConfig *)0)->taunts[1]), 1, 1},
+	{"taunt3", "game.taunt3", offsetof(struct GameConfig, taunts[2]),
+	 sizeof(((struct GameConfig *)0)->taunts[2]), 1, 1},
+	{"taunt4", "game.taunt4", offsetof(struct GameConfig, taunts[3]),
+	 sizeof(((struct GameConfig *)0)->taunts[3]), 1, 1},
 	{"continue_sequence", "game.continue_sequence",
-	 offsetof(GameConfig, continueBattleOrCampaign),
-	 sizeof(((GameConfig *)0)->continueBattleOrCampaign), 0, 1},
+	 offsetof(struct GameConfig, continueBattleOrCampaign),
+	 sizeof(((struct GameConfig *)0)->continueBattleOrCampaign), 0, 1},
 };
 static AeronConfigFile *g_defaults;
 static AeronConfigFile *g_user;
 static AeronConfigFile *g_resolved;
 static AeronVfs *g_configVfs;
-static XvtSettings g_settings;
-static XvtSettings g_defaultSettings;
-static XvtSceneSettings g_sceneDefaults;
+static struct XvtSettings g_settings;
+static struct XvtSettings g_defaultSettings;
+static struct XvtSceneSettings g_sceneDefaults;
 static uint64_t g_generation;
 static int g_writable;
 
@@ -286,12 +309,12 @@ const AeronConfigFile *XvtConfig_UserDocument(void) { return g_user; }
 
 const AeronConfigFile *XvtConfig_ResolvedDocument(void) { return g_resolved; }
 
-const XvtSettings *XvtConfig_Settings(void)
+const struct XvtSettings *XvtConfig_Settings(void)
 {
 	return g_resolved ? &g_settings : NULL;
 }
 
-const XvtSettings *XvtConfig_DefaultSettings(void)
+const struct XvtSettings *XvtConfig_DefaultSettings(void)
 {
 	return g_defaults ? &g_defaultSettings : NULL;
 }
@@ -344,12 +367,12 @@ static int XvtConfig_CheckVersion(const AeronConfigFile *document, int minimum,
 }
 
 static int XvtConfig_ApplyDocument(const AeronConfigFile *document,
-				   GameConfig *game, char *error,
+				   struct GameConfig *game, char *error,
 				   size_t capacity)
 {
-	GameConfig candidate = *game;
+	struct GameConfig candidate = *game;
 	for (size_t i = 0; i < sizeof(g_fields) / sizeof(g_fields[0]); ++i) {
-		const XvtConfigField *field = &g_fields[i];
+		const struct XvtConfigField *field = &g_fields[i];
 		const AeronConfigNode *node =
 			AeronConfigFile_GetNode(document, field->path);
 		uint8_t *destination = (uint8_t *)&candidate + field->offset;
@@ -393,10 +416,10 @@ static int XvtConfig_ApplyDocument(const AeronConfigFile *document,
 }
 
 static int XvtConfig_ValidateAndParse(const AeronConfigFile *document,
-				      XvtSettings *settings, char *error,
+				      struct XvtSettings *settings, char *error,
 				      size_t capacity)
 {
-	GameConfig game = {0};
+	struct GameConfig game = {0};
 	return XvtConfig_CheckVersion(document, XVT_CONFIG_VERSION, error,
 				      capacity) &&
 	       XvtConfig_ApplyDocument(document, &game, error, capacity) &&
@@ -404,7 +427,7 @@ static int XvtConfig_ValidateAndParse(const AeronConfigFile *document,
 				 capacity);
 }
 
-int XvtConfig_Apply(GameConfig *game, char *error, size_t capacity)
+int XvtConfig_Apply(struct GameConfig *game, char *error, size_t capacity)
 {
 	if (!g_resolved || !game) {
 		return XvtConfig_Error(error, capacity,
@@ -479,7 +502,7 @@ int XvtConfig_UpdateUser(const AeronConfigFile *candidate, int save,
 	AeronConfigFile *updated = NULL;
 	AeronConfigFile *resolved = NULL;
 	AeronConfigError detail;
-	XvtSettings settings;
+	struct XvtSettings settings;
 	int success = 0;
 	if (!g_defaults || !g_configVfs) {
 		return XvtConfig_Error(error, capacity,
@@ -682,7 +705,7 @@ bool XvtConfig_SetSkipIntro(bool enabled, char *error, size_t capacity)
 	return success;
 }
 
-int XvtConfig_Write(const GameConfig *game, char *error, size_t capacity)
+int XvtConfig_Write(const struct GameConfig *game, char *error, size_t capacity)
 {
 	AeronConfigFile *updated = NULL;
 	AeronConfigError detail;
@@ -696,7 +719,7 @@ int XvtConfig_Write(const GameConfig *game, char *error, size_t capacity)
 		return XvtSettings_FileError(&detail, error, capacity);
 	}
 	for (size_t i = 0; i < sizeof(g_fields) / sizeof(g_fields[0]); ++i) {
-		const XvtConfigField *field = &g_fields[i];
+		const struct XvtConfigField *field = &g_fields[i];
 		const uint8_t *source = (const uint8_t *)game + field->offset;
 		int same, success;
 		if (field->string) {
@@ -790,7 +813,7 @@ int XvtConfig_Import(const char *path, char *error, size_t capacity)
 		value[strcspn(value, "\r\n")] = 0;
 		for (size_t i = 0; i < sizeof(g_fields) / sizeof(g_fields[0]);
 		     ++i) {
-			const XvtConfigField *field = &g_fields[i];
+			const struct XvtConfigField *field = &g_fields[i];
 			if (strcmp(line, field->legacy)) {
 				continue;
 			}
@@ -841,8 +864,8 @@ int XvtConfig_Import(const char *path, char *error, size_t capacity)
 	return committed;
 }
 
-bool XvtConfig_SetKeyboard(const XvtKeyboardBindings *bindings, char *error,
-			   size_t capacity)
+bool XvtConfig_SetKeyboard(const struct XvtKeyboardBindings *bindings,
+			   char *error, size_t capacity)
 {
 	AeronConfigFile *candidate = NULL;
 	AeronConfigError detail = {0};

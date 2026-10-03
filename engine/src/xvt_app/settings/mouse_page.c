@@ -4,7 +4,7 @@
 void XvtMousePage_Draw(AeronUiContext *ui, const AeronInputSnapshot *input)
 {
 	(void)input;
-	XvtMouseOptions options = XvtConfig_Settings()->mouse;
+	struct XvtMouseOptions options = XvtConfig_Settings()->mouse;
 	AeronUi_Header(ui, "Mouse Flight Control");
 	bool changed = AeronUi_Toggle(ui, "Mouse Flight Control",
 				      &options.mouse_flight_enabled);

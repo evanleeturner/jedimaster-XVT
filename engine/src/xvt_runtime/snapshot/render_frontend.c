@@ -17,27 +17,27 @@ static unsigned g_presentedTarget;
 static int g_textEntry;
 static int g_cursorDrawing, g_cursorVisible;
 static int g_surfacesReleased;
-static XvtSnapSprite g_cursorSprite;
+static struct XvtSnapSprite g_cursorSprite;
 
-typedef struct FrontendGlyphIdentity {
+struct FrontendGlyphIdentity {
 	uintptr_t pixels_address;
 	uint16_t character, width, height;
-} FrontendGlyphIdentity;
+};
 
-static FrontendGlyphIdentity g_fontGlyphs[10][256];
+static struct FrontendGlyphIdentity g_fontGlyphs[10][256];
 static uint64_t g_fontAssetIds[10];
 
 static int CompareGlyphIdentity(const void *left, const void *right)
 {
-	const FrontendGlyphIdentity *a = left;
-	const FrontendGlyphIdentity *b = right;
+	const struct FrontendGlyphIdentity *a = left;
+	const struct FrontendGlyphIdentity *b = right;
 	if (a->pixels_address != b->pixels_address) {
 		return a->pixels_address < b->pixels_address ? -1 : 1;
 	}
 	return (int)a->character - b->character;
 }
 
-void XvtRenderFrontend_FontLoaded(const BitmapFont *font)
+void XvtRenderFrontend_FontLoaded(const struct BitmapFont *font)
 {
 	for (unsigned slot = 0; slot < 10; ++slot) {
 		if (font != &g_frontState.fontSlots[slot]) {
@@ -45,7 +45,7 @@ void XvtRenderFrontend_FontLoaded(const BitmapFont *font)
 		}
 		g_fontAssetIds[slot] = XvtRenderAssets_ImageId(font);
 		for (unsigned ch = 0; ch < 256; ++ch) {
-			g_fontGlyphs[slot][ch] = (FrontendGlyphIdentity){
+			g_fontGlyphs[slot][ch] = (struct FrontendGlyphIdentity){
 				(uintptr_t)(font->pGlyphBits +
 					    font->glyphBitOffset[ch]),
 				ch, font->glyphWidth[ch],
@@ -57,9 +57,9 @@ void XvtRenderFrontend_FontLoaded(const BitmapFont *font)
 	}
 }
 
-static int FindFontGlyph(unsigned slot, const ImageResource *glyph)
+static int FindFontGlyph(unsigned slot, const struct ImageResource *glyph)
 {
-	const FrontendGlyphIdentity *entries = g_fontGlyphs[slot];
+	const struct FrontendGlyphIdentity *entries = g_fontGlyphs[slot];
 	uintptr_t pixels_address = (uintptr_t)glyph->pixels;
 	unsigned first = 0, end = 256;
 	while (first < end) {
@@ -121,7 +121,7 @@ void XvtRenderFrontend_Suppress(int begin)
 	}
 }
 
-static XvtRenderSnapshot *Writer(void)
+static struct XvtRenderSnapshot *Writer(void)
 {
 	return g_suppress ? NULL : XvtRenderSnapshot_Writer();
 }
@@ -130,7 +130,7 @@ static uint32_t Color(unsigned c)
 {
 	unsigned r, g, b;
 	if (g_frontState.displayBpp == 8) {
-		const FrontendPaletteEntry *p =
+		const struct FrontendPaletteEntry *p =
 			&g_frontState.displayPalette[c & 255];
 		return 0xff000000u | ((unsigned)p->red << 16) |
 		       ((unsigned)p->green << 8) | p->blue;
@@ -149,9 +149,9 @@ static uint32_t Color(unsigned c)
 	       (b << 3) | (b >> 2);
 }
 
-static XvtSnapDrawHeader Header(void)
+static struct XvtSnapDrawHeader Header(void)
 {
-	return (XvtSnapDrawHeader){
+	return (struct XvtSnapDrawHeader){
 		XvtRenderSnapshot_NextOrder(),
 		g_target,
 		XVT_SCOPE_FRONTEND,
@@ -178,11 +178,11 @@ static unsigned GlyphColor(unsigned color)
 	       (((color & 31) * fade / total) & 31);
 }
 
-void XvtRenderFrontend_Image(const ImageResource *image, int sx, int sy, int x,
-			     int y, int width, int height, unsigned kind,
+void XvtRenderFrontend_Image(const struct ImageResource *image, int sx, int sy,
+			     int x, int y, int width, int height, unsigned kind,
 			     unsigned tint)
 {
-	XvtRenderSnapshot *s = Writer();
+	struct XvtRenderSnapshot *s = Writer();
 	if (!s || !image || width <= 0 || height <= 0) {
 		return;
 	}
@@ -191,36 +191,38 @@ void XvtRenderFrontend_Image(const ImageResource *image, int sx, int sy, int x,
 		++s->dropped_records;
 		return;
 	}
-	XvtSnapSprite *b = g_cursorDrawing ? &g_cursorSprite
-					   : &s->sprites[s->sprite_count++];
+	struct XvtSnapSprite *b = g_cursorDrawing
+					  ? &g_cursorSprite
+					  : &s->sprites[s->sprite_count++];
 	memset(b, 0, sizeof *b);
 	b->draw = Header();
 	b->asset_id = id;
 	b->kind = kind;
-	b->source = (XvtSnapRect){sx, sy, width, height};
-	b->destination = (XvtSnapRect){x, y, width, height};
+	b->source = (struct XvtSnapRect){sx, sy, width, height};
+	b->destination = (struct XvtSnapRect){x, y, width, height};
 	b->tint_color = kind == XVT_SPRITE_FRONT_TINTED ? tint : 0;
 	if (g_cursorDrawing) {
 		b->draw.target = XVT_TARGET_FRONT_CURSOR;
 		/* Keep the whole cursor; presentation clips it at the live pointer position. */
-		b->source = (XvtSnapRect){0, 0, image->width, image->height};
-		b->destination = (XvtSnapRect){x - sx, y - sy, image->width,
-					       image->height};
+		b->source =
+			(struct XvtSnapRect){0, 0, image->width, image->height};
+		b->destination = (struct XvtSnapRect){
+			x - sx, y - sy, image->width, image->height};
 		g_cursorVisible = 1;
 	}
 }
 
-void XvtRenderFrontend_Glyph(const ImageResource *glyph, int x, int y,
+void XvtRenderFrontend_Glyph(const struct ImageResource *glyph, int x, int y,
 			     unsigned color, int remap)
 {
-	XvtRenderSnapshot *s = Writer();
+	struct XvtRenderSnapshot *s = Writer();
 	if (!s || !glyph) {
 		return;
 	}
 	/* All string layouts construct a view into a live ABP font. Resolve it here
 	 * after wrapping/clipping, including direct glyph calls, without nested emits. */
 	for (unsigned f = 0; f < 10; ++f) {
-		const BitmapFont *font = &g_frontState.fontSlots[f];
+		const struct BitmapFont *font = &g_frontState.fontSlots[f];
 		if (!font->inUse) {
 			continue;
 		}
@@ -236,7 +238,7 @@ void XvtRenderFrontend_Glyph(const ImageResource *glyph, int x, int y,
 		    g_frontState.textFadeFramesLeft) {
 			color = GlyphColor(color);
 		}
-		XvtSnapGlyph *g = &s->glyphs[s->glyph_count++];
+		struct XvtSnapGlyph *g = &s->glyphs[s->glyph_count++];
 		memset(g, 0, sizeof *g);
 		g->draw = Header();
 		g->font_asset_id = g_fontAssetIds[f];
@@ -253,7 +255,7 @@ void XvtRenderFrontend_Glyph(const ImageResource *glyph, int x, int y,
 void XvtRenderFrontend_Paint(unsigned kind, int x0, int y0, int x1, int y1,
 			     unsigned color)
 {
-	XvtRenderSnapshot *s = Writer();
+	struct XvtRenderSnapshot *s = Writer();
 	if (!s) {
 		return;
 	}
@@ -261,16 +263,17 @@ void XvtRenderFrontend_Paint(unsigned kind, int x0, int y0, int x1, int y1,
 		++s->dropped_records;
 		return;
 	}
-	XvtSnapPaint *p = &s->paint[s->paint_count++];
-	*p = (XvtSnapPaint){Header(), kind, Color(color), x0, y0, x1, y1};
+	struct XvtSnapPaint *p = &s->paint[s->paint_count++];
+	*p = (struct XvtSnapPaint){Header(), kind, Color(color), x0, y0,
+				   x1,	     y1};
 	if (kind == XVT_PAINT_TRANSLUCENT && g_frontState.displayBpp == 16) {
 		p->color_argb = (p->color_argb & 0xffffffu) | 0x80000000u;
 	}
 }
 
-static void CopyRect(unsigned source, unsigned target, XvtSnapRect rect)
+static void CopyRect(unsigned source, unsigned target, struct XvtSnapRect rect)
 {
-	XvtRenderSnapshot *s = Writer();
+	struct XvtRenderSnapshot *s = Writer();
 	if (!s) {
 		return;
 	}
@@ -278,17 +281,17 @@ static void CopyRect(unsigned source, unsigned target, XvtSnapRect rect)
 		++s->dropped_records;
 		return;
 	}
-	XvtSnapCopyRect *c = &s->copies[s->copy_count++];
-	*c = (XvtSnapCopyRect){.draw = Header(),
-			       .source_target = (uint16_t)source,
-			       .source = rect,
-			       .destination = rect};
+	struct XvtSnapCopyRect *c = &s->copies[s->copy_count++];
+	*c = (struct XvtSnapCopyRect){.draw = Header(),
+				      .source_target = (uint16_t)source,
+				      .source = rect,
+				      .destination = rect};
 	c->draw.target = target;
 }
 
 void XvtRenderFrontend_Copy(unsigned source, unsigned target)
 {
-	CopyRect(source, target, (XvtSnapRect){0, 0, 640, 480});
+	CopyRect(source, target, (struct XvtSnapRect){0, 0, 640, 480});
 	if (!g_suppress && target == XVT_TARGET_FRONT_BACK) {
 		g_cursorVisible = 0;
 	}
@@ -299,19 +302,19 @@ void XvtRenderFrontend_Screen(int slot, int restore)
 	if ((unsigned)slot >= XVT_TARGET_FRONT_SAVED_COUNT) {
 		return;
 	}
-	const RECT *r = &g_frontState.screenStates[slot].savedRect;
+	const struct RECT *r = &g_frontState.screenStates[slot].savedRect;
 	unsigned target = g_frontState.offscreenRestoreEnabled
 				  ? XVT_TARGET_FRONT_OFFSCREEN
 				  : XVT_TARGET_FRONT_BACK;
 	unsigned saved = XVT_TARGET_FRONT_SAVED_FIRST + slot;
 	CopyRect(restore ? saved : target, restore ? target : saved,
-		 (XvtSnapRect){r->left, r->top, r->right - r->left + 1,
-			       r->bottom - r->top + 1});
+		 (struct XvtSnapRect){r->left, r->top, r->right - r->left + 1,
+				      r->bottom - r->top + 1});
 }
 
 static void Event(unsigned kind, unsigned target, uint32_t color)
 {
-	XvtRenderSnapshot *s = Writer();
+	struct XvtRenderSnapshot *s = Writer();
 	if (!s) {
 		return;
 	}
@@ -320,13 +323,13 @@ static void Event(unsigned kind, unsigned target, uint32_t color)
 		return;
 	}
 	s->surface_events[s->surface_event_count++] =
-		(XvtSnapSurfaceEvent){XvtRenderSnapshot_NextOrder(),
-				      kind,
-				      target,
-				      0,
-				      {0, 0, 640, 480},
-				      color,
-				      0};
+		(struct XvtSnapSurfaceEvent){XvtRenderSnapshot_NextOrder(),
+					     kind,
+					     target,
+					     0,
+					     {0, 0, 640, 480},
+					     color,
+					     0};
 }
 
 void XvtRenderFrontend_Clear(unsigned target, unsigned color)
@@ -354,7 +357,7 @@ void XvtRenderFrontend_FlightUiScene(XvtSceneKind kind)
 
 void XvtRenderFrontend_Present(void)
 {
-	XvtRenderSnapshot *s = Writer();
+	struct XvtRenderSnapshot *s = Writer();
 	if (!s) {
 		return;
 	}
@@ -365,10 +368,10 @@ void XvtRenderFrontend_Present(void)
 			++s->dropped_records;
 			return;
 		}
-		XvtSnapSprite cursor = g_cursorSprite;
+		struct XvtSnapSprite cursor = g_cursorSprite;
 		cursor.draw.z_order = XvtRenderSnapshot_NextOrder();
 		s->sprites[s->sprite_count++] = cursor;
-		s->cursor = (XvtSnapCursor){
+		s->cursor = (struct XvtSnapCursor){
 			cursor.asset_id,	   cursor.destination.x,
 			cursor.destination.y,	   cursor.destination.width,
 			cursor.destination.height, 1};
@@ -407,7 +410,7 @@ void XvtRenderFrontend_Cursor(int restore)
 		int index = FrontImage_FindResourceByName(
 			g_frontState.cursorSpriteName);
 		if (index >= 0) {
-			const ImageResource *image =
+			const struct ImageResource *image =
 				g_frontState.resourceTable[index].image;
 			if (image) {
 				XvtRenderFrontend_Image(
@@ -425,9 +428,9 @@ void XvtRenderFrontend_Cursor(int restore)
 	g_cursorSprite.asset_id =
 		XvtRenderAssets_ImageId(XvtRenderAssets_DefaultCursor());
 	g_cursorSprite.kind = XVT_SPRITE_FRONT_KEYED;
-	g_cursorSprite.source = (XvtSnapRect){0, 0, g_frontState.cursorWidth,
-					      g_frontState.cursorHeight};
-	g_cursorSprite.destination = (XvtSnapRect){
+	g_cursorSprite.source = (struct XvtSnapRect){
+		0, 0, g_frontState.cursorWidth, g_frontState.cursorHeight};
+	g_cursorSprite.destination = (struct XvtSnapRect){
 		g_frontState.mouseX, g_frontState.mouseY,
 		g_frontState.cursorWidth, g_frontState.cursorHeight};
 	g_cursorVisible = 1;
@@ -447,7 +450,7 @@ void XvtRenderFrontend_Movie(int begin)
 	}
 }
 
-void XvtRenderFrontend_Commit(XvtRenderSnapshot *s)
+void XvtRenderFrontend_Commit(struct XvtRenderSnapshot *s)
 {
 	s->presentation_serial = g_serial;
 	s->presented_scene = g_presentedScene;

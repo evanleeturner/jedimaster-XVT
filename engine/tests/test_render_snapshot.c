@@ -17,7 +17,7 @@ static void Fresh(void)
 }
 
 /* One whole host frame: open, then commit at game time time. */
-static const XvtRenderSnapshot *RunFrame(int32_t time)
+static const struct XvtRenderSnapshot *RunFrame(int32_t time)
 {
 	XvtRenderSnapshot_BeginFrame();
 	XvtRenderSnapshot_Commit(time, 1, 0);
@@ -55,7 +55,7 @@ static void CheckFirstPublication(void)
 	XVT_ASSERT_TRUE(XvtRenderSnapshot_Previous() == NULL);
 	XVT_ASSERT_TRUE(XvtRenderSnapshot_Writer() == NULL);
 	XvtRenderSnapshot_BeginFrame();
-	XvtRenderSnapshot *writer = XvtRenderSnapshot_Writer();
+	struct XvtRenderSnapshot *writer = XvtRenderSnapshot_Writer();
 	XVT_ASSERT_TRUE(writer != NULL);
 	XvtRenderSnapshot_Commit(10, 1, 0);
 	XVT_ASSERT_TRUE(XvtRenderSnapshot_Writer() == NULL);
@@ -71,11 +71,11 @@ static void CheckFirstPublication(void)
 static void CheckRotation(void)
 {
 	Fresh();
-	const XvtRenderSnapshot *seen[3] = {NULL, NULL, NULL};
-	const XvtRenderSnapshot *current = NULL;
+	const struct XvtRenderSnapshot *seen[3] = {NULL, NULL, NULL};
+	const struct XvtRenderSnapshot *current = NULL;
 	for (int tick = 0; tick < 7; ++tick) {
 		XvtRenderSnapshot_BeginFrame();
-		XvtRenderSnapshot *writer = XvtRenderSnapshot_Writer();
+		struct XvtRenderSnapshot *writer = XvtRenderSnapshot_Writer();
 		XVT_ASSERT_TRUE(writer != NULL);
 		XVT_ASSERT_TRUE(writer != XvtRenderSnapshot_Current());
 		XVT_ASSERT_TRUE(writer != XvtRenderSnapshot_Previous());
@@ -97,7 +97,7 @@ static void CheckRotation(void)
 static void CheckCommitStamps(void)
 {
 	Fresh();
-	const XvtRenderSnapshot *first = RunFrame(1234);
+	const struct XvtRenderSnapshot *first = RunFrame(1234);
 	uint64_t index = first->snapshot_serial;
 	uint64_t host = first->capture_host_us;
 	XVT_ASSERT_INT_EQ(first->game_time_ticks, 1234);
@@ -106,7 +106,7 @@ static void CheckCommitStamps(void)
 
 	XvtRenderSnapshot_BeginFrame();
 	XvtRenderSnapshot_Commit(-5, 0, 7);
-	const XvtRenderSnapshot *second = XvtRenderSnapshot_Current();
+	const struct XvtRenderSnapshot *second = XvtRenderSnapshot_Current();
 	XVT_ASSERT_INT_EQ(second->game_time_ticks, -5);
 	XVT_ASSERT_INT_EQ(second->focused, 0);
 	XVT_ASSERT_TRUE(second->paused != 0);
@@ -119,7 +119,7 @@ static void CheckCommitStamps(void)
 static void CheckCommitExportsAssets(void)
 {
 	Fresh();
-	const XvtRenderSnapshot *snapshot = RunFrame(0);
+	const struct XvtRenderSnapshot *snapshot = RunFrame(0);
 	int cursor = 0;
 	for (uint32_t i = 0; i < snapshot->image_asset_count; ++i) {
 		cursor |= snapshot->image_assets[i].kind ==
@@ -136,7 +136,7 @@ static void CheckBeginFrameClearsCounts(void)
 	Fresh();
 	XvtRenderCapture_BeginMission();
 	XvtRenderSnapshot_BeginFrame();
-	XvtRenderSnapshot *slot = XvtRenderSnapshot_Writer();
+	struct XvtRenderSnapshot *slot = XvtRenderSnapshot_Writer();
 	slot->dropped_records = 3;
 	slot->flight_valid = 1;
 	slot->camera.valid = 1;
@@ -193,7 +193,7 @@ static void CheckBeginFrameIdempotent(void)
 {
 	Fresh();
 	XvtRenderSnapshot_BeginFrame();
-	XvtRenderSnapshot *writer = XvtRenderSnapshot_Writer();
+	struct XvtRenderSnapshot *writer = XvtRenderSnapshot_Writer();
 	XVT_ASSERT_INT_EQ(XvtRenderSnapshot_NextOrder(), 0);
 	XVT_ASSERT_INT_EQ(XvtRenderSnapshot_NextOrder(), 1);
 	writer->sprite_count = 3;
@@ -253,7 +253,7 @@ static void CheckSceneKind(void)
 static void CheckSecondInit(void)
 {
 	Fresh();
-	const XvtRenderSnapshot *first = RunFrame(77);
+	const struct XvtRenderSnapshot *first = RunFrame(77);
 	XvtRenderSnapshot_Init();
 	XVT_ASSERT_TRUE(XvtRenderSnapshot_Current() == first);
 	XVT_ASSERT_INT_EQ(first->game_time_ticks, 77);
@@ -264,7 +264,7 @@ static void CheckSecondInit(void)
 static void CheckShutdown(void)
 {
 	Fresh();
-	const XvtRenderSnapshot *slots[3];
+	const struct XvtRenderSnapshot *slots[3];
 	for (int i = 0; i < 3; ++i) {
 		slots[i] = RunFrame(100 + i);
 	}

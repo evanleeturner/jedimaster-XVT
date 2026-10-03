@@ -29,16 +29,16 @@ int access(const char *filename, int mode);
 #endif
 
 #ifndef XVT_MODERN
-typedef struct InventorFieldRecord {
+struct InventorFieldRecord {
 	int fieldType; /* The InventorFieldType of the values in data. */
 	/* Values in data: 1 for one value, the length of a list. */
 	int itemCount;
 	/* The values, stored in the model's block; for a string, its
 	 * characters. */
 	void *data;
-} InventorFieldRecord;
+};
 
-typedef struct OptExternalTexHeader {
+struct OptExternalTexHeader {
 	/* The 8 bytes before the sizes; nothing reads them. */
 	uint8_t prefix[8];
 	/* Compared with width times height: when they are equal,
@@ -48,7 +48,7 @@ typedef struct OptExternalTexHeader {
 	int storedPayloadSize;
 	int width;  /* Texture width in texels. */
 	int height; /* Texture height in texels. */
-} OptExternalTexHeader;
+};
 
 typedef enum InventorFieldType {
 	INVENTOR_FIELD_STRING = 1,
@@ -73,7 +73,7 @@ typedef enum InventorFieldType {
 	INVENTOR_FIELD_ENUM_LIST = 22,
 } InventorFieldType;
 
-typedef struct InventorEnumDef {
+struct InventorEnumDef {
 	/* Entries a lookup scans in valueNames and values. The component and
 	 * hardpoint enums give 41 for tables of 32. */
 	int valueCount;
@@ -81,93 +81,93 @@ typedef struct InventorEnumDef {
 	 * matching none is read as a number. */
 	const char *const *valueNames;
 	const int *values; /* The value stored for each name. */
-} InventorEnumDef;
+};
 
-typedef struct InventorFieldDef {
+struct InventorFieldDef {
 	/* Name as written in the file. A word matches when, ignoring case, it
 	 * is this name or its start. */
 	const char *fieldName;
 	InventorFieldType fieldType; /* How the parser reads the value. */
 	/* Names and values of an enum field; NULL for others. */
-	const InventorEnumDef *enumDef;
+	const struct InventorEnumDef *enumDef;
 	/* Type and item count the record takes when the node leaves the field
 	 * out. */
-	const InventorFieldRecord *defaultRecord;
+	const struct InventorFieldRecord *defaultRecord;
 	/* Values copied into the model when the node leaves the field out. */
 	const void *defaultData;
 	size_t defaultDataSize; /* Bytes of defaultData. */
-} InventorFieldDef;
+};
 
 /* Default record of an integer-list field: 4 items. */
 // GLOBAL: XVT 0x51AF28
-static const InventorFieldRecord g_defaultIntegerListRecord = {
+static const struct InventorFieldRecord g_defaultIntegerListRecord = {
 	INVENTOR_FIELD_INTEGER_LIST, 4, NULL};
 /* Default of an integer-list field: 0, 1, 2, -1. */
 // GLOBAL: XVT 0x51AF38
 static const int g_defaultIntegerList[4] = {0, 1, 2, -1};
 /* Default record of an integer field: 1 item. */
 // GLOBAL: XVT 0x51AF58
-static const InventorFieldRecord g_defaultIntegerRecord = {
+static const struct InventorFieldRecord g_defaultIntegerRecord = {
 	INVENTOR_FIELD_INTEGER, 1, NULL};
 /* Default of an integer field: 0. */
 // GLOBAL: XVT 0x51AF64
 static const int g_defaultInteger = 0;
 /* Default record of a string field: 1 item. */
 // GLOBAL: XVT 0x51AF48
-static const InventorFieldRecord g_defaultStringRecord = {INVENTOR_FIELD_STRING,
-							  1, NULL};
+static const struct InventorFieldRecord g_defaultStringRecord = {
+	INVENTOR_FIELD_STRING, 1, NULL};
 /* Default of a string field: the empty string. */
 // GLOBAL: XVT 0x51AF54
 static const char g_defaultString[1] = {'\0'};
 /* Default record of a list of 3-vectors: 1 item. */
 // GLOBAL: XVT 0x51AFB8
-static const InventorFieldRecord g_defaultVector3ListRecord = {
+static const struct InventorFieldRecord g_defaultVector3ListRecord = {
 	INVENTOR_FIELD_VECTOR3_LIST, 1, NULL};
 /* Default record of a single 3-vector: 1 item. */
 // GLOBAL: XVT 0x51AFF0
-static const InventorFieldRecord g_defaultVector3Record = {
+static const struct InventorFieldRecord g_defaultVector3Record = {
 	INVENTOR_FIELD_VECTOR3, 1, NULL};
 /* Default of the point and vector lists: one (0, 0, 0). */
 // GLOBAL: XVT 0x51AFC8
-static const OptVector g_defaultZeroVector = {0.0f, 0.0f, 0.0f};
+static const struct OptVector g_defaultZeroVector = {0.0f, 0.0f, 0.0f};
 /* Default of translation, center, size, minvector, maxvector, groupcenter and
  * the three axes: (0, 0, 0). */
 // GLOBAL: XVT 0x51B000
-static const OptVector g_defaultZeroScalarVector = {0.0f, 0.0f, 0.0f};
+static const struct OptVector g_defaultZeroScalarVector = {0.0f, 0.0f, 0.0f};
 /* Default of scaleFactor: (1, 1, 1). */
 // GLOBAL: XVT 0x51B020
-static const OptVector g_defaultUnitVector = {1.0f, 1.0f, 1.0f};
+static const struct OptVector g_defaultUnitVector = {1.0f, 1.0f, 1.0f};
 /* Default record of a rotation: 1 item. */
 // GLOBAL: XVT 0x51B030
-static const InventorFieldRecord g_defaultRotationRecord = {
+static const struct InventorFieldRecord g_defaultRotationRecord = {
 	INVENTOR_FIELD_ROTATION, 1, NULL};
 /* Default of rotation and scaleOrientation: 0, 0, 1, 0. */
 // GLOBAL: XVT 0x51B040
 static const float g_defaultRotation[4] = {0.0f, 0.0f, 1.0f, 0.0f};
 /* Default record of a color list: 1 item. */
 // GLOBAL: XVT 0x51B050
-static const InventorFieldRecord g_defaultColorListRecord = {
+static const struct InventorFieldRecord g_defaultColorListRecord = {
 	INVENTOR_FIELD_COLOR_LIST, 1, NULL};
 /* Default record of a single color: 1 item. */
 // GLOBAL: XVT 0x51B090
-static const InventorFieldRecord g_defaultColorRecord = {INVENTOR_FIELD_COLOR,
-							 1, NULL};
+static const struct InventorFieldRecord g_defaultColorRecord = {
+	INVENTOR_FIELD_COLOR, 1, NULL};
 /* Default of ambientColor: (0.2, 0.2, 0.2). */
 // GLOBAL: XVT 0x51B060
-static const OptVector g_defaultAmbientColor = {0.2f, 0.2f, 0.2f};
+static const struct OptVector g_defaultAmbientColor = {0.2f, 0.2f, 0.2f};
 /* Default of diffuseColor: (0.8, 0.8, 0.8). */
 // GLOBAL: XVT 0x51B070
-static const OptVector g_defaultDiffuseColor = {0.8f, 0.8f, 0.8f};
+static const struct OptVector g_defaultDiffuseColor = {0.8f, 0.8f, 0.8f};
 /* Default of specularColor and emissiveColor: (0, 0, 0). */
 // GLOBAL: XVT 0x51B080
-static const OptVector g_defaultBlackColor = {0.0f, 0.0f, 0.0f};
+static const struct OptVector g_defaultBlackColor = {0.0f, 0.0f, 0.0f};
 /* Default of rgb and blendColor: (0.8, 0.8, 0.8). */
 // GLOBAL: XVT 0x51B0A0
-static const OptVector g_defaultRgbColor = {0.8f, 0.8f, 0.8f};
+static const struct OptVector g_defaultRgbColor = {0.8f, 0.8f, 0.8f};
 /* Default record of a float field: 1 item. */
 // GLOBAL: XVT 0x51B0B0
-static const InventorFieldRecord g_defaultFloatRecord = {INVENTOR_FIELD_FLOAT,
-							 1, NULL};
+static const struct InventorFieldRecord g_defaultFloatRecord = {
+	INVENTOR_FIELD_FLOAT, 1, NULL};
 /* Default of screenArea and transparency: 0. */
 // GLOBAL: XVT 0x51B0BC
 static const float g_defaultZeroFloat = 0.0f;
@@ -176,15 +176,15 @@ static const float g_defaultZeroFloat = 0.0f;
 static const float g_defaultShininess = 0.2f;
 /* Default record of a list of 2-vectors: 1 item. */
 // GLOBAL: XVT 0x51AFD8
-static const InventorFieldRecord g_defaultVector2ListRecord = {
+static const struct InventorFieldRecord g_defaultVector2ListRecord = {
 	INVENTOR_FIELD_VECTOR2_LIST, 1, NULL};
 /* Default of the 2D point list: one (0, 0). */
 // GLOBAL: XVT 0x51AFE8
 static const float g_defaultVector2[2] = {0.0f, 0.0f};
 /* Default record of an enum field: 1 item. */
 // GLOBAL: XVT 0x51AF18
-static const InventorFieldRecord g_defaultEnumRecord = {INVENTOR_FIELD_ENUM, 1,
-							NULL};
+static const struct InventorFieldRecord g_defaultEnumRecord = {
+	INVENTOR_FIELD_ENUM, 1, NULL};
 /* Default of an enum field: 0, the value of each enum's first name. */
 // GLOBAL: XVT 0x51AF24
 static const int g_defaultEnum = 0;
@@ -201,8 +201,8 @@ static const char *const g_bindingNames[9] = {
 static const int g_bindingValues[9] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
 /* The binding enum: 9 names. */
 // GLOBAL: XVT 0x51B370
-static const InventorEnumDef g_bindingEnum = {9, g_bindingNames,
-					      g_bindingValues};
+static const struct InventorEnumDef g_bindingEnum = {9, g_bindingNames,
+						     g_bindingValues};
 /* Names of the wrapS and wrapT enum. */
 // GLOBAL: XVT 0x51B400
 static const char *const g_wrapNames[2] = {"REPEAT", "CLAMP"};
@@ -211,7 +211,7 @@ static const char *const g_wrapNames[2] = {"REPEAT", "CLAMP"};
 static const int g_wrapValues[2] = {0, 1};
 /* The wrap enum: 2 names. */
 // GLOBAL: XVT 0x51B410
-static const InventorEnumDef g_wrapEnum = {2, g_wrapNames, g_wrapValues};
+static const struct InventorEnumDef g_wrapEnum = {2, g_wrapNames, g_wrapValues};
 /* Names of the texture2 model enum. */
 // GLOBAL: XVT 0x51B460
 static const char *const g_textureModelNames[3] = {"MODULATE", "DECAL",
@@ -221,8 +221,8 @@ static const char *const g_textureModelNames[3] = {"MODULATE", "DECAL",
 static const int g_textureModelValues[3] = {0, 1, 2};
 /* The texture model enum: 3 names. */
 // GLOBAL: XVT 0x51B480
-static const InventorEnumDef g_textureModelEnum = {3, g_textureModelNames,
-						   g_textureModelValues};
+static const struct InventorEnumDef g_textureModelEnum = {
+	3, g_textureModelNames, g_textureModelValues};
 /* Names of the componentInfo type enum; name n stands for value n. */
 // GLOBAL: XVT 0x51B7A0
 static const char *const g_componentTypeNames[32] = {
@@ -252,8 +252,8 @@ static const int g_componentTypeValues[32] = {
  * matches none of the 32 sends the lookup past the end of
  * g_componentTypeNames. */
 // GLOBAL: XVT 0x51B8A0
-static const InventorEnumDef g_componentTypeEnum = {41, g_componentTypeNames,
-						    g_componentTypeValues};
+static const struct InventorEnumDef g_componentTypeEnum = {
+	41, g_componentTypeNames, g_componentTypeValues};
 /* Names of the hardpoint type enum; name n stands for value n. */
 // GLOBAL: XVT 0x51B958
 static const char *const g_hardpointTypeNames[32] = {
@@ -299,12 +299,12 @@ static const int g_hardpointTypeValues[32] = {
  * matches none of the 32 sends the lookup past the end of
  * g_hardpointTypeNames. */
 // GLOBAL: XVT 0x51BA58
-static const InventorEnumDef g_hardpointTypeEnum = {41, g_hardpointTypeNames,
-						    g_hardpointTypeValues};
+static const struct InventorEnumDef g_hardpointTypeEnum = {
+	41, g_hardpointTypeNames, g_hardpointTypeValues};
 
 /* Field coordIndex: an integer list; the default is 0, 1, 2, -1. */
 // GLOBAL: XVT 0x51B0C8
-static const InventorFieldDef g_fieldCoordIndex = {
+static const struct InventorFieldDef g_fieldCoordIndex = {
 	"coordIndex",
 	INVENTOR_FIELD_INTEGER_LIST,
 	NULL,
@@ -313,7 +313,7 @@ static const InventorFieldDef g_fieldCoordIndex = {
 	sizeof(g_defaultIntegerList)};
 /* Field materialIndex: an integer list; the default is 0, 1, 2, -1. */
 // GLOBAL: XVT 0x51B0E0
-static const InventorFieldDef g_fieldMaterialIndex = {
+static const struct InventorFieldDef g_fieldMaterialIndex = {
 	"materialIndex",
 	INVENTOR_FIELD_INTEGER_LIST,
 	NULL,
@@ -322,7 +322,7 @@ static const InventorFieldDef g_fieldMaterialIndex = {
 	sizeof(g_defaultIntegerList)};
 /* Field normalIndex: an integer list; the default is 0, 1, 2, -1. */
 // GLOBAL: XVT 0x51B0F8
-static const InventorFieldDef g_fieldNormalIndex = {
+static const struct InventorFieldDef g_fieldNormalIndex = {
 	"normalIndex",
 	INVENTOR_FIELD_INTEGER_LIST,
 	NULL,
@@ -331,7 +331,7 @@ static const InventorFieldDef g_fieldNormalIndex = {
 	sizeof(g_defaultIntegerList)};
 /* Field textureCoordIndex: an integer list; the default is 0, 1, 2, -1. */
 // GLOBAL: XVT 0x51B110
-static const InventorFieldDef g_fieldTextureCoordIndex = {
+static const struct InventorFieldDef g_fieldTextureCoordIndex = {
 	"textureCoordIndex",
 	INVENTOR_FIELD_INTEGER_LIST,
 	NULL,
@@ -340,7 +340,7 @@ static const InventorFieldDef g_fieldTextureCoordIndex = {
 	sizeof(g_defaultIntegerList)};
 /* Field numVertices: an integer list; the default is 0, 1, 2, -1. */
 // GLOBAL: XVT 0x51B128
-static const InventorFieldDef g_fieldNumVertices = {
+static const struct InventorFieldDef g_fieldNumVertices = {
 	"numVertices",
 	INVENTOR_FIELD_INTEGER_LIST,
 	NULL,
@@ -349,15 +349,16 @@ static const InventorFieldDef g_fieldNumVertices = {
 	sizeof(g_defaultIntegerList)};
 /* Field startIndex: an integer; the default is 0. */
 // GLOBAL: XVT 0x51B140
-static const InventorFieldDef g_fieldStartIndex = {"startIndex",
-						   INVENTOR_FIELD_INTEGER,
-						   NULL,
-						   &g_defaultIntegerRecord,
-						   &g_defaultInteger,
-						   sizeof(g_defaultInteger)};
+static const struct InventorFieldDef g_fieldStartIndex = {
+	"startIndex",
+	INVENTOR_FIELD_INTEGER,
+	NULL,
+	&g_defaultIntegerRecord,
+	&g_defaultInteger,
+	sizeof(g_defaultInteger)};
 /* Field verticesPerRow: an integer; the default is 0. */
 // GLOBAL: XVT 0x51B158
-static const InventorFieldDef g_fieldVerticesPerRow = {
+static const struct InventorFieldDef g_fieldVerticesPerRow = {
 	"verticesPerRow",
 	INVENTOR_FIELD_INTEGER,
 	NULL,
@@ -366,7 +367,7 @@ static const InventorFieldDef g_fieldVerticesPerRow = {
 	sizeof(g_defaultInteger)};
 /* Field verticesPerColumn: an integer; the default is 0. */
 // GLOBAL: XVT 0x51B170
-static const InventorFieldDef g_fieldVerticesPerColumn = {
+static const struct InventorFieldDef g_fieldVerticesPerColumn = {
 	"verticesPerColumn",
 	INVENTOR_FIELD_INTEGER,
 	NULL,
@@ -376,32 +377,35 @@ static const InventorFieldDef g_fieldVerticesPerColumn = {
 /* Field point of textureCoordinate2: a list of 2-vectors; the default is one
  * (0, 0). */
 // GLOBAL: XVT 0x51B1A0
-static const InventorFieldDef g_fieldPoint2 = {"point",
-					       INVENTOR_FIELD_VECTOR2_LIST,
-					       NULL,
-					       &g_defaultVector2ListRecord,
-					       &g_defaultVector2,
-					       sizeof(g_defaultVector2)};
+static const struct InventorFieldDef g_fieldPoint2 = {
+	"point",
+	INVENTOR_FIELD_VECTOR2_LIST,
+	NULL,
+	&g_defaultVector2ListRecord,
+	&g_defaultVector2,
+	sizeof(g_defaultVector2)};
 /* Field point of coordinate3 and hardpoint: a list of 3-vectors; the default is
  * one (0, 0, 0). */
 // GLOBAL: XVT 0x51B1B8
-static const InventorFieldDef g_fieldPoint3 = {"point",
-					       INVENTOR_FIELD_VECTOR3_LIST,
-					       NULL,
-					       &g_defaultVector3ListRecord,
-					       &g_defaultZeroVector,
-					       sizeof(g_defaultZeroVector)};
+static const struct InventorFieldDef g_fieldPoint3 = {
+	"point",
+	INVENTOR_FIELD_VECTOR3_LIST,
+	NULL,
+	&g_defaultVector3ListRecord,
+	&g_defaultZeroVector,
+	sizeof(g_defaultZeroVector)};
 /* Field vector of normal: a list of 3-vectors; the default is one (0, 0, 0). */
 // GLOBAL: XVT 0x51B1D0
-static const InventorFieldDef g_fieldVector = {"vector",
-					       INVENTOR_FIELD_VECTOR3_LIST,
-					       NULL,
-					       &g_defaultVector3ListRecord,
-					       &g_defaultZeroVector,
-					       sizeof(g_defaultZeroVector)};
+static const struct InventorFieldDef g_fieldVector = {
+	"vector",
+	INVENTOR_FIELD_VECTOR3_LIST,
+	NULL,
+	&g_defaultVector3ListRecord,
+	&g_defaultZeroVector,
+	sizeof(g_defaultZeroVector)};
 /* Field translation: a 3-vector; the default is (0, 0, 0). */
 // GLOBAL: XVT 0x51B1E8
-static const InventorFieldDef g_fieldTranslation = {
+static const struct InventorFieldDef g_fieldTranslation = {
 	"translation",
 	INVENTOR_FIELD_VECTOR3,
 	NULL,
@@ -410,7 +414,7 @@ static const InventorFieldDef g_fieldTranslation = {
 	sizeof(g_defaultZeroScalarVector)};
 /* Field scaleFactor: a 3-vector; the default is (1, 1, 1). */
 // GLOBAL: XVT 0x51B200
-static const InventorFieldDef g_fieldScaleFactor = {
+static const struct InventorFieldDef g_fieldScaleFactor = {
 	"scaleFactor",
 	INVENTOR_FIELD_VECTOR3,
 	NULL,
@@ -419,7 +423,7 @@ static const InventorFieldDef g_fieldScaleFactor = {
 	sizeof(g_defaultUnitVector)};
 /* Field center: a 3-vector; the default is (0, 0, 0). */
 // GLOBAL: XVT 0x51B218
-static const InventorFieldDef g_fieldCenter = {
+static const struct InventorFieldDef g_fieldCenter = {
 	"center",
 	INVENTOR_FIELD_VECTOR3,
 	NULL,
@@ -428,15 +432,16 @@ static const InventorFieldDef g_fieldCenter = {
 	sizeof(g_defaultZeroScalarVector)};
 /* Field rotation: four floats; the default is 0, 0, 1, 0. */
 // GLOBAL: XVT 0x51B230
-static const InventorFieldDef g_fieldRotation = {"rotation",
-						 INVENTOR_FIELD_ROTATION,
-						 NULL,
-						 &g_defaultRotationRecord,
-						 &g_defaultRotation,
-						 sizeof(g_defaultRotation)};
+static const struct InventorFieldDef g_fieldRotation = {
+	"rotation",
+	INVENTOR_FIELD_ROTATION,
+	NULL,
+	&g_defaultRotationRecord,
+	&g_defaultRotation,
+	sizeof(g_defaultRotation)};
 /* Field scaleOrientation: four floats; the default is 0, 0, 1, 0. */
 // GLOBAL: XVT 0x51B248
-static const InventorFieldDef g_fieldScaleOrientation = {
+static const struct InventorFieldDef g_fieldScaleOrientation = {
 	"scaleOrientation",
 	INVENTOR_FIELD_ROTATION,
 	NULL,
@@ -445,7 +450,7 @@ static const InventorFieldDef g_fieldScaleOrientation = {
 	sizeof(g_defaultRotation)};
 /* Field ambientColor: a color list; the default is one (0.2, 0.2, 0.2). */
 // GLOBAL: XVT 0x51B260
-static const InventorFieldDef g_fieldAmbientColor = {
+static const struct InventorFieldDef g_fieldAmbientColor = {
 	"ambientColor",
 	INVENTOR_FIELD_COLOR_LIST,
 	NULL,
@@ -454,7 +459,7 @@ static const InventorFieldDef g_fieldAmbientColor = {
 	sizeof(g_defaultAmbientColor)};
 /* Field diffuseColor: a color list; the default is one (0.8, 0.8, 0.8). */
 // GLOBAL: XVT 0x51B278
-static const InventorFieldDef g_fieldDiffuseColor = {
+static const struct InventorFieldDef g_fieldDiffuseColor = {
 	"diffuseColor",
 	INVENTOR_FIELD_COLOR_LIST,
 	NULL,
@@ -463,7 +468,7 @@ static const InventorFieldDef g_fieldDiffuseColor = {
 	sizeof(g_defaultDiffuseColor)};
 /* Field specularColor: a color list; the default is one (0, 0, 0). */
 // GLOBAL: XVT 0x51B290
-static const InventorFieldDef g_fieldSpecularColor = {
+static const struct InventorFieldDef g_fieldSpecularColor = {
 	"specularColor",
 	INVENTOR_FIELD_COLOR_LIST,
 	NULL,
@@ -472,7 +477,7 @@ static const InventorFieldDef g_fieldSpecularColor = {
 	sizeof(g_defaultBlackColor)};
 /* Field emissiveColor: a color list; the default is one (0, 0, 0). */
 // GLOBAL: XVT 0x51B2A8
-static const InventorFieldDef g_fieldEmissiveColor = {
+static const struct InventorFieldDef g_fieldEmissiveColor = {
 	"emissiveColor",
 	INVENTOR_FIELD_COLOR_LIST,
 	NULL,
@@ -481,34 +486,36 @@ static const InventorFieldDef g_fieldEmissiveColor = {
 	sizeof(g_defaultBlackColor)};
 /* Field rgb of baseColor: a color; the default is (0.8, 0.8, 0.8). */
 // GLOBAL: XVT 0x51B2C0
-static const InventorFieldDef g_fieldRgb = {"rgb",
-					    INVENTOR_FIELD_COLOR,
-					    NULL,
-					    &g_defaultColorRecord,
-					    &g_defaultRgbColor,
-					    sizeof(g_defaultRgbColor)};
+static const struct InventorFieldDef g_fieldRgb = {"rgb",
+						   INVENTOR_FIELD_COLOR,
+						   NULL,
+						   &g_defaultColorRecord,
+						   &g_defaultRgbColor,
+						   sizeof(g_defaultRgbColor)};
 /* Field screenArea of levelofdetail: read as a float, or a list of floats in
  * brackets; the default is 0. */
 // GLOBAL: XVT 0x51B2D8
-static const InventorFieldDef g_fieldScreenArea = {"screenArea",
-						   INVENTOR_FIELD_FLOAT,
-						   NULL,
-						   &g_defaultFloatRecord,
-						   &g_defaultZeroFloat,
-						   sizeof(g_defaultZeroFloat)};
+static const struct InventorFieldDef g_fieldScreenArea = {
+	"screenArea",
+	INVENTOR_FIELD_FLOAT,
+	NULL,
+	&g_defaultFloatRecord,
+	&g_defaultZeroFloat,
+	sizeof(g_defaultZeroFloat)};
 /* Field shininess: read as a float, or a list of floats in brackets; the
  * default is 0.2. */
 // GLOBAL: XVT 0x51B2F0
-static const InventorFieldDef g_fieldShininess = {"shininess",
-						  INVENTOR_FIELD_FLOAT,
-						  NULL,
-						  &g_defaultFloatRecord,
-						  &g_defaultShininess,
-						  sizeof(g_defaultShininess)};
+static const struct InventorFieldDef g_fieldShininess = {
+	"shininess",
+	INVENTOR_FIELD_FLOAT,
+	NULL,
+	&g_defaultFloatRecord,
+	&g_defaultShininess,
+	sizeof(g_defaultShininess)};
 /* Field transparency: read as a float, or a list of floats in brackets; the
  * default is 0. */
 // GLOBAL: XVT 0x51B308
-static const InventorFieldDef g_fieldTransparency = {
+static const struct InventorFieldDef g_fieldTransparency = {
 	"transparency",
 	INVENTOR_FIELD_FLOAT,
 	NULL,
@@ -518,58 +525,61 @@ static const InventorFieldDef g_fieldTransparency = {
 /* Field value of the three binding nodes: a binding enum; the default is 0,
  * DEFAULT. */
 // GLOBAL: XVT 0x51B380
-static const InventorFieldDef g_fieldBindingValue = {
+static const struct InventorFieldDef g_fieldBindingValue = {
 	"value",	INVENTOR_FIELD_ENUM,
 	&g_bindingEnum, &g_defaultEnumRecord,
 	&g_defaultEnum, sizeof(g_defaultEnum)};
 /* Field filename of use and texture2: a string; the default is empty. */
 // GLOBAL: XVT 0x51B3E8
-static const InventorFieldDef g_fieldFilename = {
+static const struct InventorFieldDef g_fieldFilename = {
 	"filename",	  INVENTOR_FIELD_STRING,  NULL, &g_defaultStringRecord,
 	&g_defaultString, sizeof(g_defaultString)};
 /* Field wrapS: a wrap enum; the default is 0, REPEAT. */
 // GLOBAL: XVT 0x51B420
-static const InventorFieldDef g_fieldWrapS = {
+static const struct InventorFieldDef g_fieldWrapS = {
 	"wrapS",	INVENTOR_FIELD_ENUM,  &g_wrapEnum, &g_defaultEnumRecord,
 	&g_defaultEnum, sizeof(g_defaultEnum)};
 /* Field wrapT: a wrap enum; the default is 0, REPEAT. */
 // GLOBAL: XVT 0x51B448
-static const InventorFieldDef g_fieldWrapT = {
+static const struct InventorFieldDef g_fieldWrapT = {
 	"wrapT",	INVENTOR_FIELD_ENUM,  &g_wrapEnum, &g_defaultEnumRecord,
 	&g_defaultEnum, sizeof(g_defaultEnum)};
 /* Field model of texture2: a texture model enum; the default is 0, MODULATE. */
 // GLOBAL: XVT 0x51B490
-static const InventorFieldDef g_fieldTextureModel = {"model",
-						     INVENTOR_FIELD_ENUM,
-						     &g_textureModelEnum,
-						     &g_defaultEnumRecord,
-						     &g_defaultEnum,
-						     sizeof(g_defaultEnum)};
+static const struct InventorFieldDef g_fieldTextureModel = {
+	"model",
+	INVENTOR_FIELD_ENUM,
+	&g_textureModelEnum,
+	&g_defaultEnumRecord,
+	&g_defaultEnum,
+	sizeof(g_defaultEnum)};
 /* Field blendColor: a color; the default is (0.8, 0.8, 0.8). */
 // GLOBAL: XVT 0x51B4A8
-static const InventorFieldDef g_fieldBlendColor = {
+static const struct InventorFieldDef g_fieldBlendColor = {
 	"blendColor",	       INVENTOR_FIELD_COLOR, NULL,
 	&g_defaultColorRecord, &g_defaultRgbColor,   sizeof(g_defaultRgbColor)};
 /* Field type of componentInfo: a component type enum; the default is 0,
  * COMPTYPE_DEFAULT. */
 // GLOBAL: XVT 0x51B8B0
-static const InventorFieldDef g_fieldComponentType = {"type",
-						      INVENTOR_FIELD_ENUM,
-						      &g_componentTypeEnum,
-						      &g_defaultEnumRecord,
-						      &g_defaultEnum,
-						      sizeof(g_defaultEnum)};
+static const struct InventorFieldDef g_fieldComponentType = {
+	"type",
+	INVENTOR_FIELD_ENUM,
+	&g_componentTypeEnum,
+	&g_defaultEnumRecord,
+	&g_defaultEnum,
+	sizeof(g_defaultEnum)};
 /* Field size: a 3-vector; the default is (0, 0, 0). */
 // GLOBAL: XVT 0x51B8C8
-static const InventorFieldDef g_fieldSize = {"size",
-					     INVENTOR_FIELD_VECTOR3,
-					     NULL,
-					     &g_defaultVector3Record,
-					     &g_defaultZeroScalarVector,
-					     sizeof(g_defaultZeroScalarVector)};
+static const struct InventorFieldDef g_fieldSize = {
+	"size",
+	INVENTOR_FIELD_VECTOR3,
+	NULL,
+	&g_defaultVector3Record,
+	&g_defaultZeroScalarVector,
+	sizeof(g_defaultZeroScalarVector)};
 /* Field minvector: a 3-vector; the default is (0, 0, 0). */
 // GLOBAL: XVT 0x51B8E0
-static const InventorFieldDef g_fieldMinVector = {
+static const struct InventorFieldDef g_fieldMinVector = {
 	"minvector",
 	INVENTOR_FIELD_VECTOR3,
 	NULL,
@@ -578,7 +588,7 @@ static const InventorFieldDef g_fieldMinVector = {
 	sizeof(g_defaultZeroScalarVector)};
 /* Field maxvector: a 3-vector; the default is (0, 0, 0). */
 // GLOBAL: XVT 0x51B8F8
-static const InventorFieldDef g_fieldMaxVector = {
+static const struct InventorFieldDef g_fieldMaxVector = {
 	"maxvector",
 	INVENTOR_FIELD_VECTOR3,
 	NULL,
@@ -587,7 +597,7 @@ static const InventorFieldDef g_fieldMaxVector = {
 	sizeof(g_defaultZeroScalarVector)};
 /* Field groupcenter: a 3-vector; the default is (0, 0, 0). */
 // GLOBAL: XVT 0x51B910
-static const InventorFieldDef g_fieldGroupCenter = {
+static const struct InventorFieldDef g_fieldGroupCenter = {
 	"groupcenter",
 	INVENTOR_FIELD_VECTOR3,
 	NULL,
@@ -596,32 +606,34 @@ static const InventorFieldDef g_fieldGroupCenter = {
 	sizeof(g_defaultZeroScalarVector)};
 /* Field flags: an integer; the default is 0. */
 // GLOBAL: XVT 0x51B928
-static const InventorFieldDef g_fieldFlags = {"flags",
-					      INVENTOR_FIELD_INTEGER,
-					      NULL,
-					      &g_defaultIntegerRecord,
-					      &g_defaultInteger,
-					      sizeof(g_defaultInteger)};
+static const struct InventorFieldDef g_fieldFlags = {"flags",
+						     INVENTOR_FIELD_INTEGER,
+						     NULL,
+						     &g_defaultIntegerRecord,
+						     &g_defaultInteger,
+						     sizeof(g_defaultInteger)};
 /* Field groupid: an integer; the default is 0. */
 // GLOBAL: XVT 0x51B940
-static const InventorFieldDef g_fieldGroupId = {"groupid",
-						INVENTOR_FIELD_INTEGER,
-						NULL,
-						&g_defaultIntegerRecord,
-						&g_defaultInteger,
-						sizeof(g_defaultInteger)};
+static const struct InventorFieldDef g_fieldGroupId = {
+	"groupid",
+	INVENTOR_FIELD_INTEGER,
+	NULL,
+	&g_defaultIntegerRecord,
+	&g_defaultInteger,
+	sizeof(g_defaultInteger)};
 /* Field type of hardpoint: a hardpoint type enum; the default is 0,
  * HARDPOINT_NONE. */
 // GLOBAL: XVT 0x51BA68
-static const InventorFieldDef g_fieldHardpointType = {"type",
-						      INVENTOR_FIELD_ENUM,
-						      &g_hardpointTypeEnum,
-						      &g_defaultEnumRecord,
-						      &g_defaultEnum,
-						      sizeof(g_defaultEnum)};
+static const struct InventorFieldDef g_fieldHardpointType = {
+	"type",
+	INVENTOR_FIELD_ENUM,
+	&g_hardpointTypeEnum,
+	&g_defaultEnumRecord,
+	&g_defaultEnum,
+	sizeof(g_defaultEnum)};
 /* Field axis1: a 3-vector; the default is (0, 0, 0). */
 // GLOBAL: XVT 0x51BA80
-static const InventorFieldDef g_fieldAxis1 = {
+static const struct InventorFieldDef g_fieldAxis1 = {
 	"axis1",
 	INVENTOR_FIELD_VECTOR3,
 	NULL,
@@ -630,7 +642,7 @@ static const InventorFieldDef g_fieldAxis1 = {
 	sizeof(g_defaultZeroScalarVector)};
 /* Field axis2: a 3-vector; the default is (0, 0, 0). */
 // GLOBAL: XVT 0x51BA98
-static const InventorFieldDef g_fieldAxis2 = {
+static const struct InventorFieldDef g_fieldAxis2 = {
 	"axis2",
 	INVENTOR_FIELD_VECTOR3,
 	NULL,
@@ -639,7 +651,7 @@ static const InventorFieldDef g_fieldAxis2 = {
 	sizeof(g_defaultZeroScalarVector)};
 /* Field axis3: a 3-vector; the default is (0, 0, 0). */
 // GLOBAL: XVT 0x51BAB0
-static const InventorFieldDef g_fieldAxis3 = {
+static const struct InventorFieldDef g_fieldAxis3 = {
 	"axis3",
 	INVENTOR_FIELD_VECTOR3,
 	NULL,
@@ -649,75 +661,80 @@ static const InventorFieldDef g_fieldAxis3 = {
 
 /* Fields of indexedFaceSet, in record order. */
 // GLOBAL: XVT 0x51BAD8
-static const InventorFieldDef *const g_fieldsIndexedFaceSet[] = {
+static const struct InventorFieldDef *const g_fieldsIndexedFaceSet[] = {
 	&g_fieldCoordIndex, &g_fieldMaterialIndex, &g_fieldNormalIndex,
 	&g_fieldTextureCoordIndex};
 /* Fields of transform, in record order. */
 // GLOBAL: XVT 0x51BAF8
-static const InventorFieldDef *const g_fieldsTransform[] = {
+static const struct InventorFieldDef *const g_fieldsTransform[] = {
 	&g_fieldTranslation, &g_fieldRotation, &g_fieldScaleFactor,
 	&g_fieldScaleOrientation, &g_fieldCenter};
 /* Fields of coordinate3. */
 // GLOBAL: XVT 0x51BB1C
-static const InventorFieldDef *const g_fieldsCoordinate3[] = {&g_fieldPoint3};
+static const struct InventorFieldDef *const g_fieldsCoordinate3[] = {
+	&g_fieldPoint3};
 /* Fields of translation. */
 // GLOBAL: XVT 0x51BB2C
-static const InventorFieldDef *const g_fieldsTranslation[] = {
+static const struct InventorFieldDef *const g_fieldsTranslation[] = {
 	&g_fieldTranslation};
 /* Fields of rotation. */
 // GLOBAL: XVT 0x51BB3C
-static const InventorFieldDef *const g_fieldsRotation[] = {&g_fieldRotation};
+static const struct InventorFieldDef *const g_fieldsRotation[] = {
+	&g_fieldRotation};
 /* Fields of scale. */
 // GLOBAL: XVT 0x51BB4C
-static const InventorFieldDef *const g_fieldsScale[] = {&g_fieldScaleFactor};
+static const struct InventorFieldDef *const g_fieldsScale[] = {
+	&g_fieldScaleFactor};
 /* Fields of use. */
 // GLOBAL: XVT 0x51BB5C
-static const InventorFieldDef *const g_fieldsUse[] = {&g_fieldFilename};
+static const struct InventorFieldDef *const g_fieldsUse[] = {&g_fieldFilename};
 /* Fields of material, in record order. */
 // GLOBAL: XVT 0x51BB80
-static const InventorFieldDef *const g_fieldsMaterial[] = {
+static const struct InventorFieldDef *const g_fieldsMaterial[] = {
 	&g_fieldAmbientColor,  &g_fieldDiffuseColor, &g_fieldSpecularColor,
 	&g_fieldEmissiveColor, &g_fieldShininess,    &g_fieldTransparency};
 /* Fields of the three binding nodes. */
 // GLOBAL: XVT 0x51BBA4
-static const InventorFieldDef *const g_fieldsBinding[] = {&g_fieldBindingValue};
+static const struct InventorFieldDef *const g_fieldsBinding[] = {
+	&g_fieldBindingValue};
 /* Fields of normal. */
 // GLOBAL: XVT 0x51BBB4
-static const InventorFieldDef *const g_fieldsNormal[] = {&g_fieldVector};
+static const struct InventorFieldDef *const g_fieldsNormal[] = {&g_fieldVector};
 /* Fields of textureCoordinate2. */
 // GLOBAL: XVT 0x51BBD4
-static const InventorFieldDef *const g_fieldsTextureCoordinate2[] = {
+static const struct InventorFieldDef *const g_fieldsTextureCoordinate2[] = {
 	&g_fieldPoint2};
 /* Fields of quadMesh, in record order. */
 // GLOBAL: XVT 0x51BBF8
-static const InventorFieldDef *const g_fieldsQuadMesh[] = {
+static const struct InventorFieldDef *const g_fieldsQuadMesh[] = {
 	&g_fieldStartIndex, &g_fieldVerticesPerRow, &g_fieldVerticesPerColumn};
 /* Fields of faceSet and triangleStripSet. */
 // GLOBAL: XVT 0x51BC14
-static const InventorFieldDef *const g_fieldsFaceSet[] = {&g_fieldNumVertices};
+static const struct InventorFieldDef *const g_fieldsFaceSet[] = {
+	&g_fieldNumVertices};
 /* Fields of baseColor. */
 // GLOBAL: XVT 0x51BC44
-static const InventorFieldDef *const g_fieldsBaseColor[] = {&g_fieldRgb};
+static const struct InventorFieldDef *const g_fieldsBaseColor[] = {&g_fieldRgb};
 /* Fields of texture2, in record order. */
 // GLOBAL: XVT 0x51BC58
-static const InventorFieldDef *const g_fieldsTexture2[] = {
+static const struct InventorFieldDef *const g_fieldsTexture2[] = {
 	&g_fieldFilename, &g_fieldWrapS, &g_fieldWrapT, &g_fieldTextureModel,
 	&g_fieldBlendColor};
 /* Fields of levelofdetail. */
 // GLOBAL: XVT 0x51BC7C
-static const InventorFieldDef *const g_fieldsLevelOfDetail[] = {
+static const struct InventorFieldDef *const g_fieldsLevelOfDetail[] = {
 	&g_fieldScreenArea};
 /* Fields of hardpoint, in record order. */
 // GLOBAL: XVT 0x51BC90
-static const InventorFieldDef *const g_fieldsHardpoint[] = {
+static const struct InventorFieldDef *const g_fieldsHardpoint[] = {
 	&g_fieldHardpointType, &g_fieldPoint3};
 /* Fields of pivot, in record order. */
 // GLOBAL: XVT 0x51BCA8
-static const InventorFieldDef *const g_fieldsPivot[] = {
+static const struct InventorFieldDef *const g_fieldsPivot[] = {
 	&g_fieldCenter, &g_fieldAxis1, &g_fieldAxis2, &g_fieldAxis3};
 /* Fields of componentInfo, in record order. */
 // GLOBAL: XVT 0x51BCD8
-static const InventorFieldDef *const g_fieldsComponentInfo[] = {
+static const struct InventorFieldDef *const g_fieldsComponentInfo[] = {
 	&g_fieldComponentType, &g_fieldFlags,	    &g_fieldSize,
 	&g_fieldCenter,	       &g_fieldMinVector,   &g_fieldMaxVector,
 	&g_fieldGroupId,       &g_fieldGroupCenter,
@@ -726,7 +743,7 @@ static const InventorFieldDef *const g_fieldsComponentInfo[] = {
 /* The node types the Inventor importer knows, one row per OptNodeType value in
  * order: the name in the file, the field count and the fields. */
 // GLOBAL: XVT 0x51BAC8
-static const InventorNodeDef g_inventorNodeDefData[26] = {
+static const struct InventorNodeDef g_inventorNodeDefData[26] = {
 	{"separator", 0, NULL},
 	{"indexedFaceSet", 4, g_fieldsIndexedFaceSet},
 	{"transform", 5, g_fieldsTransform},
@@ -758,7 +775,7 @@ static const InventorNodeDef g_inventorNodeDefData[26] = {
 /* Pointers to the rows of g_inventorNodeDefData, the table
  * OptModel_ParseInventorAsciiNode searches in order. */
 // GLOBAL: XVT 0x51BD08
-const InventorNodeDef *const g_inventorNodeDefs[26] = {
+const struct InventorNodeDef *const g_inventorNodeDefs[26] = {
 	&g_inventorNodeDefData[0],  &g_inventorNodeDefData[1],
 	&g_inventorNodeDefData[2],  &g_inventorNodeDefData[3],
 	&g_inventorNodeDefData[4],  &g_inventorNodeDefData[5],
@@ -792,7 +809,7 @@ char g_optModelLoadScratchBuffer[257] = {0};
  * and weapon points from each loaded OPT model, and StringTable_LoadGameStrings
  * sets each nameLong. */
 // GLOBAL: XVT 0x51C560
-ModelDef g_modelDefs[73] = {
+struct ModelDef g_modelDefs[73] = {
 #include "xvt/assets/model_defs_data.inc"
 };
 /* The float 1.0; the software renderer and this file's normal builders read
@@ -914,7 +931,7 @@ void *g_modelNodeWalkUnusedScratch2 = NULL;
 /* Vertex normals of the OPT_VERTNORMALS node the model walkers last passed. Set
  * to NULL before each walk, here and in RenderScene's walkers. */
 // GLOBAL: XVT 0x60F208
-OptVector *g_curVertNormals = NULL;
+struct OptVector *g_curVertNormals = NULL;
 #ifndef XVT_MODERN
 /* Vectors in the scratch block OptModel_ConvertImportedHandleToPacked
  * allocates; that function sets it to 1 and nothing raises it. */
@@ -924,7 +941,7 @@ int g_optImportScratchVectorCount = 0;
  * while it packs an import. Nothing reads it, and it keeps pointing at the
  * block after the block is freed. */
 // GLOBAL: XVT 0x5272C4
-OptVector *g_optImportScratchVectors = NULL;
+struct OptVector *g_optImportScratchVectors = NULL;
 /* When nonzero, OptModel_BuildFaceNormalTangentData negates each face normal it
  * builds. Nothing writes it, so it stays 0. */
 // GLOBAL: XVT 0x5271D0
@@ -943,31 +960,31 @@ static int g_optConvertTargetFaceFound = 0;
 /* The OPT_FACEGROUP node the legacy converter last passed, whose children
  * OptModel_AppendConvertedFacesForCurrentMesh searches for faces to merge. */
 // GLOBAL: XVT 0x60F1C8
-OptNode *g_optConvertSourceMeshNode = NULL;
+struct OptNode *g_optConvertSourceMeshNode = NULL;
 /* The merged OPT_VERTNORMALS node the legacy converter built for the current
  * root; NULL before it. OptModel_ConvertLegacyModelToOptimized clears it before
  * each root. */
 // GLOBAL: XVT 0x60F1CC
-OptNode *g_optConvertVertexNormalNode = NULL;
+struct OptNode *g_optConvertVertexNormalNode = NULL;
 /* The texture the legacy converter last passed, directly or through an
  * OPT_NODEREF; faces merge only with faces under the same texture. */
 // GLOBAL: XVT 0x60F1DC
-OptNode *g_optConvertSourceTextureNode = NULL;
+struct OptNode *g_optConvertSourceTextureNode = NULL;
 /* The merged OPT_TEXCOORDS node the legacy converter built for the current
  * root; NULL before it. OptModel_ConvertLegacyModelToOptimized clears it before
  * each root. */
 // GLOBAL: XVT 0x60F1F4
-OptNode *g_optConvertTexCoordNode = NULL;
+struct OptNode *g_optConvertTexCoordNode = NULL;
 /* The texture OptModel_AppendConvertedFacesForNode last passed while it
  * searches for faces to merge. */
 // GLOBAL: XVT 0x60F1F8
-OptNode *g_optConvertFaceTextureNode = NULL;
+struct OptNode *g_optConvertFaceTextureNode = NULL;
 /* The merged OPT_MESHVERTS node the legacy converter built for the current
  * root; NULL before it, and while NULL the next node with children builds the
  * merged nodes. OptModel_ConvertLegacyModelToOptimized clears it before each
  * root. */
 // GLOBAL: XVT 0x60F200
-OptNode *g_optConvertVertexNode = NULL;
+struct OptNode *g_optConvertVertexNode = NULL;
 
 /* Loads a model file and returns the Memory handle of its runtime copy
  * (OptModel_CreateRuntimeHandle), or 0. The modern build returns 0 for a NULL
@@ -1113,7 +1130,7 @@ uint16_t OptModel_LoadInventorAsciiToHandle(XvtFile *stream)
 	int parsedNodeSize;
 	int parsedRootCount;
 	uint16_t handle;
-	OptimizedPolyObject *model;
+	struct OptimizedPolyObject *model;
 	char *nodeWriteCursor;
 
 	streamStartOffset = File_RawTell(stream);
@@ -1133,26 +1150,26 @@ uint16_t OptModel_LoadInventorAsciiToHandle(XvtFile *stream)
 
 	rootPointerOffset = 0;
 	File_RawSeek(stream, streamStartOffset, SEEK_SET);
-	handle = Memory_AllocHandle(sizeof(*model) +
-					    rootNodeCount * sizeof(OptNode *) +
-					    nodePayloadSize,
-				    0);
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(handle);
+	handle = Memory_AllocHandle(
+		sizeof(*model) + rootNodeCount * sizeof(struct OptNode *) +
+			nodePayloadSize,
+		0);
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(handle);
 	nodeWriteCursor = (char *)model + sizeof(*model);
 	model->rootNodeCount = rootNodeCount;
 	parsedRootCount = 0;
 	model->selfMarker = model;
 	model->reserved = handle;
-	model->rootNodes = (OptNode **)nodeWriteCursor;
-	nodeWriteCursor += rootNodeCount * sizeof(OptNode *);
+	model->rootNodes = (struct OptNode **)nodeWriteCursor;
+	nodeWriteCursor += rootNodeCount * sizeof(struct OptNode *);
 
 	for (; parsedRootCount < rootNodeCount;) {
 		parsedNodeSize = OptModel_ParseInventorAsciiNode(
 			stream, nodeWriteCursor,
-			(OptNode **)((char *)model->rootNodes +
-				     rootPointerOffset));
+			(struct OptNode **)((char *)model->rootNodes +
+					    rootPointerOffset));
 		if (parsedNodeSize != 0) {
-			rootPointerOffset += sizeof(OptNode *);
+			rootPointerOffset += sizeof(struct OptNode *);
 			nodeWriteCursor += parsedNodeSize;
 			++parsedRootCount;
 		}
@@ -1181,13 +1198,13 @@ uint16_t OptModel_LoadInventorAsciiToHandle(XvtFile *stream)
  * g_optModelLoadScratchBuffer. Only the original build calls this. */
 // FUNCTION: XVT 0x412120
 int OptModel_ParseInventorAsciiNode(XvtFile *stream, char *nodeStorage,
-				    OptNode **outNode)
+				    struct OptNode **outNode)
 {
 	char *cursor;
 	char *nodeName;
-	OptNode *node;
-	InventorFieldRecord *fieldRecords;
-	const InventorNodeDef *const *nodeDefSlot;
+	struct OptNode *node;
+	struct InventorFieldRecord *fieldRecords;
+	const struct InventorNodeDef *const *nodeDefSlot;
 	int nodeType;
 	int totalSize;
 	int fieldScanIndex;
@@ -1209,7 +1226,7 @@ int OptModel_ParseInventorAsciiNode(XvtFile *stream, char *nodeStorage,
 
 	cursor = nodeStorage;
 	if (cursor != NULL) {
-		*outNode = (OptNode *)cursor;
+		*outNode = (struct OptNode *)cursor;
 	}
 	totalSize = 0;
 	if (File_Scanf(stream, " %256s", g_optModelLoadScratchBuffer) != 1) {
@@ -1245,7 +1262,7 @@ int OptModel_ParseInventorAsciiNode(XvtFile *stream, char *nodeStorage,
 			strcpy(cursor, g_optModelLoadScratchBuffer);
 			nodeName = cursor;
 			cursor += parsedSize;
-			*outNode = (OptNode *)cursor;
+			*outNode = (struct OptNode *)cursor;
 		}
 		if (File_Scanf(stream, " %256s", g_optModelLoadScratchBuffer) !=
 		    1) {
@@ -1271,21 +1288,21 @@ int OptModel_ParseInventorAsciiNode(XvtFile *stream, char *nodeStorage,
 	    (int)(sizeof(g_inventorNodeDefs) / sizeof(g_inventorNodeDefs[0]))) {
 		fieldRecords = NULL;
 		if (cursor != NULL) {
-			node = (OptNode *)cursor;
+			node = (struct OptNode *)cursor;
 			node->pName = nodeName;
 			node->nodeType = (OptNodeType)nodeType;
 			cursor += sizeof(*node);
 			node->payloadCount = (*nodeDefSlot)->fieldCount;
 		}
-		totalSize += sizeof(OptNode);
+		totalSize += sizeof(struct OptNode);
 		if (cursor != NULL) {
-			fieldRecords = (InventorFieldRecord *)cursor;
+			fieldRecords = (struct InventorFieldRecord *)cursor;
 			node->payload = fieldRecords;
 			cursor += (*nodeDefSlot)->fieldCount *
 				  sizeof(*fieldRecords);
 		}
 		totalSize += (*nodeDefSlot)->fieldCount *
-			     sizeof(InventorFieldRecord);
+			     sizeof(struct InventorFieldRecord);
 
 		if (nodeType != OPT_NODEREF) {
 			InventorAscii_SkipPastOpenBrace(stream);
@@ -1298,7 +1315,7 @@ int OptModel_ParseInventorAsciiNode(XvtFile *stream, char *nodeStorage,
 			for (fieldScanIndex = 0;
 			     fieldScanIndex < (*nodeDefSlot)->fieldCount;
 			     ++fieldScanIndex) {
-				InventorFieldRecord *fieldRecord;
+				struct InventorFieldRecord *fieldRecord;
 
 				if (InventorAscii_PeekNextIsCloseBrace(
 					    stream) != 0) {
@@ -1404,7 +1421,8 @@ int OptModel_ParseInventorAsciiNode(XvtFile *stream, char *nodeStorage,
 						parsedSize =
 							OptModel_ParseInventorAsciiNode(
 								stream, cursor,
-								(OptNode *
+								(struct
+								 OptNode *
 									 *)&fieldRecord
 									->data);
 						cursor += parsedSize;
@@ -1444,14 +1462,17 @@ int OptModel_ParseInventorAsciiNode(XvtFile *stream, char *nodeStorage,
 						File_RawSeek(stream,
 							     rewindPosition,
 							     SEEK_SET);
-						totalSize += itemCount *
-							     sizeof(OptNode *);
+						totalSize +=
+							itemCount *
+							sizeof(struct OptNode
+								       *);
 						if (cursor != NULL) {
 							fieldRecord->data =
 								cursor;
 							cursor +=
 								itemCount *
-								sizeof(OptNode *);
+								sizeof(struct
+								       OptNode *);
 							fieldRecord->itemCount =
 								itemCount;
 							fieldRecord->fieldType =
@@ -1464,7 +1485,8 @@ int OptModel_ParseInventorAsciiNode(XvtFile *stream, char *nodeStorage,
 								parsedSize = OptModel_ParseInventorAsciiNode(
 									stream,
 									cursor,
-									&((OptNode *
+									&((struct
+									   OptNode *
 										   *)fieldRecord
 										  ->data)
 										[itemIndex]);
@@ -1495,19 +1517,22 @@ int OptModel_ParseInventorAsciiNode(XvtFile *stream, char *nodeStorage,
 						InventorAscii_SkipPastCloseBracket(
 							stream);
 					} else {
-						totalSize += sizeof(OptNode *);
+						totalSize += sizeof(
+							struct OptNode *);
 						if (cursor != NULL) {
 							fieldRecord->data =
 								cursor;
 							cursor += sizeof(
-								OptNode *);
+								struct OptNode
+									*);
 							fieldRecord->itemCount =
 								1;
 							fieldRecord->fieldType =
 								INVENTOR_FIELD_NODE_LIST;
 							parsedSize = OptModel_ParseInventorAsciiNode(
 								stream, cursor,
-								&((OptNode *
+								&((struct
+								   OptNode *
 									   *)fieldRecord
 									  ->data)
 									[0]);
@@ -2179,7 +2204,7 @@ int OptModel_ParseInventorAsciiNode(XvtFile *stream, char *nodeStorage,
 					break;
 
 				case INVENTOR_FIELD_ENUM: {
-					const InventorEnumDef *enumDef;
+					const struct InventorEnumDef *enumDef;
 					const char *const *enumValueNames;
 					const int *enumValues;
 
@@ -2233,7 +2258,7 @@ int OptModel_ParseInventorAsciiNode(XvtFile *stream, char *nodeStorage,
 				}
 
 				case INVENTOR_FIELD_ENUM_LIST: {
-					const InventorEnumDef *enumDef;
+					const struct InventorEnumDef *enumDef;
 					const char *const *enumValueNames;
 					const int *enumValues;
 
@@ -2382,7 +2407,7 @@ int OptModel_ParseInventorAsciiNode(XvtFile *stream, char *nodeStorage,
 			     ++fieldIndex) {
 				if (g_inventorFieldSeen[fieldIndex] == 0) {
 					if (cursor != NULL) {
-						const InventorFieldDef
+						const struct InventorFieldDef
 							*fieldDef;
 
 						fieldDef =
@@ -2417,16 +2442,18 @@ int OptModel_ParseInventorAsciiNode(XvtFile *stream, char *nodeStorage,
 			}
 			File_RawSeek(stream, rewindPosition, SEEK_SET);
 			if (childCount != 0) {
-				OptNode **childSlots;
+				struct OptNode **childSlots;
 
-				totalSize += childCount * sizeof(OptNode *);
+				totalSize +=
+					childCount * sizeof(struct OptNode *);
 				childSlots = NULL;
 				if (cursor != NULL) {
-					node->pChildren = (OptNode **)cursor;
+					node->pChildren =
+						(struct OptNode **)cursor;
 					node->childCount = childCount;
 					childSlots = node->pChildren;
-					cursor +=
-						childCount * sizeof(OptNode *);
+					cursor += childCount *
+						  sizeof(struct OptNode *);
 				}
 				while (InventorAscii_PeekNextIsCloseBrace(
 					       stream) == 0) {
@@ -2527,8 +2554,8 @@ int OptModel_ParseInventorAsciiNode(XvtFile *stream, char *nodeStorage,
  * resolve; a node reached through two links moves twice. Only
  * OptModel_TranslateVertices calls this, and nothing calls that. */
 // FUNCTION: XVT 0x42ABA0
-void OptModel_TranslateNodeVerticesRecursive(OptNode *node,
-					     OptimizedPolyObject *model,
+void OptModel_TranslateNodeVerticesRecursive(struct OptNode *node,
+					     struct OptimizedPolyObject *model,
 					     const float *translation)
 {
 	int vertexCount;
@@ -2577,7 +2604,7 @@ void OptModel_TranslateNodeVerticesRecursive(OptNode *node,
 /* Runs OptModel_TranslateNodeVerticesRecursive on each root of model. Nothing
  * calls this. */
 // FUNCTION: XVT 0x42ACD0
-void OptModel_TranslateVertices(OptimizedPolyObject *model,
+void OptModel_TranslateVertices(struct OptimizedPolyObject *model,
 				const float *translation)
 {
 	int rootIndex;
@@ -2600,7 +2627,7 @@ void OptModel_TranslateVertices(OptimizedPolyObject *model,
  * pointers stay NULL. Only the original build calls this, from
  * OptModel_ConvertImportedHandleToPacked. */
 // FUNCTION: XVT 0x471F00
-void OptModel_RelocateLoadedPointers(OptimizedPolyObject *model)
+void OptModel_RelocateLoadedPointers(struct OptimizedPolyObject *model)
 {
 
 	XvtOptValue relocationDelta;
@@ -2609,15 +2636,17 @@ void OptModel_RelocateLoadedPointers(OptimizedPolyObject *model)
 	relocationDelta = (uint8_t *)model - (uint8_t *)model->selfMarker;
 	model->selfMarker = (uint8_t *)model->selfMarker + relocationDelta;
 	if (model->rootNodes != NULL) {
-		model->rootNodes = (OptNode **)((uint8_t *)model->rootNodes +
-						relocationDelta);
+		model->rootNodes =
+			(struct OptNode **)((uint8_t *)model->rootNodes +
+					    relocationDelta);
 		for (rootIndex = 0; rootIndex < model->rootNodeCount;
 		     ++rootIndex) {
-			OptNode **rootSlot;
+			struct OptNode **rootSlot;
 
 			rootSlot = &model->rootNodes[rootIndex];
 			if (*rootSlot != NULL) {
-				*rootSlot = (OptNode *)((uint8_t *)*rootSlot +
+				*rootSlot = (struct OptNode
+						     *)((uint8_t *)*rootSlot +
 							relocationDelta);
 				OptModel_RelocateNodePointersRecursive(
 					model->rootNodes[rootIndex],
@@ -2632,7 +2661,7 @@ void OptModel_RelocateLoadedPointers(OptimizedPolyObject *model)
  * child pointer, then does the same below each child. NULL pointers stay NULL.
  * Only the original build calls this. */
 // FUNCTION: XVT 0x471F60
-void OptModel_RelocateNodePointersRecursive(OptNode *node,
+void OptModel_RelocateNodePointersRecursive(struct OptNode *node,
 					    XvtOptValue relocationDelta)
 {
 
@@ -2643,10 +2672,10 @@ void OptModel_RelocateNodePointersRecursive(OptNode *node,
 		node->pName += relocationDelta;
 	}
 	if (node->payload != NULL) {
-		InventorFieldRecord *records;
+		struct InventorFieldRecord *records;
 
 		node->payload = (uint8_t *)node->payload + relocationDelta;
-		records = (InventorFieldRecord *)node->payload;
+		records = (struct InventorFieldRecord *)node->payload;
 		for (paramIndex = 0; paramIndex < node->payloadCount;
 		     ++paramIndex) {
 			if (records->data != NULL) {
@@ -2657,15 +2686,17 @@ void OptModel_RelocateNodePointersRecursive(OptNode *node,
 		}
 	}
 	if (node->pChildren != NULL) {
-		node->pChildren = (OptNode **)((uint8_t *)node->pChildren +
-					       relocationDelta);
+		node->pChildren =
+			(struct OptNode **)((uint8_t *)node->pChildren +
+					    relocationDelta);
 		for (childIndex = 0; childIndex < node->childCount;
 		     ++childIndex) {
-			OptNode **childSlot;
+			struct OptNode **childSlot;
 
 			childSlot = &node->pChildren[childIndex];
 			if (*childSlot != NULL) {
-				*childSlot = (OptNode *)((uint8_t *)*childSlot +
+				*childSlot = (struct OptNode
+						      *)((uint8_t *)*childSlot +
 							 relocationDelta);
 				OptModel_RelocateNodePointersRecursive(
 					node->pChildren[childIndex],
@@ -2682,7 +2713,8 @@ void OptModel_RelocateNodePointersRecursive(OptNode *node,
  * and each root, then runs OptModel_AdjustOptimizedNodePointers on each root.
  * Most callers call it only when selfMarker is not the block's address. */
 // FUNCTION: XVT 0x471FF0
-void OptModel_AdjustOptimizedPolyObjectPointers(OptimizedPolyObject *model)
+void OptModel_AdjustOptimizedPolyObjectPointers(
+	struct OptimizedPolyObject *model)
 {
 #ifdef XVT_MODERN
 	XvtOpt_Relocate(model);
@@ -2694,15 +2726,17 @@ void OptModel_AdjustOptimizedPolyObjectPointers(OptimizedPolyObject *model)
 	relocationDelta = (uint8_t *)model - (uint8_t *)model->selfMarker;
 	model->selfMarker = (uint8_t *)model->selfMarker + relocationDelta;
 	if (model->rootNodes != NULL) {
-		model->rootNodes = (OptNode **)((uint8_t *)model->rootNodes +
-						relocationDelta);
+		model->rootNodes =
+			(struct OptNode **)((uint8_t *)model->rootNodes +
+					    relocationDelta);
 		for (rootIndex = 0; rootIndex < model->rootNodeCount;
 		     ++rootIndex) {
-			OptNode **rootSlot;
+			struct OptNode **rootSlot;
 
 			rootSlot = &model->rootNodes[rootIndex];
 			if (*rootSlot != NULL) {
-				*rootSlot = (OptNode *)((uint8_t *)*rootSlot +
+				*rootSlot = (struct OptNode
+						     *)((uint8_t *)*rootSlot +
 							relocationDelta);
 				OptModel_AdjustOptimizedNodePointers(
 					model->rootNodes[rootIndex],
@@ -2720,7 +2754,7 @@ void OptModel_AdjustOptimizedPolyObjectPointers(OptimizedPolyObject *model)
  * stay NULL. The modern arm calls XvtOpt_RelocateNode, but only the original
  * build calls this. */
 // FUNCTION: XVT 0x472050
-void OptModel_AdjustOptimizedNodePointers(OptNode *node,
+void OptModel_AdjustOptimizedNodePointers(struct OptNode *node,
 					  XvtOptValue relocationDelta)
 {
 #ifdef XVT_MODERN
@@ -2736,9 +2770,9 @@ void OptModel_AdjustOptimizedNodePointers(OptNode *node,
 		node->payload = (uint8_t *)node->payload + relocationDelta;
 	}
 	if (node->nodeType == OPT_TEXTURE) {
-		OptTextureData *textureData;
+		struct OptTextureData *textureData;
 
-		textureData = (OptTextureData *)node->payload;
+		textureData = (struct OptTextureData *)node->payload;
 		if (textureData->inlinePaletteCount == 0) {
 			textureData->palette =
 				(uint16_t *)((uint8_t *)textureData->palette +
@@ -2746,15 +2780,17 @@ void OptModel_AdjustOptimizedNodePointers(OptNode *node,
 		}
 	}
 	if (node->pChildren != NULL) {
-		node->pChildren = (OptNode **)((uint8_t *)node->pChildren +
-					       relocationDelta);
+		node->pChildren =
+			(struct OptNode **)((uint8_t *)node->pChildren +
+					    relocationDelta);
 		for (childIndex = 0; childIndex < node->childCount;
 		     ++childIndex) {
-			OptNode **childSlot;
+			struct OptNode **childSlot;
 
 			childSlot = &node->pChildren[childIndex];
 			if (*childSlot != NULL) {
-				*childSlot = (OptNode *)((uint8_t *)*childSlot +
+				*childSlot = (struct OptNode
+						      *)((uint8_t *)*childSlot +
 							 relocationDelta);
 				OptModel_AdjustOptimizedNodePointers(
 					node->pChildren[childIndex],
@@ -2790,8 +2826,8 @@ uint16_t OptModel_LoadFileToHandle(char *filename)
 	unsigned int nativeSize = 0;
 	int version = 0;
 	int rootIndex;
-	OptimizedPolyObject *model;
-	SceneMesh meshState;
+	struct OptimizedPolyObject *model;
+	struct SceneMesh meshState;
 	uint16_t handle = XvtOpt_Load(filename, &version, &nativeSize);
 	if (!handle) {
 		XvtStorage_Fatal("Invalid required OPT model", 1);
@@ -2828,11 +2864,11 @@ uint16_t OptModel_LoadFileToHandle(char *filename)
 
 	XvtFile *stream;
 	uint16_t handle;
-	OptimizedPolyObject *model;
+	struct OptimizedPolyObject *model;
 	char savedVersionChar;
 	int fileVersion;
 	size_t serializedSize;
-	SceneMesh meshState;
+	struct SceneMesh meshState;
 	int rootIndex;
 
 	FeDiskIo_OpenGlobalStream(filename, g_fileModeReadBinary, 1, 0);
@@ -2963,9 +2999,9 @@ uint16_t OptModel_LoadFileToHandle(char *filename)
 unsigned int OptModel_ConvertLegacyModelToOptimized(unsigned int sourceSize)
 {
 	/* Convert a legacy model stream into the optimized runtime representation. */
-	OptimizedPolyObject *sourceModel;
-	OptimizedPolyObject *destinationModel;
-	SceneMesh meshState;
+	struct OptimizedPolyObject *sourceModel;
+	struct OptimizedPolyObject *destinationModel;
+	struct SceneMesh meshState;
 	uint8_t *destinationNode;
 	unsigned int serializedSize;
 	int destinationCapacity;
@@ -2985,7 +3021,7 @@ unsigned int OptModel_ConvertLegacyModelToOptimized(unsigned int sourceSize)
 		}
 		g_optConvertSourceBufSize = sourceSize;
 	}
-	sourceModel = (OptimizedPolyObject *)Memory_GetHandleBlock(
+	sourceModel = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_optConvertSourceHandle);
 	memcpy(sourceModel, Memory_GetHandleBlock(g_loadOptBufHandle),
 	       sourceSize);
@@ -3007,18 +3043,19 @@ unsigned int OptModel_ConvertLegacyModelToOptimized(unsigned int sourceSize)
 		}
 		g_loadOptBufSize = destinationCapacity;
 	}
-	destinationModel = (OptimizedPolyObject *)Memory_GetHandleBlock(
+	destinationModel = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadOptBufHandle);
 	memcpy(destinationModel, sourceModel, sizeof(*destinationModel));
 	destinationModel->selfMarker = destinationModel;
-	destinationModel->rootNodes = (OptNode **)((uint8_t *)destinationModel +
-						   sizeof(*destinationModel));
+	destinationModel->rootNodes =
+		(struct OptNode **)((uint8_t *)destinationModel +
+				    sizeof(*destinationModel));
 	rootNodeCount = sourceModel->rootNodeCount;
 	destinationNode =
 		(uint8_t *)(destinationModel->rootNodes + rootNodeCount);
-	serializedSize =
-		(unsigned int)(sizeof(*destinationModel) +
-			       sizeof(OptNode *) * (unsigned int)rootNodeCount);
+	serializedSize = (unsigned int)(sizeof(*destinationModel) +
+					sizeof(struct OptNode *) *
+						(unsigned int)rootNodeCount);
 	memset(&meshState, 0, sizeof(meshState));
 	g_curMeshVertices = NULL;
 	g_curMeshTexCoords = NULL;
@@ -3034,7 +3071,7 @@ unsigned int OptModel_ConvertLegacyModelToOptimized(unsigned int sourceSize)
 			++rootIndex;
 			++destinationModel->rootNodeCount;
 			destinationModel->rootNodes[rootIndex - 1] =
-				(OptNode *)destinationNode;
+				(struct OptNode *)destinationNode;
 			g_optConvertVertexNode = NULL;
 			g_optConvertTexCoordNode = NULL;
 			g_optConvertVertexNormalNode = NULL;
@@ -3058,16 +3095,17 @@ unsigned int OptModel_ConvertLegacyModelToOptimized(unsigned int sourceSize)
  * palette. A texture compared without a match passes textureData 4096 bytes on
  * to its own children. */
 // FUNCTION: XVT 0x474830
-void *OptModel_FindSharedTextureDataInNodeBeforeTarget(const void *textureData,
-						       OptNode *node,
-						       const OptNode *stopNode)
+void *
+OptModel_FindSharedTextureDataInNodeBeforeTarget(const void *textureData,
+						 struct OptNode *node,
+						 const struct OptNode *stopNode)
 {
 	int textureByteCount;
-	OptTextureData *nodeTexture;
+	struct OptTextureData *nodeTexture;
 	uint8_t *nodeTextureData;
 	int childIndex;
 	int childOffset;
-	OptNode *child;
+	struct OptNode *child;
 	void *result;
 
 	if (node == NULL) {
@@ -3109,8 +3147,9 @@ void *OptModel_FindSharedTextureDataInNodeBeforeTarget(const void *textureData,
 	childIndex = 0;
 	if (node->childCount > 0) {
 		do {
-			child = *(OptNode **)((uint8_t *)node->pChildren +
-					      childOffset);
+			child = *(
+				struct OptNode **)((uint8_t *)node->pChildren +
+						   childOffset);
 			if (stopNode == child) {
 				return NULL;
 			}
@@ -3133,13 +3172,13 @@ void *OptModel_FindSharedTextureDataInNodeBeforeTarget(const void *textureData,
  * root that is stopNode. */
 // FUNCTION: XVT 0x474910
 void *OptModel_FindEarlierSharedTextureData(const void *textureData,
-					    OptimizedPolyObject *model,
-					    const OptNode *stopNode)
+					    struct OptimizedPolyObject *model,
+					    const struct OptNode *stopNode)
 {
-	OptimizedPolyObject *object;
+	struct OptimizedPolyObject *object;
 	int rootIndex;
 	unsigned int rootOffset;
-	OptNode *rootNode;
+	struct OptNode *rootNode;
 	void *result;
 
 	object = model;
@@ -3147,8 +3186,10 @@ void *OptModel_FindEarlierSharedTextureData(const void *textureData,
 	rootOffset = 0;
 	if (object->rootNodeCount > 0) {
 		do {
-			rootNode = *(OptNode **)((uint8_t *)object->rootNodes +
-						 rootOffset);
+			rootNode =
+				*(struct OptNode **)((uint8_t *)
+							     object->rootNodes +
+						     rootOffset);
 			if (stopNode == rootNode) {
 				return NULL;
 			}
@@ -3199,16 +3240,18 @@ void *OptModel_FindEarlierSharedTextureData(const void *textureData,
  * g_curVertNormals and g_curMeshTexCoords as it passes those nodes, and
  * g_optConvertSourceTextureNode and g_optConvertSourceMeshNode. */
 // FUNCTION: XVT 0x474960
-unsigned int OptModel_ConvertLegacyNodeToOptimized(
-	uint8_t *dst, OptNode *srcNode, OptimizedPolyObject *srcModel,
-	OptimizedPolyObject *dstModel, SceneMesh *meshState)
+unsigned int
+OptModel_ConvertLegacyNodeToOptimized(uint8_t *dst, struct OptNode *srcNode,
+				      struct OptimizedPolyObject *srcModel,
+				      struct OptimizedPolyObject *dstModel,
+				      struct SceneMesh *meshState)
 {
-	OptNode *destinationNode;
+	struct OptNode *destinationNode;
 	uint8_t *cursor;
-	OptNode **sourceNode;
-	SceneMesh childMesh;
-	OptVector minimum;
-	OptVector maximum;
+	struct OptNode **sourceNode;
+	struct SceneMesh childMesh;
+	struct OptVector minimum;
+	struct OptVector maximum;
 	unsigned int payloadSize;
 	int emitNode;
 	int firstChildIndex;
@@ -3236,7 +3279,7 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(
 #ifdef XVT_MODERN
 		cursor = XvtOpt_AlignPointer(cursor);
 #endif
-		destinationNode = (OptNode *)cursor;
+		destinationNode = (struct OptNode *)cursor;
 		if (g_optConvertVertexNode != NULL) {
 			cursor += sizeof(*destinationNode);
 			destinationNode->nodeType = (*sourceNode)->nodeType;
@@ -3309,8 +3352,8 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(
 			cursor += payloadSize;
 			sourceTrailingData += payloadSize;
 			if (meshState->pVertNormals == NULL) {
-				payloadSize =
-					sizeof(OptVector) * g_curVertexCount;
+				payloadSize = sizeof(struct OptVector) *
+					      g_curVertexCount;
 				memcpy(cursor, sourceTrailingData, payloadSize);
 				cursor += payloadSize;
 			}
@@ -3328,8 +3371,8 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(
 		if (g_optConvertVertexNode != NULL) {
 			emitNode = 0;
 		} else {
-			payloadSize =
-				sizeof(OptVector) * (*sourceNode)->payloadCount;
+			payloadSize = sizeof(struct OptVector) *
+				      (*sourceNode)->payloadCount;
 		}
 		break;
 
@@ -3370,13 +3413,13 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(
 		break;
 
 	case OPT_VERTNORMALS:
-		g_curVertNormals = (OptVector *)(*sourceNode)->payload;
+		g_curVertNormals = (struct OptVector *)(*sourceNode)->payload;
 		meshState->pVertNormals = g_curVertNormals;
 		if (g_optConvertVertexNormalNode != NULL) {
 			emitNode = 0;
 		} else {
-			payloadSize =
-				sizeof(OptVector) * (*sourceNode)->payloadCount;
+			payloadSize = sizeof(struct OptVector) *
+				      (*sourceNode)->payloadCount;
 		}
 		break;
 
@@ -3385,7 +3428,7 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(
 		if (g_optConvertTexCoordNode != NULL) {
 			emitNode = 0;
 		} else {
-			payloadSize = sizeof(OptTexCoord) *
+			payloadSize = sizeof(struct OptTexCoord) *
 				      (*sourceNode)->payloadCount;
 		}
 		break;
@@ -3395,12 +3438,12 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(
 		break;
 
 	case OPT_TEXTURE: {
-		OptTextureData *texture;
+		struct OptTextureData *texture;
 		uint16_t *embeddedPalette;
 		int textureDataSize;
 
 		g_optConvertSourceTextureNode = (*sourceNode);
-		texture = (OptTextureData *)(*sourceNode)->payload;
+		texture = (struct OptTextureData *)(*sourceNode)->payload;
 		textureDataSize = texture->width * texture->height;
 		if (textureDataSize == texture->textureSize) {
 			payloadSize = sizeof(*texture) + texture->dataSize;
@@ -3429,15 +3472,15 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(
 #ifdef XVT_MODERN
 		cursor = XvtOpt_AlignPointer(cursor);
 #endif
-		destinationNode = (OptNode *)cursor;
+		destinationNode = (struct OptNode *)cursor;
 		g_optConvertSourceMeshNode = (*sourceNode);
 		if (g_optConvertVertexNode == NULL) {
-			OptNode *vertexNode;
-			OptNode *texCoordNode;
-			OptNode *normalNode;
-			OptNode **generatedChildren;
-			OptVector *vectors;
-			OptVector *savedNormals;
+			struct OptNode *vertexNode;
+			struct OptNode *texCoordNode;
+			struct OptNode *normalNode;
+			struct OptNode **generatedChildren;
+			struct OptVector *vectors;
+			struct OptVector *savedNormals;
 			int savedVertexCount;
 			int remaining;
 
@@ -3456,14 +3499,14 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(
 #ifdef XVT_MODERN
 			cursor = XvtOpt_AlignPointer(cursor);
 #endif
-			destinationNode->pChildren = (OptNode **)cursor;
+			destinationNode->pChildren = (struct OptNode **)cursor;
 			generatedChildren = destinationNode->pChildren;
-			cursor += sizeof(OptNode *) * 4;
+			cursor += sizeof(struct OptNode *) * 4;
 
 #ifdef XVT_MODERN
 			cursor = XvtOpt_AlignPointer(cursor);
 #endif
-			vertexNode = (OptNode *)cursor;
+			vertexNode = (struct OptNode *)cursor;
 			generatedChildren[0] = vertexNode;
 			vertexNode->nodeType = OPT_MESHVERTS;
 			cursor += sizeof(*vertexNode);
@@ -3476,7 +3519,7 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(
 				vertexNode, (*sourceNode), srcModel, meshState);
 			g_optConvertVertexNode = vertexNode;
 
-			vectors = (OptVector *)vertexNode->payload;
+			vectors = (struct OptVector *)vertexNode->payload;
 			minimum.x = maximum.x = vectors->x;
 			minimum.y = maximum.y = vectors->y;
 			minimum.z = maximum.z = vectors->z;
@@ -3522,12 +3565,13 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(
 				vectors[0].z = maximum.z;
 				vertexNode->payloadCount += 2;
 			}
-			cursor += sizeof(OptVector) * vertexNode->payloadCount;
+			cursor += sizeof(struct OptVector) *
+				  vertexNode->payloadCount;
 
 #ifdef XVT_MODERN
 			cursor = XvtOpt_AlignPointer(cursor);
 #endif
-			texCoordNode = (OptNode *)cursor;
+			texCoordNode = (struct OptNode *)cursor;
 			generatedChildren[1] = texCoordNode;
 			texCoordNode->nodeType = OPT_TEXCOORDS;
 			cursor += sizeof(*texCoordNode);
@@ -3540,13 +3584,13 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(
 							(*sourceNode), srcModel,
 							meshState);
 			g_optConvertTexCoordNode = texCoordNode;
-			cursor += sizeof(OptTexCoord) *
+			cursor += sizeof(struct OptTexCoord) *
 				  texCoordNode->payloadCount;
 
 #ifdef XVT_MODERN
 			cursor = XvtOpt_AlignPointer(cursor);
 #endif
-			normalNode = (OptNode *)cursor;
+			normalNode = (struct OptNode *)cursor;
 			generatedChildren[2] = normalNode;
 			normalNode->nodeType = OPT_VERTNORMALS;
 			cursor += sizeof(*normalNode);
@@ -3563,12 +3607,13 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(
 			meshState->pVertNormals = savedNormals;
 			g_optConvertVertexNormalNode = normalNode;
 			g_curVertexCount = savedVertexCount;
-			cursor += sizeof(OptVector) * normalNode->payloadCount;
+			cursor += sizeof(struct OptVector) *
+				  normalNode->payloadCount;
 
 #ifdef XVT_MODERN
 			cursor = XvtOpt_AlignPointer(cursor);
 #endif
-			destinationNode = (OptNode *)cursor;
+			destinationNode = (struct OptNode *)cursor;
 			generatedChildren[3] = destinationNode;
 			destinationNode->nodeType = OPT_FACEGROUP;
 			cursor += sizeof(*destinationNode);
@@ -3657,7 +3702,7 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(
 #ifdef XVT_MODERN
 		cursor = XvtOpt_AlignPointer(cursor);
 #endif
-		destinationNode = (OptNode *)cursor;
+		destinationNode = (struct OptNode *)cursor;
 		cursor += sizeof(*destinationNode);
 		destinationNode->nodeType = (*sourceNode)->nodeType;
 		if ((*sourceNode)->pName != NULL) {
@@ -3675,12 +3720,12 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(
 		memcpy(cursor, (*sourceNode)->payload, payloadSize);
 		cursor += payloadSize;
 		if ((*sourceNode)->nodeType == OPT_TEXTURE) {
-			OptTextureData *sourceTexture;
+			struct OptTextureData *sourceTexture;
 			uint16_t *embeddedPalette;
 			int textureDataSize;
 
 			sourceTexture =
-				(OptTextureData *)(*sourceNode)->payload;
+				(struct OptTextureData *)(*sourceNode)->payload;
 			if (sourceTexture->inlinePaletteCount == 0) {
 				embeddedPalette =
 					(uint16_t *)((uint8_t *)sourceTexture +
@@ -3705,24 +3750,24 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(
 							dstModel,
 							destinationNode);
 					if (sharedTextureData != NULL) {
-						OptTextureData
+						struct OptTextureData
 							*destinationTexture;
 
 						destinationTexture =
-							(OptTextureData
+							(struct OptTextureData
 								 *)destinationNode
 								->payload;
 						destinationTexture->palette =
 							sharedTextureData;
 					} else {
 						const void *sourcePalette;
-						OptTextureData
+						struct OptTextureData
 							*destinationTexture;
 
 						sourcePalette =
 							sourceTexture->palette;
 						destinationTexture =
-							(OptTextureData
+							(struct OptTextureData
 								 *)destinationNode
 								->payload;
 						destinationTexture->palette =
@@ -3732,11 +3777,12 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(
 						cursor += 12288;
 					}
 				} else {
-					OptTextureData *destinationTexture;
+					struct OptTextureData
+						*destinationTexture;
 					uint16_t *destinationPalette;
 
 					destinationTexture =
-						(OptTextureData *)
+						(struct OptTextureData *)
 							destinationNode
 								->payload;
 					destinationPalette =
@@ -3772,7 +3818,7 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(
 #ifdef XVT_MODERN
 		cursor = XvtOpt_AlignPointer(cursor);
 #endif
-		destinationNode = (OptNode *)cursor;
+		destinationNode = (struct OptNode *)cursor;
 		cursor += sizeof(*destinationNode);
 		destinationNode->pName = NULL;
 		destinationNode->nodeType = OPT_GROUP;
@@ -3784,11 +3830,11 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(
 	destinationNode->pChildren = NULL;
 	if ((*sourceNode)->childCount != 0) {
 		if (g_optConvertVertexNode == NULL) {
-			OptNode *vertexNode;
-			OptNode *texCoordNode;
-			OptNode *normalNode;
-			OptVector *vectors;
-			OptVector *savedNormals;
+			struct OptNode *vertexNode;
+			struct OptNode *texCoordNode;
+			struct OptNode *normalNode;
+			struct OptVector *vectors;
+			struct OptVector *savedNormals;
 			int savedVertexCount;
 			int remaining;
 
@@ -3797,14 +3843,14 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(
 #ifdef XVT_MODERN
 			cursor = XvtOpt_AlignPointer(cursor);
 #endif
-			destinationNode->pChildren = (OptNode **)cursor;
-			cursor +=
-				sizeof(OptNode *) * destinationNode->childCount;
+			destinationNode->pChildren = (struct OptNode **)cursor;
+			cursor += sizeof(struct OptNode *) *
+				  destinationNode->childCount;
 
 #ifdef XVT_MODERN
 			cursor = XvtOpt_AlignPointer(cursor);
 #endif
-			vertexNode = (OptNode *)cursor;
+			vertexNode = (struct OptNode *)cursor;
 			destinationNode->pChildren[0] = vertexNode;
 			vertexNode->nodeType = OPT_MESHVERTS;
 			cursor += sizeof(*vertexNode);
@@ -3817,7 +3863,7 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(
 				vertexNode, (*sourceNode), srcModel, meshState);
 			g_optConvertVertexNode = vertexNode;
 
-			vectors = (OptVector *)vertexNode->payload;
+			vectors = (struct OptVector *)vertexNode->payload;
 			minimum.x = maximum.x = vectors->x;
 			minimum.y = maximum.y = vectors->y;
 			minimum.z = maximum.z = vectors->z;
@@ -3863,12 +3909,13 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(
 				vectors[0].z = maximum.z;
 				vertexNode->payloadCount += 2;
 			}
-			cursor += sizeof(OptVector) * vertexNode->payloadCount;
+			cursor += sizeof(struct OptVector) *
+				  vertexNode->payloadCount;
 
 #ifdef XVT_MODERN
 			cursor = XvtOpt_AlignPointer(cursor);
 #endif
-			texCoordNode = (OptNode *)cursor;
+			texCoordNode = (struct OptNode *)cursor;
 			destinationNode->pChildren[1] = texCoordNode;
 			texCoordNode->nodeType = OPT_TEXCOORDS;
 			cursor += sizeof(*texCoordNode);
@@ -3881,13 +3928,13 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(
 							(*sourceNode), srcModel,
 							meshState);
 			g_optConvertTexCoordNode = texCoordNode;
-			cursor += sizeof(OptTexCoord) *
+			cursor += sizeof(struct OptTexCoord) *
 				  texCoordNode->payloadCount;
 
 #ifdef XVT_MODERN
 			cursor = XvtOpt_AlignPointer(cursor);
 #endif
-			normalNode = (OptNode *)cursor;
+			normalNode = (struct OptNode *)cursor;
 			destinationNode->pChildren[2] = normalNode;
 			normalNode->nodeType = OPT_VERTNORMALS;
 			cursor += sizeof(*normalNode);
@@ -3905,16 +3952,17 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(
 			g_optConvertVertexNormalNode = normalNode;
 			g_curVertexCount = savedVertexCount;
 			firstChildIndex = 3;
-			cursor += sizeof(OptVector) * normalNode->payloadCount;
+			cursor += sizeof(struct OptVector) *
+				  normalNode->payloadCount;
 		} else {
 			firstChildIndex = 0;
 			destinationNode->childCount = (*sourceNode)->childCount;
 #ifdef XVT_MODERN
 			cursor = XvtOpt_AlignPointer(cursor);
 #endif
-			destinationNode->pChildren = (OptNode **)cursor;
-			cursor +=
-				sizeof(OptNode *) * destinationNode->childCount;
+			destinationNode->pChildren = (struct OptNode **)cursor;
+			cursor += sizeof(struct OptNode *) *
+				  destinationNode->childCount;
 		}
 
 		childMesh = *meshState;
@@ -3927,7 +3975,7 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(
 #endif
 			destinationNode
 				->pChildren[firstChildIndex + childIndex] =
-				(OptNode *)cursor;
+				(struct OptNode *)cursor;
 			childSize = OptModel_ConvertLegacyNodeToOptimized(
 				cursor, (*sourceNode)->pChildren[childIndex],
 				srcModel, dstModel, &childMesh);
@@ -3951,9 +3999,10 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(
  * raises its payloadCount. Follows OPT_NODEREF links and stops at one that does
  * not resolve. Does not check the list's room; meshState is unused. */
 // FUNCTION: XVT 0x475740
-void OptModel_CollectUniqueVertices(OptNode *dstVertexNode, OptNode *srcNode,
-				    OptimizedPolyObject *srcModel,
-				    SceneMesh *meshState)
+void OptModel_CollectUniqueVertices(struct OptNode *dstVertexNode,
+				    struct OptNode *srcNode,
+				    struct OptimizedPolyObject *srcModel,
+				    struct SceneMesh *meshState)
 {
 	float *sourceVertex;
 	int childIndex;
@@ -4016,11 +4065,12 @@ void OptModel_CollectUniqueVertices(OptNode *dstVertexNode, OptNode *srcNode,
  * and stops at one that does not resolve. Does not check the list's room;
  * meshState is unused. */
 // FUNCTION: XVT 0x475850
-void OptModel_CollectUniqueTexCoords(OptNode *dstTexCoordNode, OptNode *srcNode,
-				     OptimizedPolyObject *srcModel,
-				     SceneMesh *meshState)
+void OptModel_CollectUniqueTexCoords(struct OptNode *dstTexCoordNode,
+				     struct OptNode *srcNode,
+				     struct OptimizedPolyObject *srcModel,
+				     struct SceneMesh *meshState)
 {
-	OptNode *destinationNode;
+	struct OptNode *destinationNode;
 	int childIndex;
 
 	if (srcNode == NULL) {
@@ -4089,14 +4139,14 @@ void OptModel_CollectUniqueTexCoords(OptNode *dstTexCoordNode, OptNode *srcNode,
  * meshState->pVertNormals after every node. Follows OPT_NODEREF links and stops
  * at one that does not resolve. Does not check the list's room. */
 // FUNCTION: XVT 0x475940
-void OptModel_CollectUniqueVertexNormals(OptNode *dstNormalNode,
-					 OptNode *srcNode,
-					 OptimizedPolyObject *srcModel,
-					 SceneMesh *meshState)
+void OptModel_CollectUniqueVertexNormals(struct OptNode *dstNormalNode,
+					 struct OptNode *srcNode,
+					 struct OptimizedPolyObject *srcModel,
+					 struct SceneMesh *meshState)
 {
-	OptNode *node;
-	OptNode *destinationNode;
-	OptVector *sourceNormal;
+	struct OptNode *node;
+	struct OptNode *destinationNode;
+	struct OptVector *sourceNormal;
 	int sourceIndex;
 	int childIndex;
 
@@ -4119,30 +4169,31 @@ void OptModel_CollectUniqueVertexNormals(OptNode *dstNormalNode,
 	case OPT_FACEDATA_FACE_SET:
 	case OPT_FACEDATA_TRIANGLE_STRIP_SET:
 		if (meshState->pVertNormals == NULL) {
-			OptLegacyFacePayload *faceData;
+			struct OptLegacyFacePayload *faceData;
 
-			faceData = (OptLegacyFacePayload *)node->payload;
+			faceData = (struct OptLegacyFacePayload *)node->payload;
 			if (g_optSourceIsVersion0) {
 				sourceNormal =
-					(OptVector *)&(
-						(OptLegacyFacePayloadV0 *)
-							faceData)
+					(struct OptVector *)&(
+						(struct OptLegacyFacePayloadV0
+							 *)faceData)
 						->storage[node->payloadCount];
 			} else {
 				sourceNormal =
-					(OptVector *)&faceData
+					(struct OptVector *)&faceData
 						->storage[node->payloadCount];
 			}
 			sourceIndex = 0;
 			if (g_curVertexCount > 0) {
 				do {
-					OptVector *destinationNormal;
+					struct OptVector *destinationNormal;
 					int destinationCount;
 					int destinationIndex;
 
 					destinationNormal =
-						(OptVector *)destinationNode
-							->payload;
+						(struct OptVector *)
+							destinationNode
+								->payload;
 					destinationIndex = 0;
 					destinationCount =
 						destinationNode->payloadCount;
@@ -4188,17 +4239,18 @@ void OptModel_CollectUniqueVertexNormals(OptNode *dstNormalNode,
 		break;
 
 	case OPT_VERTNORMALS:
-		meshState->pVertNormals = (OptVector *)node->payload;
-		sourceNormal = (OptVector *)node->payload;
+		meshState->pVertNormals = (struct OptVector *)node->payload;
+		sourceNormal = (struct OptVector *)node->payload;
 		sourceIndex = 0;
 		if (node->payloadCount > 0) {
 			do {
-				OptVector *destinationNormal;
+				struct OptVector *destinationNormal;
 				int destinationCount;
 				int destinationIndex;
 
 				destinationNormal =
-					(OptVector *)destinationNode->payload;
+					(struct OptVector *)
+						destinationNode->payload;
 				destinationIndex = 0;
 				destinationCount =
 					destinationNode->payloadCount;
@@ -4257,8 +4309,9 @@ void OptModel_CollectUniqueVertexNormals(OptNode *dstNormalNode,
  * Returns 0 when the vector is not in the list, leaving the cursor at the list
  * length. */
 // FUNCTION: XVT 0x475B70
-int OptModel_RemapVectorIndex(const OptNode *uniqueVectorNode,
-			      const OptVector *sourceVectors, int sourceIndex)
+int OptModel_RemapVectorIndex(const struct OptNode *uniqueVectorNode,
+			      const struct OptVector *sourceVectors,
+			      int sourceIndex)
 {
 	const float *uniqueVectors;
 	int cursor;
@@ -4323,8 +4376,8 @@ int OptModel_RemapVectorIndex(const OptNode *uniqueVectorNode,
  * index found. Returns 0 when the coordinate is not in the list, leaving the
  * cursor at the list length. */
 // FUNCTION: XVT 0x475C70
-int OptModel_RemapTexCoordIndex(const OptNode *uniqueTexCoordNode,
-				const OptTexCoord *sourceTexCoords,
+int OptModel_RemapTexCoordIndex(const struct OptNode *uniqueTexCoordNode,
+				const struct OptTexCoord *sourceTexCoords,
 				int sourceIndex)
 {
 	const float *uniqueTexCoords;
@@ -4391,22 +4444,22 @@ int OptModel_RemapTexCoordIndex(const OptNode *uniqueTexCoordNode,
  * meshState->pVertNormals as it passes those nodes. Does not check
  * dstFaceNode's room. */
 // FUNCTION: XVT 0x475D50
-void OptModel_AppendConvertedFacesForNode(OptNode *dstFaceNode,
-					  OptNode *targetFaceNode,
-					  OptNode *node,
-					  OptimizedPolyObject *srcModel,
-					  SceneMesh *meshState)
+void OptModel_AppendConvertedFacesForNode(struct OptNode *dstFaceNode,
+					  struct OptNode *targetFaceNode,
+					  struct OptNode *node,
+					  struct OptimizedPolyObject *srcModel,
+					  struct SceneMesh *meshState)
 {
 	uint8_t *destinationBytes;
 	uint8_t *destinationTrailingBytes;
 	uint8_t *destinationData;
 	int *destinationCursor;
 	const int *sourceCursor;
-	const OptVector *sourceVectors;
-	const OptVector *sourceFaceNormals;
-	const OptVector *sourceTextureGradients;
-	OptVector *destinationFaceNormals;
-	OptVector *destinationTextureGradients;
+	const struct OptVector *sourceVectors;
+	const struct OptVector *sourceFaceNormals;
+	const struct OptVector *sourceTextureGradients;
+	struct OptVector *destinationFaceNormals;
+	struct OptVector *destinationTextureGradients;
 	int destinationEdgeCount;
 	int faceIndex;
 	int childIndex;
@@ -4453,14 +4506,14 @@ void OptModel_AppendConvertedFacesForNode(OptNode *dstFaceNode,
 			if (sourceVectors == NULL) {
 				if (g_optSourceIsVersion0) {
 					sourceVectors =
-						(const OptVector
+						(const struct OptVector
 							 *)((const uint8_t *)
 								    sourceCursor +
 							    48 * node->payloadCount +
 							    36 * node->payloadCount);
 				} else {
 					sourceVectors =
-						(const OptVector
+						(const struct OptVector
 							 *)((const uint8_t *)
 								    sourceCursor +
 							    64 * node->payloadCount +
@@ -4476,25 +4529,25 @@ void OptModel_AppendConvertedFacesForNode(OptNode *dstFaceNode,
 				*destinationCursor++ =
 					OptModel_RemapVectorIndex(
 						g_optConvertVertexNode,
-						(const OptVector *)
+						(const struct OptVector *)
 							g_curMeshVertices,
 						*sourceCursor++);
 				*destinationCursor++ =
 					OptModel_RemapVectorIndex(
 						g_optConvertVertexNode,
-						(const OptVector *)
+						(const struct OptVector *)
 							g_curMeshVertices,
 						*sourceCursor++);
 				*destinationCursor++ =
 					OptModel_RemapVectorIndex(
 						g_optConvertVertexNode,
-						(const OptVector *)
+						(const struct OptVector *)
 							g_curMeshVertices,
 						*sourceCursor++);
 				*destinationCursor++ =
 					OptModel_RemapVectorIndex(
 						g_optConvertVertexNode,
-						(const OptVector *)
+						(const struct OptVector *)
 							g_curMeshVertices,
 						*sourceCursor++);
 
@@ -4516,25 +4569,25 @@ void OptModel_AppendConvertedFacesForNode(OptNode *dstFaceNode,
 				*destinationCursor++ =
 					OptModel_RemapTexCoordIndex(
 						g_optConvertTexCoordNode,
-						(const OptTexCoord *)
+						(const struct OptTexCoord *)
 							g_curMeshTexCoords,
 						*sourceCursor++);
 				*destinationCursor++ =
 					OptModel_RemapTexCoordIndex(
 						g_optConvertTexCoordNode,
-						(const OptTexCoord *)
+						(const struct OptTexCoord *)
 							g_curMeshTexCoords,
 						*sourceCursor++);
 				*destinationCursor++ =
 					OptModel_RemapTexCoordIndex(
 						g_optConvertTexCoordNode,
-						(const OptTexCoord *)
+						(const struct OptTexCoord *)
 							g_curMeshTexCoords,
 						*sourceCursor++);
 				*destinationCursor++ =
 					OptModel_RemapTexCoordIndex(
 						g_optConvertTexCoordNode,
-						(const OptTexCoord *)
+						(const struct OptTexCoord *)
 							g_curMeshTexCoords,
 						*sourceCursor++);
 
@@ -4567,7 +4620,7 @@ void OptModel_AppendConvertedFacesForNode(OptNode *dstFaceNode,
 				64 * (node->payloadCount +
 				      dstFaceNode->payloadCount);
 			destinationFaceNormals =
-				(OptVector *)destinationTrailingBytes;
+				(struct OptVector *)destinationTrailingBytes;
 #ifdef XVT_MODERN
 			memmove(destinationTrailingBytes +
 					12 * node->payloadCount,
@@ -4581,14 +4634,14 @@ void OptModel_AppendConvertedFacesForNode(OptNode *dstFaceNode,
 #endif
 			if (g_optSourceIsVersion0) {
 				sourceFaceNormals =
-					(const OptVector
+					(const struct OptVector
 						 *)((const uint8_t *)
 							    node->payload +
 						    sizeof(int) +
 						    48 * node->payloadCount);
 			} else {
 				sourceFaceNormals =
-					(const OptVector
+					(const struct OptVector
 						 *)((const uint8_t *)
 							    node->payload +
 						    sizeof(int) +
@@ -4605,7 +4658,7 @@ void OptModel_AppendConvertedFacesForNode(OptNode *dstFaceNode,
 					[node->payloadCount +
 					 dstFaceNode->payloadCount];
 			destinationTextureGradients =
-				(OptVector *)destinationTrailingBytes;
+				(struct OptVector *)destinationTrailingBytes;
 #ifdef XVT_MODERN
 			memmove(destinationTrailingBytes +
 					24 * node->payloadCount,
@@ -4639,7 +4692,7 @@ void OptModel_AppendConvertedFacesForNode(OptNode *dstFaceNode,
 		break;
 
 	case OPT_VERTNORMALS:
-		meshState->pVertNormals = (OptVector *)node->payload;
+		meshState->pVertNormals = (struct OptVector *)node->payload;
 		break;
 
 	case OPT_TEXCOORDS:
@@ -4667,10 +4720,9 @@ void OptModel_AppendConvertedFacesForNode(OptNode *dstFaceNode,
  * before it are walked but give no faces. Sets g_optConvertFaceTextureNode to
  * g_optConvertSourceTextureNode and g_optConvertTargetFaceFound to 0 first. */
 // FUNCTION: XVT 0x476280
-void OptModel_AppendConvertedFacesForCurrentMesh(OptNode *dstFaceNode,
-						 OptNode *targetFaceNode,
-						 OptimizedPolyObject *srcModel,
-						 SceneMesh *meshState)
+void OptModel_AppendConvertedFacesForCurrentMesh(
+	struct OptNode *dstFaceNode, struct OptNode *targetFaceNode,
+	struct OptimizedPolyObject *srcModel, struct SceneMesh *meshState)
 {
 	int childOffset;
 	int childIndex;
@@ -4683,15 +4735,16 @@ void OptModel_AppendConvertedFacesForCurrentMesh(OptNode *dstFaceNode,
 		do {
 			OptModel_AppendConvertedFacesForNode(
 				dstFaceNode, targetFaceNode,
-				*(OptNode **)((uint8_t *)
-						      g_optConvertSourceMeshNode
-							      ->pChildren +
-					      childOffset),
+				*(struct OptNode *
+					  *)((uint8_t *)
+						     g_optConvertSourceMeshNode
+							     ->pChildren +
+					     childOffset),
 				srcModel, meshState);
 			if (g_optConvertTargetFaceFound != 0) {
 				break;
 			}
-			childOffset += sizeof(OptNode *);
+			childOffset += sizeof(struct OptNode *);
 			++childIndex;
 		} while (g_optConvertSourceMeshNode->childCount > childIndex);
 	}
@@ -4708,9 +4761,9 @@ void OptModel_AppendConvertedFacesForCurrentMesh(OptNode *dstFaceNode,
 // FUNCTION: XVT 0x4762F0
 uint16_t OptModel_CreateRuntimeHandle(unsigned int sourceHandle)
 {
-	OptimizedPolyObject *sourceModel;
-	OptimizedPolyObject *runtimeModel;
-	SceneMesh meshState;
+	struct OptimizedPolyObject *sourceModel;
+	struct OptimizedPolyObject *runtimeModel;
+	struct SceneMesh meshState;
 	unsigned int serializedSize;
 	int rootIndex;
 	uint16_t runtimeHandle;
@@ -4721,8 +4774,8 @@ uint16_t OptModel_CreateRuntimeHandle(unsigned int sourceHandle)
 		return 0;
 	}
 #endif
-	sourceModel =
-		(OptimizedPolyObject *)Memory_GetHandleBlock(sourceHandle);
+	sourceModel = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
+		sourceHandle);
 	if (sourceModel->selfMarker != sourceModel) {
 		OptModel_AdjustOptimizedPolyObjectPointers(sourceModel);
 	}
@@ -4734,9 +4787,9 @@ uint16_t OptModel_CreateRuntimeHandle(unsigned int sourceHandle)
 	g_curMeshMaterials = NULL;
 	g_curVertexCount = 0;
 
-	serializedSize =
-		sizeof(OptNode *) * (unsigned int)sourceModel->rootNodeCount +
-		sizeof(*runtimeModel);
+	serializedSize = sizeof(struct OptNode *) *
+				 (unsigned int)sourceModel->rootNodeCount +
+			 sizeof(*runtimeModel);
 
 	for (rootIndex = 0; rootIndex < sourceModel->rootNodeCount;
 	     ++rootIndex) {
@@ -4757,22 +4810,23 @@ uint16_t OptModel_CreateRuntimeHandle(unsigned int sourceHandle)
 		return 0;
 	}
 #endif
-	sourceModel =
-		(OptimizedPolyObject *)Memory_GetHandleBlock(sourceHandle);
+	sourceModel = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
+		sourceHandle);
 	if (sourceModel->selfMarker != sourceModel) {
 		OptModel_AdjustOptimizedPolyObjectPointers(sourceModel);
 	}
-	runtimeModel =
-		(OptimizedPolyObject *)Memory_GetHandleBlock(runtimeHandle);
+	runtimeModel = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
+		runtimeHandle);
 	memcpy(runtimeModel, sourceModel, sizeof(*runtimeModel));
 	runtimeModel->selfMarker = runtimeModel;
-	runtimeModel->rootNodes =
-		(OptNode **)((uint8_t *)runtimeModel + sizeof(*runtimeModel));
+	runtimeModel->rootNodes = (struct OptNode **)((uint8_t *)runtimeModel +
+						      sizeof(*runtimeModel));
 	nodeStorage = (uint8_t *)(runtimeModel->rootNodes +
 				  sourceModel->rootNodeCount);
 	for (rootIndex = 0; rootIndex < sourceModel->rootNodeCount;
 	     ++rootIndex) {
-		runtimeModel->rootNodes[rootIndex] = (OptNode *)nodeStorage;
+		runtimeModel->rootNodes[rootIndex] =
+			(struct OptNode *)nodeStorage;
 		nodeStorage += OptModel_BuildRuntimeNode(
 			sourceModel->rootNodes[rootIndex], &meshState,
 			nodeStorage);
@@ -4796,16 +4850,16 @@ uint16_t OptModel_CreateRuntimeHandle(unsigned int sourceHandle)
  * OptModel_FindCorrespondingTextureNodeInModel finds it. On a 16-bit display
  * each pointer is set 4096 bytes before the copy. */
 // FUNCTION: XVT 0x476490
-void OptModel_FixupRuntimeTexturePointers(OptNode *node,
-					  OptimizedPolyObject *dstModel,
-					  OptimizedPolyObject *srcModel)
+void OptModel_FixupRuntimeTexturePointers(struct OptNode *node,
+					  struct OptimizedPolyObject *dstModel,
+					  struct OptimizedPolyObject *srcModel)
 {
-	OptNode *currentNode;
-	OptTextureData *textureData;
+	struct OptNode *currentNode;
+	struct OptTextureData *textureData;
 	uint8_t *palette;
 	int textureDataSize;
-	OptNode *correspondingNode;
-	OptTextureData *correspondingTextureData;
+	struct OptNode *correspondingNode;
+	struct OptTextureData *correspondingTextureData;
 	uint16_t *sourcePalette;
 	int childCount;
 	int childOffset;
@@ -4822,7 +4876,8 @@ void OptModel_FixupRuntimeTexturePointers(OptNode *node,
 		}
 
 		if (currentNode->nodeType == OPT_TEXTURE) {
-			textureData = (OptTextureData *)currentNode->payload;
+			textureData =
+				(struct OptTextureData *)currentNode->payload;
 			if (textureData->inlinePaletteCount != 0) {
 				textureData->inlinePaletteCount = 0;
 				palette = (uint8_t *)textureData +
@@ -4859,9 +4914,9 @@ void OptModel_FixupRuntimeTexturePointers(OptNode *node,
 							sourcePalette);
 					if (correspondingNode != NULL) {
 						correspondingTextureData =
-							(OptTextureData *)
-								correspondingNode
-									->payload;
+							(struct OptTextureData
+								 *)correspondingNode
+								->payload;
 						palette =
 							(uint8_t *)
 								correspondingTextureData +
@@ -4895,9 +4950,10 @@ void OptModel_FixupRuntimeTexturePointers(OptNode *node,
 		if (currentNode->childCount > childIndex) {
 			do {
 				OptModel_FixupRuntimeTexturePointers(
-					*(OptNode **)((uint8_t *)currentNode
-							      ->pChildren +
-						      childOffset),
+					*(struct OptNode *
+						  *)((uint8_t *)currentNode
+							     ->pChildren +
+						     childOffset),
 					dstModel, srcModel);
 				childOffset += sizeof(*currentNode->pChildren);
 				++childIndex;
@@ -4913,18 +4969,19 @@ void OptModel_FixupRuntimeTexturePointers(OptNode *node,
  * their children are searched only when their child counts match. Does not
  * follow OPT_NODEREF links. */
 // FUNCTION: XVT 0x4765B0
-OptNode *OptModel_FindCorrespondingTextureNode(OptNode *srcNode,
-					       OptNode *dstNode,
-					       const uint16_t *sourcePalette)
+struct OptNode *
+OptModel_FindCorrespondingTextureNode(struct OptNode *srcNode,
+				      struct OptNode *dstNode,
+				      const uint16_t *sourcePalette)
 {
-	OptNode *destination;
-	OptNode *source;
-	OptTextureData *textureData;
+	struct OptNode *destination;
+	struct OptNode *source;
+	struct OptTextureData *textureData;
 	int textureDataSize;
 	uint16_t *embeddedPalette;
 	int childOffset;
 	int childIndex;
-	OptNode *result;
+	struct OptNode *result;
 
 	source = srcNode;
 	if (source == NULL) {
@@ -4939,7 +4996,7 @@ OptNode *OptModel_FindCorrespondingTextureNode(OptNode *srcNode,
 	}
 
 	if (source->nodeType == OPT_TEXTURE) {
-		textureData = (OptTextureData *)source->payload;
+		textureData = (struct OptTextureData *)source->payload;
 		embeddedPalette = (uint16_t *)((uint8_t *)textureData +
 					       sizeof(*textureData));
 		textureDataSize = textureData->width * textureData->height;
@@ -4963,11 +5020,12 @@ OptNode *OptModel_FindCorrespondingTextureNode(OptNode *srcNode,
 	if (source->childCount > 0) {
 		do {
 			result = OptModel_FindCorrespondingTextureNode(
-				*(OptNode **)((uint8_t *)source->pChildren +
-					      childOffset),
-				*(OptNode **)((uint8_t *)
-						      destination->pChildren +
-					      childOffset),
+				*(struct OptNode **)((uint8_t *)
+							     source->pChildren +
+						     childOffset),
+				*(struct OptNode **)((uint8_t *)destination
+							     ->pChildren +
+						     childOffset),
 				sourcePalette);
 			if (result != NULL) {
 				return result;
@@ -4983,24 +5041,25 @@ OptNode *OptModel_FindCorrespondingTextureNode(OptNode *srcNode,
  * and dstModel, in order, and returns its first match, or NULL. Uses srcModel's
  * root count for both. */
 // FUNCTION: XVT 0x476670
-OptNode *
-OptModel_FindCorrespondingTextureNodeInModel(OptimizedPolyObject *dstModel,
-					     OptimizedPolyObject *srcModel,
-					     const uint16_t *sourcePalette)
+struct OptNode *OptModel_FindCorrespondingTextureNodeInModel(
+	struct OptimizedPolyObject *dstModel,
+	struct OptimizedPolyObject *srcModel, const uint16_t *sourcePalette)
 {
 	int rootOffset;
 	int rootIndex;
-	OptNode *result;
+	struct OptNode *result;
 
 	rootOffset = 0;
 	rootIndex = 0;
 	if (srcModel->rootNodeCount > 0) {
 		do {
 			result = OptModel_FindCorrespondingTextureNode(
-				*(OptNode **)((uint8_t *)srcModel->rootNodes +
-					      rootOffset),
-				*(OptNode **)((uint8_t *)dstModel->rootNodes +
-					      rootOffset),
+				*(struct OptNode **)((uint8_t *)srcModel
+							     ->rootNodes +
+						     rootOffset),
+				*(struct OptNode **)((uint8_t *)dstModel
+							     ->rootNodes +
+						     rootOffset),
 				sourcePalette);
 			if (result != NULL) {
 				return result;
@@ -5025,12 +5084,12 @@ OptModel_FindCorrespondingTextureNodeInModel(OptimizedPolyObject *dstModel,
 void OptModel_SaveHandleToFile(const char *filename, uint16_t handle)
 {
 	XvtFile *stream;
-	OptimizedPolyObject *model;
+	struct OptimizedPolyObject *model;
 	int rootIndex;
 	int rootOffset;
 	int fileVersion;
 	size_t serializedSize;
-	SceneMesh parentState;
+	struct SceneMesh parentState;
 
 	FeDiskIo_OpenGlobalStream(filename, "wb", 0, 1);
 	stream = g_stream;
@@ -5053,7 +5112,7 @@ void OptModel_SaveHandleToFile(const char *filename, uint16_t handle)
 			do {
 				serializedSize +=
 					OptModel_MeasureNodeAndRaiseCapacities(
-						*(OptNode *
+						*(struct OptNode *
 							  *)((uint8_t *)model
 								     ->rootNodes +
 							     rootOffset),
@@ -5091,26 +5150,27 @@ void OptModel_SaveHandleToFile(const char *filename, uint16_t handle)
  * node. An OPT_TEXTURE node with a NULL payload is read through that NULL
  * pointer. */
 // FUNCTION: XVT 0x476810
-unsigned int OptModel_MeasureNodeAndRaiseCapacities(OptNode *node,
-						    SceneMesh *parentState)
+unsigned int
+OptModel_MeasureNodeAndRaiseCapacities(struct OptNode *node,
+				       struct SceneMesh *parentState)
 {
 	unsigned int serializedSize;
 	int *paramData;
 	OptNodeType nodeType;
 	int childIndex;
 	int childOffset;
-	SceneMesh childState;
+	struct SceneMesh childState;
 
 	if (node == NULL) {
 		return 0;
 	}
 
-	serializedSize = sizeof(OptNode);
+	serializedSize = sizeof(struct OptNode);
 
 	if (node->pName != NULL) {
 
-		serializedSize =
-			(unsigned int)strlen(node->pName) + sizeof(OptNode) + 1;
+		serializedSize = (unsigned int)strlen(node->pName) +
+				 sizeof(struct OptNode) + 1;
 	}
 
 	paramData = node->payload;
@@ -5180,7 +5240,8 @@ unsigned int OptModel_MeasureNodeAndRaiseCapacities(OptNode *node,
 			vectorValueCount = 3 * node->payloadCount;
 			g_curVertNormals = node->payload;
 			serializedSize += 4 * vectorValueCount;
-			parentState->pVertNormals = (OptVector *)paramData;
+			parentState->pVertNormals =
+				(struct OptVector *)paramData;
 			break;
 		}
 
@@ -5193,7 +5254,7 @@ unsigned int OptModel_MeasureNodeAndRaiseCapacities(OptNode *node,
 			break;
 
 		case OPT_TEXTURE: {
-			OptTextureData *textureData;
+			struct OptTextureData *textureData;
 			int textureByteCount;
 			uint8_t *embeddedPalette;
 
@@ -5246,7 +5307,7 @@ unsigned int OptModel_MeasureNodeAndRaiseCapacities(OptNode *node,
 			break;
 		}
 	} else if (nodeType == OPT_TEXTURE) {
-		OptTextureData *textureData;
+		struct OptTextureData *textureData;
 		int textureByteCount;
 		uint8_t *embeddedPalette;
 
@@ -5283,14 +5344,14 @@ unsigned int OptModel_MeasureNodeAndRaiseCapacities(OptNode *node,
 		g_curMeshMaterials = NULL;
 		childIndex = 0;
 
-		serializedSize += sizeof(OptNode *) * node->childCount;
+		serializedSize += sizeof(struct OptNode *) * node->childCount;
 
 		if (node->childCount > 0) {
 			childOffset = 0;
 			do {
 				serializedSize +=
 					OptModel_MeasureNodeAndRaiseCapacities(
-						*(OptNode *
+						*(struct OptNode *
 							  *)((uint8_t *)node
 								     ->pChildren +
 							     childOffset),
@@ -5310,7 +5371,7 @@ unsigned int OptModel_MeasureNodeAndRaiseCapacities(OptNode *node,
 // FUNCTION: XVT 0x476B90
 void OptModel_PrepareTexturePalette(uint16_t *palette, int entryCount)
 {
-	RgbTriplet srcRgb[4096];
+	struct RgbTriplet srcRgb[4096];
 	uint8_t *rgbCursor;
 	uint16_t *paletteEntry;
 	int entriesRemaining;
@@ -5366,8 +5427,9 @@ void OptModel_PrepareTexturePalette(uint16_t *palette, int entryCount)
  * g_curMeshMaterials to NULL before a node's children. A child of size 0 leaves
  * a NULL slot. The modern build aligns each node. */
 // FUNCTION: XVT 0x476C20
-unsigned int OptModel_BuildRuntimeNode(const OptNode *srcNode,
-				       SceneMesh *meshState, uint8_t *dst)
+unsigned int OptModel_BuildRuntimeNode(const struct OptNode *srcNode,
+				       struct SceneMesh *meshState,
+				       uint8_t *dst)
 {
 	enum {
 		OPT_TEXTURE_PALETTE_ENTRY_COUNT = 4096,
@@ -5384,15 +5446,15 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode *srcNode,
 	unsigned int payloadSize;
 	int childIndex;
 	void *sourcePayload;
-	SceneMesh childMesh;
-	OptNode *runtimeNode;
+	struct SceneMesh childMesh;
+	struct OptNode *runtimeNode;
 
 	if (srcNode == NULL) {
 		return 0;
 	}
 	if (dst != NULL) {
 		memcpy(dst, srcNode, sizeof(*srcNode));
-		runtimeNode = (OptNode *)dst;
+		runtimeNode = (struct OptNode *)dst;
 		dst += sizeof(*srcNode);
 	}
 	totalSize = sizeof(*srcNode);
@@ -5413,7 +5475,7 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode *srcNode,
 #endif
 	if (srcNode->childCount != 0) {
 		if (dst != NULL) {
-			runtimeNode->pChildren = (OptNode **)dst;
+			runtimeNode->pChildren = (struct OptNode **)dst;
 			dst += sizeof(*srcNode->pChildren) *
 			       (unsigned int)srcNode->childCount;
 		}
@@ -5430,11 +5492,12 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode *srcNode,
 		if (g_sceneEdgeFlagsCapacity < *(const int *)sourcePayload) {
 			g_sceneEdgeFlagsCapacity = *(const int *)sourcePayload;
 		}
-		payloadSize = sizeof(int) +
-			      (unsigned int)srcNode->payloadCount *
-				      (sizeof(OptPackedFaceRecord) + 36u);
+		payloadSize =
+			sizeof(int) +
+			(unsigned int)srcNode->payloadCount *
+				(sizeof(struct OptPackedFaceRecord) + 36u);
 		if (meshState->pVertNormals == NULL) {
-			payloadSize += sizeof(OptVector) *
+			payloadSize += sizeof(struct OptVector) *
 				       (unsigned int)g_curVertexCount;
 		}
 		if (dst != NULL) {
@@ -5454,8 +5517,8 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode *srcNode,
 		totalSize += payloadSize;
 		break;
 	case OPT_MESHVERTS:
-		payloadSize =
-			sizeof(OptVector) * (unsigned int)srcNode->payloadCount;
+		payloadSize = sizeof(struct OptVector) *
+			      (unsigned int)srcNode->payloadCount;
 		if (dst != NULL) {
 			runtimeNode->payload = dst;
 			memcpy(dst, srcNode->payload, payloadSize);
@@ -5515,16 +5578,16 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode *srcNode,
 		totalSize += payloadSize;
 		break;
 	case OPT_VERTNORMALS:
-		payloadSize =
-			sizeof(OptVector) * (unsigned int)srcNode->payloadCount;
+		payloadSize = sizeof(struct OptVector) *
+			      (unsigned int)srcNode->payloadCount;
 		if (dst != NULL) {
 			runtimeNode->payload = dst;
 			memcpy(dst, srcNode->payload, payloadSize);
 			dst += payloadSize;
 		}
-		g_curVertNormals = (OptVector *)sourcePayload;
+		g_curVertNormals = (struct OptVector *)sourcePayload;
 		totalSize += payloadSize;
-		meshState->pVertNormals = (OptVector *)sourcePayload;
+		meshState->pVertNormals = (struct OptVector *)sourcePayload;
 		break;
 	case OPT_TEXCOORDS:
 		payloadSize = 8u * (unsigned int)srcNode->payloadCount;
@@ -5545,11 +5608,11 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode *srcNode,
 		totalSize += payloadSize;
 		break;
 	case OPT_TEXTURE: {
-		const OptTextureData *sourceTexture;
+		const struct OptTextureData *sourceTexture;
 		int paletteIndex;
 		const uint8_t *sourcePalette;
 		const uint16_t *sourcePalette16;
-		OptTextureData *runtimeTexture;
+		struct OptTextureData *runtimeTexture;
 		const uint8_t *sourceTexels;
 		const uint8_t *mipTopRow;
 		const uint8_t *mipBottomRow;
@@ -5571,7 +5634,7 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode *srcNode,
 		int green;
 		int blue;
 
-		sourceTexture = (const OptTextureData *)srcNode->payload;
+		sourceTexture = (const struct OptTextureData *)srcNode->payload;
 		if (dst != NULL && g_generateMissionPalette != 0 &&
 		    g_flightBytesPerPixel == 1) {
 			sourceTexels = (const uint8_t *)sourceTexture +
@@ -5610,8 +5673,8 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode *srcNode,
 				sourceTexels = (const uint8_t *)sourceTexture +
 					       sizeof(*sourceTexture);
 				dst += sizeof(*sourceTexture);
-				runtimeTexture =
-					(OptTextureData *)runtimeNode->payload;
+				runtimeTexture = (struct OptTextureData *)
+							 runtimeNode->payload;
 				if (g_textureResolutionLevel == 0 &&
 				    runtimeTexture->width >
 					    OPT_TEXTURE_FULL_RES_THRESHOLD &&
@@ -5678,8 +5741,8 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode *srcNode,
 						    2 * OPT_TEXTURE_PALETTE_ENTRY_COUNT);
 				width = sourceTexture->width;
 				height = sourceTexture->height;
-				runtimeTexture =
-					(OptTextureData *)runtimeNode->payload;
+				runtimeTexture = (struct OptTextureData *)
+							 runtimeNode->payload;
 				runtimeTexture->textureSize = width * height;
 				runtimeTexture->dataSize = width * height;
 				while (width > 1 && height > 1) {
@@ -5792,7 +5855,7 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode *srcNode,
 			}
 		}
 
-		sourceTexture = (const OptTextureData *)srcNode->payload;
+		sourceTexture = (const struct OptTextureData *)srcNode->payload;
 		if (sourceTexture->inlinePaletteCount != 0) {
 			texturePayloadSize +=
 				(unsigned int)(sourceTexture
@@ -5964,16 +6027,16 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode *srcNode,
 		for (childIndex = 0; childIndex < srcNode->childCount;
 		     ++childIndex) {
 			if (dst != NULL) {
-				((OptNode **)
+				((struct OptNode **)
 					 runtimeNode->pChildren)[childIndex] =
-					(OptNode *)dst;
+					(struct OptNode *)dst;
 			}
 			payloadSize = OptModel_BuildRuntimeNode(
 				srcNode->pChildren[childIndex], &childMesh,
 				dst);
 			if (dst != NULL) {
 				if (payloadSize == 0) {
-					((OptNode **)runtimeNode
+					((struct OptNode **)runtimeNode
 						 ->pChildren)[childIndex] =
 						NULL;
 				}
@@ -6005,9 +6068,9 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode *srcNode,
 // FUNCTION: XVT 0x477950
 uint16_t OptModel_ConvertImportedHandleToPacked(uint16_t sourceHandle)
 {
-	OptimizedPolyObject *sourceModel;
-	OptimizedPolyObject *packedModel;
-	OptimizedPolyObject *finalModel;
+	struct OptimizedPolyObject *sourceModel;
+	struct OptimizedPolyObject *packedModel;
+	struct OptimizedPolyObject *finalModel;
 	uint8_t *packedCursor;
 	void *packedStorage;
 	uint16_t packedHandle;
@@ -6016,7 +6079,7 @@ uint16_t OptModel_ConvertImportedHandleToPacked(uint16_t sourceHandle)
 	size_t allocatedSize;
 	size_t packedSize;
 	int rootIndex;
-	SceneMesh conversionState;
+	struct SceneMesh conversionState;
 
 	memset(&conversionState, 0, sizeof(conversionState));
 	conversionState.viewOrient[0] = 1.0f;
@@ -6073,8 +6136,8 @@ uint16_t OptModel_ConvertImportedHandleToPacked(uint16_t sourceHandle)
 	packedModel->selfMarker = packedModel;
 	packedModel->reserved = packedHandle;
 	packedModel->rootNodeCount = sourceModel->rootNodeCount;
-	packedModel->rootNodes =
-		(OptNode **)((uint8_t *)packedModel + sizeof(*packedModel));
+	packedModel->rootNodes = (struct OptNode **)((uint8_t *)packedModel +
+						     sizeof(*packedModel));
 	packedCursor =
 		(uint8_t *)packedModel + sizeof(*packedModel) +
 		sizeof(*packedModel->rootNodes) * packedModel->rootNodeCount;
@@ -6109,7 +6172,8 @@ uint16_t OptModel_ConvertImportedHandleToPacked(uint16_t sourceHandle)
 	for (rootIndex = 0; rootIndex < sourceModel->rootNodeCount;
 	     ++rootIndex) {
 		size_t nodeSize;
-		packedModel->rootNodes[rootIndex] = (OptNode *)packedCursor;
+		packedModel->rootNodes[rootIndex] =
+			(struct OptNode *)packedCursor;
 		nodeSize = OptModel_ConvertImportedNodeToPackedRecursive(
 			sourceModel, sourceModel->rootNodes[rootIndex],
 			&conversionState, packedCursor);
@@ -6160,22 +6224,23 @@ uint16_t OptModel_ConvertImportedHandleToPacked(uint16_t sourceHandle)
  * children. Only the original build calls this. */
 // FUNCTION: XVT 0x477C80
 size_t OptModel_ConvertImportedNodeToPackedRecursive(
-	const OptimizedPolyObject *sourceModel, const OptNode *sourceNode,
-	void *conversionState, uint8_t *destBuffer)
+	const struct OptimizedPolyObject *sourceModel,
+	const struct OptNode *sourceNode, void *conversionState,
+	uint8_t *destBuffer)
 {
-	OptNode *packedNode;
-	InventorFieldRecord *params;
+	struct OptNode *packedNode;
+	struct InventorFieldRecord *params;
 	OptNodeType nodeType;
 	uint8_t *dest;
 	int childIndex;
-	SceneMesh childState;
+	struct SceneMesh childState;
 
 	if (sourceNode == NULL) {
 		return 0;
 	}
 
 	nodeType = sourceNode->nodeType;
-	packedNode = (OptNode *)destBuffer;
+	packedNode = (struct OptNode *)destBuffer;
 	dest = destBuffer + sizeof(*packedNode);
 	packedNode->nodeType = nodeType;
 	if (sourceNode->pName != NULL) {
@@ -6195,9 +6260,10 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(
 	    params->data != NULL) {
 		switch (nodeType) {
 		case OPT_FACEDATA: {
-			OptPackedFaceNode *faceNode =
-				(OptPackedFaceNode *)packedNode;
-			OptPackedFaceData *faceData = (OptPackedFaceData *)dest;
+			struct OptPackedFaceNode *faceNode =
+				(struct OptPackedFaceNode *)packedNode;
+			struct OptPackedFaceData *faceData =
+				(struct OptPackedFaceData *)dest;
 			const int *vertexIndices = params[0].data;
 			const int *normalIndices = NULL;
 			const int *texCoordIndices = NULL;
@@ -6216,7 +6282,7 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(
 				int polygonStart = dataIndex;
 				int scanIndex = dataIndex + 1;
 				while (1) {
-					OptPackedFaceRecord *face =
+					struct OptPackedFaceRecord *face =
 						&faceData->records
 							 [faceNode->faceCount];
 					int edgeIndex;
@@ -6363,7 +6429,7 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(
 
 		case OPT_TRANSFORM: {
 			float *transform = (float *)dest;
-			const OptVector *pivot = params[4].data;
+			const struct OptVector *pivot = params[4].data;
 			float pivotX;
 			float pivotY;
 			float pivotZ;
@@ -6376,7 +6442,7 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(
 				transform[2] = -pivot->z;
 				pivotZ = transform[2];
 				if (params[3].data != NULL) {
-					const OptVector *scale;
+					const struct OptVector *scale;
 					Math3D_BuildAxisAngleMatrix(
 						&transform[3], params[3].data);
 					Math3D_RotateVec3(transform,
@@ -6399,7 +6465,7 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(
 						transform[1] *= scale->y;
 						transform[2] *= scale->z;
 						if (params[1].data != NULL) {
-							const OptVector
+							const struct OptVector
 								*translation;
 							transform[0] += pivotX;
 							transform[1] += pivotY;
@@ -6437,11 +6503,12 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(
 		case OPT_MESHVERTS:
 			packedNode->payloadCount = params[0].itemCount;
 			memcpy(dest, params[0].data,
-			       sizeof(OptVector) *
+			       sizeof(struct OptVector) *
 				       (size_t)packedNode->payloadCount);
 			g_curMeshVertices = dest;
 			g_curVertexCount = packedNode->payloadCount;
-			dest += sizeof(OptVector) * (size_t)g_curVertexCount;
+			dest += sizeof(struct OptVector) *
+				(size_t)g_curVertexCount;
 			if (packedNode->payloadCount > g_vertexRemapCapacity) {
 				g_vertexRemapCapacity =
 					packedNode->payloadCount;
@@ -6449,8 +6516,9 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(
 			break;
 
 		case OPT_TRANSLATION:
-			*(OptVector *)dest = *(const OptVector *)params[0].data;
-			dest += sizeof(OptVector);
+			*(struct OptVector *)dest =
+				*(const struct OptVector *)params[0].data;
+			dest += sizeof(struct OptVector);
 			break;
 
 		case OPT_ROTATION: {
@@ -6461,8 +6529,9 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(
 		}
 
 		case OPT_SCALE:
-			*(OptVector *)dest = *(const OptVector *)params[0].data;
-			dest += sizeof(OptVector);
+			*(struct OptVector *)dest =
+				*(const struct OptVector *)params[0].data;
+			dest += sizeof(struct OptVector);
 			break;
 
 		case OPT_NODEREF: {
@@ -6497,9 +6566,11 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(
 			packedNode->payloadCount = maxRecordCount;
 
 			memcpy(dest, params[0].data,
-			       sizeof(OptVector) * (size_t)params[0].itemCount);
+			       sizeof(struct OptVector) *
+				       (size_t)params[0].itemCount);
 			destValues = (float *)dest + 3 * params[0].itemCount;
-			dest += sizeof(OptVector) * (size_t)maxRecordCount;
+			dest += sizeof(struct OptVector) *
+				(size_t)maxRecordCount;
 			if (params[0].itemCount < maxRecordCount) {
 				sourceValues = (const float *)params[0].data +
 					       3 * params[0].itemCount - 3;
@@ -6514,11 +6585,11 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(
 			}
 			if (params[1].data != NULL) {
 				memcpy(dest, params[1].data,
-				       sizeof(OptVector) *
+				       sizeof(struct OptVector) *
 					       (size_t)params[1].itemCount);
 				destValues =
 					(float *)dest + 3 * params[1].itemCount;
-				dest += sizeof(OptVector) *
+				dest += sizeof(struct OptVector) *
 					(size_t)maxRecordCount;
 				if (params[1].itemCount < maxRecordCount) {
 					sourceValues =
@@ -6535,12 +6606,12 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(
 				}
 				if (params[2].data != NULL) {
 					memcpy(dest, params[2].data,
-					       sizeof(OptVector) *
+					       sizeof(struct OptVector) *
 						       (size_t)params[2]
 							       .itemCount);
 					destValues = (float *)dest +
 						     3 * params[2].itemCount;
-					dest += sizeof(OptVector) *
+					dest += sizeof(struct OptVector) *
 						(size_t)maxRecordCount;
 					if (params[2].itemCount <
 					    maxRecordCount) {
@@ -6563,13 +6634,15 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(
 					}
 					if (params[3].data != NULL) {
 						memcpy(dest, params[3].data,
-						       sizeof(OptVector) *
+						       sizeof(struct
+							      OptVector) *
 							       (size_t)params[3]
 								       .itemCount);
 						destValues =
 							(float *)dest +
 							3 * params[3].itemCount;
-						dest += sizeof(OptVector) *
+						dest += sizeof(struct
+							       OptVector) *
 							(size_t)maxRecordCount;
 						if (params[3].itemCount <
 						    maxRecordCount) {
@@ -6681,29 +6754,30 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(
 		case OPT_VERTNORMALS:
 			packedNode->payloadCount = params[0].itemCount;
 			memcpy(dest, params[0].data,
-			       sizeof(OptVector) *
+			       sizeof(struct OptVector) *
 				       (size_t)packedNode->payloadCount);
-			g_curVertNormals = (OptVector *)dest;
-			((SceneMesh *)conversionState)->pVertNormals =
-				(OptVector *)dest;
-			dest += sizeof(OptVector) *
+			g_curVertNormals = (struct OptVector *)dest;
+			((struct SceneMesh *)conversionState)->pVertNormals =
+				(struct OptVector *)dest;
+			dest += sizeof(struct OptVector) *
 				(size_t)packedNode->payloadCount;
 			break;
 
 		case OPT_TEXCOORDS:
 			packedNode->payloadCount = params[0].itemCount;
 			memcpy(dest, params[0].data,
-			       sizeof(OptTexCoord) *
+			       sizeof(struct OptTexCoord) *
 				       (size_t)packedNode->payloadCount);
 			g_curMeshTexCoords = dest;
-			dest += sizeof(OptTexCoord) *
+			dest += sizeof(struct OptTexCoord) *
 				(size_t)packedNode->payloadCount;
 			break;
 
 		case OPT_FACEDATA_QUAD_MESH: {
-			OptPackedFaceNode *faceNode =
-				(OptPackedFaceNode *)packedNode;
-			OptPackedFaceData *faceData = (OptPackedFaceData *)dest;
+			struct OptPackedFaceNode *faceNode =
+				(struct OptPackedFaceNode *)packedNode;
+			struct OptPackedFaceData *faceData =
+				(struct OptPackedFaceData *)dest;
 			const int *widthData = params[1].data;
 			const int *heightData = params[2].data;
 			int edgeCount = 0;
@@ -6719,7 +6793,7 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(
 					for (columnIndex = 0;
 					     columnIndex < width - 1;
 					     ++columnIndex) {
-						OptPackedFaceRecord *face =
+						struct OptPackedFaceRecord *face =
 							&faceData->records
 								 [rowIndex *
 									  (width -
@@ -6803,9 +6877,10 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(
 		}
 
 		case OPT_FACEDATA_FACE_SET: {
-			OptPackedFaceNode *faceNode =
-				(OptPackedFaceNode *)packedNode;
-			OptPackedFaceData *faceData = (OptPackedFaceData *)dest;
+			struct OptPackedFaceNode *faceNode =
+				(struct OptPackedFaceNode *)packedNode;
+			struct OptPackedFaceData *faceData =
+				(struct OptPackedFaceData *)dest;
 			const int *polygonVertexCounts = params[0].data;
 			int vertexCursor = 0;
 			int edgeCursor = 0;
@@ -6824,7 +6899,7 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(
 					++edgeCursor;
 					while (vertexCursor - polygonStart <
 					       polygonVertexCount) {
-						OptPackedFaceRecord *face =
+						struct OptPackedFaceRecord *face =
 							&faceData->records
 								 [faceNode->faceCount];
 						++faceNode->faceCount;
@@ -6898,9 +6973,10 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(
 		}
 
 		case OPT_FACEDATA_TRIANGLE_STRIP_SET: {
-			OptPackedFaceNode *faceNode =
-				(OptPackedFaceNode *)packedNode;
-			OptPackedFaceData *faceData = (OptPackedFaceData *)dest;
+			struct OptPackedFaceNode *faceNode =
+				(struct OptPackedFaceNode *)packedNode;
+			struct OptPackedFaceData *faceData =
+				(struct OptPackedFaceData *)dest;
 			const int *stripVertexCounts = params[1].data;
 			int firstVertex = *(const int *)params[0].data;
 			int edgeCursor = *(const int *)conversionState;
@@ -6917,7 +6993,7 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(
 					for (vertexIndex = 2;
 					     vertexIndex < stripVertexCount;
 					     ++vertexIndex) {
-						OptPackedFaceRecord *face =
+						struct OptPackedFaceRecord *face =
 							&faceData->records
 								 [faceNode->faceCount];
 						int currentVertex =
@@ -7002,7 +7078,8 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(
 			break;
 
 		case OPT_FACEGROUP: {
-			OptNode *mutableSourceNode = (OptNode *)sourceNode;
+			struct OptNode *mutableSourceNode =
+				(struct OptNode *)sourceNode;
 			const float *sourceValues = params[0].data;
 			int sourceIndex;
 			packedNode->payloadCount = 0;
@@ -7029,8 +7106,9 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(
 		}
 
 		case OPT_HARDPOINT: {
-			const OptVector *position = params[1].data;
-			OptHardpoint *hardpoint = (OptHardpoint *)dest;
+			const struct OptVector *position = params[1].data;
+			struct OptHardpoint *hardpoint =
+				(struct OptHardpoint *)dest;
 			hardpoint->hardpointType = *(const int *)params[0].data;
 			hardpoint->position = *position;
 			dest += sizeof(*hardpoint);
@@ -7038,14 +7116,18 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(
 		}
 
 		case OPT_ROTSCALE: {
-			*(OptVector *)dest = *(const OptVector *)params[0].data;
-			dest += sizeof(OptVector);
-			*(OptVector *)dest = *(const OptVector *)params[1].data;
-			dest += sizeof(OptVector);
-			*(OptVector *)dest = *(const OptVector *)params[2].data;
-			dest += sizeof(OptVector);
-			*(OptVector *)dest = *(const OptVector *)params[3].data;
-			dest += sizeof(OptVector);
+			*(struct OptVector *)dest =
+				*(const struct OptVector *)params[0].data;
+			dest += sizeof(struct OptVector);
+			*(struct OptVector *)dest =
+				*(const struct OptVector *)params[1].data;
+			dest += sizeof(struct OptVector);
+			*(struct OptVector *)dest =
+				*(const struct OptVector *)params[2].data;
+			dest += sizeof(struct OptVector);
+			*(struct OptVector *)dest =
+				*(const struct OptVector *)params[3].data;
+			dest += sizeof(struct OptVector);
 			break;
 		}
 
@@ -7054,17 +7136,17 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(
 			dest += 18 * sizeof(float);
 			values[0] = *(const float *)params[0].data;
 			((int *)values)[1] = *(const int *)params[1].data;
-			*(OptVector *)&values[2] =
-				*(const OptVector *)params[2].data;
-			*(OptVector *)&values[5] =
-				*(const OptVector *)params[3].data;
-			*(OptVector *)&values[8] =
-				*(const OptVector *)params[4].data;
-			*(OptVector *)&values[11] =
-				*(const OptVector *)params[5].data;
+			*(struct OptVector *)&values[2] =
+				*(const struct OptVector *)params[2].data;
+			*(struct OptVector *)&values[5] =
+				*(const struct OptVector *)params[3].data;
+			*(struct OptVector *)&values[8] =
+				*(const struct OptVector *)params[4].data;
+			*(struct OptVector *)&values[11] =
+				*(const struct OptVector *)params[5].data;
 			values[14] = *(const float *)params[6].data;
-			*(OptVector *)&values[15] =
-				*(const OptVector *)params[7].data;
+			*(struct OptVector *)&values[15] =
+				*(const struct OptVector *)params[7].data;
 			break;
 		}
 
@@ -7074,17 +7156,18 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(
 	}
 
 	if (sourceNode->childCount != 0) {
-		childState = *(SceneMesh *)conversionState;
+		childState = *(struct SceneMesh *)conversionState;
 		g_curVertNormals = NULL;
 		g_modelNodeWalkUnusedScratch2 = NULL;
 		g_curMeshMaterials = NULL;
 		packedNode->childCount = sourceNode->childCount;
-		packedNode->pChildren = (OptNode **)dest;
+		packedNode->pChildren = (struct OptNode **)dest;
 		dest += sizeof(*packedNode->pChildren) *
 			(size_t)packedNode->childCount;
 		for (childIndex = 0; childIndex < sourceNode->childCount;
 		     ++childIndex) {
-			packedNode->pChildren[childIndex] = (OptNode *)dest;
+			packedNode->pChildren[childIndex] =
+				(struct OptNode *)dest;
 			dest += OptModel_ConvertImportedNodeToPackedRecursive(
 				sourceModel, sourceNode->pChildren[childIndex],
 				&childState, dest);
@@ -7105,11 +7188,11 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(
  * calls this. */
 // FUNCTION: XVT 0x478F50
 size_t OptModel_CalculatePackedNodeSizeRecursive(
-	const OptimizedPolyObject *sourceModel, const OptNode *sourceNode,
-	void *conversionState)
+	const struct OptimizedPolyObject *sourceModel,
+	const struct OptNode *sourceNode, void *conversionState)
 {
 	size_t packedSize;
-	InventorFieldRecord *params;
+	struct InventorFieldRecord *params;
 	OptNodeType nodeType;
 	int *data;
 	int *scanData;
@@ -7122,7 +7205,7 @@ size_t OptModel_CalculatePackedNodeSizeRecursive(
 	int polygonStart;
 	int childIndex;
 	int childOffset;
-	SceneMesh childState;
+	struct SceneMesh childState;
 
 	if (sourceNode == NULL) {
 		return 0;
@@ -7222,10 +7305,11 @@ size_t OptModel_CalculatePackedNodeSizeRecursive(
 
 		case OPT_VERTNORMALS:
 			recordCount = 3 * params->itemCount;
-			g_curVertNormals = (OptVector *)sourceNode->payload;
+			g_curVertNormals =
+				(struct OptVector *)sourceNode->payload;
 			packedSize += 4 * recordCount;
-			((SceneMesh *)conversionState)->pVertNormals =
-				(OptVector *)params;
+			((struct SceneMesh *)conversionState)->pVertNormals =
+				(struct OptVector *)params;
 			break;
 
 		case OPT_TEXCOORDS:
@@ -7335,7 +7419,7 @@ size_t OptModel_CalculatePackedNodeSizeRecursive(
 
 	childOffset = 0;
 	if (sourceNode->childCount != 0) {
-		childState = *(SceneMesh *)conversionState;
+		childState = *(struct SceneMesh *)conversionState;
 		childIndex = 0;
 		g_curVertNormals = NULL;
 		g_modelNodeWalkUnusedScratch2 = NULL;
@@ -7348,7 +7432,7 @@ size_t OptModel_CalculatePackedNodeSizeRecursive(
 				packedSize +=
 					OptModel_CalculatePackedNodeSizeRecursive(
 						sourceModel,
-						*(OptNode *
+						*(struct OptNode *
 							  *)((uint8_t *)sourceNode
 								     ->pChildren +
 							     childOffset),
@@ -7366,11 +7450,11 @@ size_t OptModel_CalculatePackedNodeSizeRecursive(
  * direction; -1 when no face has it, and also when two or more do. Only the
  * original build calls this. */
 // FUNCTION: XVT 0x4792F0
-int OptModel_FindUniqueEdgeIndex(const OptPackedFaceNode *faceNode,
+int OptModel_FindUniqueEdgeIndex(const struct OptPackedFaceNode *faceNode,
 				 int vertexIndexA, int vertexIndexB)
 {
 	int result;
-	const OptPackedFaceRecord *face;
+	const struct OptPackedFaceRecord *face;
 	int faceIndex;
 
 	face = faceNode->faceData->records;
@@ -7494,15 +7578,15 @@ int OptModel_FindUniqueEdgeIndex(const OptPackedFaceNode *faceNode,
  * Steps 36 bytes per face and 12 per vertex normal counted in
  * g_generatedVertexNormalCount. Only the original build calls this. */
 // FUNCTION: XVT 0x4794C0
-float *OptModel_AppendPackedFaceDerivedData(OptPackedFaceNode *faceNode,
+float *OptModel_AppendPackedFaceDerivedData(struct OptPackedFaceNode *faceNode,
 					    uint8_t *dest,
 					    void *conversionState)
 {
-	dest += sizeof(OptPackedFaceRecord) * faceNode->faceCount;
+	dest += sizeof(struct OptPackedFaceRecord) * faceNode->faceCount;
 	OptModel_BuildFaceNormalTangentData((float *)dest, faceNode->faceData,
 					    faceNode->faceCount,
 					    conversionState);
-	dest += 3 * sizeof(OptVector) * faceNode->faceCount;
+	dest += 3 * sizeof(struct OptVector) * faceNode->faceCount;
 	dest += 3 * sizeof(float) * g_generatedVertexNormalCount;
 	return (float *)dest;
 }
@@ -7520,12 +7604,11 @@ float *OptModel_AppendPackedFaceDerivedData(OptPackedFaceNode *faceNode,
  * arm that skips 6 sits inside this #ifndef XVT_MODERN block, so no build
  * compiles it. Only the original build calls this. */
 // FUNCTION: XVT 0x479510
-void OptModel_BuildFaceNormalTangentData(float *dest,
-					 const OptPackedFaceData *faceData,
-					 int faceCount,
-					 const void *conversionState)
+void OptModel_BuildFaceNormalTangentData(
+	float *dest, const struct OptPackedFaceData *faceData, int faceCount,
+	const void *conversionState)
 {
-	const OptPackedFaceRecord *records;
+	const struct OptPackedFaceRecord *records;
 	int faceIndex;
 	float edgeAx, edgeAy, edgeAz, edgeBx, edgeBy, edgeBz;
 	float duA, dvA, duB, dvB, determinant;
@@ -7536,42 +7619,42 @@ void OptModel_BuildFaceNormalTangentData(float *dest,
 	}
 	records = faceData->records;
 	if (faceCount > 0) {
-		const OptPackedFaceRecord *face = records;
+		const struct OptPackedFaceRecord *face = records;
 		for (faceIndex = 0; faceIndex < faceCount; ++faceIndex) {
-			edgeAx = ((const OptVector *)g_curMeshVertices)
+			edgeAx = ((const struct OptVector *)g_curMeshVertices)
 					 [face->vertexIndices[1]]
 						 .x -
-				 ((const OptVector *)g_curMeshVertices)
+				 ((const struct OptVector *)g_curMeshVertices)
 					 [face->vertexIndices[0]]
 						 .x;
-			edgeAy = ((const OptVector *)g_curMeshVertices)
+			edgeAy = ((const struct OptVector *)g_curMeshVertices)
 					 [face->vertexIndices[1]]
 						 .y -
-				 ((const OptVector *)g_curMeshVertices)
+				 ((const struct OptVector *)g_curMeshVertices)
 					 [face->vertexIndices[0]]
 						 .y;
-			edgeAz = ((const OptVector *)g_curMeshVertices)
+			edgeAz = ((const struct OptVector *)g_curMeshVertices)
 					 [face->vertexIndices[1]]
 						 .z -
-				 ((const OptVector *)g_curMeshVertices)
+				 ((const struct OptVector *)g_curMeshVertices)
 					 [face->vertexIndices[0]]
 						 .z;
-			edgeBx = ((const OptVector *)g_curMeshVertices)
+			edgeBx = ((const struct OptVector *)g_curMeshVertices)
 					 [face->vertexIndices[1]]
 						 .x -
-				 ((const OptVector *)g_curMeshVertices)
+				 ((const struct OptVector *)g_curMeshVertices)
 					 [face->vertexIndices[2]]
 						 .x;
-			edgeBy = ((const OptVector *)g_curMeshVertices)
+			edgeBy = ((const struct OptVector *)g_curMeshVertices)
 					 [face->vertexIndices[1]]
 						 .y -
-				 ((const OptVector *)g_curMeshVertices)
+				 ((const struct OptVector *)g_curMeshVertices)
 					 [face->vertexIndices[2]]
 						 .y;
-			edgeBz = ((const OptVector *)g_curMeshVertices)
+			edgeBz = ((const struct OptVector *)g_curMeshVertices)
 					 [face->vertexIndices[1]]
 						 .z -
-				 ((const OptVector *)g_curMeshVertices)
+				 ((const struct OptVector *)g_curMeshVertices)
 					 [face->vertexIndices[2]]
 						 .z;
 			dest[0] = edgeBz * edgeAy - edgeBy * edgeAz;
@@ -7583,56 +7666,56 @@ void OptModel_BuildFaceNormalTangentData(float *dest,
 			if (normalLengthSquared == g_sw3dZeroFloat) {
 				if (face->vertexIndices[3] != -1) {
 					edgeAx =
-						((const OptVector *)
+						((const struct OptVector *)
 							 g_curMeshVertices)
 							[face->vertexIndices[3]]
 								.x -
-						((const OptVector *)
+						((const struct OptVector *)
 							 g_curMeshVertices)
 							[face->vertexIndices[0]]
 								.x;
 					edgeAy =
-						((const OptVector *)
+						((const struct OptVector *)
 							 g_curMeshVertices)
 							[face->vertexIndices[3]]
 								.y -
-						((const OptVector *)
+						((const struct OptVector *)
 							 g_curMeshVertices)
 							[face->vertexIndices[0]]
 								.y;
 					edgeAz =
-						((const OptVector *)
+						((const struct OptVector *)
 							 g_curMeshVertices)
 							[face->vertexIndices[3]]
 								.z -
-						((const OptVector *)
+						((const struct OptVector *)
 							 g_curMeshVertices)
 							[face->vertexIndices[0]]
 								.z;
 					edgeBx =
-						((const OptVector *)
+						((const struct OptVector *)
 							 g_curMeshVertices)
 							[face->vertexIndices[3]]
 								.x -
-						((const OptVector *)
+						((const struct OptVector *)
 							 g_curMeshVertices)
 							[face->vertexIndices[2]]
 								.x;
 					edgeBy =
-						((const OptVector *)
+						((const struct OptVector *)
 							 g_curMeshVertices)
 							[face->vertexIndices[3]]
 								.y -
-						((const OptVector *)
+						((const struct OptVector *)
 							 g_curMeshVertices)
 							[face->vertexIndices[2]]
 								.y;
 					edgeBz =
-						((const OptVector *)
+						((const struct OptVector *)
 							 g_curMeshVertices)
 							[face->vertexIndices[3]]
 								.z -
-						((const OptVector *)
+						((const struct OptVector *)
 							 g_curMeshVertices)
 							[face->vertexIndices[2]]
 								.z;
@@ -7679,11 +7762,13 @@ void OptModel_BuildFaceNormalTangentData(float *dest,
 		if (faceCount > 0) {
 			for (tangentFaceIndex = 0; tangentFaceIndex < faceCount;
 			     ++tangentFaceIndex) {
-				const OptPackedFaceRecord *face = records;
+				const struct OptPackedFaceRecord *face =
+					records;
 				float lengthSquared;
-				const OptVector *vertices;
-				const OptTexCoord *texCoords;
-				vertices = (const OptVector *)g_curMeshVertices;
+				const struct OptVector *vertices;
+				const struct OptTexCoord *texCoords;
+				vertices = (const struct OptVector *)
+					g_curMeshVertices;
 				edgeAx = vertices[face->vertexIndices[0]].x -
 					 vertices[face->vertexIndices[1]].x;
 				edgeAy = vertices[face->vertexIndices[0]].y -
@@ -7696,8 +7781,8 @@ void OptModel_BuildFaceNormalTangentData(float *dest,
 					 vertices[face->vertexIndices[2]].y;
 				edgeBz = vertices[face->vertexIndices[0]].z -
 					 vertices[face->vertexIndices[2]].z;
-				texCoords =
-					(const OptTexCoord *)g_curMeshTexCoords;
+				texCoords = (const struct OptTexCoord *)
+					g_curMeshTexCoords;
 				duA = texCoords[face->texCoordIndices[0]].u -
 				      texCoords[face->texCoordIndices[1]].u;
 				dvA = texCoords[face->texCoordIndices[0]].v -
@@ -7716,7 +7801,8 @@ void OptModel_BuildFaceNormalTangentData(float *dest,
 				if (determinant == 0.0f ||
 				    lengthSquared == g_sw3dZeroFloat) {
 					if (face->vertexIndices[3] != -1) {
-						vertices = (const OptVector *)
+						vertices = (const struct
+							    OptVector *)
 							g_curMeshVertices;
 						edgeAx =
 							vertices[face->vertexIndices
@@ -7760,8 +7846,8 @@ void OptModel_BuildFaceNormalTangentData(float *dest,
 							vertices[face->vertexIndices
 									 [3]]
 								.z;
-						texCoords = (const OptTexCoord
-								     *)
+						texCoords = (const struct
+							     OptTexCoord *)
 							g_curMeshTexCoords;
 						duA = texCoords
 							      [face->texCoordIndices
@@ -7810,8 +7896,8 @@ void OptModel_BuildFaceNormalTangentData(float *dest,
 						if (determinant == 0.0f ||
 						    lengthSquared ==
 							    g_sw3dZeroFloat) {
-							vertices = (const OptVector
-									    *)
+							vertices = (const struct
+								    OptVector *)
 								g_curMeshVertices;
 							edgeAx =
 								vertices[face->vertexIndices
@@ -7855,7 +7941,8 @@ void OptModel_BuildFaceNormalTangentData(float *dest,
 								vertices[face->vertexIndices
 										 [3]]
 									.z;
-							texCoords = (const OptTexCoord
+							texCoords = (const struct
+								     OptTexCoord
 									     *)
 								g_curMeshTexCoords;
 							duA = texCoords
@@ -7910,7 +7997,8 @@ void OptModel_BuildFaceNormalTangentData(float *dest,
 								    0.0f ||
 							    lengthSquared ==
 								    g_sw3dZeroFloat) {
-								vertices = (const OptVector
+								vertices = (const struct
+									    OptVector
 										    *)
 									g_curMeshVertices;
 								edgeAx =
@@ -7955,9 +8043,11 @@ void OptModel_BuildFaceNormalTangentData(float *dest,
 									vertices[face->vertexIndices
 											 [3]]
 										.z;
-								texCoords = (const OptTexCoord
-										     *)
-									g_curMeshTexCoords;
+								texCoords =
+									(const struct
+									 OptTexCoord
+										 *)
+										g_curMeshTexCoords;
 								duA = texCoords[face->texCoordIndices
 											[1]]
 									      .u -
@@ -8064,7 +8154,7 @@ void OptModel_BuildFaceNormalTangentData(float *dest,
 		dest += 24 * faceCount;
 #endif
 	}
-	if (((const SceneMesh *)conversionState)->pVertNormals != NULL) {
+	if (((const struct SceneMesh *)conversionState)->pVertNormals != NULL) {
 		g_generatedVertexNormalCount = 0;
 	} else {
 		g_generatedVertexNormalCount = g_curVertexCount;
@@ -8077,13 +8167,12 @@ void OptModel_BuildFaceNormalTangentData(float *dest,
  * entry as it was when no face uses it. Does not normalize the mean. Only the
  * original build calls this. */
 // FUNCTION: XVT 0x479CE0
-void OptModel_BuildVertexNormalsFromFaces(float *dest,
-					  const OptPackedFaceData *faceData,
-					  int faceCount)
+void OptModel_BuildVertexNormalsFromFaces(
+	float *dest, const struct OptPackedFaceData *faceData, int faceCount)
 {
 	int vertexIndex;
 	int incidentFaceCount;
-	const OptPackedFaceRecord *face;
+	const struct OptPackedFaceRecord *face;
 	const float *faceNormal;
 	int remainingFaces;
 	float scale;
@@ -8093,7 +8182,7 @@ void OptModel_BuildVertexNormalsFromFaces(float *dest,
 	if (g_curVertexCount <= 0) {
 		return;
 	}
-	faceRecordBytes = faceCount * (int)sizeof(OptPackedFaceRecord);
+	faceRecordBytes = faceCount * (int)sizeof(struct OptPackedFaceRecord);
 	do {
 		incidentFaceCount = 0;
 		face = faceData->records;
@@ -8146,10 +8235,11 @@ void OptModel_BuildVertexNormalsFromFaces(float *dest,
 /* Returns the first node, roots in order and each depth first, whose name is
  * name ignoring case (OptModel_FindNodeByName), or NULL. */
 // FUNCTION: XVT 0x479DE0
-OptNode *OptModel_ResolveNodeRef(const OptimizedPolyObject *object,
-				 const char *name)
+struct OptNode *
+OptModel_ResolveNodeRef(const struct OptimizedPolyObject *object,
+			const char *name)
 {
-	OptNode *result;
+	struct OptNode *result;
 	int rootIndex;
 
 	for (rootIndex = 0; rootIndex < object->rootNodeCount; ++rootIndex) {
@@ -8166,9 +8256,9 @@ OptNode *OptModel_ResolveNodeRef(const OptimizedPolyObject *object,
 /* Returns node or the first node below it, depth first, whose name is name
  * ignoring case, or NULL. Does not follow OPT_NODEREF links. */
 // FUNCTION: XVT 0x479E20
-OptNode *OptModel_FindNodeByName(OptNode *node, const char *name)
+struct OptNode *OptModel_FindNodeByName(struct OptNode *node, const char *name)
 {
-	OptNode *result;
+	struct OptNode *result;
 	int childIndex;
 	int nameCompare;
 
@@ -8215,7 +8305,7 @@ int OptModel_GetExternalTextureSerializedSize(const char *sourceFileName)
 	int pixelCount;
 	int payloadSize;
 	int serializedSize;
-	OptExternalTexHeader texHeader;
+	struct OptExternalTexHeader texHeader;
 	uint8_t rgbHeader[32];
 	char fileName[256];
 

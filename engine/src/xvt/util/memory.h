@@ -17,7 +17,7 @@ struct MemoryHandleTableState {
 
 extern uint8_t g_handleAllocatorInitialized;
 extern unsigned int g_handleAllocationAttemptCount;
-extern MemoryHandleTableState g_handleTables;
+extern struct MemoryHandleTableState g_handleTables;
 
 int Memory_SetRegionExecuteReadWrite(void *address, size_t size);
 uint16_t Memory_AllocHandleZeroed(size_t size, int legacyTag);

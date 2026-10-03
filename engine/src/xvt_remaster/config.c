@@ -4,23 +4,23 @@
 #include "xvt_runtime/log/log.h"
 #include <stdio.h>
 #include <string.h>
-static XvtRenderSettings g_effective, g_requested;
-static XvtVideoSettings g_video;
+static struct XvtRenderSettings g_effective, g_requested;
+static struct XvtVideoSettings g_video;
 static uint64_t g_generation, g_documentGeneration;
 static int g_initialized, g_videoOverride;
 static AeronSampler *g_meshSampler;
 
-static void XvtRemasterConfig_ReadOutput(XvtRenderSettings *settings)
+static void XvtRemasterConfig_ReadOutput(struct XvtRenderSettings *settings)
 {
 	settings->presentation.hdr_output = Aeron_OutputHdrEnabled();
 	settings->presentation.sdr_gamma = Aeron_OutputSdrContentGamma();
 	settings->presentation.paper_white_nits = Aeron_OutputPaperWhiteNits();
 }
 
-static int XvtRemasterConfig_Apply(const XvtRenderSettings *requested,
+static int XvtRemasterConfig_Apply(const struct XvtRenderSettings *requested,
 				   char *error, size_t capacity)
 {
-	XvtRenderSettings next = *requested;
+	struct XvtRenderSettings next = *requested;
 	if (next.temporal_mode != AERON_TEMPORAL_OFF) {
 		next.msaa_samples = 1;
 	}
@@ -103,12 +103,12 @@ static int XvtRemasterConfig_Apply(const XvtRenderSettings *requested,
 
 int XvtRemasterConfig_Sync(void)
 {
-	const XvtSettings *settings = XvtConfig_Settings();
+	const struct XvtSettings *settings = XvtConfig_Settings();
 	if (!settings) {
 		return 0;
 	}
 	if (!g_initialized || g_documentGeneration != XvtConfig_Generation()) {
-		XvtRenderSettings next = settings->render;
+		struct XvtRenderSettings next = settings->render;
 		if (g_videoOverride) {
 			XvtVideoSettings_ApplyTo(&g_video, &next);
 		}
@@ -120,7 +120,7 @@ int XvtRemasterConfig_Sync(void)
 		}
 		g_documentGeneration = XvtConfig_Generation();
 	} else {
-		XvtRenderSettings next = g_effective;
+		struct XvtRenderSettings next = g_effective;
 		XvtRemasterConfig_ReadOutput(&next);
 		if (memcmp(&next.presentation, &g_effective.presentation,
 			   sizeof next.presentation)) {
@@ -131,8 +131,8 @@ int XvtRemasterConfig_Sync(void)
 	return 1;
 }
 
-bool XvtRemasterConfig_ApplyVideo(const XvtVideoSettings *previous,
-				  const XvtVideoSettings *requested,
+bool XvtRemasterConfig_ApplyVideo(const struct XvtVideoSettings *previous,
+				  const struct XvtVideoSettings *requested,
 				  char *error, size_t capacity)
 {
 	if (!XvtVideoSettings_Validate(requested, error, capacity)) {
@@ -144,7 +144,7 @@ bool XvtRemasterConfig_ApplyVideo(const XvtVideoSettings *previous,
 		snprintf(error, capacity, "Cannot change fullscreen mode");
 		return false;
 	}
-	XvtRenderSettings next = XvtConfig_Settings()->render;
+	struct XvtRenderSettings next = XvtConfig_Settings()->render;
 	XvtVideoSettings_ApplyTo(requested, &next);
 	if (!XvtRemasterConfig_Apply(&next, error, capacity)) {
 		if (fullscreen != requested->fullscreen &&
@@ -160,7 +160,7 @@ bool XvtRemasterConfig_ApplyVideo(const XvtVideoSettings *previous,
 	return true;
 }
 
-const XvtRenderSettings *XvtRemasterConfig_Effective(void)
+const struct XvtRenderSettings *XvtRemasterConfig_Effective(void)
 {
 	return g_initialized ? &g_effective : NULL;
 }

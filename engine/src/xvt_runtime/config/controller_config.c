@@ -102,14 +102,15 @@ static bool XvtControllerConfig_ReadString(const AeronConfigFile *document,
 
 static bool XvtControllerConfig_ParseAxisMapping(
 	const AeronConfigFile *document, const char *profile_path, bool gamepad,
-	XvtControllerProfile *profile, char *error, size_t capacity)
+	struct XvtControllerProfile *profile, char *error, size_t capacity)
 {
 	static const char *const names[] = {"yaw", "pitch", "roll", "throttle"};
 	size_t index;
 	for (index = 0; index < XVT_INPUT_AXIS_COUNT; ++index) {
 		char path[128];
 		const AeronConfigNode *node;
-		XvtInputAxisBinding *binding = &profile->mapping.axes[index];
+		struct XvtInputAxisBinding *binding =
+			&profile->mapping.axes[index];
 		int source;
 		snprintf(path, sizeof path, "%s.axes.%s", profile_path,
 			 names[index]);
@@ -378,11 +379,10 @@ static bool XvtControllerConfig_ParseDigitalSource(
 		error, capacity, "unknown controller source form");
 }
 
-static bool
-XvtControllerConfig_AddBinding(XvtInputActionBinding *bindings, size_t *count,
-			       size_t maximum, XvtInputAction action,
-			       const AeronControllerDigitalSource *source,
-			       char *error, size_t capacity)
+static bool XvtControllerConfig_AddBinding(
+	struct XvtInputActionBinding *bindings, size_t *count, size_t maximum,
+	XvtInputAction action, const AeronControllerDigitalSource *source,
+	char *error, size_t capacity)
 {
 	size_t index;
 	for (index = 0; index < *count; ++index) {
@@ -409,7 +409,7 @@ XvtControllerConfig_AddBinding(XvtInputActionBinding *bindings, size_t *count,
 
 static bool XvtControllerConfig_ParseBindingValue(
 	const AeronConfigNode *node, bool gamepad, XvtInputAction action,
-	XvtInputActionBinding *bindings, size_t *count, size_t maximum,
+	struct XvtInputActionBinding *bindings, size_t *count, size_t maximum,
 	char *error, size_t capacity)
 {
 	const bool sequence =
@@ -467,8 +467,8 @@ static bool XvtControllerConfig_CheckKnownKeys(const AeronConfigNode *node,
 
 bool XvtControllerConfig_ReadProfile(const AeronConfigFile *document,
 				     const char *path, AeronControllerKind kind,
-				     XvtControllerProfile *profile, char *error,
-				     size_t capacity)
+				     struct XvtControllerProfile *profile,
+				     char *error, size_t capacity)
 {
 	if (!XvtControllerConfig_RequiredNode(document, path, AERON_CONFIG_MAP,
 					      error, capacity)) {
@@ -537,8 +537,8 @@ bool XvtControllerConfig_ReadProfile(const AeronConfigFile *document,
 }
 
 bool XvtControllerConfig_Parse(const AeronConfigFile *document,
-			       XvtControllerOptions *options, char *error,
-			       size_t capacity)
+			       struct XvtControllerOptions *options,
+			       char *error, size_t capacity)
 {
 	static const char *const keys[] = {"guid", "name", "layout", "axes",
 					   "buttons"};
@@ -561,7 +561,7 @@ bool XvtControllerConfig_Parse(const AeronConfigFile *document,
 							capacity)) {
 			return false;
 		}
-		XvtControllerModel *m = &options->models[i];
+		struct XvtControllerModel *m = &options->models[i];
 		char path[128], field[160];
 		snprintf(path, sizeof path, "input.controllers[%zu]", i);
 		snprintf(field, sizeof field, "%s.guid", path);
@@ -595,17 +595,17 @@ bool XvtControllerConfig_Parse(const AeronConfigFile *document,
 	return XvtControllerOptions_Validate(options, error, capacity);
 }
 
-typedef struct XvtControllerYamlScratch {
+struct XvtControllerYamlScratch {
 	AeronConfigValue sources[XVT_CONTROLLER_BINDING_CAP];
 	AeronConfigValue fields[XVT_CONTROLLER_BINDING_CAP][3];
 	AeronConfigMapValue source_maps[XVT_CONTROLLER_BINDING_CAP][3];
 	AeronConfigValue action_values[XVT_INPUT_ACTION_COUNT - 1];
 	AeronConfigMapValue action_map[XVT_INPUT_ACTION_COUNT - 1];
-} XvtControllerYamlScratch;
+};
 
 static void XvtControllerConfig_ControllerSourceYaml(
 	const AeronControllerDigitalSource *source, bool gamepad,
-	XvtControllerYamlScratch *scratch, size_t slot)
+	struct XvtControllerYamlScratch *scratch, size_t slot)
 {
 	AeronConfigValue *value = &scratch->sources[slot];
 	AeronConfigValue *fields = scratch->fields[slot];
@@ -670,16 +670,16 @@ static void XvtControllerConfig_ControllerSourceYaml(
 	value->value.map.count = 2;
 }
 
-typedef struct ModelYaml {
-	XvtControllerYamlScratch digital;
+struct ModelYaml {
+	struct XvtControllerYamlScratch digital;
 	AeronConfigValue axis_fields[4][3], axes[4], axes_map, buttons;
 	AeronConfigMapValue axis_maps[4][3], axis_entries[4], fields[5];
 	AeronConfigValue guid, name, layout;
-} ModelYaml;
+};
 
 static int BindingCompare(const void *left, const void *right)
 {
-	const XvtInputActionBinding *a = left, *b = right;
+	const struct XvtInputActionBinding *a = left, *b = right;
 	if (a->action != b->action) {
 		return (int)a->action - (int)b->action;
 	}
@@ -692,8 +692,8 @@ static int BindingCompare(const void *left, const void *right)
 	return (int)a->source.hat_direction - (int)b->source.hat_direction;
 }
 
-static void ModelValue(const XvtControllerModel *model, ModelYaml *scratch,
-		       AeronConfigValue *value)
+static void ModelValue(const struct XvtControllerModel *model,
+		       struct ModelYaml *scratch, AeronConfigValue *value)
 {
 	static const char *const names[] = {"yaw", "pitch", "roll", "throttle"};
 	const bool gamepad = model->kind == AERON_CONTROLLER_KIND_GAMEPAD;
@@ -705,7 +705,8 @@ static void ModelValue(const XvtControllerModel *model, ModelYaml *scratch,
 		.type = AERON_CONFIG_STRING,
 		.value.string_value = gamepad ? "gamepad" : "joystick"};
 	for (int i = 0; i < 4; ++i) {
-		const XvtInputAxisBinding *b = &model->profile.mapping.axes[i];
+		const struct XvtInputAxisBinding *b =
+			&model->profile.mapping.axes[i];
 		AeronConfigValue *f = scratch->axis_fields[i];
 		f[0].type = b->source < 0 || gamepad ? AERON_CONFIG_STRING
 						     : AERON_CONFIG_INT;
@@ -737,7 +738,7 @@ static void ModelValue(const XvtControllerModel *model, ModelYaml *scratch,
 	scratch->axes_map =
 		(AeronConfigValue){.type = AERON_CONFIG_MAP,
 				   .value.map = {scratch->axis_entries, 4}};
-	XvtInputActionBinding bindings[XVT_CONTROLLER_BINDING_CAP];
+	struct XvtInputActionBinding bindings[XVT_CONTROLLER_BINDING_CAP];
 	memcpy(bindings, model->profile.bindings,
 	       model->profile.binding_count * sizeof bindings[0]);
 	qsort(bindings, model->profile.binding_count, sizeof bindings[0],
@@ -776,10 +777,10 @@ static void ModelValue(const XvtControllerModel *model, ModelYaml *scratch,
 }
 
 bool XvtControllerConfig_Write(AeronConfigFile *document,
-			       const XvtControllerOptions *options,
+			       const struct XvtControllerOptions *options,
 			       AeronConfigError *error)
 {
-	ModelYaml *scratch =
+	struct ModelYaml *scratch =
 		calloc(options->count ? options->count : 1, sizeof *scratch);
 	if (!scratch) {
 		snprintf(error->message, sizeof error->message,
@@ -798,8 +799,8 @@ bool XvtControllerConfig_Write(AeronConfigFile *document,
 	return ok;
 }
 
-bool XvtConfig_SetController(const XvtControllerOptions *options, char *error,
-			     size_t capacity)
+bool XvtConfig_SetController(const struct XvtControllerOptions *options,
+			     char *error, size_t capacity)
 {
 	AeronConfigFile *candidate = NULL;
 	AeronConfigError detail;

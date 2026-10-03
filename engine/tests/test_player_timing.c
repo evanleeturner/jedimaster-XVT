@@ -26,9 +26,9 @@
 
 enum { kSlots = 6, kMainSlots = 4 };
 
-static ObjectRecord g_testObjects[kSlots];
-static MobileObject g_testMobiles[kSlots];
-static CraftData g_testCraft;
+static struct ObjectRecord g_testObjects[kSlots];
+static struct MobileObject g_testMobiles[kSlots];
+static struct CraftData g_testCraft;
 
 static void FreshWorld(XvtFlightTimingProfile profile)
 {
@@ -548,7 +548,7 @@ static void CheckRecover(void)
 	Seed(0, XVT_PLAYER_ZOOM);
 	XVT_ASSERT_INT_EQ(
 		XvtFlightIntegration_Rate(0, XVT_INTEGRATE_PITCH, 3, 1, 4), 0);
-	XvtReferenceMotionWire motion;
+	struct XvtReferenceMotionWire motion;
 	XvtReferenceMotion_Encode(0, &motion);
 	XVT_ASSERT_INT_EQ(motion.type, 1);
 
@@ -578,24 +578,24 @@ static void CheckRecover(void)
 	ExpectPosition(position, 40, 0, 0);
 }
 
-static int RecordsEqual(const XvtPlayerTimingWire *a,
-			const XvtPlayerTimingWire *b)
+static int RecordsEqual(const struct XvtPlayerTimingWire *a,
+			const struct XvtPlayerTimingWire *b)
 {
 	return memcmp(a, b, sizeof *a) == 0;
 }
 
-static XvtPlayerTimingWire EmptyRecord(unsigned player)
+static struct XvtPlayerTimingWire EmptyRecord(unsigned player)
 {
-	XvtPlayerTimingWire record;
+	struct XvtPlayerTimingWire record;
 	memset(&record, 0, sizeof record);
 	record.player = (uint8_t)player;
 	return record;
 }
 
 /* A well-formed record for player 0 in slot 0. */
-static XvtPlayerTimingWire GoodRecord(void)
+static struct XvtPlayerTimingWire GoodRecord(void)
 {
-	XvtPlayerTimingWire record = EmptyRecord(0);
+	struct XvtPlayerTimingWire record = EmptyRecord(0);
 	record.valid = 1;
 	XvtWire_Set16(record.slot, 0);
 	XvtWire_Set16(record.signature, 0x200);
@@ -621,8 +621,8 @@ static XvtPlayerTimingWire GoodRecord(void)
 static void CheckEncodeDecode(void)
 {
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	const XvtPlayerTimingWire good = GoodRecord();
-	XvtPlayerTimingWire out;
+	const struct XvtPlayerTimingWire good = GoodRecord();
+	struct XvtPlayerTimingWire out;
 	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Decode(&good, 1), 1);
 	XvtPlayerTiming_Encode(0, &out);
 	XVT_ASSERT_TRUE(RecordsEqual(&out, &good));
@@ -656,7 +656,7 @@ static void CheckRecoveryNotShared(void)
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	XvtPlayerTiming_BeginWorld();
 	Seed(0, XVT_PLAYER_YAW);
-	XvtPlayerTimingWire before, after;
+	struct XvtPlayerTimingWire before, after;
 	XvtPlayerTiming_Encode(0, &before);
 
 	/* The record does not carry the recovery position: moving it leaves the record as it was. */
@@ -668,7 +668,7 @@ static void CheckRecoveryNotShared(void)
 	XVT_ASSERT_TRUE(RecordsEqual(&before, &after));
 
 	/* Decode leaves the recovery position: the next record is the one taken above. */
-	const XvtPlayerTimingWire good = GoodRecord();
+	const struct XvtPlayerTimingWire good = GoodRecord();
 	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Decode(&good, 1), 1);
 	Step(XVT_REFERENCE_TICKS);
 	XVT_ASSERT_INT_EQ(XvtPlayerTiming_RecordRecovery(0, position), 1);
@@ -678,9 +678,9 @@ static void CheckRecoveryNotShared(void)
 static void CheckEncodeEmpty(void)
 {
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	const XvtPlayerTimingWire good = GoodRecord();
+	const struct XvtPlayerTimingWire good = GoodRecord();
 	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Decode(&good, 1), 1);
-	XvtPlayerTimingWire out, empty;
+	struct XvtPlayerTimingWire out, empty;
 
 	XvtPlayerTiming_Encode(XVT_FLIGHT_PLAYERS, &out);
 	empty = EmptyRecord(XVT_FLIGHT_PLAYERS);
@@ -709,9 +709,9 @@ static void CheckEncodeEmpty(void)
 	XVT_ASSERT_TRUE(RecordsEqual(&out, &good));
 }
 
-static void ExpectRefused(const XvtPlayerTimingWire *record)
+static void ExpectRefused(const struct XvtPlayerTimingWire *record)
 {
-	XvtPlayerTimingWire before, after;
+	struct XvtPlayerTimingWire before, after;
 	XvtPlayerTiming_Encode(0, &before);
 	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Decode(record, 1), 0);
 	XvtPlayerTiming_Encode(0, &after);
@@ -723,8 +723,8 @@ static void CheckDecodeRefusals(void)
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	XvtPlayerTiming_BeginControls(0);
 	Seed(0, XVT_PLAYER_YAW);
-	const XvtPlayerTimingWire good = GoodRecord();
-	XvtPlayerTimingWire bad;
+	const struct XvtPlayerTimingWire good = GoodRecord();
+	struct XvtPlayerTimingWire bad;
 
 	bad = good;
 	bad.player = XVT_FLIGHT_PLAYERS;
@@ -800,12 +800,12 @@ static void CheckResetShared(void)
 
 	/* The shared state, the entry's object included, is gone: the record is empty. */
 	XvtPlayerTiming_ResetShared();
-	XvtPlayerTimingWire out, empty = EmptyRecord(0);
+	struct XvtPlayerTimingWire out, empty = EmptyRecord(0);
 	XvtPlayerTiming_Encode(0, &out);
 	XVT_ASSERT_TRUE(RecordsEqual(&out, &empty));
 
 	/* Restoring the shared state from a record finds the recovery position still there. */
-	const XvtPlayerTimingWire good = GoodRecord();
+	const struct XvtPlayerTimingWire good = GoodRecord();
 	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Decode(&good, 1), 1);
 	Step(XVT_REFERENCE_TICKS);
 	XVT_ASSERT_INT_EQ(XvtPlayerTiming_RecordRecovery(0, position), 1);

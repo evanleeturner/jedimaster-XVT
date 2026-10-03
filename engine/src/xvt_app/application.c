@@ -29,11 +29,11 @@ static uint64_t XvtApplication_PresentationIntervalUs(void)
 static void XvtApplication_DiscoverControllers(const AeronInputSnapshot *input)
 {
 	static char previous_error[512];
-	const XvtSettings *settings = XvtConfig_Settings();
+	const struct XvtSettings *settings = XvtConfig_Settings();
 	if (!settings || XvtSettingsMenu_IsOpen()) {
 		return;
 	}
-	XvtControllerOptions candidate = settings->controller;
+	struct XvtControllerOptions candidate = settings->controller;
 	char error[512] = {0};
 	bool ok = XvtControllerOptions_AddNewGamepads(
 		&candidate, &XvtConfig_DefaultSettings()->gamepad_defaults,
@@ -98,10 +98,10 @@ static int XvtApplication_FrameLoop(void)
 	return XvtPort_GetExitCode();
 }
 
-int XvtApplication_Run(const XvtLaunchOptions *options)
+int XvtApplication_Run(const struct XvtLaunchOptions *options)
 {
 	AeronConfig config;
-	XvtAppUi ui = {0};
+	struct XvtAppUi ui = {0};
 	int exit_code = 1;
 	char error[1024] = {0};
 	if (!XvtLogSink_Install(options)) {

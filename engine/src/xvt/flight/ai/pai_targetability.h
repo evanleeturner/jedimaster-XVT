@@ -22,9 +22,9 @@ extern "C" {
  * with no craft can be. */
 static __inline int pai_IsObjectTargetable(unsigned int objIdx)
 {
-	ObjectRecord *object;
-	CraftData *craft;
-	AiController *controller;
+	struct ObjectRecord *object;
+	struct CraftData *craft;
+	struct AiController *controller;
 	uint16_t objectKind;
 
 	if (objIdx == UINT16_MAX) {

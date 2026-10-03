@@ -212,7 +212,7 @@ extern uint8_t g_objectType110Palette[16];
 extern uint8_t g_objectType111Palette[16];
 extern uint8_t g_objectType112Palette[16];
 extern uint8_t g_objectType113Palette[16];
-extern ObjectTypeInfo g_objectTypeTable[201];
+extern struct ObjectTypeInfo g_objectTypeTable[201];
 extern uint8_t g_craftTypeToObjectType[96];
 
 /* Index into g_modelDefs[73] (the strings.txt 'strings for specs' name/specification table); MODEL_INDEX_NONE

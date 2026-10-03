@@ -15,12 +15,12 @@ static int g_renderObjectListCount;
  * FlightMap_DrawObjectPass walks the list by moving it on and puts it back
  * after. */
 // GLOBAL: XVT 0x9A8C1C
-RenderObjectListEntry *g_renderListHead;
+struct RenderObjectListEntry *g_renderListHead;
 /* Storage for the render list, 296 entries (RENDER_OBJECT_LIST_CAPACITY) used
  * in the order they are queued; FeDiskIo_InitGlobalBuffers and
  * FeDiskIo_LockGlobalBuffers lock it from its memory handle. */
 // GLOBAL: XVT 0x9EC5F8
-RenderObjectListEntry *g_renderObjectListEntries = 0;
+struct RenderObjectListEntry *g_renderObjectListEntries = 0;
 
 /* Adds an object to the front of the render list with its sort depth, taking
  * the next of the 296 entries. Does nothing when all 296 are used. */
@@ -62,7 +62,7 @@ int RenderList_ProjectObjectBoundsForCulling(int objectIdx,
 					     unsigned int boundsRadius,
 					     int playerIdx)
 {
-	ObjectRecord *object;
+	struct ObjectRecord *object;
 	int cameraWorldY;
 	int cameraWorldZ;
 	int absViewCoord;
@@ -116,10 +116,10 @@ int RenderList_ProjectObjectBoundsForCulling(int objectIdx,
 // FUNCTION: XVT 0x436580
 void RenderList_SortDepthDescending(void)
 {
-	RenderObjectListEntry *left;
-	RenderObjectListEntry *right;
-	RenderObjectListEntry *previous;
-	RenderObjectListEntry *leftTail;
+	struct RenderObjectListEntry *left;
+	struct RenderObjectListEntry *right;
+	struct RenderObjectListEntry *previous;
+	struct RenderObjectListEntry *leftTail;
 	int runLength;
 	int leftRunCount;
 	int rightDepth;
@@ -207,10 +207,10 @@ void RenderList_SortDepthDescending(void)
 void RenderList_SortDepthAscending(void)
 {
 	int runLength;
-	RenderObjectListEntry *leftTail;
-	RenderObjectListEntry *right;
-	RenderObjectListEntry *previous;
-	RenderObjectListEntry *left;
+	struct RenderObjectListEntry *leftTail;
+	struct RenderObjectListEntry *right;
+	struct RenderObjectListEntry *previous;
+	struct RenderObjectListEntry *left;
 	int leftRunCount;
 	int rightRunCount;
 	int processedCount;

@@ -24,13 +24,13 @@ size_t XvtFlightCheckpoint_Append(uint8_t *image, size_t prefix);
 int XvtFlightCheckpoint_Validate(const uint8_t *image, size_t size,
 				 size_t *prefix, int *tick);
 
-typedef struct XvtFlightCheckpointView {
+struct XvtFlightCheckpointView {
 	size_t prefix;
 	int tick;
 	unsigned object_count;
 	const uint8_t *reference, *integration, *players, *paired;
-	XvtMembershipWire membership;
-} XvtFlightCheckpointView;
+	struct XvtMembershipWire membership;
+};
 
 /* Checks the extension of image against this session and world without changing any state: the
  * footer's magic, schema, profile and cookie, a non-negative tick on a step boundary, the lengths,
@@ -38,12 +38,12 @@ typedef struct XvtFlightCheckpointView {
  * matches this flight and whose confirmed mask stays within it. The world bytes are not checked.
  * On 1, view points into image, which must outlive it. */
 int XvtFlightCheckpoint_Read(const uint8_t *image, size_t size,
-			     XvtFlightCheckpointView *view);
+			     struct XvtFlightCheckpointView *view);
 /* Install only a view validated with Read and the recovered world prefix. */
 /* Replaces every shared motion, integration and player timing record and the paired records,
  * applies the confirmed mask through ApplyConfirmedMask (raising the abort flag of each dropped
  * player), and sets the game time and network tick to the view's tick. */
-void XvtFlightCheckpoint_Restore(const XvtFlightCheckpointView *view);
+void XvtFlightCheckpoint_Restore(const struct XvtFlightCheckpointView *view);
 /* Network125 only: replaces player's paired record with the motion of the player's object, and of
  * the object it carries when that is another live shared slot, tagged with tick. The record stays
  * invalid when the player's object is not a live shared slot. */

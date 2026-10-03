@@ -19,15 +19,16 @@
 
 /* All capture and publication runs on the host thread. Composition selects the
  * working content before the original can refresh it for another presentation. */
-static XvtCockpitState g_working, g_pending, g_completed;
+static struct XvtCockpitState g_working, g_pending, g_completed;
 static uint64_t g_presentationSerial;
 static uint64_t g_preparedResourceGeneration;
 static int g_compositionSelected, g_sealed;
 
-void XvtCockpit_CopyState(XvtCockpitState *destination,
-			  const XvtCockpitState *source)
+void XvtCockpit_CopyState(struct XvtCockpitState *destination,
+			  const struct XvtCockpitState *source)
 {
-	memcpy(destination, source, offsetof(XvtCockpitState, page_content));
+	memcpy(destination, source,
+	       offsetof(struct XvtCockpitState, page_content));
 	destination->page_content.row_count = source->page_content.row_count;
 	destination->page_content.glyph_count =
 		source->page_content.glyph_count;
@@ -58,9 +59,9 @@ void XvtCockpit_Reset(void)
 	g_compositionSelected = g_sealed = 0;
 }
 
-static void CaptureView(XvtCockpitView *view)
+static void CaptureView(struct XvtCockpitView *view)
 {
-	const PlayerData *player = &g_players[g_localPlayer];
+	const struct PlayerData *player = &g_players[g_localPlayer];
 	memset(view, 0, sizeof *view);
 	view->screen_width = (uint16_t)g_screenWidth;
 	view->screen_height = (uint16_t)g_screenHeight;
@@ -75,8 +76,8 @@ static void CaptureView(XvtCockpitView *view)
 	view->awaiting_new_craft = player->awaitingNewCraft != 0;
 	view->instruments_visible =
 		!view->mission_ending && !view->awaiting_new_craft;
-	view->viewport = (XvtSnapRect){g_flightVpX, g_flightVpY,
-				       g_flightVpWidth, g_flightVpHeight};
+	view->viewport = (struct XvtSnapRect){
+		g_flightVpX, g_flightVpY, g_flightVpWidth, g_flightVpHeight};
 	view->projection_offset_y = g_projOffsetY;
 	unsigned resource = view->hud_state;
 	if (resource < 28 && resource != HUD_VIEW_FULL_SCREEN) {
@@ -140,7 +141,7 @@ void XvtCockpit_LatchComposition(void)
 	g_sealed = 0;
 }
 
-static void SelectPagePlacement(XvtCockpitPage *page, unsigned index)
+static void SelectPagePlacement(struct XvtCockpitPage *page, unsigned index)
 {
 	unsigned binding = 0;
 	int width = 0, height = 0;
@@ -199,8 +200,10 @@ static void SelectPagePlacement(XvtCockpitPage *page, unsigned index)
 		height = g_mfdMapBlitHeight;
 	}
 	page->layout_id = (uint16_t)(g_hudInstrumentSetBaseIndex + binding);
-	const HudElementLayout *layout = &g_hudElementLayouts[page->layout_id];
-	page->placement = (XvtSnapRect){layout->x, layout->y, width, height};
+	const struct HudElementLayout *layout =
+		&g_hudElementLayouts[page->layout_id];
+	page->placement =
+		(struct XvtSnapRect){layout->x, layout->y, width, height};
 	page->visible = width > 0 && height > 0;
 }
 
@@ -225,11 +228,12 @@ void XvtCockpit_LatchLauncher(unsigned launcher, int x, int y, int width,
 	if (launcher >= 4) {
 		return;
 	}
-	XvtCockpitNumber *number = &g_pending.weapons.launchers[launcher].count;
+	struct XvtCockpitNumber *number =
+		&g_pending.weapons.launchers[launcher].count;
 	XvtCockpitReadouts_CopyLauncher(number, launcher);
 	number->x = (int16_t)x;
 	number->y = (int16_t)y;
-	number->bounds = (XvtSnapRect){x, y, width, height};
+	number->bounds = (struct XvtSnapRect){x, y, width, height};
 	number->phase = XVT_COCKPIT_AFTER_CRT;
 	number->keyed = 1;
 	number->color_key_argb =
@@ -242,7 +246,7 @@ void XvtCockpit_LatchMessages(void)
 	if ((unsigned)g_localPlayer >= 8) {
 		return;
 	}
-	XvtCockpitPage *page = &g_pending.pages[MFD_PAGE_MESSAGE_LOG];
+	struct XvtCockpitPage *page = &g_pending.pages[MFD_PAGE_MESSAGE_LOG];
 	memset(page, 0, sizeof *page);
 	page->page_id = MFD_PAGE_MESSAGE_LOG;
 	page->original_state = g_mfdPageStates[MFD_PAGE_MESSAGE_LOG];
@@ -250,11 +254,12 @@ void XvtCockpit_LatchMessages(void)
 	page->focused = g_mfdActivePage == MFD_PAGE_MESSAGE_LOG;
 	page->layout_id =
 		g_hudInstrumentSetBaseIndex + HUD_MFD_MESSAGE_LOG_ELEMENT;
-	const HudElementLayout *layout = &g_hudElementLayouts[page->layout_id];
-	page->placement =
-		(XvtSnapRect){layout->x, layout->y,
-			      g_readyMessagePaneRight - g_readyMessagePaneLeft,
-			      g_readyMessagePaneBottom - g_readyMessagePaneTop};
+	const struct HudElementLayout *layout =
+		&g_hudElementLayouts[page->layout_id];
+	page->placement = (struct XvtSnapRect){
+		layout->x, layout->y,
+		g_readyMessagePaneRight - g_readyMessagePaneLeft,
+		g_readyMessagePaneBottom - g_readyMessagePaneTop};
 	page->phase = XVT_COCKPIT_AFTER_CRT;
 	if (g_flightPlayerCount >= 1) {
 		page->placement.width += 4 * g_flightFontDigitWidth + 1;
@@ -295,7 +300,7 @@ void XvtCockpit_RetainPresentedFrame(void)
 	g_sealed = 0;
 }
 
-void XvtCockpit_Seal(const XvtSnapPreview *crt)
+void XvtCockpit_Seal(const struct XvtSnapPreview *crt)
 {
 	if (!g_compositionSelected) {
 		return;
@@ -336,11 +341,11 @@ void XvtCockpit_Presented(int standalone_overlay)
 	g_pending.artwork_generation = UpdateGeneration(
 		g_completed.artwork_generation, &g_pending.view,
 		&g_completed.view, sizeof g_pending.view);
-	g_pending.instruments_generation =
-		UpdateGeneration(g_completed.instruments_generation,
-				 &g_pending.systems, &g_completed.systems,
-				 offsetof(XvtCockpitState, radar) -
-					 offsetof(XvtCockpitState, systems));
+	g_pending.instruments_generation = UpdateGeneration(
+		g_completed.instruments_generation, &g_pending.systems,
+		&g_completed.systems,
+		offsetof(struct XvtCockpitState, radar) -
+			offsetof(struct XvtCockpitState, systems));
 	g_pending.radar_generation =
 		UpdateGeneration(g_completed.radar_generation, &g_pending.radar,
 				 &g_completed.radar, sizeof g_pending.radar);
@@ -357,9 +362,9 @@ void XvtCockpit_Presented(int standalone_overlay)
 		 memcmp(g_pending.pages, g_completed.pages,
 			sizeof g_pending.pages));
 	for (unsigned pane = 0; pane < XVT_COCKPIT_MESSAGE_COUNT; ++pane) {
-		const XvtCockpitMessage *current =
+		const struct XvtCockpitMessage *current =
 			&g_pending.messages.panes[pane];
-		const XvtCockpitMessage *previous =
+		const struct XvtCockpitMessage *previous =
 			&g_completed.messages.panes[pane];
 		if (current->generation != previous->generation ||
 		    current->visible != previous->visible ||
@@ -384,7 +389,7 @@ void XvtCockpit_Presented(int standalone_overlay)
 	g_sealed = 0;
 }
 
-void XvtCockpit_Export(XvtCockpitState *destination)
+void XvtCockpit_Export(struct XvtCockpitState *destination)
 {
 	XvtCockpit_CopyState(destination, &g_completed);
 }
@@ -401,7 +406,7 @@ int XvtCockpit_LoadingAssetsReady(void)
 		       g_working.definition.resource_generation;
 }
 
-void XvtCockpit_ExportResources(XvtCockpitResources *out)
+void XvtCockpit_ExportResources(struct XvtCockpitResources *out)
 {
 	memset(out, 0, sizeof *out);
 	if (!g_working.valid || !g_hudCockpitResourcesLoaded) {
@@ -423,8 +428,9 @@ void XvtCockpit_ExportResources(XvtCockpitResources *out)
 		if (!out->definition.layout.descriptors[view].lfd_asset_id) {
 			continue;
 		}
-		RgbTriplet *rgb =
-			(RgbTriplet *)g_hudCockpitResources[view].entries[2];
+		struct RgbTriplet *rgb =
+			(struct RgbTriplet *)g_hudCockpitResources[view]
+				.entries[2];
 		if (!rgb) {
 			continue;
 		}

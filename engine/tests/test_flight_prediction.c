@@ -35,9 +35,9 @@ static void World(void)
 	XVT_ASSERT_INT_EQ(XvtFlightNetwork_NeedsRecovery(), 0);
 }
 
-static FlightInputFrameRecord Controls(int8_t axis)
+static struct FlightInputFrameRecord Controls(int8_t axis)
 {
-	FlightInputFrameRecord input;
+	struct FlightInputFrameRecord input;
 	memset(&input, 0, sizeof input);
 	input.key = 0x61;
 	input.axisX = axis;
@@ -53,7 +53,7 @@ static FlightInputFrameRecord Controls(int8_t axis)
 static void AddFrame(unsigned player, int tick, int valid, int applied,
 		     int8_t axis)
 {
-	InputFrame *frame =
+	struct InputFrame *frame =
 		&g_inputHistory[player][g_inputFrameCount[player]++];
 	frame->timestamp = tick;
 	frame->inputSource = valid;
@@ -62,7 +62,7 @@ static void AddFrame(unsigned player, int tick, int valid, int applied,
 }
 
 /* The frame at tick in player's history, or NULL. */
-static const InputFrame *FrameAt(unsigned player, int tick)
+static const struct InputFrame *FrameAt(unsigned player, int tick)
 {
 	for (int i = 0; i < g_inputFrameCount[player]; ++i) {
 		if (g_inputHistory[player][i].timestamp == tick) {
@@ -75,11 +75,11 @@ static const InputFrame *FrameAt(unsigned player, int tick)
 /* Checks that player has a predicted, unapplied frame at tick holding source's axes and roll bit only. */
 static void AssertPredicted(unsigned player, int tick, int8_t axis)
 {
-	const InputFrame *frame = FrameAt(player, tick);
+	const struct InputFrame *frame = FrameAt(player, tick);
 	XVT_ASSERT_TRUE(frame != NULL);
 	XVT_ASSERT_INT_EQ(frame->inputSource, XVT_INPUT_PREDICTED);
 	XVT_ASSERT_INT_EQ(frame->awaitingRelay, 0);
-	FlightInputFrameRecord source = Controls(axis);
+	struct FlightInputFrameRecord source = Controls(axis);
 	XVT_ASSERT_INT_EQ(frame->input.axisX, source.axisX);
 	XVT_ASSERT_INT_EQ(frame->input.axisY, source.axisY);
 	XVT_ASSERT_INT_EQ(frame->input.axisR, source.axisR);
@@ -175,12 +175,12 @@ static void CheckLeavesRealAndAuthoritative(void)
 	XVT_ASSERT_INT_EQ(XvtFlightPrediction_Queue(TICK), 1);
 	XVT_ASSERT_INT_EQ(g_inputFrameCount[1], 2);
 	XVT_ASSERT_INT_EQ(g_inputFrameCount[2], 2);
-	const InputFrame *real = FrameAt(1, TICK);
+	const struct InputFrame *real = FrameAt(1, TICK);
 	XVT_ASSERT_INT_EQ(real->inputSource, XVT_INPUT_REAL);
 	XVT_ASSERT_INT_EQ(real->input.axisX, 30);
 	XVT_ASSERT_INT_EQ(real->input.key, 0x61);
 	XVT_ASSERT_INT_EQ(real->input.throttle, 777);
-	const InputFrame *authoritative = FrameAt(2, TICK);
+	const struct InputFrame *authoritative = FrameAt(2, TICK);
 	XVT_ASSERT_INT_EQ(authoritative->inputSource, XVT_INPUT_AUTHORITATIVE);
 	XVT_ASSERT_INT_EQ(authoritative->input.axisX, 40);
 	XVT_ASSERT_INT_EQ(authoritative->input.keyMods, 0x0F);
@@ -198,7 +198,7 @@ static void CheckReplacesPrediction(void)
 
 static void CheckConfirmedControls(void)
 {
-	FlightInputFrameRecord confirmed = Controls(30);
+	struct FlightInputFrameRecord confirmed = Controls(30);
 
 	/* With no history, confirmed controls are the source. */
 	World();
@@ -233,7 +233,7 @@ static void CheckConfirmedControls(void)
 
 	/* Ignored for an out-of-range player or NULL input: the earlier controls stay. */
 	World();
-	FlightInputFrameRecord other = Controls(70);
+	struct FlightInputFrameRecord other = Controls(70);
 	XvtFlightPrediction_Confirm(1, 2, &confirmed);
 	XvtFlightPrediction_Confirm(1, 4, NULL);
 	XvtFlightPrediction_Confirm(XVT_FLIGHT_PLAYERS, 4, &other);

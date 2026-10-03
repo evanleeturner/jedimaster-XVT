@@ -9,9 +9,9 @@
 extern "C" {
 #endif
 
-extern OptVector g_modelBoundsMin[201];
+extern struct OptVector g_modelBoundsMin[201];
 extern int g_modelBoundsCached[202];
-extern OptVector g_modelBoundsMax[201];
+extern struct OptVector g_modelBoundsMax[201];
 
 void ModelBounds_EnsureCached(int objectType);
 int ModelBounds_GetMaxExtent(int objectType);

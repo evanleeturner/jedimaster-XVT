@@ -33,7 +33,7 @@ void XvtCockpitInstruments_CompleteRadar(void);
  * view, the feature covers are built whether or not instruments are visible; the rest only
  * while they are, and all but the warnings only in those views with the map closed. Also sets
  * view's rebel_fighter and laser_slots. Reads state->view, which must be filled first. */
-void XvtCockpitInstruments_Build(XvtCockpitState *state);
+void XvtCockpitInstruments_Build(struct XvtCockpitState *state);
 #ifdef __cplusplus
 }
 #endif

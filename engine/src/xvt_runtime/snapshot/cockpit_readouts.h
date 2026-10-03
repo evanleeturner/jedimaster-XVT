@@ -41,7 +41,7 @@ void XvtCockpitReadouts_ClearOrderRange(void);
 void XvtCockpitReadouts_ClearOrderTime(void);
 /* Hide, or copy out, the count of launcher 0 to 3; other launchers are ignored. */
 void XvtCockpitReadouts_ClearLauncher(unsigned launcher);
-void XvtCockpitReadouts_CopyLauncher(XvtCockpitNumber *number,
+void XvtCockpitReadouts_CopyLauncher(struct XvtCockpitNumber *number,
 				     unsigned launcher);
 /* Shows the proving-grounds course panel at these bounds for this update. */
 void XvtCockpitReadouts_RecordCourse(int x, int y, int width, int height);
@@ -51,7 +51,7 @@ void XvtCockpitReadouts_RecordCourse(int x, int y, int width, int height);
  * when updated since BeginUpdate and instruments are visible. Its values need the panel
  * uncovered; range and systems show only outside command mode, order range and time only in it. Reads the
  * visibility flags XvtCockpitInstruments_Build sets, so it runs after Build. */
-void XvtCockpitReadouts_CopyState(XvtCockpitState *state);
+void XvtCockpitReadouts_CopyState(struct XvtCockpitState *state);
 #ifdef __cplusplus
 }
 #endif

@@ -76,7 +76,7 @@ int16_t paifight_scanfortargetorder(void)
 
 	uint16_t candidateTargetIdx;
 	int16_t targetObject;
-	PaiPlanRecord *plan;
+	struct PaiPlanRecord *plan;
 
 	if (g_paiContext.controller->maneuverMode ==
 	    g_paiContext.initialManeuverId) {
@@ -217,8 +217,8 @@ int16_t paifight_FindNearestAttackOrderTarget(int16_t target1Type,
 	int16_t trigger2Matches;
 	uint16_t bestObject;
 	unsigned int bestScore;
-	MobileObject *mobileObject;
-	CraftData *craft;
+	struct MobileObject *mobileObject;
+	struct CraftData *craft;
 	int validTarget;
 
 	{
@@ -532,7 +532,7 @@ int16_t paifight_TargetNearestEscortLeader(int16_t target1Type,
 	int16_t matchesTarget1;
 	int16_t matchesTarget2;
 	uint16_t objectIndex;
-	CraftData *craft;
+	struct CraftData *craft;
 	int validTarget;
 
 	bestObjectIndex = UINT16_MAX;
@@ -698,7 +698,7 @@ int16_t paifight_FindNearestAttackerOfMatchingTarget(int16_t target1Type,
 	while (targetObjectIndex < (int)g_activeRegionCraftObjectSlotEnd) {
 		if (g_objectTable[targetObjectIndex].objectType != 0) {
 			uint16_t teamIndex;
-			CraftData *targetCraft;
+			struct CraftData *targetCraft;
 			int16_t hasAttacker;
 			int16_t matchesTarget1;
 			int16_t matchesTarget2;
@@ -737,8 +737,8 @@ int16_t paifight_FindNearestAttackerOfMatchingTarget(int16_t target1Type,
 						g_activeRegionObjectSlotStart;
 					while (objectIndex <
 					       (int)g_activeRegionCraftObjectSlotEnd) {
-						CraftData *craft;
-						AiController *controller;
+						struct CraftData *craft;
+						struct AiController *controller;
 						int16_t maneuverMode;
 
 						if (g_objectTable[objectIndex]
@@ -904,9 +904,9 @@ int16_t paifight_TargetHasAttackCapacity(uint16_t targetObjIdx,
 {
 	uint16_t attackerCount;
 	uint16_t objectIndex;
-	ObjectRecord *object;
-	CraftData *craft;
-	AiController *controller;
+	struct ObjectRecord *object;
+	struct CraftData *craft;
+	struct AiController *controller;
 	uint16_t attackTargetObjIdx;
 	uint8_t maneuverMode;
 	uint16_t candidateTotal;
@@ -981,7 +981,7 @@ int16_t paifight_TargetHasAttackCapacity(uint16_t targetObjIdx,
 // FUNCTION: XVT 0x45DD00
 int16_t paifight_SearchOrderSlotTarget(uint16_t orderSlot)
 {
-	PaiPlanRecord *plan;
+	struct PaiPlanRecord *plan;
 	int16_t targetObject;
 
 	plan = &g_planTable
@@ -1023,7 +1023,7 @@ int16_t paifight_SearchOrderSlotTarget(uint16_t orderSlot)
 // FUNCTION: XVT 0x45DDF0
 int16_t paifight_SearchOrderSlotRemainingTargets(uint16_t orderSlot)
 {
-	PaiPlanRecord *plan;
+	struct PaiPlanRecord *plan;
 	int16_t result;
 
 	plan = &g_planTable
@@ -1120,9 +1120,9 @@ int16_t paifight_CountRemainingOrderTargets(int16_t target1Type,
 	int16_t matchesTarget1;
 	int16_t matchesTarget2;
 	int validTarget;
-	ObjectRecord *object;
-	MobileObject *mobileObject;
-	CraftData *craft;
+	struct ObjectRecord *object;
+	struct MobileObject *mobileObject;
+	struct CraftData *craft;
 
 	objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
 	targetCount = 0;
@@ -1229,7 +1229,7 @@ int16_t paifight_escorttargetorder(void)
 	uint16_t sourceObjIdx;
 	uint16_t candidateTargetIdx;
 	unsigned int objectIndex;
-	ObjectRecord *object;
+	struct ObjectRecord *object;
 	int validTarget;
 	uint16_t bestTargetObjIdx;
 	uint16_t scanObjIdx;
@@ -1276,7 +1276,7 @@ int16_t paifight_escorttargetorder(void)
 						.targetObjIdx;
 				if (targetObjIdx < 0x8000 &&
 				    targetObjIdx != UINT16_MAX) {
-					ObjectRecord *target =
+					struct ObjectRecord *target =
 						&g_objectTable[targetObjIdx];
 					if (target->objectType != 0) {
 						targetsEscortFlightGroup =
@@ -1405,8 +1405,8 @@ int16_t paifight_fightershootorder(void)
 		maxRange =
 			g_aiFighterShootMaxRangeBySkill[g_paiContext.skillTier];
 		if ((int)g_regionMainObjectSlotEnd > targetIndex) {
-			ObjectRecord *targetObject;
-			MobileObject *targetMobile;
+			struct ObjectRecord *targetObject;
+			struct MobileObject *targetMobile;
 
 			targetObject = &g_objectTable[targetIndex];
 			targetMobile = targetObject->mobj;
@@ -1509,7 +1509,7 @@ int16_t paifight_fightershootorder(void)
 		}
 
 		{
-			CraftData *targetCraft;
+			struct CraftData *targetCraft;
 
 			if (g_objectTable[targetIndex].genusId ==
 				    CRAFT_GENUS_STARSHIP ||
@@ -1610,13 +1610,13 @@ int16_t paifight_fightershootorder(void)
 			     projectileObjectIndex <
 			     (int)g_projectileObjectSlotEnd;
 			     ++projectileObjectIndex) {
-				ObjectRecord *projectileObject;
+				struct ObjectRecord *projectileObject;
 
 				projectileObject =
 					&g_objectTable[projectileObjectIndex];
 				if (projectileObject->objectType >=
 				    PROJECTILE_OBJECT_TYPE_FIRST) {
-					WarheadGuidanceState *guidance;
+					struct WarheadGuidanceState *guidance;
 
 					guidance = projectileObject->mobj
 							   ->pWarheadGuidance;
@@ -1658,7 +1658,7 @@ int16_t paifight_fightershootorder(void)
 				     projectileObjectIndex <
 				     (int)g_projectileObjectSlotEnd;
 				     ++projectileObjectIndex) {
-					ObjectRecord *projectileObject;
+					struct ObjectRecord *projectileObject;
 					uint8_t projectileType;
 
 					projectileObject =
@@ -1689,7 +1689,8 @@ int16_t paifight_fightershootorder(void)
 						       WARHEAD_OBJECT_TYPE_ION_PULSE) &&
 					      requiredWarheadClass ==
 						      LARGE_TARGET_WARHEAD_CLASS))) {
-						WarheadGuidanceState *guidance;
+						struct WarheadGuidanceState
+							*guidance;
 
 						guidance =
 							projectileObject->mobj
@@ -2098,10 +2099,10 @@ int16_t paifight_missiledefenseorder(void)
 						     candidateIndex <
 						     g_projectileObjectSlotEnd;
 						     ++candidateIndex) {
-							ObjectRecord *projectile =
+							struct ObjectRecord *projectile =
 								&g_objectTable
 									[candidateIndex];
-							WarheadGuidanceState
+							struct WarheadGuidanceState
 								*guidance;
 							uint16_t otherIndex;
 							int16_t incomingCount;
@@ -2129,7 +2130,7 @@ int16_t paifight_missiledefenseorder(void)
 							     otherIndex <
 							     g_projectileObjectSlotEnd;
 							     ++otherIndex) {
-								WarheadGuidanceState
+								struct WarheadGuidanceState
 									*otherGuidance;
 								if (g_objectTable[otherIndex]
 										    .objectType ==
@@ -2193,10 +2194,10 @@ int16_t paifight_missiledefenseorder(void)
 								unsigned int
 									range;
 								{
-									ObjectRecord *candidate =
+									struct ObjectRecord *candidate =
 										&g_objectTable
 											[candidateIndex];
-									CraftData
+									struct CraftData
 										*candidateCraft;
 									if (candidate
 										    ->objectType ==
@@ -2281,7 +2282,7 @@ int16_t paifight_missiledefenseorder(void)
 								     otherIndex <
 								     g_projectileObjectSlotEnd;
 								     ++otherIndex) {
-									WarheadGuidanceState
+									struct WarheadGuidanceState
 										*otherGuidance;
 									if (g_objectTable[otherIndex]
 											    .objectType ==
@@ -2433,7 +2434,7 @@ int16_t paifight_gunnerselfdefenseorder(void)
 		for (weaponSlotIndex = 0;
 		     weaponSlotIndex < g_curCraft->laserSlotCount;
 		     ++weaponSlotIndex) {
-			TurretTargetState *turretState;
+			struct TurretTargetState *turretState;
 			uint16_t lastAttackerObjIdx;
 			int validTarget;
 			int searchForTarget;
@@ -2635,8 +2636,8 @@ int16_t paifight_gunnerselfdefenseorder(void)
 				     g_activeRegionCraftObjectSlotEnd;
 				     ++candidateObjIdx) {
 					int candidateArrayIndex;
-					ObjectRecord *candidateObject;
-					CraftData *candidateCraft;
+					struct ObjectRecord *candidateObject;
+					struct CraftData *candidateCraft;
 					int candidateValid;
 					int clearSweep;
 
@@ -2754,8 +2755,8 @@ int16_t paifight_gunnerselfdefenseorder(void)
 			     (uint16_t)g_projectileObjectSlotStart;
 		     threatProjectileObjIdx < g_projectileObjectSlotEnd;
 		     ++threatProjectileObjIdx) {
-			ObjectRecord *projectileObject;
-			WarheadGuidanceState *guidance;
+			struct ObjectRecord *projectileObject;
+			struct WarheadGuidanceState *guidance;
 			int maxRangeScore;
 
 			projectileObject =
@@ -2816,9 +2817,9 @@ int16_t paifight_gunnerselfdefenseorder(void)
 						     flareObjIdx <
 						     g_projectileObjectSlotEnd;
 						     ++flareObjIdx) {
-							ObjectRecord
+							struct ObjectRecord
 								*flareObject;
-							WarheadGuidanceState
+							struct WarheadGuidanceState
 								*flareGuidance;
 
 							flareObject =
@@ -2940,7 +2941,7 @@ int16_t paifight_gunneroffenseorder(void)
 			CRAFT_SPECIES_SUPER_STAR_DESTROYER;
 	for (weaponSlotIndex = 0; weaponSlotIndex < g_curCraft->laserSlotCount;
 	     ++weaponSlotIndex) {
-		TurretTargetState *turretState =
+		struct TurretTargetState *turretState =
 			&g_curCraft->turretTargetStates[weaponSlotIndex];
 		int16_t targetObjectIndex;
 
@@ -3351,7 +3352,7 @@ int16_t paifight_FindNearestGunnerTargetInCandidateSet(
 	if (bestObjectIndex != UINT16_MAX &&
 	    g_missionFileVersion ==
 		    MISSION_VERSION_WITH_GUNNER_OBSTRUCTION_CHECK) {
-		CraftData *savedCraft;
+		struct CraftData *savedCraft;
 		uint16_t blockerObjectIndex;
 
 		savedCraft = g_curCraft;
@@ -3360,9 +3361,9 @@ int16_t paifight_FindNearestGunnerTargetInCandidateSet(
 		     blockerObjectIndex < g_activeRegionCraftObjectSlotEnd;
 		     ++blockerObjectIndex) {
 			int blockerArrayIndex;
-			ObjectRecord *blocker;
+			struct ObjectRecord *blocker;
 			int blockerTeam;
-			MobileObject *sourceMobile;
+			struct MobileObject *sourceMobile;
 			int sourceTeam;
 			int enemy;
 
@@ -3395,7 +3396,7 @@ int16_t paifight_FindNearestGunnerTargetInCandidateSet(
 						.maxBoundsExtent;
 				if ((unsigned int)g_lastRoughDistance <=
 				    bestRangeScore) {
-					ObjectRecord *bestObject =
+					struct ObjectRecord *bestObject =
 						&g_objectTable[bestObjectIndex];
 
 					g_collisionProbeWorldX =
@@ -3435,8 +3436,8 @@ void paifight_BuildGunnerTargetCandidateSet(
 	     objectIndex < g_activeRegionCraftObjectSlotEnd; ++objectIndex) {
 		int16_t matchesFirst;
 		int16_t matchesSecond;
-		CraftData *craft;
-		ObjectRecord *object;
+		struct CraftData *craft;
+		struct ObjectRecord *object;
 
 		candidateSetOffset = candidateSetIdx;
 		g_paifightGunnerTargetCandidateSet[2 * objectIndex +
@@ -3626,7 +3627,7 @@ int16_t paifight_FindNearestMatchingTargetFromOrigin(
 // FUNCTION: XVT 0x461C00
 int16_t paifight_coverleaderorder(void)
 {
-	CraftData *leaderCraft;
+	struct CraftData *leaderCraft;
 	uint16_t lastAttackerObjIdx;
 	uint16_t objectIndex;
 	int alreadyCovered;
@@ -3659,7 +3660,7 @@ int16_t paifight_coverleaderorder(void)
 			     objectIndex < g_activeRegionCraftObjectSlotEnd;
 			     ++objectIndex) {
 				if (objectIndex != g_paiContext.objectIndex) {
-					ObjectRecord *candidateObject;
+					struct ObjectRecord *candidateObject;
 
 					candidateObject =
 						&g_objectTable[objectIndex];
@@ -3667,7 +3668,8 @@ int16_t paifight_coverleaderorder(void)
 					    candidateObject->flightGroupIdx ==
 						    g_paiContext
 							    .craftFlightGroupIndex) {
-						CraftData *candidateCraft;
+						struct CraftData
+							*candidateCraft;
 
 						candidateCraft =
 							candidateObject->mobj
@@ -3717,15 +3719,15 @@ int16_t paifight_followleadatkorder(void)
 {
 	enum { PLAYER_LEADER_TARGET_RANGE = 0x50000 };
 
-	AiController *leaderController;
-	PaiPlanRecord *plan;
+	struct AiController *leaderController;
+	struct PaiPlanRecord *plan;
 	int leaderObjectIndex;
 	int leaderPlayerOwner;
 	uint16_t maneuverMode;
 	uint16_t candidateTargetIdx;
 	uint16_t targetObjIdx;
 	int validTarget;
-	ObjectRecord *target;
+	struct ObjectRecord *target;
 
 	leaderObjectIndex = g_paiContext.leaderObjectIndex;
 	leaderPlayerOwner = g_objectTable[leaderObjectIndex].playerOwnerIdx;
@@ -3780,9 +3782,10 @@ int16_t paifight_followleadatkorder(void)
 		for (objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
 		     (int)objectIndex < g_activeRegionCraftObjectSlotEnd;
 		     ++objectIndex) {
-			ObjectRecord *object = &g_objectTable[objectIndex];
+			struct ObjectRecord *object =
+				&g_objectTable[objectIndex];
 			if (object->objectType != 0) {
-				CraftData *craft = object->mobj->pCraft;
+				struct CraftData *craft = object->mobj->pCraft;
 				if ((g_paiContext.requireUndisabledTarget ==
 					     0 ||
 				     craft->workingSubsystems != 0) &&
@@ -3840,9 +3843,9 @@ int16_t paifight_followleadatkorder(void)
 			     (int)objectIndex <
 			     g_activeRegionCraftObjectSlotEnd;
 			     ++objectIndex) {
-				ObjectRecord *candidate =
+				struct ObjectRecord *candidate =
 					&g_objectTable[candidateIndex];
-				CraftData *candidateCraft =
+				struct CraftData *candidateCraft =
 					candidate->mobj->pCraft;
 				if (candidateCraft == NULL) {
 					if ((int)++candidateIndex >=
@@ -3921,7 +3924,7 @@ int16_t paifight_followleadatkorder(void)
 		     (int)scanned <
 		     g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount;
 		     ++scanned) {
-			ObjectRecord *candidate =
+			struct ObjectRecord *candidate =
 				&g_objectTable[staticCandidateIdx];
 			if ((g_paiContext.requireUndisabledTarget == 0 ||
 			     candidate->typeSpecificWord != 0) &&

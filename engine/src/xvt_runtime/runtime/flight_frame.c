@@ -41,7 +41,7 @@ typedef enum XvtConfirmationPhase {
 } XvtConfirmationPhase;
 
 static struct {
-	XvtFlightMessage message;
+	struct XvtFlightMessage message;
 	XvtConfirmationPhase phase;
 	int publish_floor, suspended, predicted_suspended;
 	uint64_t iteration_start_us, deadline;
@@ -157,7 +157,7 @@ static void XvtFlightFrame_InvalidateRemoteTransforms(void)
 		    slot >= g_regionMainObjectSlotEnd) {
 			continue;
 		}
-		ObjectRecord *object = &g_objectTable[slot];
+		struct ObjectRecord *object = &g_objectTable[slot];
 		if (!object->objectType || !object->mobj) {
 			continue;
 		}

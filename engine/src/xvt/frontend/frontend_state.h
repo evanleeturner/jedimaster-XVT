@@ -16,7 +16,7 @@
 extern "C" {
 #endif
 
-typedef struct FrontendGlobalState FrontendGlobalState;
+struct FrontendGlobalState;
 
 /* The frontend's whole state in one block: display, input, sound, CD music,
  * fonts, screens, the lobby's DirectPlay session, the string table and the
@@ -24,10 +24,10 @@ typedef struct FrontendGlobalState FrontendGlobalState;
 struct FrontendGlobalState {
 	/* Scratch row FrontImage_CompressRLE and the original build's glyph
 	 * encoding fill with one encoded image row. */
-	FrontImageRleRowBuffer rleRowBuffer;
+	struct FrontImageRleRowBuffer rleRowBuffer;
 	/* Heap table of the loaded images, room for 512, kept sorted by name
 	 * for FrontImage_FindResourceByName. */
-	FrontImageResourceRecord *resourceTable;
+	struct FrontImageResourceRecord *resourceTable;
 	int resourceCount; /* Images in resourceTable. */
 	/* Cursor x in the 640 by 480 screen, from the window's mouse moves,
 	 * FrontendCursor_SetPos or the modern input bridge. */
@@ -167,7 +167,8 @@ struct FrontendGlobalState {
 	 * offscreenBackupBuffer back. */
 	int restoreOffscreenOverlayAfterActivate;
 	IDirectDrawPalette *ddPalette; /* Palette of the 8-bit display. */
-	FrontendPaletteEntry displayPalette[256]; /* The display's colors. */
+	struct FrontendPaletteEntry
+		displayPalette[256]; /* The display's colors. */
 	/* Checked and cleared by the present at 8 bits; nothing sets it to
 	 * 1. */
 	uint8_t paletteNeedsSet;
@@ -178,9 +179,9 @@ struct FrontendGlobalState {
 	/* DirectSound's primary buffer. */
 	IDirectSoundBuffer *frontendPrimarySoundBuffer;
 	/* Heap table of the loaded sounds, up to 128, kept sorted by name. */
-	FrontendSoundBufferRecord *frontendSoundBuffers;
+	struct FrontendSoundBufferRecord *frontendSoundBuffers;
 	/* Heap table of the 12 voices that play sounds. */
-	FrontendSoundVoice *frontendSoundVoices;
+	struct FrontendSoundVoice *frontendSoundVoices;
 	int frontendSoundBufferCount; /* Sounds in frontendSoundBuffers. */
 	int frontendActiveVoiceCount; /* Voices playing, 0 to 12. */
 	/* Count of sounds started; each voice keeps its start number, and
@@ -210,10 +211,10 @@ struct FrontendGlobalState {
 	/* CD aux volume that CDAudio_Initialize found, low 16 bits. */
 	int cdAudioSavedAuxVolume;
 	/* Volume set last and each track's length. */
-	CDAudioTrackCache cdAudioTrackCache;
-	BitmapFont fontSlots[10]; /* The loaded fonts. */
+	struct CDAudioTrackCache cdAudioTrackCache;
+	struct BitmapFont fontSlots[10]; /* The loaded fonts. */
 	/* Font of each point size, NULL when not loaded. */
-	BitmapFont *fontBySize[256];
+	struct BitmapFont *fontBySize[256];
 	/* Frames left in the text fade-in; text is drawn faded while it is
 	 * nonzero. */
 	int textFadeFramesLeft;
@@ -227,14 +228,15 @@ struct FrontendGlobalState {
 	/* Screen FrontendScreen_QueuePush asked for, pushed after the frame;
 	 * NULL when none waits. */
 	FrontendScreenUpdateFn pendingScreenUpdateFn;
-	RECT pendingScreenRect; /* Area of the screen waiting to be pushed. */
+	struct RECT
+		pendingScreenRect; /* Area of the screen waiting to be pushed. */
 	int screenStackTop; /* Index in screenStates of the screen running. */
 	/* 1 after FrontendScreen_SetCallbacks, until the frame loop has run
 	 * the old screen's exit function. */
 	int screenCallbacksDirty;
 	/* The stack of screens: callbacks, and what a pushed screen saved of
 	 * the one under it. */
-	FrontendScreenState screenStates[10];
+	struct FrontendScreenState screenStates[10];
 	/* Milliseconds per frontend frame: 1000 divided by the frame rate. */
 	int frameIntervalMs;
 	/* Frames the running screen has had, from 0; set to -1 when its
@@ -260,16 +262,17 @@ struct FrontendGlobalState {
 	int netReadyPlayerLeftThisFrame;
 	char netSessionName[32]; /* Name of the session. */
 	/* The lobby roster: entry 0 the local player, then the others. */
-	NetPlayerInfo netPlayers[32];
-	NetPlayerInfo netRuntimeLocalPlayer; /* The local player's entry. */
+	struct NetPlayerInfo netPlayers[32];
+	struct NetPlayerInfo
+		netRuntimeLocalPlayer; /* The local player's entry. */
 	/* Next sequence, 0 to 127, for packets to all players. */
 	int netRuntimeBroadcastSeqCounter;
 	/* Last packet to all players, sent again behind the next one. */
-	NetPiggybackPayload netRuntimeBroadcastPendingPayload;
+	struct NetPiggybackPayload netRuntimeBroadcastPendingPayload;
 	/* Next sequence, 0 to 127, for the group channel. */
 	int netRuntimeGroupSeqCounter;
 	/* Last group-channel packet, sent again behind the next one. */
-	NetPiggybackPayload netRuntimeGroupPendingPayload;
+	struct NetPiggybackPayload netRuntimeGroupPendingPayload;
 	uint8_t unusedNetState_28865[4]; /* Never read or written by name. */
 	/* Set to 1 by FrontendDisplay_ResetGlobalStatePreservingNetworkSession,
 	 * whose one caller nothing calls; nothing reads it. */
@@ -278,19 +281,19 @@ struct FrontendGlobalState {
 	 * would wait 20 seconds and ask no more. */
 	int netReliableRetryLongTimeoutMode;
 	/* The lobby's receive queue, a ring of 1024 packets. */
-	NetQueuedPacket netRuntimeRecvQueue[1024];
+	struct NetQueuedPacket netRuntimeRecvQueue[1024];
 	int netRuntimeRecvQueueWriteIndex; /* Next free entry of the queue. */
 	int netRuntimeRecvQueueReadIndex;  /* Oldest entry of the queue. */
 	int netRuntimeRecvQueueCount;	   /* Entries in the queue. */
 	/* The last 128 packets sent, kept for resends. */
-	NetQueuedPacket netRuntimeSentHistory[128];
+	struct NetQueuedPacket netRuntimeSentHistory[128];
 	/* Entry netRuntimeSentHistory writes next. */
 	int netRuntimeSentHistoryWriteIndex;
 	/* Copy of the packet handed out last; callers get a pointer into
 	 * it. */
-	NetQueuedPacket netRuntimeRecvScratchPacket;
+	struct NetQueuedPacket netRuntimeRecvScratchPacket;
 	/* Per-peer delivery state of the lobby session. */
-	NetReliablePeerSlot netRuntimeReliablePeerSlots[40];
+	struct NetReliablePeerSlot netRuntimeReliablePeerSlots[40];
 	/* Never read or written by name. */
 	uint8_t unusedNetState_C2B51[0x238];
 	/* netRuntimeReliablePeerSlots in use. */
@@ -298,7 +301,7 @@ struct FrontendGlobalState {
 	/* After a flight, NetSession_ExportRuntimeState points it at the
 	 * flight's 256-entry sent world-message history, which
 	 * Net_PumpIncomingPackets resends from on a WORLD_NACK. */
-	NetQueuedPacket *netFlightSentWorldMessageHistory;
+	struct NetQueuedPacket *netFlightSentWorldMessageHistory;
 	/* The write index of that world-message history. */
 	int netFlightSentWorldMessageWriteIndex;
 	/* Heap table of each string's offset in uiStringData. */
@@ -319,11 +322,13 @@ struct FrontendGlobalState {
 	char baseGameInstallPath[256];
 };
 
-typedef char xvt_size_FrontendGlobalState
-	[(sizeof(void *) != 4 || sizeof(FrontendGlobalState) == 0xC2FA7) ? 1
-									 : -1];
+typedef char xvt_size_FrontendGlobalState[(sizeof(void *) != 4 ||
+					   sizeof(struct FrontendGlobalState) ==
+						   0xC2FA7)
+						  ? 1
+						  : -1];
 
-extern FrontendGlobalState g_frontState;
+extern struct FrontendGlobalState g_frontState;
 
 #ifdef __cplusplus
 }

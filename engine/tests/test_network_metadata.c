@@ -13,7 +13,7 @@
 
 #include <string.h>
 
-static XvtNetworkMetadata g_meta;
+static struct XvtNetworkMetadata g_meta;
 
 /* No session name, no password, no players, no mission selected, the session roster in use. */
 static void ClearSession(void)
@@ -33,7 +33,7 @@ static void ClearSession(void)
 /* Adds a session player; rating_byte is the first byte of its playerName. */
 static void AddPlayer(DPID id, const char *name, int ready, int rating_byte)
 {
-	NetPlayerInfo *player =
+	struct NetPlayerInfo *player =
 		&g_frontState.netPlayers[g_frontState.netPlayerCount++];
 	memset(player, 0, sizeof *player);
 	player->playerId = id;

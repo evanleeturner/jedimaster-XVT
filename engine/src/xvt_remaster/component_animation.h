@@ -22,7 +22,7 @@ void XvtComponentAnimation_Reset(void);
  * component_event_time) / 32 clamped to 0..1, except on a discontinuity (a restart, a changed
  * component_hp or component_state, or a target that changed with no new event), which snaps to the new
  * byte. An object whose angles moved gains a revision; Changed() reports whether any did. */
-void XvtComponentAnimation_Prepare(const XvtRenderSnapshot *snapshot);
+void XvtComponentAnimation_Prepare(const struct XvtRenderSnapshot *snapshot);
 /* Whether the last Prepare of a new frame moved any angle. */
 int XvtComponentAnimation_Changed(void);
 /* The count of prepared frames in which slot's angles moved; 0 for a slot out of range or never posed. */
@@ -34,10 +34,11 @@ uint64_t XvtComponentAnimation_ObjectRevision(unsigned slot);
  * current ones when snapshot is the frame last prepared, else the previous ones. Returns output, or
  * NULL with output untouched for a NULL argument, a locked flight, a slot out of range, or a slot whose
  * pose belongs to another object. */
-const float *XvtComponentAnimation_Angles(const XvtRenderSnapshot *snapshot,
-					  const XvtSnapObject *object,
-					  const XvtMeshAsset *asset,
-					  float output[XVT_SNAP_COMPONENTS]);
+const float *
+XvtComponentAnimation_Angles(const struct XvtRenderSnapshot *snapshot,
+			     const struct XvtSnapObject *object,
+			     const struct XvtMeshAsset *asset,
+			     float output[XVT_SNAP_COMPONENTS]);
 #ifdef __cplusplus
 }
 #endif

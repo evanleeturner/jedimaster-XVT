@@ -1,16 +1,16 @@
 #include "xvt_remaster/component_animation.h"
 #include <string.h>
 
-typedef struct ComponentPose {
+struct ComponentPose {
 	uint64_t frame, event, model, revision;
 	uint16_t signature;
 	uint8_t type, valid;
 	uint8_t from[XVT_SNAP_COMPONENTS], to[XVT_SNAP_COMPONENTS];
 	uint8_t hp[XVT_SNAP_COMPONENTS], state[XVT_SNAP_COMPONENTS];
 	float current[XVT_SNAP_COMPONENTS], previous[XVT_SNAP_COMPONENTS];
-} ComponentPose;
+};
 
-static ComponentPose g_poses[XVT_SNAP_OBJECTS];
+static struct ComponentPose g_poses[XVT_SNAP_OBJECTS];
 static uint64_t g_mission, g_world, g_frame;
 static int g_changed;
 
@@ -21,7 +21,7 @@ void XvtComponentAnimation_Reset(void)
 	g_changed = 0;
 }
 
-void XvtComponentAnimation_Prepare(const XvtRenderSnapshot *s)
+void XvtComponentAnimation_Prepare(const struct XvtRenderSnapshot *s)
 {
 	if (!s->flight_valid || !s->flight_unlocked) {
 		XvtComponentAnimation_Reset();
@@ -38,11 +38,11 @@ void XvtComponentAnimation_Prepare(const XvtRenderSnapshot *s)
 	}
 	g_changed = 0;
 	for (unsigned i = 0; i < s->object_count; ++i) {
-		const XvtSnapObject *o = &s->objects[i];
+		const struct XvtSnapObject *o = &s->objects[i];
 		if (!o->has_craft || o->id.slot >= XVT_SNAP_OBJECTS) {
 			continue;
 		}
-		ComponentPose *p = &g_poses[o->id.slot];
+		struct ComponentPose *p = &g_poses[o->id.slot];
 		int reset = !p->valid || p->frame != g_frame ||
 			    p->signature != o->id.signature ||
 			    p->type != o->object_type;
@@ -99,16 +99,16 @@ void XvtComponentAnimation_Prepare(const XvtRenderSnapshot *s)
 
 int XvtComponentAnimation_Changed(void) { return g_changed; }
 
-const float *XvtComponentAnimation_Angles(const XvtRenderSnapshot *s,
-					  const XvtSnapObject *o,
-					  const XvtMeshAsset *asset,
+const float *XvtComponentAnimation_Angles(const struct XvtRenderSnapshot *s,
+					  const struct XvtSnapObject *o,
+					  const struct XvtMeshAsset *asset,
 					  float output[XVT_SNAP_COMPONENTS])
 {
 	if (!s || !o || !asset || !s->flight_unlocked ||
 	    o->id.slot >= XVT_SNAP_OBJECTS) {
 		return NULL;
 	}
-	const ComponentPose *p = &g_poses[o->id.slot];
+	const struct ComponentPose *p = &g_poses[o->id.slot];
 	if (!p->valid || p->signature != o->id.signature ||
 	    p->type != o->object_type) {
 		return NULL;

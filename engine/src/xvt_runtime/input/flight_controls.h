@@ -30,10 +30,10 @@ bool XvtFlightControls_ThrottleEligible(unsigned player);
  * only when it moved at least 66 (0.1%) from the last one sent, or reached either end. The first sample
  * after a change of controller, binding, suspension or craft only sets the baseline, and nothing is
  * sent while Alt-P pauses a one-player flight, the local player is not eligible, or no lever was read. */
-void XvtFlightControls_SampleThrottle(FlightInputFrameRecord *input);
+void XvtFlightControls_SampleThrottle(struct FlightInputFrameRecord *input);
 /* Sets the player's craft throttle to a recorded lever position when one is present and eligible. */
-void XvtFlightControls_ApplyThrottle(unsigned player,
-				     const FlightInputFrameRecord *input);
+void XvtFlightControls_ApplyThrottle(
+	unsigned player, const struct FlightInputFrameRecord *input);
 /* Flushes the keyboard, releases controller commands and pending mouse flight input without sending
  * releases, clears the action key and drops the throttle baseline. */
 void XvtFlightControls_Recover(void);
@@ -41,14 +41,14 @@ void XvtFlightControls_Recover(void);
  * the key's low byte, each axis made even, fire and target/roll as values 1 and 2 (bits 0 and 1) of keyMods,
  * and the throttle. With g_flightMouseEnabled, a nonzero classic mouse delta replaces yaw (times 128/120) and
  * pitch (times 64/50), clamped to -128..126. */
-void XvtFlightControls_SampleRecorded(FlightInputFrameRecord *input);
+void XvtFlightControls_SampleRecorded(struct FlightInputFrameRecord *input);
 /* Packs three axes into XVT_FLIGHT_AXIS_BYTES bytes: the low bit of the yaw byte carries fire and of
  * the pitch byte the target/roll modifier. */
 void XvtFlightControls_EncodeAxes(uint8_t *bytes,
-				  const FlightInputFrameRecord *input);
+				  const struct FlightInputFrameRecord *input);
 /* The inverse of EncodeAxes; axes come back even. */
 void XvtFlightControls_DecodeAxes(const uint8_t *bytes,
-				  FlightInputFrameRecord *input);
+				  struct FlightInputFrameRecord *input);
 /* This step's roll: the roll axis times 120, scaled by roll_rate / 0x3800 and by the step's ticks
  * (carrying the remainder when unlocked), plus modifier_step, limited to what full deflection gives.
  * With the roll axis at 0, clears the carry and returns modifier_step. */

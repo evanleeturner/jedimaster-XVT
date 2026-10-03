@@ -94,8 +94,8 @@ void XvtNetworkMetadata_FromUtf8(char *out, size_t capacity, const char *text)
 	out[written] = 0;
 }
 
-static void XvtNetworkMetadata_Add(XvtNetworkMetadata *out,
-				   const NetPlayerInfo *player)
+static void XvtNetworkMetadata_Add(struct XvtNetworkMetadata *out,
+				   const struct NetPlayerInfo *player)
 {
 	unsigned index = out->room.players;
 	if (!player || !player->playerId || player->readyFlag != 1 ||
@@ -120,7 +120,7 @@ static void XvtNetworkMetadata_Add(XvtNetworkMetadata *out,
 	++out->room.players;
 }
 
-void XvtNetworkMetadata_Build(XvtNetworkMetadata *out, int accepting)
+void XvtNetworkMetadata_Build(struct XvtNetworkMetadata *out, int accepting)
 {
 	memset(out, 0, sizeof(*out));
 	out->room.max_players = 8;
@@ -146,7 +146,7 @@ void XvtNetworkMetadata_Build(XvtNetworkMetadata *out, int accepting)
 		}
 	} else {
 		int count;
-		NetPlayerInfo *players = Net_GetPlayerRoster(&count);
+		struct NetPlayerInfo *players = Net_GetPlayerRoster(&count);
 		for (int i = 0; i < count && i < 32; ++i) {
 			XvtNetworkMetadata_Add(out, &players[i]);
 		}
@@ -155,7 +155,7 @@ void XvtNetworkMetadata_Build(XvtNetworkMetadata *out, int accepting)
 			     out->room.players < 8;
 }
 
-void XvtNetworkMetadata_KeepActivePlayers(XvtNetworkMetadata *snapshot)
+void XvtNetworkMetadata_KeepActivePlayers(struct XvtNetworkMetadata *snapshot)
 {
 	unsigned count = 0;
 	for (unsigned i = 0; i < snapshot->room.players; ++i) {

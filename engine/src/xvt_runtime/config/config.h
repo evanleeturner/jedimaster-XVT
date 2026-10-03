@@ -34,9 +34,9 @@ const AeronConfigFile *XvtConfig_UserDocument(void);
 /* The user overrides laid over the defaults, or NULL before any are accepted. */
 const AeronConfigFile *XvtConfig_ResolvedDocument(void);
 /* The typed settings of the resolved document, or NULL before any overrides are accepted. */
-const XvtSettings *XvtConfig_Settings(void);
+const struct XvtSettings *XvtConfig_Settings(void);
 /* The typed settings of the shipped defaults, or NULL before they load. */
-const XvtSettings *XvtConfig_DefaultSettings(void);
+const struct XvtSettings *XvtConfig_DefaultSettings(void);
 /* Counts accepted updates; never reset, not even by Shutdown. */
 uint64_t XvtConfig_Generation(void);
 /* 1 while the shipped defaults are loaded, so ResetToDefaults can work. */
@@ -52,11 +52,11 @@ int XvtConfig_CanResetToDefaults(void);
 int XvtConfig_UpdateUser(const AeronConfigFile *candidate, int save,
 			 char *error, size_t capacity);
 /* Checks options, then stores them as the user's input.controllers list, in memory only. */
-bool XvtConfig_SetController(const XvtControllerOptions *options, char *error,
-			     size_t capacity);
+bool XvtConfig_SetController(const struct XvtControllerOptions *options,
+			     char *error, size_t capacity);
 /* Stores bindings in the user overrides, in memory only. */
-bool XvtConfig_SetKeyboard(const XvtKeyboardBindings *bindings, char *error,
-			   size_t capacity);
+bool XvtConfig_SetKeyboard(const struct XvtKeyboardBindings *bindings,
+			   char *error, size_t capacity);
 /* Removes the user's keyboard bindings so the shipped ones apply, in memory only. */
 bool XvtConfig_RestoreKeyboard(char *error, size_t capacity);
 /* Sets paths.game_data to path; with save, writes the user file. */
@@ -72,10 +72,11 @@ bool XvtConfig_SetSkipIntro(bool enabled, char *error, size_t capacity);
 /* Copies every game option from the resolved document into *game, checking each; limits each window
  * size to its screen resolution, sets the network type to TCP/IP and clears the IP address. On failure
  * *game is unchanged. */
-int XvtConfig_Apply(GameConfig *game, char *error, size_t capacity);
+int XvtConfig_Apply(struct GameConfig *game, char *error, size_t capacity);
 /* Stores *game's options as user overrides, removing any that equal the shipped default, then saves.
  * Each must be in range and each string terminated. */
-int XvtConfig_Write(const GameConfig *game, char *error, size_t capacity);
+int XvtConfig_Write(const struct GameConfig *game, char *error,
+		    size_t capacity);
 /* Checks the user overrides again and writes them to USER/config.yaml. */
 int XvtConfig_Save(char *error, size_t capacity);
 /* Imports a legacy "name value" text file at path in ASSET into the user overrides, then saves. Only

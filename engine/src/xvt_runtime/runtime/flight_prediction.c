@@ -5,14 +5,14 @@
 #include "xvt_runtime/runtime/flight_sim.h"
 #include <string.h>
 
-typedef struct ConfirmedControls {
-	FlightInputFrameRecord input;
+struct ConfirmedControls {
+	struct FlightInputFrameRecord input;
 	int tick, slot;
 	unsigned signature;
 	int valid;
-} ConfirmedControls;
+};
 
-static ConfirmedControls g_confirmed[XVT_FLIGHT_PLAYERS];
+static struct ConfirmedControls g_confirmed[XVT_FLIGHT_PLAYERS];
 
 void XvtFlightPrediction_Reset(void)
 {
@@ -20,22 +20,22 @@ void XvtFlightPrediction_Reset(void)
 }
 
 void XvtFlightPrediction_Confirm(unsigned player, int tick,
-				 const FlightInputFrameRecord *input)
+				 const struct FlightInputFrameRecord *input)
 {
 	if (player >= XVT_FLIGHT_PLAYERS || !input) {
 		return;
 	}
 	/* Keep this outside the consumable input queue. Confirmation can prune the
 	 * last record while prediction still needs its held controls. */
-	g_confirmed[player] =
-		(ConfirmedControls){*input, tick, g_players[player].objectIndex,
-				    g_players[player].boundObjectSignature, 1};
+	g_confirmed[player] = (struct ConfirmedControls){
+		*input, tick, g_players[player].objectIndex,
+		g_players[player].boundObjectSignature, 1};
 }
 
 static int QueuePlayer(unsigned player, int tick)
 {
-	const ConfirmedControls *confirmed = &g_confirmed[player];
-	const FlightInputFrameRecord *source = NULL;
+	const struct ConfirmedControls *confirmed = &g_confirmed[player];
+	const struct FlightInputFrameRecord *source = NULL;
 	int source_tick = -1;
 	if (confirmed->valid && confirmed->tick <= tick &&
 	    confirmed->slot == g_players[player].objectIndex &&
@@ -49,7 +49,7 @@ static int QueuePlayer(unsigned player, int tick)
 		return 0;
 	}
 	for (int i = 0; i < count; ++i) {
-		const InputFrame *frame = &g_inputHistory[player][i];
+		const struct InputFrame *frame = &g_inputHistory[player][i];
 		if (frame->timestamp > tick) {
 			break;
 		}
@@ -69,14 +69,14 @@ static int QueuePlayer(unsigned player, int tick)
 	if (!source) {
 		return 1;
 	}
-	FlightInputFrameRecord input = *source;
+	struct FlightInputFrameRecord input = *source;
 	input.key = 0;
 	input.flags = 0;
 	input.throttle = 0;
 	/* Roll changes the meaning of the stick. Preserve it, but never invent
 	 * speculative fire/target-button actions or repeat discrete commands. */
 	input.keyMods &= 2;
-	InputFrame *inserted;
+	struct InputFrame *inserted;
 	XvtInputInsertStatus status =
 		XvtFlightHistory_Insert(player, tick, &input, &inserted);
 	if (status == XVT_INPUT_FULL || status == XVT_INPUT_INVALID) {

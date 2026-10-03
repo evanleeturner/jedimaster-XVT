@@ -24,7 +24,7 @@ void XvtRemasterOptMesh_Shutdown(void);
  * written for a NULL or empty argument, a database not loaded or invalid, an unreadable file, or a
  * failed conversion, with the converter's message. */
 bool XvtRemasterOptMesh_Build(AeronVfs *vfs, const char *resolved_path,
-			      const XvtModelSettings *settings,
+			      const struct XvtModelSettings *settings,
 			      AeronFlightModel *out, char *error,
 			      size_t capacity);
 #ifdef __cplusplus

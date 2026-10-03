@@ -20,8 +20,8 @@ extern "C" {
  * (value / 100 with two decimals) when visible. Lines are clipped at depth 1. Returns 0 when the scene
  * or composite cannot be made or any pass fails. */
 int XvtFlightMap_Render(AeronCommandBuffer *cmd,
-			const XvtRenderSnapshot *snapshot,
-			const XvtRenderView *view);
+			const struct XvtRenderSnapshot *snapshot,
+			const struct XvtRenderView *view);
 /* Destroys the scene, the composite, the draw list and the mesh tables. */
 void XvtFlightMap_Shutdown(void);
 /* Creates the map scene and composite at width x height and the current MSAA when they differ,

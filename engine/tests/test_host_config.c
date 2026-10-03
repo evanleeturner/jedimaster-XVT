@@ -15,7 +15,7 @@
 static char **g_argv;
 
 /* Parses the NULL-terminated argv, keeping it in g_argv so a check can compare the borrowed pointers. */
-static int Parse(XvtLaunchOptions *options, char **argv)
+static int Parse(struct XvtLaunchOptions *options, char **argv)
 {
 	int argc = 0;
 	while (argv[argc]) {
@@ -27,7 +27,7 @@ static int Parse(XvtLaunchOptions *options, char **argv)
 
 static void CheckZeroesOptions(void)
 {
-	XvtLaunchOptions options;
+	struct XvtLaunchOptions options;
 	memset(&options, 0xFF, sizeof options);
 	char *argv[] = {"OpenXvT", NULL};
 	XVT_ASSERT_INT_EQ(XvtLaunchOptions_Parse(1, argv, &options), 1);
@@ -48,7 +48,7 @@ static void CheckZeroesOptions(void)
 
 static void CheckFlags(void)
 {
-	XvtLaunchOptions options;
+	struct XvtLaunchOptions options;
 	XVT_ASSERT_INT_EQ(PARSE(&options, "--help", "--skip-intro",
 				"--save-config", "--reset-config",
 				"--check-installation", "--skip-intro"),
@@ -73,7 +73,7 @@ static void CheckFlags(void)
 
 static void CheckValues(void)
 {
-	XvtLaunchOptions options;
+	struct XvtLaunchOptions options;
 	/* After '=' or as the next argument; kept as text, unchecked, borrowed from argv. */
 	XVT_ASSERT_INT_EQ(PARSE(&options, "--resource-root=res", "--game-data",
 				"data dir", "--import-config=x.cfg",
@@ -98,7 +98,7 @@ static void CheckValues(void)
 
 static void CheckValueRefusals(void)
 {
-	XvtLaunchOptions options;
+	struct XvtLaunchOptions options;
 	/* Missing, empty, or starting with '-'. */
 	XVT_ASSERT_INT_EQ(PARSE(&options, "--game-data"), 0);
 	XVT_ASSERT_INT_EQ(PARSE(&options, "--game-data="), 0);
@@ -133,7 +133,7 @@ static void CheckValueRefusals(void)
 
 static void CheckCombinationRefusals(void)
 {
-	XvtLaunchOptions options;
+	struct XvtLaunchOptions options;
 	XVT_ASSERT_INT_EQ(PARSE(&options, "--pilot-name=Ace"), 0);
 	XVT_ASSERT_INT_EQ(
 		PARSE(&options, "--pilot-name=Ace", "--import-pilot=a.plt"), 1);
@@ -154,7 +154,7 @@ static void CheckCombinationRefusals(void)
 
 static void CheckInitAeron(void)
 {
-	XvtLaunchOptions options;
+	struct XvtLaunchOptions options;
 	XVT_ASSERT_INT_EQ(PARSE(&options, "--resource-root=res"), 1);
 	AeronConfig config;
 	memset(&config, 0xFF, sizeof config);
@@ -201,7 +201,7 @@ static void CheckInitAeron(void)
 
 static void CheckResolveResourceRoot(void)
 {
-	XvtLaunchOptions options;
+	struct XvtLaunchOptions options;
 	char out[64];
 	XVT_ASSERT_INT_EQ(PARSE(&options, "--resource-root=abcd"), 1);
 	XVT_ASSERT_INT_EQ(

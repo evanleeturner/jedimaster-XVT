@@ -45,7 +45,7 @@ const char *const g_randomPilotNames[40] = {
 int Pilot_DeleteCurrent(void)
 {
 	uint8_t xvtPilotRecord[0x3DF3A];
-	FrontendFileListNode *node;
+	struct FrontendFileListNode *node;
 	int selectedIndex;
 
 	if (g_pilotListDisplayNames != NULL && g_pilotData.name[0] != '\0' &&
@@ -254,8 +254,8 @@ int Pilot_CreateNew(const char *pilotName)
 int Pilot_Save(int useTemporaryFile)
 {
 	char pilotPath[30];
-	FrontendFileList *fileList;
-	FrontendFileListNode *node;
+	struct FrontendFileList *fileList;
+	struct FrontendFileListNode *node;
 	XvtFile *stream;
 	int fileIndex;
 
@@ -389,8 +389,8 @@ int Pilot_Save(int useTemporaryFile)
 // FUNCTION: XVT 0x4BF8C0
 int Pilot_FindAndLoadByName(const char *pilotName)
 {
-	FrontendFileList *fileList;
-	FrontendFileListNode *node;
+	struct FrontendFileList *fileList;
+	struct FrontendFileListNode *node;
 	XvtFile *stream;
 	int fileIndex;
 	int wasLoaded;
@@ -682,7 +682,7 @@ int Pilot_LoadFromPath(const char *basePilotPath)
  * per-craft table where PilotStats has 100. Pilot_LoadXvtRecord and
  * Pilot_WriteXvtRecord copy each field to and from the PilotStats field of the
  * same name, with the exceptions their comments give. */
-typedef struct PilotXvtStats {
+struct PilotXvtStats {
 	int totalScorePerMT[3]; /* Score. */
 	/* Missions flown on their own. */
 	int standaloneMissionsPlayedPerMT[3];
@@ -717,12 +717,12 @@ typedef struct PilotXvtStats {
 	int killedByPlayerRatingPerMT[3][25];
 	/* Times killed by AI craft, by the killer's AI rating. */
 	int killedByAIRatingPerMT[3][6];
-} PilotXvtStats;
+};
 
 /* One faction record of the base game's pilot file. The history blocks at the
  * end are copied to and from g_pilotData's PilotFaction starting at the place
  * each comment names: 4 bytes before the array of the same history there. */
-typedef struct PilotXvtFaction {
+struct PilotXvtFaction {
 	/* Missions flown; copied with PilotFaction's. */
 	int totalMissionsPlayedCount;
 	/* Never read or written by name; a save keeps the file's bytes. */
@@ -739,7 +739,7 @@ typedef struct PilotXvtFaction {
 	int missionAwards[4]; /* Copied with PilotFaction's. */
 	uint8_t fieldBC[16];  /* Copied with PilotFaction's. */
 	int totalScore;	      /* Faction score; copied with PilotFaction's. */
-	PilotXvtStats stats;  /* Copied with PilotFaction.stats. */
+	struct PilotXvtStats stats; /* Copied with PilotFaction.stats. */
 	/* Single-player training history, at field1558. */
 	uint8_t spTrainingData[3600];
 	/* Single-player melee history, at spTrainingMissions[99].field20. */
@@ -761,13 +761,13 @@ typedef struct PilotXvtFaction {
 	uint8_t spBattleData[900];
 	/* Multiplayer battle history, at spBattles[24].field20. */
 	uint8_t mpBattleData[1000];
-} PilotXvtFaction;
+};
 
 /* The base game's pilot file (.plt), 253,754 bytes. Pilot_LoadXvtRecord copies
  * it into g_pilotData and Pilot_WriteXvtRecord back out; a field is copied to
  * and from PilotData's field of the same name unless its comment says
  * otherwise. */
-typedef struct PilotXvtRecord {
+struct PilotXvtRecord {
 	char name[14];	/* Pilot name. */
 	int totalScore; /* Total score. */
 	/* Local DirectPlay player id, stored when a mission launches. */
@@ -796,7 +796,7 @@ typedef struct PilotXvtRecord {
 	int nextPromotionPercent; /* Percent of the way to the next rank. */
 	/* Lifetime statistics. A save leaves the first five tables as the
 	 * file had them (see Pilot_WriteXvtRecord). */
-	PilotXvtStats mainStats;
+	struct PilotXvtStats mainStats;
 	/* Never read or written by name; a save keeps the file's bytes. */
 	uint8_t missionSequenceState[3348];
 	PilotRating rating;	      /* Rank. */
@@ -817,22 +817,26 @@ typedef struct PilotXvtRecord {
 	int killsSharedFromFlightGroup[48]; /* As killsFullOnPlayer. */
 	/* AI rating of each flight group, shown in the debriefing. */
 	int flightGroupRating[48];
-	PilotXvtStats lastMissionStats;	      /* Last mission's statistics. */
-	PilotNetworkPlayer networkPlayers[8]; /* Last mission's players. */
-	PilotTeam teams[10];		      /* Last mission's teams. */
+	struct PilotXvtStats lastMissionStats; /* Last mission's statistics. */
+	struct PilotNetworkPlayer
+		networkPlayers[8];	      /* Last mission's players. */
+	struct PilotTeam teams[10];	      /* Last mission's teams. */
 	int currentFactionId;		      /* Faction record in use. */
 	/* The four faction records, copied field by field with
 	 * PilotData.factionStatistics. */
-	PilotXvtFaction factionStatistics[4];
-} PilotXvtRecord;
+	struct PilotXvtFaction factionStatistics[4];
+};
 
 #pragma pack(pop)
 
-typedef char xvt_size_PilotXvtStats[(sizeof(PilotXvtStats) == 4824) ? 1 : -1];
 typedef char
-	xvt_size_PilotXvtFaction[(sizeof(PilotXvtFaction) == 59428) ? 1 : -1];
-typedef char
-	xvt_size_PilotXvtRecord[(sizeof(PilotXvtRecord) == 0x3DF3A) ? 1 : -1];
+	xvt_size_PilotXvtStats[(sizeof(struct PilotXvtStats) == 4824) ? 1 : -1];
+typedef char xvt_size_PilotXvtFaction[(sizeof(struct PilotXvtFaction) == 59428)
+					      ? 1
+					      : -1];
+typedef char xvt_size_PilotXvtRecord[(sizeof(struct PilotXvtRecord) == 0x3DF3A)
+					     ? 1
+					     : -1];
 
 /* Reads a whole base game pilot record from stream and copies it into
  * g_pilotData: identity, payloads, promotion state, both stats blocks, rating,
@@ -847,8 +851,8 @@ typedef char
 // FUNCTION: XVT 0x4C9F80
 int Pilot_LoadXvtRecord(XvtFile *stream)
 {
-	PilotXvtFaction *sourceFaction;
-	PilotFaction *destinationFaction;
+	struct PilotXvtFaction *sourceFaction;
+	struct PilotFaction *destinationFaction;
 	int mainMissionType;
 	int missionType;
 	int factionId;
@@ -866,7 +870,7 @@ int Pilot_LoadXvtRecord(XvtFile *stream)
 		int gunEmplacement;	/* Entry 78. */
 	} preservedCraftStats;
 
-	PilotXvtRecord record;
+	struct PilotXvtRecord record;
 
 	enum {
 		MISSION_TYPE_COUNT = 3,
@@ -1743,7 +1747,7 @@ int Pilot_LoadXvtRecord(XvtFile *stream)
 // FUNCTION: XVT 0x4CB310
 int Pilot_WriteXvtRecord(const char *fileName, XvtFile *stream)
 {
-	PilotXvtRecord record;
+	struct PilotXvtRecord record;
 	XvtFile *inputStream;
 	int missionType;
 	int factionId;
@@ -2052,9 +2056,9 @@ int Pilot_WriteXvtRecord(const char *fileName, XvtFile *stream)
 	record.currentFactionId = g_pilotData.currentFactionId;
 
 	for (factionId = 0; factionId < 4; ++factionId) {
-		PilotXvtFaction *destination =
+		struct PilotXvtFaction *destination =
 			&record.factionStatistics[factionId];
-		PilotFaction *source =
+		struct PilotFaction *source =
 			&g_pilotData.factionStatistics[factionId];
 
 		destination->totalMissionsPlayedCount =

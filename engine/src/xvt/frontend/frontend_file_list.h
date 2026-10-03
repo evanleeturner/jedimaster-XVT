@@ -19,14 +19,15 @@ struct FrontendFileListNode {
 
 /* Files matching a wildcard, from FrontendFileList_BuildSorted. */
 struct FrontendFileList {
-	FrontendFileListNode *head; /* First file; NULL when none matched. */
+	struct FrontendFileListNode
+		*head;		    /* First file; NULL when none matched. */
 	int count;		    /* Files in the list. */
 };
 
-FrontendFileList *FrontendFileList_BuildSorted(const char *wildcard);
-void FrontendFileList_Free(FrontendFileList *list);
-void FrontendFileList_InsertNodeSorted(FrontendFileList *list,
-				       FrontendFileListNode *node);
+struct FrontendFileList *FrontendFileList_BuildSorted(const char *wildcard);
+void FrontendFileList_Free(struct FrontendFileList *list);
+void FrontendFileList_InsertNodeSorted(struct FrontendFileList *list,
+				       struct FrontendFileListNode *node);
 
 #ifdef __cplusplus
 }

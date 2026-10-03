@@ -5,16 +5,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct Std3DUnknown Std3DUnknown;
+struct Std3DUnknown;
 
-typedef struct Std3DUnknownVtbl {
+struct Std3DUnknownVtbl {
 	void *queryInterface;
 	void *addRef;
-	uint32_t(AERON_DXAPI *release)(Std3DUnknown *self);
-} Std3DUnknownVtbl;
+	uint32_t(AERON_DXAPI *release)(struct Std3DUnknown *self);
+};
 
 struct Std3DUnknown {
-	const Std3DUnknownVtbl *lpVtbl;
+	const struct Std3DUnknownVtbl *lpVtbl;
 };
 
 /* Render options in the bits of Std3DRenderStateFlags, plus 0x1
@@ -39,7 +39,7 @@ unsigned int g_std3DNumDevices = 0;
 unsigned int g_std3DCurDeviceIdx = 0;
 /* The device std3D_CreateDevice opened, in g_std3DDevices; NULL before. */
 // GLOBAL: XVT 0x528C5C
-Std3DDevice *g_pStd3DCurDevice = 0;
+struct Std3DDevice *g_pStd3DCurDevice = 0;
 /* Formats in g_std3DTextureFormats, 0 to 8: std3D_CreateDevice sets 0 and
  * std3D_EnumTextureFormats adds each it keeps. */
 // GLOBAL: XVT 0x528C60
@@ -47,7 +47,7 @@ int g_std3DNumTextureFormats = 0;
 /* The texture format closest to the render target's 16-bit RGB, picked by
  * std3D_CreateDevice. */
 // GLOBAL: XVT 0x528C64
-Std3DTexFmt *g_pFmtOpaqueTexture;
+struct Std3DTexFmt *g_pFmtOpaqueTexture;
 /* Index of g_pFmtOpaqueTexture in g_std3DTextureFormats; only debug prints read
  * it. */
 // GLOBAL: XVT 0xA90B58
@@ -55,7 +55,7 @@ int g_fmtIdxOpaqueTexture = 0;
 /* The texture format closest to RGBA with 5, 5, 5 and 1 bits, picked by
  * std3D_CreateDevice when the device has alpha textures; NULL otherwise. */
 // GLOBAL: XVT 0x528C68
-Std3DTexFmt *g_pFmtRGBA1555 = 0;
+struct Std3DTexFmt *g_pFmtRGBA1555 = 0;
 /* Index of g_pFmtRGBA1555 in g_std3DTextureFormats; only debug prints read
  * it. */
 // GLOBAL: XVT 0xA91B88
@@ -64,7 +64,7 @@ int g_fmtIdxRGBA1555 = 0;
  * std3D_CreateDevice when the device has alpha textures but no alpha blending;
  * NULL otherwise. */
 // GLOBAL: XVT 0x528C6C
-Std3DTexFmt *g_pFmtRGBA4444 = 0;
+struct Std3DTexFmt *g_pFmtRGBA4444 = 0;
 /* Index of g_pFmtRGBA4444 in g_std3DTextureFormats; only debug prints read
  * it. */
 // GLOBAL: XVT 0xA90A64
@@ -84,7 +84,7 @@ IDirectDraw *g_std3DDirectDraw = 0;
 /* The texture formats the open device offers, filled by
  * std3D_EnumTextureFormats, which skips 4-bit palette formats. */
 // GLOBAL: XVT 0xA90C00
-Std3DTexFmt g_std3DTextureFormats[8] = {0};
+struct Std3DTexFmt g_std3DTextureFormats[8] = {0};
 /* Message std3D_Shutdown passes to DebugPrintf, whose calls print nothing. */
 // GLOBAL: XVT 0x529168
 static const char g_std3DShutdownSucceededMessage[] = "Shutdown Succeeded.\n";
@@ -108,7 +108,7 @@ static const char g_std3DLockExecuteBufferErrorFormat[] =
 /* Rows of a result code and its name, for the Direct3D and then the DirectDraw
  * codes, that std3D_LookupErrorString searches. */
 // GLOBAL: XVT 0x528CC0
-const Std3DErrorStringEntry g_std3DErrorStringTable[121] = {
+const struct Std3DErrorStringEntry g_std3DErrorStringTable[121] = {
 	{0, "D3D_OK"},
 	{-2005531972, "D3DERR_BADMAJORVERSION"},
 	{-2005531971, "D3DERR_BADMINORVERSION"},
@@ -282,7 +282,7 @@ static IDirect3D *g_lpD3D = 0;
 static IDirect3DViewport *g_d3dViewport = 0;
 /* Released by std3D_Close when set, but nothing sets it, so it stays NULL. */
 // GLOBAL: XVT 0x66497C
-static Std3DUnknown *g_d3dViewportMaterial = 0;
+static struct Std3DUnknown *g_d3dViewportMaterial = 0;
 /* The Direct3D device std3D_CreateDevice gets from the render surface;
  * std3D_Close releases it and sets it to NULL. */
 // GLOBAL: XVT 0x664548
@@ -293,7 +293,7 @@ IDirect3DDevice *g_d3dDevice;
 struct IDirectDrawSurface *g_std3DRenderSurface;
 /* The Direct3D devices std3D_EnumDevicesCallback found, up to 4. */
 // GLOBAL: XVT 0xA91120
-Std3DDevice g_std3DDevices[4] = {{0}};
+struct Std3DDevice g_std3DDevices[4] = {{0}};
 /* Red of the full-viewport color overlay. Set by std3D_SetColorOverlayParams,
  * which Renderer_InitD3DDevice calls with 0 and off; read by
  * std3D_DrawColorOverlay, which nothing calls. */
@@ -319,7 +319,7 @@ int g_std3DZCompareCap = 0;
  * mono off; std3D_BuildViewportQuad sets them and std3D_DrawColorOverlay draws
  * them. */
 // GLOBAL: XVT 0xA90B30
-Std3DRenderTri g_std3DViewportQuadTriangles[2] = {{0}};
+struct Std3DRenderTri g_std3DViewportQuadTriangles[2] = {{0}};
 /* The viewport's corners, clockwise from the top left, set by
  * std3D_BuildViewportQuad with every other field 0. */
 // GLOBAL: XVT 0xA90B60
@@ -327,18 +327,18 @@ D3DTLVERTEX g_std3DQuadVerts[4] = {{0}};
 /* The viewport rectangle std3D_BuildViewportQuad was given: 0, 0 and the render
  * target's size. std3D_ClearZBuffer clears this area. */
 // GLOBAL: XVT 0xA90BF0
-static Std3DViewportRect g_std3DQuadRect = {0};
+static struct Std3DViewportRect g_std3DQuadRect = {0};
 /* The texture std3D_DrawColorOverlay uploads and removes again each time it
  * draws without alpha blending. */
 // GLOBAL: XVT 0xA90A70
-Std3DTexCacheNode g_std3DColorOverlayTexNode = {0};
+struct Std3DTexCacheNode g_std3DColorOverlayTexNode = {0};
 /* The z-buffer surface and its description, made by std3D_CreateZBuffer. */
 // GLOBAL: XVT 0xA91A34
-Std3DZBufferSurfaceBlock g_std3DZBufferSurfaceBlock = {0};
+struct Std3DZBufferSurfaceBlock g_std3DZBufferSurfaceBlock = {0};
 /* A record of the z-buffer that std3D_CreateZBuffer fills; only its debug print
  * reads it. */
 // GLOBAL: XVT 0xA919D0
-Std3DZBufferTarget g_std3DZBufferTarget = {0};
+struct Std3DZBufferTarget g_std3DZBufferTarget = {0};
 /* Only std3D_SetTextureSizeCaps writes it, and nothing calls that, so it stays
  * 0. */
 // GLOBAL: XVT 0x528C70
@@ -370,15 +370,15 @@ unsigned int g_std3DTextureBatchTag = 1;
 int g_texCacheCount = 0;
 /* Least recently used texture on the cache list; NULL when it is empty. */
 // GLOBAL: XVT 0x528C8C
-Std3DTexCacheNode *g_pTexCacheHead = 0;
+struct Std3DTexCacheNode *g_pTexCacheHead = 0;
 /* Most recently used texture on the cache list; NULL when it is empty. */
 // GLOBAL: XVT 0x528C90
-Std3DTexCacheNode *g_pTexCacheTail = 0;
+struct Std3DTexCacheNode *g_pTexCacheTail = 0;
 /* A 32 by 32 buffer in the RGBA 4-bit format, made by std3D_CreateDevice when
  * the device has alpha textures but no alpha blending; std3D_DrawColorOverlay
  * fills it and std3D_Close frees it. */
 // GLOBAL: XVT 0x528C94
-Std3DVBuffer *g_pStd3DVBuffer = 0;
+struct Std3DVBuffer *g_pStd3DVBuffer = 0;
 /* The execute buffer every batch is written into; std3D_CreateDevice makes it
  * and std3D_Close releases it. */
 // GLOBAL: XVT 0x528C98
@@ -397,11 +397,12 @@ static unsigned int g_std3DExecBufTriCount = 0;
  * to 1, which no texture is, so the first triangle group always writes a
  * texture state. */
 // GLOBAL: XVT 0x528CA8
-static Std3DTexCacheNode *g_d3dCurTexture = (Std3DTexCacheNode *)1;
+static struct Std3DTexCacheNode *g_d3dCurTexture =
+	(struct Std3DTexCacheNode *)1;
 /* Points at g_std3DZBufferSurfaceBlock once std3D_CreateZBuffer runs; NULL
  * before. */
 // GLOBAL: XVT 0x528CAC
-Std3DZBufferSurfaceBlock *g_pStd3DZBufferState = NULL;
+struct Std3DZBufferSurfaceBlock *g_pStd3DZBufferState = NULL;
 /* 1 while a device is open: std3D_CreateDevice sets it on success and
  * std3D_Close clears it. */
 // GLOBAL: XVT 0x528CBC
@@ -423,11 +424,11 @@ uint8_t *g_d3dWritePtr = (uint8_t *)(uintptr_t)-1;
 static uint8_t *g_d3dInstrStart = 0;
 /* The render target's description, filled by std3D_InitRenderTargetDesc. */
 // GLOBAL: XVT 0x6644F8
-Std3DRenderTargetDesc g_std3DRenderTargetDesc = {0};
+struct Std3DRenderTargetDesc g_std3DRenderTargetDesc = {0};
 /* Points at g_std3DRenderTargetDesc once std3D_InitRenderTargetDesc runs; NULL
  * before. */
 // GLOBAL: XVT 0xA90BE0
-Std3DRenderTargetDesc *g_pStd3DRenderTarget = 0;
+struct Std3DRenderTargetDesc *g_pStd3DRenderTarget = 0;
 
 /* Copies colorCount 16-bit colors into g_std3DPaletteScratch16. Does not check
  * colorCount against its 256 entries. */
@@ -446,8 +447,8 @@ void std3D_CopyPaletteToScratch16(const uint16_t *palette, int colorCount)
 void std3D_ConvertPaletteTo1555(const uint16_t *palette, int colorCount)
 {
 	int colorIndex;
-	ColorInfo *sourceFormat;
-	ColorInfo *targetFormat;
+	struct ColorInfo *sourceFormat;
+	struct ColorInfo *targetFormat;
 
 	if (g_pFmtOpaqueTexture == g_pFmtRGBA1555) {
 		memcpy(g_texConvBuf1555, palette,
@@ -552,12 +553,12 @@ int std3D_Startup(void)
  * / 2 and sizeBytes of pitch times height; points g_pStd3DRenderTarget at it
  * and returns it. */
 // FUNCTION: XVT 0x4B0EF0
-Std3DRenderTargetDesc *std3D_InitRenderTargetDesc(unsigned int width,
-						  unsigned int height,
-						  int pitchBytes)
+struct Std3DRenderTargetDesc *std3D_InitRenderTargetDesc(unsigned int width,
+							 unsigned int height,
+							 int pitchBytes)
 {
-	Std3DRenderTargetDesc *result;
-	Std3DRenderTargetDesc **renderTarget;
+	struct Std3DRenderTargetDesc *result;
+	struct Std3DRenderTargetDesc **renderTarget;
 
 	memset(&g_std3DRenderTargetDesc, 0, sizeof(g_std3DRenderTargetDesc));
 	renderTarget = &g_pStd3DRenderTarget;
@@ -614,8 +615,8 @@ void std3D_Shutdown(void)
 // FUNCTION: XVT 0x4B1030
 int std3D_CreateDevice(unsigned int deviceIdx, int bUseZBuffer)
 {
-	Std3DRasterInfo raster;
-	ColorInfo alphaFormat;
+	struct Std3DRasterInfo raster;
+	struct ColorInfo alphaFormat;
 	unsigned int maxBufferSize;
 	unsigned int maxVertexCount;
 	HRESULT result;
@@ -804,12 +805,12 @@ int std3D_Log2Floor(int n)
  * errorCode, or g_std3DUnknownErrorMessage when none is. */
 // FUNCTION: XVT 0x4B1600
 const char *std3D_LookupErrorString(int errorCode,
-				    const Std3DErrorStringEntry *entries,
+				    const struct Std3DErrorStringEntry *entries,
 				    int entryCount)
 {
 	const char *result;
 	int entryIndex;
-	const Std3DErrorStringEntry *entry;
+	const struct Std3DErrorStringEntry *entry;
 
 	result = g_std3DUnknownErrorMessage;
 	entryIndex = 0;
@@ -835,11 +836,12 @@ const char *std3D_LookupErrorString(int errorCode,
  * the alpha alternates. With colorKey and 1-bit alpha, a color that comes out 0
  * is therefore opaque and every other transparent. */
 // FUNCTION: XVT 0x4B1640
-void std3D_BuildColormap16(uint8_t *pRGB888, uint16_t *pOut, ColorInfo *pFmt,
-			   uint8_t defaultAlpha, int colorKey)
+void std3D_BuildColormap16(uint8_t *pRGB888, uint16_t *pOut,
+			   struct ColorInfo *pFmt, uint8_t defaultAlpha,
+			   int colorKey)
 {
 	uint16_t *output = pOut;
-	ColorInfo *format = pFmt;
+	struct ColorInfo *format = pFmt;
 	uint8_t *rgb888 = pRGB888;
 	int alphaBPP;
 	int entriesRemaining;
@@ -877,7 +879,7 @@ void std3D_BuildColormap16(uint8_t *pRGB888, uint16_t *pOut, ColorInfo *pFmt,
 /* std3D_BuildColormap16 with alpha 0xFF and no color key. */
 // FUNCTION: XVT 0x4B1710
 void std3D_BuildColormapOpaque(uint8_t *pRGB888, uint16_t *pOut,
-			       ColorInfo *pFmt)
+			       struct ColorInfo *pFmt)
 {
 	std3D_BuildColormap16(pRGB888, pOut, pFmt, 0xFF, 0);
 }
@@ -885,15 +887,15 @@ void std3D_BuildColormapOpaque(uint8_t *pRGB888, uint16_t *pOut,
 /* std3D_BuildColormap16 with alpha 0xFF and the color key. */
 // FUNCTION: XVT 0x4B1730
 void std3D_BuildColormapColorKey(uint8_t *pRGB888, uint16_t *pOut,
-				 ColorInfo *pFmt)
+				 struct ColorInfo *pFmt)
 {
 	std3D_BuildColormap16(pRGB888, pOut, pFmt, 0xFF, 1);
 }
 
 /* std3D_BuildColormap16 with alpha and no color key. */
 // FUNCTION: XVT 0x4B1750
-void std3D_BuildColormapAlpha(uint8_t *pRGB888, uint16_t *pOut, ColorInfo *pFmt,
-			      uint8_t alpha)
+void std3D_BuildColormapAlpha(uint8_t *pRGB888, uint16_t *pOut,
+			      struct ColorInfo *pFmt, uint8_t alpha)
 {
 	std3D_BuildColormap16(pRGB888, pOut, pFmt, alpha, 0);
 }
@@ -903,11 +905,12 @@ void std3D_BuildColormapAlpha(uint8_t *pRGB888, uint16_t *pOut, ColorInfo *pFmt,
  * returns it. Does not check either allocation; ignores any further
  * arguments. */
 // FUNCTION: XVT 0x4B1770
-Std3DVBuffer *std3D_AllocVBuffer(const Std3DRasterInfo *raster, ...)
+struct Std3DVBuffer *std3D_AllocVBuffer(const struct Std3DRasterInfo *raster,
+					...)
 {
-	Std3DVBuffer *vbuffer;
+	struct Std3DVBuffer *vbuffer;
 
-	vbuffer = (Std3DVBuffer *)malloc(sizeof(*vbuffer));
+	vbuffer = (struct Std3DVBuffer *)malloc(sizeof(*vbuffer));
 	memset(vbuffer, 0, sizeof(*vbuffer));
 	vbuffer->storageType = 0;
 	memcpy(&vbuffer->raster, raster, sizeof(vbuffer->raster));
@@ -920,7 +923,7 @@ Std3DVBuffer *std3D_AllocVBuffer(const Std3DRasterInfo *raster, ...)
 /* Releases a surface buffer's surface (storageType 1) or frees a plain buffer's
  * pixels, then zeroes and frees the buffer. */
 // FUNCTION: XVT 0x4B17D0
-void std3D_FreeVBuffer(Std3DVBuffer *vbuffer)
+void std3D_FreeVBuffer(struct Std3DVBuffer *vbuffer)
 {
 	if (vbuffer->storageType == 1) {
 		if (vbuffer->ddSurface != NULL) {
@@ -937,7 +940,7 @@ void std3D_FreeVBuffer(Std3DVBuffer *vbuffer)
  * surface, waiting, and takes its pixels and pitch; when that fails it returns
  * without counting the lock. */
 // FUNCTION: XVT 0x4B1810
-void std3D_LockVBuffer(Std3DVBuffer *vbuffer)
+void std3D_LockVBuffer(struct Std3DVBuffer *vbuffer)
 {
 	DDSURFACEDESC surfaceDesc;
 	HRESULT result;
@@ -964,7 +967,7 @@ void std3D_LockVBuffer(Std3DVBuffer *vbuffer)
  * surface buffer it unlocks the surface; when that fails it returns without
  * undoing the count. */
 // FUNCTION: XVT 0x4B1890
-void std3D_UnlockVBuffer(Std3DVBuffer *vbuffer)
+void std3D_UnlockVBuffer(struct Std3DVBuffer *vbuffer)
 {
 	if ((unsigned int)vbuffer->lockCount < 1) {
 		DebugPrintf("Unlock Warning: buffer %x, not locked\n", vbuffer);
@@ -1036,9 +1039,9 @@ void std3D_Close(void)
  * destinationY, row by row, locking both. Ignores sourceX and sourceY and does
  * not clip. */
 // FUNCTION: XVT 0x4B19E0
-void std3D_BlitVBuffer(Std3DVBuffer *destination, Std3DVBuffer *source,
-		       int destinationX, int destinationY, int sourceX,
-		       int sourceY)
+void std3D_BlitVBuffer(struct Std3DVBuffer *destination,
+		       struct Std3DVBuffer *source, int destinationX,
+		       int destinationY, int sourceX, int sourceY)
 {
 	uint8_t *sourcePixels;
 	uint8_t *destinationPixels;
@@ -1073,7 +1076,7 @@ unsigned int std3D_GetCapFlags(void) { return g_std3DRenderOptionFlags; }
 /* Fills the whole buffer with packedColor at 8, 16 or 32 bits per pixel,
  * locking it; leaves a buffer of any other depth alone. Ignores fillMode. */
 // FUNCTION: XVT 0x4B1A90
-void std3D_FillVBuffer(Std3DVBuffer *vbuffer, unsigned int packedColor,
+void std3D_FillVBuffer(struct Std3DVBuffer *vbuffer, unsigned int packedColor,
 		       int fillMode)
 {
 	uint8_t *rowPixels;
@@ -1237,7 +1240,7 @@ int std3D_LockExecuteBuffer(void)
 	g_d3dBufVertCount = 0;
 	g_std3DExecBufTriCount = 0;
 	++g_std3DTextureBatchTag;
-	g_d3dCurTexture = (Std3DTexCacheNode *)1;
+	g_d3dCurTexture = (struct Std3DTexCacheNode *)1;
 	result = g_d3dExecuteBuffer->lpVtbl->Lock(g_d3dExecuteBuffer,
 						  &g_d3dExecBufDesc);
 	if (result != 0) {
@@ -1303,9 +1306,10 @@ int std3D_BeginInstructions(void)
  * the one last selected (handle 0 for none), then one triangle instruction with
  * every edge enabled. Returns 1. Does not check the buffer's size. */
 // FUNCTION: XVT 0x4B1DE0
-int std3D_AddTriangles(const Std3DRenderTri *triangles, unsigned int count)
+int std3D_AddTriangles(const struct Std3DRenderTri *triangles,
+		       unsigned int count)
 {
-	Std3DTexCacheNode *texture;
+	struct Std3DTexCacheNode *texture;
 	unsigned int groupStart;
 	int groupCount;
 	unsigned int triangleIndex;
@@ -1766,8 +1770,9 @@ void std3D_ClampTextureDimensions(int srcWidth, int srcHeight, int *outWidth,
  * frees too few it fails. Sets the node's handle, size, texel count and batch
  * tag. */
 // FUNCTION: XVT 0x4B2680
-int std3D_AddToTextureCache(Std3DVBuffer *source, Std3DTexCacheNode *node,
-			    int colorKeyed, int translucent)
+int std3D_AddToTextureCache(struct Std3DVBuffer *source,
+			    struct Std3DTexCacheNode *node, int colorKeyed,
+			    int translucent)
 {
 	IDirectDrawSurface *sourceSurface;
 	unsigned int width;
@@ -1776,11 +1781,11 @@ int std3D_AddToTextureCache(Std3DVBuffer *source, Std3DTexCacheNode *node,
 	IDirect3DTexture *sourceTexture;
 	IDirect3DTexture *destinationTexture;
 	IDirectDrawSurface *destinationSurface;
-	Std3DVBuffer *temporaryBuffer;
-	Std3DVBuffer *uploadBuffer;
+	struct Std3DVBuffer *temporaryBuffer;
+	struct Std3DVBuffer *uploadBuffer;
 	unsigned int textureHandle;
 	DDCOLORKEY colorKey;
-	Std3DRasterInfo resizedRaster;
+	struct Std3DRasterInfo resizedRaster;
 	DDSURFACEDESC lockedDesc;
 	DDSURFACEDESC surfaceDesc;
 	int result;
@@ -2144,7 +2149,8 @@ int std3D_AddToTextureCache(Std3DVBuffer *source, Std3DTexCacheNode *node,
 				0, 0, 0);
 			{
 				int created = 0;
-				Std3DTexCacheNode *candidate = g_pTexCacheHead;
+				struct Std3DTexCacheNode *candidate =
+					g_pTexCacheHead;
 
 				while (!created) {
 					unsigned int freed = 0;
@@ -2287,12 +2293,12 @@ int std3D_AddToTextureCache(Std3DVBuffer *source, Std3DTexCacheNode *node,
 // FUNCTION: XVT 0x4B3070
 void std3D_FlushTextureCache(void)
 {
-	Std3DTexCacheNode *node;
+	struct Std3DTexCacheNode *node;
 
 	node = g_pTexCacheHead;
 	while (node != NULL) {
-		Std3DTexCacheNode **nextLink;
-		Std3DTexCacheNode *current;
+		struct Std3DTexCacheNode **nextLink;
+		struct Std3DTexCacheNode *current;
 
 		if (node->pCachedSurface != NULL) {
 			node->pCachedSurface->lpVtbl->Release(
@@ -2323,9 +2329,9 @@ void std3D_FlushTextureCache(void)
 /* Puts node at the most recently used end of the cache list, raises
  * g_texCacheCount, and takes the node's texelCount from availableMemory. */
 // FUNCTION: XVT 0x4B30F0
-void std3D_CacheListAppend(Std3DTexCacheNode *node)
+void std3D_CacheListAppend(struct Std3DTexCacheNode *node)
 {
-	Std3DTexCacheNode *previousTail;
+	struct Std3DTexCacheNode *previousTail;
 
 	if (g_pTexCacheHead == 0) {
 		g_pTexCacheTail = node;
@@ -2348,7 +2354,7 @@ void std3D_CacheListAppend(Std3DTexCacheNode *node)
  * texelCount back to availableMemory. Does not check that node is on the
  * list. */
 // FUNCTION: XVT 0x4B3160
-void std3D_CacheListRemove(Std3DTexCacheNode *node)
+void std3D_CacheListRemove(struct Std3DTexCacheNode *node)
 {
 	if (node == g_pTexCacheHead) {
 		g_pTexCacheHead = node->pNext;
@@ -2400,7 +2406,7 @@ int std3D_QueryTextureVidMem(unsigned int *totalBytes, unsigned int *freeBytes)
 /* Marks node as used in the current batch and moves it to the most recently
  * used end of the cache list. */
 // FUNCTION: XVT 0x4B3280
-void std3D_CacheTextureSurface(Std3DTexCacheNode *node)
+void std3D_CacheTextureSurface(struct Std3DTexCacheNode *node)
 {
 	node->cacheBatchTag = g_std3DTextureBatchTag;
 	std3D_CacheListRemove(node);
@@ -2457,10 +2463,10 @@ int std3D_ClearZBuffer(void)
  * device that matches the most of those, in that order. Returns 0 when there is
  * no device. */
 // FUNCTION: XVT 0x4B3380
-int std3D_SelectBestDevice(Std3DDeviceCaps *requiredCaps)
+int std3D_SelectBestDevice(struct Std3DDeviceCaps *requiredCaps)
 {
 	int bestMatchQuality;
-	Std3DDevice *device;
+	struct Std3DDevice *device;
 	int deviceIndex;
 	int requiredPerspective;
 	int matchQuality;
@@ -2521,11 +2527,11 @@ int std3D_SelectBestDevice(Std3DDeviceCaps *requiredCaps)
  * with the best score: 1 for the mode, 2 for the mode and bpp, 3 for an RGBA
  * mode and bpp. Returns 0 when count is 0. */
 // FUNCTION: XVT 0x4B3450
-int std3D_FindClosestFormat(const ColorInfo *match, Std3DTexFmt *formats,
-			    unsigned int count)
+int std3D_FindClosestFormat(const struct ColorInfo *match,
+			    struct Std3DTexFmt *formats, unsigned int count)
 {
 	int bestFormatIndex;
-	Std3DTexFmt *format;
+	struct Std3DTexFmt *format;
 	int formatIndex;
 	unsigned int matchScore;
 	int bestMatchScore;
@@ -2727,7 +2733,7 @@ void std3D_DrawColorOverlay(void)
  * g_std3DViewportQuadTriangles to two untextured alpha-blended triangles over
  * it. Returns 0. */
 // FUNCTION: XVT 0x4B3890
-int std3D_BuildViewportQuad(const Std3DViewportRect *rect)
+int std3D_BuildViewportQuad(const struct Std3DViewportRect *rect)
 {
 	g_std3DQuadRect = *rect;
 	memset(g_std3DQuadVerts, 0, sizeof(g_std3DQuadVerts));
@@ -2972,7 +2978,7 @@ int std3D_SetInitialRenderState(void)
 int std3D_CreateViewport(int width, int height)
 {
 	int result;
-	Std3DViewportRect rect;
+	struct Std3DViewportRect rect;
 	D3DVIEWPORT viewport;
 
 	result = g_lpD3D->lpVtbl->CreateViewport(g_lpD3D, &g_d3dViewport, NULL);
@@ -3127,7 +3133,7 @@ HRESULT AERON_DXAPI std3D_EnumDevicesCallback(
 	DxGuid *guid, char *deviceDescription, char *deviceName,
 	D3DDEVICEDESC *hardwareDesc, D3DDEVICEDESC *softwareDesc, void *context)
 {
-	Std3DDevice *device;
+	struct Std3DDevice *device;
 	unsigned int shadeCaps;
 	(void)context;
 
@@ -3216,7 +3222,7 @@ HRESULT AERON_DXAPI std3D_EnumDevicesCallback(
 int AERON_DXAPI std3D_EnumTextureFormats(DDSURFACEDESC *surfaceDesc,
 					 void *context)
 {
-	Std3DTexFmt *format;
+	struct Std3DTexFmt *format;
 	/* Each of these four first counts its mask's trailing zeros (the channel's position), then is reset
 	 * to count the mask's set bits (the channel's width, stored as its BPP). */
 	int redShift;

@@ -14,7 +14,7 @@
 
 static const GUID g_room = {1, 2, 3, {4, 5, 6, 7, 8, 9, 10, 11}};
 
-static NetPlayerNameMessage g_message;
+static struct NetPlayerNameMessage g_message;
 
 static XvtNetworkSessionState State(void)
 {

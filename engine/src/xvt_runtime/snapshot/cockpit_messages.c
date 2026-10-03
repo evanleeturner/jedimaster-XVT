@@ -17,30 +17,30 @@ typedef char XvtCockpitOverlayCapacityCheck
 		 ? 1
 		 : -1];
 
-typedef struct MessageContent {
-	XvtCockpitMessage state;
+struct MessageContent {
+	struct XvtCockpitMessage state;
 	int16_t origin_x, origin_y;
-	XvtCockpitGlyph glyphs[XVT_HUD_MESSAGE_GLYPHS];
-} MessageContent;
+	struct XvtCockpitGlyph glyphs[XVT_HUD_MESSAGE_GLYPHS];
+};
 
-typedef struct AlertContent {
-	XvtCockpitAlert state;
-	XvtCockpitGlyph glyphs[3][XVT_HUD_ALERT_LINE_GLYPHS];
-} AlertContent;
+struct AlertContent {
+	struct XvtCockpitAlert state;
+	struct XvtCockpitGlyph glyphs[3][XVT_HUD_ALERT_LINE_GLYPHS];
+};
 
-static MessageContent g_workingPanes[XVT_COCKPIT_MESSAGE_COUNT],
+static struct MessageContent g_workingPanes[XVT_COCKPIT_MESSAGE_COUNT],
 	g_pending[XVT_COCKPIT_MESSAGE_COUNT], g_messageBuild;
-static AlertContent g_alert, g_alertBuild;
-static XvtCockpitLoading g_loading;
+static struct AlertContent g_alert, g_alertBuild;
+static struct XvtCockpitLoading g_loading;
 static int g_messageCapturePane = -1, g_alertCaptureLine = -1, g_captureFailed;
 static uint32_t g_messagePalette[256], g_alertPalette[256];
 static uint64_t g_generation;
 
 /* Loading text is emitted before mission initialization resets flight state. */
 static struct {
-	XvtCockpitGlyph glyphs[XVT_HUD_LOADING_GLYPHS];
+	struct XvtCockpitGlyph glyphs[XVT_HUD_LOADING_GLYPHS];
 	uint32_t palette[256];
-	XvtSnapRect bounds;
+	struct XvtSnapRect bounds;
 	uint64_t generation;
 	uint16_t count;
 	uint8_t capturing, visible;
@@ -80,8 +80,8 @@ void XvtCockpitMessages_BeginLoadingText(void)
 	g_loadingText.count = 0;
 	g_loadingText.visible = 0;
 	g_loadingText.capturing = 1;
-	g_loadingText.bounds =
-		(XvtSnapRect){0, 0, (int)g_screenWidth, (int)g_screenHeight};
+	g_loadingText.bounds = (struct XvtSnapRect){0, 0, (int)g_screenWidth,
+						    (int)g_screenHeight};
 	CapturePalette(g_loadingText.palette);
 }
 
@@ -110,7 +110,7 @@ void XvtCockpitMessages_BeginMessage(int pane_type)
 			: (pane_type == 3 || pane_type == 4 || pane_type == 7
 				   ? XVT_COCKPIT_MESSAGE_SYSTEM
 				   : XVT_COCKPIT_MESSAGE_READY);
-	const HudInFlightMessageRecord *message =
+	const struct HudInFlightMessageRecord *message =
 		pane == XVT_COCKPIT_MESSAGE_READY
 			? &g_readyMessagePaneQueue[0]
 			: (pane == XVT_COCKPIT_MESSAGE_SYSTEM
@@ -174,11 +174,12 @@ void XvtCockpitMessages_Latch(XvtCockpitMessageId pane, int source_x,
 	if ((unsigned)pane >= XVT_COCKPIT_MESSAGE_COUNT) {
 		return;
 	}
-	MessageContent *destination = &g_pending[pane];
-	const MessageContent *source = &g_workingPanes[pane];
+	struct MessageContent *destination = &g_pending[pane];
+	const struct MessageContent *source = &g_workingPanes[pane];
 	destination->state = source->state;
-	destination->state.placement = (XvtSnapRect){x, y, width, height};
-	const HudInFlightMessageRecord *message =
+	destination->state.placement =
+		(struct XvtSnapRect){x, y, width, height};
+	const struct HudInFlightMessageRecord *message =
 		pane == XVT_COCKPIT_MESSAGE_READY
 			? &g_readyMessagePaneQueue[0]
 			: (pane == XVT_COCKPIT_MESSAGE_SYSTEM
@@ -200,7 +201,7 @@ void XvtCockpitMessages_Latch(XvtCockpitMessageId pane, int source_x,
 	int offset_x = source->origin_x - source_x,
 	    offset_y = source->origin_y - source_y;
 	for (unsigned index = 0; index < source->state.glyph_count; ++index) {
-		XvtCockpitGlyph *glyph = &destination->glyphs[index];
+		struct XvtCockpitGlyph *glyph = &destination->glyphs[index];
 		*glyph = source->glyphs[index];
 		glyph->x += (int16_t)offset_x;
 		glyph->y += (int16_t)offset_y;
@@ -212,7 +213,7 @@ void XvtCockpitMessages_Latch(XvtCockpitMessageId pane, int source_x,
 void XvtCockpitMessages_RecordGlyph(unsigned character, unsigned advance,
 				    unsigned height, int narrow)
 {
-	XvtCockpitGlyph glyph;
+	struct XvtCockpitGlyph glyph;
 	if (g_loadingText.capturing) {
 		if (!XvtCockpitText_CaptureGlyph(&glyph, character, advance,
 						 height, narrow, 0, 0,
@@ -281,7 +282,8 @@ void XvtCockpitMessages_BeginAlertLine(int mode, int x, int y, int width,
 		memset(&g_alertBuild, 0, sizeof g_alertBuild);
 	}
 	g_alertBuild.state.active = 1;
-	g_alertBuild.state.placement = (XvtSnapRect){x, y, width, height};
+	g_alertBuild.state.placement =
+		(struct XvtSnapRect){x, y, width, height};
 	CapturePalette(g_alertPalette);
 	unsigned first_row = mode <= 1 ? 0 : (unsigned)mode;
 	if (mode == 1) {
@@ -335,10 +337,10 @@ void XvtCockpitMessages_EndAlert(void)
 void XvtCockpitMessages_RecordProgress(unsigned step, int x, int y, int width,
 				       int height, int filled_width)
 {
-	XvtCockpitLoading next;
+	struct XvtCockpitLoading next;
 	memset(&next, 0, sizeof next);
 	next.progress_visible = 1;
-	next.progress_placement = (XvtSnapRect){x, y, width, height};
+	next.progress_placement = (struct XvtSnapRect){x, y, width, height};
 	next.progress_step = (uint16_t)step;
 	next.filled_width = (uint16_t)filled_width;
 	next.foreground_argb = XvtRenderDraw_Color(g_flightTextBgColor);
@@ -356,12 +358,13 @@ void XvtCockpitMessages_ClearProgress(void)
 	memset(&g_loadingText, 0, sizeof g_loadingText);
 }
 
-void XvtCockpitMessages_Export(XvtCockpitState *state)
+void XvtCockpitMessages_Export(struct XvtCockpitState *state)
 {
-	XvtCockpitOverlayStore *store = &state->overlay_content;
+	struct XvtCockpitOverlayStore *store = &state->overlay_content;
 	store->glyph_count = 0;
 	for (unsigned pane = 0; pane < XVT_COCKPIT_MESSAGE_COUNT; ++pane) {
-		XvtCockpitMessage *message = &state->messages.panes[pane];
+		struct XvtCockpitMessage *message =
+			&state->messages.panes[pane];
 		*message = g_pending[pane].state;
 		message->first_glyph = store->glyph_count;
 		if (!message->visible) {

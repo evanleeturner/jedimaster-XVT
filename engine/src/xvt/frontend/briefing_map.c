@@ -26,22 +26,22 @@ int16_t g_briefingSelectedMissionPoint14FlightGroupIdx = 0;
  * when applied at once; BriefingScript_ResetState and
  * FrontendMission_InitForBriefing set (0, 0). */
 // GLOBAL: XVT 0x669204
-BriefingMapS16Pair g_briefingMapCenter = {0, 0};
+struct BriefingMapS16Pair g_briefingMapCenter = {0, 0};
 /* Map point the center moves toward, set by script opcode 6; (0, 0) after
  * BriefingScript_ResetState and FrontendMission_InitForBriefing. */
 // GLOBAL: XVT 0x669208
-BriefingMapS16Pair g_briefingMapTargetCenter = {0, 0};
+struct BriefingMapS16Pair g_briefingMapTargetCenter = {0, 0};
 /* Briefing map zoom on each axis: pixels per 256 map units, so the grid lines
  * at every 256 units sit this many pixels apart. BriefingMap_AnimateViewState
  * steps it toward g_briefingMapTargetScale; script opcode 7 sets it directly
  * at time 0 or when applied at once; 32 after BriefingScript_ResetState and
  * FrontendMission_InitForBriefing. */
 // GLOBAL: XVT 0x66920C
-BriefingMapS16Pair g_briefingMapScale = {0, 0};
+struct BriefingMapS16Pair g_briefingMapScale = {0, 0};
 /* Zoom the scale moves toward, set by script opcode 7; 32 after
  * BriefingScript_ResetState and FrontendMission_InitForBriefing. */
 // GLOBAL: XVT 0x669210
-BriefingMapS16Pair g_briefingMapTargetScale = {0, 0};
+struct BriefingMapS16Pair g_briefingMapTargetScale = {0, 0};
 /* Which of the mission file's 8 briefings is shown, 0 to 7: the last one
  * flagged for the pilot's team, set by
  * FrontendMission_LoadCurrentWithBriefing; FrontendMission_InitForBriefing
@@ -63,7 +63,7 @@ int g_mapIconByCraftType[106] = {
  * "greyicon" images; the code takes right - left + 1 as an icon's width and
  * bottom - top + 1 as its height. */
 // GLOBAL: XVT 0x52CAB0
-RECT g_mapIconRects[70] = {
+struct RECT g_mapIconRects[70] = {
 	{6, 9, 13, 20},	     {25, 8, 32, 20},	   {44, 10, 50, 19},
 	{61, 10, 71, 19},    {82, 10, 89, 18},	   {101, 10, 108, 18},
 	{118, 10, 128, 19},  {139, 9, 145, 19},	   {157, 10, 166, 19},
@@ -94,7 +94,7 @@ RECT g_mapIconRects[70] = {
  * viewport's top left. The narration takes its bottom 27 pixels and the map
  * the rest less 28. */
 // GLOBAL: XVT 0x669220
-RECT g_briefingMapPanelRect = {0, 0, 0, 0};
+struct RECT g_briefingMapPanelRect = {0, 0, 0, 0};
 /* Set to 1 by script opcode 6 and to 0 at the start of every script frame by
  * BriefingScript_AdvanceFrame; nothing reads it. */
 // GLOBAL: XVT 0x6696D6
@@ -159,9 +159,8 @@ int16_t g_briefingMapLabelsChanged = 0;
  * returns 0, storing nothing, when no group lies under 999 pixels away on
  * both axes. */
 // FUNCTION: XVT 0x4F7A30
-int16_t BriefingMap_SelectNearestMissionPoint14FlightGroup(RECT *viewportRect,
-							   int16_t mouseX,
-							   int16_t mouseY)
+int16_t BriefingMap_SelectNearestMissionPoint14FlightGroup(
+	struct RECT *viewportRect, int16_t mouseX, int16_t mouseY)
 {
 	int distanceX;
 	int distanceY;
@@ -212,9 +211,9 @@ int16_t BriefingMap_SelectNearestMissionPoint14FlightGroup(RECT *viewportRect,
  * >> 1, and y the same with the y values, top and bottom. Both results are
  * cut to 16 bits. */
 // FUNCTION: XVT 0x4F7B10
-void BriefingMap_ProjectPointToViewport(const RECT *viewportRect, int16_t mapX,
-					int16_t mapY, int16_t *outX,
-					int16_t *outY)
+void BriefingMap_ProjectPointToViewport(const struct RECT *viewportRect,
+					int16_t mapX, int16_t mapY,
+					int16_t *outX, int16_t *outY)
 {
 	int projectedX;
 	int projectedY;
@@ -349,12 +348,12 @@ void BriefingMap_UpdateScriptPlaybackAfterAnimation(void)
  * g_briefingMapPanelRect as the viewport, unmoved from the screen's top left,
  * and returns 1. Ignores viewportRect, clipRect and both button states. */
 // FUNCTION: XVT 0x4F7E00
-int16_t BriefingMap_SelectFlightGroupAtCursor(RECT *viewportRect,
-					      RECT *clipRect, int leftDown,
-					      int rightDown, int16_t mouseX,
-					      int16_t mouseY)
+int16_t BriefingMap_SelectFlightGroupAtCursor(struct RECT *viewportRect,
+					      struct RECT *clipRect,
+					      int leftDown, int rightDown,
+					      int16_t mouseX, int16_t mouseY)
 {
-	RECT dst;
+	struct RECT dst;
 
 	(void)viewportRect;
 	(void)clipRect;
@@ -377,13 +376,14 @@ int16_t BriefingMap_SelectFlightGroupAtCursor(RECT *viewportRect,
  * Leaves the screen clip on the map and returns 1. Ignores highlightPhase,
  * and works out a 12-pixel title strip that it never draws. */
 // FUNCTION: XVT 0x4F7E40
-int16_t BriefingMap_DrawViewportAndSelection(RECT *viewportRect, RECT *clipRect,
+int16_t BriefingMap_DrawViewportAndSelection(struct RECT *viewportRect,
+					     struct RECT *clipRect,
 					     int16_t highlightPhase)
 {
-	RECT titleRect;
-	RECT narrationRect;
-	RECT mapViewportRect;
-	RECT clippedRect;
+	struct RECT titleRect;
+	struct RECT narrationRect;
+	struct RECT mapViewportRect;
+	struct RECT clippedRect;
 
 	(void)highlightPhase;
 
@@ -437,7 +437,8 @@ int16_t BriefingMap_DrawViewportAndSelection(RECT *viewportRect, RECT *clipRect,
  * FrontendDisplay_PackRGB(0x50, 0, 0), and at 32 or more every other line as
  * well. Ignores clipRect. */
 // FUNCTION: XVT 0x4F7FD0
-void BriefingMap_DrawGrid(const RECT *viewportRect, const RECT *clipRect)
+void BriefingMap_DrawGrid(const struct RECT *viewportRect,
+			  const struct RECT *clipRect)
 {
 	int16_t drawX;
 	int16_t drawY;
@@ -451,7 +452,7 @@ void BriefingMap_DrawGrid(const RECT *viewportRect, const RECT *clipRect)
 	int16_t gridStartX;
 	int16_t gridStartY;
 	int centerRemainder;
-	RECT dst;
+	struct RECT dst;
 
 	(void)clipRect;
 
@@ -555,13 +556,13 @@ void BriefingMap_DrawGrid(const RECT *viewportRect, const RECT *clipRect)
  * in font 10 at the icon's lower right. The point it projects for each marker
  * goes unused. */
 // FUNCTION: XVT 0x4F82A0
-void BriefingMap_DrawOverlays(RECT *viewportRect, RECT *clipRect)
+void BriefingMap_DrawOverlays(struct RECT *viewportRect, struct RECT *clipRect)
 {
 	int16_t projectedX;
 	int16_t projectedY;
 	int16_t index;
 	int playerIconNumber;
-	RECT mapRect;
+	struct RECT mapRect;
 	char text[40];
 
 	FrontendDraw_RectCopy(&mapRect, viewportRect);
@@ -661,7 +662,7 @@ void BriefingMap_DrawOverlays(RECT *viewportRect, RECT *clipRect)
 				int iconHeight;
 				int iconIndex;
 				int iconWidth;
-				RECT *iconRect;
+				struct RECT *iconRect;
 
 				iconIndex = g_mapIconByCraftType[craftType];
 				iconRect = &g_mapIconRects[iconIndex];
@@ -733,7 +734,7 @@ void BriefingMap_DrawRevealedLabel(const char *text, int16_t colorRampGroup,
 				   int16_t x, int16_t y, int16_t revealCount,
 				   int16_t shadeGroup)
 {
-	RECT rect;
+	struct RECT rect;
 	char visibleText[64];
 	int16_t shadeBase;
 	int16_t textLength;
@@ -803,7 +804,8 @@ void BriefingMap_DrawRevealedLabel(const char *text, int16_t colorRampGroup,
  * outlined box 2 pixels outside the icon. Does nothing when the craft type is
  * negative; ignores clipRect. */
 // FUNCTION: XVT 0x4F8B30
-void BriefingMap_DrawCraftIconHighlight(RECT *viewportRect, RECT *clipRect,
+void BriefingMap_DrawCraftIconHighlight(struct RECT *viewportRect,
+					struct RECT *clipRect,
 					int flightGroupIndex,
 					int highlightPhase)
 {
@@ -817,7 +819,7 @@ void BriefingMap_DrawCraftIconHighlight(RECT *viewportRect, RECT *clipRect,
 	int mapIconIndex;
 	int iconWidth;
 	int iconHeight;
-	RECT rect;
+	struct RECT rect;
 
 	(void)clipRect;
 

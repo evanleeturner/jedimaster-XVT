@@ -8,15 +8,16 @@
 #include "xvt_runtime/runtime/resync_task.h"
 #include "xvt_runtime/timing/host_clock.h"
 
-typedef struct XvtFlightTauntsWire {
-	XvtFlightSlotWire header;
+struct XvtFlightTauntsWire {
+	struct XvtFlightSlotWire header;
 	uint8_t text[sizeof(g_gameConfig.taunts)];
-	XvtFlightAgreementWire agreement;
-} XvtFlightTauntsWire;
+	struct XvtFlightAgreementWire agreement;
+};
 
-static void XvtFlightNetwork_WriteAgreement(XvtFlightAgreementWire *agreement);
-static int
-XvtFlightNetwork_MatchesAgreement(const XvtFlightAgreementWire *agreement);
+static void
+XvtFlightNetwork_WriteAgreement(struct XvtFlightAgreementWire *agreement);
+static int XvtFlightNetwork_MatchesAgreement(
+	const struct XvtFlightAgreementWire *agreement);
 
 enum {
 	SYNC_IDLE,
@@ -35,7 +36,7 @@ enum {
 static struct {
 	unsigned acknowledged_mask;
 	unsigned taunts_seen;
-	XvtFlightAgreementWire taunt_agreement[XVT_FLIGHT_PLAYERS];
+	struct XvtFlightAgreementWire taunt_agreement[XVT_FLIGHT_PLAYERS];
 	int phase, answer_count, expected, roster_index, packet_type, alert,
 		blink;
 	uint64_t packet_deadline, status_time;
@@ -77,15 +78,16 @@ static int XvtFlightNetwork_RecordAcknowledgement(int sender, int slot)
 
 static void XvtFlightNetwork_SetPacketDeadline(int seconds);
 
-static void XvtFlightNetwork_WriteAgreement(XvtFlightAgreementWire *agreement)
+static void
+XvtFlightNetwork_WriteAgreement(struct XvtFlightAgreementWire *agreement)
 {
 	XvtWire_Set32(agreement->schema, XVT_TIMING_SCHEMA);
 	XvtWire_Set32(agreement->profile, XVT_WIRE_PROFILE_NETWORK_125);
 	XvtWire_Set32(agreement->cookie, g_missionCookie);
 }
 
-static int
-XvtFlightNetwork_MatchesAgreement(const XvtFlightAgreementWire *agreement)
+static int XvtFlightNetwork_MatchesAgreement(
+	const struct XvtFlightAgreementWire *agreement)
 {
 	return XvtWire_Get32(agreement->schema) == XVT_TIMING_SCHEMA &&
 	       XvtWire_Get32(agreement->profile) ==
@@ -95,7 +97,7 @@ XvtFlightNetwork_MatchesAgreement(const XvtFlightAgreementWire *agreement)
 
 static void XvtFlightNetwork_SendTaunts(void)
 {
-	XvtFlightTauntsWire packet;
+	struct XvtFlightTauntsWire packet;
 	XvtWire_Set32(packet.header.opcode, NET_PACKET_PLAYER_TAUNTS);
 	XvtWire_Set32(packet.header.player, g_localPlayer);
 	memcpy(packet.text, g_gameConfig.taunts, sizeof packet.text);
@@ -221,7 +223,8 @@ static void XvtFlightNetwork_SendRosterRecord(void)
 		g_netSessionScratchPacket.packetType = NET_PACKET_ROSTER_ENTRY;
 		g_netSessionScratchPacket.payloadDwords[0] = index;
 		memcpy(&g_netSessionScratchPacket.payloadDwords[1],
-		       &g_netSession.players[index], sizeof(SessionPlayerInfo));
+		       &g_netSession.players[index],
+		       sizeof(struct SessionPlayerInfo));
 		XvtFlightNetwork_SendPacket(
 			0, (unsigned *)&g_netSessionScratchPacket, 48);
 		g_sync.packet_type = NET_PACKET_ROSTER_ENTRY;
@@ -283,10 +286,10 @@ int XvtFlightNetwork_ExchangeRoster(void)
 		}
 	} else if (g_sync.phase == SYNC_ROSTER_PLAYERS &&
 		   packet[0] == NET_PACKET_ROSTER_ENTRY &&
-		   size >= 8 + (int)sizeof(SessionPlayerInfo) &&
+		   size >= 8 + (int)sizeof(struct SessionPlayerInfo) &&
 		   (unsigned)packet[1] < 8) {
 		memcpy(&g_netSession.players[packet[1]], packet + 2,
-		       sizeof(SessionPlayerInfo));
+		       sizeof(struct SessionPlayerInfo));
 		if (++g_sync.answer_count >= g_netSession.playerCount) {
 			return XvtFlightNetwork_Finish(1);
 		}
@@ -296,23 +299,24 @@ int XvtFlightNetwork_ExchangeRoster(void)
 
 static void XvtFlightNetwork_SendOptions(void)
 {
-	uint8_t bytes[sizeof(XvtFlightRosterHeader) +
-		      XVT_FLIGHT_PLAYERS * sizeof(XvtFlightRosterPlayerWire) +
-		      sizeof(XvtFlightAgreementWire)];
-	XvtFlightRosterHeader header;
+	uint8_t bytes[sizeof(struct XvtFlightRosterHeader) +
+		      XVT_FLIGHT_PLAYERS *
+			      sizeof(struct XvtFlightRosterPlayerWire) +
+		      sizeof(struct XvtFlightAgreementWire)];
+	struct XvtFlightRosterHeader header;
 	XvtWire_Set32(header.opcode, NET_PACKET_PLAYER_OPTIONS_ROSTER);
 	XvtWire_Set32(header.new_net, g_flightConfNewNet);
 	memcpy(bytes, &header, sizeof header);
 	size_t offset = sizeof header;
 	for (int player = 0; player < g_activeFlightPlayerCount; ++player) {
-		XvtFlightRosterPlayerWire record;
+		struct XvtFlightRosterPlayerWire record;
 		XvtWire_Set32(record.resolution,
 			      g_players[player].network.flightResolutionMode);
 		XvtWire_Set32(record.rating, g_players[player].pilotRating);
 		memcpy(bytes + offset, &record, sizeof record);
 		offset += sizeof record;
 	}
-	XvtFlightAgreementWire agreement;
+	struct XvtFlightAgreementWire agreement;
 	XvtFlightNetwork_WriteAgreement(&agreement);
 	memcpy(bytes + offset, &agreement, sizeof agreement);
 	offset += sizeof agreement;
@@ -324,10 +328,10 @@ static void XvtFlightNetwork_SendOptions(void)
 static int XvtFlightNetwork_ReadTaunts(int sender, const void *bytes,
 				       unsigned size)
 {
-	if (size != sizeof(XvtFlightTauntsWire)) {
+	if (size != sizeof(struct XvtFlightTauntsWire)) {
 		return 0;
 	}
-	XvtFlightTauntsWire packet;
+	struct XvtFlightTauntsWire packet;
 	memcpy(&packet, bytes, sizeof packet);
 	unsigned slot = XvtWire_Get32(packet.header.player);
 	if (slot >= XVT_FLIGHT_PLAYERS ||
@@ -356,14 +360,14 @@ static int XvtFlightNetwork_ReadTaunts(int sender, const void *bytes,
 static int XvtFlightNetwork_AcceptRoster(int sender, const void *packet,
 					 unsigned size)
 {
-	size_t offset =
-		sizeof(XvtFlightRosterHeader) +
-		g_activeFlightPlayerCount * sizeof(XvtFlightRosterPlayerWire);
+	size_t offset = sizeof(struct XvtFlightRosterHeader) +
+			g_activeFlightPlayerCount *
+				sizeof(struct XvtFlightRosterPlayerWire);
 	if (sender != NetSession_GetHostDplayId() ||
-	    size != offset + sizeof(XvtFlightAgreementWire)) {
+	    size != offset + sizeof(struct XvtFlightAgreementWire)) {
 		return 0;
 	}
-	XvtFlightAgreementWire agreement;
+	struct XvtFlightAgreementWire agreement;
 	const uint8_t *bytes = packet;
 	memcpy(&agreement, bytes + offset, sizeof agreement);
 	if (XvtWire_Get32(agreement.schema) != XVT_TIMING_SCHEMA ||
@@ -375,12 +379,12 @@ static int XvtFlightNetwork_AcceptRoster(int sender, const void *packet,
 	if (!NetSession_IsLocalHost()) {
 		FlightAlert_RestoreBoxBackground();
 		g_sync.alert = 0;
-		XvtFlightRosterHeader header;
+		struct XvtFlightRosterHeader header;
 		memcpy(&header, bytes, sizeof header);
 		g_flightConfNewNet = XvtWire_Get32(header.new_net);
 		for (int player = 0; player < g_activeFlightPlayerCount;
 		     ++player) {
-			XvtFlightRosterPlayerWire record;
+			struct XvtFlightRosterPlayerWire record;
 			memcpy(&record,
 			       bytes + sizeof header + player * sizeof record,
 			       sizeof record);
@@ -424,7 +428,7 @@ int XvtFlightNetwork_ExchangeOptions(void)
 				g_pilotData.rating;
 			g_sync.phase = SYNC_OPTIONS_HOST;
 		} else {
-			XvtFlightOptionsWire options;
+			struct XvtFlightOptionsWire options;
 			XvtWire_Set32(options.opcode,
 				      NET_PACKET_PLAYER_OPTIONS);
 			XvtWire_Set32(options.resolution,
@@ -467,8 +471,8 @@ int XvtFlightNetwork_ExchangeOptions(void)
 		XvtFlightNetwork_ReadTaunts(sender, packet, size);
 	} else if (g_sync.phase == SYNC_OPTIONS_HOST &&
 		   packet[0] == NET_PACKET_PLAYER_OPTIONS &&
-		   size == sizeof(XvtFlightOptionsWire)) {
-		XvtFlightOptionsWire options;
+		   size == sizeof(struct XvtFlightOptionsWire)) {
+		struct XvtFlightOptionsWire options;
 		memcpy(&options, packet, sizeof options);
 		int player = NetSession_FindPlayerSlotByDpid(sender);
 		if (XvtWire_Get32(options.schema) == XVT_TIMING_SCHEMA &&
@@ -678,25 +682,26 @@ int XvtFlightNetwork_DecodeControl(const uint8_t *packet, int *size)
 		minimum = 2 * sizeof(XvtWireU32);
 		break;
 	case NET_PACKET_CLOCK_PROBE:
-		minimum = sizeof(XvtFlightClockProbeWire);
+		minimum = sizeof(struct XvtFlightClockProbeWire);
 		break;
 	case NET_PACKET_RESYNC_REQUEST:
-		minimum = sizeof(XvtFlightResyncRequestWire);
+		minimum = sizeof(struct XvtFlightResyncRequestWire);
 		break;
 	case NET_PACKET_RESYNC_APPLY:
-		minimum = sizeof(XvtFlightResyncApplyWire);
+		minimum = sizeof(struct XvtFlightResyncApplyWire);
 		break;
 	case NET_PACKET_RESYNC_CHUNK:
-		minimum = sizeof(XvtFlightChunkHeader) + sizeof(XvtWireU32);
+		minimum = sizeof(struct XvtFlightChunkHeader) +
+			  sizeof(XvtWireU32);
 		break;
 	case NET_PACKET_WORLD_CHECKSUM:
-		minimum = sizeof(XvtFlightChecksumReportWire);
+		minimum = sizeof(struct XvtFlightChecksumReportWire);
 		break;
 	case NET_PACKET_SERVER_CHECKSUM:
-		minimum = sizeof(XvtFlightChecksumWire);
+		minimum = sizeof(struct XvtFlightChecksumWire);
 		break;
 	case NET_PACKET_RESYNC_CHECKSUMS:
-		minimum = sizeof(XvtFlightEpochWire);
+		minimum = sizeof(struct XvtFlightEpochWire);
 		break;
 	default:
 		break;
@@ -727,19 +732,20 @@ int XvtFlightNetwork_BroadcastWire(const void *packet, size_t size)
 /* Flight-data staging is separate from transport sequencing. */
 
 static struct {
-	XvtFlightMessage outgoing;
+	struct XvtFlightMessage outgoing;
 	unsigned part, parts, batch_count, batch_sends, part_sends,
 		packets_received;
-	XvtFlightInputWire batch[XVT_INPUT_STAGED_RECORDS];
+	struct XvtFlightInputWire batch[XVT_INPUT_STAGED_RECORDS];
 	int sampled, last_flush, recovery_requested;
 	unsigned departures;
 	uint64_t iteration_start_us;
-	FlightInputFrameRecord held;
+	struct FlightInputFrameRecord held;
 } g_io;
 
-static int XvtFlightNetwork_RecordInput(unsigned player, int tick,
-					const FlightInputFrameRecord *input,
-					int authoritative)
+static int
+XvtFlightNetwork_RecordInput(unsigned player, int tick,
+			     const struct FlightInputFrameRecord *input,
+			     int authoritative)
 {
 	XvtInputInsertStatus result =
 		XvtFlightHistory_InsertReal(player, tick, input, authoritative);
@@ -813,9 +819,9 @@ void XvtFlightNetwork_FlushInput(int now)
 		unsigned count = g_io.batch_count < XVT_INPUT_BATCH_RECORDS
 					 ? g_io.batch_count
 					 : XVT_INPUT_BATCH_RECORDS;
-		unsigned packet[(sizeof(XvtFlightBatchHeader) +
+		unsigned packet[(sizeof(struct XvtFlightBatchHeader) +
 				 XVT_INPUT_BATCH_RECORDS *
-					 sizeof(XvtFlightInputWire)) /
+					 sizeof(struct XvtFlightInputWire)) /
 				sizeof(unsigned)];
 		size_t size = XvtFlightMessages_EncodeBatch(
 			(uint8_t *)packet, XvtFlightNetwork_Cookie(),
@@ -915,7 +921,7 @@ void XvtFlightNetwork_SendWorld(void)
 	if (g_io.parts || g_io.recovery_requested) {
 		return;
 	}
-	XvtFlightMessage *message = &g_io.outgoing;
+	struct XvtFlightMessage *message = &g_io.outgoing;
 	memset(message, 0, sizeof *message);
 	if (g_flightNetLastSentWorldMessageTimestamp >
 	    INT32_MAX - XVT_WORLD_MESSAGE_TICKS - 1) {
@@ -937,11 +943,11 @@ void XvtFlightNetwork_SendWorld(void)
 		}
 		message->participant_mask |= 1u << player;
 		for (int i = 0; i < g_inputFrameCount[player]; ++i) {
-			InputFrame *frame = &g_inputHistory[player][i];
+			struct InputFrame *frame = &g_inputHistory[player][i];
 			if (!frame->awaitingRelay || frame->timestamp > tick) {
 				continue;
 			}
-			XvtFlightWorldInputWire *record =
+			struct XvtFlightWorldInputWire *record =
 				&message->records[message->count++];
 			record->player = player;
 			XvtFlightWire_EncodeInput(&record->input,
@@ -965,7 +971,7 @@ void XvtFlightNetwork_SendWorld(void)
 	}
 	for (unsigned player = 0; player < XVT_FLIGHT_PLAYERS; ++player) {
 		for (int i = 0; i < g_inputFrameCount[player]; ++i) {
-			InputFrame *frame = &g_inputHistory[player][i];
+			struct InputFrame *frame = &g_inputHistory[player][i];
 			if ((message->participant_mask & (1u << player)) &&
 			    frame->awaitingRelay && frame->timestamp <= tick) {
 				frame->awaitingRelay = 0;
@@ -998,12 +1004,13 @@ void XvtFlightNetwork_SendWorld(void)
 	XvtFlightNetwork_FlushWorld();
 }
 
-int XvtFlightNetwork_InsertWorld(const XvtFlightMessage *message)
+int XvtFlightNetwork_InsertWorld(const struct XvtFlightMessage *message)
 {
 	for (unsigned i = 0; i < message->count; ++i) {
-		const XvtFlightWorldInputWire *record = &message->records[i];
+		const struct XvtFlightWorldInputWire *record =
+			&message->records[i];
 		int tick;
-		FlightInputFrameRecord input;
+		struct FlightInputFrameRecord input;
 		if (!XvtFlightWire_DecodeInput(&record->input, &tick, &input) ||
 		    !XvtFlightNetwork_RecordInput(record->player, tick, &input,
 						  1)) {
@@ -1039,12 +1046,13 @@ int XvtFlightNetwork_Receive(int sender, const uint8_t *bytes, size_t size)
 		}
 		FlightSync_DiscardPredictedInputFrames(player);
 		g_flightNetPeerSilenceTicks[player] = 0;
-		XvtFlightBatchHeader header;
+		struct XvtFlightBatchHeader header;
 		memcpy(&header, bytes, sizeof header);
 		unsigned count = XvtWire_Get16(header.count);
 		/* The wire records are byte arrays, so the cast needs no alignment. */
-		const XvtFlightInputWire *records =
-			(const XvtFlightInputWire *)(bytes + sizeof header);
+		const struct XvtFlightInputWire *records =
+			(const struct XvtFlightInputWire *)(bytes +
+							    sizeof header);
 		XVT_LOG_DEBUG(
 			"network.batch_received slot=%d records=%u first=%u last=%u",
 			player, count,
@@ -1052,8 +1060,8 @@ int XvtFlightNetwork_Receive(int sender, const uint8_t *bytes, size_t size)
 			count ? XvtWire_Get32(records[count - 1].tick) : 0u);
 		for (unsigned i = 0; i < count; ++i) {
 			int tick;
-			FlightInputFrameRecord input;
-			XvtFlightInputWire record;
+			struct FlightInputFrameRecord input;
+			struct XvtFlightInputWire record;
 			memcpy(&record,
 			       bytes + sizeof header + i * sizeof record,
 			       sizeof record);
@@ -1071,7 +1079,7 @@ int XvtFlightNetwork_Receive(int sender, const uint8_t *bytes, size_t size)
 	if (sender != NetSession_GetHostDplayId()) {
 		return 1;
 	}
-	static XvtFlightMessage message;
+	static struct XvtFlightMessage message;
 	int result = XvtFlightMessages_ReceivePart(
 		bytes, size, XvtFlightNetwork_Cookie(),
 		XvtResync_ReceiveFloor(), &message);
@@ -1143,7 +1151,7 @@ int XvtFlightNetwork_TakeWorldSendTurn(int inputTimestamp)
 	if (XvtFlightNetwork_Outgoing() || XvtFlightNetwork_NeedsRecovery() ||
 	    XvtResync_HasStateRequest() ||
 	    !XvtFlightMessages_HasRoom(XVT_QUEUE_PENDING,
-				       sizeof(XvtFlightMessage))) {
+				       sizeof(struct XvtFlightMessage))) {
 		return 0;
 	}
 	if (g_flightNetPendingAckCount) {
@@ -1168,7 +1176,7 @@ int XvtFlightNetwork_TakeWorldSendTurn(int inputTimestamp)
 		if (!g_players[player].participationState) {
 			continue;
 		}
-		const InputFrame *input =
+		const struct InputFrame *input =
 			FlightSync_FindLastUnrelayedInputFrame(player);
 		if (!input) {
 			oldest = 0;

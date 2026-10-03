@@ -24,14 +24,14 @@
  * original build, XvtSnapshot_Encode and XvtSnapshot_DecodePrefix in the modern
  * one. */
 // GLOBAL: XVT 0x9D1320
-PaiPlanRecord g_planTable[256];
+struct PaiPlanRecord g_planTable[256];
 
 /* The craft the AI is thinking for and values taken from it, shared by the
  * plan, order and maneuver code. pai_setupcraftcontext fills it for one craft;
  * the order and target search functions then change some of its fields. Many
  * functions write it, chiefly pai_setupcraftcontext. */
 // GLOBAL: XVT 0x9A73B0
-PaiContext g_paiContext;
+struct PaiContext g_paiContext;
 /* 1 once paiorder_completegootherorder or paiorder_orderswitchorder has tested
  * the flight group's skip-to-order-4 trigger pair during the current
  * pai_ProcessPlan pass and found it false; both skip the test while it is 1.
@@ -328,9 +328,9 @@ void pai_UpdateAllCraftAI(void)
 	savedRandState = g_gameRandFeedbackState;
 	for (objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
 	     objectIndex < g_activeRegionCraftObjectSlotEnd; ++objectIndex) {
-		ObjectRecord *object = &g_objectTable[objectIndex];
-		MobileObject *mobileObject;
-		AiController *controller;
+		struct ObjectRecord *object = &g_objectTable[objectIndex];
+		struct MobileObject *mobileObject;
+		struct AiController *controller;
 
 		if (object->objectType == 0) {
 			continue;
@@ -374,7 +374,7 @@ void pai_UpdateAllCraftAI(void)
 // FUNCTION: XVT 0x402970
 void pai_ApplyRunningPlanTargetAndManeuver(unsigned int objectIdx)
 {
-	AiController *controller;
+	struct AiController *controller;
 	uint8_t *planData;
 	uint16_t targetToken;
 	uint8_t maneuverToken;
@@ -465,7 +465,7 @@ void pai_ApplyRunningPlanTargetAndManeuver(unsigned int objectIdx)
 // FUNCTION: XVT 0x402B60
 void pai_ProcessPlan(void)
 {
-	AiController *controller;
+	struct AiController *controller;
 	uint8_t orderId;
 
 	controller = &g_curCraft->aiController;
@@ -516,9 +516,9 @@ void pai_ProcessPlan(void)
 // FUNCTION: XVT 0x402CB0
 void pai_setupcraftcontext(uint16_t objectIdx)
 {
-	AiController *controller;
-	CraftData *leaderOrSelfCraft;
-	ObjectRecord *object;
+	struct AiController *controller;
+	struct CraftData *leaderOrSelfCraft;
+	struct ObjectRecord *object;
 
 	g_paiContext.objectIndex = objectIdx;
 	object = &g_objectTable[objectIdx];
@@ -571,8 +571,8 @@ int pai_SkillValueToTier(uint16_t skillValue)
 uint16_t pai_FindMothershipObject(int16_t mothershipFlightGroupIdx)
 {
 	uint16_t objectIndex;
-	CraftData *craft;
-	ObjectRecord *object;
+	struct CraftData *craft;
+	struct ObjectRecord *object;
 	uint8_t objectKind;
 
 	objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
@@ -712,7 +712,7 @@ int16_t pai_FindBoardingTargetFromOrder(uint16_t orderSlot)
 int pai_IsObjectWithinRangeOfCraft(unsigned int objIdx,
 				   unsigned int maxRoughDistance)
 {
-	ObjectRecord *object;
+	struct ObjectRecord *object;
 	int deltaX;
 	int deltaY;
 	int deltaZ;
@@ -770,8 +770,8 @@ void pai_SetFlightGroupFormation(unsigned int flightGroupIdx,
 				 unsigned int formationSpacing)
 {
 	unsigned int objectIndex;
-	ObjectRecord *object;
-	CraftData *craft;
+	struct ObjectRecord *object;
+	struct CraftData *craft;
 
 	for (objectIndex = (unsigned int)g_activeRegionObjectSlotStart;
 	     objectIndex < (unsigned int)g_activeRegionCraftObjectSlotEnd;
@@ -863,8 +863,8 @@ void pai_ObjectRefUpdateRoughDistance(unsigned int fromRef, unsigned int toRef)
  * and axes with FVIEW_calcrotatemove and FVIEW_calcrotateorient, which also set
  * the shared matrix globals those two write. */
 // FUNCTION: XVT 0x4035D0
-void pai_calcrotatedpoint(ObjectRecord *obj, int16_t sideArg, int16_t upArg,
-			  int16_t fwdArg)
+void pai_calcrotatedpoint(struct ObjectRecord *obj, int16_t sideArg,
+			  int16_t upArg, int16_t fwdArg)
 {
 	int result;
 
@@ -888,8 +888,9 @@ void pai_calcrotatedpoint(ObjectRecord *obj, int16_t sideArg, int16_t upArg,
 
 /* Does the same as pai_calcrotatedpoint, with the vector passed as int. */
 // FUNCTION: XVT 0x4037B0
-void pai_RotateLocalVectorToWorldScratch(ObjectRecord *objRecord, int localSide,
-					 int localUp, int localFwd)
+void pai_RotateLocalVectorToWorldScratch(struct ObjectRecord *objRecord,
+					 int localSide, int localUp,
+					 int localFwd)
 {
 	int result;
 
@@ -917,7 +918,7 @@ void pai_RotateLocalVectorToWorldScratch(ObjectRecord *objRecord, int localSide,
 // FUNCTION: XVT 0x403990
 void pai_CalcAnglesToAimPoint(void)
 {
-	ObjectRecord *object;
+	struct ObjectRecord *object;
 
 	object = &g_objectTable[g_paiContext.objectIndex];
 	trig2_ctop(g_paiContext.controller->aimPointX - object->world_x,
@@ -951,9 +952,9 @@ int16_t pai_FindNearestBoardingTarget(uint16_t target1Type, uint16_t target1,
 		int16_t firstMatch;
 		int16_t secondMatch;
 		int16_t craftReservedCount;
-		CraftData *craft;
-		ObjectRecord *object;
-		AiController *controller;
+		struct CraftData *craft;
+		struct ObjectRecord *object;
+		struct AiController *controller;
 		const char *planName;
 
 		if (g_objectTable[objectIdx].objectType == 0) {
@@ -1010,11 +1011,12 @@ int16_t pai_FindNearestBoardingTarget(uint16_t target1Type, uint16_t target1,
 			for (otherIdx = (uint16_t)g_activeRegionObjectSlotStart;
 			     otherIdx < g_activeRegionCraftObjectSlotEnd;
 			     ++otherIdx) {
-				ObjectRecord *other = &g_objectTable[otherIdx];
+				struct ObjectRecord *other =
+					&g_objectTable[otherIdx];
 				if (other->objectType != 0 &&
 				    otherIdx != g_paiContext.objectIndex) {
-					CraftData *otherCraft;
-					AiController *otherController;
+					struct CraftData *otherCraft;
+					struct AiController *otherController;
 					int currentPlanId;
 
 					otherCraft = other->mobj->pCraft;
@@ -1087,7 +1089,7 @@ int16_t pai_FindNearestBoardingTarget(uint16_t target1Type, uint16_t target1,
 	     ++objectIdx) {
 		int16_t firstMatch;
 		int16_t secondMatch;
-		ObjectRecord *object = &g_objectTable[objectIdx];
+		struct ObjectRecord *object = &g_objectTable[objectIdx];
 		uint16_t objectType = object->objectType;
 
 		if (objectType != 0 &&
@@ -1112,13 +1114,14 @@ int16_t pai_FindNearestBoardingTarget(uint16_t target1Type, uint16_t target1,
 				     otherIdx <
 				     g_activeRegionCraftObjectSlotEnd;
 				     ++otherIdx) {
-					ObjectRecord *other =
+					struct ObjectRecord *other =
 						&g_objectTable[otherIdx];
 					if (other->objectType != 0 &&
 					    otherIdx !=
 						    g_paiContext.objectIndex) {
 						int currentPlanId;
-						AiController *otherController;
+						struct AiController
+							*otherController;
 
 						otherController =
 							&other->mobj->pCraft
@@ -1385,9 +1388,9 @@ int16_t pai_CurrentOrderTargetsMatchObject(uint16_t objectIdx)
  * saved signature and has character data, else the craft's own aiSkill. Clears
  * effectiveAiObjectLink when the signature no longer matches. */
 // FUNCTION: XVT 0x404620
-uint16_t pai_GetEffectiveSkillValue(CraftData *craft)
+uint16_t pai_GetEffectiveSkillValue(struct CraftData *craft)
 {
-	ObjectRecord *linkedObject;
+	struct ObjectRecord *linkedObject;
 
 	linkedObject = craft->effectiveAiObjectLink;
 	if (linkedObject == 0) {
@@ -1449,7 +1452,7 @@ int pai_SetupContextAndFindOrderPlanOnTarget(int objectIdx,
 // FUNCTION: XVT 0x46AC80
 int pai_FindPlanTableIndexByName(const char *planName)
 {
-	const PaiPlanRecord *plan = g_planTable;
+	const struct PaiPlanRecord *plan = g_planTable;
 	unsigned int planIndex;
 
 	for (planIndex = 0; planIndex < 256; ++plan, ++planIndex) {

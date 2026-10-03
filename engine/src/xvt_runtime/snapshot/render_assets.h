@@ -39,7 +39,7 @@ void XvtRenderAssets_BeginFrame(void);
  * bindings. Stamps the three generations and the flight palette, and records the snapshot's
  * serial as the export awaiting consumption. A source past its list's capacity counts a dropped
  * record and requests a fatal renderer error. Does nothing before Init or for NULL. */
-void XvtRenderAssets_Export(XvtRenderSnapshot *snapshot);
+void XvtRenderAssets_Export(struct XvtRenderSnapshot *snapshot);
 /* Records that the renderer is done with the export of snapshot_serial. */
 void XvtRenderAssets_Consumed(uint64_t snapshot_serial);
 /* Register the model or texture file loaded into a classic handle, keyed by that handle.
@@ -64,10 +64,10 @@ uint64_t XvtRenderAssets_ImageId(const void *owner);
 void XvtRenderAssets_RetireImage(const void *owner);
 struct ImageResource;
 
-typedef struct XvtFrontendImageColors {
+struct XvtFrontendImageColors {
 	uint16_t color_lut[256];
 	uint8_t pixel_format_555;
-} XvtFrontendImageColors;
+};
 
 /* Registers a frontend BMP keyed by image and stores its 256-entry color table and pixel-format
  * flag for CopyFrontendColors. Stores nothing when registration fails. */
@@ -78,7 +78,7 @@ void XvtRenderAssets_RegisterFrontendImage(const struct ImageResource *image,
 /* Copies the stored colors of BMP source id, retired or not. Returns 1 on success; 0 before
  * Init, for id 0 or NULL colors, or when id is not a registered BMP. */
 int XvtRenderAssets_CopyFrontendColors(uint64_t id,
-				       XvtFrontendImageColors *colors);
+				       struct XvtFrontendImageColors *colors);
 /* Registers a non-model source (image, font, cursor, panel, icon) keyed by owner, or by handle when owner is
  * NULL, and returns its id. Returns 0 before Init, when owner and handle are both 0, or on failure. */
 uint64_t XvtRenderAssets_RegisterImage(const void *owner, uint16_t handle,

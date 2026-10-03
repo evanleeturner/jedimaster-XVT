@@ -9,7 +9,7 @@
 #define XVT_OPT_MAX_BYTES (128u * 1024u * 1024u)
 #define XVT_OPT_MAX_DEPTH 256
 
-typedef struct XvtOptEntry {
+struct XvtOptEntry {
 	uint32_t address;
 	uint32_t name_address;
 	uint32_t children_address;
@@ -20,21 +20,21 @@ typedef struct XvtOptEntry {
 	size_t node_offset, children_offset, texture_offset, payload_offset,
 		payload_size, payload_copy_size, palette_offset;
 	int visiting;
-} XvtOptEntry;
+};
 
-typedef struct XvtOptPalette {
+struct XvtOptPalette {
 	uint32_t address;
 	size_t offset;
-} XvtOptPalette;
+};
 
-typedef struct XvtOptDecode {
+struct XvtOptDecode {
 	uint8_t *bytes;
 	uint32_t size, base;
-	XvtOptEntry *nodes;
+	struct XvtOptEntry *nodes;
 	size_t count, capacity, native_size;
 	int failed;
 	int version;
-} XvtOptDecode;
+};
 
 size_t XvtOpt_AlignSize(size_t size)
 {
@@ -54,8 +54,8 @@ static uint32_t XvtOpt_ReadU32(const void *memory)
 	       (uint32_t)p[3] << 24;
 }
 
-static const uint8_t *XvtOpt_BytesAt(XvtOptDecode *decode, uint32_t address,
-				     size_t size)
+static const uint8_t *XvtOpt_BytesAt(struct XvtOptDecode *decode,
+				     uint32_t address, size_t size)
 {
 	if (!address || address < decode->base ||
 	    address - decode->base > decode->size ||
@@ -66,7 +66,7 @@ static const uint8_t *XvtOpt_BytesAt(XvtOptDecode *decode, uint32_t address,
 	return decode->bytes + (address - decode->base);
 }
 
-static int XvtOpt_ValidateString(XvtOptDecode *decode, uint32_t address)
+static int XvtOpt_ValidateString(struct XvtOptDecode *decode, uint32_t address)
 {
 	const uint8_t *value = XvtOpt_BytesAt(decode, address, 1);
 	if (!value ||
@@ -77,7 +77,7 @@ static int XvtOpt_ValidateString(XvtOptDecode *decode, uint32_t address)
 	return 1;
 }
 
-static size_t XvtOpt_Reserve(XvtOptDecode *decode, size_t size)
+static size_t XvtOpt_Reserve(struct XvtOptDecode *decode, size_t size)
 {
 	size_t offset = XvtOpt_AlignSize(decode->native_size);
 	if (size > XVT_OPT_MAX_BYTES || offset > XVT_OPT_MAX_BYTES - size) {
@@ -88,7 +88,7 @@ static size_t XvtOpt_Reserve(XvtOptDecode *decode, size_t size)
 	return offset;
 }
 
-static int XvtOpt_Index(const XvtOptDecode *decode, uint32_t address)
+static int XvtOpt_Index(const struct XvtOptDecode *decode, uint32_t address)
 {
 	for (size_t i = 0; i < decode->count; ++i) {
 		if (decode->nodes[i].address == address) {
@@ -98,7 +98,8 @@ static int XvtOpt_Index(const XvtOptDecode *decode, uint32_t address)
 	return -1;
 }
 
-static int XvtOpt_ReserveTexture(XvtOptDecode *decode, XvtOptEntry *entry)
+static int XvtOpt_ReserveTexture(struct XvtOptDecode *decode,
+				 struct XvtOptEntry *entry)
 {
 	const uint8_t *raw = XvtOpt_BytesAt(decode, entry->payload_address, 24);
 	int64_t pixels, bytes, palette_bytes;
@@ -130,25 +131,26 @@ static int XvtOpt_ReserveTexture(XvtOptDecode *decode, XvtOptEntry *entry)
 		return 0;
 	}
 	entry->texture_offset =
-		XvtOpt_Reserve(decode, sizeof(OptTextureData) +
+		XvtOpt_Reserve(decode, sizeof(struct OptTextureData) +
 					       (size_t)(bytes + palette_bytes));
 	if (palette_bytes) {
 		entry->embedded_palette_address =
 			entry->payload_address + 24 + (uint32_t)bytes;
 		entry->palette_offset = entry->texture_offset +
-					sizeof(OptTextureData) + (size_t)bytes;
+					sizeof(struct OptTextureData) +
+					(size_t)bytes;
 	}
 	return !decode->failed;
 }
 
 static int XvtOpt_ComparePalette(const void *lhs, const void *rhs)
 {
-	const XvtOptPalette *a = lhs;
-	const XvtOptPalette *b = rhs;
+	const struct XvtOptPalette *a = lhs;
+	const struct XvtOptPalette *b = rhs;
 	return (a->address > b->address) - (a->address < b->address);
 }
 
-static int XvtOpt_ResolvePalettes(XvtOptDecode *decode)
+static int XvtOpt_ResolvePalettes(struct XvtOptDecode *decode)
 {
 	size_t count = 0;
 	for (size_t i = 0; i < decode->count; ++i) {
@@ -156,18 +158,18 @@ static int XvtOpt_ResolvePalettes(XvtOptDecode *decode)
 			++count;
 		}
 	}
-	XvtOptPalette *palettes =
+	struct XvtOptPalette *palettes =
 		count ? malloc(count * sizeof(*palettes)) : NULL;
 	if (count && !palettes) {
 		return 0;
 	}
 	size_t cursor = 0;
 	for (size_t i = 0; i < decode->count; ++i) {
-		const XvtOptEntry *entry = &decode->nodes[i];
+		const struct XvtOptEntry *entry = &decode->nodes[i];
 		if (entry->embedded_palette_address) {
-			palettes[cursor++] =
-				(XvtOptPalette){entry->embedded_palette_address,
-						entry->palette_offset};
+			palettes[cursor++] = (struct XvtOptPalette){
+				entry->embedded_palette_address,
+				entry->palette_offset};
 		}
 	}
 	if (count) {
@@ -178,7 +180,7 @@ static int XvtOpt_ResolvePalettes(XvtOptDecode *decode)
 	 * Runtime fixup identifies that owner by its embedded palette's exact address. */
 	int valid = 1;
 	for (size_t i = 0; i < decode->count; ++i) {
-		XvtOptEntry *entry = &decode->nodes[i];
+		struct XvtOptEntry *entry = &decode->nodes[i];
 		if (entry->type != OPT_TEXTURE) {
 			continue;
 		}
@@ -191,8 +193,8 @@ static int XvtOpt_ResolvePalettes(XvtOptDecode *decode)
 			}
 			continue;
 		}
-		XvtOptPalette key = {entry->palette_address, 0};
-		const XvtOptPalette *owner =
+		struct XvtOptPalette key = {entry->palette_address, 0};
+		const struct XvtOptPalette *owner =
 			count ? bsearch(&key, palettes, count,
 					sizeof(*palettes),
 					XvtOpt_ComparePalette)
@@ -210,8 +212,9 @@ static int XvtOpt_ResolvePalettes(XvtOptDecode *decode)
 /* Writes to *size the size of the payload a node of entry's type carries, which can be 0, and returns 1.
  * Returns 0 for a type with no payload layout here, or for a reference whose name is not a string inside
  * the file. */
-static int XvtOpt_PayloadSize(XvtOptDecode *decode, const XvtOptEntry *entry,
-			      int vertices, int has_normals, size_t *size)
+static int XvtOpt_PayloadSize(struct XvtOptDecode *decode,
+			      const struct XvtOptEntry *entry, int vertices,
+			      int has_normals, size_t *size)
 {
 	switch (entry->type) {
 	case OPT_FACEDATA:
@@ -269,8 +272,8 @@ static int XvtOpt_PayloadSize(XvtOptDecode *decode, const XvtOptEntry *entry,
 	return 1;
 }
 
-static int XvtOpt_Visit(XvtOptDecode *decode, uint32_t address, unsigned depth,
-			int *vertices, int *has_normals)
+static int XvtOpt_Visit(struct XvtOptDecode *decode, uint32_t address,
+			unsigned depth, int *vertices, int *has_normals)
 {
 	if (!address) {
 		return 1;
@@ -285,7 +288,7 @@ static int XvtOpt_Visit(XvtOptDecode *decode, uint32_t address, unsigned depth,
 	}
 	if (decode->count == decode->capacity) {
 		size_t capacity = decode->capacity ? decode->capacity * 2 : 64;
-		XvtOptEntry *grown =
+		struct XvtOptEntry *grown =
 			realloc(decode->nodes, capacity * sizeof(*grown));
 		if (!grown) {
 			return 0;
@@ -294,7 +297,7 @@ static int XvtOpt_Visit(XvtOptDecode *decode, uint32_t address, unsigned depth,
 		decode->capacity = capacity;
 	}
 	index = (int)decode->count++;
-	XvtOptEntry *entry = &decode->nodes[index];
+	struct XvtOptEntry *entry = &decode->nodes[index];
 	memset(entry, 0, sizeof(*entry));
 	entry->address = address;
 	entry->name_address = XvtOpt_ReadU32(raw);
@@ -324,9 +327,9 @@ static int XvtOpt_Visit(XvtOptDecode *decode, uint32_t address, unsigned depth,
 	     !XvtOpt_ValidateString(decode, entry->name_address))) {
 		return 0;
 	}
-	entry->node_offset = XvtOpt_Reserve(decode, sizeof(OptNode));
+	entry->node_offset = XvtOpt_Reserve(decode, sizeof(struct OptNode));
 	entry->children_offset = XvtOpt_Reserve(
-		decode, (size_t)entry->child_count * sizeof(OptNode *));
+		decode, (size_t)entry->child_count * sizeof(struct OptNode *));
 	if (entry->type == OPT_MESHVERTS) {
 		*vertices = entry->payload_count;
 	}
@@ -376,27 +379,28 @@ static int XvtOpt_Visit(XvtOptDecode *decode, uint32_t address, unsigned depth,
 	return !decode->failed;
 }
 
-static void *XvtOpt_RawPointer(XvtOptDecode *decode, uint8_t *raw_copy,
+static void *XvtOpt_RawPointer(struct XvtOptDecode *decode, uint8_t *raw_copy,
 			       uint32_t address)
 {
 	return address ? raw_copy + (address - decode->base) : NULL;
 }
 
-static OptNode *XvtOpt_NodePointer(XvtOptDecode *decode, uint8_t *native,
-				   uint32_t address)
+static struct OptNode *XvtOpt_NodePointer(struct XvtOptDecode *decode,
+					  uint8_t *native, uint32_t address)
 {
 	int index = XvtOpt_Index(decode, address);
-	return index < 0
-		       ? NULL
-		       : (OptNode *)(native + decode->nodes[index].node_offset);
+	return index < 0 ? NULL
+			 : (struct OptNode *)(native +
+					      decode->nodes[index].node_offset);
 }
 
-static void XvtOpt_Expand(XvtOptDecode *decode, uint8_t *native,
+static void XvtOpt_Expand(struct XvtOptDecode *decode, uint8_t *native,
 			  uint8_t *raw_copy)
 {
 	for (size_t i = 0; i < decode->count; ++i) {
-		XvtOptEntry *entry = &decode->nodes[i];
-		OptNode *node = (OptNode *)(native + entry->node_offset);
+		struct XvtOptEntry *entry = &decode->nodes[i];
+		struct OptNode *node =
+			(struct OptNode *)(native + entry->node_offset);
 		node->pName = XvtOpt_RawPointer(decode, raw_copy,
 						entry->name_address);
 		node->nodeType = (OptNodeType)entry->type;
@@ -414,7 +418,8 @@ static void XvtOpt_Expand(XvtOptDecode *decode, uint8_t *native,
 		}
 		node->pChildren =
 			entry->child_count
-				? (OptNode **)(native + entry->children_offset)
+				? (struct OptNode **)(native +
+						      entry->children_offset)
 				: NULL;
 		const uint8_t *children =
 			entry->child_count
@@ -430,9 +435,9 @@ static void XvtOpt_Expand(XvtOptDecode *decode, uint8_t *native,
 		if (entry->type == OPT_TEXTURE) {
 			const uint8_t *raw = XvtOpt_BytesAt(
 				decode, entry->payload_address, 24);
-			OptTextureData *texture =
-				(OptTextureData *)(native +
-						   entry->texture_offset);
+			struct OptTextureData *texture =
+				(struct OptTextureData
+					 *)(native + entry->texture_offset);
 			node->payload = texture;
 			texture->inlinePaletteCount =
 				(int32_t)XvtOpt_ReadU32(raw + 4);
@@ -466,7 +471,7 @@ static void XvtOpt_Expand(XvtOptDecode *decode, uint8_t *native,
 uint16_t XvtOpt_Read(AeronFile *file, const char *label, int *version,
 		     unsigned int *native_size)
 {
-	XvtOptDecode decode = {0};
+	struct XvtOptDecode decode = {0};
 	uint8_t header[8];
 	uint16_t handle = 0;
 	if (!file) {
@@ -507,8 +512,8 @@ uint16_t XvtOpt_Read(AeronFile *file, const char *label, int *version,
 	if (roots && !table) {
 		goto done;
 	}
-	decode.native_size =
-		sizeof(OptimizedPolyObject) + (size_t)roots * sizeof(OptNode *);
+	decode.native_size = sizeof(struct OptimizedPolyObject) +
+			     (size_t)roots * sizeof(struct OptNode *);
 	int vertices = 0, has_normals = 0;
 	for (uint32_t i = 0; i < roots; ++i) {
 		if (!XvtOpt_Visit(&decode, XvtOpt_ReadU32(table + i * 4), 0,
@@ -527,13 +532,13 @@ uint16_t XvtOpt_Read(AeronFile *file, const char *label, int *version,
 	if (!handle) {
 		goto done;
 	}
-	OptimizedPolyObject *model = Memory_GetHandleBlock(handle);
+	struct OptimizedPolyObject *model = Memory_GetHandleBlock(handle);
 	uint8_t *raw_copy = (uint8_t *)model + raw_offset;
 	memcpy(raw_copy, decode.bytes, decode.size);
 	model->selfMarker = model;
 	model->reserved = (uint16_t)(decode.bytes[4] | decode.bytes[5] << 8);
 	model->rootNodeCount = (int)roots;
-	model->rootNodes = (OptNode **)(model + 1);
+	model->rootNodes = (struct OptNode **)(model + 1);
 	XvtOpt_Expand(&decode, (uint8_t *)model, raw_copy);
 	for (uint32_t i = 0; i < roots; ++i) {
 		model->rootNodes[i] =

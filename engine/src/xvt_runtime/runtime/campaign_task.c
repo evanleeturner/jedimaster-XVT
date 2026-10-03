@@ -64,8 +64,10 @@ int XvtCampaignTask_WaitPacket(int packet_type, int **packet)
 					? 2 * sizeof(int)
 					: 3 * sizeof(int) +
 						  (packet_type == NET_PACKET_BATTLE_CONTINUATION
-							   ? sizeof(BattleSequenceState)
-							   : sizeof(CampaignSequenceState));
+							   ? sizeof(struct
+								    BattleSequenceState)
+							   : sizeof(struct
+								    CampaignSequenceState));
 			if (size >= required) {
 				*packet = candidate;
 				g_campaign.packet_type = NET_PACKET_NONE;

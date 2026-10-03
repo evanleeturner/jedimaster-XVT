@@ -107,8 +107,9 @@ XvtSetupUi_DrawInstallation(AeronUiContext *ui, AeronUiFilePicker *picker,
 	return result;
 }
 
-XvtSetupResult XvtSetupUi_Run(XvtAppUi *ui, char *path, size_t path_capacity,
-			      char *error, size_t capacity)
+XvtSetupResult XvtSetupUi_Run(struct XvtAppUi *ui, char *path,
+			      size_t path_capacity, char *error,
+			      size_t capacity)
 {
 	AeronUiContext *context = XvtAppUi_Context(ui);
 	AeronUiFilePicker *picker = path ? AeronUiFilePicker_Create() : NULL;

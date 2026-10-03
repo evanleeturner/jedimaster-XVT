@@ -35,7 +35,7 @@ static struct {
 
 static struct {
 	int sender;
-	XvtFlightChecksumReportWire packet;
+	struct XvtFlightChecksumReportWire packet;
 } g_deferredChecksumReports[XVT_DEFERRED_CHECKSUMS];
 
 static unsigned g_checksum_read, g_checksum_count;
@@ -52,7 +52,7 @@ void XvtResync_DeferChecksum(int sender, const int *packet)
 		(g_checksum_read + g_checksum_count++) % XVT_DEFERRED_CHECKSUMS;
 	g_deferredChecksumReports[index].sender = sender;
 	memcpy(&g_deferredChecksumReports[index].packet, packet,
-	       sizeof(XvtFlightChecksumReportWire));
+	       sizeof(struct XvtFlightChecksumReportWire));
 }
 
 /* The roster slot of the player the host is sending to; logs name slots, not network ids. */
@@ -125,7 +125,7 @@ static struct {
 
 static void XvtResync_SendRequest(void)
 {
-	XvtFlightChecksumWire table;
+	struct XvtFlightChecksumWire table;
 	XvtWire_Set32(table.opcode, NET_PACKET_SERVER_CHECKSUM);
 	XvtWire_Set32(table.epoch, g_resync.epoch);
 	for (unsigned region = 0; region < XVT_WORLD_CHECKSUM_REGIONS;
@@ -135,7 +135,7 @@ static void XvtResync_SendRequest(void)
 		XvtWire_Set32(table.lengths[region], g_resync.lengths[region]);
 	}
 	XvtFlightNetwork_SendWire(g_resync.peer_dpid, &table, sizeof table);
-	XvtFlightResyncRequestWire request;
+	struct XvtFlightResyncRequestWire request;
 	XvtWire_Set32(request.opcode, NET_PACKET_RESYNC_REQUEST);
 	XvtWire_Set32(request.epoch, g_resync.epoch);
 	XvtWire_Set32(request.image_bytes, g_resync.image_size);
@@ -205,23 +205,23 @@ int XvtResync_BeginSend(int peer_dpid, uint8_t *world, int size)
 
 static void XvtResync_NewChunk(void)
 {
-	FlightNetWorldStateChunkPacket *packet =
+	struct FlightNetWorldStateChunkPacket *packet =
 		&g_flightNetWorldStateChunkPackets[g_resync.chunk_index];
 	packet->packetType = NET_PACKET_RESYNC_CHUNK;
 	packet->checksumEpoch = (int)g_resync.epoch;
 	packet->chunkIndex = g_resync.chunk_index;
 	g_resync.free_bytes = XVT_FLIGHT_PACKET_BYTES -
-			      sizeof(XvtFlightChunkHeader) -
+			      sizeof(struct XvtFlightChunkHeader) -
 			      2 * sizeof(XvtWireU32);
 	g_resync.payload_offset = 0;
 }
 
 static void XvtResync_SendChunk(void)
 {
-	FlightNetWorldStateChunkPacket *packet =
+	struct FlightNetWorldStateChunkPacket *packet =
 		&g_flightNetWorldStateChunkPackets[g_resync.chunk_index];
 	XvtWire_Set32(packet->payload + g_resync.payload_offset, UINT32_MAX);
-	size_t packet_bytes = sizeof(XvtFlightChunkHeader) +
+	size_t packet_bytes = sizeof(struct XvtFlightChunkHeader) +
 			      g_resync.payload_offset + sizeof(XvtWireU32);
 	XvtFlightNetwork_SendPacket(g_resync.peer_dpid, (unsigned *)packet,
 				    (int)packet_bytes);
@@ -298,15 +298,15 @@ static void XvtResync_Build(void)
 {
 	/* Send the pinned complete image in bounded batches. */
 	while (g_resync.offset < g_resync.image_size) {
-		FlightNetWorldStateChunkPacket *packet =
+		struct FlightNetWorldStateChunkPacket *packet =
 			&g_flightNetWorldStateChunkPackets
 				[g_resync.chunk_index];
 		int bytes = g_resync.image_size - g_resync.offset +
-			    sizeof(FlightNetWorldStateChunkRecordHeader);
+			    sizeof(struct FlightNetWorldStateChunkRecordHeader);
 		if (bytes > g_resync.free_bytes) {
 			bytes = g_resync.free_bytes;
 		}
-		FlightNetWorldStateChunkRecordHeader header = {
+		struct FlightNetWorldStateChunkRecordHeader header = {
 			g_resync.offset, bytes - sizeof(header)};
 		memcpy(packet->payload + g_resync.payload_offset, &header,
 		       sizeof(header));
@@ -437,7 +437,7 @@ static void XvtResync_Apply(void)
 			      g_resync.retries);
 		g_resync.apply_sent_tick = g_inputTimestamp;
 		g_flightNetPendingAckCount = 1;
-		XvtFlightResyncApplyWire apply;
+		struct XvtFlightResyncApplyWire apply;
 		XvtWire_Set32(apply.opcode, NET_PACKET_RESYNC_APPLY);
 		XvtWire_Set32(apply.epoch, g_resync.epoch);
 		XvtWire_Set32(apply.image_bytes, g_resync.image_size);
@@ -486,7 +486,7 @@ static int XvtResync_ReadyChecksum(void)
 {
 	for (unsigned i = 0; i < g_checksum_count; ++i) {
 		unsigned index = (g_checksum_read + i) % XVT_DEFERRED_CHECKSUMS;
-		const XvtFlightChecksumReportWire *packet =
+		const struct XvtFlightChecksumReportWire *packet =
 			&g_deferredChecksumReports[index].packet;
 		int ready =
 			(XvtWire_Get32(packet->request_state) ==
@@ -514,7 +514,8 @@ static void XvtResync_ServiceChecksums(void)
 		unsigned index = (g_checksum_read + (unsigned)ready) %
 				 XVT_DEFERRED_CHECKSUMS;
 		int sender = g_deferredChecksumReports[index].sender;
-		int packet[sizeof(XvtFlightChecksumReportWire) / sizeof(int)];
+		int packet[sizeof(struct XvtFlightChecksumReportWire) /
+			   sizeof(int)];
 		memcpy(packet, &g_deferredChecksumReports[index].packet,
 		       sizeof packet);
 		for (unsigned i = (unsigned)ready; i + 1 < g_checksum_count;
@@ -724,7 +725,7 @@ void XvtResync_ServiceRecovery(void)
 		FlightNet_BroadcastHostSessionAbort();
 		return;
 	}
-	XvtFlightChecksumReportWire packet = {0};
+	struct XvtFlightChecksumReportWire packet = {0};
 	XvtWire_Set32(packet.checksum.opcode, NET_PACKET_WORLD_CHECKSUM);
 	XvtWire_Set32(packet.checksum.epoch, g_flightNetWorldChecksumEpoch);
 	for (unsigned region = 0; region < XVT_WORLD_CHECKSUM_REGIONS;
@@ -746,7 +747,7 @@ void XvtResync_ServiceRecovery(void)
 
 static int XvtResync_FullRequest(const uint8_t *bytes, unsigned size)
 {
-	XvtFlightResyncRequestWire request;
+	struct XvtFlightResyncRequestWire request;
 	if (size != sizeof request || !g_receive.table_valid) {
 		return 1;
 	}
@@ -762,7 +763,7 @@ static int XvtResync_FullRequest(const uint8_t *bytes, unsigned size)
 	     ++region) {
 		sum += g_receive.lengths[region];
 	}
-	if (total != sum || total < sizeof(XvtStateFooter) ||
+	if (total != sum || total < sizeof(struct XvtStateFooter) ||
 	    total > XvtSnapshot_CalculateSize() || tick != g_receive.epoch ||
 	    tick > INT32_MAX || tick % XVT_NETWORK_STEP_TICKS) {
 		XVT_LOG_DEBUG(
@@ -795,7 +796,7 @@ static int XvtResync_FullRequest(const uint8_t *bytes, unsigned size)
 	}
 	g_receive.deadline = Aeron_NowUs() + (uint64_t)XVT_PEER_TIMEOUT_TICKS *
 						     XVT_FLIGHT_TICK_US;
-	XvtFlightEpochWire ready;
+	struct XvtFlightEpochWire ready;
 	XvtWire_Set32(ready.opcode, NET_PACKET_RESYNC_CHECKSUMS);
 	XvtWire_Set32(ready.epoch, g_receive.epoch);
 	XvtFlightNetwork_SendWire(NetSession_GetHostDplayId(), &ready,
@@ -805,7 +806,7 @@ static int XvtResync_FullRequest(const uint8_t *bytes, unsigned size)
 
 static int XvtResync_FullChunk(const uint8_t *bytes, unsigned size)
 {
-	XvtFlightChunkHeader header;
+	struct XvtFlightChunkHeader header;
 	if (g_resync.phase != RESYNC_FULL_RECEIVE ||
 	    size < sizeof header + sizeof(XvtWireU32)) {
 		return 1;
@@ -820,7 +821,7 @@ static int XvtResync_FullChunk(const uint8_t *bytes, unsigned size)
 	/* Validate the complete datagram before modifying the candidate image. */
 	while (offset + sizeof(XvtWireU32) <= size &&
 	       XvtWire_Get32(bytes + offset) != UINT32_MAX) {
-		XvtFlightChunkSpan span;
+		struct XvtFlightChunkSpan span;
 		if (size - offset < sizeof span) {
 			return 1;
 		}
@@ -839,7 +840,7 @@ static int XvtResync_FullChunk(const uint8_t *bytes, unsigned size)
 		return 1;
 	}
 	for (size_t cursor = sizeof header; cursor < offset;) {
-		XvtFlightChunkSpan span;
+		struct XvtFlightChunkSpan span;
 		memcpy(&span, bytes + cursor, sizeof span);
 		size_t destination = XvtWire_Get32(span.offset),
 		       count = XvtWire_Get32(span.bytes);
@@ -848,7 +849,7 @@ static int XvtResync_FullChunk(const uint8_t *bytes, unsigned size)
 		cursor += sizeof span + count;
 	}
 	XVT_LOG_DEBUG("resync.chunk index=%u bytes=%u", chunk, size);
-	XvtFlightChunkAckWire ack;
+	struct XvtFlightChunkAckWire ack;
 	XvtWire_Set32(ack.opcode, NET_PACKET_RESYNC_CHUNK_ACK);
 	XvtWire_Set32(ack.index, chunk);
 	XvtFlightNetwork_SendWire(NetSession_GetHostDplayId(), &ack,
@@ -860,7 +861,7 @@ static int XvtResync_FullChunk(const uint8_t *bytes, unsigned size)
 
 static int XvtResync_FullApply(const uint8_t *bytes, unsigned size)
 {
-	XvtFlightResyncApplyWire apply;
+	struct XvtFlightResyncApplyWire apply;
 	if (g_resync.phase != RESYNC_FULL_RECEIVE || size != sizeof apply) {
 		return 1;
 	}
@@ -915,8 +916,8 @@ int XvtResync_ReceivePacket(int sender, const uint8_t *bytes, unsigned size)
 	}
 	unsigned opcode = XvtWire_Get32(bytes);
 	if (opcode == NET_PACKET_WORLD_CHECKSUM &&
-	    size == sizeof(XvtFlightChecksumReportWire)) {
-		XvtFlightChecksumReportWire report;
+	    size == sizeof(struct XvtFlightChecksumReportWire)) {
+		struct XvtFlightChecksumReportWire report;
 		memcpy(&report, bytes, sizeof report);
 		if (NetSession_IsLocalHost() && g_resync.phase &&
 		    sender == g_resync.peer_dpid) {
@@ -937,7 +938,7 @@ int XvtResync_ReceivePacket(int sender, const uint8_t *bytes, unsigned size)
 		}
 	}
 	if (opcode == NET_PACKET_RESYNC_CHECKSUMS) {
-		XvtFlightEpochWire ready;
+		struct XvtFlightEpochWire ready;
 		if (g_resync.phase == RESYNC_CHECKSUMS &&
 		    sender == g_resync.peer_dpid && size == sizeof ready) {
 			memcpy(&ready, bytes, sizeof ready);
@@ -954,11 +955,11 @@ int XvtResync_ReceivePacket(int sender, const uint8_t *bytes, unsigned size)
 		       opcode == NET_PACKET_RESYNC_APPLY;
 	}
 	if (opcode == NET_PACKET_SERVER_CHECKSUM &&
-	    size == sizeof(XvtFlightChecksumWire)) {
+	    size == sizeof(struct XvtFlightChecksumWire)) {
 		if (!NetSession_IsLocalHost() &&
 		    g_resync.phase != RESYNC_FULL_RECEIVE &&
 		    g_resync.phase != RESYNC_REPLAY) {
-			XvtFlightChecksumWire table;
+			struct XvtFlightChecksumWire table;
 			memcpy(&table, bytes, sizeof table);
 			g_receive.epoch = XvtWire_Get32(table.epoch);
 			for (unsigned region = 0;

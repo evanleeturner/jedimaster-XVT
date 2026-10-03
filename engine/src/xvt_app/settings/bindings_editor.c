@@ -1,14 +1,15 @@
 #include "xvt_app/settings/bindings_editor.h"
 #include <stdio.h>
 
-void XvtBindingsEditor_Init(XvtBindingsEditor *editor)
+void XvtBindingsEditor_Init(struct XvtBindingsEditor *editor)
 {
-	*editor = (XvtBindingsEditor){.highlighted_action_row = SIZE_MAX,
-				      .highlighted_binding_row = SIZE_MAX};
+	*editor =
+		(struct XvtBindingsEditor){.highlighted_action_row = SIZE_MAX,
+					   .highlighted_binding_row = SIZE_MAX};
 }
 
-void XvtBindingsEditor_Select(XvtBindingsEditor *editor, XvtInputAction action,
-			      bool open_modal)
+void XvtBindingsEditor_Select(struct XvtBindingsEditor *editor,
+			      XvtInputAction action, bool open_modal)
 {
 	editor->selected_action = action;
 	editor->category = XvtInputActions_Category(action);
@@ -19,7 +20,7 @@ void XvtBindingsEditor_Select(XvtBindingsEditor *editor, XvtInputAction action,
 	}
 }
 
-void XvtBindingsEditor_CategorySelector(XvtBindingsEditor *editor,
+void XvtBindingsEditor_CategorySelector(struct XvtBindingsEditor *editor,
 					AeronUiContext *ui)
 {
 	static const char *const categories[] = {
@@ -33,9 +34,9 @@ void XvtBindingsEditor_CategorySelector(XvtBindingsEditor *editor,
 	}
 }
 
-void XvtBindingsEditor_Actions(XvtBindingsEditor *editor, AeronUiContext *ui,
-			       const AeronUiListItem *items, size_t count,
-			       float trailing_height)
+void XvtBindingsEditor_Actions(struct XvtBindingsEditor *editor,
+			       AeronUiContext *ui, const AeronUiListItem *items,
+			       size_t count, float trailing_height)
 {
 	if (editor->highlighted_action_row == SIZE_MAX &&
 	    editor->selected_action != XVT_INPUT_ACTION_NONE) {
@@ -63,7 +64,7 @@ void XvtBindingsEditor_Actions(XvtBindingsEditor *editor, AeronUiContext *ui,
 	}
 }
 
-bool XvtBindingsEditor_BeginDetail(XvtBindingsEditor *editor,
+bool XvtBindingsEditor_BeginDetail(struct XvtBindingsEditor *editor,
 				   AeronUiContext *ui)
 {
 	if (!editor->binding_modal_open ||
@@ -77,7 +78,7 @@ bool XvtBindingsEditor_BeginDetail(XvtBindingsEditor *editor,
 					    .centered = 1}) != 0;
 }
 
-void XvtBindingsEditor_BindingList(XvtBindingsEditor *editor,
+void XvtBindingsEditor_BindingList(struct XvtBindingsEditor *editor,
 				   AeronUiContext *ui,
 				   const AeronUiListItem *items, size_t count,
 				   const char *empty_text)
@@ -97,7 +98,8 @@ bool XvtBindingsEditor_RemoveButton(AeronUiContext *ui)
 	return AeronUi_Button(ui, "Remove Binding") != 0;
 }
 
-void XvtBindingsEditor_EndDetail(XvtBindingsEditor *editor, AeronUiContext *ui)
+void XvtBindingsEditor_EndDetail(struct XvtBindingsEditor *editor,
+				 AeronUiContext *ui)
 {
 	if (AeronUi_Button(ui, "Done")) {
 		editor->binding_modal_open = 0;

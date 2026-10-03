@@ -85,8 +85,8 @@ void Backdrop_DrawModelTexQuadAtScreen(int modelType, int screenX, int screenY,
 				       int angle)
 {
 	const uint8_t *modelData;
-	const TexLevelHeader *textureHeader;
-	SpritePayload *sprite;
+	const struct TexLevelHeader *textureHeader;
+	struct SpritePayload *sprite;
 	uint16_t softwareAngle;
 
 	g_flightSwRotSpriteSpanRunsEnabled = 1;
@@ -95,8 +95,8 @@ void Backdrop_DrawModelTexQuadAtScreen(int modelType, int screenX, int screenY,
 	modelData = (const uint8_t *)Memory_GetHandleBlock(
 		g_objectTypeTable[modelType].resourceHandle);
 	Memory_HandleBlockDoneStub(g_objectTypeTable[modelType].resourceHandle);
-	textureHeader = (const TexLevelHeader *)modelData;
-	sprite = (SpritePayload
+	textureHeader = (const struct TexLevelHeader *)modelData;
+	sprite = (struct SpritePayload
 			  *)(modelData +
 			     *(const uint32_t
 				       *)(modelData +

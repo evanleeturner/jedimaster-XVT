@@ -22,7 +22,7 @@ static AeronKeyChord Chord(const char *name, uint8_t modifiers)
 }
 
 /* The action bound to source in profile, or NONE when the source is not bound. */
-static XvtInputAction BoundAction(const XvtKeyboardBindings *profile,
+static XvtInputAction BoundAction(const struct XvtKeyboardBindings *profile,
 				  AeronKeyChord source)
 {
 	size_t index = XvtKeyboardMapping_Find(profile, source);
@@ -31,7 +31,7 @@ static XvtInputAction BoundAction(const XvtKeyboardBindings *profile,
 }
 
 /* Reads text's input.keyboard into *profile and returns what the reader returned; error is cleared first. */
-static bool ReadText(const char *text, XvtKeyboardBindings *profile,
+static bool ReadText(const char *text, struct XvtKeyboardBindings *profile,
 		     char *error, size_t capacity)
 {
 	AeronConfigFile *document = Fixture_Yaml(text);
@@ -43,7 +43,7 @@ static bool ReadText(const char *text, XvtKeyboardBindings *profile,
 
 static void ExpectRefused(const char *text)
 {
-	static XvtKeyboardBindings profile;
+	static struct XvtKeyboardBindings profile;
 	char error[256];
 	Fixture_Case(text);
 	XVT_ASSERT_TRUE(!ReadText(text, &profile, error, sizeof error));
@@ -53,7 +53,7 @@ static void ExpectRefused(const char *text)
 
 static void ExpectAccepted(const char *text)
 {
-	static XvtKeyboardBindings profile;
+	static struct XvtKeyboardBindings profile;
 	char error[256];
 	Fixture_Case(text);
 	bool read = ReadText(text, &profile, error, sizeof error);
@@ -67,7 +67,7 @@ static void ExpectAccepted(const char *text)
 static void CheckReadForms(void)
 {
 	Fixture_Begin();
-	static XvtKeyboardBindings profile;
+	static struct XvtKeyboardBindings profile;
 	char error[256];
 	/* A key name, or a list of {key, modifiers} sources; an empty list binds nothing. */
 	XVT_ASSERT_TRUE(ReadText(
@@ -112,7 +112,7 @@ static void CheckReadForms(void)
 			  XVT_INPUT_ACTION_NONE);
 
 	/* The profile comes back sorted: sorting it again changes nothing. */
-	static XvtKeyboardBindings sorted;
+	static struct XvtKeyboardBindings sorted;
 	sorted = profile;
 	XvtKeyboardMapping_Sort(&sorted);
 	XVT_ASSERT_TRUE(XvtKeyboardMapping_Equal(&profile, &sorted));
@@ -165,7 +165,7 @@ static void CheckReadRefusals(void)
 static void CheckReadKeepsEarlierBindings(void)
 {
 	Fixture_Begin();
-	static XvtKeyboardBindings profile;
+	static struct XvtKeyboardBindings profile;
 	char error[256];
 	XVT_ASSERT_TRUE(!ReadText(
 		"input:\n  keyboard:\n    fire_weapon: \"A\"\n    target_next: \"NoSuchKey\"\n",
@@ -222,7 +222,7 @@ static char *ManyBindings(int count)
 static void CheckReadCapacity(void)
 {
 	Fixture_Begin();
-	static XvtKeyboardBindings profile;
+	static struct XvtKeyboardBindings profile;
 	char error[256];
 	char *text = ManyBindings(XVT_KEYBOARD_BINDING_CAP);
 	XVT_ASSERT_TRUE(ReadText(text, &profile, error, sizeof error));
@@ -246,14 +246,14 @@ static void CheckWriteRoundTrip(void)
 						 "  keyboard:\n"
 						 "    fire_weapon: \"A\"\n"
 						 "    no_such_action: \"B\"\n");
-	static XvtKeyboardBindings profile, read;
+	static struct XvtKeyboardBindings profile, read;
 	memset(&profile, 0, sizeof profile);
-	profile.bindings[0] = (XvtKeyboardBinding){
+	profile.bindings[0] = (struct XvtKeyboardBinding){
 		Chord("Z", 0), XVT_INPUT_ACTION_TARGET_NEXT};
-	profile.bindings[1] = (XvtKeyboardBinding){
+	profile.bindings[1] = (struct XvtKeyboardBinding){
 		Chord("Q", AERON_KEY_MOD_SHIFT | AERON_KEY_MOD_CTRL),
 		XVT_INPUT_ACTION_FIRE_WEAPON};
-	profile.bindings[2] = (XvtKeyboardBinding){
+	profile.bindings[2] = (struct XvtKeyboardBinding){
 		Chord("F1", 0), XVT_INPUT_ACTION_FIRE_WEAPON};
 	profile.count = 3;
 	AeronConfigError error;
@@ -296,7 +296,7 @@ static void CheckWriteRoundTrip(void)
 	Fixture_End();
 }
 
-static void ExpectWriteRefused(const XvtKeyboardBindings *profile)
+static void ExpectWriteRefused(const struct XvtKeyboardBindings *profile)
 {
 	AeronConfigFile *document = Fixture_Yaml("version: 3\n");
 	AeronConfigError error;
@@ -309,9 +309,9 @@ static void ExpectWriteRefused(const XvtKeyboardBindings *profile)
 static void CheckWriteRefusals(void)
 {
 	Fixture_Begin();
-	static XvtKeyboardBindings profile;
+	static struct XvtKeyboardBindings profile;
 	memset(&profile, 0, sizeof profile);
-	profile.bindings[0] = (XvtKeyboardBinding){
+	profile.bindings[0] = (struct XvtKeyboardBinding){
 		Chord("A", 0), XVT_INPUT_ACTION_FIRE_WEAPON};
 	profile.count = 1;
 
@@ -336,15 +336,15 @@ static void CheckWriteRefusals(void)
 static void CheckResolve(void)
 {
 	Fixture_Begin();
-	static XvtKeyboardBindings defaults, effective;
+	static struct XvtKeyboardBindings defaults, effective;
 	memset(&defaults, 0, sizeof defaults);
-	defaults.bindings[0] = (XvtKeyboardBinding){
+	defaults.bindings[0] = (struct XvtKeyboardBinding){
 		Chord("A", 0), XVT_INPUT_ACTION_FIRE_WEAPON};
-	defaults.bindings[1] = (XvtKeyboardBinding){
+	defaults.bindings[1] = (struct XvtKeyboardBinding){
 		Chord("B", 0), XVT_INPUT_ACTION_CYCLE_WEAPON_GROUP};
-	defaults.bindings[2] = (XvtKeyboardBinding){
+	defaults.bindings[2] = (struct XvtKeyboardBinding){
 		Chord("C", 0), XVT_INPUT_ACTION_TOGGLE_BEAM};
-	defaults.bindings[3] = (XvtKeyboardBinding){
+	defaults.bindings[3] = (struct XvtKeyboardBinding){
 		Chord("D", 0), XVT_INPUT_ACTION_TARGET_NEXT};
 	defaults.count = 4;
 

@@ -96,7 +96,7 @@ struct FlightViewportSaveState {
 };
 
 typedef char xvt_size_FlightViewportSaveState
-	[(sizeof(FlightViewportSaveState) == 56) ? 1 : -1];
+	[(sizeof(struct FlightViewportSaveState) == 56) ? 1 : -1];
 
 /* The start of a rotated sprite's encoded image: where its corner lies
  * relative to its screen point, in texels. */
@@ -113,7 +113,7 @@ struct FlightSwRotSpriteDataHeader {
 /* The viewport and camera matrix PushFlightViewport saves and PopFlightViewport
  * puts back. */
 // GLOBAL: XVT 0x555C88
-FlightViewportSaveState g_savedFlightViewport = {0};
+struct FlightViewportSaveState g_savedFlightViewport = {0};
 
 /* Entry i is tan(i * pi / 512) * 65536 / 1.1, rounded, up to 65535 at entry
  * 136; the last three are 0. Read by FlightSw_LookupScaledTangent for 91
@@ -184,13 +184,13 @@ int8_t g_radarTargetMarkerShape16bpp[20] = {
 };
 /* The 10-pixel radar target marker, then two unused 0, 0 entries. */
 // GLOBAL: XVT 0x51A7E8
-static FlightRadarMarkerOffset g_radarTargetMarkerShape10[12] = {
+static struct FlightRadarMarkerOffset g_radarTargetMarkerShape10[12] = {
 	{-1, 1}, {-2, 1}, {-2, 0}, {-2, -1}, {-1, -1}, {1, -1},
 	{2, -1}, {2, 0},  {2, 1},  {1, 1},   {0, 0},   {0, 0},
 };
 /* The 12-pixel radar target marker. */
 // GLOBAL: XVT 0x51A800
-static FlightRadarMarkerOffset g_radarTargetMarkerShape12[12] = {
+static struct FlightRadarMarkerOffset g_radarTargetMarkerShape12[12] = {
 	{-1, 2}, {-2, 2}, {-2, 1}, {-2, 0}, {-2, -1}, {-1, -1},
 	{1, -1}, {2, -1}, {2, 0},  {2, 1},  {2, 2},   {1, 2},
 };
@@ -204,12 +204,12 @@ int8_t *g_radarTargetMarkerShape = (int8_t *)g_radarTargetMarkerShape10;
 int g_radarTargetMarkerPointCount = 10;
 /* The 7 pixels of the cross marker: 5 across and 3 down through its center. */
 // GLOBAL: XVT 0x51A820
-FlightSwMarkerOffset g_flightSwCrossMarkerOffsets[7] = {
+struct FlightSwMarkerOffset g_flightSwCrossMarkerOffsets[7] = {
 	{-2, 0}, {-1, 0}, {0, 0}, {1, 0}, {2, 0}, {0, 1}, {0, -1},
 };
 /* The same 7 pixels for 16-bit drawing. */
 // GLOBAL: XVT 0x523928
-static FlightSwMarkerOffset g_flightSwCrossMarkerOffsets16bpp[7] = {
+static struct FlightSwMarkerOffset g_flightSwCrossMarkerOffsets16bpp[7] = {
 	{-2, 0}, {-1, 0}, {0, 0}, {1, 0}, {2, 0}, {0, 1}, {0, -1},
 };
 /* (1 << mode) - 1 for packing modes 0 to 8: the run-length bits of a sprite run
@@ -420,7 +420,7 @@ uint8_t g_flightSwRotSpritePalette8[256] = {0};
  * FlightSw_RasterizePreparedRotatedSprite. Holds 512; nothing checks the count
  * against that. */
 // GLOBAL: XVT 0x9A57E0
-FlightSwRotSpriteSpanRun g_flightSwRotSpriteSpanRuns[512] = {{0}};
+struct FlightSwRotSpriteSpanRun g_flightSwRotSpriteSpanRuns[512] = {{0}};
 /* Index in runLengths by which the octant 0 to 3 functions step
  * g_flightSwRotSpriteClipMinX. */
 // GLOBAL: XVT 0x9A73F6
@@ -472,7 +472,7 @@ uint8_t g_flightSwRotSpritePalette16Low[256] = {0};
  * FlightSw_BuildSpriteRotationCoeffs when the angle changes or
  * g_flightSwRotSpriteCoeffCacheValid is 0. */
 // GLOBAL: XVT 0x9CD280
-FlightSwRotSpriteCoeffState g_flightSwRotSpriteCoeffCache = {0};
+struct FlightSwRotSpriteCoeffState g_flightSwRotSpriteCoeffCache = {0};
 /* The buffer rotated sprites are drawn into before
  * FlightSw_BlitPreparedRotatedSpriteSpans copies them out; set through
  * FlightSw_SetRotatedSpriteDestBuffer by FeDiskIo_InitGlobalBuffers and
@@ -521,7 +521,7 @@ int g_flightSwRotSpriteDestPitchBytes = 0;
 /* The scale of the sprite being drawn, from
  * FlightSw_PrepareRotatedSpriteScaleState. */
 // GLOBAL: XVT 0x9EC610
-FlightSwRotSpriteScaleState g_flightSwRotSpriteScaleState = {0};
+struct FlightSwRotSpriteScaleState g_flightSwRotSpriteScaleState = {0};
 /* Copy of g_flightSwRotSpritePrimaryEdgeY taken by
  * FlightSw_RasterizePreparedRotatedSprite; nothing reads it. */
 // GLOBAL: XVT 0xA00850
@@ -542,7 +542,7 @@ int16_t g_flightSwRotSpriteClipMaxX = 0;
 /* Points at g_flightSwRotSpriteCoeffCache once
  * FlightSw_PrepareSpriteRotationTables runs. */
 // GLOBAL: XVT 0x9FE7D4
-FlightSwRotSpriteCoeffState *g_flightSwRotSpriteCoeffs = 0;
+struct FlightSwRotSpriteCoeffState *g_flightSwRotSpriteCoeffs = 0;
 /* Runs left for a span draw function: FlightSw_RasterizePreparedRotatedSprite
  * sets it to the row's run count, and the function counts it down. */
 // GLOBAL: XVT 0xA60A50
@@ -2467,8 +2467,9 @@ void FlightSw_DrawLine8bpp(int x1, int y1, int x2, int y2, uint8_t colorIdx)
  * spanOffsets[g_flightSwRotSpriteSpanBaseX + startX + i] in the run's color
  * index. Does not clip; the countdown and each length must be at least 1. */
 // FUNCTION: XVT 0x4213E0
-void FlightSw_DrawRotSpriteSpanRuns8(const FlightSwRotSpriteSpanRun *runs,
-				     uint8_t *destBase, const int *spanOffsets)
+void FlightSw_DrawRotSpriteSpanRuns8(
+	const struct FlightSwRotSpriteSpanRun *runs, uint8_t *destBase,
+	const int *spanOffsets)
 {
 	int colorIndex;
 	int destOffset;
@@ -2502,14 +2503,14 @@ void FlightSw_DrawRotSpriteSpanRuns8(const FlightSwRotSpriteSpanRun *runs,
  * g_flightSwRotSpriteClipMaxX. */
 // FUNCTION: XVT 0x421430
 void FlightSw_DrawClippedRotSpriteSpanRuns8(
-	const FlightSwRotSpriteSpanRun *runs, uint8_t *destBase,
+	const struct FlightSwRotSpriteSpanRun *runs, uint8_t *destBase,
 	const int *spanOffsets)
 {
 	int length;
 	int spanStart;
 	int spanEnd;
 	int colorIndex;
-	const FlightSwRotSpriteSpanRun *drawRun;
+	const struct FlightSwRotSpriteSpanRun *drawRun;
 	const int *runOffsets;
 	int destOffset;
 
@@ -2546,8 +2547,9 @@ void FlightSw_DrawClippedRotSpriteSpanRuns8(
  * a pixel's low byte and 0x80 in its high byte, marking it for
  * FlightSw_BlitPreparedRotatedSpriteSpans. */
 // FUNCTION: XVT 0x4214A0
-void FlightSw_DrawRotSpriteSpanRuns16(const FlightSwRotSpriteSpanRun *runs,
-				      uint8_t *destBase, const int *spanOffsets)
+void FlightSw_DrawRotSpriteSpanRuns16(
+	const struct FlightSwRotSpriteSpanRun *runs, uint8_t *destBase,
+	const int *spanOffsets)
 {
 	int colorIndex;
 	int length;
@@ -2576,10 +2578,10 @@ void FlightSw_DrawRotSpriteSpanRuns16(const FlightSwRotSpriteSpanRun *runs,
  * FlightSw_DrawRotSpriteSpanRuns16 does. */
 // FUNCTION: XVT 0x4214F0
 void FlightSw_DrawClippedRotSpriteSpanRuns16(
-	const FlightSwRotSpriteSpanRun *runs, uint8_t *destBase,
+	const struct FlightSwRotSpriteSpanRun *runs, uint8_t *destBase,
 	const int *spanOffsets)
 {
-	const FlightSwRotSpriteSpanRun *drawRun;
+	const struct FlightSwRotSpriteSpanRun *drawRun;
 	int clipMinX;
 	int length;
 	int colorIndex;
@@ -2631,7 +2633,8 @@ void FlightSw_DrawClippedRotSpriteSpanRuns16(
  * run for the angle. */
 // FUNCTION: XVT 0x421560
 void FlightSw_DrawRotatedSpriteQuad(int16_t screenX, int16_t screenY,
-				    uint16_t screenSize, SpritePayload *sprite)
+				    uint16_t screenSize,
+				    struct SpritePayload *sprite)
 {
 	struct FlightSwRotSpriteDataHeader *spriteData;
 	int16_t cornerX;
@@ -2841,7 +2844,7 @@ void FlightSw_PrepareSpriteRotationTables(int16_t rotationAngle,
  * g_flightSwRotSpritePalette8. Returns colorCount, or 0 when it is negative.
  * Does not check colorCount against 256. */
 // FUNCTION: XVT 0x421930
-int FlightSw_LoadSpritePaletteTables(SpritePayload *sprite)
+int FlightSw_LoadSpritePaletteTables(struct SpritePayload *sprite)
 {
 	uint8_t *palette;
 	int colorCount;
@@ -2891,8 +2894,8 @@ uint16_t FlightSw_LookupScaledTangent(uint16_t angle, int16_t scalePercent)
  * differs from the one they were built for. */
 // FUNCTION: XVT 0x4219D0
 void FlightSw_PrepareRotatedSpriteScaleState(
-	uint16_t screenSize, FlightSwRotSpriteCoeffState *rotationCoeffs,
-	FlightSwRotSpriteScaleState *scaleState)
+	uint16_t screenSize, struct FlightSwRotSpriteCoeffState *rotationCoeffs,
+	struct FlightSwRotSpriteScaleState *scaleState)
 {
 	uint16_t *aspectScaleY;
 	uint16_t *inverseAspectScaleY;
@@ -2979,7 +2982,7 @@ void FlightSw_PrepareRotatedSpriteScaleState(
  * magnitudes in the input globals. */
 // FUNCTION: XVT 0x421AE0
 void FlightSw_RotateSpritePoint(uint16_t *rotationCoeffs,
-				FlightSwRotSpriteScaleState *scaleState)
+				struct FlightSwRotSpriteScaleState *scaleState)
 {
 	int16_t originalCornerX;
 	int16_t originalCornerY;
@@ -3059,7 +3062,7 @@ void FlightSw_RotateSpritePoint(uint16_t *rotationCoeffs,
 void FlightSw_BuildSpriteRotationCoeffs(uint16_t rotationAngle,
 					uint16_t *outCoeffs)
 {
-	FlightSwRotSpriteCoeffState *coeffs;
+	struct FlightSwRotSpriteCoeffState *coeffs;
 	uint16_t primaryAngle;
 	uint16_t primaryStep;
 	uint16_t secondaryAngle;
@@ -3073,7 +3076,7 @@ void FlightSw_BuildSpriteRotationCoeffs(uint16_t rotationAngle,
 	uint16_t remaining;
 	uint16_t spanIndex;
 
-	coeffs = (FlightSwRotSpriteCoeffState *)outCoeffs;
+	coeffs = (struct FlightSwRotSpriteCoeffState *)outCoeffs;
 	coeffs->rotationAngle = rotationAngle;
 	coeffs->sinSignMask = rotationAngle & 0x8000;
 	flipY = 0;
@@ -3633,7 +3636,7 @@ void FlightSw_AdvanceRotSpriteSecondaryScale(void)
 	uint16_t previousAccum;
 	uint16_t pointIndex;
 	unsigned int scanCount;
-	FlightSwRotSpriteEdgePoint *currentPoint;
+	struct FlightSwRotSpriteEdgePoint *currentPoint;
 	int16_t currentCoordinate;
 
 	spanStep = 1;

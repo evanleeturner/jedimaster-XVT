@@ -2189,7 +2189,7 @@ void Mfd_DrawCraftListPage(uint16_t showHostileCraft)
 				     objectIdx <
 				     g_activeRegionCraftObjectSlotEnd;
 				     ++objectIdx) {
-					CraftData *craft;
+					struct CraftData *craft;
 					uint16_t team;
 
 					if (g_objectTable[objectIdx]
@@ -2263,8 +2263,9 @@ void Mfd_DrawCraftListPage(uint16_t showHostileCraft)
 					     objectIdx <
 					     g_activeRegionCraftObjectSlotEnd;
 					     ++objectIdx) {
-						MobileObject *mobileObject;
-						CraftData *craft;
+						struct MobileObject
+							*mobileObject;
+						struct CraftData *craft;
 
 						if (g_objectTable[objectIdx]
 								    .flightGroupIdx ==
@@ -2790,8 +2791,9 @@ void Mfd_DrawCraftListPage(uint16_t showHostileCraft)
 					{
 						int16_t healthColumnX;
 						int16_t statusColumnBaseX;
-						ObjectRecord *object;
-						MobileObject *mobileObject;
+						struct ObjectRecord *object;
+						struct MobileObject
+							*mobileObject;
 
 						healthColumnX =
 							(int16_t)(paneLeft +
@@ -2804,7 +2806,7 @@ void Mfd_DrawCraftListPage(uint16_t showHostileCraft)
 								[listedObjectIdx];
 						mobileObject = object->mobj;
 						if (mobileObject != NULL) {
-							CraftData *craft;
+							struct CraftData *craft;
 							int hullPercent;
 
 							craft = mobileObject
@@ -3060,9 +3062,9 @@ void Mfd_DrawCraftListPage(uint16_t showHostileCraft)
 // FUNCTION: XVT 0x44E0A0
 void Mfd_BuildScratchCraftListName(uint16_t objectIdx)
 {
-	ObjectRecord *object;
-	MobileObject *mobileObject;
-	CraftData *craft;
+	struct ObjectRecord *object;
+	struct MobileObject *mobileObject;
+	struct CraftData *craft;
 	int flightGroupIdx;
 	uint16_t craftNumber;
 	uint16_t tensDigit;
@@ -3108,18 +3110,18 @@ void Mfd_BuildScratchCraftListName(uint16_t objectIdx)
 int16_t Mfd_GetFlightGroupGoalStatusStringId(uint16_t objectIndex)
 {
 	unsigned int goalIndex;
-	FlightGroupGoal *goal;
+	struct FlightGroupGoal *goal;
 	int16_t *playerTeam;
 	unsigned int globalTriggerIndex;
-	MissionTriggerPair *triggerPair;
-	MissionTrigger *trigger;
+	struct MissionTriggerPair *triggerPair;
+	struct MissionTrigger *trigger;
 	int eventCondition;
 	unsigned int flightGroupIdx;
 	int inspectActive;
 	int disableActive;
 	int captureActive;
 	int boardActive;
-	CraftData *craft;
+	struct CraftData *craft;
 	int destroyActive;
 	int specialCargoOnly;
 	int attackActive;
@@ -3724,8 +3726,9 @@ int16_t Mfd_DrawMessageLogPage(void)
 	lineHeight = (int16_t)(g_flightFontLineHeight + 2);
 	FlightText_SetColor(0x43);
 	logRecordCount = (int16_t)g_messageLogWriteIndex;
-	g_messageLogRecords = (HudInFlightMessageRecord *)Memory_GetHandleBlock(
-		g_messageLogHandle);
+	g_messageLogRecords =
+		(struct HudInFlightMessageRecord *)Memory_GetHandleBlock(
+			g_messageLogHandle);
 	Memory_HandleBlockDoneStub(g_messageLogHandle);
 	cursorY = top;
 

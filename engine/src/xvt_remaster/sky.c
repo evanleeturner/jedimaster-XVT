@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 
-static XvtRemasterSkyStars *g_stars;
+static struct XvtRemasterSkyStars *g_stars;
 static AeronTexture *g_cube;
 static char g_cubePath[XVT_SNAP_PATH];
 static int g_drawHyperspace, g_drawStars;
@@ -25,13 +25,13 @@ static void Background(AeronCommandBuffer *cmd, AeronRenderPass *pass, int w,
 	}
 }
 
-static void Backdrops(AeronScene3D *scene, const XvtRenderSnapshot *s,
-		      const XvtRenderView *view)
+static void Backdrops(AeronScene3D *scene, const struct XvtRenderSnapshot *s,
+		      const struct XvtRenderView *view)
 {
 	if (!s->sky.backdrop_enabled) {
 		return;
 	}
-	const XvtSnapCamera *cam = &s->camera;
+	const struct XvtSnapCamera *cam = &s->camera;
 	unsigned record = 0;
 	static const unsigned axes[3][3] = {{1, 0, 2}, {0, 1, 2}, {2, 1, 0}};
 	/* BoP's atlas UV order starts at positive right/up. */
@@ -49,7 +49,7 @@ static void Backdrops(AeronScene3D *scene, const XvtRenderSnapshot *s,
 		     ++i, ++record) {
 			unsigned bits = s->sky.backdrop_directions[record],
 				 type = s->sky.backdrop_types[record];
-			XvtEffectFrame frame;
+			struct XvtEffectFrame frame;
 			if (!XvtEffects_Frame(s, type, 0, &frame)) {
 				continue;
 			}
@@ -110,9 +110,10 @@ static void Backdrops(AeronScene3D *scene, const XvtRenderSnapshot *s,
 }
 
 int XvtSky_Prepare(AeronCommandBuffer *cmd, AeronScene3D *scene,
-		   const XvtRenderSnapshot *s, const XvtRenderView *view)
+		   const struct XvtRenderSnapshot *s,
+		   const struct XvtRenderView *view)
 {
-	const XvtSkySettings *p = &XvtRemasterConfig_Effective()->sky;
+	const struct XvtSkySettings *p = &XvtRemasterConfig_Effective()->sky;
 	g_drawHyperspace =
 		s->hyperspace.phase == XVT_SNAP_HYPERSPACE_TRANSITION;
 	g_drawStars = 0;
@@ -145,7 +146,7 @@ int XvtSky_Prepare(AeronCommandBuffer *cmd, AeronScene3D *scene,
 		if (!g_stars) {
 			return 0;
 		}
-		XvtRemasterSkyStarsParams params = {
+		struct XvtRemasterSkyStarsParams params = {
 			.exposure = p->exposure,
 			.brightness = p->star_brightness,
 			.classic_pixel_scale = view->classic_pixel_scale,

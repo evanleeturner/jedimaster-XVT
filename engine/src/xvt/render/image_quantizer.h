@@ -45,15 +45,13 @@ struct ImageQuantizerNode {
 
 #pragma pack(pop)
 typedef char xvt_size_ImageQuantizerPaletteEntry
-	[(sizeof(ImageQuantizerPaletteEntry) == 9) ? 1 : -1];
+	[(sizeof(struct ImageQuantizerPaletteEntry) == 9) ? 1 : -1];
 #if defined(_MSC_VER) && !defined(XVT_MODERN)
-typedef char xvt_size_ImageQuantizerNode[(sizeof(ImageQuantizerNode) == 82)
-						 ? 1
-						 : -1];
+typedef char xvt_size_ImageQuantizerNode
+	[(sizeof(struct ImageQuantizerNode) == 82) ? 1 : -1];
 #else
-typedef char xvt_size_ImageQuantizerNode[(sizeof(ImageQuantizerNode) == 118)
-						 ? 1
-						 : -1];
+typedef char xvt_size_ImageQuantizerNode
+	[(sizeof(struct ImageQuantizerNode) == 118) ? 1 : -1];
 #endif
 
 extern unsigned int g_imageQuantizerNodeCount;
@@ -73,19 +71,23 @@ unsigned int ImageQuantizer_AssignPaletteColors(uint32_t *image,
 						unsigned int paletteSize,
 						int dither, int colorspace);
 void ImageQuantizer_ClassifyImageColors(unsigned int *image);
-void ImageQuantizer_FindNearestPaletteEntryRecursive(ImageQuantizerNode *node);
-void ImageQuantizer_BuildPaletteEntriesRecursive(ImageQuantizerNode *node);
+void ImageQuantizer_FindNearestPaletteEntryRecursive(
+	struct ImageQuantizerNode *node);
+void ImageQuantizer_BuildPaletteEntriesRecursive(
+	struct ImageQuantizerNode *node);
 int ImageQuantizer_DitherImageToPalette(uint32_t *image);
 int ImageQuantizer_InitializeColorTree(int treeDepth);
-ImageQuantizerNode *ImageQuantizer_AllocateNode(int childIndex, int level,
-						ImageQuantizerNode *parent,
-						int midpointRed,
-						int midpointGreen,
-						int midpointBlue);
-void ImageQuantizer_CollapseDeepestLevelRecursive(ImageQuantizerNode *node);
-unsigned int ImageQuantizer_MergeNodeIntoParent(ImageQuantizerNode *node);
+struct ImageQuantizerNode *
+ImageQuantizer_AllocateNode(int childIndex, int level,
+			    struct ImageQuantizerNode *parent, int midpointRed,
+			    int midpointGreen, int midpointBlue);
+void ImageQuantizer_CollapseDeepestLevelRecursive(
+	struct ImageQuantizerNode *node);
+unsigned int
+ImageQuantizer_MergeNodeIntoParent(struct ImageQuantizerNode *node);
 void ImageQuantizer_ReduceColorTree(unsigned int targetColorCount);
-void ImageQuantizer_ReduceColorTreePassRecursive(ImageQuantizerNode *node);
+void ImageQuantizer_ReduceColorTreePassRecursive(
+	struct ImageQuantizerNode *node);
 void ImageQuantizer_QuantizeImageLists(unsigned int **imageListHeads,
 				       unsigned int listCount,
 				       unsigned int paletteSize, int treeDepth,

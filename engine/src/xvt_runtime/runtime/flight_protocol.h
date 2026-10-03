@@ -62,91 +62,91 @@ typedef uint8_t XvtWireU16[2];
 typedef uint8_t XvtWireU32[4];
 typedef uint8_t XvtWireU64[8];
 
-typedef struct XvtFlightInputWire {
+struct XvtFlightInputWire {
 	XvtWireU32 tick;
 	uint8_t key, axes[3];
 	XvtWireU16 throttle;
-} XvtFlightInputWire;
+};
 
-typedef struct XvtFlightWorldInputWire {
+struct XvtFlightWorldInputWire {
 	uint8_t player;
-	XvtFlightInputWire input;
-} XvtFlightWorldInputWire;
+	struct XvtFlightInputWire input;
+};
 
-typedef struct XvtFlightBatchHeader {
+struct XvtFlightBatchHeader {
 	XvtWireU32 opcode, cookie;
 	XvtWireU16 count, reserved;
-} XvtFlightBatchHeader;
+};
 
-typedef struct XvtFlightWorldHeader {
+struct XvtFlightWorldHeader {
 	XvtWireU32 opcode, target_flags, cookie;
 	uint8_t part_index, part_count, record_count, participant_mask;
-} XvtFlightWorldHeader;
+};
 
-typedef struct XvtFlightAgreementWire {
+struct XvtFlightAgreementWire {
 	XvtWireU32 schema, profile, cookie;
-} XvtFlightAgreementWire;
+};
 
-typedef struct XvtFlightOptionsWire {
+struct XvtFlightOptionsWire {
 	XvtWireU32 opcode, resolution, rating, schema;
-} XvtFlightOptionsWire;
+};
 
-typedef struct XvtFlightRosterHeader {
+struct XvtFlightRosterHeader {
 	XvtWireU32 opcode, new_net;
-} XvtFlightRosterHeader;
+};
 
-typedef struct XvtFlightRosterPlayerWire {
+struct XvtFlightRosterPlayerWire {
 	XvtWireU32 resolution, rating;
-} XvtFlightRosterPlayerWire;
+};
 
-typedef struct XvtFlightSlotWire {
+struct XvtFlightSlotWire {
 	XvtWireU32 opcode, player;
-} XvtFlightSlotWire;
+};
 
-typedef struct XvtFlightEpochWire {
+struct XvtFlightEpochWire {
 	XvtWireU32 opcode, epoch;
-} XvtFlightEpochWire;
+};
 
-typedef struct XvtFlightClockProbeWire {
+struct XvtFlightClockProbeWire {
 	XvtWireU32 opcode, timestamp, lead;
-} XvtFlightClockProbeWire;
+};
 
-typedef struct XvtFlightChecksumWire {
+struct XvtFlightChecksumWire {
 	XvtWireU32 opcode, epoch;
 	XvtWireU32 checksums[XVT_WORLD_CHECKSUM_REGIONS],
 		lengths[XVT_WORLD_CHECKSUM_REGIONS];
-} XvtFlightChecksumWire;
+};
 
-typedef struct XvtFlightChecksumReportWire {
-	XvtFlightChecksumWire checksum;
+struct XvtFlightChecksumReportWire {
+	struct XvtFlightChecksumWire checksum;
 	XvtWireU32 request_state;
-} XvtFlightChecksumReportWire;
+};
 
-typedef struct XvtFlightResyncRequestWire {
+struct XvtFlightResyncRequestWire {
 	XvtWireU32 opcode, epoch, image_bytes, completed_tick;
-} XvtFlightResyncRequestWire;
+};
 
-typedef struct XvtFlightResyncApplyWire {
+struct XvtFlightResyncApplyWire {
 	XvtWireU32 opcode, epoch, image_bytes, input_tick;
-} XvtFlightResyncApplyWire;
+};
 
-typedef struct XvtFlightChunkHeader {
+struct XvtFlightChunkHeader {
 	XvtWireU32 opcode, epoch, index;
-} XvtFlightChunkHeader;
+};
 
-typedef struct XvtFlightChunkSpan {
+struct XvtFlightChunkSpan {
 	XvtWireU32 offset, bytes;
-} XvtFlightChunkSpan;
+};
 
-typedef struct XvtFlightChunkAckWire {
+struct XvtFlightChunkAckWire {
 	XvtWireU32 opcode, index;
-} XvtFlightChunkAckWire;
+};
 
-typedef char
-	XvtFlightInputWire_layout[(sizeof(XvtFlightInputWire) == 10) ? 1 : -1];
+typedef char XvtFlightInputWire_layout[(sizeof(struct XvtFlightInputWire) == 10)
+					       ? 1
+					       : -1];
 typedef char XvtFlightWorldInputWire_layout
-	[(sizeof(XvtFlightWorldInputWire) == 11) ? 1 : -1];
-typedef char XvtFlightWorldHeader_layout[(sizeof(XvtFlightWorldHeader) == 16)
-						 ? 1
-						 : -1];
+	[(sizeof(struct XvtFlightWorldInputWire) == 11) ? 1 : -1];
+typedef char XvtFlightWorldHeader_layout
+	[(sizeof(struct XvtFlightWorldHeader) == 16) ? 1 : -1];
 #endif

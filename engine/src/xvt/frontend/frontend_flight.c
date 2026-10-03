@@ -70,7 +70,7 @@ char g_frontendFlightCommandLine[256] = {0};
 // FUNCTION: XVT 0x4FB350
 int FlightLoading_UpdateReadyScreen(int frameCounter)
 {
-	RECT rect;
+	struct RECT rect;
 	int readyPlayerCount;
 
 	if (frameCounter == 0) {

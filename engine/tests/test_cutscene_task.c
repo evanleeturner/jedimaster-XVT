@@ -26,8 +26,8 @@
 
 enum { MISSION_INDEX = 11, DESCRIPTION_ID = 22 };
 
-static XvtTestAssets g_assets;
-static CutsceneEntry g_table[5];
+static struct XvtTestAssets g_assets;
+static struct CutsceneEntry g_table[5];
 
 static void Entry(int index, const char *movie, int mission, int phase,
 		  int description)

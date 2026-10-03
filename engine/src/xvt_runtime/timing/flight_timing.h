@@ -13,9 +13,9 @@ extern "C" {
  * RestoreClock, which, when unlocked, make the step globals describe one reference period. */
 
 /* g_elapsedTicks and g_simStepsPerSecond, as EnterReference saves them. */
-typedef struct XvtFlightClock {
+struct XvtFlightClock {
 	uint16_t elapsed, steps_per_second;
-} XvtFlightClock;
+};
 
 typedef enum XvtFlightTimingProfile {
 	XVT_FLIGHT_TIMING_NATIVE,
@@ -65,9 +65,9 @@ uint64_t XvtFlightTiming_AdvanceSerial(void);
 /* Returns g_elapsedTicks and g_simStepsPerSecond for RestoreClock. When unlocked, sets them to one reference
  * period, XVT_REFERENCE_TICKS and SIMULATION_TICKS_PER_SECOND / XVT_REFERENCE_TICKS; when locked,
  * changes nothing. It does not check ReferenceDue; callers do. */
-XvtFlightClock XvtFlightTiming_EnterReference(void);
+struct XvtFlightClock XvtFlightTiming_EnterReference(void);
 /* Puts back the step globals EnterReference returned. */
-void XvtFlightTiming_RestoreClock(XvtFlightClock clock);
+void XvtFlightTiming_RestoreClock(struct XvtFlightClock clock);
 /* Records an animation update at the end of the current step, g_gameTime + g_elapsedTicks. In
  * NETWORK_125 its serial is that time / XVT_COMPONENT_EVENT_TICKS + 1, the formula RestoreNetworkTick
  * uses; otherwise the serial counts up by one. */

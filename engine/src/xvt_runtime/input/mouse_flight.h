@@ -8,7 +8,7 @@
  * nearest fighter; the first side button toggles the cockpit. */
 
 /* Stores options and resets; NULL is ignored. */
-void XvtMouseFlight_SetOptions(const XvtMouseOptions *options);
+void XvtMouseFlight_SetOptions(const struct XvtMouseOptions *options);
 /* Recenters the stick and drops pending motion, buttons, queued keys and the roll lock. */
 void XvtMouseFlight_Reset(void);
 /* Drops pending motion, queued keys and a pending tap; the stick keeps its deflection. */

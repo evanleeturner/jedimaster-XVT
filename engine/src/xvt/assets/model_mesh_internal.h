@@ -16,7 +16,7 @@ enum {
 		-MODEL_MESH_FIX_LIMIT + (MODEL_MESH_Q15_SCALE << 1)
 };
 
-typedef struct ModelMeshScaleOperation {
+struct ModelMeshScaleOperation {
 	/* The number to scale; laser_createcountermeasureprojectile puts a move
 	 * vector component here. */
 	int value;
@@ -25,9 +25,9 @@ typedef struct ModelMeshScaleOperation {
 	 * laser_createcountermeasureprojectile puts a distance here and passes
 	 * both to Math_MulQ15. */
 	int scale;
-} ModelMeshScaleOperation;
+};
 
-typedef struct ModelMeshRotationOperation {
+struct ModelMeshRotationOperation {
 	/* Read only by ModelMesh_ComputeRotationCoefficient and
 	 * ModelMesh_ComputeNegativeCosineRotationCoefficient, which nothing
 	 * calls. */
@@ -35,23 +35,23 @@ typedef struct ModelMeshRotationOperation {
 	int otherAxis;	 /* Read only by those two functions. */
 	int cosineScale; /* Read only by those two functions. */
 	int sineTerm;	 /* Read only by those two functions. */
-} ModelMeshRotationOperation;
+};
 
-typedef struct ModelMeshAxis {
+struct ModelMeshAxis {
 	int x; /* Read only by ModelMesh_RotateAxisQ15, which nothing calls. */
 	int y; /* Read only by ModelMesh_RotateAxisQ15. */
 	int z; /* Read only by ModelMesh_RotateAxisQ15. */
-} ModelMeshAxis;
+};
 
-static __inline int ModelMesh_ScaleQ15(ModelMeshScaleOperation operation)
+static __inline int ModelMesh_ScaleQ15(struct ModelMeshScaleOperation operation)
 {
 	operation.value = (int)(((int64_t)operation.value * operation.scale) >>
 				MODEL_MESH_Q15_SHIFT);
 	return operation.value;
 }
 
-static __inline int
-ModelMesh_ComputeRotationCoefficient(ModelMeshRotationOperation operation)
+static __inline int ModelMesh_ComputeRotationCoefficient(
+	struct ModelMeshRotationOperation operation)
 {
 	operation.sineTerm =
 		(int32_t)((uint32_t)operation.sineTerm << MODEL_MESH_Q15_SHIFT);
@@ -70,7 +70,7 @@ ModelMesh_ComputeRotationCoefficient(ModelMeshRotationOperation operation)
 }
 
 static __inline int ModelMesh_ComputeNegativeCosineRotationCoefficient(
-	ModelMeshRotationOperation operation)
+	struct ModelMeshRotationOperation operation)
 {
 	int product;
 
@@ -91,8 +91,8 @@ static __inline int ModelMesh_ComputeNegativeCosineRotationCoefficient(
 	return operation.value >> MODEL_MESH_Q15_SHIFT;
 }
 
-static __inline int ModelMesh_RotateAxisQ15(ModelMeshAxis axis,
-					    ModelMeshAxis row)
+static __inline int ModelMesh_RotateAxisQ15(struct ModelMeshAxis axis,
+					    struct ModelMeshAxis row)
 {
 	axis.x = (int32_t)((uint32_t)axis.x * (uint32_t)row.x +
 			   (uint32_t)axis.y * (uint32_t)row.y +

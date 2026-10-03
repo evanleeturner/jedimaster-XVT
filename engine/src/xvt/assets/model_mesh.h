@@ -56,25 +56,25 @@ struct MeshDescriptor {
 	int componentFlags;
 	/* The mesh's size along each axis; ModelMesh_GetComponentMaxExtent
 	 * takes the largest. */
-	OptVector span;
-	OptVector center; /* Center of the mesh. */
-	OptVector boxMin; /* Smallest corner of the mesh's box. */
-	OptVector boxMax; /* Largest corner of the mesh's box. */
+	struct OptVector span;
+	struct OptVector center; /* Center of the mesh. */
+	struct OptVector boxMin; /* Smallest corner of the mesh's box. */
+	struct OptVector boxMax; /* Largest corner of the mesh's box. */
 	/* When nonzero, targetPoint replaces center as the point
 	 * ModelMesh_GetComponentFocusX and its two siblings give. */
 	int targetId;
 	/* The focus point used while targetId is nonzero. */
-	OptVector targetPoint;
+	struct OptVector targetPoint;
 };
 
 struct ModelMeshObjectTypeCache {
 	int meshCount;	   /* Meshes cached, up to 50. */
 	int meshTypes[50]; /* Each mesh's component type. */
 	/* Each mesh's descriptor inside the loaded model, or NULL. */
-	MeshDescriptor *meshDescriptors[50];
+	struct MeshDescriptor *meshDescriptors[50];
 };
 
-extern ModelMeshObjectTypeCache g_objectTypeMeshCache[73];
+extern struct ModelMeshObjectTypeCache g_objectTypeMeshCache[73];
 extern int g_optHardpointSearchIndex;
 extern uint8_t g_optHardpointWeaponGroupKindByType[32];
 
@@ -95,12 +95,12 @@ void ModelMesh_ApplyAnimatedMeshRotationToPoint(int16_t angleQ16,
 						int localX, int localY,
 						int localZ);
 int ModelMesh_GetObjectTypeMeshCount(int objectType);
-OptNode *ModelMesh_FindFirstMeshVertsNode(OptNode *node);
-OptNode *ModelMesh_FindFirstRotScaleNode(OptNode *node);
-MeshDescriptor *
-ModelMesh_FindDescriptorNodeRecursive(OptNode *node,
-				      OptimizedPolyObject *model);
-MeshDescriptor *ModelMesh_GetDescriptor(int objectType, int meshIndex);
+struct OptNode *ModelMesh_FindFirstMeshVertsNode(struct OptNode *node);
+struct OptNode *ModelMesh_FindFirstRotScaleNode(struct OptNode *node);
+struct MeshDescriptor *
+ModelMesh_FindDescriptorNodeRecursive(struct OptNode *node,
+				      struct OptimizedPolyObject *model);
+struct MeshDescriptor *ModelMesh_GetDescriptor(int objectType, int meshIndex);
 MeshComponentType ModelMesh_GetObjectTypeMeshType(int objectType,
 						  int meshIndex);
 int ModelMesh_GetVertexCount(int objectType, int meshIndex);
@@ -124,14 +124,16 @@ int ModelMesh_GetComponentMaxExtent(int objectType, int meshIndex);
 int ModelMesh_IsObjectTypeMeshDamageable(int objectType, int meshIndex);
 int ModelMesh_HasExplosionTypeBit0(int objectType, int meshIndex);
 float *ModelMesh_GetRotScaleData(int objectType, int meshIndex);
-OptNode *ModelMesh_FindNthHardpointNodeRecursive(OptNode *node,
-						 OptimizedPolyObject *model,
-						 int hardpointIndex);
-OptNode *ModelMesh_FindNthHardpointNode(OptNode *node,
-					OptimizedPolyObject *model,
+struct OptNode *
+ModelMesh_FindNthHardpointNodeRecursive(struct OptNode *node,
+					struct OptimizedPolyObject *model,
 					int hardpointIndex);
-int ModelMesh_CountHardpointNodesRecursive(OptNode *node,
-					   OptimizedPolyObject *model);
+struct OptNode *
+ModelMesh_FindNthHardpointNode(struct OptNode *node,
+			       struct OptimizedPolyObject *model,
+			       int hardpointIndex);
+int ModelMesh_CountHardpointNodesRecursive(struct OptNode *node,
+					   struct OptimizedPolyObject *model);
 int ModelMesh_CountHardpoints(int objectType, int meshIndex);
 int ModelMesh_GetHardpointIndex(int objectType, int meshIndex,
 				int hardpointIndex);
@@ -146,8 +148,8 @@ int ModelMesh_FindNearestMainHullByBounds(int objectType, int localX,
 int ModelMesh_FindNearestVertexForPoint(int objectType, int localX, int localY,
 					int localZ, int meshIndex,
 					int nearestRank);
-int ModelMesh_FindBridgeIndex(OptimizedPolyObject *model);
-ModelMeshObjectTypeCache *ModelMesh_BuildObjectTypeMeshCache(void);
+int ModelMesh_FindBridgeIndex(struct OptimizedPolyObject *model);
+struct ModelMeshObjectTypeCache *ModelMesh_BuildObjectTypeMeshCache(void);
 
 #ifdef __cplusplus
 }

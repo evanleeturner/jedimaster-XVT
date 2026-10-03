@@ -21,7 +21,7 @@
 
 static struct {
 	FrontendScreenUpdateFn update;
-	RECT rect;
+	struct RECT rect;
 	int active;
 	int pushed;
 	int complete;
@@ -61,14 +61,14 @@ int XvtDialog_ResumeContinuation(int *frame_result)
 	return 1;
 }
 
-int XvtDialog_Begin(FrontendScreenUpdateFn update, const RECT *rect)
+int XvtDialog_Begin(FrontendScreenUpdateFn update, const struct RECT *rect)
 {
 	if (g_dialog.active || g_dialog.complete) {
 		return XVT_DIALOG_PENDING;
 	}
 	XvtPresentation_RequireClassic();
 	g_dialog.update = update;
-	g_dialog.rect = rect ? *rect : (RECT){0, 0, 639, 479};
+	g_dialog.rect = rect ? *rect : (struct RECT){0, 0, 639, 479};
 	g_dialog.parent_overlay_text_enabled =
 		FrontendButton_IsOverlayTextEnabled();
 	g_dialog.cursor_x = g_frontState.mouseX;

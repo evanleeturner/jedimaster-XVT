@@ -13,7 +13,7 @@ int FrontendScrollbar_SaveState(void);
 int FrontendScrollbar_RestoreState(void);
 extern int g_scrollbarRepeatCountdown;
 extern int g_scrollbarRepeatInterval;
-int FrontendScrollbar_Draw(const RECT *barRect, int currentValue,
+int FrontendScrollbar_Draw(const struct RECT *barRect, int currentValue,
 			   int maximumExclusive, int minimum, int pageStep,
 			   unsigned int color, int controlId);
 

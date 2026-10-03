@@ -5,8 +5,8 @@
 #include <limits.h>
 #include <string.h>
 
-void XvtFlightWire_EncodeInput(XvtFlightInputWire *record, int tick,
-			       const FlightInputFrameRecord *input)
+void XvtFlightWire_EncodeInput(struct XvtFlightInputWire *record, int tick,
+			       const struct FlightInputFrameRecord *input)
 {
 	XvtWire_Set32(record->tick, (uint32_t)tick);
 	record->key = input->key;
@@ -16,8 +16,8 @@ void XvtFlightWire_EncodeInput(XvtFlightInputWire *record, int tick,
 	XvtWire_Set16(record->throttle, throttle ? input->throttle : 0);
 }
 
-int XvtFlightWire_DecodeInput(const XvtFlightInputWire *record, int *tick,
-			      FlightInputFrameRecord *input)
+int XvtFlightWire_DecodeInput(const struct XvtFlightInputWire *record,
+			      int *tick, struct FlightInputFrameRecord *input)
 {
 	*tick = (int)XvtWire_Get32(record->tick);
 	if (!XvtFlightWire_ValidTick((uint32_t)*tick) ||
@@ -33,13 +33,13 @@ int XvtFlightWire_DecodeInput(const XvtFlightInputWire *record, int *tick,
 }
 
 size_t XvtFlightMessages_EncodeBatch(uint8_t *out, uint32_t cookie,
-				     const XvtFlightInputWire *records,
+				     const struct XvtFlightInputWire *records,
 				     unsigned count)
 {
 	if (!cookie || !count || count > XVT_INPUT_BATCH_RECORDS) {
 		return 0;
 	}
-	XvtFlightBatchHeader header = {0};
+	struct XvtFlightBatchHeader header = {0};
 	XvtWire_Set32(header.opcode, NET_PACKET_INPUT_BATCH);
 	XvtWire_Set32(header.cookie, cookie);
 	XvtWire_Set16(header.count, count);
@@ -51,7 +51,7 @@ size_t XvtFlightMessages_EncodeBatch(uint8_t *out, uint32_t cookie,
 int XvtFlightMessages_ValidateBatch(const uint8_t *bytes, size_t size,
 				    uint32_t cookie)
 {
-	XvtFlightBatchHeader header;
+	struct XvtFlightBatchHeader header;
 	if (size < sizeof header) {
 		return 0;
 	}
@@ -61,14 +61,14 @@ int XvtFlightMessages_ValidateBatch(const uint8_t *bytes, size_t size,
 	    XvtWire_Get32(header.cookie) != cookie ||
 	    XvtWire_Get16(header.reserved) || !count ||
 	    count > XVT_INPUT_BATCH_RECORDS ||
-	    size != sizeof header + count * sizeof(XvtFlightInputWire)) {
+	    size != sizeof header + count * sizeof(struct XvtFlightInputWire)) {
 		return 0;
 	}
 	int previous = 0;
 	for (unsigned i = 0; i < count; ++i) {
 		int tick;
-		FlightInputFrameRecord input;
-		XvtFlightInputWire record;
+		struct FlightInputFrameRecord input;
+		struct XvtFlightInputWire record;
 		memcpy(&record, bytes + sizeof header + i * sizeof record,
 		       sizeof record);
 		if (!XvtFlightWire_DecodeInput(&record, &tick, &input) ||
@@ -88,7 +88,7 @@ unsigned XvtFlightMessages_PartCount(unsigned count)
 }
 
 size_t XvtFlightMessages_EncodePart(uint8_t *out,
-				    const XvtFlightMessage *message,
+				    const struct XvtFlightMessage *message,
 				    uint32_t cookie, unsigned part)
 {
 	unsigned parts = XvtFlightMessages_PartCount(message->count);
@@ -100,7 +100,7 @@ size_t XvtFlightMessages_EncodePart(uint8_t *out,
 	if (count > XVT_WORLD_PART_RECORDS) {
 		count = XVT_WORLD_PART_RECORDS;
 	}
-	XvtFlightWorldHeader header = {0};
+	struct XvtFlightWorldHeader header = {0};
 	XvtWire_Set32(header.opcode, NET_PACKET_WORLD_MESSAGE);
 	XvtWire_Set32(header.target_flags, message->target_flags);
 	XvtWire_Set32(header.cookie, cookie);
@@ -115,18 +115,18 @@ size_t XvtFlightMessages_EncodePart(uint8_t *out,
 }
 
 static struct {
-	XvtFlightMessage message;
+	struct XvtFlightMessage message;
 	uint8_t seen[XVT_WORLD_PARTS], counts[XVT_WORLD_PARTS], parts;
 	unsigned received;
 } g_parts;
 
-static XvtFlightMessage g_lastAssembled;
+static struct XvtFlightMessage g_lastAssembled;
 
 int XvtFlightMessages_ReceivePart(const uint8_t *bytes, size_t size,
 				  uint32_t cookie, int confirmed,
-				  XvtFlightMessage *out)
+				  struct XvtFlightMessage *out)
 {
-	XvtFlightWorldHeader header;
+	struct XvtFlightWorldHeader header;
 	if (size < sizeof header) {
 		return -1;
 	}
@@ -140,7 +140,8 @@ int XvtFlightMessages_ReceivePart(const uint8_t *bytes, size_t size,
 	    !XvtFlightWire_ValidTick(tick) || !parts ||
 	    parts > XVT_WORLD_PARTS || part >= parts ||
 	    count > XVT_WORLD_PART_RECORDS || !mask ||
-	    size != sizeof header + count * sizeof(XvtFlightWorldInputWire) ||
+	    size != sizeof header +
+			    count * sizeof(struct XvtFlightWorldInputWire) ||
 	    (part + 1 < parts && count != XVT_WORLD_PART_RECORDS) ||
 	    (parts > 1 && !count) ||
 	    part * XVT_WORLD_PART_RECORDS + count > XVT_WORLD_RECORDS) {
@@ -155,7 +156,7 @@ int XvtFlightMessages_ReceivePart(const uint8_t *bytes, size_t size,
 	}
 	unsigned first = part * XVT_WORLD_PART_RECORDS;
 	const uint8_t *payload = bytes + sizeof header;
-	size_t payload_size = count * sizeof(XvtFlightWorldInputWire);
+	size_t payload_size = count * sizeof(struct XvtFlightWorldInputWire);
 	if (tick == previous) {
 		unsigned expected_count =
 			first <= g_lastAssembled.count
@@ -177,9 +178,9 @@ int XvtFlightMessages_ReceivePart(const uint8_t *bytes, size_t size,
 			       : -1;
 	}
 	for (unsigned i = 0; i < count; ++i) {
-		XvtFlightWorldInputWire record;
+		struct XvtFlightWorldInputWire record;
 		int record_tick;
-		FlightInputFrameRecord input;
+		struct FlightInputFrameRecord input;
 		memcpy(&record, payload + i * sizeof record, sizeof record);
 		if (record.player >= XVT_FLIGHT_PLAYERS ||
 		    !(mask & (1u << record.player)) ||
@@ -199,7 +200,7 @@ int XvtFlightMessages_ReceivePart(const uint8_t *bytes, size_t size,
 		g_parts.message.target_flags = flags;
 		g_parts.message.participant_mask = mask;
 	}
-	XvtFlightWorldInputWire *dest = g_parts.message.records + first;
+	struct XvtFlightWorldInputWire *dest = g_parts.message.records + first;
 	if (g_parts.seen[part]) {
 		return g_parts.counts[part] == count &&
 				       !memcmp(dest, payload, payload_size)
@@ -214,9 +215,10 @@ int XvtFlightMessages_ReceivePart(const uint8_t *bytes, size_t size,
 		return 0;
 	}
 	for (unsigned i = 1; i < g_parts.message.count; ++i) {
-		const XvtFlightWorldInputWire *a =
+		const struct XvtFlightWorldInputWire *a =
 			&g_parts.message.records[i - 1];
-		const XvtFlightWorldInputWire *b = &g_parts.message.records[i];
+		const struct XvtFlightWorldInputWire *b =
+			&g_parts.message.records[i];
 		if (a->player > b->player ||
 		    (a->player == b->player &&
 		     XvtWire_Get32(a->input.tick) >=
@@ -230,15 +232,15 @@ int XvtFlightMessages_ReceivePart(const uint8_t *bytes, size_t size,
 	return 1;
 }
 
-typedef struct MessageQueue {
+struct MessageQueue {
 	uint8_t *bytes;
 	size_t capacity, read, used, lengths[XVT_REPLAY_MESSAGES];
 	unsigned head, count, limit;
-} MessageQueue;
+};
 
 static uint8_t g_pendingBytes[XVT_PENDING_BYTES],
 	g_replayBytes[XVT_REPLAY_BYTES];
-static MessageQueue g_queues[XVT_QUEUE_COUNT] = {
+static struct MessageQueue g_queues[XVT_QUEUE_COUNT] = {
 	{.bytes = g_pendingBytes,
 	 .capacity = sizeof g_pendingBytes,
 	 .limit = XVT_PENDING_MESSAGES},
@@ -248,7 +250,7 @@ static MessageQueue g_queues[XVT_QUEUE_COUNT] = {
 
 int XvtFlightMessages_Push(XvtFlightQueue queue, const void *bytes, size_t size)
 {
-	MessageQueue *q = &g_queues[queue];
+	struct MessageQueue *q = &g_queues[queue];
 	if (!size || q->count == q->limit || size > q->capacity - q->used) {
 		return 0;
 	}
@@ -267,7 +269,7 @@ int XvtFlightMessages_Push(XvtFlightQueue queue, const void *bytes, size_t size)
 size_t XvtFlightMessages_Peek(XvtFlightQueue queue, void *bytes,
 			      size_t capacity)
 {
-	MessageQueue *q = &g_queues[queue];
+	struct MessageQueue *q = &g_queues[queue];
 	if (!q->count) {
 		return 0;
 	}
@@ -285,7 +287,7 @@ size_t XvtFlightMessages_Peek(XvtFlightQueue queue, void *bytes,
 
 void XvtFlightMessages_Pop(XvtFlightQueue queue)
 {
-	MessageQueue *q = &g_queues[queue];
+	struct MessageQueue *q = &g_queues[queue];
 	if (!q->count) {
 		return;
 	}
@@ -298,7 +300,7 @@ void XvtFlightMessages_Pop(XvtFlightQueue queue)
 
 void XvtFlightMessages_Clear(XvtFlightQueue queue)
 {
-	MessageQueue *q = &g_queues[queue];
+	struct MessageQueue *q = &g_queues[queue];
 	q->read = q->used = q->head = q->count = 0;
 }
 
@@ -310,13 +312,14 @@ void XvtFlightMessages_Reset(void)
 	memset(&g_parts, 0, sizeof g_parts);
 }
 
-static size_t XvtFlightMessages_StoredSize(const XvtFlightMessage *message)
+static size_t
+XvtFlightMessages_StoredSize(const struct XvtFlightMessage *message)
 {
-	return offsetof(XvtFlightMessage, records) +
+	return offsetof(struct XvtFlightMessage, records) +
 	       message->count * sizeof message->records[0];
 }
 
-int XvtFlightMessages_Enqueue(const XvtFlightMessage *message,
+int XvtFlightMessages_Enqueue(const struct XvtFlightMessage *message,
 			      XvtFlightQueue queue)
 {
 	return XvtFlightMessages_Push(queue, message,
@@ -326,9 +329,9 @@ int XvtFlightMessages_Enqueue(const XvtFlightMessage *message,
 static void XvtFlightMessages_DiscardThrough(XvtFlightQueue queue,
 					     unsigned tick)
 {
-	MessageQueue *storage = &g_queues[queue];
+	struct MessageQueue *storage = &g_queues[queue];
 	unsigned count = storage->count;
-	XvtFlightMessage message;
+	struct XvtFlightMessage message;
 	for (unsigned i = 0; i < count; ++i) {
 		size_t size =
 			XvtFlightMessages_Peek(queue, &message, sizeof message);
@@ -347,7 +350,7 @@ int XvtFlightMessages_PrepareRecovery(unsigned tick)
 	XvtFlightMessages_DiscardThrough(XVT_QUEUE_REPLAY, tick);
 	XvtFlightMessages_DiscardThrough(XVT_QUEUE_PENDING, tick);
 	XvtFlightMessages_DiscardAssemblyThrough(tick);
-	XvtFlightMessage message;
+	struct XvtFlightMessage message;
 	while (XvtFlightMessages_Peek(XVT_QUEUE_PENDING, &message,
 				      sizeof message)) {
 		if (!XvtFlightMessages_Enqueue(&message, XVT_QUEUE_REPLAY)) {
@@ -373,7 +376,7 @@ unsigned XvtFlightMessages_Count(XvtFlightQueue queue)
 
 int XvtFlightMessages_HasRoom(XvtFlightQueue queue, size_t size)
 {
-	const MessageQueue *storage = &g_queues[queue];
+	const struct MessageQueue *storage = &g_queues[queue];
 	return size && storage->count < storage->limit &&
 	       size <= storage->capacity - storage->used;
 }

@@ -90,7 +90,7 @@ struct NetDirectPlayEncodedPacket {
 #pragma pack(push, 1)
 
 /* A resent packet as the lobby sends it through DirectPlay. */
-typedef struct NetDirectPlaySequencedPacket {
+struct NetDirectPlaySequencedPacket {
 	/* Type and sequence as in NetDirectPlayEncodedPacket, with bit 7 set
 	 * and bit 15 clear, which marks a resend. */
 	int16_t packetTypeHeader;
@@ -100,11 +100,11 @@ typedef struct NetDirectPlaySequencedPacket {
 	int16_t payloadSize;
 	/* The body, then, outside types 60-63, a NOP byte. */
 	uint8_t payload[1019];
-} NetDirectPlaySequencedPacket;
+};
 
 #pragma pack(pop)
 typedef char xvt_size_NetDirectPlaySequencedPacket
-	[(sizeof(NetDirectPlaySequencedPacket) == 1024) ? 1 : -1];
+	[(sizeof(struct NetDirectPlaySequencedPacket) == 1024) ? 1 : -1];
 
 #ifndef XVT_MODERN
 /* Fixed instance GUID that Net_OpenDirectPlaySession puts in the session
@@ -198,7 +198,7 @@ GUID g_netDirectPlayServiceProviderGuidScratch = {0};
  * and XvtNetworkSession_Factory; the host clears a player's entry when the
  * player leaves (Net_HandleDirectPlaySystemMessage). */
 // GLOBAL: XVT 0x665050
-NetPlayerConnectionStats g_netPlayerConnectionStats[40];
+struct NetPlayerConnectionStats g_netPlayerConnectionStats[40];
 /* Instance GUID of the session Net_EnumSessionsMatchNameCallback last found
  * by name; Net_FindSessionByName returns its address. Never cleared. */
 // GLOBAL: XVT 0x665028
@@ -269,7 +269,7 @@ int Net_StartNetworkSession(
 	char dialNumber[32] = "Dial a New Number.";
 	char directSerialName[32] = "Direct serial game.";
 	DPCAPS directPlayCaps;
-	NetReliablePeerSlot savedHostSlot;
+	struct NetReliablePeerSlot savedHostSlot;
 	char errorMessage[256];
 	int peerIndex;
 	NetworkTransportType selectedNetworkType;
@@ -997,7 +997,7 @@ int Net_RefreshPlayerRoster(void)
 	int wasBackBufferLocked;
 	int playerIndex;
 	int oldPlayerIndex;
-	NetPlayerInfo oldPlayers[32];
+	struct NetPlayerInfo oldPlayers[32];
 
 	if (g_frontState.netDirectPlay == NULL) {
 		return 0;
@@ -1576,7 +1576,7 @@ void Net_PumpIncomingPackets(void)
 			}
 
 			if (packetType == NET_PACKET_WORLD_NACK) {
-				NetQueuedPacket *queued;
+				struct NetQueuedPacket *queued;
 				int missingWorldTick;
 				int controlValue1;
 				int searchIndex;
@@ -2790,7 +2790,7 @@ int Net_SendSequencedDirectPlayPacket(int destPlayerId, int packetClass,
 	int appendTerminator;
 	int sendResult;
 	char debugText[256];
-	NetDirectPlaySequencedPacket encodedPacket;
+	struct NetDirectPlaySequencedPacket encodedPacket;
 	uint8_t *encodedPayload;
 	int encodedHeaderSize;
 	unsigned int encodedSize;
@@ -2912,8 +2912,8 @@ int Net_SendSequencedDirectPlayPacket(int destPlayerId, int packetClass,
 // FUNCTION: XVT 0x4CFC20
 int Net_EnumerateAppSessions(unsigned int appGuid0, unsigned int appGuid1,
 			     unsigned int appGuid2, unsigned int appGuid3,
-			     NetSessionEnumEntry *outSessions, int maxSessions,
-			     NetworkTransportType networkType)
+			     struct NetSessionEnumEntry *outSessions,
+			     int maxSessions, NetworkTransportType networkType)
 {
 	int wasBackBufferLocked;
 	const GUID *serviceProviderGuid;
@@ -2990,7 +2990,7 @@ int AERON_DXAPI Net_EnumerateAppSessionsCallback(
 	const DPSESSIONDESC2 *sessionDesc, uint32_t *timeoutMs, uint32_t flags,
 	void *userData)
 {
-	NetSessionEnumEntry *outSessions = userData;
+	struct NetSessionEnumEntry *outSessions = userData;
 
 	(void)timeoutMs;
 
@@ -3020,8 +3020,8 @@ int AERON_DXAPI Net_EnumerateAppSessionsCallback(
 /* qsort comparison of two session entries by name, as strcmp orders them.
  * Only the original build calls this. */
 // FUNCTION: XVT 0x4CFE50
-int Net_CompareSessionEnumEntriesByName(const NetSessionEnumEntry *lhs,
-					const NetSessionEnumEntry *rhs)
+int Net_CompareSessionEnumEntriesByName(const struct NetSessionEnumEntry *lhs,
+					const struct NetSessionEnumEntry *rhs)
 {
 	return strcmp(lhs->sessionName, rhs->sessionName);
 }
@@ -3030,7 +3030,7 @@ int Net_CompareSessionEnumEntriesByName(const NetSessionEnumEntry *lhs,
 /* Returns the lobby roster, g_frontState.netPlayers, with its count in
  * *outCount. */
 // FUNCTION: XVT 0x4CFE80
-NetPlayerInfo *Net_GetPlayerRoster(int *outCount)
+struct NetPlayerInfo *Net_GetPlayerRoster(int *outCount)
 {
 	*outCount = g_frontState.netPlayerCount;
 	return g_frontState.netPlayers;
@@ -3222,27 +3222,28 @@ void Net_HandleDirectPlaySystemMessage(int packetType, const void *packetData)
 			if (packetWords[1] == DPPLAYERTYPE_PLAYER &&
 			    packetWords[2] !=
 				    (int)g_frontState.netHostPlayerId) {
-				typedef struct NetSequenceStatusRecord {
+				struct NetSequenceStatusRecord {
 					int playerId;
 					uint8_t previousChannelA;
 					uint8_t previousChannelB;
 					uint8_t channelA;
 					uint8_t channelB;
-				} NetSequenceStatusRecord;
+				};
 
-				typedef struct NetSequenceStatusPacket {
+				struct NetSequenceStatusPacket {
 					int packetType;
 					int playerCount;
 					int peerSlotCount;
 					uint32_t timestampMs;
-					NetSequenceStatusRecord records
+					struct NetSequenceStatusRecord records
 						[(SEQUENCE_STATUS_PACKET_SIZE -
 						  4 * sizeof(int)) /
-						 sizeof(NetSequenceStatusRecord)];
-				} NetSequenceStatusPacket;
+						 sizeof(struct
+							NetSequenceStatusRecord)];
+				};
 
-				NetSequenceStatusRecord *statusRecords;
-				NetSequenceStatusPacket statusPacket;
+				struct NetSequenceStatusRecord *statusRecords;
+				struct NetSequenceStatusPacket statusPacket;
 				unsigned int peerIndex;
 				uint32_t nowMs;
 
@@ -3260,12 +3261,13 @@ void Net_HandleDirectPlaySystemMessage(int packetType, const void *packetData)
 				statusPacket.timestampMs = nowMs;
 				if (g_frontState.netReliablePeerSlotCount > 0) {
 					do {
-						const NetReliablePeerSlot *peer =
+						const struct NetReliablePeerSlot *peer =
 							&g_frontState.netRuntimeReliablePeerSlots
 								 [peerIndex];
-						NetSequenceStatusRecord *record =
-							&statusRecords
-								[peerIndex];
+						struct NetSequenceStatusRecord
+							*record =
+								&statusRecords
+									[peerIndex];
 						record->playerId =
 							peer->directPlayId;
 						record->previousChannelA =
@@ -3487,7 +3489,7 @@ void Net_HandleDirectPlaySystemMessage(int packetType, const void *packetData)
 		break;
 	}
 	case DPSYS_SETPLAYERORGROUPNAME:
-		if (((const NetPlayerNameMessage *)packetData)
+		if (((const struct NetPlayerNameMessage *)packetData)
 			    ->header.dwPlayerType == DPPLAYERTYPE_PLAYER) {
 			unsigned int playerIndex;
 			for (playerIndex = 0;
@@ -3496,12 +3498,14 @@ void Net_HandleDirectPlaySystemMessage(int packetType, const void *packetData)
 			     ++playerIndex) {
 				if (g_frontState.netPlayers[playerIndex]
 					    .playerId ==
-				    ((const NetPlayerNameMessage *)packetData)
+				    ((const struct NetPlayerNameMessage *)
+					     packetData)
 					    ->header.dpId) {
 #ifdef XVT_MODERN
 					if (!XvtNetworkSession_CopyPlayerNames(
-						    (const NetPlayerNameMessage
-							     *)packetData,
+						    (const struct
+						     NetPlayerNameMessage *)
+							    packetData,
 						    g_frontState
 							    .netPlayers
 								    [playerIndex]
@@ -3524,13 +3528,15 @@ void Net_HandleDirectPlaySystemMessage(int packetType, const void *packetData)
 					strcpy(g_frontState
 						       .netPlayers[playerIndex]
 						       .playerName,
-					       ((const NetPlayerNameMessage *)
+					       ((const struct
+						 NetPlayerNameMessage *)
 							packetData)
 						       ->names);
 					strcpy(g_frontState
 						       .netPlayers[playerIndex]
 						       .longName,
-					       &((const NetPlayerNameMessage *)
+					       &((const struct
+						  NetPlayerNameMessage *)
 							 packetData)
 							->names[strlen(g_frontState
 									       .netPlayers
@@ -4453,7 +4459,7 @@ int Net_CountPlayersWithLowerId(DPID playerId)
 {
 	int lowerPlayerIdCount;
 	int remainingPlayerCount;
-	NetPlayerInfo *player;
+	struct NetPlayerInfo *player;
 
 	lowerPlayerIdCount = 0;
 	if (g_frontState.netPlayerCount > 0) {
@@ -4540,7 +4546,7 @@ int Net_IsPlayerReady(int playerId)
 
 /* Returns the roster entry of the player with that id, or NULL. */
 // FUNCTION: XVT 0x4D12F0
-NetPlayerInfo *Net_FindPlayer(int playerId)
+struct NetPlayerInfo *Net_FindPlayer(int playerId)
 {
 	int playerIndex;
 
@@ -4839,14 +4845,15 @@ HRESULT Net_BuildDirectPlayAddress(IDirectPlayLobbyA *directPlayLobby,
 int NetSession_ImportRuntimeState(
 	void **dplayInterfaceOut, GUID *appGuidOut, GUID *sessionGuidOut,
 	int32_t *groupIdOut, int *hostPlayerIdOut,
-	NetPlayerInfo *localPlayerInfoOut, NetQueuedPacket *recvQueueOut,
-	int32_t *recvQueueReadOut, int *recvQueueCountOut,
-	int *recvQueueWriteOut, NetReliablePeerSlot *reliablePeerSlotsOut,
+	struct NetPlayerInfo *localPlayerInfoOut,
+	struct NetQueuedPacket *recvQueueOut, int32_t *recvQueueReadOut,
+	int *recvQueueCountOut, int *recvQueueWriteOut,
+	struct NetReliablePeerSlot *reliablePeerSlotsOut,
 	uint32_t *reliablePeerSlotCountOut, uint32_t *broadcastSeqCounterOut,
 	char *broadcastPayloadOut, int *broadcastPayloadLengthOut,
 	int *broadcastPiggybackEmptyOut, uint32_t *groupSeqCounterOut,
 	char *groupPayloadOut, int *groupPayloadLengthOut,
-	int *groupPiggybackEmptyOut, NetQueuedPacket *sentHistoryOut,
+	int *groupPiggybackEmptyOut, struct NetQueuedPacket *sentHistoryOut,
 	int *sentHistoryWriteIndexOut)
 {
 	int packetIndex;
@@ -4924,15 +4931,16 @@ int NetSession_ImportRuntimeState(
 int NetSession_ExportRuntimeState(
 	void **dplayInterface, const void *appGuid, const void *sessionGuid,
 	int *groupId, int *hostPlayerId, const void *localPlayerInfo,
-	const NetQueuedPacket *recvQueueEntries, int *recvQueueRead,
+	const struct NetQueuedPacket *recvQueueEntries, int *recvQueueRead,
 	int *recvQueueCount, int *recvQueueWrite,
-	const NetReliablePeerSlot *reliablePeerSlots,
+	const struct NetReliablePeerSlot *reliablePeerSlots,
 	int *reliablePeerSlotCount, int *broadcastSeqCounter,
 	const void *broadcastPayload, int *broadcastPayloadLength,
 	int *broadcastPiggybackEmpty, int *groupSeqCounter,
 	const void *groupPayload, int *groupPayloadLength,
-	int *groupPiggybackEmpty, const NetQueuedPacket *sentHistory,
-	int *sentHistoryWriteIndex, NetQueuedPacket *sentWorldMessageHistory,
+	int *groupPiggybackEmpty, const struct NetQueuedPacket *sentHistory,
+	int *sentHistoryWriteIndex,
+	struct NetQueuedPacket *sentWorldMessageHistory,
 	int *sentWorldMessageWriteIndex)
 {
 	int queueIndex;
@@ -5012,13 +5020,13 @@ int NetSession_ExportRuntimeState(
 int Net_CompactReliablePeerSlotsForRoster(void)
 {
 	int playerCount;
-	NetPlayerInfo *playerRoster;
+	struct NetPlayerInfo *playerRoster;
 	int slotIndex;
-	NetReliablePeerSlot *slot;
+	struct NetReliablePeerSlot *slot;
 	int playerIndex;
-	NetPlayerInfo *rosterPlayer;
+	struct NetPlayerInfo *rosterPlayer;
 	int nextSlotIndex;
-	NetReliablePeerSlot *nextSlot;
+	struct NetReliablePeerSlot *nextSlot;
 
 	slotIndex = 0;
 	playerRoster = Net_GetPlayerRoster(&playerCount);
@@ -5186,7 +5194,7 @@ int Net_SendSequenceKeepalives(void)
 {
 	int playerCount;
 	int packet[128];
-	NetPlayerInfo *playerRoster;
+	struct NetPlayerInfo *playerRoster;
 	unsigned int playerIndex;
 
 	playerIndex = 0;
@@ -5278,7 +5286,7 @@ int Net_CheckAndRecordIncomingSequence(int playerId, int sequenceId,
 {
 	unsigned int previousPeerSlotCount;
 	unsigned int peerIndex;
-	NetReliablePeerSlot *peer;
+	struct NetReliablePeerSlot *peer;
 	int previousSequence;
 	int sequenceDelta;
 
@@ -5333,7 +5341,7 @@ int Net_FindQueuedSequencedPacket(int unusedQueueIndex, int sequenceId,
 	int isClass2;
 	unsigned int slot;
 	DPID directPlayId;
-	NetReliablePeerSlot *peer;
+	struct NetReliablePeerSlot *peer;
 
 	(void)unusedQueueIndex;
 
@@ -5495,7 +5503,7 @@ int Net_SetPlayerLatencyMs(int playerId, int latencyMs)
 	}
 
 	{
-		NetPlayerConnectionStats *stats =
+		struct NetPlayerConnectionStats *stats =
 			&g_netPlayerConnectionStats[playerIndex];
 		stats->playerId = playerId;
 		stats->latencySampleCount = 1;
@@ -5571,7 +5579,7 @@ int Net_RefreshPlayerRosterWithLockGuard(void)
 unsigned int Net_FindOrCreatePeerSlot(int directPlayId)
 {
 	unsigned int slot;
-	NetReliablePeerSlot *peers;
+	struct NetReliablePeerSlot *peers;
 	char message[256];
 
 	slot = 0;

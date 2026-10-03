@@ -15,14 +15,14 @@
 #include <stdio.h>
 #include <string.h>
 
-typedef struct XvtTestAssets {
+struct XvtTestAssets {
 	char folder[XVT_TEST_PATH_CAPACITY];
 	char asset[XVT_TEST_PATH_CAPACITY];
 	AeronVfs *vfs;
-} XvtTestAssets;
+};
 
 /* Makes a fresh folder with empty asset, user and temp folders, and binds storage to them. */
-static inline void XvtTest_OpenAssets(XvtTestAssets *assets)
+static inline void XvtTest_OpenAssets(struct XvtTestAssets *assets)
 {
 	char user[XVT_TEST_PATH_CAPACITY];
 	char temp[XVT_TEST_PATH_CAPACITY];
@@ -45,7 +45,8 @@ static inline void XvtTest_OpenAssets(XvtTestAssets *assets)
 
 /* Places an empty file at path, relative to the asset folder and written with '/', making the folders on
  * the way that are missing. */
-static inline void XvtTest_AddAsset(XvtTestAssets *assets, const char *path)
+static inline void XvtTest_AddAsset(struct XvtTestAssets *assets,
+				    const char *path)
 {
 	char prefix[XVT_TEST_PATH_CAPACITY];
 	size_t length = strlen(path);
@@ -65,7 +66,7 @@ static inline void XvtTest_AddAsset(XvtTestAssets *assets, const char *path)
 }
 
 /* Unbinds storage and removes the folder. */
-static inline void XvtTest_CloseAssets(XvtTestAssets *assets)
+static inline void XvtTest_CloseAssets(struct XvtTestAssets *assets)
 {
 	if (!assets->vfs) {
 		return;

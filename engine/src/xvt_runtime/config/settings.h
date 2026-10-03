@@ -18,92 +18,92 @@ extern "C" {
 /* The typed settings the program reads, parsed from the resolved settings document (see config.h).
  * Every value is required; the shipped defaults supply any the player leaves out. */
 
-typedef struct XvtModelSettings {
+struct XvtModelSettings {
 	float smooth_angle_degrees;
 	float opt_emissive_strength, opt_projectile_emissive_strength,
 		engine_emissive_strength;
-} XvtModelSettings;
+};
 
-typedef struct XvtPointLightSettings {
+struct XvtPointLightSettings {
 	int enabled, clustered, cluster_depth_slices, cluster_debug;
 	float scale, range_scale, min_distance, spec_weight, diffuse_wrap,
 		contrib_cap;
-} XvtPointLightSettings;
+};
 
-typedef struct XvtLightingSettings {
+struct XvtLightingSettings {
 	float intensity, spec_mul, wrap;
 	int spec_geom_adapt;
 	float ambient[3];
-} XvtLightingSettings;
+};
 
 enum { XVT_SKY_STARS, XVT_SKY_CUBE };
 
-typedef struct XvtSkySettings {
+struct XvtSkySettings {
 	int enabled, mode;
 	char path[XVT_PATH_CAPACITY];
 	float exposure, star_brightness;
-} XvtSkySettings;
+};
 
-typedef struct XvtHyperspaceSettings {
+struct XvtHyperspaceSettings {
 	float travel_speed, rotation_speed, noise_scale, brightness,
 		highlight_strength;
 	float focal_length, twist, cap_radius, cap_falloff;
 	float mesh_ambient_strength, mesh_environment_roughness,
 		mesh_key_strength;
 	float dark_color[3], body_color[3], highlight_color[3], cap_color[3];
-} XvtHyperspaceSettings;
+};
 
-typedef struct XvtMotionBlurSettings {
+struct XvtMotionBlurSettings {
 	int quality, camera_blur, pause_keep_blur, velocity_viz,
 		fsr_direct_motion;
 	float shutter;
-} XvtMotionBlurSettings;
+};
 
-typedef struct XvtPresentationSettings {
+struct XvtPresentationSettings {
 	int vsync_divisor, hdr_output;
 	/* Negative gamma follows the platform default; zero selects piecewise sRGB. */
 	float sdr_gamma;
 	/* Zero follows the OS reference white. */
 	float paper_white_nits;
-} XvtPresentationSettings;
+};
 
-typedef struct XvtSceneSettings {
+struct XvtSceneSettings {
 	AeronSceneSsaoSettings ssao;
 	AeronSceneShadowSettings shadows;
 	AeronSceneTonemapSettings tonemap;
-} XvtSceneSettings;
+};
 
-typedef struct XvtRenderSettings {
+struct XvtRenderSettings {
 	int cockpit_undither;
-	XvtSceneSettings scene;
+	struct XvtSceneSettings scene;
 	int msaa_samples;
 	AeronTemporalMode temporal_mode;
 	float temporal_sharpness;
-	XvtMotionBlurSettings motion_blur;
-	XvtPresentationSettings presentation;
+	struct XvtMotionBlurSettings motion_blur;
+	struct XvtPresentationSettings presentation;
 	int anisotropic;
 	float max_anisotropy;
-	XvtModelSettings models;
-	XvtPointLightSettings point_lights;
-	XvtLightingSettings lighting;
-	XvtSkySettings sky;
-	XvtHyperspaceSettings hyperspace;
+	struct XvtModelSettings models;
+	struct XvtPointLightSettings point_lights;
+	struct XvtLightingSettings lighting;
+	struct XvtSkySettings sky;
+	struct XvtHyperspaceSettings hyperspace;
 	float bloom_intensity, explosion_emissive_strength;
-} XvtRenderSettings;
+};
 
-typedef struct XvtSettings {
+struct XvtSettings {
 	int skip_intro;
 	int flight_unlocked;
 	char game_data[XVT_PATH_CAPACITY];
 	char ui_font[XVT_PATH_CAPACITY];
 	char lobby_url[AERON_DPLAY_DIRECTORY_URL_CAPACITY];
 	int fullscreen;
-	XvtControllerOptions controller;
-	XvtControllerProfile gamepad_defaults;
-	XvtKeyboardBindings keyboard;
-	XvtMouseOptions mouse;
-	XvtRenderSettings render;
-} XvtSettings;
+	struct XvtControllerOptions controller;
+	struct XvtControllerProfile gamepad_defaults;
+	struct XvtKeyboardBindings keyboard;
+	struct XvtMouseOptions mouse;
+	struct XvtRenderSettings render;
+};
 
 /* Layers game/user render overrides over the required Aeron scene defaults. */
 /* Parses document into *out: every field in the settings table, each of its type and in range (a float
@@ -114,8 +114,8 @@ typedef struct XvtSettings {
  * sky mode needs a path. skybox.mode "procedural" is accepted and read as stars. Returns 1; or 0 with
  * *out unchanged and the first problem in error. */
 int XvtSettings_Parse(const AeronConfigFile *document,
-		      const XvtSceneSettings *scene_defaults, XvtSettings *out,
-		      char *error, size_t capacity);
+		      const struct XvtSceneSettings *scene_defaults,
+		      struct XvtSettings *out, char *error, size_t capacity);
 /* Writes "ROOT/file:line:column: path: message" for the node at path, or for the document root when
  * path is absent, into error. Returns 0. */
 int XvtSettings_NodeError(const AeronConfigFile *document, const char *path,

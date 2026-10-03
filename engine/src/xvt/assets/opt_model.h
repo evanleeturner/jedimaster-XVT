@@ -44,8 +44,8 @@ struct ModelLocalPoint {
 };
 
 struct ModelHangarPoints {
-	ModelLocalPoint inside;	 /* From the hardpoint of type 25. */
-	ModelLocalPoint outside; /* From the hardpoint of type 26. */
+	struct ModelLocalPoint inside;	/* From the hardpoint of type 25. */
+	struct ModelLocalPoint outside; /* From the hardpoint of type 26. */
 };
 
 struct ModelDef {
@@ -170,7 +170,7 @@ struct ModelDef {
 	uint8_t warheadLauncherCapacity[2];
 	/* The weapon slots, the laser groups' first and then the launchers',
 	 * which FeDiskIo_BuildModelDef fills from the model's hardpoints. */
-	ModelWeaponHardpoint weaponHardpoints[16];
+	struct ModelWeaponHardpoint weaponHardpoints[16];
 	/* Countermeasures a craft carries: its cmAmmoCount at spawn, 0xAAAC
 	 * over 65,536 of it for flares, and again when paiman_boardmaneuver
 	 * resupplies it. */
@@ -195,7 +195,7 @@ struct ModelDef {
 	///< defaults to the model minimum up bound.
 	/* Read by the hangar orders, Mission_SpawnFlightGroupWaveCraft and the
 	 * collision code. */
-	ModelHangarPoints
+	struct ModelHangarPoints
 		hangarPoints; ///< Local-space hangar path points from OPT hardpoints 25 (inside) and 26 (outside).
 	/* Times FeDiskIo_BuildModelDef halved the bound sizes to bring each to
 	 * 0x280 or under; readers shift the sizes left by it. */
@@ -208,7 +208,7 @@ struct ModelDef {
 	int16_t boundSizeY; /* Size along y, shifted the same way. */
 };
 
-extern ModelDef g_modelDefs[73];
+extern struct ModelDef g_modelDefs[73];
 extern const float g_sw3dUnitFloat;
 extern const float g_sw3dTriangleCornerCount;
 extern const float g_sw3dQuadCornerCount;
@@ -228,7 +228,7 @@ extern void *g_curMeshTexCoords;
 extern void *g_modelNodeWalkUnusedScratch2;
 extern void *g_curMeshMaterials;
 extern int g_curVertexCount;
-extern OptVector *g_curVertNormals;
+extern struct OptVector *g_curVertNormals;
 
 typedef enum OptNodeType {
 	OPT_GROUP = 0x0,
@@ -295,7 +295,7 @@ struct OptimizedPolyObject {
 		reserved; ///< Import packing stores the temporary packed-block handle here; the final returned
 	///< block preserves the now-stale value. No runtime consumer is identified.
 	int rootNodeCount;   /* Entries in rootNodes. */
-	OptNode **rootNodes; /* The top-level nodes. */
+	struct OptNode **rootNodes; /* The top-level nodes. */
 };
 
 extern uint16_t g_loadedModels[201];
@@ -367,25 +367,26 @@ struct OptLegacyFaceRecordV0 {
 struct OptLegacyFaceDataV0 {
 	/* Nothing uses this structure. */
 	int edgeCount;
-	OptLegacyFaceRecordV0 records[1]; /* Nothing uses this structure. */
+	struct OptLegacyFaceRecordV0
+		records[1]; /* Nothing uses this structure. */
 };
 
 struct OptLegacyFaceStorageV0 {
 	/* Not read or written by name: only the size of this structure is used,
 	 * to find where a version 0 face node's data ends. The data holds all
 	 * the records first, then all the normals, then all the gradients. */
-	OptLegacyFaceRecordV0 faceRecord;
-	OptVector faceNormal;	       /* Not read or written by name. */
-	OptVector textureGradients[2]; /* Not read or written by name. */
+	struct OptLegacyFaceRecordV0 faceRecord;
+	struct OptVector faceNormal;	      /* Not read or written by name. */
+	struct OptVector textureGradients[2]; /* Not read or written by name. */
 };
 
 struct OptLegacyFaceStorage {
 	/* Not read or written by name: only the size of this structure is used,
 	 * to find where a version 1 face node's data ends. The data holds all
 	 * the records first, then all the normals, then all the gradients. */
-	OptPackedFaceRecord faceRecord;
-	OptVector faceNormal;	       /* Not read or written by name. */
-	OptVector textureGradients[2]; /* Not read or written by name. */
+	struct OptPackedFaceRecord faceRecord;
+	struct OptVector faceNormal;	      /* Not read or written by name. */
+	struct OptVector textureGradients[2]; /* Not read or written by name. */
 };
 
 struct OptLegacyFacePayloadV0 {
@@ -394,7 +395,7 @@ struct OptLegacyFacePayloadV0 {
 	int edgeCount;
 	/* Only &storage[payloadCount] is used: the end of the face data, where
 	 * the vertex normals of a mesh without a normal node follow. */
-	OptLegacyFaceStorageV0 storage[1];
+	struct OptLegacyFaceStorageV0 storage[1];
 };
 
 struct OptLegacyFacePayload {
@@ -403,7 +404,7 @@ struct OptLegacyFacePayload {
 	int edgeCount;
 	/* Only &storage[payloadCount] is used: the end of the face data, where
 	 * the vertex normals of a mesh without a normal node follow. */
-	OptLegacyFaceStorage storage[1];
+	struct OptLegacyFaceStorage storage[1];
 };
 
 #ifndef XVT_MODERN
@@ -411,9 +412,10 @@ struct OptPackedFaceNode {
 	char *name;		     /* OptNode's pName. */
 	int nodeType;		     /* OptNode's nodeType. */
 	int childCount;		     /* OptNode's childCount. */
-	OptNode **children;	     /* OptNode's pChildren. */
+	struct OptNode **children;   /* OptNode's pChildren. */
 	int faceCount;		     /* OptNode's payloadCount: the faces. */
-	OptPackedFaceData *faceData; /* OptNode's payload: the face data. */
+	struct OptPackedFaceData
+		*faceData; /* OptNode's payload: the face data. */
 };
 #endif
 
@@ -424,14 +426,14 @@ struct OptPackedFaceData {
 	/* The face records, then one normal and two texture gradient vectors
 	 * per face, then, when the mesh has no normal node, one normal per
 	 * vertex. */
-	OptPackedFaceRecord records[1];
+	struct OptPackedFaceRecord records[1];
 };
 
 struct OptHardpoint {
 	/* Type 0 to 31, named in g_hardpointTypeNames: weapons, then hangar,
 	 * dock and cockpit points. */
 	int hardpointType;
-	OptVector position; /* Position in the model's coordinates. */
+	struct OptVector position; /* Position in the model's coordinates. */
 };
 
 uint16_t OptModel_LoadHandle(const char *modelFilename);
@@ -439,99 +441,106 @@ uint16_t OptModel_LoadHandle(const char *modelFilename);
 uint16_t OptModel_LoadInventorBinaryToHandle(XvtFile *stream);
 uint16_t OptModel_LoadInventorAsciiToHandle(XvtFile *stream);
 int OptModel_ParseInventorAsciiNode(XvtFile *stream, char *nodeStorage,
-				    OptNode **outNode);
+				    struct OptNode **outNode);
 #endif
-void OptModel_TranslateNodeVerticesRecursive(OptNode *node,
-					     OptimizedPolyObject *model,
+void OptModel_TranslateNodeVerticesRecursive(struct OptNode *node,
+					     struct OptimizedPolyObject *model,
 					     const float *translation);
-void OptModel_TranslateVertices(OptimizedPolyObject *model,
+void OptModel_TranslateVertices(struct OptimizedPolyObject *model,
 				const float *translation);
 #ifndef XVT_MODERN
-void OptModel_RelocateLoadedPointers(OptimizedPolyObject *model);
-void OptModel_RelocateNodePointersRecursive(OptNode *node,
+void OptModel_RelocateLoadedPointers(struct OptimizedPolyObject *model);
+void OptModel_RelocateNodePointersRecursive(struct OptNode *node,
 					    XvtOptValue relocationDelta);
 #endif
-void OptModel_AdjustOptimizedPolyObjectPointers(OptimizedPolyObject *model);
-void OptModel_AdjustOptimizedNodePointers(OptNode *node,
+void OptModel_AdjustOptimizedPolyObjectPointers(
+	struct OptimizedPolyObject *model);
+void OptModel_AdjustOptimizedNodePointers(struct OptNode *node,
 					  XvtOptValue relocationDelta);
 uint16_t OptModel_LoadFileToHandle(char *filename);
 unsigned int OptModel_ConvertLegacyModelToOptimized(unsigned int sourceSize);
-void *OptModel_FindSharedTextureDataInNodeBeforeTarget(const void *textureData,
-						       OptNode *node,
-						       const OptNode *stopNode);
+void *OptModel_FindSharedTextureDataInNodeBeforeTarget(
+	const void *textureData, struct OptNode *node,
+	const struct OptNode *stopNode);
 void *OptModel_FindEarlierSharedTextureData(const void *textureData,
-					    OptimizedPolyObject *model,
-					    const OptNode *stopNode);
-unsigned int OptModel_ConvertLegacyNodeToOptimized(
-	uint8_t *dst, OptNode *srcNode, OptimizedPolyObject *srcModel,
-	OptimizedPolyObject *dstModel, SceneMesh *meshState);
-void OptModel_CollectUniqueVertices(OptNode *dstVertexNode, OptNode *srcNode,
-				    OptimizedPolyObject *srcModel,
-				    SceneMesh *meshState);
-void OptModel_CollectUniqueTexCoords(OptNode *dstTexCoordNode, OptNode *srcNode,
-				     OptimizedPolyObject *srcModel,
-				     SceneMesh *meshState);
-void OptModel_CollectUniqueVertexNormals(OptNode *dstNormalNode,
-					 OptNode *srcNode,
-					 OptimizedPolyObject *srcModel,
-					 SceneMesh *meshState);
-int OptModel_RemapVectorIndex(const OptNode *uniqueVectorNode,
-			      const OptVector *sourceVectors, int sourceIndex);
-int OptModel_RemapTexCoordIndex(const OptNode *uniqueTexCoordNode,
-				const OptTexCoord *sourceTexCoords,
+					    struct OptimizedPolyObject *model,
+					    const struct OptNode *stopNode);
+unsigned int
+OptModel_ConvertLegacyNodeToOptimized(uint8_t *dst, struct OptNode *srcNode,
+				      struct OptimizedPolyObject *srcModel,
+				      struct OptimizedPolyObject *dstModel,
+				      struct SceneMesh *meshState);
+void OptModel_CollectUniqueVertices(struct OptNode *dstVertexNode,
+				    struct OptNode *srcNode,
+				    struct OptimizedPolyObject *srcModel,
+				    struct SceneMesh *meshState);
+void OptModel_CollectUniqueTexCoords(struct OptNode *dstTexCoordNode,
+				     struct OptNode *srcNode,
+				     struct OptimizedPolyObject *srcModel,
+				     struct SceneMesh *meshState);
+void OptModel_CollectUniqueVertexNormals(struct OptNode *dstNormalNode,
+					 struct OptNode *srcNode,
+					 struct OptimizedPolyObject *srcModel,
+					 struct SceneMesh *meshState);
+int OptModel_RemapVectorIndex(const struct OptNode *uniqueVectorNode,
+			      const struct OptVector *sourceVectors,
+			      int sourceIndex);
+int OptModel_RemapTexCoordIndex(const struct OptNode *uniqueTexCoordNode,
+				const struct OptTexCoord *sourceTexCoords,
 				int sourceIndex);
-void OptModel_AppendConvertedFacesForNode(OptNode *dstFaceNode,
-					  OptNode *targetFaceNode,
-					  OptNode *node,
-					  OptimizedPolyObject *srcModel,
-					  SceneMesh *meshState);
-void OptModel_AppendConvertedFacesForCurrentMesh(OptNode *dstFaceNode,
-						 OptNode *targetFaceNode,
-						 OptimizedPolyObject *srcModel,
-						 SceneMesh *meshState);
+void OptModel_AppendConvertedFacesForNode(struct OptNode *dstFaceNode,
+					  struct OptNode *targetFaceNode,
+					  struct OptNode *node,
+					  struct OptimizedPolyObject *srcModel,
+					  struct SceneMesh *meshState);
+void OptModel_AppendConvertedFacesForCurrentMesh(
+	struct OptNode *dstFaceNode, struct OptNode *targetFaceNode,
+	struct OptimizedPolyObject *srcModel, struct SceneMesh *meshState);
 uint16_t OptModel_CreateRuntimeHandle(unsigned int sourceHandle);
-void OptModel_FixupRuntimeTexturePointers(OptNode *node,
-					  OptimizedPolyObject *dstModel,
-					  OptimizedPolyObject *srcModel);
-OptNode *OptModel_FindCorrespondingTextureNode(OptNode *srcNode,
-					       OptNode *dstNode,
-					       const uint16_t *sourcePalette);
-OptNode *
-OptModel_FindCorrespondingTextureNodeInModel(OptimizedPolyObject *dstModel,
-					     OptimizedPolyObject *srcModel,
-					     const uint16_t *sourcePalette);
+void OptModel_FixupRuntimeTexturePointers(struct OptNode *node,
+					  struct OptimizedPolyObject *dstModel,
+					  struct OptimizedPolyObject *srcModel);
+struct OptNode *
+OptModel_FindCorrespondingTextureNode(struct OptNode *srcNode,
+				      struct OptNode *dstNode,
+				      const uint16_t *sourcePalette);
+struct OptNode *OptModel_FindCorrespondingTextureNodeInModel(
+	struct OptimizedPolyObject *dstModel,
+	struct OptimizedPolyObject *srcModel, const uint16_t *sourcePalette);
 #ifndef XVT_MODERN
 void OptModel_SaveHandleToFile(const char *filename, uint16_t handle);
 #endif
-unsigned int OptModel_MeasureNodeAndRaiseCapacities(OptNode *node,
-						    SceneMesh *parentState);
+unsigned int
+OptModel_MeasureNodeAndRaiseCapacities(struct OptNode *node,
+				       struct SceneMesh *parentState);
 void OptModel_PrepareTexturePalette(uint16_t *palette, int entryCount);
-unsigned int OptModel_BuildRuntimeNode(const OptNode *srcNode,
-				       SceneMesh *meshState, uint8_t *dst);
+unsigned int OptModel_BuildRuntimeNode(const struct OptNode *srcNode,
+				       struct SceneMesh *meshState,
+				       uint8_t *dst);
 #ifndef XVT_MODERN
 uint16_t OptModel_ConvertImportedHandleToPacked(uint16_t sourceHandle);
 size_t OptModel_ConvertImportedNodeToPackedRecursive(
-	const OptimizedPolyObject *sourceModel, const OptNode *sourceNode,
-	void *conversionState, uint8_t *destBuffer);
+	const struct OptimizedPolyObject *sourceModel,
+	const struct OptNode *sourceNode, void *conversionState,
+	uint8_t *destBuffer);
 size_t OptModel_CalculatePackedNodeSizeRecursive(
-	const OptimizedPolyObject *sourceModel, const OptNode *sourceNode,
-	void *conversionState);
-int OptModel_FindUniqueEdgeIndex(const OptPackedFaceNode *faceNode,
+	const struct OptimizedPolyObject *sourceModel,
+	const struct OptNode *sourceNode, void *conversionState);
+int OptModel_FindUniqueEdgeIndex(const struct OptPackedFaceNode *faceNode,
 				 int vertexIndexA, int vertexIndexB);
-float *OptModel_AppendPackedFaceDerivedData(OptPackedFaceNode *faceNode,
+float *OptModel_AppendPackedFaceDerivedData(struct OptPackedFaceNode *faceNode,
 					    uint8_t *dest,
 					    void *conversionState);
-void OptModel_BuildFaceNormalTangentData(float *dest,
-					 const OptPackedFaceData *faceData,
-					 int faceCount,
-					 const void *conversionState);
-void OptModel_BuildVertexNormalsFromFaces(float *dest,
-					  const OptPackedFaceData *faceData,
-					  int faceCount);
+void OptModel_BuildFaceNormalTangentData(
+	float *dest, const struct OptPackedFaceData *faceData, int faceCount,
+	const void *conversionState);
+void OptModel_BuildVertexNormalsFromFaces(
+	float *dest, const struct OptPackedFaceData *faceData, int faceCount);
 #endif
-OptNode *OptModel_ResolveNodeRef(const OptimizedPolyObject *object,
-				 const char *name);
-OptNode *OptModel_FindNodeByName(OptNode *node, const char *name);
+struct OptNode *
+OptModel_ResolveNodeRef(const struct OptimizedPolyObject *object,
+			const char *name);
+struct OptNode *OptModel_FindNodeByName(struct OptNode *node, const char *name);
 #ifndef XVT_MODERN
 int OptModel_GetExternalTextureSerializedSize(const char *sourceFileName);
 #endif

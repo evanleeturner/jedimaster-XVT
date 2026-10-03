@@ -7,13 +7,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct Motion {
+struct Motion {
 	int32_t position[3], time, current_time;
 	uint16_t signature;
 	uint8_t type, valid, current_valid;
-} Motion;
+};
 
-static Motion *g_motion;
+static struct Motion *g_motion;
 static size_t g_count;
 
 void XvtReferenceMotion_Shutdown(void)
@@ -32,7 +32,7 @@ int XvtReferenceMotion_Init(size_t count)
 	}
 	g_count = count;
 	for (unsigned i = 0; i < count; ++i) {
-		const ObjectRecord *o = &g_objectTable[i];
+		const struct ObjectRecord *o = &g_objectTable[i];
 		if (!o->objectType) {
 			continue;
 		}
@@ -54,13 +54,13 @@ void XvtReferenceMotion_Reset(unsigned slot)
 	}
 }
 
-static Motion *Entry(unsigned slot)
+static struct Motion *Entry(unsigned slot)
 {
 	if (slot >= g_count || !g_objectTable) {
 		return NULL;
 	}
-	Motion *m = &g_motion[slot];
-	const ObjectRecord *o = &g_objectTable[slot];
+	struct Motion *m = &g_motion[slot];
+	const struct ObjectRecord *o = &g_objectTable[slot];
 	if (m->signature != o->objectSignature || m->type != o->objectType) {
 		memset(m, 0, sizeof *m);
 		m->signature = o->objectSignature;
@@ -74,7 +74,7 @@ void XvtReferenceMotion_Committed(unsigned slot, int timestamp)
 	if (!XvtFlightTiming_IsUnlocked()) {
 		return;
 	}
-	Motion *m = Entry(slot);
+	struct Motion *m = Entry(slot);
 	if (m) {
 		m->current_time = timestamp;
 		m->current_valid = 1;
@@ -87,8 +87,8 @@ void XvtReferenceMotion_CommitBoundary(void)
 		return;
 	}
 	for (unsigned i = 0; i < g_count; ++i) {
-		Motion *m = Entry(i);
-		const ObjectRecord *o = &g_objectTable[i];
+		struct Motion *m = Entry(i);
+		const struct ObjectRecord *o = &g_objectTable[i];
 		if (!o->objectType) {
 			m->valid = m->current_valid = 0;
 			continue;
@@ -104,11 +104,11 @@ void XvtReferenceMotion_CommitBoundary(void)
 void XvtReferenceMotion_Displacement(unsigned slot, int32_t delta[3])
 {
 	memset(delta, 0, 3 * sizeof *delta);
-	Motion *m = Entry(slot);
+	struct Motion *m = Entry(slot);
 	if (!m || !m->valid) {
 		return;
 	}
-	const ObjectRecord *o = &g_objectTable[slot];
+	const struct ObjectRecord *o = &g_objectTable[slot];
 	int now = m->current_valid ? m->current_time : g_gameTime;
 	int64_t interval = (int64_t)now - m->time;
 	if (interval <= 0) {
@@ -145,15 +145,16 @@ void XvtReferenceMotion_ResetShared(void)
 	}
 }
 
-void XvtReferenceMotion_Encode(unsigned slot, XvtReferenceMotionWire *out)
+void XvtReferenceMotion_Encode(unsigned slot,
+			       struct XvtReferenceMotionWire *out)
 {
 	memset(out, 0, sizeof *out);
 	XvtWire_Set16(out->slot, slot);
 	if (slot >= g_count) {
 		return;
 	}
-	const Motion *motion = &g_motion[slot];
-	const ObjectRecord *object = &g_objectTable[slot];
+	const struct Motion *motion = &g_motion[slot];
+	const struct ObjectRecord *object = &g_objectTable[slot];
 	if (!object->objectType || motion->type != object->objectType ||
 	    motion->signature != object->objectSignature) {
 		return;
@@ -170,7 +171,8 @@ void XvtReferenceMotion_Encode(unsigned slot, XvtReferenceMotionWire *out)
 	XvtWire_Set32(out->current_tick, (uint32_t)motion->current_time);
 }
 
-int XvtReferenceMotion_Decode(const XvtReferenceMotionWire *record, int apply)
+int XvtReferenceMotion_Decode(const struct XvtReferenceMotionWire *record,
+			      int apply)
 {
 	unsigned slot = XvtWire_Get16(record->slot);
 	if (slot >= g_count ||
@@ -179,13 +181,13 @@ int XvtReferenceMotion_Decode(const XvtReferenceMotionWire *record, int apply)
 		return 0;
 	}
 	if (!record->type) {
-		XvtReferenceMotionWire empty = {0};
+		struct XvtReferenceMotionWire empty = {0};
 		XvtWire_Set16(empty.slot, slot);
 		if (memcmp(record, &empty, sizeof empty)) {
 			return 0;
 		}
 	}
-	Motion motion = {0};
+	struct Motion motion = {0};
 	motion.signature = XvtWire_Get16(record->signature);
 	motion.type = record->type;
 	motion.valid = (record->flags & XVT_MOTION_VALID) != 0;

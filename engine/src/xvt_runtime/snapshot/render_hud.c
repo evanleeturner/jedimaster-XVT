@@ -9,7 +9,7 @@
 #include "xvt_runtime/snapshot/render_capture.h"
 #include <string.h>
 
-static XvtSnapTargetBox g_boxes[XVT_SNAP_TARGET_BOXES];
+static struct XvtSnapTargetBox g_boxes[XVT_SNAP_TARGET_BOXES];
 static unsigned g_boxCount, g_scope = XVT_SCOPE_COCKPIT;
 
 void XvtRenderDraw_Scope(unsigned scope) { g_scope = scope; }
@@ -36,7 +36,7 @@ void XvtRenderHud_Reset(void)
 
 void XvtRenderHud_BeginFrame(void) { XvtRenderHud_Reset(); }
 
-void XvtRenderHud_Publish(XvtRenderSnapshot *out)
+void XvtRenderHud_Publish(struct XvtRenderSnapshot *out)
 {
 	out->target_box_count = g_boxCount;
 	memcpy(out->target_boxes, g_boxes, g_boxCount * sizeof *g_boxes);
@@ -45,7 +45,7 @@ void XvtRenderHud_Publish(XvtRenderSnapshot *out)
 void XvtRenderHud_TargetBox(unsigned object, unsigned component, int extent,
 			    int color)
 {
-	XvtRenderSnapshot *s = XvtRenderSnapshot_Writer();
+	struct XvtRenderSnapshot *s = XvtRenderSnapshot_Writer();
 	if (!s || XvtRenderDraw_ScopeCurrent() == XVT_SCOPE_MAP ||
 	    XvtRenderDraw_ScopeCurrent() == XVT_SCOPE_CRT) {
 		return;
@@ -54,8 +54,8 @@ void XvtRenderHud_TargetBox(unsigned object, unsigned component, int extent,
 		++s->dropped_records;
 		return;
 	}
-	XvtSnapTargetBox *b = &g_boxes[g_boxCount++];
-	*b = (XvtSnapTargetBox){
+	struct XvtSnapTargetBox *b = &g_boxes[g_boxCount++];
+	*b = (struct XvtSnapTargetBox){
 		.object = {UINT16_MAX, 0},
 		.component = (uint16_t)component,
 		.color_index = (uint16_t)color,
@@ -64,7 +64,7 @@ void XvtRenderHud_TargetBox(unsigned object, unsigned component, int extent,
 		.world_pos = {g_worldLocX, g_worldLocY, g_worldLocZ}};
 	if (object < (unsigned)(g_regionMainObjectSlotEnd +
 				g_regionStaticObjectSlotCount)) {
-		b->object = (XvtSnapObjectId){
+		b->object = (struct XvtSnapObjectId){
 			(uint16_t)object,
 			g_objectTable[object].objectSignature};
 	}

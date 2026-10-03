@@ -52,7 +52,7 @@ struct MobileObject {
 	 * from prevWorldX, prevWorldY, prevWorldZ to its current position. */
 	int prevWorldZ;
 	/* Objects near this one that collide_collisions tests it against. */
-	MobileObjectProximityList proximityList;
+	struct MobileObjectProximityList proximityList;
 	/* Spin about the roll axis after an impact or a breakup.
 	 * Object_UpdateLifetimeAndMovement turns roll by 4 times this per
 	 * simulated second and, for a craft whose aiFlight.impactObjIdx is
@@ -123,14 +123,14 @@ struct MobileObject {
 	/* A shot's guidance record in g_projectileGuidanceStates, set when the
 	 * shot is made; Mission_Init sets NULL, and an effect left in a shot
 	 * slot keeps the pointer. */
-	WarheadGuidanceState *pWarheadGuidance;
+	struct WarheadGuidanceState *pWarheadGuidance;
 	/* The craft record in g_craftDataPoolBase for an object in a craft
 	 * slot; NULL in most other slots. */
-	CraftData *pCraft;
+	struct CraftData *pCraft;
 	/* A record in g_mobileObjectCharDataPool. Mission_Init sets NULL, and
 	 * no code points it elsewhere except to carry its own value through a
 	 * world-state save and load. */
-	MobileObjectCharData *pCharData;
+	struct MobileObjectCharData *pCharData;
 };
 
 /* What the gunner of one weapon slot of a craft is firing at
@@ -156,7 +156,7 @@ struct MobileObjectCharData {
 	uint8_t unused02[2];
 	/* AI state; Flight_UpdateTimers counts down its think and maneuver
 	 * timers. */
-	AiController aiController;
+	struct AiController aiController;
 	/* Never read or written by name, save in the modern build's snapshot
 	 * field table, which copies it. */
 	uint8_t unused40[12];
@@ -220,11 +220,11 @@ struct MobileObjectLinkIndices {
 	int charDataIdx;
 };
 
-extern MobileObjectLinkIndices g_mobileObjectLinkIndices[488];
+extern struct MobileObjectLinkIndices g_mobileObjectLinkIndices[488];
 extern int g_spawnObjectTypeByObjectSlot[488];
-extern MobileObject *g_mobileObjectPoolBase;
-extern MobileObjectCharData *g_mobileObjectCharDataPool;
-extern WarheadGuidanceState *g_projectileGuidanceStates;
+extern struct MobileObject *g_mobileObjectPoolBase;
+extern struct MobileObjectCharData *g_mobileObjectCharDataPool;
+extern struct WarheadGuidanceState *g_projectileGuidanceStates;
 extern int g_activeRegionCraftObjectSlotEnd;
 extern int g_mobileObjectCharDataCount;
 extern int g_mobileObjectCharDataSlotStart;
@@ -241,8 +241,8 @@ extern unsigned int g_explosionObjectSlotEnd;
 extern int g_explosionObjectSlotStart;
 extern unsigned int g_projectileObjectSlotsTotal;
 extern int g_activeRegionObjectSlotStart;
-extern ObjectSlotRange g_objectSlotRangeByGenus[20];
-extern ObjectRecord *g_objectTable;
+extern struct ObjectSlotRange g_objectSlotRangeByGenus[20];
+extern struct ObjectRecord *g_objectTable;
 
 void Object_UpdateLifetimeAndMovement(void);
 int Object_AddTrigMoveDeltaAndClampWorldPosition(uint32_t *objectWords);

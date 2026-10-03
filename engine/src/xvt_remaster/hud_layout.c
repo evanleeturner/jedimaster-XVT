@@ -2,7 +2,8 @@
 #include <math.h>
 #include <string.h>
 
-static int AddPart(XvtHudLayout *layout, const XvtCockpitDefinition *definition,
+static int AddPart(struct XvtHudLayout *layout,
+		   const struct XvtCockpitDefinition *definition,
 		   unsigned panel, unsigned key, XvtHudPartColor mode,
 		   unsigned color, int fade)
 {
@@ -10,7 +11,7 @@ static int AddPart(XvtHudLayout *layout, const XvtCockpitDefinition *definition,
 	    layout->part_count == XVT_HUD_PART_CAPACITY) {
 		return 0;
 	}
-	XvtHudPartRequest *part = &layout->parts[layout->part_count++];
+	struct XvtHudPartRequest *part = &layout->parts[layout->part_count++];
 	part->source = definition->panels[panel];
 	part->key = (uint16_t)key;
 	part->color_mode = (uint8_t)mode;
@@ -19,13 +20,14 @@ static int AddPart(XvtHudLayout *layout, const XvtCockpitDefinition *definition,
 	return part->source.asset_id != 0;
 }
 
-static int BindFrames(XvtHudLayout *layout, const XvtCockpitState *state,
+static int BindFrames(struct XvtHudLayout *layout,
+		      const struct XvtCockpitState *state,
 		      XvtHudSpriteRole role, unsigned index, unsigned count,
 		      int fixed_key, unsigned frame_step)
 {
-	const XvtSnapHudElement *element =
+	const struct XvtSnapHudElement *element =
 		&state->definition.layout.elements[index];
-	XvtHudSpriteBinding *binding = &layout->sprites[role];
+	struct XvtHudSpriteBinding *binding = &layout->sprites[role];
 	binding->x = (int16_t)element->x;
 	binding->y = (int16_t)element->y;
 	binding->first_part = layout->part_count;
@@ -42,12 +44,14 @@ static int BindFrames(XvtHudLayout *layout, const XvtCockpitState *state,
 	return 1;
 }
 
-static int BindFadedFrames(XvtHudLayout *layout, const XvtCockpitState *state,
+static int BindFadedFrames(struct XvtHudLayout *layout,
+			   const struct XvtCockpitState *state,
 			   XvtHudSpriteRole role, unsigned index, int beam)
 {
-	const XvtCockpitDefinition *definition = &state->definition;
-	const XvtSnapHudElement *element = &definition->layout.elements[index];
-	XvtHudSpriteBinding *binding = &layout->sprites[role];
+	const struct XvtCockpitDefinition *definition = &state->definition;
+	const struct XvtSnapHudElement *element =
+		&definition->layout.elements[index];
+	struct XvtHudSpriteBinding *binding = &layout->sprites[role];
 	if (!beam && element->color_index == UINT16_MAX) {
 		return 1;
 	}
@@ -75,13 +79,14 @@ static int BindFadedFrames(XvtHudLayout *layout, const XvtCockpitState *state,
 	return 1;
 }
 
-static int CompileWeapons(XvtHudLayout *layout, const XvtCockpitState *state)
+static int CompileWeapons(struct XvtHudLayout *layout,
+			  const struct XvtCockpitState *state)
 {
 	unsigned base = state->view.instrument_base;
 	for (unsigned slot = 0; slot < state->view.laser_slots; ++slot) {
-		const XvtSnapHudElement *charge_layout =
+		const struct XvtSnapHudElement *charge_layout =
 			&state->definition.layout.elements[base + 3 + slot];
-		const XvtSnapHudElement *selection_layout =
+		const struct XvtSnapHudElement *selection_layout =
 			&state->definition.layout.elements[base + 11 + slot];
 		if (!base && !charge_layout->x && !charge_layout->y) {
 			continue;
@@ -92,7 +97,7 @@ static int CompileWeapons(XvtHudLayout *layout, const XvtCockpitState *state)
 					base + 3 + slot, 3, 253, 1)) {
 				return 0;
 			}
-			XvtHudSpriteBinding *charge =
+			struct XvtHudSpriteBinding *charge =
 				&layout->sprites[XVT_HUD_LASER_CHARGE + slot];
 			charge->mirrored = state->definition.layout
 						   .elements[base + 3 + slot]
@@ -129,7 +134,8 @@ static int CompileWeapons(XvtHudLayout *layout, const XvtCockpitState *state)
 			  1);
 }
 
-static int CompileSystems(XvtHudLayout *layout, const XvtCockpitState *state)
+static int CompileSystems(struct XvtHudLayout *layout,
+			  const struct XvtCockpitState *state)
 {
 	unsigned base = state->view.instrument_base;
 	unsigned features = state->systems.installed_hud_features;
@@ -212,18 +218,19 @@ static int CompileSystems(XvtHudLayout *layout, const XvtCockpitState *state)
 			  1);
 }
 
-static void CompileAnchors(XvtHudLayout *layout, const XvtCockpitState *state)
+static void CompileAnchors(struct XvtHudLayout *layout,
+			   const struct XvtCockpitState *state)
 {
 	unsigned base = state->view.instrument_base;
-	const XvtSnapHudElement *crt =
+	const struct XvtSnapHudElement *crt =
 		&state->definition.layout.elements[base + 2];
-	layout->crt =
-		(XvtSnapRect){crt->x, crt->y, crt->selector, crt->color_index};
+	layout->crt = (struct XvtSnapRect){crt->x, crt->y, crt->selector,
+					   crt->color_index};
 	for (unsigned side = 0; side < 2; ++side) {
-		const XvtSnapHudElement *radar =
+		const struct XvtSnapHudElement *radar =
 			&state->definition.layout.elements[base + side];
-		layout->radar[side] =
-			(XvtHudAnchor){(int16_t)radar->x, (int16_t)radar->y};
+		layout->radar[side] = (struct XvtHudAnchor){(int16_t)radar->x,
+							    (int16_t)radar->y};
 	}
 	/* Placement capture already resolves map/shared anchors and message margins. */
 	for (unsigned page = 0; page < MFD_PAGE_COUNT; ++page) {
@@ -234,7 +241,8 @@ static void CompileAnchors(XvtHudLayout *layout, const XvtCockpitState *state)
 	}
 }
 
-int XvtHudLayout_Compile(const XvtCockpitState *state, XvtHudLayout *layout)
+int XvtHudLayout_Compile(const struct XvtCockpitState *state,
+			 struct XvtHudLayout *layout)
 {
 	if (!state || !layout) {
 		return 0;
@@ -282,7 +290,7 @@ int XvtHudLayout_Compile(const XvtCockpitState *state, XvtHudLayout *layout)
 	return 1;
 }
 
-void XvtHudLayout_Fit(const XvtHudLayout *layout, int width, int height,
+void XvtHudLayout_Fit(const struct XvtHudLayout *layout, int width, int height,
 		      float *scale, float *offset_x, float *offset_y)
 {
 	*scale = layout->source_width && layout->source_height && width > 0 &&
@@ -294,12 +302,13 @@ void XvtHudLayout_Fit(const XvtHudLayout *layout, int width, int height,
 	*offset_y = (height - layout->source_height * *scale) * .5f;
 }
 
-int XvtHudLayout_Update(XvtHudLayoutCache *cache, const XvtCockpitState *state)
+int XvtHudLayout_Update(struct XvtHudLayoutCache *cache,
+			const struct XvtCockpitState *state)
 {
 	if (!cache || !state) {
 		return 0;
 	}
-	XvtCockpitView key = {0};
+	struct XvtCockpitView key = {0};
 	key.screen_width = state->view.screen_width;
 	key.screen_height = state->view.screen_height;
 	key.hud_state = state->view.hud_state;
@@ -315,7 +324,7 @@ int XvtHudLayout_Update(XvtHudLayoutCache *cache, const XvtCockpitState *state)
 	    cache->installed_hud_features !=
 		    state->systems.installed_hud_features ||
 	    memcmp(&cache->view_key, &key, sizeof key)) {
-		XvtHudLayout replacement;
+		struct XvtHudLayout replacement;
 		if (!XvtHudLayout_Compile(state, &replacement)) {
 			return 0;
 		}

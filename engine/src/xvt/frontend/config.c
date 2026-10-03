@@ -40,7 +40,7 @@
  * name and description. Config_LoadJoystickActionDictionary fills it when the
  * config screen opens. */
 // GLOBAL: XVT 0xBB2820
-JoystickEntry g_joystickEntries[128] = {0};
+struct JoystickEntry g_joystickEntries[128] = {0};
 /* Entries in g_joystickEntries; Config_LoadJoystickActionDictionary sets it. */
 // GLOBAL: XVT 0xBB72A0
 int g_joystickEntryCount = 0;
@@ -69,7 +69,7 @@ int g_configSelectedJoystickActionIndex = 0;
  * host's game options packets and the command line change them, and many
  * functions read them. */
 // GLOBAL: XVT 0xBB72B0
-GameConfig g_gameConfig = {0};
+struct GameConfig g_gameConfig = {0};
 
 /* 1 while a config page should also draw its controls' fixed images into the
  * offscreen background: Config_OptionsDatapadUpdate sets 1 on its first frame
@@ -236,7 +236,7 @@ int Config_OptionsDatapadUpdate(int frameCounter)
 	int joystickEntryIndex;
 	int animationFrame;
 	int dismissRequested;
-	RECT rect;
+	struct RECT rect;
 
 	if (frameCounter == 0) {
 		FrontendCursor_SetPos(32, 127);
@@ -418,7 +418,7 @@ int Config_OptionsDatapadUpdate(int frameCounter)
 // FUNCTION: XVT 0x4B83A0
 void Config_DrawVideoOptionRows(void)
 {
-	RECT rect;
+	struct RECT rect;
 
 	FrontendDraw_RectAssign(&rect, 84, 90, 604, 106);
 	FrontendText_DrawCentered(
@@ -453,7 +453,7 @@ void Config_DrawVideoOptionRows(void)
 // FUNCTION: XVT 0x4B84E0
 void Config_DrawScreenResolutionOptionRow(int isMultiplayer)
 {
-	RECT rect;
+	struct RECT rect;
 	int previousScreenResolution;
 
 	FrontendDraw_RectAssign(&rect, 88, 111, 332, 125);
@@ -475,7 +475,7 @@ void Config_DrawScreenResolutionOptionRow(int isMultiplayer)
 // FUNCTION: XVT 0x4B8570
 void Config_DrawWindowSizeOptionRow(int configIndex)
 {
-	RECT rect;
+	struct RECT rect;
 
 	FrontendDraw_RectAssign(&rect, 88, 160, 332, 174);
 	FrontendText_DrawAlignedInRect(
@@ -496,7 +496,7 @@ void Config_DrawWindowSizeOptionRow(int configIndex)
 // FUNCTION: XVT 0x4B8600
 void Config_DrawBitsPerPixelOptionRow(int configIndex)
 {
-	RECT rect;
+	struct RECT rect;
 
 	FrontendDraw_RectAssign(&rect, 88, 209, 332, 223);
 	if (g_gameConfig.use3dHardware[configIndex] != 0) {
@@ -522,7 +522,7 @@ void Config_DrawBitsPerPixelOptionRow(int configIndex)
 // FUNCTION: XVT 0x4B86E0
 void Config_DrawBrightnessOptionRow(int configIndex)
 {
-	RECT rect;
+	struct RECT rect;
 
 	FrontendDraw_RectAssign(&rect, 88, 243, 332, 257);
 	FrontendText_DrawAlignedInRect(
@@ -537,7 +537,7 @@ void Config_DrawBrightnessOptionRow(int configIndex)
 // FUNCTION: XVT 0x4B8760
 void Config_DrawDebrisOptionRow(int configIndex)
 {
-	RECT rect;
+	struct RECT rect;
 
 	FrontendDraw_RectAssign(&rect, 88, 292, 332, 306);
 	FrontendText_DrawAlignedInRect(
@@ -552,7 +552,7 @@ void Config_DrawDebrisOptionRow(int configIndex)
 // FUNCTION: XVT 0x4B87E0
 void Config_DrawBackdropOptionRow(int configIndex)
 {
-	RECT rect;
+	struct RECT rect;
 
 	FrontendDraw_RectAssign(&rect, 88, 326, 332, 340);
 	FrontendText_DrawAlignedInRect(
@@ -567,7 +567,7 @@ void Config_DrawBackdropOptionRow(int configIndex)
 // FUNCTION: XVT 0x4B8860
 void Config_DrawStarDensityOptionRow(int configIndex)
 {
-	RECT rect;
+	struct RECT rect;
 
 	FrontendDraw_RectAssign(&rect, 88, 360, 332, 374);
 	FrontendText_DrawAlignedInRect(
@@ -582,7 +582,7 @@ void Config_DrawStarDensityOptionRow(int configIndex)
 // FUNCTION: XVT 0x4B88E0
 void Config_DrawLevelOfDetailOptionRow(int configIndex)
 {
-	RECT rect;
+	struct RECT rect;
 
 	FrontendDraw_RectAssign(&rect, 356, 111, 600, 125);
 	FrontendText_DrawAlignedInRect(
@@ -597,7 +597,7 @@ void Config_DrawLevelOfDetailOptionRow(int configIndex)
 // FUNCTION: XVT 0x4B8960
 void Config_DrawTextureResolutionOptionRow(int configIndex)
 {
-	RECT rect;
+	struct RECT rect;
 
 	FrontendDraw_RectAssign(&rect, 356, 155, 600, 169);
 	FrontendText_DrawAlignedInRect(
@@ -612,7 +612,7 @@ void Config_DrawTextureResolutionOptionRow(int configIndex)
 // FUNCTION: XVT 0x4B89E0
 void Config_DrawDitherOptionRow(int configIndex)
 {
-	RECT rect;
+	struct RECT rect;
 
 	FrontendDraw_RectAssign(&rect, 356, 199, 600, 213);
 	FrontendText_DrawAlignedInRect(
@@ -628,7 +628,7 @@ void Config_DrawDitherOptionRow(int configIndex)
 // FUNCTION: XVT 0x4B8A60
 void Config_DrawMipmapOptionRow(int configIndex)
 {
-	RECT rect;
+	struct RECT rect;
 
 	FrontendDraw_RectAssign(&rect, 356, 228, 600, 242);
 	FrontendText_DrawAlignedInRect(
@@ -646,7 +646,7 @@ void Config_DrawMipmapOptionRow(int configIndex)
 // FUNCTION: XVT 0x4B8B20
 void Config_DrawLocalLightsOptionRow(int configIndex)
 {
-	RECT rect;
+	struct RECT rect;
 
 	FrontendDraw_RectAssign(&rect, 356, 272, 600, 286);
 	FrontendText_DrawAlignedInRect(
@@ -662,7 +662,7 @@ void Config_DrawLocalLightsOptionRow(int configIndex)
 // FUNCTION: XVT 0x4B8BA0
 void Config_DrawSpecularOptionRow(int configIndex)
 {
-	RECT rect;
+	struct RECT rect;
 
 	FrontendDraw_RectAssign(&rect, 356, 301, 600, 315);
 	if (g_gameConfig.use3dHardware[configIndex] != 0) {
@@ -689,7 +689,7 @@ void Config_DrawSpecularOptionRow(int configIndex)
 // FUNCTION: XVT 0x4B8C80
 void Config_DrawDiffuseLightingOptionRow(int configIndex)
 {
-	RECT rect;
+	struct RECT rect;
 
 	FrontendDraw_RectAssign(&rect, 356, 330, 600, 344);
 	FrontendText_DrawAlignedInRect(
@@ -704,7 +704,7 @@ void Config_DrawDiffuseLightingOptionRow(int configIndex)
 // FUNCTION: XVT 0x4B8D00
 void Config_DrawUse3dHardwareOptionRow(int configIndex)
 {
-	RECT rect;
+	struct RECT rect;
 	int previousUse3dHardware;
 
 	FrontendDraw_RectAssign(&rect, 356, 359, 600, 373);
@@ -726,7 +726,7 @@ void Config_DrawUse3dHardwareOptionRow(int configIndex)
 // FUNCTION: XVT 0x4B8DA0
 void Config_DrawBilinearOptionRow(int configIndex)
 {
-	RECT rect;
+	struct RECT rect;
 
 	FrontendDraw_RectAssign(&rect, 356, 388, 600, 402);
 	if (g_gameConfig.use3dHardware[configIndex] != 0) {
@@ -750,7 +750,7 @@ void Config_DrawBilinearOptionRow(int configIndex)
 /* The two-choice control of Config_DrawTwoChoiceOptionImpl with a translucent
  * marker, taking clicks. */
 // FUNCTION: XVT 0x4B8E80
-void Config_DrawTwoChoiceOptionDimmed(uint8_t *value, const RECT *rect,
+void Config_DrawTwoChoiceOptionDimmed(uint8_t *value, const struct RECT *rect,
 				      FrontendStringId valueBaseStrId)
 {
 	Config_DrawTwoChoiceOptionImpl(value, rect, valueBaseStrId, 1, 0);
@@ -759,7 +759,7 @@ void Config_DrawTwoChoiceOptionDimmed(uint8_t *value, const RECT *rect,
 /* The two-choice control of Config_DrawTwoChoiceOptionImpl with an opaque
  * marker, taking clicks. */
 // FUNCTION: XVT 0x4B8EA0
-void Config_DrawTwoChoiceOption(uint8_t *value, const RECT *rect,
+void Config_DrawTwoChoiceOption(uint8_t *value, const struct RECT *rect,
 				FrontendStringId valueBaseStrId)
 {
 	Config_DrawTwoChoiceOptionImpl(value, rect, valueBaseStrId, 0, 0);
@@ -768,7 +768,7 @@ void Config_DrawTwoChoiceOption(uint8_t *value, const RECT *rect,
 /* The two-choice control of Config_DrawTwoChoiceOptionImpl with a translucent
  * marker, ignoring clicks. */
 // FUNCTION: XVT 0x4B8EC0
-void Config_DrawTwoChoiceOptionReadOnly(uint8_t *value, const RECT *rect,
+void Config_DrawTwoChoiceOptionReadOnly(uint8_t *value, const struct RECT *rect,
 					FrontendStringId valueBaseStrId)
 {
 	Config_DrawTwoChoiceOptionImpl(value, rect, valueBaseStrId, 1, 1);
@@ -783,12 +783,12 @@ void Config_DrawTwoChoiceOptionReadOnly(uint8_t *value, const RECT *rect,
  * stores its number in *value, playing "configsound" when that changes it and
  * frontend sounds are on. */
 // FUNCTION: XVT 0x4B8EE0
-void Config_DrawTwoChoiceOptionImpl(uint8_t *value, const RECT *rect,
+void Config_DrawTwoChoiceOptionImpl(uint8_t *value, const struct RECT *rect,
 				    FrontendStringId valueBaseStrId,
 				    int translucentSelection, int disableInput)
 {
-	RECT optionRect;
-	RECT spriteRect;
+	struct RECT optionRect;
+	struct RECT spriteRect;
 	int cursorX;
 	int cursorY;
 	int optionIndex;
@@ -867,11 +867,11 @@ void Config_DrawTwoChoiceOptionImpl(uint8_t *value, const RECT *rect,
  * g_configDrawStaticControlBackground is set it also draws the bar into the
  * offscreen background. */
 // FUNCTION: XVT 0x4B9090
-void Config_DrawThreeChoiceOption(uint8_t *value, const RECT *rect,
+void Config_DrawThreeChoiceOption(uint8_t *value, const struct RECT *rect,
 				  FrontendStringId valueBaseStrId)
 {
-	RECT optionRect;
-	RECT spriteRect;
+	struct RECT optionRect;
+	struct RECT spriteRect;
 	int cursorX;
 	int cursorY;
 	int buttonWidth;
@@ -969,15 +969,15 @@ void Config_DrawThreeChoiceOption(uint8_t *value, const RECT *rect,
  * and frontend sounds on, a change plays "configsound". Moves rect 2 pixels
  * right while drawing and back on every path. */
 // FUNCTION: XVT 0x4B93F0
-void Config_DrawOptionSlider(uint8_t *value, RECT *rect, int valueCount,
+void Config_DrawOptionSlider(uint8_t *value, struct RECT *rect, int valueCount,
 			     FrontendStringId rangeLabelId,
 			     int playSoundOnChange)
 {
-	RECT optionRect;
+	struct RECT optionRect;
 	int cursorY;
 	int cursorX;
 	float stepSize;
-	RECT handleRect;
+	struct RECT handleRect;
 	double stepSizeAsDouble;
 	int sliderWidth;
 	int selectedValue;
@@ -1779,7 +1779,7 @@ int Config_UpdateNavigationAndRestoreDefaults(void)
 	};
 
 	struct {
-		RECT rect; /* Area of the button being handled. */
+		struct RECT rect; /* Area of the button being handled. */
 		/* State of each page light: the five pages, restore, an unused
 		 * slot and taunts. */
 		FrontendNavigationSlotState
@@ -2321,8 +2321,8 @@ void Config_NetworkOptionsScreen(void)
 		FIELD_WIDTH = 200
 	};
 
-	RECT rect;
-	RECT sourceRect;
+	struct RECT rect;
+	struct RECT sourceRect;
 	int labelWidth;
 #ifndef XVT_MODERN
 	int cursorX;
@@ -2654,12 +2654,12 @@ void Config_NetworkOptionsScreen(void)
  * client's internet play setting. */
 // FUNCTION: XVT 0x4BC1C0
 void Config_DrawTwoChoiceOptionReadOnlyOpaque(const uint8_t *value,
-					      const RECT *rect,
+					      const struct RECT *rect,
 					      FrontendStringId valueBaseStrId)
 {
 	int optionIndex;
-	RECT slotRect;
-	RECT spriteRect;
+	struct RECT slotRect;
+	struct RECT spriteRect;
 	int cursorX;
 	int cursorY;
 
@@ -2705,11 +2705,11 @@ void Config_DrawTwoChoiceOptionReadOnlyOpaque(const uint8_t *value,
  * clicks. */
 // FUNCTION: XVT 0x4BC2F0
 void Config_DrawThreeChoiceOptionReadOnly(const uint8_t *selectedOption,
-					  const RECT *barRect,
+					  const struct RECT *barRect,
 					  FrontendStringId firstOptionStringId)
 {
-	RECT optionRect;
-	RECT spriteRect;
+	struct RECT optionRect;
+	struct RECT spriteRect;
 	int cursorX;
 	int cursorY;
 	int buttonWidth;
@@ -2784,7 +2784,7 @@ void Config_DrawThreeChoiceOptionReadOnly(const uint8_t *selectedOption,
 // FUNCTION: XVT 0x4BC520
 void Config_SoundOptionsScreen(void)
 {
-	RECT rect;
+	struct RECT rect;
 	int previousVolume;
 	int previousDatapadMusic;
 
@@ -2952,7 +2952,7 @@ void Config_SoundOptionsScreen(void)
 // FUNCTION: XVT 0x4BCC10
 void Config_JoystickRemapScreen(void)
 {
-	RECT rect;
+	struct RECT rect;
 	int pressedButton;
 	int povDirection;
 	int cursorX;
@@ -3086,7 +3086,7 @@ void Config_JoystickRemapScreen(void)
 				int entryIndex = 0;
 				int entryCount = g_joystickEntryCount;
 				if (entryCount > entryIndex) {
-					JoystickEntry *entry =
+					struct JoystickEntry *entry =
 						g_joystickEntries;
 					uint8_t actionCode =
 						g_gameConfig.joyButtons
@@ -3144,7 +3144,8 @@ void Config_JoystickRemapScreen(void)
 			}
 			actionIndex = 0;
 			if (entryCount > 0) {
-				JoystickEntry *entries = g_joystickEntries;
+				struct JoystickEntry *entries =
+					g_joystickEntries;
 				for (; actionIndex < entryCount;
 				     ++actionIndex) {
 					if (listRowIndex < buttonCount) {
@@ -3273,7 +3274,8 @@ void Config_JoystickRemapScreen(void)
 		     actionIndex < g_configJoystickActionScrollOffset + 19 &&
 		     actionIndex < g_joystickEntryCount;
 		     ++actionIndex) {
-			JoystickEntry *entry = &g_joystickEntries[actionIndex];
+			struct JoystickEntry *entry =
+				&g_joystickEntries[actionIndex];
 			if (FrontendDraw_PointInRect(&rect, cursorX, cursorY) !=
 			    0) {
 				FrontendDraw_RectOutline(&rect, 0, 0,
@@ -3319,7 +3321,7 @@ void Config_JoystickRemapScreen(void)
 	}
 
 	{
-		JoystickEntry *entry;
+		struct JoystickEntry *entry;
 		int entryIndex = 0;
 		uint8_t actionCode = Config_ReadJoystickActionPickerKey();
 		int entryCount = g_joystickEntryCount;
@@ -3574,7 +3576,7 @@ uint8_t Config_ReadJoystickActionPickerKey(void)
 // FUNCTION: XVT 0x4BDA30
 void Config_DrawCustomTauntsPage(void)
 {
-	RECT rect;
+	struct RECT rect;
 	int widestLabel;
 	int labelIndex;
 	int labelWidth;

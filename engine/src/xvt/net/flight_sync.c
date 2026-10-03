@@ -37,7 +37,7 @@ int g_inputFrameCount[8] = {0};
  * other players. Many writers; chiefly FlightSync_InsertInputFrame and
  * FlightSync_RemoveInputHistoryFrame. */
 // GLOBAL: XVT 0x9ED670
-InputFrame g_inputHistory[8][450] = {{{0}}};
+struct InputFrame g_inputHistory[8][450] = {{{0}}};
 /* Set to 1 by FlightSync_ApplyResyncAndReplayWorldMessages as it loads a
  * resent world state; the next FlightSync_ApplyWorldMessagePacket, after
  * restoring that state, marks every live object's move vector and
@@ -78,12 +78,12 @@ int g_remotePlayerRenderSmoothingEnabled = 1;
  * FlightSync_ApplyRemotePlayerRenderSmoothing predicts the next drawn pose
  * from it. FlightSync_ResetRemotePlayerRenderSmoothing marks all invalid. */
 // GLOBAL: XVT 0x550888
-RemotePlayerRenderSample g_remotePlayerRenderSamples[8];
+struct RemotePlayerRenderSample g_remotePlayerRenderSamples[8];
 /* Per player, the simulated pose FlightSync_ApplyRemotePlayerRenderSmoothing
  * saves before it moves the craft to its drawn pose;
  * FlightSync_CaptureSamplesAndRestorePoses puts it back after drawing. */
 // GLOBAL: XVT 0x550A08
-RemotePlayerSavedSimPose g_remotePlayerSavedSimPoses[8];
+struct RemotePlayerSavedSimPose g_remotePlayerSavedSimPoses[8];
 #ifndef XVT_MODERN
 /* Locked memory of g_worldMessageBufferHandle, where a client keeps the
  * server's world messages back to back while
@@ -105,7 +105,7 @@ static uint8_t *g_worldMessageBuffer = NULL;
 void FlightSync_QueuePredictedRemoteInputFrames(int predictedFrameDelta)
 {
 	int playerIdx;
-	FlightInputFrameRecord input;
+	struct FlightInputFrameRecord input;
 
 	if (g_internetPlayEnabled != 0) {
 		return;
@@ -113,8 +113,8 @@ void FlightSync_QueuePredictedRemoteInputFrames(int predictedFrameDelta)
 	memset(&input, 0, sizeof(input));
 	for (playerIdx = 0; playerIdx < 8; ++playerIdx) {
 		int count;
-		InputFrame *lastFrame;
-		InputFrame *predictedFrame;
+		struct InputFrame *lastFrame;
+		struct InputFrame *predictedFrame;
 
 		if (g_players[playerIdx].participationState == 0 ||
 		    playerIdx == g_localPlayer) {
@@ -156,7 +156,7 @@ void FlightSync_DiscardAllPredictedInputFrames(void)
 		if (g_players[playerIndex].participationState != 0 &&
 		    playerIndex != g_localPlayer) {
 			int frameIndex;
-			InputFrame *frame;
+			struct InputFrame *frame;
 
 			frame = g_inputHistory[playerIndex];
 			frameIndex = 0;
@@ -182,7 +182,7 @@ void FlightSync_DiscardAllPredictedInputFrames(void)
 void FlightSync_DiscardPredictedInputFrames(int playerIdx)
 {
 	int frameIndex;
-	InputFrame *frame;
+	struct InputFrame *frame;
 
 	if (
 #ifndef XVT_MODERN
@@ -210,11 +210,11 @@ void FlightSync_DiscardPredictedInputFrames(int playerIdx)
  * nothing when the history is empty or the pointer lies before the player's
  * row; does not check that it lies among the frames in use. */
 // FUNCTION: XVT 0x4186E0
-void FlightSync_RemoveInputHistoryFrame(int playerIdx, InputFrame *frame)
+void FlightSync_RemoveInputHistoryFrame(int playerIdx, struct InputFrame *frame)
 {
 	int frameCount;
 	int copyIndex;
-	InputFrame *current;
+	struct InputFrame *current;
 
 	frameCount = g_inputFrameCount[playerIdx];
 	if (frameCount != 0) {
@@ -244,11 +244,12 @@ void FlightSync_RemoveInputHistoryFrame(int playerIdx, InputFrame *frame)
  * or awaits relay, which refuses it. The frame gets inputSource 1 and
  * awaitingRelay 0; callers may change them afterwards. */
 // FUNCTION: XVT 0x418760
-InputFrame *FlightSync_InsertInputFrame(int playerIdx, int timestamp,
-					const FlightInputFrameRecord *input)
+struct InputFrame *
+FlightSync_InsertInputFrame(int playerIdx, int timestamp,
+			    const struct FlightInputFrameRecord *input)
 {
 #ifdef XVT_MODERN
-	InputFrame *inserted;
+	struct InputFrame *inserted;
 	XvtInputInsertStatus status = XvtFlightHistory_Insert(
 		(unsigned)playerIdx, timestamp, input, &inserted);
 	if (status == XVT_INPUT_FULL && XvtFlightTiming_IsNetwork125()) {
@@ -257,11 +258,11 @@ InputFrame *FlightSync_InsertInputFrame(int playerIdx, int timestamp,
 	return inserted;
 #else
 
-	InputFrame *arrayEnd;
+	struct InputFrame *arrayEnd;
 	int existingTimestamp;
 	int frameCount;
 	int frameIndex;
-	InputFrame *frame;
+	struct InputFrame *frame;
 
 	frameIndex = 0;
 	frameCount = g_inputFrameCount[playerIdx];
@@ -305,11 +306,11 @@ InputFrame *FlightSync_InsertInputFrame(int playerIdx, int timestamp,
 /* Returns the last frame in a player's input history that still awaits relay
  * (awaitingRelay nonzero), or NULL when none does. */
 // FUNCTION: XVT 0x418890
-InputFrame *FlightSync_FindLastUnrelayedInputFrame(int playerIdx)
+struct InputFrame *FlightSync_FindLastUnrelayedInputFrame(int playerIdx)
 {
-	InputFrame *frame;
+	struct InputFrame *frame;
 	int frameCount;
-	InputFrame *result;
+	struct InputFrame *result;
 
 	frame = g_inputHistory[playerIdx];
 	frameCount = g_inputFrameCount[playerIdx];
@@ -356,13 +357,13 @@ void FlightSync_CaptureSamplesAndRestorePoses(void)
 
 	playerIndex = 0;
 	do {
-		PlayerData *player = &g_players[playerIndex];
+		struct PlayerData *player = &g_players[playerIndex];
 		int sampleWasValid =
 			g_remotePlayerRenderSamples[playerIndex].valid;
 		g_remotePlayerRenderSamples[playerIndex].valid = 0;
 		if (g_players[playerIndex].participationState != 0 &&
 		    g_localPlayer != playerIndex && player->objectIndex != -1) {
-			ObjectRecord *object =
+			struct ObjectRecord *object =
 				&g_objectTable[player->objectIndex];
 			if (object->objectType != 0 && object->mobj != NULL) {
 				if (sampleWasValid == 0) {
@@ -477,7 +478,7 @@ void FlightSync_CaptureSamplesAndRestorePoses(void)
 void FlightSync_ApplyRemotePlayerRenderSmoothing(void)
 {
 	int playerIndex;
-	ObjectRecord *object;
+	struct ObjectRecord *object;
 	int predictedWorldX;
 	int predictedWorldY;
 	int predictedWorldZ;
@@ -743,7 +744,7 @@ void FlightSync_ApplyWorldMessagePacket(uint8_t *packet)
 	int playerIndex;
 	int packetTick;
 	int checksumRequested;
-	FlightInputFrameRecord input;
+	struct FlightInputFrameRecord input;
 
 	if (NetSession_IsLocalHost() == 0 &&
 	    g_flightNetBufferWorldMessagesUntilChecksum == 1) {
@@ -799,7 +800,7 @@ void FlightSync_ApplyWorldMessagePacket(uint8_t *packet)
 			--remainingPlayerBlocks;
 			frameCount = *cursor++;
 			while (frameCount > 0) {
-				InputFrame *inserted;
+				struct InputFrame *inserted;
 				int timestampCode;
 				int deltaCode;
 				int timestamp;

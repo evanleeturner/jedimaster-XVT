@@ -127,7 +127,7 @@ struct FlightSwRotSpriteCoeffState {
 	 * as magnitudes. Entries 1 to scanCount: the edge's points from (0,
 	 * 0), one step along the main axis each and the cross axis following
 	 * the edge's slope. */
-	FlightSwRotSpriteEdgePoint edgePointsWithPredecessor[1601];
+	struct FlightSwRotSpriteEdgePoint edgePointsWithPredecessor[1601];
 	/* A step factor in 256ths that FlightSw_PrepareRotatedSpriteScaleState
 	 * folds into the vertical step. */
 	uint16_t secondaryStepByte;
@@ -198,8 +198,8 @@ struct FlightSwRotSpriteSpanRun {
 	int length; /* Pixels. */
 };
 
-extern FlightSwRotSpriteSpanRun g_flightSwRotSpriteSpanRuns[512];
-extern FlightSwRotSpriteScaleState g_flightSwRotSpriteScaleState;
+extern struct FlightSwRotSpriteSpanRun g_flightSwRotSpriteSpanRuns[512];
+extern struct FlightSwRotSpriteScaleState g_flightSwRotSpriteScaleState;
 extern uint8_t *g_flightSwRotSpriteDestLinePtr;
 extern int16_t g_flightSwRotSpriteSkipSecondaryScaleStep;
 extern uint16_t g_flightSwRotSpriteSecondaryScaleAccum;
@@ -209,12 +209,12 @@ extern int16_t g_flightSwRotSpritePrimaryEdgeX;
 extern int16_t g_flightSwRotSpritePrimaryEdgeY;
 extern int16_t g_flightSwRotSpriteViewportMaxY;
 extern int16_t g_flightSwRotSpriteClipMaxX;
-extern FlightSwRotSpriteCoeffState *g_flightSwRotSpriteCoeffs;
+extern struct FlightSwRotSpriteCoeffState *g_flightSwRotSpriteCoeffs;
 extern int g_flightSwRotSpriteSpanRunCountdown;
 
 /* SpritePayload describes the same 44-byte image header as TexLevelImageHeader, under different field
  * names; some code reads one image through both. */
-typedef struct SpritePayload {
+struct SpritePayload {
 	uint32_t payloadSize; /* Never read or written through this name. */
 	/* Never read or written through this name; TexLevelImageHeader calls
 	 * it paletteOffset. */
@@ -234,7 +234,7 @@ typedef struct SpritePayload {
 	int32_t packingMode;
 	int32_t bitsPerPixel; /* Never read or written through this name. */
 	int32_t colorCount;   /* Colors in the drawing palette. */
-} SpritePayload;
+};
 
 void FlightSw_InitFramebuffer(void);
 void FlightSw_SetRenderTarget(void *surface, int width, unsigned int height,
@@ -271,29 +271,31 @@ void FlightStarfield_Render(void);
 void RtsVga2_SetCurrentPage(uint8_t window, uint16_t page);
 void FlightScreenshot_Capture(void);
 void FlightSw_DrawLine8bpp(int x1, int y1, int x2, int y2, uint8_t colorIdx);
-void FlightSw_DrawRotSpriteSpanRuns8(const FlightSwRotSpriteSpanRun *runs,
-				     uint8_t *destBase, const int *spanOffsets);
-void FlightSw_DrawClippedRotSpriteSpanRuns8(
-	const FlightSwRotSpriteSpanRun *runs, uint8_t *destBase,
+void FlightSw_DrawRotSpriteSpanRuns8(
+	const struct FlightSwRotSpriteSpanRun *runs, uint8_t *destBase,
 	const int *spanOffsets);
-void FlightSw_DrawRotSpriteSpanRuns16(const FlightSwRotSpriteSpanRun *runs,
-				      uint8_t *destBase,
-				      const int *spanOffsets);
+void FlightSw_DrawClippedRotSpriteSpanRuns8(
+	const struct FlightSwRotSpriteSpanRun *runs, uint8_t *destBase,
+	const int *spanOffsets);
+void FlightSw_DrawRotSpriteSpanRuns16(
+	const struct FlightSwRotSpriteSpanRun *runs, uint8_t *destBase,
+	const int *spanOffsets);
 void FlightSw_DrawClippedRotSpriteSpanRuns16(
-	const FlightSwRotSpriteSpanRun *runs, uint8_t *destBase,
+	const struct FlightSwRotSpriteSpanRun *runs, uint8_t *destBase,
 	const int *spanOffsets);
 void FlightSw_DrawRotatedSpriteQuad(int16_t screenX, int16_t screenY,
-				    uint16_t screenSize, SpritePayload *sprite);
+				    uint16_t screenSize,
+				    struct SpritePayload *sprite);
 void FlightSw_ClipAndBlitPreparedRotatedSprite(int *cornerCoords);
 void FlightSw_PrepareSpriteRotationTables(int16_t rotationAngle,
 					  int bytesPerPixel);
-int FlightSw_LoadSpritePaletteTables(SpritePayload *sprite);
+int FlightSw_LoadSpritePaletteTables(struct SpritePayload *sprite);
 uint16_t FlightSw_LookupScaledTangent(uint16_t angle, int16_t scalePercent);
 void FlightSw_PrepareRotatedSpriteScaleState(
-	uint16_t screenSize, FlightSwRotSpriteCoeffState *rotationCoeffs,
-	FlightSwRotSpriteScaleState *scaleState);
+	uint16_t screenSize, struct FlightSwRotSpriteCoeffState *rotationCoeffs,
+	struct FlightSwRotSpriteScaleState *scaleState);
 void FlightSw_RotateSpritePoint(uint16_t *rotationCoeffs,
-				FlightSwRotSpriteScaleState *scaleState);
+				struct FlightSwRotSpriteScaleState *scaleState);
 void FlightSw_BuildSpriteRotationCoeffs(uint16_t rotationAngle,
 					uint16_t *outCoeffs);
 void FlightSw_RasterizePreparedRotatedSprite(uint8_t *spriteData,

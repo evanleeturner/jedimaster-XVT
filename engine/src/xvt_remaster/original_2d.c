@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-void XvtOriginal2d_Free(XvtOriginal2d *source)
+void XvtOriginal2d_Free(struct XvtOriginal2d *source)
 {
 	if (!source) {
 		return;
@@ -52,8 +52,9 @@ static int EmptyFrame(AeronIndexedFrame *frame, uint16_t index)
 	return frame->indices && frame->coverage;
 }
 
-static int DecodePnl(const XvtSnapImageAsset *source, const void *bytes,
-		     size_t size, XvtOriginal2d *out, AeronDecodeError *error)
+static int DecodePnl(const struct XvtSnapImageAsset *source, const void *bytes,
+		     size_t size, struct XvtOriginal2d *out,
+		     AeronDecodeError *error)
 {
 	if (!source->record_count || source->first_record > 4096 ||
 	    source->record_count > 4096 - source->first_record) {
@@ -110,7 +111,7 @@ static int DecodePnl(const XvtSnapImageAsset *source, const void *bytes,
 	return 1;
 }
 
-static int DecodeCursor(XvtOriginal2d *out)
+static int DecodeCursor(struct XvtOriginal2d *out)
 {
 	out->images.frames = calloc(1, sizeof *out->images.frames);
 	if (!out->images.frames) {
@@ -137,7 +138,7 @@ static int DecodeCursor(XvtOriginal2d *out)
 	return 1;
 }
 
-int XvtOriginal2d_BuildMapIcons(const XvtOriginal2d *source,
+int XvtOriginal2d_BuildMapIcons(const struct XvtOriginal2d *source,
 				AeronCommandBuffer *cmd,
 				const uint32_t palette[256], int remap,
 				AeronRuntimeAtlas *out)
@@ -201,8 +202,8 @@ int XvtOriginal2d_BuildMapIcons(const XvtOriginal2d *source,
 	return ok;
 }
 
-int XvtOriginal2d_LoadAct(const char *path, XvtOriginal2d *out, char *error,
-			  size_t capacity)
+int XvtOriginal2d_LoadAct(const char *path, struct XvtOriginal2d *out,
+			  char *error, size_t capacity)
 {
 	memset(out, 0, sizeof *out);
 	uint8_t *bytes = NULL;
@@ -220,8 +221,8 @@ int XvtOriginal2d_LoadAct(const char *path, XvtOriginal2d *out, char *error,
 	return 1;
 }
 
-int XvtOriginal2d_Load(const XvtSnapImageAsset *source, XvtOriginal2d *out,
-		       char *error, size_t capacity)
+int XvtOriginal2d_Load(const struct XvtSnapImageAsset *source,
+		       struct XvtOriginal2d *out, char *error, size_t capacity)
 {
 	memset(out, 0, sizeof *out);
 	uint8_t *bytes = NULL;
@@ -281,7 +282,7 @@ int XvtOriginal2d_Load(const XvtSnapImageAsset *source, XvtOriginal2d *out,
 	return 1;
 }
 
-int XvtOriginal2d_BuildAtlas(const XvtOriginal2d *source,
+int XvtOriginal2d_BuildAtlas(const struct XvtOriginal2d *source,
 			     AeronCommandBuffer *cmd,
 			     const uint32_t palette[256], uint16_t key,
 			     uint16_t key_alt, int generate_mips,
@@ -352,7 +353,7 @@ int XvtOriginal2d_BuildAtlas(const XvtOriginal2d *source,
 
 int XvtOriginal2d_BuildFont(const AeronDecodedFont *source,
 			    AeronCommandBuffer *cmd, int shadow,
-			    const char *label, XvtFontAtlas *out)
+			    const char *label, struct XvtFontAtlas *out)
 {
 	enum { ORIGINAL_FONT_EXPANSION = 4 };
 
@@ -373,7 +374,7 @@ int XvtOriginal2d_BuildFont(const AeronDecodedFont *source,
 	uint8_t *expanded = NULL;
 	AeronFontGlyph *atlas_glyphs =
 		calloc(source->glyph_count, sizeof *atlas_glyphs);
-	XvtFontGlyph *layout_glyphs =
+	struct XvtFontGlyph *layout_glyphs =
 		calloc(source->glyph_count, sizeof *layout_glyphs);
 	if (!rgba || !atlas_glyphs || !layout_glyphs) {
 		goto failed;
@@ -399,8 +400,8 @@ int XvtOriginal2d_BuildFont(const AeronDecodedFont *source,
 			glyph->width * ORIGINAL_FONT_EXPANSION,
 			glyph->height * ORIGINAL_FONT_EXPANSION,
 			glyph->advance * ORIGINAL_FONT_EXPANSION};
-		layout_glyphs[i] = (XvtFontGlyph){glyph->width, glyph->height,
-						  glyph->advance};
+		layout_glyphs[i] = (struct XvtFontGlyph){
+			glyph->width, glyph->height, glyph->advance};
 	}
 	int width, height;
 	expanded = Aeron_ImageUpscaleNearestRgba8(

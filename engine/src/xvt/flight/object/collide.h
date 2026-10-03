@@ -30,16 +30,16 @@ extern int g_collideSweepRejectNearStartHits;
 extern int g_turretFireHullMeshOrdinal;
 
 void collide_PopulateMobileObjectProximityCandidates(
-	MobileObjectProximityList *list, uint16_t ownerObjIdx);
+	struct MobileObjectProximityList *list, uint16_t ownerObjIdx);
 void collide_collisions(void);
 void collide_InsertMobileObjectProximityCandidate(
-	MobileObjectProximityList *list, uint16_t ownerObjIdx,
+	struct MobileObjectProximityList *list, uint16_t ownerObjIdx,
 	uint16_t candidateObjIdx);
 int collide_GetMobileObjectProximitySpeedQ12(uint16_t objIdx);
 void collide_ResetObjectProximityForSlot(uint16_t objIdx);
 void collide_ResetNeighborProximityLists(uint16_t objectIndex);
 void collide_RemoveMobileObjectProximityCandidate(
-	MobileObjectProximityList *list, uint16_t candidateObjIdx);
+	struct MobileObjectProximityList *list, uint16_t candidateObjIdx);
 void collide_applyCraftImpactBounce(uint16_t craftObjIdx, uint16_t otherObjIdx);
 int16_t collide_TestSweptPairCollision(uint16_t sourceObjIdx,
 				       uint16_t targetObjIdx);
@@ -69,7 +69,8 @@ int collide_IsLegacyProjectedEdgeCrossNonpositive(int pointDeltaU,
 						  int edgeDeltaU);
 int collide_CheckSweptModelCollision(uint16_t sourceObjIdx,
 				     uint16_t targetObjIdx);
-int collide_TestSweepAgainstOptNode(OptimizedPolyObject *object, OptNode *node);
+int collide_TestSweepAgainstOptNode(struct OptimizedPolyObject *object,
+				    struct OptNode *node);
 int collide_IntersectSegmentWithFacePlane(const float *faceNormal,
 					  const float *faceVertex,
 					  const float *segmentStart,

@@ -94,21 +94,21 @@ struct MissionTrigger {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_MissionTrigger[(sizeof(MissionTrigger) == 4) ? 1 : -1];
+typedef char
+	xvt_size_MissionTrigger[(sizeof(struct MissionTrigger) == 4) ? 1 : -1];
 
 #pragma pack(push, 1)
 
 struct MissionTriggerPair {
-	MissionTrigger triggers[2]; /* The two conditions. */
+	struct MissionTrigger triggers[2]; /* The two conditions. */
 	uint8_t reserved[2]; /* Loaded with the record; nothing reads it. */
 	/* 1 joins the two conditions with OR, else AND. */
 	uint8_t trigger1OrTrigger2;
 };
 
 #pragma pack(pop)
-typedef char xvt_size_MissionTriggerPair[(sizeof(MissionTriggerPair) == 11)
-						 ? 1
-						 : -1];
+typedef char xvt_size_MissionTriggerPair
+	[(sizeof(struct MissionTriggerPair) == 11) ? 1 : -1];
 
 #pragma pack(push, 1)
 
@@ -128,12 +128,14 @@ struct FlightGroupGoal {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_FlightGroupGoal[(sizeof(FlightGroupGoal) == 78) ? 1 : -1];
+typedef char xvt_size_FlightGroupGoal[(sizeof(struct FlightGroupGoal) == 78)
+					      ? 1
+					      : -1];
 
 #pragma pack(push, 1)
 
 struct GlobalGoal {
-	MissionTriggerPair triggerPairs
+	struct MissionTriggerPair triggerPairs
 		[2]; ///< Two trigger pairs evaluated to determine the goal state.
 	char name[16]; ///< Mission-file goal name.
 	uint8_t version; ///< Mission-file goal format version; not consumed by XVT runtime logic.
@@ -144,7 +146,7 @@ struct GlobalGoal {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_GlobalGoal[(sizeof(GlobalGoal) == 42) ? 1 : -1];
+typedef char xvt_size_GlobalGoal[(sizeof(struct GlobalGoal) == 42) ? 1 : -1];
 
 typedef enum GoalTargetType {
 	GOAL_TARGET_NONE = 0x0,

@@ -9,10 +9,10 @@
 extern "C" {
 #endif
 
-typedef struct XvtNetworkMetadata {
+struct XvtNetworkMetadata {
 	AeronDplayRoomMetadata room;
 	DPID players[AERON_DPLAY_DIRECTORY_MAX_PLAYERS];
-} XvtNetworkMetadata;
+};
 
 /* The room advertisement for the multiplayer directory, and conversion between the game's
  * Windows-1252 text and the directory's UTF-8. players[i] is the player id of roster entry i. */
@@ -23,10 +23,10 @@ typedef struct XvtNetworkMetadata {
  * roster otherwise; each entry takes its name from the player's playerName ("No name" when
  * empty) and its rating from the first byte of longName minus 1 (0 stays 0). The room is joinable when
  * accepting, the roster is not authoritative, and a slot is free. */
-void XvtNetworkMetadata_Build(XvtNetworkMetadata *out, int accepting);
+void XvtNetworkMetadata_Build(struct XvtNetworkMetadata *out, int accepting);
 /* Keeps, in order, only the roster players still active in the network session, and clears the
  * rest. */
-void XvtNetworkMetadata_KeepActivePlayers(XvtNetworkMetadata *snapshot);
+void XvtNetworkMetadata_KeepActivePlayers(struct XvtNetworkMetadata *snapshot);
 /* Converts up to size bytes of Windows-1252 text, stopping at a NUL, into UTF-8 in out. Control
  * characters, DEL and the five undefined 1252 bytes become '?'. Stops before a character that
  * would not fit; out is always terminated when capacity is nonzero. */

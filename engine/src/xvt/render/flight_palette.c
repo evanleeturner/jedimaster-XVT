@@ -24,7 +24,7 @@ int g_flightBrightnessScaleQ8 = 0x100;
  * 0 to 63. FlightPalette_SetRange writes it, FlightPalette_ApplyToDisplay sends
  * an adjusted copy to the display, and the color matching code reads it. */
 // GLOBAL: XVT 0x9A7BC0
-RgbTriplet g_swPalette[256] = {{0}};
+struct RgbTriplet g_swPalette[256] = {{0}};
 /* The flight palette as 16-bit pixels, one per palette index, for the 16-bit
  * drawing code; FlightPalette_SetRange rebuilds the entries it sets while
  * g_flightPixelMode is 2, brightness included. */
@@ -44,8 +44,9 @@ uint8_t g_paletteDirtyFlags = 0;
  * count 0. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x40E1B0
-void FlightPalette_BuildRgbRange(const RgbTriplet *srcRgb, RgbTriplet *dstRgb,
-				 int startIndex, int count)
+void FlightPalette_BuildRgbRange(const struct RgbTriplet *srcRgb,
+				 struct RgbTriplet *dstRgb, int startIndex,
+				 int count)
 {
 	uint8_t maxChannel;
 	uint8_t minChannel;
@@ -61,8 +62,8 @@ void FlightPalette_BuildRgbRange(const RgbTriplet *srcRgb, RgbTriplet *dstRgb,
 	uint8_t inverseOffsetChannel;
 
 	if (g_flightBrightnessScaleQ8 == 256) {
-		const RgbTriplet *src;
-		RgbTriplet *dst;
+		const struct RgbTriplet *src;
+		struct RgbTriplet *dst;
 
 		if (count-- == 0) {
 			return;
@@ -80,8 +81,8 @@ void FlightPalette_BuildRgbRange(const RgbTriplet *srcRgb, RgbTriplet *dstRgb,
 	}
 
 	{
-		const RgbTriplet *src;
-		RgbTriplet *dst;
+		const struct RgbTriplet *src;
+		struct RgbTriplet *dst;
 
 		if (count-- == 0) {
 			return;
@@ -243,7 +244,7 @@ void FlightPalette_BuildRgbRange(const RgbTriplet *srcRgb, RgbTriplet *dstRgb,
 // FUNCTION: XVT 0x40E590
 void FlightPalette_ApplyToDisplay(void)
 {
-	RgbTriplet adjustedPalette[256];
+	struct RgbTriplet adjustedPalette[256];
 
 	FlightPalette_BuildRgbRange(g_swPalette, adjustedPalette, 0, 256);
 	if (g_flightBytesPerPixel == 1) {
@@ -259,7 +260,7 @@ void FlightPalette_ApplyToDisplay(void)
  * send the colors to the display or check that they stay under 256. Installed
  * as g_flightSetPaletteRangeFn. */
 // FUNCTION: XVT 0x40E5E0
-void FlightPalette_SetRange(RgbTriplet *rgbTriples, int16_t startIdx,
+void FlightPalette_SetRange(struct RgbTriplet *rgbTriples, int16_t startIdx,
 			    uint16_t count)
 {
 	uint16_t paletteIndex;
@@ -284,7 +285,7 @@ void FlightPalette_SetRange(RgbTriplet *rgbTriples, int16_t startIdx,
 /* Copies the 256 colors of g_swPalette to dstPalette. Installed as
  * g_flightGetPaletteFn. */
 // FUNCTION: XVT 0x40E660
-void FlightPalette_GetFull(RgbTriplet *dstPalette)
+void FlightPalette_GetFull(struct RgbTriplet *dstPalette)
 {
 	uint16_t index;
 
@@ -301,7 +302,7 @@ void FlightPalette_GetFull(RgbTriplet *dstPalette)
 /* Calls FlightPalette_SetRange for all 256 colors. Installed as
  * g_flightSetPaletteFn. */
 // FUNCTION: XVT 0x40E6A0
-void FlightPalette_SetFull(RgbTriplet *rgbTriples)
+void FlightPalette_SetFull(struct RgbTriplet *rgbTriples)
 {
 	FlightPalette_SetRange(rgbTriples, 0, 256);
 }
@@ -326,10 +327,11 @@ void FlightPalette_ResetIf8Bit(void)
  * Otherwise each color first gets the adjustment FlightPalette_BuildRgbRange
  * makes, and it returns 0, packing nothing for count 0. */
 // FUNCTION: XVT 0x449410
-int16_t FlightPalette_Build16BppRange(RgbTriplet *srcRgb, uint16_t *dst16,
-				      int startIndex, int count)
+int16_t FlightPalette_Build16BppRange(struct RgbTriplet *srcRgb,
+				      uint16_t *dst16, int startIndex,
+				      int count)
 {
-	RgbTriplet *src;
+	struct RgbTriplet *src;
 	uint16_t *dst;
 	int remaining;
 	int endIndex;

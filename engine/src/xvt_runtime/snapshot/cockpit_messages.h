@@ -65,7 +65,7 @@ void XvtCockpitMessages_EndLoadingText(void);
 /* Writes the placed panes, the alert and the loading state into state, packing their glyphs into
  * the overlay store in that order; the store's size is checked at compile time to fit them all.
  * Also sets the view's screen size while the alert, the progress bar or the loading text shows. */
-void XvtCockpitMessages_Export(XvtCockpitState *state);
+void XvtCockpitMessages_Export(struct XvtCockpitState *state);
 #ifdef __cplusplus
 }
 #endif

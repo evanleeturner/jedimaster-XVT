@@ -35,7 +35,7 @@
 #include "aeron/dialog.h"
 #include "xvt/util/time.h"
 #else
-typedef struct WNDCLASSA {
+struct WNDCLASSA {
 	unsigned int style; /* Class style bits; set to 8, CS_DBLCLKS. */
 	/* The window procedure, FrontendDisplay_WndProc. */
 	int32_t(AERON_DXAPI *lpfnWndProc)(void *hWnd, unsigned int Msg,
@@ -48,7 +48,7 @@ typedef struct WNDCLASSA {
 	void *hbrBackground; /* Stock object 4, the black brush. */
 	const char *lpszMenuName;  /* No menu; set to NULL. */
 	const char *lpszClassName; /* The class name, g_windowName. */
-} WNDCLASSA;
+};
 
 /* The system's window message record, filled by GetMessageA and
  * PeekMessageA. */
@@ -81,7 +81,7 @@ __declspec(dllimport) void *__stdcall LoadIconA(void *hInstance,
 __declspec(dllimport) void *__stdcall LoadCursorA(void *hInstance,
 						  uintptr_t cursorName);
 __declspec(dllimport) uint16_t __stdcall
-RegisterClassA(const WNDCLASSA *windowClass);
+RegisterClassA(const struct WNDCLASSA *windowClass);
 __declspec(dllimport) void *__stdcall
 CreateWindowExA(uint32_t exStyle, const char *className, const char *windowName,
 		uint32_t style, int x, int y, int width, int height,
@@ -117,7 +117,7 @@ __declspec(dllimport) uint32_t __stdcall SetTextColor(void *dc, uint32_t color);
 __declspec(dllimport) uint32_t __stdcall SetBkColor(void *dc, uint32_t color);
 __declspec(dllimport) int __stdcall SetBkMode(void *dc, int mode);
 __declspec(dllimport) int __stdcall DrawTextA(void *dc, const char *text,
-					      int length, RECT *rect,
+					      int length, struct RECT *rect,
 					      unsigned int format);
 __declspec(dllimport) int __stdcall DeleteObject(void *object);
 __declspec(dllimport) uint32_t __stdcall GetPixel(void *dc, int x, int y);
@@ -160,17 +160,17 @@ typedef HRESULT(AERON_DXAPI *FrontendDisplaySurfaceReleaseDcFunc)(
 
 /* A .bmp file's first header, read by FrontendDisplay_LoadPalette only to step
  * past it. */
-typedef struct FrontendDisplayBmpFileHeader {
+struct FrontendDisplayBmpFileHeader {
 	uint16_t signature;   /* "BM" in a bitmap; not checked. */
 	uint32_t fileSize;    /* The file's size in bytes; not read. */
 	uint16_t reserved0;   /* Not read. */
 	uint16_t reserved1;   /* Not read. */
 	uint32_t pixelOffset; /* Where the pixels start; not read. */
-} FrontendDisplayBmpFileHeader;
+};
 
 /* A .bmp file's info header, the 40-byte form; FrontendDisplay_LoadPalette
  * reads its palette size from it. */
-typedef struct FrontendDisplayBmpInfoHeader {
+struct FrontendDisplayBmpInfoHeader {
 	uint32_t headerSize;   /* Must be 40, this struct's size, to be used. */
 	int32_t width;	       /* Image width in pixels; not read. */
 	int32_t height;	       /* Image height in pixels; not read. */
@@ -183,13 +183,13 @@ typedef struct FrontendDisplayBmpInfoHeader {
 	/* Palette entries in the file; 0 means 1 << bitsPerPixel. */
 	uint32_t colorsUsed;
 	uint32_t colorsImportant; /* Not read. */
-} FrontendDisplayBmpInfoHeader;
+};
 
 #pragma pack(pop)
 typedef char xvt_size_FrontendDisplayBmpFileHeader
-	[(sizeof(FrontendDisplayBmpFileHeader) == 14) ? 1 : -1];
+	[(sizeof(struct FrontendDisplayBmpFileHeader) == 14) ? 1 : -1];
 typedef char xvt_size_FrontendDisplayBmpInfoHeader
-	[(sizeof(FrontendDisplayBmpInfoHeader) == 40) ? 1 : -1];
+	[(sizeof(struct FrontendDisplayBmpInfoHeader) == 40) ? 1 : -1];
 
 /* 1 once FrontendDisplay_Shutdown has run, so a second call does nothing. Only
  * Shutdown sets it to 1; FrontendDisplay_Init and, in the modern build,
@@ -1011,7 +1011,7 @@ uint32_t FrontendDisplay_RunMainLoop(void *hInstance, void *hPrevInstance,
 int FrontendDisplay_InitMainWindow(void *hInstance, int nShowCmd)
 {
 #ifndef XVT_MODERN
-	WNDCLASSA windowClass;
+	struct WNDCLASSA windowClass;
 #endif
 	DDSURFACEDESC surfaceDesc;
 	DDSCAPS attachedSurfaceCaps;
@@ -1385,7 +1385,7 @@ void FrontendDisplay_UnlockBackBuffer(void)
 void FrontendDisplay_PresentFrame(void)
 {
 	int verticalBlankStatus;
-	RECT sourceRect;
+	struct RECT sourceRect;
 	DDSURFACEDESC surfaceDesc;
 	HRESULT result;
 
@@ -1573,7 +1573,7 @@ void FrontendDisplay_SetSurfaceClearColor(uint32_t color)
 // FUNCTION: XVT 0x4D4C10
 void FrontendDisplay_ClearBackBuffer(void)
 {
-	RECT rect;
+	struct RECT rect;
 	DDBLTFX effects;
 	int wasLocked;
 	HRESULT result;
@@ -1626,7 +1626,7 @@ void FrontendDisplay_ClearBackBuffer(void)
 /* Copies the clip bounds into *outRect: clipMinX, clipMinY, clipMaxX and
  * clipMaxY as left, top, right and bottom. */
 // FUNCTION: XVT 0x4D4CF0
-void FrontendDisplay_GetScreenClipRect(RECT *outRect)
+void FrontendDisplay_GetScreenClipRect(struct RECT *outRect)
 {
 	FrontendDraw_RectAssign(outRect, g_frontState.clipMinX,
 				g_frontState.clipMinY, g_frontState.clipMaxX,
@@ -1636,9 +1636,9 @@ void FrontendDisplay_GetScreenClipRect(RECT *outRect)
 /* Sets the clip bounds to *src clamped to 0 to 639 by 0 to 479, leaving them as
  * they were when the clamped rect has right under left or bottom under top. */
 // FUNCTION: XVT 0x4D4D20
-void FrontendDisplay_SetScreenClipRect640x480(const RECT *src)
+void FrontendDisplay_SetScreenClipRect640x480(const struct RECT *src)
 {
-	RECT clippedRect;
+	struct RECT clippedRect;
 
 	FrontendDraw_RectCopy(&clippedRect, src);
 	if (clippedRect.left < 0) {
@@ -1800,7 +1800,7 @@ int FrontendDisplay_DisableOffscreenRestore(void)
 // FUNCTION: XVT 0x4D4F80
 void FrontendDisplay_ClearOffscreenSurface(void)
 {
-	RECT rect;
+	struct RECT rect;
 	DDBLTFX effects;
 	int wasLocked;
 	HRESULT result;
@@ -1958,7 +1958,7 @@ void FrontendDisplay_ResetGlobalStatePreservingNetworkSession(void)
 	DPID netGroupDplayId;
 	int netIsHost;
 	char netSessionName[32];
-	NetPlayerInfo netRuntimeLocalPlayer;
+	struct NetPlayerInfo netRuntimeLocalPlayer;
 	int playerIndex;
 	DPID candidateHostPlayerId;
 
@@ -2475,7 +2475,8 @@ const DxGuid *FrontendDisplay_LoadDriverGuid(void)
  * flag is clear or a device context or font cannot be made. The modern build
  * returns 0. */
 // FUNCTION: XVT 0x4D5C70
-int FrontendDisplay_DrawGdiTextOnDesktop(const RECT *unused, const char *text,
+int FrontendDisplay_DrawGdiTextOnDesktop(const struct RECT *unused,
+					 const char *text,
 					 const char *overlayText)
 {
 #ifdef XVT_MODERN
@@ -2487,7 +2488,7 @@ int FrontendDisplay_DrawGdiTextOnDesktop(const RECT *unused, const char *text,
 	void *dc;
 	void *font;
 	void *previousObject;
-	RECT rect;
+	struct RECT rect;
 
 	(void)unused;
 	if (g_frontState.secondaryDirectDrawActive == 0) {
@@ -2529,14 +2530,14 @@ int FrontendDisplay_DrawGdiTextOnDesktop(const RECT *unused, const char *text,
  * flag is clear or no device context can be made. The modern build returns
  * 0. */
 // FUNCTION: XVT 0x4D5DC0
-int FrontendDisplay_ClearDesktopGdi(const RECT *unused)
+int FrontendDisplay_ClearDesktopGdi(const struct RECT *unused)
 {
 #ifdef XVT_MODERN
 	(void)unused;
 	return 0;
 #else
 	void *dc;
-	RECT rect;
+	struct RECT rect;
 
 	(void)unused;
 
@@ -2592,7 +2593,7 @@ int FrontendDisplay_PackRGB(uint8_t r, uint8_t g, uint8_t b)
 	int index;
 	unsigned int bestDistance;
 	int bestIndex;
-	FrontendPaletteEntry *entry;
+	struct FrontendPaletteEntry *entry;
 
 	switch (g_frontState.displayBpp) {
 	case 8:
@@ -2747,10 +2748,10 @@ IDirectDrawPalette *FrontendDisplay_LoadPalette(IDirectDraw *pDD,
 						const char *lpName)
 {
 	IDirectDrawPalette *palette;
-	FrontendDisplayBmpFileHeader fileHeader;
-	FrontendDisplayBmpInfoHeader infoHeader;
-	FrontendPaletteEntry entries[256];
-	FrontendPaletteEntry *entry;
+	struct FrontendDisplayBmpFileHeader fileHeader;
+	struct FrontendDisplayBmpInfoHeader infoHeader;
+	struct FrontendPaletteEntry entries[256];
+	struct FrontendPaletteEntry *entry;
 	int index;
 	int colorCount;
 
@@ -2781,7 +2782,8 @@ IDirectDrawPalette *FrontendDisplay_LoadPalette(IDirectDraw *pDD,
 			sourceEntry = resourceData + *(uint32_t *)resourceData;
 			if (resourceData != NULL &&
 			    *(uint32_t *)resourceData >=
-				    sizeof(FrontendDisplayBmpInfoHeader) &&
+				    sizeof(struct
+					   FrontendDisplayBmpInfoHeader) &&
 			    (bitsPerPixel = *(uint16_t *)(resourceData + 14)) <=
 				    8) {
 				colorCount = *(uint32_t *)(resourceData + 32);

@@ -14,8 +14,8 @@ void XvtUi_Color(uint32_t argb, float out[4]);
  * by its glyph height when enabled, the shadow one scaled pixel down and right (cut at the glyph's
  * bottom) when enabled, then the foreground, all cut to the glyph's clip; nothing when its font is not
  * loaded or its character is outside the font. */
-void XvtUi_Glyph(AeronDrawList2D *list, const XvtSnapGlyph *glyph, float scale,
-		 float ox, float oy);
+void XvtUi_Glyph(AeronDrawList2D *list, const struct XvtSnapGlyph *glyph,
+		 float scale, float ox, float oy);
 /* Draws text in the font asset at x, y scaled, in color, centered on x when asked; a character outside
  * the font draws nothing and advances nothing. Nothing without the font or text. */
 void XvtUi_Text(AeronDrawList2D *list, uint64_t font_asset_id, const char *text,
@@ -29,14 +29,15 @@ int XvtUi_MapIcon(AeronDrawList2D *list, AeronCommandBuffer *cmd,
 		  int width, int height);
 /* Draws a paint record scaled: a line between pixel centers, a frame, or a fill from (x0, y0) to (x1,
  * y1), opaque except a translucent fill, cut to its clip. */
-void XvtUi_Paint(AeronDrawList2D *list, const XvtSnapPaint *paint, float scale);
+void XvtUi_Paint(AeronDrawList2D *list, const struct XvtSnapPaint *paint,
+		 float scale);
 /* Copies the from rectangle of src (source_width x source_height) into the to rectangle of dst with
  * nearest sampling, in a pass of its own, creating the copy pipeline on first use. Returns 0 when the
  * pipeline or sampler is missing, dst or src is NULL, a size is not positive, or the pass cannot
  * begin. */
 int XvtUi_CopyFrontend(AeronCommandBuffer *cmd, AeronRenderTarget *dst,
-		       AeronTexture *src, const XvtSnapRect *from,
-		       const XvtSnapRect *to, int source_width,
+		       AeronTexture *src, const struct XvtSnapRect *from,
+		       const struct XvtSnapRect *to, int source_width,
 		       int source_height);
 /* Destroys the copy pipeline, its shaders and sampler. */
 void XvtUi_Shutdown(void);

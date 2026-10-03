@@ -12,22 +12,22 @@
  * retired when its source images leave the snapshot. */
 
 /* atlas_frame: the part's frame in the parts atlas. monochrome, color: how XvtHudDraw_Part tints it. */
-typedef struct XvtHudPreparedPart {
+struct XvtHudPreparedPart {
 	uint16_t atlas_frame;
 	uint8_t monochrome, color;
-} XvtHudPreparedPart;
+};
 
 /* base, parts: the atlases. base_coverage: the base's covered rectangles. base_asset_id, palette,
  * requests: the identity Select matches against a state and layout. */
-typedef struct XvtHudAssetSet {
+struct XvtHudAssetSet {
 	AeronRuntimeAtlas base, parts;
 	AeronImageCoverage base_coverage;
 	uint64_t base_asset_id;
 	uint32_t palette[256];
 	uint16_t part_count;
-	XvtHudPartRequest requests[XVT_HUD_PART_CAPACITY];
-	XvtHudPreparedPart bindings[XVT_HUD_PART_CAPACITY];
-} XvtHudAssetSet;
+	struct XvtHudPartRequest requests[XVT_HUD_PART_CAPACITY];
+	struct XvtHudPreparedPart bindings[XVT_HUD_PART_CAPACITY];
+};
 
 /* Prepare the loaded view family during loading, after source synchronization.
  * Commit only after upload submission succeeds. Select never uploads or decodes.
@@ -40,17 +40,17 @@ typedef struct XvtHudAssetSet {
  * or the fade-shifted index), and, when cockpit_undither is on, undithered unless monochrome; the
  * base likewise. */
 int XvtHudAssets_PrepareResources(AeronCommandBuffer *cmd,
-				  const XvtCockpitResources *resources);
+				  const struct XvtCockpitResources *resources);
 /* Whether a committed group holds generation. */
 int XvtHudAssets_HasResources(uint64_t generation);
 /* Makes current the committed set whose base asset, part requests and palette match state and layout.
  * Selects the empty set, returning 1, when the layout has neither base nor parts, the definition is
  * invalid, or the instruments are hidden by a loading screen or alert and there are no parts. Returns
  * 0, logging an error, when no group matches. */
-int XvtHudAssets_Select(const XvtCockpitState *state,
-			const XvtHudLayout *layout);
+int XvtHudAssets_Select(const struct XvtCockpitState *state,
+			const struct XvtHudLayout *layout);
 /* Releases every committed group whose base or part source images are gone from the snapshot. */
-void XvtHudAssets_Retire(const XvtRenderSnapshot *snapshot);
+void XvtHudAssets_Retire(const struct XvtRenderSnapshot *snapshot);
 /* Commits the pending group, newest first. */
 void XvtHudAssets_Commit(void);
 /* Releases the pending group. */
@@ -58,13 +58,13 @@ void XvtHudAssets_Abort(void);
 /* Releases everything. */
 void XvtHudAssets_Shutdown(void);
 /* The set the last Select made current, or NULL, also once its group was released. */
-const XvtHudAssetSet *XvtHudAssets_Current(void);
+const struct XvtHudAssetSet *XvtHudAssets_Current(void);
 /* True when loaded cockpit artwork differs from the requested preparation option. */
 /* 0 without a current snapshot with valid cockpit resources, or without a committed group for its
  * resource generation. */
 int XvtHudAssets_UnditherPending(int requested);
 /* Fonts retain the existing source-generation ownership in the image cache. */
 /* XvtRemasterAssets_Font(asset_id, 0). */
-const XvtFontAtlas *XvtHudAssets_FindFont(uint64_t asset_id);
+const struct XvtFontAtlas *XvtHudAssets_FindFont(uint64_t asset_id);
 
 #endif

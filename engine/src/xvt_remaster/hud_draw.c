@@ -2,12 +2,14 @@
 #include "xvt_remaster/ui_draw.h"
 #include <math.h>
 
-AeronDrawList2D *XvtHudDraw_SelectList(const XvtHudDraw *draw, unsigned phase)
+AeronDrawList2D *XvtHudDraw_SelectList(const struct XvtHudDraw *draw,
+				       unsigned phase)
 {
 	return phase <= XVT_COCKPIT_BEFORE_CRT ? draw->before : draw->after;
 }
 
-static XvtSnapRect IntersectRects(XvtSnapRect a, XvtSnapRect b)
+static struct XvtSnapRect IntersectRects(struct XvtSnapRect a,
+					 struct XvtSnapRect b)
 {
 	int right =
 		a.x + a.width < b.x + b.width ? a.x + a.width : b.x + b.width;
@@ -20,7 +22,8 @@ static XvtSnapRect IntersectRects(XvtSnapRect a, XvtSnapRect b)
 	return a;
 }
 
-int XvtHudDraw_Clip(const XvtHudDraw *draw, XvtSnapRect rect, AeronRectI *out)
+int XvtHudDraw_Clip(const struct XvtHudDraw *draw, struct XvtSnapRect rect,
+		    AeronRectI *out)
 {
 	if (rect.width <= 0 || rect.height <= 0) {
 		return 0;
@@ -39,8 +42,8 @@ int XvtHudDraw_Clip(const XvtHudDraw *draw, XvtSnapRect rect, AeronRectI *out)
 	return right > left && bottom > top;
 }
 
-void XvtHudDraw_Fill(const XvtHudDraw *draw, unsigned phase, XvtSnapRect rect,
-		     uint32_t color)
+void XvtHudDraw_Fill(const struct XvtHudDraw *draw, unsigned phase,
+		     struct XvtSnapRect rect, uint32_t color)
 {
 	AeronRectI clip;
 	if (!(color >> 24) || !XvtHudDraw_Clip(draw, rect, &clip)) {
@@ -55,8 +58,9 @@ void XvtHudDraw_Fill(const XvtHudDraw *draw, unsigned phase, XvtSnapRect rect,
 		rect.height * draw->scale, rgba, AERON_BLIT2D_BLEND_PMA, NULL);
 }
 
-void XvtHudDraw_TextFill(const XvtHudDraw *draw, const XvtFontAtlas *font,
-			 unsigned phase, XvtSnapRect rect, uint32_t color)
+void XvtHudDraw_TextFill(const struct XvtHudDraw *draw,
+			 const struct XvtFontAtlas *font, unsigned phase,
+			 struct XvtSnapRect rect, uint32_t color)
 {
 	AeronRectI clip;
 	if (!(color >> 24) || !XvtHudDraw_Clip(draw, rect, &clip)) {
@@ -78,24 +82,24 @@ void XvtHudDraw_TextFill(const XvtHudDraw *draw, const XvtFontAtlas *font,
 	AeronDrawList_AddSprite(XvtHudDraw_SelectList(draw, phase), &sprite);
 }
 
-void XvtHudDraw_Outline(const XvtHudDraw *draw, unsigned phase,
-			XvtSnapRect rect, uint32_t color)
+void XvtHudDraw_Outline(const struct XvtHudDraw *draw, unsigned phase,
+			struct XvtSnapRect rect, uint32_t color)
 {
-	XvtHudDraw_OutlineClipped(draw, phase, rect,
-				  (XvtSnapRect){0, 0,
-						draw->layout->source_width,
-						draw->layout->source_height},
-				  color);
+	XvtHudDraw_OutlineClipped(
+		draw, phase, rect,
+		(struct XvtSnapRect){0, 0, draw->layout->source_width,
+				     draw->layout->source_height},
+		color);
 }
 
-void XvtHudDraw_OutlineClipped(const XvtHudDraw *draw, unsigned phase,
-			       XvtSnapRect rect, XvtSnapRect clip,
+void XvtHudDraw_OutlineClipped(const struct XvtHudDraw *draw, unsigned phase,
+			       struct XvtSnapRect rect, struct XvtSnapRect clip,
 			       uint32_t color)
 {
 	if (rect.width <= 0 || rect.height <= 0) {
 		return;
 	}
-	XvtSnapRect edges[] = {
+	struct XvtSnapRect edges[] = {
 		{rect.x, rect.y, rect.width, 1},
 		{rect.x, rect.y + rect.height - 1, rect.width, 1},
 		{rect.x, rect.y, 1, rect.height},
@@ -106,7 +110,7 @@ void XvtHudDraw_OutlineClipped(const XvtHudDraw *draw, unsigned phase,
 	}
 }
 
-static void AppendAtlasSprite(const XvtHudDraw *draw,
+static void AppendAtlasSprite(const struct XvtHudDraw *draw,
 			      const AeronRuntimeAtlas *atlas, unsigned frame,
 			      float x, float y, float sx, float sy, float width,
 			      float height, int mirrored, int monochrome,
@@ -139,22 +143,24 @@ static void AppendAtlasSprite(const XvtHudDraw *draw,
 		sprite.bias[3] = 0;
 	}
 	if (!XvtHudDraw_Clip(draw,
-			     (XvtSnapRect){0, 0, draw->layout->source_width,
-					   draw->layout->source_height},
+			     (struct XvtSnapRect){0, 0,
+						  draw->layout->source_width,
+						  draw->layout->source_height},
 			     &sprite.scissor)) {
 		return;
 	}
 	AeronDrawList_AddSprite(XvtHudDraw_SelectList(draw, phase), &sprite);
 }
 
-void XvtHudDraw_Part(const XvtHudDraw *draw, XvtHudSpriteRole role,
+void XvtHudDraw_Part(const struct XvtHudDraw *draw, XvtHudSpriteRole role,
 		     unsigned state, int offset_x, int offset_y, unsigned phase)
 {
-	const XvtHudSpriteBinding *binding = &draw->layout->sprites[role];
+	const struct XvtHudSpriteBinding *binding =
+		&draw->layout->sprites[role];
 	if (state >= binding->part_count) {
 		return;
 	}
-	const XvtHudPreparedPart *part =
+	const struct XvtHudPreparedPart *part =
 		&draw->assets->bindings[binding->first_part + state];
 	const AeronRuntimeAtlas *atlas = &draw->assets->parts;
 	float width = atlas->layout.classic_w[part->atlas_frame],
@@ -167,7 +173,7 @@ void XvtHudDraw_Part(const XvtHudDraw *draw, XvtHudSpriteRole role,
 			  draw->state->palette_argb[part->color], phase);
 }
 
-void XvtHudDraw_Base(const XvtHudDraw *draw)
+void XvtHudDraw_Base(const struct XvtHudDraw *draw)
 {
 	const AeronRuntimeAtlas *atlas = &draw->assets->base;
 	if (!atlas->layout.frame_count) {
@@ -187,7 +193,8 @@ void XvtHudDraw_Base(const XvtHudDraw *draw)
 	}
 }
 
-static void AppendGlyphPlane(const XvtHudDraw *draw, const XvtFontAtlas *font,
+static void AppendGlyphPlane(const struct XvtHudDraw *draw,
+			     const struct XvtFontAtlas *font,
 			     unsigned glyph_index, float x, float y,
 			     uint32_t color, const AeronRectI *clip,
 			     unsigned phase)
@@ -196,7 +203,7 @@ static void AppendGlyphPlane(const XvtHudDraw *draw, const XvtFontAtlas *font,
 		return;
 	}
 	const AeronFontGlyph *glyph = &font->atlas.glyphs[glyph_index];
-	const XvtFontGlyph *metrics = &font->glyphs[glyph_index];
+	const struct XvtFontGlyph *metrics = &font->glyphs[glyph_index];
 	AeronDrawList2DSprite sprite = {
 		.texture = font->atlas.texture,
 		.src_u0 = (float)glyph->atlas_x / font->atlas.atlas_w,
@@ -235,11 +242,12 @@ static void AppendGlyphPlane(const XvtHudDraw *draw, const XvtFontAtlas *font,
 	AeronDrawList_AddSprite(XvtHudDraw_SelectList(draw, phase), &sprite);
 }
 
-int XvtHudDraw_Glyph(const XvtHudDraw *draw, const XvtCockpitGlyph *glyph,
-		     int origin_x, int origin_y, XvtSnapRect pane_clip,
-		     unsigned phase)
+int XvtHudDraw_Glyph(const struct XvtHudDraw *draw,
+		     const struct XvtCockpitGlyph *glyph, int origin_x,
+		     int origin_y, struct XvtSnapRect pane_clip, unsigned phase)
 {
-	const XvtFontAtlas *font = XvtHudAssets_FindFont(glyph->font_asset_id);
+	const struct XvtFontAtlas *font =
+		XvtHudAssets_FindFont(glyph->font_asset_id);
 	if (!font || glyph->character < font->atlas.first_char ||
 	    glyph->character >=
 		    font->atlas.first_char + font->atlas.num_chars) {
@@ -247,14 +255,14 @@ int XvtHudDraw_Glyph(const XvtHudDraw *draw, const XvtCockpitGlyph *glyph,
 	}
 	unsigned glyph_index = glyph->character - font->atlas.first_char;
 	int x = glyph->x + origin_x, y = glyph->y + origin_y;
-	XvtSnapRect bounds = glyph->clip;
+	struct XvtSnapRect bounds = glyph->clip;
 	bounds.x += origin_x;
 	bounds.y += origin_y;
 	bounds = IntersectRects(bounds, pane_clip);
 	bounds = IntersectRects(
-		bounds,
-		(XvtSnapRect){x, y, glyph->advance + !!glyph->shadow_enabled,
-			      glyph->height});
+		bounds, (struct XvtSnapRect){
+				x, y, glyph->advance + !!glyph->shadow_enabled,
+				glyph->height});
 	AeronRectI clip;
 	if (!XvtHudDraw_Clip(draw, bounds, &clip)) {
 		return 1;

@@ -2,13 +2,13 @@
 #include "xvt/flight/flight_input.h"
 #include <string.h>
 
-typedef struct XvtActionDefinition {
+struct XvtActionDefinition {
 	const char *name, *label;
 	XvtInputActionCategory category;
 	uint16_t key;
-} XvtActionDefinition;
+};
 
-static const XvtActionDefinition g_actions[XVT_INPUT_ACTION_COUNT] = {
+static const struct XvtActionDefinition g_actions[XVT_INPUT_ACTION_COUNT] = {
 	{"none", "None", XVT_INPUT_ACTION_CATEGORY_SYSTEM, FLIGHT_KEY_NONE},
 	{"fire_weapon", "Fire Weapon / Warhead",
 	 XVT_INPUT_ACTION_CATEGORY_WEAPONS, FLIGHT_KEY_ALT_2},

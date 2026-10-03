@@ -3,8 +3,9 @@
 #include <math.h>
 #include <string.h>
 
-int XvtRemasterShip_Select(const XvtRenderSnapshot *s, const XvtSnapObject *o,
-			   XvtShipSelection *out)
+int XvtRemasterShip_Select(const struct XvtRenderSnapshot *s,
+			   const struct XvtSnapObject *o,
+			   struct XvtShipSelection *out)
 {
 	if (!s || !o || !out || o->object_type >= XVT_SNAP_TYPES) {
 		return 0;
@@ -20,7 +21,7 @@ int XvtRemasterShip_Select(const XvtRenderSnapshot *s, const XvtSnapObject *o,
 	} else if ((o->genus >= CRAFT_GENUS_MINE &&
 		    o->genus <= CRAFT_GENUS_SMALL_DEBRIS) ||
 		   o->genus == CRAFT_GENUS_EXPLOSION) {
-		const XvtSnapType *t = &s->types[type];
+		const struct XvtSnapType *t = &s->types[type];
 		if (!t->sequence_count) {
 			if (o->slot_class != XVT_SLOT_STATIC ||
 			    o->type_specific[0]) {
@@ -102,8 +103,8 @@ static void ship_mat3x4_mul(float out[3][4], const float lhs[3][4],
 	memcpy(out, result, sizeof result);
 }
 
-void XvtRemasterShip_BuildMeshTable(const XvtMeshAsset *asset,
-				    const XvtSnapObject *object,
+void XvtRemasterShip_BuildMeshTable(const struct XvtMeshAsset *asset,
+				    const struct XvtSnapObject *object,
 				    uint16_t component,
 				    const float *visual_angles,
 				    AeronSceneMeshTable *out)
@@ -153,7 +154,7 @@ void XvtRemasterShip_BuildMeshTable(const XvtMeshAsset *asset,
 	}
 }
 
-float XvtRemasterShip_Radius(const XvtMeshAsset *asset,
+float XvtRemasterShip_Radius(const struct XvtMeshAsset *asset,
 			     const AeronSceneMeshTable *table,
 			     const float m[16])
 {
@@ -190,7 +191,7 @@ float XvtRemasterShip_Radius(const XvtMeshAsset *asset,
 	return radius * scale;
 }
 
-int XvtRemasterShip_Visible(const XvtRenderView *view, const float m[16],
+int XvtRemasterShip_Visible(const struct XvtRenderView *view, const float m[16],
 			    float radius)
 {
 	const float *p = view->view_proj;

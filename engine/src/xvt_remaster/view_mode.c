@@ -36,7 +36,7 @@ void XvtRemasterView_Init(void)
 	XvtInput_SuppressRendererTab(0);
 }
 
-static int FlightReady(const XvtRenderSnapshot *s)
+static int FlightReady(const struct XvtRenderSnapshot *s)
 {
 	return s && s->flight_valid && s->scene_kind == XVT_SCENE_FLIGHT &&
 	       s->presented_target == XVT_TARGET_FLIGHT_MAIN && g_worldReady &&
@@ -46,7 +46,7 @@ static int FlightReady(const XvtRenderSnapshot *s)
 
 void XvtRemasterView_BeginFrame(const AeronInputSnapshot *in)
 {
-	const XvtRenderSnapshot *s = XvtRenderSnapshot_Current();
+	const struct XvtRenderSnapshot *s = XvtRenderSnapshot_Current();
 	if (in) {
 		XvtPresentation_SyncToWindow(in->window_width,
 					     in->window_height);
@@ -86,14 +86,14 @@ void XvtRemasterView_BeginFrame(const AeronInputSnapshot *in)
 	AeronDx5_SetClassicFlightRenderingSuppressed(suppress);
 }
 
-int XvtRemasterView_NeedsWorld(const XvtRenderSnapshot *s)
+int XvtRemasterView_NeedsWorld(const struct XvtRenderSnapshot *s)
 {
 	return !(s->presented_target == XVT_TARGET_FLIGHT_MAIN &&
 		 g_blend.target == 0 && g_blend.alpha == 0 && !g_waitClassic);
 }
 
-int XvtRemasterView_TryEnableDirect(const XvtRenderSnapshot *s, int width,
-				    int height)
+int XvtRemasterView_TryEnableDirect(const struct XvtRenderSnapshot *s,
+				    int width, int height)
 {
 	return s->flight_valid && s->scene_kind == XVT_SCENE_FLIGHT &&
 	       g_worldReady &&
@@ -103,14 +103,15 @@ int XvtRemasterView_TryEnableDirect(const XvtRenderSnapshot *s, int width,
 	       XvtFlightPipeline_SetDirect(1, width, height);
 }
 
-void XvtRemasterView_Present(const XvtRenderSnapshot *s, int32_t delta_us,
-			     int world_ready, int direct)
+void XvtRemasterView_Present(const struct XvtRenderSnapshot *s,
+			     int32_t delta_us, int world_ready, int direct)
 {
 	if (world_ready && s->flight_valid) {
 		g_worldReady = 1;
 		g_readyFlightFrameSerial = s->flight_frame_serial;
 		g_readyMissionGeneration = s->mission_generation;
-		const XvtPreparedFlight *frame = XvtRemasterFlight_Current();
+		const struct XvtPreparedFlight *frame =
+			XvtRemasterFlight_Current();
 		if (frame) {
 			g_width = frame->view.camera.viewport.width;
 			g_height = frame->view.camera.viewport.height;

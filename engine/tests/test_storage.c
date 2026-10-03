@@ -412,15 +412,15 @@ static void CheckRename(void)
 	EndRoots();
 }
 
-typedef struct GlobSeen {
+struct GlobSeen {
 	int count;
 	int stopAfter;
 	char names[8][32];
-} GlobSeen;
+};
 
 static int Collect(void *context, const AeronVfsEntry *entry)
 {
-	GlobSeen *seen = context;
+	struct GlobSeen *seen = context;
 	if (seen->count < 8) {
 		snprintf(seen->names[seen->count], sizeof seen->names[0], "%s",
 			 entry->name);
@@ -429,7 +429,7 @@ static int Collect(void *context, const AeronVfsEntry *entry)
 	return seen->stopAfter == 0 || seen->count < seen->stopAfter;
 }
 
-static int Saw(const GlobSeen *seen, const char *name)
+static int Saw(const struct GlobSeen *seen, const char *name)
 {
 	for (int i = 0; i < seen->count && i < 8; ++i) {
 		if (!strcmp(seen->names[i], name)) {
@@ -452,7 +452,7 @@ static void CheckGlob(void)
 	XvtTest_WriteText(g_asset, "pilots/carl.plt", "x");
 
 	/* Files only, in the named folder of the named root, matched in any letter case. */
-	GlobSeen seen = {0};
+	struct GlobSeen seen = {0};
 	XVT_ASSERT_TRUE(XvtStorage_Glob(AERON_VFS_ROOT_USER, "pilots/*.plt",
 					Collect, &seen) != 0);
 	XVT_ASSERT_INT_EQ(seen.count, 2);

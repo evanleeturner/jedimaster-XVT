@@ -56,7 +56,7 @@ int XvtCutsceneTask_Play(int phase)
 	}
 	for (; g_cutscene.entry_index < (unsigned int)g_cutsceneCount;
 	     ++g_cutscene.entry_index) {
-		const CutsceneEntry *entry =
+		const struct CutsceneEntry *entry =
 			&g_cutsceneTable[g_cutscene.entry_index];
 		if (entry->campaignId != g_pilotData.missionDescriptionIds[5] ||
 		    entry->playAfterDebriefing != g_cutscene.phase ||

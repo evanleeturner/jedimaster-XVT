@@ -273,15 +273,15 @@ static void CheckOpenWriteAppend(const char *folder)
 	XvtLogFile_Close(XVT_LOG_FILE_NONE);
 }
 
-typedef struct WriterJob {
+struct WriterJob {
 	XvtLogFileHandle file;
 	char mark;
-} WriterJob;
+};
 
 /* Writes THREAD_LINES lines of 100 copies of the job's mark, each with one call. */
 static void *WriteLines(void *argument)
 {
-	const WriterJob *job = argument;
+	const struct WriterJob *job = argument;
 	char line[101];
 	memset(line, job->mark, 100);
 	line[100] = '\n';
@@ -299,7 +299,7 @@ static void CheckThreadsNeverInterleave(const char *folder)
 	XvtTest_Join(path, folder, "threads.log");
 	XvtLogFileHandle file = XvtLogFile_Open(path, NULL, 0);
 	XVT_ASSERT_TRUE(file != XVT_LOG_FILE_NONE);
-	WriterJob jobs[2] = {{file, 'a'}, {file, 'b'}};
+	struct WriterJob jobs[2] = {{file, 'a'}, {file, 'b'}};
 	pthread_t threads[2];
 	for (int i = 0; i < 2; ++i) {
 		XVT_ASSERT_INT_EQ(

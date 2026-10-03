@@ -31,15 +31,15 @@ int DirectSound_LoadFileAndFindAudioData(int unused, const char *fileName,
 					 WAVEFORMATEX **format,
 					 const void **sampleData,
 					 unsigned int *sampleBytes);
-DirectSoundBufferSet *DirectSound_LoadWaveBufferSet(IDirectSound *directSound,
-						    const char *fileName,
-						    int bufferCount);
-void DirectSound_FreeWaveBufferSet(DirectSoundBufferSet *set);
+struct DirectSoundBufferSet *
+DirectSound_LoadWaveBufferSet(IDirectSound *directSound, const char *fileName,
+			      int bufferCount);
+void DirectSound_FreeWaveBufferSet(struct DirectSoundBufferSet *set);
 IDirectSoundBuffer *
-DirectSound_AcquireWaveBufferSetBuffer(DirectSoundBufferSet *set);
-int DirectSound_PlayWaveBufferSet(DirectSoundBufferSet *set,
+DirectSound_AcquireWaveBufferSetBuffer(struct DirectSoundBufferSet *set);
+int DirectSound_PlayWaveBufferSet(struct DirectSoundBufferSet *set,
 				  uint32_t playFlags);
-int DirectSound_StopWaveBufferSet(DirectSoundBufferSet *set);
+int DirectSound_StopWaveBufferSet(struct DirectSoundBufferSet *set);
 int DirectSound_CopyWaveDataToBuffer(IDirectSoundBuffer *buffer,
 				     const void *sampleData,
 				     unsigned int sampleBytes);

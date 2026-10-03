@@ -18,16 +18,16 @@
 
 #pragma pack(push, 1)
 
-typedef struct ImageQuantizerPixelRun {
+struct ImageQuantizerPixelRun {
 	uint8_t red;		/* Red, 0 to 255. */
 	uint8_t green;		/* Green, 0 to 255. */
 	uint8_t blue;		/* Blue, 0 to 255. */
 	uint8_t lengthMinusOne; /* Pixels in the run less 1. */
 	/* Palette entry the run maps to once colors are assigned. */
 	uint16_t paletteIndex;
-} ImageQuantizerPixelRun;
+};
 
-typedef struct ImageQuantizerImageLayout {
+struct ImageQuantizerImageLayout {
 	/* The record's bytes before colorClass, not named in this view. */
 	uint8_t reserved0000[0x1024];
 	/* 1 for direct color, 2 for a palette image;
@@ -44,7 +44,8 @@ typedef struct ImageQuantizerImageLayout {
 	/* Not all reserved: the palette pointer at offset 0x104C and the palette color count at 0x1054 sit in
 	 * these bytes, and this file reads and writes them by raw offset. */
 	uint8_t reserved1038[0x4E];	/* Record bytes 0x1038 to 0x1085. */
-	ImageQuantizerPixelRun *pixels; /* The pixel runs, from malloc. */
+	struct ImageQuantizerPixelRun
+		*pixels; /* The pixel runs, from malloc. */
 	/* Nothing reads or writes it by name. */
 	uint8_t reservedAfterPixels[4];
 	/* Runs at pixels: width * height until ImageQuantizer_CompressPixelRuns
@@ -53,9 +54,9 @@ typedef struct ImageQuantizerImageLayout {
 	/* Pixels left in the source run while ImageQuantizer_CompressPixelRuns
 	 * walks the runs. */
 	uint32_t sourceRunPixelsRemaining;
-} ImageQuantizerImageLayout;
+};
 
-typedef struct ImageQuantizerOwnedBuffers {
+struct ImageQuantizerOwnedBuffers {
 	uint8_t reserved0000[0x1014]; /* Bytes this view does not name. */
 	/* ImageQuantizer_DestroyImage frees it when not NULL; nothing else
 	 * reads or writes it by name. */
@@ -90,7 +91,7 @@ typedef struct ImageQuantizerOwnedBuffers {
 	/* ImageQuantizer_DestroyImage frees it when not NULL; nothing else
 	 * reads or writes it by name. */
 	void *buffer18B2;
-} ImageQuantizerOwnedBuffers;
+};
 
 /* The image record ImageQuantizer_AllocateImage makes, at its 32-bit layout:
  * palette and pixels are 4-byte slots. In the 64-bit build the pointers kept
@@ -100,7 +101,7 @@ typedef struct ImageQuantizerOwnedBuffers {
  * sits 4 bytes later per pointer before it than in the 32-bit layout, so the
  * layout's runCount falls on reserved1092. The notes below on what
  * ImageQuantizer_DestroyImage frees hold for the 32-bit build. */
-typedef struct ImageQuantizerLegacyImageRecord {
+struct ImageQuantizerLegacyImageRecord {
 	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
 	 * by name. */
 	uint32_t field0000;
@@ -266,32 +267,32 @@ typedef struct ImageQuantizerLegacyImageRecord {
 	 * ImageQuantizer_QuantizeImageLists reads the next image of a list at
 	 * this offset, 6338. */
 	uint32_t nextImage;
-} ImageQuantizerLegacyImageRecord;
+};
 
 #pragma pack(pop)
 typedef char xvt_size_ImageQuantizerPixelRun
-	[(sizeof(ImageQuantizerPixelRun) == 6) ? 1 : -1];
+	[(sizeof(struct ImageQuantizerPixelRun) == 6) ? 1 : -1];
 typedef char xvt_size_ImageQuantizerLegacyImageRecord
-	[(sizeof(ImageQuantizerLegacyImageRecord) == 0x18C6) ? 1 : -1];
+	[(sizeof(struct ImageQuantizerLegacyImageRecord) == 0x18C6) ? 1 : -1];
 #if defined(_MSC_VER) && !defined(XVT_MODERN)
 typedef char xvt_size_ImageQuantizerImageLayout
-	[(sizeof(ImageQuantizerImageLayout) == 0x1096) ? 1 : -1];
+	[(sizeof(struct ImageQuantizerImageLayout) == 0x1096) ? 1 : -1];
 typedef char xvt_size_ImageQuantizerOwnedBuffers
-	[(sizeof(ImageQuantizerOwnedBuffers) == 0x18B6) ? 1 : -1];
+	[(sizeof(struct ImageQuantizerOwnedBuffers) == 0x18B6) ? 1 : -1];
 #else
 typedef char xvt_size_ImageQuantizerImageLayout
-	[(sizeof(ImageQuantizerImageLayout) == 0x109A) ? 1 : -1];
+	[(sizeof(struct ImageQuantizerImageLayout) == 0x109A) ? 1 : -1];
 typedef char xvt_size_ImageQuantizerOwnedBuffers
-	[(sizeof(ImageQuantizerOwnedBuffers) == 0x18DE) ? 1 : -1];
+	[(sizeof(struct ImageQuantizerOwnedBuffers) == 0x18DE) ? 1 : -1];
 #endif
 
-typedef struct ImageQuantizerNodePoolBlock {
+struct ImageQuantizerNodePoolBlock {
 	/* Nodes ImageQuantizer_AllocateNode hands out in order. */
-	ImageQuantizerNode nodes[2048];
+	struct ImageQuantizerNode nodes[2048];
 	/* The block made before this one, NULL for the first; the pools are
 	 * freed along these links. */
 	struct ImageQuantizerNodePoolBlock *previous;
-} ImageQuantizerNodePoolBlock;
+};
 
 /* 196608.0, 3 * 256 * 256: the start value of a nearest-color search and the
  * error each pixel adds to the tree's root. */
@@ -307,7 +308,7 @@ static const char g_imageQuantizerUnableToQuantizeMessage[28] =
 /* Root of the color tree, made by ImageQuantizer_InitializeColorTree; its
  * parent is itself. */
 // GLOBAL: XVT 0x556928
-static ImageQuantizerNode *g_imageQuantizerRoot = 0;
+static struct ImageQuantizerNode *g_imageQuantizerRoot = 0;
 /* Level of the color tree's leaves: ImageQuantizer_InitializeColorTree sets 2
  * to 8, and ImageQuantizer_ClassifyImageColors lowers it by 1 each time it
  * collapses the deepest level. */
@@ -331,7 +332,7 @@ static uint8_t g_imageQuantizerSearchBlue = 0;
  * ImageQuantizer_AssignPaletteColors and
  * ImageQuantizer_ExportPalette6BitAndDestroy. */
 // GLOBAL: XVT 0x55693D
-static ImageQuantizerPaletteEntry *g_imageQuantizerPaletteEntries = 0;
+static struct ImageQuantizerPaletteEntry *g_imageQuantizerPaletteEntries = 0;
 /* Smallest squared distance found so far by
  * ImageQuantizer_FindNearestPaletteEntryRecursive. */
 // GLOBAL: XVT 0x556941
@@ -362,11 +363,11 @@ unsigned int g_imageQuantizerPoolNodesRemaining = 0;
 static unsigned int g_imageQuantizerNearestPaletteIndex = 0;
 /* Next unused node of the newest pool block. */
 // GLOBAL: XVT 0x556969
-ImageQuantizerNode *g_imageQuantizerNextNode = 0;
+struct ImageQuantizerNode *g_imageQuantizerNextNode = 0;
 /* Newest block of the node pool, linked to the older ones through previous;
  * NULL when there is none. */
 // GLOBAL: XVT 0x55696D
-ImageQuantizerNodePoolBlock *g_imageQuantizerNodePoolHead = 0;
+struct ImageQuantizerNodePoolBlock *g_imageQuantizerNodePoolHead = 0;
 
 /* Does nothing; its arguments are ignored. */
 // FLAGS: /O2 /G5
@@ -398,9 +399,9 @@ void ImageQuantizer_FatalAllocationError(const char *context,
 // FUNCTION: XVT 0x4438C0
 void *ImageQuantizer_AllocateImage(void)
 {
-	ImageQuantizerLegacyImageRecord *image;
+	struct ImageQuantizerLegacyImageRecord *image;
 
-	image = malloc(sizeof(ImageQuantizerLegacyImageRecord));
+	image = malloc(sizeof(struct ImageQuantizerLegacyImageRecord));
 	if (image == NULL) {
 		ImageQuantizer_FatalAllocationError("Unable to allocate image",
 						    "Memory allocation failed");
@@ -471,10 +472,10 @@ void *ImageQuantizer_AllocateImage(void)
 // FUNCTION: XVT 0x443A50
 void ImageQuantizer_CompressPixelRuns(unsigned int *image)
 {
-	ImageQuantizerImageLayout *imageLayout;
-	ImageQuantizerPixelRun *sourceRun;
-	ImageQuantizerPixelRun *destinationRun;
-	ImageQuantizerPixelRun *resizedRuns;
+	struct ImageQuantizerImageLayout *imageLayout;
+	struct ImageQuantizerPixelRun *sourceRun;
+	struct ImageQuantizerPixelRun *destinationRun;
+	struct ImageQuantizerPixelRun *resizedRuns;
 	unsigned int pixelIndex;
 	unsigned int remaining;
 	unsigned int colorClass;
@@ -485,7 +486,7 @@ void ImageQuantizer_CompressPixelRuns(unsigned int *image)
 		return;
 	}
 
-	imageLayout = (ImageQuantizerImageLayout *)image;
+	imageLayout = (struct ImageQuantizerImageLayout *)image;
 	sourceRun = imageLayout->pixels;
 	remaining = sourceRun->lengthMinusOne + 1;
 	imageLayout->runCount = 0;
@@ -552,9 +553,9 @@ void ImageQuantizer_CompressPixelRuns(unsigned int *image)
 		}
 	}
 
-	resizedRuns =
-		realloc(imageLayout->pixels,
-			imageLayout->runCount * sizeof(ImageQuantizerPixelRun));
+	resizedRuns = realloc(imageLayout->pixels,
+			      imageLayout->runCount *
+				      sizeof(struct ImageQuantizerPixelRun));
 	colorClass = imageLayout->colorClass;
 	imageLayout->pixels = resizedRuns;
 	height = imageLayout->height;
@@ -573,13 +574,13 @@ void ImageQuantizer_CompressPixelRuns(unsigned int *image)
 // FUNCTION: XVT 0x443C30
 void ImageQuantizer_DestroyImage(void *image)
 {
-	ImageQuantizerOwnedBuffers *ownedBuffers;
+	struct ImageQuantizerOwnedBuffers *ownedBuffers;
 
 	if (image == NULL) {
 		return;
 	}
 
-	ownedBuffers = (ImageQuantizerOwnedBuffers *)image;
+	ownedBuffers = (struct ImageQuantizerOwnedBuffers *)image;
 	if (ownedBuffers->buffer1014 != NULL) {
 		free(ownedBuffers->buffer1014);
 	}
@@ -620,24 +621,24 @@ void ImageQuantizer_DestroyImage(void *image)
 // FUNCTION: XVT 0x443D10
 int ImageQuantizer_ExpandPixelRuns(uint32_t *image)
 {
-	ImageQuantizerImageLayout *imageLayout;
-	ImageQuantizerPixelRun *resizedPixels;
-	ImageQuantizerPixelRun *destination;
-	ImageQuantizerPixelRun *source;
+	struct ImageQuantizerImageLayout *imageLayout;
+	struct ImageQuantizerPixelRun *resizedPixels;
+	struct ImageQuantizerPixelRun *destination;
+	struct ImageQuantizerPixelRun *source;
 	unsigned int sourceIndex;
 	unsigned int pixelCount;
 	unsigned int expandedPixelCount;
 	unsigned int runCount;
 	int copies;
 
-	imageLayout = (ImageQuantizerImageLayout *)image;
+	imageLayout = (struct ImageQuantizerImageLayout *)image;
 	pixelCount = imageLayout->width * imageLayout->height;
 	if (imageLayout->runCount == pixelCount) {
 		return 1;
 	}
-	resizedPixels = (ImageQuantizerPixelRun *)realloc(
+	resizedPixels = (struct ImageQuantizerPixelRun *)realloc(
 		imageLayout->pixels,
-		pixelCount * sizeof(ImageQuantizerPixelRun));
+		pixelCount * sizeof(struct ImageQuantizerPixelRun));
 	if (resizedPixels == NULL) {
 		return 0;
 	}
@@ -686,7 +687,7 @@ void ImageQuantizer_QuantizeImage(unsigned int *image, unsigned int paletteSize,
 	uint32_t *imageWords = image;
 	unsigned int value;
 	unsigned int storedRunCount;
-	ImageQuantizerNodePoolBlock *previousBlock;
+	struct ImageQuantizerNodePoolBlock *previousBlock;
 
 	if (paletteSize == 2 && colorspace == 2 && dither != 0) {
 		return;
@@ -755,9 +756,9 @@ unsigned int ImageQuantizer_AssignPaletteColors(uint32_t *image,
 						unsigned int paletteSize,
 						int dither, int colorspace)
 {
-	ImageQuantizerImageLayout *layout;
-	ImageQuantizerPixelRun *pixel;
-	ImageQuantizerPaletteEntry *palette;
+	struct ImageQuantizerImageLayout *layout;
+	struct ImageQuantizerPixelRun *pixel;
+	struct ImageQuantizerPaletteEntry *palette;
 	uint8_t *paletteBytesPtr;
 	unsigned int completed;
 	unsigned int paletteBytes;
@@ -770,15 +771,15 @@ unsigned int ImageQuantizer_AssignPaletteColors(uint32_t *image,
 	unsigned int offset;
 	int bitPosition;
 	int imageDithered;
-	ImageQuantizerNode *node;
+	struct ImageQuantizerNode *node;
 	uint8_t *imageBytes;
 
-	layout = (ImageQuantizerImageLayout *)image;
+	layout = (struct ImageQuantizerImageLayout *)image;
 	imageBytes = (uint8_t *)image;
 	memcpy(&palette, imageBytes + 0x104C, sizeof(palette));
 	free(palette);
 	colorCount = g_imageQuantizerColorCount;
-	paletteBytes = colorCount * sizeof(ImageQuantizerPaletteEntry);
+	paletteBytes = colorCount * sizeof(struct ImageQuantizerPaletteEntry);
 	palette = malloc(paletteBytes);
 	if (palette == NULL) {
 		ImageQuantizer_FatalAllocationError("Unable to assign palette",
@@ -878,8 +879,8 @@ unsigned int ImageQuantizer_AssignPaletteColors(uint32_t *image,
 // FUNCTION: XVT 0x4441F0
 void ImageQuantizer_ClassifyImageColors(unsigned int *image)
 {
-	ImageQuantizerPixelRun *pixel;
-	ImageQuantizerNode *node;
+	struct ImageQuantizerPixelRun *pixel;
+	struct ImageQuantizerNode *node;
 	unsigned int completed;
 	unsigned int level;
 	unsigned int childIndex;
@@ -893,12 +894,12 @@ void ImageQuantizer_ClassifyImageColors(unsigned int *image)
 	double pixelError;
 
 	g_imageQuantizerRoot->quantizationError +=
-		(double)((ImageQuantizerImageLayout *)image)->width *
-		(double)((ImageQuantizerImageLayout *)image)->height *
+		(double)((struct ImageQuantizerImageLayout *)image)->width *
+		(double)((struct ImageQuantizerImageLayout *)image)->height *
 		g_imageQuantizerMaxSquaredRgbErrorPerPixel;
-	pixel = ((ImageQuantizerImageLayout *)image)->pixels;
+	pixel = ((struct ImageQuantizerImageLayout *)image)->pixels;
 	for (completed = 0;
-	     completed < ((ImageQuantizerImageLayout *)image)->runCount;
+	     completed < ((struct ImageQuantizerImageLayout *)image)->runCount;
 	     ++completed) {
 		if (g_imageQuantizerNodeCount > 0x41241) {
 			ImageQuantizer_CollapseDeepestLevelRecursive(
@@ -984,14 +985,16 @@ void ImageQuantizer_ClassifyImageColors(unsigned int *image)
 		node->greenSum += (double)(runLength * pixel->green);
 		node->blueSum += (double)(runLength * pixel->blue);
 		++pixel;
-		if (((ImageQuantizerImageLayout *)image)->runCount -
+		if (((struct ImageQuantizerImageLayout *)image)->runCount -
 				    completed ==
 			    1 ||
-		    completed % ((ImageQuantizerImageLayout *)image)->height ==
+		    completed % ((struct ImageQuantizerImageLayout *)image)
+					    ->height ==
 			    0) {
 			ImageQuantizer_ReportProgress(
 				"  Classifying image colors...  ", completed,
-				((ImageQuantizerImageLayout *)image)->runCount);
+				((struct ImageQuantizerImageLayout *)image)
+					->runCount);
 		}
 	}
 }
@@ -1002,7 +1005,8 @@ void ImageQuantizer_ClassifyImageColors(unsigned int *image)
  * g_imageQuantizerNearestPaletteIndex on a closer one. Only
  * ImageQuantizer_AssignPaletteColors calls it. */
 // FUNCTION: XVT 0x4444F0
-void ImageQuantizer_FindNearestPaletteEntryRecursive(ImageQuantizerNode *node)
+void ImageQuantizer_FindNearestPaletteEntryRecursive(
+	struct ImageQuantizerNode *node)
 {
 	unsigned int childIndex;
 
@@ -1018,7 +1022,7 @@ void ImageQuantizer_FindNearestPaletteEntryRecursive(ImageQuantizerNode *node)
 	}
 
 	if (node->pixelCount != 0) {
-		ImageQuantizerPaletteEntry *entry;
+		struct ImageQuantizerPaletteEntry *entry;
 		double distanceSq;
 
 		entry = &g_imageQuantizerPaletteEntries[node->paletteIndex];
@@ -1041,7 +1045,8 @@ void ImageQuantizer_FindNearestPaletteEntryRecursive(ImageQuantizerNode *node)
  * (sum + (pixelCount >> 1)) / pixelCount, stores that index in the node's
  * paletteIndex and adds 1 to g_imageQuantizerColorCount. */
 // FUNCTION: XVT 0x4445E0
-void ImageQuantizer_BuildPaletteEntriesRecursive(ImageQuantizerNode *node)
+void ImageQuantizer_BuildPaletteEntriesRecursive(
+	struct ImageQuantizerNode *node)
 {
 	unsigned int childIndex;
 	unsigned int pixelCount;
@@ -1089,8 +1094,8 @@ void ImageQuantizer_BuildPaletteEntriesRecursive(ImageQuantizerNode *node)
 // FUNCTION: XVT 0x4446C0
 int ImageQuantizer_DitherImageToPalette(uint32_t *image)
 {
-	ImageQuantizerImageLayout *layout;
-	ImageQuantizerPixelRun *pixels;
+	struct ImageQuantizerImageLayout *layout;
+	struct ImageQuantizerPixelRun *pixels;
 	uint8_t *palette;
 	int *errors;
 	unsigned int paletteCount;
@@ -1108,7 +1113,7 @@ int ImageQuantizer_DitherImageToPalette(uint32_t *image)
 	if (ImageQuantizer_ExpandPixelRuns(image) == 0) {
 		return 1;
 	}
-	layout = (ImageQuantizerImageLayout *)image;
+	layout = (struct ImageQuantizerImageLayout *)image;
 	pixels = layout->pixels;
 	memcpy(&palette, (uint8_t *)image + 0x104C, sizeof(palette));
 	paletteCount = *(uint32_t *)((uint8_t *)image + 0x1054) >> 4;
@@ -1129,7 +1134,7 @@ int ImageQuantizer_DitherImageToPalette(uint32_t *image)
 		for (column = 0; column < rowWidth; ++column) {
 			unsigned int sourceColumn =
 				direction > 0 ? column : rowWidth - column - 1;
-			ImageQuantizerPixelRun *pixel =
+			struct ImageQuantizerPixelRun *pixel =
 				&pixels[pixelIndex + sourceColumn];
 			int red =
 				pixel->red + errors[(column + 1) * 3 + 0] / 16;
@@ -1248,18 +1253,17 @@ int ImageQuantizer_InitializeColorTree(int treeDepth)
  * g_imageQuantizerNodeCount. Returns it, or NULL when a block cannot be
  * allocated. */
 // FUNCTION: XVT 0x444D90
-ImageQuantizerNode *ImageQuantizer_AllocateNode(int childIndex, int level,
-						ImageQuantizerNode *parent,
-						int midpointRed,
-						int midpointGreen,
-						int midpointBlue)
+struct ImageQuantizerNode *
+ImageQuantizer_AllocateNode(int childIndex, int level,
+			    struct ImageQuantizerNode *parent, int midpointRed,
+			    int midpointGreen, int midpointBlue)
 {
-	ImageQuantizerNodePoolBlock *poolBlock;
-	ImageQuantizerNode *node;
+	struct ImageQuantizerNodePoolBlock *poolBlock;
+	struct ImageQuantizerNode *node;
 
 	if (g_imageQuantizerPoolNodesRemaining == 0) {
-		poolBlock = (ImageQuantizerNodePoolBlock *)malloc(
-			sizeof(ImageQuantizerNodePoolBlock));
+		poolBlock = (struct ImageQuantizerNodePoolBlock *)malloc(
+			sizeof(struct ImageQuantizerNodePoolBlock));
 		if (poolBlock == NULL) {
 			return NULL;
 		}
@@ -1291,7 +1295,8 @@ ImageQuantizerNode *ImageQuantizer_AllocateNode(int childIndex, int level,
 /* Merges every node at level g_imageQuantizerMaxTreeDepth in node's subtree
  * into its parent with ImageQuantizer_MergeNodeIntoParent, children first. */
 // FUNCTION: XVT 0x444E60
-void ImageQuantizer_CollapseDeepestLevelRecursive(ImageQuantizerNode *node)
+void ImageQuantizer_CollapseDeepestLevelRecursive(
+	struct ImageQuantizerNode *node)
 {
 	int childIndex;
 
@@ -1314,9 +1319,9 @@ void ImageQuantizer_CollapseDeepestLevelRecursive(ImageQuantizerNode *node)
  * parent's new pixel count. The node's error is not passed on, and its memory
  * stays in the pool. */
 // FUNCTION: XVT 0x444EB0
-unsigned int ImageQuantizer_MergeNodeIntoParent(ImageQuantizerNode *node)
+unsigned int ImageQuantizer_MergeNodeIntoParent(struct ImageQuantizerNode *node)
 {
-	ImageQuantizerNode *parent;
+	struct ImageQuantizerNode *parent;
 	unsigned int pixelCount;
 
 	parent = node->parent;
@@ -1361,7 +1366,8 @@ void ImageQuantizer_ReduceColorTree(unsigned int targetColorCount)
  * node is counted in g_imageQuantizerColorCount when it holds pixels and lowers
  * g_imageQuantizerNextPruneThreshold to its error when that is smaller. */
 // FUNCTION: XVT 0x444F90
-void ImageQuantizer_ReduceColorTreePassRecursive(ImageQuantizerNode *node)
+void ImageQuantizer_ReduceColorTreePassRecursive(
+	struct ImageQuantizerNode *node)
 {
 	unsigned int childIndex;
 
@@ -1403,9 +1409,9 @@ void ImageQuantizer_QuantizeImageLists(unsigned int **imageListHeads,
 	unsigned int listIndex;
 	unsigned int storedRunCount;
 	int hasIndexedImage = 0;
-	ImageQuantizerImageLayout *image;
-	ImageQuantizerImageLayout *nextImage;
-	ImageQuantizerNodePoolBlock *previousBlock;
+	struct ImageQuantizerImageLayout *image;
+	struct ImageQuantizerImageLayout *nextImage;
+	struct ImageQuantizerNodePoolBlock *previousBlock;
 
 	if (targetColorCount > 0xFFFF) {
 		targetColorCount = 0xFFFF;
@@ -1432,7 +1438,8 @@ void ImageQuantizer_QuantizeImageLists(unsigned int **imageListHeads,
 	}
 	ImageQuantizer_InitializeColorTree(effectiveDepth);
 	for (listIndex = 0; listIndex < listCount; ++listIndex) {
-		image = (ImageQuantizerImageLayout *)imageListHeads[listIndex];
+		image = (struct ImageQuantizerImageLayout *)
+			imageListHeads[listIndex];
 		while (image != NULL) {
 			memcpy(&storedRunCount, (uint8_t *)image + 4238,
 			       sizeof(storedRunCount));
@@ -1446,7 +1453,8 @@ void ImageQuantizer_QuantizeImageLists(unsigned int **imageListHeads,
 		}
 	}
 	for (listIndex = 0; listIndex < listCount; ++listIndex) {
-		image = (ImageQuantizerImageLayout *)imageListHeads[listIndex];
+		image = (struct ImageQuantizerImageLayout *)
+			imageListHeads[listIndex];
 		while (image != NULL) {
 			ImageQuantizer_ClassifyImageColors(
 				(unsigned int *)image);
@@ -1462,7 +1470,8 @@ void ImageQuantizer_QuantizeImageLists(unsigned int **imageListHeads,
 		ImageQuantizer_ReduceColorTree(targetColorCount);
 	}
 	for (listIndex = 0; listIndex < listCount; ++listIndex) {
-		image = (ImageQuantizerImageLayout *)imageListHeads[listIndex];
+		image = (struct ImageQuantizerImageLayout *)
+			imageListHeads[listIndex];
 		while (image != NULL) {
 			ImageQuantizer_AssignPaletteColors(
 				(unsigned int *)image, targetColorCount, dither,
@@ -1509,15 +1518,15 @@ void ImageQuantizer_ExportPalette6BitAndDestroy(int colorCount, int treeDepth,
 	unsigned int entryOffset;
 	int blue;
 	int green;
-	ImageQuantizerPaletteEntry *entry;
-	ImageQuantizerNodePoolBlock *previousBlock;
+	struct ImageQuantizerPaletteEntry *entry;
+	struct ImageQuantizerNodePoolBlock *previousBlock;
 	uint8_t *output;
 
 	(void)treeDepth;
 	remainingColors = colorCount;
 	ImageQuantizer_ReduceColorTree(colorCount);
 	g_imageQuantizerPaletteEntries =
-		malloc(sizeof(ImageQuantizerPaletteEntry) *
+		malloc(sizeof(struct ImageQuantizerPaletteEntry) *
 		       g_imageQuantizerColorCount);
 	if (g_imageQuantizerPaletteEntries == NULL) {
 		ImageQuantizer_FatalAllocationError(
@@ -1531,13 +1540,14 @@ void ImageQuantizer_ExportPalette6BitAndDestroy(int colorCount, int treeDepth,
 	if (colorCount > 0) {
 		output = paletteRgb;
 		do {
-			entry = (ImageQuantizerPaletteEntry
+			entry = (struct ImageQuantizerPaletteEntry
 					 *)((uint8_t *)
 						    g_imageQuantizerPaletteEntries +
 					    entryOffset);
 			green = entry->green;
 			blue = entry->blue;
-			entryOffset += sizeof(ImageQuantizerPaletteEntry);
+			entryOffset +=
+				sizeof(struct ImageQuantizerPaletteEntry);
 			output[0] = entry->red >> 2;
 			--remainingColors;
 			output[1] = green >> 2;
@@ -1568,8 +1578,8 @@ void ImageQuantizer_ClassifyIndexedRgb565Image(const uint8_t *indexedPixels,
 					       unsigned int width,
 					       unsigned int height)
 {
-	ImageQuantizerImageLayout *image;
-	ImageQuantizerPixelRun *sample;
+	struct ImageQuantizerImageLayout *image;
+	struct ImageQuantizerPixelRun *sample;
 	unsigned int row;
 	unsigned int column;
 	uint16_t channel;
@@ -1583,7 +1593,7 @@ void ImageQuantizer_ClassifyIndexedRgb565Image(const uint8_t *indexedPixels,
 	image->height = height;
 	image->runCount = height * image->width;
 	image->pixels =
-		malloc(image->runCount * sizeof(ImageQuantizerPixelRun));
+		malloc(image->runCount * sizeof(struct ImageQuantizerPixelRun));
 	if (image->pixels == NULL) {
 		FeDiskIo_FatalError(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 	}
@@ -1638,10 +1648,10 @@ void ImageQuantizer_ClassifyEncodedTexLevelImage(const uint8_t *encodedImage,
 						 int packingMode)
 {
 	uint8_t command;
-	ImageQuantizerImageLayout *image;
+	struct ImageQuantizerImageLayout *image;
 	uint8_t runLengthMinusOne;
 	const uint8_t *commandPtr;
-	ImageQuantizerPixelRun *sample;
+	struct ImageQuantizerPixelRun *sample;
 	int paletteBase;
 	int paletteIndex;
 
@@ -1654,7 +1664,7 @@ void ImageQuantizer_ClassifyEncodedTexLevelImage(const uint8_t *encodedImage,
 	image->height = height;
 	image->runCount = height * image->width;
 	image->pixels =
-		malloc(image->runCount * sizeof(ImageQuantizerPixelRun));
+		malloc(image->runCount * sizeof(struct ImageQuantizerPixelRun));
 	commandPtr = encodedImage + 16;
 	paletteBase = 0;
 	sample = image->pixels;

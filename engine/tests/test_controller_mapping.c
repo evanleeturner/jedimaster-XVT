@@ -23,12 +23,12 @@ enum {
 	HALF = 16384,
 };
 
-static XvtControllerOptions g_options;
+static struct XvtControllerOptions g_options;
 static AeronInputSnapshot g_input;
 
-static XvtInputActionBinding Button(uint8_t index, XvtInputAction action)
+static struct XvtInputActionBinding Button(uint8_t index, XvtInputAction action)
 {
-	XvtInputActionBinding binding;
+	struct XvtInputActionBinding binding;
 	memset(&binding, 0, sizeof binding);
 	binding.source.kind = AERON_CONTROLLER_DIGITAL_BUTTON;
 	binding.source.index = index;
@@ -39,12 +39,12 @@ static XvtInputActionBinding Button(uint8_t index, XvtInputAction action)
 
 /* The gamepad model: yaw and pitch on the left stick with a 0.25 deadzone, roll unbound, the throttle on
  * the right trigger; fire, the target/roll modifier and next target on three buttons. */
-static void GamepadModel(XvtControllerModel *model)
+static void GamepadModel(struct XvtControllerModel *model)
 {
 	memset(model, 0, sizeof *model);
 	memcpy(model->guid, kGamepadGuid, sizeof kGamepadGuid);
 	model->kind = AERON_CONTROLLER_KIND_GAMEPAD;
-	XvtControllerProfile *profile = &model->profile;
+	struct XvtControllerProfile *profile = &model->profile;
 	XvtControllerOptions_ClearProfile(profile,
 					  AERON_CONTROLLER_KIND_GAMEPAD);
 	profile->mapping.axes[XVT_INPUT_AXIS_YAW].source =
@@ -65,12 +65,12 @@ static void GamepadModel(XvtControllerModel *model)
 }
 
 /* The joystick model: roll on axis 0 and fire on button 0; no axis the gamepad model drives. */
-static void JoystickModel(XvtControllerModel *model)
+static void JoystickModel(struct XvtControllerModel *model)
 {
 	memset(model, 0, sizeof *model);
 	memcpy(model->guid, kJoystickGuid, sizeof kJoystickGuid);
 	model->kind = AERON_CONTROLLER_KIND_JOYSTICK;
-	XvtControllerProfile *profile = &model->profile;
+	struct XvtControllerProfile *profile = &model->profile;
 	XvtControllerOptions_ClearProfile(profile,
 					  AERON_CONTROLLER_KIND_JOYSTICK);
 	profile->mapping.axes[XVT_INPUT_AXIS_ROLL].source = 0;
@@ -94,7 +94,7 @@ static void Start(void)
 }
 
 /* Options holding both models. */
-static void BothModels(XvtControllerOptions *options)
+static void BothModels(struct XvtControllerOptions *options)
 {
 	memset(options, 0, sizeof *options);
 	GamepadModel(&options->models[0]);
@@ -153,7 +153,7 @@ static void CheckOptions(void)
 		XvtControllerMapping_Options(), &g_options));
 
 	/* SetOptions keeps the options; only ApplyPending installs them. */
-	XvtControllerOptions both;
+	struct XvtControllerOptions both;
 	BothModels(&both);
 	XvtControllerMapping_SetOptions(&both);
 	XVT_ASSERT_TRUE(XvtControllerOptions_Equals(
@@ -163,7 +163,7 @@ static void CheckOptions(void)
 		XvtControllerMapping_Options(), &both));
 
 	/* Invalid options are dropped. */
-	XvtControllerOptions invalid = g_options;
+	struct XvtControllerOptions invalid = g_options;
 	invalid.models[0].guid[0] = 'X';
 	XvtControllerMapping_SetOptions(&invalid);
 	XvtControllerMapping_ApplyPending();
@@ -221,7 +221,7 @@ static void CheckAxes(void)
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_Axis(XVT_INPUT_AXIS_PITCH), 0);
 
 	/* Configured inversion flips yaw for flight and menu alike, and cancels the gamepad's pitch flip. */
-	XvtControllerOptions inverted = g_options;
+	struct XvtControllerOptions inverted = g_options;
 	inverted.models[0].profile.mapping.axes[XVT_INPUT_AXIS_YAW].invert =
 		true;
 	inverted.models[0].profile.mapping.axes[XVT_INPUT_AXIS_PITCH].invert =
@@ -242,7 +242,7 @@ static void CheckAxes(void)
 static void CheckJoystickPitchNotFlipped(void)
 {
 	Start();
-	XvtControllerOptions options;
+	struct XvtControllerOptions options;
 	memset(&options, 0, sizeof options);
 	JoystickModel(&options.models[0]);
 	options.models[0].profile.mapping.axes[XVT_INPUT_AXIS_PITCH].source = 1;
@@ -407,7 +407,7 @@ static void CheckSuspendDropsState(void)
 static void CheckResolve(void)
 {
 	Start();
-	const XvtControllerModel *model = &g_options.models[0];
+	const struct XvtControllerModel *model = &g_options.models[0];
 	XVT_ASSERT_TRUE(XvtControllerMapping_Resolve(model, &g_input, 0) ==
 			NULL);
 	Gamepad(0, 9);
@@ -425,7 +425,7 @@ static void CheckResolve(void)
 	XVT_ASSERT_TRUE(XvtControllerMapping_Resolve(model, &g_input, 1) ==
 			&g_input.controllers[1]);
 
-	XvtControllerModel other = *model;
+	struct XvtControllerModel other = *model;
 	memcpy(other.guid, kOtherGuid, sizeof kOtherGuid);
 	XVT_ASSERT_TRUE(XvtControllerMapping_Resolve(&other, &g_input, 0) ==
 			NULL);
@@ -467,7 +467,7 @@ static void CheckApplyPendingReleasesChanged(void)
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_Modifiers(), 1);
 
 	/* Adding another model leaves this controller's state and axis controller alone. */
-	XvtControllerOptions both;
+	struct XvtControllerOptions both;
 	BothModels(&both);
 	XvtControllerMapping_SetOptions(&both);
 	XvtControllerMapping_ApplyPending();
@@ -488,7 +488,7 @@ static void CheckApplyPendingReleasesChanged(void)
 	Hold(pad, FIRE_BUTTON, true);
 	Frame();
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_Modifiers(), 1);
-	XvtControllerOptions joystickOnly;
+	struct XvtControllerOptions joystickOnly;
 	memset(&joystickOnly, 0, sizeof joystickOnly);
 	JoystickModel(&joystickOnly.models[0]);
 	joystickOnly.count = 1;
@@ -599,7 +599,7 @@ static void CheckThrottleSample(void)
 	before = generation;
 
 	/* A change of the throttle's binding changes it, and the new binding applies. */
-	XvtControllerOptions inverted = g_options;
+	struct XvtControllerOptions inverted = g_options;
 	inverted.models[0]
 		.profile.mapping.axes[XVT_INPUT_AXIS_THROTTLE]
 		.invert = true;
@@ -660,7 +660,7 @@ static void CheckMenuButtons(void)
 	XVT_ASSERT_INT_EQ(XvtControllerMapping_MenuButtons(), 2);
 
 	/* A joystick's buttons 0 and 1. */
-	XvtControllerOptions both;
+	struct XvtControllerOptions both;
 	BothModels(&both);
 	XvtControllerMapping_Init(&both);
 	memset(&g_input.controllers, 0, sizeof g_input.controllers);
@@ -703,7 +703,7 @@ static void CheckMenuHat(void)
 	}
 
 	/* A joystick's first hat, with the same bits. */
-	XvtControllerOptions both;
+	struct XvtControllerOptions both;
 	BothModels(&both);
 	XvtControllerMapping_Init(&both);
 	memset(&g_input.controllers, 0, sizeof g_input.controllers);

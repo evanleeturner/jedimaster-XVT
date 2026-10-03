@@ -28,11 +28,11 @@ int XvtRemasterConfig_Sync(void);
  * override every later Sync re-applies. Returns false, with error written and the fullscreen change
  * undone (a failed undo requests a fatal renderer error), when validation or the apply fails. previous
  * is unused. */
-bool XvtRemasterConfig_ApplyVideo(const XvtVideoSettings *previous,
-				  const XvtVideoSettings *requested,
+bool XvtRemasterConfig_ApplyVideo(const struct XvtVideoSettings *previous,
+				  const struct XvtVideoSettings *requested,
 				  char *error, size_t capacity);
 /* The settings last applied, or NULL before the first successful Sync or ApplyVideo. */
-const XvtRenderSettings *XvtRemasterConfig_Effective(void);
+const struct XvtRenderSettings *XvtRemasterConfig_Effective(void);
 /* 0 before the first apply, then incremented each time the effective settings change, the read-back
  * included. */
 uint64_t XvtRemasterConfig_Generation(void);

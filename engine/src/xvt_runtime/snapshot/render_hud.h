@@ -9,7 +9,7 @@ extern "C" {
 void XvtRenderHud_Reset(void);
 void XvtRenderHud_BeginFrame(void);
 /* Copies the target boxes gathered since the last reset into out. */
-void XvtRenderHud_Publish(XvtRenderSnapshot *out);
+void XvtRenderHud_Publish(struct XvtRenderSnapshot *out);
 /* Records a target box at the world position in g_worldLocX/y/z. Does nothing without an open
  * tick or while the draw scope is map or CRT; counts a dropped record in the writer when
  * XVT_SNAP_TARGET_BOXES boxes are held. object is kept only when it is below the slot total,

@@ -49,7 +49,7 @@ static void World(int host, XvtFlightTimingProfile profile)
 /* Defers a checksum report from sender, flagged as a state request or not. */
 static void Defer(int sender, int request)
 {
-	XvtFlightChecksumReportWire report;
+	struct XvtFlightChecksumReportWire report;
 	memset(&report, 0, sizeof report);
 	XvtWire_Set32(report.checksum.opcode, NET_PACKET_WORLD_CHECKSUM);
 	XvtWire_Set32(report.request_state, request ? XVT_CHECKSUM_REQUEST_STATE
@@ -163,7 +163,7 @@ static void CheckRequestStateClient(void)
 
 static void CheckReceivePacketLeavesOthers(void)
 {
-	uint8_t bytes[sizeof(XvtFlightChecksumReportWire)];
+	uint8_t bytes[sizeof(struct XvtFlightChecksumReportWire)];
 	memset(bytes, 0, sizeof bytes);
 
 	/* Too short to hold an opcode. */
@@ -177,9 +177,9 @@ static void CheckReceivePacketLeavesOthers(void)
 	/* On the host with no send running, a peer's state request is left to the flight control handler. */
 	World(1, XVT_FLIGHT_TIMING_NETWORK_125);
 	XvtWire_Set32(bytes, NET_PACKET_WORLD_CHECKSUM);
-	XvtWire_Set32(
-		bytes + offsetof(XvtFlightChecksumReportWire, request_state),
-		XVT_CHECKSUM_REQUEST_STATE);
+	XvtWire_Set32(bytes + offsetof(struct XvtFlightChecksumReportWire,
+				       request_state),
+		      XVT_CHECKSUM_REQUEST_STATE);
 	XVT_ASSERT_INT_EQ(
 		XvtResync_ReceivePacket(PEER_DPID, bytes, sizeof bytes), 0);
 	XVT_ASSERT_INT_EQ(XvtResync_HasStateRequest(), 0);

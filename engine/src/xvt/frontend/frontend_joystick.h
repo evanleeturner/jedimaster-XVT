@@ -20,7 +20,7 @@ struct JoystickEntry {
 	char description[128];
 };
 
-extern JoystickEntry g_joystickEntries[128];
+extern struct JoystickEntry g_joystickEntries[128];
 extern int g_joystickEntryCount;
 
 extern int g_frontendJoystickCenteringSlot;

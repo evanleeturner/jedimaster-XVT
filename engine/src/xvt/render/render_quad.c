@@ -51,17 +51,17 @@ const uint32_t g_explosionBillboardColorByFrame[32] = {
  * resource handle. SceneBillboard_RenderQueuedTextured is its only caller. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x401450
-void RenderQuad_DrawModelTexture(SceneBillboardQueueEntry *quadRecord)
+void RenderQuad_DrawModelTexture(struct SceneBillboardQueueEntry *quadRecord)
 {
 	uint16_t frame;
 	uint16_t modelType;
 	uint16_t screenSize;
 	uint16_t handle;
 	int cameraWorldY;
-	ObjectRecord *object;
+	struct ObjectRecord *object;
 	const uint8_t *modelData;
-	const TexLevelHeader *textureHeader;
-	SpritePayload *sprite;
+	const struct TexLevelHeader *textureHeader;
+	struct SpritePayload *sprite;
 
 	frame = (uint16_t)quadRecord->frame & 0x7FFFu;
 	g_flightSwRotSpriteSpanRunsEnabled = 1;
@@ -83,9 +83,9 @@ void RenderQuad_DrawModelTexture(SceneBillboardQueueEntry *quadRecord)
 	modelData = (const uint8_t *)Memory_GetHandleBlock(handle);
 	frame &= 0x7Fu;
 	Memory_HandleBlockDoneStub(handle);
-	textureHeader = (const TexLevelHeader *)modelData;
+	textureHeader = (const struct TexLevelHeader *)modelData;
 	sprite =
-		(SpritePayload
+		(struct SpritePayload
 			 *)(modelData +
 			    *(const uint32_t
 				      *)(modelData +
@@ -144,7 +144,7 @@ void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY,
 	};
 
 	const uint8_t *textureBytes;
-	const TexLevelImageHeader *imageHeader;
+	const struct TexLevelImageHeader *imageHeader;
 	uint32_t color;
 	float computedDepth;
 	float depth;
@@ -162,7 +162,7 @@ void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY,
 	int negativeHalfWidth;
 	int xOffset;
 	int yOffset;
-	RenderClipVertex vertices[CLIP_VERTEX_CAPACITY];
+	struct RenderClipVertex vertices[CLIP_VERTEX_CAPACITY];
 	int previousIndex;
 	int vertexIndex;
 	uint32_t vertexColor;
@@ -170,7 +170,7 @@ void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY,
 	uint16_t *palette;
 	const uint8_t *pixels;
 	int rleFormat;
-	Std3DTexCacheNode *texture;
+	struct Std3DTexCacheNode *texture;
 
 #ifdef XVT_MODERN
 	/* Suppress before texture lookup so hidden classic draws do not refill the cache. */
@@ -180,7 +180,7 @@ void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY,
 #endif
 
 	textureBytes = (const uint8_t *)textureImage;
-	imageHeader = (const TexLevelImageHeader *)textureImage;
+	imageHeader = (const struct TexLevelImageHeader *)textureImage;
 	screenY = g_flightVpHeight - screenY;
 #ifdef XVT_MODERN
 	color = UINT32_MAX;
@@ -188,7 +188,7 @@ void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY,
 	if (g_billboardObjectOrTypeIndex >= 0 &&
 	    (unsigned int)g_regionMainObjectSlotEnd >
 		    (unsigned int)g_billboardObjectOrTypeIndex) {
-		ObjectRecord *object;
+		struct ObjectRecord *object;
 		int frame;
 
 		object = &g_objectTable[g_billboardObjectOrTypeIndex];

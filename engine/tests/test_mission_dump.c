@@ -24,14 +24,14 @@
 
 static char g_folder[XVT_TEST_PATH_CAPACITY];
 
-typedef struct Bytes {
+struct Bytes {
 	uint8_t *data;
 	size_t size;
 	size_t capacity;
-} Bytes;
+};
 
 /* Appends size bytes of data, or of zeros when data is NULL. */
-static void Put(Bytes *bytes, const void *data, size_t size)
+static void Put(struct Bytes *bytes, const void *data, size_t size)
 {
 	if (bytes->size + size > bytes->capacity) {
 		bytes->capacity = (bytes->size + size) * 2;
@@ -47,7 +47,7 @@ static void Put(Bytes *bytes, const void *data, size_t size)
 }
 
 /* Appends a 16-bit little-endian word, as every multibyte field in a mission file is stored. */
-static void PutWord(Bytes *bytes, unsigned value)
+static void PutWord(struct Bytes *bytes, unsigned value)
 {
 	uint8_t word[2] = {(uint8_t)value, (uint8_t)(value >> 8)};
 	Put(bytes, word, sizeof word);
@@ -63,7 +63,7 @@ static void SetText(char *field, size_t size, const char *text)
 }
 
 /* What a test mission holds. Every byte the fields do not name is zero. */
-typedef struct Mission {
+struct Mission {
 	unsigned version;
 	unsigned groups;
 	unsigned messages;
@@ -77,12 +77,12 @@ typedef struct Mission {
 	const char *teamName;
 	const char *briefingLabel;
 	const char *overrideText;
-} Mission;
+};
 
 /* A small mission that names something in every part the tool prints. */
-static Mission Plain(void)
+static struct Mission Plain(void)
 {
-	Mission mission;
+	struct Mission mission;
 	memset(&mission, 0, sizeof mission);
 	mission.version = 14;
 	mission.groups = 1;
@@ -102,33 +102,33 @@ static Mission Plain(void)
 }
 
 /* An empty mission: no flight groups, messages, goals, teams or text. */
-static Mission Empty(void)
+static struct Mission Empty(void)
 {
-	Mission mission;
+	struct Mission mission;
 	memset(&mission, 0, sizeof mission);
 	mission.version = 14;
 	return mission;
 }
 
 /* Writes the mission's bytes into out, in the order the tool reads them. */
-static void Build(const Mission *mission, Bytes *out)
+static void Build(const struct Mission *mission, struct Bytes *out)
 {
 	out->size = 0;
 	PutWord(out, mission->version);
 
-	uint8_t header[sizeof(MissionHeader)] = {0};
-	header[offsetof(MissionHeader, numFlightGroups)] =
+	uint8_t header[sizeof(struct MissionHeader)] = {0};
+	header[offsetof(struct MissionHeader, numFlightGroups)] =
 		(uint8_t)mission->groups;
-	header[offsetof(MissionHeader, numFlightGroups) + 1] =
+	header[offsetof(struct MissionHeader, numFlightGroups) + 1] =
 		(uint8_t)(mission->groups >> 8);
-	header[offsetof(MissionHeader, numMessages)] =
+	header[offsetof(struct MissionHeader, numMessages)] =
 		(uint8_t)mission->messages;
-	header[offsetof(MissionHeader, numMessages) + 1] =
+	header[offsetof(struct MissionHeader, numMessages) + 1] =
 		(uint8_t)(mission->messages >> 8);
 	Put(out, header, sizeof header);
 
 	for (unsigned i = 0; i < mission->groups; ++i) {
-		XvtFlightGroup group;
+		struct XvtFlightGroup group;
 		memset(&group, 0, sizeof group);
 		if (i == 0) {
 			SetText(group.name, sizeof group.name,
@@ -140,7 +140,7 @@ static void Build(const Mission *mission, Bytes *out)
 	}
 
 	for (unsigned i = 0; i < mission->messages; ++i) {
-		MissionMessage message;
+		struct MissionMessage message;
 		memset(&message, 0, sizeof message);
 		if (i == 0) {
 			SetText(message.message, sizeof message.message,
@@ -154,7 +154,7 @@ static void Build(const Mission *mission, Bytes *out)
 		unsigned count = team == 0 ? mission->team0Goals : 0;
 		PutWord(out, count);
 		for (unsigned j = 0; j < count; ++j) {
-			GlobalGoal goal;
+			struct GlobalGoal goal;
 			memset(&goal, 0, sizeof goal);
 			if (j == 0) {
 				SetText(goal.name, sizeof goal.name,
@@ -168,7 +168,7 @@ static void Build(const Mission *mission, Bytes *out)
 		int present = team == 0 && mission->team0Record;
 		PutWord(out, present ? 1 : 0);
 		if (present) {
-			Team record;
+			struct Team record;
 			memset(&record, 0, sizeof record);
 			SetText(record.name, sizeof record.name,
 				mission->teamName);
@@ -204,16 +204,16 @@ static void Build(const Mission *mission, Bytes *out)
 	}
 }
 
-typedef struct Run {
+struct Run {
 	int status;
 	char *out;
 	size_t outSize;
 	char *err;
-} Run;
+};
 
 /* Runs the tool with count arguments, its stdout and stderr in files in the folder, or its stdout on
  * /dev/full when toFull is set. Returns its exit status (-1 when it did not exit) and what it wrote. */
-static Run RunTool(int count, const char *const *args, int toFull)
+static struct Run RunTool(int count, const char *const *args, int toFull)
 {
 	char outPath[XVT_TEST_PATH_CAPACITY], errPath[XVT_TEST_PATH_CAPACITY];
 	XvtTest_Join(outPath, g_folder, "stdout.txt");
@@ -239,7 +239,7 @@ static Run RunTool(int count, const char *const *args, int toFull)
 	}
 	int status;
 	XVT_ASSERT_INT_EQ(waitpid(child, &status, 0), child);
-	Run run = {0};
+	struct Run run = {0};
 	run.status = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
 	if (!toFull) {
 		run.out =
@@ -249,15 +249,15 @@ static Run RunTool(int count, const char *const *args, int toFull)
 	return run;
 }
 
-static void FreeRun(Run *run)
+static void FreeRun(struct Run *run)
 {
 	free(run->out);
 	free(run->err);
 }
 
 /* Writes bytes as the file name and runs the tool on it. */
-static Run DumpBytes(const char *name, const uint8_t *data, size_t size,
-		     int toFull)
+static struct Run DumpBytes(const char *name, const uint8_t *data, size_t size,
+			    int toFull)
 {
 	char path[XVT_TEST_PATH_CAPACITY];
 	XvtTest_WriteFile(g_folder, name, data, size);
@@ -267,20 +267,20 @@ static Run DumpBytes(const char *name, const uint8_t *data, size_t size,
 }
 
 /* Builds the mission, writes it and runs the tool on it. */
-static Run Dump(const Mission *mission)
+static struct Run Dump(const struct Mission *mission)
 {
-	Bytes bytes = {0};
+	struct Bytes bytes = {0};
 	Build(mission, &bytes);
-	Run run = DumpBytes("mission.tie", bytes.data, bytes.size, 0);
+	struct Run run = DumpBytes("mission.tie", bytes.data, bytes.size, 0);
 	free(bytes.data);
 	return run;
 }
 
 /* Runs the tool on the mission and returns its exit status. A status of 1 with nothing on stderr comes
  * back as -2, so a refusal without a message fails a check that expects 1. */
-static int Outcome(const Mission *mission)
+static int Outcome(const struct Mission *mission)
 {
-	Run run = Dump(mission);
+	struct Run run = Dump(mission);
 	int status = run.status == 1 && run.err[0] == 0 ? -2 : run.status;
 	FreeRun(&run);
 	return status;
@@ -304,7 +304,7 @@ static void LastLine(const char *text, char *line, size_t capacity)
 
 static void CheckArguments(void)
 {
-	Run run = RunTool(0, NULL, 0);
+	struct Run run = RunTool(0, NULL, 0);
 	XVT_ASSERT_INT_EQ(run.status, 2);
 	FreeRun(&run);
 	const char *two[2] = {"a.tie", "b.tie"};
@@ -323,8 +323,8 @@ static void CheckArguments(void)
 
 static void CheckPrintsEveryPart(void)
 {
-	Mission mission = Plain();
-	Run run = Dump(&mission);
+	struct Mission mission = Plain();
+	struct Run run = Dump(&mission);
 	XVT_ASSERT_INT_EQ(run.status, 0);
 	/* The version line comes first. */
 	char first[256];
@@ -347,7 +347,7 @@ static void CheckPrintsEveryPart(void)
 
 static void CheckVersions(void)
 {
-	Mission mission = Plain();
+	struct Mission mission = Plain();
 	static const unsigned accepted[] = {12, 13, 14};
 	for (size_t i = 0; i < sizeof accepted / sizeof accepted[0]; ++i) {
 		mission.version = accepted[i];
@@ -361,7 +361,7 @@ static void CheckVersions(void)
 
 static void CheckCounts(void)
 {
-	Mission mission = Plain();
+	struct Mission mission = Plain();
 	mission.groups = 48;
 	XVT_ASSERT_INT_EQ(Outcome(&mission), 0);
 	mission.groups = 49;
@@ -380,7 +380,7 @@ static void CheckCounts(void)
 
 static void CheckMessageIndices(void)
 {
-	Mission mission = Plain();
+	struct Mission mission = Plain();
 	mission.messages = 2;
 	mission.messageIndex[0] = 3;
 	mission.messageIndex[1] = 3;
@@ -394,7 +394,7 @@ static void CheckMessageIndices(void)
 
 static void CheckGlobalGoals(void)
 {
-	Mission mission = Plain();
+	struct Mission mission = Plain();
 	mission.team0Goals = 7;
 	XVT_ASSERT_INT_EQ(Outcome(&mission), 0);
 	mission.team0Goals = 8;
@@ -403,17 +403,17 @@ static void CheckGlobalGoals(void)
 
 static void CheckShortReads(void)
 {
-	Mission mission = Plain();
-	Bytes bytes = {0};
+	struct Mission mission = Plain();
+	struct Bytes bytes = {0};
 	Build(&mission, &bytes);
 	const size_t cuts[] = {0,
 			       1,
 			       2 + 10,
-			       2 + sizeof(MissionHeader) + 100,
+			       2 + sizeof(struct MissionHeader) + 100,
 			       bytes.size / 2,
 			       bytes.size - 1};
 	for (size_t i = 0; i < sizeof cuts / sizeof cuts[0]; ++i) {
-		Run run = DumpBytes("short.tie", bytes.data, cuts[i], 0);
+		struct Run run = DumpBytes("short.tie", bytes.data, cuts[i], 0);
 		XVT_ASSERT_INT_EQ(run.status, 1);
 		XVT_ASSERT_TRUE(run.err[0] != 0);
 		FreeRun(&run);
@@ -424,9 +424,9 @@ static void CheckShortReads(void)
 static void CheckUnknownNames(void)
 {
 	/* A trigger condition past the end of the condition table prints as "Unknown". */
-	Mission mission = Plain();
+	struct Mission mission = Plain();
 	mission.arrivalCondition = 200;
-	Run run = Dump(&mission);
+	struct Run run = Dump(&mission);
 	XVT_ASSERT_INT_EQ(run.status, 0);
 	XVT_ASSERT_TRUE(strstr(run.out, "Unknown") != NULL);
 	FreeRun(&run);
@@ -435,9 +435,9 @@ static void CheckUnknownNames(void)
 static void CheckQuoting(void)
 {
 	/* A quote, a backslash and a newline print as C escapes; an escape character never prints raw. */
-	Mission mission = Plain();
+	struct Mission mission = Plain();
 	mission.groupName = "A\"B\\C\n\x1b";
-	Run run = Dump(&mission);
+	struct Run run = Dump(&mission);
 	XVT_ASSERT_INT_EQ(run.status, 0);
 	XVT_ASSERT_TRUE(strstr(run.out, "\"A\\\"B\\\\C\\n") != NULL);
 	XVT_ASSERT_TRUE(memchr(run.out, 0x1b, run.outSize) == NULL);
@@ -446,10 +446,10 @@ static void CheckQuoting(void)
 
 static void CheckConsumedOffset(void)
 {
-	Mission mission = Plain();
-	Bytes bytes = {0};
+	struct Mission mission = Plain();
+	struct Bytes bytes = {0};
 	Build(&mission, &bytes);
-	Run run = DumpBytes("mission.tie", bytes.data, bytes.size, 0);
+	struct Run run = DumpBytes("mission.tie", bytes.data, bytes.size, 0);
 	XVT_ASSERT_INT_EQ(run.status, 0);
 	char last[256];
 	LastLine(run.out, last, sizeof last);
@@ -487,10 +487,10 @@ static void CheckFlushFailure(void)
 	if (access("/dev/full", W_OK) != 0) {
 		return;
 	}
-	Mission mission = Empty();
-	Bytes bytes = {0};
+	struct Mission mission = Empty();
+	struct Bytes bytes = {0};
 	Build(&mission, &bytes);
-	Run run = DumpBytes("empty.tie", bytes.data, bytes.size, 0);
+	struct Run run = DumpBytes("empty.tie", bytes.data, bytes.size, 0);
 	XVT_ASSERT_INT_EQ(run.status, 0);
 	FreeRun(&run);
 	run = DumpBytes("empty.tie", bytes.data, bytes.size, 1);

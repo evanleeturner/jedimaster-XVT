@@ -65,14 +65,15 @@ void XvtFlightIntegration_Push(unsigned slot, unsigned axis, int *accum,
 /* Canonical schema-1 record, 144 bytes. Decode validates before installation. */
 /* Writes slot's entry as a record. A slot out of range or empty, or an entry that belongs to another
  * object (signature, type or mobile state), gives the empty record: zero but for the slot. */
-void XvtFlightIntegration_Encode(unsigned slot, XvtIntegrationWire *out);
+void XvtFlightIntegration_Encode(unsigned slot, struct XvtIntegrationWire *out);
 /* Returns 1 when record is well formed: slot in range; for type 0, exactly the empty record; carried
  * and target slots in range or 0xFFFF; directions -1, 0 or 1; each position remainder smaller than
  * SIMULATION_TICKS_PER_SECOND * 32768, each steering remainder (ROLL to BANK) smaller than
  * SIMULATION_TICKS_PER_SECOND * 65536 * 65536, and every other remainder smaller than 2^31, in
  * magnitude. With apply, it then replaces the slot's entry. Returns 0 otherwise and changes nothing.
  * The record is not checked against the object in the slot. */
-int XvtFlightIntegration_Decode(const XvtIntegrationWire *record, int apply);
+int XvtFlightIntegration_Decode(const struct XvtIntegrationWire *record,
+				int apply);
 /* Clears every entry except the local slots from g_localTransientSlotStart up to g_localDebrisSlotEnd,
  * leaving reference motion alone. Does nothing before Init. */
 void XvtFlightIntegration_ResetShared(void);

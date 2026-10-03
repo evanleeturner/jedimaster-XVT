@@ -146,9 +146,9 @@ struct GameConfig {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_GameConfig[(sizeof(GameConfig) == 529) ? 1 : -1];
+typedef char xvt_size_GameConfig[(sizeof(struct GameConfig) == 529) ? 1 : -1];
 
-extern GameConfig g_gameConfig;
+extern struct GameConfig g_gameConfig;
 extern int g_configConnectionTypeEditable;
 
 int Config_OptionsDatapadUpdate(int frameCounter);
@@ -169,18 +169,18 @@ void Config_DrawSpecularOptionRow(int configIndex);
 void Config_DrawDiffuseLightingOptionRow(int configIndex);
 void Config_DrawUse3dHardwareOptionRow(int configIndex);
 void Config_DrawBilinearOptionRow(int configIndex);
-void Config_DrawTwoChoiceOptionDimmed(uint8_t *value, const RECT *rect,
+void Config_DrawTwoChoiceOptionDimmed(uint8_t *value, const struct RECT *rect,
 				      FrontendStringId valueBaseStrId);
-void Config_DrawTwoChoiceOption(uint8_t *value, const RECT *rect,
+void Config_DrawTwoChoiceOption(uint8_t *value, const struct RECT *rect,
 				FrontendStringId valueBaseStrId);
-void Config_DrawTwoChoiceOptionReadOnly(uint8_t *value, const RECT *rect,
+void Config_DrawTwoChoiceOptionReadOnly(uint8_t *value, const struct RECT *rect,
 					FrontendStringId valueBaseStrId);
-void Config_DrawTwoChoiceOptionImpl(uint8_t *value, const RECT *rect,
+void Config_DrawTwoChoiceOptionImpl(uint8_t *value, const struct RECT *rect,
 				    FrontendStringId valueBaseStrId,
 				    int translucentSelection, int disableInput);
-void Config_DrawThreeChoiceOption(uint8_t *value, const RECT *rect,
+void Config_DrawThreeChoiceOption(uint8_t *value, const struct RECT *rect,
 				  FrontendStringId valueBaseStrId);
-void Config_DrawOptionSlider(uint8_t *value, RECT *rect, int valueCount,
+void Config_DrawOptionSlider(uint8_t *value, struct RECT *rect, int valueCount,
 			     FrontendStringId rangeLabelId,
 			     int playSoundOnChange);
 void Config_Load(void);
@@ -188,10 +188,10 @@ void Config_Write(void);
 int Config_UpdateNavigationAndRestoreDefaults(void);
 void Config_NetworkOptionsScreen(void);
 void Config_DrawTwoChoiceOptionReadOnlyOpaque(const uint8_t *value,
-					      const RECT *rect,
+					      const struct RECT *rect,
 					      FrontendStringId valueBaseStrId);
 void Config_DrawThreeChoiceOptionReadOnly(const uint8_t *selectedOption,
-					  const RECT *barRect,
+					  const struct RECT *barRect,
 					  FrontendStringId firstOptionStringId);
 void Config_SoundOptionsScreen(void);
 void Config_JoystickRemapScreen(void);

@@ -100,7 +100,7 @@ static void fl_transformaxes(float cur[3][3], const float axis[3],
 /* curMat rows from the record's Q16 Euler angles — the float mirror of
  * FVIEW_calcrotatemove + FVIEW_calcrotateorient (statics and dirty
  * orientations). */
-static void fl_curmat_from_euler(const XvtSnapObject *f, float cur[3][3])
+static void fl_curmat_from_euler(const struct XvtSnapObject *f, float cur[3][3])
 {
 	const float pitch_angle =
 		(float)(int16_t)(0xc000 - f->pitch) * FL_Q16_TO_RAD;
@@ -158,8 +158,9 @@ static void fl_model_matrix(const float basis[9], const float delta[3],
 	m[15] = 1.0f;
 }
 
-int XvtRenderMath_BuildView(const XvtSnapCamera *cam, const int32_t origin[3],
-			    int width, int height, XvtRenderView *out)
+int XvtRenderMath_BuildView(const struct XvtSnapCamera *cam,
+			    const int32_t origin[3], int width, int height,
+			    struct XvtRenderView *out)
 {
 	if (!cam || !cam->valid || !origin || !out || width <= 0 ||
 	    height <= 0 || cam->viewport.width <= 0 ||
@@ -211,7 +212,7 @@ int XvtRenderMath_BuildView(const XvtSnapCamera *cam, const int32_t origin[3],
 	return 1;
 }
 
-int XvtRenderMath_ProjectWorld(const XvtRenderView *view,
+int XvtRenderMath_ProjectWorld(const struct XvtRenderView *view,
 			       const int32_t world[3], float *x, float *y,
 			       float *depth)
 {
@@ -237,9 +238,9 @@ int XvtRenderMath_ProjectWorld(const XvtRenderView *view,
 	return isfinite(*x) && isfinite(*y);
 }
 
-int XvtRenderMath_BuildMainView(const XvtSnapCamera *cam,
+int XvtRenderMath_BuildMainView(const struct XvtSnapCamera *cam,
 				const int32_t origin[3], int width, int height,
-				XvtRenderView *out)
+				struct XvtRenderView *out)
 {
 	if (!XvtRenderMath_BuildView(cam, origin, width, height, out) ||
 	    cam->screen_width <= 0 || cam->screen_height <= 0) {
@@ -268,7 +269,7 @@ int XvtRenderMath_BuildMainView(const XvtSnapCamera *cam,
 	return 1;
 }
 
-void XvtRenderMath_ObjectMatrix(const XvtSnapObject *object,
+void XvtRenderMath_ObjectMatrix(const struct XvtSnapObject *object,
 				const int32_t origin[3], float out[16])
 {
 	float cur[3][3], basis[9], local[3];
@@ -282,8 +283,8 @@ void XvtRenderMath_ObjectMatrix(const XvtSnapObject *object,
 	fl_model_matrix(basis, local, out);
 }
 
-int XvtRenderMath_PoseChanged(const XvtRenderSnapshot *current,
-			      const XvtRenderSnapshot *previous)
+int XvtRenderMath_PoseChanged(const struct XvtRenderSnapshot *current,
+			      const struct XvtRenderSnapshot *previous)
 {
 	if (!current || !previous ||
 	    current->flight_valid != previous->flight_valid) {
@@ -301,8 +302,8 @@ int XvtRenderMath_PoseChanged(const XvtRenderSnapshot *current,
 		return 1;
 	}
 	for (unsigned i = 0; i < current->object_count; ++i) {
-		const XvtSnapObject *a = &current->objects[i],
-				    *b = &previous->objects[i];
+		const struct XvtSnapObject *a = &current->objects[i],
+					   *b = &previous->objects[i];
 		if (a->id.slot != b->id.slot ||
 		    a->id.signature != b->id.signature ||
 		    a->object_type != b->object_type ||
@@ -340,18 +341,19 @@ int XvtRenderMath_PoseChanged(const XvtRenderSnapshot *current,
 }
 
 int XvtRenderMath_Layout(float sw, float sh, float tw, float th,
-			 XvtLayoutTransform *out)
+			 struct XvtLayoutTransform *out)
 {
 	if (!out || !isfinite(sw + sh + tw + th) || sw <= 0 || sh <= 0 ||
 	    tw <= 0 || th <= 0) {
 		return 0;
 	}
-	*out = (XvtLayoutTransform){fminf(tw / sw, th / sh), sw, sh, tw, th};
+	*out = (struct XvtLayoutTransform){fminf(tw / sw, th / sh), sw, sh, tw,
+					   th};
 	return 1;
 }
 
-void XvtRenderMath_LayoutPoint(const XvtLayoutTransform *t, float ax, float ay,
-			       float x, float y, float *ox, float *oy)
+void XvtRenderMath_LayoutPoint(const struct XvtLayoutTransform *t, float ax,
+			       float ay, float x, float y, float *ox, float *oy)
 {
 	*ox = x * t->scale +
 	      ax * (t->target_width - t->source_width * t->scale);
@@ -359,7 +361,7 @@ void XvtRenderMath_LayoutPoint(const XvtLayoutTransform *t, float ax, float ay,
 	      ay * (t->target_height - t->source_height * t->scale);
 }
 
-void XvtRenderMath_LayoutInverse(const XvtLayoutTransform *t, float ax,
+void XvtRenderMath_LayoutInverse(const struct XvtLayoutTransform *t, float ax,
 				 float ay, float x, float y, float *ox,
 				 float *oy)
 {

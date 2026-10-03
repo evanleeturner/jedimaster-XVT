@@ -19,7 +19,7 @@
 static struct {
 	uint8_t laser_lock[XVT_HUD_WEAPON_SLOTS];
 	uint8_t threats[4];
-	XvtCockpitRadar radar;
+	struct XvtCockpitRadar radar;
 } g_recorded;
 
 void XvtCockpitInstruments_BeginUpdate(int player)
@@ -53,12 +53,12 @@ void XvtCockpitInstruments_RecordRadar(int object, int front, int index, int x,
 		return;
 	}
 	unsigned side = front ? 0 : 1;
-	const HudElementLayout *anchor =
+	const struct HudElementLayout *anchor =
 		&g_hudElementLayouts[g_hudInstrumentSetBaseIndex + side];
-	XvtSnapRadarBlip *blip = &g_recorded.radar.blips[side][index];
+	struct XvtSnapRadarBlip *blip = &g_recorded.radar.blips[side][index];
 	memset(blip, 0, sizeof *blip);
-	blip->object = (XvtSnapObjectId){(uint16_t)object,
-					 g_objectTable[object].objectSignature};
+	blip->object = (struct XvtSnapObjectId){
+		(uint16_t)object, g_objectTable[object].objectSignature};
 	blip->x = (int16_t)(x - anchor->x);
 	blip->y = (int16_t)(y - anchor->y);
 	blip->color_index = (uint16_t)color;
@@ -73,7 +73,7 @@ void XvtCockpitInstruments_RecordRadar(int object, int front, int index, int x,
 	}
 }
 
-static int IsRebelFighter(const ObjectRecord *object)
+static int IsRebelFighter(const struct ObjectRecord *object)
 {
 	switch (object->objectType) {
 	case CRAFT_SPECIES_X_WING:
@@ -89,8 +89,8 @@ static int IsRebelFighter(const ObjectRecord *object)
 
 void XvtCockpitInstruments_CompleteRadar(void)
 {
-	const HudRadarBlipPoint *points[2] = {g_radarForeDrawBlips,
-					      g_radarAftDrawBlips};
+	const struct HudRadarBlipPoint *points[2] = {g_radarForeDrawBlips,
+						     g_radarAftDrawBlips};
 	for (unsigned side = 0; side < 2; ++side) {
 		for (unsigned index = 0; index < g_recorded.radar.count[side];
 		     ++index) {
@@ -103,16 +103,17 @@ void XvtCockpitInstruments_CompleteRadar(void)
 	}
 }
 
-static void BuildShieldState(XvtCockpitState *state, const CraftData *craft)
+static void BuildShieldState(struct XvtCockpitState *state,
+			     const struct CraftData *craft)
 {
-	XvtCockpitSystems *systems = &state->systems;
+	struct XvtCockpitSystems *systems = &state->systems;
 	if (!(systems->active_hud_features & XVT_COCKPIT_FEATURE_SHIELDS)) {
 		return;
 	}
 	unsigned base = state->view.instrument_base;
 	unsigned maximum = g_modelDefs[craft->modelIndex].shieldStrength;
 	for (unsigned side = 0; side < 2; ++side) {
-		XvtCockpitShield *shield = &systems->shields[side];
+		struct XvtCockpitShield *shield = &systems->shields[side];
 		int energy = craft->shieldEnergy[side];
 		if (energy < 0 || !(craft->workingSubsystems &
 				    CRAFT_SUBSYSTEM_FLAG_SHIELDS)) {
@@ -153,13 +154,14 @@ static void BuildShieldState(XvtCockpitState *state, const CraftData *craft)
 		unsigned damage = craft->hullDamage / (craft->hullMax / 3);
 		hull = 2 - (damage > 2 ? 2 : damage);
 	}
-	systems->hull_indicator = (XvtCockpitIndicator){1, (uint8_t)hull, 0,
-							XVT_COCKPIT_BEFORE_CRT};
+	systems->hull_indicator = (struct XvtCockpitIndicator){
+		1, (uint8_t)hull, 0, XVT_COCKPIT_BEFORE_CRT};
 }
 
-static void BuildBeamState(XvtCockpitState *state, const CraftData *craft)
+static void BuildBeamState(struct XvtCockpitState *state,
+			   const struct CraftData *craft)
 {
-	XvtCockpitSystems *systems = &state->systems;
+	struct XvtCockpitSystems *systems = &state->systems;
 	if (!(systems->active_hud_features & XVT_COCKPIT_FEATURE_BEAM)) {
 		return;
 	}
@@ -170,7 +172,7 @@ static void BuildBeamState(XvtCockpitState *state, const CraftData *craft)
 		strength = 0;
 	}
 	systems->beam_visible = 1;
-	systems->beam_enabled = (XvtCockpitIndicator){
+	systems->beam_enabled = (struct XvtCockpitIndicator){
 		1, craft->beamActive && working, 0, XVT_COCKPIT_BEFORE_CRT};
 	for (unsigned segment = 0; segment < 9; ++segment) {
 		int charge = strength - 1000 * (int)segment;
@@ -182,7 +184,7 @@ static void BuildBeamState(XvtCockpitState *state, const CraftData *craft)
 	}
 }
 
-static void SetPowerGauge(XvtCockpitPowerGauge *gauge, int visible,
+static void SetPowerGauge(struct XvtCockpitPowerGauge *gauge, int visible,
 			  unsigned filled, unsigned segments, int step,
 			  int rebel_fighter)
 {
@@ -196,10 +198,10 @@ static void SetPowerGauge(XvtCockpitPowerGauge *gauge, int visible,
 	gauge->rebel_fighter = rebel_fighter != 0;
 }
 
-static void BuildPowerState(XvtCockpitState *state, const CraftData *craft,
-			    int rebel_fighter)
+static void BuildPowerState(struct XvtCockpitState *state,
+			    const struct CraftData *craft, int rebel_fighter)
 {
-	XvtCockpitSystems *systems = &state->systems;
+	struct XvtCockpitSystems *systems = &state->systems;
 	unsigned features = systems->active_hud_features;
 	unsigned laser = (uint8_t)craft->laserRechargeLevel,
 		 shield = (uint8_t)craft->shieldRechargeLevel;
@@ -267,11 +269,11 @@ static void BuildPowerState(XvtCockpitState *state, const CraftData *craft,
 		      beam, segments, step, rebel_fighter);
 }
 
-static void BuildFeatureCovers(XvtCockpitState *state,
-			       const ObjectRecord *object,
-			       const CraftData *craft, int rebel_fighter)
+static void BuildFeatureCovers(struct XvtCockpitState *state,
+			       const struct ObjectRecord *object,
+			       const struct CraftData *craft, int rebel_fighter)
 {
-	XvtCockpitSystems *systems = &state->systems;
+	struct XvtCockpitSystems *systems = &state->systems;
 	int forward = state->view.hud_state == HUD_VIEW_FORWARD;
 	int hud_only = state->view.hud_state == HUD_VIEW_HUD_ONLY;
 	if (!forward && !hud_only) {
@@ -298,7 +300,7 @@ static void BuildFeatureCovers(XvtCockpitState *state,
 		     feature == XVT_COCKPIT_FEATURE_BEAM_POWER)) {
 			continue;
 		}
-		systems->feature_covers[index] = (XvtCockpitIndicator){
+		systems->feature_covers[index] = (struct XvtCockpitIndicator){
 			1,
 			(uint8_t)(!active && (hud_only || !rebel_fighter) ? 13
 									  : 0),
@@ -307,20 +309,22 @@ static void BuildFeatureCovers(XvtCockpitState *state,
 	if (!state->view.map_active && !rebel_fighter &&
 	    object->objectType != CRAFT_SPECIES_TIE_FIGHTER) {
 		if (!(craft->systemFlags & CRAFT_SUBSYSTEM_FLAG_SHIELDS)) {
-			systems->unavailable_shields = (XvtCockpitIndicator){
-				1, 0, 0, XVT_COCKPIT_BEFORE_CRT};
+			systems->unavailable_shields =
+				(struct XvtCockpitIndicator){
+					1, 0, 0, XVT_COCKPIT_BEFORE_CRT};
 		}
 		if (!(craft->systemFlags & CRAFT_SUBSYSTEM_FLAG_BEAM_SYSTEM)) {
 			systems->unavailable_beam[0] =
 				systems->unavailable_beam[1] =
-					(XvtCockpitIndicator){
+					(struct XvtCockpitIndicator){
 						1, 0, 0,
 						XVT_COCKPIT_BEFORE_CRT};
 		}
 	}
 }
 
-static void BuildBasicReadouts(XvtCockpitState *state, const CraftData *craft)
+static void BuildBasicReadouts(struct XvtCockpitState *state,
+			       const struct CraftData *craft)
 {
 	if (craft->damageStats.activeHudFeatureMask &
 	    XVT_COCKPIT_FEATURE_SPEED) {
@@ -333,11 +337,11 @@ static void BuildBasicReadouts(XvtCockpitState *state, const CraftData *craft)
 	}
 }
 
-static void BuildLaserSlots(XvtCockpitState *state, const CraftData *craft,
-			    int rebel_fighter)
+static void BuildLaserSlots(struct XvtCockpitState *state,
+			    const struct CraftData *craft, int rebel_fighter)
 {
-	const PlayerData *player = &g_players[g_localPlayer];
-	const ModelDef *model = &g_modelDefs[craft->modelIndex];
+	const struct PlayerData *player = &g_players[g_localPlayer];
+	const struct ModelDef *model = &g_modelDefs[craft->modelIndex];
 	unsigned count = craft->laserSlotCount;
 	if (count > XVT_HUD_WEAPON_SLOTS) {
 		count = XVT_HUD_WEAPON_SLOTS;
@@ -353,8 +357,9 @@ static void BuildLaserSlots(XvtCockpitState *state, const CraftData *craft,
 			     (craft->damageStats.activeHudFeatureMask &
 			      XVT_COCKPIT_FEATURE_LASER_SELECTION);
 	for (unsigned index = 0; index < count; ++index) {
-		XvtCockpitWeaponSlot *slot = &state->weapons.slots[index];
-		const HudElementLayout *layout =
+		struct XvtCockpitWeaponSlot *slot =
+			&state->weapons.slots[index];
+		const struct HudElementLayout *layout =
 			&g_hudElementLayouts[base + index + 3];
 		if (layout->x + layout->y == 0 &&
 		    base == HUD_COCKPIT_INSTRUMENT_BASE_INDEX) {
@@ -421,7 +426,7 @@ static void BuildLaserSlots(XvtCockpitState *state, const CraftData *craft,
 		}
 		slot->ready_state = (uint8_t)ready;
 		slot->selection_state = (uint8_t)selected;
-		const HudElementLayout *selection =
+		const struct HudElementLayout *selection =
 			&g_hudElementLayouts[base + index + 11];
 		slot->selection_visible = rebel_fighter && charge_visible &&
 					  selection->x + selection->y != 0;
@@ -433,19 +438,21 @@ static void BuildLaserSlots(XvtCockpitState *state, const CraftData *craft,
 				: (player->currentTargetObjectIdx == -1
 					   ? 1
 					   : player->missileLockState + 1);
-	state->weapons.lock_indicator = (XvtCockpitIndicator){
+	state->weapons.lock_indicator = (struct XvtCockpitIndicator){
 		1, (uint8_t)lock, 0, XVT_COCKPIT_BEFORE_CRT};
 }
 
-static void BuildLauncher(XvtCockpitState *state, const CraftData *craft,
-			  unsigned weapon_slot, unsigned display_slot,
-			  unsigned bank, int rebel_fighter)
+static void BuildLauncher(struct XvtCockpitState *state,
+			  const struct CraftData *craft, unsigned weapon_slot,
+			  unsigned display_slot, unsigned bank,
+			  int rebel_fighter)
 {
 	if (weapon_slot >= XVT_HUD_WEAPON_SLOTS) {
 		return;
 	}
-	XvtCockpitLauncher *launcher = &state->weapons.launchers[display_slot];
-	const PlayerData *player = &g_players[g_localPlayer];
+	struct XvtCockpitLauncher *launcher =
+		&state->weapons.launchers[display_slot];
+	const struct PlayerData *player = &g_players[g_localPlayer];
 	unsigned count = craft->warheadLauncherCount
 				 ? craft->weaponSlots[weapon_slot].ammoCount
 				 : 0;
@@ -479,15 +486,15 @@ static void BuildLauncher(XvtCockpitState *state, const CraftData *craft,
 		 g_hudElementLayouts[base + 27 + display_slot].selector);
 }
 
-static void BuildWarheadState(XvtCockpitState *state,
-			      const ObjectRecord *object,
-			      const CraftData *craft, int rebel_fighter)
+static void BuildWarheadState(struct XvtCockpitState *state,
+			      const struct ObjectRecord *object,
+			      const struct CraftData *craft, int rebel_fighter)
 {
 	if (!(craft->damageStats.activeHudFeatureMask &
 	      XVT_COCKPIT_FEATURE_WARHEADS)) {
 		return;
 	}
-	const ModelDef *model =
+	const struct ModelDef *model =
 		&g_modelDefs[g_objectTypeTable[object->objectType].modelIndex];
 	if (!model->warheadLauncherSlotCount[0] &&
 	    !model->warheadLauncherSlotCount[1]) {
@@ -512,13 +519,14 @@ static void BuildWarheadState(XvtCockpitState *state,
 	}
 }
 
-static void BuildCockpitWarnings(XvtCockpitState *state, const CraftData *craft,
+static void BuildCockpitWarnings(struct XvtCockpitState *state,
+				 const struct CraftData *craft,
 				 int rebel_fighter)
 {
 	if (state->view.hud_state != HUD_VIEW_FORWARD) {
 		return;
 	}
-	XvtCockpitSystems *systems = &state->systems;
+	struct XvtCockpitSystems *systems = &state->systems;
 	if (rebel_fighter &&
 	    g_hudElementLayouts[50].x + g_hudElementLayouts[50].y) {
 		unsigned shield = (uint32_t)craft->shieldEnergy[0] +
@@ -532,7 +540,7 @@ static void BuildCockpitWarnings(XvtCockpitState *state, const CraftData *craft,
 				? (g_missionElapsedClock.subsecondTicks / 59) &
 					  1
 				: 0;
-		systems->critical_warning = (XvtCockpitIndicator){
+		systems->critical_warning = (struct XvtCockpitIndicator){
 			1, (uint8_t)flash, 0, XVT_COCKPIT_BEFORE_CRT};
 	}
 	if (state->view.map_active) {
@@ -544,7 +552,7 @@ static void BuildCockpitWarnings(XvtCockpitState *state, const CraftData *craft,
 			g_hudElementLayouts[48].x + g_hudElementLayouts[48].y !=
 			0;
 
-		systems->countermeasure_active = (XvtCockpitIndicator){
+		systems->countermeasure_active = (struct XvtCockpitIndicator){
 			1, (uint8_t)craft->chaffActiveSeconds != 0, 0,
 			XVT_COCKPIT_BEFORE_CRT};
 		systems->countermeasure_active.visible =
@@ -554,37 +562,38 @@ static void BuildCockpitWarnings(XvtCockpitState *state, const CraftData *craft,
 		if ((systems->active_hud_features &
 		     XVT_COCKPIT_FEATURE_SHIELDS) &&
 		    g_hudElementLayouts[51].x + g_hudElementLayouts[51].y) {
-			systems->shield_distribution = (XvtCockpitIndicator){
-				1, (uint8_t)craft->shieldDistribMode, 0,
-				XVT_COCKPIT_BEFORE_CRT};
+			systems->shield_distribution =
+				(struct XvtCockpitIndicator){
+					1, (uint8_t)craft->shieldDistribMode, 0,
+					XVT_COCKPIT_BEFORE_CRT};
 		}
 		if (g_hudElementLayouts[45].x) {
-			systems->sfoils = (XvtCockpitIndicator){
+			systems->sfoils = (struct XvtCockpitIndicator){
 				1, (craft->sFoilState & 2) == 0, 0,
 				XVT_COCKPIT_BEFORE_CRT};
 		}
 	}
 }
 
-void XvtCockpitInstruments_Build(XvtCockpitState *state)
+void XvtCockpitInstruments_Build(struct XvtCockpitState *state)
 {
 	memset(&state->systems, 0, sizeof state->systems);
 	memset(&state->weapons, 0, sizeof state->weapons);
 	memset(&state->target, 0, sizeof state->target);
 	memset(&state->radar, 0, sizeof state->radar);
 	memset(&state->readouts, 0, sizeof state->readouts);
-	const PlayerData *player = &g_players[g_localPlayer];
+	const struct PlayerData *player = &g_players[g_localPlayer];
 	unsigned slot = (uint16_t)player->objectIndex;
 	if (!g_objectTable || slot >= (unsigned)g_regionMainObjectSlotEnd) {
 		return;
 	}
-	const ObjectRecord *object = &g_objectTable[slot];
-	const MobileObject *mobile = object->mobj;
-	const CraftData *craft = mobile ? mobile->pCraft : NULL;
+	const struct ObjectRecord *object = &g_objectTable[slot];
+	const struct MobileObject *mobile = object->mobj;
+	const struct CraftData *craft = mobile ? mobile->pCraft : NULL;
 	if (!craft) {
 		return;
 	}
-	XvtCockpitSystems *systems = &state->systems;
+	struct XvtCockpitSystems *systems = &state->systems;
 	systems->installed = craft->systemFlags;
 	systems->working = craft->workingSubsystems;
 	systems->active_hud_features = craft->damageStats.activeHudFeatureMask;
@@ -617,7 +626,7 @@ void XvtCockpitInstruments_Build(XvtCockpitState *state)
 		state->radar.visible[0] = state->radar.visible[1] =
 			radar_visible;
 		for (unsigned index = 0; index < 4; ++index) {
-			systems->threats[index] = (XvtCockpitIndicator){
+			systems->threats[index] = (struct XvtCockpitIndicator){
 				1, g_recorded.threats[index], 0,
 				XVT_COCKPIT_BEFORE_CRT};
 		}

@@ -2,18 +2,18 @@
 #include "xvt_runtime/storage/storage.h"
 #include <stdlib.h>
 
-typedef struct XvtOptRelocation {
+struct XvtOptRelocation {
 	void **visited;
 	size_t count, capacity;
 	intptr_t delta;
-} XvtOptRelocation;
+};
 
 static void *XvtOpt_Move(const void *pointer, intptr_t delta)
 {
 	return pointer ? (void *)((uintptr_t)pointer + (uintptr_t)delta) : NULL;
 }
 
-static int XvtOpt_TestAndMarkSeen(XvtOptRelocation *state, void *pointer)
+static int XvtOpt_TestAndMarkSeen(struct XvtOptRelocation *state, void *pointer)
 {
 	for (size_t i = 0; i < state->count; ++i) {
 		if (state->visited[i] == pointer) {
@@ -35,8 +35,8 @@ static int XvtOpt_TestAndMarkSeen(XvtOptRelocation *state, void *pointer)
 	return 0;
 }
 
-static void XvtOpt_MoveNode(XvtOptRelocation *state, OptNode *node,
-			    unsigned depth)
+static void XvtOpt_MoveNode(struct XvtOptRelocation *state,
+			    struct OptNode *node, unsigned depth)
 {
 	if (!node || XvtOpt_TestAndMarkSeen(state, node)) {
 		return;
@@ -49,7 +49,7 @@ static void XvtOpt_MoveNode(XvtOptRelocation *state, OptNode *node,
 	node->payload = XvtOpt_Move(node->payload, state->delta);
 	if (node->nodeType == OPT_TEXTURE && node->payload &&
 	    !XvtOpt_TestAndMarkSeen(state, node->payload)) {
-		OptTextureData *texture = node->payload;
+		struct OptTextureData *texture = node->payload;
 		if (!texture->inlinePaletteCount) {
 			texture->palette =
 				XvtOpt_Move(texture->palette, state->delta);
@@ -69,19 +69,19 @@ static void XvtOpt_MoveNode(XvtOptRelocation *state, OptNode *node,
 	}
 }
 
-void XvtOpt_RelocateNode(OptNode *node, intptr_t delta)
+void XvtOpt_RelocateNode(struct OptNode *node, intptr_t delta)
 {
-	XvtOptRelocation state = {.delta = delta};
+	struct XvtOptRelocation state = {.delta = delta};
 	XvtOpt_MoveNode(&state, node, 0);
 	free(state.visited);
 }
 
-void XvtOpt_Relocate(OptimizedPolyObject *model)
+void XvtOpt_Relocate(struct OptimizedPolyObject *model)
 {
 	if (!model || model->selfMarker == model) {
 		return;
 	}
-	XvtOptRelocation state = {
+	struct XvtOptRelocation state = {
 		.delta = (intptr_t)((uintptr_t)model -
 				    (uintptr_t)model->selfMarker)};
 	model->selfMarker = model;
@@ -94,11 +94,12 @@ void XvtOpt_Relocate(OptimizedPolyObject *model)
 	free(state.visited);
 }
 
-OptNode *XvtOpt_ResolveCached(const OptimizedPolyObject *model, OptNode *node)
+struct OptNode *XvtOpt_ResolveCached(const struct OptimizedPolyObject *model,
+				     struct OptNode *node)
 {
 	if (!node->payloadCount) {
 		node->payloadCount =
 			(intptr_t)OptModel_ResolveNodeRef(model, node->payload);
 	}
-	return (OptNode *)node->payloadCount;
+	return (struct OptNode *)node->payloadCount;
 }

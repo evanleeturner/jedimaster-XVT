@@ -9,16 +9,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct PageSection {
-	XvtCockpitGlyph *glyphs;
+struct PageSection {
+	struct XvtCockpitGlyph *glyphs;
 	unsigned glyph_count, capacity, row_count;
 	uint64_t generation;
-	XvtCockpitPageRow rows[XVT_HUD_ROWS_PER_SECTION];
-} PageSection;
+	struct XvtCockpitPageRow rows[XVT_HUD_ROWS_PER_SECTION];
+};
 
-typedef struct PageContent {
-	PageSection sections[XVT_COCKPIT_PAGE_SECTION_COUNT];
-	XvtSnapRect background_bounds, border_bounds;
+struct PageContent {
+	struct PageSection sections[XVT_COCKPIT_PAGE_SECTION_COUNT];
+	struct XvtSnapRect background_bounds, border_bounds;
 	uint32_t background_argb, border_argb;
 	int16_t origin_x, origin_y, first_visible_row, selected_row;
 	uint16_t total_rows;
@@ -26,10 +26,10 @@ typedef struct PageContent {
 	uint64_t generation;
 	int latched_this_frame;
 	unsigned failed_sections;
-} PageContent;
+};
 
-static PageContent g_working[MFD_PAGE_COUNT], g_pending[MFD_PAGE_COUNT];
-static PageSection g_building;
+static struct PageContent g_working[MFD_PAGE_COUNT], g_pending[MFD_PAGE_COUNT];
+static struct PageSection g_building;
 static unsigned g_page, g_section;
 static int g_capturing, g_captureFailed;
 static int g_pendingFailed;
@@ -44,15 +44,15 @@ static uint32_t CaptureColor(unsigned index)
 		       : color;
 }
 
-static XvtSnapRect CaptureLocalBounds(unsigned page)
+static struct XvtSnapRect CaptureLocalBounds(unsigned page)
 {
-	return (XvtSnapRect){g_flightClipLeft - g_working[page].origin_x,
-			     g_flightClipTop - g_working[page].origin_y,
-			     g_flightClipRight - g_flightClipLeft,
-			     g_flightClipBottom - g_flightClipTop};
+	return (struct XvtSnapRect){g_flightClipLeft - g_working[page].origin_x,
+				    g_flightClipTop - g_working[page].origin_y,
+				    g_flightClipRight - g_flightClipLeft,
+				    g_flightClipBottom - g_flightClipTop};
 }
 
-static int ReserveGlyphs(PageSection *section, unsigned count)
+static int ReserveGlyphs(struct PageSection *section, unsigned count)
 {
 	if (count <= section->capacity) {
 		return 1;
@@ -64,7 +64,7 @@ static int ReserveGlyphs(PageSection *section, unsigned count)
 	while (capacity < count) {
 		capacity *= 2;
 	}
-	XvtCockpitGlyph *glyphs =
+	struct XvtCockpitGlyph *glyphs =
 		realloc(section->glyphs, capacity * sizeof *glyphs);
 	if (!glyphs) {
 		return 0;
@@ -125,7 +125,7 @@ void XvtCockpitPages_Clear(unsigned page)
 	if (page >= MFD_PAGE_COUNT) {
 		return;
 	}
-	PageContent *content = &g_working[page];
+	struct PageContent *content = &g_working[page];
 	for (unsigned section = 0; section < XVT_COCKPIT_PAGE_SECTION_COUNT;
 	     ++section) {
 		content->sections[section].glyph_count =
@@ -162,7 +162,7 @@ void XvtCockpitPages_BeginSection(unsigned page, XvtCockpitPageSection section)
 static void FinishRow(void)
 {
 	if (g_building.row_count) {
-		XvtCockpitPageRow *row =
+		struct XvtCockpitPageRow *row =
 			&g_building.rows[g_building.row_count - 1];
 		row->glyph_count =
 			(uint16_t)(g_building.glyph_count - row->first_glyph);
@@ -180,7 +180,7 @@ void XvtCockpitPages_EndSection(void)
 	} else {
 		g_working[g_page].failed_sections &= ~(1u << g_section);
 	}
-	PageSection *previous = &g_working[g_page].sections[g_section];
+	struct PageSection *previous = &g_working[g_page].sections[g_section];
 	if (!g_captureFailed &&
 	    (previous->glyph_count != g_building.glyph_count ||
 	     previous->row_count != g_building.row_count ||
@@ -191,7 +191,7 @@ void XvtCockpitPages_EndSection(void)
 	      memcmp(previous->rows, g_building.rows,
 		     previous->row_count * sizeof previous->rows[0])))) {
 		/* Publish a complete section; the scratch buffer takes the prior allocation. */
-		XvtCockpitGlyph *old_glyphs = previous->glyphs;
+		struct XvtCockpitGlyph *old_glyphs = previous->glyphs;
 		unsigned old_capacity = previous->capacity;
 		previous->glyphs = g_building.glyphs;
 		previous->capacity = g_building.capacity;
@@ -213,7 +213,7 @@ void XvtCockpitPages_RecordGlyph(unsigned character, unsigned advance,
 	if (!g_capturing || g_captureFailed) {
 		return;
 	}
-	XvtCockpitGlyph glyph;
+	struct XvtCockpitGlyph glyph;
 	if (!XvtCockpitText_CaptureGlyph(&glyph, character, advance, height,
 					 narrow, g_working[g_page].origin_x,
 					 g_working[g_page].origin_y, g_palette,
@@ -240,7 +240,8 @@ void XvtCockpitPages_RecordRow(uint32_t key, int selected)
 		g_captureFailed = 1;
 		return;
 	}
-	XvtCockpitPageRow *row = &g_building.rows[g_building.row_count++];
+	struct XvtCockpitPageRow *row =
+		&g_building.rows[g_building.row_count++];
 	memset(row, 0, sizeof *row);
 	row->key = key;
 	row->selected = selected != 0;
@@ -254,9 +255,9 @@ void XvtCockpitPages_RecordBackground(unsigned page)
 	if (page >= MFD_PAGE_COUNT) {
 		return;
 	}
-	XvtSnapRect bounds = CaptureLocalBounds(page);
+	struct XvtSnapRect bounds = CaptureLocalBounds(page);
 	uint32_t color = CaptureColor(g_flightTextBgColor);
-	PageContent *content = &g_working[page];
+	struct PageContent *content = &g_working[page];
 	if (memcmp(&content->background_bounds, &bounds, sizeof bounds) ||
 	    content->background_argb != color) {
 		content->background_bounds = bounds;
@@ -270,9 +271,9 @@ void XvtCockpitPages_RecordBorder(unsigned page)
 	if (page >= MFD_PAGE_COUNT) {
 		return;
 	}
-	XvtSnapRect bounds = CaptureLocalBounds(page);
+	struct XvtSnapRect bounds = CaptureLocalBounds(page);
 	uint32_t color = CaptureColor(g_flightTextBgColor);
-	PageContent *content = &g_working[page];
+	struct PageContent *content = &g_working[page];
 	if (memcmp(&content->border_bounds, &bounds, sizeof bounds) ||
 	    content->border_argb != color) {
 		content->border_bounds = bounds;
@@ -304,8 +305,8 @@ void XvtCockpitPages_Latch(unsigned page)
 	if (page >= MFD_PAGE_COUNT) {
 		return;
 	}
-	PageContent *destination = &g_pending[page];
-	const PageContent *source = &g_working[page];
+	struct PageContent *destination = &g_pending[page];
+	const struct PageContent *source = &g_working[page];
 	if (source->failed_sections) {
 		g_pendingFailed = 1;
 		return;
@@ -325,8 +326,8 @@ void XvtCockpitPages_Latch(unsigned page)
 		destination->mode != source->mode;
 	for (unsigned index = 0; index < XVT_COCKPIT_PAGE_SECTION_COUNT;
 	     ++index) {
-		PageSection *to = &destination->sections[index];
-		const PageSection *from = &source->sections[index];
+		struct PageSection *to = &destination->sections[index];
+		const struct PageSection *from = &source->sections[index];
 		if (to->generation == from->generation) {
 			continue;
 		}
@@ -373,17 +374,17 @@ void XvtCockpitPages_Latch(unsigned page)
 	destination->latched_this_frame = 1;
 }
 
-void XvtCockpitPages_Export(XvtCockpitState *state)
+void XvtCockpitPages_Export(struct XvtCockpitState *state)
 {
 	if (g_pendingFailed) {
 		state->valid = 0;
 		return;
 	}
-	XvtCockpitPageStore *store = &state->page_content;
+	struct XvtCockpitPageStore *store = &state->page_content;
 	store->row_count = store->glyph_count = 0;
 	for (unsigned id = 0; id < MFD_PAGE_COUNT; ++id) {
-		XvtCockpitPage *page = &state->pages[id];
-		const PageContent *content = &g_pending[id];
+		struct XvtCockpitPage *page = &state->pages[id];
+		const struct PageContent *content = &g_pending[id];
 		page->glyph_count = page->row_count = page->header_glyph_count =
 			0;
 		page->visible &= content->latched_this_frame != 0;
@@ -403,7 +404,8 @@ void XvtCockpitPages_Export(XvtCockpitState *state)
 		page->first_store_row = store->row_count;
 		for (unsigned index = 0; index < XVT_COCKPIT_PAGE_SECTION_COUNT;
 		     ++index) {
-			const PageSection *section = &content->sections[index];
+			const struct PageSection *section =
+				&content->sections[index];
 			if (section->glyph_count > XVT_HUD_PAGE_GLYPH_CAPACITY -
 							   store->glyph_count ||
 			    section->row_count > XVT_HUD_PAGE_ROW_CAPACITY -
@@ -422,7 +424,7 @@ void XvtCockpitPages_Export(XvtCockpitState *state)
 			}
 			for (unsigned row = 0; row < section->row_count;
 			     ++row) {
-				XvtCockpitPageRow *output =
+				struct XvtCockpitPageRow *output =
 					&store->rows[store->row_count++];
 				*output = section->rows[row];
 				output->first_glyph += store->glyph_count;

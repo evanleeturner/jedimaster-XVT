@@ -159,7 +159,7 @@ static void CheckEnterReference(void)
 	Begin(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	g_elapsedTicks = 3;
 	g_simStepsPerSecond = 77;
-	XvtFlightClock saved = XvtFlightTiming_EnterReference();
+	struct XvtFlightClock saved = XvtFlightTiming_EnterReference();
 	XVT_ASSERT_INT_EQ(saved.elapsed, 3);
 	XVT_ASSERT_INT_EQ(saved.steps_per_second, 77);
 	XVT_ASSERT_INT_EQ(g_elapsedTicks, XVT_REFERENCE_TICKS);

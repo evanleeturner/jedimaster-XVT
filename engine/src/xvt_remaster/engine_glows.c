@@ -57,7 +57,7 @@ static int Ensure(AeronCommandBuffer *cmd)
 	return 1;
 }
 
-static float Power(const XvtSnapObject *o)
+static float Power(const struct XvtSnapObject *o)
 {
 	return fmaxf(0, (float)(16 - o->laser_recharge_level -
 				o->shield_recharge_level -
@@ -65,7 +65,7 @@ static float Power(const XvtSnapObject *o)
 	       .0625f * ((float)o->overdrive_off / 65535);
 }
 
-static float Scale(const XvtSnapObject *o, int32_t ticks)
+static float Scale(const struct XvtSnapObject *o, int32_t ticks)
 {
 	if (!o->has_craft || !o->overdrive_off ||
 	    !(o->working_subsystems & CRAFT_SUBSYSTEM_FLAG_ENGINES)) {
@@ -101,7 +101,7 @@ static void Submit(AeronScene3D *scene, const AeronSceneMesh *mesh,
 		   const float transform[16], float model_scale,
 		   const AeronSceneMeshTable *table, float scale,
 		   const float crows[9], const float cam_pos[3],
-		   const XvtEffectFrame *tex)
+		   const struct XvtEffectFrame *tex)
 {
 	if (!scene || !mesh || !mesh->engine_glow_count || !transform ||
 	    scale <= 0.0f ||
@@ -359,7 +359,7 @@ static void Submit(AeronScene3D *scene, const AeronSceneMesh *mesh,
 }
 
 static void Lights(AeronScene3D *scene, const AeronSceneMesh *mesh,
-		   const XvtSnapObject *object,
+		   const struct XvtSnapObject *object,
 		   const AeronSceneMeshTable *table, const float transform[16])
 {
 	float power = Power(object);
@@ -402,9 +402,9 @@ static void Lights(AeronScene3D *scene, const AeronSceneMesh *mesh,
 }
 
 int XvtEngineGlows_Submit(AeronCommandBuffer *cmd, AeronScene3D *scene,
-			  const XvtRenderSnapshot *snapshot,
-			  const XvtSnapObject *object,
-			  const XvtMeshAsset *asset,
+			  const struct XvtRenderSnapshot *snapshot,
+			  const struct XvtSnapObject *object,
+			  const struct XvtMeshAsset *asset,
 			  const AeronSceneMeshTable *table,
 			  const float transform[16], int draw)
 {
@@ -421,7 +421,7 @@ int XvtEngineGlows_Submit(AeronCommandBuffer *cmd, AeronScene3D *scene,
 	if (!Ensure(cmd)) {
 		return 0;
 	}
-	XvtEffectFrame texture = {
+	struct XvtEffectFrame texture = {
 		.texture = g_mask, .u1 = 1, .v1 = 1, .width = 32, .height = 32};
 	Submit(scene, asset->mesh, transform, AERON_OPT_UNITS_PER_METER, table,
 	       scale, snapshot->camera.rows, (const float[3]){0, 0, 0},

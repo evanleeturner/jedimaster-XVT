@@ -12,15 +12,15 @@
 
 #define XVT_KEYBOARD_BINDING_CAP 256
 
-typedef struct XvtKeyboardBinding {
+struct XvtKeyboardBinding {
 	AeronKeyChord source;
 	XvtInputAction action;
-} XvtKeyboardBinding;
+};
 
-typedef struct XvtKeyboardBindings {
-	XvtKeyboardBinding bindings[XVT_KEYBOARD_BINDING_CAP];
+struct XvtKeyboardBindings {
+	struct XvtKeyboardBinding bindings[XVT_KEYBOARD_BINDING_CAP];
 	size_t count;
-} XvtKeyboardBindings;
+};
 
 typedef enum XvtKeyboardShortcut {
 	XVT_KEYBOARD_SHORTCUT_NONE,
@@ -46,18 +46,19 @@ bool XvtKeyboardMapping_SourceValid(AeronKeyChord source);
 void XvtKeyboardMapping_FormatSource(char *text, size_t capacity,
 				     AeronKeyChord source);
 /* The index of the binding with exactly that chord, or SIZE_MAX. */
-size_t XvtKeyboardMapping_Find(const XvtKeyboardBindings *profile,
+size_t XvtKeyboardMapping_Find(const struct XvtKeyboardBindings *profile,
 			       AeronKeyChord source);
 /* true when both hold the same bindings in the same order; sort both first. */
-bool XvtKeyboardMapping_Equal(const XvtKeyboardBindings *a,
-			      const XvtKeyboardBindings *b);
+bool XvtKeyboardMapping_Equal(const struct XvtKeyboardBindings *a,
+			      const struct XvtKeyboardBindings *b);
 /* Sorts by action, then key, then modifiers. */
-void XvtKeyboardMapping_Sort(XvtKeyboardBindings *profile);
+void XvtKeyboardMapping_Sort(struct XvtKeyboardBindings *profile);
 /* Removes the binding at index, keeping the order; an index out of range is ignored. */
-void XvtKeyboardMapping_Remove(XvtKeyboardBindings *profile, size_t index);
+void XvtKeyboardMapping_Remove(struct XvtKeyboardBindings *profile,
+			       size_t index);
 /* Suspends, then makes profile the active mapping; for a chord bound twice, the later binding wins. The
  * mapping stays disabled until Enable. */
-void XvtKeyboardMapping_Install(const XvtKeyboardBindings *profile);
+void XvtKeyboardMapping_Install(const struct XvtKeyboardBindings *profile);
 /* Forgets every pressed key, held button and queued key, and disables the mapping. */
 void XvtKeyboardMapping_Suspend(void);
 /* Does nothing when already in that state; otherwise suspends and sets it. On enabling with input,

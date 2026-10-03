@@ -19,11 +19,13 @@ void XvtCockpitLoading_Reset(void)
 }
 
 static int PrepareMapIcons(AeronCommandBuffer *cmd,
-			   const XvtRenderSnapshot *snapshot)
+			   const struct XvtRenderSnapshot *snapshot)
 {
-	const XvtCockpitResources *resources = &snapshot->cockpit_resources;
+	const struct XvtCockpitResources *resources =
+		&snapshot->cockpit_resources;
 	for (unsigned asset = 0; asset < snapshot->image_asset_count; ++asset) {
-		const XvtSnapImageAsset *image = &snapshot->image_assets[asset];
+		const struct XvtSnapImageAsset *image =
+			&snapshot->image_assets[asset];
 		if (image->kind != XVT_IMAGE_ICO) {
 			continue;
 		}
@@ -47,10 +49,11 @@ static int PrepareMapIcons(AeronCommandBuffer *cmd,
 	return 1;
 }
 
-int XvtCockpitLoading_Prepare(const XvtRenderSnapshot *snapshot, int width,
-			      int height)
+int XvtCockpitLoading_Prepare(const struct XvtRenderSnapshot *snapshot,
+			      int width, int height)
 {
-	const XvtCockpitResources *resources = &snapshot->cockpit_resources;
+	const struct XvtCockpitResources *resources =
+		&snapshot->cockpit_resources;
 	int images_changed =
 		g_preparedImageGeneration != snapshot->image_asset_generation;
 	if (images_changed) {

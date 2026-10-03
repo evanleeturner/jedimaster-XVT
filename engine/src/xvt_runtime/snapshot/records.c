@@ -3,11 +3,11 @@
 #include <stddef.h>
 #include <string.h>
 
-typedef struct XvtSnapshotField {
+struct XvtSnapshotField {
 	size_t nativeOffset;
 	size_t recordOffset;
 	size_t size;
-} XvtSnapshotField;
+};
 
 /* One table entry: where a field sits in the live struct, where it sits in the
  * packed snapshot record, and its size in the record. Both structs name the
@@ -19,8 +19,8 @@ typedef struct XvtSnapshotField {
 
 /* Copy declared fields only: native padding never enters a snapshot or checksum. */
 static void XvtSnapshot_CopyFields(void *record, void *live,
-				   const XvtSnapshotField *fields, size_t count,
-				   int restore)
+				   const struct XvtSnapshotField *fields,
+				   size_t count, int restore)
 {
 	for (size_t i = 0; i < count; ++i) {
 		void *disk = (uint8_t *)record + fields[i].recordOffset;
@@ -34,8 +34,9 @@ static void XvtSnapshot_CopyFields(void *record, void *live,
 }
 
 #define OBJECT_RECORD_FIELD(field)                                             \
-	SNAPSHOT_FIELD(ObjectRecord, XvtSnapshotObjectRecord, field)
-static const XvtSnapshotField g_ObjectRecordFields[] = {
+	SNAPSHOT_FIELD(struct ObjectRecord, struct XvtSnapshotObjectRecord,    \
+		       field)
+static const struct XvtSnapshotField g_ObjectRecordFields[] = {
 	OBJECT_RECORD_FIELD(objectSignature),
 	OBJECT_RECORD_FIELD(genusId),
 	OBJECT_RECORD_FIELD(objectType),
@@ -52,8 +53,8 @@ static const XvtSnapshotField g_ObjectRecordFields[] = {
 };
 #undef OBJECT_RECORD_FIELD
 
-void XvtSnapshot_EncodeObjectRecord(XvtSnapshotObjectRecord *record,
-				    const ObjectRecord *live)
+void XvtSnapshot_EncodeObjectRecord(struct XvtSnapshotObjectRecord *record,
+				    const struct ObjectRecord *live)
 {
 	XvtSnapshot_CopyFields(
 		(void *)record, (void *)live, g_ObjectRecordFields,
@@ -62,27 +63,30 @@ void XvtSnapshot_EncodeObjectRecord(XvtSnapshotObjectRecord *record,
 	record->mobj =
 		live->mobj
 			? (uint32_t)((live->mobj - g_mobileObjectPoolBase) *
-					     sizeof(XvtSnapshotMobileObject) +
+					     sizeof(struct
+						    XvtSnapshotMobileObject) +
 				     1)
 			: 0;
 }
 
-void XvtSnapshot_DecodeObjectRecord(ObjectRecord *live,
-				    const XvtSnapshotObjectRecord *record)
+void XvtSnapshot_DecodeObjectRecord(
+	struct ObjectRecord *live, const struct XvtSnapshotObjectRecord *record)
 {
 	XvtSnapshot_CopyFields(
 		(void *)record, (void *)live, g_ObjectRecordFields,
 		sizeof(g_ObjectRecordFields) / sizeof(g_ObjectRecordFields[0]),
 		1);
-	live->mobj = record->mobj ? &g_mobileObjectPoolBase
-					    [(record->mobj - 1) /
-					     sizeof(XvtSnapshotMobileObject)]
-				  : NULL;
+	live->mobj = record->mobj
+			     ? &g_mobileObjectPoolBase
+				       [(record->mobj - 1) /
+					sizeof(struct XvtSnapshotMobileObject)]
+			     : NULL;
 }
 
 #define MOBILE_OBJECT_FIELD(field)                                             \
-	SNAPSHOT_FIELD(MobileObject, XvtSnapshotMobileObject, field)
-static const XvtSnapshotField g_MobileObjectFields[] = {
+	SNAPSHOT_FIELD(struct MobileObject, struct XvtSnapshotMobileObject,    \
+		       field)
+static const struct XvtSnapshotField g_MobileObjectFields[] = {
 	MOBILE_OBJECT_FIELD(family),
 	MOBILE_OBJECT_FIELD(effectSize),
 	MOBILE_OBJECT_FIELD(simStateTimestamp),
@@ -121,8 +125,8 @@ static const XvtSnapshotField g_MobileObjectFields[] = {
 };
 #undef MOBILE_OBJECT_FIELD
 
-void XvtSnapshot_EncodeMobileObject(XvtSnapshotMobileObject *record,
-				    const MobileObject *live)
+void XvtSnapshot_EncodeMobileObject(struct XvtSnapshotMobileObject *record,
+				    const struct MobileObject *live)
 {
 	XvtSnapshot_CopyFields(
 		(void *)record, (void *)live, g_MobileObjectFields,
@@ -132,25 +136,28 @@ void XvtSnapshot_EncodeMobileObject(XvtSnapshotMobileObject *record,
 		live->pWarheadGuidance
 			? (uint32_t)((live->pWarheadGuidance -
 				      g_projectileGuidanceStates) *
-					     sizeof(WarheadGuidanceState) +
+					     sizeof(struct
+						    WarheadGuidanceState) +
 				     1)
 			: 0;
 	record->pCraft =
 		live->pCraft ? (uint32_t)((live->pCraft - g_craftDataPoolBase) *
-						  sizeof(XvtSnapshotCraftData) +
+						  sizeof(struct
+							 XvtSnapshotCraftData) +
 					  1)
 			     : 0;
 	record->pCharData =
 		live->pCharData
 			? (uint32_t)((live->pCharData -
 				      g_mobileObjectCharDataPool) *
-					     sizeof(XvtSnapshotMobileObjectCharData) +
+					     sizeof(struct
+						    XvtSnapshotMobileObjectCharData) +
 				     1)
 			: 0;
 }
 
-void XvtSnapshot_DecodeMobileObject(MobileObject *live,
-				    const XvtSnapshotMobileObject *record)
+void XvtSnapshot_DecodeMobileObject(
+	struct MobileObject *live, const struct XvtSnapshotMobileObject *record)
 {
 	XvtSnapshot_CopyFields(
 		(void *)record, (void *)live, g_MobileObjectFields,
@@ -160,24 +167,25 @@ void XvtSnapshot_DecodeMobileObject(MobileObject *live,
 		record->pWarheadGuidance
 			? &g_projectileGuidanceStates
 				  [(record->pWarheadGuidance - 1) /
-				   sizeof(WarheadGuidanceState)]
+				   sizeof(struct WarheadGuidanceState)]
 			: NULL;
-	live->pCraft =
-		record->pCraft
-			? &g_craftDataPoolBase[(record->pCraft - 1) /
-					       sizeof(XvtSnapshotCraftData)]
-			: NULL;
+	live->pCraft = record->pCraft
+			       ? &g_craftDataPoolBase
+					 [(record->pCraft - 1) /
+					  sizeof(struct XvtSnapshotCraftData)]
+			       : NULL;
 	live->pCharData =
 		record->pCharData
 			? &g_mobileObjectCharDataPool
 				  [(record->pCharData - 1) /
-				   sizeof(XvtSnapshotMobileObjectCharData)]
+				   sizeof(struct
+					  XvtSnapshotMobileObjectCharData)]
 			: NULL;
 }
 
 #define CRAFT_DATA_FIELD(field)                                                \
-	SNAPSHOT_FIELD(CraftData, XvtSnapshotCraftData, field)
-static const XvtSnapshotField g_CraftDataFields[] = {
+	SNAPSHOT_FIELD(struct CraftData, struct XvtSnapshotCraftData, field)
+static const struct XvtSnapshotField g_CraftDataFields[] = {
 	CRAFT_DATA_FIELD(craftIndexInGroup),
 	CRAFT_DATA_FIELD(modelIndex),
 	CRAFT_DATA_FIELD(leader_obj_idx),
@@ -327,8 +335,8 @@ static const XvtSnapshotField g_CraftDataFields[] = {
 };
 #undef CRAFT_DATA_FIELD
 
-void XvtSnapshot_EncodeCraftData(XvtSnapshotCraftData *record,
-				 const CraftData *live)
+void XvtSnapshot_EncodeCraftData(struct XvtSnapshotCraftData *record,
+				 const struct CraftData *live)
 {
 	XvtSnapshot_CopyFields(
 		(void *)record, (void *)live, g_CraftDataFields,
@@ -340,7 +348,8 @@ void XvtSnapshot_EncodeCraftData(XvtSnapshotCraftData *record,
 			live->turretObjectLinks[i]
 				? (uint32_t)((live->turretObjectLinks[i] -
 					      g_objectTable) *
-						     sizeof(XvtSnapshotObjectRecord) +
+						     sizeof(struct
+							    XvtSnapshotObjectRecord) +
 					     1)
 				: 0;
 	}
@@ -348,13 +357,14 @@ void XvtSnapshot_EncodeCraftData(XvtSnapshotCraftData *record,
 		live->effectiveAiObjectLink
 			? (uint32_t)((live->effectiveAiObjectLink -
 				      g_objectTable) *
-					     sizeof(XvtSnapshotObjectRecord) +
+					     sizeof(struct
+						    XvtSnapshotObjectRecord) +
 				     1)
 			: 0;
 }
 
-void XvtSnapshot_DecodeCraftData(CraftData *live,
-				 const XvtSnapshotCraftData *record)
+void XvtSnapshot_DecodeCraftData(struct CraftData *live,
+				 const struct XvtSnapshotCraftData *record)
 {
 	XvtSnapshot_CopyFields(
 		(void *)record, (void *)live, g_CraftDataFields,
@@ -366,20 +376,21 @@ void XvtSnapshot_DecodeCraftData(CraftData *live,
 			record->turretObjectLinks[i]
 				? &g_objectTable
 					  [(record->turretObjectLinks[i] - 1) /
-					   sizeof(XvtSnapshotObjectRecord)]
+					   sizeof(struct
+						  XvtSnapshotObjectRecord)]
 				: NULL;
 	}
 	live->effectiveAiObjectLink =
 		record->effectiveAiObjectLink
 			? &g_objectTable[(record->effectiveAiObjectLink - 1) /
-					 sizeof(XvtSnapshotObjectRecord)]
+					 sizeof(struct XvtSnapshotObjectRecord)]
 			: NULL;
 }
 
 #define MOBILE_OBJECT_CHAR_DATA_FIELD(field)                                   \
-	SNAPSHOT_FIELD(MobileObjectCharData, XvtSnapshotMobileObjectCharData,  \
-		       field)
-static const XvtSnapshotField g_MobileObjectCharDataFields[] = {
+	SNAPSHOT_FIELD(struct MobileObjectCharData,                            \
+		       struct XvtSnapshotMobileObjectCharData, field)
+static const struct XvtSnapshotField g_MobileObjectCharDataFields[] = {
 	MOBILE_OBJECT_CHAR_DATA_FIELD(skillValue),
 	MOBILE_OBJECT_CHAR_DATA_FIELD(unused02),
 	MOBILE_OBJECT_CHAR_DATA_FIELD(aiController.currentOrderSlot),
@@ -413,8 +424,8 @@ static const XvtSnapshotField g_MobileObjectCharDataFields[] = {
 #undef MOBILE_OBJECT_CHAR_DATA_FIELD
 
 void XvtSnapshot_EncodeMobileObjectCharData(
-	XvtSnapshotMobileObjectCharData *record,
-	const MobileObjectCharData *live)
+	struct XvtSnapshotMobileObjectCharData *record,
+	const struct MobileObjectCharData *live)
 {
 	XvtSnapshot_CopyFields((void *)record, (void *)live,
 			       g_MobileObjectCharDataFields,
@@ -424,8 +435,8 @@ void XvtSnapshot_EncodeMobileObjectCharData(
 }
 
 void XvtSnapshot_DecodeMobileObjectCharData(
-	MobileObjectCharData *live,
-	const XvtSnapshotMobileObjectCharData *record)
+	struct MobileObjectCharData *live,
+	const struct XvtSnapshotMobileObjectCharData *record)
 {
 	XvtSnapshot_CopyFields((void *)record, (void *)live,
 			       g_MobileObjectCharDataFields,
@@ -435,8 +446,8 @@ void XvtSnapshot_DecodeMobileObjectCharData(
 }
 
 #define PLAYER_DATA_FIELD(field)                                               \
-	SNAPSHOT_FIELD(PlayerData, XvtSnapshotPlayerData, field)
-static const XvtSnapshotField g_PlayerDataFields[] = {
+	SNAPSHOT_FIELD(struct PlayerData, struct XvtSnapshotPlayerData, field)
+static const struct XvtSnapshotField g_PlayerDataFields[] = {
 	PLAYER_DATA_FIELD(objectIndex),
 	PLAYER_DATA_FIELD(boundObjectSignature),
 	PLAYER_DATA_FIELD(pilotRating),
@@ -535,16 +546,16 @@ static const XvtSnapshotField g_PlayerDataFields[] = {
 };
 #undef PLAYER_DATA_FIELD
 
-void XvtSnapshot_EncodePlayerData(XvtSnapshotPlayerData *record,
-				  const PlayerData *live)
+void XvtSnapshot_EncodePlayerData(struct XvtSnapshotPlayerData *record,
+				  const struct PlayerData *live)
 {
 	XvtSnapshot_CopyFields(
 		(void *)record, (void *)live, g_PlayerDataFields,
 		sizeof(g_PlayerDataFields) / sizeof(g_PlayerDataFields[0]), 0);
 }
 
-void XvtSnapshot_DecodePlayerData(PlayerData *live,
-				  const XvtSnapshotPlayerData *record)
+void XvtSnapshot_DecodePlayerData(struct PlayerData *live,
+				  const struct XvtSnapshotPlayerData *record)
 {
 	XvtSnapshot_CopyFields(
 		(void *)record, (void *)live, g_PlayerDataFields,
@@ -552,8 +563,9 @@ void XvtSnapshot_DecodePlayerData(PlayerData *live,
 }
 
 #define FLIGHT_MISSION_STATE_FIELD(field)                                      \
-	SNAPSHOT_FIELD(FlightMissionState, XvtSnapshotFlightMissionState, field)
-static const XvtSnapshotField g_FlightMissionStateFields[] = {
+	SNAPSHOT_FIELD(struct FlightMissionState,                              \
+		       struct XvtSnapshotFlightMissionState, field)
+static const struct XvtSnapshotField g_FlightMissionStateFields[] = {
 	FLIGHT_MISSION_STATE_FIELD(missionEndPending),
 	FLIGHT_MISSION_STATE_FIELD(provingGroundsModeActive),
 	FLIGHT_MISSION_STATE_FIELD(provingGroundsCraftType),
@@ -599,8 +611,9 @@ static const XvtSnapshotField g_FlightMissionStateFields[] = {
 #undef FLIGHT_MISSION_STATE_FIELD
 #undef SNAPSHOT_FIELD
 
-void XvtSnapshot_EncodeFlightMissionState(XvtSnapshotFlightMissionState *record,
-					  const FlightMissionState *live)
+void XvtSnapshot_EncodeFlightMissionState(
+	struct XvtSnapshotFlightMissionState *record,
+	const struct FlightMissionState *live)
 {
 	XvtSnapshot_CopyFields(record, (void *)live, g_FlightMissionStateFields,
 			       sizeof(g_FlightMissionStateFields) /
@@ -609,7 +622,8 @@ void XvtSnapshot_EncodeFlightMissionState(XvtSnapshotFlightMissionState *record,
 }
 
 void XvtSnapshot_DecodeFlightMissionState(
-	FlightMissionState *live, const XvtSnapshotFlightMissionState *record)
+	struct FlightMissionState *live,
+	const struct XvtSnapshotFlightMissionState *record)
 {
 	XvtSnapshot_CopyFields((void *)record, live, g_FlightMissionStateFields,
 			       sizeof(g_FlightMissionStateFields) /

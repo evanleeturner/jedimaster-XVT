@@ -19,7 +19,7 @@ const void *g_renderTextureCacheKeys[1024] = {0};
  * g_renderTextureCacheKeys by open addressing; std3D fills an entry when it
  * uploads a texture. */
 // GLOBAL: XVT 0xA69750
-Std3DTexCacheNode g_renderTextureCache[1024] = {0};
+struct Std3DTexCacheNode g_renderTextureCache[1024] = {0};
 /* Index of the cache entry RenderTexture_FindOrAllocateCacheEntry last
  * returned, 0 to 1023; -1, set by Renderer_InitD3DDevice, makes the next lookup
  * clear the cache. */
@@ -55,7 +55,8 @@ const uint8_t g_bitmapRleColorIndexShiftByFormat[9] = {0, 1, 2, 3, 4,
  * unchanged. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4079F0
-Std3DTexCacheNode *RenderTexture_FindOrAllocateCacheEntry(const void *cacheKey)
+struct Std3DTexCacheNode *
+RenderTexture_FindOrAllocateCacheEntry(const void *cacheKey)
 {
 	int probeCount;
 	int hashSlot;
@@ -124,10 +125,10 @@ Std3DTexCacheNode *RenderTexture_FindOrAllocateCacheEntry(const void *cacheKey)
  * has color-key textures it turns its alpha-texture flag off for the call.
  * RenderQuad_DrawRotatedSprite is its only caller. */
 // FUNCTION: XVT 0x407AF0
-Std3DTexCacheNode *RenderTexture_GetOrCreateBitmap(int width, int height,
-						   uint16_t *palette,
-						   const uint8_t *pixels,
-						   int rleFormat)
+struct Std3DTexCacheNode *RenderTexture_GetOrCreateBitmap(int width, int height,
+							  uint16_t *palette,
+							  const uint8_t *pixels,
+							  int rleFormat)
 {
 	enum {
 		BITMAP_RLE_SET_COLOR_BASE = 0xFB,
@@ -139,9 +140,9 @@ Std3DTexCacheNode *RenderTexture_GetOrCreateBitmap(int width, int height,
 		MAX_BITMAP_PIXELS = 65536
 	};
 
-	Std3DTexCacheNode *node;
+	struct Std3DTexCacheNode *node;
 	int padCount;
-	Std3DVBuffer source;
+	struct Std3DVBuffer source;
 	uint8_t *output;
 	const uint8_t *input;
 	uint8_t *rowEnd;
@@ -276,14 +277,14 @@ Std3DTexCacheNode *RenderTexture_GetOrCreateBitmap(int width, int height,
  * new upload of pixels with its 256 palette colors copied by
  * std3D_CopyPaletteToScratch16. Returns NULL when the upload fails. */
 // FUNCTION: XVT 0x407E40
-Std3DTexCacheNode *RenderTexture_GetOrCreateOpaque(int width, int height,
-						   const uint16_t *palette,
-						   const uint8_t *pixels)
+struct Std3DTexCacheNode *
+RenderTexture_GetOrCreateOpaque(int width, int height, const uint16_t *palette,
+				const uint8_t *pixels)
 {
 	enum { INDEXED_TEXTURE_BITS_PER_PIXEL = 8, PALETTE_COLOR_COUNT = 256 };
 
-	Std3DTexCacheNode *node;
-	Std3DVBuffer source;
+	struct Std3DTexCacheNode *node;
+	struct Std3DVBuffer source;
 
 	node = RenderTexture_FindOrAllocateCacheEntry(pixels);
 	if (node->bCached != 0) {
@@ -319,15 +320,15 @@ Std3DTexCacheNode *RenderTexture_GetOrCreateOpaque(int width, int height,
  * moved entry set to 0. Returns NULL when the upload fails. Reads palette[256],
  * past the 256 colors. */
 // FUNCTION: XVT 0x407F10
-Std3DTexCacheNode *RenderTexture_GetOrCreateColorKey(int width, int height,
-						     uint16_t *palette,
-						     const uint8_t *pixels)
+struct Std3DTexCacheNode *
+RenderTexture_GetOrCreateColorKey(int width, int height, uint16_t *palette,
+				  const uint8_t *pixels)
 {
 	enum { INDEXED_TEXTURE_BITS_PER_PIXEL = 8, PALETTE_COLOR_COUNT = 256 };
 
-	Std3DTexCacheNode *node;
+	struct Std3DTexCacheNode *node;
 	int pixelCount;
-	Std3DVBuffer source;
+	struct Std3DVBuffer source;
 	int transparentIndex;
 	int hasVisiblePixels;
 	int oldAlphaTexture;

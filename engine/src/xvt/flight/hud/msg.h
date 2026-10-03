@@ -43,7 +43,7 @@ struct HudInFlightMessageRecord {
 
 extern uint16_t g_messageLogWriteIndex;
 extern uint16_t g_messageLogTotalCount;
-extern HudInFlightMessageRecord *g_messageLogRecords;
+extern struct HudInFlightMessageRecord *g_messageLogRecords;
 extern uint16_t g_messageLogWrapped;
 extern uint16_t g_msgSenderIff;
 extern uint16_t g_pendingHudMessageVoiceSfxId;
@@ -840,12 +840,12 @@ void msg_writeMessageLogFile(void);
 void msg_emitInFlightMessage(InFlightMessageId messageId, int playerIdx);
 void msg_reportfgcreation(uint16_t flightGroupIndex, uint16_t modelIndex);
 void msg_addMessagePtr(uint16_t slot, const void *value);
-void msg_emitCraftMessage(uint16_t objIdx, CraftData *craft,
+void msg_emitCraftMessage(uint16_t objIdx, struct CraftData *craft,
 			  int16_t msgTemplateId);
 void msg_radioMessage(uint16_t senderObjIdx, uint8_t *senderCraft,
 		      uint16_t commandId, uint16_t responseIndex,
 		      int16_t multipleRecipients);
-void msg_reportmessage(uint16_t objIdx, CraftData *craft,
+void msg_reportmessage(uint16_t objIdx, struct CraftData *craft,
 		       int16_t msgTemplateId);
 int msg_BuildTargetDescription(uint16_t targetObjIdx, int playerIdx,
 			       int emitHudMessage, int returnActionableOnly);

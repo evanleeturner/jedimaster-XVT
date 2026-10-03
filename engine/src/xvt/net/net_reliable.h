@@ -55,9 +55,8 @@ struct NetReliablePeerSlot {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_NetReliablePeerSlot[(sizeof(NetReliablePeerSlot) == 568)
-						  ? 1
-						  : -1];
+typedef char xvt_size_NetReliablePeerSlot
+	[(sizeof(struct NetReliablePeerSlot) == 568) ? 1 : -1];
 
 #pragma pack(push, 1)
 
@@ -83,17 +82,18 @@ struct NetQueuedPacket {
 };
 
 #pragma pack(pop)
-typedef char
-	xvt_size_NetQueuedPacket[(sizeof(NetQueuedPacket) == 528) ? 1 : -1];
+typedef char xvt_size_NetQueuedPacket[(sizeof(struct NetQueuedPacket) == 528)
+					      ? 1
+					      : -1];
 
 /* Queued rename messages retain both NUL-terminated names after the ABI header.
  * The pointer fields in the copied header are not used by the recovered readers. */
-typedef struct NetPlayerNameMessage {
+struct NetPlayerNameMessage {
 	DPMSG_SETPLAYERORGROUPNAME header; /* DirectPlay's rename message. */
 	/* The short name, then the long name, each ending in a NUL. */
-	char names[sizeof(((NetQueuedPacket *)0)->payload) -
+	char names[sizeof(((struct NetQueuedPacket *)0)->payload) -
 		   sizeof(DPMSG_SETPLAYERORGROUPNAME)];
-} NetPlayerNameMessage;
+};
 
 #pragma pack(push, 1)
 
@@ -108,14 +108,13 @@ struct NetPiggybackPayload {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_NetPiggybackPayload[(sizeof(NetPiggybackPayload) == 520)
-						  ? 1
-						  : -1];
+typedef char xvt_size_NetPiggybackPayload
+	[(sizeof(struct NetPiggybackPayload) == 520) ? 1 : -1];
 
 extern int g_netRecvQueueReadIndex;
 extern int g_netRecvQueueWriteIndex;
 extern unsigned int g_netRecvQueueCount;
-extern NetQueuedPacket g_netSessionRecvQueue[1024];
+extern struct NetQueuedPacket g_netSessionRecvQueue[1024];
 extern int g_netLastDeliveredRecvSequence;
 
 int NetReliable_GetLastDeliveredRecvSequence(void);

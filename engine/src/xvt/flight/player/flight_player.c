@@ -13,7 +13,7 @@
 int16_t FlightPlayer_HasDisabledSubsystem(void)
 {
 	int objectIndex;
-	CraftData *craft;
+	struct CraftData *craft;
 	int16_t systemId;
 	int16_t displaySlot;
 	int16_t allInstalledSystemsOperational;
@@ -53,7 +53,7 @@ void nullsub_8(const char *message) { (void)message; }
 // FUNCTION: XVT 0x481D90
 void FlightPlayer_IncreaseThrottleSpeed(int16_t step, int playerIdx)
 {
-	PlayerData *player;
+	struct PlayerData *player;
 	uint16_t *throttleSpeedPtr;
 	uint16_t throttleSpeed;
 
@@ -75,7 +75,7 @@ void FlightPlayer_IncreaseThrottleSpeed(int16_t step, int playerIdx)
 // FUNCTION: XVT 0x481E10
 void FlightPlayer_DecreaseThrottleSpeed(int16_t step, int playerIdx)
 {
-	PlayerData *player;
+	struct PlayerData *player;
 	uint16_t *throttleSpeedPtr;
 	uint16_t throttleSpeed;
 

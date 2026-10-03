@@ -95,19 +95,19 @@ struct RadarEllipseClampLimit {
 	uint8_t yLimit;
 };
 
-extern RadarEllipseClampLimit g_radarEllipseClamp320x240Preset[37];
-extern RadarEllipseClampLimit g_radarEllipseClampTable[37];
+extern struct RadarEllipseClampLimit g_radarEllipseClamp320x240Preset[37];
+extern struct RadarEllipseClampLimit g_radarEllipseClampTable[37];
 extern int g_radarEllipseClampCachedResolutionMode;
 extern int16_t radarx;
 extern int16_t radary;
 extern uint16_t g_hudPanelSpriteDataHandle;
 extern uint16_t g_flightIconFramesHandle;
 extern uint16_t g_messageLogHandle;
-extern HudCockpitResource g_hudCockpitResources[28];
-extern HudCockpitResourceDescriptor g_hudCockpitResourceDescriptors[28];
+extern struct HudCockpitResource g_hudCockpitResources[28];
+extern struct HudCockpitResourceDescriptor g_hudCockpitResourceDescriptors[28];
 extern char g_hudCockpitResourcePath[32];
 extern char g_hudCockpitBasePath[32];
-extern HudPanelSpriteFileInfo g_hudPanelSpriteFileInfo;
+extern struct HudPanelSpriteFileInfo g_hudPanelSpriteFileInfo;
 extern uint8_t g_hudPanelSetId;
 extern uint8_t g_hudLoadedPanelSetId;
 extern uint8_t g_flightDisplayRebuildPending;
@@ -129,9 +129,9 @@ extern int g_flightTickOverlaySampleCount;
 extern int g_packetDropIndicator;
 extern int g_lagIndicator;
 extern int g_targetDescriptionMessageId;
-extern HudInFlightMessageRecord g_systemMessagePane;
-extern HudInFlightMessageRecord g_flightGroupMessagePane;
-extern HudInFlightMessageRecord g_readyMessagePaneQueue[11];
+extern struct HudInFlightMessageRecord g_systemMessagePane;
+extern struct HudInFlightMessageRecord g_flightGroupMessagePane;
+extern struct HudInFlightMessageRecord g_readyMessagePaneQueue[11];
 extern uint8_t g_readyMessageQueueCount;
 extern int g_radioMessageBackupEnabled;
 extern uint16_t g_replayViewMode;
@@ -149,12 +149,12 @@ struct HudRadarBlipPoint {
 };
 
 extern uint16_t g_radarBlipColor;
-extern HudRadarBlipPoint *g_radarForeDrawBlips;
+extern struct HudRadarBlipPoint *g_radarForeDrawBlips;
 extern uint16_t g_radarForeBlipCount;
-extern HudRadarBlipPoint *g_radarAftDrawBlips;
+extern struct HudRadarBlipPoint *g_radarAftDrawBlips;
 extern uint16_t g_radarAftBlipCount;
-extern HudRadarBlipPoint *g_radarForeEraseBlips;
-extern HudRadarBlipPoint *g_radarAftEraseBlips;
+extern struct HudRadarBlipPoint *g_radarForeEraseBlips;
+extern struct HudRadarBlipPoint *g_radarAftEraseBlips;
 extern uint16_t g_radarForePrevBlipCount;
 extern uint16_t g_radarAftPrevBlipCount;
 extern uint8_t g_radarBlipBufferParity;
@@ -246,7 +246,7 @@ enum {
 	COCKPIT_OVERLAY_STR_KO = 0x27,
 };
 
-extern HudElementLayout g_hudElementLayouts[HUD_INSTRUMENT_COUNT];
+extern struct HudElementLayout g_hudElementLayouts[HUD_INSTRUMENT_COUNT];
 extern int16_t g_hudElementStateCache[HUD_INSTRUMENT_COUNT];
 extern uint8_t *g_hudPanelSpriteDataByIndex[265];
 extern uint8_t *g_hudPanelSpriteDataWriteCursor;
@@ -277,8 +277,8 @@ extern int g_readyMessagePaneTop;
 extern int g_readyMessagePaneRight;
 extern int g_readyMessagePaneBottom;
 extern uint8_t g_hudBeamSegmentColorByChargeStep[4];
-extern const HudBeamSegmentOffset g_hudBeamSegmentOffsets480x360[9];
-extern const HudBeamSegmentOffset g_hudBeamSegmentOffsets320x240[9];
+extern const struct HudBeamSegmentOffset g_hudBeamSegmentOffsets480x360[9];
+extern const struct HudBeamSegmentOffset g_hudBeamSegmentOffsets320x240[9];
 extern const char g_threeDigitWidthText[4];
 extern const char g_missionClockMinutesWidthText[4];
 extern const uint8_t g_lfdPaletteResourceTypeTag[4];
@@ -305,7 +305,7 @@ void Hud_AddBlipToRadar(int16_t objIdx);
 void Hud_UpdateTargetingComputerDisplay(void);
 void Hud_FormatObjectDisplayName(uint16_t objectRef, int16_t displayFlags);
 int Hud_MissionFG_GetCraftNumberIfShown(int flightGroupIdx,
-					const CraftData *craft);
+					const struct CraftData *craft);
 void Hud_DrawTargetDistance(int polarDistance);
 void Hud_UpdateTargetingLockIndicator(void);
 void Hud_DrawLaserCannonIndicators(void);

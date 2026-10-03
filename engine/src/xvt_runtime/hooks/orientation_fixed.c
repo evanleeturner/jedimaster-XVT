@@ -116,8 +116,8 @@ static void RotateLocal(int64_t matrix[3][3], unsigned axis, uint16_t angle)
 	}
 }
 
-XvtOrientationAngles
-XvtOrientation_ApplyPitchYawFixed(XvtOrientationAngles current,
+struct XvtOrientationAngles
+XvtOrientation_ApplyPitchYawFixed(struct XvtOrientationAngles current,
 				  int pitch_delta_q16, int neg_yaw_delta_q16)
 {
 	if (!(uint16_t)pitch_delta_q16 && !(uint16_t)neg_yaw_delta_q16) {
@@ -143,8 +143,9 @@ XvtOrientation_ApplyPitchYawFixed(XvtOrientationAngles current,
 		yaw = 0;
 		roll = Atan2(-matrix[1][0], matrix[0][0]);
 	}
-	XvtOrientationAngles result = {(uint16_t)(0x8000u - RoundAngle(yaw)),
-				       (uint16_t)(0x4000u + RoundAngle(pitch)),
-				       (uint16_t)(0x8000u - RoundAngle(roll))};
+	struct XvtOrientationAngles result = {
+		(uint16_t)(0x8000u - RoundAngle(yaw)),
+		(uint16_t)(0x4000u + RoundAngle(pitch)),
+		(uint16_t)(0x8000u - RoundAngle(roll))};
 	return result;
 }

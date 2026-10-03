@@ -4,7 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 
-int XvtLaunchOptions_Parse(int argc, char *argv[], XvtLaunchOptions *options)
+int XvtLaunchOptions_Parse(int argc, char *argv[],
+			   struct XvtLaunchOptions *options)
 {
 	memset(options, 0, sizeof(*options));
 	for (int index = 1; index < argc; ++index) {
@@ -85,7 +86,7 @@ int XvtLaunchOptions_Parse(int argc, char *argv[], XvtLaunchOptions *options)
 	return 1;
 }
 
-void XvtHostConfig_FillAeronConfig(const XvtLaunchOptions *options,
+void XvtHostConfig_FillAeronConfig(const struct XvtLaunchOptions *options,
 				   AeronConfig *config)
 {
 	memset(config, 0, sizeof(*config));
@@ -104,7 +105,7 @@ void XvtHostConfig_FillAeronConfig(const XvtLaunchOptions *options,
 	config->clear_color_rgba[3] = 1.0f;
 }
 
-int XvtHostConfig_ResolveResourceRoot(const XvtLaunchOptions *options,
+int XvtHostConfig_ResolveResourceRoot(const struct XvtLaunchOptions *options,
 				      char *out, size_t capacity)
 {
 	AeronConfig config;

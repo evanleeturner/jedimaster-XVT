@@ -15,13 +15,13 @@ static const char kGuidC[] = "0123456789abcdef0123456789abcdec";
 static const char kGuidD[] = "0123456789abcdef0123456789abcded";
 static const char kGuidE[] = "0123456789abcdef0123456789abcdee";
 
-static XvtControllerOptions g_options;
+static struct XvtControllerOptions g_options;
 static AeronInputSnapshot g_input;
 static char g_error[128];
 
-static XvtInputActionBinding Button(uint8_t index, XvtInputAction action)
+static struct XvtInputActionBinding Button(uint8_t index, XvtInputAction action)
 {
-	XvtInputActionBinding binding;
+	struct XvtInputActionBinding binding;
 	memset(&binding, 0, sizeof binding);
 	binding.source.kind = AERON_CONTROLLER_DIGITAL_BUTTON;
 	binding.source.index = index;
@@ -31,7 +31,7 @@ static XvtInputActionBinding Button(uint8_t index, XvtInputAction action)
 }
 
 /* A gamepad profile with yaw on the left stick's X axis and two button bindings. */
-static void GamepadProfile(XvtControllerProfile *profile)
+static void GamepadProfile(struct XvtControllerProfile *profile)
 {
 	XvtControllerOptions_ClearProfile(profile,
 					  AERON_CONTROLLER_KIND_GAMEPAD);
@@ -45,7 +45,7 @@ static void GamepadProfile(XvtControllerProfile *profile)
 	profile->binding_count = 2;
 }
 
-static bool ProfileValid(const XvtControllerProfile *profile,
+static bool ProfileValid(const struct XvtControllerProfile *profile,
 			 AeronControllerKind kind)
 {
 	g_error[0] = '\0';
@@ -57,7 +57,7 @@ static bool ProfileValid(const XvtControllerProfile *profile,
 	return valid;
 }
 
-static bool OptionsValid(const XvtControllerOptions *options)
+static bool OptionsValid(const struct XvtControllerOptions *options)
 {
 	g_error[0] = '\0';
 	bool valid =
@@ -73,7 +73,7 @@ static void Models(size_t count, const char *const *guids)
 {
 	memset(&g_options, 0, sizeof g_options);
 	for (size_t i = 0; i < count; ++i) {
-		XvtControllerModel *model = &g_options.models[i];
+		struct XvtControllerModel *model = &g_options.models[i];
 		memcpy(model->guid, guids[i], sizeof model->guid);
 		model->kind = AERON_CONTROLLER_KIND_GAMEPAD;
 		XvtControllerOptions_ClearProfile(
@@ -97,7 +97,7 @@ static AeronControllerSnapshot *Connect(int slot, const char *guid,
 
 static void CheckValidateProfileAccepts(void)
 {
-	XvtControllerProfile profile;
+	struct XvtControllerProfile profile;
 	GamepadProfile(&profile);
 	XVT_ASSERT_TRUE(ProfileValid(&profile, AERON_CONTROLLER_KIND_GAMEPAD));
 
@@ -122,7 +122,7 @@ static void CheckValidateProfileAccepts(void)
 
 static void CheckValidateProfileAxisRefusals(void)
 {
-	XvtControllerProfile profile;
+	struct XvtControllerProfile profile;
 
 	/* Each kind's axis count is the limit: a gamepad has AERON_GAMEPAD_AXIS_COUNT, a joystick
 	 * AERON_CONTROLLER_AXIS_MAX. */
@@ -167,7 +167,7 @@ static void CheckValidateProfileAxisRefusals(void)
 
 static void CheckValidateProfileBindingRefusals(void)
 {
-	XvtControllerProfile profile;
+	struct XvtControllerProfile profile;
 
 	GamepadProfile(&profile);
 	profile.binding_count = XVT_CONTROLLER_BINDING_CAP + 1;
@@ -234,7 +234,7 @@ static void CheckValidateProfileBindingRefusals(void)
 static void CheckValidateProfileErrorCapacity(void)
 {
 	/* A refusal's message stays inside the capacity it is given. */
-	XvtControllerProfile profile;
+	struct XvtControllerProfile profile;
 	GamepadProfile(&profile);
 	profile.bindings[1].action = XVT_INPUT_ACTION_NONE;
 	char *small = malloc(8);
@@ -266,7 +266,7 @@ static void CheckEffectiveAxisInvert(void)
 
 static void CheckProfileEqual(void)
 {
-	XvtControllerProfile left, right;
+	struct XvtControllerProfile left, right;
 	GamepadProfile(&left);
 	GamepadProfile(&right);
 	XVT_ASSERT_TRUE(XvtControllerOptions_ProfileEqual(&left, &right));
@@ -289,7 +289,7 @@ static void CheckProfileEqual(void)
 	right.bindings[1].action = XVT_INPUT_ACTION_TARGET_PREV;
 	XVT_ASSERT_TRUE(!XvtControllerOptions_ProfileEqual(&left, &right));
 	GamepadProfile(&right);
-	XvtInputActionBinding first = right.bindings[0];
+	struct XvtInputActionBinding first = right.bindings[0];
 	right.bindings[0] = right.bindings[1];
 	right.bindings[1] = first;
 	XVT_ASSERT_TRUE(!XvtControllerOptions_ProfileEqual(&left, &right));
@@ -303,7 +303,7 @@ static void CheckEquals(void)
 	XVT_ASSERT_TRUE(XvtControllerOptions_Equals(NULL, NULL));
 	const char *guids[] = {kGuidA, kGuidB};
 	Models(2, guids);
-	XvtControllerOptions other = g_options;
+	struct XvtControllerOptions other = g_options;
 	XVT_ASSERT_TRUE(!XvtControllerOptions_Equals(&g_options, NULL));
 	XVT_ASSERT_TRUE(!XvtControllerOptions_Equals(NULL, &g_options));
 	XVT_ASSERT_TRUE(XvtControllerOptions_Equals(&g_options, &other));
@@ -327,12 +327,12 @@ static void CheckClearProfile(void)
 	for (int k = 0; k < 2; ++k) {
 		AeronControllerKind kind = k ? AERON_CONTROLLER_KIND_JOYSTICK
 					     : AERON_CONTROLLER_KIND_GAMEPAD;
-		XvtControllerProfile profile;
+		struct XvtControllerProfile profile;
 		memset(&profile, 0xA5, sizeof profile);
 		XvtControllerOptions_ClearProfile(&profile, kind);
 		XVT_ASSERT_INT_EQ(profile.binding_count, 0);
 		for (int axis = 0; axis < XVT_INPUT_AXIS_COUNT; ++axis) {
-			const XvtInputAxisBinding *binding =
+			const struct XvtInputAxisBinding *binding =
 				&profile.mapping.axes[axis];
 			XVT_ASSERT_INT_EQ(binding->source, -1);
 			XVT_ASSERT_CLOSE(binding->deadzone, 0.0, 0.0,
@@ -437,10 +437,10 @@ static void CheckAddModel(void)
 	XVT_ASSERT_TRUE(XvtControllerOptions_EnsureModel(
 		&g_options, joystick, g_error, sizeof g_error));
 	XVT_ASSERT_INT_EQ(g_options.count, 2);
-	const XvtControllerModel *added = &g_options.models[1];
+	const struct XvtControllerModel *added = &g_options.models[1];
 	XVT_ASSERT_INT_EQ(strcmp(added->guid, kGuidB), 0);
 	XVT_ASSERT_INT_EQ(added->kind, AERON_CONTROLLER_KIND_JOYSTICK);
-	XvtControllerProfile cleared;
+	struct XvtControllerProfile cleared;
 	XvtControllerOptions_ClearProfile(&cleared,
 					  AERON_CONTROLLER_KIND_JOYSTICK);
 	XVT_ASSERT_TRUE(
@@ -488,7 +488,7 @@ static void CheckInitializeGamepads(void)
 	g_options.models[0].profile.mapping.axes[XVT_INPUT_AXIS_YAW].source = 0;
 
 	/* Defaults bind yaw, pitch and roll, and two buttons. */
-	XvtControllerProfile defaults;
+	struct XvtControllerProfile defaults;
 	GamepadProfile(&defaults);
 	defaults.mapping.axes[XVT_INPUT_AXIS_PITCH].source =
 		AERON_GAMEPAD_AXIS_LEFTY;
@@ -509,7 +509,7 @@ static void CheckInitializeGamepads(void)
 	XVT_ASSERT_INT_EQ(strcmp(g_options.models[1].guid, kGuidB), 0);
 	XVT_ASSERT_INT_EQ(strcmp(g_options.models[2].guid, kGuidC), 0);
 	for (size_t i = 1; i < 3; ++i) {
-		const XvtControllerProfile *profile =
+		const struct XvtControllerProfile *profile =
 			&g_options.models[i].profile;
 		XVT_ASSERT_INT_EQ(g_options.models[i].kind,
 				  AERON_CONTROLLER_KIND_GAMEPAD);
@@ -531,14 +531,14 @@ static void CheckInitializeGamepads(void)
 
 	/* The first new model leaves yaw unbound, since the joystick drives it, and keeps the rest; the
 	 * second finds every default axis driven already. */
-	const XvtInputAxisBinding *first =
+	const struct XvtInputAxisBinding *first =
 		g_options.models[1].profile.mapping.axes;
 	XVT_ASSERT_INT_EQ(first[XVT_INPUT_AXIS_YAW].source, -1);
 	XVT_ASSERT_INT_EQ(first[XVT_INPUT_AXIS_PITCH].source,
 			  AERON_GAMEPAD_AXIS_LEFTY);
 	XVT_ASSERT_INT_EQ(first[XVT_INPUT_AXIS_ROLL].source,
 			  AERON_GAMEPAD_AXIS_RIGHTX);
-	const XvtInputAxisBinding *second =
+	const struct XvtInputAxisBinding *second =
 		g_options.models[2].profile.mapping.axes;
 	for (int axis = 0; axis < XVT_INPUT_AXIS_COUNT; ++axis) {
 		XVT_ASSERT_INT_EQ(second[axis].source, -1);

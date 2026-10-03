@@ -4,7 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 
-void XvtVideoSettings_Read(const XvtSettings *settings, XvtVideoSettings *out)
+void XvtVideoSettings_Read(const struct XvtSettings *settings,
+			   struct XvtVideoSettings *out)
 {
 	memset(out, 0, sizeof *out);
 	out->cockpit_undither = settings->render.cockpit_undither;
@@ -22,8 +23,8 @@ void XvtVideoSettings_Read(const XvtSettings *settings, XvtVideoSettings *out)
 	out->motion_blur_shutter = settings->render.motion_blur.shutter;
 }
 
-bool XvtVideoSettings_Equals(const XvtVideoSettings *left,
-			     const XvtVideoSettings *right)
+bool XvtVideoSettings_Equals(const struct XvtVideoSettings *left,
+			     const struct XvtVideoSettings *right)
 {
 	return left->cockpit_undither == right->cockpit_undither &&
 	       left->fullscreen == right->fullscreen &&
@@ -39,7 +40,7 @@ bool XvtVideoSettings_Equals(const XvtVideoSettings *left,
 	       left->motion_blur_shutter == right->motion_blur_shutter;
 }
 
-bool XvtVideoSettings_Validate(const XvtVideoSettings *o, char *error,
+bool XvtVideoSettings_Validate(const struct XvtVideoSettings *o, char *error,
 			       size_t capacity)
 {
 	bool valid =
@@ -70,8 +71,8 @@ bool XvtVideoSettings_Validate(const XvtVideoSettings *o, char *error,
 	return valid;
 }
 
-void XvtVideoSettings_ApplyTo(const XvtVideoSettings *options,
-			      XvtRenderSettings *render)
+void XvtVideoSettings_ApplyTo(const struct XvtVideoSettings *options,
+			      struct XvtRenderSettings *render)
 {
 	render->cockpit_undither = options->cockpit_undither;
 	render->presentation.hdr_output = options->hdr;
@@ -104,7 +105,7 @@ static const char *const g_videoPaths[] = {
 };
 
 static bool XvtConfig_WriteVideo(AeronConfigFile *document,
-				 const XvtVideoSettings *options,
+				 const struct XvtVideoSettings *options,
 				 AeronConfigError *detail)
 {
 	static const char *modes[] = {"off", "native_aa", "quality", "balanced",
@@ -151,7 +152,7 @@ static bool XvtConfig_WriteVideo(AeronConfigFile *document,
 					options->motion_blur_shutter, detail);
 }
 
-bool XvtConfig_SetVideo(const XvtVideoSettings *options, char *error,
+bool XvtConfig_SetVideo(const struct XvtVideoSettings *options, char *error,
 			size_t capacity)
 {
 	AeronConfigFile *candidate = NULL;

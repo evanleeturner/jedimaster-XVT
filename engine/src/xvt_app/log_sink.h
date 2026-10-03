@@ -43,7 +43,7 @@ extern "C" {
  * changed, no file opened and a message on stderr, when the option or the environment variable names a
  * level that is not debug, info, warn or error in any letter case. An empty environment value counts as
  * unset, for the level and the file alike. */
-int XvtLogSink_Install(const XvtLaunchOptions *options);
+int XvtLogSink_Install(const struct XvtLaunchOptions *options);
 /* Writes the run's last line, app.stop with exit_code, at whatever level is in force: a level above info is
  * lowered to info for it. Does nothing when Install has not succeeded. Call once, after every other thread
  * that logs has stopped. */

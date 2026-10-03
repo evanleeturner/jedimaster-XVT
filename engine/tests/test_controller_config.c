@@ -17,8 +17,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-static XvtControllerProfile g_profile;
-static XvtControllerOptions g_options;
+static struct XvtControllerProfile g_profile;
+static struct XvtControllerOptions g_options;
 
 /* Reads the profile at path in text into g_profile and returns what the reader returned. */
 static bool ReadProfileText(const char *text, const char *path,
@@ -57,11 +57,11 @@ Source(AeronControllerDigitalSourceKind kind, int index, int hat,
 
 /* 1 when profile binds source to action. Axis thresholds must match too; the thresholds used here are
  * binary fractions, which survive the trip through float exactly. */
-static int Binds(const XvtControllerProfile *profile, XvtInputAction action,
-		 AeronControllerDigitalSource source)
+static int Binds(const struct XvtControllerProfile *profile,
+		 XvtInputAction action, AeronControllerDigitalSource source)
 {
 	for (size_t i = 0; i < profile->binding_count; ++i) {
-		const XvtInputActionBinding *b = &profile->bindings[i];
+		const struct XvtInputActionBinding *b = &profile->bindings[i];
 		if (b->action != action || b->source.kind != source.kind ||
 		    b->source.index != source.index) {
 			continue;
@@ -94,7 +94,7 @@ static void CheckGamepadProfile(void)
 		"    target_next: west\n"
 		"    target_prev: [east, east]\n",
 		"pad", AERON_CONTROLLER_KIND_GAMEPAD));
-	const XvtInputAxisBinding *axes = g_profile.mapping.axes;
+	const struct XvtInputAxisBinding *axes = g_profile.mapping.axes;
 	XVT_ASSERT_INT_EQ(axes[XVT_INPUT_AXIS_YAW].source,
 			  AERON_GAMEPAD_AXIS_LEFTX);
 	XVT_ASSERT_TRUE(axes[XVT_INPUT_AXIS_YAW].invert);
@@ -107,7 +107,7 @@ static void CheckGamepadProfile(void)
 	XVT_ASSERT_CLOSE(axes[XVT_INPUT_AXIS_THROTTLE].deadzone, 0, 0,
 			 "a cleared deadzone is exactly zero");
 	/* An axis left out keeps its cleared value. */
-	static XvtControllerProfile cleared;
+	static struct XvtControllerProfile cleared;
 	XvtControllerOptions_ClearProfile(&cleared,
 					  AERON_CONTROLLER_KIND_GAMEPAD);
 	XVT_ASSERT_INT_EQ(axes[XVT_INPUT_AXIS_PITCH].source,
@@ -153,14 +153,14 @@ static void CheckJoystickProfile(void)
 		"      - {hat: 0, direction: right}\n"
 		"      - {hat: 0, direction: down}\n",
 		"stick", AERON_CONTROLLER_KIND_JOYSTICK));
-	const XvtInputAxisBinding *axes = g_profile.mapping.axes;
+	const struct XvtInputAxisBinding *axes = g_profile.mapping.axes;
 	XVT_ASSERT_INT_EQ(axes[XVT_INPUT_AXIS_YAW].source, 0);
 	XVT_ASSERT_CLOSE(axes[XVT_INPUT_AXIS_YAW].deadzone, 0.5, 0,
 			 "0.5 is exact in binary");
 	XVT_ASSERT_INT_EQ(axes[XVT_INPUT_AXIS_PITCH].source, 15);
 	XVT_ASSERT_TRUE(axes[XVT_INPUT_AXIS_PITCH].invert);
 	/* The throttle, left out, keeps its cleared value: a joystick's throttle starts inverted. */
-	static XvtControllerProfile cleared;
+	static struct XvtControllerProfile cleared;
 	XvtControllerOptions_ClearProfile(&cleared,
 					  AERON_CONTROLLER_KIND_JOYSTICK);
 	XVT_ASSERT_INT_EQ(axes[XVT_INPUT_AXIS_THROTTLE].source, -1);
@@ -458,55 +458,56 @@ static void CheckParseRefusals(void)
 
 /* Two valid models: a gamepad whose bindings list fire_weapon, then target_next, then fire_weapon again,
  * and a joystick with a hat, a button and an axis source. Button and hat thresholds are 0.5, the default. */
-static void TwoModels(XvtControllerOptions *options)
+static void TwoModels(struct XvtControllerOptions *options)
 {
 	memset(options, 0, sizeof *options);
 	options->count = 2;
-	XvtControllerModel *pad = &options->models[0];
+	struct XvtControllerModel *pad = &options->models[0];
 	strcpy(pad->guid, "0123456789abcdef0123456789abcdef");
 	strcpy(pad->name, "Test Pad");
 	pad->kind = AERON_CONTROLLER_KIND_GAMEPAD;
 	XvtControllerOptions_ClearProfile(&pad->profile,
 					  AERON_CONTROLLER_KIND_GAMEPAD);
 	pad->profile.mapping.axes[XVT_INPUT_AXIS_YAW] =
-		(XvtInputAxisBinding){.source = AERON_GAMEPAD_AXIS_LEFTX,
-				      .invert = true,
-				      .deadzone = 0.25f};
+		(struct XvtInputAxisBinding){.source = AERON_GAMEPAD_AXIS_LEFTX,
+					     .invert = true,
+					     .deadzone = 0.25f};
 	pad->profile.mapping.axes[XVT_INPUT_AXIS_THROTTLE] =
-		(XvtInputAxisBinding){.source = AERON_GAMEPAD_AXIS_RIGHTY,
-				      .invert = false,
-				      .deadzone = 0.0f};
-	pad->profile.bindings[0] = (XvtInputActionBinding){
+		(struct XvtInputAxisBinding){.source =
+						     AERON_GAMEPAD_AXIS_RIGHTY,
+					     .invert = false,
+					     .deadzone = 0.0f};
+	pad->profile.bindings[0] = (struct XvtInputActionBinding){
 		Source(AERON_CONTROLLER_DIGITAL_BUTTON,
 		       AERON_GAMEPAD_BUTTON_SOUTH, 0, 0.5f),
 		XVT_INPUT_ACTION_FIRE_WEAPON};
-	pad->profile.bindings[1] = (XvtInputActionBinding){
+	pad->profile.bindings[1] = (struct XvtInputActionBinding){
 		Source(AERON_CONTROLLER_DIGITAL_BUTTON,
 		       AERON_GAMEPAD_BUTTON_WEST, 0, 0.5f),
 		XVT_INPUT_ACTION_TARGET_NEXT};
-	pad->profile.bindings[2] = (XvtInputActionBinding){
+	pad->profile.bindings[2] = (struct XvtInputActionBinding){
 		Source(AERON_CONTROLLER_DIGITAL_AXIS_POSITIVE,
 		       AERON_GAMEPAD_AXIS_RIGHT_TRIGGER, 0, 0.75f),
 		XVT_INPUT_ACTION_FIRE_WEAPON};
 	pad->profile.binding_count = 3;
 
-	XvtControllerModel *stick = &options->models[1];
+	struct XvtControllerModel *stick = &options->models[1];
 	strcpy(stick->guid, "00000000000000000000000000000002");
 	strcpy(stick->name, "Test Stick");
 	stick->kind = AERON_CONTROLLER_KIND_JOYSTICK;
 	XvtControllerOptions_ClearProfile(&stick->profile,
 					  AERON_CONTROLLER_KIND_JOYSTICK);
 	stick->profile.mapping.axes[XVT_INPUT_AXIS_PITCH] =
-		(XvtInputAxisBinding){
+		(struct XvtInputAxisBinding){
 			.source = 3, .invert = false, .deadzone = 0.5f};
-	stick->profile.bindings[0] =
-		(XvtInputActionBinding){Source(AERON_CONTROLLER_DIGITAL_HAT, 1,
-					       AERON_CONTROLLER_HAT_DOWN, 0.5f),
-					XVT_INPUT_ACTION_TARGET_PREV};
-	stick->profile.bindings[1] = (XvtInputActionBinding){
+	stick->profile.bindings[0] = (struct XvtInputActionBinding){
+		Source(AERON_CONTROLLER_DIGITAL_HAT, 1,
+		       AERON_CONTROLLER_HAT_DOWN, 0.5f),
+		XVT_INPUT_ACTION_TARGET_PREV};
+	stick->profile.bindings[1] = (struct XvtInputActionBinding){
 		Source(AERON_CONTROLLER_DIGITAL_BUTTON, 7, 0, 0.5f),
 		XVT_INPUT_ACTION_THROTTLE_UP};
-	stick->profile.bindings[2] = (XvtInputActionBinding){
+	stick->profile.bindings[2] = (struct XvtInputActionBinding){
 		Source(AERON_CONTROLLER_DIGITAL_AXIS_NEGATIVE, 2, 0, 1.0f),
 		XVT_INPUT_ACTION_THROTTLE_DOWN};
 	stick->profile.binding_count = 3;
@@ -515,7 +516,7 @@ static void TwoModels(XvtControllerOptions *options)
 static void CheckWrite(void)
 {
 	Fixture_Begin();
-	static XvtControllerOptions options, reordered, parsed;
+	static struct XvtControllerOptions options, reordered, parsed;
 	TwoModels(&options);
 	const char *start =
 		"input:\n  mouse_flight: true\n  controllers: [{guid: x}, {guid: y}, {guid: z}]\n";
@@ -564,8 +565,8 @@ static void CheckWrite(void)
 						  sizeof error));
 	XVT_ASSERT_INT_EQ(parsed.count, options.count);
 	for (size_t m = 0; m < options.count; ++m) {
-		const XvtControllerModel *want = &options.models[m];
-		const XvtControllerModel *got = &parsed.models[m];
+		const struct XvtControllerModel *want = &options.models[m];
+		const struct XvtControllerModel *got = &parsed.models[m];
 		XVT_ASSERT_INT_EQ(strcmp(got->guid, want->guid), 0);
 		XVT_ASSERT_INT_EQ(strcmp(got->name, want->name), 0);
 		XVT_ASSERT_INT_EQ(got->kind, want->kind);
@@ -592,8 +593,8 @@ static void CheckWrite(void)
 
 	/* The order is fixed: the same bindings listed in another order are written the same way. */
 	reordered = options;
-	XvtControllerProfile *profile = &reordered.models[0].profile;
-	XvtInputActionBinding first = profile->bindings[0];
+	struct XvtControllerProfile *profile = &reordered.models[0].profile;
+	struct XvtInputActionBinding first = profile->bindings[0];
 	profile->bindings[0] = profile->bindings[2];
 	profile->bindings[2] = first;
 	AeronConfigFile *other = Fixture_Yaml(start);
@@ -620,7 +621,7 @@ static void CheckWrite(void)
 static void CheckSetController(void)
 {
 	Fixture_Begin();
-	static XvtControllerOptions options, expected;
+	static struct XvtControllerOptions options, expected;
 	char error[512];
 	TwoModels(&options);
 	/* Needs loaded settings. */

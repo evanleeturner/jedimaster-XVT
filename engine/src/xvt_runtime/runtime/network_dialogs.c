@@ -22,7 +22,7 @@
 int XvtNetworkDialogs_Resume(int result, int action)
 {
 	(void)result;
-	RECT screen = {0, 0, 640, 480};
+	struct RECT screen = {0, 0, 640, 480};
 	switch ((XvtNetworkDialogAction)action) {
 	case XVT_NETWORK_ACCESS_REJECTED:
 	case XVT_NETWORK_ACCESS_PASSWORD:
@@ -38,7 +38,7 @@ int XvtNetworkDialogs_Resume(int result, int action)
 
 int XvtNetworkDialogs_Connecting(void)
 {
-	RECT message = {0, 0, 640, 480}, cancel = {85, 447, 176, 471};
+	struct RECT message = {0, 0, 640, 480}, cancel = {85, 447, 176, 471};
 	FrontImage_DrawSpriteOpaque("background", 0, 0);
 	FrontendText_DrawCentered(15,
 				  FrontendString_Get(FRONTSTR_645_CONNECTING),
@@ -126,7 +126,7 @@ void XvtNetworkDialogs_ShowFailure(AeronDplayDirectoryError error, int host)
 
 int XvtNetworkDialogs_ReportAdmissionFailure(void)
 {
-	XvtNetworkSessionStatus status = XvtNetworkSession_GetStatus();
+	struct XvtNetworkSessionStatus status = XvtNetworkSession_GetStatus();
 	if (status.state != XVT_NETWORK_SESSION_FAILED) {
 		return 0;
 	}

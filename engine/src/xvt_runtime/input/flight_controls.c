@@ -61,7 +61,7 @@ bool XvtFlightControls_ThrottleEligible(unsigned player)
 	if (!g_objectTable || index < 0 || index >= g_regionMainObjectSlotEnd) {
 		return false;
 	}
-	const ObjectRecord *object = &g_objectTable[index];
+	const struct ObjectRecord *object = &g_objectTable[index];
 	return object->objectType &&
 	       object->objectSignature ==
 		       g_players[player].boundObjectSignature &&
@@ -87,7 +87,7 @@ void XvtFlightControls_UpdateThrottleContext(void)
 	}
 }
 
-void XvtFlightControls_SampleThrottle(FlightInputFrameRecord *record)
+void XvtFlightControls_SampleThrottle(struct FlightInputFrameRecord *record)
 {
 	uint16_t position;
 	uint32_t generation;
@@ -127,7 +127,7 @@ void XvtFlightControls_SampleThrottle(FlightInputFrameRecord *record)
 }
 
 void XvtFlightControls_ApplyThrottle(unsigned player,
-				     const FlightInputFrameRecord *input)
+				     const struct FlightInputFrameRecord *input)
 {
 	if ((input->flags & XVT_INPUT_THROTTLE_PRESENT) &&
 	    XvtFlightControls_ThrottleEligible(player)) {
@@ -202,7 +202,7 @@ uint16_t XvtFlightControls_ReadLocal(void)
 }
 
 void XvtFlightControls_EncodeAxes(uint8_t *bytes,
-				  const FlightInputFrameRecord *input)
+				  const struct FlightInputFrameRecord *input)
 {
 	bytes[0] = ((uint8_t)input->axisX & 0xfeu) | (input->keyMods & 1u);
 	bytes[1] =
@@ -211,7 +211,7 @@ void XvtFlightControls_EncodeAxes(uint8_t *bytes,
 }
 
 void XvtFlightControls_DecodeAxes(const uint8_t *bytes,
-				  FlightInputFrameRecord *input)
+				  struct FlightInputFrameRecord *input)
 {
 	input->axisX = (int8_t)(bytes[0] & 0xfeu);
 	input->axisY = (int8_t)(bytes[1] & 0xfeu);
@@ -255,7 +255,7 @@ int16_t XvtFlightControls_RollStep(unsigned player, uint16_t roll_rate,
 	return (int16_t)step;
 }
 
-void XvtFlightControls_SampleRecorded(FlightInputFrameRecord *input)
+void XvtFlightControls_SampleRecorded(struct FlightInputFrameRecord *input)
 {
 	enum {
 		AXIS_QUANTIZATION_MASK = 0xfe,

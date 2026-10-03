@@ -22,7 +22,7 @@ static void Start(void)
 {
 	XvtInput_ResetCapture();
 	XvtMouseFlight_Reset();
-	XvtMouseOptions options;
+	struct XvtMouseOptions options;
 	memset(&options, 0, sizeof options);
 	options.mouse_flight_enabled = true;
 	options.mouse_sensitivity = XVT_MOUSE_SENSITIVITY_MIN;

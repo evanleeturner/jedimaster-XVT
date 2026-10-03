@@ -62,20 +62,20 @@ long _filelength(int fileDescriptor);
 #endif
 
 #ifndef XVT_MODERN
-typedef struct Msvc42CrtFilePrefix {
+struct Msvc42CrtFilePrefix {
 	/* Never read or written; puts flags at byte 12. */
 	uint8_t reserved[12];
 	/* Stream flags; the original build's loaders read bit 0x10 as end of
 	 * file. */
 	int flags;
-} Msvc42CrtFilePrefix;
+};
 #endif
 
-typedef struct LfdEntryHeader {
+struct LfdEntryHeader {
 	uint8_t resourceType[4]; /* Type tag; PLTT marks a palette. */
 	char resourceName[8];	 /* Read from the file; nothing uses it. */
 	uint32_t dataSize;	 /* Bytes of data after the header. */
-} LfdEntryHeader;
+};
 
 enum { PANEL_BOX_SPAN_SCRATCH_SIZE = 2048 };
 
@@ -120,12 +120,12 @@ uint16_t g_flightIconFramesHandle = 0;
  * g_flightScratchScreenBuffer when they are not loaded.
  * FeDiskIo_FreeFlightResources frees the handles. */
 // GLOBAL: XVT 0xA08A10
-HudCockpitResource g_hudCockpitResources[28] = {{0}};
+struct HudCockpitResource g_hudCockpitResources[28] = {{0}};
 /* Per view (HudViewState), the cockpit image, viewport and name read by
  * Hud_LoadCockpitInterfaceFile from the cockpit's .INT file, its only
  * writer. */
 // GLOBAL: XVT 0xA08610
-HudCockpitResourceDescriptor g_hudCockpitResourceDescriptors[28] = {{0}};
+struct HudCockpitResourceDescriptor g_hudCockpitResourceDescriptors[28] = {{0}};
 /* Path of the last cockpit file opened: the .INT files and the .LFD files.
  * Written by Hud_LoadCockpitInterfaceFile,
  * Hud_LoadAuxiliaryCockpitInterfaceFile, Hud_LoadCockpitLfdEntries and
@@ -143,7 +143,7 @@ char g_hudCockpitBasePath[32] = {0};
 /* Panel sprite file name and sprite counts read from the cockpit's .INT file by
  * Hud_LoadCockpitInterfaceFile, its only writer. */
 // GLOBAL: XVT 0xA08BC0
-HudPanelSpriteFileInfo g_hudPanelSpriteFileInfo = {{0}, 0, 0};
+struct HudPanelSpriteFileInfo g_hudPanelSpriteFileInfo = {{0}, 0, 0};
 /* Target the targeting computer last drew, an object index, or -1 for none.
  * Hud_UpdateTargetingComputerDisplay and Hud_DrawCmdTargetDetails record the
  * target; Hud_InitHUD and Hud_UpdateCraftSystemStatusIndicators set -1;
@@ -208,7 +208,7 @@ uint8_t *g_hudPanelSpriteDataWriteCursor = NULL;
  * label widths in the clipWidth of layouts 104 to 107, and
  * Hud_RebuildDisplayForViewState sets layout 396's selector. */
 // GLOBAL: XVT 0xA08CA0
-HudElementLayout g_hudElementLayouts[HUD_INSTRUMENT_COUNT] = {{0}};
+struct HudElementLayout g_hudElementLayouts[HUD_INSTRUMENT_COUNT] = {{0}};
 /* Per HUD element, the value or state it was last drawn with, so it is redrawn
  * only on a change; writers set -1 or -2 to force a redraw. Many functions
  * write it, chiefly the Hud_DrawCached... functions and Hud_InitHUD, which sets
@@ -228,7 +228,7 @@ uint16_t g_radarBlipColor = 0;
 /* Blip list the current radar frame fills for the fore radar: one of
  * g_radarForeBlipBufferA and B, chosen by Hud_DrawRadarBlips each frame. */
 // GLOBAL: XVT 0xA08A04
-HudRadarBlipPoint *g_radarForeDrawBlips = NULL;
+struct HudRadarBlipPoint *g_radarForeDrawBlips = NULL;
 /* Blips in g_radarForeDrawBlips, 0 to 47. Set to 0 by Hud_InitHUD and at the
  * start of each Hud_DrawRadarBlips; Hud_AddBlipToRadar raises it. */
 // GLOBAL: XVT 0xA08A02
@@ -236,7 +236,7 @@ uint16_t g_radarForeBlipCount = 0;
 /* Blip list the current radar frame fills for the aft radar: one of
  * g_radarAftBlipBufferA and B, chosen by Hud_DrawRadarBlips each frame. */
 // GLOBAL: XVT 0xA08340
-HudRadarBlipPoint *g_radarAftDrawBlips = NULL;
+struct HudRadarBlipPoint *g_radarAftDrawBlips = NULL;
 /* Blips in g_radarAftDrawBlips, 0 to 47. Set to 0 by Hud_InitHUD and at the
  * start of each Hud_DrawRadarBlips; Hud_AddBlipToRadar raises it. */
 // GLOBAL: XVT 0xA08C7E
@@ -244,11 +244,11 @@ uint16_t g_radarAftBlipCount = 0;
 /* Fore radar blips of the frame before, which Hud_DrawRadarBlips erases: the
  * buffer not in g_radarForeDrawBlips. */
 // GLOBAL: XVT 0xA08360
-HudRadarBlipPoint *g_radarForeEraseBlips = NULL;
+struct HudRadarBlipPoint *g_radarForeEraseBlips = NULL;
 /* Aft radar blips of the frame before, which Hud_DrawRadarBlips erases: the
  * buffer not in g_radarAftDrawBlips. */
 // GLOBAL: XVT 0xA08BB0
-HudRadarBlipPoint *g_radarAftEraseBlips = NULL;
+struct HudRadarBlipPoint *g_radarAftEraseBlips = NULL;
 /* Fore blips drawn the frame before, the count Hud_DrawRadarBlips erases; only
  * that function writes it. */
 // GLOBAL: XVT 0xA083BA
@@ -269,16 +269,16 @@ uint8_t g_radarBlipBufferParity = 0;
 uint8_t g_radarTargetMarkerBackgroundSaved = 0;
 /* First of the two fore radar blip lists, 48 entries. */
 // GLOBAL: XVT 0xA083C0
-HudRadarBlipPoint g_radarForeBlipBufferA[48] = {{0}};
+struct HudRadarBlipPoint g_radarForeBlipBufferA[48] = {{0}};
 /* Second of the two fore radar blip lists, 48 entries. */
 // GLOBAL: XVT 0xA084E0
-HudRadarBlipPoint g_radarForeBlipBufferB[48] = {{0}};
+struct HudRadarBlipPoint g_radarForeBlipBufferB[48] = {{0}};
 /* First of the two aft radar blip lists, 48 entries. */
 // GLOBAL: XVT 0xA0A540
-HudRadarBlipPoint g_radarAftBlipBufferA[48] = {{0}};
+struct HudRadarBlipPoint g_radarAftBlipBufferA[48] = {{0}};
 /* Second of the two aft radar blip lists, 48 entries. */
 // GLOBAL: XVT 0xA0A660
-HudRadarBlipPoint g_radarAftBlipBufferB[48] = {{0}};
+struct HudRadarBlipPoint g_radarAftBlipBufferB[48] = {{0}};
 /* Width, in pixels, of the scoreboard page area that Hud_BlitSoftwareMfdPages
  * copies from g_flightOffscreenBuffer: 112 at 320x240, 224 at 640x480, 168 at
  * 480x360. Only Hud_InitHUD writes it, for the local player's resolution. */
@@ -403,7 +403,7 @@ uint8_t g_hudBeamSegmentColorByChargeStep[4] = {0x30, 0x2D, 0x31, 0x32};
 /* Offset in pixels of each of the nine beam segments from layout 51 at
  * 480x360. */
 // GLOBAL: XVT 0x521590
-const HudBeamSegmentOffset g_hudBeamSegmentOffsets480x360[9] = {
+const struct HudBeamSegmentOffset g_hudBeamSegmentOffsets480x360[9] = {
 	{14, 14}, {12, 12}, {10, 10}, {9, 9}, {7, 7},
 	{5, 5},	  {4, 4},   {2, 2},   {0, 0},
 };
@@ -424,7 +424,7 @@ uint8_t g_lastShieldDamageSide = 0;
 /* Offset in pixels of each of the nine beam segments from layout 51 at
  * 320x240. */
 // GLOBAL: XVT 0x5215B8
-const HudBeamSegmentOffset g_hudBeamSegmentOffsets320x240[9] = {
+const struct HudBeamSegmentOffset g_hudBeamSegmentOffsets320x240[9] = {
 	{11, 11}, {10, 10}, {8, 8}, {7, 7}, {6, 6},
 	{4, 4},	  {3, 3},   {2, 2}, {0, 0},
 };
@@ -520,21 +520,21 @@ int g_lagIndicator = 0;
  * Hud_ResetFlightMessagePanes empty it, Hud_AdvanceFlightMessagePaneTimers ages
  * it. */
 // GLOBAL: XVT 0x5569F8
-HudInFlightMessageRecord g_systemMessagePane;
+struct HudInFlightMessageRecord g_systemMessagePane;
 /* The flight group message pane's message (pane type 8), its stateOrMessageId
  * 0xFFFF while empty. msg_emitInFlightMessage fills it;
  * Hud_ShowFlightMessagePane marks it shown, Hud_UpdateFlightMessagePanes and
  * Hud_ResetFlightMessagePanes empty it, Hud_AdvanceFlightMessagePaneTimers ages
  * it. */
 // GLOBAL: XVT 0x556A50
-HudInFlightMessageRecord g_flightGroupMessagePane;
+struct HudInFlightMessageRecord g_flightGroupMessagePane;
 /* The ready message pane: slot 0 is the message shown, its stateOrMessageId
  * 0xFFFF while empty; slots 1 to g_readyMessageQueueCount wait in order, and
  * slot 10 can take a message that is never shown. Filled by
  * msg_emitInFlightMessage and moved by Hud_ShiftReadyMessageQueueForReplacement
  * and Hud_AdvanceReadyMessageQueue. */
 // GLOBAL: XVT 0x9A6FF0
-HudInFlightMessageRecord g_readyMessagePaneQueue[11];
+struct HudInFlightMessageRecord g_readyMessagePaneQueue[11];
 /* Messages waiting behind slot 0 of g_readyMessagePaneQueue, 0 to 9. Raised by
  * msg_emitInFlightMessage and Hud_ShiftReadyMessageQueueForReplacement, lowered
  * by Hud_AdvanceReadyMessageQueue, set to 0 by Hud_ResetFlightMessagePanes,
@@ -1655,7 +1655,7 @@ void Hud_DrawHudTargetInsetIfEnabled(int playerIndex)
 // FUNCTION: XVT 0x439030
 void Hud_DrawStaticCockpitText(uint16_t playerIdx)
 {
-	CraftData *craft;
+	struct CraftData *craft;
 	uint16_t layoutIndex;
 	uint16_t systemFlags;
 	uint16_t featureMask;
@@ -2044,7 +2044,7 @@ void Hud_UpdateHUD(void)
 
 	int objectIndex;
 	int isRebelFighter;
-	CraftData *craft;
+	struct CraftData *craft;
 	uint16_t sFoilIndicatorState;
 
 	FlightText_SetFontTier(2);
@@ -2382,7 +2382,8 @@ void Hud_UpdateCMDText(void)
 void Hud_DrawRadarBlips(void)
 {
 	uint16_t playerObjectIdx = g_players[g_localPlayer].objectIndex;
-	CraftData *playerCraft = g_objectTable[playerObjectIdx].mobj->pCraft;
+	struct CraftData *playerCraft =
+		g_objectTable[playerObjectIdx].mobj->pCraft;
 	int objectIdx;
 
 	if ((playerCraft->damageStats.activeHudFeatureMask & 0x80) == 0 ||
@@ -2410,11 +2411,11 @@ void Hud_DrawRadarBlips(void)
 
 	for (objectIdx = g_activeRegionObjectSlotStart;
 	     objectIdx < g_activeRegionCraftObjectSlotEnd; ++objectIdx) {
-		ObjectRecord *object = &g_objectTable[objectIdx];
+		struct ObjectRecord *object = &g_objectTable[objectIdx];
 		if (objectIdx != playerObjectIdx &&
 		    (g_objectTypeTable[object->objectType].behaviorFlags & 1) !=
 			    0) {
-			CraftData *craft = object->mobj->pCraft;
+			struct CraftData *craft = object->mobj->pCraft;
 			if (g_players[g_localPlayer].currentTargetObjectIdx ==
 				    objectIdx ||
 			    (!Object_HasActiveDecoyBeam((uint16_t)objectIdx) &&
@@ -2505,7 +2506,7 @@ void Hud_AddBlipToRadar(int16_t objIdx)
 	int side;
 	int16_t frontBlip;
 	int forward;
-	MobileObject *mobileObject;
+	struct MobileObject *mobileObject;
 	int fwdZProduct;
 	int fwdXProduct;
 	int fwdYProduct;
@@ -2716,9 +2717,9 @@ void Hud_UpdateTargetingComputerDisplay(void)
 	uint8_t mapCameraState;
 	bool drawTargetDisplay;
 	bool useLeftAlignedDetails;
-	ObjectRecord *targetObject;
-	MobileObject *targetMobileObject;
-	CraftData *targetCraft;
+	struct ObjectRecord *targetObject;
+	struct MobileObject *targetMobileObject;
+	struct CraftData *targetCraft;
 	unsigned int shieldPercentage;
 	unsigned int hullPercentage;
 	unsigned int systemPercentage;
@@ -3207,7 +3208,7 @@ void Hud_UpdateTargetingComputerDisplay(void)
 					    [targetObjectType -
 					     PROJECTILE_OBJECT_TYPE_FIRST] !=
 				    0) {
-				WarheadGuidanceState *guidance =
+				struct WarheadGuidanceState *guidance =
 					g_objectTable
 						[(uint16_t)g_players[g_localPlayer]
 							 .currentTargetObjectIdx]
@@ -3350,7 +3351,7 @@ void Hud_UpdateTargetingComputerDisplay(void)
 					  .currentTargetObjectIdx]
 				    .mobj->pCraft != NULL &&
 		    g_flightMissionState.locatePlayersEnabled == 0) {
-			CraftData *displayCraft =
+			struct CraftData *displayCraft =
 				g_objectTable[(uint16_t)g_players[g_localPlayer]
 						      .currentTargetObjectIdx]
 					.mobj->pCraft;
@@ -3808,9 +3809,11 @@ void Hud_UpdateTargetingComputerDisplay(void)
 		}
 
 		if (ownershipDisplayMode == 1) {
-			MobileObject *orderMobileObject = targetObject->mobj;
-			CraftData *orderCraft = orderMobileObject->pCraft;
-			AiController *aiController;
+			struct MobileObject *orderMobileObject =
+				targetObject->mobj;
+			struct CraftData *orderCraft =
+				orderMobileObject->pCraft;
+			struct AiController *aiController;
 			uint16_t displayPlanId;
 			uint16_t aiTargetObjectIndex;
 
@@ -4347,11 +4350,11 @@ void Hud_UpdateTargetingComputerDisplay(void)
 void Hud_FormatObjectDisplayName(uint16_t objectRef, int16_t displayFlags)
 {
 	int objectIndex;
-	ObjectRecord *object;
+	struct ObjectRecord *object;
 	uint16_t objectType;
 	int8_t iff;
-	MobileObject *mobileObject;
-	CraftData *craft;
+	struct MobileObject *mobileObject;
+	struct CraftData *craft;
 	int flightGroupIdx;
 	int16_t craftNumber;
 	uint8_t staticIff;
@@ -4558,7 +4561,7 @@ void Hud_FormatObjectDisplayName(uint16_t objectRef, int16_t displayFlags)
  * global unit. */
 // FUNCTION: XVT 0x43C740
 int Hud_MissionFG_GetCraftNumberIfShown(int flightGroupIdx,
-					const CraftData *craft)
+					const struct CraftData *craft)
 {
 	if (g_missionFlightGroups[flightGroupIdx].fg.disableWaveNumbering ==
 		    1 ||
@@ -4657,7 +4660,7 @@ void Hud_DrawLaserCannonIndicators(void)
 		DEFAULT_HUD_HEIGHT = 200,
 	};
 
-	CraftData *craft;
+	struct CraftData *craft;
 	uint8_t *laserGroupLastSlot;
 	uint16_t laserSlotCount;
 	uint16_t laserSlot;
@@ -4967,7 +4970,7 @@ void Hud_DrawLaserCannonIndicators(void)
 // FUNCTION: XVT 0x43D010
 void Hud_UpdateWarheadCnt(void)
 {
-	ObjectRecord *object;
+	struct ObjectRecord *object;
 	int16_t firstLauncherSlotCount;
 
 	object = &g_objectTable[g_players[g_localPlayer].objectIndex];
@@ -5051,7 +5054,7 @@ void Hud_UpdateWarheadCnt(void)
 void Hud_OutputWarheadCount(uint16_t warheadSlotIdx, uint16_t displaySlot,
 			    uint16_t warheadBank)
 {
-	CraftData *craft;
+	struct CraftData *craft;
 	uint16_t warheadCount;
 	uint16_t selectionState;
 	uint8_t launcherFlags;
@@ -5059,7 +5062,7 @@ void Hud_OutputWarheadCount(uint16_t warheadSlotIdx, uint16_t displaySlot,
 	int objectIndex;
 	int isRebelFighter;
 	int localPlayer;
-	MobileObject **playerMobileObject;
+	struct MobileObject **playerMobileObject;
 
 	if (g_hudInstrumentSetBaseIndex != HUD_COCKPIT_INSTRUMENT_BASE_INDEX) {
 		FlightSw_SetRenderTarget(g_flightOffscreenBuffer, g_screenWidth,
@@ -5284,8 +5287,9 @@ void Hud_OutputWarheadCount(uint16_t warheadSlotIdx, uint16_t displaySlot,
 // FUNCTION: XVT 0x43D800
 void Hud_DrawShieldStrength2D(void)
 {
-	CraftData *craft = g_objectTable[g_players[g_localPlayer].objectIndex]
-				   .mobj->pCraft;
+	struct CraftData *craft =
+		g_objectTable[g_players[g_localPlayer].objectIndex]
+			.mobj->pCraft;
 	int shield;
 	int maxShield;
 
@@ -5571,7 +5575,7 @@ void Hud_DrawShieldStrength2D(void)
 #if 0
 static void Hud_DrawShieldStrength2D_legacy(void) {
 	unsigned int objectIndex = g_players[g_localPlayer].objectIndex;
-	CraftData* craft = g_objectTable[objectIndex].mobj->pCraft;
+	struct CraftData* craft = g_objectTable[objectIndex].mobj->pCraft;
 	unsigned int maxShield = Craft_GetObjectMaxShield(objectIndex) / 2;
 	int shieldValues[2] = { craft->shieldEnergy[0], craft->shieldEnergy[1] };
 	unsigned int side;
@@ -5603,7 +5607,7 @@ static void Hud_DrawShieldStrength2D_legacy(void) {
 				secondaryLevel = percentage / 0x28Fu + 100;
 			}
 			if ((uint16_t)g_hudElementStateCache[elementIndex] != secondaryLevel) {
-				RECT clipRect;
+				struct RECT clipRect;
 				FlightText_SetFontTier(2);
 				clipRect.left = g_hudElementLayouts[elementIndex].x;
 				clipRect.top = g_hudElementLayouts[elementIndex].y;
@@ -5679,7 +5683,7 @@ static void Hud_DrawShieldStrength2D_legacy(void) {
 void Hud_DrawBeamStrength2D(void)
 {
 	uint16_t layoutIndex;
-	CraftData *craft;
+	struct CraftData *craft;
 	int16_t beamStrength;
 	int16_t beamSystemAvailable;
 	uint16_t beamActiveState;
@@ -5803,8 +5807,8 @@ void Hud_UpdateSpeedPercent(void)
 // FUNCTION: XVT 0x43E110
 void Hud_UpdateThrottlePercent(void)
 {
-	MobileObject *mobileObject;
-	CraftData *craft;
+	struct MobileObject *mobileObject;
+	struct CraftData *craft;
 	int16_t throttlePercent;
 
 	if ((g_objectTable[g_players[g_localPlayer].objectIndex]
@@ -5931,8 +5935,8 @@ void Hud_UpdateMissionClockDisplay(void)
 void Hud_DrawPowerSettings2D(void)
 {
 	int objectIndex;
-	ObjectRecord *object;
-	CraftData *craft;
+	struct ObjectRecord *object;
+	struct CraftData *craft;
 	int usesCompactPowerDisplay;
 	int16_t yStep;
 	uint16_t activeHudFeatureMask;
@@ -6131,7 +6135,7 @@ void Hud_UpdateThreatIndicators(int hudMode)
 	playerObjectIdx = g_players[g_localPlayer].objectIndex;
 	for (objectIdx = g_activeRegionObjectSlotStart;
 	     objectIdx < g_activeRegionCraftObjectSlotEnd; ++objectIdx) {
-		CraftData *craft;
+		struct CraftData *craft;
 
 		if (g_objectTable[objectIdx].objectType == 0 ||
 		    g_objectTable[objectIdx].mobj->family != 0) {
@@ -6143,7 +6147,7 @@ void Hud_UpdateThreatIndicators(int hudMode)
 			continue;
 		}
 		if (g_objectTable[objectIdx].playerOwnerIdx == -1) {
-			AiController *ai = &craft->aiController;
+			struct AiController *ai = &craft->aiController;
 
 			if (ai->targetObjIdx == playerObjectIdx &&
 			    (ai->maneuverMode == AI_MANEUVER_MODE_ATTACK ||
@@ -6174,7 +6178,7 @@ void Hud_UpdateThreatIndicators(int hudMode)
 				}
 			}
 		} else {
-			CraftData *playerCraft =
+			struct CraftData *playerCraft =
 				g_objectTable[playerObjectIdx].mobj->pCraft;
 			int playerOwnerIdx;
 
@@ -6247,7 +6251,7 @@ void Hud_UpdateThreatIndicators(int hudMode)
 	maxWarheadLock = 0;
 	for (objectIdx = g_activeRegionObjectSlotStart;
 	     objectIdx < g_activeRegionCraftObjectSlotEnd; ++objectIdx) {
-		CraftData *craft;
+		struct CraftData *craft;
 		int playerOwnerIdx;
 
 		if (g_objectTable[objectIdx].objectType == 0 ||
@@ -6261,7 +6265,7 @@ void Hud_UpdateThreatIndicators(int hudMode)
 		}
 		playerOwnerIdx = g_objectTable[objectIdx].playerOwnerIdx;
 		if (playerOwnerIdx == -1) {
-			AiController *ai = &craft->aiController;
+			struct AiController *ai = &craft->aiController;
 
 			if (ai->targetObjIdx == playerObjectIdx &&
 			    ai->maneuverMode ==
@@ -6318,7 +6322,7 @@ void Hud_UpdateCriticalHullShieldWarning(void)
 {
 	int objectIdx;
 	int supportedCraft;
-	CraftData *craft;
+	struct CraftData *craft;
 	unsigned int shieldEnergy;
 	unsigned int hullThird;
 	unsigned int hullDamageLevel;
@@ -6469,7 +6473,7 @@ void Hud_UpdateCountermeasureStatus(void)
 // FUNCTION: XVT 0x43F010
 void Hud_ClearUnavailableCraftSystemIndicators(void)
 {
-	ObjectRecord *object;
+	struct ObjectRecord *object;
 	int objectIndex;
 	uint8_t objectType;
 	int excludedCraft;
@@ -6543,7 +6547,7 @@ void Hud_UpdateCraftSystemStatusIndicators(void)
 	int objectIndex;
 	uint8_t objectType;
 	int excludedCraft;
-	CraftData *craft;
+	struct CraftData *craft;
 
 	hudState = g_players[g_localPlayer].viewState.hudStateLive;
 	if (hudState == 0) {
@@ -6741,9 +6745,9 @@ void Hud_DrawCmdTargetDetails(void)
 		currentTargetObjectIdx = (uint16_t)g_players[g_localPlayer]
 						 .currentTargetObjectIdx;
 		if (currentTargetObjectIdx != dirtyState) {
-			ObjectRecord *targetObject;
-			MobileObject *targetMobileObject;
-			CraftData *targetCraft;
+			struct ObjectRecord *targetObject;
+			struct MobileObject *targetMobileObject;
+			struct CraftData *targetCraft;
 
 			targetObject = &g_objectTable[currentTargetObjectIdx];
 			targetMobileObject = targetObject->mobj;
@@ -6893,12 +6897,12 @@ void Hud_DrawCmdTargetDetails(void)
 		currentTargetObjectIdx = (uint16_t)g_players[g_localPlayer]
 						 .currentTargetObjectIdx;
 		if (currentTargetObjectIdx < g_activeRegionCraftObjectSlotEnd) {
-			MobileObject *targetMobileObject;
+			struct MobileObject *targetMobileObject;
 
 			targetMobileObject =
 				g_objectTable[currentTargetObjectIdx].mobj;
 			if (targetMobileObject->family == 0) {
-				CraftData *targetCraft;
+				struct CraftData *targetCraft;
 
 				targetCraft = targetMobileObject->pCraft;
 				if (targetCraft->identifiedOrderByTeam
@@ -6943,9 +6947,9 @@ void Hud_DrawCmdTargetDetails(void)
 		(uint16_t)g_players[g_localPlayer].currentTargetObjectIdx;
 	if (currentTargetObjectIdx < g_activeRegionCraftObjectSlotEnd &&
 	    g_players[g_localPlayer].currentTargetObjectIdx != -1) {
-		MobileObject *targetMobileObject;
-		CraftData *targetCraft;
-		AiController *controller;
+		struct MobileObject *targetMobileObject;
+		struct CraftData *targetCraft;
+		struct AiController *controller;
 		int displayPlanId;
 
 		targetMobileObject = g_objectTable[currentTargetObjectIdx].mobj;
@@ -7504,7 +7508,7 @@ void Hud_DrawCmdTargetDetails(void)
 void Hud_DrawCmdTargetStatusIndicators(void)
 {
 	int currentTargetObjectIdx;
-	CraftData *craft;
+	struct CraftData *craft;
 	int16_t y;
 	uint16_t width;
 
@@ -8004,14 +8008,15 @@ void Hud_LoadCockpitInterfaceFile(const char *basePath)
 	strcat(g_hudCockpitResourcePath, ".INT");
 	FeDiskIo_OpenGlobalStream(g_hudCockpitResourcePath, "rb", 1, 0);
 	stream = g_stream;
-	FeDiskIo_ReadWithRetryPrompt(g_hudCockpitResourceDescriptors,
-				     sizeof(HudCockpitResourceDescriptor), 28,
-				     stream);
 	FeDiskIo_ReadWithRetryPrompt(
-		g_hudElementLayouts, sizeof(HudElementLayout),
+		g_hudCockpitResourceDescriptors,
+		sizeof(struct HudCockpitResourceDescriptor), 28, stream);
+	FeDiskIo_ReadWithRetryPrompt(
+		g_hudElementLayouts, sizeof(struct HudElementLayout),
 		HUD_CRAFT_LIST_INSTRUMENT_BASE_INDEX, stream);
 	FeDiskIo_ReadWithRetryPrompt(&g_hudPanelSpriteFileInfo,
-				     sizeof(HudPanelSpriteFileInfo), 1, stream);
+				     sizeof(struct HudPanelSpriteFileInfo), 1,
+				     stream);
 	if (g_flightResolutionMode == FLIGHT_RESOLUTION_640X480) {
 		FeDiskIo_ReadWithRetryPrompt(g_hudCockpitInsetSpanMask, 480, 1,
 					     stream);
@@ -8052,7 +8057,8 @@ int16_t Hud_LoadAuxiliaryCockpitInterfaceFile(void)
 	stream = g_stream;
 	FeDiskIo_ReadWithRetryPrompt(
 		&g_hudElementLayouts[HUD_CRAFT_LIST_INSTRUMENT_BASE_INDEX],
-		sizeof(HudElementLayout), HUD_INSTRUMENTS_PER_SET, stream);
+		sizeof(struct HudElementLayout), HUD_INSTRUMENTS_PER_SET,
+		stream);
 	if (g_flightResolutionMode == FLIGHT_RESOLUTION_640X480) {
 		FeDiskIo_ReadWithRetryPrompt(g_hudCraftListInsetSpanMask, 480,
 					     1, stream);
@@ -8213,8 +8219,9 @@ void Hud_RebuildDisplayForViewState(int hudViewState, int playerIdx)
 							       .entries[0]));
 		}
 		g_flightSetPaletteRangeFn(
-			(RgbTriplet *)g_hudCockpitResources[resourceIndex]
-				.entries[2],
+			(struct RgbTriplet *)
+				g_hudCockpitResources[resourceIndex]
+					.entries[2],
 			0, PALETTE_COCKPIT_COLOR_COUNT);
 		FlightText_SetClipRect(0, 0, g_surfaceWidth, g_surfaceHeight);
 		g_flightTextBgColor = g_flightBackgroundColorIndex;
@@ -8424,7 +8431,7 @@ void Hud_LoadCockpitLfdEntries(const char *lfdName, uint8_t **outEntries,
 	uint16_t paletteTagIndex;
 	size_t dataSize;
 	uint16_t entryIndex;
-	LfdEntryHeader header;
+	struct LfdEntryHeader header;
 
 	strcpy(g_hudCockpitResourcePath, g_hudCockpitResolutionDirectory);
 	strcat(g_hudCockpitResourcePath, lfdName);
@@ -8767,7 +8774,7 @@ void Hud_BlitSoftwareMfdPages(void)
 {
 	int16_t pageState;
 	uint16_t page;
-	CraftData *craft;
+	struct CraftData *craft;
 	int modelIndex;
 	uint16_t launcherIndex;
 	uint16_t launcherCount;
@@ -9065,8 +9072,8 @@ void Hud_Update3DCrt(uint16_t screenX, uint16_t screenY, uint16_t width,
 	int componentRelY;
 	int componentRelZ;
 	uint16_t targetObjectIdx;
-	ObjectRecord *targetObject;
-	MobileObject *targetMobileObject;
+	struct ObjectRecord *targetObject;
+	struct MobileObject *targetMobileObject;
 	uint16_t objectIndex;
 
 #ifdef XVT_MODERN
@@ -9244,7 +9251,7 @@ void Hud_Update3DCrt(uint16_t screenX, uint16_t screenY, uint16_t width,
 	for (objectIndex = 0; objectIndex < g_regionMainObjectSlotEnd;
 	     ++objectIndex) {
 		int objectTableIndex;
-		ObjectRecord *object;
+		struct ObjectRecord *object;
 		int genusId;
 		uint16_t objectType;
 
@@ -9453,7 +9460,7 @@ void Hud_PointCamera(uint16_t targetIdx, int16_t useHudLayoutScale,
 				   (uint32_t)g_players[playerIdx]
 					   .viewState.cameraWorldZ);
 	} else {
-		ObjectRecord *playerObject =
+		struct ObjectRecord *playerObject =
 			&g_objectTable[g_players[playerIdx].objectIndex];
 		deltaX = (int32_t)((uint32_t)g_worldLocX -
 				   (uint32_t)playerObject->world_x);
@@ -9515,7 +9522,7 @@ void Hud_PointCamera(uint16_t targetIdx, int16_t useHudLayoutScale,
 			(int16_t)(CAMERA_AIM_CENTER_Q16 - trig2_pitch),
 			trig2_xyangle, NULL);
 	} else {
-		ObjectRecord *playerObject =
+		struct ObjectRecord *playerObject =
 			&g_objectTable[g_players[playerIdx].objectIndex];
 		if (playerObject->mobj->orientMatrixDirty != 0) {
 			FVIEW_calcrotatemove(
@@ -9563,7 +9570,7 @@ void Hud_PointCamera(uint16_t targetIdx, int16_t useHudLayoutScale,
 	}
 
 	{
-		ObjectRecord *target = &g_objectTable[targetIdx];
+		struct ObjectRecord *target = &g_objectTable[targetIdx];
 		if (target->mobj != NULL && target->mobj->pCraft != NULL) {
 			int16_t boundY;
 			int16_t boundX;
@@ -10851,7 +10858,8 @@ int16_t Hud_LoadPanelSpriteRecords(const char *fileName,
 		     byteValue = (int16_t)File_Getc(stream)) {
 #else
 		for (byteValue = (int16_t)File_Getc(stream);
-		     (((Msvc42CrtFilePrefix *)stream)->flags & 0x10) == 0;
+		     (((struct Msvc42CrtFilePrefix *)stream)->flags & 0x10) ==
+		     0;
 		     byteValue = (int16_t)File_Getc(stream)) {
 #endif
 			if (byteValue == 0xff) {
@@ -10938,7 +10946,7 @@ int FlightIcon_LoadFrames(char *fileName, uint8_t *dataBuffer,
 		++dataBuffer;
 	}
 #else
-	streamFlags = &((Msvc42CrtFilePrefix *)stream)->flags;
+	streamFlags = &((struct Msvc42CrtFilePrefix *)stream)->flags;
 	for (; (*streamFlags & 0x10) == 0; ++dataBuffer) {
 		framePointers[frameCount] = dataBuffer;
 		for (value = (int16_t)File_Getc(stream);

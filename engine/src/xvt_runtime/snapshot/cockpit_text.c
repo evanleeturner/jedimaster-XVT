@@ -9,7 +9,7 @@
 #include "xvt_runtime/snapshot/render_hud.h"
 #include <string.h>
 
-static XvtCockpitTextField g_fields[XVT_COCKPIT_TEXT_FIELD_COUNT];
+static struct XvtCockpitTextField g_fields[XVT_COCKPIT_TEXT_FIELD_COUNT];
 
 static int FieldClearsBackground(XvtCockpitTextFieldId field)
 {
@@ -46,7 +46,7 @@ void XvtCockpitText_ClearField(XvtCockpitTextFieldId field)
 	if ((unsigned)field >= XVT_COCKPIT_TEXT_FIELD_COUNT) {
 		return;
 	}
-	XvtCockpitTextField *current = &g_fields[field];
+	struct XvtCockpitTextField *current = &g_fields[field];
 	if (!current->caption.visible) {
 		return;
 	}
@@ -69,7 +69,7 @@ void XvtCockpitText_RecordField(XvtCockpitTextFieldId field, const char *text,
 	if ((unsigned)field >= XVT_COCKPIT_TEXT_FIELD_COUNT || !text) {
 		return;
 	}
-	XvtCockpitTextField next;
+	struct XvtCockpitTextField next;
 	memset(&next, 0, sizeof next);
 	size_t length = strlen(text);
 	if (length >= sizeof next.caption.text) {
@@ -99,9 +99,10 @@ void XvtCockpitText_RecordField(XvtCockpitTextFieldId field, const char *text,
 	next.caption.background = g_flightTextBgColor;
 	next.caption.alignment = (uint8_t)alignment;
 	next.caption.phase = XVT_COCKPIT_BEFORE_CRT;
-	next.bounds = (XvtSnapRect){g_flightClipLeft, g_flightClipTop,
-				    g_flightClipRight - g_flightClipLeft,
-				    g_flightClipBottom - g_flightClipTop};
+	next.bounds =
+		(struct XvtSnapRect){g_flightClipLeft, g_flightClipTop,
+				     g_flightClipRight - g_flightClipLeft,
+				     g_flightClipBottom - g_flightClipTop};
 	next.x = alignment == XVT_COCKPIT_ALIGN_LEFT ? g_flightCursorX : 0;
 	next.y = g_flightCursorY;
 	next.shadow_enabled = g_flightTextShadowEnabled;
@@ -125,13 +126,13 @@ void XvtCockpitText_RecordField(XvtCockpitTextFieldId field, const char *text,
 	g_fields[field] = next;
 }
 
-void XvtCockpitText_CopyFields(XvtCockpitState *state)
+void XvtCockpitText_CopyFields(struct XvtCockpitState *state)
 {
 	memcpy(state->text_fields, g_fields, sizeof g_fields);
 	int cockpit = state->view.hud_state == HUD_VIEW_FORWARD ||
 		      state->view.hud_state == HUD_VIEW_HUD_ONLY;
 	for (unsigned id = 0; id < XVT_COCKPIT_TEXT_FIELD_COUNT; ++id) {
-		XvtCockpitTextField *field = &state->text_fields[id];
+		struct XvtCockpitTextField *field = &state->text_fields[id];
 		int visible = 1;
 		if (id == XVT_COCKPIT_TEXT_CLOCK_SEPARATOR) {
 			visible = state->readouts.clock_minutes.visible &&
@@ -197,7 +198,7 @@ void XvtCockpitText_CopyFields(XvtCockpitState *state)
 	}
 }
 
-void XvtCockpitText_CopyPlacedField(XvtCockpitTextField *field,
+void XvtCockpitText_CopyPlacedField(struct XvtCockpitTextField *field,
 				    XvtCockpitTextFieldId id, int offset_x,
 				    int offset_y)
 {
@@ -214,10 +215,11 @@ void XvtCockpitText_CopyPlacedField(XvtCockpitTextField *field,
 		XvtRenderDraw_Color(g_flightTransparentColorIndex);
 }
 
-int XvtCockpitText_CaptureGlyph(XvtCockpitGlyph *glyph, unsigned character,
-				unsigned advance, unsigned height, int narrow,
-				int origin_x, int origin_y,
-				const uint32_t palette[256], int keyed)
+int XvtCockpitText_CaptureGlyph(struct XvtCockpitGlyph *glyph,
+				unsigned character, unsigned advance,
+				unsigned height, int narrow, int origin_x,
+				int origin_y, const uint32_t palette[256],
+				int keyed)
 {
 	int x = g_flightCursorX, y = g_flightCursorY;
 	if (x >= g_flightClipRight || y >= g_flightClipBottom ||
@@ -228,10 +230,10 @@ int XvtCockpitText_CaptureGlyph(XvtCockpitGlyph *glyph, unsigned character,
 	memset(glyph, 0, sizeof *glyph);
 	glyph->font_asset_id =
 		XvtRenderAssets_ImageId(g_flightFontGlyphTableSw);
-	glyph->clip = (XvtSnapRect){g_flightClipLeft - origin_x,
-				    g_flightClipTop - origin_y,
-				    g_flightClipRight - g_flightClipLeft,
-				    g_flightClipBottom - g_flightClipTop};
+	glyph->clip = (struct XvtSnapRect){
+		g_flightClipLeft - origin_x, g_flightClipTop - origin_y,
+		g_flightClipRight - g_flightClipLeft,
+		g_flightClipBottom - g_flightClipTop};
 	glyph->x = (int16_t)(x - origin_x);
 	glyph->y = (int16_t)(y - origin_y);
 	glyph->character = (uint16_t)character;

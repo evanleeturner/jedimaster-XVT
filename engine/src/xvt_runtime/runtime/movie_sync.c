@@ -67,7 +67,7 @@ void XvtMovieSync_Draw(int top_margin, int bottom_margin)
 	int index;
 	int roster_index;
 	int count = Net_CountReadyPlayers();
-	RECT rect;
+	struct RECT rect;
 	char text[128];
 	if (!g_moviePlaybackCompletionState) {
 		return;
@@ -93,14 +93,14 @@ void XvtMovieSync_Draw(int top_margin, int bottom_margin)
 				break;
 			}
 		}
-		rect = (RECT){32 + 144 * (index & 3),
-			      top_margin / 2 * (index >> 2),
-			      32 + 144 * ((index & 3) + 1),
-			      top_margin / 2 * ((index >> 2) + 1)};
+		rect = (struct RECT){32 + 144 * (index & 3),
+				     top_margin / 2 * (index >> 2),
+				     32 + 144 * ((index & 3) + 1),
+				     top_margin / 2 * ((index >> 2) + 1)};
 		FrontendText_DrawCentered(12, text, &rect, 0xffff);
 	}
 	if (g_moviePlaybackCompletionState == 2 && bottom_margin > 0) {
-		rect = (RECT){0, 480 - bottom_margin, 639, 479};
+		rect = (struct RECT){0, 480 - bottom_margin, 639, 479};
 		FrontendDraw_Rect(&rect, 0, 0, 0, -1);
 		FrontendText_DrawCentered(
 			12,

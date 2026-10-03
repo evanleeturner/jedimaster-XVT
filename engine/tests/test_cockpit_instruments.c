@@ -24,11 +24,11 @@
 
 enum { LOCAL = 0, OTHER_PLAYER = 1, SLOT = 1, LASERS = 4 };
 
-static ObjectRecord g_testObjects[2];
-static MobileObject g_testMobiles[2];
-static CraftData g_testCraft;
-static XvtCockpitState g_state;
-static HudRadarBlipPoint g_foreDrawn[48], g_aftDrawn[48];
+static struct ObjectRecord g_testObjects[2];
+static struct MobileObject g_testMobiles[2];
+static struct CraftData g_testCraft;
+static struct XvtCockpitState g_state;
+static struct HudRadarBlipPoint g_foreDrawn[48], g_aftDrawn[48];
 
 /* The local player flies a TIE Interceptor in main slot 1 with four lasers, every HUD feature installed
  * and only the two radars active. Each laser and both radar scopes have a place in the cockpit layout. */
@@ -63,10 +63,10 @@ static void Start(void)
 	       sizeof g_playerFlightTransientTimers);
 
 	memset(g_hudElementLayouts, 0, sizeof g_hudElementLayouts);
-	g_hudElementLayouts[0] = (HudElementLayout){.x = 200, .y = 300};
-	g_hudElementLayouts[1] = (HudElementLayout){.x = 400, .y = 300};
+	g_hudElementLayouts[0] = (struct HudElementLayout){.x = 200, .y = 300};
+	g_hudElementLayouts[1] = (struct HudElementLayout){.x = 400, .y = 300};
 	for (unsigned laser = 0; laser < LASERS; ++laser) {
-		g_hudElementLayouts[3 + laser] = (HudElementLayout){
+		g_hudElementLayouts[3 + laser] = (struct HudElementLayout){
 			.x = (uint16_t)(10 + laser), .y = 20};
 	}
 
@@ -80,8 +80,8 @@ static void Start(void)
 }
 
 /* A cockpit view: the forward view with the map closed and instruments shown, unless changed. */
-static XvtCockpitState *View(unsigned hud_state, int instruments_visible,
-			     int map_active)
+static struct XvtCockpitState *View(unsigned hud_state, int instruments_visible,
+				    int map_active)
 {
 	memset(&g_state, 0, sizeof g_state);
 	g_state.view.hud_state = (uint16_t)hud_state;
@@ -91,15 +91,15 @@ static XvtCockpitState *View(unsigned hud_state, int instruments_visible,
 	return &g_state;
 }
 
-static const XvtCockpitState *Built(unsigned hud_state, int instruments_visible,
-				    int map_active)
+static const struct XvtCockpitState *
+Built(unsigned hud_state, int instruments_visible, int map_active)
 {
 	XvtCockpitInstruments_Build(
 		View(hud_state, instruments_visible, map_active));
 	return &g_state;
 }
 
-static const XvtCockpitState *Forward(void)
+static const struct XvtCockpitState *Forward(void)
 {
 	return Built(HUD_VIEW_FORWARD, 1, 0);
 }
@@ -115,7 +115,7 @@ static int AllZero(const void *data, size_t size)
 	return 1;
 }
 
-static int NoThreats(const XvtCockpitSystems *systems)
+static int NoThreats(const struct XvtCockpitSystems *systems)
 {
 	return AllZero(systems->threats, sizeof systems->threats);
 }
@@ -123,7 +123,7 @@ static int NoThreats(const XvtCockpitSystems *systems)
 /* Builds over a state whose five parts hold junk, and reports whether all five came back cleared. */
 static int BuildClears(void)
 {
-	XvtCockpitState *state = View(HUD_VIEW_FORWARD, 1, 0);
+	struct XvtCockpitState *state = View(HUD_VIEW_FORWARD, 1, 0);
 	memset(&state->systems, 0xA5, sizeof state->systems);
 	memset(&state->weapons, 0xA5, sizeof state->weapons);
 	memset(&state->target, 0xA5, sizeof state->target);
@@ -165,9 +165,10 @@ static void CheckNoCraftLeavesCleared(void)
 static void CheckSystemMasksWhateverVisibility(void)
 {
 	Start();
-	XvtCockpitSystems shown = Built(HUD_VIEW_FORWARD, 1, 0)->systems;
-	XvtCockpitSystems hidden = Built(HUD_VIEW_FORWARD, 0, 0)->systems;
-	XvtCockpitSystems elsewhere =
+	struct XvtCockpitSystems shown = Built(HUD_VIEW_FORWARD, 1, 0)->systems;
+	struct XvtCockpitSystems hidden =
+		Built(HUD_VIEW_FORWARD, 0, 0)->systems;
+	struct XvtCockpitSystems elsewhere =
 		Built(HUD_VIEW_TARGET_CAMERA, 0, 1)->systems;
 	XVT_ASSERT_TRUE(shown.installed != 0 && shown.working != 0);
 	XVT_ASSERT_TRUE(shown.active_hud_features != 0 &&
@@ -191,7 +192,7 @@ static void CheckSystemMasksWhateverVisibility(void)
 static void CheckFeatureCovers(void)
 {
 	Start();
-	XvtCockpitIndicator shown[13], hidden[13];
+	struct XvtCockpitIndicator shown[13], hidden[13];
 	memcpy(shown, Built(HUD_VIEW_FORWARD, 1, 0)->systems.feature_covers,
 	       sizeof shown);
 	/* Every feature is installed and most are inactive, so this cockpit has covers to show. */
@@ -214,7 +215,8 @@ static void CheckFeatureCovers(void)
 	XVT_ASSERT_INT_EQ(memcmp(hidden, shown, sizeof shown), 0);
 
 	/* In any other view there are none. */
-	const XvtCockpitState *state = Built(HUD_VIEW_TARGET_CAMERA, 1, 0);
+	const struct XvtCockpitState *state =
+		Built(HUD_VIEW_TARGET_CAMERA, 1, 0);
 	XVT_ASSERT_INT_EQ(AllZero(state->systems.feature_covers,
 				  sizeof state->systems.feature_covers),
 			  1);
@@ -232,7 +234,7 @@ static void CheckRestNeedsVisibleInstruments(void)
 	XvtCockpitInstruments_RecordLaserLock(0, 2);
 
 	/* Forward, map closed, instruments shown: weapons, radar and threats are filled. */
-	const XvtCockpitState *state = Forward();
+	const struct XvtCockpitState *state = Forward();
 	XVT_ASSERT_INT_EQ(NoThreats(&state->systems), 0);
 	XVT_ASSERT_INT_EQ(AllZero(&state->weapons, sizeof state->weapons), 0);
 	XVT_ASSERT_INT_EQ(AllZero(&state->radar, sizeof state->radar), 0);
@@ -264,7 +266,7 @@ static void CheckThreats(void)
 {
 	Start();
 	XvtCockpitInstruments_RecordThreats(1, 2, 3, 4);
-	const XvtCockpitSystems *systems = &Forward()->systems;
+	const struct XvtCockpitSystems *systems = &Forward()->systems;
 	XVT_ASSERT_INT_EQ(systems->threats[0].state, 1);
 	XVT_ASSERT_INT_EQ(systems->threats[1].state, 2);
 	XVT_ASSERT_INT_EQ(systems->threats[2].state, 3);
@@ -280,7 +282,7 @@ static void CheckLaserLocks(void)
 	}
 	/* A slot from XVT_HUD_WEAPON_SLOTS up is ignored; nothing else recorded changes. */
 	XvtCockpitInstruments_RecordLaserLock(XVT_HUD_WEAPON_SLOTS, 9);
-	const XvtCockpitState *state = Forward();
+	const struct XvtCockpitState *state = Forward();
 	unsigned shown = 0;
 	for (unsigned slot = 0; slot < LASERS; ++slot) {
 		if (state->weapons.slots[slot].visible) {
@@ -306,7 +308,7 @@ static void CheckViewLaserSlots(void)
 }
 
 /* The scope that holds blips after recording on the fore scope only. */
-static unsigned ForeSide(const XvtCockpitRadar *radar)
+static unsigned ForeSide(const struct XvtCockpitRadar *radar)
 {
 	XVT_ASSERT_TRUE((radar->count[0] != 0) != (radar->count[1] != 0));
 	return radar->count[0] ? 0 : 1;
@@ -316,12 +318,12 @@ static void CheckRecordRadar(void)
 {
 	Start();
 	XvtCockpitInstruments_RecordRadar(0, 1, 2, 250, 360, 5);
-	const XvtCockpitRadar *radar = &Forward()->radar;
+	const struct XvtCockpitRadar *radar = &Forward()->radar;
 	unsigned fore = ForeSide(radar), aft = 1 - fore;
 	/* The count becomes index + 1; the other scope is untouched. */
 	XVT_ASSERT_INT_EQ(radar->count[fore], 3);
 	XVT_ASSERT_INT_EQ(radar->count[aft], 0);
-	XvtSnapRadarBlip first = radar->blips[fore][2];
+	struct XvtSnapRadarBlip first = radar->blips[fore][2];
 
 	/* Positions are relative to the scope's anchor: moving the point moves the blip by as much. */
 	XvtCockpitInstruments_RecordRadar(0, 1, 2, 255, 363, 5);
@@ -336,7 +338,7 @@ static void CheckRecordRadar(void)
 	XVT_ASSERT_INT_EQ(radar->count[fore], 3);
 
 	/* Indices outside 0 to 47 are ignored. */
-	XvtSnapRadarBlip aft_first;
+	struct XvtSnapRadarBlip aft_first;
 	memcpy(&aft_first, &radar->blips[aft][0], sizeof aft_first);
 	XvtCockpitInstruments_RecordRadar(0, 1, 48, 1, 1, 6);
 	XvtCockpitInstruments_RecordRadar(0, 1, -1, 1, 1, 6);
@@ -353,7 +355,7 @@ static void CheckRadarLastIndex(void)
 	Start();
 	XvtCockpitInstruments_RecordRadar(0, 1, 0, 250, 360, 5);
 	XvtCockpitInstruments_RecordRadar(0, 1, 47, 250, 360, 5);
-	const XvtCockpitRadar *radar = &Forward()->radar;
+	const struct XvtCockpitRadar *radar = &Forward()->radar;
 	unsigned fore = ForeSide(radar);
 	/* Index 47 is stored but leaves the count at 47. */
 	XVT_ASSERT_INT_EQ(radar->count[fore], 47);
@@ -372,7 +374,7 @@ static void CheckRadarTargetMarker(void)
 	XVT_ASSERT_INT_EQ(Forward()->radar.marker_visible, 0);
 
 	XvtCockpitInstruments_RecordRadar(SLOT, 1, 4, 260, 370, 5);
-	const XvtCockpitRadar *radar = &Forward()->radar;
+	const struct XvtCockpitRadar *radar = &Forward()->radar;
 	unsigned fore = ForeSide(radar);
 	XVT_ASSERT_INT_EQ(radar->marker_visible, 1);
 	XVT_ASSERT_INT_EQ(radar->marker_side, fore);
@@ -393,7 +395,7 @@ static void CheckCompleteRadar(void)
 
 	/* At one byte per pixel, the low two color bits of each counted blip's drawn point. */
 	XvtCockpitInstruments_CompleteRadar();
-	const XvtCockpitRadar *radar = &Forward()->radar;
+	const struct XvtCockpitRadar *radar = &Forward()->radar;
 	unsigned fore = ForeSide(radar), aft = 1 - fore;
 	for (unsigned index = 0; index < 3; ++index) {
 		XVT_ASSERT_INT_EQ(radar->coverage[fore][index],
@@ -423,12 +425,12 @@ static void CheckBeginUpdate(void)
 
 	/* Another player's update is ignored. */
 	XvtCockpitInstruments_BeginUpdate(OTHER_PLAYER);
-	const XvtCockpitState *state = Forward();
+	const struct XvtCockpitState *state = Forward();
 	XVT_ASSERT_INT_EQ(state->systems.threats[3].state, 4);
 	XVT_ASSERT_INT_EQ(
 		AllZero(state->radar.count, sizeof state->radar.count), 0);
 	XVT_ASSERT_INT_EQ(state->weapons.slots[0].locked, 2);
-	static XvtCockpitState readouts;
+	static struct XvtCockpitState readouts;
 	memset(&readouts, 0, sizeof readouts);
 	readouts.view.instruments_visible = 1;
 	XvtCockpitReadouts_CopyState(&readouts);

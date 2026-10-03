@@ -15,9 +15,9 @@ typedef void (*FlightBlitSpriteFadedFn)(uint8_t *rleData, int x, int y,
 					int endMarker, int8_t paletteShift,
 					int16_t fade);
 typedef void (*FlightDrawCharFn)(uint8_t ch);
-typedef void (*FlightSetPaletteRangeFn)(RgbTriplet *palette, int16_t startIdx,
-					uint16_t count);
-typedef void (*FlightPaletteFn)(RgbTriplet *palette);
+typedef void (*FlightSetPaletteRangeFn)(struct RgbTriplet *palette,
+					int16_t startIdx, uint16_t count);
+typedef void (*FlightPaletteFn)(struct RgbTriplet *palette);
 typedef int (*FlightComputePixelOffsetFn)(int x, int y);
 typedef void (*FlightFillRectClippedFn)(uint16_t x1, uint16_t y1, uint16_t x2,
 					uint16_t y2, uint16_t borderThickness);

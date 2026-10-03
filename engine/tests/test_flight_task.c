@@ -30,7 +30,7 @@
 #include <stdint.h>
 #include <string.h>
 
-static ObjectRecord g_testObjects[2];
+static struct ObjectRecord g_testObjects[2];
 static uint8_t g_testWorld[16], g_testWorldCopy[16];
 
 static void World(void)
@@ -100,7 +100,7 @@ static void CheckBeginResetsSimulation(void)
 	/* Begin resets the flight simulation, which forgets the prediction fallback (flight_sim.h). */
 	World();
 	g_players[1].participationState = 1;
-	FlightInputFrameRecord input;
+	struct FlightInputFrameRecord input;
 	memset(&input, 0, sizeof input);
 	input.axisX = 20;
 	XvtFlightPrediction_Confirm(1, 2, &input);

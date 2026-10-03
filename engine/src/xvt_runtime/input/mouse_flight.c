@@ -23,7 +23,7 @@
 #define MOUSE_FLIGHT_TAP_US 250000u
 
 static struct {
-	XvtMouseOptions options;
+	struct XvtMouseOptions options;
 	uint64_t pumped_frame;
 	/* Time of the last drain; 0 = no drain since (re)activation. */
 	uint64_t drain_time_us;
@@ -104,7 +104,7 @@ uint16_t XvtMouseFlight_ReadKey(void)
 	return key;
 }
 
-void XvtMouseFlight_SetOptions(const XvtMouseOptions *options)
+void XvtMouseFlight_SetOptions(const struct XvtMouseOptions *options)
 {
 
 	if (!options) {

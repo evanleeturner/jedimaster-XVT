@@ -32,11 +32,11 @@ static unsigned int XvtSnapshot_SumSlotRecords(uint8_t **cursor)
 	unsigned int sum = 0;
 	int bytesRemaining;
 
-	XvtSnapshotObjectRecord *objectState;
+	struct XvtSnapshotObjectRecord *objectState;
 	int objectDataBytes;
 	uint32_t mobilePresent;
 
-	objectState = (XvtSnapshotObjectRecord *)*cursor;
+	objectState = (struct XvtSnapshotObjectRecord *)*cursor;
 	objectDataBytes = sizeof(*objectState) - sizeof(objectState->mobj);
 	do {
 		sum += *(*cursor)++;
@@ -44,13 +44,13 @@ static unsigned int XvtSnapshot_SumSlotRecords(uint8_t **cursor)
 	*cursor = (uint8_t *)(objectState + 1);
 	memcpy(&mobilePresent, &objectState->mobj, sizeof(mobilePresent));
 	if (mobilePresent != 0) {
-		XvtSnapshotMobileObject *mobileState;
+		struct XvtSnapshotMobileObject *mobileState;
 		int mobileDataBytes;
 		uint32_t craftPresent;
 		uint32_t guidancePresent;
 		uint32_t charDataPresent;
 
-		mobileState = (XvtSnapshotMobileObject *)*cursor;
+		mobileState = (struct XvtSnapshotMobileObject *)*cursor;
 		mobileDataBytes = sizeof(*mobileState) -
 				  sizeof(mobileState->moveVectorDirty) -
 				  sizeof(mobileState->moveX) -
@@ -76,10 +76,10 @@ static unsigned int XvtSnapshot_SumSlotRecords(uint8_t **cursor)
 		memcpy(&craftPresent, &mobileState->pCraft,
 		       sizeof(craftPresent));
 		if (craftPresent != 0) {
-			XvtSnapshotCraftData *craftState;
+			struct XvtSnapshotCraftData *craftState;
 			int craftDataBytes;
 
-			craftState = (XvtSnapshotCraftData *)*cursor;
+			craftState = (struct XvtSnapshotCraftData *)*cursor;
 			craftDataBytes =
 				sizeof(*craftState) -
 				sizeof(craftState->unused3F2) -
@@ -93,7 +93,7 @@ static unsigned int XvtSnapshot_SumSlotRecords(uint8_t **cursor)
 		memcpy(&guidancePresent, &mobileState->pWarheadGuidance,
 		       sizeof(guidancePresent));
 		if (guidancePresent != 0) {
-			bytesRemaining = sizeof(WarheadGuidanceState);
+			bytesRemaining = sizeof(struct WarheadGuidanceState);
 			do {
 				sum += *(*cursor)++;
 			} while (--bytesRemaining != 0);
@@ -102,7 +102,7 @@ static unsigned int XvtSnapshot_SumSlotRecords(uint8_t **cursor)
 		       sizeof(charDataPresent));
 		if (charDataPresent != 0) {
 			bytesRemaining =
-				sizeof(XvtSnapshotMobileObjectCharData);
+				sizeof(struct XvtSnapshotMobileObjectCharData);
 			do {
 				sum += *(*cursor)++;
 			} while (--bytesRemaining != 0);
@@ -176,7 +176,7 @@ void XvtSnapshot_ChecksumPrefix(const uint8_t *image, size_t prefix,
 
 	checksum += XvtSnapshot_SumBytes(&cursor, 8);
 	checksum += XvtSnapshot_SumBytes(&cursor, 8);
-	checksum += XvtSnapshot_SumBytes(&cursor, sizeof(MissionHeader));
+	checksum += XvtSnapshot_SumBytes(&cursor, sizeof(struct MissionHeader));
 	flightGroupCount = (int16_t)g_missionHeader.numFlightGroups;
 	bytesRemaining = 294 * flightGroupCount;
 	if (bytesRemaining > 0) {
@@ -234,38 +234,41 @@ void XvtSnapshot_ChecksumPrefix(const uint8_t *image, size_t prefix,
 	}
 }
 
-static unsigned int
-XvtSnapshot_ChecksumMobileObjectCharData(const MobileObjectCharData *live)
+static unsigned int XvtSnapshot_ChecksumMobileObjectCharData(
+	const struct MobileObjectCharData *live)
 {
-	XvtSnapshotMobileObjectCharData record;
+	struct XvtSnapshotMobileObjectCharData record;
 	XvtSnapshot_EncodeMobileObjectCharData(&record, live);
 	return Flight_ChecksumBufferRotateXor(&record, 0x4C);
 }
 
-static unsigned int XvtSnapshot_ChecksumMobileObject(const MobileObject *live)
+static unsigned int
+XvtSnapshot_ChecksumMobileObject(const struct MobileObject *live)
 {
-	XvtSnapshotMobileObject record;
+	struct XvtSnapshotMobileObject record;
 	XvtSnapshot_EncodeMobileObject(&record, live);
 	return Flight_ChecksumBufferRotateXor(&record, 0x8B);
 }
 
-static unsigned int XvtSnapshot_ChecksumObjectRecord(const ObjectRecord *live)
+static unsigned int
+XvtSnapshot_ChecksumObjectRecord(const struct ObjectRecord *live)
 {
-	XvtSnapshotObjectRecord record;
+	struct XvtSnapshotObjectRecord record;
 	XvtSnapshot_EncodeObjectRecord(&record, live);
 	return Flight_ChecksumBufferRotateXor(&record, 0x1F);
 }
 
-static unsigned int XvtSnapshot_ChecksumCraftData(const CraftData *live)
+static unsigned int XvtSnapshot_ChecksumCraftData(const struct CraftData *live)
 {
-	XvtSnapshotCraftData record;
+	struct XvtSnapshotCraftData record;
 	XvtSnapshot_EncodeCraftData(&record, live);
 	return Flight_ChecksumBufferRotateXor(&record, 0x412);
 }
 
-static unsigned int XvtSnapshot_ChecksumPlayerData(const PlayerData *live)
+static unsigned int
+XvtSnapshot_ChecksumPlayerData(const struct PlayerData *live)
 {
-	XvtSnapshotPlayerData record;
+	struct XvtSnapshotPlayerData record;
 	XvtSnapshot_EncodePlayerData(&record, live);
 	return Flight_ChecksumBufferRotateXor(&record, 0x5BD);
 }
@@ -361,7 +364,7 @@ static uint32_t XvtSnapshot_MixPools(uint32_t checksum)
 
 int XvtSnapshot_LiveChecksum(void)
 {
-	XvtSnapshotFlightMissionState missionState;
+	struct XvtSnapshotFlightMissionState missionState;
 	uint32_t checksum;
 	int flightGroupIndex;
 	int goalIndex;

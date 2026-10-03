@@ -33,15 +33,15 @@ extern int g_clipVertCursor;
 extern float g_invProjScale;
 
 int RenderClip_ClipPolyTop(int prevVertIndex, int curVertIndex,
-			   RenderClipVertex *vertices);
+			   struct RenderClipVertex *vertices);
 void RenderClip_ClipPolyBottom(int prevVertIndex, int curVertIndex,
-			       RenderClipVertex *vertices);
+			       struct RenderClipVertex *vertices);
 int RenderClip_ClipPolyLeft(int prevVertIndex, int curVertIndex,
-			    RenderClipVertex *vertices);
+			    struct RenderClipVertex *vertices);
 void RenderClip_ClipPolyRight(int prevVertIndex, int curVertIndex,
-			      RenderClipVertex *vertices);
+			      struct RenderClipVertex *vertices);
 void RenderClip_ClipPolyNear(int prevVertIndex, int curVertIndex,
-			     RenderClipVertex *vertices);
+			     struct RenderClipVertex *vertices);
 
 #ifdef __cplusplus
 }

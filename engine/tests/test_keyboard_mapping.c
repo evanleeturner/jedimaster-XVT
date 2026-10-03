@@ -15,7 +15,7 @@
 enum { KEY_M = AERON_KEY_A + ('m' - 'a') };
 
 static AeronInputSnapshot g_input;
-static XvtKeyboardBindings g_profile;
+static struct XvtKeyboardBindings g_profile;
 
 static AeronKeyChord Chord(int key, int modifiers)
 {
@@ -264,12 +264,12 @@ static void CheckListHelpers(void)
 			SIZE_MAX);
 
 	/* Sort orders by action, then key, then modifiers. */
-	XvtKeyboardBindings sorted = g_profile;
+	struct XvtKeyboardBindings sorted = g_profile;
 	XvtKeyboardMapping_Sort(&sorted);
 	XVT_ASSERT_INT_EQ(sorted.count, 4);
 	for (size_t i = 1; i < sorted.count; ++i) {
-		const XvtKeyboardBinding *a = &sorted.bindings[i - 1];
-		const XvtKeyboardBinding *b = &sorted.bindings[i];
+		const struct XvtKeyboardBinding *a = &sorted.bindings[i - 1];
+		const struct XvtKeyboardBinding *b = &sorted.bindings[i];
 		XVT_ASSERT_TRUE(
 			a->action < b->action ||
 			(a->action == b->action &&
@@ -281,7 +281,7 @@ static void CheckListHelpers(void)
 	/* Equal compares in order: the list and its sorted copy differ until both are sorted. */
 	XVT_ASSERT_TRUE(XvtKeyboardMapping_Equal(&g_profile, &g_profile));
 	XVT_ASSERT_TRUE(!XvtKeyboardMapping_Equal(&g_profile, &sorted));
-	XvtKeyboardBindings resorted = g_profile;
+	struct XvtKeyboardBindings resorted = g_profile;
 	XvtKeyboardMapping_Sort(&resorted);
 	XVT_ASSERT_TRUE(XvtKeyboardMapping_Equal(&resorted, &sorted));
 	resorted.bindings[3].action = XVT_INPUT_ACTION_TARGET_CLEAR;
@@ -291,7 +291,7 @@ static void CheckListHelpers(void)
 	XVT_ASSERT_TRUE(!XvtKeyboardMapping_Equal(&resorted, &sorted));
 
 	/* Remove keeps the order; an index out of range is ignored. */
-	XvtKeyboardBindings removed = g_profile;
+	struct XvtKeyboardBindings removed = g_profile;
 	XvtKeyboardMapping_Remove(&removed, 1);
 	XVT_ASSERT_INT_EQ(removed.count, 3);
 	XVT_ASSERT_INT_EQ(removed.bindings[0].source.key, kT);

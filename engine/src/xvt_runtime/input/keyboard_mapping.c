@@ -7,15 +7,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct KeyboardPress {
+struct KeyboardPress {
 	XvtInputAction action;
 	bool down;
 	bool ignored;
-} KeyboardPress;
+};
 
 static struct {
 	uint16_t actions[AERON_KEY_COUNT][16];
-	KeyboardPress pressed[AERON_KEY_COUNT];
+	struct KeyboardPress pressed[AERON_KEY_COUNT];
 	bool debug_available;
 	bool enabled;
 	uint16_t holds[2];
@@ -94,7 +94,7 @@ void XvtKeyboardMapping_FormatSource(char *text, size_t capacity,
 		 AeronKey_Name((AeronKey)source.key));
 }
 
-size_t XvtKeyboardMapping_Find(const XvtKeyboardBindings *profile,
+size_t XvtKeyboardMapping_Find(const struct XvtKeyboardBindings *profile,
 			       AeronKeyChord source)
 {
 	for (size_t i = 0; i < profile->count; ++i) {
@@ -108,8 +108,8 @@ size_t XvtKeyboardMapping_Find(const XvtKeyboardBindings *profile,
 
 static int BindingCompare(const void *left, const void *right)
 {
-	const XvtKeyboardBinding *a = left;
-	const XvtKeyboardBinding *b = right;
+	const struct XvtKeyboardBinding *a = left;
+	const struct XvtKeyboardBinding *b = right;
 	if (a->action != b->action) {
 		return (int)a->action - (int)b->action;
 	}
@@ -119,14 +119,14 @@ static int BindingCompare(const void *left, const void *right)
 	return (int)a->source.modifiers - (int)b->source.modifiers;
 }
 
-void XvtKeyboardMapping_Sort(XvtKeyboardBindings *profile)
+void XvtKeyboardMapping_Sort(struct XvtKeyboardBindings *profile)
 {
 	qsort(profile->bindings, profile->count, sizeof profile->bindings[0],
 	      BindingCompare);
 }
 
-bool XvtKeyboardMapping_Equal(const XvtKeyboardBindings *a,
-			      const XvtKeyboardBindings *b)
+bool XvtKeyboardMapping_Equal(const struct XvtKeyboardBindings *a,
+			      const struct XvtKeyboardBindings *b)
 {
 	if (a->count != b->count) {
 		return false;
@@ -139,7 +139,8 @@ bool XvtKeyboardMapping_Equal(const XvtKeyboardBindings *a,
 	return true;
 }
 
-void XvtKeyboardMapping_Remove(XvtKeyboardBindings *profile, size_t index)
+void XvtKeyboardMapping_Remove(struct XvtKeyboardBindings *profile,
+			       size_t index)
 {
 	if (index >= profile->count) {
 		return;
@@ -198,16 +199,16 @@ void XvtKeyboardMapping_Suspend(void)
 }
 
 static void Compile(uint16_t table[AERON_KEY_COUNT][16],
-		    const XvtKeyboardBindings *profile)
+		    const struct XvtKeyboardBindings *profile)
 {
 	memset(table, 0, sizeof g_keyboard.actions);
 	for (size_t i = 0; i < profile->count; ++i) {
-		const XvtKeyboardBinding *b = &profile->bindings[i];
+		const struct XvtKeyboardBinding *b = &profile->bindings[i];
 		table[b->source.key][b->source.modifiers] = (uint16_t)b->action;
 	}
 }
 
-void XvtKeyboardMapping_Install(const XvtKeyboardBindings *profile)
+void XvtKeyboardMapping_Install(const struct XvtKeyboardBindings *profile)
 {
 	XvtKeyboardMapping_Suspend();
 	Compile(g_keyboard.actions, profile);
@@ -243,12 +244,12 @@ void XvtKeyboardMapping_Event(const AeronKeyEvent *event, bool suppressed)
 	if (!g_keyboard.enabled || event->chord.key >= AERON_KEY_COUNT) {
 		return;
 	}
-	KeyboardPress *press = &g_keyboard.pressed[event->chord.key];
+	struct KeyboardPress *press = &g_keyboard.pressed[event->chord.key];
 	if (!event->down) {
 		if (press->down && press->action != XVT_INPUT_ACTION_NONE) {
 			Dispatch(press->action, false, false);
 		}
-		*press = (KeyboardPress){0};
+		*press = (struct KeyboardPress){0};
 		return;
 	}
 	if (press->ignored) {
@@ -258,7 +259,7 @@ void XvtKeyboardMapping_Event(const AeronKeyEvent *event, bool suppressed)
 		if (press->down && press->action != XVT_INPUT_ACTION_NONE) {
 			Dispatch(press->action, false, false);
 		}
-		*press = (KeyboardPress){.ignored = true};
+		*press = (struct KeyboardPress){.ignored = true};
 		return;
 	}
 	if (!press->down) {

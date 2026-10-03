@@ -22,9 +22,9 @@ struct ModelTextureDefaultTextureData {
 struct ModelTextureDefaultTexture {
 	/* Its header, 8 by 8 with palette 256 and inlinePaletteCount 16, which
 	 * RenderScene sets the first time it draws a model. */
-	OptTextureData header;
+	struct OptTextureData header;
 	/* The texels and shades ModelTexture_BuildPalettedShadeTable writes. */
-	ModelTextureDefaultTextureData data;
+	struct ModelTextureDefaultTextureData data;
 };
 
 void ModelTexture_FilterHardwarePalette(uint16_t *palette);

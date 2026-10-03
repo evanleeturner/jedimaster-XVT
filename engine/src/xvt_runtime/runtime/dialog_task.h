@@ -25,7 +25,7 @@ int XvtDialog_ResumeContinuation(int *frame_result);
 /* Opens a dialog drawn by update in rect (the whole screen when NULL), saving the parent's frame
  * counter, pending callback change, offscreen restore, cursor and overlay text. Does nothing
  * while a dialog is active or a result is untaken. Returns -1. */
-int XvtDialog_Begin(FrontendScreenUpdateFn update, const RECT *rect);
+int XvtDialog_Begin(FrontendScreenUpdateFn update, const struct RECT *rect);
 /* Runs the active dialog for one frame, pushing its screen first (a failed push ends the
  * program). Escape after the first frame ends it with result 0; an update returning 1 ends it
  * with the dialog's result, or for the pilot-name prompt, 1 when a name was typed. Ending

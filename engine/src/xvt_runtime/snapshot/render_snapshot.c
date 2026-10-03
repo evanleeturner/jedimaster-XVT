@@ -7,7 +7,7 @@
 #include "aeron/aeron.h"
 #include <string.h>
 
-static XvtRenderSnapshot g_slots[3];
+static struct XvtRenderSnapshot g_slots[3];
 static int g_initialized;
 static int g_snapshotOpen;
 static int g_writeSlot;
@@ -48,7 +48,7 @@ void XvtRenderSnapshot_Shutdown(void)
 
 void XvtRenderSnapshot_BeginFrame(void)
 {
-	XvtRenderSnapshot *snapshot;
+	struct XvtRenderSnapshot *snapshot;
 	if (!g_initialized || g_snapshotOpen) {
 		return;
 	}
@@ -94,7 +94,7 @@ void XvtRenderSnapshot_SetSceneKind(XvtSceneKind kind)
 
 void XvtRenderSnapshot_Commit(int32_t game_time_ticks, int focused, int paused)
 {
-	XvtRenderSnapshot *snapshot;
+	struct XvtRenderSnapshot *snapshot;
 	int slot;
 	if (!g_initialized || !g_snapshotOpen) {
 		return;
@@ -121,12 +121,12 @@ void XvtRenderSnapshot_Commit(int32_t game_time_ticks, int focused, int paused)
 	g_snapshotOpen = 0;
 }
 
-const XvtRenderSnapshot *XvtRenderSnapshot_Current(void)
+const struct XvtRenderSnapshot *XvtRenderSnapshot_Current(void)
 {
 	return g_currentSlot >= 0 ? &g_slots[g_currentSlot] : NULL;
 }
 
-XvtRenderSnapshot *XvtRenderSnapshot_Writer(void)
+struct XvtRenderSnapshot *XvtRenderSnapshot_Writer(void)
 {
 	return g_initialized && g_snapshotOpen ? &g_slots[g_writeSlot] : NULL;
 }
@@ -136,7 +136,7 @@ uint32_t XvtRenderSnapshot_NextOrder(void)
 	return g_snapshotOpen ? g_drawOrder++ : 0;
 }
 
-const XvtRenderSnapshot *XvtRenderSnapshot_Previous(void)
+const struct XvtRenderSnapshot *XvtRenderSnapshot_Previous(void)
 {
 	return g_previousSlot >= 0 ? &g_slots[g_previousSlot] : NULL;
 }

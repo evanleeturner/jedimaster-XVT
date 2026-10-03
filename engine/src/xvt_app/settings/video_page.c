@@ -10,7 +10,7 @@
  * function so that cycle reads top to bottom instead of passing through a helper per section. */
 static void XvtVideoPage_DrawControls(AeronUiContext *ui)
 {
-	XvtVideoSettings options;
+	struct XvtVideoSettings options;
 	XvtVideoOptions_Get(&options);
 	bool changed = false;
 	AeronUi_Header(ui, "Display");

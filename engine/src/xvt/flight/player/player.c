@@ -39,7 +39,7 @@
  * players; Player_BindToAvailableCraft zeroes a player's set. Many functions
  * write them, chiefly in the HUD, message and collision code. */
 // GLOBAL: XVT 0x9D8B80
-PlayerFlightTransientTimers g_playerFlightTransientTimers[8];
+struct PlayerFlightTransientTimers g_playerFlightTransientTimers[8];
 /* Slot, 0 to 7, of the player at this machine. Two functions write it, both at
  * flight start from NetSession_FindPlayerSlotByDpid: Flight_MainLoop in the
  * original build and XvtFlightLoading_Globals in the modern one. */
@@ -48,7 +48,7 @@ int g_localPlayer;
 /* Each player's flight state: the craft flown, targeting, saved settings,
  * mission tallies, camera and chat. Many functions write it. */
 // GLOBAL: XVT 0x9E9670
-PlayerData g_players[8];
+struct PlayerData g_players[8];
 /* Each player's four taunt lines, 70 bytes each, sent as chat by keys 155 to
  * 158. Alone, a player gets g_gameConfig.taunts; in multiplayer each slot holds
  * what arrived over the network. Written by
@@ -96,7 +96,7 @@ int Player_BindToAvailableCraft(int playerIdx, uint32_t previousObjectIdx,
 		DEFAULT_CAMERA_DISTANCE = 1024,
 	};
 
-	CraftData *craft;
+	struct CraftData *craft;
 	int selectedObjectIdx;
 	int objectsRemaining;
 	int foundCraft;
@@ -413,7 +413,7 @@ int Player_UnbindFromCurrentCraft(int playerIndex, int requireMultipleCraft,
 
 	int objectIdx;
 	int laserBank;
-	CraftData *craft;
+	struct CraftData *craft;
 	int launcherIndex;
 
 	if (requireMultipleCraft == 1) {
@@ -579,7 +579,7 @@ int Player_UnbindFromCurrentCraft(int playerIndex, int requireMultipleCraft,
 // FUNCTION: XVT 0x45ACD0
 void Player_SaveCraftSettings(int playerIndex)
 {
-	CraftData *craft;
+	struct CraftData *craft;
 
 	craft = g_objectTable[g_players[playerIndex].objectIndex].mobj->pCraft;
 	g_players[playerIndex].savedCraftSettings.throttleSpeed =
@@ -655,9 +655,9 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx)
 		CAMERA_WORLD_LIMIT = 0x1000000,
 	};
 
-	CraftData *craft;
-	MobileObject *mobileObject;
-	ObjectRecord *targetObject;
+	struct CraftData *craft;
+	struct MobileObject *mobileObject;
+	struct ObjectRecord *targetObject;
 	int16_t desiredYaw;
 #ifdef XVT_MODERN
 	int16_t independentRollStep;
@@ -1755,10 +1755,10 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx)
 // FUNCTION: XVT 0x481420
 void FlightChat_HandleInput(int playerIdx)
 {
-	PlayerData *player;
+	struct PlayerData *player;
 	uint8_t messageLength;
 	int recipientIndex;
-	PlayerData *recipient;
+	struct PlayerData *recipient;
 	int shouldSend;
 	FlightChatRecipientMode recipientMode;
 	const char *tauntText;
@@ -1955,7 +1955,7 @@ int16_t Player_FindNearestObjective(int goalType, int playerIdx)
 		int objective;
 		int triggerCondition;
 		unsigned int goalIndex;
-		FlightGroupGoal *goals;
+		struct FlightGroupGoal *goals;
 		uint8_t *enabledTeamGoals;
 
 		if (g_objectTable[objectIdx].objectType == 0 ||
@@ -1975,7 +1975,7 @@ int16_t Player_FindNearestObjective(int goalType, int playerIdx)
 		objective = 0;
 		enabledTeamGoals = &goals[0].enabledTeams[playerTeam];
 		for (; goalIndex < FLIGHT_GROUP_GOAL_COUNT; ++goalIndex) {
-			FlightGroupGoal *goal = &goals[goalIndex];
+			struct FlightGroupGoal *goal = &goals[goalIndex];
 			if (enabledTeamGoals[goalIndex * sizeof(*goal)] != 0 &&
 			    goal->goalKind == (uint8_t)goalType &&
 			    goal->points >= 0 &&
@@ -2092,7 +2092,7 @@ int16_t Player_FindNearestObjective(int goalType, int playerIdx)
 	     ++objectIdx) {
 		int flightGroupIdx;
 		unsigned int goalIndex;
-		FlightGroupGoal *goals;
+		struct FlightGroupGoal *goals;
 		uint8_t *enabledTeamGoals;
 
 		if (g_objectTable[objectIdx].objectType == 0) {
@@ -2107,7 +2107,7 @@ int16_t Player_FindNearestObjective(int goalType, int playerIdx)
 		goals = g_missionFlightGroups[flightGroupIdx].fg.goals;
 		enabledTeamGoals = &goals[0].enabledTeams[playerTeam];
 		for (; goalIndex < FLIGHT_GROUP_GOAL_COUNT; ++goalIndex) {
-			FlightGroupGoal *goal = &goals[goalIndex];
+			struct FlightGroupGoal *goal = &goals[goalIndex];
 			if (enabledTeamGoals[goalIndex * sizeof(*goal)] != 0 &&
 			    goal->goalKind == (uint8_t)goalType &&
 			    goal->points >= 0 &&
@@ -2151,8 +2151,8 @@ int Player_ScaleControlStepByElapsedTicks(int16_t step)
 void Player_TransferShieldBankEnergy(uint16_t dstBank, uint16_t srcBank,
 				     int playerIdx)
 {
-	PlayerData *player;
-	CraftData *craft;
+	struct PlayerData *player;
+	struct CraftData *craft;
 	int *dstShieldEnergy;
 	int16_t objectMaxShield;
 	int dstEnergy;
@@ -2330,8 +2330,8 @@ uint16_t Player_CycleTargetAnyIFF(uint16_t currentObjIdx, int16_t direction,
 {
 	int16_t remainingObjects;
 	int objectCount;
-	ObjectRecord *object;
-	MobileObject *mobileObject;
+	struct ObjectRecord *object;
+	struct MobileObject *mobileObject;
 	uint8_t objectKind;
 
 	objectCount = g_regionStaticObjectSlotCount;
@@ -2397,8 +2397,8 @@ uint16_t Player_CycleTargetAnyIFF(uint16_t currentObjIdx, int16_t direction,
 uint16_t Player_CycleTarget(uint16_t currentObjIdx, int16_t direction,
 			    int playerIdx, int iffFilter, int targetFlags)
 {
-	ObjectRecord *object;
-	MobileObject *mobileObject;
+	struct ObjectRecord *object;
+	struct MobileObject *mobileObject;
 	uint16_t objectIndex;
 	int16_t remainingObjects;
 	int objectCount;
@@ -2782,13 +2782,13 @@ uint16_t Player_SelectTargetComponentMesh(uint16_t targetObjIdx,
  * yaw and roll to the object. */
 // FUNCTION: XVT 0x483A00
 int16_t Player_ApplyPitchYawSteps(int16_t pitchAngleQ16, int16_t yawAngleQ16,
-				  uint16_t objectIndex, CraftData *craft)
+				  uint16_t objectIndex, struct CraftData *craft)
 {
 #ifdef XVT_MODERN
-	ObjectRecord *object = &g_objectTable[objectIndex];
-	XvtOrientationAngles current = {object->yaw, object->pitch,
-					object->roll};
-	XvtOrientationAngles updated = XvtOrientation_ApplyPitchYaw(
+	struct ObjectRecord *object = &g_objectTable[objectIndex];
+	struct XvtOrientationAngles current = {object->yaw, object->pitch,
+					       object->roll};
+	struct XvtOrientationAngles updated = XvtOrientation_ApplyPitchYaw(
 		current, pitchAngleQ16,
 		(g_flightKeyMods & 0xE) == 2 ? 0 : yawAngleQ16);
 	/* BoP also retains the commanded pitch in CraftData. Publish a coherent
@@ -2910,7 +2910,7 @@ int16_t Player_ApplyPitchYawSteps(int16_t pitchAngleQ16, int16_t yawAngleQ16,
 int16_t Player_CanRadioCommandCraft(int playerIdx)
 {
 	int currentTargetObjectIdx;
-	ObjectRecord *targetObject;
+	struct ObjectRecord *targetObject;
 	int flightGroupIdx;
 	int boundFlightGroupIdx;
 	uint8_t radio;
@@ -3006,9 +3006,9 @@ void Player_IssueAiWingmanTargetOrder(uint16_t targetObjIdx, uint16_t commandId,
 	lastWingman = UINT16_MAX;
 	for (objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
 	     objectIndex < g_activeRegionCraftObjectSlotEnd; objectIndex++) {
-		ObjectRecord *object;
-		AiController *ai;
-		CraftData *craft;
+		struct ObjectRecord *object;
+		struct AiController *ai;
+		struct CraftData *craft;
 		int flightGroupIdx;
 		int playerSlot;
 		uint16_t boundFlightGroupIdx;
@@ -3121,7 +3121,7 @@ int16_t Player_FindAttackerOfTarget(uint16_t targetObjIdx,
 	nearest = UINT16_MAX;
 	for (objectIdx = (uint16_t)g_activeRegionObjectSlotStart;
 	     objectIdx < g_activeRegionCraftObjectSlotEnd; ++objectIdx) {
-		CraftData *craft;
+		struct CraftData *craft;
 		int qualifies;
 		if (g_objectTable[objectIdx].objectType == 0 ||
 		    targetObjIdx == objectIdx ||
@@ -3137,7 +3137,7 @@ int16_t Player_FindAttackerOfTarget(uint16_t targetObjIdx,
 			continue;
 		}
 		if (g_objectTable[objectIdx].playerOwnerIdx == -1) {
-			AiController *ai = &craft->aiController;
+			struct AiController *ai = &craft->aiController;
 			if (ai->targetObjIdx != targetObjIdx ||
 			    (ai->maneuverMode != AI_MANEUVER_MODE_ATTACK &&
 			     ai->maneuverMode !=
@@ -3148,7 +3148,7 @@ int16_t Player_FindAttackerOfTarget(uint16_t targetObjIdx,
 		} else {
 			int playerOwnerIdx;
 			if (g_activeRegionCraftObjectSlotEnd > targetObjIdx) {
-				CraftData *targetCraft =
+				struct CraftData *targetCraft =
 					g_objectTable[targetObjIdx]
 						.mobj->pCraft;
 				if (targetCraft->lastAttackerObjIdx ==
@@ -3296,9 +3296,9 @@ void Player_StartPostDestructionState(int playerIdx,
 // FUNCTION: XVT 0x484C50
 void Player_AppendKillMessageActorName(int slot, char *text, int objectIndex)
 {
-	ObjectRecord *object;
+	struct ObjectRecord *object;
 	int playerOwnerIdx;
-	CraftData *craft;
+	struct CraftData *craft;
 	int playerTeam;
 	int team;
 	int isEnemy;
@@ -3490,7 +3490,7 @@ void Player_ValidateCurrentTargets(int playerIdx)
 	};
 
 	uint16_t currentTargetObjectIdx;
-	ObjectRecord *targetObject;
+	struct ObjectRecord *targetObject;
 	int localPlayer;
 
 	currentTargetObjectIdx =
@@ -3566,8 +3566,8 @@ int Player_HasAvailableOwnedCraft(int playerIdx)
 {
 	int objectIndex;
 	unsigned int remainingObjects;
-	ObjectRecord *object;
-	CraftData *craft;
+	struct ObjectRecord *object;
+	struct CraftData *craft;
 	uint8_t objectKind;
 
 	objectIndex = -1;
@@ -3627,14 +3627,14 @@ void Player_UpdateParticipationState(void)
 	for (playerIdx = 0;
 	     playerIdx < sizeof(g_players) / sizeof(g_players[0]);
 	     ++playerIdx) {
-		PlayerData *player;
+		struct PlayerData *player;
 
 		player = &g_players[playerIdx];
 		if (player->participationState != 0) {
 			if (player->awaitingNewCraft != 0) {
 				if (g_flightSimSideEffectsSuppressed == 0 &&
 				    player->objectIndex != -1) {
-					ObjectRecord *object;
+					struct ObjectRecord *object;
 
 					object = &g_objectTable
 							 [player->objectIndex];
@@ -3728,15 +3728,15 @@ int Player_FindNearestEnemyFighter(int playerIdx, int excludedObjectIdx)
 	int playerTeam;
 	int team;
 	uint8_t genusId;
-	CraftData *craft;
+	struct CraftData *craft;
 	uint8_t objectKind;
 	uint16_t staticObjectIdx;
-	ObjectRecord *staticObject;
+	struct ObjectRecord *staticObject;
 	int staticObjectTeam;
 	int staticPlayerTeam;
 	int isEnemy;
 	uint32_t nearestDistance;
-	ObjectRecord *object;
+	struct ObjectRecord *object;
 	int nearestObjectIdx;
 
 	nearestDistance = UINT32_MAX;
@@ -3875,7 +3875,7 @@ void Player_HandleHyperspaceCommand(struct CraftData *craft,
 				     scanObjectIdx <
 				     g_activeRegionCraftObjectSlotEnd;
 				     ++scanObjectIdx) {
-					ObjectRecord *object =
+					struct ObjectRecord *object =
 						&g_objectTable[scanObjectIdx];
 
 					if ((object->objectType ==

@@ -143,11 +143,11 @@ int DirectSound_LoadFileAndFindAudioData(int unused, const char *fileName,
  * data of the first read, which nothing frees. Does not check that the first
  * buffer loaded. Nothing calls this. */
 // FUNCTION: XVT 0x44B840
-DirectSoundBufferSet *DirectSound_LoadWaveBufferSet(IDirectSound *directSound,
-						    const char *fileName,
-						    int bufferCount)
+struct DirectSoundBufferSet *
+DirectSound_LoadWaveBufferSet(IDirectSound *directSound, const char *fileName,
+			      int bufferCount)
 {
-	DirectSoundBufferSet *set;
+	struct DirectSoundBufferSet *set;
 	int actualBufferCount;
 	int bufferIndex;
 	IDirectSoundBuffer **bufferSlot;
@@ -167,7 +167,7 @@ DirectSoundBufferSet *DirectSound_LoadWaveBufferSet(IDirectSound *directSound,
 		device = directSound;
 		bufferIndex = 1;
 		allocationSize =
-			offsetof(DirectSoundBufferSet, buffers) +
+			offsetof(struct DirectSoundBufferSet, buffers) +
 			actualBufferCount * sizeof(IDirectSoundBuffer *);
 #ifdef XVT_MODERN
 		set = calloc(1, allocationSize);
@@ -213,7 +213,7 @@ DirectSoundBufferSet *DirectSound_LoadWaveBufferSet(IDirectSound *directSound,
  * waveData stays allocated. Does nothing for NULL. Only
  * DirectSound_LoadWaveBufferSet calls it, and nothing calls that. */
 // FUNCTION: XVT 0x44B920
-void DirectSound_FreeWaveBufferSet(DirectSoundBufferSet *set)
+void DirectSound_FreeWaveBufferSet(struct DirectSoundBufferSet *set)
 {
 	int bufferIndex;
 	IDirectSoundBuffer **buffer;
@@ -249,7 +249,7 @@ void DirectSound_FreeWaveBufferSet(DirectSoundBufferSet *set)
  * Only DirectSound_PlayWaveBufferSet calls it, and nothing calls that. */
 // FUNCTION: XVT 0x44B960
 IDirectSoundBuffer *
-DirectSound_AcquireWaveBufferSetBuffer(DirectSoundBufferSet *set)
+DirectSound_AcquireWaveBufferSetBuffer(struct DirectSoundBufferSet *set)
 {
 	IDirectSoundBuffer *buffer;
 	int nextBufferIndex;
@@ -299,7 +299,8 @@ DirectSound_AcquireWaveBufferSetBuffer(DirectSoundBufferSet *set)
  * a looping play (the 0x1 flag) is allowed only for a set of one buffer.
  * Returns 1 when Play succeeds, else 0, and 0 for NULL. Nothing calls this. */
 // FUNCTION: XVT 0x44BA30
-int DirectSound_PlayWaveBufferSet(DirectSoundBufferSet *set, uint32_t playFlags)
+int DirectSound_PlayWaveBufferSet(struct DirectSoundBufferSet *set,
+				  uint32_t playFlags)
 {
 	int result;
 	IDirectSoundBuffer *buffer;
@@ -321,7 +322,7 @@ int DirectSound_PlayWaveBufferSet(DirectSoundBufferSet *set, uint32_t playFlags)
 /* Stops every buffer of the set and rewinds it to 0. Returns 1, or 0 for a NULL
  * set. Does not check for NULL buffers. Nothing calls this. */
 // FUNCTION: XVT 0x44BA80
-int DirectSound_StopWaveBufferSet(DirectSoundBufferSet *set)
+int DirectSound_StopWaveBufferSet(struct DirectSoundBufferSet *set)
 {
 	int bufferIndex;
 	IDirectSoundBuffer **buffer;

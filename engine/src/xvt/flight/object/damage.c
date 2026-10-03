@@ -312,7 +312,7 @@ int16_t Damage_DisplayMfdPage(void)
 	const int defaultHeight = 200;
 	const int hudStateIndex = HUD_MFD_DAMAGE_ELEMENT;
 	uint16_t systemIds[CRAFT_SUBSYSTEM_COUNT];
-	CraftData *craft;
+	struct CraftData *craft;
 	int objectIndex;
 	/* displaySlot has two jobs. In the loops that read systemDisplaySlotBySystem it counts systems, which
 	 * fills systemIds with the system shown in each display slot; in the loops that read systemIds it counts
@@ -650,7 +650,7 @@ int16_t Damage_FindAdjacentDamagedSystem(int16_t currentSystemIdx,
 {
 	uint8_t systemByDisplaySlot[CRAFT_SUBSYSTEM_COUNT];
 	int systemIdx;
-	CraftData *craft;
+	struct CraftData *craft;
 	int16_t previousDamagedSystem;
 	int displaySlot;
 	int16_t result;
@@ -740,8 +740,8 @@ int16_t Damage_FindAdjacentDamagedSystem(int16_t currentSystemIdx,
 void Damage_DrawMfdSystemStatusRow(DamageSystemId systemId, int16_t y,
 				   int16_t valueX)
 {
-	MobileObject *mobileObject;
-	CraftData *craft;
+	struct MobileObject *mobileObject;
+	struct CraftData *craft;
 	uint16_t subsystemFlag;
 	uint16_t health;
 	uint16_t repairSeconds;

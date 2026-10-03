@@ -38,15 +38,15 @@ enum { BYPASS = 9, FOREGROUND = 7, BACKGROUND = 4 };
 
 enum { READY_ID = 11, SYSTEM_ID = 22, GROUP_ID = 33 };
 
-static XvtCockpitState g_state;
+static struct XvtCockpitState g_state;
 
 /* The clip runs from (50, 60) to (450, 300), so its corner, a message's origin, is (50, 60); the cursor
  * starts at (70, 80). The screen is 640 by 480. */
 static void Start(void)
 {
 	for (unsigned index = 0; index < 256; ++index) {
-		g_swPalette[index] = (RgbTriplet){(uint8_t)(index & 63),
-						  (uint8_t)(index >> 6), 7};
+		g_swPalette[index] = (struct RgbTriplet){
+			(uint8_t)(index & 63), (uint8_t)(index >> 6), 7};
 	}
 	g_flightClipLeft = 50;
 	g_flightClipTop = 60;
@@ -101,7 +101,7 @@ static void Latch(XvtCockpitMessageId pane)
 	XvtCockpitMessages_Latch(pane, 50, 60, 0, 0, 100, 20);
 }
 
-static const XvtCockpitState *Exported(void)
+static const struct XvtCockpitState *Exported(void)
 {
 	memset(&g_state, 0, sizeof g_state);
 	g_state.view.screen_width = 7;
@@ -141,10 +141,10 @@ static void CheckPaneRouting(void)
 		     ++pane) {
 			Latch((XvtCockpitMessageId)pane);
 		}
-		const XvtCockpitState *state = Exported();
+		const struct XvtCockpitState *state = Exported();
 		for (unsigned pane = 0; pane < XVT_COCKPIT_MESSAGE_COUNT;
 		     ++pane) {
-			const XvtCockpitMessage *message =
+			const struct XvtCockpitMessage *message =
 				&state->messages.panes[pane];
 			int expected = pane == (unsigned)routes[route].pane;
 			XVT_ASSERT_INT_EQ(message->visible, expected);
@@ -169,8 +169,8 @@ static void CheckLatchPlacesPane(void)
 	g_readyMessagePaneQueue[0].ageSeconds = 9;
 	XvtCockpitMessages_Latch(XVT_COCKPIT_MESSAGE_READY, 40, 55, 300, 400,
 				 120, 30);
-	const XvtCockpitState *state = Exported();
-	const XvtCockpitMessage *pane =
+	const struct XvtCockpitState *state = Exported();
+	const struct XvtCockpitMessage *pane =
 		&state->messages.panes[XVT_COCKPIT_MESSAGE_READY];
 	XVT_ASSERT_INT_EQ(pane->visible, 1);
 	XVT_ASSERT_INT_EQ(pane->placement.x, 300);
@@ -182,7 +182,7 @@ static void CheckLatchPlacesPane(void)
 	XVT_ASSERT_INT_EQ(pane->revealed_characters, 5);
 	XVT_ASSERT_INT_EQ(pane->glyph_count, 2);
 	/* A glyph captured relative to the origin (50, 60) moves by the origin minus the source point. */
-	const XvtCockpitGlyph *glyph =
+	const struct XvtCockpitGlyph *glyph =
 		&state->overlay_content.glyphs[pane->first_glyph];
 	XVT_ASSERT_INT_EQ(glyph->character, 'A');
 	XVT_ASSERT_INT_EQ(glyph->x, (70 - 50) + (50 - 40));
@@ -247,7 +247,7 @@ static void CheckMessageLimit(void)
 	/* One glyph too many discards the capture: the pane keeps what it had. */
 	Message(0, 1, XVT_HUD_MESSAGE_GLYPHS + 1);
 	XVT_ASSERT_INT_EQ(ReadyGeneration(), generation);
-	const XvtCockpitMessage *pane =
+	const struct XvtCockpitMessage *pane =
 		&g_state.messages.panes[XVT_COCKPIT_MESSAGE_READY];
 	XVT_ASSERT_INT_EQ(pane->glyph_count, XVT_HUD_MESSAGE_GLYPHS);
 	XVT_ASSERT_INT_EQ(
@@ -300,7 +300,7 @@ static void CheckBeginPlacement(void)
 		Exported()->messages.panes[XVT_COCKPIT_MESSAGE_READY].visible,
 		1);
 	XvtCockpitMessages_BeginPlacement();
-	const XvtCockpitState *state = Exported();
+	const struct XvtCockpitState *state = Exported();
 	XVT_ASSERT_INT_EQ(
 		state->messages.panes[XVT_COCKPIT_MESSAGE_READY].visible, 0);
 	XVT_ASSERT_INT_EQ(state->overlay_content.glyph_count, 0);
@@ -345,7 +345,7 @@ static void CheckResets(void)
 	Glyphs('L', 1);
 	XvtCockpitMessages_EndLoadingText();
 	XvtCockpitMessages_Reset();
-	const XvtCockpitState *state = Exported();
+	const struct XvtCockpitState *state = Exported();
 	XVT_ASSERT_INT_EQ(
 		state->messages.panes[XVT_COCKPIT_MESSAGE_READY].visible, 0);
 	XVT_ASSERT_INT_EQ(state->alert.active, 0);
@@ -376,7 +376,7 @@ static void CheckAlertLines(void)
 	Start();
 	XvtCockpitMessages_BeginAlert();
 	Alert(1, 'a', 2);
-	const XvtCockpitAlert *alert = &Exported()->alert;
+	const struct XvtCockpitAlert *alert = &Exported()->alert;
 	XVT_ASSERT_INT_EQ(alert->active, 1);
 	XVT_ASSERT_INT_EQ(alert->placement.x, 100);
 	XVT_ASSERT_INT_EQ(alert->placement.y, 110);
@@ -443,7 +443,7 @@ static void CheckAlertModesAndLimits(void)
 	/* Modes outside 0 to 3 are ignored: nothing opens, nothing changes. */
 	Alert(4, 'x', 1);
 	Alert(-1, 'x', 1);
-	const XvtCockpitAlert *alert = &Exported()->alert;
+	const struct XvtCockpitAlert *alert = &Exported()->alert;
 	XVT_ASSERT_INT_EQ(alert->generation, generation);
 	XVT_ASSERT_INT_EQ(alert->glyph_count[0], 2);
 	XVT_ASSERT_INT_EQ(alert->line_visible[1], 0);
@@ -471,7 +471,7 @@ static void CheckAlertBeginAndEnd(void)
 	/* EndAlert deactivates and raises the generation; a second one changes nothing. */
 	uint64_t active = Exported()->alert.generation;
 	XvtCockpitMessages_EndAlert();
-	const XvtCockpitAlert *alert = &Exported()->alert;
+	const struct XvtCockpitAlert *alert = &Exported()->alert;
 	XVT_ASSERT_INT_EQ(alert->active, 0);
 	XVT_ASSERT_INT_EQ(alert->glyph_count[0], 0);
 	uint64_t ended = alert->generation;
@@ -504,7 +504,7 @@ static void CheckProgress(void)
 {
 	Start();
 	XvtCockpitMessages_RecordProgress(3, 10, 20, 300, 8, 120);
-	const XvtCockpitLoading *loading = &Exported()->loading;
+	const struct XvtCockpitLoading *loading = &Exported()->loading;
 	XVT_ASSERT_INT_EQ(loading->progress_visible, 1);
 	XVT_ASSERT_INT_EQ(loading->progress_placement.x, 10);
 	XVT_ASSERT_INT_EQ(loading->progress_placement.y, 20);
@@ -544,11 +544,11 @@ static void CheckLoadingText(void)
 	XvtCockpitMessages_BeginLoadingText();
 	Glyphs('L', 3);
 	XvtCockpitMessages_EndLoadingText();
-	const XvtCockpitState *state = Exported();
+	const struct XvtCockpitState *state = Exported();
 	XVT_ASSERT_INT_EQ(state->loading.text_visible, 1);
 	XVT_ASSERT_INT_EQ(state->loading.glyph_count, 3);
 	/* Relative to the screen: the glyph sits at the cursor. */
-	const XvtCockpitGlyph *glyph =
+	const struct XvtCockpitGlyph *glyph =
 		&state->overlay_content.glyphs[state->loading.first_glyph];
 	XVT_ASSERT_INT_EQ(glyph->character, 'L');
 	XVT_ASSERT_INT_EQ(glyph->x, 70);
@@ -603,12 +603,12 @@ static void CheckExportPacking(void)
 	Glyphs('L', 1);
 	XvtCockpitMessages_EndLoadingText();
 
-	const XvtCockpitState *state = Exported();
-	const XvtCockpitGlyph *glyphs = state->overlay_content.glyphs;
+	const struct XvtCockpitState *state = Exported();
+	const struct XvtCockpitGlyph *glyphs = state->overlay_content.glyphs;
 	XVT_ASSERT_INT_EQ(state->overlay_content.glyph_count, 7);
-	const XvtCockpitMessage *ready =
+	const struct XvtCockpitMessage *ready =
 		&state->messages.panes[XVT_COCKPIT_MESSAGE_READY];
-	const XvtCockpitMessage *system =
+	const struct XvtCockpitMessage *system =
 		&state->messages.panes[XVT_COCKPIT_MESSAGE_SYSTEM];
 	XVT_ASSERT_INT_EQ(glyphs[ready->first_glyph].character, 'r');
 	XVT_ASSERT_INT_EQ(glyphs[system->first_glyph].character, 's');

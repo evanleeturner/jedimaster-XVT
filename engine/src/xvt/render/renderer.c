@@ -409,7 +409,7 @@ IDirectDraw *Renderer_GetDirectDraw(void) { return g_flightDirectDraw; }
 // FUNCTION: XVT 0x408170
 void Renderer_InitD3DDevice(void)
 {
-	Std3DDeviceCaps deviceCaps;
+	struct Std3DDeviceCaps deviceCaps;
 	DDSURFACEDESC zBufferDesc;
 	HRESULT result;
 	unsigned int deviceIndex;

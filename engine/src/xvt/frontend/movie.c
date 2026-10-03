@@ -134,12 +134,13 @@ GetSystemPaletteEntries(void *hdc, unsigned int startIndex,
 __declspec(dllimport) int __stdcall ReleaseDC(void *hWnd, void *hdc);
 __declspec(dllimport) void *__stdcall BeginPaint(void *hWnd, void *paint);
 __declspec(dllimport) int __stdcall EndPaint(void *hWnd, const void *paint);
-__declspec(dllimport) int __stdcall GetUpdateRect(void *hWnd, RECT *rect,
+__declspec(dllimport) int __stdcall GetUpdateRect(void *hWnd, struct RECT *rect,
 						  int erase);
 __declspec(dllimport) void __stdcall PostQuitMessage(int exitCode);
 __declspec(dllimport) int32_t __stdcall
 DefWindowProcA(void *hWnd, unsigned int message, void *wParam, void *lParam);
-__declspec(dllimport) int __stdcall ClientToScreen(void *hWnd, POINT *point);
+__declspec(dllimport) int __stdcall ClientToScreen(void *hWnd,
+						   struct POINT *point);
 __declspec(dllimport) int __stdcall
 PeekMessageA(struct MovieWin32Message *message, void *hWnd,
 	     unsigned int filterMin, unsigned int filterMax,
@@ -192,7 +193,7 @@ struct MovieSmackHandle *g_movieSmackHandle = 0;
  * start; nothing resets it, and ClientToScreen adds the origin to the point it
  * already holds. Only the original build sets it. */
 // GLOBAL: XVT 0x52C820
-POINT g_movieClientScreenOrigin = {0, 0};
+struct POINT g_movieClientScreenOrigin = {0, 0};
 /* Horizontal window offset added to every blit's destination: the x of the last
  * window move Movie_WindowProc saw during playback, rounded as that function
  * says. Never reset. */
@@ -217,19 +218,19 @@ unsigned int g_moviePreviousDirtyRectCount = 0;
 /* One of the two 256-entry lists that g_moviePreviousDirtyRects and
  * g_movieCurrentDirtyRects swap between. */
 // GLOBAL: XVT 0x6661A8
-static MovieDirtyRect g_movieDirtyRectsA[256] = {{0}};
+static struct MovieDirtyRect g_movieDirtyRectsA[256] = {{0}};
 /* The other of the two 256-entry lists that g_moviePreviousDirtyRects and
  * g_movieCurrentDirtyRects swap between. */
 // GLOBAL: XVT 0x6671A8
-static MovieDirtyRect g_movieDirtyRectsB[256] = {{0}};
+static struct MovieDirtyRect g_movieDirtyRectsB[256] = {{0}};
 /* The changed rectangles of the frame before, kept in page-flip playback;
  * swapped with g_movieCurrentDirtyRects after each frame. */
 // GLOBAL: XVT 0x52C834
-MovieDirtyRect *g_moviePreviousDirtyRects = g_movieDirtyRectsA;
+struct MovieDirtyRect *g_moviePreviousDirtyRects = g_movieDirtyRectsA;
 /* The list the frame being decoded fills with its changed rectangles in
  * page-flip playback. */
 // GLOBAL: XVT 0x52C838
-MovieDirtyRect *g_movieCurrentDirtyRects = g_movieDirtyRectsB;
+struct MovieDirtyRect *g_movieCurrentDirtyRects = g_movieDirtyRectsB;
 /* The palette written to the playback palette: the system's colors kept at
  * entries 0 to 9 and 246 to 255, the movie's colors at 10 to 245.
  * Movie_InitializeSystemPalette fills it and Movie_UpdateDirectDrawPalette
@@ -284,12 +285,12 @@ unsigned int g_movieMultiplayerSyncDeadlineMs = 0;
 int g_movieSkipRequested = 0;
 /* Output of Movie_MergeDirtyRectLists when it merges two lists. */
 // GLOBAL: XVT 0x6681A8
-MovieDirtyRect g_movieMergedDirtyRects[256] = {{0}};
+struct MovieDirtyRect g_movieMergedDirtyRects[256] = {{0}};
 /* The players of a network game's movie: the first Net_CountReadyPlayers
  * entries of g_mpRoster at frame 0, and whether each still watches. Network
  * packets mark players waiting or remove them. */
 // GLOBAL: XVT 0xAA6090
-MovieMultiplayerSyncPlayer g_movieMultiplayerSyncPlayers[8] = {{0}};
+struct MovieMultiplayerSyncPlayer g_movieMultiplayerSyncPlayers[8] = {{0}};
 
 /* Copies the rectangle at (x, y), width by height, of the decode surface to the
  * same place on the display, moved by g_movieClientScreenOrigin and
@@ -304,7 +305,7 @@ HRESULT Movie_BlitRectToDisplay(int x, int y, int width, int height)
 {
 	IDirectDrawSurface *backBuffer;
 	DDSCAPS caps;
-	RECT sourceRect;
+	struct RECT sourceRect;
 	uint32_t destinationX;
 	uint32_t destinationY;
 	HRESULT result;
@@ -538,7 +539,7 @@ int32_t AERON_DXAPI Movie_WindowProc(void *hWnd, unsigned int message,
 // FUNCTION: XVT 0x4EF040
 int Movie_HandlePaint(void *hWnd)
 {
-	RECT updateRect;
+	struct RECT updateRect;
 #ifndef XVT_MODERN
 	uint8_t paint[64];
 #endif
@@ -591,7 +592,7 @@ int Movie_HandlePaint(void *hWnd)
  * the files and returns 0, or 5 when g_movieSkipRequested is set; a skip in
  * single player returns 0. */
 // FUNCTION: XVT 0x4EF100
-int Movie_RunSmackerPlayback(const MoviePlaybackParams *params)
+int Movie_RunSmackerPlayback(const struct MoviePlaybackParams *params)
 {
 #ifdef XVT_MODERN
 	return XvtMovieTask_Begin(params->movieName,
@@ -802,7 +803,7 @@ void Movie_DecodeAndPresentFrame(void)
 {
 #ifndef XVT_MODERN
 	DDSURFACEDESC surfaceDesc;
-	MovieDirtyRect *mergedRects;
+	struct MovieDirtyRect *mergedRects;
 	unsigned int mergedCount;
 	unsigned int currentCount;
 	unsigned int dirtyIndex;
@@ -912,19 +913,19 @@ void Movie_DecodeAndPresentFrame(void)
  * the next. Restores every width to its absolute value at the end. Does not
  * check the output against 256 entries. Only the original build reaches it. */
 // FUNCTION: XVT 0x4EF8E0
-void Movie_MergeDirtyRectLists(MovieDirtyRect *currentRects,
+void Movie_MergeDirtyRectLists(struct MovieDirtyRect *currentRects,
 			       unsigned int currentCount,
-			       MovieDirtyRect *previousRects,
+			       struct MovieDirtyRect *previousRects,
 			       unsigned int previousCount,
-			       MovieDirtyRect **mergedRects,
+			       struct MovieDirtyRect **mergedRects,
 			       unsigned int *mergedCount)
 {
-	MovieDirtyRect candidate;
-	MovieDirtyRect bestUnion;
-	MovieDirtyRect rectUnion;
-	MovieDirtyRect intersection;
-	MovieDirtyRect *bestRect;
-	MovieDirtyRect *output;
+	struct MovieDirtyRect candidate;
+	struct MovieDirtyRect bestUnion;
+	struct MovieDirtyRect rectUnion;
+	struct MovieDirtyRect intersection;
+	struct MovieDirtyRect *bestRect;
+	struct MovieDirtyRect *output;
 	unsigned int remaining;
 	unsigned int outputCount;
 	unsigned int index;
@@ -1046,10 +1047,10 @@ void Movie_MergeDirtyRectLists(MovieDirtyRect *currentRects,
 /* Rectangles are x, y, width and height. Only Movie_MergeDirtyRectLists calls
  * it, in the original build. */
 // FUNCTION: XVT 0x4EFBD0
-int Movie_ComputeRectUnionAndIntersection(const MovieDirtyRect *a,
-					  const MovieDirtyRect *b,
-					  MovieDirtyRect *unionRect,
-					  MovieDirtyRect *intersectionRect)
+int Movie_ComputeRectUnionAndIntersection(
+	const struct MovieDirtyRect *a, const struct MovieDirtyRect *b,
+	struct MovieDirtyRect *unionRect,
+	struct MovieDirtyRect *intersectionRect)
 {
 	int x;
 	int width;
@@ -1132,7 +1133,7 @@ int Movie_Play(const char *name, int synchronizeMultiplayer)
 		MOVIE_STATUS_NOT_FOUND = 2,
 	};
 
-	MoviePlaybackParams playbackParams;
+	struct MoviePlaybackParams playbackParams;
 	char moviePath[MOVIE_PATH_CAPACITY];
 	char movieName[MOVIE_NAME_CAPACITY];
 	XvtFile *probeStream;
@@ -1368,7 +1369,7 @@ int Movie_MultiplayerInputCallback(int window, unsigned int eventCode,
 // FUNCTION: XVT 0x4F02F0
 void Movie_DrawMultiplayerSyncStatus(void)
 {
-	RECT rect;
+	struct RECT rect;
 	const char *statusStrings[2];
 	char text[100];
 	unsigned int playerIndex;
@@ -1472,7 +1473,7 @@ void Movie_UpdateMultiplayerSyncTimeout(void)
 	};
 
 	unsigned int timeoutMs;
-	RECT rect;
+	struct RECT rect;
 	int packet[2];
 
 	timeoutMs = Net_IsHost() != 0 ? HOST_TIMEOUT_MS : CLIENT_TIMEOUT_MS;
@@ -1683,7 +1684,7 @@ unsigned int Movie_ReadSubtitleCue(char *line1, char *line2, char *line3)
 // FUNCTION: XVT 0x4F0A50
 void Movie_DrawSubtitles(unsigned int frameNumber)
 {
-	RECT rect;
+	struct RECT rect;
 	unsigned int lineHeight;
 	int textColor;
 

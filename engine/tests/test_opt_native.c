@@ -27,14 +27,14 @@
 static char g_folder[XVT_TEST_PATH_CAPACITY];
 static AeronVfs *g_vfs;
 
-typedef struct Body {
+struct Body {
 	uint8_t *bytes;
 	uint32_t size;
 	uint32_t capacity;
-} Body;
+};
 
 /* Appends size bytes of data, or of zeros when data is NULL, and returns the address of the first. */
-static uint32_t Append(Body *body, const void *data, uint32_t size)
+static uint32_t Append(struct Body *body, const void *data, uint32_t size)
 {
 	if (body->size + size > body->capacity) {
 		body->capacity = (body->size + size) * 2;
@@ -51,7 +51,7 @@ static uint32_t Append(Body *body, const void *data, uint32_t size)
 }
 
 /* Stores value little-endian at address, which must already be inside the body. */
-static void Put(Body *body, uint32_t address, uint32_t value)
+static void Put(struct Body *body, uint32_t address, uint32_t value)
 {
 	uint8_t *at = body->bytes + (address - BASE);
 	for (int i = 0; i < 4; ++i) {
@@ -60,11 +60,11 @@ static void Put(Body *body, uint32_t address, uint32_t value)
 }
 
 /* The address one past the body's last byte. */
-static uint32_t End(const Body *body) { return BASE + body->size; }
+static uint32_t End(const struct Body *body) { return BASE + body->size; }
 
 /* Empties the body and writes its header with roots links, all 0, in a table right after it. Returns the
  * table's address. */
-static uint32_t Begin(Body *body, uint32_t roots)
+static uint32_t Begin(struct Body *body, uint32_t roots)
 {
 	body->size = 0;
 	Append(body, NULL, 14);
@@ -76,8 +76,9 @@ static uint32_t Begin(Body *body, uint32_t roots)
 }
 
 /* Appends a node record and returns its address. The fields are at offsets 0, 4, 8, 12, 16 and 20. */
-static uint32_t Node(Body *body, uint32_t name, int32_t type, int32_t count,
-		     uint32_t children, int32_t param, uint32_t payload)
+static uint32_t Node(struct Body *body, uint32_t name, int32_t type,
+		     int32_t count, uint32_t children, int32_t param,
+		     uint32_t payload)
 {
 	uint32_t node = Append(body, NULL, 24);
 	Put(body, node, name);
@@ -90,14 +91,15 @@ static uint32_t Node(Body *body, uint32_t name, int32_t type, int32_t count,
 }
 
 /* Appends text with its terminator and returns its address. */
-static uint32_t Text(Body *body, const char *text)
+static uint32_t Text(struct Body *body, const char *text)
 {
 	return Append(body, text, (uint32_t)strlen(text) + 1);
 }
 
 /* Writes a model file: marker, then sizeField when hasSize, then count bytes of the body. */
 static void WriteRaw(const char *name, int32_t marker, int hasSize,
-		     uint32_t sizeField, const Body *body, uint32_t count)
+		     uint32_t sizeField, const struct Body *body,
+		     uint32_t count)
 {
 	uint8_t *file = malloc(8 + (size_t)count);
 	XVT_ASSERT_TRUE(file != NULL);
@@ -114,7 +116,7 @@ static void WriteRaw(const char *name, int32_t marker, int hasSize,
 }
 
 /* Writes the body as a well-formed file of the given version, 0, 1 or 2. */
-static void WriteModel(const char *name, int version, const Body *body)
+static void WriteModel(const char *name, int version, const struct Body *body)
 {
 	if (version == 0) {
 		WriteRaw(name, (int32_t)body->size, 0, 0, body, body->size);
@@ -134,7 +136,7 @@ static uint16_t ReadFile(const char *name, int *version, unsigned *nativeSize)
 }
 
 /* Writes the body as a version 1 file and returns whether Read accepts it; frees what Read returned. */
-static int Accepts(const Body *body)
+static int Accepts(const struct Body *body)
 {
 	int version = -9;
 	unsigned nativeSize = 0;
@@ -182,7 +184,7 @@ static void CheckNullFile(void)
 static void CheckVersions(void)
 {
 	/* A 14-byte body, the smallest allowed, has room for no root table: a model with no roots. */
-	Body body = {0};
+	struct Body body = {0};
 	Begin(&body, 0);
 	for (int expected = 0; expected <= 2; ++expected) {
 		int version = -9;
@@ -191,12 +193,13 @@ static void CheckVersions(void)
 		uint16_t handle = ReadFile("case.opt", &version, &nativeSize);
 		XVT_ASSERT_TRUE(handle != 0);
 		XVT_ASSERT_INT_EQ(version, expected);
-		OptimizedPolyObject *model = Memory_GetHandleBlock(handle);
+		struct OptimizedPolyObject *model =
+			Memory_GetHandleBlock(handle);
 		XVT_ASSERT_TRUE(model->selfMarker == model);
 		XVT_ASSERT_INT_EQ(model->rootNodeCount, 0);
 		/* The model header comes first and a copy of the body last. */
 		XVT_ASSERT_TRUE(nativeSize >=
-				sizeof(OptimizedPolyObject) + body.size);
+				sizeof(struct OptimizedPolyObject) + body.size);
 		Memory_HandleBlockDoneStub(handle);
 		Memory_FreeHandle(handle);
 	}
@@ -217,7 +220,7 @@ static void CheckVersions(void)
 
 static void CheckBodySize(void)
 {
-	Body body = {0};
+	struct Body body = {0};
 	Begin(&body, 0);
 	int version = -9;
 	unsigned nativeSize = 12345;
@@ -245,7 +248,7 @@ static void CheckRebuild(void)
 	static const uint8_t vertices[24] = {1,	 2,  3,	 4,  5,	 6,  7,	 8,
 					     9,	 10, 11, 12, 13, 14, 15, 16,
 					     17, 18, 19, 20, 21, 22, 23, 24};
-	Body body = {0};
+	struct Body body = {0};
 	uint32_t table = Begin(&body, 1);
 	uint32_t hullName = Text(&body, "Hull");
 	uint32_t payload = Append(&body, vertices, sizeof vertices);
@@ -265,12 +268,12 @@ static void CheckRebuild(void)
 	uint16_t handle = ReadFile("case.opt", &version, &nativeSize);
 	XVT_ASSERT_TRUE(handle != 0);
 	XVT_ASSERT_INT_EQ(version, 2);
-	OptimizedPolyObject *model = Memory_GetHandleBlock(handle);
+	struct OptimizedPolyObject *model = Memory_GetHandleBlock(handle);
 	XVT_ASSERT_TRUE(model->selfMarker == model);
 	XVT_ASSERT_INT_EQ(model->rootNodeCount, 1);
 
 	/* Every pointer is native and inside the model's block; names point into the copy at its end. */
-	OptNode *root = model->rootNodes[0];
+	struct OptNode *root = model->rootNodes[0];
 	XVT_ASSERT_TRUE(Inside(model, nativeSize, root));
 	XVT_ASSERT_INT_EQ(root->nodeType, OPT_GROUP);
 	XVT_ASSERT_INT_EQ(root->childCount, 2);
@@ -279,14 +282,14 @@ static void CheckRebuild(void)
 	XVT_ASSERT_INT_EQ(strcmp(root->pName, "Hull"), 0);
 	XVT_ASSERT_TRUE(Inside(model, nativeSize, root->pChildren));
 
-	OptNode *vertexNode = root->pChildren[0];
+	struct OptNode *vertexNode = root->pChildren[0];
 	XVT_ASSERT_TRUE(Inside(model, nativeSize, vertexNode));
 	XVT_ASSERT_INT_EQ(vertexNode->nodeType, OPT_MESHVERTS);
 	XVT_ASSERT_TRUE(Inside(model, nativeSize, vertexNode->payload));
 	XVT_ASSERT_INT_EQ(
 		memcmp(vertexNode->payload, vertices, sizeof vertices), 0);
 
-	OptNode *refNode = root->pChildren[1];
+	struct OptNode *refNode = root->pChildren[1];
 	XVT_ASSERT_TRUE(Inside(model, nativeSize, refNode));
 	XVT_ASSERT_INT_EQ(refNode->nodeType, OPT_NODEREF);
 	XVT_ASSERT_INT_EQ(refNode->payloadCount, 0);
@@ -300,7 +303,7 @@ static void CheckPayloadPastEnd(void)
 	/* A payload of two vertices, 24 bytes, that starts 12 bytes before the end of the file. */
 	static const uint8_t tail[12] = {0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6,
 					 0xA7, 0xA8, 0xA9, 0xAA, 0xAB, 0xAC};
-	Body body = {0};
+	struct Body body = {0};
 	uint32_t table = Begin(&body, 1);
 	uint32_t verts = Node(&body, 0, OPT_MESHVERTS, 0, 0, 2, 0);
 	Put(&body, table, verts);
@@ -311,7 +314,7 @@ static void CheckPayloadPastEnd(void)
 	WriteModel("case.opt", 1, &body);
 	uint16_t handle = ReadFile("case.opt", &version, &nativeSize);
 	XVT_ASSERT_TRUE(handle != 0);
-	OptimizedPolyObject *model = Memory_GetHandleBlock(handle);
+	struct OptimizedPolyObject *model = Memory_GetHandleBlock(handle);
 	const uint8_t *copied = model->rootNodes[0]->payload;
 	XVT_ASSERT_TRUE(Inside(model, nativeSize, copied) &&
 			Inside(model, nativeSize, copied + 23));
@@ -326,7 +329,7 @@ static void CheckPayloadPastEnd(void)
 
 /* Appends size payload bytes, none of them 0, then 16 filler bytes the payload must not take in, and returns
  * the payload's address. */
-static uint32_t Payload(Body *body, uint32_t size)
+static uint32_t Payload(struct Body *body, uint32_t size)
 {
 	uint32_t payload = Append(body, NULL, size + 16);
 	for (uint32_t i = 0; i < size + 16; ++i) {
@@ -339,15 +342,15 @@ static uint32_t Payload(Body *body, uint32_t size)
 /* Reads the body as a file of the given version and checks the payload of its last root, the last node
  * read: its size bytes are copied from payload in the file, and only zeroed padding follows them before the
  * copy of the body, which comes last in the block. */
-static void CheckLastPayload(const Body *body, int version, uint32_t payload,
-			     uint32_t size)
+static void CheckLastPayload(const struct Body *body, int version,
+			     uint32_t payload, uint32_t size)
 {
 	int read = -9;
 	unsigned nativeSize = 0;
 	WriteModel("case.opt", version, body);
 	uint16_t handle = ReadFile("case.opt", &read, &nativeSize);
 	XVT_ASSERT_TRUE(handle != 0);
-	OptimizedPolyObject *model = Memory_GetHandleBlock(handle);
+	struct OptimizedPolyObject *model = Memory_GetHandleBlock(handle);
 	const uint8_t *copied =
 		model->rootNodes[model->rootNodeCount - 1]->payload;
 	const uint8_t *bodyCopy =
@@ -380,7 +383,7 @@ static void CheckPayloadSizes(void)
 		{OPT_MESHDESC, 72},
 	};
 
-	Body body = {0};
+	struct Body body = {0};
 	for (size_t i = 0; i < sizeof payloads / sizeof payloads[0]; ++i) {
 		uint32_t table = Begin(&body, 1);
 		uint32_t payload = Payload(&body, payloads[i].size);
@@ -422,7 +425,7 @@ static void CheckPayloadSizes(void)
 }
 
 /* Builds a chain of length group nodes, each the only child of the one before, under one root. */
-static void Chain(Body *body, int length)
+static void Chain(struct Body *body, int length)
 {
 	uint32_t table = Begin(body, 1);
 	uint32_t below = Node(body, 0, OPT_GROUP, 0, 0, 0, 0);
@@ -436,7 +439,7 @@ static void Chain(Body *body, int length)
 
 static void CheckGraphLimits(void)
 {
-	Body body = {0};
+	struct Body body = {0};
 
 	/* A cycle through two nodes, and a node that is its own child. */
 	uint32_t table = Begin(&body, 1);
@@ -482,7 +485,7 @@ typedef enum Defect {
 } Defect;
 
 /* A named group with one vertex child, well formed, then spoiled by one defect. */
-static void Simple(Body *body, Defect defect)
+static void Simple(struct Body *body, Defect defect)
 {
 	static const uint8_t vertex[12] = {0};
 	uint32_t table = Begin(body, 1);
@@ -528,7 +531,7 @@ static void Simple(Body *body, Defect defect)
 /* Returns whether Read accepts the simple model spoiled by defect. */
 static int AcceptsSimple(Defect defect)
 {
-	Body body = {0};
+	struct Body body = {0};
 	Simple(&body, defect);
 	int accepted = Accepts(&body);
 	free(body.bytes);
@@ -552,7 +555,7 @@ static void CheckLinksInsideFile(void)
 static void CheckLoad(void)
 {
 	XvtStorage_Bind(g_vfs);
-	Body body = {0};
+	struct Body body = {0};
 	Simple(&body, DEFECT_NONE);
 	WriteModel("model.opt", 0, &body);
 
@@ -561,7 +564,8 @@ static void CheckLoad(void)
 	uint16_t handle = XvtOpt_Load("model.opt", &version, &nativeSize);
 	XVT_ASSERT_TRUE(handle != 0);
 	XVT_ASSERT_INT_EQ(version, 0);
-	XVT_ASSERT_TRUE(nativeSize >= sizeof(OptimizedPolyObject) + body.size);
+	XVT_ASSERT_TRUE(nativeSize >=
+			sizeof(struct OptimizedPolyObject) + body.size);
 	Memory_FreeHandle(handle);
 
 	/* A file that does not open returns 0 before any marker is read. */

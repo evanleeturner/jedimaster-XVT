@@ -73,11 +73,11 @@ struct MovieMultiplayerSyncPlayer {
 	int isWaiting;
 };
 
-extern MovieDirtyRect g_movieMergedDirtyRects[256];
+extern struct MovieDirtyRect g_movieMergedDirtyRects[256];
 extern unsigned int g_movieBottomMargin;
 extern int g_movieY;
 extern int g_movieRightMargin;
-extern MovieMultiplayerSyncPlayer g_movieMultiplayerSyncPlayers[8];
+extern struct MovieMultiplayerSyncPlayer g_movieMultiplayerSyncPlayers[8];
 extern XvtFile *g_movieSubtitleFile;
 
 HRESULT Movie_BlitRectToDisplay(int x, int y, int width, int height);
@@ -85,20 +85,20 @@ HRESULT Movie_UpdateDirectDrawPalette(void);
 int32_t AERON_DXAPI Movie_WindowProc(void *hWnd, unsigned int message,
 				     void *wParam, void *lParam);
 int Movie_HandlePaint(void *hWnd);
-int Movie_RunSmackerPlayback(const MoviePlaybackParams *params);
+int Movie_RunSmackerPlayback(const struct MoviePlaybackParams *params);
 int Movie_GetSmackBufferFormat(void);
 int Movie_InitializeSystemPalette(void *hWnd);
 void Movie_DecodeAndPresentFrame(void);
-void Movie_MergeDirtyRectLists(MovieDirtyRect *currentRects,
+void Movie_MergeDirtyRectLists(struct MovieDirtyRect *currentRects,
 			       unsigned int currentCount,
-			       MovieDirtyRect *previousRects,
+			       struct MovieDirtyRect *previousRects,
 			       unsigned int previousCount,
-			       MovieDirtyRect **mergedRects,
+			       struct MovieDirtyRect **mergedRects,
 			       unsigned int *mergedCount);
-int Movie_ComputeRectUnionAndIntersection(const MovieDirtyRect *a,
-					  const MovieDirtyRect *b,
-					  MovieDirtyRect *unionRect,
-					  MovieDirtyRect *intersectionRect);
+int Movie_ComputeRectUnionAndIntersection(
+	const struct MovieDirtyRect *a, const struct MovieDirtyRect *b,
+	struct MovieDirtyRect *unionRect,
+	struct MovieDirtyRect *intersectionRect);
 int Movie_Play(const char *name, int synchronizeMultiplayer);
 extern int g_movieSkipRequested;
 extern int g_moviePlaybackCompletionState;

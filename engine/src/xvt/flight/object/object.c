@@ -70,12 +70,12 @@ int g_activeRegionCraftObjectSlotEnd = 0;
  * g_objectTableHandle; FeDiskIo_LockGlobalBuffers points this at its locked
  * memory. In the modern build XvtFlightLoading_Reset sets NULL. */
 // GLOBAL: XVT 0x9A1FE8
-ObjectRecord *g_objectTable = 0;
+struct ObjectRecord *g_objectTable = 0;
 /* Per mobile slot, the pool entries Object_RelinkMobileObjectPointers
  * would link. Mission_Init sets every index to -1 and nothing else writes
  * them, so the relink links none. */
 // GLOBAL: XVT 0x99F9A0
-MobileObjectLinkIndices g_mobileObjectLinkIndices[488] = {{0}};
+struct MobileObjectLinkIndices g_mobileObjectLinkIndices[488] = {{0}};
 /* Object type each slot was last spawned with, written by
  * Mission_InitFlightGroupObjectSlot; Mission_Init fills it with -1. Read
  * only by Object_RelinkMobileObjectPointers, in a branch that never runs. */
@@ -93,14 +93,14 @@ int g_debrisObjectSlotStart = 0;
  * locked memory of g_mobileObjectCharDataHandle; FeDiskIo_LockGlobalBuffers
  * sets it. In the modern build XvtFlightLoading_Reset sets NULL. */
 // GLOBAL: XVT 0x9A8DA0
-MobileObjectCharData *g_mobileObjectCharDataPool = 0;
+struct MobileObjectCharData *g_mobileObjectCharDataPool = 0;
 /* One guidance record per shot slot, indexed by slot minus
  * g_projectileObjectSlotStart (g_projectileObjectSlotsTotal + 1 entries),
  * in the locked memory of g_warheadGuidancePoolHandle;
  * FeDiskIo_LockGlobalBuffers sets it. In the modern build
  * XvtFlightLoading_Reset sets NULL. */
 // GLOBAL: XVT 0x9A8E18
-WarheadGuidanceState *g_projectileGuidanceStates = 0;
+struct WarheadGuidanceState *g_projectileGuidanceStates = 0;
 /* Static slots after g_regionMainObjectSlotEnd, 64
  * (STATIC_OBJECT_SLOT_COUNT), set by Mission_Init and restored; -1 before
  * the first mission. */
@@ -123,7 +123,7 @@ int g_explosionObjectSlotStart = 0;
  * memory of g_mobileObjectPoolHandle; FeDiskIo_LockGlobalBuffers sets it.
  * In the modern build XvtFlightLoading_Reset sets NULL. */
 // GLOBAL: XVT 0x9D6820
-MobileObject *g_mobileObjectPoolBase = 0;
+struct MobileObject *g_mobileObjectPoolBase = 0;
 /* First shot slot, 32; set by Mission_Init and restored. Slots 32 to 159
  * hold player shots (12 per player, then 32 shared from slot 128), 160 to
  * 191 everyone else's. */
@@ -168,7 +168,7 @@ int g_mobileObjectCharDataSlotEnd = 0;
  * 191), 11 to debris, 13 to explosions, 16 to the character slots, and 8
  * to 10, 12, 14 and 15 to empty; 17 to 19 stay 0. */
 // GLOBAL: XVT 0xA082C0
-ObjectSlotRange g_objectSlotRangeByGenus[20] = {{0}};
+struct ObjectSlotRange g_objectSlotRangeByGenus[20] = {{0}};
 
 /* Advances every object in the mobile slots by one simulation step. First,
  * for each player flying a starfighter (remote players, then the local
@@ -224,7 +224,7 @@ void Object_UpdateLifetimeAndMovement(void)
 
 	for (playerIndex = 0; playerIndex < PLAYER_COUNT; ++playerIndex) {
 		int playerObjectIndex;
-		ObjectRecord *playerObject;
+		struct ObjectRecord *playerObject;
 		ModelIndex playerModelIndex;
 
 		if (g_players[playerIndex].participationState == 0 ||
@@ -263,7 +263,8 @@ void Object_UpdateLifetimeAndMovement(void)
 	playerIndex = (uint16_t)g_localPlayer;
 	if (g_players[playerIndex].objectIndex != -1) {
 		int playerObjectIndex = g_players[playerIndex].objectIndex;
-		ObjectRecord *playerObject = &g_objectTable[playerObjectIndex];
+		struct ObjectRecord *playerObject =
+			&g_objectTable[playerObjectIndex];
 
 		if (playerObject->genusId == CRAFT_GENUS_STARFIGHTER &&
 		    (g_singleObjectUpdateOverrideIdx == -1 ||
@@ -295,8 +296,8 @@ void Object_UpdateLifetimeAndMovement(void)
 	objectIndex = 0;
 	overrideProcessed = 0;
 	for (; objectIndex < g_regionMainObjectSlotEnd; ++objectIndex) {
-		ObjectRecord *object;
-		MobileObject *mobileObject;
+		struct ObjectRecord *object;
+		struct MobileObject *mobileObject;
 		uint16_t genusId;
 		uint16_t movementDistance;
 
@@ -456,7 +457,8 @@ void Object_UpdateLifetimeAndMovement(void)
 			if (rollImpulseRate != 0) {
 				if (objectIndex <
 				    g_activeRegionCraftObjectSlotEnd) {
-					CraftData *craft = mobileObject->pCraft;
+					struct CraftData *craft =
+						mobileObject->pCraft;
 
 					if (craft->aiFlight.impactObjIdx !=
 					    UINT16_MAX) {
@@ -576,7 +578,7 @@ void Object_UpdateLifetimeAndMovement(void)
 		case CRAFT_GENUS_UTILITY_VEHICLE:
 		case CRAFT_GENUS_FREIGHTER:
 		case CRAFT_GENUS_STARSHIP: {
-			CraftData *craft = mobileObject->pCraft;
+			struct CraftData *craft = mobileObject->pCraft;
 
 			if (mobileObject->moveVectorDirty != 0) {
 				FVIEW_calcrotatemove(object->pitch, object->yaw,
@@ -741,7 +743,7 @@ void Object_UpdateLifetimeAndMovement(void)
 			if (craft->carriedObjectIndex != UINT16_MAX) {
 				uint16_t carriedObjectIndex =
 					craft->carriedObjectIndex;
-				ObjectRecord *carriedObject =
+				struct ObjectRecord *carriedObject =
 					&g_objectTable[carriedObjectIndex];
 
 				if (carriedObject->mobj != NULL) {
@@ -805,7 +807,7 @@ void Object_UpdateLifetimeAndMovement(void)
 		}
 		case CRAFT_GENUS_PLAYER_PROJECTILE:
 		case CRAFT_GENUS_OTHER_PROJECTILE: {
-			WarheadGuidanceState *guidance =
+			struct WarheadGuidanceState *guidance =
 				mobileObject->pWarheadGuidance;
 
 			if (
@@ -822,7 +824,7 @@ void Object_UpdateLifetimeAndMovement(void)
 
 				if (targetObjectIndex <
 				    g_regionMainObjectSlotEnd) {
-					ObjectRecord *targetObject =
+					struct ObjectRecord *targetObject =
 						&g_objectTable
 							[targetObjectIndex];
 
@@ -848,7 +850,7 @@ void Object_UpdateLifetimeAndMovement(void)
 
 					if (targetObjectIndex <
 					    g_activeRegionCraftObjectSlotEnd) {
-						CraftData *targetCraft =
+						struct CraftData *targetCraft =
 							g_objectTable
 								[targetObjectIndex]
 									.mobj
@@ -862,7 +864,8 @@ void Object_UpdateLifetimeAndMovement(void)
 						}
 					}
 					if (decoyActive == 0) {
-						ObjectRecord *targetObject;
+						struct ObjectRecord
+							*targetObject;
 						int targetObjectType;
 						int centerX;
 						int centerY;
@@ -969,7 +972,7 @@ void Object_UpdateLifetimeAndMovement(void)
 						}
 						if ((uint16_t)turnStep >=
 						    absoluteDelta) {
-							MobileObject *
+							struct MobileObject *
 								homingMobileObject;
 							uint16_t speed;
 
@@ -1252,8 +1255,8 @@ void RenderNonCraftSceneObject(uint16_t objectIndex)
 		NONCRAFT_DEFAULT_SCREEN_SIZE = 256,
 	};
 
-	ObjectRecord *object;
-	ObjectTypeInfo *modelType;
+	struct ObjectRecord *object;
+	struct ObjectTypeInfo *modelType;
 	uint16_t rotationAngle;
 	int16_t *textureFrameSequence;
 	uint16_t frame;
@@ -1388,7 +1391,7 @@ uint16_t Object_SpawnEffectFragment(uint16_t sourceObjIdx)
 	int16_t yawOffset;
 	int16_t pitchOffset;
 	uint16_t *pitch;
-	MobileObject *mobileObject;
+	struct MobileObject *mobileObject;
 
 	objectIndex = Object_AllocSlotForGenus(CRAFT_GENUS_EXPLOSION);
 	if (objectIndex == UINT16_MAX) {
@@ -1450,7 +1453,7 @@ uint16_t Object_SpawnLocalEffectFragment(uint16_t sourceObjIdx)
 	int objectOffsetIndex;
 	int16_t yawOffset;
 	int16_t pitchOffset;
-	ObjectRecord *object;
+	struct ObjectRecord *object;
 	uint16_t speedPerFrame;
 
 	objectIndex = Object_AllocSlotForGenus(CRAFT_GENUS_EXPLOSION);
@@ -1601,19 +1604,19 @@ uint16_t Object_FindFreeMissionSlot(void)
 void Object_CopyStatePreservingStorage(unsigned int dstObjIdx,
 				       unsigned int srcObjIdx)
 {
-	CraftData *destinationCraft;
-	CraftData *sourceCraft;
-	WarheadGuidanceState *destinationGuidance;
-	WarheadGuidanceState *sourceGuidance;
-	MobileObjectCharData *destinationCharData;
-	MobileObjectCharData *sourceCharData;
-	MobileObject *destinationMobileObject;
-	MobileObject *sourceMobileObject;
-	CraftData *preservedCraft;
-	WarheadGuidanceState *preservedGuidance;
-	MobileObjectCharData *preservedCharData;
-	ObjectRecord *destinationObject;
-	ObjectRecord *sourceObject;
+	struct CraftData *destinationCraft;
+	struct CraftData *sourceCraft;
+	struct WarheadGuidanceState *destinationGuidance;
+	struct WarheadGuidanceState *sourceGuidance;
+	struct MobileObjectCharData *destinationCharData;
+	struct MobileObjectCharData *sourceCharData;
+	struct MobileObject *destinationMobileObject;
+	struct MobileObject *sourceMobileObject;
+	struct CraftData *preservedCraft;
+	struct WarheadGuidanceState *preservedGuidance;
+	struct MobileObjectCharData *preservedCharData;
+	struct ObjectRecord *destinationObject;
+	struct ObjectRecord *sourceObject;
 
 #ifdef XVT_MODERN
 	XvtFlightIntegration_ResetSlotAndMotion(dstObjIdx);
@@ -1681,7 +1684,7 @@ void Object_CopyStatePreservingStorage(unsigned int dstObjIdx,
 void Object_RelinkMobileObjectPointers(void)
 {
 	int objectIndex;
-	MobileObjectLinkIndices *linkIndices;
+	struct MobileObjectLinkIndices *linkIndices;
 	int linkedObjectIndex;
 
 	objectIndex = 0;
@@ -1740,7 +1743,7 @@ unsigned int Object_DirectionAndDistanceToMeshCenter(uint16_t fromObjIdx,
 						     unsigned int meshIdx)
 {
 	/* Resolve, rotate, and measure the target mesh center. */
-	ObjectRecord *fromObject = &g_objectTable[fromObjIdx];
+	struct ObjectRecord *fromObject = &g_objectTable[fromObjIdx];
 	int originX = fromObject->world_x;
 	int originY = fromObject->world_y;
 	int originZ = fromObject->world_z;
@@ -1776,7 +1779,7 @@ unsigned int Object_DirectionAndDistanceToMeshCenter(uint16_t fromObjIdx,
 // FUNCTION: XVT 0x484F80
 uint8_t Object_HasActiveDecoyBeam(uint16_t objIdx)
 {
-	CraftData *craft;
+	struct CraftData *craft;
 
 	if (objIdx == UINT16_MAX) {
 		return 0;

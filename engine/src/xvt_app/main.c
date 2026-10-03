@@ -7,7 +7,7 @@
 
 int main(int argc, char *argv[])
 {
-	XvtLaunchOptions options;
+	struct XvtLaunchOptions options;
 	int valid = XvtLaunchOptions_Parse(argc, argv, &options);
 	if (!valid || options.show_help) {
 		fprintf(valid ? stdout : stderr,

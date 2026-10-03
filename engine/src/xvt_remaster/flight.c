@@ -4,7 +4,7 @@
 #include "xvt_remaster/config.h"
 #include <string.h>
 
-static XvtPreparedFlight g_frame;
+static struct XvtPreparedFlight g_frame;
 static uint64_t g_lastMission, g_lastWorld, g_lastOpt, g_lastTexture;
 static int g_width, g_height;
 static uint64_t g_poseHostUs;
@@ -12,7 +12,8 @@ static uint64_t g_lastConfig, g_resizeSince;
 static int g_requestedWidth, g_requestedHeight, g_lastHdr, g_lastPaused;
 static float g_lastHeadroom;
 
-static int ViewDiscontinuity(const XvtSnapCamera *a, const XvtSnapCamera *b)
+static int ViewDiscontinuity(const struct XvtSnapCamera *a,
+			     const struct XvtSnapCamera *b)
 {
 	return a->player.slot != b->player.slot ||
 	       a->player.signature != b->player.signature ||
@@ -33,7 +34,7 @@ void XvtRemasterFlight_Invalidate(void) { g_frame.valid = 0; }
 
 void XvtRemasterFlight_RequestComposition(void) { g_frame.render_needed = 1; }
 
-const XvtPreparedFlight *XvtRemasterFlight_Current(void)
+const struct XvtPreparedFlight *XvtRemasterFlight_Current(void)
 {
 	return g_frame.valid ? &g_frame : NULL;
 }
@@ -44,8 +45,9 @@ const XvtPreparedFlight *XvtRemasterFlight_Current(void)
  * whether the frame must be drawn again. The decisions made near the top are
  * read by most later steps, so pieces split out would each take much of this
  * state as arguments or hand several values back. */
-int XvtRemasterFlight_Prepare(const XvtRenderSnapshot *s,
-			      const XvtRenderSnapshot *p, int width, int height)
+int XvtRemasterFlight_Prepare(const struct XvtRenderSnapshot *s,
+			      const struct XvtRenderSnapshot *p, int width,
+			      int height)
 {
 	if (!s || !s->flight_valid || !s->camera.valid) {
 		XvtRemasterFlight_Invalidate();
@@ -117,7 +119,8 @@ int XvtRemasterFlight_Prepare(const XvtRenderSnapshot *s,
 	    (s->camera.hud_state != HUD_VIEW_HUD_ONLY &&
 	     s->camera.hud_state != HUD_VIEW_FULL_SCREEN)) {
 		/* Match the centered bitmap frame without changing the scene projection. */
-		const XvtLayoutTransform *layout = &g_frame.cockpit_layout;
+		const struct XvtLayoutTransform *layout =
+			&g_frame.cockpit_layout;
 		int w = (int)(layout->source_width * layout->scale + .5f);
 		int h = (int)(layout->source_height * layout->scale + .5f);
 		g_frame.content_rect =
@@ -139,8 +142,8 @@ int XvtRemasterFlight_Prepare(const XvtRenderSnapshot *s,
 		}
 		unsigned previous_index = 0;
 		for (unsigned i = 0; i < s->object_count; ++i) {
-			const XvtSnapObject *object = &s->objects[i];
-			XvtPreparedObject *out = &g_frame.objects[i];
+			const struct XvtSnapObject *object = &s->objects[i];
+			struct XvtPreparedObject *out = &g_frame.objects[i];
 			XvtRenderMath_ObjectMatrix(object, s->camera.world_pos,
 						   out->transform);
 			out->previous_index = -1;
@@ -159,7 +162,8 @@ int XvtRemasterFlight_Prepare(const XvtRenderSnapshot *s,
 			if (previous_index == p->object_count) {
 				continue;
 			}
-			const XvtSnapObject *old = &p->objects[previous_index];
+			const struct XvtSnapObject *old =
+				&p->objects[previous_index];
 			if (old->id.slot != object->id.slot ||
 			    old->id.signature != object->id.signature ||
 			    old->object_type != object->object_type) {

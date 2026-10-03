@@ -3,7 +3,7 @@
 #include "xvt_runtime/config/config.h"
 
 static struct {
-	XvtVideoSettings defaults, requested, accepted, persisted;
+	struct XvtVideoSettings defaults, requested, accepted, persisted;
 	XvtVideoApplyFn apply;
 	bool pending, restore;
 	int observed_fullscreen;
@@ -25,10 +25,13 @@ void XvtVideoOptions_Configure(XvtVideoApplyFn apply)
 	g_video.observed_fullscreen = Aeron_Fullscreen();
 }
 
-void XvtVideoOptions_Get(XvtVideoSettings *out) { *out = g_video.requested; }
+void XvtVideoOptions_Get(struct XvtVideoSettings *out)
+{
+	*out = g_video.requested;
+}
 
-bool XvtVideoOptions_Request(const XvtVideoSettings *options, char *error,
-			     size_t capacity)
+bool XvtVideoOptions_Request(const struct XvtVideoSettings *options,
+			     char *error, size_t capacity)
 {
 	if (!XvtVideoSettings_Validate(options, error, capacity)) {
 		return false;
@@ -73,7 +76,7 @@ bool XvtVideoOptions_ApplyPending(char *error, size_t capacity)
 
 bool XvtVideoOptions_Flush(bool exiting, char *error, size_t capacity)
 {
-	const XvtVideoSettings *options =
+	const struct XvtVideoSettings *options =
 		exiting ? &g_video.requested : &g_video.accepted;
 	if (!g_video.restore &&
 	    XvtVideoSettings_Equals(options, &g_video.persisted)) {

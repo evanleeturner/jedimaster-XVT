@@ -7,12 +7,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct HyperStreakVertex {
+struct HyperStreakVertex {
 	float position[3];
 	float color[4];
-} HyperStreakVertex;
+};
 
-typedef struct HyperTunnelUniform {
+struct HyperTunnelUniform {
 	float view[4];
 	float projection[4];
 	float motion[4];
@@ -25,16 +25,16 @@ typedef struct HyperTunnelUniform {
 	float body_color[4];
 	float highlight_color[4];
 	float cap_color[4];
-} HyperTunnelUniform;
+};
 
 enum { HYPER_ENVIRONMENT_FACE_SIZE = 32, HYPER_ENVIRONMENT_ATLAS_WIDTH = 192 };
 
-typedef struct HyperEnvironmentUniform {
+struct HyperEnvironmentUniform {
 	float roughness;
 	float pad[3];
-} HyperEnvironmentUniform;
+};
 
-typedef struct XvtHyperspace {
+struct XvtHyperspace {
 	AeronShader *streak_vs, *streak_fs, *tunnel_vs, *tunnel_fs;
 	AeronGraphicsPipeline *streak_pipeline, *tunnel_pipeline;
 	AeronComputePipeline *environment_pipeline;
@@ -46,14 +46,14 @@ typedef struct XvtHyperspace {
 	uint32_t streak_vb_capacity, streak_vertex_count;
 	int draw_background;
 	float view_proj[16];
-	HyperTunnelUniform tunnel_uniform;
-} XvtHyperspace;
+	struct HyperTunnelUniform tunnel_uniform;
+};
 
-static XvtHyperspace g_hyper;
+static struct XvtHyperspace g_hyper;
 
 void XvtHyperspace_Shutdown(void)
 {
-	XvtHyperspace *h = &g_hyper;
+	struct XvtHyperspace *h = &g_hyper;
 	Aeron_DestroyGraphicsPipeline(h->streak_pipeline);
 	Aeron_DestroyGraphicsPipeline(h->tunnel_pipeline);
 	Aeron_DestroyShader(h->streak_vs);
@@ -70,7 +70,7 @@ void XvtHyperspace_Shutdown(void)
 
 static int Init(void)
 {
-	XvtHyperspace *h = &g_hyper;
+	struct XvtHyperspace *h = &g_hyper;
 	if (h->streak_vs) {
 		return 1;
 	}
@@ -210,7 +210,7 @@ hyper_create_fullscreen_pipeline(AeronShader *vs, AeronShader *fs,
 	});
 }
 
-static void hyper_destroy_pipelines(XvtHyperspace *h)
+static void hyper_destroy_pipelines(struct XvtHyperspace *h)
 {
 	if (h->streak_pipeline) {
 		Aeron_DestroyGraphicsPipeline(h->streak_pipeline);
@@ -223,18 +223,19 @@ static void hyper_destroy_pipelines(XvtHyperspace *h)
 	h->pipeline_samples = 0;
 }
 
-static int hyper_ensure_pipelines(XvtHyperspace *h,
+static int hyper_ensure_pipelines(struct XvtHyperspace *h,
 				  AeronSampleCount sample_count)
 {
 	static const AeronVertexAttributeDesc streak_attrs[] = {
 		{.location = 0,
 		 .buffer_slot = 0,
 		 .format = AERON_VERTEX_FORMAT_FLOAT3,
-		 .offset = (uint32_t)offsetof(HyperStreakVertex, position)},
+		 .offset = (uint32_t)offsetof(struct HyperStreakVertex,
+					      position)},
 		{.location = 1,
 		 .buffer_slot = 0,
 		 .format = AERON_VERTEX_FORMAT_FLOAT4,
-		 .offset = (uint32_t)offsetof(HyperStreakVertex, color)},
+		 .offset = (uint32_t)offsetof(struct HyperStreakVertex, color)},
 	};
 	if (h->pipeline_samples == sample_count && h->streak_pipeline &&
 	    h->tunnel_pipeline) {
@@ -242,8 +243,9 @@ static int hyper_ensure_pipelines(XvtHyperspace *h,
 	}
 	hyper_destroy_pipelines(h);
 	h->streak_pipeline = hyper_create_pipeline(
-		h->streak_vs, h->streak_fs, (uint32_t)sizeof(HyperStreakVertex),
-		streak_attrs, 2, hyper_blend_additive(), sample_count);
+		h->streak_vs, h->streak_fs,
+		(uint32_t)sizeof(struct HyperStreakVertex), streak_attrs, 2,
+		hyper_blend_additive(), sample_count);
 	h->tunnel_pipeline = hyper_create_fullscreen_pipeline(
 		h->tunnel_vs, h->tunnel_fs, sample_count);
 	if (!h->streak_pipeline || !h->tunnel_pipeline) {
@@ -254,7 +256,7 @@ static int hyper_ensure_pipelines(XvtHyperspace *h,
 	return 1;
 }
 
-static int hyper_ensure_streak_buffer(XvtHyperspace *h, uint32_t bytes)
+static int hyper_ensure_streak_buffer(struct XvtHyperspace *h, uint32_t bytes)
 {
 	if (bytes == 0) {
 		return 1;
@@ -298,12 +300,12 @@ static void hyper_widescreen_remap(float p[3], const float camera_rows[9],
 	}
 }
 
-static void hyper_emit_streak(HyperStreakVertex *out,
-			      const XvtSnapStreak *streak, float extent,
+static void hyper_emit_streak(struct HyperStreakVertex *out,
+			      const struct XvtSnapStreak *streak, float extent,
 			      float transition_y, const float camera_rows[9],
 			      float x_scale)
 {
-	XvtSnapObject synthetic;
+	struct XvtSnapObject synthetic;
 	memset(&synthetic, 0, sizeof synthetic);
 	synthetic.orient_dirty = 1;
 	synthetic.pitch = 0x4000u;
@@ -339,7 +341,8 @@ static void hyper_emit_streak(HyperStreakVertex *out,
 	}
 }
 
-static int hyper_generate_environment(XvtHyperspace *h, AeronCommandBuffer *cmd)
+static int hyper_generate_environment(struct XvtHyperspace *h,
+				      AeronCommandBuffer *cmd)
 {
 	const AeronComputeTextureBinding output = {
 		.texture = h->environment_atlas};
@@ -352,7 +355,7 @@ static int hyper_generate_environment(XvtHyperspace *h, AeronCommandBuffer *cmd)
 	if (!pass) {
 		return 0;
 	}
-	const HyperEnvironmentUniform environment = {
+	const struct HyperEnvironmentUniform environment = {
 		.roughness = XvtRemasterConfig_Effective()
 				     ->hyperspace.mesh_environment_roughness,
 	};
@@ -384,10 +387,11 @@ static int hyper_generate_environment(XvtHyperspace *h, AeronCommandBuffer *cmd)
 	return 1;
 }
 
-int XvtHyperspace_Prepare(AeronCommandBuffer *cmd, const XvtRenderSnapshot *s,
-			  AeronScene3D *scene, const XvtRenderView *view)
+int XvtHyperspace_Prepare(AeronCommandBuffer *cmd,
+			  const struct XvtRenderSnapshot *s,
+			  AeronScene3D *scene, const struct XvtRenderView *view)
 {
-	XvtHyperspace *h = &g_hyper;
+	struct XvtHyperspace *h = &g_hyper;
 	h->streak_vertex_count = 0;
 	h->draw_background = 0;
 	h->lighting_scene = NULL;
@@ -404,9 +408,9 @@ int XvtHyperspace_Prepare(AeronCommandBuffer *cmd, const XvtRenderSnapshot *s,
 	const float *rows = s->camera.rows;
 	unsigned ticks = s->hyperspace.elapsed_ticks;
 	if (ticks >= XVT_SNAP_HYPERSPACE_STREAK_END) {
-		const XvtHyperspaceSettings *p =
+		const struct XvtHyperspaceSettings *p =
 			&XvtRemasterConfig_Effective()->hyperspace;
-		HyperTunnelUniform *u = &h->tunnel_uniform;
+		struct HyperTunnelUniform *u = &h->tunnel_uniform;
 		memset(u, 0, sizeof *u);
 		u->view[0] = (float)width;
 		u->view[1] = (float)height;
@@ -446,11 +450,12 @@ int XvtHyperspace_Prepare(AeronCommandBuffer *cmd, const XvtRenderSnapshot *s,
 	if (!count) {
 		return 1;
 	}
-	uint32_t bytes = count * 6u * (uint32_t)sizeof(HyperStreakVertex);
+	uint32_t bytes =
+		count * 6u * (uint32_t)sizeof(struct HyperStreakVertex);
 	if (!hyper_ensure_streak_buffer(h, bytes)) {
 		return 0;
 	}
-	HyperStreakVertex *vertices = malloc(bytes);
+	struct HyperStreakVertex *vertices = malloc(bytes);
 	if (!vertices) {
 		return 0;
 	}
@@ -482,7 +487,7 @@ void XvtHyperspace_Draw(AeronCommandBuffer *command_buffer,
 			AeronRenderPass *pass, int rt_w, int rt_h, void *user)
 {
 	(void)user;
-	XvtHyperspace *h = &g_hyper;
+	struct XvtHyperspace *h = &g_hyper;
 	if (!h || !pass) {
 		return;
 	}
@@ -509,17 +514,17 @@ void XvtHyperspace_Draw(AeronCommandBuffer *command_buffer,
 	}
 }
 
-int XvtHyperspace_Lighting(AeronScene3D *scene, XvtHyperLighting *out)
+int XvtHyperspace_Lighting(AeronScene3D *scene, struct XvtHyperLighting *out)
 {
-	const XvtHyperspace *h = &g_hyper;
+	const struct XvtHyperspace *h = &g_hyper;
 	if (!h->draw_background || h->lighting_scene != scene) {
 		return 0;
 	}
-	const XvtHyperspaceSettings *p =
+	const struct XvtHyperspaceSettings *p =
 		&XvtRemasterConfig_Effective()->hyperspace;
-	*out = (XvtHyperLighting){.texture = h->environment_cube,
-				  .sampler = h->environment_sampler,
-				  .direction = {0, 1, 0}};
+	*out = (struct XvtHyperLighting){.texture = h->environment_cube,
+					 .sampler = h->environment_sampler,
+					 .direction = {0, 1, 0}};
 	for (int c = 0; c < 3; ++c) {
 		out->color[c] = p->cap_color[c] * p->brightness *
 				p->highlight_strength * p->mesh_key_strength;

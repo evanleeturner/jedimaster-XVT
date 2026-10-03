@@ -11,8 +11,8 @@
 #include <string.h>
 
 /* Parses text's mouse settings into *options and returns what the parser returned. */
-static bool ParseText(const char *text, XvtMouseOptions *options, char *error,
-		      size_t capacity)
+static bool ParseText(const char *text, struct XvtMouseOptions *options,
+		      char *error, size_t capacity)
 {
 	AeronConfigFile *document = Fixture_Yaml(text);
 	error[0] = 0;
@@ -23,7 +23,7 @@ static bool ParseText(const char *text, XvtMouseOptions *options, char *error,
 
 static void ExpectRefused(const char *text)
 {
-	XvtMouseOptions options;
+	struct XvtMouseOptions options;
 	char error[256];
 	Fixture_Case(text);
 	XVT_ASSERT_TRUE(!ParseText(text, &options, error, sizeof error));
@@ -34,7 +34,7 @@ static void ExpectRefused(const char *text)
 static void CheckParse(void)
 {
 	Fixture_Begin();
-	XvtMouseOptions options;
+	struct XvtMouseOptions options;
 	char error[256];
 	XVT_ASSERT_TRUE(ParseText(
 		"input:\n  mouse_flight: true\n  mouse_sensitivity: 7\n  mouse_invert_y: false\n",
@@ -85,12 +85,13 @@ static void CheckSetMouse(void)
 {
 	Fixture_Begin();
 	char error[512];
-	XvtMouseOptions options = {0, 5, 0};
+	struct XvtMouseOptions options = {0, 5, 0};
 	/* Needs loaded settings. */
 	XVT_ASSERT_TRUE(!XvtConfig_SetMouse(&options, error, sizeof error));
 
 	Fixture_Load();
-	const XvtMouseOptions defaults = XvtConfig_DefaultSettings()->mouse;
+	const struct XvtMouseOptions defaults =
+		XvtConfig_DefaultSettings()->mouse;
 	uint64_t generation = XvtConfig_Generation();
 
 	/* Two options differ from the shipped default and are stored; the third equals it and is not. */
@@ -110,7 +111,7 @@ static void CheckSetMouse(void)
 		AeronConfigFile_GetInt(user, "input.mouse_sensitivity", -1),
 		options.mouse_sensitivity);
 	XVT_ASSERT_TRUE(!AeronConfigFile_Has(user, "input.mouse_invert_y"));
-	const XvtMouseOptions *stored = &XvtConfig_Settings()->mouse;
+	const struct XvtMouseOptions *stored = &XvtConfig_Settings()->mouse;
 	XVT_ASSERT_INT_EQ(stored->mouse_flight_enabled,
 			  options.mouse_flight_enabled);
 	XVT_ASSERT_INT_EQ(stored->mouse_sensitivity, options.mouse_sensitivity);

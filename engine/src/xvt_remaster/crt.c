@@ -138,15 +138,16 @@ invalid:
 	return 0;
 }
 
-int XvtCrt_PrepareView(const XvtSnapPreview *preview,
-		       const XvtSnapCockpitLayout *layout, AeronTexture *color,
-		       int width, int height, float scale, float ox, float oy)
+int XvtCrt_PrepareView(const struct XvtSnapPreview *preview,
+		       const struct XvtSnapCockpitLayout *layout,
+		       AeronTexture *color, int width, int height, float scale,
+		       float ox, float oy)
 {
 	g_color = NULL;
 	if (!preview || !color) {
 		return 1;
 	}
-	XvtSnapRect r = preview->destination;
+	struct XvtSnapRect r = preview->destination;
 	unsigned index = preview->mask_index;
 	unsigned size = index < 3 ? layout->mask_bytes[index] : 0;
 	if (size > sizeof g_masks[0].bytes || r.width <= 0 || r.height <= 0 ||
@@ -211,13 +212,13 @@ void XvtCrt_Shutdown(void)
 }
 
 int XvtCrt_PrepareResources(AeronCommandBuffer *cmd,
-			    const XvtCockpitResources *resources)
+			    const struct XvtCockpitResources *resources)
 {
 	if (!Resources()) {
 		return 0;
 	}
 	for (unsigned index = 0; index < 3; ++index) {
-		const XvtSnapHudElement *element =
+		const struct XvtSnapHudElement *element =
 			&resources->definition.layout
 				 .elements[index * HUD_INSTRUMENTS_PER_SET + 2];
 		unsigned size = resources->definition.layout.mask_bytes[index];

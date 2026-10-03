@@ -27,7 +27,7 @@ unsigned int g_handleAllocationAttemptCount = 0;
  * also reads it: XvtFrontendTask_Shutdown frees every live handle, and
  * XvtRenderCapture_CaptureView reads the object table's size from it. */
 // GLOBAL: XVT 0x622CE8
-MemoryHandleTableState g_handleTables = {0};
+struct MemoryHandleTableState g_handleTables = {0};
 
 /* In the original build, makes size bytes from address readable, writable and
  * executable (VirtualProtect with 0x40) and returns VirtualProtect's result:

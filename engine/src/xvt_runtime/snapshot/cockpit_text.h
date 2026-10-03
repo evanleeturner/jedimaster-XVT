@@ -32,19 +32,20 @@ void XvtCockpitText_RecordField(XvtCockpitTextFieldId field, const char *text,
  * map, shield or warning is hidden in state; the other fields show only in the forward and
  * HUD-only views, except the resource name. Reads state's readouts, target, systems, proving
  * grounds and view, so those must be filled first. */
-void XvtCockpitText_CopyFields(XvtCockpitState *state);
+void XvtCockpitText_CopyFields(struct XvtCockpitState *state);
 /* Copies field id moved by the offset (x only for left-aligned text), drawn after the CRT and
  * keyed on the bypass color. id is not range-checked. */
-void XvtCockpitText_CopyPlacedField(XvtCockpitTextField *field,
+void XvtCockpitText_CopyPlacedField(struct XvtCockpitTextField *field,
 				    XvtCockpitTextFieldId id, int offset_x,
 				    int offset_y);
 /* Fills glyph for character at the live text cursor, relative to the origin, with colors from
  * palette; when keyed, a color equal to the bypass color becomes 0. Returns 1, or 0 when the
  * glyph cell lies outside the clip rectangle, leaving glyph untouched. */
-int XvtCockpitText_CaptureGlyph(XvtCockpitGlyph *glyph, unsigned character,
-				unsigned advance, unsigned height, int narrow,
-				int origin_x, int origin_y,
-				const uint32_t palette[256], int keyed);
+int XvtCockpitText_CaptureGlyph(struct XvtCockpitGlyph *glyph,
+				unsigned character, unsigned advance,
+				unsigned height, int narrow, int origin_x,
+				int origin_y, const uint32_t palette[256],
+				int keyed);
 #ifdef __cplusplus
 }
 #endif

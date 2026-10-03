@@ -402,7 +402,7 @@ int XvtFlightSim_Advance(int targetGameTime)
 				      : g_flightSimSideEffectsSuppressed;
 	for (playerIdx = g_sim.replayPending ? g_sim.player : 0;
 	     playerIdx < PLAYER_COUNT; ++playerIdx) {
-		InputFrame *frame;
+		struct InputFrame *frame;
 		int frameIteration;
 		int frameCount;
 
@@ -447,8 +447,8 @@ int XvtFlightSim_Advance(int targetGameTime)
 				savedGameTime = g_gameTime;
 				if (g_gameTime >= frame->timestamp &&
 				    g_players[playerIdx].objectIndex != -1) {
-					ObjectRecord *object;
-					MobileObject *mobileObject;
+					struct ObjectRecord *object;
+					struct MobileObject *mobileObject;
 
 					object = &g_objectTable
 							 [g_players[playerIdx]
@@ -599,7 +599,7 @@ int XvtFlightSim_Advance(int targetGameTime)
 					if (g_objectTable
 						    [g_singleObjectUpdateOverrideIdx]
 							    .mobj != NULL) {
-						ObjectRecord *object;
+						struct ObjectRecord *object;
 
 						g_elapsedTicks =
 							(uint16_t)(frame->timestamp -
@@ -816,7 +816,8 @@ XvtFlightStepResult XvtFlightSim_StepToTime(int targetGameTime)
 
 		if (g_flightMissionState.provingGroundsModeActive == 0 &&
 		    XvtFlightTiming_ReferenceDue()) {
-			XvtFlightClock clock = XvtFlightTiming_EnterReference();
+			struct XvtFlightClock clock =
+				XvtFlightTiming_EnterReference();
 			Mission_UpdateFlightGroupArrivals();
 			pai_UpdateAllCraftAI();
 			XvtFlightTiming_RestoreClock(clock);
@@ -887,7 +888,8 @@ void XvtFlightHistory_RestoreCheckpoint(void)
 	for (unsigned player = 0; player < XVT_FLIGHT_PLAYERS; ++player) {
 		int retained = 0;
 		for (int i = 0; i < g_inputFrameCount[player]; ++i) {
-			const InputFrame *frame = &g_inputHistory[player][i];
+			const struct InputFrame *frame =
+				&g_inputHistory[player][i];
 			if (!g_players[player].participationState ||
 			    frame->inputSource == XVT_INPUT_PREDICTED ||
 			    frame->timestamp <=
@@ -902,7 +904,8 @@ void XvtFlightHistory_RestoreCheckpoint(void)
 
 XvtInputInsertStatus
 XvtFlightHistory_Insert(unsigned player, int tick,
-			const FlightInputFrameRecord *input, InputFrame **out)
+			const struct FlightInputFrameRecord *input,
+			struct InputFrame **out)
 {
 	*out = NULL;
 	if (player >= XVT_FLIGHT_PLAYERS || tick <= 0 || !input ||
@@ -914,7 +917,7 @@ XvtFlightHistory_Insert(unsigned player, int tick,
 	if (count < 0 || count > XVT_INPUT_HISTORY_CAPACITY) {
 		return XVT_INPUT_INVALID;
 	}
-	InputFrame *frames = g_inputHistory[player];
+	struct InputFrame *frames = g_inputHistory[player];
 	while (index < count && frames[index].timestamp < tick) {
 		++index;
 	}
@@ -931,7 +934,7 @@ XvtFlightHistory_Insert(unsigned player, int tick,
 			(count - index) * sizeof *frames);
 		++g_inputFrameCount[player];
 	}
-	InputFrame *frame = frames + index;
+	struct InputFrame *frame = frames + index;
 	frame->timestamp = tick;
 	frame->inputSource = XVT_INPUT_REAL;
 	frame->awaitingRelay = 0;
@@ -942,10 +945,10 @@ XvtFlightHistory_Insert(unsigned player, int tick,
 
 XvtInputInsertStatus
 XvtFlightHistory_InsertReal(unsigned player, int tick,
-			    const FlightInputFrameRecord *input,
+			    const struct FlightInputFrameRecord *input,
 			    int authoritative)
 {
-	InputFrame *frame;
+	struct InputFrame *frame;
 	XvtInputInsertStatus status =
 		XvtFlightHistory_Insert(player, tick, input, &frame);
 	if (status == XVT_INPUT_FULL) {
@@ -962,7 +965,7 @@ XvtFlightHistory_InsertReal(unsigned player, int tick,
 			!authoritative && NetSession_IsLocalHost();
 	} else if (authoritative) {
 		for (int i = 0; i < g_inputFrameCount[player]; ++i) {
-			InputFrame *old = &g_inputHistory[player][i];
+			struct InputFrame *old = &g_inputHistory[player][i];
 			if (old->timestamp != tick) {
 				continue;
 			}
@@ -990,7 +993,8 @@ void XvtFlightHistory_Recover(void)
 	for (unsigned player = 0; player < XVT_FLIGHT_PLAYERS; ++player) {
 		int retained = 0;
 		for (int i = 0; i < g_inputFrameCount[player]; ++i) {
-			const InputFrame *frame = &g_inputHistory[player][i];
+			const struct InputFrame *frame =
+				&g_inputHistory[player][i];
 			/* Host records will reconstruct peer input; preserve only future local samples. */
 			if (player != (unsigned)g_localPlayer ||
 			    !g_players[player].participationState ||

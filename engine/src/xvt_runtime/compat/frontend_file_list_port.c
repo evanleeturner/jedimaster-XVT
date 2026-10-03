@@ -7,19 +7,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct FrontendFileListBuildState {
-	FrontendFileList *list;
+struct FrontendFileListBuildState {
+	struct FrontendFileList *list;
 	char directory[XVT_PATH_CAPACITY];
-} FrontendFileListBuildState;
+};
 
 static int FrontendFileList_CollectModernFile(void *userdata,
 					      const AeronVfsEntry *entry)
 {
-	FrontendFileListBuildState *state;
-	FrontendFileListNode *node;
+	struct FrontendFileListBuildState *state;
+	struct FrontendFileListNode *node;
 
-	state = (FrontendFileListBuildState *)userdata;
-	node = (FrontendFileListNode *)malloc(sizeof(*node));
+	state = (struct FrontendFileListBuildState *)userdata;
+	node = (struct FrontendFileListNode *)malloc(sizeof(*node));
 	if (node == NULL) {
 		return 0;
 	}
@@ -41,11 +41,12 @@ static int FrontendFileList_CollectModernFile(void *userdata,
 	return 1;
 }
 
-FrontendFileList *FrontendFileList_BuildSortedModern(const char *wildcard)
+struct FrontendFileList *
+FrontendFileList_BuildSortedModern(const char *wildcard)
 {
-	FrontendFileListBuildState state;
+	struct FrontendFileListBuildState state;
 
-	state.list = (FrontendFileList *)malloc(sizeof(*state.list));
+	state.list = (struct FrontendFileList *)malloc(sizeof(*state.list));
 	if (state.list == NULL) {
 		return NULL;
 	}
@@ -64,9 +65,9 @@ FrontendFileList *FrontendFileList_BuildSortedModern(const char *wildcard)
 	}
 	if (!XvtStorage_Glob(AERON_VFS_ROOT_USER, wildcard,
 			     FrontendFileList_CollectModernFile, &state)) {
-		FrontendFileListNode *node = state.list->head;
+		struct FrontendFileListNode *node = state.list->head;
 		while (node) {
-			FrontendFileListNode *next = node->next;
+			struct FrontendFileListNode *next = node->next;
 			free(node->path);
 			free(node);
 			node = next;

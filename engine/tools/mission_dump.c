@@ -19,11 +19,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct DumpMission {
-	MissionHeader header;
-	XvtFlightGroup groups[48];
+struct DumpMission {
+	struct MissionHeader header;
+	struct XvtFlightGroup groups[48];
 	unsigned groupCount;
-} DumpMission;
+};
 
 static const char *const variableNames[] = {"None",
 					    "FlightGroup",
@@ -212,7 +212,8 @@ static void quote(const char *value, size_t size)
 	putchar('"');
 }
 
-static void target(const DumpMission *mission, unsigned type, unsigned value)
+static void target(const struct DumpMission *mission, unsigned type,
+		   unsigned value)
 {
 	printf("%s(%u)=%u",
 	       lookup(variableNames,
@@ -235,7 +236,8 @@ static void target(const DumpMission *mission, unsigned type, unsigned value)
 	}
 }
 
-static void trigger(const DumpMission *mission, const MissionTrigger *t)
+static void trigger(const struct DumpMission *mission,
+		    const struct MissionTrigger *t)
 {
 	printf("%s(%u) ",
 	       lookup(conditionNames,
@@ -249,7 +251,8 @@ static void trigger(const DumpMission *mission, const MissionTrigger *t)
 	       (uint8_t)t->amount);
 }
 
-static void pair(const DumpMission *mission, const MissionTriggerPair *p)
+static void pair(const struct DumpMission *mission,
+		 const struct MissionTriggerPair *p)
 {
 	putchar('(');
 	trigger(mission, &p->triggers[0]);
@@ -259,8 +262,8 @@ static void pair(const DumpMission *mission, const MissionTriggerPair *p)
 	putchar(')');
 }
 
-static void order(const DumpMission *mission, const MissionOrder *o,
-		  unsigned index)
+static void order(const struct DumpMission *mission,
+		  const struct MissionOrder *o, unsigned index)
 {
 	printf("  Order[%u] %s(%u) throttle=%u vars=%u,%u,%u,%u speed=%u designation=",
 	       index,
@@ -292,12 +295,12 @@ static void teams_enabled(const uint8_t *teams)
 	}
 }
 
-static void group(const DumpMission *mission, unsigned index)
+static void group(const struct DumpMission *mission, unsigned index)
 {
-	const XvtFlightGroup *fg = &mission->groups[index];
+	const struct XvtFlightGroup *fg = &mission->groups[index];
 	unsigned i;
 	printf("\nFG[%u] @0x%zx ", index,
-	       2 + sizeof(MissionHeader) + index * sizeof(*fg));
+	       2 + sizeof(struct MissionHeader) + index * sizeof(*fg));
 	quote(fg->name, sizeof(fg->name));
 	printf(" species=%u craft=%u waves(raw)=%u IFF=%u team=%u AI=%u globalGroup=%u globalUnit=%u\n",
 	       fg->craftType, fg->numberOfCraft, fg->numberOfWaves, fg->iff,
@@ -337,7 +340,7 @@ static void group(const DumpMission *mission, unsigned index)
 	pair(mission, &fg->skipToOrder4);
 	putchar('\n');
 	for (i = 0; i < 8; ++i) {
-		const FlightGroupGoal *g = &fg->goals[i];
+		const struct FlightGroupGoal *g = &fg->goals[i];
 		printf("  Goal[%u] type=%u condition=%s(%u) amount=%s(%u) points(raw)=%d teams:",
 		       i, g->goalKind,
 		       lookup(conditionNames,
@@ -363,13 +366,13 @@ static void group(const DumpMission *mission, unsigned index)
 	}
 }
 
-static int messages_and_goals(FILE *fp, const DumpMission *mission,
+static int messages_and_goals(FILE *fp, const struct DumpMission *mission,
 			      unsigned messageCount)
 {
 	unsigned i, j, count, index;
 	uint8_t seen[64] = {0};
 	for (i = 0; i < messageCount; ++i) {
-		MissionMessage m;
+		struct MissionMessage m;
 		if (!read_word(fp, &index)) {
 			return 0;
 		}
@@ -406,7 +409,7 @@ static int messages_and_goals(FILE *fp, const DumpMission *mission,
 			return 0;
 		}
 		for (j = 0; j < count; ++j) {
-			GlobalGoal g;
+			struct GlobalGoal g;
 			if (!read_exact(fp, &g, sizeof(g))) {
 				return 0;
 			}
@@ -423,7 +426,7 @@ static int messages_and_goals(FILE *fp, const DumpMission *mission,
 		}
 	}
 	for (i = 0; i < 10; ++i) {
-		Team t;
+		struct Team t;
 		if (!read_word(fp, &count)) {
 			return 0;
 		}
@@ -500,7 +503,7 @@ static int text_tail(FILE *fp, unsigned groupCount)
 
 static int dump(FILE *fp)
 {
-	DumpMission mission;
+	struct DumpMission mission;
 	unsigned version, messageCount, i;
 	if (!read_word(fp, &version)) {
 		return 0;

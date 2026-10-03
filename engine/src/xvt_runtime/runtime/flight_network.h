@@ -76,7 +76,7 @@ void XvtFlightNetwork_FlushWorld(void);
 void XvtFlightNetwork_SendWorld(void);
 /* Records each input of message as authoritative. Returns 0 at the first record that fails to
  * decode or record (a record failure requests recovery), else 1. */
-int XvtFlightNetwork_InsertWorld(const XvtFlightMessage *message);
+int XvtFlightNetwork_InsertWorld(const struct XvtFlightMessage *message);
 /* Consumes flight data packets and returns 1 for them; returns 0 for any other packet. An input
  * batch from a connected remote player, unless a resync holds input, replaces the player's
  * predicted frames with its records as real input, stopping at the first failure. A world message

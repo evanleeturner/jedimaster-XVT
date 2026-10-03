@@ -60,7 +60,7 @@ int g_fviewUpZ_Q15 = 0;
 void FVIEW_BuildCameraOrient(int16_t viewRoll, int16_t viewPitch,
 			     int16_t viewYaw, int16_t viewUpAxisAngle,
 			     int16_t hudAimX, int16_t hudAimY,
-			     ObjectRecord *objRecord)
+			     struct ObjectRecord *objRecord)
 {
 	/* Build the camera basis from the current orientation and HUD aim offsets. */
 	int axisX;
@@ -107,7 +107,8 @@ void FVIEW_BuildCameraOrient(int16_t viewRoll, int16_t viewPitch,
  * the record's mobj. Does not check that mobj is set. */
 // FUNCTION: XVT 0x427A60
 int FVIEW_SetObjectTransform(int16_t roll, int16_t pitch, int16_t yaw,
-			     int16_t upAxisAngle, ObjectRecord *objRecord)
+			     int16_t upAxisAngle,
+			     struct ObjectRecord *objRecord)
 {
 	if (objRecord == NULL) {
 		FVIEW_calcrotatemove(pitch, yaw, objRecord);
@@ -151,7 +152,8 @@ int FVIEW_SetObjectTransform(int16_t roll, int16_t pitch, int16_t yaw,
  * that direction as its mobj's moveX, moveY and moveZ and clears
  * moveVectorDirty. */
 // FUNCTION: XVT 0x427BD0
-void FVIEW_calcrotatemove(int16_t pitch, int16_t yaw, ObjectRecord *objRecord)
+void FVIEW_calcrotatemove(int16_t pitch, int16_t yaw,
+			  struct ObjectRecord *objRecord)
 {
 	int16_t cosNegB;
 	int16_t cosC000MinusA;
@@ -191,7 +193,7 @@ void FVIEW_calcrotatemove(int16_t pitch, int16_t yaw, ObjectRecord *objRecord)
  * cachedUpZ) and clears orientMatrixDirty. */
 // FUNCTION: XVT 0x427D30
 void FVIEW_calcrotateorient(int16_t roll, int16_t upAxisAngle,
-			    ObjectRecord *objRecord)
+			    struct ObjectRecord *objRecord)
 {
 	FVIEW_transformaxes(g_curMatR1_X, g_curMatR1_Y, g_curMatR1_Z,
 			    upAxisAngle);

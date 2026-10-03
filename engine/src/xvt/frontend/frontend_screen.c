@@ -40,7 +40,8 @@ void FrontendScreen_SetCallbacks(FrontendScreenUpdateFn updateFn,
  * FrontendDisplay_RunFrame, which runs modal screens, never pushes it; its
  * FrontendDisplay_RunMainLoop and the modern build's frame loop do. */
 // FUNCTION: XVT 0x4DC380
-int FrontendScreen_QueuePush(int (*updateFn)(int), const RECT *screenRect)
+int FrontendScreen_QueuePush(int (*updateFn)(int),
+			     const struct RECT *screenRect)
 {
 	g_frontState.pendingScreenUpdateFn = updateFn;
 	FrontendDraw_RectCopy(&g_frontState.pendingScreenRect, screenRect);
@@ -58,7 +59,8 @@ int FrontendScreen_QueuePush(int (*updateFn)(int), const RECT *screenRect)
  * and returns 1. The modern build instead returns XvtDialog_Begin's result,
  * XVT_DIALOG_PENDING (-1), and its frame loop runs the dialog. */
 // FUNCTION: XVT 0x4DC3B0
-int FrontendScreen_RunModal(FrontendScreenUpdateFn updateFn, RECT *screenRect)
+int FrontendScreen_RunModal(FrontendScreenUpdateFn updateFn,
+			    struct RECT *screenRect)
 {
 #ifdef XVT_MODERN
 	return XvtDialog_Begin(updateFn, screenRect);
@@ -116,9 +118,10 @@ int FrontendScreen_RunModal(FrontendScreenUpdateFn updateFn, RECT *screenRect)
  * Leaves the new slot's exitFn as it was. The modern build also copies the rect
  * into its renderer's saved target for the slot. */
 // FUNCTION: XVT 0x4DC450
-int FrontendScreen_PushState(FrontendScreenUpdateFn updateFn, RECT *screenRect)
+int FrontendScreen_PushState(FrontendScreenUpdateFn updateFn,
+			     struct RECT *screenRect)
 {
-	RECT rect;
+	struct RECT rect;
 	int slot;
 	int width;
 	int height;
@@ -307,7 +310,7 @@ void FrontendScreen_PopState(void)
 	uint8_t *pixels;
 	int rowBytes;
 	int wasBackBufferLocked;
-	RECT rect;
+	struct RECT rect;
 	int column;
 	int displayBpp;
 	uint8_t *rowDestination;
@@ -417,7 +420,8 @@ void FrontendScreen_PopState(void)
 	}
 
 	FrontendDisplay_SetScreenClipRect640x480(
-		(const RECT *)&g_frontState.screenStates[slot].savedClipMinX);
+		(const struct RECT *)&g_frontState.screenStates[slot]
+			.savedClipMinX);
 	g_frontState.screenStackTop = slot;
 	g_frontState.frameCounter =
 		g_frontState.screenStates[slot].savedFrameCounter;

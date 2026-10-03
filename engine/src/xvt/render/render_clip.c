@@ -48,10 +48,10 @@ float g_invProjScale;
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4096D0
 int RenderClip_ClipPolyTop(int prevVertIndex, int curVertIndex,
-			   RenderClipVertex *vertices)
+			   struct RenderClipVertex *vertices)
 {
-	RenderClipVertex *previous;
-	RenderClipVertex *current;
+	struct RenderClipVertex *previous;
+	struct RenderClipVertex *current;
 	float previousY;
 	float currentY;
 	int result;
@@ -85,7 +85,7 @@ int RenderClip_ClipPolyTop(int prevVertIndex, int curVertIndex,
 			float deltaScaledInverseDepth =
 				currentScaledInverseDepth -
 				previousScaledInverseDepth;
-			RenderClipVertex *destination;
+			struct RenderClipVertex *destination;
 			float t;
 
 			previousY = -previousY;
@@ -182,7 +182,7 @@ int RenderClip_ClipPolyTop(int prevVertIndex, int curVertIndex,
 		float deltaU = currentU - previousU;
 		float deltaV = currentV - previousV;
 		float deltaZ = currentZ - previousZ;
-		RenderClipVertex *destination;
+		struct RenderClipVertex *destination;
 		float t;
 
 		currentY = -currentY;
@@ -255,11 +255,11 @@ int RenderClip_ClipPolyTop(int prevVertIndex, int curVertIndex,
  * an inside previous vertex but is dropped after an outside one. */
 // FUNCTION: XVT 0x409C10
 void RenderClip_ClipPolyBottom(int prevVertIndex, int curVertIndex,
-			       RenderClipVertex *vertices)
+			       struct RenderClipVertex *vertices)
 {
-	RenderClipVertex *previous = &vertices[prevVertIndex];
+	struct RenderClipVertex *previous = &vertices[prevVertIndex];
 	float previousY = previous->y;
-	RenderClipVertex *current = &vertices[curVertIndex];
+	struct RenderClipVertex *current = &vertices[curVertIndex];
 	float currentY = current->y;
 	int viewportBottom = g_flightVpMaxY;
 	float boundary = (float)viewportBottom;
@@ -479,10 +479,10 @@ void RenderClip_ClipPolyBottom(int prevVertIndex, int curVertIndex,
  * g_clipIdxB and returning the same values. */
 // FUNCTION: XVT 0x40A1A0
 int RenderClip_ClipPolyLeft(int prevVertIndex, int curVertIndex,
-			    RenderClipVertex *vertices)
+			    struct RenderClipVertex *vertices)
 {
-	RenderClipVertex *previous;
-	RenderClipVertex *current;
+	struct RenderClipVertex *previous;
+	struct RenderClipVertex *current;
 	float currentX;
 	float previousX;
 	int result;
@@ -506,7 +506,7 @@ int RenderClip_ClipPolyLeft(int prevVertIndex, int curVertIndex,
 				previousScaledInverseDepth, deltaX, deltaY,
 				deltaLightIntensity;
 			float deltaU, deltaV, deltaScaledInverseDepth;
-			RenderClipVertex *destination;
+			struct RenderClipVertex *destination;
 			output = g_clipVertCursor++;
 			previousY = previous->y;
 			currentY = current->y;
@@ -619,7 +619,7 @@ int RenderClip_ClipPolyLeft(int prevVertIndex, int curVertIndex,
 			float currentU, previousU, currentV, previousV;
 			float currentZ, previousZ, deltaX, deltaY, deltaRhw;
 			float deltaU, deltaV, deltaZ;
-			RenderClipVertex *destination;
+			struct RenderClipVertex *destination;
 			output = g_clipVertCursor++;
 			previousY = previous->y;
 			currentY = current->y;
@@ -725,11 +725,11 @@ int RenderClip_ClipPolyLeft(int prevVertIndex, int curVertIndex,
  * appending to g_clipIdxA; returns nothing. */
 // FUNCTION: XVT 0x40A6E0
 void RenderClip_ClipPolyRight(int prevVertIndex, int curVertIndex,
-			      RenderClipVertex *vertices)
+			      struct RenderClipVertex *vertices)
 {
-	RenderClipVertex *previous = &vertices[prevVertIndex];
+	struct RenderClipVertex *previous = &vertices[prevVertIndex];
 	float previousX = previous->x;
-	RenderClipVertex *current = &vertices[curVertIndex];
+	struct RenderClipVertex *current = &vertices[curVertIndex];
 	float currentX = current->x;
 	int viewportWidth = g_flightVpWidth;
 	float boundary = (float)viewportWidth;
@@ -952,11 +952,11 @@ void RenderClip_ClipPolyRight(int prevVertIndex, int curVertIndex,
  * projected with scaledInverseDepth set to g_projScaleInt. Returns nothing. */
 // FUNCTION: XVT 0x40AC80
 void RenderClip_ClipPolyNear(int prevVertIndex, int curVertIndex,
-			     RenderClipVertex *vertices)
+			     struct RenderClipVertex *vertices)
 {
-	RenderClipVertex *previous = &vertices[prevVertIndex];
+	struct RenderClipVertex *previous = &vertices[prevVertIndex];
 	float previousScaledInverseDepth = previous->scaledInverseDepth;
-	RenderClipVertex *current = &vertices[curVertIndex];
+	struct RenderClipVertex *current = &vertices[curVertIndex];
 	float currentScaledInverseDepth = current->scaledInverseDepth;
 	int output;
 

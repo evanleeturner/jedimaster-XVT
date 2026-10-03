@@ -65,7 +65,7 @@ static int DialogScreen(int frame)
  * opens a dialog before returning g_screenReturn. */
 static int Screen(int frame)
 {
-	static const RECT whole = {0, 0, 639, 479};
+	static const struct RECT whole = {0, 0, 639, 479};
 	++g_screenCalls;
 	g_screenFrame = frame;
 	if (g_screenAction == ACTION_SWITCH) {
@@ -313,7 +313,7 @@ static void CheckServiceFrameSystems(void)
 
 static void CheckShutdownBeforeInit(void)
 {
-	static CutsceneEntry table[1];
+	static struct CutsceneEntry table[1];
 	Fresh();
 	g_cutsceneTable = table;
 	g_cutsceneCount = 1;

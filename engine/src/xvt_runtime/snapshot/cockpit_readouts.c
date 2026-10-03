@@ -10,10 +10,10 @@
 #include "xvt_runtime/snapshot/render_hud.h"
 #include <string.h>
 
-static XvtCockpitNumber g_numbers[XVT_COCKPIT_NUMBER_COUNT];
-static XvtCockpitTarget g_target;
+static struct XvtCockpitNumber g_numbers[XVT_COCKPIT_NUMBER_COUNT];
+static struct XvtCockpitTarget g_target;
 static int g_targetUpdated;
-static XvtCockpitProvingGrounds g_course;
+static struct XvtCockpitProvingGrounds g_course;
 
 void XvtCockpitReadouts_Reset(void)
 {
@@ -33,7 +33,7 @@ void XvtCockpitReadouts_BeginUpdate(void)
 void XvtCockpitReadouts_RecordCourse(int x, int y, int width, int height)
 {
 	g_course.visible = 1;
-	g_course.bounds = (XvtSnapRect){x, y, width, height};
+	g_course.bounds = (struct XvtSnapRect){x, y, width, height};
 }
 
 void XvtCockpitReadouts_RecordNumber(XvtCockpitNumberId id, unsigned value,
@@ -42,13 +42,14 @@ void XvtCockpitReadouts_RecordNumber(XvtCockpitNumberId id, unsigned value,
 	if ((unsigned)id >= XVT_COCKPIT_NUMBER_COUNT) {
 		return;
 	}
-	XvtCockpitNumber *number = &g_numbers[id];
+	struct XvtCockpitNumber *number = &g_numbers[id];
 	memset(number, 0, sizeof *number);
 	number->value = id == XVT_COCKPIT_NUMBER_COURSE_SCORE ? (int32_t)value
 							      : (uint16_t)value;
-	number->bounds = (XvtSnapRect){g_flightClipLeft, g_flightClipTop,
-				       g_flightClipRight - g_flightClipLeft,
-				       g_flightClipBottom - g_flightClipTop};
+	number->bounds =
+		(struct XvtSnapRect){g_flightClipLeft, g_flightClipTop,
+				     g_flightClipRight - g_flightClipLeft,
+				     g_flightClipBottom - g_flightClipTop};
 	number->x = g_flightCursorX;
 	number->y = g_flightCursorY;
 	number->minimum_digits = (uint16_t)digits;
@@ -123,13 +124,13 @@ void XvtCockpitReadouts_RecordCachedNumber(unsigned binding, unsigned value,
 
 void XvtCockpitReadouts_BeginTarget(int cmd)
 {
-	const PlayerData *player = &g_players[g_localPlayer];
-	XvtSnapObjectId object = {UINT16_MAX, 0};
+	const struct PlayerData *player = &g_players[g_localPlayer];
+	struct XvtSnapObjectId object = {UINT16_MAX, 0};
 	unsigned slot = (uint16_t)player->currentTargetObjectIdx;
 	if (g_objectTable && slot < (unsigned)(g_regionMainObjectSlotEnd +
 					       g_regionStaticObjectSlotCount)) {
-		object = (XvtSnapObjectId){(uint16_t)slot,
-					   g_objectTable[slot].objectSignature};
+		object = (struct XvtSnapObjectId){
+			(uint16_t)slot, g_objectTable[slot].objectSignature};
 	}
 	if (object.slot != g_target.object.slot ||
 	    object.signature != g_target.object.signature ||
@@ -176,7 +177,7 @@ void XvtCockpitReadouts_RecordTargetCover(unsigned binding)
 void XvtCockpitReadouts_RecordArmament(unsigned index, unsigned value)
 {
 	if (index < 4) {
-		g_target.armament[index] = (XvtCockpitIndicator){
+		g_target.armament[index] = (struct XvtCockpitIndicator){
 			1, (uint8_t)value, 0, XVT_COCKPIT_BEFORE_CRT};
 	}
 }
@@ -203,7 +204,7 @@ void XvtCockpitReadouts_ClearLauncher(unsigned launcher)
 	}
 }
 
-void XvtCockpitReadouts_CopyLauncher(XvtCockpitNumber *number,
+void XvtCockpitReadouts_CopyLauncher(struct XvtCockpitNumber *number,
 				     unsigned launcher)
 {
 	if (launcher < 4) {
@@ -212,14 +213,14 @@ void XvtCockpitReadouts_CopyLauncher(XvtCockpitNumber *number,
 	}
 }
 
-static void CopyVisibleNumber(XvtCockpitNumber *destination,
+static void CopyVisibleNumber(struct XvtCockpitNumber *destination,
 			      XvtCockpitNumberId id, int visible)
 {
 	*destination = g_numbers[id];
 	destination->visible &= visible != 0;
 }
 
-void XvtCockpitReadouts_CopyState(XvtCockpitState *state)
+void XvtCockpitReadouts_CopyState(struct XvtCockpitState *state)
 {
 	state->proving_grounds = g_course;
 	CopyVisibleNumber(&state->proving_grounds.level,

@@ -12,7 +12,7 @@ typedef void (*XvtSettingsPageFn)(AeronUiContext *ui,
 /* Zeroes the menu, takes ui's context, installs the five page drawers, configures the video options with
  * the modern renderer's apply function and creates the installation page's picker. Returns the picker's
  * success; nothing else can fail. */
-bool XvtSettingsMenu_Init(XvtAppUi *ui, char *error, size_t capacity);
+bool XvtSettingsMenu_Init(struct XvtAppUi *ui, char *error, size_t capacity);
 /* Destroys the installation picker, cancels any keyboard or controller capture and zeroes the menu. */
 void XvtSettingsMenu_Shutdown(void);
 /* Nothing before a successful Init or after Shutdown. Flushes the video options as exiting (the

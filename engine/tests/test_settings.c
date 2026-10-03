@@ -11,8 +11,8 @@
 #include <stdio.h>
 #include <string.h>
 
-static XvtSceneSettings g_scene;
-static XvtSettings g_out;
+static struct XvtSceneSettings g_scene;
+static struct XvtSettings g_out;
 
 /* A copy of the shipped defaults, ready for one change. */
 static AeronConfigFile *Shipped(void) { return Fixture_ShippedDocument(); }
@@ -264,7 +264,7 @@ static void CheckFailureLeavesOutput(void)
 	Begin();
 	char error[1024] = "";
 	memset(&g_out, 0x5A, sizeof g_out);
-	static XvtSettings before;
+	static struct XvtSettings before;
 	memcpy(&before, &g_out, sizeof before);
 	AeronConfigFile *document = WithInt("render.msaa_samples", 3);
 	XVT_ASSERT_INT_EQ(XvtSettings_Parse(document, &g_scene, &g_out, error,

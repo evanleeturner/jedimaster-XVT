@@ -3,9 +3,9 @@
 enum {
 	PLAYER_COUNT = sizeof(g_players) / sizeof(g_players[0]),
 	PALETTE_COLOR_COUNT = 256,
-	PALETTE_BYTES = PALETTE_COLOR_COUNT * sizeof(RgbTriplet),
+	PALETTE_BYTES = PALETTE_COLOR_COUNT * sizeof(struct RgbTriplet),
 	PALETTE_HALF_BYTES = PALETTE_BYTES / 2,
-	PALETTE_LAST_COLOR_OFFSET = PALETTE_BYTES - sizeof(RgbTriplet),
+	PALETTE_LAST_COLOR_OFFSET = PALETTE_BYTES - sizeof(struct RgbTriplet),
 	MISSION_PALETTE_FIRST_COLOR = 64,
 	FLIGHT_RESOURCE_SCRATCH_BYTES = 1024,
 	MISSION_EXTENSION_LENGTH = 3,
@@ -220,7 +220,7 @@ void XvtFlightLoading_Palette(void)
 	FeDiskIo_ReadAllBytesOrFatal(g_flightPaletteResourceFileName,
 				     resourceScratch);
 	for (paletteByteOffset = 0; paletteByteOffset < PALETTE_HALF_BYTES;
-	     paletteByteOffset += sizeof(RgbTriplet)) {
+	     paletteByteOffset += sizeof(struct RgbTriplet)) {
 		uint8_t channel;
 
 		channel = resourceScratch[paletteByteOffset +
@@ -254,7 +254,7 @@ void XvtFlightLoading_Palette(void)
 		resourceScratch[PALETTE_LAST_COLOR_OFFSET - paletteByteOffset +
 				PALETTE_CHANNEL_BLUE] = channel;
 	}
-	g_flightSetPaletteRangeFn((RgbTriplet *)resourceScratch, 0,
+	g_flightSetPaletteRangeFn((struct RgbTriplet *)resourceScratch, 0,
 				  PALETTE_COLOR_COUNT);
 	FlightPalette_ApplyToDisplay();
 	FlightSurface_Lock();
@@ -289,7 +289,7 @@ void XvtFlightLoading_Palette(void)
 			FeDiskIo_ReadAllBytesOrFatal(g_currentMissionFile,
 						     g_flightAuxBuffer);
 			g_flightSetPaletteRangeFn(
-				(RgbTriplet *)g_flightAuxBuffer,
+				(struct RgbTriplet *)g_flightAuxBuffer,
 				MISSION_PALETTE_FIRST_COLOR,
 				PALETTE_COLOR_COUNT -
 					MISSION_PALETTE_FIRST_COLOR);

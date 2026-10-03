@@ -12,25 +12,25 @@ extern "C" {
  * and both deltas use the same unit. The modern Player_ApplyPitchYawSteps calls ApplyPitchYaw in place of the
  * original code. */
 
-typedef struct XvtOrientationAngles {
+struct XvtOrientationAngles {
 	uint16_t yaw, pitch, roll;
-} XvtOrientationAngles;
+};
 
 /* Apply local pitch/yaw using OpenXWA's gimbal-lock-safe rotation path. */
 /* Applies the yaw change, given negated, then the pitch change, each about the current body axes. In
  * NETWORK_125 it returns ApplyPitchYawFixed's result. Otherwise it uses float math, and zero deltas are
  * not skipped: a call can rewrite the angles in an equivalent form, and the orientation can drift by
  * rounding. At straight up or down, yaw takes a fixed value and roll carries the heading. */
-XvtOrientationAngles XvtOrientation_ApplyPitchYaw(XvtOrientationAngles current,
-						  int pitchDeltaQ16,
-						  int negYawDeltaQ16);
+struct XvtOrientationAngles
+XvtOrientation_ApplyPitchYaw(struct XvtOrientationAngles current,
+			     int pitchDeltaQ16, int negYawDeltaQ16);
 /* Integer counterpart for deterministic network simulation. */
 /* Integer math only, so every host gets the same bits. Returns current unchanged when both deltas are 0
  * modulo 65536; otherwise as ApplyPitchYaw. The two paths are not bit-identical: they agree on the
  * resulting orientation to within rounding, and near straight up or down they can return different
  * angles for it. */
-XvtOrientationAngles
-XvtOrientation_ApplyPitchYawFixed(XvtOrientationAngles current,
+struct XvtOrientationAngles
+XvtOrientation_ApplyPitchYawFixed(struct XvtOrientationAngles current,
 				  int pitchDeltaQ16, int negYawDeltaQ16);
 
 #ifdef __cplusplus

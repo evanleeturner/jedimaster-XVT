@@ -461,7 +461,7 @@ int g_singleObjectUpdateOverrideIdx = -1;
  * counted down by Flight_UpdateTimers and cleared by
  * Mission_InitFlightRuntimeState. */
 // GLOBAL: XVT 0x9EC5E0
-FlightGlobalCountdownTimers g_flightGlobalCountdownTimers = {0};
+struct FlightGlobalCountdownTimers g_flightGlobalCountdownTimers = {0};
 /* Players taking part (participationState 1 or 2): the session's player count
  * at flight start, then recounted by Flight_UpdateActivePlayerCount and
  * Flight_RecountPlayersAndCheckMissionEnd. Four functions write it: those two,
@@ -529,7 +529,7 @@ uint8_t g_dynamicMusicState = 0;
  * the world state. Many functions write it, chiefly the mission code, flight
  * start and Flight_UpdateTimers. */
 // GLOBAL: XVT 0x9D6940
-FlightMissionState g_flightMissionState = {0};
+struct FlightMissionState g_flightMissionState = {0};
 /* 1 once an outcome track has started (Flight_UpdateDynamicMusicState); flight
  * start clears it (Flight_MainLoop, XvtFlightLoading_Runtime). */
 // GLOBAL: XVT 0xA004C8
@@ -593,7 +593,7 @@ uint8_t g_unusedFlightNetworkBlock[48] = {0};
  * players fails at flight start (Flight_MainLoop,
  * XvtFlightTask_ReleaseMission); nothing reads it. */
 // GLOBAL: XVT 0x9ECC60
-PlayerData g_localPlayerSnapshotOnOptionsSyncFailure = {0};
+struct PlayerData g_localPlayerSnapshotOnOptionsSyncFailure = {0};
 /* 1 when the launch command line holds "inprogress": a client joining a flight
  * already under way (Flight_Main, XvtFlightEntry_ReadLaunchSwitches). Handed to
  * NetSession_InitGameSession. */
@@ -603,7 +603,7 @@ int g_flightInProgressLaunch = 0;
  * Flight_Main in the original build and XvtFlightEntry_Prepare in the modern
  * one. */
 // GLOBAL: XVT 0x622CC0
-FlightLaunchArgs g_flightLaunchArgs = {0};
+struct FlightLaunchArgs g_flightLaunchArgs = {0};
 /* 1 when the launch command line starts with '-' (Flight_Main,
  * XvtFlightEntry_ReadLaunchSwitches); nothing reads it. */
 // GLOBAL: XVT 0x66DDE8
@@ -682,7 +682,7 @@ void Flight_UpdateTimers(void)
 
 	if (g_flightSimSideEffectsSuppressed == 0) {
 		for (index = 0;
-		     index < (int)(sizeof(PlayerFlightTransientTimers) /
+		     index < (int)(sizeof(struct PlayerFlightTransientTimers) /
 				   sizeof(uint16_t));
 		     ++index) {
 			for (playerIndex = 0; playerIndex < 8; ++playerIndex) {
@@ -725,7 +725,7 @@ void Flight_UpdateTimers(void)
 	for (objectIndex = g_activeRegionObjectSlotStart;
 	     objectIndex < g_activeRegionCraftObjectSlotEnd; ++objectIndex) {
 		if (g_objectTable[objectIndex].objectType != 0) {
-			AiController *controller;
+			struct AiController *controller;
 
 			g_curCraft = g_objectTable[objectIndex].mobj->pCraft;
 			controller = &g_curCraft->aiController;
@@ -790,7 +790,7 @@ void Flight_UpdateTimers(void)
 
 			for (index = 0; index < g_curCraft->laserSlotCount;
 			     ++index) {
-				TurretTargetState *targetState =
+				struct TurretTargetState *targetState =
 					&g_curCraft->turretTargetStates[index];
 
 				if (targetState->retargetCooldownTimer > 0) {
@@ -809,7 +809,7 @@ void Flight_UpdateTimers(void)
 			do {
 				if (g_objectTable[objectIndex].objectType !=
 				    0) {
-					AiController *controller =
+					struct AiController *controller =
 						&g_objectTable[objectIndex]
 							 .mobj->pCharData
 							 ->aiController;
@@ -1101,13 +1101,13 @@ void Flight_UpdateTimers(void)
 	}
 
 	for (playerIndex = 0; playerIndex < 8; ++playerIndex) {
-		PlayerData *player = &g_players[playerIndex];
+		struct PlayerData *player = &g_players[playerIndex];
 
 		if (player->participationState != 0 &&
 		    player->objectIndex != -1) {
 			uint16_t repairDisplaySlot = UINT16_MAX;
 			uint16_t repairSystem = UINT16_MAX;
-			CraftData *craft =
+			struct CraftData *craft =
 				g_objectTable[player->objectIndex].mobj->pCraft;
 
 			if (craft->workingSubsystems != 0) {
@@ -1342,31 +1342,31 @@ void Flight_SaveWorldState(void)
 
 		if (g_objectTable[objectIndex].mobj != NULL) {
 			g_objectTable[objectIndex].mobj =
-				(MobileObject
+				(struct MobileObject
 					 *)((uint8_t *)
 						    g_objectTable[objectIndex]
 							    .mobj -
 					    ((uint8_t *)g_mobileObjectPoolBase -
 					     (uint8_t *)NULL));
 			g_objectTable[objectIndex].mobj =
-				(MobileObject
+				(struct MobileObject
 					 *)((uint8_t *)
 						    g_objectTable[objectIndex]
 							    .mobj +
 					    1);
 		}
 		memcpy(cursor, &g_objectTable[objectIndex],
-		       sizeof(ObjectRecord));
-		cursor += sizeof(ObjectRecord);
+		       sizeof(struct ObjectRecord));
+		cursor += sizeof(struct ObjectRecord);
 		if (g_objectTable[objectIndex].mobj != NULL) {
 			g_objectTable[objectIndex].mobj =
-				(MobileObject
+				(struct MobileObject
 					 *)((uint8_t *)
 						    g_objectTable[objectIndex]
 							    .mobj -
 					    1);
 			g_objectTable[objectIndex].mobj =
-				(MobileObject
+				(struct MobileObject
 					 *)((uint8_t *)
 						    g_objectTable[objectIndex]
 							    .mobj +
@@ -1379,20 +1379,22 @@ void Flight_SaveWorldState(void)
 
 		if (g_objectTable[objectIndex].mobj->pCraft != NULL) {
 			g_objectTable[objectIndex].mobj->pCraft =
-				(CraftData *)((uint8_t *)
-						      g_objectTable[objectIndex]
-							      .mobj->pCraft -
-					      ((uint8_t *)g_craftDataPoolBase -
-					       (uint8_t *)NULL));
+				(struct CraftData
+					 *)((uint8_t *)
+						    g_objectTable[objectIndex]
+							    .mobj->pCraft -
+					    ((uint8_t *)g_craftDataPoolBase -
+					     (uint8_t *)NULL));
 			g_objectTable[objectIndex].mobj->pCraft =
-				(CraftData *)((uint8_t *)
-						      g_objectTable[objectIndex]
-							      .mobj->pCraft +
-					      1);
+				(struct CraftData
+					 *)((uint8_t *)
+						    g_objectTable[objectIndex]
+							    .mobj->pCraft +
+					    1);
 		}
 		if (g_objectTable[objectIndex].mobj->pWarheadGuidance != NULL) {
 			g_objectTable[objectIndex].mobj->pWarheadGuidance =
-				(WarheadGuidanceState
+				(struct WarheadGuidanceState
 					 *)((uint8_t *)
 						    g_objectTable[objectIndex]
 							    .mobj
@@ -1401,7 +1403,7 @@ void Flight_SaveWorldState(void)
 						     g_projectileGuidanceStates -
 					     (uint8_t *)NULL));
 			g_objectTable[objectIndex].mobj->pWarheadGuidance =
-				(WarheadGuidanceState
+				(struct WarheadGuidanceState
 					 *)((uint8_t *)
 						    g_objectTable[objectIndex]
 							    .mobj
@@ -1410,7 +1412,7 @@ void Flight_SaveWorldState(void)
 		}
 		if (g_objectTable[objectIndex].mobj->pCharData != NULL) {
 			g_objectTable[objectIndex].mobj->pCharData =
-				(MobileObjectCharData
+				(struct MobileObjectCharData
 					 *)((uint8_t *)
 						    g_objectTable[objectIndex]
 							    .mobj->pCharData -
@@ -1418,38 +1420,40 @@ void Flight_SaveWorldState(void)
 						     g_mobileObjectCharDataPool -
 					     (uint8_t *)NULL));
 			g_objectTable[objectIndex].mobj->pCharData =
-				(MobileObjectCharData
+				(struct MobileObjectCharData
 					 *)((uint8_t *)
 						    g_objectTable[objectIndex]
 							    .mobj->pCharData +
 					    1);
 		}
 		memcpy(cursor, g_objectTable[objectIndex].mobj,
-		       sizeof(MobileObject));
-		cursor += sizeof(MobileObject);
+		       sizeof(struct MobileObject));
+		cursor += sizeof(struct MobileObject);
 		if (g_objectTable[objectIndex].mobj->pCraft != NULL) {
 			g_objectTable[objectIndex].mobj->pCraft =
-				(CraftData *)((uint8_t *)
-						      g_objectTable[objectIndex]
-							      .mobj->pCraft -
-					      1);
+				(struct CraftData
+					 *)((uint8_t *)
+						    g_objectTable[objectIndex]
+							    .mobj->pCraft -
+					    1);
 			g_objectTable[objectIndex].mobj->pCraft =
-				(CraftData *)((uint8_t *)
-						      g_objectTable[objectIndex]
-							      .mobj->pCraft +
-					      ((uint8_t *)g_craftDataPoolBase -
-					       (uint8_t *)NULL));
+				(struct CraftData
+					 *)((uint8_t *)
+						    g_objectTable[objectIndex]
+							    .mobj->pCraft +
+					    ((uint8_t *)g_craftDataPoolBase -
+					     (uint8_t *)NULL));
 		}
 		if (g_objectTable[objectIndex].mobj->pWarheadGuidance != NULL) {
 			g_objectTable[objectIndex].mobj->pWarheadGuidance =
-				(WarheadGuidanceState
+				(struct WarheadGuidanceState
 					 *)((uint8_t *)
 						    g_objectTable[objectIndex]
 							    .mobj
 							    ->pWarheadGuidance -
 					    1);
 			g_objectTable[objectIndex].mobj->pWarheadGuidance =
-				(WarheadGuidanceState
+				(struct WarheadGuidanceState
 					 *)((uint8_t *)
 						    g_objectTable[objectIndex]
 							    .mobj
@@ -1460,13 +1464,13 @@ void Flight_SaveWorldState(void)
 		}
 		if (g_objectTable[objectIndex].mobj->pCharData != NULL) {
 			g_objectTable[objectIndex].mobj->pCharData =
-				(MobileObjectCharData
+				(struct MobileObjectCharData
 					 *)((uint8_t *)
 						    g_objectTable[objectIndex]
 							    .mobj->pCharData -
 					    1);
 			g_objectTable[objectIndex].mobj->pCharData =
-				(MobileObjectCharData
+				(struct MobileObjectCharData
 					 *)((uint8_t *)
 						    g_objectTable[objectIndex]
 							    .mobj->pCharData +
@@ -1486,7 +1490,7 @@ void Flight_SaveWorldState(void)
 					g_objectTable[objectIndex]
 						.mobj->pCraft
 						->turretObjectLinks[linkIndex] =
-						(ObjectRecord
+						(struct ObjectRecord
 							 *)((uint8_t *)g_objectTable[objectIndex]
 								    .mobj
 								    ->pCraft
@@ -1498,7 +1502,7 @@ void Flight_SaveWorldState(void)
 					g_objectTable[objectIndex]
 						.mobj->pCraft
 						->turretObjectLinks[linkIndex] =
-						(ObjectRecord
+						(struct ObjectRecord
 							 *)((uint8_t *)g_objectTable[objectIndex]
 								    .mobj
 								    ->pCraft
@@ -1512,7 +1516,7 @@ void Flight_SaveWorldState(void)
 			    NULL) {
 				g_objectTable[objectIndex]
 					.mobj->pCraft->effectiveAiObjectLink =
-					(ObjectRecord
+					(struct ObjectRecord
 						 *)((uint8_t *)g_objectTable
 							    [objectIndex]
 								    .mobj
@@ -1522,7 +1526,7 @@ void Flight_SaveWorldState(void)
 						     (uint8_t *)NULL));
 				g_objectTable[objectIndex]
 					.mobj->pCraft->effectiveAiObjectLink =
-					(ObjectRecord
+					(struct ObjectRecord
 						 *)((uint8_t *)g_objectTable
 							    [objectIndex]
 								    .mobj
@@ -1531,8 +1535,8 @@ void Flight_SaveWorldState(void)
 						    1);
 			}
 			memcpy(cursor, g_objectTable[objectIndex].mobj->pCraft,
-			       sizeof(CraftData));
-			cursor += sizeof(CraftData);
+			       sizeof(struct CraftData));
+			cursor += sizeof(struct CraftData);
 			for (linkIndex = 0; linkIndex < 16; ++linkIndex) {
 				if (g_objectTable[objectIndex]
 					    .mobj->pCraft
@@ -1541,7 +1545,7 @@ void Flight_SaveWorldState(void)
 					g_objectTable[objectIndex]
 						.mobj->pCraft
 						->turretObjectLinks[linkIndex] =
-						(ObjectRecord
+						(struct ObjectRecord
 							 *)((uint8_t *)g_objectTable[objectIndex]
 								    .mobj
 								    ->pCraft
@@ -1551,7 +1555,7 @@ void Flight_SaveWorldState(void)
 					g_objectTable[objectIndex]
 						.mobj->pCraft
 						->turretObjectLinks[linkIndex] =
-						(ObjectRecord
+						(struct ObjectRecord
 							 *)((uint8_t *)g_objectTable[objectIndex]
 								    .mobj
 								    ->pCraft
@@ -1567,7 +1571,7 @@ void Flight_SaveWorldState(void)
 			    NULL) {
 				g_objectTable[objectIndex]
 					.mobj->pCraft->effectiveAiObjectLink =
-					(ObjectRecord
+					(struct ObjectRecord
 						 *)((uint8_t *)g_objectTable
 							    [objectIndex]
 								    .mobj
@@ -1576,7 +1580,7 @@ void Flight_SaveWorldState(void)
 						    1);
 				g_objectTable[objectIndex]
 					.mobj->pCraft->effectiveAiObjectLink =
-					(ObjectRecord
+					(struct ObjectRecord
 						 *)((uint8_t *)g_objectTable
 							    [objectIndex]
 								    .mobj
@@ -1590,14 +1594,14 @@ void Flight_SaveWorldState(void)
 			memcpy(cursor,
 			       g_objectTable[objectIndex]
 				       .mobj->pWarheadGuidance,
-			       sizeof(WarheadGuidanceState));
-			cursor += sizeof(WarheadGuidanceState);
+			       sizeof(struct WarheadGuidanceState));
+			cursor += sizeof(struct WarheadGuidanceState);
 		}
 		if (g_objectTable[objectIndex].mobj->pCharData != NULL) {
 			memcpy(cursor,
 			       g_objectTable[objectIndex].mobj->pCharData,
-			       sizeof(MobileObjectCharData));
-			cursor += sizeof(MobileObjectCharData);
+			       sizeof(struct MobileObjectCharData));
+			cursor += sizeof(struct MobileObjectCharData);
 		}
 	}
 
@@ -1730,17 +1734,17 @@ void Flight_RestoreWorldState(void)
 		g_objectTable[objectIndex].objectType = *cursor++;
 		if (g_objectTable[objectIndex].objectType != 0) {
 			memcpy(&g_objectTable[objectIndex], cursor,
-			       sizeof(ObjectRecord));
-			cursor += sizeof(ObjectRecord);
+			       sizeof(struct ObjectRecord));
+			cursor += sizeof(struct ObjectRecord);
 			if (g_objectTable[objectIndex].mobj != NULL) {
 				g_objectTable[objectIndex].mobj =
-					(MobileObject
+					(struct MobileObject
 						 *)((uint8_t *)g_objectTable
 							    [objectIndex]
 								    .mobj -
 						    1);
 				g_objectTable[objectIndex].mobj =
-					(MobileObject
+					(struct MobileObject
 						 *)((uint8_t *)g_objectTable
 							    [objectIndex]
 								    .mobj +
@@ -1753,17 +1757,18 @@ void Flight_RestoreWorldState(void)
 			}
 
 			memcpy(g_objectTable[objectIndex].mobj, cursor,
-			       sizeof(MobileObject));
-			cursor += sizeof(MobileObject);
+			       sizeof(struct MobileObject));
+			cursor += sizeof(struct MobileObject);
 			if (g_objectTable[objectIndex].mobj->pCraft != NULL) {
 				g_objectTable[objectIndex].mobj->pCraft =
-					(CraftData *)((uint8_t *)g_objectTable
-							      [objectIndex]
-								      .mobj
-								      ->pCraft -
-						      1);
+					(struct CraftData
+						 *)((uint8_t *)g_objectTable
+							    [objectIndex]
+								    .mobj
+								    ->pCraft -
+						    1);
 				g_objectTable[objectIndex].mobj->pCraft =
-					(CraftData
+					(struct CraftData
 						 *)((uint8_t *)g_objectTable
 							    [objectIndex]
 								    .mobj
@@ -1776,7 +1781,7 @@ void Flight_RestoreWorldState(void)
 			    NULL) {
 				g_objectTable[objectIndex]
 					.mobj->pWarheadGuidance =
-					(WarheadGuidanceState
+					(struct WarheadGuidanceState
 						 *)((uint8_t *)g_objectTable
 							    [objectIndex]
 								    .mobj
@@ -1784,7 +1789,7 @@ void Flight_RestoreWorldState(void)
 						    1);
 				g_objectTable[objectIndex]
 					.mobj->pWarheadGuidance =
-					(WarheadGuidanceState
+					(struct WarheadGuidanceState
 						 *)((uint8_t *)g_objectTable
 							    [objectIndex]
 								    .mobj
@@ -1796,14 +1801,14 @@ void Flight_RestoreWorldState(void)
 			if (g_objectTable[objectIndex].mobj->pCharData !=
 			    NULL) {
 				g_objectTable[objectIndex].mobj->pCharData =
-					(MobileObjectCharData
+					(struct MobileObjectCharData
 						 *)((uint8_t *)g_objectTable
 							    [objectIndex]
 								    .mobj
 								    ->pCharData -
 						    1);
 				g_objectTable[objectIndex].mobj->pCharData =
-					(MobileObjectCharData
+					(struct MobileObjectCharData
 						 *)((uint8_t *)g_objectTable
 							    [objectIndex]
 								    .mobj
@@ -1817,8 +1822,8 @@ void Flight_RestoreWorldState(void)
 				int linkIndex;
 
 				memcpy(g_objectTable[objectIndex].mobj->pCraft,
-				       cursor, sizeof(CraftData));
-				cursor += sizeof(CraftData);
+				       cursor, sizeof(struct CraftData));
+				cursor += sizeof(struct CraftData);
 				for (linkIndex = 0; linkIndex < 16;
 				     ++linkIndex) {
 					if (g_objectTable[objectIndex]
@@ -1830,7 +1835,7 @@ void Flight_RestoreWorldState(void)
 							.mobj->pCraft
 							->turretObjectLinks
 								[linkIndex] =
-							(ObjectRecord
+							(struct ObjectRecord
 								 *)((uint8_t *)g_objectTable[objectIndex]
 									    .mobj
 									    ->pCraft
@@ -1841,7 +1846,7 @@ void Flight_RestoreWorldState(void)
 							.mobj->pCraft
 							->turretObjectLinks
 								[linkIndex] =
-							(ObjectRecord
+							(struct ObjectRecord
 								 *)((uint8_t *)g_objectTable[objectIndex]
 									    .mobj
 									    ->pCraft
@@ -1859,7 +1864,7 @@ void Flight_RestoreWorldState(void)
 					g_objectTable[objectIndex]
 						.mobj->pCraft
 						->effectiveAiObjectLink =
-						(ObjectRecord
+						(struct ObjectRecord
 							 *)((uint8_t *)g_objectTable
 								    [objectIndex]
 									    .mobj
@@ -1869,7 +1874,7 @@ void Flight_RestoreWorldState(void)
 					g_objectTable[objectIndex]
 						.mobj->pCraft
 						->effectiveAiObjectLink =
-						(ObjectRecord
+						(struct ObjectRecord
 							 *)((uint8_t *)g_objectTable
 								    [objectIndex]
 									    .mobj
@@ -1884,15 +1889,17 @@ void Flight_RestoreWorldState(void)
 			    NULL) {
 				memcpy(g_objectTable[objectIndex]
 					       .mobj->pWarheadGuidance,
-				       cursor, sizeof(WarheadGuidanceState));
-				cursor += sizeof(WarheadGuidanceState);
+				       cursor,
+				       sizeof(struct WarheadGuidanceState));
+				cursor += sizeof(struct WarheadGuidanceState);
 			}
 			if (g_objectTable[objectIndex].mobj->pCharData !=
 			    NULL) {
 				memcpy(g_objectTable[objectIndex]
 					       .mobj->pCharData,
-				       cursor, sizeof(MobileObjectCharData));
-				cursor += sizeof(MobileObjectCharData);
+				       cursor,
+				       sizeof(struct MobileObjectCharData));
+				cursor += sizeof(struct MobileObjectCharData);
 			}
 		} else {
 			memset(&g_objectTable[objectIndex], 0, 0x1f);
@@ -1911,13 +1918,17 @@ void Flight_RestoreWorldState(void)
 					    .mobj->pWarheadGuidance != NULL) {
 					memset(g_objectTable[objectIndex]
 						       .mobj->pWarheadGuidance,
-					       0, sizeof(WarheadGuidanceState));
+					       0,
+					       sizeof(struct
+						      WarheadGuidanceState));
 				}
 				if (g_objectTable[objectIndex]
 					    .mobj->pCharData != NULL) {
 					memset(g_objectTable[objectIndex]
 						       .mobj->pCharData,
-					       0, sizeof(MobileObjectCharData));
+					       0,
+					       sizeof(struct
+						      MobileObjectCharData));
 				}
 			}
 		}
@@ -2021,25 +2032,27 @@ size_t Flight_CalculateWorldStateBufferSize(void)
 	int size;
 
 	/* The fixed trailer contains 24 dwords, three words, and one byte around the fixed arrays. */
-	size = (int)(2 * sizeof(MissionClock) + sizeof(MissionHeader) +
-		     sizeof(FlightMissionState) +
-		     sizeof(FlightGlobalCountdownTimers) + sizeof(g_planTable) +
-		     sizeof(g_builtinPlanIdByNameIndex) + sizeof(g_players) +
-		     24 * sizeof(uint32_t) + 3 * sizeof(uint16_t) +
-		     sizeof(uint8_t) + sizeof(WarheadGuidanceState));
-	size += (int)(sizeof(MissionFgRuntimeStats) +
-		      sizeof(MissionFlightGroup)) *
+	size = (int)(2 * sizeof(struct MissionClock) +
+		     sizeof(struct MissionHeader) +
+		     sizeof(struct FlightMissionState) +
+		     sizeof(struct FlightGlobalCountdownTimers) +
+		     sizeof(g_planTable) + sizeof(g_builtinPlanIdByNameIndex) +
+		     sizeof(g_players) + 24 * sizeof(uint32_t) +
+		     3 * sizeof(uint16_t) + sizeof(uint8_t) +
+		     sizeof(struct WarheadGuidanceState));
+	size += (int)(sizeof(struct MissionFgRuntimeStats) +
+		      sizeof(struct MissionFlightGroup)) *
 		g_missionHeader.numFlightGroups;
-	size += (int)(sizeof(uint8_t) + sizeof(ObjectRecord)) *
+	size += (int)(sizeof(uint8_t) + sizeof(struct ObjectRecord)) *
 		g_regionStaticObjectSlotCount;
-	size += (int)(sizeof(uint8_t) + sizeof(ObjectRecord) +
-		      sizeof(MobileObject)) *
+	size += (int)(sizeof(uint8_t) + sizeof(struct ObjectRecord) +
+		      sizeof(struct MobileObject)) *
 		g_regionMainObjectSlotEnd;
-	size += (int)sizeof(MobileObjectCharData) *
+	size += (int)sizeof(struct MobileObjectCharData) *
 		(int)g_mobileObjectCharDataCount;
-	size += (int)sizeof(WarheadGuidanceState) *
+	size += (int)sizeof(struct WarheadGuidanceState) *
 		(int)g_projectileObjectSlotsTotal;
-	size += (int)sizeof(CraftData) * g_craftDataPoolCapacity;
+	size += (int)sizeof(struct CraftData) * g_craftDataPoolCapacity;
 	return (size_t)size;
 #endif
 }
@@ -2087,10 +2100,11 @@ void Flight_ChecksumWorldState(int unusedArg0, int unusedArg1)
 
 				objectPresent = *cursor++;
 				if (objectPresent != 0) {
-					ObjectRecord *objectState;
+					struct ObjectRecord *objectState;
 					int objectDataBytes;
 
-					objectState = (ObjectRecord *)cursor;
+					objectState =
+						(struct ObjectRecord *)cursor;
 					objectDataBytes =
 						sizeof(*objectState) -
 						sizeof(objectState->mobj);
@@ -2099,11 +2113,13 @@ void Flight_ChecksumWorldState(int unusedArg0, int unusedArg1)
 					} while (--objectDataBytes != 0);
 					cursor = (uint8_t *)(objectState + 1);
 					if (objectState->mobj != NULL) {
-						MobileObject *mobileState;
+						struct MobileObject
+							*mobileState;
 						int mobileDataBytes;
 
 						mobileState =
-							(MobileObject *)cursor;
+							(struct MobileObject *)
+								cursor;
 						mobileDataBytes =
 							sizeof(*mobileState) -
 							sizeof(mobileState
@@ -2149,11 +2165,13 @@ void Flight_ChecksumWorldState(int unusedArg0, int unusedArg1)
 								    1);
 						if (mobileState->pCraft !=
 						    NULL) {
-							CraftData *craftState;
+							struct CraftData
+								*craftState;
 							int craftDataBytes;
 
 							craftState =
-								(CraftData *)
+								(struct
+								 CraftData *)
 									cursor;
 							craftDataBytes =
 								sizeof(*craftState) -
@@ -2178,6 +2196,7 @@ void Flight_ChecksumWorldState(int unusedArg0, int unusedArg1)
 							    ->pWarheadGuidance !=
 						    NULL) {
 							bytesRemaining = sizeof(
+								struct
 								WarheadGuidanceState);
 							do {
 								checksum +=
@@ -2189,6 +2208,7 @@ void Flight_ChecksumWorldState(int unusedArg0, int unusedArg1)
 						if (mobileState->pCharData !=
 						    NULL) {
 							bytesRemaining = sizeof(
+								struct
 								MobileObjectCharData);
 							do {
 								checksum +=
@@ -2222,7 +2242,7 @@ void Flight_ChecksumWorldState(int unusedArg0, int unusedArg1)
 	do {
 		checksum += *cursor++;
 	} while (--bytesRemaining != 0);
-	bytesRemaining = sizeof(MissionHeader);
+	bytesRemaining = sizeof(struct MissionHeader);
 	do {
 		checksum += *cursor++;
 	} while (--bytesRemaining != 0);
@@ -2519,25 +2539,28 @@ int Flight_BuildWorldStateObjectPresenceMap(uint8_t *outMap,
 
 			componentFlags = 0;
 			if (*worldState++ != 0) {
-				const ObjectRecord *objectState;
+				const struct ObjectRecord *objectState;
 
 				componentFlags = FLIGHT_WORLDSTATE_HAS_OBJECT;
-				objectState = (const ObjectRecord *)worldState;
+				objectState =
+					(const struct ObjectRecord *)worldState;
 				worldState += sizeof(*objectState);
 				if (objectState->mobj != NULL) {
-					const MobileObject *mobileObjectState;
+					const struct MobileObject
+						*mobileObjectState;
 
 					componentFlags |=
 						FLIGHT_WORLDSTATE_HAS_MOBILE;
 					mobileObjectState =
-						(const MobileObject *)
+						(const struct MobileObject *)
 							worldState;
 					worldState +=
 						sizeof(*mobileObjectState);
 					if (mobileObjectState->pCraft != NULL) {
 						componentFlags |=
 							FLIGHT_WORLDSTATE_HAS_CRAFT;
-						worldState += sizeof(CraftData);
+						worldState += sizeof(
+							struct CraftData);
 					}
 					if (mobileObjectState
 						    ->pWarheadGuidance !=
@@ -2545,6 +2568,7 @@ int Flight_BuildWorldStateObjectPresenceMap(uint8_t *outMap,
 						componentFlags |=
 							FLIGHT_WORLDSTATE_HAS_WARHEAD_GUIDANCE;
 						worldState += sizeof(
+							struct
 							WarheadGuidanceState);
 					}
 					if (mobileObjectState->pCharData !=
@@ -2552,6 +2576,7 @@ int Flight_BuildWorldStateObjectPresenceMap(uint8_t *outMap,
 						componentFlags |=
 							FLIGHT_WORLDSTATE_HAS_CHAR_DATA;
 						worldState += sizeof(
+							struct
 							MobileObjectCharData);
 					}
 				}
@@ -2647,21 +2672,22 @@ void Flight_ApplyWorldStateObjectPresenceMap(const uint8_t *presenceMap)
 			if (objectType != 0) {
 				if ((presence & FLIGHT_WORLDSTATE_HAS_OBJECT) !=
 				    0) {
-					const ObjectRecord *objectState;
+					const struct ObjectRecord *objectState;
 
 					objectState =
-						(const ObjectRecord *)cursor;
+						(const struct ObjectRecord *)
+							cursor;
 					cursor += sizeof(*objectState);
 					if (objectState->mobj != NULL) {
 						if ((presence &
 						     FLIGHT_WORLDSTATE_HAS_MOBILE) !=
 						    0) {
-							const MobileObject
+							const struct MobileObject
 								*mobileState;
 
 							mobileState =
-								(const MobileObject
-									 *)
+								(const struct
+								 MobileObject *)
 									cursor;
 							cursor += sizeof(
 								*mobileState);
@@ -2672,6 +2698,7 @@ void Flight_ApplyWorldStateObjectPresenceMap(const uint8_t *presenceMap)
 								     FLIGHT_WORLDSTATE_HAS_CRAFT) !=
 								    0) {
 									cursor += sizeof(
+										struct
 										CraftData);
 								} else {
 									uint8_t *
@@ -2680,6 +2707,7 @@ void Flight_ApplyWorldStateObjectPresenceMap(const uint8_t *presenceMap)
 									blockStart =
 										cursor;
 									cursor += sizeof(
+										struct
 										CraftData);
 									memcpy(blockStart,
 									       cursor,
@@ -2688,6 +2716,7 @@ void Flight_ApplyWorldStateObjectPresenceMap(const uint8_t *presenceMap)
 									cursor =
 										blockStart;
 									end -= sizeof(
+										struct
 										CraftData);
 								}
 							} else if (
@@ -2700,6 +2729,7 @@ void Flight_ApplyWorldStateObjectPresenceMap(const uint8_t *presenceMap)
 								blockStart =
 									cursor;
 								cursor += sizeof(
+									struct
 									CraftData);
 								memcpy(cursor,
 								       blockStart,
@@ -2710,6 +2740,7 @@ void Flight_ApplyWorldStateObjectPresenceMap(const uint8_t *presenceMap)
 								       (size_t)(cursor -
 										blockStart));
 								end += sizeof(
+									struct
 									CraftData);
 							}
 
@@ -2720,6 +2751,7 @@ void Flight_ApplyWorldStateObjectPresenceMap(const uint8_t *presenceMap)
 								     FLIGHT_WORLDSTATE_HAS_WARHEAD_GUIDANCE) !=
 								    0) {
 									cursor += sizeof(
+										struct
 										WarheadGuidanceState);
 								} else {
 									uint8_t *
@@ -2728,6 +2760,7 @@ void Flight_ApplyWorldStateObjectPresenceMap(const uint8_t *presenceMap)
 									blockStart =
 										cursor;
 									cursor += sizeof(
+										struct
 										WarheadGuidanceState);
 									memcpy(blockStart,
 									       cursor,
@@ -2736,6 +2769,7 @@ void Flight_ApplyWorldStateObjectPresenceMap(const uint8_t *presenceMap)
 									cursor =
 										blockStart;
 									end -= sizeof(
+										struct
 										WarheadGuidanceState);
 								}
 							} else if (
@@ -2748,6 +2782,7 @@ void Flight_ApplyWorldStateObjectPresenceMap(const uint8_t *presenceMap)
 								blockStart =
 									cursor;
 								cursor += sizeof(
+									struct
 									WarheadGuidanceState);
 								memcpy(cursor,
 								       blockStart,
@@ -2758,6 +2793,7 @@ void Flight_ApplyWorldStateObjectPresenceMap(const uint8_t *presenceMap)
 								       (size_t)(cursor -
 										blockStart));
 								end += sizeof(
+									struct
 									WarheadGuidanceState);
 							}
 
@@ -2768,6 +2804,7 @@ void Flight_ApplyWorldStateObjectPresenceMap(const uint8_t *presenceMap)
 								     FLIGHT_WORLDSTATE_HAS_CHAR_DATA) !=
 								    0) {
 									cursor += sizeof(
+										struct
 										MobileObjectCharData);
 								} else {
 									uint8_t *
@@ -2776,6 +2813,7 @@ void Flight_ApplyWorldStateObjectPresenceMap(const uint8_t *presenceMap)
 									blockStart =
 										cursor;
 									cursor += sizeof(
+										struct
 										MobileObjectCharData);
 									memcpy(blockStart,
 									       cursor,
@@ -2784,6 +2822,7 @@ void Flight_ApplyWorldStateObjectPresenceMap(const uint8_t *presenceMap)
 									cursor =
 										blockStart;
 									end -= sizeof(
+										struct
 										MobileObjectCharData);
 								}
 							} else if (
@@ -2796,6 +2835,7 @@ void Flight_ApplyWorldStateObjectPresenceMap(const uint8_t *presenceMap)
 								blockStart =
 									cursor;
 								cursor += sizeof(
+									struct
 									MobileObjectCharData);
 								memcpy(cursor,
 								       blockStart,
@@ -2806,6 +2846,7 @@ void Flight_ApplyWorldStateObjectPresenceMap(const uint8_t *presenceMap)
 								       (size_t)(cursor -
 										blockStart));
 								end += sizeof(
+									struct
 									MobileObjectCharData);
 							}
 						} else {
@@ -2813,12 +2854,14 @@ void Flight_ApplyWorldStateObjectPresenceMap(const uint8_t *presenceMap)
 
 							blockStart = cursor;
 							cursor += sizeof(
+								struct
 								MobileObject);
 							memcpy(blockStart,
 							       cursor,
 							       (size_t)(end -
 									cursor));
 							end -= sizeof(
+								struct
 								MobileObject);
 							cursor = blockStart;
 						}
@@ -2829,23 +2872,25 @@ void Flight_ApplyWorldStateObjectPresenceMap(const uint8_t *presenceMap)
 						uint8_t *blockStart;
 
 						blockStart = cursor;
-						cursor += sizeof(MobileObject);
+						cursor += sizeof(
+							struct MobileObject);
 						memcpy(cursor, blockStart,
 						       (size_t)(end -
 								blockStart));
 						memset(blockStart, 0,
 						       (size_t)(cursor -
 								blockStart));
-						end += sizeof(MobileObject);
+						end += sizeof(
+							struct MobileObject);
 					}
 				} else {
 					uint8_t *blockStart;
 
 					blockStart = cursor;
-					cursor += sizeof(ObjectRecord);
+					cursor += sizeof(struct ObjectRecord);
 					memcpy(blockStart, cursor,
 					       (size_t)(end - cursor));
-					end -= sizeof(ObjectRecord);
+					end -= sizeof(struct ObjectRecord);
 					cursor = blockStart;
 				}
 			} else if ((presence & FLIGHT_WORLDSTATE_HAS_OBJECT) !=
@@ -2853,12 +2898,12 @@ void Flight_ApplyWorldStateObjectPresenceMap(const uint8_t *presenceMap)
 				uint8_t *blockStart;
 
 				blockStart = cursor;
-				cursor += sizeof(ObjectRecord);
+				cursor += sizeof(struct ObjectRecord);
 				memcpy(cursor, blockStart,
 				       (size_t)(end - blockStart));
 				memset(blockStart, 0,
 				       (size_t)(cursor - blockStart));
-				end += sizeof(ObjectRecord);
+				end += sizeof(struct ObjectRecord);
 			}
 		}
 		++objectIndex;
@@ -3005,7 +3050,7 @@ void Flight_AdvanceOneStep(int targetGameTime)
 	suppressSideEffects =
 		g_flightPlayerCount == 1 ? 1 : g_flightSimSideEffectsSuppressed;
 	for (playerIdx = 0; playerIdx < PLAYER_COUNT; ++playerIdx) {
-		InputFrame *frame;
+		struct InputFrame *frame;
 		int frameIteration;
 		int frameCount;
 
@@ -3043,8 +3088,8 @@ void Flight_AdvanceOneStep(int targetGameTime)
 			savedGameTime = g_gameTime;
 			if (g_gameTime >= frame->timestamp &&
 			    g_players[playerIdx].objectIndex != -1) {
-				ObjectRecord *object;
-				MobileObject *mobileObject;
+				struct ObjectRecord *object;
+				struct MobileObject *mobileObject;
 
 				object = &g_objectTable[g_players[playerIdx]
 								.objectIndex];
@@ -3177,7 +3222,7 @@ void Flight_AdvanceOneStep(int targetGameTime)
 				if (g_objectTable
 					    [g_singleObjectUpdateOverrideIdx]
 						    .mobj != NULL) {
-					ObjectRecord *object;
+					struct ObjectRecord *object;
 
 					g_elapsedTicks =
 						(uint16_t)(frame->timestamp -
@@ -3315,9 +3360,10 @@ void Flight_MainLoop(int unused)
 	enum {
 		PLAYER_COUNT = sizeof(g_players) / sizeof(g_players[0]),
 		PALETTE_COLOR_COUNT = 256,
-		PALETTE_BYTES = PALETTE_COLOR_COUNT * sizeof(RgbTriplet),
+		PALETTE_BYTES = PALETTE_COLOR_COUNT * sizeof(struct RgbTriplet),
 		PALETTE_HALF_BYTES = PALETTE_BYTES / 2,
-		PALETTE_LAST_COLOR_OFFSET = PALETTE_BYTES - sizeof(RgbTriplet),
+		PALETTE_LAST_COLOR_OFFSET =
+			PALETTE_BYTES - sizeof(struct RgbTriplet),
 		PALETTE_CHANNEL_MAX = 63,
 		FLIGHT_RESOURCE_SCRATCH_BYTES = 1024,
 		MISSION_EXTENSION_LENGTH = 3,
@@ -3506,7 +3552,7 @@ void Flight_MainLoop(int unused)
 	/* Inside this loop MISSION_EXTENSION_FIRST, _SECOND and _THIRD are reused as the red, green and blue
 	 * offsets in a palette triplet. */
 	for (paletteByteOffset = 0; paletteByteOffset < PALETTE_HALF_BYTES;
-	     paletteByteOffset += sizeof(RgbTriplet)) {
+	     paletteByteOffset += sizeof(struct RgbTriplet)) {
 		uint8_t channel;
 
 		channel = resourceScratch[paletteByteOffset +
@@ -3540,7 +3586,7 @@ void Flight_MainLoop(int unused)
 		resourceScratch[PALETTE_LAST_COLOR_OFFSET - paletteByteOffset +
 				MISSION_EXTENSION_THIRD] = channel;
 	}
-	g_flightSetPaletteRangeFn((RgbTriplet *)resourceScratch, 0,
+	g_flightSetPaletteRangeFn((struct RgbTriplet *)resourceScratch, 0,
 				  PALETTE_COLOR_COUNT);
 	FlightPalette_ApplyToDisplay();
 	FlightSurface_Lock();
@@ -3575,7 +3621,7 @@ void Flight_MainLoop(int unused)
 			FeDiskIo_ReadAllBytesOrFatal(g_currentMissionFile,
 						     g_flightAuxBuffer);
 			g_flightSetPaletteRangeFn(
-				(RgbTriplet *)g_flightAuxBuffer,
+				(struct RgbTriplet *)g_flightAuxBuffer,
 				PALETTE_CHANNEL_MAX + 1,
 				PALETTE_COLOR_COUNT -
 					(PALETTE_CHANNEL_MAX + 1));
@@ -5213,7 +5259,7 @@ void Flight_ProcessPlayerActions(int playerIdx)
 	int energyTransferStep;
 	int16_t departureObjectIndex;
 	int objectIndex;
-	CraftData *craft;
+	struct CraftData *craft;
 	objectIndex = g_players[playerIdx].objectIndex;
 	if (objectIndex != -1) {
 		craft = g_objectTable[objectIndex].mobj->pCraft;
@@ -5272,7 +5318,7 @@ void Flight_ProcessPlayerActions(int playerIdx)
 						     [g_damageMfdCurrentSystemId] ==
 				     0) &&
 			    g_players[playerIdx].currentTargetObjectIdx != -1) {
-				MobileObject *targetMobile =
+				struct MobileObject *targetMobile =
 					g_objectTable
 						[(uint16_t)g_players[playerIdx]
 							 .currentTargetObjectIdx]
@@ -5844,7 +5890,7 @@ void Flight_ProcessPlayerActions(int playerIdx)
 					int targetIndex =
 						(uint16_t)g_players[playerIdx]
 							.currentTargetObjectIdx;
-					AiController *controller;
+					struct AiController *controller;
 					g_curCraft = g_objectTable[targetIndex]
 							     .mobj->pCraft;
 					controller = &g_curCraft->aiController;
@@ -5909,7 +5955,7 @@ void Flight_ProcessPlayerActions(int playerIdx)
 				     ++otherPlayerIdx) {
 					int otherObjectIndex;
 					int hostile;
-					CraftData *otherCraft;
+					struct CraftData *otherCraft;
 					if (otherPlayerIdx == playerIdx ||
 					    g_players[otherPlayerIdx]
 							    .participationState !=
@@ -6540,7 +6586,7 @@ void Flight_ProcessPlayerActions(int playerIdx)
 			break;
 		case FLIGHT_KEY_Z:
 			if (g_flightSimSideEffectsSuppressed == 0) {
-				PlayerViewState *view =
+				struct PlayerViewState *view =
 					&g_players[playerIdx].viewState;
 				if (view->targetCameraActive != 0) {
 					view->targetCameraActive = 0;
@@ -6671,7 +6717,7 @@ void Flight_ProcessPlayerActions(int playerIdx)
 			     g_players[playerIdx]
 					     .viewState.externalCameraActive !=
 				     0)) {
-				PlayerViewState *view =
+				struct PlayerViewState *view =
 					&g_players[playerIdx].viewState;
 				view->hudAimXSnapState ^= 8;
 				view->hudAimX = view->hudAimXSnapState << 10;
@@ -6695,7 +6741,7 @@ void Flight_ProcessPlayerActions(int playerIdx)
 			if (g_flightSimSideEffectsSuppressed == 0) {
 				int lookIndex =
 					g_currentActionKey - FLIGHT_KEY_PAD_1;
-				PlayerViewState *view =
+				struct PlayerViewState *view =
 					&g_players[playerIdx].viewState;
 				if (view->externalCameraActive == 0 &&
 				    view->cameraFocusObjIdx ==
@@ -7642,7 +7688,7 @@ void Flight_ProcessPlayerActions(int playerIdx)
 		int targetIndex = g_players[playerIdx].currentTargetObjectIdx;
 		if (targetIndex != -1 &&
 		    targetIndex < g_activeRegionCraftObjectSlotEnd) {
-			CraftData *targetCraft =
+			struct CraftData *targetCraft =
 				g_objectTable[(uint16_t)targetIndex]
 					.mobj->pCraft;
 			uint16_t meshCount =
@@ -7695,7 +7741,7 @@ void Flight_ProcessPlayerActions(int playerIdx)
 		int targetIndex = g_players[playerIdx].currentTargetObjectIdx;
 		if (targetIndex != -1 &&
 		    targetIndex < g_activeRegionCraftObjectSlotEnd) {
-			CraftData *targetCraft =
+			struct CraftData *targetCraft =
 				g_objectTable[(uint16_t)targetIndex]
 					.mobj->pCraft;
 			uint16_t meshCount =
@@ -7748,7 +7794,8 @@ void Flight_ProcessPlayerActions(int playerIdx)
 	case FLIGHT_KEY_SLASH:
 	case FLIGHT_KEY_PAD_SLASH:
 		if (g_flightSimSideEffectsSuppressed == 0) {
-			PlayerViewState *view = &g_players[playerIdx].viewState;
+			struct PlayerViewState *view =
+				&g_players[playerIdx].viewState;
 			if (g_players[playerIdx].mapCameraState != 0) {
 				int targetIndex =
 					g_players[playerIdx]
@@ -7825,7 +7872,7 @@ void Flight_ProcessPlayerActions(int playerIdx)
 		Player_IssueAiWingmanTargetOrder((uint16_t)targetIndex, 0x9A, 4,
 						 playerIdx);
 		for (otherPlayerIdx = 0; otherPlayerIdx < 8; ++otherPlayerIdx) {
-			CraftData *otherCraft;
+			struct CraftData *otherCraft;
 			if (otherPlayerIdx == playerIdx ||
 			    g_players[otherPlayerIdx].participationState != 1 ||
 			    g_players[otherPlayerIdx].team !=
@@ -7877,7 +7924,7 @@ void Flight_ProcessPlayerActions(int playerIdx)
 		if (Player_CanRadioCommandCraft(playerIdx) != 0) {
 			int targetIndex = (uint16_t)g_players[playerIdx]
 						  .currentTargetObjectIdx;
-			AiController *controller;
+			struct AiController *controller;
 			g_curCraft = g_objectTable[targetIndex].mobj->pCraft;
 			controller = &g_curCraft->aiController;
 			if (strcmp(g_planTable[controller->runningPlanId].name,
@@ -8007,8 +8054,9 @@ void Flight_ProcessPlayerActions(int playerIdx)
 		if (Player_CanRadioCommandCraft(playerIdx) != 0) {
 			int targetIndex = (uint16_t)g_players[playerIdx]
 						  .currentTargetObjectIdx;
-			ObjectRecord *target = &g_objectTable[targetIndex];
-			AiController *controller;
+			struct ObjectRecord *target =
+				&g_objectTable[targetIndex];
+			struct AiController *controller;
 			g_curCraft = target->mobj->pCraft;
 			controller = &g_curCraft->aiController;
 			if (strcmp(g_planTable[controller->runningPlanId].name,
@@ -8103,7 +8151,7 @@ void Flight_ProcessPlayerActions(int playerIdx)
 		Player_IssueAiWingmanTargetOrder((uint16_t)targetIndex, 0x9B, 5,
 						 playerIdx);
 		for (otherPlayerIdx = 0; otherPlayerIdx < 8; ++otherPlayerIdx) {
-			CraftData *otherCraft;
+			struct CraftData *otherCraft;
 			if (otherPlayerIdx == playerIdx ||
 			    g_players[otherPlayerIdx].participationState != 1 ||
 			    g_players[otherPlayerIdx].team !=
@@ -8149,7 +8197,7 @@ void Flight_ProcessPlayerActions(int playerIdx)
 				    g_activeRegionObjectSlotStart;
 		int16_t newTarget = -1;
 		while (remaining-- != 0) {
-			ObjectRecord *object;
+			struct ObjectRecord *object;
 			int owner;
 			int team;
 			int hostile;
@@ -8210,7 +8258,7 @@ void Flight_ProcessPlayerActions(int playerIdx)
 		targetIndex = g_players[playerIdx].currentTargetObjectIdx;
 		if (targetIndex != -1 &&
 		    targetIndex < g_activeRegionCraftObjectSlotEnd) {
-			ObjectRecord *target =
+			struct ObjectRecord *target =
 				&g_objectTable[(uint16_t)targetIndex];
 			int playerTeam = (uint16_t)g_players[playerIdx].team;
 			int team = g_missionFlightGroups[target->flightGroupIdx]
@@ -8375,7 +8423,7 @@ void Flight_ProcessPlayerActions(int playerIdx)
 		if (Player_CanRadioCommandCraft(playerIdx) != 0) {
 			int targetIndex = (uint16_t)g_players[playerIdx]
 						  .currentTargetObjectIdx;
-			AiController *controller;
+			struct AiController *controller;
 			g_curCraft = g_objectTable[targetIndex].mobj->pCraft;
 			controller = &g_curCraft->aiController;
 			if (strcmp(g_planTable[controller->runningPlanId].name,
@@ -8453,8 +8501,8 @@ void Flight_ProcessPlayerActions(int playerIdx)
 			return;
 		}
 		while (remaining-- != 0) {
-			ObjectRecord *object;
-			CraftData *candidateCraft;
+			struct ObjectRecord *object;
+			struct CraftData *candidateCraft;
 			if (++candidate >= g_activeRegionCraftObjectSlotEnd) {
 				candidate = g_activeRegionObjectSlotStart;
 			}
@@ -8584,9 +8632,9 @@ void Flight_ProcessPlayerActions(int playerIdx)
 		for (projectileIndex = g_projectileObjectSlotStart;
 		     projectileIndex < g_projectileObjectSlotEnd;
 		     ++projectileIndex) {
-			ObjectRecord *projectile =
+			struct ObjectRecord *projectile =
 				&g_objectTable[projectileIndex];
-			WarheadGuidanceState *guidance;
+			struct WarheadGuidanceState *guidance;
 			if (projectile->objectType == 0 ||
 			    (projectile->genusId !=
 				     CRAFT_GENUS_PLAYER_PROJECTILE &&
@@ -8617,10 +8665,10 @@ void Flight_ProcessPlayerActions(int playerIdx)
 			for (projectileIndex = g_projectileObjectSlotStart;
 			     projectileIndex < g_projectileObjectSlotEnd;
 			     ++projectileIndex) {
-				ObjectRecord *projectile =
+				struct ObjectRecord *projectile =
 					&g_objectTable[projectileIndex];
-				WarheadGuidanceState *guidance;
-				MobileObject *targetMobile;
+				struct WarheadGuidanceState *guidance;
+				struct MobileObject *targetMobile;
 				int targetTeam;
 				int playerTeam;
 				if (projectile->objectType == 0 ||
@@ -8801,7 +8849,7 @@ void Flight_ProcessPlayerActions(int playerIdx)
 		remaining = g_activeRegionCraftObjectSlotEnd -
 			    g_activeRegionObjectSlotStart - 1;
 		while (remaining-- >= 0) {
-			ObjectRecord *object;
+			struct ObjectRecord *object;
 			int team;
 			int hostile;
 			if (++candidate >= g_activeRegionCraftObjectSlotEnd) {
@@ -8915,8 +8963,8 @@ void Flight_ProcessPlayerActions(int playerIdx)
 		for (candidate = g_activeRegionObjectSlotStart;
 		     candidate < g_activeRegionCraftObjectSlotEnd;
 		     ++candidate) {
-			ObjectRecord *object = &g_objectTable[candidate];
-			CraftData *candidateCraft;
+			struct ObjectRecord *object = &g_objectTable[candidate];
+			struct CraftData *candidateCraft;
 			if (object->objectType == 0 ||
 			    candidate == objectIndex ||
 			    object->genusId == CRAFT_GENUS_EXPLOSION) {
@@ -8945,7 +8993,8 @@ void Flight_ProcessPlayerActions(int playerIdx)
 	case FLIGHT_KEY_ALT_C:
 		g_players[playerIdx].currentTargetObjectIdx = -1;
 		if (g_players[playerIdx].viewState.targetCameraActive != 0) {
-			PlayerViewState *view = &g_players[playerIdx].viewState;
+			struct PlayerViewState *view =
+				&g_players[playerIdx].viewState;
 			view->targetCameraActive = 0;
 			view->externalCameraActive = 0;
 			view->playerInputBlocked = 0;
@@ -9770,7 +9819,7 @@ int32_t Flight_WndProc(void *hWnd, unsigned int Msg, uint32_t wParam,
 // FUNCTION: XVT 0x4ACE80
 void Flight_UpdateCraftSteeringAndSpeed(void)
 {
-	AiController *controller;
+	struct AiController *controller;
 	int playerOwner;
 	int simulationRate;
 	int savedSimStepsPerSecond;
@@ -10167,7 +10216,7 @@ void Flight_UpdateCraftSteeringAndSpeed(void)
 
 #ifdef XVT_MODERN
 		if (XvtFlightTiming_ReferenceDue()) {
-			XvtFlightClock decisionClock =
+			struct XvtFlightClock decisionClock =
 				XvtFlightTiming_EnterReference();
 #endif
 			if (g_objectTable[objectIdx].playerOwnerIdx == -1 &&
@@ -10471,9 +10520,9 @@ void Flight_DecelerateObjectSpeed(int objectIdx, int decelerationPerSecond)
 // FUNCTION: XVT 0x4ADB50
 void Flight_UpdateDivePulloutPitchTarget(int objectIdx)
 {
-	AiController *controller;
+	struct AiController *controller;
 	int altitudeDelta;
-	ObjectRecord *object;
+	struct ObjectRecord *object;
 	int moveZ;
 	int projectedMovement;
 

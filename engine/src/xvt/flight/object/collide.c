@@ -35,16 +35,16 @@
 
 /* The payload of an OPT_ROTSCALE node as collide_TestSweepAgainstOptNode
  * reads it. */
-typedef struct CollideOptRotationScale {
-	OptVector origin; /* Point the mesh turns about. */
+struct CollideOptRotationScale {
+	struct OptVector origin; /* Point the mesh turns about. */
 	/* Axis it turns about; multiplied by g_collideOptAxisQ15ToFloatScale
 	 * before use. */
-	OptVector axis;
-} CollideOptRotationScale;
+	struct OptVector axis;
+};
 
 /* The collision globals that collide_WouldShotHitTarget saves before its
  * test and puts back after it, one field each. */
-typedef struct CollisionTargetRangeScratch {
+struct CollisionTargetRangeScratch {
 	int segmentStartWorldX; /* g_collisionSegmentStartWorldX. */
 	int segmentStartWorldY; /* g_collisionSegmentStartWorldY. */
 	int segmentStartWorldZ; /* g_collisionSegmentStartWorldZ. */
@@ -60,7 +60,7 @@ typedef struct CollisionTargetRangeScratch {
 	int hitOffsetX;		/* g_collisionHitOffsetX. */
 	int hitOffsetY;		/* g_collisionHitOffsetY. */
 	int hitOffsetZ;		/* g_collisionHitOffsetZ. */
-} CollisionTargetRangeScratch;
+};
 
 /* The constant 0.0f the float tests compare against. */
 // GLOBAL: XVT 0x5181FC
@@ -79,24 +79,24 @@ int g_collideSweepRejectNearStartHits = 0;
  * tests that follow read; collide_CheckSweptModelCollision sets NULL
  * before each model. */
 // GLOBAL: XVT 0x527E88
-OptNode *g_collideCurrentMeshVertsNode = NULL;
+struct OptNode *g_collideCurrentMeshVertsNode = NULL;
 /* Start of the sweep in the target model's own axes, as floats; an OPT_ROTSCALE
  * node turns it for a rotating mesh, and collide_CheckSweptModelCollision puts
  * it back from g_collideSweepWalkerStartSaved after each mesh. */
 // GLOBAL: XVT 0x622C50
-OptVector g_collideSweepWalkerStart = {0};
+struct OptVector g_collideSweepWalkerStart = {0};
 /* End of the sweep in the target model's frame, kept like
  * g_collideSweepWalkerStart. */
 // GLOBAL: XVT 0x622C60
-OptVector g_collideSweepWalkerEnd = {0};
+struct OptVector g_collideSweepWalkerEnd = {0};
 /* g_collideSweepWalkerStart before any turning, set once per model by
  * collide_CheckSweptModelCollision. */
 // GLOBAL: XVT 0x622C70
-OptVector g_collideSweepWalkerStartSaved = {0};
+struct OptVector g_collideSweepWalkerStartSaved = {0};
 /* g_collideSweepWalkerEnd before any turning, set once per model by
  * collide_CheckSweptModelCollision. */
 // GLOBAL: XVT 0x622C80
-OptVector g_collideSweepWalkerEndSaved = {0};
+struct OptVector g_collideSweepWalkerEndSaved = {0};
 /* 1-based ordinal of the mesh of the nearest hit so far in the current
  * model test, 0 for none; collide_CheckSweptModelCollision returns it. */
 // GLOBAL: XVT 0x622C6C
@@ -218,10 +218,10 @@ int g_collisionHitOffsetZ = 0;
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x419890
 void collide_PopulateMobileObjectProximityCandidates(
-	MobileObjectProximityList *list, uint16_t ownerObjIdx)
+	struct MobileObjectProximityList *list, uint16_t ownerObjIdx)
 {
-	ObjectRecord *ownerObject;
-	MobileObject *ownerMobileObject;
+	struct ObjectRecord *ownerObject;
+	struct MobileObject *ownerMobileObject;
 	uint16_t candidateObjIdx;
 	uint16_t sourceObjIdx;
 
@@ -232,7 +232,7 @@ void collide_PopulateMobileObjectProximityCandidates(
 				     (uint16_t)g_activeRegionObjectSlotStart;
 			     candidateObjIdx < g_activeRegionCraftObjectSlotEnd;
 			     ++candidateObjIdx) {
-				ObjectRecord *candidateObject =
+				struct ObjectRecord *candidateObject =
 					&g_objectTable[candidateObjIdx];
 
 				if (candidateObject->objectType != 0 &&
@@ -279,7 +279,7 @@ void collide_PopulateMobileObjectProximityCandidates(
 		for (candidateObjIdx = (uint16_t)g_activeRegionObjectSlotStart;
 		     candidateObjIdx < g_activeRegionCraftObjectSlotEnd;
 		     ++candidateObjIdx) {
-			ObjectRecord *candidateObject =
+			struct ObjectRecord *candidateObject =
 				&g_objectTable[candidateObjIdx];
 
 			if (candidateObject->flightGroupIdx ==
@@ -343,7 +343,7 @@ void collide_PopulateMobileObjectProximityCandidates(
 		for (candidateObjIdx = (uint16_t)g_activeRegionObjectSlotStart;
 		     candidateObjIdx < g_activeRegionCraftObjectSlotEnd;
 		     ++candidateObjIdx) {
-			ObjectRecord *candidateObject;
+			struct ObjectRecord *candidateObject;
 
 			if (candidateObjIdx == ownerObjIdx) {
 				continue;
@@ -400,7 +400,7 @@ void collide_PopulateMobileObjectProximityCandidates(
 		for (candidateObjIdx = (uint16_t)g_activeRegionObjectSlotStart;
 		     candidateObjIdx < g_projectileObjectSlotEnd;
 		     ++candidateObjIdx) {
-			ObjectRecord *candidateObject =
+			struct ObjectRecord *candidateObject =
 				&g_objectTable[candidateObjIdx];
 			int targetIsPlayerOwned;
 
@@ -549,7 +549,7 @@ void collide_collisions(void)
 
 	for (ownerObjIdx = (uint16_t)g_activeRegionObjectSlotStart;
 	     ownerObjIdx < g_projectileObjectSlotEnd; ++ownerObjIdx) {
-		MobileObjectProximityList *list;
+		struct MobileObjectProximityList *list;
 		int playerIdx;
 		uint16_t candidateSlot;
 
@@ -584,9 +584,9 @@ void collide_collisions(void)
 				     sourceObjIdx <
 				     g_activeRegionCraftObjectSlotEnd;
 				     ++sourceObjIdx) {
-					ObjectRecord *sourceObject =
+					struct ObjectRecord *sourceObject =
 						&g_objectTable[sourceObjIdx];
-					CraftData *sourceCraft;
+					struct CraftData *sourceCraft;
 
 					if (sourceObject->objectType == 0) {
 						continue;
@@ -624,13 +624,13 @@ void collide_collisions(void)
 					       .currentTargetObjectIdx;
 			if (targetObjIdx >= g_activeRegionObjectSlotStart &&
 			    targetObjIdx < g_activeRegionCraftObjectSlotEnd) {
-				ObjectRecord *targetObject =
+				struct ObjectRecord *targetObject =
 					&g_objectTable[targetObjIdx];
 
 				if (targetObject->objectType != 0 &&
 				    targetObject->genusId !=
 					    CRAFT_GENUS_EXPLOSION) {
-					CraftData *targetCraft;
+					struct CraftData *targetCraft;
 					int maxBoundsExtent;
 
 					g_collisionSweepEndX =
@@ -764,7 +764,7 @@ void collide_collisions(void)
 							     goalIndex <
 							     MISSION_GOAL_COUNT;
 							     ++goalIndex) {
-								FlightGroupGoal *goal =
+								struct FlightGroupGoal *goal =
 									&g_missionFlightGroups[flightGroupIdx]
 										 .fg
 										 .goals[goalIndex];
@@ -853,7 +853,7 @@ void collide_collisions(void)
 				     ++mothershipPass) {
 					uint8_t mothershipFlightGroup = 0;
 					int hasMothership = 0;
-					XvtFlightGroup *ownerFlightGroup =
+					struct XvtFlightGroup *ownerFlightGroup =
 						&g_missionFlightGroups
 							 [g_objectTable[ownerObjIdx]
 								  .flightGroupIdx]
@@ -885,10 +885,10 @@ void collide_collisions(void)
 						     mothershipObjIdx <
 						     g_activeRegionCraftObjectSlotEnd;
 						     ++mothershipObjIdx) {
-							ObjectRecord *mothership =
+							struct ObjectRecord *mothership =
 								&g_objectTable
 									[mothershipObjIdx];
-							CraftData *
+							struct CraftData *
 								mothershipCraft;
 							unsigned int
 								promptRange;
@@ -1055,7 +1055,7 @@ void collide_collisions(void)
 			}
 
 			if (g_objectTable[ownerObjIdx].playerOwnerIdx != -1) {
-				CraftData *ownerCraft =
+				struct CraftData *ownerCraft =
 					g_objectTable[ownerObjIdx].mobj->pCraft;
 
 				if (ownerCraft->aiFlight.impactObjIdx ==
@@ -1082,7 +1082,7 @@ void collide_collisions(void)
 						.mobj->prevWorldZ;
 				if (g_objectTable[candidateObjIdx].mobj !=
 				    NULL) {
-					CraftData *candidateCraft =
+					struct CraftData *candidateCraft =
 						g_objectTable[candidateObjIdx]
 							.mobj->pCraft;
 					int16_t hitMeshIndex;
@@ -1644,12 +1644,12 @@ void collide_collisions(void)
 						ownerObjIdx, candidateObjIdx);
 					if (g_flightMissionState
 						    .collisionsEnabled != 0) {
-						XvtFlightGroup *candidateGroup =
+						struct XvtFlightGroup *candidateGroup =
 							&g_missionFlightGroups
 								 [g_objectTable[candidateObjIdx]
 									  .flightGroupIdx]
 									 .fg;
-						XvtFlightGroup *ownerGroup =
+						struct XvtFlightGroup *ownerGroup =
 							&g_missionFlightGroups
 								 [g_objectTable[ownerObjIdx]
 									  .flightGroupIdx]
@@ -1720,10 +1720,10 @@ void collide_collisions(void)
 				case CRAFT_GENUS_FREIGHTER:
 				case CRAFT_GENUS_STARSHIP:
 				case CRAFT_GENUS_PLATFORM: {
-					CraftData *ownerCraft =
+					struct CraftData *ownerCraft =
 						g_objectTable[ownerObjIdx]
 							.mobj->pCraft;
-					CraftData *candidateCraft;
+					struct CraftData *candidateCraft;
 					uint8_t maneuverMode =
 						ownerCraft->aiController
 							.maneuverMode;
@@ -1780,7 +1780,7 @@ void collide_collisions(void)
 								    .runningPlanId]
 								   .name,
 						   "followhomeevadepln") == 0) {
-						CraftData *leaderCraft =
+						struct CraftData *leaderCraft =
 							g_objectTable
 								[candidateCraft
 									 ->leader_obj_idx]
@@ -1888,7 +1888,7 @@ void collide_collisions(void)
 						    -1 &&
 					    candidateObjIdx <
 						    g_activeRegionCraftObjectSlotEnd) {
-						CraftData *candidateCraft =
+						struct CraftData *candidateCraft =
 							g_objectTable
 								[candidateObjIdx]
 									.mobj
@@ -2086,7 +2086,7 @@ void collide_collisions(void)
  * the contactTicks of the one left out when that is sooner. */
 // FUNCTION: XVT 0x41B830
 void collide_InsertMobileObjectProximityCandidate(
-	MobileObjectProximityList *list, uint16_t ownerObjIdx,
+	struct MobileObjectProximityList *list, uint16_t ownerObjIdx,
 	uint16_t candidateObjIdx)
 {
 	int clearance;
@@ -2229,7 +2229,7 @@ void collide_InsertMobileObjectProximityCandidate(
 // FUNCTION: XVT 0x41BA60
 int collide_GetMobileObjectProximitySpeedQ12(uint16_t objIdx)
 {
-	MobileObject *mobileObject;
+	struct MobileObject *mobileObject;
 	int speed;
 	uint16_t currentSpeed;
 
@@ -2271,10 +2271,10 @@ int collide_GetMobileObjectProximitySpeedQ12(uint16_t objIdx)
 // FUNCTION: XVT 0x41BB00
 void collide_ResetObjectProximityForSlot(uint16_t objIdx)
 {
-	MobileObject *mobileObject;
+	struct MobileObject *mobileObject;
 	int ownerObjIdx;
 	int objectIndex;
-	ObjectRecord *object;
+	struct ObjectRecord *object;
 
 	mobileObject = g_objectTable[objIdx].mobj;
 	if (mobileObject != NULL) {
@@ -2309,7 +2309,7 @@ void collide_ResetObjectProximityForSlot(uint16_t objIdx)
 // FUNCTION: XVT 0x41BBA0
 void collide_ResetNeighborProximityLists(uint16_t objectIndex)
 {
-	MobileObject *mobileObject;
+	struct MobileObject *mobileObject;
 	int count;
 	int proximityIndex;
 
@@ -2337,7 +2337,7 @@ void collide_ResetNeighborProximityLists(uint16_t objectIndex)
  * when it is not there. */
 // FUNCTION: XVT 0x41BBF0
 void collide_RemoveMobileObjectProximityCandidate(
-	MobileObjectProximityList *list, uint16_t candidateObjIdx)
+	struct MobileObjectProximityList *list, uint16_t candidateObjIdx)
 {
 	int index;
 
@@ -2382,7 +2382,7 @@ void collide_RemoveMobileObjectProximityCandidate(
 // FUNCTION: XVT 0x41BC50
 void collide_applyCraftImpactBounce(uint16_t craftObjIdx, uint16_t otherObjIdx)
 {
-	CraftData *craft;
+	struct CraftData *craft;
 	int16_t speed;
 	int16_t angle;
 	int impulseX;
@@ -2505,7 +2505,8 @@ void collide_applyCraftImpactBounce(uint16_t craftObjIdx, uint16_t otherObjIdx)
 	}
 
 	if (g_activeRegionCraftObjectSlotEnd > otherObjIdx) {
-		CraftData *otherCraft = g_objectTable[otherObjIdx].mobj->pCraft;
+		struct CraftData *otherCraft =
+			g_objectTable[otherObjIdx].mobj->pCraft;
 		int16_t rollImpulse;
 
 		g_objectTable[otherObjIdx].pitch = trig2_w_arccos(forceX);
@@ -2627,8 +2628,8 @@ int16_t collide_TestSweptPairCollision(uint16_t sourceObjIdx,
 	int sourceDistance;
 	int useDetailedCollision = 1;
 	int sweepDistance;
-	ObjectRecord *target;
-	ObjectRecord *source;
+	struct ObjectRecord *target;
+	struct ObjectRecord *source;
 	unsigned int targetObjectType;
 	int sourceObjectType;
 	uint8_t sourceGenus;
@@ -3070,16 +3071,16 @@ int collide_WouldShotHitTarget(uint16_t sourceObjIdx, uint16_t targetObjIdx,
 		MOVE_VECTOR_SHIFT = 15,
 	};
 
-	CollisionTargetRangeScratch savedCollision;
-	ObjectRecord *sourceObject;
-	CraftData *sourceCraft;
-	MobileObject *sourceMobileObject;
+	struct CollisionTargetRangeScratch savedCollision;
+	struct ObjectRecord *sourceObject;
+	struct CraftData *sourceCraft;
+	struct MobileObject *sourceMobileObject;
 	ModelIndex sourceModelIndex;
 	uint16_t projectileType;
 	uint16_t projectileSpeed;
 	int lifetimeTicks;
 	int projectileDistance;
-	ObjectRecord *targetObject;
+	struct ObjectRecord *targetObject;
 	int result;
 	int sourceMoveX;
 	int sourceMoveY;
@@ -3172,7 +3173,8 @@ int collide_WouldShotHitTarget(uint16_t sourceObjIdx, uint16_t targetObjIdx,
 
 	targetObject = &g_objectTable[targetObjIdx];
 	if (targetObject->mobj != NULL) {
-		MobileObject **targetMobileObjectLink = &targetObject->mobj;
+		struct MobileObject **targetMobileObjectLink =
+			&targetObject->mobj;
 		int targetTravelDistance;
 
 		g_collisionSweepStartX = targetObject->world_x;
@@ -3256,12 +3258,12 @@ int collide_WouldShotHitTarget(uint16_t sourceObjIdx, uint16_t targetObjIdx,
 uint16_t collide_craftstarshipcollision(uint16_t sourceObjIdx,
 					int16_t lookaheadSeconds)
 {
-	ObjectRecord *source = &g_objectTable[sourceObjIdx];
+	struct ObjectRecord *source = &g_objectTable[sourceObjIdx];
 	int16_t lookaheadFrames =
 		(int16_t)(g_simStepsPerSecond * lookaheadSeconds);
 	uint16_t movementStep;
 	uint16_t objectIndex;
-	MobileObjectProximityList *proximityList;
+	struct MobileObjectProximityList *proximityList;
 
 	g_collisionSegmentStartWorldX = source->world_x;
 	g_collisionSegmentStartWorldY = source->world_y;
@@ -3286,7 +3288,7 @@ uint16_t collide_craftstarshipcollision(uint16_t sourceObjIdx,
 			lookaheadFrames;
 	for (objectIndex = (uint16_t)g_activeRegionObjectSlotStart;
 	     objectIndex < g_activeRegionCraftObjectSlotEnd; ++objectIndex) {
-		ObjectRecord *candidate = &g_objectTable[objectIndex];
+		struct ObjectRecord *candidate = &g_objectTable[objectIndex];
 		if (candidate->objectType != 0 && objectIndex != sourceObjIdx &&
 		    (candidate->genusId == CRAFT_GENUS_STARSHIP ||
 		     candidate->genusId == CRAFT_GENUS_PLATFORM ||
@@ -3394,7 +3396,7 @@ void collide_laserhitcraft(uint16_t projectileObjIdx, uint16_t craftObjIdx,
 		g_missionFlightGroups[g_objectTable[sourceObjIdx]
 					      .flightGroupIdx]
 			.fg.team;
-	CraftData *craft;
+	struct CraftData *craft;
 	int8_t *attackedByTeam;
 	int16_t forwardDot;
 	uint16_t forwardPositive;
@@ -3537,7 +3539,7 @@ void collide_laserhitcraft(uint16_t projectileObjIdx, uint16_t craftObjIdx,
 
 	if (craft->lastAttackerObjIdx == UINT16_MAX) {
 		if (sourceObjIdx < g_activeRegionCraftObjectSlotEnd) {
-			ObjectRecord *sourceObject =
+			struct ObjectRecord *sourceObject =
 				&g_objectTable[sourceObjIdx];
 			uint8_t sourceGenus = sourceObject->genusId;
 
@@ -3869,8 +3871,8 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex,
 	uint8_t cockpitStatusDirty;
 	int *shieldEnergy;
 	uint8_t sourceFamily;
-	AiController *aiController;
-	CraftData *craft;
+	struct AiController *aiController;
+	struct CraftData *craft;
 	unsigned int damageAmount;
 	int damage;
 	uint16_t attackerSourceObjIdx;
@@ -5401,7 +5403,7 @@ unsigned int collide_TestSegmentAgainstLegacyPackedOptNode(
 unsigned int collide_ComputeCraftDamageAmount(uint16_t victimObjIdx,
 					      uint16_t sourceObjIdx)
 {
-	MobileObject *mobileObject;
+	struct MobileObject *mobileObject;
 	int projectileType;
 	unsigned int loadedWarheadCount;
 	unsigned int launcherDamage;
@@ -5409,7 +5411,7 @@ unsigned int collide_ComputeCraftDamageAmount(uint16_t victimObjIdx,
 	unsigned int launcherIndex;
 	int modelIndex;
 	unsigned int damageAmount;
-	CraftData *craft;
+	struct CraftData *craft;
 
 	mobileObject = g_objectTable[sourceObjIdx].mobj;
 	damageAmount = mobileObject->damageAmount;
@@ -5505,7 +5507,7 @@ int collide_CheckSweptModelCollision(uint16_t sourceObjIdx,
 		SUPER_STAR_DESTROYER_OBJECT_TYPE = 54
 	};
 
-	ObjectRecord *target = &g_objectTable[targetObjIdx];
+	struct ObjectRecord *target = &g_objectTable[targetObjIdx];
 	int worldX;
 	int worldY;
 	int worldZ;
@@ -5523,10 +5525,10 @@ int collide_CheckSweptModelCollision(uint16_t sourceObjIdx,
 	int fwdEnd;
 	int upEnd;
 	uint16_t modelHandle;
-	OptimizedPolyObject *model;
+	struct OptimizedPolyObject *model;
 	unsigned int rootIndex;
-	OptNode *root;
-	MeshDescriptor *descriptor;
+	struct OptNode *root;
+	struct MeshDescriptor *descriptor;
 	int descriptorIndex;
 	unsigned int descriptorType;
 
@@ -5617,7 +5619,8 @@ int collide_CheckSweptModelCollision(uint16_t sourceObjIdx,
 	}
 #endif
 	modelHandle = g_loadedModels[target->objectType];
-	model = (OptimizedPolyObject *)Memory_GetHandleBlock(modelHandle);
+	model = (struct OptimizedPolyObject *)Memory_GetHandleBlock(
+		modelHandle);
 	if (model == NULL) {
 		return 0;
 	}
@@ -5764,18 +5767,19 @@ int collide_CheckSweptModelCollision(uint16_t sourceObjIdx,
  * g_collideSweepHitMeshOrdinal and g_collideSweepHitFraction. The return value is not a hit: it is 1 when the
  * segment misses a mesh's bounding box, and that 1 passes up through every parent to stop the walk. */
 // FUNCTION: XVT 0x4A6080
-int collide_TestSweepAgainstOptNode(OptimizedPolyObject *object, OptNode *node)
+int collide_TestSweepAgainstOptNode(struct OptimizedPolyObject *object,
+				    struct OptNode *node)
 {
 	int childSelection;
-	OptPackedFaceData *faceData;
-	const OptPackedFaceRecord *face;
-	const OptVector *faceNormal;
-	const OptVector *meshVertices;
-	const OptVector *bounds;
+	struct OptPackedFaceData *faceData;
+	const struct OptPackedFaceRecord *face;
+	const struct OptVector *faceNormal;
+	const struct OptVector *meshVertices;
+	const struct OptVector *bounds;
 	int faceIndex;
 	float hitFraction;
 	float projectedPoint[3];
-	const CollideOptRotationScale *rotationScale;
+	const struct CollideOptRotationScale *rotationScale;
 	uint32_t rotationAngleBits;
 	float axisAngle[4];
 	float rotationMatrix[16];
@@ -5801,7 +5805,7 @@ int collide_TestSweepAgainstOptNode(OptimizedPolyObject *object, OptNode *node)
 								node->payload);
 					*(char *)node->payload = '\0';
 				}
-				node = (OptNode *)node->pName;
+				node = (struct OptNode *)node->pName;
 #endif
 			} else {
 				node = OptModel_ResolveNodeRef(
@@ -5817,12 +5821,12 @@ int collide_TestSweepAgainstOptNode(OptimizedPolyObject *object, OptNode *node)
 		case OPT_FACEDATA_QUAD_MESH:
 		case OPT_FACEDATA_FACE_SET:
 		case OPT_FACEDATA_TRIANGLE_STRIP_SET:
-			faceData = (OptPackedFaceData *)node->payload;
+			faceData = (struct OptPackedFaceData *)node->payload;
 			face = faceData->records;
-			faceNormal = (const OptVector *)&faceData
+			faceNormal = (const struct OptVector *)&faceData
 					     ->records[node->payloadCount];
 			meshVertices =
-				(const OptVector *)
+				(const struct OptVector *)
 					g_collideCurrentMeshVertsNode->payload;
 			faceIndex = 0;
 			if (node->payloadCount > 0) {
@@ -5887,7 +5891,7 @@ int collide_TestSweepAgainstOptNode(OptimizedPolyObject *object, OptNode *node)
 
 		case OPT_MESHVERTS:
 			g_collideCurrentMeshVertsNode = node;
-			meshVertices = (const OptVector *)node->payload;
+			meshVertices = (const struct OptVector *)node->payload;
 			bounds = &meshVertices[node->payloadCount - 2];
 			if (bounds[0].x > g_collideSweepWalkerStart.x &&
 			    bounds[0].x > g_collideSweepWalkerEnd.x) {
@@ -5926,7 +5930,7 @@ int collide_TestSweepAgainstOptNode(OptimizedPolyObject *object, OptNode *node)
 			       sizeof(rotationAngleBits));
 			if ((rotationAngleBits & 0x7FFFFFFFu) != 0) {
 				rotationScale =
-					(const CollideOptRotationScale *)
+					(const struct CollideOptRotationScale *)
 						node->payload;
 				g_collideSweepWalkerStart.x -=
 					rotationScale->origin.x;
@@ -6219,7 +6223,7 @@ void collide_ApplyEngineWashDamage(int victimObjIdx, int sourceObjIdx)
 		ENGINE_WASH_PERCENT_SCALE = 100,
 	};
 
-	ObjectRecord *source = &g_objectTable[sourceObjIdx];
+	struct ObjectRecord *source = &g_objectTable[sourceObjIdx];
 	int sideExtent;
 	int upExtent;
 	int meshIndex;
@@ -6270,14 +6274,14 @@ void collide_ApplyEngineWashDamage(int victimObjIdx, int sourceObjIdx)
 	}
 
 	for (meshIndex = 0; meshCount > meshIndex; ++meshIndex) {
-		MeshDescriptor *descriptor;
+		struct MeshDescriptor *descriptor;
 		unsigned int descriptorObjectType = source->objectType;
 		int engineMeshExtent;
 		int washLength;
 		int sideOffset;
 		int upOffset;
 		int washDamage;
-		ObjectRecord *victim;
+		struct ObjectRecord *victim;
 		int playerOwnerIdx;
 
 		if (descriptorObjectType < OBJECT_TYPE_MESH_CACHE_COUNT) {
@@ -6420,14 +6424,14 @@ void collide_ApplyEngineWashDamage(int victimObjIdx, int sourceObjIdx)
 void collide_ApplyHostileProximityWeaponDisruption(int ownerObjIdx,
 						   int hostileObjIdx)
 {
-	ObjectRecord *hostile = &g_objectTable[hostileObjIdx];
+	struct ObjectRecord *hostile = &g_objectTable[hostileObjIdx];
 	int hostileBoundsExtent =
 		g_objectTypeTable[hostile->objectType].maxBoundsExtent;
 	int deltaX = g_objectTable[ownerObjIdx].world_x - hostile->world_x;
 	int deltaY = g_objectTable[ownerObjIdx].world_y - hostile->world_y;
 	int deltaZ = g_objectTable[ownerObjIdx].world_z - hostile->world_z;
 	int roughDistance = collide_roughdistance3d(deltaX, deltaY, deltaZ);
-	MobileObject *ownerMobj;
+	struct MobileObject *ownerMobj;
 
 	if (2 * hostileBoundsExtent < roughDistance) {
 		return;
@@ -6445,7 +6449,7 @@ void collide_ApplyHostileProximityWeaponDisruption(int ownerObjIdx,
 		int localSide;
 		int localFwd;
 		int localUp;
-		CraftData *hostileCraft;
+		struct CraftData *hostileCraft;
 		uint8_t modelIndex;
 		int insideSide;
 		int insideUp;
@@ -6602,7 +6606,7 @@ void collide_ApplyHostileProximityWeaponDisruption(int ownerObjIdx,
 
 	ownerMobj = g_objectTable[ownerObjIdx].mobj;
 	if (ownerMobj != NULL) {
-		CraftData *ownerCraft = ownerMobj->pCraft;
+		struct CraftData *ownerCraft = ownerMobj->pCraft;
 		if (ownerCraft != NULL) {
 			ownerCraft->beamEffectAccum[2] = 163840;
 			ownerCraft->chaffActiveSeconds = 0;

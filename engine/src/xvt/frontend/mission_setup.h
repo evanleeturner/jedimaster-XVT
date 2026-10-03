@@ -94,7 +94,8 @@ struct MpRosterEntry {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_MpRosterEntry[(sizeof(MpRosterEntry) == 42) ? 1 : -1];
+typedef char
+	xvt_size_MpRosterEntry[(sizeof(struct MpRosterEntry) == 42) ? 1 : -1];
 
 struct MissionSetupPlayerAssignments {
 	/* Player id in each of the 8 slots of each team; slot 0 is the team's
@@ -164,7 +165,7 @@ struct MeleeTournamentSequenceState {
 	 * host's mission start packet on a client. */
 	int missionCount;
 	/* Each team's standing, by team index. */
-	MeleeTournamentTeamStandings teamStandings[10];
+	struct MeleeTournamentTeamStandings teamStandings[10];
 	/* Human players at the tournament's first melee, counted then by
 	 * FrontendMission_InitPlayerState; the tournament award reads it. */
 	unsigned int humanPlayerCount;
@@ -265,7 +266,8 @@ struct BattleContinuation {
 	int32_t randomSetup; ///< Configured sequential, random, or player-choice selection mode.
 	/* Copy of g_pilotData.battleSequenceState when saved, copied back when
 	 * the battle continues. */
-	BattleSequenceState sequenceState; ///< Saved battle sequence state.
+	struct BattleSequenceState
+		sequenceState; ///< Saved battle sequence state.
 };
 
 struct CampaignContinuation {
@@ -286,7 +288,8 @@ struct CampaignContinuation {
 	int32_t randomSetup; ///< Configured sequential, random, or player-choice selection mode.
 	/* Copy of g_pilotData.campaignSequenceState when saved, copied back
 	 * when the campaign continues. */
-	CampaignSequenceState sequenceState; ///< Saved campaign sequence state.
+	struct CampaignSequenceState
+		sequenceState; ///< Saved campaign sequence state.
 };
 
 extern int g_teamPlayerFlightGroupCount[10];
@@ -302,8 +305,8 @@ extern int g_teamCount;
 extern int g_missionSetupLastBroadcastCountdownSecond;
 extern int g_missionSetupPlayerFlightGroupIndices[80];
 extern int g_textShadeRamps[5][8];
-extern MissionSetupPlayerAssignments g_missionSetupPlayerAssignments;
-extern ShipListEntry *g_shipList;
+extern struct MissionSetupPlayerAssignments g_missionSetupPlayerAssignments;
+extern struct ShipListEntry *g_shipList;
 extern int g_shipTypeToShipListIndex[18];
 extern int g_shipCount;
 extern int g_missionSetupSelectedFlightGroupIndex;
@@ -324,17 +327,17 @@ extern const int g_presetCraftTypes[11];
 extern const uint8_t g_craftIffCounterpart[20];
 extern unsigned int g_missionCount;
 extern int g_selectedMissionListIndex;
-extern MissionListEntry *g_missionList;
+extern struct MissionListEntry *g_missionList;
 extern int g_frontendGameSessionInProgress;
 extern int g_missionSetupIsHost;
 extern int g_missionSetupRosterAuthoritative;
 extern int g_missionSetupBeginButtonLockoutFrames;
 extern int g_frontendSkipScreenEntrySetup;
 extern const char *g_missionDirectoryNames[6];
-extern MpRosterEntry g_mpRoster[8];
+extern struct MpRosterEntry g_mpRoster[8];
 extern int g_mpRosterReadyFlags[8];
 extern int g_battleMissionListCount;
-extern MissionListEntry *g_battleMissionList;
+extern struct MissionListEntry *g_battleMissionList;
 extern int g_battleChoiceClockMs;
 extern int g_battleChoiceScrollOffset;
 extern int g_battleChoiceRemainingMs;

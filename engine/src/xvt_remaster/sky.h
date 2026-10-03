@@ -20,8 +20,8 @@ extern "C" {
  * distance 65536, sized from its type's atlas frame as an angle at the camera's focal length and
  * aspect; a record whose type has no committed atlas is skipped. Returns 1. */
 int XvtSky_Prepare(AeronCommandBuffer *cmd, AeronScene3D *scene,
-		   const XvtRenderSnapshot *snapshot,
-		   const XvtRenderView *view);
+		   const struct XvtRenderSnapshot *snapshot,
+		   const struct XvtRenderView *view);
 /* Destroys the starfield, the cubemap and the hyperspace. */
 void XvtSky_Shutdown(void);
 #ifdef __cplusplus

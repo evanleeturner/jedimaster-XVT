@@ -31,7 +31,7 @@ static struct {
 	int selected_index, scroll, pending;
 	uint64_t refresh_at, updated_at;
 	AeronDplayDirectoryError error;
-	XvtNetworkPreview preview;
+	struct XvtNetworkPreview preview;
 } g_browser = {.selected_index = -1};
 
 /* Read mission setup's list/description formats into browser-owned storage. */
@@ -181,7 +181,10 @@ int XvtNetworkTask_SelectedIndex(void) { return g_browser.selected_index; }
 
 int *XvtNetworkTask_ScrollOffset(void) { return &g_browser.scroll; }
 
-XvtNetworkPreview *XvtNetworkTask_Preview(void) { return &g_browser.preview; }
+struct XvtNetworkPreview *XvtNetworkTask_Preview(void)
+{
+	return &g_browser.preview;
+}
 
 AeronDplayDirectoryError XvtNetworkTask_BrowserError(void)
 {
@@ -398,7 +401,8 @@ static void XvtNetworkTask_FinishSession(int result)
 int XvtNetworkTask_Resume(int *result)
 {
 	if (!g_network.active) {
-		XvtNetworkSessionStatus status = XvtNetworkSession_GetStatus();
+		struct XvtNetworkSessionStatus status =
+			XvtNetworkSession_GetStatus();
 		if (status.state == XVT_NETWORK_SESSION_FAILED) {
 			*result = 0;
 			XvtNetworkDialogs_ShowFailure(status.error, 0);

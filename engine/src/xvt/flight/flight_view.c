@@ -438,7 +438,7 @@ void FlightView_UpdatePlayerCamera(int playerIdx)
 		cameraFocusObjIdx =
 			g_players[playerIdx].viewState.cameraFocusObjIdx;
 		if (cameraFocusObjIdx == UINT16_MAX) {
-			ObjectRecord *playerObject;
+			struct ObjectRecord *playerObject;
 
 #ifdef XVT_MODERN
 			/* Mission time-limit expiry marks empty slots connected; they have no craft to orbit. */
@@ -767,7 +767,7 @@ void FlightView_Render(void)
 	mainObjectIndex = 0;
 	if (g_regionMainObjectSlotEnd > 0) {
 		do {
-			ObjectRecord *object;
+			struct ObjectRecord *object;
 			uint16_t objectType;
 
 			if (mainObjectIndex == g_localTransientSlotStart &&
@@ -861,7 +861,7 @@ void FlightView_Render(void)
 		     staticObjectIndex <
 		     g_regionStaticObjectSlotCount + g_regionMainObjectSlotEnd;
 		     ++staticObjectIndex) {
-			ObjectRecord *object =
+			struct ObjectRecord *object =
 				&g_objectTable[staticObjectIndex];
 			int genusId;
 			uint16_t objectType;
@@ -887,7 +887,7 @@ void FlightView_Render(void)
 
 	RenderList_SortDepthAscending();
 	{
-		RenderObjectListEntry *renderEntry;
+		struct RenderObjectListEntry *renderEntry;
 		int16_t renderObjectIndex;
 		int objectTableIndex;
 		uint16_t genusId;
@@ -1077,7 +1077,7 @@ void FlightView_Render(void)
 // FUNCTION: XVT 0x44FE40
 int FlightView_ComputeObjectViewPosition(uint16_t objectIdx)
 {
-	ObjectRecord *object;
+	struct ObjectRecord *object;
 	int cameraWorldX;
 	int cameraWorldY;
 	int cameraWorldZ;

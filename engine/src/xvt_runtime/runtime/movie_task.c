@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct XvtMovieTask {
+struct XvtMovieTask {
 	AeronVideoPlayer *player;
 	char name[256];
 	char path[XVT_PATH_CAPACITY];
@@ -38,9 +38,9 @@ typedef struct XvtMovieTask {
 	int saved_restore;
 	int saved_lock;
 	int synchronize;
-} XvtMovieTask;
+};
 
-static XvtMovieTask g_movie;
+static struct XvtMovieTask g_movie;
 static AeronRenderSubmission g_subtitleSubmission;
 
 void XvtMovieTask_SuppressClassicSubtitles(void)
@@ -155,8 +155,8 @@ int XvtMovieTask_Begin(const char *name, int synchronize)
 static void XvtMovieTask_SubmitSubtitles(uint64_t frame, int margin_height)
 {
 	AeronPixelLayerDesc layer = {0};
-	RECT clip;
-	RECT rect;
+	struct RECT clip;
+	struct RECT rect;
 	uint8_t *saved_pixels;
 	int saved_pitch;
 	int line;
@@ -179,7 +179,7 @@ static void XvtMovieTask_SubmitSubtitles(uint64_t frame, int margin_height)
 	saved_pixels = g_drawSurfacePtr;
 	saved_pitch = g_frontState.drawSurfacePitch;
 	FrontendDisplay_GetScreenClipRect(&clip);
-	rect = (RECT){0, 0, 639, 479};
+	rect = (struct RECT){0, 0, 639, 479};
 	FrontendDisplay_SetScreenClipRect640x480(&rect);
 	g_drawSurfacePtr = (uint8_t *)g_movie.overlay;
 	g_frontState.drawSurfacePitch = 640 * sizeof(uint16_t);

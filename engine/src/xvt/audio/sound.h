@@ -58,9 +58,9 @@ struct ActiveSoundInstance {
 	IDirectSoundBuffer *buffer;
 };
 
-extern SoundEffectDef g_soundDefs[1000];
-extern ActiveSoundInstance g_activeSoundInstances[8];
-extern SoundQueueEntry g_soundQueue[5];
+extern struct SoundEffectDef g_soundDefs[1000];
+extern struct ActiveSoundInstance g_activeSoundInstances[8];
+extern struct SoundQueueEntry g_soundQueue[5];
 extern int g_soundQueueCount;
 extern int g_soundCount;
 
@@ -87,10 +87,10 @@ int Sound_SetLatestInstanceFrequency(const char *name, uint32_t frequency);
 int Sound_SetEffectCurrentPriority(const char *name, int priority);
 int Sound_GetEffectCurrentPriority(const char *name);
 int Sound_CountPlayingInstances(const char *name);
-void Sound_InsertEffectDefSorted(const SoundEffectDef *effect);
+void Sound_InsertEffectDefSorted(const struct SoundEffectDef *effect);
 void Sound_RemoveEffectDef(int effectIndex);
 int Sound_FindLoadedEffectByName(const char *name);
-int Sound_FindEffectByName(const SoundEffectDef *records, int lastIndex,
+int Sound_FindEffectByName(const struct SoundEffectDef *records, int lastIndex,
 			   const char *name);
 int Sound_SetParam(int flightSoundId, int paramCode, int value);
 int Sound_GetParam(int flightSoundId, int paramCode);

@@ -30,7 +30,7 @@
 
 enum { MS_US = 1000, TICK_US = 4 * MS_US };
 
-static XvtFlightMessage g_message;
+static struct XvtFlightMessage g_message;
 
 static void Clocks(XvtFlightTimingProfile profile)
 {
@@ -143,7 +143,7 @@ static void CheckResetReplay(void)
 	/* ResetReplay resets the flight simulation, which forgets the prediction fallback (flight_sim.h). */
 	Clocks(XVT_FLIGHT_TIMING_NETWORK_125);
 	g_players[1].participationState = 1;
-	FlightInputFrameRecord input;
+	struct FlightInputFrameRecord input;
 	memset(&input, 0, sizeof input);
 	input.axisX = 20;
 	XvtFlightPrediction_Confirm(1, 2, &input);

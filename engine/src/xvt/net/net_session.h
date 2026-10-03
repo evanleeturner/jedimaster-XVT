@@ -21,8 +21,9 @@ struct SessionPlayerInfo {
 };
 
 #pragma pack(pop)
-typedef char
-	xvt_size_SessionPlayerInfo[(sizeof(SessionPlayerInfo) == 40) ? 1 : -1];
+typedef char xvt_size_SessionPlayerInfo[(sizeof(struct SessionPlayerInfo) == 40)
+						? 1
+						: -1];
 
 #pragma pack(push, 1)
 
@@ -33,25 +34,25 @@ struct NetSessionScratchPacket {
 
 #pragma pack(pop)
 typedef char xvt_size_NetSessionScratchPacket
-	[(sizeof(NetSessionScratchPacket) == 512) ? 1 : -1];
+	[(sizeof(struct NetSessionScratchPacket) == 512) ? 1 : -1];
 
 #pragma pack(push, 1)
 
-typedef struct NetSessionScratchState {
+struct NetSessionScratchState {
 	int packetType;		/* NET_PACKET_ value naming the packet */
 	int payloadDwords[127]; /* Body; its layout depends on packetType */
 	/* Zeroed by NetSession_InitGameSession; nothing reads it */
 	int trailingState;
-} NetSessionScratchState;
+};
 
 #pragma pack(pop)
 typedef char xvt_size_NetSessionScratchState
-	[(sizeof(NetSessionScratchState) == 516) ? 1 : -1];
+	[(sizeof(struct NetSessionScratchState) == 516) ? 1 : -1];
 
 /* DirectPlay flight-session state is reset as one block by the original game. */
 #pragma pack(push, 1)
 
-typedef struct NetSessionState {
+struct NetSessionState {
 	/* Never named; only NetSession_InitGameSession's clear sets it */
 	uint32_t reservedState0;
 	/* Taken from the frontend; NULL when there is none or a startup wait
@@ -79,10 +80,10 @@ typedef struct NetSessionState {
 	 * messages. */
 	int reliableUseFixedResendTimeouts;
 	/* This player's own entry, from the frontend */
-	SessionPlayerInfo localPlayerInfo;
-	SessionPlayerInfo players[8]; /* The roster */
+	struct SessionPlayerInfo localPlayerInfo;
+	struct SessionPlayerInfo players[8]; /* The roster */
 	/* Queue of player entries; only functions nothing calls use it */
-	SessionPlayerInfo playerInfoQueue[8];
+	struct SessionPlayerInfo playerInfoQueue[8];
 	/* Next sequence, 0-127, for packets to all players */
 	uint32_t broadcastSeqCounter;
 	/* Type byte and body of the last packet to all players, sent again
@@ -101,29 +102,29 @@ typedef struct NetSessionState {
 	/* While 1, the next group packet carries a NOP, not a copy */
 	int groupPiggybackEmpty;
 	/* Per-peer delivery state: sequences, saved copy, activity, counts */
-	NetReliablePeerSlot reliablePeerSlots[40];
+	struct NetReliablePeerSlot reliablePeerSlots[40];
 	/* Never named in code. It follows reliablePeerSlots, so
 	 * NetSession_SendPacket's unchecked use of slot 40, when all 40 slots
 	 * are taken, lands here. */
-	NetReliablePeerSlot reliablePeerOverflowSlot;
+	struct NetReliablePeerSlot reliablePeerOverflowSlot;
 	unsigned int reliablePeerSlotCount; /* reliablePeerSlots in use */
 	int playerInfoQueueCount;	    /* Entries in playerInfoQueue */
 	/* Copy of the packet NetSession_ReceivePacket last returned; callers
 	 * get a pointer into it */
-	NetQueuedPacket recvScratchPacket;
-} NetSessionState;
+	struct NetQueuedPacket recvScratchPacket;
+};
 
 #pragma pack(pop)
 typedef char xvt_size_NetSessionState
-	[(sizeof(NetSessionState) == 25652 + sizeof(void *)) ? 1 : -1];
+	[(sizeof(struct NetSessionState) == 25652 + sizeof(void *)) ? 1 : -1];
 
-extern NetSessionState g_netSession;
+extern struct NetSessionState g_netSession;
 
-extern NetSessionScratchState g_netSessionScratchPacket;
+extern struct NetSessionScratchState g_netSessionScratchPacket;
 extern int g_netSessionSentHistoryWriteIndex;
 extern int g_netSessionSentWorldMessageWriteIndex;
-extern NetQueuedPacket g_netSessionSentHistory[128];
-extern NetQueuedPacket g_netSessionSentWorldMessageHistory[256];
+extern struct NetQueuedPacket g_netSessionSentHistory[128];
+extern struct NetQueuedPacket g_netSessionSentWorldMessageHistory[256];
 
 void NetSession_DebugTrace(const char *message);
 int NetSession_InitGameSession(const char *formalName, const char *pilotName,
@@ -158,9 +159,9 @@ int NetSession_SendSequencedGamePacket(int destDplayId, uint8_t packetClass,
 				       uint8_t sequence,
 				       const unsigned int *packet,
 				       unsigned int packetSize);
-SessionPlayerInfo *NetSession_GetPlayerRoster(int *outCount);
-SessionPlayerInfo *NetSession_GetLocalPlayerInfo(void);
-int NetSession_SetPlayerRoster(const SessionPlayerInfo *players,
+struct SessionPlayerInfo *NetSession_GetPlayerRoster(int *outCount);
+struct SessionPlayerInfo *NetSession_GetLocalPlayerInfo(void);
+int NetSession_SetPlayerRoster(const struct SessionPlayerInfo *players,
 			       int playerCount);
 int NetSession_GetPlayerCount(void);
 int NetSession_IsLocalHost(void);
@@ -178,16 +179,16 @@ int NetSession_FindActivePlayerIndexByDpid(int dpid);
 int NetSession_GetHostDplayId(void);
 int NetSession_GetLocalDplayId(void);
 char *NetSession_GetPlayerName(int playerSlot);
-SessionPlayerInfo *NetSession_PeekQueuedPlayerInfo(void);
+struct SessionPlayerInfo *NetSession_PeekQueuedPlayerInfo(void);
 void NetSession_DiscardFirstQueuedPlayerInfo(void);
 int NetSession_CountLeadingActivePlayers(void);
 void NetSession_SetPlayerCount(int playerCount);
-void NetSession_AddPlayerToRosterSlot(int playerSlot,
-				      const SessionPlayerInfo *playerInfo);
+void NetSession_AddPlayerToRosterSlot(
+	int playerSlot, const struct SessionPlayerInfo *playerInfo);
 int NetSession_BroadcastPlayerRoster(int toPlayerId);
 int NetSession_GetQueuedPlayerInfoCount(void);
-void NetSession_QueuePlayerInfo(const SessionPlayerInfo *playerInfo);
-int NetSession_AddPlayerToGroup(const SessionPlayerInfo *playerInfo);
+void NetSession_QueuePlayerInfo(const struct SessionPlayerInfo *playerInfo);
+int NetSession_AddPlayerToGroup(const struct SessionPlayerInfo *playerInfo);
 int NetSession_CountActivePlayers(void);
 int NetSession_RemovePlayerFromGroup(int playerDplayId);
 int NetSession_SelectFirstActivePlayerAsHost(void);

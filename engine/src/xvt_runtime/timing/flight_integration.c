@@ -10,14 +10,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct Integration {
+struct Integration {
 	int64_t position_remainder[3], remainder[XVT_INTEGRATE_COUNT];
 	int8_t direction[XVT_INTEGRATE_COUNT];
 	uint16_t signature, carried, target, target_signature;
 	uint8_t type, family;
-} Integration;
+};
 
-static Integration *g_entries;
+static struct Integration *g_entries;
 static size_t g_count;
 
 void XvtFlightIntegration_Shutdown(void)
@@ -46,13 +46,13 @@ void XvtFlightIntegration_ResetSlotAndMotion(unsigned slot)
 	XvtReferenceMotion_Reset(slot);
 }
 
-static Integration *XvtFlightIntegration_SyncEntry(unsigned slot)
+static struct Integration *XvtFlightIntegration_SyncEntry(unsigned slot)
 {
 	if (slot >= g_count) {
 		return NULL;
 	}
-	Integration *s = &g_entries[slot];
-	const ObjectRecord *o = &g_objectTable[slot];
+	struct Integration *s = &g_entries[slot];
+	const struct ObjectRecord *o = &g_objectTable[slot];
 	if (s->signature != o->objectSignature || s->type != o->objectType ||
 	    (o->mobj && s->family != o->mobj->family)) {
 		memset(s, 0, sizeof *s);
@@ -83,7 +83,7 @@ static Integration *XvtFlightIntegration_SyncEntry(unsigned slot)
 			}
 		}
 		if (o->mobj->pWarheadGuidance) {
-			const WarheadGuidanceState *guidance =
+			const struct WarheadGuidanceState *guidance =
 				o->mobj->pWarheadGuidance;
 			if (s->target != guidance->targetObjIdx ||
 			    s->target_signature != guidance->targetSignature ||
@@ -103,15 +103,15 @@ static Integration *XvtFlightIntegration_SyncEntry(unsigned slot)
 
 void XvtFlightIntegration_Clear(unsigned slot, unsigned channel)
 {
-	Integration *s = XvtFlightIntegration_SyncEntry(slot);
+	struct Integration *s = XvtFlightIntegration_SyncEntry(slot);
 	if (s && channel < XVT_INTEGRATE_COUNT) {
 		s->remainder[channel] = 0;
 		s->direction[channel] = 0;
 	}
 }
 
-static int64_t Integrate(Integration *s, unsigned channel, int64_t numerator,
-			 int64_t divisor, int sign)
+static int64_t Integrate(struct Integration *s, unsigned channel,
+			 int64_t numerator, int64_t divisor, int sign)
 {
 	if (!s) {
 		return numerator / divisor;
@@ -150,7 +150,7 @@ unsigned XvtFlightIntegration_Steer(unsigned slot, unsigned channel,
 	uint64_t product = (uint64_t)rate * g_elapsedTicks * a * f;
 	uint64_t divisor = (uint64_t)SIMULATION_TICKS_PER_SECOND *
 			   XVT_Q16_SCALE * XVT_Q16_SCALE;
-	Integration *s = XvtFlightIntegration_SyncEntry(slot);
+	struct Integration *s = XvtFlightIntegration_SyncEntry(slot);
 	if (s && s->direction[channel] != direction) {
 		s->remainder[channel] = 0;
 		s->direction[channel] = direction;
@@ -166,9 +166,9 @@ unsigned XvtFlightIntegration_Steer(unsigned slot, unsigned channel,
 
 void XvtFlightIntegration_Move(unsigned slot)
 {
-	Integration *s = XvtFlightIntegration_SyncEntry(slot);
+	struct Integration *s = XvtFlightIntegration_SyncEntry(slot);
 	if (s) {
-		const ObjectRecord *o = &g_objectTable[slot];
+		const struct ObjectRecord *o = &g_objectTable[slot];
 		const int position[3] = {o->world_x, o->world_y, o->world_z};
 		for (unsigned a = 0; a < 3; ++a) {
 			if (position[a] <= -0x01000000 ||
@@ -177,7 +177,7 @@ void XvtFlightIntegration_Move(unsigned slot)
 			}
 		}
 	}
-	const MobileObject *m = g_objectTable[slot].mobj;
+	const struct MobileObject *m = g_objectTable[slot].mobj;
 	const int axes[3] = {m->moveX, m->moveY, m->moveZ};
 	int *outputs[3] = {&trig2_xmovedist, &trig2_ymovedist,
 			   &trig2_zmovedist};
@@ -228,15 +228,15 @@ void XvtFlightIntegration_ResetShared(void)
 typedef char XvtIntegrationSchemaChannels
 	[(XVT_INTEGRATE_COUNT == XVT_STATE_INTEGRATION_CHANNELS) ? 1 : -1];
 
-void XvtFlightIntegration_Encode(unsigned slot, XvtIntegrationWire *out)
+void XvtFlightIntegration_Encode(unsigned slot, struct XvtIntegrationWire *out)
 {
 	memset(out, 0, sizeof *out);
 	XvtWire_Set16(out->slot, slot);
 	if (slot >= g_count) {
 		return;
 	}
-	const Integration *state = &g_entries[slot];
-	const ObjectRecord *object = &g_objectTable[slot];
+	const struct Integration *state = &g_entries[slot];
+	const struct ObjectRecord *object = &g_objectTable[slot];
 	if (!object->objectType || state->type != object->objectType ||
 	    state->signature != object->objectSignature ||
 	    (object->mobj && state->family != object->mobj->family)) {
@@ -259,20 +259,21 @@ void XvtFlightIntegration_Encode(unsigned slot, XvtIntegrationWire *out)
 	}
 }
 
-int XvtFlightIntegration_Decode(const XvtIntegrationWire *record, int apply)
+int XvtFlightIntegration_Decode(const struct XvtIntegrationWire *record,
+				int apply)
 {
 	unsigned slot = XvtWire_Get16(record->slot);
 	if (slot >= g_count) {
 		return 0;
 	}
 	if (!record->type) {
-		XvtIntegrationWire empty = {0};
+		struct XvtIntegrationWire empty = {0};
 		XvtWire_Set16(empty.slot, slot);
 		if (memcmp(record, &empty, sizeof empty)) {
 			return 0;
 		}
 	}
-	Integration state = {0};
+	struct Integration state = {0};
 	state.signature = XvtWire_Get16(record->signature);
 	state.type = record->type;
 	state.family = record->family;

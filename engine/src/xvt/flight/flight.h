@@ -59,7 +59,7 @@ struct FlightGlobalCountdownTimers {
 	uint16_t weaponPowerUpdateTimer;
 };
 
-extern FlightGlobalCountdownTimers g_flightGlobalCountdownTimers;
+extern struct FlightGlobalCountdownTimers g_flightGlobalCountdownTimers;
 
 enum FlightLaunchArgument {
 	FLIGHT_LAUNCH_ARG_MISSION_PATH,
@@ -190,7 +190,7 @@ struct FlightMissionState {
 	int32_t maxConnectedPlayerCountThisMission;
 	/* The mission's runtime goal and score state, set up by
 	 * Mission_InitFlightRuntimeState. */
-	MissionFlightRuntimeState runtime;
+	struct MissionFlightRuntimeState runtime;
 	/* Per mission message, 1 once its trigger has fired
 	 * (Mission_UpdateLogic). */
 	uint8_t messageTriggered[64];
@@ -221,7 +221,7 @@ extern int g_predictedFrameDelta;
 extern int g_flightLastStepTargetTimestamp;
 extern int g_flightPrevHostPacketDropCount;
 extern int g_flightConfNoPilot;
-extern FlightMissionState g_flightMissionState;
+extern struct FlightMissionState g_flightMissionState;
 extern int g_flightNetBufferWorldMessagesUntilChecksum;
 extern unsigned int g_flightNetWorldChecksumEpoch;
 extern int g_internetPlayEnabled;
@@ -251,9 +251,9 @@ extern XvtFile *g_unusedFlightDebugLogFile;
 extern int g_laserFireTimestampTrackingEnabled;
 extern int g_unusedFlightTransientResetState;
 extern uint8_t g_unusedFlightNetworkBlock[48];
-extern PlayerData g_localPlayerSnapshotOnOptionsSyncFailure;
+extern struct PlayerData g_localPlayerSnapshotOnOptionsSyncFailure;
 extern int g_flightInProgressLaunch;
-extern FlightLaunchArgs g_flightLaunchArgs;
+extern struct FlightLaunchArgs g_flightLaunchArgs;
 extern int g_flightStartedWithDashArg;
 extern uint32_t g_flightSoundInitStartTimeMs;
 

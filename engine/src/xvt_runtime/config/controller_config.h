@@ -10,12 +10,12 @@
  * fields above; guids are stored in lower case. Each profile is read by ReadProfile, then the whole set
  * is validated. */
 bool XvtControllerConfig_Parse(const AeronConfigFile *document,
-			       XvtControllerOptions *out, char *error,
+			       struct XvtControllerOptions *out, char *error,
 			       size_t capacity);
 /* Replaces input.controllers with options: every model with all four axes (throttle without a
  * deadzone) and its bindings grouped by action in a fixed order. It does not validate; callers do. */
 bool XvtControllerConfig_Write(AeronConfigFile *document,
-			       const XvtControllerOptions *options,
+			       const struct XvtControllerOptions *options,
 			       AeronConfigError *error);
 /* Reads the required mapping at path into *profile for a gamepad or joystick layout, after clearing it.
  * path.axes holds yaw, pitch, roll and throttle, each with source ("none" unbinds), invert and deadzone
@@ -27,6 +27,6 @@ bool XvtControllerConfig_Write(AeronConfigFile *document,
  * threshold; the profile is validated at the end. */
 bool XvtControllerConfig_ReadProfile(const AeronConfigFile *document,
 				     const char *path, AeronControllerKind kind,
-				     XvtControllerProfile *profile, char *error,
-				     size_t capacity);
+				     struct XvtControllerProfile *profile,
+				     char *error, size_t capacity);
 #endif

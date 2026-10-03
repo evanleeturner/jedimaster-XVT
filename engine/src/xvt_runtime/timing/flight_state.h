@@ -29,34 +29,34 @@ enum {
 			   XVT_CONTROL_HYPERSPACE
 };
 
-typedef struct XvtStateHeader {
+struct XvtStateHeader {
 	XvtWireU16 schema, reference_count, integration_count, player_count;
-} XvtStateHeader;
+};
 
-typedef struct XvtStateFooter {
+struct XvtStateFooter {
 	XvtWireU32 magic;
 	XvtWireU16 schema, profile;
 	XvtWireU32 cookie, completed_tick, world_bytes, timing_bytes,
 		timing_crc;
-} XvtStateFooter;
+};
 
-typedef struct XvtReferenceMotionWire {
+struct XvtReferenceMotionWire {
 	XvtWireU16 slot, signature;
 	uint8_t type, flags;
 	XvtWireU16 reserved;
 	XvtWireU32 position[XVT_STATE_POSITION_AXES], sample_tick, current_tick;
-} XvtReferenceMotionWire;
+};
 
-typedef struct XvtIntegrationWire {
+struct XvtIntegrationWire {
 	XvtWireU16 slot, signature;
 	uint8_t type, family;
 	XvtWireU16 carried_slot, target_slot, target_signature;
 	XvtWireU64 position_remainder[XVT_STATE_POSITION_AXES],
 		remainder[XVT_STATE_INTEGRATION_CHANNELS];
 	int8_t direction[XVT_STATE_INTEGRATION_CHANNELS];
-} XvtIntegrationWire;
+};
 
-typedef struct XvtPlayerTimingWire {
+struct XvtPlayerTimingWire {
 	uint8_t player, valid;
 	XvtWireU16 slot, signature, reserved;
 	XvtWireU64 remainder[XVT_STATE_PLAYER_CHANNELS];
@@ -67,40 +67,40 @@ typedef struct XvtPlayerTimingWire {
 		lock_weapon;
 	XvtWireU64 lock_serial;
 	XvtWireU16 camera_focus, reserved_tail;
-} XvtPlayerTimingWire;
+};
 
-typedef struct XvtObjectIdentityWire {
+struct XvtObjectIdentityWire {
 	XvtWireU16 slot, signature;
-} XvtObjectIdentityWire;
+};
 
-typedef struct XvtObjectMotionWire {
-	XvtReferenceMotionWire reference;
-	XvtIntegrationWire integration;
-} XvtObjectMotionWire;
+struct XvtObjectMotionWire {
+	struct XvtReferenceMotionWire reference;
+	struct XvtIntegrationWire integration;
+};
 
-typedef struct XvtPairedMotionWire {
+struct XvtPairedMotionWire {
 	uint8_t player, validity;
 	XvtWireU16 reserved;
 	XvtWireU32 saved_tick;
-	XvtObjectIdentityWire owner_id, carried_id;
-	XvtObjectMotionWire owner, carried;
-} XvtPairedMotionWire;
+	struct XvtObjectIdentityWire owner_id, carried_id;
+	struct XvtObjectMotionWire owner, carried;
+};
 
-typedef struct XvtMembershipWire {
+struct XvtMembershipWire {
 	uint8_t initial, confirmed;
 	XvtWireU16 reserved;
-} XvtMembershipWire;
+};
 
-typedef char XvtStateHeader_layout[(sizeof(XvtStateHeader) == 8) ? 1 : -1];
-typedef char XvtStateFooter_layout[(sizeof(XvtStateFooter) == 28) ? 1 : -1];
-typedef char XvtReferenceMotionWire_layout
-	[(sizeof(XvtReferenceMotionWire) == 28) ? 1 : -1];
 typedef char
-	XvtIntegrationWire_layout[(sizeof(XvtIntegrationWire) == 144) ? 1 : -1];
-typedef char XvtPlayerTimingWire_layout[(sizeof(XvtPlayerTimingWire) == 116)
-						? 1
-						: -1];
-typedef char XvtPairedMotionWire_layout[(sizeof(XvtPairedMotionWire) == 360)
-						? 1
-						: -1];
+	XvtStateHeader_layout[(sizeof(struct XvtStateHeader) == 8) ? 1 : -1];
+typedef char
+	XvtStateFooter_layout[(sizeof(struct XvtStateFooter) == 28) ? 1 : -1];
+typedef char XvtReferenceMotionWire_layout
+	[(sizeof(struct XvtReferenceMotionWire) == 28) ? 1 : -1];
+typedef char XvtIntegrationWire_layout
+	[(sizeof(struct XvtIntegrationWire) == 144) ? 1 : -1];
+typedef char XvtPlayerTimingWire_layout
+	[(sizeof(struct XvtPlayerTimingWire) == 116) ? 1 : -1];
+typedef char XvtPairedMotionWire_layout
+	[(sizeof(struct XvtPairedMotionWire) == 360) ? 1 : -1];
 #endif

@@ -94,7 +94,7 @@ int g_flightNetRecoveryUiActive = 0;
  * functions in this file, XvtFlightNetwork_WaitForMissionStart,
  * XvtFlightNetwork_AnswerClockProbe and the XvtResync_ functions. */
 // GLOBAL: XVT 0x557360
-FlightNetScratchPacket g_flightNetScratchPacket = {0};
+struct FlightNetScratchPacket g_flightNetScratchPacket = {0};
 /* The adjusted input time (g_inputTimestamp plus
  * g_flightNetClockAdjustAccumTicks) sent in this client's last clock probe; a
  * probe reply counts only if it echoes this value. Written by
@@ -158,7 +158,7 @@ int g_playerAbortFlags[8] = {0};
  * FlightNet_SampleLocalInput; cleared at flight load by Flight_MainLoop and
  * XvtFlightLoading_Globals. */
 // GLOBAL: XVT 0xA082A8
-FlightInputFrameRecord g_currentInputFrame = {0};
+struct FlightInputFrameRecord g_currentInputFrame = {0};
 /* g_inputTimestamp of the last input packet FlightNet_SampleLocalInput built; 0
  * means none yet, which forces a full timestamp. Reset to 0 by
  * FlightNet_WaitForMissionStart. Only the original build uses it. */
@@ -175,7 +175,7 @@ int g_lastKeyframeTime = 0;
  * type. FlightNet_SampleLocalInput appends to it and sends it;
  * FlightNet_WaitForMissionStart empties it. Only the original build uses it. */
 // GLOBAL: XVT 0x557148
-FlightNetInputBatchPacket g_flightNetInputBatchPacket = {0};
+struct FlightNetInputBatchPacket g_flightNetInputBatchPacket = {0};
 /* Bytes used in g_flightNetInputBatchPacket, its 5-byte header included, so 5
  * when empty. Written by FlightNet_SampleLocalInput and
  * FlightNet_WaitForMissionStart; only the original build uses it. */
@@ -280,7 +280,8 @@ int g_flightNetRemoteResyncChecksums[126] = {0};
  * player; built by FlightNet_SendWorldStateResyncToPlayer and the XvtResync_
  * chunk builders. */
 // GLOBAL: XVT 0x557788
-FlightNetWorldStateChunkPacket g_flightNetWorldStateChunkPackets[16] = {{0}};
+struct FlightNetWorldStateChunkPacket g_flightNetWorldStateChunkPackets[16] = {
+	{0}};
 /* Set to 1 when the receiving player's RESYNC_CHECKSUMS arrives; the resync
  * sender clears it before it waits and stops waiting once it is set. 5
  * functions write it: FlightNet_ProcessIncomingPackets,
@@ -867,7 +868,7 @@ int FlightNet_WaitForMissionStart(void)
 // FUNCTION: XVT 0x463B60
 int FlightNet_SendClockProbeToHost(void)
 {
-	FlightNetScratchPacket *packet;
+	struct FlightNetScratchPacket *packet;
 	int inputTimestamp;
 
 	packet = &g_flightNetScratchPacket;
@@ -997,7 +998,7 @@ int FlightNet_FindPilotNetworkPlayerIndex(int playerIdx)
 			   sizeof(g_pilotData.networkPlayers);
 	while (*directPlayId != playerDirectPlayId) {
 		directPlayId = (int *)((uint8_t *)directPlayId +
-				       sizeof(PilotNetworkPlayer));
+				       sizeof(struct PilotNetworkPlayer));
 		++networkPlayerIdx;
 		if ((const uint8_t *)directPlayId >= networkPlayerEnd) {
 			return 0;
@@ -1069,7 +1070,7 @@ void FlightNet_ProcessIncomingPackets(void)
 		RECOVERY_ALERT_COLOR = 0x34
 	};
 
-	FlightInputFrameRecord input;
+	struct FlightInputFrameRecord input;
 	int senderDpid;
 
 	struct {
@@ -1238,7 +1239,7 @@ void FlightNet_ProcessIncomingPackets(void)
 		switch (packet[0]) {
 		case NET_PACKET_REMOTE_INPUT: {
 			const uint8_t *cursor;
-			InputFrame *inserted;
+			struct InputFrame *inserted;
 			int frameDelta;
 			int playerIndex;
 			unsigned int timestamp;
@@ -1461,7 +1462,7 @@ void FlightNet_ProcessIncomingPackets(void)
 				if (frameCount > 0) {
 					packetState.decodeValue = frameCount;
 					do {
-						InputFrame *inserted;
+						struct InputFrame *inserted;
 						char timestampCode;
 						uint8_t lowCode;
 						unsigned int timestamp;
@@ -1763,7 +1764,7 @@ void FlightNet_ProcessIncomingPackets(void)
 int32_t FlightNet_SampleLocalInput(void)
 {
 #ifdef XVT_MODERN
-	InputFrame *inserted;
+	struct InputFrame *inserted;
 
 	FlightInput_Read(-2);
 	memset(&g_currentInputFrame, 0, sizeof g_currentInputFrame);
@@ -1785,7 +1786,7 @@ int32_t FlightNet_SampleLocalInput(void)
 	int packetLength;
 	int directPlayerIndex;
 	uint8_t *packetBytes = (uint8_t *)&g_flightNetScratchPacket;
-	InputFrame *inserted;
+	struct InputFrame *inserted;
 
 	FlightInput_Read(-2);
 	g_currentInputFrame.key = (uint8_t)g_actionKey;
@@ -2007,7 +2008,7 @@ int FlightNet_TakeWorldMessageTurn(int inputTimestamp)
 	playersEnd = (const uint8_t *)(g_players + 8);
 	while (participationStatePtr < playersEnd) {
 		if (*participationStatePtr != 0) {
-			InputFrame *inputFrame;
+			struct InputFrame *inputFrame;
 
 			inputFrame = FlightSync_FindLastUnrelayedInputFrame(
 				playerIdx);
@@ -2019,7 +2020,7 @@ int FlightNet_TakeWorldMessageTurn(int inputTimestamp)
 				oldestInputTimestamp = inputFrame->timestamp;
 			}
 		}
-		participationStatePtr += sizeof(PlayerData);
+		participationStatePtr += sizeof(struct PlayerData);
 		++playerIdx;
 	}
 
@@ -2086,7 +2087,7 @@ void FlightNet_BroadcastWorldMessage(int inputTimestamp)
 	int packetLength;
 	int playerIndex;
 	int frameIndex;
-	InputFrame *frame;
+	struct InputFrame *frame;
 	int code;
 	uint8_t *recordCount;
 	int bandwidthBudget;
@@ -2225,10 +2226,12 @@ void FlightNet_BroadcastWorldMessage(int inputTimestamp)
 				for (logRecordIndex = 0;
 				     logRecordIndex < loggedCount;
 				     ++logRecordIndex) {
-					const FlightInputFrameRecord *loggedInput =
-						(const FlightInputFrameRecord
-							 *)(logCursor +
-							    sizeof(int));
+					const struct FlightInputFrameRecord
+						*loggedInput =
+							(const struct
+							 FlightInputFrameRecord
+								 *)(logCursor +
+								    sizeof(int));
 
 					File_Printf(g_flightNetServerLogFile,
 						    "  %8x %2x %2x %2x %2x\n",
@@ -2433,7 +2436,7 @@ int FlightNet_SendWorldStateResyncToPlayer(int directPlayId,
 		CHECKSUM_RETRY_COUNT = 10,
 		CHECKSUM_POLL_INTERVAL_TICKS = 236,
 		CHUNK_RECORD_HEADER_SIZE =
-			sizeof(FlightNetWorldStateChunkRecordHeader),
+			sizeof(struct FlightNetWorldStateChunkRecordHeader),
 		CHUNK_FREE_BYTES =
 			sizeof(g_flightNetWorldStateChunkPackets[0].payload) -
 			CHUNK_RECORD_HEADER_SIZE,
@@ -2442,7 +2445,8 @@ int FlightNet_SendWorldStateResyncToPlayer(int directPlayId,
 			sizeof(g_flightNetWorldStateChunkPackets[0].payload) -
 			sizeof(int),
 		CHUNK_PACKET_SEND_BASE_SIZE =
-			sizeof(FlightNetWorldStateChunkPacket) - sizeof(int),
+			sizeof(struct FlightNetWorldStateChunkPacket) -
+			sizeof(int),
 		CHUNK_BATCH_SIZE = sizeof(g_flightNetWorldStateChunkPackets) /
 				   sizeof(g_flightNetWorldStateChunkPackets[0]),
 		ALERT_BACKGROUND_COLOR = 0x30,
@@ -2610,7 +2614,8 @@ int FlightNet_SendWorldStateResyncToPlayer(int directPlayId,
 		}
 
 		while (remainingSegmentBytes != 0) {
-			FlightNetWorldStateChunkRecordHeader *recordHeader;
+			struct FlightNetWorldStateChunkRecordHeader
+				*recordHeader;
 			int recordBytes;
 
 			recordBytes = remainingSegmentBytes +
@@ -2619,7 +2624,8 @@ int FlightNet_SendWorldStateResyncToPlayer(int directPlayId,
 				recordBytes = packetFreeBytes;
 			}
 			recordHeader =
-				(FlightNetWorldStateChunkRecordHeader *)payload;
+				(struct FlightNetWorldStateChunkRecordHeader *)
+					payload;
 			recordHeader->worldOffset = worldOffset;
 			recordHeader->dataSize =
 				recordBytes - CHUNK_RECORD_HEADER_SIZE;
@@ -2859,7 +2865,7 @@ void FlightNet_HandleWorldStateResyncPacket(const int *packet)
 		COUNTDOWN_HALF_SECOND_TENTHS = 5
 	};
 
-	FlightInputFrameRecord input;
+	struct FlightInputFrameRecord input;
 	/* Two jobs: the low 7-bit timestamp code of an input record, or the frames left in an input batch. */
 	int decodeValue;
 	int senderDpid;
@@ -2963,7 +2969,7 @@ void FlightNet_HandleWorldStateResyncPacket(const int *packet)
 			case NET_PACKET_REMOTE_INPUT: {
 				unsigned int timestamp;
 				const uint8_t *cursor;
-				InputFrame *inserted;
+				struct InputFrame *inserted;
 				int playerIndex;
 				uint8_t timestampCode;
 				unsigned int lowCode;
@@ -3119,7 +3125,7 @@ void FlightNet_HandleWorldStateResyncPacket(const int *packet)
 					memset(&input, 0, sizeof(input));
 					decodeValue = *cursor++;
 					while (decodeValue > 0) {
-						InputFrame *inserted;
+						struct InputFrame *inserted;
 						uint8_t lowCode;
 						uint8_t timestampCode;
 						unsigned int timestamp;

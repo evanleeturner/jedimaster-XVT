@@ -16,15 +16,15 @@ enum {
 	SOURCE_CAPACITY = XVT_SNAP_ASSETS * 2 + XVT_SNAP_TYPES
 };
 
-typedef struct Source {
-	XvtSnapImageAsset image;
-	XvtFrontendImageColors frontend_colors;
+struct Source {
+	struct XvtSnapImageAsset image;
+	struct XvtFrontendImageColors frontend_colors;
 	const void *owner;
 	uint16_t handle;
 	uint8_t retired;
-} Source;
+};
 
-static Source g_sources[SOURCE_CAPACITY];
+static struct Source g_sources[SOURCE_CAPACITY];
 static uint64_t g_bindings[XVT_SNAP_TYPES];
 static uint64_t g_nextId, g_optGeneration, g_textureGeneration,
 	g_imageGeneration;
@@ -42,7 +42,7 @@ static void Changed(uint32_t kind)
 	}
 }
 
-static void Retire(Source *source)
+static void Retire(struct Source *source)
 {
 	if (!source->image.id || source->retired) {
 		return;
@@ -77,7 +77,7 @@ void XvtRenderAssets_Shutdown(void)
 	XvtRenderCockpit_Reset();
 }
 
-static int SnapshotReferencesSource(const XvtRenderSnapshot *snapshot,
+static int SnapshotReferencesSource(const struct XvtRenderSnapshot *snapshot,
 				    uint64_t id)
 {
 	if (!snapshot) {
@@ -95,9 +95,10 @@ static int SnapshotReferencesSource(const XvtRenderSnapshot *snapshot,
 			return 1;
 		}
 	}
-	const XvtCockpitState *cockpit = &snapshot->cockpit;
+	const struct XvtCockpitState *cockpit = &snapshot->cockpit;
 	if (cockpit->valid) {
-		const XvtCockpitDefinition *definition = &cockpit->definition;
+		const struct XvtCockpitDefinition *definition =
+			&cockpit->definition;
 		for (unsigned panel = 0; panel < XVT_HUD_PANEL_BINDINGS;
 		     ++panel) {
 			if (definition->panels[panel].asset_id == id) {
@@ -164,7 +165,7 @@ void XvtRenderAssets_Consumed(uint64_t snapshot_serial)
 static uint64_t Register(const void *owner, uint16_t handle, const char *path,
 			 uint32_t kind, uint32_t first, uint32_t count,
 			 uint16_t point_size, uint8_t row_bytes,
-			 int make_palette, const XvtSnapRect *viewport)
+			 int make_palette, const struct XvtSnapRect *viewport)
 {
 	if (!g_initialized || (!owner && !handle)) {
 		return 0;
@@ -186,7 +187,7 @@ static uint64_t Register(const void *owner, uint16_t handle, const char *path,
 		}
 	}
 	for (unsigned i = 0; i < SOURCE_CAPACITY; ++i) {
-		Source *s = &g_sources[i];
+		struct Source *s = &g_sources[i];
 		if (!s->image.id || s->retired) {
 			continue;
 		}
@@ -208,7 +209,7 @@ static uint64_t Register(const void *owner, uint16_t handle, const char *path,
 		}
 	}
 	for (unsigned i = 0; i < SOURCE_CAPACITY; ++i) {
-		Source *s = &g_sources[i];
+		struct Source *s = &g_sources[i];
 		if (s->image.id) {
 			continue;
 		}
@@ -243,7 +244,7 @@ uint64_t XvtRenderAssets_RegisterImage(const void *owner, uint16_t handle,
 			row_bytes, make_palette, NULL);
 }
 
-void XvtRenderAssets_RegisterFrontendImage(const ImageResource *image,
+void XvtRenderAssets_RegisterFrontendImage(const struct ImageResource *image,
 					   const char *path, int make_palette,
 					   int pixel_format_555)
 {
@@ -253,7 +254,7 @@ void XvtRenderAssets_RegisterFrontendImage(const ImageResource *image,
 		return;
 	}
 	for (unsigned i = 0; i < SOURCE_CAPACITY; ++i) {
-		Source *source = &g_sources[i];
+		struct Source *source = &g_sources[i];
 		if (source->image.id != id) {
 			continue;
 		}
@@ -268,13 +269,13 @@ void XvtRenderAssets_RegisterFrontendImage(const ImageResource *image,
 }
 
 int XvtRenderAssets_CopyFrontendColors(uint64_t id,
-				       XvtFrontendImageColors *colors)
+				       struct XvtFrontendImageColors *colors)
 {
 	if (!g_initialized || !id || !colors) {
 		return 0;
 	}
 	for (unsigned i = 0; i < SOURCE_CAPACITY; ++i) {
-		const Source *source = &g_sources[i];
+		const struct Source *source = &g_sources[i];
 		if (source->image.id == id &&
 		    source->image.kind == XVT_IMAGE_BMP) {
 			/* Retired sources remain readable until their exported frame is consumed. */
@@ -287,7 +288,7 @@ int XvtRenderAssets_CopyFrontendColors(uint64_t id,
 
 uint64_t XvtRenderAssets_RegisterCockpit(const void *owner, uint16_t handle,
 					 const char *path,
-					 const XvtSnapRect *viewport)
+					 const struct XvtSnapRect *viewport)
 {
 	return Register(owner, handle, path, XVT_IMAGE_LFD, 0, 1, 0, 0, 0,
 			viewport);
@@ -378,7 +379,7 @@ const uint8_t *XvtRenderAssets_DefaultCursor(void)
 	return g_defaultCursorBitmap;
 }
 
-void XvtRenderAssets_Export(XvtRenderSnapshot *snapshot)
+void XvtRenderAssets_Export(struct XvtRenderSnapshot *snapshot)
 {
 	if (!g_initialized || !snapshot) {
 		return;
@@ -392,13 +393,13 @@ void XvtRenderAssets_Export(XvtRenderSnapshot *snapshot)
 		}
 	}
 	for (unsigned i = 0; i < SOURCE_CAPACITY; ++i) {
-		const Source *s = &g_sources[i];
+		const struct Source *s = &g_sources[i];
 		if (!s->image.id) {
 			continue;
 		}
 		if (s->image.kind == SOURCE_OPT &&
 		    snapshot->opt_asset_count < XVT_SNAP_ASSETS) {
-			XvtSnapOptAsset *out =
+			struct XvtSnapOptAsset *out =
 				&snapshot->opt_assets
 					 [snapshot->opt_asset_count++];
 			out->id = s->image.id;
@@ -406,7 +407,7 @@ void XvtRenderAssets_Export(XvtRenderSnapshot *snapshot)
 			memcpy(out->path, s->image.path, sizeof out->path);
 		} else if (s->image.kind == SOURCE_ACT &&
 			   snapshot->texture_asset_count < XVT_SNAP_TYPES) {
-			XvtSnapTextureAsset *out =
+			struct XvtSnapTextureAsset *out =
 				&snapshot->texture_assets
 					 [snapshot->texture_asset_count++];
 			out->id = s->image.id;

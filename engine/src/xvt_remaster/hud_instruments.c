@@ -2,8 +2,8 @@
 #include "xvt_remaster/ui_draw.h"
 #include <math.h>
 
-static void DrawIndicator(const XvtHudDraw *draw, XvtHudSpriteRole role,
-			  const XvtCockpitIndicator *indicator)
+static void DrawIndicator(const struct XvtHudDraw *draw, XvtHudSpriteRole role,
+			  const struct XvtCockpitIndicator *indicator)
 {
 	if (indicator->visible) {
 		XvtHudDraw_Part(draw, role, indicator->state, 0, 0,
@@ -11,9 +11,9 @@ static void DrawIndicator(const XvtHudDraw *draw, XvtHudSpriteRole role,
 	}
 }
 
-void XvtHudInstruments_DrawCovers(const XvtHudDraw *draw)
+void XvtHudInstruments_DrawCovers(const struct XvtHudDraw *draw)
 {
-	const XvtCockpitSystems *systems = &draw->state->systems;
+	const struct XvtCockpitSystems *systems = &draw->state->systems;
 	for (unsigned index = 0; index < 13; ++index) {
 		if (systems->feature_covers[index].visible) {
 			XvtHudDraw_Part(draw, XVT_HUD_FEATURE_COVER + index,
@@ -40,8 +40,8 @@ void XvtHudInstruments_DrawCovers(const XvtHudDraw *draw)
 	}
 }
 
-static void DrawPowerGauge(const XvtHudDraw *draw, XvtHudSpriteRole role,
-			   const XvtCockpitPowerGauge *gauge)
+static void DrawPowerGauge(const struct XvtHudDraw *draw, XvtHudSpriteRole role,
+			   const struct XvtCockpitPowerGauge *gauge)
 {
 	if (!gauge->visible) {
 		return;
@@ -53,11 +53,12 @@ static void DrawPowerGauge(const XvtHudDraw *draw, XvtHudSpriteRole role,
 	}
 }
 
-static void DrawWeapons(const XvtHudDraw *draw)
+static void DrawWeapons(const struct XvtHudDraw *draw)
 {
-	const XvtCockpitWeapons *weapons = &draw->state->weapons;
+	const struct XvtCockpitWeapons *weapons = &draw->state->weapons;
 	for (unsigned index = 0; index < weapons->slot_count; ++index) {
-		const XvtCockpitWeaponSlot *slot = &weapons->slots[index];
+		const struct XvtCockpitWeaponSlot *slot =
+			&weapons->slots[index];
 		if (!slot->visible) {
 			continue;
 		}
@@ -107,8 +108,8 @@ static void DrawWeapons(const XvtHudDraw *draw)
 	}
 }
 
-void XvtHudInstruments_DrawMouseStick(const XvtHudDraw *draw,
-				      const XvtRenderView *view)
+void XvtHudInstruments_DrawMouseStick(const struct XvtHudDraw *draw,
+				      const struct XvtRenderView *view)
 {
 	if (!view || !draw->state->mouse_stick_visible) {
 		return;
@@ -129,12 +130,12 @@ void XvtHudInstruments_DrawMouseStick(const XvtHudDraw *draw,
 			       &clip);
 }
 
-void XvtHudInstruments_DrawWidgets(const XvtHudDraw *draw)
+void XvtHudInstruments_DrawWidgets(const struct XvtHudDraw *draw)
 {
-	const XvtCockpitSystems *systems = &draw->state->systems;
+	const struct XvtCockpitSystems *systems = &draw->state->systems;
 	DrawWeapons(draw);
 	for (unsigned side = 0; side < 2; ++side) {
-		const XvtCockpitShield *shield = &systems->shields[side];
+		const struct XvtCockpitShield *shield = &systems->shields[side];
 		if (shield->visible && !shield->text_mode) {
 			XvtHudDraw_Part(draw, XVT_HUD_SHIELD + side * 2,
 					shield->primary_level, 0, 0,
@@ -175,22 +176,22 @@ void XvtHudInstruments_DrawWidgets(const XvtHudDraw *draw)
 	}
 }
 
-void XvtHudInstruments_DrawRadar(const XvtHudDraw *draw)
+void XvtHudInstruments_DrawRadar(const struct XvtHudDraw *draw)
 {
-	const XvtCockpitRadar *radar = &draw->state->radar;
+	const struct XvtCockpitRadar *radar = &draw->state->radar;
 	for (unsigned side = 0; side < 2; ++side) {
 		if (!radar->visible[side]) {
 			continue;
 		}
 		for (unsigned index = 0; index < radar->count[side]; ++index) {
-			const XvtSnapRadarBlip *blip =
+			const struct XvtSnapRadarBlip *blip =
 				&radar->blips[side][index];
 			for (unsigned row = 0; row < 2; ++row) {
 				if (radar->coverage[side][index] &
 				    (1u << row)) {
 					XvtHudDraw_Fill(
 						draw, XVT_COCKPIT_BEFORE_CRT,
-						(XvtSnapRect){
+						(struct XvtSnapRect){
 							draw->layout->radar[side]
 									.x +
 								blip->x,
@@ -213,7 +214,7 @@ void XvtHudInstruments_DrawRadar(const XvtHudDraw *draw)
 		for (unsigned index = 0; index < 10; ++index) {
 			XvtHudDraw_Fill(
 				draw, XVT_COCKPIT_BEFORE_CRT,
-				(XvtSnapRect){
+				(struct XvtSnapRect){
 					draw->layout->radar[radar->marker_side]
 							.x +
 						radar->marker_x +
@@ -228,16 +229,16 @@ void XvtHudInstruments_DrawRadar(const XvtHudDraw *draw)
 	}
 }
 
-void XvtHudInstruments_DrawWorldMarkers(const XvtHudDraw *draw,
-					const XvtSnapTargetBox *markers,
+void XvtHudInstruments_DrawWorldMarkers(const struct XvtHudDraw *draw,
+					const struct XvtSnapTargetBox *markers,
 					unsigned count,
-					const XvtRenderView *view)
+					const struct XvtRenderView *view)
 {
 	if (!view) {
 		return;
 	}
 	for (unsigned index = 0; index < count; ++index) {
-		const XvtSnapTargetBox *marker = &markers[index];
+		const struct XvtSnapTargetBox *marker = &markers[index];
 		float x, y, depth;
 		if (marker->scope != XVT_SCOPE_COCKPIT ||
 		    !XvtRenderMath_ProjectWorld(view, marker->world_pos, &x, &y,
@@ -278,10 +279,10 @@ void XvtHudInstruments_DrawWorldMarkers(const XvtHudDraw *draw,
 	}
 }
 
-void XvtHudInstruments_DrawCrtMarker(const XvtHudDraw *draw)
+void XvtHudInstruments_DrawCrtMarker(const struct XvtHudDraw *draw)
 {
-	const XvtSnapPreview *crt = &draw->state->crt;
-	XvtRenderView view;
+	const struct XvtSnapPreview *crt = &draw->state->crt;
+	struct XvtRenderView view;
 	float x, y, depth;
 	if (!crt->valid || !crt->component_marker_valid ||
 	    !XvtRenderMath_BuildView(&crt->camera, crt->camera.world_pos,
@@ -292,8 +293,9 @@ void XvtHudInstruments_DrawCrtMarker(const XvtHudDraw *draw)
 	    depth <= 0) {
 		return;
 	}
-	XvtSnapRect rect = {crt->destination.x + (int)floorf(x) - 2,
-			    crt->destination.y + (int)floorf(y) - 2, 4, 4};
+	struct XvtSnapRect rect = {crt->destination.x + (int)floorf(x) - 2,
+				   crt->destination.y + (int)floorf(y) - 2, 4,
+				   4};
 	XvtHudDraw_OutlineClipped(draw, XVT_COCKPIT_AFTER_CRT, rect,
 				  crt->destination,
 				  draw->state->palette_argb[206]);

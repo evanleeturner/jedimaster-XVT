@@ -20,15 +20,15 @@
 
 enum { BYPASS = 9, FOREGROUND = 7, BACKGROUND = 4, SHADOW = 5 };
 
-static XvtCockpitState g_state;
+static struct XvtCockpitState g_state;
 static uint8_t g_framebuffer[16];
 
 /* Every palette entry gets its own color: red is the index's low 6 bits, green the high 2. */
 static void Palette(void)
 {
 	for (unsigned index = 0; index < 256; ++index) {
-		g_swPalette[index] = (RgbTriplet){(uint8_t)(index & 63),
-						  (uint8_t)(index >> 6), 7};
+		g_swPalette[index] = (struct RgbTriplet){
+			(uint8_t)(index & 63), (uint8_t)(index >> 6), 7};
 	}
 }
 
@@ -60,7 +60,7 @@ static void Start(void)
 }
 
 /* The fields as CopyFields hands them out, in the forward view with every owner shown. */
-static const XvtCockpitTextField *Fields(void)
+static const struct XvtCockpitTextField *Fields(void)
 {
 	memset(&g_state, 0, sizeof g_state);
 	g_state.view.hud_state = HUD_VIEW_FORWARD;
@@ -91,7 +91,7 @@ static void CheckRecordFieldTakesLiveState(void)
 	Start();
 	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_CRAFT_STATUS, "READY",
 				   XVT_COCKPIT_ALIGN_LEFT);
-	const XvtCockpitTextField *field =
+	const struct XvtCockpitTextField *field =
 		&Fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS];
 	XVT_ASSERT_INT_EQ(strcmp(field->caption.text, "READY"), 0);
 	XVT_ASSERT_INT_EQ(field->caption.visible, 1);
@@ -117,7 +117,7 @@ static void CheckRecordFieldColorCodes(void)
 	/* An inline 0xFE code is resolved, and when it leads the text it sets the foreground. */
 	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_CRAFT_STATUS, "\xFE\x42Z",
 				   XVT_COCKPIT_ALIGN_LEFT);
-	const XvtCockpitTextField *field =
+	const struct XvtCockpitTextField *field =
 		&Fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS];
 	XVT_ASSERT_INT_EQ((uint8_t)field->caption.text[1],
 			  g_flightCharToColorLut[2]);
@@ -190,7 +190,7 @@ static void CheckRecordFieldRefusals(void)
 				   XVT_COCKPIT_ALIGN_LEFT);
 	XvtCockpitText_RecordField((XvtCockpitTextFieldId)-1, "X",
 				   XVT_COCKPIT_ALIGN_LEFT);
-	const XvtCockpitTextField *field =
+	const struct XvtCockpitTextField *field =
 		&Fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS];
 	XVT_ASSERT_INT_EQ(strcmp(field->caption.text, "KEEP"), 0);
 	XVT_ASSERT_INT_EQ(field->generation, generation);
@@ -230,7 +230,7 @@ static void CheckClearField(void)
 
 	/* A visible field is cleared and its generation rises. */
 	XvtCockpitText_ClearField(XVT_COCKPIT_TEXT_CRAFT_STATUS);
-	const XvtCockpitTextField *field =
+	const struct XvtCockpitTextField *field =
 		&Fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS];
 	XVT_ASSERT_INT_EQ(field->caption.visible, 0);
 	XVT_ASSERT_INT_EQ(field->caption.text[0], 0);
@@ -256,7 +256,7 @@ static void CheckClearTargetFields(void)
 
 	/* The range ends at CMD_TIME_UNKNOWN; the field after it keeps its text. */
 	XvtCockpitText_ClearTargetFields();
-	const XvtCockpitTextField *fields = Fields();
+	const struct XvtCockpitTextField *fields = Fields();
 	XVT_ASSERT_INT_EQ(fields[XVT_COCKPIT_TEXT_TARGET_NAME].caption.text[0],
 			  0);
 	XVT_ASSERT_INT_EQ(
@@ -275,7 +275,7 @@ static void CheckResetFields(void)
 	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_CRAFT_STATUS, "OK",
 				   XVT_COCKPIT_ALIGN_LEFT);
 	XvtCockpitText_ResetFields();
-	const XvtCockpitTextField *field =
+	const struct XvtCockpitTextField *field =
 		&Fields()[XVT_COCKPIT_TEXT_CRAFT_STATUS];
 	XVT_ASSERT_INT_EQ(field->generation, 0);
 	XVT_ASSERT_INT_EQ(field->caption.visible, 0);
@@ -283,7 +283,7 @@ static void CheckResetFields(void)
 }
 
 /* A state that shows every field's owner: readouts, target panel, course, map, shields and warning. */
-static void ShowEveryOwner(XvtCockpitState *state)
+static void ShowEveryOwner(struct XvtCockpitState *state)
 {
 	memset(state, 0, sizeof *state);
 	state->view.hud_state = HUD_VIEW_FORWARD;
@@ -305,7 +305,8 @@ static void ShowEveryOwner(XvtCockpitState *state)
 	state->systems.critical_warning.visible = 1;
 }
 
-static int ShownIn(const XvtCockpitState *prepared, XvtCockpitTextFieldId id)
+static int ShownIn(const struct XvtCockpitState *prepared,
+		   XvtCockpitTextFieldId id)
 {
 	g_state = *prepared;
 	XvtCockpitText_CopyFields(&g_state);
@@ -315,7 +316,7 @@ static int ShownIn(const XvtCockpitState *prepared, XvtCockpitTextFieldId id)
 static void CheckCopyFieldsHidesWithOwner(void)
 {
 	Start();
-	static XvtCockpitState shown, hidden;
+	static struct XvtCockpitState shown, hidden;
 	for (unsigned id = 0; id < XVT_COCKPIT_TEXT_FIELD_COUNT; ++id) {
 		XvtCockpitText_RecordField((XvtCockpitTextFieldId)id, "text",
 					   XVT_COCKPIT_ALIGN_LEFT);
@@ -381,7 +382,7 @@ static void CheckCopyFieldsHidesWithOwner(void)
 static void CheckCopyFieldsViews(void)
 {
 	Start();
-	static XvtCockpitState view;
+	static struct XvtCockpitState view;
 	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_CRAFT_STATUS, "OK",
 				   XVT_COCKPIT_ALIGN_LEFT);
 	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_RESOURCE_NAME, "NAME",
@@ -405,7 +406,7 @@ static void CheckCopyPlacedField(void)
 	Start();
 	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_NETWORK_PING, "PING",
 				   XVT_COCKPIT_ALIGN_LEFT);
-	XvtCockpitTextField placed;
+	struct XvtCockpitTextField placed;
 	XvtCockpitText_CopyPlacedField(&placed, XVT_COCKPIT_TEXT_NETWORK_PING,
 				       5, 7);
 	XVT_ASSERT_INT_EQ(strcmp(placed.caption.text, "PING"), 0);
@@ -420,7 +421,8 @@ static void CheckCopyPlacedField(void)
 	/* Right-aligned text keeps its x and still moves down by the offset. */
 	XvtCockpitText_RecordField(XVT_COCKPIT_TEXT_NETWORK_LAG, "LAG",
 				   XVT_COCKPIT_ALIGN_RIGHT);
-	XvtCockpitTextField recorded = Fields()[XVT_COCKPIT_TEXT_NETWORK_LAG];
+	struct XvtCockpitTextField recorded =
+		Fields()[XVT_COCKPIT_TEXT_NETWORK_LAG];
 	XvtCockpitText_CopyPlacedField(&placed, XVT_COCKPIT_TEXT_NETWORK_LAG, 5,
 				       7);
 	XVT_ASSERT_INT_EQ(placed.x, recorded.x);
@@ -435,7 +437,7 @@ static void CheckCaptureGlyph(void)
 	for (unsigned index = 0; index < 256; ++index) {
 		palette[index] = 0xFF000000u | (index * 0x010203u);
 	}
-	XvtCockpitGlyph glyph;
+	struct XvtCockpitGlyph glyph;
 	XVT_ASSERT_INT_EQ(XvtCockpitText_CaptureGlyph(&glyph, 'Q', 8, 10, 0, 4,
 						      6, palette, 0),
 			  1);
@@ -474,7 +476,7 @@ static void CheckCaptureGlyphOutsideClip(void)
 	     ++index) {
 		g_flightCursorX = cursors[index][0];
 		g_flightCursorY = cursors[index][1];
-		XvtCockpitGlyph glyph, before;
+		struct XvtCockpitGlyph glyph, before;
 		memset(&glyph, 0x5A, sizeof glyph);
 		memcpy(&before, &glyph, sizeof before);
 		XVT_ASSERT_INT_EQ(XvtCockpitText_CaptureGlyph(&glyph, 'Q', 8,

@@ -22,8 +22,8 @@
 
 enum { SLOTS = 8, MAIN_SLOTS = 6, EXPLOSION_SLOT_END = 4 };
 
-static ObjectRecord g_testObjects[SLOTS];
-static XvtSnapMap *g_map;
+static struct ObjectRecord g_testObjects[SLOTS];
+static struct XvtSnapMap *g_map;
 
 static void FreshWorld(void)
 {
@@ -49,12 +49,12 @@ static void FreshWorld(void)
 }
 
 /* The captured record of the object in slot, as the capture would hand it over. */
-static XvtSnapObject Captured(unsigned slot, unsigned genus)
+static struct XvtSnapObject Captured(unsigned slot, unsigned genus)
 {
-	XvtSnapObject object;
+	struct XvtSnapObject object;
 	memset(&object, 0, sizeof object);
-	object.id = (XvtSnapObjectId){(uint16_t)slot,
-				      g_testObjects[slot].objectSignature};
+	object.id = (struct XvtSnapObjectId){
+		(uint16_t)slot, g_testObjects[slot].objectSignature};
 	object.genus = (uint8_t)genus;
 	object.slot_class =
 		slot >= MAIN_SLOTS ? XVT_SLOT_STATIC : XVT_SLOT_MAIN;
@@ -62,7 +62,7 @@ static XvtSnapObject Captured(unsigned slot, unsigned genus)
 }
 
 /* Returns how many map objects one captured object gives: 1 when kept, 0 when not. */
-static unsigned Kept(XvtSnapObject object)
+static unsigned Kept(struct XvtSnapObject object)
 {
 	XvtRenderMap_Capture(g_map, &object, 1);
 	XVT_ASSERT_INT_EQ(g_map->active, 1);
@@ -85,7 +85,7 @@ static void CheckClosedMap(void)
 {
 	FreshWorld();
 	g_players[0].mapCameraState = 0;
-	XvtSnapObject object = Captured(0, CRAFT_GENUS_STARFIGHTER);
+	struct XvtSnapObject object = Captured(0, CRAFT_GENUS_STARFIGHTER);
 	memset(g_map, 0xAB, sizeof *g_map);
 	XvtRenderMap_Capture(g_map, &object, 1);
 	XVT_ASSERT_INT_EQ(g_map->active, 0);
@@ -119,7 +119,7 @@ static void CheckOtherGenera(void)
 		XVT_ASSERT_INT_EQ(Kept(Captured(0, genus)), expected);
 		XVT_ASSERT_INT_EQ(Kept(Captured(EXPLOSION_SLOT_END - 1, genus)),
 				  expected);
-		XvtSnapObject transient = Captured(1, genus);
+		struct XvtSnapObject transient = Captured(1, genus);
 		transient.slot_class = XVT_SLOT_LOCAL_TRANSIENT;
 		XVT_ASSERT_INT_EQ(Kept(transient), expected);
 		XVT_ASSERT_INT_EQ(Kept(Captured(EXPLOSION_SLOT_END, genus)), 0);
@@ -131,7 +131,7 @@ static void CheckOtherGenera(void)
 static void CheckCount(void)
 {
 	FreshWorld();
-	XvtSnapObject objects[5] = {
+	struct XvtSnapObject objects[5] = {
 		Captured(0, CRAFT_GENUS_STARFIGHTER),
 		Captured(1, CRAFT_GENUS_BACKDROP),
 		Captured(2, CRAFT_GENUS_EXPLOSION),
@@ -144,7 +144,7 @@ static void CheckCount(void)
 }
 
 /* The one map object a kept captured object gives. */
-static const XvtSnapMapObject *MapObject(XvtSnapObject object)
+static const struct XvtSnapMapObject *MapObject(struct XvtSnapObject object)
 {
 	XVT_ASSERT_INT_EQ(Kept(object), 1);
 	return &g_map->objects[0];
@@ -193,7 +193,7 @@ static void CheckRange(void)
 static void CheckTarget(void)
 {
 	FreshWorld();
-	XvtSnapObject objects[3] = {
+	struct XvtSnapObject objects[3] = {
 		Captured(1, CRAFT_GENUS_STARFIGHTER),
 		Captured(2, CRAFT_GENUS_TRANSPORT),
 		Captured(3, CRAFT_GENUS_FREIGHTER),
@@ -221,7 +221,7 @@ static void CheckLabel(void)
 	const unsigned slots[2] = {1, 2};
 	const char *names[2] = {"Gold", "Red"};
 	for (int i = 0; i < 2; ++i) {
-		const XvtSnapMapObject *object =
+		const struct XvtSnapMapObject *object =
 			MapObject(Captured(slots[i], CRAFT_GENUS_STARFIGHTER));
 		XVT_ASSERT_INT_EQ(object->label_visible, 1);
 		XVT_ASSERT_TRUE(object->label_offset < g_map->label_bytes);

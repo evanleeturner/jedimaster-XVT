@@ -186,7 +186,7 @@ int g_skipMovieChecks = 0;
 // FUNCTION: XVT 0x4BDB90
 int Frontend_LoadResources(void)
 {
-	RECT cursorRect;
+	struct RECT cursorRect;
 
 	g_gameMainSkipIntroRelaunchGate = 1;
 	g_skipMovieChecks = 0;
@@ -320,8 +320,8 @@ int Frontend_HandleCommonScreenControls(int screenContext)
 	int transitionNeedsSessionShutdown;
 	int mouseX;
 	int mouseY;
-	RECT rect;
-	RECT screenRect;
+	struct RECT rect;
+	struct RECT screenRect;
 	const char *tooltipText;
 
 	transitionNeedsSessionShutdown = 0;

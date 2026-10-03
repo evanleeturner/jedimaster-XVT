@@ -20,19 +20,19 @@
 // FUNCTION: XVT 0x40E6C0
 unsigned int TexLevel_Convert24BppPalettesTo16Bpp(unsigned int *texLevel)
 {
-	TexLevelHeader *header;
+	struct TexLevelHeader *header;
 	uint16_t *outputPalette16;
 	uint8_t *sourcePaletteRgba;
 	unsigned int paletteColorCount;
-	RgbTriplet *rgbCursor;
+	struct RgbTriplet *rgbCursor;
 	unsigned int entriesRemaining;
 	unsigned int paletteIndex;
 	unsigned int imageIndex;
 	unsigned int result;
-	TexLevelImageHeader *image;
-	RgbTriplet srcRgb[1024];
+	struct TexLevelImageHeader *image;
+	struct RgbTriplet srcRgb[1024];
 
-	header = (TexLevelHeader *)texLevel;
+	header = (struct TexLevelHeader *)texLevel;
 	outputPalette16 = (uint16_t *)((uint8_t *)header + header->dataSize);
 	if (header->bitsPerPixel == 24) {
 		sourcePaletteRgba = (uint8_t *)header + header->paletteOffset;
@@ -65,7 +65,7 @@ unsigned int TexLevel_Convert24BppPalettesTo16Bpp(unsigned int *texLevel)
 	result = header->imageCount;
 	if (result != 0) {
 		do {
-			image = (TexLevelImageHeader
+			image = (struct TexLevelImageHeader
 					 *)((uint8_t *)header +
 					    *(uint32_t
 						      *)((uint8_t *)header +
@@ -128,15 +128,15 @@ unsigned int TexLevel_Convert24BppPalettesTo16Bpp(unsigned int *texLevel)
 // FUNCTION: XVT 0x40E7F0
 unsigned int TexLevel_Convert24BppPalettesTo8Bpp(unsigned int *texLevel)
 {
-	TexLevelHeader *header;
+	struct TexLevelHeader *header;
 	uint8_t *outputPalette8;
 	const uint8_t *sourcePaletteRgba;
 	unsigned int paletteIndex;
 	unsigned int imageIndex;
-	TexLevelImageHeader *image;
-	RgbTriplet targetRgb;
+	struct TexLevelImageHeader *image;
+	struct RgbTriplet targetRgb;
 
-	header = (TexLevelHeader *)texLevel;
+	header = (struct TexLevelHeader *)texLevel;
 	outputPalette8 = (uint8_t *)header + header->dataSize;
 	if (header->bitsPerPixel == 24) {
 		sourcePaletteRgba =
@@ -161,7 +161,7 @@ unsigned int TexLevel_Convert24BppPalettesTo8Bpp(unsigned int *texLevel)
 
 	imageIndex = 0;
 	while (imageIndex < header->imageCount) {
-		image = (TexLevelImageHeader
+		image = (struct TexLevelImageHeader
 				 *)((uint8_t *)header +
 				    *(uint32_t
 					      *)((uint8_t *)&texLevel

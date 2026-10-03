@@ -16,9 +16,9 @@ static float g_scale;
 static int g_releasePresented;
 static uint64_t g_replayedSnapshotSerial = UINT64_MAX;
 
-static XvtSnapRect g_savedBounds[TARGETS];
+static struct XvtSnapRect g_savedBounds[TARGETS];
 static AeronRenderTarget *g_cursorTarget;
-static XvtSnapSprite g_cursor;
+static struct XvtSnapSprite g_cursor;
 static int g_cursorVisible;
 
 static int IsSavedTarget(unsigned id)
@@ -33,13 +33,13 @@ static int IsFrontendTarget(unsigned id)
 	       id == XVT_TARGET_FRONT_MOVIE || IsSavedTarget(id);
 }
 
-static XvtSnapRect ScaleRect(XvtSnapRect rect, float scale)
+static struct XvtSnapRect ScaleRect(struct XvtSnapRect rect, float scale)
 {
 	int left = (int)roundf(rect.x * scale),
 	    top = (int)roundf(rect.y * scale);
-	return (XvtSnapRect){left, top,
-			     (int)roundf((rect.x + rect.width) * scale) - left,
-			     (int)roundf((rect.y + rect.height) * scale) - top};
+	return (struct XvtSnapRect){
+		left, top, (int)roundf((rect.x + rect.width) * scale) - left,
+		(int)roundf((rect.y + rect.height) * scale) - top};
 }
 
 static AeronRenderTarget *CreateTarget(unsigned id, int width, int height)
@@ -95,9 +95,10 @@ static int PrepareTarget(AeronCommandBuffer *cmd, unsigned id)
 	if (g_targets[id]) {
 		return 1;
 	}
-	XvtSnapRect bounds = IsSavedTarget(id)
-				     ? ScaleRect(g_savedBounds[id], g_scale)
-				     : (XvtSnapRect){0, 0, g_width, g_height};
+	struct XvtSnapRect bounds =
+		IsSavedTarget(id)
+			? ScaleRect(g_savedBounds[id], g_scale)
+			: (struct XvtSnapRect){0, 0, g_width, g_height};
 	if (bounds.width <= 0 || bounds.height <= 0) {
 		return 0;
 	}
@@ -116,9 +117,10 @@ static int ResizeTargets(AeronCommandBuffer *cmd, int width, int height,
 		if (!g_targets[id]) {
 			continue;
 		}
-		XvtSnapRect bounds =
-			IsSavedTarget(id) ? ScaleRect(g_savedBounds[id], scale)
-					  : (XvtSnapRect){0, 0, width, height};
+		struct XvtSnapRect bounds =
+			IsSavedTarget(id)
+				? ScaleRect(g_savedBounds[id], scale)
+				: (struct XvtSnapRect){0, 0, width, height};
 		replacements[id] =
 			CreateTarget(id, bounds.width, bounds.height);
 		if (!replacements[id]) {
@@ -130,8 +132,10 @@ static int ResizeTargets(AeronCommandBuffer *cmd, int width, int height,
 		    source_height = Aeron_TextureGetHeight(source);
 		if (!XvtUi_CopyFrontend(
 			    cmd, replacements[id], source,
-			    &(XvtSnapRect){0, 0, source_width, source_height},
-			    &(XvtSnapRect){0, 0, bounds.width, bounds.height},
+			    &(struct XvtSnapRect){0, 0, source_width,
+						  source_height},
+			    &(struct XvtSnapRect){0, 0, bounds.width,
+						  bounds.height},
 			    source_width, source_height)) {
 			goto failed;
 		}
@@ -170,7 +174,7 @@ static int PrepareTargets(AeronCommandBuffer *cmd, int width, int height)
 }
 
 static int CopyRegion(AeronCommandBuffer *cmd, unsigned src, unsigned dst,
-		      XvtSnapRect from, XvtSnapRect to)
+		      struct XvtSnapRect from, struct XvtSnapRect to)
 {
 	/* Saved slots use local texture coordinates; captured rectangles stay in screen space. */
 	if (IsSavedTarget(src) && !g_targets[src]) {
@@ -187,12 +191,14 @@ static int CopyRegion(AeronCommandBuffer *cmd, unsigned src, unsigned dst,
 	from = ScaleRect(from, g_scale);
 	to = ScaleRect(to, g_scale);
 	if (IsSavedTarget(src)) {
-		XvtSnapRect origin = ScaleRect(g_savedBounds[src], g_scale);
+		struct XvtSnapRect origin =
+			ScaleRect(g_savedBounds[src], g_scale);
 		from.x -= origin.x;
 		from.y -= origin.y;
 	}
 	if (IsSavedTarget(dst)) {
-		XvtSnapRect origin = ScaleRect(g_savedBounds[dst], g_scale);
+		struct XvtSnapRect origin =
+			ScaleRect(g_savedBounds[dst], g_scale);
 		to.x -= origin.x;
 		to.y -= origin.y;
 	}
@@ -208,7 +214,7 @@ static int CopyRegion(AeronCommandBuffer *cmd, unsigned src, unsigned dst,
 	return ok;
 }
 
-static int DrawSprite(const XvtSnapSprite *b, float scale)
+static int DrawSprite(const struct XvtSnapSprite *b, float scale)
 {
 	const AeronRuntimeAtlas *a = XvtRemasterAssets_FindFrontendImage(b);
 	if (!a) {
@@ -239,7 +245,8 @@ static int DrawSprite(const XvtSnapSprite *b, float scale)
 				.dst_h = b->destination.height * scale,
 				.blend = AERON_BLIT2D_BLEND_PMA,
 				.filter = AERON_BLIT2D_FILTER_NEAREST};
-			XvtSnapRect clip = ScaleRect(b->draw.clip, scale);
+			struct XvtSnapRect clip =
+				ScaleRect(b->draw.clip, scale);
 			d.scissor = (AeronRectI){clip.x, clip.y, clip.width,
 						 clip.height};
 			XvtUi_Color(b->kind == XVT_SPRITE_FRONT_TRANSLUCENT
@@ -255,12 +262,12 @@ static int DrawSprite(const XvtSnapSprite *b, float scale)
 
 static void DrawPreview(unsigned i)
 {
-	const XvtPreviewOutput *p = XvtRemasterPreview_Output(i);
+	const struct XvtPreviewOutput *p = XvtRemasterPreview_Output(i);
 	if (!p) {
 		return;
 	}
-	XvtSnapRect r = ScaleRect(p->destination, g_scale),
-		    clip = ScaleRect(p->draw.clip, g_scale);
+	struct XvtSnapRect r = ScaleRect(p->destination, g_scale),
+			   clip = ScaleRect(p->draw.clip, g_scale);
 	AeronDrawList2DSprite d = {
 		.texture = p->texture,
 		.src_u1 = 1,
@@ -276,7 +283,8 @@ static void DrawPreview(unsigned i)
 	AeronDrawList_AddSprite(g_list, &d);
 }
 
-static int RenderCursor(AeronCommandBuffer *cmd, const XvtSnapSprite *cursor)
+static int RenderCursor(AeronCommandBuffer *cmd,
+			const struct XvtSnapSprite *cursor)
 {
 	g_cursorVisible = 0;
 	if (!cursor) {
@@ -304,9 +312,9 @@ static int RenderCursor(AeronCommandBuffer *cmd, const XvtSnapSprite *cursor)
 		}
 	}
 	/* Own the pixels with the held presentation, independently of source asset lifetime. */
-	XvtSnapSprite local = *cursor;
+	struct XvtSnapSprite local = *cursor;
 	local.destination = local.draw.clip =
-		(XvtSnapRect){0, 0, width, height};
+		(struct XvtSnapRect){0, 0, width, height};
 	const float clear[4] = {0, 0, 0, 0};
 	AeronDrawList_Begin(g_list, g_cursorTarget, width, height,
 			    AERON_DRAWLIST2D_CLEAR, clear);
@@ -320,8 +328,8 @@ static int RenderCursor(AeronCommandBuffer *cmd, const XvtSnapSprite *cursor)
 }
 
 static int ApplySurfaceEvent(AeronCommandBuffer *cmd,
-			     const XvtSnapSurfaceEvent *e,
-			     const XvtSnapSprite *cursor)
+			     const struct XvtSnapSurfaceEvent *e,
+			     const struct XvtSnapSprite *cursor)
 {
 	if (!IsFrontendTarget(e->target)) {
 		return 1;
@@ -371,10 +379,10 @@ static int ApplySurfaceEvent(AeronCommandBuffer *cmd,
 	return 1;
 }
 
-int XvtFrontend_AssetsNeedPreparation(const XvtRenderSnapshot *snapshot)
+int XvtFrontend_AssetsNeedPreparation(const struct XvtRenderSnapshot *snapshot)
 {
 	for (unsigned i = 0; i < snapshot->sprite_count; ++i) {
-		const XvtSnapSprite *sprite = &snapshot->sprites[i];
+		const struct XvtSnapSprite *sprite = &snapshot->sprites[i];
 		if (sprite->draw.scope != XVT_SCOPE_FRONTEND) {
 			continue;
 		}
@@ -386,10 +394,10 @@ int XvtFrontend_AssetsNeedPreparation(const XvtRenderSnapshot *snapshot)
 }
 
 int XvtFrontend_PrepareAssets(AeronCommandBuffer *cmd,
-			      const XvtRenderSnapshot *snapshot)
+			      const struct XvtRenderSnapshot *snapshot)
 {
 	for (unsigned i = 0; i < snapshot->sprite_count; ++i) {
-		const XvtSnapSprite *sprite = &snapshot->sprites[i];
+		const struct XvtSnapSprite *sprite = &snapshot->sprites[i];
 		if (sprite->draw.scope != XVT_SCOPE_FRONTEND) {
 			continue;
 		}
@@ -402,7 +410,7 @@ int XvtFrontend_PrepareAssets(AeronCommandBuffer *cmd,
 	return 1;
 }
 
-int XvtFrontend_NeedsReplay(const XvtRenderSnapshot *s, int w, int h)
+int XvtFrontend_NeedsReplay(const struct XvtRenderSnapshot *s, int w, int h)
 {
 	if (g_list && s->presented_target != XVT_TARGET_FLIGHT_MAIN &&
 	    ((int)ceilf(640 * fminf(w / 640.0f, h / 480.0f)) != g_width ||
@@ -440,8 +448,8 @@ int XvtFrontend_NeedsReplay(const XvtRenderSnapshot *s, int w, int h)
 	return s->preview_count != 0;
 }
 
-int XvtFrontend_Replay(AeronCommandBuffer *cmd, const XvtRenderSnapshot *s,
-		       int width, int height)
+int XvtFrontend_Replay(AeronCommandBuffer *cmd,
+		       const struct XvtRenderSnapshot *s, int width, int height)
 {
 	if (!PrepareTargets(cmd, width, height)) {
 		return 0;
@@ -450,7 +458,7 @@ int XvtFrontend_Replay(AeronCommandBuffer *cmd, const XvtRenderSnapshot *s,
 		return 1;
 	}
 	unsigned indices[6] = {0};
-	const XvtSnapSprite *cursor = NULL;
+	const struct XvtSnapSprite *cursor = NULL;
 	int active = -1;
 	const unsigned counts[6] = {s->sprite_count,	    s->glyph_count,
 				    s->paint_count,	    s->copy_count,
@@ -503,7 +511,7 @@ int XvtFrontend_Replay(AeronCommandBuffer *cmd, const XvtRenderSnapshot *s,
 					cursor = NULL;
 				}
 			} else {
-				const XvtSnapCopyRect *c = &s->copies[i];
+				const struct XvtSnapCopyRect *c = &s->copies[i];
 				if (c->draw.scope == XVT_SCOPE_FRONTEND &&
 				    !CopyRegion(cmd, c->source_target,
 						c->draw.target, c->source,
@@ -513,11 +521,11 @@ int XvtFrontend_Replay(AeronCommandBuffer *cmd, const XvtRenderSnapshot *s,
 			}
 			continue;
 		}
-		const XvtSnapDrawHeader *h = stream == 0   ? &s->sprites[i].draw
-					     : stream == 1 ? &s->glyphs[i].draw
-					     : stream == 2
-						     ? &s->paint[i].draw
-						     : &s->previews[i].draw;
+		const struct XvtSnapDrawHeader *h =
+			stream == 0   ? &s->sprites[i].draw
+			: stream == 1 ? &s->glyphs[i].draw
+			: stream == 2 ? &s->paint[i].draw
+				      : &s->previews[i].draw;
 		if (stream == 0 && h->target == XVT_TARGET_FRONT_CURSOR) {
 			cursor = &s->sprites[i];
 			continue;
@@ -584,7 +592,7 @@ void XvtFrontend_PresentCursor(float opacity)
 		XvtInput_FrontendCursorPosition(&x, &y);
 	}
 	AeronRectI classic = XvtPresentation_ClassicRect();
-	XvtSnapRect clip = g_cursor.draw.clip;
+	struct XvtSnapRect clip = g_cursor.draw.clip;
 	int left = clip.x > 0 ? clip.x : 0, top = clip.y > 0 ? clip.y : 0;
 	int right = clip.x + clip.width < 640 ? clip.x + clip.width : 640;
 	int bottom = clip.y + clip.height < 480 ? clip.y + clip.height : 480;

@@ -20,17 +20,17 @@ IDirectSoundBuffer *g_soundPrimaryBuffer = 0;
  * binary search in Sound_FindEffectByName. Entries past that are empty or stale
  * copies left by Sound_RemoveEffectDef. */
 // GLOBAL: XVT 0xA1051C
-SoundEffectDef g_soundDefs[1000] = {{0}};
+struct SoundEffectDef g_soundDefs[1000] = {{0}};
 /* The 8 slots for playing sounds, each a duplicate buffer of one effect; a free
  * slot has effectIndex -1. */
 // GLOBAL: XVT 0xA604CC
-ActiveSoundInstance g_activeSoundInstances[8] = {{0}};
+struct ActiveSoundInstance g_activeSoundInstances[8] = {{0}};
 /* Effects waiting for Sound_FlushQueuedEffects: entries 0 to
  * g_soundQueueCount - 1, highest priority first. Sound_QueueEffect keeps at
  * most 4; the fifth entry only takes the one an insert pushes out, which is
  * dropped. */
 // GLOBAL: XVT 0xA6052C
-SoundQueueEntry g_soundQueue[5] = {{0}};
+struct SoundQueueEntry g_soundQueue[5] = {{0}};
 /* Entries in g_soundQueue, 0 to 4. Sound_QueueEffect adds one, stopping at 4,
  * and Sound_FlushQueuedEffects sets 0. */
 // GLOBAL: XVT 0xA606D0
@@ -160,7 +160,7 @@ int Sound_LoadEffect(const char *fileName, const char *name)
 int Sound_LoadEffectEx(const char *fileName, const char *name,
 		       int omitSoftwareAndFrequencyCaps)
 {
-	SoundEffectDef effect;
+	struct SoundEffectDef effect;
 
 	if (*fileName == '\0') {
 		return 0;
@@ -280,7 +280,7 @@ int Sound_QueueEffect(const char *soundName, int allowRestartExisting, int loop,
 	int queueCount;
 	const char *name;
 	IDirectSound *directSound;
-	SoundQueueEntry *queueEntry;
+	struct SoundQueueEntry *queueEntry;
 
 	name = soundName;
 	directSound = g_directSound;
@@ -313,10 +313,12 @@ int Sound_QueueEffect(const char *soundName, int allowRestartExisting, int loop,
 	queueEntry = &g_soundQueue[queueIndex];
 #ifdef XVT_MODERN
 	memmove(&g_soundQueue[queueIndex + 1], queueEntry,
-		sizeof(SoundQueueEntry) * (g_soundQueueCount - queueIndex));
+		sizeof(struct SoundQueueEntry) *
+			(g_soundQueueCount - queueIndex));
 #else
 	memcpy(&g_soundQueue[queueIndex + 1], queueEntry,
-	       sizeof(SoundQueueEntry) * (g_soundQueueCount - queueIndex));
+	       sizeof(struct SoundQueueEntry) *
+		       (g_soundQueueCount - queueIndex));
 #endif
 	strncpy(queueEntry->name, name, sizeof(queueEntry->name));
 	g_soundQueue[queueIndex].loop = loop;
@@ -369,7 +371,7 @@ int Sound_PlayEffectNow(const char *soundName, int allowRestartExisting,
 	uint32_t bufferStatus;
 	uint32_t playFlags;
 	HRESULT result;
-	ActiveSoundInstance *instance;
+	struct ActiveSoundInstance *instance;
 	IDirectSoundBuffer *buffer;
 	IDirectSoundBuffer *duplicate;
 
@@ -1001,11 +1003,11 @@ int Sound_CountPlayingInstances(const char *name)
  * insertion point. Does not check that the table has room; Sound_LoadEffectEx
  * checks g_soundCount under 1000 first. */
 // FUNCTION: XVT 0x42DC60
-void Sound_InsertEffectDefSorted(const SoundEffectDef *effect)
+void Sound_InsertEffectDefSorted(const struct SoundEffectDef *effect)
 {
 	int insertIndex;
-	SoundEffectDef *current;
-	const SoundEffectDef *sourceEffect;
+	struct SoundEffectDef *current;
+	const struct SoundEffectDef *sourceEffect;
 	int destinationIndex;
 	int remaining;
 	int instanceIndex;
@@ -1063,7 +1065,7 @@ void Sound_RemoveEffectDef(int effectIndex)
 
 	currentIndex = effectIndex;
 	if (g_soundCount - 1 > effectIndex) {
-		SoundEffectDef *currentEffect;
+		struct SoundEffectDef *currentEffect;
 
 		currentEffect = &g_soundDefs[effectIndex];
 		do {
@@ -1099,14 +1101,14 @@ int Sound_FindLoadedEffectByName(const char *name)
  * sorted by name, comparing up to 64 characters with strncmp. Returns the index
  * found, or -1. Sound_FindLoadedEffectByName is its only caller. */
 // FUNCTION: XVT 0x42DDC0
-int Sound_FindEffectByName(const SoundEffectDef *records, int lastIndex,
+int Sound_FindEffectByName(const struct SoundEffectDef *records, int lastIndex,
 			   const char *name)
 {
 	int searchLastIndex;
 	int middle;
 	int baseIndex;
 	int comparison;
-	const SoundEffectDef *middleEffect;
+	const struct SoundEffectDef *middleEffect;
 
 	baseIndex = 0;
 	searchLastIndex = lastIndex;

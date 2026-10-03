@@ -11,8 +11,8 @@
 #include "xvt_runtime/timing/reference_motion.h"
 #include <string.h>
 
-static XvtPairedMotionWire g_paired[XVT_FLIGHT_PLAYERS];
-static XvtMembershipWire g_membership;
+static struct XvtPairedMotionWire g_paired[XVT_FLIGHT_PLAYERS];
+static struct XvtMembershipWire g_membership;
 
 static unsigned XvtFlightCheckpoint_Slots(void)
 {
@@ -55,10 +55,12 @@ void XvtFlightCheckpoint_ApplyConfirmedMask(uint8_t mask)
 
 size_t XvtFlightCheckpoint_Maximum(void)
 {
-	return sizeof(XvtStateHeader) +
-	       XvtFlightCheckpoint_Slots() * sizeof(XvtObjectMotionWire) +
-	       XVT_FLIGHT_PLAYERS * sizeof(XvtPlayerTimingWire) +
-	       sizeof g_paired + sizeof g_membership + sizeof(XvtStateFooter);
+	return sizeof(struct XvtStateHeader) +
+	       XvtFlightCheckpoint_Slots() *
+		       sizeof(struct XvtObjectMotionWire) +
+	       XVT_FLIGHT_PLAYERS * sizeof(struct XvtPlayerTimingWire) +
+	       sizeof g_paired + sizeof g_membership +
+	       sizeof(struct XvtStateFooter);
 }
 
 void XvtFlightCheckpoint_InvalidatePlayer(unsigned player)
@@ -75,14 +77,15 @@ static unsigned XvtFlightCheckpoint_Carried(unsigned slot)
 	if (!XvtFlightCheckpoint_Shared(slot)) {
 		return UINT16_MAX;
 	}
-	const MobileObject *mobile = g_objectTable[slot].mobj;
+	const struct MobileObject *mobile = g_objectTable[slot].mobj;
 	return mobile && mobile->pCraft ? mobile->pCraft->carriedObjectIndex
 					: UINT16_MAX;
 }
 
-static void XvtFlightCheckpoint_SaveMotion(unsigned slot,
-					   XvtObjectIdentityWire *identity,
-					   XvtObjectMotionWire *motion)
+static void
+XvtFlightCheckpoint_SaveMotion(unsigned slot,
+			       struct XvtObjectIdentityWire *identity,
+			       struct XvtObjectMotionWire *motion)
 {
 	XvtWire_Set16(identity->slot, slot);
 	XvtWire_Set16(identity->signature, g_objectTable[slot].objectSignature);
@@ -101,7 +104,7 @@ void XvtFlightCheckpoint_SavePlayer(unsigned player, int tick)
 	    !g_objectTable[slot].objectType) {
 		return;
 	}
-	XvtPairedMotionWire *out = &g_paired[player];
+	struct XvtPairedMotionWire *out = &g_paired[player];
 	out->validity = XVT_PAIRED_OWNER_VALID;
 	XvtWire_Set32(out->saved_tick, (unsigned)tick);
 	XvtFlightCheckpoint_SaveMotion(slot, &out->owner_id, &out->owner);
@@ -119,7 +122,7 @@ void XvtFlightCheckpoint_RestorePlayer(unsigned player)
 	if (!XvtFlightTiming_IsNetwork125() || player >= XVT_FLIGHT_PLAYERS) {
 		return;
 	}
-	const XvtPairedMotionWire *saved = &g_paired[player];
+	const struct XvtPairedMotionWire *saved = &g_paired[player];
 	unsigned slot = XvtWire_Get16(saved->owner_id.slot);
 	if (!(saved->validity & XVT_PAIRED_OWNER_VALID) ||
 	    slot != (unsigned)g_players[player].objectIndex ||
@@ -152,8 +155,8 @@ void XvtFlightCheckpoint_RestorePlayer(unsigned player)
 }
 
 static int
-XvtFlightCheckpoint_ValidateMotion(const XvtObjectIdentityWire *identity,
-				   const XvtObjectMotionWire *motion)
+XvtFlightCheckpoint_ValidateMotion(const struct XvtObjectIdentityWire *identity,
+				   const struct XvtObjectMotionWire *motion)
 {
 	unsigned slot = XvtWire_Get16(identity->slot);
 	return XvtFlightCheckpoint_Shared(slot) &&
@@ -163,7 +166,8 @@ XvtFlightCheckpoint_ValidateMotion(const XvtObjectIdentityWire *identity,
 	       XvtFlightIntegration_Decode(&motion->integration, 0);
 }
 
-static int XvtFlightCheckpoint_ValidatePaired(const XvtPairedMotionWire *record)
+static int
+XvtFlightCheckpoint_ValidatePaired(const struct XvtPairedMotionWire *record)
 {
 	if (record->player >= XVT_FLIGHT_PLAYERS ||
 	    (record->validity &
@@ -173,7 +177,7 @@ static int XvtFlightCheckpoint_ValidatePaired(const XvtPairedMotionWire *record)
 		return 0;
 	}
 	if (!record->validity) {
-		XvtPairedMotionWire empty = {0};
+		struct XvtPairedMotionWire empty = {0};
 		empty.player = record->player;
 		return !memcmp(record, &empty, sizeof empty);
 	}
@@ -193,13 +197,13 @@ static int XvtFlightCheckpoint_ValidatePaired(const XvtPairedMotionWire *record)
 size_t XvtFlightCheckpoint_Append(uint8_t *image, size_t prefix)
 {
 	uint8_t *start = image + prefix;
-	uint8_t *cursor = start + sizeof(XvtStateHeader);
+	uint8_t *cursor = start + sizeof(struct XvtStateHeader);
 	unsigned count = 0;
 	for (unsigned slot = 0; slot < XvtFlightCheckpoint_Slots(); ++slot) {
 		if (!XvtFlightCheckpoint_Shared(slot)) {
 			continue;
 		}
-		XvtReferenceMotionWire record;
+		struct XvtReferenceMotionWire record;
 		XvtReferenceMotion_Encode(slot, &record);
 		memcpy(cursor, &record, sizeof record);
 		cursor += sizeof record;
@@ -209,19 +213,19 @@ size_t XvtFlightCheckpoint_Append(uint8_t *image, size_t prefix)
 		if (!XvtFlightCheckpoint_Shared(slot)) {
 			continue;
 		}
-		XvtIntegrationWire record;
+		struct XvtIntegrationWire record;
 		XvtFlightIntegration_Encode(slot, &record);
 		memcpy(cursor, &record, sizeof record);
 		cursor += sizeof record;
 	}
-	XvtStateHeader header;
+	struct XvtStateHeader header;
 	XvtWire_Set16(header.schema, XVT_STATE_SCHEMA);
 	XvtWire_Set16(header.reference_count, count);
 	XvtWire_Set16(header.integration_count, count);
 	XvtWire_Set16(header.player_count, XVT_FLIGHT_PLAYERS);
 	memcpy(start, &header, sizeof header);
 	for (unsigned player = 0; player < XVT_FLIGHT_PLAYERS; ++player) {
-		XvtPlayerTimingWire record;
+		struct XvtPlayerTimingWire record;
 		XvtPlayerTiming_Encode(player, &record);
 		memcpy(cursor, &record, sizeof record);
 		cursor += sizeof record;
@@ -231,7 +235,7 @@ size_t XvtFlightCheckpoint_Append(uint8_t *image, size_t prefix)
 	memcpy(cursor, &g_membership, sizeof g_membership);
 	cursor += sizeof g_membership;
 	size_t extension = cursor - start;
-	XvtStateFooter footer;
+	struct XvtStateFooter footer;
 	XvtWire_Set32(footer.magic, XVT_STATE_MAGIC);
 	XvtWire_Set16(footer.schema, XVT_STATE_SCHEMA);
 	XvtWire_Set16(footer.profile, XVT_WIRE_PROFILE_NETWORK_125);
@@ -246,12 +250,12 @@ size_t XvtFlightCheckpoint_Append(uint8_t *image, size_t prefix)
 }
 
 int XvtFlightCheckpoint_Read(const uint8_t *image, size_t size,
-			     XvtFlightCheckpointView *view)
+			     struct XvtFlightCheckpointView *view)
 {
-	if (size < sizeof(XvtStateFooter)) {
+	if (size < sizeof(struct XvtStateFooter)) {
 		return 0;
 	}
-	XvtStateFooter footer;
+	struct XvtStateFooter footer;
 	memcpy(&footer, image + size - sizeof footer, sizeof footer);
 	if (XvtWire_Get32(footer.magic) != XVT_STATE_MAGIC ||
 	    XvtWire_Get16(footer.schema) != XVT_STATE_SCHEMA ||
@@ -262,8 +266,8 @@ int XvtFlightCheckpoint_Read(const uint8_t *image, size_t size,
 	view->tick = (int)XvtWire_Get32(footer.completed_tick);
 	view->prefix = XvtWire_Get32(footer.world_bytes);
 	size_t length = XvtWire_Get32(footer.timing_bytes);
-	size_t fixed = sizeof(XvtStateHeader) +
-		       XVT_FLIGHT_PLAYERS * sizeof(XvtPlayerTimingWire) +
+	size_t fixed = sizeof(struct XvtStateHeader) +
+		       XVT_FLIGHT_PLAYERS * sizeof(struct XvtPlayerTimingWire) +
 		       sizeof g_paired + sizeof g_membership;
 	if (view->tick < 0 || view->tick % XVT_NETWORK_STEP_TICKS ||
 	    view->prefix > size - sizeof footer ||
@@ -275,7 +279,7 @@ int XvtFlightCheckpoint_Read(const uint8_t *image, size_t size,
 	    XvtFlightWire_Crc32c(start, length)) {
 		return 0;
 	}
-	XvtStateHeader header;
+	struct XvtStateHeader header;
 	memcpy(&header, start, sizeof header);
 	unsigned expected = 0;
 	for (unsigned slot = 0; slot < XvtFlightCheckpoint_Slots(); ++slot) {
@@ -286,16 +290,16 @@ int XvtFlightCheckpoint_Read(const uint8_t *image, size_t size,
 	    XvtWire_Get16(header.player_count) != XVT_FLIGHT_PLAYERS ||
 	    view->object_count != expected ||
 	    XvtWire_Get16(header.integration_count) != expected ||
-	    length != fixed + expected * sizeof(XvtObjectMotionWire)) {
+	    length != fixed + expected * sizeof(struct XvtObjectMotionWire)) {
 		return 0;
 	}
 	view->reference = start + sizeof header;
-	view->integration =
-		view->reference + expected * sizeof(XvtReferenceMotionWire);
-	view->players =
-		view->integration + expected * sizeof(XvtIntegrationWire);
+	view->integration = view->reference +
+			    expected * sizeof(struct XvtReferenceMotionWire);
+	view->players = view->integration +
+			expected * sizeof(struct XvtIntegrationWire);
 	view->paired = view->players +
-		       XVT_FLIGHT_PLAYERS * sizeof(XvtPlayerTimingWire);
+		       XVT_FLIGHT_PLAYERS * sizeof(struct XvtPlayerTimingWire);
 	memcpy(&view->membership, view->paired + sizeof g_paired,
 	       sizeof view->membership);
 	unsigned row = 0;
@@ -303,8 +307,8 @@ int XvtFlightCheckpoint_Read(const uint8_t *image, size_t size,
 		if (!XvtFlightCheckpoint_Shared(slot)) {
 			continue;
 		}
-		XvtReferenceMotionWire reference;
-		XvtIntegrationWire integration;
+		struct XvtReferenceMotionWire reference;
+		struct XvtIntegrationWire integration;
 		memcpy(&reference, view->reference + row * sizeof reference,
 		       sizeof reference);
 		memcpy(&integration,
@@ -319,8 +323,8 @@ int XvtFlightCheckpoint_Read(const uint8_t *image, size_t size,
 		}
 	}
 	for (unsigned player = 0; player < XVT_FLIGHT_PLAYERS; ++player) {
-		XvtPlayerTimingWire record;
-		XvtPairedMotionWire paired;
+		struct XvtPlayerTimingWire record;
+		struct XvtPairedMotionWire paired;
 		memcpy(&record, view->players + player * sizeof record,
 		       sizeof record);
 		memcpy(&paired, view->paired + player * sizeof paired,
@@ -339,7 +343,7 @@ int XvtFlightCheckpoint_Read(const uint8_t *image, size_t size,
 int XvtFlightCheckpoint_Validate(const uint8_t *image, size_t size,
 				 size_t *prefix, int *tick)
 {
-	XvtFlightCheckpointView view;
+	struct XvtFlightCheckpointView view;
 	if (!XvtFlightCheckpoint_Read(image, size, &view)) {
 		return 0;
 	}
@@ -348,14 +352,14 @@ int XvtFlightCheckpoint_Validate(const uint8_t *image, size_t size,
 	return 1;
 }
 
-void XvtFlightCheckpoint_Restore(const XvtFlightCheckpointView *view)
+void XvtFlightCheckpoint_Restore(const struct XvtFlightCheckpointView *view)
 {
 	XvtReferenceMotion_ResetShared();
 	XvtFlightIntegration_ResetShared();
 	XvtPlayerTiming_ResetShared();
 	for (unsigned row = 0; row < view->object_count; ++row) {
-		XvtReferenceMotionWire reference;
-		XvtIntegrationWire integration;
+		struct XvtReferenceMotionWire reference;
+		struct XvtIntegrationWire integration;
 		memcpy(&reference, view->reference + row * sizeof reference,
 		       sizeof reference);
 		memcpy(&integration,
@@ -365,7 +369,7 @@ void XvtFlightCheckpoint_Restore(const XvtFlightCheckpointView *view)
 		XvtFlightIntegration_Decode(&integration, 1);
 	}
 	for (unsigned player = 0; player < XVT_FLIGHT_PLAYERS; ++player) {
-		XvtPlayerTimingWire record;
+		struct XvtPlayerTimingWire record;
 		memcpy(&record, view->players + player * sizeof record,
 		       sizeof record);
 		XvtPlayerTiming_Decode(&record, 1);

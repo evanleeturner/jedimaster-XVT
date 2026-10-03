@@ -13,7 +13,7 @@
 
 enum { KEY_QUEUE_CAPACITY = 256 };
 
-typedef struct ControllerInstance {
+struct ControllerInstance {
 	uint32_t id;
 	int model;
 	bool down[XVT_CONTROLLER_BINDING_CAP],
@@ -21,11 +21,11 @@ typedef struct ControllerInstance {
 		dispatched[XVT_CONTROLLER_BINDING_CAP];
 	uint8_t menu_blocked;
 	bool primed;
-} ControllerInstance;
+};
 
 static struct {
-	XvtControllerOptions options, pending;
-	ControllerInstance instances[AERON_CONTROLLER_MAX];
+	struct XvtControllerOptions options, pending;
+	struct ControllerInstance instances[AERON_CONTROLLER_MAX];
 	uint32_t analog_instance[XVT_CONTROLLER_MODEL_CAP];
 	bool has_pending_options, suspended, present, throttle_valid;
 	int axes[3], menu_axes[3];
@@ -107,7 +107,7 @@ static void XvtControllerMapping_Dispatch(XvtInputAction action, bool pressed)
 }
 
 const AeronControllerSnapshot *
-XvtControllerMapping_Resolve(const XvtControllerModel *model,
+XvtControllerMapping_Resolve(const struct XvtControllerModel *model,
 			     const AeronInputSnapshot *input,
 			     uint32_t preferred)
 {
@@ -131,10 +131,10 @@ XvtControllerMapping_Resolve(const XvtControllerModel *model,
 	return best;
 }
 
-static void ReleaseInstance(ControllerInstance *state)
+static void ReleaseInstance(struct ControllerInstance *state)
 {
 	if (state->id) {
-		const XvtControllerProfile *p =
+		const struct XvtControllerProfile *p =
 			&g_controller.options.models[state->model].profile;
 		for (size_t i = 0; i < p->binding_count; ++i) {
 			if (state->dispatched[i]) {
@@ -146,9 +146,10 @@ static void ReleaseInstance(ControllerInstance *state)
 	memset(state, 0, sizeof *state);
 }
 
-static void XvtControllerMapping_Install(const XvtControllerOptions *options)
+static void
+XvtControllerMapping_Install(const struct XvtControllerOptions *options)
 {
-	static const XvtControllerOptions empty = {0};
+	static const struct XvtControllerOptions empty = {0};
 	if (!options) {
 		options = &empty;
 	}
@@ -162,11 +163,11 @@ static void XvtControllerMapping_Install(const XvtControllerOptions *options)
 	}
 	uint32_t analog[XVT_CONTROLLER_MODEL_CAP] = {0};
 	for (int i = 0; i < AERON_CONTROLLER_MAX; ++i) {
-		ControllerInstance *state = &g_controller.instances[i];
+		struct ControllerInstance *state = &g_controller.instances[i];
 		if (!state->id) {
 			continue;
 		}
-		const XvtControllerModel *old =
+		const struct XvtControllerModel *old =
 			&g_controller.options.models[state->model];
 		int next = XvtControllerOptions_FindModel(options, old->guid);
 		if (next < 0 || old->kind != options->models[next].kind ||
@@ -184,7 +185,7 @@ static void XvtControllerMapping_Install(const XvtControllerOptions *options)
 		}
 	}
 	for (int i = 0; i < AERON_CONTROLLER_MAX; ++i) {
-		ControllerInstance *state = &g_controller.instances[i];
+		struct ControllerInstance *state = &g_controller.instances[i];
 		if (state->id) {
 			state->model = XvtControllerOptions_FindModel(
 				options,
@@ -193,8 +194,9 @@ static void XvtControllerMapping_Install(const XvtControllerOptions *options)
 	}
 	/* Only changes to the effective throttle binding invalidate its movement baseline. */
 	for (size_t i = 0; i < g_controller.options.count; ++i) {
-		const XvtControllerModel *old = &g_controller.options.models[i];
-		const XvtInputAxisBinding *a =
+		const struct XvtControllerModel *old =
+			&g_controller.options.models[i];
+		const struct XvtInputAxisBinding *a =
 			&old->profile.mapping.axes[XVT_INPUT_AXIS_THROTTLE];
 		if (a->source < 0) {
 			continue;
@@ -216,14 +218,14 @@ static void XvtControllerMapping_Install(const XvtControllerOptions *options)
 	memcpy(g_controller.analog_instance, analog, sizeof analog);
 }
 
-void XvtControllerMapping_Init(const XvtControllerOptions *options)
+void XvtControllerMapping_Init(const struct XvtControllerOptions *options)
 {
 	memset(&g_controller, 0, sizeof g_controller);
 	g_controller.frame = UINT64_MAX;
 	XvtControllerMapping_Install(options);
 }
 
-void XvtControllerMapping_SetOptions(const XvtControllerOptions *options)
+void XvtControllerMapping_SetOptions(const struct XvtControllerOptions *options)
 {
 	char error[128];
 	if (!XvtControllerOptions_Validate(options, error, sizeof error)) {
@@ -243,7 +245,7 @@ void XvtControllerMapping_ApplyPending(void)
 	g_controller.has_pending_options = false;
 }
 
-const XvtControllerOptions *XvtControllerMapping_Options(void)
+const struct XvtControllerOptions *XvtControllerMapping_Options(void)
 {
 	return &g_controller.options;
 }
@@ -275,7 +277,7 @@ void XvtControllerMapping_Shutdown(void)
 	memset(&g_controller, 0, sizeof g_controller);
 }
 
-static void SampleMenu(ControllerInstance *state,
+static void SampleMenu(struct ControllerInstance *state,
 		       const AeronControllerSnapshot *d)
 {
 	uint8_t buttons = d->kind == AERON_CONTROLLER_KIND_GAMEPAD
@@ -318,7 +320,7 @@ static void SampleMenu(ControllerInstance *state,
 	}
 }
 
-static void LogUnavailableControls(const XvtControllerModel *model,
+static void LogUnavailableControls(const struct XvtControllerModel *model,
 				   const AeronControllerSnapshot *device)
 {
 	int missing = 0;
@@ -357,12 +359,12 @@ static void LogUnavailableControls(const XvtControllerModel *model,
 	}
 }
 
-static void SampleDigital(ControllerInstance *state,
+static void SampleDigital(struct ControllerInstance *state,
 			  const AeronControllerSnapshot *device)
 {
-	const XvtControllerModel *model =
+	const struct XvtControllerModel *model =
 		&g_controller.options.models[state->model];
-	const XvtControllerProfile *profile = &model->profile;
+	const struct XvtControllerProfile *profile = &model->profile;
 	if (!state->primed) {
 		LogUnavailableControls(model, device);
 	}
@@ -420,9 +422,11 @@ uint16_t XvtControllerMapping_ThrottlePosition(int16_t raw,
 
 static void SampleAnalog(size_t index, const AeronControllerSnapshot *device)
 {
-	const XvtControllerModel *model = &g_controller.options.models[index];
+	const struct XvtControllerModel *model =
+		&g_controller.options.models[index];
 	for (int axis = 0; axis < XVT_INPUT_AXIS_COUNT; ++axis) {
-		XvtInputAxisBinding binding = model->profile.mapping.axes[axis];
+		struct XvtInputAxisBinding binding =
+			model->profile.mapping.axes[axis];
 		if (!Aeron_ControllerAxisAvailable(device, binding.source)) {
 			continue;
 		}
@@ -474,12 +478,12 @@ void XvtControllerMapping_Update(const AeronInputSnapshot *input)
 	memset(g_controller.menu_axes, 0, sizeof g_controller.menu_axes);
 	g_controller.menu_buttons = g_controller.menu_hat = 0;
 	for (int i = 0; i < AERON_CONTROLLER_MAX; ++i) {
-		ControllerInstance *state = &g_controller.instances[i];
+		struct ControllerInstance *state = &g_controller.instances[i];
 		bool found = false;
 		for (int j = 0; j < AERON_CONTROLLER_MAX && state->id; ++j) {
 			const AeronControllerSnapshot *d =
 				&input->controllers[j];
-			const XvtControllerModel *m =
+			const struct XvtControllerModel *m =
 				&g_controller.options.models[state->model];
 			if (d->connected && d->instance_id == state->id &&
 			    !strcmp(d->guid, m->guid) && d->kind == m->kind) {
@@ -530,7 +534,7 @@ void XvtControllerMapping_Update(const AeronInputSnapshot *input)
 				break;
 			}
 			previous = d->instance_id;
-			ControllerInstance *state = NULL;
+			struct ControllerInstance *state = NULL;
 			for (int j = 0; j < AERON_CONTROLLER_MAX; ++j) {
 				if (g_controller.instances[j].id ==
 				    d->instance_id) {
@@ -613,7 +617,7 @@ void XvtControllerMapping_DropCommands(void)
 	g_controller.read = g_controller.write = 0;
 	memset(g_controller.holds, 0, sizeof g_controller.holds);
 	for (int i = 0; i < AERON_CONTROLLER_MAX; ++i) {
-		ControllerInstance *state = &g_controller.instances[i];
+		struct ControllerInstance *state = &g_controller.instances[i];
 		for (size_t j = 0; j < XVT_CONTROLLER_BINDING_CAP; ++j) {
 			state->dispatched[j] = false;
 			state->armed[j] = !state->down[j];

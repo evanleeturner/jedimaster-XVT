@@ -14,11 +14,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
-typedef struct Angles {
+struct Angles {
 	int16_t roll, pitch, yaw, angle_d, aim_x, aim_y;
-} Angles;
+};
 
-static const Angles kViews[] = {
+static const struct Angles kViews[] = {
 	{0, 0, 0, 0, 0, 0},
 	{0x1000, 0x0800, 0x2000, 0, 0, 0},
 	{-0x2400, 0x3000, -0x6000, 0x0400, 0x0100, -0x0080},
@@ -56,7 +56,7 @@ static void GetLiveRows(int32_t q[9])
 }
 
 /* Builds the precise basis for view with tag as the live Q15 rows. */
-static void BuildTagged(const Angles *view, const int32_t tag[9])
+static void BuildTagged(const struct Angles *view, const int32_t tag[9])
 {
 	SetLiveRows(tag);
 	XvtRenderCamera_Build(view->roll, view->pitch, view->yaw, view->angle_d,
@@ -96,7 +96,7 @@ static int SameRows(const float a[9], const float b[9])
 static void CheckMirrorsGameCamera(void)
 {
 	for (size_t v = 0; v < sizeof kViews / sizeof kViews[0]; ++v) {
-		const Angles *view = &kViews[v];
+		const struct Angles *view = &kViews[v];
 		FVIEW_BuildCameraOrient(view->roll, view->pitch, view->yaw,
 					view->angle_d, view->aim_x, view->aim_y,
 					NULL);
@@ -126,7 +126,7 @@ static void CheckMirrorsGameCamera(void)
  * is back. */
 static void CheckTagChoosesSource(void)
 {
-	const Angles *view = &kViews[2];
+	const struct Angles *view = &kViews[2];
 	float game[9], tagged[9], rows[9];
 	FVIEW_BuildCameraOrient(view->roll, view->pitch, view->yaw,
 				view->angle_d, view->aim_x, view->aim_y, NULL);

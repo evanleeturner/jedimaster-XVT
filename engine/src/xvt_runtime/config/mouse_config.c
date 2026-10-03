@@ -6,7 +6,7 @@ static const char *const paths[] = {"input.mouse_flight",
 				    "input.mouse_invert_y"};
 
 bool XvtMouseConfig_Parse(const AeronConfigFile *document,
-			  XvtMouseOptions *options, char *error,
+			  struct XvtMouseOptions *options, char *error,
 			  size_t capacity)
 {
 	for (unsigned i = 0; i < 3; ++i) {
@@ -39,7 +39,7 @@ bool XvtMouseConfig_Parse(const AeronConfigFile *document,
 	return true;
 }
 
-bool XvtConfig_SetMouse(const XvtMouseOptions *options, char *error,
+bool XvtConfig_SetMouse(const struct XvtMouseOptions *options, char *error,
 			size_t capacity)
 {
 	AeronConfigFile *candidate = NULL;
@@ -48,7 +48,8 @@ bool XvtConfig_SetMouse(const XvtMouseOptions *options, char *error,
 				   &detail)) {
 		return XvtSettings_FileError(&detail, error, capacity);
 	}
-	const XvtMouseOptions *defaults = &XvtConfig_DefaultSettings()->mouse;
+	const struct XvtMouseOptions *defaults =
+		&XvtConfig_DefaultSettings()->mouse;
 	bool success =
 		AeronConfigFile_SetBool(candidate, paths[0],
 					options->mouse_flight_enabled,

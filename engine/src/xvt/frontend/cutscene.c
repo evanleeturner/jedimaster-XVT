@@ -24,7 +24,7 @@ int g_cutsceneCount = 0;
  * Cutscene_LoadTable when Frontend_LoadResources runs; NULL before that and
  * after a failed load. */
 // GLOBAL: XVT 0xB6A248
-CutsceneEntry *g_cutsceneTable = NULL;
+struct CutsceneEntry *g_cutsceneTable = NULL;
 
 /* Reads a cutscene list into g_cutsceneTable, freeing the old table first.
  * The first line gives the entry count, for which it allocates a zeroed
@@ -60,8 +60,8 @@ int Cutscene_LoadTable(char *fileName)
 	}
 
 	declaredCount = (unsigned int)atoi(g_frontendScratchBuffer);
-	allocationSize = sizeof(CutsceneEntry) * declaredCount;
-	g_cutsceneTable = (CutsceneEntry *)malloc(allocationSize);
+	allocationSize = sizeof(struct CutsceneEntry) * declaredCount;
+	g_cutsceneTable = (struct CutsceneEntry *)malloc(allocationSize);
 	if (g_cutsceneTable == NULL) {
 		return 0;
 	}
@@ -103,7 +103,7 @@ int Cutscene_LoadTable(char *fileName)
 			   &g_cutsceneTable[g_cutsceneCount]
 				    .campaignMissionId) != 3) {
 			memset(&g_cutsceneTable[g_cutsceneCount], 0,
-			       sizeof(CutsceneEntry));
+			       sizeof(struct CutsceneEntry));
 			File_Close(stream);
 			return 1;
 		}

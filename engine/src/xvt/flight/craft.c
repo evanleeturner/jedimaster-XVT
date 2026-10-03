@@ -22,13 +22,13 @@ int g_craftDataPoolCapacity = 0;
  * laser, collision and flight loop code; a few save and restore it, the rest
  * leave it set. Nothing sets it back to NULL. */
 // GLOBAL: XVT 0xA08104
-CraftData *g_curCraft;
+struct CraftData *g_curCraft;
 /* Locked memory of g_craftDataPoolHandle: g_craftDataPoolCapacity craft
  * records, into which each craft object's mobj->pCraft points. Two functions
  * write it: FeDiskIo_LockGlobalBuffers, which locks the handle, and, in the
  * modern build, XvtFlightLoading_Reset, which sets it to NULL. */
 // GLOBAL: XVT 0xA07BD0
-CraftData *g_craftDataPoolBase = 0;
+struct CraftData *g_craftDataPoolBase = 0;
 /* Scale, 4/9, from a model's maxSpeed and accelRate to the Tech Library's speed
  * and acceleration ratings. Only BuildCraftTechStats reads it. */
 // GLOBAL: XVT 0x5180E0
@@ -95,7 +95,7 @@ ModelIndex GetModelIndexFromType(ObjectTypeId objectType)
  * launcher. The TIE Advanced, T-Wing, Z-95 and R-41 then get fixed weapon
  * figures. Leaves craftType and unusedRating as they were. */
 // FUNCTION: XVT 0x426A00
-int BuildCraftTechStats(CraftTechStats *stats)
+int BuildCraftTechStats(struct CraftTechStats *stats)
 {
 	ModelIndex modelIndex;
 	int *shieldRating;
@@ -207,7 +207,7 @@ int BuildCraftTechStats(CraftTechStats *stats)
 /* Sets all 16 of a craft's turretObjectLinks to NULL without freeing the
  * objects they point at. */
 // FUNCTION: XVT 0x458750
-void Craft_ClearTurretObjectLinks(CraftData *craft)
+void Craft_ClearTurretObjectLinks(struct CraftData *craft)
 {
 	uint16_t turretIndex;
 
@@ -220,10 +220,10 @@ void Craft_ClearTurretObjectLinks(CraftData *craft)
  * on the object effectiveAiObjectLink points at and on each object in
  * turretObjectLinks, and sets those links to NULL. */
 // FUNCTION: XVT 0x458780
-void Craft_FreeLinkedObjects(CraftData *craft)
+void Craft_FreeLinkedObjects(struct CraftData *craft)
 {
 	int remaining;
-	ObjectRecord **objectLink;
+	struct ObjectRecord **objectLink;
 
 	if (craft->effectiveAiObjectLink != NULL) {
 		craft->effectiveAiObjectLink->objectType = 0;
@@ -256,7 +256,7 @@ void Craft_DetachDamageableComponent(uint16_t objectIndex, int16_t detachAll)
 	int objectType;
 	uint16_t meshCount;
 	unsigned int meshIndex;
-	CraftData *craft;
+	struct CraftData *craft;
 	uint16_t fragmentObjectIndex;
 	int16_t rollImpulse;
 	int16_t yawOffset;
@@ -1038,7 +1038,7 @@ void Craft_SpawnMainHullExplosionEffects(uint16_t objectIdx,
 	};
 
 	uint8_t hullMeshes[MAX_HULL_MESHES];
-	ObjectRecord *object;
+	struct ObjectRecord *object;
 	int meshCount;
 	uint16_t objectType;
 	uint16_t meshIndex;
@@ -1139,7 +1139,7 @@ void Craft_SpawnMainHullExplosionEffects(uint16_t objectIdx,
  * Writes g_rotatedX, g_rotatedY and g_rotatedZ. Does not check that the mesh
  * has a vertex. */
 // FUNCTION: XVT 0x4A76D0
-int Craft_SpawnExplosionObjectAtMesh(ObjectRecord *objRecord,
+int Craft_SpawnExplosionObjectAtMesh(struct ObjectRecord *objRecord,
 				     uint16_t meshIndex, int effectSize,
 				     uint16_t useRandomVertex)
 {

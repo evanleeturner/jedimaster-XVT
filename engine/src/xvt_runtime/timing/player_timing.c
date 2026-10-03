@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct PlayerTiming {
+struct PlayerTiming {
 	int64_t remainder[XVT_PLAYER_CHANNELS];
 	int8_t direction[XVT_PLAYER_CHANNELS];
 	int32_t recovery[3];
@@ -23,9 +23,9 @@ typedef struct PlayerTiming {
 	uint16_t camera_focus;
 	int control_valid;
 	int recovery_valid;
-} PlayerTiming;
+};
 
-static PlayerTiming g_playersTiming[8];
+static struct PlayerTiming g_playersTiming[8];
 
 void XvtPlayerTiming_Reset(void)
 {
@@ -44,12 +44,12 @@ void XvtPlayerTiming_ResetControls(void)
 	}
 }
 
-static PlayerTiming *Entry(unsigned player)
+static struct PlayerTiming *Entry(unsigned player)
 {
 	if (player >= XVT_FLIGHT_PLAYERS) {
 		return NULL;
 	}
-	PlayerTiming *s = &g_playersTiming[player];
+	struct PlayerTiming *s = &g_playersTiming[player];
 	int slot = g_players[player].objectIndex;
 	if (g_objectTable && slot >= 0 && slot < g_regionMainObjectSlotEnd &&
 	    (s->slot != slot ||
@@ -71,7 +71,7 @@ void XvtPlayerTiming_BeginWorld(void)
 		    !g_objectTable[slot].objectType) {
 			continue;
 		}
-		PlayerTiming *state = Entry(i);
+		struct PlayerTiming *state = Entry(i);
 		state->recovery[0] = g_objectTable[slot].world_x;
 		state->recovery[1] = g_objectTable[slot].world_y;
 		state->recovery[2] = g_objectTable[slot].world_z;
@@ -81,14 +81,14 @@ void XvtPlayerTiming_BeginWorld(void)
 
 void XvtPlayerTiming_BeginControls(unsigned player)
 {
-	PlayerTiming *s = Entry(player);
+	struct PlayerTiming *s = Entry(player);
 	if (!s) {
 		return;
 	}
-	const PlayerData *p = &g_players[player];
-	const MobileObject *mobile =
+	const struct PlayerData *p = &g_players[player];
+	const struct MobileObject *mobile =
 		p->objectIndex >= 0 ? g_objectTable[p->objectIndex].mobj : NULL;
-	const CraftData *craft = mobile ? mobile->pCraft : NULL;
+	const struct CraftData *craft = mobile ? mobile->pCraft : NULL;
 	unsigned disabled =
 		craft &&
 		(!(craft->workingSubsystems &
@@ -125,7 +125,7 @@ void XvtPlayerTiming_BeginControls(unsigned player)
 
 void XvtPlayerTiming_Clear(unsigned player, unsigned channel)
 {
-	PlayerTiming *s = Entry(player);
+	struct PlayerTiming *s = Entry(player);
 	if (s && channel < XVT_PLAYER_CHANNELS) {
 		s->remainder[channel] = 0;
 		s->direction[channel] = 0;
@@ -138,7 +138,7 @@ int XvtPlayerTiming_Scale(unsigned player, unsigned channel, int value,
 	if (!divisor || channel >= XVT_PLAYER_CHANNELS) {
 		return 0;
 	}
-	PlayerTiming *s = Entry(player);
+	struct PlayerTiming *s = Entry(player);
 	int sign = (value > 0) - (value < 0);
 	if (s && s->direction[channel] != sign) {
 		s->remainder[channel] = 0;
@@ -181,7 +181,7 @@ unsigned XvtPlayerTiming_LockHalf(unsigned player, unsigned mode)
 	if (!XvtFlightTiming_IsUnlocked()) {
 		return g_elapsedTicks >> 1;
 	}
-	PlayerTiming *s = Entry(player);
+	struct PlayerTiming *s = Entry(player);
 	if (!s) {
 		return 0;
 	}
@@ -218,12 +218,13 @@ unsigned XvtPlayerTiming_LockHalf(unsigned player, unsigned mode)
 
 int XvtPlayerTiming_RecordRecovery(unsigned player, int32_t position[3])
 {
-	PlayerTiming *s = Entry(player);
+	struct PlayerTiming *s = Entry(player);
 	if (!s || !XvtFlightTiming_ReferenceDue() ||
 	    s->recovery_serial == XvtFlightTiming_AdvanceSerial()) {
 		return 0;
 	}
-	const ObjectRecord *o = &g_objectTable[g_players[player].objectIndex];
+	const struct ObjectRecord *o =
+		&g_objectTable[g_players[player].objectIndex];
 	if (!s->recovery_valid) {
 		s->recovery[0] = o->mobj->prevWorldX;
 		s->recovery[1] = o->mobj->prevWorldY;
@@ -240,11 +241,12 @@ int XvtPlayerTiming_RecordRecovery(unsigned player, int32_t position[3])
 
 void XvtPlayerTiming_Recover(unsigned player)
 {
-	PlayerTiming *s = Entry(player);
+	struct PlayerTiming *s = Entry(player);
 	if (!s) {
 		return;
 	}
-	const ObjectRecord *o = &g_objectTable[g_players[player].objectIndex];
+	const struct ObjectRecord *o =
+		&g_objectTable[g_players[player].objectIndex];
 	XvtFlightIntegration_ResetSlotAndMotion(
 		(unsigned)g_players[player].objectIndex);
 	memset(s->remainder, 0, sizeof s->remainder);
@@ -266,7 +268,7 @@ typedef char XvtPlayerTimingSchemaChannels
 void XvtPlayerTiming_ResetShared(void)
 {
 	for (unsigned i = 0; i < XVT_FLIGHT_PLAYERS; ++i) {
-		PlayerTiming *s = &g_playersTiming[i];
+		struct PlayerTiming *s = &g_playersTiming[i];
 		for (unsigned c = 0; c < XVT_STATE_PLAYER_CHANNELS; ++c) {
 			s->remainder[g_sharedChannels[c]] = 0;
 			s->direction[g_sharedChannels[c]] = 0;
@@ -280,14 +282,14 @@ void XvtPlayerTiming_ResetShared(void)
 	}
 }
 
-void XvtPlayerTiming_Encode(unsigned player, XvtPlayerTimingWire *out)
+void XvtPlayerTiming_Encode(unsigned player, struct XvtPlayerTimingWire *out)
 {
 	memset(out, 0, sizeof *out);
 	out->player = player;
 	if (player >= XVT_FLIGHT_PLAYERS) {
 		return;
 	}
-	const PlayerTiming *state = &g_playersTiming[player];
+	const struct PlayerTiming *state = &g_playersTiming[player];
 	int slot = g_players[player].objectIndex;
 	if (slot < 0 || slot >= g_regionMainObjectSlotEnd ||
 	    !g_objectTable[slot].objectType || state->slot != slot ||
@@ -314,7 +316,7 @@ void XvtPlayerTiming_Encode(unsigned player, XvtPlayerTimingWire *out)
 	XvtWire_Set16(out->camera_focus, state->camera_focus);
 }
 
-int XvtPlayerTiming_Decode(const XvtPlayerTimingWire *record, int apply)
+int XvtPlayerTiming_Decode(const struct XvtPlayerTimingWire *record, int apply)
 {
 	unsigned player = record->player, slot = XvtWire_Get16(record->slot);
 	if (player >= XVT_FLIGHT_PLAYERS || record->valid > 1 ||
@@ -326,7 +328,7 @@ int XvtPlayerTiming_Decode(const XvtPlayerTimingWire *record, int apply)
 		return 0;
 	}
 	if (!record->valid) {
-		XvtPlayerTimingWire empty = {0};
+		struct XvtPlayerTimingWire empty = {0};
 		empty.player = player;
 		if (memcmp(record, &empty, sizeof empty)) {
 			return 0;
@@ -347,7 +349,7 @@ int XvtPlayerTiming_Decode(const XvtPlayerTimingWire *record, int apply)
 	if (!apply) {
 		return 1;
 	}
-	PlayerTiming *state = &g_playersTiming[player];
+	struct PlayerTiming *state = &g_playersTiming[player];
 	state->slot = slot;
 	state->signature = XvtWire_Get16(record->signature);
 	for (unsigned i = 0; i < XVT_STATE_PLAYER_CHANNELS; ++i) {

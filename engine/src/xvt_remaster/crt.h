@@ -15,10 +15,10 @@ extern "C" {
  * destination size that is not positive, a destination larger than the preview camera's screen, a mask
  * index of 3 or more, a mask byte count over 480, or a mask slot that PrepareResources has not built
  * from definition's bytes at exactly the destination's size. */
-int XvtCrt_PrepareView(const XvtSnapPreview *preview,
-		       const XvtSnapCockpitLayout *layout, AeronTexture *color,
-		       int width, int height, float scale, float offset_x,
-		       float offset_y);
+int XvtCrt_PrepareView(const struct XvtSnapPreview *preview,
+		       const struct XvtSnapCockpitLayout *layout,
+		       AeronTexture *color, int width, int height, float scale,
+		       float offset_x, float offset_y);
 /* Records the quad the last PrepareView placed into pass, premultiplied-alpha blended, the color sampled
  * linearly and the mask by nearest texel, over the whole target. Does nothing when the last PrepareView
  * left nothing to draw. */
@@ -32,7 +32,7 @@ void XvtCrt_Shutdown(void);
  * cannot be created, a mask's byte count exceeds the layout's 480-byte field, or its run-length data
  * ends early. */
 int XvtCrt_PrepareResources(AeronCommandBuffer *cmd,
-			    const XvtCockpitResources *resources);
+			    const struct XvtCockpitResources *resources);
 #ifdef __cplusplus
 }
 #endif

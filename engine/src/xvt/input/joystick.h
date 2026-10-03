@@ -28,7 +28,7 @@ struct JoystickCalibration {
 };
 
 extern int g_joystickCalibrationInitialized[2];
-extern JoystickCalibration g_joystickCalibration;
+extern struct JoystickCalibration g_joystickCalibration;
 extern int g_joyAxisCenterZ;
 extern unsigned int g_joyDeviceId[2];
 extern int g_joyAxisCenterX;

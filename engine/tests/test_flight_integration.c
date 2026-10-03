@@ -27,10 +27,10 @@ const char *__asan_default_options(void)
 
 enum { kSlots = 6 };
 
-static ObjectRecord g_testObjects[kSlots];
-static MobileObject g_testMobiles[kSlots];
-static CraftData g_testCraft;
-static WarheadGuidanceState g_testGuidance;
+static struct ObjectRecord g_testObjects[kSlots];
+static struct MobileObject g_testMobiles[kSlots];
+static struct CraftData g_testCraft;
+static struct WarheadGuidanceState g_testGuidance;
 
 /* Six live objects (type 1, signature 0x100 + slot) at the world origin, each with a still mobile
  * record; one simulation tick per step; no local slots; empty remainder and reference motion tables. */
@@ -456,7 +456,7 @@ static void CheckPush(void)
 	int last = 1, out_last = 0;
 	XvtFlightIntegration_Push(4, 1, &last, 1, &out_last);
 	XVT_ASSERT_INT_EQ(last, 0);
-	XvtIntegrationWire record;
+	struct XvtIntegrationWire record;
 	XvtFlightIntegration_Encode(4, &record);
 	XVT_ASSERT_INT_EQ(record.type, 1);
 	XVT_ASSERT_INT_EQ(XvtWire_Get64(record.remainder[XVT_INTEGRATE_PUSH_Y]),
@@ -464,16 +464,16 @@ static void CheckPush(void)
 	XVT_ASSERT_INT_EQ(record.direction[XVT_INTEGRATE_PUSH_Y], 0);
 }
 
-static int RecordsEqual(const XvtIntegrationWire *a,
-			const XvtIntegrationWire *b)
+static int RecordsEqual(const struct XvtIntegrationWire *a,
+			const struct XvtIntegrationWire *b)
 {
 	return memcmp(a, b, sizeof *a) == 0;
 }
 
 /* A well-formed record for slot 2's object: every channel and axis carries something. */
-static XvtIntegrationWire GoodRecord(void)
+static struct XvtIntegrationWire GoodRecord(void)
 {
-	XvtIntegrationWire record;
+	struct XvtIntegrationWire record;
 	memset(&record, 0, sizeof record);
 	XvtWire_Set16(record.slot, 2);
 	XvtWire_Set16(record.signature, 0x102);
@@ -500,7 +500,7 @@ static XvtIntegrationWire GoodRecord(void)
 static void CheckEncodeDecode(void)
 {
 	FreshWorld();
-	XvtIntegrationWire record = GoodRecord(), out;
+	struct XvtIntegrationWire record = GoodRecord(), out;
 	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Decode(&record, 1), 1);
 	XvtFlightIntegration_Encode(2, &out);
 	XVT_ASSERT_TRUE(RecordsEqual(&out, &record));
@@ -528,7 +528,7 @@ static void CheckEncodeDecode(void)
 static void CheckEncodeEmpty(void)
 {
 	FreshWorld();
-	XvtIntegrationWire record = GoodRecord(), out, empty;
+	struct XvtIntegrationWire record = GoodRecord(), out, empty;
 	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Decode(&record, 1), 1);
 	memset(&empty, 0, sizeof empty);
 	XvtWire_Set16(empty.slot, 2);
@@ -561,9 +561,9 @@ static void CheckEncodeEmpty(void)
 }
 
 /* Decodes record with apply and checks it is refused and slot 2's entry is as before. */
-static void ExpectRefused(const XvtIntegrationWire *record)
+static void ExpectRefused(const struct XvtIntegrationWire *record)
 {
-	XvtIntegrationWire before, after;
+	struct XvtIntegrationWire before, after;
 	XvtFlightIntegration_Encode(2, &before);
 	XVT_ASSERT_INT_EQ(XvtFlightIntegration_Decode(record, 1), 0);
 	XvtFlightIntegration_Encode(2, &after);
@@ -574,8 +574,8 @@ static void CheckDecodeRefusals(void)
 {
 	FreshWorld();
 	Seed(2, XVT_INTEGRATE_PITCH);
-	const XvtIntegrationWire good = GoodRecord();
-	XvtIntegrationWire bad;
+	const struct XvtIntegrationWire good = GoodRecord();
+	struct XvtIntegrationWire bad;
 	const int64_t position_limit =
 		(int64_t)SIMULATION_TICKS_PER_SECOND * 32768;
 	const int64_t steering_limit =
@@ -656,7 +656,7 @@ static void CheckDecodeRefusals(void)
 
 static int HasReferenceMotion(unsigned slot)
 {
-	XvtReferenceMotionWire record;
+	struct XvtReferenceMotionWire record;
 	XvtReferenceMotion_Encode(slot, &record);
 	return record.type != 0;
 }

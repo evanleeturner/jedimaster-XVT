@@ -25,8 +25,8 @@
 
 static char g_folder[XVT_TEST_PATH_CAPACITY];
 static AeronVfs *g_vfs;
-static XvtCockpitDefinition *g_definition;
-static XvtRenderSnapshot *g_snapshot;
+static struct XvtCockpitDefinition *g_definition;
+static struct XvtRenderSnapshot *g_snapshot;
 static uint8_t g_microFont[8], g_smallFont[8], g_mediumFont[8];
 static uint8_t *g_iconsA[5];
 static uint8_t *g_iconsB[3];
@@ -71,13 +71,13 @@ static void RemoveRoots(void)
 static void Fresh(void)
 {
 	for (unsigned i = 0; i < HUD_INSTRUMENT_COUNT; ++i) {
-		g_hudElementLayouts[i] = (HudElementLayout){
+		g_hudElementLayouts[i] = (struct HudElementLayout){
 			(uint16_t)i,	   (uint16_t)(1000 + i),
 			(uint16_t)(i % 7), (uint16_t)(i % 250),
 			(uint16_t)(2 * i), (int16_t)-i};
 	}
 	for (unsigned i = 0; i < 28; ++i) {
-		HudCockpitResourceDescriptor *d =
+		struct HudCockpitResourceDescriptor *d =
 			&g_hudCockpitResourceDescriptors[i];
 		memset(d, 0, sizeof *d);
 		d->resourceRef = (uint8_t)(i % 2);
@@ -114,7 +114,7 @@ static void Fresh(void)
 	XvtRenderAssets_Init();
 }
 
-static const XvtCockpitDefinition *Definition(void)
+static const struct XvtCockpitDefinition *Definition(void)
 {
 	memset(g_definition, 0xEE, sizeof *g_definition);
 	XvtRenderCockpit_CaptureDefinition(g_definition);
@@ -132,11 +132,11 @@ static int AllZero(const void *data, size_t size)
 	return 1;
 }
 
-static void CheckElements(const XvtCockpitDefinition *d)
+static void CheckElements(const struct XvtCockpitDefinition *d)
 {
 	for (unsigned i = 0; i < HUD_INSTRUMENT_COUNT; ++i) {
-		const HudElementLayout *live = &g_hudElementLayouts[i];
-		const XvtSnapHudElement *copy = &d->layout.elements[i];
+		const struct HudElementLayout *live = &g_hudElementLayouts[i];
+		const struct XvtSnapHudElement *copy = &d->layout.elements[i];
 		XVT_ASSERT_INT_EQ(copy->x, live->x);
 		XVT_ASSERT_INT_EQ(copy->y, live->y);
 		XVT_ASSERT_INT_EQ(copy->selector, live->selector);
@@ -158,15 +158,15 @@ static void CheckCaptureCockpit(void)
 	Fresh();
 	uint64_t generation = Definition()->resource_generation;
 	XvtRenderAssets_CaptureCockpit(0);
-	const XvtCockpitDefinition *d = Definition();
+	const struct XvtCockpitDefinition *d = Definition();
 	XVT_ASSERT_TRUE(d->resource_generation > generation);
 	generation = d->resource_generation;
 	XVT_ASSERT_INT_EQ(d->layout.valid, 1);
 	CheckElements(d);
 	for (unsigned i = 0; i < 28; ++i) {
-		const HudCockpitResourceDescriptor *live =
+		const struct HudCockpitResourceDescriptor *live =
 			&g_hudCockpitResourceDescriptors[i];
-		const XvtSnapCockpitDescriptor *copy =
+		const struct XvtSnapCockpitDescriptor *copy =
 			&d->layout.descriptors[i];
 		XVT_ASSERT_INT_EQ(copy->enabled, live->resourceRef);
 		XVT_ASSERT_INT_EQ(memcmp(copy->lfd_name, live->lfdName, 9), 0);
@@ -194,7 +194,7 @@ static void CheckCaptureCockpit(void)
 
 	/* The auxiliary capture takes span mask 2 instead, and leaves the descriptors, panel info and masks 0
 	 * and 1 as they were. */
-	XvtCockpitDefinition before = *d;
+	struct XvtCockpitDefinition before = *d;
 	for (unsigned i = 0; i < 28; ++i) {
 		g_hudCockpitResourceDescriptors[i].resourceRef ^= 1;
 	}
@@ -232,7 +232,7 @@ static void CheckDefinitionCopy(void)
 {
 	Fresh();
 	XvtRenderAssets_CaptureCockpit(0);
-	XvtCockpitDefinition *first = malloc(sizeof *first);
+	struct XvtCockpitDefinition *first = malloc(sizeof *first);
 	XVT_ASSERT_TRUE(first != NULL);
 	*first = *Definition();
 	XVT_ASSERT_INT_EQ(first->layout.generation, 0);
@@ -241,7 +241,7 @@ static void CheckDefinitionCopy(void)
 
 	g_hudElementLayouts[5].x = 4321;
 	g_hudElementLayouts[400].selector = 77;
-	const XvtCockpitDefinition *d = Definition();
+	const struct XvtCockpitDefinition *d = Definition();
 	XVT_ASSERT_INT_EQ(d->layout.elements[5].x, 4321);
 	XVT_ASSERT_INT_EQ(d->layout.elements[400].selector, 77);
 	XVT_ASSERT_INT_EQ(memcmp(d->beam_segment_colors,
@@ -264,7 +264,7 @@ static void CheckReset(void)
 	XvtRenderAssets_RegisterIcons("icons.ico", g_iconsA, 3);
 	XvtRenderAssets_RegisterLfd("cockpit.lfd",
 				    g_hudCockpitResources[2].entries);
-	const XvtCockpitDefinition *d = Definition();
+	const struct XvtCockpitDefinition *d = Definition();
 	XVT_ASSERT_TRUE(d->layout.valid && d->panels[0].asset_id &&
 			d->layout.descriptors[2].lfd_asset_id);
 	XVT_ASSERT_TRUE(XvtRenderAssets_MapIconFrame(0, NULL) != 0);
@@ -286,7 +286,7 @@ static void CheckRegisterPanel(void)
 {
 	Fresh();
 	XvtRenderAssets_RegisterPanel("panel.pnl", 10, 3, 5);
-	const XvtCockpitDefinition *d = Definition();
+	const struct XvtCockpitDefinition *d = Definition();
 	uint64_t id = d->panels[10].asset_id;
 	XVT_ASSERT_TRUE(id != 0);
 	for (unsigned i = 0; i < 3; ++i) {
@@ -334,7 +334,7 @@ static void CheckRegisterLfd(void)
 
 	memset(g_snapshot, 0, sizeof *g_snapshot);
 	XvtRenderAssets_Export(g_snapshot);
-	const XvtSnapImageAsset *entry = NULL;
+	const struct XvtSnapImageAsset *entry = NULL;
 	for (uint32_t i = 0; i < g_snapshot->image_asset_count; ++i) {
 		if (g_snapshot->image_assets[i].id == id) {
 			entry = &g_snapshot->image_assets[i];
@@ -363,7 +363,7 @@ static void CheckRegisterLfd(void)
 	XVT_ASSERT_INT_EQ(Definition()->layout.descriptors[6].lfd_asset_id, 0);
 
 	static uint8_t *other[3];
-	XvtCockpitDefinition *before = malloc(sizeof *before);
+	struct XvtCockpitDefinition *before = malloc(sizeof *before);
 	XVT_ASSERT_TRUE(before != NULL);
 	*before = *Definition();
 	XvtRenderAssets_RegisterLfd("cockpit.lfd", other);
@@ -423,7 +423,7 @@ static void CheckForget(void)
 	XvtRenderAssets_RegisterIcons("icons.ico", g_iconsA, 2);
 	XvtRenderAssets_RegisterLfd("cockpit.lfd",
 				    g_hudCockpitResources[3].entries);
-	const XvtCockpitDefinition *d = Definition();
+	const struct XvtCockpitDefinition *d = Definition();
 	uint64_t panel = d->panels[0].asset_id;
 	uint64_t lfd = d->layout.descriptors[3].lfd_asset_id;
 	uint64_t icons = XvtRenderAssets_MapIconFrame(1, NULL);
@@ -461,7 +461,7 @@ static void CheckFlightFonts(void)
 	uint64_t small = XvtRenderAssets_ImageId(g_smallFont);
 	uint64_t medium = XvtRenderAssets_ImageId(g_mediumFont);
 	XVT_ASSERT_TRUE(micro != 0 && small != 0 && medium != 0);
-	const XvtCockpitDefinition *d = Definition();
+	const struct XvtCockpitDefinition *d = Definition();
 	for (size_t font = 0; font < sizeof d->fonts / sizeof d->fonts[0];
 	     ++font) {
 		uint64_t id = d->fonts[font].asset_id;

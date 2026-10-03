@@ -195,7 +195,7 @@ uint16_t g_nextObjectSignature = 0;
  * Mission_LoadFile, Flight_RestoreWorldState in the original build and
  * XvtSnapshot_DecodePrefix in the modern one. */
 // GLOBAL: XVT 0x9A2000
-MissionHeader g_missionHeader = {0};
+struct MissionHeader g_missionHeader = {0};
 /* Per flight group, its runtime state: arrival, rounds, outcome counts by
  * FLIGHT_GROUP_OUTCOME_ value, per-team counts and goal states. Reset by
  * Mission_InitFlightRuntimeState. Many functions write it, chiefly
@@ -203,22 +203,22 @@ MissionHeader g_missionHeader = {0};
  * Mission_ProcessFlightGroupWaveCompletion, Mission_UpdateLogic and the AI
  * order and maneuver code. */
 // GLOBAL: XVT 0x9A20C0
-MissionFgRuntimeStats g_missionFgStats[48];
+struct MissionFgRuntimeStats g_missionFgStats[48];
 /* Per team, the mission's global goals: entries 0 to 2 are the primary,
  * prevent and bonus goals Mission_UpdateLogic evaluates. Only
  * Mission_LoadFile writes it. */
 // GLOBAL: XVT 0x9A8080
-GlobalGoal g_missionGlobalGoals[10][7] = {{{0}}};
+struct GlobalGoal g_missionGlobalGoals[10][7] = {{{0}}};
 /* The mission's flight groups as loaded, with the player who owns each
  * (playerOwnerIdx, -1 for none). Mission_LoadFile fills it and Mission_Init
  * adjusts craft, loadout, AI level and rounds for the players and settings;
  * many functions read it. */
 // GLOBAL: XVT 0x9D8C30
-MissionFlightGroup g_missionFlightGroups[48];
+struct MissionFlightGroup g_missionFlightGroups[48];
 /* Per team, its name, allies and end-of-mission texts. Only Mission_LoadFile
  * writes it; it also marks each team allied with itself. */
 // GLOBAL: XVT 0x9FD440
-Team g_missionTeams[10] = {{0}};
+struct Team g_missionTeams[10] = {{0}};
 /* Index of the flight group being spawned or scanned; the spawn functions
  * read it. 5 functions write it: Mission_Init, Mission_InitFlightRuntimeState
  * and Mission_UpdateFlightGroupArrivals as a loop index,
@@ -230,16 +230,16 @@ uint16_t g_currentFlightGroupIdx = 0;
  * subsecondTicks down by the ticks elapsed and adds a second each
  * SIMULATION_TICKS_PER_SECOND ticks. Mission_Init sets it to 0. */
 // GLOBAL: XVT 0x9ED228
-MissionClock g_missionElapsedClock;
+struct MissionClock g_missionElapsedClock;
 /* Time left on the mission's countdown, minutes and seconds;
  * Flight_UpdateTimers takes one off each simulated second until it reaches
  * 0:00. Mission_Init sets it from the time limit, 0 for none. */
 // GLOBAL: XVT 0x9D8B70
-MissionClock g_missionCountdownClock = {{0, 0, 0}, 0, 0, 0, 0};
+struct MissionClock g_missionCountdownClock = {{0, 0, 0}, 0, 0, 0, 0};
 /* The mission's scripted messages. Mission_Init clears each text's first
  * byte and Mission_LoadFile fills it; Mission_UpdateLogic sends them. */
 // GLOBAL: XVT 0x9FE800
-MissionMessage g_missionMessages[MISSION_MESSAGE_COUNT] = {0};
+struct MissionMessage g_missionMessages[MISSION_MESSAGE_COUNT] = {0};
 /* Per flight group, per goal, three memory handles of the goal's replacement
  * texts from the file, 0 for none. Only Mission_LoadFile writes it;
  * Mfd_DrawMissionGoalsPage draws them and Mission_FreeOverrideStringHandles
@@ -278,27 +278,27 @@ uint16_t g_missionFileVersion = 0;
 /* The header of a TIE-format mission, read and converted by
  * Mission_LoadFile, its only user. */
 // GLOBAL: XVT 0x556AA8
-EMissionStruct g_tieMissionHeader = {0};
+struct EMissionStruct g_tieMissionHeader = {0};
 /* One TIE-format flight group record, read and converted by
  * Mission_LoadFile, its only user. */
 // GLOBAL: XVT 0x556C70
-EFGStruct g_tieFlightGroup = {0};
+struct EFGStruct g_tieFlightGroup = {0};
 /* One TIE-format global goal record, read and converted by
  * Mission_LoadFile, its only user. */
 // GLOBAL: XVT 0x556D98
-EMissionGoal g_tieMissionGoal = {0};
+struct EMissionGoal g_tieMissionGoal = {0};
 /* Text of a version 10 flight group record. Only Mission_LoadFile uses it,
  * in a branch that never runs. */
 // GLOBAL: XVT 0x556DB8
-XvtV10FlightGroupText g_xvtV10FlightGroupText = {0};
+struct XvtV10FlightGroupText g_xvtV10FlightGroupText = {0};
 /* One TIE-format message record, read and converted by Mission_LoadFile, its
  * only user. */
 // GLOBAL: XVT 0x556DE8
-TieRadioMessage g_tieRadioMessage = {0};
+struct TieRadioMessage g_tieRadioMessage = {0};
 /* Header of a version 10 mission file. Only Mission_LoadFile uses it, in a
  * branch that never runs. */
 // GLOBAL: XVT 0x556E48
-XvtV10MissionHeader g_xvtV10MissionHeader = {0};
+struct XvtV10MissionHeader g_xvtV10MissionHeader = {0};
 /* Rating an AI craft counts as, by its groupAI 0 to 5: 2, 4, 7, 9, 10 and 11.
  * Read only by Mission_CreditDestructionDamageContributors. */
 // GLOBAL: XVT 0x521158
@@ -1765,7 +1765,7 @@ void Mission_UpdateLogic(void)
  * last evaluated condition's counts in g_missionConditionCurrentCount and
  * g_missionConditionTotalCount. */
 // FUNCTION: XVT 0x431B50
-int Mission_EvaluateTriggerPair(const MissionTriggerPair *triggerPair,
+int Mission_EvaluateTriggerPair(const struct MissionTriggerPair *triggerPair,
 				int16_t includeDepartedAsDestroyed)
 {
 	enum { MISSION_TEAM_COUNT = 10 };
@@ -2097,8 +2097,8 @@ int16_t Mission_EvaluateCondition(uint16_t conditionType, int16_t variableType,
 				     objectIdx <
 				     g_activeRegionCraftObjectSlotEnd;
 				     ++objectIdx) {
-					ObjectRecord *object;
-					CraftData *craft;
+					struct ObjectRecord *object;
+					struct CraftData *craft;
 					int maxShield;
 					int16_t matchesCondition;
 
@@ -2163,7 +2163,7 @@ int16_t Mission_EvaluateCondition(uint16_t conditionType, int16_t variableType,
 						}
 					} else if (conditionType ==
 						   MISSION_COND_NO_WARHEADS) {
-						const ModelDef *modelDef;
+						const struct ModelDef *modelDef;
 						uint16_t launcherIdx;
 						uint16_t warheadCount;
 
@@ -3063,9 +3063,9 @@ int16_t Mission_ObjectMatchesTriggerVariable(uint16_t objectIdx,
 					     uint16_t variableType,
 					     uint16_t variable)
 {
-	ObjectRecord *object = &g_objectTable[objectIdx];
-	MobileObject *mobile = object->mobj;
-	CraftData *craft;
+	struct ObjectRecord *object = &g_objectTable[objectIdx];
+	struct MobileObject *mobile = object->mobj;
+	struct CraftData *craft;
 	uint16_t flightGroup;
 	uint16_t team;
 	uint16_t objectType;
@@ -3432,7 +3432,7 @@ int16_t Mission_ObjectMatchesTriggerVariable(uint16_t objectIdx,
 void Mission_RecordCraftOutcome(uint16_t objIdx, uint16_t flightGroupIdx,
 				uint16_t outcomeId)
 {
-	CraftData *craft = g_objectTable[objIdx].mobj->pCraft;
+	struct CraftData *craft = g_objectTable[objIdx].mobj->pCraft;
 
 	if (craft->missionAccountingDone == 1) {
 		return;
@@ -3646,7 +3646,7 @@ void Mission_RecordCraftOutcome(uint16_t objIdx, uint16_t flightGroupIdx,
 			}
 		}
 		{
-			MissionOrder *order =
+			struct MissionOrder *order =
 				g_missionFlightGroups[flightGroupIdx].fg.orders;
 			int ordersRemaining = 4;
 			do {
@@ -3722,7 +3722,7 @@ void Mission_RecordCraftOutcome(uint16_t objIdx, uint16_t flightGroupIdx,
 		     g_activeRegionCraftObjectSlotEnd > slotIndex;
 		     ++slotIndex) {
 			if (g_objectTable[slotIndex].objectType != 0) {
-				CraftData *otherCraft =
+				struct CraftData *otherCraft =
 					g_objectTable[slotIndex].mobj->pCraft;
 				if (otherCraft->lastAttackerObjIdx == objIdx) {
 					otherCraft->lastAttackerObjIdx =
@@ -3848,8 +3848,8 @@ void Mission_CreditDestructionDamageContributors(uint16_t sourceObjIdx,
 {
 	enum { PLAYER_COUNT = 8, TEAM_COUNT = 10 };
 
-	ObjectRecord *victim;
-	CraftData *craft;
+	struct ObjectRecord *victim;
+	struct CraftData *craft;
 	int victimRating;
 	int victimOwnerIdx;
 	int awardRating;
@@ -3875,7 +3875,7 @@ void Mission_CreditDestructionDamageContributors(uint16_t sourceObjIdx,
 				g_objectTable[sourceObjIdx].playerOwnerIdx, -1,
 				0);
 			if (g_objectTable[victimObjIdx].genusId == 8) {
-				PlayerData *ownerPlayer =
+				struct PlayerData *ownerPlayer =
 					&g_players[g_objectTable[sourceObjIdx]
 							   .playerOwnerIdx];
 				ownerPlayer->missionStats
@@ -3935,7 +3935,7 @@ void Mission_CreditDestructionDamageContributors(uint16_t sourceObjIdx,
 				victimObjIdx, specialCargo, contributionTier,
 				playerIndex, victimOwnerIdx, victimRating);
 			{
-				ObjectRecord *damagedVictim =
+				struct ObjectRecord *damagedVictim =
 					&g_objectTable[victimObjIdx];
 				if (g_missionTeams[(uint16_t)g_players
 							   [playerIndex]
@@ -4153,7 +4153,7 @@ void Mission_CreditDestructionDamageContributors(uint16_t sourceObjIdx,
 	for (teamIndex = 0; teamIndex < TEAM_COUNT; ++teamIndex) {
 		int flightGroupIndex;
 		int *damageFromFlightGroup;
-		MissionFlightGroup *flightGroup;
+		struct MissionFlightGroup *flightGroup;
 		unsigned int teamDamage = 0;
 		unsigned int largestDamage = 0;
 		int largestFlightGroup = 0;
@@ -4465,7 +4465,7 @@ void Mission_CreditTeamKillContribution(uint16_t victimObjIdx,
 void Mission_RecordProjectileHitStats(uint16_t projectileObjIdx)
 {
 	int ownerObjIdx;
-	CraftData *ownerCraft;
+	struct CraftData *ownerCraft;
 	int ownerPlayerIdx;
 	uint16_t playerProjectileSlotEnd;
 
@@ -4567,10 +4567,10 @@ int Mission_RecordPlayerCraftLoss(unsigned int objIdx,
 	unsigned int playerIdx;
 	int aiSkillIdx;
 	int pointPenalty;
-	ObjectRecord *object;
+	struct ObjectRecord *object;
 	int teamIdx;
 	int ownerPlayerIdx;
-	CraftData *craft;
+	struct CraftData *craft;
 	int creditedPlayerIdx;
 
 	creditedPlayerIdx = -1;
@@ -4743,7 +4743,7 @@ void Mission_RecordPlayerCraftLossAttribution(int attackerFlightGroupIdx,
 					      int victimObjIdx,
 					      int contributionTier)
 {
-	ObjectRecord *victim;
+	struct ObjectRecord *victim;
 	int victimPlayerIdx;
 	int attackerPlayerIdx;
 	unsigned int damageShareQ16;
@@ -4817,7 +4817,7 @@ int Mission_ApplyFlightGroupGoalScore(int16_t eventCondition,
 	int goalIndex;
 	int scoreTotal;
 	unsigned int timeLimitSeconds;
-	FlightGroupGoal *goal;
+	struct FlightGroupGoal *goal;
 	int score;
 	int scoreTenth;
 	int scoreAdjustment;
@@ -4911,7 +4911,7 @@ void Mission_ApplyTeamGoalScoreAllEnabledTeams(int16_t eventCondition,
 {
 	int score;
 	int remainingGoals;
-	FlightGroupGoal *goal;
+	struct FlightGroupGoal *goal;
 	unsigned int elapsedSeconds;
 	unsigned int timeLimitSeconds;
 	int teamIndex;
@@ -4959,7 +4959,7 @@ void Mission_ApplyTeamGoalScoreForTeam(int16_t eventCondition,
 	int remainingGoals;
 	uint8_t *enabledTeam;
 	int score;
-	FlightGroupGoal *goal;
+	struct FlightGroupGoal *goal;
 	unsigned int elapsedSeconds;
 	unsigned int timeLimitSeconds;
 	int teamIndex;
@@ -5042,7 +5042,7 @@ int Mission_ComputeKillScoreForObject(int victimObjIdx)
 // FUNCTION: XVT 0x435AD0
 int Mission_ComputeCraftPointValue(int objIdx)
 {
-	CraftData *craft;
+	struct CraftData *craft;
 	unsigned int modelIndex;
 	unsigned int pointValue;
 	unsigned int launcherIndex;
@@ -5263,20 +5263,21 @@ uint16_t Mission_Init(char *fileName)
 
 	FeDiskIo_UnlockGlobalBuffers();
 	g_objectTableHandle = Memory_AllocHandleZeroed(
-		(sizeof(ObjectRecord) *
+		(sizeof(struct ObjectRecord) *
 		 (size_t)(g_regionMainObjectSlotEnd +
 			  g_regionStaticObjectSlotCount)),
 		0);
 	g_mobileObjectPoolHandle = Memory_AllocHandleZeroed(
-		sizeof(MobileObject) * (size_t)g_regionMainObjectSlotEnd, 0);
+		sizeof(struct MobileObject) * (size_t)g_regionMainObjectSlotEnd,
+		0);
 	g_mobileObjectCharDataHandle = Memory_AllocHandleZeroed(
-		sizeof(MobileObjectCharData) *
+		sizeof(struct MobileObjectCharData) *
 			(size_t)g_mobileObjectCharDataCount,
 		0);
 	g_craftDataPoolHandle = Memory_AllocHandleZeroed(
-		sizeof(CraftData) * (size_t)g_craftDataPoolCapacity, 0);
+		sizeof(struct CraftData) * (size_t)g_craftDataPoolCapacity, 0);
 	g_warheadGuidancePoolHandle = Memory_AllocHandleZeroed(
-		sizeof(WarheadGuidanceState) *
+		sizeof(struct WarheadGuidanceState) *
 			(size_t)(g_projectileObjectSlotsTotal + 1),
 		0);
 	FeDiskIo_LockGlobalBuffers();
@@ -7409,8 +7410,8 @@ void Mission_InitFlightRuntimeState(void)
 	g_renderObjectRef = UINT16_MAX;
 	/* teamIndex is reused here as a word index into each player's transient timers. */
 	for (teamIndex = 0;
-	     teamIndex <
-	     (int)(sizeof(PlayerFlightTransientTimers) / sizeof(uint16_t));
+	     teamIndex < (int)(sizeof(struct PlayerFlightTransientTimers) /
+			       sizeof(uint16_t));
 	     ++teamIndex) {
 		for (playerIndex = 0; playerIndex < PLAYER_COUNT;
 		     ++playerIndex) {
@@ -7704,7 +7705,7 @@ void Mission_UpdateFlightGroupArrivals(void)
 					     (unsigned int)
 						     g_activeRegionCraftObjectSlotEnd;
 					     ++objectIndex) {
-						ObjectRecord *object =
+						struct ObjectRecord *object =
 							&g_objectTable
 								[objectIndex];
 
@@ -7997,7 +7998,7 @@ void Mission_ProcessFlightGroupWaveCompletion(uint16_t flightGroupIdx)
 	for (objectIndex = (unsigned int)g_activeRegionObjectSlotStart;
 	     objectIndex < (unsigned int)g_activeRegionCraftObjectSlotEnd;
 	     ++objectIndex) {
-		ObjectRecord *object = &g_objectTable[objectIndex];
+		struct ObjectRecord *object = &g_objectTable[objectIndex];
 
 		if (object->objectType != 0 && object->mobj->family == 0 &&
 		    object->flightGroupIdx == flightGroupIdx &&
@@ -8183,7 +8184,7 @@ void Mission_ProcessFlightGroupWaveCompletion(uint16_t flightGroupIdx)
 			     objectIndex <
 			     (unsigned int)g_activeRegionCraftObjectSlotEnd;
 			     ++objectIndex) {
-				ObjectRecord *object =
+				struct ObjectRecord *object =
 					&g_objectTable[objectIndex];
 
 				if (object->objectType != 0 &&
@@ -8208,7 +8209,7 @@ void Mission_ProcessFlightGroupWaveCompletion(uint16_t flightGroupIdx)
 				     (unsigned int)
 					     g_activeRegionCraftObjectSlotEnd;
 				     ++objectIndex) {
-					ObjectRecord *object =
+					struct ObjectRecord *object =
 						&g_objectTable[objectIndex];
 
 					if (object->objectType != 0 &&
@@ -8218,7 +8219,7 @@ void Mission_ProcessFlightGroupWaveCompletion(uint16_t flightGroupIdx)
 						     CRAFT_OBJECT_KIND_BREAKING_UP ||
 					     object->mobj->pCraft->objectKind ==
 						     CRAFT_OBJECT_KIND_EXPLODING)) {
-						CraftData *craft =
+						struct CraftData *craft =
 							object->mobj->pCraft;
 
 						object->objectType = 0;
@@ -9461,7 +9462,7 @@ uint16_t Mission_InitFlightGroupObjectSlot(void)
 			[g_orderLeaderBuiltinPlanNameIndex[order]];
 		uint8_t followerPlan = g_builtinPlanIdByNameIndex
 			[g_orderFollowerBuiltinPlanNameIndex[order]];
-		PaiPlanRecord *plan;
+		struct PaiPlanRecord *plan;
 		uint16_t throttleSpeed;
 		g_curCraft->aiController.runningPlanId = (uint8_t)leaderPlan;
 		g_curCraft->aiController.currentPlanId =
@@ -9627,7 +9628,7 @@ void Mission_SpawnFlightGroupStaticObjects(uint16_t craftOrdinal)
 	int spawnZ;
 	int objectIndex;
 	int staticObjectEnd;
-	ObjectRecord *object;
+	struct ObjectRecord *object;
 
 	if (g_missionFgStats[g_currentFlightGroupIdx]
 		    .outcomeCount[FLIGHT_GROUP_OUTCOME_TOTAL] == 0) {
@@ -10162,7 +10163,7 @@ int Mission_LoadFile(char *fileName)
 	int16_t stringLength;
 	int16_t flightGroupIdx;
 	char stringBuffer[160];
-	MissionHeader missionHeader;
+	struct MissionHeader missionHeader;
 	int16_t messageIdx;
 	int16_t outerIdx;
 	int16_t slotIdx;
@@ -10261,7 +10262,7 @@ int Mission_LoadFile(char *fileName)
 					sizeof(g_missionFlightGroups
 						       [flightGroupIdx]
 							       .fg) -
-						offsetof(XvtFlightGroup,
+						offsetof(struct XvtFlightGroup,
 							 specialCargoCraft),
 					1, stream);
 			} else {
@@ -11006,7 +11007,7 @@ int Mission_LoadFile(char *fileName)
 
 	for (outerIdx = 0; outerIdx < TEAM_COUNT; ++outerIdx) {
 		for (index = 0; index < ACTIVE_GLOBAL_GOAL_COUNT; ++index) {
-			GlobalGoal *goal =
+			struct GlobalGoal *goal =
 				&g_missionGlobalGoals[outerIdx][index];
 			uint8_t condition1 =
 				goal->triggerPairs[0].triggers[0].condition;
@@ -11089,7 +11090,7 @@ int Mission_SyncPilotNetworkPlayersToSessionSlots(void)
 	int sessionPlayerCount;
 	int sessionPlayerIndex;
 	int pilotPlayerIndex;
-	SessionPlayerInfo *sessionPlayers;
+	struct SessionPlayerInfo *sessionPlayers;
 
 	sessionPlayers = NetSession_GetPlayerRoster(&sessionPlayerCount);
 	for (sessionPlayerIndex = 0; sessionPlayerIndex < sessionPlayerCount;

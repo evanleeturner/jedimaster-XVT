@@ -89,7 +89,7 @@ int FrontendDialog_ShowConfirmDialog(const char *line1, const char *line2,
 		SOUND_CENTER_PAN = 63,
 	};
 
-	RECT rect;
+	struct RECT rect;
 	int overlayTextEnabled;
 
 	overlayTextEnabled = FrontendButton_IsOverlayTextEnabled();
@@ -182,7 +182,7 @@ int FrontendDialog_ConfirmUpdateCallback(int frameCounter)
 		TEXT_FADE_FRAMES = 20,
 	};
 
-	RECT rect;
+	struct RECT rect;
 	int finished;
 	int pressed;
 
@@ -383,7 +383,7 @@ int FrontendDialog_PromptForPilotName(char *outName)
 		PILOT_NAME_LENGTH = 12,
 	};
 
-	RECT rect;
+	struct RECT rect;
 	int overlayTextEnabled;
 
 	overlayTextEnabled = FrontendButton_IsOverlayTextEnabled();
@@ -419,7 +419,7 @@ int FrontendDialog_PromptForPilotName(char *outName)
 // FUNCTION: XVT 0x4DD2C0
 int FrontendDialog_CreatePilotNameCallback(int frameCounter)
 {
-	RECT rect;
+	struct RECT rect;
 	int accepted;
 
 	if (frameCounter == 0) {
@@ -498,7 +498,7 @@ int FrontendDialog_ShowNetworkAbortError(const char *line1, const char *line2,
 		SOUND_CENTER_PAN = 63,
 	};
 
-	RECT rect;
+	struct RECT rect;
 	int overlayTextEnabled;
 
 	overlayTextEnabled = FrontendButton_IsOverlayTextEnabled();
@@ -556,7 +556,7 @@ int FrontendDialog_ShowNetworkAbortError(const char *line1, const char *line2,
 // FUNCTION: XVT 0x4DD620
 int FrontendDialog_NetworkAbortErrorCallback(int frameCounter)
 {
-	RECT rect;
+	struct RECT rect;
 	int finished;
 	int pressed;
 

@@ -20,8 +20,8 @@ struct TechLibrarySpecText {
 	char crew[64];
 };
 
-extern TechLibrarySpecText *g_techLibrarySpecTextTable;
-extern CraftTechStats g_techLibraryCraftStats;
+extern struct TechLibrarySpecText *g_techLibrarySpecTextTable;
+extern struct CraftTechStats g_techLibraryCraftStats;
 extern int g_techLibrarySelectedShipListIdx;
 extern int g_techLibraryLightX;
 extern float g_techLibraryPreviewYawDeg;

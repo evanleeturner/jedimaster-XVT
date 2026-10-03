@@ -32,8 +32,8 @@
 #include <string.h>
 #include <time.h>
 
-static XvtTestAssets g_assets;
-static CutsceneEntry g_table[1];
+static struct XvtTestAssets g_assets;
+static struct CutsceneEntry g_table[1];
 
 static int Placeholder(int frame) { return frame; }
 

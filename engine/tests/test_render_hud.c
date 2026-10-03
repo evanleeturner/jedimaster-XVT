@@ -14,8 +14,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-static ObjectRecord g_testObjects[3];
-static XvtRenderSnapshot *g_out;
+static struct ObjectRecord g_testObjects[3];
+static struct XvtRenderSnapshot *g_out;
 
 /* Two main slots and one static slot, slot 1 empty; a fresh HUD in the cockpit scope; an open tick. */
 static void FreshTick(void)
@@ -78,7 +78,7 @@ static void CheckTargetBoxRecord(void)
 	g_worldLocZ = 3000;
 	XvtRenderHud_TargetBox(2, 7, 4096, 33);
 	XVT_ASSERT_INT_EQ(PublishedCount(), 1);
-	const XvtSnapTargetBox *box = &g_out->target_boxes[0];
+	const struct XvtSnapTargetBox *box = &g_out->target_boxes[0];
 	XVT_ASSERT_INT_EQ(box->object.slot, 2);
 	XVT_ASSERT_INT_EQ(box->component, 7);
 	XVT_ASSERT_INT_EQ(box->extent, 4096);
@@ -119,7 +119,7 @@ static void CheckTargetBoxRefusals(void)
 static void CheckTargetBoxesFull(void)
 {
 	FreshTick();
-	XvtRenderSnapshot *writer = XvtRenderSnapshot_Writer();
+	struct XvtRenderSnapshot *writer = XvtRenderSnapshot_Writer();
 	uint32_t dropped = writer->dropped_records;
 	for (unsigned i = 0; i < XVT_SNAP_TARGET_BOXES; ++i) {
 		XvtRenderHud_TargetBox(0, i, (int)i, 1);
@@ -155,7 +155,7 @@ static uint32_t Channel(uint32_t argb, int shift)
 static void CheckColor(void)
 {
 	memset(g_swPalette, 0, sizeof g_swPalette);
-	g_swPalette[5] = (RgbTriplet){63, 0, 32};
+	g_swPalette[5] = (struct RgbTriplet){63, 0, 32};
 	uint32_t color = XvtRenderDraw_Color(5);
 	XVT_ASSERT_INT_EQ(Channel(color, 24), 0xFF);
 	XVT_ASSERT_INT_EQ(Channel(color, 16), 0xFF);
@@ -164,7 +164,7 @@ static void CheckColor(void)
 	/* Widened to 8 bits: every 6-bit level keeps its value in the top six bits, full scale is 255, and
 	 * each channel is read from its own palette byte. */
 	for (unsigned level = 0; level < 64; ++level) {
-		g_swPalette[9] = (RgbTriplet){
+		g_swPalette[9] = (struct RgbTriplet){
 			(uint8_t)level, (uint8_t)(63 - level), (uint8_t)level};
 		uint32_t argb = XvtRenderDraw_Color(9);
 		XVT_ASSERT_INT_EQ(Channel(argb, 24), 0xFF);
@@ -172,9 +172,9 @@ static void CheckColor(void)
 		XVT_ASSERT_INT_EQ(Channel(argb, 8) >> 2, 63 - level);
 		XVT_ASSERT_INT_EQ(Channel(argb, 0) >> 2, level);
 	}
-	g_swPalette[9] = (RgbTriplet){63, 63, 63};
+	g_swPalette[9] = (struct RgbTriplet){63, 63, 63};
 	XVT_ASSERT_INT_EQ(XvtRenderDraw_Color(9), 0xFFFFFFFFu);
-	g_swPalette[9] = (RgbTriplet){0, 0, 0};
+	g_swPalette[9] = (struct RgbTriplet){0, 0, 0};
 	XVT_ASSERT_INT_EQ(XvtRenderDraw_Color(9), 0xFF000000u);
 
 	/* The index is taken & 255. */

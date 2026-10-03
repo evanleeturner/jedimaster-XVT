@@ -10,17 +10,19 @@ extern "C" {
 #endif
 
 extern int g_inputFrameCount[8];
-extern InputFrame g_inputHistory[8][450];
+extern struct InputFrame g_inputHistory[8][450];
 extern int g_flightNetDirtyAllObjectTransformsAfterRestore;
 extern int g_remotePlayerRenderSmoothingEnabled;
 
 void FlightSync_QueuePredictedRemoteInputFrames(int predictedFrameDelta);
 void FlightSync_DiscardAllPredictedInputFrames(void);
 void FlightSync_DiscardPredictedInputFrames(int playerIdx);
-void FlightSync_RemoveInputHistoryFrame(int playerIdx, InputFrame *frame);
-InputFrame *FlightSync_InsertInputFrame(int playerIdx, int timestamp,
-					const FlightInputFrameRecord *input);
-InputFrame *FlightSync_FindLastUnrelayedInputFrame(int playerIdx);
+void FlightSync_RemoveInputHistoryFrame(int playerIdx,
+					struct InputFrame *frame);
+struct InputFrame *
+FlightSync_InsertInputFrame(int playerIdx, int timestamp,
+			    const struct FlightInputFrameRecord *input);
+struct InputFrame *FlightSync_FindLastUnrelayedInputFrame(int playerIdx);
 void FlightSync_ResetRemotePlayerRenderSmoothing(void);
 void FlightSync_CaptureSamplesAndRestorePoses(void);
 void FlightSync_ApplyRemotePlayerRenderSmoothing(void);

@@ -18,13 +18,13 @@ void XvtUi_Color(uint32_t argb, float out[4])
 	}
 }
 
-static AeronRectI Clip(XvtSnapRect r, float s)
+static AeronRectI Clip(struct XvtSnapRect r, float s)
 {
 	return (AeronRectI){(int)floorf(r.x * s), (int)floorf(r.y * s),
 			    (int)ceilf(r.width * s), (int)ceilf(r.height * s)};
 }
 
-static void GlyphPlane(AeronDrawList2D *list, const XvtFontAtlas *font,
+static void GlyphPlane(AeronDrawList2D *list, const struct XvtFontAtlas *font,
 		       unsigned ch, float x, float y, float scale,
 		       uint32_t color, const AeronRectI *clip)
 {
@@ -34,7 +34,7 @@ static void GlyphPlane(AeronDrawList2D *list, const XvtFontAtlas *font,
 	}
 	const AeronFontGlyph *g =
 		&font->atlas.glyphs[ch - font->atlas.first_char];
-	const XvtFontGlyph *metrics =
+	const struct XvtFontGlyph *metrics =
 		&font->glyphs[ch - font->atlas.first_char];
 	AeronDrawList2DSprite d = {
 		.texture = font->atlas.texture,
@@ -57,10 +57,11 @@ static void GlyphPlane(AeronDrawList2D *list, const XvtFontAtlas *font,
 	AeronDrawList_AddSprite(list, &d);
 }
 
-void XvtUi_Glyph(AeronDrawList2D *list, const XvtSnapGlyph *g, float scale,
-		 float ox, float oy)
+void XvtUi_Glyph(AeronDrawList2D *list, const struct XvtSnapGlyph *g,
+		 float scale, float ox, float oy)
 {
-	const XvtFontAtlas *font = XvtRemasterAssets_Font(g->font_asset_id, 0);
+	const struct XvtFontAtlas *font =
+		XvtRemasterAssets_Font(g->font_asset_id, 0);
 	if (!font || g->character < font->atlas.first_char ||
 	    g->character >= font->atlas.first_char + font->atlas.num_chars) {
 		return;
@@ -103,7 +104,7 @@ void XvtUi_Glyph(AeronDrawList2D *list, const XvtSnapGlyph *g, float scale,
 void XvtUi_Text(AeronDrawList2D *list, uint64_t id, const char *text, float x,
 		float y, float scale, uint32_t color, int centered)
 {
-	const XvtFontAtlas *font = XvtRemasterAssets_Font(id, 0);
+	const struct XvtFontAtlas *font = XvtRemasterAssets_Font(id, 0);
 	if (!font || !text) {
 		return;
 	}
@@ -166,7 +167,8 @@ int XvtUi_MapIcon(AeronDrawList2D *list, AeronCommandBuffer *cmd,
 	return 1;
 }
 
-void XvtUi_Paint(AeronDrawList2D *list, const XvtSnapPaint *p, float scale)
+void XvtUi_Paint(AeronDrawList2D *list, const struct XvtSnapPaint *p,
+		 float scale)
 {
 	float rgba[4];
 	XvtUi_Color(p->color_argb, rgba);
@@ -193,8 +195,8 @@ void XvtUi_Paint(AeronDrawList2D *list, const XvtSnapPaint *p, float scale)
 }
 
 int XvtUi_CopyFrontend(AeronCommandBuffer *cmd, AeronRenderTarget *dst,
-		       AeronTexture *src, const XvtSnapRect *from,
-		       const XvtSnapRect *to, int sw, int sh)
+		       AeronTexture *src, const struct XvtSnapRect *from,
+		       const struct XvtSnapRect *to, int sw, int sh)
 {
 	if (!g_copy) {
 		g_vs = Aeron_CreateShader(

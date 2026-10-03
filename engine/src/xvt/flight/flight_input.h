@@ -203,12 +203,11 @@ struct InputFrame {
 	/* Source: 0 server's world message, 1 real input, 2 predicted. */
 	int inputSource;
 	int timestamp;		      /* Tick the input applies at. */
-	FlightInputFrameRecord input; /* The input itself. */
+	struct FlightInputFrameRecord input; /* The input itself. */
 };
 #ifdef XVT_MODERN
-typedef char XvtFlightInputRecordSize[(sizeof(FlightInputFrameRecord) == 8)
-					      ? 1
-					      : -1];
+typedef char XvtFlightInputRecordSize
+	[(sizeof(struct FlightInputFrameRecord) == 8) ? 1 : -1];
 #endif
 
 extern int16_t g_scaledInputYaw;
@@ -227,7 +226,7 @@ extern uint16_t g_mouseButtons;
 extern uint16_t g_keyMods;
 extern uint16_t g_joystickDetectResultWord;
 extern uint8_t g_throttleKeyTable[17];
-extern FlightInputFrameRecord g_replayInputs[8];
+extern struct FlightInputFrameRecord g_replayInputs[8];
 extern int16_t g_flightMouseX;
 extern int16_t g_flightMouseY;
 extern int g_flightConfDirectInput;

@@ -39,7 +39,7 @@ static struct {
 	char rating_text[16], player_name[16], name[32];
 	uint64_t deadline, next_retry_us;
 	AeronDplayDirectoryError error;
-	XvtNetworkMetadata metadata;
+	struct XvtNetworkMetadata metadata;
 	AeronDplayRoomMetadata published;
 } g_session;
 
@@ -47,9 +47,9 @@ static char g_origin[AERON_DPLAY_DIRECTORY_URL_CAPACITY];
 static const GUID g_application = {
 	0x09438c20, 0xe06a, 0x11ce, {0x86, 0x81, 0, 0xaa, 0, 0x6c, 0x5d, 0x57}};
 
-int XvtNetworkSession_CopyPlayerNames(const NetPlayerNameMessage *message,
-				      char *short_name, size_t short_capacity,
-				      char *long_name, size_t long_capacity)
+int XvtNetworkSession_CopyPlayerNames(
+	const struct NetPlayerNameMessage *message, char *short_name,
+	size_t short_capacity, char *long_name, size_t long_capacity)
 {
 	const char *short_end;
 	const char *long_start;
@@ -87,7 +87,7 @@ int XvtNetworkSession_CopyPlayerNames(const NetPlayerNameMessage *message,
 
 AeronDplayDirectoryError XvtNetworkSession_Configure(void)
 {
-	const XvtSettings *settings = XvtConfig_Settings();
+	const struct XvtSettings *settings = XvtConfig_Settings();
 	const char *origin = settings ? settings->lobby_url : "";
 	if (!*origin) {
 		return AERON_DPLAY_DIRECTORY_ERROR_NOT_CONFIGURED;
@@ -261,7 +261,7 @@ static int XvtNetworkSession_Factory(void)
 	g_frontState.netFlightSentWorldMessageHistory = NULL;
 	g_frontState.netFlightSentWorldMessageWriteIndex = 0;
 	for (int i = 0; i < 40; ++i) {
-		NetReliablePeerSlot *peer =
+		struct NetReliablePeerSlot *peer =
 			&g_frontState.netRuntimeReliablePeerSlots[i];
 		peer->lastDeliveredSeqDefault = peer->lastDeliveredSeqChannelA =
 			peer->lastDeliveredSeqChannelB = 127;
@@ -314,7 +314,7 @@ static int XvtNetworkSession_Handshake(void)
 			continue;
 		}
 		unsigned peers = (unsigned)packet[2];
-		NetReliablePeerSlot saved = {0};
+		struct NetReliablePeerSlot saved = {0};
 		if (peers > 40 || size < 16 + 8 * peers) {
 			continue;
 		}
@@ -329,7 +329,7 @@ static int XvtNetworkSession_Handshake(void)
 		}
 		g_frontState.netReliablePeerSlotCount = peers;
 		for (unsigned i = 0; i < peers; ++i) {
-			NetReliablePeerSlot *peer =
+			struct NetReliablePeerSlot *peer =
 				&g_frontState.netRuntimeReliablePeerSlots[i];
 			const uint8_t *row =
 				(const uint8_t *)packet + 16 + 8 * i;
@@ -594,10 +594,10 @@ void XvtNetworkSession_HostLost(void)
 
 int XvtNetworkSession_IsLost(void) { return g_session.lost; }
 
-XvtNetworkSessionStatus XvtNetworkSession_GetStatus(void)
+struct XvtNetworkSessionStatus XvtNetworkSession_GetStatus(void)
 {
-	XvtNetworkSessionStatus status = {XVT_NETWORK_SESSION_IDLE,
-					  g_session.error};
+	struct XvtNetworkSessionStatus status = {XVT_NETWORK_SESSION_IDLE,
+						 g_session.error};
 	if (g_session.phase == SESSION_FAILED) {
 		status.state = XVT_NETWORK_SESSION_FAILED;
 	} else if (g_session.phase == SESSION_ESTABLISHED) {
@@ -643,7 +643,7 @@ void XvtNetworkSession_Service(void)
 	    g_session.phase != SESSION_ESTABLISHED || g_session.lost) {
 		return;
 	}
-	XvtNetworkMetadata current;
+	struct XvtNetworkMetadata current;
 	if (g_session.flight) {
 		current = g_session.metadata;
 		if (g_session.flight_ready) {
@@ -682,7 +682,7 @@ void XvtNetworkSession_BeginFlight(void)
 		return;
 	}
 	if (g_session.host && g_session.registered) {
-		XvtNetworkMetadata current;
+		struct XvtNetworkMetadata current;
 		XvtNetworkMetadata_Build(&current, 0);
 		if (current.room.players) {
 			g_session.metadata = current;

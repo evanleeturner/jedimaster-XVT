@@ -26,7 +26,7 @@ enum {
 };
 
 extern int g_craftDataPoolCapacity;
-extern CraftData *g_craftDataPoolBase;
+extern struct CraftData *g_craftDataPoolBase;
 
 /* Stored as uint8_t in the binary (IDB enum ShieldDistributionMode). */
 typedef uint8_t ShieldDistributionMode;
@@ -184,7 +184,7 @@ struct CraftData {
 	 * Lasers do not fire while it is nonzero. */
 	uint8_t sFoilState;
 	/* The AI's orders, plans, target and maneuver state. */
-	AiController aiController;
+	struct AiController aiController;
 	/* Object slot of the craft this one picked up (boardtopickuppln) and
 	 * moves along with itself; UINT16_MAX for none. */
 	uint16_t carriedObjectIndex;
@@ -202,7 +202,7 @@ struct CraftData {
 	uint16_t lastHitMissionSecond;
 	/* Steering, formation and order bookkeeping the AI and steering code
 	 * keep. */
-	AiFlightState aiFlight;
+	struct AiFlightState aiFlight;
 	/* The craft's place in its flight group from 0 (g_spawnCraftOrdinal),
 	 * used for its formation slot, special cargo and radio voice. */
 	uint8_t craftOrdinal;
@@ -244,7 +244,7 @@ struct CraftData {
 	 * the craft's systems. */
 	int16_t subsystemDamage;
 	/* Damage received, by source, and the HUD feature masks. */
-	CraftDamageStats damageStats;
+	struct CraftDamageStats damageStats;
 	/* Subsystems the craft has installed, CRAFT_SUBSYSTEM_FLAG bits; set at
 	 * spawn from the model and flight group. */
 	CraftSubsystemFlag systemFlags;
@@ -302,7 +302,7 @@ struct CraftData {
 	uint8_t laserSlotCount;
 	/* Per laser group: projectile type, link mode, burst and fire
 	 * timing. */
-	CraftLaserState laserState;
+	struct CraftLaserState laserState;
 	/* Launchers with a warhead type, 0 to 2, counted at spawn. */
 	uint8_t warheadLauncherCount;
 	/* Warhead object type each launcher fires, from the flight group's
@@ -349,7 +349,7 @@ struct CraftData {
 	 * Flight_UpdateTimers counts it down. */
 	uint16_t cmFireCooldownTimer;
 	/* Shots fired and hits scored by this craft. */
-	CraftWeaponStats weaponStats;
+	struct CraftWeaponStats weaponStats;
 	/* No game code reads or writes it; only the modern build's snapshot
 	 * copies it. */
 	uint8_t unused256[73];
@@ -383,12 +383,12 @@ struct CraftData {
 	uint16_t playerCommandAvoidTargetObjIdx;
 	/* Weapon slots, laser groups first, then launchers, laid out by
 	 * FeDiskIo_BuildModelDef. */
-	CraftWeaponSlot weaponSlots[16];
+	struct CraftWeaponSlot weaponSlots[16];
 	/* Signature effectiveAiObjectLink's object must still carry; only spawn
 	 * writes it, with 0. */
 	uint16_t effectiveAiObjectSignature;
 	/* Per weapon slot, the turret's target and retarget timing. */
-	TurretTargetState turretTargetStates[16];
+	struct TurretTargetState turretTargetStates[16];
 	/* No game code reads or writes it; the world checksums subtract its
 	 * size from the record bytes they sum. */
 	uint8_t unused3F2[44];
@@ -427,15 +427,15 @@ struct CraftTechStats {
 	int unusedRating; /* Nothing reads or writes it by name. */
 };
 
-extern CraftData *g_curCraft;
+extern struct CraftData *g_curCraft;
 
 void Craft_AdjustCurrentShieldEnergy(unsigned int unusedObjectIdx,
 				     uint16_t shieldIndex, int16_t delta);
 int Craft_GetObjectMaxShield(uint16_t objIdx);
 ModelIndex GetModelIndexFromType(ObjectTypeId objectType);
-int BuildCraftTechStats(CraftTechStats *stats);
-void Craft_ClearTurretObjectLinks(CraftData *craft);
-void Craft_FreeLinkedObjects(CraftData *craft);
+int BuildCraftTechStats(struct CraftTechStats *stats);
+void Craft_ClearTurretObjectLinks(struct CraftData *craft);
+void Craft_FreeLinkedObjects(struct CraftData *craft);
 void Craft_DetachDamageableComponent(uint16_t objectIndex, int16_t detachAll);
 WarheadKindIndex ObjectType_GetWarheadKindIndex(uint16_t objectType);
 int Craft_IsSelectableDamageComponentMesh(int objectType, int meshIndex);
@@ -443,7 +443,7 @@ int Craft_DamageComponent(uint16_t victimObjIdx, int16_t hitMeshIndex,
 			  unsigned int damageAmount, uint16_t sourceObjIdx);
 void Craft_SpawnMainHullExplosionEffects(uint16_t objectIdx,
 					 int16_t forceMainExplosion);
-int Craft_SpawnExplosionObjectAtMesh(ObjectRecord *objRecord,
+int Craft_SpawnExplosionObjectAtMesh(struct ObjectRecord *objRecord,
 				     uint16_t meshIndex, int effectSize,
 				     uint16_t useRandomVertex);
 

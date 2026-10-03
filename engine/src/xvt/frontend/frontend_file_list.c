@@ -12,7 +12,7 @@ typedef int FrontendFindHandle;
 
 /* The original build's copy of the Windows find record (WIN32_FIND_DATAA),
  * which FindFirstFileA and FindNextFileA fill; only the file name is used. */
-typedef struct FrontendFindData {
+struct FrontendFindData {
 	uint32_t fileAttributes;     /* Never read or written by name. */
 	uint32_t creationTimeLow;    /* Never read or written by name. */
 	uint32_t creationTimeHigh;   /* Never read or written by name. */
@@ -28,12 +28,12 @@ typedef struct FrontendFindData {
 	char fileName[260];
 	char alternateFileName[14]; /* Never read or written by name. */
 	uint8_t trailingPadding[2]; /* Never read or written by name. */
-} FrontendFindData;
+};
 
 __declspec(dllimport) FrontendFindHandle __stdcall
-FindFirstFileA(const char *fileName, FrontendFindData *findData);
-__declspec(dllimport) int __stdcall FindNextFileA(FrontendFindHandle findHandle,
-						  FrontendFindData *findData);
+FindFirstFileA(const char *fileName, struct FrontendFindData *findData);
+__declspec(dllimport) int __stdcall
+FindNextFileA(FrontendFindHandle findHandle, struct FrontendFindData *findData);
 __declspec(dllimport) int __stdcall FindClose(FrontendFindHandle findHandle);
 
 #endif
@@ -48,19 +48,19 @@ __declspec(dllimport) int __stdcall FindClose(FrontendFindHandle findHandle);
  * whole job to FrontendFileList_BuildSortedModern, which differs as its
  * header says. */
 // FUNCTION: XVT 0x4DFA10
-FrontendFileList *FrontendFileList_BuildSorted(const char *wildcard)
+struct FrontendFileList *FrontendFileList_BuildSorted(const char *wildcard)
 {
 #ifdef XVT_MODERN
 	return FrontendFileList_BuildSortedModern(wildcard);
 #else
 	char currentDirectory[256];
-	FrontendFileList *list;
-	FrontendFileListNode *node;
+	struct FrontendFileList *list;
+	struct FrontendFileListNode *node;
 	FrontendFindHandle findHandle;
-	extern FrontendFindData FindFileData;
+	extern struct FrontendFindData FindFileData;
 
 	_getcwd(currentDirectory, sizeof(currentDirectory));
-	list = (FrontendFileList *)malloc(sizeof(*list));
+	list = (struct FrontendFileList *)malloc(sizeof(*list));
 	if (list == NULL) {
 		_chdir(currentDirectory);
 		return NULL;
@@ -72,7 +72,7 @@ FrontendFileList *FrontendFileList_BuildSorted(const char *wildcard)
 		list->count = 0;
 		return list;
 	}
-	node = (FrontendFileListNode *)malloc(sizeof(*node));
+	node = (struct FrontendFileListNode *)malloc(sizeof(*node));
 	if (node == NULL) {
 		_chdir(currentDirectory);
 		free(list);
@@ -92,7 +92,7 @@ FrontendFileList *FrontendFileList_BuildSorted(const char *wildcard)
 	list->head = node;
 	list->count = 1;
 	while (FindNextFileA(findHandle, &FindFileData)) {
-		node = (FrontendFileListNode *)malloc(sizeof(*node));
+		node = (struct FrontendFileListNode *)malloc(sizeof(*node));
 		if (node == NULL) {
 			break;
 		}
@@ -114,10 +114,10 @@ FrontendFileList *FrontendFileList_BuildSorted(const char *wildcard)
 /* Frees every node's path, every node and the list itself; does nothing for
  * NULL. */
 // FUNCTION: XVT 0x4DFC30
-void FrontendFileList_Free(FrontendFileList *list)
+void FrontendFileList_Free(struct FrontendFileList *list)
 {
-	FrontendFileListNode *node;
-	FrontendFileListNode *next;
+	struct FrontendFileListNode *node;
+	struct FrontendFileListNode *next;
 
 	if (list != NULL) {
 		node = list->head;
@@ -137,10 +137,10 @@ void FrontendFileList_Free(FrontendFileList *list)
  * FrontendFileList_BuildSorted for every file after the first; in the modern
  * build by FrontendFileList_CollectModernFile. */
 // FUNCTION: XVT 0x4DFC70
-void FrontendFileList_InsertNodeSorted(FrontendFileList *list,
-				       FrontendFileListNode *node)
+void FrontendFileList_InsertNodeSorted(struct FrontendFileList *list,
+				       struct FrontendFileListNode *node)
 {
-	FrontendFileListNode *cursor;
+	struct FrontendFileListNode *cursor;
 
 	cursor = list->head;
 	if (strcmp(node->path, cursor->path) < 0) {

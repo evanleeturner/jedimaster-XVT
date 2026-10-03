@@ -259,7 +259,7 @@ static void XvtInput_UpdateJoystick(int suppress)
 
 void XvtInput_Init(void)
 {
-	const XvtSettings *settings = XvtConfig_Settings();
+	const struct XvtSettings *settings = XvtConfig_Settings();
 	if (!settings) {
 		return;
 	}
@@ -354,7 +354,7 @@ int XvtInput_RendererShortcutAllowed(void)
 	if (XvtInput_IsCaptured()) {
 		return 0;
 	}
-	const XvtRenderSnapshot *s = XvtRenderSnapshot_Current();
+	const struct XvtRenderSnapshot *s = XvtRenderSnapshot_Current();
 	if (!s || s->text_entry_active || XvtDialog_IsTextPrompt()) {
 		return 0;
 	}

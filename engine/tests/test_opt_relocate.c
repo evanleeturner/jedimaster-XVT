@@ -16,20 +16,20 @@
 /* The model block. Root 0 is the Hull group, with a texture whose palette type is 0, the Wing group and a
  * vertex node as children. Root 1 is the Wing group too, so it is reached from two parents. The Wing
  * group holds a texture whose palette type is 1 and a reference node naming "Hull". */
-typedef struct Block {
-	OptimizedPolyObject model;
-	OptNode *roots[2];
-	OptNode hull, texture0, wing, texture1, reference, vertices;
-	OptNode *hullChildren[3];
-	OptNode *wingChildren[2];
-	OptTextureData textureData[2];
+struct Block {
+	struct OptimizedPolyObject model;
+	struct OptNode *roots[2];
+	struct OptNode hull, texture0, wing, texture1, reference, vertices;
+	struct OptNode *hullChildren[3];
+	struct OptNode *wingChildren[2];
+	struct OptTextureData textureData[2];
 	uint16_t palettes[2][4];
 	char names[3][8];
 	uint8_t payload[24];
-} Block;
+};
 
 /* Fills block as described above, with every pointer into block itself and the reference resolved. */
-static void Build(Block *block)
+static void Build(struct Block *block)
 {
 	memset(block, 0, sizeof *block);
 	strcpy(block->names[0], "Hull");
@@ -76,9 +76,9 @@ static void Build(Block *block)
 }
 
 /* Returns a copy of block at a new address, its pointers still into block. */
-static Block *Copy(const Block *block)
+static struct Block *Copy(const struct Block *block)
 {
-	Block *copy = malloc(sizeof *copy);
+	struct Block *copy = malloc(sizeof *copy);
 	XVT_ASSERT_TRUE(copy != NULL);
 	memcpy(copy, block, sizeof *copy);
 	return copy;
@@ -96,10 +96,10 @@ static intptr_t Offset(const void *block, const void *pointer)
 
 static void CheckRelocateMovesEveryPointer(void)
 {
-	Block *original = malloc(sizeof *original);
+	struct Block *original = malloc(sizeof *original);
 	XVT_ASSERT_TRUE(original != NULL);
 	Build(original);
-	Block *moved = Copy(original);
+	struct Block *moved = Copy(original);
 	XvtOpt_Relocate(&moved->model);
 
 	XVT_ASSERT_TRUE(moved->model.selfMarker == &moved->model);
@@ -139,10 +139,10 @@ static void CheckRelocateLeavesUnmovedModel(void)
 {
 	XvtOpt_Relocate(NULL);
 
-	Block *block = malloc(sizeof *block);
+	struct Block *block = malloc(sizeof *block);
 	XVT_ASSERT_TRUE(block != NULL);
 	Build(block);
-	Block *before = Copy(block);
+	struct Block *before = Copy(block);
 	XvtOpt_Relocate(&block->model);
 	XVT_ASSERT_INT_EQ(memcmp(block, before, sizeof *block), 0);
 	free(before);
@@ -151,10 +151,10 @@ static void CheckRelocateLeavesUnmovedModel(void)
 
 static void CheckRelocateNode(void)
 {
-	Block *original = malloc(sizeof *original);
+	struct Block *original = malloc(sizeof *original);
 	XVT_ASSERT_TRUE(original != NULL);
 	Build(original);
-	Block *moved = Copy(original);
+	struct Block *moved = Copy(original);
 	XvtOpt_RelocateNode(&moved->wing,
 			    (intptr_t)((uintptr_t)moved - (uintptr_t)original));
 
@@ -183,7 +183,7 @@ static void CheckRelocateNode(void)
 
 static void CheckResolveCached(void)
 {
-	Block *block = malloc(sizeof *block);
+	struct Block *block = malloc(sizeof *block);
 	XVT_ASSERT_TRUE(block != NULL);
 	Build(block);
 	block->reference.payloadCount = 0;

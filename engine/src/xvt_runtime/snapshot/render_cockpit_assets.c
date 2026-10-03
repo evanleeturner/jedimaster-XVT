@@ -10,17 +10,17 @@
 #include "xvt_runtime/snapshot/render_assets.h"
 #include <string.h>
 
-static XvtSnapCockpitLayout g_layout;
+static struct XvtSnapCockpitLayout g_layout;
 static uint64_t g_layoutGeneration;
 static uint64_t g_resourceGeneration;
 
-typedef struct CockpitSourceBinding {
+struct CockpitSourceBinding {
 	uint64_t id;
 	uint32_t frame;
-} CockpitSourceBinding;
+};
 
-static CockpitSourceBinding g_panels[265], g_icons[XVT_SNAP_MAP_ICON_FRAMES],
-	g_lfd[28];
+static struct CockpitSourceBinding g_panels[265],
+	g_icons[XVT_SNAP_MAP_ICON_FRAMES], g_lfd[28];
 
 void XvtRenderCockpit_Reset(void)
 {
@@ -71,8 +71,9 @@ static void RefreshLayoutElements(void)
 	/* Layout selectors may be assigned during a panel-set rebuild. */
 	if (g_layout.valid) {
 		for (unsigned i = 0; i < XVT_SNAP_INSTRUMENTS; ++i) {
-			const HudElementLayout *e = &g_hudElementLayouts[i];
-			XvtSnapHudElement value = {
+			const struct HudElementLayout *e =
+				&g_hudElementLayouts[i];
+			struct XvtSnapHudElement value = {
 				e->x,	      e->y,
 				e->selector,  e->colorIndexOrWidgetParam,
 				e->clipWidth, e->clipHeightOrForegroundColor};
@@ -85,7 +86,7 @@ static void RefreshLayoutElements(void)
 	}
 }
 
-void XvtRenderCockpit_CaptureDefinition(XvtCockpitDefinition *definition)
+void XvtRenderCockpit_CaptureDefinition(struct XvtCockpitDefinition *definition)
 {
 	RefreshLayoutElements();
 	memset(definition, 0, sizeof *definition);
@@ -130,7 +131,7 @@ void XvtRenderCockpit_CaptureDefinition(XvtCockpitDefinition *definition)
 				definition->beam_offsets[index][1] =
 					(int16_t)(3 * (8 - index));
 		} else {
-			const HudBeamSegmentOffset *offsets =
+			const struct HudBeamSegmentOffset *offsets =
 				g_flightResolutionMode ==
 						FLIGHT_RESOLUTION_480X360
 					? g_hudBeamSegmentOffsets480x360
@@ -147,8 +148,8 @@ void XvtRenderAssets_CaptureCockpit(int auxiliary)
 	unsigned first = auxiliary ? 288 : 0;
 	unsigned end = auxiliary ? 432 : 288;
 	for (unsigned i = first; i < end; ++i) {
-		const HudElementLayout *e = &g_hudElementLayouts[i];
-		g_layout.elements[i] = (XvtSnapHudElement){
+		const struct HudElementLayout *e = &g_hudElementLayouts[i];
+		g_layout.elements[i] = (struct XvtSnapHudElement){
 			e->x,	      e->y,
 			e->selector,  e->colorIndexOrWidgetParam,
 			e->clipWidth, e->clipHeightOrForegroundColor};
@@ -157,9 +158,9 @@ void XvtRenderAssets_CaptureCockpit(int auxiliary)
 		g_flightResolutionMode == FLIGHT_RESOLUTION_320X240 ? 200 : 480;
 	if (!auxiliary) {
 		for (unsigned i = 0; i < 28; ++i) {
-			const HudCockpitResourceDescriptor *d =
+			const struct HudCockpitResourceDescriptor *d =
 				&g_hudCockpitResourceDescriptors[i];
-			XvtSnapCockpitDescriptor *out =
+			struct XvtSnapCockpitDescriptor *out =
 				&g_layout.descriptors[i];
 			out->enabled = d->resourceRef;
 			memcpy(out->lfd_name, d->lfdName, sizeof d->lfdName);
@@ -167,7 +168,7 @@ void XvtRenderAssets_CaptureCockpit(int auxiliary)
 			memcpy(out->display_name, d->displayName,
 			       sizeof d->displayName);
 			out->display_name[16] = 0;
-			out->viewport = (XvtSnapRect){
+			out->viewport = (struct XvtSnapRect){
 				d->viewportOriginX, d->viewportOriginY,
 				d->viewportWidth, d->viewportHeight};
 			out->projection_offset_y = d->projectionOffsetY;
@@ -202,16 +203,17 @@ void XvtRenderAssets_RegisterLfd(const char *path, uint8_t **entries)
 		if (!handle) {
 			handle = g_flightScratchScreenBufferHandle;
 		}
-		const HudCockpitResourceDescriptor *d =
+		const struct HudCockpitResourceDescriptor *d =
 			&g_hudCockpitResourceDescriptors[i];
-		XvtSnapRect viewport = {d->viewportOriginX, d->viewportOriginY,
-					d->viewportWidth, d->viewportHeight};
+		struct XvtSnapRect viewport = {
+			d->viewportOriginX, d->viewportOriginY,
+			d->viewportWidth, d->viewportHeight};
 		uint64_t id = XvtRenderAssets_RegisterCockpit(entries, handle,
 							      path, &viewport);
 		if (g_lfd[i].id != id) {
 			++g_resourceGeneration;
 		}
-		g_lfd[i] = (CockpitSourceBinding){id, 0};
+		g_lfd[i] = (struct CockpitSourceBinding){id, 0};
 		g_layout.descriptors[i].lfd_asset_id = id;
 		g_layout.generation = ++g_layoutGeneration;
 		break;
@@ -231,7 +233,8 @@ void XvtRenderAssets_RegisterPanel(const char *path, uint16_t first,
 		++g_resourceGeneration;
 	}
 	for (unsigned i = 0; i < count; ++i) {
-		g_panels[first + i] = (CockpitSourceBinding){id, skip + i};
+		g_panels[first + i] =
+			(struct CockpitSourceBinding){id, skip + i};
 	}
 	if (!first) {
 		g_layout.panel_asset_id = id;
@@ -258,7 +261,7 @@ void XvtRenderAssets_RegisterIcons(const char *path, uint8_t **frames,
 		frames, g_flightIconFramesHandle, path, XVT_IMAGE_ICO, 0, count,
 		0, 0, 0);
 	for (unsigned i = 0; i < count; ++i) {
-		g_icons[i] = (CockpitSourceBinding){id, i};
+		g_icons[i] = (struct CockpitSourceBinding){id, i};
 	}
 }
 

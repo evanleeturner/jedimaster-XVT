@@ -10,14 +10,14 @@
 #include <stdio.h>
 #include <string.h>
 
-typedef struct FrontendSoundPcmFormat {
+struct FrontendSoundPcmFormat {
 	uint16_t formatTag;		/* Wave format, 1 for PCM. */
 	uint16_t channels;		/* Channels, 2. */
 	uint32_t samplesPerSecond;	/* Sample rate, 11264. */
 	uint32_t averageBytesPerSecond; /* Bytes per second, 22528. */
 	uint16_t blockAlign;		/* Bytes per sample frame, 2. */
 	uint16_t bitsPerSample;		/* Bits per sample, 8. */
-} FrontendSoundPcmFormat;
+};
 
 /* Starts the front end's DirectSound. Returns 1 at once when
  * g_frontState.frontendDirectSound is set. Otherwise it clears the 12 voices,
@@ -35,7 +35,7 @@ int FrontendSound_InitDirectSound(void *hwnd)
 {
 	int voiceIndex;
 	int bufferIndex;
-	FrontendSoundPcmFormat primaryFormat;
+	struct FrontendSoundPcmFormat primaryFormat;
 	DSBUFFERDESC primaryBufferDesc;
 
 	if (g_frontState.frontendDirectSound != NULL) {
@@ -135,7 +135,7 @@ int FrontendSound_LoadSound(const char *fileName, const char *soundName)
 int FrontendSound_LoadSoundFile(const char *fileName, const char *soundName,
 				int omitSoftwareAndFrequencyCaps)
 {
-	FrontendSoundBufferRecord record;
+	struct FrontendSoundBufferRecord record;
 	int wasBackBufferLocked;
 
 	if (*fileName == '\0') {
@@ -266,7 +266,7 @@ int FrontendSound_PlayUISound(const char *soundName, int allowRestartExisting,
 	int wasBackBufferLocked;
 	uint32_t status;
 	IDirectSoundBuffer *duplicateBuffer;
-	FrontendSoundVoice *voice;
+	struct FrontendSoundVoice *voice;
 	int clampedValue;
 	HRESULT playResult;
 	int result;
@@ -485,7 +485,7 @@ int FrontendSound_StopOldestVoiceByName(const char *name)
 	int oldestVoiceIndex;
 	int oldestSerial;
 	int voiceIndex;
-	FrontendSoundVoice *voice;
+	struct FrontendSoundVoice *voice;
 	IDirectSoundBuffer *buffer;
 	int wasBackBufferLocked;
 	HRESULT stopResult;
@@ -644,7 +644,7 @@ int FrontendSound_SetNewestVoiceVolumeByName(const char *name, int volume0To127)
 {
 	int bufferIndex;
 	int newestSerial;
-	FrontendSoundVoice *voice;
+	struct FrontendSoundVoice *voice;
 	int voiceIndex;
 	int newestVoiceIndex;
 	int wasBackBufferLocked;
@@ -712,7 +712,7 @@ int FrontendSound_GetNewestVoiceVolumeByName(const char *name)
 {
 	int bufferIndex;
 	int newestSerial;
-	FrontendSoundVoice *voice;
+	struct FrontendSoundVoice *voice;
 	int voiceIndex;
 	int newestVoiceIndex;
 	int wasBackBufferLocked;
@@ -846,7 +846,7 @@ int FrontendSound_GetNewestVoicePanByName(const char *name)
 	int newestSerial;
 	int voiceIndex;
 	int newestVoiceIndex;
-	FrontendSoundVoice *voice;
+	struct FrontendSoundVoice *voice;
 	int wasBackBufferLocked;
 	int32_t directSoundPan;
 
@@ -997,14 +997,15 @@ int FrontendSound_GetPlayingCount(const char *name)
  * bufferIndex at or after the insertion point. Does not check that the table
  * has room; FrontendSound_LoadSoundFile checks the count under 128 first. */
 // FUNCTION: XVT 0x4DF070
-void FrontendSound_InsertSortedBuffer(const FrontendSoundBufferRecord *record)
+void FrontendSound_InsertSortedBuffer(
+	const struct FrontendSoundBufferRecord *record)
 {
 	int insertionIndex;
 	int shiftIndex;
 	int remaining;
 	int voiceIndex;
 	int bufferIndex;
-	FrontendSoundBufferRecord *destination;
+	struct FrontendSoundBufferRecord *destination;
 
 	insertionIndex = 0;
 	if (g_frontState.frontendSoundBufferCount > 0) {
@@ -1031,12 +1032,12 @@ void FrontendSound_InsertSortedBuffer(const FrontendSoundBufferRecord *record)
 			--shiftIndex;
 			memcpy(destination,
 			       &g_frontState.frontendSoundBuffers[shiftIndex],
-			       sizeof(FrontendSoundBufferRecord));
+			       sizeof(struct FrontendSoundBufferRecord));
 			--remaining;
 		} while (remaining != 0);
 	}
 	memcpy(&g_frontState.frontendSoundBuffers[insertionIndex], record,
-	       sizeof(FrontendSoundBufferRecord));
+	       sizeof(struct FrontendSoundBufferRecord));
 	++g_frontState.frontendSoundBufferCount;
 	voiceIndex = 0;
 	do {
@@ -1096,14 +1097,14 @@ int FrontendSound_FindBufferByName(const char *name)
  * found, or -1. FrontendSound_FindBufferByName is its only caller. */
 // FUNCTION: XVT 0x4DF1D0
 int FrontendSound_BinarySearchBufferByName(
-	const FrontendSoundBufferRecord *records, int lastIndex,
+	const struct FrontendSoundBufferRecord *records, int lastIndex,
 	const char *name)
 {
 	int baseIndex;
 	int searchLastIndex;
 	int middle;
 	int comparison;
-	const FrontendSoundBufferRecord *middleRecord;
+	const struct FrontendSoundBufferRecord *middleRecord;
 
 	baseIndex = 0;
 	searchLastIndex = lastIndex;

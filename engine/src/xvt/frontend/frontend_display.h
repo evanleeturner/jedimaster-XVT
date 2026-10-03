@@ -14,7 +14,7 @@ extern "C" {
 
 /* One palette color in DirectDraw's entry layout; g_frontState.displayPalette
  * holds 256 of them. */
-typedef struct FrontendPaletteEntry {
+struct FrontendPaletteEntry {
 	uint8_t red;   /* Red, 0 to 255. */
 	uint8_t green; /* Green, 0 to 255. */
 	uint8_t blue;  /* Blue, 0 to 255. */
@@ -22,7 +22,7 @@ typedef struct FrontendPaletteEntry {
 	 * FrontendDisplay_LoadPalette builds. No code reads the field itself;
 	 * DirectDraw gets it with the entries. */
 	uint8_t flags;
-} FrontendPaletteEntry;
+};
 
 extern int g_pixelFormatCode;
 extern int g_flightRenderToFrontend;
@@ -62,8 +62,8 @@ void FrontendDisplay_PresentFrame(void);
 void FrontendDisplay_DisableClearAfterPresent(void);
 void FrontendDisplay_SetSurfaceClearColor(uint32_t color);
 void FrontendDisplay_ClearBackBuffer(void);
-void FrontendDisplay_GetScreenClipRect(RECT *outRect);
-void FrontendDisplay_SetScreenClipRect640x480(const RECT *src);
+void FrontendDisplay_GetScreenClipRect(struct RECT *outRect);
+void FrontendDisplay_SetScreenClipRect640x480(const struct RECT *src);
 void FrontendDisplay_DisableEscapeClose(void);
 int FrontendDisplay_GetFrameCounter(void);
 int FrontendDisplay_SetFrameRate(int fps);
@@ -93,9 +93,10 @@ int FrontendDisplay_GetWndProcMode(void);
 int Win32_CheckSingleInstance(void);
 void FrontendDisplay_FlipDirectDrawToGDISurface(void);
 const DxGuid *FrontendDisplay_LoadDriverGuid(void);
-int FrontendDisplay_DrawGdiTextOnDesktop(const RECT *unused, const char *text,
+int FrontendDisplay_DrawGdiTextOnDesktop(const struct RECT *unused,
+					 const char *text,
 					 const char *overlayText);
-int FrontendDisplay_ClearDesktopGdi(const RECT *unused);
+int FrontendDisplay_ClearDesktopGdi(const struct RECT *unused);
 int FrontendDisplay_IsSecondaryDirectDrawActive(void);
 void FrontendDisplay_SetPalette(void);
 int FrontendDisplay_PackRGB(uint8_t r, uint8_t g, uint8_t b);

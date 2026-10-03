@@ -21,9 +21,9 @@ extern "C" {
  * linearized, premultiplied and scaled by engine_emissive_strength. Returns 0 only when the coverage
  * mask cannot be created on first use; otherwise 1, including when nothing applies. */
 int XvtEngineGlows_Submit(AeronCommandBuffer *cmd, AeronScene3D *scene,
-			  const XvtRenderSnapshot *snapshot,
-			  const XvtSnapObject *object,
-			  const XvtMeshAsset *asset,
+			  const struct XvtRenderSnapshot *snapshot,
+			  const struct XvtSnapObject *object,
+			  const struct XvtMeshAsset *asset,
 			  const AeronSceneMeshTable *table,
 			  const float transform[16], int draw);
 /* Destroys the coverage mask. */

@@ -13,7 +13,8 @@ int g_joystickCalibrationInitialized[2] = {0, 0};
  * when no device answers. One copy serves both indexes, so calibrating index 1
  * rewrites what index 0 stored. */
 // GLOBAL: XVT 0x527F50
-JoystickCalibration g_joystickCalibration = {1, 1, 1, 0, 0, 0, 0, 0, 0, 0};
+struct JoystickCalibration g_joystickCalibration = {1, 1, 1, 0, 0,
+						    0, 0, 0, 0, 0};
 /* Raw Z position that counts as centered: (range >> 1) + wZmin from the
  * device's capabilities. Written only by Joystick_PollScaledAxes when it
  * calibrates and a device answers; 0 before. */

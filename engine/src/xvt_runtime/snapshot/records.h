@@ -11,16 +11,16 @@
  * translate between the two forms. */
 #pragma pack(push, 1)
 
-typedef struct XvtSnapshotMobileObjectProximityList {
+struct XvtSnapshotMobileObjectProximityList {
 	uint8_t count;
 	int32_t contactTicks[16];
 	uint16_t objIdx[16];
 	int32_t rebuildTicks;
-} XvtSnapshotMobileObjectProximityList;
+};
 
-typedef struct XvtSnapshotAiController {
+struct XvtSnapshotAiController {
 	uint8_t currentOrderSlot;
-	AiOrderProgress orderProgress;
+	struct AiOrderProgress orderProgress;
 	uint8_t skippedToOrder4;
 	uint8_t runningPlanId;
 	uint8_t currentPlanId;
@@ -45,9 +45,9 @@ typedef struct XvtSnapshotAiController {
 	uint8_t maneuverPhase;
 	int32_t maneuverTimer;
 	int16_t secondaryManeuverTimer;
-} XvtSnapshotAiController;
+};
 
-typedef struct XvtSnapshotAiFlightState {
+struct XvtSnapshotAiFlightState {
 	uint16_t threatObjIdx;
 	uint16_t impactObjIdx;
 	uint8_t goHomeFlag;
@@ -82,9 +82,9 @@ typedef struct XvtSnapshotAiFlightState {
 	int16_t turnStep;
 	uint8_t formationType;
 	uint8_t separation;
-} XvtSnapshotAiFlightState;
+};
 
-typedef struct XvtSnapshotCraftDamageStats {
+struct XvtSnapshotCraftDamageStats {
 	uint16_t lastSystemHitTime;
 	int32_t damageReceivedTotal;
 	int32_t damageReceivedByPlayerOwnedCraft;
@@ -96,9 +96,9 @@ typedef struct XvtSnapshotCraftDamageStats {
 	int32_t damageFromAiSkill[6];
 	uint16_t installedHudFeatureMask;
 	uint16_t activeHudFeatureMask;
-} XvtSnapshotCraftDamageStats;
+};
 
-typedef struct XvtSnapshotPlayerViewState {
+struct XvtSnapshotPlayerViewState {
 	int32_t cameraWorldX;
 	int32_t cameraWorldY;
 	int32_t cameraWorldZ;
@@ -126,14 +126,14 @@ typedef struct XvtSnapshotPlayerViewState {
 	int16_t cameraPitchHistory[60];
 	int16_t cameraYawHistory[60];
 	uint16_t unused199;
-} XvtSnapshotPlayerViewState;
+};
 
-typedef struct XvtSnapshotPlayerNetworkRuntimeTail {
+struct XvtSnapshotPlayerNetworkRuntimeTail {
 	uint16_t flightResolutionMode;
 	int32_t directPlayId;
-} XvtSnapshotPlayerNetworkRuntimeTail;
+};
 
-typedef struct XvtSnapshotObjectRecord {
+struct XvtSnapshotObjectRecord {
 	uint16_t objectSignature;
 	uint8_t genusId;
 	uint8_t objectType;
@@ -148,16 +148,16 @@ typedef struct XvtSnapshotObjectRecord {
 	uint8_t typeSpecificByte[2];
 	int32_t playerOwnerIdx;
 	uint32_t mobj;
-} XvtSnapshotObjectRecord;
+};
 
-typedef struct XvtSnapshotMobileObject {
+struct XvtSnapshotMobileObject {
 	uint8_t family;
 	uint8_t effectSize;
 	int32_t simStateTimestamp;
 	int32_t prevWorldX;
 	int32_t prevWorldY;
 	int32_t prevWorldZ;
-	XvtSnapshotMobileObjectProximityList proximityList;
+	struct XvtSnapshotMobileObjectProximityList proximityList;
 	int16_t rollImpulseRate;
 	uint16_t speed;
 	uint16_t speedRemainder;
@@ -186,9 +186,9 @@ typedef struct XvtSnapshotMobileObject {
 	uint32_t pWarheadGuidance;
 	uint32_t pCraft;
 	uint32_t pCharData;
-} XvtSnapshotMobileObject;
+};
 
-typedef struct XvtSnapshotCraftData {
+struct XvtSnapshotCraftData {
 	int32_t craftIndexInGroup;
 	uint8_t modelIndex;
 	uint8_t leader_obj_idx;
@@ -203,12 +203,12 @@ typedef struct XvtSnapshotCraftData {
 	int16_t breakupYawRate;
 	int32_t beamEffectAccum[5];
 	uint8_t sFoilState;
-	XvtSnapshotAiController aiController;
+	struct XvtSnapshotAiController aiController;
 	uint16_t carriedObjectIndex;
 	uint16_t carrierObjIdx;
 	uint16_t lastAttackerObjIdx;
 	uint16_t lastHitMissionSecond;
-	XvtSnapshotAiFlightState aiFlight;
+	struct XvtSnapshotAiFlightState aiFlight;
 	uint8_t craftOrdinal;
 	int32_t pushAccumX;
 	int32_t pushAccumY;
@@ -220,7 +220,7 @@ typedef struct XvtSnapshotCraftData {
 	uint32_t systemDamageHullThreshold;
 	uint32_t hullMax;
 	int16_t subsystemDamage;
-	XvtSnapshotCraftDamageStats damageStats;
+	struct XvtSnapshotCraftDamageStats damageStats;
 	CraftSubsystemFlag systemFlags;
 	CraftSubsystemFlag workingSubsystems;
 	int16_t weaponFireInhibitTimer;
@@ -237,7 +237,7 @@ typedef struct XvtSnapshotCraftData {
 	uint8_t cannonGroupCount;
 	PowerRechargeLevel laserRechargeLevel;
 	uint8_t laserSlotCount;
-	CraftLaserState laserState;
+	struct CraftLaserState laserState;
 	uint8_t warheadLauncherCount;
 	uint8_t warheadSlotTypeIds[2];
 	int8_t warheadLauncherFlags[2];
@@ -253,7 +253,7 @@ typedef struct XvtSnapshotCraftData {
 	uint8_t cmAmmoCount;
 	uint16_t chaffActiveSeconds;
 	uint16_t cmFireCooldownTimer;
-	CraftWeaponStats weaponStats;
+	struct CraftWeaponStats weaponStats;
 	uint8_t unused256[73];
 	uint16_t field_29F;
 	uint8_t systemDisplaySlotBySystem[DAMAGE_SYSTEM_ID_COUNT];
@@ -263,22 +263,22 @@ typedef struct XvtSnapshotCraftData {
 	uint8_t meshRotation[50];
 	uint8_t componentHp[50];
 	uint16_t playerCommandAvoidTargetObjIdx;
-	CraftWeaponSlot weaponSlots[16];
+	struct CraftWeaponSlot weaponSlots[16];
 	uint16_t effectiveAiObjectSignature;
-	TurretTargetState turretTargetStates[16];
+	struct TurretTargetState turretTargetStates[16];
 	uint8_t unused3F2[44];
 	uint32_t turretObjectLinks[16];
 	uint32_t effectiveAiObjectLink;
-} XvtSnapshotCraftData;
+};
 
-typedef struct XvtSnapshotMobileObjectCharData {
+struct XvtSnapshotMobileObjectCharData {
 	uint16_t skillValue;
 	uint8_t unused02[2];
-	XvtSnapshotAiController aiController;
+	struct XvtSnapshotAiController aiController;
 	uint8_t unused40[12];
-} XvtSnapshotMobileObjectCharData;
+};
 
-typedef struct XvtSnapshotPlayerData {
+struct XvtSnapshotPlayerData {
 	int32_t objectIndex;
 	uint32_t boundObjectSignature;
 	uint16_t pilotRating;
@@ -290,7 +290,7 @@ typedef struct XvtSnapshotPlayerData {
 	uint8_t boundCraftEngineGlowCount;
 	uint8_t mapCameraState;
 	uint8_t hyperspacePhase;
-	PlayerHyperspaceRuntime hyperspaceRuntime;
+	struct PlayerHyperspaceRuntime hyperspaceRuntime;
 	uint8_t targetBoxEnabled;
 	int16_t currentTargetObjectIdx;
 	int16_t targetCycleStart;
@@ -306,7 +306,7 @@ typedef struct XvtSnapshotPlayerData {
 	PowerRechargeLevel laserPreset[2];
 	PowerRechargeLevel shieldPreset[2];
 	PowerRechargeLevel beamPreset[2];
-	PlayerSavedCraftSettings savedCraftSettings;
+	struct PlayerSavedCraftSettings savedCraftSettings;
 	uint8_t savedHudViewState;
 	uint8_t pendingActionId;
 	int16_t pendingActionParam;
@@ -322,14 +322,14 @@ typedef struct XvtSnapshotPlayerData {
 	int32_t prevHardpointWorldX;
 	int32_t prevHardpointWorldY;
 	int32_t prevHardpointWorldZ;
-	PlayerMissionRuntimeStats missionStats;
+	struct PlayerMissionRuntimeStats missionStats;
 	uint16_t warheadsFired;
-	PerMissionKills perMissionKills;
+	struct PerMissionKills perMissionKills;
 	char msgText[50];
 	uint8_t msgLength;
 	FlightChatRecipientMode chatRecipientMode;
-	XvtSnapshotPlayerViewState viewState;
-	XvtSnapshotPlayerNetworkRuntimeTail network;
+	struct XvtSnapshotPlayerViewState viewState;
+	struct XvtSnapshotPlayerNetworkRuntimeTail network;
 	int32_t lockstepTimestamp;
 	int32_t savedX;
 	int32_t savedY;
@@ -347,9 +347,9 @@ typedef struct XvtSnapshotPlayerData {
 	int32_t beamFireCooldownTimer;
 	int32_t field_5B5;
 	int32_t nextEngineWashCheckTime;
-} XvtSnapshotPlayerData;
+};
 
-typedef struct XvtSnapshotMissionFlightRuntimeState {
+struct XvtSnapshotMissionFlightRuntimeState {
 	int32_t teamScores[2][10];
 	uint16_t teamKillStats[4][10];
 	uint16_t teamFgInspectedCapturedCounts[2][10][48];
@@ -363,9 +363,9 @@ typedef struct XvtSnapshotMissionFlightRuntimeState {
 	int32_t teamMissionCompletionTimeSeconds[10];
 	uint8_t teamHasCountableCraft[10];
 	uint8_t teamReinforcementsCalled[10];
-} XvtSnapshotMissionFlightRuntimeState;
+};
 
-typedef struct XvtSnapshotFlightMissionState {
+struct XvtSnapshotFlightMissionState {
 	uint8_t missionEndPending;
 	uint8_t provingGroundsModeActive;
 	uint8_t provingGroundsCraftType;
@@ -391,26 +391,25 @@ typedef struct XvtSnapshotFlightMissionState {
 	uint8_t craftImpactBounceEnabled;
 	int32_t connectedPlayerCount;
 	int32_t maxConnectedPlayerCountThisMission;
-	XvtSnapshotMissionFlightRuntimeState runtime;
+	struct XvtSnapshotMissionFlightRuntimeState runtime;
 	uint8_t messageTriggered[64];
 	uint8_t messageDelayCountdown[64];
 	int32_t globalUnitCraftCount[11];
-} XvtSnapshotFlightMissionState;
+};
 
 #pragma pack(pop)
 typedef char xvt_snapshot_size_FlightMissionState
-	[(sizeof(XvtSnapshotFlightMissionState) == 3376) ? 1 : -1];
+	[(sizeof(struct XvtSnapshotFlightMissionState) == 3376) ? 1 : -1];
 typedef char xvt_snapshot_size_ObjectRecord
-	[(sizeof(XvtSnapshotObjectRecord) == 35) ? 1 : -1];
+	[(sizeof(struct XvtSnapshotObjectRecord) == 35) ? 1 : -1];
 typedef char xvt_snapshot_size_MobileObject
-	[(sizeof(XvtSnapshotMobileObject) == 177) ? 1 : -1];
-typedef char xvt_snapshot_size_CraftData[(sizeof(XvtSnapshotCraftData) == 1122)
-						 ? 1
-						 : -1];
+	[(sizeof(struct XvtSnapshotMobileObject) == 177) ? 1 : -1];
+typedef char xvt_snapshot_size_CraftData
+	[(sizeof(struct XvtSnapshotCraftData) == 1122) ? 1 : -1];
 typedef char xvt_snapshot_size_MobileObjectCharData
-	[(sizeof(XvtSnapshotMobileObjectCharData) == 76) ? 1 : -1];
+	[(sizeof(struct XvtSnapshotMobileObjectCharData) == 76) ? 1 : -1];
 typedef char xvt_snapshot_size_PlayerData
-	[(sizeof(XvtSnapshotPlayerData) == 1469) ? 1 : -1];
+	[(sizeof(struct XvtSnapshotPlayerData) == 1469) ? 1 : -1];
 
 /* Encode fills every byte of record: the listed fields are copied as they are, and each link
  * to a live object or pool entry becomes its byte offset in the matching record array plus 1
@@ -421,32 +420,36 @@ typedef char xvt_snapshot_size_PlayerData
  * Links: object record -> mobile pool; mobile record -> guidance, craft and character pools;
  * craft record -> 16 turret objects and one AI object in g_objectTable. Character, player and
  * mission-state records carry no links. */
-void XvtSnapshot_EncodeObjectRecord(XvtSnapshotObjectRecord *record,
-				    const ObjectRecord *live);
-void XvtSnapshot_DecodeObjectRecord(ObjectRecord *live,
-				    const XvtSnapshotObjectRecord *record);
-void XvtSnapshot_EncodeMobileObject(XvtSnapshotMobileObject *record,
-				    const MobileObject *live);
-void XvtSnapshot_DecodeMobileObject(MobileObject *live,
-				    const XvtSnapshotMobileObject *record);
-void XvtSnapshot_EncodeCraftData(XvtSnapshotCraftData *record,
-				 const CraftData *live);
-void XvtSnapshot_DecodeCraftData(CraftData *live,
-				 const XvtSnapshotCraftData *record);
+void XvtSnapshot_EncodeObjectRecord(struct XvtSnapshotObjectRecord *record,
+				    const struct ObjectRecord *live);
+void XvtSnapshot_DecodeObjectRecord(
+	struct ObjectRecord *live,
+	const struct XvtSnapshotObjectRecord *record);
+void XvtSnapshot_EncodeMobileObject(struct XvtSnapshotMobileObject *record,
+				    const struct MobileObject *live);
+void XvtSnapshot_DecodeMobileObject(
+	struct MobileObject *live,
+	const struct XvtSnapshotMobileObject *record);
+void XvtSnapshot_EncodeCraftData(struct XvtSnapshotCraftData *record,
+				 const struct CraftData *live);
+void XvtSnapshot_DecodeCraftData(struct CraftData *live,
+				 const struct XvtSnapshotCraftData *record);
 void XvtSnapshot_EncodeMobileObjectCharData(
-	XvtSnapshotMobileObjectCharData *record,
-	const MobileObjectCharData *live);
+	struct XvtSnapshotMobileObjectCharData *record,
+	const struct MobileObjectCharData *live);
 void XvtSnapshot_DecodeMobileObjectCharData(
-	MobileObjectCharData *live,
-	const XvtSnapshotMobileObjectCharData *record);
-void XvtSnapshot_EncodePlayerData(XvtSnapshotPlayerData *record,
-				  const PlayerData *live);
-void XvtSnapshot_DecodePlayerData(PlayerData *live,
-				  const XvtSnapshotPlayerData *record);
+	struct MobileObjectCharData *live,
+	const struct XvtSnapshotMobileObjectCharData *record);
+void XvtSnapshot_EncodePlayerData(struct XvtSnapshotPlayerData *record,
+				  const struct PlayerData *live);
+void XvtSnapshot_DecodePlayerData(struct PlayerData *live,
+				  const struct XvtSnapshotPlayerData *record);
 
-void XvtSnapshot_EncodeFlightMissionState(XvtSnapshotFlightMissionState *record,
-					  const FlightMissionState *live);
+void XvtSnapshot_EncodeFlightMissionState(
+	struct XvtSnapshotFlightMissionState *record,
+	const struct FlightMissionState *live);
 void XvtSnapshot_DecodeFlightMissionState(
-	FlightMissionState *live, const XvtSnapshotFlightMissionState *record);
+	struct FlightMissionState *live,
+	const struct XvtSnapshotFlightMissionState *record);
 
 #endif

@@ -30,7 +30,7 @@ unsigned int g_netRecvQueueCount;
  * player's own packets, held until NetSession_ReceivePacket hands them out in
  * sequence order. Seven writers; chiefly NetSession_PumpIncomingPackets. */
 // GLOBAL: XVT 0x5599A8
-NetQueuedPacket g_netSessionRecvQueue[1024];
+struct NetQueuedPacket g_netSessionRecvQueue[1024];
 /* Sequence, 0 to 127, of the last packet NetSession_ReceivePacket delivered;
  * only that function writes it. Read only by
  * NetReliable_GetLastDeliveredRecvSequence, which nothing calls. */
@@ -114,7 +114,7 @@ int NetReliable_FindQueuedRecvPacket(int unusedSearchIndex, int remoteSeq,
 	int isClass2;
 	unsigned int slot;
 	DPID directPlayId;
-	NetReliablePeerSlot *peer;
+	struct NetReliablePeerSlot *peer;
 
 	(void)unusedSearchIndex;
 
@@ -229,7 +229,7 @@ int NetReliable_RemoveQueuedPacket(unsigned int queueIndex)
 unsigned int NetReliable_FindOrCreatePeerSlot(int directPlayId)
 {
 	unsigned int slot;
-	NetReliablePeerSlot *peer;
+	struct NetReliablePeerSlot *peer;
 	unsigned int initializeSlot;
 	unsigned int *peerSlotCount;
 
@@ -308,7 +308,7 @@ void NetReliable_ResetRecvQueueState(void)
 int NetReliable_GetPeerPacketDropCountByDpid(int directPlayId)
 {
 	unsigned int slot;
-	NetReliablePeerSlot *peer;
+	struct NetReliablePeerSlot *peer;
 
 	slot = 0;
 	if (g_netSession.reliablePeerSlotCount != 0) {
@@ -345,8 +345,8 @@ int NetReliable_KeepOnlyHostReceivedPackets(void)
 	unsigned int keptCount;
 	unsigned int slot;
 	DPID directPlayId;
-	NetQueuedPacket *sourcePacket;
-	NetReliablePeerSlot *peer;
+	struct NetQueuedPacket *sourcePacket;
+	struct NetReliablePeerSlot *peer;
 
 	dstIndex = (unsigned int)g_netRecvQueueReadIndex;
 	srcIndex = (unsigned int)g_netRecvQueueReadIndex;

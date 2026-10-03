@@ -176,7 +176,7 @@ void laser_weaponsfire(void)
 		for (clearObjIdx = g_activeRegionObjectSlotStart;
 		     clearObjIdx < g_activeRegionCraftObjectSlotEnd;
 		     ++clearObjIdx) {
-			CraftData *craft;
+			struct CraftData *craft;
 			uint16_t effectIndex;
 
 			if (g_objectTable[clearObjIdx].objectType ==
@@ -282,7 +282,8 @@ void laser_weaponsfire(void)
 							g_elapsedTicks;
 						if (targetObjIdx <
 						    g_activeRegionCraftObjectSlotEnd) {
-							CraftData *targetCraft;
+							struct CraftData
+								*targetCraft;
 
 							targetCraft =
 								g_objectTable[targetObjIdx]
@@ -436,7 +437,7 @@ void laser_weaponsfire(void)
 						}
 					}
 					if (beamTargetObjIdx != UINT16_MAX) {
-						CraftData *targetCraft;
+						struct CraftData *targetCraft;
 						BeamType beamType;
 
 						targetCraft =
@@ -498,7 +499,7 @@ void laser_weaponsfire(void)
 				     scanObjIdx <
 				     g_activeRegionCraftObjectSlotEnd;
 				     ++scanObjIdx) {
-					ObjectRecord *hostileObject;
+					struct ObjectRecord *hostileObject;
 
 					hostileObject =
 						&g_objectTable[scanObjIdx];
@@ -1065,8 +1066,8 @@ void laser_weaponsfire(void)
 #endif
 		) {
 #ifdef XVT_MODERN
-			XvtFlightClock cannonClock = {g_elapsedTicks,
-						      g_simStepsPerSecond};
+			struct XvtFlightClock cannonClock = {
+				g_elapsedTicks, g_simStepsPerSecond};
 			if (g_objectTable[objectIdx].playerOwnerIdx == -1) {
 				cannonClock = XvtFlightTiming_EnterReference();
 			}
@@ -1141,7 +1142,7 @@ void laser_weaponsfire(void)
 
 #ifdef XVT_MODERN
 					if (XvtFlightTiming_ReferenceDue()) {
-						XvtFlightClock weaponClock =
+						struct XvtFlightClock weaponClock =
 							XvtFlightTiming_EnterReference();
 						laser_fireturretslot(
 							objectIdx, slotIndex,
@@ -1186,7 +1187,7 @@ void laser_weaponsfire(void)
 
 #ifdef XVT_MODERN
 			if (XvtFlightTiming_ReferenceDue()) {
-				XvtFlightClock weaponClock =
+				struct XvtFlightClock weaponClock =
 					XvtFlightTiming_EnterReference();
 				laser_UpdateMineWeaponFire(objectIdx);
 				XvtFlightTiming_RestoreClock(weaponClock);
@@ -1243,7 +1244,7 @@ void laser_fireplayerweapon(int playerIdx)
 		WARHEAD_SYSTEM_NAME = 94
 	};
 
-	CraftData *craft;
+	struct CraftData *craft;
 	int objectIndex = g_players[playerIdx].objectIndex;
 
 	if (objectIndex == -1) {
@@ -1379,7 +1380,7 @@ void laser_firelasersystem(int objectIndex, int laserSystemIndex)
 	uint16_t slotStep;
 	uint16_t shotLimit;
 	uint16_t shotsFired;
-	AiController *aiController;
+	struct AiController *aiController;
 
 	g_curCraft = g_objectTable[objectIndex].mobj->pCraft;
 	aiController = &g_curCraft->aiController;
@@ -1725,7 +1726,7 @@ void laser_firewarheadsystem(int objectIndex, unsigned int launcherIndex)
 	if (g_objectTable[objectIndex].playerOwnerIdx == g_localPlayer &&
 	    incomplete == 0) {
 		WarheadKindIndex warheadKind;
-		PlayerData *player;
+		struct PlayerData *player;
 
 		player = &g_players[g_localPlayer];
 		warheadKind = ObjectType_GetWarheadKindIndex(
@@ -1766,7 +1767,7 @@ int laser_firemissile(int objectIndex, int weaponSlotIndex,
 		      int projectileTypeId, unsigned int launcherIndex)
 {
 	int ownerPlayerIdx = g_objectTable[objectIndex].playerOwnerIdx;
-	AiController *controller = &g_curCraft->aiController;
+	struct AiController *controller = &g_curCraft->aiController;
 	int projectileIndex = -1;
 
 	if ((weaponSlotIndex + g_curCraft->weaponSlots)->projectileTypeId !=
@@ -1924,7 +1925,7 @@ int laser_firemissile(int objectIndex, int weaponSlotIndex,
 int laser_createprojectile(int sourceObjectIndex, int weaponSlotIndex,
 			   int projectileObjectType)
 {
-	ObjectRecord *source;
+	struct ObjectRecord *source;
 	uint16_t rangeEnd;
 	uint16_t projectileIndex;
 	uint16_t projectileGenus;
@@ -2275,12 +2276,12 @@ int laser_createcountermeasureprojectile(unsigned int ownerObjIdx,
 					 int projectileObjectType)
 {
 	uint16_t projectileIndex;
-	ObjectRecord *owner;
-	ObjectRecord *projectile;
+	struct ObjectRecord *owner;
+	struct ObjectRecord *projectile;
 	int ownerType;
 	unsigned int rangeEnd;
 	uint16_t guidanceIndex;
-	CraftData *craft;
+	struct CraftData *craft;
 	uint16_t projectileGenus;
 
 	if (g_objectTable[ownerObjIdx].playerOwnerIdx != -1) {
@@ -2391,7 +2392,7 @@ int laser_createcountermeasureprojectile(unsigned int ownerObjIdx,
 		{
 			int offset =
 				ModelBounds_GetSizeY(projectile->objectType);
-			ModelMeshScaleOperation moveOperation;
+			struct ModelMeshScaleOperation moveOperation;
 
 			offset = (uint16_t)(offset +
 					    ModelBounds_GetMaxY(ownerType));
@@ -2519,12 +2520,14 @@ int laser_createcountermeasureprojectile(unsigned int ownerObjIdx,
 				     craftIndex <
 				     g_activeRegionCraftObjectSlotEnd;
 				     ++craftIndex) {
-					ObjectRecord *candidate =
+					struct ObjectRecord *candidate =
 						&g_objectTable[craftIndex];
 
 					if (candidate->objectType != 0) {
-						CraftData *candidateCraft =
-							candidate->mobj->pCraft;
+						struct CraftData
+							*candidateCraft =
+								candidate->mobj
+									->pCraft;
 
 						if (candidateCraft
 							    ->objectKind ==
@@ -3089,7 +3092,7 @@ void laser_fireturretslot(uint16_t sourceObjIdx, uint16_t weaponSlotIdx,
 		ANGLE_WRAPPED = 0x8000,
 	};
 
-	ObjectRecord *sourceObject;
+	struct ObjectRecord *sourceObject;
 	uint16_t effectiveSkill;
 	uint16_t mainHullMeshIdx;
 	uint16_t projectileObjIdx;

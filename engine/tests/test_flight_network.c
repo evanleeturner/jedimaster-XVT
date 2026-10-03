@@ -42,7 +42,7 @@
 
 enum { HOST_DPID = 500, SECOND_US = 1000000 };
 
-static XvtFlightMessage g_message, g_out;
+static struct XvtFlightMessage g_message, g_out;
 static uint8_t g_packet[XVT_FLIGHT_PACKET_BYTES + 8];
 
 static int Dpid(unsigned player) { return 100 + (int)player; }
@@ -97,9 +97,9 @@ static uint32_t AgreeCookie(void)
 	return XvtFlightNetwork_Cookie();
 }
 
-static FlightInputFrameRecord Controls(int8_t axis)
+static struct FlightInputFrameRecord Controls(int8_t axis)
 {
-	FlightInputFrameRecord input;
+	struct FlightInputFrameRecord input;
 	memset(&input, 0, sizeof input);
 	input.key = 0x61;
 	input.axisX = axis;
@@ -111,7 +111,7 @@ static FlightInputFrameRecord Controls(int8_t axis)
 /* Appends a frame to player's history, which the caller keeps in tick order. */
 static void AddFrame(unsigned player, int tick, int valid, int applied)
 {
-	InputFrame *frame =
+	struct InputFrame *frame =
 		&g_inputHistory[player][g_inputFrameCount[player]++];
 	frame->timestamp = tick;
 	frame->inputSource = valid;
@@ -119,7 +119,7 @@ static void AddFrame(unsigned player, int tick, int valid, int applied)
 	frame->input = Controls(10);
 }
 
-static const InputFrame *FrameAt(unsigned player, int tick)
+static const struct InputFrame *FrameAt(unsigned player, int tick)
 {
 	for (int i = 0; i < g_inputFrameCount[player]; ++i) {
 		if (g_inputHistory[player][i].timestamp == tick) {
@@ -129,11 +129,12 @@ static const InputFrame *FrameAt(unsigned player, int tick)
 	return NULL;
 }
 
-static void AddRecord(XvtFlightMessage *message, unsigned player, int tick,
-		      int8_t axis)
+static void AddRecord(struct XvtFlightMessage *message, unsigned player,
+		      int tick, int8_t axis)
 {
-	XvtFlightWorldInputWire *record = &message->records[message->count++];
-	FlightInputFrameRecord input = Controls(axis);
+	struct XvtFlightWorldInputWire *record =
+		&message->records[message->count++];
+	struct FlightInputFrameRecord input = Controls(axis);
 	record->player = (uint8_t)player;
 	XvtFlightWire_EncodeInput(&record->input, tick, &input);
 }
@@ -338,7 +339,7 @@ static void CheckInsertWorld(void)
 	XVT_ASSERT_INT_EQ(XvtFlightNetwork_InsertWorld(&g_message), 1);
 	XVT_ASSERT_INT_EQ(g_inputFrameCount[1], 2);
 	XVT_ASSERT_INT_EQ(g_inputFrameCount[2], 1);
-	const InputFrame *frame = FrameAt(1, 6);
+	const struct InputFrame *frame = FrameAt(1, 6);
 	XVT_ASSERT_INT_EQ(frame->inputSource, XVT_INPUT_AUTHORITATIVE);
 	XVT_ASSERT_INT_EQ(frame->awaitingRelay, 0);
 	XVT_ASSERT_INT_EQ(frame->input.axisX, 20);
@@ -397,9 +398,10 @@ static void CheckReceiveOther(void)
 
 static size_t Batch(uint32_t cookie, const int *ticks, unsigned count)
 {
-	XvtFlightInputWire records[XVT_INPUT_BATCH_RECORDS];
+	struct XvtFlightInputWire records[XVT_INPUT_BATCH_RECORDS];
 	for (unsigned i = 0; i < count; ++i) {
-		FlightInputFrameRecord input = Controls((int8_t)(2 * i + 40));
+		struct FlightInputFrameRecord input =
+			Controls((int8_t)(2 * i + 40));
 		XvtFlightWire_EncodeInput(&records[i], ticks[i], &input);
 	}
 	size_t size =
@@ -425,7 +427,7 @@ static void CheckReceiveBatch(void)
 	XVT_ASSERT_TRUE(FrameAt(1, 2) != NULL);
 	XVT_ASSERT_TRUE(FrameAt(1, 8) == NULL);
 	for (int i = 0; i < 2; ++i) {
-		const InputFrame *frame = FrameAt(1, ticks[i]);
+		const struct InputFrame *frame = FrameAt(1, ticks[i]);
 		XVT_ASSERT_TRUE(frame != NULL);
 		XVT_ASSERT_INT_EQ(frame->inputSource, XVT_INPUT_REAL);
 		XVT_ASSERT_INT_EQ(frame->input.axisX, 2 * i + 40);
@@ -566,8 +568,8 @@ static void CheckDecodeControl(void)
 
 	/* A flight data packet carries its cookie in its own header (flight_messages.h) and passes as it
 	 * is, since Receive takes what DecodeControl passes. */
-	XvtFlightInputWire record;
-	FlightInputFrameRecord input = Controls(4);
+	struct XvtFlightInputWire record;
+	struct FlightInputFrameRecord input = Controls(4);
 	XvtFlightWire_EncodeInput(&record, 4, &input);
 	size = (int)XvtFlightMessages_EncodeBatch(g_packet, cookie, &record, 1);
 	int batch = size;
@@ -664,7 +666,7 @@ static void CheckShouldSend(void)
 	XVT_ASSERT_INT_EQ(XvtFlightNetwork_TakeWorldSendTurn(due), 1);
 
 	SendReady();
-	XvtFlightChecksumReportWire report;
+	struct XvtFlightChecksumReportWire report;
 	memset(&report, 0, sizeof report);
 	XvtWire_Set32(report.checksum.opcode, NET_PACKET_WORLD_CHECKSUM);
 	XvtWire_Set32(report.request_state, XVT_CHECKSUM_REQUEST_STATE);
@@ -717,7 +719,7 @@ static void CheckSendWorld(void)
 	XVT_ASSERT_INT_EQ(g_out.participant_mask, 0x01);
 	XVT_ASSERT_INT_EQ(g_out.count, 2);
 	int tick = 0;
-	FlightInputFrameRecord input;
+	struct FlightInputFrameRecord input;
 	XVT_ASSERT_INT_EQ(XvtFlightWire_DecodeInput(&g_out.records[0].input,
 						    &tick, &input),
 			  1);

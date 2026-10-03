@@ -22,7 +22,7 @@ const char *__asan_default_options(void)
 
 enum { kSlots = 5 };
 
-static ObjectRecord g_testObjects[kSlots];
+static struct ObjectRecord g_testObjects[kSlots];
 
 static void Place(unsigned slot, int x, int y, int z)
 {
@@ -207,15 +207,15 @@ static void CheckObjectChangeClears(void)
 	ExpectDisplacement(2, 0, 0, 0);
 }
 
-static int RecordsEqual(const XvtReferenceMotionWire *a,
-			const XvtReferenceMotionWire *b)
+static int RecordsEqual(const struct XvtReferenceMotionWire *a,
+			const struct XvtReferenceMotionWire *b)
 {
 	return memcmp(a, b, sizeof *a) == 0;
 }
 
-static XvtReferenceMotionWire EmptyRecord(unsigned slot)
+static struct XvtReferenceMotionWire EmptyRecord(unsigned slot)
 {
-	XvtReferenceMotionWire record;
+	struct XvtReferenceMotionWire record;
 	memset(&record, 0, sizeof record);
 	XvtWire_Set16(record.slot, (uint16_t)slot);
 	return record;
@@ -226,7 +226,7 @@ static void CheckEncodeDecode(void)
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	XvtReferenceMotion_Committed(0, 104);
 	Move(0, 8, 8, 8);
-	XvtReferenceMotionWire record, out;
+	struct XvtReferenceMotionWire record, out;
 	XvtReferenceMotion_Encode(0, &record);
 	XVT_ASSERT_INT_EQ(record.type, 1);
 	XVT_ASSERT_INT_EQ(XvtWire_Get16(record.slot), 0);
@@ -248,11 +248,11 @@ static void CheckEncodeDecode(void)
 
 	/* Not checked against the object: accepted, encoded as another object's entry, and cleared by the
 	 * next read. */
-	XvtReferenceMotionWire other = record;
+	struct XvtReferenceMotionWire other = record;
 	XvtWire_Set16(other.signature, 0x777);
 	XVT_ASSERT_INT_EQ(XvtReferenceMotion_Decode(&other, 1), 1);
 	XvtReferenceMotion_Encode(0, &out);
-	XvtReferenceMotionWire empty = EmptyRecord(0);
+	struct XvtReferenceMotionWire empty = EmptyRecord(0);
 	XVT_ASSERT_TRUE(RecordsEqual(&out, &empty));
 	ExpectDisplacement(0, 0, 0, 0);
 }
@@ -260,7 +260,7 @@ static void CheckEncodeDecode(void)
 static void CheckEncodeEmpty(void)
 {
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	XvtReferenceMotionWire out, empty;
+	struct XvtReferenceMotionWire out, empty;
 
 	XvtReferenceMotion_Encode(1, &out);
 	empty = EmptyRecord(1);
@@ -280,9 +280,9 @@ static void CheckEncodeEmpty(void)
 	XVT_ASSERT_TRUE(RecordsEqual(&out, &empty));
 }
 
-static void ExpectRefused(const XvtReferenceMotionWire *record)
+static void ExpectRefused(const struct XvtReferenceMotionWire *record)
 {
-	XvtReferenceMotionWire before, after;
+	struct XvtReferenceMotionWire before, after;
 	XvtReferenceMotion_Encode(0, &before);
 	XVT_ASSERT_INT_EQ(XvtReferenceMotion_Decode(record, 1), 0);
 	XvtReferenceMotion_Encode(0, &after);
@@ -292,7 +292,7 @@ static void ExpectRefused(const XvtReferenceMotionWire *record)
 static void CheckDecodeRefusals(void)
 {
 	FreshWorld(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	XvtReferenceMotionWire good, bad;
+	struct XvtReferenceMotionWire good, bad;
 	XvtReferenceMotion_Encode(0, &good);
 	XvtWire_Set32(good.sample_tick, 50);
 	good.flags = XVT_MOTION_VALID | XVT_MOTION_CURRENT_VALID;
@@ -363,7 +363,7 @@ static void CheckNoTable(void)
 	/* A failed allocation leaves no table: nothing is in range. */
 	XVT_ASSERT_INT_EQ(XvtReferenceMotion_Init(SIZE_MAX / 2), 0);
 	ExpectDisplacement(0, 0, 0, 0);
-	XvtReferenceMotionWire out, empty = EmptyRecord(0);
+	struct XvtReferenceMotionWire out, empty = EmptyRecord(0);
 	XvtReferenceMotion_Encode(0, &out);
 	XVT_ASSERT_TRUE(RecordsEqual(&out, &empty));
 	XVT_ASSERT_INT_EQ(XvtReferenceMotion_Decode(&empty, 0), 0);

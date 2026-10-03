@@ -38,9 +38,9 @@ static void World(void)
 	XvtFlightSim_Reset();
 }
 
-static FlightInputFrameRecord Controls(int8_t axis)
+static struct FlightInputFrameRecord Controls(int8_t axis)
 {
-	FlightInputFrameRecord input;
+	struct FlightInputFrameRecord input;
 	memset(&input, 0, sizeof input);
 	input.key = 0x61;
 	input.axisX = axis;
@@ -56,7 +56,7 @@ static FlightInputFrameRecord Controls(int8_t axis)
 static void AddFrame(unsigned player, int tick, int valid, int applied,
 		     int8_t axis)
 {
-	InputFrame *frame =
+	struct InputFrame *frame =
 		&g_inputHistory[player][g_inputFrameCount[player]++];
 	frame->timestamp = tick;
 	frame->inputSource = valid;
@@ -74,8 +74,8 @@ static void AssertTicks(unsigned player, const int *ticks, int count)
 	}
 }
 
-static int SameInput(const FlightInputFrameRecord *a,
-		     const FlightInputFrameRecord *b)
+static int SameInput(const struct FlightInputFrameRecord *a,
+		     const struct FlightInputFrameRecord *b)
 {
 	return a->key == b->key && a->axisX == b->axisX &&
 	       a->axisY == b->axisY && a->axisR == b->axisR &&
@@ -90,7 +90,7 @@ static void CheckResetAndPause(void)
 	XVT_ASSERT_INT_EQ(XvtFlightSim_Resume(), 1);
 
 	/* Reset clears the prediction fallback (flight_prediction.h): confirmed controls are forgotten. */
-	FlightInputFrameRecord input = Controls(20);
+	struct FlightInputFrameRecord input = Controls(20);
 	XvtFlightPrediction_Confirm(1, 2, &input);
 	XVT_ASSERT_INT_EQ(XvtFlightPrediction_Queue(8), 1);
 	XVT_ASSERT_INT_EQ(g_inputFrameCount[1], 1);
@@ -104,9 +104,9 @@ static void CheckResetAndPause(void)
 static void CheckInsertRefusals(void)
 {
 	World();
-	FlightInputFrameRecord input = Controls(10), bad;
-	static InputFrame sentinel;
-	InputFrame *out = &sentinel;
+	struct FlightInputFrameRecord input = Controls(10), bad;
+	static struct InputFrame sentinel;
+	struct InputFrame *out = &sentinel;
 
 	XVT_ASSERT_INT_EQ(
 		XvtFlightHistory_Insert(XVT_FLIGHT_PLAYERS, 8, &input, &out),
@@ -146,8 +146,8 @@ static void CheckInsertRefusals(void)
 static void CheckInsert(void)
 {
 	World();
-	FlightInputFrameRecord input = Controls(10);
-	InputFrame *out = NULL;
+	struct FlightInputFrameRecord input = Controls(10);
+	struct InputFrame *out = NULL;
 
 	/* A new frame is real and unapplied, out points at it, and the history stays in tick order. */
 	XVT_ASSERT_INT_EQ(XvtFlightHistory_Insert(1, 10, &input, &out),
@@ -167,7 +167,7 @@ static void CheckInsert(void)
 	AssertTicks(1, ticks, 3);
 
 	/* A real unapplied frame at the tick is overwritten in place. */
-	FlightInputFrameRecord other = Controls(-30);
+	struct FlightInputFrameRecord other = Controls(-30);
 	XVT_ASSERT_INT_EQ(XvtFlightHistory_Insert(1, 8, &other, &out),
 			  XVT_INPUT_INSERTED);
 	AssertTicks(1, ticks, 3);
@@ -199,9 +199,9 @@ static void CheckInsert(void)
 static void CheckInsertFull(void)
 {
 	World();
-	FlightInputFrameRecord input = Controls(10);
-	static InputFrame sentinel;
-	InputFrame *out = &sentinel;
+	struct FlightInputFrameRecord input = Controls(10);
+	static struct InputFrame sentinel;
+	struct InputFrame *out = &sentinel;
 	for (int i = 0; i < XVT_INPUT_HISTORY_CAPACITY; ++i) {
 		AddFrame(1, 2 * (i + 1), XVT_INPUT_REAL, 1, 10);
 	}
@@ -218,7 +218,7 @@ static void CheckInsertFull(void)
 
 static void CheckInsertReal(void)
 {
-	FlightInputFrameRecord input = Controls(10);
+	struct FlightInputFrameRecord input = Controls(10);
 
 	/* New frames: authoritative ones are unapplied; real ones are unapplied on a client... */
 	World();
@@ -246,7 +246,7 @@ static void CheckInsertReal(void)
 	/* Otherwise Insert's status: an invalid tick, or a real duplicate left as it was. */
 	XVT_ASSERT_INT_EQ(XvtFlightHistory_InsertReal(1, 0, &input, 1),
 			  XVT_INPUT_INVALID);
-	FlightInputFrameRecord other = Controls(-30);
+	struct FlightInputFrameRecord other = Controls(-30);
 	XVT_ASSERT_INT_EQ(XvtFlightHistory_InsertReal(1, 8, &other, 0),
 			  XVT_INPUT_DUPLICATE);
 	XVT_ASSERT_TRUE(SameInput(&g_inputHistory[1][2].input, &input));
@@ -255,7 +255,8 @@ static void CheckInsertReal(void)
 
 static void CheckAuthoritativeDuplicate(void)
 {
-	FlightInputFrameRecord input = Controls(10), other = Controls(-30);
+	struct FlightInputFrameRecord input = Controls(10),
+				      other = Controls(-30);
 
 	/* An authoritative duplicate that matches turns the frame authoritative and unapplied. */
 	World();
@@ -284,7 +285,7 @@ static void CheckAuthoritativeDuplicate(void)
 
 static void CheckInsertRealFull(void)
 {
-	FlightInputFrameRecord input = Controls(10);
+	struct FlightInputFrameRecord input = Controls(10);
 
 	/* A full history first drops its predicted frames and retries. */
 	World();
@@ -352,7 +353,7 @@ static void CheckRecover(void)
 	AddFrame(0, 26, XVT_INPUT_REAL, 0, 5);
 	AddFrame(1, 30, XVT_INPUT_REAL, 0, 6);
 	AddFrame(2, 30, XVT_INPUT_AUTHORITATIVE, 0, 7);
-	FlightInputFrameRecord input = Controls(40);
+	struct FlightInputFrameRecord input = Controls(40);
 	XvtFlightPrediction_Confirm(1, 2, &input);
 
 	XvtFlightHistory_Recover();

@@ -22,7 +22,7 @@ static uint32_t g_blockedMouse;
 static uint64_t g_mouseIgnoredFrame = UINT64_MAX;
 static bool g_mouseReleased, g_mouseCaptureFailed, g_mouseSession;
 static int g_mouseContext = -1;
-static XvtMouseOptions g_mouseOptions;
+static struct XvtMouseOptions g_mouseOptions;
 
 enum { MOUSE_CAPTURE_KEY = AERON_KEY_A + ('m' - 'a') };
 
@@ -177,7 +177,7 @@ bool XvtInput_MouseFlightAllowed(void)
 
 void XvtInput_UpdateMouseCapture(const AeronInputSnapshot *input)
 {
-	const XvtSettings *settings = XvtConfig_Settings();
+	const struct XvtSettings *settings = XvtConfig_Settings();
 	if (!settings) {
 		return;
 	}

@@ -140,7 +140,7 @@ static void XvtLogSink_EmitHeaderLine(char *line, size_t capacity, int length)
 	XvtLogSink_Emit(line, used);
 }
 
-static void XvtLogSink_WriteHeader(const XvtLaunchOptions *options,
+static void XvtLogSink_WriteHeader(const struct XvtLaunchOptions *options,
 				   SDL_Time start)
 {
 	AeronConfig config;
@@ -182,8 +182,8 @@ static void XvtLogSink_WriteHeader(const XvtLaunchOptions *options,
 /* Writes the default logs folder into out, the preferences folder's "logs" folder with a trailing
  * separator, and creates it. Returns 0, with the reason in error, when SDL names no preferences folder,
  * the path does not fit or the folder cannot be made. */
-static int XvtLogSink_DefaultFolder(const XvtLaunchOptions *options, char *out,
-				    size_t capacity, char *error,
+static int XvtLogSink_DefaultFolder(const struct XvtLaunchOptions *options,
+				    char *out, size_t capacity, char *error,
 				    size_t error_capacity)
 {
 	AeronConfig config;
@@ -259,7 +259,7 @@ static void XvtLogSink_Prune(const char *folder, char *newest, size_t capacity)
  * that folder. Writes the previous run's log into previous: the chosen file itself when it was named, the
  * newest run log in the folder otherwise, "" when there is none. Returns 1, or 0 with the reason in error
  * and whatever path is known in out. previous holds capacity bytes, as out does. */
-static int XvtLogSink_ChooseFile(const XvtLaunchOptions *options,
+static int XvtLogSink_ChooseFile(const struct XvtLaunchOptions *options,
 				 SDL_Time start, char *out, char *previous,
 				 size_t capacity, char *error,
 				 size_t error_capacity)
@@ -334,7 +334,7 @@ static XvtLogFileEnding XvtLogSink_JudgePrevious(const char *path, char *last,
 	return XvtLogFile_ReadEnding(tail, length, last, capacity);
 }
 
-int XvtLogSink_Install(const XvtLaunchOptions *options)
+int XvtLogSink_Install(const struct XvtLaunchOptions *options)
 {
 	AeronLogLevel level = AERON_LOG_INFO;
 	SDL_Time start = 0;

@@ -17,7 +17,7 @@
  * load it from its file. FrontendMission_InitForBriefing empties it to one
  * flight group with winType 1. */
 // GLOBAL: XVT 0xA91CC0
-FrontendMission g_frontendMission = {0};
+struct FrontendMission g_frontendMission = {0};
 
 /* Sets up the briefing map for the pilot's current mission:
  * FrontendMission_InitForBriefing, FrontendMission_LoadCurrentWithBriefing,
@@ -122,7 +122,7 @@ void FrontendMission_LoadCurrentWithBriefing(void)
 	int loadBriefingText;
 	int briefingIndex;
 	char fileName[MISSION_FILE_PATH_CAPACITY];
-	FrontendBriefingScript briefingScript;
+	struct FrontendBriefingScript briefingScript;
 	XvtFile *stream;
 	int flightGroupIndex;
 	int messageIndex;
@@ -131,7 +131,7 @@ void FrontendMission_LoadCurrentWithBriefing(void)
 	int labelIndex;
 	int textIndex;
 	char *briefingText;
-	GlobalGoal *teamGoals;
+	struct GlobalGoal *teamGoals;
 
 	MissionSetup_LoadMissionList(g_pilotData.missionDirectoryId);
 	if (g_missionList != NULL) {
@@ -274,15 +274,16 @@ void FrontendMission_LoadCurrentWithBriefing(void)
  * formatVersion when that is not 12, 13 or 14. Checks no count or slot
  * against the arrays. */
 // FUNCTION: XVT 0x4F6F30
-void FrontendMission_LoadFile(const char *fileName, FrontendMission *outMission)
+void FrontendMission_LoadFile(const char *fileName,
+			      struct FrontendMission *outMission)
 {
 	XvtFile *stream;
 	int flightGroupIndex;
-	XvtFlightGroup *flightGroup;
+	struct XvtFlightGroup *flightGroup;
 	int messageIndex;
 	int globalGoalIndex;
-	GlobalGoal *teamGoal;
-	GlobalGoal *globalGoal;
+	struct GlobalGoal *teamGoal;
+	struct GlobalGoal *globalGoal;
 	int teamIndex;
 	uint16_t indexedRecord;
 

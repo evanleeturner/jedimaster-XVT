@@ -84,7 +84,7 @@ static void SetGameInput(void)
 /* A keyboard mapping that queues next target for T, enabled with no key held. */
 static void KeyboardMappingWithT(void)
 {
-	static XvtKeyboardBindings profile;
+	static struct XvtKeyboardBindings profile;
 	memset(&profile, 0, sizeof profile);
 	profile.bindings[0].source.key = (uint16_t)kT;
 	profile.bindings[0].action = XVT_INPUT_ACTION_TARGET_NEXT;
@@ -257,9 +257,9 @@ static void CheckMouseMotionAllowed(void)
 static void CheckCaptureSuspendsControllers(void)
 {
 	Start();
-	XvtControllerOptions options;
+	struct XvtControllerOptions options;
 	memset(&options, 0, sizeof options);
-	XvtControllerModel *model = &options.models[0];
+	struct XvtControllerModel *model = &options.models[0];
 	memcpy(model->guid, "0123456789abcdef0123456789abcdea",
 	       sizeof model->guid);
 	model->kind = AERON_CONTROLLER_KIND_GAMEPAD;

@@ -54,7 +54,7 @@ uint16_t g_billboardObjectOrTypeIndex = 0;
  * SceneBillboard_QueueProjectedTextured and drawn by
  * SceneBillboard_RenderQueuedTextured. */
 // GLOBAL: XVT 0x9ECA30
-static SceneBillboardQueueEntry g_sceneBillboardQueue[32] = {{0}};
+static struct SceneBillboardQueueEntry g_sceneBillboardQueue[32] = {{0}};
 
 /* Draws an object through its type's frame sequence: model frames at once,
  * texture frames as queued billboards. Uses the object-to-view matrix and the
@@ -78,7 +78,7 @@ static SceneBillboardQueueEntry g_sceneBillboardQueue[32] = {{0}};
 // FUNCTION: XVT 0x401000
 void SceneBillboard_DrawOrQueueObject(int objectIndex)
 {
-	ObjectRecord *object;
+	struct ObjectRecord *object;
 	uint16_t sourceObjectType;
 	uint16_t frame;
 	int absR0Z;
@@ -241,7 +241,7 @@ void SceneBillboard_RenderQueuedTextured(int16_t drawTargetMarkers)
 						    g_sceneBillboardQueue
 							    [queueIndex]
 								    .depthZ) {
-							SceneBillboardQueueEntry
+							struct SceneBillboardQueueEntry
 								temporary;
 
 							temporary = g_sceneBillboardQueue
@@ -299,7 +299,7 @@ void SceneBillboard_RenderQueuedTextured(int16_t drawTargetMarkers)
 // FUNCTION: XVT 0x41FF70
 void SceneBillboard_DrawRollAlignedObjectModel(uint16_t objectIndex)
 {
-	ObjectRecord *object;
+	struct ObjectRecord *object;
 	int deltaX;
 	int deltaY;
 	int deltaZ;

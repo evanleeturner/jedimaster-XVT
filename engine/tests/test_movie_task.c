@@ -19,7 +19,7 @@
 #include <string.h>
 #include <time.h>
 
-static XvtTestAssets g_assets;
+static struct XvtTestAssets g_assets;
 
 static void Fresh(void)
 {

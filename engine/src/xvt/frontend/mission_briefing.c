@@ -215,8 +215,8 @@ int MissionBriefing_CraftSelectionUpdate(int frameCounter)
 	int slotIndex;
 	int actionTriggered;
 	int packetCountdownMs;
-	RECT rect;
-	RECT savedClipRect;
+	struct RECT rect;
+	struct RECT savedClipRect;
 
 	if (frameCounter == 0) {
 		FrontendCursor_SetPos(37, 445);
@@ -1192,13 +1192,14 @@ int MissionBriefing_BroadcastRosterAndAssignments(void)
  * are ignored there, so the choice follows the cursor with or without a
  * button down. */
 // FUNCTION: XVT 0x4F68C0
-int16_t MissionBriefing_HandleMapMouseInput(RECT *viewportRect, RECT *clipRect,
+int16_t MissionBriefing_HandleMapMouseInput(struct RECT *viewportRect,
+					    struct RECT *clipRect,
 					    int16_t suppressInput, int leftDown,
 					    int rightDown, int16_t mouseX,
 					    int16_t mouseY)
 {
-	RECT insetClipRect;
-	RECT insetViewportRect;
+	struct RECT insetClipRect;
+	struct RECT insetViewportRect;
 
 	FrontendDraw_RectCopy(&insetViewportRect, viewportRect);
 	FrontendDraw_RectInsetXY(&insetViewportRect, 1, 1);
@@ -1216,11 +1217,12 @@ int16_t MissionBriefing_HandleMapMouseInput(RECT *viewportRect, RECT *clipRect,
  * BriefingMap_DrawViewportAndSelection, on copies of the two rectangles, and
  * returns its result, which is always 1; highlightPhase is ignored there. */
 // FUNCTION: XVT 0x4F6970
-int16_t MissionBriefing_DrawMapViewport(RECT *viewportRect, RECT *clipRect,
+int16_t MissionBriefing_DrawMapViewport(struct RECT *viewportRect,
+					struct RECT *clipRect,
 					int16_t highlightPhase)
 {
-	RECT viewportCopy;
-	RECT clipCopy;
+	struct RECT viewportCopy;
+	struct RECT clipCopy;
 
 	FrontendDraw_RectCopy(&viewportCopy, viewportRect);
 	FrontendDraw_RectCopy(&clipCopy, clipRect);

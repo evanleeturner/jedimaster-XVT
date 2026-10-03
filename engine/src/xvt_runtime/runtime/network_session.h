@@ -24,10 +24,10 @@ typedef enum XvtNetworkSessionState {
 	XVT_NETWORK_SESSION_FAILED
 } XvtNetworkSessionState;
 
-typedef struct XvtNetworkSessionStatus {
+struct XvtNetworkSessionStatus {
 	XvtNetworkSessionState state;
 	AeronDplayDirectoryError error;
-} XvtNetworkSessionStatus;
+};
 
 /* Configures the directory with the lobby URL from settings, remembering it on success; an
  * unchanged URL returns NONE at once. Returns NOT_CONFIGURED for an empty URL and INVALID_REQUEST
@@ -45,7 +45,7 @@ int XvtNetworkSession_BeginJoin(const char *rating_text,
 				const char *player_name, const GUID *room);
 /* FAILED, ESTABLISHED or ADMISSION for those phases, PENDING for any other setup phase or while a
  * close completes, else IDLE; error is the last failure's. */
-XvtNetworkSessionStatus XvtNetworkSession_GetStatus(void);
+struct XvtNetworkSessionStatus XvtNetworkSession_GetStatus(void);
 /* Application thread, after the game task: deadlines, close completion and metadata. */
 /* Finishes a close once DirectPlay is inactive, cancelling a deferred join. Fails a lost session
  * outside flight, and a join past its deadline or whose preparation failed. For an established,
@@ -87,9 +87,9 @@ int XvtNetworkSession_Update(void);
 void XvtNetworkSession_Shutdown(void);
 /* Splits message's short and long names, each NUL-terminated, into the outputs, truncated to fit.
  * Returns 0 for a NULL or zero-capacity argument or a name without its terminator. */
-int XvtNetworkSession_CopyPlayerNames(const NetPlayerNameMessage *message,
-				      char *short_name, size_t short_capacity,
-				      char *long_name, size_t long_capacity);
+int XvtNetworkSession_CopyPlayerNames(
+	const struct NetPlayerNameMessage *message, char *short_name,
+	size_t short_capacity, char *long_name, size_t long_capacity);
 
 #ifdef __cplusplus
 }

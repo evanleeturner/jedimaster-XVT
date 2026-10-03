@@ -41,9 +41,9 @@ enum {
 	CHANNEL = XVT_INTEGRATE_PUSH_X,
 };
 
-static ObjectRecord g_testObjects[kSlots];
-static MobileObject g_testMobiles[kSlots];
-static CraftData g_testCraft;
+static struct ObjectRecord g_testObjects[kSlots];
+static struct MobileObject g_testMobiles[kSlots];
+static struct CraftData g_testCraft;
 static uint8_t *g_image, *g_saved, *g_again;
 static size_t g_capacity;
 
@@ -115,24 +115,25 @@ static size_t Append(uint8_t *image)
 }
 
 /* The player's paired record as an extension appended now carries it. */
-static XvtPairedMotionWire Paired(unsigned player)
+static struct XvtPairedMotionWire Paired(unsigned player)
 {
 	size_t size = Append(g_image);
-	XvtFlightCheckpointView view;
+	struct XvtFlightCheckpointView view;
 	XVT_ASSERT_INT_EQ(XvtFlightCheckpoint_Read(g_image, size, &view), 1);
-	XvtPairedMotionWire record;
+	struct XvtPairedMotionWire record;
 	memcpy(&record, view.paired + player * sizeof record, sizeof record);
 	return record;
 }
 
-static XvtStateFooter Footer(const uint8_t *image, size_t size)
+static struct XvtStateFooter Footer(const uint8_t *image, size_t size)
 {
-	XvtStateFooter footer;
+	struct XvtStateFooter footer;
 	memcpy(&footer, image + size - sizeof footer, sizeof footer);
 	return footer;
 }
 
-static void SetFooter(uint8_t *image, size_t size, const XvtStateFooter *footer)
+static void SetFooter(uint8_t *image, size_t size,
+		      const struct XvtStateFooter *footer)
 {
 	memcpy(image + size - sizeof *footer, footer, sizeof *footer);
 }
@@ -141,7 +142,7 @@ static void SetFooter(uint8_t *image, size_t size, const XvtStateFooter *footer)
  * change itself and not the CRC. */
 static void Reseal(uint8_t *image, size_t size)
 {
-	XvtStateFooter footer = Footer(image, size);
+	struct XvtStateFooter footer = Footer(image, size);
 	XvtWire_Set32(
 		footer.timing_crc,
 		XvtFlightWire_Crc32c(image + XvtWire_Get32(footer.world_bytes),
@@ -151,7 +152,7 @@ static void Reseal(uint8_t *image, size_t size)
 
 static int ReadImage(const uint8_t *image, size_t size)
 {
-	XvtFlightCheckpointView view;
+	struct XvtFlightCheckpointView view;
 	return XvtFlightCheckpoint_Read(image, size, &view);
 }
 
@@ -201,10 +202,10 @@ static void CheckAppendRead(void)
 	Seed(1);
 	XVT_ASSERT_INT_EQ(XvtPlayerTiming_Scale(0, XVT_PLAYER_YAW, 3, 1, 4), 0);
 	size_t size = Append(g_image);
-	XVT_ASSERT_TRUE(size > PREFIX + sizeof(XvtStateFooter));
+	XVT_ASSERT_TRUE(size > PREFIX + sizeof(struct XvtStateFooter));
 	XVT_ASSERT_TRUE(size - PREFIX <= XvtFlightCheckpoint_Maximum());
 
-	XvtFlightCheckpointView view;
+	struct XvtFlightCheckpointView view;
 	XVT_ASSERT_INT_EQ(XvtFlightCheckpoint_Read(g_image, size, &view), 1);
 	XVT_ASSERT_INT_EQ(view.prefix, PREFIX);
 	XVT_ASSERT_INT_EQ(view.tick, TICK);
@@ -254,15 +255,17 @@ static void CheckReadRefusals(void)
 	size_t size = Append(g_saved);
 	memcpy(g_image, g_saved, size);
 	XVT_ASSERT_INT_EQ(ReadImage(g_image, size), 1);
-	XvtFlightCheckpointView view;
+	struct XvtFlightCheckpointView view;
 	XVT_ASSERT_INT_EQ(XvtFlightCheckpoint_Read(g_saved, size, &view), 1);
 	size_t reference = (size_t)(view.reference - g_saved);
 	size_t players = (size_t)(view.players - g_saved);
-	size_t membership = (size_t)(view.paired - g_saved) +
-			    XVT_FLIGHT_PLAYERS * sizeof(XvtPairedMotionWire);
-	XvtStateFooter good = Footer(g_saved, size), footer;
+	size_t membership =
+		(size_t)(view.paired - g_saved) +
+		XVT_FLIGHT_PLAYERS * sizeof(struct XvtPairedMotionWire);
+	struct XvtStateFooter good = Footer(g_saved, size), footer;
 
-	XVT_ASSERT_INT_EQ(ReadImage(g_image, sizeof(XvtStateFooter) - 1), 0);
+	XVT_ASSERT_INT_EQ(ReadImage(g_image, sizeof(struct XvtStateFooter) - 1),
+			  0);
 
 	/* The footer's magic, schema, profile and cookie. */
 	footer = good;
@@ -321,20 +324,23 @@ static void CheckReadRefusals(void)
 
 	/* Every record must decode: a reference record with an unknown flag, a player record whose valid
 	 * byte is neither 0 nor 1 (reference_motion.h and player_timing.h say which records are well formed). */
-	g_image[reference + offsetof(XvtReferenceMotionWire, flags)] |= 0x80;
+	g_image[reference + offsetof(struct XvtReferenceMotionWire, flags)] |=
+		0x80;
 	Reseal(g_image, size);
 	XVT_ASSERT_INT_EQ(ReadImage(g_image, size), 0);
 	memcpy(g_image, g_saved, size);
-	g_image[players + offsetof(XvtPlayerTimingWire, valid)] = 2;
+	g_image[players + offsetof(struct XvtPlayerTimingWire, valid)] = 2;
 	Reseal(g_image, size);
 	XVT_ASSERT_INT_EQ(ReadImage(g_image, size), 0);
 	memcpy(g_image, g_saved, size);
 
 	/* Membership: the confirmed mask must stay within the initial one... */
-	g_image[membership + offsetof(XvtMembershipWire, confirmed)] = 0x83;
+	g_image[membership + offsetof(struct XvtMembershipWire, confirmed)] =
+		0x83;
 	Reseal(g_image, size);
 	XVT_ASSERT_INT_EQ(ReadImage(g_image, size), 0);
-	g_image[membership + offsetof(XvtMembershipWire, confirmed)] = 0x01;
+	g_image[membership + offsetof(struct XvtMembershipWire, confirmed)] =
+		0x01;
 	Reseal(g_image, size);
 	XVT_ASSERT_INT_EQ(ReadImage(g_image, size), 1);
 	/* ...and the initial mask must be this flight's. */
@@ -354,7 +360,7 @@ static void CheckRestore(void)
 	XvtFlightCheckpoint_ApplyConfirmedMask(0x01);
 	size_t size = Append(g_saved);
 	memcpy(g_image, g_saved, size);
-	XvtFlightCheckpointView view;
+	struct XvtFlightCheckpointView view;
 	XVT_ASSERT_INT_EQ(XvtFlightCheckpoint_Read(g_image, size, &view), 1);
 
 	/* Move on: spend slot 0's remainder, seed one on slot 3, confirm both players again, and let time
@@ -386,7 +392,7 @@ static void CheckSavePlayer(void)
 	World();
 	Seed(0);
 	XvtFlightCheckpoint_SavePlayer(0, TICK);
-	XvtPairedMotionWire record = Paired(0);
+	struct XvtPairedMotionWire record = Paired(0);
 	XVT_ASSERT_INT_EQ(record.validity, XVT_PAIRED_OWNER_VALID);
 	XVT_ASSERT_INT_EQ(record.player, 0);
 	XVT_ASSERT_INT_EQ(XvtWire_Get32(record.saved_tick), TICK);
@@ -466,7 +472,7 @@ static void CheckCarriedObject(void)
 	Seed(0);
 	Seed(3);
 	XvtFlightCheckpoint_SavePlayer(0, TICK);
-	XvtPairedMotionWire record = Paired(0);
+	struct XvtPairedMotionWire record = Paired(0);
 	XVT_ASSERT_INT_EQ(record.validity,
 			  XVT_PAIRED_OWNER_VALID | XVT_PAIRED_CARRIED_VALID);
 	XVT_ASSERT_INT_EQ(XvtWire_Get16(record.carried_id.slot), 3);
@@ -506,7 +512,7 @@ static void CheckNetwork125Only(void)
 	XvtFlightTiming_BeginSession(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	XvtFlightCheckpoint_SavePlayer(0, TICK + 8);
 	XvtFlightCheckpoint_SavePlayer(1, TICK);
-	XvtPairedMotionWire record = Paired(0);
+	struct XvtPairedMotionWire record = Paired(0);
 	XVT_ASSERT_INT_EQ(record.validity, XVT_PAIRED_OWNER_VALID);
 	XVT_ASSERT_INT_EQ(XvtWire_Get32(record.saved_tick), TICK);
 	XVT_ASSERT_INT_EQ(Paired(1).validity, 0);

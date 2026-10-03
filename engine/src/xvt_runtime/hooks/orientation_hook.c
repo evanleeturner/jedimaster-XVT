@@ -33,8 +33,8 @@ static int16_t XvtOrientation_RoundAngle(float angle)
 	return (int16_t)value;
 }
 
-static void XvtOrientation_ToRadians(XvtOrientationAngles angles, float *pitch,
-				     float *yaw, float *roll)
+static void XvtOrientation_ToRadians(struct XvtOrientationAngles angles,
+				     float *pitch, float *yaw, float *roll)
 {
 	*yaw = XvtOrientation_WrapRadians(-(float)(int16_t)angles.yaw *
 					  XVT_ORIENTATION_BAM_TO_RAD);
@@ -45,10 +45,10 @@ static void XvtOrientation_ToRadians(XvtOrientationAngles angles, float *pitch,
 					   XVT_ORIENTATION_BAM_TO_RAD);
 }
 
-static XvtOrientationAngles XvtOrientation_FromRadians(float pitch, float yaw,
-						       float roll)
+static struct XvtOrientationAngles
+XvtOrientation_FromRadians(float pitch, float yaw, float roll)
 {
-	XvtOrientationAngles result;
+	struct XvtOrientationAngles result;
 	int16_t yawBinaryAngle;
 	int16_t pitchBinaryAngle;
 	int16_t rollBinaryAngle;
@@ -199,9 +199,9 @@ static void XvtOrientation_QuaternionToEuler(const float quaternion[4],
 	*roll = XvtOrientation_WrapRadians(*roll);
 }
 
-XvtOrientationAngles XvtOrientation_ApplyPitchYaw(XvtOrientationAngles current,
-						  int pitchDeltaQ16,
-						  int negYawDeltaQ16)
+struct XvtOrientationAngles
+XvtOrientation_ApplyPitchYaw(struct XvtOrientationAngles current,
+			     int pitchDeltaQ16, int negYawDeltaQ16)
 {
 	if (XvtFlightTiming_IsNetwork125()) {
 		return XvtOrientation_ApplyPitchYawFixed(current, pitchDeltaQ16,

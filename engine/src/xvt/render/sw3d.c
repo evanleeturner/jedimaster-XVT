@@ -10,7 +10,7 @@
 
 #include <string.h>
 
-typedef struct SoftwareLightSample {
+struct SoftwareLightSample {
 	/* Lighting block row it was worked out for:
 	 * g_sw3dCurrentLightSampleCacheStamp at the time. */
 	int stamp;
@@ -18,7 +18,7 @@ typedef struct SoftwareLightSample {
 	float intensity;
 	/* Light at the corner one block lower, less intensity. */
 	float rowDelta;
-} SoftwareLightSample;
+};
 
 /* g_sw3dLightSampleBlockSize - 1, 15. RenderScene_AllocateBuffers sets the five
  * lighting block globals. */
@@ -27,7 +27,7 @@ int g_sw3dLightSampleBlockMask = 0;
 /* Face sw3d_DrawVisibleFacesToSurface is drawing; sw3d_DrawTexturedSpan draws
  * it. */
 // GLOBAL: XVT 0x612280
-SceneFace *g_sw3dCurrentFace = NULL;
+struct SceneFace *g_sw3dCurrentFace = NULL;
 /* Shade fraction carried from pixel to pixel, the low 8 bits of shade + carry,
  * which dithers between the 16 shade levels; each span starts it from
  * g_sw3dShadeDitherInitialByScanlineParity by its row's parity. */
@@ -100,7 +100,7 @@ int g_sw3dCurrentLightSampleCacheStamp = 0;
 /* Mesh of the face being drawn; sw3d_DrawVisibleFacesToSurface writes it and
  * nothing reads it. */
 // GLOBAL: XVT 0x612B58
-SceneMesh *g_sw3dSpanSceneMesh = NULL;
+struct SceneMesh *g_sw3dSpanSceneMesh = NULL;
 /* Width of the texture level being drawn, as a float; nothing reads it. */
 // GLOBAL: XVT 0x612B5C
 float g_sw3dSpanTextureWidthFloat = 0.0f;
@@ -151,7 +151,7 @@ int g_sw3dLightSampleBlockShift = 0;
  * covers the view: its depth range is 1.0e32 and its w row (0, 0, 1.0e32), so
  * no real face draws over them. */
 // GLOBAL: XVT 0x612AE0
-SceneFace g_sw3dCockpitMaskSentinelFace = {0};
+struct SceneFace g_sw3dCockpitMaskSentinelFace = {0};
 /* 1 makes sw3d_InsertSpan leave out odd rows, so the software renderer draws
  * every other row. The Alt+I key flips it (Flight_UpdatePlayerStep in the
  * original build, XvtFlightSim_UpdatePlayerStep in the modern one); flight
@@ -195,16 +195,16 @@ const float g_sw3dTexCoordBiasByShift[12] = {
  * NULL when it made none; sw3d_RasterizeMeshFaces clears it before each edge
  * and stores it in the edge's pClipVert. */
 // GLOBAL: XVT 0x60F1C4
-ProjVertex *g_sw3dGeneratedClipVertex = NULL;
+struct ProjVertex *g_sw3dGeneratedClipVertex = NULL;
 /* Newest near-plane vertex of the face being clipped, made by
  * sw3d_SetupClippedEdge or taken from a shared edge's pClipVert;
  * sw3d_RasterizeMeshFaces clears it for each clipped face. */
 // GLOBAL: XVT 0x60F1D0
-ProjVertex *g_sw3dLatestClipVertex = NULL;
+struct ProjVertex *g_sw3dLatestClipVertex = NULL;
 /* The near-plane vertex before g_sw3dLatestClipVertex; when both are set,
  * sw3d_RasterizeMeshFaces closes the face with an edge between them. */
 // GLOBAL: XVT 0x60F1E0
-ProjVertex *g_sw3dPreviousClipVertex = NULL;
+struct ProjVertex *g_sw3dPreviousClipVertex = NULL;
 
 /* Projects a mesh's visible faces for the software renderer. For each face in
  * g_visFaceList from the mesh's faceBaseIndex it sets the face's texture rows
@@ -227,10 +227,10 @@ ProjVertex *g_sw3dPreviousClipVertex = NULL;
  * the vertices made to g_projVertCount. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x470300
-void sw3d_ProjectMeshVertices(SceneMesh *mesh)
+void sw3d_ProjectMeshVertices(struct SceneMesh *mesh)
 {
-	SceneFace *face = &g_visFaceList[mesh->faceBaseIndex];
-	ProjVertex *output;
+	struct SceneFace *face = &g_visFaceList[mesh->faceBaseIndex];
+	struct ProjVertex *output;
 	int vertexIndex;
 	int faceIndex;
 
@@ -242,8 +242,8 @@ void sw3d_ProjectMeshVertices(SceneMesh *mesh)
 	}
 	for (faceIndex = 0; faceIndex < mesh->visFaceCount;
 	     ++faceIndex, ++face) {
-		OptVector transformed;
-		const FaceRecord *geometry;
+		struct OptVector transformed;
+		const struct FaceRecord *geometry;
 		float totalW;
 		float c00;
 		float c01;
@@ -328,7 +328,7 @@ void sw3d_ProjectMeshVertices(SceneMesh *mesh)
 					&g_meshEyePos);
 				++output;
 			} else {
-				const ProjVertex *projected =
+				const struct ProjVertex *projected =
 					&g_projVertList[mesh->vertBaseIndex +
 							remappedVertex];
 				if (projected->scaledInverseDepth < 0.0f) {
@@ -427,8 +427,9 @@ void sw3d_ProjectMeshVertices(SceneMesh *mesh)
 				area = -area;
 			}
 			{
-				const OptTextureData *material =
-					(const OptTextureData *)mesh->pMaterial;
+				const struct OptTextureData *material =
+					(const struct OptTextureData *)
+						mesh->pMaterial;
 				float lodScale;
 
 				/* totalW, the sum of the corners' w values, becomes the corner count over that sum: the
@@ -461,12 +462,12 @@ void sw3d_ProjectMeshVertices(SceneMesh *mesh)
  * plus the same with gradients[1] * gradients[3], each cut to
  * an integer, z being the first corner's pushed depth. */
 // FUNCTION: XVT 0x4709C0
-void sw3d_ProjectMeshVerticesDistant(SceneMesh *mesh)
+void sw3d_ProjectMeshVerticesDistant(struct SceneMesh *mesh)
 {
 	const float projectionScale = (float)(unsigned int)g_projScaleInt /
 				      mesh->viewPosZ * g_sw3dDistantDepth;
-	SceneFace *face = &g_visFaceList[mesh->faceBaseIndex];
-	ProjVertex *output;
+	struct SceneFace *face = &g_visFaceList[mesh->faceBaseIndex];
+	struct ProjVertex *output;
 	int vertexBaseIndex;
 	int vertexIndex;
 	int faceIndex;
@@ -480,7 +481,7 @@ void sw3d_ProjectMeshVerticesDistant(SceneMesh *mesh)
 	}
 	for (faceIndex = 0; faceIndex < mesh->visFaceCount;
 	     ++faceIndex, ++face) {
-		const FaceRecord *geometry;
+		const struct FaceRecord *geometry;
 		int cornerIndex;
 
 		RenderScene_TransformFaceTextureGradients(
@@ -491,7 +492,7 @@ void sw3d_ProjectMeshVerticesDistant(SceneMesh *mesh)
 		face->minScaledInverseDepth =
 			(float)(unsigned int)g_projScaleInt;
 		for (cornerIndex = 0; cornerIndex < 4; ++cornerIndex) {
-			OptVector transformed;
+			struct OptVector transformed;
 			const int modelVertexIndex =
 				geometry->vertexIdx[cornerIndex];
 			const int normalIndex =
@@ -549,9 +550,9 @@ void sw3d_ProjectMeshVerticesDistant(SceneMesh *mesh)
 		}
 
 		if (mesh->pUVs != NULL) {
-			OptVector transformed;
+			struct OptVector transformed;
 			const int uvIndex = geometry->uvIdx[0];
-			const OptVector *modelVertex =
+			const struct OptVector *modelVertex =
 				&mesh->pModelVerts[geometry->vertexIdx[0]];
 			float c00;
 			float c01;
@@ -635,8 +636,9 @@ void sw3d_ProjectMeshVerticesDistant(SceneMesh *mesh)
 						      (g_flightVpHeight >> 1)) *
 					      face->gradients[7];
 			{
-				const OptTextureData *material =
-					(const OptTextureData *)mesh->pMaterial;
+				const struct OptTextureData *material =
+					(const struct OptTextureData *)
+						mesh->pMaterial;
 				float mipValue;
 				mipValue = face->gradients[4] *
 					   face->gradients[0] * transformed.z *
@@ -678,7 +680,7 @@ void sw3d_ProjectMeshVerticesDistant(SceneMesh *mesh)
  * edge. Records the mesh's edgeBaseIndex and emittedEdgeCount and advances
  * g_sceneEdgeCursor by the edges made. */
 // FUNCTION: XVT 0x471020
-void sw3d_RasterizeMeshFaces(SceneMesh *mesh)
+void sw3d_RasterizeMeshFaces(struct SceneMesh *mesh)
 {
 	enum {
 		SW3D_INVALID_EDGE = -1,
@@ -686,12 +688,12 @@ void sw3d_RasterizeMeshFaces(SceneMesh *mesh)
 		SW3D_FACE_NEEDS_NEAR_CLIP = -1,
 	};
 
-	ProjVertex *vertices = &g_projVertList[mesh->vertBaseIndex];
-	SceneFace *faceCursor = &g_visFaceList[mesh->faceBaseIndex];
+	struct ProjVertex *vertices = &g_projVertList[mesh->vertBaseIndex];
+	struct SceneFace *faceCursor = &g_visFaceList[mesh->faceBaseIndex];
 	int sceneEdgeCursor = g_sceneEdgeCursor;
-	SceneFace *face;
-	SceneEdge *outputEdge;
-	SceneEdge *firstEdge;
+	struct SceneFace *face;
+	struct SceneEdge *outputEdge;
+	struct SceneEdge *firstEdge;
 	int edgeIndex;
 	const int edgeCount = mesh->edgeCount;
 	int faceIndex;
@@ -707,7 +709,7 @@ void sw3d_RasterizeMeshFaces(SceneMesh *mesh)
 	}
 
 	for (faceIndex = 0; faceIndex < mesh->visFaceCount; ++faceIndex) {
-		const FaceRecord *record;
+		const struct FaceRecord *record;
 		int cornerCount;
 		int currentCorner;
 		int previousCorner;
@@ -765,7 +767,7 @@ void sw3d_RasterizeMeshFaces(SceneMesh *mesh)
 							SW3D_REJECTED_EDGE;
 					}
 				} else if (existingEdge != SW3D_REJECTED_EDGE) {
-					SceneEdge *edge;
+					struct SceneEdge *edge;
 
 					edge = &firstEdge[existingEdge];
 					face->edges[outputCount++] = edge;
@@ -866,12 +868,12 @@ void sw3d_RasterizeMeshFaces(SceneMesh *mesh)
  * that row. pScanEdge points at the left edge. The edges' x and light are put
  * back at the end. */
 // FUNCTION: XVT 0x471410
-void sw3d_ScanConvertFace(SceneFace *face)
+void sw3d_ScanConvertFace(struct SceneFace *face)
 {
-	SceneEdge *left;
-	SceneEdge *right;
-	SceneEdge *edge;
-	SceneEdge *swapEdge;
+	struct SceneEdge *left;
+	struct SceneEdge *right;
+	struct SceneEdge *edge;
+	struct SceneEdge *swapEdge;
 	int edgeIndex;
 	int edgeCount;
 	int remainingEdges;
@@ -1191,17 +1193,18 @@ void sw3d_ScanConvertFace(SceneFace *face)
  * becoming g_sw3dPreviousClipVertex, and sets the edge up from it to the other
  * end. The rest is as sw3d_SetupEdge, a negative sy counting as row 0. */
 // FUNCTION: XVT 0x471A10
-int sw3d_SetupClippedEdge(SceneMesh *mesh, SceneEdge *edge,
-			  const ProjVertex *first, const ProjVertex *second)
+int sw3d_SetupClippedEdge(struct SceneMesh *mesh, struct SceneEdge *edge,
+			  const struct ProjVertex *first,
+			  const struct ProjVertex *second)
 {
-	const ProjVertex *inside;
-	const ProjVertex *outside;
+	const struct ProjVertex *inside;
+	const struct ProjVertex *outside;
 #ifdef XVT_MODERN
 	uint32_t coordinateBits;
 #endif
 	int secondY;
 	int firstY;
-	const ProjVertex *swapVertex;
+	const struct ProjVertex *swapVertex;
 	int swapY;
 	float inverseHeight;
 	float firstRowOffset;
@@ -1347,10 +1350,10 @@ int sw3d_SetupClippedEdge(SceneMesh *mesh, SceneEdge *edge,
  * pClipVert. Returns yStart, or -1 when the edge covers no row, ends at row 0
  * or above, or starts at g_flightVpHeight or below. */
 // FUNCTION: XVT 0x471CE0
-int sw3d_SetupEdge(SceneEdge *edge, const ProjVertex *first,
-		   const ProjVertex *second)
+int sw3d_SetupEdge(struct SceneEdge *edge, const struct ProjVertex *first,
+		   const struct ProjVertex *second)
 {
-	const ProjVertex *swapVertex;
+	const struct ProjVertex *swapVertex;
 	int firstY;
 	int secondY;
 	int swapY;
@@ -1432,7 +1435,7 @@ void sw3d_DrawVisibleFacesToSurface(void)
 		SW3D_TEXTURE_SHIFT_INDEX_SHIFT = 4,
 	};
 
-	SceneEdge spanStartEdge;
+	struct SceneEdge spanStartEdge;
 	int faceIndex;
 
 	FlightLight_ResetSoftwareFaceSampleCache();
@@ -1447,8 +1450,8 @@ void sw3d_DrawVisibleFacesToSurface(void)
 	g_sw3dSpanSceneMesh = NULL;
 	faceIndex = g_visFacePassStart;
 	while (faceIndex < g_visFaceCount) {
-		const OptTextureData *material;
-		SceneMesh **pMesh;
+		const struct OptTextureData *material;
+		struct SceneMesh **pMesh;
 		float rowBaseW;
 		int mipTexelOffset;
 		int textureWidth;
@@ -1461,7 +1464,7 @@ void sw3d_DrawVisibleFacesToSurface(void)
 		g_sw3dCurrentFace->pScanEdge = &spanStartEdge;
 		mipTexelOffset = 0;
 		pMesh = &g_sw3dCurrentFace->pMesh;
-		material = (const OptTextureData *)(*pMesh)->pMaterial;
+		material = (const struct OptTextureData *)(*pMesh)->pMaterial;
 		textureWidth = material->width;
 		textureHeight = material->height;
 		if (g_mipmappingEnabled != mipTexelOffset &&
@@ -1506,11 +1509,11 @@ void sw3d_DrawVisibleFacesToSurface(void)
 		for (spanIndex = 0; (unsigned int)g_sw3dCurrentScanlineY <
 				    (unsigned int)g_sw3dCurrentFace->yBot;
 		     ++spanIndex, ++g_sw3dCurrentScanlineY) {
-			SceneFace *rowFace = g_sw3dCurrentFace;
-			SceneSpan *span = rowFace->pSpans[spanIndex];
+			struct SceneFace *rowFace = g_sw3dCurrentFace;
+			struct SceneSpan *span = rowFace->pSpans[spanIndex];
 
 			if (span != NULL) {
-				SceneSpan *occluder;
+				struct SceneSpan *occluder;
 				int sampleSubrow;
 				int startX;
 				int endX;
@@ -1645,13 +1648,14 @@ void sw3d_DrawVisibleFacesToSurface(void)
  * spanLightIntensityDx, 0 without a scan edge. It is stored in the face's
  * pSpans[scanY - yTop], which the call first clears. */
 // FUNCTION: XVT 0x486980
-void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace *face)
+void sw3d_InsertSpan(float xLeft, float xRight, int scanY,
+		     struct SceneFace *face)
 {
-	SceneSpan *current;
-	SceneSpan *next;
-	SceneSpan *insertionNext;
-	SceneSpan *previous;
-	SceneSpan *span;
+	struct SceneSpan *current;
+	struct SceneSpan *next;
+	struct SceneSpan *insertionNext;
+	struct SceneSpan *previous;
+	struct SceneSpan *span;
 	float newW;
 	float currentW;
 	int startX;
@@ -2531,10 +2535,10 @@ void sw3d_DrawTexturedSpan(int startX, int endX, float spanStartW)
 		SW3D_MAX_SHADE_Q8 = 0xEFF,
 	};
 
-	SceneFace *face;
-	SoftwareLightSample *lightSamples;
-	SoftwareLightSample *leftSample;
-	SoftwareLightSample *rightSample;
+	struct SceneFace *face;
+	struct SoftwareLightSample *lightSamples;
+	struct SoftwareLightSample *leftSample;
+	struct SoftwareLightSample *rightSample;
 	float *uGradient;
 	float *vGradient;
 	float uAtY;
@@ -2580,7 +2584,7 @@ void sw3d_DrawTexturedSpan(int startX, int endX, float spanStartW)
 	int textureHeightMask;
 
 	face = g_sw3dCurrentFace;
-	lightSamples = (SoftwareLightSample *)face->pLightSamples;
+	lightSamples = (struct SoftwareLightSample *)face->pLightSamples;
 	wAtY = (float)(unsigned int)g_sw3dCurrentScanlineY *
 		       face->gradients[7] +
 	       face->gradients[8];
@@ -3015,7 +3019,7 @@ int sw3d_DrawTexturedShadeSpanGeneric16bpp(void)
 void sw3d_BlitOccludedSpan(const uint8_t *pSrcRaster, int startX, int endX,
 			   int scanY, float spriteW)
 {
-	SceneSpan *span;
+	struct SceneSpan *span;
 	int drawX;
 
 	drawX = startX;
@@ -3029,7 +3033,7 @@ void sw3d_BlitOccludedSpan(const uint8_t *pSrcRaster, int startX, int endX,
 
 	for (span = g_scanlineSpanHeads[scanY]; span != NULL;
 	     span = span->next) {
-		SceneFace *face;
+		struct SceneFace *face;
 		int spanEnd;
 		float spanW;
 		float deltaX;

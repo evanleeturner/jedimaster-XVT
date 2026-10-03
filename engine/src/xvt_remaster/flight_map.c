@@ -21,16 +21,16 @@ static AeronDrawList2D *g_list;
 static AeronSceneMeshTable *g_tables;
 static int g_width, g_height, g_samples;
 
-typedef struct MapOrder {
+struct MapOrder {
 	unsigned index;
 	float depth;
-} MapOrder;
+};
 
-static MapOrder g_order[XVT_SNAP_OBJECTS];
+static struct MapOrder g_order[XVT_SNAP_OBJECTS];
 
 static int Compare(const void *a, const void *b)
 {
-	const MapOrder *x = a, *y = b;
+	const struct MapOrder *x = a, *y = b;
 	return x->depth < y->depth   ? 1
 	       : x->depth > y->depth ? -1
 	       : x->index < y->index ? -1
@@ -90,7 +90,7 @@ int XvtFlightMap_PrepareResources(int width, int height)
 		XvtFlightPipeline_PrepareSceneResources(g_scene, 0));
 }
 
-static void Segment(const XvtRenderView *view, const int32_t a[3],
+static void Segment(const struct XvtRenderView *view, const int32_t a[3],
 		    const int32_t b[3], uint32_t color)
 {
 	float p[3], q[3], clip[2][4];
@@ -125,7 +125,8 @@ static void Segment(const XvtRenderView *view, const int32_t a[3],
 			      AERON_BLIT2D_BLEND_PMA, &scissor);
 }
 
-static void Grid(const XvtRenderSnapshot *s, const XvtRenderView *view)
+static void Grid(const struct XvtRenderSnapshot *s,
+		 const struct XvtRenderView *view)
 {
 	for (int i = -16; i <= 16; ++i) {
 		int32_t a[3] = {-1048576, i * 65536, s->map.grid_z},
@@ -138,10 +139,12 @@ static void Grid(const XvtRenderSnapshot *s, const XvtRenderView *view)
 	}
 }
 
-static void Overlay(const XvtRenderSnapshot *s, const XvtRenderView *view,
-		    const XvtSnapMapObject *m, float x, float y, float depth)
+static void Overlay(const struct XvtRenderSnapshot *s,
+		    const struct XvtRenderView *view,
+		    const struct XvtSnapMapObject *m, float x, float y,
+		    float depth)
 {
-	const XvtSnapObject *o = &s->objects[m->object_index];
+	const struct XvtSnapObject *o = &s->objects[m->object_index];
 	float scale = view->classic_pixel_scale;
 	float extent = fmaxf(
 		s->camera.screen_width / 80.0f,
@@ -199,7 +202,7 @@ static void Overlay(const XvtRenderSnapshot *s, const XvtRenderView *view,
 			Segment(view, base, end, m->line_color_argb);
 		}
 	}
-	const XvtFontAtlas *font =
+	const struct XvtFontAtlas *font =
 		XvtRemasterAssets_Font(s->map.font_asset_id, 0);
 	float text_height = (font ? font->cell_height : 5) * scale;
 	if (m->label_visible && m->label_offset < s->map.label_bytes) {
@@ -217,8 +220,8 @@ static void Overlay(const XvtRenderSnapshot *s, const XvtRenderView *view,
 	}
 }
 
-static int Objects(AeronCommandBuffer *cmd, const XvtRenderSnapshot *s,
-		   const XvtRenderView *view, int above)
+static int Objects(AeronCommandBuffer *cmd, const struct XvtRenderSnapshot *s,
+		   const struct XvtRenderView *view, int above)
 {
 	if (!AeronScene_Begin(g_scene, &view->camera) ||
 	    !AeronScene_SetMeshSampler(g_scene,
@@ -235,11 +238,12 @@ static int Objects(AeronCommandBuffer *cmd, const XvtRenderSnapshot *s,
 	AeronDrawList_Begin(g_list, NULL, g_width, g_height,
 			    AERON_DRAWLIST2D_LOAD, NULL);
 	for (unsigned k = 0; k < s->map.object_count; ++k) {
-		const XvtSnapMapObject *m = &s->map.objects[g_order[k].index];
+		const struct XvtSnapMapObject *m =
+			&s->map.objects[g_order[k].index];
 		if (m->object_index >= s->object_count) {
 			continue;
 		}
-		const XvtSnapObject *o = &s->objects[m->object_index];
+		const struct XvtSnapObject *o = &s->objects[m->object_index];
 		if ((o->world_pos[2] >= s->map.grid_z) != above) {
 			continue;
 		}
@@ -264,9 +268,9 @@ static int Objects(AeronCommandBuffer *cmd, const XvtRenderSnapshot *s,
 				return 0;
 			}
 		} else {
-			XvtShipSelection selection;
+			struct XvtShipSelection selection;
 			if (XvtRemasterShip_Select(s, o, &selection)) {
-				const XvtMeshAsset *asset =
+				const struct XvtMeshAsset *asset =
 					XvtRemasterShip_Mesh(
 						s, selection.asset_id);
 				if (asset) {
@@ -346,8 +350,9 @@ static int Composite(AeronCommandBuffer *cmd, int clear)
 	return 1;
 }
 
-int XvtFlightMap_Render(AeronCommandBuffer *cmd, const XvtRenderSnapshot *s,
-			const XvtRenderView *view)
+int XvtFlightMap_Render(AeronCommandBuffer *cmd,
+			const struct XvtRenderSnapshot *s,
+			const struct XvtRenderView *view)
 {
 	if (!Ensure(view->camera.viewport.width,
 		    view->camera.viewport.height)) {
@@ -355,14 +360,14 @@ int XvtFlightMap_Render(AeronCommandBuffer *cmd, const XvtRenderSnapshot *s,
 	}
 	for (unsigned i = 0; i < s->map.object_count; ++i) {
 		float local[3];
-		const XvtSnapObject *o =
+		const struct XvtSnapObject *o =
 			&s->objects[s->map.objects[i].object_index];
 		AeronWorld_LocalI32(view->origin_world, o->world_pos, local);
-		g_order[i] =
-			(MapOrder){i, view->view_proj[12] * local[0] +
-					      view->view_proj[13] * local[1] +
-					      view->view_proj[14] * local[2] +
-					      view->view_proj[15]};
+		g_order[i] = (struct MapOrder){
+			i, view->view_proj[12] * local[0] +
+				   view->view_proj[13] * local[1] +
+				   view->view_proj[14] * local[2] +
+				   view->view_proj[15]};
 	}
 	qsort(g_order, s->map.object_count, sizeof g_order[0], Compare);
 	int camera_below_grid = s->camera.world_pos[2] < s->map.grid_z;

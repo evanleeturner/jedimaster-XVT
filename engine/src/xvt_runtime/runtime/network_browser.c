@@ -27,7 +27,7 @@ int XvtNetworkBrowser_DrawList(void)
 	const AeronDplayDirectorySnapshot *snapshot = XvtNetworkTask_Snapshot();
 	int *scroll = XvtNetworkTask_ScrollOffset();
 	int mouse_x, mouse_y, clicked = -1;
-	RECT rect = {88, 94, 416, 109}, column;
+	struct RECT rect = {88, 94, 416, 109}, column;
 	FrontendText_DrawAlignedInRect(
 		12,
 		FrontendString_Get(
@@ -72,7 +72,7 @@ int XvtNetworkBrowser_DrawList(void)
 					    room->metadata.name);
 		column = rect;
 		column.right = 279;
-		RECT clip;
+		struct RECT clip;
 		FrontendDisplay_GetScreenClipRect(&clip);
 		FrontendDisplay_SetScreenClipRect640x480(&column);
 		FrontendText_DrawAlignedInRect(12, name, &column, 0, 1, color);
@@ -109,7 +109,7 @@ int XvtNetworkBrowser_DrawList(void)
 
 int XvtNetworkBrowser_DrawRoster(void)
 {
-	RECT rect = {88, 218, 430, 233}, clip;
+	struct RECT rect = {88, 218, 430, 233}, clip;
 	FrontendText_DrawAlignedInRect(
 		12, FrontendString_Get(FRONTSTR_201_PLAYERS_IN_GAME), &rect, 0,
 		1, 0xffff);
@@ -146,8 +146,8 @@ int XvtNetworkBrowser_DrawRoster(void)
 
 int XvtNetworkBrowser_DrawMission(void)
 {
-	XvtNetworkPreview *preview = XvtNetworkTask_Preview();
-	RECT rect = {88, 309, 430, 324};
+	struct XvtNetworkPreview *preview = XvtNetworkTask_Preview();
+	struct RECT rect = {88, 309, 430, 324};
 	const char *label = FrontendString_Get(FRONTSTR_187_MISSION);
 	if (preview->title[0]) {
 		snprintf(g_frontendScratchBuffer,
@@ -186,7 +186,7 @@ static int XvtNetworkBrowser_AfterError(int result, int context)
 
 int XvtNetworkBrowser_Screen(int frame_counter)
 {
-	RECT rect;
+	struct RECT rect;
 	if (!frame_counter) {
 		FrontendCursor_SetPos(415, 121);
 		g_frontendSkipScreenEntrySetup = 0;

@@ -130,7 +130,7 @@ static void CheckMappingOnlyForGameplay(void)
 	/* The route settles on RAW first, so the next call is no new route and flushes nothing. */
 	Start();
 	XVT_ASSERT_INT_EQ(XvtInput_ReconcileKeyboard(), XVT_KEYBOARD_RAW);
-	static XvtKeyboardBindings profile;
+	static struct XvtKeyboardBindings profile;
 	memset(&profile, 0, sizeof profile);
 	profile.bindings[0].source.key = AERON_KEY_A + ('t' - 'a');
 	profile.bindings[0].action = XVT_INPUT_ACTION_TARGET_NEXT;
@@ -340,9 +340,9 @@ static void CheckSuppressedFrameClears(void)
 /* A gamepad model and that gamepad connected in Aeron's snapshot. */
 static void ConnectController(void)
 {
-	static XvtControllerOptions options;
+	static struct XvtControllerOptions options;
 	memset(&options, 0, sizeof options);
-	XvtControllerModel *model = &options.models[0];
+	struct XvtControllerModel *model = &options.models[0];
 	memcpy(model->guid, "0123456789abcdef0123456789abcdea",
 	       sizeof model->guid);
 	model->kind = AERON_CONTROLLER_KIND_GAMEPAD;
@@ -396,7 +396,7 @@ static void CheckShutdown(void)
 	ConnectController();
 	XvtInput_SuppressRendererTab(true);
 	XvtInput_SetCaptured(true);
-	static XvtKeyboardBindings profile;
+	static struct XvtKeyboardBindings profile;
 	memset(&profile, 0, sizeof profile);
 	profile.bindings[0].source.key = AERON_KEY_A + ('t' - 'a');
 	profile.bindings[0].action = XVT_INPUT_ACTION_TARGET_NEXT;

@@ -76,7 +76,7 @@ const uint8_t g_craftIffCounterpart[20] = {0, 6, 16, 8, 16, 14, 1, 14, 3, 3,
  * preview, by craft species 0 to 16; only MissionSetup_DrawCraftLoadout reads
  * it, without checking that the species is under 17. Constant. */
 // GLOBAL: XVT 0x52C5D8
-const ModelPreviewCraftPosition g_modelPreviewCraftPositions[17] = {
+const struct ModelPreviewCraftPosition g_modelPreviewCraftPositions[17] = {
 	{0, 0, 0},	 {25, -30, 20}, {0, -120, 20}, {10, -55, 20},
 	{0, 0, 0},	 {0, 400, 30},	{40, 390, 45}, {-30, 240, 10},
 	{-10, 200, 10},	 {0, 0, 0},	{0, 0, 0},     {0, 0, 0},
@@ -104,7 +104,8 @@ int g_textShadeRamps[5][8] = {{0}};
  * prune functions, and FrontendNet_ProcessNetworkPackets from the team
  * assignment packets. */
 // GLOBAL: XVT 0xAA5CB0
-MissionSetupPlayerAssignments g_missionSetupPlayerAssignments = {{0}, {0}};
+struct MissionSetupPlayerAssignments g_missionSetupPlayerAssignments = {{0},
+									{0}};
 /* Player flight groups of each team in the loaded mission, which is the team's
  * number of player slots. Only MissionSetup_UpdateTeamCounts writes it. */
 // GLOBAL: XVT 0xAA5E10
@@ -148,7 +149,7 @@ int g_teamCount = 0;
  * Frontend_HandleCommonScreenControls and, in the modern build,
  * XvtFrontendTask_Shutdown free it and set it to NULL. */
 // GLOBAL: XVT 0xAA60F4
-ShipListEntry *g_shipList = NULL;
+struct ShipListEntry *g_shipList = NULL;
 /* Index in g_shipList of each craft species' model. It starts with species 2 to
  * 8 at 1 to 7, 14 at 8, 16 at 9 and the rest at 0; ShipList_Load, its only
  * writer, sets the entry of each species under 17 that the list names. */
@@ -235,7 +236,7 @@ int g_missionSetupCountermeasureOptionCount = 0;
  * MissionSetup_BattleChoice_BuildList swaps it out for a moment, and the pilot
  * record takes a loaded list over as g_battleMissionList. */
 // GLOBAL: XVT 0xAA6114
-MissionListEntry *g_missionList = NULL;
+struct MissionListEntry *g_missionList = NULL;
 /* Index in g_missionList of the selected mission, the entry whose missionIdx is
  * the current type's selected description id, or g_missionCount when none is.
  * Many functions write it, chiefly FrontendMission_LoadCurrent and the mission
@@ -276,7 +277,7 @@ unsigned int g_missionCount = 0;
  * players, and in a solo game MissionSetup_Update and the Enter functions,
  * which put the pilot in entry 0. */
 // GLOBAL: XVT 0xAA6150
-MpRosterEntry g_mpRoster[8] = {{0}};
+struct MpRosterEntry g_mpRoster[8] = {{0}};
 /* Entries in g_battleMissionList. Set by MissionSetup_BattleChoice_BuildList
  * and PilotRecord_DrawMissionAchievementsPage, and to 0 by
  * MissionSetup_BattleChoice_Exit. */
@@ -293,7 +294,7 @@ int g_localPilotNetworkPlayerIndex = 0;
  * MissionSetup_BattleChoice_Exit, Concourse_Exit and
  * PilotRecord_DrawMissionAchievementsPage free it and set it to NULL. */
 // GLOBAL: XVT 0xB6A2B4
-MissionListEntry *g_battleMissionList = NULL;
+struct MissionListEntry *g_battleMissionList = NULL;
 /* GetTickCount() at the battle choice countdown's latest frame, in ms. Only
  * MissionSetup_BattleChoice_Update writes it. */
 // GLOBAL: XVT 0x66D880
@@ -582,7 +583,7 @@ int MissionSetup_Update(int frameCounter)
 		ANIMATION_CYCLE_FRAMES = 32,
 	};
 
-	RECT rect;
+	struct RECT rect;
 	unsigned int nowMs;
 	int packetType;
 	int playerIndex;
@@ -1584,7 +1585,7 @@ int MissionSetup_DrawMissionTypeControls(void)
 
 	int changed = 0;
 	int isHost;
-	RECT rect;
+	struct RECT rect;
 	int previousMissionDirectoryId;
 	int cursorY;
 	int cursorX;
@@ -3729,8 +3730,8 @@ void MissionSetup_LoadMissionList(int missionDirectoryId)
 		File_Close(stream);
 		return;
 	}
-	g_missionList = (MissionListEntry *)malloc(sizeof(*g_missionList) *
-						   g_missionCount);
+	g_missionList = (struct MissionListEntry *)malloc(
+		sizeof(*g_missionList) * g_missionCount);
 	if (g_missionList == NULL) {
 		File_Close(stream);
 		return;
@@ -3979,7 +3980,7 @@ void MissionSetup_LoadMissionDescText(char *outText4096)
 // FUNCTION: XVT 0x4E5810
 int MissionSetup_DrawMissionDescription(void)
 {
-	RECT rect;
+	struct RECT rect;
 	int continuationActive;
 	int imperialVictories;
 	int rebelVictories;
@@ -4172,10 +4173,10 @@ int MissionSetup_DrawMissionDescription(void)
 // FUNCTION: XVT 0x4E5B90
 int MissionSetup_DrawPlayerRoster(int frameCounter)
 {
-	RECT rect;
-	RECT previousClipRect;
-	RECT lightRect;
-	RECT qualityRect;
+	struct RECT rect;
+	struct RECT previousClipRect;
+	struct RECT lightRect;
+	struct RECT qualityRect;
 	int mouseX;
 	int mouseY;
 	int displayedCount;
@@ -4203,7 +4204,7 @@ int MissionSetup_DrawPlayerRoster(int frameCounter)
 	FrontImage_GetResourceRect("light1", &lightRect);
 
 	for (rosterIndex = 0; rosterIndex < 8; ++rosterIndex) {
-		MpRosterEntry *rosterEntry = &g_mpRoster[rosterIndex];
+		struct MpRosterEntry *rosterEntry = &g_mpRoster[rosterIndex];
 		playerId = &rosterEntry->playerId;
 		if (*playerId == 0) {
 			continue;
@@ -4306,7 +4307,7 @@ int MissionSetup_DrawPlayerRoster(int frameCounter)
 	FrontendDraw_RectAssign(&rect, 88, 331, 258, 345);
 	FrontImage_GetResourceRect("light1", &lightRect);
 	for (rosterIndex = 0; rosterIndex < 8; ++rosterIndex) {
-		MpRosterEntry *rosterEntry = &g_mpRoster[rosterIndex];
+		struct MpRosterEntry *rosterEntry = &g_mpRoster[rosterIndex];
 		playerId = &rosterEntry->playerId;
 		if (*playerId == 0) {
 			continue;
@@ -4392,7 +4393,7 @@ int MissionSetup_BroadcastLobbySelection(void)
 	int missionDirectoryId;
 	int playerRosterIndex;
 	int rosterIndex;
-	NetPlayerInfo *playerRoster;
+	struct NetPlayerInfo *playerRoster;
 
 	g_frontendNetPacketScratch.packetType = NET_PACKET_LOBBY_SELECTION;
 	memcpy(g_frontendNetPacketScratch.payload,
@@ -4411,11 +4412,12 @@ int MissionSetup_BroadcastLobbySelection(void)
 		/* Before sending, clear each roster entry with no ready player in the network roster. */
 		for (rosterIndex = 0; rosterIndex < rosterCapacity;
 		     ++rosterIndex) {
-			MpRosterEntry *rosterEntry = &g_mpRoster[rosterIndex];
+			struct MpRosterEntry *rosterEntry =
+				&g_mpRoster[rosterIndex];
 
 			playerRosterIndex = 0;
 			if (rosterCount > 0) {
-				NetPlayerInfo *player = playerRoster;
+				struct NetPlayerInfo *player = playerRoster;
 
 				do {
 					if (player->playerId != 0 &&
@@ -4435,7 +4437,7 @@ int MissionSetup_BroadcastLobbySelection(void)
 
 		for (rosterIndex = 0; rosterIndex < rosterCapacity;
 		     ++rosterIndex) {
-			const MpRosterEntry *rosterEntry =
+			const struct MpRosterEntry *rosterEntry =
 				&g_mpRoster[rosterIndex];
 			int playerId = rosterEntry->playerId;
 
@@ -4458,7 +4460,7 @@ int MissionSetup_BroadcastLobbySelection(void)
 		playerRoster = Net_GetPlayerRoster(&rosterCount);
 		rosterIndex = 0;
 		if (rosterCount > 0) {
-			NetPlayerInfo *player = playerRoster;
+			struct NetPlayerInfo *player = playerRoster;
 
 			do {
 				if (player->readyFlag == 1) {
@@ -4522,7 +4524,7 @@ int MissionSetup_SendLobbyState(int toPlayerId)
 	int readyPacketWordCount;
 	int rosterCapacity;
 	int rosterCount;
-	NetPlayerInfo *playerRoster;
+	struct NetPlayerInfo *playerRoster;
 	int playerRosterIndex;
 	int rosterIndex;
 	int missionDirectoryId;
@@ -4545,7 +4547,8 @@ int MissionSetup_SendLobbyState(int toPlayerId)
 		 * entries with no ready player there. */
 		for (rosterIndex = 0; rosterIndex < rosterCapacity;
 		     ++rosterIndex) {
-			MpRosterEntry *rosterEntry = &g_mpRoster[rosterIndex];
+			struct MpRosterEntry *rosterEntry =
+				&g_mpRoster[rosterIndex];
 
 			for (playerRosterIndex = 0;
 			     playerRosterIndex < rosterCount;
@@ -4570,7 +4573,7 @@ int MissionSetup_SendLobbyState(int toPlayerId)
 		}
 		for (rosterIndex = 0; rosterIndex < rosterCapacity;
 		     ++rosterIndex) {
-			const MpRosterEntry *rosterEntry =
+			const struct MpRosterEntry *rosterEntry =
 				&g_mpRoster[rosterIndex];
 			int playerId = rosterEntry->playerId;
 
@@ -4588,7 +4591,7 @@ int MissionSetup_SendLobbyState(int toPlayerId)
 		packetWords[0] = NET_PACKET_LOADOUT_ROSTER;
 		for (rosterIndex = 0; rosterIndex < rosterCapacity;
 		     ++rosterIndex) {
-			const MpRosterEntry *rosterEntry =
+			const struct MpRosterEntry *rosterEntry =
 				&g_mpRoster[rosterIndex];
 
 			packetWords[packetWordCount++] =
@@ -4612,7 +4615,7 @@ int MissionSetup_SendLobbyState(int toPlayerId)
 		playerRoster = Net_GetPlayerRoster(&rosterCount);
 		for (rosterIndex = 0; rosterIndex < rosterCount;
 		     ++rosterIndex) {
-			const NetPlayerInfo *player =
+			const struct NetPlayerInfo *player =
 				&playerRoster[rosterIndex];
 
 			if (player->readyFlag != 1) {
@@ -4798,7 +4801,7 @@ int MissionSetup_BroadcastReadyRoster(int toPlayerId)
 {
 	enum { ROSTER_CAPACITY = 8, PACKET_HEADER_WORD_COUNT = 3 };
 
-	NetPlayerInfo *roster;
+	struct NetPlayerInfo *roster;
 	int rosterCount;
 	int rosterIndex;
 	int packetWordCount;
@@ -4871,10 +4874,10 @@ int MissionSetup_DrawMissionList(int frameCounter)
 		CAMPAIGN_CLIENT_CONTINUATION_OFFSET = 12,
 	};
 
-	RECT rect;
+	struct RECT rect;
 	int cursorX;
 	int cursorY;
-	RECT awardRect;
+	struct RECT awardRect;
 	int missionListIndex;
 	int displayRow;
 	unsigned int awardId;
@@ -5956,7 +5959,7 @@ int MissionSetup_DrawGameSettings(void)
 	int buttonResult;
 	int textWidth;
 	const char *label;
-	RECT rect;
+	struct RECT rect;
 	int *packetWords;
 
 	FrontendText_Draw(SETTINGS_TITLE_FONT_SIZE,
@@ -7029,7 +7032,7 @@ int MissionSetup_DrawBackground(void)
 						break;
 					}
 					playerNumberPtr +=
-						sizeof(XvtFlightGroup);
+						sizeof(struct XvtFlightGroup);
 					++flightGroupIndex;
 				} while (*(int16_t *)&g_frontendMission
 						  .flightGroupCount >
@@ -7100,7 +7103,7 @@ int MissionSetup_UseRebelBackground(void)
 	XvtFile *stream;
 	char *readResult;
 	char filePath[256];
-	FrontendMission mission;
+	struct FrontendMission mission;
 
 	sprintf(filePath, "%s\\%s",
 		g_missionDirectoryNames[MISSION_DIRECTORY_CAMPAIGNS],
@@ -7138,8 +7141,8 @@ int MissionSetup_UseRebelBackground(void)
 						if (*playerNumberPtr != 0) {
 							break;
 						}
-						playerNumberPtr +=
-							sizeof(XvtFlightGroup);
+						playerNumberPtr += sizeof(
+							struct XvtFlightGroup);
 						++flightGroupIndex;
 					} while ((int16_t)mission
 							 .flightGroupCount >
@@ -7195,7 +7198,7 @@ void MissionSetup_DrawCraftLoadout(void)
 		COUNTERMEASURE_STRING_BASE = 288,
 	};
 
-	RECT rect;
+	struct RECT rect;
 	int craftType;
 	int rosterIndex;
 	int craftSelectionAllowed;
@@ -7614,9 +7617,9 @@ void MissionSetup_DrawPlayerLoadouts(int frameCounter)
 		PULSE_PAIR_MASK = ~1
 	};
 
-	RECT rowRect;
-	RECT oldClipRect;
-	RECT otherTeamRect;
+	struct RECT rowRect;
+	struct RECT oldClipRect;
+	struct RECT otherTeamRect;
 	int rowY;
 	int rosterIndex;
 	int teamIndex;
@@ -8150,7 +8153,7 @@ int MissionSetup_UpdateCraftLoadout(void)
 	int slotIndex;
 	int mouseY;
 	int mouseX;
-	RECT rect;
+	struct RECT rect;
 	int selectedPresetCraftOptionIndex;
 	int selectedFlightGroupCraftOptionIndex;
 	int selectedFlightGroupIndex;
@@ -9415,7 +9418,7 @@ void ShipList_Load(void)
 	if (g_shipList != NULL) {
 		return;
 	}
-	g_shipList = (ShipListEntry *)malloc(sizeof(*g_shipList) * 100);
+	g_shipList = (struct ShipListEntry *)malloc(sizeof(*g_shipList) * 100);
 	if (g_shipList == NULL) {
 		return;
 	}
@@ -9681,7 +9684,7 @@ int MissionSetup_EnterNextMission(int frameCounter)
 int MissionSetup_PruneDisconnectedPlayers(void)
 {
 	int playerCount;
-	NetPlayerInfo *playerRoster;
+	struct NetPlayerInfo *playerRoster;
 	int teamIndex;
 	int teamPlayerIndex;
 	int rosterIndex;
@@ -10101,7 +10104,7 @@ int MissionSetup_ExitCurrentMission(void)
 // FUNCTION: XVT 0x4F1B00
 int MissionSetup_EnterCurrentMission(int frameCounter)
 {
-	PilotNetworkPlayer *player;
+	struct PilotNetworkPlayer *player;
 	int *craftIdPtr;
 
 	(void)frameCounter;
@@ -10111,7 +10114,7 @@ int MissionSetup_EnterCurrentMission(int frameCounter)
 	do {
 		*craftIdPtr = 0;
 		craftIdPtr = (int *)((char *)craftIdPtr +
-				     sizeof(PilotNetworkPlayer));
+				     sizeof(struct PilotNetworkPlayer));
 		player->craftOption = -1;
 		player->warheadOption = -1;
 		player->beamOption = -1;
@@ -10257,8 +10260,8 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter)
 	int localPlayerId;
 	int cursorX;
 	int cursorY;
-	RECT rect;
-	RECT savedClipRect;
+	struct RECT rect;
+	struct RECT savedClipRect;
 
 	if (frameCounter == 0) {
 #ifdef XVT_MODERN
@@ -11372,8 +11375,8 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter)
 // FUNCTION: XVT 0x4F32B0
 int MissionSetup_DrawUnassignedPlayers(int frameCounter)
 {
-	RECT rect;
-	RECT previousClipRect;
+	struct RECT rect;
+	struct RECT previousClipRect;
 	int readyPlayerCount;
 	int displayedPlayerCount;
 	int rosterIndex;
@@ -11680,8 +11683,8 @@ void MissionSetup_UpdateTeamCounts(void)
 // FUNCTION: XVT 0x4F3740
 void MissionSetup_DrawTeamAssignments(int frameCounter)
 {
-	RECT rect;
-	RECT savedClip;
+	struct RECT rect;
+	struct RECT savedClip;
 	int teamIndex;
 	int slotIndex;
 	int cursorX;
@@ -12141,8 +12144,9 @@ void MissionSetup_PruneTeamAssignments(void)
 			    *activePlayerIdPtr == rosterPlayerValue) {
 				break;
 			}
-			rosterPlayerIdPtr = (int *)((char *)rosterPlayerIdPtr +
-						    sizeof(MpRosterEntry));
+			rosterPlayerIdPtr =
+				(int *)((char *)rosterPlayerIdPtr +
+					sizeof(struct MpRosterEntry));
 		} while (++rosterIndex < 8);
 
 		if (rosterIndex == 8) {
@@ -12282,7 +12286,7 @@ int MissionSetup_UpdateTeamControls(void)
 	int cursorX;
 	int cursorY;
 	int slot;
-	RECT rect;
+	struct RECT rect;
 
 	if (g_pilotData.missionDirectoryId ==
 		    MISSION_DIRECTORY_COMBAT_ENGAGEMENTS &&
@@ -12622,7 +12626,7 @@ int MissionSetup_TryContinueBattle(void)
 	uint32_t packetSize;
 #endif
 	int *receivedPacket;
-	BattleSequenceState localSequenceState;
+	struct BattleSequenceState localSequenceState;
 
 	if (g_frontendMissionSessionMode ==
 	    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
@@ -12740,7 +12744,7 @@ int MissionSetup_TryContinueBattle(void)
 			0, &g_frontendNetPacketScratch,
 			sizeof(g_frontendNetPacketScratch.packetType) +
 				sizeof(int) + sizeof(continuationSeed) +
-				sizeof(BattleSequenceState));
+				sizeof(struct BattleSequenceState));
 		memcpy(&g_pilotData.battleSequenceState,
 		       &g_pilotData
 				.mpBattleContinuations
@@ -12876,7 +12880,7 @@ int MissionSetup_TryContinueCampaign(void)
 	uint32_t packetSize;
 #endif
 	int *receivedPacket;
-	CampaignSequenceState localSequenceState;
+	struct CampaignSequenceState localSequenceState;
 
 	if (g_frontendMissionSessionMode ==
 	    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
@@ -12998,7 +13002,7 @@ int MissionSetup_TryContinueCampaign(void)
 			0, &g_frontendNetPacketScratch,
 			sizeof(g_frontendNetPacketScratch.packetType) +
 				sizeof(int) + sizeof(continuationSeed) +
-				sizeof(CampaignSequenceState));
+				sizeof(struct CampaignSequenceState));
 		memcpy(&g_pilotData.campaignSequenceState,
 		       &g_pilotData
 				.mpCampaignContinuations
@@ -13112,7 +13116,7 @@ int MissionSetup_TryContinueCampaign(void)
 // FUNCTION: XVT 0x4F4F80
 int MissionSetup_DrawTeamMissionDescription(void)
 {
-	RECT rect;
+	struct RECT rect;
 	int lineCount;
 
 	FrontendDraw_RectAssign(&rect, 88, 207, 430, 224);
@@ -13254,9 +13258,9 @@ int MissionSetup_FlightAssignmentUpdate(int frameCounter)
 	int cursorX;
 	int cursorY;
 	int leaveConfirmed;
-	RECT rect;
-	RECT mapRect;
-	RECT savedClipRect;
+	struct RECT rect;
+	struct RECT mapRect;
+	struct RECT savedClipRect;
 
 	if (frameCounter == 0) {
 		g_missionSetupLaunchSignalSent = 0;
@@ -14221,7 +14225,7 @@ int MissionSetup_DrawAssignmentControls(void)
 		UI_SOUND_PAN_CENTER = 63
 	};
 
-	RECT rect;
+	struct RECT rect;
 	int cursorX;
 	int cursorY;
 	int captainControls;
@@ -14389,7 +14393,7 @@ int MissionSetup_DrawAssignmentControls(void)
 			     flightGroupIndex <
 			     (int16_t)g_frontendMission.flightGroupCount;
 			     ++flightGroupIndex) {
-				const XvtFlightGroup *flightGroup;
+				const struct XvtFlightGroup *flightGroup;
 
 				flightGroup = &g_frontendMission.flightGroups
 						       [flightGroupIndex];
@@ -14604,9 +14608,9 @@ int MissionSetup_DrawFlightAssignments(int frameCounter)
 		UI_SOUND_PAN_CENTER = 63,
 	};
 
-	RECT rect;
-	RECT playerRect;
-	RECT savedClipRect;
+	struct RECT rect;
+	struct RECT playerRect;
+	struct RECT savedClipRect;
 	int yOffset;
 	int isTeamCaptain;
 	int teamPlayerIndex;
@@ -14865,7 +14869,7 @@ int MissionSetup_DrawFlightAssignments(int frameCounter)
 		     flightGroupIndex <
 		     (int)(int16_t)g_frontendMission.flightGroupCount;
 		     ++flightGroupIndex) {
-			XvtFlightGroup *flightGroup;
+			struct XvtFlightGroup *flightGroup;
 			uint8_t iffColorCode;
 			const char *designation;
 			int assignedTeamPlayerIndex;
@@ -15375,8 +15379,9 @@ void MissionSetup_PruneFlightAssignments(void)
 			if (*rosterPlayerIdPtr == removedPlayerId) {
 				break;
 			}
-			rosterPlayerIdPtr = (int *)((char *)rosterPlayerIdPtr +
-						    sizeof(MpRosterEntry));
+			rosterPlayerIdPtr =
+				(int *)((char *)rosterPlayerIdPtr +
+					sizeof(struct MpRosterEntry));
 			++rosterIndex;
 		} while (rosterIndex < 8);
 
@@ -15724,9 +15729,9 @@ int MissionSetup_FillFlightAssignments(void)
 // FUNCTION: XVT 0x4FA810
 int MissionSetup_DrawAssignedPlayers(int frameCounter)
 {
-	RECT rect;
-	RECT playerTextRect;
-	RECT previousClipRect;
+	struct RECT rect;
+	struct RECT playerTextRect;
+	struct RECT previousClipRect;
 	int isTeamCaptain;
 	int flightGroupIndex;
 	int displayedFlightGroupCount;
@@ -15874,7 +15879,7 @@ int MissionSetup_DrawAssignedPlayers(int frameCounter)
 // FUNCTION: XVT 0x4FAB50
 int MissionSetup_DrawAssignmentMissionDescription(void)
 {
-	RECT rect;
+	struct RECT rect;
 	int lineCount;
 
 	FrontendDraw_RectAssign(&rect, 88, 90, 430, 107);
@@ -15996,8 +16001,8 @@ int MissionSetup_BattleChoice_Update(int frameCounter)
 	int animationFrame;
 	int remainingSeconds;
 	int canChooseMission;
-	RECT rect;
-	RECT savedClipRect;
+	struct RECT rect;
+	struct RECT savedClipRect;
 
 	if (frameCounter == 0) {
 		g_battleChoiceTimeoutHandled = 0;
@@ -16559,7 +16564,7 @@ int MissionSetup_BattleChoice_Update(int frameCounter)
 // FUNCTION: XVT 0x4FCBF0
 int MissionSetup_BattleChoice_DrawDescription(void)
 {
-	RECT rect;
+	struct RECT rect;
 	int lineCount;
 
 	FrontendDraw_RectAssign(&rect, 88, 138, 430, 153);
@@ -16611,8 +16616,8 @@ int MissionSetup_BattleChoice_DrawDescription(void)
 // FUNCTION: XVT 0x4FCD70
 int MissionSetup_BattleChoice_DrawRoster(int frameCounter)
 {
-	RECT rect;
-	RECT previousClipRect;
+	struct RECT rect;
+	struct RECT previousClipRect;
 	int mouseX;
 	int mouseY;
 	int displayedCount;
@@ -16692,7 +16697,7 @@ int MissionSetup_BattleChoice_BuildList(void)
 		BATTLE_DESCRIPTOR_LINE_CAPACITY = 255
 	};
 
-	MissionListEntry *savedMissionList;
+	struct MissionListEntry *savedMissionList;
 	unsigned int savedMissionCount;
 	unsigned int selectedMissionIndex;
 	unsigned int sourceMissionIndex;
@@ -16739,7 +16744,7 @@ int MissionSetup_BattleChoice_BuildList(void)
 
 	parsedMissionCount = atoi(g_frontendScratchBuffer);
 	g_battleMissionListCount = parsedMissionCount;
-	g_battleMissionList = (MissionListEntry *)malloc(
+	g_battleMissionList = (struct MissionListEntry *)malloc(
 		sizeof(*g_battleMissionList) * parsedMissionCount);
 	battleMissionIndex = 0;
 	while (battleMissionIndex < g_battleMissionListCount) {
@@ -16845,8 +16850,8 @@ int MissionSetup_BattleChoice_DrawList(int frameCounter)
 		AWARD_TOOLTIP_CITATION_BASE = FRONTSTR_659_QUICK_START,
 	};
 
-	RECT rect;
-	RECT awardRect;
+	struct RECT rect;
+	struct RECT awardRect;
 	int cursorX;
 	int cursorY;
 	int battleMissionIndex;

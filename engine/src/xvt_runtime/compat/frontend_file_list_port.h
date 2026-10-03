@@ -9,6 +9,7 @@
  * with FrontendFileList_Free, empty when nothing matched; NULL when the wildcard is rejected, memory
  * runs out, or the listing fails. The original returned an empty list when nothing matched and kept a
  * partial list when memory ran out after the first file. */
-FrontendFileList *FrontendFileList_BuildSortedModern(const char *wildcard);
+struct FrontendFileList *
+FrontendFileList_BuildSortedModern(const char *wildcard);
 
 #endif

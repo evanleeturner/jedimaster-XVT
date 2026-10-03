@@ -67,7 +67,7 @@ void XvtRemaster_BeginFrame(const struct AeronInputSnapshot *input)
  * replay, HUD dirty, direct). */
 void XvtRemaster_Frame(int32_t delta_us)
 {
-	const XvtRenderSnapshot *snapshot;
+	const struct XvtRenderSnapshot *snapshot;
 	int assets_ready = 1;
 	if (!g_initialized) {
 		return;
@@ -160,7 +160,7 @@ void XvtRemaster_Frame(int32_t delta_us)
 		Aeron_RequestFatalRendererError("flight view preparation");
 		return;
 	}
-	const XvtPreparedFlight *frame =
+	const struct XvtPreparedFlight *frame =
 		assets_ready ? XvtRemasterFlight_Current() : NULL;
 	if (frame) {
 		width = frame->view.camera.viewport.width;
@@ -291,7 +291,7 @@ void XvtRemaster_Shutdown(void)
 
 struct AeronTexture *XvtRemaster_Output(void)
 {
-	const XvtRenderSnapshot *s = XvtRenderSnapshot_Current();
+	const struct XvtRenderSnapshot *s = XvtRenderSnapshot_Current();
 	if (!s || s->scene_kind == XVT_SCENE_MOVIE) {
 		return NULL;
 	}
@@ -304,7 +304,7 @@ struct AeronTexture *XvtRemaster_Output(void)
 
 struct AeronTexture *XvtRemaster_MovieOverlay(void)
 {
-	const XvtRenderSnapshot *s = XvtRenderSnapshot_Current();
+	const struct XvtRenderSnapshot *s = XvtRenderSnapshot_Current();
 	return s && s->scene_kind == XVT_SCENE_MOVIE
 		       ? XvtFrontend_MovieOverlay()
 		       : NULL;

@@ -282,8 +282,8 @@ done:
 	return success;
 }
 
-XvtSetupResult XvtSetup_Run(const XvtLaunchOptions *options, XvtAppUi *ui,
-			    char *error, size_t capacity)
+XvtSetupResult XvtSetup_Run(const struct XvtLaunchOptions *options,
+			    struct XvtAppUi *ui, char *error, size_t capacity)
 {
 	char selected[XVT_PATH_CAPACITY];
 	AeronVfs *vfs = XvtStorage_Vfs();
@@ -306,7 +306,7 @@ XvtSetupResult XvtSetup_Run(const XvtLaunchOptions *options, XvtAppUi *ui,
 		error[0] = 0;
 	}
 	if (ui) {
-		const XvtSettings *settings =
+		const struct XvtSettings *settings =
 			loaded ? XvtConfig_Settings()
 			       : XvtConfig_DefaultSettings();
 		if (!XvtAppUi_Init(ui, settings->ui_font, error, capacity)) {

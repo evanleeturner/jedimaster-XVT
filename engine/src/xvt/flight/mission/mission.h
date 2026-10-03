@@ -47,7 +47,8 @@ struct MissionOrder {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_MissionOrder[(sizeof(MissionOrder) == 82) ? 1 : -1];
+typedef char
+	xvt_size_MissionOrder[(sizeof(struct MissionOrder) == 82) ? 1 : -1];
 
 extern uint16_t g_targetProximityBlinkBit;
 extern uint8_t g_flightRuntimeStateInitialized;
@@ -133,7 +134,7 @@ struct XvtFlightGroup {
 	 * arrives in. */
 	uint8_t arrivalDifficulty;
 	/* The two arrival trigger pairs. */
-	MissionTriggerPair arrivalTriggers[2];
+	struct MissionTriggerPair arrivalTriggers[2];
 	/* 1 joins the two arrival pairs with OR, else AND. */
 	uint8_t arrivals12OrArrivals34;
 	/* Random part of the arrival delay, minutes. */
@@ -141,7 +142,7 @@ struct XvtFlightGroup {
 	uint8_t arrivalDelayMinutes; /* Fixed arrival delay, minutes. */
 	uint8_t arrivalDelaySeconds; /* Fixed arrival delay, seconds. */
 	/* Trigger pair that sends the craft home and stops new rounds. */
-	MissionTriggerPair departureTrigger;
+	struct MissionTriggerPair departureTrigger;
 	/* Delay after the departure trigger, minutes. */
 	uint8_t departureDelayMinutes;
 	/* Delay after the departure trigger, seconds. */
@@ -175,11 +176,11 @@ struct XvtFlightGroup {
 	/* Nonzero when capturedDepartureMothership is set. */
 	uint8_t capturedDepartViaMothership;
 	/* The four orders; the AI follows the current one. */
-	MissionOrder orders[4];
+	struct MissionOrder orders[4];
 	/* Trigger pair that moves the AI to order 4 once it holds; not
 	 * tested when both conditions are MISSION_COND_ALWAYS_TRUE. */
-	MissionTriggerPair skipToOrder4;
-	FlightGroupGoal goals[8]; /* The group's eight goals. */
+	struct MissionTriggerPair skipToOrder4;
+	struct FlightGroupGoal goals[8]; /* The group's eight goals. */
 	/* Loaded with the record; nothing reads it. */
 	uint8_t reservedGoalsTail;
 	/* Mission point x, in mission units (256 world units). Entry 0 is
@@ -237,22 +238,24 @@ struct XvtFlightGroup {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_XvtFlightGroup[(sizeof(XvtFlightGroup) == 1378) ? 1 : -1];
+typedef char xvt_size_XvtFlightGroup[(sizeof(struct XvtFlightGroup) == 1378)
+					     ? 1
+					     : -1];
 
 #pragma pack(push, 1)
 
 struct MissionFlightGroup {
-	XvtFlightGroup fg; /* The record as loaded, adjusted by Mission_Init. */
+	struct XvtFlightGroup
+		fg; /* The record as loaded, adjusted by Mission_Init. */
 	int playerOwnerIdx; /* Player slot that owns the group, -1 for none. */
 };
 
 #pragma pack(pop)
-typedef char xvt_size_MissionFlightGroup[(sizeof(MissionFlightGroup) == 1382)
-						 ? 1
-						 : -1];
+typedef char xvt_size_MissionFlightGroup
+	[(sizeof(struct MissionFlightGroup) == 1382) ? 1 : -1];
 
-extern MissionFlightGroup g_missionFlightGroups[48];
-extern GlobalGoal g_missionGlobalGoals[10][7];
+extern struct MissionFlightGroup g_missionFlightGroups[48];
+extern struct GlobalGoal g_missionGlobalGoals[10][7];
 extern uint16_t g_currentFlightGroupIdx;
 extern uint16_t g_missionFileVersion;
 extern uint8_t g_initialSpawnBindPlayerCraftSlots;
@@ -285,9 +288,9 @@ struct Team {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_Team[(sizeof(Team) == 485) ? 1 : -1];
+typedef char xvt_size_Team[(sizeof(struct Team) == 485) ? 1 : -1];
 
-extern Team g_missionTeams[10];
+extern struct Team g_missionTeams[10];
 
 /* Stored as int8_t in the binary (IDB enum MissionType). */
 typedef int8_t MissionType;
@@ -326,9 +329,10 @@ struct MissionHeader {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_MissionHeader[(sizeof(MissionHeader) == 162) ? 1 : -1];
+typedef char
+	xvt_size_MissionHeader[(sizeof(struct MissionHeader) == 162) ? 1 : -1];
 
-extern MissionHeader g_missionHeader;
+extern struct MissionHeader g_missionHeader;
 extern uint16_t g_asteroidFieldRandSeed;
 
 struct MissionClock {
@@ -342,8 +346,8 @@ struct MissionClock {
 	int16_t subsecondTicks;
 };
 
-extern MissionClock g_missionElapsedClock;
-extern MissionClock g_missionCountdownClock;
+extern struct MissionClock g_missionElapsedClock;
+extern struct MissionClock g_missionCountdownClock;
 
 #pragma pack(push, 1)
 
@@ -352,7 +356,7 @@ struct MissionMessage {
 		[64]; ///< Message text passed directly to the in-flight message queue.
 	uint8_t sentToTeam
 		[10]; ///< Nonzero entry allows the corresponding player IFF/team to receive the message.
-	MissionTriggerPair triggerPairs
+	struct MissionTriggerPair triggerPairs
 		[2]; ///< Two trigger pairs evaluated before the message becomes active.
 	char voice
 		[16]; ///< Voice resource name stored by the mission file format; not consumed by XVT's runtime
@@ -363,11 +367,13 @@ struct MissionMessage {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_MissionMessage[(sizeof(MissionMessage) == 114) ? 1 : -1];
+typedef char xvt_size_MissionMessage[(sizeof(struct MissionMessage) == 114)
+					     ? 1
+					     : -1];
 
 enum { MISSION_MESSAGE_COUNT = 64 };
 
-extern MissionMessage g_missionMessages[MISSION_MESSAGE_COUNT];
+extern struct MissionMessage g_missionMessages[MISSION_MESSAGE_COUNT];
 
 enum {
 	TEAM_SCORE_BONUS = 0,
@@ -487,7 +493,7 @@ struct MissionFgRuntimeStats {
 	uint8_t goalState[80];
 };
 
-extern MissionFgRuntimeStats g_missionFgStats[48];
+extern struct MissionFgRuntimeStats g_missionFgStats[48];
 extern const uint8_t g_missionConditionUsesCountByCondition[48];
 extern uint16_t g_missionConditionTotalCount;
 extern uint16_t g_missionConditionCurrentCount;
@@ -527,7 +533,9 @@ struct EMissionStruct {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_EMissionStruct[(sizeof(EMissionStruct) == 450) ? 1 : -1];
+typedef char xvt_size_EMissionStruct[(sizeof(struct EMissionStruct) == 450)
+					     ? 1
+					     : -1];
 
 #pragma pack(push, 1)
 
@@ -539,7 +547,7 @@ struct ECondStruct {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_ECondStruct[(sizeof(ECondStruct) == 4) ? 1 : -1];
+typedef char xvt_size_ECondStruct[(sizeof(struct ECondStruct) == 4) ? 1 : -1];
 
 #pragma pack(push, 1)
 
@@ -566,7 +574,7 @@ struct EAIStruct {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_EAIStruct[(sizeof(EAIStruct) == 18) ? 1 : -1];
+typedef char xvt_size_EAIStruct[(sizeof(struct EAIStruct) == 18) ? 1 : -1];
 
 #pragma pack(push, 1)
 
@@ -604,12 +612,13 @@ struct EFGStruct {
 	uint8_t link_code;	   /* Copied to legacyPermaDeathId. */
 	uint8_t link_unused;	   /* Copied to reservedPermaDeath. */
 	uint8_t difficulty;	   /* Copied to arrivalDifficulty. */
-	ECondStruct start_cond[2]; /* Copied to arrivalTriggers[0]. */
+	struct ECondStruct start_cond[2]; /* Copied to arrivalTriggers[0]. */
 	uint8_t start_op; /* Copied to arrivalTriggers[0].trigger1OrTrigger2. */
 	uint8_t start_unused;	 /* Not read. */
 	uint8_t start_delay_min; /* Copied to arrivalDelayMinutes. */
 	uint8_t start_delay_sec; /* Copied to arrivalDelaySeconds. */
-	ECondStruct stop_cond;	 /* Copied to departureTrigger.triggers[0]. */
+	struct ECondStruct
+		stop_cond;	 /* Copied to departureTrigger.triggers[0]. */
 	uint8_t stop_min;	 /* Copied to departureDelayMinutes. */
 	uint8_t stop_sec;	 /* Copied to departureDelaySeconds. */
 	uint8_t stop_abort;	 /* Copied to abortTrigger. */
@@ -625,7 +634,7 @@ struct EFGStruct {
 	uint8_t capture_fg;	 /* Copied to capturedDepartureMothership. */
 	uint8_t capture_fg_used; /* Copied to capturedDepartViaMothership. */
 	/* Copied to orders 0 to 2; order 2's code comes from ai[1]. */
-	EAIStruct ai[3];
+	struct EAIStruct ai[3];
 	uint8_t pri_win_cond; /* Goal 0, a primary goal: its eventCondition. */
 	uint8_t pri_win_pct;  /* Goal 0's amount. */
 	/* Goal 1, a bonus goal: its eventCondition. */
@@ -648,13 +657,13 @@ struct EFGStruct {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_EFGStruct[(sizeof(EFGStruct) == 292) ? 1 : -1];
+typedef char xvt_size_EFGStruct[(sizeof(struct EFGStruct) == 292) ? 1 : -1];
 
 #pragma pack(push, 1)
 
 struct EMissionGoal {
 	/* Copied to triggerPairs[0] of team 0's global goal. */
-	ECondStruct subcond[2];
+	struct ECondStruct subcond[2];
 	/* First 16 bytes copied to name, the 17th to version. */
 	uint8_t editor_name[17];
 	uint8_t or_joined; /* Copied to triggerPairs[0].trigger1OrTrigger2. */
@@ -663,7 +672,8 @@ struct EMissionGoal {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_EMissionGoal[(sizeof(EMissionGoal) == 28) ? 1 : -1];
+typedef char
+	xvt_size_EMissionGoal[(sizeof(struct EMissionGoal) == 28) ? 1 : -1];
 
 #pragma pack(push, 1)
 
@@ -678,13 +688,13 @@ struct XvtV10FlightGroupText {
 
 #pragma pack(pop)
 typedef char xvt_size_XvtV10FlightGroupText
-	[(sizeof(XvtV10FlightGroupText) == 48) ? 1 : -1];
+	[(sizeof(struct XvtV10FlightGroupText) == 48) ? 1 : -1];
 
 #pragma pack(push, 1)
 
 struct TieRadioMessage {
 	char message[64];	   /* Copied to MissionMessage.message. */
-	ECondStruct conditions[2]; /* Copied to triggerPairs[0]. */
+	struct ECondStruct conditions[2]; /* Copied to triggerPairs[0]. */
 	char voice[16];		   /* Copied to MissionMessage.voice. */
 	uint8_t delay5s;	   /* Copied to MissionMessage.delay5s. */
 	/* Copied to triggerPairs[0].trigger1OrTrigger2. */
@@ -692,7 +702,9 @@ struct TieRadioMessage {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_TieRadioMessage[(sizeof(TieRadioMessage) == 90) ? 1 : -1];
+typedef char xvt_size_TieRadioMessage[(sizeof(struct TieRadioMessage) == 90)
+					      ? 1
+					      : -1];
 
 #pragma pack(push, 1)
 
@@ -714,14 +726,13 @@ struct XvtV10MissionHeader {
 };
 
 #pragma pack(pop)
-typedef char xvt_size_XvtV10MissionHeader[(sizeof(XvtV10MissionHeader) == 130)
-						  ? 1
-						  : -1];
+typedef char xvt_size_XvtV10MissionHeader
+	[(sizeof(struct XvtV10MissionHeader) == 130) ? 1 : -1];
 
 uint16_t Mission_IsSpecialCargoInspected(unsigned int flightGroupIdx,
 					 uint16_t specialCargoCraft);
 void Mission_UpdateLogic(void);
-int Mission_EvaluateTriggerPair(const MissionTriggerPair *triggerPair,
+int Mission_EvaluateTriggerPair(const struct MissionTriggerPair *triggerPair,
 				int16_t includeDepartedAsDestroyed);
 int16_t Mission_EvaluateCondition(uint16_t conditionType, int16_t variableType,
 				  uint16_t variable, int16_t amountType,

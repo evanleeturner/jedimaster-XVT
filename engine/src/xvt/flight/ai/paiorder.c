@@ -345,7 +345,7 @@ int16_t paiorder_underattackorder(void)
 		if (g_curCraft->lastAttackerObjIdx != UINT16_MAX) {
 			uint8_t threatBearing;
 			uint16_t attackerMaxSpeed;
-			MobileObject *attacker;
+			struct MobileObject *attacker;
 			uint16_t ownMaxSpeed;
 			uint16_t randomValue;
 			uint8_t maneuverMode;
@@ -414,8 +414,8 @@ int16_t paiorder_stillattackorder(void)
 	uint16_t lastAttackerObjIdx;
 	unsigned int attackerIndex;
 	uint16_t *lastAttackerObjIdxPtr;
-	ObjectRecord *attacker;
-	WarheadGuidanceState *guidance;
+	struct ObjectRecord *attacker;
+	struct WarheadGuidanceState *guidance;
 
 	if (g_paiContext.controller->maneuverMode !=
 	    g_paiContext.initialManeuverId) {
@@ -554,7 +554,7 @@ int16_t paiorder_flyhomeorder(void)
 // FUNCTION: XVT 0x46A140
 int16_t paiorder_dropoffdestorder(void)
 {
-	MissionOrder *order =
+	struct MissionOrder *order =
 		&g_missionFlightGroups[g_paiContext.craftFlightGroupIndex]
 			 .fg.orders[g_paiContext.orderSlot];
 	uint16_t destinationFlightGroup = (uint16_t)(order->variable2 - 1);
@@ -609,7 +609,7 @@ int16_t paiorder_enterhangarorder(void)
 	unsigned int otherTeam;
 	uint16_t carriedObjectIndex;
 	uint16_t carriedGroupIndex;
-	CraftData *carriedCraft;
+	struct CraftData *carriedCraft;
 	int specialCargo;
 
 	g_curCraft->aiFlight.separation = 1;
@@ -678,9 +678,9 @@ int16_t paiorder_enterhangarorder(void)
 			     objectIndex < g_activeRegionCraftObjectSlotEnd;
 			     ++objectIndex) {
 				int tableIndex;
-				ObjectRecord *object;
-				CraftData *otherCraft;
-				AiController *otherController;
+				struct ObjectRecord *object;
+				struct CraftData *otherCraft;
+				struct AiController *otherController;
 
 				tableIndex = objectIndex;
 				object = &g_objectTable[tableIndex];
@@ -1328,14 +1328,14 @@ int16_t paiorder_abortmissionorder(void)
 int16_t paiorder_leaderdeadorder(void)
 {
 	uint8_t leaderObjectIndex;
-	ObjectRecord *leaderObject;
-	CraftData *leaderCraft;
-	AiController *leaderController;
+	struct ObjectRecord *leaderObject;
+	struct CraftData *leaderCraft;
+	struct AiController *leaderController;
 	uint8_t leaderInvalid;
 	uint16_t objectIndex;
-	ObjectRecord *object;
-	CraftData *craft;
-	AiController *controller;
+	struct ObjectRecord *object;
+	struct CraftData *craft;
+	struct AiController *controller;
 
 	leaderObjectIndex = g_curCraft->leader_obj_idx;
 	if (leaderObjectIndex == UINT8_MAX) {
@@ -1457,7 +1457,7 @@ int16_t paiorder_alwaysorder(void) { return 1; }
 // FUNCTION: XVT 0x467EF0
 int16_t paiorder_leadergohomeorder(void)
 {
-	AiController *leaderController =
+	struct AiController *leaderController =
 		&g_paiContext.leaderOrSelfCraft->aiController;
 
 	return strcmp(g_planTable[leaderController->runningPlanId].name,
@@ -1603,7 +1603,7 @@ int16_t paiorder_abortboardorder(void)
 	int16_t shouldAbort;
 	uint8_t maneuverPhase;
 	uint16_t targetObjIdx;
-	ObjectRecord *target;
+	struct ObjectRecord *target;
 
 	shouldAbort = 0;
 	maneuverPhase = g_paiContext.controller->maneuverPhase;
@@ -2028,7 +2028,7 @@ int16_t paiorder_waitforallreturnorder(void)
 {
 	uint16_t flightGroupIndex;
 	uint16_t objectIndex;
-	ObjectRecord *object;
+	struct ObjectRecord *object;
 
 	flightGroupIndex = 0;
 	if ((int16_t)g_missionHeader.numFlightGroups > 0) {
@@ -2185,7 +2185,7 @@ int16_t paiorder_avoidstarshiporder(void)
 	};
 
 	int16_t maneuverMode;
-	CraftData *savedCraft;
+	struct CraftData *savedCraft;
 	uint16_t collisionObjectIndex;
 
 	maneuverMode = g_paiContext.controller->maneuverMode;
@@ -2837,7 +2837,7 @@ int16_t paiorder_orderswitchorder(void)
 // FUNCTION: XVT 0x469F40
 int16_t paiorder_completefolloworder(void)
 {
-	AiController *leaderController;
+	struct AiController *leaderController;
 	uint16_t flightGroupIndex;
 	int runtimeFlightGroupIndex;
 	uint16_t currentOrderSlot;
@@ -2880,7 +2880,7 @@ int16_t paiorder_completefolloworder(void)
 				.fg.orders[g_paiContext.orderSlot]
 				.order;
 		{
-			AiController *currentController;
+			struct AiController *currentController;
 			int planNameIndex;
 
 			currentController = g_paiContext.controller;

@@ -11,9 +11,10 @@
  * asks the port for settings instead. One global state; not thread-safe. */
 
 /* Clears all state and installs options; invalid options log a warning and leave none installed. */
-void XvtControllerMapping_Init(const XvtControllerOptions *options);
+void XvtControllerMapping_Init(const struct XvtControllerOptions *options);
 /* Keeps options for the next ApplyPending; invalid options log a warning and are dropped. */
-void XvtControllerMapping_SetOptions(const XvtControllerOptions *options);
+void XvtControllerMapping_SetOptions(
+	const struct XvtControllerOptions *options);
 /* Installs the options SetOptions kept, if any. Controllers whose model was removed or changed release
  * their actions; the rest keep their state and axis controller. */
 void XvtControllerMapping_ApplyPending(void);
@@ -29,7 +30,7 @@ void XvtControllerMapping_Suspend(void);
 /* Clears all state, the installed options included. */
 void XvtControllerMapping_Shutdown(void);
 /* The installed options, not ones waiting for ApplyPending. */
-const XvtControllerOptions *XvtControllerMapping_Options(void);
+const struct XvtControllerOptions *XvtControllerMapping_Options(void);
 /* Yaw, pitch or roll from this frame, -127 to 127: 0 inside the deadzone, inverted as configured, and a
  * gamepad's pitch flipped once more, since its Y axis points down. 0 for throttle, an unbound axis, or while
  * suspended. */
@@ -46,7 +47,7 @@ void XvtControllerMapping_DropCommands(void);
 /* The connected controller matching model's GUID and kind whose instance id is preferred, else the one
  * with the lowest instance id; NULL when none. */
 const AeronControllerSnapshot *
-XvtControllerMapping_Resolve(const XvtControllerModel *model,
+XvtControllerMapping_Resolve(const struct XvtControllerModel *model,
 			     const AeronInputSnapshot *input,
 			     uint32_t preferred);
 /* The instance id of the controller whose axes that model uses, or 0. */
