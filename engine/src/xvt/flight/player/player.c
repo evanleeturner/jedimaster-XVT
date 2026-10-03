@@ -34,15 +34,48 @@
 #include <limits.h>
 #include <string.h>
 
+/* Per player, countdown timers for HUD panes and redraws, in ticks.
+ * Flight_UpdateTimers counts each down by g_elapsedTicks for participating
+ * players; Player_BindToAvailableCraft zeroes a player's set. Many functions
+ * write them, chiefly in the HUD, message and collision code. */
 // GLOBAL: XVT 0x9D8B80
 PlayerFlightTransientTimers g_playerFlightTransientTimers[8];
+/* Slot, 0 to 7, of the player at this machine. Two functions write it, both at
+ * flight start from NetSession_FindPlayerSlotByDpid: Flight_MainLoop in the
+ * original build and XvtFlightLoading_Globals in the modern one. */
 // GLOBAL: XVT 0x9ECC34
 int g_localPlayer;
+/* Each player's flight state: the craft flown, targeting, saved settings,
+ * mission tallies, camera and chat. Many functions write it. */
 // GLOBAL: XVT 0x9E9670
 PlayerData g_players[8];
+/* Each player's four taunt lines, 70 bytes each, sent as chat by keys 155 to
+ * 158. Alone, a player gets g_gameConfig.taunts; in multiplayer each slot holds
+ * what arrived over the network. Written by
+ * FlightNet_SyncPlayerOptionsAndTaunts in the original build and by
+ * XvtFlightNetwork_ReadTaunts and XvtFlightNetwork_ExchangeOptions in the
+ * modern one. */
 // GLOBAL: XVT 0x9D7800
 char g_playerTauntText[8][4][70] = {{{0}}};
 
+/* Binds a player to one of their flight groups' craft that is not breaking up,
+ * exploding or entering hyperspace: the one with signature
+ * preferredObjectSignature when given and found, else the next after
+ * previousObjectIdx, wrapping through the active region's craft slots. Returns
+ * 1, changing nothing, when there is none; else 0. The craft becomes the
+ * player's: laser banks and launchers reset, then the player's saved link
+ * modes, warhead flags, shield distribution (the front bank's energy shared out
+ * again, at most twice shieldStrength a bank) and recharge levels restored, and
+ * the saved throttle when the signature matched or previousObjectIdx was given.
+ * The player gets objectIndex and boundObjectSignature; loses hyperspace,
+ * missile lock, the pending action and beam timers, input smoothing, key mods
+ * and engine wash state; keeps the weapon selection only on a signature match;
+ * and with resetTargetingState 1 gets the target box on and no target or
+ * presets. When previousObjectIdx names an object, the craft's AI target
+ * becomes the player's target. The craft gets plan nullpln and no AI target;
+ * the player's transient timers, hardpoint position, HUD aim and camera are
+ * reset. The local player also gets the craft name redrawn and
+ * FLIGHT_SOUND_BOMB_1. Ends with Flight_ComputeLiveWorldStateChecksum. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x45A1E0
 int Player_BindToAvailableCraft(int playerIdx, uint32_t previousObjectIdx,
@@ -351,6 +384,20 @@ int Player_BindToAvailableCraft(int playerIdx, uint32_t previousObjectIdx,
 	return 0;
 }
 
+/* Hands the player's craft back to the AI. Returns 0, changing nothing, when
+ * requireMultipleCraft is 1 and the player owns at most one craft not breaking
+ * up, exploding or entering hyperspace, or when the player has no craft; else
+ * 1. Saves the craft settings, then clears the craft's owner, proximity lists,
+ * laser bank state, launcher cooldowns and lock, sets its launchers to link
+ * mode 1 keeping bit 7, and puts all its shield energy in the front bank.
+ * Clears the player's craft, hyperspace, missile lock, input smoothing and
+ * engine wash state. With assignAiPlan the craft takes its flight group's first
+ * order: plan, throttle (0 for nullpln, the stationary plans and disabledpln,
+ * 0x8000 for escortldr1pln) and speed, and the player's target as candidate
+ * target when an order aims at it; otherwise plan nullpln and no steering.
+ * currentOrderSlot and the plan ids are written to the craft g_curCraft points
+ * at on entry, which is this craft only when the caller left it there;
+ * g_curCraft ends at this craft. */
 // FUNCTION: XVT 0x45A850
 int Player_UnbindFromCurrentCraft(int playerIndex, int requireMultipleCraft,
 				  int assignAiPlan)
@@ -526,6 +573,9 @@ int Player_UnbindFromCurrentCraft(int playerIndex, int requireMultipleCraft,
 	return 1;
 }
 
+/* Copies the throttle, recharge levels, shield distribution, laser link modes
+ * and the low two bits of each warhead launcher's flags from the player's craft
+ * into savedCraftSettings. Does not check that the player has a craft. */
 // FUNCTION: XVT 0x45ACD0
 void Player_SaveCraftSettings(int playerIndex)
 {
@@ -552,6 +602,26 @@ void Player_SaveCraftSettings(int playerIndex)
 		(uint8_t)(craft->warheadLauncherFlags[1] & 3);
 }
 
+/* Turns one player's stick input into craft rotation or camera movement, after
+ * FlightInput_ApplyDeadzone, doubling g_scaledInputPitch. In the cockpit (input
+ * not blocked, no map camera) and outside hyperspace, the model's roll and
+ * pitch rates scale with throttle (a third at a stop, full at a third of full
+ * throttle, two thirds at full; a craft without engines counts as stopped) and
+ * with power: each level the shield and laser recharge levels together sit
+ * below 4 adds 0xC00 / 65536 of the rate, each level above takes as much
+ * (lasers count twice without shields). The input sets a desired yaw and pitch,
+ * zero when flight controls are out or a tractor beam holds the craft without
+ * chaff; smoothedInputYaw and smoothedInputPitch move toward them, and the
+ * steps, scaled by elapsed ticks, turn the craft through USER_calcdeltapitch,
+ * yaw also rolling it. With the roll modifier key (g_flightKeyMods & 0xE is 2)
+ * yaw input rolls the craft at twice the step instead; the modern build takes
+ * that roll from XvtFlightControls_RollStep. In hyperspace nothing turns. With
+ * input blocked or a map camera, it drives the camera: steps the map camera's
+ * transition in mapCameraState, pans the map camera or moves the HUD aim or
+ * view by input, and with g_flightKeyMods & 0xF of 1 or 2 moves the camera in
+ * or out by cameraDistanceStep; otherwise it shrinks cameraDistanceStep back to
+ * 32. The modern build's unlocked timing scales the steps with XvtPlayerTiming
+ * instead. */
 // FUNCTION: XVT 0x480570
 void Player_UpdateFlightControlsAndCamera(int playerIdx)
 {
@@ -1672,6 +1742,16 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx)
 	}
 }
 
+/* Edits and sends the player's chat line for g_currentActionKey: 8 deletes a
+ * character, 9 cycles the recipients (team, enemy, all), 13 sends msgText with
+ * IFMSG_374 to every participating player the recipients admit (team: the same
+ * team; enemy: another team not allied with the sender's), then IFMSG_378; 27
+ * cancels with IFMSG_379; 155 to 158 send taunts 0 to 3 from g_playerTauntText
+ * the same way. Any other key adds a character while the line holds fewer than
+ * 48. Key 0 only redraws the line, for the local player while
+ * flightGroupMessagePaneTimer is below SIMULATION_TICKS_PER_SECOND. Sending or
+ * cancelling sets chatRecipientMode back to inactive; sending sets
+ * g_msgSenderIff to 3. */
 // FUNCTION: XVT 0x481420
 void FlightChat_HandleInput(int playerIdx)
 {
@@ -1837,6 +1917,15 @@ void FlightChat_HandleInput(int playerIdx)
 	}
 }
 
+/* Returns the nearest object, of a flight group not on the player's team, that
+ * is an objective of kind goalType for that team, or -1 when none. A craft
+ * counts when active or arriving, with a pending flight group goal of that kind
+ * enabled for the team with points of 0 or more, or matching one of the team's
+ * global goal triggers for that kind; craft msg_BuildTargetDescription marks
+ * actionable come first. Static objects count, as actionable, with such a
+ * pending flight group goal. Skips empty slots, the player's own craft,
+ * explosions and objects with an active decoy beam. Writes trig2's polar
+ * results. */
 // FUNCTION: XVT 0x481940
 int16_t Player_FindNearestObjective(int goalType, int playerIdx)
 {
@@ -2045,6 +2134,8 @@ int16_t Player_FindNearestObjective(int goalType, int playerIdx)
 	return selectedObject;
 }
 
+/* Returns step * g_elapsedTicks / SIMULATION_TICKS_PER_SECOND: a rate per
+ * SIMULATION_TICKS_PER_SECOND ticks turned into this update's share. */
 // FUNCTION: XVT 0x481D70
 int Player_ScaleControlStepByElapsedTicks(int16_t step)
 {
@@ -2052,6 +2143,10 @@ int Player_ScaleControlStepByElapsedTicks(int16_t step)
 			       SIMULATION_TICKS_PER_SECOND);
 }
 
+/* Moves shield energy from bank srcBank to bank dstBank of the player's craft,
+ * as much as dstBank lacks of Craft_GetObjectMaxShield; nothing when srcBank is
+ * empty or dstBank full. Checks neither the banks nor that the player has a
+ * craft. */
 // FUNCTION: XVT 0x481EA0
 void Player_TransferShieldBankEnergy(uint16_t dstBank, uint16_t srcBank,
 				     int playerIdx)
@@ -2090,6 +2185,12 @@ void Player_TransferShieldBankEnergy(uint16_t dstBank, uint16_t srcBank,
 	}
 }
 
+/* Sets the HUD view for where the player's camera looks. With the external
+ * camera on: the target camera view while transitionTimer is set, else full
+ * screen, and all 60 entries of the camera roll, pitch and yaw histories set to
+ * the current view angles. With it off: input unblocked; back on the player's
+ * own craft, the saved HUD aim and view return; on another object, the HUD aim
+ * is centered, the view goes full screen and the external camera turns on. */
 // FUNCTION: XVT 0x481FB0
 void Player_UpdateHudViewForCameraFocus(int playerIdx)
 {
@@ -2138,6 +2239,12 @@ void Player_UpdateHudViewForCameraFocus(int playerIdx)
 	}
 }
 
+/* Returns the object the player is looking at, or UINT16_MAX: among targetable
+ * objects (type behaviorFlags bit 0) in the main and static slots other than
+ * the player's craft, the nearest inside the narrow aim cone; failing that, the
+ * one closest to the aim line when its g_targetAngleScore is below 50, or below
+ * 250 with the map camera. Without the map camera, a pick with an active decoy
+ * beam is refused with IFMSG_257. */
 // FUNCTION: XVT 0x4820B0
 uint16_t Player_PickTargetInSight(int playerIdx)
 {
@@ -2212,6 +2319,11 @@ uint16_t Player_PickTargetInSight(int playerIdx)
 }
 
 /* Besides picking the next target, this leaves g_curCraft pointing at the last craft it examined. */
+/* Steps from currentObjIdx by direction through the main and static slots,
+ * wrapping, and returns the first targetable object (type behaviorFlags bit 0)
+ * other than the player's craft. Objects with mobile data are skipped when
+ * explosions, under an active decoy beam, or craft breaking up or exploding.
+ * Returns UINT16_MAX after a full lap with none. */
 // FUNCTION: XVT 0x4822C0
 uint16_t Player_CycleTargetAnyIFF(uint16_t currentObjIdx, int16_t direction,
 				  int playerIdx)
@@ -2275,6 +2387,12 @@ uint16_t Player_CycleTargetAnyIFF(uint16_t currentObjIdx, int16_t direction,
 }
 
 /* Besides picking the next target, this leaves g_curCraft pointing at the last craft it examined. */
+/* Steps like Player_CycleTargetAnyIFF, with filters. targetFlags bit 2 skips
+ * projectile slots, bit 1 skips slots from g_projectileObjectSlotEnd up, bit 0
+ * skips mines. iffFilter 1 keeps the player's team, 2 objects not hostile to
+ * it, 3 hostile objects, 4 craft flown by players; the team is the mobile team,
+ * or the flight group's for an object without mobile data. Returns UINT16_MAX
+ * after a full lap with none. */
 // FUNCTION: XVT 0x4823E0
 uint16_t Player_CycleTarget(uint16_t currentObjIdx, int16_t direction,
 			    int playerIdx, int iffFilter, int targetFlags)
@@ -2410,6 +2528,18 @@ uint16_t Player_CycleTarget(uint16_t currentObjIdx, int16_t direction,
 	return objectIndex;
 }
 
+/* Makes an object the player's current target. Ignores UINT16_MAX, empty slots,
+ * explosions and the player's own craft. With the targeting computer of the
+ * player's craft out, emits IFMSG_086 and changes nothing. For a new target:
+ * plays FLIGHT_SOUND_TARGET_SELECTED; picks its component in a craft slot (the
+ * first main hull or fuselage with the map camera, else
+ * Player_SelectTargetComponentMesh), or 0; aims the camera at it while
+ * transitionTimer is set; clears missileLockState and the craft's
+ * warheadLockTicks; and describes it with msg_BuildTargetDescription with the
+ * map camera, or when the craft's first HUD feature is active and the player's
+ * view is HUD only or forward, or the local player's is the target camera.
+ * Without the map camera, does not check that the player has a craft before
+ * reading its HUD features. */
 // FUNCTION: XVT 0x4833D0
 void Player_SetTarget(int newTargetObjIdx, int playerIdx)
 {
@@ -2554,6 +2684,10 @@ void Player_SetTarget(int newTargetObjIdx, int playerIdx)
 	}
 }
 
+/* Returns the component to aim at on a new target: for a starship or platform,
+ * the main hull or fuselage mesh nearest the player's craft (0 if none is
+ * nearer than 0x1000000); for anything else the first main hull or fuselage
+ * mesh, or the mesh count, one past the last mesh, when it has none. */
 // FUNCTION: XVT 0x483800
 uint16_t Player_SelectTargetComponentMesh(uint16_t targetObjIdx,
 					  unsigned int playerIdx)
@@ -2639,6 +2773,13 @@ uint16_t Player_SelectTargetComponentMesh(uint16_t targetObjIdx,
 	return meshIndex;
 }
 
+/* Applies a pitch step and a yaw step to a craft's orientation. Despite the
+ * name, it returns the new roll, not a pitch change. The yaw step is ignored
+ * while the roll modifier key is held (g_flightKeyMods & 0xE is 2). The modern
+ * build turns the angles with XvtOrientation_ApplyPitchYaw and writes the
+ * object's pitch, yaw and roll and craft->pitch. The original build rotates the
+ * object's axes in g_curMatR0 to g_curMatR2 and writes the new pitch to
+ * craft->pitch only, and yaw and roll to the object. */
 // FUNCTION: XVT 0x483A00
 int16_t USER_calcdeltapitch(int16_t pitchAngleQ16, int16_t yawAngleQ16,
 			    uint16_t objectIndex, CraftData *craft)
@@ -2758,6 +2899,13 @@ int16_t USER_calcdeltapitch(int16_t pitchAngleQ16, int16_t yawAngleQ16,
 }
 
 /* Besides answering, this leaves g_curCraft pointing at the targeted craft when no player flies it. */
+/* Tells whether the player may order their current target by radio. Returns 0
+ * when there is none, it lies past the craft slots, a player flies it, or it is
+ * not active or has no working subsystem; 1 when it belongs to the player's
+ * flight group. Otherwise returns 0 when its group's radio setting is 0, and 1
+ * when its group is on the player's team, shares the player's group's global
+ * unit, has radio minus that group's playerNumber equal to 8, or radio minus
+ * the player's team equal to 1; else 0. */
 // FUNCTION: XVT 0x4841B0
 int16_t Player_CanRadioCommandCraft(int playerIdx)
 {
@@ -2816,6 +2964,17 @@ int16_t Player_CanRadioCommandCraft(int playerIdx)
 	return radio - playerTeam == 1;
 }
 
+/* Passes the player's order about a target to their AI wingmen; does nothing
+ * when the target is given and not hostile to the player's team. Wingmen are
+ * active AI craft of that team in the player's flight group, or in a group
+ * sharing its global unit or whose radio setting minus the player's group's
+ * playerNumber is 8. For commandId 155 each avoids the target
+ * (playerCommandAvoidTargetObjIdx) and drops it as candidate target. For any
+ * other command each takes it as candidate target and stops avoiding it, after
+ * leaving craftwaitforgopln for its saved plan; craft on the still, formation,
+ * fly-home, into-hyperspace or hangar plans are skipped. For the local player
+ * the last wingman answers by radio. Writes g_curCraft when a wingman leaves
+ * craftwaitforgopln. */
 // FUNCTION: XVT 0x484320
 void Player_IssueAiWingmanTargetOrder(uint16_t targetObjIdx, uint16_t commandId,
 				      uint16_t responseIndex, int playerIdx)
@@ -2938,6 +3097,15 @@ void Player_IssueAiWingmanTargetOrder(uint16_t targetObjIdx, uint16_t commandId,
 	}
 }
 
+/* Returns the craft nearest the target among those attacking it, or -1 when
+ * none or the target is UINT16_MAX. Looks at active craft with a working
+ * subsystem and no active decoy beam, other than the target, excludedObjIdx and
+ * explosions. An AI craft attacks when its AI target is the target and its
+ * maneuver is attack or rocket attack. A player's craft attacks when it hit the
+ * target craft last and the target is not a player's or was hit under 5 mission
+ * seconds ago; or when its player has the target selected and it lies within
+ * rough distance 0x10000 in the wide aim cone, or its warhead lock is building.
+ * Writes g_lastRoughDistance, g_targetAngleScore and trig2's polar results. */
 // FUNCTION: XVT 0x4846F0
 int16_t Player_FindAttackerOfTarget(uint16_t targetObjIdx,
 				    int16_t excludedObjIdx)
@@ -3026,6 +3194,14 @@ int16_t Player_FindAttackerOfTarget(uint16_t targetObjIdx,
 	return (int16_t)nearest;
 }
 
+/* Starts the player's view after their craft is destroyed: hyperspace off and
+ * awaitingNewCraft 1. With the map camera, only clears the local player's ready
+ * message queue. Otherwise the camera is freed at the craft's last position
+ * with input blocked, the view goes full screen, beam and missile warning
+ * sounds stop and FLIGHT_SOUND_MISSILE_LOCK_3 plays; when the local player was
+ * killed by an object in a craft slot, the killer is named: IFMSG_399 also
+ * naming sourcePlayerIdx's craft when that player is flying and does not fly
+ * the killer, else IFMSG_398. Does not check that the player has a craft. */
 // FUNCTION: XVT 0x484A30
 void Player_StartPostDestructionState(int playerIdx,
 				      unsigned int sourceObjectIndex,
@@ -3112,6 +3288,11 @@ void Player_StartPostDestructionState(int playerIdx,
 	g_players[playerIdx].awaitingNewCraft = 1;
 }
 
+/* Copies a name for the object into text and makes it message argument slot. A
+ * hostile craft the local player's team has not identified (unless
+ * locatePlayersEnabled) is named by Hud_AppendObjectDisplayName style 1 in a
+ * melee, else 3; a craft a player flies, by that player's name; anything else
+ * by style 3. Does not check the size of text. */
 // FUNCTION: XVT 0x484C50
 void Player_AppendKillMessageActorName(int slot, char *text, int objectIndex)
 {
@@ -3160,6 +3341,9 @@ void Player_AppendKillMessageActorName(int slot, char *text, int objectIndex)
 	msg_addMessagePtr((uint16_t)slot, text);
 }
 
+/* Sets trig2's polar results for the direction from the player's craft to an
+ * object or mission point reference, or from the player's camera when the
+ * player has no craft. Writes g_worldLocX, g_worldLocY and g_worldLocZ. */
 // FUNCTION: XVT 0x485000
 void Player_ComputePolarToObjectRef(int playerIdx, unsigned int objectRef)
 {
@@ -3183,6 +3367,12 @@ void Player_ComputePolarToObjectRef(int playerIdx, unsigned int objectRef)
 	}
 }
 
+/* Takes the player out of the mission (participationState 2). While any player
+ * is still connected (participationState 1), the player watches: map camera
+ * fully open, craft list view, input blocked, camera at height 0x40000 with
+ * cameraDistance 0x40000, or over the current target with cameraDistance 16
+ * times its maxBoundsExtent; no craft and no pending action; engine, chaff and
+ * beam sound loops updated. With none connected, sets missionEndPending. */
 // FUNCTION: XVT 0x485080
 void Player_EndFlightParticipation(int playerIdx)
 {
@@ -3248,6 +3438,10 @@ void Player_EndFlightParticipation(int playerIdx)
 	}
 }
 
+/* For a player other than the local one, says that player has no more craft and
+ * is out (IFMSG_381), then, while the local player is still connected, how many
+ * connected players remain (IFMSG_382) or that the local player is the only one
+ * (IFMSG_383). */
 // FUNCTION: XVT 0x4851D0
 void Player_EmitRemotePlayerDepartedMessages(int playerIdx)
 {
@@ -3280,6 +3474,14 @@ void Player_EmitRemotePlayerDepartedMessages(int playerIdx)
 	}
 }
 
+/* Drops the player's current target when its slot is empty, it is an explosion,
+ * or it has mobile data and an active decoy beam; also, without the map camera,
+ * when the player's targeting computer is out. On dropping it, sets
+ * targetCycleStart to the old target and targetingState 0, and from the target
+ * camera view returns to the forward view on the player's craft with IFMSG_224
+ * (for the local player also setting g_hudCachedTargetObjectIdx to -2 and
+ * g_renderObjectRefFlags to 0). Does not check that the player has a craft
+ * before testing its targeting computer. */
 // FUNCTION: XVT 0x485270
 void Player_ValidateCurrentTargets(int playerIdx)
 {
@@ -3342,6 +3544,7 @@ void Player_ValidateCurrentTargets(int playerIdx)
 	}
 }
 
+/* Runs Player_ValidateCurrentTargets for every participating player. */
 // FUNCTION: XVT 0x4853C0
 void Player_ValidateAllCurrentTargets(void)
 {
@@ -3356,6 +3559,8 @@ void Player_ValidateAllCurrentTargets(void)
 	}
 }
 
+/* Returns 1 when a craft of one of the player's flight groups in the active
+ * region is not breaking up, exploding or entering hyperspace; else 0. */
 // FUNCTION: XVT 0x4853F0
 int Player_HasAvailableOwnedCraft(int playerIdx)
 {
@@ -3398,6 +3603,18 @@ int Player_HasAvailableOwnedCraft(int playerIdx)
 	return remainingObjects != 0;
 }
 
+/* Keeps players in or out of the mission. A player awaiting a new craft whose
+ * bound craft is gone (slot empty or signature changed) has
+ * Mission_ProcessFlightGroupWaveCompletion run for the bound group and is bound
+ * to another of their craft (IFMSG_290 for the local player), or with none left
+ * leaves the mission with a notice. A watching player (map camera) still in the
+ * mission with no craft left after the same processing leaves too. Then each
+ * participating player flagged in g_playerAbortFlags quits: the craft goes to
+ * the AI, participationState becomes 0, the active player count is updated, a
+ * player other than the host is marked gone on the network, IFMSG_380 is shown,
+ * and for the local player missionEndPending is set and, as host, the session
+ * abort is broadcast. Skips craft changes and quits while
+ * g_flightSimSideEffectsSuppressed is set. */
 // FUNCTION: XVT 0x485490
 void Player_UpdateParticipationState(void)
 {
@@ -3496,6 +3713,14 @@ void Player_UpdateParticipationState(void)
 	}
 }
 
+/* Returns the nearest hostile object for the player, or UINT16_MAX: in the
+ * craft slots, an active or arriving craft with a working subsystem whose
+ * mobile team differs from the player's and whose flight group's team is not
+ * allied, other than explosions, starships, freighters, platforms and craft
+ * with an active decoy beam; in the static slots, a hostile mine with a nonzero
+ * typeSpecificWord. Despite the name, any craft but starships, freighters and
+ * platforms counts, and mines too. Skips the player's craft and
+ * excludedObjectIdx. Writes trig2's polar results. */
 // FUNCTION: XVT 0x485660
 int Player_FindNearestEnemyFighter(int playerIdx, int excludedObjectIdx)
 {
@@ -3609,6 +3834,16 @@ int Player_FindNearestEnemyFighter(int playerIdx, int excludedObjectIdx)
 	return nearestObjectIdx;
 }
 
+/* Answers the player's hyperspace key, unless sim side effects are suppressed.
+ * With a hyperdrive installed: in the proving grounds, ends the mission and
+ * takes the player out; with it working and no working Interdictor or modified
+ * strike cruiser of another IFF in the craft slots, starts the jump (IFMSG_106,
+ * hyperspacePhase 1 at 0 ticks, forward view, throttle 0, an X-wing's or
+ * B-wing's S-foils closing with FLIGHT_SOUND_S_FOIL, IFMSG_113 to the other
+ * players); with one present, IFMSG_109; with the hyperdrive damaged,
+ * IFMSG_086. Without a hyperdrive, names the player's flight group's departure
+ * and alternate motherships that are present (IFMSG_110 or IFMSG_111). Does not
+ * check that craft is the player's. */
 // FUNCTION: XVT 0x485900
 void Player_HandleHyperspaceCommand(struct CraftData *craft,
 				    unsigned int playerIdx)

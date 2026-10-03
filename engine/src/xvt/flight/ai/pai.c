@@ -16,21 +16,55 @@
 #include <limits.h>
 #include <string.h>
 
+/* The loaded AI plans; a plan id is an index into it. Each entry holds the
+ * plan's name, whether the plan text defined it, and where its bytes start in
+ * g_planOrderData. pai_loadplans clears it and fills it from the .plo file, or
+ * pai_CompilePlansFromText fills it from the .pln text. The world state saves
+ * and restores it: Flight_SaveWorldState and Flight_RestoreWorldState in the
+ * original build, XvtSnapshot_Encode and XvtSnapshot_DecodePrefix in the modern
+ * one. */
 // GLOBAL: XVT 0x9D1320
 PaiPlanRecord g_planTable[256];
 
+/* The craft the AI is thinking for and values taken from it, shared by the
+ * plan, order and maneuver code. pai_setupcraftcontext fills it for one craft;
+ * the order and target search functions then change some of its fields. Many
+ * functions write it, chiefly pai_setupcraftcontext. */
 // GLOBAL: XVT 0x9A73B0
 PaiContext g_paiContext;
+/* 1 once paiorder_completegootherorder or paiorder_orderswitchorder has tested
+ * the flight group's skip-to-order-4 trigger pair during the current
+ * pai_ProcessPlan pass and found it false; both skip the test while it is 1.
+ * pai_ProcessPlan sets it to 0 when a pass starts and when a pass switches the
+ * plan. */
 // GLOBAL: XVT 0x9A8C28
 int g_paiSkipToOrder4Checked = 0;
+/* The last rough distance a range test worked out, in world units; callers read
+ * it right after the call that sets it. pai_ObjectRefUpdateRoughDistance and
+ * pai_IsObjectWithinRangeOfCraft take the larger of the X and Y offsets plus
+ * half the smaller, then add half the Z offset when that sum is the larger,
+ * else halve the sum and add the Z offset. Many functions write it, chiefly
+ * those two. */
 // GLOBAL: XVT 0x9A1FF8
 int g_lastRoughDistance = 0;
+/* AI skill as a fraction of 65,536 for each flight group AI level:
+ * Mission_InitFlightGroupObjectSlot copies the entry for g_spawnGroupAI into a
+ * new craft's aiSkill. Levels 4 and 5 hold 0xFFFF, which MATH2_fraction treats
+ * as a whole; entries 6 and 7 are 0. pai_IsObjectTargetableNearCraft and
+ * pai_IsObjectWithinSkillRangeOfCraft index it by the skill tier, 0 to 2,
+ * instead. Nothing writes it. */
 // GLOBAL: XVT 0x524100
 uint16_t g_aiSkillValueQ16ByLevel[8] = {0x0000, 0x4000, 0x8000, 0xC000,
 					0xFFFF, 0xFFFF, 0x0000, 0x0000};
+/* Ticks between two AI thinks of a craft for each flight group AI level, from
+ * 708 down to 29; Mission_InitFlightGroupObjectSlot copies the entry into the
+ * craft's thinkInterval. Entries 6 and 7 are 0. */
 // GLOBAL: XVT 0x524110
 const uint16_t g_aiThinkIntervalBySkill[8] = {
 	708, 472, SIMULATION_TICKS_PER_SECOND, 118, 59, 29, 0, 0};
+/* For each plan id from 0 to 73, the index in g_strInFlightMessages of the
+ * status line a craft running that plan reports; Flight_ProcessPlayerActions
+ * and the HUD's target displays read it. */
 // GLOBAL: XVT 0x5272F8
 const uint8_t g_planReportMessageIdByPlanId[PAI_PLAN_REPORT_MESSAGE_COUNT] = {
 	159, 159, 159, 183, 178, 186, 183, 178, 183, 178, 183, 178, 162,
@@ -40,6 +74,8 @@ const uint8_t g_planReportMessageIdByPlanId[PAI_PLAN_REPORT_MESSAGE_COUNT] = {
 	180, 182, 181, 159, 178, 183, 183, 184, 185, 161, 161, 183, 183,
 	187, 188, 190, 170, 162, 191, 191, 191, 0,
 };
+/* The 75 plan names the code refers to by number, in that order, ended by an
+ * empty name. Only pai_cacheBuiltinPlanIds reads it. */
 // GLOBAL: XVT 0x525150
 const char *const g_builtinPlanNameTable[76] = {
 	"nullpln",
@@ -118,6 +154,9 @@ const char *const g_builtinPlanNameTable[76] = {
 	"playercontrolledpln",
 	"",
 };
+/* The target tokens of the plan text and the byte each compiles to, ended by an
+ * empty name. NOTARGET compiles to 255, as NULLTARGET does. Only
+ * pai_FindTargetTokenIndex and pai_CompilePlansFromText read it. */
 // GLOBAL: XVT 0x525280
 struct PaiPlanTokenDef g_paiTargetTokenDefs[10] = {
 	{"LOCATARGET", 249},
@@ -131,6 +170,10 @@ struct PaiPlanTokenDef g_paiTargetTokenDefs[10] = {
 	{"0x80", 128},
 	{"", 0},
 };
+/* The maneuver tokens of the plan text and the maneuver mode each compiles to,
+ * ended by an empty name. No token names AI_MANEUVER_MODE_AVOID_ATTACKER or
+ * AI_MANEUVER_MODE_DODGE. Only pai_FindManeuverTokenIndex and
+ * pai_CompilePlansFromText read it. */
 // GLOBAL: XVT 0x5255B8
 struct PaiPlanTokenDef g_paiManeuverTokenDefs[33] = {
 	{"NULLMANR", AI_MANEUVER_MODE_NULL},
@@ -167,6 +210,9 @@ struct PaiPlanTokenDef g_paiManeuverTokenDefs[33] = {
 	{"KAMIKAZEMANR", AI_MANEUVER_MODE_KAMIKAZE},
 	{"", 0},
 };
+/* The order tokens of the plan text and the g_orderTable index each compiles
+ * to, 0 to 47, ended by an empty name; NULLORDR (0) ends a plan. Only
+ * pai_FindOrderTokenIndex and pai_CompilePlansFromText read it. */
 // GLOBAL: XVT 0x526050
 struct PaiPlanTokenDef g_paiOrderTokenDefs[49] = {
 	{"NULLORDR", 0},
@@ -219,14 +265,33 @@ struct PaiPlanTokenDef g_paiOrderTokenDefs[49] = {
 	{"PLAYERINPUTORDR", 47},
 	{"", 0},
 };
+/* For each plan id, where the plan's bytes start in g_planOrderData. Written by
+ * pai_CompilePlansFromText and by pai_loadplans, which first zeroes only its
+ * first 256 bytes, not the whole array. */
 // GLOBAL: XVT 0xA07CF0
 uint8_t *g_planDataPtrs[256];
+/* The compiled plans, back to back. Each plan is a target byte, a maneuver
+ * byte, then pairs of an order id and the plan id to switch to when that order
+ * fires, ended by order 0. pai_CompilePlansFromText writes it from the .pln
+ * text; pai_loadplans reads it from the .plo file. The world checksum covers it
+ * in both builds. */
 // GLOBAL: XVT 0x9A8E40
 uint8_t g_planOrderData[0x20000] = {0};
+/* Plans loaded. pai_loadplans sets it to 0, then, after reading the .plo file,
+ * to the number of named entries in g_planTable; pai_CompilePlansFromText adds
+ * 1 for each plan it compiles. Beyond that, only the world state save, restore
+ * and checksum use it. */
 // GLOBAL: XVT 0x9A8068
 int g_planCount = 0;
+/* For each name in g_builtinPlanNameTable, the plan id loaded under that name,
+ * or 0 when no plan has it. pai_cacheBuiltinPlanIds fills it at flight start;
+ * the world state saves and restores it in both builds. */
 // GLOBAL: XVT 0x9A7A40
 uint8_t g_builtinPlanIdByNameIndex[256] = {0};
+/* For each mission order, 0 to 39, the g_builtinPlanNameTable index of the
+ * order's leader plan: the plan a craft with no leader flies, and the one
+ * Mission_InitFlightGroupObjectSlot stores as every new craft's currentPlanId.
+ * Nothing writes it. */
 // GLOBAL: XVT 0x524120
 uint8_t g_orderLeaderBuiltinPlanNameIndex[40] = {
 	0x01, 0x2f, 0x03, 0x05, 0x27, 0x2a, 0x2b, 0x45, 0x08, 0x09,
@@ -234,6 +299,8 @@ uint8_t g_orderLeaderBuiltinPlanNameIndex[40] = {
 	0x42, 0x38, 0x3a, 0x3b, 0x3c, 0x3c, 0x3e, 0x3f, 0x01, 0x35,
 	0x01, 0x22, 0x44, 0x01, 0x01, 0x01, 0x43, 0x46, 0x01, 0x00,
 };
+/* For each mission order, 0 to 39, the g_builtinPlanNameTable index of the plan
+ * the order gives a craft that follows a leader. */
 // GLOBAL: XVT 0x524148
 const uint8_t g_orderFollowerBuiltinPlanNameIndex[40] = {
 	0x02, 0x30, 0x04, 0x06, 0x29, 0x2a, 0x2b, 0x0e, 0x0e, 0x0e,
@@ -242,6 +309,15 @@ const uint8_t g_orderFollowerBuiltinPlanNameIndex[40] = {
 	0x02, 0x22, 0x44, 0x01, 0x01, 0x01, 0x43, 0x46, 0x01, 0x00,
 };
 
+/* Runs one AI think for each craft whose think timer has run out. It walks the
+ * active region's craft slots and skips empty slots, objects whose mobile
+ * object family is not 0, craft breaking up or exploding, and craft whose
+ * thinkTimer is above 0. For a craft no player flies it sets up g_paiContext,
+ * loads the craft's own random seed into g_gameRandFeedbackState, runs
+ * pai_ProcessPlan and stores the seed back. Every craft it does not skip,
+ * player craft too, then gets thinkInterval added to its thinkTimer. Restores
+ * g_gameRandFeedbackState at the end; leaves g_curCraft at the last craft
+ * visited. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4028A0
 void pai_UpdateAllCraftAI(void)
@@ -281,6 +357,20 @@ void pai_UpdateAllCraftAI(void)
 	g_gameRandFeedbackState = savedRandState;
 }
 
+/* Starts g_curCraft's pendingPlanId plan. When the plan's target byte is not
+ * 255 it points targetObjIdx at a mission point of the flight group of the
+ * object g_paiContext.objectIndex names: for LOCATARGET (249) point 12; for
+ * PRIMARYTARGET (253) point 12 when enabled; for HOMETARGET (254) point 12 when
+ * capturedByFlightGroup is set and point 12 is enabled, else point 13 when
+ * enabled; for any other byte the point waypointIndex names when enabled. Where
+ * the point is not enabled it uses 0x8000, the group's current point. It then
+ * clears targetSignature and hasLiveTarget and sets the aim point there. When
+ * the maneuver byte is not 255 it sets maneuverMode and runs
+ * paiman_initmaneuver. Always clears secondaryManeuverTimer, sets
+ * lastAttackerObjIdx and aiFlight.threatObjIdx to 0xFFFF and
+ * lastHitMissionSecond to 0, and sets thinkTimer to (objectIdx mod 8) eighths
+ * of thinkInterval, which spreads craft thinks over the interval. Does not set
+ * currentPlanId. */
 // FUNCTION: XVT 0x402970
 void pai_ApplyPendingPlanTargetAndManeuver(unsigned int objectIdx)
 {
@@ -363,6 +453,15 @@ void pai_ApplyPendingPlanTargetAndManeuver(unsigned int objectIdx)
 		((objectIdx & 7) * controller->thinkInterval) >> 3;
 }
 
+/* Runs the orders of the plan set up in g_paiContext. It calls each order's
+ * handler in turn and switches to the first order's plan whose handler returns
+ * nonzero and whose plan is not nullpln; "variablepln" stands for the plan in
+ * g_paiContext.nullPlanId. Switching sets pendingPlanId, sets up the context
+ * again and runs pai_ApplyPendingPlanTargetAndManeuver. Returns at order 0
+ * without a switch. Sets g_paiSkipToOrder4Checked to 0 when it starts and when
+ * it switches. A player craft on escortldr1pln first runs
+ * paifight_checkescortorder, but pai_UpdateAllCraftAI, the only caller, never
+ * passes a player craft. */
 // FUNCTION: XVT 0x402B60
 void pai_ProcessPlan(void)
 {
@@ -406,6 +505,14 @@ void pai_ProcessPlan(void)
 	}
 }
 
+/* Fills g_paiContext for one craft object: its index, craft and controller, its
+ * leader's index (255 for none) and the leader's craft or its own, its flight
+ * group, current order slot, world position and skill tier, and a plan cursor
+ * at the first order of the pendingPlanId plan, with that plan's maneuver byte
+ * in initialManeuverId. Clears requireUndisabledTarget and sets nullPlanId to
+ * nullpln's plan id. Also sets g_worldLocX, g_worldLocY and g_worldLocZ to the
+ * craft's position. Leaves targetSearchFlags and the search origin alone. Does
+ * not check that the object is a craft. */
 // FUNCTION: XVT 0x402CB0
 void pai_setupcraftcontext(uint16_t objectIdx)
 {
@@ -445,6 +552,8 @@ void pai_setupcraftcontext(uint16_t objectIdx)
 		(uint8_t)pai_FindPlanIdByNameOrZero("nullpln");
 }
 
+/* Returns the skill tier of a skill value: 0 below 0x8000, 1 below 0xC000, else
+ * 2. */
 // FUNCTION: XVT 0x402E00
 int pai_SkillValueToTier(uint16_t skillValue)
 {
@@ -454,6 +563,10 @@ int pai_SkillValueToTier(uint16_t skillValue)
 	return skillValue < 0xC000 ? 1 : 2;
 }
 
+/* Returns the index of the first craft in the active region's craft slots that
+ * belongs to the flight group, is not breaking up or exploding, and has no
+ * leader; 0xFFFF when there is none. Any flight group works; the callers pass a
+ * mothership's. */
 // FUNCTION: XVT 0x402E20
 uint16_t pai_FindMothershipObject(int16_t mothershipFlightGroupIdx)
 {
@@ -483,6 +596,12 @@ uint16_t pai_FindMothershipObject(int16_t mothershipFlightGroupIdx)
 	return UINT16_MAX;
 }
 
+/* Returns 1 when pai_IsObjectTargetable accepts the object and its rough
+ * distance from the craft's position in g_paiContext is below a skill range,
+ * else 0. The range is 2,560 plus 0x500 times g_aiSkillValueQ16ByLevel[skill
+ * tier] over 65,536, times 256 world units: 655,360, 737,280 or 819,200 for
+ * tiers 0 to 2. A nonzero expandRange adds 0x5555 over 65,536 of it, about a
+ * third. The first argument is ignored. Sets g_lastRoughDistance. */
 // FUNCTION: XVT 0x402EC0
 int pai_IsObjectTargetableNearCraft(int unused, unsigned int objIdx,
 				    int expandRange)
@@ -512,6 +631,10 @@ int pai_IsObjectTargetableNearCraft(int unused, unsigned int objIdx,
 	return 0;
 }
 
+/* Returns 1 when the object's rough distance from the craft's position in
+ * g_paiContext is below the unexpanded skill range of
+ * pai_IsObjectTargetableNearCraft, else 0. Does not check that the object can
+ * be targeted. Sets g_lastRoughDistance. */
 // FUNCTION: XVT 0x403070
 int16_t pai_IsObjectWithinSkillRangeOfCraft(uint16_t objIdx)
 {
@@ -523,12 +646,17 @@ int16_t pai_IsObjectWithinSkillRangeOfCraft(uint16_t objIdx)
 							      << 8) == 1;
 }
 
+/* Returns 1 when pai_FindBoardingTargetFromOrder finds a target for the order
+ * slot, else 0. */
 // FUNCTION: XVT 0x403250
 int16_t pai_OrderSlotCanBoardTarget(uint16_t orderSlot)
 {
 	return pai_FindBoardingTargetFromOrder(orderSlot) != -1;
 }
 
+/* Returns the nearest boarding target that matches the order slot's first pair
+ * of target conditions, or when none does, its second pair; -1 when neither
+ * finds one. Uses the craft's flight group in g_paiContext. */
 // FUNCTION: XVT 0x403270
 int16_t pai_FindBoardingTargetFromOrder(uint16_t orderSlot)
 {
@@ -576,6 +704,10 @@ int16_t pai_FindBoardingTargetFromOrder(uint16_t orderSlot)
 	return result;
 }
 
+/* Returns 1 when the object's rough distance from the craft's position in
+ * g_paiContext is below maxRoughDistance, in world units, else 0. Sets
+ * g_lastRoughDistance to that distance. The position is the one
+ * pai_setupcraftcontext took, not the craft's live one. */
 // FUNCTION: XVT 0x403360
 int pai_IsObjectWithinRangeOfCraft(unsigned int objIdx,
 				   unsigned int maxRoughDistance)
@@ -615,6 +747,10 @@ int pai_IsObjectWithinRangeOfCraft(unsigned int objIdx,
 	return g_lastRoughDistance < (int)maxRoughDistance;
 }
 
+/* Sets the controller's aim point to the world position of its targetObjIdx: an
+ * object, or a mission point of the craft's flight group, 0x8000 standing for
+ * the group's current point. Also sets g_worldLocX, g_worldLocY and
+ * g_worldLocZ. Does not check for 0xFFFF, no target. */
 // FUNCTION: XVT 0x403400
 void pai_UpdateAimPointFromOrderTarget(void)
 {
@@ -626,6 +762,8 @@ void pai_UpdateAimPointFromOrderTarget(void)
 	g_paiContext.controller->aimPointZ = g_worldLocZ;
 }
 
+/* Sets the formation type and separation of every craft of the flight group in
+ * the active region's craft slots. */
 // FUNCTION: XVT 0x403470
 void pai_SetFlightGroupFormation(unsigned int flightGroupIdx,
 				 unsigned int formationType,
@@ -648,6 +786,10 @@ void pai_SetFlightGroupFormation(unsigned int flightGroupIdx,
 	}
 }
 
+/* Works out the direction and distance from one object or mission point to
+ * another with trig2_ctop, which sets trig2_xyangle, trig2_pitch and
+ * trig2_polardistance. A mission point reference is read from flight group 0's
+ * points. Leaves g_worldLocX, g_worldLocY and g_worldLocZ at fromRef. */
 // FUNCTION: XVT 0x4034E0
 void pai_ObjectRefDirectionToObjectRef(unsigned int fromRef, unsigned int toRef)
 {
@@ -667,6 +809,10 @@ void pai_ObjectRefDirectionToObjectRef(unsigned int fromRef, unsigned int toRef)
 	trig2_ctop(targetX, targetY, targetZ);
 }
 
+/* Sets g_lastRoughDistance to the rough distance, in world units, between two
+ * objects or mission points. A mission point reference is read from flight
+ * group 0's points. Leaves g_worldLocX, g_worldLocY and g_worldLocZ at
+ * toRef. */
 // FUNCTION: XVT 0x403540
 void pai_ObjectRefUpdateRoughDistance(unsigned int fromRef, unsigned int toRef)
 {
@@ -710,6 +856,12 @@ void pai_ObjectRefUpdateRoughDistance(unsigned int fromRef, unsigned int toRef)
 	}
 }
 
+/* Turns a vector given along an object's side, up and forward axes into world
+ * axes, in g_rotatedX, g_rotatedY and g_rotatedZ. The axes are 1.15 fixed
+ * point, so the result keeps the input's unit. When the object's
+ * orientMatrixDirty is set it first rebuilds the object's cached move vector
+ * and axes with FVIEW_calcrotatemove and FVIEW_calcrotateorient, which also set
+ * the shared matrix globals those two write. */
 // FUNCTION: XVT 0x4035D0
 void pai_calcrotatedpoint(ObjectRecord *obj, int16_t sideArg, int16_t upArg,
 			  int16_t fwdArg)
@@ -734,6 +886,7 @@ void pai_calcrotatedpoint(ObjectRecord *obj, int16_t sideArg, int16_t upArg,
 	g_rotatedZ += Math_MulQ15(fwdArg, obj->mobj->cachedFwdZ);
 }
 
+/* Does the same as pai_calcrotatedpoint, with the vector passed as int. */
 // FUNCTION: XVT 0x4037B0
 void pai_RotateLocalVectorToWorldScratch(ObjectRecord *objRecord, int localSide,
 					 int localUp, int localFwd)
@@ -758,6 +911,9 @@ void pai_RotateLocalVectorToWorldScratch(ObjectRecord *objRecord, int localSide,
 	g_rotatedZ += Math_MulQ15(localFwd, objRecord->mobj->cachedFwdZ);
 }
 
+/* Works out the direction and distance from the craft's live position to the
+ * controller's aim point with trig2_ctop, which sets trig2_xyangle, trig2_pitch
+ * and trig2_polardistance. */
 // FUNCTION: XVT 0x403990
 void pai_CalcAnglesToAimPoint(void)
 {
@@ -769,6 +925,18 @@ void pai_CalcAnglesToAimPoint(void)
 		   g_paiContext.controller->aimPointZ - object->world_z);
 }
 
+/* Returns the nearest object, by rough distance from the craft in g_paiContext,
+ * that matches the target conditions (either one when targetOrMode is 1, else
+ * both) and that no other craft is boarding; -1 when none. Among craft it takes
+ * only one that can be boarded now: on nullpln, stationaryldrpln or
+ * stationaryflwpln, a platform, or with no working subsystems; when the
+ * searching craft's plan is not boardtocapturepln or boardtodestroypln, also
+ * one waiting to be boarded or stopped. A craft is taken when another craft on
+ * a boardto plan targets or carries it. It then looks at the region's static
+ * object slots whose type has behavior flag 2, matching by flight group; there
+ * only a target counts as taken, and boardtopickuppln is not among the plans
+ * checked. Either way an object whose signature is in g_curCraft's docked list
+ * is skipped. Sets g_lastRoughDistance. */
 // FUNCTION: XVT 0x4039E0
 int16_t pai_FindNearestBoardingTarget(uint16_t target1Type, uint16_t target1,
 				      int16_t targetOrMode,
@@ -1036,6 +1204,18 @@ int16_t pai_FindNearestBoardingTarget(uint16_t target1Type, uint16_t target1,
 	return (int16_t)nearestObject;
 }
 
+/* Returns 1 when the plan's goal for the order slot is met, else 0. For
+ * formldr1pln, formevadeldr1pln, starshipformpln, rendezvous1pln, disabledpln
+ * and waitforboardpln: goalProgress has reached the order's variable1. For
+ * capfreeldr1pln, capescortersldr1pln, caprespondldr1pln, escortldr1pln,
+ * disableldr1pln, starshipprotectpln, starshipattackpln and starshipdisablepln:
+ * no target is left, now or later. For the eight boardto plans: goalProgress
+ * has reached variable2. For dropoffldr1pln: goalProgress has reached the
+ * FLIGHT_GROUP_OUTCOME_TOTAL count of the flight group whose index is
+ * variable2 minus 1. For
+ * waitpln: the maneuver timer has run out. For starshipwaitreturnpln and
+ * starshipwaitcreatepln: the matching wait order returns nonzero. Any other
+ * plan returns 0. Uses the craft in g_paiContext. */
 // FUNCTION: XVT 0x403FE0
 int16_t pai_IsPlanCompleteForOrderSlot(uint16_t planId, uint16_t orderSlot)
 {
@@ -1114,6 +1294,8 @@ int16_t pai_IsPlanCompleteForOrderSlot(uint16_t planId, uint16_t orderSlot)
 	return result;
 }
 
+/* Returns 1 when the plan is one of the eight boardto plans and the order slot
+ * has no target left, now or later; else 0. */
 // FUNCTION: XVT 0x404380
 int16_t pai_IsBoardingPlanCompleteForOrderSlot(uint16_t planId,
 					       uint16_t orderSlot)
@@ -1136,6 +1318,10 @@ int16_t pai_IsBoardingPlanCompleteForOrderSlot(uint16_t planId,
 	return result;
 }
 
+/* Returns 1 when the object matches the target conditions of the craft's
+ * current order slot in g_paiContext: the first two, joined by "or" when
+ * target1OrTarget2 is 1, else by "and", or the second two, joined the same way
+ * by target3OrTarget4. Else 0. */
 // FUNCTION: XVT 0x404450
 int16_t pai_CurrentOrderTargetsMatchObject(uint16_t objectIdx)
 {
@@ -1194,6 +1380,10 @@ int16_t pai_CurrentOrderTargetsMatchObject(uint16_t objectIdx)
 	return primaryMatch || secondaryMatch;
 }
 
+/* Returns the AI skill the craft flies with: the skill in the character data of
+ * the object effectiveAiObjectLink points to, while that object still has the
+ * saved signature and has character data, else the craft's own aiSkill. Clears
+ * effectiveAiObjectLink when the signature no longer matches. */
 // FUNCTION: XVT 0x404620
 uint16_t pai_GetEffectiveSkillValue(CraftData *craft)
 {
@@ -1220,6 +1410,11 @@ uint16_t pai_GetEffectiveSkillValue(CraftData *craft)
 	return craft->aiSkill;
 }
 
+/* Returns 1 when one of the object's flight group orders in slots 0 to 2 gives
+ * a leader the plan named by leaderPlanNameIndex and targets the given object,
+ * else 0; returns 0 at once for objectIdx -1. Sets up g_paiContext for the
+ * object, and leaves g_paiContext.orderSlot at the matching slot, else at the
+ * last slot that gave that plan, else at the craft's current slot. */
 // FUNCTION: XVT 0x404670
 int pai_SetupContextAndFindOrderPlanOnTarget(int objectIdx,
 					     int leaderPlanNameIndex,
@@ -1248,6 +1443,9 @@ int pai_SetupContextAndFindOrderPlanOnTarget(int objectIdx,
 	return 0;
 }
 
+/* Returns the index of the first g_planTable entry with the name, compared up
+ * to 80 characters, or 256 when none has it. An empty name finds the first free
+ * entry. */
 // FUNCTION: XVT 0x46AC80
 int pai_FindPlanTableIndexByName(const char *planName)
 {
@@ -1262,6 +1460,8 @@ int pai_FindPlanTableIndexByName(const char *planName)
 	return planIndex;
 }
 
+/* Returns the index of the first g_planTable entry with an empty name, or 256
+ * when none is free. */
 // FUNCTION: XVT 0x46ACB0
 int pai_FindFreePlanTableIndex(void)
 {
@@ -1275,6 +1475,8 @@ int pai_FindFreePlanTableIndex(void)
 	return planIndex;
 }
 
+/* Returns the index of the target token with the name in g_paiTargetTokenDefs,
+ * or the index of its empty end entry when none has it. */
 // FUNCTION: XVT 0x46ACD0
 int pai_FindTargetTokenIndex(const char *token)
 {
@@ -1295,6 +1497,9 @@ int pai_FindTargetTokenIndex(const char *token)
 	return tokenIndex;
 }
 
+/* Returns the index of the maneuver token with the name in
+ * g_paiManeuverTokenDefs, or the index of its empty end entry when none has
+ * it. */
 // FUNCTION: XVT 0x46AD30
 int pai_FindManeuverTokenIndex(const char *token)
 {
@@ -1315,6 +1520,8 @@ int pai_FindManeuverTokenIndex(const char *token)
 	return tokenIndex;
 }
 
+/* Returns the index of the order token with the name in g_paiOrderTokenDefs, or
+ * the index of its empty end entry when none has it. */
 // FUNCTION: XVT 0x46AD90
 int pai_FindOrderTokenIndex(const char *token)
 {
@@ -1335,6 +1542,11 @@ int pai_FindOrderTokenIndex(const char *token)
 	return tokenIndex;
 }
 
+/* Reads the next token of the plan text into token: it skips spaces, tabs,
+ * newlines and commas, and from a semicolon to the end of the line, then copies
+ * characters up to a space, tab, newline, comma or the end of the file. Returns
+ * 1 on every path; at the end of the file the token is empty. Does not check
+ * the token's length. */
 // FUNCTION: XVT 0x46ADF0
 int pai_ReadPlanTextToken(char *token, XvtFile *stream)
 {
@@ -1379,6 +1591,17 @@ int pai_ReadPlanTextToken(char *token, XvtFile *stream)
 	return 1;
 }
 
+/* Compiles the plan text "<baseName>.pln" into g_planTable, g_planOrderData and
+ * g_planDataPtrs, then writes them to "<baseName>.plo". A plan is its name, a
+ * target token, a maneuver token, then pairs of an order token and a plan name,
+ * ended by NULLORDR; a "*" ends the file. A plan named before it is defined
+ * gets an entry marked not defined. Returns 0 when the file does not open, a
+ * plan is defined twice, the table is full, a token is unknown, the text ends
+ * before the "*", or a named plan is never defined; else 1, whether or not the
+ * .plo file could be written. Adds 1 to g_planCount for each plan. The .plo
+ * file holds the table's size and the table, then 0xFFFF and the first 0xFFFF
+ * bytes of g_planOrderData. Does not check that the plans fit in
+ * g_planOrderData. */
 // FUNCTION: XVT 0x46AED0
 int pai_CompilePlansFromText(const char *baseName)
 {
@@ -1526,6 +1749,13 @@ int pai_CompilePlansFromText(const char *baseName)
 	return 1;
 }
 
+/* Loads the AI plans: clears g_planTable and g_planCount and zeroes the first
+ * 256 bytes of g_planDataPtrs, then reads "<baseName>.plo": a size and that
+ * many bytes into g_planTable, then a size and that many bytes into
+ * g_planOrderData. When the file does not open or a read fails, returns what
+ * pai_CompilePlansFromText returns. Else points g_planDataPtrs at each named
+ * plan's bytes, sets g_planCount to the number of named plans and returns 1.
+ * Does not check either size against its array. */
 // FUNCTION: XVT 0x46B3D0
 int pai_loadplans(char *baseName)
 {
@@ -1580,6 +1810,9 @@ int pai_loadplans(char *baseName)
 	return 1;
 }
 
+/* Fills g_builtinPlanIdByNameIndex with the plan id of each name in
+ * g_builtinPlanNameTable; a name with no plan gets 0, the not-found index 256
+ * cut to 8 bits. */
 // FUNCTION: XVT 0x46B5B0
 void pai_cacheBuiltinPlanIds(void)
 {
@@ -1600,12 +1833,17 @@ void pai_cacheBuiltinPlanIds(void)
 	}
 }
 
+/* Returns where the named plan's bytes start. Does not check that the plan
+ * exists: for an unknown name it reads g_planDataPtrs[256], past the end of the
+ * array. */
 // FUNCTION: XVT 0x46B5F0
 uint8_t *pai_getplandataptrbyname(const char *planName)
 {
 	return g_planDataPtrs[pai_FindPlanTableIndexByName(planName)];
 }
 
+/* Returns the plan id of the first g_planTable entry with the name, compared up
+ * to 80 characters, or 0 when none has it. */
 // FUNCTION: XVT 0x46B610
 int pai_FindPlanIdByNameOrZero(const char *planName)
 {

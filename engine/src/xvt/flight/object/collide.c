@@ -33,90 +33,188 @@
 
 #include <string.h>
 
+/* The payload of an OPT_ROTSCALE node as collide_TestSweepAgainstOptNode
+ * reads it. */
 typedef struct CollideOptRotationScale {
-	OptVector origin;
+	OptVector origin; /* Point the mesh turns about. */
+	/* Axis it turns about; multiplied by g_collideOptAxisQ15ToFloatScale
+	 * before use. */
 	OptVector axis;
 } CollideOptRotationScale;
 
+/* The collision globals that collide_WouldShotHitTarget saves before its
+ * test and puts back after it, one field each. */
 typedef struct CollisionTargetRangeScratch {
-	int segmentStartWorldX;
-	int segmentStartWorldY;
-	int segmentStartWorldZ;
-	int probeWorldX;
-	int probeWorldY;
-	int probeWorldZ;
-	int sweepStartX;
-	int sweepStartY;
-	int sweepStartZ;
-	int sweepEndX;
-	int sweepEndY;
-	int sweepEndZ;
-	int hitOffsetX;
-	int hitOffsetY;
-	int hitOffsetZ;
+	int segmentStartWorldX; /* g_collisionSegmentStartWorldX. */
+	int segmentStartWorldY; /* g_collisionSegmentStartWorldY. */
+	int segmentStartWorldZ; /* g_collisionSegmentStartWorldZ. */
+	int probeWorldX;	/* g_collisionProbeWorldX. */
+	int probeWorldY;	/* g_collisionProbeWorldY. */
+	int probeWorldZ;	/* g_collisionProbeWorldZ. */
+	int sweepStartX;	/* g_collisionSweepStartX. */
+	int sweepStartY;	/* g_collisionSweepStartY. */
+	int sweepStartZ;	/* g_collisionSweepStartZ. */
+	int sweepEndX;		/* g_collisionSweepEndX. */
+	int sweepEndY;		/* g_collisionSweepEndY. */
+	int sweepEndZ;		/* g_collisionSweepEndZ. */
+	int hitOffsetX;		/* g_collisionHitOffsetX. */
+	int hitOffsetY;		/* g_collisionHitOffsetY. */
+	int hitOffsetZ;		/* g_collisionHitOffsetZ. */
 } CollisionTargetRangeScratch;
 
+/* The constant 0.0f the float tests compare against. */
 // GLOBAL: XVT 0x5181FC
 const float g_collideZeroFloat = 0.0f;
+/* 1/32,768, the factor collide_TestSweepAgainstOptNode applies to an
+ * OPT_ROTSCALE node's axis. */
 // GLOBAL: XVT 0x518208
 const float g_collideOptAxisQ15ToFloatScale = 0.000030517578125f;
+/* 1 while laser_fireturretslot tests a Super Star Destroyer's shot against
+ * the ship's own hull, which makes collide_TestSweepAgainstOptNode ignore
+ * hits less than a tenth of the way along the sweep; only that function
+ * sets it, and it sets 0 again after the test. */
 // GLOBAL: XVT 0x527E84
 int g_collideSweepRejectNearStartHits = 0;
+/* The OPT_MESHVERTS node met last in a model walk, whose vertices the face
+ * tests that follow read; collide_CheckSweptModelCollision sets NULL
+ * before each model. */
 // GLOBAL: XVT 0x527E88
 OptNode *g_collideCurrentMeshVertsNode = NULL;
+/* Start of the sweep in the target model's own axes, as floats; an OPT_ROTSCALE
+ * node turns it for a rotating mesh, and collide_CheckSweptModelCollision puts
+ * it back from g_collideSweepWalkerStartSaved after each mesh. */
 // GLOBAL: XVT 0x622C50
 OptVector g_collideSweepWalkerStart = {0};
+/* End of the sweep in the target model's frame, kept like
+ * g_collideSweepWalkerStart. */
 // GLOBAL: XVT 0x622C60
 OptVector g_collideSweepWalkerEnd = {0};
+/* g_collideSweepWalkerStart before any turning, set once per model by
+ * collide_CheckSweptModelCollision. */
 // GLOBAL: XVT 0x622C70
 OptVector g_collideSweepWalkerStartSaved = {0};
+/* g_collideSweepWalkerEnd before any turning, set once per model by
+ * collide_CheckSweptModelCollision. */
 // GLOBAL: XVT 0x622C80
 OptVector g_collideSweepWalkerEndSaved = {0};
+/* 1-based ordinal of the mesh of the nearest hit so far in the current
+ * model test, 0 for none; collide_CheckSweptModelCollision returns it. */
 // GLOBAL: XVT 0x622C6C
 int g_collideSweepHitMeshOrdinal = 0;
+/* 1-based ordinal of the root mesh being walked, texture roots not
+ * counted; only collide_CheckSweptModelCollision writes it. */
 // GLOBAL: XVT 0x622C8C
 int g_collideSweepCurrentMeshOrdinal = 0;
+/* Mesh index of the Super Star Destroyer hull a turret shot starts from;
+ * collide_CheckSweptModelCollision skips that mesh while testing the
+ * ship's shot against the ship. Only laser_fireturretslot writes it. */
 // GLOBAL: XVT 0x622C94
 int g_turretFireHullMeshOrdinal = 0;
+/* Turn of the current mesh in radians (meshRotation times 2 pi / 256), 0
+ * for none, applied at OPT_ROTSCALE nodes; only
+ * collide_CheckSweptModelCollision writes it. */
 // GLOBAL: XVT 0x622C90
 float g_collideCurrentMeshRotationAngle = 0.0f;
+/* Fraction along the sweep, 0 to 1, of the nearest hit so far, 2.0 for
+ * none; collide_CheckSweptModelCollision takes 0.1 off it (not below 0)
+ * before it sets g_collisionHitOffset*. */
 // GLOBAL: XVT 0x622C98
 float g_collideSweepHitFraction = 0.0f;
+/* End point, X, of the sweep of the object under test (the source of
+ * collide_TestSweptPairCollision): its current position, or where it will
+ * be for a test ahead of time. Set before each test by
+ * collide_collisions, collide_WouldShotHitTarget,
+ * collide_craftstarshipcollision, laser_fireturretslot,
+ * paifight_gunnerselfdefenseorder,
+ * paifight_FindNearestGunnerTargetInCandidateSet and
+ * paifight_FindNearestMatchingTargetFromOrigin. */
 // GLOBAL: XVT 0x9A1FD4
 int g_collisionProbeWorldX = 0;
+/* End point, Y; see g_collisionProbeWorldX. */
 // GLOBAL: XVT 0x9A1FD8
 int g_collisionProbeWorldY = 0;
+/* End point, Z; see g_collisionProbeWorldX. */
 // GLOBAL: XVT 0x9A1FD0
 int g_collisionProbeWorldZ = 0;
+/* Start point, X, of the sweep of the object under test: its previous
+ * position or its launch point. Set before each test by
+ * collide_collisions, collide_WouldShotHitTarget,
+ * collide_craftstarshipcollision, laser_fireturretslot,
+ * paifight_gunnerselfdefenseorder and paifight_gunneroffenseorder. */
 // GLOBAL: XVT 0x9EC604
 int g_collisionSegmentStartWorldX = 0;
+/* Start point, Y; see g_collisionSegmentStartWorldX. */
 // GLOBAL: XVT 0xA081E8
 int g_collisionSegmentStartWorldY = 0;
+/* Start point, Z; see g_collisionSegmentStartWorldX. */
 // GLOBAL: XVT 0xA08298
 int g_collisionSegmentStartWorldZ = 0;
+/* Rough distance scratch. collide_collisions computes a player's distance
+ * to its target into it for the inspection test and reads it back;
+ * collide_TestSweptPairCollision writes its reach limit and then the
+ * pair's distance, which nothing reads. */
 // GLOBAL: XVT 0x9A7398
 int g_approxDist = 0;
+/* 1 while collide_WouldShotHitTarget runs a test ahead of time; it makes
+ * collide_TestSweptPairCollision run a large model's polygon test only on
+ * a target slower than 40. collide_TestSweptPairCollision clears it on
+ * that path, and collide_WouldShotHitTarget sets 0 when done. */
 // GLOBAL: XVT 0x51BF58
 int g_collisionIsAimPrediction = 0;
+/* Start point, X, of the other object's sweep: its previous position, or
+ * a static object's position. Set before each test by collide_collisions,
+ * collide_WouldShotHitTarget, collide_craftstarshipcollision and
+ * static_TestSweptStaticCollision. */
 // GLOBAL: XVT 0x9D80C0
 int g_collisionSweepStartX = 0;
+/* Start point, Y; see g_collisionSweepStartX. */
 // GLOBAL: XVT 0x9D8C18
 int g_collisionSweepStartY = 0;
+/* Start point, Z; see g_collisionSweepStartX. */
 // GLOBAL: XVT 0x9D1150
 int g_collisionSweepStartZ = 0;
+/* End point, X, of the other object's sweep: its current position, or
+ * where it will be. Written by the same functions as
+ * g_collisionSweepStartX. */
 // GLOBAL: XVT 0xA07BDC
 int g_collisionSweepEndX = 0;
+/* End point, Y; see g_collisionSweepEndX. */
 // GLOBAL: XVT 0xA07C54
 int g_collisionSweepEndY = 0;
+/* End point, Z; see g_collisionSweepEndX. */
 // GLOBAL: XVT 0xA07C58
 int g_collisionSweepEndZ = 0;
+/* Offset, X, from g_collisionSegmentStartWorldX to the point of the last
+ * hit. collide_checkboxcollision and collide_CheckSweptModelCollision write
+ * it on a hit, and collide_WouldShotHitTarget puts back the value it saved;
+ * collide_laserhitcraft and static_ApplyStaticHit place impact effects
+ * with it. */
 // GLOBAL: XVT 0x9D77FC
 int g_collisionHitOffsetX = 0;
+/* Offset, Y; see g_collisionHitOffsetX. */
 // GLOBAL: XVT 0x9D6828
 int g_collisionHitOffsetY = 0;
+/* Offset, Z; see g_collisionHitOffsetX. */
 // GLOBAL: XVT 0x9CD260
 int g_collisionHitOffsetZ = 0;
 
+/* Fills list, the proximity list of ownerObjIdx, through
+ * collide_InsertMobileObjectProximityCandidate, by the owner's kind. A
+ * player's craft: with working systems, every live craft of another flight
+ * group except explosions; outside proving grounds, every static object.
+ * An AI starfighter, transport or utility vehicle (not in proving grounds):
+ * it adds itself to the lists of player craft and of freighters,
+ * starships and platforms (not dropping off or carried) in other flight
+ * groups, and adds static objects of types 100 to 105 to its own. An AI
+ * freighter, starship or platform not dropping off or carried: it adds
+ * itself to player craft's lists and to other such large craft's lists,
+ * and adds every other AI craft except explosions to its own. A shot:
+ * from g_activeRegionObjectSlotStart to g_projectileObjectSlotEnd, every
+ * craft and every warhead from another source, not itself, its source or
+ * an explosion, when the shot's target or source belongs to a player or
+ * the candidate is its target (the modern build also passes over effects
+ * left in shot slots); outside proving grounds, every static object. Other
+ * genera get nothing. Does not empty the list first. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x419890
 void collide_PopulateMobileObjectProximityCandidates(
@@ -374,6 +472,43 @@ void collide_PopulateMobileObjectProximityCandidates(
 	}
 }
 
+/* Runs the collision and contact checks of one step for every live object
+ * from g_activeRegionObjectSlotStart up to g_projectileObjectSlotEnd,
+ * explosions aside. A player's craft is skipped while its hyperspacePhase
+ * is 2. Otherwise, every ENGINE_WASH_UPDATE_TICKS (29) ticks it clears the
+ * player's engine wash and rescans every freighter and starship with
+ * working systems (collide_ApplyEngineWashDamage); it inspects the current
+ * target, once per team, when within 4 times the target's maxBoundsExtent
+ * (halved above 3,000), scoring and counting the inspection and sending
+ * the messages; and after 45 simulated seconds of life it offers, through
+ * pendingActionId, the hangar of its flight group's departure or alternate
+ * mothership when the inside hangar point is within 0x2000 (0x4000 for a
+ * starship while the team's first goal status is 1). Then, for every
+ * object, it rebuilds the proximity list when rebuildTicks has run out,
+ * drops gone candidates, and tests each candidate whose contactTicks has
+ * run out. A player's craft against a mobile object uses
+ * collide_TestSweptPairCollision: in proving grounds a hit puts the craft
+ * back to the pose recorded three entries earlier and stops it; otherwise
+ * a hit on a starfighter, transport or utility vehicle bounces both, and,
+ * when collisions are on or the candidate is a freighter, starship or
+ * platform, collide_damagecraft damages both. Against a static object
+ * (outside proving grounds) it uses static_TestSweptStaticCollision, then
+ * collide_applyCraftImpactBounce and, when collisions are on,
+ * static_ApplyStaticHit (unless either flight group has status 20) and
+ * damage to the craft. An AI starfighter, transport or utility vehicle is
+ * tested only against static objects: damage when collisions are on, else
+ * a bounce. An AI freighter, starship or platform is tested against craft
+ * that are not docking, launching, entering a hangar, boarding, jumping or
+ * dropping off, and a hit damages both. A shot that hits another shot
+ * explodes along with it (a cannon shot as an ion or laser impact), with
+ * hit stats recorded through Mission_RecordProjectileHitStats; one that
+ * hits a craft goes to collide_laserhitcraft; one that hits a static
+ * object to static_ApplyStaticHit. A pair where either object is younger
+ * than 3 simulated seconds is passed over unless a shot is in it, and
+ * pairs the boarding, hangar and hyperspace plans want left alone go back
+ * in the list untested. Writes the g_collision* sweep globals,
+ * g_approxDist, the engine wash, pending action and inspection fields of
+ * g_players, and the mission stats. */
 // FUNCTION: XVT 0x419DF0
 void collide_collisions(void)
 {
@@ -1940,6 +2075,15 @@ void collide_collisions(void)
 	}
 }
 
+/* Puts candidateObjIdx into list, the proximity list of ownerObjIdx, or
+ * moves it there, in rising order of contactTicks: 13,275 times the
+ * clearance between the two objects' bounds (rough distance less both
+ * maxBoundsExtent) over 256, divided by the sum of both speeds from
+ * collide_GetMobileObjectProximitySpeedQ12 over 256; 0 when the bounds
+ * overlap. Does nothing when the bounds are apart and that speed sum comes
+ * to 0. In a full list a candidate later than every entry is left out, or
+ * the last entry is dropped to make room, and rebuildTicks is lowered to
+ * the contactTicks of the one left out when that is sooner. */
 // FUNCTION: XVT 0x41B830
 void collide_InsertMobileObjectProximityCandidate(
 	MobileObjectProximityList *list, uint16_t ownerObjIdx,
@@ -2077,6 +2221,11 @@ void collide_InsertMobileObjectProximityCandidate(
 	++list->count;
 }
 
+/* Returns the speed the proximity lists assume for objIdx, shifted left
+ * 12: for a space craft (family 0) the larger of its model's maxSpeed and
+ * its speed; for a weapon (family 1) its guidance cruiseSpeed, or its speed
+ * without a guidance record; 0 for any other family or without a
+ * MobileObject. */
 // FUNCTION: XVT 0x41BA60
 int collide_GetMobileObjectProximitySpeedQ12(uint16_t objIdx)
 {
@@ -2116,6 +2265,9 @@ int collide_GetMobileObjectProximitySpeedQ12(uint16_t objIdx)
 	return speed << 12;
 }
 
+/* Empties the proximity list of objIdx (count and rebuildTicks 0, so it is
+ * rebuilt on the next pass). For a slot without a MobileObject, a static
+ * object, it instead adds objIdx to the list of every player's craft. */
 // FUNCTION: XVT 0x41BB00
 void collide_ResetObjectProximityForSlot(uint16_t objIdx)
 {
@@ -2151,6 +2303,9 @@ void collide_ResetObjectProximityForSlot(uint16_t objIdx)
 	} while (ownerObjIdx < g_activeRegionCraftObjectSlotEnd);
 }
 
+/* Calls collide_ResetObjectProximityForSlot for every object in the
+ * proximity list of objectIndex, so each rebuilds its own; leaves
+ * objectIndex's list as it is. Does nothing without a MobileObject. */
 // FUNCTION: XVT 0x41BBA0
 void collide_ResetNeighborProximityLists(uint16_t objectIndex)
 {
@@ -2178,6 +2333,8 @@ void collide_ResetNeighborProximityLists(uint16_t objectIndex)
 	} while (count != 0);
 }
 
+/* Takes candidateObjIdx out of list, moving later entries up; does nothing
+ * when it is not there. */
 // FUNCTION: XVT 0x41BBF0
 void collide_RemoveMobileObjectProximityCandidate(
 	MobileObjectProximityList *list, uint16_t candidateObjIdx)
@@ -2208,6 +2365,20 @@ void collide_RemoveMobileObjectProximityCandidate(
 	--list->count;
 }
 
+/* Bounces craftObjIdx off otherObjIdx; does nothing unless craftObjIdx is
+ * a starfighter, transport or utility vehicle. The closing speed is the
+ * size of the craft's speed less the other's speed times the cosine of
+ * their heading difference folded into a quarter turn, counting the
+ * other's only when it is a craft. The craft's yaw turns toward its move
+ * vector plus a push away from the other along the line between them
+ * (from prevWorld* when both have MobileObjects), and a shot turns it
+ * further, the same way, by 8 times the shot's speed. When the other is a
+ * craft it bounces the same way and records craftObjIdx in its
+ * aiFlight.impactObjIdx; its pitch is set from the craft's new move X and
+ * the craft's pitch from the other's. Each craft that bounces gets a roll
+ * spin (rollImpulseRate) of 100 times the closing speed, at most 0x7FFF.
+ * Sets the craft's aiFlight.impactObjIdx, recomputes the axes, and plays
+ * hull-hit sounds. */
 // FUNCTION: XVT 0x41BC50
 void collide_applyCraftImpactBounce(uint16_t craftObjIdx, uint16_t otherObjIdx)
 {
@@ -2422,6 +2593,26 @@ void collide_applyCraftImpactBounce(uint16_t craftObjIdx, uint16_t otherObjIdx)
 	}
 }
 
+/* Tests whether sourceObjIdx, swept from g_collisionSegmentStartWorld* to
+ * g_collisionProbeWorld*, meets targetObjIdx, swept from
+ * g_collisionSweepStart* to g_collisionSweepEnd*. Returns 0 for no hit, -1
+ * for a hit by the box test, or the 1-based mesh ordinal of a polygon hit.
+ * Rejects when the end points lie farther apart, on an axis or by rough
+ * distance, than both maxBoundsExtent plus COLLISION_MARGIN (0x20000), or
+ * when the two sweeps plus the target's extent cannot close the gap. The
+ * target's extent is halved for a shot other than a countermeasure; for a
+ * starfighter hit by a shot it is half again larger while its shields are
+ * up (set to 1,094 when that passes 1,095), and in internet play, for a
+ * player's cannon shot on a player's starfighter, it grows by craft type
+ * (doubled for an A-wing, TIE Interceptor or TIE Advanced, 1.75 times for
+ * a TIE Fighter, unchanged for a Y-wing or B-wing, else 1.5 times) and the
+ * polygon test is skipped. A target extent of LARGE_MODEL_EXTENT (1,095)
+ * or more, or a Container Class H, gets the polygon test
+ * (collide_CheckSweptModelCollision): under g_collisionIsAimPrediction,
+ * which it clears, only for a target slower than 40, falling back to the
+ * box test; otherwise a source that has not moved gets 0. Every other case
+ * gets the box test, collide_checkboxcollision with 3/8 of the extent.
+ * Writes g_approxDist. */
 // FUNCTION: XVT 0x41C1D0
 int16_t collide_TestSweptPairCollision(uint16_t sourceObjIdx,
 				       uint16_t targetObjIdx)
@@ -2587,6 +2778,13 @@ int16_t collide_TestSweptPairCollision(uint16_t sourceObjIdx,
 	return (int16_t)collide_checkboxcollision(maxExtent + (maxExtent >> 1));
 }
 
+/* Box test of a sweep pair: does the source, moving from
+ * g_collisionSegmentStartWorld* to g_collisionProbeWorld*, enter the
+ * axis-aligned box of half-size radius around the target, moving from
+ * g_collisionSweepStart* to g_collisionSweepEnd*, during the step? Works
+ * on the target's motion relative to the source, with times in 256ths of
+ * the step. Returns -1 on a hit and writes g_collisionHitOffset*, the
+ * source's travel up to the entry time; else returns 0. */
 // FUNCTION: XVT 0x41C570
 int16_t collide_checkboxcollision(int radius)
 {
@@ -2847,6 +3045,19 @@ int16_t collide_checkboxcollision(int radius)
 	return -1;
 }
 
+/* Predicts whether a cannon shot from hardpoint hardpointIndex of
+ * sourceObjIdx would hit targetObjIdx; Hud_DrawReticle3D asks it for the
+ * local player. The shot type is the model's weapon for the local player's
+ * selected bank, one type higher when the slot's charge is 64 or more. It
+ * sweeps the shot from the hardpoint (twice as far out on an Imperial Star
+ * Destroyer) along the source's move vector for the shot's whole life, at
+ * the shot's speed plus the source's, against the target (at the center of
+ * the local player's selected target component, if any) moving along its
+ * own move vector for the same time: collide_TestSweptPairCollision under
+ * g_collisionIsAimPrediction, or static_TestSweptStaticCollision for a
+ * static target. Returns 0 for a miss and nonzero for a hit. Saves and
+ * puts back every g_collision* sweep and hit global, and leaves
+ * g_collisionIsAimPrediction 0. Writes g_rotated*. */
 // FUNCTION: XVT 0x41CA60
 int collide_WouldShotHitTarget(uint16_t sourceObjIdx, uint16_t targetObjIdx,
 			       uint16_t hardpointIndex)
@@ -3034,6 +3245,13 @@ int collide_WouldShotHitTarget(uint16_t sourceObjIdx, uint16_t targetObjIdx,
 	return result;
 }
 
+/* Looks lookaheadSeconds ahead for sourceObjIdx, for
+ * paiorder_avoidstarshiporder: sweeps it from its position along its move
+ * vector by one step's travel times g_simStepsPerSecond times
+ * lookaheadSeconds, against each freighter, starship and platform swept
+ * the same way, then against the static objects in its proximity list.
+ * Returns the first object it would hit, or UINT16_MAX. Writes the
+ * g_collision* sweep globals. */
 // FUNCTION: XVT 0x41CFD0
 uint16_t collide_craftstarshipcollision(uint16_t sourceObjIdx,
 					int16_t lookaheadSeconds)
@@ -3120,6 +3338,30 @@ uint16_t collide_craftstarshipcollision(uint16_t sourceObjIdx,
 	return UINT16_MAX;
 }
 
+/* Applies a hit by shot projectileObjIdx on craft craftObjIdx at mesh
+ * hitMeshIndex and turns the shot into an impact effect. Does nothing when
+ * the shot came from the craft itself. The first hit from a team marks the
+ * craft in attackedByTeam, counts an attacked outcome for its flight group
+ * and, at tactical officer voice level 2, names the attacker when the
+ * craft is on the local player's team and not a starfighter; a player's
+ * shot scores the attacked goal once per team. With no attacker recorded,
+ * a firing craft other than a freighter, starship or platform becomes
+ * lastAttackerObjIdx with lastHitMissionSecond (a friendly player's shots
+ * on a craft other than a starfighter count only once warhead hits fill
+ * the 3-bit count in attackedByTeam); with one recorded, a player's craft
+ * takes each new attacker. Sets aiFlight.threatObjIdx and counts
+ * hitsThisManeuver. A warhead bounces an active craft when
+ * craftImpactBounceEnabled is set. A magnetic pulse drains a player's
+ * cannons (knocking out the cannon system if it worked) or adds 3,540
+ * ticks (7,080 for a craft other than a starfighter, transport or utility
+ * vehicle) to an AI craft's weaponFireInhibitTimer; active chaff stops a
+ * warhead coming from behind, with a message; any other hit goes to
+ * collide_damagecraft, with the hit side for a player's craft (1, the
+ * rear, when the shot travels the way the craft faces). The shot becomes
+ * object type 129 (from a warhead), 132 (ion) or 131 (laser), placed at
+ * g_collisionSegmentStartWorld* plus g_collisionHitOffset* and moving with
+ * the craft; a hit sound plays when collide_damagecraft returned 1 or the
+ * shot was a magnetic pulse. */
 // FUNCTION: XVT 0x41D320
 void collide_laserhitcraft(uint16_t projectileObjIdx, uint16_t craftObjIdx,
 			   int16_t hitMeshIndex)
@@ -3553,6 +3795,40 @@ void collide_laserhitcraft(uint16_t projectileObjIdx, uint16_t craftObjIdx,
 	}
 }
 
+/* Deals damage to craft victimObjIdx from sourceObjIdx, hit on mesh
+ * hitMeshIndex (1-based; -1 for none). hitSideOrDamageAmount is the shield side
+ * hit (0 front, 1 rear), except with sourceObjIdx UINT16_MAX - 1 (engine wash),
+ * where it is the damage and the front shield takes it. Returns 1 at once while
+ * g_flightSimSideEffectsSuppressed is set, or when the victim's flight group or
+ * a source craft's has status 20. The damage is: engine wash as given; 0x20000
+ * with no source (UINT16_MAX); collide_ComputeCraftDamageAmount for a craft;
+ * damageAmount for another mobile object; 4 times maxBoundsExtent for a static
+ * object (0x20000 from 0x8000 up); divided by 16 for a starship or platform and
+ * by 4 for a freighter (and, in mission file version 14, for the Muurian and
+ * Corellian transports). It is tallied in damageStats by source. A hit on a
+ * mesh whose explosion type has bit 0 set goes first to Craft_DamageComponent
+ * (on difficulty 0 always, otherwise only with both shields down); an obstacle
+ * takes nothing. The shield on the hit side takes what it can, and a player's
+ * craft then evens its two shields. What gets through: an ion shot adds 1, 2 or
+ * 4 to subsystemDamage (while under 1,000) and, once the model's systemStrength
+ * is within 10 of it, knocks out one working system per 200 damage, and a craft
+ * left with none is disabled (shields 0, a disabled outcome, message and
+ * voice); other damage adds to hullDamage, with tactical officer reports as it
+ * passes thresholds, a hull-hit flash and a 1 in 4 chance of knocking out a
+ * random system on a player's craft; once hullDamage has reached
+ * systemDamageHullThreshold a hit can knock out HUD features instead of playing
+ * the hull sound. When hullDamage reaches hullMax on a craft that is active or
+ * entering hyperspace, it credits the kill, records the loss and the destroyed
+ * outcome, clears carried and carrier links to it, sends messages and voice
+ * lines, and starts the end: a craft without a fuselage tumbles and breaks up
+ * after a time; a moving craft hit by something small or not a craft breaks up,
+ * tearing off a wing when one is left on a randomly chosen side, or for a
+ * player one time in 4 explodes at once; anything else explodes at once. Its
+ * last branch, which holds hullDamage just under hullMax, needs
+ * g_flightSimSideEffectsSuppressed set, so it never runs. Runs on the craft's
+ * own random seed (aiController.savedRandSeed), putting the shared one back.
+ * Returns 0 when it played a hull, internal, breakup or explosion sound, else
+ * 1. */
 // FUNCTION: XVT 0x41DC30
 int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex,
 			    uint16_t sourceObjIdx,
@@ -4741,6 +5017,12 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex,
 	return (int16_t)result;
 }
 
+/* Turns the object in objectIndex into an explosion of explosionObjectType
+ * in place: genus 13, family 5, typeSpecificByte[0] 2; effectSize, speed,
+ * secondsAlive, lifetimeTimer, roll and rollImpulseRate 0; axes marked for
+ * recomputing. Plays one of four small-explosion sounds and returns what
+ * fsfx_PlaySound returns. Does not check that the slot has a
+ * MobileObject. */
 // FUNCTION: XVT 0x41F300
 int collide_ConvertObjectToExplosion(unsigned int objectIndex,
 				     uint8_t explosionObjectType)
@@ -4761,6 +5043,10 @@ int collide_ConvertObjectToExplosion(unsigned int objectIndex,
 			      objectIndex, g_localPlayer);
 }
 
+/* Returns a quick estimate of the length of (abs_dx, abs_dy, abs_dz): the
+ * largest plus a quarter of each of the others. On a tie for the largest
+ * it takes abs_dz as the base, which comes out short: (100, 100, 0) gives
+ * 50. Expects the values already made positive. */
 // FUNCTION: XVT 0x41F3D0
 unsigned int collide_roughdistance3du(unsigned int abs_dx, unsigned int abs_dy,
 				      unsigned int abs_dz)
@@ -4774,6 +5060,8 @@ unsigned int collide_roughdistance3du(unsigned int abs_dx, unsigned int abs_dy,
 	return abs_dz + (abs_dx >> 2) + (abs_dy >> 2);
 }
 
+/* collide_roughdistance3du of the absolute values of dx, dy and dz, with
+ * the same short result on a tie. */
 // FUNCTION: XVT 0x41F410
 int collide_roughdistance3d(int dx, int dy, int dz)
 {
@@ -4806,6 +5094,15 @@ int collide_roughdistance3d(int dx, int dy, int dz)
 		     (unsigned int)(absDy >> 2));
 }
 
+/* Nothing calls this. Tests the segment from start to end against the
+ * faces of a packed model node (nodeData: counts, a box, 6-byte vertices
+ * whose components can point back to earlier ones, and face records with
+ * Q15 normals). Returns 0 when the segment misses the box or every face,
+ * else the hit nearest the end as a Q15 fraction measured from the end (0
+ * at the end, 0x7FFF at the start) with its low bit set. Points within 10
+ * of a face's plane count as on it. In proving grounds, with
+ * stopOnFirstHit, it returns the first face plane crossed without checking
+ * that the crossing lies inside the face. */
 // FUNCTION: XVT 0x41F470
 unsigned int collide_TestSegmentAgainstLegacyPackedOptNode(
 	const uint8_t *nodeData, int startX, int startY, int startZ, int endX,
@@ -5093,6 +5390,13 @@ unsigned int collide_TestSegmentAgainstLegacyPackedOptNode(
 	return nearestHitFractionQ15 == 0x7FFFFFFF ? 0 : nearestHitFractionQ15;
 }
 
+/* Returns the damage the craft sourceObjIdx deals by ramming victimObjIdx:
+ * its damageAmount; in mission file version 14, against a starship or
+ * platform, plus, per warhead launcher, an eighth of the rounds in its
+ * first and last slots times the warhead's damage, or 4,800,000 when the
+ * source is a Dreadnaught (object type 48, genus 4) not breaking up, with
+ * a space bomb launcher, hitting a Super Star Destroyer (54); then times
+ * 16 when the source is a Super Star Destroyer. */
 // FUNCTION: XVT 0x41FAC0
 unsigned int collide_ComputeCraftDamageAmount(uint16_t victimObjIdx,
 					      uint16_t sourceObjIdx)
@@ -5163,6 +5467,10 @@ unsigned int collide_ComputeCraftDamageAmount(uint16_t victimObjIdx,
 	return damageAmount;
 }
 
+/* Returns 1 when edgeDeltaU * pointDeltaV - edgeDeltaV * pointDeltaU is 0
+ * or more (the point-by-edge cross product is 0 or less), else 0. Only
+ * collide_TestSegmentAgainstLegacyPackedOptNode calls it, and nothing calls
+ * that. */
 // FUNCTION: XVT 0x426060
 int collide_IsLegacyProjectedEdgeCrossNonpositive(int pointDeltaU,
 						  int edgeDeltaV,
@@ -5172,6 +5480,20 @@ int collide_IsLegacyProjectedEdgeCrossNonpositive(int pointDeltaU,
 	return pointDeltaV * edgeDeltaU - edgeDeltaV * pointDeltaU >= 0;
 }
 
+/* Polygon test of the sweep from g_collisionSegmentStartWorld* to
+ * g_collisionProbeWorld* against the model of targetObjIdx. Moves the sweep
+ * into the model's own axes and walks each root mesh whose box the sweep does
+ * not lie wholly beside, with collide_TestSweepAgainstOptNode. Skips a craft's
+ * destroyed meshes (componentHp 0); when sourceObjIdx is the target, a turret
+ * firing past its own ship, it also skips laser turret and gun meshes and, on a
+ * Super Star Destroyer, the mesh at g_turretFireHullMeshOrdinal. A rotating
+ * mesh is tested turned by its meshRotation in proving grounds or for a source
+ * no player owns, and unturned for a player's source. Returns the 1-based
+ * ordinal of the mesh with the nearest hit, or 0; on a hit it sets
+ * g_collisionHitOffset* to the source's travel up to the hit fraction less 0.1
+ * (not below 0). Returns 0 when the model will not lock, and in the modern
+ * build for an object type whose assetFlags bit 0 is clear. Writes the
+ * g_collideSweep* and g_collideCurrent* globals. */
 /* Besides the test, this sets g_curCraft to the target's craft when the target has one and does not restore
  * it; nothing in this function or the functions it calls reads g_curCraft. */
 // FUNCTION: XVT 0x4A5490
@@ -5428,6 +5750,16 @@ int collide_CheckSweptModelCollision(uint16_t sourceObjIdx,
 	return g_collideSweepHitMeshOrdinal;
 }
 
+/* Walks node and its children: OPT_NODEREF links are resolved by name
+ * (kept in the node once resolved while g_cacheResolvedOptNodeRefs is set;
+ * the modern build uses XvtOpt_ResolveCached); an OPT_MESHVERTS node
+ * becomes the vertex source for the faces after it and stops the walk
+ * when the sweep lies wholly beside its box; an OPT_ROTSCALE node turns
+ * the sweep about its origin and axis by g_collideCurrentMeshRotationAngle;
+ * an OPT_FACEGROUP node walks its first child only. A face whose plane the
+ * sweep crosses, inside the face, nearer than the best so far (and, under
+ * g_collideSweepRejectNearStartHits, at least 0.1 along) becomes the best
+ * hit. Returns 0 at the end of a branch or on a missing node. */
 /* Walks the model tree under node for the sweep segment. Hits are reported only through
  * g_collideSweepHitMeshOrdinal and g_collideSweepHitFraction. The return value is not a hit: it is 1 when the
  * segment misses a mesh's bounding box, and that 1 passes up through every parent to stop the walk. */
@@ -5665,6 +5997,12 @@ int collide_TestSweepAgainstOptNode(OptimizedPolyObject *object, OptNode *node)
 	}
 }
 
+/* Finds where the segment from segmentStart to segmentEnd crosses the
+ * plane through faceVertex with normal faceNormal; a distance within 10 of
+ * the plane counts as on it. Returns 1 with *outT 0 when the start is on
+ * the plane, 1 when the end is (the start is checked first), or the
+ * crossing's fraction from the start when the ends lie on opposite sides;
+ * returns 0, leaving *outT alone, when both lie on one side. */
 // FUNCTION: XVT 0x4A6560
 int collide_IntersectSegmentWithFacePlane(const float *faceNormal,
 					  const float *faceVertex,
@@ -5714,6 +6052,11 @@ int collide_IntersectSegmentWithFacePlane(const float *faceNormal,
 	return 0;
 }
 
+/* Tests whether projectedPoint lies inside a face, a triangle or, when
+ * faceVertexIndices[3] is not -1, a quad, seen along the axis of the
+ * normal's largest component. Returns 1 when the point is on the same side
+ * of every edge as of the first, else 0. Overwrites projectedPoint[1] and
+ * [2] with the two coordinates kept. */
 // FUNCTION: XVT 0x4A66D0
 int collide_PointInFacePolygon(const float *faceNormal,
 			       const float *vertexCoords,
@@ -5850,6 +6193,19 @@ int collide_PointInFacePolygon(const float *faceNormal,
 	return 1;
 }
 
+/* Applies engine wash from the craft sourceObjIdx to victimObjIdx when the
+ * victim is within 3 times the source's maxBoundsExtent and no more than
+ * that extent ahead of it. Behind each engine mesh of the source a wash
+ * reaches 8 times the mesh's largest size (at most twice the source's
+ * extent), widening with depth; a victim inside takes damage that falls
+ * off with depth and with distance from the wash's center, at most 64 (a
+ * Super Star Destroyer's wash is placed differently and cut to 3/32; a
+ * Calamari Cruiser's lower engines pass over victims above them). Each
+ * engine's wash goes through collide_damagecraft as engine wash (source
+ * UINT16_MAX - 1), an eighth of it when the victim's shields are down and
+ * at least 1. A player's engineWashSourceObjIdx and engineWashStrength in
+ * g_players keep the strongest wash. Does nothing when the source has no
+ * MobileObject. */
 // FUNCTION: XVT 0x4A8740
 void collide_ApplyEngineWashDamage(int victimObjIdx, int sourceObjIdx)
 {
@@ -6049,6 +6405,17 @@ void collide_ApplyEngineWashDamage(int victimObjIdx, int sourceObjIdx)
 	}
 }
 
+/* Jams the weapons of the craft ownerObjIdx (beamEffectAccum[2] set to
+ * 163,840, chaff ended) when it is at the hangar of the hostile craft
+ * hostileObjIdx: within 4,096 world units of an X/7 factory; near a Super
+ * Star Destroyer's inside hangar point (within an eighth of its extent,
+ * and level with it to three quarters of the point's height); within a
+ * sixth of a repair yard's extent of its inside hangar point, or of a
+ * hangar mesh center turned into world axes (against the craft's offset
+ * in the yard's own axes); within a sixth of any other's extent of its
+ * inside hangar point, but never above an Imperial or Victory Star
+ * Destroyer or an Interdictor. Does nothing beyond twice the hostile's
+ * extent, or when the hostile has no MobileObject or no working systems. */
 // FUNCTION: XVT 0x4A8CC0
 void collide_ApplyHostileProximityWeaponDisruption(int ownerObjIdx,
 						   int hostileObjIdx)

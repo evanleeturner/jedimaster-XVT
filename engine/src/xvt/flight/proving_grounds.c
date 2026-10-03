@@ -27,36 +27,73 @@
 #include "xvt/render/scene_billboard.h"
 #include "xvt/util/time.h"
 
+/* Place values for ProvingGrounds_DrawScoreDecimal, indexed by the digit places
+ * left to draw: entry n is 10 to the power n - 1; entry 0 is never read. Only
+ * that function reads it. */
 // GLOBAL: XVT 0x520EF0
 int g_provingGroundsScoreDecimalDivisors[9] = {
 	1, 1, 10, 100, 1000, 10000, 100000, 1000000, 10000000};
+/* Ticks left before the course animation frame steps. Only
+ * ProvingGrounds_UpdateCourse writes it: it counts down by g_elapsedTicks and,
+ * below 0, adds 29. */
 // GLOBAL: XVT 0x520EE8
 static int g_provingGroundsCourseAnimTimer = 0;
+/* Course animation frame, 0 to 3, stepped every 29 ticks and shown as each
+ * course object's nodeSwitchIndex. Only ProvingGrounds_UpdateCourse writes
+ * it. */
 // GLOBAL: XVT 0x520EEC
 static int g_provingGroundsCourseAnimFrame = 0;
+/* Ticks per obstacle animation step, by proving grounds level 0 to 19, shorter
+ * at higher levels. */
 // GLOBAL: XVT 0x5234C8
 static const uint16_t g_provingGroundsObstacleAnimPeriodTicksByLevel[20] = {
 	24, 24, 24, 24, 20, 16, 14, 14, 14, 12, 12, 12, 10, 8, 6, 6, 6, 6, 6, 6,
 };
+/* The status panel's five labels, in ProvingGroundsStatusLabelId order;
+ * StringTable_LoadGameStrings fills them. */
 // GLOBAL: XVT 0xA606F0
 const char *g_provingGroundsStatusLabels[5] = {0};
+/* The local player's roll over the last four pose records in the proving
+ * grounds, newest first. ProvingGrounds_RecordLocalPlayerPoseHistory writes it;
+ * collide_collisions puts a colliding craft back to entry 3. */
 // GLOBAL: XVT 0x9A8D58
 int16_t g_provingGroundsLocalPlayerRollHistory[4] = {0};
+/* The local player's pitch over the last four pose records, newest first; kept
+ * like g_provingGroundsLocalPlayerRollHistory. */
 // GLOBAL: XVT 0x9ED220
 int16_t g_provingGroundsLocalPlayerPitchHistory[4] = {0};
+/* The local player's yaw over the last four pose records, newest first; kept
+ * like g_provingGroundsLocalPlayerRollHistory. */
 // GLOBAL: XVT 0xA004C0
 int16_t g_provingGroundsLocalPlayerYawHistory[4] = {0};
+/* The local player's world Z over the last four pose records, newest first,
+ * taken from prevWorldZ; kept like g_provingGroundsLocalPlayerRollHistory. */
 // GLOBAL: XVT 0xA08200
 int g_provingGroundsLocalPlayerWorldZHistory[4] = {0};
+/* The local player's world X over the last four pose records, newest first,
+ * taken from prevWorldX; kept like g_provingGroundsLocalPlayerRollHistory. */
 // GLOBAL: XVT 0xA08220
 int g_provingGroundsLocalPlayerWorldXHistory[4] = {0};
+/* The local player's world Y over the last four pose records, newest first,
+ * taken from prevWorldY; kept like g_provingGroundsLocalPlayerRollHistory. */
 // GLOBAL: XVT 0xA08230
 int g_provingGroundsLocalPlayerWorldYHistory[4] = {0};
+/* Ticks left before each obstacle animation steps: 0 turns cargo meshes, 1
+ * antennas, 2 misc hull meshes. Only ProvingGrounds_UpdateCourse writes it. */
 // GLOBAL: XVT 0xA00738
 static int16_t g_provingGroundsObstacleAnimTimers[3] = {0};
+/* Object slot, 1 to 12, of the course gate the local player passed last; gate 1
+ * is the start and finish. Two functions write it: ProvingGrounds_StartLevel
+ * sets 1 and ProvingGrounds_UpdateCourse moves it on as gates are crossed. */
 // GLOBAL: XVT 0x9A8078
 uint16_t g_provingGroundsCurrentCheckpointObjIdx = 0;
 
+/* Shifts the local player's pose history one place older, dropping entry 3, and
+ * records the craft's prevWorldX, prevWorldY and prevWorldZ and current roll,
+ * pitch and yaw as entry 0. In the modern build with unlocked timing it records
+ * only when XvtPlayerTiming_RecordRecovery gives a reference position, which it
+ * records in place of the previous position. Does not check that the local
+ * player has a craft. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x42B290
 void ProvingGrounds_RecordLocalPlayerPoseHistory(void)
@@ -118,6 +155,16 @@ void ProvingGrounds_RecordLocalPlayerPoseHistory(void)
 	g_provingGroundsLocalPlayerYawHistory[0] = object->yaw;
 }
 
+/* Draws one course object. The gate at g_provingGroundsCurrentCheckpointObjIdx
+ * and the one after it are drawn whole, with their billboards queued; every
+ * other one gets g_billboardObjectOrTypeIndex 0x7000 plus its slot. Then each
+ * draws its first main hull node (its last node when it has none) with
+ * nodeSwitchIndex 1; a gate before the current one does so with
+ * g_billboardTargetSelectionState 1 and g_renderObjectRef set to
+ * g_billboardObjectOrTypeIndex. Restores nodeSwitchIndex and g_renderObjectRef;
+ * writes g_billboardModelNodeSwitchIndex. The branch that sets
+ * g_localBeamTargetObjIdx never runs: it wants a slot below the current gate
+ * where only the current gate and the next arrive. */
 // FUNCTION: XVT 0x42B380
 void ProvingGrounds_DrawCourseObject(uint16_t objectIndex)
 {
@@ -189,6 +236,14 @@ void ProvingGrounds_DrawCourseObject(uint16_t objectIndex)
 	g_renderObjectRef = savedRenderObjectRef;
 }
 
+/* Builds the course in object slots 1 to 12: gates of object types 98 and 99 in
+ * turn, each turned by a fixed table of angles and chained to the one before
+ * through its model bounds. Each gets genus 14, family 6, flight group 1,
+ * signature 1, no motion, damageAmount 0x7FFF, the craft record of the same
+ * pool index with every component intact (componentHp 255), hullMax and
+ * systemDamageHullThreshold 0x7FFF, only shields working, 0x7FFF forward
+ * shield. Sets flight group 1's status1 to 5 and zeroes the proving grounds
+ * targets destroyed and score. Writes g_curCraft. */
 // FUNCTION: XVT 0x42B550
 void ProvingGrounds_InitCourseObjects(void)
 {
@@ -376,6 +431,15 @@ void ProvingGrounds_InitCourseObjects(void)
 	} while (++objectIndex < 13);
 }
 
+/* Starts the given proving grounds level: gate 1 current, 0 checkpoints passed,
+ * 12 remaining; the countdown clock gets (10 - level) / 2 minutes plus 30
+ * seconds for an odd level up to 8, or 5 * (20 - level) seconds above 8. Then
+ * sets up every obstacle craft's components: gate 1 hides all of them
+ * (componentState 2), with componentHp 255 on main hulls and 0 elsewhere; other
+ * gates hide the main hull, give laser guns 2 * level, show cargo from level 2
+ * with 3 * level, misc hull from level 5 with 255 and antennas from level 3
+ * with 24 * level, else hide them with 0. Rebuilds the HUD unless in replay
+ * view. Writes g_curCraft. Does not check the level. */
 // FUNCTION: XVT 0x42BD80
 void ProvingGrounds_StartLevel(uint16_t level)
 {
@@ -543,6 +607,18 @@ void ProvingGrounds_StartLevel(uint16_t level)
 	}
 }
 
+/* Runs the course for one simulation step. Counts down the obstacle animation
+ * timers by g_elapsedTicks, turning cargo meshes from level 3, antennas from
+ * level 4 and misc hull meshes from level 6 one step per period (the misc hull
+ * uses the previous level's period); steps the course animation frame every 29
+ * ticks into each object's nodeSwitchIndex (frame 3 shows as 1). When the local
+ * player crosses the next gate (gate 1 after 12) it becomes current and is
+ * counted; crossing gate 1 ends the level: IFMSG_198, then the clock runs down
+ * to 0 one second at a time, each adding 10 to provingGroundsTimeBonus and the
+ * score, beeping every 100 points, drawn with a wait of 4 ticks that holds the
+ * game until it ends; then IFMSG_199 and the next level starts. Writes
+ * g_curCraft and g_inputTimestamp. Does not check the level against the
+ * 20-entry period table. */
 // FUNCTION: XVT 0x42C0A0
 void ProvingGrounds_UpdateCourse(void)
 {
@@ -738,6 +814,12 @@ void ProvingGrounds_UpdateCourse(void)
 	}
 }
 
+/* Tells whether the local player's craft crossed a gate's plane: returns 1 when
+ * its current and previous positions, both within 0x4000 units of the plane's
+ * point on every axis, lie on opposite sides of the plane or on it; else 0. The
+ * plane faces along the gate's forward axis through a point on it: -maxY of the
+ * model bounds for type 98, else 0, moved 1024 back for the current gate and 32
+ * forward for any other. Only this file calls it. */
 // FUNCTION: XVT 0x42C410
 int ProvingGrounds_HasPlayerCrossedCheckpoint(uint16_t checkpointObjIdx)
 {
@@ -841,6 +923,11 @@ int ProvingGrounds_HasPlayerCrossedCheckpoint(uint16_t checkpointObjIdx)
 	       (currentSide <= 0 && previousSide >= 0);
 }
 
+/* Draws the proving grounds panel of the HUD near x, y: on a full HUD redraw
+ * the labels and level, every call the gates remaining and passed, targets
+ * destroyed and score. 640x480 doubles the column width and offsets; the panel
+ * sits one column right for craft models 7, 8, 11 and 15, else one left. The
+ * modern build also records each field for its cockpit readouts. */
 // FUNCTION: XVT 0x42C750
 void ProvingGrounds_DrawStatusPanel(int16_t x, int16_t y)
 {
@@ -1048,6 +1135,10 @@ void ProvingGrounds_DrawStatusPanel(int16_t x, int16_t y)
 	FlightText_SetFontTier(2);
 }
 
+/* Draws score in width right-aligned decimal places with g_flightDrawCharFn:
+ * leading zeros show as spaces until minDigits places remain, and a place whose
+ * digit comes out above 9 shows 9. Draws nothing for width 0. Does not check
+ * that width is at most 8. */
 // FUNCTION: XVT 0x42CBD0
 void ProvingGrounds_DrawScoreDecimal(int score, unsigned int width,
 				     unsigned int minDigits)
@@ -1084,6 +1175,10 @@ void ProvingGrounds_DrawScoreDecimal(int score, unsigned int width,
 	} while (remainingWidth != 0);
 }
 
+/* Draws the countdown clock as minutes:seconds and the time bonus near the
+ * bottom of the screen in shadowed text, at y 456 in 640x480 and y 190
+ * otherwise, then redraws the HUD with the surface locked. Leaves
+ * g_flightTextShadowEnabled at 1. */
 // FUNCTION: XVT 0x42CC40
 void ProvingGrounds_RenderTimeBonusFrame(void)
 {

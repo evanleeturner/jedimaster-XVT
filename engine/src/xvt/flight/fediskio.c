@@ -38,80 +38,180 @@
 
 #ifndef XVT_MODERN
 typedef struct Msvc42FilePrefix {
+	/* Stream bytes before flags; nothing names them. */
 	uint8_t reserved[12];
-	int flags;
+	int flags; /* Flag word; bit 0x20 set marks a failed stream. */
 } Msvc42FilePrefix;
 #endif
 
+/* Path of the file FeDiskIo_OpenGlobalStream opened or tried last: in the
+ * original build the last path tried, in the modern one the path storage
+ * resolved. Only that function writes it; the retry prompt,
+ * FeDiskIo_CloseGlobalStream (to delete a failed file) and FeDiskIo_FatalError
+ * read it. */
 // GLOBAL: XVT 0x9D8A60
 char g_fileName[256] = {0};
+/* Locked memory of g_flightScratchScreenBufferHandle, one screen of pixels,
+ * also where rotated sprites are drawn. Two functions write it:
+ * FeDiskIo_InitGlobalBuffers, which fills it with color 0x40, and
+ * FeDiskIo_LockGlobalBuffers. */
 // GLOBAL: XVT 0x9A8C34
 uint8_t *g_flightScratchScreenBuffer = NULL;
+/* Copy of g_flightAuxBuffer, set by FeDiskIo_InitGlobalBuffers and
+ * FeDiskIo_LockGlobalBuffers. Nothing reads it. */
 // GLOBAL: XVT 0x9D8C1C
 uint8_t *g_flightAuxBufferMirror = NULL;
+/* 1 when the last FeDiskIo_ReadWithRetryPrompt came up short (in the original
+ * build only when the player gave up), else 0. Only that function writes it,
+ * and nothing else reads it. */
 // GLOBAL: XVT 0x9A20AC
 uint16_t g_fileReadAbortFlag = 0;
+/* The disk, display and network status strings, indexed by DiskIoStringId.
+ * StringTable_LoadGameStrings points them into the loaded strings, after the
+ * file error messages; this file and the flight network code read them. */
 // GLOBAL: XVT 0xA609C0
 char *g_strDiskIoMessages[32] = {0};
+/* The file FeDiskIo_OpenGlobalStream opened last, which callers read through
+ * and FeDiskIo_CloseGlobalStream closes; NULL after a failed open. Many
+ * functions write it, chiefly FeDiskIo_OpenGlobalStream; some put a stream they
+ * kept back into it before closing it. */
 // GLOBAL: XVT 0xA07BD8
 XvtFile *g_stream = NULL;
+/* "newpal.act", the palette file read at flight start (Flight_MainLoop,
+ * XvtFlightLoading_Palette) and when FeDiskIo_InitResources generates a
+ * palette. */
 // GLOBAL: XVT 0x5236B0
 char g_flightPaletteResourceFileName[12] = {
 	'n', 'e', 'w', 'p', 'a', 'l', '.', 'a', 'c', 't', '\0', '\0',
 };
+/* Nothing sets it, so it stays 0 and FeDiskIo_InitResources always clears
+ * g_generateMissionPalette. */
 // GLOBAL: XVT 0x527508
 unsigned int g_paletteGenerationEnabled = 0;
+/* The three resource list names, SPEC, SPEC2 and SPEC3, that
+ * FeDiskIo_LoadResources reads; the index is an object type's textureGroup. */
 // GLOBAL: XVT 0x527620
 char g_specListPrefixes[3][9] = {
 	{'S', 'P', 'E', 'C', '\0', '\0', '\0', '\0', '\0'},
 	{'S', 'P', 'E', 'C', '2', '\0', '\0', '\0', '\0'},
 	{'S', 'P', 'E', 'C', '3', '\0', '\0', '\0', '\0'},
 };
+/* Memory handle of the warhead guidance pool, locked into
+ * g_projectileGuidanceStates; 0 when there is none. Mission_Init allocates it;
+ * FeDiskIo_InitGlobalBuffers, FeDiskIo_FreeFlightResources and the modern
+ * build's XvtFlightLoading_Reset set it to 0. */
 // GLOBAL: XVT 0x999400
 uint16_t g_warheadGuidancePoolHandle = 0;
+/* Memory handle of the craft record pool, locked into g_craftDataPoolBase; 0
+ * when there is none. Set and cleared like g_warheadGuidancePoolHandle. */
 // GLOBAL: XVT 0x999402
 uint16_t g_craftDataPoolHandle = 0;
+/* Memory handle of the mobile object pool, locked into g_mobileObjectPoolBase;
+ * 0 when there is none. Set and cleared like g_warheadGuidancePoolHandle. */
 // GLOBAL: XVT 0x999404
 uint16_t g_mobileObjectPoolHandle = 0;
+/* Memory handle of one screen of pixels, locked into g_flightAuxBuffer.
+ * FeDiskIo_InitGlobalBuffers allocates it and FeDiskIo_FreeFlightResources
+ * frees it; only the modern build sets it back to 0. */
 // GLOBAL: XVT 0x999406
 uint16_t g_flightAuxBufferHandle = 0;
+/* Memory handle of the character data pool, locked into
+ * g_mobileObjectCharDataPool; 0 when there is none. Set and cleared like
+ * g_warheadGuidancePoolHandle. */
 // GLOBAL: XVT 0x999408
 uint16_t g_mobileObjectCharDataHandle = 0;
+/* Memory handle of the object table, locked into g_objectTable; 0 when there is
+ * none. Set and cleared like g_warheadGuidancePoolHandle. */
 // GLOBAL: XVT 0x99940A
 uint16_t g_objectTableHandle = 0;
+/* Memory handle of the loaded strings: 32,000 bytes from
+ * FeDiskIo_InitGlobalBuffers, replaced by StringTable_LoadGameStrings with a
+ * larger one when strings.txt does not fit. Freed by
+ * FeDiskIo_FreeFlightResources. */
 // GLOBAL: XVT 0x9D7670
 uint16_t g_stringDataHandle = 0;
+/* Memory handle of the render object list, 296 entries, locked into
+ * g_renderObjectListEntries. Allocated by FeDiskIo_InitGlobalBuffers, freed by
+ * FeDiskIo_FreeFlightResources. */
 // GLOBAL: XVT 0x612B94
 uint16_t g_renderObjectListHandle = 0;
+/* Memory handle of one screen of pixels, locked into
+ * g_flightScratchScreenBuffer. Allocated by FeDiskIo_InitGlobalBuffers, freed
+ * by FeDiskIo_FreeFlightResources. */
 // GLOBAL: XVT 0x612B98
 uint16_t g_flightScratchScreenBufferHandle = 0;
+/* Palette index for each 16-bit RGB565 color, 65,536 bytes. In 8-bit color
+ * FeDiskIo_InitResources points g_activeRgb565ToPaletteIndexLut at it and fills
+ * it from an .inv file or builds it. */
 // GLOBAL: XVT 0x612BA0
 uint8_t g_rgb565ToPaletteIndexLut[UINT16_MAX + 1u] = {0};
+/* Memory handle of a 34,600-byte font, locked into g_flightFontSmallSw, which
+ * holds MICRO48.FNT. Allocated by FeDiskIo_InitGlobalBuffers, freed by
+ * FeDiskIo_FreeFlightResources. */
 // GLOBAL: XVT 0x622BA0
 uint16_t g_flightSmallFontHandle = 0;
+/* Memory handle of one screen of pixels, locked into g_flightOffscreenBuffer.
+ * Allocated by FeDiskIo_InitGlobalBuffers, freed by
+ * FeDiskIo_FreeFlightResources. */
 // GLOBAL: XVT 0x622BA4
 uint16_t g_flightOffscreenBufferHandle = 0;
+/* Memory handle of a 20,600-byte font, locked into g_flightFontMicroSw, which
+ * holds MICRO32.FNT. Allocated by FeDiskIo_InitGlobalBuffers, freed by
+ * FeDiskIo_FreeFlightResources. */
 // GLOBAL: XVT 0x622BA8
 uint16_t g_flightMicroFontHandle = 0;
+/* Memory handle of a 34,600-byte font, locked into g_flightFontMediumSw, which
+ * holds MICRO64.FNT at 640x480 and 480x360. Allocated by
+ * FeDiskIo_InitGlobalBuffers, freed by FeDiskIo_FreeFlightResources. */
 // GLOBAL: XVT 0x622BAC
 uint16_t g_flightMediumFontHandle = 0;
+/* Base rating FeDiskIo_CommitFlightResults stores for each flight group of a
+ * melee, by the group's AI level 0 to 6; a nonzero level adds the group index &
+ * 3. */
 // GLOBAL: XVT 0x527510
 const int g_flightGroupRatingBaseByAiLevel[7] = {3, 4, 4, 8, 12, 14, 0};
+/* Promotion points the player needs at each rating to be promoted; also the 100
+ * percent mark of nextPromotionPercent. */
 // GLOBAL: XVT 0x52752C
 const int g_pilotRatingPromotionPointThresholds[25] = {
 	250,  500,  750,  1250, 1750,  2250,  2750,  3250, 3750,
 	4250, 4750, 5250, 5750, 6250,  6500,  6500,  7000, 7250,
 	7500, 7750, 8000, 9000, 10000, 11000, 11000,
 };
+/* Award for a melee or tournament by team count and placement: entry 3 * teams
+ * - 4 + placement, for placements 1 to 3; 0 means none. */
 // GLOBAL: XVT 0x5275A8
 const uint8_t g_placementAwardLevels[24] = {
 	0, 0, 0, 5, 0, 0, 5, 0, 0, 4, 5, 0, 3, 4, 0, 2, 3, 5, 1, 2, 4, 1, 2, 3,
 };
+/* Winning scores for a multiplayer combat award: 50,000 or more gives award 1,
+ * each lower step one more, and below 10,000 none. */
 // GLOBAL: XVT 0x5275C4
 const int g_missionAwardWinThresholds[5] = {50000, 40000, 30000, 20000, 10000};
+/* Score steps for a training or single-player combat award: 50,000, 20,000 and
+ * 0 give awards 1, 2 and 3, a lower score 4, before the difficulty adds 2
+ * (easy) or 1 (medium). */
 // GLOBAL: XVT 0x5275E4
 const int g_missionAwardScoreThresholds[3] = {50000, 20000, 0};
 
+/* Records the flight just ended into the career record g_pilotData, in memory
+ * only, and returns 0; the two arguments are ignored. Does nothing for
+ * MISSION_TYPE_SIMULATOR_1. Sorts the flight as training (training and
+ * simulator 2), melee or combat. In combat, a team with no player flight group
+ * can be credited with its primary goal when the players' team missed its own.
+ * Outside a melee, players of a team that met its primary goal score 80 times
+ * the point value of each craft their flight group still had to send, unless
+ * its supply is unlimited or the player's craft mode is not
+ * CRAFT_WAVES_DEFAULT. The local player's score (mission score plus team bonus)
+ * and every kill, loss, shot and hit tally go into the faction, main and
+ * last-mission statistics. Promotion points then raise or lower the rating
+ * against g_pilotRatingPromotionPointThresholds; below -2000 points demote.
+ * Then per-player and per-flight-group kills, melee flight group ratings, team
+ * results and network players' totals are copied; an award is worked out from
+ * score, placement, difficulty and craft mode; mission bests, times,
+ * completions and awards go into the single-player tables with one human
+ * connected, else the multiplayer ones; and in a mission sequence the campaign,
+ * melee tournament or battle standings, bests and medallions are updated. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x498400
 int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2)
@@ -4168,6 +4268,9 @@ int16_t FeDiskIo_CommitFlightResults(int unused1, int unused2)
 	return 0;
 }
 
+/* Reads a whole file into dst in 512-byte blocks and returns the bytes read as
+ * a 16-bit count, which wraps for a file of 65,536 bytes or more. A missing
+ * file is fatal. Opens and closes g_stream. Does not check the size of dst. */
 // FUNCTION: XVT 0x49C3C0
 uint16_t FeDiskIo_ReadAllBytesOrFatal(const char *fileName, void *dst)
 {
@@ -4204,6 +4307,15 @@ uint16_t FeDiskIo_ReadAllBytesOrFatal(const char *fileName, void *dst)
 	return totalBytes;
 }
 
+/* Sets up the flight's fixed buffers. Sets the pool handles and
+ * g_flightFontSmallSw to 0 first, then allocates the strings (32,000 bytes),
+ * three fonts, three screen-size buffers, HUD panel sprites, icon frames, the
+ * message log and a 296-entry render list; a failed allocation is fatal. Loads
+ * the game strings and the fonts for the resolution, locks the buffers, fills
+ * the scratch buffer with color 0x40, clears the screen and draws the loading
+ * line for the mission directory, with a warning when the resolution, pixel
+ * depth or hardware 3D asked for is not the one in use. Then loads the flight
+ * icons and, with sound effects on, SFXBLAST.LST. */
 // FUNCTION: XVT 0x49C460
 void FeDiskIo_InitGlobalBuffers(void)
 {
@@ -4508,6 +4620,10 @@ void FeDiskIo_InitGlobalBuffers(void)
 	}
 }
 
+/* Unlocks the set pool handles, then the strings, render list, font and screen
+ * buffer handles. When g_mobileObjectCharDataHandle is set it unlocks
+ * g_craftDataPoolHandle in its place, so the character data stays locked and
+ * the craft pool is unlocked twice. */
 // FUNCTION: XVT 0x49CBA0
 void FeDiskIo_UnlockGlobalBuffers(void)
 {
@@ -4540,6 +4656,13 @@ void FeDiskIo_UnlockGlobalBuffers(void)
 	Memory_UnlockHandle(g_flightOffscreenBufferHandle);
 }
 
+/* Locks every set pool handle and points its base at the memory:
+ * g_mobileObjectCharDataPool, g_craftDataPoolBase, g_projectileGuidanceStates,
+ * g_mobileObjectPoolBase and g_objectTable, then rebuilds the mobile object
+ * links. Locks the render list, the fonts (choosing the glyph table for
+ * g_flightFontTier) and the three screen-size buffers, and sets
+ * g_flightAuxBufferMirror. Its StringTable_LoadGameStrings call, with 0, loads
+ * nothing. */
 // FUNCTION: XVT 0x49CC90
 void FeDiskIo_LockGlobalBuffers(void)
 {
@@ -4585,6 +4708,13 @@ void FeDiskIo_LockGlobalBuffers(void)
 	g_flightAuxBufferMirror = g_flightAuxBuffer;
 }
 
+/* Frees the flight's memory at its end: unlocks the buffers; frees the pool
+ * handles and sets them to 0; unloads the sound effects; frees the fixed
+ * buffers (the modern build skips handles of 0 and sets them to 0 after), the
+ * 28 cockpit resources and each object type's model or texture once; clears
+ * g_loadedModels and every type's resourceHandle; and frees the render scene
+ * buffers and the mission's override strings. The modern build first clears its
+ * mission render assets. */
 // FUNCTION: XVT 0x49CDF0
 void FeDiskIo_FreeFlightResources(void)
 {
@@ -4714,6 +4844,17 @@ void FeDiskIo_FreeFlightResources(void)
 	Mission_FreeOverrideStringHandles();
 }
 
+/* Loads the models and textures the mission's object types need. Reads the
+ * lists SPEC, SPEC2 and SPEC3 under ivfiles, the 640 version at 640x480 and
+ * 480x360, else the 320 one. Each nonblank line names the resource for the
+ * object types whose textureGroup is that list and resourceIndex that line,
+ * counted from 0; it is loaded when such a type has asset flags 0x18 and is not
+ * proving-grounds-only (0x40) outside the proving grounds. An OPT model (flag
+ * 0x01) goes through OptModel_LoadHandle and FeDiskIo_BuildModelDef; a texture
+ * level (0x02) is read whole, its palettes converted to the flight pixel depth.
+ * Each type gets the handle in resourceHandle and g_loadedModels. Runs with the
+ * global buffers unlocked, relocking them after RenderScene_AllocateBuffers.
+ * Does not check that a needed resource has one of the two load flags. */
 // FUNCTION: XVT 0x49D010
 void FeDiskIo_LoadResources(void)
 {
@@ -4938,6 +5079,14 @@ void FeDiskIo_LoadResources(void)
 	FeDiskIo_LockGlobalBuffers();
 }
 
+/* Loads the flight's palette data and resources, and returns the palette index
+ * nearest the color (0, 0, 2), also stored in g_flightTransparentColorIndex and
+ * g_flightBackgroundColorIndex. In 8-bit color it loads the RGB565 lookup table
+ * from the mission file's .inv twin, else newpal.inv, else builds it and writes
+ * the .inv. Then loads the resources with g_loadingModel set and builds the
+ * mesh cache. Because g_paletteGenerationEnabled is always 0, it clears
+ * g_generateMissionPalette, and its palette-generating branches, which would
+ * write .pal and .inv files and load newpal.act, never run. */
 // FUNCTION: XVT 0x49D440
 unsigned int FeDiskIo_InitResources(void)
 {
@@ -5144,6 +5293,17 @@ unsigned int FeDiskIo_InitResources(void)
 	return backgroundColorIndex;
 }
 
+/* Sets an object type's maxBoundsExtent and half of it from its model bounds,
+ * then, unless modelDefIndex is 0xFF, fills that model definition from the
+ * loaded OPT model: bound sizes halved until each is at most 0x280, with the
+ * shift; dock heights from the z bounds where the table left 0; hangar, dock
+ * and primary hardpoint points from hardpoint types 25 to 31; up to two laser
+ * groups and two warhead launchers from the other hardpoint types (weapon type
+ * = hardpoint type - 120); then the 16 weapon slots, laser groups' hardpoints
+ * first in mesh order, each turret's second hardpoint kept as the first's
+ * alternate, then the launchers', with each group's first slot, last slot and
+ * count. Object type 53's weapon points are halved. A group that starts with
+ * all 16 slots taken is cleared. */
 // FUNCTION: XVT 0x49D860
 void FeDiskIo_BuildModelDef(uint8_t modelDefIndex, ObjectTypeId objectType)
 {
@@ -5587,6 +5747,11 @@ void FeDiskIo_BuildModelDef(uint8_t modelDefIndex, ObjectTypeId objectType)
 }
 
 #ifndef XVT_MODERN
+/* Shows a two-line box mid-screen, g_fileName with the
+ * DISK_IO_STR_RES_320_NOT_SUPPORTED string, then the
+ * DISK_IO_STR_RES_512_NOT_SUPPORTED string, waits for a key and returns it,
+ * restoring the screen strip and the text state. Only the original build calls
+ * this. */
 // FUNCTION: XVT 0x49E060
 char FeDiskIo_ShowRetryFailPrompt(void)
 {
@@ -5719,6 +5884,9 @@ char FeDiskIo_ShowRetryFailPrompt(void)
 	return nextKey;
 }
 
+/* Shows message and the press-a-key-to-exit string in a box mid-screen with the
+ * surface locks released, waits for a key, restores the locks and text state
+ * and returns the key. Only the original build calls this. */
 // FUNCTION: XVT 0x49E420
 int FeDiskIo_ShowFatalErrorMessageAndWaitKey(const char *message)
 {
@@ -5845,6 +6013,13 @@ int FeDiskIo_ShowFatalErrorMessageAndWaitKey(const char *message)
 
 #endif
 
+/* Opens a file into g_stream and returns 1, or 0 with g_stream NULL. The modern
+ * build opens through storage, records the resolved path in g_fileName and,
+ * with promptOnFail, makes a failure fatal; it ignores locationMode. The
+ * original build tries the name as given and under the install path (unless
+ * locationMode is 2), then on the CD drive under BalanceOfPower and at its root
+ * (unless locationMode is 1), four times each; with promptOnFail the retry
+ * prompt repeats the search on R and ends fatally on F. */
 // FUNCTION: XVT 0x49E720
 int FeDiskIo_OpenGlobalStream(const char *fileName, const char *mode,
 			      int promptOnFail, int locationMode)
@@ -5932,6 +6107,11 @@ int FeDiskIo_OpenGlobalStream(const char *fileName, const char *mode,
 #endif
 }
 
+/* Closes g_stream and returns 1 when it failed, else 0. The modern build closes
+ * through storage and sets g_stream to NULL. The original build fails a stream
+ * whose flag word has bit 0x20 set without closing it, and after a failure
+ * deletes g_fileName when removeFileOnError is set; it leaves g_stream as it
+ * was. */
 // FUNCTION: XVT 0x49E9C0
 int16_t FeDiskIo_CloseGlobalStream(int16_t removeFileOnError)
 {
@@ -5958,6 +6138,10 @@ int16_t FeDiskIo_CloseGlobalStream(int16_t removeFileOnError)
 #endif
 }
 
+/* Reads elemCount items into dst. The modern build reads once and makes a short
+ * read fatal. The original build keeps reading until all arrive, asking after
+ * 15 tries: R allows 5 more, F ends the program; it returns elemCount on
+ * success. Both set g_fileReadAbortFlag. */
 // FUNCTION: XVT 0x49EA10
 size_t FeDiskIo_ReadWithRetryPrompt(void *dst, size_t elemSize,
 				    size_t elemCount, XvtFile *stream)
@@ -6011,6 +6195,12 @@ size_t FeDiskIo_ReadWithRetryPrompt(void *dst, size_t elemSize,
 #endif
 }
 
+/* Ends the program on a file error. The modern build reports a fixed message
+ * through storage. The original build, for an error code below 4 with the fonts
+ * loaded, shows the message and waits for a key, then prints it (with
+ * g_fileName for FILE_ERROR_STR_FILE_MISSING) and exits with -255 minus the
+ * code; without fonts it prints nothing; for a code of 4 or more it prints a
+ * buffer it never filled. */
 // FUNCTION: XVT 0x49EB60
 void FeDiskIo_FatalError(FileErrorStringId errorCode)
 {
@@ -6055,6 +6245,9 @@ void FeDiskIo_FatalError(FileErrorStringId errorCode)
 #endif
 }
 
+/* Ends the program with a message. The original build prints message to stderr,
+ * using it as the format string, and exits with exitCode; the modern build
+ * hands both to XvtStorage_Fatal. */
 // FUNCTION: XVT 0x4ACE60
 void File_PrintFatalMessageAndExit(const char *message, int exitCode)
 {

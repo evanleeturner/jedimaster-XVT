@@ -24,54 +24,120 @@
 #include <stdio.h>
 #include <string.h>
 
+/* The MFD page that has the keyboard focus, an MfdPageId, MFD_PAGE_NONE when
+ * none: the up and down keys scroll it and it gets the bright border. Many
+ * functions write it, chiefly Mfd_TogglePage, the page draw functions (which
+ * pass it to g_mfdSecondaryPage as their page closes),
+ * Hud_RebuildDisplayForViewState and Damage_DisplayMfdPage. Flight start sets
+ * MFD_PAGE_NONE: Flight_MainLoop in the original build,
+ * XvtFlightLoading_MissionSetup in the modern one. */
 // GLOBAL: XVT 0x521548
 uint16_t g_mfdActivePage = MFD_PAGE_NONE;
+/* The page that becomes active when the active one closes, MFD_PAGE_NONE
+ * when none; written alongside g_mfdActivePage by the same functions. */
 // GLOBAL: XVT 0x52154C
 uint16_t g_mfdSecondaryPage = MFD_PAGE_NONE;
+/* g_mfdActivePage as Hud_RebuildDisplayForViewState saved it on leaving the
+ * forward or HUD-only view, put back when that view returns. 3 functions
+ * write it: Hud_RebuildDisplayForViewState, and at flight start
+ * Flight_MainLoop in the original build and XvtFlightLoading_MissionSetup in
+ * the modern one. */
 // GLOBAL: XVT 0x521554
 uint16_t g_mfdSavedActivePage = MFD_PAGE_NONE;
+/* g_mfdSecondaryPage saved with g_mfdSavedActivePage, by the same 3
+ * functions. */
 // GLOBAL: XVT 0x521558
 uint16_t g_mfdSavedSecondaryPage = MFD_PAGE_NONE;
+/* g_mfdPageStates saved with g_mfdSavedActivePage, by the same 3
+ * functions. */
 // GLOBAL: XVT 0xA08330
 int16_t g_savedMfdPageStates[MFD_PAGE_COUNT] = {MFD_PAGE_STATE_CLOSED};
+/* Per page, an MfdPageState: closed, open, closing (the next draw clears it)
+ * or reopened. Many functions write it, chiefly Mfd_TogglePage,
+ * Mfd_DrawCraftListPage, Hud_RebuildDisplayForViewState and
+ * Damage_DisplayMfdPage; flight start sets every entry closed. */
 // GLOBAL: XVT 0xA08BA0
 int16_t g_mfdPageStates[MFD_PAGE_COUNT] = {MFD_PAGE_STATE_CLOSED};
+/* Lines the message log page is scrolled down, 0 at the newest. Only
+ * Mfd_DrawMessageLogPage writes it, setting 0 when the page state
+ * changes. */
 // GLOBAL: XVT 0x622BBC
 uint16_t g_mfdMessageLogScrollOffset = 0;
+/* 1 when the message log page must redraw; only Mfd_DrawMessageLogPage
+ * writes it, setting 0 after each draw. */
 // GLOBAL: XVT 0x622BB0
 uint16_t g_mfdMessageLogRedraw = 0;
+/* g_messageLogTotalCount at the message log page's last draw; only
+ * Mfd_DrawMessageLogPage writes it, to tell when the log grew. */
 // GLOBAL: XVT 0x622BB8
 unsigned int g_mfdMessageLogLastDrawTotalCount = 0;
+/* The local player's mapCameraState when the map help page last drew its
+ * text; only Mfd_DrawMapHelpPage writes it. */
 // GLOBAL: XVT 0x5569F0
 uint16_t g_mfdMapHelpCameraStateCache = 0;
+/* First row the scoreboard page shows; only Mfd_DrawMissionScoreboardPage
+ * writes it, 0 when it redraws the header. */
 // GLOBAL: XVT 0x5569E0
 int16_t g_mfdMissionScoreboardFirstVisibleRow = 0;
+/* g_activeFlightPlayerCount when the scoreboard pane was last sized, 0 after
+ * it closes; only Mfd_DrawMissionScoreboardPage writes it. */
 // GLOBAL: XVT 0x5569E4
 int16_t g_mfdMissionScoreboardLastPlayerCount = 0;
+/* Right edge of the scoreboard pane at its last sizing, 0 after it closes;
+ * only Mfd_DrawMissionScoreboardPage writes it. */
 // GLOBAL: XVT 0x5569E8
 int16_t g_mfdMissionScoreboardLastWidth = 0;
+/* Rows in the craft list at its last full draw; only Mfd_DrawCraftListPage
+ * writes it. */
 // GLOBAL: XVT 0x5569D8
 uint16_t g_mfdCraftListCachedRowCount = 0;
+/* First row shown, for the friendly (0) and hostile (1) craft lists; only
+ * Mfd_DrawCraftListPage writes it. */
 // GLOBAL: XVT 0x5569EC
 int16_t g_mfdCraftListTopRowByMode[2] = {0};
+/* Lines each goals-page section takes, sections 0 to 3; recounted on every
+ * call of Mfd_DrawMissionGoalsPage, its only writer. Entries 4 to 7 stay
+ * 0. */
 // GLOBAL: XVT 0x9A7A10
 int g_mfdGoalsLineCounts[8] = {0};
+/* The local team's prevent status at the goals page's last draw, 0xFF after
+ * a reset; only Mfd_DrawMissionGoalsPage writes it. */
 // GLOBAL: XVT 0x5507F8
 uint8_t g_mfdGoalsCachedSecondaryStatus = 0;
+/* Lines the goals page drew last time; only Mfd_DrawMissionGoalsPage writes
+ * it. */
 // GLOBAL: XVT 0x5507FC
 int g_mfdGoalsCurrentTotalLines = 0;
+/* Sum of g_mfdGoalsLineCounts at the goals page's last check; only
+ * Mfd_DrawMissionGoalsPage writes it. */
 // GLOBAL: XVT 0x550800
 int g_mfdGoalsCachedTotalGoalLines = 0;
+/* 1 when the goals page must redraw; only Mfd_DrawMissionGoalsPage writes
+ * it, setting 0 at the end of each draw. */
 // GLOBAL: XVT 0x550804
 uint16_t g_mfdGoalsRedrawNeeded = 0;
+/* g_mfdGoalsLineCounts at the goals page's last draw; only
+ * Mfd_DrawMissionGoalsPage writes it. */
 // GLOBAL: XVT 0x550808
 int g_mfdGoalsCachedLineCounts[8] = {0};
+/* Set to 0 by Mfd_DrawMissionGoalsPage when the page opens; nothing reads
+ * it. */
 // GLOBAL: XVT 0x550828
 uint16_t g_mfdGoalsUnusedState = 0;
+/* The local team's primary status at the goals page's last draw, 0xFF after
+ * a reset; only Mfd_DrawMissionGoalsPage writes it. */
 // GLOBAL: XVT 0x550830
 uint8_t g_mfdGoalsCachedPrimaryStatus = 0;
+/* Goals page scroll position, in lines; only Mfd_DrawMissionGoalsPage
+ * writes it. */
 // GLOBAL: XVT 0x550838
 int g_mfdGoalsCurrentScrollTop = 0;
+/* Per goals-page section and goal kind (primary, prevent, bonus), the goal
+ * state the section lists: a flight group goal's goalState, or a nonzero
+ * teamGlobalGoalState of a global goal, must equal it. Its low 2 bits also
+ * pick the goal text slot, and it is the goal status passed to
+ * goals_outputgoal, except 5 for prevent goals in section 2. Read only by
+ * Mfd_DrawMissionGoalsPage. */
 // GLOBAL: XVT 0x51BE38
 uint16_t g_mfdGoalsDisplayStateBySectionType[4][3] = {
 	{2, 1, 1},
@@ -79,6 +145,9 @@ uint16_t g_mfdGoalsDisplayStateBySectionType[4][3] = {
 	{0, 4, 0},
 	{1, 0, 1},
 };
+/* A second global goal state each section accepts, as
+ * g_mfdGoalsDisplayStateBySectionType; read only by
+ * Mfd_DrawMissionGoalsPage. */
 // GLOBAL: XVT 0x51BE50
 uint16_t g_mfdGoalsCountAltStateBySectionType[4][3] = {
 	{2, 1, 1},
@@ -86,6 +155,9 @@ uint16_t g_mfdGoalsCountAltStateBySectionType[4][3] = {
 	{0, 4, 0},
 	{4, 0, 1},
 };
+/* Per section and goal kind, the Mission_EvaluateCondition result bits (1
+ * met, 2 failed, 4 undecided) for which a global goal trigger is listed.
+ * Read only by Mfd_DrawMissionGoalsPage. */
 // GLOBAL: XVT 0x51BE68
 uint16_t g_mfdGoalsConditionMaskBySectionType[4][3] = {
 	{2, 1, 1},
@@ -93,10 +165,17 @@ uint16_t g_mfdGoalsConditionMaskBySectionType[4][3] = {
 	{0, 6, 0},
 	{1, 0, 1},
 };
+/* Per team, 0 to 9, the color letter FlightText_SetColor takes for its craft
+ * in the craft lists. Read only by Mfd_DrawCraftListPage. */
 // GLOBAL: XVT 0x523F80
 const char g_mfdCraftListTeamColorCodes[11] = "CJNRFCJNRF";
+/* Map view help texts from strings.txt, filled by
+ * StringTable_LoadGameStrings; read by Mfd_DrawMapHelpPage and
+ * Hud_DrawMapViewOverlay. */
 // GLOBAL: XVT 0xA0A790
 const char *g_strMapRoomText[20] = {0};
+/* Thank-you lines the map help page shows for action keys 0xA8 to 0xAD in
+ * 640x480; entry 9 is NULL. Read only by Mfd_DrawMapHelpPage. */
 // GLOBAL: XVT 0x523F90
 const char *g_mfdDeveloperCreditsLines[47] = {
 	"Special Thanks to:",
@@ -148,6 +227,24 @@ const char *g_mfdDeveloperCreditsLines[47] = {
 	"         -  David",
 };
 
+/* Draws the goals page into the offscreen buffer, in the map view's pane when
+ * the local player's map is shown. A line for the local team's outcome
+ * (victory, loss, draw or unresolved, from runtime.teamGoalStatus) heads four
+ * sections, failed objectives, objectives to accomplish, conditions to prevent
+ * and completed objectives, each listing the team's global goal triggers and
+ * flight group goals whose state the section's entries in
+ * g_mfdGoalsDisplayStateBySectionType, g_mfdGoalsCountAltStateBySectionType and
+ * g_mfdGoalsConditionMaskBySectionType select; bonus goals show their points,
+ * and goal text from the file replaces the generated line. It counts each
+ * section's lines into g_mfdGoalsLineCounts, scrolls with the up and down keys
+ * while the page is active, and redraws only when those counts, the team's
+ * primary or prevent status or the scroll change, or every 472 ticks. When the
+ * page state turns to closing it clears the page, makes the secondary page
+ * active, and returns. It makes itself the active page when none is and the map
+ * is not shown, and draws the active or secondary border. Always returns 0.
+ * Writes g_mfdGoalsLineCounts and the other g_mfdGoals globals,
+ * g_mfdActivePage, g_mfdSecondaryPage, g_flightCursorX and the local player's
+ * missionGoalsRefreshTimer. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x413C80
 int16_t Mfd_DrawMissionGoalsPage(void)
@@ -1233,6 +1330,23 @@ int16_t Mfd_DrawMissionGoalsPage(void)
 	return 0;
 }
 
+/* Draws the scoreboard page into the offscreen buffer, in the map view's pane
+ * when the local player's map is shown. In a melee mission it lists each team
+ * with an arrived player group, sorted by bonus plus mission score, by the name
+ * of its one player or its team name, with its place in a tournament sequence
+ * (shown for places 1 to 3 and the local team), its score and its full and, in
+ * brackets, shared kills; otherwise it lists each connected player, sorted by
+ * mission score plus team bonus score, with the kills summed over flight
+ * groups. The pane is as wide as the longest name plus the score and kills
+ * columns. In 320x240 with the map shown and the page active, the up and down
+ * keys scroll it. It clears the pane when its width, the player count or the
+ * page state changed; when the page is closing it makes the secondary page
+ * active, resets the cached width and count, and returns. It makes itself the
+ * active page when none is and the map is not shown. Writes
+ * g_mfdMissionScoreboardFirstVisibleRow, g_mfdMissionScoreboardLastWidth,
+ * g_mfdMissionScoreboardLastPlayerCount, g_mfdActivePage and
+ * g_mfdSecondaryPage. In the original build, with no team or player to list, it
+ * reads the entry before its order array. */
 // FUNCTION: XVT 0x44BC90
 void Mfd_DrawMissionScoreboardPage(void)
 {
@@ -1967,6 +2081,24 @@ void Mfd_DrawMissionScoreboardPage(void)
 				 DEFAULT_SCREEN_HEIGHT, 0);
 }
 
+/* Draws the friendly craft list or, with showHostileCraft 1, the hostile one
+ * (page MFD_PAGE_FRIENDLY_CRAFT minus showHostileCraft) into the offscreen
+ * buffer. A dead targeting computer on the local player's craft closes the page
+ * with a message, and an empty list closes it. The friendly list holds the
+ * craft of the player's own flight group and of every group on a team allied
+ * with the player's; the hostile list every craft in the active region on a
+ * team not allied with it; craft breaking up or exploding are left out, and
+ * rows are sorted by team. Each row shows the craft's name in its team's
+ * g_mfdCraftListTeamColorCodes color, its shield and hull percentages colored
+ * by level (20 and 50 percent), its target (its player's current target or its
+ * AI target; not for the friendly list in the 320x240 map view) and, for
+ * hostile craft above 320x240, the goal word from
+ * Mfd_GetFlightGroupGoalStatusStringId. The up and down keys scroll it while it
+ * is active; it redraws when the row count changes or every 472 ticks. When the
+ * page is closing it makes the secondary page active and returns. Writes
+ * g_mfdCraftListTopRowByMode, g_mfdCraftListCachedRowCount, g_mfdPageStates,
+ * g_mfdActivePage, g_mfdSecondaryPage, g_msgArgTable, g_flightTextScratchBuffer
+ * and the local player's mfdCraftListRefreshTimer. */
 // FUNCTION: XVT 0x44CE40
 void Mfd_DrawCraftListPage(uint16_t showHostileCraft)
 {
@@ -2921,6 +3053,10 @@ void Mfd_DrawCraftListPage(uint16_t showHostileCraft)
 				 DEFAULT_SCREEN_HEIGHT, 0);
 }
 
+/* Puts an object's list name in g_flightTextScratchBuffer: for a craft, its
+ * flight group's name and, when Hud_MissionFG_GetCraftNumberIfShown gives
+ * one, a space and its number in one or two digits; for any other object an
+ * empty string. */
 // FUNCTION: XVT 0x44E0A0
 void Mfd_BuildScratchCraftListName(uint16_t objectIdx)
 {
@@ -2959,6 +3095,15 @@ void Mfd_BuildScratchCraftListName(uint16_t objectIdx)
 	}
 }
 
+/* Picks the goal word for an object in the hostile craft list, an
+ * FG_GOAL_STATUS_STR_ value: from the local team's pending primary goals on
+ * the object's flight group, and from those triggers of the team's global
+ * goal 0 that match that group. Inspect comes first while the
+ * team has not identified the craft; capture or board on a moving craft also
+ * asks to disable it; with an all-special-cargo goal only the special cargo
+ * craft gets capture, board, disable or destroy. Then capture, board,
+ * destroy, attack, else FG_GOAL_STATUS_STR_NONE, which is also the answer for
+ * a projectile slot. */
 // FUNCTION: XVT 0x44E170
 int16_t Mfd_GetFlightGroupGoalStatusStringId(uint16_t objectIndex)
 {
@@ -3123,6 +3268,14 @@ int16_t Mfd_GetFlightGroupGoalStatusStringId(uint16_t objectIndex)
 				 : FG_GOAL_STATUS_STR_ATTACK;
 }
 
+/* Draws the map help page in the map view's pane: nine rows of
+ * g_strMapRoomText (rows 1 to 4 in two colors) when the page is first drawn
+ * or the local player's map camera state changes. In 640x480, with the map
+ * shown and this page active, action keys 0xA8 to 0xAD show a block of
+ * g_mfdDeveloperCreditsLines instead. It makes itself the active page when
+ * none is and draws the active or secondary border; when the page is closing
+ * it clears it, makes the secondary page active, and returns. Writes
+ * g_mfdActivePage, g_mfdSecondaryPage and g_mfdMapHelpCameraStateCache. */
 // FUNCTION: XVT 0x44E5A0
 void Mfd_DrawMapHelpPage(void)
 {
@@ -3393,6 +3546,16 @@ void Mfd_DrawMapHelpPage(void)
 				 0);
 }
 
+/* Opens or closes an MFD page for the local player. Outside the map view, a
+ * closed page opens as the active page and the old active page becomes the
+ * secondary one; any other state turns to closing. When neither craft list
+ * is then closed, the list page does not name turns to closing, and
+ * g_mfdSecondaryPage goes back to its earlier value unless that was a craft
+ * list; when page was being closed, that earlier value is read unset. In the
+ * map view, a page other than the message log first closes every other open
+ * page but the friendly craft list and the message log; then an open page
+ * turns to closing, or a closed one opens as the active page. Writes
+ * g_mfdPageStates, g_mfdActivePage and g_mfdSecondaryPage. */
 // FUNCTION: XVT 0x4803F0
 void Mfd_TogglePage(uint16_t page)
 {
@@ -3455,6 +3618,8 @@ void Mfd_TogglePage(uint16_t page)
 	g_mfdActivePage = page;
 }
 
+/* Returns the first page, from MFD_PAGE_SCOREBOARD up, that is not closed
+ * and is not g_mfdActivePage, or -1 when there is none. */
 // FUNCTION: XVT 0x480530
 int16_t Mfd_FindSecondaryOpenPage(void)
 {
@@ -3471,6 +3636,20 @@ int16_t Mfd_FindSecondaryOpenPage(void)
 	return -1;
 }
 
+/* Draws the message log page in the ready-message pane, the newest message
+ * first from the scroll offset: each in its prefix code's color (its sender
+ * IFF's color for code 2), '[' and ']' switching the color of the text between
+ * them, a period added unless it ends in '?', '!', ':' or a space, and its
+ * mission time right-aligned, with hours only when not 0. While the page is
+ * active, action keys 0xA6 and 0xA7 scroll one line and 0xAC and 0xAD four; it
+ * redraws when scrolled or when the log grows. When the page state turns to
+ * closing it clears the pane, makes the secondary page active, and returns
+ * cursorY, which the modern build sets to 0 and the original leaves unset;
+ * otherwise it returns the last display offset the pane covers. Writes
+ * g_mfdMessageLogScrollOffset, g_mfdMessageLogRedraw,
+ * g_mfdMessageLogLastDrawTotalCount, g_messageLogRecords,
+ * g_flightTextShadowEnabled, g_flightTextColorIndex, g_mfdActivePage and
+ * g_mfdSecondaryPage. */
 // FUNCTION: XVT 0x49EC40
 int16_t Mfd_DrawMessageLogPage(void)
 {
@@ -3759,6 +3938,11 @@ int16_t Mfd_DrawMessageLogPage(void)
 	return lastDisplayOffset;
 }
 
+/* Maps a display offset, 0 for the newest message, to its index in the
+ * 300-entry message log: while 300 or fewer were logged,
+ * g_messageLogTotalCount - displayOffset - 1, negative past the oldest; after
+ * that, counting back from g_messageLogWriteIndex and wrapping at 300. Does
+ * not check that displayOffset is below 300. */
 // FUNCTION: XVT 0x49F330
 int Mfd_GetMessageLogRecordIndex(int displayOffset)
 {

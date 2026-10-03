@@ -83,8 +83,11 @@ typedef enum MissionConditionType {
 #pragma pack(push, 1)
 
 struct MissionTrigger {
-	uint8_t condition;
+	uint8_t condition; /* A MISSION_COND_ value. */
+	/* What variable selects: a GOAL_TARGET_ trigger variable type. */
 	uint8_t variableType;
+	/* The flight group, species, team or other value variableType
+	 * selects. */
 	uint8_t variable;
 	MissionGoalAmount
 		amount; ///< Encoded goal amount threshold (100%, 75%, 50%, 25%, subset and special-cargo variants).
@@ -96,8 +99,9 @@ typedef char xvt_size_MissionTrigger[(sizeof(MissionTrigger) == 4) ? 1 : -1];
 #pragma pack(push, 1)
 
 struct MissionTriggerPair {
-	MissionTrigger triggers[2];
-	uint8_t reserved[2];
+	MissionTrigger triggers[2]; /* The two conditions. */
+	uint8_t reserved[2]; /* Loaded with the record; nothing reads it. */
+	/* 1 joins the two conditions with OR, else AND. */
 	uint8_t trigger1OrTrigger2;
 };
 
@@ -109,13 +113,15 @@ typedef char xvt_size_MissionTriggerPair[(sizeof(MissionTriggerPair) == 11)
 #pragma pack(push, 1)
 
 struct FlightGroupGoal {
-	uint8_t goalKind;
+	uint8_t goalKind; /* 0 primary, 1 prevent, 2 bonus. */
+	/* The MISSION_COND_ value the goal tests on the group. */
 	uint8_t eventCondition;
 	MissionGoalAmount
 		amount; ///< Encoded goal amount threshold used by Mission_EvaluateCondition.
-	int8_t points;
+	int8_t points;	/* Score unit; 250 times it is awarded. */
+	/* Per team, nonzero when the goal applies to it. */
 	uint8_t enabledTeams[10];
-	uint8_t timeLimit5s;
+	uint8_t timeLimit5s;	/* Time limit in 5-second units; 0 for none. */
 	uint8_t activeSequence; ///< Sequential-goal selector in the mission format; XVT loads it but has no
 	///< direct runtime read.
 	uint8_t reserved[62]; ///< Reserved mission-file storage.

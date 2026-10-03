@@ -17,30 +17,83 @@
 #include <stdio.h>
 #include <string.h>
 
+/* Index in g_messageLogRecords of the newest logged message, 0 to 299, or
+ * 0xFFFF before the first. Flight start sets 0xFFFF: Flight_MainLoop in the
+ * original build, XvtFlightLoading_MissionSetup in the modern one. Only
+ * msg_emitInFlightMessage advances it, back to 0 after 299. */
 // GLOBAL: XVT 0x5235D0
 uint16_t g_messageLogWriteIndex;
+/* Messages logged since flight start, not wrapped at 300; only
+ * msg_emitInFlightMessage raises it. Flight start sets 0: Flight_MainLoop in
+ * the original build, XvtFlightLoading_MissionSetup in the modern one.
+ * Mfd_DrawMessageLogPage redraws when it changes. */
 // GLOBAL: XVT 0x5235D4
 uint16_t g_messageLogTotalCount;
+/* Set to 1 by msg_emitInFlightMessage, its only writer, when
+ * g_messageLogWriteIndex first wraps; the message log page then offers all
+ * 300 records. Nothing sets it back to 0, so it carries into later flights
+ * of the same run. */
 // GLOBAL: XVT 0x5235D8
 uint16_t g_messageLogWrapped = 0;
+/* Arguments of the next in-flight message, taken in order by its '*' and '&'
+ * marks. A value below 0x8000 is the number for '&', or for '*' a message
+ * whose text it inserts; slot + 0x8000, set by msg_addMessagePtr, makes '*'
+ * insert the text at g_msgPtrs[slot]. Many functions write it, chiefly the
+ * msg functions and Flight_ProcessPlayerActions, just before they emit. */
 // GLOBAL: XVT 0xA07BE0
 uint16_t g_msgArgTable[4];
+/* Second name buffer for messages that name two objects: paiman_boardmaneuver
+ * and Player_HandleHyperspaceCommand write a name into it with
+ * msg_formatObjectName and pass it as argument 1. */
 // GLOBAL: XVT 0x9EC4D0
 char g_flightSecondaryObjectNameBuffer[256] = {0};
+/* Text for '*' arguments marked slot + 0x8000 in g_msgArgTable; only
+ * msg_addMessagePtr writes it. A model definition or flight group passed
+ * here reads as its name, the first field of each. */
 // GLOBAL: XVT 0xA08120
 static const void *g_msgPtrs[4];
+/* The message log: a ring of 300 records in the memory of
+ * g_messageLogHandle, MESSAGE_LOG_BUFFER_BYTES (32,000) long. Set by locking
+ * the handle in msg_emitInFlightMessage and Mfd_DrawMessageLogPage;
+ * msg_emitInFlightMessage writes each logged message at
+ * g_messageLogWriteIndex. */
 // GLOBAL: XVT 0x9993FC
 HudInFlightMessageRecord *g_messageLogRecords = NULL;
+/* IFF of the next message's sender, copied into its senderIff. Many
+ * functions write it, chiefly the msg functions and
+ * Flight_ProcessPlayerActions; nothing resets it, so a message whose caller
+ * does not set it takes the last sender's. */
 // GLOBAL: XVT 0xA08292
 uint16_t g_msgSenderIff = 0;
+/* By target designation, the offset of its message from
+ * IFMSG_309_TARGET_DESCRIPTION: 1 when msg_BuildTargetDescription, its only
+ * reader, puts "Our", "Friendly" or "Enemy" before it. */
 // GLOBAL: XVT 0x5240B8
 const uint8_t g_targetDescDesignationUsesRelationText[24] = {
 	0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0};
+/* Voice sound id that msg_emitInFlightMessage stores in messages 196 and 207
+ * (IFMSG_196_CODE_02_ARGUMENT, IFMSG_207_CODE_01_ARGUMENT);
+ * Hud_ShowFlightMessagePane plays it when such a message is first shown.
+ * Only Mission_UpdateLogic writes it. */
 // GLOBAL: XVT 0x9D7684
 uint16_t g_pendingHudMessageVoiceSfxId = 0;
+/* In-flight message templates by InFlightMessageId, filled by
+ * StringTable_LoadGameStrings. The first byte is the pane type; '*' inserts
+ * an argument's text, '&' and a count byte an argument's number, and '[' and
+ * ']' switch the text color when the message is drawn. */
 // GLOBAL: XVT 0x9A1840
 const char *g_strInFlightMessages[417] = {0};
 
+/* Appends the message log to the first of msglog0.txt to msglog99.txt that
+ * does not exist yet, or to msglog99.txt when all do; the modern build looks
+ * in the player's files. Writes records 0 to g_messageLogWriteIndex - 1 of
+ * g_messageLogRecords, one line each: the text without its pane type byte
+ * (and, after type 1, a digit 0 to 3), a tab, and the mission clock as
+ * hours:minutes:seconds. Called at a wrap it writes all 300; called
+ * otherwise it leaves out the newest record, at g_messageLogWriteIndex. Does
+ * nothing when no file opens. Every existing file it opens to test, but
+ * msglog99.txt, stays open. Does not check for the 0xFFFF index before the
+ * first logged message, which makes it read 65,535 records. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x450550
 void msg_writeMessageLogFile(void)
@@ -109,6 +162,31 @@ void msg_writeMessageLogFile(void)
 	}
 }
 
+/* Builds in-flight message messageId from its template and the arguments in
+ * g_msgArgTable, logs it, and hands it to a HUD pane. Does nothing when
+ * g_flightSimSideEffectsSuppressed is set or playerIdx is not g_localPlayer.
+ * The record takes the mission clock (the countdown clock when the mission
+ * has a time limit, else the elapsed clock), g_msgSenderIff, and for
+ * messages 196 and 207 g_pendingHudMessageVoiceSfxId. The template's first
+ * byte is the pane type and, below 9, stays as the text's first character;
+ * '*' inserts the next argument's text, and '&' with a count byte its value
+ * in that many places, dropping zeros in front. Text past 69 characters is
+ * cut. The modern build swaps in its own text for message 1, the pause
+ * notice. A pane type of 9 or more becomes 6.
+ *
+ * Types 1 and 2 enter the message log unless g_replayViewMode is set:
+ * g_messageLogTotalCount rises and g_messageLogWriteIndex steps on; at 300
+ * it goes back to 0 and g_messageLogWrapped to 1, after
+ * msg_writeMessageLogFile when g_radioMessageBackupEnabled is set. Types 3,
+ * 4 and 7 replace g_systemMessagePane when system messages are on (or this
+ * is message 400) and the pane is empty, holds no type 4, or the new one is
+ * type 7; else they are dropped. Type 8 replaces g_flightGroupMessagePane.
+ * Other types go to g_readyMessagePaneQueue: an empty slot 0 takes the
+ * message and shows it; else, by the type in slot 0, it waits behind it (at
+ * most 9 wait; past that it is lost) or takes slot 0 and is shown, after
+ * Hud_ShiftReadyMessageQueueForReplacement when slot 0 holds a type 1, 2 or
+ * 5. Behind a type 0 it is dropped. Does not check argument slots against
+ * the 4-entry tables or an '&' count against g_flightTextDecimalDivisors. */
 // FUNCTION: XVT 0x450650
 void msg_emitInFlightMessage(InFlightMessageId messageId, int playerIdx)
 {
@@ -325,6 +403,17 @@ void msg_emitInFlightMessage(InFlightMessageId messageId, int playerIdx)
 	}
 }
 
+/* Announces flight group flightGroupIndex's arrival to the local player. Finds
+ * where it is with Mission_ResolveObjectOrMissionPointWorldLoc: for arrival
+ * method 0 with 0x8000, else with the group's craft in the active region that
+ * follows no other; with none found, the last resolved place stands. Takes the
+ * distance from the player's craft, or from the player's camera while
+ * mapCameraState is not 0, and shows (distance * 161 / 65,536 + 50) / 100 km,
+ * at least 1; this leaves trig2_polardistance multiplied by 161. Emits message
+ * 114 or 115, new craft alert for one craft or several, when the group's IFF is
+ * not the player's, else 235 or 236, entering area. Sets g_msgSenderIff to the
+ * group's IFF and fills the message arguments with the craft count,
+ * modelIndex's long name, the group and the range. */
 // FUNCTION: XVT 0x451940
 void msg_reportfgcreation(uint16_t flightGroupIndex, uint16_t modelIndex)
 {
@@ -414,6 +503,9 @@ void msg_reportfgcreation(uint16_t flightGroupIndex, uint16_t modelIndex)
 	}
 }
 
+/* Makes argument slot insert the text at value: stores value in g_msgPtrs and
+ * slot + 0x8000 in g_msgArgTable. Does not check slot against the 4
+ * entries. */
 // FUNCTION: XVT 0x451BF0
 void msg_addMessagePtr(uint16_t slot, const void *value)
 {
@@ -421,6 +513,10 @@ void msg_addMessagePtr(uint16_t slot, const void *value)
 	g_msgPtrs[slot] = value;
 }
 
+/* Emits a message naming a craft, its model's short name then its flight
+ * group, with its number when Hud_MissionFG_GetCraftNumberIfShown gives one
+ * (message 133, else 134), followed by message msgTemplateId's text. Sets
+ * g_msgSenderIff to the object's IFF and fills the message arguments. */
 // FUNCTION: XVT 0x451C20
 void msg_emitCraftMessage(uint16_t objIdx, CraftData *craft,
 			  int16_t msgTemplateId)
@@ -448,6 +544,14 @@ void msg_emitCraftMessage(uint16_t objIdx, CraftData *craft,
 	}
 }
 
+/* Shows a wingman's acknowledgment of a command and has it spoken. Sets
+ * g_msgSenderIff to the sender's flight group's IFF, then does nothing more,
+ * speech included, unless that group shares the local player's IFF and team.
+ * With multipleRecipients set, emits message 269, acknowledged, with the
+ * group and commandId's text; else 147 or 148, Roger, with the sender's
+ * model, group and number when shown, and commandId's text. Then calls
+ * fsfx_SpeakWingmanEvent with responseIndex. Takes the model index from
+ * byte 4 of senderCraft. */
 // FUNCTION: XVT 0x451D00
 void msg_radioMessage(uint16_t senderObjIdx, uint8_t *senderCraft,
 		      uint16_t commandId, uint16_t responseIndex,
@@ -491,6 +595,8 @@ void msg_radioMessage(uint16_t senderObjIdx, uint8_t *senderCraft,
 			       senderObjIdx, UINT16_MAX);
 }
 
+/* As msg_emitCraftMessage, with messages 157 and 158, reporting in, and
+ * g_msgSenderIff set from the flight group's IFF instead of the object's. */
 // FUNCTION: XVT 0x451E70
 void msg_reportmessage(uint16_t objIdx, CraftData *craft, int16_t msgTemplateId)
 {
@@ -515,6 +621,31 @@ void msg_reportmessage(uint16_t objIdx, CraftData *craft, int16_t msgTemplateId)
 	}
 }
 
+/* Builds the target description of playerIdx's target: its name, its
+ * designation, and what the player's goals want done with it. Returns 0 at once
+ * for an object in the projectile slots. Otherwise fills the message arguments:
+ * slot 0 the name, from msg_formatObjectName mode 2 into
+ * g_flightTextScratchBuffer; slot 1 "Our", "Friendly" or "Enemy" when
+ * g_targetDescDesignationUsesRelationText asks for it; slot 2 the designation's
+ * message, from the team's designation table or, when that gives 0, by kind
+ * (mine, satellite, probe, nav buoy, wingman, friendly craft, cargo, craft);
+ * slot 3 the goal phrase, blank when there is none.
+ *
+ * The phrase comes from the target group's pending goals for the player's team
+ * and the team's global goal triggers that match the group: inspect, else
+ * disable (worded for capture or boarding when those apply), else capture,
+ * board or destroy. For a craft, an inspection the team has done drops out,
+ * capture or boarding of a moving craft asks to disable it, and with a special
+ * cargo goal only the special cargo craft gets capture, board, disable or
+ * destroy. When an order of the player's flight group whose built-in plan is 19
+ * (disable) or 69 (destroy) targets it, the phrase moves to the next message,
+ * which tells the player to act, and the target is actionable; inspect always
+ * is. With emitHudMessage set for the local player, emits message 309, sets the
+ * player's targetDescriptionRefreshTimer to 1,180 ticks and
+ * g_targetDescriptionMessageId to the phrase. Returns the actionable flag when
+ * returnActionableOnly is set, else the phrase's message id. Does not check a
+ * designation from the table against the 24 entries of
+ * g_targetDescDesignationUsesRelationText. */
 // FUNCTION: XVT 0x451F50
 int msg_BuildTargetDescription(uint16_t targetObjIdx, int playerIdx,
 			       int emitHudMessage, int returnActionableOnly)
@@ -795,6 +926,16 @@ int msg_BuildTargetDescription(uint16_t targetObjIdx, int playerIdx,
 	return g_msgArgTable[3];
 }
 
+/* Writes an object's display name into outName, emptying it first. For a
+ * craft: its model's long name (nameMode 1) or short name (0), its flight
+ * group's name when it has one, and its number when
+ * Hud_MissionFG_GetCraftNumberIfShown gives one, space separated; other
+ * modes leave out the model. Another mobile object gets its warhead name
+ * (types 0x8F to 0x9B) or satellite, mine, probe or buoy name, else nothing.
+ * An object with no mobile object gets its group's name in modes other than
+ * 0 and 1, else the satellite-to-buoy name for its type and the group's
+ * name. Does not check outName's size, or the type of an object with no
+ * mobile object. */
 // FUNCTION: XVT 0x4525A0
 void msg_formatObjectName(uint16_t objIdx, uint16_t nameMode, char *outName)
 {
@@ -895,6 +1036,7 @@ void msg_formatObjectName(uint16_t objIdx, uint16_t nameMode, char *outName)
 	}
 }
 
+/* Appends source to the string in destination; does not check its size. */
 // FUNCTION: XVT 0x452830
 void msg_AppendString(const char *source, char *destination)
 {
@@ -907,6 +1049,7 @@ void msg_AppendString(const char *source, char *destination)
 	*destination = '\0';
 }
 
+/* Appends ch to the string in destination; does not check its size. */
 // FUNCTION: XVT 0x452860
 void msg_AppendChar(char ch, char *destination)
 {
@@ -917,6 +1060,9 @@ void msg_AppendChar(char ch, char *destination)
 	destination[1] = '\0';
 }
 
+/* Emits messageId with arguments naming the local player's craft: its
+ * model's short name in slot 0, its flight group in slot 1 and its number,
+ * 0 when not shown, in slot 2. Sets g_msgSenderIff to the craft's IFF. */
 // FUNCTION: XVT 0x452880
 void msg_emitLocalPlayerCraftMessage(InFlightMessageId messageId)
 {

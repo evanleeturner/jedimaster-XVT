@@ -10,6 +10,23 @@
 #include "xvt/flight/player/player.h"
 #include "xvt/util/game_rand.h"
 
+/* Tests whether a moving object, swept from g_collisionSegmentStartWorld* to
+ * g_collisionProbeWorld*, hits the static object in slot staticObjIdx (one
+ * of the slots past g_regionMainObjectSlotEnd, which have no mobile record).
+ * Returns 0 for no hit, else the finer test's result: the 1-based mesh
+ * ordinal from collide_CheckSweptModelCollision when the static's
+ * maxBoundsExtent is LARGE_MODEL_EXTENT (1,095) or more or it is a Container
+ * Class H, else 0xFFFF from the box test of collide_checkboxcollision.
+ * Returns 0 early when the moving object's source slot (mobj->sourceObjIdx)
+ * is not below staticObjIdx; when the static is an obstacle or small debris;
+ * when the static is not normal debris and the source is an AI craft (no
+ * player owner) whose target is not this static; when the static lies more
+ * than MAX_DISTANCE (0x20000) world units away on an axis or by
+ * collide_roughdistance3du; and when the sweep plus the hit radius cannot
+ * reach it. Writes g_collisionSweepStart* and g_collisionSweepEnd* (both set
+ * to the static's position), g_worldLoc* through
+ * Mission_ResolveObjectOrMissionPointWorldLoc, and g_collisionHitOffset* on
+ * a hit. Does not check that staticObjIdx holds an object. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x446700
 uint16_t static_TestSweptStaticCollision(uint16_t sourceObjIdx,
@@ -137,6 +154,23 @@ uint16_t static_TestSweptStaticCollision(uint16_t sourceObjIdx,
 						   (hitRadius >> 1));
 }
 
+/* Resolves a hit by sourceObjIdx, a craft or a projectile, on the static
+ * object victimObjIdx and leaves an impact effect at the hit point. Normal
+ * debris survives, and the effect is EFFECT_TYPE_LASER_IMPACT (0x83) or, for
+ * an ion shot, EFFECT_TYPE_ION_IMPACT (0x84). A craft destroys any other
+ * static: it adds a destroyed outcome to the victim's flight group in
+ * g_missionFgStats, empties the victim's slot (objectType 0) and credits the
+ * craft through Mission_CreditDestructionDamageContributors. An ion shot
+ * disables the victim instead (typeSpecificWord 0, a disabled outcome); any
+ * other shot destroys it as a craft does, crediting the shot's source, and a
+ * Mine Type C first fires a warhead back at that source through
+ * laser_createprojectilefromstatic. The effect takes a new explosion slot
+ * for a craft source (when none is free there is no effect) and takes over
+ * the projectile's own slot otherwise; it is placed at
+ * g_collisionSegmentStartWorld* plus g_collisionHitOffset*, is
+ * EFFECT_TYPE_DEFAULT (0x81) for a destroyed victim or a warhead, and plays
+ * a laser-impact sound or one of four small-explosion sounds. The source
+ * craft takes no damage here. */
 // FUNCTION: XVT 0x446960
 void static_ApplyStaticHit(uint16_t sourceObjIdx, int victimObjIdx)
 {

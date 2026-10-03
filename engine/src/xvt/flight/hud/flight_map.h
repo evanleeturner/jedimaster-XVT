@@ -24,6 +24,9 @@ extern int g_flightIconFrameCount;
 extern const char *g_flightIconResourcePath;
 extern uint8_t **g_flightIconFrames;
 
+/* Returns one easing step toward delta for FlightMap_UpdateCamera: half of
+ * delta, but at least 16 and at most 4,096 in size, and never past
+ * delta. */
 static __inline int FlightMap_ComputeAimStep(int delta)
 {
 	int step;

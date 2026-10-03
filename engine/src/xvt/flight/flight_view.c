@@ -35,21 +35,55 @@
 #include <limits.h>
 #include <string.h>
 
+/* World Z offset, from the camera, of the point being placed, before it is
+ * turned into view space. Many functions write it, chiefly
+ * FlightView_ComputeObjectViewPosition, FlightView_ProjectAndTestSphereVisible,
+ * FlightView_CullWorldSphereToViewport, the flight map and HUD 3D display code
+ * and RenderList_ProjectObjectBoundsForCulling. */
 // GLOBAL: XVT 0x9FD398
 int g_camRelWorldZ = 0;
+/* World X offset from the camera, as g_camRelWorldZ; written by the same
+ * functions. */
 // GLOBAL: XVT 0x9FD39C
 int g_camRelWorldX = 0;
+/* World Y offset from the camera, as g_camRelWorldZ; written by the same
+ * functions. */
 // GLOBAL: XVT 0x9FD3A0
 int g_camRelWorldY = 0;
+/* Bounds extent (the type's maxBoundsExtent) of the object being culled or
+ * framed. Three functions write it: FlightView_Render and Hud_Update3DCrt, per
+ * object, and FlightView_UpdatePlayerCamera, which halves it until it fits in
+ * 32,767. */
 // GLOBAL: XVT 0x9A8D9C
 int g_currentObjectBoundsExtent = 0;
+/* 1 when FlightView_Render is to flush the hardware texture cache
+ * (std3D_FlushTextureCache) before its next scene. Set by
+ * Mission_InitFlightRuntimeState and Hud_RebuildDisplayForViewState;
+ * FlightView_Render clears it. */
 // GLOBAL: XVT 0x9CD264
 uint16_t g_flightInitialTextureCacheFlushPending = 0;
+/* Ticks, cut to 16 bits, that the input clock advanced between two reads near
+ * the end of FlightView_Render, around the buffer unlock, the cockpit
+ * compositing and the target inset. Only FlightView_Render writes and reads
+ * it. */
 // GLOBAL: XVT 0x9A7BA8
 uint16_t g_flightPostSceneDurationTicks = 0;
+/* Set to 0 by FlightView_Render, its only writer; nothing reads it. */
 // GLOBAL: XVT 0x9E9660
 uint16_t g_flightRenderScratchWord = 0;
 
+/* Lays the cockpit and HUD layer (g_flightOffscreenSurface) over the 3D frame
+ * in g_flightBackBuffer, centered in the display mode: rows above and below the
+ * viewport whole, and in the viewport's rows the parts left and right of it and
+ * the runs the span mask marks for copying. The mask, at g_flightAuxBuffer plus
+ * g_viewportSpanMaskOffset, holds per viewport row a signed first byte, then
+ * run lengths (a 0 byte means the next byte plus 255, or after two 0 bytes the
+ * third plus 511); the runs alternate in sign from the first byte, and the
+ * negative ones are copied. Returns the back buffer's unlock result, or a
+ * lock's error other than still drawing, which leaves the back buffer locked
+ * when the second lock fails. FlightView_Render calls it with hardware 3D. The
+ * modern build latches the composition (XvtCockpit_LatchComposition) after a
+ * good unlock. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x40B7B0
 HRESULT FlightView_CompositeMaskedSoftwareSurface(void)
@@ -251,6 +285,14 @@ HRESULT FlightView_CompositeMaskedSoftwareSurface(void)
 #endif
 }
 
+/* Turns a player's view by input and stores the new view angles (a full circle
+ * is 65,536). It builds the camera from viewState's roll, pitch and yaw, turns
+ * it by pitchStep about its side axis and, unless g_flightKeyMods selects roll
+ * ((g_flightKeyMods & 0xE) == 2), by yawOrRollStep about its up axis, then
+ * reads viewPitch and viewYaw back from its forward axis; it takes that yaw and
+ * pitch back out to read viewRoll, and in roll mode adds yawOrRollStep to it.
+ * Returns the new viewRoll. Writes g_curMatR0_X to g_curMatR2_Z, and the camera
+ * matrix and g_fview axis globals through FVIEW_BuildCameraOrient. */
 // FUNCTION: XVT 0x438330
 int16_t FlightView_RotateViewByInput(int pitchStep, int yawOrRollStep,
 				     int playerIdx)
@@ -355,6 +397,26 @@ int16_t FlightView_RotateViewByInput(int pitchStep, int yawOrRollStep,
 	return result;
 }
 
+/* Places a player's camera for this frame and builds the camera matrix
+ * (FVIEW_BuildCameraOrient), writing viewState's angles and cameraWorldX to
+ * cameraWorldZ. In the map view FlightMap_UpdateCamera does it. With no focus
+ * object (cameraFocusObjIdx 0xFFFF) the camera stays where it is and looks at
+ * the player's craft, roll 0; the modern build returns first when the player
+ * has no craft. With the external camera on and no transition running, or a
+ * transition running with input blocked, it takes the focus object's angles and
+ * sits behind the focus object's position
+ * (Mission_ResolveObjectOrMissionPointWorldLoc) along the view's forward axis
+ * by cameraDistance plus the object's bounds extent. During any other
+ * transition Hud_PointCamera does it. Otherwise, the cockpit view, it takes the
+ * focus object's angles and viewAngleD, caches the orientation in that object's
+ * record, and sits at its position, plus the player's hardpoint offset when the
+ * object is the player's own. Then, while the player's hyperspacePhase is 2,
+ * from 531 ticks (0x213) on, it sets externalCameraActive, the full-screen HUD
+ * view (Hud_SetHudViewState) and a cameraFocusObjIdx of 0xFFFF on every call:
+ * its test to skip that compares the 16-bit index with UINT_MAX and always
+ * passes. For a player with a craft it then sets a level camera (pitch 0x4000)
+ * that rolls 8 per tick past 590 ticks (0x24E), at the craft's Y less its
+ * bounds extent, less the square of the ticks past 531, counted up to 236. */
 // FUNCTION: XVT 0x44EB60
 void FlightView_UpdatePlayerCamera(int playerIdx)
 {
@@ -600,6 +662,31 @@ void FlightView_UpdatePlayerCamera(int playerIdx)
 	}
 }
 
+/* Draws the local player's view for this frame, with g_flightDrawToHudLayer 0,
+ * leaving it 1. In the map view it draws the map (FlightMap_RenderView), and
+ * while the local player's hyperspacePhase is 2, before 531 ticks, only the
+ * streaks (FlightHyperspace_RenderTransitionEffect); at hyperspacePhase 1 it
+ * asks for new streaks first. Otherwise it flushes the texture cache when
+ * g_flightInitialTextureCacheFlushPending is set and queues the objects that
+ * may be in view: craft, projectiles, small debris and explosions among the
+ * main slots (FlightView_ProjectAndTestSphereVisible), passing over the slots
+ * from g_localTransientSlotStart to g_localDebrisSlotEnd when debris is off, in
+ * the proving grounds or in hyperspace, and over the camera's focus object in
+ * the cockpit view outside replay view; and static objects of the mine to small
+ * debris genera (FlightView_CullWorldSphereToViewport). It sorts them
+ * (RenderList_SortDepthAscending) and draws each by genus: craft as models with
+ * lighting and damage billboards, course obstacles by
+ * ProvingGrounds_DrawCourseObject, object type 36 without bilinear filtering,
+ * projectiles, debris and explosions as billboards, statics through
+ * RenderNonCraftSceneObject. The backdrop and starfield are drawn first with
+ * hardware 3D and after the objects in software, where the queued billboards
+ * and the target boxes follow the faces (sw3d_DrawVisibleFacesToSurface). Every
+ * path then lays the cockpit layer over the frame with hardware 3D
+ * (FlightView_CompositeMaskedSoftwareSurface), draws the target inset and blits
+ * the HUD text panes and MFD pages. The full path also adds the elapsed ticks
+ * to g_inputTimestamp twice and sets g_flightPostSceneDurationTicks. The modern
+ * build first records the view for its renderer
+ * (XvtRenderCapture_CaptureView). */
 // FUNCTION: XVT 0x44F140
 void FlightView_Render(void)
 {
@@ -983,6 +1070,10 @@ void FlightView_Render(void)
 	g_flightDrawToHudLayer = 1;
 }
 
+/* Sets g_camRelWorldX to g_camRelWorldZ to an object's world position less the
+ * local player's camera position, and g_viewSpaceX, g_viewSpaceY and
+ * g_viewSpaceDepth to that offset in view space; returns the depth. Does not
+ * check objectIdx. */
 // FUNCTION: XVT 0x44FE40
 int FlightView_ComputeObjectViewPosition(uint16_t objectIdx)
 {
@@ -1007,6 +1098,13 @@ int FlightView_ComputeObjectViewPosition(uint16_t objectIdx)
 	return g_viewSpaceDepth;
 }
 
+/* Returns 1 when a sphere of radius sphereRadius around an object may be in the
+ * local player's view, else 0. It is out when depth plus radius is below 0
+ * (wholly behind the eye), when that sum shifted right 8 exceeds the radius
+ * (more than about 256 radii away), or when the size of its view X, or then of
+ * its view Y, less the radius exceeds that sum. Writes g_camRelWorldX to
+ * g_camRelWorldZ, g_viewSpaceDepth, and g_viewSpaceX and g_viewSpaceY as far as
+ * the tests get. */
 // FUNCTION: XVT 0x44FF10
 int FlightView_ProjectAndTestSphereVisible(int objectIdx,
 					   unsigned int sphereRadius)
@@ -1062,6 +1160,9 @@ int FlightView_ProjectAndTestSphereVisible(int objectIdx,
 	return (int)((unsigned int)absoluteY - sphereRadius) <= depthWithRadius;
 }
 
+/* FlightView_ProjectAndTestSphereVisible for a sphere at a world position
+ * rather than an object's, with the same tests, here compared as signed:
+ * returns 1 when it may be in view, else 0, and writes the same globals. */
 // FUNCTION: XVT 0x450020
 int FlightView_CullWorldSphereToViewport(int worldX, int worldY, int worldZ,
 					 int sphereRadius)
@@ -1118,6 +1219,12 @@ int FlightView_CullWorldSphereToViewport(int worldX, int worldY, int worldZ,
 	return absoluteY - sphereRadius <= depthWithRadius;
 }
 
+/* Draws the first frame of a flight: places every active player's camera (the
+ * other players' first, then the local one's), draws the HUD into the cockpit
+ * layer (Hud_RenderHud) and lays that over the frame
+ * (FlightDisplay_BlitRenderSurface), places the cameras again, draws the view
+ * (FlightView_Render), flips (FlightDisplay_Flip) and lays the cockpit layer
+ * over the new frame. The modern build brackets it for its frame capture. */
 // FUNCTION: XVT 0x450110
 void FlightView_RenderStartupFrame(void)
 {
@@ -1159,6 +1266,14 @@ void FlightView_RenderStartupFrame(void)
 	FlightDisplay_BlitRenderSurface();
 }
 
+/* Draws one frame: places the cameras (other active players first, then the
+ * local one), draws the view (FlightView_Render), applies and latches the local
+ * player's replay record (FlightInput_Read with the local player's index,
+ * FlightInput_LatchFlightControls), draws the HUD (Hud_RenderHud) and flips.
+ * Then, with hardware 3D, it clears the frame buffers
+ * (RenderScene_ClearFrameBuffers); in software it lays the cockpit layer over
+ * the next frame (FlightDisplay_BlitRenderSurface). The modern build brackets
+ * it for its frame capture. */
 // FUNCTION: XVT 0x4501C0
 void FlightView_RenderFrame(void)
 {

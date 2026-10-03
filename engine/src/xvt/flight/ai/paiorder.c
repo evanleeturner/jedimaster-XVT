@@ -19,19 +19,41 @@
 #include "xvt/util/game_rand.h"
 #include <string.h>
 
+/* Rough distance in world units, by skill tier 0 to 2, beyond which
+ * paiorder_stillattackorder forgets an attacker that is not a warhead. Entry 3
+ * is 0. Nothing writes it. */
 // GLOBAL: XVT 0x5243A8
 int g_aiStillAttackLastAttackerRangeBySkill[4] = {0x8000, 0xC000, 0xE000, 0};
 
+/* Class 0, 1 or 2 of an object's bearing for each eighth of a circle (0x2000
+ * angle units) it lies off the craft's yaw, counting from the yaw: 0 for the
+ * first and last eighth, 2 for the two in the middle, 1 for the rest. The
+ * under-attack, on-tail and avoid-hit orders pick maneuvers by it. Nothing
+ * writes it. */
 // GLOBAL: XVT 0x5243D8
 uint8_t g_aiThreatBearingClassByOctant[8] = {0, 1, 1, 2, 2, 1, 1, 0};
+/* Rough distance in world units, by skill tier 0 to 2, within which
+ * paiorder_underattackorder and paiorder_avoidhitorder look for an enemy
+ * starfighter pointed at the craft. Entry 3 is 0. Nothing writes it. */
 // GLOBAL: XVT 0x5243B8
 int g_aiAttackerSearchRangeBySkill[4] = {0x2000, 0x3000, 0x4000, 0};
+/* Rough distance in world units, by skill tier 0 to 2, within which a homing
+ * warhead aimed at the craft counts as a threat; the under-attack and avoid-hit
+ * orders triple it for a concussion missile, and avoid-hit for type 149 too.
+ * paifight_gunnerselfdefenseorder reads it as well. Entry 3 is 0. Nothing
+ * writes it. */
 // GLOBAL: XVT 0x5243C8
 int g_aiWarheadThreatRangeBySkill[4] = {0x800, 0x1000, 0x1800, 0};
+/* Four maneuvers paiorder_underattackorder picks from by the low two bits of a
+ * GameRand draw, for an attacker in bearing class 0 or 1; paiman_attackmaneuver
+ * reads it too. Nothing writes it. */
 // GLOBAL: XVT 0x5243E0
 uint8_t g_aiUnderAttackFrontSideManeuverChoices[4] = {
 	AI_MANEUVER_MODE_ZOOM, AI_MANEUVER_MODE_DIVE,
 	AI_MANEUVER_MODE_SPLITS_DIVE, AI_MANEUVER_MODE_IMMELMANN};
+/* Eight maneuvers paiorder_underattackorder picks from by the low three bits of
+ * a GameRand draw, for an attacker in bearing class 2; paiman_attackmaneuver
+ * reads it too. Nothing writes it. */
 // GLOBAL: XVT 0x5243E8
 uint8_t g_aiUnderAttackRearManeuverChoices[8] = {
 	AI_MANEUVER_MODE_TURN_INSIDE,	 AI_MANEUVER_MODE_SPLITS_DIVE,
@@ -40,6 +62,10 @@ uint8_t g_aiUnderAttackRearManeuverChoices[8] = {
 	AI_MANEUVER_MODE_SCISSORS,	 AI_MANEUVER_MODE_AVOID_ATTACKER,
 };
 
+/* The order handlers by order id, as the plan text's order tokens number them;
+ * pai_ProcessPlan calls them. A handler returns nonzero when its order fires,
+ * which switches the craft to the plan paired with the order. Nothing writes
+ * it. */
 // GLOBAL: XVT 0x5243F0
 PaiOrderFunc g_orderTable[48] = {
 	paiorder_nullhandler,
@@ -92,13 +118,19 @@ PaiOrderFunc g_orderTable[48] = {
 	paiorder_playerinputorder,
 };
 
+/* Order 47: does nothing and returns 0. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4661E0
 int16_t paiorder_playerinputorder(void) { return 0; }
 
+/* Order 0: does nothing and returns 0. */
 // FUNCTION: XVT 0x4661F0
 int16_t paiorder_nullhandler(void) { return 0; }
 
+/* Order 1: runs the step function of the craft's maneuverMode from
+ * g_aiCourseOrderManeuverTable, through g_aiCurrentManeuverProc, which it sets,
+ * and returns what that returns. Does not check maneuverMode against the
+ * table's 34 entries. */
 // FUNCTION: XVT 0x466200
 int16_t paiorder_updatecourseorder(void)
 {
@@ -108,6 +140,25 @@ int16_t paiorder_updatecourseorder(void)
 	return g_aiCurrentManeuverProc();
 }
 
+/* Order 2: for a starfighter or transport still on its plan's own maneuver,
+ * picks a maneuver against an attacker; returns 0 on every path. With no
+ * attacker known it looks first for a homing warhead aimed at the craft within
+ * g_aiWarheadThreatRangeBySkill (three times that for a concussion missile).
+ * For one it records the warhead in lastAttackerObjIdx, turns away from it in
+ * bearing class 0 or turns inside otherwise, then, carrying countermeasures,
+ * adds 10 to chaffActiveSeconds and uses a round (none when the flight group's
+ * status1 or status2 is 21) for chaff with a working countermeasure system, or
+ * else fires a countermeasure when cmFireCooldownTimer is 0, and returns. Next
+ * it looks for an AI-flown enemy starfighter within
+ * g_aiAttackerSearchRangeBySkill whose nose points within 0x2000 angle units of
+ * the craft in yaw and pitch, only while the craft is active, and records the
+ * first. For a known attacker it then picks by bearing class with GameRand: in
+ * class 1, turns inside when closer than 0x2000 on a quarter of the draws, else
+ * one of the front and side choices; in class 0, one of those choices on just
+ * over half the draws, else a head-on attack; in class 2, one of the rear
+ * choices when the attacker is faster or within 0x8000, else speeds away. A
+ * non-craft attacker counts as speed 900. Each pick runs
+ * paiman_initmaneuver. */
 // FUNCTION: XVT 0x466220
 int16_t paiorder_underattackorder(void)
 {
@@ -352,6 +403,11 @@ int16_t paiorder_underattackorder(void)
 	return 0;
 }
 
+/* Order 3: returns 1, after setting lastAttackerObjIdx to 0xFFFF, when the
+ * craft is off its plan's maneuver and its recorded attacker is done: an object
+ * in the projectile slots that is gone or no longer targets the craft, or
+ * another object not within g_aiStillAttackLastAttackerRangeBySkill. Else 0.
+ * Sets g_lastRoughDistance for an attacker that is not a warhead. */
 // FUNCTION: XVT 0x4666E0
 int16_t paiorder_stillattackorder(void)
 {
@@ -393,6 +449,17 @@ int16_t paiorder_stillattackorder(void)
 	return 0;
 }
 
+/* Order 4: steers the craft home and returns 1 once it is within 2,048 world
+ * units of the outside hangar point of its mothership, else 0. Sets its
+ * separation to 1. The mothership is the leader of the captured departure
+ * mothership group for a captured craft whose group leaves by one, else of the
+ * departure mothership group when departureMethod is set, else of the alternate
+ * one when used; one in a player's flight group does not count. With one, it
+ * targets it, aims at the outside hangar point of its model and, through
+ * paiman_setspeed, slows to speed 150 within 0x10000, 100 within 0x8000 and 75
+ * within 0x4000. With none, it targets mission point 13 when enabled, else the
+ * group's current point, and returns 0. Sets the trig2_ globals with the
+ * mothership. */
 // FUNCTION: XVT 0x4667B0
 int16_t paiorder_flyhomeorder(void)
 {
@@ -478,6 +545,12 @@ int16_t paiorder_flyhomeorder(void)
 	return 0;
 }
 
+/* Order 45: aims the craft at formation slot 0 of flight group variable2 minus
+ * 1, as Mission_ResolveFormationSlotWorldLoc places it, plus 932 in Z, and
+ * returns 1 once within 2,048 world units, setting waypointIndex to 0; else 0.
+ * Returns 0 at once when that group has any arrived outcome. Sets the throttle
+ * to 0xC000 within 0x4000 and to 0x6000 within 4,096. Sets the g_worldLoc and
+ * trig2_ globals. */
 // FUNCTION: XVT 0x46A140
 int16_t paiorder_dropoffdestorder(void)
 {
@@ -511,6 +584,21 @@ int16_t paiorder_dropoffdestorder(void)
 	return 1;
 }
 
+/* Order 21: flies into the mothership's hangar and removes the craft there.
+ * Sets its separation to 1 and thinkInterval to 29 ticks. The mothership is the
+ * leader of the captured departure mothership group for a captured craft, else
+ * of the departure mothership group, else of the alternate one when used;
+ * departureMethod, capturedDepartViaMothership and a player's ownership are not
+ * checked here. With one it targets it, aims at the inside hangar point of its
+ * model and sets the speed to the mothership's plus 25, or 40 when the
+ * mothership is below 25. Within 1,024 world units of that point (512 for a
+ * craft not a starship) it removes every AI-flown craft of its flight group
+ * that follows a leader in the follow-leader maneuver, then itself and the
+ * object it carries: for each it adds to g_missionFgStats the departure
+ * outcomes and team scores its flags call for, records the outcome by
+ * mothership kind and frees the object, emitting message 141 for each craft.
+ * Returns 0 with a mothership; with none, sets the speed to 35 and returns 1.
+ * Sets the trig2_ globals. */
 // FUNCTION: XVT 0x466A70
 int16_t paiorder_enterhangarorder(void)
 {
@@ -881,6 +969,10 @@ int16_t paiorder_enterhangarorder(void)
 	return 1;
 }
 
+/* Order 10: returns 1 when the craft is on its plan's maneuver and its target
+ * is closer, by rough distance, than its effective skill value plus 0x20000
+ * world units; else 0. Does not check that targetObjIdx names an object. Sets
+ * g_lastRoughDistance. */
 // FUNCTION: XVT 0x467320
 int16_t paiorder_waitrunorder(void)
 {
@@ -898,6 +990,15 @@ int16_t paiorder_waitrunorder(void)
 	return 0;
 }
 
+/* Order 11: returns 1 and drops the target (target 0xFFFF, signature 0, no live
+ * target, candidate 0xFFFF) when the player told the craft to avoid it, it
+ * cannot be targeted or its slot holds another object now. Next, on
+ * disableldr1pln, it returns 1 when the target craft has no working subsystems,
+ * clearing only the candidate. Then it drops the target and returns 1 when it
+ * is a player's craft with its decoy beam on farther than 0x4000, or, in a
+ * version 14 mission, has no working subsystems and is neither the candidate
+ * nor a target of the current order. Else 0. Sets g_lastRoughDistance on the
+ * decoy test. */
 // FUNCTION: XVT 0x467380
 int16_t paiorder_breakofforder(void)
 {
@@ -984,6 +1085,18 @@ int16_t paiorder_breakofforder(void)
 	return 0;
 }
 
+/* Order 15: returns 1 when the flight group's abort trigger holds for the
+ * craft, else 0; 0 at once when maxSpeedCache is 0. Triggers 1 to 9: shields
+ * out (shield system down, or both banks empty on a freighter or starship),
+ * cannons down, warheads out (launcher down or no rounds), hull damage reaching
+ * half of hullMax, attacked by any team, shields down to half or to a quarter
+ * of the maximum, and hull damage reaching a quarter or three quarters. Trigger
+ * 2 tests the cannons but reports IFMSG_394_WARHEADS_OUT. The first time it
+ * aborts it counts the aborted outcome, undoes a not-departed count and clears
+ * departTimerFlag, has the tactical officer announce the withdrawal, sends
+ * message 387 to the player who owns the flight group, and restores working
+ * subsystems when the current order's leader plan is waitforboardpln and
+ * subsystemDamage is 0. Sets missionAbortedFlag each time it aborts. */
 // FUNCTION: XVT 0x467710
 int16_t paiorder_abortmissionorder(void)
 {
@@ -1202,6 +1315,15 @@ int16_t paiorder_abortmissionorder(void)
 	return (int16_t)abortMission;
 }
 
+/* Order 12: returns 1 and makes this craft the flight group's leader when its
+ * leader is gone: an empty slot, in another flight group, breaking up or
+ * exploding, aborted, or flown by a player. This craft then has no leader and
+ * takes the old leader's separation, waypointIndex and target, with its aim
+ * point (in the modern build only when there is a target); every other craft of
+ * the group in the active region's craft slots gets this craft as leader.
+ * Returns 0 for a craft with no leader or a leader index at or past the end of
+ * those slots. With the leader in place it returns 0, first setting
+ * thinkInterval to 59 ticks when the leader runs enterhangarpln. */
 // FUNCTION: XVT 0x467C50
 int16_t paiorder_leaderdeadorder(void)
 {
@@ -1289,6 +1411,9 @@ int16_t paiorder_leaderdeadorder(void)
 	return leaderInvalid;
 }
 
+/* Order 16: when the craft is on its plan's maneuver and its recorded attacker
+ * is in bearing class 2, switches at random to turn inside, zoom, scissors or
+ * dive and runs paiman_initmaneuver. Returns 0 on every path. */
 // FUNCTION: XVT 0x467E20
 int16_t paiorder_ontailorder(void)
 {
@@ -1323,9 +1448,12 @@ int16_t paiorder_ontailorder(void)
 	return 0;
 }
 
+/* Order 17: returns 1. */
 // FUNCTION: XVT 0x467EE0
 int16_t paiorder_alwaysorder(void) { return 1; }
 
+/* Order 19: returns 1 when the leader, or the craft itself when it has none,
+ * runs flyhomepln or flyhomeevadepln; else 0. */
 // FUNCTION: XVT 0x467EF0
 int16_t paiorder_leadergohomeorder(void)
 {
@@ -1338,6 +1466,16 @@ int16_t paiorder_leadergohomeorder(void)
 		      "flyhomeevadepln") == 0;
 }
 
+/* Order 20. A follower that has not aborted and is not on flyhomeevadepln jumps
+ * with its leader: when its model has a hyperdrive, its group leaves by
+ * hyperspace (departureMethod 0, or for a captured craft no departure by
+ * mothership) and its leader is entering hyperspace, it switches straight to
+ * intohyperspacepln with the into-hyperspace maneuver at maneuverPhase 1, a
+ * maneuver timer of 2,360 ticks and a second one of 944, clears its roll, pitch
+ * and turn states and push, sets its objectKind to entering hyperspace and sets
+ * full power. Such a follower returns 0 either way. Any other craft returns 1
+ * when its model has a hyperdrive and its group leaves by hyperspace; else
+ * 0. */
 // FUNCTION: XVT 0x467F60
 int16_t paiorder_hyperspaceorder(void)
 {
@@ -1401,6 +1539,8 @@ int16_t paiorder_hyperspaceorder(void)
 	return 0;
 }
 
+/* Order 22: returns 1 when the craft's target, or its leader's when it has one,
+ * is mission point 13 (0x800D); else 0, and always 0 for a platform. */
 // FUNCTION: XVT 0x468180
 int16_t paiorder_mothershiporder(void)
 {
@@ -1415,6 +1555,11 @@ int16_t paiorder_mothershiporder(void)
 	       0x800Du;
 }
 
+/* Order 24: returns 1 after setting a boarding target, with its signature and
+ * hasLiveTarget 1: the candidate target when there is one (not 0xFFFF or
+ * AI_TARGET_ABORT) and it can be targeted, else what
+ * pai_FindBoardingTargetFromOrder finds for the current order slot. Clears a
+ * candidate that cannot be targeted. Returns 0 when there is none. */
 // FUNCTION: XVT 0x4681E0
 int16_t paiorder_lookforcrafttoboardorder(void)
 {
@@ -1446,6 +1591,12 @@ int16_t paiorder_lookforcrafttoboardorder(void)
 	return 0;
 }
 
+/* Order 25: returns 1 and gives up boarding when, with maneuverPhase below 3,
+ * the target's slot is empty, its mobile object family is 5, its signature
+ * changed or the craft has no working subsystems, or, at maneuverPhase 1 or 2,
+ * a player flies the target and it moves. Giving up clears the push, targets
+ * the group's current mission point and sets the aim point there. Else 0. Does
+ * not check targetObjIdx for 0xFFFF. */
 // FUNCTION: XVT 0x4683F0
 int16_t paiorder_abortboardorder(void)
 {
@@ -1498,6 +1649,8 @@ int16_t paiorder_abortboardorder(void)
 	return 0;
 }
 
+/* Order 26: returns 1 when the craft's live position is within 0x4000 world
+ * units of its aim point, else 0. Sets the trig2_ globals. */
 // FUNCTION: XVT 0x468520
 int16_t paiorder_returnboardorder(void)
 {
@@ -1505,6 +1658,12 @@ int16_t paiorder_returnboardorder(void)
 	return trig2_polardistance < 0x4000;
 }
 
+/* Order 27: counts a boarding. When boardingState is 2 or 3 it adds 1 to the
+ * current order slot's goalProgress; once timesBoarded reaches the order's
+ * variable1 it restores the working subsystems and clears subsystemDamage,
+ * emitting "has been repaired" when they are equal on disabledpln; while
+ * timesBoarded is below variable1 it sets boardingState to 0 instead. Returns 0
+ * on every path. */
 // FUNCTION: XVT 0x468540
 int16_t paiorder_awaitboardorder(void)
 {
@@ -1542,6 +1701,8 @@ int16_t paiorder_awaitboardorder(void)
 	return 0;
 }
 
+/* Order 28: disables the craft, setting workingSubsystems to 0, and returns
+ * 0. */
 // FUNCTION: XVT 0x468670
 int16_t paiorder_makedisabledorder(void)
 {
@@ -1549,6 +1710,8 @@ int16_t paiorder_makedisabledorder(void)
 	return 0;
 }
 
+/* Order 29: returns 1 when the craft's live position is within 0x4000 world
+ * units of its aim point, else 0. Sets the trig2_ globals. */
 // FUNCTION: XVT 0x468690
 int16_t paiorder_neartargetorder(void)
 {
@@ -1556,6 +1719,12 @@ int16_t paiorder_neartargetorder(void)
 	return trig2_polardistance < 0x4000;
 }
 
+/* Order 30: returns 1 when a warhead launcher of the craft holds a warhead of
+ * the class its target calls for and has a round left, else 0. A freighter,
+ * starship or platform target in the craft slots calls for class 2, and so does
+ * a transport in a version 14 mission; any other target calls for class 1. In a
+ * version 14 mission the magnetic pulse and type 153 also count as class 2.
+ * Does not check for an empty launcher's type 0. */
 // FUNCTION: XVT 0x4686B0
 int16_t paiorder_rocketsonboardorder(void)
 {
@@ -1621,6 +1790,22 @@ int16_t paiorder_rocketsonboardorder(void)
 	return 0;
 }
 
+/* Order 31: for a craft not a freighter or starship, still on its plan's
+ * maneuver, dodges threats; returns 0 on every path. With no attacker known it
+ * looks for a homing warhead aimed at it within g_aiWarheadThreatRangeBySkill
+ * (three times that for a concussion missile or type 149). For one it records
+ * it as lastAttackerObjIdx, turns inside in bearing class 0 or avoids the
+ * attacker otherwise, then with countermeasure rounds adds 10 to an empty
+ * chaffActiveSeconds and uses a round (none when the flight group's status1 or
+ * status2 is 21) for chaff with a working countermeasure system, or fires a
+ * flare when cmFireCooldownTimer is 0, and returns. Next it looks, while the
+ * craft is active, for an enemy starfighter within
+ * g_aiAttackerSearchRangeBySkill pointed within 0x2000 angle units of it. With
+ * an attacker known, a craft not a utility vehicle whose front shield is below
+ * 500 with shields working, or whose hullDamage has reached
+ * systemDamageHullThreshold, fires a flare when the attacker is within 0x8000,
+ * and when a player flies the attacker switches to avoiding it at full
+ * power. */
 // FUNCTION: XVT 0x468820
 int16_t paiorder_avoidhitorder(void)
 {
@@ -1834,6 +2019,10 @@ int16_t paiorder_avoidhitorder(void)
 	return 0;
 }
 
+/* Order 32: returns 1 when every other flight group that departs to this
+ * craft's group as its mothership has arrived, has wavesRemaining 0 and has no
+ * craft left in the active region's craft slots; else 0. A group whose
+ * arrivalEnabled is 0 and that no player owns is left out. */
 // FUNCTION: XVT 0x468CF0
 int16_t paiorder_waitforallreturnorder(void)
 {
@@ -1881,6 +2070,9 @@ int16_t paiorder_waitforallreturnorder(void)
 	return 1;
 }
 
+/* Order 33: returns 1 when every other flight group that arrives from this
+ * craft's group as its mothership has arrived with wavesRemaining 0; else 0. A
+ * group whose arrivalEnabled is 0 and that no player owns is left out. */
 // FUNCTION: XVT 0x468E40
 int16_t paiorder_waitforallcreateorder(void)
 {
@@ -1914,6 +2106,9 @@ int16_t paiorder_waitforallcreateorder(void)
 	return 1;
 }
 
+/* Order 34: returns 1 and drops both target and candidate (0xFFFF) when the
+ * craft is on its plan's maneuver and its candidate target is AI_TARGET_ABORT;
+ * else 0. */
 // FUNCTION: XVT 0x468F20
 int16_t paiorder_evasiveorder(void)
 {
@@ -1931,6 +2126,10 @@ int16_t paiorder_evasiveorder(void)
 	return 1;
 }
 
+/* Order 35: makes the candidate target the craft's target, with its signature
+ * and hasLiveTarget 1, when it names an object (not 0xFFFF or AI_TARGET_ABORT)
+ * that can be targeted and is not the target already; clears a candidate that
+ * cannot be targeted. Returns 0 on every path. */
 // FUNCTION: XVT 0x468F80
 int16_t paiorder_targetfromplayerorder(void)
 {
@@ -1963,6 +2162,19 @@ int16_t paiorder_targetfromplayerorder(void)
 	return 0;
 }
 
+/* Order 36. Off the avoid-starship maneuver, it asks
+ * collide_craftstarshipcollision whether the craft will hit something within 6
+ * simulated seconds (despite its name, COLLISION_LOOKAHEAD_STEPS counts
+ * seconds), restoring g_curCraft after. When it will, and the object is neither
+ * the craft nor what it carries, nor the target it is attacking or rocket
+ * attacking (a Calamari cruiser or Imperial Star Destroyer target still
+ * counts), it sets targetXYAngle a quarter turn off its yaw (plus for an odd
+ * craftOrdinal, minus for an even one) and targetZAngle a quarter turn off its
+ * pitch (minus when the old targetZAngle is above 0x4000, else plus), and
+ * switches to the avoid-starship maneuver; for an object at or past the end of
+ * the region's main slots it sets secondaryManeuverTimer to 3 to 6 times
+ * SIMULATION_TICKS_PER_SECOND at random. Returns 0 there. On the avoid-starship
+ * maneuver it returns 1 once secondaryManeuverTimer has run out, else 0. */
 // FUNCTION: XVT 0x469150
 int16_t paiorder_avoidstarshiporder(void)
 {
@@ -2058,6 +2270,8 @@ int16_t paiorder_avoidstarshiporder(void)
 	return 0;
 }
 
+/* Order 37: returns 1 when the flight group's departureMethod is nonzero, which
+ * paiorder_flyhomeorder takes as a departure by mothership, else 0. */
 // FUNCTION: XVT 0x469310
 int16_t paiorder_checkhyperorder(void)
 {
@@ -2065,6 +2279,16 @@ int16_t paiorder_checkhyperorder(void)
 		       .fg.departureMethod != 0;
 }
 
+/* Order 38: returns 1 when the flight group's departure is due for the craft,
+ * else 0; 0 at once when maxSpeedCache is 0. The departure starts when the
+ * mission clock's minutes and seconds reach the group's departure time, or when
+ * its departure trigger pair has a condition and holds: the craft then records
+ * the clock in departClockHours, departClockMinutes and departClockSeconds,
+ * counts the not-departed outcome and sets departTimerFlag. Once the group's
+ * departure delay has passed since then, it has the tactical officer announce
+ * the withdrawal, sends message 385 or 386 to the local player, restores
+ * working subsystems when the current order's leader plan is waitforboardpln
+ * and subsystemDamage is 0, and returns 1. */
 // FUNCTION: XVT 0x469340
 int16_t paiorder_stopgohomeorder(void)
 {
@@ -2215,6 +2439,13 @@ int16_t paiorder_stopgohomeorder(void)
 	return 0;
 }
 
+/* Order 39: marks the current order slot done and returns 1 once all orders are
+ * done; else 0. A slot whose completionState is not yet 2 or 3 becomes 2 when
+ * pai_IsPlanCompleteForOrderSlot says its plan is complete, else 3 when
+ * pai_IsBoardingPlanCompleteForOrderSlot does. With the slot done it returns 0
+ * when maxSpeedCache is 0, 1 after skipping to order 4, else 1 when every order
+ * the group has in slots 0 to 2 is 2 or 3. Sets goHomeFlag when they are all
+ * 2. */
 // FUNCTION: XVT 0x469690
 int16_t paiorder_completegohomeorder(void)
 {
@@ -2286,6 +2517,16 @@ int16_t paiorder_completegohomeorder(void)
 	return allOrdersComplete;
 }
 
+/* Order 40: moves the craft to its next order and returns 1, else returns 0; 0
+ * at once after skipping to order 4. First, unless g_paiSkipToOrder4Checked is
+ * set, it tests the flight group's skip-to-order-4 trigger pair when either
+ * condition is not MISSION_COND_ALWAYS_TRUE: when it holds, the craft skips to
+ * slot 3 (skippedToOrder4 1) and it returns 1; when not, it sets
+ * g_paiSkipToOrder4Checked. Then, when the current slot's completionState is 2,
+ * the slot is below 2 and the next slot has an order, it moves to that slot. A
+ * move sets the slot in g_paiContext and the controller, currentPlanId to the
+ * order's leader plan, and g_paiContext.nullPlanId to the leader or follower
+ * plan, for the "variablepln" switch. */
 // FUNCTION: XVT 0x4697F0
 int16_t paiorder_completegootherorder(void)
 {
@@ -2378,6 +2619,14 @@ int16_t paiorder_completegootherorder(void)
 	return 1;
 }
 
+/* Order 42: returns 1 after moving the craft to the first later order slot,
+ * below 3, whose plan name is capldr1pln to capldr5pln, capescortersldr1pln,
+ * caprespondldr1pln or capflw1pln to capflw4pln; else 0, and 0 at once after
+ * skipping to order 4. It reads that name as g_planTable[order], by the mission
+ * order number itself, not by the order's plan id as the other order functions
+ * do. A move sets the controller's currentOrderSlot, not
+ * g_paiContext.orderSlot, currentPlanId to the order's leader plan and
+ * g_paiContext.nullPlanId to the leader or follower plan. */
 // FUNCTION: XVT 0x469A10
 int16_t paiorder_waitgootherorder(void)
 {
@@ -2429,6 +2678,15 @@ int16_t paiorder_waitgootherorder(void)
 	return 0;
 }
 
+/* Order 43: returns 1 after taking the craft back to an earlier order it can
+ * work on again, else 0; 0 at once after skipping to order 4. It first runs the
+ * same skip-to-order-4 test as paiorder_completegootherorder, returning 1 on a
+ * skip. Then, past slot 0, it takes the first earlier slot not marked complete
+ * whose leader plan is capfreeldr1pln, caprespondldr1pln, capescortersldr1pln
+ * or disableldr1pln with a target found now, or a boardto plan other than
+ * boardtopickuppln with a target it can board. The switch back sets the
+ * controller's currentOrderSlot, not g_paiContext.orderSlot, currentPlanId and
+ * g_paiContext.nullPlanId. */
 // FUNCTION: XVT 0x469BD0
 int16_t paiorder_orderswitchorder(void)
 {
@@ -2571,6 +2829,12 @@ int16_t paiorder_orderswitchorder(void)
 	return 0;
 }
 
+/* Order 41: keeps a follower on its leader's order. A follower takes on its
+ * leader's goHomeFlag and departTimerFlag when they are set, counting the
+ * not-departed outcome when it takes the second. When the leader's
+ * currentOrderSlot differs from the craft's order slot, the craft moves to that
+ * slot, with currentPlanId and g_paiContext.nullPlanId set as on any order
+ * move, and it returns 1; else 0. */
 // FUNCTION: XVT 0x469F40
 int16_t paiorder_completefolloworder(void)
 {
@@ -2638,6 +2902,12 @@ int16_t paiorder_completefolloworder(void)
 	return 0;
 }
 
+/* Order 44: starts the craft's self-destruct countdown when none runs: sets its
+ * lifetimeTimer to variable1 of the current order times 1,180 ticks (five times
+ * SIMULATION_TICKS_PER_SECOND), or, for variable1 0, 2 to 5 such units at
+ * random. Object_UpdateLifetimeAndMovement destroys the craft when it runs out.
+ * Does not check that the product fits the 16-bit timer. Returns 0 on every
+ * path. */
 // FUNCTION: XVT 0x46A0A0
 int16_t paiorder_killselforder(void)
 {
@@ -2659,6 +2929,13 @@ int16_t paiorder_killselforder(void)
 	return 0;
 }
 
+/* Order 46: returns 1 when the mothership groups the craft would depart to have
+ * all arrived, comparing each group's FLIGHT_GROUP_OUTCOME_TOTAL and
+ * FLIGHT_GROUP_OUTCOME_ARRIVED counts: for a captured craft, the captured
+ * departure mothership group, and only when it departs by one; else the
+ * departure mothership group when departureMethod is set and the alternate one
+ * when used, which with neither gives 1. Returns 0 when the target lies in the
+ * active region's craft slots or below them, or the model has no hyperdrive. */
 // FUNCTION: XVT 0x46A250
 int16_t paiorder_abortmotherwaitorder(void)
 {

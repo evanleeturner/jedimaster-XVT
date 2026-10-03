@@ -11,62 +11,172 @@
 
 #include <string.h>
 
+/* Nonzero while flight text wraps at g_flightClipRight: a glyph that does not
+ * fit moves to the next line, and FlightText_DrawString breaks before a word
+ * that does not fit. Set by FlightText_SetWordWrap;
+ * FlightLoading_PulseAndDrawProgressScreen, FeDiskIo_ShowRetryFailPrompt
+ * and FeDiskIo_ShowFatalErrorMessageAndWaitKey save it and put it back. */
 // GLOBAL: XVT 0x9CD270
 int16_t g_flightWordWrapEnabled;
+/* Nonzero while each wrap and newline first fills the rest of the line with
+ * g_flightTextBgColor. Set by FlightText_SetClearLineBackground;
+ * FlightLoading_PulseAndDrawProgressScreen, FeDiskIo_ShowRetryFailPrompt
+ * and FeDiskIo_ShowFatalErrorMessageAndWaitKey save it and put it back. */
 // GLOBAL: XVT 0x9FE7E4
 int16_t g_flightClearLineBgEnabled;
+/* Never set to anything but its starting 0, and never used:
+ * FlightLoading_PulseAndDrawProgressScreen, FeDiskIo_ShowRetryFailPrompt
+ * and FeDiskIo_ShowFatalErrorMessageAndWaitKey only save it and put it
+ * back. */
 // GLOBAL: XVT 0xA07C64
 int16_t g_flightTextReservedState = 0;
+/* Text cursor row in pixels on the drawing surface: the top of the next
+ * glyph. Written by FlightText_SetCursor and by the four glyph drawers on
+ * each newline and wrap; FlightLoading_PulseAndDrawProgressScreen,
+ * FeDiskIo_ShowRetryFailPrompt and FeDiskIo_ShowFatalErrorMessageAndWaitKey
+ * save it and put it back. */
 // GLOBAL: XVT 0xA08102
 int16_t g_flightCursorY = 0;
+/* Text cursor column in pixels on the drawing surface: the left edge of the
+ * next glyph. Written by FlightText_SetCursor and by the four glyph drawers,
+ * which advance it by each glyph's width and reset it on newline and wrap;
+ * FlightLoading_PulseAndDrawProgressScreen, FeDiskIo_ShowRetryFailPrompt
+ * and FeDiskIo_ShowFatalErrorMessageAndWaitKey save it and put it back. */
 // GLOBAL: XVT 0xA08108
 int16_t g_flightCursorX = 0;
+/* Shared buffer where text is built before it is drawn or handed to
+ * msg_addMessagePtr. Many functions write it, chiefly FlightText_SetScratch,
+ * FlightText_AppendScratchString, FlightText_AppendScratchChar,
+ * FlightText_FormatScratchInt and sprintf calls in hud.c. None of the
+ * FlightText functions checks its 256-byte size. */
 // GLOBAL: XVT 0x9A1ED0
 char g_flightTextScratchBuffer[256];
+/* Palette index of the set pixels of the next glyphs. Many functions write
+ * it, chiefly FlightText_SetColor; Hud_ShowFlightMessagePane and
+ * Mfd_DrawMessageLogPage step it by one. */
 // GLOBAL: XVT 0x9A807A
 uint8_t g_flightTextColorIndex;
+/* Palette index of the unset pixels of each glyph cell, and the color
+ * FlightSw_FillRectOrBorder8bpp and FlightSw_FillRectOrBorder16bpp fill
+ * with, as for the rest of a line or the clip rectangle. Many functions
+ * write it, chiefly FlightText_SetBackgroundColor. */
 // GLOBAL: XVT 0xA08100
 uint8_t g_flightTextBgColor;
+/* Palette index of the drop shadow drawn while g_flightTextShadowEnabled is
+ * set. Written by FlightText_SetShadowColor; FeDiskIo_InitGlobalBuffers,
+ * FeDiskIo_ShowRetryFailPrompt and FeDiskIo_ShowFatalErrorMessageAndWaitKey
+ * set it to 0, and those two prompts and
+ * FlightLoading_PulseAndDrawProgressScreen put back what they saved. */
 // GLOBAL: XVT 0x9E8F52
 uint8_t g_flightTextShadowColor;
+/* Font size class last given to FlightText_SetFontTier, its only writer,
+ * which has the table of fonts; every caller passes 0, 1 or 2.
+ * FeDiskIo_LockGlobalBuffers reads it to choose g_flightFontGlyphTableSw
+ * again after relocking the fonts. */
 // GLOBAL: XVT 0x9D80C8
 uint8_t g_flightFontTier = 0;
+/* 1 when the current font has lowercase glyphs. When it is 0 and
+ * g_flightFontTier is not 0, lowercase letters draw and measure as capitals.
+ * Only FlightText_SetFontTier writes it. */
 // GLOBAL: XVT 0x9A1FF4
 uint8_t g_flightFontHasLowercase = 0;
+/* Line height of the current font in pixels: 5 for the micro font, 8 for the
+ * small and 10 for the medium. Only FlightText_SetFontTier writes it. */
 // GLOBAL: XVT 0x9A20AE
 uint8_t g_flightFontLineHeight = 0;
+/* Digit width in pixels that the HUD lays numbers out with: 3 for the micro
+ * font, 4 for the small and 5 for the medium. Only FlightText_SetFontTier
+ * writes it; nothing derives it from the glyphs. */
 // GLOBAL: XVT 0x9ED232
 uint8_t g_flightFontDigitWidth = 0;
+/* Glyph records of the current font, one every g_flightFontGlyphStrideSw
+ * bytes from code 0x20: an advance width byte, a height byte, then the rows.
+ * Written by FlightText_SetFontTier, and by FeDiskIo_LockGlobalBuffers,
+ * which picks by g_flightFontTier with another mapping (0 medium, 1 small,
+ * 2 micro) and leaves the stride and line height alone. */
 // GLOBAL: XVT 0x9D7674
 uint8_t *g_flightFontGlyphTableSw = 0;
+/* Bytes per glyph record in g_flightFontGlyphTableSw: 42 for the micro font,
+ * 66 for the small and 82 for the medium. Only FlightText_SetFontTier writes
+ * it. */
 // GLOBAL: XVT 0x9D8C02
 uint16_t g_flightFontGlyphStrideSw = 0;
+/* The small font, MICRO48.FNT, in the memory of g_flightSmallFontHandle.
+ * FeDiskIo_InitGlobalBuffers sets it to NULL, then locks the handle and
+ * loads the file; FeDiskIo_LockGlobalBuffers locks it again. */
 // GLOBAL: XVT 0x9A7800
 uint8_t *g_flightFontSmallSw = 0;
+/* The medium font, MICRO64.FNT, in the memory of g_flightMediumFontHandle,
+ * locked by FeDiskIo_InitGlobalBuffers and FeDiskIo_LockGlobalBuffers. At
+ * 320x240 FeDiskIo_InitGlobalBuffers loads no file into it. */
 // GLOBAL: XVT 0x9E965C
 uint8_t *g_flightFontMediumSw = 0;
+/* The micro font, MICRO32.FNT, in the memory of g_flightMicroFontHandle,
+ * locked and loaded by FeDiskIo_InitGlobalBuffers and locked again by
+ * FeDiskIo_LockGlobalBuffers. */
 // GLOBAL: XVT 0xA07CC0
 uint8_t *g_flightFontMicroSw = 0;
+/* Left edge in pixels of the clip rectangle for flight text,
+ * fills and lines. Written by FlightText_SetClipRect;
+ * FlightLoading_PulseAndDrawProgressScreen, FeDiskIo_ShowRetryFailPrompt
+ * and FeDiskIo_ShowFatalErrorMessageAndWaitKey save it and put it back. */
 // GLOBAL: XVT 0x9A6FE0
 int16_t g_flightClipLeft = 0;
+/* Right edge, exclusive, in pixels of the clip rectangle for flight text,
+ * fills and lines. Written by FlightText_SetClipRect;
+ * FlightLoading_PulseAndDrawProgressScreen, FeDiskIo_ShowRetryFailPrompt
+ * and FeDiskIo_ShowFatalErrorMessageAndWaitKey save it and put it back. */
 // GLOBAL: XVT 0x9D8C00
 int16_t g_flightClipRight = 0;
+/* Bottom edge, exclusive, in pixels of the clip rectangle for flight text,
+ * fills and lines. Written by FlightText_SetClipRect;
+ * FlightLoading_PulseAndDrawProgressScreen, FeDiskIo_ShowRetryFailPrompt
+ * and FeDiskIo_ShowFatalErrorMessageAndWaitKey save it and put it back. */
 // GLOBAL: XVT 0xA07CE4
 int16_t g_flightClipBottom = 0;
+/* Top edge in pixels of the clip rectangle for flight text,
+ * fills and lines. Written by FlightText_SetClipRect;
+ * FlightLoading_PulseAndDrawProgressScreen, FeDiskIo_ShowRetryFailPrompt
+ * and FeDiskIo_ShowFatalErrorMessageAndWaitKey save it and put it back. */
 // GLOBAL: XVT 0xA0813C
 int16_t g_flightClipTop = 0;
+/* Palette indices for the color codes 0x40 to 0x5F that
+ * FlightText_SetColor, FlightText_SetBackgroundColor and
+ * FlightText_SetShadowColor accept: 0x40 to 0x53 give 0x2C to 0x3F in order;
+ * 0x54 to 0x57 give 0xD5, 0xD5, 0xD4 and 0xD3; 0x58 to 0x5F give 0x2C to
+ * 0x2F twice. */
 // GLOBAL: XVT 0x524080
 const uint8_t g_flightCharToColorLut[32] = {
 	0x2c, 0x2d, 0x2e, 0x2f, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36,
 	0x37, 0x38, 0x39, 0x3a, 0x3b, 0x3c, 0x3d, 0x3e, 0x3f, 0xd5, 0xd5,
 	0xd4, 0xd3, 0x2c, 0x2d, 0x2e, 0x2f, 0x2c, 0x2d, 0x2e, 0x2f,
 };
+/* Place value by digit position, counted from the right starting at 1: 1, 10,
+ * 100, 1,000 and 10,000 for positions 1 to 5. Entry 0 is 1; entries 6 and 7
+ * are 0. Read by FlightText_DrawDecimalNumber and msg_emitInFlightMessage. */
 // GLOBAL: XVT 0x520EB0
 const uint16_t g_flightTextDecimalDivisors[8] = {1,    1,     10, 100,
 						 1000, 10000, 0,  0};
+/* Nonzero while glyphs get a drop shadow in g_flightTextShadowColor: each
+ * row's set pixels repeated one pixel right on the row below, the drawn cell
+ * one pixel wider. No setter; many functions write it directly, chiefly
+ * hud.c drawing functions, which set 0 before their text, and
+ * FlightAlert_DrawBox and Hud_SetupReadyMessagePaneText, which set 1. */
 // GLOBAL: XVT 0x9EC464
 uint8_t g_flightTextShadowEnabled = 0;
 
+/* Draws one character of the current font at the text cursor into an 8-bit
+ * surface, for fonts whose rows are one byte, stored 2 bytes apart, top bit
+ * leftmost. Set pixels take g_flightTextColorIndex, shadow pixels
+ * g_flightTextShadowColor and the rest of the cell g_flightTextBgColor; all
+ * clip to the g_flightClip rectangle. Advances g_flightCursorX by the glyph's
+ * advance width. A newline moves the cursor to g_flightClipLeft and
+ * g_flightFontLineHeight down; other codes below 0x20 draw nothing. With word
+ * wrap on, a glyph that would reach g_flightClipRight first moves to the next
+ * line, the glyph's height plus 2 down, and the cursor does the same after a
+ * glyph that reaches it; each newline and wrap first clears the rest of the
+ * line when g_flightClearLineBgEnabled is set. Nothing calls this:
+ * FlightRender_InstallCallbacks never puts it in g_flightDrawCharFn. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x40F050
 void FlightText_DrawNarrowGlyph8bpp(uint8_t ch)
@@ -325,6 +435,12 @@ void FlightText_DrawNarrowGlyph8bpp(uint8_t ch)
 	}
 }
 
+/* Draws one character at the text cursor into an 8-bit surface, as
+ * FlightText_DrawNarrowGlyph8bpp does, for fonts whose rows are a 32-bit
+ * little-endian word, stored 8 bytes apart, top bit leftmost; a newline moves
+ * down g_flightFontLineHeight plus 1. FlightRender_InstallCallbacks installs
+ * it as g_flightDrawCharFn for pixel modes 0 and 1. In the modern build it
+ * also records the glyph for the modern renderer. */
 // FUNCTION: XVT 0x40F520
 void FlightText_DrawWideGlyph8bpp(uint8_t ch)
 {
@@ -602,6 +718,10 @@ void FlightText_DrawWideGlyph8bpp(uint8_t ch)
 	}
 }
 
+/* Fills from the text cursor to g_flightClipRight, g_flightFontLineHeight
+ * rows down, clipped to the g_flightClip rectangle, with g_flightTextBgColor
+ * on an 8-bit surface. Writes the g_flightFillRect 8bpp edges; does nothing
+ * when the cursor is at or past g_flightClipRight. */
 // FUNCTION: XVT 0x410110
 void FlightText_ClearRemainingLineBackground8bpp(void)
 {
@@ -631,6 +751,8 @@ void FlightText_ClearRemainingLineBackground8bpp(void)
 	}
 }
 
+/* Returns g_flightFontLineHeight plus 1 when str, drawn from g_flightCursorX,
+ * would end beyond g_flightClipRight - 11; else 0, and 0 for NULL. */
 // FUNCTION: XVT 0x415C40
 int16_t FlightText_GetWrapHeightForString(const char *str)
 {
@@ -645,6 +767,13 @@ int16_t FlightText_GetWrapHeightForString(const char *str)
 	return 0;
 }
 
+/* Draws value right-aligned in digitCount places through g_flightDrawCharFn,
+ * with zeros in front shown as spaces except in the last minDigits places. When
+ * value needs more places, the first place shows 9 and the rest are right. The
+ * value 0xFFFF draws digitCount zeros in color code '@' without shadow, then
+ * puts back g_flightTextShadowEnabled and g_flightTextColorIndex. Does not
+ * check digitCount: g_flightTextDecimalDivisors serves 1 to 5 places, holds 0
+ * for 6 and 7, and ends there. */
 // FUNCTION: XVT 0x4277F0
 void FlightText_DrawDecimalNumber(uint16_t value, unsigned int digitCount,
 				  unsigned int minDigits)
@@ -688,6 +817,10 @@ void FlightText_DrawDecimalNumber(uint16_t value, unsigned int digitCount,
 	}
 }
 
+/* Returns the width in pixels of str in the current font, up to its end or
+ * first newline: the sum of each glyph's advance byte. Skips codes below
+ * 0x20, and a 0xFE color escape with the byte after it; lowercase letters
+ * count as capitals as they draw. Does not check str for NULL. */
 // FUNCTION: XVT 0x4278C0
 uint16_t FlightText_MeasureStringWidth(const char *str)
 {
@@ -722,6 +855,11 @@ uint16_t FlightText_MeasureStringWidth(const char *str)
 	return totalWidth;
 }
 
+/* The 16-bit surface version of FlightText_DrawNarrowGlyph8bpp: the same
+ * glyph rows, colors, shadow, clipping, cursor moves and wrap, with each
+ * palette index turned into a pixel through g_flightPalette16Bpp. Nothing
+ * calls this: FlightRender_InstallCallbacks never puts it in
+ * g_flightDrawCharFn. */
 // FUNCTION: XVT 0x449F70
 void FlightText_DrawNarrowGlyph(uint8_t ch)
 {
@@ -883,6 +1021,11 @@ void FlightText_DrawNarrowGlyph(uint8_t ch)
 	}
 }
 
+/* The 16-bit surface version of FlightText_DrawWideGlyph8bpp, with each
+ * palette index turned into a pixel through g_flightPalette16Bpp.
+ * FlightRender_InstallCallbacks installs it as g_flightDrawCharFn for pixel
+ * mode 2. In the modern build it also records the glyph for the modern
+ * renderer. */
 // FUNCTION: XVT 0x44A270
 void FlightText_DrawWideGlyph(uint8_t ch)
 {
@@ -1063,6 +1206,9 @@ void FlightText_DrawWideGlyph(uint8_t ch)
 	}
 }
 
+/* The 16-bit surface version of
+ * FlightText_ClearRemainingLineBackground8bpp: fills the rest of the line
+ * with g_flightTextBgColor and writes the g_flightFillRect 16bpp edges. */
 // FUNCTION: XVT 0x44AA50
 void FlightText_ClearRemainingLineBackground(void)
 {
@@ -1102,6 +1248,7 @@ void FlightText_ClearRemainingLineBackground(void)
 	}
 }
 
+/* Moves the text cursor to x, y; no checks. */
 // FUNCTION: XVT 0x4A9500
 void FlightText_SetCursor(int x, int y)
 {
@@ -1109,6 +1256,11 @@ void FlightText_SetCursor(int x, int y)
 	g_flightCursorX = x;
 }
 
+/* Sets the g_flightClip rectangle; right and bottom are exclusive. Raises a
+ * negative left or top to 0 and lowers right and bottom to g_screenWidth and
+ * g_screenHeight; a negative right or bottom, compared unsigned, also becomes
+ * the screen's width or height. Does not check that left is below right or
+ * top below bottom. */
 // FUNCTION: XVT 0x4A9520
 void FlightText_SetClipRect(int16_t left, int16_t top, int16_t right,
 			    int16_t bottom)
@@ -1132,6 +1284,10 @@ void FlightText_SetClipRect(int16_t left, int16_t top, int16_t right,
 	g_flightClipRight = right;
 }
 
+/* Sets g_flightTextColorIndex: a code from 0x40 up, other than
+ * g_flightTransparentColorIndex, is looked up in g_flightCharToColorLut;
+ * anything else is the palette index itself. Does not check a code above
+ * 0x5F against the table's 32 entries. */
 // FUNCTION: XVT 0x4A9590
 void FlightText_SetColor(unsigned int charOrIndex)
 {
@@ -1144,6 +1300,8 @@ void FlightText_SetColor(unsigned int charOrIndex)
 	}
 }
 
+/* Sets g_flightTextBgColor from a color code or palette index, as
+ * FlightText_SetColor reads them, with the same missing check. */
 // FUNCTION: XVT 0x4A95C0
 void FlightText_SetBackgroundColor(unsigned int charOrIndex)
 {
@@ -1156,6 +1314,8 @@ void FlightText_SetBackgroundColor(unsigned int charOrIndex)
 	}
 }
 
+/* Sets g_flightTextShadowColor from a color code or palette index, as
+ * FlightText_SetColor reads them, with the same missing check. */
 // FUNCTION: XVT 0x4A95F0
 void FlightText_SetShadowColor(unsigned int charOrIndex)
 {
@@ -1168,18 +1328,29 @@ void FlightText_SetShadowColor(unsigned int charOrIndex)
 	}
 }
 
+/* Sets g_flightWordWrapEnabled. */
 // FUNCTION: XVT 0x4A9620
 void FlightText_SetWordWrap(int16_t enabled)
 {
 	g_flightWordWrapEnabled = enabled;
 }
 
+/* Sets g_flightClearLineBgEnabled. */
 // FUNCTION: XVT 0x4A9630
 void FlightText_SetClearLineBackground(int16_t enabled)
 {
 	g_flightClearLineBgEnabled = enabled;
 }
 
+/* Selects the flight text font: stores tier in g_flightFontTier and, for
+ * tiers 0 to 2, sets g_flightFontGlyphTableSw, g_flightFontGlyphStrideSw,
+ * g_flightFontLineHeight, g_flightFontDigitWidth and, but for one case,
+ * g_flightFontHasLowercase by g_flightResolutionMode. At 320x240 every tier
+ * gets the micro font. Tier 0 gets the micro font at 480x360 and the small
+ * one at 640x480; tiers 1 and 2 are alike: the small font at 480x360 and the
+ * medium one at 640x480. The small font at 480x360 leaves
+ * g_flightFontHasLowercase as it was. Any other tier or resolution mode
+ * changes only g_flightFontTier. */
 // FUNCTION: XVT 0x4A9640
 void FlightText_SetFontTier(uint8_t tier)
 {
@@ -1255,6 +1426,8 @@ void FlightText_SetFontTier(uint8_t tier)
 	}
 }
 
+/* Copies text into g_flightTextScratchBuffer, or empties it for NULL. Does
+ * not check the buffer's 256-byte size. */
 // FUNCTION: XVT 0x4A97F0
 void FlightText_SetScratch(const char *text)
 {
@@ -1269,6 +1442,8 @@ void FlightText_SetScratch(const char *text)
 	*destination = '\0';
 }
 
+/* Appends text, or nothing for NULL, to g_flightTextScratchBuffer. Does not
+ * check the buffer's 256-byte size. */
 // FUNCTION: XVT 0x4A9820
 void FlightText_AppendScratchString(const char *text)
 {
@@ -1286,6 +1461,8 @@ void FlightText_AppendScratchString(const char *text)
 	*destination = '\0';
 }
 
+/* Appends one character to g_flightTextScratchBuffer. Does not check the
+ * buffer's 256-byte size. */
 // FUNCTION: XVT 0x4A9860
 void FlightText_AppendScratchChar(uint8_t ch)
 {
@@ -1299,6 +1476,9 @@ void FlightText_AppendScratchChar(uint8_t ch)
 	destination[1] = '\0';
 }
 
+/* Writes value in decimal, with a '-' in front when negative, over
+ * g_flightTextScratchBuffer and returns the characters written, sign
+ * included. Does not handle INT_MIN, whose negation overflows. */
 // FUNCTION: XVT 0x4A9890
 uint16_t FlightText_FormatScratchInt(int value)
 {
@@ -1352,6 +1532,14 @@ uint16_t FlightText_FormatScratchInt(int value)
 	return digitCount;
 }
 
+/* Draws str at the text cursor through g_flightDrawCharFn. A 0xFE byte sets
+ * the text color from the byte after it; a byte below 0x10, newline
+ * included, sets the color to that value; both go through
+ * FlightText_SetColor. With word wrap on, a space draws as a newline when
+ * it and the word after it would end beyond g_flightClipRight - 2. Returns
+ * at once for an empty string; does not check str for NULL. The modern build
+ * reads at most 79 characters of that word; the original does not bound it,
+ * and a word of 80 or more overruns the 80-byte buffer it is copied into. */
 // FUNCTION: XVT 0x4A9960
 void FlightText_DrawString(const char *str)
 {
@@ -1402,6 +1590,9 @@ void FlightText_DrawString(const char *str)
 	} while (*++str != '\0');
 }
 
+/* Draws str through FlightText_DrawString on the cursor's row, centered
+ * between g_flightClipLeft and g_flightClipRight. A start left of
+ * g_flightClipLeft moves to it, but a start below 0 is kept. */
 // FUNCTION: XVT 0x4A9A50
 void FlightText_DrawStringCentered(const char *str)
 {
@@ -1422,6 +1613,9 @@ void FlightText_DrawStringCentered(const char *str)
 	FlightText_DrawString(str);
 }
 
+/* Draws str through FlightText_DrawString on the cursor's row, ending 2
+ * pixels short of g_flightClipRight. A start left of g_flightClipLeft, or
+ * below 0, moves to g_flightClipLeft. */
 // FUNCTION: XVT 0x4A9AC0
 void FlightText_DrawStringRightAligned(const char *str)
 {

@@ -172,27 +172,38 @@ typedef enum FlightActionKey {
 #ifdef XVT_MODERN
 enum { XVT_INPUT_THROTTLE_PRESENT = 1 };
 #endif
+/* One player's input for one simulation step, as recorded, sent between players
+ * and replayed. The modern build's layout differs (8 bytes, with roll, flags
+ * and throttle). */
 struct FlightInputFrameRecord {
 #ifdef XVT_MODERN
+	/* Roll axis, signed, low bit cleared where sampled; replayed into
+	 * g_xvtControlRoll. */
 	int8_t axisR;
+	/* XVT_INPUT_THROTTLE_PRESENT when throttle holds a new position. */
 	uint8_t flags;
 #else
-	uint16_t reserved0;
+	uint16_t reserved0; /* Never read or written by name. */
 #endif
-	uint8_t key;
-	int8_t axisX;
-	int8_t axisY;
-	uint8_t keyMods;
+	uint8_t key;	 /* Action key, a FlightActionKey; 0 for none. */
+	int8_t axisX;	 /* Stick X axis, signed; replayed into g_ctrlAxisX. */
+	int8_t axisY;	 /* Stick Y axis, signed; replayed into g_ctrlAxisY. */
+	uint8_t keyMods; /* Button bits: bit 0 fire, bit 1 target. */
 #ifdef XVT_MODERN
+	/* Throttle position, 0 to 65,535, when flags says so. */
 	uint16_t throttle;
 #endif
 };
 
+/* One entry of a player's input history (g_inputHistory): an input with its
+ * time stamp and where it came from. */
 struct InputFrame {
+	/* Nonzero while the frame still awaits relay to the other players. */
 	int awaitingRelay;
+	/* Source: 0 server's world message, 1 real input, 2 predicted. */
 	int inputSource;
-	int timestamp;
-	FlightInputFrameRecord input;
+	int timestamp;		      /* Tick the input applies at. */
+	FlightInputFrameRecord input; /* The input itself. */
 };
 #ifdef XVT_MODERN
 typedef char XvtFlightInputRecordSize[(sizeof(FlightInputFrameRecord) == 8)

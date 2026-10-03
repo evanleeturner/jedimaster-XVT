@@ -16,24 +16,58 @@
 #include <limits.h>
 #include <string.h>
 
+/* Flight group of the nearest object paifight_searchforclosestingroup found,
+ * which only it writes; paifight_checkescortorder copies it into
+ * escortTargetFG. */
 // GLOBAL: XVT 0x9A1FDC
 uint8_t g_aiEscortCandidateFgIdx = 0;
+/* Two marks per object slot, 1 when the object may be a turret target: element
+ * 2 times the slot plus the set number, set 0 for an order's first pair of
+ * target conditions and set 1 for its second.
+ * paifight_BuildGunnerTargetCandidateSet writes it;
+ * paifight_FindNearestGunnerTargetInCandidateSet reads it. */
 // GLOBAL: XVT 0x99F930
 uint8_t g_paifightGunnerTargetCandidateSet[976] = {0};
+/* X of the point turret and mine target searches measure from, in world units:
+ * a turret's hardpoint in world space, the craft's position, or a mine's
+ * position. Written by paifight_missiledefenseorder,
+ * paifight_gunnerselfdefenseorder, paifight_gunneroffenseorder and
+ * laser_UpdateMineWeaponFire. */
 // GLOBAL: XVT 0xA08144
 int g_paifightSearchOriginX = 0;
+/* Y of the point turret and mine target searches measure from; see
+ * g_paifightSearchOriginX. */
 // GLOBAL: XVT 0xA08140
 int g_paifightSearchOriginY = 0;
+/* Z of the point turret and mine target searches measure from; see
+ * g_paifightSearchOriginX. */
 // GLOBAL: XVT 0xA08148
 int g_paifightSearchOriginZ = 0;
+/* Counts the line-of-fire tests paifight_FindNearestGunnerTargetInCandidateSet
+ * runs; set to 0 each time the simulation is run up to a new target time, by
+ * Flight_StepSimToTime in the original build and XvtFlightSim_StepToTime in the
+ * modern one. Nothing reads it. */
 // GLOBAL: XVT 0xA8F750
 int g_gunnerCollisionProbeCount = 0;
+/* Distance in world units, by skill tier 0 to 2, within which
+ * paifight_fightershootorder fires the cannons, before its changes for the
+ * target's speed and size. */
 // GLOBAL: XVT 0x524290
 const unsigned int g_aiFighterShootMaxRangeBySkill[3] = {0x6000, 0x8000,
 							 0xA000};
+/* Shots in each cannon burst paifight_fightershootorder sets, by skill tier 0
+ * to 2; entry 3 is 0. */
 // GLOBAL: XVT 0x52429C
 const uint8_t g_aiFighterShootBurstLengthBySkill[4] = {3, 4, 5, 0};
 
+/* Order 9: returns 1 after giving the craft a target, with its signature and
+ * hasLiveTarget 1, else 0; only while the craft is on its plan's maneuver. The
+ * candidate target comes first when there is one (not 0xFFFF or
+ * AI_TARGET_ABORT) and it can be targeted; one that cannot is cleared. Else it
+ * searches by the current plan, with all three targetSearchFlags (7) and
+ * requireUndisabledTarget set for disableldr1pln: the nearest order target on
+ * capfreeldr1pln, disableldr1pln or kamikaze1pln, the nearest escort leader on
+ * capescortersldr1pln, else the nearest attacker of an order target. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x45C370
 int16_t paifight_scanfortargetorder(void)
@@ -100,6 +134,8 @@ int16_t paifight_scanfortargetorder(void)
 	return 0;
 }
 
+/* Returns what paifight_FindNearestAttackOrderTarget finds for the order slot's
+ * first pair of target conditions, or when that is -1, for its second pair. */
 // FUNCTION: XVT 0x45C630
 int16_t paifight_FindAttackOrderTargetFromOrder(uint16_t orderSlot)
 {
@@ -149,6 +185,17 @@ int16_t paifight_FindAttackOrderTargetFromOrder(uint16_t orderSlot)
 	return result;
 }
 
+/* Returns the nearest object that matches the target conditions (either one
+ * when targetOrMode is 1, else both), or -1 when none qualifies. A craft must
+ * be outside the craft's own flight group, not the one the player told it to
+ * avoid, targetable, in working order and not captured by its own team when
+ * requireUndisabledTarget is set, and within skill range when targetSearchFlags
+ * has 4; a static object with behavior flag 2 must be targetable and, with flag
+ * 4, within range. It first counts these; with none it returns -1. Of them it
+ * takes the nearest that passes paifight_TargetHasAttackCapacity when flag 1 is
+ * set, measuring craft from the search origin in g_paiContext when flag 0x20 is
+ * set, else from the craft, and skipping a craft farther than 0x4000 with its
+ * decoy beam on. Sets g_lastRoughDistance. */
 // FUNCTION: XVT 0x45C720
 int16_t paifight_FindNearestAttackOrderTarget(int16_t target1Type,
 					      uint16_t target1,
@@ -414,6 +461,8 @@ int16_t paifight_FindNearestAttackOrderTarget(int16_t target1Type,
 	return (int16_t)bestObject;
 }
 
+/* Returns what paifight_TargetNearestEscortLeader finds for the order slot's
+ * first pair of target conditions, or when that is -1, for its second pair. */
 // FUNCTION: XVT 0x45D1C0
 int16_t paifight_TargetEscortLeaderFromOrder(uint16_t orderSlot)
 {
@@ -463,6 +512,13 @@ int16_t paifight_TargetEscortLeaderFromOrder(uint16_t orderSlot)
 	return result;
 }
 
+/* Returns the nearest craft on escortldr1pln whose escortTargetFG is a flight
+ * group that matches the target conditions (either one when targetRelationOp is
+ * 1, else both), or -1. The craft must not be the one the player told this
+ * craft to avoid, must be targetable, within skill range when targetSearchFlags
+ * has 4, and pass paifight_TargetHasAttackCapacity when it has 1. Makes the one
+ * it finds the controller's target, with its signature and hasLiveTarget 1.
+ * Sets g_lastRoughDistance. */
 // FUNCTION: XVT 0x45D2B0
 int16_t paifight_TargetNearestEscortLeader(int16_t target1Type,
 					   uint16_t target1,
@@ -565,6 +621,9 @@ int16_t paifight_TargetNearestEscortLeader(int16_t target1Type,
 	return bestObjectIndex;
 }
 
+/* Returns what paifight_FindNearestAttackerOfMatchingTarget finds for the order
+ * slot's first pair of target conditions, or when that is -1, for its second
+ * pair. */
 // FUNCTION: XVT 0x45D5F0
 int16_t paifight_FindAttackerOfOrderTargetFromOrder(uint16_t orderSlot)
 {
@@ -612,6 +671,16 @@ int16_t paifight_FindAttackerOfOrderTargetFromOrder(uint16_t orderSlot)
 	return result;
 }
 
+/* Returns the nearest craft attacking a craft that matches the target
+ * conditions (either one when targetOrMode is 1, else both) and that some team
+ * has attacked; -1 when none. An attacker is a craft in setup attack, attack or
+ * rocket attack on that craft, or its aiFlight.threatObjIdx; it is skipped when
+ * the player told this craft to avoid the attacked craft. It must be
+ * targetable, an enemy of the craft's team when a player flies it, within skill
+ * range when targetSearchFlags has 4, and pass paifight_TargetHasAttackCapacity
+ * when it has 1. It is measured from the search origin in g_paiContext with
+ * flag 0x20, else from the craft; with flag 0x10 it must also lie within
+ * AI_TARGET_RANGE_MAX and be an enemy. Sets g_lastRoughDistance. */
 // FUNCTION: XVT 0x45D6E0
 int16_t paifight_FindNearestAttackerOfMatchingTarget(int16_t target1Type,
 						     uint16_t target1,
@@ -822,6 +891,13 @@ int16_t paifight_FindNearestAttackerOfMatchingTarget(int16_t target1Type,
 	return (int16_t)bestObjectIndex;
 }
 
+/* Returns 1 when fewer craft than the limit are in setup attack, attack or
+ * rocket attack on the target (those told to avoid it not counted), else 0. For
+ * a target in the craft slots the limit is 100 when candidateCount is 1, else 6
+ * for a starship or platform, 4 for a freighter and 2 for the rest; for any
+ * other target, 2. For a player's target the mission difficulty sets it: 4 or 2
+ * at difficulty 0, 8 or 3 at 1, 100 or 4 at 2, the first when candidateCount is
+ * 1. */
 // FUNCTION: XVT 0x45DBA0
 int16_t paifight_TargetHasAttackCapacity(uint16_t targetObjIdx,
 					 uint16_t candidateCount)
@@ -898,6 +974,10 @@ int16_t paifight_TargetHasAttackCapacity(uint16_t targetObjIdx,
 /* Besides answering, this sets g_paiContext's requireUndisabledTarget and targetSearchFlags for the
  * search, and for an escort-leader order (capescortersldr1pln) makes the nearest escort leader the AI's
  * target. */
+/* Returns 1 when the search for the order slot's leader plan finds a target,
+ * else 0: the nearest order target for capfreeldr1pln, disableldr1pln and
+ * kamikaze1pln, the nearest escort leader for capescortersldr1pln, else the
+ * nearest attacker of an order target. Sets g_lastRoughDistance. */
 // FUNCTION: XVT 0x45DD00
 int16_t paifight_SearchOrderSlotTarget(uint16_t orderSlot)
 {
@@ -935,6 +1015,11 @@ int16_t paifight_SearchOrderSlotTarget(uint16_t orderSlot)
 /* Besides answering, this sets g_paiContext's requireUndisabledTarget and targetSearchFlags for the
  * search, and for an escort-leader order (capescortersldr1pln) makes the nearest escort leader the AI's
  * target. */
+/* Returns 1 when the order slot still has a target, else 0: for a
+ * capescortersldr1pln leader plan, an escort leader found (made the target),
+ * else at least one target counted by
+ * paifight_CountRemainingOrderTargetsFromOrderSlot. Its targetSearchFlags of 2
+ * leaves out the range and capacity tests. */
 // FUNCTION: XVT 0x45DDF0
 int16_t paifight_SearchOrderSlotRemainingTargets(uint16_t orderSlot)
 {
@@ -964,6 +1049,8 @@ int16_t paifight_SearchOrderSlotRemainingTargets(uint16_t orderSlot)
 	return result != -1;
 }
 
+/* Returns what paifight_CountRemainingOrderTargets counts for the order slot's
+ * first pair of target conditions, or when that is -1, for its second pair. */
 // FUNCTION: XVT 0x45DEB0
 int16_t paifight_CountRemainingOrderTargetsFromOrderSlot(uint16_t orderSlot)
 {
@@ -1013,6 +1100,11 @@ int16_t paifight_CountRemainingOrderTargetsFromOrderSlot(uint16_t orderSlot)
 	return result;
 }
 
+/* Returns how many targetable objects belong to flight groups that match the
+ * target conditions (either one when targetRelationOp is 1, else both), or -1
+ * when none do. Craft of the craft's own flight group do not count, nor, with
+ * requireUndisabledTarget set, craft not in working order or captured by its
+ * own team; static objects count when their type has behavior flag 2. */
 // FUNCTION: XVT 0x45DFA0
 int16_t paifight_CountRemainingOrderTargets(int16_t target1Type,
 					    uint16_t target1,
@@ -1125,6 +1217,12 @@ int16_t paifight_CountRemainingOrderTargets(int16_t target1Type,
 	return -1;
 }
 
+/* Order 23: returns 1 after giving the craft a target, with its signature and
+ * hasLiveTarget 1, else 0; only while the craft is on its plan's maneuver. The
+ * candidate target comes first, as in paifight_scanfortargetorder. Else it
+ * takes the nearest other craft, within a rough 0x40000, whose own target is a
+ * live object of flight group escortTargetFG and that passes
+ * paifight_TargetHasAttackCapacity. Sets g_lastRoughDistance. */
 // FUNCTION: XVT 0x45E440
 int16_t paifight_escorttargetorder(void)
 {
@@ -1217,6 +1315,29 @@ int16_t paifight_escorttargetorder(void)
 	return 0;
 }
 
+/* Order 5: aims and fires the craft's cannons and warheads at its target;
+ * returns 0 on every path, at once when no subsystem works. With a target that
+ * cannot be targeted it sets every cannon group's link mode to 0. Else the
+ * cannons fire when the target lies within 0x800 of the craft's yaw and pitch
+ * and inside g_aiFighterShootMaxRangeBySkill; for a target in the region's main
+ * slots that is 0x4000 less when it moves faster than 25 with its yaw within
+ * 0x2000 of the craft's, 0x2000 less within 0x5000, and 0x6000 more for a
+ * platform or starship. Despite their names, the FAST_TARGET_HEAD_ON constants
+ * cover the first case, the two flying roughly the same way. The link mode is 3
+ * within 0x2000, 2 within 0x4000, else 1, with a burst from
+ * g_aiFighterShootBurstLengthBySkill; ion cannons fire only on disableldr1pln
+ * with a live target, and other cannons not then. For a target in the craft
+ * slots without an active decoy beam, in rocket attack, it fires warheads of
+ * the class the target calls for when the target's front shield and remaining
+ * hull outlast the homing warheads already aimed at it, fewer of them are
+ * coming than a limit, weapons are not inhibited and it has fired fewer than
+ * its per-maneuver limit. On disableldr1pln the hull counts only as a tenth of
+ * hullMax, once its damage passes that, and the craft's own warheads count as
+ * already coming. It builds warheadLockTicks by thinkInterval (three quarters
+ * of it below tier 2) while within 0x300 and fire range, and lets it fall
+ * otherwise; at 472 times the tier plus 1 (half that at tier 2 with a damaged
+ * hull) it picks targetComponent and fires each ready launcher, counting
+ * warheadsFiredThisManeuver. */
 // FUNCTION: XVT 0x45E780
 int16_t paifight_fightershootorder(void)
 {
@@ -1763,6 +1884,9 @@ int16_t paifight_fightershootorder(void)
 	return 0;
 }
 
+/* Returns the mesh of the target to aim warheads at: one of its main hull or
+ * fuselage meshes, the one nearest the craft for object type 54, else one
+ * picked with GameRandRange. Returns 0 for a target outside the craft slots. */
 // FUNCTION: XVT 0x45F1E0
 uint16_t paifight_SelectTargetComponentMesh(uint16_t targetObjIdx)
 {
@@ -1845,6 +1969,21 @@ uint16_t paifight_SelectTargetComponentMesh(uint16_t targetObjIdx)
 	return 0;
 }
 
+/* Order 8: fires defense warheads from launchers of the craft; returns 0 on
+ * every path. Not for a starfighter, a craft breaking up, with no subsystem
+ * working or with weapons inhibited. Each launcher slot with an intact mesh,
+ * holding warhead type 0x90 or 0x95 and a round, first waits out its
+ * missileDefenseCooldown, one per think. Then it picks a target, measured from
+ * the slot's hardpoint, which it puts in g_paifightSearchOriginX, Y and Z
+ * (hardpoint doubled for object type 53): the nearest homing warhead aimed at
+ * the craft more than 0x4000 and less than 0x40000 away that no homing warhead
+ * of tier 5 or more chases, else the nearest targetable craft within 0x40000
+ * with fewer than two homing warheads on it that attacks the craft or is an
+ * enemy player's craft targeting it. It fires a homing warhead at it with a
+ * random homing tier of 3 to 6 and a cooldown of 20 thinks. The attack test
+ * compares a craft's own lastAttackerObjIdx and threatObjIdx with its own
+ * index. Leaves the slot's turret target and targetComponent set. Sets
+ * g_lastRoughDistance. */
 // FUNCTION: XVT 0x45F380
 int16_t paifight_missiledefenseorder(void)
 {
@@ -2246,6 +2385,26 @@ int16_t paifight_missiledefenseorder(void)
 	return 0;
 }
 
+/* Order 6: aims each turret of the craft at whatever attacks it; returns 0 on
+ * every path. Clears requireUndisabledTarget. Unless the flight group's status1
+ * or status2 is 14, each turret slot (weapon type 2) whose retarget timer has
+ * run out loses its target and gets ammoCount 0; for a craft breaking up, with
+ * no subsystem working or with weapons inhibited it stops there. The search
+ * origin is the turret's hardpoint (doubled for an Imperial Star Destroyer), or
+ * the craft's position for the Super Star Destroyer. The turret keeps the last
+ * attacker when it can be targeted, lies within AI_TARGET_RANGE_MAX (plus the
+ * model's extent for the Super Star Destroyer), the line of fire is clear, it
+ * is not the board2pln target nor a shieldless disableldr1pln target. Else it
+ * clears lastAttackerObjIdx and takes the nearest targetable craft attacking
+ * this one with a clear line of fire. A turret given a target adds 472 ticks to
+ * its retarget timer; on the Super Star Destroyer a turret whose last attacker
+ * two turrets already have stays idle. Last, a starfighter with countermeasure
+ * rounds answers the first homing warhead aimed at it within
+ * g_aiWarheadThreatRangeBySkill (three times that for concussion missiles) when
+ * its countermeasure system works: chaff adds 10 to an empty
+ * chaffActiveSeconds, using a round unless the flight group's status1 or
+ * status2 is 21; a flare fires when none chases that warhead yet. Sets the
+ * collision probe globals and g_lastRoughDistance. */
 // FUNCTION: XVT 0x45FBF0
 int16_t paifight_gunnerselfdefenseorder(void)
 {
@@ -2701,6 +2860,20 @@ int16_t paifight_gunnerselfdefenseorder(void)
 	return 0;
 }
 
+/* Order 7: aims the craft's idle turrets at its order's targets; returns 0 on
+ * every path. Nothing happens for a craft breaking up, with no subsystem
+ * working, of a flight group with status1 or status2 14, or whose model has no
+ * gunner mount. It sets targetSearchFlags 0x30 and requireUndisabledTarget, 1
+ * on starshipdisablepln or disableldr1pln. Each turret slot (weapon type 2)
+ * with no target and its retarget timer run out gets
+ * SIMULATION_TICKS_PER_SECOND more on the timer and ammoCount 0; the two
+ * candidate sets are built once for the order's two pairs of target conditions.
+ * The search origin is the turret's hardpoint (doubled for an Imperial Star
+ * Destroyer), or the craft's position for the Super Star Destroyer, also kept
+ * in g_paiContext. On starshipprotectpln and starshipescortpln the turret takes
+ * the nearest attacker of an order target; else the nearest target in set 0,
+ * else set 1, with ammoCount 1 on the disable plans. A target found adds
+ * SIMULATION_TICKS_PER_SECOND more to the timer. */
 // FUNCTION: XVT 0x4606E0
 int16_t paifight_gunneroffenseorder(void)
 {
@@ -2992,6 +3165,17 @@ int16_t paifight_gunneroffenseorder(void)
 	return 0;
 }
 
+/* Returns the nearest turret target from g_paifightSearchOriginX, Y and Z, or
+ * -1: a craft marked in candidate set candidateSetIdx, or a targetable static
+ * object with behavior flag 2 that matches the target conditions, closer than
+ * AI_TARGET_RANGE_MAX (plus the model's extent for the Super Star Destroyer,
+ * which also adds AI_TURRET_TARGET_PENALTY for each turret already on it), with
+ * a clear line of fire except on the Super Star Destroyer. In a version 14
+ * mission it then gives up the pick when a craft in the craft slots that is not
+ * an enemy blocks the line of fire: any such craft when the turret's craft is
+ * stopped, else one that is not a starfighter, transport or utility vehicle.
+ * Sets the collision probe globals, g_lastRoughDistance and
+ * g_gunnerCollisionProbeCount. */
 // FUNCTION: XVT 0x460DD0
 int16_t paifight_FindNearestGunnerTargetInCandidateSet(
 	int16_t target1Type, uint16_t target1, int16_t target1OrTarget2,
@@ -3236,6 +3420,10 @@ int16_t paifight_FindNearestGunnerTargetInCandidateSet(
 	return (int16_t)bestObjectIndex;
 }
 
+/* Fills candidate set candidateSetIdx of g_paifightGunnerTargetCandidateSet:
+ * marks each live craft in the active region's craft slots that matches the
+ * target conditions, is targetable and, with requireUndisabledTarget set, in
+ * working order; clears the mark of every other slot there. */
 // FUNCTION: XVT 0x461460
 void paifight_BuildGunnerTargetCandidateSet(
 	int16_t target1Type, uint16_t target1, int16_t target1OrTarget2,
@@ -3284,6 +3472,13 @@ void paifight_BuildGunnerTargetCandidateSet(
 	}
 }
 
+/* Returns the nearest targetable object that matches the target conditions,
+ * measured from g_paifightSearchOriginX, Y and Z, or -1 when none lies within
+ * AI_TARGET_RANGE_MAX. A craft must be in working order when
+ * requireUndisabledTarget is set; a static object needs behavior flag 2. With
+ * requireClearSweep nonzero the line of fire must be clear. Sets
+ * g_lastRoughDistance and the collision probe globals. Only
+ * laser_UpdateMineWeaponFire calls it. */
 // FUNCTION: XVT 0x461690
 int16_t paifight_FindNearestMatchingTargetFromOrigin(
 	int16_t target1Type, uint16_t target1, int16_t target1OrTarget2,
@@ -3423,6 +3618,12 @@ int16_t paifight_FindNearestMatchingTargetFromOrigin(
 	return (int16_t)bestObjectIndex;
 }
 
+/* Order 13: returns 1 after making the leader's last attacker the craft's
+ * target, with its signature and hasLiveTarget 0, else 0. That happens when the
+ * attacker is a live starfighter or transport, the leader is active, no other
+ * craft of the flight group targets it yet, and, for a flight group a player
+ * owns, the player has not told the craft to avoid it. Returns 0 for a craft
+ * with no leader. */
 // FUNCTION: XVT 0x461C00
 int16_t paifight_coverleaderorder(void)
 {
@@ -3497,6 +3698,21 @@ int16_t paifight_coverleaderorder(void)
 	return 0;
 }
 
+/* Order 14: returns 1 after giving the craft a target near its leader's, with
+ * its signature and hasLiveTarget 1, else 0; 0 at once when an AI leader is not
+ * attacking. Sets requireUndisabledTarget on disableldr1pln. The candidate
+ * target comes first, when it can be targeted and, under a player leader, lies
+ * within a rough 0x50000; one farther away makes it return 0. Without a leader
+ * it tests object 255, the no-leader index, as the leader. Else it starts from
+ * an AI leader's target, or under a player leader from the last craft hostile
+ * to the leader whose last attacker the player flies. From that craft it takes,
+ * starting craftOrdinal slots on, the first craft of the same flight group that
+ * is targetable near this craft (range expanded) and, on capfreeldr1pln,
+ * disableldr1pln or kamikaze1pln, matches the current order; for a static
+ * object, the first after it that does both. Does not check lastAttackerObjIdx
+ * for 0xFFFF before reading that object. The avoid test compares with the loop
+ * count, not the candidate, and a static candidate that fails the first test
+ * stops the search there. */
 // FUNCTION: XVT 0x461DA0
 int16_t paifight_followleadatkorder(void)
 {
@@ -3743,6 +3959,9 @@ int16_t paifight_followleadatkorder(void)
 	return 0;
 }
 
+/* Order 18: sets escortTargetFG to the flight group of the nearest object that
+ * matches the current order's first pair of target conditions, or else its
+ * second pair; to 255 when neither finds one. Returns 0 on every path. */
 // FUNCTION: XVT 0x462550
 int16_t paifight_checkescortorder(void)
 {
@@ -3792,6 +4011,10 @@ int16_t paifight_checkescortorder(void)
 	return 0;
 }
 
+/* Returns the nearest live object, in the craft slots or the static slots, of a
+ * flight group that matches the target conditions, or -1; sets
+ * g_aiEscortCandidateFgIdx to its flight group and g_lastRoughDistance. Does
+ * not check that the object can be targeted. */
 // FUNCTION: XVT 0x462690
 int16_t paifight_searchforclosestingroup(int16_t target1Type, uint16_t target1,
 					 int16_t target1OrTarget2,
@@ -3870,6 +4093,8 @@ int16_t paifight_searchforclosestingroup(int16_t target1Type, uint16_t target1,
 	return bestObjectIndex;
 }
 
+/* Returns 1 when paifight_HasFutureFgTargets finds groups still to come for the
+ * order slot's first pair of target conditions or its second pair, else 0. */
 // FUNCTION: XVT 0x462830
 int16_t paifight_OrderSlotHasFutureTargets(uint16_t orderSlot)
 {
@@ -3913,6 +4138,9 @@ int16_t paifight_OrderSlotHasFutureTargets(uint16_t orderSlot)
 			       .secondaryTargets[1]) != 0;
 }
 
+/* Returns 1 when a flight group that matches the target conditions (either one
+ * when targetRelationOp is 1, else both), with arrivalEnabled set or owned by a
+ * player, has not arrived yet or has wavesRemaining above 0; else 0. */
 // FUNCTION: XVT 0x462930
 int16_t paifight_HasFutureFgTargets(int16_t target1Type, uint16_t target1,
 				    int16_t targetRelationOp,

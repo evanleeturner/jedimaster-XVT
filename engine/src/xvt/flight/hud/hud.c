@@ -63,244 +63,602 @@ long _filelength(int fileDescriptor);
 
 #ifndef XVT_MODERN
 typedef struct Msvc42CrtFilePrefix {
+	/* Never read or written; puts flags at byte 12. */
 	uint8_t reserved[12];
+	/* Stream flags; the original build's loaders read bit 0x10 as end of
+	 * file. */
 	int flags;
 } Msvc42CrtFilePrefix;
 #endif
 
 typedef struct LfdEntryHeader {
-	uint8_t resourceType[4];
-	char resourceName[8];
-	uint32_t dataSize;
+	uint8_t resourceType[4]; /* Type tag; PLTT marks a palette. */
+	char resourceName[8];	 /* Read from the file; nothing uses it. */
+	uint32_t dataSize;	 /* Bytes of data after the header. */
 } LfdEntryHeader;
 
 enum { PANEL_BOX_SPAN_SCRATCH_SIZE = 2048 };
 
+/* Pixels of one corner stroke in the box color, which
+ * Hud_DrawDepthTestedBoxCorners, its only user, fills from the box's left x
+ * when that is positive (twice that many bytes in at 16 bits) and draws
+ * from. */
 // GLOBAL: XVT 0x6122D8
 uint8_t g_panelBoxSpanScratch[PANEL_BOX_SPAN_SCRATCH_SIZE] = {0};
+/* 1 after the targeting computer sees a new target, telling the next
+ * Hud_Update3DCrt of the target inset to copy the inset's span mask again.
+ * Hud_UpdateTargetingComputerDisplay sets it to 0 each time it draws and to 1
+ * on a target change; Hud_DrawHudTargetInsetIfEnabled passes it on. */
 // GLOBAL: XVT 0x521550
 uint16_t g_hudTargetInsetMaskRefreshPending = 0;
 
+/* Memory handle of the panel sprite data, HUD_PANEL_SPRITE_BUFFER_BYTES
+ * (120,000) long, allocated by FeDiskIo_InitGlobalBuffers and freed and set to
+ * 0 by FeDiskIo_FreeFlightResources; the modern build's XvtFlightLoading_Reset
+ * also sets it to 0. Hud_RebuildDisplayForViewState starts
+ * g_hudPanelSpriteDataWriteCursor at its memory. */
 // GLOBAL: XVT 0x9D8A50
 uint16_t g_hudPanelSpriteDataHandle = 0;
+/* Memory handle of the message log, MESSAGE_LOG_BUFFER_BYTES (32,000) long,
+ * allocated by FeDiskIo_InitGlobalBuffers and freed and set to 0 by
+ * FeDiskIo_FreeFlightResources; the modern build's XvtFlightLoading_Reset also
+ * sets it to 0. msg_emitInFlightMessage and Mfd_DrawMessageLogPage lock it into
+ * g_messageLogRecords. */
 // GLOBAL: XVT 0x9EC5FC
 uint16_t g_messageLogHandle = 0;
+/* Memory handle of the flight icon frames and their pointers, allocated by
+ * FeDiskIo_InitGlobalBuffers, which also locks it and loads the frames, and
+ * freed and set to 0 by FeDiskIo_FreeFlightResources; the modern build's
+ * XvtFlightLoading_Reset also sets it to 0. */
 // GLOBAL: XVT 0xA07CCC
 uint16_t g_flightIconFramesHandle = 0;
+/* Per view, the memory handle and the three LFD entries (cockpit image,
+ * viewport span mask, palette) of its cockpit image.
+ * Hud_LoadCockpitSpriteResources fills the views whose descriptor has
+ * resourceRef 1 and sets the others' handle to 0;
+ * Hud_RebuildDisplayForViewState loads a view's entries into
+ * g_flightScratchScreenBuffer when they are not loaded.
+ * FeDiskIo_FreeFlightResources frees the handles. */
 // GLOBAL: XVT 0xA08A10
 HudCockpitResource g_hudCockpitResources[28] = {{0}};
+/* Per view (HudViewState), the cockpit image, viewport and name read by
+ * Hud_LoadCockpitInterfaceFile from the cockpit's .INT file, its only
+ * writer. */
 // GLOBAL: XVT 0xA08610
 HudCockpitResourceDescriptor g_hudCockpitResourceDescriptors[28] = {{0}};
+/* Path of the last cockpit file opened: the .INT files and the .LFD files.
+ * Written by Hud_LoadCockpitInterfaceFile,
+ * Hud_LoadAuxiliaryCockpitInterfaceFile, Hud_LoadCockpitLfdEntries and
+ * Hud_LoadCockpitSpriteResources with strcpy and strcat, which do not check its
+ * 32 bytes. */
 // GLOBAL: XVT 0xA08BD0
 char g_hudCockpitResourcePath[32] = {0};
+/* Base path of the cockpit or panel file being loaded: the resolution's cockpit
+ * folder and a name, with ".PNL" when Hud_RebuildDisplayForViewState reads
+ * panel sprites. Written by Hud_LoadCockpitResources and
+ * Hud_RebuildDisplayForViewState with strcpy and strcat, which do not check its
+ * 32 bytes. */
 // GLOBAL: XVT 0xA08310
 char g_hudCockpitBasePath[32] = {0};
+/* Panel sprite file name and sprite counts read from the cockpit's .INT file by
+ * Hud_LoadCockpitInterfaceFile, its only writer. */
 // GLOBAL: XVT 0xA08BC0
 HudPanelSpriteFileInfo g_hudPanelSpriteFileInfo = {{0}, 0, 0};
+/* Target the targeting computer last drew, an object index, or -1 for none.
+ * Hud_UpdateTargetingComputerDisplay and Hud_DrawCmdTargetDetails record the
+ * target; Hud_InitHUD and Hud_UpdateCraftSystemStatusIndicators set -1;
+ * Flight_ProcessPlayerActions and Player_ValidateCurrentTargets set -2, and
+ * collide_collisions and paiman_boardmaneuver -3, to force a redraw. After any
+ * of -1 to -3 the targeting computer also redraws its labels. */
 // GLOBAL: XVT 0xA08C74
 int16_t g_hudCachedTargetObjectIdx = 0;
+/* Panel sprite set the cockpit wants; set to 0 by Hud_LoadCockpitResources and
+ * Hud_ReloadCockpitInterfaceFile, and nothing sets another value.
+ * Hud_RebuildDisplayForViewState reloads the panel sprites while it differs
+ * from g_hudLoadedPanelSetId. */
 // GLOBAL: XVT 0xA0813E
 uint8_t g_hudPanelSetId = 0;
+/* Where Hud_LoadCockpitLfdEntries writes the next LFD entry; it advances past
+ * each one. Set to a view's memory by Hud_LoadCockpitSpriteResources and to
+ * g_flightScratchScreenBuffer by Hud_RebuildDisplayForViewState. */
 // GLOBAL: XVT 0xA08370
 uint8_t *g_hudCockpitResourceWriteCursor = NULL;
+/* 1 once Hud_LoadCockpitSpriteResources has loaded the cockpit images. Set to 0
+ * by FeDiskIo_InitGlobalBuffers and at flight start (Flight_MainLoop in the
+ * original build, XvtFlightLoading_Globals in the modern one);
+ * Mission_InitFlightRuntimeState loads the cockpit while it is 0. */
 // GLOBAL: XVT 0x9D8C10
 int g_hudCockpitResourcesLoaded = 0;
+/* Panel sprite set last loaded by Hud_RebuildDisplayForViewState, which sets it
+ * to g_hudPanelSetId; Mission_InitFlightRuntimeState sets 0xFF so the next
+ * rebuild reloads. */
 // GLOBAL: XVT 0x9D113E
 uint8_t g_hudLoadedPanelSetId = 0;
+/* Set to 1 by Mission_InitFlightRuntimeState and to 0 by
+ * Hud_RebuildDisplayForViewState and by Flight_UpdatePlayerStep in the original
+ * build or XvtFlightSim_Resume in the modern one. Nothing reads it. */
 // GLOBAL: XVT 0xA00730
 uint8_t g_flightDisplayRebuildPending = 0;
+/* Names of the waypoints, by waypoint index, filled by
+ * StringTable_LoadGameStrings; Hud_AppendObjectDisplayName reads them for
+ * references of 0x8000 and up. */
 // GLOBAL: XVT 0xA08380
 const char *g_strWaypointNames[14] = {0};
+/* Names of target components by mesh type, filled by
+ * StringTable_LoadGameStrings; entry 32 (MESH_COMPONENT_32_DASHES) is the
+ * dashes shown for no object. */
 // GLOBAL: XVT 0xA08BF0
 const char *g_strMeshComponentNames[33] = {0};
+/* Start of each panel sprite in the panel sprite data, by sprite number;
+ * Hud_LoadPanelSpriteRecords, its only writer, fills it. A layout's selector
+ * picks the first sprite of a widget here. */
 // GLOBAL: XVT 0x9ED240
 uint8_t *g_hudPanelSpriteDataByIndex[265] = {0};
+/* Where Hud_LoadPanelSpriteRecords writes the next sprite byte; it advances
+ * past each sprite. Hud_RebuildDisplayForViewState starts it at the memory of
+ * g_hudPanelSpriteDataHandle before reloading. */
 // GLOBAL: XVT 0xA082A0
 uint8_t *g_hudPanelSpriteDataWriteCursor = NULL;
+/* The HUD instrument layouts: three sets of 144 (cockpit, HUD-only, craft
+ * list), each element's position and widget values.
+ * Hud_LoadCockpitInterfaceFile reads the first two sets and
+ * Hud_LoadAuxiliaryCockpitInterfaceFile the third. At run time Hud_InitHUD and
+ * Hud_UpdateCriticalHullShieldWarning use layout 127's
+ * clipHeightOrForegroundColor as a counter, Hud_DrawCmdTargetDetails stores
+ * label widths in the clipWidth of layouts 104 to 107, and
+ * Hud_RebuildDisplayForViewState sets layout 396's selector. */
 // GLOBAL: XVT 0xA08CA0
 HudElementLayout g_hudElementLayouts[HUD_INSTRUMENT_COUNT] = {{0}};
+/* Per HUD element, the value or state it was last drawn with, so it is redrawn
+ * only on a change; writers set -1 or -2 to force a redraw. Many functions
+ * write it, chiefly the Hud_DrawCached... functions and Hud_InitHUD, which sets
+ * -2 everywhere and -3 for the MFD page elements; the modern build's
+ * XvtCockpitReadouts_BeginTarget sets entries 102 and 103 to -2. */
 // GLOBAL: XVT 0xA0A1E0
 int16_t g_hudElementStateCache[HUD_INSTRUMENT_COUNT] = {0};
+/* Index in g_hudElementLayouts of the current view's set: 0 for the cockpit
+ * set, 144 for the HUD-only set, 288 for the craft list set. Only
+ * Hud_RebuildDisplayForViewState writes it. */
 // GLOBAL: XVT 0xA08374
 uint16_t g_hudInstrumentSetBaseIndex = HUD_COCKPIT_INSTRUMENT_BASE_INDEX;
+/* Palette index of the radar blip being added; only Hud_AddBlipToRadar writes
+ * it, and an IFF it does not list keeps the last value. */
 // GLOBAL: XVT 0xA08368
 uint16_t g_radarBlipColor = 0;
+/* Blip list the current radar frame fills for the fore radar: one of
+ * g_radarForeBlipBufferA and B, chosen by Hud_DrawRadarBlips each frame. */
 // GLOBAL: XVT 0xA08A04
 HudRadarBlipPoint *g_radarForeDrawBlips = NULL;
+/* Blips in g_radarForeDrawBlips, 0 to 47. Set to 0 by Hud_InitHUD and at the
+ * start of each Hud_DrawRadarBlips; Hud_AddBlipToRadar raises it. */
 // GLOBAL: XVT 0xA08A02
 uint16_t g_radarForeBlipCount = 0;
+/* Blip list the current radar frame fills for the aft radar: one of
+ * g_radarAftBlipBufferA and B, chosen by Hud_DrawRadarBlips each frame. */
 // GLOBAL: XVT 0xA08340
 HudRadarBlipPoint *g_radarAftDrawBlips = NULL;
+/* Blips in g_radarAftDrawBlips, 0 to 47. Set to 0 by Hud_InitHUD and at the
+ * start of each Hud_DrawRadarBlips; Hud_AddBlipToRadar raises it. */
 // GLOBAL: XVT 0xA08C7E
 uint16_t g_radarAftBlipCount = 0;
+/* Fore radar blips of the frame before, which Hud_DrawRadarBlips erases: the
+ * buffer not in g_radarForeDrawBlips. */
 // GLOBAL: XVT 0xA08360
 HudRadarBlipPoint *g_radarForeEraseBlips = NULL;
+/* Aft radar blips of the frame before, which Hud_DrawRadarBlips erases: the
+ * buffer not in g_radarAftDrawBlips. */
 // GLOBAL: XVT 0xA08BB0
 HudRadarBlipPoint *g_radarAftEraseBlips = NULL;
+/* Fore blips drawn the frame before, the count Hud_DrawRadarBlips erases; only
+ * that function writes it. */
 // GLOBAL: XVT 0xA083BA
 uint16_t g_radarForePrevBlipCount = 0;
+/* Aft blips drawn the frame before, the count Hud_DrawRadarBlips erases; only
+ * that function writes it. */
 // GLOBAL: XVT 0xA08344
 uint16_t g_radarAftPrevBlipCount = 0;
+/* Which radar buffers draw this frame: 1 draws into the A buffers and erases
+ * the B ones, 0 the reverse. Hud_DrawRadarBlips flips it each frame;
+ * Hud_InitHUD sets 0. */
 // GLOBAL: XVT 0xA08364
 uint8_t g_radarBlipBufferParity = 0;
+/* 1 while the radar target marker is drawn and its background saved, so the
+ * next Hud_DrawRadarBlips restores it first. Set by Hud_DrawRadarBlips; set to
+ * 0 by it with no target and by Hud_InitHUD. */
 // GLOBAL: XVT 0xA0837A
 uint8_t g_radarTargetMarkerBackgroundSaved = 0;
+/* First of the two fore radar blip lists, 48 entries. */
 // GLOBAL: XVT 0xA083C0
 HudRadarBlipPoint g_radarForeBlipBufferA[48] = {{0}};
+/* Second of the two fore radar blip lists, 48 entries. */
 // GLOBAL: XVT 0xA084E0
 HudRadarBlipPoint g_radarForeBlipBufferB[48] = {{0}};
+/* First of the two aft radar blip lists, 48 entries. */
 // GLOBAL: XVT 0xA0A540
 HudRadarBlipPoint g_radarAftBlipBufferA[48] = {{0}};
+/* Second of the two aft radar blip lists, 48 entries. */
 // GLOBAL: XVT 0xA0A660
 HudRadarBlipPoint g_radarAftBlipBufferB[48] = {{0}};
+/* Width, in pixels, of the scoreboard page area that Hud_BlitSoftwareMfdPages
+ * copies from g_flightOffscreenBuffer: 112 at 320x240, 224 at 640x480, 168 at
+ * 480x360. Only Hud_InitHUD writes it, for the local player's resolution. */
 // GLOBAL: XVT 0xA08366
 uint16_t g_mfdMissionScoreboardBlitWidth = 0;
+/* Source top edge, in pixels, of the scoreboard page area that
+ * Hud_BlitSoftwareMfdPages copies from g_flightOffscreenBuffer: 109 at 320x240,
+ * 219 at 640x480, 164 at 480x360. Only Hud_InitHUD writes it, for the local
+ * player's resolution. */
 // GLOBAL: XVT 0xA0836A
 uint16_t g_mfdMissionScoreboardBlitSourceY = 0;
+/* Height, in pixels, of the scoreboard page area that Hud_BlitSoftwareMfdPages
+ * copies from g_flightOffscreenBuffer: 70 at 320x240, 140 at 640x480, 105 at
+ * 480x360. Only Hud_InitHUD writes it, for the local player's resolution. */
 // GLOBAL: XVT 0xA0836C
 uint16_t g_mfdMissionScoreboardBlitHeight = 0;
+/* Source left edge, in pixels, of the scoreboard page area that
+ * Hud_BlitSoftwareMfdPages copies from g_flightOffscreenBuffer: 2 at 320x240, 4
+ * at 640x480, 3 at 480x360. Only Hud_InitHUD writes it, for the local player's
+ * resolution. */
 // GLOBAL: XVT 0xA0836E
 uint16_t g_mfdMissionScoreboardBlitSourceX = 0;
+/* Source top edge, in pixels, of the map view page area that
+ * Hud_BlitSoftwareMfdPages copies from g_flightOffscreenBuffer: 186 at 320x240,
+ * 373 at 640x480, 279 at 480x360. Only Hud_InitHUD writes it, for the local
+ * player's resolution. */
 // GLOBAL: XVT 0xA08376
 uint16_t g_mfdMapBlitSourceY = 0;
+/* Width, in pixels, of the map view page area that Hud_BlitSoftwareMfdPages
+ * copies from g_flightOffscreenBuffer: 111 at 320x240, 223 at 640x480, 167 at
+ * 480x360. Only Hud_InitHUD writes it, for the local player's resolution. */
 // GLOBAL: XVT 0xA08378
 uint16_t g_mfdMapBlitWidth = 0;
+/* Height, in pixels, of the map view page area that Hud_BlitSoftwareMfdPages
+ * copies from g_flightOffscreenBuffer: 52 at 320x240, 104 at 640x480, 78 at
+ * 480x360. Only Hud_InitHUD writes it, for the local player's resolution. */
 // GLOBAL: XVT 0xA083B8
 uint16_t g_mfdMapBlitHeight = 0;
+/* Source left edge, in pixels, of the map view page area that
+ * Hud_BlitSoftwareMfdPages copies from g_flightOffscreenBuffer: 121 at 320x240,
+ * 242 at 640x480, 181 at 480x360. Only Hud_InitHUD writes it, for the local
+ * player's resolution. */
 // GLOBAL: XVT 0xA083BC
 uint16_t g_mfdMapBlitSourceX = 0;
+/* Height, in pixels, of the craft list page area that Hud_BlitSoftwareMfdPages
+ * copies from g_flightOffscreenBuffer: 47 at 320x240, 94 at 640x480, 70 at
+ * 480x360. Hud_InitHUD writes it for the local player's resolution, or from
+ * layout 130 of the current set while the map camera is on;
+ * Hud_RebuildDisplayForViewState sets the resolution's value again when leaving
+ * the craft list view. */
 // GLOBAL: XVT 0xA08604
 uint16_t g_mfdCraftListBlitHeight = 0;
+/* Source left edge, in pixels, of the craft list page area that
+ * Hud_BlitSoftwareMfdPages copies from g_flightOffscreenBuffer: 153 at 320x240,
+ * 306 at 640x480, 229 at 480x360. Only Hud_InitHUD writes it, for the local
+ * player's resolution. */
 // GLOBAL: XVT 0xA08606
 uint16_t g_mfdCraftListBlitSourceX = 0;
+/* Source top edge, in pixels, of the craft list page area that
+ * Hud_BlitSoftwareMfdPages copies from g_flightOffscreenBuffer: 53 at 320x240,
+ * 107 at 640x480, 80 at 480x360. Only Hud_InitHUD writes it, for the local
+ * player's resolution. */
 // GLOBAL: XVT 0xA08608
 uint16_t g_mfdCraftListBlitSourceY = 0;
+/* Width, in pixels, of the craft list page area that Hud_BlitSoftwareMfdPages
+ * copies from g_flightOffscreenBuffer: 112 at 320x240, 225 at 640x480, 168 at
+ * 480x360. Hud_InitHUD writes it for the local player's resolution, or from
+ * layout 130 of the current set while the map camera is on;
+ * Hud_RebuildDisplayForViewState sets the resolution's value again when leaving
+ * the craft list view. */
 // GLOBAL: XVT 0xA08A00
 uint16_t g_mfdCraftListBlitWidth = 0;
+/* Height, in pixels, of the goals page area that Hud_BlitSoftwareMfdPages
+ * copies from g_flightOffscreenBuffer: 53 at 320x240, 107 at 640x480, 80 at
+ * 480x360. Only Hud_InitHUD writes it, for the local player's resolution. */
 // GLOBAL: XVT 0xA08C80
 uint16_t g_mfdGoalsBlitHeight = 0;
+/* Source left edge, in pixels, of the damage page area that
+ * Hud_BlitSoftwareMfdPages copies from g_flightOffscreenBuffer: 153 at 320x240,
+ * 306 at 640x480, 229 at 480x360. Only Hud_InitHUD writes it, for the local
+ * player's resolution. */
 // GLOBAL: XVT 0xA08C82
 uint16_t g_mfdDamageBlitSourceX = 0;
+/* Source left edge, in pixels, of the goals page area that
+ * Hud_BlitSoftwareMfdPages copies from g_flightOffscreenBuffer: 6 at 320x240,
+ * 12 at 640x480, 9 at 480x360. Only Hud_InitHUD writes it, for the local
+ * player's resolution. */
 // GLOBAL: XVT 0xA08C84
 uint16_t g_mfdGoalsBlitSourceX = 0;
+/* Height, in pixels, of the damage page area that Hud_BlitSoftwareMfdPages
+ * copies from g_flightOffscreenBuffer: 80 at 320x240, 160 at 640x480, 120 at
+ * 480x360. Only Hud_InitHUD writes it, for the local player's resolution. */
 // GLOBAL: XVT 0xA08C8A
 uint16_t g_mfdDamageBlitHeight = 0;
+/* Width, in pixels, of the goals page area that Hud_BlitSoftwareMfdPages copies
+ * from g_flightOffscreenBuffer: 141 at 320x240, 282 at 640x480, 211 at 480x360.
+ * Only Hud_InitHUD writes it, for the local player's resolution. */
 // GLOBAL: XVT 0xA08C8C
 uint16_t g_mfdGoalsBlitWidth = 0;
+/* Width, in pixels, of the damage page area that Hud_BlitSoftwareMfdPages
+ * copies from g_flightOffscreenBuffer: 100 at 320x240, 200 at 640x480, 150 at
+ * 480x360. Only Hud_InitHUD writes it, for the local player's resolution. */
 // GLOBAL: XVT 0xA08C8E
 uint16_t g_mfdDamageBlitWidth = 0;
+/* Source top edge, in pixels, of the damage page area that
+ * Hud_BlitSoftwareMfdPages copies from g_flightOffscreenBuffer: 103 at 320x240,
+ * 206 at 640x480, 154 at 480x360. Only Hud_InitHUD writes it, for the local
+ * player's resolution. */
 // GLOBAL: XVT 0xA08C90
 uint16_t g_mfdDamageBlitSourceY = 0;
+/* Source top edge, in pixels, of the goals page area that
+ * Hud_BlitSoftwareMfdPages copies from g_flightOffscreenBuffer: 53 at 320x240,
+ * 107 at 640x480, 80 at 480x360. Only Hud_InitHUD writes it, for the local
+ * player's resolution. */
 // GLOBAL: XVT 0xA08C92
 uint16_t g_mfdGoalsBlitSourceY = 0;
+/* Palette indices of a beam segment by the charge it holds, in thirds of 1,000
+ * from empty (entry 0) to full (entry 3). Nothing writes it;
+ * Hud_DrawBeamStrength2D reads it. */
 // GLOBAL: XVT 0x521588
 uint8_t g_hudBeamSegmentColorByChargeStep[4] = {0x30, 0x2D, 0x31, 0x32};
+/* Offset in pixels of each of the nine beam segments from layout 51 at
+ * 480x360. */
 // GLOBAL: XVT 0x521590
 const HudBeamSegmentOffset g_hudBeamSegmentOffsets480x360[9] = {
 	{14, 14}, {12, 12}, {10, 10}, {9, 9}, {7, 7},
 	{5, 5},	  {4, 4},   {2, 2},   {0, 0},
 };
 /* Sprite levels 0..10 include hit flash; text uses offset 10 plus levels 0..9. */
+/* Palette shifts of the shield sprites by level 0 to 10 (10 is the hit flash),
+ * then text colors by level 0 to 9 from HUD_SHIELD_TEXT_COLOR_OFFSET on, for
+ * Hud_DrawShieldStrength2D. */
 // GLOBAL: XVT 0x521570
 const uint8_t g_hudShieldColors[22] = {
 	0x2c, 0x34, 0x35, 0x36, 0x38, 0x39, 0x3a, 0x3c, 0x3d, 0x3e, 0x2e,
 	0x2e, 0x37, 0x37, 0x37, 0x3b, 0x3b, 0x3b, 0x3f, 0x3f, 0x3f, 0x2e,
 };
+/* Shield side, 0 front or 1 rear, that took the last hit; collide_damagecraft,
+ * its only writer, sets it, and Hud_DrawShieldStrength2D flashes that side
+ * while shieldHitFlashTimer runs. */
 // GLOBAL: XVT 0x9FE7D0
 uint8_t g_lastShieldDamageSide = 0;
+/* Offset in pixels of each of the nine beam segments from layout 51 at
+ * 320x240. */
 // GLOBAL: XVT 0x5215B8
 const HudBeamSegmentOffset g_hudBeamSegmentOffsets320x240[9] = {
 	{11, 11}, {10, 10}, {8, 8}, {7, 7}, {6, 6},
 	{4, 4},	  {3, 3},   {2, 2}, {0, 0},
 };
+/* 1 while a laser cannon due to fire would hit the target, or with warheads
+ * selected while missileLockState is 2. Hud_DrawReticle3D sets it to 0 and then
+ * to 1 on a hit; Hud_UpdateTargetingLockIndicator sets it for warheads and
+ * reads it for lasers. */
 // GLOBAL: XVT 0xA0A1D0
 uint8_t g_targetLockActive = 0;
+/* 1 while Hud_InitHUD, its only writer, redraws the HUD;
+ * ProvingGrounds_DrawStatusPanel reads it. */
 // GLOBAL: XVT 0x9D8B68
 uint8_t g_hudFullRedrawInProgress = 0;
+/* Span mask of the craft list view's target inset, 480 bytes at 640x480 and
+ * 480x360 and 200 at 320x240, read from the craft list's .INT file by
+ * Hud_LoadAuxiliaryCockpitInterfaceFile; Hud_Update3DCrt copies it into the
+ * viewport's mask. */
 // GLOBAL: XVT 0x556720
 uint8_t g_hudCraftListInsetSpanMask[480] = {0};
+/* Span mask of the cockpit view's target inset, 480 bytes at 640x480 and
+ * 480x360 and 200 at 320x240, read by Hud_LoadCockpitInterfaceFile;
+ * Hud_Update3DCrt copies it into the viewport's mask. */
 // GLOBAL: XVT 0x556540
 uint8_t g_hudCockpitInsetSpanMask[480] = {0};
+/* Span mask of the HUD-only view's target inset, 480 bytes at 640x480 and
+ * 480x360 and 200 at 320x240, read by Hud_LoadCockpitInterfaceFile;
+ * Hud_Update3DCrt copies it into the viewport's mask. */
 // GLOBAL: XVT 0x556360
 uint8_t g_hudOnlyViewInsetSpanMask[480] = {0};
+/* Cockpit overlay strings by CockpitOverlayStringId (labels, scoreboard
+ * headings, goal words, EJECT and the strings after it), filled by
+ * StringTable_LoadGameStrings. */
 // GLOBAL: XVT 0xA0A130
 const char *g_strCockpitOverlayText[40] = {0};
+/* Target camera and targeting computer strings by CmdThreatStringId, filled by
+ * StringTable_LoadGameStrings. */
 // GLOBAL: XVT 0xA0A0E0
 const char *g_strCmdThreatDisplayText[18] = {0};
+/* Armament labels by ThreatDisplayStringId (laser, ion, warhead, beam), filled
+ * by StringTable_LoadGameStrings; Hud_DrawCmdTargetStatusIndicators draws
+ * them. */
 // GLOBAL: XVT 0xA08350
 const char *g_strThreatDisplayText[4] = {0};
+/* Color codes, for FlightText_SetColor, of a message by its pane type byte
+ * (entries 0 to 8), and of a type 1 message by its digit 0 to 3 (entries 8 to
+ * 11); read by Hud_ShowFlightMessagePane and Mfd_DrawMessageLogPage. */
 // GLOBAL: XVT 0x5240A0
 const uint8_t g_messageTextPrefixColorCodes[16] = {
 	0x42, 0x4A, 0x46, 0x4E, 0x52, 0x45, 0x42, 0x52,
 	0x4A, 0x52, 0x46, 0x4E, 0x4A, 0x4E, 0,	  0,
 };
+/* Color codes, for FlightText_SetColor, of a type 2 message by its sender's
+ * IFF; read by Hud_ShowFlightMessagePane and Mfd_DrawMessageLogPage. */
 // GLOBAL: XVT 0x5240B0
 const uint8_t g_messageSenderIffColorCodes[8] = {0x52, 0x4A, 0x46, 0x4E,
 						 0x4A, 0x4E, 0,	   0};
+/* 1 when the mission command line asks for the frame rate overlay with
+ * "tickcounter"; set from it by Flight_Main in the original build and
+ * XvtFlightEntry_ReadLaunchSwitches in the modern one. */
 // GLOBAL: XVT 0x5235E0
 uint8_t g_flightConfTickCounterEnabled = 0;
+/* Ticks the last flight loop took, for the frame rate overlay; written by
+ * Flight_RunMissionLoop in the original build and XvtFlightFrame_Render in the
+ * modern one, only while the overlay is on. */
 // GLOBAL: XVT 0x9A8D90
 int g_flightTickOverlayLastLoopTicks = 0;
+/* Ticks summed over the overlay's sampling window; reset to 0 while the overlay
+ * is off or once the sum passes LAG_LEVEL_2_TICKS (944). Written by
+ * Flight_RunMissionLoop in the original build and XvtFlightFrame_Render in the
+ * modern one. */
 // GLOBAL: XVT 0x9A7BA0
 int g_flightTickOverlayWindowTicks = 0;
+/* Loops counted in g_flightTickOverlayWindowTicks; reset with it. Written by
+ * Flight_RunMissionLoop in the original build and XvtFlightFrame_Render in the
+ * modern one. */
 // GLOBAL: XVT 0xA0829C
 int g_flightTickOverlaySampleCount = 0;
+/* Packet drop level, 0 to 3, shown by the status line's packet drop mark; 0
+ * hides it. Set by Flight_RunMissionLoop in the original build and
+ * XvtFlightFrame_UpdatePacketDropIndicator in the modern one; flight start sets
+ * 0. */
 // GLOBAL: XVT 0x9A8BFC
 int g_packetDropIndicator = 0;
+/* Lag level, 0 to 3, shown by the status line's lag mark; 0 hides it. Set by
+ * Flight_RunMissionLoop in the original build and
+ * XvtFlightFrame_UpdateLagIndicator in the modern one; flight start sets 0. */
 // GLOBAL: XVT 0x9EC45C
 int g_lagIndicator = 0;
 
+/* The system message pane's message (pane types 3, 4 and 7), its
+ * stateOrMessageId 0xFFFF while empty. msg_emitInFlightMessage fills it;
+ * Hud_ShowFlightMessagePane marks it shown, Hud_UpdateFlightMessagePanes and
+ * Hud_ResetFlightMessagePanes empty it, Hud_AdvanceFlightMessagePaneTimers ages
+ * it. */
 // GLOBAL: XVT 0x5569F8
 HudInFlightMessageRecord g_systemMessagePane;
+/* The flight group message pane's message (pane type 8), its stateOrMessageId
+ * 0xFFFF while empty. msg_emitInFlightMessage fills it;
+ * Hud_ShowFlightMessagePane marks it shown, Hud_UpdateFlightMessagePanes and
+ * Hud_ResetFlightMessagePanes empty it, Hud_AdvanceFlightMessagePaneTimers ages
+ * it. */
 // GLOBAL: XVT 0x556A50
 HudInFlightMessageRecord g_flightGroupMessagePane;
+/* The ready message pane: slot 0 is the message shown, its stateOrMessageId
+ * 0xFFFF while empty; slots 1 to g_readyMessageQueueCount wait in order, and
+ * slot 10 can take a message that is never shown. Filled by
+ * msg_emitInFlightMessage and moved by Hud_ShiftReadyMessageQueueForReplacement
+ * and Hud_AdvanceReadyMessageQueue. */
 // GLOBAL: XVT 0x9A6FF0
 HudInFlightMessageRecord g_readyMessagePaneQueue[11];
+/* Messages waiting behind slot 0 of g_readyMessagePaneQueue, 0 to 9. Raised by
+ * msg_emitInFlightMessage and Hud_ShiftReadyMessageQueueForReplacement, lowered
+ * by Hud_AdvanceReadyMessageQueue, set to 0 by Hud_ResetFlightMessagePanes,
+ * Hud_ClearReadyMessageQueue and Mission_InitFlightRuntimeState. */
 // GLOBAL: XVT 0x9D77F8
 uint8_t g_readyMessageQueueCount;
+/* Nonzero when the next Hud_UpdateFlightMessagePanes must expire all three
+ * panes; Hud_ResetFlightMessagePanes raises it, and
+ * Hud_UpdateFlightMessagePanes sets it back to 0. */
 // GLOBAL: XVT 0x556AA4
 int g_flightMessagePanesForceExpire = 0;
+/* Slot 0's stateOrMessageId as Hud_ResetFlightMessagePanes, its only writer,
+ * last found it before emptying the pane. Nothing reads it. */
 // GLOBAL: XVT 0x9D7686
 static uint16_t g_unusedReadyMessagePaneInitialState = 0;
+/* Goal phrase (a message id) of the last target description shown, which
+ * Hud_UpdateFlightMessagePanes compares to decide whether to show it again.
+ * Written by msg_BuildTargetDescription when it emits, by
+ * Hud_UpdateFlightMessagePanes, and by Hud_ResetFlightMessagePanes, which sets
+ * 331, the blank message. */
 // GLOBAL: XVT 0x9D7694
 int g_targetDescriptionMessageId = 0;
+/* 1 while radio messages are backed up: msg_writeMessageLogFile then runs when
+ * the message log wraps, at mission end, and when the player turns the backup
+ * off. The player's Shift+L turns it on and off (Flight_UpdatePlayerStep in the
+ * original build, XvtFlightSim_UpdatePlayerStep in the modern one); mission end
+ * and Hud_ResetFlightMessagePanes set 0. */
 // GLOBAL: XVT 0x9ECC3C
 int g_radioMessageBackupEnabled = 0;
+/* Read as a replay view switch by msg_emitInFlightMessage, Hud_Update3DCrt and
+ * several other functions. Nothing writes it, so it stays 0. */
 // GLOBAL: XVT 0xA00860
 uint16_t g_replayViewMode = 0;
+/* 1 while system messages (pane types 3, 4 and 7) are shown. Flight start sets
+ * 1 (Flight_MainLoop in the original build, XvtFlightLoading_MissionSetup in
+ * the modern one); the player step toggles it (Flight_UpdatePlayerStep in the
+ * original build, XvtFlightSim_UpdatePlayerStep in the modern one). */
 // GLOBAL: XVT 0x9A7B54
 int g_systemMessageDisplayEnabled = 0;
+/* The ready pane's left edge on g_flightOffscreenBuffer: 42 at 320x240, 85 at
+ * 640x480, 63 at 480x360, set by Hud_ResetFlightMessagePanes when it finds -1.
+ * Flight start sets -1 (Flight_MainLoop in the original build,
+ * XvtFlightLoading_MissionSetup in the modern one), so the pane rectangles are
+ * set once per flight. */
 // GLOBAL: XVT 0x5235DC
 int g_readyMessagePaneLeft = -1;
+/* The ready pane's top edge on g_flightOffscreenBuffer: 3 at 320x240, 6 at
+ * 640x480, 4 at 480x360, set the first time Hud_ResetFlightMessagePanes runs in
+ * a flight, its only writer. */
 // GLOBAL: XVT 0x9D1148
 int g_readyMessagePaneTop = 0;
+/* The ready pane's right edge, exclusive, on g_flightOffscreenBuffer: 277 at
+ * 320x240, 505 at 640x480, 378 at 480x360, set the first time
+ * Hud_ResetFlightMessagePanes runs in a flight, its only writer. */
 // GLOBAL: XVT 0x9A7EC0
 int g_readyMessagePaneRight = 0;
+/* The ready pane's bottom edge, exclusive, on g_flightOffscreenBuffer: 26 at
+ * 320x240, 53 at 640x480, 39 at 480x360, set the first time
+ * Hud_ResetFlightMessagePanes runs in a flight, its only writer. */
 // GLOBAL: XVT 0x9A7B44
 int g_readyMessagePaneBottom = 0;
+/* The system message pane's left edge on g_flightOffscreenBuffer: 42 at
+ * 320x240, 85 at 640x480, 63 at 480x360, set the first time
+ * Hud_ResetFlightMessagePanes runs in a flight, its only writer. */
 // GLOBAL: XVT 0x9A7390
 int g_systemMessagePaneLeft = 0;
+/* The system message pane's top edge on g_flightOffscreenBuffer: 32 at 320x240,
+ * 64 at 640x480, 48 at 480x360, set the first time Hud_ResetFlightMessagePanes
+ * runs in a flight, its only writer. */
 // GLOBAL: XVT 0x9D12F8
 int g_systemMessagePaneTop = 0;
+/* The system message pane's right edge, exclusive, on g_flightOffscreenBuffer:
+ * 277 at 320x240, 555 at 640x480, 415 at 480x360, set the first time
+ * Hud_ResetFlightMessagePanes runs in a flight, its only writer. */
 // GLOBAL: XVT 0x9A8D98
 int g_systemMessagePaneRight = 0;
+/* The system message pane's bottom edge, exclusive, on g_flightOffscreenBuffer:
+ * 37 at 320x240, 75 at 640x480, 56 at 480x360, set the first time
+ * Hud_ResetFlightMessagePanes runs in a flight, its only writer. */
 // GLOBAL: XVT 0x9A8D94
 int g_systemMessagePaneBottom = 0;
+/* The flight group message pane's left edge on g_flightOffscreenBuffer: 75 at
+ * 320x240, 150 at 640x480, 112 at 480x360, set the first time
+ * Hud_ResetFlightMessagePanes runs in a flight, its only writer. */
 // GLOBAL: XVT 0x9EC470
 int g_flightGroupMessagePaneLeft = 0;
+/* The flight group message pane's top edge on g_flightOffscreenBuffer: 44 at
+ * 320x240, 89 at 640x480, 66 at 480x360, set the first time
+ * Hud_ResetFlightMessagePanes runs in a flight, its only writer. */
 // GLOBAL: XVT 0x9ECC38
 int g_flightGroupMessagePaneTop = 0;
+/* The flight group message pane's right edge, exclusive, on
+ * g_flightOffscreenBuffer: 265 at 320x240, 530 at 640x480, 397 at 480x360, set
+ * the first time Hud_ResetFlightMessagePanes runs in a flight, its only
+ * writer. */
 // GLOBAL: XVT 0x9D12F4
 int g_flightGroupMessagePaneRight = 0;
+/* The flight group message pane's bottom edge, exclusive, on
+ * g_flightOffscreenBuffer: 49 at 320x240, 100 at 640x480, 74 at 480x360, set
+ * the first time Hud_ResetFlightMessagePanes runs in a flight, its only
+ * writer. */
 // GLOBAL: XVT 0x9D6934
 int g_flightGroupMessagePaneBottom = 0;
+/* Text measured for the width of a three-digit field. */
 // GLOBAL: XVT 0x5215E0
 const char g_threeDigitWidthText[4] = "000";
+/* Text measured for the width of the clock's minutes and colon. */
 // GLOBAL: XVT 0x52168C
 const char g_missionClockMinutesWidthText[4] = "00:";
+/* Type tag of an LFD palette entry, which Hud_LoadCockpitLfdEntries
+ * converts. */
 // GLOBAL: XVT 0x521564
 const uint8_t g_lfdPaletteResourceTypeTag[4] = {'P', 'L', 'T', 'T'};
 
+/* Draws a box marker in the flight view for the hardware renderer: eight
+ * one-pixel strokes along the corners of the box at x, y (relative to the
+ * viewport), each an eighth of the box's width or height, at least 3 and at
+ * most the box's size, clipped to the viewport. The strokes go into
+ * g_flightVertexBuffer and g_triBuffer as opaque quads in palette color
+ * colorIdx (g_swPalette times 4), depth-tested and written at depth, at least
+ * 1, through g_invDepthProjScale; the batch is flushed first when 32 vertices
+ * or 16 triangles would not fit. A 4 by 4 box at depth 1 is instead filled in
+ * software with colorIdx through g_flightFillRectClippedFn, leaving the text
+ * clip on the viewport. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x40C430
 void Hud_DrawBoxOverlayHW(int x, int y, int width, int height, int colorIdx,
@@ -913,6 +1271,13 @@ void Hud_DrawBoxOverlayHW(int x, int y, int width, int height, int colorIdx,
 	}
 }
 
+/* Switches playerIdx to HUD view hudViewState and returns 1, or returns 0 for
+ * the local player when g_hudCockpitResourceDescriptors has no resource for
+ * that view. Returns 1 at once when it is already the live view. Otherwise sets
+ * viewState.hudStateLive and hudStateMirror; for the local player it also
+ * rebuilds the display with Hud_RebuildDisplayForViewState, shows it with every
+ * surface lock released, and resets the palette. Does not check hudViewState
+ * against the 28 descriptors. */
 // FUNCTION: XVT 0x427720
 int Hud_SetHudViewState(int hudViewState, int playerIdx)
 {
@@ -958,6 +1323,17 @@ int Hud_SetHudViewState(int hudViewState, int playerIdx)
 	return 1;
 }
 
+/* Prepares the HUD of the local player for a full redraw; does nothing for
+ * another player. Sets the MFD page blit rectangles (g_mfdGoalsBlit...,
+ * g_mfdDamageBlit..., g_mfdCraftListBlit..., g_mfdMissionScoreboardBlit...,
+ * g_mfdMapBlit...) for g_flightResolutionMode, the craft list one from its
+ * layout while mapCameraState is not 0. Sets every entry of
+ * g_hudElementStateCache to -2 (invalid, so it redraws), the MFD page elements
+ * 117 and 130 to 134 of each set to -3 (inactive); sets layout 127's
+ * clipHeightOrForegroundColor to 1, g_hudCachedTargetObjectIdx to -1 and the
+ * radar counts, parity and marker flag to 0. Then refreshes the craft system
+ * indicators, draws the HUD (Hud_RenderHud) and its static text.
+ * g_hudFullRedrawInProgress is 1 while it runs. */
 // FUNCTION: XVT 0x438A30
 void Hud_InitHUD(int playerIdx)
 {
@@ -1107,6 +1483,15 @@ void Hud_InitHUD(int playerIdx)
 	g_hudFullRedrawInProgress = 0;
 }
 
+/* Draws the local player's HUD for the current view; another player gets
+ * nothing drawn. While awaiting a new craft or with the mission ending, it only
+ * stops the incoming missile warning. In the map view it draws the map overlay;
+ * in the forward cockpit Hud_UpdateHUD, in the HUD-only view
+ * Hud_UpdateHudOnlyView, in the target camera Hud_UpdateCMDText, in any other
+ * view the MFD pages; views other than the forward and HUD-only ones also call
+ * fsfx_UpdateTargetingTone(0) to stop the targeting tone. Every view but the
+ * first case then updates the critical hull and shield warning. The modern
+ * build records the instruments for its renderer around it. */
 // FUNCTION: XVT 0x438DF0
 void Hud_RenderHud(int playerIdx)
 {
@@ -1157,6 +1542,13 @@ void Hud_RenderHud(int playerIdx)
 #endif
 }
 
+/* Draws the 3D image of the local player's target into the target inset (layout
+ * 2 of the current set) through Hud_Update3DCrt, passing
+ * g_hudTargetInsetMaskRefreshPending. Draws nothing while awaiting a new craft
+ * or with the mission ending, or without a target. In the map view that is all
+ * it needs; otherwise only the forward and HUD-only views draw it, and only
+ * while bit 0 of the craft's activeHudFeatureMask, the targeting computer, is
+ * set. */
 // FUNCTION: XVT 0x438EF0
 void Hud_DrawHudTargetInsetIfEnabled(int playerIndex)
 {
@@ -1235,6 +1627,15 @@ void Hud_DrawHudTargetInsetIfEnabled(int playerIndex)
 	}
 }
 
+/* Draws the labels that stay put on the local player's cockpit or HUD-only
+ * view; nothing in other views or for another player. The power labels (L, S,
+ * E, B) at layouts 122 to 125 show when their layout is set and the craft has
+ * the matching HUD feature and, for S and B, shields or a beam system. With HUD
+ * feature 0x40 it draws the speed and throttle labels (the short forms when the
+ * layout's selector is 4 or less) and the throttle's "%"; with 0x20 the F and R
+ * shield labels. Then the craft's name and status, centered in layout 126, and
+ * in the forward view the mission clock's ":" at layout 46. Leaves
+ * g_flightTextShadowEnabled at 0 in the forward view and font tier 0 or 2. */
 // FUNCTION: XVT 0x439030
 void Hud_DrawStaticCockpitText(uint16_t playerIdx)
 {
@@ -1604,9 +2005,17 @@ void Hud_DrawStaticCockpitText(uint16_t playerIdx)
 	}
 }
 
+/* Does nothing; Hud_InitHUD calls it last. */
 // FUNCTION: XVT 0x439700
 void Hud_InitHUDEndStub(int playerIdx) { (void)playerIdx; }
 
+/* Updates the forward cockpit view's instruments for one frame: radar, reticle,
+ * lock indicator, targeting computer, warheads, shields, beam, mission clock,
+ * speed, throttle, power settings, threats, countermeasures, MFD pages and the
+ * craft name and status line. In an X-wing, Y-wing, A-wing, Z-95 or B-wing it
+ * also draws the shield distribution sprite (layout 51) with HUD feature 0x20
+ * and the S-foil sprite (layout 45), state 1 while the 0x2 bit of sFoilState
+ * is clear, each when its layout is placed. */
 // FUNCTION: XVT 0x439710
 void Hud_UpdateHUD(void)
 {
@@ -1691,6 +2100,9 @@ void Hud_UpdateHUD(void)
 	Hud_DrawCraftNameFpsAndNetworkStatus();
 }
 
+/* Updates the HUD-only view's instruments for one frame: as Hud_UpdateHUD
+ * without the mission clock, countermeasures, shield distribution and S-foils,
+ * and with the threat indicators in mode 1. */
 // FUNCTION: XVT 0x4398B0
 void Hud_UpdateHudOnlyView(void)
 {
@@ -1710,6 +2122,12 @@ void Hud_UpdateHudOnlyView(void)
 	Hud_DrawCraftNameFpsAndNetworkStatus();
 }
 
+/* Updates the map view's text for the local player: the targeting computer and
+ * MFD pages every call, and the "following" and "tracking" lines (layouts 120
+ * and 121 of the current set) when the camera focus object or aim target
+ * changed since g_hudElementStateCache last recorded it. Each line is redrawn
+ * centered on a cleared field with the object's name, or dashes for none, and
+ * the new index is recorded. */
 // FUNCTION: XVT 0x439900
 void Hud_DrawMapViewOverlay(void)
 {
@@ -1857,6 +2275,12 @@ void Hud_DrawMapViewOverlay(void)
 	}
 }
 
+/* Updates the target camera (CMD) view: when g_hudElementStateCache entry 143
+ * reads 0xFFFE, it updates the MFD pages, draws the four headers at layouts 139
+ * to 142 (shield, hull, distance and a component name, each followed by ":") in
+ * each layout's color, and sets that entry to 0. 0xFFFE is the -2 Hud_InitHUD
+ * writes. Then it draws the target's details and status indicators every
+ * call. */
 // FUNCTION: XVT 0x439C60
 void Hud_UpdateCMDText(void)
 {
@@ -1929,6 +2353,15 @@ void Hud_UpdateCMDText(void)
 	Hud_DrawCmdTargetStatusIndicators();
 }
 
+/* Redraws the radar for the local player's craft when it has both radar HUD
+ * features (0x80 and 0x100). Moves the blip counts to the previous counts,
+ * swaps the draw and erase buffers by g_radarBlipBufferParity, and adds a blip
+ * through Hud_AddBlipToRadar for each radar-visible object: craft other than
+ * the player's that are the target or are neither breaking up, exploding nor
+ * hidden by a decoy beam; projectiles; and static region objects. Then it
+ * restores the target marker's background, erases the previous blips, draws the
+ * new ones, draws the target marker when there is a target (setting
+ * g_radarTargetMarkerBackgroundSaved), and flips the parity. */
 // FUNCTION: XVT 0x439D90
 void Hud_DrawRadarBlips(void)
 {
@@ -2030,6 +2463,17 @@ void Hud_DrawRadarBlips(void)
 	g_radarBlipBufferParity ^= 1;
 }
 
+/* Adds one radar blip for objIdx. Takes its offset from the local player's
+ * craft along the craft's forward, side and up vectors, recomputing them first
+ * when marked dirty; ahead of the craft it goes to the fore radar (layout 0 of
+ * the current set), behind to the aft one (layout 1), at the point
+ * MATH2_getradarcoord gives in radarx and radary, with y kept at 0 or more.
+ * g_radarBlipColor is 47 with no mobile object or for a satellite, blinks
+ * between 59 and 55 for a projectile, else follows the IFF: 63, 55, 51, 59, 55,
+ * 211 for 0 to 5, and keeps the last blip's color for any other. Past 61,083
+ * and 122,166 in rough distance it steps the color down by 1 or 2 (up for 211;
+ * 46 and 45 for 47). Each list holds 48; past that the last entry is
+ * overwritten. Sets the target marker position when objIdx is the target. */
 // FUNCTION: XVT 0x43A0C0
 void Hud_AddBlipToRadar(int16_t objIdx)
 {
@@ -2198,6 +2642,28 @@ void Hud_AddBlipToRadar(int16_t objIdx)
 	}
 }
 
+/* Draws the local player's targeting computer for one frame. In the proving
+ * grounds it draws ProvingGrounds_DrawStatusPanel at the target inset's corner
+ * instead. Outside the map view it draws nothing without HUD feature bit 0, and
+ * with the targeting computer subsystem out it draws the cover panel sprite and
+ * stops. When the target differs from g_hudCachedTargetObjectIdx it records it,
+ * sets g_hudTargetInsetMaskRefreshPending, marks the target elements of
+ * g_hudElementStateCache for redraw, draws the labels when there was no target
+ * before, and draws the new name, or the cover panel when there is no target
+ * now.
+ *
+ * With a target it then draws every frame: the name, with the owning player's
+ * name added when it may be shown; shields, the mean of the two shield values
+ * against the model's strength; hull, what is left of hullMax; systems, what is
+ * left of the model's system strength, at most 25 while weapon fire is
+ * inhibited; and the distance, to the selected component for a starship or
+ * platform. For a target that is not a fighter it shows the cargo (unknown
+ * until identified) and the selected component, and stops. For a fighter flown
+ * by the AI it shows the first word of its plan's report and its target; for
+ * one flown by a player in a combat mission, hyperspace, attack or patrol
+ * status and the target or first waypoint. Leaves g_flightTextShadowEnabled at
+ * 0. A status message with no space in its first 40 characters draws whatever
+ * the word buffer held. */
 // FUNCTION: XVT 0x43A5E0
 void Hud_UpdateTargetingComputerDisplay(void)
 {
@@ -3849,6 +4315,18 @@ void Hud_UpdateTargetingComputerDisplay(void)
 	}
 }
 
+/* Despite the name, it does not append: it empties g_flightTextScratchBuffer
+ * and writes objectRef's display name there. For a craft, displayFlags bit 0
+ * adds the model's short name, bit 1 the flight group's name and the craft
+ * number when Hud_MissionFG_GetCraftNumberIfShown gives one (at most 999), and
+ * bit 2 a ":" after the first part; bits 0 and 1 together put ": " there.
+ * Another mobile object gets only its warhead, satellite, mine, probe or buoy
+ * name, under bit 0. Each part starts with a 0xFE color escape chosen by IFF:
+ * Q, I, E, U or M before the first part and R, J, F, V or N before the group,
+ * for IFF 0, 1 or 4, 2, 5 and any other; an object with no mobile object takes
+ * its group's IFF and shows IFF 5 with V. A reference of 0x8000 or more is
+ * waypoint objectRef - 0x8000, written after a C escape when bit 0 is set, else
+ * left empty. Object type 0 gives the dashes of g_strMeshComponentNames[32]. */
 // FUNCTION: XVT 0x43C290
 void Hud_AppendObjectDisplayName(uint16_t objectRef, int16_t displayFlags)
 {
@@ -4059,6 +4537,9 @@ void Hud_AppendObjectDisplayName(uint16_t objectRef, int16_t displayFlags)
 	FlightText_SetScratch(g_strMeshComponentNames[32]);
 }
 
+/* Returns craft's craftIndexInGroup, or 0 when flight group flightGroupIdx
+ * turns its craft numbering off, or has one craft, no further arrivals and no
+ * global unit. */
 // FUNCTION: XVT 0x43C740
 int Hud_MissionFG_GetCraftNumberIfShown(int flightGroupIdx,
 					const CraftData *craft)
@@ -4074,6 +4555,10 @@ int Hud_MissionFG_GetCraftNumberIfShown(int flightGroupIdx,
 	return craft->craftIndexInGroup;
 }
 
+/* Draws a distance on the targeting computer with two decimals: polarDistance *
+ * 161 / 65,536 in hundredths, at most 99.99; the whole part in element 83 and
+ * the hundredths, two digits, in element 84 of the current set. Does not check
+ * polarDistance * 161 for overflow. */
 // FUNCTION: XVT 0x43C890
 void Hud_DrawTargetDistance(int polarDistance)
 {
@@ -4093,6 +4578,11 @@ void Hud_DrawTargetDistance(int polarDistance)
 				     2);
 }
 
+/* Draws the lock indicator (element 52 of the current set) and sets the
+ * targeting tone to the same state. With selectedWeaponMode 0 the state is 4
+ * while g_targetLockActive is set, else 0; with warheads it is missileLockState
+ * plus 1 with a target, else 1, and g_targetLockActive becomes 1 only while
+ * missileLockState is 2. */
 // FUNCTION: XVT 0x43C900
 void Hud_UpdateTargetingLockIndicator(void)
 {
@@ -4120,6 +4610,20 @@ void Hud_UpdateTargetingLockIndicator(void)
 	FlightSurface_Lock();
 }
 
+/* Despite the name, nothing here is 3D: it draws each laser cannon's charge,
+ * fire and lock sprites for the local player's craft. In the forward view with
+ * HUD features 2 and 4 it draws the charge bar of each cannon placed in the
+ * current set (element 3 plus the cannon): ten sprites 3, 4 or 6 pixels apart
+ * by resolution, right to left when the layout's colorIndexOrWidgetParam is
+ * set; up to half charge the charged ones are in state 1 over 0, above it in
+ * state 2 over 1. Outside the cockpit set it draws a number from the charge
+ * instead. From the bank's link mode and next cannon it works out whether the
+ * cannon fires next and draws that at element 53 plus the cannon; for an
+ * X-wing, Y-wing, A-wing, Z-95 or B-wing also at element 11 plus the cannon,
+ * and the lock state at element 61 plus the cannon. The lock state is 2 when
+ * the targeting computer works and collide_WouldShotHitTarget says a cannon due
+ * to fire would hit the target. Sets g_targetLockActive to 0 first and to 1 on
+ * any such hit; returns at once for a craft with no cannons. */
 // FUNCTION: XVT 0x43C9A0
 void Hud_DrawReticle3D(void)
 {
@@ -4440,6 +4944,10 @@ void Hud_DrawReticle3D(void)
 	}
 }
 
+/* Draws the local player's warhead counts when HUD feature 8 is on and the
+ * model has warhead launchers: the first and last slots of launcher group 0 in
+ * display slots 0 and 1, and for the missile boat those of group 1 in slots 2
+ * and 3. */
 // FUNCTION: XVT 0x43D010
 void Hud_UpdateWarheadCnt(void)
 {
@@ -4509,6 +5017,20 @@ void Hud_UpdateWarheadCnt(void)
 	}
 }
 
+/* Draws the warhead count of weapon slot warheadSlotIdx (0 with no launchers)
+ * for display slot displaySlot, and its launcher's selection state: 0 with no
+ * warheads or the launcher out, 1 with lasers selected or another bank; with
+ * bank warheadBank selected, 2 for both slots when the low bits of its
+ * warheadLauncherFlags are 3, else 2 for the slot whose side matches bit 7 and
+ * 1 for the other. In the cockpit set the count is drawn at layout 27 plus the
+ * slot when it changed, two digits for the missile boat else one, and the state
+ * as a sprite at element 19 plus the slot (an X-wing, Y-wing, A-wing, Z-95 or
+ * B-wing shows state 2 as 4). In other sets it draws the count every call while
+ * layout 27 plus the slot has a selector, in color code 0x52 for state 2 else
+ * 0x4A, at (slot * (g_flightFontDigitWidth + 1) + 2, 2) on
+ * g_flightOffscreenBuffer, from where Hud_BlitSoftwareMfdPages copies it, or
+ * clears that cell for 0. Records the count in g_hudElementStateCache and
+ * leaves g_flightTextShadowEnabled at 0 when it draws. */
 // FUNCTION: XVT 0x43D2B0
 void Hud_OutputWarheadCount(uint16_t warheadSlotIdx, uint16_t displaySlot,
 			    uint16_t warheadBank)
@@ -4731,6 +5253,18 @@ void Hud_OutputWarheadCount(uint16_t warheadSlotIdx, uint16_t displaySlot,
 	Hud_DrawCachedSpriteElement(displaySlot + 19, selectionState);
 }
 
+/* Draws the local player's front and rear shields (shieldEnergy 0 and 1, 0
+ * while the shield system is out) against half of Craft_GetObjectMaxShield, and
+ * the hull, when HUD feature 0x20 is on. Where the layout's
+ * colorIndexOrWidgetParam is not 0xFFFF, each side is two faded sprites
+ * (elements 35 and 36 front, 37 and 38 rear) colored from g_hudShieldColors by
+ * a level 0 to 9 of the charge up to full and of the charge above it; while
+ * shieldHitFlashTimer runs, the side in g_lastShieldDamageSide shows level 10
+ * in place of its overcharge level, or of its main level when it has none.
+ * Otherwise each side is a percent, above 100 when overcharged, drawn when it
+ * changes in the matching text color. The hull sprite, element 39, is 3 while
+ * hullHitFlashTimer runs, else 2, 1 or 0 as hullDamage passes each third of
+ * hullMax. */
 // FUNCTION: XVT 0x43D800
 void Hud_DrawShieldStrength2D(void)
 {
@@ -5117,6 +5651,14 @@ static void Hud_DrawShieldStrength2D_legacy(void) {
 }
 #endif
 
+/* Draws the local player's beam when HUD feature 0x10 is on: the beam-active
+ * sprite (element 116 of the current set), then, when beamCharge (0 while the
+ * beam system is out) differs from g_hudElementStateCache[51], the nine
+ * segments of layout 51 of the current set, placed by resolution. Each segment
+ * holds 1,000 of charge: full ones in the fourth color of
+ * g_hudBeamSegmentColorByChargeStep, the partly charged one by thirds of 1,000,
+ * empty ones in the first color; a segment in the first color is drawn without
+ * fading. */
 // FUNCTION: XVT 0x43DE10
 void Hud_DrawBeamStrength2D(void)
 {
@@ -5213,6 +5755,8 @@ void Hud_DrawBeamStrength2D(void)
 	} while (segmentIndex < 9);
 }
 
+/* Draws the local player's speed in element 40 of the current set when HUD
+ * feature 0x40 is on: speed * 0x71C7 / 65,536, rounded. */
 // FUNCTION: XVT 0x43E050
 void Hud_UpdateSpeedPercent(void)
 {
@@ -5237,6 +5781,9 @@ void Hud_UpdateSpeedPercent(void)
 	}
 }
 
+/* Draws the local player's throttle in element 41 of the current set when HUD
+ * feature 0x40 is on: throttleSpeed / 655, doubled while engineOverdriveOff is
+ * 0. */
 // FUNCTION: XVT 0x43E110
 void Hud_UpdateThrottlePercent(void)
 {
@@ -5267,6 +5814,11 @@ void Hud_UpdateThrottlePercent(void)
 	}
 }
 
+/* Draws the mission clock at layout 46 when its whole seconds differ from
+ * g_hudElementStateCache[46]: the countdown clock in the proving grounds or
+ * with a time limit, minutes zero-padded, else the elapsed clock, minutes
+ * space-padded; seconds always two digits. Leaves g_flightTextShadowEnabled at
+ * 0 when it draws. */
 // FUNCTION: XVT 0x43E1F0
 void Hud_UpdateMissionClockDisplay(void)
 {
@@ -5352,6 +5904,13 @@ void Hud_UpdateMissionClockDisplay(void)
 	}
 }
 
+/* Draws the local player's power bars. An X-wing, Y-wing, A-wing, Z-95 or
+ * B-wing shows engine, shield and laser levels (engine 8 minus the other two)
+ * as 4-segment bars, doubled outside the cockpit set, the engine bar with twice
+ * as many segments; other craft show laser, shield and beam levels times 3 and
+ * the engine level (8 minus the laser level, minus each of the shield and beam
+ * levels less 2 when fitted) as 12-segment bars. Each bar needs its HUD
+ * feature: laser 0x200, engine 0x400, shields 0x800, beam 0x1000. */
 // FUNCTION: XVT 0x43E390
 void Hud_DrawPowerSettings2D(void)
 {
@@ -5491,6 +6050,10 @@ void Hud_DrawPowerSettings2D(void)
 	}
 }
 
+/* Draws a bar of segmentCount sprites from elementIdx's layout upward, yStep
+ * pixels apart, the first filledCount from sprite selector + 1 and the rest
+ * from sprite selector, when filledCount differs from the element's entry in
+ * g_hudElementStateCache, which it then records. */
 // FUNCTION: XVT 0x43E6F0
 void Hud_DrawCachedSegmentedBar(uint16_t filledCount, uint16_t elementIdx,
 				uint16_t segmentCount, int16_t yStep)
@@ -5524,6 +6087,15 @@ void Hud_DrawCachedSegmentedBar(uint16_t filledCount, uint16_t elementIdx,
 	} while (segmentIndex < segmentCount);
 }
 
+/* Draws the threat indicators of the current set from the active craft around
+ * the local player: attack (element 90) when an AI craft attacks it with linked
+ * laser cannons (projectile types 0x89 or 0x8B), or a player's craft hit it
+ * within the last 5 mission seconds or aims lasers at it from rough distance
+ * under 0x10000; turret lasers (91) when a craft's working turret targets it;
+ * beam (92), the beam type of a charged beam on it. Then the incoming warhead
+ * warning (93): 2 when any lock on it exceeds 944 warheadLockTicks, blinking
+ * while any lock is building, else 0, and the missile warning sound to match.
+ * hudMode is ignored. */
 // FUNCTION: XVT 0x43E790
 void Hud_UpdateThreatIndicators(int hudMode)
 {
@@ -5716,6 +6288,15 @@ void Hud_UpdateThreatIndicators(int hudMode)
 	FlightSurface_Lock();
 }
 
+/* Runs the critical warning of an X-wing, Y-wing, A-wing, Z-95 or B-wing whose
+ * layout 50 is placed. With shields under 100 in total and hullDamage in the
+ * last third of hullMax, the warning blinks; on each lit call it plays
+ * FLIGHT_SOUND_CRITICAL_WARNING and steps layout 127's
+ * clipHeightOrForegroundColor, used here as a counter that wraps back to 1 at
+ * 0x2F0. In the forward view it draws sprite 50 and, unless the counter is 0,
+ * EJECT centered in layout 127 in the layout's colors; once the counter passes
+ * 0x200 the box is cleared first and the text moves on, every 16 steps, through
+ * the 14 strings that follow EJECT in g_strCockpitOverlayText. */
 // FUNCTION: XVT 0x43EC40
 void Hud_UpdateCriticalHullShieldWarning(void)
 {
@@ -5809,6 +6390,9 @@ void Hud_UpdateCriticalHullShieldWarning(void)
 					warningTextIdx]);
 }
 
+/* In the cockpit set, draws the local player's countermeasure count, three
+ * digits at layout 48 when it changed, and the chaff sprite (element 47), 1
+ * while chaffActiveSeconds is not 0. */
 // FUNCTION: XVT 0x43EE80
 void Hud_UpdateCountermeasureStatus(void)
 {
@@ -5862,6 +6446,10 @@ void Hud_UpdateCountermeasureStatus(void)
 	}
 }
 
+/* Outside the map view, in the forward and HUD-only views of a craft other than
+ * an X-wing, Y-wing, A-wing, Z-95, B-wing or TIE fighter, draws elements 109
+ * and 110 of the current set in state 0 when the craft has no beam system and
+ * element 108 when it has no shields. */
 // FUNCTION: XVT 0x43F010
 void Hud_ClearUnavailableCraftSystemIndicators(void)
 {
@@ -5921,6 +6509,14 @@ void Hud_ClearUnavailableCraftSystemIndicators(void)
 	}
 }
 
+/* Draws the HUD feature status sprites for the 13 features the local player's
+ * craft has installed, at element 69 plus the feature's bit: state 13 for a
+ * feature that is out, else 0. In the forward view the elements are those of
+ * the cockpit set, and an X-wing, Y-wing, A-wing, Z-95 or B-wing draws only the
+ * features that are out, in state 0. In the HUD-only view features 1 to 3 are
+ * skipped, and features 4 and 12 for those craft. Sets
+ * g_hudCachedTargetObjectIdx to -1 in both views, so the targeting computer
+ * redraws; other views draw nothing. */
 // FUNCTION: XVT 0x43F140
 void Hud_UpdateCraftSystemStatusIndicators(void)
 {
@@ -6028,6 +6624,26 @@ void Hud_UpdateCraftSystemStatusIndicators(void)
 	g_hudCachedTargetObjectIdx = -1;
 }
 
+/* Draws the target camera (CMD) view's text about the local player's target:
+ * name, range, cargo, and for a craft its orders, the order's target or
+ * destination, the range to it and the time to reach it. On a target change it
+ * records the target in g_hudCachedTargetObjectIdx, marks the CMD entries of
+ * g_hudElementStateCache for redraw, draws the name, and clears the panel
+ * (layout 143) for a target outside the craft slots. With a target it draws the
+ * range label when there was none before, the range as whole.hundredths (polar
+ * distance * 161 / 65,536, at most 99.99), and the cargo, unknown until the
+ * team identifies the craft.
+ *
+ * For a craft target that is not an unidentified hostile in a melee with
+ * several players: its plan's report as its orders (with disabled and stopped
+ * craft shown as for the targeting computer), the order target (a player's own
+ * target for a player's craft, none while disabled or waiting), the range to
+ * it, and the time: the order range over 18 times the speed, or for a stopped
+ * craft its maneuverTimer in simulated seconds under board2pln and waitpln,
+ * else 00:00 at zero range or unknown. Each part is redrawn when it changes;
+ * the order range only when its hundredths change. Stores label widths in the
+ * clipWidth of layouts 104 to 107, leaves trig2_polardistance multiplied by
+ * 161, and leaves g_flightTextShadowEnabled at 0. */
 // FUNCTION: XVT 0x43F390
 void Hud_DrawCmdTargetDetails(void)
 {
@@ -6857,6 +7473,17 @@ void Hud_DrawCmdTargetDetails(void)
 	}
 }
 
+/* Draws the target camera view's status of the local player's target: shield
+ * and hull percents (elements 102 and 103) and the armament sprites 98 to 101
+ * for lasers, ion cannons, warheads and beam. Each shows 1 when the target
+ * carries the weapon: lasers and ion cannons blink between 1 and 2 while
+ * linked, warheads while a lock builds (an AI craft's count only during a
+ * rocket attack), and the beam shows 2 while active and charged. While a state
+ * is not 0 its label from g_strThreatDisplayText is drawn at layouts 135 to
+ * 138, plain for 1 and inverted for 2. A target outside the craft slots shows
+ * zeros. The hull shows 100 when under 1 percent is left, and the label check
+ * reads g_hudElementStateCache 135 to 138, which nothing here writes, so the
+ * labels redraw on every call. */
 // FUNCTION: XVT 0x440140
 void Hud_DrawCmdTargetStatusIndicators(void)
 {
@@ -7216,6 +7843,9 @@ void Hud_DrawCmdTargetStatusIndicators(void)
 	}
 }
 
+/* Blits sprite selector + state of elementIdx's layout at its position, with
+ * its colorIndexOrWidgetParam as the transparent color, when state differs from
+ * the element's entry in g_hudElementStateCache, which it then records. */
 // FUNCTION: XVT 0x440760
 void Hud_DrawCachedSpriteElement(unsigned int elementIdx, unsigned int state)
 {
@@ -7233,6 +7863,10 @@ void Hud_DrawCachedSpriteElement(unsigned int elementIdx, unsigned int state)
 	}
 }
 
+/* Blits the first sprite of elementIdx's layout with palette shift state and
+ * fade amount fade, when state differs from the element's entry in
+ * g_hudElementStateCache, which it then records; a change of fade alone draws
+ * nothing. */
 // FUNCTION: XVT 0x4407D0
 void Hud_DrawCachedFadedSpriteElement(uint16_t elementIdx, int16_t state,
 				      int16_t fade)
@@ -7249,6 +7883,13 @@ void Hud_DrawCachedFadedSpriteElement(uint16_t elementIdx, int16_t state,
 	}
 }
 
+/* Draws value in elementIdx's layout, in as many digits as its selector and at
+ * least minDigits, over a cleared field, when value differs from the element's
+ * entry in g_hudElementStateCache, which it then records. The target's system,
+ * shield and hull values (elements 82, 85, 86, 102 and 103 of any set) are
+ * drawn in color code 74 at 20 or less and 78 at 50 or less; the speed and
+ * throttle (40 and 41) in 82 while engineOverdriveOff is 0; anything else in
+ * the layout's colorIndexOrWidgetParam. */
 // FUNCTION: XVT 0x440840
 void Hud_DrawCachedNumericElement(uint16_t elementIdx, int16_t value,
 				  uint16_t minDigits)
@@ -7302,6 +7943,10 @@ void Hud_DrawCachedNumericElement(uint16_t elementIdx, int16_t value,
 	FlightText_DrawDecimalNumber(value, selector, minDigits);
 }
 
+/* Loads the local player's cockpit: sets g_hudCockpitBasePath to the
+ * resolution's cockpit folder and the model's cockpitResourceName, sets
+ * g_hudPanelSetId to 0, reads its .INT file and the craft list's, and loads the
+ * cockpit image resources. Does not check the name's length. */
 // FUNCTION: XVT 0x4409D0
 void Hud_LoadCockpitResources(void)
 {
@@ -7327,6 +7972,13 @@ void Hud_LoadCockpitResources(void)
 	Hud_LoadCockpitSpriteResources(modelIndex);
 }
 
+/* Reads basePath plus ".INT", named in g_hudCockpitResourcePath, into the HUD
+ * tables: the 28 g_hudCockpitResourceDescriptors, the first 288
+ * g_hudElementLayouts (the cockpit and HUD-only sets),
+ * g_hudPanelSpriteFileInfo, and the cockpit and HUD-only inset span masks, 480
+ * bytes each at 640x480 and 480x360 and 200 at 320x240. Reads go through
+ * FeDiskIo_ReadWithRetryPrompt. The modern build records the cockpit for its
+ * renderer. Does not check the path's length. */
 // FUNCTION: XVT 0x440B10
 void Hud_LoadCockpitInterfaceFile(const char *basePath)
 {
@@ -7366,6 +8018,11 @@ void Hud_LoadCockpitInterfaceFile(const char *basePath)
 #endif
 }
 
+/* Reads the craft list view's .INT file, the one named by
+ * g_hudCockpitResourceDescriptors[HUD_VIEW_CRAFT_LIST] in the resolution's
+ * cockpit folder: its 144 layouts into the third set of g_hudElementLayouts and
+ * g_hudCraftListInsetSpanMask, 480 or 200 bytes by resolution. Returns what
+ * FeDiskIo_CloseGlobalStream returns. */
 // FUNCTION: XVT 0x440C50
 int16_t Hud_LoadAuxiliaryCockpitInterfaceFile(void)
 {
@@ -7396,6 +8053,9 @@ int16_t Hud_LoadAuxiliaryCockpitInterfaceFile(void)
 	return FeDiskIo_CloseGlobalStream(0);
 }
 
+/* Switches playerIdx to hudViewState even when it is already showing, by
+ * setting hudStateLive to 0xFF first, then for the local player resets the
+ * message panes without expiring them. */
 // FUNCTION: XVT 0x440D60
 void Hud_ForcePlayerViewState(int hudViewState, int playerIdx)
 {
@@ -7406,6 +8066,30 @@ void Hud_ForcePlayerViewState(int hudViewState, int playerIdx)
 	}
 }
 
+/* Redraws the local player's cockpit for view hudViewState; does nothing for
+ * another player. The view's resourceRef picks the cockpit image: below 0x80
+ * its own, from 0x80 another, from 0xC0 another drawn mirrored; the full-screen
+ * view always takes its own. Reloads the panel sprites (.PNL) when
+ * g_hudPanelSetId differs from g_hudLoadedPanelSetId, adding the craft list's
+ * first sprite to layout 396 once. For a view with a cockpit it loads the
+ * image's LFD entries into g_flightScratchScreenBuffer if they are not loaded,
+ * sets palette entries 0 to 63 from it, clears the surface, blits the image,
+ * and sets the flight viewport, span mask and g_projOffsetY from the view's
+ * descriptor; the full-screen view gets the whole surface and offset 0.
+ *
+ * Then it saves the MFD pages when leaving the forward or HUD-only view, closes
+ * them when leaving the craft list, and sets g_hudInstrumentSetBaseIndex and
+ * the pages for the new view: the HUD-only set, with the saved pages unless
+ * coming from the forward view; the craft list set, with the map help and
+ * friendly craft pages; the cockpit set for every other view. The full-screen
+ * view closes the pages while the external camera is on, the target camera view
+ * always; the remaining cockpit views, unless coming from the HUD-only view,
+ * get the saved pages back. The craft list, the target camera and those cockpit
+ * views also reset the message panes with expiry. Then Hud_InitHUD, a palette
+ * reset, and for resource 17 the view's displayName at layout 49. Sets
+ * g_flightInitialTextureCacheFlushPending to 1 and
+ * g_flightDisplayRebuildPending to 0. The modern build resets and refreshes its
+ * captured cockpit. */
 // FUNCTION: XVT 0x440DA0
 void Hud_RebuildDisplayForViewState(int hudViewState, int playerIdx)
 {
@@ -7706,6 +8390,13 @@ void Hud_RebuildDisplayForViewState(int hudViewState, int playerIdx)
 #endif
 }
 
+/* Reads entryCount entries of lfdName's .LFD file, in the resolution's cockpit
+ * folder, to g_hudCockpitResourceWriteCursor and advances it, storing where
+ * each entry's data starts in outEntries. Each entry is a 16-byte header (type
+ * tag, name, data size) and its data; a PLTT (palette) entry has every byte
+ * divided by 4 and its pointer moved 2 bytes in. Does not check the space at
+ * the cursor or the sizes in the file. The modern build registers the entries
+ * for its renderer. */
 // FUNCTION: XVT 0x441550
 void Hud_LoadCockpitLfdEntries(const char *lfdName, uint8_t **outEntries,
 			       unsigned int entryCount)
@@ -7760,6 +8451,11 @@ void Hud_LoadCockpitLfdEntries(const char *lfdName, uint8_t **outEntries,
 #endif
 }
 
+/* Loads the cockpit images: for each of the 28 views whose descriptor has
+ * resourceRef 1 it allocates a memory handle the size of the view's .LFD file
+ * (a failure is fatal) and reads the file's three entries into it; a second
+ * pass reads every one again after all are allocated. Other views get handle 0.
+ * Sets g_hudCockpitResourcesLoaded to 1. modelIndex is ignored. */
 // FUNCTION: XVT 0x4416F0
 void Hud_LoadCockpitSpriteResources(unsigned int modelIndex)
 {
@@ -7867,6 +8563,11 @@ void Hud_LoadCockpitSpriteResources(unsigned int modelIndex)
 	g_hudCockpitResourcesLoaded = 1;
 }
 
+/* Calls g_flightRenderTransitionHook, sets g_hudPanelSetId to 0 and reads the
+ * .INT file again through g_hudCockpitResourcePath, passing that path as the
+ * base name: Hud_LoadCockpitInterfaceFile copies it onto itself and adds
+ * ".INT" after the extension of the last file opened, so the name gets a
+ * second extension. Nothing calls this. */
 // FUNCTION: XVT 0x4419B0
 void Hud_ReloadCockpitInterfaceFile(void)
 {
@@ -7875,6 +8576,12 @@ void Hud_ReloadCockpitInterfaceFile(void)
 	Hud_LoadCockpitInterfaceFile(g_hudCockpitResourcePath);
 }
 
+/* Draws the MFD pages that need it: first each page closing
+ * (MFD_PAGE_STATE_CLOSING) once more, which then becomes closed; then every
+ * page whose state is not closed. Each draw records the page's state in its
+ * element of g_hudElementStateCache (scoreboard 134, goals 132, message log
+ * 117, damage 133 when Damage_DisplayMfdPage returns nonzero, friendly craft
+ * 130, hostile craft and map help 131). */
 // FUNCTION: XVT 0x4419D0
 void Hud_UpdateMfdPages(void)
 {
@@ -8028,6 +8735,14 @@ void Hud_UpdateMfdPages(void)
 	}
 }
 
+/* Copies each open MFD page from g_flightOffscreenBuffer onto the flight
+ * surface, skipping pixels of g_flightTransparentColorIndex, with the
+ * g_mfd...Blit rectangles: the scoreboard, goals and hostile craft pages to the
+ * map element while the map camera is on, else to their own; damage only
+ * outside the map, map help only in it, friendly craft always. In the HUD-only
+ * set with HUD feature 8 it also copies each warhead count drawn by
+ * Hud_OutputWarheadCount to layout 27 plus the launcher. The modern build
+ * latches the pages for its renderer. */
 // FUNCTION: XVT 0x441C30
 void Hud_BlitSoftwareMfdPages(void)
 {
@@ -8294,6 +9009,18 @@ void Hud_BlitSoftwareMfdPages(void)
 #endif
 }
 
+/* Renders the local player's target into a small viewport at screenX, screenY:
+ * copies the current set's inset span mask into the viewport when
+ * refreshSpanMask is set, points the camera at the target (Hud_PointCamera),
+ * draws the target model (craft lit and with damage billboards, projectiles, or
+ * mines to debris), the visible projectiles fired by the target, and outside
+ * the map those fired by the player, and visible explosions, on background
+ * color 48. With targetBoxEnabled, a 4-pixel box marks the selected component
+ * of a craft target that is not a fighter. Restores the camera position,
+ * g_projOffsetY, g_renderObjectRef and the viewport, and sets
+ * g_flightBackgroundColorIndex to the transparent color. Writes the scene
+ * globals it uses, among them g_camRelWorldX, g_viewSpaceX, g_rotatedX and
+ * g_curCraft. */
 // FUNCTION: XVT 0x4422C0
 void Hud_Update3DCrt(uint16_t screenX, uint16_t screenY, uint16_t width,
 		     uint16_t height, int16_t refreshSpanMask)
@@ -8646,6 +9373,7 @@ void Hud_Update3DCrt(uint16_t screenX, uint16_t screenY, uint16_t width,
 #endif
 }
 
+/* Draws box corners at depth 1 through Hud_DrawDepthTestedBoxCorners. */
 // FUNCTION: XVT 0x442BC0
 void Hud_DrawComponentMarkerBox(int x, int y, int width, int height,
 				uint8_t colorIdx)
@@ -8656,6 +9384,15 @@ void Hud_DrawComponentMarkerBox(int x, int y, int width, int height,
 				      COMPONENT_MARKER_DEPTH);
 }
 
+/* Places playerIdx's camera to look at targetIdx, an object or mission point:
+ * turns it toward the target from the map camera or the player's craft
+ * (FVIEW_BuildCameraOrient), then sets viewState.cameraWorldX, Y and Z back
+ * from the target along the view by a distance in proportion to its size, the
+ * mean of its model's two largest bounds or its type's maxBoundsExtent, divided
+ * by the inset layout's colorIndexOrWidgetParam when useHudLayoutScale is set,
+ * else by 60, 100 or 144 for the player's resolution, and a quarter more at
+ * 640x480. Writes g_worldLocX, Y and Z, the camera matrix and the trig2_ctop
+ * results. */
 // FUNCTION: XVT 0x442BF0
 void Hud_PointCamera(uint16_t targetIdx, int16_t useHudLayoutScale,
 		     int playerIdx)
@@ -8901,6 +9638,15 @@ void Hud_PointCamera(uint16_t targetIdx, int16_t useHudLayoutScale,
 				  .viewState.cameraWorldZ);
 }
 
+/* Resets the three message panes. The first time in a flight (while
+ * g_readyMessagePaneLeft is -1) it sets the ready, system and flight group pane
+ * rectangles for the resolution and clears them on g_flightOffscreenBuffer;
+ * later calls with forceExpireActiveMessages set raise
+ * g_flightMessagePanesForceExpire instead. Then it redraws the craft name and
+ * status line, empties the three panes and the ready queue, sets
+ * g_radioMessageBackupEnabled to 0, g_targetDescriptionMessageId to 331 (the
+ * blank message) and g_unusedReadyMessagePaneInitialState to slot 0's id. The
+ * modern build resets its message capture. */
 // FUNCTION: XVT 0x450260
 void Hud_ResetFlightMessagePanes(int forceExpireActiveMessages)
 {
@@ -8993,6 +9739,11 @@ void Hud_ResetFlightMessagePanes(int forceExpireActiveMessages)
 #endif
 }
 
+/* Makes room in slot 0 of g_readyMessagePaneQueue for a new message: when the
+ * message there has been shown fewer than 2 times and is under a simulated
+ * second old, moves every entry up one, so it waits behind the new one, and
+ * raises g_readyMessageQueueCount, at most 9. Otherwise does nothing and the
+ * message in slot 0 is overwritten. */
 // FUNCTION: XVT 0x450BC0
 void Hud_ShiftReadyMessageQueueForReplacement(void)
 {
@@ -9021,6 +9772,9 @@ void Hud_ShiftReadyMessageQueueForReplacement(void)
 	}
 }
 
+/* Moves the waiting messages of g_readyMessagePaneQueue down one, so the next
+ * one is in slot 0, and lowers g_readyMessageQueueCount. Does not check for an
+ * empty queue, where the count wraps to 255. */
 // FUNCTION: XVT 0x450C30
 void Hud_AdvanceReadyMessageQueue(void)
 {
@@ -9038,6 +9792,23 @@ void Hud_AdvanceReadyMessageQueue(void)
 	g_readyMessageQueueCount = oldPendingCount - 1;
 }
 
+/* Draws the message of pane paneType onto g_flightOffscreenBuffer: types 3, 4
+ * and 7 in the system pane, 8 in the flight group pane, others in the ready
+ * pane from slot 0. Returns at once when slot 0 is empty and the type is not a
+ * system or flight group one. Plays slot 0's voice when it has one, has not
+ * been shown and the voice option is on, whichever pane is drawn. The system
+ * and flight group panes are cleared, their text centered in font tier 1 and
+ * their state set to 1. For the ready pane, message 374 plays
+ * FLIGHT_SOUND_MESSAGE_READY, and while the message log page is open the
+ * message is not drawn, only finished and counted as shown; else
+ * Hud_SetupReadyMessagePaneText.
+ *
+ * A first byte below 9 picks the color from g_messageTextPrefixColorCodes; type
+ * 1 followed by a digit 0 to 3 takes entries 8 to 11 instead, and type 2 the
+ * color of the sender's IFF; any other start is color 0x42. Up to 70 characters
+ * are drawn; "[" and "]" step g_flightTextColorIndex to highlight and back, and
+ * a 0xFE escape and its byte are skipped. Then Hud_FinishFlightMessagePane and
+ * the pane's showCount rises. */
 // FUNCTION: XVT 0x450C90
 void Hud_ShowFlightMessagePane(int16_t paneType)
 {
@@ -9190,6 +9961,9 @@ void Hud_ShowFlightMessagePane(int16_t paneType)
 	FlightSw_SetRenderTarget(NULL, 320, 200, 0);
 }
 
+/* Prepares to draw the ready pane: font tier 1, a cleared pane with the
+ * transparent background, shadow on in color 0x40, color 0x43, and the cursor
+ * where slot 0's text is centered. Sets g_flightTextShadowEnabled to 1. */
 // FUNCTION: XVT 0x451060
 void Hud_SetupReadyMessagePaneText(void)
 {
@@ -9214,6 +9988,13 @@ void Hud_SetupReadyMessagePaneText(void)
 	FlightText_SetColor(0x43);
 }
 
+/* Ends a drawn message: while the message log page is closed it adds "." unless
+ * the text ended in "?", "!", ":", " " or ".", and clears the rest of the line.
+ * Then sets how long the pane stays, in ticks of g_playerFlightTransientTimers:
+ * the system pane 472 for types 3 and 7 and 1,888 for type 4; the flight group
+ * pane 1,888; the ready pane 354 while messages wait, else 1,416 for types 1
+ * and 2 and 1,652 for others. Redraws the craft name and status line and leaves
+ * font tier 2. */
 // FUNCTION: XVT 0x451100
 void Hud_FinishFlightMessagePane(int16_t paneType, char lastChar)
 {
@@ -9252,6 +10033,16 @@ void Hud_FinishFlightMessagePane(int16_t paneType, char lastChar)
 	FlightText_SetFontTier(2);
 }
 
+/* Expires the message panes. While the message log page is closed,
+ * a ready message whose timer ran out (or all, with
+ * g_flightMessagePanesForceExpire) gives way to the next waiting one or the
+ * pane is cleared and slot 0 emptied; the system and flight group panes are
+ * cleared and emptied when their timers run out or on a forced expiry. When the
+ * target description timer is 0 and the player has a target whose description
+ * changed and is actionable, it emits the description in the forward, HUD-only
+ * and target camera views and restarts the timer at 1,180 ticks. Sets each
+ * active player's pendingActionId to 0 once its pendingActionTimer is 0, and
+ * clears g_flightMessagePanesForceExpire. */
 // FUNCTION: XVT 0x451210
 void Hud_UpdateFlightMessagePanes(void)
 {
@@ -9375,6 +10166,8 @@ void Hud_UpdateFlightMessagePanes(void)
 }
 
 /* Also zeroes the system pane's timer, so the next Hud_UpdateFlightMessagePanes clears any system message. */
+/* Empties g_readyMessagePaneQueue and its count without clearing the drawn
+ * pane. */
 // FUNCTION: XVT 0x451560
 void Hud_ClearReadyMessageQueue(void)
 {
@@ -9383,6 +10176,8 @@ void Hud_ClearReadyMessageQueue(void)
 	g_playerFlightTransientTimers[g_localPlayer].systemMessagePaneTimer = 0;
 }
 
+/* Raises the ageSeconds of each pane that holds a message. Flight_UpdateTimers
+ * calls it in the part that runs once per simulated second. */
 // FUNCTION: XVT 0x451590
 void Hud_AdvanceFlightMessagePaneTimers(void)
 {
@@ -9397,6 +10192,16 @@ void Hud_AdvanceFlightMessagePaneTimers(void)
 	}
 }
 
+/* In the forward and HUD-only views, redraws the status line in layout 126 of
+ * the current set: the local player's craft name, or with
+ * g_flightConfTickCounterEnabled and all three samples nonzero, two numbers:
+ * SIMULATION_TICKS_PER_SECOND divided by g_flightTickOverlayLastLoopTicks and
+ * by the mean ticks per sample of the window. With more than one player it also
+ * draws the packet drop and lag marks (g_strCmdThreatDisplayText 16 and 17)
+ * beside the ready pane on g_flightOffscreenBuffer, colored by
+ * g_packetDropIndicator and g_lagIndicator (0 draws them in the transparent
+ * color). Leaves g_flightTextShadowEnabled at 0 and the shadow color 64 in that
+ * case. */
 // FUNCTION: XVT 0x4515D0
 void Hud_DrawCraftNameFpsAndNetworkStatus(void)
 {
@@ -9530,12 +10335,21 @@ void Hud_DrawCraftNameFpsAndNetworkStatus(void)
 	}
 }
 
+/* Returns g_systemMessagePane.stateOrMessageId: 0xFFFF while the pane is empty,
+ * 1 once a message is shown in it. */
 // FUNCTION: XVT 0x451930
 uint16_t Hud_GetSystemMessagePaneState(void)
 {
 	return g_systemMessagePane.stateOrMessageId;
 }
 
+/* Copies the message panes from g_flightOffscreenBuffer onto the flight
+ * surface, skipping the transparent color: the ready pane, widened by two digit
+ * widths on each side while g_flightPlayerCount is 1 or more, to layout 117 of
+ * the current set; the system and flight group panes, while they hold a
+ * message, to layouts 118 and 119, or in the full-screen view to those layouts'
+ * x at 11 and 22 rows above the viewport's bottom. The modern build latches the
+ * panes for its renderer. */
 // FUNCTION: XVT 0x452960
 void Hud_BlitSoftwareHudTextPanes(void)
 {
@@ -9733,6 +10547,10 @@ void Hud_BlitSoftwareHudTextPanes(void)
 #endif
 }
 
+/* Returns the width in pixels of pane paneType's text without its type byte and
+ * without "[" and "]", up to 70 characters. The test for a 0xFE escape inside
+ * the bracket check never holds; FlightText_MeasureStringWidth skips the escape
+ * instead. A type 1 message's color digit is measured too. */
 // FUNCTION: XVT 0x452C40
 uint16_t Hud_MeasureFlightMessagePaneText(int16_t paneType)
 {
@@ -9777,6 +10595,14 @@ uint16_t Hud_MeasureFlightMessagePaneText(int16_t paneType)
 	return FlightText_MeasureStringWidth(measuredText);
 }
 
+/* Draws the corners of a box at x, y in the flight viewport, each stroke an
+ * eighth of the box's size, at least 3 and at most the size, tested against the
+ * scene's depth at depth (at least 1). Returns at once when the box is empty or
+ * lies outside the viewport. With hardware 3D it hands the box to
+ * Hud_DrawBoxOverlayHW; else it draws the strokes as spans through
+ * sw3d_BlitOccludedSpan at depth g_projScaleInt / depth, from a run of colorIdx
+ * in g_panelBoxSpanScratch, locking the surface unless
+ * g_flightSurfaceAlreadyLocked is set. */
 // FUNCTION: XVT 0x497E00
 void Hud_DrawDepthTestedBoxCorners(int x, int y, int width, int height,
 				   int colorIdx, int depth)
@@ -9968,6 +10794,13 @@ void Hud_DrawDepthTestedBoxCorners(int x, int y, int width, int height,
 	}
 }
 
+/* Reads panel sprites from fileName: records end at a 0xFF byte; the first
+ * recordsToSkip are dropped and the next spriteCount are copied, each ended
+ * with 0xFF, to g_hudPanelSpriteDataWriteCursor, which advances, with
+ * g_hudPanelSpriteDataByIndex from firstSpriteIndex on pointing at each. A file
+ * that ends early gives empty sprites. Returns what FeDiskIo_CloseGlobalStream
+ * returns; in the modern build 1 when the file does not open, and a read error
+ * is fatal. Does not check the 265 entries or the space at the cursor. */
 // FUNCTION: XVT 0x49C250
 int16_t Hud_LoadPanelSpriteRecords(const char *fileName,
 				   uint16_t firstSpriteIndex,
@@ -10033,6 +10866,11 @@ int16_t Hud_LoadPanelSpriteRecords(const char *fileName,
 	return FeDiskIo_CloseGlobalStream(0);
 }
 
+/* Reads flight icon frames from fileName into dataBuffer, frames ending at a
+ * 0xFF byte, each copied with its 0xFF and pointed at by framePointers in
+ * order. Returns the frame count, or 0 when the file does not open; in the
+ * modern build a read error is fatal. A file ending in 0xFF yields an empty
+ * last frame. Does not check the buffer's size or the pointer count. */
 // FUNCTION: XVT 0x49C330
 int FlightIcon_LoadFrames(char *fileName, uint8_t *dataBuffer,
 			  uint8_t **framePointers)

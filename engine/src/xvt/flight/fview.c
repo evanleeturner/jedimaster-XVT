@@ -12,25 +12,49 @@
 #include "xvt/render/renderer.h"
 #include <stdint.h>
 
+/* Forward axis of the object last oriented, X term, Q15 (32,768 is 1.0);
+ * the negated row 2 of the current object matrix (g_curMatR2_X). The nine
+ * g_fview axis globals have two writers, each setting all nine:
+ * FVIEW_calcrotateorient, from the matrix it has just turned, and
+ * FVIEW_SetObjectTransform, from an object's cached axes. */
 // GLOBAL: XVT 0x9D12E8
 int g_fviewForwardX_Q15 = 0;
+/* Forward axis, Y term; see g_fviewForwardX_Q15. */
 // GLOBAL: XVT 0x9D1264
 int g_fviewForwardY_Q15 = 0;
+/* Forward axis, Z term; see g_fviewForwardX_Q15. */
 // GLOBAL: XVT 0x9D1154
 int g_fviewForwardZ_Q15 = 0;
+/* Side axis of the object last oriented, X term: row 0 of the current
+ * object matrix; see g_fviewForwardX_Q15. */
 // GLOBAL: XVT 0x9A8D80
 int g_fviewSideX_Q15 = 0;
+/* Side axis, Y term; see g_fviewSideX_Q15. */
 // GLOBAL: XVT 0x9A8D60
 int g_fviewSideY_Q15 = 0;
+/* Side axis, Z term; see g_fviewSideX_Q15. */
 // GLOBAL: XVT 0x9A8D8C
 int g_fviewSideZ_Q15 = 0;
+/* Up axis of the object last oriented, X term: row 1 of the current object
+ * matrix; see g_fviewForwardX_Q15. */
 // GLOBAL: XVT 0x9A8E20
 int g_fviewUpX_Q15 = 0;
+/* Up axis, Y term; see g_fviewUpX_Q15. */
 // GLOBAL: XVT 0x9A8E1C
 int g_fviewUpY_Q15 = 0;
+/* Up axis, Z term; see g_fviewUpX_Q15. */
 // GLOBAL: XVT 0x9A8E28
 int g_fviewUpZ_Q15 = 0;
 
+/* Builds the camera matrix g_camMatR0_X to g_camMatR2_Z from view angles
+ * (a full circle is 65,536): FVIEW_calcrotatemove for viewPitch and viewYaw,
+ * FVIEW_calcrotateorient for viewUpAxisAngle and viewRoll, rows 1 and 2
+ * negated, then a turn by hudAimX about the side axis and by hudAimY about
+ * row 1 as it stood before that turn. Those calls also write g_curMatR0_X to
+ * g_curMatR2_Z, the g_fviewMove globals and the g_fview axis globals, and,
+ * when objRecord is not NULL, store that move vector and those axes, as they
+ * were before the negation, in objRecord's mobj. The modern build also calls
+ * XvtRenderCamera_Build with the same angles. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x427940
 void FVIEW_BuildCameraOrient(int16_t viewRoll, int16_t viewPitch,
@@ -74,6 +98,13 @@ void FVIEW_BuildCameraOrient(int16_t viewRoll, int16_t viewPitch,
 #endif
 }
 
+/* Sets the current object matrix (g_curMatR0_X to g_curMatR2_Z) and the
+ * g_fview axis globals for an object, then builds its object-to-view matrix
+ * with FVIEW_ComputeObjectViewMatrix and returns what that returns. With
+ * objRecord NULL, or its mobj's orientMatrixDirty set, it works from the
+ * angles through FVIEW_calcrotatemove and FVIEW_calcrotateorient, which
+ * refresh a record's cached axes; otherwise it takes the cached axes from
+ * the record's mobj. Does not check that mobj is set. */
 // FUNCTION: XVT 0x427A60
 int FVIEW_SetObjectTransform(int16_t roll, int16_t pitch, int16_t yaw,
 			     int16_t upAxisAngle, ObjectRecord *objRecord)
@@ -113,6 +144,12 @@ int FVIEW_SetObjectTransform(int16_t roll, int16_t pitch, int16_t yaw,
 	return FVIEW_ComputeObjectViewMatrix();
 }
 
+/* Starts the current object matrix from a pitch and a yaw (a full circle is
+ * 65,536), with no roll: writes all nine g_curMatR0_X to g_curMatR2_Z, and
+ * g_fviewMoveX_Q15, g_fviewMoveY_Q15 and g_fviewMoveZ_Q15, the forward
+ * direction (negated row 2), Q15. When objRecord is not NULL it also stores
+ * that direction as its mobj's moveX, moveY and moveZ and clears
+ * moveVectorDirty. */
 // FUNCTION: XVT 0x427BD0
 void FVIEW_calcrotatemove(int16_t pitch, int16_t yaw, ObjectRecord *objRecord)
 {
@@ -147,6 +184,11 @@ void FVIEW_calcrotatemove(int16_t pitch, int16_t yaw, ObjectRecord *objRecord)
 	}
 }
 
+/* Finishes the current object matrix begun by FVIEW_calcrotatemove: turns it
+ * by upAxisAngle about its row 1, then by roll about its row 2
+ * (FVIEW_transformaxes), and copies the axes into the g_fview axis globals.
+ * When objRecord is not NULL it also caches them in its mobj (cachedFwdX to
+ * cachedUpZ) and clears orientMatrixDirty. */
 // FUNCTION: XVT 0x427D30
 void FVIEW_calcrotateorient(int16_t roll, int16_t upAxisAngle,
 			    ObjectRecord *objRecord)
@@ -179,6 +221,14 @@ void FVIEW_calcrotateorient(int16_t roll, int16_t upAxisAngle,
 	}
 }
 
+/* Builds g_objViewMat_R0_X to g_objViewMat_R2_Z, the rotation from the
+ * current object matrix into view space: each entry is one row of the
+ * object matrix (rows 0, 2 and 1, in that order) dotted with one row of the
+ * camera matrix, by Math_Dot3Q15Wrapped. With
+ * g_transformLightDirectionToObjectSpace set it also turns the world light
+ * direction into object space the same way, into g_objectLightDirectionX to
+ * Z, and returns the Z term; otherwise it copies the world direction
+ * unchanged and returns g_objViewMat_R2_Z. */
 // FUNCTION: XVT 0x427E90
 int FVIEW_ComputeObjectViewMatrix(void)
 {
@@ -233,6 +283,11 @@ int FVIEW_ComputeObjectViewMatrix(void)
 	return result;
 }
 
+/* Turns all three rows of the current object matrix (g_curMatR0_X to
+ * g_curMatR2_Z) by angleQ16 (a full circle is 65,536) about the axis
+ * (axisX_Q15, axisY_Q15, axisZ_Q15), building the rotation from the axis
+ * and the angle's cosine and sine. Does nothing when the angle is 0. Does
+ * not check that the axis has length 1. */
 // FUNCTION: XVT 0x4290B0
 void FVIEW_transformaxes(int axisX_Q15, int axisY_Q15, int axisZ_Q15,
 			 int16_t angleQ16)

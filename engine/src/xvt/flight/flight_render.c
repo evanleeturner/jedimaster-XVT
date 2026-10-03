@@ -4,10 +4,13 @@
 #include "xvt/render/flight_sw.h"
 #include "xvt/render/renderer.h"
 
+/* Does nothing. FlightRender_InstallCallbacks makes it the transition hook
+ * (g_flightRenderTransitionHook) in every mode. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x40E580
 void FlightRender_TransitionHookStub(void) {}
 
+/* Calls g_flightRenderTransitionHook; the argument is ignored. */
 // FUNCTION: XVT 0x4A9B60
 void FlightRender_InvokeTransitionHook(int transitionFlags)
 {
@@ -15,6 +18,7 @@ void FlightRender_InvokeTransitionHook(int transitionFlags)
 	g_flightRenderTransitionHook();
 }
 
+/* Calls g_flightResetPaletteFn; the argument is ignored. */
 // FUNCTION: XVT 0x4A9B70
 void FlightRender_ResetPalette(int transitionFlags)
 {
@@ -22,6 +26,12 @@ void FlightRender_ResetPalette(int transitionFlags)
 	g_flightResetPaletteFn();
 }
 
+/* Picks the software drawing mode for the resolution and installs its
+ * drawing functions: g_flightPixelMode is 0 at 320x240 or an unknown mode,
+ * 1 at 640x480 and 480x360, and 2 at 640x480 in 16 bits or whenever
+ * g_flightBytesPerPixel is 2. Also sets g_flightViewportMode to 1 and
+ * g_flightGraphicsDetailPreset to initialGraphicsDetailPreset; both callers,
+ * at flight start, pass 3. */
 // FUNCTION: XVT 0x411AF0
 void FlightRender_ConfigureCallbacksForResolution(
 	uint8_t initialGraphicsDetailPreset)
@@ -53,6 +63,11 @@ void FlightRender_ConfigureCallbacksForResolution(
 	g_flightGraphicsDetailPreset = initialGraphicsDetailPreset;
 }
 
+/* Sets the 20 software drawing function pointers, g_flightInitLineBufferFn
+ * to g_flightDrawLineFn: the 8-bit drawing functions for pixelMode 0 or 1,
+ * the same set for both, or the 16-bit ones for 2. The palette functions,
+ * the transition hook and g_flightInitLineBufferFn are the same in all
+ * three. Any other pixelMode changes nothing. */
 // FUNCTION: XVT 0x411B60
 void FlightRender_InstallCallbacks(int pixelMode)
 {
@@ -147,5 +162,7 @@ void FlightRender_InstallCallbacks(int pixelMode)
 	}
 }
 
+/* Does nothing; FlightRender_InstallCallbacks calls it last in every
+ * mode. */
 // FUNCTION: XVT 0x426C40
 void FlightRender_SetPixelModeStub(int pixelMode) { (void)pixelMode; }

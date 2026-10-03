@@ -8,21 +8,56 @@
 extern "C" {
 #endif
 
+/* Guidance record of one shot, an entry of g_projectileGuidanceStates
+ * reached through MobileObject.pWarheadGuidance; every shot gets one. */
 struct WarheadGuidanceState {
+	/* Player behind the shot, -1 for none; collide_damagecraft credits the
+	 * damage to this player. */
 	int8_t sourcePlayerIdx;
+	/* Homing strength, 0 to 6; 0 does not home. A warhead from launcher 0
+	 * or 1 gets its craft's whole simulated seconds of lock, at most 6; a
+	 * warhead fired from a static object 3 to 6 at random; a countermeasure
+	 * that finds a target 6. With g_projectileHomingProfileBaseByObjectType
+	 * it picks the entry in the homing tables. */
 	uint8_t homingTier;
+	/* Mesh whose center a homing shot steers for on a craft; UINT16_MAX
+	 * steers for mesh 0's. */
 	uint16_t targetComponentIdx;
+	/* Object the shot is aimed at; UINT16_MAX for none. */
 	uint16_t targetObjIdx;
+	/* objectSignature of the target when the shot was fired, 0 for none; a
+	 * homing shot explodes when a target in a mobile slot no longer
+	 * carries it. */
 	uint16_t targetSignature;
+	/* Speed a homing shot builds back up to after turning, also the speed
+	 * the proximity estimate uses: the shot's speed when fired, or for a
+	 * countermeasure its type's speed plus its owner's. Mine shots leave
+	 * it as it was. */
 	uint16_t cruiseSpeed;
 };
 
+/* Firing state of a craft's two cannon groups (CraftData.laserState), one
+ * entry per group in each array. */
 struct CraftLaserState {
+	/* Shot object type the group fires, from the model; 0 for no group. */
 	uint8_t projectileTypeId[2];
+	/* How the group fires: 1 one cannon at a time, 2 pairs, 3 all at once.
+	 * On an AI craft 0 holds fire, and paifight_fightershootorder sets a
+	 * mode to start a burst. */
 	uint8_t linkMode[2];
+	/* Shots left in an AI burst; laser_weaponsfire sets linkMode to 0 when
+	 * it reaches 0. */
 	uint8_t burstRemaining[2];
+	/* Next weapon slot to fire in modes 1 and 2. */
 	uint8_t nextSlot[2];
+	/* Ticks before the group may fire again: laser_firelasersystem adds 47
+	 * per shot plus 2, and laser_weaponsfire counts it down. */
 	int16_t fireCooldownTicks[2];
+	/* Lockstep time stamp at which the group may fire again, moved forward
+	 * by the same amounts as fireCooldownTicks. While
+	 * g_laserFireTimestampTrackingEnabled is set, laser_fireplayerweapon
+	 * lets the group fire once the player's lockstepTimestamp has passed
+	 * it. */
 	int nextFireTimestamp[2];
 };
 
@@ -66,13 +101,33 @@ enum {
 	PROJECTILE_OBJECT_TYPE_COUNT = 24,
 };
 
+/* Figures for each shot object type, indexed from PROJECTILE_OBJECT_TYPE_FIRST
+ * (137): the layout of g_projectileTypeData. */
 struct ProjectileTypeDataTables {
+	/* Damage on a hit. Cannon, warhead and countermeasure shots fired by a
+	 * craft add the craft's speed; turret, mine and static-fired shots do
+	 * not. */
 	unsigned int damage[PROJECTILE_OBJECT_TYPE_COUNT];
+	/* Speed in the game's units. Cannon and warhead shots fired by a craft
+	 * add the craft's speed; turret and static-fired shots fly at it, mine
+	 * shots and countermeasures at half. */
 	uint16_t speed[PROJECTILE_OBJECT_TYPE_COUNT];
+	/* Whole simulated seconds of life; laser_GetProjectileLifetimeTicks
+	 * adds lifetimeFracQ16. */
 	uint16_t lifetimeSeconds[PROJECTILE_OBJECT_TYPE_COUNT];
+	/* Further fraction of a simulated second of life, in 65,536ths. */
 	uint16_t lifetimeFracQ16[PROJECTILE_OBJECT_TYPE_COUNT];
+	/* World units along the firing direction from the hardpoint at which
+	 * the shot is placed; a warhead from a freighter, starship or platform
+	 * is moved that far up or down instead. */
 	int16_t launchOffset[PROJECTILE_OBJECT_TYPE_COUNT];
+	/* 0 for cannon shots; for warheads, 1 for those the AI uses on small
+	 * targets and 2 for those it uses on freighters, starships and
+	 * platforms. */
 	uint8_t warheadClass[PROJECTILE_OBJECT_TYPE_COUNT];
+	/* Points a warhead takes off its firer's score and team score when
+	 * fired (laser_firemissile); Mission_ComputeCraftPointValue reads it
+	 * too. */
 	uint16_t warheadPointValue[PROJECTILE_OBJECT_TYPE_COUNT];
 };
 

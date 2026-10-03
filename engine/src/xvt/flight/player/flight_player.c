@@ -5,6 +5,9 @@
 #include "xvt/flight/object/object.h"
 #include "xvt/flight/player/player.h"
 
+/* Returns 1 when the local player's craft has an installed subsystem (its flag
+ * set in systemFlags) whose systemHealth is 0, else 0. Also returns 0 when the
+ * local player has no craft or the object has no craft record. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x46C140
 int16_t FlightPlayer_HasDisabledSubsystem(void)
@@ -41,9 +44,12 @@ int16_t FlightPlayer_HasDisabledSubsystem(void)
 	return allInstalledSystemsOperational == 0;
 }
 
+/* Does nothing with its message. Nothing calls this. */
 // FUNCTION: XVT 0x46C200
 void nullsub_8(const char *message) { (void)message; }
 
+/* Adds step to the throttleSpeed of the player's craft, holding at 0xFFFF when
+ * the sum would wrap past it. Does not check that the player has a craft. */
 // FUNCTION: XVT 0x481D90
 void FlightPlayer_IncreaseThrottleSpeed(int16_t step, int playerIdx)
 {
@@ -63,6 +69,9 @@ void FlightPlayer_IncreaseThrottleSpeed(int16_t step, int playerIdx)
 	}
 }
 
+/* Takes step from the throttleSpeed of the player's craft, holding at 0 when
+ * the result would wrap below it. Does not check that the player has a
+ * craft. */
 // FUNCTION: XVT 0x481E10
 void FlightPlayer_DecreaseThrottleSpeed(int16_t step, int playerIdx)
 {

@@ -31,6 +31,8 @@
 #include "xvt/util/game_rand.h"
 #include <limits.h>
 
+/* The figures of every shot type, a constant table laid out as
+ * ProjectileTypeDataTables; the last four types have zeros. */
 // GLOBAL: XVT 0x51A3B8
 const struct ProjectileTypeDataTables g_projectileTypeData = {
 	{
@@ -56,20 +58,33 @@ const struct ProjectileTypeDataTables g_projectileTypeData = {
 	{0,  0,	 0,  0,	 0,  0,	 15, 10, 0, 0, 0, 20,
 	 25, 40, 30, 10, 25, 25, 10, 10, 0, 0, 0, 0},
 };
+/* Shot object type of each warhead choice a flight group can make (its
+ * fg.warhead, 0 for none): spawn loads it into a craft's launchers, and
+ * laser_createprojectilefromstatic fires it from a static object. */
 // GLOBAL: XVT 0x5241F8
 const uint8_t g_warheadTypeIds[11] = {0x00, 0x96, 0x97, 0x90, 0x8F, 0x95,
 				      0x94, 0x98, 0x99, 0x9A, 0x90};
+/* Share of a launcher's capacity loaded with each warhead choice, in
+ * 65,536ths (0xFFFF loads it full); spawn loads at least 1.
+ * paiman_boardmaneuver reads it too. */
 // GLOBAL: XVT 0x524208
 const uint16_t g_warheadAmmoFractionQ16[12] = {
 	0x0000, 0x4000, 0x8000, 0xFFFF, 0xC000, 0xFFFF,
 	0xC000, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0x0000,
 };
+/* Hit points a damageable component starts with at spawn, by its mesh
+ * component type; a shield generator on object type 54 gets twice this
+ * less one. */
 // GLOBAL: XVT 0x524220
 const uint8_t g_meshTypeComponentMaxHp[32] = {
 	0xFF, 0xFF, 0xFF, 0xFF, 0x18, 0x04, 0xFF, 0xFF, 0x40, 0xFF, 0x20,
 	0x30, 0x30, 0x30, 0x70, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x18,
 	0x20, 0x30, 0x30, 0x30, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
 };
+/* For each platform object type 60 to 64, 12 component indices whose
+ * components start destroyed (hit points 0, state 4) when the flight group
+ * carries a beam: the first 6 for a tractor beam, all 12 for any other;
+ * 0xFF entries are skipped. */
 // GLOBAL: XVT 0x524240
 const uint8_t g_platformBeamDisabledComponentIds[60] = {
 	0x16, 0x17, 0x15, 0x14, 0x13, 0x05, 0x0F, 0x10, 0x11, 0x12, 0x18, 0x06,
@@ -79,6 +94,35 @@ const uint8_t g_platformBeamDisabledComponentIds[60] = {
 	0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0xFF, 0x15, 0x16, 0x17, 0x18, 0x1E, 0xFF,
 };
 
+/* Runs one step of the weapon systems of every craft and mine. A power
+ * step comes when the weaponPowerUpdateTimer of
+ * g_flightGlobalCountdownTimers is 0, which resets it to
+ * SIMULATION_TICKS_PER_SECOND (in the modern build only when
+ * XvtFlightTiming_ReferenceDue). First it clears beamEffectAccum of every
+ * craft (family 0). Then, for a player's craft in warhead mode, it updates
+ * the lock (missileLockState in g_players, warheadLockTicks): with no
+ * target or no rounds the lock drops to 0; a target closer than 101,805
+ * world units (244,332 for a freighter, starship or platform) and inside
+ * the aim cone builds it, half as fast against active chaff; otherwise it
+ * bleeds away; 354 ticks lock a missile boat, 708 any other craft. While a
+ * player's beam is on it drains 125 charge every 59 ticks and acts on the
+ * current target when that is in range and in the cone. For each hostile
+ * starship, X/7 factory and repair yard it calls
+ * collide_ApplyHostileProximityWeaponDisruption on the player's craft. For
+ * an AI craft, on a power step, it sets the shield and laser recharge
+ * levels, moves laser charge into the front shield of a starfighter whose
+ * shield is below full, and on difficulty 2 lets a damaged starship
+ * recharge shields by its live shield generators. On a power step every
+ * craft then recharges shields, lasers and beam by its recharge levels,
+ * drops engine overdrive when its lasers run dry, and counts down chaff.
+ * Next, for each craft whose weaponFireInhibitTimer is 0: unless a
+ * jamming beam holds it (beamEffectAccum[2]), it counts down cannon
+ * cooldowns and fires AI bursts through laser_firelasersystem; it fires
+ * each gunner slot that has a target (laser_fireturretslot); and it counts
+ * down launcher cooldowns. Last it runs laser_UpdateMineWeaponFire for each
+ * mine in the static slots. The modern build steps AI cannon fire, turrets
+ * and mines on the reference clock. Writes g_curCraft and
+ * g_localBeamTargetObjIdx. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x404710
 void laser_weaponsfire(void)
@@ -1154,6 +1198,9 @@ void laser_weaponsfire(void)
 	}
 }
 
+/* Returns the life of a shot of projectileObjectType in ticks: 236 for each
+ * of its lifetimeSeconds plus its lifetimeFracQ16 share of 236, rounded.
+ * Does not check the type. */
 // FUNCTION: XVT 0x405860
 uint16_t laser_GetProjectileLifetimeTicks(int projectileObjectType)
 {
@@ -1173,6 +1220,19 @@ uint16_t laser_GetProjectileLifetimeTicks(int projectileObjectType)
 	return wholeSecondsTicks;
 }
 
+/* Fires the selected weapon of playerIdx's craft, when it can. Does nothing
+ * when the player has no craft, and only reports IFMSG_361 (firing jammed)
+ * while a jamming beam holds the craft (beamEffectAccum[2]) and it has no
+ * active chaff. In cannon mode the selected group fires through
+ * laser_firelasersystem once its cooldown is below 1.5 times
+ * g_elapsedTicks, or with the cannons out the local player gets a system
+ * message; while g_laserFireTimestampTrackingEnabled is set, the group's
+ * nextFireTimestamp against the player's lockstepTimestamp decides the
+ * cooldown instead. In warhead mode the selected launcher fires through
+ * laser_firewarheadsystem on the same cooldown test, or with the launchers
+ * out the local player gets a system message; when both of the launcher's
+ * slots are then empty, the player goes back to cannon group 0 with a
+ * 118-tick cooldown. */
 // FUNCTION: XVT 0x405890
 void laser_fireplayerweapon(int playerIdx)
 {
@@ -1293,6 +1353,21 @@ void laser_fireplayerweapon(int playerIdx)
 	}
 }
 
+/* Fires cannon group laserSystemIndex of the craft in objectIndex by its
+ * linkMode: 1 the next slot alone, 2 every other slot from the next one
+ * (half the group's slots), 3 every slot; the group's nextSlot moves on.
+ * Only slots with a weapon and charge above 0 fire. Each shot is
+ * laser_createprojectile of the group's weapon type, one type higher when
+ * the slot's charge is 64 or more, given the player's or the AI's current
+ * target in its guidance record; unless the flight group's status is 21 it
+ * costs the slot 3 charge on a player's TIE Fighter or TIE Bomber, 4 on
+ * another player's craft and 1 on an AI craft. Adds the shots to the ion
+ * or laser counts in weaponStats (and the player's missionStats), and 47
+ * per shot plus 2 to the group's fireCooldownTicks and nextFireTimestamp.
+ * With the S-foils closed nothing fires and the local player gets a
+ * message. With any other linkMode the modern build returns at once; the
+ * original build's text goes on with firstSlot and lastSlot unset. Writes
+ * g_curCraft. */
 // FUNCTION: XVT 0x405AC0
 void laser_firelasersystem(int objectIndex, int laserSystemIndex)
 {
@@ -1569,6 +1644,14 @@ void laser_firelasersystem(int objectIndex, int laserSystemIndex)
 		47 * shotsFired + 2;
 }
 
+/* Fires launcher launcherIndex of the craft in objectIndex through
+ * laser_firemissile: both of its slots when the low 7 bits of
+ * warheadLauncherFlags are 3, else the slot flag bit 0x80 picks (the
+ * second when set). Adds 472 ticks to the launcher's cooldown whether or
+ * not anything fired. For the local player's craft, unless a slot that
+ * failed still holds rounds, it shows the message for no shot, one or two,
+ * by the warhead kind of the player's selected launcher. Writes
+ * g_curCraft. */
 // FUNCTION: XVT 0x406030
 void laser_firewarheadsystem(int objectIndex, unsigned int launcherIndex)
 {
@@ -1664,6 +1747,20 @@ void laser_firewarheadsystem(int objectIndex, unsigned int launcherIndex)
 	}
 }
 
+/* Fires one warhead of projectileTypeId from weapon slot weaponSlotIndex of
+ * the craft in objectIndex, when the slot has a weapon and rounds left.
+ * Counts it in weaponStats.warheadsFired (and the player's warheadsFired),
+ * takes its warheadPointValue off the player's missionScore and the team's
+ * mission score, plays the weapon sound, and uses a round unless the
+ * flight group's status is 21. Fills the guidance record: for launchers 0
+ * and 1 a homingTier of the craft's whole simulated seconds of lock (at
+ * most 6); the player's or the AI's target, target component and
+ * signature; and sourcePlayerIdx. Warns a player whose craft is the target
+ * (laser_warnplayer). For launchers 0 and 1 it sets flag bit 0x80 so the
+ * next shot comes from the slot with more rounds (the first on a tie).
+ * Returns the shot's index in g_projectileGuidanceStates, or -1 when
+ * nothing fired. Expects g_curCraft to be the craft of objectIndex and
+ * does not check it. */
 // FUNCTION: XVT 0x406290
 int laser_firemissile(int objectIndex, int weaponSlotIndex,
 		      int projectileTypeId, unsigned int launcherIndex)
@@ -1807,6 +1904,22 @@ int laser_firemissile(int objectIndex, int weaponSlotIndex,
 	return projectileIndex;
 }
 
+/* Creates a shot of projectileObjectType from weapon slot weaponSlotIndex
+ * of the object in sourceObjectIndex and returns its slot, or -1 when none
+ * is free. A player's shot takes the first free slot of that player's 12
+ * (of the last 4 for a warhead), else of the 32 shared player slots; any
+ * other shot a free slot of the other-shot range. The shot copies the
+ * firer's IFF and angles, flies at its type's speed plus the firer's, does
+ * its type's damage plus the firer's speed (at least its type's damage),
+ * lives laser_GetProjectileLifetimeTicks, and starts at the weapon
+ * hardpoint (twice as far out for an Imperial Star Destroyer, object type
+ * 53). A warhead from a freighter, starship or platform is then moved
+ * launchOffset up or down and points straight up or down; any other shot
+ * is moved launchOffset along the firer's forward axis and takes the
+ * firer's move vector and axes. prevWorld* keeps the hardpoint position,
+ * and a player's shot starts at the player's lockstepTimestamp. Its
+ * guidance record is reset (no target, no homing, cruiseSpeed its speed)
+ * and linked. Writes g_rotated*. */
 // FUNCTION: XVT 0x4065D0
 int laser_createprojectile(int sourceObjectIndex, int weaponSlotIndex,
 			   int projectileObjectType)
@@ -2041,6 +2154,17 @@ int laser_createprojectile(int sourceObjectIndex, int weaponSlotIndex,
 	return -1;
 }
 
+/* Fires the warhead of the flight group of static object sourceObjIdx
+ * (through g_warheadTypeIds) from that object at targetObjIdx;
+ * static_ApplyStaticHit calls it as a Mine Type C is destroyed. Returns
+ * UINT16_MAX when the group has no warhead or no slot is found, else the
+ * new slot: a free other-shot slot or, with none free, a cannon shot of the
+ * group's team in the other-shot range, which is taken over. The warhead
+ * takes the group's IFF, all angles 0, its type's speed and damage, starts
+ * 384 world units above the static object, homes at a random tier of 3 to
+ * 6, and warns a player whose craft is the target (laser_warnplayer). With
+ * no free slot, the search reads warheadClass by each slot's object type
+ * without checking that it is a shot type. */
 // FUNCTION: XVT 0x406D10
 uint16_t laser_createprojectilefromstatic(uint16_t sourceObjIdx,
 					  uint16_t targetObjIdx)
@@ -2128,6 +2252,24 @@ uint16_t laser_createprojectilefromstatic(uint16_t sourceObjIdx,
 	return objectIndex;
 }
 
+/* Launches a shot of projectileObjectType, a countermeasure as a rule,
+ * backward from the craft in ownerObjIdx and returns its slot, or -1 when
+ * none is free; slots are found as in laser_createprojectile. The shot
+ * copies the owner's IFF, team and roll, points opposite the owner (a half
+ * turn of yaw, pitch mirrored), flies at half its type's speed with a
+ * cruiseSpeed of its type's speed plus the owner's, does its type's damage
+ * plus the owner's speed, and starts behind the owner by its own model's Y
+ * size plus the owner's largest Y. It uses one of cmAmmoCount unless the
+ * flight group's status is 21, and sets cmFireCooldownTimer to 472. A
+ * COUNTERMEASURE_PROJECTILE_OBJECT_TYPE homes at tier 6 on the nearest
+ * warhead aimed at the owner or, with none, on the nearest active craft
+ * closer than 0x8000 that is after the owner (an AI craft targeting it, or
+ * a hostile player's craft). Its count of countermeasures already chasing
+ * a warhead tests the outer warhead's type, not each shot's, so it is 0
+ * unless that warhead is itself a countermeasure. A shot aimed at a craft
+ * lives half as long. Queues voice 37 when the target is the local
+ * player's, and plays the weapon sound for a player's shot. Writes
+ * trig2_*movedist and the trig2 outputs. */
 // FUNCTION: XVT 0x407090
 int laser_createcountermeasureprojectile(unsigned int ownerObjIdx,
 					 int projectileObjectType)
@@ -2492,6 +2634,13 @@ int laser_createcountermeasureprojectile(unsigned int ownerObjIdx,
 	return -1;
 }
 
+/* Warns the player whose craft is the target of the shot with guidance
+ * index projectileGuidanceIdx, unless that player already has a pending
+ * action: sets pendingActionId 1, no issuing player, the shot's slot as
+ * pendingActionParam and a pendingActionTimer of 1,416 ticks. The local
+ * player also gets the missile warning message and a wingman voice line.
+ * Does nothing when no player owns the target; does not check that the
+ * shot has one. */
 // FUNCTION: XVT 0x407910
 void laser_warnplayer(uint16_t projectileGuidanceIdx)
 {
@@ -2519,6 +2668,24 @@ void laser_warnplayer(uint16_t projectileGuidanceIdx)
 	}
 }
 
+/* Lets the mine in static slot mineObjIdx fire while it works
+ * (typeSpecificWord not 0). Each call takes half of g_elapsedTicks off its
+ * countdown in typeSpecificByte[1]; when that runs out the countdown is
+ * reset to 236 (two simulated seconds) and the mine looks for the nearest
+ * target matching its flight group's first order, targets 1 and 2 and then
+ * targets 3 and 4 (paifight_FindNearestMatchingTargetFromOrigin; a Mine
+ * Type B asks for a target that is not disabled). It fires only at a
+ * target closer than 0x10000 world units, aiming ahead of a moving one by
+ * its last step's motion times the expected flight steps (plus a random 0
+ * to 3, less 1), from a point 150 world units out (170 for mines after
+ * Type B) on the side facing the target; a Mine Type C or later does not
+ * fire at a target more than an eighth of a turn below the horizontal. Aim
+ * error is likelier at longer range and against targets faster than 187
+ * (the speed term is 16 bits and wraps from 700 up). The shot is an ion turbo
+ * laser from a Mine Type B, else an imperial (IFF 1 or 4) or rebel turbo
+ * laser, at half its type's speed and twice its life, with no homing.
+ * Writes g_paifightSearchOrigin*, g_paiContext.requireUndisabledTarget,
+ * g_worldLoc* and the trig2 outputs. */
 // FUNCTION: XVT 0x446C60
 void laser_UpdateMineWeaponFire(uint16_t mineObjIdx)
 {
@@ -2870,6 +3037,30 @@ void laser_UpdateMineWeaponFire(uint16_t mineObjIdx)
 	}
 }
 
+/* Runs the gunner of weapon slot weaponSlotIdx of g_curCraft, the craft in
+ * sourceObjIdx, against targetRef. Does nothing when the craft has no
+ * working systems or the slot's mesh is destroyed. The low 7 bits of the
+ * slot's laserCharge are a refire countdown: while it runs, each call takes
+ * off a step set by the gunner's skill (pai_GetEffectiveSkillValue), or,
+ * while a jamming beam holds the craft (beamEffectAccum[2]), 1 or 2 during
+ * part of each simulated second and nothing at all from 0x28000 up; and
+ * nothing fires. At 0 it is reset to 59 and the turret tries to fire: from
+ * the slot's hardpoint (on odd subsecond ticks the mesh's other hardpoint,
+ * when it has one; turned with a rotating turret's mesh; on a Super Star
+ * Destroyer the hull vertex nearest the target), at a target within
+ * 0x14000 world units, unless collide_CheckSweptModelCollision finds the
+ * craft's own hull in the way. It aims ahead of a moving target by its last
+ * step's motion times the expected flight steps, scaled by the gunner's
+ * skill. The shot is an ion laser when the slot's ammoCount is set, else a
+ * rebel (IFF 0 or 2) or imperial turbo laser, the heavier kind (ion turbo
+ * laser, turbo laser 2) when the slot is in a group of turbo laser 2
+ * weapons; it flies at its type's speed for three times its life, with no
+ * homing. The random aim error never applies: its threshold is UINT16_MAX.
+ * Writes g_collisionProbeWorld*, g_collisionSegmentStartWorld*, and on a
+ * Super Star Destroyer g_turretFireHullMeshOrdinal and
+ * g_collideSweepRejectNearStartHits, plus g_rotated*, g_worldLoc* and the
+ * trig2 outputs. Expects g_curCraft to be the source's craft and does not
+ * check it. */
 // FUNCTION: XVT 0x4A7900
 void laser_fireturretslot(uint16_t sourceObjIdx, uint16_t weaponSlotIdx,
 			  uint16_t targetRef)

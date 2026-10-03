@@ -14,13 +14,36 @@
 
 #include <stdlib.h>
 
+/* Pixels added to g_surfaceHeight before halving it to place the alert box's
+ * vertical center. Nothing writes it, so it stays 0 and the box sits at the
+ * surface's vertical middle. */
 // GLOBAL: XVT 0x5233E4
 int g_flightAlertBoxVerticalOffset = 0;
+/* Heap copy of the screen under the alert box. Only
+ * FlightAlert_SaveBoxBackground writes it: it allocates it on first use and
+ * frees and reallocates it when a box needs more bytes; nothing else frees
+ * it. NULL until then, or after a failed allocation; while it is NULL,
+ * FlightAlert_DrawBox and FlightAlert_RestoreBoxBackground draw nothing. */
 // GLOBAL: XVT 0x5236A0
 void *g_flightAlertBoxSavedPixels = 0;
+/* Bytes allocated for g_flightAlertBoxSavedPixels; only
+ * FlightAlert_SaveBoxBackground writes it. A failed reallocation leaves the
+ * old size here while the pointer is NULL. */
 // GLOBAL: XVT 0x5236A4
 int g_flightAlertBoxSavedBytes = 0;
 
+/* Saves the screen under the alert box that network waits draw over the
+ * flight view, so FlightAlert_RestoreBoxBackground can put it back. The box
+ * is half as wide as the span from g_flightViewportInsetX to g_surfaceWidth
+ * and centered on it, five lines of font tier 0 tall, centered at half of
+ * g_surfaceHeight plus g_flightAlertBoxVerticalOffset, and saved with a
+ * one-pixel border. Sets font tier 0. Allocates g_flightAlertBoxSavedPixels,
+ * or a larger one when the box needs more than g_flightAlertBoxSavedBytes,
+ * and returns without saving when the allocation fails. Then calls
+ * FlightDisplay_Flip, copies the box out of the frame buffer with
+ * g_flightDrawToHudLayer at 0, sets g_flightDrawToHudLayer to 1 and calls
+ * FlightDisplay_Flip again. The modern build first clears the alert it
+ * records for its renderer. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x448DA0
 void FlightAlert_SaveBoxBackground(void)
@@ -85,6 +108,14 @@ void FlightAlert_SaveBoxBackground(void)
 #endif
 }
 
+/* Puts back the screen FlightAlert_SaveBoxBackground saved under the alert
+ * box, which removes the alert. Sets font tier 0 and computes the box again
+ * from the same globals; when nothing was saved it stops there. Otherwise it
+ * calls FlightDisplay_Flip, writes the saved pixels into the frame buffer with
+ * g_flightDrawToHudLayer at 0, sets g_flightDrawToHudLayer to 1 and calls
+ * FlightDisplay_Flip again; the modern build also ends its recorded alert.
+ * Keeps the saved copy. Does not check that the box is still the size it
+ * saved. */
 // FUNCTION: XVT 0x448ED0
 void FlightAlert_RestoreBoxBackground(void)
 {
@@ -133,6 +164,18 @@ void FlightAlert_RestoreBoxBackground(void)
 	}
 }
 
+/* Writes one line of text, centered, into the alert box on the frame buffer,
+ * between two calls to FlightDisplay_Flip, with g_flightDrawToHudLayer at 0
+ * while drawing and 1 after. Line N sits N lines of font tier 0 below the
+ * box's top; textRow 1 starts a new alert: it fills the box and a one-pixel
+ * border with color bgColor + 2, then the box with bgColor, and writes on
+ * line 1. Row 0 does the same without the border. Any other row fills the box
+ * from that line down with bgColor, which clears later lines, and writes
+ * there. Colors pass through FlightText_SetBackgroundColor; the text is
+ * palette index 0x2F with a 0x2C shadow. Leaves font tier 0,
+ * g_flightTextShadowEnabled at 1 and the text clip on the box. Returns
+ * without drawing when FlightAlert_SaveBoxBackground has saved nothing. The
+ * modern build also records the line for its renderer. */
 // FUNCTION: XVT 0x448F90
 void FlightAlert_DrawBox(int textRow, char *text, uint8_t bgColor)
 {

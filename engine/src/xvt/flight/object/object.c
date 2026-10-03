@@ -25,9 +25,14 @@
 #include "xvt/util/game_rand.h"
 #include <string.h>
 
+/* Per object type counted from WARHEAD_OBJECT_TYPE_PROTON_TORPEDO (143),
+ * the first entry of the shot's row of 7 in the two homing tables below;
+ * Object_UpdateLifetimeAndMovement adds the shot's homingTier, 0 to 6. */
 // GLOBAL: XVT 0x521CB6
 const uint8_t g_projectileHomingProfileBaseByObjectType[18] = {
 	7, 0, 0, 0, 0, 0, 14, 21, 28, 14, 14, 14, 35, 0, 0, 0, 0, 0};
+/* Homing turn rate in angle units per simulated second, by row plus homing
+ * tier; each row of 7 starts with 0, so tier 0 never turns. */
 // GLOBAL: XVT 0x521CC8
 const uint16_t g_projectileHomingTurnRateByProfile[44] = {
 	0,    1024, 2048, 3072, 5120, 7168,  9216,  0,	   512,	  1024,	 2048,
@@ -35,6 +40,10 @@ const uint16_t g_projectileHomingTurnRateByProfile[44] = {
 	32,   64,   80,	  96,	112,  128,   0,	    512,   1024,  1280,	 1536,
 	1792, 2048, 0,	  4096, 8192, 12288, 16384, 20480, 24576, 0,	 0,
 };
+/* Speed change per simulated second while homing, by the same rows: added
+ * when the shot's yaw has reached the target's bearing and it is below its
+ * cruiseSpeed, taken away (to no less than HOMING_MIN_TURN_SPEED, 200) while
+ * its yaw still turns. */
 // GLOBAL: XVT 0x521D20
 const uint16_t g_projectileHomingSpeedAdjustRateByProfile[44] = {
 	0,   50,  100, 200, 300, 400, 500, 0,	25,   50,   100,
@@ -43,53 +52,149 @@ const uint16_t g_projectileHomingSpeedAdjustRateByProfile[44] = {
 	50,  60,  0,   100, 200, 400, 600, 800, 1000, 0,    0,
 };
 
+/* The slot numbers below describe the layout of g_objectTable that
+ * Mission_Init sets when a mission loads: craft 0 to 31, shots 32 to 191,
+ * debris 192 to 207, explosions 208 to 223, character slots 224 to 479,
+ * local slots 480 to 487, then 64 static slots, 488 to 551. Where a comment
+ * says "restored", a world-state load copies the value back in:
+ * Flight_RestoreWorldState in the original build, XvtSnapshot_DecodePrefix
+ * in the modern one. */
+
+/* One past the last craft slot, 32 (CRAFT_SLOT_COUNT); set by Mission_Init
+ * and restored. Craft loops across the game run from
+ * g_activeRegionObjectSlotStart up to here. */
 // GLOBAL: XVT 0x9A1FE0
 int g_activeRegionCraftObjectSlotEnd = 0;
+/* The object table: g_regionMainObjectSlotEnd slots with a MobileObject,
+ * then g_regionStaticObjectSlotCount static slots. Mission_Init allocates
+ * g_objectTableHandle; FeDiskIo_LockGlobalBuffers points this at its locked
+ * memory. In the modern build XvtFlightLoading_Reset sets NULL. */
 // GLOBAL: XVT 0x9A1FE8
 ObjectRecord *g_objectTable = 0;
+/* Per mobile slot, the pool entries Object_RelinkMobileObjectPointers
+ * would link. Mission_Init sets every index to -1 and nothing else writes
+ * them, so the relink links none. */
 // GLOBAL: XVT 0x99F9A0
 MobileObjectLinkIndices g_mobileObjectLinkIndices[488] = {{0}};
+/* Object type each slot was last spawned with, written by
+ * Mission_InitFlightGroupObjectSlot; Mission_Init fills it with -1. Read
+ * only by Object_RelinkMobileObjectPointers, in a branch that never runs. */
 // GLOBAL: XVT 0x9A1090
 int g_spawnObjectTypeByObjectSlot[488] = {0};
+/* Entries in g_mobileObjectCharDataPool, 256 (CHAR_DATA_SLOT_COUNT); set by
+ * Mission_Init and restored. */
 // GLOBAL: XVT 0x9A7BA4
 int g_mobileObjectCharDataCount = 0;
+/* First debris slot, 192 (g_projectileObjectSlotEnd); set by Mission_Init
+ * and restored. */
 // GLOBAL: XVT 0x9A7B58
 int g_debrisObjectSlotStart = 0;
+/* The character records, g_mobileObjectCharDataCount of them, in the
+ * locked memory of g_mobileObjectCharDataHandle; FeDiskIo_LockGlobalBuffers
+ * sets it. In the modern build XvtFlightLoading_Reset sets NULL. */
 // GLOBAL: XVT 0x9A8DA0
 MobileObjectCharData *g_mobileObjectCharDataPool = 0;
+/* One guidance record per shot slot, indexed by slot minus
+ * g_projectileObjectSlotStart (g_projectileObjectSlotsTotal + 1 entries),
+ * in the locked memory of g_warheadGuidancePoolHandle;
+ * FeDiskIo_LockGlobalBuffers sets it. In the modern build
+ * XvtFlightLoading_Reset sets NULL. */
 // GLOBAL: XVT 0x9A8E18
 WarheadGuidanceState *g_projectileGuidanceStates = 0;
+/* Static slots after g_regionMainObjectSlotEnd, 64
+ * (STATIC_OBJECT_SLOT_COUNT), set by Mission_Init and restored; -1 before
+ * the first mission. */
 // GLOBAL: XVT 0x9D1308
 int g_regionStaticObjectSlotCount = -1;
+/* One past the last debris slot, 208; set by Mission_Init and restored. */
 // GLOBAL: XVT 0x9D1140
 int g_debrisObjectSlotEnd = 0;
+/* First of the 256 character slots, 224 (g_explosionObjectSlotEnd); set by
+ * Mission_Init and restored. They are genus 16's range in
+ * g_objectSlotRangeByGenus, and Flight_UpdateTimers counts down the AI
+ * timers of any object in them. */
 // GLOBAL: XVT 0x9D1144
 int g_mobileObjectCharDataSlotStart = 0;
+/* First explosion slot, 208 (g_debrisObjectSlotEnd); set by Mission_Init
+ * and restored. */
 // GLOBAL: XVT 0x9D1310
 int g_explosionObjectSlotStart = 0;
+/* One MobileObject per slot below g_regionMainObjectSlotEnd, in the locked
+ * memory of g_mobileObjectPoolHandle; FeDiskIo_LockGlobalBuffers sets it.
+ * In the modern build XvtFlightLoading_Reset sets NULL. */
 // GLOBAL: XVT 0x9D6820
 MobileObject *g_mobileObjectPoolBase = 0;
+/* First shot slot, 32; set by Mission_Init and restored. Slots 32 to 159
+ * hold player shots (12 per player, then 32 shared from slot 128), 160 to
+ * 191 everyone else's. */
 // GLOBAL: XVT 0x9E9640
 int g_projectileObjectSlotStart = 0;
+/* Despite the name, not a first slot. Mission_Init sets 8
+ * (LOCAL_DEBRIS_SLOT_COUNT); it is restored. Only the world-state checksums
+ * read it, and the modern build's check that a loaded world matches the
+ * live slot ranges: the checksums cover slots 0 to g_regionMainObjectSlotEnd
+ * minus this, which leaves out the 8 local slots, and mix in the value. */
 // GLOBAL: XVT 0x9D767C
 int g_regionMainObjectSlotStart = 0;
+/* Shot slots in all, 160: 128 for players and 32 for the rest; set by
+ * Mission_Init and restored. */
 // GLOBAL: XVT 0x9FD430
 unsigned int g_projectileObjectSlotsTotal = 0;
+/* One past the last shot slot, 192; set by Mission_Init and restored. */
 // GLOBAL: XVT 0xA00854
 int g_projectileObjectSlotEnd = 0;
+/* One past the last explosion slot, 224; set by Mission_Init and
+ * restored. The map view walks slots 0 up to here. */
 // GLOBAL: XVT 0x9EC47C
 unsigned int g_explosionObjectSlotEnd = 0;
+/* One past the last slot with a MobileObject, 488, set by Mission_Init and
+ * restored; -1 before the first mission. The static slots follow it. */
 // GLOBAL: XVT 0xA07CE8
 int g_regionMainObjectSlotEnd = -1;
+/* First craft slot, 0; set by Mission_Init and restored. */
 // GLOBAL: XVT 0xA07CEC
 int g_activeRegionObjectSlotStart = 0;
+/* Debris slots in all, 16; set by Mission_Init and restored. Only the
+ * world-state checksums and the modern build's range check read it. */
 // GLOBAL: XVT 0xA0814C
 unsigned int g_debrisObjectSlotsTotal = 0;
+/* One past the last character slot, 480, where the local slots begin; set
+ * by Mission_Init and restored. */
 // GLOBAL: XVT 0x9FE7DC
 int g_mobileObjectCharDataSlotEnd = 0;
+/* The slot range Object_AllocSlotForGenus searches, per genus; only
+ * Mission_Init writes it. It sets genera 0 to 5 to the craft slots, 6 to
+ * the player shot slots (32 to 159), 7 to the other shot slots (160 to
+ * 191), 11 to debris, 13 to explosions, 16 to the character slots, and 8
+ * to 10, 12, 14 and 15 to empty; 17 to 19 stay 0. */
 // GLOBAL: XVT 0xA082C0
 ObjectSlotRange g_objectSlotRangeByGenus[20] = {{0}};
 
+/* Advances every object in the mobile slots by one simulation step. First,
+ * for each player flying a starfighter (remote players, then the local
+ * one), moves hardpointWorld* to prevHardpointWorld* in g_players and stores
+ * the craft's primary hardpoint world position in hardpointWorld*. Then,
+ * for each slot below g_regionMainObjectSlotEnd, or only
+ * g_singleObjectUpdateOverrideIdx when that is not -1: an object with its
+ * own simStateTimestamp is stepped by its own elapsed ticks, which changes
+ * g_elapsedTicks and g_simStepsPerSecond for that object (both are put back
+ * on return), and is skipped when that comes to 0 (a player's craft still
+ * gets prevWorld* updated); lifetimeTimer counts down, and at 0 the object
+ * explodes or is removed by genus (a destroyed craft is recorded through
+ * Mission_RecordCraftOutcome); prevWorld* takes the current position,
+ * except while a single object is overridden; a nonzero rollImpulseRate
+ * turns roll (and on a craft after an impact decays); then craft (genus 0
+ * to 4), shots, small debris and explosions move along their move vector.
+ * A craft with working systems adds its push accumulators, at most
+ * maxPushRate per simulated second (250 while boarding, 750 while dropping
+ * off, else the model's), and drags a carried object to its docking point.
+ * A homing shot explodes when its target, in a mobile slot, is gone or its
+ * slot reused; holds course while the target craft runs a decoy beam; and
+ * otherwise turns toward the target (a mesh center on a craft) and changes
+ * speed by the homing tables. In the modern build, timing-unlocked play
+ * hands the integration to XvtFlightIntegration_*, and each object stepped
+ * is reported to XvtReferenceMotion_Committed. Also writes
+ * trig2_*movedist, g_rotated* and g_worldLoc*. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x445570
 void Object_UpdateLifetimeAndMovement(void)
@@ -1088,6 +1193,12 @@ void Object_UpdateLifetimeAndMovement(void)
 	g_elapsedTicks = (uint16_t)savedElapsedTicks;
 }
 
+/* Adds trig2_xmovedist, trig2_ymovedist and trig2_zmovedist to an object's
+ * world_x, world_y and world_z (objectWords points at its ObjectRecord, read
+ * as 32-bit words 1 to 3) and clamps each to 0x1000000 either way of 0.
+ * Returns world_z after the lower clamp only, so a value above 0x1000000
+ * comes back unclamped although the stored one is clamped; no caller uses
+ * the result. */
 // FUNCTION: XVT 0x4464C0
 int Object_AddTrigMoveDeltaAndClampWorldPosition(uint32_t *objectWords)
 {
@@ -1120,6 +1231,17 @@ int Object_AddTrigMoveDeltaAndClampWorldPosition(uint32_t *objectWords)
 	return result;
 }
 
+/* Draws one object that is not a craft (debris, a mine, an effect, a
+ * static object) for the current view, using the g_viewSpace* position and
+ * object view matrix the caller set. With no texture frame sequence for its
+ * type, it queues fuselage billboards (Damage_QueueCraftBillboards) and
+ * draws the model, but only while typeSpecificByte[0] is 0. Otherwise the
+ * frame at typeSpecificByte[0] in the sequence picks nothing (0xFF00 and
+ * up), the model (below 0x8000), or a textured billboard of size 256 queued
+ * at the projected point and turned to the object's roll on screen; the
+ * billboard is skipped when the view depth is negative or the point falls
+ * outside -65,536 to 65,535 on either axis. Writes
+ * g_billboardObjectOrTypeIndex. */
 // FUNCTION: XVT 0x446550
 void RenderNonCraftSceneObject(uint16_t objectIndex)
 {
@@ -1214,6 +1336,13 @@ void RenderNonCraftSceneObject(uint16_t objectIndex)
 		(int16_t)screenY, g_viewSpaceDepth, rotationAngle);
 }
 
+/* Breaks a piece off the craft in sourceObjectIndex: a small-debris slot
+ * takes the craft's position, angles and motion
+ * (Object_CopyStatePreservingStorage) and becomes object type
+ * CRAFT_SPECIES_COMPONENT, family 3, with no player owner, the craft's type
+ * as sourceObjectType, twice meshIndex in typeSpecificByte[0] (the mesh to
+ * draw) and a life of 4 to 11 simulated seconds. Returns the new slot, or
+ * UINT16_MAX when no debris slot is free. Does not check meshIndex. */
 // FUNCTION: XVT 0x4591C0
 uint16_t Object_SpawnDetachedComponent(uint16_t sourceObjectIndex,
 				       int16_t meshIndex)
@@ -1245,6 +1374,12 @@ uint16_t Object_SpawnDetachedComponent(uint16_t sourceObjectIndex,
 	return objectIndex;
 }
 
+/* Throws a fragment effect off sourceObjIdx: an explosion slot takes the
+ * source's state and becomes an explosion (family 5) of object type 133 or
+ * 134 at random, with no player owner, its yaw and pitch each turned by a
+ * random 0x100 to 0x8FF either way, its speed raised by 50 to 305, and a
+ * life of 1 to 4 simulated seconds. Returns the new slot, or UINT16_MAX
+ * when no explosion slot is free. */
 // FUNCTION: XVT 0x4592D0
 uint16_t Object_SpawnEffectFragment(uint16_t sourceObjIdx)
 {
@@ -1300,6 +1435,14 @@ uint16_t Object_SpawnEffectFragment(uint16_t sourceObjIdx)
 	return objectIndex;
 }
 
+/* Like Object_SpawnEffectFragment, but the fragment is object type 157
+ * ((uint8_t)-99) with effectSize 2 and typeSpecificByte[0] 2; it faces back
+ * along the source (a half turn of yaw, pitch mirrored), turned by a random
+ * 0x100 to 0x20FF either way on each angle, flies at speed 35 to 50 for 39 to
+ * 42 ticks, and is moved at once by four times the distance one step at
+ * g_simStepsPerSecond covers. Returns the new slot, or UINT16_MAX when no
+ * explosion slot is free. Its only caller, FlightObject_UpdateSpecialBehavior,
+ * makes three at a time for an active craft whose chaff is active. */
 // FUNCTION: XVT 0x459480
 uint16_t Object_SpawnLocalEffectFragment(uint16_t sourceObjIdx)
 {
@@ -1384,6 +1527,12 @@ uint16_t Object_SpawnLocalEffectFragment(uint16_t sourceObjIdx)
 	return objectIndex;
 }
 
+/* Finds the first free slot (objectType 0) in genusId's range in
+ * g_objectSlotRangeByGenus, sets its mobj->sourceObjIdx and effectSize to 0,
+ * and resets its proximity lists (collide_ResetObjectProximityForSlot; the
+ * modern build also calls XvtFlightIntegration_ResetSlotAndMotion). Returns
+ * the slot, or UINT16_MAX when the range is full or empty. Does not check
+ * genusId. */
 // FUNCTION: XVT 0x459750
 uint16_t Object_AllocSlotForGenus(uint16_t genusId)
 {
@@ -1418,6 +1567,9 @@ uint16_t Object_AllocSlotForGenus(uint16_t genusId)
 	return UINT16_MAX;
 }
 
+/* Returns the first free static slot (objectType 0) of the
+ * g_regionStaticObjectSlotCount after g_regionMainObjectSlotEnd, or
+ * UINT16_MAX when all are used. */
 // FUNCTION: XVT 0x4597F0
 uint16_t Object_FindFreeMissionSlot(void)
 {
@@ -1438,6 +1590,13 @@ uint16_t Object_FindFreeMissionSlot(void)
 	return UINT16_MAX;
 }
 
+/* Copies the object in srcObjIdx onto dstObjIdx: the contents of its craft,
+ * guidance and character records where both slots have one, its
+ * MobileObject where both have one, and its ObjectRecord; the destination
+ * keeps its own mobj, pCraft, pWarheadGuidance and pCharData pointers. Then
+ * resets the destination's proximity lists; the modern build first calls
+ * XvtFlightIntegration_ResetSlotAndMotion. Does not check that the
+ * destination has a MobileObject. */
 // FUNCTION: XVT 0x459F30
 void Object_CopyStatePreservingStorage(unsigned int dstObjIdx,
 				       unsigned int srcObjIdx)
@@ -1513,6 +1672,11 @@ void Object_CopyStatePreservingStorage(unsigned int dstObjIdx,
 	collide_ResetObjectProximityForSlot((uint16_t)dstObjIdx);
 }
 
+/* Points mobj of each slot below g_regionMainObjectSlotEnd at its entry in
+ * g_mobileObjectPoolBase. A second pass would point pWarheadGuidance,
+ * pCraft or pCharData at the pool entries named in
+ * g_mobileObjectLinkIndices, but every index there is -1, so it links
+ * nothing. */
 // FUNCTION: XVT 0x45A0C0
 void Object_RelinkMobileObjectPointers(void)
 {
@@ -1565,6 +1729,11 @@ void Object_RelinkMobileObjectPointers(void)
 	}
 }
 
+/* Measures from the object in fromObjIdx to the center of mesh meshIdx of
+ * targetObjIdx, turned by the target's orientation: leaves the direction
+ * and distance in trig2_ctop's outputs (trig2_xyangle, trig2_pitch,
+ * trig2_polardistance) and returns collide_roughdistance3d of the offset.
+ * Writes g_worldLoc* and g_rotated*. Does not check meshIdx. */
 // FUNCTION: XVT 0x4836E0
 unsigned int Object_DirectionAndDistanceToMeshCenter(uint16_t fromObjIdx,
 						     uint16_t targetObjIdx,
@@ -1601,6 +1770,9 @@ unsigned int Object_DirectionAndDistanceToMeshCenter(uint16_t fromObjIdx,
 	return (unsigned int)collide_roughdistance3d(deltaX, deltaY, deltaZ);
 }
 
+/* Returns 1 when objIdx is a player's craft whose beam system works and is
+ * on, is the decoy beam, and has output; else 0, including for UINT16_MAX,
+ * slots past the craft slots, AI craft and objects with no craft record. */
 // FUNCTION: XVT 0x484F80
 uint8_t Object_HasActiveDecoyBeam(uint16_t objIdx)
 {

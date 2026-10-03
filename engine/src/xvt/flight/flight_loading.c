@@ -12,11 +12,22 @@
 #include "xvt/render/renderer.h"
 #include "xvt/util/time.h"
 
+/* Calls made to FlightLoading_PulseAndDrawProgressScreen since the last
+ * reset; its low 7 bits are the bar's fill. Three functions write it:
+ * FlightLoading_ResetProgressState sets 0 at flight start,
+ * FlightLoading_PulseAndDrawProgressScreen adds 1 per call, and, in the
+ * modern build, XvtFlightTask_Update sets its low 7 bits to fill the bar. */
 // GLOBAL: XVT 0x5236A8
 uint32_t g_flightLoadingProgressStep;
+/* timeGetTime, in ms, when the loading bar was last drawn. Written only by
+ * FlightLoading_ResetProgressState and
+ * FlightLoading_PulseAndDrawProgressScreen. */
 // GLOBAL: XVT 0x5236AC
 uint32_t g_flightLoadingProgressLastDrawMs;
 
+/* Sets g_flightLoadingProgressStep to 0 and
+ * g_flightLoadingProgressLastDrawMs to now; the modern build also clears its
+ * record of the bar (XvtCockpitMessages_ClearProgress). */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x449110
 void FlightLoading_ResetProgressState(void)
@@ -28,6 +39,18 @@ void FlightLoading_ResetProgressState(void)
 	g_flightLoadingProgressLastDrawMs = timeGetTime();
 }
 
+/* Called between loading steps: adds 1 to g_flightLoadingProgressStep and,
+ * when 200 ms have passed since the last draw or the step's low 6 bits were
+ * 63, draws the loading bar and shows it. On the 63 case it first sends the
+ * other players a still-loading packet (FlightNet_BroadcastStillLoadingPulse).
+ * The bar sits at mid-height from a quarter to three quarters of the screen
+ * width, filled in 128 steps that start again from empty, its color index
+ * 48 plus the step divided by 128. To draw, it unlocks the surface fully,
+ * locks it once, then blits and flips (FlightDisplay_BlitRenderSurface,
+ * FlightDisplay_Flip) and locks it back to the count it found. The text
+ * cursor, clip rectangle and text colors are saved and put back. The modern
+ * build also marks the drawing as an overlay and records the bar for its own
+ * renderer. */
 // FUNCTION: XVT 0x449130
 void FlightLoading_PulseAndDrawProgressScreen(void)
 {
@@ -150,6 +173,9 @@ void FlightLoading_PulseAndDrawProgressScreen(void)
 #endif
 }
 
+/* Pulses the loading bar until its low 7 bits reach 127, then once more,
+ * which always draws it full. Only the original build calls this; the modern
+ * build sets the bits itself and pulses once. */
 // FUNCTION: XVT 0x4493C0
 void FlightLoading_DrawProgressToCompletion(void)
 {
@@ -159,6 +185,8 @@ void FlightLoading_DrawProgressToCompletion(void)
 	FlightLoading_PulseAndDrawProgressScreen();
 }
 
+/* Returns 1 when dpid is nonzero and matches the DirectPlay id of one of the
+ * 8 entries of g_pilotData.networkPlayers, else 0. */
 // FUNCTION: XVT 0x4493E0
 int PilotData_HasNetworkPlayerDpid(int dpid)
 {

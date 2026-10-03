@@ -5,59 +5,151 @@
 #include "xvt/flight/mission/mission.h"
 #include "xvt/render/renderer.h"
 
+/* Text color of each goals-page section, as the color letter
+ * FlightText_SetColor takes: 'J', 'N', 'F' and 'R' (0x4A, 0x4E, 0x46, 0x52)
+ * for sections 0 to 3, and 0 for 4 to 7. Nothing writes it. Read by
+ * Mfd_DrawMissionGoalsPage and by goals_outputgoal, which sets it back after
+ * drawing a percentage. */
 // GLOBAL: XVT 0x51BE80
 uint8_t g_goalTitleColorByIndex[8] = {0x4A, 0x4E, 0x46, 0x52, 0, 0, 0, 0};
 
+/* Per mission condition (a MISSION_COND_ value, 0 to 47), how many wordings
+ * its row of condition text has in strings.txt: 14 (one per amount wording)
+ * or 1; entry 47 is 0. StringTable_LoadGameStrings reads that many lines per
+ * row, and goals_DrawConditionText uses wording 0 when the count is 1.
+ * Nothing writes it. */
 // GLOBAL: XVT 0x51BEA0
 uint8_t g_goalConditionTextVariantCount[48] = {
 	1, 14, 14, 14, 14, 14, 14, 14, 14, 1, 1, 1,  14, 1,  1,	 1,
 	1, 1,  1,  14, 1,  1,  1,  1,  1,  1, 1, 1,  1,	 1,  1,	 1,
 	1, 1,  1,  1,  1,  1,  1,  1,  1,  1, 1, 14, 14, 14, 14, 0};
+/* Maps a goal amount (a GOAL_AMT_ value, 0 to 19) to the column of the
+ * condition text tables: 0 to 9 keep their value, the subset amounts 10 to
+ * 15 use the columns of 0 to 5, and 16 to 19 use 10 to 13. Read only by
+ * goals_outputgoal. */
 // GLOBAL: XVT 0x51BED0
 const uint16_t g_goalAmountTextVariantByOp[20] = {
 	0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 10, 11, 12, 13,
 };
+/* Maps goals_outputgoal's goal status, 0 to 5, to a block of 47 rows in the
+ * condition text tables: statuses 0, 2 and 3 use block 0, status 4 block 1,
+ * status 1 block 2 and status 5 block 3. */
 // GLOBAL: XVT 0x51BEF8
 const uint16_t g_goalStatusConditionRowBlock[6] = {0, 2, 0, 0, 1, 3};
+/* Condition text for craft whose name is feminine (g_craftGender), from
+ * strings.txt: row 47 times the status block plus the condition, column the
+ * amount wording. StringTable_LoadGameStrings fills it only when some craft
+ * is feminine; columns past a row's count in
+ * g_goalConditionTextVariantCount stay NULL. */
 // GLOBAL: XVT 0xA60A60
 const char *g_strGoalCondFeminine[188][14] = {0};
+/* Condition text for craft whose name is neuter, laid out as
+ * g_strGoalCondFeminine. StringTable_LoadGameStrings fills it only when some
+ * craft is neuter. */
 // GLOBAL: XVT 0xA633C0
 const char *g_strGoalCondNeutered[188][14] = {0};
+/* Condition text for craft whose name is masculine, and for species
+ * CRAFT_SPECIES_COMM_SAT_1 to CRAFT_SPECIES_NAV_BUOY_TYPE_2 that have no model
+ * index, laid out as g_strGoalCondFeminine. StringTable_LoadGameStrings
+ * always fills it. */
 // GLOBAL: XVT 0xA65CE0
 const char *g_strGoalCondMasculine[188][14] = {0};
+/* Per model index, the grammatical gender of the craft's name, a
+ * CRAFT_GENDER_ value. StringTable_LoadGameStrings sets entries 0 to 72 from
+ * the first letter, m, f or n, of each model name line in strings.txt and
+ * stops the game on any other letter; entries 73 to 79 stay 0, masculine. */
 // GLOBAL: XVT 0xA686E0
 uint8_t g_craftGender[80] = {0};
+/* The two operator words (GOAL_OPERATOR_STR_ values) from strings.txt,
+ * filled by StringTable_LoadGameStrings. Nothing reads it. */
 // GLOBAL: XVT 0xA63380
 const char *g_strGoalOperators[2] = {0};
+/* Section titles and outcome words of the goals page (GOAL_TITLE_STR_
+ * values), from strings.txt by StringTable_LoadGameStrings. Read by
+ * Mfd_DrawMissionGoalsPage. */
 // GLOBAL: XVT 0xA63390
 const char *g_strGoalTitles[9] = {0};
+/* The amount words (GOAL_PERCENT_STR_ values) from strings.txt, filled by
+ * StringTable_LoadGameStrings. Nothing reads it. */
 // GLOBAL: XVT 0xA68610
 const char *g_strGoalPercentages[14] = {0};
 
+/* Family names from strings.txt, indexed through g_familyConvert; filled by
+ * StringTable_LoadGameStrings and drawn by goals_outputgoal for a goal on a
+ * family. */
 // GLOBAL: XVT 0xA68650
 const char *g_strGoalFamilyNames[7] = {0};
+/* Genus names from strings.txt, indexed through g_genusConvert; filled by
+ * StringTable_LoadGameStrings and drawn by goals_outputgoal for a goal on a
+ * genus. */
 // GLOBAL: XVT 0xA68670
 const char *g_strGoalGenusNames[16] = {0};
+/* Joining words of a goal line (GOAL_CONJ_STR_ values) from strings.txt,
+ * filled by StringTable_LoadGameStrings. goals_outputgoal uses the "less
+ * than" word before a time limit and the group, "and" and comma words in a
+ * list of flight groups. */
 // GLOBAL: XVT 0xA686B0
 const char *g_strGoalConjunctions[8] = {0};
+/* StringTable_LoadGameStrings fills only entry 0, from strings.txt; entries 1
+ * and 2 stay NULL. goals_outputgoal draws entry targetId - 1 for a goal whose
+ * target type is GOAL_TARGET_AI_LEVEL. */
 // GLOBAL: XVT 0xA686D4
 const char *g_strGoalEscape[3] = {0};
+/* Side words (GOAL_SIDE_STR_ values) from strings.txt, filled by
+ * StringTable_LoadGameStrings. goals_outputgoal draws entry 0 or 1 for a goal
+ * on IFF 0 or 1, and entry 2 after the mission's own name for a higher IFF. */
 // GLOBAL: XVT 0xA68730
 const char *g_strGoalSides[3] = {0};
 
+/* The word for an unknown value, the line after the warhead names in
+ * strings.txt, set by StringTable_LoadGameStrings. Drawn by
+ * Hud_UpdateTargetingComputerDisplay and Hud_DrawCmdTargetDetails where a
+ * target's cargo or time is not known. */
 // GLOBAL: XVT 0xA607AC
 const char *g_strUnknown = 0;
+/* Names of the species from CRAFT_SPECIES_COMM_SAT_1 (0x46) on, indexed by
+ * species minus 0x46; from strings.txt by StringTable_LoadGameStrings. Read
+ * by goals_DrawObjectTypeName for such a species with no model index, and by
+ * Hud_AppendObjectDisplayName and msg_formatObjectName. */
 // GLOBAL: XVT 0xA607B0
 const char *g_strSatMineProbeBuoyPilotNames[16] = {0};
+/* Status words from strings.txt, filled by StringTable_LoadGameStrings.
+ * Nothing reads it. */
 // GLOBAL: XVT 0xA607F0
 const char *g_strStatusStrings[9] = {0};
+/* Warhead names from strings.txt, for object types 0x8F to 0x9B, filled by
+ * StringTable_LoadGameStrings. Read by Hud_AppendObjectDisplayName and
+ * msg_formatObjectName. */
 // GLOBAL: XVT 0xA60820
 const char *g_strWarheadNames[13] = {0};
+/* Plural craft name per model index, from strings.txt by
+ * StringTable_LoadGameStrings. Read only by goals_DrawObjectTypeName. */
 // GLOBAL: XVT 0xA60860
 const char *g_strSpeciesNamesPlural[73] = {0};
+/* Wingman command words from strings.txt, filled by
+ * StringTable_LoadGameStrings. Nothing reads it. */
 // GLOBAL: XVT 0xA60990
 const char *g_strWingmanCommands[10] = {0};
 
+/* Draws one goal line of the goals page at the flight text cursor and ends it
+ * with a new line. A flight group target (targetType 1) draws the craft type,
+ * the group's name and the condition; for the special-cargo amounts (6 and 7)
+ * it also draws the special craft's number when
+ * Mission_GetSpecialCargoInspectedCount returns nonzero, else "?"; then any
+ * time limit as "m:ss" (timeLimit5SecUnits counts 5 seconds). A global group
+ * target (targetType 8) lists every flight group of that global group whose
+ * arrivalEnabled is set, joined with commas and "and", then the condition;
+ * with conditionTextOverride set it draws flight group targetId's craft type
+ * and name instead. Other targets draw a species, genus, family or IFF name,
+ * or entry targetId - 1 of g_strGoalEscape (types 7 and 10 draw condition 0's
+ * text), then the condition for species targetId + 1. conditionTextOverride,
+ * when not NULL, replaces the condition text for flight group and global
+ * group targets. A percentComplete of 0 or more is drawn as " (n%)" in a
+ * color picked by goalTitleIndex, then the color goes back to
+ * g_goalTitleColorByIndex[goalTitleIndex]. Returns the font line height plus
+ * 2, plus the extra height FlightText_GetWrapHeightForString reports for the
+ * pieces it measures. Writes no globals of its own. Does not check targetId,
+ * goalStatus (0 to 5) or amountOp (0 to 19) against their tables. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4150D0
 int16_t goals_outputgoal(uint16_t targetId, uint16_t condition,
@@ -474,6 +566,14 @@ int16_t goals_outputgoal(uint16_t targetId, uint16_t condition,
 	return consumedHeight;
 }
 
+/* Draws the condition text for a craft species and returns
+ * FlightText_GetWrapHeightForString's extra height for it. The row is
+ * condition plus conditionRowBase; the column is amountTextVariant, or 0 when
+ * the condition has one wording in g_goalConditionTextVariantCount. A species
+ * with a model index takes the table of its g_craftGender; species
+ * CRAFT_SPECIES_COMM_SAT_1 to CRAFT_SPECIES_NAV_BUOY_TYPE_2 with none take
+ * g_strGoalCondMasculine. Any other species draws nothing and returns 0. Does
+ * not check condition (0 to 47) or that the chosen entry was loaded. */
 // FUNCTION: XVT 0x415A70
 int16_t goals_DrawConditionText(unsigned int craftSpecies, uint16_t condition,
 				uint16_t amountTextVariant,
@@ -521,6 +621,14 @@ int16_t goals_DrawConditionText(unsigned int craftSpecies, uint16_t condition,
 	return wrapHeight;
 }
 
+/* Draws a craft species' name and returns FlightText_GetWrapHeightForString's
+ * extra height for it. A species with a model index draws its plural name
+ * when usePluralName is nonzero, else its short name when useShortName is
+ * nonzero, else its long name; species CRAFT_SPECIES_COMM_SAT_1 to
+ * CRAFT_SPECIES_NAV_BUOY_TYPE_2 with none draw their
+ * g_strSatMineProbeBuoyPilotNames entry. For any other species the modern
+ * build draws an empty string; the original build leaves the name pointer
+ * unset. */
 // FUNCTION: XVT 0x415BA0
 int16_t goals_DrawObjectTypeName(uint16_t craftSpecies, int16_t usePluralName,
 				 int16_t useShortName)

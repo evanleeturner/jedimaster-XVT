@@ -11,6 +11,15 @@ extern "C" {
 #endif
 
 /* Balance of Power expands this XvT helper at its call sites. Do not copy it into callers. */
+/* Returns 1 when the AI may target the object, else 0. Not 0xFFFF, an empty
+ * slot, a craft going into hyperspace (that maneuver with maneuverPhase not
+ * 0), or a craft of kind CRAFT_OBJECT_KIND_UNKNOWN_1, breaking up or
+ * exploding. Nor a craft with its decoy beam on that lies farther from the
+ * craft in g_paiContext than AI_DECOY_RANGE_SMALL, when a starfighter,
+ * transport or utility vehicle looks, or AI_DECOY_RANGE_LARGE for others; that
+ * test sets g_lastRoughDistance. Past those, a player's craft can be targeted,
+ * and an AI craft while its hullDamage is at most hullMax. A mobile object
+ * with no craft can be. */
 static __inline int pai_IsObjectTargetable(unsigned int objIdx)
 {
 	ObjectRecord *object;

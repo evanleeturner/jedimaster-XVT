@@ -43,35 +43,55 @@ enum HudMfdElementIndex {
 };
 
 struct HudCockpitResourceDescriptor {
+	/* 0 when the view is not offered; below 0x80 the view uses its own
+	 * image, loaded at start when 1; 0x80 plus n uses view n's image and
+	 * 0xC0 plus n view n's image mirrored. */
 	uint8_t resourceRef;
+	/* Base name of the view's .LFD image file; the craft list view's also
+	 * names its .INT and .PNL files. */
 	char lfdName[9];
-	uint16_t viewportOriginX;
-	uint16_t viewportOriginY;
-	uint16_t viewportWidth;
-	uint16_t viewportHeight;
-	int16_t projectionOffsetY;
+	uint16_t viewportOriginX;  /* Flight viewport's left edge in pixels. */
+	uint16_t viewportOriginY;  /* Flight viewport's top edge in pixels. */
+	uint16_t viewportWidth;	   /* Flight viewport's width in pixels. */
+	uint16_t viewportHeight;   /* Flight viewport's height in pixels. */
+	int16_t projectionOffsetY; /* Copied to g_projOffsetY for the view. */
+	/* Name drawn at layout 49 when the view uses image 17. */
 	char displayName[16];
 };
 
 struct HudElementLayout {
-	uint16_t x;
-	uint16_t y;
+	uint16_t x; /* Left edge in pixels. */
+	uint16_t y; /* Top edge in pixels. */
 	/* Widget-specific .INT payload: the first panel sprite of a sprite widget, the digit count of a number
 	 * widget, the target inset's width, or the warning line's background color. Label widgets skip a 0
 	 * and use their short text at 4 or less. */
-	uint16_t selector;
+	uint16_t selector; /* 0 hides labels; layout 396's set at run time. */
+	/* Sprite widgets: the blit's transparent color. Text widgets: the text
+	 * or background color. Laser charge bars run right to left when it is
+	 * not 0, shield widgets show percent text at 0xFFFF, and the target
+	 * inset's is its height and the camera distance divisor. */
 	uint16_t colorIndexOrWidgetParam;
+	/* Width of a text field's clip in pixels, or the fade amount of a faded
+	 * sprite; layouts 104 to 107 hold label widths stored at run time. */
 	uint16_t clipWidth;
+	/* In layout 127, a counter of the critical warning's steps at run
+	 * time. */
 	int16_t clipHeightOrForegroundColor; ///< Widget-specific .INT payload: clip height or foreground text color.
 };
 
 struct HudCockpitResource {
+	/* Handle of the memory holding the entries; 0 when not loaded at
+	 * start. */
 	int16_t memoryHandle;
+	/* Cockpit image, viewport span mask, palette (from 2 bytes in). */
 	uint8_t *entries[3];
 };
 
 struct RadarEllipseClampLimit {
+	/* Largest sideways offset of a blip, in pixels, in this entry's
+	 * 443-unit angle step. */
 	uint8_t xLimit;
+	/* Largest vertical offset of a blip, in pixels, in this angle step. */
 	uint8_t yLimit;
 };
 
@@ -118,14 +138,14 @@ extern uint16_t g_replayViewMode;
 extern int g_systemMessageDisplayEnabled;
 
 struct HudBeamSegmentOffset {
-	uint16_t x;
-	uint16_t y;
+	uint16_t x; /* Pixels right of layout 51. */
+	uint16_t y; /* Pixels below layout 51. */
 };
 
 struct HudRadarBlipPoint {
-	uint16_t x;
-	uint16_t y;
-	uint16_t color;
+	uint16_t x;	/* Screen x in pixels. */
+	uint16_t y;	/* Screen y in pixels. */
+	uint16_t color; /* Palette index. */
 };
 
 extern uint16_t g_radarBlipColor;
@@ -145,8 +165,10 @@ extern uint16_t g_radarTargetMarkerDrawX;
 extern uint16_t g_radarTargetMarkerDrawY;
 
 struct HudPanelSpriteFileInfo {
-	char baseName[9];
+	char baseName[9]; /* Base name of the cockpit's .PNL file. */
+	/* With spriteCountAddend, the number of sprites read from it. */
 	uint8_t spriteCount;
+	/* Added to spriteCount for the number of sprites read. */
 	uint8_t spriteCountAddend;
 };
 

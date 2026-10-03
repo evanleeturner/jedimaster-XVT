@@ -21,22 +21,37 @@
 
 #include <string.h>
 
+/* Side offset, in world units along the escorted craft's side axis, of each
+ * escort station, indexed by the escort order's variable1: with the Y and Z
+ * tables, entries 0 to 26 form a three by three by three grid 3,072 apart and
+ * entry 27 is 0 on all three axes. paiman_escortmaneuver, its only reader,
+ * multiplies the offset by 16 when the escorted craft's type has a
+ * maxBoundsExtent of 3,000 or more. */
 // GLOBAL: XVT 0x527768
 const int16_t g_aiEscortStationOffsetXByVariable[28] = {
 	-3072, 0,     3072,  -3072, 0,	   3072,  -3072, 0,    3072,  -3072,
 	0,     3072,  -3072, 0,	    3072,  -3072, 0,	 3072, -3072, 0,
 	3072,  -3072, 0,     3072,  -3072, 0,	  3072,	 0};
+/* Offset along the escorted craft's up axis of each escort station, indexed by
+ * the escort order's variable1; see g_aiEscortStationOffsetXByVariable. */
 // GLOBAL: XVT 0x5277A0
 const int16_t g_aiEscortStationOffsetYByVariable[28] = {
 	3072,  3072,  3072,  3072,  3072,  3072,  3072,	 3072, 3072,  0,
 	0,     0,     0,     0,	    0,	   0,	  0,	 0,    -3072, -3072,
 	-3072, -3072, -3072, -3072, -3072, -3072, -3072, 0};
+/* Offset along the escorted craft's forward axis of each escort station,
+ * indexed by the escort order's variable1; see
+ * g_aiEscortStationOffsetXByVariable. */
 // GLOBAL: XVT 0x5277D8
 const int16_t g_aiEscortStationOffsetZByVariable[28] = {
 	3072, 3072, 3072, 0, 0,	    0,	   -3072, -3072, -3072, 3072,
 	3072, 3072, 0,	  0, 0,	    -3072, -3072, -3072, 3072,	3072,
 	3072, 0,    0,	  0, -3072, -3072, -3072, 0};
 
+/* Side offset, in model bound sizes, of each place in each of the 34
+ * formations, by craftOrdinal 0 to 5. paiman_calcformation,
+ * Mission_InitFlightGroupObjectSlot and Mission_ResolveFormationSlotWorldLoc
+ * read it. */
 // GLOBAL: XVT 0x527970
 const int16_t g_formPosX[34][6] = {
 	{0, 1, -1, 2, -2, 3},	  {0, 1, -2, -3, 2, 3},
@@ -57,6 +72,8 @@ const int16_t g_formPosX[34][6] = {
 	{0, 2, -3, 3, -2, 0},	  {-1, 1, -2, 2, -1, 1},
 	{0, 0, 0, 0, 0, 0},	  {-1, 1, -2, 2, -1, 1},
 };
+/* Forward offset, in model bound sizes, of each place in each of the 34
+ * formations, by craftOrdinal 0 to 5; see g_formPosX. */
 // GLOBAL: XVT 0x527B08
 const int16_t g_formPosY[34][6] = {
 	{0, -1, -1, -2, -2, -3},  {3, 2, 1, 0, -1, -2},
@@ -77,6 +94,8 @@ const int16_t g_formPosY[34][6] = {
 	{0, 0, 0, 0, 0, 0},	  {2, 2, 0, 0, -2, -2},
 	{2, 2, 0, 0, -2, -2},	  {0, 0, 0, 0, 0, 0},
 };
+/* Up offset, in model bound sizes, of each place in each of the 34 formations,
+ * by craftOrdinal 0 to 5; see g_formPosX. */
 // GLOBAL: XVT 0x527CA0
 const int16_t g_formPosZ[34][6] = {
 	{0, 0, 0, 0, 0, 0},	  {0, 1, -1, -2, 2, 3},
@@ -97,32 +116,55 @@ const int16_t g_formPosZ[34][6] = {
 	{3, -3, 1, 1, -3, 0},	  {0, 0, 0, 0, 0, 0},
 	{1, -1, 2, -2, 1, -1},	  {2, 2, 0, 0, -2, -2},
 };
+/* What each formation's offsets are divided by: 3 for formations 1 and 28 to
+ * 30, 2 for 31 to 33, else 1. Read by paiman_calcformation and
+ * Mission_InitFlightGroupObjectSlot. */
 // GLOBAL: XVT 0x527E38
 const int16_t g_formationDivisor[34] = {1, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 					1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 					1, 1, 1, 1, 3, 3, 3, 2, 2, 2};
 
+/* Simulated seconds, by skill tier 0 to 2, between the course updates of the
+ * turn-away and turn-inside maneuvers; the readers multiply by
+ * SIMULATION_TICKS_PER_SECOND. Entry 3 is 0. Nothing writes it. */
 // GLOBAL: XVT 0x527760
 uint16_t g_aiTurnAwayStateDelayBySkill[4] = {5, 3, 1, 0};
 
+/* Throttle, as a fraction of 65,535, for each mission order throttle setting 0
+ * to 10, in tenths; entry 11 is 0. The cruise and rendezvous maneuvers,
+ * Mission_InitFlightGroupObjectSlot and Player_UnbindFromCurrentCraft read it.
+ * Nothing writes it. */
 // GLOBAL: XVT 0x527810
 uint16_t g_orderThrottleToCraftThrottleSpeed[12] = {0,	   6553,  13108, 19662,
 						    26216, 32768, 39322, 45876,
 						    52430, 58984, 65535, 0};
 
+/* Simulated seconds, by the flight group's AI level, between the weaves of the
+ * avoid-attacker maneuver: 8 down to 1, then 0. */
 // GLOBAL: XVT 0x527950
 const uint16_t g_aiAvoidAttackerDelaySecondsByGroupAI[8] = {8, 6, 5, 3,
 							    2, 1, 0, 0};
 
+/* A fraction of a simulated second, by the flight group's AI level, added to
+ * g_aiAvoidAttackerDelaySecondsByGroupAI; every entry is 0, so it adds
+ * nothing. */
 // GLOBAL: XVT 0x527960
 const uint16_t g_aiAvoidAttackerDelayFracQ16ByGroupAI[8] = {0, 0, 0, 0,
 							    0, 0, 0, 0};
 
+/* The speed paiman_outofhyperspacemaneuver gives an arriving craft for each
+ * maneuverPhase value: 3,600 for 0 to 5, 1,800 for 6 to 8, 900 for 9 and 10, 0
+ * for 11. It raises maneuverPhase before it reads, from 1 up to 10, so entries
+ * 0 and 11 are never read. */
 // GLOBAL: XVT 0x527938
 const uint16_t g_aiHyperspaceArrivalSpeedByPhase[12] = {
 	3600, 3600, 3600, 3600, 3600, 3600, 1800, 1800, 1800, 900, 900, 0,
 };
 
+/* The step function of each maneuver mode, which paiorder_updatecourseorder
+ * calls on each think; it returns nonzero when the maneuver is done. Mode 0
+ * runs paiorder_nullhandler; rocket attack shares the attack function, stop
+ * shares await-board, and evasive shares splits-dive. Nothing writes it. */
 // GLOBAL: XVT 0x527828
 AiCourseOrderManeuverProc g_aiCourseOrderManeuverTable[AI_MANEUVER_MODE_COUNT] =
 	{
@@ -162,6 +204,9 @@ AiCourseOrderManeuverProc g_aiCourseOrderManeuverTable[AI_MANEUVER_MODE_COUNT] =
 		paiman_dodgemaneuver,
 };
 
+/* The start function of each maneuver mode, which paiman_initmaneuver calls.
+ * Mode 0 calls paiorder_nullhandler through this void function type; the pairs
+ * that share a step function share a start function too. Nothing writes it. */
 // GLOBAL: XVT 0x5278B0
 AiManeuverInitProc g_maneuverInitTable[AI_MANEUVER_MODE_COUNT] = {
 	(AiManeuverInitProc)paiorder_nullhandler,
@@ -200,12 +245,22 @@ AiManeuverInitProc g_maneuverInitTable[AI_MANEUVER_MODE_COUNT] = {
 	paiman_initdodgemaneuver,
 };
 
+/* The step function paiorder_updatecourseorder picked last; only it writes and
+ * calls it. */
 // GLOBAL: XVT 0x9993F4
 AiCourseOrderManeuverProc g_aiCurrentManeuverProc;
 
+/* The start function paiman_initmaneuver picked last; only it writes and calls
+ * it. */
 // GLOBAL: XVT 0x9993F8
 AiManeuverInitProc g_aiCurrentManeuverInitProc = 0;
 
+/* Starts the craft's maneuverMode. Clears its push, hitsThisManeuver,
+ * warheadsFiredThisManeuver and warheadLockTicks, sets commandedSpeed to five
+ * times the current order's speed, rollState to 4 and maneuverPhase to 0, then
+ * runs the mode's start function from g_maneuverInitTable through
+ * g_aiCurrentManeuverInitProc. Works on g_curCraft and g_paiContext. Does not
+ * check maneuverMode against the table's 34 entries. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x49F360
 void paiman_initmaneuver(void)
@@ -228,6 +283,9 @@ void paiman_initmaneuver(void)
 	g_aiCurrentManeuverInitProc();
 }
 
+/* Starts turn inside: picks a side at random in maneuverPhase, sets the first
+ * heading with paiman_UpdateTurnInsideHeading, and runs it for 10 to 17 times
+ * SIMULATION_TICKS_PER_SECOND ticks. */
 // FUNCTION: XVT 0x49F450
 void paiman_initturninsidemaneuver(void)
 {
@@ -237,6 +295,9 @@ void paiman_initturninsidemaneuver(void)
 		SIMULATION_TICKS_PER_SECOND * ((GameRand() & 7) + 10);
 }
 
+/* Returns 1 once the maneuver timer has run out, else 0; each time
+ * secondaryManeuverTimer runs out it sets a new heading with
+ * paiman_UpdateTurnInsideHeading. */
 // FUNCTION: XVT 0x49F4A0
 int16_t paiman_turninsidemaneuver(void)
 {
@@ -249,6 +310,11 @@ int16_t paiman_turninsidemaneuver(void)
 	return 0;
 }
 
+/* Turns the craft a quarter turn off its attacker's yaw, or off the yaw of the
+ * fallback object when it has no attacker: minus 0x4000 for an odd
+ * maneuverPhase, plus for an even one. The turn step is half the effective
+ * skill plus 0x8000. Sets secondaryManeuverTimer to the tier's
+ * g_aiTurnAwayStateDelayBySkill seconds in ticks. */
 // FUNCTION: XVT 0x49F4E0
 void paiman_UpdateTurnInsideHeading(unsigned int fallbackObjIdx)
 {
@@ -283,6 +349,10 @@ void paiman_UpdateTurnInsideHeading(unsigned int fallbackObjIdx)
 		g_aiTurnAwayStateDelayBySkill[g_paiContext.skillTier];
 }
 
+/* Starts splits: no turn, and a pitch through a loop at full step with
+ * pitchState 2 until it comes back to targetZAngle 0x4000. It sets targetRoll
+ * to 0x8000 and rollStep to full but leaves rollState at 4 from
+ * paiman_initmaneuver, so no roll starts. */
 // FUNCTION: XVT 0x49F5C0
 void paiman_initsplitsmaneuver(void)
 {
@@ -295,6 +365,8 @@ void paiman_initsplitsmaneuver(void)
 	g_curCraft->aiFlight.pitchStepScale = 0xFFFFu;
 }
 
+/* Returns 1 once the roll and the pitch are done (rollState 4, pitchState 3),
+ * else 0. */
 // FUNCTION: XVT 0x49F620
 int16_t paiman_splitsmaneuver(void)
 {
@@ -302,6 +374,10 @@ int16_t paiman_splitsmaneuver(void)
 	       g_curCraft->aiFlight.pitchState == 3;
 }
 
+/* Starts the Immelmann: full throttle, a roll to 0 at full step, no turn, and a
+ * pitch to targetZAngle 0x4000 at full step without a loop, with pitchState set
+ * by which side of 0x4000 the pitch is on (3 when on it). Sets the maneuver
+ * timer to 0. */
 // FUNCTION: XVT 0x49F650
 void paiman_initimmelmannmaneuver(void)
 {
@@ -326,6 +402,10 @@ void paiman_initimmelmannmaneuver(void)
 	g_paiContext.controller->maneuverTimer = 0;
 }
 
+/* Steps the Immelmann by maneuverPhase; returns 1 at 2 once the roll and pitch
+ * are done, else 0. At 0, once the pitch is at 0x4000, it starts a pitch
+ * through a loop with pitchState 1 back to 0x4000 and moves to 1; at 1, once
+ * that ends, a roll to 0 at full step, no turn, and 2. */
 // FUNCTION: XVT 0x49F700
 int16_t paiman_immelmannmaneuver(void)
 {
@@ -363,6 +443,11 @@ int16_t paiman_immelmannmaneuver(void)
 	return 0;
 }
 
+/* Starts scissors: a turn to half a circle off the attacker's yaw, or its own
+ * when it has none, at half the effective skill plus 0x8000; a roll that does
+ * not stop (rollState 3) at full step, its way set by a random targetRoll; a
+ * maneuver timer of 10 to 17 times SIMULATION_TICKS_PER_SECOND and a secondary
+ * timer of 472 ticks. */
 // FUNCTION: XVT 0x49F7E0
 void paiman_initscissorsmaneuver(void)
 {
@@ -390,6 +475,11 @@ void paiman_initscissorsmaneuver(void)
 	g_paiContext.controller->secondaryManeuverTimer = 472;
 }
 
+/* Returns 1, setting rollState 4, once the maneuver timer has run out; else 0.
+ * Each time secondaryManeuverTimer runs out it turns again by half a circle and
+ * flips the roll's way, and sets the timer to 472 plus up to 236 ticks at
+ * random; a flight group of AI level 3 or more then fires a flare on one draw
+ * in four when it has one and cmFireCooldownTimer is 0. */
 // FUNCTION: XVT 0x49F8B0
 int16_t paiman_scissorsmaneuver(void)
 {
@@ -417,6 +507,9 @@ int16_t paiman_scissorsmaneuver(void)
 	return 0;
 }
 
+/* Starts rendezvous: steers at the aim point with paiman_setflighttotarget and
+ * sets the throttle from the order's throttle setting, full when that gives
+ * 0. */
 // FUNCTION: XVT 0x49F9A0
 void paiman_initrendezvousmaneuver(void)
 {
@@ -433,6 +526,8 @@ void paiman_initrendezvousmaneuver(void)
 	paiman_setpower(g_paiContext.objectIndex, throttle);
 }
 
+/* Steers at the aim point and sets the throttle as
+ * paiman_initrendezvousmaneuver does; returns 0. */
 // FUNCTION: XVT 0x49FA10
 int16_t paiman_rendezvousmaneuver(void)
 {
@@ -450,6 +545,10 @@ int16_t paiman_rendezvousmaneuver(void)
 	return 0;
 }
 
+/* Starts cruise: levels the craft with paiman_initcruiseandrunawaycontrols,
+ * steers at the aim point when its roll is below 0x8000, sets the throttle from
+ * the order's throttle setting and secondaryManeuverTimer to
+ * SIMULATION_TICKS_PER_SECOND. */
 // FUNCTION: XVT 0x49FA80
 void paiman_initcruisemaneuver(void)
 {
@@ -468,6 +567,17 @@ void paiman_initcruisemaneuver(void)
 		SIMULATION_TICKS_PER_SECOND;
 }
 
+/* Flies the order's waypoints; returns 0 on every path. Within 0x1000 world
+ * units of the aim point (0x2000 for a starship) it moves to the next waypoint
+ * with paiman_AdvanceOrderWaypoint; a starship or freighter whose waypointIndex
+ * came back unchanged then stops: turn done, throttle 0, and a push onto the
+ * aim point. Each time secondaryManeuverTimer runs out, when neither climbing
+ * nor diving and more than 512 off the aim point in Z, it sets a pitch toward
+ * it, climbState 1 and throttle 0xC000, which the paiman_setflighttotarget call
+ * right after and the throttle below replace; it steers at the aim point,
+ * resets the timer, and rolls level once its turn is done. The throttle is the
+ * order's setting; a starship's is 0 while it turns more than 0x1000 off
+ * course. Sets the trig2_ globals. */
 // FUNCTION: XVT 0x49FB20
 int16_t paiman_cruisemaneuver(void)
 {
@@ -564,6 +674,11 @@ int16_t paiman_cruisemaneuver(void)
 	return 0;
 }
 
+/* Moves the craft to its next waypoint, mission point 4 to 11, and targets it:
+ * past 11 or at a point not enabled it goes back to 4, and on formldr1pln,
+ * formevadeldr1pln or starshipformpln that adds 1 to the current order slot's
+ * goalProgress. Clears the target's signature and live flag and sets the aim
+ * point. The argument is ignored. */
 // FUNCTION: XVT 0x49FE90
 void paiman_AdvanceOrderWaypoint(int objectIndex)
 {
@@ -594,6 +709,8 @@ void paiman_AdvanceOrderWaypoint(int objectIndex)
 	pai_UpdateAimPointFromOrderTarget();
 }
 
+/* Starts head toward at full throttle: steers at the aim point and sets
+ * secondaryManeuverTimer to SIMULATION_TICKS_PER_SECOND. */
 // FUNCTION: XVT 0x49FF70
 void paiman_initheadtowardfullmaneuver(void)
 {
@@ -603,6 +720,8 @@ void paiman_initheadtowardfullmaneuver(void)
 		SIMULATION_TICKS_PER_SECOND;
 }
 
+/* Each time secondaryManeuverTimer runs out, moves the aim point to the target
+ * and steers at it at full throttle, then resets the timer. Returns 0. */
 // FUNCTION: XVT 0x49FFA0
 int16_t paiman_headtowardfullmaneuver(void)
 {
@@ -616,6 +735,9 @@ int16_t paiman_headtowardfullmaneuver(void)
 	return 0;
 }
 
+/* Starts run away: levels the craft with paiman_initcruiseandrunawaycontrols
+ * and, when its roll is below 0x8000, turns to half a circle off the heading to
+ * the aim point. */
 // FUNCTION: XVT 0x49FFF0
 void paiman_initrunawaymaneuver(void)
 {
@@ -625,6 +747,8 @@ void paiman_initrunawaymaneuver(void)
 	}
 }
 
+/* Turns to half a circle off the heading to the aim point, the pitch still
+ * following the aim point, at full throttle; returns 0. */
 // FUNCTION: XVT 0x4A0030
 int16_t paiman_runawaymaneuver(void)
 {
@@ -633,6 +757,9 @@ int16_t paiman_runawaymaneuver(void)
 	return 0;
 }
 
+/* Starts the head-on attack: targets the last attacker, with its signature, and
+ * sets hasLiveTarget to 1 even when there is none (target 0xFFFF); steers at
+ * the aim point at full throttle for 1,888 ticks. */
 // FUNCTION: XVT 0x4A0060
 void paiman_initheadonattackmaneuver(void)
 {
@@ -650,6 +777,8 @@ void paiman_initheadonattackmaneuver(void)
 	g_paiContext.controller->maneuverTimer = 1888;
 }
 
+/* Returns 1 once the maneuver timer has run out; else steers at the aim point
+ * at full throttle and returns 0. */
 // FUNCTION: XVT 0x4A00F0
 int16_t paiman_headonattackmaneuver(void)
 {
@@ -661,9 +790,21 @@ int16_t paiman_headonattackmaneuver(void)
 	return 0;
 }
 
+/* Does nothing. */
 // FUNCTION: XVT 0x4A0130
 void paiman_initfollowleadermaneuver(void) {}
 
+/* Keeps a follower with its leader; returns 0 on every path. Farther than
+ * 0x10000 world units from the leader (327,680 for a starship) it flies at the
+ * leader's position at full throttle with no push. Otherwise it takes the
+ * leader's heading, or the heading the leader is turning to, at an eighth of
+ * the effective skill plus 0x4000; matches a player leader's speed by moving
+ * its throttle 50 per unit of speed difference, or copies an AI leader's
+ * throttle; matches the leader's pitch and, when the leader has no
+ * impactObjIdx, its roll, snapping to them within 0x400. Then it pushes toward
+ * its formation place with paiman_calcformation, unless its leader is a
+ * player's craft at speed 10 or less, which clears the push. Sets the trig2_
+ * globals. */
 // FUNCTION: XVT 0x4A0140
 int16_t paiman_followleadermaneuver(void)
 {
@@ -813,6 +954,8 @@ int16_t paiman_followleadermaneuver(void)
 	return 0;
 }
 
+/* Starts setup attack: full throttle, and steers at the target with
+ * paiman_attacktarget. */
 // FUNCTION: XVT 0x4A0550
 void paiman_initsetupattackmaneuver(void)
 {
@@ -820,6 +963,8 @@ void paiman_initsetupattackmaneuver(void)
 	paiman_attacktarget(0);
 }
 
+/* Steers at the target with paiman_attacktarget, at half throttle while the
+ * craft's yaw is 0x3000 to 0xD000 off that heading, else full. Returns 0. */
 // FUNCTION: XVT 0x4A0580
 int16_t paiman_setupattackmaneuver(void)
 {
@@ -838,6 +983,8 @@ int16_t paiman_setupattackmaneuver(void)
 	return 0;
 }
 
+/* Starts attack and rocket attack: full throttle, and steers at the target with
+ * paiman_attacktarget. */
 // FUNCTION: XVT 0x4A05F0
 void paiman_initattackmaneuver(void)
 {
@@ -845,6 +992,29 @@ void paiman_initattackmaneuver(void)
 	paiman_attacktarget(0);
 }
 
+/* Runs attack and rocket attack; returns 1 when the break-off turn
+ * (maneuverPhase 1) has timed out, else 0. Clears the push each think. Before
+ * that it works out a break-off distance: 5,120 for a target outside the craft
+ * slots; for a freighter, starship or platform 0x2000, 0xA000 for type 54,
+ * 0x8000 more for types 90 and 91, doubled when the bearing to it lies outside
+ * 0x2800 to 0x5800 off its yaw; for other craft 1,536 to 5,120 by the flight
+ * group's AI level, doubled when the craft's yaw or pitch is more than 0x4000
+ * off the target's. The hits it takes before breaking off are the model's
+ * reactionThreshold, halved with the front shield below an eighth, or 1 at
+ * systemDamageHullThreshold, both only for a craft with shields. While farther
+ * than that distance and below that many hits it attacks: paiman_attacktarget,
+ * throttle 0xC000 in rocket attack, and in attack a throttle by bearing,
+ * distance and, from AI level 4, the target's speed; a craft with nonzero
+ * craftOrdinal then pushes away from the wingman with the lowest craftOrdinal
+ * below its own within a rough 1,000, and returns. Closer or hit enough, it
+ * clears warheadsFiredThisManeuver and warheadLockTicks; unless a starfighter
+ * in aiFlight.threatObjIdx has hit it enough, it breaks off, setting
+ * maneuverPhase 1: a random turn of 0x3000 to 0x6FFF either way, a random
+ * pitch, full throttle, for 20 to 27 times SIMULATION_TICKS_PER_SECOND against
+ * a freighter, starship or platform, else 2 to 5. Else it records that threat
+ * as its attacker and starts a maneuver from the under-attack choices at full
+ * throttle: a front and side choice when its yaw or pitch is 0x3000 or more off
+ * the threat's, else a rear choice after firing a flare when it can. */
 // FUNCTION: XVT 0x4A0620
 int16_t paiman_attackmaneuver(void)
 {
@@ -1241,6 +1411,9 @@ int16_t paiman_attackmaneuver(void)
 	return 0;
 }
 
+/* Starts zoom: full throttle, a roll that does not stop (rollState 3) its way
+ * set at random, a pitch at full step to 0x1001 to 0x2000 without a loop, no
+ * climb or dive, for 3 to 6 times SIMULATION_TICKS_PER_SECOND. */
 // FUNCTION: XVT 0x4A0E00
 void paiman_initzoommaneuver(void)
 {
@@ -1265,12 +1438,15 @@ void paiman_initzoommaneuver(void)
 	g_curCraft->aiFlight.pitchStepScale = 0xFFFFu;
 }
 
+/* Returns 1 once the maneuver timer has run out, else 0. */
 // FUNCTION: XVT 0x4A0EF0
 int16_t paiman_zoommaneuver(void)
 {
 	return g_paiContext.controller->maneuverTimer == 0;
 }
 
+/* Starts dive: full throttle, a pitch at full step to 0x5800 to 0x67FF without
+ * a loop, no climb, for 1,180 ticks. */
 // FUNCTION: XVT 0x4A0F00
 void paiman_initdivemaneuver(void)
 {
@@ -1287,12 +1463,16 @@ void paiman_initdivemaneuver(void)
 	g_paiContext.controller->maneuverTimer = 1180;
 }
 
+/* Returns 1 once the maneuver timer has run out, else 0. */
 // FUNCTION: XVT 0x4A0F90
 int16_t paiman_divemaneuver(void)
 {
 	return g_paiContext.controller->maneuverTimer == 0;
 }
 
+/* Starts splits dive, also used for evasive: a roll to 0x8000 at full step, no
+ * turn, and a pitch through a loop with pitchState 2 to 0x4000 to 0x7FFF, its
+ * step half the effective skill plus 0x8000. */
 // FUNCTION: XVT 0x4A0FA0
 void paiman_initsplitsdivemaneuver(void)
 {
@@ -1307,6 +1487,8 @@ void paiman_initsplitsdivemaneuver(void)
 		(pai_GetEffectiveSkillValue(g_curCraft) >> 1) + 0x8000;
 }
 
+/* Returns 1 once the roll and the pitch are done (rollState 4, pitchState 3),
+ * else 0. */
 // FUNCTION: XVT 0x4A1030
 int16_t paiman_splitsdivemaneuver(void)
 {
@@ -1314,6 +1496,9 @@ int16_t paiman_splitsdivemaneuver(void)
 	       g_curCraft->aiFlight.pitchState == 3;
 }
 
+/* Starts speed away: full throttle for 4,720 ticks, and the first weave from
+ * paiman_SetupSpeedAwayTurn, which replaces the targetXYAngle this function
+ * sets just before. */
 // FUNCTION: XVT 0x4A1060
 void paiman_initspeedawaymaneuver(void)
 {
@@ -1330,6 +1515,10 @@ void paiman_initspeedawaymaneuver(void)
 	paiman_SetupSpeedAwayTurn(g_paiContext.objectIndex);
 }
 
+/* Returns 1 once the maneuver timer has run out, else 0. Each time
+ * secondaryManeuverTimer runs out it starts the next weave with
+ * paiman_SetupSpeedAwayTurn, which replaces the negated targetXYAngle this
+ * function sets just before. */
 // FUNCTION: XVT 0x4A10D0
 int16_t paiman_speedawaymaneuver(void)
 {
@@ -1341,6 +1530,11 @@ int16_t paiman_speedawaymaneuver(void)
 	return g_paiContext.controller->maneuverTimer == 0;
 }
 
+/* Starts one weave of speed away: a Z push of 50 to 81 world units and a turn
+ * of 384 to 639 angle units off the object's yaw, both negated when the craft's
+ * Z push is 0 or more; turn step half the effective skill plus 0x8000; next
+ * weave in 118 ticks. The push is held in 16 unsigned bits, so the negated one
+ * is stored as 65,536 minus it, a large push up. */
 // FUNCTION: XVT 0x4A1110
 void paiman_SetupSpeedAwayTurn(unsigned int objectIdx)
 {
@@ -1366,6 +1560,8 @@ void paiman_SetupSpeedAwayTurn(unsigned int objectIdx)
 	g_paiContext.controller->secondaryManeuverTimer = 118;
 }
 
+/* Starts into hyperspace: steers at the aim point at full throttle, with
+ * maneuverPhase 0. */
 // FUNCTION: XVT 0x4A11B0
 void paiman_initintohyperspacemaneuver(void)
 {
@@ -1374,6 +1570,15 @@ void paiman_initintohyperspacemaneuver(void)
 	g_paiContext.controller->maneuverPhase = 0;
 }
 
+/* Takes the craft out through hyperspace; returns 0 on every path. At
+ * maneuverPhase 0 it steers at the aim point at full throttle and, within
+ * 0x4000 world units, marks the craft entering hyperspace, stops its roll,
+ * pitch and turn, and moves to 1 with a maneuver timer of 1,652 ticks and a
+ * second one of 944. At 1, once its speed reaches 3,600
+ * (Flight_UpdateCraftSteeringAndSpeed speeds it up), it counts the departure in
+ * g_missionFgStats and the team goals as its flags call for, emits message
+ * 0x87, records the left-region outcome and removes the craft, and the object
+ * it carries likewise. */
 // FUNCTION: XVT 0x4A11E0
 int16_t paiman_intohyperspacemaneuver(void)
 {
@@ -1619,6 +1824,11 @@ int16_t paiman_intohyperspacemaneuver(void)
 	return 0;
 }
 
+/* Starts the arrival from hyperspace: marks the craft arriving, sets its speed
+ * to 3,600 and maneuverPhase 0, targets the flight group's current mission
+ * point with the aim point there, and sets a maneuver timer of 2,596 ticks and
+ * a secondary one of SIMULATION_TICKS_PER_SECOND. Keeps thinkInterval in
+ * dockedTargetSignatures[0] and thinks every 59 ticks meanwhile. */
 // FUNCTION: XVT 0x4A1750
 void paiman_initoutofhyperspacemaneuver(void)
 {
@@ -1639,6 +1849,16 @@ void paiman_initoutofhyperspacemaneuver(void)
 	g_paiContext.controller->thinkInterval = 59;
 }
 
+/* Slows an arriving craft and returns 1 when it has arrived, else 0. Each time
+ * secondaryManeuverTimer runs out it raises maneuverPhase by 1, up to 10, and
+ * sets the speed from g_aiHyperspaceArrivalSpeedByPhase. A craft with no leader
+ * has arrived within 4,096 world units of its aim point or when the maneuver
+ * timer runs out; a follower, once its leader no longer runs
+ * outofhyperspacepln. On arrival it writes the plan id of the craft's first
+ * order, leader or follower, into byte 3 of the shared outofhyperspacepln plan
+ * data, the plan its first order switches to; restores thinkInterval; marks the
+ * craft active; clears its target; and sets its speed to 0 on nullpln or a
+ * stationary plan, else 250. */
 // FUNCTION: XVT 0x4A17F0
 int16_t paiman_outofhyperspacemaneuver(void)
 {
@@ -1717,9 +1937,24 @@ int16_t paiman_outofhyperspacemaneuver(void)
 	return 0;
 }
 
+/* Does nothing. */
 // FUNCTION: XVT 0x4A1A40
 void paiman_initescortmaneuver(void) {}
 
+/* Keeps the craft at its escort station; returns 0 on every path. The escorted
+ * craft is the first in the active region's craft slots of flight group
+ * escortTargetFG with no leader; one found in slot 255 counts as none. With
+ * none, it steers at the aim point at half throttle. Farther than 0x8000 from
+ * the escorted craft (0x20000 when its type has a maxBoundsExtent of 3,000 or
+ * more) or with the escorted craft disabled, it flies at it, a quarter turn off
+ * when disabled, at full throttle beyond 0x10000 else 0x4000, with no push.
+ * Otherwise it matches the escorted craft's heading, pitch and roll as
+ * paiman_followleadermaneuver does, and its speed by moving the throttle 50 per
+ * unit of speed difference, and pushes toward the station
+ * g_aiEscortStationOffset*ByVariable[variable1] names, times 16 for a large
+ * escorted craft. The push is cleared instead when object 255 is a player's
+ * craft at speed 10 or less: it reads the escorted craft's leader index, which
+ * is always 255. Does not check variable1 below 28. Sets the trig2_ globals. */
 // FUNCTION: XVT 0x4A1A50
 int16_t paiman_escortmaneuver(void)
 {
@@ -1910,12 +2145,37 @@ int16_t paiman_escortmaneuver(void)
 	return 0;
 }
 
+/* Starts boarding at maneuverPhase 0. */
 // FUNCTION: XVT 0x4A2010
 void paiman_initboardmaneuver(void)
 {
 	g_paiContext.controller->maneuverPhase = 0;
 }
 
+/* Boards targetObjIdx, an object or a mission point, in four stages kept in
+ * maneuverPhase; returns 1 when the last stage times out, after clearing the
+ * target, else 0. Stage 0 flies to an approach point by the target's docking
+ * point, worked out from both models' dock offsets, or 2,048 higher in Z for a
+ * mission point: half throttle beyond 0x2000 (the full throttle it sets beyond
+ * 0x4000 is replaced at once), a quarter beyond 2,048. There, while a player's
+ * target moves, it waits, and when that player is the local one it asks, with a
+ * warning sound, for the throttle to be set to 0 whenever that message is not
+ * already queued; then throttle 0 and stage 1. Stage 1 pushes the craft onto
+ * the docking point and turns it to the target's orientation at half step;
+ * within 16 world units it moves to stage 2 for 1,180 ticks times the order's
+ * variable1, counts its group's FLIGHT_GROUP_OUTCOME_FAILED_MISSION and the
+ * target group's FLIGHT_GROUP_OUTCOME_COMPLETED_MISSION once each, emits "has
+ * docked with" and the voice lines. In stage 2, on boardtogivepln with a
+ * player's target, it reloads the target one round per slot and repairs one
+ * system every 472 ticks, keeping the timer at 1,416 while it does. When the
+ * timer runs out it does the plan's work: give, take or swap the special cargo
+ * name, capture (the target joins its team and flies home or stays), destroy
+ * (the target starts selfdestroypln), pick up (it carries the target), contact,
+ * or repair. It then counts the target inspected by its team when their IFF
+ * match, adds 1 to goalProgress, records the target's signature in its docked
+ * list, counts the docked and boarded outcomes, and goes to stage 3 for 2,360
+ * ticks. Stage 3 pushes the craft to a point 0x4000 along its own up axis from
+ * the target, or, for a mission point, 500 in Z. */
 // FUNCTION: XVT 0x4A2020
 int16_t paiman_boardmaneuver(void)
 {
@@ -2859,6 +3119,13 @@ int16_t paiman_boardmaneuver(void)
 	}
 }
 
+/* Gives an object the IFF and team of the craft in g_paiContext, restores its
+ * working subsystems, clears its subsystem damage and last attacker, and marks
+ * it active. When the teams differed it updates the capture counts: taken back
+ * by its own flight group's team, it undoes the FLIGHT_GROUP_OUTCOME_CAPTURED
+ * count and clears capturedByFlightGroup; else it counts the capture for the
+ * new team, moving it from an earlier captor's team, and sets
+ * capturedByFlightGroup to ownerFlag with the capturing flight group. */
 // FUNCTION: XVT 0x4A3750
 void paiman_TransferObjectToAiTeam(unsigned int objectIdx, CraftData *craft,
 				   uint8_t ownerFlag)
@@ -2927,6 +3194,8 @@ void paiman_TransferObjectToAiTeam(unsigned int objectIdx, CraftData *craft,
 	craft->lastAttackerObjIdx = UINT16_MAX;
 }
 
+/* Starts await board, also used for stop: stops the roll, pitch and turn and
+ * sets throttle 0. */
 // FUNCTION: XVT 0x4A3920
 void paiman_initawaitboardmaneuver(void)
 {
@@ -2936,6 +3205,7 @@ void paiman_initawaitboardmaneuver(void)
 	paiman_setpower(g_paiContext.objectIndex, 0);
 }
 
+/* Keeps the craft stopped as paiman_initawaitboardmaneuver does; returns 0. */
 // FUNCTION: XVT 0x4A3960
 int16_t paiman_awaitboardmaneuver(void)
 {
@@ -2946,9 +3216,11 @@ int16_t paiman_awaitboardmaneuver(void)
 	return 0;
 }
 
+/* Starts head toward: steers at the aim point. */
 // FUNCTION: XVT 0x4A39A0
 void paiman_initheadtowardmaneuver(void) { paiman_setflighttotarget(0, 1); }
 
+/* Steers at the aim point and rolls level at full step; returns 0. */
 // FUNCTION: XVT 0x4A39B0
 int16_t paiman_headtowardmaneuver(void)
 {
@@ -2959,6 +3231,8 @@ int16_t paiman_headtowardmaneuver(void)
 	return 0;
 }
 
+/* Starts turn away: sets the course with paiman_setupturnawaycourse and runs
+ * for 3,540 ticks. */
 // FUNCTION: XVT 0x4A39F0
 void paiman_initturnawaymaneuver(void)
 {
@@ -2966,6 +3240,8 @@ void paiman_initturnawaymaneuver(void)
 	g_paiContext.controller->maneuverTimer = 3540;
 }
 
+/* Returns 1 once the maneuver timer has run out, else 0; each time
+ * secondaryManeuverTimer runs out it sets the course again. */
 // FUNCTION: XVT 0x4A3A10
 int16_t paiman_turnawaymaneuver(void)
 {
@@ -2978,6 +3254,10 @@ int16_t paiman_turnawaymaneuver(void)
 	return 0;
 }
 
+/* Turns the craft to its attacker's yaw, or half a circle off the object's own
+ * yaw when it has no attacker, at half the effective skill plus 0x8000, and
+ * sets secondaryManeuverTimer to the tier's g_aiTurnAwayStateDelayBySkill
+ * seconds in ticks. */
 // FUNCTION: XVT 0x4A3A50
 void paiman_setupturnawaycourse(unsigned int objectIdx)
 {
@@ -3000,12 +3280,17 @@ void paiman_setupturnawaycourse(unsigned int objectIdx)
 		SIMULATION_TICKS_PER_SECOND;
 }
 
+/* Starts out of hangar: a maneuver timer of 2,360 ticks. */
 // FUNCTION: XVT 0x4A3AF0
 void paiman_initoutofhangarmaneuver(void)
 {
 	g_paiContext.controller->maneuverTimer = 2360;
 }
 
+/* Returns 1 once the maneuver timer has run out, else 0. At that point it gives
+ * the whole flight group the mission's formation and spacing, and writes the
+ * plan id of the craft's first order, leader or follower, into byte 3 of the
+ * shared exithangarpln plan data, the plan its first order switches to. */
 // FUNCTION: XVT 0x4A3B00
 int16_t paiman_outofhangarmaneuver(void)
 {
@@ -3042,6 +3327,10 @@ int16_t paiman_outofhangarmaneuver(void)
 	return 0;
 }
 
+/* Starts avoid starship toward the targetXYAngle and targetZAngle the order
+ * set: a turn at half the effective skill plus 0x8000, a pitch at full step
+ * without a loop, and secondaryManeuverTimer at 15 to 22 times
+ * SIMULATION_TICKS_PER_SECOND. */
 // FUNCTION: XVT 0x4A3BB0
 void paiman_initavoidstarshipmaneuver(void)
 {
@@ -3063,9 +3352,12 @@ void paiman_initavoidstarshipmaneuver(void)
 	}
 }
 
+/* Returns 0; paiorder_avoidstarshiporder ends this maneuver. */
 // FUNCTION: XVT 0x4A3C40
 int16_t paiman_avoidstarshipmaneuver(void) { return 0; }
 
+/* Starts wait: a maneuver timer of the order's variable1 times 1,180 ticks,
+ * roll, pitch and turn stopped, throttle 0. */
 // FUNCTION: XVT 0x4A3C50
 void paiman_initwaitmaneuver(void)
 {
@@ -3080,9 +3372,11 @@ void paiman_initwaitmaneuver(void)
 	paiman_setpower(g_paiContext.objectIndex, 0);
 }
 
+/* Returns 0; pai_IsPlanCompleteForOrderSlot ends waitpln on the timer. */
 // FUNCTION: XVT 0x4A3CF0
 int16_t paiman_waitmaneuver(void) { return 0; }
 
+/* Starts drop off: stops the roll, pitch and turn and sets throttle 0. */
 // FUNCTION: XVT 0x4A3D00
 void paiman_initdropoffmaneuver(void)
 {
@@ -3092,6 +3386,18 @@ void paiman_initdropoffmaneuver(void)
 	paiman_setpower(g_paiContext.objectIndex, 0);
 }
 
+/* Delivers flight group variable2 minus 1 craft by craft; returns 0 on every
+ * path. At maneuverPhase 0 it pushes the craft to the formation place
+ * waypointIndex names, as Mission_ResolveFormationSlotWorldLoc places it around
+ * the last craft of that group with no leader, plus in Z the negated minimum Z
+ * of the craft's own model bounds, turning to face it when more than 256 away
+ * in X plus Y. Within 32 it starts that group's arrival for the place with
+ * Mission_StartFlightGroupArrival, setting g_currentFlightGroupIdx and
+ * g_spawnLeaderObjIdx, and goes to 1 for 1,180 ticks with a push of 1,500 in Z.
+ * At 1, once the timer runs out, it goes back to 0 at the next place. Copies
+ * waypointIndex into the order slot's goalProgress each think. With no leader
+ * in that group it passes 255 as the basis, where
+ * Mission_ResolveFormationSlotWorldLoc tests for 0xFFFF. */
 // FUNCTION: XVT 0x4A3D40
 int16_t paiman_dropoffmaneuver(void)
 {
@@ -3200,6 +3506,8 @@ int16_t paiman_dropoffmaneuver(void)
 	return 0;
 }
 
+/* Starts kamikaze: moves the aim point to the target and steers at it at full
+ * throttle. */
 // FUNCTION: XVT 0x4A4050
 void paiman_initkamikazemaneuver(void)
 {
@@ -3208,6 +3516,7 @@ void paiman_initkamikazemaneuver(void)
 	paiman_setpower(g_paiContext.objectIndex, UINT16_MAX);
 }
 
+/* Moves the aim point to the target and steers at it; returns 0. */
 // FUNCTION: XVT 0x4A4080
 int16_t paiman_kamikazemaneuver(void)
 {
@@ -3216,6 +3525,11 @@ int16_t paiman_kamikazemaneuver(void)
 	return 0;
 }
 
+/* Starts avoid attacker: a quarter turn either way at random at half the
+ * effective skill plus 0x8000, a pitch change of 0x3000 (plus from a pitch
+ * below 0x4000, else minus), a roll that does not stop, its way random, for 10
+ * to 17 times SIMULATION_TICKS_PER_SECOND, and the first weave after the flight
+ * group AI level's delay. */
 // FUNCTION: XVT 0x4A40A0
 void paiman_initavoidattackermaneuver(void)
 {
@@ -3270,6 +3584,12 @@ void paiman_initavoidattackermaneuver(void)
 					  [groupAI]);
 }
 
+/* Returns 1, setting rollState 4, once the maneuver timer has run out; else 0.
+ * Each time secondaryManeuverTimer runs out it weaves the other way: a turn of
+ * 0x3000 to 0x3FFF off its yaw, a flipped roll, a pitch change of 0x2000 to
+ * 0x2FFF (plus from below 0x4000, else minus), and the next weave after the AI
+ * level's delay plus up to 236 ticks; from AI level 3 it fires a flare on one
+ * draw in eight when it has one and cmFireCooldownTimer is 0. */
 // FUNCTION: XVT 0x4A4260
 int16_t paiman_avoidattackermaneuver(void)
 {
@@ -3338,6 +3658,8 @@ int16_t paiman_avoidattackermaneuver(void)
 	return 0;
 }
 
+/* Despite the name, starts what kamikaze starts: moves the aim point to the
+ * target and steers at it at full throttle. */
 // FUNCTION: XVT 0x4A4480
 void paiman_initdodgemaneuver(void)
 {
@@ -3346,6 +3668,8 @@ void paiman_initdodgemaneuver(void)
 	paiman_setpower(g_paiContext.objectIndex, UINT16_MAX);
 }
 
+/* Despite the name, does what paiman_kamikazemaneuver does: moves the aim point
+ * to the target and steers at it; returns 0. */
 // FUNCTION: XVT 0x4A44B0
 int16_t paiman_dodgemaneuver(void)
 {
@@ -3354,6 +3678,12 @@ int16_t paiman_dodgemaneuver(void)
 	return 0;
 }
 
+/* Steers the craft at its aim point from its live position: targetXYAngle is
+ * the heading there plus yawOffset, with a turn step of half the effective
+ * skill plus 0x4000. With steerPitch nonzero it also pitches at full step
+ * toward the pitch there, without a loop, and stops any climb or dive. Sets the
+ * trig2_ globals; callers read trig2_polardistance as the distance to the aim
+ * point. */
 // FUNCTION: XVT 0x4A44D0
 void paiman_setflighttotarget(uint16_t yawOffset, int steerPitch)
 {
@@ -3401,6 +3731,9 @@ void paiman_setflighttotarget(uint16_t yawOffset, int steerPitch)
 	}
 }
 
+/* Levels the craft: no climb or dive, a pitch at full step to 0x4000 without a
+ * loop (pitchState by which side it is on, 3 when on it), a roll to 0 at full
+ * step, and no turn. */
 // FUNCTION: XVT 0x4A45E0
 void paiman_initcruiseandrunawaycontrols(void)
 {
@@ -3425,6 +3758,14 @@ void paiman_initcruiseandrunawaycontrols(void)
 	g_curCraft->aiFlight.turnState = 0;
 }
 
+/* Steers the craft at its target: at the target's position in rocket attack or
+ * for a target with no mobile object, else at the point ahead of it that
+ * paiman_calcplanelead works out; targetXYAngle is the heading there plus
+ * yawOffset. It turns at half the effective skill plus 0x8000, with rollState 2
+ * only when 0x2000 or more off course or within 0x10000 (nothing sets rollState
+ * 2); stops a roll that does not stop; and when the pitch differs, pitches
+ * toward it at full step at full throttle, ending any climb, dive or loop. Does
+ * not check that targetObjIdx names an object. Sets the trig2_ globals. */
 // FUNCTION: XVT 0x4A4690
 void paiman_attacktarget(int16_t yawOffset)
 {
@@ -3487,6 +3828,16 @@ void paiman_attacktarget(int16_t yawOffset)
 	}
 }
 
+/* Sets the aim point where the target will be when a shot reaches it: the
+ * target's position plus its last frame's movement times a number of frames
+ * (XvtReferenceMotion_AxisDisplacement in the modern build with unlocked
+ * timing). For a target that is not moving that number is 0; else it is the
+ * frames the shot needs to cover trig2_polardistance at the closing speed,
+ * scaled by the effective skill. The closing speed adds the shot's speed (ion
+ * laser on disableldr1pln with a live target, else the craft's first laser) and
+ * the craft's, then takes off the target's speed times the cosine of the
+ * heading difference, or adds it when the headings differ by a quarter turn or
+ * more. For a moving target it sets the trig2_ globals. */
 // FUNCTION: XVT 0x4A4840
 void paiman_calcplanelead(int targetObjIdx)
 {
@@ -3593,6 +3944,12 @@ void paiman_calcplanelead(int targetObjIdx)
 		g_objectTable[targetObjIdx].world_z + leadFrames * deltaZ;
 }
 
+/* Pushes the craft toward its formation place around its leader: the offsets
+ * g_formPosX, g_formPosY and g_formPosZ give for its craftOrdinal, less those
+ * of place 0, times the leader's separation plus 1 and the model's bound sizes
+ * (half a bound more at separation 0), divided by g_formationDivisor, turned to
+ * the leader's axes and shifted by the model's boundSizeShift. Does not check
+ * formationType below 34 or craftOrdinal below 6. */
 // FUNCTION: XVT 0x4A4A10
 void paiman_calcformation(void)
 {
@@ -3661,6 +4018,9 @@ void paiman_calcformation(void)
 		g_objectTable[g_paiContext.objectIndex].world_z;
 }
 
+/* Starts a turn to targetXYAngle: within 0x300 of it, snaps the yaw there,
+ * marks the move vector and axes for rebuilding and sets turnState 3; else sets
+ * turnState 2 with turnStep, cut to 16 bits. */
 // FUNCTION: XVT 0x4A4CB0
 void paiman_setturn(int turnStep)
 {
@@ -3688,6 +4048,8 @@ void paiman_setturn(int turnStep)
 	}
 }
 
+/* Sets g_curCraft's throttle, a fraction of 65,535. The object index is
+ * ignored. */
 // FUNCTION: XVT 0x4A4D70
 void paiman_setpower(int ignoredObjIdx, int throttle)
 {
@@ -3695,6 +4057,12 @@ void paiman_setpower(int ignoredObjIdx, int throttle)
 	g_curCraft->throttleSpeed = throttle;
 }
 
+/* Sets the throttle that gives desiredSpeed. The full speed is the object's
+ * maxSpeedCache, raised by an eighth for each step the sum of its shield, beam
+ * and laser recharge levels falls below 6, or lowered by an eighth for each
+ * step above; full throttle when desiredSpeed reaches it, else desiredSpeed
+ * over it. The throttle goes to g_curCraft through paiman_setpower, not to the
+ * object's craft. */
 // FUNCTION: XVT 0x4A4D90
 void paiman_setspeed(int objIdx, unsigned int desiredSpeed)
 {

@@ -29,17 +29,33 @@ extern int g_dynamicMusicTrackRemainingMs;
 extern uint8_t g_dynamicMusicState;
 extern uint8_t g_dynamicMusicOutcomeLatched;
 
+/* The flight's shared countdown timers, in ticks: Flight_UpdateTimers counts
+ * each down by the step's ticks to 0, and the code each one paces reloads it
+ * when it runs. Saved and restored with the world state. */
 struct FlightGlobalCountdownTimers {
-	uint16_t unusedTimer00;
+	uint16_t unusedTimer00; /* Not used by name. */
+	/* Until Mission_UpdateLogic next checks the goals; reloaded with
+	 * 236. */
 	uint16_t missionGoalEvaluationTimer;
+	/* Until FlightObject_UpdateSpecialBehavior next runs its pass; it
+	 * reloads it with 29 (SPECIAL_BEHAVIOR_UPDATE_TICKS). */
 	uint16_t specialBehaviorUpdateTimer;
+	/* Until Mission_UpdateFlightGroupArrivals next checks arrival triggers;
+	 * it reloads it with 236, and collide_damagecraft sets 0 when it
+	 * destroys a player's craft. */
 	uint16_t missionArrivalTriggerScanTimer;
+	/* Until Mission_UpdateFlightGroupArrivals next checks arrival delays;
+	 * reloaded with 236. */
 	uint16_t missionArrivalDelayScanTimer;
+	/* Until Mission_UpdateLogic next checks the mission messages; it
+	 * reloads it with 1,180 (MISSION_MESSAGE_REFRESH_TICKS). */
 	uint16_t missionMessageScanTimer;
-	uint16_t unusedTimer0C;
-	uint16_t unusedTimer0E;
-	uint16_t unusedTimer10;
-	uint16_t unusedTimer12;
+	uint16_t unusedTimer0C; /* Not used by name. */
+	uint16_t unusedTimer0E; /* Not used by name. */
+	uint16_t unusedTimer10; /* Not used by name. */
+	uint16_t unusedTimer12; /* Not used by name. */
+	/* Until laser_weaponsfire next updates weapon power; reloaded with
+	 * 236. */
 	uint16_t weaponPowerUpdateTimer;
 };
 
@@ -56,9 +72,15 @@ enum FlightLaunchArgument {
 	FLIGHT_LAUNCH_ARG_COUNT,
 };
 
+/* The launch command line split into arguments by Flight_Main
+ * (XvtFlightEntry_Prepare in the modern build). */
 struct FlightLaunchArgs {
-	char *programName;
-	char *sentinel;
+	char *programName; /* Set to "xtie"; nothing reads it. */
+	char *sentinel;	   /* Set to "/trebla"; nothing reads it. */
+	/* Pointers into the command line, one per FLIGHT_LAUNCH_ARG_ index: the
+	 * mission file, the formal name and the player's name, whether this
+	 * player hosts, the game name, one nothing reads, and the player
+	 * count. */
 	char *arguments[FLIGHT_LAUNCH_ARG_COUNT];
 };
 
@@ -84,35 +106,99 @@ extern const uint8_t g_subsystemMessageArgById[10];
 extern const uint16_t g_subsystemRepairDuration[12];
 extern const uint16_t g_subsystemFailureHudMaskByRandomSlot[16];
 
+/* The flight's mission state: options taken from the game configuration at
+ * flight start, the proving grounds counters, the time limits and the mission's
+ * runtime goal state. Saved and restored with the world state and folded into
+ * the checksums; the modern build's snapshot code lists every field. */
 struct FlightMissionState {
+	/* 1 once the mission is to end: by the time limit
+	 * (Flight_UpdateTimers), when no connected player is left or the local
+	 * player has left (Flight_RecountPlayersAndCheckMissionEnd), on
+	 * quitting, and from the network code. The simulation stops stepping at
+	 * it. */
 	uint8_t missionEndPending;
+	/* Nonzero while the mission is the proving grounds course; only
+	 * Mission_Init writes it. */
 	uint8_t provingGroundsModeActive;
+	/* Craft type flown on the proving grounds course: flight start sets 2
+	 * for the traincourse launch option, else 0, before the mission
+	 * loads. */
 	uint8_t provingGroundsCraftType;
+	/* Proving grounds level: flight start sets 4 for traincourse, else
+	 * 0. */
 	uint8_t provingGroundsLevel;
+	/* Proving grounds score in points; flight start credits 10,000 for each
+	 * level below the starting one. */
 	uint32_t provingGroundsScore;
+	/* Zeroed by Mission_Init; not otherwise used by name. */
 	uint8_t reserved08[2];
+	/* Course checkpoints passed this level. */
 	uint16_t provingGroundsCheckpointsPassed;
+	/* Zeroed by Mission_Init; not otherwise used by name. */
 	uint8_t reserved0C[2];
+	/* Course checkpoints left this level. */
 	uint16_t provingGroundsCheckpointsRemaining;
+	/* Course targets hit, counted by Craft_DamageComponent. */
 	uint16_t provingGroundsTargetsDestroyed;
+	/* Bonus points for time left when a level is finished, counted up by
+	 * ProvingGrounds_UpdateCourse. */
 	uint16_t provingGroundsTimeBonus;
+	/* Game difficulty for the flight: g_gameConfig.difficulty (easy when
+	 * past hard), or medium for a multiplayer combat engagement. */
 	uint8_t difficulty;
+	/* Collisions option (g_gameConfig.collisions); read by
+	 * collide_collisions. */
 	uint8_t collisionsEnabled;
+	/* Craft jumping option, for the J key (g_gameConfig.craftJumping). */
 	uint8_t craftJumpingEnabled;
+	/* Random setup option (g_gameConfig.randomSetup), forced to 0 in a
+	 * combat engagement sequence; read by the mission setup and
+	 * arrivals. */
 	uint8_t randomVariationEnabled;
+	/* Battle length option (g_gameConfig.battleLengthIndex); set at flight
+	 * start, and no flight code reads it here. */
 	uint8_t battleLengthIndex;
+	/* Locate players option (g_gameConfig.locatePlayers); read by the
+	 * targeting, HUD and map code. */
 	uint8_t locatePlayersEnabled;
+	/* AI opponents option: g_gameConfig.aiOpponents in multiplayer, 1 solo;
+	 * Mission_Init also writes it. */
 	uint8_t aiOpponentsEnabled;
+	/* The g_gameConfig.craftWaves option; read by the flight group arrival
+	 * and replacement code. */
 	uint8_t playerFlightGroupWaveMode;
+	/* Mission time limit in minutes: the multiplayer option, or 255 solo,
+	 * which Mission_Init replaces with the mission file's own limit; 0 for
+	 * none. Starting the team victory limit replaces it
+	 * (Flight_UpdateTimers). */
 	uint8_t missionTimeLimitMinutes;
+	/* Minutes the mission goes on once one team is left or has met its
+	 * goals: g_gameConfig.lastTeamTimeLimitMinutes in multiplayer, 0
+	 * solo. */
 	uint8_t teamVictoryTimeLimitMinutes;
+	/* 1 once Flight_UpdateTimers has started the team victory limit. */
 	uint8_t teamVictoryTimeLimitStarted;
+	/* Set to 1 at flight start; collide_laserhitcraft reads it. */
 	uint8_t craftImpactBounceEnabled;
+	/* Players connected: the session's count at flight start, then kept by
+	 * Mission_UpdateLogic. */
 	int32_t connectedPlayerCount;
+	/* Most players connected at once this mission; above 1 it lets the team
+	 * victory limit start. */
 	int32_t maxConnectedPlayerCountThisMission;
+	/* The mission's runtime goal and score state, set up by
+	 * Mission_InitFlightRuntimeState. */
 	MissionFlightRuntimeState runtime;
+	/* Per mission message, 1 once its trigger has fired
+	 * (Mission_UpdateLogic). */
 	uint8_t messageTriggered[64];
+	/* Per mission message, the delay left before it shows, counted down
+	 * once per message check (1,180 ticks); set from the message's delay5s
+	 * when it triggers. */
 	uint8_t messageDelayCountdown[64];
+	/* Per global unit, the craft placed so far;
+	 * Mission_InitFlightGroupObjectSlot counts up and numbers each craft by
+	 * it. */
 	int32_t globalUnitCraftCount[11];
 };
 

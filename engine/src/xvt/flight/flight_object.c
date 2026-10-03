@@ -22,14 +22,44 @@
 
 #include <string.h>
 
+/* Slot index FlightObject_RecycleLocalDebrisNearPlayer looks at next, from
+ * g_localTransientSlotStart up to g_localDebrisSlotEnd, then back. Two
+ * functions write it: that one, one slot per call, and
+ * Mission_InitFlightRuntimeState, which sets it to the start. */
 // GLOBAL: XVT 0x9A8C06
 uint16_t g_localDebrisRecycleSlotCursor = 0;
 
+/* Position in g_billboardTextureFrameSequence: loaded from an object's
+ * typeSpecificByte[0], or for a craft's fuselage from the componentState entry
+ * after its last mesh, stepped, then stored back. Three functions write it:
+ * FlightObject_UpdateSpecialBehavior, FlightObject_AdvanceTextureFrameSequence
+ * and SceneBillboard_DrawOrQueueObject. */
 // GLOBAL: XVT 0xA90A5E
 uint16_t g_billboardTextureSequenceIndex = 0;
+/* Frame sequence of the object being animated or drawn: its type's
+ * textureFrameSequence, or g_fuselageDamageTextureFrameSequence for a fuselage.
+ * NULL when the type has none. Written by FlightObject_UpdateSpecialBehavior
+ * and SceneBillboard_DrawOrQueueObject. */
 // GLOBAL: XVT 0xA90A60
 int16_t *g_billboardTextureFrameSequence = NULL;
 
+/* Animates objects. Every call, runs ProvingGrounds_UpdateCourse in the proving
+ * grounds; the rest runs only when the global specialBehaviorUpdateTimer has
+ * reached 0 (in the modern build also only on a reference step), and rearms it
+ * to 29 ticks. It then walks the slots from g_activeRegionObjectSlotStart
+ * through the static slots: crew object types 100 to 105 tumble at rates set by
+ * their slot index. A craft, starfighter through platform, steps its fuselage
+ * damage animation once per fuselage mesh; while breaking up it spawns hull
+ * explosions or knocks off components with fragments; with a working subsystem
+ * and a pending plan other than nullpln, stationaryldrpln and stationaryflwpln
+ * it aims each live rotating laser turret at its turret target or swings it
+ * idly, and swings its communications and beam meshes; it moves X-wing and
+ * B-wing S-foil meshes and, when none moved, ends the S-foil move with
+ * IFMSG_128 or IFMSG_129; with chaff active it spawns three local fragments.
+ * Small debris and explosions step their texture animation, except type 89,
+ * which may spawn an effect fragment; objects without mobile data step theirs
+ * too. Writes g_curCraft, g_billboardTextureFrameSequence and
+ * g_billboardTextureSequenceIndex. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4015B0
 void FlightObject_UpdateSpecialBehavior(void)
@@ -624,6 +654,12 @@ void FlightObject_UpdateSpecialBehavior(void)
 #endif
 }
 
+/* Steps g_billboardTextureSequenceIndex one entry along
+ * g_billboardTextureFrameSequence and acts on the entry it lands on: -1 frees
+ * the object (objectType 0, and for a craft slot its linked objects too); -3
+ * starts over at index 0; -2 and any entry below 0xFF00 stay; any other entry
+ * from 0xFF00 up sets the index to the entry plus 0x100. Does nothing when the
+ * sequence is NULL. Only this file calls it. */
 // FUNCTION: XVT 0x4021A0
 void FlightObject_AdvanceTextureFrameSequence(unsigned int objectIdx)
 {
@@ -654,6 +690,20 @@ void FlightObject_AdvanceTextureFrameSequence(unsigned int objectIdx)
 	}
 }
 
+/* Runs a player's hyperspace jump, adding g_elapsedTicks to
+ * hyperspaceRuntime.phaseElapsedTicks first. A craft no longer active drops
+ * hyperspacePhase to 0. Stage 1 turns the craft toward roll 0, yaw 0 and pitch
+ * 0x4000 at 16 angle units per elapsed tick (roll at twice that) and slows it;
+ * once there and 0x49C ticks into the stage it moves to stage 2 with
+ * IFMSG_108_ENTERING_HYPERSPACE. Stage 2: on its first update, any craft or
+ * static object within 0x40000 units ahead along world +Y and close enough
+ * sideways aborts the jump (IFMSG_112, a warning sound, hyperspacePhase 0,
+ * speed 10). Until 0x49C ticks it then speeds up in steps every 0xEC ticks and
+ * moves along +Y. At 0x49C ticks the craft leaves: the outcome is recorded, the
+ * player may score 40 times the craft's point value, the object and its links
+ * are freed, the player's settings saved, and the player bound to another craft
+ * of theirs, or with none left, ended. At any other hyperspacePhase it does
+ * nothing more. */
 // FUNCTION: XVT 0x402240
 void FlightObject_UpdatePlayerHyperspaceTransition(int playerIdx)
 {
@@ -1043,6 +1093,13 @@ void FlightObject_UpdatePlayerHyperspaceTransition(int playerIdx)
 	}
 }
 
+/* Looks at one slot of the local debris range per call, advancing
+ * g_localDebrisRecycleSlotCursor. When that slot lies more than 0x800 units
+ * (rough distance) from the local player's craft, it turns the slot into a
+ * fresh small debris object (type 110 to 113, genus 11) placed near the craft:
+ * random amounts from -512 to 511 along its side and up axes, plus its forward
+ * axis / 16. Does nothing when the local player has no craft; does not check
+ * whether the slot held an object. */
 // FUNCTION: XVT 0x459850
 void FlightObject_RecycleLocalDebrisNearPlayer(void)
 {

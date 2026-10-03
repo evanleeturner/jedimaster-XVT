@@ -19,21 +19,44 @@
 #include "xvt/render/renderer.h"
 #include "xvt/render/scene_billboard.h"
 
+/* Names of the craft systems by DamageSystemId, for the damage page;
+ * StringTable_LoadGameStrings points each entry at a line it read from
+ * strings.txt, and they are NULL until then. Entry 10 (Damage Assessment)
+ * is the page's title. */
 // GLOBAL: XVT 0x99F900
 const char *g_strDamageSystemNames[DAMAGE_SYSTEM_ID_COUNT] = {0};
+/* Damaged systems the damage page last drew rows for; when the count
+ * changes, Damage_DisplayMfdPage clears the rows and resets the selection.
+ * Only that function writes it. */
 // GLOBAL: XVT 0x559790
 int16_t g_damageMfdDamagedSystemCountCached = 0;
+/* 1 while Damage_DisplayMfdPage draws its rows, which makes every row
+ * redraw; it sets 1 before the rows and 0 after, so every pass draws all
+ * of them. Only that function uses it. */
 // GLOBAL: XVT 0x559794
 int16_t g_damageMfdRedrawAllRows = 0;
+/* System selected on the damage page's previous pass, whose row is drawn
+ * again; only Damage_DisplayMfdPage uses it. */
 // GLOBAL: XVT 0x559798
 int16_t g_damageMfdLastSelectedSystemId = 0;
+/* Set to 1 by Damage_DisplayMfdPage when the page opens or the selection
+ * moves, and to 0 once the rows are drawn; nothing reads it. */
 // GLOBAL: XVT 0x55979C
 int16_t g_damageMfdSelectionChanged = 0;
+/* System selected on the damage page, a DamageSystemId; -1 makes
+ * Damage_DisplayMfdPage select the first damaged system it lists. Set to 0
+ * as a mission loads: by Flight_MainLoop in the original build and
+ * XvtFlightLoading_MissionSetup in the modern one. Flight_ProcessPlayerActions
+ * also reads it. */
 // GLOBAL: XVT 0xA004D4
 int16_t g_damageMfdCurrentSystemId = 0;
+/* Mesh count of the object type Damage_QueueCraftBillboardsForObjectType is
+ * working through; only that function uses it. */
 // GLOBAL: XVT 0x9EC60A
 uint16_t g_damageBillboardMeshCount = 0;
 
+/* Calls Damage_QueueCraftBillboardsForObjectType for objectIndex with the
+ * object's own type. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x41FC20
 void Damage_QueueCraftBillboards(uint16_t objectIndex)
@@ -42,6 +65,22 @@ void Damage_QueueCraftBillboards(uint16_t objectIndex)
 	Damage_QueueCraftBillboardsForObjectType(objectIndex, objectType);
 }
 
+/* Walks the meshes of objectType for the object being drawn and, for an
+ * object in a craft slot, queues a textured billboard over each intact
+ * fuselage mesh (componentState 0) when the craft's damage frame calls for
+ * one. The frame comes from g_fuselageDamageTextureFrameSequence at the
+ * craft's componentState entry just past its last mesh; frames 0x8000 to
+ * 0xFEFF are billboards, drawn at size 256 at the projected point and
+ * turned to the object's roll on screen. Along the way it sets
+ * g_billboardModelNodeSwitchIndex to each mesh, and
+ * g_billboardTargetSelectionState to 1 for the whole walk when the object is
+ * the local beam target, else to 2 on the mesh matching
+ * g_renderTargetComponentIdx and 0 on the others. g_renderObjectRef points
+ * at the object while it is the beam target and is put back on return.
+ * Returns that saved g_renderObjectRef. Also writes
+ * g_billboardObjectOrTypeIndex and g_damageBillboardMeshCount. In the
+ * original build's text haveBillboardAngle is read before anything sets it;
+ * the modern build sets it to 0 first. */
 // FUNCTION: XVT 0x41FC50
 uint16_t Damage_QueueCraftBillboardsForObjectType(unsigned int objectIndex,
 						  int objectType)
@@ -252,6 +291,20 @@ uint16_t Damage_QueueCraftBillboardsForObjectType(unsigned int objectIndex,
 	return savedRenderObjectRef;
 }
 
+/* Draws the damage page of the multi-function display for the local
+ * player's craft into g_flightOffscreenBuffer: under the Damage Assessment
+ * title, one row per fitted system whose health is 0, in the craft's
+ * display order, with its repair time. It marks the page closed when
+ * nothing is damaged. While it is the active page in a one-player game,
+ * action key 0x0D moves the selected system to the top of the display
+ * order, and 0xA6 and 0xA7 step the selection back and forward through the
+ * damaged systems. Returns 0 when the local player has no craft (clearing
+ * the page area if its state changed) or no craft record, or when the
+ * page's state changed while it is closing or nothing is damaged; otherwise
+ * 1 after drawing the rows. Writes g_mfdPageStates[MFD_PAGE_DAMAGE],
+ * g_mfdActivePage, g_mfdSecondaryPage, g_hudElementStateCache, the craft's
+ * systemDisplaySlotBySystem and the g_damageMfd* globals; the modern build
+ * also records the page through XvtCockpitPages_*. */
 // FUNCTION: XVT 0x46B650
 int16_t Damage_DisplayMfdPage(void)
 {
@@ -582,6 +635,15 @@ int16_t Damage_DisplayMfdPage(void)
 	}
 }
 
+/* Finds the system with health 0 before or after currentSystemIdx in the
+ * local player's craft's display order: back when directionStep is -1,
+ * forward otherwise. Returns 0 when currentSystemIdx itself does not have
+ * health 0. Despite the name, at either end it can return an undamaged
+ * system: back from the first damaged system it returns the last undamaged
+ * one in display order (the last system when all are damaged), and forward
+ * from the last it returns the first undamaged one, else the first damaged
+ * one. Looks at health only, not at whether the craft is fitted with the
+ * system; does not check that the local player has a craft. */
 // FUNCTION: XVT 0x46BE10
 int16_t Damage_FindAdjacentDamagedSystem(int16_t currentSystemIdx,
 					 int16_t directionStep)
@@ -667,6 +729,13 @@ int16_t Damage_FindAdjacentDamagedSystem(int16_t currentSystemIdx,
 	return result;
 }
 
+/* Draws one damage-page row for systemId at the text cursor: clears the
+ * clip rectangle, draws the system's name, then sets the cursor to (valueX,
+ * y) and draws the status with FlightText_DrawStringRightAligned: "N/A"
+ * when the local player's craft is not fitted with the system, the repair
+ * time as MM:SS when its health is 0, "100%", or else two digits and "%",
+ * each in its own color. Does not check that the local player has a craft,
+ * nor that health is at most 100. */
 // FUNCTION: XVT 0x46BF90
 void Damage_DrawMfdSystemStatusRow(DamageSystemId systemId, int16_t y,
 				   int16_t valueX)

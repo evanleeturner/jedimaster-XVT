@@ -21,9 +21,26 @@
 #include "xvt/render/flight_sw.h"
 #include "xvt/render/renderer.h"
 
+/* How far off the aim line the object Targeting_TestAimCone last tested lies:
+ * its up slope times 59578 / 65536 plus its side slope, each 256 times the
+ * offset over the forward distance; 0xFFFF when the test returned early. Only
+ * Targeting_TestAimCone writes it; Player_PickTargetInSight keeps the object
+ * with the lowest. */
 // GLOBAL: XVT 0x9A73A0
 uint16_t g_targetAngleScore = -1;
 
+/* Tells whether an object, or the point a reference names, lies in the aim cone
+ * ahead of the player's craft: returns 1 when both its up and side slopes are
+ * below a bound set by its size and distance, else 0. Returns 0 at once when
+ * the player has no craft, the point is not ahead or is more than 0x20000 ahead
+ * after scaling, or the side slope exceeds 160 or the up slope 100. Within a
+ * rough distance of 655360 it measures at 1/16 scale and, for the player's
+ * current target craft, at its selected component's center; beyond, at 1/256.
+ * narrowCone keeps the bound at the object's size, halving it close in;
+ * otherwise the bound is tripled, at least 9. Writes g_targetAngleScore (0xFFFF
+ * first), g_lastRoughDistance and g_worldLocX, g_worldLocY and g_worldLocZ.
+ * Reads the size of g_objectTable[objectIdx] without checking that objectIdx
+ * names an object slot. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x482640
 int16_t Targeting_TestAimCone(uint16_t objectIdx, int16_t narrowCone,
@@ -202,6 +219,14 @@ int16_t Targeting_TestAimCone(uint16_t objectIdx, int16_t narrowCone,
 	return upScore < extentSlope && sideSlope < extentSlope;
 }
 
+/* Draws a target box around craft in the active region for the local player,
+ * skipping empty slots, the player's own craft, its current target and craft
+ * with an active decoy beam. Only some craft get a box, each in a color named
+ * below: in a melee, the local player's team's starfighters
+ * (COLOR_LOCAL_QUICK_START_CRAFT) and the craft of any team whose score is the
+ * highest above 0 (COLOR_LEADING_TEAM); other players' craft, hostile or allied
+ * in a melee, else by IFF. Unless locatePlayersEnabled is set, a hostile craft
+ * the local player's team has not identified gets none. */
 // FUNCTION: XVT 0x482BE0
 void Targeting_DrawSceneObjectBoxes(void)
 {
@@ -367,6 +392,15 @@ void Targeting_DrawSceneObjectBoxes(void)
 	}
 }
 
+/* Draws the corner box around an object, or around its component componentIdx
+ * unless that is UINT16_MAX, as the local player sees it. The size is the
+ * component's max extent or Targeting_GetObjectBoxExtent, scaled by
+ * g_projScaleInt over depth and clamped from 4 pixels (8 above 320x240) up to
+ * three quarters of the screen width, plus 4. Draws map-view corners when the
+ * local player's mapCameraState is set, else depth-tested HUD corners. Does
+ * nothing for UINT16_MAX, in replay view, with the local player's target box
+ * off, or behind the camera. The modern build also hands the box to
+ * XvtRenderHud_TargetBox. */
 // FUNCTION: XVT 0x482EB0
 void Targeting_DrawObjectBox(uint16_t objectIdx, uint16_t componentIdx,
 			     uint8_t colorIndex)
@@ -450,6 +484,9 @@ void Targeting_DrawObjectBox(uint16_t objectIdx, uint16_t componentIdx,
 	}
 }
 
+/* Returns an object's size for target boxes: for a craft, the mean of its
+ * model's three bound sizes shifted left by boundSizeShift; else its type's
+ * maxBoundsExtent. */
 // FUNCTION: XVT 0x483030
 int Targeting_GetObjectBoxExtent(unsigned int objectIdx)
 {
@@ -479,6 +516,12 @@ int Targeting_GetObjectBoxExtent(unsigned int objectIdx)
 	return g_objectTypeTable[object->objectType].maxBoundsExtent;
 }
 
+/* Projects an object, a mission point reference (0x8000 and up, read from
+ * flight group 0), or the center of the object's component componentIdx unless
+ * that is UINT16_MAX, through the local player's camera. Always writes the view
+ * depth to outViewZ; writes the screen position only when the depth is
+ * positive. Writes g_worldLocX, g_worldLocY and g_worldLocZ. Only this file
+ * calls it. */
 // FUNCTION: XVT 0x4830D0
 void Targeting_ProjectObjectOrMissionPoint(unsigned int objOrMissionPointRef,
 					   uint16_t componentIdx,
@@ -526,6 +569,13 @@ void Targeting_ProjectObjectOrMissionPoint(unsigned int objOrMissionPointRef,
 	}
 }
 
+/* Nothing calls this. Writes an object's projected size in pixels, seen from
+ * cameraX, cameraY and cameraZ through the current camera matrix, to both
+ * outWidth and outHeight: the craft model's mean bound size, or the type's
+ * maxBoundsExtent, times g_projScaleInt over view depth, measured at 1/16 scale
+ * within 0x80000 units and 1/256 beyond. Writes 0 for UINT16_MAX or an object
+ * behind the camera. Writes g_worldLocX, g_worldLocY, g_worldLocZ and trig2's
+ * polar results. */
 // FUNCTION: XVT 0x483220
 void Targeting_ComputeProjectedObjectExtent(uint16_t objectIdx,
 					    uint16_t *outWidth,

@@ -26,6 +26,9 @@
 #include "xvt/render/sw3d.h"
 #include <string.h>
 
+/* Icon frame for each object type, 0 to 105, in the 640x480 icon set
+ * (RESOURCE\icons640.ico); FlightMap_DrawObjectIconAtViewPos uses frame 19
+ * for higher types. The modern build's map capture reads it too. */
 // GLOBAL: XVT 0x521240
 const uint8_t g_flightIcons640FrameByObjectType[106] = {
 	0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x00, 0x00,
@@ -38,6 +41,7 @@ const uint8_t g_flightIcons640FrameByObjectType[106] = {
 	0x3C, 0x3A, 0x3D, 0x3D, 0x00, 0x00, 0x43, 0x44, 0x45, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0x3D, 0x3D, 0x3D, 0x3D, 0x3D, 0x3D,
 };
+/* Width in pixels of each frame of the 640x480 icon set. */
 // GLOBAL: XVT 0x5212B0
 const uint8_t g_flightIcons640WidthByFrame[72] = {
 	8,  8, 7, 11, 8, 8, 11, 7, 10, 11, 7,  7,  8,  11, 11, 11, 7, 7,
@@ -45,6 +49,7 @@ const uint8_t g_flightIcons640WidthByFrame[72] = {
 	5,  9, 7, 6,  7, 7, 8,	9, 7,  7,  9,  11, 10, 6,  9,  7,  6, 14,
 	17, 9, 9, 9,  6, 6, 7,	7, 7,  14, 9,  5,  4,  15, 14, 9,  0, 0,
 };
+/* Height in pixels of each frame of the 640x480 icon set. */
 // GLOBAL: XVT 0x5212F8
 const uint8_t g_flightIcons640HeightByFrame[72] = {
 	12, 13, 10, 10, 9,  9,	10, 11, 10, 10, 13, 11, 10, 9,	9,  11, 14, 13,
@@ -52,6 +57,8 @@ const uint8_t g_flightIcons640HeightByFrame[72] = {
 	17, 17, 18, 16, 17, 17, 17, 20, 17, 15, 17, 21, 7,  7,	6,  9,	9,  14,
 	15, 6,	8,  8,	3,  6,	10, 7,	7,  17, 21, 14, 9,  14, 14, 15, 0,  0,
 };
+/* Icon frame for each object type, 0 to 105, in the 480x360 icon set
+ * (RESOURCE\mapicons.ico); the same values as the 320x240 table. */
 // GLOBAL: XVT 0x521340
 const uint8_t g_flightMapIcons480x360FrameByObjectType[106] = {
 	0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x00, 0x00,
@@ -64,12 +71,14 @@ const uint8_t g_flightMapIcons480x360FrameByObjectType[106] = {
 	0x2E, 0x2F, 0x30, 0x31, 0x00, 0x00, 0x45, 0x46, 0x47, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30,
 };
+/* Width in pixels of each frame of the 480x360 icon set. */
 // GLOBAL: XVT 0x5213B0
 const uint8_t g_flightMapIcons480x360WidthByFrame[72] = {
 	5, 5, 5,  5, 5, 5, 7, 5, 5, 5, 9, 5, 5, 5, 3, 5, 5, 4, 6, 3, 5, 4, 4, 5,
 	5, 5, 7,  3, 3, 3, 7, 5, 5, 5, 5, 5, 5, 6, 9, 5, 5, 7, 7, 4, 3, 4, 5, 3,
 	4, 4, 12, 9, 8, 5, 8, 7, 8, 7, 3, 3, 5, 8, 8, 7, 7, 5, 5, 3, 2, 7, 7, 5,
 };
+/* Height in pixels of each frame of the 480x360 icon set. */
 // GLOBAL: XVT 0x5213F8
 const uint8_t g_flightMapIcons480x360HeightByFrame[72] = {
 	5, 6, 4, 6, 5, 5, 5,  5, 5, 5, 5, 5, 5,	 6, 6, 6, 5, 6,
@@ -77,6 +86,8 @@ const uint8_t g_flightMapIcons480x360HeightByFrame[72] = {
 	7, 4, 6, 5, 5, 7, 7,  8, 7, 6, 7, 4, 4,	 4, 4, 5, 8, 6,
 	4, 5, 6, 5, 8, 8, 10, 4, 4, 4, 6, 7, 10, 7, 4, 7, 7, 8,
 };
+/* Icon frame for each object type, 0 to 105, in the 320x240 icon set
+ * (RESOURCE\mapicons.ico). */
 // GLOBAL: XVT 0x521440
 const uint8_t g_flightMapIcons320x240FrameByObjectType[106] = {
 	0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x00, 0x00,
@@ -89,12 +100,14 @@ const uint8_t g_flightMapIcons320x240FrameByObjectType[106] = {
 	0x2E, 0x2F, 0x30, 0x31, 0x00, 0x00, 0x45, 0x46, 0x47, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30,
 };
+/* Width in pixels of each frame of the 320x240 icon set. */
 // GLOBAL: XVT 0x5214B0
 const uint8_t g_flightMapIcons320x240WidthByFrame[72] = {
 	5, 5, 5,  5, 5, 5, 7, 5, 5, 5, 9, 5, 5, 5, 3, 5, 5, 4, 6, 3, 5, 4, 4, 5,
 	5, 5, 7,  3, 3, 3, 7, 5, 5, 5, 5, 5, 5, 6, 9, 5, 5, 7, 7, 4, 3, 4, 5, 3,
 	4, 4, 12, 9, 8, 5, 8, 7, 8, 7, 3, 3, 5, 8, 8, 7, 7, 5, 5, 3, 2, 7, 7, 5,
 };
+/* Height in pixels of each frame of the 320x240 icon set. */
 // GLOBAL: XVT 0x5214F8
 const uint8_t g_flightMapIcons320x240HeightByFrame[72] = {
 	5, 6, 4, 6, 5, 5, 5,  5, 5, 5, 5, 5, 5,	 6, 6, 6, 5, 6,
@@ -102,19 +115,40 @@ const uint8_t g_flightMapIcons320x240HeightByFrame[72] = {
 	7, 4, 6, 5, 5, 7, 7,  8, 7, 6, 7, 4, 4,	 4, 4, 5, 8, 6,
 	4, 5, 6, 5, 8, 8, 10, 4, 4, 4, 6, 7, 10, 7, 4, 7, 7, 8,
 };
+/* Icon file of the 320x240 flight resolution; FeDiskIo_InitGlobalBuffers
+ * points g_flightIconResourcePath at it. */
 // GLOBAL: XVT 0x523588
 const char g_flightMapIcons320x240ResourcePath[22] = "RESOURCE\\mapicons.ico";
+/* Icon file of the 480x360 flight resolution, the same file as at 320x240;
+ * FeDiskIo_InitGlobalBuffers points g_flightIconResourcePath at it. */
 // GLOBAL: XVT 0x5235A0
 const char g_flightMapIcons480x360ResourcePath[22] = "RESOURCE\\mapicons.ico";
+/* Icon file of the 640x480 flight resolution; FeDiskIo_InitGlobalBuffers
+ * points g_flightIconResourcePath at it. */
 // GLOBAL: XVT 0x5235B8
 const char g_flightIcons640x480ResourcePath[22] = "RESOURCE\\icons640.ico";
+/* Icon frames FlightIcon_LoadFrames loaded, in four color groups of a
+ * quarter each, picked by IFF; FeDiskIo_InitGlobalBuffers sets it. */
 // GLOBAL: XVT 0x9A8E38
 int g_flightIconFrameCount = 0;
+/* The icon file in use, one of the three paths above, picked by
+ * FeDiskIo_InitGlobalBuffers from g_flightResolutionMode; NULL before.
+ * FlightMap_DrawObjectIconAtViewPos compares the pointer to pick its size
+ * tables. */
 // GLOBAL: XVT 0x9EC478
 const char *g_flightIconResourcePath = NULL;
+/* The loaded icons: a table of frame pointers, then the frame data, in the
+ * locked memory of g_flightIconFramesHandle; FeDiskIo_InitGlobalBuffers
+ * sets it. */
 // GLOBAL: XVT 0x9ECC4C
 uint8_t **g_flightIconFrames = NULL;
 
+/* Draws the map view for the local player: clips text to the flight
+ * viewport, builds and sorts the render list (FlightMap_BuildRenderList,
+ * RenderList_SortDepthDescending), then draws the objects beyond the grid
+ * plane (world z -65,536), the grid, and the objects on the camera's side;
+ * the camera's height picks which side is beyond. Sets
+ * g_renderSceneResetPending. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x435BC0
 void FlightMap_RenderView(void)
@@ -140,6 +174,20 @@ void FlightMap_RenderView(void)
 	FlightMap_RenderViewEndStub();
 }
 
+/* Places the map camera of playerIdx in its viewState. With mapCameraState
+ * above 1: a camera with a focus object takes the object's angles and
+ * position and, unless g_flightSimSideEffectsSuppressed is set, eases
+ * hudAimY toward 0 (FlightMap_ComputeAimStep) and hudAimX toward 0, or,
+ * with bit 0x80 of mapCameraState set, sets roll 0, pitch 0x4000 and yaw 0
+ * and eases hudAimX toward -16,384; with no focus it sets roll 0, pitch
+ * 0x4000, yaw 0, hudAimY 0 and hudAimX to the low 7 bits of mapCameraState
+ * shifted left 14 and divided by -127. With mapCameraState 1: it takes the
+ * focus object's angles and position, or with none folds any hud aim into
+ * the view's pitch and yaw. Either way it builds the camera orientation
+ * (FVIEW_BuildCameraOrient) and moves a focused camera back by
+ * cameraDistance along camera matrix row 2 (g_camMatR2_*); with
+ * mapCameraState 1 and an aimTargetIdx it then turns the view to that
+ * object. Writes g_worldLoc* and the trig2 outputs. */
 // FUNCTION: XVT 0x435C60
 void FlightMap_UpdateCamera(int playerIdx)
 {
@@ -316,6 +364,13 @@ void FlightMap_UpdateCamera(int playerIdx)
 	}
 }
 
+/* Resets the render list and queues what the map shows, each at its view
+ * depth: from slots 0 up to g_explosionObjectSlotEnd, craft (genus 0 to 5)
+ * whose bounds pass RenderList_ProjectObjectBoundsForCulling for the local
+ * player, and shots, small debris and explosions whose bounding sphere
+ * FlightView_ProjectAndTestSphereVisible finds in view; then mines and
+ * satellites (genus 8 and 9) in the static slots that pass the craft
+ * test. */
 // FUNCTION: XVT 0x436320
 void FlightMap_BuildRenderList(void)
 {
@@ -390,6 +445,20 @@ void FlightMap_BuildRenderList(void)
 	}
 }
 
+/* Draws the render-listed objects on one side of the map's grid plane
+ * (world z -65,536): at or above it when drawAboveGridPlane is set, below
+ * it otherwise. A craft or obstacle shows as an icon
+ * (FlightMap_DrawObjectIconAtViewPos) when its maxBoundsExtent is under a
+ * sixteenth of its sort depth, else as its model (an obstacle through
+ * ProvingGrounds_DrawCourseObject; a craft lit and with its fuselage
+ * billboards), and a player's craft other than the camera's focus also
+ * gets FlightMap_DrawOtherPlayerObjectBox. Shots are drawn as models; mines
+ * and satellites as icons when far, else drawn; debris and explosions
+ * drawn. The camera's focus object gets a box in color 47 and the local
+ * player's target one in 59 (Targeting_DrawObjectBox), and every object
+ * drawn gets FlightMap_DrawObjectOverlay. Puts g_renderListHead back when
+ * done. Writes g_camRelWorld*, g_viewSpace*, g_curCraft and
+ * g_sceneBillboardQueueCount. */
 // FUNCTION: XVT 0x436780
 void FlightMap_DrawObjectPass(int drawAboveGridPlane)
 {
@@ -600,6 +669,11 @@ void FlightMap_DrawObjectPass(int drawAboveGridPlane)
 	g_renderListHead = savedRenderListHead;
 }
 
+/* Draws a box on the map around a player's craft, objectIdx, in the color
+ * of its IFF (63 rebel, 55 imperial, 51 blue, else 59). Draws nothing when
+ * locating players is off and the craft is hostile to the local player's
+ * team and not yet inspected by it, when the craft runs a decoy beam, or
+ * when it is the local player's current target. */
 // FUNCTION: XVT 0x436BC0
 void FlightMap_DrawOtherPlayerObjectBox(int objectIdx)
 {
@@ -666,6 +740,20 @@ void FlightMap_DrawOtherPlayerObjectBox(int objectIdx)
 	Targeting_DrawObjectBox(objectIdx, UINT16_MAX, colorIndex);
 }
 
+/* Draws the map's markings for objectIdx at its projected point, from the
+ * g_viewSpace* the object pass left; nothing for an explosion or small
+ * debris, or behind the camera. For the local player's current target it
+ * draws a line from the object or mission point its AI targets: the
+ * craft's aiController.targetObjIdx in a craft slot, or for another slot
+ * with a craft record the two bytes at its modelIndex read as a target.
+ * Then, for an object in a craft slot, with a craft record or without a
+ * MobileObject: a line down to the grid plane in its IFF color, and for a
+ * space craft a tick from that foot along its move vector, growing with
+ * speed up to 0x400; its name above the box (none for a static mine); and,
+ * except for genus 6 and 7, when the camera has a focus object, the
+ * distance from it as two digits, a point and two digits
+ * (trig2_polardistance times 161 / 65,536, at most 9999). Writes
+ * g_viewSpace*, g_camRelWorld*, g_worldLoc* and the trig2 outputs. */
 // FUNCTION: XVT 0x436D00
 void FlightMap_DrawObjectOverlay(int objectIdx)
 {
@@ -931,6 +1019,12 @@ void FlightMap_DrawObjectOverlay(int objectIdx)
 	}
 }
 
+/* Draws the map icon of objectIdx at the view position (viewX, viewY,
+ * viewZ): the frame for its object type in the icon set in use (frame 19
+ * for types above 105), in the quarter of the frames for its IFF's color,
+ * centered on the projected point and drawn only when wholly inside the
+ * clip rectangle. IFF 3 draws with FlightSw_BlitMapIconRle, the others
+ * with g_flightBlitSpriteFn. */
 // FUNCTION: XVT 0x437570
 void FlightMap_DrawObjectIconAtViewPos(int objectIdx, int viewX, int viewY,
 				       int viewZ)
@@ -1038,6 +1132,12 @@ void FlightMap_DrawObjectIconAtViewPos(int objectIdx, int viewX, int viewY,
 	}
 }
 
+/* Draws the four corners of the box at (x, y), width by height, in
+ * colorIndex: ticks an eighth of the width and of the height long, at
+ * least 3, clipped to the flight viewport; a tick on an edge outside the
+ * viewport is left out. Draws nothing when the box is empty or wholly
+ * outside. Targeting_DrawObjectBox calls it while the local player is in
+ * the map view. */
 // FUNCTION: XVT 0x437860
 void FlightMap_DrawObjectBoxCorners(int x, int y, int width, int height,
 				    unsigned int colorIndex)
@@ -1163,6 +1263,10 @@ void FlightMap_DrawObjectBoxCorners(int x, int y, int width, int height,
 	}
 }
 
+/* Draws the map grid in color 0x31: 33 lines each way, 0x10000 world units
+ * apart, from -0x100000 to 0x100000 in X and Y, at world z -65,536,
+ * clipped at the camera plane. Sets g_worldLoc* to 0 and writes
+ * g_camRelWorld* and g_viewSpace*. */
 // FUNCTION: XVT 0x437B20
 void FlightMap_DrawGrid(void)
 {
@@ -1298,9 +1402,21 @@ void FlightMap_DrawGrid(void)
 	} while (lineCount != 0);
 }
 
+/* Does nothing; FlightMap_RenderView calls it last. */
 // FUNCTION: XVT 0x437ED0
 void FlightMap_RenderViewEndStub(void) {}
 
+/* Returns the slot of the object drawn nearest the center of playerIdx's
+ * map view, or UINT16_MAX when none comes closer than an eighth of the
+ * squared screen diagonal. Candidates are craft (genus 0 to 5) from slots 0
+ * up to g_explosionObjectSlotEnd and mines and satellites in the static
+ * slots that pass RenderList_ProjectObjectBoundsForCulling, scored by
+ * their squared projected distance from the center; the current aim
+ * target and the camera's focus object score worse by (width / 16) squared
+ * plus (height / 16) squared of the screen. First rebuilds the map camera's
+ * orientation from mapCameraState or the view angles (turned to
+ * aimTargetIdx when set). Writes the camera matrices, g_viewSpace* and the
+ * trig2 outputs. */
 // FUNCTION: XVT 0x438010
 int FlightMap_PickObjectNearestScreenCenter(int playerIdx)
 {

@@ -10,16 +10,34 @@ extern "C" {
 #endif
 
 struct HudInFlightMessageRecord {
+	/* The message's InFlightMessageId; 0xFFFF marks an empty pane or slot,
+	 * and Hud_ShowFlightMessagePane sets the system and flight group panes'
+	 * to 1 once shown. */
 	uint16_t stateOrMessageId;
+	/* Voice sound played when the ready pane first shows the message;
+	 * g_pendingHudMessageVoiceSfxId for messages 196 and 207, else 0. */
 	uint16_t voiceSfxId;
+	/* Mission clock ticks within the second; nothing reads it. */
 	uint16_t clockSubsecondTicks;
+	/* Mission clock seconds when the message was made: the countdown clock
+	 * with a time limit, else the elapsed clock. */
 	uint8_t clockSecond;
-	uint8_t clockMinute;
-	uint8_t clockHour;
+	uint8_t clockMinute; /* Mission clock minutes, from the same clock. */
+	uint8_t clockHour;   /* Mission clock hours, from the same clock. */
+	/* 0 to 8, from the template's first byte (6 for 9 or more): 1 and 2 are
+	 * logged, 3, 4 and 7 go to the system pane, 8 to the flight group pane,
+	 * others to the ready pane. */
 	uint8_t paneType;
+	/* Sender's IFF, from g_msgSenderIff; colors type 2 messages. */
 	uint16_t senderIff;
+	/* Simulated seconds spent in its pane, raised by
+	 * Hud_AdvanceFlightMessagePaneTimers. */
 	uint8_t ageSeconds;
+	/* Times shown: the voice plays only at 0, and under 2 the message can
+	 * be pushed back to wait for a newer one. */
 	uint8_t showCount;
+	/* The pane type byte when below 9, then the text, at most 69
+	 * characters and a terminator. */
 	char text[70];
 };
 

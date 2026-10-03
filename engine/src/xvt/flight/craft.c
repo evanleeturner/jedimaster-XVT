@@ -11,19 +11,40 @@
 #include "xvt/math/trig2.h"
 #include "xvt/util/game_rand.h"
 
+/* Craft records in the pool at g_craftDataPoolBase, one for each craft object
+ * slot. Mission_Init sets it to 32 (CRAFT_SLOT_COUNT) when a flight loads; a
+ * world-state restore copies in the saved value: Flight_RestoreWorldState in
+ * the original build, XvtSnapshot_Decode in the modern one. */
 // GLOBAL: XVT 0x9ECA28
 int g_craftDataPoolCapacity = 0;
+/* The craft record the code running now works on. Many functions point it at an
+ * object's craft before reading it or calling code that does, chiefly the AI,
+ * laser, collision and flight loop code; a few save and restore it, the rest
+ * leave it set. Nothing sets it back to NULL. */
 // GLOBAL: XVT 0xA08104
 CraftData *g_curCraft;
+/* Locked memory of g_craftDataPoolHandle: g_craftDataPoolCapacity craft
+ * records, into which each craft object's mobj->pCraft points. Two functions
+ * write it: FeDiskIo_LockGlobalBuffers, which locks the handle, and, in the
+ * modern build, XvtFlightLoading_Reset, which sets it to NULL. */
 // GLOBAL: XVT 0xA07BD0
 CraftData *g_craftDataPoolBase = 0;
+/* Scale, 4/9, from a model's maxSpeed and accelRate to the Tech Library's speed
+ * and acceleration ratings. Only BuildCraftTechStats reads it. */
 // GLOBAL: XVT 0x5180E0
 const double g_craftTechSpeedAccelerationRatingScale = 0.4444444444444444;
+/* Added before BuildCraftTechStats truncates a rating, so the rating rounds to
+ * nearest. */
 // GLOBAL: XVT 0x5180E8
 const double g_craftTechRatingRoundingBias = 0.5;
+/* Scale from a model's pitchRate plus rollRate to the Tech Library's maneuver
+ * rating. Only BuildCraftTechStats reads it. */
 // GLOBAL: XVT 0x5180F0
 const double g_craftTechManeuverRatingScale = 0.005231575698284567;
 
+/* Adds delta to shield bank shieldIndex of g_curCraft and clamps the bank to 0
+ * through twice the model's shieldStrength. The first argument is ignored;
+ * shieldIndex is not checked. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x405790
 void Craft_AdjustCurrentShieldEnergy(unsigned int unusedObjectIdx,
@@ -44,6 +65,9 @@ void Craft_AdjustCurrentShieldEnergy(unsigned int unusedObjectIdx,
 	}
 }
 
+/* Returns twice the shieldStrength of the object's craft model, the cap
+ * Craft_AdjustCurrentShieldEnergy puts on one shield bank. Does not check that
+ * the object has a craft record. */
 // FUNCTION: XVT 0x405820
 int Craft_GetObjectMaxShield(uint16_t objIdx)
 {
@@ -52,12 +76,24 @@ int Craft_GetObjectMaxShield(uint16_t objIdx)
 	       2;
 }
 
+/* Returns g_objectTypeTable's model index for an object type. The type is not
+ * checked. */
 // FUNCTION: XVT 0x4269E0
 ModelIndex GetModelIndexFromType(ObjectTypeId objectType)
 {
 	return g_objectTypeTable[objectType].modelIndex;
 }
 
+/* Fills the Tech Library's ratings for stats->craftType from its model. Returns
+ * 0, with only genusId filled, when the type has no model (MODEL_INDEX_NONE);
+ * else 1. Speed and acceleration are maxSpeed and accelRate times 4/9, maneuver
+ * is pitchRate plus rollRate times g_craftTechManeuverRatingScale, each rounded
+ * to nearest; shield is shieldStrength / 50 (0 without shields) and hull is
+ * hullStrength / 105, both times 16 for starships and platforms and 4 for
+ * freighters. Lasers and ions count the slots of laser groups firing object
+ * types 137 or 139, and 141; warheads sum capacity times slots of each
+ * launcher. The TIE Advanced, T-Wing, Z-95 and R-41 then get fixed weapon
+ * figures. Leaves craftType and sizeRating as they were. */
 // FUNCTION: XVT 0x426A00
 int BuildCraftTechStats(CraftTechStats *stats)
 {
@@ -168,6 +204,8 @@ int BuildCraftTechStats(CraftTechStats *stats)
 	return 1;
 }
 
+/* Sets all 16 of a craft's turretObjectLinks to NULL without freeing the
+ * objects they point at. */
 // FUNCTION: XVT 0x458750
 void Craft_ClearTurretObjectLinks(CraftData *craft)
 {
@@ -178,6 +216,9 @@ void Craft_ClearTurretObjectLinks(CraftData *craft)
 	}
 }
 
+/* Frees the objects a craft links to: sets objectType to 0, the free slot mark,
+ * on the object effectiveAiObjectLink points at and on each object in
+ * turretObjectLinks, and sets those links to NULL. */
 // FUNCTION: XVT 0x458780
 void Craft_FreeLinkedObjects(CraftData *craft)
 {
@@ -201,6 +242,14 @@ void Craft_FreeLinkedObjects(CraftData *craft)
 	} while (remaining != 0);
 }
 
+/* Knocks a damageable mesh off a craft that has more than one mesh: the first
+ * one, or every one when detachAll is set, whose componentState is 0. Each
+ * becomes a small debris object (Object_SpawnDetachedComponent) given a random
+ * spin, a yaw and pitch nudge, typeSpecificByte[1] 2 and a lifetimeTimer of 1
+ * or 2 times SIMULATION_TICKS_PER_SECOND. Sets that mesh's componentState to 4
+ * and the entry after the last mesh, which holds the fuselage damage animation
+ * step, to 2. A mesh with no free debris slot is left in place. Does not check
+ * that the entry after the last mesh lies inside componentState. */
 // FUNCTION: XVT 0x458FA0
 void Craft_DetachDamageableComponent(uint16_t objectIndex, int16_t detachAll)
 {
@@ -288,6 +337,9 @@ void Craft_DetachDamageableComponent(uint16_t objectIndex, int16_t detachAll)
 	} while (meshCount > meshIndex);
 }
 
+/* Returns the WarheadKindIndex for a warhead object type. For any other type
+ * the modern build returns -1; the original build returns an uninitialized
+ * value. */
 // FUNCTION: XVT 0x484D80
 WarheadKindIndex ObjectType_GetWarheadKindIndex(uint16_t objectType)
 {
@@ -324,6 +376,12 @@ WarheadKindIndex ObjectType_GetWarheadKindIndex(uint16_t objectType)
 	return result;
 }
 
+/* Tells whether the target component selector may offer a mesh: returns 0 for
+ * misc hull and antenna meshes; 1 for a mesh with target id 0, or with target
+ * id 1 that is neither main hull nor fuselage; otherwise 1 only when the mesh
+ * is the first with its target id and mesh type, so a group of alike meshes is
+ * offered once. For an object type below 73, a mesh index past the type's
+ * cached count reads the last mesh's type. */
 // FUNCTION: XVT 0x484E10
 int Craft_IsSelectableDamageComponentMesh(int objectType, int meshIndex)
 {
@@ -411,6 +469,28 @@ int Craft_IsSelectableDamageComponentMesh(int objectType, int meshIndex)
 	return 0;
 }
 
+/* Applies damage to one component, mesh hitMeshIndex - 1, of the craft
+ * g_curCraft points at, which must be victimObjIdx's craft (not checked), and
+ * returns the damage left for the hull. Returns the damage unchanged when the
+ * component is already at 0 or is undamageable (componentHp 255), except a
+ * bridge on object type 54. A damage of 0 counts as 1. In mission version 14
+ * that bridge is guarded: while a shield generator has componentHp or either
+ * shield bank holds energy, the damage passes unchanged; after that it also
+ * passes unchanged unless the source is object type 40 or a breaking-up object
+ * type 3, whose damage is raised so that what is returned is hullMax -
+ * hullDamage, less 5 * (hullMax / 100) for type 40. Damage of at least 16
+ * times componentHp destroys the component: componentHp 0, and the rest is
+ * returned. In mission version 14 at difficulty 0, losing the last shield
+ * generator empties both shield banks. When the mesh is damageable, destroying
+ * it also sets componentState 2; moves every player aiming at that component
+ * to the next intact selectable one; in the proving grounds counts a target
+ * destroyed and adds 50 to the score (100 when meshRotation is nonzero) and 2
+ * seconds to g_missionCountdownClock; spawns an explosion object at the
+ * component, when a slot is free, with a sound; and, when the local player's
+ * craft is the source, raises fsfx_SpeakWingmanEvent event 23 for a gun,
+ * turret, shield generator, warhead launcher, communications or beam
+ * component. Smaller damage sets componentHp to (16 * componentHp - damage) /
+ * 16, at least 1, and returns 0. */
 // FUNCTION: XVT 0x4A6990
 int Craft_DamageComponent(uint16_t victimObjIdx, int16_t hitMeshIndex,
 			  unsigned int damageAmount, uint16_t sourceObjIdx)
@@ -937,6 +1017,15 @@ int Craft_DamageComponent(uint16_t victimObjIdx, int16_t hitMeshIndex,
 }
 
 /* Besides spawning the effects, this points g_curCraft at the object's craft and leaves it there. */
+/* Spawns explosions on a craft's main hull meshes (the first 16 found; mesh 0
+ * when none). Unless forced, returns at once unless a GameRand value read as 16
+ * bits is below 0x1FFF. Past that point it points g_curCraft at the craft and
+ * rebuilds the object's orientation matrix when it is marked dirty. Forced:
+ * frees the first explosion slot, spawns an explosion with effectSize the
+ * type's maxBoundsExtent at the first hull mesh's center and plays
+ * FLIGHT_SOUND_LARGE_EXPLOSION. Otherwise picks a random hull mesh and, when it
+ * still has componentHp, spawns one with effectSize maxBoundsExtent / 16 at a
+ * random vertex of it, with one of four small explosion sounds. */
 // FUNCTION: XVT 0x4A7480
 void Craft_SpawnMainHullExplosionEffects(uint16_t objectIdx,
 					 int16_t forceMainExplosion)
@@ -1043,6 +1132,12 @@ void Craft_SpawnMainHullExplosionEffects(uint16_t objectIdx,
 	}
 }
 
+/* Spawns a still explosion object (genus 13) at a mesh of objRecord: at its
+ * center, or at a random vertex when useRandomVertex is set; type 129 at the
+ * center or vertex 0, else 127 or 128 at random; effect size effectSize / 64.
+ * Returns the new object's index, or UINT16_MAX when no explosion slot is free.
+ * Writes g_rotatedX, g_rotatedY and g_rotatedZ. Does not check that the mesh
+ * has a vertex. */
 // FUNCTION: XVT 0x4A76D0
 int Craft_SpawnExplosionObjectAtMesh(ObjectRecord *objRecord,
 				     uint16_t meshIndex, int effectSize,

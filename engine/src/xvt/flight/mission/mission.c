@@ -36,146 +36,352 @@
 #include <stdio.h>
 #include <string.h>
 
+/* Text that sprintf fills with debug lines: rating and promotion points,
+ * team score and place, update-time histograms. Nothing reads it. 5
+ * functions write it: FeDiskIo_CommitFlightResults; in the original build
+ * Flight_RunMissionLoop and Mission_CreditDestructionDamageContributors; in
+ * the modern build XvtFlightFrame_FormatUpdateHistogram and
+ * XvtFlightFrame_Render. */
 // GLOBAL: XVT 0xA00750
 char g_missionDebugBuffer[256] = {0};
 
+/* Position, in mission units, of the next static object
+ * Mission_SpawnPreparedObject creates, which multiplies it by 256. Only
+ * Mission_SpawnFlightGroupStaticObjects writes it; also
+ * g_preparedSpawnMissionY and g_preparedSpawnMissionZ. */
 // GLOBAL: XVT 0x99F970
 int g_preparedSpawnMissionX = 0;
+/* Y of the next static object's position; see g_preparedSpawnMissionX. */
 // GLOBAL: XVT 0x99F974
 int g_preparedSpawnMissionY = 0;
+/* Z of the next static object's position; see g_preparedSpawnMissionX. */
 // GLOBAL: XVT 0x99F978
 int g_preparedSpawnMissionZ = 0;
+/* Yaw byte of the next static object, which Mission_SpawnPreparedObject
+ * shifts up 8 bits into 65,536 units per circle. Only
+ * Mission_SpawnFlightGroupStaticObjects writes it: the group's yaw, or 0 for
+ * debris. */
 // GLOBAL: XVT 0x99F97C
 uint16_t g_preparedSpawnYawByte = 0;
+/* Pitch byte of the next static object; see g_preparedSpawnYawByte. */
 // GLOBAL: XVT 0x99F97E
 uint16_t g_preparedSpawnPitchByte = 0;
+/* Roll byte of the next static object; see g_preparedSpawnYawByte. */
 // GLOBAL: XVT 0x99F980
 uint16_t g_preparedSpawnRollByte = 0;
+/* Object index each spawned craft takes as its leader_obj_idx, UINT8_MAX until
+ * the round's first craft exists; Mission_InitFlightGroupObjectSlot copies it
+ * into each craft and sets it to the first craft's slot.
+ * Mission_SpawnFlightGroupWaveCraft sets UINT8_MAX for a whole round;
+ * paiman_dropoffmaneuver sets its basis object before it starts an arrival. */
 // GLOBAL: XVT 0x99F982
 uint8_t g_spawnLeaderObjIdx = 0;
+/* Team of the craft being spawned, from the flight group; set by
+ * Mission_SpawnFlightGroupWaveCraft, read by Mission_InitFlightGroupObjectSlot
+ * into the craft's mobile record. */
 // GLOBAL: XVT 0x99F983
 uint8_t g_spawnTeamId = 0;
+/* IFF of the craft being spawned, from the flight group; set by
+ * Mission_SpawnFlightGroupWaveCraft, read by
+ * Mission_InitFlightGroupObjectSlot. */
 // GLOBAL: XVT 0x99F984
 uint8_t g_spawnIff = 0;
+/* Formation spacing of the round being spawned: the group's formationSpacing,
+ * or 0 from a mothership. Set by Mission_SpawnFlightGroupWaveCraft;
+ * Mission_InitFlightGroupObjectSlot uses 0 instead while
+ * g_spawnFromMothershipFlag is set. */
 // GLOBAL: XVT 0x99F985
 uint8_t g_spawnFormationSpacing = 0;
+/* AI level (groupAI) of the round being spawned; set by
+ * Mission_SpawnFlightGroupWaveCraft, used by Mission_InitFlightGroupObjectSlot
+ * for the craft's skill and think interval. */
 // GLOBAL: XVT 0x99F987
 uint8_t g_spawnGroupAI = 0;
+/* Yaw of the round being spawned, 65,536 units per circle: toward the
+ * mothership's outside hangar point, toward mission point 5, or 0. Set by
+ * Mission_SpawnFlightGroupWaveCraft, read by
+ * Mission_InitFlightGroupObjectSlot. */
 // GLOBAL: XVT 0x99F988
 uint16_t g_spawnYaw = 0;
+/* 1 while the round being spawned arrives by hyperspace after the mission
+ * start; Mission_SpawnFlightGroupWaveCraft sets it to 0 and then 1 when it
+ * moves the round back, and Mission_InitFlightGroupObjectSlot then makes the
+ * out-of-hyperspace plan the craft's pending plan. */
 // GLOBAL: XVT 0x99F98A
 uint8_t g_spawnOutOfHyperspaceFlag = 0;
+/* status1 of the round being spawned; set by Mission_SpawnFlightGroupWaveCraft.
+ * Mission_InitFlightGroupObjectSlot reads it with g_spawnStatus2 to adjust
+ * warheads, shields, hyperdrive and turrets. */
 // GLOBAL: XVT 0x99F98B
 uint8_t g_spawnStatus1 = 0;
+/* 1 while the round being spawned comes out of a mothership's hangar;
+ * Mission_SpawnFlightGroupWaveCraft sets it to 0 and then 1, and
+ * Mission_InitFlightGroupObjectSlot then uses spacing 0 and makes the
+ * from-mothership plan the craft's pending plan. */
 // GLOBAL: XVT 0x99F98C
 uint8_t g_spawnFromMothershipFlag = 0;
+/* Pitch of the round being spawned, 65,536 units per circle (0x4000 when no
+ * point is faced). Set by Mission_SpawnFlightGroupWaveCraft, read by
+ * Mission_InitFlightGroupObjectSlot. */
 // GLOBAL: XVT 0x99F98E
 uint16_t g_spawnPitch = 0;
+/* Number in its flight group of the craft being spawned, from 0. Only
+ * Mission_SpawnFlightGroupWaveCraft writes it, stepping through the round;
+ * Mission_InitFlightGroupObjectSlot reads it. */
 // GLOBAL: XVT 0x99F990
 uint16_t g_spawnCraftOrdinal = 0;
+/* Object type of the craft just spawned; only
+ * Mission_InitFlightGroupObjectSlot writes it. Read there and by
+ * Mission_SpawnFlightGroupWaveCraft for the arrival message. */
 // GLOBAL: XVT 0x99F992
 uint8_t g_spawnObjectType = 0;
+/* objectKind given to each spawned craft; Mission_SpawnFlightGroupWaveCraft
+ * sets it to CRAFT_OBJECT_KIND_ACTIVE, the only value it ever holds. */
 // GLOBAL: XVT 0x9A1080
 CraftObjectKind g_spawnObjectKind = CRAFT_OBJECT_KIND_ACTIVE;
+/* status2 of the round being spawned; see g_spawnStatus1. */
 // GLOBAL: XVT 0x9A1081
 uint8_t g_spawnStatus2 = 0;
+/* World position of the round's first craft, in world units: the mothership's
+ * inside hangar point or the group's mission point, moved back for a hyperspace
+ * arrival. Only Mission_SpawnFlightGroupWaveCraft writes it;
+ * Mission_InitFlightGroupObjectSlot places each craft from it. Also
+ * g_spawnWorldY and g_spawnWorldZ. */
 // GLOBAL: XVT 0x9A1084
 int g_spawnWorldX = 0;
+/* Y of the round's first craft position; see g_spawnWorldX. */
 // GLOBAL: XVT 0x9A1088
 int g_spawnWorldY = 0;
+/* Z of the round's first craft position; see g_spawnWorldX. */
 // GLOBAL: XVT 0x9A108C
 int g_spawnWorldZ = 0;
+/* Genus of the round being spawned, from the object type table; set by
+ * Mission_SpawnFlightGroupWaveCraft. Mission_InitFlightGroupObjectSlot takes
+ * its slot range from g_objectSlotRangeByGenus by it. */
 // GLOBAL: XVT 0x9A1830
 uint8_t g_spawnGenusId = 0;
+/* IFF of the craft just spawned; only Mission_InitFlightGroupObjectSlot
+ * writes it. Nothing reads it. */
 // GLOBAL: XVT 0x9A1831
 uint8_t g_spawnedObjectIff = 0;
+/* Formation of the round being spawned: the group's formation, 0 from a
+ * mothership, or 6 from one with more than 3 craft. Set by
+ * Mission_SpawnFlightGroupWaveCraft, read by
+ * Mission_InitFlightGroupObjectSlot. */
 // GLOBAL: XVT 0x9A1832
 uint8_t g_spawnFormation = 0;
+/* 1 while Mission_InitFlightRuntimeState places the craft that start in
+ * space, else 0; it is the only writer. While it is 1,
+ * Mission_InitFlightGroupObjectSlot binds a player's craft to the player. */
 // GLOBAL: XVT 0x556ECC
 uint8_t g_initialSpawnBindPlayerCraftSlots = 0;
+/* Seed of the asteroid field's random draws. Flight start sets it to
+ * ASTEROID_FIELD_RANDOM_SEED (Flight_MainLoop in the original build,
+ * XvtFlightLoading_Globals in the modern one); Mission_Init sets it to the
+ * random state left after Backdrop_GenerateDefaultRecords;
+ * Mission_SpawnFlightGroupStaticObjects draws debris from it and stores the
+ * state it ends at. */
 // GLOBAL: XVT 0x9A73F0
 uint16_t g_asteroidFieldRandSeed = 0;
+/* Signature the next created object gets, then incremented; set to 1 by
+ * Mission_InitFlightRuntimeState. 5 functions write it:
+ * Mission_InitFlightRuntimeState, Mission_InitFlightGroupObjectSlot,
+ * Mission_SpawnPreparedObject, Flight_RestoreWorldState in the original build
+ * and XvtSnapshot_DecodePrefix in the modern one. */
 // GLOBAL: XVT 0x9A8D40
 uint16_t g_nextObjectSignature = 0;
+/* The loaded mission's header: counts of flight groups and messages, mission
+ * type, IFF names, time limit and flags. 3 functions write it:
+ * Mission_LoadFile, Flight_RestoreWorldState in the original build and
+ * XvtSnapshot_DecodePrefix in the modern one. */
 // GLOBAL: XVT 0x9A2000
 MissionHeader g_missionHeader = {0};
+/* Per flight group, its runtime state: arrival, rounds, outcome counts by
+ * FLIGHT_GROUP_OUTCOME_ value, per-team counts and goal states. Reset by
+ * Mission_InitFlightRuntimeState. Many functions write it, chiefly
+ * Mission_RecordCraftOutcome, Mission_UpdateFlightGroupArrivals,
+ * Mission_ProcessFlightGroupWaveCompletion, Mission_UpdateLogic and the AI
+ * order and maneuver code. */
 // GLOBAL: XVT 0x9A20C0
 MissionFgRuntimeStats g_missionFgStats[48];
+/* Per team, the mission's global goals: entries 0 to 2 are the primary,
+ * prevent and bonus goals Mission_UpdateLogic evaluates. Only
+ * Mission_LoadFile writes it. */
 // GLOBAL: XVT 0x9A8080
 GlobalGoal g_missionGlobalGoals[10][7] = {{{0}}};
+/* The mission's flight groups as loaded, with the player who owns each
+ * (playerOwnerIdx, -1 for none). Mission_LoadFile fills it and Mission_Init
+ * adjusts craft, loadout, AI level and rounds for the players and settings;
+ * many functions read it. */
 // GLOBAL: XVT 0x9D8C30
 MissionFlightGroup g_missionFlightGroups[48];
+/* Per team, its name, allies and end-of-mission texts. Only Mission_LoadFile
+ * writes it; it also marks each team allied with itself. */
 // GLOBAL: XVT 0x9FD440
 Team g_missionTeams[10] = {{0}};
+/* Index of the flight group being spawned or scanned; the spawn functions
+ * read it. 5 functions write it: Mission_Init, Mission_InitFlightRuntimeState
+ * and Mission_UpdateFlightGroupArrivals as a loop index,
+ * Mission_ProcessFlightGroupWaveCompletion and paiman_dropoffmaneuver
+ * before a spawn. */
 // GLOBAL: XVT 0x9A1834
 uint16_t g_currentFlightGroupIdx = 0;
+/* Mission time elapsed, in simulated seconds: Flight_UpdateTimers counts
+ * subsecondTicks down by the ticks elapsed and adds a second each
+ * SIMULATION_TICKS_PER_SECOND ticks. Mission_Init sets it to 0. */
 // GLOBAL: XVT 0x9ED228
 MissionClock g_missionElapsedClock;
+/* Time left on the mission's countdown, minutes and seconds;
+ * Flight_UpdateTimers takes one off each simulated second until it reaches
+ * 0:00. Mission_Init sets it from the time limit, 0 for none. */
 // GLOBAL: XVT 0x9D8B70
 MissionClock g_missionCountdownClock = {{0, 0, 0}, 0, 0, 0, 0};
+/* The mission's scripted messages. Mission_Init clears each text's first
+ * byte and Mission_LoadFile fills it; Mission_UpdateLogic sends them. */
 // GLOBAL: XVT 0x9FE800
 MissionMessage g_missionMessages[MISSION_MESSAGE_COUNT] = {0};
+/* Per flight group, per goal, three memory handles of the goal's replacement
+ * texts from the file, 0 for none. Only Mission_LoadFile writes it;
+ * Mfd_DrawMissionGoalsPage draws them and Mission_FreeOverrideStringHandles
+ * frees them without clearing the entries. */
 // GLOBAL: XVT 0x9D8120
 uint16_t g_missionFgOverrideStringHandles[48][8][3] = {0};
+/* Per team, global goal and trigger, three memory handles of replacement
+ * texts from the file, 0 for none; as g_missionFgOverrideStringHandles. */
 // GLOBAL: XVT 0x9E8F60
 uint16_t g_globalGoalOverrideStringHandles[10][7][4][3] = {0};
+/* A world position, in world units, left by the function that last
+ * resolved one; callers read it right after. 9 functions write it:
+ * Mission_ResolveObjectOrMissionPointWorldLoc,
+ * Mission_ResolveFormationSlotWorldLoc, Mission_SpawnFlightGroupWaveCraft,
+ * FlightObject_UpdateSpecialBehavior, FlightMap_DrawGrid,
+ * FlightMap_DrawObjectOverlay, Targeting_TestAimCone,
+ * Targeting_ProjectObjectOrMissionPoint and
+ * Targeting_ComputeProjectedObjectExtent. */
 // GLOBAL: XVT 0xA07CDC
 int g_worldLocX = 0;
+/* Y of the resolved world position; the same 9 functions write it as
+ * g_worldLocX. */
 // GLOBAL: XVT 0xA07CD8
 int g_worldLocY = 0;
+/* Z of the resolved world position; the same 9 functions write it as
+ * g_worldLocX. */
 // GLOBAL: XVT 0xA07CD4
 int g_worldLocZ = 0;
+/* Format version of the loaded mission file: 12, 13, 14, or 0xFFFF for the
+ * TIE format. Mission_LoadFile reads it from the file;
+ * Flight_RestoreWorldState in the original build and
+ * XvtSnapshot_DecodePrefix in the modern one restore it. Some AI, damage and
+ * spawn rules apply only to version 14. */
 // GLOBAL: XVT 0xA08294
 uint16_t g_missionFileVersion = 0;
+/* The header of a TIE-format mission, read and converted by
+ * Mission_LoadFile, its only user. */
 // GLOBAL: XVT 0x556AA8
 EMissionStruct g_tieMissionHeader = {0};
+/* One TIE-format flight group record, read and converted by
+ * Mission_LoadFile, its only user. */
 // GLOBAL: XVT 0x556C70
 EFGStruct g_tieFlightGroup = {0};
+/* One TIE-format global goal record, read and converted by
+ * Mission_LoadFile, its only user. */
 // GLOBAL: XVT 0x556D98
 EMissionGoal g_tieMissionGoal = {0};
+/* Text of a version 10 flight group record. Only Mission_LoadFile uses it,
+ * in a branch that never runs. */
 // GLOBAL: XVT 0x556DB8
 XvtV10FlightGroupText g_xvtV10FlightGroupText = {0};
+/* One TIE-format message record, read and converted by Mission_LoadFile, its
+ * only user. */
 // GLOBAL: XVT 0x556DE8
 TieRadioMessage g_tieRadioMessage = {0};
+/* Header of a version 10 mission file. Only Mission_LoadFile uses it, in a
+ * branch that never runs. */
 // GLOBAL: XVT 0x556E48
 XvtV10MissionHeader g_xvtV10MissionHeader = {0};
+/* Rating an AI craft counts as, by its groupAI 0 to 5: 2, 4, 7, 9, 10 and 11.
+ * Read only by Mission_CreditDestructionDamageContributors. */
 // GLOBAL: XVT 0x521158
 const int g_defaultPilotRatingByAiLevel[6] = {2, 4, 7, 9, 10, 11};
+/* Points a craft is worth for its beam type, by beamTypeId 0 to 5. Read only
+ * by Mission_ComputeCraftPointValue. */
 // GLOBAL: XVT 0x521170
 const int g_beamTypePointValue[6] = {0, 150, 150, 250, 50, 0};
+/* Points a craft is worth for its countermeasure type, by cmTypeId 0 to 3.
+ * Read only by Mission_ComputeCraftPointValue. */
 // GLOBAL: XVT 0x521188
 const int g_countermeasureTypePointValue[4] = {0, 150, 100, 150};
+/* Replacement craft type Mission_Init gives the player groups of an AI
+ * opponent team in a melee tournament, by the craft type of that team's
+ * first player group, 0 to 23; types 0 and 17 to 23 map to 0. Read only by
+ * Mission_Init. */
 // GLOBAL: XVT 0x5241D0
 const uint8_t g_aiOpponentCraftTypeByPlayerCraftType[24] = {
 	0, 6, 16, 8, 16, 14, 1, 14, 3, 3, 3, 3,
 	3, 3, 5,  5, 2,	 0,  0, 0,  0, 0, 0, 0,
 };
+/* Maps a goal's genus number, 0 to 11, to the genusId of the object type
+ * table and of g_strGoalGenusNames. Read by
+ * Mission_FlightGroupMatchesTriggerVariable,
+ * Mission_ObjectMatchesTriggerVariable and goals_outputgoal. */
 // GLOBAL: XVT 0x5241E8
 const uint8_t g_genusConvert[12] = {0, 1, 3, 4, 2, 5, 8, 9, 2, 0, 0, 0};
+/* Maps a goal's family number, 0 to 3, to the familyId of the object type
+ * table and of g_strGoalFamilyNames; read by the same three functions as
+ * g_genusConvert. */
 // GLOBAL: XVT 0x5241F4
 const uint8_t g_familyConvert[4] = {0, 1, 2, 0};
+/* Per mission condition (MISSION_COND_ value, 0 to 47), 1 when
+ * Mission_EvaluateCondition counts craft for it, 0 when it tests something
+ * else. */
 // GLOBAL: XVT 0x521128
 const uint8_t g_missionConditionUsesCountByCondition[48] = {
 	0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1,
 	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0,
 };
+/* Craft counted by the last counting condition Mission_EvaluateCondition
+ * tested (the groups' totals), 0 after any other; only that function writes
+ * it. Mission_UpdateLogic copies it into runtime.globalGoalTriggerCounts. */
 // GLOBAL: XVT 0x556354
 uint16_t g_missionConditionTotalCount = 0;
+/* Craft that met the last counting condition Mission_EvaluateCondition
+ * tested, 0 after any other; only that function writes it.
+ * Mission_UpdateLogic copies it into runtime.globalGoalTriggerCounts. */
 // GLOBAL: XVT 0x556358
 uint16_t g_missionConditionCurrentCount = 0;
+/* Per flight group arrivalDifficulty 0 to 7, the difficulty bits it arrives
+ * in: 1 easy, 2 medium, 4 hard; 7 all, 6 and 3 two of them, 0 none. Read only
+ * by Mission_InitFlightRuntimeState. */
 // GLOBAL: XVT 0x524280
 const uint8_t g_fgArrivalDifficultyMasks[8] = {7, 1, 2, 4, 6, 3, 0, 0};
+/* Per game difficulty, its bit for g_fgArrivalDifficultyMasks: 1, 2 and 4
+ * for GAME_DIFFICULTY_EASY, MEDIUM and HARD (0 to 2), 0 above. Read only by
+ * Mission_InitFlightRuntimeState. */
 // GLOBAL: XVT 0x524288
 const uint8_t g_missionDifficultyArrivalMasks[8] = {1, 2, 4, 0, 0, 0, 0, 0};
+/* 0 or 0x0400, the blinking flag ORed into g_renderObjectRef with the local
+ * player's target. Flight_UpdateTimers flips it each time
+ * g_targetProximityBlinkTimer runs out: set for 118 ticks and clear for 14
+ * while the target is closer than 32 times its maxBoundsExtent (the distance
+ * is shifted down 5 bits before the test), the other way round otherwise.
+ * Mission_InitFlightRuntimeState sets it to 0; those 2 functions
+ * are its only writers. */
 // GLOBAL: XVT 0x9D77BC
 uint16_t g_targetProximityBlinkBit = 0;
 /* Only Mission_InitFlightRuntimeState writes this, always 1, and its readers act only on a value above 1
  * (with g_dormantFlightRegionSessionEarlyReturnFlag set), so in this build their early return never runs. */
 // GLOBAL: XVT 0x523440
 uint8_t g_flightRuntimeStateInitialized = 1;
+/* Set to 15 by Mission_InitFlightRuntimeState, its only writer. Nothing
+ * reads it. */
 // GLOBAL: XVT 0x9A8C04
 uint16_t g_flightFrameStepMirror = 0;
 
+/* Despite the name, returns a flag, not a count: the flight group's
+ * specialCargoOutcome entry for FLIGHT_GROUP_OUTCOME_INSPECTED, which
+ * collide_collisions and paiman_boardmaneuver set to 1 when the special cargo
+ * craft is inspected. specialCargoCraft is ignored. Does not check the
+ * index. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x415A40
 uint16_t Mission_GetSpecialCargoInspectedCount(unsigned int flightGroupIdx,
@@ -186,6 +392,31 @@ uint16_t Mission_GetSpecialCargoInspectedCount(unsigned int flightGroupIdx,
 		.specialCargoOutcome[FLIGHT_GROUP_OUTCOME_INSPECTED];
 }
 
+/* Runs the mission's goals and its scripted messages; does nothing in proving
+ * grounds mode. The original build's Flight_StepSimToTime calls it every
+ * simulation step; the modern build's XvtFlightSim_StepToTime only on steps
+ * where XvtFlightTiming_ReferenceDue holds or a mission end is pending. When
+ * g_flightGlobalCountdownTimers.missionGoalEvaluationTimer is 0 or a mission
+ * end is pending, it recounts g_flightMissionState.connectedPlayerCount
+ * (raising maxConnectedPlayerCountThisMission), evaluates every pending flight
+ * group goal per team into g_missionFgStats[].goalState, adding 250 times the
+ * goal's points to the team's bonus score on success (per-craft bonus goals
+ * excepted), evaluates each team's three global goals into
+ * runtime.teamGlobalGoalState and runtime.globalGoalTriggerCounts, adding 250
+ * times rawPoints on a first success, and merges both into
+ * runtime.teamGoalStatus. On a new primary success it adds 10,000 points (in a
+ * combat mission only when no hostile team finished first), stores the
+ * completion time and each team player's finish place; on a new bonus success
+ * it adds 2,500. Status changes send in-flight messages (on a primary success
+ * to the team's players, and in melee and MISSION_TYPE_SIMULATOR_1 missions to
+ * the others too; otherwise to the local player) and the team's end-of-mission
+ * texts and voices to the local player. It then sets that timer to
+ * SIMULATION_TICKS_PER_SECOND ticks. When missionMessageScanTimer is 0 or less
+ * it tests each untriggered mission message's trigger pairs, counts down the
+ * delays of triggered ones by one per scan, shows a message to the local player
+ * when its delay is 0 and the player's team is a recipient, and sets the timer
+ * to 1180 ticks. Also writes g_msgSenderIff, g_msgArgTable and
+ * g_pendingHudMessageVoiceSfxId. */
 // FUNCTION: XVT 0x430A00
 void Mission_UpdateLogic(void)
 {
@@ -1526,6 +1757,14 @@ void Mission_UpdateLogic(void)
 		MISSION_MESSAGE_REFRESH_TICKS;
 }
 
+/* Tests a trigger pair: the results of its two conditions from
+ * Mission_EvaluateCondition, ORed when trigger1OrTrigger2 is 1 or the second
+ * condition is MISSION_COND_NO_CONDITION, else ANDed. A second trigger of
+ * MISSION_COND_NO_CONDITION is not evaluated; when its variableType is
+ * GOAL_TARGET_TEAM, its variable becomes the first condition's team filter.
+ * Returns the combined result bits: 1 met, 2 failed, 4 undecided. Leaves the
+ * last evaluated condition's counts in g_missionConditionCurrentCount and
+ * g_missionConditionTotalCount. */
 // FUNCTION: XVT 0x431B50
 int Mission_EvaluateTriggerPair(const MissionTriggerPair *triggerPair,
 				int16_t includeDepartedAsDestroyed)
@@ -1566,6 +1805,25 @@ int Mission_EvaluateTriggerPair(const MissionTriggerPair *triggerPair,
 	return trigger1Result & trigger2Result;
 }
 
+/* Tests one mission condition. Returns 1 when it is met, 2 when it has
+ * failed, 4 while undecided, and 0 for MISSION_COND_NEVER. A condition marked
+ * in g_missionConditionUsesCountByCondition counts craft: with variableType
+ * GOAL_TARGET_NONE it returns 2; else, over every flight group with a craft
+ * type that Mission_FlightGroupMatchesTriggerVariable matches, it sums the
+ * craft that meet and that fail the condition from g_missionFgStats (for the
+ * shield, hull, warhead and cannon conditions, from the group's live craft in
+ * the active region), and compares them with the group totals as amountType
+ * (a GOAL_AMT_ value) says; the subset amounts measure against the craft
+ * arrived and never fail, and an amount not handled stays 4. It leaves met
+ * and total in g_missionConditionCurrentCount and
+ * g_missionConditionTotalCount; every other path leaves both 0. A teamFilter
+ * below 10 picks one team's counts for the inspected and captured-and-departed
+ * conditions. includeDepartedAsDestroyed nonzero makes MISSION_COND_DESTROYED
+ * count the mothership-dependent and left-region outcomes as met, not the
+ * left-region ones as failed. Other conditions read the goal statuses in
+ * g_flightMissionState.runtime, the reinforcement flags, or the connected
+ * players by team, IFF or player number. Does not check conditionType below
+ * 48 or variable against the tables it indexes. */
 // FUNCTION: XVT 0x431C10
 int16_t Mission_EvaluateCondition(uint16_t conditionType, int16_t variableType,
 				  uint16_t variable, int16_t amountType,
@@ -2582,6 +2840,15 @@ int16_t Mission_EvaluateCondition(uint16_t conditionType, int16_t variableType,
 	return status;
 }
 
+/* Tells whether a flight group falls under a trigger's variable; returns 1
+ * when it does, else 0. variableType 1 matches the group itself, 2 its
+ * species (variable + 1), 3 its genus and 4 its family (through
+ * g_genusConvert and g_familyConvert), 5 its IFF, 6 its first order, 8 its
+ * global group, 9 its groupAI, 10 its status1, 12 its team and 23 its global
+ * unit; 15 to 21 and 24 match the opposite of 1 to 5, 8, 12 and 23. Type 7
+ * matches the groups a player owns for variable 9, those none owns for 10,
+ * and every group otherwise; type 11 matches every group; 0 and any other
+ * type match none. Does not check variable against the tables it indexes. */
 // FUNCTION: XVT 0x432FA0
 int16_t Mission_FlightGroupMatchesTriggerVariable(uint16_t flightGroupIdx,
 						  int16_t variableType,
@@ -2776,6 +3043,22 @@ int16_t Mission_FlightGroupMatchesTriggerVariable(uint16_t flightGroupIdx,
 	return result;
 }
 
+/* Tells whether one object falls under a trigger's variable; returns 1 when
+ * it does, else 0. The types match as in
+ * Mission_FlightGroupMatchesTriggerVariable, through the object's flight
+ * group, except that IFF and team come from the object's mobile record when
+ * it has one. Type 7, for a mobile object only, tests its craft's state by
+ * variable: captured (0), identified by another team (1), boarded (2),
+ * docked (3), no working subsystems (4), attacked by another team (5), hull
+ * damaged (6), special cargo or not (7, 8), owned by a player or not (9, 10),
+ * most of the opposites (11 to 18; 15 and 17 never match), hull damage at
+ * least a quarter, half or three quarters of hullMax (22 to 24) and no
+ * warheads left (25). Type 13 matches when the owning player's bound flight
+ * group has player number variable + 1; the original build indexes g_players
+ * even when the object has no owner (-1), the modern build answers 0. Type 14
+ * matches while the elapsed clock's minutes and seconds, ignoring hours, are
+ * at or before variable times 5 seconds; type 22 matches an object not owned
+ * by player variable. */
 // FUNCTION: XVT 0x433390
 int16_t Mission_ObjectMatchesTriggerVariable(uint16_t objectIdx,
 					     uint16_t variableType,
@@ -3127,6 +3410,25 @@ int16_t Mission_ObjectMatchesTriggerVariable(uint16_t objectIdx,
 	return result;
 }
 
+/* Records how one craft left the mission. Does nothing when its
+ * missionAccountingDone is already 1; else sets it, adds one to
+ * g_missionFgStats[flightGroupIdx].outcomeCount[outcomeId], and marks
+ * specialCargoOutcome when the craft is the group's special cargo craft. A
+ * destroyed craft takes back its captured, not-departed and aborted counts
+ * and adds a not-captured-by-destination; any other end of a player-owned
+ * craft with no depart timer or abort, while its team's primary goal is not
+ * complete, counts as not departed. Every team that had not identified it
+ * counts it uninspected-lost, and it counts as not disabled (unless
+ * notDisabledAccountingSuppress is set), not captured (and uncaptured-lost
+ * for every other team), not attacked, not boarded and not docked as its
+ * state says. On a destroyed craft, groups that arrive from its group are
+ * closed with Mission_CloseUnavailableFlightGroupAccounting, groups that
+ * depart through it move their mothership-dependent counts to lost with
+ * mothership, and the group named by any of its orders whose plan is
+ * "dropoffldr1pln" is closed; on left-region those counts move to left
+ * region. Last, it clears the craft from every craft's lastAttackerObjIdx and
+ * every player's targetPresetSlot. Does not check that the object has a
+ * craft. */
 // FUNCTION: XVT 0x433D30
 void Mission_RecordCraftOutcome(uint16_t objIdx, uint16_t flightGroupIdx,
 				uint16_t outcomeId)
@@ -3452,6 +3754,14 @@ void Mission_RecordCraftOutcome(uint16_t objIdx, uint16_t flightGroupIdx,
 	}
 }
 
+/* Closes a flight group whose remaining craft can no longer arrive: the craft
+ * not yet arrived (total minus arrived) are added to its arrived,
+ * lost-with-mothership, not-inspected, not-disabled, not-captured,
+ * not-attacked and not-boarded counts, and likewise, arrived aside, to
+ * specialCargoOutcome; then hasArrived is set to 1 and wavesRemaining to 0.
+ * Returns the new arrived
+ * count. Writes only g_missionFgStats[flightGroupIdx]; does not check the
+ * index. */
 // FUNCTION: XVT 0x434440
 int16_t Mission_CloseUnavailableFlightGroupAccounting(int flightGroupIdx)
 {
@@ -3512,6 +3822,27 @@ int16_t Mission_CloseUnavailableFlightGroupAccounting(int flightGroupIdx)
 	return result;
 }
 
+/* Shares out the credit for a destroyed craft. With no craft record or no
+ * damage recorded, the source object's player, if any, gets a tier 3 kill
+ * credit (and 4 worse-rating points when the victim's genus is 8), the
+ * source's team a tier 3 team credit, and it returns. Otherwise each active
+ * player's share of the damage sets a tier: 0xAAAA of 0x10000 (two thirds)
+ * or more is 3, 0x5999 (about 35%) is 2, 0x0CCC (about 5%) is 1. A player
+ * with a tier gets Mission_CreditPlayerKillContribution; against a team not
+ * allied with theirs, also rating points, halved for tier 2 and a tenth for
+ * tier 1: into ratingPromoPoints when the victim's rating is at most 4 below
+ * theirs, else into worseRatingPromoPoints (always there for a victim of
+ * rating weight 0, or one with no player owner flying an idle, formation,
+ * hangar, disabled or self-destruct plan); tiers 2 and 3 there also go to
+ * Mission_RecordPlayerCraftLossAttribution. The victim counts as owned by its
+ * group's player when player-owned craft did at least half its damage. Then
+ * each team's share, from its flight groups, gets the same tiers and
+ * Mission_CreditTeamKillContribution; at tier 2 or 3, credit its players did
+ * not take goes to the team's most damaging flight group through
+ * Mission_RecordPlayerCraftLossAttribution and, for an owned victim, the
+ * owner's perMissionKills. Writes g_players[] missionStats and
+ * perMissionKills, and each rating line into g_missionDebugBuffer
+ * (g_flightTextScratchBuffer in the modern build). */
 // FUNCTION: XVT 0x434500
 void Mission_CreditDestructionDamageContributors(uint16_t sourceObjIdx,
 						 uint16_t victimObjIdx)
@@ -3903,6 +4234,19 @@ void Mission_CreditDestructionDamageContributors(uint16_t sourceObjIdx,
 	}
 }
 
+/* Credits one player with a share in destroying a craft. Against a team not
+ * allied with the player's, it counts the kill in the player's perMissionKills
+ * (an assist at tier 1, shared at 2, full at 3, by flight group and by the
+ * victim's rating; at tiers 2 and 3 an owned victim also by owner, and in the
+ * owner's own counts), and adds Mission_ComputeKillScoreForObject's score (a
+ * tenth at tier 1, half at tier 2; doubled at difficulty 2, halved at 0) to
+ * missionScore unless Mission_ApplyFlightGroupGoalScore returns below 0. A tier
+ * 3 kill by the local player passes fsfx_SpeakWingmanEvent a chance of 0 unless
+ * a primary goal of the player's team is on the victim's group (24576 for its
+ * conditions 0 and 10, 0xF000 for 2). Against an allied craft at tier 2 or 3 it
+ * subtracts the score and 500 rating points, counts a friendly kill and sends
+ * the friendly-fire and penalty messages, with a tactical voice for the local
+ * player. Writes g_players[], g_msgSenderIff and g_msgArgTable. */
 // FUNCTION: XVT 0x434BC0
 void Mission_CreditPlayerKillContribution(uint16_t victimObjIdx,
 					  int specialCargoFlag,
@@ -4047,6 +4391,14 @@ void Mission_CreditPlayerKillContribution(uint16_t victimObjIdx,
 	}
 }
 
+/* Credits a team with a share in destroying a craft. Against a team not
+ * allied with it, it counts a full (tier 3), shared (2) or assist (1) kill in
+ * runtime.teamKillStats rows 0, 1 and 2 and adds
+ * Mission_ComputeKillScoreForObject's score (a tenth at tier 1, half at 2;
+ * doubled at difficulty 2, halved at 0) to the team's mission score unless
+ * Mission_ApplyFlightGroupGoalScore returns below 0. Against an allied craft
+ * at tier 2 or 3 it subtracts the full score. Writes
+ * g_flightMissionState.runtime. */
 // FUNCTION: XVT 0x434F20
 void Mission_CreditTeamKillContribution(uint16_t victimObjIdx,
 					int specialCargoFlag,
@@ -4100,6 +4452,16 @@ void Mission_CreditTeamKillContribution(uint16_t victimObjIdx,
 	}
 }
 
+/* Counts a projectile's hit for the craft that fired it; does nothing when the
+ * firing object lies past the active craft slots or is empty. A laser or
+ * turbo laser hit adds to the firing craft's weaponStats.laserHitsScored, an
+ * ion hit to ionHitsScored, a warhead hit to warheadHitsScored. When the
+ * projectile sits below g_projectileObjectSlotStart + 128 and the firing
+ * craft's flight group has a player owner, the player's missionStats count
+ * the laser or ion hit, or, for a warhead, perMissionKills.warheadHits and
+ * the warhead's g_projectileTypeData.warheadPointValue in missionScore. Every
+ * warhead hit adds that value to the firing group's team mission score in
+ * g_flightMissionState.runtime. Other types count nothing. */
 // FUNCTION: XVT 0x435070
 void Mission_RecordProjectileHitStats(uint16_t projectileObjIdx)
 {
@@ -4181,6 +4543,18 @@ void Mission_RecordProjectileHitStats(uint16_t projectileObjIdx)
 	}
 }
 
+/* Records the loss of a craft for its team and its player. Takes half of
+ * Mission_ComputeCraftPointValue from the group's team mission score and counts
+ * a loss in runtime.teamKillStats row 3; when the object has no player owner
+ * and its flight group has none that is active, it returns that half value.
+ * Otherwise it takes the same points from the owner's missionScore. With
+ * allowPendingDamageCredit nonzero, when the damage players and AI dealt is
+ * more than half the hull and shields it had left, it first shares out the kill
+ * with Mission_CreditDestructionDamageContributors. When at least half its
+ * damage is in damageReceivedByPlayerOwnedCraft, it counts the loss in the
+ * owner's perMissionKills.totalCraftLosses, and once more under collisions,
+ * starships or mines when that source did the most damage. Returns, when
+ * players did the most damage, the player who did the most; else -1. */
 // FUNCTION: XVT 0x435250
 int Mission_RecordPlayerCraftLoss(unsigned int objIdx,
 				  int allowPendingDamageCredit)
@@ -4358,6 +4732,13 @@ int Mission_RecordPlayerCraftLoss(unsigned int objIdx,
 	return creditedPlayerIdx;
 }
 
+/* Counts a full kill of a player's craft by the attacker group's player
+ * rating (killedByPlayerRating) or, for a group with no player owner, by its
+ * groupAI (killedByAiRating), in the victim owner's perMissionKills. Counts
+ * only at contributionTier 3, and only when the victim has a player owner
+ * (its own or its group's) and at least half its damage is in
+ * damageReceivedByPlayerOwnedCraft; tier 2 passes those tests and counts
+ * nothing, other tiers return at once. */
 // FUNCTION: XVT 0x435530
 void Mission_RecordPlayerCraftLossAttribution(int attackerFlightGroupIdx,
 					      int victimObjIdx,
@@ -4417,6 +4798,16 @@ void Mission_RecordPlayerCraftLossAttribution(int attackerFlightGroupIdx,
 	}
 }
 
+/* Pays out a flight group's per-craft bonus goals for one event. Each of its
+ * 8 goals that is a bonus goal (goalKind 2) for eventCondition, enabled for
+ * teamIdx, with amount 18, or amount 19 when specialCargoFlag is 1, and whose
+ * time limit (timeLimit5s, 5-second units, 0 for none) has not passed on the
+ * elapsed clock, scores 250 times its points. A goalScoreReductionLevel above
+ * 1 (above 10 counts as 9) takes level - 1 tenths off a positive score and
+ * adds level - 1 tenths more to a negative one. The scores go to the
+ * player's missionScore, or with playerIdx -1 to the team's mission score;
+ * for the local player a nonzero total also sends the bonus or penalty
+ * message through g_msgArgTable. Returns the total, 0 when no goal paid. */
 // FUNCTION: XVT 0x435640
 int Mission_ApplyFlightGroupGoalScore(int16_t eventCondition,
 				      uint16_t flightGroupIdx, int playerIdx,
@@ -4507,6 +4898,13 @@ int Mission_ApplyFlightGroupGoalScore(int16_t eventCondition,
 	return scoreTotal;
 }
 
+/* Pays a flight group's per-craft bonus goals for one event to every team a
+ * goal is enabled for: each bonus goal (goalKind 2) for eventCondition with
+ * amount 18, or 19 when specialCargoFlag is 1, adds 250 times its points to
+ * runtime.teamScores[TEAM_SCORE_BONUS] of each team in its enabledTeams. When
+ * the goal's time limit (timeLimit5s, 5-second units) has passed, score is not
+ * reloaded: the value left from the previous paying goal, unset before the
+ * first, is still multiplied by 250 and added. */
 // FUNCTION: XVT 0x435850
 void Mission_ApplyTeamGoalScoreAllEnabledTeams(int16_t eventCondition,
 					       uint16_t flightGroupIdx,
@@ -4551,6 +4949,9 @@ void Mission_ApplyTeamGoalScoreAllEnabledTeams(int16_t eventCondition,
 	} while (remainingGoals != 0);
 }
 
+/* As Mission_ApplyTeamGoalScoreAllEnabledTeams, but pays only teamIdx, and
+ * only for goals enabled for that team; it has the same unset score when a
+ * time limit has passed. */
 // FUNCTION: XVT 0x435930
 void Mission_ApplyTeamGoalScoreForTeam(int16_t eventCondition,
 				       uint16_t flightGroupIdx,
@@ -4594,12 +4995,17 @@ void Mission_ApplyTeamGoalScoreForTeam(int16_t eventCondition,
 	} while (remainingGoals != 0);
 }
 
+/* Returns hours, minutes and seconds as a count of seconds. */
 // FUNCTION: XVT 0x435A10
 int Mission_ClockToSeconds(uint8_t hours, uint8_t minutes, uint8_t seconds)
 {
 	return 60 * (minutes + 60 * hours) + seconds;
 }
 
+/* Returns the score for destroying an object, by its flight group's craft
+ * type: Mission_ComputeCraftPointValue for a space craft
+ * (CRAFT_FAMILY_SPACE_CRAFT); else 500 for object types 0x46 to 0x4A and
+ * 0x50 to 0x54 and 40 for the rest, tripled in a melee mission. */
 // FUNCTION: XVT 0x435A40
 int Mission_ComputeKillScoreForObject(int victimObjIdx)
 {
@@ -4626,6 +5032,14 @@ int Mission_ComputeKillScoreForObject(int victimObjIdx)
 	return killScore;
 }
 
+/* Returns a craft's point value: 40 times its model's craftPointValue
+ * (doubled for CRAFT_SPECIES_SUPER_STAR_DESTROYER), plus each warhead
+ * launcher's loaded warheads at their g_projectileTypeData.warheadPointValue,
+ * plus g_countermeasureTypePointValue for its countermeasure type and
+ * g_beamTypePointValue for its beam type. The original build does not check
+ * these types against the tables; the modern build skips an unknown warhead
+ * type and counts an unknown countermeasure or beam type as type 0. Does not
+ * check that the object has a craft. */
 // FUNCTION: XVT 0x435AD0
 int Mission_ComputeCraftPointValue(int objIdx)
 {
@@ -4693,6 +5107,8 @@ int Mission_ComputeCraftPointValue(int objIdx)
 	return pointValue;
 }
 
+/* Returns g_missionElapsedClock as a count of seconds. Called only by
+ * NetSession_SendPacket. */
 // FUNCTION: XVT 0x448D70
 int Mission_GetElapsedClockSeconds(void)
 {
@@ -4701,6 +5117,33 @@ int Mission_GetElapsedClockSeconds(void)
 	       g_missionElapsedClock.seconds;
 }
 
+/* Sets up the mission in fileName for flight. Lays out the object table's slot
+ * ranges (32 craft, 128 player and 32 other projectiles, 16 debris, 16
+ * explosions, 256 character-data, 8 local debris and 64 static slots), frees
+ * and reallocates the object, mobile, character, craft and warhead pools, and
+ * clears them, the players' object links, the message texts and the proving
+ * grounds state. Loads the file with Mission_LoadFile and returns 0 when that
+ * fails, leaving the flight surface unlocked. Then binds the network players to
+ * their flight groups (with g_flightConfNoPilot set, player numbers up to
+ * g_activeFlightPlayerCount), applies their chosen craft, warheads, beams and
+ * countermeasures, copies craft choices to other player groups under the craft
+ * selection and melee opponent rules, picks random optional craft and start
+ * points when random variation is on, raises or lowers each group's groupAI for
+ * difficulty, melee boosts and combat balance, sets the round count of player
+ * groups, marks the models needed, picks random special cargo craft, places
+ * backdrop objects, and starts g_missionElapsedClock at 0 and
+ * g_missionCountdownClock at the time limit. It sets provingGroundsModeActive
+ * from provingGroundsCraftType, then clears both before loading; nothing here
+ * sets the flag again, so the proving grounds arm at the end (flight group 0's
+ * craft, a countdown of 10 minus the level minutes and 59 seconds) runs only if
+ * a call in between does. Returns 1. Writes g_missionFlightGroups,
+ * g_missionFgStats[].currentMissionPointRef, g_players[] iff and team,
+ * g_flightMissionState, g_objectTypeTable flags, g_asteroidFieldRandSeed,
+ * g_currentFlightGroupIdx and the slot globals; also g_pilotData's melee
+ * tournament state, g_backdropModelTypes, g_backdropPackedDirections,
+ * g_missionMessages, g_objectTable and the object pools,
+ * g_mobileObjectLinkIndices, g_objectSlotRangeByGenus and g_simStepsPerSecond
+ * (0). */
 // FUNCTION: XVT 0x452CE0
 uint16_t Mission_Init(char *fileName)
 {
@@ -6350,6 +6793,36 @@ uint16_t Mission_Init(char *fileName)
 	return 1;
 }
 
+/* Resets the mission's runtime state when a flight starts and brings in the
+ * flight groups that start in space. Per flight group it sets
+ * g_missionFgStats[].arrivalEnabled from g_missionDifficultyArrivalMasks for
+ * the difficulty and g_fgArrivalDifficultyMasks for its arrivalDifficulty, and
+ * clears it when its arrival triggers have already failed, counting only pairs
+ * of player-connection conditions joined by AND. It clears the group's counts,
+ * sets its craft total to numberOfCraft (squared for mines) times numberOfWaves
+ * + 1 when it may arrive or a player owns it, its special cargo total, and
+ * every goal state to 4 (pending). Of the groups with a craft type and craft
+ * that may arrive or have a player owner, a player's group, or one whose first
+ * arrival condition is MISSION_COND_ALWAYS_TRUE with no delay (unless it is an
+ * unowned player-number group with arriveOnlyIfHuman set), arrives at once
+ * through Mission_StartFlightGroupArrival, and one that is not a backdrop marks
+ * its team in runtime.teamHasCountableCraft. It clears each team's scores, goal
+ * states, trigger counts, kill stats and per-group counts, and fills
+ * runtime.teamFgDesignationCode from the four-character entries of each group's
+ * craftRole (a team digit or A, O, F, H, then COM, BAS, STA, MIS, CON, STR,
+ * REL, PRI, SEC, TER, RES or MAN for codes 1 to 12). It then resets the
+ * players' targeting, view, hyperspace and chat state,
+ * g_flightGlobalCountdownTimers, g_playerFlightTransientTimers, the message
+ * flags, goal statuses and end flag in g_flightMissionState, and sets
+ * g_simStepsPerSecond, g_elapsedTicks and g_flightFrameStepMirror to 15,
+ * g_inputTimestamp and g_readyMessageQueueCount to 0, g_nextObjectSignature to
+ * 1, g_targetProximityBlinkBit to 0 and g_flightRuntimeStateInitialized to 1;
+ * g_initialSpawnBindPlayerCraftSlots is 1 while it runs and 0 after. It also
+ * sets g_localDebrisRecycleSlotCursor, g_renderObjectRef,
+ * g_renderObjectRefFlags, g_hudLoadedPanelSetId, g_actionKey,
+ * g_flightInitialTextureCacheFlushPending and g_flightDisplayRebuildPending,
+ * and loads the cockpit resources if they are not loaded. Leaves
+ * g_currentFlightGroupIdx at the flight group count. */
 // FUNCTION: XVT 0x454A20
 void Mission_InitFlightRuntimeState(void)
 {
@@ -6997,6 +7470,12 @@ void Mission_InitFlightRuntimeState(void)
 	FlightSurface_Lock();
 }
 
+/* Brings in flight group g_currentFlightGroupIdx and sets its hasArrived to 1.
+ * A craft type without the static flag (0x80) sets wavesRemaining to
+ * numberOfWaves and spawns the first round with
+ * Mission_SpawnFlightGroupWaveCraft(craftOrdinal); a static type sets
+ * wavesRemaining to numberOfWaves in a melee mission, else 0, and is placed
+ * with Mission_SpawnFlightGroupStaticObjects. Always returns 1. */
 // FUNCTION: XVT 0x455600
 int16_t Mission_StartFlightGroupArrival(uint16_t craftOrdinal)
 {
@@ -7029,6 +7508,29 @@ int16_t Mission_StartFlightGroupArrival(uint16_t craftOrdinal)
 	return 1;
 }
 
+/* Starts flight group arrivals and new rounds. When
+ * missionArrivalTriggerScanTimer is 0 it sets it to SIMULATION_TICKS_PER_SECOND
+ * ticks and, for each group not yet arrived with no delay pending that has
+ * craft and may arrive or has a player owner, tests its two arrival trigger
+ * pairs (departed craft count as destroyed), joined by OR when
+ * arrivals12OrArrivals34 is 1, else AND. When they hold and the group has a
+ * player owner or arriveOnlyIfHuman is clear, it sets arrivalDelayPending and
+ * arrivalDelayTimer, in seconds: the fixed delay plus GameRandRange of the
+ * random delay with random variation on, else half of it. For an arrived group
+ * with no player owner, rounds left and none of its craft or static objects
+ * still present, it skips a player-number group whose team's primary and
+ * prevent statuses are 1 and 1, 1 and 2, or 2 and 1; else it stops the arrivals
+ * when the departure trigger pair holds or the stopArrivingWhen rule applies (1
+ * a craft departed, 2 the team's primary goal complete, 3 the primary failed or
+ * the prevent status is 1), counting the craft that never arrived as arrived,
+ * not departed, not inspected, not disabled, not captured, not attacked and not
+ * boarded, and as mothership-dependent or left region; or it spawns the next
+ * round with Mission_SpawnCurrentFlightGroupWave when
+ * Mission_HasCapacityForCurrentFlightGroupWave allows. When
+ * missionArrivalDelayScanTimer is 0 it sets it the same way, counts each
+ * pending delay down by one, and at 0 starts the arrival with
+ * Mission_StartFlightGroupArrival when there is capacity. Uses
+ * g_currentFlightGroupIdx as its loop index; also writes g_curCraft. */
 // FUNCTION: XVT 0x4556B0
 void Mission_UpdateFlightGroupArrivals(void)
 {
@@ -7465,6 +7967,19 @@ void Mission_UpdateFlightGroupArrivals(void)
 	}
 }
 
+/* Sends a flight group's next round once its current one is gone. Returns at
+ * once when it has no rounds left or no craft, while any of its craft in the
+ * active region is not breaking up or exploding, or when its team's primary and
+ * prevent statuses are 1 and 1, 1 and 2, or 2 and 1. Unless
+ * playerFlightGroupWaveMode is CRAFT_WAVES_UNLIMITED, it stops the arrivals
+ * when the departure trigger pair or the stopArrivingWhen rule holds, closing
+ * the craft that never arrived into its counts as
+ * Mission_UpdateFlightGroupArrivals does, and returns. Otherwise it sets
+ * g_currentFlightGroupIdx to the group and, when fewer craft slots are free
+ * than the group has craft, frees unowned explosion objects and then unowned
+ * craft that are breaking up or exploding, recording each as destroyed with
+ * Mission_RecordCraftOutcome; then spawns the round with
+ * Mission_SpawnCurrentFlightGroupWave. */
 // FUNCTION: XVT 0x455C80
 void Mission_ProcessFlightGroupWaveCompletion(uint16_t flightGroupIdx)
 {
@@ -7733,6 +8248,11 @@ void Mission_ProcessFlightGroupWaveCompletion(uint16_t flightGroupIdx)
 	Mission_SpawnCurrentFlightGroupWave();
 }
 
+/* Spawns the next round of flight group g_currentFlightGroupIdx: craft with
+ * Mission_SpawnFlightGroupWaveCraft, a static type (flag 0x80) with
+ * Mission_SpawnFlightGroupStaticObjects. Then takes one from its wavesRemaining
+ * when that is above 0, except for a player-number group while
+ * playerFlightGroupWaveMode is CRAFT_WAVES_UNLIMITED. */
 // FUNCTION: XVT 0x456040
 void Mission_SpawnCurrentFlightGroupWave(void)
 {
@@ -7769,6 +8289,9 @@ void Mission_SpawnCurrentFlightGroupWave(void)
 	}
 }
 
+/* Tells whether flight group g_currentFlightGroupIdx's next round fits: returns
+ * 1 when the active region has at least numberOfCraft free craft slots, or
+ * always for a static type (flag 0x80); else 0. */
 // FUNCTION: XVT 0x4560F0
 int Mission_HasCapacityForCurrentFlightGroupWave(void)
 {
@@ -7797,6 +8320,27 @@ int Mission_HasCapacityForCurrentFlightGroupWave(void)
 	return 1;
 }
 
+/* Spawns one round of flight group g_currentFlightGroupIdx, or only craft
+ * craftOrdinal when that is not UINT16_MAX. It first sets the g_spawn globals
+ * Mission_InitFlightGroupObjectSlot reads. After the mission clock has started,
+ * a whole round arriving from a mothership (arrivalMethod set, not in proving
+ * grounds) starts at the mothership's inside hangar point facing its outside
+ * point, in formation 6 when the group has more than 3 craft; it returns 0 when
+ * no craft of the mothership's group with leader_obj_idx UINT8_MAX is present.
+ * Else the round starts at mission point 1 (in melee, when team 0 has one
+ * player group, the point of a player group picked by round and player number;
+ * a player-owned group moved at random by up to 0x7FFF in x and y; in a version
+ * 14 file, a player group's point 2 when enabled), faces mission point 5 when
+ * enabled, else yaw 0 and pitch 0x4000, and an unowned whole round arriving by
+ * hyperspace after the start is moved 8 times 65,535 units back against its
+ * heading and marked with g_spawnOutOfHyperspaceFlag. It copies the group's
+ * IFF, team, statuses, AI level and genus. Then for each ordinal of the round,
+ * or the one asked, while the group's arrived count is below its total, it
+ * calls Mission_InitFlightGroupObjectSlot, returning 0 when that finds no slot,
+ * and counts the craft (and the special cargo craft) as arrived. A whole round
+ * after the start is announced with msg_reportfgcreation. Returns 1. Writes the
+ * g_spawn globals, g_worldLocX, g_worldLocY, g_worldLocZ, g_curCraft,
+ * trig2_xyangle, trig2_pitch and g_missionFgStats arrived counts. */
 // FUNCTION: XVT 0x456190
 int16_t Mission_SpawnFlightGroupWaveCraft(uint16_t craftOrdinal)
 {
@@ -8168,6 +8712,27 @@ int16_t Mission_SpawnFlightGroupWaveCraft(uint16_t craftOrdinal)
 	return 1;
 }
 
+/* Creates craft g_spawnCraftOrdinal of flight group g_currentFlightGroupIdx
+ * from the g_spawn globals in the first free object slot of
+ * g_objectSlotRangeByGenus[g_spawnGenusId]. Returns that slot, or UINT16_MAX
+ * when the range is full. When the craft is the group's playerCraft, the group
+ * has a player owner and g_initialSpawnBindPlayerCraftSlots is set, it binds
+ * the craft to that player: objectIndex, boundObjectSignature,
+ * boundFlightGroupIdx, weapon and power presets, and zeroed mission stats and
+ * kill counts. It gives the object the next g_nextObjectSignature, its type,
+ * IFF, team, genus, family, markings and number in the group (counted across
+ * the global unit when the group has one and disableWaveNumbering is 0), places
+ * the first craft at the spawn point and the others at their g_formPosX,
+ * g_formPosY and g_formPosZ offsets from the first craft, scaled by bounds and
+ * formationSpacing, and sets cargo text, lasers, warheads (ammo by the
+ * warhead's share of launcher capacity, doubled or halved by status 1 or 2, at
+ * most 9 for a player group), hull, shields, beam and countermeasures as the
+ * statuses say, component hit points, plans and throttle from its first order,
+ * and fresh damage, mission and AI state. It adds one to the group's
+ * spawnedCraftCount; in a version 14 file object types 37 and 38 get the
+ * transport genus. Also writes g_spawnObjectType, g_spawnedObjectIff,
+ * g_spawnLeaderObjIdx (to this slot when it was UINT8_MAX), g_curCraft and
+ * g_spawnObjectTypeByObjectSlot. */
 // FUNCTION: XVT 0x456AC0
 uint16_t Mission_InitFlightGroupObjectSlot(void)
 {
@@ -9032,6 +9597,19 @@ uint16_t Mission_InitFlightGroupObjectSlot(void)
 	return objectIndex;
 }
 
+/* Places the static objects of flight group g_currentFlightGroupIdx through
+ * Mission_SpawnPreparedObject, all of them or only craftOrdinal when that is
+ * not UINT16_MAX; does nothing when the group has no craft or its type lacks
+ * the static flag (0x80). Mines (CRAFT_GENUS_MINE) fill a square grid of
+ * numberOfCraft by numberOfCraft at 64 mission units apart, centered on
+ * mission point 1, in the plane status1 & 3 picks (0 x and y, 1 y and z,
+ * 2 x and z, 3 all at one point), while the arrived count is below the
+ * total. A satellite is one object at mission point 1. Debris
+ * (CRAFT_GENUS_NORMAL_DEBRIS) is numberOfCraft objects of random type 100 to
+ * 105 at random spots within 256 units of point 1, drawn from
+ * g_asteroidFieldRandSeed, which it then advances; the game's random state is
+ * restored after. Mines and satellites take the group's yaw, pitch and roll.
+ * Writes the g_preparedSpawn globals. */
 // FUNCTION: XVT 0x4587C0
 void Mission_SpawnFlightGroupStaticObjects(uint16_t craftOrdinal)
 {
@@ -9246,6 +9824,14 @@ void Mission_SpawnFlightGroupStaticObjects(uint16_t craftOrdinal)
 	}
 }
 
+/* Creates one static object from the g_preparedSpawn globals in the slot
+ * Object_FindFreeMissionSlot returns: position times 256 into world units,
+ * yaw, pitch and roll bytes shifted up 8 bits, the next
+ * g_nextObjectSignature, and the given group, genus and type; for genus 8
+ * typeSpecificByte[1] is 29 times the low 3 bits of the group's arrived
+ * count. Adds
+ * one to the group's arrived count. Returns the slot, or UINT16_MAX with
+ * nothing done when there is none. */
 // FUNCTION: XVT 0x458C80
 uint16_t Mission_SpawnPreparedObject(uint16_t flightGroupIdx, int16_t genusId,
 				     uint8_t objectType)
@@ -9289,6 +9875,11 @@ uint16_t Mission_SpawnPreparedObject(uint16_t flightGroupIdx, int16_t genusId,
 	return objectIndex;
 }
 
+/* Puts a world position in g_worldLocX, g_worldLocY and g_worldLocZ. A
+ * reference below 0x8000 is an object index and gives that object's position;
+ * 0x8000 gives the flight group's currentMissionPointRef, and any other
+ * reference mission point ref - 0x8000 of flightGroupIdx, times 256 with y
+ * negated. Does not check the object index or the point index (0 to 21). */
 // FUNCTION: XVT 0x458E20
 void Mission_ResolveObjectOrMissionPointWorldLoc(
 	unsigned int objOrMissionPointRef, int flightGroupIdx)
@@ -9321,6 +9912,17 @@ void Mission_ResolveObjectOrMissionPointWorldLoc(
 		      256;
 }
 
+/* Puts in g_worldLocX, g_worldLocY and g_worldLocZ where craft
+ * formationSlotIdx of a flight group stands, raised by its model's
+ * ModelBounds_GetMaxZ. Of the static types, genus 9 stands at mission point
+ * 1, genus 8 at its cell of the mine grid
+ * Mission_SpawnFlightGroupStaticObjects lays out, and any other, or a slot
+ * past the grid, at the group's current mission point. Other types take the
+ * group's current mission point plus the slot's offset in
+ * g_formPosX, g_formPosY and g_formPosZ, scaled by bounds and
+ * formationSpacing and turned to basisObjIdx's orientation (left in
+ * g_rotatedX, g_rotatedY and g_rotatedZ); with basisObjIdx UINT16_MAX the
+ * offset is 0. */
 // FUNCTION: XVT 0x459B40
 void Mission_ResolveFormationSlotWorldLoc(uint16_t flightGroupIdx,
 					  uint16_t formationSlotIdx,
@@ -9512,6 +10114,28 @@ void Mission_ResolveFormationSlotWorldLoc(uint16_t flightGroupIdx,
 	g_worldLocZ += maxZ;
 }
 
+/* Reads a mission file into g_missionHeader, g_missionFlightGroups,
+ * g_missionMessages, g_missionGlobalGoals, g_missionTeams and the goal text
+ * handles. Returns 0 when the file does not open or its version, the first
+ * two bytes, read into g_missionFileVersion, is not 12, 13, 14 or 0xFFFF;
+ * else 1 when FeDiskIo_CloseGlobalStream reports no error, 0 when it does.
+ * Versions 12 to 14 read the records as stored: each message at the index
+ * the file gives, as many global goals per team as the file counts, a team
+ * record when its count is nonzero; they skip the briefings and copy each
+ * nonempty 64-byte goal text into a new memory handle in
+ * g_missionFgOverrideStringHandles and g_globalGoalOverrideStringHandles.
+ * The version 10 branches inside never run: that test sits under the one
+ * for 12 to 14. Version 0xFFFF, the TIE format, reads g_tieMissionHeader, a
+ * g_tieFlightGroup per flight group, a g_tieRadioMessage per message and a
+ * g_tieMissionGoal per goal and converts them: all groups on team 0, then
+ * team 1 for IFF 0 and 4 and for IFF 2, 3 and 5 whose TIE name starts with
+ * '1'; player number 1 for a player group; the four goals as primary, bonus,
+ * prevent and bonus; the first 15 waypoints; the third order's code from the
+ * second TIE order. Then, for every version, it makes craftRole upper case,
+ * marks each team allied with itself, and, where a team's first three global
+ * goals have a first condition, turns their trailing MISSION_COND_NEVER
+ * trigger slots into MISSION_COND_ALWAYS_TRUE joined by AND. Does not check
+ * the counts and indexes it reads against the array sizes. */
 // FUNCTION: XVT 0x45AD80
 int Mission_LoadFile(char *fileName)
 {
@@ -10461,6 +11085,11 @@ int Mission_LoadFile(char *fileName)
 	return FeDiskIo_CloseGlobalStream(0) == 0;
 }
 
+/* For each player in the session roster that matches a network player in
+ * g_pilotData by DirectPlay id, stores that id in
+ * g_players[slot].network.directPlayId, slot from
+ * NetSession_FindPlayerSlotByDpid; does not check that the slot is below 8.
+ * Always returns 1. */
 // FUNCTION: XVT 0x45C250
 int Mission_SyncPilotNetworkPlayersToSessionSlots(void)
 {
@@ -10496,6 +11125,9 @@ int Mission_SyncPilotNetworkPlayersToSessionSlots(void)
 	return 1;
 }
 
+/* Frees every nonzero handle in g_missionFgOverrideStringHandles (for the
+ * mission's flight groups) and g_globalGoalOverrideStringHandles. The handles
+ * stay in the arrays; nothing here sets them to 0. */
 // FUNCTION: XVT 0x45C2D0
 void Mission_FreeOverrideStringHandles(void)
 {
