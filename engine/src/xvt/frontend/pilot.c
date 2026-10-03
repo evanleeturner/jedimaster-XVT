@@ -23,7 +23,7 @@
 /* Forty pilot names; pilot_parse_command_line picks one at random for a pilot
  * named "joiner" or "host" on the command line. */
 // GLOBAL: XVT 0x52AF78
-const char *const g_random_pilot_names[40] = {
+static const char *const g_random_pilot_names[40] = {
 	"Luke",	       "Han Solo",    "Darth Vader", "Leia",	     "Lando",
 	"Boba Fett",   "Chewbacca",   "R2-D2",	     "C-3PO",	     "Jabba",
 	"Greedo",      "Thrawn",      "Ackbar",	     "Wedge",	     "Bollux",

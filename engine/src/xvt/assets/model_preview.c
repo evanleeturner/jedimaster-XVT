@@ -27,14 +27,14 @@
 /* 1 / 32767, which turns a 1.15 fixed point matrix entry into a float in
  * model_preview_render_viewport. */
 // GLOBAL: XVT 0x518100
-const float g_model_preview_matrix_q15_to_float_scale = 0.000030518509f;
+static const float g_model_preview_matrix_q15_to_float_scale = 0.000030518509f;
 /* The 1.0 model_preview_set_light_direction divides by the vector's length. */
 // GLOBAL: XVT 0x518110
 static const double g_model_preview_inv_length_numerator = 1.0;
 /* Size, in model units, that model_preview_load_model scales a model's largest
  * extent to: 500. */
 // GLOBAL: XVT 0x5180F8
-const double g_model_preview_target_bounds_extent = 500.0;
+static const double g_model_preview_target_bounds_extent = 500.0;
 /* 32767, which turns a unit light direction into 1.15 fixed point in
  * model_preview_set_light_direction. */
 // GLOBAL: XVT 0x518118
@@ -97,11 +97,11 @@ struct object_record g_model_preview_object;
 /* Factor model_preview_load_model scaled the preview model by:
  * g_model_preview_target_bounds_extent over g_model_preview_bounds_extent. */
 // GLOBAL: XVT 0x5561E0
-double g_model_preview_scale = 0.0;
+static double g_model_preview_scale = 0.0;
 /* The preview object's mobile part, cleared by each successful load, with
  * g_model_preview_craft_scratch as its craft. */
 // GLOBAL: XVT 0x556218
-struct mobile_object g_model_preview_mobile_object = {0};
+static struct mobile_object g_model_preview_mobile_object = {0};
 /* Name of the preview's OPT file, set by model_preview_load_model once the file
  * is loaded; model_preview_save_state copies it. */
 // GLOBAL: XVT 0x555CC8
@@ -157,7 +157,7 @@ static float g_model_preview_bounds_min_y = 0.0f;
 /* Craft record the preview's mobile object points at, cleared by each
  * successful load. */
 // GLOBAL: XVT 0x555D78
-struct craft_data g_model_preview_craft_scratch = {0};
+static struct craft_data g_model_preview_craft_scratch = {0};
 /* Light direction y saved by model_preview_save_state, put back by
  * model_preview_restore_state. */
 // GLOBAL: XVT 0x555D70
@@ -203,23 +203,23 @@ int g_world_light_direction_z;
  * g_view_space_depth. The modern build passes it to
  * xvt_render_capture_frontend_preview. */
 // GLOBAL: XVT 0xA60710
-struct opt_vector g_model_preview_view_delta = {0.0f, 0.0f, 0.0f};
+static struct opt_vector g_model_preview_view_delta = {0.0f, 0.0f, 0.0f};
 /* model_preview_render_viewport's float copy of a 1.15 matrix: first the camera
  * rotation, used to turn g_model_preview_view_delta, then the object-to-view
  * rotation, which the modern build passes to
  * xvt_render_capture_frontend_preview. */
 // GLOBAL: XVT 0xA6071C
-float g_model_preview_matrix[9] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-				   0.0f, 0.0f, 0.0f, 0.0f};
+static float g_model_preview_matrix[9] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+					  0.0f, 0.0f, 0.0f, 0.0f};
 /* Minus g_model_preview_view_delta turned by g_model_preview_object_view_matrix, set
  * each draw by model_preview_render_viewport; nothing reads it. */
 // GLOBAL: XVT 0xA60740
-struct opt_vector g_model_preview_neg_view_delta = {0.0f, 0.0f, 0.0f};
+static struct opt_vector g_model_preview_neg_view_delta = {0.0f, 0.0f, 0.0f};
 /* The object-to-view rotation transposed, set each draw by
  * model_preview_render_viewport only to turn g_model_preview_neg_view_delta. */
 // GLOBAL: XVT 0xA6074C
-float g_model_preview_object_view_matrix[9] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-					       0.0f, 0.0f, 0.0f, 0.0f};
+static float g_model_preview_object_view_matrix[9] = {
+	0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
 
 /* Loads a model for the frontend preview into g_loaded_models[0] and returns 1,
  * or 0. It frees the preview's render buffers, resets the view and render

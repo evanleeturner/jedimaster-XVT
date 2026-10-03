@@ -84,13 +84,13 @@ enum { PANEL_BOX_SPAN_SCRATCH_SIZE = 2048 };
  * when that is positive (twice that many bytes in at 16 bits) and draws
  * from. */
 // GLOBAL: XVT 0x6122D8
-uint8_t g_panel_box_span_scratch[PANEL_BOX_SPAN_SCRATCH_SIZE] = {0};
+static uint8_t g_panel_box_span_scratch[PANEL_BOX_SPAN_SCRATCH_SIZE] = {0};
 /* 1 after the targeting computer sees a new target, telling the next
  * hud_update3d_crt of the target inset to copy the inset's span mask again.
  * hud_update_targeting_computer_display sets it to 0 each time it draws and to 1
  * on a target change; hud_draw_hud_target_inset_if_enabled passes it on. */
 // GLOBAL: XVT 0x521550
-uint16_t g_hud_target_inset_mask_refresh_pending = 0;
+static uint16_t g_hud_target_inset_mask_refresh_pending = 0;
 
 /* Memory handle of the panel sprite data, HUD_PANEL_SPRITE_BUFFER_BYTES
  * (120,000) long, allocated by fe_disk_io_init_global_buffers and freed and set to
@@ -270,16 +270,16 @@ uint8_t g_radar_blip_buffer_parity = 0;
 uint8_t g_radar_target_marker_background_saved = 0;
 /* First of the two fore radar blip lists, 48 entries. */
 // GLOBAL: XVT 0xA083C0
-struct hud_radar_blip_point g_radar_fore_blip_buffer_a[48] = {{0}};
+static struct hud_radar_blip_point g_radar_fore_blip_buffer_a[48] = {{0}};
 /* Second of the two fore radar blip lists, 48 entries. */
 // GLOBAL: XVT 0xA084E0
-struct hud_radar_blip_point g_radar_fore_blip_buffer_b[48] = {{0}};
+static struct hud_radar_blip_point g_radar_fore_blip_buffer_b[48] = {{0}};
 /* First of the two aft radar blip lists, 48 entries. */
 // GLOBAL: XVT 0xA0A540
-struct hud_radar_blip_point g_radar_aft_blip_buffer_a[48] = {{0}};
+static struct hud_radar_blip_point g_radar_aft_blip_buffer_a[48] = {{0}};
 /* Second of the two aft radar blip lists, 48 entries. */
 // GLOBAL: XVT 0xA0A660
-struct hud_radar_blip_point g_radar_aft_blip_buffer_b[48] = {{0}};
+static struct hud_radar_blip_point g_radar_aft_blip_buffer_b[48] = {{0}};
 /* Width, in pixels, of the scoreboard page area that hud_blit_software_mfd_pages
  * copies from g_flight_offscreen_buffer: 112 at 320x240, 224 at 640x480, 168 at
  * 480x360. Only hud_init_hud writes it, for the local player's resolution. */
@@ -546,7 +546,7 @@ uint8_t g_ready_message_queue_count;
  * panes; hud_reset_flight_message_panes raises it, and
  * hud_update_flight_message_panes sets it back to 0. */
 // GLOBAL: XVT 0x556AA4
-int g_flight_message_panes_force_expire = 0;
+static int g_flight_message_panes_force_expire = 0;
 /* Slot 0's state_or_message_id as hud_reset_flight_message_panes, its only writer,
  * last found it before emptying the pane. Nothing reads it. */
 // GLOBAL: XVT 0x9D7686
@@ -601,44 +601,44 @@ int g_ready_message_pane_bottom = 0;
  * 320x240, 85 at 640x480, 63 at 480x360, set the first time
  * hud_reset_flight_message_panes runs in a flight, its only writer. */
 // GLOBAL: XVT 0x9A7390
-int g_system_message_pane_left = 0;
+static int g_system_message_pane_left = 0;
 /* The system message pane's top edge on g_flight_offscreen_buffer: 32 at 320x240,
  * 64 at 640x480, 48 at 480x360, set the first time hud_reset_flight_message_panes
  * runs in a flight, its only writer. */
 // GLOBAL: XVT 0x9D12F8
-int g_system_message_pane_top = 0;
+static int g_system_message_pane_top = 0;
 /* The system message pane's right edge, exclusive, on g_flight_offscreen_buffer:
  * 277 at 320x240, 555 at 640x480, 415 at 480x360, set the first time
  * hud_reset_flight_message_panes runs in a flight, its only writer. */
 // GLOBAL: XVT 0x9A8D98
-int g_system_message_pane_right = 0;
+static int g_system_message_pane_right = 0;
 /* The system message pane's bottom edge, exclusive, on g_flight_offscreen_buffer:
  * 37 at 320x240, 75 at 640x480, 56 at 480x360, set the first time
  * hud_reset_flight_message_panes runs in a flight, its only writer. */
 // GLOBAL: XVT 0x9A8D94
-int g_system_message_pane_bottom = 0;
+static int g_system_message_pane_bottom = 0;
 /* The flight group message pane's left edge on g_flight_offscreen_buffer: 75 at
  * 320x240, 150 at 640x480, 112 at 480x360, set the first time
  * hud_reset_flight_message_panes runs in a flight, its only writer. */
 // GLOBAL: XVT 0x9EC470
-int g_flight_group_message_pane_left = 0;
+static int g_flight_group_message_pane_left = 0;
 /* The flight group message pane's top edge on g_flight_offscreen_buffer: 44 at
  * 320x240, 89 at 640x480, 66 at 480x360, set the first time
  * hud_reset_flight_message_panes runs in a flight, its only writer. */
 // GLOBAL: XVT 0x9ECC38
-int g_flight_group_message_pane_top = 0;
+static int g_flight_group_message_pane_top = 0;
 /* The flight group message pane's right edge, exclusive, on
  * g_flight_offscreen_buffer: 265 at 320x240, 530 at 640x480, 397 at 480x360, set
  * the first time hud_reset_flight_message_panes runs in a flight, its only
  * writer. */
 // GLOBAL: XVT 0x9D12F4
-int g_flight_group_message_pane_right = 0;
+static int g_flight_group_message_pane_right = 0;
 /* The flight group message pane's bottom edge, exclusive, on
  * g_flight_offscreen_buffer: 49 at 320x240, 100 at 640x480, 74 at 480x360, set
  * the first time hud_reset_flight_message_panes runs in a flight, its only
  * writer. */
 // GLOBAL: XVT 0x9D6934
-int g_flight_group_message_pane_bottom = 0;
+static int g_flight_group_message_pane_bottom = 0;
 /* Text measured for the width of a three-digit field. */
 // GLOBAL: XVT 0x5215E0
 const char g_three_digit_width_text[4] = "000";

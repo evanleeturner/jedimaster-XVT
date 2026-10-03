@@ -45,7 +45,7 @@
  * mission_debrief_update sets it on its first frame and
  * mission_debrief_draw_tab_bar on every tab change. */
 // GLOBAL: XVT 0x66D918
-int g_debrief_stats_page_needs_rebuild = 0;
+static int g_debrief_stats_page_needs_rebuild = 0;
 /* 1 when the debriefing finds the local player among the network players
  * that left the game (has_left set in g_pilot_data.network_players). Set to 0
  * and then worked out on the debriefing's first frame, by
@@ -60,7 +60,7 @@ int g_debrief_disconnected_from_net_game = 0;
  * 1 when NET_PACKET_SESSION_CANCELLED or NET_PACKET_TEAM_ASSIGNMENTS_READY
  * arrives. */
 // GLOBAL: XVT 0x66D9B8
-int g_debrief_session_cancel_or_teams_ready_received = -1;
+static int g_debrief_session_cancel_or_teams_ready_received = -1;
 /* The debriefing page shown: 0 the mission overview, 1 the player
  * statistics, 2 the sequence's page (the campaign text, the tournament
  * summary or the battle summary), drawn only while
@@ -68,7 +68,7 @@ int g_debrief_session_cancel_or_teams_ready_received = -1;
  * its first frame from the mission type and sequence; mission_debrief_draw_tab_bar
  * changes it when a tab is clicked. */
 // GLOBAL: XVT 0x66D9E0
-int g_debrief_tab = 0;
+static int g_debrief_tab = 0;
 /* Mission list description of the tournament, battle or campaign being
  * played, shown by the tournament and battle summary pages and by
  * mission_setup_battle_choice_update. mission_debrief_update empties it on its
@@ -168,64 +168,64 @@ int g_debrief_rank_by_pilot = 0;
  * entry 0 is used. Reset and summed by mission_debrief_draw_player_statistics_page
  * when it rebuilds. */
 // GLOBAL: XVT 0x66D8C8
-int g_debrief_kills_shared_total[4] = {0};
+static int g_debrief_kills_shared_total[4] = {0};
 /* Kill assists in the last mission, summed over craft types from
  * last_mission_stats; only entry 0 is used. Reset and summed by
  * mission_debrief_draw_player_statistics_page when it rebuilds;
  * mission_debrief_update sets entry 3 to 0. */
 // GLOBAL: XVT 0x66D908
-int g_debrief_assists_total[4] = {0};
+static int g_debrief_assists_total[4] = {0};
 /* Full kills on human pilots in the last mission, summed over their ratings
  * from last_mission_stats; only entry 0 is used. Reset and summed by
  * mission_debrief_draw_player_statistics_page when it rebuilds. */
 // GLOBAL: XVT 0x66D948
-int g_debrief_player_kills_full_total[4] = {0};
+static int g_debrief_player_kills_full_total[4] = {0};
 /* Full kills on AI pilots in the last mission, summed over their 6 ratings from
  * last_mission_stats; only entry 0 is used. Reset and summed by
  * mission_debrief_draw_player_statistics_page when it rebuilds. */
 // GLOBAL: XVT 0x66D958
-int g_debrief_non_player_kills_full_total[4] = {0};
+static int g_debrief_non_player_kills_full_total[4] = {0};
 /* 1 when the last mission has a full or shared kill of any craft type, so
  * the player statistics page shows its craft-kills-by-type section. Only
  * that page writes it, when it rebuilds. */
 // GLOBAL: XVT 0x66D9B4
-int g_debrief_has_craft_kills_by_type_section = 0;
+static int g_debrief_has_craft_kills_by_type_section = 0;
 /* 1 when, in network play, the last mission's kills_full_from_player or
  * kills_shared_from_player has a nonzero entry, so the player statistics page
  * shows its losses-to-players section. Only that page writes it, when it
  * rebuilds. */
 // GLOBAL: XVT 0x66D9E4
-int g_debrief_has_losses_from_players_section = 0;
+static int g_debrief_has_losses_from_players_section = 0;
 /* Shared kills on AI pilots in the last mission, summed over their 6
  * ratings in last_mission_stats; only entry 0 is used. Reset and summed by
  * mission_debrief_draw_player_statistics_page when it rebuilds. */
 // GLOBAL: XVT 0x66D9E8
-int g_debrief_non_player_kills_shared_total[3] = {0};
+static int g_debrief_non_player_kills_shared_total[3] = {0};
 /* Scratch flag of mission_debrief_draw_player_statistics_page, its only user:
  * 1 when the craft type being looked at has a kill, and while drawing the
  * awards, 1 once the "Award" label is drawn. */
 // GLOBAL: XVT 0x66D9F4
-int g_debrief_craft_kill_row_has_data = 0;
+static int g_debrief_craft_kill_row_has_data = 0;
 /* Times AI pilots killed the local player in the last mission, summed over
  * their 6 ratings from last_mission_stats.killed_by_ai_rating_per_mt. Reset and
  * summed by mission_debrief_draw_player_statistics_page when it rebuilds. */
 // GLOBAL: XVT 0x66DA50
-int g_debrief_losses_to_non_player_pilots_total[1] = {0};
+static int g_debrief_losses_to_non_player_pilots_total[1] = {0};
 /* Times human pilots killed the local player in the last mission, summed
  * over their 25 ratings from last_mission_stats.killed_by_player_rating_per_mt. Reset
  * and summed by mission_debrief_draw_player_statistics_page when it rebuilds. */
 // GLOBAL: XVT 0x66DA60
-int g_debrief_losses_to_player_pilots_total[1] = {0};
+static int g_debrief_losses_to_player_pilots_total[1] = {0};
 /* First row shown on the player statistics page, which shows 21 rows. Only
  * mission_debrief_draw_player_statistics_page writes it: 0 when it rebuilds,
  * then the scroll bar's position when the page has more than 21 rows. */
 // GLOBAL: XVT 0x66DA6C
-int g_debrief_player_stats_scroll_row = 0;
+static int g_debrief_player_stats_scroll_row = 0;
 /* Rows of the player statistics page, counted when it rebuilds; the scroll
  * bar appears above 21. Only mission_debrief_draw_player_statistics_page writes
  * it. */
 // GLOBAL: XVT 0x66DA70
-int g_debrief_player_stats_row_count = 0;
+static int g_debrief_player_stats_row_count = 0;
 
 /* Leaves the debriefing: frees g_mission_list and g_mission_text and sets
  * each to NULL, frees the "background" image, resets the scrollable controls

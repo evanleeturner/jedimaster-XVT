@@ -53,12 +53,12 @@ int g_gunner_collision_probe_count = 0;
  * paifight_fightershootorder fires the cannons, before its changes for the
  * target's speed and size. */
 // GLOBAL: XVT 0x524290
-const unsigned int g_ai_fighter_shoot_max_range_by_skill[3] = {0x6000, 0x8000,
-							       0xA000};
+static const unsigned int g_ai_fighter_shoot_max_range_by_skill[3] = {
+	0x6000, 0x8000, 0xA000};
 /* Shots in each cannon burst paifight_fightershootorder sets, by skill tier 0
  * to 2; entry 3 is 0. */
 // GLOBAL: XVT 0x52429C
-const uint8_t g_ai_fighter_shoot_burst_length_by_skill[4] = {3, 4, 5, 0};
+static const uint8_t g_ai_fighter_shoot_burst_length_by_skill[4] = {3, 4, 5, 0};
 
 /* Order 9: returns 1 after giving the craft a target, with its signature and
  * has_live_target 1, else 0; only while the craft is on its plan's maneuver. The

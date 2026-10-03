@@ -76,8 +76,8 @@ const uint8_t g_craft_iff_counterpart[20] = {0, 6, 16, 8, 16, 14, 1, 14, 3, 3,
  * preview, by craft species 0 to 16; only mission_setup_draw_craft_loadout reads
  * it, without checking that the species is under 17. Constant. */
 // GLOBAL: XVT 0x52C5D8
-const struct model_preview_craft_position g_model_preview_craft_positions[17] =
-	{
+static const struct model_preview_craft_position
+	g_model_preview_craft_positions[17] = {
 		{0, 0, 0},	 {25, -30, 20}, {0, -120, 20}, {10, -55, 20},
 		{0, 0, 0},	 {0, 400, 30},	{40, 390, 45}, {-30, 240, 10},
 		{-10, 200, 10},	 {0, 0, 0},	{0, 0, 0},     {0, 0, 0},
@@ -447,7 +447,7 @@ int g_mission_setup_last_broadcast_countdown_second = 0;
  * 4 player flight groups. Written by mission_setup_flight_assignment_update on
  * frame 0 and by mission_setup_draw_assignment_controls's buttons. */
 // GLOBAL: XVT 0x669790
-int g_mission_setup_use_expanded_assignment_layout = 0;
+static int g_mission_setup_use_expanded_assignment_layout = 0;
 /* How the debriefing hands back to the mission setup screens: replaying the
  * current mission or going on to the next. mission_setup_team_assignment_update,
  * finding it set, clears it and goes straight to flight assignment; while it is

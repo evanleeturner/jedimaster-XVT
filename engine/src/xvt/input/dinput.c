@@ -15,7 +15,7 @@ __declspec(dllimport) int __stdcall MessageBoxA(void *h_wnd, const char *text,
  * {6F1D2B61-D5A0-11CF-BFC7-444553540000}; dinput_init creates the keyboard
  * device from a copy of it. */
 // GLOBAL: XVT 0x518240
-const DxGuid g_direct_input_system_keyboard_guid = {
+static const DxGuid g_direct_input_system_keyboard_guid = {
 	0x6F1D2B61,
 	0xD5A0,
 	0x11CF,
@@ -24,7 +24,7 @@ const DxGuid g_direct_input_system_keyboard_guid = {
 /* Instance handle dinput_init passes to DirectInputCreateA. Nothing writes it,
  * so it stays NULL. */
 // GLOBAL: XVT 0x66E1F0
-void *g_h_instance = NULL;
+static void *g_h_instance = NULL;
 
 /* Game key code for each DirectInput key offset (the DIK scan code), 0 to 255,
  * with no modifier held: ASCII for the keys that type a character and for

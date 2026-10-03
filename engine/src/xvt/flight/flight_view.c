@@ -67,10 +67,10 @@ uint16_t g_flight_initial_texture_cache_flush_pending = 0;
  * compositing and the target inset. Only flight_view_render writes and reads
  * it. */
 // GLOBAL: XVT 0x9A7BA8
-uint16_t g_flight_post_scene_duration_ticks = 0;
+static uint16_t g_flight_post_scene_duration_ticks = 0;
 /* Set to 0 by flight_view_render, its only writer; nothing reads it. */
 // GLOBAL: XVT 0x9E9660
-uint16_t g_flight_render_scratch_word = 0;
+static uint16_t g_flight_render_scratch_word = 0;
 
 /* Lays the cockpit and HUD layer (g_flight_offscreen_surface) over the 3D frame
  * in g_flight_back_buffer, centered in the display mode: rows above and below the

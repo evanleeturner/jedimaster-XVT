@@ -159,7 +159,7 @@ const char *const g_builtin_plan_name_table[76] = {
  * empty name. NOTARGET compiles to 255, as NULLTARGET does. Only
  * pai_find_target_token_index and pai_compile_plans_from_text read it. */
 // GLOBAL: XVT 0x525280
-struct pai_plan_token_def g_pai_target_token_defs[10] = {
+static struct pai_plan_token_def g_pai_target_token_defs[10] = {
 	{"LOCATARGET", 249},
 	{"LOCBTARGET", 250},
 	{"ABORTTARGET", AI_TARGET_ABORT},
@@ -176,7 +176,7 @@ struct pai_plan_token_def g_pai_target_token_defs[10] = {
  * AI_MANEUVER_MODE_KAMIKAZE_COPY. Only pai_find_maneuver_token_index and
  * pai_compile_plans_from_text read it. */
 // GLOBAL: XVT 0x5255B8
-struct pai_plan_token_def g_pai_maneuver_token_defs[33] = {
+static struct pai_plan_token_def g_pai_maneuver_token_defs[33] = {
 	{"NULLMANR", AI_MANEUVER_MODE_NULL},
 	{"TURNINSIDEMANR", AI_MANEUVER_MODE_TURN_INSIDE},
 	{"SPLITSMANR", AI_MANEUVER_MODE_SPLITS},
@@ -215,7 +215,7 @@ struct pai_plan_token_def g_pai_maneuver_token_defs[33] = {
  * to, 0 to 47, ended by an empty name; NULLORDR (0) ends a plan. Only
  * pai_find_order_token_index and pai_compile_plans_from_text read it. */
 // GLOBAL: XVT 0x526050
-struct pai_plan_token_def g_pai_order_token_defs[49] = {
+static struct pai_plan_token_def g_pai_order_token_defs[49] = {
 	{"NULLORDR", 0},
 	{"UPDATECOURSEORDR", 1},
 	{"UNDERATTACKORDR", 2},

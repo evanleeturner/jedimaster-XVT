@@ -62,15 +62,15 @@ int16_t g_mfd_page_states[MFD_PAGE_COUNT] = {MFD_PAGE_STATE_CLOSED};
  * mfd_draw_message_log_page writes it, setting 0 when the page state
  * changes. */
 // GLOBAL: XVT 0x622BBC
-uint16_t g_mfd_message_log_scroll_offset = 0;
+static uint16_t g_mfd_message_log_scroll_offset = 0;
 /* 1 when the message log page must redraw; only mfd_draw_message_log_page
  * writes it, setting 0 after each draw. */
 // GLOBAL: XVT 0x622BB0
-uint16_t g_mfd_message_log_redraw = 0;
+static uint16_t g_mfd_message_log_redraw = 0;
 /* g_message_log_total_count at the message log page's last draw; only
  * mfd_draw_message_log_page writes it, to tell when the log grew. */
 // GLOBAL: XVT 0x622BB8
-unsigned int g_mfd_message_log_last_draw_total_count = 0;
+static unsigned int g_mfd_message_log_last_draw_total_count = 0;
 /* The local player's map_camera_state when the map help page last drew its
  * text; only mfd_draw_map_help_page writes it. */
 // GLOBAL: XVT 0x5569F0
@@ -99,39 +99,39 @@ int16_t g_mfd_craft_list_top_row_by_mode[2] = {0};
  * call of mfd_draw_mission_goals_page, its only writer. Entries 4 to 7 stay
  * 0. */
 // GLOBAL: XVT 0x9A7A10
-int g_mfd_goals_line_counts[8] = {0};
+static int g_mfd_goals_line_counts[8] = {0};
 /* The local team's prevent status at the goals page's last draw, 0xFF after
  * a reset; only mfd_draw_mission_goals_page writes it. */
 // GLOBAL: XVT 0x5507F8
-uint8_t g_mfd_goals_cached_secondary_status = 0;
+static uint8_t g_mfd_goals_cached_secondary_status = 0;
 /* Lines the goals page drew last time; only mfd_draw_mission_goals_page writes
  * it. */
 // GLOBAL: XVT 0x5507FC
-int g_mfd_goals_current_total_lines = 0;
+static int g_mfd_goals_current_total_lines = 0;
 /* Sum of g_mfd_goals_line_counts at the goals page's last check; only
  * mfd_draw_mission_goals_page writes it. */
 // GLOBAL: XVT 0x550800
-int g_mfd_goals_cached_total_goal_lines = 0;
+static int g_mfd_goals_cached_total_goal_lines = 0;
 /* 1 when the goals page must redraw; only mfd_draw_mission_goals_page writes
  * it, setting 0 at the end of each draw. */
 // GLOBAL: XVT 0x550804
-uint16_t g_mfd_goals_redraw_needed = 0;
+static uint16_t g_mfd_goals_redraw_needed = 0;
 /* g_mfd_goals_line_counts at the goals page's last draw; only
  * mfd_draw_mission_goals_page writes it. */
 // GLOBAL: XVT 0x550808
-int g_mfd_goals_cached_line_counts[8] = {0};
+static int g_mfd_goals_cached_line_counts[8] = {0};
 /* Set to 0 by mfd_draw_mission_goals_page when the page opens; nothing reads
  * it. */
 // GLOBAL: XVT 0x550828
-uint16_t g_mfd_goals_unused_state = 0;
+static uint16_t g_mfd_goals_unused_state = 0;
 /* The local team's primary status at the goals page's last draw, 0xFF after
  * a reset; only mfd_draw_mission_goals_page writes it. */
 // GLOBAL: XVT 0x550830
-uint8_t g_mfd_goals_cached_primary_status = 0;
+static uint8_t g_mfd_goals_cached_primary_status = 0;
 /* Goals page scroll position, in lines; only mfd_draw_mission_goals_page
  * writes it. */
 // GLOBAL: XVT 0x550838
-int g_mfd_goals_current_scroll_top = 0;
+static int g_mfd_goals_current_scroll_top = 0;
 /* Per goals-page section and goal kind (primary, prevent, bonus), the goal
  * state the section lists: a flight group goal's goal_state, or a nonzero
  * team_global_goal_state of a global goal, must equal it. Its low 2 bits also
@@ -139,7 +139,7 @@ int g_mfd_goals_current_scroll_top = 0;
  * goals_outputgoal, except 5 for prevent goals in section 2. Read only by
  * mfd_draw_mission_goals_page. */
 // GLOBAL: XVT 0x51BE38
-uint16_t g_mfd_goals_display_state_by_section_type[4][3] = {
+static uint16_t g_mfd_goals_display_state_by_section_type[4][3] = {
 	{2, 1, 1},
 	{4, 0, 0},
 	{0, 4, 0},
@@ -149,7 +149,7 @@ uint16_t g_mfd_goals_display_state_by_section_type[4][3] = {
  * g_mfd_goals_display_state_by_section_type; read only by
  * mfd_draw_mission_goals_page. */
 // GLOBAL: XVT 0x51BE50
-uint16_t g_mfd_goals_count_alt_state_by_section_type[4][3] = {
+static uint16_t g_mfd_goals_count_alt_state_by_section_type[4][3] = {
 	{2, 1, 1},
 	{4, 0, 0},
 	{0, 4, 0},
@@ -159,7 +159,7 @@ uint16_t g_mfd_goals_count_alt_state_by_section_type[4][3] = {
  * met, 2 failed, 4 undecided) for which a global goal trigger is listed.
  * Read only by mfd_draw_mission_goals_page. */
 // GLOBAL: XVT 0x51BE68
-uint16_t g_mfd_goals_condition_mask_by_section_type[4][3] = {
+static uint16_t g_mfd_goals_condition_mask_by_section_type[4][3] = {
 	{2, 1, 1},
 	{6, 0, 0},
 	{0, 6, 0},

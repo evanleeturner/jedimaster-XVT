@@ -174,7 +174,7 @@ void SmackClose(struct movie_smack_handle *handle);
  * width) / 2, unsigned, set by movie_run_smacker_playback when a movie starts.
  * Only the original build sets or reads it. */
 // GLOBAL: XVT 0x52C808
-int g_movie_x = 0;
+static int g_movie_x = 0;
 /* Pixels below the movie: display_height - movie height - g_movie_y, set with
  * g_movie_y. Subtitles and the network timeout prompt are drawn there. Only the
  * original build sets or reads it. */
@@ -183,31 +183,31 @@ unsigned int g_movie_bottom_margin = 0;
 /* Parameters of the movie playing: movie_run_smacker_playback sets it when it
  * starts and NULL when it ends or fails. Only the original build sets it. */
 // GLOBAL: XVT 0x52C818
-const struct movie_playback_params *g_movie_playback_params = 0;
+static const struct movie_playback_params *g_movie_playback_params = 0;
 /* Smacker handle of the movie playing. movie_run_smacker_playback opens it and
  * closes it at the end, leaving the pointer as it was. Only the original build
  * opens one. */
 // GLOBAL: XVT 0x52C81C
-struct movie_smack_handle *g_movie_smack_handle = 0;
+static struct movie_smack_handle *g_movie_smack_handle = 0;
 /* Screen position of the window's client area, added to every blit's
  * destination. movie_run_smacker_playback passes it to ClientToScreen at each
  * start; nothing resets it, and ClientToScreen adds the origin to the point it
  * already holds. Only the original build sets it. */
 // GLOBAL: XVT 0x52C820
-struct POINT g_movie_client_screen_origin = {0, 0};
+static struct POINT g_movie_client_screen_origin = {0, 0};
 /* Horizontal window offset added to every blit's destination: the x of the last
  * window move movie_window_proc saw during playback, rounded as that function
  * says. Never reset. */
 // GLOBAL: XVT 0x6661A0
-int g_movie_client_offset_x = 0;
+static int g_movie_client_offset_x = 0;
 /* Vertical window offset added to every blit's destination: the y of the last
  * window move movie_window_proc saw during playback. Never reset. */
 // GLOBAL: XVT 0x6661A4
-int g_movie_client_offset_y = 0;
+static int g_movie_client_offset_y = 0;
 /* Set to 1 by movie_decode_and_present_frame once a frame has been decoded, and
  * never cleared; movie_handle_paint repaints only while it is set. */
 // GLOBAL: XVT 0x52C828
-int g_movie_frame_available = 0;
+static int g_movie_frame_available = 0;
 /* Smacker buffer format for SmackToBuffer, from movie_get_smack_buffer_format when
  * a movie starts. */
 // GLOBAL: XVT 0x52C82C
@@ -237,7 +237,7 @@ struct movie_dirty_rect *g_movie_current_dirty_rects = g_movie_dirty_rects_b;
  * movie_initialize_system_palette fills it and movie_update_direct_draw_palette
  * copies the movie's colors in. */
 // GLOBAL: XVT 0x665DA0
-struct movie_palette_entry g_movie_palette_entries[256] = {{0}};
+static struct movie_palette_entry g_movie_palette_entries[256] = {{0}};
 /* Subtitle file of the movie playing, the movie's path with the extension txt;
  * NULL when none is open. The original build's movie_run_smacker_playback opens
  * it and closes it at the end, and frontend_bootstrap_init_mode closes one still

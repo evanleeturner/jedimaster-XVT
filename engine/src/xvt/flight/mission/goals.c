@@ -28,14 +28,14 @@ uint8_t g_goal_condition_text_variant_count[48] = {
  * 15 use the columns of 0 to 5, and 16 to 19 use 10 to 13. Read only by
  * goals_outputgoal. */
 // GLOBAL: XVT 0x51BED0
-const uint16_t g_goal_amount_text_variant_by_op[20] = {
+static const uint16_t g_goal_amount_text_variant_by_op[20] = {
 	0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 10, 11, 12, 13,
 };
 /* Maps goals_outputgoal's goal status, 0 to 5, to a block of 47 rows in the
  * condition text tables: statuses 0, 2 and 3 use block 0, status 4 block 1,
  * status 1 block 2 and status 5 block 3. */
 // GLOBAL: XVT 0x51BEF8
-const uint16_t g_goal_status_condition_row_block[6] = {0, 2, 0, 0, 1, 3};
+static const uint16_t g_goal_status_condition_row_block[6] = {0, 2, 0, 0, 1, 3};
 /* Condition text for craft whose name is feminine (g_craft_gender), from
  * strings.txt: row 47 times the status block plus the condition, column the
  * amount wording. string_table_load_game_strings fills it only when some craft

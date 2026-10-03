@@ -23,8 +23,8 @@
  * paiorder_stillattackorder forgets an attacker that is not a warhead. Entry 3
  * is 0. Nothing writes it. */
 // GLOBAL: XVT 0x5243A8
-int g_ai_still_attack_last_attacker_range_by_skill[4] = {0x8000, 0xC000, 0xE000,
-							 0};
+static int g_ai_still_attack_last_attacker_range_by_skill[4] = {0x8000, 0xC000,
+								0xE000, 0};
 
 /* Class 0, 1 or 2 of an object's bearing for each eighth of a circle (0x2000
  * angle units) it lies off the craft's yaw, counting from the yaw: 0 for the
@@ -32,12 +32,13 @@ int g_ai_still_attack_last_attacker_range_by_skill[4] = {0x8000, 0xC000, 0xE000,
  * under-attack, on-tail and avoid-hit orders pick maneuvers by it. Nothing
  * writes it. */
 // GLOBAL: XVT 0x5243D8
-uint8_t g_ai_threat_bearing_class_by_octant[8] = {0, 1, 1, 2, 2, 1, 1, 0};
+static uint8_t g_ai_threat_bearing_class_by_octant[8] = {0, 1, 1, 2,
+							 2, 1, 1, 0};
 /* Rough distance in world units, by skill tier 0 to 2, within which
  * paiorder_underattackorder and paiorder_avoidhitorder look for an enemy
  * starfighter pointed at the craft. Entry 3 is 0. Nothing writes it. */
 // GLOBAL: XVT 0x5243B8
-int g_ai_attacker_search_range_by_skill[4] = {0x2000, 0x3000, 0x4000, 0};
+static int g_ai_attacker_search_range_by_skill[4] = {0x2000, 0x3000, 0x4000, 0};
 /* Rough distance in world units, by skill tier 0 to 2, within which a homing
  * warhead aimed at the craft counts as a threat; the under-attack and avoid-hit
  * orders triple it for a concussion missile, and avoid-hit for type 149 too.

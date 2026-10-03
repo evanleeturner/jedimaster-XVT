@@ -24,7 +24,7 @@ uint32_t g_music_cd_track_count = 0;
  * control, saved by music_cd_initialize to put back at music_cd_close_device; -1
  * when none was saved, and 0 before the first music_cd_initialize. */
 // GLOBAL: XVT 0x622BC8
-int g_music_cd_saved_aux_volume = 0;
+static int g_music_cd_saved_aux_volume = 0;
 /* Each track's length for flight music, filled by music_cd_initialize and
  * cleared when the device closes. */
 // GLOBAL: XVT 0x622BCC
@@ -64,7 +64,7 @@ int music_cd_initialize(void)
 		/* Open request for "cdaudio". */
 		MCI_OPEN_PARMSA open_parameters;
 		AUXCAPSA
-			device_caps; /* Capabilities of the device looked at. */
+		device_caps; /* Capabilities of the device looked at. */
 	} parameters;
 
 #ifdef XVT_MODERN

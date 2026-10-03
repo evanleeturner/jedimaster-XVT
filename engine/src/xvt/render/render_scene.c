@@ -53,7 +53,7 @@ int g_scene_flush_draw_target_markers = 0;
  * looks up with model_mesh_find_bridge_index when it draws a craft of object type
  * 4, and keeps once found; -1 until then. Only that function writes it. */
 // GLOBAL: XVT 0x5272A0
-int g_bwing_bridge_mesh_index_cache = -1;
+static int g_bwing_bridge_mesh_index_cache = -1;
 /* 1 when render_scene_compute_vertex_lighting asks whether the object's own model
  * blocks a light from a vertex. Starts at 0; only
  * render_scene_toggle_vertex_light_occlusion changes it, and nothing calls that, so
@@ -63,13 +63,13 @@ static int g_vertex_light_occlusion_enabled;
 /* Radians per unit of a craft's mesh_rotation byte: 2 pi over 256, to float
  * precision. */
 // GLOBAL: XVT 0x5181D0
-const float g_mesh_rotation_byte_to_radians_scale = 0.024543673f;
+static const float g_mesh_rotation_byte_to_radians_scale = 0.024543673f;
 /* 1 over 32767: turns the Q15 camera and object matrices into floats. */
 // GLOBAL: XVT 0x5181D8
-const float g_render_matrix_q15_to_float_scale = 0.000030518509f;
+static const float g_render_matrix_q15_to_float_scale = 0.000030518509f;
 /* 1 over 32768: turns a rotate-and-scale node's axis into floats. */
 // GLOBAL: XVT 0x5181DC
-const float g_opt_axis_q15_to_float_scale = 0.000030517578125f;
+static const float g_opt_axis_q15_to_float_scale = 0.000030517578125f;
 /* 100000: render_scene_project_distant_mesh_vertices adds it to every vertex's
  * depth and multiplies the projection by it. */
 // GLOBAL: XVT 0x51807C
@@ -216,13 +216,13 @@ static uint8_t g_b_backdrop_mesh_mode = 0;
  * render_scene_cull_mesh_faces_from_view puts it in face_and_layer_id, which nothing
  * reads. Nothing resets it. */
 // GLOBAL: XVT 0x5271D4
-int g_cur_layer_id = 0;
+static int g_cur_layer_id = 0;
 /* Header of the built-in white texture a mesh with no texture node uses: NULL
  * until the first render_scene_draw_object_model or
  * render_scene_draw_selected_root_node fills g_default_white_texture and points it
  * there. */
 // GLOBAL: XVT 0x5271D8
-struct opt_texture_data *g_default_white_texture_desc_ptr = NULL;
+static struct opt_texture_data *g_default_white_texture_desc_ptr = NULL;
 /* The built-in 8x8 white texture as 24-bit color, every byte 0xFF.
  * g_default_white_texture's texels are built from it, and
  * model_texture_load_rgb_or_tex_file uses it when a texture file does not open. */
@@ -249,11 +249,11 @@ uint8_t g_default_white_texture_rgb24[DEFAULT_WHITE_TEXTURE_RGB_SIZE] = {
  * none of its own; each model's draw starts it at
  * g_default_white_texture_desc_ptr. */
 // GLOBAL: XVT 0x60F1EC
-struct opt_texture_data *g_cur_texture_desc = NULL;
+static struct opt_texture_data *g_cur_texture_desc = NULL;
 /* The built-in white texture: an 8x8 header with 16 inline palette entries and
  * texels built from g_default_white_texture_rgb24 on first use. */
 // GLOBAL: XVT 0x60F210
-struct model_texture_default_texture g_default_white_texture = {0};
+static struct model_texture_default_texture g_default_white_texture = {0};
 /* Next row of g_scene_light_sample_data that render_scene_cull_mesh_faces_from_view
  * gives a face, 0 to 199; it stops rising at 199, so later faces share that
  * row. render_scene_initialize sets it to 0 on a reset. */

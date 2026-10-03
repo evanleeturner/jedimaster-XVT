@@ -113,7 +113,7 @@ struct flight_sw_rot_sprite_data_header {
 /* The viewport and camera matrix push_flight_viewport saves and pop_flight_viewport
  * puts back. */
 // GLOBAL: XVT 0x555C88
-struct flight_viewport_save_state g_saved_flight_viewport = {0};
+static struct flight_viewport_save_state g_saved_flight_viewport = {0};
 
 /* Entry i is tan(i * pi / 512) * 65536 / 1.1, rounded, up to 65535 at entry
  * 136; the last three are 0. Read by flight_sw_lookup_scaled_tangent for 91
@@ -179,7 +179,7 @@ static uint16_t g_flight_sw_tangent110_pct[124] = {
 /* x and y of the 10 pixels of the radar target marker at 16 bits, the shape of
  * g_radar_target_marker_shape10. */
 // GLOBAL: XVT 0x523910
-int8_t g_radar_target_marker_shape16bpp[20] = {
+static int8_t g_radar_target_marker_shape16bpp[20] = {
 	-1, 1, -2, 1, -2, 0, -2, -1, -1, -1, 1, -1, 2, -1, 2, 0, 2, 1, 1, 1,
 };
 /* The 10-pixel radar target marker, then two unused 0, 0 entries. */
@@ -198,13 +198,14 @@ static struct flight_radar_marker_offset g_radar_target_marker_shape12[12] = {
  * g_radar_target_marker_shape10 at 320x240 or in an unknown mode,
  * g_radar_target_marker_shape12 at 640x480 and 480x360. */
 // GLOBAL: XVT 0x51A818
-int8_t *g_radar_target_marker_shape = (int8_t *)g_radar_target_marker_shape10;
+static int8_t *g_radar_target_marker_shape =
+	(int8_t *)g_radar_target_marker_shape10;
 /* Pixels in g_radar_target_marker_shape, 10 or 12, set with it. */
 // GLOBAL: XVT 0x51A81C
-int g_radar_target_marker_point_count = 10;
+static int g_radar_target_marker_point_count = 10;
 /* The 7 pixels of the cross marker: 5 across and 3 down through its center. */
 // GLOBAL: XVT 0x51A820
-struct flight_sw_marker_offset g_flight_sw_cross_marker_offsets[7] = {
+static struct flight_sw_marker_offset g_flight_sw_cross_marker_offsets[7] = {
 	{-2, 0}, {-1, 0}, {0, 0}, {1, 0}, {2, 0}, {0, 1}, {0, -1},
 };
 /* The same 7 pixels for 16-bit drawing. */
@@ -235,19 +236,19 @@ int g_flight_sw_rot_sprite_span_runs_enabled = 1;
  * flight_sw_draw_radar_target_marker8bpp and put back by
  * flight_sw_restore_radar_target_marker8bpp; up to 12 used. */
 // GLOBAL: XVT 0x54F9C0
-uint8_t g_radar_target_marker_saved_pixels[16] = {0};
+static uint8_t g_radar_target_marker_saved_pixels[16] = {0};
 /* The pixels under the cross marker at 8 bits; the two functions that use it
  * have no caller. */
 // GLOBAL: XVT 0x54F9D8
-uint8_t g_flight_sw_cross_marker_saved_pixels[7] = {0};
+static uint8_t g_flight_sw_cross_marker_saved_pixels[7] = {0};
 /* Row pitch in bytes of the target flight_sw_set_render_target was last given with
  * a pitch; g_flight_line_pitch_ptr points here while that target is in use. */
 // GLOBAL: XVT 0x54F9B0
-int g_flight_alt_line_pitch = 0;
+static int g_flight_alt_line_pitch = 0;
 /* Byte offset of each row of that target: row times width times
  * g_flight_bytes_per_pixel, not times its pitch. */
 // GLOBAL: XVT 0x54F9E0
-int g_flight_alt_line_offset_table[768] = {0};
+static int g_flight_alt_line_offset_table[768] = {0};
 /* The pixels under the cross marker at 16 bits; the two functions that use it
  * have no caller. */
 // GLOBAL: XVT 0x5569C0
@@ -340,21 +341,21 @@ uint16_t g_radar_target_marker_draw_x = 0;
 uint16_t g_radar_target_marker_draw_y = 0;
 /* Column of the RLE sprite being drawn, set by the four RLE blit functions. */
 // GLOBAL: XVT 0x9CC452
-int16_t g_flight_sw_rle_sprite_x = 0;
+static int16_t g_flight_sw_rle_sprite_x = 0;
 /* Row of the RLE sprite being drawn: the four RLE blit functions set it and
  * raise it by 1 per row. */
 // GLOBAL: XVT 0x9CC458
-int16_t g_flight_sw_rle_sprite_y = 0;
+static int16_t g_flight_sw_rle_sprite_y = 0;
 /* Added to each run color of an RLE sprite: flight_sw_blit_sprite_rle8bpp and
  * flight_sw_blit_sprite_rle16bpp set it to 0, the faded draws to their palette
  * shift, and a 0xFB code in the data sets it from the next byte, except in a
  * faded draw. */
 // GLOBAL: XVT 0x9ED21D
-int8_t g_flight_sw_rle_palette_shift = 0;
+static int8_t g_flight_sw_rle_palette_shift = 0;
 /* The transparent index the RLE blit functions were last given; nothing reads
  * it. */
 // GLOBAL: XVT 0x9ED23A
-uint8_t g_flight_sw_rle_transparent_color = 0;
+static uint8_t g_flight_sw_rle_transparent_color = 0;
 
 #ifndef XVT_MODERN
 /* Window number passed to rts_vga2_set_current_page, which ignores it; nothing
@@ -371,7 +372,7 @@ int g_flight_resolution_mode = FLIGHT_RESOLUTION_640X480;
  * flight_sw_prepare_sprite_rotation_tables: picks the 100 percent tangent table and
  * the 256 scales. */
 // GLOBAL: XVT 0x5235F8
-int g_flight_sw_rot_sprite_square_pixel_mode = 0;
+static int g_flight_sw_rot_sprite_square_pixel_mode = 0;
 /* 1 once g_flight_sw_rot_sprite_coeff_cache holds tables, set by
  * flight_sw_prepare_sprite_rotation_tables. Set to 0, to have them built again, by
  * hud_update3d_crt and at flight start: by flight_main_loop in the original
@@ -417,7 +418,7 @@ uint8_t *g_flight_sw_rot_sprite_dest_line_ptr = 0;
 /* The sprite's 8-bit drawing palette from flight_sw_load_sprite_palette_tables;
  * flight_sw_blit_prepared_rotated_sprite_spans maps sprite colors through it. */
 // GLOBAL: XVT 0x9A8C40
-uint8_t g_flight_sw_rot_sprite_palette8[256] = {0};
+static uint8_t g_flight_sw_rot_sprite_palette8[256] = {0};
 /* The runs of the sprite row being drawn, scaled, built by
  * flight_sw_rasterize_prepared_rotated_sprite. Holds 512; nothing checks the count
  * against that. */
@@ -443,11 +444,11 @@ int16_t g_flight_sw_rot_sprite_skip_secondary_scale_step = 0;
  * flight_sw_init_framebuffer fills g_screen_height rows, and
  * flight_sw_set_render_target given a pitch of -1 fills the target's rows. */
 // GLOBAL: XVT 0x9CC460
-int g_flight_line_offset_table[768] = {0};
+static int g_flight_line_offset_table[768] = {0};
 /* High bytes of the sprite's 16-bit drawing colors, from
  * flight_sw_load_sprite_palette_tables. */
 // GLOBAL: XVT 0x9D1160
-uint8_t g_flight_sw_rot_sprite_palette16_high[256] = {0};
+static uint8_t g_flight_sw_rot_sprite_palette16_high[256] = {0};
 /* Sum flight_sw_advance_rot_sprite_secondary_scale adds secondary_scale_low to, whose
  * carries move the span base; set to 0 at a sprite's start. */
 // GLOBAL: XVT 0x9D12E0
@@ -466,26 +467,26 @@ static int16_t g_flight_sw_rot_sprite_clip_max_run_idx47 = 0;
 static int16_t g_flight_sw_rot_sprite_clip_min_run_idx47 = 0;
 /* g_flight_vp_width, copied by flight_sw_prepare_sprite_rotation_tables. */
 // GLOBAL: XVT 0x9D8C2C
-int16_t g_flight_sw_rot_sprite_viewport_width = 0;
+static int16_t g_flight_sw_rot_sprite_viewport_width = 0;
 /* Low bytes of the sprite's 16-bit drawing colors, from
  * flight_sw_load_sprite_palette_tables. */
 // GLOBAL: XVT 0x9D6830
-uint8_t g_flight_sw_rot_sprite_palette16_low[256] = {0};
+static uint8_t g_flight_sw_rot_sprite_palette16_low[256] = {0};
 /* The rotation tables for the last angle, built by
  * flight_sw_build_sprite_rotation_coeffs when the angle changes or
  * g_flight_sw_rot_sprite_coeff_cache_valid is 0. */
 // GLOBAL: XVT 0x9CD280
-struct flight_sw_rot_sprite_coeff_state g_flight_sw_rot_sprite_coeff_cache = {
-	0};
+static struct flight_sw_rot_sprite_coeff_state
+	g_flight_sw_rot_sprite_coeff_cache = {0};
 /* The buffer rotated sprites are drawn into before
  * flight_sw_blit_prepared_rotated_sprite_spans copies them out; set through
  * flight_sw_set_rotated_sprite_dest_buffer by fe_disk_io_init_global_buffers and
  * fe_disk_io_lock_global_buffers. */
 // GLOBAL: XVT 0x9D77C4
-uint8_t *g_flight_sw_rot_sprite_dest_buffer = NULL;
+static uint8_t *g_flight_sw_rot_sprite_dest_buffer = NULL;
 /* g_flight_vp_max_x, copied by flight_sw_prepare_sprite_rotation_tables. */
 // GLOBAL: XVT 0x9D77F0
-int16_t g_flight_sw_rot_sprite_viewport_max_x = 0;
+static int16_t g_flight_sw_rot_sprite_viewport_max_x = 0;
 /* Edge position from which the clipped span functions draw on the current line;
  * the octant functions set and step it. */
 // GLOBAL: XVT 0x9EC458
@@ -538,7 +539,7 @@ uint16_t g_flight_sw_rot_sprite_saved_primary_edge_x = 0;
 /* Pixels left in the row the screen-rectangle save and restore functions are
  * copying. */
 // GLOBAL: XVT 0x9ED238
-uint16_t g_saved_row_pixels_remaining = 0;
+static uint16_t g_saved_row_pixels_remaining = 0;
 /* Edge position at which the clipped span functions stop on the current line;
  * under 0, flight_sw_rasterize_prepared_rotated_sprite draws nothing on it. The
  * octant functions set and step it. */
@@ -554,12 +555,12 @@ struct flight_sw_rot_sprite_coeff_state *g_flight_sw_rot_sprite_coeffs = 0;
 int g_flight_sw_rot_sprite_span_run_countdown = 0;
 /* g_flight_vp_height, copied by flight_sw_prepare_sprite_rotation_tables. */
 // GLOBAL: XVT 0xA07CD0
-int16_t g_flight_sw_rot_sprite_viewport_height = 0;
+static int16_t g_flight_sw_rot_sprite_viewport_height = 0;
 /* Folded angle from which a rotated sprite's edge steps along y: 0x2000 with
  * square pixels, else 0x2200. Set by flight_sw_prepare_sprite_rotation_tables and
  * flight_sw_prepare_rotated_sprite_scale_state. */
 // GLOBAL: XVT 0xA080F2
-uint16_t g_flight_sw_rot_sprite_axis_swap_threshold_angle = 0;
+static uint16_t g_flight_sw_rot_sprite_axis_swap_threshold_angle = 0;
 
 /* Fills g_flight_line_offset_table for g_screen_height rows of g_surface_pitch, sets
  * g_flight_sw_framebuffer_base from flight_surface_get_software_framebuffer_base and

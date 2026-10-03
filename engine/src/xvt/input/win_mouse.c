@@ -61,17 +61,17 @@ struct POINT g_win_mouse_pos;
  * win_mouse_poll_state writes it, from Aeron's input snapshot; in the original
  * build nothing in the engine writes it, so it stays 0. */
 // GLOBAL: XVT 0x527EF0
-int g_win_mouse_button_down[3] = {0, 0, 0};
+static int g_win_mouse_button_down[3] = {0, 0, 0};
 /* Left, right and middle button pressed since the last poll, 1 or 0. The modern
  * build's win_mouse_poll_state sets it from Aeron's input snapshot; every poll
  * clears it after copying it out. In the original build nothing else writes
  * it. */
 // GLOBAL: XVT 0x527EFC
-int g_win_mouse_button_pressed[3] = {0, 0, 0};
+static int g_win_mouse_button_pressed[3] = {0, 0, 0};
 /* Left, right and middle button released since the last poll, written like
  * g_win_mouse_button_pressed. */
 // GLOBAL: XVT 0x527F08
-int g_win_mouse_button_released[3] = {0, 0, 0};
+static int g_win_mouse_button_released[3] = {0, 0, 0};
 /* Lowest X g_win_mouse_pos may take. Only win_mouse_set_horizontal_bounds writes it,
  * and only the uncalled mouse_set_horizontal_bounds calls that, so it stays 0. */
 // GLOBAL: XVT 0x527F14

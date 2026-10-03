@@ -81,20 +81,20 @@ frontend_mission_session_mode g_frontend_mission_session_mode =
  * g_mission_setup_team_assignment_skipped is set, instead of the flight assignment
  * screen. */
 // GLOBAL: XVT 0x52C6D4
-int g_briefing_skip_player_assignment = 0;
+static int g_briefing_skip_player_assignment = 0;
 /* GetTickCount value, in milliseconds, read for the launch countdown's
  * latest step. Only mission_briefing_craft_selection_update uses it: it sets it on
  * its first frame, when the countdown starts and on every frame while it runs.
  */
 // GLOBAL: XVT 0x665D78
-int g_mission_briefing_now_ms = 0;
+static int g_mission_briefing_now_ms = 0;
 /* The network launch countdown's state. mission_briefing_craft_selection_update
  * sets IDLE on its first frame, ACTIVE on the first frame in network play on
  * which g_frontend_briefing_entered_count is at least net_count_ready_players(), and
  * EXPIRED when g_mission_briefing_launch_countdown_ms goes under 0. Only that
  * function uses it. */
 // GLOBAL: XVT 0x665D80
-mission_briefing_launch_countdown_state
+static mission_briefing_launch_countdown_state
 	g_mission_briefing_launch_countdown_state =
 		MISSION_BRIEFING_COUNTDOWN_IDLE;
 /* Milliseconds left before the craft selection screen launches the network
@@ -104,25 +104,25 @@ mission_briefing_launch_countdown_state
  * NET_PACKET_BRIEFING_COUNTDOWN packet whose value is lower replaces it, in
  * any state; set to 0 when it goes under 0. */
 // GLOBAL: XVT 0x665D84
-int g_mission_briefing_launch_countdown_ms = 0;
+static int g_mission_briefing_launch_countdown_ms = 0;
 /* Nothing reads it; mission_briefing_craft_selection_update sets it to 0 on its
  * first frame. */
 // GLOBAL: XVT 0x665D88
-int g_mission_briefing_unused_state = 0;
+static int g_mission_briefing_unused_state = 0;
 /* GetTickCount value, in milliseconds, when the launch countdown last
  * stepped; each step subtracts the time since then from
  * g_mission_briefing_launch_countdown_ms. Only mission_briefing_craft_selection_update
  * uses it: it sets it on its first frame, when the countdown starts and after
  * each step that does not expire. */
 // GLOBAL: XVT 0x665D8C
-int g_mission_briefing_last_update_ms = 0;
+static int g_mission_briefing_last_update_ms = 0;
 /* Whole seconds of the countdown, g_mission_briefing_launch_countdown_ms / 1000,
  * in the host's last NET_PACKET_BRIEFING_COUNTDOWN; set to 60 when the
  * countdown starts, on every machine. The host sends a new packet on each
  * frame where the countdown's whole seconds differ from it. Only
  * mission_briefing_craft_selection_update uses it. */
 // GLOBAL: XVT 0x665D90
-int g_mission_briefing_last_countdown_second_sent = 0;
+static int g_mission_briefing_last_countdown_second_sent = 0;
 
 /* Leaves the craft selection screen: frees g_mission_list, g_mission_text and
  * g_ship_list and sets each to NULL, sets the preview model's node switch to

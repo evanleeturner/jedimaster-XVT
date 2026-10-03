@@ -40,10 +40,10 @@ struct tech_library_spec_text *g_tech_library_spec_text_table = NULL;
 struct craft_tech_stats g_tech_library_craft_stats = {0};
 /* Degrees the model turns each frame a rotate button is held: 5. */
 // GLOBAL: XVT 0x5182EC
-const float g_tech_library_rotation_step_degrees = 5.0f;
+static const float g_tech_library_rotation_step_degrees = 5.0f;
 /* A full turn, 360 degrees: a rising angle that reaches it wraps to 0. */
 // GLOBAL: XVT 0x518300
-const double g_tech_library_rotation_full_turn_degrees = 360.0;
+static const double g_tech_library_rotation_full_turn_degrees = 360.0;
 /* Index in g_ship_list of the craft shown: 0 on the first frame, stepped with
  * wraparound by the Previous craft and Next craft buttons. */
 // GLOBAL: XVT 0x665D28
@@ -56,7 +56,7 @@ int g_tech_library_light_x = 0;
 /* Up-axis angle of the model preview in degrees; set to 0 on the first frame
  * and never changed. */
 // GLOBAL: XVT 0x665D30
-float g_tech_library_preview_angle_d = 0.0f;
+static float g_tech_library_preview_angle_d = 0.0f;
 /* Model yaw in degrees, 225 on the first frame. Holding a mouse button on
  * Rotate X lowers it (left) or raises it (right) by 5 a frame; a value at or
  * under 0 becomes 360, one at or over 360 becomes 0. */
@@ -70,7 +70,7 @@ int g_tech_library_light_y = 0;
 int g_tech_library_light_z = 0;
 /* Model roll in degrees; set to 0 on the first frame and never changed. */
 // GLOBAL: XVT 0x665D70
-float g_tech_library_preview_roll_deg = 0.0f;
+static float g_tech_library_preview_roll_deg = 0.0f;
 /* Model pitch in degrees, 110 on the first frame; Rotate Y changes it the way
  * Rotate X changes g_tech_library_preview_yaw_deg. */
 // GLOBAL: XVT 0x665D74

@@ -358,18 +358,19 @@ static uint32_t *g_image_quantizer_squared_diff_table = 0;
 unsigned int g_image_quantizer_node_count = 0;
 /* Unused nodes left in the newest pool block; 2048 when a block is made. */
 // GLOBAL: XVT 0x556961
-unsigned int g_image_quantizer_pool_nodes_remaining = 0;
+static unsigned int g_image_quantizer_pool_nodes_remaining = 0;
 /* Palette entry image_quantizer_find_nearest_palette_entry_recursive found nearest
  * the searched color. */
 // GLOBAL: XVT 0x556965
 static unsigned int g_image_quantizer_nearest_palette_index = 0;
 /* Next unused node of the newest pool block. */
 // GLOBAL: XVT 0x556969
-struct image_quantizer_node *g_image_quantizer_next_node = 0;
+static struct image_quantizer_node *g_image_quantizer_next_node = 0;
 /* Newest block of the node pool, linked to the older ones through previous;
  * NULL when there is none. */
 // GLOBAL: XVT 0x55696D
-struct image_quantizer_node_pool_block *g_image_quantizer_node_pool_head = 0;
+static struct image_quantizer_node_pool_block
+	*g_image_quantizer_node_pool_head = 0;
 
 /* Does nothing; its arguments are ignored. */
 // FLAGS: /O2 /G5

@@ -184,13 +184,13 @@ int g_flight_conf_no_launcher = 0;
  * hud_aim_x_snap_state; a sum of 0 means the player's saved view. Entry 4, keypad
  * 5, is not used: that key has its own case. */
 // GLOBAL: XVT 0x5272D1
-const uint8_t g_hud_view_state_offset_by_look_action[9] = {3, 4, 5, 2, 16,
-							   6, 1, 0, 7};
+static const uint8_t g_hud_view_state_offset_by_look_action[9] = {
+	3, 4, 5, 2, 16, 6, 1, 0, 7};
 /* Per keypad look key 1 to 9, the hud_aim_y flight_process_player_actions gives the
  * view: the look direction's turn (a full circle is 65,536). Entry 4 is not
  * used. */
 // GLOBAL: XVT 0x5272E2
-const int16_t g_hud_aim_y_by_look_action[9] = {
+static const int16_t g_hud_aim_y_by_look_action[9] = {
 	(int16_t)0xA000, (int16_t)0x8000, 0x6000, (int16_t)0xC000, 0,
 	0x4000,		 (int16_t)0xE000, 0,	  0x2000,
 };
@@ -400,7 +400,7 @@ uint16_t g_local_beam_target_obj_idx = 0;
  * type's bounds extent (the distance is shifted down 5 bits before the
  * test). */
 // GLOBAL: XVT 0x9A8064
-int16_t g_target_proximity_blink_timer = 0;
+static int16_t g_target_proximity_blink_timer = 0;
 /* Steps per simulated second at the current step's length: 236
  * (SIMULATION_TICKS_PER_SECOND) over g_elapsed_ticks, at least 1. Many functions
  * write it, chiefly flight_step_sim_to_time and flight_advance_one_step (the

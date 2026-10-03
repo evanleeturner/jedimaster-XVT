@@ -42,7 +42,7 @@ int16_t g_damage_mfd_last_selected_system_id = 0;
 /* Set to 1 by damage_display_mfd_page when the page opens or the selection
  * moves, and to 0 once the rows are drawn; nothing reads it. */
 // GLOBAL: XVT 0x55979C
-int16_t g_damage_mfd_selection_changed = 0;
+static int16_t g_damage_mfd_selection_changed = 0;
 /* System selected on the damage page, a damage_system_id; -1 makes
  * damage_display_mfd_page select the first damaged system it lists. Set to 0
  * as a mission loads: by flight_main_loop in the original build and
@@ -53,7 +53,7 @@ int16_t g_damage_mfd_current_system_id = 0;
 /* Mesh count of the object type damage_queue_craft_billboards_for_object_type is
  * working through; only that function uses it. */
 // GLOBAL: XVT 0x9EC60A
-uint16_t g_damage_billboard_mesh_count = 0;
+static uint16_t g_damage_billboard_mesh_count = 0;
 
 /* Calls damage_queue_craft_billboards_for_object_type for object_index with the
  * object's own type. */

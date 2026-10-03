@@ -119,7 +119,7 @@ const GUID g_net_lobby_session_instance_guid = {
 #endif
 /* Service provider GUID the game passes to DirectPlay for an IPX game. */
 // GLOBAL: XVT 0x5182A0
-const GUID g_net_direct_play_ipx_service_provider_guid = {
+static const GUID g_net_direct_play_ipx_service_provider_guid = {
 	0x685BC400,
 	0x9D2C,
 	0x11CF,
@@ -127,7 +127,7 @@ const GUID g_net_direct_play_ipx_service_provider_guid = {
 };
 /* Service provider GUID the game passes to DirectPlay for a modem game. */
 // GLOBAL: XVT 0x5182B0
-const GUID g_net_direct_play_modem_service_provider_guid = {
+static const GUID g_net_direct_play_modem_service_provider_guid = {
 	0x44EAA760,
 	0xCB68,
 	0x11CF,
@@ -136,7 +136,7 @@ const GUID g_net_direct_play_modem_service_provider_guid = {
 /* Service provider GUID the game passes to DirectPlay for a TCP/IP game, the
  * only transport the modern build uses. */
 // GLOBAL: XVT 0x5182C0
-const GUID g_net_direct_play_tcp_ip_service_provider_guid = {
+static const GUID g_net_direct_play_tcp_ip_service_provider_guid = {
 	0x36E95EE0,
 	0x8577,
 	0x11CF,
@@ -144,7 +144,7 @@ const GUID g_net_direct_play_tcp_ip_service_provider_guid = {
 };
 /* Service provider GUID the game passes to DirectPlay for a serial game. */
 // GLOBAL: XVT 0x5182D0
-const GUID g_net_direct_play_serial_service_provider_guid = {
+static const GUID g_net_direct_play_serial_service_provider_guid = {
 	0x0F1D6860,
 	0x88D9,
 	0x11CF,
@@ -190,7 +190,7 @@ const GUID g_net_direct_play_inet_address_type_guid = {
 /* Copy of the provider GUID that net_get_direct_play_service_provider_guid last
  * looked up; that function returns this copy's address. */
 // GLOBAL: XVT 0x665040
-GUID g_net_direct_play_service_provider_guid_scratch = {0};
+static GUID g_net_direct_play_service_provider_guid_scratch = {0};
 /* Link figures for up to 40 players, keyed by DirectPlay id. On the host,
  * net_pump_incoming_packets fills them from each player's keepalive acks; on
  * the other players, the Net_SetPlayer* setters store what the host's lobby

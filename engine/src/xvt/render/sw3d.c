@@ -49,7 +49,7 @@ int g_sw3d_span_framebuffer_row_offset = 0;
  * sw3d_draw_visible_faces_to_surface sets it, with the two other row
  * globals, for each row with a span. */
 // GLOBAL: XVT 0x61229C
-float g_sw3d_light_sample_subrow_lerp_t = 0.0f;
+static float g_sw3d_light_sample_subrow_lerp_t = 0.0f;
 /* Only the modern build's render_scene_initialize writes it, clearing its 0x300
  * bits; nothing reads it. */
 // GLOBAL: XVT 0x612298
@@ -61,11 +61,11 @@ uint32_t g_sw3d_initialize_scene_saved_fpu_control = 0;
 /* Rows from the current one to the next lighting block's top, as a float; set
  * with g_sw3d_light_sample_subrow_lerp_t. */
 // GLOBAL: XVT 0x6122B0
-float g_sw3d_light_sample_rows_to_next_block_float = 0.0f;
+static float g_sw3d_light_sample_rows_to_next_block_float = 0.0f;
 /* The current row's offset within its lighting block, as a float; set with
  * g_sw3d_light_sample_subrow_lerp_t. */
 // GLOBAL: XVT 0x6122B4
-float g_sw3d_light_sample_subrow_float = 0.0f;
+static float g_sw3d_light_sample_subrow_float = 0.0f;
 /* Texture v of the next pixel, in texels with 8 fraction bits;
  * sw3d_draw_textured_span sets it at each lighting block boundary and the pixel
  * loops step it. */
@@ -96,17 +96,17 @@ int g_sw3d_span_start_x = 0;
  * a light sample with this stamp is current, and one stamped 1 less is from the
  * block row above. */
 // GLOBAL: XVT 0x6122D4
-int g_sw3d_current_light_sample_cache_stamp = 0;
+static int g_sw3d_current_light_sample_cache_stamp = 0;
 /* Mesh of the face being drawn; sw3d_draw_visible_faces_to_surface writes it and
  * nothing reads it. */
 // GLOBAL: XVT 0x612B58
-struct scene_mesh *g_sw3d_span_scene_mesh = NULL;
+static struct scene_mesh *g_sw3d_span_scene_mesh = NULL;
 /* Width of the texture level being drawn, as a float; nothing reads it. */
 // GLOBAL: XVT 0x612B5C
-float g_sw3d_span_texture_width_float = 0.0f;
+static float g_sw3d_span_texture_width_float = 0.0f;
 /* Height of the texture level being drawn, as a float; nothing reads it. */
 // GLOBAL: XVT 0x612B60
-float g_sw3d_span_texture_height_float = 0.0f;
+static float g_sw3d_span_texture_height_float = 0.0f;
 /* Width shift of the texture level being drawn, from
  * g_sw3d_texture_shift_by_size_div16: log2 of the width for powers of two from 8 to
  * 1024. */
@@ -114,7 +114,7 @@ float g_sw3d_span_texture_height_float = 0.0f;
 int g_sw3d_span_texture_width_shift = 0;
 /* Height shift of the texture level being drawn, found the same way. */
 // GLOBAL: XVT 0x612B68
-int g_sw3d_span_texture_height_shift = 0;
+static int g_sw3d_span_texture_height_shift = 0;
 /* The face's mesh palette used as shade tables: 16 levels of 256 8-bit pixels,
  * and from byte 4096 16 levels of 256 16-bit pixels. */
 // GLOBAL: XVT 0x612B6C
@@ -160,12 +160,12 @@ struct scene_face g_sw3d_cockpit_mask_sentinel_face = {0};
 int g_sw3d_skip_odd_scanlines = 0;
 /* Dither carry each span starts with: 0 on even rows, 128 on odd rows. */
 // GLOBAL: XVT 0x527370
-int g_sw3d_shade_dither_initial_by_scanline_parity[2] = {0, 128};
+static int g_sw3d_shade_dither_initial_by_scanline_parity[2] = {0, 128};
 
 /* Shift for a texture side, indexed by (side & ~12) >> 4: log2 of the side for
  * the powers of two from 8 to 1024. */
 // GLOBAL: XVT 0x527378
-const int g_sw3d_texture_shift_by_size_div16[65] = {
+static const int g_sw3d_texture_shift_by_size_div16[65] = {
 	3, 4, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8,	8,
 	8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,	9,
 	9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 10,
@@ -173,20 +173,20 @@ const int g_sw3d_texture_shift_by_size_div16[65] = {
 
 /* 1.0, the numerator of the 1 / w divisions. */
 // GLOBAL: XVT 0x527480
-const float g_sw3d_span_one_float = 1.0f;
+static const float g_sw3d_span_one_float = 1.0f;
 /* 15.0: light times this gives the shade level. */
 // GLOBAL: XVT 0x527484
-const float g_sw3d_light_intensity_to_shade_scale = 15.0f;
+static const float g_sw3d_light_intensity_to_shade_scale = 15.0f;
 /* 12582912.0, 1.5 * 2^23: added to a float, the sum's bits less these bits give
  * the float rounded to an integer. */
 // GLOBAL: XVT 0x527488
-const float g_sw3d_float_to_int_round_bias = 12582912.0f;
+static const float g_sw3d_float_to_int_round_bias = 12582912.0f;
 /* By shift 0 to 11, 1.5 * 2^(15 - shift): added to a value, the sum's bits less
  * these bits give the value times 2^(8 + shift), which turns a texture
  * coordinate of 0 to 1 into texels of a side of 2^shift with 8 fraction bits,
  * and with shift 0 a shade into 8 fraction bits. */
 // GLOBAL: XVT 0x5274A8
-const float g_sw3d_tex_coord_bias_by_shift[12] = {
+static const float g_sw3d_tex_coord_bias_by_shift[12] = {
 	49152.0f, 24576.0f, 12288.0f, 6144.0f, 3072.0f, 1536.0f,
 	768.0f,	  384.0f,   192.0f,   96.0f,   48.0f,	24.0f,
 };

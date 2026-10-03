@@ -37,12 +37,12 @@ int g_debug_console_cursor_row;
 /* Top row of the region debug_console_write_text scrolls: 0, except while
  * debug_console_write_text_in_scroll_region runs, which nothing calls. */
 // GLOBAL: XVT 0x52810C
-int g_debug_console_scroll_top_row = 0;
+static int g_debug_console_scroll_top_row = 0;
 /* Bottom row of the region debug_console_write_text scrolls: 24, the last row,
  * except while debug_console_write_text_in_scroll_region runs, which nothing
  * calls. */
 // GLOBAL: XVT 0x528110
-int g_debug_console_scroll_bottom_row = 24;
+static int g_debug_console_scroll_bottom_row = 24;
 /* Nonzero while debug_console_write_text also appends its text to mpDump.txt.
  * Only debug_console_toggle_file_dump and debug_console_set_initialized write it,
  * and nothing calls either, so it stays 0. */

@@ -69,7 +69,7 @@ uint16_t g_msg_sender_iff = 0;
  * IFMSG_309_TARGET_DESCRIPTION: 1 when msg_build_target_description, its only
  * reader, puts "Our", "Friendly" or "Enemy" before it. */
 // GLOBAL: XVT 0x5240B8
-const uint8_t g_target_desc_designation_uses_relation_text[24] = {
+static const uint8_t g_target_desc_designation_uses_relation_text[24] = {
 	0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0};
 /* Voice sound id that msg_emit_in_flight_message stores in messages 196 and 207
  * (IFMSG_196_CODE_02_ARGUMENT, IFMSG_207_CODE_01_ARGUMENT);

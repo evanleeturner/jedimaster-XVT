@@ -90,18 +90,18 @@ int g_requested_flight_hardware3d = 1;
 /* timeGetTime, in ms, of the last vertical blank flight_display_flip waited for
  * when timing flips; 0 until the first. Only flight_display_flip writes it. */
 // GLOBAL: XVT 0x527F7C
-uint32_t g_flight_flicker_last_sync_time_ms = 0;
+static uint32_t g_flight_flicker_last_sync_time_ms = 0;
 /* Width, out of 100,000 parts of a refresh, of the window at either end of the
  * refresh in which flight_display_flip waits for a vertical blank. Nothing
  * changes it from 20,000. */
 // GLOBAL: XVT 0x527F80
-int g_flight_flicker_phase_window = 20000;
+static int g_flight_flicker_phase_window = 20000;
 /* Rate by which flight_display_flip turns elapsed ms into a position within the
  * refresh: the display frequency from GetMonitorFrequency, or, when that fails,
  * 10,000,000 divided by the ms 100 refreshes took. Only flight_display_flip
  * writes it. */
 // GLOBAL: XVT 0x622CB0
-int g_flight_flicker_refresh_rate_scale = 0;
+static int g_flight_flicker_refresh_rate_scale = 0;
 /* The 256-entry DirectDraw palette attached to the primary surface in 8-bit
  * fullscreen; NULL otherwise. Created by flight_display_init;
  * flight_display_cleanup_and_report_error and the flight shutdown release it and
@@ -136,7 +136,7 @@ char g_hud_cockpit_resolution_directory[7] = "CP640\\";
 /* 240 or 480 for the resolution, set by flight_display_configure_resolution_state.
  * Nothing reads it. */
 // GLOBAL: XVT 0x9A7B4C
-int g_flight_resolution_legacy_extent = 0;
+static int g_flight_resolution_legacy_extent = 0;
 
 /* Sets the drawing state for g_flight_resolution_mode: g_screen_width and
  * g_screen_height (320x240, 640x480 or 480x360, and 320x240 for any other mode),

@@ -29,7 +29,7 @@ unsigned int g_std3d_render_option_flags;
  * writes only the states whose bits differ from them, then stores the new bits.
  * std3d_set_initial_render_state sets it to g_std3d_render_option_flags. */
 // GLOBAL: XVT 0x528C54
-std3d_render_state_flags g_d3d_state_flags = 0;
+static std3d_render_state_flags g_d3d_state_flags = 0;
 /* Devices in g_std3d_devices, 0 to 4: std3d_startup sets 0 and
  * std3d_enum_devices_callback adds each. */
 // GLOBAL: XVT 0x528C58
@@ -43,7 +43,7 @@ struct std3d_device *g_p_std3d_cur_device = 0;
 /* Formats in g_std3d_texture_formats, 0 to 8: std3d_create_device sets 0 and
  * std3d_enum_texture_formats adds each it keeps. */
 // GLOBAL: XVT 0x528C60
-int g_std3d_num_texture_formats = 0;
+static int g_std3d_num_texture_formats = 0;
 /* The texture format closest to the render target's 16-bit RGB, picked by
  * std3d_create_device. */
 // GLOBAL: XVT 0x528C64
@@ -51,24 +51,24 @@ struct std3d_tex_fmt *g_p_fmt_opaque_texture;
 /* Index of g_p_fmt_opaque_texture in g_std3d_texture_formats; only debug prints read
  * it. */
 // GLOBAL: XVT 0xA90B58
-int g_fmt_idx_opaque_texture = 0;
+static int g_fmt_idx_opaque_texture = 0;
 /* The texture format closest to RGBA with 5, 5, 5 and 1 bits, picked by
  * std3d_create_device when the device has alpha textures; NULL otherwise. */
 // GLOBAL: XVT 0x528C68
-struct std3d_tex_fmt *g_p_fmt_rgba1555 = 0;
+static struct std3d_tex_fmt *g_p_fmt_rgba1555 = 0;
 /* Index of g_p_fmt_rgba1555 in g_std3d_texture_formats; only debug prints read
  * it. */
 // GLOBAL: XVT 0xA91B88
-int g_fmt_idx_rgba1555 = 0;
+static int g_fmt_idx_rgba1555 = 0;
 /* The texture format closest to RGBA with 4 bits each, picked by
  * std3d_create_device when the device has alpha textures but no alpha blending;
  * NULL otherwise. */
 // GLOBAL: XVT 0x528C6C
-struct std3d_tex_fmt *g_p_fmt_rgba4444 = 0;
+static struct std3d_tex_fmt *g_p_fmt_rgba4444 = 0;
 /* Index of g_p_fmt_rgba4444 in g_std3d_texture_formats; only debug prints read
  * it. */
 // GLOBAL: XVT 0xA90A64
-int g_fmt_idx_rgba4444 = 0;
+static int g_fmt_idx_rgba4444 = 0;
 /* 1 after std3d_startup succeeds, 0 after std3d_shutdown; nothing reads it. */
 // GLOBAL: XVT 0x528CB8
 static int g_std3d_startup_done = 0;
@@ -76,15 +76,15 @@ static int g_std3d_startup_done = 0;
  * asked to, when the device has one, and when g_std3d_render_option_flags has a
  * 0x1800 bit. Starts at 1, and std3d_startup sets 1. */
 // GLOBAL: XVT 0x528CB0
-int g_std3dz_buffer_enabled = 1;
+static int g_std3dz_buffer_enabled = 1;
 /* The DirectDraw object, which std3d_startup takes from
  * renderer_get_direct_draw. */
 // GLOBAL: XVT 0x528CB4
-IDirectDraw *g_std3d_direct_draw = 0;
+static IDirectDraw *g_std3d_direct_draw = 0;
 /* The texture formats the open device offers, filled by
  * std3d_enum_texture_formats, which skips 4-bit palette formats. */
 // GLOBAL: XVT 0xA90C00
-struct std3d_tex_fmt g_std3d_texture_formats[8] = {0};
+static struct std3d_tex_fmt g_std3d_texture_formats[8] = {0};
 /* Message std3d_shutdown passes to debug_printf, whose calls print nothing. */
 // GLOBAL: XVT 0x529168
 static const char g_std3d_shutdown_succeeded_message[] =
@@ -109,7 +109,7 @@ static const char g_std3d_lock_execute_buffer_error_format[] =
 /* Rows of a result code and its name, for the Direct3D and then the DirectDraw
  * codes, that std3d_lookup_error_string searches. */
 // GLOBAL: XVT 0x528CC0
-const struct std3d_error_string_entry g_std3d_error_string_table[121] = {
+static const struct std3d_error_string_entry g_std3d_error_string_table[121] = {
 	{0, "D3D_OK"},
 	{-2005531972, "D3DERR_BADMAJORVERSION"},
 	{-2005531971, "D3DERR_BADMINORVERSION"},
@@ -260,11 +260,11 @@ uint16_t g_std3d_palette_scratch16[256];
  * std3d_set_palette_conversion_source fills it, and nothing calls that, so it
  * stays 0. */
 // GLOBAL: XVT 0x6642F0
-uint16_t g_tex_conv_buf4444[256] = {0};
+static uint16_t g_tex_conv_buf4444[256] = {0};
 /* The palette in the RGBA 5, 5, 5 and 1 bit format, for color-keyed textures on
  * a device with alpha textures; std3d_convert_palette_to1555 fills it. */
 // GLOBAL: XVT 0x664550
-uint16_t g_tex_conv_buf1555[256] = {0};
+static uint16_t g_tex_conv_buf1555[256] = {0};
 /* A copy of the last palette given to std3d_set_palette_conversion_source, which
  * nothing calls; nothing reads it. */
 // GLOBAL: XVT 0x664980
@@ -320,11 +320,11 @@ int g_std3dz_compare_cap = 0;
  * mono off; std3d_build_viewport_quad sets them and std3d_draw_color_overlay draws
  * them. */
 // GLOBAL: XVT 0xA90B30
-struct std3d_render_tri g_std3d_viewport_quad_triangles[2] = {{0}};
+static struct std3d_render_tri g_std3d_viewport_quad_triangles[2] = {{0}};
 /* The viewport's corners, clockwise from the top left, set by
  * std3d_build_viewport_quad with every other field 0. */
 // GLOBAL: XVT 0xA90B60
-D3DTLVERTEX g_std3d_quad_verts[4] = {{0}};
+static D3DTLVERTEX g_std3d_quad_verts[4] = {{0}};
 /* The viewport rectangle std3d_build_viewport_quad was given: 0, 0 and the render
  * target's size. std3d_clear_z_buffer clears this area. */
 // GLOBAL: XVT 0xA90BF0
@@ -332,14 +332,14 @@ static struct std3d_viewport_rect g_std3d_quad_rect = {0};
 /* The texture std3d_draw_color_overlay uploads and removes again each time it
  * draws without alpha blending. */
 // GLOBAL: XVT 0xA90A70
-struct std3d_tex_cache_node g_std3d_color_overlay_tex_node = {0};
+static struct std3d_tex_cache_node g_std3d_color_overlay_tex_node = {0};
 /* The z-buffer surface and its description, made by std3d_create_z_buffer. */
 // GLOBAL: XVT 0xA91A34
-struct std3dz_buffer_surface_block g_std3dz_buffer_surface_block = {0};
+static struct std3dz_buffer_surface_block g_std3dz_buffer_surface_block = {0};
 /* A record of the z-buffer that std3d_create_z_buffer fills; only its debug print
  * reads it. */
 // GLOBAL: XVT 0xA919D0
-struct std3dz_buffer_target g_std3dz_buffer_target = {0};
+static struct std3dz_buffer_target g_std3dz_buffer_target = {0};
 /* Only std3d_set_texture_size_caps writes it, and nothing calls that, so it stays
  * 0. */
 // GLOBAL: XVT 0x528C70
@@ -379,15 +379,15 @@ struct std3d_tex_cache_node *g_p_tex_cache_tail = 0;
  * the device has alpha textures but no alpha blending; std3d_draw_color_overlay
  * fills it and std3d_close frees it. */
 // GLOBAL: XVT 0x528C94
-struct std3dv_buffer *g_p_std3dv_buffer = 0;
+static struct std3dv_buffer *g_p_std3dv_buffer = 0;
 /* The execute buffer every batch is written into; std3d_create_device makes it
  * and std3d_close releases it. */
 // GLOBAL: XVT 0x528C98
-IDirect3DExecuteBuffer *g_d3d_execute_buffer = 0;
+static IDirect3DExecuteBuffer *g_d3d_execute_buffer = 0;
 /* Size of the execute buffer in bytes: the device's maxBufferSize, or 0x10000
  * when it states none. */
 // GLOBAL: XVT 0x528C9C
-unsigned int g_std3d_exec_buf_size = 0;
+static unsigned int g_std3d_exec_buf_size = 0;
 /* Vertices in the execute buffer since std3d_lock_execute_buffer set it to 0. */
 // GLOBAL: XVT 0x528CA0
 int g_d3d_buf_vert_count = 0;
@@ -403,18 +403,18 @@ static struct std3d_tex_cache_node *g_d3d_cur_texture =
 /* Points at g_std3dz_buffer_surface_block once std3d_create_z_buffer runs; NULL
  * before. */
 // GLOBAL: XVT 0x528CAC
-struct std3dz_buffer_surface_block *g_p_std3dz_buffer_state = NULL;
+static struct std3dz_buffer_surface_block *g_p_std3dz_buffer_state = NULL;
 /* 1 while a device is open: std3d_create_device sets it on success and
  * std3d_close clears it. */
 // GLOBAL: XVT 0x528CBC
-int g_std3d_device_open = 0;
+static int g_std3d_device_open = 0;
 /* Start of the locked execute buffer. */
 // GLOBAL: XVT 0x664754
 static uint8_t *g_d3d_exec_buf_base = 0;
 /* Description of the execute buffer: std3d_create_device sets its size, and each
  * lock fills in where it lies. */
 // GLOBAL: XVT 0x664758
-D3DEXECUTEBUFFERDESC g_d3d_exec_buf_desc = {0};
+static D3DEXECUTEBUFFERDESC g_d3d_exec_buf_desc = {0};
 /* Where the next vertex or instruction goes in the locked execute buffer; all
  * bits set until the first lock. */
 // GLOBAL: XVT 0x664C80
@@ -425,11 +425,11 @@ uint8_t *g_d3d_write_ptr = (uint8_t *)(uintptr_t)-1;
 static uint8_t *g_d3d_instr_start = 0;
 /* The render target's description, filled by std3d_init_render_target_desc. */
 // GLOBAL: XVT 0x6644F8
-struct std3d_render_target_desc g_std3d_render_target_desc = {0};
+static struct std3d_render_target_desc g_std3d_render_target_desc = {0};
 /* Points at g_std3d_render_target_desc once std3d_init_render_target_desc runs; NULL
  * before. */
 // GLOBAL: XVT 0xA90BE0
-struct std3d_render_target_desc *g_p_std3d_render_target = 0;
+static struct std3d_render_target_desc *g_p_std3d_render_target = 0;
 
 /* Copies colorCount 16-bit colors into g_std3d_palette_scratch16. Does not check
  * colorCount against its 256 entries. */

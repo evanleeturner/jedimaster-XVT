@@ -91,7 +91,7 @@ unsigned int g_palette_generation_enabled = 0;
 /* The three resource list names, SPEC, SPEC2 and SPEC3, that
  * fe_disk_io_load_resources reads; the index is an object type's texture_group. */
 // GLOBAL: XVT 0x527620
-char g_spec_list_prefixes[3][9] = {
+static char g_spec_list_prefixes[3][9] = {
 	{'S', 'P', 'E', 'C', '\0', '\0', '\0', '\0', '\0'},
 	{'S', 'P', 'E', 'C', '2', '\0', '\0', '\0', '\0'},
 	{'S', 'P', 'E', 'C', '3', '\0', '\0', '\0', '\0'},

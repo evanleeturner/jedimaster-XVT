@@ -32,15 +32,16 @@ struct craft_data *g_craft_data_pool_base = 0;
 /* Scale, 4/9, from a model's max_speed and accel_rate to the Tech Library's speed
  * and acceleration ratings. Only build_craft_tech_stats reads it. */
 // GLOBAL: XVT 0x5180E0
-const double g_craft_tech_speed_acceleration_rating_scale = 0.4444444444444444;
+static const double g_craft_tech_speed_acceleration_rating_scale =
+	0.4444444444444444;
 /* Added before build_craft_tech_stats truncates a rating, so the rating rounds to
  * nearest. */
 // GLOBAL: XVT 0x5180E8
-const double g_craft_tech_rating_rounding_bias = 0.5;
+static const double g_craft_tech_rating_rounding_bias = 0.5;
 /* Scale from a model's pitch_rate plus roll_rate to the Tech Library's maneuver
  * rating. Only build_craft_tech_stats reads it. */
 // GLOBAL: XVT 0x5180F0
-const double g_craft_tech_maneuver_rating_scale = 0.005231575698284567;
+static const double g_craft_tech_maneuver_rating_scale = 0.005231575698284567;
 
 /* Adds delta to shield bank shield_index of g_cur_craft and clamps the bank to 0
  * through twice the model's shield_strength. The first argument is ignored;

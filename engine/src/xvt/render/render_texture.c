@@ -14,12 +14,12 @@
  * render_texture_find_or_allocate_cache_entry writes it and clears it all when
  * g_render_texture_cache_cursor is -1. */
 // GLOBAL: XVT 0xA68750
-const void *g_render_texture_cache_keys[1024] = {0};
+static const void *g_render_texture_cache_keys[1024] = {0};
 /* The hardware texture cache, 1024 entries found through
  * g_render_texture_cache_keys by open addressing; std3D fills an entry when it
  * uploads a texture. */
 // GLOBAL: XVT 0xA69750
-struct std3d_tex_cache_node g_render_texture_cache[1024] = {0};
+static struct std3d_tex_cache_node g_render_texture_cache[1024] = {0};
 /* Index of the cache entry render_texture_find_or_allocate_cache_entry last
  * returned, 0 to 1023; -1, set by renderer_init_d3d_device, makes the next lookup
  * clear the cache. */
@@ -28,21 +28,21 @@ int g_render_texture_cache_cursor = 0;
 /* Buffer render_texture_get_or_create_bitmap decodes a run-length image into, 8
  * bits per pixel, up to 65536 pixels, before the upload. */
 // GLOBAL: XVT 0x52F8F0
-uint8_t g_render_texture_decode_scratch[65536] = {0};
+static uint8_t g_render_texture_decode_scratch[65536] = {0};
 /* Buffer render_texture_get_or_create_color_key copies an image into with its
  * transparent pixels set to index 0, up to 65536 pixels, before the upload. */
 // GLOBAL: XVT 0x53F978
-uint8_t g_render_texture_color_key_scratch[65536] = {0};
+static uint8_t g_render_texture_color_key_scratch[65536] = {0};
 /* Mask of the run-length bits in a run byte, by run-length format 0 to 8:
  * (1 << format) - 1. */
 // GLOBAL: XVT 0x51A530
-const uint8_t g_bitmap_rle_run_length_mask_by_format[9] = {0,  1,  3,	7,  15,
-							   31, 63, 127, 255};
+static const uint8_t g_bitmap_rle_run_length_mask_by_format[9] = {
+	0, 1, 3, 7, 15, 31, 63, 127, 255};
 /* Shift that takes the color offset out of a run byte, by run-length format 0
  * to 8: the format itself. */
 // GLOBAL: XVT 0x51A540
-const uint8_t g_bitmap_rle_color_index_shift_by_format[9] = {0, 1, 2, 3, 4,
-							     5, 6, 7, 8};
+static const uint8_t g_bitmap_rle_color_index_shift_by_format[9] = {
+	0, 1, 2, 3, 4, 5, 6, 7, 8};
 
 /* Finds the texture cache entry keyed by cache_key, an image's address, or
  * claims a free one for it. When g_render_texture_cache_cursor is -1 it first

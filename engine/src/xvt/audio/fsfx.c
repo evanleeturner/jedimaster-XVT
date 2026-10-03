@@ -99,7 +99,7 @@ uint8_t g_fsfx_loaded = 0;
  * one off, fsfx_remove_voice_queue_entry_chain takes off a chain and
  * fsfx_reset_flight_sfx_state sets 0. */
 // GLOBAL: XVT 0x9A20A4
-uint8_t g_fsfx_voice_queue_count = 0;
+static uint8_t g_fsfx_voice_queue_count = 0;
 /* Speaker type of the line fsfx_update_voice_queue last took from the queue; only
  * it writes it, and nothing reads it. */
 // GLOBAL: XVT 0xA0A870
@@ -107,7 +107,7 @@ static uint8_t g_fsfx_current_voice_speaker_type = 0;
 /* Chain flag of each queued voice line: 0 starts a message, nonzero continues
  * the one before it, so the lines are pruned together. */
 // GLOBAL: XVT 0xA0A880
-uint8_t g_fsfx_voice_queue_chain_flag[128] = {0};
+static uint8_t g_fsfx_voice_queue_chain_flag[128] = {0};
 /* Voice category of the line fsfx_update_voice_queue last took from the queue;
  * only it writes it, and nothing reads it. */
 // GLOBAL: XVT 0xA0A900
@@ -116,7 +116,7 @@ static uint8_t g_fsfx_current_voice_category = 0;
  * fsfx_prune_stale_voice_queue_entries drops a tactical status message whose object
  * is gone. */
 // GLOBAL: XVT 0xA0A910
-uint16_t g_fsfx_voice_queue_object_signature[128] = {0};
+static uint16_t g_fsfx_voice_queue_object_signature[128] = {0};
 /* Mission time, in seconds, at which the tactical officer last reported each
  * craft slot, 0 for never; fsfx_speak_tactical_officer_event holds a report back
  * within 10 seconds of the last. fsfx_reset_flight_sfx_state clears the slots
@@ -126,7 +126,7 @@ static int g_fsfx_tac_officer_last_speak_seconds_by_obj[136] = {0};
 /* Path fsfx_load_sfx_list builds for each effect it loads: the list line prefixed
  * with the wave folder. */
 // GLOBAL: XVT 0xA0AB20
-char g_fsfx_sfx_load_path[720] = {0};
+static char g_fsfx_sfx_load_path[720] = {0};
 /* Path of the mission file being flown: "DEMO.TIE" until flight_main (original
  * build) or xvt_flight_entry_create_devices (modern) copies in the mission path
  * from the launch arguments. fe_disk_io_init_resources, flight_main_loop and
@@ -137,10 +137,10 @@ char g_current_mission_file[128] = "DEMO.TIE";
 /* Speaker type of each queued voice line: 0 special, 1 wingman pilot, 2
  * tactical officer, 3 commander. */
 // GLOBAL: XVT 0xA0AA20
-uint8_t g_fsfx_voice_queue_speaker_type[128] = {0};
+static uint8_t g_fsfx_voice_queue_speaker_type[128] = {0};
 /* Voice category of each queued voice line. */
 // GLOBAL: XVT 0xA0AAA0
-uint8_t g_fsfx_voice_queue_category[128] = {0};
+static uint8_t g_fsfx_voice_queue_category[128] = {0};
 /* Flight sound id of the voice line fsfx_update_voice_queue last started, 0 when
  * none; it starts no other line while this one plays. fsfx_reset_flight_sfx_state
  * sets 0. */
@@ -162,10 +162,10 @@ char g_fsfx_sfx_name_table[838][24] = {{0}};
  * clears it; fsfx_play_sound and the voice queue play nothing from an id holding
  * 0. */
 // GLOBAL: XVT 0xA0FE80
-uint16_t g_fsfx_loaded_by_slot[838] = {0};
+static uint16_t g_fsfx_loaded_by_slot[838] = {0};
 /* Flight sound id of each queued voice line. */
 // GLOBAL: XVT 0xA0FC80
-int g_fsfx_voice_queue_sfx_slot[128] = {0};
+static int g_fsfx_voice_queue_sfx_slot[128] = {0};
 /* Object signature of the line fsfx_update_voice_queue last took from the queue;
  * only it writes it, and nothing reads it. */
 // GLOBAL: XVT 0xA1050C

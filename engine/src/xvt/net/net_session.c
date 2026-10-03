@@ -85,7 +85,7 @@ struct net_session_scratch_state g_net_session_scratch_packet = {0};
  * net_session_init_game_session sets it to 1 and nothing sets it back to 0, so
  * after the first session of a run the branches for 0 never run. */
 // GLOBAL: XVT 0x9EC608
-uint8_t g_net_session_flight_handshake_active = 0;
+static uint8_t g_net_session_flight_handshake_active = 0;
 
 /* Does nothing; message is ignored. */
 // FLAGS: /O2 /G5

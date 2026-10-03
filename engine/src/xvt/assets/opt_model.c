@@ -902,29 +902,29 @@ uint16_t g_loaded_models[201] = {0};
  * found, or the list length after a miss. Only that function writes it, and
  * nothing resets it between models. */
 // GLOBAL: XVT 0x60F1E4
-int g_opt_convert_vector_search_cursor = 0;
+static int g_opt_convert_vector_search_cursor = 0;
 /* Where opt_model_remap_tex_coord_index starts its next search: the index it last
  * found, or the list length after a miss. Only that function writes it, and
  * nothing resets it between models. */
 // GLOBAL: XVT 0x60F1FC
-int g_opt_convert_tex_coord_search_cursor = 0;
+static int g_opt_convert_tex_coord_search_cursor = 0;
 /* Handle of the shared block a model file is loaded and converted in; kept and
  * regrown from one load to the next, 0 before the first. Only
  * opt_model_load_file_to_handle and opt_model_convert_legacy_model_to_optimized write
  * it. */
 // GLOBAL: XVT 0x5272A8
-uint16_t g_load_opt_buf_handle = 0;
+static uint16_t g_load_opt_buf_handle = 0;
 /* Bytes allocated for g_load_opt_buf_handle (the decoded size in the modern
  * build); written by the same two functions. */
 // GLOBAL: XVT 0x5272AC
-int g_load_opt_buf_size = 0;
+static int g_load_opt_buf_size = 0;
 /* Handle of the copy opt_model_convert_legacy_model_to_optimized converts from; it
  * alone writes it, keeps it between calls, regrows it and never frees it. */
 // GLOBAL: XVT 0x5272B4
-uint16_t g_opt_convert_source_handle = 0;
+static uint16_t g_opt_convert_source_handle = 0;
 /* Bytes allocated for g_opt_convert_source_handle. */
 // GLOBAL: XVT 0x5272B8
-unsigned int g_opt_convert_source_buf_size = 0;
+static unsigned int g_opt_convert_source_buf_size = 0;
 /* Vertex count of the OPT_MESHVERTS node the model walkers last passed. Many
  * functions write it, chiefly this file's walkers and RenderScene's, which set
  * it to 0 before a walk. */
@@ -979,31 +979,31 @@ static int g_opt_convert_target_face_found = 0;
 /* The OPT_FACEGROUP node the legacy converter last passed, whose children
  * opt_model_append_converted_faces_for_current_mesh searches for faces to merge. */
 // GLOBAL: XVT 0x60F1C8
-struct opt_node *g_opt_convert_source_mesh_node = NULL;
+static struct opt_node *g_opt_convert_source_mesh_node = NULL;
 /* The merged OPT_VERTNORMALS node the legacy converter built for the current
  * root; NULL before it. opt_model_convert_legacy_model_to_optimized clears it before
  * each root. */
 // GLOBAL: XVT 0x60F1CC
-struct opt_node *g_opt_convert_vertex_normal_node = NULL;
+static struct opt_node *g_opt_convert_vertex_normal_node = NULL;
 /* The texture the legacy converter last passed, directly or through an
  * OPT_NODEREF; faces merge only with faces under the same texture. */
 // GLOBAL: XVT 0x60F1DC
-struct opt_node *g_opt_convert_source_texture_node = NULL;
+static struct opt_node *g_opt_convert_source_texture_node = NULL;
 /* The merged OPT_TEXCOORDS node the legacy converter built for the current
  * root; NULL before it. opt_model_convert_legacy_model_to_optimized clears it before
  * each root. */
 // GLOBAL: XVT 0x60F1F4
-struct opt_node *g_opt_convert_tex_coord_node = NULL;
+static struct opt_node *g_opt_convert_tex_coord_node = NULL;
 /* The texture opt_model_append_converted_faces_for_node last passed while it
  * searches for faces to merge. */
 // GLOBAL: XVT 0x60F1F8
-struct opt_node *g_opt_convert_face_texture_node = NULL;
+static struct opt_node *g_opt_convert_face_texture_node = NULL;
 /* The merged OPT_MESHVERTS node the legacy converter built for the current
  * root; NULL before it, and while NULL the next node with children builds the
  * merged nodes. opt_model_convert_legacy_model_to_optimized clears it before each
  * root. */
 // GLOBAL: XVT 0x60F200
-struct opt_node *g_opt_convert_vertex_node = NULL;
+static struct opt_node *g_opt_convert_vertex_node = NULL;
 
 /* Loads a model file and returns the Memory handle of its runtime copy
  * (opt_model_create_runtime_handle), or 0. The modern build returns 0 for a NULL

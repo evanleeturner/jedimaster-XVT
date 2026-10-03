@@ -48,21 +48,21 @@ int g_joystick_entry_count = 0;
  * screen opens, then set by the list's scrollbar and by picking an action from
  * the keyboard. */
 // GLOBAL: XVT 0x664E88
-int g_config_joystick_action_scroll_offset = 0;
+static int g_config_joystick_action_scroll_offset = 0;
 /* First row shown in the joystick page's button list: 0 when the config screen
  * opens, then set by the list's scrollbar and moved to a pressed button or hat
  * direction that is out of view. */
 // GLOBAL: XVT 0x664E8C
-int g_config_joystick_button_scroll_offset = 0;
+static int g_config_joystick_button_scroll_offset = 0;
 /* Button being remapped: 0 to 15 for joystick buttons 1 to 16, 16 to 19 for the
  * hat directions. 0 when the config screen opens; set by picking a row or
  * pressing a button or hat direction. */
 // GLOBAL: XVT 0x664E90
-int g_config_selected_joystick_button_index = 0;
+static int g_config_selected_joystick_button_index = 0;
 /* Index in g_joystick_entries of the action the selected button is mapped to, as
  * the joystick page shows it. */
 // GLOBAL: XVT 0x664E94
-int g_config_selected_joystick_action_index = 0;
+static int g_config_selected_joystick_action_index = 0;
 
 /* The game's settings. config_load fills them from defaults and the config file
  * and config_write saves them; the config pages, the mission setup screen, the
@@ -76,7 +76,7 @@ struct game_config g_game_config = {0};
  * and 0 after every frame, and the page buttons set 1 when they switch
  * pages. */
 // GLOBAL: XVT 0x664E98
-int g_config_draw_static_control_background = 0;
+static int g_config_draw_static_control_background = 0;
 /* 1 while the network page lets the connection type change outside single
  * player. The concourse's first frame sets 1; mission setup, the network
  * screens in frontend_net.c and the modern build's network browser set it as
@@ -87,7 +87,7 @@ int g_config_connection_type_editable = 0;
  * sound, 4 joystick, 5 taunts. 0 when the config screen opens; the page buttons
  * change it. */
 // GLOBAL: XVT 0x664E9C
-int g_config_current_page = 0;
+static int g_config_current_page = 0;
 
 /* Keywords of the config file's lines; config_load numbers each by its place
  * here. They name the last pilot, the video settings of both sets, network,

@@ -44,12 +44,12 @@ int g_sound_count = 0;
  * frees slots, sound_stop_oldest_instance frees them and sound_init_sound_engine
  * sets 0; sound_shutdown_sound_engine clears the slots but leaves the count. */
 // GLOBAL: XVT 0xA606D8
-int g_active_sound_count = 0;
+static int g_active_sound_count = 0;
 /* Sequence number the next started or restarted sound takes; each one adds 1.
  * The lowest sequence in a slot is the oldest sound. sound_init_sound_engine
  * and sound_shutdown_sound_engine set 0. */
 // GLOBAL: XVT 0xA606DC
-unsigned int g_next_sound_instance_seq = 0;
+static unsigned int g_next_sound_instance_seq = 0;
 
 /* Starts DirectSound for flight. Returns 1 at once when g_direct_sound is
  * already set. Otherwise it clears the 8 slots of g_active_sound_instances,

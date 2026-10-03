@@ -80,96 +80,96 @@ uint8_t g_spawn_leader_obj_idx = 0;
  * mission_spawn_flight_group_wave_craft, read by mission_init_flight_group_object_slot
  * into the craft's mobile record. */
 // GLOBAL: XVT 0x99F983
-uint8_t g_spawn_team_id = 0;
+static uint8_t g_spawn_team_id = 0;
 /* IFF of the craft being spawned, from the flight group; set by
  * mission_spawn_flight_group_wave_craft, read by
  * mission_init_flight_group_object_slot. */
 // GLOBAL: XVT 0x99F984
-uint8_t g_spawn_iff = 0;
+static uint8_t g_spawn_iff = 0;
 /* Formation spacing of the round being spawned: the group's formation_spacing,
  * or 0 from a mothership. Set by mission_spawn_flight_group_wave_craft;
  * mission_init_flight_group_object_slot uses 0 instead while
  * g_spawn_from_mothership_flag is set. */
 // GLOBAL: XVT 0x99F985
-uint8_t g_spawn_formation_spacing = 0;
+static uint8_t g_spawn_formation_spacing = 0;
 /* AI level (group_ai) of the round being spawned; set by
  * mission_spawn_flight_group_wave_craft, used by mission_init_flight_group_object_slot
  * for the craft's skill and think interval. */
 // GLOBAL: XVT 0x99F987
-uint8_t g_spawn_group_ai = 0;
+static uint8_t g_spawn_group_ai = 0;
 /* Yaw of the round being spawned, 65,536 units per circle: toward the
  * mothership's outside hangar point, toward mission point 5, or 0. Set by
  * mission_spawn_flight_group_wave_craft, read by
  * mission_init_flight_group_object_slot. */
 // GLOBAL: XVT 0x99F988
-uint16_t g_spawn_yaw = 0;
+static uint16_t g_spawn_yaw = 0;
 /* 1 while the round being spawned arrives by hyperspace after the mission
  * start; mission_spawn_flight_group_wave_craft sets it to 0 and then 1 when it
  * moves the round back, and mission_init_flight_group_object_slot then makes the
  * out-of-hyperspace plan the craft's pending plan. */
 // GLOBAL: XVT 0x99F98A
-uint8_t g_spawn_out_of_hyperspace_flag = 0;
+static uint8_t g_spawn_out_of_hyperspace_flag = 0;
 /* status1 of the round being spawned; set by mission_spawn_flight_group_wave_craft.
  * mission_init_flight_group_object_slot reads it with g_spawn_status2 to adjust
  * warheads, shields, hyperdrive and turrets. */
 // GLOBAL: XVT 0x99F98B
-uint8_t g_spawn_status1 = 0;
+static uint8_t g_spawn_status1 = 0;
 /* 1 while the round being spawned comes out of a mothership's hangar;
  * mission_spawn_flight_group_wave_craft sets it to 0 and then 1, and
  * mission_init_flight_group_object_slot then uses spacing 0 and makes the
  * from-mothership plan the craft's pending plan. */
 // GLOBAL: XVT 0x99F98C
-uint8_t g_spawn_from_mothership_flag = 0;
+static uint8_t g_spawn_from_mothership_flag = 0;
 /* Pitch of the round being spawned, 65,536 units per circle (0x4000 when no
  * point is faced). Set by mission_spawn_flight_group_wave_craft, read by
  * mission_init_flight_group_object_slot. */
 // GLOBAL: XVT 0x99F98E
-uint16_t g_spawn_pitch = 0;
+static uint16_t g_spawn_pitch = 0;
 /* Number in its flight group of the craft being spawned, from 0. Only
  * mission_spawn_flight_group_wave_craft writes it, stepping through the round;
  * mission_init_flight_group_object_slot reads it. */
 // GLOBAL: XVT 0x99F990
-uint16_t g_spawn_craft_ordinal = 0;
+static uint16_t g_spawn_craft_ordinal = 0;
 /* Object type of the craft just spawned; only
  * mission_init_flight_group_object_slot writes it. Read there and by
  * mission_spawn_flight_group_wave_craft for the arrival message. */
 // GLOBAL: XVT 0x99F992
-uint8_t g_spawn_object_type = 0;
+static uint8_t g_spawn_object_type = 0;
 /* object_kind given to each spawned craft; mission_spawn_flight_group_wave_craft
  * sets it to CRAFT_OBJECT_KIND_ACTIVE, the only value it ever holds. */
 // GLOBAL: XVT 0x9A1080
-craft_object_kind g_spawn_object_kind = CRAFT_OBJECT_KIND_ACTIVE;
+static craft_object_kind g_spawn_object_kind = CRAFT_OBJECT_KIND_ACTIVE;
 /* status2 of the round being spawned; see g_spawn_status1. */
 // GLOBAL: XVT 0x9A1081
-uint8_t g_spawn_status2 = 0;
+static uint8_t g_spawn_status2 = 0;
 /* World position of the round's first craft, in world units: the mothership's
  * inside hangar point or the group's mission point, moved back for a hyperspace
  * arrival. Only mission_spawn_flight_group_wave_craft writes it;
  * mission_init_flight_group_object_slot places each craft from it. Also
  * g_spawn_world_y and g_spawn_world_z. */
 // GLOBAL: XVT 0x9A1084
-int g_spawn_world_x = 0;
+static int g_spawn_world_x = 0;
 /* Y of the round's first craft position; see g_spawn_world_x. */
 // GLOBAL: XVT 0x9A1088
-int g_spawn_world_y = 0;
+static int g_spawn_world_y = 0;
 /* Z of the round's first craft position; see g_spawn_world_x. */
 // GLOBAL: XVT 0x9A108C
-int g_spawn_world_z = 0;
+static int g_spawn_world_z = 0;
 /* Genus of the round being spawned, from the object type table; set by
  * mission_spawn_flight_group_wave_craft. mission_init_flight_group_object_slot takes
  * its slot range from g_object_slot_range_by_genus by it. */
 // GLOBAL: XVT 0x9A1830
-uint8_t g_spawn_genus_id = 0;
+static uint8_t g_spawn_genus_id = 0;
 /* IFF of the craft just spawned; only mission_init_flight_group_object_slot
  * writes it. Nothing reads it. */
 // GLOBAL: XVT 0x9A1831
-uint8_t g_spawned_object_iff = 0;
+static uint8_t g_spawned_object_iff = 0;
 /* Formation of the round being spawned: the group's formation, 0 from a
  * mothership, or 6 from one with more than 3 craft. Set by
  * mission_spawn_flight_group_wave_craft, read by
  * mission_init_flight_group_object_slot. */
 // GLOBAL: XVT 0x9A1832
-uint8_t g_spawn_formation = 0;
+static uint8_t g_spawn_formation = 0;
 /* 1 while mission_init_flight_runtime_state places the craft that start in
  * space, else 0; it is the only writer. While it is 1,
  * mission_init_flight_group_object_slot binds a player's craft to the player. */
@@ -278,45 +278,45 @@ uint16_t g_mission_file_version = 0;
 /* The header of a TIE-format mission, read and converted by
  * mission_load_file, its only user. */
 // GLOBAL: XVT 0x556AA8
-struct e_mission_struct g_tie_mission_header = {0};
+static struct e_mission_struct g_tie_mission_header = {0};
 /* One TIE-format flight group record, read and converted by
  * mission_load_file, its only user. */
 // GLOBAL: XVT 0x556C70
-struct efg_struct g_tie_flight_group = {0};
+static struct efg_struct g_tie_flight_group = {0};
 /* One TIE-format global goal record, read and converted by
  * mission_load_file, its only user. */
 // GLOBAL: XVT 0x556D98
-struct e_mission_goal g_tie_mission_goal = {0};
+static struct e_mission_goal g_tie_mission_goal = {0};
 /* Text of a version 10 flight group record. Only mission_load_file uses it,
  * in a branch that never runs. */
 // GLOBAL: XVT 0x556DB8
-struct xvt_v10_flight_group_text g_xvt_v10_flight_group_text = {0};
+static struct xvt_v10_flight_group_text g_xvt_v10_flight_group_text = {0};
 /* One TIE-format message record, read and converted by mission_load_file, its
  * only user. */
 // GLOBAL: XVT 0x556DE8
-struct tie_radio_message g_tie_radio_message = {0};
+static struct tie_radio_message g_tie_radio_message = {0};
 /* Header of a version 10 mission file. Only mission_load_file uses it, in a
  * branch that never runs. */
 // GLOBAL: XVT 0x556E48
-struct xvt_v10_mission_header g_xvt_v10_mission_header = {0};
+static struct xvt_v10_mission_header g_xvt_v10_mission_header = {0};
 /* Rating an AI craft counts as, by its group_ai 0 to 5: 2, 4, 7, 9, 10 and 11.
  * Read only by mission_credit_destruction_damage_contributors. */
 // GLOBAL: XVT 0x521158
-const int g_default_pilot_rating_by_ai_level[6] = {2, 4, 7, 9, 10, 11};
+static const int g_default_pilot_rating_by_ai_level[6] = {2, 4, 7, 9, 10, 11};
 /* Points a craft is worth for its beam type, by beam_type_id 0 to 5. Read only
  * by mission_compute_craft_point_value. */
 // GLOBAL: XVT 0x521170
-const int g_beam_type_point_value[6] = {0, 150, 150, 250, 50, 0};
+static const int g_beam_type_point_value[6] = {0, 150, 150, 250, 50, 0};
 /* Points a craft is worth for its countermeasure type, by cm_type_id 0 to 3.
  * Read only by mission_compute_craft_point_value. */
 // GLOBAL: XVT 0x521188
-const int g_countermeasure_type_point_value[4] = {0, 150, 100, 150};
+static const int g_countermeasure_type_point_value[4] = {0, 150, 100, 150};
 /* Replacement craft type mission_init gives the player groups of an AI
  * opponent team in a melee tournament, by the craft type of that team's
  * first player group, 0 to 23; types 0 and 17 to 23 map to 0. Read only by
  * mission_init. */
 // GLOBAL: XVT 0x5241D0
-const uint8_t g_ai_opponent_craft_type_by_player_craft_type[24] = {
+static const uint8_t g_ai_opponent_craft_type_by_player_craft_type[24] = {
 	0, 6, 16, 8, 16, 14, 1, 14, 3, 3, 3, 3,
 	3, 3, 5,  5, 2,	 0,  0, 0,  0, 0, 0, 0,
 };
@@ -353,12 +353,14 @@ uint16_t g_mission_condition_current_count = 0;
  * in: 1 easy, 2 medium, 4 hard; 7 all, 6 and 3 two of them, 0 none. Read only
  * by mission_init_flight_runtime_state. */
 // GLOBAL: XVT 0x524280
-const uint8_t g_fg_arrival_difficulty_masks[8] = {7, 1, 2, 4, 6, 3, 0, 0};
+static const uint8_t g_fg_arrival_difficulty_masks[8] = {7, 1, 2, 4,
+							 6, 3, 0, 0};
 /* Per game difficulty, its bit for g_fg_arrival_difficulty_masks: 1, 2 and 4
  * for GAME_DIFFICULTY_EASY, MEDIUM and HARD (0 to 2), 0 above. Read only by
  * mission_init_flight_runtime_state. */
 // GLOBAL: XVT 0x524288
-const uint8_t g_mission_difficulty_arrival_masks[8] = {1, 2, 4, 0, 0, 0, 0, 0};
+static const uint8_t g_mission_difficulty_arrival_masks[8] = {1, 2, 4, 0,
+							      0, 0, 0, 0};
 /* 0 or 0x0400, the blinking flag ORed into g_render_object_ref with the local
  * player's target. flight_update_timers flips it each time
  * g_target_proximity_blink_timer runs out: set for 118 ticks and clear for 14
@@ -375,7 +377,7 @@ uint8_t g_flight_runtime_state_initialized = 1;
 /* Set to 15 by mission_init_flight_runtime_state, its only writer. Nothing
  * reads it. */
 // GLOBAL: XVT 0x9A8C04
-uint16_t g_flight_frame_step_mirror = 0;
+static uint16_t g_flight_frame_step_mirror = 0;
 
 /* Returns a flag, the flight group's special_cargo_outcome entry for
  * FLIGHT_GROUP_OUTCOME_INSPECTED, which collide_collisions and

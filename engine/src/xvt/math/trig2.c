@@ -76,7 +76,7 @@ uint16_t g_sin_table[513] = {
  * interpolating at 256 adds nothing, and the last two are 0. Nothing writes
  * it. */
 // GLOBAL: XVT 0x524C28
-int16_t g_arctantable[260] = {
+static int16_t g_arctantable[260] = {
 	0,    41,   81,	  122,	163,  204,  244,  285,	326,  367,  407,  448,
 	489,  529,  570,  610,	651,  692,  732,  773,	813,  854,  894,  935,
 	975,  1015, 1056, 1096, 1136, 1177, 1217, 1257, 1297, 1337, 1377, 1417,
@@ -186,24 +186,24 @@ int trig2_yoffset = 0;
  * was over adjacent, compared as signed numbers; else 0. Only that function
  * writes and reads it. */
 // GLOBAL: XVT 0x9EC460
-int16_t trig2_legs_swapped = 0;
+static int16_t trig2_legs_swapped = 0;
 
 /* 1 when the x given to the last trig2_ctop, trig2_ctop2dim or trig2_arctan
  * was negative, else 0; 0xFFFF until the first. Only those write and read
  * it. */
 // GLOBAL: XVT 0x9ECC46
-uint16_t trig2_signx = UINT16_MAX;
+static uint16_t trig2_signx = UINT16_MAX;
 
 /* 1 when the y given to the last trig2_ctop, trig2_ctop2dim or trig2_arctan
  * was negative, else 0; 0xFFFF until the first. Only those write and read
  * it. */
 // GLOBAL: XVT 0x9ECC48
-uint16_t trig2_signy = UINT16_MAX;
+static uint16_t trig2_signy = UINT16_MAX;
 
 /* 1 when the dz given to the last trig2_ctop was negative, else 0. Only
  * trig2_ctop writes and reads it. */
 // GLOBAL: XVT 0x9ECC50
-uint16_t trig2_signz = 0;
+static uint16_t trig2_signz = 0;
 
 /* World units an object moves along z this step; written and read as
  * trig2_xmovedist is. */
@@ -221,7 +221,7 @@ int trig2_zoffset = 0;
  * function writes it; trig2_calcangleplanedistance scales it into the
  * hypotenuse. */
 // GLOBAL: XVT 0xA00740
-int trig2_larger_leg = 0;
+static int trig2_larger_leg = 0;
 
 /* Angle from +x toward +y that trig2_update_cartesian_offsets converts. Only
  * trig2_movexyz writes it, as 0x4000 minus its yaw. */
@@ -237,7 +237,7 @@ uint16_t trig2_pitch = 0;
 /* The angle, 0 to 0x4000, that trig2_calcangleplanedistance last took from
  * trig2_calcarctan_core; only that function writes it. */
 // GLOBAL: XVT 0xA080FE
-int16_t trig2_angleplane = 0;
+static int16_t trig2_angleplane = 0;
 
 /* Returns the sine of an angle of 65,536 units to the circle, times 32767,
  * truncated toward zero; computed in floating point. */

@@ -142,22 +142,22 @@ uint16_t g_order_throttle_to_craft_throttle_speed[12] = {
 /* Simulated seconds, by the flight group's AI level, between the weaves of the
  * avoid-attacker maneuver: 8 down to 1, then 0. */
 // GLOBAL: XVT 0x527950
-const uint16_t g_ai_avoid_attacker_delay_seconds_by_group_ai[8] = {8, 6, 5, 3,
-								   2, 1, 0, 0};
+static const uint16_t g_ai_avoid_attacker_delay_seconds_by_group_ai[8] = {
+	8, 6, 5, 3, 2, 1, 0, 0};
 
 /* A fraction of a simulated second, by the flight group's AI level, added to
  * g_ai_avoid_attacker_delay_seconds_by_group_ai; every entry is 0, so it adds
  * nothing. */
 // GLOBAL: XVT 0x527960
-const uint16_t g_ai_avoid_attacker_delay_frac_q16_by_group_ai[8] = {0, 0, 0, 0,
-								    0, 0, 0, 0};
+static const uint16_t g_ai_avoid_attacker_delay_frac_q16_by_group_ai[8] = {
+	0, 0, 0, 0, 0, 0, 0, 0};
 
 /* The speed paiman_outofhyperspacemaneuver gives an arriving craft for each
  * maneuver_phase value: 3,600 for 0 to 5, 1,800 for 6 to 8, 900 for 9 and 10, 0
  * for 11. It raises maneuver_phase before it reads, from 1 up to 10, so entries
  * 0 and 11 are never read. */
 // GLOBAL: XVT 0x527938
-const uint16_t g_ai_hyperspace_arrival_speed_by_phase[12] = {
+static const uint16_t g_ai_hyperspace_arrival_speed_by_phase[12] = {
 	3600, 3600, 3600, 3600, 3600, 3600, 1800, 1800, 1800, 900, 900, 0,
 };
 
@@ -208,7 +208,7 @@ ai_course_order_maneuver_proc
  * Mode 0 calls paiorder_nullhandler through this void function type; the pairs
  * that share a step function share a start function too. Nothing writes it. */
 // GLOBAL: XVT 0x5278B0
-ai_maneuver_init_proc g_maneuver_init_table[AI_MANEUVER_MODE_COUNT] = {
+static ai_maneuver_init_proc g_maneuver_init_table[AI_MANEUVER_MODE_COUNT] = {
 	(ai_maneuver_init_proc)paiorder_nullhandler,
 	paiman_initturninsidemaneuver,
 	paiman_initsplitsmaneuver,
@@ -253,7 +253,7 @@ ai_course_order_maneuver_proc g_ai_current_maneuver_proc;
 /* The start function paiman_initmaneuver picked last; only it writes and calls
  * it. */
 // GLOBAL: XVT 0x9993F8
-ai_maneuver_init_proc g_ai_current_maneuver_init_proc = 0;
+static ai_maneuver_init_proc g_ai_current_maneuver_init_proc = 0;
 
 /* Starts the craft's maneuver_mode. Clears its push, hits_this_maneuver,
  * warheads_fired_this_maneuver and warhead_lock_ticks, sets commanded_speed to five

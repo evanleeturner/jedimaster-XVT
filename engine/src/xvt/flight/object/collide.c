@@ -68,7 +68,7 @@ const float g_collide_zero_float = 0.0f;
 /* 1/32,768, the factor collide_test_sweep_against_opt_node applies to an
  * OPT_ROTSCALE node's axis. */
 // GLOBAL: XVT 0x518208
-const float g_collide_opt_axis_q15_to_float_scale = 0.000030517578125f;
+static const float g_collide_opt_axis_q15_to_float_scale = 0.000030517578125f;
 /* 1 while laser_fireturretslot tests a Super Star Destroyer's shot against
  * the ship's own hull, which makes collide_test_sweep_against_opt_node ignore
  * hits less than a tenth of the way along the sweep; only that function
@@ -79,32 +79,32 @@ int g_collide_sweep_reject_near_start_hits = 0;
  * tests that follow read; collide_check_swept_model_collision sets NULL
  * before each model. */
 // GLOBAL: XVT 0x527E88
-struct opt_node *g_collide_current_mesh_verts_node = NULL;
+static struct opt_node *g_collide_current_mesh_verts_node = NULL;
 /* Start of the sweep in the target model's own axes, as floats; an OPT_ROTSCALE
  * node turns it for a rotating mesh, and collide_check_swept_model_collision puts
  * it back from g_collide_sweep_walker_start_saved after each mesh. */
 // GLOBAL: XVT 0x622C50
-struct opt_vector g_collide_sweep_walker_start = {0};
+static struct opt_vector g_collide_sweep_walker_start = {0};
 /* End of the sweep in the target model's frame, kept like
  * g_collide_sweep_walker_start. */
 // GLOBAL: XVT 0x622C60
-struct opt_vector g_collide_sweep_walker_end = {0};
+static struct opt_vector g_collide_sweep_walker_end = {0};
 /* g_collide_sweep_walker_start before any turning, set once per model by
  * collide_check_swept_model_collision. */
 // GLOBAL: XVT 0x622C70
-struct opt_vector g_collide_sweep_walker_start_saved = {0};
+static struct opt_vector g_collide_sweep_walker_start_saved = {0};
 /* g_collide_sweep_walker_end before any turning, set once per model by
  * collide_check_swept_model_collision. */
 // GLOBAL: XVT 0x622C80
-struct opt_vector g_collide_sweep_walker_end_saved = {0};
+static struct opt_vector g_collide_sweep_walker_end_saved = {0};
 /* 1-based ordinal of the mesh of the nearest hit so far in the current
  * model test, 0 for none; collide_check_swept_model_collision returns it. */
 // GLOBAL: XVT 0x622C6C
-int g_collide_sweep_hit_mesh_ordinal = 0;
+static int g_collide_sweep_hit_mesh_ordinal = 0;
 /* 1-based ordinal of the root mesh being walked, texture roots not
  * counted; only collide_check_swept_model_collision writes it. */
 // GLOBAL: XVT 0x622C8C
-int g_collide_sweep_current_mesh_ordinal = 0;
+static int g_collide_sweep_current_mesh_ordinal = 0;
 /* Mesh index of the Super Star Destroyer hull a turret shot starts from;
  * collide_check_swept_model_collision skips that mesh while testing the
  * ship's shot against the ship. Only laser_fireturretslot writes it. */
@@ -114,12 +114,12 @@ int g_turret_fire_hull_mesh_ordinal = 0;
  * for none, applied at OPT_ROTSCALE nodes; only
  * collide_check_swept_model_collision writes it. */
 // GLOBAL: XVT 0x622C90
-float g_collide_current_mesh_rotation_angle = 0.0f;
+static float g_collide_current_mesh_rotation_angle = 0.0f;
 /* Fraction along the sweep, 0 to 1, of the nearest hit so far, 2.0 for
  * none; collide_check_swept_model_collision takes 0.1 off it (not below 0)
  * before it sets g_collisionHitOffset*. */
 // GLOBAL: XVT 0x622C98
-float g_collide_sweep_hit_fraction = 0.0f;
+static float g_collide_sweep_hit_fraction = 0.0f;
 /* End point, X, of the sweep of the object under test (the source of
  * collide_test_swept_pair_collision): its current position, or where it will
  * be for a test ahead of time. Set before each test by

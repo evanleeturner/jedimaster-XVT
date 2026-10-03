@@ -29,12 +29,12 @@
  * the first entry of the shot's row of 7 in the two homing tables below;
  * object_update_lifetime_and_movement adds the shot's homing_tier, 0 to 6. */
 // GLOBAL: XVT 0x521CB6
-const uint8_t g_projectile_homing_profile_base_by_object_type[18] = {
+static const uint8_t g_projectile_homing_profile_base_by_object_type[18] = {
 	7, 0, 0, 0, 0, 0, 14, 21, 28, 14, 14, 14, 35, 0, 0, 0, 0, 0};
 /* Homing turn rate in angle units per simulated second, by row plus homing
  * tier; each row of 7 starts with 0, so tier 0 never turns. */
 // GLOBAL: XVT 0x521CC8
-const uint16_t g_projectile_homing_turn_rate_by_profile[44] = {
+static const uint16_t g_projectile_homing_turn_rate_by_profile[44] = {
 	0,    1024, 2048, 3072, 5120, 7168,  9216,  0,	   512,	  1024,	 2048,
 	3072, 4608, 6144, 0,	2048, 4096,  5120,  10240, 14336, 18432, 0,
 	32,   64,   80,	  96,	112,  128,   0,	    512,   1024,  1280,	 1536,
@@ -45,7 +45,7 @@ const uint16_t g_projectile_homing_turn_rate_by_profile[44] = {
  * cruise_speed, taken away (to no less than HOMING_MIN_TURN_SPEED, 200) while
  * its yaw still turns. */
 // GLOBAL: XVT 0x521D20
-const uint16_t g_projectile_homing_speed_adjust_rate_by_profile[44] = {
+static const uint16_t g_projectile_homing_speed_adjust_rate_by_profile[44] = {
 	0,   50,  100, 200, 300, 400, 500, 0,	25,   50,   100,
 	150, 200, 250, 0,   100, 200, 400, 600, 800,  1000, 0,
 	0,   0,	  0,   0,   0,	 0,   0,   10,	20,   30,   40,

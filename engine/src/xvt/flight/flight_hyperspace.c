@@ -57,7 +57,7 @@ struct hyperspace_streak_embedded_model_data {
  * -256; flight_hyperspace_render_transition_effect, its only writer, sets the x of
  * all four and the y of corners 1 and 2 before each streak is drawn. */
 // GLOBAL: XVT 0x51C340
-struct opt_vector g_hyperspace_streak_quad_vertices[4] = {
+static struct opt_vector g_hyperspace_streak_quad_vertices[4] = {
 	{64.0f, 0.0f, 0.0f},
 	{64.0f, -256.0f, 0.0f},
 	{-64.0f, -256.0f, 0.0f},
@@ -66,7 +66,7 @@ struct opt_vector g_hyperspace_streak_quad_vertices[4] = {
 /* The built-in streak model: one quad over g_hyperspace_streak_quad_vertices, set
  * up in its initializer; nothing writes it by name. */
 // GLOBAL: XVT 0x51C370
-struct hyperspace_streak_embedded_model_data
+static struct hyperspace_streak_embedded_model_data
 	g_hyperspace_streak_embedded_model_data = {
 		{NULL, OPT_MESHVERTS, 0, NULL, 4,
 		 g_hyperspace_streak_quad_vertices},
@@ -107,7 +107,7 @@ struct hyperspace_streak_embedded_model_data
  * g_hyperspace_streak_embedded_model_data.root_nodes); that function, its only
  * writer, sets self_marker to the model it covers. */
 // GLOBAL: XVT 0x51C498
-struct optimized_poly_object g_hyperspace_model_header_patch = {
+static struct optimized_poly_object g_hyperspace_model_header_patch = {
 	&g_hyperspace_model_header_patch, 0, 1,
 	g_hyperspace_streak_embedded_model_data.root_nodes};
 
@@ -116,39 +116,39 @@ struct optimized_poly_object g_hyperspace_model_header_patch = {
  * flight_hyperspace_request_transition_effect_initialization sets it and
  * flight_hyperspace_render_transition_effect clears it. */
 // GLOBAL: XVT 0x51C4A8
-int g_hyperspace_transition_effect_init_pending = 1;
+static int g_hyperspace_transition_effect_init_pending = 1;
 /* 1 while the exit sound is still to play:
  * flight_hyperspace_render_transition_effect, its only writer, sets it while the
  * transition is under 472 ticks (HYPERSPACE_STRETCH_PHASE_TICKS) and clears it
  * when it plays the exit sound after that. Starts at 1. */
 // GLOBAL: XVT 0x51C4AC
-int g_hyperspace_transition_effect_sound_pending = 1;
+static int g_hyperspace_transition_effect_sound_pending = 1;
 
 /* Per streak, its offset from the camera in world Y: always 0x4000
  * (HYPERSPACE_FORWARD_OFFSET). Written only by
  * flight_hyperspace_render_transition_effect, when it places the streaks. */
 // GLOBAL: XVT 0x550C80
-int g_hyperspace_streak_offset_y[1024] = {0};
+static int g_hyperspace_streak_offset_y[1024] = {0};
 /* Per streak, its offset from the camera in world Z: random, up to 10,239
  * either way. Written only by flight_hyperspace_render_transition_effect, when it
  * places the streaks. */
 // GLOBAL: XVT 0x551C80
-int g_hyperspace_streak_offset_z[1024] = {0};
+static int g_hyperspace_streak_offset_z[1024] = {0};
 /* Per streak, half its width: 1 plus the average of its X and Z offset sizes
  * shifted right 7. Written only by flight_hyperspace_render_transition_effect,
  * when it places the streaks. */
 // GLOBAL: XVT 0x552C80
-int g_hyperspace_streak_half_width[1024] = {0};
+static int g_hyperspace_streak_half_width[1024] = {0};
 /* Per streak, its offset from the camera in world X: random, up to 10,239
  * either way. Written only by flight_hyperspace_render_transition_effect, when it
  * places the streaks. */
 // GLOBAL: XVT 0x553C80
-int g_hyperspace_streak_offset_x[1024] = {0};
+static int g_hyperspace_streak_offset_x[1024] = {0};
 /* Per streak, its roll: the angle of its (X, Z) offset (trig2_arctan) plus a
  * quarter turn, 0x4000 (a full circle is 65,536). Written only by
  * flight_hyperspace_render_transition_effect, when it places the streaks. */
 // GLOBAL: XVT 0x554C80
-int g_hyperspace_streak_roll_angle[1024] = {0};
+static int g_hyperspace_streak_roll_angle[1024] = {0};
 
 /* Draws object 0 (g_object_table[0]) as one hyperspace streak: lays
  * g_hyperspace_model_header_patch over the header of the loaded model of object
