@@ -42,7 +42,7 @@ Five layers, each with a standard a machine checks.
 
 | Layer | What it means here | Checked by |
 | --- | --- | --- |
-| Form | K&R layout (the style of Kernighan and Ritchie's *The C Programming Language*) in the Linux kernel's form: 8-column tabs, 80-column lines, a brace on every control body | `engine/.clang-format`, run on every change |
+| Form | K&R layout (the style of Kernighan and Ritchie's *The C Programming Language*) in the Linux kernel's form: 8-column tabs, 80-column lines, a brace on every control body; and the layer a formatter cannot decide: snake_case names throughout, no struct typedefs, variables declared where first used | `engine/.clang-format` on every change; the name and declaration rules proven at their landing by object comparison |
 | Names | every function, variable, field and constant says what it is, with its unit and its polarity; placeholder names go; a rename is proven by comparing the compiled objects with the symbols mapped | the rename map and the object comparison |
 | Meaning | a comment above each function says what it does, what it returns on every path, which globals it writes, its units (a tick is 4 ms, a circle is 65,536) and what it does not check; a global's comment says what it holds and who writes it | the comment proof: code tokens unchanged once comments are stripped |
 | Logging | the 1997 code has no lines on the project's log API; what it carries is the remains of its own debug output (section 4). INFO lines tell the readable story of a run; DEBUG lines record every value that moved; messages live in one catalog; a log line never changes behavior | the log catalog check |
@@ -81,18 +81,32 @@ Every change carries its proof.
 | Meaning | the networking code (17,388 lines) and the flight code (86,252 lines) explained: 103,640 of 219,049 lines, 47%, with 0 false claims left after audit | frontend, render, assets, audio, math, input, util |
 | Logging | 0 lines on the project's log API. The 1997 code's own debug output remains: 110 `DebugPrintf` and 9 network trace calls whose functions are empty (the retail build compiled them to nothing), an in-game text console with a file dump nothing switches on, a `serverlog.txt` writer only the original build compiles, and 32 plain `printf` error lines in the model loader; none of it sits behind a debug-only compile switch | all of it: each empty call becomes a catalog event or goes, as a named change |
 | Tests | 90 tests on the new code, all green on every platform | the 1997 code; first targets are the paths where the comments found bugs |
-| Structure | 1,779 functions, 1,896 globals, 219 two-version places counted | the globals and the two-version places |
+| Structure | measured: 367 functions over 120 lines (120 of them over 300), 95 nested deeper than 6, 42 files over 1,200 lines, among 1,779 functions; 1,896 globals; 219 two-version places | all of it, area by area, each function only after a test reaches it |
 | Bugs | 17 filed from the networking code, 4 of them in the modern build; 52 candidates from the flight code under check | filing follows the checks |
 
 ## 5. Order of work
 
-1. Meaning first, area by area. You cannot rename or test what you cannot
-   read. In progress.
-2. Names, from what the comments showed.
-3. Structure: the two-version places retired, functions split where
-   reading needs it, globals narrowed.
-4. Logging, then tests, module by module, each test harvested from a
-   comment's promise.
+Six steps. Each one makes the next safe, and each lands with the proof
+its row names.
+
+| Step | What | Proof | Why here |
+| --- | --- | --- | --- |
+| 1. Names | the renames in progress: honest names, placeholder names gone | compiled objects identical with the renamed symbols mapped | the structure step needs names for the units it creates |
+| 2. The second layer of form, one landing | snake_case throughout, no struct typedefs, variables declared where first used; the same sweep rewrites the comments that name identifiers | compiled objects identical: locals, fields and parameters leave no trace in them, and external names go through the symbol map | it touches every line, so it lands alone, with nothing else in flight, as the reformat did |
+| 3. Meaning | the comment map for the remaining areas: frontend, render, assets, audio, math, input, util | code tokens unchanged once comments are stripped | understand before touching; the comments surface the split candidates and the test targets |
+| 4. Logging | catalog events in the 1997 code, the 119 empty debug calls first | a log line never changes behavior; the catalog check | the DEBUG traces become the oracles the tests read |
+| 5. Tests | tests harvested from the comments and traces, module by module, bug sites first; the two-game run with its world checksums as the whole-game oracle | each test fails on a planted fault before it counts | the safety net goes up before the surgery |
+| 6. Structure | functions split where reading needs it, globals narrowed, the two-version places retired, one function at a time | tests reach every moved line and pass before and after; identical objects where the compiler happens to agree | the first step that changes the code's shape, so it comes last |
+
+Two rules hold across the steps.
+
+- No function is restructured until a test reaches it and passes on the
+  old code. That rule took the new code's 20 oversize findings to 0 in
+  October 2026, and it holds here.
+- Structure work goes area by area, on demand: the areas the launcher
+  needs first (ship behavior, missions, networking, briefings), the rest
+  measured and left until their turn. The size check reports on the
+  whole tree and enforces only in the areas already done.
 
 Each step is planned and reviewed before it opens, lands one commit per
 area with its proof, and keeps the builds green on Windows, macOS and
