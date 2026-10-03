@@ -156,7 +156,7 @@ void FlightHyperspace_DrawTransitionEffectObject(void)
 	OptimizedPolyObject savedHeader;
 	ObjectRecord *object;
 
-	model = (OptimizedPolyObject *)Memory_LockHandle(
+	model = (OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadedModels[HYPERSPACE_TRANSITION_OBJECT_TYPE]);
 	memcpy(&savedHeader, model, sizeof(savedHeader));
 	g_hyperspaceModelHeaderPatch.selfMarker = model;
@@ -180,8 +180,8 @@ void FlightHyperspace_RequestTransitionEffectInitialization(void)
 
 /* Draws the hyperspace streaks around the local player's camera: 1,024 with
  * hardware 3D, 512 in software. When g_hyperspaceTransitionEffectInitPending is
- * set it first plays the entry sound for the player's side (the alliance sound
- * for IFF 1, else the empire one) and places all 1,024 streaks at random (the
+ * set it first plays the entry sound for the player's side (the imperial sound
+ * for IFF 1, else the other one) and places all 1,024 streaks at random (the
  * g_hyperspaceStreak arrays). Each streak is drawn as object 0, type 137, at
  * the camera plus its offset, pitched a quarter turn and rolled by its angle
  * (FlightHyperspace_DrawTransitionEffectObject). Until the local player's
@@ -209,7 +209,7 @@ void FlightHyperspace_RenderTransitionEffect(void)
 		HYPERSPACE_STRETCH_PHASE_TICKS = 0x1D8,
 		HYPERSPACE_STRETCH_WORLD_OFFSET = 0x1D80,
 		HYPERSPACE_STRETCH_TIME_OFFSET = 944,
-		HYPERSPACE_ALLIANCE_IFF = 1,
+		HYPERSPACE_IMPERIAL_IFF = 1,
 	};
 
 	const float fullyStretchedLength = 16000.0f;
@@ -229,12 +229,13 @@ void FlightHyperspace_RenderTransitionEffect(void)
 	savedMobileObject = *g_objectTable->mobj;
 
 	if (g_hyperspaceTransitionEffectInitPending != 0) {
-		if (g_players[g_localPlayer].iff == HYPERSPACE_ALLIANCE_IFF) {
-			fsfx_PlaySound(FLIGHT_SOUND_HYPERSPACE_ENTER_ALLIANCE,
+		if (g_players[g_localPlayer].iff == HYPERSPACE_IMPERIAL_IFF) {
+			fsfx_PlaySound(FLIGHT_SOUND_HYPERSPACE_ENTER_IMPERIAL,
 				       -1, g_localPlayer);
 		} else {
-			fsfx_PlaySound(FLIGHT_SOUND_HYPERSPACE_ENTER_EMPIRE, -1,
-				       g_localPlayer);
+			fsfx_PlaySound(
+				FLIGHT_SOUND_HYPERSPACE_ENTER_NON_IMPERIAL, -1,
+				g_localPlayer);
 		}
 		for (streakIndex = 0; streakIndex < HYPERSPACE_STREAK_COUNT;
 		     ++streakIndex) {
@@ -345,13 +346,13 @@ void FlightHyperspace_RenderTransitionEffect(void)
 
 			if (g_hyperspaceTransitionEffectSoundPending != 0) {
 				if (g_players[g_localPlayer].iff ==
-				    HYPERSPACE_ALLIANCE_IFF) {
+				    HYPERSPACE_IMPERIAL_IFF) {
 					fsfx_PlaySound(
-						FLIGHT_SOUND_HYPERSPACE_EXIT_ALLIANCE,
+						FLIGHT_SOUND_HYPERSPACE_EXIT_IMPERIAL,
 						-1, g_localPlayer);
 				} else {
 					fsfx_PlaySound(
-						FLIGHT_SOUND_HYPERSPACE_EXIT_EMPIRE,
+						FLIGHT_SOUND_HYPERSPACE_EXIT_NON_IMPERIAL,
 						-1, g_localPlayer);
 				}
 				g_hyperspaceTransitionEffectSoundPending = 0;

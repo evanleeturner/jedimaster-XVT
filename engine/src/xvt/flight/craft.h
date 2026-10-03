@@ -143,7 +143,7 @@ struct CraftData {
 	uint8_t leader_obj_idx;
 	/* No game code reads or writes it; only the modern build's snapshot
 	 * copies it. */
-	uint8_t field_006;
+	uint8_t unused006;
 	/* The craft's state, a CraftObjectKind: active, disabled, breaking up,
 	 * exploding, or entering or leaving hyperspace. Set at spawn; many
 	 * functions change it, chiefly in the collision and AI code. */
@@ -157,10 +157,10 @@ struct CraftData {
 	uint16_t aiSkill;
 	/* No game code reads or writes it; only the modern build's snapshot
 	 * copies it. */
-	uint8_t field_00B[2];
+	uint8_t unused00B[2];
 	/* Pitch the steering code gives the object while the craft is active,
-	 * 65,536 units a circle; player input (USER_calcdeltapitch) and the AI
-	 * turn it. */
+	 * 65,536 units a circle; player input (Player_ApplyPitchYawSteps) and
+	 * the AI turn it. */
 	uint16_t pitch;
 	/* The object's yaw, copied at spawn and after each steering update; no
 	 * game code reads it, only the modern build's snapshot copies it. */
@@ -352,7 +352,7 @@ struct CraftData {
 	CraftWeaponStats weaponStats;
 	/* No game code reads or writes it; only the modern build's snapshot
 	 * copies it. */
-	uint8_t field_256[73];
+	uint8_t unused256[73];
 	/* Set to 0 at spawn; no game code reads it, only the modern build's
 	 * snapshot copies it. */
 	uint16_t field_29F;
@@ -391,7 +391,7 @@ struct CraftData {
 	TurretTargetState turretTargetStates[16];
 	/* No game code reads or writes it; the world checksums subtract its
 	 * size from the record bytes they sum. */
-	uint8_t field_3F2[44];
+	uint8_t unused3F2[44];
 	/* Objects tied to the turrets. No code points one at an object: every
 	 * write clears, rebases or restores one, so they stay NULL. */
 	struct ObjectRecord *turretObjectLinks[16];
@@ -424,7 +424,7 @@ struct CraftTechStats {
 	 * genus. */
 	int shieldRating;
 	int hullRating; /* Hull rating: hullStrength / 105, scaled by genus. */
-	int sizeRating; /* Nothing reads or writes it by name. */
+	int unusedRating; /* Nothing reads or writes it by name. */
 };
 
 extern CraftData *g_curCraft;

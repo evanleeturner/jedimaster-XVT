@@ -29,7 +29,7 @@ int16_t g_flightClearLineBgEnabled;
  * and FeDiskIo_ShowFatalErrorMessageAndWaitKey only save it and put it
  * back. */
 // GLOBAL: XVT 0xA07C64
-int16_t g_flightTextReservedState = 0;
+int16_t g_flightTextUnusedState = 0;
 /* Text cursor row in pixels on the drawing surface: the top of the next
  * glyph. Written by FlightText_SetCursor and by the four glyph drawers on
  * each newline and wrap; FlightLoading_PulseAndDrawProgressScreen,

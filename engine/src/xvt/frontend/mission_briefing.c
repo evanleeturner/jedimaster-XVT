@@ -36,20 +36,21 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* 1 while the craft selection screen of MissionBriefing_Update is current:
- * set on its first frame, set to 0 by MissionBriefing_Exit. While it is 1,
- * TechLibrary_Update and Frontend_HandleCommonScreenControls save and restore
- * the model preview around the tech library instead of freeing g_shipList.
+/* 1 while the craft selection screen of MissionBriefing_CraftSelectionUpdate is
+ * current: set on its first frame, set to 0 by
+ * MissionBriefing_CraftSelectionExit. While it is 1, TechLibrary_Update and
+ * Frontend_HandleCommonScreenControls save and restore the model preview around
+ * the tech library instead of freeing g_shipList.
  * Movie_DrawMultiplayerSyncStatus takes it as the local player's waiting flag
  * when the local player is not in g_movieMultiplayerSyncPlayers. */
 // GLOBAL: XVT 0xAA60D0
-int g_missionBriefingActive = 0;
+int g_missionBriefingCraftSelectionActive = 0;
 /* Which side's background the craft selection screen loaded as
  * "background": REBEL for craftsr.bmp (single player) or craftmr.bmp
  * (network play), IMPERIAL for craftsi.bmp or craftmi.bmp. Set by
- * MissionBriefing_Update on its first frame; in a melee or tournament
- * MissionSetup_UpdateCraftLoadout changes it, and the background, when the
- * chosen craft changes side. Nothing resets it on exit. */
+ * MissionBriefing_CraftSelectionUpdate on its first frame; in a melee or
+ * tournament MissionSetup_UpdateCraftLoadout changes it, and the background,
+ * when the chosen craft changes side. Nothing resets it on exit. */
 // GLOBAL: XVT 0x665D7C
 MissionBriefingCraftScreenFaction g_missionBriefingCraftScreenFaction =
 	MISSION_BRIEFING_CRAFT_SCREEN_REBEL;
@@ -58,8 +59,8 @@ MissionBriefingCraftScreenFaction g_missionBriefingCraftScreenFaction =
  * sets an entry to 1 on the player's NET_PACKET_PLAYER_READY, to 0 on
  * NET_PACKET_PLAYER_UNREADY, and clears all of them when a roster player
  * leaves and, on the host, when a player is unavailable; MissionSetup_Update
- * and MissionDebrief_Update clear entries; MissionBriefing_Update sets entry
- * 0 when a single player flies. */
+ * and MissionDebrief_Update clear entries; MissionBriefing_CraftSelectionUpdate
+ * sets entry 0 when a single player flies. */
 // GLOBAL: XVT 0xA91CA0
 int g_mpRosterReadyFlags[8] = {0};
 /* The kind of mission session the frontend runs:
@@ -74,59 +75,61 @@ FrontendMissionSessionMode g_frontendMissionSessionMode =
 	FRONTEND_MISSION_SESSION_NONE;
 /* 1 when the mission is a melee in which no team has more than one player
  * flight group, so the flight assignment screen was skipped. Only
- * MissionBriefing_Update writes and reads it: it sets it on its first frame,
- * and in single player its back button then goes to the team assignment
- * screen, or to MissionSetup_Update when g_missionSetupTeamAssignmentSkipped
- * is set, instead of the flight assignment screen. */
+ * MissionBriefing_CraftSelectionUpdate writes and reads it: it sets it on its
+ * first frame, and in single player its back button then goes to the team
+ * assignment screen, or to MissionSetup_Update when
+ * g_missionSetupTeamAssignmentSkipped is set, instead of the flight assignment
+ * screen. */
 // GLOBAL: XVT 0x52C6D4
 int g_briefingSkipPlayerAssignment = 0;
 /* GetTickCount value, in milliseconds, read for the launch countdown's
- * latest step. Only MissionBriefing_Update uses it: it sets it on its first
- * frame, when the countdown starts and on every frame while it runs. */
+ * latest step. Only MissionBriefing_CraftSelectionUpdate uses it: it sets it on
+ * its first frame, when the countdown starts and on every frame while it runs.
+ */
 // GLOBAL: XVT 0x665D78
 int g_missionBriefingNowMs = 0;
-/* The network launch countdown's state. MissionBriefing_Update sets IDLE on
- * its first frame, ACTIVE on the first frame in network play on which
- * g_frontendBriefingEnteredCount is at least Net_CountReadyPlayers(), and
+/* The network launch countdown's state. MissionBriefing_CraftSelectionUpdate
+ * sets IDLE on its first frame, ACTIVE on the first frame in network play on
+ * which g_frontendBriefingEnteredCount is at least Net_CountReadyPlayers(), and
  * EXPIRED when g_missionBriefingLaunchCountdownMs goes under 0. Only that
  * function uses it. */
 // GLOBAL: XVT 0x665D80
 MissionBriefingLaunchCountdownState g_missionBriefingLaunchCountdownState =
 	MISSION_BRIEFING_COUNTDOWN_IDLE;
 /* Milliseconds left before the craft selection screen launches the network
- * mission. Only MissionBriefing_Update writes it: 60000 on its first frame;
- * while the countdown is ACTIVE each frame subtracts the GetTickCount
- * milliseconds since g_missionBriefingLastUpdateMs; a
+ * mission. Only MissionBriefing_CraftSelectionUpdate writes it: 60000 on its
+ * first frame; while the countdown is ACTIVE each frame subtracts the
+ * GetTickCount milliseconds since g_missionBriefingLastUpdateMs; a
  * NET_PACKET_BRIEFING_COUNTDOWN packet whose value is lower replaces it, in
  * any state; set to 0 when it goes under 0. */
 // GLOBAL: XVT 0x665D84
 int g_missionBriefingLaunchCountdownMs = 0;
-/* Nothing reads it; MissionBriefing_Update sets it to 0 on its first
- * frame. */
+/* Nothing reads it; MissionBriefing_CraftSelectionUpdate sets it to 0 on its
+ * first frame. */
 // GLOBAL: XVT 0x665D88
 int g_missionBriefingUnusedState = 0;
 /* GetTickCount value, in milliseconds, when the launch countdown last
  * stepped; each step subtracts the time since then from
- * g_missionBriefingLaunchCountdownMs. Only MissionBriefing_Update uses it: it
- * sets it on its first frame, when the countdown starts and after each step
- * that does not expire. */
+ * g_missionBriefingLaunchCountdownMs. Only MissionBriefing_CraftSelectionUpdate
+ * uses it: it sets it on its first frame, when the countdown starts and after
+ * each step that does not expire. */
 // GLOBAL: XVT 0x665D8C
 int g_missionBriefingLastUpdateMs = 0;
 /* Whole seconds of the countdown, g_missionBriefingLaunchCountdownMs / 1000,
  * in the host's last NET_PACKET_BRIEFING_COUNTDOWN; set to 60 when the
  * countdown starts, on every machine. The host sends a new packet on each
  * frame where the countdown's whole seconds differ from it. Only
- * MissionBriefing_Update uses it. */
+ * MissionBriefing_CraftSelectionUpdate uses it. */
 // GLOBAL: XVT 0x665D90
 int g_missionBriefingLastCountdownSecondSent = 0;
 
 /* Leaves the craft selection screen: frees g_missionList, g_missionText and
  * g_shipList and sets each to NULL, sets the preview model's node switch to
- * 0, sets g_missionBriefingActive to 0, frees the "background" image, resets
- * the scrollable controls and clears the mouse input gate. Returns 0;
- * frameCounter is ignored. */
+ * 0, sets g_missionBriefingCraftSelectionActive to 0, frees the "background"
+ * image, resets the scrollable controls and clears the mouse input gate.
+ * Returns 0; frameCounter is ignored. */
 // FUNCTION: XVT 0x4EAA90
-int MissionBriefing_Exit(int frameCounter)
+int MissionBriefing_CraftSelectionExit(int frameCounter)
 {
 	(void)frameCounter;
 
@@ -143,24 +146,24 @@ int MissionBriefing_Exit(int frameCounter)
 		g_shipList = NULL;
 	}
 	ModelPreview_SetNodeSwitchIndex(0);
-	g_missionBriefingActive = 0;
+	g_missionBriefingCraftSelectionActive = 0;
 	FrontImage_FreeResourceByName("background");
 	Frontend_ResetScrollableControls();
 	FrontendMouse_ClearInputGate();
 	return 0;
 }
 
-/* Runs one frame of the craft selection screen. Despite the name, the briefing
- * map is on MissionSetup_FlightAssignmentUpdate's screen, whose "go to craft
- * selection" button leads here. The screen shows the craft and armaments of the
- * selected flight group and, in network play, the other players' loadouts, the
- * chat and a launch countdown. On its first frame (frameCounter 0) it sets
- * g_missionBriefingActive to 1, g_missionBriefingUnusedState to 0, the
- * countdown state IDLE and g_briefingSkipPlayerAssignment; sets
- * g_selectedMissionListIndex to the pilot's mission in g_missionList
- * (g_missionCount when it is not there); and loads the loadout, ship list and
- * preview model. A single-player quick start then does what the Fly button
- * does. Otherwise it picks the background and
+/* Runs one frame of the craft selection screen, which the "go to craft
+ * selection" button of MissionSetup_FlightAssignmentUpdate's screen leads to;
+ * the briefing map is on that screen. The screen shows the craft and armaments
+ * of the selected flight group and, in network play, the other players'
+ * loadouts, the chat and a launch countdown. On its first frame (frameCounter
+ * 0) it sets g_missionBriefingCraftSelectionActive to 1,
+ * g_missionBriefingUnusedState to 0, the countdown state IDLE and
+ * g_briefingSkipPlayerAssignment; sets g_selectedMissionListIndex to the
+ * pilot's mission in g_missionList (g_missionCount when it is not there); and
+ * loads the loadout, ship list and preview model. A single-player quick start
+ * then does what the Fly button does. Otherwise it picks the background and
  * g_missionBriefingCraftScreenFaction; in network play it sends everyone
  * NET_PACKET_CRAFT_LOADOUT, unless craft selection is host-only on a client
  * outside a training sequence at GAME_DIFFICULTY_EASY_CHEAT, and
@@ -194,7 +197,7 @@ int MissionBriefing_Exit(int frameCounter)
  * g_selectedMissionListIndex against g_missionCount when it draws the title, or
  * that the local player is in g_mpRoster before reading its ready flag. */
 // FUNCTION: XVT 0x4EAB20
-int MissionBriefing_Update(int frameCounter)
+int MissionBriefing_CraftSelectionUpdate(int frameCounter)
 {
 	enum {
 		MAX_PLAYERS = 8,
@@ -221,7 +224,7 @@ int MissionBriefing_Update(int frameCounter)
 		g_briefingSkipPlayerAssignment = 0;
 		g_missionBriefingLaunchCountdownState =
 			MISSION_BRIEFING_COUNTDOWN_IDLE;
-		g_missionBriefingActive = 1;
+		g_missionBriefingCraftSelectionActive = 1;
 
 		if (g_pilotData.missionDirectoryId ==
 		    MISSION_DIRECTORY_MELEES) {

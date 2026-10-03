@@ -115,7 +115,7 @@ static void XvtNetworkMetadata_Add(XvtNetworkMetadata *out,
 	if (!out->room.roster[index].name[0]) {
 		strcpy(out->room.roster[index].name, "No name");
 	}
-	unsigned rating = (uint8_t)player->playerInfo[0];
+	unsigned rating = (uint8_t)player->longName[0];
 	out->room.roster[index].rating = rating ? (uint8_t)(rating - 1) : 0;
 	++out->room.players;
 }

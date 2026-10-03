@@ -865,7 +865,7 @@ int16_t Mfd_DrawMissionGoalsPage(void)
 										     [goalType] &
 									     3] !=
 								    0) {
-									overrideText = (const char *)Memory_LockHandle(
+									overrideText = (const char *)Memory_GetHandleBlock(
 										g_globalGoalOverrideStringHandles
 											[playerTeam]
 											[goalType]
@@ -1040,7 +1040,7 @@ int16_t Mfd_DrawMissionGoalsPage(void)
 								}
 								if (overrideText !=
 								    NULL) {
-									Memory_UnlockHandle(
+									Memory_HandleBlockDoneStub(
 										g_globalGoalOverrideStringHandles
 											[playerTeam]
 											[goalType]
@@ -1170,7 +1170,7 @@ int16_t Mfd_DrawMissionGoalsPage(void)
 									     [sectionIdx]
 									     [goalType] &
 								     3] != 0) {
-								overrideText = (const char *)Memory_LockHandle(
+								overrideText = (const char *)Memory_GetHandleBlock(
 									g_missionFgOverrideStringHandles
 										[flightGroupIdx]
 										[goalIdx]
@@ -1248,7 +1248,7 @@ int16_t Mfd_DrawMissionGoalsPage(void)
 							}
 							if (overrideText !=
 							    NULL) {
-								Memory_UnlockHandle(
+								Memory_HandleBlockDoneStub(
 									g_missionFgOverrideStringHandles
 										[flightGroupIdx]
 										[goalIdx]
@@ -2961,7 +2961,7 @@ void Mfd_DrawCraftListPage(uint16_t showHostileCraft)
 										    g_objectTable[targetObjectIdx]
 												    .mobj !=
 											    NULL) {
-											Hud_AppendObjectDisplayName(
+											Hud_FormatObjectDisplayName(
 												(uint16_t)
 													targetObjectIdx,
 												DISPLAY_NAME_FLAGS);
@@ -2984,7 +2984,7 @@ void Mfd_DrawCraftListPage(uint16_t showHostileCraft)
 											    UINT16_MAX &&
 										    targetObjectIdx <
 											    0x8000) {
-											Hud_AppendObjectDisplayName(
+											Hud_FormatObjectDisplayName(
 												(uint16_t)
 													targetObjectIdx,
 												DISPLAY_NAME_FLAGS);
@@ -3724,9 +3724,9 @@ int16_t Mfd_DrawMessageLogPage(void)
 	lineHeight = (int16_t)(g_flightFontLineHeight + 2);
 	FlightText_SetColor(0x43);
 	logRecordCount = (int16_t)g_messageLogWriteIndex;
-	g_messageLogRecords = (HudInFlightMessageRecord *)Memory_LockHandle(
+	g_messageLogRecords = (HudInFlightMessageRecord *)Memory_GetHandleBlock(
 		g_messageLogHandle);
-	Memory_UnlockHandle(g_messageLogHandle);
+	Memory_HandleBlockDoneStub(g_messageLogHandle);
 	cursorY = top;
 
 	if (g_hudElementStateCache[g_hudInstrumentSetBaseIndex +

@@ -163,28 +163,28 @@ int g_debriefPlayerKillsSharedTotal[3] = {0};
  * MissionDebrief_Prepare writes it. */
 // GLOBAL: XVT 0x66DA4C
 int g_debriefRankByPilot = 0;
-/* Despite the name, only entry 0 is used: the last mission's shared kills,
- * summed over craft types from lastMissionStats, which keeps that mission
- * in row 0 whatever its type. Reset and summed by
- * MissionDebrief_DrawPlayerStatisticsPage when it rebuilds. */
+/* Shared kills in the last mission, summed over craft types from
+ * lastMissionStats, which keeps that mission in row 0 whatever its type; only
+ * entry 0 is used. Reset and summed by MissionDebrief_DrawPlayerStatisticsPage
+ * when it rebuilds. */
 // GLOBAL: XVT 0x66D8C8
-int g_debriefTotalKillsSharedByMissionType[4] = {0};
-/* Despite the name, only entry 0 is used: the last mission's kill assists,
- * summed over craft types from lastMissionStats. Reset and summed by
+int g_debriefKillsSharedTotal[4] = {0};
+/* Kill assists in the last mission, summed over craft types from
+ * lastMissionStats; only entry 0 is used. Reset and summed by
  * MissionDebrief_DrawPlayerStatisticsPage when it rebuilds;
  * MissionDebrief_Update sets entry 3 to 0. */
 // GLOBAL: XVT 0x66D908
-int g_debriefAssistTotalByMissionType[4] = {0};
-/* Despite the name, only entry 0 is used: the last mission's full kills on
- * human pilots, summed over their ratings from lastMissionStats. Reset and
- * summed by MissionDebrief_DrawPlayerStatisticsPage when it rebuilds. */
+int g_debriefAssistsTotal[4] = {0};
+/* Full kills on human pilots in the last mission, summed over their ratings
+ * from lastMissionStats; only entry 0 is used. Reset and summed by
+ * MissionDebrief_DrawPlayerStatisticsPage when it rebuilds. */
 // GLOBAL: XVT 0x66D948
-int g_debriefPlayerKillsByMissionType[4] = {0};
-/* Despite the name, only entry 0 is used: the last mission's full kills on
- * AI pilots, summed over their 6 ratings from lastMissionStats. Reset and
- * summed by MissionDebrief_DrawPlayerStatisticsPage when it rebuilds. */
+int g_debriefPlayerKillsFullTotal[4] = {0};
+/* Full kills on AI pilots in the last mission, summed over their 6 ratings from
+ * lastMissionStats; only entry 0 is used. Reset and summed by
+ * MissionDebrief_DrawPlayerStatisticsPage when it rebuilds. */
 // GLOBAL: XVT 0x66D958
-int g_debriefNonPlayerKillsByMissionType[4] = {0};
+int g_debriefNonPlayerKillsFullTotal[4] = {0};
 /* 1 when the last mission has a full or shared kill of any craft type, so
  * the player statistics page shows its craft-kills-by-type section. Only
  * that page writes it, when it rebuilds. */
@@ -269,9 +269,9 @@ int MissionDebrief_Exit(int frameCounter)
  * single player or the host; a client's campaign state goes in slot index + 12,
  * inactive), or marks the slot inactive when the sequence ended. It loads
  * g_missionList, sets g_selectedMissionListIndex, reads a campaign mission's
- * text with MissionDebrief_BuildText, marks the network players ready, picks
- * the background by mission type and outcome, sends the lobby state in network
- * play and draws the frame. Every frame, except frames 0 and 1 for a
+ * text with MissionDebrief_ReadOutcomeText, marks the network players ready,
+ * picks the background by mission type and outcome, sends the lobby state in
+ * network play and draws the frame. Every frame, except frames 0 and 1 for a
  * disconnected player, it draws the mission title, acts on network packets,
  * draws the g_debriefTab page, the pilot's rating and name, the tab bar, the
  * shared controls and two buttons. A next-mission or replay packet advances the
@@ -513,7 +513,7 @@ int MissionDebrief_Update(int frameCounter)
 		}
 		memset(g_mpRosterReadyFlags, 0, sizeof(g_mpRosterReadyFlags));
 		/* Only element 0 of this array is summed and drawn; element 3, cleared here, is not read anywhere. */
-		g_debriefAssistTotalByMissionType[3] = 0;
+		g_debriefAssistsTotal[3] = 0;
 		g_debriefSessionCancelOrTeamsReadyReceived = 0;
 		g_debriefStatsPageNeedsRebuild = 1;
 		g_missionSequenceDescription[0] = 0;
@@ -810,7 +810,7 @@ int MissionDebrief_Update(int frameCounter)
 		if (g_pilotData.missionDirectoryId ==
 			    MISSION_DIRECTORY_TRAINING_EXERCISES &&
 		    g_pilotData.missionSequenceActive == 1) {
-			MissionDebrief_BuildText(
+			MissionDebrief_ReadOutcomeText(
 				g_missionText, g_pilotData.campaignSequenceState
 						       .lastMissionCompleted);
 		}
@@ -3698,11 +3698,11 @@ int MissionDebrief_DrawPlayerStatisticsPage(void)
 		g_debriefLossesToNonPlayerPilotsTotal[MISSION_TYPE] = 0;
 		g_debriefLossesToPlayerPilotsTotal[MISSION_TYPE] = 0;
 		g_debriefNonPlayerKillsSharedTotal[MISSION_TYPE] = 0;
-		g_debriefNonPlayerKillsByMissionType[MISSION_TYPE] = 0;
+		g_debriefNonPlayerKillsFullTotal[MISSION_TYPE] = 0;
 		g_debriefPlayerKillsSharedTotal[MISSION_TYPE] = 0;
-		g_debriefPlayerKillsByMissionType[MISSION_TYPE] = 0;
-		g_debriefTotalKillsSharedByMissionType[MISSION_TYPE] = 0;
-		g_debriefAssistTotalByMissionType[MISSION_TYPE] = 0;
+		g_debriefPlayerKillsFullTotal[MISSION_TYPE] = 0;
+		g_debriefKillsSharedTotal[MISSION_TYPE] = 0;
+		g_debriefAssistsTotal[MISSION_TYPE] = 0;
 		g_debriefHasCraftKillsByTypeSection = 0;
 		for (craftType = 0; craftType < CRAFT_TYPE_COUNT; ++craftType) {
 			g_debriefCraftKillRowHasData = 0;
@@ -3783,10 +3783,10 @@ int MissionDebrief_DrawPlayerStatisticsPage(void)
 						.killsSharedPerCraftPerMT
 							[missionType]
 							[craftType];
-				g_debriefAssistTotalByMissionType
-					[missionType] += assistCount;
-				g_debriefTotalKillsSharedByMissionType
-					[missionType] += sharedKillCount;
+				g_debriefAssistsTotal[missionType] +=
+					assistCount;
+				g_debriefKillsSharedTotal[missionType] +=
+					sharedKillCount;
 			}
 		}
 		for (missionType = 0; missionType < MISSION_TYPE_COUNT;
@@ -3804,8 +3804,8 @@ int MissionDebrief_DrawPlayerStatisticsPage(void)
 					g_pilotData.lastMissionStats
 						.killsSharedOnPlayerRatingPerMT
 							[missionType][rating];
-				g_debriefPlayerKillsByMissionType
-					[missionType] += fullKillCount;
+				g_debriefPlayerKillsFullTotal[missionType] +=
+					fullKillCount;
 				g_debriefPlayerKillsSharedTotal[missionType] +=
 					sharedKillCount;
 			}
@@ -3824,8 +3824,8 @@ int MissionDebrief_DrawPlayerStatisticsPage(void)
 					g_pilotData.lastMissionStats
 						.killsSharedOnAIRatingPerMT
 							[missionType][rating];
-				g_debriefNonPlayerKillsByMissionType
-					[missionType] += fullKillCount;
+				g_debriefNonPlayerKillsFullTotal[missionType] +=
+					fullKillCount;
 				g_debriefNonPlayerKillsSharedTotal
 					[missionType] += sharedKillCount;
 			}
@@ -4107,7 +4107,7 @@ int MissionDebrief_DrawPlayerStatisticsPage(void)
 		sprintf(g_frontendScratchBuffer, "%d (%d)",
 			g_pilotData.lastMissionStats
 				.totalKillsPerMT[MISSION_TYPE],
-			g_debriefTotalKillsSharedByMissionType[MISSION_TYPE]);
+			g_debriefKillsSharedTotal[MISSION_TYPE]);
 		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
 				  VALUE_X, textY, WHITE_COLOR);
 		textY += ROW_HEIGHT;
@@ -4127,7 +4127,7 @@ int MissionDebrief_DrawPlayerStatisticsPage(void)
 				sprintf(g_frontendScratchBuffer, "----");
 			} else {
 				sprintf(g_frontendScratchBuffer, "%d (%d)",
-					g_debriefPlayerKillsByMissionType
+					g_debriefPlayerKillsFullTotal
 						[MISSION_TYPE],
 					g_debriefPlayerKillsSharedTotal
 						[MISSION_TYPE]);
@@ -4146,8 +4146,7 @@ int MissionDebrief_DrawPlayerStatisticsPage(void)
 					FRONTSTR_352_NON_PLAYER_KILLS),
 				TEXT_X, textY, g_colorYellow);
 			sprintf(g_frontendScratchBuffer, "%d (%d)",
-				g_debriefNonPlayerKillsByMissionType
-					[MISSION_TYPE],
+				g_debriefNonPlayerKillsFullTotal[MISSION_TYPE],
 				g_debriefNonPlayerKillsSharedTotal
 					[MISSION_TYPE]);
 			FrontendText_Draw(TEXT_FONT_SIZE,
@@ -4164,7 +4163,7 @@ int MissionDebrief_DrawPlayerStatisticsPage(void)
 				  FrontendString_Get(FRONTSTR_353_ASSISTS),
 				  TEXT_X, textY, g_colorYellow);
 		sprintf(g_frontendScratchBuffer, "%d",
-			g_debriefAssistTotalByMissionType[MISSION_TYPE]);
+			g_debriefAssistsTotal[MISSION_TYPE]);
 		FrontendText_Draw(TEXT_FONT_SIZE, g_frontendScratchBuffer,
 				  VALUE_X, textY, WHITE_COLOR);
 		textY += ROW_HEIGHT;
@@ -6346,18 +6345,19 @@ int MissionDebrief_Prepare(void)
 	return 1;
 }
 
-/* Despite the name, composes nothing: it fills outResults, 4096 bytes, with
- * text read from the pilot's current mission file. Returns at once when
- * outResults is NULL. Otherwise it clears outResults, finds the mission of
- * g_pilotData.missionDescriptionIds in g_missionList and opens its file;
- * unless the directory is tournaments, battles or campaigns, a file whose
- * first word is 14 gives the 4096 bytes starting 12288 bytes before its end
- * when useWinText is nonzero, else 8192 bytes before it, the last byte set
- * to 0. outResults stays empty when the mission is not in the list, the file
- * does not open, or the directory or the word rules the read out. Does not
- * check g_missionList for NULL or the read's result. */
+/* Fills outResults, 4096 bytes, with the pilot's current mission file's text
+ * for a completed mission, when useWinText is nonzero, or else for one not
+ * completed. Returns at once when outResults is NULL. Otherwise it clears
+ * outResults, finds the mission of g_pilotData.missionDescriptionIds in
+ * g_missionList and opens its file; unless the directory is tournaments,
+ * battles or campaigns, a file whose first word is 14 gives the 4096 bytes
+ * starting 12288 bytes before its end when useWinText is nonzero, else 8192
+ * bytes before it, the last byte set to 0. outResults stays empty when the
+ * mission is not in the list, the file does not open, or the directory or the
+ * word rules the read out. Does not check g_missionList for NULL or the read's
+ * result. */
 // FUNCTION: XVT 0x504E30
-void MissionDebrief_BuildText(char *outResults, int useWinText)
+void MissionDebrief_ReadOutcomeText(char *outResults, int useWinText)
 {
 	unsigned int missionListIndex;
 	XvtFile *stream;

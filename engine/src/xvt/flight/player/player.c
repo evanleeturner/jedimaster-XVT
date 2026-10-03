@@ -329,7 +329,7 @@ int Player_BindToAvailableCraft(int playerIdx, uint32_t previousObjectIdx,
 	}
 	Player_ValidateCurrentTargets(playerIdx);
 	g_players[playerIdx].missileLockState = 0;
-	craft->aiController.pendingPlanId =
+	craft->aiController.runningPlanId =
 		(uint8_t)pai_FindPlanIdByNameOrZero("nullpln");
 	craft->aiController.targetObjIdx = UINT16_MAX;
 	g_players[playerIdx].pendingActionTimer = 0;
@@ -368,7 +368,7 @@ int Player_BindToAvailableCraft(int playerIdx, uint32_t previousObjectIdx,
 	g_players[playerIdx].viewState.externalCameraActive = 0;
 	g_players[playerIdx].viewState.cameraDistance = DEFAULT_CAMERA_DISTANCE;
 	g_players[playerIdx].viewState.playerInputBlocked = 0;
-	g_players[playerIdx].viewState.transitionTimer = 0;
+	g_players[playerIdx].viewState.targetCameraActive = 0;
 	g_players[playerIdx].viewState.cameraFocusObjIdx =
 		(uint16_t)g_players[playerIdx].objectIndex;
 	if (g_players[playerIdx].savedHudViewState == HUD_VIEW_HUD_ONLY) {
@@ -501,7 +501,7 @@ int Player_UnbindFromCurrentCraft(int playerIndex, int requireMultipleCraft,
 		uint16_t throttleSpeed;
 
 		g_curCraft->aiController.currentPlanId = planId;
-		g_curCraft->aiController.pendingPlanId = planId;
+		g_curCraft->aiController.runningPlanId = planId;
 		planName = g_planTable[planId].name;
 		if (strcmp(planName, "nullpln") == 0 ||
 		    strcmp(planName, "stationaryldrpln") == 0 ||
@@ -523,7 +523,7 @@ int Player_UnbindFromCurrentCraft(int playerIndex, int requireMultipleCraft,
 		g_objectTable[objectIdx].mobj->speedRemainder = 0;
 		g_curCraft = craft;
 		pai_setupcraftcontext((uint16_t)objectIdx);
-		pai_ApplyPendingPlanTargetAndManeuver((unsigned int)objectIdx);
+		pai_ApplyRunningPlanTargetAndManeuver((unsigned int)objectIdx);
 
 		if (g_players[playerIndex].currentTargetObjectIdx != -1) {
 			int targetObjIdx = (uint16_t)g_players[playerIndex]
@@ -557,13 +557,13 @@ int Player_UnbindFromCurrentCraft(int playerIndex, int requireMultipleCraft,
 			}
 		}
 	} else {
-		g_curCraft->aiController.pendingPlanId =
+		g_curCraft->aiController.runningPlanId =
 			(uint8_t)pai_FindPlanIdByNameOrZero("nullpln");
 		g_curCraft->aiController.currentPlanId =
-			g_curCraft->aiController.pendingPlanId;
+			g_curCraft->aiController.runningPlanId;
 		g_curCraft = craft;
 		pai_setupcraftcontext((uint16_t)objectIdx);
-		pai_ApplyPendingPlanTargetAndManeuver((unsigned int)objectIdx);
+		pai_ApplyRunningPlanTargetAndManeuver((unsigned int)objectIdx);
 		craft->aiFlight.rollState = 0;
 		craft->aiFlight.pitchState = 0;
 		craft->aiFlight.turnState = 0;
@@ -612,16 +612,16 @@ void Player_SaveCraftSettings(int playerIndex)
  * (lasers count twice without shields). The input sets a desired yaw and pitch,
  * zero when flight controls are out or a tractor beam holds the craft without
  * chaff; smoothedInputYaw and smoothedInputPitch move toward them, and the
- * steps, scaled by elapsed ticks, turn the craft through USER_calcdeltapitch,
- * yaw also rolling it. With the roll modifier key (g_flightKeyMods & 0xE is 2)
- * yaw input rolls the craft at twice the step instead; the modern build takes
- * that roll from XvtFlightControls_RollStep. In hyperspace nothing turns. With
- * input blocked or a map camera, it drives the camera: steps the map camera's
- * transition in mapCameraState, pans the map camera or moves the HUD aim or
- * view by input, and with g_flightKeyMods & 0xF of 1 or 2 moves the camera in
- * or out by cameraDistanceStep; otherwise it shrinks cameraDistanceStep back to
- * 32. The modern build's unlocked timing scales the steps with XvtPlayerTiming
- * instead. */
+ * steps, scaled by elapsed ticks, turn the craft through
+ * Player_ApplyPitchYawSteps, yaw also rolling it. With the roll modifier key
+ * (g_flightKeyMods & 0xE is 2) yaw input rolls the craft at twice the step
+ * instead; the modern build takes that roll from XvtFlightControls_RollStep. In
+ * hyperspace nothing turns. With input blocked or a map camera, it drives the
+ * camera: steps the map camera's transition in mapCameraState, pans the map
+ * camera or moves the HUD aim or view by input, and with g_flightKeyMods & 0xF
+ * of 1 or 2 moves the camera in or out by cameraDistanceStep; otherwise it
+ * shrinks cameraDistanceStep back to 32. The modern build's unlocked timing
+ * scales the steps with XvtPlayerTiming instead. */
 // FUNCTION: XVT 0x480570
 void Player_UpdateFlightControlsAndCamera(int playerIdx)
 {
@@ -991,7 +991,7 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx)
 				yawStep = independentRollStep;
 #endif
 				if (pitchStep != 0) {
-					USER_calcdeltapitch(
+					Player_ApplyPitchYawSteps(
 						pitchStep, 0,
 						(uint16_t)g_players[playerIdx]
 							.objectIndex,
@@ -1025,7 +1025,7 @@ void Player_UpdateFlightControlsAndCamera(int playerIdx)
 								->orientMatrixDirty;
 				}
 			} else if (pitchStep != 0 || yawStep != 0) {
-				USER_calcdeltapitch(
+				Player_ApplyPitchYawSteps(
 					pitchStep, (int16_t)-yawStep,
 					(uint16_t)g_players[playerIdx]
 						.objectIndex,
@@ -2186,7 +2186,7 @@ void Player_TransferShieldBankEnergy(uint16_t dstBank, uint16_t srcBank,
 }
 
 /* Sets the HUD view for where the player's camera looks. With the external
- * camera on: the target camera view while transitionTimer is set, else full
+ * camera on: the target camera view while targetCameraActive is set, else full
  * screen, and all 60 entries of the camera roll, pitch and yaw histories set to
  * the current view angles. With it off: input unblocked; back on the player's
  * own craft, the saved HUD aim and view return; on another object, the HUD aim
@@ -2201,7 +2201,7 @@ void Player_UpdateHudViewForCameraFocus(int playerIdx)
 	uint16_t sampleIndex;
 
 	if (g_players[playerIdx].viewState.externalCameraActive != 0) {
-		if (g_players[playerIdx].viewState.transitionTimer != 0) {
+		if (g_players[playerIdx].viewState.targetCameraActive != 0) {
 			Hud_SetHudViewState(HUD_VIEW_TARGET_CAMERA, playerIdx);
 		} else {
 			Hud_SetHudViewState(HUD_VIEW_FULL_SCREEN, playerIdx);
@@ -2534,7 +2534,7 @@ uint16_t Player_CycleTarget(uint16_t currentObjIdx, int16_t direction,
  * plays FLIGHT_SOUND_TARGET_SELECTED; picks its component in a craft slot (the
  * first main hull or fuselage with the map camera, else
  * Player_SelectTargetComponentMesh), or 0; aims the camera at it while
- * transitionTimer is set; clears missileLockState and the craft's
+ * targetCameraActive is set; clears missileLockState and the craft's
  * warheadLockTicks; and describes it with msg_BuildTargetDescription with the
  * map camera, or when the craft's first HUD feature is active and the player's
  * view is HUD only or forward, or the local player's is the target camera.
@@ -2642,7 +2642,7 @@ void Player_SetTarget(int newTargetObjIdx, int playerIdx)
 							playerIdx);
 				}
 			}
-			if (g_players[playerIdx].viewState.transitionTimer !=
+			if (g_players[playerIdx].viewState.targetCameraActive !=
 			    0) {
 				g_players[playerIdx]
 					.viewState.cameraFocusObjIdx =
@@ -2773,16 +2773,16 @@ uint16_t Player_SelectTargetComponentMesh(uint16_t targetObjIdx,
 	return meshIndex;
 }
 
-/* Applies a pitch step and a yaw step to a craft's orientation. Despite the
- * name, it returns the new roll, not a pitch change. The yaw step is ignored
- * while the roll modifier key is held (g_flightKeyMods & 0xE is 2). The modern
- * build turns the angles with XvtOrientation_ApplyPitchYaw and writes the
- * object's pitch, yaw and roll and craft->pitch. The original build rotates the
- * object's axes in g_curMatR0 to g_curMatR2 and writes the new pitch to
- * craft->pitch only, and yaw and roll to the object. */
+/* Applies a pitch step and a yaw step to a craft's orientation. It returns the
+ * new roll, which both callers drop. The yaw step is ignored while the roll
+ * modifier key is held (g_flightKeyMods & 0xE is 2). The modern build turns the
+ * angles with XvtOrientation_ApplyPitchYaw and writes the object's pitch, yaw
+ * and roll and craft->pitch. The original build rotates the object's axes in
+ * g_curMatR0 to g_curMatR2 and writes the new pitch to craft->pitch only, and
+ * yaw and roll to the object. */
 // FUNCTION: XVT 0x483A00
-int16_t USER_calcdeltapitch(int16_t pitchAngleQ16, int16_t yawAngleQ16,
-			    uint16_t objectIndex, CraftData *craft)
+int16_t Player_ApplyPitchYawSteps(int16_t pitchAngleQ16, int16_t yawAngleQ16,
+				  uint16_t objectIndex, CraftData *craft)
 {
 #ifdef XVT_MODERN
 	ObjectRecord *object = &g_objectTable[objectIndex];
@@ -3049,7 +3049,7 @@ void Player_IssueAiWingmanTargetOrder(uint16_t targetObjIdx, uint16_t commandId,
 		ai = &craft->aiController;
 		if (commandId != 155) {
 			const char *planName =
-				g_planTable[ai->pendingPlanId].name;
+				g_planTable[ai->runningPlanId].name;
 			if (strcmp(planName, "nullpln") == 0 ||
 			    strcmp(planName, "stationaryldrpln") == 0 ||
 			    strcmp(planName, "stationaryflwpln") == 0 ||
@@ -3063,10 +3063,10 @@ void Player_IssueAiWingmanTargetOrder(uint16_t targetObjIdx, uint16_t commandId,
 				continue;
 			}
 			if (strcmp(planName, "craftwaitforgopln") == 0) {
-				ai->pendingPlanId = ai->savedPlanId;
+				ai->runningPlanId = ai->savedPlanId;
 				g_curCraft = craft;
 				pai_setupcraftcontext(objectIndex);
-				pai_ApplyPendingPlanTargetAndManeuver(
+				pai_ApplyRunningPlanTargetAndManeuver(
 					objectIndex);
 			}
 			ai->candidateTargetIdx = targetObjIdx;
@@ -3275,7 +3275,7 @@ void Player_StartPostDestructionState(int playerIdx,
 						g_localPlayer);
 				}
 			} else {
-				Hud_AppendObjectDisplayName(
+				Hud_FormatObjectDisplayName(
 					(uint16_t)sourceObjectIndex,
 					OBJECT_DISPLAY_NAME_AND_TYPE);
 				msg_addMessagePtr(0, g_flightTextScratchBuffer);
@@ -3290,7 +3290,7 @@ void Player_StartPostDestructionState(int playerIdx,
 
 /* Copies a name for the object into text and makes it message argument slot. A
  * hostile craft the local player's team has not identified (unless
- * locatePlayersEnabled) is named by Hud_AppendObjectDisplayName style 1 in a
+ * locatePlayersEnabled) is named by Hud_FormatObjectDisplayName style 1 in a
  * melee, else 3; a craft a player flies, by that player's name; anything else
  * by style 3. Does not check the size of text. */
 // FUNCTION: XVT 0x484C50
@@ -3325,16 +3325,16 @@ void Player_AppendKillMessageActorName(int slot, char *text, int objectIndex)
 	}
 	if (isEnemy == 1) {
 		if (g_missionHeader.missionType == MISSION_TYPE_MELEE) {
-			Hud_AppendObjectDisplayName((uint16_t)objectIndex, 1);
+			Hud_FormatObjectDisplayName((uint16_t)objectIndex, 1);
 			playerName = g_flightTextScratchBuffer;
 		} else {
-			Hud_AppendObjectDisplayName((uint16_t)objectIndex, 3);
+			Hud_FormatObjectDisplayName((uint16_t)objectIndex, 3);
 			playerName = g_flightTextScratchBuffer;
 		}
 	} else if (playerOwnerIdx != -1) {
 		playerName = NetSession_GetPlayerName(playerOwnerIdx);
 	} else {
-		Hud_AppendObjectDisplayName((uint16_t)objectIndex, 3);
+		Hud_FormatObjectDisplayName((uint16_t)objectIndex, 3);
 		playerName = g_flightTextScratchBuffer;
 	}
 	strcpy(text, playerName);
@@ -3526,7 +3526,7 @@ void Player_ValidateCurrentTargets(int playerIdx)
 		    HUD_VIEW_TARGET_CAMERA) {
 			g_players[playerIdx].viewState.externalCameraActive = 0;
 			localPlayer = g_localPlayer;
-			g_players[playerIdx].viewState.transitionTimer = 0;
+			g_players[playerIdx].viewState.targetCameraActive = 0;
 			g_players[playerIdx].viewState.cameraFocusObjIdx =
 				(uint16_t)g_players[playerIdx].objectIndex;
 			g_players[playerIdx].viewState.playerInputBlocked = 0;
@@ -3912,7 +3912,8 @@ void Player_HandleHyperspaceCommand(struct CraftData *craft,
 						.hyperspaceRuntime
 						.phaseElapsedTicks = 0;
 					g_players[playerIdx]
-						.viewState.transitionTimer = 0;
+						.viewState.targetCameraActive =
+						0;
 					g_players[playerIdx]
 						.viewState
 						.externalCameraActive = 0;

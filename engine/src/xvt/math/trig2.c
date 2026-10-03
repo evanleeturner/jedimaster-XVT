@@ -186,7 +186,7 @@ int trig2_yoffset = 0;
  * was over adjacent, compared as signed numbers; else 0. Only that function
  * writes and reads it. */
 // GLOBAL: XVT 0x9EC460
-int16_t trig2_signswap = 0;
+int16_t trig2_legsSwapped = 0;
 
 /* 1 when the x given to the last trig2_ctop, trig2_ctop2dim or trig2_arctan
  * was negative, else 0; 0xFFFF until the first. Only those write and read
@@ -249,12 +249,11 @@ int16_t trig2_getsignedsin(int16_t angleQ16)
 			 g_trigQ15OutputScale);
 }
 
-/* Despite the name, returns only the sine's magnitude: g_sinTable interpolated
- * between its entries, 0 to 65534 where 65536 would be 1, as a 16-bit pattern
- * to read unsigned. An angle from 0x8000 up gives the same as one 0x8000
- * less. */
+/* Returns the sine's magnitude: g_sinTable interpolated between its entries,
+ * 0 to 65534 where 65536 would be 1, as a 16-bit pattern to read unsigned.
+ * An angle from 0x8000 up gives the same as one 0x8000 less. */
 // FUNCTION: XVT 0x46A3F0
-int16_t trig2_calcsineofangle(int16_t angle)
+int16_t trig2_calcsinemagnitude(int16_t angle)
 {
 	uint16_t tableIndex;
 	uint16_t base;
@@ -593,7 +592,7 @@ void trig2_movexyz(uint16_t distance, int16_t yaw, uint16_t pitch)
  * -z) and trig2_polardistance. Also stores the magnitudes in trig2_xoffset,
  * trig2_yoffset and trig2_zoffset and the signs in trig2_signx, trig2_signy
  * and trig2_signz, and leaves trig2_angleplane, trig2_largerLeg and
- * trig2_signswap from its second trig2_calcangleplanedistance. */
+ * trig2_legsSwapped from its second trig2_calcangleplanedistance. */
 // FUNCTION: XVT 0x46A8D0
 void trig2_ctop(int dx, int dy, int dz)
 {
@@ -651,8 +650,8 @@ void trig2_ctop(int dx, int dy, int dz)
 
 /* The x-y half of trig2_ctop: sets trig2_xyangle and trig2_polardistance (the
  * distance in the x-y plane), trig2_signx, trig2_signy, trig2_angleplane,
- * trig2_largerLeg and trig2_signswap; leaves the offsets alone. Nothing calls
- * this. */
+ * trig2_largerLeg and trig2_legsSwapped; leaves the offsets alone. Nothing
+ * calls this. */
 // FUNCTION: XVT 0x46A9E0
 void trig2_ctop2dim(int dx, int dy)
 {
@@ -689,7 +688,7 @@ void trig2_ctop2dim(int dx, int dy)
  * g_hypotExcessQ16Table entry for their ratio in 256ths (the fraction left
  * out), over 65536, with the low 16 bits rounded. Stores the angle of
  * magnitudeB over magnitudeA, 0 to 0x4000, in trig2_angleplane; through
- * trig2_calcarctan_core also sets trig2_largerLeg and trig2_signswap. */
+ * trig2_calcarctan_core also sets trig2_largerLeg and trig2_legsSwapped. */
 // FUNCTION: XVT 0x46AA70
 int trig2_calcangleplanedistance(int magnitudeA, int magnitudeB)
 {
@@ -720,7 +719,7 @@ int trig2_calcangleplanedistance(int magnitudeA, int magnitudeB)
  * the larger is under 0x1000000) and interpolates g_arctantable between
  * entries at the ratio's high byte, which it stores in *outRatioIndex (256
  * for equal legs); when opposite is the larger it returns 0x4000 minus that
- * angle. Sets trig2_signswap and trig2_largerLeg. Two zero legs give
+ * angle. Sets trig2_legsSwapped and trig2_largerLeg. Two zero legs give
  * 0x2000. */
 // FUNCTION: XVT 0x46AAF0
 int16_t trig2_calcarctan_core(int adjacent, int opposite, int16_t *outAngle,
@@ -737,13 +736,13 @@ int16_t trig2_calcarctan_core(int adjacent, int opposite, int16_t *outAngle,
 	numerator = (uint32_t)opposite;
 	divisor = (uint32_t)adjacent;
 	fraction = 0;
-	trig2_signswap = 0;
+	trig2_legsSwapped = 0;
 	if (numerator == divisor) {
 		numerator = 256;
 		trig2_largerLeg = (int)divisor;
 	} else {
 		if ((int32_t)numerator >= (int32_t)divisor) {
-			trig2_signswap = 1;
+			trig2_legsSwapped = 1;
 			swap = numerator;
 			numerator = divisor;
 			divisor = swap;
@@ -783,7 +782,7 @@ int16_t trig2_calcarctan_core(int adjacent, int opposite, int16_t *outAngle,
 	result = (int16_t)(interpolation +
 			   g_arctantable[(uint16_t)*outRatioIndex]);
 	*outAngle = result;
-	if (trig2_signswap != 0) {
+	if (trig2_legsSwapped != 0) {
 		result = (int16_t)-result;
 		*outAngle = result;
 		result = (int16_t)(result + 0x4000);
@@ -795,7 +794,7 @@ int16_t trig2_calcarctan_core(int adjacent, int opposite, int16_t *outAngle,
 /* Returns the angle from +x toward +y of the point (x, y), as int16 in angle
  * units (atan2): the first-quadrant angle from trig2_calcarctan_core,
  * negated when y is negative and taken from 0x8000 when x is. Sets
- * trig2_signx, trig2_signy, trig2_signswap and trig2_largerLeg. (0, 0) gives
+ * trig2_signx, trig2_signy, trig2_legsSwapped and trig2_largerLeg. (0, 0) gives
  * 0x2000. */
 // FUNCTION: XVT 0x46ABF0
 int16_t trig2_arctan(int y, int x)

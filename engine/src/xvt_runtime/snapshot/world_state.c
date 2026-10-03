@@ -180,9 +180,8 @@ size_t XvtSnapshot_Encode(uint8_t *image, size_t capacity)
 	memcpy(cursor, &g_worldStateDebrisSlotCount,
 	       sizeof(g_worldStateDebrisSlotCount));
 	cursor += sizeof(g_worldStateDebrisSlotCount);
-	memcpy(cursor, &g_regionMainObjectSlotStart,
-	       sizeof(g_regionMainObjectSlotStart));
-	cursor += sizeof(g_regionMainObjectSlotStart);
+	memcpy(cursor, &g_localDebrisSlotCount, sizeof(g_localDebrisSlotCount));
+	cursor += sizeof(g_localDebrisSlotCount);
 	memcpy(cursor, &g_activeRegionObjectSlotStart,
 	       sizeof(g_activeRegionObjectSlotStart));
 	cursor += sizeof(g_activeRegionObjectSlotStart);
@@ -295,9 +294,8 @@ static void XvtSnapshot_DecodePrefix(const uint8_t *image)
 	memcpy(&g_worldStateDebrisSlotCount, cursor,
 	       sizeof(g_worldStateDebrisSlotCount));
 	cursor += sizeof(g_worldStateDebrisSlotCount);
-	memcpy(&g_regionMainObjectSlotStart, cursor,
-	       sizeof(g_regionMainObjectSlotStart));
-	cursor += sizeof(g_regionMainObjectSlotStart);
+	memcpy(&g_localDebrisSlotCount, cursor, sizeof(g_localDebrisSlotCount));
+	cursor += sizeof(g_localDebrisSlotCount);
 	memcpy(&g_activeRegionObjectSlotStart, cursor,
 	       sizeof(g_activeRegionObjectSlotStart));
 	cursor += sizeof(g_activeRegionObjectSlotStart);
@@ -671,8 +669,8 @@ static int XvtSnapshot_IsPoolLink(uint32_t value, size_t stride, unsigned count)
 typedef struct XvtSnapshotWorldRanges {
 	int32_t craft_capacity, character_count, projectile_count, debris_count,
 		debris_slot_count;
-	int32_t main_start, active_start, craft_end, character_start,
-		character_end;
+	int32_t local_debris_slot_count, active_start, craft_end,
+		character_start, character_end;
 	int32_t projectile_start, projectile_end, debris_start, debris_end,
 		explosion_start, explosion_end;
 	int32_t local_start, local_end, main_end, static_count;
@@ -690,7 +688,7 @@ static int XvtSnapshot_RangesMatchLive(const uint8_t *image_ranges)
 		.projectile_count = g_projectileObjectSlotsTotal,
 		.debris_count = g_debrisObjectSlotsTotal,
 		.debris_slot_count = g_worldStateDebrisSlotCount,
-		.main_start = g_regionMainObjectSlotStart,
+		.local_debris_slot_count = g_localDebrisSlotCount,
 		.active_start = g_activeRegionObjectSlotStart,
 		.craft_end = g_activeRegionCraftObjectSlotEnd,
 		.character_start = g_mobileObjectCharDataSlotStart,

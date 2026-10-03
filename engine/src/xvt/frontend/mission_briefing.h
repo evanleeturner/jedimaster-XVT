@@ -20,11 +20,11 @@ typedef enum MissionBriefingLaunchCountdownState {
 	MISSION_BRIEFING_COUNTDOWN_EXPIRED = 0x2,
 } MissionBriefingLaunchCountdownState;
 
-extern int g_missionBriefingActive;
+extern int g_missionBriefingCraftSelectionActive;
 extern MissionBriefingCraftScreenFaction g_missionBriefingCraftScreenFaction;
 
-int MissionBriefing_Exit(int frameCounter);
-int MissionBriefing_Update(int frameCounter);
+int MissionBriefing_CraftSelectionExit(int frameCounter);
+int MissionBriefing_CraftSelectionUpdate(int frameCounter);
 int MissionBriefing_BroadcastRosterAndAssignments(void);
 int16_t MissionBriefing_HandleMapMouseInput(RECT *viewportRect, RECT *clipRect,
 					    int16_t suppressInput, int leftDown,

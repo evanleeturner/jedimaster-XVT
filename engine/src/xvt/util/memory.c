@@ -128,15 +128,16 @@ void Memory_FreeHandle(unsigned int handle)
 	g_handleTables.ptrTable[handle - 1] = NULL;
 }
 
-/* Returns a handle's block, NULL when its slot is free. Despite the name,
- * nothing is locked: a block keeps its address until Memory_FreeHandle. Does
- * not check the handle: 0 or one over 32768 reads outside the table. */
+/* Returns a handle's block, NULL when its slot is free; the block keeps its
+ * address until Memory_FreeHandle. Does not check the handle: 0 or one over
+ * 32768 reads outside the table. */
 // FUNCTION: XVT 0x4AC720
-void *Memory_LockHandle(uint16_t handle)
+void *Memory_GetHandleBlock(uint16_t handle)
 {
 	return g_handleTables.ptrTable[handle - 1];
 }
 
-/* Does nothing: Memory_LockHandle locks nothing to undo. */
+/* Does nothing; no block is ever locked. Callers call it when they have
+ * finished with a block from Memory_GetHandleBlock. */
 // FUNCTION: XVT 0x4AC740
-void Memory_UnlockHandle(uint16_t handle) { (void)handle; }
+void Memory_HandleBlockDoneStub(uint16_t handle) { (void)handle; }

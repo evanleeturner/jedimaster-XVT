@@ -104,8 +104,8 @@ int NetReliable_CheckAndRecordRecvSequence(int directPlayId, int sequence,
  * channelA is set, 2 when channelB is set, else neither. The first argument
  * is ignored. */
 // FUNCTION: XVT 0x46FCE0
-int NetReliable_FindQueuedRecvPacket(int unused, int remoteSeq, int channelA,
-				     int channelB, int peerSlot)
+int NetReliable_FindQueuedRecvPacket(int unusedSearchIndex, int remoteSeq,
+				     int channelA, int channelB, int peerSlot)
 {
 	unsigned int i;
 	int index;
@@ -116,7 +116,7 @@ int NetReliable_FindQueuedRecvPacket(int unused, int remoteSeq, int channelA,
 	DPID directPlayId;
 	NetReliablePeerSlot *peer;
 
-	(void)unused;
+	(void)unusedSearchIndex;
 
 	index = g_netRecvQueueReadIndex;
 	for (i = g_netRecvQueueCount; i != 0; --i) {

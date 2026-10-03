@@ -312,9 +312,9 @@ void msg_emitInFlightMessage(InFlightMessageId messageId, int playerIdx)
 			g_messageLogWrapped = 1;
 		}
 		g_messageLogRecords =
-			(HudInFlightMessageRecord *)Memory_LockHandle(
+			(HudInFlightMessageRecord *)Memory_GetHandleBlock(
 				g_messageLogHandle);
-		Memory_UnlockHandle(g_messageLogHandle);
+		Memory_HandleBlockDoneStub(g_messageLogHandle);
 		g_messageLogRecords[g_messageLogWriteIndex] = message;
 	}
 

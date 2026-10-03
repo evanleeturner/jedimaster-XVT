@@ -1322,22 +1322,20 @@ int16_t paifight_escorttargetorder(void)
  * and inside g_aiFighterShootMaxRangeBySkill; for a target in the region's main
  * slots that is 0x4000 less when it moves faster than 25 with its yaw within
  * 0x2000 of the craft's, 0x2000 less within 0x5000, and 0x6000 more for a
- * platform or starship. Despite their names, the FAST_TARGET_HEAD_ON constants
- * cover the first case, the two flying roughly the same way. The link mode is 3
- * within 0x2000, 2 within 0x4000, else 1, with a burst from
- * g_aiFighterShootBurstLengthBySkill; ion cannons fire only on disableldr1pln
- * with a live target, and other cannons not then. For a target in the craft
- * slots without an active decoy beam, in rocket attack, it fires warheads of
- * the class the target calls for when the target's front shield and remaining
- * hull outlast the homing warheads already aimed at it, fewer of them are
- * coming than a limit, weapons are not inhibited and it has fired fewer than
- * its per-maneuver limit. On disableldr1pln the hull counts only as a tenth of
- * hullMax, once its damage passes that, and the craft's own warheads count as
- * already coming. It builds warheadLockTicks by thinkInterval (three quarters
- * of it below tier 2) while within 0x300 and fire range, and lets it fall
- * otherwise; at 472 times the tier plus 1 (half that at tier 2 with a damaged
- * hull) it picks targetComponent and fires each ready launcher, counting
- * warheadsFiredThisManeuver. */
+ * platform or starship. The link mode is 3 within 0x2000, 2 within 0x4000, else
+ * 1, with a burst from g_aiFighterShootBurstLengthBySkill; ion cannons fire
+ * only on disableldr1pln with a live target, and other cannons not then. For a
+ * target in the craft slots without an active decoy beam, in rocket attack, it
+ * fires warheads of the class the target calls for when the target's front
+ * shield and remaining hull outlast the homing warheads already aimed at it,
+ * fewer of them are coming than a limit, weapons are not inhibited and it has
+ * fired fewer than its per-maneuver limit. On disableldr1pln the hull counts
+ * only as a tenth of hullMax, once its damage passes that, and the craft's own
+ * warheads count as already coming. It builds warheadLockTicks by thinkInterval
+ * (three quarters of it below tier 2) while within 0x300 and fire range, and
+ * lets it fall otherwise; at 472 times the tier plus 1 (half that at tier 2
+ * with a damaged hull) it picks targetComponent and fires each ready launcher,
+ * counting warheadsFiredThisManeuver. */
 // FUNCTION: XVT 0x45E780
 int16_t paifight_fightershootorder(void)
 {
@@ -1347,9 +1345,9 @@ int16_t paifight_fightershootorder(void)
 		ANGLE_HALF_TURN = 0x8000,
 		MAX_TARGET_ANGLE = 0x800,
 		MAX_WARHEAD_ANGLE = 0x300,
-		FAST_TARGET_HEAD_ON_ANGLE = 0x2000,
+		FAST_TARGET_SAME_HEADING_ANGLE = 0x2000,
 		FAST_TARGET_OBLIQUE_ANGLE = 0x5000,
-		FAST_TARGET_HEAD_ON_RANGE_REDUCTION = 0x4000,
+		FAST_TARGET_SAME_HEADING_RANGE_REDUCTION = 0x4000,
 		FAST_TARGET_OBLIQUE_RANGE_REDUCTION = 0x2000,
 		LARGE_TARGET_RANGE_BONUS = 0x6000,
 		LASER_LINK_CLOSE_RANGE = 0x2000,
@@ -1423,9 +1421,10 @@ int16_t paifight_fightershootorder(void)
 				if (targetAngle >= ANGLE_HALF_TURN) {
 					targetAngle = (uint16_t)-targetAngle;
 				}
-				if (targetAngle < FAST_TARGET_HEAD_ON_ANGLE) {
+				if (targetAngle <
+				    FAST_TARGET_SAME_HEADING_ANGLE) {
 					maxRange -=
-						FAST_TARGET_HEAD_ON_RANGE_REDUCTION;
+						FAST_TARGET_SAME_HEADING_RANGE_REDUCTION;
 				} else if (targetAngle <
 					   FAST_TARGET_OBLIQUE_ANGLE) {
 					maxRange -=

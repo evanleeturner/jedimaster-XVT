@@ -144,7 +144,7 @@ int TechLibrary_Update(int frameCounter)
 		g_techLibraryPreviewYawDeg = (float)DEFAULT_PREVIEW_YAW_DEGREES;
 		ShipList_Load();
 		TechLibrary_LoadSpecTextTable();
-		if (g_missionBriefingActive != 0) {
+		if (g_missionBriefingCraftSelectionActive != 0) {
 			ModelPreview_SaveState();
 		}
 		memset(&g_techLibraryCraftStats, 0,
@@ -249,7 +249,7 @@ int TechLibrary_Update(int frameCounter)
 		FrontImage_FreeResourceByName("backreview");
 		Keyboard_FlushCharBuffer();
 		FrontendScreen_PopState();
-		if (g_missionBriefingActive == 0) {
+		if (g_missionBriefingCraftSelectionActive == 0) {
 			if (g_shipList != NULL) {
 				free(g_shipList);
 				g_shipList = NULL;

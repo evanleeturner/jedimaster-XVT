@@ -377,15 +377,14 @@ uint8_t g_flightRuntimeStateInitialized = 1;
 // GLOBAL: XVT 0x9A8C04
 uint16_t g_flightFrameStepMirror = 0;
 
-/* Despite the name, returns a flag, not a count: the flight group's
- * specialCargoOutcome entry for FLIGHT_GROUP_OUTCOME_INSPECTED, which
- * collide_collisions and paiman_boardmaneuver set to 1 when the special cargo
- * craft is inspected. specialCargoCraft is ignored. Does not check the
- * index. */
+/* Returns a flag, the flight group's specialCargoOutcome entry for
+ * FLIGHT_GROUP_OUTCOME_INSPECTED, which collide_collisions and
+ * paiman_boardmaneuver set to 1 when the special cargo craft is inspected.
+ * specialCargoCraft is ignored. Does not check the index. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x415A40
-uint16_t Mission_GetSpecialCargoInspectedCount(unsigned int flightGroupIdx,
-					       uint16_t specialCargoCraft)
+uint16_t Mission_IsSpecialCargoInspected(unsigned int flightGroupIdx,
+					 uint16_t specialCargoCraft)
 {
 	(void)specialCargoCraft;
 	return g_missionFgStats[(uint16_t)flightGroupIdx]
@@ -5222,7 +5221,7 @@ uint16_t Mission_Init(char *fileName)
 	g_mobileObjectCharDataCount = CHAR_DATA_SLOT_COUNT;
 	g_projectileObjectSlotsTotal =
 		PLAYER_PROJECTILE_SLOT_COUNT + OTHER_PROJECTILE_SLOT_COUNT;
-	g_regionMainObjectSlotStart = LOCAL_DEBRIS_SLOT_COUNT;
+	g_localDebrisSlotCount = LOCAL_DEBRIS_SLOT_COUNT;
 	g_debrisObjectSlotEnd = g_debrisObjectSlotStart + DEBRIS_SLOT_COUNT;
 	g_explosionObjectSlotStart = g_debrisObjectSlotEnd;
 	g_explosionObjectSlotEnd =
@@ -5237,27 +5236,27 @@ uint16_t Mission_Init(char *fileName)
 	g_regionMainObjectSlotEnd = g_localDebrisSlotEnd;
 
 	if (g_objectTableHandle != 0) {
-		Memory_UnlockHandle(g_objectTableHandle);
+		Memory_HandleBlockDoneStub(g_objectTableHandle);
 		Memory_FreeHandle(g_objectTableHandle);
 		g_objectTableHandle = 0;
 	}
 	if (g_mobileObjectPoolHandle != 0) {
-		Memory_UnlockHandle(g_mobileObjectPoolHandle);
+		Memory_HandleBlockDoneStub(g_mobileObjectPoolHandle);
 		Memory_FreeHandle(g_mobileObjectPoolHandle);
 		g_mobileObjectPoolHandle = 0;
 	}
 	if (g_mobileObjectCharDataHandle != 0) {
-		Memory_UnlockHandle(g_mobileObjectCharDataHandle);
+		Memory_HandleBlockDoneStub(g_mobileObjectCharDataHandle);
 		Memory_FreeHandle(g_mobileObjectCharDataHandle);
 		g_mobileObjectCharDataHandle = 0;
 	}
 	if (g_craftDataPoolHandle != 0) {
-		Memory_UnlockHandle(g_craftDataPoolHandle);
+		Memory_HandleBlockDoneStub(g_craftDataPoolHandle);
 		Memory_FreeHandle(g_craftDataPoolHandle);
 		g_craftDataPoolHandle = 0;
 	}
 	if (g_warheadGuidancePoolHandle != 0) {
-		Memory_UnlockHandle(g_warheadGuidancePoolHandle);
+		Memory_HandleBlockDoneStub(g_warheadGuidancePoolHandle);
 		Memory_FreeHandle(g_warheadGuidancePoolHandle);
 		g_warheadGuidancePoolHandle = 0;
 	}
@@ -5386,11 +5385,11 @@ uint16_t Mission_Init(char *fileName)
 	g_flightMissionState.provingGroundsCraftType = 0;
 	g_flightMissionState.provingGroundsLevel = 0;
 	g_flightMissionState.provingGroundsScore = 0;
-	memset(g_flightMissionState.reserved08, 0,
-	       sizeof(g_flightMissionState.reserved08));
+	memset(g_flightMissionState.unused08, 0,
+	       sizeof(g_flightMissionState.unused08));
 	g_flightMissionState.provingGroundsCheckpointsPassed = 0;
-	memset(g_flightMissionState.reserved0C, 0,
-	       sizeof(g_flightMissionState.reserved0C));
+	memset(g_flightMissionState.unused0C, 0,
+	       sizeof(g_flightMissionState.unused0C));
 	g_flightMissionState.provingGroundsCheckpointsRemaining = 0;
 	g_flightMissionState.provingGroundsTargetsDestroyed = 0;
 	g_flightMissionState.provingGroundsTimeBonus = 0;
@@ -6184,15 +6183,14 @@ uint16_t Mission_Init(char *fileName)
 	}
 
 	if (g_missionHeader.missionType == MISSION_TYPE_MELEE) {
-		int quickStartAiBoostTeam;
+		int aiBoostTeam;
 		int boostCount;
 
 		if (g_pilotData.missionSequenceActive == 1 &&
 		    g_pilotData.meleeTournamentSequenceState
 				    .currentMissionIndex != 0) {
-			quickStartAiBoostTeam =
-				g_pilotData.meleeTournamentSequenceState
-					.quickStartAiBoostTeam;
+			aiBoostTeam = g_pilotData.meleeTournamentSequenceState
+					      .aiBoostFirstTeam;
 		} else {
 			int teamsWithoutOwners = 0;
 			int selectedOrdinal;
@@ -6231,25 +6229,20 @@ uint16_t Mission_Init(char *fileName)
 			selectedOrdinal =
 				GameRandRange((uint16_t)teamsWithoutOwners);
 			ordinal = -1;
-			for (quickStartAiBoostTeam = 0;
-			     quickStartAiBoostTeam < TEAM_COUNT;
-			     ++quickStartAiBoostTeam) {
-				if (teamPlayerFgCounts[quickStartAiBoostTeam] !=
-					    0 &&
-				    teamOwnedFlightGroup
-						    [quickStartAiBoostTeam] ==
-					    0 &&
+			for (aiBoostTeam = 0; aiBoostTeam < TEAM_COUNT;
+			     ++aiBoostTeam) {
+				if (teamPlayerFgCounts[aiBoostTeam] != 0 &&
+				    teamOwnedFlightGroup[aiBoostTeam] == 0 &&
 				    ++ordinal == selectedOrdinal) {
 					break;
 				}
 			}
-			if (quickStartAiBoostTeam == TEAM_COUNT) {
-				quickStartAiBoostTeam = teamPlayerFgCounts[0];
+			if (aiBoostTeam == TEAM_COUNT) {
+				aiBoostTeam = teamPlayerFgCounts[0];
 			}
 			if (g_pilotData.missionSequenceActive == 1) {
 				g_pilotData.meleeTournamentSequenceState
-					.quickStartAiBoostTeam =
-					quickStartAiBoostTeam;
+					.aiBoostFirstTeam = aiBoostTeam;
 			}
 		}
 		if (g_flightMissionState.difficulty == GAME_DIFFICULTY_EASY) {
@@ -6271,8 +6264,7 @@ uint16_t Mission_Init(char *fileName)
 				    g_missionFlightGroups[flightGroup]
 						    .playerOwnerIdx == -1 &&
 				    g_missionFlightGroups[flightGroup]
-						    .fg.team ==
-					    quickStartAiBoostTeam &&
+						    .fg.team == aiBoostTeam &&
 				    g_missionFlightGroups[flightGroup]
 						    .fg.groupAI <
 					    MAX_GROUP_AI) {
@@ -6281,7 +6273,7 @@ uint16_t Mission_Init(char *fileName)
 					break;
 				}
 			}
-			++quickStartAiBoostTeam;
+			++aiBoostTeam;
 		}
 	}
 
@@ -7438,7 +7430,7 @@ void Mission_InitFlightRuntimeState(void)
 		g_players[playerIndex].viewState.cameraDistance =
 			DEFAULT_CAMERA_DISTANCE;
 		g_players[playerIndex].viewState.playerInputBlocked = 0;
-		g_players[playerIndex].viewState.transitionTimer = 0;
+		g_players[playerIndex].viewState.targetCameraActive = 0;
 		g_players[playerIndex].viewState.cameraFocusObjIdx =
 			(uint16_t)g_players[playerIndex].objectIndex;
 	}
@@ -9471,9 +9463,9 @@ uint16_t Mission_InitFlightGroupObjectSlot(void)
 			[g_orderFollowerBuiltinPlanNameIndex[order]];
 		PaiPlanRecord *plan;
 		uint16_t throttleSpeed;
-		g_curCraft->aiController.pendingPlanId = (uint8_t)leaderPlan;
+		g_curCraft->aiController.runningPlanId = (uint8_t)leaderPlan;
 		g_curCraft->aiController.currentPlanId =
-			g_curCraft->aiController.pendingPlanId;
+			g_curCraft->aiController.runningPlanId;
 		if (g_spawnOutOfHyperspaceFlag != 0) {
 			followerPlan = g_builtinPlanIdByNameIndex
 				[OUT_OF_HYPERSPACE_PLAN_NAME_INDEX];
@@ -9483,7 +9475,7 @@ uint16_t Mission_InitFlightGroupObjectSlot(void)
 		} else if (g_curCraft->leader_obj_idx == UINT8_MAX) {
 			followerPlan = (uint8_t)leaderPlan;
 		}
-		g_curCraft->aiController.pendingPlanId = followerPlan;
+		g_curCraft->aiController.runningPlanId = followerPlan;
 		plan = &g_planTable[leaderPlan];
 		if ((strcmp(plan->name, "nullpln") == 0 ||
 		     strcmp(plan->name, "stationaryldrpln") == 0 ||
@@ -9583,7 +9575,7 @@ uint16_t Mission_InitFlightGroupObjectSlot(void)
 		g_curCraft->systemRepairSeconds[index] = 0;
 	}
 	pai_setupcraftcontext(objectIndex);
-	pai_ApplyPendingPlanTargetAndManeuver(objectIndex);
+	pai_ApplyRunningPlanTargetAndManeuver(objectIndex);
 	Craft_ClearTurretObjectLinks(g_curCraft);
 	g_curCraft->playerCommandAvoidTargetObjIdx = UINT16_MAX;
 	++g_missionFgStats[g_currentFlightGroupIdx].spawnedCraftCount;
@@ -10368,7 +10360,7 @@ int Mission_LoadFile(char *fileName)
 								0);
 						if (handle != 0) {
 							char *string =
-								Memory_LockHandle(
+								Memory_GetHandleBlock(
 									handle);
 							memcpy(string,
 							       stringBuffer,
@@ -10376,7 +10368,8 @@ int Mission_LoadFile(char *fileName)
 							string[stringLength] =
 								'\0';
 						}
-						Memory_UnlockHandle(handle);
+						Memory_HandleBlockDoneStub(
+							handle);
 					} else {
 						handle = 0;
 					}
@@ -10407,7 +10400,7 @@ int Mission_LoadFile(char *fileName)
 									1,
 								0);
 							if (handle != 0) {
-								char *string = Memory_LockHandle(
+								char *string = Memory_GetHandleBlock(
 									handle);
 								memcpy(string,
 								       stringBuffer,
@@ -10415,7 +10408,7 @@ int Mission_LoadFile(char *fileName)
 								string[stringLength] =
 									'\0';
 							}
-							Memory_UnlockHandle(
+							Memory_HandleBlockDoneStub(
 								handle);
 						} else {
 							handle = 0;
@@ -10515,7 +10508,7 @@ int Mission_LoadFile(char *fileName)
 				g_tieFlightGroup.camoflage;
 			g_missionFlightGroups[flightGroupIdx].fg.radio =
 				g_tieFlightGroup.camo_flag;
-			g_missionFlightGroups[flightGroupIdx].fg.reserved5C =
+			g_missionFlightGroups[flightGroupIdx].fg.unused5C =
 				g_tieFlightGroup.camo_unused;
 			g_missionFlightGroups[flightGroupIdx].fg.formation =
 				g_tieFlightGroup.formation;
@@ -10524,7 +10517,7 @@ int Mission_LoadFile(char *fileName)
 				g_tieFlightGroup.form_spacing;
 			g_missionFlightGroups[flightGroupIdx].fg.globalGroup =
 				g_tieFlightGroup.set;
-			g_missionFlightGroups[flightGroupIdx].fg.reserved60 =
+			g_missionFlightGroups[flightGroupIdx].fg.unused60 =
 				g_tieFlightGroup.set_unused;
 			g_missionFlightGroups[flightGroupIdx].fg.numberOfWaves =
 				g_tieFlightGroup.waves;

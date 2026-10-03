@@ -92,7 +92,8 @@ int XvtFlightSim_UpdatePlayerStep(int playerIdx)
 						UINT16_MAX;
 				} else {
 					g_players[playerIdx]
-						.viewState.transitionTimer = 0;
+						.viewState.targetCameraActive =
+						0;
 					g_players[playerIdx]
 						.viewState
 						.externalCameraActive = 0;

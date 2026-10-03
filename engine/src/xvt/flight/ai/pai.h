@@ -48,7 +48,7 @@ enum {
 	AI_MANEUVER_MODE_DROPOFF = 30,
 	AI_MANEUVER_MODE_KAMIKAZE = 31,
 	AI_MANEUVER_MODE_AVOID_ATTACKER = 32,
-	AI_MANEUVER_MODE_DODGE = 33,
+	AI_MANEUVER_MODE_KAMIKAZE_COPY = 33,
 	AI_MANEUVER_MODE_COUNT = 34,
 };
 
@@ -60,10 +60,9 @@ struct AiController {
 	AiOrderProgress orderProgress;
 	/* 1 once the skip-to-order-4 trigger moved the craft to slot 3. */
 	uint8_t skippedToOrder4;
-	/* Despite the name, the plan the craft runs now: pai_setupcraftcontext
-	 * reads its orders, and pai_ProcessPlan replaces it when one of them
-	 * fires. */
-	uint8_t pendingPlanId;
+	/* The plan the craft runs now: pai_setupcraftcontext reads its orders,
+	 * and pai_ProcessPlan replaces it when one of them fires. */
+	uint8_t runningPlanId;
 	/* Leader plan of the craft's current order, for a follower too, set
 	 * when the order starts or changes; plans and orders test it by
 	 * name. */
@@ -295,9 +294,9 @@ struct PaiContext {
 	 * disable plans and laser_UpdateMineWeaponFire set it, setup clears
 	 * it. */
 	uint8_t requireUndisabledTarget;
-	/* Despite the name, the plan "variablepln" stands for: nullpln's id at
-	 * setup, then the plan an order switch picks for the new order. */
-	uint8_t nullPlanId;
+	/* The plan "variablepln" stands for: nullpln's id at setup, then the
+	 * plan an order switch picks for the new order. */
+	uint8_t variablePlanId;
 	/* Tests the target searches apply: 1 attack capacity, 4 skill range,
 	 * 0x10 range and enemy, 0x20 measure from targetSearchOrigin; 2 is set
 	 * but nothing tests it. Setup leaves it as it was. */
@@ -333,12 +332,12 @@ extern uint8_t g_orderLeaderBuiltinPlanNameIndex[40];
 extern const uint8_t g_orderFollowerBuiltinPlanNameIndex[40];
 
 void pai_UpdateAllCraftAI(void);
-void pai_ApplyPendingPlanTargetAndManeuver(unsigned int objectIdx);
+void pai_ApplyRunningPlanTargetAndManeuver(unsigned int objectIdx);
 void pai_ProcessPlan(void);
 void pai_setupcraftcontext(uint16_t objectIdx);
 int pai_SkillValueToTier(uint16_t skillValue);
 uint16_t pai_FindMothershipObject(int16_t mothershipFlightGroupIdx);
-int pai_IsObjectTargetableNearCraft(int unused, unsigned int objIdx,
+int pai_IsObjectTargetableNearCraft(int unusedCraftObjIdx, unsigned int objIdx,
 				    int expandRange);
 int16_t pai_IsObjectWithinSkillRangeOfCraft(uint16_t objIdx);
 int16_t pai_OrderSlotCanBoardTarget(uint16_t orderSlot);

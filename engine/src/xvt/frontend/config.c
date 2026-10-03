@@ -671,7 +671,7 @@ void Config_DrawSpecularOptionRow(int configIndex)
 			FrontendString_Get(FRONTSTR_240_SPECULAR_HIGHLIGHTS),
 			&rect, 0, 1, g_colorGray);
 		FrontendDraw_RectOffsetXY(&rect, 0, 15);
-		Config_DrawOptionCycleDimmed(
+		Config_DrawTwoChoiceOptionDimmed(
 			&g_gameConfig.specular[configIndex], &rect,
 			FRONTSTR_236_OFF);
 	} else {
@@ -741,18 +741,17 @@ void Config_DrawBilinearOptionRow(int configIndex)
 			12, FrontendString_Get(FRONTSTR_803_BILINEAR_FILTERING),
 			&rect, 0, 1, g_colorGray);
 		FrontendDraw_RectOffsetXY(&rect, 0, 15);
-		Config_DrawOptionCycleDimmed(
+		Config_DrawTwoChoiceOptionDimmed(
 			&g_gameConfig.bilinear[configIndex], &rect,
 			FRONTSTR_236_OFF);
 	}
 }
 
-/* Despite the name, nothing cycles: it is the two-choice control of
- * Config_DrawTwoChoiceOptionImpl with a translucent marker, still taking
- * clicks. */
+/* The two-choice control of Config_DrawTwoChoiceOptionImpl with a translucent
+ * marker, taking clicks. */
 // FUNCTION: XVT 0x4B8E80
-void Config_DrawOptionCycleDimmed(uint8_t *value, const RECT *rect,
-				  FrontendStringId valueBaseStrId)
+void Config_DrawTwoChoiceOptionDimmed(uint8_t *value, const RECT *rect,
+				      FrontendStringId valueBaseStrId)
 {
 	Config_DrawTwoChoiceOptionImpl(value, rect, valueBaseStrId, 1, 0);
 }
@@ -2605,7 +2604,7 @@ void Config_NetworkOptionsScreen(void)
 				FRONTSTR_479_PLAYING_OVER_THE_INTERNET),
 			&sourceRect, 0, 1, g_colorYellow);
 		FrontendDraw_RectOffsetXY(&sourceRect, 0, 17);
-		Config_DrawNetworkOptionCycleDisabled(
+		Config_DrawTwoChoiceOptionReadOnlyOpaque(
 			&g_gameConfig.internetPlay, &sourceRect,
 			FRONTSTR_480_NO);
 		FrontendDraw_RectOffsetXY(&sourceRect, 0, 20);
@@ -2649,13 +2648,14 @@ void Config_NetworkOptionsScreen(void)
 	}
 }
 
-/* Despite the name, nothing cycles: it draws a two-choice control like
- * Config_DrawTwoChoiceOptionImpl with an opaque marker and takes no clicks. The
- * network page uses it for a client's internet play setting. */
+/* The two-choice control of Config_DrawTwoChoiceOptionImpl with an opaque
+ * marker, taking no clicks; Config_DrawTwoChoiceOptionReadOnly takes none
+ * either but draws the marker translucent. The network page uses it for a
+ * client's internet play setting. */
 // FUNCTION: XVT 0x4BC1C0
-void Config_DrawNetworkOptionCycleDisabled(const uint8_t *value,
-					   const RECT *rect,
-					   FrontendStringId valueBaseStrId)
+void Config_DrawTwoChoiceOptionReadOnlyOpaque(const uint8_t *value,
+					      const RECT *rect,
+					      FrontendStringId valueBaseStrId)
 {
 	int optionIndex;
 	RECT slotRect;

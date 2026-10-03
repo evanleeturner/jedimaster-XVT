@@ -409,16 +409,15 @@ int FrontendJoystick_BeginCenteringPrompt(void)
  * button." centered in the size-20 font in color 255, and waits for button 0 or
  * 1 to come up; empty slots are skipped. After slot 1 it flushes the typed
  * characters and pops the screen. It records no center: the centers stay what
- * Joystick_InitDevices read. Returns 0. Despite its name, inputCode is the
- * frame counter the frame loop passes, and it is not used. */
+ * Joystick_InitDevices read. Returns 0. Ignores frameCounter. */
 // FUNCTION: XVT 0x4D6380
-int FrontendJoystick_UpdateCenteringPrompt(int inputCode)
+int FrontendJoystick_UpdateCenteringPrompt(int frameCounter)
 {
 	int joystickSlot;
 	RECT *screenRect;
 	char promptText[100];
 
-	(void)inputCode;
+	(void)frameCounter;
 	joystickSlot = g_frontendJoystickCenteringSlot;
 	if (g_frontState.joystickPresent[g_frontendJoystickCenteringSlot] ==
 	    0) {

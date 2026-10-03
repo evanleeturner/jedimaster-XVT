@@ -24,8 +24,8 @@ uint16_t Memory_AllocHandleZeroed(size_t size, int legacyTag);
 uint16_t Memory_AllocHandle(size_t size, int legacyTag);
 uint16_t Memory_AllocHandleInternal(size_t size, int legacyTag, int clearFlag);
 void Memory_FreeHandle(unsigned int handle);
-void *Memory_LockHandle(uint16_t handle);
-void Memory_UnlockHandle(uint16_t handle);
+void *Memory_GetHandleBlock(uint16_t handle);
+void Memory_HandleBlockDoneStub(uint16_t handle);
 
 #ifdef __cplusplus
 }

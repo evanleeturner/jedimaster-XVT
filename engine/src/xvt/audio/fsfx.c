@@ -434,13 +434,14 @@ void fsfx_StopHyperspaceExitSounds(int playerIdx)
 	if (g_gameConfig.sfxInteriorVolume == 0) {
 		return;
 	}
-	if (Sound_GetParam(FLIGHT_SOUND_HYPERSPACE_EXIT_ALLIANCE, 256) != 0) {
+	if (Sound_GetParam(FLIGHT_SOUND_HYPERSPACE_EXIT_IMPERIAL, 256) != 0) {
 		Sound_StopOldestInstanceById(
-			FLIGHT_SOUND_HYPERSPACE_EXIT_ALLIANCE);
+			FLIGHT_SOUND_HYPERSPACE_EXIT_IMPERIAL);
 	}
-	if (Sound_GetParam(FLIGHT_SOUND_HYPERSPACE_EXIT_EMPIRE, 256) != 0) {
+	if (Sound_GetParam(FLIGHT_SOUND_HYPERSPACE_EXIT_NON_IMPERIAL, 256) !=
+	    0) {
 		Sound_StopOldestInstanceById(
-			FLIGHT_SOUND_HYPERSPACE_EXIT_EMPIRE);
+			FLIGHT_SOUND_HYPERSPACE_EXIT_NON_IMPERIAL);
 	}
 }
 
@@ -519,13 +520,13 @@ int fsfx_PlaySound(unsigned int soundId, int emitterObjIdx, int playerIdx)
 			return 0;
 		}
 	}
-	if (soundId == FLIGHT_SOUND_HYPERSPACE_EXIT_ALLIANCE) {
+	if (soundId == FLIGHT_SOUND_HYPERSPACE_EXIT_IMPERIAL) {
 		Sound_StopOldestInstanceById(
-			FLIGHT_SOUND_HYPERSPACE_ENTER_ALLIANCE);
+			FLIGHT_SOUND_HYPERSPACE_ENTER_IMPERIAL);
 	}
-	if (soundId == FLIGHT_SOUND_HYPERSPACE_EXIT_EMPIRE) {
+	if (soundId == FLIGHT_SOUND_HYPERSPACE_EXIT_NON_IMPERIAL) {
 		Sound_StopOldestInstanceById(
-			FLIGHT_SOUND_HYPERSPACE_ENTER_EMPIRE);
+			FLIGHT_SOUND_HYPERSPACE_ENTER_NON_IMPERIAL);
 	}
 
 	volume = fsfx_ComputeSourceVolume(emitterObjIdx, soundId);

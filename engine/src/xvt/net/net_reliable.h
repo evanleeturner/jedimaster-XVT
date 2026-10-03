@@ -121,8 +121,8 @@ extern int g_netLastDeliveredRecvSequence;
 int NetReliable_GetLastDeliveredRecvSequence(void);
 int NetReliable_CheckAndRecordRecvSequence(int directPlayId, int sequence,
 					   int channelA, int channelB);
-int NetReliable_FindQueuedRecvPacket(int unused, int remoteSeq, int channelA,
-				     int channelB, int peerSlot);
+int NetReliable_FindQueuedRecvPacket(int unusedSearchIndex, int remoteSeq,
+				     int channelA, int channelB, int peerSlot);
 int NetReliable_RemoveQueuedPacket(unsigned int queueIndex);
 unsigned int NetReliable_FindOrCreatePeerSlot(int directPlayId);
 void NetReliable_ResetRecvQueueState(void);

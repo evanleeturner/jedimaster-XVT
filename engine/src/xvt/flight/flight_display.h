@@ -25,7 +25,7 @@ extern uint8_t g_flightSoftwareFramebuffer[640 * 480 * 2];
 extern char g_hudCockpitResolutionDirectory[7];
 
 void FlightDisplay_ConfigureResolutionState(void);
-int FlightDisplay_ApplyResolutionMode(int resolutionMode);
+int FlightDisplay_ApplyResolutionModeStub(int resolutionMode);
 int FlightDisplay_PostPrimarySurfaceCreateOrRestoreStub(void);
 int FlightDisplay_Init(void);
 uint8_t FlightDisplay_SetPaletteEntries(const uint8_t *rgbData, int firstEntry,

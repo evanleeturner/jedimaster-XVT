@@ -110,7 +110,7 @@ const char *g_strUnknown = 0;
 /* Names of the species from CRAFT_SPECIES_COMM_SAT_1 (0x46) on, indexed by
  * species minus 0x46; from strings.txt by StringTable_LoadGameStrings. Read
  * by goals_DrawObjectTypeName for such a species with no model index, and by
- * Hud_AppendObjectDisplayName and msg_formatObjectName. */
+ * Hud_FormatObjectDisplayName and msg_formatObjectName. */
 // GLOBAL: XVT 0xA607B0
 const char *g_strSatMineProbeBuoyPilotNames[16] = {0};
 /* Status words from strings.txt, filled by StringTable_LoadGameStrings.
@@ -118,7 +118,7 @@ const char *g_strSatMineProbeBuoyPilotNames[16] = {0};
 // GLOBAL: XVT 0xA607F0
 const char *g_strStatusStrings[9] = {0};
 /* Warhead names from strings.txt, for object types 0x8F to 0x9B, filled by
- * StringTable_LoadGameStrings. Read by Hud_AppendObjectDisplayName and
+ * StringTable_LoadGameStrings. Read by Hud_FormatObjectDisplayName and
  * msg_formatObjectName. */
 // GLOBAL: XVT 0xA60820
 const char *g_strWarheadNames[13] = {0};
@@ -135,7 +135,7 @@ const char *g_strWingmanCommands[10] = {0};
  * with a new line. A flight group target (targetType 1) draws the craft type,
  * the group's name and the condition; for the special-cargo amounts (6 and 7)
  * it also draws the special craft's number when
- * Mission_GetSpecialCargoInspectedCount returns nonzero, else "?"; then any
+ * Mission_IsSpecialCargoInspected returns nonzero, else "?"; then any
  * time limit as "m:ss" (timeLimit5SecUnits counts 5 seconds). A global group
  * target (targetType 8) lists every flight group of that global group whose
  * arrivalEnabled is set, joined with commas and "and", then the condition;
@@ -178,7 +178,7 @@ int16_t goals_outputgoal(uint16_t targetId, uint16_t condition,
 			FlightText_DrawString(
 				g_missionFlightGroups[targetId].fg.name);
 			g_flightDrawCharFn(' ');
-			if (Mission_GetSpecialCargoInspectedCount(
+			if (Mission_IsSpecialCargoInspected(
 				    targetId, g_missionFlightGroups[targetId]
 						      .fg.specialCargoCraft) !=
 			    0) {
@@ -216,7 +216,7 @@ int16_t goals_outputgoal(uint16_t targetId, uint16_t condition,
 			FlightText_DrawString(
 				g_missionFlightGroups[targetId].fg.name);
 			g_flightDrawCharFn(' ');
-			if (Mission_GetSpecialCargoInspectedCount(
+			if (Mission_IsSpecialCargoInspected(
 				    targetId, g_missionFlightGroups[targetId]
 						      .fg.specialCargoCraft) !=
 			    0) {

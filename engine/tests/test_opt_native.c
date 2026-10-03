@@ -191,13 +191,13 @@ static void CheckVersions(void)
 		uint16_t handle = ReadFile("case.opt", &version, &nativeSize);
 		XVT_ASSERT_TRUE(handle != 0);
 		XVT_ASSERT_INT_EQ(version, expected);
-		OptimizedPolyObject *model = Memory_LockHandle(handle);
+		OptimizedPolyObject *model = Memory_GetHandleBlock(handle);
 		XVT_ASSERT_TRUE(model->selfMarker == model);
 		XVT_ASSERT_INT_EQ(model->rootNodeCount, 0);
 		/* The model header comes first and a copy of the body last. */
 		XVT_ASSERT_TRUE(nativeSize >=
 				sizeof(OptimizedPolyObject) + body.size);
-		Memory_UnlockHandle(handle);
+		Memory_HandleBlockDoneStub(handle);
 		Memory_FreeHandle(handle);
 	}
 
@@ -265,7 +265,7 @@ static void CheckRebuild(void)
 	uint16_t handle = ReadFile("case.opt", &version, &nativeSize);
 	XVT_ASSERT_TRUE(handle != 0);
 	XVT_ASSERT_INT_EQ(version, 2);
-	OptimizedPolyObject *model = Memory_LockHandle(handle);
+	OptimizedPolyObject *model = Memory_GetHandleBlock(handle);
 	XVT_ASSERT_TRUE(model->selfMarker == model);
 	XVT_ASSERT_INT_EQ(model->rootNodeCount, 1);
 
@@ -290,7 +290,7 @@ static void CheckRebuild(void)
 	XVT_ASSERT_TRUE(Inside(model, nativeSize, refNode));
 	XVT_ASSERT_INT_EQ(refNode->nodeType, OPT_NODEREF);
 	XVT_ASSERT_INT_EQ(refNode->payloadCount, 0);
-	Memory_UnlockHandle(handle);
+	Memory_HandleBlockDoneStub(handle);
 	Memory_FreeHandle(handle);
 	free(body.bytes);
 }
@@ -311,7 +311,7 @@ static void CheckPayloadPastEnd(void)
 	WriteModel("case.opt", 1, &body);
 	uint16_t handle = ReadFile("case.opt", &version, &nativeSize);
 	XVT_ASSERT_TRUE(handle != 0);
-	OptimizedPolyObject *model = Memory_LockHandle(handle);
+	OptimizedPolyObject *model = Memory_GetHandleBlock(handle);
 	const uint8_t *copied = model->rootNodes[0]->payload;
 	XVT_ASSERT_TRUE(Inside(model, nativeSize, copied) &&
 			Inside(model, nativeSize, copied + 23));
@@ -319,7 +319,7 @@ static void CheckPayloadPastEnd(void)
 	for (int i = 12; i < 24; ++i) {
 		XVT_ASSERT_INT_EQ(copied[i], 0);
 	}
-	Memory_UnlockHandle(handle);
+	Memory_HandleBlockDoneStub(handle);
 	Memory_FreeHandle(handle);
 	free(body.bytes);
 }
@@ -347,7 +347,7 @@ static void CheckLastPayload(const Body *body, int version, uint32_t payload,
 	WriteModel("case.opt", version, body);
 	uint16_t handle = ReadFile("case.opt", &read, &nativeSize);
 	XVT_ASSERT_TRUE(handle != 0);
-	OptimizedPolyObject *model = Memory_LockHandle(handle);
+	OptimizedPolyObject *model = Memory_GetHandleBlock(handle);
 	const uint8_t *copied =
 		model->rootNodes[model->rootNodeCount - 1]->payload;
 	const uint8_t *bodyCopy =
@@ -360,7 +360,7 @@ static void CheckLastPayload(const Body *body, int version, uint32_t payload,
 	for (const uint8_t *pad = copied + size; pad < bodyCopy; ++pad) {
 		XVT_ASSERT_INT_EQ(*pad, 0);
 	}
-	Memory_UnlockHandle(handle);
+	Memory_HandleBlockDoneStub(handle);
 	Memory_FreeHandle(handle);
 }
 

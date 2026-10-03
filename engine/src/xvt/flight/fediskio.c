@@ -4431,9 +4431,9 @@ void FeDiskIo_InitGlobalBuffers(void)
 	}
 
 	StringTable_LoadGameStrings(1);
-	g_flightFontSmallSw = Memory_LockHandle(g_flightSmallFontHandle);
-	g_flightFontMicroSw = Memory_LockHandle(g_flightMicroFontHandle);
-	g_flightFontMediumSw = Memory_LockHandle(g_flightMediumFontHandle);
+	g_flightFontSmallSw = Memory_GetHandleBlock(g_flightSmallFontHandle);
+	g_flightFontMicroSw = Memory_GetHandleBlock(g_flightMicroFontHandle);
+	g_flightFontMediumSw = Memory_GetHandleBlock(g_flightMediumFontHandle);
 	switch (g_flightResolutionMode) {
 	case FLIGHT_RESOLUTION_320X240:
 		FeDiskIo_ReadAllBytesOrFatal("MICRO32.FNT",
@@ -4472,16 +4472,17 @@ void FeDiskIo_InitGlobalBuffers(void)
 #endif
 	}
 
-	g_renderObjectListEntries = Memory_LockHandle(g_renderObjectListHandle);
+	g_renderObjectListEntries =
+		Memory_GetHandleBlock(g_renderObjectListHandle);
 	g_flightScratchScreenBuffer =
-		Memory_LockHandle(g_flightScratchScreenBufferHandle);
+		Memory_GetHandleBlock(g_flightScratchScreenBufferHandle);
 	memset(g_flightScratchScreenBuffer, SCRATCH_SCREEN_CLEAR_COLOR,
 	       g_screenHeight * (unsigned int)g_flightBytesPerPixel *
 		       g_screenWidth);
 	g_flightOffscreenBuffer =
-		Memory_LockHandle(g_flightOffscreenBufferHandle);
+		Memory_GetHandleBlock(g_flightOffscreenBufferHandle);
 	FlightSw_SetRotatedSpriteDestBuffer(g_flightScratchScreenBuffer);
-	g_flightAuxBuffer = Memory_LockHandle(g_flightAuxBufferHandle);
+	g_flightAuxBuffer = Memory_GetHandleBlock(g_flightAuxBufferHandle);
 	g_flightAuxBufferMirror = g_flightAuxBuffer;
 
 	FlightText_SetClipRect(0, 0, (int16_t)g_screenWidth,
@@ -4603,7 +4604,7 @@ void FeDiskIo_InitGlobalBuffers(void)
 #endif
 
 	g_hudCockpitResourcesLoaded = 0;
-	g_flightIconFrames = Memory_LockHandle(g_flightIconFramesHandle);
+	g_flightIconFrames = Memory_GetHandleBlock(g_flightIconFramesHandle);
 	g_flightIconFrameCount = FlightIcon_LoadFrames(
 		(char *)g_flightIconResourcePath,
 		(uint8_t *)g_flightIconFrames +
@@ -4630,30 +4631,30 @@ void FeDiskIo_UnlockGlobalBuffers(void)
 	uint16_t craftDataPoolHandle;
 
 	if (g_objectTableHandle != 0) {
-		Memory_UnlockHandle(g_objectTableHandle);
+		Memory_HandleBlockDoneStub(g_objectTableHandle);
 	}
 	if (g_mobileObjectPoolHandle != 0) {
-		Memory_UnlockHandle(g_mobileObjectPoolHandle);
+		Memory_HandleBlockDoneStub(g_mobileObjectPoolHandle);
 	}
 	craftDataPoolHandle = g_craftDataPoolHandle;
 	if (g_mobileObjectCharDataHandle != 0) {
-		Memory_UnlockHandle(g_craftDataPoolHandle);
+		Memory_HandleBlockDoneStub(g_craftDataPoolHandle);
 		craftDataPoolHandle = g_craftDataPoolHandle;
 	}
 	if (craftDataPoolHandle != 0) {
-		Memory_UnlockHandle(craftDataPoolHandle);
+		Memory_HandleBlockDoneStub(craftDataPoolHandle);
 	}
 	if (g_warheadGuidancePoolHandle != 0) {
-		Memory_UnlockHandle(g_warheadGuidancePoolHandle);
+		Memory_HandleBlockDoneStub(g_warheadGuidancePoolHandle);
 	}
-	Memory_UnlockHandle(g_stringDataHandle);
-	Memory_UnlockHandle(g_renderObjectListHandle);
-	Memory_UnlockHandle(g_flightSmallFontHandle);
-	Memory_UnlockHandle(g_flightMicroFontHandle);
-	Memory_UnlockHandle(g_flightMediumFontHandle);
-	Memory_UnlockHandle(g_flightScratchScreenBufferHandle);
-	Memory_UnlockHandle(g_flightAuxBufferHandle);
-	Memory_UnlockHandle(g_flightOffscreenBufferHandle);
+	Memory_HandleBlockDoneStub(g_stringDataHandle);
+	Memory_HandleBlockDoneStub(g_renderObjectListHandle);
+	Memory_HandleBlockDoneStub(g_flightSmallFontHandle);
+	Memory_HandleBlockDoneStub(g_flightMicroFontHandle);
+	Memory_HandleBlockDoneStub(g_flightMediumFontHandle);
+	Memory_HandleBlockDoneStub(g_flightScratchScreenBufferHandle);
+	Memory_HandleBlockDoneStub(g_flightAuxBufferHandle);
+	Memory_HandleBlockDoneStub(g_flightOffscreenBufferHandle);
 }
 
 /* Locks every set pool handle and points its base at the memory:
@@ -4668,29 +4669,31 @@ void FeDiskIo_LockGlobalBuffers(void)
 {
 	if (g_mobileObjectCharDataHandle != 0) {
 		g_mobileObjectCharDataPool =
-			Memory_LockHandle(g_mobileObjectCharDataHandle);
+			Memory_GetHandleBlock(g_mobileObjectCharDataHandle);
 	}
 	if (g_craftDataPoolHandle != 0) {
-		g_craftDataPoolBase = Memory_LockHandle(g_craftDataPoolHandle);
+		g_craftDataPoolBase =
+			Memory_GetHandleBlock(g_craftDataPoolHandle);
 	}
 	if (g_warheadGuidancePoolHandle != 0) {
 		g_projectileGuidanceStates =
-			Memory_LockHandle(g_warheadGuidancePoolHandle);
+			Memory_GetHandleBlock(g_warheadGuidancePoolHandle);
 	}
 	if (g_mobileObjectPoolHandle != 0) {
 		g_mobileObjectPoolBase =
-			Memory_LockHandle(g_mobileObjectPoolHandle);
+			Memory_GetHandleBlock(g_mobileObjectPoolHandle);
 	}
 	if (g_objectTableHandle != 0) {
-		g_objectTable = Memory_LockHandle(g_objectTableHandle);
+		g_objectTable = Memory_GetHandleBlock(g_objectTableHandle);
 		Object_RelinkMobileObjectPointers();
 	}
 
 	StringTable_LoadGameStrings(0);
-	g_renderObjectListEntries = Memory_LockHandle(g_renderObjectListHandle);
-	g_flightFontSmallSw = Memory_LockHandle(g_flightSmallFontHandle);
-	g_flightFontMicroSw = Memory_LockHandle(g_flightMicroFontHandle);
-	g_flightFontMediumSw = Memory_LockHandle(g_flightMediumFontHandle);
+	g_renderObjectListEntries =
+		Memory_GetHandleBlock(g_renderObjectListHandle);
+	g_flightFontSmallSw = Memory_GetHandleBlock(g_flightSmallFontHandle);
+	g_flightFontMicroSw = Memory_GetHandleBlock(g_flightMicroFontHandle);
+	g_flightFontMediumSw = Memory_GetHandleBlock(g_flightMediumFontHandle);
 	if (g_flightFontTier == 1) {
 		g_flightFontGlyphTableSw = g_flightFontSmallSw;
 	} else if (g_flightFontTier == 2) {
@@ -4700,11 +4703,11 @@ void FeDiskIo_LockGlobalBuffers(void)
 	}
 
 	g_flightScratchScreenBuffer =
-		Memory_LockHandle(g_flightScratchScreenBufferHandle);
+		Memory_GetHandleBlock(g_flightScratchScreenBufferHandle);
 	g_flightOffscreenBuffer =
-		Memory_LockHandle(g_flightOffscreenBufferHandle);
+		Memory_GetHandleBlock(g_flightOffscreenBufferHandle);
 	FlightSw_SetRotatedSpriteDestBuffer(g_flightScratchScreenBuffer);
-	g_flightAuxBuffer = Memory_LockHandle(g_flightAuxBufferHandle);
+	g_flightAuxBuffer = Memory_GetHandleBlock(g_flightAuxBufferHandle);
 	g_flightAuxBufferMirror = g_flightAuxBuffer;
 }
 
@@ -4971,7 +4974,7 @@ void FeDiskIo_LoadResources(void)
 			if ((resourceAssetFlags & MODEL_ASSET_OPT) != 0) {
 				resourceHandle =
 					OptModel_LoadHandle(resourceName);
-				Memory_LockHandle(resourceHandle);
+				Memory_GetHandleBlock(resourceHandle);
 			} else if ((resourceAssetFlags &
 				    MODEL_ASSET_TEX_LEVEL) != 0) {
 				FeDiskIo_OpenGlobalStream(resourceName, "rb", 1,
@@ -5000,8 +5003,9 @@ void FeDiskIo_LoadResources(void)
 					return;
 #endif
 				}
-				textureData = (unsigned int *)Memory_LockHandle(
-					resourceHandle);
+				textureData =
+					(unsigned int *)Memory_GetHandleBlock(
+						resourceHandle);
 				textureData[0] = resourceDataSize;
 				textureData[1] = paletteEntryCount;
 				FeDiskIo_ReadWithRetryPrompt(
@@ -5068,7 +5072,7 @@ void FeDiskIo_LoadResources(void)
 					}
 				}
 			}
-			Memory_UnlockHandle(resourceHandle);
+			Memory_HandleBlockDoneStub(resourceHandle);
 		}
 
 		g_stream = listStream;
@@ -5641,7 +5645,7 @@ void FeDiskIo_BuildModelDef(uint8_t modelDefIndex, ObjectTypeId objectType)
 							.weaponHardpoints
 								[alternateSlot]
 							.alternateMeshHardpointIdx =
-							(uint8_t)ModelMesh_GetAlternateHardpointIndex(
+							(uint8_t)ModelMesh_GetHardpointIndex(
 								(uint8_t)
 									objectType,
 								meshIndex,
@@ -5762,7 +5766,7 @@ char FeDiskIo_ShowRetryFailPrompt(void)
 	int16_t savedClipRight;
 	int16_t savedClipBottom;
 	int16_t savedWordWrap;
-	int16_t savedReservedState;
+	int16_t savedUnusedState;
 	int16_t savedClearLineBg;
 	uint8_t savedTextColor;
 	uint8_t savedBgColor;
@@ -5784,7 +5788,7 @@ char FeDiskIo_ShowRetryFailPrompt(void)
 	savedClipRight = g_flightClipRight;
 	savedClipBottom = g_flightClipBottom;
 	savedWordWrap = g_flightWordWrapEnabled;
-	savedReservedState = g_flightTextReservedState;
+	savedUnusedState = g_flightTextUnusedState;
 	savedTextColor = g_flightTextColorIndex;
 	savedClearLineBg = g_flightClearLineBgEnabled;
 	savedBgColor = g_flightTextBgColor;
@@ -5861,7 +5865,7 @@ char FeDiskIo_ShowRetryFailPrompt(void)
 	g_flightClipRight = savedClipRight;
 	g_flightClipBottom = savedClipBottom;
 	g_flightWordWrapEnabled = savedWordWrap;
-	g_flightTextReservedState = savedReservedState;
+	g_flightTextUnusedState = savedUnusedState;
 	g_flightTextColorIndex = savedTextColor;
 	g_flightClearLineBgEnabled = savedClearLineBg;
 	g_flightTextBgColor = savedBgColor;
@@ -5897,7 +5901,7 @@ int FeDiskIo_ShowFatalErrorMessageAndWaitKey(const char *message)
 	int16_t savedClipRight;
 	int16_t savedClipBottom;
 	int16_t savedWordWrap;
-	int16_t savedReservedState;
+	int16_t savedUnusedState;
 	int16_t savedClearLineBg;
 	uint8_t savedTextColor;
 	uint8_t savedBgColor;
@@ -5919,7 +5923,7 @@ int FeDiskIo_ShowFatalErrorMessageAndWaitKey(const char *message)
 	savedClipRight = g_flightClipRight;
 	savedClipBottom = g_flightClipBottom;
 	savedWordWrap = g_flightWordWrapEnabled;
-	savedReservedState = g_flightTextReservedState;
+	savedUnusedState = g_flightTextUnusedState;
 	savedTextColor = g_flightTextColorIndex;
 	savedClearLineBg = g_flightClearLineBgEnabled;
 	savedBgColor = g_flightTextBgColor;
@@ -5985,7 +5989,7 @@ int FeDiskIo_ShowFatalErrorMessageAndWaitKey(const char *message)
 	g_flightClipRight = savedClipRight;
 	g_flightClipBottom = savedClipBottom;
 	g_flightWordWrapEnabled = savedWordWrap;
-	g_flightTextReservedState = savedReservedState;
+	g_flightTextUnusedState = savedUnusedState;
 	g_flightTextColorIndex = savedTextColor;
 	g_flightClearLineBgEnabled = savedClearLineBg;
 	g_flightTextBgColor = savedBgColor;

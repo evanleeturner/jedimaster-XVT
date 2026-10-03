@@ -1133,11 +1133,11 @@ int Display_IsPixelFormat555(void)
 	return g_pixelFormatCode == 555;
 }
 
-/* Despite the name, applies nothing: it returns 1 through
+/* Applies nothing: it returns 1 through
  * FlightDisplay_ApplyResolutionModeInternalStub, which calls
  * FlightDisplay_ApplyResolutionModeBackendStub, which does nothing. */
 // FUNCTION: XVT 0x4AC7B0
-int FlightDisplay_ApplyResolutionMode(int resolutionMode)
+int FlightDisplay_ApplyResolutionModeStub(int resolutionMode)
 {
 	return FlightDisplay_ApplyResolutionModeInternalStub(resolutionMode, 0);
 }

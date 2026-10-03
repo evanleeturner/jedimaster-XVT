@@ -477,13 +477,12 @@ int PilotRecord_UpdatePilotSelectionPanel(int frameCounter)
 								[g_pilotData
 									 .currentFactionId]
 							.missionSequenceActive;
-					g_pilotData
-						.missionSequenceDescriptionId =
+					g_pilotData.savedMissionDescriptionId =
 						g_pilotData
 							.factionStatistics
 								[g_pilotData
 									 .currentFactionId]
-							.missionSequenceDescriptionId;
+							.savedMissionDescriptionId;
 				}
 			}
 			memset(g_pilotRecordNameInput, 0,
@@ -599,12 +598,12 @@ int PilotRecord_UpdatePilotSelectionPanel(int frameCounter)
 											 .currentFactionId]
 									.missionSequenceActive;
 							g_pilotData
-								.missionSequenceDescriptionId =
+								.savedMissionDescriptionId =
 								g_pilotData
 									.factionStatistics
 										[g_pilotData
 											 .currentFactionId]
-									.missionSequenceDescriptionId;
+									.savedMissionDescriptionId;
 						}
 						break;
 					}
@@ -6959,9 +6958,9 @@ int PilotRecord_UpdateNavigationControls(void)
 		       sizeof(g_pilotData.missionDescriptionIds));
 		g_pilotData.missionSequenceActive =
 			g_pilotData.factionStatistics[1].missionSequenceActive;
-		g_pilotData.missionSequenceDescriptionId =
+		g_pilotData.savedMissionDescriptionId =
 			g_pilotData.factionStatistics[1]
-				.missionSequenceDescriptionId;
+				.savedMissionDescriptionId;
 		PilotRecord_RedrawBackground();
 	}
 
@@ -6985,9 +6984,9 @@ int PilotRecord_UpdateNavigationControls(void)
 			g_pilotData.missionSequenceActive =
 				g_pilotData.factionStatistics[0]
 					.missionSequenceActive;
-			g_pilotData.missionSequenceDescriptionId =
+			g_pilotData.savedMissionDescriptionId =
 				g_pilotData.factionStatistics[0]
-					.missionSequenceDescriptionId;
+					.savedMissionDescriptionId;
 			PilotRecord_RedrawBackground();
 		}
 	} else {

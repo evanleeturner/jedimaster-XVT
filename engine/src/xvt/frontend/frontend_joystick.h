@@ -37,7 +37,7 @@ int Joystick_GetPovDirection(int joySlot);
 int Joystick_HasPov(int joySlot);
 int Joystick_GetButtonCount(int joySlot);
 int FrontendJoystick_BeginCenteringPrompt(void);
-int FrontendJoystick_UpdateCenteringPrompt(int inputCode);
+int FrontendJoystick_UpdateCenteringPrompt(int frameCounter);
 unsigned int Joystick_GetDeviceId(int joySlot);
 
 #ifdef __cplusplus

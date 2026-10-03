@@ -82,7 +82,7 @@ static unsigned int XvtSnapshot_SumSlotRecords(uint8_t **cursor)
 			craftState = (XvtSnapshotCraftData *)*cursor;
 			craftDataBytes =
 				sizeof(*craftState) -
-				sizeof(craftState->field_3F2) -
+				sizeof(craftState->unused3F2) -
 				sizeof(craftState->turretObjectLinks) -
 				sizeof(craftState->effectiveAiObjectLink) + 32;
 			do {
@@ -303,7 +303,7 @@ static uint32_t XvtSnapshot_MixPools(uint32_t checksum)
 
 	for (mobileObjectIndex = 0;
 	     mobileObjectIndex <
-	     g_regionMainObjectSlotEnd - g_regionMainObjectSlotStart;
+	     g_regionMainObjectSlotEnd - g_localDebrisSlotCount;
 	     mobileObjectIndex++) {
 		if (g_objectTable[mobileObjectIndex].objectType != 0) {
 			checksum = XvtSnapshot_MixChecksum(
@@ -312,8 +312,8 @@ static uint32_t XvtSnapshot_MixPools(uint32_t checksum)
 							  [mobileObjectIndex]));
 		}
 	}
-	for (objectIndex = 0; objectIndex < g_regionMainObjectSlotEnd -
-						    g_regionMainObjectSlotStart;
+	for (objectIndex = 0;
+	     objectIndex < g_regionMainObjectSlotEnd - g_localDebrisSlotCount;
 	     objectIndex++) {
 		if (g_objectTable[objectIndex].objectType != 0) {
 			checksum = XvtSnapshot_MixChecksum(
@@ -431,8 +431,7 @@ int XvtSnapshot_LiveChecksum(void)
 	checksum = XvtSnapshot_MixChecksum(checksum, g_debrisObjectSlotsTotal);
 	checksum =
 		XvtSnapshot_MixChecksum(checksum, g_worldStateDebrisSlotCount);
-	checksum =
-		XvtSnapshot_MixChecksum(checksum, g_regionMainObjectSlotStart);
+	checksum = XvtSnapshot_MixChecksum(checksum, g_localDebrisSlotCount);
 	checksum = XvtSnapshot_MixChecksum(checksum,
 					   g_activeRegionObjectSlotStart);
 	checksum = XvtSnapshot_MixChecksum(checksum,

@@ -64,7 +64,7 @@ void FlightLoading_PulseAndDrawProgressScreen(void)
 	int16_t savedClipRight;
 	int16_t savedClipBottom;
 	int16_t savedWordWrap;
-	int16_t savedReservedState;
+	int16_t savedUnusedState;
 	uint8_t savedTextColor;
 	int16_t savedClearLineBackground;
 	uint8_t savedBackgroundColor;
@@ -101,7 +101,7 @@ void FlightLoading_PulseAndDrawProgressScreen(void)
 	savedClipRight = g_flightClipRight;
 	savedClipBottom = g_flightClipBottom;
 	savedWordWrap = g_flightWordWrapEnabled;
-	savedReservedState = g_flightTextReservedState;
+	savedUnusedState = g_flightTextUnusedState;
 	savedTextColor = g_flightTextColorIndex;
 	savedClearLineBackground = g_flightClearLineBgEnabled;
 	savedBackgroundColor = g_flightTextBgColor;
@@ -161,7 +161,7 @@ void FlightLoading_PulseAndDrawProgressScreen(void)
 	g_flightClipRight = savedClipRight;
 	g_flightClipBottom = savedClipBottom;
 	g_flightWordWrapEnabled = savedWordWrap;
-	g_flightTextReservedState = savedReservedState;
+	g_flightTextUnusedState = savedUnusedState;
 	g_flightTextColorIndex = savedTextColor;
 	g_flightClearLineBgEnabled = savedClearLineBackground;
 	g_flightTextBgColor = savedBackgroundColor;

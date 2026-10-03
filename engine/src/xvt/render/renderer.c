@@ -352,8 +352,8 @@ int g_curMatR0_Z = 0;
 /* Row 0 (the side axis), X term, of the current object matrix, Q15. The
  * matrix's nine terms are written by FVIEW_SetObjectTransform,
  * FVIEW_calcrotatemove, FVIEW_transformaxes and FlightView_RotateViewByInput,
- * and in the original build USER_calcdeltapitch; FVIEW_BuildCameraOrient also
- * negates rows 1 and 2. */
+ * and in the original build Player_ApplyPitchYawSteps; FVIEW_BuildCameraOrient
+ * also negates rows 1 and 2. */
 // GLOBAL: XVT 0xA0049C
 int g_curMatR0_X = 0;
 /* Row 1 (the up axis), Y term, of the current object matrix, Q15; see

@@ -282,7 +282,7 @@ struct PilotMultiplayerTournament {
 	int bestPlacement;
 	/* No code reads or writes it by name; it is saved with the pilot
 	 * file. */
-	int field1C;
+	int unused1C;
 	/* Best award won, 1 the best to 5, or 6 for a failed one: an award
 	 * replaces it when lower or when the field is 0. Every award a flight
 	 * wins adds one to the faction's tournamentTrophies count, replaced or
@@ -328,7 +328,7 @@ struct PilotBattle {
 	int bestScore;
 	/* No code reads or writes it by name; it is saved with the pilot
 	 * file. */
-	int field14;
+	int unused14;
 	/* Best award won, 1 the best to 5, or 6 for a failed one: an award
 	 * replaces it when lower or when the field is 0. On a replacement
 	 * FeDiskIo_CommitFlightResults moves one of the faction's
@@ -372,10 +372,10 @@ struct PilotMultiplayerBattle {
 	int bestScore;
 	/* No code reads or writes it by name; it is saved with the pilot
 	 * file. */
-	int field14;
+	int unused14;
 	/* No code reads or writes it by name; it is saved with the pilot
 	 * file. */
-	int field18;
+	int unused18;
 	/* Best award won, 1 the best to 5, or 6 for a failed one: an award
 	 * replaces it when lower or when the field is 0. Every award a flight
 	 * wins adds one to the faction's battleMedallions count, replaced or
@@ -387,7 +387,7 @@ struct PilotMultiplayerBattle {
 	unsigned int bestVictoryMargin;
 	/* No code reads or writes it by name; it is saved with the pilot
 	 * file. */
-	int field24;
+	int unused24;
 };
 
 #pragma pack(pop)
@@ -415,19 +415,19 @@ struct PilotCampaign {
 	int bestScore;
 	/* No code reads or writes it by name; it is saved with the pilot
 	 * file. */
-	int field10;
+	int unused10;
 	/* No code reads or writes it by name; it is saved with the pilot
 	 * file. */
-	int field14;
+	int unused14;
 	/* No code reads or writes it by name; it is saved with the pilot
 	 * file. */
-	int field18;
+	int unused18;
 	/* No code reads or writes it by name; it is saved with the pilot
 	 * file. */
-	int field1C;
+	int unused1C;
 	/* No code reads or writes it by name; it is saved with the pilot
 	 * file. */
-	int field20;
+	int unused20;
 };
 
 #pragma pack(pop)
@@ -469,7 +469,7 @@ struct PilotCampaignMission {
 	int isCompleted;
 	/* No code reads or writes it by name; it is saved with the pilot
 	 * file. */
-	int field1C;
+	int unused1C;
 };
 
 #pragma pack(pop)
@@ -558,11 +558,12 @@ struct PilotFaction {
 	int missionDescriptionIds[6];
 	/* No code reads or writes it by name; it is saved with the pilot
 	 * file. */
-	uint8_t field24[32];
+	uint8_t unused24[32];
 	int missionSequenceActive; ///< Persisted active-sequence flag mirrored to
 				   ///< PilotData.missionSequenceActive.
-	int missionSequenceDescriptionId; ///< Persisted sequence descriptor ID mirrored to
-	///< PilotData.missionSequenceDescriptionId.
+	/* PilotData.savedMissionDescriptionId for this faction, saved and
+	 * restored like team. */
+	int savedMissionDescriptionId;
 	int meleePlaques[6]; ///< Melee plaque counts by award level 1-6.
 	int tournamentTrophies
 		[6]; ///< Tournament trophy counts by award level 1-6.
@@ -609,7 +610,7 @@ struct PilotFaction {
 		mpCampaigns[25]; ///< Multiplayer campaign history (25 records).
 	/* No code reads or writes it by name; it is saved with the pilot
 	 * file. */
-	uint8_t fieldF0E4
+	uint8_t unusedF0E4
 		[24]; ///< Unresolved bytes between multiplayer campaign history and the CD movie-check
 	///< counter.
 	/* Only entry 0's is used, by Concourse_Update in the original build
@@ -624,7 +625,7 @@ struct PilotFaction {
 		      ///< one-based mission ID 1-99.
 	/* No code reads or writes it by name; it is saved with the pilot
 	 * file. */
-	uint8_t fieldFD60
+	uint8_t unusedFD60
 		[32]; ///< Unresolved bytes preceding multiplayer campaign mission history.
 	PilotCampaignMission mpCampaignMissions
 		[99]; ///< Multiplayer campaign mission history indexed by
@@ -701,15 +702,15 @@ struct PilotData {
 	 * functions; selecting a pilot or a faction restores it from
 	 * factionStatistics. */
 	int missionSequenceActive;
-	/* Despite the name, not the sequence's id: when a tournament, battle or
-	 * campaign's first or next mission is selected, the entry of
-	 * missionDescriptionIds for the directory its missions come from
-	 * (melees, combat engagements or training exercises), saved before
-	 * that mission's id replaces it. MissionSetup_Update, while a sequence
-	 * is active, and MissionSetup_EnterNextMission copy it back into that
-	 * entry. Saved and restored with factionStatistics like
-	 * missionSequenceActive. */
-	int missionSequenceDescriptionId;
+	/* The entry of missionDescriptionIds for the directory a tournament,
+	 * battle or campaign plays its missions from (melees, combat
+	 * engagements or training exercises), saved when the sequence's first
+	 * or next mission is selected, or on a client when the host's mission
+	 * start arrives, before that mission's id replaces the entry.
+	 * MissionSetup_Update, while a sequence is active, and
+	 * MissionSetup_EnterNextMission copy it back into that entry. Saved and
+	 * restored with factionStatistics like missionSequenceActive. */
+	int savedMissionDescriptionId;
 	/* Promotion points earned at the current rating. Below the cap, Officer
 	 * 1st Class for training missions and Jedi Master for SIMULATOR_2
 	 * training, melee and combat, FeDiskIo_CommitFlightResults adds each

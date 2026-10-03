@@ -179,7 +179,7 @@ void FlightObject_UpdateSpecialBehavior(void)
 						g_planTable
 							[g_curCraft
 								 ->aiController
-								 .pendingPlanId]
+								 .runningPlanId]
 								.name;
 					allowSystemRotation =
 						strcmp(planName, "nullpln") !=

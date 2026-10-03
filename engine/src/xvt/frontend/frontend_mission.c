@@ -782,8 +782,8 @@ void FrontendMission_InitPlayerState(void)
 				      .missionDescriptionIds));
 		g_pilotData.factionStatistics[2].missionSequenceActive =
 			g_pilotData.missionSequenceActive;
-		g_pilotData.factionStatistics[2].missionSequenceDescriptionId =
-			g_pilotData.missionSequenceDescriptionId;
+		g_pilotData.factionStatistics[2].savedMissionDescriptionId =
+			g_pilotData.savedMissionDescriptionId;
 		g_pilotData.factionStatistics[0].missionSequenceActive = 0;
 		g_pilotData.factionStatistics[1].missionSequenceActive = 0;
 	} else {
@@ -824,8 +824,8 @@ void FrontendMission_InitPlayerState(void)
 			g_pilotData.missionSequenceActive;
 		g_pilotData.factionStatistics[2].missionSequenceActive = 0;
 		g_pilotData.factionStatistics[g_pilotData.currentFactionId]
-			.missionSequenceDescriptionId =
-			g_pilotData.missionSequenceDescriptionId;
+			.savedMissionDescriptionId =
+			g_pilotData.savedMissionDescriptionId;
 	}
 	Net_CompactReliablePeerSlotsForRoster();
 }

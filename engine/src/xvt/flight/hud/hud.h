@@ -303,12 +303,12 @@ void Hud_UpdateCMDText(void);
 void Hud_DrawRadarBlips(void);
 void Hud_AddBlipToRadar(int16_t objIdx);
 void Hud_UpdateTargetingComputerDisplay(void);
-void Hud_AppendObjectDisplayName(uint16_t objectRef, int16_t displayFlags);
+void Hud_FormatObjectDisplayName(uint16_t objectRef, int16_t displayFlags);
 int Hud_MissionFG_GetCraftNumberIfShown(int flightGroupIdx,
 					const CraftData *craft);
 void Hud_DrawTargetDistance(int polarDistance);
 void Hud_UpdateTargetingLockIndicator(void);
-void Hud_DrawReticle3D(void);
+void Hud_DrawLaserCannonIndicators(void);
 void Hud_UpdateWarheadCnt(void);
 void Hud_OutputWarheadCount(uint16_t warheadSlotIdx, uint16_t displaySlot,
 			    uint16_t warheadBank);

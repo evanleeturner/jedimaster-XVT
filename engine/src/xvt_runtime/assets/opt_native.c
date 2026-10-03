@@ -527,7 +527,7 @@ uint16_t XvtOpt_Read(AeronFile *file, const char *label, int *version,
 	if (!handle) {
 		goto done;
 	}
-	OptimizedPolyObject *model = Memory_LockHandle(handle);
+	OptimizedPolyObject *model = Memory_GetHandleBlock(handle);
 	uint8_t *raw_copy = (uint8_t *)model + raw_offset;
 	memcpy(raw_copy, decode.bytes, decode.size);
 	model->selfMarker = model;
@@ -541,7 +541,7 @@ uint16_t XvtOpt_Read(AeronFile *file, const char *label, int *version,
 					   XvtOpt_ReadU32(table + i * 4));
 	}
 	*native_size = (unsigned int)decode.native_size;
-	Memory_UnlockHandle(handle);
+	Memory_HandleBlockDoneStub(handle);
 done:
 	if (!AeronVfs_Close(file) && handle) {
 		Memory_FreeHandle(handle);

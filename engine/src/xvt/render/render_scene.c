@@ -1165,12 +1165,15 @@ void RenderScene_DrawMeshFaces(const SceneMesh *mesh)
 			g_d3dVertexCount += g_clipCountA;
 			if (g_clipCountA > triangleCorner) {
 				do {
-					g_triBuffer[g_d3dTriangleCount].v0 =
+					g_triBuffer[g_d3dTriangleCount]
+						.vertexIndex0 =
 						colorKeyVertexBase;
-					g_triBuffer[g_d3dTriangleCount].v1 =
+					g_triBuffer[g_d3dTriangleCount]
+						.vertexIndex1 =
 						colorKeyVertexBase +
 						triangleCorner - 1;
-					g_triBuffer[g_d3dTriangleCount].v2 =
+					g_triBuffer[g_d3dTriangleCount]
+						.vertexIndex2 =
 						colorKeyVertexBase +
 						triangleCorner;
 					g_triBuffer[g_d3dTriangleCount]
@@ -1196,11 +1199,11 @@ void RenderScene_DrawMeshFaces(const SceneMesh *mesh)
 			int *triangleVertex = &g_clipIdxA[1];
 
 			do {
-				g_triBuffer[g_d3dTriangleCount].v0 =
+				g_triBuffer[g_d3dTriangleCount].vertexIndex0 =
 					g_clipIdxA[0];
-				g_triBuffer[g_d3dTriangleCount].v1 =
+				g_triBuffer[g_d3dTriangleCount].vertexIndex1 =
 					*triangleVertex++;
-				g_triBuffer[g_d3dTriangleCount].v2 =
+				g_triBuffer[g_d3dTriangleCount].vertexIndex2 =
 					*triangleVertex;
 				g_triBuffer[g_d3dTriangleCount].texture =
 					opaqueTexture;
@@ -2014,7 +2017,7 @@ void RenderScene_DrawObjectModel(ObjectRecord *obj)
 	} else {
 		g_nodeSwitchIndex = 0;
 	}
-	model = (OptimizedPolyObject *)Memory_LockHandle(modelHandle);
+	model = (OptimizedPolyObject *)Memory_GetHandleBlock(modelHandle);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 	}
@@ -2162,7 +2165,7 @@ void RenderScene_DrawObjectModel(ObjectRecord *obj)
 			restoreMesh = 0;
 		}
 	}
-	Memory_UnlockHandle(modelHandle);
+	Memory_HandleBlockDoneStub(modelHandle);
 }
 
 /* Draws one root node of an object's model, set up as
@@ -2199,7 +2202,7 @@ void RenderScene_DrawSelectedRootNode(ObjectRecord *obj, int rootNodeIndex)
 	}
 
 	modelHandle = g_loadedModels[objectType];
-	model = (OptimizedPolyObject *)Memory_LockHandle(modelHandle);
+	model = (OptimizedPolyObject *)Memory_GetHandleBlock(modelHandle);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 	}
@@ -2313,7 +2316,7 @@ void RenderScene_DrawSelectedRootNode(ObjectRecord *obj, int rootNodeIndex)
 			RenderScene_DrawModelNode(model, rootNode, &mesh);
 		}
 	}
-	Memory_UnlockHandle(modelHandle);
+	Memory_HandleBlockDoneStub(modelHandle);
 }
 
 /* Walks one model node and those below it, updating mesh and drawing face data.
@@ -2838,8 +2841,8 @@ int RenderScene_IsSegmentOccludedByObjectModel(ObjectRecord *object,
 		return 0;
 	}
 	modelHandle = g_loadedModels[object->objectType];
-	Memory_UnlockHandle(modelHandle);
-	model = (OptimizedPolyObject *)Memory_LockHandle(modelHandle);
+	Memory_HandleBlockDoneStub(modelHandle);
+	model = (OptimizedPolyObject *)Memory_GetHandleBlock(modelHandle);
 	if (model->selfMarker != model) {
 		OptModel_AdjustOptimizedPolyObjectPointers(model);
 	}
@@ -3443,18 +3446,18 @@ void RenderScene_Initialize(int resetSceneState)
 	g_sw3dCockpitMaskSentinelFace.gradients[8] = 1.0e32f;
 	g_sw3dCockpitMaskSentinelFace.gradients[6] = 0.0f;
 	g_sw3dCockpitMaskSentinelFace.gradients[7] = 0.0f;
-	g_sceneSpanDataBase = Memory_LockHandle(g_sceneSpanDataHandle);
-	g_sceneSpanPtrList = Memory_LockHandle(g_sceneSpanPtrListHandle);
-	g_visFaceList = Memory_LockHandle(g_visFaceListHandle);
-	g_projVertList = Memory_LockHandle(g_projVertListHandle);
-	g_sceneEdgeList = Memory_LockHandle(g_sceneEdgeListHandle);
-	g_vertexRemap = Memory_LockHandle(g_vertexRemapHandle);
-	g_sceneEdgeFlags = Memory_LockHandle(g_sceneEdgeFlagsHandle);
-	g_sceneSclEdgeList = Memory_LockHandle(g_sceneSclEdgeListHandle);
-	g_scanlineSpanHeads = Memory_LockHandle(g_scanlineSpanHeadsHandle);
+	g_sceneSpanDataBase = Memory_GetHandleBlock(g_sceneSpanDataHandle);
+	g_sceneSpanPtrList = Memory_GetHandleBlock(g_sceneSpanPtrListHandle);
+	g_visFaceList = Memory_GetHandleBlock(g_visFaceListHandle);
+	g_projVertList = Memory_GetHandleBlock(g_projVertListHandle);
+	g_sceneEdgeList = Memory_GetHandleBlock(g_sceneEdgeListHandle);
+	g_vertexRemap = Memory_GetHandleBlock(g_vertexRemapHandle);
+	g_sceneEdgeFlags = Memory_GetHandleBlock(g_sceneEdgeFlagsHandle);
+	g_sceneSclEdgeList = Memory_GetHandleBlock(g_sceneSclEdgeListHandle);
+	g_scanlineSpanHeads = Memory_GetHandleBlock(g_scanlineSpanHeadsHandle);
 	g_sceneLightSampleData =
-		Memory_LockHandle(g_sceneLightSampleDataHandle);
-	g_meshQueue = Memory_LockHandle(g_meshQueueHandle);
+		Memory_GetHandleBlock(g_sceneLightSampleDataHandle);
+	g_meshQueue = Memory_GetHandleBlock(g_meshQueueHandle);
 	if (resetSceneState != 0) {
 		g_visFacePassStart = 0;
 		g_sceneSpanPtrAvail = g_sceneSpanPtrCapacity;
@@ -3536,17 +3539,17 @@ void RenderScene_Initialize(int resetSceneState)
 // FUNCTION: XVT 0x486200
 int RenderScene_UnlockBuffers(void)
 {
-	Memory_UnlockHandle(g_sceneSpanDataHandle);
-	Memory_UnlockHandle(g_sceneSpanPtrListHandle);
-	Memory_UnlockHandle(g_visFaceListHandle);
-	Memory_UnlockHandle(g_projVertListHandle);
-	Memory_UnlockHandle(g_sceneEdgeListHandle);
-	Memory_UnlockHandle(g_vertexRemapHandle);
-	Memory_UnlockHandle(g_sceneEdgeFlagsHandle);
-	Memory_UnlockHandle(g_sceneSclEdgeListHandle);
-	Memory_UnlockHandle(g_scanlineSpanHeadsHandle);
-	Memory_UnlockHandle(g_sceneLightSampleDataHandle);
-	Memory_UnlockHandle(g_meshQueueHandle);
+	Memory_HandleBlockDoneStub(g_sceneSpanDataHandle);
+	Memory_HandleBlockDoneStub(g_sceneSpanPtrListHandle);
+	Memory_HandleBlockDoneStub(g_visFaceListHandle);
+	Memory_HandleBlockDoneStub(g_projVertListHandle);
+	Memory_HandleBlockDoneStub(g_sceneEdgeListHandle);
+	Memory_HandleBlockDoneStub(g_vertexRemapHandle);
+	Memory_HandleBlockDoneStub(g_sceneEdgeFlagsHandle);
+	Memory_HandleBlockDoneStub(g_sceneSclEdgeListHandle);
+	Memory_HandleBlockDoneStub(g_scanlineSpanHeadsHandle);
+	Memory_HandleBlockDoneStub(g_sceneLightSampleDataHandle);
+	Memory_HandleBlockDoneStub(g_meshQueueHandle);
 	g_sceneSpanDataBase = NULL;
 	g_sceneSpanPtrList = NULL;
 	g_visFaceList = NULL;

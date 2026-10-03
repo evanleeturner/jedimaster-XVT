@@ -282,10 +282,9 @@ int g_optIsClient;
 /* Heap buffer for the screen pixels under the cursor sprite, 2 bytes for each
  * pixel of the "cursor" image: Frontend_LoadResources allocates it and hands it
  * to FrontendCursor_SetImageFromResourceName as the save buffer. Freed by
- * GameMain and, in the modern build, XvtFrontendTask_Shutdown. Despite the
- * name, it holds no cursor image. */
+ * GameMain and, in the modern build, XvtFrontendTask_Shutdown. */
 // GLOBAL: XVT 0xB6A2AC
-void *g_cursorBitmap;
+void *g_cursorSaveBuffer;
 /* Set to 1 by Frontend_LoadResources, the main frontend's start, and never set
  * back; GameMain returns 1 when it is still 0. */
 // GLOBAL: XVT 0x52BA5C
@@ -300,7 +299,7 @@ int g_gameMainSkipIntroRelaunchGate;
  * runs FrontendDisplay_Init at 24 frames a second and 16 bits per pixel,
  * starting at the concourse when any of the last three options is set, else
  * with the opening movie and credits. When that returns it frees
- * g_cursorBitmap, g_frontendChatLogBuffer, g_cutsceneTable and
+ * g_cursorSaveBuffer, g_frontendChatLogBuffer, g_cutsceneTable and
  * g_campaignAwardSprites, saves the pilot, and returns 1 when
  * g_gameMainSkipIntroRelaunchGate is still 0, else 0. */
 // FUNCTION: XVT 0x4D3600
@@ -353,8 +352,8 @@ int GameMain(void *hInstance, void *hPrevInstance, char *lpCmdLine,
 	FrontendDisplay_Init(hInstance, hPrevInstance, lpCmdLine, nShowCmd,
 			     updateFunction, exitFunction, initFunction, 24,
 			     16);
-	free(g_cursorBitmap);
-	g_cursorBitmap = NULL;
+	free(g_cursorSaveBuffer);
+	g_cursorSaveBuffer = NULL;
 	free(g_frontendChatLogBuffer);
 	g_frontendChatLogBuffer = NULL;
 	if (g_cutsceneTable != NULL) {

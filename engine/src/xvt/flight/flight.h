@@ -130,12 +130,14 @@ struct FlightMissionState {
 	/* Proving grounds score in points; flight start credits 10,000 for each
 	 * level below the starting one. */
 	uint32_t provingGroundsScore;
-	/* Zeroed by Mission_Init; not otherwise used by name. */
-	uint8_t reserved08[2];
+	/* Zeroed by Mission_Init and copied by the modern build's snapshot;
+	 * nothing reads it. */
+	uint8_t unused08[2];
 	/* Course checkpoints passed this level. */
 	uint16_t provingGroundsCheckpointsPassed;
-	/* Zeroed by Mission_Init; not otherwise used by name. */
-	uint8_t reserved0C[2];
+	/* Zeroed by Mission_Init and copied by the modern build's snapshot;
+	 * nothing reads it. */
+	uint8_t unused0C[2];
 	/* Course checkpoints left this level. */
 	uint16_t provingGroundsCheckpointsRemaining;
 	/* Course targets hit, counted by Craft_DamageComponent. */

@@ -1169,11 +1169,11 @@ void FlightSync_BufferWorldMessagePacket(uint8_t *packet)
 			FeDiskIo_FatalError(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 		}
 		g_worldMessageBuffer =
-			Memory_LockHandle(g_worldMessageBufferHandle);
+			Memory_GetHandleBlock(g_worldMessageBufferHandle);
 		if (oldHandle != 0) {
-			oldBuffer = Memory_LockHandle(oldHandle);
+			oldBuffer = Memory_GetHandleBlock(oldHandle);
 			memcpy(g_worldMessageBuffer, oldBuffer, oldCapacity);
-			Memory_UnlockHandle(oldHandle);
+			Memory_HandleBlockDoneStub(oldHandle);
 			Memory_FreeHandle(oldHandle);
 		}
 	}

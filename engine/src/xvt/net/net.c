@@ -299,8 +299,8 @@ int Net_StartNetworkSession(
 	g_frontState.netReliableRetryLongTimeoutMode = 0;
 	g_frontState.netGroupDplayId = 0;
 	g_frontState.netHostPlayerId = 0;
-	g_frontState.netExportRecvQueuePtr = NULL;
-	g_frontState.netExportRecvQueueHighWater = 0;
+	g_frontState.netFlightSentWorldMessageHistory = NULL;
+	g_frontState.netFlightSentWorldMessageWriteIndex = 0;
 	for (peerIndex = 0; peerIndex < NET_RELIABLE_PEER_CAPACITY;
 	     ++peerIndex) {
 		g_frontState.netRuntimeReliablePeerSlots[peerIndex]
@@ -415,10 +415,10 @@ int Net_StartNetworkSession(
 			return 0;
 		}
 
-		strncpy(g_frontState.netPlayers[0].playerInfo, localPlayerInfo,
-			sizeof(g_frontState.netPlayers[0].playerInfo));
+		strncpy(g_frontState.netPlayers[0].longName, localPlayerInfo,
+			sizeof(g_frontState.netPlayers[0].longName));
 		g_frontState.netPlayers[0]
-			.playerInfo[NET_PLAYER_NAME_TERMINATOR_INDEX] = '\0';
+			.longName[NET_PLAYER_NAME_TERMINATOR_INDEX] = '\0';
 		strncpy(g_frontState.netPlayers[0].playerName, localPlayerName,
 			sizeof(g_frontState.netPlayers[0].playerName));
 		g_frontState.netPlayers[0]
@@ -493,10 +493,10 @@ int Net_StartNetworkSession(
 			g_frontState.netTempDirectPlay);
 		g_frontState.netTempDirectPlay = NULL;
 		g_frontState.netIsHost = isHost;
-		strncpy(g_frontState.netPlayers[0].playerInfo, localPlayerInfo,
-			sizeof(g_frontState.netPlayers[0].playerInfo));
+		strncpy(g_frontState.netPlayers[0].longName, localPlayerInfo,
+			sizeof(g_frontState.netPlayers[0].longName));
 		g_frontState.netPlayers[0]
-			.playerInfo[NET_PLAYER_NAME_TERMINATOR_INDEX] = '\0';
+			.longName[NET_PLAYER_NAME_TERMINATOR_INDEX] = '\0';
 		strncpy(g_frontState.netPlayers[0].playerName, localPlayerName,
 			sizeof(g_frontState.netPlayers[0].playerName));
 		g_frontState.netPlayers[0]
@@ -1031,7 +1031,7 @@ int Net_RefreshPlayerRoster(void)
 }
 
 /* Player enumeration callback: adds one DirectPlay player to the roster (long
- * name to playerInfo and short name to playerName, each cut to 15
+ * name to longName and short name to playerName, each cut to 15
  * characters, its id, not ready) and raises g_frontState.netPlayerCount.
  * Skips entries of type 0 and the local player. Returns 0, which stops the
  * enumeration, once 32 players are listed; else 1. */
@@ -1052,15 +1052,15 @@ int AERON_DXAPI Net_EnumPlayersCallback(DPID playerId, uint32_t playerType,
 	if (g_frontState.netPlayers[0].playerId == playerId) {
 		return 1;
 	}
-	strncpy(g_frontState.netPlayers[g_frontState.netPlayerCount].playerInfo,
+	strncpy(g_frontState.netPlayers[g_frontState.netPlayerCount].longName,
 		nameDesc->lpszLongNameA,
 		sizeof(g_frontState.netPlayers[g_frontState.netPlayerCount]
-			       .playerInfo));
+			       .longName));
 	strncpy(g_frontState.netPlayers[g_frontState.netPlayerCount].playerName,
 		nameDesc->lpszShortNameA,
 		sizeof(g_frontState.netPlayers[g_frontState.netPlayerCount]
 			       .playerName));
-	g_frontState.netPlayers[g_frontState.netPlayerCount].playerInfo[15] =
+	g_frontState.netPlayers[g_frontState.netPlayerCount].longName[15] =
 		'\0';
 	g_frontState.netPlayers[g_frontState.netPlayerCount].playerName[15] =
 		'\0';
@@ -1282,7 +1282,7 @@ void Net_PumpIncomingPackets(void)
 		QUEUE_LIMIT = QUEUE_CAPACITY - 1,
 		SYSTEM_PACKET_SIZE_LIMIT = 512,
 		HISTORY_CAPACITY = 128,
-		EXPORT_QUEUE_CAPACITY = 256,
+		SENT_WORLD_MESSAGE_HISTORY_CAPACITY = 256,
 		PEER_CAPACITY = 40,
 		MAX_PAYLOAD_SIZE = 508,
 		SEQUENCE_LIMIT = 127,
@@ -1582,7 +1582,8 @@ void Net_PumpIncomingPackets(void)
 				int searchIndex;
 				unsigned int searchCount;
 
-				if (g_frontState.netExportRecvQueuePtr !=
+				if (g_frontState
+					    .netFlightSentWorldMessageHistory !=
 				    NULL) {
 					missingWorldTick = payload[0];
 					controlValue1 = payload[1];
@@ -1601,12 +1602,12 @@ void Net_PumpIncomingPackets(void)
 
 					searchIndex =
 						g_frontState
-							.netExportRecvQueueHighWater;
+							.netFlightSentWorldMessageWriteIndex;
 					searchCount = 0;
 					while (searchCount <
-					       EXPORT_QUEUE_CAPACITY) {
+					       SENT_WORLD_MESSAGE_HISTORY_CAPACITY) {
 						queued =
-							&g_frontState.netExportRecvQueuePtr
+							&g_frontState.netFlightSentWorldMessageHistory
 								 [searchIndex];
 						if (queued->payloadSize != 0) {
 							if ((*(const uint32_t
@@ -1621,14 +1622,14 @@ void Net_PumpIncomingPackets(void)
 						++searchCount;
 						++searchIndex;
 						if ((unsigned int)searchIndex >=
-						    EXPORT_QUEUE_CAPACITY) {
+						    SENT_WORLD_MESSAGE_HISTORY_CAPACITY) {
 							searchIndex = 0;
 						}
 					}
 					if (searchCount <
-					    EXPORT_QUEUE_CAPACITY) {
+					    SENT_WORLD_MESSAGE_HISTORY_CAPACITY) {
 						queued =
-							&g_frontState.netExportRecvQueuePtr
+							&g_frontState.netFlightSentWorldMessageHistory
 								 [searchIndex];
 						Net_SendSequencedDirectPlayPacket(
 							(int)fromId, 0,
@@ -1637,7 +1638,7 @@ void Net_PumpIncomingPackets(void)
 							queued->payloadSize);
 					}
 					if (searchCount >=
-					    EXPORT_QUEUE_CAPACITY) {
+					    SENT_WORLD_MESSAGE_HISTORY_CAPACITY) {
 						packetWords[0] = NET_PACKET_NOP;
 						Net_SendSequencedDirectPlayPacket(
 							(int)fromId, 0,
@@ -3512,11 +3513,11 @@ void Net_HandleDirectPlaySystemMessage(int packetType, const void *packetData)
 						    g_frontState
 							    .netPlayers
 								    [playerIndex]
-							    .playerInfo,
+							    .longName,
 						    sizeof(g_frontState
 								   .netPlayers
 									   [playerIndex]
-								   .playerInfo))) {
+								   .longName))) {
 						continue;
 					}
 #else
@@ -3528,7 +3529,7 @@ void Net_HandleDirectPlaySystemMessage(int packetType, const void *packetData)
 						       ->names);
 					strcpy(g_frontState
 						       .netPlayers[playerIndex]
-						       .playerInfo,
+						       .longName,
 					       &((const NetPlayerNameMessage *)
 							 packetData)
 							->names[strlen(g_frontState
@@ -3540,7 +3541,7 @@ void Net_HandleDirectPlaySystemMessage(int packetType, const void *packetData)
 					g_frontState.netPlayers[playerIndex].playerName
 						[PLAYER_NAME_TRUNCATION_INDEX] =
 						'\0';
-					g_frontState.netPlayers[playerIndex].playerInfo
+					g_frontState.netPlayers[playerIndex].longName
 						[PLAYER_NAME_TRUNCATION_INDEX] =
 						'\0';
 				}
@@ -4915,11 +4916,10 @@ int NetSession_ImportRuntimeState(
  * indices, peer slots (each lastHeardMs set to the current time), broadcast
  * and group counters and trailers, and sent history. It also keeps a pointer
  * to the flight's 256-entry world-message history, and that history's write
- * index, in g_frontState.netExportRecvQueuePtr and
- * netExportRecvQueueHighWater: despite their names, those fields then hold a
- * sent history, not a receive queue, which Net_PumpIncomingPackets resends
- * from on a WORLD_NACK. The interface, GUID, group and host arguments are
- * ignored. Returns 1. */
+ * index, in g_frontState.netFlightSentWorldMessageHistory and
+ * netFlightSentWorldMessageWriteIndex; Net_PumpIncomingPackets resends from
+ * that history on a WORLD_NACK. The interface, GUID, group and host arguments
+ * are ignored. Returns 1. */
 // FUNCTION: XVT 0x4D1B10
 int NetSession_ExportRuntimeState(
 	void **dplayInterface, const void *appGuid, const void *sessionGuid,
@@ -4999,8 +4999,9 @@ int NetSession_ExportRuntimeState(
 		       sizeof(g_frontState.netRuntimeSentHistory[packetIndex]));
 	}
 	g_frontState.netRuntimeSentHistoryWriteIndex = *sentHistoryWriteIndex;
-	g_frontState.netExportRecvQueuePtr = sentWorldMessageHistory;
-	g_frontState.netExportRecvQueueHighWater = *sentWorldMessageWriteIndex;
+	g_frontState.netFlightSentWorldMessageHistory = sentWorldMessageHistory;
+	g_frontState.netFlightSentWorldMessageWriteIndex =
+		*sentWorldMessageWriteIndex;
 	return 1;
 }
 

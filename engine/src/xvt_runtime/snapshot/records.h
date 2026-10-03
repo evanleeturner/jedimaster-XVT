@@ -22,7 +22,7 @@ typedef struct XvtSnapshotAiController {
 	uint8_t currentOrderSlot;
 	AiOrderProgress orderProgress;
 	uint8_t skippedToOrder4;
-	uint8_t pendingPlanId;
+	uint8_t runningPlanId;
 	uint8_t currentPlanId;
 	uint8_t waypointIndex;
 	uint8_t savedPlanId;
@@ -114,18 +114,18 @@ typedef struct XvtSnapshotPlayerViewState {
 	uint8_t hudStateMirror;
 	uint8_t hudAimXSnapState;
 	uint8_t savedHudStateByte;
-	uint8_t field_20;
+	uint8_t unused20;
 	int16_t savedHudAimX;
 	int16_t savedHudAimY;
 	int16_t playerInputBlocked;
 	int16_t cameraDistanceStep;
 	uint16_t externalCameraActive;
 	int32_t cameraDistance;
-	int16_t transitionTimer;
+	int16_t targetCameraActive;
 	int16_t cameraRollHistory[60];
 	int16_t cameraPitchHistory[60];
 	int16_t cameraYawHistory[60];
-	uint16_t field_199;
+	uint16_t unused199;
 } XvtSnapshotPlayerViewState;
 
 typedef struct XvtSnapshotPlayerNetworkRuntimeTail {
@@ -192,11 +192,11 @@ typedef struct XvtSnapshotCraftData {
 	int32_t craftIndexInGroup;
 	uint8_t modelIndex;
 	uint8_t leader_obj_idx;
-	uint8_t field_006;
+	uint8_t unused006;
 	CraftObjectKind objectKind;
 	uint8_t missionAccountingDone;
 	uint16_t aiSkill;
-	uint8_t field_00B[2];
+	uint8_t unused00B[2];
 	uint16_t pitch;
 	uint16_t yaw;
 	int16_t breakupPitchRate;
@@ -254,7 +254,7 @@ typedef struct XvtSnapshotCraftData {
 	uint16_t chaffActiveSeconds;
 	uint16_t cmFireCooldownTimer;
 	CraftWeaponStats weaponStats;
-	uint8_t field_256[73];
+	uint8_t unused256[73];
 	uint16_t field_29F;
 	uint8_t systemDisplaySlotBySystem[DAMAGE_SYSTEM_ID_COUNT];
 	uint16_t systemHealth[DAMAGE_SYSTEM_ID_COUNT];
@@ -266,16 +266,16 @@ typedef struct XvtSnapshotCraftData {
 	CraftWeaponSlot weaponSlots[16];
 	uint16_t effectiveAiObjectSignature;
 	TurretTargetState turretTargetStates[16];
-	uint8_t field_3F2[44];
+	uint8_t unused3F2[44];
 	uint32_t turretObjectLinks[16];
 	uint32_t effectiveAiObjectLink;
 } XvtSnapshotCraftData;
 
 typedef struct XvtSnapshotMobileObjectCharData {
 	uint16_t skillValue;
-	uint8_t reserved02[2];
+	uint8_t unused02[2];
 	XvtSnapshotAiController aiController;
-	uint8_t reserved40[12];
+	uint8_t unused40[12];
 } XvtSnapshotMobileObjectCharData;
 
 typedef struct XvtSnapshotPlayerData {
@@ -371,9 +371,9 @@ typedef struct XvtSnapshotFlightMissionState {
 	uint8_t provingGroundsCraftType;
 	uint8_t provingGroundsLevel;
 	uint32_t provingGroundsScore;
-	uint8_t reserved08[2];
+	uint8_t unused08[2];
 	uint16_t provingGroundsCheckpointsPassed;
-	uint8_t reserved0C[2];
+	uint8_t unused0C[2];
 	uint16_t provingGroundsCheckpointsRemaining;
 	uint16_t provingGroundsTargetsDestroyed;
 	uint16_t provingGroundsTimeBonus;

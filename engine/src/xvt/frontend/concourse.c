@@ -460,11 +460,11 @@ int Concourse_Update(int frameCounter)
 					.factionStatistics
 						[g_pilotData.currentFactionId]
 					.missionSequenceActive;
-			g_pilotData.missionSequenceDescriptionId =
+			g_pilotData.savedMissionDescriptionId =
 				g_pilotData
 					.factionStatistics
 						[g_pilotData.currentFactionId]
-					.missionSequenceDescriptionId;
+					.savedMissionDescriptionId;
 		}
 		g_pilotRecordPagesNeedRebuild = 1;
 		g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_NONE;

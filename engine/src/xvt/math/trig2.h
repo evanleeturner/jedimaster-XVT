@@ -26,7 +26,7 @@ extern uint16_t trig2_theta;
 extern uint16_t trig2_pitch;
 
 int16_t trig2_getsignedsin(int16_t angleQ16);
-int16_t trig2_calcsineofangle(int16_t angle);
+int16_t trig2_calcsinemagnitude(int16_t angle);
 int16_t trig2_w_arcsin(int16_t sinQ15);
 int16_t trig2_w_arccos(int16_t cosQ15);
 int16_t trig2_arccos(int16_t cosQ15);

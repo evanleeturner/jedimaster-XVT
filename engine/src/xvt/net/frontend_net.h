@@ -53,7 +53,7 @@ extern int g_frontendNetSessionListScrollOffset;
 extern int g_frontendNetSelectedSessionIdx;
 extern int g_frontendNetPacketSenderPlayerId;
 extern int g_frontendNetPacketArg0;
-extern int g_frontendNetPacketArg1;
+extern int g_frontendNetReservingPlayerId;
 extern int g_hostGameStartPending;
 extern int g_frontendQuickStartLaunchFlag;
 extern int g_frontendNetProbeVersion;

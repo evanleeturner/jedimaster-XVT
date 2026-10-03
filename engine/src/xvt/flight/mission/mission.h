@@ -95,7 +95,7 @@ struct XvtFlightGroup {
 	 * team radio - 1, or the player whose group has player number radio
 	 * - 8; 0 none (Player_CanRadioCommandCraft). */
 	uint8_t radio;
-	uint8_t reserved5C; /* Loaded with the record; nothing reads it. */
+	uint8_t unused5C; /* Loaded with the record; nothing reads it. */
 	/* Formation of each round, a row of g_formPosX, g_formPosY and
 	 * g_formPosZ. */
 	uint8_t formation;
@@ -103,7 +103,7 @@ struct XvtFlightGroup {
 	uint8_t formationSpacing;
 	/* Global group number, matched by trigger variable type 8. */
 	uint8_t globalGroup;
-	uint8_t reserved60; /* Loaded with the record; nothing reads it. */
+	uint8_t unused60; /* Loaded with the record; nothing reads it. */
 	/* Rounds after the first; the craft total is numberOfCraft times
 	 * numberOfWaves + 1. Mission_Init sets 0 or 99 for player groups as
 	 * playerFlightGroupWaveMode says. */
@@ -588,11 +588,11 @@ struct EFGStruct {
 	uint8_t skill;	 /* Copied to groupAI. */
 	uint8_t camoflage;    /* Copied to markings. */
 	uint8_t camo_flag;    /* Copied to radio. */
-	uint8_t camo_unused;  /* Copied to reserved5C. */
+	uint8_t camo_unused;  /* Copied to unused5C. */
 	uint8_t formation;    /* Copied to formation. */
 	uint8_t form_spacing; /* Copied to formationSpacing. */
 	uint8_t set;	      /* Copied to globalGroup. */
-	uint8_t set_unused;   /* Copied to reserved60. */
+	uint8_t set_unused;   /* Copied to unused60. */
 	uint8_t waves;	      /* Copied to numberOfWaves. */
 	uint8_t wave_delay;   /* Copied to wavesDelay. */
 	/* Nonzero: player number 1, playerCraft player_flag - 1. */
@@ -718,8 +718,8 @@ typedef char xvt_size_XvtV10MissionHeader[(sizeof(XvtV10MissionHeader) == 130)
 						  ? 1
 						  : -1];
 
-uint16_t Mission_GetSpecialCargoInspectedCount(unsigned int flightGroupIdx,
-					       uint16_t specialCargoCraft);
+uint16_t Mission_IsSpecialCargoInspected(unsigned int flightGroupIdx,
+					 uint16_t specialCargoCraft);
 void Mission_UpdateLogic(void);
 int Mission_EvaluateTriggerPair(const MissionTriggerPair *triggerPair,
 				int16_t includeDepartedAsDestroyed);

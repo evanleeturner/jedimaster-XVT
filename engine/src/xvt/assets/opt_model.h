@@ -124,10 +124,10 @@ struct ModelDef {
 	/* Pitch rate in angle units per SIMULATION_TICKS_PER_SECOND ticks at a
 	 * full step; copied into aiFlight.pitchRate at spawn. */
 	int16_t pitchRate;
-	/* Despite the name, a limit on a rate: a destroyed craft's random roll
-	 * rate, 0x2000 plus GameRand() & 0x3FFF, is halved while it is over
-	 * this value, then becomes its rollImpulseRate. */
-	uint16_t maxTumbleAngle;
+	/* Limit on a destroyed craft's tumble: its random roll rate, 0x2000
+	 * plus GameRand() & 0x3FFF, is halved while it is over this value,
+	 * then becomes its rollImpulseRate. */
+	uint16_t maxTumbleRate;
 	/* Most a craft's pushAccumX moves it per SIMULATION_TICKS_PER_SECOND
 	 * ticks (Object_UpdateLifetimeAndMovement), except in the board and
 	 * dropoff maneuvers, which use BOARDING_PUSH_RATE and

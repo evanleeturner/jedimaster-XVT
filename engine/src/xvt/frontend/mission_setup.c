@@ -120,8 +120,8 @@ int g_missionSetupDraggedPlayerId = 0;
  * assignment screen, which no one else may drag; the first
  * g_missionSetupReservedPlayerCount entries count. Written by the team and
  * flight assignment screens and their draw functions when a drag starts or a
- * reservation packet arrives, and by MissionBriefing_Update from the
- * reservation packets; cleared when those screens start. */
+ * reservation packet arrives, and by MissionBriefing_CraftSelectionUpdate from
+ * the reservation packets; cleared when those screens start. */
 // GLOBAL: XVT 0xAA5E40
 int g_missionSetupReservedPlayerIds[8] = {0};
 /* Entries in use in g_missionSetupReservedPlayerIds, 0 to 8; written beside
@@ -143,9 +143,10 @@ int g_missionSetupTeamAssignmentSkipped = 0;
 int g_teamCount = 0;
 /* Heap array of 100 ship list entries that ShipList_Load fills from
  * frontres\frntspec.lst for the tech library and the briefing's craft screen;
- * NULL until loaded. ShipList_Load allocates it; MissionBriefing_Exit,
- * TechLibrary_Update, Frontend_HandleCommonScreenControls and, in the modern
- * build, XvtFrontendTask_Shutdown free it and set it to NULL. */
+ * NULL until loaded. ShipList_Load allocates it;
+ * MissionBriefing_CraftSelectionExit, TechLibrary_Update,
+ * Frontend_HandleCommonScreenControls and, in the modern build,
+ * XvtFrontendTask_Shutdown free it and set it to NULL. */
 // GLOBAL: XVT 0xAA60F4
 ShipListEntry *g_shipList = NULL;
 /* Index in g_shipList of each craft species' model. It starts with species 2 to
@@ -484,8 +485,8 @@ int MissionSetup_Exit(int frameCounter)
 				      .missionDescriptionIds));
 		g_pilotData.factionStatistics[2].missionSequenceActive =
 			g_pilotData.missionSequenceActive;
-		g_pilotData.factionStatistics[2].missionSequenceDescriptionId =
-			g_pilotData.missionSequenceDescriptionId;
+		g_pilotData.factionStatistics[2].savedMissionDescriptionId =
+			g_pilotData.savedMissionDescriptionId;
 	} else {
 		g_pilotData.factionStatistics[g_pilotData.currentFactionId]
 			.team = g_pilotData.team;
@@ -503,8 +504,8 @@ int MissionSetup_Exit(int frameCounter)
 			.missionSequenceActive =
 			g_pilotData.missionSequenceActive;
 		g_pilotData.factionStatistics[g_pilotData.currentFactionId]
-			.missionSequenceDescriptionId =
-			g_pilotData.missionSequenceDescriptionId;
+			.savedMissionDescriptionId =
+			g_pilotData.savedMissionDescriptionId;
 	}
 	Frontend_ResetScrollableControls();
 	FrontendMouse_ClearInputGate();
@@ -522,7 +523,7 @@ int MissionSetup_Exit(int frameCounter)
  * g_missionSetupUseCombatSimPilotState to 1), else the current faction's entry
  * (setting it to 0); allocates the 4096-byte g_missionText; and clears the
  * three sequence states. A sequence left active (missionSequenceActive 1) puts
- * missionSequenceDescriptionId back as the current type's selected mission and
+ * savedMissionDescriptionId back as the current type's selected mission and
  * moves the mission type from melee to tournament, from combat engagement to
  * battle, and from any other type to campaign; missionSequenceActive is then
  * cleared. It loads the mission, its text and team counts, clamps the
@@ -621,10 +622,10 @@ int MissionSetup_Update(int frameCounter)
 					.missionSequenceActive;
 			g_pilotData.factionStatistics[COMBAT_SIM_FACTION]
 				.missionSequenceActive = 0;
-			g_pilotData.missionSequenceDescriptionId =
+			g_pilotData.savedMissionDescriptionId =
 				g_pilotData
 					.factionStatistics[COMBAT_SIM_FACTION]
-					.missionSequenceDescriptionId;
+					.savedMissionDescriptionId;
 		} else {
 			g_missionSetupUseCombatSimPilotState = 0;
 			g_pilotData.team =
@@ -651,11 +652,11 @@ int MissionSetup_Update(int frameCounter)
 			g_pilotData
 				.factionStatistics[g_pilotData.currentFactionId]
 				.missionSequenceActive = 0;
-			g_pilotData.missionSequenceDescriptionId =
+			g_pilotData.savedMissionDescriptionId =
 				g_pilotData
 					.factionStatistics
 						[g_pilotData.currentFactionId]
-					.missionSequenceDescriptionId;
+					.savedMissionDescriptionId;
 		}
 
 		g_configConnectionTypeEditable = 0;
@@ -684,7 +685,7 @@ int MissionSetup_Update(int frameCounter)
 		if (g_pilotData.missionSequenceActive == 1) {
 			g_pilotData.missionDescriptionIds
 				[g_pilotData.missionDirectoryId] =
-				g_pilotData.missionSequenceDescriptionId;
+				g_pilotData.savedMissionDescriptionId;
 		}
 		memset(&g_pilotData.meleeTournamentSequenceState, 0,
 		       sizeof(g_pilotData.meleeTournamentSequenceState));
@@ -1681,9 +1682,8 @@ int MissionSetup_DrawMissionTypeControls(void)
 				g_pilotData
 					.factionStatistics
 						[g_pilotData.currentFactionId]
-					.missionSequenceDescriptionId =
-					g_pilotData
-						.missionSequenceDescriptionId;
+					.savedMissionDescriptionId =
+					g_pilotData.savedMissionDescriptionId;
 				previousMissionDirectoryId =
 					g_pilotData.missionDirectoryId;
 				previousMissionDescriptionId =
@@ -1718,12 +1718,12 @@ int MissionSetup_DrawMissionTypeControls(void)
 							[g_pilotData
 								 .currentFactionId]
 						.missionSequenceActive;
-				g_pilotData.missionSequenceDescriptionId =
+				g_pilotData.savedMissionDescriptionId =
 					g_pilotData
 						.factionStatistics
 							[g_pilotData
 								 .currentFactionId]
-						.missionSequenceDescriptionId;
+						.savedMissionDescriptionId;
 			}
 		} else {
 			FrontendButton_DrawSpriteAndTooltip(
@@ -1768,9 +1768,8 @@ int MissionSetup_DrawMissionTypeControls(void)
 				g_pilotData
 					.factionStatistics
 						[g_pilotData.currentFactionId]
-					.missionSequenceDescriptionId =
-					g_pilotData
-						.missionSequenceDescriptionId;
+					.savedMissionDescriptionId =
+					g_pilotData.savedMissionDescriptionId;
 				previousMissionDirectoryId =
 					g_pilotData.missionDirectoryId;
 				previousMissionDescriptionId =
@@ -1805,12 +1804,12 @@ int MissionSetup_DrawMissionTypeControls(void)
 							[g_pilotData
 								 .currentFactionId]
 						.missionSequenceActive;
-				g_pilotData.missionSequenceDescriptionId =
+				g_pilotData.savedMissionDescriptionId =
 					g_pilotData
 						.factionStatistics
 							[g_pilotData
 								 .currentFactionId]
-						.missionSequenceDescriptionId;
+						.savedMissionDescriptionId;
 			}
 		} else {
 			FrontendButton_DrawSpriteAndTooltip(
@@ -4467,7 +4466,7 @@ int MissionSetup_BroadcastLobbySelection(void)
 						player->playerId;
 					packetWords[packetWordCount++] =
 						(int)(uint8_t)
-							player->playerInfo[0] -
+							player->longName[0] -
 						1;
 					packetWords[packetWordCount++] =
 						Net_GetAverageLatencyMs(
@@ -4560,7 +4559,7 @@ int MissionSetup_SendLobbyState(int toPlayerId)
 					rosterEntry->pilotRating =
 						(PilotRating)(uint8_t)playerRoster
 							[playerRosterIndex]
-								.playerInfo[0] -
+								.longName[0] -
 						1;
 					break;
 				}
@@ -4621,7 +4620,7 @@ int MissionSetup_SendLobbyState(int toPlayerId)
 			}
 			packetWords[readyPacketWordCount++] = player->playerId;
 			packetWords[readyPacketWordCount++] =
-				(int)(uint8_t)player->playerInfo[0] - 1;
+				(int)(uint8_t)player->longName[0] - 1;
 			packetWords[readyPacketWordCount++] =
 				Net_GetAverageLatencyMs(player->playerId);
 		}
@@ -4816,8 +4815,7 @@ int MissionSetup_BroadcastReadyRoster(int toPlayerId)
 			packetWords[packetWordCount++] =
 				roster[rosterIndex].playerId;
 			packetWords[packetWordCount++] =
-				(int)(uint8_t)roster[rosterIndex]
-					.playerInfo[0] -
+				(int)(uint8_t)roster[rosterIndex].longName[0] -
 				1;
 			packetWords[packetWordCount++] =
 				Net_GetAverageLatencyMs(
@@ -5735,7 +5733,7 @@ int MissionSetup_DrawMissionList(int frameCounter)
  * It then sets missionSequenceActive to 1, moves the mission type to the one
  * the sequence plays (tournament to melee, battle to combat engagement,
  * campaign to training), saves that type's selected mission in
- * missionSequenceDescriptionId, loads its list, selects the mission whose file
+ * savedMissionDescriptionId, loads its list, selects the mission whose file
  * name matches the line lowercased (for a combat engagement also storing its id
  * in battleSequenceState.currentMissionId), and stores its list index in
  * battleSequenceState.missionListIndices[0] whatever the type. Returns 1.
@@ -5833,7 +5831,7 @@ int MissionSetup_SelectFirstSequenceMission(void)
 	} else {
 		--g_pilotData.missionDirectoryId;
 	}
-	g_pilotData.missionSequenceDescriptionId =
+	g_pilotData.savedMissionDescriptionId =
 		g_pilotData
 			.missionDescriptionIds[g_pilotData.missionDirectoryId];
 	/* descriptorPath is reused here for the first mission's file name, lowercased to match the mission
@@ -9490,7 +9488,7 @@ int MissionSetup_ExitNextMission(void)
 
 /* A one-frame screen the mission debriefing sets to go on to a tournament,
  * battle or campaign's next mission. Clears g_frontendSkipScreenEntrySetup,
- * puts missionSequenceDescriptionId back as the played mission type's selected
+ * puts savedMissionDescriptionId back as the played mission type's selected
  * mission, moves the mission type back to the sequence's own (training to
  * campaign, else up by one), loads its list and selects its entry, resets the
  * eight g_pilotData.networkPlayers results and choices, and calls
@@ -9516,7 +9514,7 @@ int MissionSetup_EnterNextMission(int frameCounter)
 	(void)frameCounter;
 	g_frontendSkipScreenEntrySetup = 0;
 	g_pilotData.missionDescriptionIds[g_pilotData.missionDirectoryId] =
-		g_pilotData.missionSequenceDescriptionId;
+		g_pilotData.savedMissionDescriptionId;
 	if (g_pilotData.missionDirectoryId ==
 	    MISSION_DIRECTORY_TRAINING_EXERCISES) {
 		g_pilotData.missionDirectoryId = MISSION_DIRECTORY_CAMPAIGNS;
@@ -9887,7 +9885,7 @@ int MpRoster_CompactActiveEntries(void)
  * count line itself is taken as the name. Then, as
  * MissionSetup_SelectFirstSequenceMission does, it sets missionSequenceActive
  * to 1, moves to the played mission type, saves that type's selected mission in
- * missionSequenceDescriptionId, loads its list, selects the named mission (for
+ * savedMissionDescriptionId, loads its list, selects the named mission (for
  * a combat engagement also storing its id in
  * battleSequenceState.currentMissionId) and stores its list index in
  * battleSequenceState.missionListIndices[currentMissionIndex] whatever the
@@ -10017,7 +10015,7 @@ int MissionSetup_SelectNextSequenceMission(void)
 	} else {
 		--g_pilotData.missionDirectoryId;
 	}
-	g_pilotData.missionSequenceDescriptionId =
+	g_pilotData.savedMissionDescriptionId =
 		g_pilotData
 			.missionDescriptionIds[g_pilotData.missionDirectoryId];
 	/* descriptorPath is reused here for the chosen mission's file name, lowercased to match the mission
@@ -13186,7 +13184,7 @@ int MissionSetup_FreeScreenResources(int frameCounter)
 
 /* The flight assignment screen, run once per frame: each team's players are
  * placed in the team's player flight groups beside the briefing map, and Next
- * moves on to MissionBriefing_Update. On frame 0 it clears
+ * moves on to MissionBriefing_CraftSelectionUpdate. On frame 0 it clears
  * g_missionSetupLaunchSignalSent, the reservations,
  * g_frontendBriefingEnteredCount and g_missionSetupUseExpandedAssignmentLayout;
  * sets g_frontendChatTeamOnly when the pilot's team has more than one player
@@ -13384,14 +13382,15 @@ int MissionSetup_FlightAssignmentUpdate(int frameCounter)
 			}
 			if (teamIndex == g_teamCount) {
 				FrontendScreen_SetCallbacks(
-					MissionBriefing_Update,
-					MissionBriefing_Exit);
+					MissionBriefing_CraftSelectionUpdate,
+					MissionBriefing_CraftSelectionExit);
 				return 0;
 			}
 		}
 		if (g_frontendQuickStartLaunchFlag == 1) {
-			FrontendScreen_SetCallbacks(MissionBriefing_Update,
-						    MissionBriefing_Exit);
+			FrontendScreen_SetCallbacks(
+				MissionBriefing_CraftSelectionUpdate,
+				MissionBriefing_CraftSelectionExit);
 			return 0;
 		}
 
@@ -13593,8 +13592,9 @@ int MissionSetup_FlightAssignmentUpdate(int frameCounter)
 			MissionSetup_PruneFlightAssignments();
 		} else if (packetType == NET_PACKET_FLIGHT_ASSIGNMENTS_READY) {
 			MissionSetup_FillFlightAssignments();
-			FrontendScreen_SetCallbacks(MissionBriefing_Update,
-						    MissionBriefing_Exit);
+			FrontendScreen_SetCallbacks(
+				MissionBriefing_CraftSelectionUpdate,
+				MissionBriefing_CraftSelectionExit);
 			return 0;
 		} else if (packetType == NET_PACKET_RETURN_TO_SETUP) {
 			g_frontendSkipScreenEntrySetup = 1;
@@ -14056,8 +14056,8 @@ int MissionSetup_FlightAssignmentUpdate(int frameCounter)
 					    FRONTSTR_667_GO_TO_CRAFT_SELECTION),
 				    12, 0, 7, "flysound") != 0) {
 				FrontendScreen_SetCallbacks(
-					MissionBriefing_Update,
-					MissionBriefing_Exit);
+					MissionBriefing_CraftSelectionUpdate,
+					MissionBriefing_CraftSelectionExit);
 				FrontendButton_DisableOverlayText();
 				return 0;
 			}

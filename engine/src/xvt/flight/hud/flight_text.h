@@ -10,7 +10,7 @@ extern "C" {
 
 extern int16_t g_flightWordWrapEnabled;
 extern int16_t g_flightClearLineBgEnabled;
-extern int16_t g_flightTextReservedState;
+extern int16_t g_flightTextUnusedState;
 extern int16_t g_flightCursorY;
 extern int16_t g_flightCursorX;
 extern uint8_t g_flightTextColorIndex;

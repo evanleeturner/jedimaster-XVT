@@ -133,8 +133,8 @@ OptNode *ModelMesh_FindNthHardpointNode(OptNode *node,
 int ModelMesh_CountHardpointNodesRecursive(OptNode *node,
 					   OptimizedPolyObject *model);
 int ModelMesh_CountHardpoints(int objectType, int meshIndex);
-int ModelMesh_GetAlternateHardpointIndex(int objectType, int meshIndex,
-					 int hardpointIndex);
+int ModelMesh_GetHardpointIndex(int objectType, int meshIndex,
+				int hardpointIndex);
 int ModelMesh_GetHardpointX(int objectType, int meshIndex, int hardpointIndex);
 int ModelMesh_GetHardpointY(int objectType, int meshIndex, int hardpointIndex);
 int ModelMesh_GetHardpointZ(int objectType, int meshIndex, int hardpointIndex);

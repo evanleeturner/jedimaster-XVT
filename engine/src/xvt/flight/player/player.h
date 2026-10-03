@@ -50,7 +50,7 @@ struct PlayerViewState {
 	uint8_t savedHudStateByte;
 	/* No game code reads or writes it; only the modern build's snapshot
 	 * copies it. */
-	uint8_t field_20;
+	uint8_t unused20;
 	/* hudAimX kept with savedHudStateByte and restored with it. */
 	int16_t savedHudAimX;
 	/* hudAimY kept with savedHudStateByte and restored with it. */
@@ -66,9 +66,9 @@ struct PlayerViewState {
 	/* Distance of the outside camera from what it follows: 1024 on binding,
 	 * changed by the zoom and camera keys. */
 	int cameraDistance;
-	/* Despite the name, a flag that never counts: 1 while the target camera
-	 * is on, set by its key in Flight_ProcessPlayerActions, else 0. */
-	int16_t transitionTimer;
+	/* 1 while the target camera is on, set by its key in
+	 * Flight_ProcessPlayerActions, else 0. */
+	int16_t targetCameraActive;
 	/* Player_UpdateHudViewForCameraFocus fills all 60 with viewRoll; no
 	 * game code reads it. */
 	int16_t cameraRollHistory[60];
@@ -79,7 +79,7 @@ struct PlayerViewState {
 	int16_t cameraYawHistory[60];
 	/* No game code reads or writes it; only the modern build's snapshot
 	 * copies it. */
-	uint16_t field_199;
+	uint16_t unused199;
 };
 
 struct PlayerHyperspaceRuntime {
@@ -473,8 +473,8 @@ uint16_t Player_CycleTarget(uint16_t currentObjIdx, int16_t direction,
 void Player_SetTarget(int newTargetObjIdx, int playerIdx);
 uint16_t Player_SelectTargetComponentMesh(uint16_t targetObjIdx,
 					  unsigned int playerIdx);
-int16_t USER_calcdeltapitch(int16_t pitchAngleQ16, int16_t yawAngleQ16,
-			    uint16_t objectIndex, CraftData *craft);
+int16_t Player_ApplyPitchYawSteps(int16_t pitchAngleQ16, int16_t yawAngleQ16,
+				  uint16_t objectIndex, CraftData *craft);
 int16_t Player_CanRadioCommandCraft(int playerIdx);
 void Player_IssueAiWingmanTargetOrder(uint16_t targetObjIdx, uint16_t commandId,
 				      uint16_t responseIndex, int playerIdx);

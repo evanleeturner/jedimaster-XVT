@@ -206,14 +206,14 @@ int Frontend_LoadResources(void)
 	FrontImage_LoadResourceList("frontres\\icons.lst");
 	FrontendSound_LoadList("sfx\\sfx.lst");
 	FrontImage_GetResourceRect("cursor", &cursorRect);
-	if (g_cursorBitmap != NULL) {
-		free(g_cursorBitmap);
-		g_cursorBitmap = NULL;
+	if (g_cursorSaveBuffer != NULL) {
+		free(g_cursorSaveBuffer);
+		g_cursorSaveBuffer = NULL;
 	}
-	g_cursorBitmap =
+	g_cursorSaveBuffer =
 		malloc(FRONTEND_CURSOR_BYTES_PER_PIXEL *
 		       (cursorRect.bottom + 1) * (cursorRect.right + 1));
-	FrontendCursor_SetImageFromResourceName("cursor", g_cursorBitmap);
+	FrontendCursor_SetImageFromResourceName("cursor", g_cursorSaveBuffer);
 #ifdef XVT_MODERN
 	sprintf(g_frontendScratchBuffer, "%p\n", (void *)&g_pilotData);
 #else
@@ -1222,7 +1222,7 @@ int Frontend_HandleCommonScreenControls(int screenContext)
 			FrontendScreen_PopState();
 			FrontendMouse_ClearInputGate();
 			FrontImage_FreeResourceByName("backreview");
-			if (g_missionBriefingActive == 0) {
+			if (g_missionBriefingCraftSelectionActive == 0) {
 				if (g_shipList != NULL) {
 					free(g_shipList);
 					g_shipList = NULL;

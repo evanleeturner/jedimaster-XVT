@@ -1354,15 +1354,15 @@ int std3D_AddTriangles(const Std3DRenderTri *triangles, unsigned int count)
 				((D3DTRIANGLE *)g_d3dWritePtr)->v1 =
 					(uint16_t)triangles[groupStart +
 							    triangleIndex]
-						.v0;
+						.vertexIndex0;
 				((D3DTRIANGLE *)g_d3dWritePtr)->v2 =
 					(uint16_t)triangles[groupStart +
 							    triangleIndex]
-						.v1;
+						.vertexIndex1;
 				((D3DTRIANGLE *)g_d3dWritePtr)->v3 =
 					(uint16_t)triangles[groupStart +
 							    triangleIndex]
-						.v2;
+						.vertexIndex2;
 				((D3DTRIANGLE *)g_d3dWritePtr)->wFlags =
 					D3DTRIFLAG_EDGEENABLE1 |
 					D3DTRIFLAG_EDGEENABLE2 |
@@ -1412,15 +1412,15 @@ int std3D_AddTriangles(const Std3DRenderTri *triangles, unsigned int count)
 				((D3DTRIANGLE *)g_d3dWritePtr)->v1 =
 					(uint16_t)triangles[groupStart +
 							    triangleIndex]
-						.v0;
+						.vertexIndex0;
 				((D3DTRIANGLE *)g_d3dWritePtr)->v2 =
 					(uint16_t)triangles[groupStart +
 							    triangleIndex]
-						.v1;
+						.vertexIndex1;
 				((D3DTRIANGLE *)g_d3dWritePtr)->v3 =
 					(uint16_t)triangles[groupStart +
 							    triangleIndex]
-						.v2;
+						.vertexIndex2;
 				((D3DTRIANGLE *)g_d3dWritePtr)->wFlags =
 					D3DTRIFLAG_EDGEENABLE1 |
 					D3DTRIFLAG_EDGEENABLE2 |
@@ -2745,16 +2745,16 @@ int std3D_BuildViewportQuad(const Std3DViewportRect *rect)
 	g_std3DQuadVerts[3].sy =
 		(float)(g_std3DQuadRect.y + g_std3DQuadRect.height);
 
-	g_std3DViewportQuadTriangles[0].v1 = 1;
-	g_std3DViewportQuadTriangles[0].v0 = 0;
-	g_std3DViewportQuadTriangles[0].v2 = 2;
+	g_std3DViewportQuadTriangles[0].vertexIndex1 = 1;
+	g_std3DViewportQuadTriangles[0].vertexIndex0 = 0;
+	g_std3DViewportQuadTriangles[0].vertexIndex2 = 2;
 	g_std3DViewportQuadTriangles[0].texture = NULL;
 	g_std3DViewportQuadTriangles[0].flags =
 		STD3D_RS_ALPHA_BLEND | STD3D_RS_MONO_DISABLE;
-	g_std3DViewportQuadTriangles[1].v0 = 0;
-	g_std3DViewportQuadTriangles[1].v1 = 2;
+	g_std3DViewportQuadTriangles[1].vertexIndex0 = 0;
+	g_std3DViewportQuadTriangles[1].vertexIndex1 = 2;
 	g_std3DViewportQuadTriangles[1].texture = NULL;
-	g_std3DViewportQuadTriangles[1].v2 = 3;
+	g_std3DViewportQuadTriangles[1].vertexIndex2 = 3;
 	g_std3DViewportQuadTriangles[1].flags =
 		STD3D_RS_ALPHA_BLEND | STD3D_RS_MONO_DISABLE;
 
@@ -3177,7 +3177,7 @@ HRESULT AERON_DXAPI std3D_EnumDevicesCallback(
 			(device->d3dDesc.dpcTriCaps.dwTextureCaps & 8) != 0;
 		device->caps.renderBitDepthMask = std3D_PackRenderBitDepths(
 			device->d3dDesc.dwDeviceRenderBitDepth);
-		device->caps.zCmpCapsMask = std3D_PackZCmpCaps(
+		device->caps.zCmpCapsMask = std3D_MaskZCmpCaps(
 			device->d3dDesc.dpcTriCaps.dwZCmpCaps);
 		device->caps.minTextureWidth = 1;
 		device->caps.minTextureHeight = 1;
@@ -3439,10 +3439,10 @@ int std3D_PackRenderBitDepths(int ddbdFlags)
 	return result;
 }
 
-/* Despite the name, packs nothing: returns d3dpcmpcaps & 0xFF, each bit copied
+/* Returns d3dpcmpcaps & 0xFF: each of the eight compare caps bits is copied
  * to the same place. */
 // FUNCTION: XVT 0x4B4880
-int std3D_PackZCmpCaps(unsigned int d3dpcmpcaps)
+int std3D_MaskZCmpCaps(unsigned int d3dpcmpcaps)
 {
 	int result = 0;
 

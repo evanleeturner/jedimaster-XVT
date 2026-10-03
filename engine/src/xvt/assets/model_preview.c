@@ -397,7 +397,7 @@ int ModelPreview_LoadModel(const char *modelFileName)
 	XvtRenderAssets_BindType(MODEL_PREVIEW_SLOT,
 				 g_loadedModels[MODEL_PREVIEW_SLOT]);
 #endif
-	g_modelPreviewModelData = (OptimizedPolyObject *)Memory_LockHandle(
+	g_modelPreviewModelData = (OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_loadedModels[MODEL_PREVIEW_SLOT]);
 	if (g_modelPreviewModelData->selfMarker != g_modelPreviewModelData) {
 		OptModel_AdjustOptimizedPolyObjectPointers(
@@ -627,7 +627,7 @@ int ModelPreview_RenderViewport(int x, int y, int width, int height, ...)
 				g_viewportSpanMaskOffset +
 				g_flightVpHeight * ((g_flightVpWidth >> 7) + 2);
 		}
-		auxBuffer = (uint8_t *)Memory_LockHandle(
+		auxBuffer = (uint8_t *)Memory_GetHandleBlock(
 			g_modelPreviewAuxBufferHandle);
 		g_flightAuxBuffer = auxBuffer;
 		maskCursor = &auxBuffer[g_viewportSpanMaskOffset];

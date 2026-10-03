@@ -1227,13 +1227,14 @@ int Movie_Play(const char *name, int synchronizeMultiplayer)
 /* Input callback for single-player movies. Paint: clears and presents the
  * screen and returns 1, so default painting follows. A character: Backspace,
  * Enter, Esc and Space restore the previous mode, which ends playback; every
- * character writes 0 to *playbackFlag, which the window procedure returns, and
+ * character writes 0 to *handledResult, which the window procedure returns, and
  * returns 0. A left, right or middle button release ends playback the same way.
  * Other messages return 1. Only the original build uses it. */
 // FUNCTION: XVT 0x4F0070
 int Movie_SingleplayerInputCallback(int window, unsigned int eventCode,
 				    int keyCode, int lParam,
-				    int callbackContext, uint32_t *playbackFlag)
+				    int callbackContext,
+				    uint32_t *handledResult)
 {
 	(void)window;
 	(void)lParam;
@@ -1258,13 +1259,13 @@ int Movie_SingleplayerInputCallback(int window, unsigned int eventCode,
 		default:
 			break;
 		}
-		*playbackFlag = 0;
+		*handledResult = 0;
 		return 0;
 	case 0x202:
 	case 0x205:
 	case 0x208:
 		FrontendDisplay_SetWndProcMode(g_moviePreviousWndProcMode);
-		*playbackFlag = 0;
+		*handledResult = 0;
 		return 0;
 	default:
 		return 1;
@@ -1360,10 +1361,10 @@ int Movie_MultiplayerInputCallback(int window, unsigned int eventCode,
  * FRONTSTR_805_WAITING after the name, in four columns and two rows, white in
  * font 12, after clearing the band to black. Draws only when the local player's
  * entry is waiting; with no entry for the local player, only when
- * g_missionBriefingActive is 1. Copies the band to the display outside
- * page-flip full screen. A player not among the ready roster entries gets the
- * status appended to an unset name buffer. Only the original build reaches
- * it. */
+ * g_missionBriefingCraftSelectionActive is 1. Copies the band to the display
+ * outside page-flip full screen. A player not among the ready roster entries
+ * gets the status appended to an unset name buffer. Only the original build
+ * reaches it. */
 // FUNCTION: XVT 0x4F02F0
 void Movie_DrawMultiplayerSyncStatus(void)
 {
@@ -1391,7 +1392,7 @@ void Movie_DrawMultiplayerSyncStatus(void)
 		localPlayerWaiting =
 			g_movieMultiplayerSyncPlayers[playerIndex].isWaiting;
 	} else {
-		localPlayerWaiting = g_missionBriefingActive;
+		localPlayerWaiting = g_missionBriefingCraftSelectionActive;
 	}
 	if (localPlayerWaiting != 1) {
 		return;

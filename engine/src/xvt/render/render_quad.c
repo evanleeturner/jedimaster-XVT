@@ -80,9 +80,9 @@ void RenderQuad_DrawModelTexture(SceneBillboardQueueEntry *quadRecord)
 		(uint16_t)g_objectTypeTable[modelType].maxBoundsExtent,
 		(uint16_t)quadRecord->screenSize);
 	handle = g_objectTypeTable[modelType].resourceHandle;
-	modelData = (const uint8_t *)Memory_LockHandle(handle);
+	modelData = (const uint8_t *)Memory_GetHandleBlock(handle);
 	frame &= 0x7Fu;
-	Memory_UnlockHandle(handle);
+	Memory_HandleBlockDoneStub(handle);
 	textureHeader = (const TexLevelHeader *)modelData;
 	sprite =
 		(SpritePayload
@@ -436,10 +436,11 @@ void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY,
 						  pixels, rleFormat);
 	for (vertexIndex = TRIANGLE_FAN_FIRST_INDEX; vertexIndex < g_clipCountA;
 	     ++vertexIndex) {
-		g_triBuffer[g_d3dTriangleCount].v0 = g_clipIdxA[0];
-		g_triBuffer[g_d3dTriangleCount].v1 =
+		g_triBuffer[g_d3dTriangleCount].vertexIndex0 = g_clipIdxA[0];
+		g_triBuffer[g_d3dTriangleCount].vertexIndex1 =
 			g_clipIdxA[vertexIndex - 1];
-		g_triBuffer[g_d3dTriangleCount].v2 = g_clipIdxA[vertexIndex];
+		g_triBuffer[g_d3dTriangleCount].vertexIndex2 =
+			g_clipIdxA[vertexIndex];
 		g_triBuffer[g_d3dTriangleCount].texture = texture;
 		g_triBuffer[g_d3dTriangleCount].flags =
 			(Std3DRenderStateFlags)SPRITE_BASE_RENDER_FLAGS;

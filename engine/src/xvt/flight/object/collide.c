@@ -1754,19 +1754,19 @@ void collide_collisions(void)
 					if (strcmp(g_planTable
 							   [candidateCraft
 								    ->aiController
-								    .pendingPlanId]
+								    .runningPlanId]
 								   .name,
 						   "exithangarpln") == 0 ||
 					    strcmp(g_planTable
 							   [candidateCraft
 								    ->aiController
-								    .pendingPlanId]
+								    .runningPlanId]
 								   .name,
 						   "outofhyperspacepln") == 0 ||
 					    strcmp(g_planTable
 							   [candidateCraft
 								    ->aiController
-								    .pendingPlanId]
+								    .runningPlanId]
 								   .name,
 						   "enterhangarpln") == 0) {
 						collide_InsertMobileObjectProximityCandidate(
@@ -1777,7 +1777,7 @@ void collide_collisions(void)
 					if (strcmp(g_planTable
 							   [candidateCraft
 								    ->aiController
-								    .pendingPlanId]
+								    .runningPlanId]
 								   .name,
 						   "followhomeevadepln") == 0) {
 						CraftData *leaderCraft =
@@ -1789,14 +1789,14 @@ void collide_collisions(void)
 						if (strcmp(g_planTable
 								   [leaderCraft
 									    ->aiController
-									    .pendingPlanId]
+									    .runningPlanId]
 									   .name,
 							   "exithangarpln") ==
 							    0 ||
 						    strcmp(g_planTable
 								   [leaderCraft
 									    ->aiController
-									    .pendingPlanId]
+									    .runningPlanId]
 									   .name,
 							   "enterhangarpln") ==
 							    0) {
@@ -3046,10 +3046,10 @@ int16_t collide_checkboxcollision(int radius)
 }
 
 /* Predicts whether a cannon shot from hardpoint hardpointIndex of
- * sourceObjIdx would hit targetObjIdx; Hud_DrawReticle3D asks it for the
- * local player. The shot type is the model's weapon for the local player's
- * selected bank, one type higher when the slot's charge is 64 or more. It
- * sweeps the shot from the hardpoint (twice as far out on an Imperial Star
+ * sourceObjIdx would hit targetObjIdx; Hud_DrawLaserCannonIndicators asks it
+ * for the local player. The shot type is the model's weapon for the local
+ * player's selected bank, one type higher when the slot's charge is 64 or more.
+ * It sweeps the shot from the hardpoint (twice as far out on an Imperial Star
  * Destroyer) along the source's move vector for the shot's whole life, at
  * the shot's speed plus the source's, against the target (at the center of
  * the local player's selected target component, if any) moving along its
@@ -4734,10 +4734,10 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex,
 				uint16_t breakupRollRate =
 					(uint16_t)((GameRand() & 0x3FFF) +
 						   0x2000);
-				uint16_t maxTumbleAngle =
-					g_modelDefs[modelIndex].maxTumbleAngle;
+				uint16_t maxTumbleRate =
+					g_modelDefs[modelIndex].maxTumbleRate;
 
-				while (breakupRollRate > maxTumbleAngle) {
+				while (breakupRollRate > maxTumbleRate) {
 					breakupRollRate >>= 1;
 				}
 				if ((uint16_t)GameRand() < 0x8000u) {
@@ -4934,12 +4934,12 @@ int16_t collide_damagecraft(uint16_t victimObjIdx, int16_t hitMeshIndex,
 							(uint16_t)((GameRand() &
 								    0x3FFF) +
 								   0x2000);
-						uint16_t maxTumbleAngle =
+						uint16_t maxTumbleRate =
 							g_modelDefs[modelIndex]
-								.maxTumbleAngle;
+								.maxTumbleRate;
 
 						while (breakupRollRate >
-						       maxTumbleAngle) {
+						       maxTumbleRate) {
 							breakupRollRate >>= 1;
 						}
 						if ((uint16_t)detachedRollRate <
@@ -5617,7 +5617,7 @@ int collide_CheckSweptModelCollision(uint16_t sourceObjIdx,
 	}
 #endif
 	modelHandle = g_loadedModels[target->objectType];
-	model = (OptimizedPolyObject *)Memory_LockHandle(modelHandle);
+	model = (OptimizedPolyObject *)Memory_GetHandleBlock(modelHandle);
 	if (model == NULL) {
 		return 0;
 	}
@@ -5731,7 +5731,7 @@ int collide_CheckSweptModelCollision(uint16_t sourceObjIdx,
 			g_collideSweepWalkerEnd = g_collideSweepWalkerEndSaved;
 		}
 	}
-	Memory_UnlockHandle(modelHandle);
+	Memory_HandleBlockDoneStub(modelHandle);
 	if (g_collideSweepHitMeshOrdinal != 0) {
 		g_collideSweepHitFraction -= 0.1f;
 		if (g_collideSweepHitFraction < 0.0f) {

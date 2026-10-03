@@ -258,8 +258,8 @@ static int XvtNetworkSession_Factory(void)
 	g_frontState.netReliableRetryLongTimeoutMode = 0;
 	g_frontState.netGroupDplayId = 0;
 	g_frontState.netHostPlayerId = 0;
-	g_frontState.netExportRecvQueuePtr = NULL;
-	g_frontState.netExportRecvQueueHighWater = 0;
+	g_frontState.netFlightSentWorldMessageHistory = NULL;
+	g_frontState.netFlightSentWorldMessageWriteIndex = 0;
 	for (int i = 0; i < 40; ++i) {
 		NetReliablePeerSlot *peer =
 			&g_frontState.netRuntimeReliablePeerSlots[i];
@@ -287,7 +287,7 @@ static int XvtNetworkSession_Factory(void)
 	g_missionSetupRosterAuthoritative = 0;
 	g_frontState.netAppGuid = g_session.app;
 	g_frontState.netIsHost = g_session.host;
-	strcpy(g_frontState.netPlayers[0].playerInfo, g_session.rating_text);
+	strcpy(g_frontState.netPlayers[0].longName, g_session.rating_text);
 	strcpy(g_frontState.netPlayers[0].playerName, g_session.player_name);
 	strcpy(g_frontState.netSessionName, g_session.name);
 	result = DirectPlayCreate(provider, &temporary, NULL);

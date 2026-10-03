@@ -979,7 +979,7 @@ void FlightMap_DrawObjectOverlay(int objectIdx)
 	displayExtent = boxExtent + 4;
 	if (g_objectTable[objectIdx].mobj != NULL ||
 	    g_objectTable[objectIdx].genusId != 8) {
-		Hud_AppendObjectDisplayName(objectIdx, 2);
+		Hud_FormatObjectDisplayName(objectIdx, 2);
 	} else {
 		g_flightTextScratchBuffer[0] = 0;
 	}

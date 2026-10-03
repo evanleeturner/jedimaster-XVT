@@ -120,8 +120,9 @@ const uint16_t g_backdropsEnabledByGraphicsDetailPreset[4] = {0, 0, 0, 1};
 const uint16_t g_debrisEnabledByGraphicsDetailPreset[4] = {0, 0, 1, 1};
 /* Resolution mode to go back to when the flight ends. Nothing writes it, so it
  * stays FLIGHT_RESOLUTION_320X240; Flight_MainLoop and
- * XvtFlightTask_ReleaseMission hand it to FlightDisplay_ApplyResolutionMode,
- * which does nothing, when it differs from g_flightResolutionMode. */
+ * XvtFlightTask_ReleaseMission hand it to
+ * FlightDisplay_ApplyResolutionModeStub, which does nothing, when it differs
+ * from g_flightResolutionMode. */
 // GLOBAL: XVT 0x5233F0
 int g_preFlightResolutionMode = FLIGHT_RESOLUTION_320X240;
 /* 20.0: the cap on the level-of-detail option plus 5 that g_lodDistanceScale is
@@ -1267,7 +1268,7 @@ void Flight_AllocWorldStateBuffers(void)
 		return;
 #endif
 	}
-	g_worldStateBuffer = Memory_LockHandle(g_worldStateHandle);
+	g_worldStateBuffer = Memory_GetHandleBlock(g_worldStateHandle);
 
 	g_worldStateDupHandle = Memory_AllocHandle(bufferSize, 0);
 	if (g_worldStateDupHandle == 0) {
@@ -1276,7 +1277,7 @@ void Flight_AllocWorldStateBuffers(void)
 		return;
 #endif
 	}
-	g_worldStateDupBuffer = Memory_LockHandle(g_worldStateDupHandle);
+	g_worldStateDupBuffer = Memory_GetHandleBlock(g_worldStateDupHandle);
 }
 
 /* Frees both world state buffers (the modern build skips a handle of 0) and
@@ -1638,9 +1639,8 @@ void Flight_SaveWorldState(void)
 	memcpy(cursor, &g_worldStateDebrisSlotCount,
 	       sizeof(g_worldStateDebrisSlotCount));
 	cursor += sizeof(g_worldStateDebrisSlotCount);
-	memcpy(cursor, &g_regionMainObjectSlotStart,
-	       sizeof(g_regionMainObjectSlotStart));
-	cursor += sizeof(g_regionMainObjectSlotStart);
+	memcpy(cursor, &g_localDebrisSlotCount, sizeof(g_localDebrisSlotCount));
+	cursor += sizeof(g_localDebrisSlotCount);
 	memcpy(cursor, &g_activeRegionObjectSlotStart,
 	       sizeof(g_activeRegionObjectSlotStart));
 	cursor += sizeof(g_activeRegionObjectSlotStart);
@@ -1958,8 +1958,8 @@ void Flight_RestoreWorldState(void)
 	cursor += sizeof(g_debrisObjectSlotsTotal);
 	g_worldStateDebrisSlotCount = *(int *)cursor;
 	cursor += sizeof(g_worldStateDebrisSlotCount);
-	g_regionMainObjectSlotStart = *(int *)cursor;
-	cursor += sizeof(g_regionMainObjectSlotStart);
+	g_localDebrisSlotCount = *(int *)cursor;
+	cursor += sizeof(g_localDebrisSlotCount);
 	g_activeRegionObjectSlotStart = *(int *)cursor;
 	cursor += sizeof(g_activeRegionObjectSlotStart);
 	g_activeRegionCraftObjectSlotEnd = *(int *)cursor;
@@ -2158,7 +2158,7 @@ void Flight_ChecksumWorldState(int unusedArg0, int unusedArg1)
 							craftDataBytes =
 								sizeof(*craftState) -
 								sizeof(craftState
-									       ->field_3F2) -
+									       ->unused3F2) -
 								sizeof(craftState
 									       ->turretObjectLinks) -
 								sizeof(craftState
@@ -3739,7 +3739,7 @@ void Flight_MainLoop(int unused)
 		Sound_EmptyStub();
 		FeDiskIo_FreeFlightResources();
 		if (g_preFlightResolutionMode != g_flightResolutionMode) {
-			FlightDisplay_ApplyResolutionMode(
+			FlightDisplay_ApplyResolutionModeStub(
 				g_preFlightResolutionMode);
 		}
 		memcpy(&g_localPlayerSnapshotOnOptionsSyncFailure,
@@ -3790,7 +3790,8 @@ void Flight_MainLoop(int unused)
 	Sound_StopAllInstances();
 	FeDiskIo_FreeFlightResources();
 	if (g_preFlightResolutionMode != g_flightResolutionMode) {
-		FlightDisplay_ApplyResolutionMode(g_preFlightResolutionMode);
+		FlightDisplay_ApplyResolutionModeStub(
+			g_preFlightResolutionMode);
 	}
 	Pilot_Save(0);
 	if (g_gameConfig.musicEnabled != 0 && g_gameConfig.musicVolume != 0) {
@@ -4654,7 +4655,7 @@ int Flight_ComputeLiveWorldStateChecksum(void)
 
 	for (mobileObjectIndex = 0;
 	     mobileObjectIndex <
-	     g_regionMainObjectSlotEnd - g_regionMainObjectSlotStart;
+	     g_regionMainObjectSlotEnd - g_localDebrisSlotCount;
 	     mobileObjectIndex++) {
 		if (g_objectTable[mobileObjectIndex].objectType != 0) {
 			*checksumPtr ^= Flight_ChecksumBufferRotateXor(
@@ -4663,8 +4664,8 @@ int Flight_ComputeLiveWorldStateChecksum(void)
 			checksum = Flight_RotateChecksumLeft(*checksumPtr);
 		}
 	}
-	for (objectIndex = 0; objectIndex < g_regionMainObjectSlotEnd -
-						    g_regionMainObjectSlotStart;
+	for (objectIndex = 0;
+	     objectIndex < g_regionMainObjectSlotEnd - g_localDebrisSlotCount;
 	     objectIndex++) {
 		if (g_objectTable[objectIndex].objectType != 0) {
 			*checksumPtr ^= Flight_ChecksumBufferRotateXor(
@@ -4762,7 +4763,7 @@ int Flight_ComputeLiveWorldStateChecksum(void)
 	checksum = Flight_RotateChecksumLeft(*checksumPtr);
 	*checksumPtr ^= g_worldStateDebrisSlotCount;
 	checksum = Flight_RotateChecksumLeft(*checksumPtr);
-	*checksumPtr ^= g_regionMainObjectSlotStart;
+	*checksumPtr ^= g_localDebrisSlotCount;
 	checksum = Flight_RotateChecksumLeft(*checksumPtr);
 	*checksumPtr ^= g_activeRegionObjectSlotStart;
 	checksum = Flight_RotateChecksumLeft(*checksumPtr);
@@ -4932,8 +4933,8 @@ void Flight_UpdatePlayerStep(int playerIdx)
 					.viewState.cameraFocusObjIdx =
 					UINT16_MAX;
 			} else {
-				g_players[playerIdx].viewState.transitionTimer =
-					0;
+				g_players[playerIdx]
+					.viewState.targetCameraActive = 0;
 				g_players[playerIdx]
 					.viewState.externalCameraActive = 0;
 				g_players[playerIdx]
@@ -5851,12 +5852,12 @@ void Flight_ProcessPlayerActions(int playerIdx)
 						(uint16_t)targetIndex);
 					if ((strcmp(g_planTable
 							    [controller
-								     ->pendingPlanId]
+								     ->runningPlanId]
 								    .name,
 						    "boardtogivepln") == 0 ||
 					     strcmp(g_planTable
 							    [controller
-								     ->pendingPlanId]
+								     ->runningPlanId]
 								    .name,
 						    "board3pln") == 0) &&
 					    pai_CurrentOrderTargetsMatchObject(
@@ -6541,8 +6542,8 @@ void Flight_ProcessPlayerActions(int playerIdx)
 			if (g_flightSimSideEffectsSuppressed == 0) {
 				PlayerViewState *view =
 					&g_players[playerIdx].viewState;
-				if (view->transitionTimer != 0) {
-					view->transitionTimer = 0;
+				if (view->targetCameraActive != 0) {
+					view->targetCameraActive = 0;
 					view->cameraFocusObjIdx =
 						(uint16_t)g_players[playerIdx]
 							.objectIndex;
@@ -6576,7 +6577,7 @@ void Flight_ProcessPlayerActions(int playerIdx)
 							view->hudAimY;
 					}
 					view->externalCameraActive = 1;
-					view->transitionTimer = 1;
+					view->targetCameraActive = 1;
 					view->cameraFocusObjIdx =
 						(uint16_t)g_players[playerIdx]
 							.currentTargetObjectIdx;
@@ -6620,7 +6621,7 @@ void Flight_ProcessPlayerActions(int playerIdx)
 							sourcePlayerIdx);
 						while (tumbleRate >
 						       g_modelDefs[craft->modelIndex]
-							       .maxTumbleAngle) {
+							       .maxTumbleRate) {
 							tumbleRate >>= 1;
 						}
 						g_objectTable
@@ -7227,7 +7228,7 @@ void Flight_ProcessPlayerActions(int playerIdx)
 							.pendingActionParam;
 					if (g_players[playerIdx]
 						    .viewState
-						    .transitionTimer != 0) {
+						    .targetCameraActive != 0) {
 						g_players[playerIdx]
 							.viewState
 							.cameraFocusObjIdx =
@@ -7768,7 +7769,7 @@ void Flight_ProcessPlayerActions(int playerIdx)
 						view->hudAimX = 0;
 					}
 				}
-			} else if (view->transitionTimer == 0) {
+			} else if (view->targetCameraActive == 0) {
 				view->externalCameraActive =
 					view->externalCameraActive == 0;
 				if (view->externalCameraActive != 0 &&
@@ -7879,12 +7880,12 @@ void Flight_ProcessPlayerActions(int playerIdx)
 			AiController *controller;
 			g_curCraft = g_objectTable[targetIndex].mobj->pCraft;
 			controller = &g_curCraft->aiController;
-			if (strcmp(g_planTable[controller->pendingPlanId].name,
+			if (strcmp(g_planTable[controller->runningPlanId].name,
 				   "craftwaitforgopln") == 0) {
-				controller->pendingPlanId =
+				controller->runningPlanId =
 					controller->savedPlanId;
 				pai_setupcraftcontext((uint16_t)targetIndex);
-				pai_ApplyPendingPlanTargetAndManeuver(
+				pai_ApplyRunningPlanTargetAndManeuver(
 					(uint16_t)targetIndex);
 			}
 			controller->candidateTargetIdx = AI_TARGET_ABORT;
@@ -7943,13 +7944,13 @@ void Flight_ProcessPlayerActions(int playerIdx)
 						  .currentTargetObjectIdx;
 			g_curCraft = g_objectTable[targetIndex].mobj->pCraft;
 			if (strcmp(g_planTable[g_curCraft->aiController
-						       .pendingPlanId]
+						       .runningPlanId]
 					   .name,
 				   "craftwaitforgopln") == 0) {
-				g_curCraft->aiController.pendingPlanId =
+				g_curCraft->aiController.runningPlanId =
 					g_curCraft->aiController.savedPlanId;
 				pai_setupcraftcontext((uint16_t)targetIndex);
-				pai_ApplyPendingPlanTargetAndManeuver(
+				pai_ApplyRunningPlanTargetAndManeuver(
 					(uint16_t)targetIndex);
 				msg_radioMessage((uint16_t)targetIndex,
 						 (uint8_t *)g_curCraft, 0x99, 3,
@@ -8010,9 +8011,9 @@ void Flight_ProcessPlayerActions(int playerIdx)
 			AiController *controller;
 			g_curCraft = target->mobj->pCraft;
 			controller = &g_curCraft->aiController;
-			if (strcmp(g_planTable[controller->pendingPlanId].name,
+			if (strcmp(g_planTable[controller->runningPlanId].name,
 				   "flyhomeevadepln") != 0 &&
-			    strcmp(g_planTable[controller->pendingPlanId].name,
+			    strcmp(g_planTable[controller->runningPlanId].name,
 				   "starshipintohyperpln") != 0) {
 				if (g_curCraft->aiFlight.missionAbortedFlag ==
 				    0) {
@@ -8031,14 +8032,14 @@ void Flight_ProcessPlayerActions(int playerIdx)
 					}
 				}
 				g_curCraft->aiFlight.missionAbortedFlag = 1;
-				controller->pendingPlanId =
+				controller->runningPlanId =
 					pai_FindPlanIdByNameOrZero(
 						target->genusId ==
 								CRAFT_GENUS_STARSHIP
 							? "starshipintohyperpln"
 							: "flyhomeevadepln");
 				pai_setupcraftcontext((uint16_t)targetIndex);
-				pai_ApplyPendingPlanTargetAndManeuver(
+				pai_ApplyRunningPlanTargetAndManeuver(
 					(uint16_t)targetIndex);
 			}
 			msg_radioMessage((uint16_t)targetIndex,
@@ -8224,7 +8225,7 @@ void Flight_ProcessPlayerActions(int playerIdx)
 						g_planReportMessageIdByPlanId
 							[g_curCraft
 								 ->aiController
-								 .pendingPlanId]);
+								 .runningPlanId]);
 				} else {
 					int16_t otherPlayerIdx;
 					for (otherPlayerIdx = 0;
@@ -8377,15 +8378,15 @@ void Flight_ProcessPlayerActions(int playerIdx)
 			AiController *controller;
 			g_curCraft = g_objectTable[targetIndex].mobj->pCraft;
 			controller = &g_curCraft->aiController;
-			if (strcmp(g_planTable[controller->pendingPlanId].name,
+			if (strcmp(g_planTable[controller->runningPlanId].name,
 				   "craftwaitforgopln") != 0 &&
-			    strcmp(g_planTable[controller->pendingPlanId].name,
+			    strcmp(g_planTable[controller->runningPlanId].name,
 				   "intohyperspacepln") != 0 &&
-			    strcmp(g_planTable[controller->pendingPlanId].name,
+			    strcmp(g_planTable[controller->runningPlanId].name,
 				   "outofhyperspacepln") != 0) {
 				controller->savedPlanId =
-					controller->pendingPlanId;
-				controller->pendingPlanId =
+					controller->runningPlanId;
+				controller->runningPlanId =
 					pai_FindPlanIdByNameOrZero(
 						g_objectTable[targetIndex]
 									.genusId ==
@@ -8393,7 +8394,7 @@ void Flight_ProcessPlayerActions(int playerIdx)
 							? "starshipwaitforgopln"
 							: "craftwaitforgopln");
 				pai_setupcraftcontext((uint16_t)targetIndex);
-				pai_ApplyPendingPlanTargetAndManeuver(
+				pai_ApplyRunningPlanTargetAndManeuver(
 					(uint16_t)targetIndex);
 				msg_radioMessage((uint16_t)targetIndex,
 						 (uint8_t *)g_curCraft, 0x98, 2,
@@ -8943,9 +8944,9 @@ void Flight_ProcessPlayerActions(int playerIdx)
 	}
 	case FLIGHT_KEY_ALT_C:
 		g_players[playerIdx].currentTargetObjectIdx = -1;
-		if (g_players[playerIdx].viewState.transitionTimer != 0) {
+		if (g_players[playerIdx].viewState.targetCameraActive != 0) {
 			PlayerViewState *view = &g_players[playerIdx].viewState;
-			view->transitionTimer = 0;
+			view->targetCameraActive = 0;
 			view->externalCameraActive = 0;
 			view->playerInputBlocked = 0;
 			view->cameraFocusObjIdx =

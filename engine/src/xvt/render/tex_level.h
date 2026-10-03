@@ -14,9 +14,12 @@ typedef struct TexLevelHeader {
 	/* Bytes of the block as read; the converted palettes go right after
 	 * them. */
 	uint32_t dataSize;
-	/* Despite the name, FeDiskIo_LoadResources stores in entry 0 the file's
-	 * count of palette colors, by which it makes room for the converted
-	 * palettes; nothing reads or writes either entry by name. */
+	/* Entry 0 is the count of colors FeDiskIo_LoadResources makes room for
+	 * after the block, g_flightBytesPerPixel bytes each, for the converted
+	 * palettes; it reads the count from the file ahead of the rest and
+	 * stores it here through the block's second word. Entry 1 comes from
+	 * the file with the rest of the block, and nothing reads it. Neither
+	 * entry is used by name. */
 	uint32_t reserved04[2];
 	/* Offset of the block's own palette from the header, 4 bytes per
 	 * color. */

@@ -129,13 +129,13 @@ MobileObject *g_mobileObjectPoolBase = 0;
  * 191 everyone else's. */
 // GLOBAL: XVT 0x9E9640
 int g_projectileObjectSlotStart = 0;
-/* Despite the name, not a first slot. Mission_Init sets 8
+/* Number of local slots at the end of the main region: Mission_Init sets 8
  * (LOCAL_DEBRIS_SLOT_COUNT); it is restored. Only the world-state checksums
- * read it, and the modern build's check that a loaded world matches the
- * live slot ranges: the checksums cover slots 0 to g_regionMainObjectSlotEnd
- * minus this, which leaves out the 8 local slots, and mix in the value. */
+ * read it, and the modern build's check that a loaded world matches the live
+ * slot ranges: the checksums cover slots 0 to g_regionMainObjectSlotEnd minus
+ * this, which leaves out the 8 local slots, and mix in the value. */
 // GLOBAL: XVT 0x9D767C
-int g_regionMainObjectSlotStart = 0;
+int g_localDebrisSlotCount = 0;
 /* Shot slots in all, 160: 128 for players and 32 for the rest; set by
  * Mission_Init and restored. */
 // GLOBAL: XVT 0x9FD430

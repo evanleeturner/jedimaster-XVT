@@ -155,7 +155,7 @@ struct FrontendGlobalState {
 	 * frame loop runs frames only then. */
 	int appActive;
 	/* Never read or written by name. */
-	uint8_t unknownDisplayState_E42[0x40];
+	uint8_t unusedDisplayState_E42[0x40];
 	int32_t clipMinX; /* Left edge of the screen clip, inclusive. */
 	int32_t clipMaxX; /* Right edge of the screen clip, inclusive. */
 	int32_t clipMinY; /* Top edge of the screen clip, inclusive. */
@@ -247,7 +247,7 @@ struct FrontendGlobalState {
 	IDirectPlay2A *netDirectPlay;
 	/* DirectPlay lobby object, held while a lobby connection opens. */
 	IDirectPlayLobbyA *netDirectPlayLobby;
-	uint8_t unknownNetState_27ECD[4]; /* Never read or written by name. */
+	uint8_t unusedNetState_27ECD[4]; /* Never read or written by name. */
 	GUID netAppGuid;	   /* The game's DirectPlay application GUID. */
 	GUID netJoinedSessionGuid; /* GUID of the session joined. */
 	DPID netHostPlayerId; /* The host's DirectPlay id; 0 until known. */
@@ -270,7 +270,7 @@ struct FrontendGlobalState {
 	int netRuntimeGroupSeqCounter;
 	/* Last group-channel packet, sent again behind the next one. */
 	NetPiggybackPayload netRuntimeGroupPendingPayload;
-	uint8_t unknownNetState_28865[4]; /* Never read or written by name. */
+	uint8_t unusedNetState_28865[4]; /* Never read or written by name. */
 	/* Set to 1 by FrontendDisplay_ResetGlobalStatePreservingNetworkSession,
 	 * whose one caller nothing calls; nothing reads it. */
 	int frontendPostResetMarker;
@@ -292,16 +292,15 @@ struct FrontendGlobalState {
 	/* Per-peer delivery state of the lobby session. */
 	NetReliablePeerSlot netRuntimeReliablePeerSlots[40];
 	/* Never read or written by name. */
-	uint8_t unknownNetState_C2B51[0x238];
+	uint8_t unusedNetState_C2B51[0x238];
 	/* netRuntimeReliablePeerSlots in use. */
 	uint32_t netReliablePeerSlotCount;
-	/* Despite the name, not a receive queue: after a flight,
-	 * NetSession_ExportRuntimeState points it at the flight's 256-entry
-	 * sent world-message history, which Net_PumpIncomingPackets resends
-	 * from on a WORLD_NACK. */
-	NetQueuedPacket *netExportRecvQueuePtr;
-	/* Despite the name, the write index of that world-message history. */
-	int netExportRecvQueueHighWater;
+	/* After a flight, NetSession_ExportRuntimeState points it at the
+	 * flight's 256-entry sent world-message history, which
+	 * Net_PumpIncomingPackets resends from on a WORLD_NACK. */
+	NetQueuedPacket *netFlightSentWorldMessageHistory;
+	/* The write index of that world-message history. */
+	int netFlightSentWorldMessageWriteIndex;
 	/* Heap table of each string's offset in uiStringData. */
 	unsigned int *uiStringOffsets;
 	/* Heap block of the string table's text, from fronttxt.txt. */

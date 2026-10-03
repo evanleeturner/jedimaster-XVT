@@ -33,7 +33,7 @@ extern int g_optIsHost;
 extern int g_optIsClient;
 extern char *g_cmdLine;
 extern int g_shutdownComplete;
-extern void *g_cursorBitmap;
+extern void *g_cursorSaveBuffer;
 extern int g_gameMainSkipIntroRelaunchGate;
 extern const unsigned int g_colorDistLUT[256];
 

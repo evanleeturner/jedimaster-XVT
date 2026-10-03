@@ -180,7 +180,7 @@ uint8_t g_hudLoadedPanelSetId = 0;
 // GLOBAL: XVT 0xA00730
 uint8_t g_flightDisplayRebuildPending = 0;
 /* Names of the waypoints, by waypoint index, filled by
- * StringTable_LoadGameStrings; Hud_AppendObjectDisplayName reads them for
+ * StringTable_LoadGameStrings; Hud_FormatObjectDisplayName reads them for
  * references of 0x8000 and up. */
 // GLOBAL: XVT 0xA08380
 const char *g_strWaypointNames[14] = {0};
@@ -429,9 +429,9 @@ const HudBeamSegmentOffset g_hudBeamSegmentOffsets320x240[9] = {
 	{4, 4},	  {3, 3},   {2, 2}, {0, 0},
 };
 /* 1 while a laser cannon due to fire would hit the target, or with warheads
- * selected while missileLockState is 2. Hud_DrawReticle3D sets it to 0 and then
- * to 1 on a hit; Hud_UpdateTargetingLockIndicator sets it for warheads and
- * reads it for lasers. */
+ * selected while missileLockState is 2. Hud_DrawLaserCannonIndicators sets it
+ * to 0 and then to 1 on a hit; Hud_UpdateTargetingLockIndicator sets it for
+ * warheads and reads it for lasers. */
 // GLOBAL: XVT 0xA0A1D0
 uint8_t g_targetLockActive = 0;
 /* 1 while Hud_InitHUD, its only writer, redraws the HUD;
@@ -809,17 +809,19 @@ void Hud_DrawBoxOverlayHW(int x, int y, int width, int height, int colorIdx,
 						     vertexIndex]
 					.specular = 0;
 			}
-			g_triBuffer[g_d3dTriangleCount].v0 = g_d3dVertexCount;
-			g_triBuffer[g_d3dTriangleCount].v1 =
+			g_triBuffer[g_d3dTriangleCount].vertexIndex0 =
+				g_d3dVertexCount;
+			g_triBuffer[g_d3dTriangleCount].vertexIndex1 =
 				g_d3dVertexCount + 1;
-			g_triBuffer[g_d3dTriangleCount].v2 =
+			g_triBuffer[g_d3dTriangleCount].vertexIndex2 =
 				g_d3dVertexCount + 2;
 			g_triBuffer[g_d3dTriangleCount].texture = NULL;
 			g_triBuffer[g_d3dTriangleCount++].flags = renderFlags;
-			g_triBuffer[g_d3dTriangleCount].v0 = g_d3dVertexCount;
-			g_triBuffer[g_d3dTriangleCount].v1 =
+			g_triBuffer[g_d3dTriangleCount].vertexIndex0 =
+				g_d3dVertexCount;
+			g_triBuffer[g_d3dTriangleCount].vertexIndex1 =
 				g_d3dVertexCount + 2;
-			g_triBuffer[g_d3dTriangleCount].v2 =
+			g_triBuffer[g_d3dTriangleCount].vertexIndex2 =
 				g_d3dVertexCount + 3;
 			g_triBuffer[g_d3dTriangleCount].texture = NULL;
 			g_triBuffer[g_d3dTriangleCount++].flags = renderFlags;
@@ -871,17 +873,19 @@ void Hud_DrawBoxOverlayHW(int x, int y, int width, int height, int colorIdx,
 						     vertexIndex]
 					.specular = 0;
 			}
-			g_triBuffer[g_d3dTriangleCount].v0 = g_d3dVertexCount;
-			g_triBuffer[g_d3dTriangleCount].v1 =
+			g_triBuffer[g_d3dTriangleCount].vertexIndex0 =
+				g_d3dVertexCount;
+			g_triBuffer[g_d3dTriangleCount].vertexIndex1 =
 				g_d3dVertexCount + 1;
-			g_triBuffer[g_d3dTriangleCount].v2 =
+			g_triBuffer[g_d3dTriangleCount].vertexIndex2 =
 				g_d3dVertexCount + 2;
 			g_triBuffer[g_d3dTriangleCount].texture = NULL;
 			g_triBuffer[g_d3dTriangleCount++].flags = renderFlags;
-			g_triBuffer[g_d3dTriangleCount].v0 = g_d3dVertexCount;
-			g_triBuffer[g_d3dTriangleCount].v1 =
+			g_triBuffer[g_d3dTriangleCount].vertexIndex0 =
+				g_d3dVertexCount;
+			g_triBuffer[g_d3dTriangleCount].vertexIndex1 =
 				g_d3dVertexCount + 2;
-			g_triBuffer[g_d3dTriangleCount].v2 =
+			g_triBuffer[g_d3dTriangleCount].vertexIndex2 =
 				g_d3dVertexCount + 3;
 			g_triBuffer[g_d3dTriangleCount].texture = NULL;
 			g_triBuffer[g_d3dTriangleCount++].flags = renderFlags;
@@ -936,17 +940,19 @@ void Hud_DrawBoxOverlayHW(int x, int y, int width, int height, int colorIdx,
 						     vertexIndex]
 					.specular = 0;
 			}
-			g_triBuffer[g_d3dTriangleCount].v0 = g_d3dVertexCount;
-			g_triBuffer[g_d3dTriangleCount].v1 =
+			g_triBuffer[g_d3dTriangleCount].vertexIndex0 =
+				g_d3dVertexCount;
+			g_triBuffer[g_d3dTriangleCount].vertexIndex1 =
 				g_d3dVertexCount + 1;
-			g_triBuffer[g_d3dTriangleCount].v2 =
+			g_triBuffer[g_d3dTriangleCount].vertexIndex2 =
 				g_d3dVertexCount + 2;
 			g_triBuffer[g_d3dTriangleCount].texture = NULL;
 			g_triBuffer[g_d3dTriangleCount++].flags = renderFlags;
-			g_triBuffer[g_d3dTriangleCount].v0 = g_d3dVertexCount;
-			g_triBuffer[g_d3dTriangleCount].v1 =
+			g_triBuffer[g_d3dTriangleCount].vertexIndex0 =
+				g_d3dVertexCount;
+			g_triBuffer[g_d3dTriangleCount].vertexIndex1 =
 				g_d3dVertexCount + 2;
-			g_triBuffer[g_d3dTriangleCount].v2 =
+			g_triBuffer[g_d3dTriangleCount].vertexIndex2 =
 				g_d3dVertexCount + 3;
 			g_triBuffer[g_d3dTriangleCount].texture = NULL;
 			g_triBuffer[g_d3dTriangleCount++].flags = renderFlags;
@@ -998,17 +1004,19 @@ void Hud_DrawBoxOverlayHW(int x, int y, int width, int height, int colorIdx,
 						     vertexIndex]
 					.specular = 0;
 			}
-			g_triBuffer[g_d3dTriangleCount].v0 = g_d3dVertexCount;
-			g_triBuffer[g_d3dTriangleCount].v1 =
+			g_triBuffer[g_d3dTriangleCount].vertexIndex0 =
+				g_d3dVertexCount;
+			g_triBuffer[g_d3dTriangleCount].vertexIndex1 =
 				g_d3dVertexCount + 1;
-			g_triBuffer[g_d3dTriangleCount].v2 =
+			g_triBuffer[g_d3dTriangleCount].vertexIndex2 =
 				g_d3dVertexCount + 2;
 			g_triBuffer[g_d3dTriangleCount].texture = NULL;
 			g_triBuffer[g_d3dTriangleCount++].flags = renderFlags;
-			g_triBuffer[g_d3dTriangleCount].v0 = g_d3dVertexCount;
-			g_triBuffer[g_d3dTriangleCount].v1 =
+			g_triBuffer[g_d3dTriangleCount].vertexIndex0 =
+				g_d3dVertexCount;
+			g_triBuffer[g_d3dTriangleCount].vertexIndex1 =
 				g_d3dVertexCount + 2;
-			g_triBuffer[g_d3dTriangleCount].v2 =
+			g_triBuffer[g_d3dTriangleCount].vertexIndex2 =
 				g_d3dVertexCount + 3;
 			g_triBuffer[g_d3dTriangleCount].texture = NULL;
 			g_triBuffer[g_d3dTriangleCount++].flags = renderFlags;
@@ -1063,17 +1071,19 @@ void Hud_DrawBoxOverlayHW(int x, int y, int width, int height, int colorIdx,
 						     vertexIndex]
 					.specular = 0;
 			}
-			g_triBuffer[g_d3dTriangleCount].v0 = g_d3dVertexCount;
-			g_triBuffer[g_d3dTriangleCount].v1 =
+			g_triBuffer[g_d3dTriangleCount].vertexIndex0 =
+				g_d3dVertexCount;
+			g_triBuffer[g_d3dTriangleCount].vertexIndex1 =
 				g_d3dVertexCount + 1;
-			g_triBuffer[g_d3dTriangleCount].v2 =
+			g_triBuffer[g_d3dTriangleCount].vertexIndex2 =
 				g_d3dVertexCount + 2;
 			g_triBuffer[g_d3dTriangleCount].texture = NULL;
 			g_triBuffer[g_d3dTriangleCount++].flags = renderFlags;
-			g_triBuffer[g_d3dTriangleCount].v0 = g_d3dVertexCount;
-			g_triBuffer[g_d3dTriangleCount].v1 =
+			g_triBuffer[g_d3dTriangleCount].vertexIndex0 =
+				g_d3dVertexCount;
+			g_triBuffer[g_d3dTriangleCount].vertexIndex1 =
 				g_d3dVertexCount + 2;
-			g_triBuffer[g_d3dTriangleCount].v2 =
+			g_triBuffer[g_d3dTriangleCount].vertexIndex2 =
 				g_d3dVertexCount + 3;
 			g_triBuffer[g_d3dTriangleCount].texture = NULL;
 			g_triBuffer[g_d3dTriangleCount++].flags = renderFlags;
@@ -1125,17 +1135,19 @@ void Hud_DrawBoxOverlayHW(int x, int y, int width, int height, int colorIdx,
 						     vertexIndex]
 					.specular = 0;
 			}
-			g_triBuffer[g_d3dTriangleCount].v0 = g_d3dVertexCount;
-			g_triBuffer[g_d3dTriangleCount].v1 =
+			g_triBuffer[g_d3dTriangleCount].vertexIndex0 =
+				g_d3dVertexCount;
+			g_triBuffer[g_d3dTriangleCount].vertexIndex1 =
 				g_d3dVertexCount + 1;
-			g_triBuffer[g_d3dTriangleCount].v2 =
+			g_triBuffer[g_d3dTriangleCount].vertexIndex2 =
 				g_d3dVertexCount + 2;
 			g_triBuffer[g_d3dTriangleCount].texture = NULL;
 			g_triBuffer[g_d3dTriangleCount++].flags = renderFlags;
-			g_triBuffer[g_d3dTriangleCount].v0 = g_d3dVertexCount;
-			g_triBuffer[g_d3dTriangleCount].v1 =
+			g_triBuffer[g_d3dTriangleCount].vertexIndex0 =
+				g_d3dVertexCount;
+			g_triBuffer[g_d3dTriangleCount].vertexIndex1 =
 				g_d3dVertexCount + 2;
-			g_triBuffer[g_d3dTriangleCount].v2 =
+			g_triBuffer[g_d3dTriangleCount].vertexIndex2 =
 				g_d3dVertexCount + 3;
 			g_triBuffer[g_d3dTriangleCount].texture = NULL;
 			g_triBuffer[g_d3dTriangleCount++].flags = renderFlags;
@@ -1190,17 +1202,19 @@ void Hud_DrawBoxOverlayHW(int x, int y, int width, int height, int colorIdx,
 						     vertexIndex]
 					.specular = 0;
 			}
-			g_triBuffer[g_d3dTriangleCount].v0 = g_d3dVertexCount;
-			g_triBuffer[g_d3dTriangleCount].v1 =
+			g_triBuffer[g_d3dTriangleCount].vertexIndex0 =
+				g_d3dVertexCount;
+			g_triBuffer[g_d3dTriangleCount].vertexIndex1 =
 				g_d3dVertexCount + 1;
-			g_triBuffer[g_d3dTriangleCount].v2 =
+			g_triBuffer[g_d3dTriangleCount].vertexIndex2 =
 				g_d3dVertexCount + 2;
 			g_triBuffer[g_d3dTriangleCount].texture = NULL;
 			g_triBuffer[g_d3dTriangleCount++].flags = renderFlags;
-			g_triBuffer[g_d3dTriangleCount].v0 = g_d3dVertexCount;
-			g_triBuffer[g_d3dTriangleCount].v1 =
+			g_triBuffer[g_d3dTriangleCount].vertexIndex0 =
+				g_d3dVertexCount;
+			g_triBuffer[g_d3dTriangleCount].vertexIndex1 =
 				g_d3dVertexCount + 2;
-			g_triBuffer[g_d3dTriangleCount].v2 =
+			g_triBuffer[g_d3dTriangleCount].vertexIndex2 =
 				g_d3dVertexCount + 3;
 			g_triBuffer[g_d3dTriangleCount].texture = NULL;
 			g_triBuffer[g_d3dTriangleCount++].flags = renderFlags;
@@ -1252,17 +1266,19 @@ void Hud_DrawBoxOverlayHW(int x, int y, int width, int height, int colorIdx,
 						     vertexIndex]
 					.specular = 0;
 			}
-			g_triBuffer[g_d3dTriangleCount].v0 = g_d3dVertexCount;
-			g_triBuffer[g_d3dTriangleCount].v1 =
+			g_triBuffer[g_d3dTriangleCount].vertexIndex0 =
+				g_d3dVertexCount;
+			g_triBuffer[g_d3dTriangleCount].vertexIndex1 =
 				g_d3dVertexCount + 1;
-			g_triBuffer[g_d3dTriangleCount].v2 =
+			g_triBuffer[g_d3dTriangleCount].vertexIndex2 =
 				g_d3dVertexCount + 2;
 			g_triBuffer[g_d3dTriangleCount].texture = NULL;
 			g_triBuffer[g_d3dTriangleCount++].flags = renderFlags;
-			g_triBuffer[g_d3dTriangleCount].v0 = g_d3dVertexCount;
-			g_triBuffer[g_d3dTriangleCount].v1 =
+			g_triBuffer[g_d3dTriangleCount].vertexIndex0 =
+				g_d3dVertexCount;
+			g_triBuffer[g_d3dTriangleCount].vertexIndex1 =
 				g_d3dVertexCount + 2;
-			g_triBuffer[g_d3dTriangleCount].v2 =
+			g_triBuffer[g_d3dTriangleCount].vertexIndex2 =
 				g_d3dVertexCount + 3;
 			g_triBuffer[g_d3dTriangleCount].texture = NULL;
 			g_triBuffer[g_d3dTriangleCount++].flags = renderFlags;
@@ -1958,10 +1974,10 @@ void Hud_DrawStaticCockpitText(uint16_t playerIdx)
 	FlightText_SetBackgroundColor(0x2C);
 	FlightText_SetFontTier(0);
 	if (g_flightResolutionMode == FLIGHT_RESOLUTION_320X240) {
-		Hud_AppendObjectDisplayName(
+		Hud_FormatObjectDisplayName(
 			(uint16_t)g_players[g_localPlayer].objectIndex, 7);
 	} else {
-		Hud_AppendObjectDisplayName(
+		Hud_FormatObjectDisplayName(
 			(uint16_t)g_players[g_localPlayer].objectIndex, 3);
 	}
 	FlightText_SetCursor(
@@ -2033,7 +2049,7 @@ void Hud_UpdateHUD(void)
 
 	FlightText_SetFontTier(2);
 	Hud_DrawRadarBlips();
-	Hud_DrawReticle3D();
+	Hud_DrawLaserCannonIndicators();
 	Hud_UpdateTargetingLockIndicator();
 	Hud_UpdateTargetingComputerDisplay();
 	Hud_UpdateWarheadCnt();
@@ -2107,7 +2123,7 @@ void Hud_UpdateHUD(void)
 void Hud_UpdateHudOnlyView(void)
 {
 	Hud_DrawRadarBlips();
-	Hud_DrawReticle3D();
+	Hud_DrawLaserCannonIndicators();
 	Hud_UpdateTargetingLockIndicator();
 	Hud_UpdateWarheadCnt();
 	Hud_UpdateThreatIndicators(1);
@@ -2187,7 +2203,7 @@ void Hud_DrawMapViewOverlay(void)
 		objectIdx =
 			g_players[g_localPlayer].viewState.cameraFocusObjIdx;
 		if (objectIdx != UINT16_MAX) {
-			Hud_AppendObjectDisplayName(objectIdx,
+			Hud_FormatObjectDisplayName(objectIdx,
 						    OBJECT_DISPLAY_FLAGS);
 			objectName = g_flightTextScratchBuffer;
 		} else {
@@ -2251,7 +2267,7 @@ void Hud_DrawMapViewOverlay(void)
 
 		objectIdx = g_players[g_localPlayer].viewState.aimTargetIdx;
 		if (objectIdx != UINT16_MAX) {
-			Hud_AppendObjectDisplayName(objectIdx,
+			Hud_FormatObjectDisplayName(objectIdx,
 						    OBJECT_DISPLAY_FLAGS);
 			objectName = g_flightTextScratchBuffer;
 		} else {
@@ -3135,10 +3151,10 @@ void Hud_UpdateTargetingComputerDisplay(void)
 						}
 					}
 				}
-				Hud_AppendObjectDisplayName(
+				Hud_FormatObjectDisplayName(
 					currentTargetObjectIndex, displayFlags);
 			} else {
-				Hud_AppendObjectDisplayName(
+				Hud_FormatObjectDisplayName(
 					currentTargetObjectIndex,
 					NORMAL_TARGET_DISPLAY_FLAGS);
 			}
@@ -3208,7 +3224,7 @@ void Hud_UpdateTargetingComputerDisplay(void)
 						g_strCmdThreatDisplayText
 							[CMD_THREAT_STR_THIS_CRAFT]);
 				} else {
-					Hud_AppendObjectDisplayName(
+					Hud_FormatObjectDisplayName(
 						guidance->targetObjIdx,
 						SHORT_TARGET_DISPLAY_FLAGS);
 				}
@@ -3366,11 +3382,11 @@ void Hud_UpdateTargetingComputerDisplay(void)
 				}
 			}
 		}
-		Hud_AppendObjectDisplayName((uint16_t)g_players[g_localPlayer]
+		Hud_FormatObjectDisplayName((uint16_t)g_players[g_localPlayer]
 						    .currentTargetObjectIdx,
 					    displayFlags);
 	} else {
-		Hud_AppendObjectDisplayName((uint16_t)g_players[g_localPlayer]
+		Hud_FormatObjectDisplayName((uint16_t)g_players[g_localPlayer]
 						    .currentTargetObjectIdx,
 					    NORMAL_TARGET_DISPLAY_FLAGS);
 	}
@@ -3802,14 +3818,14 @@ void Hud_UpdateTargetingComputerDisplay(void)
 				return;
 			}
 			aiController = &orderCraft->aiController;
-			displayPlanId = aiController->pendingPlanId;
+			displayPlanId = aiController->runningPlanId;
 			if (orderCraft->workingSubsystems == 0) {
 				displayPlanId =
 					(uint16_t)pai_FindPlanIdByNameOrZero(
 						"disabledpln");
 			} else if (orderMobileObject->speed == 0) {
 				const char *planName =
-					g_planTable[aiController->pendingPlanId]
+					g_planTable[aiController->runningPlanId]
 						.name;
 				if (strcmp(planName, "flyhomepln") == 0 ||
 				    strcmp(planName, "followhomepln") == 0 ||
@@ -3941,7 +3957,7 @@ void Hud_UpdateTargetingComputerDisplay(void)
 					top + g_flightFontLineHeight + 1);
 				g_flightFillClipRectFn();
 				FlightText_SetCursor(left, top);
-				Hud_AppendObjectDisplayName(
+				Hud_FormatObjectDisplayName(
 					aiTargetObjectIndex,
 					NORMAL_TARGET_DISPLAY_FLAGS);
 #ifdef XVT_MODERN
@@ -4197,7 +4213,7 @@ void Hud_UpdateTargetingComputerDisplay(void)
 								1);
 						g_flightFillClipRectFn();
 						FlightText_SetCursor(left, top);
-						Hud_AppendObjectDisplayName(
+						Hud_FormatObjectDisplayName(
 							(uint16_t)g_players
 								[g_objectTable
 									 [(uint16_t)g_players
@@ -4297,7 +4313,7 @@ void Hud_UpdateTargetingComputerDisplay(void)
 								1);
 						g_flightFillClipRectFn();
 						FlightText_SetCursor(left, top);
-						Hud_AppendObjectDisplayName(
+						Hud_FormatObjectDisplayName(
 							WAYPOINT_ZERO_OBJECT_REF,
 							NORMAL_TARGET_DISPLAY_FLAGS);
 #ifdef XVT_MODERN
@@ -4315,20 +4331,20 @@ void Hud_UpdateTargetingComputerDisplay(void)
 	}
 }
 
-/* Despite the name, it does not append: it empties g_flightTextScratchBuffer
- * and writes objectRef's display name there. For a craft, displayFlags bit 0
- * adds the model's short name, bit 1 the flight group's name and the craft
- * number when Hud_MissionFG_GetCraftNumberIfShown gives one (at most 999), and
- * bit 2 a ":" after the first part; bits 0 and 1 together put ": " there.
- * Another mobile object gets only its warhead, satellite, mine, probe or buoy
- * name, under bit 0. Each part starts with a 0xFE color escape chosen by IFF:
- * Q, I, E, U or M before the first part and R, J, F, V or N before the group,
- * for IFF 0, 1 or 4, 2, 5 and any other; an object with no mobile object takes
- * its group's IFF and shows IFF 5 with V. A reference of 0x8000 or more is
- * waypoint objectRef - 0x8000, written after a C escape when bit 0 is set, else
- * left empty. Object type 0 gives the dashes of g_strMeshComponentNames[32]. */
+/* Empties g_flightTextScratchBuffer and writes objectRef's display name there.
+ * For a craft, displayFlags bit 0 adds the model's short name, bit 1 the flight
+ * group's name and the craft number when Hud_MissionFG_GetCraftNumberIfShown
+ * gives one (at most 999), and bit 2 a ":" after the first part; bits 0 and 1
+ * together put ": " there. Another mobile object gets only its warhead,
+ * satellite, mine, probe or buoy name, under bit 0. Each part starts with a
+ * 0xFE color escape chosen by IFF: Q, I, E, U or M before the first part and R,
+ * J, F, V or N before the group, for IFF 0, 1 or 4, 2, 5 and any other; an
+ * object with no mobile object takes its group's IFF and shows IFF 5 with V. A
+ * reference of 0x8000 or more is waypoint objectRef - 0x8000, written after a C
+ * escape when bit 0 is set, else left empty. Object type 0 gives the dashes of
+ * g_strMeshComponentNames[32]. */
 // FUNCTION: XVT 0x43C290
-void Hud_AppendObjectDisplayName(uint16_t objectRef, int16_t displayFlags)
+void Hud_FormatObjectDisplayName(uint16_t objectRef, int16_t displayFlags)
 {
 	int objectIndex;
 	ObjectRecord *object;
@@ -4610,22 +4626,22 @@ void Hud_UpdateTargetingLockIndicator(void)
 	FlightSurface_Lock();
 }
 
-/* Despite the name, nothing here is 3D: it draws each laser cannon's charge,
- * fire and lock sprites for the local player's craft. In the forward view with
- * HUD features 2 and 4 it draws the charge bar of each cannon placed in the
- * current set (element 3 plus the cannon): ten sprites 3, 4 or 6 pixels apart
- * by resolution, right to left when the layout's colorIndexOrWidgetParam is
- * set; up to half charge the charged ones are in state 1 over 0, above it in
- * state 2 over 1. Outside the cockpit set it draws a number from the charge
- * instead. From the bank's link mode and next cannon it works out whether the
- * cannon fires next and draws that at element 53 plus the cannon; for an
- * X-wing, Y-wing, A-wing, Z-95 or B-wing also at element 11 plus the cannon,
- * and the lock state at element 61 plus the cannon. The lock state is 2 when
- * the targeting computer works and collide_WouldShotHitTarget says a cannon due
- * to fire would hit the target. Sets g_targetLockActive to 0 first and to 1 on
- * any such hit; returns at once for a craft with no cannons. */
+/* Draws each laser cannon's charge, fire and lock sprites for the local
+ * player's craft. In the forward view with HUD features 2 and 4 it draws the
+ * charge bar of each cannon placed in the current set (element 3 plus the
+ * cannon): ten sprites 3, 4 or 6 pixels apart by resolution, right to left when
+ * the layout's colorIndexOrWidgetParam is set; up to half charge the charged
+ * ones are in state 1 over 0, above it in state 2 over 1. Outside the cockpit
+ * set it draws a number from the charge instead. From the bank's link mode and
+ * next cannon it works out whether the cannon fires next and draws that at
+ * element 53 plus the cannon; for an X-wing, Y-wing, A-wing, Z-95 or B-wing
+ * also at element 11 plus the cannon, and the lock state at element 61 plus the
+ * cannon. The lock state is 2 when the targeting computer works and
+ * collide_WouldShotHitTarget says a cannon due to fire would hit the target.
+ * Sets g_targetLockActive to 0 first and to 1 on any such hit; returns at once
+ * for a craft with no cannons. */
 // FUNCTION: XVT 0x43C9A0
-void Hud_DrawReticle3D(void)
+void Hud_DrawLaserCannonIndicators(void)
 {
 	enum {
 		LASER_CHARGE_HALF = 64,
@@ -6777,10 +6793,10 @@ void Hud_DrawCmdTargetDetails(void)
 						}
 					}
 				}
-				Hud_AppendObjectDisplayName(
+				Hud_FormatObjectDisplayName(
 					currentTargetObjectIdx, displayFlags);
 			} else {
-				Hud_AppendObjectDisplayName(
+				Hud_FormatObjectDisplayName(
 					currentTargetObjectIdx,
 					NORMAL_TARGET_DISPLAY_FLAGS);
 			}
@@ -6964,7 +6980,7 @@ void Hud_DrawCmdTargetDetails(void)
 			}
 		}
 
-		displayPlanId = controller->pendingPlanId;
+		displayPlanId = controller->runningPlanId;
 		if (targetCraft->workingSubsystems == 0) {
 			displayPlanId =
 				pai_FindPlanIdByNameOrZero("disabledpln");
@@ -7221,7 +7237,7 @@ void Hud_DrawCmdTargetDetails(void)
 						g_strCmdThreatDisplayText
 							[CMD_THREAT_STR_NONE]);
 				} else {
-					Hud_AppendObjectDisplayName(
+					Hud_FormatObjectDisplayName(
 						orderTargetObjectIdx,
 						NORMAL_TARGET_DISPLAY_FLAGS);
 #ifdef XVT_MODERN
@@ -7335,11 +7351,11 @@ void Hud_DrawCmdTargetDetails(void)
 				uint16_t seconds;
 
 				if (strcmp(g_planTable[controller
-							       ->pendingPlanId]
+							       ->runningPlanId]
 						   .name,
 					   "board2pln") != 0 &&
 				    strcmp(g_planTable[controller
-							       ->pendingPlanId]
+							       ->runningPlanId]
 						   .name,
 					   "waitpln") != 0) {
 					if (targetDistance == 0) {
@@ -8140,9 +8156,10 @@ void Hud_RebuildDisplayForViewState(int hudViewState, int playerIdx)
 	}
 
 	if (g_hudLoadedPanelSetId != g_hudPanelSetId) {
-		g_hudPanelSpriteDataWriteCursor = (uint8_t *)Memory_LockHandle(
-			g_hudPanelSpriteDataHandle);
-		Memory_UnlockHandle(g_hudPanelSpriteDataHandle);
+		g_hudPanelSpriteDataWriteCursor =
+			(uint8_t *)Memory_GetHandleBlock(
+				g_hudPanelSpriteDataHandle);
+		Memory_HandleBlockDoneStub(g_hudPanelSpriteDataHandle);
 		strcpy(g_hudCockpitBasePath, g_hudCockpitResolutionDirectory);
 		strcat(g_hudCockpitBasePath, g_hudPanelSpriteFileInfo.baseName);
 		strcat(g_hudCockpitBasePath, ".PNL");
@@ -8503,9 +8520,11 @@ void Hud_LoadCockpitSpriteResources(unsigned int modelIndex)
 						.memoryHandle =
 						(int16_t)memoryHandle;
 					g_hudCockpitResourceWriteCursor =
-						(uint8_t *)Memory_LockHandle(
-							memoryHandle);
-					Memory_UnlockHandle(memoryHandle);
+						(uint8_t *)
+							Memory_GetHandleBlock(
+								memoryHandle);
+					Memory_HandleBlockDoneStub(
+						memoryHandle);
 					Hud_LoadCockpitLfdEntries(
 						g_hudCockpitResourceDescriptors
 							[resourceIndex]
@@ -8542,9 +8561,9 @@ void Hud_LoadCockpitSpriteResources(unsigned int modelIndex)
 					.memoryHandle;
 			if (memoryHandle != 0) {
 				g_hudCockpitResourceWriteCursor =
-					(uint8_t *)Memory_LockHandle(
+					(uint8_t *)Memory_GetHandleBlock(
 						memoryHandle);
-				Memory_UnlockHandle(memoryHandle);
+				Memory_HandleBlockDoneStub(memoryHandle);
 				Hud_LoadCockpitLfdEntries(
 					g_hudCockpitResourceDescriptors
 						[resourceIndex]
@@ -10221,10 +10240,10 @@ void Hud_DrawCraftNameFpsAndNetworkStatus(void)
 	FlightText_SetBackgroundColor(44);
 	FlightText_SetFontTier(0);
 	if (g_flightResolutionMode == FLIGHT_RESOLUTION_320X240) {
-		Hud_AppendObjectDisplayName(
+		Hud_FormatObjectDisplayName(
 			g_players[g_localPlayer].objectIndex, 7);
 	} else {
-		Hud_AppendObjectDisplayName(
+		Hud_FormatObjectDisplayName(
 			g_players[g_localPlayer].objectIndex, 3);
 	}
 	FlightText_SetCursor(

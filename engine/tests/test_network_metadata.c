@@ -39,7 +39,7 @@ static void AddPlayer(DPID id, const char *name, int ready, int rating_byte)
 	player->playerId = id;
 	player->readyFlag = ready;
 	strncpy(player->playerName, name, sizeof player->playerName);
-	player->playerInfo[0] = (char)rating_byte;
+	player->longName[0] = (char)rating_byte;
 }
 
 static void CheckToUtf8(void)

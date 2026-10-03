@@ -1403,7 +1403,7 @@ int16_t paiorder_leaderdeadorder(void)
 			}
 		}
 	} else if (strcmp(g_planTable[g_paiContext.leaderOrSelfCraft
-					      ->aiController.pendingPlanId]
+					      ->aiController.runningPlanId]
 				  .name,
 			  "enterhangarpln") == 0) {
 		g_paiContext.controller->thinkInterval = 59;
@@ -1460,9 +1460,9 @@ int16_t paiorder_leadergohomeorder(void)
 	AiController *leaderController =
 		&g_paiContext.leaderOrSelfCraft->aiController;
 
-	return strcmp(g_planTable[leaderController->pendingPlanId].name,
+	return strcmp(g_planTable[leaderController->runningPlanId].name,
 		      "flyhomepln") == 0 ||
-	       strcmp(g_planTable[leaderController->pendingPlanId].name,
+	       strcmp(g_planTable[leaderController->runningPlanId].name,
 		      "flyhomeevadepln") == 0;
 }
 
@@ -1483,7 +1483,7 @@ int16_t paiorder_hyperspaceorder(void)
 
 	if (g_curCraft->leader_obj_idx != UINT8_MAX &&
 	    g_curCraft->aiFlight.missionAbortedFlag == 0 &&
-	    strcmp(g_planTable[g_paiContext.controller->pendingPlanId].name,
+	    strcmp(g_planTable[g_paiContext.controller->runningPlanId].name,
 		   "flyhomeevadepln") != 0) {
 		canEnterHyperspace = 0;
 		if (g_modelDefs[g_curCraft->modelIndex].hasHyperdrive != 0) {
@@ -1505,7 +1505,7 @@ int16_t paiorder_hyperspaceorder(void)
 		if (canEnterHyperspace != 0 &&
 		    g_paiContext.leaderOrSelfCraft->objectKind ==
 			    CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE) {
-			g_paiContext.controller->pendingPlanId =
+			g_paiContext.controller->runningPlanId =
 				(uint8_t)pai_FindPlanIdByNameOrZero(
 					"intohyperspacepln");
 			g_curCraft->objectKind =
@@ -2164,10 +2164,9 @@ int16_t paiorder_targetfromplayerorder(void)
 
 /* Order 36. Off the avoid-starship maneuver, it asks
  * collide_craftstarshipcollision whether the craft will hit something within 6
- * simulated seconds (despite its name, COLLISION_LOOKAHEAD_STEPS counts
- * seconds), restoring g_curCraft after. When it will, and the object is neither
- * the craft nor what it carries, nor the target it is attacking or rocket
- * attacking (a Calamari cruiser or Imperial Star Destroyer target still
+ * simulated seconds, restoring g_curCraft after. When it will, and the object
+ * is neither the craft nor what it carries, nor the target it is attacking or
+ * rocket attacking (a Calamari cruiser or Imperial Star Destroyer target still
  * counts), it sets targetXYAngle a quarter turn off its yaw (plus for an odd
  * craftOrdinal, minus for an even one) and targetZAngle a quarter turn off its
  * pitch (minus when the old targetZAngle is above 0x4000, else plus), and
@@ -2179,7 +2178,7 @@ int16_t paiorder_targetfromplayerorder(void)
 int16_t paiorder_avoidstarshiporder(void)
 {
 	enum {
-		COLLISION_LOOKAHEAD_STEPS = 6,
+		COLLISION_LOOKAHEAD_SECONDS = 6,
 		QUARTER_TURN = 0x4000,
 		MIN_AVOIDANCE_SECONDS = 3,
 		AVOIDANCE_DURATION_MASK = 3,
@@ -2195,7 +2194,7 @@ int16_t paiorder_avoidstarshiporder(void)
 
 		savedCraft = g_curCraft;
 		collisionObjectIndex = collide_craftstarshipcollision(
-			sourceObjectIndex, COLLISION_LOOKAHEAD_STEPS);
+			sourceObjectIndex, COLLISION_LOOKAHEAD_SECONDS);
 		g_curCraft = savedCraft;
 		if (collisionObjectIndex != UINT16_MAX) {
 			if (g_paiContext.controller->targetObjIdx ==
@@ -2525,8 +2524,8 @@ int16_t paiorder_completegohomeorder(void)
  * g_paiSkipToOrder4Checked. Then, when the current slot's completionState is 2,
  * the slot is below 2 and the next slot has an order, it moves to that slot. A
  * move sets the slot in g_paiContext and the controller, currentPlanId to the
- * order's leader plan, and g_paiContext.nullPlanId to the leader or follower
- * plan, for the "variablepln" switch. */
+ * order's leader plan, and g_paiContext.variablePlanId to the leader or
+ * follower plan, for the "variablepln" switch. */
 // FUNCTION: XVT 0x4697F0
 int16_t paiorder_completegootherorder(void)
 {
@@ -2575,12 +2574,12 @@ int16_t paiorder_completegootherorder(void)
 						[g_orderLeaderBuiltinPlanNameIndex
 							 [order]];
 				if (g_curCraft->leader_obj_idx == UINT8_MAX) {
-					g_paiContext.nullPlanId =
+					g_paiContext.variablePlanId =
 						g_builtinPlanIdByNameIndex
 							[g_orderLeaderBuiltinPlanNameIndex
 								 [order]];
 				} else {
-					g_paiContext.nullPlanId =
+					g_paiContext.variablePlanId =
 						g_builtinPlanIdByNameIndex
 							[g_orderFollowerBuiltinPlanNameIndex
 								 [order]];
@@ -2610,10 +2609,10 @@ int16_t paiorder_completegootherorder(void)
 	g_paiContext.controller->currentPlanId = g_builtinPlanIdByNameIndex
 		[g_orderLeaderBuiltinPlanNameIndex[order]];
 	if (g_curCraft->leader_obj_idx == UINT8_MAX) {
-		g_paiContext.nullPlanId = g_builtinPlanIdByNameIndex
+		g_paiContext.variablePlanId = g_builtinPlanIdByNameIndex
 			[g_orderLeaderBuiltinPlanNameIndex[order]];
 	} else {
-		g_paiContext.nullPlanId = g_builtinPlanIdByNameIndex
+		g_paiContext.variablePlanId = g_builtinPlanIdByNameIndex
 			[g_orderFollowerBuiltinPlanNameIndex[order]];
 	}
 	return 1;
@@ -2626,7 +2625,7 @@ int16_t paiorder_completegootherorder(void)
  * order number itself, not by the order's plan id as the other order functions
  * do. A move sets the controller's currentOrderSlot, not
  * g_paiContext.orderSlot, currentPlanId to the order's leader plan and
- * g_paiContext.nullPlanId to the leader or follower plan. */
+ * g_paiContext.variablePlanId to the leader or follower plan. */
 // FUNCTION: XVT 0x469A10
 int16_t paiorder_waitgootherorder(void)
 {
@@ -2661,15 +2660,15 @@ int16_t paiorder_waitgootherorder(void)
 				->currentPlanId = g_builtinPlanIdByNameIndex
 				[g_orderLeaderBuiltinPlanNameIndex[order]];
 			if (g_curCraft->leader_obj_idx == UINT8_MAX) {
-				g_paiContext
-					.nullPlanId = g_builtinPlanIdByNameIndex
-					[g_orderLeaderBuiltinPlanNameIndex
-						 [order]];
+				g_paiContext.variablePlanId =
+					g_builtinPlanIdByNameIndex
+						[g_orderLeaderBuiltinPlanNameIndex
+							 [order]];
 			} else {
-				g_paiContext
-					.nullPlanId = g_builtinPlanIdByNameIndex
-					[g_orderFollowerBuiltinPlanNameIndex
-						 [order]];
+				g_paiContext.variablePlanId =
+					g_builtinPlanIdByNameIndex
+						[g_orderFollowerBuiltinPlanNameIndex
+							 [order]];
 			}
 			return 1;
 		}
@@ -2686,7 +2685,7 @@ int16_t paiorder_waitgootherorder(void)
  * or disableldr1pln with a target found now, or a boardto plan other than
  * boardtopickuppln with a target it can board. The switch back sets the
  * controller's currentOrderSlot, not g_paiContext.orderSlot, currentPlanId and
- * g_paiContext.nullPlanId. */
+ * g_paiContext.variablePlanId. */
 // FUNCTION: XVT 0x469BD0
 int16_t paiorder_orderswitchorder(void)
 {
@@ -2737,12 +2736,12 @@ int16_t paiorder_orderswitchorder(void)
 						[g_orderLeaderBuiltinPlanNameIndex
 							 [order]];
 				if (g_curCraft->leader_obj_idx == UINT8_MAX) {
-					g_paiContext.nullPlanId =
+					g_paiContext.variablePlanId =
 						g_builtinPlanIdByNameIndex
 							[g_orderLeaderBuiltinPlanNameIndex
 								 [order]];
 				} else {
-					g_paiContext.nullPlanId =
+					g_paiContext.variablePlanId =
 						g_builtinPlanIdByNameIndex
 							[g_orderFollowerBuiltinPlanNameIndex
 								 [order]];
@@ -2817,10 +2816,10 @@ int16_t paiorder_orderswitchorder(void)
 			g_builtinPlanIdByNameIndex
 				[g_orderLeaderBuiltinPlanNameIndex[order]];
 		if (g_curCraft->leader_obj_idx == UINT8_MAX) {
-			g_paiContext.nullPlanId = g_builtinPlanIdByNameIndex
+			g_paiContext.variablePlanId = g_builtinPlanIdByNameIndex
 				[g_orderLeaderBuiltinPlanNameIndex[order]];
 		} else {
-			g_paiContext.nullPlanId = g_builtinPlanIdByNameIndex
+			g_paiContext.variablePlanId = g_builtinPlanIdByNameIndex
 				[g_orderFollowerBuiltinPlanNameIndex[order]];
 		}
 		return 1;
@@ -2833,7 +2832,7 @@ int16_t paiorder_orderswitchorder(void)
  * leader's goHomeFlag and departTimerFlag when they are set, counting the
  * not-departed outcome when it takes the second. When the leader's
  * currentOrderSlot differs from the craft's order slot, the craft moves to that
- * slot, with currentPlanId and g_paiContext.nullPlanId set as on any order
+ * slot, with currentPlanId and g_paiContext.variablePlanId set as on any order
  * move, and it returns 1; else 0. */
 // FUNCTION: XVT 0x469F40
 int16_t paiorder_completefolloworder(void)
@@ -2891,11 +2890,11 @@ int16_t paiorder_completefolloworder(void)
 				g_builtinPlanIdByNameIndex[planNameIndex];
 		}
 		if (g_paiContext.leaderObjectIndex == UINT8_MAX) {
-			g_paiContext.nullPlanId = g_builtinPlanIdByNameIndex
+			g_paiContext.variablePlanId = g_builtinPlanIdByNameIndex
 				[g_orderLeaderBuiltinPlanNameIndex[order]];
 			return 1;
 		}
-		g_paiContext.nullPlanId = g_builtinPlanIdByNameIndex
+		g_paiContext.variablePlanId = g_builtinPlanIdByNameIndex
 			[g_orderFollowerBuiltinPlanNameIndex[order]];
 		return 1;
 	}

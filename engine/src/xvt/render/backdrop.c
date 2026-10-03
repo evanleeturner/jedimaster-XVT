@@ -92,9 +92,9 @@ void Backdrop_DrawModelTexQuadAtScreen(int modelType, int screenX, int screenY,
 	g_flightSwRotSpriteSpanRunsEnabled = 1;
 	g_camRelWorldZ = 0x100000;
 	g_viewSpaceDepth = 0x7FFFFFFF;
-	modelData = (const uint8_t *)Memory_LockHandle(
+	modelData = (const uint8_t *)Memory_GetHandleBlock(
 		g_objectTypeTable[modelType].resourceHandle);
-	Memory_UnlockHandle(g_objectTypeTable[modelType].resourceHandle);
+	Memory_HandleBlockDoneStub(g_objectTypeTable[modelType].resourceHandle);
 	textureHeader = (const TexLevelHeader *)modelData;
 	sprite = (SpritePayload
 			  *)(modelData +

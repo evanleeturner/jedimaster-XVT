@@ -107,7 +107,7 @@ extern int g_moviePreviousWndProcMode;
 int Movie_SingleplayerInputCallback(int window, unsigned int eventCode,
 				    int keyCode, int lParam,
 				    int callbackContext,
-				    uint32_t *playbackFlag);
+				    uint32_t *handledResult);
 int Movie_MultiplayerInputCallback(int window, unsigned int eventCode,
 				   int keyCode, int lParam, int callbackContext,
 				   uint32_t *playbackFlag);

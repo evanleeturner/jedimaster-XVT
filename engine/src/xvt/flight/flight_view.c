@@ -470,9 +470,9 @@ void FlightView_UpdatePlayerCamera(int playerIdx)
 		} else if ((g_players[playerIdx]
 					    .viewState.externalCameraActive !=
 				    0 &&
-			    g_players[playerIdx].viewState.transitionTimer ==
+			    g_players[playerIdx].viewState.targetCameraActive ==
 				    0) ||
-			   (g_players[playerIdx].viewState.transitionTimer !=
+			   (g_players[playerIdx].viewState.targetCameraActive !=
 				    0 &&
 			    g_players[playerIdx].viewState.playerInputBlocked !=
 				    0)) {
@@ -556,7 +556,7 @@ void FlightView_UpdatePlayerCamera(int playerIdx)
 				cameraOffsetY;
 			g_players[playerIdx].viewState.cameraWorldZ -=
 				cameraOffsetZ;
-		} else if (g_players[playerIdx].viewState.transitionTimer !=
+		} else if (g_players[playerIdx].viewState.targetCameraActive !=
 			   0) {
 			Hud_PointCamera(cameraFocusObjIdx, 0, playerIdx);
 		} else {

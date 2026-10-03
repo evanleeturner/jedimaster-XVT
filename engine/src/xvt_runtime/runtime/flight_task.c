@@ -118,7 +118,8 @@ static void XvtFlightTask_ReleaseMission(int quitting)
 	}
 	if (g_flight.missionEntered && !quitting &&
 	    g_preFlightResolutionMode != g_flightResolutionMode) {
-		FlightDisplay_ApplyResolutionMode(g_preFlightResolutionMode);
+		FlightDisplay_ApplyResolutionModeStub(
+			g_preFlightResolutionMode);
 	}
 	if (g_flight.optionsFailed) {
 		memcpy(&g_localPlayerSnapshotOnOptionsSyncFailure,

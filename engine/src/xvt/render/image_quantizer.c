@@ -92,6 +92,14 @@ typedef struct ImageQuantizerOwnedBuffers {
 	void *buffer18B2;
 } ImageQuantizerOwnedBuffers;
 
+/* The image record ImageQuantizer_AllocateImage makes, at its 32-bit layout:
+ * palette and pixels are 4-byte slots. In the 64-bit build the pointers kept
+ * in the record take 8 bytes: the palette pointer copied to 0x104C also fills
+ * field1050, the pixel run pointer also fills field108A, and each field of
+ * ImageQuantizerImageLayout and ImageQuantizerOwnedBuffers after a pointer
+ * sits 4 bytes later per pointer before it than in the 32-bit layout, so the
+ * layout's runCount falls on reserved1092. The notes below on what
+ * ImageQuantizer_DestroyImage frees hold for the 32-bit build. */
 typedef struct ImageQuantizerLegacyImageRecord {
 	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
 	 * by name. */
@@ -212,7 +220,9 @@ typedef struct ImageQuantizerLegacyImageRecord {
 	/* 0 from ImageQuantizer_AllocateImage; see
 	 * ImageQuantizerImageLayout. */
 	uint32_t runCount;
-	/* Left as malloc leaves it; nothing reads or writes it by name. */
+	/* Left as malloc leaves it and not named in this view; these bytes
+	 * are ImageQuantizerImageLayout's sourceRunPixelsRemaining in the
+	 * 32-bit build and its runCount in the 64-bit one. */
 	uint8_t reserved1092[4];
 	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
 	 * by name. */

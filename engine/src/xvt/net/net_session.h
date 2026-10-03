@@ -14,7 +14,7 @@ extern "C" {
 
 struct SessionPlayerInfo {
 	/* DirectPlay long name; the formal name in a solo flight */
-	char playerInfo[16];
+	char longName[16];
 	char playerName[16]; /* Short name; pilotName if solo */
 	int directPlayId;    /* DirectPlay player id */
 	int activeFlag;	     /* 1 while the player is in the session */
@@ -105,7 +105,7 @@ typedef struct NetSessionState {
 	/* Never named in code. It follows reliablePeerSlots, so
 	 * NetSession_SendPacket's unchecked use of slot 40, when all 40 slots
 	 * are taken, lands here. */
-	NetReliablePeerSlot reliablePeerScratch;
+	NetReliablePeerSlot reliablePeerOverflowSlot;
 	unsigned int reliablePeerSlotCount; /* reliablePeerSlots in use */
 	int playerInfoQueueCount;	    /* Entries in playerInfoQueue */
 	/* Copy of the packet NetSession_ReceivePacket last returned; callers

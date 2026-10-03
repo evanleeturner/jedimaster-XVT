@@ -153,13 +153,13 @@ struct MobileObjectCharData {
 	uint16_t skillValue;
 	/* Never read or written by name, save in the modern build's snapshot
 	 * field table, which copies it. */
-	uint8_t reserved02[2];
+	uint8_t unused02[2];
 	/* AI state; Flight_UpdateTimers counts down its think and maneuver
 	 * timers. */
 	AiController aiController;
 	/* Never read or written by name, save in the modern build's snapshot
 	 * field table, which copies it. */
-	uint8_t reserved40[12];
+	uint8_t unused40[12];
 };
 
 /* One slot of g_objectTable. Slots below g_regionMainObjectSlotEnd hold
@@ -232,7 +232,7 @@ extern int g_mobileObjectCharDataSlotEnd;
 extern unsigned int g_debrisObjectSlotsTotal;
 extern int g_debrisObjectSlotStart;
 extern int g_debrisObjectSlotEnd;
-extern int g_regionMainObjectSlotStart;
+extern int g_localDebrisSlotCount;
 extern int g_projectileObjectSlotStart;
 extern int g_regionMainObjectSlotEnd;
 extern int g_regionStaticObjectSlotCount;

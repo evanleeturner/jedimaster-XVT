@@ -172,14 +172,13 @@ struct MeleeTournamentSequenceState {
 	 * game, else the teams with a human player. Set by
 	 * FrontendMission_InitPlayerState at the tournament's first melee. */
 	int participatingTeamCount;
-	/* Despite the name, nothing ties it to Quick Start. In a melee,
-	 * Mission_Init raises by one the AI skill (groupAI, while under its
-	 * maximum) of the first player flight group no human flies on this team
-	 * and on each following team, one team per boost: 3 on easy, 2 on
-	 * medium, else 1. It picks a random team with player flight groups but
-	 * no human, or takes team 0's player flight group count when there is
-	 * none, and in a sequence keeps it here for the later melees. */
-	int quickStartAiBoostTeam;
+	/* In a melee, Mission_Init raises by one the AI skill (groupAI, while
+	 * under its maximum) of the first player flight group no human flies on
+	 * this team and on each following team, one team per boost: 3 on easy,
+	 * 2 on medium, else 1. It picks a random team with player flight groups
+	 * but no human, or takes team 0's player flight group count when there
+	 * is none, and in a sequence keeps it here for the later melees. */
+	int aiBoostFirstTeam;
 };
 
 typedef enum BattleMissionResult {

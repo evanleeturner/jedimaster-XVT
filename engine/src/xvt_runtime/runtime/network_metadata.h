@@ -21,7 +21,7 @@ typedef struct XvtNetworkMetadata {
  * 8 player slots, and the pilot's mission when one is selected. The roster lists players marked
  * ready, once each, at most 8, from the authoritative mission roster when set and the session
  * roster otherwise; each entry takes its name from the player's playerName ("No name" when
- * empty) and its rating from the first byte of playerInfo minus 1 (0 stays 0). The room is joinable when
+ * empty) and its rating from the first byte of longName minus 1 (0 stays 0). The room is joinable when
  * accepting, the roster is not authoritative, and a slot is free. */
 void XvtNetworkMetadata_Build(XvtNetworkMetadata *out, int accepting);
 /* Keeps, in order, only the roster players still active in the network session, and clears the

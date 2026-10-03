@@ -172,7 +172,7 @@ struct PaiPlanTokenDef g_paiTargetTokenDefs[10] = {
 };
 /* The maneuver tokens of the plan text and the maneuver mode each compiles to,
  * ended by an empty name. No token names AI_MANEUVER_MODE_AVOID_ATTACKER or
- * AI_MANEUVER_MODE_DODGE. Only pai_FindManeuverTokenIndex and
+ * AI_MANEUVER_MODE_KAMIKAZE_COPY. Only pai_FindManeuverTokenIndex and
  * pai_CompilePlansFromText read it. */
 // GLOBAL: XVT 0x5255B8
 struct PaiPlanTokenDef g_paiManeuverTokenDefs[33] = {
@@ -357,7 +357,7 @@ void pai_UpdateAllCraftAI(void)
 	g_gameRandFeedbackState = savedRandState;
 }
 
-/* Starts g_curCraft's pendingPlanId plan. When the plan's target byte is not
+/* Starts g_curCraft's runningPlanId plan. When the plan's target byte is not
  * 255 it points targetObjIdx at a mission point of the flight group of the
  * object g_paiContext.objectIndex names: for LOCATARGET (249) point 12; for
  * PRIMARYTARGET (253) point 12 when enabled; for HOMETARGET (254) point 12 when
@@ -372,7 +372,7 @@ void pai_UpdateAllCraftAI(void)
  * of thinkInterval, which spreads craft thinks over the interval. Does not set
  * currentPlanId. */
 // FUNCTION: XVT 0x402970
-void pai_ApplyPendingPlanTargetAndManeuver(unsigned int objectIdx)
+void pai_ApplyRunningPlanTargetAndManeuver(unsigned int objectIdx)
 {
 	AiController *controller;
 	uint8_t *planData;
@@ -380,7 +380,7 @@ void pai_ApplyPendingPlanTargetAndManeuver(unsigned int objectIdx)
 	uint8_t maneuverToken;
 
 	controller = &g_curCraft->aiController;
-	planData = g_planDataPtrs[controller->pendingPlanId];
+	planData = g_planDataPtrs[controller->runningPlanId];
 	targetToken = *planData++;
 
 	if (targetToken != 0xFFu) {
@@ -456,10 +456,10 @@ void pai_ApplyPendingPlanTargetAndManeuver(unsigned int objectIdx)
 /* Runs the orders of the plan set up in g_paiContext. It calls each order's
  * handler in turn and switches to the first order's plan whose handler returns
  * nonzero and whose plan is not nullpln; "variablepln" stands for the plan in
- * g_paiContext.nullPlanId. Switching sets pendingPlanId, sets up the context
- * again and runs pai_ApplyPendingPlanTargetAndManeuver. Returns at order 0
- * without a switch. Sets g_paiSkipToOrder4Checked to 0 when it starts and when
- * it switches. A player craft on escortldr1pln first runs
+ * g_paiContext.variablePlanId. Switching sets runningPlanId, sets up the
+ * context again and runs pai_ApplyRunningPlanTargetAndManeuver. Returns at
+ * order 0 without a switch. Sets g_paiSkipToOrder4Checked to 0 when it starts
+ * and when it switches. A player craft on escortldr1pln first runs
  * paifight_checkescortorder, but pai_UpdateAllCraftAI, the only caller, never
  * passes a player craft. */
 // FUNCTION: XVT 0x402B60
@@ -493,13 +493,13 @@ void pai_ProcessPlan(void)
 
 	if (strcmp(g_planTable[*g_paiContext.planCursor].name, "variablepln") ==
 	    0) {
-		controller->pendingPlanId = g_paiContext.nullPlanId;
+		controller->runningPlanId = g_paiContext.variablePlanId;
 	} else {
-		controller->pendingPlanId = *g_paiContext.planCursor;
+		controller->runningPlanId = *g_paiContext.planCursor;
 	}
 
 	pai_setupcraftcontext(g_paiContext.objectIndex);
-	pai_ApplyPendingPlanTargetAndManeuver(g_paiContext.objectIndex);
+	pai_ApplyRunningPlanTargetAndManeuver(g_paiContext.objectIndex);
 	if (g_paiSkipToOrder4Checked == 1) {
 		g_paiSkipToOrder4Checked = 0;
 	}
@@ -508,11 +508,11 @@ void pai_ProcessPlan(void)
 /* Fills g_paiContext for one craft object: its index, craft and controller, its
  * leader's index (255 for none) and the leader's craft or its own, its flight
  * group, current order slot, world position and skill tier, and a plan cursor
- * at the first order of the pendingPlanId plan, with that plan's maneuver byte
- * in initialManeuverId. Clears requireUndisabledTarget and sets nullPlanId to
- * nullpln's plan id. Also sets g_worldLocX, g_worldLocY and g_worldLocZ to the
- * craft's position. Leaves targetSearchFlags and the search origin alone. Does
- * not check that the object is a craft. */
+ * at the first order of the runningPlanId plan, with that plan's maneuver byte
+ * in initialManeuverId. Clears requireUndisabledTarget and sets variablePlanId
+ * to nullpln's plan id. Also sets g_worldLocX, g_worldLocY and g_worldLocZ to
+ * the craft's position. Leaves targetSearchFlags and the search origin alone.
+ * Does not check that the object is a craft. */
 // FUNCTION: XVT 0x402CB0
 void pai_setupcraftcontext(uint16_t objectIdx)
 {
@@ -544,11 +544,11 @@ void pai_setupcraftcontext(uint16_t objectIdx)
 	g_paiContext.craftPositionZ = g_worldLocZ;
 	g_paiContext.skillTier = pai_SkillValueToTier(
 		pai_GetEffectiveSkillValue(g_paiContext.craft));
-	g_paiContext.planCursor = g_planDataPtrs[controller->pendingPlanId];
+	g_paiContext.planCursor = g_planDataPtrs[controller->runningPlanId];
 	++g_paiContext.planCursor;
 	g_paiContext.initialManeuverId = *g_paiContext.planCursor++;
 	g_paiContext.requireUndisabledTarget = 0;
-	g_paiContext.nullPlanId =
+	g_paiContext.variablePlanId =
 		(uint8_t)pai_FindPlanIdByNameOrZero("nullpln");
 }
 
@@ -603,13 +603,13 @@ uint16_t pai_FindMothershipObject(int16_t mothershipFlightGroupIdx)
  * tiers 0 to 2. A nonzero expandRange adds 0x5555 over 65,536 of it, about a
  * third. The first argument is ignored. Sets g_lastRoughDistance. */
 // FUNCTION: XVT 0x402EC0
-int pai_IsObjectTargetableNearCraft(int unused, unsigned int objIdx,
+int pai_IsObjectTargetableNearCraft(int unusedCraftObjIdx, unsigned int objIdx,
 				    int expandRange)
 {
 	int targetable;
 	int maxRangeScore;
 
-	(void)unused;
+	(void)unusedCraftObjIdx;
 	targetable = pai_IsObjectTargetable(objIdx);
 
 	if (targetable) {

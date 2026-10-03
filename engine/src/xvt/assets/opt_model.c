@@ -1137,7 +1137,7 @@ uint16_t OptModel_LoadInventorAsciiToHandle(XvtFile *stream)
 					    rootNodeCount * sizeof(OptNode *) +
 					    nodePayloadSize,
 				    0);
-	model = (OptimizedPolyObject *)Memory_LockHandle(handle);
+	model = (OptimizedPolyObject *)Memory_GetHandleBlock(handle);
 	nodeWriteCursor = (char *)model + sizeof(*model);
 	model->rootNodeCount = rootNodeCount;
 	parsedRootCount = 0;
@@ -1158,7 +1158,7 @@ uint16_t OptModel_LoadInventorAsciiToHandle(XvtFile *stream)
 		}
 	}
 
-	Memory_UnlockHandle(handle);
+	Memory_HandleBlockDoneStub(handle);
 	return handle;
 }
 
@@ -2810,7 +2810,7 @@ uint16_t OptModel_LoadFileToHandle(char *filename)
 		}
 		handle = g_loadOptBufHandle;
 	}
-	model = Memory_LockHandle(handle);
+	model = Memory_GetHandleBlock(handle);
 	memset(&meshState, 0, sizeof(meshState));
 	g_curMeshVertices = NULL;
 	g_curMeshTexCoords = NULL;
@@ -2822,7 +2822,7 @@ uint16_t OptModel_LoadFileToHandle(char *filename)
 		OptModel_MeasureNodeAndRaiseCapacities(
 			model->rootNodes[rootIndex], &meshState);
 	}
-	Memory_UnlockHandle(handle);
+	Memory_HandleBlockDoneStub(handle);
 	return handle;
 #else
 
@@ -2871,7 +2871,7 @@ uint16_t OptModel_LoadFileToHandle(char *filename)
 		g_loadOptBufSize = (int)serializedSize;
 	}
 	handle = g_loadOptBufHandle;
-	model = Memory_LockHandle(handle);
+	model = Memory_GetHandleBlock(handle);
 	File_RawRead(model, 1, serializedSize, stream);
 	File_RawClose(stream);
 	if (model->selfMarker != model) {
@@ -2901,11 +2901,11 @@ uint16_t OptModel_LoadFileToHandle(char *filename)
 		}
 
 		filename[strlen(filename) - 1] = savedVersionChar;
-		Memory_UnlockHandle(handle);
+		Memory_HandleBlockDoneStub(handle);
 		serializedSize = OptModel_ConvertLegacyModelToOptimized(
 			(unsigned int)serializedSize);
 		handle = g_loadOptBufHandle;
-		model = Memory_LockHandle(handle);
+		model = Memory_GetHandleBlock(handle);
 		if (model->selfMarker != model) {
 			OptModel_AdjustOptimizedPolyObjectPointers(model);
 		}
@@ -2942,7 +2942,7 @@ uint16_t OptModel_LoadFileToHandle(char *filename)
 		serializedSize += OptModel_MeasureNodeAndRaiseCapacities(
 			model->rootNodes[rootIndex], &meshState);
 	}
-	Memory_UnlockHandle(handle);
+	Memory_HandleBlockDoneStub(handle);
 	return handle;
 
 #endif
@@ -2985,13 +2985,14 @@ unsigned int OptModel_ConvertLegacyModelToOptimized(unsigned int sourceSize)
 		}
 		g_optConvertSourceBufSize = sourceSize;
 	}
-	sourceModel = (OptimizedPolyObject *)Memory_LockHandle(
+	sourceModel = (OptimizedPolyObject *)Memory_GetHandleBlock(
 		g_optConvertSourceHandle);
-	memcpy(sourceModel, Memory_LockHandle(g_loadOptBufHandle), sourceSize);
+	memcpy(sourceModel, Memory_GetHandleBlock(g_loadOptBufHandle),
+	       sourceSize);
 	if (sourceModel->selfMarker != sourceModel) {
 		OptModel_AdjustOptimizedPolyObjectPointers(sourceModel);
 	}
-	Memory_UnlockHandle(g_loadOptBufHandle);
+	Memory_HandleBlockDoneStub(g_loadOptBufHandle);
 	destinationCapacity = (int)(sourceSize * 2u);
 	if (destinationCapacity > g_loadOptBufSize && g_loadOptBufHandle != 0) {
 		Memory_FreeHandle(g_loadOptBufHandle);
@@ -3006,8 +3007,8 @@ unsigned int OptModel_ConvertLegacyModelToOptimized(unsigned int sourceSize)
 		}
 		g_loadOptBufSize = destinationCapacity;
 	}
-	destinationModel =
-		(OptimizedPolyObject *)Memory_LockHandle(g_loadOptBufHandle);
+	destinationModel = (OptimizedPolyObject *)Memory_GetHandleBlock(
+		g_loadOptBufHandle);
 	memcpy(destinationModel, sourceModel, sizeof(*destinationModel));
 	destinationModel->selfMarker = destinationModel;
 	destinationModel->rootNodes = (OptNode **)((uint8_t *)destinationModel +
@@ -4720,7 +4721,8 @@ uint16_t OptModel_CreateRuntimeHandle(unsigned int sourceHandle)
 		return 0;
 	}
 #endif
-	sourceModel = (OptimizedPolyObject *)Memory_LockHandle(sourceHandle);
+	sourceModel =
+		(OptimizedPolyObject *)Memory_GetHandleBlock(sourceHandle);
 	if (sourceModel->selfMarker != sourceModel) {
 		OptModel_AdjustOptimizedPolyObjectPointers(sourceModel);
 	}
@@ -4741,7 +4743,7 @@ uint16_t OptModel_CreateRuntimeHandle(unsigned int sourceHandle)
 		serializedSize += OptModel_BuildRuntimeNode(
 			sourceModel->rootNodes[rootIndex], &meshState, NULL);
 	}
-	Memory_UnlockHandle(sourceHandle);
+	Memory_HandleBlockDoneStub(sourceHandle);
 	runtimeHandle = Memory_AllocHandle(serializedSize, 0);
 	if (runtimeHandle == 0) {
 		FeDiskIo_FatalError(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
@@ -4755,11 +4757,13 @@ uint16_t OptModel_CreateRuntimeHandle(unsigned int sourceHandle)
 		return 0;
 	}
 #endif
-	sourceModel = (OptimizedPolyObject *)Memory_LockHandle(sourceHandle);
+	sourceModel =
+		(OptimizedPolyObject *)Memory_GetHandleBlock(sourceHandle);
 	if (sourceModel->selfMarker != sourceModel) {
 		OptModel_AdjustOptimizedPolyObjectPointers(sourceModel);
 	}
-	runtimeModel = (OptimizedPolyObject *)Memory_LockHandle(runtimeHandle);
+	runtimeModel =
+		(OptimizedPolyObject *)Memory_GetHandleBlock(runtimeHandle);
 	memcpy(runtimeModel, sourceModel, sizeof(*runtimeModel));
 	runtimeModel->selfMarker = runtimeModel;
 	runtimeModel->rootNodes =
@@ -4779,8 +4783,8 @@ uint16_t OptModel_CreateRuntimeHandle(unsigned int sourceHandle)
 			runtimeModel->rootNodes[rootIndex], runtimeModel,
 			sourceModel);
 	}
-	Memory_UnlockHandle(runtimeHandle);
-	Memory_UnlockHandle(sourceHandle);
+	Memory_HandleBlockDoneStub(runtimeHandle);
+	Memory_HandleBlockDoneStub(sourceHandle);
 	return runtimeHandle;
 }
 
@@ -5031,7 +5035,7 @@ void OptModel_SaveHandleToFile(const char *filename, uint16_t handle)
 	FeDiskIo_OpenGlobalStream(filename, "wb", 0, 1);
 	stream = g_stream;
 	if (stream != NULL) {
-		model = Memory_LockHandle(handle);
+		model = Memory_GetHandleBlock(handle);
 		if (model->selfMarker != model) {
 			OptModel_AdjustOptimizedPolyObjectPointers(model);
 		}
@@ -5069,7 +5073,7 @@ void OptModel_SaveHandleToFile(const char *filename, uint16_t handle)
 			      stream);
 		File_RawWrite(model, 1, serializedSize, stream);
 		File_RawClose(stream);
-		Memory_UnlockHandle(handle);
+		Memory_HandleBlockDoneStub(handle);
 	}
 }
 #endif
@@ -6033,7 +6037,7 @@ uint16_t OptModel_ConvertImportedHandleToPacked(uint16_t sourceHandle)
 	conversionState.viewToModelOrient[6] = 0.0f;
 	conversionState.viewToModelOrient[7] = 0.0f;
 	conversionState.viewToModelOrient[8] = 1.0f;
-	sourceModel = Memory_LockHandle(sourceHandle);
+	sourceModel = Memory_GetHandleBlock(sourceHandle);
 	if (sourceModel->selfMarker != sourceModel) {
 		OptModel_RelocateLoadedPointers(sourceModel);
 	}
@@ -6053,19 +6057,19 @@ uint16_t OptModel_ConvertImportedHandleToPacked(uint16_t sourceHandle)
 			sourceModel, sourceModel->rootNodes[rootIndex],
 			&conversionState);
 	}
-	Memory_UnlockHandle(sourceHandle);
+	Memory_HandleBlockDoneStub(sourceHandle);
 
 	packedHandle = Memory_AllocHandle(allocatedSize, 0);
 	scratchHandle =
 		Memory_AllocHandle(sizeof(*g_optImportScratchVectors) *
 					   g_optImportScratchVectorCount,
 				   0);
-	sourceModel = Memory_LockHandle(sourceHandle);
+	sourceModel = Memory_GetHandleBlock(sourceHandle);
 	if (sourceModel->selfMarker != sourceModel) {
 		OptModel_RelocateLoadedPointers(sourceModel);
 	}
-	packedModel = Memory_LockHandle(packedHandle);
-	g_optImportScratchVectors = Memory_LockHandle(scratchHandle);
+	packedModel = Memory_GetHandleBlock(packedHandle);
+	g_optImportScratchVectors = Memory_GetHandleBlock(scratchHandle);
 	packedModel->selfMarker = packedModel;
 	packedModel->reserved = packedHandle;
 	packedModel->rootNodeCount = sourceModel->rootNodeCount;
@@ -6113,18 +6117,18 @@ uint16_t OptModel_ConvertImportedHandleToPacked(uint16_t sourceHandle)
 		packedSize += nodeSize;
 	}
 
-	Memory_UnlockHandle(sourceHandle);
-	Memory_UnlockHandle(packedHandle);
-	Memory_UnlockHandle(scratchHandle);
+	Memory_HandleBlockDoneStub(sourceHandle);
+	Memory_HandleBlockDoneStub(packedHandle);
+	Memory_HandleBlockDoneStub(scratchHandle);
 	Memory_FreeHandle(sourceHandle);
 	Memory_FreeHandle(scratchHandle);
 	finalHandle = Memory_AllocHandle(packedSize, 0);
-	packedStorage = Memory_LockHandle(packedHandle);
-	finalModel = Memory_LockHandle(finalHandle);
+	packedStorage = Memory_GetHandleBlock(packedHandle);
+	finalModel = Memory_GetHandleBlock(finalHandle);
 	memcpy(finalModel, packedStorage, packedSize);
 	OptModel_AdjustOptimizedPolyObjectPointers(finalModel);
-	Memory_UnlockHandle(finalHandle);
-	Memory_UnlockHandle(packedHandle);
+	Memory_HandleBlockDoneStub(finalHandle);
+	Memory_HandleBlockDoneStub(packedHandle);
 	Memory_FreeHandle(packedHandle);
 	return finalHandle;
 }

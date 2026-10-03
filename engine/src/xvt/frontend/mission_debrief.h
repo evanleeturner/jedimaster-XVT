@@ -50,7 +50,7 @@ int MissionDebrief_DrawTournamentSummaryPage(int frameCounter);
 int MissionDebrief_DrawTabBar(void);
 int MissionDebrief_MarkNetworkPlayersReady(void);
 int MissionDebrief_Prepare(void);
-void MissionDebrief_BuildText(char *outResults, int useWinText);
+void MissionDebrief_ReadOutcomeText(char *outResults, int useWinText);
 int MissionDebrief_DrawNarrativeTextPage(void);
 
 #ifdef __cplusplus

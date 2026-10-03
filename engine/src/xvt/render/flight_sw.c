@@ -107,7 +107,7 @@ struct FlightSwRotSpriteDataHeader {
 	int32_t cornerY; /* y of the first corner, used negated. */
 	/* x used, negated, when that flag is not 1, which never happens. */
 	int32_t alternateCornerX;
-	int32_t field0C; /* Never read or written. */
+	int32_t unused0C; /* Never read or written. */
 };
 
 /* The viewport and camera matrix PushFlightViewport saves and PopFlightViewport
@@ -1898,7 +1898,7 @@ void FlightStarfield_Render(void)
 			if (g_starfieldColors16Handle == 0) {
 				FeDiskIo_FatalError(0);
 			}
-			colors16 = (uint16_t *)Memory_LockHandle(
+			colors16 = (uint16_t *)Memory_GetHandleBlock(
 				g_starfieldColors16Handle);
 			if (Display_IsPixelFormat555()) {
 				for (colorIndex = 0; colorIndex < STAR_COUNT;
@@ -1915,10 +1915,10 @@ void FlightStarfield_Render(void)
 						(uint16_t)(0x841 * shade);
 				}
 			}
-			Memory_UnlockHandle(g_starfieldColors16Handle);
+			Memory_HandleBlockDoneStub(g_starfieldColors16Handle);
 			g_starfieldColors16Initialized = 1;
 		}
-		colors16 = (uint16_t *)Memory_LockHandle(
+		colors16 = (uint16_t *)Memory_GetHandleBlock(
 			g_starfieldColors16Handle);
 	} else {
 		if (!g_starfieldColors8Initialized) {
@@ -1928,7 +1928,7 @@ void FlightStarfield_Render(void)
 			if (g_starfieldColors8Handle == 0) {
 				FeDiskIo_FatalError(0);
 			}
-			colors8 = (uint8_t *)Memory_LockHandle(
+			colors8 = (uint8_t *)Memory_GetHandleBlock(
 				g_starfieldColors8Handle);
 			for (colorIndex = 0; colorIndex < STAR_COUNT;
 			     ++colorIndex) {
@@ -1942,11 +1942,11 @@ void FlightStarfield_Render(void)
 						(const uint8_t *)g_swPalette,
 						0x40, 0x100);
 			}
-			Memory_UnlockHandle(g_starfieldColors8Handle);
+			Memory_HandleBlockDoneStub(g_starfieldColors8Handle);
 			g_starfieldColors8Initialized = 1;
 		}
-		colors8 =
-			(uint8_t *)Memory_LockHandle(g_starfieldColors8Handle);
+		colors8 = (uint8_t *)Memory_GetHandleBlock(
+			g_starfieldColors8Handle);
 	}
 	if (!g_starfieldRandomVectorIndicesInitialized) {
 		int vectorIndex;
@@ -1955,7 +1955,7 @@ void FlightStarfield_Render(void)
 		if (g_starfieldRandomVectorIndicesHandle == 0) {
 			FeDiskIo_FatalError(0);
 		}
-		randomVectorIndices = (uint8_t *)Memory_LockHandle(
+		randomVectorIndices = (uint8_t *)Memory_GetHandleBlock(
 			g_starfieldRandomVectorIndicesHandle);
 		for (vectorIndex = 0; vectorIndex < STAR_COUNT; ++vectorIndex) {
 			int randomIndex;
@@ -1964,10 +1964,11 @@ void FlightStarfield_Render(void)
 			} while (randomIndex > STAR_JITTER_COUNT - 1);
 			randomVectorIndices[vectorIndex] = (uint8_t)randomIndex;
 		}
-		Memory_UnlockHandle(g_starfieldRandomVectorIndicesHandle);
+		Memory_HandleBlockDoneStub(
+			g_starfieldRandomVectorIndicesHandle);
 		g_starfieldRandomVectorIndicesInitialized = 1;
 	}
-	randomVectorIndices = (uint8_t *)Memory_LockHandle(
+	randomVectorIndices = (uint8_t *)Memory_GetHandleBlock(
 		g_starfieldRandomVectorIndicesHandle);
 
 	initialView[0] =
@@ -2102,11 +2103,11 @@ void FlightStarfield_Render(void)
 			++columnAxis;
 		}
 	}
-	Memory_UnlockHandle(g_starfieldRandomVectorIndicesHandle);
+	Memory_HandleBlockDoneStub(g_starfieldRandomVectorIndicesHandle);
 	if (g_flightBytesPerPixel == 2) {
-		Memory_UnlockHandle(g_starfieldColors16Handle);
+		Memory_HandleBlockDoneStub(g_starfieldColors16Handle);
 	} else {
-		Memory_UnlockHandle(g_starfieldColors8Handle);
+		Memory_HandleBlockDoneStub(g_starfieldColors8Handle);
 	}
 }
 
@@ -2883,9 +2884,9 @@ uint16_t FlightSw_LookupScaledTangent(uint16_t angle, int16_t scalePercent)
 /* Sets scaleState for a sprite of screenSize: the screen scale; the aspect
  * scales, 256 and 256 with square pixels, else 233 and 282, setting
  * g_flightSwRotSpriteAxisSwapThresholdAngle to 0x2000 or 0x2200 as well; the
- * horizontal step, (screenSize * primaryCosQ15) >> 16, times aspectScaleY >> 8
- * with primaryAxisSwap; and the vertical step, the base step plus (base *
- * secondaryStepByte) >> 8, times inverseAspectScaleY >> 8 without
+ * horizontal step, (screenSize * primaryCosMagnitudeQ16) >> 16, times
+ * aspectScaleY >> 8 with primaryAxisSwap; and the vertical step, the base step
+ * plus (base * secondaryStepByte) >> 8, times inverseAspectScaleY >> 8 without
  * secondaryAxisSwap. Rebuilds the run-width tables when the horizontal step
  * differs from the one they were built for. */
 // FUNCTION: XVT 0x4219D0
@@ -2916,9 +2917,9 @@ void FlightSw_PrepareRotatedSpriteScaleState(
 		g_flightSwRotSpriteAxisSwapThresholdAngle = 0x2200;
 	}
 
-	baseHorizontalStep =
-		((unsigned int)screenSize * rotationCoeffs->primaryCosQ15) >>
-		16;
+	baseHorizontalStep = ((unsigned int)screenSize *
+			      rotationCoeffs->primaryCosMagnitudeQ16) >>
+			     16;
 	scaleState->horizontalStepLowByte = (uint8_t)baseHorizontalStep;
 	scaleState->horizontalStepHighByte = (uint8_t)(baseHorizontalStep >> 8);
 	if (rotationCoeffs->primaryAxisSwap != 0) {
@@ -3095,8 +3096,10 @@ void FlightSw_BuildSpriteRotationCoeffs(uint16_t rotationAngle,
 	} else {
 		primaryAngle = rotationAngle;
 	}
-	coeffs->sinQ15 = FlightSw_LookupSpriteSineQ15(primaryAngle);
-	coeffs->cosQ15 = FlightSw_LookupSpriteSineQ15(primaryAngle + 0x4000);
+	coeffs->sinMagnitudeQ16 =
+		FlightSw_LookupSpriteSineMagnitudeQ16(primaryAngle);
+	coeffs->cosMagnitudeQ16 =
+		FlightSw_LookupSpriteSineMagnitudeQ16(primaryAngle + 0x4000);
 
 	if (primaryAngle < g_flightSwRotSpriteAxisSwapThresholdAngle) {
 		primaryAxisSwap = 0;
@@ -3120,9 +3123,10 @@ void FlightSw_BuildSpriteRotationCoeffs(uint16_t rotationAngle,
 				FlightSw_LookupScaledTangent(primaryAngle, 110);
 		}
 	}
-	coeffs->primaryCosQ15 =
-		FlightSw_LookupSpriteSineQ15(primaryAngle + 0x4000);
-	primaryStepReciprocal = (uint16_t)(0x80000000u / coeffs->primaryCosQ15);
+	coeffs->primaryCosMagnitudeQ16 =
+		FlightSw_LookupSpriteSineMagnitudeQ16(primaryAngle + 0x4000);
+	primaryStepReciprocal =
+		(uint16_t)(0x80000000u / coeffs->primaryCosMagnitudeQ16);
 	if (primaryAxisSwap != 0 && g_flightSwRotSpriteSquarePixelMode == 0) {
 		primaryStepReciprocal =
 			(uint16_t)(((unsigned int)primaryStepReciprocal *
@@ -5290,10 +5294,10 @@ uint8_t *FlightSw_SetRotatedSpriteDestBuffer(uint8_t *bufferAddress)
  * g_flightVpX from the offset and g_surfacePitch, x in pixels. Returns
  * g_flightVpX. Would halve the size and add 120 rows and 160 bytes to the
  * offset when g_flightViewportInsetX is 160, which it never is. Ignores
- * arg3. */
+ * viewportMode. */
 // FUNCTION: XVT 0x426C60
 unsigned int SetFlightViewport(unsigned int requestedWidth,
-			       unsigned int requestedHeight, int arg3,
+			       unsigned int requestedHeight, int viewportMode,
 			       unsigned int requestedBaseOffset)
 {
 	unsigned int width;
@@ -5301,7 +5305,7 @@ unsigned int SetFlightViewport(unsigned int requestedWidth,
 	unsigned int baseOffset;
 	int pitch;
 
-	(void)arg3;
+	(void)viewportMode;
 
 	if (g_flightViewportInsetX == 160) {
 		width = requestedWidth >> 1;
@@ -5366,12 +5370,13 @@ void FlightSw_CopyLegacy8BitViewportToFramebuffer(const uint8_t *srcPixels)
  * build also saves its own camera state), sets the viewport to width by height
  * at baseOffset as SetFlightViewport does, without the inset, and sets
  * g_viewportSpanMaskOffset to the second mask, 0xE000. Returns g_flightVpX.
- * Ignores arg3. */
+ * Ignores refreshSpanMask. */
 // FUNCTION: XVT 0x426F40
-unsigned int PushFlightViewport(uint16_t width, uint16_t height, int16_t arg3,
+unsigned int PushFlightViewport(uint16_t width, uint16_t height,
+				int16_t refreshSpanMask,
 				unsigned int baseOffset)
 {
-	(void)arg3;
+	(void)refreshSpanMask;
 #ifdef XVT_MODERN
 	XvtRenderCamera_SaveViewport();
 #endif
@@ -7053,13 +7058,12 @@ void FlightSw_DrawLine16bpp(int x1, int y1, int x2, int y2, uint8_t colorIdx)
 	}
 }
 
-/* Despite the name, returns trig2_calcsineofangle(angle), which is not a Q15
- * value: the sine's magnitude with 65536 standing for 1, as a 16-bit
- * pattern. */
+/* Returns trig2_calcsinemagnitude(angle): the sine's magnitude with 65536
+ * standing for 1, as a 16-bit pattern. */
 // FUNCTION: XVT 0x46A3B0
-int16_t FlightSw_LookupSpriteSineQ15(int16_t angle)
+int16_t FlightSw_LookupSpriteSineMagnitudeQ16(int16_t angle)
 {
-	return trig2_calcsineofangle(angle);
+	return trig2_calcsinemagnitude(angle);
 }
 
 /* Copies what was drawn in the box from startX, startY up to, not including,

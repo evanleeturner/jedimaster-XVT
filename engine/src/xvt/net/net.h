@@ -20,7 +20,7 @@ extern "C" {
 struct NetPlayerInfo {
 	/* DirectPlay long name; the lobby puts the player's rating plus one in
 	 * its first byte. */
-	char playerInfo[16];
+	char longName[16];
 	char playerName[16]; /* DirectPlay short name: the player's name. */
 	/* Id DirectPlay gave the player; 0 in an unused entry. */
 	DPID playerId;

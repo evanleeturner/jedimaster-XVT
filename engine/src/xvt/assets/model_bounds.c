@@ -44,7 +44,7 @@ void ModelBounds_EnsureCached(int objectType)
 	minBounds.x = minBounds.y = minBounds.z = 1073741800.0f;
 	maxBounds.x = maxBounds.y = maxBounds.z = -1073741800.0f;
 	if ((g_objectTypeTable[objectType].assetFlags & 1) != 0) {
-		model = (OptimizedPolyObject *)Memory_LockHandle(
+		model = (OptimizedPolyObject *)Memory_GetHandleBlock(
 			g_loadedModels[objectType]);
 		if (model->selfMarker != model) {
 			OptModel_AdjustOptimizedPolyObjectPointers(model);
@@ -95,7 +95,7 @@ void ModelBounds_EnsureCached(int objectType)
 		g_modelBoundsMax[objectType].y = maxBounds.y;
 		g_modelBoundsCached[objectType] = 1;
 		g_modelBoundsMax[objectType].z = maxBounds.z;
-		Memory_UnlockHandle(g_loadedModels[objectType]);
+		Memory_HandleBlockDoneStub(g_loadedModels[objectType]);
 	}
 }
 

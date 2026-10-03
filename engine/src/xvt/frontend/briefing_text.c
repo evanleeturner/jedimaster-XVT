@@ -19,7 +19,7 @@ char *g_briefingTextBlocks[32] = {0};
 char *g_briefingUnusedBuffers[20] = {0};
 /* 4096-byte heap buffer of the text shown with a mission or a network game:
  * the mission's description from MissionSetup_LoadMissionDescText, or the
- * text MissionDebrief_BuildText writes; NULL while none is held. Many
+ * text MissionDebrief_ReadOutcomeText writes; NULL while none is held. Many
  * functions allocate, fill, clear and free it, chiefly in mission_setup.c,
  * mission_debrief.c and frontend_net.c. */
 // GLOBAL: XVT 0xAA6118

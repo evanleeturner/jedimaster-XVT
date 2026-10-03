@@ -26,9 +26,9 @@ typedef enum Std3DRenderStateFlags {
 
 /* One triangle of a hardware batch, as std3D_AddTriangles writes it. */
 struct Std3DRenderTri {
-	int v0; /* First corner: index into the batch's vertices. */
-	int v1; /* Second corner. */
-	int v2; /* Third corner. */
+	int vertexIndex0; /* First corner: index into the batch's vertices. */
+	int vertexIndex1; /* Second corner. */
+	int vertexIndex2; /* Third corner. */
 	/* Render-state bits set before it; neighbors with the same bits and
 	 * texture share one instruction. */
 	Std3DRenderStateFlags flags;
@@ -166,7 +166,7 @@ struct Std3DRasterInfo {
 	unsigned int tileFactor;
 	unsigned int rowPitch; /* Bytes from one row to the next. */
 	/* Nothing reads it; that copy puts pitchPixels here. */
-	unsigned int unk10;
+	unsigned int unused10;
 	/* Palette, RGB or RGBA. */
 	StdColorMode
 		colorMode; ///< Start of the flattened ColorInfo copied verbatim from Std3DTexFmt.
@@ -197,7 +197,7 @@ struct Std3DVBuffer {
 	int inVideoMemory; ///< Nonzero when the DirectDraw-backed record resides in video memory; zero for
 	///< malloc-backed buffers.
 	Std3DRasterInfo raster; /* Size, row pitch and pixel format. */
-	int unk58;		/* Never read or written. */
+	int unused58;		/* Never read or written. */
 	/* The pixels: memory from std3D_AllocVBuffer or the caller, or a
 	 * surface's memory while it is locked. */
 	void *pixels;
@@ -377,7 +377,7 @@ HRESULT AERON_DXAPI std3D_EnumDevicesCallback(DxGuid *guid,
 int AERON_DXAPI std3D_EnumTextureFormats(DDSURFACEDESC *surfaceDesc,
 					 void *context);
 int std3D_PackRenderBitDepths(int ddbdFlags);
-int std3D_PackZCmpCaps(unsigned int d3dpcmpcaps);
+int std3D_MaskZCmpCaps(unsigned int d3dpcmpcaps);
 unsigned int std3D_MapZCmpFunc(unsigned int capsMask);
 
 #ifdef __cplusplus

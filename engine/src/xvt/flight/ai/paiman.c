@@ -201,7 +201,7 @@ AiCourseOrderManeuverProc g_aiCourseOrderManeuverTable[AI_MANEUVER_MODE_COUNT] =
 		paiman_dropoffmaneuver,
 		paiman_kamikazemaneuver,
 		paiman_avoidattackermaneuver,
-		paiman_dodgemaneuver,
+		paiman_kamikazecopymaneuver,
 };
 
 /* The start function of each maneuver mode, which paiman_initmaneuver calls.
@@ -242,7 +242,7 @@ AiManeuverInitProc g_maneuverInitTable[AI_MANEUVER_MODE_COUNT] = {
 	paiman_initdropoffmaneuver,
 	paiman_initkamikazemaneuver,
 	paiman_initavoidattackermaneuver,
-	paiman_initdodgemaneuver,
+	paiman_initkamikazecopymaneuver,
 };
 
 /* The step function paiorder_updatecourseorder picked last; only it writes and
@@ -1895,7 +1895,7 @@ int16_t paiman_outofhyperspacemaneuver(void)
 		    g_paiContext.controller->maneuverTimer == 0) {
 			reached = 1;
 		}
-	} else if (strcmp(g_planTable[leaderController->pendingPlanId].name,
+	} else if (strcmp(g_planTable[leaderController->runningPlanId].name,
 			  "outofhyperspacepln") != 0) {
 		reached = 1;
 	}
@@ -2855,12 +2855,12 @@ int16_t paiman_boardmaneuver(void)
 					if (targetCraft->aiFlight
 						    .maxSpeedCache != 0) {
 						targetController
-							->pendingPlanId =
+							->runningPlanId =
 							pai_FindPlanIdByNameOrZero(
 								"flyhomeevadepln");
 					} else {
 						targetController
-							->pendingPlanId =
+							->runningPlanId =
 							pai_FindPlanIdByNameOrZero(
 								"stationaryldrpln");
 					}
@@ -2881,7 +2881,7 @@ int16_t paiman_boardmaneuver(void)
 							: g_orderFollowerBuiltinPlanNameIndex
 								  [order];
 
-					targetController->pendingPlanId =
+					targetController->runningPlanId =
 						g_builtinPlanIdByNameIndex
 							[planNameIndex];
 				}
@@ -2897,7 +2897,7 @@ int16_t paiman_boardmaneuver(void)
 				savedCraft = g_curCraft;
 				g_curCraft = targetCraft;
 				pai_setupcraftcontext(targetObjectIndex);
-				pai_ApplyPendingPlanTargetAndManeuver(
+				pai_ApplyRunningPlanTargetAndManeuver(
 					targetObjectIndex);
 				g_curCraft = savedCraft;
 				g_paiContext = savedContext;
@@ -2917,14 +2917,14 @@ int16_t paiman_boardmaneuver(void)
 						  SELF_DESTRUCT_RANDOM_MASK) +
 						 SELF_DESTRUCT_RANDOM_BASE);
 				}
-				targetController->pendingPlanId =
+				targetController->runningPlanId =
 					pai_FindPlanIdByNameOrZero(
 						"selfdestroypln");
 				savedContext = g_paiContext;
 				savedCraft = g_curCraft;
 				g_curCraft = targetCraft;
 				pai_setupcraftcontext(targetObjectIndex);
-				pai_ApplyPendingPlanTargetAndManeuver(
+				pai_ApplyRunningPlanTargetAndManeuver(
 					targetObjectIndex);
 				g_curCraft = savedCraft;
 				g_paiContext = savedContext;
@@ -3658,20 +3658,20 @@ int16_t paiman_avoidattackermaneuver(void)
 	return 0;
 }
 
-/* Despite the name, starts what kamikaze starts: moves the aim point to the
+/* Starts what paiman_initkamikazemaneuver starts: moves the aim point to the
  * target and steers at it at full throttle. */
 // FUNCTION: XVT 0x4A4480
-void paiman_initdodgemaneuver(void)
+void paiman_initkamikazecopymaneuver(void)
 {
 	pai_UpdateAimPointFromOrderTarget();
 	paiman_setflighttotarget(0, 1);
 	paiman_setpower(g_paiContext.objectIndex, UINT16_MAX);
 }
 
-/* Despite the name, does what paiman_kamikazemaneuver does: moves the aim point
- * to the target and steers at it; returns 0. */
+/* Does what paiman_kamikazemaneuver does: moves the aim point to the target and
+ * steers at it; returns 0. */
 // FUNCTION: XVT 0x4A44B0
-int16_t paiman_dodgemaneuver(void)
+int16_t paiman_kamikazecopymaneuver(void)
 {
 	pai_UpdateAimPointFromOrderTarget();
 	paiman_setflighttotarget(0, 1);

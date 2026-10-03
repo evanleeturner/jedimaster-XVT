@@ -319,8 +319,8 @@ void XvtFrontendTask_Shutdown(void)
 		g_frontState.frontendPrimarySoundBuffer = NULL;
 	}
 	FrontendDisplay_Shutdown(0);
-	free(g_cursorBitmap);
-	g_cursorBitmap = NULL;
+	free(g_cursorSaveBuffer);
+	g_cursorSaveBuffer = NULL;
 	free(g_frontendChatLogBuffer);
 	g_frontendChatLogBuffer = NULL;
 	free(g_cutsceneTable);

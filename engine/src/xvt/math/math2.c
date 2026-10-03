@@ -199,7 +199,7 @@ unsigned int MATH2_mphconvert(int16_t speed, uint16_t divisor)
  * g_radarEllipseClampCachedResolutionMode: a copy of the 320x240 preset in
  * that mode, else 30 (480x360) or 44 (any other mode) through
  * trig2_sinewordmult for x and trig2_cosinewordmult for y at each step's
- * angle. trig2_calcarctan_core also sets trig2_signswap and trig2_largerLeg.
+ * angle. trig2_calcarctan_core also sets trig2_legsSwapped and trig2_largerLeg.
  * Does not check that forward is positive. */
 // FUNCTION: XVT 0x425E30
 int16_t MATH2_getradarcoord(int side, int up, int forward)

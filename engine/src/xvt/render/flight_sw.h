@@ -77,22 +77,22 @@ struct FlightSwRotSpriteEdgePoint {
 struct FlightSwRotSpriteCoeffState {
 	/* The angle, 65,536 units to the circle. */
 	uint16_t rotationAngle;
-	/* Despite the name, the sine's magnitude for the angle folded into a
-	 * quarter turn, as FlightSw_LookupSpriteSineQ15 returns it: 65536
-	 * would be 1. */
-	int16_t sinQ15;
+	/* The sine's magnitude for the angle folded into a quarter turn, as
+	 * FlightSw_LookupSpriteSineMagnitudeQ16 returns it (65536 for 1). */
+	int16_t sinMagnitudeQ16;
 	/* The 0x8000 bit of the angle: set when the sine is negative. */
 	uint16_t sinSignMask;
-	/* The cosine's magnitude, in the same form as sinQ15. */
-	int16_t cosQ15;
+	/* The cosine's magnitude, in the same form as sinMagnitudeQ16. */
+	int16_t cosMagnitudeQ16;
 	/* The 0x8000 bit of the angle plus 0x4000: set when the cosine is
 	 * negative. */
 	uint16_t cosSignMask;
 	/* The cosine's magnitude for the edge's angle (the folded angle, or a
 	 * quarter turn less it with primaryAxisSwap), in the same form. */
-	uint16_t primaryCosQ15;
-	/* 0x80000000 / primaryCosQ15, rescaled by g_projAspectY / 65536 with
-	 * primaryAxisSwap when pixels are not square; nothing reads it. */
+	uint16_t primaryCosMagnitudeQ16;
+	/* 0x80000000 / primaryCosMagnitudeQ16, rescaled by g_projAspectY /
+	 * 65536 with primaryAxisSwap when pixels are not square; nothing reads
+	 * it. */
 	uint16_t primaryStepReciprocal;
 	/* Edge points: g_flightSwRotSpriteViewportWidth without
 	 * primaryAxisSwap, g_flightSwRotSpriteViewportHeight with it. */
@@ -168,8 +168,8 @@ struct FlightSwRotSpriteScaleState {
 	/* Horizontal step the step tables were last built for, low byte. */
 	uint8_t cachedStepLowByte;
 	uint8_t cachedStepHighByte; /* Its high byte. */
-	/* (screenScale * primaryCosQ15) >> 16, times aspectScaleY >> 8 with
-	 * primaryAxisSwap: low byte. */
+	/* (screenScale * primaryCosMagnitudeQ16) >> 16, times aspectScaleY >> 8
+	 * with primaryAxisSwap: low byte. */
 	uint8_t horizontalStepLowByte;
 	uint8_t horizontalStepHighByte; /* Its high byte. */
 	/* Destination lines per sprite row: the horizontal base step plus its
@@ -319,10 +319,11 @@ int FlightSw_InitRotSpriteOctant7(void);
 int FlightSw_StepRotSpriteOctant7(void);
 uint8_t *FlightSw_SetRotatedSpriteDestBuffer(uint8_t *bufferAddress);
 unsigned int SetFlightViewport(unsigned int requestedWidth,
-			       unsigned int requestedHeight, int arg3,
+			       unsigned int requestedHeight, int viewportMode,
 			       unsigned int requestedBaseOffset);
 void FlightSw_CopyLegacy8BitViewportToFramebuffer(const uint8_t *srcPixels);
-unsigned int PushFlightViewport(uint16_t width, uint16_t height, int16_t arg3,
+unsigned int PushFlightViewport(uint16_t width, uint16_t height,
+				int16_t refreshSpanMask,
 				unsigned int baseOffset);
 int PopFlightViewport(void);
 void FlightSw_BlitRectToFlightSurface(
@@ -372,7 +373,7 @@ uint16_t FlightSw_DrawCrossMarker16bpp(uint16_t x, uint16_t y,
 				       uint8_t colorIndex);
 uint16_t FlightSw_RestoreCrossMarker16bpp(uint16_t x, uint16_t y);
 void FlightSw_DrawLine16bpp(int x1, int y1, int x2, int y2, uint8_t colorIdx);
-int16_t FlightSw_LookupSpriteSineQ15(int16_t angle);
+int16_t FlightSw_LookupSpriteSineMagnitudeQ16(int16_t angle);
 void FlightSw_BlitPreparedRotatedSpriteSpans(uint8_t *pDst, int rowSkipBytes,
 					     int startX, int startY, int endX,
 					     int endY);

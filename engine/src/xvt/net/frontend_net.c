@@ -94,10 +94,11 @@ int g_frontendNetPacketSenderPlayerId = 0;
  * mission setup and briefing screens read it. */
 // GLOBAL: XVT 0x52C18C
 int g_frontendNetPacketArg0 = 0;
-/* Second payload word of the last team or flight reservation packet;
- * FrontendNet_ProcessNetworkPackets writes it and nothing reads it. */
+/* DirectPlay id of the player who made the last team or flight reservation: the
+ * second payload word of that packet. FrontendNet_ProcessNetworkPackets writes
+ * it and nothing reads it. */
 // GLOBAL: XVT 0x52C190
-int g_frontendNetPacketArg1 = 0;
+int g_frontendNetReservingPlayerId = 0;
 /* 1 from the frame the host screen's game name is confirmed until the next
  * frame, which starts hosting. Only FrontendNet_HostGameScreen uses it, and
  * zeroes it on its first frame. */
@@ -2319,11 +2320,12 @@ int FrontendNet_HostGameScreen(int frameCounter)
  * choices, countdowns and reservations are stored in
  * g_missionSetupPlayerAssignments, g_missionSetupPlayerFlightGroupIndices,
  * g_mpRosterReadyFlags, the g_missionSetupSelected globals, g_mpRoster,
- * g_gameConfig, g_pilotData and g_frontendNetPacketArg0 and Arg1. A CHAT line
- * is added to g_frontendChatLogBuffer, dropping the oldest bytes past 1,022,
- * with this player's own lines marked by color code 5; a CHAT_SYNC_REQUEST gets
- * the log in 400-byte chunks, and a received chunk rebuilds it with every byte
- * from 0 to 6 turned into color code 6. A PLAYER_UNAVAILABLE always returns
+ * g_gameConfig, g_pilotData and g_frontendNetPacketArg0 and
+ * g_frontendNetReservingPlayerId. A CHAT line is added to
+ * g_frontendChatLogBuffer, dropping the oldest bytes past 1,022, with this
+ * player's own lines marked by color code 5; a CHAT_SYNC_REQUEST gets the log
+ * in 400-byte chunks, and a received chunk rebuilds it with every byte from 0
+ * to 6 turned into color code 6. A PLAYER_UNAVAILABLE always returns
  * NET_PACKET_NONE. Also handles movie sync (g_movieMultiplayerSyncPlayers),
  * battle progress (the g_remoteBattle globals), briefing arrivals
  * (g_frontendBriefingEnteredCount), RETURN_TO_SETUP
@@ -2606,7 +2608,7 @@ int FrontendNet_ProcessNetworkPackets(void)
 		g_pilotData.missionDirectoryId = (MissionDirectoryId)payload[1];
 		g_pilotData.missionSequenceActive = payload[2];
 		if (g_pilotData.missionSequenceActive == 1) {
-			g_pilotData.missionSequenceDescriptionId =
+			g_pilotData.savedMissionDescriptionId =
 				g_pilotData.missionDescriptionIds
 					[g_pilotData.missionDirectoryId];
 			if (g_pilotData.missionDirectoryId ==
@@ -3055,7 +3057,7 @@ int FrontendNet_ProcessNetworkPackets(void)
 	case NET_PACKET_TEAM_RESERVATION:
 	case NET_PACKET_FLIGHT_RESERVATION:
 		g_frontendNetPacketArg0 = payload[0];
-		g_frontendNetPacketArg1 = payload[1];
+		g_frontendNetReservingPlayerId = payload[1];
 		break;
 
 	case NET_PACKET_PLAYER_UNAVAILABLE:

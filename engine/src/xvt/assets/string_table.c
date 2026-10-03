@@ -85,7 +85,7 @@ void StringTable_LoadGameStrings(int loadFromDisk)
 					FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 			}
 		}
-		writePtr = (char *)Memory_LockHandle(g_stringDataHandle);
+		writePtr = (char *)Memory_GetHandleBlock(g_stringDataHandle);
 		File_RawSeek(stream, 0, SEEK_SET);
 		if (File_RawTell(stream) != 0) {
 			File_RawClose(stream);

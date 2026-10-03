@@ -212,8 +212,8 @@ int NetSession_InitGameSession(const char *formalName, const char *pilotName,
 				g_netSession.dplayInterface, &directPlayCaps,
 				0);
 		}
-		strncpy(g_netSession.localPlayerInfo.playerInfo, formalName,
-			sizeof(g_netSession.localPlayerInfo.playerInfo));
+		strncpy(g_netSession.localPlayerInfo.longName, formalName,
+			sizeof(g_netSession.localPlayerInfo.longName));
 		strncpy(g_netSession.localPlayerInfo.playerName, pilotName,
 			sizeof(g_netSession.localPlayerInfo.playerName));
 		g_netSession.players[0] = g_netSession.localPlayerInfo;
@@ -359,7 +359,7 @@ int NetSession_EnumeratePlayers(void)
 
 /* Adds one DirectPlay player to the roster: skips entries of type 0 (not
  * players) and players missing from g_pilotData.networkPlayers; stores the long
- * name in playerInfo and the short name in playerName, cut to 15 characters,
+ * name in longName and the short name in playerName, cut to 15 characters,
  * with the id and activeFlag 1, and counts it in g_netSession.playerCount.
  * Returns 0, which stops the listing, once 8 players are in; else 1. */
 // FUNCTION: XVT 0x46C750
@@ -381,14 +381,13 @@ int AERON_DXAPI NetSession_EnumPlayersCallback(DPID dplayId,
 		return 0;
 	}
 	if (PilotData_HasNetworkPlayerDpid(dplayId) != 0) {
-		strncpy(g_netSession.players[g_netSession.playerCount]
-				.playerInfo,
+		strncpy(g_netSession.players[g_netSession.playerCount].longName,
 			nameInfo->lpszLongNameA, 16);
 		strncpy(g_netSession.players[g_netSession.playerCount]
 				.playerName,
 			nameInfo->lpszShortNameA, 16);
 		nameEnd = &g_netSession.players[g_netSession.playerCount]
-				   .playerInfo[15];
+				   .longName[15];
 		*nameEnd = '\0';
 		nameEnd = &g_netSession.players[g_netSession.playerCount]
 				   .playerName[15];
@@ -2039,10 +2038,10 @@ int NetSession_HandleDirectPlaySystemMessage(int packetOpcode, int *packet)
 								   .playerName),
 						    g_netSession
 							    .players[playerIndex]
-							    .playerInfo,
+							    .longName,
 						    sizeof(g_netSession
 								   .players[playerIndex]
-								   .playerInfo))) {
+								   .longName))) {
 						return 0;
 					}
 #else
@@ -2052,7 +2051,7 @@ int NetSession_HandleDirectPlaySystemMessage(int packetOpcode, int *packet)
 							packet)
 						       ->names);
 					strcpy(g_netSession.players[playerIndex]
-						       .playerInfo,
+						       .longName,
 					       &((const NetPlayerNameMessage *)
 							 packet)
 							->names[strlen(g_netSession
@@ -2063,7 +2062,7 @@ int NetSession_HandleDirectPlaySystemMessage(int packetOpcode, int *packet)
 					g_netSession.players[playerIndex]
 						.playerName[12] = '\0';
 					g_netSession.players[playerIndex]
-						.playerInfo[12] = '\0';
+						.longName[12] = '\0';
 					return 0;
 				}
 			}

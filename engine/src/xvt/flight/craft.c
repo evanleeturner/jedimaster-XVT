@@ -93,7 +93,7 @@ ModelIndex GetModelIndexFromType(ObjectTypeId objectType)
  * freighters. Lasers and ions count the slots of laser groups firing object
  * types 137 or 139, and 141; warheads sum capacity times slots of each
  * launcher. The TIE Advanced, T-Wing, Z-95 and R-41 then get fixed weapon
- * figures. Leaves craftType and sizeRating as they were. */
+ * figures. Leaves craftType and unusedRating as they were. */
 // FUNCTION: XVT 0x426A00
 int BuildCraftTechStats(CraftTechStats *stats)
 {
