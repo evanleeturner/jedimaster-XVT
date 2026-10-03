@@ -1,0 +1,14 @@
+---
+# .yamllint — the YAML lint configuration: the default rules, with two
+# overrides and their reasons beside them.
+extends: default
+rules:
+  truthy:
+    # GitHub Actions names its trigger block `on`, which the default rule
+    # reads as a boolean key. Values are still checked.
+    check-keys: false
+  line-length:
+    # An action pinned to its full commit SHA, with the version it stands
+    # for in a trailing comment, is 81 columns. 100 is the tolerated reach;
+    # the aim stays 80.
+    max: 100

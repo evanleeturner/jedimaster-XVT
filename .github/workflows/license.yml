@@ -1,0 +1,51 @@
+---
+name: License
+
+# Two checks on the licensing boundary this repository is built on. The
+# engine under engine/ is GPLv3; everything outside it is this project's
+# own, MIT for code and CC BY 4.0 for prose, and may only start the engine
+# or talk to it across a process boundary (README.md, REUSE.toml).
+#
+# 1. reuse lint: every file names its license, through its own header or
+#    REUSE.toml, and every named license has its text in LICENSES/.
+# 2. tools/license_boundary.py: nothing outside engine/ includes an engine
+#    header, links an engine library, or carries the decompiled game's tags.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: license-${{ github.ref }}
+  # Every commit on main keeps its own result; a newer push to a pull
+  # request replaces the run for the older one.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    # Named so each step runs with -e and -o pipefail.
+    shell: bash
+
+jobs:
+  license:
+    name: License boundary
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out the tree
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check that every file names its license
+        # pipx ships on the ubuntu-24.04 runner image; the pinned version is
+        # the one REUSE.toml was written and checked against.
+        run: pipx run --spec reuse==6.2.0 reuse lint
+
+      - name: Check that nothing outside engine/ reaches into the engine
+        run: python3 tools/license_boundary.py

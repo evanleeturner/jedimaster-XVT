@@ -1,0 +1,27 @@
+# ruff.toml — the formatter and linter configuration for this project's own
+# Python under tools/. engine/ is C, and its one Python script keeps its form.
+target-version = "py311"          # the oldest Python the tools/ scripts run on
+line-length = 88
+src = ["tools"]
+extend-exclude = ["engine"]       # the engine is not this project's Python
+
+[lint]
+select = [
+    "B",   # flake8-bugbear: real bug patterns (mutable defaults, loop captures)
+    "E",   # pycodestyle errors
+    "F",   # pyflakes: unused imports/vars, undefined names
+    "I",   # isort: import grouping and order
+    "UP",  # pyupgrade: modern syntax for the target version
+    "W",   # pycodestyle warnings (trailing whitespace and friends)
+]
+ignore = [
+    "E501",  # line length is the formatter's lane (aims 88); 89-99 is a
+             # tolerated census for strings and comments a human should wrap
+]
+
+[lint.isort]
+force-single-line = true          # one imported name per line
+order-by-type = false             # alphabetical, case-insensitive
+
+[format]
+quote-style = "double"

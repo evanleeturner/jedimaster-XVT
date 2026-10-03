@@ -106,8 +106,8 @@ Everything else in this plan is what comes *after* this works.
 | Mission parser | Library + CLI; `.tie` → JSON (mission + briefing + assets manifest) | Permissive | This project |
 | Companion / launcher | Small native or Node/Python process; WebRTC via `libdatachannel` or equivalent | Permissive | This project |
 | Signaling relay | Minimal service; STUN/TURN config; self-hostable | Permissive | This project |
-| Dedicated server mode | Engine flag + headless sim loop | GPLv3 | Upstream PR |
-| Engine hooks | `--join-token`, status socket, `briefing-export` | GPLv3 | Upstream PR |
+| Dedicated server mode | Engine flag + headless sim loop | GPLv3 | `engine/` in this repository |
+| Engine hooks | `--join-token`, status socket, `briefing-export` | GPLv3 | `engine/` in this repository |
 
 ---
 
@@ -124,8 +124,11 @@ Two independent IP layers:
 
 Rules that follow:
 
-- **Process boundary, not library boundary.** Never link against OpenXvT.
+- **Process boundary, not library boundary.** Never link against `engine/`.
   Launch it with arguments; communicate over a socket or URL scheme.
+  `REUSE.toml` names every file's license, and `tools/license_boundary.py`
+  refuses a file outside `engine/` that includes an engine header or links
+  an engine library.
 - **Engine changes go upstream.** Keep them minimal and generally useful.
 - **No asset hosting.** The bot and Activity servers never store mission
   assets. Briefing icons/audio/text stream from a player's own install for
@@ -395,7 +398,8 @@ discretion.
 
 > Built on **OpenXvT** by elyosh, licensed under the GNU GPLv3. This project
 > is a separate frontend that launches and communicates with OpenXvT and is
-> licensed under [TBD]. It contains no content from *Star Wars: X-Wing vs.
-> TIE Fighter*; a legitimate installation is required. *Star Wars* and
+> licensed under the MIT License for code and CC BY 4.0 for documents. It
+> contains no content from *Star Wars: X-Wing vs. TIE Fighter*; a legitimate
+> installation is required. *Star Wars* and
 > related marks are trademarks of Lucasfilm Ltd. This project is not
 > affiliated with or endorsed by Lucasfilm, Disney, or Totally Games.
