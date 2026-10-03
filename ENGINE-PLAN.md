@@ -45,7 +45,7 @@ Five layers, each with a standard a machine checks.
 | Form | K&R layout (the style of Kernighan and Ritchie's *The C Programming Language*) in the Linux kernel's form: 8-column tabs, 80-column lines, a brace on every control body | `engine/.clang-format`, run on every change |
 | Names | every function, variable, field and constant says what it is, with its unit and its polarity; placeholder names go; a rename is proven by comparing the compiled objects with the symbols mapped | the rename map and the object comparison |
 | Meaning | a comment above each function says what it does, what it returns on every path, which globals it writes, its units (a tick is 4 ms, a circle is 65,536) and what it does not check; a global's comment says what it holds and who writes it | the comment proof: code tokens unchanged once comments are stripped |
-| Logging | the 1997 code has 0 log lines today. INFO lines tell the readable story of a run; DEBUG lines record every value that moved; messages live in one catalog; a log line never changes behavior | the log catalog check |
+| Logging | the 1997 code has no lines on the project's log API; what it carries is the remains of its own debug output (section 4). INFO lines tell the readable story of a run; DEBUG lines record every value that moved; messages live in one catalog; a log line never changes behavior | the log catalog check |
 | Tests | each test is harvested from a comment's promise; every module gets a test file or a written reason; tests run under AddressSanitizer and UndefinedBehaviorSanitizer; a test counts only once it has failed on a planted fault | CTest in `engine/tests/`, run on every change |
 
 Structure follows from the layers: functions sized so a reader can hold
@@ -79,7 +79,7 @@ Every change carries its proof.
 | Form | the whole tree reformatted in October 2026 (564 files); `.git-blame-ignore-revs` hides that commit from blame | kept by the formatter on every change |
 | Names | 1,410 names renamed in 4 batches (272 functions, 202 globals, 355 fields, the rest parameters and locals), each batch proven by object comparison | about 140 placeholder names; the naming layer the first pass set aside |
 | Meaning | the networking code (17,388 lines) and the flight code (86,252 lines) explained: 103,640 of 219,049 lines, 47%, with 0 false claims left after audit | frontend, render, assets, audio, math, input, util |
-| Logging | none in the 1997 code | all of it |
+| Logging | 0 lines on the project's log API. The 1997 code's own debug output remains: 110 `DebugPrintf` and 9 network trace calls whose functions are empty (the retail build compiled them to nothing), an in-game text console with a file dump nothing switches on, a `serverlog.txt` writer only the original build compiles, and 32 plain `printf` error lines in the model loader; none of it sits behind a debug-only compile switch | all of it: each empty call becomes a catalog event or goes, as a named change |
 | Tests | 90 tests on the new code, all green on every platform | the 1997 code; first targets are the paths where the comments found bugs |
 | Structure | 1,779 functions, 1,896 globals, 219 two-version places counted | the globals and the two-version places |
 | Bugs | 17 filed from the networking code, 4 of them in the modern build; 52 candidates from the flight code under check | filing follows the checks |
