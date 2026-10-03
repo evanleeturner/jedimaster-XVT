@@ -24,8 +24,8 @@ extern int g_flightNetHostTimeoutElapsedTicks;
 #pragma pack(push, 1)
 
 struct FlightNetScratchPacket {
-	int packetType;
-	int payloadDwords[127];
+	int packetType;		/* NET_PACKET_ value naming the packet */
+	int payloadDwords[127]; /* Body; its layout depends on packetType */
 };
 
 #pragma pack(pop)
@@ -35,8 +35,10 @@ typedef char xvt_size_FlightNetScratchPacket
 #pragma pack(push, 1)
 
 struct FlightNetInputBatchPacket {
-	int packetType;
-	uint8_t frameCount;
+	int packetType;	    /* Always NET_PACKET_INPUT_BATCH */
+	uint8_t frameCount; /* Input records in the batch */
+	/* The encoded records. Never named in code: FlightNet_SampleLocalInput
+	 * writes them through a byte offset from the packet start. */
 	uint8_t streamBytes[507];
 };
 
@@ -47,9 +49,11 @@ typedef char xvt_size_FlightNetInputBatchPacket
 #pragma pack(push, 1)
 
 struct FlightNetWorldStateChunkPacket {
-	int packetType;
-	int checksumEpoch;
-	int chunkIndex;
+	int packetType;	   /* Always NET_PACKET_RESYNC_CHUNK */
+	int checksumEpoch; /* Receivers drop other epochs */
+	int chunkIndex;	   /* Slot 0-15 in the batch; the ack echoes it */
+	/* Records, each a FlightNetWorldStateChunkRecordHeader and its bytes,
+	 * ended by a worldOffset of -1 */
 	uint8_t payload[500];
 };
 
@@ -60,8 +64,8 @@ typedef char xvt_size_FlightNetWorldStateChunkPacket
 #pragma pack(push, 1)
 
 typedef struct FlightNetWorldStateChunkRecordHeader {
-	int worldOffset;
-	int dataSize;
+	int worldOffset; /* Byte offset in the world state; -1 ends */
+	int dataSize;	 /* Bytes that follow this header */
 } FlightNetWorldStateChunkRecordHeader;
 
 #pragma pack(pop)

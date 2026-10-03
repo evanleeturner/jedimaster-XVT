@@ -14,22 +14,35 @@ extern "C" {
 
 #pragma pack(push, 1)
 
+/* A lobby player: an entry of the roster g_frontState.netPlayers, where entry
+ * 0 is the local player, or the local player's copy kept in
+ * netRuntimeLocalPlayer. */
 struct NetPlayerInfo {
+	/* DirectPlay long name; the lobby puts the player's rating plus one in
+	 * its first byte. */
 	char playerInfo[16];
-	char playerName[16];
+	char playerName[16]; /* DirectPlay short name: the player's name. */
+	/* Id DirectPlay gave the player; 0 in an unused entry. */
 	DPID playerId;
+	/* 1 when marked ready (Net_SetPlayerReady, Net_MarkPlayerReadyNoLock);
+	 * Net_RefreshPlayerRoster carries it over. */
 	int readyFlag;
 };
 
 #pragma pack(pop)
 typedef char xvt_size_NetPlayerInfo[(sizeof(NetPlayerInfo) == 40) ? 1 : -1];
 
+/* Link figures for one player in g_netPlayerConnectionStats. On the host they
+ * come from the player's keepalive acks; on the other players, from the
+ * totals the host sends in its lobby packets. */
 struct NetPlayerConnectionStats {
-	int playerId;
-	uint32_t latencyTotalMs;
-	int packetCount;
-	int packetDropCount;
-	int packetRetryCount;
+	int playerId; /* The player's DirectPlay id; 0 marks a free entry. */
+	uint32_t latencyTotalMs; /* Sum of the latency samples, in ms. */
+	int packetCount;	 /* Delivered-packet count reported. */
+	int packetDropCount;	 /* Drop count reported. */
+	int packetRetryCount;	 /* Retry count reported. */
+	/* Samples summed in latencyTotalMs, which divided by this gives the
+	 * average. */
 	uint32_t latencySampleCount;
 };
 
@@ -149,16 +162,17 @@ enum NetPacketType {
 
 /* GUID layout with the final eight bytes grouped for session key arithmetic. */
 typedef struct NetSessionGuid {
-	unsigned int data1;
-	unsigned short data2;
-	unsigned short data3;
-	unsigned int data4[2];
+	unsigned int data1;    /* GUID bytes 0 to 3. */
+	unsigned short data2;  /* GUID bytes 4 and 5. */
+	unsigned short data3;  /* GUID bytes 6 and 7. */
+	unsigned int data4[2]; /* GUID bytes 8 to 15, as two words. */
 } NetSessionGuid;
 
 typedef char xvt_size_NetSessionGuid[(sizeof(NetSessionGuid) == 16) ? 1 : -1];
 
 struct NetSessionEnumEntry {
-	char sessionName[32];
+	char sessionName[32]; /* Session name, cut to 31 characters. */
+	/* The session's DirectPlay instance GUID. */
 	NetSessionGuid sessionGuid;
 };
 

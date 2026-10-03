@@ -17,16 +17,21 @@
 #pragma pack(push, 1)
 
 typedef struct NetSessionCompactEncodedPacket {
+	/* Type in bits 0-6, sequence in 8-14, channel bits 0x80, 0x8000 */
 	int16_t packetTypeHeader;
+	/* Body length when the type takes one; else the body starts here */
 	int16_t payloadSize;
-	uint8_t payload[1020];
+	uint8_t payload[1020]; /* Body, then the saved copy or a NOP */
 } NetSessionCompactEncodedPacket;
 
 typedef struct NetSessionSequencedEncodedPacket {
+	/* Type, sequence, and bit 0x80 with bit 15 clear: a resend */
 	int16_t packetTypeHeader;
+	/* Channel class: 0 all players, 1 direct, 2 group */
 	uint8_t packetClass;
+	/* Body length when the type takes one; else the body starts here */
 	int16_t payloadSize;
-	uint8_t payload[1019];
+	uint8_t payload[1019]; /* Body, then a NOP outside the resync types */
 } NetSessionSequencedEncodedPacket;
 
 #pragma pack(pop)
@@ -35,25 +40,78 @@ typedef char xvt_size_NetSessionCompactEncodedPacket
 typedef char xvt_size_NetSessionSequencedEncodedPacket
 	[(sizeof(NetSessionSequencedEncodedPacket) == 1024) ? 1 : -1];
 
+/* Next slot, 0-127, that NetSession_SendPacket fills in
+ * g_netSessionSentHistory; it wraps to 0. NetSession_InitGameSession takes it
+ * from the frontend's saved state, and NetSession_Shutdown hands it back. */
 // GLOBAL: XVT 0x52701C
 int g_netSessionSentHistoryWriteIndex = 0;
+/* Next slot, 0-255, that NetSession_SendPacket fills in
+ * g_netSessionSentWorldMessageHistory; it wraps to 0. Zeroed by
+ * NetSession_InitGameSession; NetSession_Shutdown hands it to the frontend. */
 // GLOBAL: XVT 0x527020
 int g_netSessionSentWorldMessageWriteIndex = 0;
+/* The last 128 packets this player sent to others, each with its destination,
+ * size, channel class (0 all players, 1 direct, 2 group) and sequence, kept so
+ * NetSession_PumpIncomingPackets can resend one a peer asks for. Internet-play
+ * inputs are not kept. Filled by NetSession_SendPacket;
+ * NetSession_InitGameSession loads the frontend's saved copy and
+ * NetSession_Shutdown hands it back. */
 // GLOBAL: XVT 0x5DD9B8
 NetQueuedPacket g_netSessionSentHistory[128] = {0};
+/* The last 256 world messages this player sent, kept so
+ * NetSession_PumpIncomingPackets can resend the one with the tick a WORLD_NACK
+ * asks for. Filled by NetSession_SendPacket; cleared by
+ * NetSession_InitGameSession. */
 // GLOBAL: XVT 0x5EE1B8
 NetQueuedPacket g_netSessionSentWorldMessageHistory[256] = {0};
+/* The flight's network session: DirectPlay interface and ids, the player
+ * roster, channel sequences and saved copies, and reliable delivery state per
+ * peer. NetSession_InitGameSession clears it and loads it from the frontend's
+ * saved state. 18 functions write it, chiefly NetSession_InitGameSession,
+ * NetSession_SendPacket, NetSession_PumpIncomingPackets,
+ * NetSession_ReceivePacket, NetSession_HandleDirectPlaySystemMessage and the
+ * NetReliable_ functions. */
 // GLOBAL: XVT 0x9994C0
 NetSessionState g_netSession = {0};
+/* The buffer session packets are built in just before they are sent: startup
+ * and roster packets, peer sequence status and keepalives. 6 functions write
+ * it: NetSession_InitGameSession, NetSession_HandleDirectPlaySystemMessage,
+ * NetSession_BroadcastPlayerRoster, NetSession_SendReliableKeepalives,
+ * XvtFlightNetwork_SendRosterRecord and XvtFlightNetwork_ExchangeRoster. */
 // GLOBAL: XVT 0x5597A0
 NetSessionScratchState g_netSessionScratchPacket = {0};
+/* Picks the branches NetSession_HandleDirectPlaySystemMessage takes.
+ * NetSession_InitGameSession sets it to 1 and nothing sets it back to 0, so
+ * after the first session of a run the branches for 0 never run. */
 // GLOBAL: XVT 0x9EC608
 uint8_t g_netSessionFlightHandshakeActive = 0;
 
+/* Does nothing; message is ignored. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x46C220
 void NetSession_DebugTrace(const char *message) { (void)message; }
 
+/* Opens the flight's network session from the state the frontend saved
+ * (NetSession_ImportRuntimeState): DirectPlay interface, ids, receive queue,
+ * reliable peer slots, channel sequences and sent history. It first clears
+ * g_netSession and g_netRecvQueueCount, resets the 40 reliable peer slots,
+ * g_netSessionSentWorldMessageHistory and its write index, and
+ * g_netSessionScratchPacket.trailingState, and sets
+ * g_netSessionFlightHandshakeActive; the import then fills
+ * g_netSessionRecvQueue with its indices and count, and g_netSessionSentHistory
+ * with its write index. A solo host takes formalName and pilotName as its
+ * names, becomes roster slot 0 and returns 1; without a DirectPlay interface
+ * its id is 1. Otherwise it lists the DirectPlay players that
+ * g_pilotData.networkPlayers also holds, and sends the host a STARTUP_READY and
+ * a NOP. The modern build then returns XvtFlightNetwork_BeginRosterExchange's
+ * result, which is XVT_FLIGHT_NETWORK_PENDING unless a client joins a flight in
+ * progress. The original blocks: the host waits for numHumanPlayers
+ * STARTUP_READY packets, its own included, then with more than one sends
+ * everyone the roster; a client, unless inProgressLaunch, waits for the roster
+ * count and entries. A 60-second wait with no packet returns 0, clearing the
+ * DirectPlay interface pointer except while roster entries arrive; else 1.
+ * mpGameName and connectionAddress are unused. Does not check for a DirectPlay
+ * interface outside the solo path, nor the slot number in a roster entry. */
 // FUNCTION: XVT 0x46C230
 int NetSession_InitGameSession(const char *formalName, const char *pilotName,
 			       int isHost, const char *mpGameName,
@@ -259,6 +317,10 @@ int NetSession_InitGameSession(const char *formalName, const char *pilotName,
 #endif
 }
 
+/* Hands this session's network state back to the frontend through
+ * NetSession_ExportRuntimeState: receive queue, reliable peer slots, channel
+ * sequences and saved copies, sent history, and the sent world-message history
+ * with its write index. Closes nothing. Returns 1. */
 // FUNCTION: XVT 0x46C6A0
 int NetSession_Shutdown(void)
 {
@@ -283,6 +345,9 @@ int NetSession_Shutdown(void)
 	return 1;
 }
 
+/* Has DirectPlay list every player through NetSession_EnumPlayersCallback,
+ * which adds them to the roster. Returns 1. Does not reset the roster count
+ * first or check for a DirectPlay interface. */
 // FUNCTION: XVT 0x46C730
 int NetSession_EnumeratePlayers(void)
 {
@@ -292,6 +357,11 @@ int NetSession_EnumeratePlayers(void)
 	return 1;
 }
 
+/* Adds one DirectPlay player to the roster: skips entries of type 0 (not
+ * players) and players missing from g_pilotData.networkPlayers; stores the long
+ * name in playerInfo and the short name in playerName, cut to 15 characters,
+ * with the id and activeFlag 1, and counts it in g_netSession.playerCount.
+ * Returns 0, which stops the listing, once 8 players are in; else 1. */
 // FUNCTION: XVT 0x46C750
 int AERON_DXAPI NetSession_EnumPlayersCallback(DPID dplayId,
 					       uint32_t playerType,
@@ -344,6 +414,27 @@ enum {
 	SEQUENCE_NONE = 128
 };
 
+/* Moves every packet DirectPlay holds for this player into the receive queue.
+ * Does nothing without a DirectPlay interface; stops when DirectPlay has no
+ * more, or when the queue holds 1,023 entries, after calling
+ * NetReliable_KeepOnlyHostReceivedPackets. System messages (sender 0) are
+ * queued as they come; packets addressed to another player are skipped. It
+ * answers a PING with a PONG and ignores a KEEPALIVE_ACK. A peer's WORLD_NACK
+ * gets the world message with that tick from
+ * g_netSessionSentWorldMessageHistory, a NACK the asked sequence and channel
+ * from g_netSessionSentHistory, either one a NOP in that sequence when the
+ * packet is gone, and a KEEPALIVE the next packet on each channel that the peer
+ * still lacks; NACKs count in the peer's drop count. A resent packet (bit 0x80
+ * set, bit 15 clear) is queued under the channel its marker byte names. Any
+ * other packet is queued with its channel and sequence, marked as a resent copy
+ * when NetReliable_CheckAndRecordRecvSequence finds the sequence not new (a
+ * repeat or a stale one), except that such a packet on the group channel is
+ * dropped; when NetReliable_CheckAndRecordRecvSequence says the
+ * channel's previous sequence is new, the copy of it riding behind the packet
+ * is queued too. Writes
+ * g_netSession.receivePumpState (0), the peer slots' receive sequences and drop
+ * counts, g_netSessionRecvQueue, g_netRecvQueueWriteIndex and
+ * g_netRecvQueueCount. */
 // FUNCTION: XVT 0x46C830
 void NetSession_PumpIncomingPackets(void)
 {
@@ -351,8 +442,8 @@ void NetSession_PumpIncomingPackets(void)
 	DPID fromId;
 	DPID toId;
 	struct {
-		uint16_t header;
-		uint8_t data[1022];
+		uint16_t header;    /* Type, sequence and channel bits */
+		uint8_t data[1022]; /* The rest; a system message fills both */
 	} wirePacket;
 	unsigned int responsePacket[2];
 	uint32_t wireSize;
@@ -927,6 +1018,10 @@ void NetSession_PumpIncomingPackets(void)
 	}
 }
 
+/* Sends the packet with NetSession_SendPacket to every active roster entry with
+ * a nonzero id, this player included. Returns the last send's result when the
+ * last roster entry was sent to; otherwise that entry's DirectPlay id, or the
+ * roster count when the roster is empty. */
 // FUNCTION: XVT 0x46D300
 int NetSession_BroadcastPacketToPlayers(unsigned int *payload, int payloadSize)
 {
@@ -948,6 +1043,27 @@ int NetSession_BroadcastPacketToPlayers(unsigned int *payload, int payloadSize)
 	return result;
 }
 
+/* Sends one game packet whose first word is its type; payloadSize counts its
+ * bytes, and below 4 nothing is sent and 0 returned. The packet goes out with a
+ * 2-byte header, the type in the low 7 bits and a 7-bit sequence above, on one
+ * of three channels: to id 0, all players, on g_netSession.broadcastSeqCounter;
+ * to the session group, or any internet-play REMOTE_INPUT, on groupSeqCounter
+ * (bits 0x8080); to one player, on that peer's reliable slot sequence (bit
+ * 0x8000). Outside the resync types (RESYNC_CHECKSUMS to RESYNC_CHUNK) the body
+ * gets a 2-byte length and, behind it, the channel's previous packet (a NOP the
+ * first time), from which a receiver can recover a lost one; this packet then
+ * becomes the channel's saved copy. Packets to others go into
+ * g_netSessionSentHistory, and world messages into
+ * g_netSessionSentWorldMessageHistory, for resends; internet-play inputs do
+ * not. A packet to all, to the group, to this player, or sent with no
+ * DirectPlay interface is also queued for this player to receive, in
+ * g_netSessionRecvQueue with g_netRecvQueueWriteIndex and g_netRecvQueueCount.
+ * Returns 1 when DirectPlay takes it, when the destination is this player, or
+ * with no interface; else 0. The original arm's check before it records its own
+ * receive sequence compares a 0-or-1 flag with 40, so it always passes; the
+ * modern arm checks the slot. Does not check payloadSize against the 512-byte
+ * saved copies and history entries, or the reliable slot index before it uses
+ * the slot's saved copy. */
 // FUNCTION: XVT 0x46D350
 int NetSession_SendPacket(int directPlayId, unsigned int *payload,
 			  signed int payloadSize)
@@ -1295,6 +1411,15 @@ int NetSession_SendPacket(int directPlayId, unsigned int *payload,
 	return sendResult == 0;
 }
 
+/* Resends a packet from history to one player under its original channel class
+ * and sequence: the header carries the type, the sequence and bit 0x80 with bit
+ * 15 clear, which marks a resend, then the class byte; outside the resync types
+ * the body gets a 2-byte length and a trailing NOP instead of a saved copy.
+ * Sent to this player itself, it is queued locally as a resent copy when the
+ * queue has room, in g_netSessionRecvQueue with g_netRecvQueueWriteIndex and
+ * g_netRecvQueueCount. Returns 1 when DirectPlay takes it, when it was for this
+ * player, or with no DirectPlay interface; else 0. Does not check that
+ * packetSize is at least 4. */
 // FUNCTION: XVT 0x46DD80
 int NetSession_SendSequencedGamePacket(int destDplayId, uint8_t packetClass,
 				       uint8_t sequence,
@@ -1390,6 +1515,8 @@ int NetSession_SendSequencedGamePacket(int destDplayId, uint8_t packetClass,
 	return sendResult == 0;
 }
 
+/* Returns the roster, g_netSession.players, and stores its entry count in
+ * *outCount. */
 // FUNCTION: XVT 0x46DFA0
 SessionPlayerInfo *NetSession_GetPlayerRoster(int *outCount)
 {
@@ -1397,12 +1524,16 @@ SessionPlayerInfo *NetSession_GetPlayerRoster(int *outCount)
 	return g_netSession.players;
 }
 
+/* Returns this player's own entry, g_netSession.localPlayerInfo. Nothing calls
+ * this. */
 // FUNCTION: XVT 0x46DFC0
 SessionPlayerInfo *NetSession_GetLocalPlayerInfo(void)
 {
 	return &g_netSession.localPlayerInfo;
 }
 
+/* Copies playerCount entries into the roster and sets the roster count; returns
+ * 1. Does not check playerCount against the 8 slots. Nothing calls this. */
 // FUNCTION: XVT 0x46DFD0
 int NetSession_SetPlayerRoster(const SessionPlayerInfo *players,
 			       int playerCount)
@@ -1413,6 +1544,7 @@ int NetSession_SetPlayerRoster(const SessionPlayerInfo *players,
 	return 1;
 }
 
+/* Returns the roster count, or 1 when it is 0. */
 // FUNCTION: XVT 0x46E000
 int NetSession_GetPlayerCount(void)
 {
@@ -1422,9 +1554,14 @@ int NetSession_GetPlayerCount(void)
 	return g_netSession.playerCount;
 }
 
+/* Returns g_netSession.localIsHost, nonzero when this player hosts. */
 // FUNCTION: XVT 0x46E040
 int NetSession_IsLocalHost(void) { return g_netSession.localIsHost; }
 
+/* Returns the next game packet from NetSession_ReceivePacket, with its sender
+ * and size, or NULL when none is ready. DirectPlay system messages (sender 0)
+ * met on the way go to NetSession_HandleDirectPlaySystemMessage and are not
+ * returned. The packet stays valid until the next receive. */
 // FUNCTION: XVT 0x46E050
 int *NetSession_ReceiveGamePacket(int *outSenderDpid, int *outPayloadSize)
 {
@@ -1440,6 +1577,21 @@ int *NetSession_ReceiveGamePacket(int *outSenderDpid, int *outPayloadSize)
 	}
 }
 
+/* Acts on a DirectPlay system message, writing g_netSession and
+ * g_netSessionScratchPacket; only the host acts, except on a name change. A new
+ * player is sent a SEQUENCE_STATUS with every reliable peer slot's id and
+ * sequences, then a FLIGHT_SESSION_STATUS with the mission's elapsed seconds
+ * and the protocol version (103 in the modern build, 101 in the original). A
+ * departed player is first reported to XvtNetworkSession_HostLost in the modern
+ * build when it was the host; the host then queues itself a STARTUP_READY if
+ * the player was active, removes it from the DirectPlay group, marks it
+ * inactive, and frees its reliable peer slot by moving the last slot into its
+ * place. A name change updates the matching roster entry's names, cut to 12
+ * characters; the original arm copies them with strcpy, unbounded. When
+ * g_netSessionFlightHandshakeActive is 0, a new player's session status carries
+ * 0 instead, and the roster is listed again with every other player added to
+ * the group, and a departure lists the roster again; that never happens after a
+ * session init. Returns a value no caller uses. */
 // FUNCTION: XVT 0x46E080
 int NetSession_HandleDirectPlaySystemMessage(int packetOpcode, int *packet)
 {
@@ -1923,6 +2075,30 @@ int NetSession_HandleDirectPlaySystemMessage(int packetOpcode, int *packet)
 	}
 }
 
+/* Returns the next packet to hand to the game, in order per peer and channel,
+ * or NULL; *outSenderDpid and *outPayloadSize describe it, and the pointer,
+ * into g_netSession.recvScratchPacket, is valid until the next call. It first
+ * runs NetSession_PumpIncomingPackets and NetSession_SendReliableKeepalives. A
+ * system message is returned only from the front of the queue. Entries from a
+ * peer with no reliable slot (all 40 taken), or 1 to 28 sequence numbers behind
+ * the next expected one (counting around the 128 wrap), are dropped. The entry
+ * with the next expected sequence on its channel is returned, and an
+ * internet-play REMOTE_INPUT is returned as soon as it is met, skipping any
+ * gap. On a gap it looks in the queue for the missing sequences and returns the
+ * expected one when found; otherwise it sends a NACK per missing sequence, or
+ * for a world message a WORLD_NACK holding the missing message's tick estimated
+ * from g_netUpdateIntervalTicks, and repeats them after a wait that doubles
+ * each time, from 2,000 ms; once its NACK count passes 3 (5 for world messages)
+ * it gives up the gap and returns the first packet it holds past it. Per call,
+ * a peer's entries stop being examined once its examined count, which also
+ * grows by the size of each gap, passes 90, or its count of missing sequences
+ * not found passes 25. When the queue holds 1,023
+ * entries or more and nothing was returned, it returns the first entry already
+ * NACKed, giving up its gap. Writes the peer slots' delivered sequences,
+ * activity times and counts, g_netLastDeliveredRecvSequence,
+ * g_netSession.recvScratchPacket, and the receive queue: g_netRecvQueueCount,
+ * g_netRecvQueueReadIndex and its entries, also through
+ * NetReliable_RemoveQueuedPacket. */
 // FUNCTION: XVT 0x46E780
 void *NetSession_ReceivePacket(int *outSenderDpid, int *outPayloadSize)
 {
@@ -1931,9 +2107,9 @@ void *NetSession_ReceivePacket(int *outSenderDpid, int *outPayloadSize)
 	int queueIndex;
 
 	struct {
-		int wantChannelA;
-		int wantChannelB;
-		unsigned int remainingQueueEntries;
+		int wantChannelA; /* Entry is on the all-players channel */
+		int wantChannelB; /* Entry is on the group channel */
+		unsigned int remainingQueueEntries; /* Entries left to scan */
 	} channels;
 
 	int nextSequence;
@@ -2779,6 +2955,14 @@ void *NetSession_ReceivePacket(int *outSenderDpid, int *outPayloadSize)
 	return NULL;
 }
 
+/* Sends a control packet (NACK, WORLD_NACK, KEEPALIVE) with sequence 0 and no
+ * saved copy behind it: the header holds the type, with bits 0x8080 for the
+ * session group or an internet-play REMOTE_INPUT; outside the resync types the
+ * body gets a 2-byte length and a trailing NOP. Nothing is sent to this player
+ * itself. Returns 1 when DirectPlay takes it, when the destination is this
+ * player, or with no DirectPlay interface; else 0. The fourth argument, 0 or 1
+ * at every call, is never read, and the deliveryMode 1 branch cannot be taken.
+ * Does not check payloadSize. */
 // FUNCTION: XVT 0x46F470
 int NetSession_SendCompactGamePacket(int directPlayId, unsigned int *payload,
 				     int payloadSize, ...)
@@ -2854,6 +3038,9 @@ int NetSession_SendCompactGamePacket(int directPlayId, unsigned int *payload,
 }
 
 #ifndef XVT_MODERN
+/* Polls NetSession_ReceiveGamePacket until a packet arrives or timeoutSeconds
+ * pass, without sleeping between polls; returns the packet with its sender and
+ * size, or NULL on timeout. Only the original build calls this. */
 // FUNCTION: XVT 0x46F5E0
 int *NetSession_WaitForGamePacket(int *outDpid, int *outPayloadSize,
 				  int timeoutSeconds)
@@ -2881,6 +3068,7 @@ int *NetSession_WaitForGamePacket(int *outDpid, int *outPayloadSize,
 }
 #endif
 
+/* Returns the roster slot whose DirectPlay id is dpid, or 8 when none is. */
 // FUNCTION: XVT 0x46F660
 int NetSession_FindPlayerSlotByDpid(int dpid)
 {
@@ -2895,12 +3083,17 @@ int NetSession_FindPlayerSlotByDpid(int dpid)
 	return playerSlot;
 }
 
+/* Returns the DirectPlay id in roster slot playerIndex; does not check the
+ * index. Nothing calls this. */
 // FUNCTION: XVT 0x46F680
 int NetSession_GetPlayerDplayId(int playerIndex)
 {
 	return g_netSession.players[playerIndex].directPlayId;
 }
 
+/* Returns the DirectPlay id of the active roster entry numbered
+ * activePlayerIndex, counting active entries from 0, or 0 when there are not
+ * that many. Nothing calls this. */
 // FUNCTION: XVT 0x46F690
 int NetSession_GetDplayIdByActivePlayerIndex(int activePlayerIndex)
 {
@@ -2923,6 +3116,9 @@ int NetSession_GetDplayIdByActivePlayerIndex(int activePlayerIndex)
 	return 0;
 }
 
+/* Returns how many active roster entries come before the active entry whose id
+ * is dpid; when none is, the count of all active entries. Nothing calls
+ * this. */
 // FUNCTION: XVT 0x46F6D0
 int NetSession_FindActivePlayerIndexByDpid(int dpid)
 {
@@ -2943,15 +3139,21 @@ int NetSession_FindActivePlayerIndexByDpid(int dpid)
 	return activePlayerIndex;
 }
 
+/* Returns the host's DirectPlay id, g_netSession.hostDplayId. */
 // FUNCTION: XVT 0x46F700
 int NetSession_GetHostDplayId(void) { return g_netSession.hostDplayId; }
 
+/* Returns this player's DirectPlay id. */
 // FUNCTION: XVT 0x46F710
 int NetSession_GetLocalDplayId(void)
 {
 	return g_netSession.localPlayerInfo.directPlayId;
 }
 
+/* Returns the short name of the roster entry in playerSlot, found by matching
+ * DirectPlay ids; in a one-player session, this player's own name whatever the
+ * slot. When no entry matches, the modern build returns NULL and the original
+ * reaches the end with no return statement. */
 // FUNCTION: XVT 0x46F720
 char *NetSession_GetPlayerName(int playerSlot)
 {
@@ -2978,6 +3180,8 @@ char *NetSession_GetPlayerName(int playerSlot)
 #endif
 }
 
+/* Returns the first queued player entry, or NULL when the queue is empty.
+ * Nothing calls this. */
 // FUNCTION: XVT 0x46F780
 SessionPlayerInfo *NetSession_PeekQueuedPlayerInfo(void)
 {
@@ -2989,6 +3193,9 @@ SessionPlayerInfo *NetSession_PeekQueuedPlayerInfo(void)
 #ifndef XVT_MODERN
 #pragma function(memcpy)
 #endif
+/* Takes 1 off g_netSession.playerInfoQueueCount and copies the queue up over
+ * its first entry, but copies only count minus 1 bytes, not entries, so the
+ * queue is not moved up. Nothing calls this. */
 // FUNCTION: XVT 0x46F7A0
 void NetSession_DiscardFirstQueuedPlayerInfo(void)
 {
@@ -3003,6 +3210,8 @@ void NetSession_DiscardFirstQueuedPlayerInfo(void)
 #pragma intrinsic(memcpy)
 #endif
 
+/* Returns how many roster slots from slot 0 are active before the first
+ * inactive one. Nothing calls this. */
 // FUNCTION: XVT 0x46F7D0
 int NetSession_CountLeadingActivePlayers(void)
 {
@@ -3016,12 +3225,16 @@ int NetSession_CountLeadingActivePlayers(void)
 	return playerCount;
 }
 
+/* Sets the roster count. Nothing calls this. */
 // FUNCTION: XVT 0x46F7F0
 void NetSession_SetPlayerCount(int playerCount)
 {
 	g_netSession.playerCount = playerCount;
 }
 
+/* Copies playerInfo into roster slot playerSlot, marks it active and adds 1 to
+ * the roster count, even when the slot was in use. Does not check playerSlot.
+ * Nothing calls this. */
 // FUNCTION: XVT 0x46F800
 void NetSession_AddPlayerToRosterSlot(int playerSlot,
 				      const SessionPlayerInfo *playerInfo)
@@ -3035,6 +3248,11 @@ void NetSession_AddPlayerToRosterSlot(int playerSlot,
 }
 
 #ifndef XVT_MODERN
+/* Sends toPlayerId (0 for all players) a ROSTER_COUNT, then one ROSTER_ENTRY
+ * per roster entry with its index. When sending to all, it waits after each
+ * send until a packet of that type arrives, which its own queued copy
+ * satisfies, and returns 0 when a 60 s wait sees none; else returns 1. Writes
+ * g_netSessionScratchPacket. Only the original build calls this. */
 // FUNCTION: XVT 0x46F840
 int NetSession_BroadcastPlayerRoster(int toPlayerId)
 {
@@ -3082,12 +3300,15 @@ int NetSession_BroadcastPlayerRoster(int toPlayerId)
 }
 #endif
 
+/* Returns g_netSession.playerInfoQueueCount. Nothing calls this. */
 // FUNCTION: XVT 0x46F9D0
 int NetSession_GetQueuedPlayerInfoCount(void)
 {
 	return g_netSession.playerInfoQueueCount;
 }
 
+/* Appends a copy of playerInfo to g_netSession.playerInfoQueue. Does not check
+ * that the 8-entry queue has room. Nothing calls this. */
 // FUNCTION: XVT 0x46F9E0
 void NetSession_QueuePlayerInfo(const SessionPlayerInfo *playerInfo)
 {
@@ -3096,6 +3317,9 @@ void NetSession_QueuePlayerInfo(const SessionPlayerInfo *playerInfo)
 	g_netSession.playerInfoQueueCount++;
 }
 
+/* Asks DirectPlay to add the player to the session group,
+ * g_netSession.groupDplayId; returns DirectPlay's result code. Does not check
+ * for a DirectPlay interface. */
 // FUNCTION: XVT 0x46FA10
 int NetSession_AddPlayerToGroup(const SessionPlayerInfo *playerInfo)
 {
@@ -3104,6 +3328,7 @@ int NetSession_AddPlayerToGroup(const SessionPlayerInfo *playerInfo)
 		playerInfo->directPlayId);
 }
 
+/* Returns how many of the 8 roster slots have activeFlag 1. */
 // FUNCTION: XVT 0x46FA30
 int NetSession_CountActivePlayers(void)
 {
@@ -3118,6 +3343,8 @@ int NetSession_CountActivePlayers(void)
 	return activePlayerCount;
 }
 
+/* Asks DirectPlay to remove the player from the session group; returns
+ * DirectPlay's result code. Does not check for a DirectPlay interface. */
 // FUNCTION: XVT 0x46FA50
 int NetSession_RemovePlayerFromGroup(int playerDplayId)
 {
@@ -3126,6 +3353,9 @@ int NetSession_RemovePlayerFromGroup(int playerDplayId)
 		(DPID)playerDplayId);
 }
 
+/* Makes the first active roster entry the host in g_netSession.hostDplayId and
+ * returns 1, or returns 0 when none is active. Does not change
+ * g_netSession.localIsHost. Nothing calls this. */
 // FUNCTION: XVT 0x46FA70
 int NetSession_SelectFirstActivePlayerAsHost(void)
 {
@@ -3143,12 +3373,16 @@ int NetSession_SelectFirstActivePlayerAsHost(void)
 	return 1;
 }
 
+/* Returns 1 and does nothing else. Nothing calls this. */
 // FUNCTION: XVT 0x46FAB0
 int NetSession_UnusedStubReturnTrue(void) { return 1; }
 
+/* Returns 1 and does nothing else. */
 // FUNCTION: XVT 0x46FAC0
 int NetSession_StubReturnTrue(void) { return 1; }
 
+/* Returns 0 for every packet type: no type has a fixed size, so every packet
+ * outside the resync types carries a 2-byte length. */
 // FUNCTION: XVT 0x46FAD0
 int NetSession_GetFixedPayloadSize(int packetType)
 {
@@ -3156,6 +3390,13 @@ int NetSession_GetFixedPayloadSize(int packetType)
 	return 0;
 }
 
+/* Sends each other roster player a KEEPALIVE when its reliable peer slot has
+ * been idle over 3,000 ms, holding the sequence after the newest this player
+ * has seen from it on each channel (all players, group, direct) and the time;
+ * the peer then resends the packet with that sequence on each channel, if it
+ * has sent one. Only peers in the first 8 of the 40 slots get one. Creates a
+ * slot for any roster player that has none, and writes
+ * g_netSessionScratchPacket and the slot's activity time. Returns 1. */
 // FUNCTION: XVT 0x46FAE0
 int NetSession_SendReliableKeepalives(void)
 {

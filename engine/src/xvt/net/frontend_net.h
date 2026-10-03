@@ -21,8 +21,8 @@ enum {
 #pragma pack(push, 1)
 
 struct FrontendNetPacketScratch {
-	int packetType;
-	uint8_t payload[508];
+	int packetType;	      /* NET_PACKET_ value naming the packet */
+	uint8_t payload[508]; /* Body; its layout depends on packetType */
 };
 
 #pragma pack(pop)
@@ -30,13 +30,17 @@ typedef char xvt_size_FrontendNetPacketScratch
 	[(sizeof(FrontendNetPacketScratch) == 512) ? 1 : -1];
 
 struct FrontendNetSessionEntry {
-	char gameName[32];
+	char gameName[32]; /* Session name from DirectPlay */
+	/* DirectPlay session GUID; a key of 0 marks an empty entry */
 	NetSessionGuid sessionGuid;
+	/* Players needed: 9 until probed, 0 if full or no answer came */
 	unsigned int playersNeeded;
+	/* GetTickCount ms of the last probe; 0 before any */
 	unsigned int lastQueryMs;
+	/* Host's protocol version: this build's until probed, 0 if no answer */
 	unsigned int version;
-	uint8_t passwordRequired;
-	uint8_t gameInFlight;
+	uint8_t passwordRequired; /* Nonzero when the game needs a password */
+	uint8_t gameInFlight;	  /* 1 when the probe found the game flying */
 };
 
 extern int g_frontendNetSessionCount;

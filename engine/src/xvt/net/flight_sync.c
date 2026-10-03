@@ -25,34 +25,81 @@
 
 enum { INPUT_FRAME_PREDICTED = 2 };
 
+/* Frames held in each player's row of g_inputHistory, 0 to 450. Six writers;
+ * chiefly FlightSync_InsertInputFrame (XvtFlightHistory_Insert in the modern
+ * build) and FlightSync_RemoveInputHistoryFrame. Flight start sets every
+ * count to 0: Flight_MainLoop in the original build, XvtFlightLoading_Globals
+ * in the modern one. */
 // GLOBAL: XVT 0x9A8DB0
 int g_inputFrameCount[8] = {0};
+/* Each player's input frames in time stamp order, up to 450 per player, with
+ * where each came from (inputSource) and whether it still awaits relay to the
+ * other players. Many writers; chiefly FlightSync_InsertInputFrame and
+ * FlightSync_RemoveInputHistoryFrame. */
 // GLOBAL: XVT 0x9ED670
 InputFrame g_inputHistory[8][450] = {{{0}}};
+/* Set to 1 by FlightSync_ApplyResyncAndReplayWorldMessages as it loads a
+ * resent world state; the next FlightSync_ApplyWorldMessagePacket, after
+ * restoring that state, marks every live object's move vector and
+ * orientation matrix for recomputing and sets it back to 0. Only the
+ * original build sets or reads it. */
 // GLOBAL: XVT 0x51BF40
 int g_flightNetDirtyAllObjectTransformsAfterRestore = 0;
 #ifndef XVT_MODERN
+/* Bytes allocated for g_worldMessageBuffer. Only
+ * FlightSync_BufferWorldMessagePacket writes it: it grows by 100 times the
+ * size of a message that does not fit, and never shrinks. */
 // GLOBAL: XVT 0x51BF48
 static int g_worldMessageBufferCapacity;
+/* Bytes still free at the end of g_worldMessageBuffer. Lowered by
+ * FlightSync_BufferWorldMessagePacket; set back to the capacity by
+ * FlightSync_ClearBufferedWorldMessages and
+ * FlightSync_ReplayBufferedWorldMessages. */
 // GLOBAL: XVT 0x51BF4C
 static int g_worldMessageBufferBytesFree;
+/* World messages held in g_worldMessageBuffer. Raised by
+ * FlightSync_BufferWorldMessagePacket; FlightSync_ReplayBufferedWorldMessages
+ * counts it down to 0, and FlightSync_ClearBufferedWorldMessages sets 0. */
 // GLOBAL: XVT 0x51BF50
 static int g_worldMessageBufferedCount;
+/* Memory handle of g_worldMessageBuffer; 0 until the first message is
+ * buffered. FlightSync_BufferWorldMessagePacket replaces it with a larger
+ * one, freeing the old, when a message does not fit; nothing else frees it. */
 // GLOBAL: XVT 0x51BF54
 static uint16_t g_worldMessageBufferHandle = 0;
 #endif
+/* 1 when remote players' craft are drawn smoothed. Starts at 1; flight start
+ * copies g_internetPlayEnabled into it: Flight_MainLoop in the original
+ * build, XvtFlightLoading_Globals in the modern one. */
 // GLOBAL: XVT 0x523430
 int g_remotePlayerRenderSmoothingEnabled = 1;
+/* Per player, the pose and motion of the remote craft as last drawn, taken by
+ * FlightSync_CaptureSamplesAndRestorePoses after each frame is drawn;
+ * FlightSync_ApplyRemotePlayerRenderSmoothing predicts the next drawn pose
+ * from it. FlightSync_ResetRemotePlayerRenderSmoothing marks all invalid. */
 // GLOBAL: XVT 0x550888
 RemotePlayerRenderSample g_remotePlayerRenderSamples[8];
+/* Per player, the simulated pose FlightSync_ApplyRemotePlayerRenderSmoothing
+ * saves before it moves the craft to its drawn pose;
+ * FlightSync_CaptureSamplesAndRestorePoses puts it back after drawing. */
 // GLOBAL: XVT 0x550A08
 RemotePlayerSavedSimPose g_remotePlayerSavedSimPoses[8];
 #ifndef XVT_MODERN
+/* Locked memory of g_worldMessageBufferHandle, where a client keeps the
+ * server's world messages back to back while
+ * g_flightNetBufferWorldMessagesUntilChecksum is 1, from a world checksum
+ * until the checksum is confirmed or a resync replays them. NULL until the
+ * first message is buffered. */
 // GLOBAL: XVT 0x550B90
 static uint8_t *g_worldMessageBuffer = NULL;
 #endif
 
 #ifndef XVT_MODERN
+/* For every active remote player with any input frames, adds a predicted
+ * frame at the last frame's time stamp plus predictedFrameDelta, with that
+ * frame's two axes and no key or modifiers, marked predicted (inputSource 2)
+ * and not awaiting relay, where FlightSync_InsertInputFrame accepts it. Does
+ * nothing in internet play. Only the original build calls this. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x418500
 void FlightSync_QueuePredictedRemoteInputFrames(int predictedFrameDelta)
@@ -91,6 +138,9 @@ void FlightSync_QueuePredictedRemoteInputFrames(int predictedFrameDelta)
 }
 #endif
 
+/* Removes every predicted frame (inputSource 2, not awaiting relay) from the
+ * input history of every active remote player; in internet play it does
+ * nothing. Only the original build calls this. */
 // FUNCTION: XVT 0x4185B0
 void FlightSync_DiscardAllPredictedInputFrames(void)
 {
@@ -125,6 +175,9 @@ void FlightSync_DiscardAllPredictedInputFrames(void)
 	}
 }
 
+/* Removes the predicted frames (inputSource 2, not awaiting relay) from one
+ * player's input history. Does nothing for an inactive player or the local
+ * one, nor, in the original build, in internet play. */
 // FUNCTION: XVT 0x418650
 void FlightSync_DiscardPredictedInputFrames(int playerIdx)
 {
@@ -152,6 +205,10 @@ void FlightSync_DiscardPredictedInputFrames(int playerIdx)
 	}
 }
 
+/* Removes the frame that frame points at from a player's input history,
+ * moving later frames down one place and lowering g_inputFrameCount. Does
+ * nothing when the history is empty or the pointer lies before the player's
+ * row; does not check that it lies among the frames in use. */
 // FUNCTION: XVT 0x4186E0
 void FlightSync_RemoveInputHistoryFrame(int playerIdx, InputFrame *frame)
 {
@@ -177,6 +234,15 @@ void FlightSync_RemoveInputHistoryFrame(int playerIdx, InputFrame *frame)
 	}
 }
 
+/* Puts an input frame into a player's history, kept in time stamp order, and
+ * returns it, or NULL when refused. The modern build hands the work to
+ * XvtFlightHistory_Insert and, when the history is full under the network
+ * timing (XvtFlightTiming_IsNetwork125), calls
+ * XvtFlightNetwork_RequestRecovery. In the original build a new time stamp is
+ * inserted, refused when all 450 frames are in use; a frame with the same
+ * time stamp is overwritten unless it came from the server (inputSource 0)
+ * or awaits relay, which refuses it. The frame gets inputSource 1 and
+ * awaitingRelay 0; callers may change them afterwards. */
 // FUNCTION: XVT 0x418760
 InputFrame *FlightSync_InsertInputFrame(int playerIdx, int timestamp,
 					const FlightInputFrameRecord *input)
@@ -236,6 +302,8 @@ InputFrame *FlightSync_InsertInputFrame(int playerIdx, int timestamp,
 #endif
 }
 
+/* Returns the last frame in a player's input history that still awaits relay
+ * (awaitingRelay nonzero), or NULL when none does. */
 // FUNCTION: XVT 0x418890
 InputFrame *FlightSync_FindLastUnrelayedInputFrame(int playerIdx)
 {
@@ -256,6 +324,7 @@ InputFrame *FlightSync_FindLastUnrelayedInputFrame(int playerIdx)
 	return result;
 }
 
+/* Marks all eight render samples and saved simulated poses invalid. */
 // FUNCTION: XVT 0x418950
 void FlightSync_ResetRemotePlayerRenderSmoothing(void)
 {
@@ -267,6 +336,15 @@ void FlightSync_ResetRemotePlayerRenderSmoothing(void)
 	}
 }
 
+/* Runs after a frame is drawn. For each active remote player whose craft
+ * exists it records in g_remotePlayerRenderSamples the position and angles
+ * the craft was drawn at, the change in each angle since the last sample
+ * (none when there was no valid sample), and its move vector, speed and
+ * simulation time stamp, recomputing the move vector first when it is
+ * stale. It then puts back the simulated pose that
+ * FlightSync_ApplyRemotePlayerRenderSmoothing saved. Every other player's
+ * sample becomes invalid. Does nothing when
+ * g_remotePlayerRenderSmoothingEnabled is 0. */
 // FUNCTION: XVT 0x418970
 void FlightSync_CaptureSamplesAndRestorePoses(void)
 {
@@ -382,6 +460,19 @@ void FlightSync_CaptureSamplesAndRestorePoses(void)
 	} while (playerIndex < 8);
 }
 
+/* Runs before a frame is drawn. Moves each active remote player's craft from
+ * its simulated pose to a smoothed one, after saving the simulated pose in
+ * g_remotePlayerSavedSimPoses for FlightSync_CaptureSamplesAndRestorePoses to
+ * put back. Leaves a craft as simulated when its sample is invalid or belongs
+ * to another object, or when its simulation time stamp is older than the
+ * sample's. The position is projected from the sampled one along the sampled
+ * move vector, by a distance that grows with the sampled speed and the
+ * simulation time since the sample, then moved toward the simulated position
+ * by half the gap, or a smaller share when the gap is within 32 times that
+ * distance. An angle that moved against the sampled turn is held at the
+ * sampled angle. The step that compares the change with maxAngleChange sets
+ * each angle to a value equal to itself modulo 65,536, so it changes
+ * nothing. Does nothing when g_remotePlayerRenderSmoothingEnabled is 0. */
 // FUNCTION: XVT 0x418B70
 void FlightSync_ApplyRemotePlayerRenderSmoothing(void)
 {
@@ -617,6 +708,22 @@ void FlightSync_ApplyRemotePlayerRenderSmoothing(void)
 }
 
 #ifndef XVT_MODERN
+/* Applies one world message from the server. A client first copies it into
+ * the replay buffer while g_flightNetBufferWorldMessagesUntilChecksum is 1.
+ * The tick is word 1 without its top bit, which asks for a world checksum. A
+ * tick not past g_serverTickTime is ignored; one that is not exactly
+ * g_netUpdateIntervalTicks past it first empties the flight receive queue
+ * (NetReliable_ResetRecvQueueState). It then drops predicted inputs, restores
+ * the saved world state of g_serverTickTime (marking every live object's
+ * transforms for recomputing when
+ * g_flightNetDirtyAllObjectTransformsAfterRestore is set), inserts each
+ * active player's inputs from the message as server frames (inputSource 0),
+ * runs the simulation to the tick, updates the cameras, flushes queued
+ * sounds and saves the new state; g_gameTime and g_serverTickTime become the
+ * tick. When a checksum is asked for, it computes one, stores the tick in
+ * g_flightNetWorldChecksumEpoch, sends it to the host (a host also broadcasts
+ * it), turns buffering on, snapshots the state and empties the buffer. Only
+ * the original build calls this. */
 // FUNCTION: XVT 0x418F80
 void FlightSync_ApplyWorldMessagePacket(uint8_t *packet)
 {
@@ -776,6 +883,20 @@ void FlightSync_ApplyWorldMessagePacket(uint8_t *packet)
 }
 #endif
 
+/* Handles a player's world checksum for the epoch in
+ * g_flightNetWorldChecksumEpoch (word 1); other epochs, and players that
+ * aborted or are inactive, are ignored. When the 16 region checksums from
+ * another player differ from the local ones, the original build sends that
+ * player the snapshot in g_worldStateDupBuffer
+ * (FlightNet_SendWorldStateResyncToPlayer, then
+ * FlightNet_SendWorldStateResyncApplyRequest when that succeeds); the modern
+ * build starts sending it with XvtResync_BeginSend and returns. On the host it
+ * then records the player in g_flightNetWorldChecksumPeerStatus as matched
+ * (1) or not (2), and turns buffering off once every active player has
+ * matched. In the modern build word 34 is a request code: code 1 is taken in
+ * any epoch, and on the host, from another player, starts sending the live
+ * world state instead. The original build does not check that the sender has
+ * a player slot; the lookup then returns 8, past the 8-entry tables. */
 // FUNCTION: XVT 0x4193C0
 void FlightSync_HandleWorldChecksumPacket(int senderDpid, const int *packet)
 {
@@ -891,6 +1012,10 @@ void FlightSync_HandleWorldChecksumPacket(int senderDpid, const int *packet)
 	}
 }
 
+/* On a client, compares the 16 world checksum words the server sent for the
+ * current epoch with the local ones; when all match, turns buffering off and
+ * empties the world-message buffer. Ignored on the host and for any other
+ * epoch. */
 // FUNCTION: XVT 0x419510
 void FlightSync_HandleServerChecksumPacket(uint8_t *packet)
 {
@@ -920,6 +1045,9 @@ void FlightSync_HandleServerChecksumPacket(uint8_t *packet)
 	}
 }
 
+/* Copies size bytes of a resent world state to offset in
+ * g_worldStateDupBuffer, with no bounds check. Only the original build calls
+ * this. */
 // FUNCTION: XVT 0x419570
 void FlightSync_CopyWorldStateResyncChunk(const void *src, int offset,
 					  unsigned int size)
@@ -932,6 +1060,12 @@ void FlightSync_CopyWorldStateResyncChunk(const void *src, int offset,
 #endif
 
 #ifndef XVT_MODERN
+/* Takes the world state a resync left in g_worldStateDupBuffer as the saved
+ * state (g_worldStateBuffer and g_worldStateSize), sets g_serverTickTime to
+ * serverTickTime and sets g_flightNetDirtyAllObjectTransformsAfterRestore.
+ * Then it computes the world checksum and sends it to the host, snapshots
+ * the state again, turns buffering off and replays the buffered world
+ * messages. Only the original build calls this. */
 // FUNCTION: XVT 0x4195A0
 void FlightSync_ApplyResyncAndReplayWorldMessages(unsigned int worldStateBytes,
 						  int serverTickTime)
@@ -955,6 +1089,10 @@ void FlightSync_ApplyResyncAndReplayWorldMessages(unsigned int worldStateBytes,
 }
 #endif
 
+/* Copies the saved world state (g_worldStateSize bytes of
+ * g_worldStateBuffer) into g_worldStateDupBuffer and sets
+ * g_worldStateDupSize: the copy a resync sends to a player whose checksum
+ * differs. */
 // FUNCTION: XVT 0x419620
 void FlightSync_SnapshotWorldStateForReplay(void)
 {
@@ -966,6 +1104,13 @@ void FlightSync_SnapshotWorldStateForReplay(void)
 }
 
 #ifndef XVT_MODERN
+/* Appends one world message to g_worldMessageBuffer, growing the buffer by
+ * 100 times the message's size when it does not fit (a failed allocation is
+ * a fatal error). The size is the 9-byte header plus each player's inputs,
+ * walked by their time codes. The walk counts the 4 bytes after code 127 but
+ * not the 2 after code 126 or the 1 after code 125, which
+ * FlightSync_ApplyWorldMessagePacket reads, so a message using those is
+ * stored short. Only the original build calls this. */
 // FUNCTION: XVT 0x419650
 void FlightSync_BufferWorldMessagePacket(uint8_t *packet)
 {
@@ -1041,6 +1186,9 @@ void FlightSync_BufferWorldMessagePacket(uint8_t *packet)
 }
 #endif
 
+/* Empties the world-message buffer: the modern build clears the replay queue
+ * (XvtFlightMessages_Clear); the original keeps its memory and resets the
+ * count and the free space. */
 // FUNCTION: XVT 0x4197B0
 void FlightSync_ClearBufferedWorldMessages(void)
 {
@@ -1053,6 +1201,11 @@ void FlightSync_ClearBufferedWorldMessages(void)
 }
 
 #ifndef XVT_MODERN
+/* Applies every buffered world message in order through
+ * FlightSync_ApplyWorldMessagePacket, after clearing each one's checksum
+ * request bit, then empties the buffer. It steps from one message to the
+ * next with the same short size count as FlightSync_BufferWorldMessagePacket.
+ * Only the original build calls this. */
 // FUNCTION: XVT 0x4197D0
 void FlightSync_ReplayBufferedWorldMessages(void)
 {
@@ -1110,6 +1263,8 @@ void FlightSync_ReplayBufferedWorldMessages(void)
 }
 #endif
 
+/* Returns what Sound_UnusedFourArgStub returns, 0. Nothing in the engine
+ * calls this. */
 // FUNCTION: XVT 0x419870
 int FlightSync_UnusedFourArgForwarder(int arg1, int arg2, int arg3, int arg4)
 {

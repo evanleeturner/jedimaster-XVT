@@ -5,17 +5,39 @@
 #include <stddef.h>
 #include <string.h>
 
+/* Index of the next free entry in g_netSessionRecvQueue, 0 to 1023. Six
+ * writers; chiefly NetSession_PumpIncomingPackets, which queues arrivals,
+ * NetReliable_RemoveQueuedPacket, which steps it back one, and
+ * NetSession_ImportRuntimeState, which copies in the lobby's index when a
+ * flight session starts. */
 // GLOBAL: XVT 0x527024
 int g_netRecvQueueWriteIndex = 0;
+/* Index of the oldest entry in g_netSessionRecvQueue, 0 to 1023. Written by
+ * NetSession_ReceivePacket and NetReliable_RemoveQueuedPacket as entries
+ * leave, by NetReliable_ResetRecvQueueState, which sets it to the write index,
+ * and by NetSession_ImportRuntimeState. */
 // GLOBAL: XVT 0x527028
 int g_netRecvQueueReadIndex;
+/* Entries held in g_netSessionRecvQueue, 0 to 1024. Nine writers; chiefly
+ * NetSession_PumpIncomingPackets, which adds arrivals, and
+ * NetReliable_RemoveQueuedPacket, which takes them out.
+ * NetSession_InitGameSession sets it to 0 before NetSession_ImportRuntimeState
+ * copies in the lobby's count; NetReliable_ResetRecvQueueState sets it to 0. */
 // GLOBAL: XVT 0x52702C
 unsigned int g_netRecvQueueCount;
+/* The flight session's receive queue, a ring of 1024 packets: DirectPlay
+ * system messages, packets from other players, resent copies and the local
+ * player's own packets, held until NetSession_ReceivePacket hands them out in
+ * sequence order. Seven writers; chiefly NetSession_PumpIncomingPackets. */
 // GLOBAL: XVT 0x5599A8
 NetQueuedPacket g_netSessionRecvQueue[1024];
+/* Sequence, 0 to 127, of the last packet NetSession_ReceivePacket delivered;
+ * only that function writes it. Read only by
+ * NetReliable_GetLastDeliveredRecvSequence, which nothing calls. */
 // GLOBAL: XVT 0x60F1BC
 int g_netLastDeliveredRecvSequence;
 
+/* Returns g_netLastDeliveredRecvSequence. Nothing in the engine calls this. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x46F650
 int NetReliable_GetLastDeliveredRecvSequence(void)
@@ -23,6 +45,14 @@ int NetReliable_GetLastDeliveredRecvSequence(void)
 	return g_netLastDeliveredRecvSequence;
 }
 
+/* Tells whether a flight-session packet's sequence was already received from
+ * that player on its channel: broadcast when channelA is set, else group when
+ * channelB is set, else one-player. Returns 1 when the sequence is not 1 to 63
+ * ahead of the newest one received, counting modulo 128 (a duplicate or a
+ * stale packet). Otherwise records it as the newest in
+ * g_netSession.reliablePeerSlots and returns 0. Also returns 0, recording
+ * nothing, when the call had to add a peer slot or the 40-slot table is
+ * full. */
 // FUNCTION: XVT 0x46FC00
 int NetReliable_CheckAndRecordRecvSequence(int directPlayId, int sequence,
 					   int channelA, int channelB)
@@ -67,6 +97,12 @@ int NetReliable_CheckAndRecordRecvSequence(int directPlayId, int sequence,
 
 /* Finds a queued reliable receive packet matching sequence, channel, and peer
  * filters. Returns the ring index or -1. */
+/* Searches g_netSessionRecvQueue from the oldest entry and looks only at
+ * resent copies. A packet matches when its sender holds slot peerSlot in
+ * g_netSession.reliablePeerSlots (a sender with no slot counts as the slot
+ * count), its sequence byte equals remoteSeq, and its class is 0 when
+ * channelA is set, 2 when channelB is set, else neither. The first argument
+ * is ignored. */
 // FUNCTION: XVT 0x46FCE0
 int NetReliable_FindQueuedRecvPacket(int unused, int remoteSeq, int channelA,
 				     int channelB, int peerSlot)
@@ -130,6 +166,11 @@ int NetReliable_FindQueuedRecvPacket(int unused, int remoteSeq, int channelA,
 	return -1;
 }
 
+/* Takes the entry at queueIndex out of g_netSessionRecvQueue and lowers
+ * g_netRecvQueueCount. At the read index it advances g_netRecvQueueReadIndex
+ * and returns 1; anywhere else it moves every later entry down one place,
+ * steps g_netRecvQueueWriteIndex back and returns 0. Does not check that an
+ * entry is queued at queueIndex. */
 // FUNCTION: XVT 0x46FDF0
 int NetReliable_RemoveQueuedPacket(unsigned int queueIndex)
 {
@@ -177,6 +218,13 @@ int NetReliable_RemoveQueuedPacket(unsigned int queueIndex)
 	}
 }
 
+/* Returns the index of the flight session's peer slot for a DirectPlay id. With
+ * none, it adds one at the end of g_netSession.reliablePeerSlots, raising
+ * g_netSession.reliablePeerSlotCount: sequences 127 (so 0 comes next), send
+ * sequence 0, a NOP trailer, packet and drop counts 0, and lastActivityMs set
+ * to timeGetTime. Returns 40, one past the table, when the table is full.
+ * Unlike Net_FindOrCreatePeerSlot it leaves a new slot's lastHeardMs and
+ * packetRetryCount as they were. */
 // FUNCTION: XVT 0x46FEE0
 unsigned int NetReliable_FindOrCreatePeerSlot(int directPlayId)
 {
@@ -229,6 +277,10 @@ unsigned int NetReliable_FindOrCreatePeerSlot(int directPlayId)
 	return slot;
 }
 
+/* Drops every packet queued for the flight session (read index set to the
+ * write index, count 0). For every peer slot it then counts the newest
+ * sequences received as delivered and sets lastActivityMs to timeGetTime.
+ * Only the original build calls this. */
 // FUNCTION: XVT 0x46FFC0
 void NetReliable_ResetRecvQueueState(void)
 {
@@ -249,6 +301,9 @@ void NetReliable_ResetRecvQueueState(void)
 	}
 }
 
+/* Returns packetDropCount of the flight session's peer slot for a DirectPlay
+ * id. With no such slot the modern build returns -1, and the original build
+ * reaches the end with no return statement, so the value is undefined. */
 // FUNCTION: XVT 0x470020
 int NetReliable_GetPeerPacketDropCountByDpid(int directPlayId)
 {
@@ -275,6 +330,13 @@ int NetReliable_GetPeerPacketDropCountByDpid(int directPlayId)
 #if defined(_MSC_VER) && _MSC_VER <= 1100
 #pragma function(memcpy)
 #endif
+/* Drops every packet in g_netSessionRecvQueue except DirectPlay system
+ * messages (sender 0) and packets from g_netSession.hostDplayId, packing the
+ * kept ones from the read index on and setting g_netRecvQueueCount and
+ * g_netRecvQueueWriteIndex to match. For every peer slot but the host's it
+ * then counts the newest sequences received as delivered and sets
+ * lastActivityMs to timeGetTime. Returns 1. The flight session's receive and
+ * send code calls it when the receive queue is full. */
 // FUNCTION: XVT 0x470060
 int NetReliable_KeepOnlyHostReceivedPackets(void)
 {
