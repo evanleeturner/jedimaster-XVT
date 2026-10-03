@@ -13,26 +13,48 @@
 #include "xvt/render/render_clip.h"
 #include "xvt/render/render_scene.h"
 
+/* Point lights in g_objectPointLights for the object being lit, 0 to 8.
+ * FlightLight_SetupObjectLighting sets it;
+ * FlightLight_SetupObjectLightingByIndex, FlightView_Render and
+ * FlightMap_DrawObjectPass set 0. */
 // GLOBAL: XVT 0x5235F0
 int g_objectPointLightCount = 0;
+/* Explosions lighting the object being lit, in its own axes, as
+ * FlightLight_SetupObjectLighting found them; it fills up to 8 of the 10
+ * entries. */
 // GLOBAL: XVT 0x9FD3B0
 ObjectPointLight g_objectPointLights[10] = {{0}};
 
+/* Object whose lights FlightLight_ComputeSoftwareFaceSampleIntensity has
+ * cached; FlightLight_ResetSoftwareFaceSampleCache sets NULL. */
 // GLOBAL: XVT 0x51C00C
 static ObjectRecord *g_swFaceLightCachedObject;
+/* Face whose view-space normal FlightLight_ComputeSoftwareFaceSampleIntensity
+ * has cached in g_swFaceLightFaceNormal;
+ * FlightLight_ResetSoftwareFaceSampleCache sets NULL. */
 // GLOBAL: XVT 0x51C014
 static SceneFace *g_swFaceLightCachedFace;
+/* g_objectPointLightCount when the cached object's lights were taken. */
 // GLOBAL: XVT 0x51C010
 static int g_swFaceLightCachedPointLightCount = 0;
+/* The cached object's point lights in view space, turned by its mesh's view
+ * orientation and moved by its view position. */
 // GLOBAL: XVT 0x550C10
 static OptVector g_swFaceLightPointPositions[10] = {{0.0f, 0.0f, 0.0f}};
+/* Intensity of each cached point light, as a float. */
 // GLOBAL: XVT 0x550BE0
 static float g_swFaceLightPointIntensities[10] = {0.0f};
+/* The cached object's light direction in view space, g_objectLightDirection
+ * scaled from Q15 and turned by its mesh's view orientation. */
 // GLOBAL: XVT 0x550C00
 static OptVector g_swFaceLightDir = {0.0f, 0.0f, 0.0f};
+/* View-space normal of the cached face. */
 // GLOBAL: XVT 0x550C70
 static OptVector g_swFaceLightFaceNormal = {0.0f, 0.0f, 0.0f};
 
+/* Clears the face lighting cache: g_swFaceLightCachedObject and
+ * g_swFaceLightCachedFace to NULL. sw3d_DrawVisibleFacesToSurface calls it
+ * before drawing. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4206A0
 void FlightLight_ResetSoftwareFaceSampleCache(void)
@@ -41,6 +63,20 @@ void FlightLight_ResetSoftwareFaceSampleCache(void)
 	g_swFaceLightCachedFace = 0;
 }
 
+/* Light intensity, 0 to 1, at one screen sample of a face for the software
+ * renderer; 0 for a face with no mesh. When the face's object is not the cached
+ * one it lights it with FlightLight_SetupObjectLighting and caches its point
+ * lights and light direction in view space; it caches the face's view-space
+ * normal per face. The sample's view position is z = 1 / reciprocalDepth and x
+ * and y = (screen coordinate - viewport middle) * z * g_invProjScale, y also
+ * less g_projOffsetY. With g_specularEnabled it starts from 0.7 times a
+ * specular term of the light direction, ((light + eye) . normal / 2) to the
+ * 48th power, and returns 1 when that reaches 1. Each point light the face
+ * turns toward adds its intensity times (normal . offset) / d^2, d being a
+ * rough length of its offset from the sample, plus, with specular on, (normal .
+ * v / 2 / e)^48 / e when that is not negative, v being the offset less the
+ * sample position and e a rough length of v; the sum stops at 1. There is no
+ * diffuse term from the light direction. */
 // FUNCTION: XVT 0x4206B0
 float FlightLight_ComputeSoftwareFaceSampleIntensity(SceneFace *face,
 						     int screenX, int screenY,
@@ -282,6 +318,19 @@ float FlightLight_ComputeSoftwareFaceSampleIntensity(SceneFace *face,
 	return intensity;
 }
 
+/* Collects the explosions that light an object into g_objectPointLights and
+ * g_objectPointLightCount: every object in a main slot of the explosion genus
+ * within maxBoundsExtent + 0x4000 of the object, by collide_roughdistance3d, up
+ * to 8. Each light's position is its offset in the object's axes, (offset .
+ * side, -(offset . forward), offset . up) in Q15; for an object without a mobj
+ * the axes come from FVIEW_SetObjectTransform, which also rewrites the current
+ * object matrix. Intensity by explosion type and frame (typeSpecificByte[0]):
+ * types 127 to 130 give 192 at frame 2, 320 at 3, 480 at 4, 320 at 5 to 8, 192
+ * at 9, 96 at 10, 48 at 11 and 16 at any other, times (effectSize + 4) / 4 when
+ * the explosion's effectSize is 4 or more; types 131 and 132 give 48 at frame
+ * 2, 96 at 3, 64 at 4, 32 at 5 and 16 at any other; any other type gives
+ * g_flightBrightnessScaleQ8 - 256. Every intensity is then multiplied by 8.
+ * Sets the count to 0 and stops when g_localLightsEnabled is 0. */
 // FUNCTION: XVT 0x44F880
 void FlightLight_SetupObjectLighting(ObjectRecord *object)
 {
@@ -497,6 +546,10 @@ void FlightLight_SetupObjectLighting(ObjectRecord *object)
 	g_objectPointLightCount = lightCount;
 }
 
+/* Sets g_objectPointLightCount to 0, then, with g_localLightsEnabled set and
+ * objectIndex under g_regionMainObjectSlotEnd + g_regionStaticObjectSlotCount,
+ * calls FlightLight_SetupObjectLighting for that object. Hud_Update3DCrt is its
+ * only caller. */
 // FUNCTION: XVT 0x44FDF0
 void FlightLight_SetupObjectLightingByIndex(unsigned int objectIndex)
 {

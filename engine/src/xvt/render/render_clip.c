@@ -3,19 +3,48 @@
 #include "xvt/render/render_scene.h"
 #include "xvt/render/renderer.h"
 
+/* One of the two lists of vertex indices a polygon passes between while it
+ * is clipped, into the vertex array the clip functions are given: the near,
+ * bottom and right clips append to it, and the finished polygon ends here.
+ * Holds 32; nothing checks the count against that. Written by those three
+ * clips, RenderScene_DrawMeshFaces and RenderQuad_DrawRotatedSprite. */
 // GLOBAL: XVT 0x53F8F0
 int g_clipIdxA[32];
+/* The other list: the top and left clips append to it, and
+ * RenderScene_DrawMeshFaces copies a polygon into it for the near clip. Holds
+ * 32; nothing checks the count against that. */
 // GLOBAL: XVT 0x52F870
 int g_clipIdxB[32] = {0};
+/* Indices in use in g_clipIdxA. Callers set it to the polygon's corner count
+ * or to 0 before a pass that appends to the list. */
 // GLOBAL: XVT 0x54F978
 int g_clipCountA;
+/* Indices in use in g_clipIdxB. Callers set it to 0 before a pass that
+ * appends to the list. */
 // GLOBAL: XVT 0x54F998
 int g_clipCountB = 0;
+/* Index in the vertex array of the next vertex a clip creates; each clip
+ * that creates one takes it and adds 1. RenderScene_DrawMeshFaces starts it
+ * after the mesh's projected vertices, RenderQuad_DrawRotatedSprite after its
+ * 4 corners. Nothing checks it against the array's size. */
 // GLOBAL: XVT 0x54F99C
 int g_clipVertCursor;
+/* 1 over g_projScaleInt, as a float: multiplying a screen offset by depth
+ * and this gives a view-space coordinate. Only RenderScene_Initialize writes
+ * it. */
 // GLOBAL: XVT 0x99940C
 float g_invProjScale;
 
+/* Clips one edge of a polygon, from vertex prevVertIndex to curVertIndex,
+ * against the top of the viewport (y of 0; y under 0 is outside) and appends
+ * to g_clipIdxB: the current vertex when both ends are inside; a new vertex
+ * on the edge and then the current one when only the current end is; the new
+ * vertex alone when only the previous end is; nothing when neither is.
+ * Returns the new g_clipCountB, or INT32_MIN when it appended nothing; callers
+ * ignore it. The new vertex goes at g_clipVertCursor, which it advances:
+ * x, light and scaledInverseDepth are interpolated along the edge on the
+ * screen, and u and v by the share of depth (g_projScaleInt over
+ * scaledInverseDepth) unless the two ends' scaledInverseDepth are equal. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4096D0
 int RenderClip_ClipPolyTop(int prevVertIndex, int curVertIndex,
@@ -220,6 +249,10 @@ int RenderClip_ClipPolyTop(int prevVertIndex, int curVertIndex,
 	return result;
 }
 
+/* Clips one edge against the bottom of the viewport, y of g_flightVpMaxY, the
+ * way RenderClip_ClipPolyTop clips against the top, appending to g_clipIdxA;
+ * returns nothing. A current vertex exactly on the edge counts as inside after
+ * an inside previous vertex but is dropped after an outside one. */
 // FUNCTION: XVT 0x409C10
 void RenderClip_ClipPolyBottom(int prevVertIndex, int curVertIndex,
 			       RenderClipVertex *vertices)
@@ -441,6 +474,9 @@ void RenderClip_ClipPolyBottom(int prevVertIndex, int curVertIndex,
 	}
 }
 
+/* Clips one edge against the left of the viewport (x of 0; x under 0 is
+ * outside) the way RenderClip_ClipPolyTop clips against the top, appending to
+ * g_clipIdxB and returning the same values. */
 // FUNCTION: XVT 0x40A1A0
 int RenderClip_ClipPolyLeft(int prevVertIndex, int curVertIndex,
 			    RenderClipVertex *vertices)
@@ -684,6 +720,9 @@ int RenderClip_ClipPolyLeft(int prevVertIndex, int curVertIndex,
 	return result;
 }
 
+/* Clips one edge against the right of the viewport, x of g_flightVpWidth (x
+ * over it is outside), the way RenderClip_ClipPolyTop clips against the top,
+ * appending to g_clipIdxA; returns nothing. */
 // FUNCTION: XVT 0x40A6E0
 void RenderClip_ClipPolyRight(int prevVertIndex, int curVertIndex,
 			      RenderClipVertex *vertices)
@@ -905,6 +944,12 @@ void RenderClip_ClipPolyRight(int prevVertIndex, int curVertIndex,
 	}
 }
 
+/* Clips one edge against the plane at view depth 1 and appends to g_clipIdxA
+ * as the other clips do. A vertex is behind the plane when its
+ * scaledInverseDepth is negative (depth minus 1) and its x and y are then in
+ * view space. The new vertex goes at g_clipVertCursor, which it advances, at
+ * depth 1: x, y, light, u and v are interpolated in view space, then x and y
+ * projected with scaledInverseDepth set to g_projScaleInt. Returns nothing. */
 // FUNCTION: XVT 0x40AC80
 void RenderClip_ClipPolyNear(int prevVertIndex, int curVertIndex,
 			     RenderClipVertex *vertices)

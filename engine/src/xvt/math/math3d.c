@@ -2,6 +2,7 @@
 
 #include <math.h>
 
+/* Returns the dot product of two 3-float vectors. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x420FC0
 float Math3D_Dot3(const float *lhs, const float *rhs)
@@ -10,6 +11,9 @@ float Math3D_Dot3(const float *lhs, const float *rhs)
 	return y + rhs[2] * lhs[2] + rhs[0] * lhs[0];
 }
 
+/* Multiplies the vector, as a row, by the row-major 3x3 matrix in place:
+ * each new component is the dot product with one column, m[0], m[3] and m[6]
+ * for x. */
 // FUNCTION: XVT 0x420FE0
 void Math3D_RotateVec3(float *vecInOut, const float *matrix3x3)
 {
@@ -28,6 +32,8 @@ void Math3D_RotateVec3(float *vecInOut, const float *matrix3x3)
 	vecInOut[2] = zProduct + yProduct + xProduct;
 }
 
+/* Returns the x that Math3D_RotateVec3 would give: m[0] * x + m[3] * y
+ * + m[6] * z. */
 // FUNCTION: XVT 0x421040
 float Math3D_RotateVec3X(const float *vec, const float *matrix3x3)
 {
@@ -35,6 +41,8 @@ float Math3D_RotateVec3X(const float *vec, const float *matrix3x3)
 	       matrix3x3[0] * vec[0];
 }
 
+/* Returns the y that Math3D_RotateVec3 would give: m[1] * x + m[4] * y
+ * + m[7] * z. */
 // FUNCTION: XVT 0x421060
 float Math3D_RotateVec3Y(const float *vec, const float *matrix3x3)
 {
@@ -42,6 +50,8 @@ float Math3D_RotateVec3Y(const float *vec, const float *matrix3x3)
 	       matrix3x3[1] * vec[0];
 }
 
+/* Returns the z that Math3D_RotateVec3 would give: m[2] * x + m[5] * y
+ * + m[8] * z. */
 // FUNCTION: XVT 0x421080
 float Math3D_RotateVec3Z(const float *vec, const float *matrix3x3)
 {
@@ -136,6 +146,10 @@ void Math3D_PreMulTransposedMatrix3x3(float *lhsInOut, const float *rhs)
 	lhsInOut[8] = r22;
 }
 
+/* Writes the row-major rotation matrix for axisAngle[3] radians about the
+ * axis in axisAngle[0] to [2], with m[0] = (1 - cos) * x * x + cos and the
+ * sine terms placed so that m[1] = (1 - cos) * x * y + sin * z and
+ * m[3] = (1 - cos) * x * y - sin * z. Does not normalize the axis. */
 // FUNCTION: XVT 0x421300
 void Math3D_BuildAxisAngleMatrix(float *matrix3x3Out, const float *axisAngle)
 {

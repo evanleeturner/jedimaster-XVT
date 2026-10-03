@@ -8,9 +8,18 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* The first pixel of the surface frontend drawing writes to: the back buffer's
+ * locked memory, or the offscreen surface's between
+ * FrontendDisplay_LockOffscreenSurface and its unlock. Rows are
+ * g_frontState.drawSurfacePitch bytes apart. Many functions write it, chiefly
+ * the callers of FrontendDisplay_LockBackBuffer, which store its result here,
+ * and FrontendDisplay_LockOffscreenSurface and
+ * FrontendDisplay_UnlockOffscreenSurface. An unlock of the back buffer leaves
+ * it pointing at memory no longer locked. */
 // GLOBAL: XVT 0xAA6CFC
 uint8_t *g_drawSurfacePtr;
 
+/* Sets the four edges of *rect. */
 // FUNCTION: XVT 0x4D6460
 void FrontendDraw_RectAssign(RECT *rect, int32_t left, int32_t top,
 			     int32_t right, int32_t bottom)
@@ -21,9 +30,11 @@ void FrontendDraw_RectAssign(RECT *rect, int32_t left, int32_t top,
 	rect->bottom = bottom;
 }
 
+/* Copies *src into *dst. */
 // FUNCTION: XVT 0x4D6480
 void FrontendDraw_RectCopy(RECT *dst, const RECT *src) { *dst = *src; }
 
+/* Moves *rect right by dx and down by dy. */
 // FUNCTION: XVT 0x4D64A0
 void FrontendDraw_RectOffsetXY(RECT *rect, int dx, int dy)
 {
@@ -33,6 +44,8 @@ void FrontendDraw_RectOffsetXY(RECT *rect, int dx, int dy)
 	rect->bottom += dy;
 }
 
+/* Shrinks *rect by dx at the left and the right and by dy at the top and the
+ * bottom; negative values grow it. */
 // FUNCTION: XVT 0x4D64C0
 void FrontendDraw_RectInsetXY(RECT *rect, int dx, int dy)
 {
@@ -42,6 +55,11 @@ void FrontendDraw_RectInsetXY(RECT *rect, int dx, int dy)
 	rect->bottom -= dy;
 }
 
+/* Clips *rect in place to the clip bounds, g_frontState.clipMinX to clipMaxX
+ * and clipMinY to clipMaxY, all inclusive. Returns the edges it moved as bits:
+ * 0x1 left, 0x2 top, 0x4 right, 0x8 bottom; 0 when none. A rect wholly past a
+ * bound is left with its far edge one pixel beyond that bound (for example
+ * right = clipMinX - 1), so its inclusive width or height is 0. */
 // FUNCTION: XVT 0x4D64E0
 int FrontendDraw_RectClipToBounds(RECT *rect)
 {
@@ -88,6 +106,15 @@ int FrontendDraw_RectClipToBounds(RECT *rect)
 	return result;
 }
 
+/* Blends color over *src moved by dx and dy, clipped to the clip bounds, both
+ * edges of each axis included. At 16 bits per pixel each pixel becomes the
+ * per-channel average of itself and color, in the 555 or 565 layout
+ * g_frontState.pixelFormat555 names: red and green as (a + b) / 2, blue as a /
+ * 2 + b / 2, each division rounded down. Despite the name, at 8 bits per pixel
+ * it fills solid with the color index. Draws nothing when src->right <=
+ * src->left or src->top >= src->bottom, or when the moved rect has left > 640,
+ * right < 0, top > 480 or bottom < 0. Writes through g_drawSurfacePtr. The
+ * modern build also records the fill for its renderer. */
 // FUNCTION: XVT 0x4D6550
 void FrontendDraw_FillRectTranslucent(const RECT *src, int dx, int dy,
 				      unsigned int color)
@@ -233,6 +260,12 @@ void FrontendDraw_FillRectTranslucent(const RECT *src, int dx, int dy,
 	}
 }
 
+/* Draws *rect moved by dx and dy in color: with filled 0 an outline, through
+ * FrontendDraw_RectOutline, else a solid fill clipped to the clip bounds, both
+ * edges of each axis included. The fill draws nothing when rect->right <=
+ * rect->left or rect->top >= rect->bottom, or when the moved rect has left >
+ * 640, right < 0, top > 480 or bottom < 0. Writes through g_drawSurfacePtr. The
+ * modern build also records the fill for its renderer. */
 // FUNCTION: XVT 0x4D67E0
 void FrontendDraw_Rect(RECT *rect, int dx, int dy, int color, int filled)
 {
@@ -316,6 +349,14 @@ void FrontendDraw_Rect(RECT *rect, int dx, int dy, int color, int filled)
 	}
 }
 
+/* Draws a one-pixel outline of *rect moved by dx and dy in color, on its
+ * inclusive edges, clipped to the clip bounds; an edge the clip moved is not
+ * drawn. When the top edge is clipped away, the sides start on the clipped top
+ * row and the bottom edge is drawn one row above the rect's bottom. Draws
+ * nothing when rect->right <= rect->left or rect->top >= rect->bottom, or when
+ * the moved rect has left > 640, right < 0, top > 480 or bottom < 0. Writes
+ * through g_drawSurfacePtr. The modern build also records the unclipped outline
+ * for its renderer. */
 // FUNCTION: XVT 0x4D6950
 void FrontendDraw_RectOutline(RECT *rect, int dx, int dy, int color)
 {
@@ -443,6 +484,7 @@ void FrontendDraw_RectOutline(RECT *rect, int dx, int dy, int color)
 	}
 }
 
+/* Returns 1 when (x, y) lies in *rect, edges included, else 0. */
 // FUNCTION: XVT 0x4D6B90
 int FrontendDraw_PointInRect(const RECT *rect, int x, int y)
 {
@@ -459,6 +501,10 @@ int FrontendDraw_PointInRect(const RECT *rect, int x, int y)
  * horizontal run covered by that scanline. The run length is tracked in 12-bit
  * fixed point, and each of the four slope quadrants gets its own walk so the
  * fill always advances to the right. Only 8bpp surfaces are supported. */
+/* Nothing calls this. A horizontal or vertical line is handed to
+ * FrontendDraw_HorizontalLineClipped or FrontendDraw_VerticalLineClipped, which
+ * also draw at 16 bits per pixel and record their own lines in the modern
+ * build; this function records a sloped line there itself. */
 // FUNCTION: XVT 0x505CD0
 void FrontendDraw_Line(int x0, int y0, int x1, int y1, int color)
 {
@@ -779,6 +825,11 @@ void FrontendDraw_Line(int x0, int y0, int x1, int y1, int color)
 /* Draws an inclusive horizontal span clipped to the active frontend surface
  * bounds. The forward and reverse argument paths retain the original clipping
  * edge behavior. */
+/* Draws x0 to x1 on row y in color, both ends included, clipped to the clip
+ * bounds; nothing when y is outside them. Either order works, but with x0 over
+ * x1 a span the clipping leaves one pixel long draws nothing. Writes through
+ * g_drawSurfacePtr at 8 or 16 bits per pixel. The modern build also records the
+ * line, unclipped, for its renderer. */
 // FUNCTION: XVT 0x5063B0
 void FrontendDraw_HorizontalLineClipped(int x0, int x1, int y, int color)
 {
@@ -875,6 +926,11 @@ void FrontendDraw_HorizontalLineClipped(int x0, int x1, int y, int color)
 /* Draws an inclusive vertical span clipped to the active frontend surface
  * bounds. Handles both argument orders with the draw block duplicated per
  * direction, as in the original. */
+/* Draws rows y0 to y1 of column x in color, both ends included, clipped to the
+ * clip bounds; nothing when x is outside them. Either order works, but with y0
+ * over y1 a span the clipping leaves one pixel long draws nothing. Writes
+ * through g_drawSurfacePtr at 8 or 16 bits per pixel. The modern build also
+ * records the line, unclipped, for its renderer. */
 // FUNCTION: XVT 0x506550
 void FrontendDraw_VerticalLineClipped(int y0, int y1, int x, int color)
 {

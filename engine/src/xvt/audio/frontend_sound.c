@@ -11,14 +11,25 @@
 #include <string.h>
 
 typedef struct FrontendSoundPcmFormat {
-	uint16_t formatTag;
-	uint16_t channels;
-	uint32_t samplesPerSecond;
-	uint32_t averageBytesPerSecond;
-	uint16_t blockAlign;
-	uint16_t bitsPerSample;
+	uint16_t formatTag;		/* Wave format, 1 for PCM. */
+	uint16_t channels;		/* Channels, 2. */
+	uint32_t samplesPerSecond;	/* Sample rate, 11264. */
+	uint32_t averageBytesPerSecond; /* Bytes per second, 22528. */
+	uint16_t blockAlign;		/* Bytes per sample frame, 2. */
+	uint16_t bitsPerSample;		/* Bits per sample, 8. */
 } FrontendSoundPcmFormat;
 
+/* Starts the front end's DirectSound. Returns 1 at once when
+ * g_frontState.frontendDirectSound is set. Otherwise it clears the 12 voices,
+ * frontendActiveVoiceCount, frontendSoundBufferCount, frontendSoundPlaySerial
+ * and the buffer and name of the 128 buffer records, creates
+ * frontendDirectSound with DirectSoundCreate on the default device, asks for
+ * frontendPrimarySoundBuffer with a format of 11264 samples per second, 2
+ * channels and 8 bits, without checking the result, and sets cooperative level
+ * 1 (DSSCL_NORMAL) for hwnd. Returns 1, or 0 when DirectSoundCreate fails or,
+ * after FrontendSound_ShutdownDirectSound, when setting the cooperative level
+ * fails. FrontendDisplay_InitMainWindow and FrontendDisplay_ReinitSurfaces call
+ * it. */
 // FUNCTION: XVT 0x4DE190
 int FrontendSound_InitDirectSound(void *hwnd)
 {
@@ -69,6 +80,14 @@ int FrontendSound_InitDirectSound(void *hwnd)
 	return 1;
 }
 
+/* Returns 1 at once when g_frontState.frontendDirectSound is NULL. Otherwise it
+ * releases it and sets it to NULL, clears the buffer and name of the 128 buffer
+ * records and the 12 voices, sets frontendPrimarySoundBuffer to NULL without
+ * releasing it and frontendSoundPlaySerial to 0, and returns 1. It releases
+ * none of the loaded buffers and leaves frontendSoundBufferCount and
+ * frontendActiveVoiceCount as they are. FrontendDisplay_Shutdown and
+ * FrontendDisplay_ReleaseSurfacesForFlight call it, and in the original build
+ * Net_ShutdownDirectPlaySessionEx. */
 // FUNCTION: XVT 0x4DE2E0
 int FrontendSound_ShutdownDirectSound(void)
 {
@@ -96,12 +115,22 @@ int FrontendSound_ShutdownDirectSound(void)
 	return 1;
 }
 
+/* Calls FrontendSound_LoadSoundFile with omitSoftwareAndFrequencyCaps 0 and
+ * returns its result. Only FrontendSound_LoadList calls it. */
 // FUNCTION: XVT 0x4DE370
 int FrontendSound_LoadSound(const char *fileName, const char *soundName)
 {
 	return FrontendSound_LoadSoundFile(fileName, soundName, 0);
 }
 
+/* Loads a WAV file as a named front-end sound: DirectSound_LoadWaveBuffer makes
+ * its buffer, rewound to 0, and FrontendSound_InsertSortedBuffer adds the
+ * record with the name (up to 63 characters), the file name (up to 191) and
+ * priority 0. Returns 1, also when the name is already loaded; 0 when either
+ * string is empty, 128 sounds are loaded, g_frontState.frontendDirectSound is
+ * NULL or the buffer fails to load. Unlocks the front end's back buffer around
+ * its DirectSound calls and, when it was locked, locks it again into
+ * g_drawSurfacePtr. Only FrontendSound_LoadSound calls it, passing 0. */
 // FUNCTION: XVT 0x4DE390
 int FrontendSound_LoadSoundFile(const char *fileName, const char *soundName,
 				int omitSoftwareAndFrequencyCaps)
@@ -149,6 +178,9 @@ int FrontendSound_LoadSoundFile(const char *fileName, const char *soundName,
 	return 0;
 }
 
+/* Calls FrontendSound_UnloadBufferByName with the name in each of the 128
+ * buffer records, from the last to the first; going down, it reaches every
+ * loaded sound. FrontendDisplay_ReleaseSurfacesForFlight is its only caller. */
 // FUNCTION: XVT 0x4DE4D0
 void FrontendSound_UnloadAllBuffers(void)
 {
@@ -161,6 +193,12 @@ void FrontendSound_UnloadAllBuffers(void)
 	} while (--bufferIndex >= 0);
 }
 
+/* Stops the named sound's voices with FrontendSound_StopOldestVoiceByName until
+ * it returns other than 1, releases its buffer and removes its record with
+ * FrontendSound_RemoveBufferRecord. Returns 1, or 0 when the name is empty or
+ * not loaded. Unlocks the front end's back buffer around its DirectSound calls
+ * and, when it was locked, locks it again into g_drawSurfacePtr.
+ * FrontendSound_UnloadAllBuffers and FrontendSound_UnloadList call it. */
 // FUNCTION: XVT 0x4DE4F0
 int FrontendSound_UnloadBufferByName(const char *soundName)
 {
@@ -190,6 +228,29 @@ int FrontendSound_UnloadBufferByName(const char *soundName)
 	return 1;
 }
 
+/* Plays a loaded front-end sound on a new duplicate of its buffer and records
+ * it in one of the 12 voices of g_frontState.frontendSoundVoices. Returns 0
+ * when frontendDirectSound is NULL or the name is empty or not loaded. With all
+ * 12 voices in use it frees the first voice whose GetStatus fails or which is
+ * neither playing (0x1) nor looping (0x4), releasing its buffer. With all 12
+ * still playing it takes the first voice whose sound has the lowest priority
+ * under priority, stops and releases its buffer and uses it; with none under
+ * priority it returns 0, unless allowRestartExisting is set and a voice plays
+ * this sound: then it rewinds the first such to 0, gives it the next play
+ * serial and returns 1. With fewer than 12 in use it takes the first free
+ * voice. It duplicates the sound's buffer, returning 0 when the duplicate is
+ * NULL (the pointer is not cleared before the call), rewinds it, sets its
+ * volume to 400 * (5 * v - 635) / 127 hundredths of a decibel and its pan to
+ * 400 * (5 * p - 315) / 63, v and p being volume0To127 and pan0To127 clamped to
+ * 0 to 127, and plays it, looping when loop is 1. When Play succeeds it fills
+ * the voice (record index, buffer, the next serial from
+ * frontendSoundPlaySerial), adds 1 to frontendActiveVoiceCount and returns 1.
+ * When Play returns DSERR_BUFFERLOST (0x88780096) it refills the sound's buffer
+ * from its file with DirectSound_ReloadWaveBuffer and plays again, filling the
+ * voice the same way on success; that path returns 0 whatever happens. Any
+ * other failure of Play returns the HRESULT, a nonzero value, and the duplicate
+ * is not released. Unlocks the front end's back buffer around its DirectSound
+ * calls and, when it was locked, locks it again into g_drawSurfacePtr. */
 // FUNCTION: XVT 0x4DE5A0
 int FrontendSound_PlayUISound(const char *soundName, int allowRestartExisting,
 			      int loop, int priority, int volume0To127,
@@ -409,6 +470,14 @@ int FrontendSound_PlayUISound(const char *soundName, int allowRestartExisting,
 	return result;
 }
 
+/* Stops the oldest voice of the named sound, the one with the lowest play
+ * serial: stops and releases its buffer, frees the voice and lowers
+ * g_frontState.frontendActiveVoiceCount. Returns 1 when Stop succeeded, else 0;
+ * returns 0 with nothing stopped when frontendDirectSound is NULL, the name is
+ * empty or not loaded, no voice holds the sound, or the voice's buffer is NULL.
+ * Unlocks the front end's back buffer around its DirectSound calls and, when it
+ * was locked, locks it again into g_drawSurfacePtr.
+ * FrontendSound_UnloadBufferByName and FrontendSound_StopAllVoices call it. */
 // FUNCTION: XVT 0x4DE9A0
 int FrontendSound_StopOldestVoiceByName(const char *name)
 {
@@ -466,6 +535,11 @@ int FrontendSound_StopOldestVoiceByName(const char *name)
 	return stopResult >= 0;
 }
 
+/* Calls FrontendSound_StopOldestVoiceByName for the sound of each voice in use,
+ * in voice order, and returns 1 when every call returned 1, else 0. Each call
+ * stops that sound's oldest voice, not necessarily that voice, and no voice is
+ * looked at twice, so when a sound's older voice sits later, the earlier voice
+ * keeps playing. Nothing calls this. */
 // FUNCTION: XVT 0x4DEA90
 int FrontendSound_StopAllVoices(void)
 {
@@ -486,6 +560,12 @@ int FrontendSound_StopAllVoices(void)
 	return allStopped;
 }
 
+/* Sets the primary buffer's volume to 400 * (5 * v - 635) / 127 hundredths of a
+ * decibel, v being volume0To127 clamped to 0 to 127. Returns 1 when SetVolume
+ * succeeds; 0 when it fails, when there is no primary buffer, or when
+ * g_frontState.frontendDirectSound is NULL. Unlocks the front end's back buffer
+ * around its DirectSound calls and, when it was locked, locks it again into
+ * g_drawSurfacePtr. Nothing calls this. */
 // FUNCTION: XVT 0x4DEAD0
 int FrontendSound_SetPrimaryVolume(int volume0To127)
 {
@@ -519,6 +599,13 @@ int FrontendSound_SetPrimaryVolume(int volume0To127)
 	return setResult == 0;
 }
 
+/* Returns the primary buffer's volume on the game's scale,
+ * 127 * v / 2000 + 127, v in hundredths of a decibel; 0 when
+ * g_frontState.frontendDirectSound is NULL or GetVolume fails,
+ * and on that failure it leaves the back buffer unlocked. Does
+ * not check that the primary buffer exists. Otherwise it locks
+ * the back buffer again into g_drawSurfacePtr when it was locked.
+ * Nothing calls this. */
 // FUNCTION: XVT 0x4DEB50
 int FrontendSound_GetPrimaryVolume(void)
 {
@@ -545,6 +632,13 @@ int FrontendSound_GetPrimaryVolume(void)
 	return directSoundVolume;
 }
 
+/* Sets the volume of the named sound's newest voice, the one with the highest
+ * play serial, to 400 * (5 * v - 635) / 127 hundredths of a decibel, v being
+ * volume0To127 clamped to 0 to 127. Returns 1 when SetVolume succeeds, else 0;
+ * 0 also when frontendDirectSound is NULL, the name is empty or not loaded, or
+ * no voice holds it. Unlocks the front end's back buffer around its DirectSound
+ * calls and, when it was locked, locks it again into g_drawSurfacePtr. Nothing
+ * calls this. */
 // FUNCTION: XVT 0x4DEBC0
 int FrontendSound_SetNewestVoiceVolumeByName(const char *name, int volume0To127)
 {
@@ -608,6 +702,11 @@ int FrontendSound_SetNewestVoiceVolumeByName(const char *name, int volume0To127)
 	return setResult == 0;
 }
 
+/* Returns the volume of the named sound's newest voice on the game's scale,
+ * 127 * v / 2000 + 127; 0 when frontendDirectSound is NULL, the name is empty
+ * or not loaded, no voice holds it, or GetVolume fails, and on that failure it
+ * leaves the back buffer unlocked. Otherwise it locks the back buffer again
+ * into g_drawSurfacePtr when it was locked. Nothing calls this. */
 // FUNCTION: XVT 0x4DECA0
 int FrontendSound_GetNewestVoiceVolumeByName(const char *name)
 {
@@ -664,6 +763,12 @@ int FrontendSound_GetNewestVoiceVolumeByName(const char *name)
 	return directSoundVolume;
 }
 
+/* Sets the pan of the named sound's newest voice to 400 * (5 * p - 315) / 63
+ * hundredths of a decibel, p being pan0To127 clamped to 0 to 127. Returns 1
+ * when SetPan succeeds, else 0; 0 also when frontendDirectSound is NULL, the
+ * name is empty or not loaded, or no voice holds it. Unlocks the front end's
+ * back buffer around its DirectSound calls and, when it was locked, locks it
+ * again into g_drawSurfacePtr. Nothing calls this. */
 // FUNCTION: XVT 0x4DED80
 int FrontendSound_SetNewestVoicePanByName(const char *name, int pan0To127)
 {
@@ -729,6 +834,11 @@ int FrontendSound_SetNewestVoicePanByName(const char *name, int pan0To127)
 	return setResult == 0;
 }
 
+/* Returns the pan of the named sound's newest voice on the game's scale,
+ * 63 * pan / 10000 + 63; 0 when frontendDirectSound is NULL, the name is empty
+ * or not loaded, no voice holds it, or GetPan fails. Unlocks the front end's
+ * back buffer around its DirectSound calls and, when it was locked, locks it
+ * again into g_drawSurfacePtr. Nothing calls this. */
 // FUNCTION: XVT 0x4DEE60
 int FrontendSound_GetNewestVoicePanByName(const char *name)
 {
@@ -788,6 +898,9 @@ int FrontendSound_GetNewestVoicePanByName(const char *name)
 	return directSoundPan;
 }
 
+/* Sets the named sound's priority to priority0To255 clamped to 0 to 255 and
+ * returns 1; returns 0 when the name is not loaded. Does not check
+ * frontendDirectSound. Nothing calls this, so every sound keeps priority 0. */
 // FUNCTION: XVT 0x4DEF50
 int FrontendSound_SetBufferPriorityByName(const char *name, int priority0To255)
 {
@@ -811,6 +924,8 @@ int FrontendSound_SetBufferPriorityByName(const char *name, int priority0To255)
 	return 1;
 }
 
+/* Returns the named sound's priority, or 0 when the name is not loaded. Nothing
+ * calls this. */
 // FUNCTION: XVT 0x4DEFA0
 int FrontendSound_GetBufferPriorityByName(const char *name)
 {
@@ -824,6 +939,11 @@ int FrontendSound_GetBufferPriorityByName(const char *name)
 	return g_frontState.frontendSoundBuffers[bufferIndex].priority;
 }
 
+/* Counts the voices holding the named sound whose buffer reports the 0x1
+ * (playing) or 0x4 (looping) status bit; returns the count, 0 to 12, or 0 when
+ * frontendDirectSound is NULL or the name is empty or not loaded. Unlocks the
+ * front end's back buffer around its DirectSound calls and, when it was locked,
+ * locks it again into g_drawSurfacePtr. Nothing calls this. */
 // FUNCTION: XVT 0x4DEFD0
 int FrontendSound_GetPlayingCount(const char *name)
 {
@@ -871,6 +991,11 @@ int FrontendSound_GetPlayingCount(const char *name)
 	return playingCount;
 }
 
+/* Inserts a copy of *record into g_frontState.frontendSoundBuffers, keeping it
+ * sorted by name (strncmp over 64 characters) with the new record after equal
+ * names, adds 1 to frontendSoundBufferCount and adds 1 to each voice's
+ * bufferIndex at or after the insertion point. Does not check that the table
+ * has room; FrontendSound_LoadSoundFile checks the count under 128 first. */
 // FUNCTION: XVT 0x4DF070
 void FrontendSound_InsertSortedBuffer(const FrontendSoundBufferRecord *record)
 {
@@ -925,6 +1050,12 @@ void FrontendSound_InsertSortedBuffer(const FrontendSoundBufferRecord *record)
 	} while (voiceIndex < 12);
 }
 
+/* Removes record bufferIndex from g_frontState.frontendSoundBuffers, moving the
+ * later records up one, lowers frontendSoundBufferCount and lowers by 1 each
+ * voice's bufferIndex above it. Does nothing for an index outside 0 to
+ * frontendSoundBufferCount - 1. Leaves the old last record in place, does not
+ * release the buffer and does not free voices that play it;
+ * FrontendSound_UnloadBufferByName stops them first. */
 // FUNCTION: XVT 0x4DF130
 void FrontendSound_RemoveBufferRecord(int bufferIndex)
 {
@@ -950,6 +1081,8 @@ void FrontendSound_RemoveBufferRecord(int bufferIndex)
 	}
 }
 
+/* Returns the index of the named sound among the frontendSoundBufferCount
+ * loaded records, or -1, by FrontendSound_BinarySearchBufferByName. */
 // FUNCTION: XVT 0x4DF1B0
 int FrontendSound_FindBufferByName(const char *name)
 {
@@ -958,6 +1091,9 @@ int FrontendSound_FindBufferByName(const char *name)
 		g_frontState.frontendSoundBufferCount - 1, name);
 }
 
+/* Binary search for name in records[0] to records[lastIndex], which must be
+ * sorted by name, comparing up to 64 characters with strncmp. Returns the index
+ * found, or -1. FrontendSound_FindBufferByName is its only caller. */
 // FUNCTION: XVT 0x4DF1D0
 int FrontendSound_BinarySearchBufferByName(
 	const FrontendSoundBufferRecord *records, int lastIndex,
@@ -995,6 +1131,14 @@ int FrontendSound_BinarySearchBufferByName(
 	}
 }
 
+/* Loads the front end's sounds from a list file: skips the first line, read
+ * with File_Gets into 255 bytes, then reads pairs of words, a WAV file and a
+ * sound name, and loads each with FrontendSound_LoadSound, ignoring its result.
+ * Returns 1 at the end of the file, also when the first line cannot be read; 0
+ * when the file does not open or a line does not hold two words. The original
+ * build reads each word with %s into a 256-byte buffer without a limit; the
+ * modern build stops at 255 characters. Every caller passes the front end's
+ * sound list file. */
 // FUNCTION: XVT 0x4DF700
 int FrontendSound_LoadList(const char *fileName)
 {
@@ -1031,6 +1175,9 @@ int FrontendSound_LoadList(const char *fileName)
 	}
 }
 
+/* Reads a list file in FrontendSound_LoadList's form and unloads each named
+ * sound with FrontendSound_UnloadBufferByName. Returns as
+ * FrontendSound_LoadList does. Nothing calls this. */
 // FUNCTION: XVT 0x4DF7C0
 int FrontendSound_UnloadList(char *fileName)
 {

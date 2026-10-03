@@ -5,6 +5,15 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Loads the frontend string table from the text file fileName, replacing the
+ * one loaded before: each line that does not start with //, read up to 1,023
+ * characters at a time with its line feed dropped, becomes the next entry.
+ * Writes g_frontState.uiStringData, one heap block holding the strings end to
+ * end, shrunk to fit at the end; uiStringOffsets, each entry's byte offset in
+ * it, grown 64 entries at a time; uiStringCount and uiStringCapacity. Keeps the
+ * old table when the file does not open. Leaves an empty table when the first
+ * allocations fail or the final shrink returns NULL; a failed growth of the
+ * offsets stops the reading with the table full. */
 // FUNCTION: XVT 0x4DD9D0
 void FrontendString_LoadTable(char *fileName)
 {
@@ -95,6 +104,8 @@ void FrontendString_LoadTable(char *fileName)
 	File_Close(stream);
 }
 
+/* Frees the frontend string table and sets g_frontState.uiStringOffsets and
+ * uiStringData to NULL and uiStringCount and uiStringCapacity to 0. */
 // FUNCTION: XVT 0x4DDBC0
 void FrontendString_UnloadTable(void)
 {
@@ -117,6 +128,8 @@ void FrontendString_UnloadTable(void)
 	g_frontState.uiStringCapacity = 0;
 }
 
+/* Returns entry index of the frontend string table, or the text "No text." when
+ * index, read as unsigned, is not under g_frontState.uiStringCount. */
 // FUNCTION: XVT 0x4DDC10
 const char *FrontendString_Get(FrontendStringId index)
 {

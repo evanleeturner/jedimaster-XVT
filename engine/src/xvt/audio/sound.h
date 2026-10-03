@@ -11,18 +11,36 @@ extern "C" {
 #endif
 
 struct SoundQueueEntry {
+	/* Effect name, from strncpy; not terminated for a name of 64 or more
+	 * characters. */
 	char name[64];
-	int volume;
+	int volume; /* Volume; Sound_PlayEffectNow clamps it to 0 to 127. */
+	/* Pan; Sound_PlayEffectNow clamps it to 0 to 127, 63 centered. */
 	int pan;
+	/* 1 plays the effect looping; any other value plays it once. */
 	int loop;
+	/* Lets Sound_PlayEffectNow rewind a playing sound of the effect when
+	 * all 8 slots play and none holds an effect of lower
+	 * currentPriority. */
 	int allowRestartExisting;
+	/* Queue order, highest first; Sound_PlayEffectNow weighs it against the
+	 * playing effects' currentPriority. */
 	int priority;
 };
 
 struct SoundEffectDef {
+	/* Name the effect is found by; g_soundDefs is sorted by it. Up to 63
+	 * characters; empty in an unused entry. */
 	char name[64];
+	/* WAV file it was loaded from, cut at 191 characters;
+	 * Sound_PlayEffectNow reloads a lost buffer from it. */
 	char fileName[256];
+	/* The loaded buffer each play duplicates. */
 	IDirectSoundBuffer *buffer;
+	/* Priority, 0 to 255, of the effect's playing sounds when
+	 * Sound_PlayEffectNow needs a slot; 0 at load, and only
+	 * Sound_SetEffectCurrentPriority, which no caller reaches, changes
+	 * it. */
 	uint8_t currentPriority;
 };
 
@@ -30,8 +48,13 @@ extern IDirectSound *g_directSound;
 extern IDirectSoundBuffer *g_soundPrimaryBuffer;
 
 struct ActiveSoundInstance {
+	/* g_soundDefs entry this slot plays, or -1 when free; kept in step as
+	 * entries are inserted and removed. */
 	int effectIndex;
+	/* g_nextSoundInstanceSeq when the sound started or was last rewound;
+	 * the lowest is the oldest. */
 	unsigned int sequence;
+	/* The duplicate buffer playing; NULL when free. */
 	IDirectSoundBuffer *buffer;
 };
 

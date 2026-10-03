@@ -17,50 +17,96 @@ struct Std3DUnknown {
 	const Std3DUnknownVtbl *lpVtbl;
 };
 
+/* Render options in the bits of Std3DRenderStateFlags, plus 0x1
+ * perspective-correct texturing, 0x2 dither, 0x4 specular, 0x8 antialias, and
+ * 0x10 and 0x20 subpixel, as std3D_SetInitialRenderState reads them.
+ * std3D_Startup sets 0x19B3: perspective, dither, both subpixel bits, linear
+ * filtering both ways, z compare and z write. The only other writer,
+ * std3D_SetCapFlags, has no caller. */
 // GLOBAL: XVT 0x528C50
 unsigned int g_std3DRenderOptionFlags;
+/* Render-state bits last written into the execute buffer; std3D_SetRenderState
+ * writes only the states whose bits differ from them, then stores the new bits.
+ * std3D_SetInitialRenderState sets it to g_std3DRenderOptionFlags. */
 // GLOBAL: XVT 0x528C54
 Std3DRenderStateFlags g_d3dStateFlags = 0;
+/* Devices in g_std3DDevices, 0 to 4: std3D_Startup sets 0 and
+ * std3D_EnumDevicesCallback adds each. */
 // GLOBAL: XVT 0x528C58
 unsigned int g_std3DNumDevices = 0;
+/* Index in g_std3DDevices of the device std3D_CreateDevice opened. */
 // GLOBAL: XVT 0xA90A68
 unsigned int g_std3DCurDeviceIdx = 0;
+/* The device std3D_CreateDevice opened, in g_std3DDevices; NULL before. */
 // GLOBAL: XVT 0x528C5C
 Std3DDevice *g_pStd3DCurDevice = 0;
+/* Formats in g_std3DTextureFormats, 0 to 8: std3D_CreateDevice sets 0 and
+ * std3D_EnumTextureFormats adds each it keeps. */
 // GLOBAL: XVT 0x528C60
 int g_std3DNumTextureFormats = 0;
+/* The texture format closest to the render target's 16-bit RGB, picked by
+ * std3D_CreateDevice. */
 // GLOBAL: XVT 0x528C64
 Std3DTexFmt *g_pFmtOpaqueTexture;
+/* Index of g_pFmtOpaqueTexture in g_std3DTextureFormats; only debug prints read
+ * it. */
 // GLOBAL: XVT 0xA90B58
 int g_fmtIdxOpaqueTexture = 0;
+/* The texture format closest to RGBA with 5, 5, 5 and 1 bits, picked by
+ * std3D_CreateDevice when the device has alpha textures; NULL otherwise. */
 // GLOBAL: XVT 0x528C68
 Std3DTexFmt *g_pFmtRGBA1555 = 0;
+/* Index of g_pFmtRGBA1555 in g_std3DTextureFormats; only debug prints read
+ * it. */
 // GLOBAL: XVT 0xA91B88
 int g_fmtIdxRGBA1555 = 0;
+/* The texture format closest to RGBA with 4 bits each, picked by
+ * std3D_CreateDevice when the device has alpha textures but no alpha blending;
+ * NULL otherwise. */
 // GLOBAL: XVT 0x528C6C
 Std3DTexFmt *g_pFmtRGBA4444 = 0;
+/* Index of g_pFmtRGBA4444 in g_std3DTextureFormats; only debug prints read
+ * it. */
 // GLOBAL: XVT 0xA90A64
 int g_fmtIdxRGBA4444 = 0;
+/* 1 after std3D_Startup succeeds, 0 after std3D_Shutdown; nothing reads it. */
 // GLOBAL: XVT 0x528CB8
 static int g_std3DStartupDone = 0;
+/* 1 when the open device draws with a z-buffer: std3D_CreateDevice sets it when
+ * asked to, when the device has one, and when g_std3DRenderOptionFlags has a
+ * 0x1800 bit. Starts at 1, and std3D_Startup sets 1. */
 // GLOBAL: XVT 0x528CB0
 int g_std3DZBufferEnabled = 1;
+/* The DirectDraw object, which std3D_Startup takes from
+ * Renderer_GetDirectDraw. */
 // GLOBAL: XVT 0x528CB4
 IDirectDraw *g_std3DDirectDraw = 0;
+/* The texture formats the open device offers, filled by
+ * std3D_EnumTextureFormats, which skips 4-bit palette formats. */
 // GLOBAL: XVT 0xA90C00
 Std3DTexFmt g_std3DTextureFormats[8] = {0};
+/* Message std3D_Shutdown passes to DebugPrintf, whose calls print nothing. */
 // GLOBAL: XVT 0x529168
 static const char g_std3DShutdownSucceededMessage[] = "Shutdown Succeeded.\n";
+/* What std3D_LookupErrorString returns for a code the table lacks. */
 // GLOBAL: XVT 0x5293B0
 static const char g_std3DUnknownErrorMessage[] = "Unknown Error";
+/* Format passed to DebugPrintf, whose calls print nothing, when a scene does
+ * not begin. */
 // GLOBAL: XVT 0x529470
 static const char g_std3DBeginSceneErrorFormat[] =
 	"Error %s beginning scene.\n";
+/* Format passed to DebugPrintf, whose calls print nothing, when a scene does
+ * not end. */
 // GLOBAL: XVT 0x52948C
 static const char g_std3DEndSceneErrorFormat[] = "Error %s ending scene.\n";
+/* Format passed to DebugPrintf, whose calls print nothing, when the execute
+ * buffer does not lock. */
 // GLOBAL: XVT 0x5294A4
 static const char g_std3DLockExecuteBufferErrorFormat[] =
 	"Error %s locking D3D Execute buffer.\n";
+/* Rows of a result code and its name, for the Direct3D and then the DirectDraw
+ * codes, that std3D_LookupErrorString searches. */
 // GLOBAL: XVT 0x528CC0
 const Std3DErrorStringEntry g_std3DErrorStringTable[121] = {
 	{0, "D3D_OK"},
@@ -185,105 +231,206 @@ const Std3DErrorStringEntry g_std3DErrorStringTable[121] = {
 	{-2005532083, "DDERR_NOTPALETTIZED"},
 	{-2005532082, "DDERR_UNSUPPORTEDMODE"},
 };
+/* Fog table end that std3D_SetRenderState writes when fog turns on. Only
+ * std3D_SetFogTableRangeBits writes it, and nothing calls that, so it stays
+ * 0. */
 // GLOBAL: XVT 0x6644F0
 static unsigned int g_std3DFogTableEndBits;
+/* Blue of the fog color, 0 to 255, that std3D_SetRenderState writes when fog
+ * turns on. Only std3D_SetFogColor8 writes it, and nothing calls that, so it
+ * stays 0. */
 // GLOBAL: XVT 0x6644F4
 static unsigned int g_std3DFogColorBlue8;
+/* Fog table start, written and read as g_std3DFogTableEndBits is; it stays
+ * 0. */
 // GLOBAL: XVT 0x664544
 static unsigned int g_std3DFogTableStartBits;
+/* Red of the fog color, written and read as g_std3DFogColorBlue8 is; it stays
+ * 0. */
 // GLOBAL: XVT 0x664750
 static unsigned int g_std3DFogColorRed8;
+/* 16-bit colors of the palette being uploaded in the opaque format:
+ * std3D_CopyPaletteToScratch16 copies them in. std3D_AddToTextureCache looks up
+ * 8-bit texels through it, and takes entry 0 as the color key when the device
+ * has no alpha textures. */
 // GLOBAL: XVT 0x664770
 uint16_t g_std3DPaletteScratch16[256];
+/* The palette in the RGBA 4-bit format, for translucent textures. Only
+ * std3D_SetPaletteConversionSource fills it, and nothing calls that, so it
+ * stays 0. */
 // GLOBAL: XVT 0x6642F0
 uint16_t g_texConvBuf4444[256] = {0};
+/* The palette in the RGBA 5, 5, 5 and 1 bit format, for color-keyed textures on
+ * a device with alpha textures; std3D_ConvertPaletteTo1555 fills it. */
 // GLOBAL: XVT 0x664550
 uint16_t g_texConvBuf1555[256] = {0};
+/* A copy of the last palette given to std3D_SetPaletteConversionSource, which
+ * nothing calls; nothing reads it. */
 // GLOBAL: XVT 0x664980
 static uint8_t g_std3DPaletteConversionSourceRgb[768] = {0};
+/* Green of the fog color, written and read as g_std3DFogColorBlue8 is; it stays
+ * 0. */
 // GLOBAL: XVT 0x664978
 static unsigned int g_std3DFogColorGreen8;
+/* The Direct3D interface std3D_Startup gets from the DirectDraw object;
+ * std3D_Shutdown releases it, and the modern build then sets it to NULL. */
 // GLOBAL: XVT 0x664970
 static IDirect3D *g_lpD3D = 0;
+/* The Direct3D viewport std3D_CreateViewport makes; std3D_Close releases it and
+ * sets it to NULL. */
 // GLOBAL: XVT 0x664974
 static IDirect3DViewport *g_d3dViewport = 0;
+/* Released by std3D_Close when set, but nothing sets it, so it stays NULL. */
 // GLOBAL: XVT 0x66497C
 static Std3DUnknown *g_d3dViewportMaterial = 0;
+/* The Direct3D device std3D_CreateDevice gets from the render surface;
+ * std3D_Close releases it and sets it to NULL. */
 // GLOBAL: XVT 0x664548
 IDirect3DDevice *g_d3dDevice;
+/* The surface Direct3D draws into, set by std3D_SetRenderSurface;
+ * Renderer_InitD3DDevice passes g_flightBackBuffer. */
 // GLOBAL: XVT 0xA91B14
 struct IDirectDrawSurface *g_std3DRenderSurface;
+/* The Direct3D devices std3D_EnumDevicesCallback found, up to 4. */
 // GLOBAL: XVT 0xA91120
 Std3DDevice g_std3DDevices[4] = {{0}};
+/* Red of the full-viewport color overlay. Set by std3D_SetColorOverlayParams,
+ * which Renderer_InitD3DDevice calls with 0 and off; read by
+ * std3D_DrawColorOverlay, which nothing calls. */
 // GLOBAL: XVT 0xA90B10
 float g_std3DColorOverlayRed;
+/* Green of the color overlay, set and read as g_std3DColorOverlayRed is. */
 // GLOBAL: XVT 0xA90B14
 float g_std3DColorOverlayGreen;
+/* Blue of the color overlay, set and read as g_std3DColorOverlayRed is. */
 // GLOBAL: XVT 0xA90B18
 float g_std3DColorOverlayBlue;
+/* Nonzero when the color overlay is on; set and read as g_std3DColorOverlayRed
+ * is. */
 // GLOBAL: XVT 0xA90B1C
 int g_std3DColorOverlayEnabled;
+/* The z test of the open device: 16 (greater) when its compare caps have the
+ * 0x10 bit, else 2 (less); std3D_CreateDevice sets it when the z-buffer is
+ * enabled, else it stays 0. With 2, RenderScene_EmitFlightVertex writes 1 minus
+ * its z value, so that a nearer point has the smaller value. */
 // GLOBAL: XVT 0xA90B20
 int g_std3DZCompareCap = 0;
+/* Two triangles over the viewport quad in g_std3DQuadVerts, alpha-blended with
+ * mono off; std3D_BuildViewportQuad sets them and std3D_DrawColorOverlay draws
+ * them. */
 // GLOBAL: XVT 0xA90B30
 Std3DRenderTri g_std3DViewportQuadTriangles[2] = {{0}};
+/* The viewport's corners, clockwise from the top left, set by
+ * std3D_BuildViewportQuad with every other field 0. */
 // GLOBAL: XVT 0xA90B60
 D3DTLVERTEX g_std3DQuadVerts[4] = {{0}};
+/* The viewport rectangle std3D_BuildViewportQuad was given: 0, 0 and the render
+ * target's size. std3D_ClearZBuffer clears this area. */
 // GLOBAL: XVT 0xA90BF0
 static Std3DViewportRect g_std3DQuadRect = {0};
+/* The texture std3D_DrawColorOverlay uploads and removes again each time it
+ * draws without alpha blending. */
 // GLOBAL: XVT 0xA90A70
 Std3DTexCacheNode g_std3DColorOverlayTexNode = {0};
+/* The z-buffer surface and its description, made by std3D_CreateZBuffer. */
 // GLOBAL: XVT 0xA91A34
 Std3DZBufferSurfaceBlock g_std3DZBufferSurfaceBlock = {0};
+/* A record of the z-buffer that std3D_CreateZBuffer fills; only its debug print
+ * reads it. */
 // GLOBAL: XVT 0xA919D0
 Std3DZBufferTarget g_std3DZBufferTarget = {0};
+/* Only std3D_SetTextureSizeCaps writes it, and nothing calls that, so it stays
+ * 0. */
 // GLOBAL: XVT 0x528C70
 int g_std3DMinTextureWidth;
+/* Only std3D_SetTextureSizeCaps writes it, and nothing calls that, so it stays
+ * 0. */
 // GLOBAL: XVT 0x528C74
 int g_std3DMinTextureHeight;
+/* Only std3D_SetTextureSizeCaps writes it, and nothing calls that, so it stays
+ * 0. */
 // GLOBAL: XVT 0x528C78
 int g_std3DMaxTextureWidth;
+/* Only std3D_SetTextureSizeCaps writes it, and nothing calls that; nothing
+ * reads it. */
 // GLOBAL: XVT 0x528C7C
 int g_std3DMaxTextureHeight;
+/* Most vertices one execute buffer takes: the device's maxVertexCount, at most
+ * 512, or 512 when it states none; set by std3D_CreateDevice. std3D_AddVertices
+ * refuses more. */
 // GLOBAL: XVT 0x528C80
 unsigned int g_std3DExecBufMaxVerts = 0;
+/* Counter each std3D_LockExecuteBuffer raises; a texture used in the current
+ * execute buffer carries it in cacheBatchTag. std3D_CreateDevice and
+ * std3D_FlushTextureCache set it to 1. */
 // GLOBAL: XVT 0x528C84
 unsigned int g_std3DTextureBatchTag = 1;
+/* Textures on the cache list. */
 // GLOBAL: XVT 0x528C88
 int g_texCacheCount = 0;
+/* Least recently used texture on the cache list; NULL when it is empty. */
 // GLOBAL: XVT 0x528C8C
 Std3DTexCacheNode *g_pTexCacheHead = 0;
+/* Most recently used texture on the cache list; NULL when it is empty. */
 // GLOBAL: XVT 0x528C90
 Std3DTexCacheNode *g_pTexCacheTail = 0;
+/* A 32 by 32 buffer in the RGBA 4-bit format, made by std3D_CreateDevice when
+ * the device has alpha textures but no alpha blending; std3D_DrawColorOverlay
+ * fills it and std3D_Close frees it. */
 // GLOBAL: XVT 0x528C94
 Std3DVBuffer *g_pStd3DVBuffer = 0;
+/* The execute buffer every batch is written into; std3D_CreateDevice makes it
+ * and std3D_Close releases it. */
 // GLOBAL: XVT 0x528C98
 IDirect3DExecuteBuffer *g_d3dExecuteBuffer = 0;
+/* Size of the execute buffer in bytes: the device's maxBufferSize, or 0x10000
+ * when it states none. */
 // GLOBAL: XVT 0x528C9C
 unsigned int g_std3DExecBufSize = 0;
+/* Vertices in the execute buffer since std3D_LockExecuteBuffer set it to 0. */
 // GLOBAL: XVT 0x528CA0
 int g_d3dBufVertCount = 0;
+/* Triangles added since the last lock; nothing reads it. */
 // GLOBAL: XVT 0x528CA4
 static unsigned int g_std3DExecBufTriCount = 0;
+/* The texture the execute buffer last selected. std3D_LockExecuteBuffer sets it
+ * to 1, which no texture is, so the first triangle group always writes a
+ * texture state. */
 // GLOBAL: XVT 0x528CA8
 static Std3DTexCacheNode *g_d3dCurTexture = (Std3DTexCacheNode *)1;
+/* Points at g_std3DZBufferSurfaceBlock once std3D_CreateZBuffer runs; NULL
+ * before. */
 // GLOBAL: XVT 0x528CAC
 Std3DZBufferSurfaceBlock *g_pStd3DZBufferState = NULL;
+/* 1 while a device is open: std3D_CreateDevice sets it on success and
+ * std3D_Close clears it. */
 // GLOBAL: XVT 0x528CBC
 int g_std3DDeviceOpen = 0;
+/* Start of the locked execute buffer. */
 // GLOBAL: XVT 0x664754
 static uint8_t *g_d3dExecBufBase = 0;
+/* Description of the execute buffer: std3D_CreateDevice sets its size, and each
+ * lock fills in where it lies. */
 // GLOBAL: XVT 0x664758
 D3DEXECUTEBUFFERDESC g_d3dExecBufDesc = {0};
+/* Where the next vertex or instruction goes in the locked execute buffer; all
+ * bits set until the first lock. */
 // GLOBAL: XVT 0x664C80
 uint8_t *g_d3dWritePtr = (uint8_t *)(uintptr_t)-1;
+/* Where the instructions start, after the vertices; set by
+ * std3D_BeginInstructions. */
 // GLOBAL: XVT 0x664C84
 static uint8_t *g_d3dInstrStart = 0;
+/* The render target's description, filled by std3D_InitRenderTargetDesc. */
 // GLOBAL: XVT 0x6644F8
 Std3DRenderTargetDesc g_std3DRenderTargetDesc = {0};
+/* Points at g_std3DRenderTargetDesc once std3D_InitRenderTargetDesc runs; NULL
+ * before. */
 // GLOBAL: XVT 0xA90BE0
 Std3DRenderTargetDesc *g_pStd3DRenderTarget = 0;
 
+/* Copies colorCount 16-bit colors into g_std3DPaletteScratch16. Does not check
+ * colorCount against its 256 entries. */
 // FUNCTION: XVT 0x4B0B60
 void std3D_CopyPaletteToScratch16(const uint16_t *palette, int colorCount)
 {
@@ -291,6 +438,10 @@ void std3D_CopyPaletteToScratch16(const uint16_t *palette, int colorCount)
 	       (size_t)colorCount * sizeof(*palette));
 }
 
+/* Fills g_texConvBuf1555 from colorCount colors in the opaque texture format: a
+ * plain copy when that format is the 1555 one; otherwise each channel is taken
+ * up to 8 bits and down into the 1555 format, and every entry but 0 gets full
+ * alpha, so entry 0 is transparent. Does not check colorCount against 256. */
 // FUNCTION: XVT 0x4B0B90
 void std3D_ConvertPaletteTo1555(const uint16_t *palette, int colorCount)
 {
@@ -342,6 +493,12 @@ void std3D_ConvertPaletteTo1555(const uint16_t *palette, int colorCount)
 	}
 }
 
+/* Takes the DirectDraw object, sets g_std3DRenderOptionFlags to 0x19B3 and
+ * g_std3DZBufferEnabled to 1, gets the Direct3D interface into g_lpD3D and
+ * enumerates the devices into g_std3DDevices. Returns 1, setting
+ * g_std3DStartupDone, when at least one device was found; 0 when there is no
+ * DirectDraw object, getting the interface or the enumeration fails, or no
+ * device is found. */
 // FUNCTION: XVT 0x4B0DB0
 int std3D_Startup(void)
 {
@@ -390,6 +547,10 @@ int std3D_Startup(void)
 	return 1;
 }
 
+/* Fills g_std3DRenderTargetDesc for a 16-bit RGB target (5, 6 and 5 bits) of
+ * width by height pixels and pitchBytes per row, with pitchPixels of pitchBytes
+ * / 2 and sizeBytes of pitch times height; points g_pStd3DRenderTarget at it
+ * and returns it. */
 // FUNCTION: XVT 0x4B0EF0
 Std3DRenderTargetDesc *std3D_InitRenderTargetDesc(unsigned int width,
 						  unsigned int height,
@@ -425,6 +586,8 @@ Std3DRenderTargetDesc *std3D_InitRenderTargetDesc(unsigned int width,
 	return result;
 }
 
+/* Releases g_lpD3D when it is set (the modern build then sets it to NULL) and
+ * sets g_std3DStartupDone to 0. */
 // FUNCTION: XVT 0x4B0FF0
 void std3D_Shutdown(void)
 {
@@ -438,6 +601,16 @@ void std3D_Shutdown(void)
 	g_std3DStartupDone = 0;
 }
 
+/* Opens device deviceIdx of g_std3DDevices on the render surface. Returns 0
+ * when a device is already open, the index is out of range, or a step fails:
+ * the z-buffer, made when bUseZBuffer is set, the device has one and
+ * g_std3DRenderOptionFlags has a 0x1800 bit (it also sets g_std3DZCompareCap);
+ * the device; the texture formats, none found counting as a failure; the
+ * viewport; or the initial render state. Then makes the execute buffer (a
+ * failure there is only printed), empties the texture cache, picks the opaque
+ * texture format and, with alpha textures, the 1555 format and, without alpha
+ * blending, the 4444 format with a 32 by 32 buffer in it, reads the texture
+ * memory, sets g_std3DDeviceOpen and returns 1. */
 // FUNCTION: XVT 0x4B1030
 int std3D_CreateDevice(unsigned int deviceIdx, int bUseZBuffer)
 {
@@ -595,6 +768,7 @@ int std3D_CreateDevice(unsigned int deviceIdx, int bUseZBuffer)
 	return 1;
 }
 
+/* Sets g_std3DRenderSurface to surface and returns it. */
 // FUNCTION: XVT 0x4B15A0
 struct IDirectDrawSurface *
 std3D_SetRenderSurface(struct IDirectDrawSurface *surface)
@@ -602,6 +776,7 @@ std3D_SetRenderSurface(struct IDirectDrawSurface *surface)
 	return g_std3DRenderSurface = surface;
 }
 
+/* Sets the color overlay's red, green, blue and on flag; returns enabled. */
 // FUNCTION: XVT 0x4B15B0
 int std3D_SetColorOverlayParams(float red, float green, float blue, int enabled)
 {
@@ -611,6 +786,8 @@ int std3D_SetColorOverlayParams(float red, float green, float blue, int enabled)
 	return g_std3DColorOverlayEnabled = enabled;
 }
 
+/* Returns how many times n halves before it is 1 or less: log2 of n rounded
+ * down for n of 1 or more, 0 for n under 2. */
 // FUNCTION: XVT 0x4B15E0
 int std3D_Log2Floor(int n)
 {
@@ -623,6 +800,8 @@ int std3D_Log2Floor(int n)
 	return result;
 }
 
+/* Returns the message of the first of entryCount entries whose code is
+ * errorCode, or g_std3DUnknownErrorMessage when none is. */
 // FUNCTION: XVT 0x4B1600
 const char *std3D_LookupErrorString(int errorCode,
 				    const Std3DErrorStringEntry *entries,
@@ -648,6 +827,13 @@ const char *std3D_LookupErrorString(int errorCode,
 	return result;
 }
 
+/* Fills 256 16-bit colors in pFmt's format from 256 RGB triples, each channel
+ * shifted down from 8 bits and into place. For a format with alpha bits the
+ * alpha is defaultAlpha, or with colorKey 0 for a color that comes out 0 and
+ * 0xFF for any other; but a 1-bit format first replaces the value with 0xFF
+ * minus it, and without colorKey that change carries into the next entry, so
+ * the alpha alternates. With colorKey and 1-bit alpha, a color that comes out 0
+ * is therefore opaque and every other transparent. */
 // FUNCTION: XVT 0x4B1640
 void std3D_BuildColormap16(uint8_t *pRGB888, uint16_t *pOut, ColorInfo *pFmt,
 			   uint8_t defaultAlpha, int colorKey)
@@ -688,6 +874,7 @@ void std3D_BuildColormap16(uint8_t *pRGB888, uint16_t *pOut, ColorInfo *pFmt,
 	} while (entriesRemaining != 0);
 }
 
+/* std3D_BuildColormap16 with alpha 0xFF and no color key. */
 // FUNCTION: XVT 0x4B1710
 void std3D_BuildColormapOpaque(uint8_t *pRGB888, uint16_t *pOut,
 			       ColorInfo *pFmt)
@@ -695,6 +882,7 @@ void std3D_BuildColormapOpaque(uint8_t *pRGB888, uint16_t *pOut,
 	std3D_BuildColormap16(pRGB888, pOut, pFmt, 0xFF, 0);
 }
 
+/* std3D_BuildColormap16 with alpha 0xFF and the color key. */
 // FUNCTION: XVT 0x4B1730
 void std3D_BuildColormapColorKey(uint8_t *pRGB888, uint16_t *pOut,
 				 ColorInfo *pFmt)
@@ -702,6 +890,7 @@ void std3D_BuildColormapColorKey(uint8_t *pRGB888, uint16_t *pOut,
 	std3D_BuildColormap16(pRGB888, pOut, pFmt, 0xFF, 1);
 }
 
+/* std3D_BuildColormap16 with alpha and no color key. */
 // FUNCTION: XVT 0x4B1750
 void std3D_BuildColormapAlpha(uint8_t *pRGB888, uint16_t *pOut, ColorInfo *pFmt,
 			      uint8_t alpha)
@@ -709,6 +898,10 @@ void std3D_BuildColormapAlpha(uint8_t *pRGB888, uint16_t *pOut, ColorInfo *pFmt,
 	std3D_BuildColormap16(pRGB888, pOut, pFmt, alpha, 0);
 }
 
+/* Allocates a buffer in plain memory with a copy of raster and width * height *
+ * (bpp >> 3) bytes of pixels, sets its rowPitch to width * (bpp >> 3) and
+ * returns it. Does not check either allocation; ignores any further
+ * arguments. */
 // FUNCTION: XVT 0x4B1770
 Std3DVBuffer *std3D_AllocVBuffer(const Std3DRasterInfo *raster, ...)
 {
@@ -724,6 +917,8 @@ Std3DVBuffer *std3D_AllocVBuffer(const Std3DRasterInfo *raster, ...)
 	return vbuffer;
 }
 
+/* Releases a surface buffer's surface (storageType 1) or frees a plain buffer's
+ * pixels, then zeroes and frees the buffer. */
 // FUNCTION: XVT 0x4B17D0
 void std3D_FreeVBuffer(Std3DVBuffer *vbuffer)
 {
@@ -738,6 +933,9 @@ void std3D_FreeVBuffer(Std3DVBuffer *vbuffer)
 	free(vbuffer);
 }
 
+/* Adds a lock to the buffer. On the first lock of a surface buffer it locks the
+ * surface, waiting, and takes its pixels and pitch; when that fails it returns
+ * without counting the lock. */
 // FUNCTION: XVT 0x4B1810
 void std3D_LockVBuffer(Std3DVBuffer *vbuffer)
 {
@@ -762,6 +960,9 @@ void std3D_LockVBuffer(Std3DVBuffer *vbuffer)
 	++vbuffer->lockCount;
 }
 
+/* Undoes a lock; a buffer with none is left alone. On the last lock of a
+ * surface buffer it unlocks the surface; when that fails it returns without
+ * undoing the count. */
 // FUNCTION: XVT 0x4B1890
 void std3D_UnlockVBuffer(Std3DVBuffer *vbuffer)
 {
@@ -786,6 +987,10 @@ void std3D_UnlockVBuffer(Std3DVBuffer *vbuffer)
 	--vbuffer->lockCount;
 }
 
+/* Closes the open device: frees g_pStd3DVBuffer, releases the execute buffer,
+ * empties the texture cache, and releases the viewport, the viewport material,
+ * the z-buffer surface and the device, setting each to NULL; then clears
+ * g_std3DDeviceOpen. With no device open it only makes a debug print. */
 // FUNCTION: XVT 0x4B18F0
 void std3D_Close(void)
 {
@@ -827,6 +1032,9 @@ void std3D_Close(void)
 	g_std3DDeviceOpen = 0;
 }
 
+/* Copies all of source into destination with its top left at destinationX,
+ * destinationY, row by row, locking both. Ignores sourceX and sourceY and does
+ * not clip. */
 // FUNCTION: XVT 0x4B19E0
 void std3D_BlitVBuffer(Std3DVBuffer *destination, Std3DVBuffer *source,
 		       int destinationX, int destinationY, int sourceX,
@@ -858,9 +1066,12 @@ void std3D_BlitVBuffer(Std3DVBuffer *destination, Std3DVBuffer *source,
 	std3D_UnlockVBuffer(source);
 }
 
+/* Returns g_std3DRenderOptionFlags. Nothing calls this. */
 // FUNCTION: XVT 0x4B1A80
 unsigned int std3D_GetCapFlags(void) { return g_std3DRenderOptionFlags; }
 
+/* Fills the whole buffer with packedColor at 8, 16 or 32 bits per pixel,
+ * locking it; leaves a buffer of any other depth alone. Ignores fillMode. */
 // FUNCTION: XVT 0x4B1A90
 void std3D_FillVBuffer(Std3DVBuffer *vbuffer, unsigned int packedColor,
 		       int fillMode)
@@ -936,6 +1147,8 @@ void std3D_FillVBuffer(Std3DVBuffer *vbuffer, unsigned int packedColor,
 	std3D_UnlockVBuffer(vbuffer);
 }
 
+/* Sets g_std3DRenderOptionFlags and writes the initial render state again.
+ * Nothing calls this. */
 // FUNCTION: XVT 0x4B1B70
 void std3D_SetCapFlags(unsigned int capFlags)
 {
@@ -948,6 +1161,8 @@ void std3D_SetCapFlags(unsigned int capFlags)
 	}
 }
 
+/* Sets the fog color, 0 to 255 for each channel, and returns red8. Nothing
+ * calls this. */
 // FUNCTION: XVT 0x4B1BA0
 int std3D_SetFogColor8(unsigned int red8, unsigned int green8,
 		       unsigned int blue8)
@@ -958,6 +1173,8 @@ int std3D_SetFogColor8(unsigned int red8, unsigned int green8,
 	return red8;
 }
 
+/* Sets the fog table start and end and returns startBits. Nothing calls
+ * this. */
 // FUNCTION: XVT 0x4B1BC0
 int std3D_SetFogTableRangeBits(unsigned int startBits, unsigned int endBits)
 {
@@ -966,6 +1183,8 @@ int std3D_SetFogTableRangeBits(unsigned int startBits, unsigned int endBits)
 	return startBits;
 }
 
+/* Sets the four texture size limits and returns maxHeight. Nothing calls
+ * this. */
 // FUNCTION: XVT 0x4B1BE0
 int std3D_SetTextureSizeCaps(int minWidth, int minHeight, int maxWidth,
 			     int maxHeight)
@@ -976,6 +1195,7 @@ int std3D_SetTextureSizeCaps(int minWidth, int minHeight, int maxWidth,
 	return g_std3DMaxTextureHeight = maxHeight;
 }
 
+/* Begins a Direct3D scene on g_d3dDevice; a failure is only printed. */
 // FUNCTION: XVT 0x4B1C10
 void std3D_StartScene(void)
 {
@@ -990,6 +1210,7 @@ void std3D_StartScene(void)
 	}
 }
 
+/* Ends the Direct3D scene; a failure is only printed. */
 // FUNCTION: XVT 0x4B1C50
 void std3D_EndScene(void)
 {
@@ -1004,6 +1225,10 @@ void std3D_EndScene(void)
 	}
 }
 
+/* Starts a batch: sets the vertex and triangle counts to 0, raises
+ * g_std3DTextureBatchTag, marks no texture as selected, and locks the execute
+ * buffer, pointing g_d3dExecBufBase and g_d3dWritePtr at its start. Returns 1,
+ * or 0 when the lock fails. */
 // FUNCTION: XVT 0x4B1C90
 int std3D_LockExecuteBuffer(void)
 {
@@ -1027,6 +1252,9 @@ int std3D_LockExecuteBuffer(void)
 	return 1;
 }
 
+/* Copies count vertices to g_d3dWritePtr, unless they are already there, and
+ * advances it; returns 1, or 0 without copying when g_d3dBufVertCount would
+ * pass g_std3DExecBufMaxVerts. Does not check the buffer's size. */
 // FUNCTION: XVT 0x4B1D10
 int std3D_AddVertices(const D3DTLVERTEX *vertices, int count)
 {
@@ -1047,6 +1275,8 @@ int std3D_AddVertices(const D3DTLVERTEX *vertices, int count)
 	return 1;
 }
 
+/* Writes, after the vertices, the instruction to copy all g_d3dBufVertCount of
+ * them, records it as the start of the instructions, and returns 1. */
 // FUNCTION: XVT 0x4B1D70
 int std3D_BeginInstructions(void)
 {
@@ -1067,6 +1297,11 @@ int std3D_BeginInstructions(void)
 	return 1;
 }
 
+/* Writes count triangles as instructions, grouping neighbors with the same
+ * texture and flags: for each group the changed render states
+ * (std3D_SetRenderState), a texture handle state when the texture differs from
+ * the one last selected (handle 0 for none), then one triangle instruction with
+ * every edge enabled. Returns 1. Does not check the buffer's size. */
 // FUNCTION: XVT 0x4B1DE0
 int std3D_AddTriangles(const Std3DRenderTri *triangles, unsigned int count)
 {
@@ -1199,6 +1434,8 @@ int std3D_AddTriangles(const Std3DRenderTri *triangles, unsigned int count)
 	return 1;
 }
 
+/* Ends the instructions, unlocks the execute buffer and executes it, unclipped,
+ * on the viewport. Returns 1, or 0 when the unlock or the execute fails. */
 // FUNCTION: XVT 0x4B2020
 int std3D_ExecuteBuffer(void)
 {
@@ -1241,6 +1478,16 @@ int std3D_ExecuteBuffer(void)
 	return 1;
 }
 
+/* Writes render-state instructions for the groups of bits in flags that differ
+ * from g_d3dStateFlags, then stores flags there; does nothing when they are
+ * equal. Mono is off with STD3D_RS_MONO_DISABLE. With alpha blend or
+ * modulate-alpha: source blend 5, destination blend 6, texture blend 4 with
+ * modulate-alpha else 2, blending on; with neither: source blend 2, destination
+ * blend 1, the same texture blend, blending off. The z compare is
+ * std3D_MapZCmpFunc(g_std3DZCompareCap) with STD3D_RS_Z_COMPARE_ENABLE, else 8;
+ * z writes follow STD3D_RS_Z_WRITE_ENABLE. Each filter is 2 (linear) with its
+ * bit, else 1. Fog is on with the fog color, table mode 3 and the table start
+ * and end, or off. STD3D_RS_TEXTURE_ADDRESS_CLAMP is not written. */
 // FUNCTION: XVT 0x4B2130
 void std3D_SetRenderState(Std3DRenderStateFlags flags)
 {
@@ -1408,6 +1655,10 @@ void std3D_SetRenderState(Std3DRenderStateFlags flags)
 	g_d3dStateFlags = flags;
 }
 
+/* Copies 768 bytes of RGB palette and builds from it the opaque palette when
+ * that format is 16-bit RGB, and, with alpha textures, the color-keyed 1555
+ * palette and, without alpha blending, the 4444 palette with alpha. Returns 1.
+ * Nothing calls this. */
 // FUNCTION: XVT 0x4B2540
 int std3D_SetPaletteConversionSource(const void *paletteRgb888, uint8_t alpha)
 {
@@ -1437,6 +1688,11 @@ int std3D_SetPaletteConversionSource(const void *paletteRgb888, uint8_t alpha)
 	return 1;
 }
 
+/* Writes the size a texture of srcWidth by srcHeight would get: each side at
+ * least 1 and at most g_std3DMaxTextureWidth; then, when under the minimums or
+ * not square on a square-only device, both sides made the larger, or each
+ * raised to its minimum. With the limits at 0, as they stay, it writes 0 by 0.
+ * Nothing calls this. */
 // FUNCTION: XVT 0x4B25E0
 void std3D_ClampTextureDimensions(int srcWidth, int srcHeight, int *outWidth,
 				  int *outHeight)
@@ -1493,6 +1749,22 @@ void std3D_ClampTextureDimensions(int srcWidth, int srcHeight, int *outWidth,
 	*outHeight = (int)height;
 }
 
+/* Uploads source as a texture for node and puts the node at the most recently
+ * used end of the cache list. Returns 1, or 0 with node cleared after any
+ * failure. The size is the source's, cut to 256 on each side; a texture under
+ * the minimum size, or not square on a square-only device, is first tiled into
+ * a temporary buffer by whole copies, their number rounded to nearest. The
+ * format is the 1555 one for a color-keyed texture on a device with alpha
+ * textures, the 4444 one for a translucent texture, else the opaque one. It
+ * fills a system-memory surface (8-bit texels through g_texConvBuf4444,
+ * g_texConvBuf1555 or g_std3DPaletteScratch16; 16-bit rows copied as they are),
+ * sets a color key for a color-keyed texture on a device without alpha textures
+ * (palette entry 0, or the buffer's transparentColor), then creates the texture
+ * in video memory and loads it. When video memory runs out it releases cached
+ * textures from the least recently used end, stopping at the first used in the
+ * current batch, until as many texels are freed, and tries again; when that
+ * frees too few it fails. Sets the node's handle, size, texel count and batch
+ * tag. */
 // FUNCTION: XVT 0x4B2680
 int std3D_AddToTextureCache(Std3DVBuffer *source, Std3DTexCacheNode *node,
 			    int colorKeyed, int translucent)
@@ -2009,6 +2281,9 @@ int std3D_AddToTextureCache(Std3DVBuffer *source, Std3DTexCacheNode *node,
 	return 0;
 }
 
+/* Releases every cached texture and unlinks the list; sets g_texCacheCount to 0
+ * and g_std3DTextureBatchTag to 1, and sets the device's availableMemory back
+ * to its totalMemory. */
 // FUNCTION: XVT 0x4B3070
 void std3D_FlushTextureCache(void)
 {
@@ -2045,6 +2320,8 @@ void std3D_FlushTextureCache(void)
 	g_std3DTextureBatchTag = 1;
 }
 
+/* Puts node at the most recently used end of the cache list, raises
+ * g_texCacheCount, and takes the node's texelCount from availableMemory. */
 // FUNCTION: XVT 0x4B30F0
 void std3D_CacheListAppend(Std3DTexCacheNode *node)
 {
@@ -2067,6 +2344,9 @@ void std3D_CacheListAppend(Std3DTexCacheNode *node)
 	g_pStd3DCurDevice->availableMemory -= node->texelCount;
 }
 
+/* Takes node off the cache list, lowers g_texCacheCount, and gives its
+ * texelCount back to availableMemory. Does not check that node is on the
+ * list. */
 // FUNCTION: XVT 0x4B3160
 void std3D_CacheListRemove(Std3DTexCacheNode *node)
 {
@@ -2092,6 +2372,9 @@ void std3D_CacheListRemove(Std3DTexCacheNode *node)
 	g_pStd3DCurDevice->availableMemory += node->texelCount;
 }
 
+/* Asks DirectDraw for the total and free texture video memory in bytes. Returns
+ * 1, or 0 when it cannot; when only the memory query fails, the IDirectDraw2
+ * interface it got is not released. */
 // FUNCTION: XVT 0x4B3210
 int std3D_QueryTextureVidMem(unsigned int *totalBytes, unsigned int *freeBytes)
 {
@@ -2114,6 +2397,8 @@ int std3D_QueryTextureVidMem(unsigned int *totalBytes, unsigned int *freeBytes)
 	return 1;
 }
 
+/* Marks node as used in the current batch and moves it to the most recently
+ * used end of the cache list. */
 // FUNCTION: XVT 0x4B3280
 void std3D_CacheTextureSurface(Std3DTexCacheNode *node)
 {
@@ -2122,6 +2407,9 @@ void std3D_CacheTextureSurface(Std3DTexCacheNode *node)
 	std3D_CacheListAppend(node);
 }
 
+/* Fills g_std3DQuadRect of the z-buffer with 0 when g_std3DZCompareCap is 16,
+ * else 0xFFFF, restoring a lost surface and trying again. Returns 1, or 0 when
+ * the fill or the restore fails. */
 // FUNCTION: XVT 0x4B32B0
 int std3D_ClearZBuffer(void)
 {
@@ -2163,6 +2451,11 @@ int std3D_ClearZBuffer(void)
 	}
 }
 
+/* Returns the index of the first device that matches requiredCaps on
+ * perspective texturing and z-buffer (each only when required), shares a color
+ * model with it and has the same bHardware. Without one, returns the first
+ * device that matches the most of those, in that order. Returns 0 when there is
+ * no device. */
 // FUNCTION: XVT 0x4B3380
 int std3D_SelectBestDevice(Std3DDeviceCaps *requiredCaps)
 {
@@ -2222,6 +2515,11 @@ int std3D_SelectBestDevice(Std3DDeviceCaps *requiredCaps)
 	return bestDeviceIndex;
 }
 
+/* Returns the index of the first format that matches match exactly: the same
+ * mode and bpp and, for RGB, the same red, green and blue bits, for RGBA the
+ * alpha bits too, and for a palette mode nothing more. Without one, the first
+ * with the best score: 1 for the mode, 2 for the mode and bpp, 3 for an RGBA
+ * mode and bpp. Returns 0 when count is 0. */
 // FUNCTION: XVT 0x4B3450
 int std3D_FindClosestFormat(const ColorInfo *match, Std3DTexFmt *formats,
 			    unsigned int count)
@@ -2297,6 +2595,13 @@ int std3D_FindClosestFormat(const ColorInfo *match, Std3DTexFmt *formats,
 	return bestFormatIndex;
 }
 
+/* Draws the full-viewport color overlay when it is on and not all 0. Each
+ * channel is its share of the largest, times 255; alpha is the largest times
+ * 0.736 with stippled alpha, else times 0.9, held to 0 to 255, and an alpha of
+ * 0 draws nothing. With alpha blending it draws the quad in that color;
+ * without, it fills g_pStd3DVBuffer in the 4444 format, uploads it as a
+ * translucent texture, draws the quad with it in white, and releases it.
+ * Nothing calls this. */
 // FUNCTION: XVT 0x4B3590
 void std3D_DrawColorOverlay(void)
 {
@@ -2418,6 +2723,9 @@ void std3D_DrawColorOverlay(void)
 	}
 }
 
+/* Stores rect in g_std3DQuadRect, sets g_std3DQuadVerts to its corners and
+ * g_std3DViewportQuadTriangles to two untextured alpha-blended triangles over
+ * it. Returns 0. */
 // FUNCTION: XVT 0x4B3890
 int std3D_BuildViewportQuad(const Std3DViewportRect *rect)
 {
@@ -2453,6 +2761,15 @@ int std3D_BuildViewportQuad(const Std3DViewportRect *rect)
 	return 0;
 }
 
+/* Writes the starting render states from g_std3DRenderOptionFlags into an
+ * execute buffer of its own, 4096 bytes, executes it inside a scene, releases
+ * it, and sets g_d3dStateFlags to the flags. The states: perspective, the
+ * filters, subpixel, no wrapping, blending (as std3D_SetRenderState sets it for
+ * the 0x600 bits), alpha test with compare 6, stippled alpha when the device
+ * stipples, shade mode 2, mono, specular, fog, fill mode 3, dither, antialias,
+ * z test and z writes when g_std3DZBufferEnabled is set, the z compare from
+ * g_std3DZCompareCap, and cull mode 1. Returns 1; failures are only printed,
+ * and it goes on when making or locking the buffer fails. */
 // FUNCTION: XVT 0x4B3980
 int std3D_SetInitialRenderState(void)
 {
@@ -2648,6 +2965,9 @@ int std3D_SetInitialRenderState(void)
 	return 1;
 }
 
+/* Makes the Direct3D viewport, adds it to the device and sets it to width by
+ * height at 0, 0 with scales of half the width and height, then builds the
+ * viewport quad. Returns 1, or 0 when a step fails. */
 // FUNCTION: XVT 0x4B3E30
 int std3D_CreateViewport(int width, int height)
 {
@@ -2703,6 +3023,13 @@ int std3D_CreateViewport(int width, int height)
 	return 1;
 }
 
+/* Makes a z-buffer surface of width by height, in video memory on a hardware
+ * device and system memory otherwise, at 32, 16 or 8 bits, the first the
+ * device's depth flags allow (0x100, 0x400, 0x800); attaches it to
+ * g_std3DRenderSurface and reads back its description. Also fills
+ * g_std3DZBufferTarget and points g_pStd3DZBufferState at
+ * g_std3DZBufferSurfaceBlock. Returns 1, or 0 when no depth fits or a step
+ * fails. */
 // FUNCTION: XVT 0x4B3FC0
 int std3D_CreateZBuffer(int width, int height)
 {
@@ -2791,6 +3118,10 @@ int std3D_CreateZBuffer(int width, int height)
 	return 1;
 }
 
+/* Records one enumerated device in g_std3DDevices while fewer than 4 are
+ * recorded: its GUID, name and description, its hardware description when that
+ * has a color model, else the software one, and the caps read from it (texture
+ * sizes 1 to 256). Returns 1 to go on, or 0 once 4 are recorded. */
 // FUNCTION: XVT 0x4B4210
 HRESULT AERON_DXAPI std3D_EnumDevicesCallback(
 	DxGuid *guid, char *deviceDescription, char *deviceName,
@@ -2875,6 +3206,12 @@ HRESULT AERON_DXAPI std3D_EnumDevicesCallback(
 	return 0;
 }
 
+/* Records one enumerated texture format in g_std3DTextureFormats while fewer
+ * than 8 are recorded: an 8-bit palette format, or RGB or RGBA with each
+ * channel's position, bits and shift from 8 bits read from its mask. Skips a
+ * 4-bit palette format (flag 0x8). Returns 1 to go on, or 0 once 8 are
+ * recorded. Does not check for an empty mask, on which its bit search never
+ * ends. */
 // FUNCTION: XVT 0x4B4490
 int AERON_DXAPI std3D_EnumTextureFormats(DDSURFACEDESC *surfaceDesc,
 					 void *context)
@@ -3069,6 +3406,9 @@ int AERON_DXAPI std3D_EnumTextureFormats(DDSURFACEDESC *surfaceDesc,
 	return 0;
 }
 
+/* Maps DirectDraw bit-depth flags to bits: 0x4000 (1 bit) to 0x01, 0x2000 to
+ * 0x02, 0x1000 to 0x04, 0x800 to 0x08, 0x400 to 0x10, 0x200 to 0x20 and 0x100
+ * (32 bits) to 0x40. */
 // FUNCTION: XVT 0x4B47E0
 int std3D_PackRenderBitDepths(int ddbdFlags)
 {
@@ -3099,6 +3439,8 @@ int std3D_PackRenderBitDepths(int ddbdFlags)
 	return result;
 }
 
+/* Despite the name, packs nothing: returns d3dpcmpcaps & 0xFF, each bit copied
+ * to the same place. */
 // FUNCTION: XVT 0x4B4880
 int std3D_PackZCmpCaps(unsigned int d3dpcmpcaps)
 {
@@ -3131,6 +3473,10 @@ int std3D_PackZCmpCaps(unsigned int d3dpcmpcaps)
 	return result;
 }
 
+/* Returns the compare function for one compare caps bit: 0x1 gives 1, 0x2 gives
+ * 2, 0x4 gives 3, 0x8 gives 4, 0x10 gives 5, 0x20 gives 6, 0x40 gives 7 and
+ * 0x80 gives 8. With several bits set it ORs their values together; with none
+ * it returns 0. */
 // FUNCTION: XVT 0x4B48D0
 unsigned int std3D_MapZCmpFunc(unsigned int capsMask)
 {

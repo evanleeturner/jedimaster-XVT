@@ -9,15 +9,28 @@ extern "C" {
 #endif
 
 struct FrontendSoundBufferRecord {
+	/* Name the sound is found by; the records are sorted by it. Up to 63
+	 * characters; empty in an unused record. */
 	char name[64];
+	/* WAV file it was loaded from, cut at 191 characters;
+	 * FrontendSound_PlayUISound reloads a lost buffer from it. */
 	char fileName[256];
+	/* The loaded buffer each play duplicates. */
 	IDirectSoundBuffer *buffer;
+	/* Priority, 0 to 255, weighed when FrontendSound_PlayUISound needs a
+	 * voice; 0 at load, and only FrontendSound_SetBufferPriorityByName,
+	 * which nothing calls, changes it. */
 	uint8_t priority;
 };
 
 struct FrontendSoundVoice {
+	/* Record this voice plays, or -1 when free; kept in step as records are
+	 * inserted and removed. */
 	int bufferIndex;
+	/* frontendSoundPlaySerial when the voice started or was last rewound;
+	 * the lowest is the oldest. */
 	int playSerial;
+	/* The duplicate buffer playing; NULL when free. */
 	IDirectSoundBuffer *buffer;
 };
 

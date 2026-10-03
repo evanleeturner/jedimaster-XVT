@@ -9,8 +9,14 @@ extern "C" {
 #endif
 
 struct JoystickEntry {
+	/* The action's code, the first field of its line in joystick.txt read
+	 * with atoi; compared with the codes in g_gameConfig.joyButtons. */
 	uint8_t actionCode;
+	/* The action's short name, the line's second space-separated field,
+	 * copied without a length check. */
 	char name[20];
+	/* The rest of the line after the name and the space that ends it, the
+	 * action's description; copied without a length check. */
 	char description[128];
 };
 

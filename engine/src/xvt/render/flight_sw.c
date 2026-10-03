@@ -25,64 +25,99 @@
 #include <stdio.h>
 #include <string.h>
 
+/* Stars on each side of each of the starfield's three grids: 32 /
+ * g_starGridDivisor, set by FlightStarfield_Render on each call. */
 // GLOBAL: XVT 0x51A830
 int g_starfieldGridDimension = 0;
+/* 1 once FlightStarfield_Render has made the 8-bit star colors; nothing sets it
+ * back to 0. */
 // GLOBAL: XVT 0x51A834
 int g_starfieldColors8Initialized = 0;
+/* 1 once FlightStarfield_Render has made the 16-bit star colors; nothing sets
+ * it back to 0. */
 // GLOBAL: XVT 0x51A838
 int g_starfieldColors16Initialized = 0;
+/* 1 once FlightStarfield_Render has picked each star's jitter vector; nothing
+ * sets it back to 0. */
 // GLOBAL: XVT 0x51A83C
 int g_starfieldRandomVectorIndicesInitialized = 0;
+/* Memory handle of the 3072 star colors as palette indices, made by
+ * FlightStarfield_Render. */
 // GLOBAL: XVT 0x51A840
 uint16_t g_starfieldColors8Handle = 0;
+/* Memory handle of the 3072 star colors as 16-bit colors, made by
+ * FlightStarfield_Render. */
 // GLOBAL: XVT 0x51A844
 uint16_t g_starfieldColors16Handle = 0;
+/* Memory handle of 3 * 3072 bytes, of which FlightStarfield_Render fills the
+ * first 3072 with each star's jitter vector, 0 to 124. */
 // GLOBAL: XVT 0x51A848
 uint16_t g_starfieldRandomVectorIndicesHandle = 0;
+/* x of the 125 star jitter vectors: Backdrop_BuildStarOffsetsAndRender fills
+ * it, and FlightStarfield_Render adds one vector to each star. */
 // GLOBAL: XVT 0x9A7810
 int32_t g_starfieldJitterX[125] = {0};
+/* y of the 125 star jitter vectors, filled and read as g_starfieldJitterX
+ * is. */
 // GLOBAL: XVT 0x9A7400
 int32_t g_starfieldJitterY[125] = {0};
+/* z of the 125 star jitter vectors, filled and read as g_starfieldJitterX
+ * is. */
 // GLOBAL: XVT 0x9A7600
 int32_t g_starfieldJitterZ[125] = {0};
+/* Palette index of empty sky: FlightStarfield_Render draws a star only over a
+ * pixel of this color (its 16-bit color at 16 bits). Starts at 0xFB; set by
+ * FeDiskIo_InitResources, FlightView_Render and Hud_Update3DCrt. */
 // GLOBAL: XVT 0x523408
 uint8_t g_flightBackgroundColorIndex = 0xFB;
 
+/* The viewport and camera matrix PushFlightViewport saves, which
+ * PopFlightViewport puts back. */
 struct FlightViewportSaveState {
-	uint16_t viewportX;
-	uint16_t pad02;
-	uint16_t viewportY;
-	uint16_t pad06;
-	int camMatR0_X;
-	int camMatR1_X;
-	int camMatR0_Y;
-	int camMatR1_Y;
-	int camMatR2_X;
-	int camMatR0_Z;
-	int camMatR1_Z;
-	int camMatR2_Y;
-	int camMatR2_Z;
-	uint16_t baseOffset;
-	uint16_t pad2E;
-	uint16_t height;
-	uint16_t pad32;
-	uint16_t width;
-	uint16_t pad36;
+	uint16_t viewportX;  /* g_flightVpX. */
+	uint16_t pad02;	     /* Never read or written. */
+	uint16_t viewportY;  /* g_flightVpY. */
+	uint16_t pad06;	     /* Never read or written. */
+	int camMatR0_X;	     /* g_camMatR0_X. */
+	int camMatR1_X;	     /* g_camMatR1_X. */
+	int camMatR0_Y;	     /* g_camMatR0_Y. */
+	int camMatR1_Y;	     /* g_camMatR1_Y. */
+	int camMatR2_X;	     /* g_camMatR2_X. */
+	int camMatR0_Z;	     /* g_camMatR0_Z. */
+	int camMatR1_Z;	     /* g_camMatR1_Z. */
+	int camMatR2_Y;	     /* g_camMatR2_Y. */
+	int camMatR2_Z;	     /* g_camMatR2_Z. */
+	uint16_t baseOffset; /* g_flightVpBaseOffset, cut to 16 bits. */
+	uint16_t pad2E;	     /* Never read or written. */
+	uint16_t height;     /* g_flightVpHeight. */
+	uint16_t pad32;	     /* Never read or written. */
+	uint16_t width;	     /* g_flightVpWidth. */
+	uint16_t pad36;	     /* Never read or written. */
 };
 
 typedef char xvt_size_FlightViewportSaveState
 	[(sizeof(FlightViewportSaveState) == 56) ? 1 : -1];
 
+/* The start of a rotated sprite's encoded image: where its corner lies
+ * relative to its screen point, in texels. */
 struct FlightSwRotSpriteDataHeader {
+	/* x of the first corner, used while g_flightSwRotSpriteSpanRunsEnabled
+	 * is 1, which it always is. */
 	int32_t cornerX;
-	int32_t cornerY;
+	int32_t cornerY; /* y of the first corner, used negated. */
+	/* x used, negated, when that flag is not 1, which never happens. */
 	int32_t alternateCornerX;
-	int32_t field0C;
+	int32_t field0C; /* Never read or written. */
 };
 
+/* The viewport and camera matrix PushFlightViewport saves and PopFlightViewport
+ * puts back. */
 // GLOBAL: XVT 0x555C88
 FlightViewportSaveState g_savedFlightViewport = {0};
 
+/* Entry i is tan(i * pi / 512) * 65536 / 1.1, rounded, up to 65535 at entry
+ * 136; the last three are 0. Read by FlightSw_LookupScaledTangent for 91
+ * percent. */
 // GLOBAL: XVT 0x51C018
 static uint16_t g_flightSwTangent91Pct[140] = {
 	0,     366,   731,   1097,  1463,  1828,  2194,	 2561,	2927,  3293,
@@ -102,6 +137,8 @@ static uint16_t g_flightSwTangent91Pct[140] = {
 };
 /* Only the first 8 entries of g_flightSwTangent100Pct are 100% values; from entry 8 on it repeats
  * g_flightSwTangent91Pct, as the original data does. */
+/* Entries 0 to 7 are tan(i * pi / 512) * 65536, rounded. Read by
+ * FlightSw_LookupScaledTangent for any percentage but 91 and 110. */
 // GLOBAL: XVT 0x51C130
 static uint16_t g_flightSwTangent100Pct[140] = {
 	0,     402,   804,   1206,  1608,  2011,  2414,	 2817,	2927,  3293,
@@ -119,6 +156,9 @@ static uint16_t g_flightSwTangent100Pct[140] = {
 	53999, 54668, 55345, 56030, 56723, 57424, 58134, 58852, 59578, 60314,
 	61059, 61813, 62577, 63351, 64135, 64929, 65535, 0,	0,     0,
 };
+/* Entry i is tan(i * pi / 512) * 65536 * 1.1, rounded, up to 65535 at entry
+ * 121; the last two are 0. Read by FlightSw_LookupScaledTangent for 110
+ * percent. */
 // GLOBAL: XVT 0x51C248
 static uint16_t g_flightSwTangent110Pct[124] = {
 	0,     442,   885,   1327,  1770,  2212,  2655,	 3098,	3542,  3985,
@@ -136,199 +176,393 @@ static uint16_t g_flightSwTangent110Pct[124] = {
 	65338, 65535, 0,     0,
 };
 
+/* x and y of the 10 pixels of the radar target marker at 16 bits, the shape of
+ * g_radarTargetMarkerShape10. */
 // GLOBAL: XVT 0x523910
 int8_t g_radarTargetMarkerShape16bpp[20] = {
 	-1, 1, -2, 1, -2, 0, -2, -1, -1, -1, 1, -1, 2, -1, 2, 0, 2, 1, 1, 1,
 };
+/* The 10-pixel radar target marker, then two unused 0, 0 entries. */
 // GLOBAL: XVT 0x51A7E8
 static FlightRadarMarkerOffset g_radarTargetMarkerShape10[12] = {
 	{-1, 1}, {-2, 1}, {-2, 0}, {-2, -1}, {-1, -1}, {1, -1},
 	{2, -1}, {2, 0},  {2, 1},  {1, 1},   {0, 0},   {0, 0},
 };
+/* The 12-pixel radar target marker. */
 // GLOBAL: XVT 0x51A800
 static FlightRadarMarkerOffset g_radarTargetMarkerShape12[12] = {
 	{-1, 2}, {-2, 2}, {-2, 1}, {-2, 0}, {-2, -1}, {-1, -1},
 	{1, -1}, {2, -1}, {2, 0},  {2, 1},  {2, 2},   {1, 2},
 };
+/* The radar target marker shape at 8 bits, set by FlightSw_InitFramebuffer:
+ * g_radarTargetMarkerShape10 at 320x240 or in an unknown mode,
+ * g_radarTargetMarkerShape12 at 640x480 and 480x360. */
 // GLOBAL: XVT 0x51A818
 int8_t *g_radarTargetMarkerShape = (int8_t *)g_radarTargetMarkerShape10;
+/* Pixels in g_radarTargetMarkerShape, 10 or 12, set with it. */
 // GLOBAL: XVT 0x51A81C
 int g_radarTargetMarkerPointCount = 10;
+/* The 7 pixels of the cross marker: 5 across and 3 down through its center. */
 // GLOBAL: XVT 0x51A820
 FlightSwMarkerOffset g_flightSwCrossMarkerOffsets[7] = {
 	{-2, 0}, {-1, 0}, {0, 0}, {1, 0}, {2, 0}, {0, 1}, {0, -1},
 };
+/* The same 7 pixels for 16-bit drawing. */
 // GLOBAL: XVT 0x523928
 static FlightSwMarkerOffset g_flightSwCrossMarkerOffsets16bpp[7] = {
 	{-2, 0}, {-1, 0}, {0, 0}, {1, 0}, {2, 0}, {0, 1}, {0, -1},
 };
+/* (1 << mode) - 1 for packing modes 0 to 8: the run-length bits of a sprite run
+ * byte. */
 // GLOBAL: XVT 0x523600
 uint8_t g_flightSwRleRunLengthMaskByPackingMode[9] = {0,  1,  3,   7,  15,
 						      31, 63, 127, 255};
+/* The shift for packing modes 0 to 8, equal to the mode, that brings a run
+ * byte's color index down. */
 // GLOBAL: XVT 0x523610
 uint8_t g_flightSwRlePaletteShiftByPackingMode[9] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
+/* Starts at 1, and every writer sets 1:
+ * FlightSw_RasterizePreparedRotatedSprite, RenderQuad_DrawModelTexture,
+ * Backdrop_DrawModelTexQuadAtScreen, and at flight start Flight_MainLoop in the
+ * original build and XvtFlightLoading_Globals in the modern one. So the arms of
+ * FlightSw_DrawRotatedSpriteQuad and FlightSw_RasterizePreparedRotatedSprite
+ * for other values never run. */
 // GLOBAL: XVT 0x52361C
 int g_flightSwRotSpriteSpanRunsEnabled = 1;
+/* The pixels under the radar target marker at 8 bits, saved by
+ * FlightSw_DrawRadarTargetMarker8bpp and put back by
+ * FlightSw_RestoreRadarTargetMarker8bpp; up to 12 used. */
 // GLOBAL: XVT 0x54F9C0
 uint8_t g_radarTargetMarkerSavedPixels[16] = {0};
+/* The pixels under the cross marker at 8 bits; the two functions that use it
+ * have no caller. */
 // GLOBAL: XVT 0x54F9D8
 uint8_t g_flightSwCrossMarkerSavedPixels[7] = {0};
+/* Row pitch in bytes of the target FlightSw_SetRenderTarget was last given with
+ * a pitch; g_flightLinePitchPtr points here while that target is in use. */
 // GLOBAL: XVT 0x54F9B0
 int g_flightAltLinePitch = 0;
+/* Byte offset of each row of that target: row times width times
+ * g_flightBytesPerPixel, not times its pitch. */
 // GLOBAL: XVT 0x54F9E0
 int g_flightAltLineOffsetTable[768] = {0};
+/* The pixels under the cross marker at 16 bits; the two functions that use it
+ * have no caller. */
 // GLOBAL: XVT 0x5569C0
 static uint16_t g_flightSwCrossMarkerSavedPixels16bpp[7] = {0};
+/* The 10 pixels under the radar target marker at 16 bits, saved by
+ * FlightSw_DrawRadarTargetMarker16bpp and put back by
+ * FlightSw_RestoreRadarTargetMarker16bpp. */
 // GLOBAL: XVT 0x556998
 uint16_t g_radarTargetMarkerSavedPixels16bpp[10];
+/* Row after the last of the rectangle FlightSw_FillRectOrBorder16bpp fills. Set
+ * by FlightSw_FillClipRect16bpp, FlightSw_FillRectClipped16bpp and
+ * FlightText_ClearRemainingLineBackground. */
 // GLOBAL: XVT 0x556988
 uint16_t g_flightFillRectBottom16bpp = 0;
+/* Column after the last of that rectangle, set as g_flightFillRectBottom16bpp
+ * is. */
 // GLOBAL: XVT 0x55698C
 uint16_t g_flightFillRectRight16bpp = 0;
+/* First column of that rectangle, set as g_flightFillRectBottom16bpp is. */
 // GLOBAL: XVT 0x556990
 uint16_t g_flightFillRectLeft16bpp = 0;
+/* First row of that rectangle, set as g_flightFillRectBottom16bpp is. */
 // GLOBAL: XVT 0x556994
 uint16_t g_flightFillRectTop16bpp = 0;
+/* Row FlightSw_FillRectOrBorder16bpp is filling; only it writes it. */
 // GLOBAL: XVT 0x5569B8
 int g_flightFillRectCurrentY16bpp = 0;
+/* Rows FlightSw_FillRectOrBorder16bpp has left to fill; only it writes it. */
 // GLOBAL: XVT 0x5569D0
 int g_flightFillRectRemainingRows16bpp = 0;
+/* Row FlightSw_FillRectOrBorder8bpp is filling; only it writes it. */
 // GLOBAL: XVT 0x54F9D0
 int32_t g_flightFillRectCurrentY8bpp = 0;
+/* First row of the rectangle FlightSw_FillRectOrBorder8bpp fills. Set by
+ * FlightSw_FillClipRect8bpp, FlightSw_FillRectClipped8bpp and
+ * FlightText_ClearRemainingLineBackground8bpp. */
 // GLOBAL: XVT 0x54F9B8
 uint16_t g_flightFillRectTop8bpp = 0;
+/* Row after the last of that rectangle, set as g_flightFillRectTop8bpp is. */
 // GLOBAL: XVT 0x54F9A8
 uint16_t g_flightFillRectBottom8bpp = 0;
+/* Column after the last of that rectangle, set as g_flightFillRectTop8bpp
+ * is. */
 // GLOBAL: XVT 0x54F9AC
 uint16_t g_flightFillRectRight8bpp = 0;
+/* First column of that rectangle, set as g_flightFillRectTop8bpp is. */
 // GLOBAL: XVT 0x54F9B4
 uint16_t g_flightFillRectLeft8bpp = 0;
+/* Rows FlightSw_FillRectOrBorder8bpp has left to fill; only it writes it. */
 // GLOBAL: XVT 0x5505E8
 unsigned int g_flightFillRectRemainingRows8bpp = 0;
+/* y of the point FlightSw_RotateSpritePoint last turned and scaled, in pixels
+ * from the sprite's screen point; only it writes it. */
 // GLOBAL: XVT 0x9A7B40
 int16_t g_flightSwRotSpriteOutputOffsetY = 0;
+/* x of that point; only FlightSw_RotateSpritePoint writes it. */
 // GLOBAL: XVT 0x9A7B48
 int16_t g_flightSwRotSpriteOutputOffsetX = 0;
+/* x of the sprite point FlightSw_RotateSpritePoint turns, in texels;
+ * FlightSw_DrawRotatedSpriteQuad sets it for each corner, and
+ * FlightSw_RotateSpritePoint leaves its magnitude there. */
 // GLOBAL: XVT 0x9A8D4A
 int16_t g_flightSwRotSpriteInputCornerX = 0;
+/* y of that point, set and left as g_flightSwRotSpriteInputCornerX is. */
 // GLOBAL: XVT 0x9A8D4E
 int16_t g_flightSwRotSpriteInputCornerY = 0;
+/* Screen x of the sprite's first corner, set by FlightSw_DrawRotatedSpriteQuad;
+ * the octant set-up functions then move it along the edge. */
 // GLOBAL: XVT 0x9A8D42
 int16_t g_flightSwRotSpriteEdgeCursorX = 0;
+/* Screen y of the sprite's first corner, set and moved as
+ * g_flightSwRotSpriteEdgeCursorX is. */
 // GLOBAL: XVT 0x9A8D48
 int16_t g_flightSwRotSpriteEdgeCursorY = 0;
+/* Row of the radar target marker to put back: Hud_DrawRadarBlips copies
+ * g_radarTargetMarkerDrawY into it. */
 // GLOBAL: XVT 0xA08C86
 uint16_t g_radarTargetMarkerRestoreY;
+/* Column of the radar target marker to put back: Hud_DrawRadarBlips copies
+ * g_radarTargetMarkerDrawX into it. */
 // GLOBAL: XVT 0xA08C88
 uint16_t g_radarTargetMarkerRestoreX;
+/* Column where the radar target marker is drawn, set by Hud_AddBlipToRadar for
+ * the target's blip. */
 // GLOBAL: XVT 0xA0A1D2
 uint16_t g_radarTargetMarkerDrawX = 0;
+/* Row where the radar target marker is drawn, set by Hud_AddBlipToRadar for the
+ * target's blip. */
 // GLOBAL: XVT 0xA0A1D4
 uint16_t g_radarTargetMarkerDrawY = 0;
+/* Column of the RLE sprite being drawn, set by the four RLE blit functions. */
 // GLOBAL: XVT 0x9CC452
 int16_t g_flightSwRleSpriteX = 0;
+/* Row of the RLE sprite being drawn: the four RLE blit functions set it and
+ * raise it by 1 per row. */
 // GLOBAL: XVT 0x9CC458
 int16_t g_flightSwRleSpriteY = 0;
+/* Added to each run color of an RLE sprite: FlightSw_BlitSpriteRle8bpp and
+ * FlightSw_BlitSpriteRle16bpp set it to 0, the faded draws to their palette
+ * shift, and a 0xFB code in the data sets it from the next byte, except in a
+ * faded draw. */
 // GLOBAL: XVT 0x9ED21D
 int8_t g_flightSwRlePaletteShift = 0;
+/* The transparent index the RLE blit functions were last given; nothing reads
+ * it. */
 // GLOBAL: XVT 0x9ED23A
 uint8_t g_flightSwRleTransparentColor = 0;
 
 #ifndef XVT_MODERN
+/* Window number passed to RtsVga2_SetCurrentPage, which ignores it; nothing
+ * writes it, so it stays 0. */
 // GLOBAL: XVT 0x5233D4
 unsigned int g_vesaWindow = 0;
 #endif
+/* The flight display mode, a FlightResolutionMode. Flight_MainLoop in the
+ * original build and XvtFlightLoading_Globals in the modern one set it from
+ * g_surfaceWidth: 320x240 for 320, 480x360 for 480, else 640x480. */
 // GLOBAL: XVT 0x5233EC
 int g_flightResolutionMode = FLIGHT_RESOLUTION_640X480;
+/* 1 when pixels are square (g_projAspectY of 0), set by
+ * FlightSw_PrepareSpriteRotationTables: picks the 100 percent tangent table and
+ * the 256 scales. */
 // GLOBAL: XVT 0x5235F8
 int g_flightSwRotSpriteSquarePixelMode = 0;
+/* 1 once g_flightSwRotSpriteCoeffCache holds tables, set by
+ * FlightSw_PrepareSpriteRotationTables. Set to 0, to have them built again, by
+ * Hud_Update3DCrt and at flight start: by Flight_MainLoop in the original
+ * build, XvtFlightLoading_Globals in the modern one. */
 // GLOBAL: XVT 0x5235F4
 int g_flightSwRotSpriteCoeffCacheValid = 0;
+/* Nothing writes it, so it stays 0 and SetFlightViewport's inset of 160 never
+ * applies. */
 // GLOBAL: XVT 0x5233DC
 int g_flightViewportInsetX = 0;
+/* Where the software drawing functions write: the surface
+ * FlightSurface_GetSoftwareFramebufferBase returns, or a target given to
+ * FlightSw_SetRenderTarget. Starts at 0xA0000, the VGA window. Many functions
+ * write it, chiefly FlightSurface_Lock and FlightSw_SetRenderTarget. */
 // GLOBAL: XVT 0x5233F4
 uint8_t *g_flightSwFramebufferBase = (uint8_t *)(uintptr_t)0xA0000;
+/* Offset in g_flightAuxBuffer of the viewport span mask in use: 0xC000, or
+ * 0xE000 from PushFlightViewport until PopFlightViewport, which alone write
+ * it. */
 // GLOBAL: XVT 0x52747C
 uint16_t g_viewportSpanMaskOffset = 0xC000;
+/* The row offset table FlightSw_GetLineOffset reads: g_flightLineOffsetTable,
+ * or g_flightAltLineOffsetTable while FlightSw_SetRenderTarget has a target
+ * with a pitch. */
 // GLOBAL: XVT 0x5505E0
 int *g_flightActiveLineOffsetTable;
+/* Points at the row pitch FlightSw_GetLinePitch returns: g_surfacePitch, or
+ * g_flightAltLinePitch while FlightSw_SetRenderTarget has a target with a
+ * pitch. */
 // GLOBAL: XVT 0x5505E4
 int *g_flightLinePitchPtr;
+/* A shared work buffer that holds, among other things, the viewport span masks
+ * at g_viewportSpanMaskOffset. Many functions write it, chiefly
+ * FeDiskIo_InitGlobalBuffers and FeDiskIo_LockGlobalBuffers. */
 // GLOBAL: XVT 0x9A8074
 uint8_t *g_flightAuxBuffer = 0;
+/* Destination line the rotated-sprite walk is drawing:
+ * FlightSw_PrepareSpriteRotationTables sets it to the buffer's start,
+ * FlightSw_RasterizePreparedRotatedSprite to the first line, and each octant
+ * step moves it. */
 // GLOBAL: XVT 0x9A8C18
 uint8_t *g_flightSwRotSpriteDestLinePtr = 0;
+/* The sprite's 8-bit drawing palette from FlightSw_LoadSpritePaletteTables;
+ * FlightSw_BlitPreparedRotatedSpriteSpans maps sprite colors through it. */
 // GLOBAL: XVT 0x9A8C40
 uint8_t g_flightSwRotSpritePalette8[256] = {0};
+/* The runs of the sprite row being drawn, scaled, built by
+ * FlightSw_RasterizePreparedRotatedSprite. Holds 512; nothing checks the count
+ * against that. */
 // GLOBAL: XVT 0x9A57E0
 FlightSwRotSpriteSpanRun g_flightSwRotSpriteSpanRuns[512] = {{0}};
+/* Index in runLengths by which the octant 0 to 3 functions step
+ * g_flightSwRotSpriteClipMinX. */
 // GLOBAL: XVT 0x9A73F6
 static int16_t g_flightSwRotSpriteClipMinRunIdx03 = 0;
+/* Row of the edge's far end, which the octant functions set and step. */
 // GLOBAL: XVT 0x9A7BB0
 static int16_t g_flightSwRotSpriteSecondaryEdgeY = 0;
+/* Column of the edge's far end, which the octant functions set and step. */
 // GLOBAL: XVT 0x9A7BB2
 static int16_t g_flightSwRotSpriteSecondaryEdgeX = 0;
+/* 1 makes the next FlightSw_AdvanceRotSpriteSecondaryScale only clear it: set
+ * at a sprite's start, and by that function when the span base reaches a step
+ * in the edge. */
 // GLOBAL: XVT 0x9CD266
 int16_t g_flightSwRotSpriteSkipSecondaryScaleStep = 0;
+/* Byte offset of each row of the software surface, row times g_surfacePitch:
+ * FlightSw_InitFramebuffer fills g_screenHeight rows, and
+ * FlightSw_SetRenderTarget given a pitch of -1 fills the target's rows. */
 // GLOBAL: XVT 0x9CC460
 int g_flightLineOffsetTable[768] = {0};
+/* High bytes of the sprite's 16-bit drawing colors, from
+ * FlightSw_LoadSpritePaletteTables. */
 // GLOBAL: XVT 0x9D1160
 uint8_t g_flightSwRotSpritePalette16High[256] = {0};
+/* Sum FlightSw_AdvanceRotSpriteSecondaryScale adds secondaryScaleLow to, whose
+ * carries move the span base; set to 0 at a sprite's start. */
 // GLOBAL: XVT 0x9D12E0
 uint16_t g_flightSwRotSpriteSecondaryScaleAccum = 0;
+/* Index in runLengths by which the octant 0 to 3 functions step
+ * g_flightSwRotSpriteClipMaxX. */
 // GLOBAL: XVT 0x9D1314
 static int16_t g_flightSwRotSpriteClipMaxRunIdx03 = 0;
+/* Index in runLengths by which the octant 4 to 7 functions step
+ * g_flightSwRotSpriteClipMaxX. */
 // GLOBAL: XVT 0x9D8C14
 static int16_t g_flightSwRotSpriteClipMaxRunIdx47 = 0;
+/* Index in runLengths by which the octant 4 to 7 functions step
+ * g_flightSwRotSpriteClipMinX. */
 // GLOBAL: XVT 0x9D8C2A
 static int16_t g_flightSwRotSpriteClipMinRunIdx47 = 0;
+/* g_flightVpWidth, copied by FlightSw_PrepareSpriteRotationTables. */
 // GLOBAL: XVT 0x9D8C2C
 int16_t g_flightSwRotSpriteViewportWidth = 0;
+/* Low bytes of the sprite's 16-bit drawing colors, from
+ * FlightSw_LoadSpritePaletteTables. */
 // GLOBAL: XVT 0x9D6830
 uint8_t g_flightSwRotSpritePalette16Low[256] = {0};
+/* The rotation tables for the last angle, built by
+ * FlightSw_BuildSpriteRotationCoeffs when the angle changes or
+ * g_flightSwRotSpriteCoeffCacheValid is 0. */
 // GLOBAL: XVT 0x9CD280
 FlightSwRotSpriteCoeffState g_flightSwRotSpriteCoeffCache = {0};
+/* The buffer rotated sprites are drawn into before
+ * FlightSw_BlitPreparedRotatedSpriteSpans copies them out; set through
+ * FlightSw_SetRotatedSpriteDestBuffer by FeDiskIo_InitGlobalBuffers and
+ * FeDiskIo_LockGlobalBuffers. */
 // GLOBAL: XVT 0x9D77C4
 uint8_t *g_flightSwRotSpriteDestBuffer = NULL;
+/* g_flightVpMaxX, copied by FlightSw_PrepareSpriteRotationTables. */
 // GLOBAL: XVT 0x9D77F0
 int16_t g_flightSwRotSpriteViewportMaxX = 0;
+/* Edge position from which the clipped span functions draw on the current line;
+ * the octant functions set and step it. */
 // GLOBAL: XVT 0x9EC458
 int16_t g_flightSwRotSpriteClipMinX = 0;
+/* Copy of g_flightSwRotSpriteClipMinX taken by
+ * FlightSw_RasterizePreparedRotatedSprite; nothing reads it. */
 // GLOBAL: XVT 0x9E9646
 uint16_t g_flightSwRotSpriteSavedClipMinX = 0;
+/* Copy of g_flightSwRotSpriteClipMaxX taken by
+ * FlightSw_RasterizePreparedRotatedSprite; nothing reads it. */
 // GLOBAL: XVT 0x9E9650
 uint16_t g_flightSwRotSpriteSavedClipMaxX = 0;
+/* Edge position of the current line's start: run positions are added to it to
+ * index spanOffsets. Set by the octant set-up functions and moved by
+ * FlightSw_AdvanceRotSpriteSecondaryScale. */
 // GLOBAL: XVT 0x9EC462
 int16_t g_flightSwRotSpriteSpanBaseX = 0;
+/* Column where the current line starts: fixed by the set-up for octants 0 to 3,
+ * stepped by the octant 4 to 7 functions. */
 // GLOBAL: XVT 0x9E9654
 int16_t g_flightSwRotSpritePrimaryEdgeX = 0;
+/* Row where the current line starts: stepped by the octant 0 to 3 functions,
+ * fixed by the set-up for octants 4 to 7. */
 // GLOBAL: XVT 0x9E9652
 int16_t g_flightSwRotSpritePrimaryEdgeY = 0;
+/* g_flightVpMaxY, copied by FlightSw_PrepareSpriteRotationTables. */
 // GLOBAL: XVT 0x9ED230
 int16_t g_flightSwRotSpriteViewportMaxY = 0;
+/* Set to -1 by FlightSw_PrepareSpriteRotationTables, its only writer, so the
+ * arms that test it for a positive value never run. */
 // GLOBAL: XVT 0x9E95F2
 int16_t g_flightSwRotSpriteDestYMode = 0;
+/* Row pitch of g_flightSwRotSpriteDestBuffer: g_flightBytesPerPixel *
+ * g_flightVpWidth, set by FlightSw_PrepareSpriteRotationTables. */
 // GLOBAL: XVT 0x9A8D50
 int g_flightSwRotSpriteDestPitchBytes = 0;
+/* The scale of the sprite being drawn, from
+ * FlightSw_PrepareRotatedSpriteScaleState. */
 // GLOBAL: XVT 0x9EC610
 FlightSwRotSpriteScaleState g_flightSwRotSpriteScaleState = {0};
+/* Copy of g_flightSwRotSpritePrimaryEdgeY taken by
+ * FlightSw_RasterizePreparedRotatedSprite; nothing reads it. */
 // GLOBAL: XVT 0xA00850
 uint16_t g_flightSwRotSpriteSavedPrimaryEdgeY = 0;
+/* Copy of g_flightSwRotSpritePrimaryEdgeX taken by
+ * FlightSw_RasterizePreparedRotatedSprite; nothing reads it. */
 // GLOBAL: XVT 0xA00852
 uint16_t g_flightSwRotSpriteSavedPrimaryEdgeX = 0;
+/* Pixels left in the row the screen-rectangle save and restore functions are
+ * copying. */
 // GLOBAL: XVT 0x9ED238
 uint16_t g_savedRowPixelsRemaining = 0;
+/* Edge position at which the clipped span functions stop on the current line;
+ * under 0, FlightSw_RasterizePreparedRotatedSprite draws nothing on it. The
+ * octant functions set and step it. */
 // GLOBAL: XVT 0x9D114C
 int16_t g_flightSwRotSpriteClipMaxX = 0;
+/* Points at g_flightSwRotSpriteCoeffCache once
+ * FlightSw_PrepareSpriteRotationTables runs. */
 // GLOBAL: XVT 0x9FE7D4
 FlightSwRotSpriteCoeffState *g_flightSwRotSpriteCoeffs = 0;
+/* Runs left for a span draw function: FlightSw_RasterizePreparedRotatedSprite
+ * sets it to the row's run count, and the function counts it down. */
 // GLOBAL: XVT 0xA60A50
 int g_flightSwRotSpriteSpanRunCountdown = 0;
+/* g_flightVpHeight, copied by FlightSw_PrepareSpriteRotationTables. */
 // GLOBAL: XVT 0xA07CD0
 int16_t g_flightSwRotSpriteViewportHeight = 0;
+/* Folded angle from which a rotated sprite's edge steps along y: 0x2000 with
+ * square pixels, else 0x2200. Set by FlightSw_PrepareSpriteRotationTables and
+ * FlightSw_PrepareRotatedSpriteScaleState. */
 // GLOBAL: XVT 0xA080F2
 uint16_t g_flightSwRotSpriteAxisSwapThresholdAngle = 0;
 
+/* Fills g_flightLineOffsetTable for g_screenHeight rows of g_surfacePitch, sets
+ * g_flightSwFramebufferBase from FlightSurface_GetSoftwareFramebufferBase and
+ * clears g_surfacePitch * g_screenHeight bytes there (the original build at
+ * 640x480 a VESA page at a time), picks the radar target marker for
+ * g_flightResolutionMode (12 pixels at 640x480 and 480x360, else 10), and
+ * points g_flightLinePitchPtr and g_flightActiveLineOffsetTable at
+ * g_surfacePitch and that table. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x40DF00
 void FlightSw_InitFramebuffer(void)
@@ -405,6 +639,14 @@ void FlightSw_InitFramebuffer(void)
 	g_flightActiveLineOffsetTable = g_flightLineOffsetTable;
 }
 
+/* Points the software drawing functions at a target. With surface NULL: back at
+ * the surface from FlightSurface_GetSoftwareFramebufferBase, with
+ * g_surfacePitch and g_flightLineOffsetTable. With pitchBytes -1: at surface
+ * with g_surfacePitch, refilling g_flightLineOffsetTable for height rows.
+ * Otherwise at surface with pitchBytes in g_flightAltLinePitch, and
+ * g_flightAltLineOffsetTable filled for height rows of width *
+ * g_flightBytesPerPixel bytes, so row offsets follow that product, not
+ * pitchBytes. Does not check height against the tables' 768 rows. */
 // FUNCTION: XVT 0x40E0C0
 void FlightSw_SetRenderTarget(void *surface, int width, unsigned int height,
 			      int pitchBytes)
@@ -453,21 +695,27 @@ void FlightSw_SetRenderTarget(void *surface, int width, unsigned int height,
 	g_flightActiveLineOffsetTable = g_flightAltLineOffsetTable;
 }
 
+/* Returns the byte offset of row line from the active row table. Does not check
+ * line. */
 // FUNCTION: XVT 0x40E190
 int FlightSw_GetLineOffset(int line)
 {
 	return g_flightActiveLineOffsetTable[line];
 }
 
+/* Returns the active row pitch in bytes, *g_flightLinePitchPtr. */
 // FUNCTION: XVT 0x40E1A0
 int FlightSw_GetLinePitch(void) { return *g_flightLinePitchPtr; }
 
+/* Returns x plus y times the active row pitch. */
 // FUNCTION: XVT 0x40EA50
 int FlightSw_ComputePixelOffset8bpp(int x, int y)
 {
 	return x + y * FlightSw_GetLinePitch();
 }
 
+/* Draws an RLE sprite at 8 bits without fading: sets g_flightSwRlePaletteShift
+ * to 0 and calls FlightSw_BlitSpriteRleImpl8bpp. */
 // FUNCTION: XVT 0x40EA60
 void FlightSw_BlitSpriteRle8bpp(uint8_t *rleData, int x, int y,
 				int transparentColorIndex, int mirror)
@@ -477,6 +725,8 @@ void FlightSw_BlitSpriteRle8bpp(uint8_t *rleData, int x, int y,
 				       mirror, 0, 0);
 }
 
+/* Draws an RLE sprite at 8 bits, faded: sets g_flightSwRlePaletteShift to
+ * paletteShift and calls FlightSw_BlitSpriteRleImpl8bpp without mirroring. */
 // FUNCTION: XVT 0x40EA90
 void FlightSw_BlitSpriteRleFaded8bpp(uint8_t *rleData, int x, int y,
 				     int transparentColorIndex,
@@ -487,6 +737,17 @@ void FlightSw_BlitSpriteRleFaded8bpp(uint8_t *rleData, int x, int y,
 				       1, fadeAmount);
 }
 
+/* Draws an RLE sprite on the 8-bit frame buffer from x, y, a row at a time,
+ * rightward or, with mirror, leftward. A byte under 0xFB is a run of (byte & 3)
+ * + 1 pixels of color byte >> 2; 0xFD is a run of the next byte + 1 pixels of
+ * the color after it; 0xFC draws the byte after next + 1 pixels alternating
+ * between the next byte's color and the color 1 above it; 0xFB sets
+ * g_flightSwRlePaletteShift from the next byte, which a faded draw skips; 0xFE
+ * ends a row and 0xFF the sprite. When unfaded, runs under 0xFB add
+ * g_flightSwRlePaletteShift to their color. Any run but 0xFC whose color then
+ * equals transparentColorIndex is skipped. Faded, each drawn color becomes
+ * color - fadeAmount + g_flightSwRlePaletteShift, or g_flightSwRlePaletteShift
+ * alone when fadeAmount is 0 or less. Does not clip. */
 // FUNCTION: XVT 0x40EAC0
 void FlightSw_BlitSpriteRleImpl8bpp(uint8_t *rleData, int x, int y,
 				    int transparentColorIndex, int mirror,
@@ -637,6 +898,11 @@ void FlightSw_BlitSpriteRleImpl8bpp(uint8_t *rleData, int x, int y,
 	}
 }
 
+/* Draws a map icon in the RLE form FlightSw_BlitSpriteRleImpl8bpp reads, at 8
+ * bits, or through FlightSw_BlitMapIconRle16bpp at 16 bits, without fading.
+ * Each drawn color is 4 above the run's color: runs under 0xFB add
+ * g_flightSwRlePaletteShift first, 0xFD and 0xFC runs do not, 0xFB sets it, and
+ * transparentIndex is tested before the 4 is added (not for 0xFC). */
 // FUNCTION: XVT 0x40ECE0
 void FlightSw_BlitMapIconRle(uint8_t *rleData, int x, int y,
 			     int transparentIndex, int mirror)
@@ -809,6 +1075,9 @@ void FlightSw_BlitMapIconRle(uint8_t *rleData, int x, int y,
 	}
 }
 
+/* Writes colorIndex at x, y on the 8-bit frame buffer through the active row
+ * table. Does not clip. FlightRender_InstallCallbacks stores it in
+ * g_flightDrawPixelFn, which nothing calls. */
 // FUNCTION: XVT 0x40EFE0
 void FlightSw_DrawPixel8bpp(uint16_t x, uint16_t y, int8_t colorIndex)
 {
@@ -829,6 +1098,8 @@ void FlightSw_DrawPixel8bpp(uint16_t x, uint16_t y, int8_t colorIndex)
 	g_flightSwFramebufferBase[pixelOffset] = colorIndex;
 }
 
+/* Fills the g_flightClip rectangle with g_flightTextBgColor at 8 bits, through
+ * FlightSw_FillRectOrBorder8bpp. */
 // FUNCTION: XVT 0x40F9F0
 void FlightSw_FillClipRect8bpp(void)
 {
@@ -839,6 +1110,12 @@ void FlightSw_FillClipRect8bpp(void)
 	FlightSw_FillRectOrBorder8bpp(0);
 }
 
+/* Fills the 8-bit g_flightFillRect rectangle with g_flightTextBgColor or, with
+ * borderThickness nonzero, only a frame that many pixels thick; does nothing
+ * when it has no width. Steps g_flightFillRectCurrentY8bpp and
+ * g_flightFillRectRemainingRows8bpp down the rows. Drawing to the legacy
+ * 0xA0000 base outside 320x240, it works out a VESA page per row for
+ * RtsVga2_SetCurrentPage, which does nothing. Does not clip. */
 // FUNCTION: XVT 0x40FA30
 void FlightSw_FillRectOrBorder8bpp(uint16_t borderThickness)
 {
@@ -1141,6 +1418,10 @@ void FlightSw_FillRectOrBorder8bpp(uint16_t borderThickness)
 	}
 }
 
+/* Clips the rectangle from x1, y1 to x2, y2 (ends not included) to the
+ * g_flightClip rectangle, stores it in the 8-bit g_flightFillRect globals, and
+ * fills it or its frame with FlightSw_FillRectOrBorder8bpp when anything is
+ * left. */
 // FUNCTION: XVT 0x410040
 void FlightSw_FillRectClipped8bpp(uint16_t x1, uint16_t y1, uint16_t x2,
 				  uint16_t y2, uint16_t borderThickness)
@@ -1167,6 +1448,8 @@ void FlightSw_FillRectClipped8bpp(uint16_t x1, uint16_t y1, uint16_t x2,
 	}
 }
 
+/* Copies height rows of width pixels from x, y on the 8-bit frame buffer into
+ * buffer, row after row. Does not clip. */
 // FUNCTION: XVT 0x410230
 void FlightSw_SaveScreenRect8bpp(uint8_t *buffer, int x, int y, int16_t width,
 				 int height)
@@ -1207,6 +1490,8 @@ void FlightSw_SaveScreenRect8bpp(uint8_t *buffer, int x, int y, int16_t width,
 	} while (rowsRemaining != 0);
 }
 
+/* Writes height rows of width pixels from buffer back at x, y on the 8-bit
+ * frame buffer. Does not clip. */
 // FUNCTION: XVT 0x4102F0
 void FlightSw_RestoreScreenRect8bpp(uint8_t *buffer, int x, int y,
 				    int16_t width, int height)
@@ -1241,6 +1526,11 @@ void FlightSw_RestoreScreenRect8bpp(uint8_t *buffer, int x, int y,
 	}
 }
 
+/* Draws count points, each three 16-bit words: x, y, and a color in the low
+ * byte of the third. A pixel is drawn only where the frame buffer holds palette
+ * index 44. The third word then becomes a mask: 1 when the pixel was drawn,
+ * else 0, and at 640x480 the pixel below gets the same test and adds the 0x2
+ * bit. Does not clip. */
 // FUNCTION: XVT 0x4103A0
 void FlightSw_DrawPointArray8bpp(uint16_t *points, int16_t count)
 {
@@ -1313,6 +1603,9 @@ void FlightSw_DrawPointArray8bpp(uint16_t *points, int16_t count)
 	} while (count != 0);
 }
 
+/* Undoes FlightSw_DrawPointArray8bpp: writes palette index 44 back at each
+ * point whose mask has the 0x1 bit and, at 640x480, below it where the mask has
+ * the 0x2 bit. */
 // FUNCTION: XVT 0x4104D0
 void FlightSw_ErasePointArray8bpp(uint16_t *points, int16_t count)
 {
@@ -1375,6 +1668,10 @@ void FlightSw_ErasePointArray8bpp(uint16_t *points, int16_t count)
 	} while (remaining != 0);
 }
 
+/* Draws the radar target marker at g_radarTargetMarkerDrawX and
+ * g_radarTargetMarkerDrawY in palette index 206: g_radarTargetMarkerPointCount
+ * pixels of g_radarTargetMarkerShape, saving the pixels under them in
+ * g_radarTargetMarkerSavedPixels. Does not clip. */
 // FUNCTION: XVT 0x4105E0
 void FlightSw_DrawRadarTargetMarker8bpp(void)
 {
@@ -1417,6 +1714,8 @@ void FlightSw_DrawRadarTargetMarker8bpp(void)
 	} while (remaining != 0);
 }
 
+/* Puts back the pixels FlightSw_DrawRadarTargetMarker8bpp saved, at
+ * g_radarTargetMarkerRestoreX and g_radarTargetMarkerRestoreY. */
 // FUNCTION: XVT 0x4106C0
 void FlightSw_RestoreRadarTargetMarker8bpp(void)
 {
@@ -1460,6 +1759,8 @@ void FlightSw_RestoreRadarTargetMarker8bpp(void)
 	} while (remaining != 0);
 }
 
+/* Draws the 7-pixel cross marker centered on x, y in color, saving the pixels
+ * under it; returns color. Nothing calls this. */
 // FUNCTION: XVT 0x410780
 uint8_t FlightSw_DrawCrossMarker8bpp(uint16_t x, uint16_t y, uint8_t color)
 {
@@ -1506,6 +1807,8 @@ uint8_t FlightSw_DrawCrossMarker8bpp(uint16_t x, uint16_t y, uint8_t color)
 	return color;
 }
 
+/* Puts back the 7 pixels saved around x, y and returns the last of them.
+ * Nothing calls this. */
 // FUNCTION: XVT 0x410860
 uint8_t FlightSw_RestoreCrossMarker8bpp(uint16_t x, uint16_t y)
 {
@@ -1544,6 +1847,17 @@ uint8_t FlightSw_RestoreCrossMarker8bpp(uint16_t x, uint16_t y)
 	return pixel;
 }
 
+/* Draws the background stars. Three grids of g_starfieldGridDimension by
+ * g_starfieldGridDimension points lie on three faces of a cube around the eye,
+ * turned by the camera matrix, each point moved by its star's jitter vector; a
+ * point behind the eye is mirrored through it, so the opposite faces show too.
+ * A point where |x| and |y| are under z that projects inside the viewport is
+ * drawn in its star's color, but only over a pixel of the sky color
+ * (g_flightBackgroundColorIndex, or its 16-bit color). On first use it makes
+ * the star colors (grays: the palette entry from 0x40 on nearest gray 8 to 23,
+ * or that level in each channel of a 16-bit color) and each star's random
+ * jitter vector, 0 to 124. Calls FeDiskIo_FatalError(0) when an allocation
+ * fails. */
 // FUNCTION: XVT 0x410930
 void FlightStarfield_Render(void)
 {
@@ -1796,6 +2110,7 @@ void FlightStarfield_Render(void)
 	}
 }
 
+/* Does nothing in either build. */
 // FUNCTION: XVT 0x410FF0
 void RtsVga2_SetCurrentPage(uint8_t window, uint16_t page)
 {
@@ -1803,6 +2118,12 @@ void RtsVga2_SetCurrentPage(uint8_t window, uint16_t page)
 	(void)page;
 }
 
+/* Saves the screen as flightscreenN.bmp, N the first number with no such file
+ * (in the modern build, in the user folder). Builds a BMP palette from
+ * g_swPalette with each channel shifted up 2 bits, releases every lock on the
+ * flight surface, flips, locks with g_flightDrawToHudLayer at 0, writes the
+ * surface with FrontImage_SaveBmpFile at 8 or 16 bits, unlocks, puts
+ * g_flightDrawToHudLayer back and takes the locks again. */
 // FUNCTION: XVT 0x411010
 void FlightScreenshot_Capture(void)
 {
@@ -1869,6 +2190,12 @@ void FlightScreenshot_Capture(void)
 	}
 }
 
+/* Draws a line from x1, y1 to x2, y2 in colorIdx on the 8-bit frame buffer,
+ * clipped to the g_flightClip rectangle (right and bottom edges excluded),
+ * stepping along the longer axis with a running error. Every line stops one
+ * pixel short of its far end on the axis it steps along. Rows are
+ * g_surfacePitch apart from g_flightSwFramebufferBase, not taken from the row
+ * table. */
 // FUNCTION: XVT 0x411120
 void FlightSw_DrawLine8bpp(int x1, int y1, int x2, int y2, uint8_t colorIdx)
 {
@@ -2134,6 +2461,10 @@ void FlightSw_DrawLine8bpp(int x1, int y1, int x2, int y2, uint8_t colorIdx)
 	}
 }
 
+/* Draws g_flightSwRotSpriteSpanRunCountdown runs of a rotated sprite's line at
+ * 8 bits, counting it down to 0: pixel i of a run goes at destBase +
+ * spanOffsets[g_flightSwRotSpriteSpanBaseX + startX + i] in the run's color
+ * index. Does not clip; the countdown and each length must be at least 1. */
 // FUNCTION: XVT 0x4213E0
 void FlightSw_DrawRotSpriteSpanRuns8(const FlightSwRotSpriteSpanRun *runs,
 				     uint8_t *destBase, const int *spanOffsets)
@@ -2165,6 +2496,9 @@ void FlightSw_DrawRotSpriteSpanRuns8(const FlightSwRotSpriteSpanRun *runs,
 	}
 }
 
+/* Draws the runs as FlightSw_DrawRotSpriteSpanRuns8 does, but only the part of
+ * each from g_flightSwRotSpriteClipMinX up to, not including,
+ * g_flightSwRotSpriteClipMaxX. */
 // FUNCTION: XVT 0x421430
 void FlightSw_DrawClippedRotSpriteSpanRuns8(
 	const FlightSwRotSpriteSpanRun *runs, uint8_t *destBase,
@@ -2207,6 +2541,9 @@ void FlightSw_DrawClippedRotSpriteSpanRuns8(
 	} while (g_flightSwRotSpriteSpanRunCountdown != 0);
 }
 
+/* The 16-bit form of FlightSw_DrawRotSpriteSpanRuns8: writes the color index in
+ * a pixel's low byte and 0x80 in its high byte, marking it for
+ * FlightSw_BlitPreparedRotatedSpriteSpans. */
 // FUNCTION: XVT 0x4214A0
 void FlightSw_DrawRotSpriteSpanRuns16(const FlightSwRotSpriteSpanRun *runs,
 				      uint8_t *destBase, const int *spanOffsets)
@@ -2234,6 +2571,8 @@ void FlightSw_DrawRotSpriteSpanRuns16(const FlightSwRotSpriteSpanRun *runs,
 	} while (g_flightSwRotSpriteSpanRunCountdown != 0);
 }
 
+/* The 16-bit form of FlightSw_DrawClippedRotSpriteSpanRuns8, marking pixels as
+ * FlightSw_DrawRotSpriteSpanRuns16 does. */
 // FUNCTION: XVT 0x4214F0
 void FlightSw_DrawClippedRotSpriteSpanRuns16(
 	const FlightSwRotSpriteSpanRun *runs, uint8_t *destBase,
@@ -2279,6 +2618,16 @@ void FlightSw_DrawClippedRotSpriteSpanRuns16(
 	} while (g_flightSwRotSpriteSpanRunCountdown != 0);
 }
 
+/* Draws a rotated, scaled sprite on the software surface. Takes its first
+ * corner from the data header, sets the scale for screenSize with
+ * FlightSw_PrepareRotatedSpriteScaleState, and turns that corner to find the
+ * screen point, from screenX and screenY, where the walk starts;
+ * FlightSw_RasterizePreparedRotatedSprite then draws the image into
+ * g_flightSwRotSpriteDestBuffer. Then turns the other three corners (the first
+ * plus the width, plus the width less the height, and less the height) and
+ * passes the four to FlightSw_ClipAndBlitPreparedRotatedSprite, which copies
+ * what was drawn to the screen. FlightSw_PrepareSpriteRotationTables must have
+ * run for the angle. */
 // FUNCTION: XVT 0x421560
 void FlightSw_DrawRotatedSpriteQuad(int16_t screenX, int16_t screenY,
 				    uint16_t screenSize, SpritePayload *sprite)
@@ -2337,6 +2686,11 @@ void FlightSw_DrawRotatedSpriteQuad(int16_t screenX, int16_t screenY,
 	FlightSw_ClipAndBlitPreparedRotatedSprite(cornerCoords);
 }
 
+/* Turns the four corners' y into rows from the bottom (g_flightVpMaxY minus y,
+ * written back into cornerCoords), takes their bounding box widened by 2 on
+ * each side, clips it to the viewport, returning when it lies wholly outside,
+ * and calls FlightSw_BlitPreparedRotatedSpriteSpans on that box of
+ * g_flightSwRotSpriteDestBuffer. */
 // FUNCTION: XVT 0x421700
 void FlightSw_ClipAndBlitPreparedRotatedSprite(int *cornerCoords)
 {
@@ -2439,6 +2793,14 @@ void FlightSw_ClipAndBlitPreparedRotatedSprite(int *cornerCoords)
 		startX, startY, endX, endY);
 }
 
+/* Readies the rotated-sprite state for the current viewport and an angle:
+ * copies the viewport's size and limits, sets the destination pitch and line,
+ * g_flightSwRotSpriteDestYMode to -1, square-pixel mode when g_projAspectY is 0
+ * and the axis-swap angle (0x2000, else 0x2200), and points
+ * g_flightSwRotSpriteCoeffs at the cache. Rebuilds the cache with
+ * FlightSw_BuildSpriteRotationCoeffs when rotationAngle differs from the cached
+ * angle, compared as signed 16-bit values, or
+ * g_flightSwRotSpriteCoeffCacheValid is 0. Ignores bytesPerPixel. */
 // FUNCTION: XVT 0x421850
 void FlightSw_PrepareSpriteRotationTables(int16_t rotationAngle,
 					  int bytesPerPixel)
@@ -2472,6 +2834,11 @@ void FlightSw_PrepareSpriteRotationTables(int16_t rotationAngle,
 	}
 }
 
+/* Copies the sprite's colorCount drawing colors: at 16 bits each color's low
+ * and high byte into g_flightSwRotSpritePalette16Low and
+ * g_flightSwRotSpritePalette16High, else one byte each into
+ * g_flightSwRotSpritePalette8. Returns colorCount, or 0 when it is negative.
+ * Does not check colorCount against 256. */
 // FUNCTION: XVT 0x421930
 int FlightSw_LoadSpritePaletteTables(SpritePayload *sprite)
 {
@@ -2497,6 +2864,9 @@ int FlightSw_LoadSpritePaletteTables(SpritePayload *sprite)
 	return colorIndex;
 }
 
+/* Returns entry angle >> 6 of g_flightSwTangent91Pct when scalePercent is 91,
+ * of g_flightSwTangent110Pct when it is 110, else of g_flightSwTangent100Pct.
+ * Does not check the entry against the table's size. */
 // FUNCTION: XVT 0x421980
 uint16_t FlightSw_LookupScaledTangent(uint16_t angle, int16_t scalePercent)
 {
@@ -2510,6 +2880,14 @@ uint16_t FlightSw_LookupScaledTangent(uint16_t angle, int16_t scalePercent)
 	return g_flightSwTangent100Pct[angle];
 }
 
+/* Sets scaleState for a sprite of screenSize: the screen scale; the aspect
+ * scales, 256 and 256 with square pixels, else 233 and 282, setting
+ * g_flightSwRotSpriteAxisSwapThresholdAngle to 0x2000 or 0x2200 as well; the
+ * horizontal step, (screenSize * primaryCosQ15) >> 16, times aspectScaleY >> 8
+ * with primaryAxisSwap; and the vertical step, the base step plus (base *
+ * secondaryStepByte) >> 8, times inverseAspectScaleY >> 8 without
+ * secondaryAxisSwap. Rebuilds the run-width tables when the horizontal step
+ * differs from the one they were built for. */
 // FUNCTION: XVT 0x4219D0
 void FlightSw_PrepareRotatedSpriteScaleState(
 	uint16_t screenSize, FlightSwRotSpriteCoeffState *rotationCoeffs,
@@ -2590,6 +2968,14 @@ void FlightSw_PrepareRotatedSpriteScaleState(
 	}
 }
 
+/* Turns and scales the sprite point in g_flightSwRotSpriteInputCornerX and Y
+ * (texels) into g_flightSwRotSpriteOutputOffsetX and Y (pixels from the
+ * sprite's screen point). Scales the magnitudes by screenScale over 256 with
+ * rounding, y first by inverseAspectScaleY over 256; then x' = (x * cos + y *
+ * sin + 0x8000) >> 16 and y' = (x * sin - y * cos + 0x8000) >> 16, with signed
+ * sine and cosine magnitudes from rotationCoeffs (65536 standing for 1); then
+ * scales y' by aspectScaleY over 256 with rounding. Leaves the input's
+ * magnitudes in the input globals. */
 // FUNCTION: XVT 0x421AE0
 void FlightSw_RotateSpritePoint(uint16_t *rotationCoeffs,
 				FlightSwRotSpriteScaleState *scaleState)
@@ -2658,6 +3044,16 @@ void FlightSw_RotateSpritePoint(uint16_t *rotationCoeffs,
 	g_flightSwRotSpriteOutputOffsetY = finalY;
 }
 
+/* Fills the FlightSwRotSpriteCoeffState at outCoeffs for rotationAngle: the
+ * sign bits and flips; the angle folded into a quarter turn and its sine and
+ * cosine magnitudes; whether the edge steps along y (folded angle at or over
+ * g_flightSwRotSpriteAxisSwapThresholdAngle, folding it once more); the edge's
+ * scanCount points from (0, 0), one step along the main axis each, the cross
+ * axis following a 16-bit fraction that starts at one half and grows by the
+ * tangent (91, 100 or 110 percent by pixel shape); the runs of points that
+ * share a cross coordinate; the secondary scale for the angle a quarter turn
+ * on; the octant; the first and last points and the extents in entry 0; and
+ * each point's destination byte offset with the flips applied. */
 // FUNCTION: XVT 0x421C50
 void FlightSw_BuildSpriteRotationCoeffs(uint16_t rotationAngle,
 					uint16_t *outCoeffs)
@@ -2968,6 +3364,22 @@ void FlightSw_BuildSpriteRotationCoeffs(uint16_t rotationAngle,
 	}
 }
 
+/* Draws the encoded sprite rows into g_flightSwRotSpriteDestBuffer along the
+ * rotated edge. Sets g_flightSwRotSpriteSpanRunsEnabled to 1, then returns at
+ * once when FlightSw_InitRotSpriteForCurrentOctant finds nothing to draw; else
+ * saves the start state in the four g_flightSwRotSpriteSaved globals and points
+ * the walk at its first line. Each row, until a 0xFF, is decoded up to its
+ * 0xFE: 0xFB sets a palette base from the next two bytes, low first; 0xFC skips
+ * the next byte + 1 texels; 0xFD is a run of the next byte + 1 texels of the
+ * color after it; any other byte is a run of (byte & mask) + 1 texels of color
+ * palette base + (byte >> shift) for packingMode. Each run's width comes from
+ * the step tables. The row is then drawn on each of the n lines the vertical
+ * step gives it, stepping a line after each with the octant step function
+ * (returning when that returns 0) and FlightSw_AdvanceRotSpriteSecondaryScale;
+ * with n of 0 it is drawn once without stepping. A row with runs is drawn only
+ * while g_flightSwRotSpriteClipMaxX is 0 or more: unclipped when its positions
+ * run from at least 0 and g_flightSwRotSpriteClipMinX to under
+ * g_flightSwRotSpriteClipMaxX, else clipped. */
 // FUNCTION: XVT 0x422170
 void FlightSw_RasterizePreparedRotatedSprite(uint8_t *spriteData,
 					     int packingMode)
@@ -3200,6 +3612,16 @@ void FlightSw_RasterizePreparedRotatedSprite(uint8_t *spriteData,
 	}
 }
 
+/* Moves the span base along the edge as lines advance. When
+ * g_flightSwRotSpriteSkipSecondaryScaleStep is set it clears it and returns.
+ * Else adds secondaryScaleLow to g_flightSwRotSpriteSecondaryScaleAccum; with
+ * secondaryScaleHigh 0 it goes on only on a carry, moving 1, otherwise it moves
+ * 1, or 2 on a carry. It moves g_flightSwRotSpriteSpanBaseX up when flipCount
+ * is 1 without primaryAxisSwap, or is not 1 with it, else down, and sets the
+ * skip flag when the edge point beside the base's (the next when moving up, the
+ * one before when moving down) has another cross coordinate. For that lookup
+ * the base is reduced into 0 to scanCount - 1 as a 16-bit unsigned value, so a
+ * negative base counts from 65536. */
 // FUNCTION: XVT 0x422560
 void FlightSw_AdvanceRotSpriteSecondaryScale(void)
 {
@@ -3275,6 +3697,8 @@ void FlightSw_AdvanceRotSpriteSecondaryScale(void)
 	}
 }
 
+/* Calls the set-up function for g_flightSwRotSpriteCoeffs->octant and returns
+ * what it returns; for an octant over 7, returns the octant. */
 // FUNCTION: XVT 0x4226A0
 int FlightSw_InitRotSpriteForCurrentOctant(void)
 {
@@ -3303,6 +3727,8 @@ int FlightSw_InitRotSpriteForCurrentOctant(void)
 	}
 }
 
+/* Calls the line-step function for g_flightSwRotSpriteCoeffs->octant and
+ * returns what it returns; for an octant over 7, returns the octant. */
 // FUNCTION: XVT 0x422710
 int FlightSw_StepRotSpriteForCurrentOctant(void)
 {
@@ -3331,6 +3757,15 @@ int FlightSw_StepRotSpriteForCurrentOctant(void)
 	}
 }
 
+/* Sets up the walk for octant 0: the edge steps along x, no flips. Moves the
+ * edge cursor a whole edge (the extents in entry 0, plus 1) at a time until its
+ * x is inside the viewport, moving the span base a viewport width each time;
+ * puts the line start at the viewport's left side
+ * (g_flightSwRotSpritePrimaryEdgeX 0) on the edge's row there and the far end's
+ * row in g_flightSwRotSpriteSecondaryEdgeY; then sets the clip bounds from the
+ * edge points where the edge crosses the viewport's rows, and
+ * g_flightSwRotSpriteSpanBaseX. Returns 0 when the line start's row is at or
+ * past g_flightSwRotSpriteViewportHeight, else 1. */
 // FUNCTION: XVT 0x422780
 int FlightSw_InitRotSpriteOctant0(void)
 {
@@ -3470,6 +3905,11 @@ int FlightSw_InitRotSpriteOctant0(void)
 	return 1;
 }
 
+/* Steps the octant 0 walk a line: moves g_flightSwRotSpriteDestLinePtr back by
+ * destPitchDelta, raises g_flightSwRotSpritePrimaryEdgeY and
+ * g_flightSwRotSpriteSecondaryEdgeY by 1, and moves the clip bounds by the run
+ * lengths as either end enters or leaves the viewport's rows. Returns 0 once
+ * the line start's row reaches the viewport height, else 1. */
 // FUNCTION: XVT 0x4229F0
 int FlightSw_StepRotSpriteOctant0(void)
 {
@@ -3524,6 +3964,9 @@ int FlightSw_StepRotSpriteOctant0(void)
 	return 1;
 }
 
+/* Sets up the walk for octant 1 (flipY) the way FlightSw_InitRotSpriteOctant0
+ * does for octant 0, the cursor's row moving the other way. Returns 0 when the
+ * far end's row is at or past the viewport height, else 1. */
 // FUNCTION: XVT 0x422B10
 int FlightSw_InitRotSpriteOctant1(void)
 {
@@ -3668,6 +4111,8 @@ int FlightSw_InitRotSpriteOctant1(void)
 	return 1;
 }
 
+/* Steps the octant 1 walk a line as FlightSw_StepRotSpriteOctant0 does. Returns
+ * 0 once the far end's row reaches the viewport height, else 1. */
 // FUNCTION: XVT 0x422D90
 int FlightSw_StepRotSpriteOctant1(void)
 {
@@ -3717,6 +4162,10 @@ int FlightSw_StepRotSpriteOctant1(void)
 	return 1;
 }
 
+/* Sets up the walk for octant 2 (flipX) the way FlightSw_InitRotSpriteOctant0
+ * does for octant 0, with the line start at the viewport's right side
+ * (g_flightSwRotSpritePrimaryEdgeX of g_flightSwRotSpriteViewportMaxX). Returns
+ * 0 when the far end's row is under 0, else 1. */
 // FUNCTION: XVT 0x422E90
 int FlightSw_InitRotSpriteOctant2(void)
 {
@@ -3861,6 +4310,9 @@ int FlightSw_InitRotSpriteOctant2(void)
 	return 1;
 }
 
+/* Steps the octant 2 walk a line: moves g_flightSwRotSpriteDestLinePtr on by
+ * destPitchDelta, lowers both edge rows by 1 and moves the clip bounds. Returns
+ * 0 once the far end's row is under 0, else 1. */
 // FUNCTION: XVT 0x4230F0
 int FlightSw_StepRotSpriteOctant2(void)
 {
@@ -3904,6 +4356,9 @@ int FlightSw_StepRotSpriteOctant2(void)
 	return 1;
 }
 
+/* Sets up the walk for octant 3 (flipX and flipY), with the line start at the
+ * viewport's right side. Returns 0 when the line start's row is under 0, else
+ * 1. */
 // FUNCTION: XVT 0x423200
 int FlightSw_InitRotSpriteOctant3(void)
 {
@@ -4023,6 +4478,8 @@ int FlightSw_InitRotSpriteOctant3(void)
 	return 1;
 }
 
+/* Steps the octant 3 walk a line as FlightSw_StepRotSpriteOctant2 does. Returns
+ * 0 once the line start's row is under 0, else 1. */
 // FUNCTION: XVT 0x423480
 int FlightSw_StepRotSpriteOctant3(void)
 {
@@ -4082,6 +4539,14 @@ int FlightSw_StepRotSpriteOctant3(void)
 	return 1;
 }
 
+/* Sets up the walk for octant 4: the edge steps along y, no flips. Moves the
+ * edge cursor a whole edge at a time until its y is inside the viewport, moving
+ * the span base a viewport height each time; puts the line start at the
+ * viewport's top (g_flightSwRotSpritePrimaryEdgeY 0) in the edge's column there
+ * and the far end's column in g_flightSwRotSpriteSecondaryEdgeX; then sets the
+ * clip bounds and g_flightSwRotSpriteSpanBaseX. Returns 0 when the far end's
+ * column is under 0, and in the modern build when the clip search finds no edge
+ * point; else 1. */
 // FUNCTION: XVT 0x4235D0
 int FlightSw_InitRotSpriteOctant4(void)
 {
@@ -4219,6 +4684,10 @@ int FlightSw_InitRotSpriteOctant4(void)
 	return 1;
 }
 
+/* Steps the octant 4 walk a line: moves g_flightSwRotSpriteDestLinePtr back one
+ * pixel, lowers g_flightSwRotSpritePrimaryEdgeX and
+ * g_flightSwRotSpriteSecondaryEdgeX by 1 and moves the clip bounds. Returns 0
+ * once the far end's column is under 0, else 1. */
 // FUNCTION: XVT 0x423810
 int FlightSw_StepRotSpriteOctant4(void)
 {
@@ -4258,6 +4727,11 @@ int FlightSw_StepRotSpriteOctant4(void)
 	return 1;
 }
 
+/* Sets up the walk for octant 5 (edge along y, flipY) the way
+ * FlightSw_InitRotSpriteOctant4 does for octant 4, with the line start at the
+ * viewport's bottom (g_flightSwRotSpritePrimaryEdgeY of
+ * g_flightSwRotSpriteViewportMaxY). Returns 0 when the line start's column is
+ * at or past the viewport width, else 1. */
 // FUNCTION: XVT 0x423900
 int FlightSw_InitRotSpriteOctant5(void)
 {
@@ -4396,6 +4870,9 @@ int FlightSw_InitRotSpriteOctant5(void)
 	return 1;
 }
 
+/* Steps the octant 5 walk a line: moves g_flightSwRotSpriteDestLinePtr on one
+ * pixel, raises both edge columns by 1 and moves the clip bounds. Returns 0
+ * once the line start's column reaches the viewport width, else 1. */
 // FUNCTION: XVT 0x423B90
 int FlightSw_StepRotSpriteOctant5(void)
 {
@@ -4448,6 +4925,9 @@ int FlightSw_StepRotSpriteOctant5(void)
 	return 1;
 }
 
+/* Sets up the walk for octant 6 (edge along y, flipX), with the line start at
+ * the viewport's top. Returns 0 when the line start's column is under 0, else
+ * 1. */
 // FUNCTION: XVT 0x423CD0
 int FlightSw_InitRotSpriteOctant6(void)
 {
@@ -4568,6 +5048,8 @@ int FlightSw_InitRotSpriteOctant6(void)
 	return 1;
 }
 
+/* Steps the octant 6 walk a line as FlightSw_StepRotSpriteOctant4 does. Returns
+ * 0 once the line start's column is under 0, else 1. */
 // FUNCTION: XVT 0x423F30
 int FlightSw_StepRotSpriteOctant6(void)
 {
@@ -4620,6 +5102,9 @@ int FlightSw_StepRotSpriteOctant6(void)
 	return 1;
 }
 
+/* Sets up the walk for octant 7 (edge along y, flipX and flipY), with the line
+ * start at the viewport's bottom. Returns 0 when the far end's column is at or
+ * past the viewport width, else 1. */
 // FUNCTION: XVT 0x424060
 int FlightSw_InitRotSpriteOctant7(void)
 {
@@ -4749,6 +5234,8 @@ int FlightSw_InitRotSpriteOctant7(void)
 	return 1;
 }
 
+/* Steps the octant 7 walk a line as FlightSw_StepRotSpriteOctant5 does. Returns
+ * 0 once the far end's column reaches the viewport width, else 1. */
 // FUNCTION: XVT 0x4242E0
 int FlightSw_StepRotSpriteOctant7(void)
 {
@@ -4790,12 +5277,20 @@ int FlightSw_StepRotSpriteOctant7(void)
 	return 1;
 }
 
+/* Sets g_flightSwRotSpriteDestBuffer to bufferAddress and returns it. */
 // FUNCTION: XVT 0x426C50
 uint8_t *FlightSw_SetRotatedSpriteDestBuffer(uint8_t *bufferAddress)
 {
 	return g_flightSwRotSpriteDestBuffer = bufferAddress;
 }
 
+/* Sets the flight viewport to requestedWidth by requestedHeight at byte offset
+ * requestedBaseOffset in the surface: the width, height, last column and row
+ * and centers (halves, rounded down), g_flightVpBaseOffset, and g_flightVpY and
+ * g_flightVpX from the offset and g_surfacePitch, x in pixels. Returns
+ * g_flightVpX. Would halve the size and add 120 rows and 160 bytes to the
+ * offset when g_flightViewportInsetX is 160, which it never is. Ignores
+ * arg3. */
 // FUNCTION: XVT 0x426C60
 unsigned int SetFlightViewport(unsigned int requestedWidth,
 			       unsigned int requestedHeight, int arg3,
@@ -4832,6 +5327,9 @@ unsigned int SetFlightViewport(unsigned int requestedWidth,
 		       baseOffset % pitch / (unsigned int)g_flightBytesPerPixel;
 }
 
+/* Copies g_flightVpHeight rows of g_flightVpWidth bytes, packed in srcPixels,
+ * into the viewport on the frame buffer, g_surfacePitch apart. Nothing calls
+ * this. */
 // FUNCTION: XVT 0x426D50
 void FlightSw_CopyLegacy8BitViewportToFramebuffer(const uint8_t *srcPixels)
 {
@@ -4864,6 +5362,11 @@ void FlightSw_CopyLegacy8BitViewportToFramebuffer(const uint8_t *srcPixels)
 	}
 }
 
+/* Saves the viewport and camera matrix in g_savedFlightViewport (the modern
+ * build also saves its own camera state), sets the viewport to width by height
+ * at baseOffset as SetFlightViewport does, without the inset, and sets
+ * g_viewportSpanMaskOffset to the second mask, 0xE000. Returns g_flightVpX.
+ * Ignores arg3. */
 // FUNCTION: XVT 0x426F40
 unsigned int PushFlightViewport(uint16_t width, uint16_t height, int16_t arg3,
 				unsigned int baseOffset)
@@ -4908,6 +5411,10 @@ unsigned int PushFlightViewport(uint16_t width, uint16_t height, int16_t arg3,
 	return (unsigned int)g_flightVpX;
 }
 
+/* Puts back the camera matrix and viewport PushFlightViewport saved (the modern
+ * build also restores its own camera state), with g_flightVpBaseOffset cut to
+ * 16 bits, and sets g_viewportSpanMaskOffset back to 0xC000. Returns
+ * g_flightVpX. */
 // FUNCTION: XVT 0x427070
 int PopFlightViewport(void)
 {
@@ -4935,6 +5442,11 @@ int PopFlightViewport(void)
 	return g_flightVpX = g_savedFlightViewport.viewportX;
 }
 
+/* Copies a widthPixels by heightPixels block from sourceBase (sourcePitch bytes
+ * per row, from sourceX, sourceY) to destinationX, destinationY on the frame
+ * buffer, g_flightBytesPerPixel bytes per pixel. With transparentColorIndex
+ * 0xFFFF every pixel is copied; otherwise pixels equal to that index, or at 16
+ * bits to its palette color, are skipped. Does not clip. */
 // FUNCTION: XVT 0x427150
 void FlightSw_BlitRectToFlightSurface(
 	uint8_t *sourceBase, uint16_t transparentColorIndex, uint16_t sourceX,
@@ -5004,6 +5516,9 @@ void FlightSw_BlitRectToFlightSurface(
 	}
 }
 
+/* Copies a widthPixels by heightPixels block from srcX, srcY on the frame
+ * buffer to dstX, dstY in dstPixels, dstPitchBytes per row. Nothing calls
+ * this. */
 // FUNCTION: XVT 0x4272D0
 void FlightSw_CopyFramebufferRectToBuffer(uint8_t *dstPixels, uint16_t srcX,
 					  uint16_t srcY, uint16_t dstX,
@@ -5031,6 +5546,9 @@ void FlightSw_CopyFramebufferRectToBuffer(uint8_t *dstPixels, uint16_t srcX,
 	}
 }
 
+/* Fills row y from xStart up to, not including, xEnd with colorIndex (its
+ * palette color at 16 bits), all measured from the g_flightClip rectangle's top
+ * left; draws nothing when xEnd is not past xStart. Does not clip. */
 // FUNCTION: XVT 0x4377B0
 void FlightSw_DrawHorizontalColorSpan(int xStart, int xEnd, int y,
 				      uint8_t colorIndex)
@@ -5071,6 +5589,14 @@ void FlightSw_DrawHorizontalColorSpan(int xStart, int xEnd, int y,
 	}
 }
 
+/* Copies a span mask of height rows, width pixels each, from encodedMask into
+ * g_flightAuxBuffer at g_viewportSpanMaskOffset, in the form
+ * RenderScene_Initialize reads: per row a signed first byte, then run lengths,
+ * where a 0 adds 255 to the next byte and 0, 0 adds 511. The source writes a
+ * long run as 0 and a byte b, meaning 256 + b; when g_screenWidth is not 320, b
+ * of 0 is followed by a byte c, meaning 512 + c, and b of 0xFF means 511. With
+ * mirrorHorizontal each row's runs are reversed, and its first byte negated
+ * when it has an even number of runs. Calls nullsub_2 in the hardware path. */
 // FUNCTION: XVT 0x442090
 void FlightSw_CopyViewportSpanMaskRle(const uint8_t *encodedMask,
 				      uint16_t width, uint16_t height,
@@ -5253,6 +5779,10 @@ void FlightSw_CopyViewportSpanMaskRle(const uint8_t *encodedMask,
 	}
 }
 
+/* Writes into g_flightAuxBuffer at g_viewportSpanMaskOffset a span mask of
+ * height rows, each one unmasked run of width pixels (first byte 1), in the run
+ * form FlightSw_CopyViewportSpanMaskRle writes. Calls nullsub_2 in the hardware
+ * path. */
 // FUNCTION: XVT 0x442250
 void FlightSw_BuildFullViewportSpanMaskRle(uint16_t width, unsigned int height)
 {
@@ -5281,12 +5811,15 @@ void FlightSw_BuildFullViewportSpanMaskRle(uint16_t width, unsigned int height)
 	}
 }
 
+/* Returns y times the active row pitch plus x times g_flightBytesPerPixel. */
 // FUNCTION: XVT 0x4498E0
 int32_t FlightSw_ComputePixelOffset(int x, int y)
 {
 	return y * FlightSw_GetLinePitch() + x * g_flightBytesPerPixel;
 }
 
+/* Draws an RLE sprite at 16 bits without fading: sets g_flightSwRlePaletteShift
+ * to 0 and calls FlightSw_BlitSpriteRleImpl16bpp. */
 // FUNCTION: XVT 0x449900
 void FlightSw_BlitSpriteRle16bpp(uint8_t *rleData, int x, int y,
 				 int transparentColorIndex, int mirror)
@@ -5296,6 +5829,8 @@ void FlightSw_BlitSpriteRle16bpp(uint8_t *rleData, int x, int y,
 					mirror, 0, 0);
 }
 
+/* Draws an RLE sprite at 16 bits, faded: sets g_flightSwRlePaletteShift to
+ * paletteShift and calls FlightSw_BlitSpriteRleImpl16bpp without mirroring. */
 // FUNCTION: XVT 0x449930
 void FlightSw_BlitSpriteRleFaded16bpp(uint8_t *rleData, int x, int y,
 				      int transparentColorIndex,
@@ -5309,6 +5844,9 @@ void FlightSw_BlitSpriteRleFaded16bpp(uint8_t *rleData, int x, int y,
 					1, (int16_t)zeroExtendedFadeAmount);
 }
 
+/* The 16-bit form of FlightSw_BlitSpriteRleImpl8bpp: the same codes,
+ * transparency and fading, each color drawn as its g_flightPalette16Bpp
+ * entry. */
 // FUNCTION: XVT 0x449970
 void FlightSw_BlitSpriteRleImpl16bpp(uint8_t *rleData, int16_t x, int16_t y,
 				     int transparentColorIndex, int mirror,
@@ -5468,6 +6006,8 @@ void FlightSw_BlitSpriteRleImpl16bpp(uint8_t *rleData, int16_t x, int16_t y,
 	}
 }
 
+/* The 16-bit form of FlightSw_BlitMapIconRle: each color drawn as the
+ * g_flightPalette16Bpp entry 4 above it. */
 // FUNCTION: XVT 0x449BD0
 void FlightSw_BlitMapIconRle16bpp(uint8_t *rleData, int x, int y,
 				  int transparentIndex, int mirror)
@@ -5637,6 +6177,11 @@ void FlightSw_BlitMapIconRle16bpp(uint8_t *rleData, int x, int y,
 	}
 }
 
+/* Writes the palette color of colorIndex at x, y on the 16-bit frame buffer
+ * through the active row table. colorIndex is signed, so an index from 0x80 up
+ * reads before g_flightPalette16Bpp. Does not clip.
+ * FlightRender_InstallCallbacks stores it in g_flightDrawPixelFn, which nothing
+ * calls. */
 // FUNCTION: XVT 0x449EF0
 void FlightSw_DrawPixel16bpp(uint16_t x, uint16_t y, int8_t colorIndex)
 {
@@ -5661,6 +6206,8 @@ void FlightSw_DrawPixel16bpp(uint16_t x, uint16_t y, int8_t colorIndex)
 	*(uint16_t *)(framebufferBase + pixelOffset) = color;
 }
 
+/* Fills the g_flightClip rectangle with g_flightTextBgColor at 16 bits, through
+ * FlightSw_FillRectOrBorder16bpp. */
 // FUNCTION: XVT 0x44A570
 void FlightSw_FillClipRect16bpp(void)
 {
@@ -5671,6 +6218,9 @@ void FlightSw_FillClipRect16bpp(void)
 	FlightSw_FillRectOrBorder16bpp(0);
 }
 
+/* The 16-bit form of FlightSw_FillRectOrBorder8bpp, filling with
+ * g_flightPalette16Bpp[g_flightTextBgColor] and stepping the 16-bit
+ * g_flightFillRect globals. */
 // FUNCTION: XVT 0x44A5B0
 void FlightSw_FillRectOrBorder16bpp(uint16_t borderThickness)
 {
@@ -5825,6 +6375,10 @@ void FlightSw_FillRectOrBorder16bpp(uint16_t borderThickness)
 	}
 }
 
+/* Clips the rectangle from x1, y1 to x2, y2 (ends not included) to the
+ * g_flightClip rectangle, stores it in the 16-bit g_flightFillRect globals, and
+ * fills it or its frame with FlightSw_FillRectOrBorder16bpp when anything is
+ * left. */
 // FUNCTION: XVT 0x44A980
 void FlightSw_FillRectClipped16bpp(uint16_t x1, uint16_t y1, uint16_t x2,
 				   uint16_t y2, uint16_t borderThickness)
@@ -5859,6 +6413,8 @@ void FlightSw_FillRectClipped16bpp(uint16_t x1, uint16_t y1, uint16_t x2,
 	}
 }
 
+/* Copies height rows of width 16-bit pixels from x, y on the frame buffer into
+ * buffer, row after row. Does not clip. */
 // FUNCTION: XVT 0x44AB10
 void FlightSw_SaveScreenRect16bpp(uint16_t *buffer, int x, int y, int16_t width,
 				  int height)
@@ -5898,6 +6454,8 @@ void FlightSw_SaveScreenRect16bpp(uint16_t *buffer, int x, int y, int16_t width,
 	} while (height != 0);
 }
 
+/* Writes height rows of width 16-bit pixels from buffer back at x, y. Does not
+ * clip. */
 // FUNCTION: XVT 0x44ABC0
 void FlightSw_RestoreScreenRect16bpp(uint16_t *buffer, int x, int y,
 				     int16_t width, int height)
@@ -5940,6 +6498,9 @@ void FlightSw_RestoreScreenRect16bpp(uint16_t *buffer, int x, int y,
 	} while (height != 0);
 }
 
+/* The 16-bit form of FlightSw_DrawPointArray8bpp, testing for the palette color
+ * of index 44 and with no second row at 640x480: a point not drawn has its
+ * third word set to 0, and a drawn one keeps its color there. */
 // FUNCTION: XVT 0x44AC70
 void FlightSw_DrawPointArray16bpp(uint16_t *points, int16_t count)
 {
@@ -5985,6 +6546,8 @@ void FlightSw_DrawPointArray16bpp(uint16_t *points, int16_t count)
 	} while (remaining != 0);
 }
 
+/* Writes the palette color of index 44 back at each point whose third word has
+ * a nonzero low byte. */
 // FUNCTION: XVT 0x44AD30
 void FlightSw_ErasePointArray16bpp(uint16_t *points, int16_t count)
 {
@@ -6034,6 +6597,9 @@ void FlightSw_ErasePointArray16bpp(uint16_t *points, int16_t count)
 	} while (remaining != 0);
 }
 
+/* Draws the 10-pixel radar target marker of g_radarTargetMarkerShape16bpp at
+ * g_radarTargetMarkerDrawX and g_radarTargetMarkerDrawY in the palette color of
+ * index 206, saving the pixels under it. Does not clip. */
 // FUNCTION: XVT 0x44ADD0
 void FlightSw_DrawRadarTargetMarker16bpp(void)
 {
@@ -6075,6 +6641,8 @@ void FlightSw_DrawRadarTargetMarker16bpp(void)
 	} while (remaining != 0);
 }
 
+/* Puts back the 10 pixels FlightSw_DrawRadarTargetMarker16bpp saved, at
+ * g_radarTargetMarkerRestoreX and g_radarTargetMarkerRestoreY. */
 // FUNCTION: XVT 0x44AEB0
 void FlightSw_RestoreRadarTargetMarker16bpp(void)
 {
@@ -6116,6 +6684,9 @@ void FlightSw_RestoreRadarTargetMarker16bpp(void)
 	} while (remaining != 0);
 }
 
+/* Draws the 7-pixel cross marker centered on x, y in the palette color of
+ * colorIndex, saving the pixels under it; returns that color. Nothing calls
+ * this. */
 // FUNCTION: XVT 0x44AF70
 uint16_t FlightSw_DrawCrossMarker16bpp(uint16_t x, uint16_t y,
 				       uint8_t colorIndex)
@@ -6168,6 +6739,8 @@ uint16_t FlightSw_DrawCrossMarker16bpp(uint16_t x, uint16_t y,
 	return result;
 }
 
+/* Puts back the 7 pixels saved around x, y and returns the last of them.
+ * Nothing calls this. */
 // FUNCTION: XVT 0x44B070
 uint16_t FlightSw_RestoreCrossMarker16bpp(uint16_t x, uint16_t y)
 {
@@ -6211,6 +6784,9 @@ uint16_t FlightSw_RestoreCrossMarker16bpp(uint16_t x, uint16_t y)
 	return pixel;
 }
 
+/* The 16-bit form of FlightSw_DrawLine8bpp, drawing in the palette color of
+ * colorIdx with rows the active row pitch apart. The modern build also returns
+ * from an upward line whose clipped end lies below its clipped start. */
 // FUNCTION: XVT 0x44B140
 void FlightSw_DrawLine16bpp(int x1, int y1, int x2, int y2, uint8_t colorIdx)
 {
@@ -6477,12 +7053,24 @@ void FlightSw_DrawLine16bpp(int x1, int y1, int x2, int y2, uint8_t colorIdx)
 	}
 }
 
+/* Despite the name, returns trig2_calcsineofangle(angle), which is not a Q15
+ * value: the sine's magnitude with 65536 standing for 1, as a 16-bit
+ * pattern. */
 // FUNCTION: XVT 0x46A3B0
 int16_t FlightSw_LookupSpriteSineQ15(int16_t angle)
 {
 	return trig2_calcsineofangle(angle);
 }
 
+/* Copies what was drawn in the box from startX, startY up to, not including,
+ * endX, endY from the rotated-sprite buffer at pDst to the screen, locking the
+ * flight surface unless g_flightSurfaceAlreadyLocked is set. A drawn pixel has
+ * 0x80 in its high byte at 16 bits, which is replaced by the sprite's palette
+ * color, or is under 0x40 at 8 bits, which is mapped through
+ * g_flightSwRotSpritePalette8. Each run of drawn pixels goes out through
+ * sw3d_BlitOccludedSpan with g_projScaleInt / g_viewSpaceDepth as its inverse
+ * depth. rowSkipBytes takes the pointer from a row's end to the next row's
+ * start. */
 // FUNCTION: XVT 0x486470
 void FlightSw_BlitPreparedRotatedSpriteSpans(uint8_t *pDst, int rowSkipBytes,
 					     int startX, int startY, int endX,

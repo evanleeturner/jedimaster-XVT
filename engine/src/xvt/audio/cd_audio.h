@@ -9,7 +9,13 @@ extern "C" {
 #endif
 
 struct CDAudioTrackCache {
+	/* CD volume, 0 to 65535, CDAudio_SetAuxVolume last set;
+	 * FrontendDisplay_Init and
+	 * FrontendDisplay_ResetGlobalStatePreservingNetworkSession clear it
+	 * with the rest of g_frontState. */
 	unsigned int currentAuxVolume;
+	/* Length of track n + 1 in entry n, as MCI minutes, seconds and frames;
+	 * CDAudio_Initialize fills it, CDAudio_CloseDevice clears it. */
 	unsigned int trackLengthMsfByTrack[40];
 };
 

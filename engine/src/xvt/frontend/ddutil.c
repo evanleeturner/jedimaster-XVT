@@ -28,6 +28,13 @@ LoadImageA(void *instance, const char *name, unsigned int type, int width,
 __declspec(dllimport) int __stdcall DeleteObject(void *object);
 #endif
 
+/* Nothing calls this. The original build loads the bitmap file bitmapName as a
+ * DIB section (LoadImageA flags 0x2010, LR_CREATEDIBSECTION | LR_LOADFROMFILE)
+ * at width by height, 0 meaning its own size, creates an offscreen surface of
+ * the loaded size, copies the bitmap into it with DDUtil_CopyBitmapToSurface,
+ * frees the bitmap and returns the surface. It returns NULL when the load or
+ * the surface creation fails, the latter without freeing the bitmap. The modern
+ * build returns NULL. */
 // FUNCTION: XVT 0x4F0BE0
 IDirectDrawSurface *DDUtil_LoadBitmapSurface(IDirectDraw *directDraw,
 					     const char *bitmapName, int width,
@@ -66,6 +73,10 @@ IDirectDrawSurface *DDUtil_LoadBitmapSurface(IDirectDraw *directDraw,
 #endif
 }
 
+/* Nothing calls this. The original build loads bitmapName as a bitmap resource
+ * of the executable, else as a bitmap file, copies it over the whole surface
+ * with DDUtil_CopyBitmapToSurface and returns that result, or DX_E_FAIL when
+ * both loads fail. The modern build returns DX_E_NOTIMPL. */
 // FUNCTION: XVT 0x4F0CC0
 HRESULT DDUtil_ReloadBitmapSurface(IDirectDrawSurface *surface,
 				   const char *bitmapName)
@@ -92,6 +103,12 @@ HRESULT DDUtil_ReloadBitmapSurface(IDirectDrawSurface *surface,
 #endif
 }
 
+/* Only DDUtil_LoadBitmapSurface and DDUtil_ReloadBitmapSurface call this, and
+ * nothing calls them. The original build restores the surface, then stretches
+ * the bitmap's width by height pixels from (xSrc, ySrc), 0 meaning the bitmap's
+ * own width or height, over the whole surface through GDI. Returns the
+ * surface's GetDC result, DX_DD_OK when it copied, or DX_E_FAIL when surface or
+ * bitmap is NULL. The modern build returns DX_E_NOTIMPL. */
 // FUNCTION: XVT 0x4F0D30
 HRESULT DDUtil_CopyBitmapToSurface(IDirectDrawSurface *surface, void *bitmap,
 				   int xSrc, int ySrc, int width, int height)

@@ -11,28 +11,48 @@ extern "C" {
 #pragma pack(push, 1)
 
 typedef struct TexLevelHeader {
+	/* Bytes of the block as read; the converted palettes go right after
+	 * them. */
 	uint32_t dataSize;
+	/* Despite the name, FeDiskIo_LoadResources stores in entry 0 the file's
+	 * count of palette colors, by which it makes room for the converted
+	 * palettes; nothing reads or writes either entry by name. */
 	uint32_t reserved04[2];
+	/* Offset of the block's own palette from the header, 4 bytes per
+	 * color. */
 	uint32_t paletteOffset;
+	/* Offset from the header of the table of image offsets, one 32-bit
+	 * offset from the header per image. */
 	uint32_t imageOffsetTableOffset;
+	/* Offset from the header of the block palette converted for the
+	 * display; set by the TexLevel_Convert functions when the palette is
+	 * 24-bit. */
 	uint32_t convertedPaletteOffset;
-	uint32_t imageCount;
-	uint32_t reserved1C[4];
+	uint32_t imageCount;	/* Images in the offset table. */
+	uint32_t reserved1C[4]; /* Nothing reads or writes it by name. */
+	/* 24 when the block's palette is to be converted. */
 	uint32_t bitsPerPixel;
-	uint32_t paletteColorCount;
+	uint32_t paletteColorCount; /* Colors in the block's own palette. */
 } TexLevelHeader;
 
 typedef struct TexLevelImageHeader {
-	uint32_t reserved00;
+	uint32_t reserved00; /* Nothing reads or writes it by name. */
+	/* Offset of the image's palette from this header, 4 bytes per color. */
 	uint32_t paletteOffset;
+	/* Offset of the encoded pixels from this header. */
 	uint32_t encodedImageOffset;
+	/* Offset from this header of the palette converted for the display; set
+	 * by the TexLevel_Convert functions for every image. */
 	uint32_t convertedPaletteOffset;
-	uint32_t width;
-	uint32_t height;
-	uint32_t reserved18[2];
+	uint32_t width;		/* Width in pixels. */
+	uint32_t height;	/* Height in pixels. */
+	uint32_t reserved18[2]; /* Nothing reads or writes it by name. */
+	/* How the pixels are encoded; the RLE readers index their tables by
+	 * it. */
 	uint32_t packingMode;
+	/* 24 when the image's palette is to be converted. */
 	uint32_t bitsPerPixel;
-	uint32_t paletteColorCount;
+	uint32_t paletteColorCount; /* Colors in the image's palette. */
 } TexLevelImageHeader;
 
 #pragma pack(pop)

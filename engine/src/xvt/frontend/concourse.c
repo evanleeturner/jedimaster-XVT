@@ -45,43 +45,93 @@ enum {
 	CONCOURSE_VERSION_MINOR = 0,
 };
 
+/* Heap array of the saved pilots' names, one 14-byte entry per file in
+ * g_pilotFileList, each read from the first 12 bytes of its file by
+ * PilotRecord_RebuildPilotList. Freed and set NULL by Concourse_Exit and before
+ * each rebuild. */
 // GLOBAL: XVT 0xB69CC0
 char (*g_pilotListDisplayNames)[14] = NULL;
+/* The tournaments directory's mission list for the pilot record pages:
+ * PilotRecord_DrawMissionAchievementsPage takes it over from
+ * MissionSetup_LoadMissionList. Freed and set NULL by Concourse_Exit and
+ * before each reload. */
 // GLOBAL: XVT 0xB69CD4
 MissionListEntry *g_pilotRecordTournamentMissionList = NULL;
+/* Entries in g_pilotRecordMeleeMissionList, set when it loads; freeing the
+ * list leaves the count as it was. */
 // GLOBAL: XVT 0xB69E20
 int g_pilotRecordMeleeMissionCount = 0;
+/* The saved pilot files, *.plt in the base game folder, sorted by name;
+ * PilotRecord_RebuildPilotList builds it. Freed and set NULL by
+ * Concourse_Exit and before each rebuild. */
 // GLOBAL: XVT 0xB69E28
 FrontendFileList *g_pilotFileList = NULL;
+/* The combat engagements directory's single-player mission list for the
+ * pilot record pages, loaded like g_pilotRecordTournamentMissionList. */
 // GLOBAL: XVT 0xB69E2C
 MissionListEntry *g_pilotRecordSingleplayerCombatMissionList = NULL;
+/* The campaigns directory's multiplayer mission list for the pilot record
+ * pages: loaded like g_pilotRecordTournamentMissionList, but with
+ * g_frontendMissionSessionMode at the network host mode during the load. */
 // GLOBAL: XVT 0xB6A240
 MissionListEntry *g_pilotRecordMultiplayerCampaignMissionList = NULL;
+/* The campaigns directory's single-player mission list for the pilot record
+ * pages, loaded like g_pilotRecordTournamentMissionList, and also by
+ * PilotRecord_DrawCutsceneViewerPage and PilotRecord_DrawCampaignMedalsPage. */
 // GLOBAL: XVT 0xB6A258
 MissionListEntry *g_pilotRecordSingleplayerCampaignMissionList = NULL;
+/* Entries in g_pilotRecordSingleplayerCampaignMissionList, set when it
+ * loads; freeing the list leaves the count as it was. */
 // GLOBAL: XVT 0xB6A25C
 int g_pilotRecordSingleplayerCampaignMissionCount = 0;
+/* Entries in g_pilotRecordSingleplayerCombatMissionList, set when it loads;
+ * freeing the list leaves the count as it was. */
 // GLOBAL: XVT 0xB6A254
 int g_pilotRecordSingleplayerCombatMissionCount = 0;
+/* The combat engagements directory's multiplayer mission list for the pilot
+ * record pages, loaded like g_pilotRecordMultiplayerCampaignMissionList. */
 // GLOBAL: XVT 0xB6A2B8
 MissionListEntry *g_pilotRecordMultiplayerCombatMissionList = NULL;
+/* The training exercises directory's multiplayer mission list for the pilot
+ * record pages, loaded like g_pilotRecordMultiplayerCampaignMissionList and
+ * also by PilotRecord_DrawCampaignMedalsPage. */
 // GLOBAL: XVT 0xB6A2CC
 MissionListEntry *g_pilotRecordMultiplayerTrainingMissionList = NULL;
+/* The melees directory's mission list for the pilot record pages, loaded
+ * like g_pilotRecordTournamentMissionList. */
 // GLOBAL: XVT 0xB6A2D0
 MissionListEntry *g_pilotRecordMeleeMissionList = NULL;
+/* The training exercises directory's single-player mission list for the
+ * pilot record pages, loaded like g_pilotRecordTournamentMissionList and also
+ * by PilotRecord_DrawCampaignMedalsPage. */
 // GLOBAL: XVT 0xB6A2D4
 MissionListEntry *g_pilotRecordSingleplayerTrainingMissionList = NULL;
+/* Entries in g_pilotRecordSingleplayerTrainingMissionList, set when it
+ * loads; freeing the list leaves the count as it was. */
 // GLOBAL: XVT 0xB69D18
 int g_pilotRecordSingleplayerTrainingMissionCount = 0;
+/* Entries in g_pilotRecordMultiplayerCombatMissionList, set when it loads;
+ * freeing the list leaves the count as it was. */
 // GLOBAL: XVT 0xB6A260
 int g_pilotRecordMultiplayerCombatMissionCount = 0;
+/* Entries in g_pilotRecordMultiplayerCampaignMissionList, set when it loads;
+ * freeing the list leaves the count as it was. */
 // GLOBAL: XVT 0xB6A268
 int g_pilotRecordMultiplayerCampaignMissionCount = 0;
+/* Entries in g_pilotRecordTournamentMissionList, set when it loads; freeing
+ * the list leaves the count as it was. */
 // GLOBAL: XVT 0xB6A2BC
 int g_pilotRecordTournamentMissionCount = 0;
+/* Entries in g_pilotRecordMultiplayerTrainingMissionList, set when it
+ * loads; freeing the list leaves the count as it was. */
 // GLOBAL: XVT 0xBB2814
 int g_pilotRecordMultiplayerTrainingMissionCount = 0;
 
+/* Exit function of the concourse: frees g_pilotFileList,
+ * g_pilotListDisplayNames, the eight pilot record mission lists and
+ * g_battleMissionList, setting each NULL but leaving the counts, frees the
+ * "background0" and "background1" images and forgets the scrollable
+ * controls. Returns 0; ignores frameCounter. */
 // FUNCTION: XVT 0x4BE050
 int Concourse_Exit(int frameCounter)
 {
@@ -137,6 +187,33 @@ int Concourse_Exit(int frameCounter)
 	return 0;
 }
 
+/* Update function of the concourse: the main screen with the pilot list and the
+ * pilot record pages. The modern build first waits out a movie viewer and
+ * finishes a pending common action. On frame 0 (in the modern build, only
+ * without a pending pilot action), first, unless the modern build has a
+ * concourse action pending: the original build ends the game, returning 1,
+ * after a message box when no joystick is found, and asks for the game CD until
+ * it is found, returning 1 on Cancel; the modern build stops with a fatal error
+ * when the flight data is missing. It loads the image and sound lists and
+ * checks for the host CD. The original build, unless movie checks are off or
+ * the game was started to host or join, checks the movie CD when
+ * factionStatistics[0].cdMovieCheckCounter is 0, asking for it until it is
+ * there and returning 1 on Cancel, then sets the counter to 1; otherwise it
+ * counts the counter up, back to 0 at 5. Then it sets g_skipMovieChecks to 1.
+ * After that it shows any pending CD music warning, puts the cursor at (32,
+ * 127), empties the chat log, sets g_pilotRecordPage to 0 and
+ * g_frontendMissionSessionMode to none, marks the pilot record pages for
+ * rebuilding, and clears other session flags; with the intro skipped it also
+ * copies the current faction's mission choice into the pilot. Started with
+ * "ishost", it returns 1 after an error box without the host CD, else opens an
+ * internet game as host and goes to mission setup, or stays here when that
+ * fails (the modern build hands this to XvtNetworkTask_Begin); started with
+ * "isclient", it goes to the join screen. Otherwise it loads the two
+ * backgrounds and starts a 20-frame text fade. Every frame it runs the pilot
+ * selection panel and draws "v. 2.0", the pilot's rating and name between two
+ * animated rebel or imperial emblems, the pilot record page g_pilotRecordPage
+ * picks and the navigation controls. Returns 1 when
+ * Frontend_HandleCommonScreenControls(0) returns 1, else 0. */
 // FUNCTION: XVT 0x4BE1B0
 int Concourse_Update(int frameCounter)
 {

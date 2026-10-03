@@ -8,13 +8,21 @@
 extern "C" {
 #endif
 
+/* One polygon corner as the clip functions read and write it; laid out as
+ * ProjVertex, whose list RenderScene_DrawMeshFaces clips in place. */
 struct RenderClipVertex {
+	/* Screen x in pixels; view-space x while scaledInverseDepth is
+	 * negative. */
 	float x;
-	float y;
+	float y; /* Screen y in pixels; view-space y while that is negative. */
+	/* g_projScaleInt over the view depth; for a corner closer than depth 1,
+	 * the depth minus 1, which is negative. */
 	float scaledInverseDepth;
+	/* Light level, 0 to 1 as RenderScene_ComputeVertexLighting sets it;
+	 * RenderScene_EmitFlightVertex turns it into the corner's gray. */
 	float lightIntensity;
-	float u;
-	float v;
+	float u; /* Horizontal texture coordinate. */
+	float v; /* Vertical texture coordinate. */
 };
 
 extern int g_clipIdxA[32];

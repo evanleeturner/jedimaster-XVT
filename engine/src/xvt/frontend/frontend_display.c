@@ -36,27 +36,32 @@
 #include "xvt/util/time.h"
 #else
 typedef struct WNDCLASSA {
-	unsigned int style;
+	unsigned int style; /* Class style bits; set to 8, CS_DBLCLKS. */
+	/* The window procedure, FrontendDisplay_WndProc. */
 	int32_t(AERON_DXAPI *lpfnWndProc)(void *hWnd, unsigned int Msg,
 					  uint32_t wParam, int32_t lParam);
-	int cbClsExtra;
-	int cbWndExtra;
-	void *hInstance;
-	void *hIcon;
-	void *hCursor;
-	void *hbrBackground;
-	const char *lpszMenuName;
-	const char *lpszClassName;
+	int cbClsExtra;	     /* Extra bytes per class; set to 0. */
+	int cbWndExtra;	     /* Extra bytes per window; set to 0. */
+	void *hInstance;     /* The module that owns the class. */
+	void *hIcon;	     /* Icon resource 101 of that module. */
+	void *hCursor;	     /* The system arrow cursor, 0x7F00 (IDC_ARROW). */
+	void *hbrBackground; /* Stock object 4, the black brush. */
+	const char *lpszMenuName;  /* No menu; set to NULL. */
+	const char *lpszClassName; /* The class name, g_windowName. */
 } WNDCLASSA;
 
+/* The system's window message record, filled by GetMessageA and
+ * PeekMessageA. */
 struct FrontendDisplayWin32Message {
-	void *window;
-	uint32_t message;
+	void *window;	  /* The target window; no code here reads it. */
+	uint32_t message; /* The message number; no code here reads it. */
+	/* The first parameter; for the quit message, the exit code the two
+	 * frame loops return. */
 	uint32_t wParam;
-	int32_t lParam;
-	uint32_t time;
-	int32_t pointX;
-	int32_t pointY;
+	int32_t lParam; /* The second parameter; no code here reads it. */
+	uint32_t time;	/* When it was posted; no code here reads it. */
+	int32_t pointX; /* Cursor x when posted; no code here reads it. */
+	int32_t pointY; /* Cursor y when posted; no code here reads it. */
 };
 
 uint32_t GetTickCount(void);
@@ -153,26 +158,31 @@ typedef HRESULT(AERON_DXAPI *FrontendDisplaySurfaceReleaseDcFunc)(
 
 #pragma pack(push, 1)
 
+/* A .bmp file's first header, read by FrontendDisplay_LoadPalette only to step
+ * past it. */
 typedef struct FrontendDisplayBmpFileHeader {
-	uint16_t signature;
-	uint32_t fileSize;
-	uint16_t reserved0;
-	uint16_t reserved1;
-	uint32_t pixelOffset;
+	uint16_t signature;   /* "BM" in a bitmap; not checked. */
+	uint32_t fileSize;    /* The file's size in bytes; not read. */
+	uint16_t reserved0;   /* Not read. */
+	uint16_t reserved1;   /* Not read. */
+	uint32_t pixelOffset; /* Where the pixels start; not read. */
 } FrontendDisplayBmpFileHeader;
 
+/* A .bmp file's info header, the 40-byte form; FrontendDisplay_LoadPalette
+ * reads its palette size from it. */
 typedef struct FrontendDisplayBmpInfoHeader {
-	uint32_t headerSize;
-	int32_t width;
-	int32_t height;
-	uint16_t planes;
-	uint16_t bitsPerPixel;
-	uint32_t compression;
-	uint32_t imageSize;
-	int32_t pixelsPerMeterX;
-	int32_t pixelsPerMeterY;
+	uint32_t headerSize;   /* Must be 40, this struct's size, to be used. */
+	int32_t width;	       /* Image width in pixels; not read. */
+	int32_t height;	       /* Image height in pixels; not read. */
+	uint16_t planes;       /* Not read. */
+	uint16_t bitsPerPixel; /* Over 8 means no palette is taken. */
+	uint32_t compression;  /* Not read. */
+	uint32_t imageSize;    /* Not read. */
+	int32_t pixelsPerMeterX; /* Not read. */
+	int32_t pixelsPerMeterY; /* Not read. */
+	/* Palette entries in the file; 0 means 1 << bitsPerPixel. */
 	uint32_t colorsUsed;
-	uint32_t colorsImportant;
+	uint32_t colorsImportant; /* Not read. */
 } FrontendDisplayBmpInfoHeader;
 
 #pragma pack(pop)
@@ -181,10 +191,17 @@ typedef char xvt_size_FrontendDisplayBmpFileHeader
 typedef char xvt_size_FrontendDisplayBmpInfoHeader
 	[(sizeof(FrontendDisplayBmpInfoHeader) == 40) ? 1 : -1];
 
+/* 1 once FrontendDisplay_Shutdown has run, so a second call does nothing. Only
+ * Shutdown sets it to 1; FrontendDisplay_Init and, in the modern build,
+ * XvtFrontendTask_Init set it to 0. */
 // GLOBAL: XVT 0x52BA8C
 int g_shutdownComplete = 0;
+/* The window's title and class name, also the title of the message boxes; never
+ * written. */
 // GLOBAL: XVT 0x52BA90
 static char g_windowName[] = "X-Wing vs. TIE Fighter";
+/* Squares: entry n is n * n, for n from 0 to 255. FrontendDisplay_PackRGB sums
+ * three of them as the distance between two colors. */
 // GLOBAL: XVT 0x52BB40
 const unsigned int g_colorDistLUT[256] = {
 	0,     1,     4,     9,	    16,	   25,	  36,	 49,	64,    81,
@@ -214,30 +231,78 @@ const unsigned int g_colorDistLUT[256] = {
 	57600, 58081, 58564, 59049, 59536, 60025, 60516, 61009, 61504, 62001,
 	62500, 63001, 63504, 64009, 64516, 65025,
 };
+/* The DirectDraw driver GUID read from video.cfg; only
+ * FrontendDisplay_LoadDriverGuid writes it. */
 // GLOBAL: XVT 0x665420
 static DxGuid g_configuredDirectDrawDriverGuid = {0};
 
+/* The flight display's pixel format: 8 for 8-bit palette color, 565 or 555 for
+ * the two 16-bit layouts. Starts at 8; only FlightDisplay_Init writes it.
+ * Display_IsPixelFormat555 reads it while g_flightRenderToFrontend is 0. */
 // GLOBAL: XVT 0x527EB8
 int g_pixelFormatCode = 8;
+/* 1 while flight-side drawing goes to the frontend's surfaces:
+ * FlightSurface_Lock then takes g_drawSurfacePtr and its pitch, and
+ * Display_IsPixelFormat555 asks the frontend. Set to 0 while a flight runs and
+ * back to 1 after it, by Flight_Main in the original build and by
+ * XvtFlightEntry_Prepare and XvtFlightEntry_Cleanup in the modern build. */
 // GLOBAL: XVT 0x527EA0
 int g_flightRenderToFrontend = 1;
+/* 1 when the command line holds "nopageflip" or "nofullscreen" (GameMain): the
+ * frontend then copies a system-memory back buffer to the screen instead of
+ * flipping, and drops to normal cooperative level after making its surfaces.
+ * The modern build's XvtFrontendTask_Init sets it to 0. */
 // GLOBAL: XVT 0xB69CB0
 int g_optNoFullscreen = 0;
+/* 1 when the command line holds "nofrontflip" (GameMain), and always in the
+ * modern build (XvtFrontendTask_Init): the frontend then draws to a 640 by 480
+ * system-memory back buffer and copies it to the primary surface each frame
+ * instead of flipping. */
 // GLOBAL: XVT 0xB69CBC
 int g_noPageFlip = 0;
+/* The command line GameMain was given; Frontend_LoadResources hands it to
+ * Pilot_ParseCommandLine. The modern build points it at an empty string. */
 // GLOBAL: XVT 0xB69CAC
 char *g_cmdLine;
+/* 1 when the command line holds "skipintro": GameMain then starts at the
+ * concourse rather than the opening movie and credits. Written by GameMain and,
+ * in the modern build, XvtFrontendTask_Init; Concourse_Update reads it. */
 // GLOBAL: XVT 0xB69CB8
 int g_optSkipIntro;
+/* 1 when the command line holds "ishost": GameMain then starts at the
+ * concourse. Concourse_Update reads it and sets it to 0, as
+ * Pilot_ParseCommandLine does. */
 // GLOBAL: XVT 0xB69CA8
 int g_optIsHost;
+/* 1 when the command line holds "isclient": GameMain then starts at the
+ * concourse. Concourse_Update reads it and sets it to 0, as
+ * Pilot_ParseCommandLine does. */
 // GLOBAL: XVT 0xB69CB4
 int g_optIsClient;
+/* Heap buffer for the screen pixels under the cursor sprite, 2 bytes for each
+ * pixel of the "cursor" image: Frontend_LoadResources allocates it and hands it
+ * to FrontendCursor_SetImageFromResourceName as the save buffer. Freed by
+ * GameMain and, in the modern build, XvtFrontendTask_Shutdown. Despite the
+ * name, it holds no cursor image. */
 // GLOBAL: XVT 0xB6A2AC
 void *g_cursorBitmap;
+/* Set to 1 by Frontend_LoadResources, the main frontend's start, and never set
+ * back; GameMain returns 1 when it is still 0. */
 // GLOBAL: XVT 0x52BA5C
 int g_gameMainSkipIntroRelaunchGate;
 
+/* Nothing calls this; the original WinMain is not rebuilt. Runs the original
+ * frontend: keeps lpCmdLine in g_cmdLine and reads its options, each found
+ * anywhere in it: "nofrontflip" into g_noPageFlip, "nopageflip" or
+ * "nofullscreen" into g_optNoFullscreen, "skipintro", "ishost" and "isclient"
+ * into g_optSkipIntro, g_optIsHost and g_optIsClient. Ends the process with
+ * exit(0) when another copy's window exists (Win32_CheckSingleInstance). Then
+ * runs FrontendDisplay_Init at 24 frames a second and 16 bits per pixel,
+ * starting at the concourse when any of the last three options is set, else
+ * with the opening movie and credits. When that returns it frees
+ * g_cursorBitmap, g_frontendChatLogBuffer, g_cutsceneTable and
+ * g_campaignAwardSprites, saves the pilot, and returns 1 when
+ * g_gameMainSkipIntroRelaunchGate is still 0, else 0. */
 // FUNCTION: XVT 0x4D3600
 int GameMain(void *hInstance, void *hPrevInstance, char *lpCmdLine,
 	     int nShowCmd)
@@ -304,6 +369,9 @@ int GameMain(void *hInstance, void *hPrevInstance, char *lpCmdLine,
 	return g_gameMainSkipIntroRelaunchGate == 0;
 }
 
+/* Restores the primary surface and, when that succeeds, the back buffer when
+ * g_optNoFullscreen or g_noPageFlip is set, else the offscreen surface. Returns
+ * the last Restore result, the primary's failure when it fails. */
 // FUNCTION: XVT 0x4D37E0
 HRESULT FrontendDisplay_RestoreLostSurfaces(void)
 {
@@ -322,6 +390,16 @@ HRESULT FrontendDisplay_RestoreLostSurfaces(void)
 	return result;
 }
 
+/* Tears the frontend down once: does nothing when g_shutdownComplete is set,
+ * else sets it, shuts down DirectSound and frees the fonts, the saved pixels of
+ * the stacked screens below the top, every registered image, the sound tables,
+ * the image table, the offscreen backup buffer and the string table. With
+ * DirectDraw it then flips to the GDI surface, restores the display mode,
+ * releases the primary surface, the palette, the offscreen surface, the
+ * separate back buffer (with g_optNoFullscreen or g_noPageFlip) and DirectDraw
+ * itself, and, with bDestroyWindow nonzero and a window, destroys the window;
+ * the modern build only forgets its handle. Last it shows the system cursor,
+ * which the modern build instead keeps hidden. */
 // FUNCTION: XVT 0x4D3820
 void FrontendDisplay_Shutdown(int bDestroyWindow)
 {
@@ -409,6 +487,24 @@ void FrontendDisplay_Shutdown(int bDestroyWindow)
 #endif
 }
 
+/* Only the original build calls this, through FrontendDisplay_WndProc while the
+ * window procedure mode is 0. WM_DESTROY runs FrontendDisplay_Shutdown(1),
+ * posts the quit message and returns 0. WM_ACTIVATEAPP stores the new state in
+ * g_frontState.appActive and, on activation, resumes CD audio, captures the
+ * mouse, sets restoreOffscreenOverlayAfterActivate and hides the system cursor,
+ * or on deactivation suspends CD audio and releases the mouse. WM_SETCURSOR
+ * hides the cursor and returns 1. Esc in WM_KEYDOWN posts WM_CLOSE while
+ * escapeCloseEnabled is set. WM_KEYUP clears all of keyDownState. WM_CHAR adds
+ * the character to charRingBuffer, dropping the oldest when the ring already
+ * holds 1,023. Alt+O, on WM_SYSKEYUP, saves a screenshot and returns 0; Alt+F4
+ * returns 0 in both system key messages. WM_MOUSEMOVE stores the position in
+ * mouseX and mouseY, each clamped to 640 and 480, and moves the system cursor
+ * back when it clamped. The button messages set mouseLeftDown and
+ * mouseRightDown and, on a release, the click latches; when the message reports
+ * the other button held, that button's state moves the same way. Everything
+ * else goes on to DefWindowProcA. The modern build's arms request a quit
+ * instead of posting messages and return 0 instead of calling
+ * DefWindowProcA. */
 // FUNCTION: XVT 0x4D3A00
 int32_t AERON_DXAPI FrontendDisplay_MainWndProc(void *hWnd, unsigned int Msg,
 						uint32_t wParam, int32_t lParam)
@@ -563,6 +659,11 @@ int32_t AERON_DXAPI FrontendDisplay_MainWndProc(void *hWnd, unsigned int Msg,
 #endif
 }
 
+/* Only the original build calls this, as the window class's procedure
+ * (FrontendDisplay_InitMainWindow). Hands each message to the handler for the
+ * window procedure mode: 0 FrontendDisplay_MainWndProc, 1 Flight_WndProc, 2
+ * Movie_WindowProc, any other mode DefWindowProcA, or 0 in the modern build.
+ * Returns the handler's result. */
 // FUNCTION: XVT 0x4D3D20
 int32_t AERON_DXAPI FrontendDisplay_WndProc(void *hWnd, unsigned int Msg,
 					    uint32_t wParam, int32_t lParam)
@@ -585,6 +686,11 @@ int32_t AERON_DXAPI FrontendDisplay_WndProc(void *hWnd, unsigned int Msg,
 	}
 }
 
+/* Shows "DirectDraw Init FAILED at <stage>" in a message box titled
+ * g_windowName, shuts the frontend down with FrontendDisplay_Shutdown(1) and
+ * returns 0. FrontendDisplay_InitMainWindow and FrontendDisplay_ReinitSurfaces
+ * pass the failing step, 0 to 6. The modern build shows an error box through
+ * Aeron. */
 // FUNCTION: XVT 0x4D3DA0
 int FrontendDisplay_ReportDirectDrawInitFailure(void *hWnd, int stage)
 {
@@ -610,6 +716,10 @@ int FrontendDisplay_ReportDirectDrawInitFailure(void *hWnd, int stage)
 	return 0;
 }
 
+/* Shows text in a warning message box titled g_windowName and returns 1 once it
+ * is closed. Unlocks the back buffer and, with DirectDraw, flips to the GDI
+ * surface first; afterward locks the back buffer into g_drawSurfacePtr again
+ * when it was locked. The modern build shows the box through Aeron. */
 // FUNCTION: XVT 0x4D3DF0
 int FrontendDisplay_ShowGameMessageBox(const char *text)
 {
@@ -639,6 +749,28 @@ int FrontendDisplay_ShowGameMessageBox(const char *text)
 	return 1;
 }
 
+/* The original build's frontend main loop. Only FrontendDisplay_Init and
+ * FrontendDisplay_InitPreservingNetworkSession call it, and nothing calls them.
+ * Makes the window and surfaces (FrontendDisplay_InitMainWindow), returning 0
+ * when that fails; runs g_frontState.modeInitFn, returning 0 after a shutdown
+ * when it returns nonzero; and sets the six text color codes again, codes 1 and
+ * 4 differently from FrontendDisplay_InitMainWindow. Then, while the
+ * application is active, it presents a frame every g_frontState.frameIntervalMs
+ * milliseconds, polls both joysticks every 100 ms, and after each present runs
+ * one frame of the top screen: clears netReadyPlayerLeftThisFrame and, while a
+ * text fade runs, the fade color cache; pumps network packets; then, when the
+ * screen has an update function, reads the keyboard state, locks the back
+ * buffer, calls the update with g_frontState.frameCounter, calls the exit
+ * function it read before the update when the update returned 1 or
+ * screenCallbacksDirty is 1, unlocks, pushes a queued screen, draws the cursor
+ * when it is shown, clears the joysticks' released flags, raises the frame
+ * counter, lowers the text fade, clears the click latches and services CD
+ * audio: resumes suspended playback when due and, at a track's end, replays it
+ * when looping or marks playback complete. A result of 1 fades the CD audio
+ * volume to 0x200 while a track plays, closes the CD device and posts WM_CLOSE,
+ * and no frame runs after it. Window messages are dispatched as they come,
+ * active or not, and the loop returns the quit message's exit code. The modern
+ * build returns 0 at once. */
 // FUNCTION: XVT 0x4D3E40
 uint32_t FrontendDisplay_RunMainLoop(void *hInstance, void *hPrevInstance,
 				     char *lpCmdLine, int nShowCmd)
@@ -856,6 +988,26 @@ uint32_t FrontendDisplay_RunMainLoop(void *hInstance, void *hPrevInstance,
 #endif
 }
 
+/* Makes the frontend's display and returns 1, or 0 when a step fails, after
+ * FrontendDisplay_ReportDirectDrawInitFailure unless the window failed. The
+ * original build registers the window class and creates a visible popup window
+ * the size of the screen, titled g_windowName, into g_frontState.hWnd; the
+ * modern build uses the handle the host already stored there. Creates
+ * DirectDraw on the video.cfg driver (FrontendDisplay_LoadDriverGuid), else on
+ * the default one, setting secondaryDirectDrawActive only when the configured
+ * driver was used; takes exclusive full-screen mode at 640 by 480 and
+ * g_frontState.displayBpp; creates the primary surface and the back buffer, a
+ * flip chain with one back buffer unless g_optNoFullscreen or g_noPageFlip is
+ * set, else a separate 640 by 480 system-memory surface; and a 640 by 480
+ * offscreen surface, recording pixelFormat555 and both pitches. Loads the
+ * default palette (FrontendDisplay_LoadPalette) and sets it at 8 bits per
+ * pixel, drops to normal cooperative level with g_optNoFullscreen, sets the six
+ * text color codes, clears and presents both surfaces, loads the size-20 font,
+ * finds the joysticks, sets the default cursor, moves the system cursor to (0,
+ * 0), starts DirectSound (showing "Sound not available." when it fails), hides
+ * the system cursor and allocates and zeroes
+ * g_frontState.offscreenBackupBuffer, 480 rows of the offscreen pitch,
+ * returning 1 even when that allocation fails. */
 // FUNCTION: XVT 0x4D41E0
 int FrontendDisplay_InitMainWindow(void *hInstance, int nShowCmd)
 {
@@ -1079,6 +1231,16 @@ int FrontendDisplay_InitMainWindow(void *hInstance, int nShowCmd)
 	return 1;
 }
 
+/* The original build's frontend entry; only GameMain calls it, and nothing
+ * calls GameMain. Zeroes g_frontState, sets the window procedure mode and
+ * g_shutdownComplete to 0, seeds rand with the tick count, finds the game and
+ * CD paths, allocates the sound buffer and voice tables (0xB1BC and 0x90 bytes)
+ * and the image table (0x8800 bytes), and returns 0 when one of those fails or
+ * bpp is not 8 or 16. Then sets the clip to 0 to 639 by 0 to 479, clearing
+ * after present on, displayBpp to bpp, the frame interval to 1000 / fps
+ * milliseconds (an fps under 1 counts as 1), the first screen's update and exit
+ * functions, modeInitFn and Esc-to-close, and returns
+ * FrontendDisplay_RunMainLoop's result. */
 // FUNCTION: XVT 0x4D4770
 uint32_t FrontendDisplay_Init(void *hInstance, void *hPrevInstance,
 			      char *lpCmdLine, int nShowCmd,
@@ -1138,6 +1300,14 @@ uint32_t FrontendDisplay_Init(void *hInstance, void *hPrevInstance,
 					   nShowCmd);
 }
 
+/* Locks the back buffer and returns its pixels, setting
+ * g_frontState.drawSurfacePitch to the back buffer's pitch; when
+ * backBufferLocked is already set it returns the pointer it holds. Retries
+ * while the surface is still drawing, busy or obscured, restoring it when it is
+ * lost; on any other failure it still sets backBufferLocked and returns
+ * backBufferDesc.lpSurface unchecked. Returns NULL without DirectDraw or a back
+ * buffer. Callers store the result in g_drawSurfacePtr; this does not. The
+ * modern build also selects the back buffer as its renderer's target. */
 // FUNCTION: XVT 0x4D48E0
 uint8_t *FrontendDisplay_LockBackBuffer(void)
 {
@@ -1185,6 +1355,8 @@ uint8_t *FrontendDisplay_LockBackBuffer(void)
 	return (uint8_t *)g_frontState.backBufferDesc.lpSurface;
 }
 
+/* Unlocks the back buffer and clears g_frontState.backBufferLocked when
+ * DirectDraw and the back buffer exist; does not check that it was locked. */
 // FUNCTION: XVT 0x4D4970
 void FrontendDisplay_UnlockBackBuffer(void)
 {
@@ -1196,6 +1368,20 @@ void FrontendDisplay_UnlockBackBuffer(void)
 	}
 }
 
+/* Shows the back buffer. Unlocks it when locked; in page-flip mode
+ * (g_optNoFullscreen and g_noPageFlip both 0) waits for the vertical blank,
+ * sets the palette at 8 bits per pixel when paletteNeedsSet is 1, which no code
+ * sets, and flips, retrying while the surface is still drawing or after
+ * restoring lost surfaces; otherwise it copies the back buffer to the primary
+ * surface at (0, 0) and returns early when that copy fails. With offscreen
+ * restore on it then puts the offscreen surface back under the next frame:
+ * after an activation it first copies g_frontState.offscreenBackupBuffer into
+ * the offscreen surface, then copies the offscreen surface onto the back
+ * buffer, in non-flip mode through FrontendDisplay_RestoreBackBuffer, returning
+ * early when the flip-mode copy fails. Last it clears the back buffer when
+ * clearBackBufferAfterPresent is set. Does nothing without DirectDraw. The
+ * modern build also presents its renderer's frame after a successful flip or
+ * copy and mirrors the copies in its targets. */
 // FUNCTION: XVT 0x4D49A0
 void FrontendDisplay_PresentFrame(void)
 {
@@ -1363,18 +1549,28 @@ void FrontendDisplay_PresentFrame(void)
 	}
 }
 
+/* Sets g_frontState.clearBackBufferAfterPresent to 0, so
+ * FrontendDisplay_PresentFrame keeps the back buffer's pixels. */
 // FUNCTION: XVT 0x4D4BF0
 void FrontendDisplay_DisableClearAfterPresent(void)
 {
 	g_frontState.clearBackBufferAfterPresent = 0;
 }
 
+/* Sets g_frontState.surfaceClearColor, the display pixel value the two clear
+ * functions fill with. */
 // FUNCTION: XVT 0x4D4C00
 void FrontendDisplay_SetSurfaceClearColor(uint32_t color)
 {
 	g_frontState.surfaceClearColor = color;
 }
 
+/* Fills the back buffer's 640 by 480 pixels with g_frontState.surfaceClearColor
+ * through a DirectDraw color fill, unlocking it first and, when it was locked,
+ * locking it into g_drawSurfacePtr again afterward. Retries while the surface
+ * is still drawing or after restoring lost surfaces, and gives up on any other
+ * failure. Does nothing without DirectDraw or a back buffer. The modern build
+ * also clears its renderer's back target. */
 // FUNCTION: XVT 0x4D4C10
 void FrontendDisplay_ClearBackBuffer(void)
 {
@@ -1428,6 +1624,8 @@ void FrontendDisplay_ClearBackBuffer(void)
 	}
 }
 
+/* Copies the clip bounds into *outRect: clipMinX, clipMinY, clipMaxX and
+ * clipMaxY as left, top, right and bottom. */
 // FUNCTION: XVT 0x4D4CF0
 void FrontendDisplay_GetScreenClipRect(RECT *outRect)
 {
@@ -1436,6 +1634,8 @@ void FrontendDisplay_GetScreenClipRect(RECT *outRect)
 				g_frontState.clipMaxY);
 }
 
+/* Sets the clip bounds to *src clamped to 0 to 639 by 0 to 479, leaving them as
+ * they were when the clamped rect has right under left or bottom under top. */
 // FUNCTION: XVT 0x4D4D20
 void FrontendDisplay_SetScreenClipRect640x480(const RECT *src)
 {
@@ -1465,21 +1665,31 @@ void FrontendDisplay_SetScreenClipRect640x480(const RECT *src)
 	}
 }
 
+/* Sets g_frontState.escapeCloseEnabled to 0, so Esc no longer closes the
+ * window. */
 // FUNCTION: XVT 0x4D4DD0
 void FrontendDisplay_DisableEscapeClose(void)
 {
 	g_frontState.escapeCloseEnabled = 0;
 }
 
+/* Returns g_frontState.frameCounter, the frame number of the top screen. */
 // FUNCTION: XVT 0x4D4DE0
 int FrontendDisplay_GetFrameCounter(void) { return g_frontState.frameCounter; }
 
+/* Sets g_frontState.frameIntervalMs to 1000 / fps milliseconds and returns it.
+ * Does not check fps for 0. */
 // FUNCTION: XVT 0x4D4E00
 int FrontendDisplay_SetFrameRate(int fps)
 {
 	return g_frontState.frameIntervalMs = 1000 / fps;
 }
 
+/* Locks the offscreen surface and makes it the drawing target: sets
+ * g_drawSurfacePtr to its pixels and g_frontState.drawSurfacePitch to its
+ * pitch, and returns 1. Retries while it is still drawing, restoring it when it
+ * is lost; returns 0 on another failure or without DirectDraw or the surface.
+ * The modern build also selects its renderer's offscreen target. */
 // FUNCTION: XVT 0x4D4E20
 int FrontendDisplay_LockOffscreenSurface(void)
 {
@@ -1519,6 +1729,14 @@ int FrontendDisplay_LockOffscreenSurface(void)
 	return 1;
 }
 
+/* Unlocks the offscreen surface and makes the back buffer the drawing target
+ * again. With saveToBackup nonzero, and g_drawSurfacePtr and the backup buffer
+ * set, it first copies 480 rows of the offscreen pitch from g_drawSurfacePtr
+ * into g_frontState.offscreenBackupBuffer. Then sets drawSurfacePitch to the
+ * back buffer's pitch and g_drawSurfacePtr to the back buffer's pixels, locking
+ * it when it is not locked. Returns 1, or 0 without DirectDraw or the surface.
+ * Does not check that the offscreen surface was locked. The modern build
+ * mirrors the copy and selects its back target. */
 // FUNCTION: XVT 0x4D4EC0
 int FrontendDisplay_UnlockOffscreenSurface(int saveToBackup)
 {
@@ -1556,6 +1774,10 @@ int FrontendDisplay_UnlockOffscreenSurface(int saveToBackup)
 	return 1;
 }
 
+/* Sets g_frontState.offscreenRestoreEnabled to 1 and returns 1. While it is
+ * set, FrontendDisplay_PresentFrame copies the offscreen surface onto the back
+ * buffer after each present, and the screen stack saves and restores pixels on
+ * the offscreen surface. */
 // FUNCTION: XVT 0x4D4F60
 int FrontendDisplay_EnableOffscreenRestore(void)
 {
@@ -1563,6 +1785,7 @@ int FrontendDisplay_EnableOffscreenRestore(void)
 	return 1;
 }
 
+/* Sets g_frontState.offscreenRestoreEnabled to 0 and returns 0. */
 // FUNCTION: XVT 0x4D4F70
 int FrontendDisplay_DisableOffscreenRestore(void)
 {
@@ -1570,6 +1793,11 @@ int FrontendDisplay_DisableOffscreenRestore(void)
 	return 0;
 }
 
+/* Fills the offscreen surface's 640 by 480 pixels with
+ * g_frontState.surfaceClearColor, the way FrontendDisplay_ClearBackBuffer fills
+ * the back buffer, unlocking and relocking the back buffer around it. Does
+ * nothing without DirectDraw or the offscreen surface. The modern build also
+ * clears its renderer's offscreen target. */
 // FUNCTION: XVT 0x4D4F80
 void FrontendDisplay_ClearOffscreenSurface(void)
 {
@@ -1623,24 +1851,35 @@ void FrontendDisplay_ClearOffscreenSurface(void)
 	}
 }
 
+/* Returns g_frontState.pixelFormat555: 1 when the primary surface's green mask
+ * lacks the 0x400 bit, as at 5-5-5 and at 8 bits per pixel, 0 at 5-6-5. */
 // FUNCTION: XVT 0x4D5060
 int FrontendDisplay_GetPixelFormat555(void)
 {
 	return g_frontState.pixelFormat555;
 }
 
+/* Returns g_frontState.drawSurfacePitch, the byte pitch of the surface
+ * g_drawSurfacePtr points into; FlightSurface_Lock uses it while flight draws
+ * to the frontend. */
 // FUNCTION: XVT 0x4D5070
 int FrontendDisplay_GetFrontendOrFlightDrawPitch(void)
 {
 	return g_frontState.drawSurfacePitch;
 }
 
+/* Nothing calls this. Returns g_frontState.displayBpp / 8. */
 // FUNCTION: XVT 0x4D5080
 int FrontendDisplay_GetBytesPerPixel(void)
 {
 	return g_frontState.displayBpp / 8;
 }
 
+/* Nothing calls this. Does what FrontendDisplay_Init does, except that it
+ * resets g_frontState with
+ * FrontendDisplay_ResetGlobalStatePreservingNetworkSession, which keeps the
+ * network session, and does not set g_shutdownComplete to 0 or
+ * cdAudioSavedAuxVolume to -1. */
 // FUNCTION: XVT 0x4D5090
 uint32_t FrontendDisplay_InitPreservingNetworkSession(
 	void *hInstance, void *hPrevInstance, char *lpCmdLine, int nShowCmd,
@@ -1701,6 +1940,15 @@ uint32_t FrontendDisplay_InitPreservingNetworkSession(
 					   nShowCmd);
 }
 
+/* Only FrontendDisplay_InitPreservingNetworkSession calls this, and nothing
+ * calls that. Zeroes g_frontState but keeps its DirectPlay interface, the
+ * application and joined-session GUIDs, the host and group player ids,
+ * netIsHost, the session name and the local player record; then sets
+ * frontendPostResetMarker to 1 and netPlayerCount to 1, with the local player
+ * first. With DirectPlay it refreshes the player roster and, when the host's id
+ * is no longer listed, makes the host the lowest of the id at netPlayers[32]
+ * and the nonzero ids of ready players. That entry is one past the array, so it
+ * reads the netRuntimeLocalPlayer field that follows. */
 // FUNCTION: XVT 0x4D51E0
 void FrontendDisplay_ResetGlobalStatePreservingNetworkSession(void)
 {
@@ -1770,6 +2018,11 @@ void FrontendDisplay_ResetGlobalStatePreservingNetworkSession(void)
 	}
 }
 
+/* Saves the back buffer as the first frontscreen<n>.bmp that does not open, n
+ * counting from 0, through FrontImage_SaveBmpFile with the display palette, and
+ * returns that result. Locks the back buffer into g_drawSurfacePtr and unlocks
+ * it. Only FrontendDisplay_MainWndProc calls it, on Alt+O, so only the original
+ * build does. The modern build looks for the names in the user storage root. */
 // FUNCTION: XVT 0x4D5380
 int FrontendDisplay_CaptureScreenshot(void)
 {
@@ -1807,12 +2060,25 @@ int FrontendDisplay_CaptureScreenshot(void)
 	return result;
 }
 
+/* Returns g_drawSurfacePtr, where FlightSurface_Lock points flight's drawing
+ * while g_flightRenderToFrontend is 1. */
 // FUNCTION: XVT 0x4D5410
 uint8_t *FrontendDisplay_GetDrawSurfaceForFlight(void)
 {
 	return g_drawSurfacePtr;
 }
 
+/* Only the original build calls this, from FrontendScreen_RunModal: runs one
+ * frame of the modal screen on top. Dispatches window messages until a frame is
+ * due, presenting it and polling the joysticks every 100 ms the way
+ * FrontendDisplay_RunMainLoop does, and returns 2 when the quit message
+ * arrives. Then clears the fade color cache while a text fade runs, pumps
+ * network packets and, when the top screen has an update function, runs it as
+ * the main loop does but pushes no queued screen; returns 1 when the update
+ * returned 1, before lowering the text fade and clearing the click latches. At
+ * a CD track's end it replays a looping track or marks playback complete.
+ * Returns 0 otherwise. The modern build returns XvtFrontendTask_RunFrame's
+ * result. */
 // FUNCTION: XVT 0x4D5420
 int FrontendDisplay_RunFrame(void)
 {
@@ -1925,15 +2191,22 @@ int FrontendDisplay_RunFrame(void)
 #endif
 }
 
+/* Returns g_frontState.hWnd, the frontend window. */
 // FUNCTION: XVT 0x4D5690
 void *FrontendDisplay_GetMainWindowHandle(void) { return g_frontState.hWnd; }
 
+/* Returns g_frontState.directDraw, which flight's display code also uses. */
 // FUNCTION: XVT 0x4D56A0
 IDirectDraw *FrontendDisplay_GetDirectDraw(void)
 {
 	return g_frontState.directDraw;
 }
 
+/* Before a flight starts: unlocks the back buffer, unloads every frontend
+ * sound, shuts down DirectSound, closes the CD device, and releases the primary
+ * surface, the palette, the offscreen surface and, with g_optNoFullscreen or
+ * g_noPageFlip, the separate back buffer, setting each pointer to NULL. Keeps
+ * DirectDraw and the window. Returns 1. */
 // FUNCTION: XVT 0x4D56B0
 int FrontendDisplay_ReleaseSurfacesForFlight(void)
 {
@@ -1964,6 +2237,15 @@ int FrontendDisplay_ReleaseSurfacesForFlight(void)
 	return 1;
 }
 
+/* Rebuilds the frontend's surfaces after a flight, on the DirectDraw object and
+ * window FrontendDisplay_ReleaseSurfacesForFlight kept: normal cooperative
+ * level with g_optNoFullscreen, else exclusive full-screen and the 640 by 480
+ * mode; then the primary surface, back buffer, offscreen surface and palette as
+ * FrontendDisplay_InitMainWindow makes them. Sets the text color codes, moves
+ * the system cursor to (0, 0), clears both surfaces and presents, restarts
+ * DirectSound, locks the back buffer into g_drawSurfacePtr and allocates
+ * offscreenBackupBuffer when there is none. Returns 1, or 0 after
+ * FrontendDisplay_ReportDirectDrawInitFailure. */
 // FUNCTION: XVT 0x4D5760
 int FrontendDisplay_ReinitSurfaces(void)
 {
@@ -2122,18 +2404,25 @@ int FrontendDisplay_ReinitSurfaces(void)
 	return 1;
 }
 
+/* Sets g_frontState.frontendDisplayWndProcMode, which picks
+ * FrontendDisplay_WndProc's handler: 0 frontend, 1 flight, 2 movie. */
 // FUNCTION: XVT 0x4D5B70
 void FrontendDisplay_SetWndProcMode(uint8_t mode)
 {
 	g_frontState.frontendDisplayWndProcMode = mode;
 }
 
+/* Returns g_frontState.frontendDisplayWndProcMode. */
 // FUNCTION: XVT 0x4D5B80
 int FrontendDisplay_GetWndProcMode(void)
 {
 	return g_frontState.frontendDisplayWndProcMode;
 }
 
+/* Only GameMain calls this, and nothing calls GameMain. The original build
+ * looks for a window whose class and title are both g_windowName; when one
+ * exists it restores it (ShowWindowAsync with 9, SW_RESTORE) and returns 1,
+ * else 0. The modern build returns 0. */
 // FUNCTION: XVT 0x4D5B90
 int Win32_CheckSingleInstance(void)
 {
@@ -2149,6 +2438,7 @@ int Win32_CheckSingleInstance(void)
 #endif
 }
 
+/* Calls FlipToGDISurface on the frontend's DirectDraw object when it exists. */
 // FUNCTION: XVT 0x4D5BC0
 void FrontendDisplay_FlipDirectDrawToGDISurface(void)
 {
@@ -2158,6 +2448,10 @@ void FrontendDisplay_FlipDirectDrawToGDISurface(void)
 	}
 }
 
+/* Reads a DirectDraw driver GUID from the file video.cfg into
+ * g_configuredDirectDrawDriverGuid and returns its address, or NULL when the
+ * file does not open or the read fails, so DirectDraw uses its default
+ * driver. */
 // FUNCTION: XVT 0x4D5C20
 const DxGuid *FrontendDisplay_LoadDriverGuid(void)
 {
@@ -2175,6 +2469,12 @@ const DxGuid *FrontendDisplay_LoadDriverGuid(void)
 	return readSucceeded != 0 ? &g_configuredDirectDrawDriverGuid : NULL;
 }
 
+/* Only the original build calls this. While secondaryDirectDrawActive is set it
+ * draws text through GDI across the whole desktop, centered (DrawTextA format
+ * 0x25), white on black in 12-pixel Times New Roman, then overlayText, when not
+ * NULL, in red at the top and again at the bottom. Returns 1, or 0 when the
+ * flag is clear or a device context or font cannot be made. The modern build
+ * returns 0. */
 // FUNCTION: XVT 0x4D5C70
 int FrontendDisplay_DrawGdiTextOnDesktop(const RECT *unused, const char *text,
 					 const char *overlayText)
@@ -2225,6 +2525,10 @@ int FrontendDisplay_DrawGdiTextOnDesktop(const RECT *unused, const char *text,
 #endif
 }
 
+/* Only the original build calls this. While secondaryDirectDrawActive is set it
+ * fills the whole desktop black through GDI and returns 1; returns 0 when the
+ * flag is clear or no device context can be made. The modern build returns
+ * 0. */
 // FUNCTION: XVT 0x4D5DC0
 int FrontendDisplay_ClearDesktopGdi(const RECT *unused)
 {
@@ -2255,12 +2559,18 @@ int FrontendDisplay_ClearDesktopGdi(const RECT *unused)
 #endif
 }
 
+/* Returns g_frontState.secondaryDirectDrawActive, 1 when
+ * FrontendDisplay_InitMainWindow made DirectDraw on the driver named in
+ * video.cfg. */
 // FUNCTION: XVT 0x4D5E60
 int FrontendDisplay_IsSecondaryDirectDrawActive(void)
 {
 	return g_frontState.secondaryDirectDrawActive;
 }
 
+/* Loads the 256 entries of g_frontState.displayPalette into the DirectDraw
+ * palette; does nothing with g_optNoFullscreen. Does not check that the palette
+ * exists. */
 // FUNCTION: XVT 0x4D6CA0
 void FrontendDisplay_SetPalette(void)
 {
@@ -2271,6 +2581,12 @@ void FrontendDisplay_SetPalette(void)
 		g_frontState.ddPalette, 0, 0, 256, g_frontState.displayPalette);
 }
 
+/* Returns the display pixel value for the color r, g, b. At 8 bits per pixel it
+ * is the index, 1 to 255, of the display palette entry with the smallest sum of
+ * squared channel differences (g_colorDistLUT), the first of equals winning and
+ * an exact match returned at once; index 0 is never chosen. At 16 bits it packs
+ * the high bits of each channel, 5-5-5 or 5-6-5 by g_frontState.pixelFormat555.
+ * At any other depth it returns g_frontState.displayBpp. */
 // FUNCTION: XVT 0x4D6E30
 int FrontendDisplay_PackRGB(uint8_t r, uint8_t g, uint8_t b)
 {
@@ -2337,6 +2653,12 @@ int FrontendDisplay_PackRGB(uint8_t r, uint8_t g, uint8_t b)
 	}
 }
 
+/* Copies the back buffer into the offscreen surface: 480 rows of 80 *
+ * (displayBpp & 0xFFFFFFF8) bytes, 640 pixels. Locks both, then unlocks the
+ * offscreen surface without saving it to the backup buffer, which leaves
+ * g_drawSurfacePtr on the back buffer, and unlocks the back buffer when it was
+ * not locked before. Returns 1. The modern build mirrors the copy in its
+ * renderer's targets. */
 // FUNCTION: XVT 0x4DC9B0
 int FrontendDisplay_SaveBackBuffer(void)
 {
@@ -2372,6 +2694,10 @@ int FrontendDisplay_SaveBackBuffer(void)
 	return 1;
 }
 
+/* Copies the offscreen surface into the back buffer: 480 rows of 80 *
+ * (displayBpp & 0xFFFFFFF8) bytes, 640 pixels, locking and unlocking as
+ * FrontendDisplay_SaveBackBuffer does. Returns 1. The modern build mirrors the
+ * copy in its renderer's targets. */
 // FUNCTION: XVT 0x4DCA20
 int FrontendDisplay_RestoreBackBuffer(void)
 {
@@ -2407,6 +2733,16 @@ int FrontendDisplay_RestoreBackBuffer(void)
 	return 1;
 }
 
+/* Builds the frontend's 256-entry palette and returns the pointer DirectDraw's
+ * CreatePalette fills with a palette made from it; the modern build starts that
+ * pointer at NULL, the original build leaves it unset before the call. Starts
+ * from a 3-3-2 color cube: entry i has red 255 * ((i & 0xE0) >> 5) / 7, green
+ * 255 * ((i & 0x1C) >> 2) / 7 and blue 255 * (i & 3) / 3. With lpName set it
+ * then takes the colors of the bitmap resource lpName (original build only) or
+ * else the bitmap file lpName, when it has 8 bits per pixel or fewer; both
+ * callers pass NULL, so they get the cube. When the returned pointer is not
+ * NULL it copies the entries into g_frontState.displayPalette, with entry 0
+ * black and entry 255 white. */
 // FUNCTION: XVT 0x4F0E30
 IDirectDrawPalette *FrontendDisplay_LoadPalette(IDirectDraw *pDD,
 						const char *lpName)
@@ -2560,6 +2896,12 @@ IDirectDrawPalette *FrontendDisplay_LoadPalette(IDirectDraw *pDD,
 	return palette;
 }
 
+/* Only FrontendDisplay_SetSurfaceColorKey calls this, and nothing calls that.
+ * Returns the surface's pixel value for the COLORREF color, or for color
+ * 0xFFFFFFFF the surface's first pixel; 0xFFFFFFFF when the lock fails. The
+ * original build has GDI set the first pixel to color, reads it back through a
+ * lock, masked to the pixel's bits, and puts the old pixel back; the modern
+ * build computes the value from the surface's channel masks. */
 // FUNCTION: XVT 0x4F1070
 uint32_t
 FrontendDisplay_ConvertColorRefToSurfacePixel(IDirectDrawSurface *surface,
@@ -2667,6 +3009,9 @@ FrontendDisplay_ConvertColorRefToSurfacePixel(IDirectDrawSurface *surface,
 #endif
 }
 
+/* Nothing calls this. Sets the surface's source color key to the pixel value
+ * FrontendDisplay_ConvertColorRefToSurfacePixel gives for the COLORREF color
+ * and returns SetColorKey's result. */
 // FUNCTION: XVT 0x4F1160
 HRESULT FrontendDisplay_SetSurfaceColorKey(IDirectDrawSurface *surface,
 					   uint32_t color)

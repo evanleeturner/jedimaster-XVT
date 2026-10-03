@@ -10,21 +10,24 @@
 
 typedef int FrontendFindHandle;
 
+/* The original build's copy of the Windows find record (WIN32_FIND_DATAA),
+ * which FindFirstFileA and FindNextFileA fill; only the file name is used. */
 typedef struct FrontendFindData {
-	uint32_t fileAttributes;
-	uint32_t creationTimeLow;
-	uint32_t creationTimeHigh;
-	uint32_t lastAccessTimeLow;
-	uint32_t lastAccessTimeHigh;
-	uint32_t lastWriteTimeLow;
-	uint32_t lastWriteTimeHigh;
-	uint32_t fileSizeHigh;
-	uint32_t fileSizeLow;
-	uint32_t reserved0;
-	uint32_t reserved1;
+	uint32_t fileAttributes;     /* Never read or written by name. */
+	uint32_t creationTimeLow;    /* Never read or written by name. */
+	uint32_t creationTimeHigh;   /* Never read or written by name. */
+	uint32_t lastAccessTimeLow;  /* Never read or written by name. */
+	uint32_t lastAccessTimeHigh; /* Never read or written by name. */
+	uint32_t lastWriteTimeLow;   /* Never read or written by name. */
+	uint32_t lastWriteTimeHigh;  /* Never read or written by name. */
+	uint32_t fileSizeHigh;	     /* Never read or written by name. */
+	uint32_t fileSizeLow;	     /* Never read or written by name. */
+	uint32_t reserved0;	     /* Never read or written by name. */
+	uint32_t reserved1;	     /* Never read or written by name. */
+	/* Name of the file found, without its folder, ended by a 0. */
 	char fileName[260];
-	char alternateFileName[14];
-	uint8_t trailingPadding[2];
+	char alternateFileName[14]; /* Never read or written by name. */
+	uint8_t trailingPadding[2]; /* Never read or written by name. */
 } FrontendFindData;
 
 __declspec(dllimport) FrontendFindHandle __stdcall
@@ -35,6 +38,15 @@ __declspec(dllimport) int __stdcall FindClose(FrontendFindHandle findHandle);
 
 #endif
 
+/* Lists the files matching wildcard in a new list for FrontendFileList_Free,
+ * sorted by strcmp of their names: byte order, so capitals sort before small
+ * letters. The original build stores bare file names, lists matching folders
+ * too, returns an empty list when nothing matches, NULL when memory runs out
+ * before the first name is stored, and keeps the names it has when memory
+ * runs out later. It saves the working directory and changes back to it on
+ * every path, though nothing between changes it. The modern build hands the
+ * whole job to FrontendFileList_BuildSortedModern, which differs as its
+ * header says. */
 // FUNCTION: XVT 0x4DFA10
 FrontendFileList *FrontendFileList_BuildSorted(const char *wildcard)
 {
@@ -99,6 +111,8 @@ FrontendFileList *FrontendFileList_BuildSorted(const char *wildcard)
 #endif
 }
 
+/* Frees every node's path, every node and the list itself; does nothing for
+ * NULL. */
 // FUNCTION: XVT 0x4DFC30
 void FrontendFileList_Free(FrontendFileList *list)
 {
@@ -119,6 +133,9 @@ void FrontendFileList_Free(FrontendFileList *list)
 
 /* Inserts a filename node into a lexicographically sorted singly linked list
  * and increments the list count. The head node is assumed to exist. */
+/* A node whose path equals one already listed goes after it. Called by
+ * FrontendFileList_BuildSorted for every file after the first; in the modern
+ * build by FrontendFileList_CollectModernFile. */
 // FUNCTION: XVT 0x4DFC70
 void FrontendFileList_InsertNodeSorted(FrontendFileList *list,
 				       FrontendFileListNode *node)

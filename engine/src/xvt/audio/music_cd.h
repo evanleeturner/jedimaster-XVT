@@ -9,7 +9,9 @@ extern "C" {
 #endif
 
 struct MusicCdTrackCache {
-	unsigned int unused00;
+	unsigned int unused00; /* Nothing reads or writes it by name. */
+	/* Length of track n + 1 in entry n, as MCI minutes, seconds and
+	 * frames. */
 	unsigned int trackLengthMsfByTrack[30];
 };
 

@@ -17,21 +17,30 @@ enum {
 };
 
 typedef struct ModelMeshScaleOperation {
+	/* The number to scale; laser_createcountermeasureprojectile puts a move
+	 * vector component here. */
 	int value;
+	/* The other factor: ModelMesh_ScaleQ15, which nothing calls, returns
+	 * value times scale shifted right 15 bits.
+	 * laser_createcountermeasureprojectile puts a distance here and passes
+	 * both to Math_MulQ15. */
 	int scale;
 } ModelMeshScaleOperation;
 
 typedef struct ModelMeshRotationOperation {
+	/* Read only by ModelMesh_ComputeRotationCoefficient and
+	 * ModelMesh_ComputeNegativeCosineRotationCoefficient, which nothing
+	 * calls. */
 	int value;
-	int otherAxis;
-	int cosineScale;
-	int sineTerm;
+	int otherAxis;	 /* Read only by those two functions. */
+	int cosineScale; /* Read only by those two functions. */
+	int sineTerm;	 /* Read only by those two functions. */
 } ModelMeshRotationOperation;
 
 typedef struct ModelMeshAxis {
-	int x;
-	int y;
-	int z;
+	int x; /* Read only by ModelMesh_RotateAxisQ15, which nothing calls. */
+	int y; /* Read only by ModelMesh_RotateAxisQ15. */
+	int z; /* Read only by ModelMesh_RotateAxisQ15. */
 } ModelMeshAxis;
 
 static __inline int ModelMesh_ScaleQ15(ModelMeshScaleOperation operation)

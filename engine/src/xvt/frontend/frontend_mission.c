@@ -12,9 +12,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* The mission the frontend's setup, briefing and debriefing screens show, as
+ * FrontendMission_LoadCurrent and FrontendMission_LoadCurrentWithBriefing
+ * load it from its file. FrontendMission_InitForBriefing empties it to one
+ * flight group with winType 1. */
 // GLOBAL: XVT 0xA91CC0
 FrontendMission g_frontendMission = {0};
 
+/* Sets up the briefing map for the pilot's current mission:
+ * FrontendMission_InitForBriefing, FrontendMission_LoadCurrentWithBriefing,
+ * then BriefingScript_ResetState. Returns 1 on every path. */
 // FUNCTION: XVT 0x4F6860
 int FrontendMission_LoadForBriefing(void)
 {
@@ -24,6 +31,15 @@ int FrontendMission_LoadForBriefing(void)
 	return 1;
 }
 
+/* Sets the briefing up empty: g_briefingPlaybackActive 1; the selected
+ * flight group, map center and target center, g_activeBriefingIndex,
+ * g_briefingLastNarratedTextBlockIdx and g_briefingTextPageNumber 0; scales
+ * 32. Empties g_frontendMission to one flight group with winType 1 and puts in
+ * the default script. Allocates the 32 label buffers of 40 bytes, 32 text
+ * blocks of 320 bytes and 20 unused buffers of 1024 bytes, without freeing
+ * earlier ones or checking the allocations. Turns off both text slots and
+ * all markers and labels, and sets g_briefingMapPanelRect to (0, 0) to (360,
+ * 236). */
 // FUNCTION: XVT 0x4F69B0
 void FrontendMission_InitForBriefing(void)
 {
@@ -70,6 +86,23 @@ void FrontendMission_InitForBriefing(void)
 	FrontendDraw_RectAssign(&g_briefingMapPanelRect, 0, 0, 360, 236);
 }
 
+/* Loads the pilot's current mission into g_frontendMission, with the
+ * briefing for the pilot's team. Reloads the mission list of
+ * g_pilotData.missionDirectoryId, sets g_selectedMissionListIndex to the entry
+ * whose missionIdx is the pilot's mission in that directory, and opens that
+ * file in the directory's folder. Returns without loading when the file does
+ * not open, and with only formatVersion set when that is not 12, 13 or 14.
+ * Reads the counts, header and flight groups, each message into the slot the
+ * file gives before it, each team's goals and each team record the file
+ * flags present. Each of the 8 briefings that follow is the script, 10 team
+ * flags, then 32 labels and 32 text blocks, each with a 16-bit length. Every
+ * briefing flagged for g_pilotData.team is kept, so a later one replaces an
+ * earlier one: its script goes to g_briefingScript, its index to
+ * g_activeBriefingIndex and its strings into g_briefingMapLabelTexts and
+ * g_briefingTextBlocks; the strings of the others are skipped. Checks no
+ * count, slot or string length against the space it fills, and does not
+ * check that the list loaded or held the pilot's mission: it then reads past
+ * the list's end, or through a NULL list. */
 // FUNCTION: XVT 0x4F6B80
 void FrontendMission_LoadCurrentWithBriefing(void)
 {
@@ -235,6 +268,11 @@ void FrontendMission_LoadCurrentWithBriefing(void)
 	File_Close(stream);
 }
 
+/* Loads a mission file into *outMission the way
+ * FrontendMission_LoadCurrentWithBriefing does, without the briefings. Leaves
+ * *outMission untouched when the file does not open, and holding only
+ * formatVersion when that is not 12, 13 or 14. Checks no count or slot
+ * against the arrays. */
 // FUNCTION: XVT 0x4F6F30
 void FrontendMission_LoadFile(const char *fileName, FrontendMission *outMission)
 {
@@ -319,6 +357,11 @@ void FrontendMission_LoadFile(const char *fileName, FrontendMission *outMission)
 	}
 }
 
+/* FrontendMission_LoadCurrentWithBriefing without the briefings: reloads the
+ * directory's mission list, sets g_selectedMissionListIndex and loads the
+ * pilot's mission into g_frontendMission. The modern build returns without
+ * loading when the list did not load or lacks the pilot's mission; the
+ * original build then reads past the list's end, or through a NULL list. */
 // FUNCTION: XVT 0x4F70F0
 void FrontendMission_LoadCurrent(void)
 {
@@ -416,6 +459,30 @@ void FrontendMission_LoadCurrent(void)
 	File_Close(stream);
 }
 
+/* Sets up the pilot record's per-mission player state before a mission
+ * flies. Clears g_mpRoster entries 1 to 7 in single player, or in a network
+ * game the entries of players DirectPlay no longer lists. Zeroes the pilot's
+ * mission score, kill tables, lastMissionStats and team results, and
+ * g_localPilotNetworkPlayerIndex. Copies every roster player into
+ * g_pilotData.networkPlayers at the same index: name, craft, rating, and the
+ * craft, warhead, beam and countermeasure choices (the last three less 1),
+ * with zeroed results and the flight group of the player's slot in
+ * g_missionSetupPlayerAssignments; a craft choice whose optional craft is
+ * CRAFT_SPECIES_UNKNOWN becomes -1. The local player's index goes to
+ * g_localPilotNetworkPlayerIndex. With a sequence active, the player count
+ * goes to battleSequenceState for combat engagements and to
+ * campaignSequenceState for training exercises. At the first mission of a
+ * melee sequence it also marks which teams take part (0 in
+ * aiOpponentSourceTeamAndTypeFlag, the rest -1) and stores the player and
+ * team counts. g_pilotData.currentFactionId becomes, in melees and
+ * tournaments, 0 when the local player's craft is an X-wing, Y-wing, A-wing,
+ * B-wing or Z-95 and else 1, and elsewhere the IFF of the local player's
+ * flight group; in melees and tournaments the other side's factionStatistics
+ * entry gets missionSequenceActive 0. The mission choice then goes into
+ * factionStatistics entry 2 in a network game, which also sets entries 0 and
+ * 1's missionSequenceActive to 0, else into the current faction's entry. Ends
+ * with Net_CompactReliablePeerSlotsForRoster. Does not check that the IFF is
+ * under 4 before it picks a factionStatistics entry with it. */
 // FUNCTION: XVT 0x4FAD00
 void FrontendMission_InitPlayerState(void)
 {

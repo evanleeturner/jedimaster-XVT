@@ -78,88 +78,255 @@ enum {
 	MISSION_ACHIEVEMENT_CITATION_TOOLTIP_OFFSET = 659,
 };
 
+/* Page of the pilot record shown on the concourse: 0 pilot statistics, 1 pilot
+ * awards, 2 pilot rating, 3 mission achievements, 4 campaign medals, 5
+ * cutscenes. Concourse_Update sets 0 when it starts;
+ * PilotRecord_UpdateNavigationControls changes it when a page button is
+ * clicked. */
 // GLOBAL: XVT 0xB6A2B0
 int g_pilotRecordPage = 0;
+/* The loaded pilot's whole record, the pilot file's contents, and the
+ * frontend's working state for the mission being set up, flown and debriefed.
+ * Frontend_LoadResources zeroes it; the pilot code loads, creates and saves it;
+ * many functions write it, chiefly FeDiskIo_CommitFlightResults with each
+ * mission's results. An empty name means no pilot is loaded. */
 // GLOBAL: XVT 0xB6A2E0
 PilotData g_pilotData;
+/* Records read into g_campaignAwardSprites. Set by
+ * PilotRecord_LoadCampaignAwardSpriteTable; set to 0 when GameMain or, in the
+ * modern build, XvtFrontendTask_Shutdown frees the table. */
 // GLOBAL: XVT 0xB69CC8
 unsigned int g_campaignAwardSpriteCount = 0;
+/* Heap table of campaign medal sprites read from frontres\campawds.lst, one
+ * record per campaign. PilotRecord_LoadCampaignAwardSpriteTable allocates it
+ * for the count on the file's first line; GameMain or, in the modern build,
+ * XvtFrontendTask_Shutdown frees it. NULL until loaded or when loading failed;
+ * the campaign medals page then draws only its title. */
 // GLOBAL: XVT 0xB69CD8
 CampaignAwardSpriteEntry *g_campaignAwardSprites = NULL;
+/* Single-player mission awards of the last campaign
+ * PilotRecord_DrawCampaignMedalsPage looked at when it rebuilt: the campaign's
+ * missions flown that are award eligible. That page draws the single-player
+ * award sprites only when it is not 0. */
 // GLOBAL: XVT 0x664EC8
 int g_campaignSingleplayerAwardCount = 0;
+/* Which campaign the campaign medals page shows, counting the attempted
+ * campaigns that have a medal record; 0 when the page rebuilds, then the scroll
+ * bar's position when there is more than one. */
 // GLOBAL: XVT 0x664ED0
 int g_campaignMedalScrollOffset = 0;
+/* Per mission position within a campaign, 1 when that single-player campaign
+ * mission was flown and is award eligible; the campaign medals page draws the
+ * matching sprites of singleplayerMissionAwardSpriteNames for positions 0 to
+ * 14. PilotRecord_DrawCampaignMedalsPage clears it once per rebuild and then
+ * sets flags for every campaign in turn without clearing between them. */
 // GLOBAL: XVT 0x664EE8
 int g_campaignSingleplayerAwardFlags[CAMPAIGN_AWARD_FLAG_COUNT] = {0};
+/* Multiplayer counterpart of g_campaignSingleplayerAwardCount, from
+ * mpCampaignMissions. */
 // GLOBAL: XVT 0x664F28
 int g_campaignMultiplayerAwardCount = 0;
+/* Multiplayer counterpart of g_campaignSingleplayerAwardFlags, from
+ * mpCampaignMissions, drawn with multiplayerMissionAwardSpriteNames. */
 // GLOBAL: XVT 0x664F60
 int g_campaignMultiplayerAwardFlags[CAMPAIGN_AWARD_FLAG_COUNT] = {0};
+/* Campaigns the current faction attempted, single player or multiplayer, that
+ * have a record in g_campaignAwardSprites; the campaign medals page shows one
+ * at a time. Counted by PilotRecord_DrawCampaignMedalsPage when it rebuilds. */
 // GLOBAL: XVT 0x664FBC
 int g_campaignMedalEntryCount = 0;
+/* First 15-pixel row shown on the cutscene page; 0 when
+ * PilotRecord_DrawCutsceneViewerPage rebuilds, then the scroll bar's position
+ * when there are more than 21 rows. */
 // GLOBAL: XVT 0x664EAC
 int g_cutsceneViewerScrollRow = 0;
+/* Tournaments the current faction attempted in single player: entries of
+ * g_pilotRecordTournamentMissionList whose spTournaments entry has an
+ * attemptCount not 0; the rows of that section of the mission achievements
+ * page. -1 at start; PilotRecord_DrawMissionAchievementsPage sets it to 0 and
+ * counts it when it rebuilds. */
 // GLOBAL: XVT 0x664EA0
 int g_pilotSpTournamentHistoryCount = -1;
+/* Combat engagements the current faction flew in multiplayer: entries of
+ * g_pilotRecordMultiplayerCombatMissionList whose mpCombatMissions entry has a
+ * numberTimesFlown not 0; the rows of that section of the mission achievements
+ * page. -1 at start; PilotRecord_DrawMissionAchievementsPage sets it to 0 and
+ * counts it when it rebuilds. */
 // GLOBAL: XVT 0x664EA4
 int g_pilotMpCombatHistoryCount = -1;
+/* Tournaments the current faction attempted in multiplayer: entries of
+ * g_pilotRecordTournamentMissionList whose mpTournaments entry has an
+ * attemptCount not 0; the rows of that section of the mission achievements
+ * page. -1 at start; PilotRecord_DrawMissionAchievementsPage sets it to 0 and
+ * counts it when it rebuilds. */
 // GLOBAL: XVT 0x664EA8
 int g_pilotMpTournamentHistoryCount = -1;
+/* Training missions the current faction flew in multiplayer: entries of
+ * g_pilotRecordMultiplayerTrainingMissionList whose mpTrainingMissions entry
+ * has a numberTimesFlown not 0; the rows of that section of the mission
+ * achievements page. -1 at start; PilotRecord_DrawMissionAchievementsPage sets
+ * it to 0 and counts it when it rebuilds. */
 // GLOBAL: XVT 0x664EB0
 int g_pilotMpTrainingHistoryCount = -1;
+/* Melees the current faction flew in multiplayer: entries of
+ * g_pilotRecordMeleeMissionList whose mpMeleeMissions entry has a
+ * numberTimesFlown not 0; the rows of that section of the mission achievements
+ * page. -1 at start; PilotRecord_DrawMissionAchievementsPage sets it to 0 and
+ * counts it when it rebuilds. */
 // GLOBAL: XVT 0x664ECC
 int g_pilotMpMeleeHistoryCount = -1;
+/* Rows of the cutscene page, counted when PilotRecord_DrawCutsceneViewerPage
+ * rebuilds: 2 for each campaign title, then for each unlocked cutscene 1 for
+ * its title plus its thumbnail's height + 18 pixels, divided by 15. */
 // GLOBAL: XVT 0x664FB8
 int g_cutsceneViewerTotalRows = 0;
+/* Pilot name being typed in the roster panel's name field, at most 13
+ * characters and a terminating 0. PilotRecord_UpdatePilotSelectionPanel clears
+ * it on its first frame and after it uses a name or a pilot is clicked. */
 // GLOBAL: XVT 0x664FA8
 char g_pilotRecordNameInput[14] = {0};
+/* First pilot shown in the roster panel's 13-row list. Set by its scroll bar
+ * when there are more than 13 pilots, by PilotRecord_RebuildPilotList to the
+ * current pilot's position when the panel opens or makes a pilot with more than
+ * 13, and to 0 after Delete Pilot. */
 // GLOBAL: XVT 0x52B0E0
 int g_pilotListScrollOffset = 0;
+/* Kill assists of the current faction's career, per mission type (0 exercise, 1
+ * melee, 2 combat), summed over craft types. -1 at start;
+ * PilotRecord_DrawPilotStatisticsPage sets each to 0 and sums them when it
+ * rebuilds. */
 // GLOBAL: XVT 0x664EB8
 int g_pilotStatsAssists[3] = {-1, -1, -1};
+/* Full kills on human pilots in the current faction's career, per mission type,
+ * summed over the victims' 25 ratings. -1 at start;
+ * PilotRecord_DrawPilotStatisticsPage sets each to 0 and sums them when it
+ * rebuilds. */
 // GLOBAL: XVT 0x664ED8
 int g_pilotStatsPlayerKills[3] = {-1, -1, -1};
+/* Times AI pilots killed the pilot in the current faction's career, per mission
+ * type, summed over their 6 ratings. -1 at start;
+ * PilotRecord_DrawPilotStatisticsPage sets each to 0 and sums them when it
+ * rebuilds. */
 // GLOBAL: XVT 0x664F30
 int g_pilotStatsLossesToNonPlayers[3] = {-1, -1, -1};
+/* First row shown on the mission achievements page, which shows 21. -1 at
+ * start; PilotRecord_DrawMissionAchievementsPage sets 0 when it rebuilds, then
+ * the scroll bar's position when there are more than 21 rows. */
 // GLOBAL: XVT 0x664F3C
 int g_pilotAchievementsScrollOffset = -1;
+/* Training missions the current faction flew in single player: entries of
+ * g_pilotRecordSingleplayerTrainingMissionList whose spTrainingMissions entry
+ * has a numberTimesFlown not 0; the rows of that section of the mission
+ * achievements page. -1 at start; PilotRecord_DrawMissionAchievementsPage sets
+ * it to 0 and counts it when it rebuilds. */
 // GLOBAL: XVT 0x664F44
 int g_pilotSpTrainingHistoryCount = -1;
+/* Melees the current faction flew in single player: entries of
+ * g_pilotRecordMeleeMissionList whose spMeleeMissions entry has a
+ * numberTimesFlown not 0; the rows of that section of the mission achievements
+ * page. -1 at start; PilotRecord_DrawMissionAchievementsPage sets it to 0 and
+ * counts it when it rebuilds. */
 // GLOBAL: XVT 0x664F48
 int g_pilotSpMeleeHistoryCount = -1;
+/* Combat engagements the current faction flew in single player: entries of
+ * g_pilotRecordSingleplayerCombatMissionList whose spCombatMissions entry has a
+ * numberTimesFlown not 0; the rows of that section of the mission achievements
+ * page. -1 at start; PilotRecord_DrawMissionAchievementsPage sets it to 0 and
+ * counts it when it rebuilds. */
 // GLOBAL: XVT 0x664F4C
 int g_pilotSpCombatHistoryCount = -1;
+/* Battles the current faction attempted in multiplayer: entries of
+ * g_battleMissionList whose mpBattles entry has an attemptCount not 0; the rows
+ * of that section of the mission achievements page. -1 at start;
+ * PilotRecord_DrawMissionAchievementsPage sets it to 0 and counts it when it
+ * rebuilds. */
 // GLOBAL: XVT 0x664F50
 int g_pilotMpBattleHistoryCount = -1;
+/* 1 when the current faction's career has a full or shared kill of any craft
+ * type, so the pilot statistics page shows its craft-kills-by-type section. -1
+ * at start; only PilotRecord_DrawPilotStatisticsPage writes it, when it
+ * rebuilds. */
 // GLOBAL: XVT 0x664F40
 int g_pilotStatsHasCraftKillsByType = -1;
+/* Scratch flag of PilotRecord_DrawPilotStatisticsPage, its only user: 1 when
+ * the craft type or rating being looked at has a count in any mission type. -1
+ * at start. */
 // GLOBAL: XVT 0x664F54
 int g_pilotStatsRowHasData = -1;
+/* 1 when human pilots of any rating killed the pilot in the current faction's
+ * career, so the pilot statistics page shows its losses-to-players-by-rank
+ * section. -1 at start; only PilotRecord_DrawPilotStatisticsPage writes it,
+ * when it rebuilds. */
 // GLOBAL: XVT 0x664F58
 int g_pilotStatsHasLossesToPlayersByRank = -1;
+/* First row shown on the pilot statistics page, which shows 21. -1 at start;
+ * PilotRecord_DrawPilotStatisticsPage sets 0 when it rebuilds, then the scroll
+ * bar's position when there are more than 21 rows. */
 // GLOBAL: XVT 0x664F5C
 int g_pilotStatisticsScrollOffset = -1;
+/* Shared kills on AI pilots in the current faction's career, per mission type,
+ * summed over their 6 ratings. -1 at start; PilotRecord_DrawPilotStatisticsPage
+ * sets each to 0 and sums them when it rebuilds. */
 // GLOBAL: XVT 0x664FC0
 int g_pilotStatsNonPlayerKillsShared[3] = {-1, -1, -1};
+/* Shared kills of the current faction's career, per mission type, summed over
+ * craft types. -1 at start; PilotRecord_DrawPilotStatisticsPage sets each to 0
+ * and sums them when it rebuilds. */
 // GLOBAL: XVT 0x664FD0
 int g_pilotStatsTotalKillsShared[3] = {-1, -1, -1};
+/* Full kills on AI pilots in the current faction's career, per mission type,
+ * summed over their 6 ratings. -1 at start; PilotRecord_DrawPilotStatisticsPage
+ * sets each to 0 and sums them when it rebuilds. */
 // GLOBAL: XVT 0x664FE0
 int g_pilotStatsNonPlayerKills[3] = {-1, -1, -1};
+/* 1 when the current faction's career has a full or shared kill on a human
+ * pilot of any rating, so the pilot statistics page shows its
+ * player-kills-by-rank section. -1 at start; only
+ * PilotRecord_DrawPilotStatisticsPage writes it, when it rebuilds. */
 // GLOBAL: XVT 0x664FEC
 int g_pilotStatsHasPlayerKillsByRating = -1;
+/* Shared kills on human pilots in the current faction's career, per mission
+ * type, summed over the victims' 25 ratings. -1 at start;
+ * PilotRecord_DrawPilotStatisticsPage sets each to 0 and sums them when it
+ * rebuilds. */
 // GLOBAL: XVT 0x664FF0
 int g_pilotStatsPlayerKillsShared[3] = {-1, -1, -1};
+/* Rows of the pilot record page last rebuilt, for its scroll bar: set by
+ * PilotRecord_DrawPilotStatisticsPage (25, 26 below Jedi Master, plus its
+ * sections) and by PilotRecord_DrawMissionAchievementsPage (each history's
+ * entries plus 2 header rows per section and a blank row between sections). -1
+ * at start. */
 // GLOBAL: XVT 0x665000
 int g_pilotRecordPageRowCount = -1;
+/* Rows of the single-player campaign section of the mission achievements page:
+ * campaigns of g_pilotRecordSingleplayerCampaignMissionList with an spCampaigns
+ * attemptCount not 0, plus missions of the single-player training list whose
+ * spCampaignMissions entry (mission id - 1) has a numberTimesFlown not 0. -1 at
+ * start; PilotRecord_DrawMissionAchievementsPage sets it to 0 and counts it
+ * when it rebuilds. */
 // GLOBAL: XVT 0x664FA0
 int g_pilotSpCampaignHistoryRowCount = -1;
+/* Battles the current faction attempted in single player: entries of
+ * g_battleMissionList whose spBattles entry has an attemptCount not 0; the rows
+ * of that section of the mission achievements page. -1 at start;
+ * PilotRecord_DrawMissionAchievementsPage sets it to 0 and counts it when it
+ * rebuilds. */
 // GLOBAL: XVT 0x664FFC
 int g_pilotSpBattleHistoryCount = -1;
+/* Times human pilots killed the pilot in the current faction's career, per
+ * mission type, summed over their 25 ratings. -1 at start;
+ * PilotRecord_DrawPilotStatisticsPage sets each to 0 and sums them when it
+ * rebuilds. */
 // GLOBAL: XVT 0x665008
 int g_pilotStatsLossesToPlayers[3] = {-1, -1, -1};
+/* Multiplayer counterpart of g_pilotSpCampaignHistoryRowCount: campaigns of
+ * g_pilotRecordMultiplayerCampaignMissionList with an mpCampaigns attemptCount
+ * not 0, plus missions of the multiplayer training list whose
+ * mpCampaignMissions entry has a numberTimesFlown not 0. */
 // GLOBAL: XVT 0x665014
 int g_pilotMpCampaignHistoryRowCount = -1;
+/* Screen position of each rating's rank sprite (rank0 to rank24) on the pilot
+ * rating page, by rating from target drone (0) to Jedi Master (24). */
 // GLOBAL: XVT 0x52B018
 POINT g_pilotRatingIconPos[25] = {
 	{364, 397}, {364, 381}, {364, 365}, {364, 349}, {197, 397},
@@ -168,6 +335,28 @@ POINT g_pilotRatingIconPos[25] = {
 	{197, 274}, {364, 247}, {364, 231}, {364, 215}, {364, 199},
 	{197, 247}, {197, 231}, {197, 215}, {197, 199}, {187, 123}};
 
+/* Runs one frame of the concourse's pilot roster panel: the list of saved
+ * pilots, a name field and the Delete Pilot button. On its first frame
+ * (frameCounter 0) it flushes the keyboard, clears g_pilotRecordNameInput and
+ * rebuilds the list, scrolled to the current pilot when there are more than 13.
+ * Clicking a pilot other than the current one (names compared case-blind over
+ * 12 characters) loads it with Pilot_LoadFromPath and, when that succeeds,
+ * copies its current faction's team, mission directory, mission ids and
+ * sequence fields into g_pilotData; any click then rebuilds the list, redraws
+ * the background and sets g_pilotRecordPagesNeedRebuild. A name finished in the
+ * field loads the listed pilot of that name, compared case-blind, or else
+ * Pilot_CreateNew makes a new pilot of that name; that also sets
+ * g_pilotRecordPagesNeedRebuild. With no saved pilots it asks for a name in a
+ * dialog. Delete Pilot, or the Delete key, with a pilot loaded asks for
+ * confirmation, calls Pilot_DeleteCurrent when confirmed and sets
+ * g_pilotListScrollOffset to 0. A scroll bar sets g_pilotListScrollOffset when
+ * there are more than 13 pilots. Returns 1. The modern build runs the dialogs
+ * as pending actions, returning 1 while one is open, and calls XvtStorage_Fatal
+ * when the list is missing or a pilot cannot be saved or deleted; only it
+ * rebuilds the list after a delete. In the original build, which never marks a
+ * match, a typed name that matches a pilot loads it and then also creates a new
+ * pilot of that name. Does not check g_pilotFileList for NULL in the original
+ * build. */
 // FUNCTION: XVT 0x4BEA50
 int PilotRecord_UpdatePilotSelectionPanel(int frameCounter)
 {
@@ -487,6 +676,11 @@ int PilotRecord_UpdatePilotSelectionPanel(int frameCounter)
 	return 1;
 }
 
+/* Draws up to 13 pilot names of g_pilotListDisplayNames from firstVisibleIndex
+ * in bounds, 15 pixels apart, the current pilot's name (compared case-blind) in
+ * yellow and the row under the cursor filled translucent green. Returns the
+ * clicked row's pilot index plus 1 on a left or right click, else 0; also 0,
+ * drawing nothing, when g_pilotFileList or g_pilotListDisplayNames is NULL. */
 // FUNCTION: XVT 0x4BEF80
 int PilotRecord_DrawPilotList(const RECT *bounds, int firstVisibleIndex)
 {
@@ -575,6 +769,15 @@ int PilotRecord_DrawPilotList(const RECT *bounds, int firstVisibleIndex)
 	return selectedIndex;
 }
 
+/* Rebuilds the roster: frees g_pilotListDisplayNames and g_pilotFileList, lists
+ * the *.plt files of the base game's install folder into g_pilotFileList,
+ * sorted, and reads the first 12 bytes of each, the pilot's name, into a
+ * 14-byte slot of a new g_pilotListDisplayNames. Stores the position of the
+ * pilot named like g_pilotData.name, compared case-blind, in *selectedIndex,
+ * which it leaves alone when there is none. Returns 1, or 0 when the file list
+ * cannot be built, there are no pilots, or, in the modern build, the names
+ * cannot be allocated. A file that does not open is skipped, so the names after
+ * it no longer sit at their files' positions in g_pilotFileList. */
 // FUNCTION: XVT 0x4BF100
 int PilotRecord_RebuildPilotList(int *selectedIndex)
 {
@@ -654,6 +857,18 @@ int PilotRecord_RebuildPilotList(int *selectedIndex)
 	return 0;
 }
 
+/* Draws the pilot statistics page for the current faction's career,
+ * g_pilotData.factionStatistics[currentFactionId].stats: total score, rating
+ * and, below Jedi Master, the promotion percentage; then, in columns for
+ * exercise, melee and combat (mission types 0, 1 and 2), kills, player and
+ * non-player kills, assists, hidden cargo found, laser and warhead accuracy,
+ * kills by victim rank and by craft type, averages per mission, and losses by
+ * cause and to players by rank. 21 rows show from
+ * g_pilotStatisticsScrollOffset, with a scroll bar when there are more. When
+ * g_pilotRecordPagesNeedRebuild is set it first clears it, scrolls to row 0,
+ * counts the rows into g_pilotRecordPageRowCount and sums the g_pilotStats
+ * totals and flags. Returns 0, having drawn only the title, when no pilot is
+ * loaded (empty name); else 1. */
 // FUNCTION: XVT 0x4C0D70
 int PilotRecord_DrawPilotStatisticsPage(void)
 {
@@ -2184,6 +2399,22 @@ int PilotRecord_DrawPilotStatisticsPage(void)
 	return 1;
 }
 
+/* Draws the mission achievements page: for single player, then multiplayer, the
+ * training, melee, tournament, combat, battle and campaign histories of the
+ * current faction, one row per mission flown or attempted with its description,
+ * cut short with dots when too long, its best score and its best time, best
+ * finish, best victory margin or campaign progress; a campaign's flown missions
+ * follow it in gray. A second pass draws, beside each row with an award level,
+ * its sprite and tooltip: a citation for training, combat and campaign
+ * missions, a medal for melees, tournaments and battles. 21 rows show from
+ * g_pilotAchievementsScrollOffset, with a scroll bar when there are more. When
+ * g_pilotRecordPagesNeedRebuild is set it first frees and reloads every
+ * directory's mission list into the g_pilotRecord lists and
+ * g_battleMissionList, the multiplayer training, combat and campaign lists with
+ * g_frontendMissionSessionMode set to NET_HOST and then left at NONE, cuts each
+ * description at its last '(' in place, clears the flag and counts each
+ * section's rows into the history counts and g_pilotRecordPageRowCount. Returns
+ * 0, having drawn only the title, when no pilot is loaded; else 1. */
 // FUNCTION: XVT 0x4C3590
 int PilotRecord_DrawMissionAchievementsPage(void)
 {
@@ -5612,6 +5843,19 @@ int PilotRecord_DrawMissionAchievementsPage(void)
 	return 1;
 }
 
+/* Draws the cutscene page: for each campaign the current faction attempted,
+ * single player or multiplayer, its title and each of its cutscenes the pilot
+ * has unlocked, with a thumbnail: one not marked playAfterDebriefing once its
+ * campaign mission was flown, one marked so once that mission was completed. It
+ * stops drawing once y passes 433. Clicking a thumbnail suspends CD audio,
+ * clears the screen, plays the cutscene's movie, redraws the background and
+ * resumes the audio; the modern build returns 1 at once when
+ * XvtFrontendMovies_PlayViewer returns nonzero. When
+ * g_pilotRecordPagesNeedRebuild is set it first reloads the campaign list into
+ * g_pilotRecordSingleplayerCampaignMissionList, cuts each description at its
+ * last '(', counts g_cutsceneViewerTotalRows, sets g_cutsceneViewerScrollRow to
+ * 0 and clears the flag; a scroll bar sets the row past 21 rows. Returns 0 when
+ * no pilot is loaded or g_cutsceneTable is NULL, else 1. */
 // FUNCTION: XVT 0x4C7CC0
 int PilotRecord_DrawCutsceneViewerPage(void)
 {
@@ -5951,6 +6195,21 @@ int PilotRecord_DrawCutsceneViewerPage(void)
 	return 1;
 }
 
+/* Draws the campaign medals page: one campaign at a time, at
+ * g_campaignMedalScrollOffset among the campaigns the current faction attempted
+ * that have a record in g_campaignAwardSprites, with its title, its main medal
+ * sprite centered on (256, 279), and on it the mission award sprites of
+ * positions 0 to 14 set in g_campaignSingleplayerAwardFlags and
+ * g_campaignMultiplayerAwardFlags. When g_pilotRecordPagesNeedRebuild is set it
+ * first reloads the campaign list and the single-player and multiplayer
+ * training lists, the last with g_frontendMissionSessionMode set to NET_HOST
+ * and then left at NONE, cuts the campaign descriptions at their last '(',
+ * rebuilds the award flags and counts and g_campaignMedalEntryCount, sets
+ * g_campaignMedalScrollOffset to 0 and clears the flag. Returns 0 when no pilot
+ * is loaded or g_campaignAwardSprites is NULL, else 1. The flags are not
+ * cleared between campaigns, so the medal shown carries the award positions of
+ * every attempted campaign that has a record, and the counts are those of the
+ * last such campaign. */
 // FUNCTION: XVT 0x4C83A0
 int PilotRecord_DrawCampaignMedalsPage(void)
 {
@@ -6321,6 +6580,11 @@ int PilotRecord_DrawCampaignMedalsPage(void)
 	return 1;
 }
 
+/* Draws the pilot awards page for the current faction: for tournament trophies,
+ * melee plaques, battle medallions and mission evaluations, each of award
+ * levels 1 to 6 the pilot holds, as its sprite and count with a tooltip naming
+ * the level. Returns 0, having drawn only the title, when no pilot is loaded;
+ * else 1. */
 // FUNCTION: XVT 0x4C8990
 int PilotRecord_DrawPilotAwardsPage(void)
 {
@@ -6502,6 +6766,12 @@ int PilotRecord_DrawPilotAwardsPage(void)
 	return 1;
 }
 
+/* Draws the pilot rating page: the class insignia the pilot's rating has
+ * reached, from cadet to Jedi Master; the rank sprite of every rating from
+ * trainee up to the pilot's, and of target drone and ground crew when their
+ * ratingAchievedOnMission is not 0, at g_pilotRatingIconPos, each with a
+ * tooltip giving its mission number from ratingAchievedOnMission. Returns 0,
+ * having drawn only the title, when no pilot is loaded; else 1. */
 // FUNCTION: XVT 0x4C90C0
 int PilotRecord_DrawPilotRatingPage(void)
 {
@@ -6639,6 +6909,12 @@ int PilotRecord_DrawPilotRatingPage(void)
 	return 1;
 }
 
+/* Draws the pilot record's buttons: one per page and the Rebel and Imperial
+ * pilot buttons, with the current page and faction selected. A page button sets
+ * g_pilotRecordPage; a faction button sets g_pilotData.currentFactionId to 0
+ * (Rebel) or 1 (Imperial) and copies that faction's team, mission directory,
+ * mission ids and sequence fields into g_pilotData. Either sets
+ * g_pilotRecordPagesNeedRebuild and redraws the background. Returns 1. */
 // FUNCTION: XVT 0x4C9660
 int PilotRecord_UpdateNavigationControls(void)
 {
@@ -6812,6 +7088,11 @@ int PilotRecord_UpdateNavigationControls(void)
 	return 1;
 }
 
+/* Redraws the pilot record's background on the offscreen surface: background0
+ * for faction 0, else background1, the frame, allactive or clientactive by
+ * g_hostCdAvailable, the name overlay and the current page's overlay, none on
+ * the cutscene page, with the faction's award sprites on the awards page.
+ * Returns 1. */
 // FUNCTION: XVT 0x4CAF60
 int PilotRecord_RedrawBackground(void)
 {
@@ -6861,6 +7142,18 @@ int PilotRecord_RedrawBackground(void)
 	return 1;
 }
 
+/* Loads the campaign medal sprite table from fileName into
+ * g_campaignAwardSprites, freeing any old one. The first line gives the record
+ * count to allocate. Each record is a campaign id line, the main sprite name
+ * and 15 multiplayer then 15 single-player mission award sprite names, one per
+ * line, lines starting with // skipped; names are cut to 31 characters and the
+ * 16th slots stay empty. g_campaignAwardSpriteCount counts the complete
+ * records. Returns 0 when the file does not open, its first line cannot be read
+ * or the allocation fails, which the original build returns from with the file
+ * left open; else 1, also when the file ends early, a record cut short getting
+ * campaignId 0. In the original build the record loop stops at 15 records
+ * rather than at the count read, and nothing checks that the records fit the
+ * allocation; the modern build stops at the count. */
 // FUNCTION: XVT 0x4CC060
 int PilotRecord_LoadCampaignAwardSpriteTable(const char *fileName)
 {

@@ -23,18 +23,57 @@ enum {
 	BILLBOARD_ALIGNMENT_QUARTER_TURN = 0x4000,
 };
 
+/* Model node last chosen for a billboard object: the frame
+ * SceneBillboard_DrawOrQueueObject draws as a node, or the mesh
+ * Damage_QueueCraftBillboardsForObjectType or ProvingGrounds_DrawCourseObject
+ * is on. Only ProvingGrounds_DrawCourseObject reads it. */
 // GLOBAL: XVT 0x9A1FE6
 uint16_t g_billboardModelNodeSwitchIndex = 0;
+/* Selection marking for the meshes Damage_QueueCraftBillboardsForObjectType
+ * walks: 1 for the whole object while it is the local beam target, 2 on the
+ * mesh matching g_renderTargetComponentIdx, 0 on the others;
+ * ProvingGrounds_DrawCourseObject sets 1. Only
+ * Damage_QueueCraftBillboardsForObjectType reads it. */
 // GLOBAL: XVT 0x9A20A6
 uint16_t g_billboardTargetSelectionState = 0;
+/* Billboards waiting in g_sceneBillboardQueue, 0 to 32.
+ * SceneBillboard_QueueProjectedTextured adds one;
+ * SceneBillboard_RenderQueuedTextured counts it down and leaves -1, and its
+ * callers and the frame and map setup set it back to 0. */
 // GLOBAL: XVT 0x9A8062
 int16_t g_sceneBillboardQueueCount = 0;
+/* Object index (or, in a few callers, a type or marker value) of the object
+ * being drawn, which the billboard and model drawing code reads; many functions
+ * write it, chiefly SceneBillboard_DrawOrQueueObject,
+ * RenderQuad_DrawModelTexture, Damage_QueueCraftBillboardsForObjectType and
+ * RenderNonCraftSceneObject. */
 // GLOBAL: XVT 0x9ED664
 uint16_t g_billboardObjectOrTypeIndex = 0;
 
+/* Textured billboards waiting to be drawn, 32 entries, filled by
+ * SceneBillboard_QueueProjectedTextured and drawn by
+ * SceneBillboard_RenderQueuedTextured. */
 // GLOBAL: XVT 0x9ECA30
 static SceneBillboardQueueEntry g_sceneBillboardQueue[32] = {{0}};
 
+/* Draws an object through its type's frame sequence: model frames at once,
+ * texture frames as queued billboards. Uses the object-to-view matrix and the
+ * g_viewSpace position the caller has set up. Sets g_billboardObjectOrTypeIndex
+ * and g_billboardTextureFrameSequence; the frame is typeSpecificByte[0] >> 1
+ * for object type 89 (COMPONENT_OBJECT_TYPE), else the sequence entry at
+ * typeSpecificByte[0], stored in g_billboardTextureSequenceIndex, and it
+ * returns when the type has no sequence. Frames from 0xFF00 up draw nothing. A
+ * frame under 0x8000 is a model node: it sets g_billboardModelNodeSwitchIndex
+ * and draws it with RenderScene_DrawSelectedRootNode, and stops there, except
+ * for a type 89 object whose mobj's sourceObjectType is also 89, which then
+ * takes a texture frame from g_objectType132TextureFrameSequence at
+ * typeSpecificByte[1]. A texture frame (0x8000 to 0xFEFF) with view depth not
+ * negative is queued at the projected point, returning when either coordinate
+ * falls outside -65536 to 65535, with Y measured up from the viewport's bottom,
+ * a size of effectSize << 6 (plus 256 when that is 256 or more, or 256 for no
+ * effectSize), and the object's on-screen roll from row 0 or 1 of the
+ * object-to-view matrix, whichever has the smaller Z term in size (row 1 on a
+ * tie). Does not check that the object has a mobj. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x401000
 void SceneBillboard_DrawOrQueueObject(int objectIndex)
@@ -144,6 +183,8 @@ void SceneBillboard_DrawOrQueueObject(int objectIndex)
 		rotationAngle);
 }
 
+/* Adds a billboard to g_sceneBillboardQueue and raises
+ * g_sceneBillboardQueueCount; does nothing when 32 wait. */
 // FUNCTION: XVT 0x401250
 void SceneBillboard_QueueProjectedTextured(int objectOrTypeIndex, int frame,
 					   int screenSize, int screenX,
@@ -166,6 +207,11 @@ void SceneBillboard_QueueProjectedTextured(int objectOrTypeIndex, int frame,
 	}
 }
 
+/* Draws the queued billboards with RenderQuad_DrawModelTexture, farthest
+ * (largest depthZ) first, sorting by bubble passes as it goes, and leaves
+ * g_sceneBillboardQueueCount at -1. With drawTargetMarkers nonzero and a local
+ * target, it then boxes the target with Targeting_DrawObjectBox in color 59,
+ * around the selected component for a starship or platform. */
 // FUNCTION: XVT 0x4012C0
 void SceneBillboard_RenderQueuedTextured(int16_t drawTargetMarkers)
 {
@@ -244,6 +290,12 @@ void SceneBillboard_RenderQueuedTextured(int16_t drawTargetMarkers)
 	}
 }
 
+/* Draws an object's model rolled to face the local player's camera: adds to its
+ * roll trig2_arctan(up, side) of the camera's offset taken along the object's
+ * cached up and side axes, less a quarter turn (0x4000), draws it with
+ * FVIEW_SetObjectTransform and RenderScene_DrawObjectModel, and puts the roll
+ * back, marking the orientation dirty both times. Sets
+ * g_billboardObjectOrTypeIndex. */
 // FUNCTION: XVT 0x41FF70
 void SceneBillboard_DrawRollAlignedObjectModel(uint16_t objectIndex)
 {
@@ -281,6 +333,10 @@ void SceneBillboard_DrawRollAlignedObjectModel(uint16_t objectIndex)
 	object->mobj->orientMatrixDirty = 1;
 }
 
+/* Screen size of a billboard at a depth: s = modelMaxExtent / (size of
+ * depthZ >> 8), or 0 when that is 0, then s * baseScreenSize >> 8, capped at
+ * 1024. The modern build works the product without signed overflow and leaves
+ * INT32_MIN as it is. Only RenderQuad_DrawModelTexture calls it. */
 // FUNCTION: XVT 0x4243D0
 int SceneBillboard_ComputeProjectedSize(int depthZ, uint16_t modelMaxExtent,
 					uint16_t baseScreenSize)

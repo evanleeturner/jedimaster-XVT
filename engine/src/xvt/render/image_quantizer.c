@@ -19,102 +19,242 @@
 #pragma pack(push, 1)
 
 typedef struct ImageQuantizerPixelRun {
-	uint8_t red;
-	uint8_t green;
-	uint8_t blue;
-	uint8_t lengthMinusOne;
+	uint8_t red;		/* Red, 0 to 255. */
+	uint8_t green;		/* Green, 0 to 255. */
+	uint8_t blue;		/* Blue, 0 to 255. */
+	uint8_t lengthMinusOne; /* Pixels in the run less 1. */
+	/* Palette entry the run maps to once colors are assigned. */
 	uint16_t paletteIndex;
 } ImageQuantizerPixelRun;
 
 typedef struct ImageQuantizerImageLayout {
+	/* The record's bytes before colorClass, not named in this view. */
 	uint8_t reserved0000[0x1024];
+	/* 1 for direct color, 2 for a palette image;
+	 * ImageQuantizer_AssignPaletteColors sets 2 unless colorspace is 3. */
 	uint32_t colorClass;
+	/* Nonzero makes ImageQuantizer_CompressPixelRuns also need equal
+	 * palette indexes to join pixels; every writer sets it to 0. */
 	uint32_t comparePaletteIndex;
+	/* 2 from ImageQuantizer_AllocateImage; ImageQuantizer_CompressPixelRuns
+	 * sets 1 when the runs save too little. */
 	uint32_t compressionType;
-	uint32_t width;
-	uint32_t height;
+	uint32_t width;	 /* Width in pixels. */
+	uint32_t height; /* Height in pixels. */
 	/* Not all reserved: the palette pointer at offset 0x104C and the palette color count at 0x1054 sit in
 	 * these bytes, and this file reads and writes them by raw offset. */
-	uint8_t reserved1038[0x4E];
-	ImageQuantizerPixelRun *pixels;
+	uint8_t reserved1038[0x4E];	/* Record bytes 0x1038 to 0x1085. */
+	ImageQuantizerPixelRun *pixels; /* The pixel runs, from malloc. */
+	/* Nothing reads or writes it by name. */
 	uint8_t reservedAfterPixels[4];
+	/* Runs at pixels: width * height until ImageQuantizer_CompressPixelRuns
+	 * joins them. */
 	uint32_t runCount;
+	/* Pixels left in the source run while ImageQuantizer_CompressPixelRuns
+	 * walks the runs. */
 	uint32_t sourceRunPixelsRemaining;
 } ImageQuantizerImageLayout;
 
 typedef struct ImageQuantizerOwnedBuffers {
-	uint8_t reserved0000[0x1014];
+	uint8_t reserved0000[0x1014]; /* Bytes this view does not name. */
+	/* ImageQuantizer_DestroyImage frees it when not NULL; nothing else
+	 * reads or writes it by name. */
 	void *buffer1014;
+	/* ImageQuantizer_DestroyImage frees it when not NULL; nothing else
+	 * reads or writes it by name. */
 	void *buffer1018;
-	uint8_t reserved101C[0x28];
+	uint8_t reserved101C[0x28]; /* Bytes this view does not name. */
+	/* ImageQuantizer_DestroyImage frees it when not NULL; nothing else
+	 * reads or writes it by name. */
 	void *buffer1044;
+	/* ImageQuantizer_DestroyImage frees it when not NULL; nothing else
+	 * reads or writes it by name. */
 	void *buffer1048;
+	/* The palette, freed by ImageQuantizer_DestroyImage when not NULL. */
 	void *palette;
-	uint8_t reserved1050[0x32];
+	uint8_t reserved1050[0x32]; /* Bytes this view does not name. */
+	/* ImageQuantizer_DestroyImage frees it when not NULL; nothing else
+	 * reads or writes it by name. */
 	void *buffer1082;
+	/* The pixel runs, freed by ImageQuantizer_DestroyImage when not
+	 * NULL. */
 	void *pixels;
-	uint8_t reserved108A[0x10];
+	uint8_t reserved108A[0x10]; /* Bytes this view does not name. */
+	/* ImageQuantizer_DestroyImage frees it when not NULL; nothing else
+	 * reads or writes it by name. */
 	void *buffer109A;
-	uint8_t reserved109E[0x810];
+	uint8_t reserved109E[0x810]; /* Bytes this view does not name. */
+	/* ImageQuantizer_DestroyImage frees it when not NULL; nothing else
+	 * reads or writes it by name. */
 	void *buffer18AE;
+	/* ImageQuantizer_DestroyImage frees it when not NULL; nothing else
+	 * reads or writes it by name. */
 	void *buffer18B2;
 } ImageQuantizerOwnedBuffers;
 
 typedef struct ImageQuantizerLegacyImageRecord {
+	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	 * by name. */
 	uint32_t field0000;
+	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	 * by name. */
 	uint32_t field0004;
+	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	 * by name. */
 	uint32_t field0008;
+	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	 * by name. */
 	uint8_t field000C;
+	/* Left as malloc leaves it; nothing reads or writes it by name. */
 	uint8_t reserved000D[0x7FF];
+	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	 * by name. */
 	uint32_t field080C;
+	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	 * by name. */
 	uint32_t field0810;
+	/* "MIFF" from ImageQuantizer_AllocateImage; nothing reads it. */
 	char formatName[0x800];
+	/* 0 from ImageQuantizer_AllocateImage; ImageQuantizer_DestroyImage
+	 * frees the pointer at this offset when it is not NULL. */
 	uint32_t field1014;
+	/* 0 from ImageQuantizer_AllocateImage; ImageQuantizer_DestroyImage
+	 * frees the pointer at this offset when it is not NULL. */
 	uint32_t field1018;
+	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	 * by name. */
 	uint32_t field101C;
+	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	 * by name. */
 	uint32_t field1020;
+	/* 1, direct color, from ImageQuantizer_AllocateImage; see
+	 * ImageQuantizerImageLayout. */
 	uint32_t colorClass;
+	/* 0 from ImageQuantizer_AllocateImage; see
+	 * ImageQuantizerImageLayout. */
 	uint32_t comparePaletteIndex;
+	/* 2 from ImageQuantizer_AllocateImage; see
+	 * ImageQuantizerImageLayout. */
 	uint32_t compressionType;
+	/* 0 from ImageQuantizer_AllocateImage; the caller sets the width. */
 	uint32_t width;
+	/* 0 from ImageQuantizer_AllocateImage; the caller sets the height. */
 	uint32_t height;
+	/* 8 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	 * by name. */
 	uint32_t field1038;
+	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	 * by name. */
 	uint32_t field103C;
+	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	 * by name. */
 	uint32_t field1040;
+	/* 0 from ImageQuantizer_AllocateImage; ImageQuantizer_DestroyImage
+	 * frees the pointer at this offset when it is not NULL. */
 	uint32_t field1044;
+	/* 0 from ImageQuantizer_AllocateImage; ImageQuantizer_DestroyImage
+	 * frees the pointer at this offset when it is not NULL. */
 	uint32_t field1048;
+	/* 0 from ImageQuantizer_AllocateImage;
+	 * ImageQuantizer_AssignPaletteColors keeps the palette pointer at this
+	 * offset, 0x104C. */
 	uint32_t palette;
+	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	 * by name. */
 	uint32_t field1050;
+	/* 0 from ImageQuantizer_AllocateImage;
+	 * ImageQuantizer_AssignPaletteColors stores the color count at this
+	 * offset, 0x1054. */
 	uint32_t paletteColorCount;
+	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	 * by name. */
 	uint32_t field1058;
+	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	 * by name. */
 	uint32_t field105C;
+	/* 2 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	 * by name. */
 	uint16_t field1060;
+	/* 72.0 from ImageQuantizer_AllocateImage; nothing else reads or writes
+	 * it by name. */
 	float field1062;
+	/* 72.0 from ImageQuantizer_AllocateImage; nothing else reads or writes
+	 * it by name. */
 	float field1066;
+	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	 * by name. */
 	uint32_t field106A;
+	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	 * by name. */
 	uint32_t field106E;
+	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	 * by name. */
 	uint32_t field1072;
+	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	 * by name. */
 	uint32_t field1076;
+	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	 * by name. */
 	uint32_t field107A;
+	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	 * by name. */
 	uint32_t field107E;
+	/* 0 from ImageQuantizer_AllocateImage; ImageQuantizer_DestroyImage
+	 * frees the pointer at this offset when it is not NULL. */
 	uint32_t field1082;
+	/* 0 from ImageQuantizer_AllocateImage: the 32-bit slot of the pixel run
+	 * pointer, which the other code reaches through
+	 * ImageQuantizerImageLayout. */
 	uint32_t pixels;
+	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	 * by name. */
 	uint32_t field108A;
+	/* 0 from ImageQuantizer_AllocateImage; see
+	 * ImageQuantizerImageLayout. */
 	uint32_t runCount;
+	/* Left as malloc leaves it; nothing reads or writes it by name. */
 	uint8_t reserved1092[4];
+	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	 * by name. */
 	uint32_t field1096;
+	/* 0 from ImageQuantizer_AllocateImage; ImageQuantizer_DestroyImage
+	 * frees the pointer at this offset when it is not NULL. */
 	uint32_t field109A;
+	/* time(NULL) when ImageQuantizer_AllocateImage made the record; nothing
+	 * reads it. */
 	uint32_t timestamp109E;
+	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	 * by name. */
 	uint8_t field10A2;
+	/* Left as malloc leaves it; nothing reads or writes it by name. */
 	uint8_t reserved10A3[0x7FF];
+	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	 * by name. */
 	uint32_t field18A2;
+	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	 * by name. */
 	uint32_t field18A6;
+	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	 * by name. */
 	uint32_t field18AA;
+	/* 0 from ImageQuantizer_AllocateImage; ImageQuantizer_DestroyImage
+	 * frees the pointer at this offset when it is not NULL. */
 	uint32_t field18AE;
+	/* 0 from ImageQuantizer_AllocateImage; ImageQuantizer_DestroyImage
+	 * frees the pointer at this offset when it is not NULL. */
 	uint32_t field18B2;
+	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	 * by name. */
 	uint32_t field18B6;
+	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	 * by name. */
 	uint32_t field18BA;
+	/* 0 from ImageQuantizer_AllocateImage; nothing else reads or writes it
+	 * by name. */
 	uint32_t field18BE;
+	/* 0 from ImageQuantizer_AllocateImage;
+	 * ImageQuantizer_QuantizeImageLists reads the next image of a list at
+	 * this offset, 6338. */
 	uint32_t nextImage;
 } ImageQuantizerLegacyImageRecord;
 
@@ -136,50 +276,89 @@ typedef char xvt_size_ImageQuantizerOwnedBuffers
 #endif
 
 typedef struct ImageQuantizerNodePoolBlock {
+	/* Nodes ImageQuantizer_AllocateNode hands out in order. */
 	ImageQuantizerNode nodes[2048];
+	/* The block made before this one, NULL for the first; the pools are
+	 * freed along these links. */
 	struct ImageQuantizerNodePoolBlock *previous;
 } ImageQuantizerNodePoolBlock;
 
+/* 196608.0, 3 * 256 * 256: the start value of a nearest-color search and the
+ * error each pixel adds to the tree's root. */
 // GLOBAL: XVT 0x518148
 const double g_imageQuantizerMaxSquaredRgbErrorPerPixel = 196608.0;
 
+/* Context text passed to ImageQuantizer_FatalAllocationError, which ignores
+ * it. */
 // GLOBAL: XVT 0x521C20
 static const char g_imageQuantizerUnableToQuantizeMessage[28] =
 	"Unable to quantize image";
 
+/* Root of the color tree, made by ImageQuantizer_InitializeColorTree; its
+ * parent is itself. */
 // GLOBAL: XVT 0x556928
 static ImageQuantizerNode *g_imageQuantizerRoot = 0;
+/* Level of the color tree's leaves: ImageQuantizer_InitializeColorTree sets 2
+ * to 8, and ImageQuantizer_ClassifyImageColors lowers it by 1 each time it
+ * collapses the deepest level. */
 // GLOBAL: XVT 0x55692C
 static int g_imageQuantizerMaxTreeDepth = 0;
+/* Colors in the color tree: leaves made while classifying, nodes holding pixels
+ * after a reduction pass, then palette entries as they are built. */
 // GLOBAL: XVT 0x556930
 static unsigned int g_imageQuantizerColorCount = 0;
+/* Red of the color ImageQuantizer_FindNearestPaletteEntryRecursive looks for;
+ * ImageQuantizer_AssignPaletteColors sets the three search channels. */
 // GLOBAL: XVT 0x556934
 static uint8_t g_imageQuantizerSearchRed = 0;
+/* Green of the searched color; see g_imageQuantizerSearchRed. */
 // GLOBAL: XVT 0x556935
 static uint8_t g_imageQuantizerSearchGreen = 0;
+/* Blue of the searched color; see g_imageQuantizerSearchRed. */
 // GLOBAL: XVT 0x556936
 static uint8_t g_imageQuantizerSearchBlue = 0;
+/* Palette being built or searched, 9-byte entries; set by
+ * ImageQuantizer_AssignPaletteColors and
+ * ImageQuantizer_ExportPalette6BitAndDestroy. */
 // GLOBAL: XVT 0x55693D
 static ImageQuantizerPaletteEntry *g_imageQuantizerPaletteEntries = 0;
+/* Smallest squared distance found so far by
+ * ImageQuantizer_FindNearestPaletteEntryRecursive. */
 // GLOBAL: XVT 0x556941
 static double g_imageQuantizerNearestDistanceSq = 0.0;
+/* Error at or under which a reduction pass merges a node into its parent. */
 // GLOBAL: XVT 0x556949
 static double g_imageQuantizerPruneThreshold = 0.0;
+/* Smallest error above the threshold met in the last reduction pass, the next
+ * pass's threshold; ImageQuantizer_ReduceColorTree starts it at 1.0 and each
+ * pass at the root's error less 1.0. */
 // GLOBAL: XVT 0x556951
 static double g_imageQuantizerNextPruneThreshold = 0.0;
+/* Squares of the differences -255 to 255, pointing at the square of 0 so a
+ * signed difference indexes it; made by ImageQuantizer_InitializeColorTree and
+ * freed by the functions that end a quantization. */
 // GLOBAL: XVT 0x556959
 static uint32_t *g_imageQuantizerSquaredDiffTable = 0;
+/* Color tree nodes made and not merged away; ImageQuantizer_ClassifyImageColors
+ * collapses the deepest level while it is over 0x41241. */
 // GLOBAL: XVT 0x55695D
 unsigned int g_imageQuantizerNodeCount = 0;
+/* Unused nodes left in the newest pool block; 2048 when a block is made. */
 // GLOBAL: XVT 0x556961
 unsigned int g_imageQuantizerPoolNodesRemaining = 0;
+/* Palette entry ImageQuantizer_FindNearestPaletteEntryRecursive found nearest
+ * the searched color. */
 // GLOBAL: XVT 0x556965
 static unsigned int g_imageQuantizerNearestPaletteIndex = 0;
+/* Next unused node of the newest pool block. */
 // GLOBAL: XVT 0x556969
 ImageQuantizerNode *g_imageQuantizerNextNode = 0;
+/* Newest block of the node pool, linked to the older ones through previous;
+ * NULL when there is none. */
 // GLOBAL: XVT 0x55696D
 ImageQuantizerNodePoolBlock *g_imageQuantizerNodePoolHead = 0;
 
+/* Does nothing; its arguments are ignored. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x443890
 void ImageQuantizer_ReportProgress(const char *stage, unsigned int completed,
@@ -190,6 +369,8 @@ void ImageQuantizer_ReportProgress(const char *stage, unsigned int completed,
 	(void)total;
 }
 
+/* Ignores its arguments and calls FeDiskIo_FatalError with the out-of-memory
+ * message, which ends the program. */
 // FUNCTION: XVT 0x4438B0
 void ImageQuantizer_FatalAllocationError(const char *context,
 					 const char *message)
@@ -199,6 +380,11 @@ void ImageQuantizer_FatalAllocationError(const char *context,
 	FeDiskIo_FatalError(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 }
 
+/* Allocates an image record (0x18C6 bytes) and gives it default values: format
+ * name "MIFF", colorClass 1, compressionType 2, field1038 8, field1060 2, both
+ * floats 72.0, timestamp109E the current time, and 0 elsewhere; the three
+ * reserved arrays are left as malloc leaves them. Returns it; when malloc fails
+ * it calls ImageQuantizer_FatalAllocationError, which ends the program. */
 // FUNCTION: XVT 0x4438C0
 void *ImageQuantizer_AllocateImage(void)
 {
@@ -266,6 +452,12 @@ void *ImageQuantizer_AllocateImage(void)
 	return image;
 }
 
+/* Joins neighboring pixels of the same color, and with comparePaletteIndex set
+ * the same palette index, into runs of up to 256, in place, then shrinks the
+ * pixel buffer to runCount runs with realloc, without checking its result. Sets
+ * compressionType to 1 when runCount is at least width * height * 3 / 4 for
+ * direct color, or width * height / 2 for a palette image. Does nothing for
+ * NULL. */
 // FUNCTION: XVT 0x443A50
 void ImageQuantizer_CompressPixelRuns(unsigned int *image)
 {
@@ -366,6 +558,8 @@ void ImageQuantizer_CompressPixelRuns(unsigned int *image)
 	}
 }
 
+/* Frees each pointer the ImageQuantizerOwnedBuffers view names that is not
+ * NULL, palette and pixels included, then the record. Does nothing for NULL. */
 // FUNCTION: XVT 0x443C30
 void ImageQuantizer_DestroyImage(void *image)
 {
@@ -409,6 +603,10 @@ void ImageQuantizer_DestroyImage(void *image)
 	free(ownedBuffers);
 }
 
+/* Expands the runs to one per pixel in place, working back from the end, after
+ * growing the buffer to width * height runs with realloc; sets runCount to
+ * width * height. Returns 1, also when runCount already is width * height; 0
+ * when realloc fails. */
 // FUNCTION: XVT 0x443D10
 int ImageQuantizer_ExpandPixelRuns(uint32_t *image)
 {
@@ -459,6 +657,15 @@ int ImageQuantizer_ExpandPixelRuns(uint32_t *image)
 	return 1;
 }
 
+/* Reduces one image to at most paletteSize colors (paletteSize kept to 1 to
+ * 0xFFFF): joins its runs when the run count at byte 4238 is width * height,
+ * builds a color tree of treeDepth levels (for 0: 1 plus the right shifts by 2
+ * that bring paletteSize to 0, 1 less with dither, 2 more for a palette image),
+ * classifies the colors, reduces the tree when it holds more than paletteSize,
+ * and assigns the palette, without dither when half the tree's color count is
+ * under paletteSize. Then frees the node pool and the squared-difference table.
+ * Returns at once for paletteSize 2 with colorspace 2 and dither. Nothing calls
+ * this. */
 // FUNCTION: XVT 0x443DE0
 void ImageQuantizer_QuantizeImage(unsigned int *image, unsigned int paletteSize,
 				  int treeDepth, int dither, int colorspace)
@@ -518,6 +725,21 @@ void ImageQuantizer_QuantizeImage(unsigned int *image, unsigned int paletteSize,
 	free(g_imageQuantizerSquaredDiffTable);
 }
 
+/* Builds the image's palette from the color tree and maps its runs to it. Frees
+ * the old palette (the pointer at byte 0x104C), allocates
+ * g_imageQuantizerColorCount 9-byte entries there and fills them with
+ * ImageQuantizer_BuildPaletteEntriesRecursive, which counts
+ * g_imageQuantizerColorCount again. For paletteSize 2 with colorspace 2 the two
+ * entries become white and black, white for the one with the larger 77 R + 150
+ * G + 29 B. Unless colorspace is 3 it sets comparePaletteIndex 0 and colorClass
+ * 2. Stores the color count at byte 0x1054. With dither it returns 1 when
+ * ImageQuantizer_DitherImageToPalette succeeds (returns 0); when that fails, or
+ * without dither, each run goes down the tree by its color bits as far as
+ * children exist, and the entry nearest its color under that node's parent
+ * (ImageQuantizer_FindNearestPaletteEntryRecursive) becomes its paletteIndex,
+ * or for direct color its color; it returns 0. When the palette cannot be
+ * allocated it calls ImageQuantizer_FatalAllocationError, which ends the
+ * program. */
 // FUNCTION: XVT 0x443EF0
 unsigned int ImageQuantizer_AssignPaletteColors(uint32_t *image,
 						unsigned int paletteSize,
@@ -632,6 +854,17 @@ unsigned int ImageQuantizer_AssignPaletteColors(uint32_t *image,
 	return 0;
 }
 
+/* Adds an image's runs to the color tree. Adds width * height * 196608 to the
+ * root's error. For each run it first, when more than 0x41241 nodes exist,
+ * collapses the deepest level with ImageQuantizer_CollapseDeepestLevelRecursive
+ * and lowers g_imageQuantizerMaxTreeDepth. It walks down
+ * g_imageQuantizerMaxTreeDepth levels by the color's bits from the top (red 4,
+ * green 2, blue 1), making missing children with the parent's midpoints moved
+ * up or down, by the child's bits, by (1 << (8 - level)) >> 1, and counting
+ * each new leaf in g_imageQuantizerColorCount, and adds to each node it passes
+ * the run's squared distance to its midpoint times the run length. The last
+ * node gets the run's pixel count and channel sums. Exits the program when a
+ * node cannot be made. */
 // FUNCTION: XVT 0x4441F0
 void ImageQuantizer_ClassifyImageColors(unsigned int *image)
 {
@@ -753,6 +986,11 @@ void ImageQuantizer_ClassifyImageColors(unsigned int *image)
 	}
 }
 
+/* Searches node's subtree, children first, for the palette entry nearest the
+ * searched color by squared distance, looking at the entry of each node that
+ * holds pixels; updates g_imageQuantizerNearestDistanceSq and
+ * g_imageQuantizerNearestPaletteIndex on a closer one. Only
+ * ImageQuantizer_AssignPaletteColors calls it. */
 // FUNCTION: XVT 0x4444F0
 void ImageQuantizer_FindNearestPaletteEntryRecursive(ImageQuantizerNode *node)
 {
@@ -788,6 +1026,10 @@ void ImageQuantizer_FindNearestPaletteEntryRecursive(ImageQuantizerNode *node)
 	}
 }
 
+/* Walks node's subtree, children first, and for each node holding pixels
+ * writes palette entry g_imageQuantizerColorCount, each channel
+ * (sum + (pixelCount >> 1)) / pixelCount, stores that index in the node's
+ * paletteIndex and adds 1 to g_imageQuantizerColorCount. */
 // FUNCTION: XVT 0x4445E0
 void ImageQuantizer_BuildPaletteEntriesRecursive(ImageQuantizerNode *node)
 {
@@ -825,6 +1067,15 @@ void ImageQuantizer_BuildPaletteEntriesRecursive(ImageQuantizerNode *node)
 	}
 }
 
+/* Dithers the image to its palette. Expands the runs to one per pixel and walks
+ * the rows, odd rows right to left, adding to each pixel the error carried to
+ * it divided by 16, clamping to 0 to 255, and taking the nearest by squared
+ * distance of the first (color count at byte 0x1054) >> 4 entries, at least 1;
+ * it stores the index in paletteIndex and, for direct color, the entry's color.
+ * Of each pixel's error it adds 7 times to the next pixel's carry; the 3 and 5
+ * times shares land on entries already passed, and the carry is cleared after
+ * each row. Returns 0, or 1 when the expansion fails; a failed allocation calls
+ * ImageQuantizer_FatalAllocationError, which ends the program. */
 // FUNCTION: XVT 0x4446C0
 int ImageQuantizer_DitherImageToPalette(uint32_t *image)
 {
@@ -936,6 +1187,12 @@ int ImageQuantizer_DitherImageToPalette(uint32_t *image)
 	return 0;
 }
 
+/* Starts a new color tree: clears the node pool bookkeeping without freeing old
+ * blocks, sets g_imageQuantizerMaxTreeDepth to treeDepth kept to 2 to 8, makes
+ * the root (midpoints 0x80, its own parent, error 0), sets
+ * g_imageQuantizerColorCount to 0 and builds g_imageQuantizerSquaredDiffTable.
+ * Returns 256, where its loop stops. Exits the program when an allocation
+ * fails. */
 // FUNCTION: XVT 0x444CB0
 int ImageQuantizer_InitializeColorTree(int treeDepth)
 {
@@ -975,6 +1232,11 @@ int ImageQuantizer_InitializeColorTree(int treeDepth)
 	return difference;
 }
 
+/* Takes the next node from the pool, making a new block of 2048 with malloc
+ * when the newest is used up, and fills it: the given parent, childIndex, level
+ * and midpoints, no children, and 0 error, count and sums. Adds 1 to
+ * g_imageQuantizerNodeCount. Returns it, or NULL when a block cannot be
+ * allocated. */
 // FUNCTION: XVT 0x444D90
 ImageQuantizerNode *ImageQuantizer_AllocateNode(int childIndex, int level,
 						ImageQuantizerNode *parent,
@@ -1016,6 +1278,8 @@ ImageQuantizerNode *ImageQuantizer_AllocateNode(int childIndex, int level,
 	return node;
 }
 
+/* Merges every node at level g_imageQuantizerMaxTreeDepth in node's subtree
+ * into its parent with ImageQuantizer_MergeNodeIntoParent, children first. */
 // FUNCTION: XVT 0x444E60
 void ImageQuantizer_CollapseDeepestLevelRecursive(ImageQuantizerNode *node)
 {
@@ -1035,6 +1299,10 @@ void ImageQuantizer_CollapseDeepestLevelRecursive(ImageQuantizerNode *node)
 	}
 }
 
+/* Takes node out of its parent's childrenMask and adds its pixel count and
+ * channel sums to the parent's; lowers g_imageQuantizerNodeCount. Returns the
+ * parent's new pixel count. The node's error is not passed on, and its memory
+ * stays in the pool. */
 // FUNCTION: XVT 0x444EB0
 unsigned int ImageQuantizer_MergeNodeIntoParent(ImageQuantizerNode *node)
 {
@@ -1052,6 +1320,10 @@ unsigned int ImageQuantizer_MergeNodeIntoParent(ImageQuantizerNode *node)
 	return pixelCount;
 }
 
+/* Merges color tree nodes until at most targetColorCount hold pixels: each pass
+ * merges every node whose error is at most the threshold, the smallest error
+ * left by the last pass (1.0 at first), and counts g_imageQuantizerColorCount
+ * again. */
 // FUNCTION: XVT 0x444F00
 void ImageQuantizer_ReduceColorTree(unsigned int targetColorCount)
 {
@@ -1074,6 +1346,10 @@ void ImageQuantizer_ReduceColorTree(unsigned int targetColorCount)
 	}
 }
 
+/* One reduction pass over node's subtree, children first: merges a node whose
+ * error is at most g_imageQuantizerPruneThreshold into its parent; any other
+ * node is counted in g_imageQuantizerColorCount when it holds pixels and lowers
+ * g_imageQuantizerNextPruneThreshold to its error when that is smaller. */
 // FUNCTION: XVT 0x444F90
 void ImageQuantizer_ReduceColorTreePassRecursive(ImageQuantizerNode *node)
 {
@@ -1101,6 +1377,10 @@ void ImageQuantizer_ReduceColorTreePassRecursive(ImageQuantizerNode *node)
 	}
 }
 
+/* Quantizes every image of listCount linked lists (each image's next at byte
+ * 6338) with one color tree shared by all, the steps and defaults as in
+ * ImageQuantizer_QuantizeImage, 2 more tree levels when any list's first image
+ * is a palette image. Nothing calls this. */
 // FUNCTION: XVT 0x445020
 void ImageQuantizer_QuantizeImageLists(unsigned int **imageListHeads,
 				       unsigned int listCount,
@@ -1191,6 +1471,11 @@ void ImageQuantizer_QuantizeImageLists(unsigned int **imageListHeads,
 	free(g_imageQuantizerSquaredDiffTable);
 }
 
+/* Starts the color tree for a mission palette with
+ * ImageQuantizer_InitializeColorTree(treeDepth) and returns its result;
+ * targetColorCount is ignored. FeDiskIo_InitResources calls it only while
+ * g_generateMissionPalette is set, which FeDiskIo_InitResources clears before
+ * loading because g_paletteGenerationEnabled is never set, so it never runs. */
 // FUNCTION: XVT 0x4451E0
 int ImageQuantizer_BeginPaletteCollection(int targetColorCount, int treeDepth)
 {
@@ -1198,6 +1483,14 @@ int ImageQuantizer_BeginPaletteCollection(int targetColorCount, int treeDepth)
 	return ImageQuantizer_InitializeColorTree(treeDepth);
 }
 
+/* Ends a mission palette: reduces the tree to colorCount colors, builds the
+ * palette entries and writes colorCount of them to paletteRgb as 6-bit triplets
+ * (each channel >> 2), even when fewer were built, then frees the entries, the
+ * node pool and the squared-difference table. treeDepth is ignored. Does not
+ * check that a pool block exists; exits the program when the entries cannot be
+ * allocated. FeDiskIo_InitResources calls it only while
+ * g_generateMissionPalette is set, which FeDiskIo_InitResources clears before
+ * loading because g_paletteGenerationEnabled is never set, so it never runs. */
 // FUNCTION: XVT 0x4451F0
 void ImageQuantizer_ExportPalette6BitAndDestroy(int colorCount, int treeDepth,
 						uint8_t *paletteRgb)
@@ -1252,6 +1545,13 @@ void ImageQuantizer_ExportPalette6BitAndDestroy(int colorCount, int treeDepth,
 	free(g_imageQuantizerSquaredDiffTable);
 }
 
+/* Adds an 8-bit image with a 5-6-5 palette to the color tree: makes a temporary
+ * record of width * height one-pixel runs, each color widened to 8 bits a
+ * channel by shifting (red and blue << 3, green << 2), then joins, classifies
+ * and destroys it. Calls FeDiskIo_FatalError when the pixels cannot be
+ * allocated. OptModel_BuildRuntimeNode calls it only while
+ * g_generateMissionPalette is set, which FeDiskIo_InitResources clears before
+ * loading because g_paletteGenerationEnabled is never set, so it never runs. */
 // FUNCTION: XVT 0x4452D0
 void ImageQuantizer_ClassifyIndexedRgb565Image(const uint8_t *indexedPixels,
 					       const uint16_t *palette16,
@@ -1307,6 +1607,19 @@ void ImageQuantizer_ClassifyIndexedRgb565Image(const uint8_t *indexedPixels,
 	ImageQuantizer_DestroyImage(image);
 }
 
+/* Adds a run-length texture image to the color tree: decodes it, from 16 bytes
+ * past encodedImage, into a temporary record of one-pixel runs until a 0xFF at
+ * a row's start. 0xFB sets the palette base from the next two bytes, low byte
+ * first; 0xFC gives input[1] + 1 gray (0x80) pixels; 0xFD gives input[1] + 1
+ * pixels of entry input[2]; any other byte gives (byte & mask) + 1 pixels of
+ * entry base + (byte >> shift), mask and shift from
+ * g_flightSwRleRunLengthMaskByPackingMode and
+ * g_flightSwRlePaletteShiftByPackingMode; colors come from paletteRgba, 4 bytes
+ * per entry. Then joins, classifies and destroys the record. Does not check the
+ * pixel allocation or that the decoded pixels fit width * height.
+ * TexLevel_Convert24BppPalettesTo8Bpp calls it only while
+ * g_generateMissionPalette is set, which FeDiskIo_InitResources clears before
+ * loading because g_paletteGenerationEnabled is never set, so it never runs. */
 // FUNCTION: XVT 0x4453D0
 void ImageQuantizer_ClassifyEncodedTexLevelImage(const uint8_t *encodedImage,
 						 const uint8_t *paletteRgba,

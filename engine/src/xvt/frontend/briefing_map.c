@@ -14,19 +14,42 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Flight group nearest the mouse on the briefing map, by its mission point
+ * 14: set by BriefingMap_SelectNearestMissionPoint14FlightGroup, and to 0 by
+ * FrontendMission_InitForBriefing. Nothing reads it. */
 // GLOBAL: XVT 0x6691E8
 int16_t g_briefingSelectedMissionPoint14FlightGroupIdx = 0;
 
+/* Map point drawn at the middle of the briefing map, in the units of the
+ * flight groups' mission points. BriefingMap_AnimateViewState steps it toward
+ * g_briefingMapTargetCenter; script opcode 6 sets it directly at time 0 or
+ * when applied at once; BriefingScript_ResetState and
+ * FrontendMission_InitForBriefing set (0, 0). */
 // GLOBAL: XVT 0x669204
 BriefingMapS16Pair g_briefingMapCenter = {0, 0};
+/* Map point the center moves toward, set by script opcode 6; (0, 0) after
+ * BriefingScript_ResetState and FrontendMission_InitForBriefing. */
 // GLOBAL: XVT 0x669208
 BriefingMapS16Pair g_briefingMapTargetCenter = {0, 0};
+/* Briefing map zoom on each axis: pixels per 256 map units, so the grid lines
+ * at every 256 units sit this many pixels apart. BriefingMap_AnimateViewState
+ * steps it toward g_briefingMapTargetScale; script opcode 7 sets it directly
+ * at time 0 or when applied at once; 32 after BriefingScript_ResetState and
+ * FrontendMission_InitForBriefing. */
 // GLOBAL: XVT 0x66920C
 BriefingMapS16Pair g_briefingMapScale = {0, 0};
+/* Zoom the scale moves toward, set by script opcode 7; 32 after
+ * BriefingScript_ResetState and FrontendMission_InitForBriefing. */
 // GLOBAL: XVT 0x669210
 BriefingMapS16Pair g_briefingMapTargetScale = {0, 0};
+/* Which of the mission file's 8 briefings is shown, 0 to 7: the last one
+ * flagged for the pilot's team, set by
+ * FrontendMission_LoadCurrentWithBriefing; FrontendMission_InitForBriefing
+ * sets 0. Flight groups sit on the map at mission point 14 plus this. */
 // GLOBAL: XVT 0x669214
 int g_activeBriefingIndex = 0;
+/* Index in g_mapIconRects of each craft type's map icon, by CraftSpecies
+ * value 0 to 105. */
 // GLOBAL: XVT 0x52C908
 int g_mapIconByCraftType[106] = {
 	0,  0,	1,  2,	3,  4,	5,  6,	7,  8,	0,  0,	9,  10, 11, 12, 13, 14,
@@ -36,6 +59,9 @@ int g_mapIconByCraftType[106] = {
 	55, 55, 55, 56, 57, 58, 66, 60, 59, 59, 59, 60, 60, 58, 61, 61, 0,  0,
 	67, 68, 69, 0,	0,  0,	0,  0,	0,  0,	61, 61, 61, 61, 61, 61,
 };
+/* Where each briefing map icon lies in the "mapicon0" to "mapicon4" and
+ * "greyicon" images; the code takes right - left + 1 as an icon's width and
+ * bottom - top + 1 as its height. */
 // GLOBAL: XVT 0x52CAB0
 RECT g_mapIconRects[70] = {
 	{6, 9, 13, 20},	     {25, 8, 32, 20},	   {44, 10, 50, 19},
@@ -63,35 +89,75 @@ RECT g_mapIconRects[70] = {
 	{65, 97, 68, 105},   {79, 95, 93, 108},	   {98, 95, 111, 108},
 	{120, 94, 128, 108},
 };
+/* The briefing map panel, (0, 0) to (360, 236) once
+ * FrontendMission_InitForBriefing sets it; its users move it by their
+ * viewport's top left. The narration takes its bottom 27 pixels and the map
+ * the rest less 28. */
 // GLOBAL: XVT 0x669220
 RECT g_briefingMapPanelRect = {0, 0, 0, 0};
+/* Set to 1 by script opcode 6 and to 0 at the start of every script frame by
+ * BriefingScript_AdvanceFrame; nothing reads it. */
 // GLOBAL: XVT 0x6696D6
 int16_t g_briefingMapCenterDirty = 0;
+/* Set to 1 by script opcode 7 and to 0 at the start of every script frame by
+ * BriefingScript_AdvanceFrame; nothing reads it. */
 // GLOBAL: XVT 0x6696D8
 int16_t g_briefingMapScaleDirty = 0;
+/* Per marker slot, 1 while it highlights a flight group on the map: set by
+ * script opcodes 9 to 16, cleared by opcode 8, BriefingScript_ResetState and
+ * FrontendMission_InitForBriefing. */
 // GLOBAL: XVT 0x6696E4
 int16_t g_briefingMapFgMarkerActive[8] = {0};
+/* Per marker slot, the flight group it highlights; only
+ * BriefingScript_AdvanceFrame writes it. */
 // GLOBAL: XVT 0x6696F4
 int16_t g_briefingMapFgMarkerFlightGroupIdx[8] = {0};
+/* Per marker slot, frames since it appeared: 0 when shown, 80 when shown at
+ * once, then raised by BriefingMap_AnimateViewState each frame the briefing
+ * plays. BriefingMap_DrawCraftIconHighlight takes it as highlightPhase. */
 // GLOBAL: XVT 0x669704
 int16_t g_briefingMapFgMarkerAge[8] = {0};
+/* Set to 1 by script opcode 8 and to 0 at the start of every script frame by
+ * BriefingScript_AdvanceFrame; nothing reads it. */
 // GLOBAL: XVT 0x669714
 int16_t g_briefingMapFgMarkersChanged = 0;
+/* Per label slot, 1 while it shows a label on the map: set by script opcodes
+ * 18 to 25, cleared by opcode 17, BriefingScript_ResetState and
+ * FrontendMission_InitForBriefing. */
 // GLOBAL: XVT 0x669716
 int16_t g_briefingMapLabelActive[8] = {0};
+/* Per label slot, the index in g_briefingMapLabelTexts of its text; only
+ * BriefingScript_AdvanceFrame writes it. */
 // GLOBAL: XVT 0x669726
 int16_t g_briefingMapLabelTextIdx[8] = {0};
+/* Per label slot, the map x its text is drawn at; only
+ * BriefingScript_AdvanceFrame writes it. */
 // GLOBAL: XVT 0x669736
 int16_t g_briefingMapLabelX[8] = {0};
+/* Per label slot, the map y its text is drawn at; only
+ * BriefingScript_AdvanceFrame writes it. */
 // GLOBAL: XVT 0x669746
 int16_t g_briefingMapLabelY[8] = {0};
+/* Per label slot, frames since it appeared, kept like g_briefingMapFgMarkerAge;
+ * up to twice this many characters of the text show. */
 // GLOBAL: XVT 0x669756
 int16_t g_briefingMapLabelAge[8] = {0};
+/* Per label slot, the row of g_textShadeRamps its text is drawn in; the
+ * mission setup screen fills rows 0 to 4 with green, red, yellow, blue and
+ * purple, dark to bright. Only BriefingScript_AdvanceFrame writes it. */
 // GLOBAL: XVT 0x669766
 int16_t g_briefingMapLabelStyle[8] = {0};
+/* Set to 1 by script opcode 17 and to 0 at the start of every script frame by
+ * BriefingScript_AdvanceFrame; nothing reads it. */
 // GLOBAL: XVT 0x669776
 int16_t g_briefingMapLabelsChanged = 0;
 
+/* Finds the flight group whose mission point 14, projected into viewportRect,
+ * is nearest the mouse, measuring the larger of the x and y distances in
+ * pixels. Only groups with point 14 set count, and the first wins a tie.
+ * Stores it in g_briefingSelectedMissionPoint14FlightGroupIdx and returns 1;
+ * returns 0, storing nothing, when no group lies under 999 pixels away on
+ * both axes. */
 // FUNCTION: XVT 0x4F7A30
 int16_t BriefingMap_SelectNearestMissionPoint14FlightGroup(RECT *viewportRect,
 							   int16_t mouseX,
@@ -141,6 +207,10 @@ int16_t BriefingMap_SelectNearestMissionPoint14FlightGroup(RECT *viewportRect,
 	return 0;
 }
 
+/* Converts a map point to screen pixels: x is g_briefingMapScale.x * (mapX -
+ * g_briefingMapCenter.x) / 256 plus viewportRect's left plus (right - left)
+ * >> 1, and y the same with the y values, top and bottom. Both results are
+ * cut to 16 bits. */
 // FUNCTION: XVT 0x4F7B10
 void BriefingMap_ProjectPointToViewport(const RECT *viewportRect, int16_t mapX,
 					int16_t mapY, int16_t *outX,
@@ -161,6 +231,8 @@ void BriefingMap_ProjectPointToViewport(const RECT *viewportRect, int16_t mapX,
 			  ((viewportRect->bottom - viewportRect->top) >> 1));
 }
 
+/* Returns current moved by step toward target without passing it, or
+ * current when they are equal. Does not guard against 16-bit wraparound. */
 // FUNCTION: XVT 0x4F7C20
 int16_t BriefingMap_StepS16TowardTarget(int16_t current, int16_t target,
 					int16_t step)
@@ -180,6 +252,14 @@ int16_t BriefingMap_StepS16TowardTarget(int16_t current, int16_t target,
 	return current;
 }
 
+/* Moves the briefing map one frame toward its targets and ages the markers
+ * and labels. The scale steps by 8 when the larger axis gap is 12 or more,
+ * else by 2, and by 1 whenever g_briefingMapScale.x is under 10. The center
+ * then steps on both axes by 2 * (256 / g_briefingMapScale.x + 1) map units,
+ * that sum taken as 1 when the scale is 0, and twice that when the larger
+ * center gap divided by the sum is 16 or more. Raises
+ * g_briefingMapFgMarkerAge and g_briefingMapLabelAge of every active slot by
+ * one. */
 // FUNCTION: XVT 0x4F7C50
 void BriefingMap_AnimateViewState(void)
 {
@@ -250,6 +330,9 @@ void BriefingMap_AnimateViewState(void)
 	}
 }
 
+/* Plays the next script frame with its sounds while the current frame is
+ * under durationFrames; otherwise starts the briefing over, with
+ * g_briefingLastNarratedTextBlockIdx and g_briefingTextPageNumber at 0. */
 // FUNCTION: XVT 0x4F7DD0
 void BriefingMap_UpdateScriptPlaybackAfterAnimation(void)
 {
@@ -262,6 +345,9 @@ void BriefingMap_UpdateScriptPlaybackAfterAnimation(void)
 	}
 }
 
+/* Runs BriefingMap_SelectNearestMissionPoint14FlightGroup with
+ * g_briefingMapPanelRect as the viewport, unmoved from the screen's top left,
+ * and returns 1. Ignores viewportRect, clipRect and both button states. */
 // FUNCTION: XVT 0x4F7E00
 int16_t BriefingMap_SelectFlightGroupAtCursor(RECT *viewportRect,
 					      RECT *clipRect, int leftDown,
@@ -281,6 +367,15 @@ int16_t BriefingMap_SelectFlightGroupAtCursor(RECT *viewportRect,
 	return 1;
 }
 
+/* Draws the briefing map panel: g_briefingMapPanelRect moved by
+ * viewportRect's top left. When text slot 1 is on, draws its block wrapped
+ * in the panel's bottom 27 pixels, and counts a page whenever that block
+ * differs from g_briefingLastNarratedTextBlockIdx, storing it there. Then,
+ * clipped to clipRect and to the panel less its bottom 28 pixels, draws the
+ * grid, the overlays, and FRONTSTR_640_PAGE with g_briefingTextPageNumber in
+ * font 10, 60 pixels left of the map's right edge and 14 above its bottom.
+ * Leaves the screen clip on the map and returns 1. Ignores highlightPhase,
+ * and works out a 12-pixel title strip that it never draws. */
 // FUNCTION: XVT 0x4F7E40
 int16_t BriefingMap_DrawViewportAndSelection(RECT *viewportRect, RECT *clipRect,
 					     int16_t highlightPhase)
@@ -335,6 +430,12 @@ int16_t BriefingMap_DrawViewportAndSelection(RECT *viewportRect, RECT *clipRect,
 	return 1;
 }
 
+/* Draws the map grid in viewportRect: a line every 256 map units on each
+ * axis, g_briefingMapScale pixels apart. Lines at multiples of 1024 units are
+ * drawn in FrontendDisplay_PackRGB(0x96, 0, 0). When g_briefingMapScale.x is
+ * 16 or more, the lines halfway between those are drawn too, in
+ * FrontendDisplay_PackRGB(0x50, 0, 0), and at 32 or more every other line as
+ * well. Ignores clipRect. */
 // FUNCTION: XVT 0x4F7FD0
 void BriefingMap_DrawGrid(const RECT *viewportRect, const RECT *clipRect)
 {
@@ -442,6 +543,17 @@ void BriefingMap_DrawGrid(const RECT *viewportRect, const RECT *clipRect)
 	}
 }
 
+/* Draws the briefing map's overlays in viewportRect. First the highlight of
+ * every active flight group marker, drawn by its age; then every active label,
+ * its text with '[' made text code 2 (the second text color) and ']' code 1
+ * (back to the label's color), revealed by its age at its projected point. Then
+ * the icon of every flight group whose mission point 14 + g_activeBriefingIndex
+ * is set and whose craft type is not negative, centered there, from "mapicon0"
+ * to "mapicon4" by IFF: IFF 0 to 3 give 0 to 3, IFF 4 gives 1, IFF 5 gives 4,
+ * and any other gives 0 in the modern build and an unset value in the original.
+ * Player flight groups of the pilot's team also get a number, counting from 1,
+ * in font 10 at the icon's lower right. The point it projects for each marker
+ * goes unused. */
 // FUNCTION: XVT 0x4F82A0
 void BriefingMap_DrawOverlays(RECT *viewportRect, RECT *clipRect)
 {
@@ -590,6 +702,8 @@ void BriefingMap_DrawOverlays(RECT *viewportRect, RECT *clipRect)
 	}
 }
 
+/* Draws a label through BriefingMap_DrawRevealedLabel with twice revealCount
+ * characters revealed, when revealCount is 0 or more. */
 // FUNCTION: XVT 0x4F8910
 void BriefingMap_DrawRevealedLabelIfActive(const char *text,
 					   int16_t colorRampGroup, int16_t x,
@@ -603,6 +717,17 @@ void BriefingMap_DrawRevealedLabelIfActive(const char *text,
 	}
 }
 
+/* Draws text at (x, y) in font 10, typing itself out, in the shades of row
+ * shadeGroup of g_textShadeRamps (shade 0 darkest, 7 brightest). While
+ * revealCount is under the text's length + 2, it shows the first revealCount
+ * characters, at most all of them: it draws them, then each shorter prefix,
+ * one character less each time, one shade brighter, up to shade 6, so the
+ * newest characters are darkest. The first of those draws uses shade 4, 2 or
+ * 0 for revealCount 1, 2, or 3 and more. A small filled block in shade 7
+ * follows the text while characters are still hidden. From revealCount at
+ * length + 2 on, it draws the whole text once, in shade 7, 6 and 5 for length
+ * + 2, + 3 and + 4, and shade 4 after. Ignores colorRampGroup; does not check
+ * shadeGroup or the text's length against its 64-byte copy. */
 // FUNCTION: XVT 0x4F8950
 void BriefingMap_DrawRevealedLabel(const char *text, int16_t colorRampGroup,
 				   int16_t x, int16_t y, int16_t revealCount,
@@ -668,6 +793,15 @@ void BriefingMap_DrawRevealedLabel(const char *text, int16_t colorRampGroup,
 	}
 }
 
+/* Draws the highlight around flight group flightGroupIndex's map icon at
+ * mission point 14 + g_activeBriefingIndex, in a row of g_textShadeRamps picked
+ * by IFF: 0 and any IFF above 5 green, 1 and 4 red, 2 blue, 3 yellow, 5 purple.
+ * While highlightPhase is under 12 it draws tinted copies of the icon from the
+ * "greyicon" image at the four diagonal offsets, closing in as highlightPhase
+ * rises; at 8 to 11 it also draws a filled, outlined box that grows from 3
+ * pixels inside the icon's edges to them. From 12 on it draws only a filled,
+ * outlined box 2 pixels outside the icon. Does nothing when the craft type is
+ * negative; ignores clipRect. */
 // FUNCTION: XVT 0x4F8B30
 void BriefingMap_DrawCraftIconHighlight(RECT *viewportRect, RECT *clipRect,
 					int flightGroupIndex,

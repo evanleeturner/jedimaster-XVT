@@ -422,7 +422,8 @@ struct MissionFlightRuntimeState {
 	uint8_t teamFgDesignationCode[10][48];
 	/* 1 once any team's primary goal is complete, else 0. */
 	uint8_t globalPrimaryGoalStatus;
-	/* Set to 0 by Mission_InitFlightRuntimeState; nothing reads it. */
+	/* Set to 0 by Mission_InitFlightRuntimeState; no game code reads it,
+	 * only the modern build's snapshot copies it. */
 	uint16_t globalGoalStatusUnused;
 	/* 1 once any team's bonus goal is complete, else 0. */
 	uint8_t globalBonusGoalStatus;

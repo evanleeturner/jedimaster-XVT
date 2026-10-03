@@ -36,29 +36,64 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* The joystick action list read from joystick.txt: each entry's action code,
+ * name and description. Config_LoadJoystickActionDictionary fills it when the
+ * config screen opens. */
 // GLOBAL: XVT 0xBB2820
 JoystickEntry g_joystickEntries[128] = {0};
+/* Entries in g_joystickEntries; Config_LoadJoystickActionDictionary sets it. */
 // GLOBAL: XVT 0xBB72A0
 int g_joystickEntryCount = 0;
+/* First action shown in the joystick page's list of keys: 0 when the config
+ * screen opens, then set by the list's scrollbar and by picking an action from
+ * the keyboard. */
 // GLOBAL: XVT 0x664E88
 int g_configJoystickActionScrollOffset = 0;
+/* First row shown in the joystick page's button list: 0 when the config screen
+ * opens, then set by the list's scrollbar and moved to a pressed button or hat
+ * direction that is out of view. */
 // GLOBAL: XVT 0x664E8C
 int g_configJoystickButtonScrollOffset = 0;
+/* Button being remapped: 0 to 15 for joystick buttons 1 to 16, 16 to 19 for the
+ * hat directions. 0 when the config screen opens; set by picking a row or
+ * pressing a button or hat direction. */
 // GLOBAL: XVT 0x664E90
 int g_configSelectedJoystickButtonIndex = 0;
+/* Index in g_joystickEntries of the action the selected button is mapped to, as
+ * the joystick page shows it. */
 // GLOBAL: XVT 0x664E94
 int g_configSelectedJoystickActionIndex = 0;
 
+/* The game's settings. Config_Load fills them from defaults and the config file
+ * and Config_Write saves them; the config pages, the mission setup screen, the
+ * host's game options packets and the command line change them, and many
+ * functions read them. */
 // GLOBAL: XVT 0xBB72B0
 GameConfig g_gameConfig = {0};
 
+/* 1 while a config page should also draw its controls' fixed images into the
+ * offscreen background: Config_OptionsDatapadUpdate sets 1 on its first frame
+ * and 0 after every frame, and the page buttons set 1 when they switch
+ * pages. */
 // GLOBAL: XVT 0x664E98
 int g_configDrawStaticControlBackground = 0;
+/* 1 while the network page lets the connection type change outside single
+ * player. The concourse's first frame sets 1; mission setup, the network
+ * screens in frontend_net.c and the modern build's network browser set it as
+ * they start or leave a session. */
 // GLOBAL: XVT 0xB69CE0
 int g_configConnectionTypeEditable = 0;
+/* Config page shown: 0 network, 1 single-player video, 2 multiplayer video, 3
+ * sound, 4 joystick, 5 taunts. 0 when the config screen opens; the page buttons
+ * change it. */
 // GLOBAL: XVT 0x664E9C
 int g_configCurrentPage = 0;
 
+/* Keywords of the config file's lines; Config_Load numbers each by its place
+ * here. They name the last pilot, the video settings of both sets, network,
+ * sound, 32 joystick buttons (only the first 20 are read), the game options,
+ * password, help, taunts and the 3D hardware settings. An empty string ends the
+ * list. */
 // GLOBAL: XVT 0x52A4C8
 char *g_configKeywords[] = {"lastpilot",
 			    "backdrop1",
@@ -169,6 +204,20 @@ char *g_configKeywords[] = {"lastpilot",
 			    "bilinear2",
 			    ""};
 
+/* Update function of the config screen, which the common screen controls push
+ * over the whole screen. On frame 0 it sets the cursor, saves and clears the
+ * scrollbar focus list, opens the network page, loads joystick.txt and selects
+ * button 0's action, and draws frontres\configb.bmp with its frame and overlays
+ * into the offscreen surface. Every frame it draws the current page; on every
+ * page but the joystick page it then locks and unlocks the offscreen surface
+ * (flag 1) while g_configDrawStaticControlBackground is set. Then it draws the
+ * pilot banner, clears that flag, handles the page buttons and Restore
+ * defaults, and returns 1 when Frontend_HandleCommonScreenControls(2) returns
+ * 1. Done, a network dismiss packet, or as network host a nonzero
+ * Net_PollForPlayerCreatedOrBacklog closes the screen: it writes the config,
+ * pops the screen, restores the scrollbar focus list and, as network host,
+ * sends the game options packet. Returns 0 on every other path; the modern
+ * build stops there while a dialog is up. */
 // FUNCTION: XVT 0x4B7F30
 int Config_OptionsDatapadUpdate(int frameCounter)
 {
@@ -363,6 +412,9 @@ int Config_OptionsDatapadUpdate(int frameCounter)
 	return 0;
 }
 
+/* Draws the video page for settings set g_configCurrentPage - 1: the
+ * single-player title on page 1, the multiplayer title otherwise, then the
+ * sixteen option rows. Does not check that a video page is shown. */
 // FUNCTION: XVT 0x4B83A0
 void Config_DrawVideoOptionRows(void)
 {
@@ -396,6 +448,8 @@ void Config_DrawVideoOptionRows(void)
 	Config_DrawBilinearOptionRow(g_configCurrentPage - 1);
 }
 
+/* Draws the screen resolution row; a new choice also becomes the window
+ * size. */
 // FUNCTION: XVT 0x4B84E0
 void Config_DrawScreenResolutionOptionRow(int isMultiplayer)
 {
@@ -416,6 +470,8 @@ void Config_DrawScreenResolutionOptionRow(int isMultiplayer)
 	}
 }
 
+/* Draws the window size row, then lowers the window size to the screen
+ * resolution when it is above it. */
 // FUNCTION: XVT 0x4B8570
 void Config_DrawWindowSizeOptionRow(int configIndex)
 {
@@ -435,6 +491,8 @@ void Config_DrawWindowSizeOptionRow(int configIndex)
 	}
 }
 
+/* Draws the colors row: read-only, with a gray label, while 3D hardware is
+ * on. */
 // FUNCTION: XVT 0x4B8600
 void Config_DrawBitsPerPixelOptionRow(int configIndex)
 {
@@ -460,6 +518,7 @@ void Config_DrawBitsPerPixelOptionRow(int configIndex)
 	}
 }
 
+/* Draws the brightness row: a slider of 8 positions. */
 // FUNCTION: XVT 0x4B86E0
 void Config_DrawBrightnessOptionRow(int configIndex)
 {
@@ -474,6 +533,7 @@ void Config_DrawBrightnessOptionRow(int configIndex)
 				FRONTSTR_256_DIM, 1);
 }
 
+/* Draws the space debris row. */
 // FUNCTION: XVT 0x4B8760
 void Config_DrawDebrisOptionRow(int configIndex)
 {
@@ -488,6 +548,7 @@ void Config_DrawDebrisOptionRow(int configIndex)
 				   FRONTSTR_236_OFF);
 }
 
+/* Draws the backdrop row. */
 // FUNCTION: XVT 0x4B87E0
 void Config_DrawBackdropOptionRow(int configIndex)
 {
@@ -502,6 +563,7 @@ void Config_DrawBackdropOptionRow(int configIndex)
 				   FRONTSTR_236_OFF);
 }
 
+/* Draws the star field density row. */
 // FUNCTION: XVT 0x4B8860
 void Config_DrawStarDensityOptionRow(int configIndex)
 {
@@ -516,6 +578,7 @@ void Config_DrawStarDensityOptionRow(int configIndex)
 				     &rect, FRONTSTR_229_LOW);
 }
 
+/* Draws the low detail models row: a slider of 20 positions over lod. */
 // FUNCTION: XVT 0x4B88E0
 void Config_DrawLevelOfDetailOptionRow(int configIndex)
 {
@@ -530,6 +593,7 @@ void Config_DrawLevelOfDetailOptionRow(int configIndex)
 				FRONTSTR_252_NEAR, 1);
 }
 
+/* Draws the texture resolution row. */
 // FUNCTION: XVT 0x4B8960
 void Config_DrawTextureResolutionOptionRow(int configIndex)
 {
@@ -544,6 +608,7 @@ void Config_DrawTextureResolutionOptionRow(int configIndex)
 				     &rect, FRONTSTR_244_LOW);
 }
 
+/* Draws the dithering row. */
 // FUNCTION: XVT 0x4B89E0
 void Config_DrawDitherOptionRow(int configIndex)
 {
@@ -558,6 +623,8 @@ void Config_DrawDitherOptionRow(int configIndex)
 				   FRONTSTR_236_OFF);
 }
 
+/* Draws the mip-mapping row: a slider of 20 positions with FRONTSTR_250_OPTIMAL
+ * centered in yellow below it. */
 // FUNCTION: XVT 0x4B8A60
 void Config_DrawMipmapOptionRow(int configIndex)
 {
@@ -575,6 +642,7 @@ void Config_DrawMipmapOptionRow(int configIndex)
 				  &rect, g_colorYellow);
 }
 
+/* Draws the local light source row. */
 // FUNCTION: XVT 0x4B8B20
 void Config_DrawLocalLightsOptionRow(int configIndex)
 {
@@ -589,6 +657,8 @@ void Config_DrawLocalLightsOptionRow(int configIndex)
 				   &rect, FRONTSTR_236_OFF);
 }
 
+/* Draws the specular highlights row: dimmed, with a gray label, while 3D
+ * hardware is on. */
 // FUNCTION: XVT 0x4B8BA0
 void Config_DrawSpecularOptionRow(int configIndex)
 {
@@ -615,6 +685,7 @@ void Config_DrawSpecularOptionRow(int configIndex)
 	}
 }
 
+/* Draws the diffuse lighting row. */
 // FUNCTION: XVT 0x4B8C80
 void Config_DrawDiffuseLightingOptionRow(int configIndex)
 {
@@ -629,6 +700,7 @@ void Config_DrawDiffuseLightingOptionRow(int configIndex)
 				   FRONTSTR_236_OFF);
 }
 
+/* Draws the 3D hardware row; turning it on sets the colors choice to 1. */
 // FUNCTION: XVT 0x4B8D00
 void Config_DrawUse3dHardwareOptionRow(int configIndex)
 {
@@ -649,6 +721,8 @@ void Config_DrawUse3dHardwareOptionRow(int configIndex)
 	}
 }
 
+/* Draws the bilinear filtering row: dimmed, with a gray label, while 3D
+ * hardware is off. */
 // FUNCTION: XVT 0x4B8DA0
 void Config_DrawBilinearOptionRow(int configIndex)
 {
@@ -673,6 +747,9 @@ void Config_DrawBilinearOptionRow(int configIndex)
 	}
 }
 
+/* Despite the name, nothing cycles: it is the two-choice control of
+ * Config_DrawTwoChoiceOptionImpl with a translucent marker, still taking
+ * clicks. */
 // FUNCTION: XVT 0x4B8E80
 void Config_DrawOptionCycleDimmed(uint8_t *value, const RECT *rect,
 				  FrontendStringId valueBaseStrId)
@@ -680,6 +757,8 @@ void Config_DrawOptionCycleDimmed(uint8_t *value, const RECT *rect,
 	Config_DrawTwoChoiceOptionImpl(value, rect, valueBaseStrId, 1, 0);
 }
 
+/* The two-choice control of Config_DrawTwoChoiceOptionImpl with an opaque
+ * marker, taking clicks. */
 // FUNCTION: XVT 0x4B8EA0
 void Config_DrawTwoChoiceOption(uint8_t *value, const RECT *rect,
 				FrontendStringId valueBaseStrId)
@@ -687,6 +766,8 @@ void Config_DrawTwoChoiceOption(uint8_t *value, const RECT *rect,
 	Config_DrawTwoChoiceOptionImpl(value, rect, valueBaseStrId, 0, 0);
 }
 
+/* The two-choice control of Config_DrawTwoChoiceOptionImpl with a translucent
+ * marker, ignoring clicks. */
 // FUNCTION: XVT 0x4B8EC0
 void Config_DrawTwoChoiceOptionReadOnly(uint8_t *value, const RECT *rect,
 					FrontendStringId valueBaseStrId)
@@ -694,6 +775,14 @@ void Config_DrawTwoChoiceOptionReadOnly(uint8_t *value, const RECT *rect,
 	Config_DrawTwoChoiceOptionImpl(value, rect, valueBaseStrId, 1, 1);
 }
 
+/* Draws a two-choice control at rect: slots for choice 0 and choice 1, 130
+ * pixels apart, each with its label (strings valueBaseStrId and valueBaseStrId
+ * + 1) in yellow to the right, and the "3conbtn" marker on the chosen one,
+ * translucent when translucentSelection is set. While
+ * g_configDrawStaticControlBackground is set it also draws the slot images into
+ * the offscreen background. Unless disableInput is set, a click on a slot
+ * stores its number in *value, playing "configsound" when that changes it and
+ * frontend sounds are on. */
 // FUNCTION: XVT 0x4B8EE0
 void Config_DrawTwoChoiceOptionImpl(uint8_t *value, const RECT *rect,
 				    FrontendStringId valueBaseStrId,
@@ -771,6 +860,13 @@ void Config_DrawTwoChoiceOptionImpl(uint8_t *value, const RECT *rect,
 	} while (optionIndex < 2);
 }
 
+/* Draws a three-choice control at rect: the "3conbar" bar with marker positions
+ * at its left end, middle and right end for choices 0, 1 and 2, the labels
+ * valueBaseStrId to valueBaseStrId + 2 below them in yellow, and the "3conbtn"
+ * marker on the chosen one. A click on another position stores it in *value,
+ * playing "configsound" when frontend sounds are on. While
+ * g_configDrawStaticControlBackground is set it also draws the bar into the
+ * offscreen background. */
 // FUNCTION: XVT 0x4B9090
 void Config_DrawThreeChoiceOption(uint8_t *value, const RECT *rect,
 				  FrontendStringId valueBaseStrId)
@@ -865,6 +961,14 @@ void Config_DrawThreeChoiceOption(uint8_t *value, const RECT *rect,
 				       &optionRect, 0, 1, g_colorYellow);
 }
 
+/* Draws a slider of valueCount positions across rect and lets a held mouse
+ * button move it. The "conhandle" handle sits at *value times the step, the
+ * width divided by valueCount - 1; rangeLabelId and rangeLabelId + 1 label the
+ * two ends below it in yellow. With a button held, the cursor within half a
+ * step of the right end sets valueCount - 1, of the left end 0, and otherwise
+ * the step band under it sets 1 to valueCount - 2. With playSoundOnChange set
+ * and frontend sounds on, a change plays "configsound". Moves rect 2 pixels
+ * right while drawing and back on every path. */
 // FUNCTION: XVT 0x4B93F0
 void Config_DrawOptionSlider(uint8_t *value, RECT *rect, int valueCount,
 			     FrontendStringId rangeLabelId,
@@ -978,6 +1082,19 @@ void Config_DrawOptionSlider(uint8_t *value, RECT *rect, int valueCount,
 	FrontendDraw_RectOffsetXY(rect, -2, 0);
 }
 
+/* Loads the settings into g_gameConfig. Fills in the defaults first: in both
+ * video sets the on/off options on, star density, texture resolution, screen
+ * and window size 2, mip-mapping and detail 10, brightness 2, 256 colors, 3D
+ * hardware as FrontendDisplay_IsSecondaryDirectDrawActive says; IPX; every
+ * sound and message on, at volume 9 and music volume 5; medium difficulty;
+ * server update rate 8; mission time limit 255; help on; default actions for
+ * joystick buttons 1 to 10, as many as the joystick has; and the four default
+ * taunts. The modern build then applies config.yaml through XvtConfig_Apply and
+ * stops with a fatal error when that fails. The original build reads
+ * config2.cfg, or else the base game's config.cfg, as lines of a keyword from
+ * g_configKeywords, a space and a value; it ignores unknown keywords and
+ * joystick buttons 21 to 32. Button actions from config.cfg in 124 to 229 are
+ * raised by 4. Checks no value's range. */
 // FUNCTION: XVT 0x4B97E0
 void Config_Load(void)
 {
@@ -1437,6 +1554,11 @@ void Config_Load(void)
 #endif
 }
 
+/* Saves g_gameConfig, with the current pilot as the last pilot. The modern
+ * build writes config.yaml through XvtConfig_Write and stops with a fatal error
+ * when that fails. The original build writes config2.cfg, one keyword and value
+ * per line, every setting but continueBattleOrCampaign; it writes nothing when
+ * the file does not open. */
 // FUNCTION: XVT 0x4BA3C0
 void Config_Write(void)
 {
@@ -1587,6 +1709,19 @@ void Config_Write(void)
 #endif
 }
 
+/* Draws the config screen's eight page lights and handles its page buttons and
+ * Restore defaults; returns 1, or 0 while the modern build's confirm dialog is
+ * up. Restore defaults, hidden on the network page during a network session,
+ * asks first, then resets the current page: the network update rate to 8 and
+ * the connection to TCP/IP with internet play in the modern build or IPX
+ * without it in the original; a video set to its defaults, 3D hardware as
+ * FrontendDisplay_IsSecondaryDirectDrawActive says for single player and off
+ * for multiplayer; the sounds, starting CD track 7 when frontend music was off;
+ * the joystick buttons; or the taunts. A page button switches pages, redraws
+ * the background into the offscreen surface and sets
+ * g_configDrawStaticControlBackground. In the modern build the joystick button
+ * calls XvtPort_RequestSettings instead, so it never shows the joystick
+ * page. */
 // FUNCTION: XVT 0x4BAAF0
 int Config_UpdateNavigationAndRestoreDefaults(void)
 {
@@ -1645,11 +1780,13 @@ int Config_UpdateNavigationAndRestoreDefaults(void)
 	};
 
 	struct {
-		RECT rect;
+		RECT rect; /* Area of the button being handled. */
+		/* State of each page light: the five pages, restore, an unused
+		 * slot and taunts. */
 		FrontendNavigationSlotState
 			navigationSlotStates[CONFIG_NAVIGATION_SLOT_COUNT];
-		int cursorY;
-		int cursorX;
+		int cursorY; /* Cursor y. */
+		int cursorX; /* Cursor x. */
 	} ui;
 
 	int joystickButtonCount;
@@ -2160,6 +2297,14 @@ int Config_UpdateNavigationAndRestoreDefaults(void)
 	return 1;
 }
 
+/* Draws the network page. The original build first offers the connection type
+ * (IPX, TCP/IP with the address field, direct modem with the phone field,
+ * direct serial), which changes only while g_configConnectionTypeEditable is
+ * set or in single player; picking a different type turns internet play on for
+ * TCP/IP and off for the others. Both builds then draw the password field and
+ * the host options, internet play and the server update rate (4, 6 or 8 as low,
+ * medium or high), read-only for a network client. Enter or Tab in a field
+ * moves g_activeTextFieldId to the next field. */
 // FUNCTION: XVT 0x4BB680
 void Config_NetworkOptionsScreen(void)
 {
@@ -2504,6 +2649,9 @@ void Config_NetworkOptionsScreen(void)
 	}
 }
 
+/* Despite the name, nothing cycles: it draws a two-choice control like
+ * Config_DrawTwoChoiceOptionImpl with an opaque marker and takes no clicks. The
+ * network page uses it for a client's internet play setting. */
 // FUNCTION: XVT 0x4BC1C0
 void Config_DrawNetworkOptionCycleDisabled(const uint8_t *value,
 					   const RECT *rect,
@@ -2553,6 +2701,8 @@ void Config_DrawNetworkOptionCycleDisabled(const uint8_t *value,
 	}
 }
 
+/* The three-choice control of Config_DrawThreeChoiceOption, taking no
+ * clicks. */
 // FUNCTION: XVT 0x4BC2F0
 void Config_DrawThreeChoiceOptionReadOnly(const uint8_t *selectedOption,
 					  const RECT *barRect,
@@ -2624,6 +2774,13 @@ void Config_DrawThreeChoiceOptionReadOnly(const uint8_t *selectedOption,
 		1, g_colorYellow);
 }
 
+/* Draws the sound page: switches and 10-position volume sliders for frontend,
+ * exterior, cockpit and engine sounds; the pilot and tactical officer message
+ * levels; commander and special mission messages; voice volume; frontend music;
+ * and flight music with its volume. A moved volume slider plays "configsound"
+ * at the new volume when frontend sounds are on. Turning frontend music on
+ * plays CD track 7 at the music volume, off stops it, and a music volume change
+ * sets the CD volume while frontend music is on. */
 // FUNCTION: XVT 0x4BC520
 void Config_SoundOptionsScreen(void)
 {
@@ -2784,6 +2941,14 @@ void Config_SoundOptionsScreen(void)
 	}
 }
 
+/* Draws the joystick page and remaps buttons; only the original build shows
+ * this page. Shows the selected button or hat direction and its action. A
+ * pressed joystick button (1 to 16) or hat direction selects itself and scrolls
+ * into view. The left list shows each button, and the four hat directions when
+ * the joystick has a hat, with its action; a click selects that row. The right
+ * list shows every action; a click maps the selected button to it, and so does
+ * a key from Config_ReadJoystickActionPickerKey that matches an action's
+ * code. */
 // FUNCTION: XVT 0x4BCC10
 void Config_JoystickRemapScreen(void)
 {
@@ -3201,6 +3366,11 @@ void Config_JoystickRemapScreen(void)
 	}
 }
 
+/* Reads joystick.txt into g_joystickEntries: one action per line of up to 127
+ * characters, a decimal code, a space, a name up to the next space, a space and
+ * the description. Returns 0, keeping the old list, when the file does not
+ * open, else 1. Checks neither the 128-entry limit nor the 20-byte name, and a
+ * line without a second space takes its description from past its end. */
 // FUNCTION: XVT 0x4BD5F0
 int Config_LoadJoystickActionDictionary(void)
 {
@@ -3258,6 +3428,11 @@ int Config_LoadJoystickActionDictionary(void)
 	return 1;
 }
 
+/* Returns the action code of a key pressed for mapping, or 0 for none: a typed
+ * character from the queue as it is; else with Alt held, A to Z as 128 to 153
+ * and 0 to 9 as 154 to 163; with Shift held, F1 to F12 as 207 to 218; otherwise
+ * F1 to F12 as 195 to 206, and the arrow, editing, lock and number pad keys as
+ * fixed codes from 164 to 194. */
 // FUNCTION: XVT 0x4BD770
 uint8_t Config_ReadJoystickActionPickerKey(void)
 {
@@ -3393,6 +3568,9 @@ uint8_t Config_ReadJoystickActionPickerKey(void)
 	return keyCode;
 }
 
+/* Draws the taunts page: the four taunts as fields of up to 46 characters,
+ * labeled FRONTSTR_795_TAUNT with their number. Enter or Tab in a field moves
+ * g_activeTextFieldId to the next field, after the fourth to 0. */
 // FUNCTION: XVT 0x4BDA30
 void Config_DrawCustomTauntsPage(void)
 {
@@ -3447,6 +3625,18 @@ void Config_DrawCustomTauntsPage(void)
 	} while (taunt < g_gameConfig.taunts + 4);
 }
 
+/* Update function of the credits screen. On frame 0 it resets the credits
+ * globals, opens credits.txt and reads the first page, going to the concourse
+ * when there is none, and starts a 200-frame text fade. Holding Shift, Alt and
+ * F12 draws a hidden photo for pages 0, 1, 2 and 4. When a logo changes it
+ * redraws the background and logos into the offscreen surface. It draws both
+ * pages of text, 19 pixels a line in font 15, the newest fading in. When a
+ * page's time is up it reads the next one and fades it in, turning off the CD
+ * loop after the last. After the last page's time, or on a click, Esc, Enter or
+ * Space, it clears the offscreen surface (on a key or click the back buffer
+ * too), fades the CD music over 2000 ms and sets g_creditsExitPending; the next
+ * frame goes to the concourse, in the modern build once the fade is over.
+ * Returns 0. */
 // FUNCTION: XVT 0x4FB670
 int Credits_UpdateScreen(int frameCounter)
 {

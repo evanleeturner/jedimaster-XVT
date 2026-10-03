@@ -12,8 +12,12 @@ extern "C" {
 
 #ifndef XVT_MODERN
 struct InventorNodeDef {
+	/* Name as written in an Inventor file. A word read from the file
+	 * matches when, ignoring case, it is this name or its start. */
 	const char *nodeName;
+	/* Entries in fieldDefs; also the parsed node's record count. */
 	int32_t fieldCount;
+	/* The node's fields, in record order; NULL when there are none. */
 	const struct InventorFieldDef *const *fieldDefs;
 };
 

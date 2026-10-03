@@ -11,6 +11,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Returns 1 when the 3D device's opaque texture format has 5 green bits
+ * (g_pFmtOpaqueTexture), else 0. Its one caller, Display_IsPixelFormat555,
+ * returns the same. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x40DD40
 int ModelTexture_IsHardwareFormat555(void)
@@ -18,6 +21,15 @@ int ModelTexture_IsHardwareFormat555(void)
 	return g_pFmtOpaqueTexture->colorInfo.greenBPP == 5;
 }
 
+/* Marks a texture palette's see-through colors for the 3D card; the palette is
+ * 16 sub-palettes of 256 RGB565 colors. Below g_textureResolutionLevel 2 it
+ * only sets palette[2304] to 0. At level 2 it sets to 0 each of the first 256
+ * colors that is near black (its three 5-bit components' squares adding to
+ * under 32) or that lies more than 16, in squared distance, from the same entry
+ * of any of sub-palettes 1 to 6; each other color takes sub-palette 10's entry.
+ * Then palette[256] gets the first index set to 0 (0xFFFF when none) and
+ * palette[2304] the count set to 0, or 0 when all 256 were. The renderer reads
+ * palette[2304] as the opaque half's transparent-index slot. */
 // FUNCTION: XVT 0x40DD50
 void ModelTexture_FilterHardwarePalette(uint16_t *palette)
 {
@@ -115,6 +127,16 @@ void ModelTexture_FilterHardwarePalette(uint16_t *palette)
 	}
 }
 
+/* Turns width by height pixels of 24-bit color at rgb24 into a paletted texture
+ * at dst. Each pixel, its bytes taken in reverse order and cut to 5 bits,
+ * becomes the index of an equal color in a palette built as it goes, the first
+ * pixel's color at 0; once 256 colors are taken, a new color gets the nearest
+ * one. After the texels it writes 16 shades of the 256 colors, shade by shade:
+ * 4096 bytes of the nearest g_swPalette index from 0x40 to 0xFF, then 4096
+ * RGB565 colors with the green's low bit 0. Shades 0 to 7 turn a component c
+ * into ((c << 7) + (((c * shade) & 0xFFFFF8) << 4)) >> 8, shades 8 to 15 into
+ * ((c << 8) + ((((31 - c) * (shade - 8)) & 0xFFFFF8) << 5)) >> 8. Palette
+ * entries past the colors taken come from uninitialized stack bytes. */
 // FUNCTION: XVT 0x4720D0
 void ModelTexture_BuildPalettedShadeTable(uint8_t *dst, const uint8_t *rgb24,
 					  int width, int height)
@@ -272,6 +294,20 @@ void ModelTexture_BuildPalettedShadeTable(uint8_t *dst, const uint8_t *rgb24,
 }
 
 #ifndef XVT_MODERN
+/* Loads a texture file into dst as a packed OPT texture and returns its bytes:
+ * a 24-byte OptTextureData header with palette 256 and inlinePaletteCount 16,
+ * the texels, 4096 bytes of g_swPalette shade indices and 8192 bytes of RGB565
+ * shades. A name ending in "rgb", ignoring case, is tried first as the same
+ * name ending in "tex". A .tex file gives its own header and texels (dataSize
+ * bytes when textureSize equals width times height, else width times height),
+ * then the RGB565 shades, leaving the 4096 bytes before them unwritten. An .rgb
+ * file has a 512-byte header with a big-endian width and height at bytes 6 and
+ * 8, then three planes of one byte per pixel; it is turned into texels and
+ * shades in place much as ModelTexture_BuildPalettedShadeTable does, without
+ * its 0xFFFFF8 masks, and textureSize and dataSize keep the header's bytes 8 to
+ * 15. Either file returns its texel bytes plus 12312. A missing file or another
+ * extension gives the 8 by 8 texture of g_defaultWhiteTextureRgb24 and returns
+ * 12376. Only the original build calls this. */
 // FUNCTION: XVT 0x479E80
 size_t ModelTexture_LoadRgbOrTexFile(uint8_t *dst, const char *fileName)
 {

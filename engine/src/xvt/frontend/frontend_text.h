@@ -10,16 +10,32 @@ extern "C" {
 #endif
 
 struct BitmapFont {
+	/* Each glyph's rows, encoded by FrontImage_EncodeGlyphRow, end to end;
+	 * a font built through GDI starts at glyph 1. */
 	uint8_t *
 		pGlyphBits; ///< Runtime pointer to the compressed glyph-byte blob; serialized in the .ABP header
 			    ///< as the blob byte count.
 	unsigned int glyphBitOffset
 		[256]; ///< Per-character byte offsets into pGlyphBits.
+	/* Each character's height in pixels. Entry 0 is the font's height that
+	 * FrontendText_GetFontHeight returns; a font built through GDI copies
+	 * it from entry 1. */
 	uint8_t glyphHeight[256];
+	/* Each character's width in pixels, its advance before charSpacing; 0
+	 * for character 0 in a font built through GDI. */
 	uint8_t glyphWidth[256];
+	/* The size the font was built at, its index in
+	 * g_frontState.fontBySize. */
 	unsigned int pointSize;
+	/* 1 while the slot holds a font; the free functions compare it with 1,
+	 * and a loaded file sets it from its own header. */
 	uint8_t inUse; ///< Font-slot occupancy flag; scanned when allocating and cleared when freeing.
+	/* Pixels added after each glyph's width: 0 in a font built through GDI,
+	 * else what the file holds. */
 	uint8_t charSpacing;
+	/* FrontendText_LoadFont sets it to 1 and a loaded file sets it from its
+	 * header. No code reads the field itself;
+	 * FrontendText_SaveFontAtlasFile copies it with the header. */
 	uint8_t field_60A; ///< Set to 1 for generated fonts and persisted in the 1547-byte .ABP header; no
 	///< runtime consumer is identified.
 };

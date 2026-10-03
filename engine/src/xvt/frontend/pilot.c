@@ -20,6 +20,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Forty pilot names; Pilot_ParseCommandLine picks one at random for a pilot
+ * named "joiner" or "host" on the command line. */
 // GLOBAL: XVT 0x52AF78
 const char *const g_randomPilotNames[40] = {
 	"Luke",	       "Han Solo",    "Darth Vader", "Leia",	     "Lando",
@@ -32,6 +34,13 @@ const char *const g_randomPilotNames[40] = {
 	"Zaarin",      "Harkov",      "Tarrak",	     "Xizor",	     "Guri",
 };
 
+/* Deletes the selected pilot's files and clears g_pilotData. Finds the pilot's
+ * name in g_pilotListDisplayNames, ignoring case, and deletes that entry's .plt
+ * file in the base game folder and the file of the same name ending in '2'
+ * (.pl2) in the install folder. Then clears g_pilotData and rebuilds the pilot
+ * list. Returns 1; the modern build returns 0, leaving g_pilotData as it was,
+ * when a file cannot be removed. Also zeroes a 253,754-byte local record that
+ * it never uses. */
 // FUNCTION: XVT 0x4BF260
 int Pilot_DeleteCurrent(void)
 {
@@ -96,6 +105,19 @@ int Pilot_DeleteCurrent(void)
 	return 1;
 }
 
+/* Creates a pilot named pilotName and makes it the current one. Picks the first
+ * NAMEn.pl2 that does not exist, counting n from 0; the original build opens it
+ * for writing and returns 0 when it cannot. Clears g_pilotData and sets the
+ * name, the Trainee rating, and the game and host names (the name with
+ * FRONTSTR_470_S_GAME after it). The first mission of the training exercises
+ * list becomes the choice of the pilot and of faction record 0, that of the
+ * list loaded for faction 1 record 1's, and that of the multiplayer list record
+ * 2's. Writes g_pilotData to the file, then sets combat engagement choices (the
+ * list's third mission for the pilot, the first for factions 0 and 1) and saves
+ * again with Pilot_Save(0). Returns 1 in the original build, or Pilot_Save's
+ * result in the modern one, which also returns 0 when the first write fails.
+ * Leaves g_frontendMissionSessionMode at none. Checks neither the name's length
+ * nor that the combat list holds three missions. */
 // FUNCTION: XVT 0x4BF3A0
 int Pilot_CreateNew(const char *pilotName)
 {
@@ -218,6 +240,16 @@ int Pilot_CreateNew(const char *pilotName)
 #endif
 }
 
+/* Saves g_pilotData to the pilot's .pl2 file and the base game's record to its
+ * .plt file. Returns 0 without a pilot name. With useTemporaryFile 0, the .pl2
+ * is the *.pl2 file in the current folder whose first 14 bytes hold the pilot's
+ * name, ignoring case; otherwise "__temp__.tmp". With none found, it is the
+ * name of the matching *.plt in the base game folder with its last letter made
+ * '2', or else NAME0.pl2. The original build returns 0 when the file does not
+ * open; the modern build writes it whole or returns 0. Then writes the record
+ * with Pilot_WriteXvtRecord to the same name with its last letter made 't'.
+ * Returns 1 in the original build, ignoring that write, or
+ * Pilot_WriteXvtRecord's result in the modern one. Every caller passes 0. */
 // FUNCTION: XVT 0x4BF650
 int Pilot_Save(int useTemporaryFile)
 {
@@ -350,6 +382,10 @@ int Pilot_Save(int useTemporaryFile)
 	return 1;
 }
 
+/* Loads the pilot whose .plt file in the base game folder holds pilotName in
+ * its first 14 bytes, ignoring case, through Pilot_LoadFromPath; the first
+ * match decides. Returns 1 when it loaded, 0 when the file list cannot be
+ * built, pilotName is NULL or empty, nothing matches, or the load fails. */
 // FUNCTION: XVT 0x4BF8C0
 int Pilot_FindAndLoadByName(const char *pilotName)
 {
@@ -403,6 +439,14 @@ int Pilot_FindAndLoadByName(const char *pilotName)
 	return wasLoaded;
 }
 
+/* Reads the quoted options of the command line. "a=ADDRESS" copies the address
+ * into g_gameConfig.ipAddress; any other quoted option whose second character
+ * is '=' gives a pilot name. With a pilot name, when no last pilot is set or it
+ * cannot be loaded, it makes the given name, or a random one of
+ * g_randomPilotNames for "joiner" or "host", the last pilot and creates it;
+ * when the last pilot loads, the given name is ignored. With both a name and an
+ * address it sets TCP/IP and internet play; otherwise it clears g_optIsHost and
+ * g_optIsClient. Returns 1 on every path. */
 // FUNCTION: XVT 0x4C9C50
 int Pilot_ParseCommandLine(const char *cmdLine)
 {
@@ -411,8 +455,10 @@ int Pilot_ParseCommandLine(const char *cmdLine)
 	int hasNetworkAddress;
 
 	struct ParsedCommandLine {
-		int hasPilotName;
+		int hasPilotName; /* 1 once an option gave a pilot name. */
+		/* Name from the last name option, at most 12 characters. */
 		char pilotName[16];
+		/* The quoted option being read, at most 255 characters. */
 		char parameter[256];
 	} parsed;
 
@@ -522,6 +568,13 @@ int Pilot_ParseCommandLine(const char *cmdLine)
 	return 1;
 }
 
+/* Loads the pilot whose .plt file in the base game folder is basePilotPath.
+ * Clears g_pilotData and reads the .pl2 file of the same name ending in '2', in
+ * the install folder, into it when that opens. When the .plt opens, a pilot
+ * without a .pl2 first gets a new pilot's rating and training mission choices,
+ * then Pilot_LoadXvtRecord copies the record over g_pilotData, and the pilot
+ * without a .pl2 gets its game and host names. Returns 0 when neither file
+ * opens, and in the modern build when a read fails; else 1. */
 // FUNCTION: XVT 0x4CB0C0
 int Pilot_LoadFromPath(const char *basePilotPath)
 {
@@ -624,93 +677,152 @@ int Pilot_LoadFromPath(const char *basePilotPath)
 
 #pragma pack(push, 1)
 
+/* PilotStats as the base game's pilot file stores it: the same tables in the
+ * same order, each by the three mission types, but 88 craft types in each
+ * per-craft table where PilotStats has 100. Pilot_LoadXvtRecord and
+ * Pilot_WriteXvtRecord copy each field to and from the PilotStats field of the
+ * same name, with the exceptions their comments give. */
 typedef struct PilotXvtStats {
-	int totalScorePerMT[3];
+	int totalScorePerMT[3]; /* Score. */
+	/* Missions flown on their own. */
 	int standaloneMissionsPlayedPerMT[3];
-	int sequenceMissionsPlayedPerMT[3];
-	int totalKillsPerMT[3];
-	int totalFriendliesKilledPerMT[3];
-	int killsPerCraftPerMT[3][88];
-	int killsSharedPerCraftPerMT[3][88];
-	int killsAssistsPerCraftPerMT[3][88];
+	int sequenceMissionsPlayedPerMT[3];  /* Missions flown in a sequence. */
+	int totalKillsPerMT[3];		     /* Full kills. */
+	int totalFriendliesKilledPerMT[3];   /* Friendly craft killed. */
+	int killsPerCraftPerMT[3][88];	     /* Full kills by craft type. */
+	int killsSharedPerCraftPerMT[3][88]; /* Shared kills by craft type. */
+	int killsAssistsPerCraftPerMT[3][88]; /* Assists by craft type. */
+	/* Full kills of players, by the victim's rating. */
 	int killsFullOnPlayerRatingPerMT[3][25];
+	/* Shared kills of players, by the victim's rating. */
 	int killsSharedOnPlayerRatingPerMT[3][25];
+	/* Assists on players, by the victim's rating. */
 	int killsAssistOnPlayerRatingPerMT[3][25];
+	/* Full kills of AI craft, by the victim's AI rating. */
 	int killsFullOnAIRatingPerMT[3][6];
+	/* Shared kills of AI craft, by the victim's AI rating. */
 	int killsSharedOnAIRatingPerMT[3][6];
+	/* Assists on AI craft, by the victim's AI rating. */
 	int killsAssistOnAIRatingPerMT[3][6];
-	int numSpecialInspectedPerMT[3];
-	int energyHitsPerMT[3];
-	int energyFiredPerMT[3];
-	int warheadsHitsPerMT[3];
-	int warheadsFiredPerMT[3];
-	int totalCraftLossesPerMT[3];
-	int lossesByCollisionsPerMT[3];
-	int lossesByStarshipsPerMT[3];
-	int lossesByMinesPerMT[3];
+	int numSpecialInspectedPerMT[3]; /* Special craft inspected. */
+	int energyHitsPerMT[3];		 /* Laser and ion hits. */
+	int energyFiredPerMT[3];	 /* Laser and ion shots fired. */
+	int warheadsHitsPerMT[3];	 /* Warhead hits. */
+	int warheadsFiredPerMT[3];	 /* Warheads fired. */
+	int totalCraftLossesPerMT[3];	 /* Craft lost. */
+	int lossesByCollisionsPerMT[3];	 /* Craft lost to collisions. */
+	int lossesByStarshipsPerMT[3];	 /* Craft lost to starships. */
+	int lossesByMinesPerMT[3];	 /* Craft lost to mines. */
+	/* Times killed by players, by the killer's rating. */
 	int killedByPlayerRatingPerMT[3][25];
+	/* Times killed by AI craft, by the killer's AI rating. */
 	int killedByAIRatingPerMT[3][6];
 } PilotXvtStats;
 
+/* One faction record of the base game's pilot file. The history blocks at the
+ * end are copied to and from g_pilotData's PilotFaction starting at the place
+ * each comment names: 4 bytes before the array of the same history there. */
 typedef struct PilotXvtFaction {
+	/* Missions flown; copied with PilotFaction's. */
 	int totalMissionsPlayedCount;
+	/* Never read or written by name; a save keeps the file's bytes. */
 	uint8_t selectionState[68];
+	/* Plaque counts; copied, with the three tables after it, as one
+	 * 96-byte block to and from PilotFaction.meleePlaques. */
 	int meleePlaques[6];
+	/* Never read or written by name; copied in meleePlaques' block. */
 	int tournamentTrophies[6];
+	/* Never read or written by name; copied in meleePlaques' block. */
 	int missionEvaluations[6];
+	/* Never read or written by name; copied in meleePlaques' block. */
 	int battleMedallions[6];
-	int missionAwards[4];
-	uint8_t fieldBC[16];
-	int totalScore;
-	PilotXvtStats stats;
+	int missionAwards[4]; /* Copied with PilotFaction's. */
+	uint8_t fieldBC[16];  /* Copied with PilotFaction's. */
+	int totalScore;	      /* Faction score; copied with PilotFaction's. */
+	PilotXvtStats stats;  /* Copied with PilotFaction.stats. */
+	/* Single-player training history, at field1558. */
 	uint8_t spTrainingData[3600];
+	/* Single-player melee history, at spTrainingMissions[99].field20. */
 	uint8_t spMeleeData[9000];
+	/* Single-player combat history, at spMeleeMissions[249].field20. */
 	uint8_t spCombatData[9000];
+	/* Multiplayer training history, at spCombatMissions[249].field20. */
 	uint8_t mpTrainingData[4800];
+	/* Multiplayer melee history, at mpTrainingMissions[99].field2C. */
 	uint8_t mpMeleeData[12000];
+	/* Multiplayer combat history, at mpMeleeMissions[249].field2C. */
 	uint8_t mpCombatData[12000];
+	/* Single-player tournament history, at
+	 * mpCombatMissions[249].field2C. */
 	uint8_t spTournamentData[1000];
+	/* Multiplayer tournament history, at spTournaments[24].field24. */
 	uint8_t mpTournamentData[1100];
+	/* Single-player battle history, at mpTournaments[24].field28. */
 	uint8_t spBattleData[900];
+	/* Multiplayer battle history, at spBattles[24].field20. */
 	uint8_t mpBattleData[1000];
 } PilotXvtFaction;
 
+/* The base game's pilot file (.plt), 253,754 bytes. Pilot_LoadXvtRecord copies
+ * it into g_pilotData and Pilot_WriteXvtRecord back out; a field is copied to
+ * and from PilotData's field of the same name unless its comment says
+ * otherwise. */
 typedef struct PilotXvtRecord {
-	char name[14];
-	int totalScore;
+	char name[14];	/* Pilot name. */
+	int totalScore; /* Total score. */
+	/* Local DirectPlay player id, stored when a mission launches. */
 	int localPlayerId;
+	/* Set to 1 when a mission launches; only the file copies read it. */
 	int launchSessionMarker;
+	/* Net_IsHost at the last launch from the debriefing, 1 in single
+	 * player. */
 	int isHost;
+	/* Human players in the last mission launched. */
 	unsigned int numHumanPlayersLastMission;
+	/* g_frontendMissionSessionMode at the last launch. */
 	int sessionMode;
+	/* Bytes 0 to 319 of PilotData.xvtRecordPayload. */
 	uint8_t xvtRecordCombatPayload[320];
+	/* Bytes 320 to 351 of PilotData.xvtRecordPayload. */
 	uint8_t xvtRecordIdentityPayload[32];
+	/* Bytes 352 to 671 of PilotData.xvtRecordPayload. */
 	uint8_t xvtRecordObjectPayload[320];
+	/* Never read or written by name; a save keeps the file's bytes. */
 	uint8_t legacyRatingState[100];
-	int currentRatingPromoPoints;
+	int currentRatingPromoPoints; /* Points toward the next rank. */
+	/* Points from worseRatingPromoPoints toward the next rank. */
 	int currentRatingWorsePromoPoints;
-	PilotPromotionDelta promotionDelta;
-	int nextPromotionPercent;
+	PilotPromotionDelta promotionDelta; /* Last rank change: -1, 0 or 1. */
+	int nextPromotionPercent; /* Percent of the way to the next rank. */
+	/* Lifetime statistics. A save leaves the first five tables as the
+	 * file had them (see Pilot_WriteXvtRecord). */
 	PilotXvtStats mainStats;
+	/* Never read or written by name; a save keeps the file's bytes. */
 	uint8_t missionSequenceState[3348];
-	PilotRating rating;
-	int totalMissionsPlayedCount;
+	PilotRating rating;	      /* Rank. */
+	int totalMissionsPlayedCount; /* Missions flown. */
+	/* Mission count at which each rank was reached. */
 	int ratingAchievedOnMission[25];
-	char ratingName[32];
-	int missionScore;
+	char ratingName[32]; /* Rank name. */
+	int missionScore;    /* Score of the last mission. */
+	/* The last mission's kill tables, by player or flight group; zeroed
+	 * before each mission by FrontendMission_InitPlayerState. */
 	int killsFullOnPlayer[8];
-	int killsSharedOnPlayer[8];
-	int killsFullOnFlightGroup[48];
-	int killsSharedOnFlightGroup[48];
-	int killsFullFromPlayer[8];
-	int killsSharedFromPlayer[8];
-	int killsFullFromFlightGroup[48];
-	int killsSharedFromFlightGroup[48];
+	int killsSharedOnPlayer[8];	    /* As killsFullOnPlayer. */
+	int killsFullOnFlightGroup[48];	    /* As killsFullOnPlayer. */
+	int killsSharedOnFlightGroup[48];   /* As killsFullOnPlayer. */
+	int killsFullFromPlayer[8];	    /* As killsFullOnPlayer. */
+	int killsSharedFromPlayer[8];	    /* As killsFullOnPlayer. */
+	int killsFullFromFlightGroup[48];   /* As killsFullOnPlayer. */
+	int killsSharedFromFlightGroup[48]; /* As killsFullOnPlayer. */
+	/* AI rating of each flight group, shown in the debriefing. */
 	int flightGroupRating[48];
-	PilotXvtStats lastMissionStats;
-	PilotNetworkPlayer networkPlayers[8];
-	PilotTeam teams[10];
-	int currentFactionId;
+	PilotXvtStats lastMissionStats;	      /* Last mission's statistics. */
+	PilotNetworkPlayer networkPlayers[8]; /* Last mission's players. */
+	PilotTeam teams[10];		      /* Last mission's teams. */
+	int currentFactionId;		      /* Faction record in use. */
+	/* The four faction records, copied field by field with
+	 * PilotData.factionStatistics. */
 	PilotXvtFaction factionStatistics[4];
 } PilotXvtRecord;
 
@@ -722,6 +834,16 @@ typedef char
 typedef char
 	xvt_size_PilotXvtRecord[(sizeof(PilotXvtRecord) == 0x3DF3A) ? 1 : -1];
 
+/* Reads a whole base game pilot record from stream and copies it into
+ * g_pilotData: identity, payloads, promotion state, both stats blocks, rating,
+ * the kill tables, network players, teams, current faction and the four faction
+ * records. In each per-craft table the record's 88 entries replace
+ * g_pilotData's first 88, except entries 4, 36, 41, 43, 45, 54 and 78, which
+ * keep g_pilotData's values. Each faction's history blocks go in starting 4
+ * bytes before the matching arrays of its PilotFaction. legacyRatingState,
+ * missionSequenceState and selectionState are not copied. Returns 1; the modern
+ * build returns 0 when the read fails. Does not check the record's size or
+ * contents. */
 // FUNCTION: XVT 0x4C9F80
 int Pilot_LoadXvtRecord(XvtFile *stream)
 {
@@ -731,14 +853,17 @@ int Pilot_LoadXvtRecord(XvtFile *stream)
 	int missionType;
 	int factionId;
 
+	/* g_pilotData's entries for the seven craft the record must not
+	 * overwrite, saved before each per-craft table is copied and put
+	 * back after. */
 	struct PreservedCraftStats {
-		int bWing;
-		int superStarDestroyer;
-		int modifiedFrigate;
-		int carrackCruiser;
-		int modifiedCorvette;
-		int dreadnaught;
-		int gunEmplacement;
+		int bWing;		/* Entry 4. */
+		int superStarDestroyer; /* Entry 54. */
+		int modifiedFrigate;	/* Entry 43. */
+		int carrackCruiser;	/* Entry 45. */
+		int modifiedCorvette;	/* Entry 41. */
+		int dreadnaught;	/* Entry 36. */
+		int gunEmplacement;	/* Entry 78. */
 	} preservedCraftStats;
 
 	PilotXvtRecord record;
@@ -1606,6 +1731,15 @@ int Pilot_LoadXvtRecord(XvtFile *stream)
 	return 1;
 }
 
+/* Updates the base game pilot record fileName, in the base game folder, from
+ * g_pilotData: reads the existing record when it opens, else starts from zeros,
+ * copies in the same fields Pilot_LoadXvtRecord copies out, and writes it back.
+ * Per-craft entries 4, 36, 41, 43, 45, 54 and 78 are written as 0. The five
+ * per-mission-type totals at the start of mainStats are copied from the record
+ * onto themselves, so they keep the old file's values. The original build opens
+ * the file itself, ignoring stream, writes without checking the open, and
+ * returns 1; the modern build ignores stream and returns the result of writing
+ * the file whole. */
 // FUNCTION: XVT 0x4CB310
 int Pilot_WriteXvtRecord(const char *fileName, XvtFile *stream)
 {

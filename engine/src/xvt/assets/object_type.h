@@ -139,20 +139,56 @@ enum {
 };
 
 struct ObjectTypeInfo {
+	/* Bit 0x2 (MODEL_RECORD_HAS_RESOURCE) marks a type
+	 * FeDiskIo_LoadResources loads a resource for; Mission_Init clears the
+	 * required-asset bit of every type whose recordFlags is nonzero. */
 	uint8_t recordFlags;
+	/* Bits: 0x1, the resource is an OPT model, which the ModelMesh and
+	 * ModelBounds getters need; 0x2, a texture block; 0x10
+	 * (MODEL_ASSET_REQUIRED), set by Mission_Init for the types the mission
+	 * uses. FeDiskIo_LoadResources loads the resource when 0x8 or 0x10 is
+	 * set, and one with 0x40 only on the proving grounds. */
 	uint8_t assetFlags;
+	/* Copied into a spawned craft's mobj->family; mission triggers compare
+	 * it. */
 	CraftFamily
 		familyId; ///< Object family classification; values are CraftFamily.
+	/* Mission triggers and much of the flight code compare it. */
 	uint8_t genusId; ///< Byte storage of CraftGenus for this ObjectTypeId; distinct from mission CraftSpecies.
+	/* Largest box size of the type's model: FeDiskIo_BuildModelDef sets it
+	 * from ModelBounds_GetMaxExtent for each loaded OPT model, and other
+	 * types keep the table's value. Much of the flight code uses it as the
+	 * object's size. */
 	int maxBoundsExtent;
+	/* Half of maxBoundsExtent, set beside it; the game code never reads it,
+	 * only the modern build's capture. */
 	int halfBoundsExtent;
+	/* Memory handle of the type's loaded resource, the same as its
+	 * g_loadedModels entry; 0 for none. */
 	uint16_t resourceHandle;
+	/* Billboard frame sequence, coded as described at
+	 * g_objectType127TextureFrameSequence; NULL for a type drawn as its
+	 * model. */
 	int16_t *textureFrameSequence;
+	/* A remap of 16 palette indices, or NULL; Mission_Init sets it for
+	 * backdrop types. The game code never reads it; the modern build's
+	 * capture copies it. */
 	uint8_t *palette;
+	/* Bits: 0x1 puts the type's objects on the radar; 0x2 lets the AI pick
+	 * static objects of the type (TARGETABLE_STATIC_MODEL_FLAG); 0x20 marks
+	 * a backdrop type (MODEL_FLAG_BACKDROP); 0x80 (STATIC_MODEL_FLAG) has
+	 * Mission_SpawnFlightGroupStaticObjects place the type's flight groups
+	 * instead of Mission_SpawnCurrentFlightGroupWave. */
 	uint8_t behaviorFlags;
+	/* GetModelIndexFromType returns it. */
 	uint8_t modelIndex; ///< Byte storage of optional ModelIndex into g_modelDefs[73]; 0xFF means
 	///< MODEL_INDEX_NONE.
+	/* Spec list the type's resource is listed in: FeDiskIo_LoadResources
+	 * reads list g_specListPrefixes[textureGroup] for the flight
+	 * resolution. */
 	uint8_t textureGroup;
+	/* Place of the type's resource in that list, from 0, counting non-empty
+	 * lines; Mission_Init sets it for backdrop types. */
 	uint8_t resourceIndex;
 };
 

@@ -50,19 +50,27 @@ enum {
 };
 
 struct MeshDescriptor {
-	MeshComponentType meshType;
+	MeshComponentType meshType; /* The mesh's component type. */
+	/* Flags: ModelMesh_HasExplosionTypeBit0 reads the 0x1 bit and
+	 * ModelMesh_IsObjectTypeMeshDamageable the 0x2 bit. */
 	int componentFlags;
+	/* The mesh's size along each axis; ModelMesh_GetComponentMaxExtent
+	 * takes the largest. */
 	OptVector span;
-	OptVector center;
-	OptVector boxMin;
-	OptVector boxMax;
+	OptVector center; /* Center of the mesh. */
+	OptVector boxMin; /* Smallest corner of the mesh's box. */
+	OptVector boxMax; /* Largest corner of the mesh's box. */
+	/* When nonzero, targetPoint replaces center as the point
+	 * ModelMesh_GetComponentFocusX and its two siblings give. */
 	int targetId;
+	/* The focus point used while targetId is nonzero. */
 	OptVector targetPoint;
 };
 
 struct ModelMeshObjectTypeCache {
-	int meshCount;
-	int meshTypes[50];
+	int meshCount;	   /* Meshes cached, up to 50. */
+	int meshTypes[50]; /* Each mesh's component type. */
+	/* Each mesh's descriptor inside the loaded model, or NULL. */
 	MeshDescriptor *meshDescriptors[50];
 };
 

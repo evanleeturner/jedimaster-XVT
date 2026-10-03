@@ -1,11 +1,13 @@
 #include "xvt/assets/endian.h"
 
+/* Returns value with its two bytes swapped. Nothing calls this. */
 // FUNCTION: XVT 0x4CC8F0
 uint16_t Endian_Swap16(uint16_t value)
 {
 	return (uint16_t)((value >> 8) | (value << 8));
 }
 
+/* Returns value with its four bytes in reverse order. Nothing calls this. */
 // FUNCTION: XVT 0x4CC900
 unsigned int Endian_Swap32(unsigned int value)
 {

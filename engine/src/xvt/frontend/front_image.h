@@ -11,23 +11,42 @@
 extern "C" {
 #endif
 
+/* A frontend image: a registered .bmp, a glyph of a font, or a screen area
+ * saved by FrontendScreen_PushState. */
 struct ImageResource {
-	int width;
-	int height;
+	int width;  /* Width in pixels. */
+	int height; /* Height in pixels. */
+	/* 1 when pixels holds RLE rows (FrontImage_CompressRLE), 0 when it
+	 * holds raw pixels. */
 	int isCompressed;
+	/* Bytes in pixels: width * height uncompressed, the encoded size after
+	 * FrontImage_CompressRLE, 2 * width * height for a 16-bit screen save,
+	 * and 0 in the glyphs the text functions build. */
 	int pixelDataBytes;
+	/* The pixel data, rows top to bottom: palette indexes, RLE rows, or
+	 * 16-bit pixels for a 16-bit screen save. */
 	uint8_t *pixels;
+	/* For each palette index, the 16-bit display pixel value the blitters
+	 * draw at 16 bits per pixel; FrontImage_LoadBmpFile fills it from the
+	 * file's palette at that depth only. */
 	int colorLUT[256];
 };
 
+/* One entry of g_frontState.resourceTable, which is kept sorted by name. */
 struct FrontImageResourceRecord {
+	/* The registered name, compared over 64 bytes with strncmp; may lack a
+	 * NUL when 64 characters or longer. */
 	char name[64];
-	ImageResource *image;
+	ImageResource *image; /* The heap image registered under name. */
 };
 
+/* The scratch row FrontImage_CompressRLE and FrontImage_EncodeGlyphRow encode
+ * into; the first encodedSize bytes of the whole struct are one row record. */
 struct FrontImageRleRowBuffer {
+	/* The row record's size in bytes: these 4, the tokens and the closing
+	 * 0x80. */
 	int encodedSize;
-	uint8_t data[1277];
+	uint8_t data[1277]; /* The row's tokens, ending with 0x80. */
 };
 
 int FrontImage_RegisterResourceDefault(const char *fileName, const char *name);

@@ -27,7 +27,11 @@ extern SceneFace *g_sw3dCurrentFace;
 extern int g_sw3dCurrentScanlineY;
 
 struct FaceTextureGradients {
+	/* The face's texture u axis in model space;
+	 * RenderScene_TransformFaceTextureGradients turns it into view space as
+	 * gradients 0 to 2. */
 	OptVector uAxis;
+	/* The texture v axis, the same way, as gradients 3 to 5. */
 	OptVector vAxis;
 };
 

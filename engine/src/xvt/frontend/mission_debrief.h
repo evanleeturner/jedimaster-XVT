@@ -11,9 +11,18 @@ extern "C" {
 extern int g_debriefDisconnectedFromNetGame;
 
 struct CampaignAwardSpriteEntry {
+	/* Campaign list id the record belongs to, from its first line; 0 for a
+	 * record the file's end cut short. */
 	int campaignId;
+	/* Sprite of the campaign's medal, which the campaign medals page
+	 * centers on (256, 279); cut to 31 characters. */
 	char mainAwardSpriteName[32];
+	/* Sprites drawn over the medal for single-player award positions 0 to
+	 * 14, from the record's last 15 lines; the 16th stays empty. */
 	char singleplayerMissionAwardSpriteNames[16][32];
+	/* Sprites drawn over the medal for multiplayer award positions 0 to 14,
+	 * from the 15 lines before the single-player ones; the 16th stays
+	 * empty. */
 	char multiplayerMissionAwardSpriteNames[16][32];
 };
 

@@ -12,6 +12,10 @@ extern "C" {
 /* Stored as int32_t in the binary (IDB enum FrontendStringId). */
 typedef int32_t FrontendStringId;
 
+/* Indexes into the frontend string table, which Frontend_LoadResources loads
+ * from fronttxt.txt with FrontendString_LoadTable: entry n is the n-th line,
+ * counting from 0, that does not start with //. FrontendString_Get takes
+ * them. */
 enum {
 	FRONTSTR_000_PILOT_RECORDS = 0x0,
 	FRONTSTR_001_CRAFT_DATABASE = 0x1,

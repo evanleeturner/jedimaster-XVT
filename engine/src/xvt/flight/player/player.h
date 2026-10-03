@@ -244,7 +244,8 @@ struct PlayerData {
 	/* 1 after the craft is destroyed, until the player is bound to another
 	 * or leaves. */
 	uint8_t awaitingNewCraft;
-	/* The bound model's engineGlowCount, set at spawn; nothing reads it. */
+	/* The bound model's engineGlowCount, set at spawn; no game code reads
+	 * it, only the modern build's snapshot copies it. */
 	uint8_t boundCraftEngineGlowCount;
 	/* Map camera, 0 off: bit 7 set while it opens or is open, the low 7
 	 * bits a count up to 0x7F that rises by elapsed ticks with bit 7 set
@@ -278,8 +279,8 @@ struct PlayerData {
 	/* Mesh of the current target aimed at; Craft_DamageComponent moves it
 	 * on when that one is destroyed. */
 	int16_t selectedTargetComponent;
-	/* -1 at flight start and on binding, 0 when a target is dropped;
-	 * nothing reads it. */
+	/* -1 at flight start and on binding, 0 when a target is dropped; no
+	 * game code reads it, only the modern build's snapshot copies it. */
 	int16_t targetingState;
 	/* Object whose engine wash strikes the player's craft, -1 for none:
 	 * collide_collisions clears it at each check and

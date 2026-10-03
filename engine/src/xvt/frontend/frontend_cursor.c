@@ -18,6 +18,12 @@ __declspec(dllimport) int __stdcall SetCursorPos(int x, int y);
 
 #include <string.h>
 
+/* The built-in cursor, a 10 by 10 arrow pointing up and left, one byte per
+ * pixel, row by row: 0 is transparent, 1 the outline and 0xFF the fill.
+ * FrontendCursor_Draw draws 1 as 31 (blue) and 0xFF as 0xFFFF (white) at 16
+ * bits per pixel, and the byte as the palette index at 8. FrontendCursor_Init
+ * copies it into g_frontState.cursorDefaultMask; the modern build's renderer
+ * also reads it. */
 // GLOBAL: XVT 0x52C100
 const uint8_t g_defaultCursorBitmap[100] = {
 	1,    1,    1,	  1,	1,    1,    1,	  1,	1,    0,    1,	  0xFF,
@@ -31,6 +37,16 @@ const uint8_t g_defaultCursorBitmap[100] = {
 	0,    1,    1,	  0,
 };
 
+/* Makes the registered image resourceName the frontend cursor, with saveBuf as
+ * the buffer for the pixels under it: points g_frontState.cursorMaskPixels at
+ * the image's pixels, sets g_frontState.cursorSaveBuf, sets cursorWidth and
+ * cursorHeight to the image's width and height plus 1 (the right and bottom of
+ * FrontImage_GetResourceRect's rect, plus 1) and copies the name into
+ * cursorSpriteName, after which FrontendCursor_Draw draws it with
+ * FrontImage_DrawSprite. Returns 0, changing nothing, when no resource has the
+ * name or its image is RLE-compressed. On success the modern build returns 0;
+ * the original build's function ends without a return statement there. Does not
+ * check saveBuf's size or the name's length (63 characters fit). */
 // FUNCTION: XVT 0x4B49A0
 int FrontendCursor_SetImageFromResourceName(const char *resourceName,
 					    void *saveBuf)
@@ -58,6 +74,11 @@ int FrontendCursor_SetImageFromResourceName(const char *resourceName,
 #endif
 }
 
+/* Sets the frontend cursor to the built-in 10 by 10 arrow: copies
+ * g_defaultCursorBitmap into g_frontState.cursorDefaultMask, points
+ * cursorMaskPixels and cursorSaveBuf at the state's default mask and save
+ * buffer, sets cursorWidth and cursorHeight to 10 and clears
+ * cursorSpriteName. */
 // FUNCTION: XVT 0x4DDC40
 void FrontendCursor_Init(void)
 {
@@ -71,6 +92,19 @@ void FrontendCursor_Init(void)
 	       sizeof(g_frontState.cursorSpriteName));
 }
 
+/* Draws the frontend cursor on the back buffer at g_frontState.mouseX and
+ * mouseY, first copying the pixels it covers into g_frontState.cursorSaveBuf.
+ * With a cursorSpriteName set it draws that image with FrontImage_DrawSprite.
+ * Else it draws the mask at cursorMaskPixels, one byte per pixel, where 0 is
+ * transparent: at 16 bits per pixel 1 is drawn as 31 and 0xFF as 0xFFFF and
+ * other values not at all, at 8 bits each nonzero byte is drawn as the palette
+ * index. The save and the mask clip only their right and bottom edges, to the
+ * clip bounds. Draws and saves nothing when the cursor position is outside 0 to
+ * 639 by 0 to 479. Locks the back buffer into g_drawSurfacePtr and unlocks it
+ * at the end, leaving the pointer set. Records the position and the visible
+ * size in g_frontState.cursorPrevDrawX, cursorPrevDrawY, cursorPrevDrawWidth
+ * and cursorPrevDrawHeight. The modern build also marks the cursor for its
+ * renderer. */
 // FUNCTION: XVT 0x4DDC90
 void FrontendCursor_Draw(void)
 {
@@ -270,6 +304,11 @@ void FrontendCursor_Draw(void)
 	g_frontState.cursorPrevDrawHeight = visibleHeight;
 }
 
+/* Nothing calls this. Copies the pixels FrontendCursor_Draw saved back to the
+ * back buffer at g_frontState.cursorPrevDrawX and cursorPrevDrawY, over the
+ * visible size it recorded, which erases the cursor. Locks the back buffer into
+ * g_drawSurfacePtr and unlocks it at the end. The modern build also marks the
+ * restore for its renderer. */
 // FUNCTION: XVT 0x4DDF90
 void FrontendCursor_Restore(void)
 {
@@ -355,6 +394,7 @@ void FrontendCursor_Restore(void)
 	FrontendDisplay_UnlockBackBuffer();
 }
 
+/* Copies g_frontState.mouseX and mouseY to *outX and *outY. Returns outX. */
 // FUNCTION: XVT 0x4DE090
 int *FrontendCursor_GetPos(int *outX, int *outY)
 {
@@ -363,6 +403,10 @@ int *FrontendCursor_GetPos(int *outX, int *outY)
 	return outX;
 }
 
+/* Moves the cursor: clamps x to 0 to 640 and y to 0 to 480, stores them in
+ * g_frontState.mouseX and mouseY and moves the system cursor there. Returns
+ * SetCursorPos's result in the original build and XvtPresentation_WarpClassic's
+ * in the modern build. */
 // FUNCTION: XVT 0x4DE0B0
 int FrontendCursor_SetPos(int x, int y)
 {
@@ -387,15 +431,22 @@ int FrontendCursor_SetPos(int x, int y)
 #endif
 }
 
+/* Sets g_frontState.cursorVisible to 1: the frame loop draws the cursor after
+ * each update. */
 // FUNCTION: XVT 0x4DE100
 void FrontendCursor_Show(void) { g_frontState.cursorVisible = 1; }
 
+/* Sets g_frontState.cursorVisible to 0: the frame loop stops drawing the
+ * cursor. */
 // FUNCTION: XVT 0x4DE110
 void FrontendCursor_Hide(void) { g_frontState.cursorVisible = 0; }
 
+/* Nothing calls this. Returns g_frontState.cursorVisible. */
 // FUNCTION: XVT 0x4DE120
 int FrontendCursor_IsVisible(void) { return g_frontState.cursorVisible; }
 
+/* Copies g_frontState.cursorWidth and cursorHeight to *outWidth and *outHeight.
+ * Returns 1. */
 // FUNCTION: XVT 0x4DE130
 int FrontendCursor_GetDimensions(int *outWidth, int *outHeight)
 {
@@ -404,6 +455,9 @@ int FrontendCursor_GetDimensions(int *outWidth, int *outHeight)
 	return 1;
 }
 
+/* Hides the system's own mouse cursor. The original build calls ShowCursor(0)
+ * until the display count is under 0 and returns 1; the modern build hides the
+ * host cursor and returns Aeron_SetHostCursorVisible's result, 1 on success. */
 // FUNCTION: XVT 0x4DE150
 int FrontendCursor_HideOsCursor(void)
 {
@@ -416,6 +470,9 @@ int FrontendCursor_HideOsCursor(void)
 #endif
 }
 
+/* Only the original build calls this. It calls ShowCursor(1) until the display
+ * count is 0 or more and returns 1. The modern build's body keeps the host
+ * cursor hidden and returns Aeron_SetHostCursorVisible's result. */
 // FUNCTION: XVT 0x4DE170
 int FrontendCursor_ShowOsCursor(void)
 {

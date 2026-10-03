@@ -12,9 +12,37 @@
 #include "xvt/util/memory.h"
 #include <string.h>
 
+/* The four file error messages, indexed by FileErrorStringId: the first four
+ * lines of the block StringTable_LoadGameStrings reads after the damage system
+ * names, before g_strDiskIoMessages. The original build's FeDiskIo_FatalError
+ * and FeDiskIo_ShowFatalErrorMessageAndWaitKey show them. */
 // GLOBAL: XVT 0xA60A40
 char *g_strFileErrorMessages[4] = {0};
 
+/* Reads strings.txt into the g_stringDataHandle block and points the string
+ * tables at its lines; does nothing when loadFromDisk is 0. A file over 0x7D00
+ * bytes gets a new block of its size in place of the old one. The tables come
+ * in the file's order: g_strDamageSystemNames; g_strFileErrorMessages and
+ * g_strDiskIoMessages, 36 lines; g_provingGroundsStatusLabels;
+ * g_strGoalEscape[0]; g_strGoalCondMasculine, 188 rows of
+ * g_goalConditionTextVariantCount[row % 47] lines; g_strGoalPercentages,
+ * g_strGoalOperators, g_strGoalTitles, g_strGoalConjunctions, g_strGoalSides,
+ * g_strGoalFamilyNames and g_strGoalGenusNames; g_strMapRoomText;
+ * g_strInFlightMessages; g_strCmdThreatDisplayText, g_strWaypointNames,
+ * g_strMeshComponentNames, g_strCockpitOverlayText, g_strThreatDisplayText and
+ * g_strStatusStrings; g_strWarheadNames, then g_strUnknown;
+ * g_strSatMineProbeBuoyPilotNames; the 73 g_modelDefs nameLong entries;
+ * g_strSpeciesNamesPlural; g_strWingmanCommands; then g_strGoalCondFeminine and
+ * g_strGoalCondNeutered, laid out like the masculine rows, each read only when
+ * some model has that gender. Lines starting with "//" are skipped, a final
+ * newline is dropped, and a line of 1023 or more characters is read in pieces.
+ * A model line starts with m, f or n, which sets g_craftGender for it, and one
+ * character more, which is dropped; any other first character ends the program
+ * with FILE_ERROR_STR_PRESS_KEY_TO_EXIT. In an in-flight message a backslash
+ * and the two characters after it become one byte: the last minus '0' when the
+ * middle one is '0', else the last minus '('. When the file does not open or
+ * ends early it calls File_RawClose on the stream, even a NULL one, and ends
+ * the program with FILE_ERROR_STR_STRINGS_OUT_OF_SYNC. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4248B0
 void StringTable_LoadGameStrings(int loadFromDisk)
@@ -922,6 +950,10 @@ void StringTable_LoadGameStrings(int loadFromDisk)
 	FeDiskIo_FatalError(FILE_ERROR_STR_STRINGS_OUT_OF_SYNC);
 }
 
+/* Reads into buffer, 1024 bytes, the next line that does not start with "//",
+ * drops its final newline and returns its length; -1 at the end of the file. A
+ * line of 1023 or more characters comes back in pieces. Only
+ * StringTable_LoadGameStrings calls this, for g_strDamageSystemNames. */
 // FUNCTION: XVT 0x425A70
 int StringTable_ReadNonCommentLine(XvtFile *stream, char *buffer)
 {

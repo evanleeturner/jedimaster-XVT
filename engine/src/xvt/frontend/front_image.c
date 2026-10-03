@@ -19,26 +19,36 @@
 
 #pragma pack(push, 1)
 
+/* A .bmp file's first header, as FrontImage_SaveBmpFile writes it and
+ * FrontImage_LoadBmpPaletteFile reads it. */
 typedef struct FrontImageBmpFileHeader {
+	/* 0x4D42, "BM": written by the save, checked by the palette load. */
 	uint16_t signature;
-	uint32_t fileSize;
+	uint32_t fileSize; /* The file's size in bytes; written, never read. */
+	/* Left unset by the save, which writes whatever it holds; not read. */
 	uint16_t reserved0;
+	/* Left unset by the save, which writes whatever it holds; not read. */
 	uint16_t reserved1;
-	uint32_t pixelOffset;
+	uint32_t pixelOffset; /* Where the pixels start, 54; not read. */
 } FrontImageBmpFileHeader;
 
+/* A .bmp file's 40-byte info header, as FrontImage_SaveBmpFile writes it and
+ * FrontImage_LoadBmpPaletteFile reads it. */
 typedef struct FrontImageBmpInfoHeader {
-	uint32_t headerSize;
+	uint32_t headerSize; /* This header's size, written as 40; not read. */
+	/* Width in pixels, written rounded up to even; not read. */
 	int32_t width;
-	int32_t height;
-	uint16_t planes;
+	int32_t height;	 /* Height in pixels; written, not read. */
+	uint16_t planes; /* Written as 1; the palette load needs 1. */
+	/* Written as 24; the palette load takes 16 entries for 4 and 256 for 8,
+	 * and none otherwise. */
 	uint16_t bitsPerPixel;
-	uint32_t compression;
-	uint32_t imageSize;
-	int32_t pixelsPerMeterX;
-	int32_t pixelsPerMeterY;
-	uint32_t colorsUsed;
-	uint32_t colorsImportant;
+	uint32_t compression;	  /* Written as 0, none; not read. */
+	uint32_t imageSize;	  /* Pixel bytes after the headers; not read. */
+	int32_t pixelsPerMeterX;  /* Written as 0; not read. */
+	int32_t pixelsPerMeterY;  /* Written as 0; not read. */
+	uint32_t colorsUsed;	  /* Written as 0; not read. */
+	uint32_t colorsImportant; /* Written as 0; not read. */
 } FrontImageBmpInfoHeader;
 
 #pragma pack(pop)
@@ -47,9 +57,19 @@ typedef char xvt_size_FrontImageBmpFileHeader
 typedef char xvt_size_FrontImageBmpInfoHeader
 	[(sizeof(FrontImageBmpInfoHeader) == 40) ? 1 : -1];
 
+/* Per palette index of the image being remapped, the display palette index
+ * FrontImage_RemapPaletteIndex chose for it, or 0x100 while none is chosen.
+ * FrontImage_RemapPalette sets every entry to 0x100 at the start of each image;
+ * only these two functions write it. */
 // GLOBAL: XVT 0x664C88
 static int16_t g_paletteRemapCache[256] = {0};
 
+/* Loads the .bmp file fileName with FrontImage_LoadBmpFile, remapped to the
+ * display palette at 8 bits per pixel and RLE-compressed, and registers it
+ * under name in g_frontState.resourceTable. Returns 1, or 0 when fileName or
+ * name is empty, name is already registered, or the allocation or the load
+ * fails. The name is copied with strncpy into 64 bytes, with no NUL when it is
+ * 64 characters or longer. Does not check the table's room. */
 // FUNCTION: XVT 0x4B4A60
 int FrontImage_RegisterResourceDefault(const char *fileName, const char *name)
 {
@@ -82,6 +102,8 @@ int FrontImage_RegisterResourceDefault(const char *fileName, const char *name)
 	return 1;
 }
 
+/* Does what FrontImage_RegisterResourceDefault does, with the caller's
+ * remapToDisplayPalette and compressRLE: each has effect only when it is 1. */
 // FUNCTION: XVT 0x4B4B20
 int FrontImage_RegisterResource(const char *fileName, const char *name,
 				int remapToDisplayPalette, int compressRLE)
@@ -116,6 +138,9 @@ int FrontImage_RegisterResource(const char *fileName, const char *name,
 	return 1;
 }
 
+/* Frees the image registered under name, its pixels and its record, and takes
+ * the record out of g_frontState.resourceTable; does nothing when no image has
+ * the name. The modern build also drops the image from its renderer. */
 // FUNCTION: XVT 0x4B4BF0
 void FrontImage_FreeResourceByName(const char *name)
 {
@@ -144,6 +169,9 @@ void FrontImage_FreeResourceByName(const char *name)
 	FrontImage_RemoveResourceAt(resourceIndex);
 }
 
+/* Frees every registered image: passes the name in each of the table's 512
+ * slots, from the last to the first, to FrontImage_FreeResourceByName, which
+ * ignores names no longer registered. Does nothing without a table. */
 // FUNCTION: XVT 0x4B4C70
 void FrontImage_FreeAllResources(void)
 {
@@ -159,6 +187,8 @@ void FrontImage_FreeAllResources(void)
 	}
 }
 
+/* Only the original build calls this. Returns 1 when an image is registered
+ * under name, 0 when none is or name is empty. */
 // FUNCTION: XVT 0x4B4CA0
 int FrontImage_ResourceExists(const char *name)
 {
@@ -169,6 +199,9 @@ int FrontImage_ResourceExists(const char *name)
 	return FrontImage_FindResourceByName(name) != -1;
 }
 
+/* Sets *outRect to (0, 0, width, height) of the image registered under name, so
+ * right and bottom are one past its last column and row, and returns 1. Sets it
+ * to all 0 and returns 0 when name is empty or not registered. */
 // FUNCTION: XVT 0x4B4CC0
 int FrontImage_GetResourceRect(const char *name, RECT *outRect)
 {
@@ -192,6 +225,9 @@ int FrontImage_GetResourceRect(const char *name, RECT *outRect)
 	return 1;
 }
 
+/* Draws the image registered under name with FrontImage_BlitTranslucent and
+ * returns its result; returns 0 when the name is not registered or the image is
+ * RLE-compressed. */
 // FUNCTION: XVT 0x4B4D40
 int FrontImage_DrawSpriteTranslucent(const char *name, int x, int y)
 {
@@ -211,6 +247,14 @@ int FrontImage_DrawSpriteTranslucent(const char *name, int x, int y)
 	return FrontImage_BlitTranslucent(image, x, y);
 }
 
+/* Draws an uncompressed image with its top-left corner at (x, y), clipped to
+ * the clip bounds, skipping pixels of index 0. At 16 bits per pixel each drawn
+ * pixel becomes the per-channel average of the screen and the index's colorLUT
+ * value, as FrontendDraw_FillRectTranslucent blends; at 8 bits, despite the
+ * name, it writes the index. Returns the clip-edge bits of
+ * FrontendDraw_RectClipToBounds, or 0 when image is NULL. Does not check that
+ * the image is uncompressed. The modern build also records the draw for its
+ * renderer. */
 // FUNCTION: XVT 0x4B4D90
 int FrontImage_BlitTranslucent(ImageResource *image, int x, int y)
 {
@@ -459,6 +503,9 @@ int FrontImage_BlitTranslucent(ImageResource *image, int x, int y)
 	}
 }
 
+/* Draws the part srcRect of the image registered under name with
+ * FrontImage_BlitRectTransparent and returns its result; returns 0 when the
+ * name is not registered or the image is RLE-compressed. */
 // FUNCTION: XVT 0x4B50B0
 int FrontImage_DrawSpriteRectTransparent(const char *name, RECT *srcRect,
 					 int dstX, int dstY)
@@ -477,6 +524,12 @@ int FrontImage_DrawSpriteRectTransparent(const char *name, RECT *srcRect,
 	return FrontImage_BlitRectTransparent(image, srcRect, dstX, dstY);
 }
 
+/* Draws the part *srcRect of an uncompressed image, edges included, with its
+ * top-left corner at (dstX, dstY), clipped to the clip bounds and skipping
+ * pixels of index 0: at 8 bits per pixel as the index, at 16 as its colorLUT
+ * value. Returns the clip-edge bits of FrontendDraw_RectClipToBounds, or 0 when
+ * image is NULL. Does not check that srcRect lies inside the image. The modern
+ * build also records the draw for its renderer. */
 // FUNCTION: XVT 0x4B5100
 int FrontImage_BlitRectTransparent(ImageResource *image, RECT *srcRect,
 				   int dstX, int dstY)
@@ -618,6 +671,9 @@ int FrontImage_BlitRectTransparent(ImageResource *image, RECT *srcRect,
 	return clipResult;
 }
 
+/* Draws the part srcRect of the image registered under name with
+ * FrontImage_BlitRectTinted and returns its result; returns 0 when the name is
+ * not registered or the image is RLE-compressed. */
 // FUNCTION: XVT 0x4B52C0
 int FrontImage_DrawSpriteRectTinted(const char *name, RECT *srcRect, int dstX,
 				    int dstY, unsigned int tintColor)
@@ -636,6 +692,14 @@ int FrontImage_DrawSpriteRectTinted(const char *name, RECT *srcRect, int dstX,
 	return FrontImage_BlitRectTinted(image, srcRect, dstX, dstY, tintColor);
 }
 
+/* Draws the part *srcRect of an uncompressed image, edges included, at (dstX,
+ * dstY), clipped, in shades of tintColor, skipping pixels of index 0. At 16
+ * bits per pixel the blue field, 0 to 31, of the index's colorLUT value is the
+ * intensity, and each channel of tintColor is drawn as channel * intensity /
+ * 31, in the 555 or 565 layout g_frontState.pixelFormat555 names; at 8 bits
+ * every drawn pixel is tintColor's low byte. Returns the clip-edge bits of
+ * FrontendDraw_RectClipToBounds, or 0 when image is NULL. The modern build also
+ * records the draw for its renderer. */
 // FUNCTION: XVT 0x4B5310
 int FrontImage_BlitRectTinted(ImageResource *image, const RECT *srcRect,
 			      int dstX, int dstY, unsigned int tintColor)
@@ -790,6 +854,8 @@ int FrontImage_BlitRectTinted(ImageResource *image, const RECT *srcRect,
 	return clipResult;
 }
 
+/* Draws the image registered under name with FrontImage_BlitTransparent and
+ * returns its result, or 0 when the name is not registered. */
 // FUNCTION: XVT 0x4B5570
 int FrontImage_DrawSprite(const char *name, int x, int y)
 {
@@ -804,6 +870,12 @@ int FrontImage_DrawSprite(const char *name, int x, int y)
 		g_frontState.resourceTable[resourceIndex].image, x, y);
 }
 
+/* Draws an image with its top-left corner at (x, y), clipped to the clip
+ * bounds, skipping pixels of index 0: an uncompressed image pixel by pixel, at
+ * 8 bits per pixel as the index and at 16 as its colorLUT value, an
+ * RLE-compressed one through FrontImage_BlitRLE8 or FrontImage_BlitRLE16.
+ * Returns the clip-edge bits of FrontendDraw_RectClipToBounds, or 0 when image
+ * is NULL. The modern build also records the draw for its renderer. */
 // FUNCTION: XVT 0x4B55B0
 int FrontImage_BlitTransparent(ImageResource *image, int x, int y)
 {
@@ -913,6 +985,12 @@ int FrontImage_BlitTransparent(ImageResource *image, int x, int y)
 	return clipResult;
 }
 
+/* Draws the visible part of an RLE-compressed image at 8 bits per pixel:
+ * visibleHeight rows from row srcTop and visibleWidth columns from column
+ * srcLeft, to (destX, destY) through g_drawSurfacePtr. Literal and run pixels
+ * are written as their palette index; skip tokens leave the screen as it is.
+ * When visibleWidth is the image's width it draws whole rows and ignores
+ * srcLeft. The caller has clipped; nothing is checked. */
 // FUNCTION: XVT 0x4B5770
 void FrontImage_BlitRLE8(ImageResource *image, int destX, int destY,
 			 int srcLeft, int srcTop, int visibleWidth,
@@ -1134,6 +1212,8 @@ void FrontImage_BlitRLE8(ImageResource *image, int destX, int destY,
 	} while (rowsRemaining != 0);
 }
 
+/* Does what FrontImage_BlitRLE8 does at 16 bits per pixel, writing each pixel's
+ * colorLUT value. */
 // FUNCTION: XVT 0x4B5A80
 void FrontImage_BlitRLE16(ImageResource *image, int destX, int destY,
 			  int srcLeft, int srcTop, int visibleWidth,
@@ -1409,6 +1489,8 @@ void FrontImage_BlitRLE16(ImageResource *image, int destX, int destY,
 	} while (rowsRemaining != 0);
 }
 
+/* Draws the image registered under name with FrontImage_BlitOpaque and returns
+ * its result, or 0 when the name is not registered. */
 // FUNCTION: XVT 0x4B5DE0
 int FrontImage_DrawSpriteOpaque(const char *name, int x, int y)
 {
@@ -1423,6 +1505,12 @@ int FrontImage_DrawSpriteOpaque(const char *name, int x, int y)
 		g_frontState.resourceTable[resourceIndex].image, x, y);
 }
 
+/* Draws an image with its top-left corner at (x, y), clipped to the clip
+ * bounds, every pixel included: an uncompressed image at 8 bits per pixel as
+ * indexes and at 16 as colorLUT values, an RLE-compressed one through
+ * FrontImage_BlitRLE8Opaque or FrontImage_BlitRLE16Opaque. Returns the
+ * clip-edge bits of FrontendDraw_RectClipToBounds, or 0 when image is NULL. The
+ * modern build also records the draw for its renderer. */
 // FUNCTION: XVT 0x4B5E20
 int FrontImage_BlitOpaque(ImageResource *image, int x, int y)
 {
@@ -1532,6 +1620,8 @@ int FrontImage_BlitOpaque(ImageResource *image, int x, int y)
 	return clipResult;
 }
 
+/* Does what FrontImage_BlitRLE8 does, but fills the pixels of skip tokens with
+ * index 0 instead of leaving them. */
 // FUNCTION: XVT 0x4B5FE0
 void FrontImage_BlitRLE8Opaque(ImageResource *image, int destX, int destY,
 			       int srcLeft, int srcTop, int visibleWidth,
@@ -1767,6 +1857,8 @@ void FrontImage_BlitRLE8Opaque(ImageResource *image, int destX, int destY,
 #ifndef XVT_MODERN
 #pragma optimize("y", off)
 #endif
+/* Does what FrontImage_BlitRLE16 does, but fills the pixels of skip tokens with
+ * colorLUT[0] instead of leaving them. */
 // FUNCTION: XVT 0x4B6340
 void FrontImage_BlitRLE16Opaque(ImageResource *image, int destX, int destY,
 				int srcLeft, int srcTop, int visibleWidth,
@@ -2070,6 +2162,13 @@ void FrontImage_BlitRLE16Opaque(ImageResource *image, int destX, int destY,
 #pragma optimize("y", on)
 #endif
 
+/* Draws a glyph image with its top-left corner at (x, y), clipped to the clip
+ * bounds: every nonzero pixel in color, through FrontImage_BlitGlyphRLE_8bpp or
+ * _16bpp when it is RLE-compressed. At 16 bits per pixel, with applyTextFade
+ * nonzero while g_frontState.textFadeFramesLeft is not 0, the color is first
+ * faded by FrontImage_GetFadedGlyphColor16. Returns the clip-edge bits of
+ * FrontendDraw_RectClipToBounds, or 0 when glyph is NULL. The modern build also
+ * records the glyph for its renderer. */
 // FUNCTION: XVT 0x4B6780
 int FrontImage_DrawGlyph(ImageResource *glyph, int x, int y, unsigned int color,
 			 int applyTextFade)
@@ -2228,6 +2327,11 @@ int FrontImage_DrawGlyph(ImageResource *glyph, int x, int y, unsigned int color,
 	return clipResult;
 }
 
+/* Draws the visible part of an RLE-compressed glyph at 8 bits per pixel, the
+ * way FrontImage_BlitRLE8 crops it (clipLeftSkip and clipTopSkip are its
+ * srcLeft and srcTop): the pixels of literal and run tokens in color, skip
+ * tokens left as they are. When visibleWidth is the glyph's width it draws
+ * whole rows. */
 // FUNCTION: XVT 0x4B69B0
 void FrontImage_BlitGlyphRLE_8bpp(ImageResource *glyph, int destX, int destY,
 				  int clipLeftSkip, int clipTopSkip,
@@ -2440,6 +2544,7 @@ void FrontImage_BlitGlyphRLE_8bpp(ImageResource *glyph, int destX, int destY,
 	}
 }
 
+/* Does what FrontImage_BlitGlyphRLE_8bpp does at 16 bits per pixel. */
 // FUNCTION: XVT 0x4B6CA0
 void FrontImage_BlitGlyphRLE_16bpp(ImageResource *glyph, int destX, int destY,
 				   int clipLeftSkip, int clipTopSkip,
@@ -2722,6 +2827,18 @@ void FrontImage_BlitGlyphRLE_16bpp(ImageResource *glyph, int destX, int destY,
 	}
 }
 
+/* Loads a 4- or 8-bit .bmp file into image as one palette index per pixel, rows
+ * top to bottom, and returns 1. Needs the "BM" signature and 1 plane; reads the
+ * palette, decodes the pixels with FrontImage_DecodeBmp4bpp or
+ * FrontImage_DecodeBmp8bpp, then, at 8 bits per pixel with
+ * remapToDisplayPalette 1, maps the indexes to the display palette
+ * (FrontImage_RemapPalette), or at 16 bits fills image->colorLUT from the
+ * file's palette in the 555 or 565 layout. Sets width, height, pixels,
+ * isCompressed 0 and pixelDataBytes, and with compressRLE 1 compresses it
+ * (FrontImage_CompressRLE). Returns 0, freeing what it allocated, when the file
+ * does not open, the signature, plane count or bit depth is wrong, or the pixel
+ * allocation or decoding fails. Does not handle a top-down file's negative
+ * height. The modern build also registers the image with its renderer. */
 // FUNCTION: XVT 0x4B6FB0
 int FrontImage_LoadBmpFile(const char *fileName, ImageResource *image,
 			   int remapToDisplayPalette, int compressRLE)
@@ -2889,6 +3006,12 @@ int FrontImage_LoadBmpFile(const char *fileName, ImageResource *image,
 	return 1;
 }
 
+/* Reads a 4-bit .bmp's pixel data, bfSize - bfOffBits bytes from the current
+ * position, and unpacks it into dstPixels as one index per pixel, the file's
+ * bottom row last. Only uncompressed data (biCompression 0) is decoded;
+ * anything else leaves dstPixels as it is. The row padding it skips is computed
+ * from biWidth >> 1, which is right for even widths. Returns 1, or 0 when the
+ * data cannot be allocated. */
 // FUNCTION: XVT 0x4B7240
 int FrontImage_DecodeBmp4bpp(XvtFile *stream, void *dstPixels,
 			     const BITMAPFILEHEADER *fileHeader,
@@ -2945,6 +3068,12 @@ int FrontImage_DecodeBmp4bpp(XvtFile *stream, void *dstPixels,
 	return 1;
 }
 
+/* Reads an 8-bit .bmp's pixels into dstPixels as one index per pixel, the
+ * file's bottom row last: uncompressed rows (biCompression 0), skipping each
+ * row's padding to 4 bytes, or RLE8 data (biCompression 1) of biSizeImage bytes
+ * with its runs, end-of-line, end-of-bitmap, delta and absolute codes. Other
+ * compressions decode nothing. Returns 1, or 0 when a compressed file's buffer
+ * cannot be allocated. Does not check that the data stays inside dstPixels. */
 // FUNCTION: XVT 0x4B7320
 int FrontImage_DecodeBmp8bpp(XvtFile *stream, void *dstPixels,
 			     const BITMAPFILEHEADER *fileHeader,
@@ -3077,6 +3206,10 @@ int FrontImage_DecodeBmp8bpp(XvtFile *stream, void *dstPixels,
 	return 1;
 }
 
+/* Replaces every pixel's index with the display palette index nearest its color
+ * in srcPalette (red, green, blue and a spare byte per entry), through
+ * FrontImage_RemapPaletteIndex; index 0 stays 0. First sets every entry of
+ * g_paletteRemapCache to 0x100, so each image is mapped afresh. */
 // FUNCTION: XVT 0x4B7510
 void FrontImage_RemapPalette(uint8_t *pixels, const uint8_t *srcPalette,
 			     const BITMAPINFOHEADER *infoHeader)
@@ -3117,6 +3250,9 @@ void FrontImage_RemapPalette(uint8_t *pixels, const uint8_t *srcPalette,
 	}
 }
 
+/* Returns the display palette index for source index srcIndex, whose color is
+ * srcRgb: the one cached in g_paletteRemapCache, else 0 for index 0, else
+ * FrontendDisplay_PackRGB's nearest entry, which it caches. */
 // FUNCTION: XVT 0x4B7570
 char FrontImage_RemapPaletteIndex(const uint8_t *srcRgb, int srcIndex)
 {
@@ -3136,6 +3272,17 @@ char FrontImage_RemapPaletteIndex(const uint8_t *srcRgb, int srcIndex)
 	return (char)value;
 }
 
+/* Replaces an image's one-byte-per-pixel data with RLE rows, encoded one row at
+ * a time in g_frontState.rleRowBuffer. Each row is a 4-byte size, counting
+ * itself and the end byte, then tokens: 0x40 + n for n pixels of index 0 (left
+ * as they are by the transparent blitters), n and a value for a run of 3 to 63
+ * equal pixels, 0x80 + n and n bytes for up to 127 literal pixels, and 0x80 to
+ * end the row. Encodes at most 640 pixels of each row. Returns 1 and sets
+ * isCompressed to 1 and pixelDataBytes to the encoded size, freeing the old
+ * pixels. Returns 0 with the image unchanged when the encoding would be larger
+ * than width * height bytes, and returns 0 after setting isCompressed to 0 when
+ * the buffer cannot be allocated. Checks the old pointer instead of realloc's
+ * result when shrinking, so a failed shrink leaves pixels NULL. */
 // FUNCTION: XVT 0x4B75B0
 int FrontImage_CompressRLE(ImageResource *image)
 {
@@ -3323,6 +3470,10 @@ int FrontImage_CompressRLE(ImageResource *image)
 	return 1;
 }
 
+/* Only FrontendText_LoadFont calls this, in the original build. Encodes one row
+ * of width one-byte pixels into *rowBuffer in FrontImage_CompressRLE's format,
+ * with no 640-pixel limit, sets rowBuffer->encodedSize and returns it, the
+ * row's size in bytes. Does not check that the row fits the buffer. */
 // FUNCTION: XVT 0x4B7840
 int FrontImage_EncodeGlyphRow(FrontImageRleRowBuffer *rowBuffer,
 			      const uint8_t *srcPixels, int width)
@@ -3427,6 +3578,9 @@ int FrontImage_EncodeGlyphRow(FrontImageRleRowBuffer *rowBuffer,
 	return rowSize;
 }
 
+/* Copies *entry into g_frontState.resourceTable at its place in name order
+ * (strncmp over 64 bytes, after equal names), moving later records up one, and
+ * raises g_frontState.resourceCount. Does not check that the table has room. */
 // FUNCTION: XVT 0x4B7970
 void FrontImage_InsertResourceSorted(const FrontImageResourceRecord *entry)
 {
@@ -3459,6 +3613,10 @@ void FrontImage_InsertResourceSorted(const FrontImageResourceRecord *entry)
 	++g_frontState.resourceCount;
 }
 
+/* Removes the record at index from g_frontState.resourceTable, moving later
+ * records down one, and lowers g_frontState.resourceCount. Does nothing for an
+ * index outside 0 to resourceCount - 1. Frees nothing; the slot past the new
+ * end keeps a copy of the last record. */
 // FUNCTION: XVT 0x4B7A10
 void FrontImage_RemoveResourceAt(int index)
 {
@@ -3486,6 +3644,9 @@ void FrontImage_RemoveResourceAt(int index)
 	--g_frontState.resourceCount;
 }
 
+/* Returns the index in g_frontState.resourceTable of the record named name, by
+ * binary search (FrontImage_BSearchResource), or -1 when there is none or name
+ * is NULL. */
 // FUNCTION: XVT 0x4B7A70
 int FrontImage_FindResourceByName(const char *name)
 {
@@ -3497,6 +3658,9 @@ int FrontImage_FindResourceByName(const char *name)
 					  g_frontState.resourceCount - 1, name);
 }
 
+/* Binary-searches table[0] to table[hi], sorted by name, for key, comparing 64
+ * bytes with strncmp. Returns the matching index, or -1 when none matches or hi
+ * is under 0. */
 // FUNCTION: XVT 0x4B7AA0
 int FrontImage_BSearchResource(const FrontImageResourceRecord *table, int hi,
 			       const char *key)
@@ -3533,6 +3697,15 @@ int FrontImage_BSearchResource(const FrontImageResourceRecord *table, int hi,
 	}
 }
 
+/* Writes width by height pixels, rows pitch bytes apart, to fileName as a
+ * 24-bit .bmp and returns 1. At 8 bits per pixel each index's first three
+ * palette bytes are written in their stored order, which the file reads as
+ * blue, green and red; at 16 the 555 or 565 fields named by is555 are widened
+ * to 8 bits with zero low bits. An odd width gets one black pixel added to each
+ * row and is recorded as width + 1. Writes the pixels after a 54-byte gap, then
+ * the two headers; the file header's reserved fields are written unset. Returns
+ * 0 when bpp is 8 without a palette, the file does not open, or a write fails.
+ * Other depths write the headers with no pixels. */
 // FUNCTION: XVT 0x4B7B10
 int FrontImage_SaveBmpFile(char *fileName, const void *pixels, int width,
 			   int height, int pitch, int bpp, int is555,
@@ -3717,6 +3890,10 @@ int FrontImage_SaveBmpFile(char *fileName, const void *pixels, int width,
 	return 1;
 }
 
+/* Nothing calls this. Reads the palette of a 4- or 8-bit .bmp into destRgba
+ * through FrontImage_ReadBmpPalette, which writes 1,024 bytes, and returns 1;
+ * returns 0 when destRgba is NULL, the file does not open, or the signature,
+ * plane count or bit depth is wrong. */
 // FUNCTION: XVT 0x4D6D30
 int FrontImage_LoadBmpPaletteFile(const char *fileName, uint8_t *destRgba)
 {
@@ -3757,6 +3934,9 @@ int FrontImage_LoadBmpPaletteFile(const char *fileName, uint8_t *destRgba)
 	return result;
 }
 
+/* Zeroes 256 entries of 4 bytes at dest, then reads count .bmp palette entries,
+ * stored blue, green, red, spare, into the first count entries as red, green,
+ * blue and 0. Does not check the reads. */
 // FUNCTION: XVT 0x4D6DD0
 void FrontImage_ReadBmpPalette(XvtFile *stream, uint8_t *dest, int count)
 {
@@ -3779,6 +3959,13 @@ void FrontImage_ReadBmpPalette(XvtFile *stream, uint8_t *dest, int count)
 	}
 }
 
+/* Returns the 16-bit color color16 at the current step of the text fade-in:
+ * each channel times (textFadeFrameCount - textFadeFramesLeft) /
+ * textFadeFrameCount, in the layout g_frontState.pixelFormat555 names, or 1
+ * when the whole result is 0. Caches the result in
+ * g_frontState.textFadeColorCache[color16], which the frame loops clear each
+ * frame while a fade runs, and returns a cached nonzero value as it is. Does
+ * not check textFadeFrameCount for 0. */
 // FUNCTION: XVT 0x4D6F50
 unsigned int FrontImage_GetFadedGlyphColor16(unsigned int color16)
 {
@@ -3842,6 +4029,12 @@ unsigned int FrontImage_GetFadedGlyphColor16(unsigned int color16)
 	return result;
 }
 
+/* Registers the images a list file names: skips its first line, then reads
+ * lines of a .bmp file name, an image name and a compress flag, and passes each
+ * to FrontImage_RegisterResource with no palette remap. Returns 1 at the end of
+ * the file, or 0 when the file does not open or a line does not hold the three
+ * fields; a failed registration is not reported. The original build reads the
+ * names with no length limit into 256-byte buffers. */
 // FUNCTION: XVT 0x4DF880
 int FrontImage_LoadResourceList(char *fileName)
 {
@@ -3882,6 +4075,10 @@ int FrontImage_LoadResourceList(char *fileName)
 	}
 }
 
+/* Frees the images a list file names, read the way FrontImage_LoadResourceList
+ * reads them, with FrontImage_FreeResourceByName. Returns 1 at the end of the
+ * file, or 0 when the file does not open or a line does not hold the three
+ * fields. */
 // FUNCTION: XVT 0x4DF950
 int FrontImage_UnloadResourceList(char *fileName)
 {

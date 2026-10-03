@@ -9,8 +9,9 @@ extern "C" {
 #endif
 
 struct RenderObjectListEntry {
-	int sortDepth;
-	int objectIdx;
+	int sortDepth; /* Depth the list is sorted by, given by the caller. */
+	int objectIdx; /* Object table index to draw. */
+	/* Next entry in the list; NULL at the end. */
 	struct RenderObjectListEntry *next;
 };
 

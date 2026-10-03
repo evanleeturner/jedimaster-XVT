@@ -25,6 +25,9 @@
 
 #include <string.h>
 
+/* Vertex color of an explosion billboard for each frame 0 to 31 of the
+ * explosion (its typeSpecificByte[0]): white with the alpha in the high byte,
+ * rising from 0xD0 to 0xF0, falling back to 0x30 by frame 10, then 0x30. */
 // GLOBAL: XVT 0x51A558
 const uint32_t g_explosionBillboardColorByFrame[32] = {
 	0xd0ffffff, 0xe0ffffff, 0xf0ffffff, 0xf0ffffff, 0xe0ffffff, 0xd0ffffff,
@@ -35,6 +38,17 @@ const uint32_t g_explosionBillboardColorByFrame[32] = {
 	0x30ffffff, 0x30ffffff,
 };
 
+/* Draws one queued billboard. The frame, without its 0x8000 bit, names the
+ * object type whose resource holds the images (frame >> 7) and the image in its
+ * offset table (the low 7 bits). Sets g_flightSwRotSpriteSpanRunsEnabled to 1,
+ * g_billboardObjectOrTypeIndex to the record's object, g_camRelWorldX, Y and Z
+ * to that object's offset from the local player's camera and g_viewSpaceDepth
+ * to depthZ; the size is SceneBillboard_ComputeProjectedSize with the type's
+ * maxBoundsExtent. With g_useHardware3D it draws through
+ * RenderQuad_DrawRotatedSprite, else through
+ * FlightSw_PrepareSpriteRotationTables, FlightSw_LoadSpritePaletteTables and
+ * FlightSw_DrawRotatedSpriteQuad. It reads the image after unlocking the type's
+ * resource handle. SceneBillboard_RenderQueuedTextured is its only caller. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x401450
 void RenderQuad_DrawModelTexture(SceneBillboardQueueEntry *quadRecord)
@@ -92,6 +106,25 @@ void RenderQuad_DrawModelTexture(SceneBillboardQueueEntry *quadRecord)
 	}
 }
 
+/* Adds a textured, rotated square to the Direct3D batch: the image at
+ * textureImage, centered at screenX and screenY (Y counted up from the
+ * viewport's bottom), each half side (screenSize * image side) >> 9, turned by
+ * angle. The color is white, or for an explosion in a main object slot
+ * (g_billboardObjectOrTypeIndex) g_explosionBillboardColorByFrame at its
+ * frame; 0xFEFFFFFF when g_capVertexAlpha is set, which it clears. Its depth
+ * is 1 / (g_viewSpaceDepth * g_invDepthProjScale + 1), 1 being
+ * g_renderUnitFloat; when g_viewSpaceDepth, read unsigned, is over 0x1000000
+ * it is the fixed value 0.00012205541 and the color is white. With
+ * g_std3DZCompareCap 2 the depth is 1 less that. The texture is the image cut
+ * to 256 by 256 and rounded up to powers of two, square when the device needs
+ * it, from RenderTexture_GetOrCreateBitmap. The square is clipped to the
+ * viewport (top, bottom, left, right), nothing is drawn below 3 corners, the
+ * batch is flushed through std3D first when it would overflow, and the
+ * triangles go in as a fan with the sprite flags, the bilinear ones when
+ * g_bilinearEnabled is set. The modern build returns at once while classic
+ * flight drawing is suppressed, skips a clipping pass after one that left
+ * nothing, and starts the color at white; the original build leaves it unset
+ * for an object past the main slots unless the depth is over 0x1000000. */
 // FUNCTION: XVT 0x40BBF0
 void RenderQuad_DrawRotatedSprite(int angle, int screenX, int screenY,
 				  uint16_t screenSize, const void *textureImage)

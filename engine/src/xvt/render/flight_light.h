@@ -9,10 +9,10 @@ extern "C" {
 #endif
 
 struct ObjectPointLight {
-	int x;
-	int y;
-	int z;
-	int intensity;
+	int x; /* Offset along the lit object's side axis, Q15 dot product. */
+	int y; /* Offset along its forward axis, negated. */
+	int z; /* Offset along its up axis. */
+	int intensity; /* Brightness, the explosion's value times 8. */
 };
 
 extern int g_objectPointLightCount;

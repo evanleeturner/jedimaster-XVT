@@ -11,6 +11,9 @@ __declspec(dllimport) int __stdcall MessageBoxA(void *hWnd, const char *text,
 						unsigned int type);
 #endif
 
+/* DirectInput's GUID for the system keyboard,
+ * {6F1D2B61-D5A0-11CF-BFC7-444553540000}; DInput_Init creates the keyboard
+ * device from a copy of it. */
 // GLOBAL: XVT 0x518240
 const DxGuid g_directInputSystemKeyboardGuid = {
 	0x6F1D2B61,
@@ -18,9 +21,17 @@ const DxGuid g_directInputSystemKeyboardGuid = {
 	0x11CF,
 	{0xBF, 0xC7, 0x44, 0x45, 0x53, 0x54, 0x00, 0x00},
 };
+/* Instance handle DInput_Init passes to DirectInputCreateA. Nothing writes it,
+ * so it stays NULL. */
 // GLOBAL: XVT 0x66E1F0
 void *g_hInstance = NULL;
 
+/* Game key code for each DirectInput key offset (the DIK scan code), 0 to 255,
+ * with no modifier held: ASCII for the keys that type a character and for
+ * Escape, Backspace, Tab and Enter, 0xA4 to 0xCE for the other keys the game
+ * reads (F1 to F10 are 0xC3 to 0xCC), and 0 for keys it ignores. 0xFD marks the
+ * two shift keys, 0xFE the two control keys and 0xFF the two alt keys; the
+ * key-reading functions test those marks in this table only. */
 // GLOBAL: XVT 0x5216D0
 const uint8_t g_dinputKeyCodeTable[256] = {
 	0x00, 0x1b, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30,
@@ -46,6 +57,8 @@ const uint8_t g_dinputKeyCodeTable[256] = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00};
 
+/* The key codes with a shift key held, indexed the same way: the shifted
+ * characters, and 0xCF to 0xD8 for F1 to F10. */
 // GLOBAL: XVT 0x5217D0
 const uint8_t g_dinputShiftKeyCodeTable[256] = {
 	0x00, 0x1b, 0x21, 0x40, 0x23, 0x24, 0x25, 0x5e, 0x26, 0x2a, 0x28, 0x29,
@@ -71,6 +84,9 @@ const uint8_t g_dinputShiftKeyCodeTable[256] = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00};
 
+/* The key codes with a control key held: control characters 0x01 to 0x1A for
+ * the letters, the shifted symbols for the digit row, 0x0A for Enter and 0xCF
+ * to 0xD8 for F1 to F10. */
 // GLOBAL: XVT 0x5218D0
 const uint8_t g_dinputCtrlKeyCodeTable[256] = {
 	0x00, 0x1b, 0x21, 0x40, 0x23, 0x24, 0x25, 0x5e, 0x26, 0x2a, 0x28, 0x29,
@@ -96,6 +112,8 @@ const uint8_t g_dinputCtrlKeyCodeTable[256] = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00};
 
+/* The key codes with an alt key held: 0x80 to 0x99 for the letters A to Z, 0x9A
+ * to 0xA3 for the digits 0 to 9 and 0xCF to 0xD8 for F1 to F10. */
 // GLOBAL: XVT 0x5219D0
 const uint8_t g_dinputAltKeyCodeTable[256] = {
 	0x00, 0x1b, 0x9b, 0x9c, 0x9d, 0x9e, 0x9f, 0xa0, 0xa1, 0xa2, 0xa3, 0x9a,
@@ -121,19 +139,43 @@ const uint8_t g_dinputAltKeyCodeTable[256] = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00};
 
+/* The DirectInput object DInput_Init creates, version 0x500 or, when that
+ * fails, 0x300. DInput_Shutdown releases it; only the modern build sets it back
+ * to NULL there. */
 // GLOBAL: XVT 0x556900
 IDirectInputA *g_directInput;
+/* The system keyboard device DInput_Init creates, foreground and non-exclusive
+ * with a 32-event buffer. DInput_Shutdown releases it; only the modern build
+ * sets it back to NULL there. */
 // GLOBAL: XVT 0x556904
 IDirectInputDeviceA *g_dinputKeyboardDevice;
+/* 1 while the keyboard device is acquired: DInput_Init sets 1 when every step
+ * worked, DInput_ReacquireKeyboard sets 1 (the modern build: whether Acquire
+ * succeeded), and DInput_Shutdown sets 0 after Unacquire. */
 // GLOBAL: XVT 0x556908
 int g_dinputKeyboardAcquired;
+/* Nonzero while a control key is held. DInput_UpdateKeyboardModifierState sets
+ * 1 or 0 from the keyboard state; DInput_SkipToPendingKeyPress and
+ * DInput_GetKey set 0x80 or 0 from a control key's buffered event; the modern
+ * build's XvtInput_FlushRawKeyboard sets 0. */
 // GLOBAL: XVT 0x521AD0
 int g_dinputCtrlDown = 0;
+/* Nonzero while a shift key is held, written like g_dinputCtrlDown. */
 // GLOBAL: XVT 0x521AD4
 int g_dinputShiftDown = 0;
+/* Nonzero while an alt key is held, written like g_dinputCtrlDown. */
 // GLOBAL: XVT 0x521AD8
 int g_dinputAltDown = 0;
 
+/* Sets up the DirectInput keyboard for flight: creates g_directInput with
+ * DirectInputCreateA, version 0x500 or, when that fails, 0x300; creates the
+ * system keyboard device in g_dinputKeyboardDevice, sets the keyboard data
+ * format, foreground non-exclusive use with g_flightMainWindowHandle and a
+ * 32-event buffer, and acquires it. Sets g_dinputKeyboardAcquired to 1 and
+ * returns 1. At the first step that fails it shows an error box naming the step
+ * and returns 0, releasing nothing it already made. Flight_Main calls it in the
+ * original build and XvtFlightEntry_CreateDevices in the modern one, both only
+ * while g_flightConfDirectInput is set. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x443330
 int DInput_Init(void)
@@ -228,6 +270,15 @@ int DInput_Init(void)
 	return 1;
 }
 
+/* Tells whether a key press waits in the keyboard's buffer, removing the events
+ * before it. It peeks at the oldest buffered event: a shift, control or alt
+ * key's event (by the marks in g_dinputKeyCodeTable) sets g_dinputShiftDown,
+ * g_dinputCtrlDown or g_dinputAltDown to 0x80 when pressed or 0 when released
+ * and is removed; any other release is removed; any other press stays in the
+ * buffer and the function returns 1. Returns 0 when the buffer is empty, when
+ * the read fails, or when the input is lost and DInput_ReacquireKeyboard
+ * returns 0; after a reacquire that returns 1 it peeks again. Does not check
+ * that g_dinputKeyboardDevice exists. */
 // FUNCTION: XVT 0x4434F0
 int DInput_SkipToPendingKeyPress(void)
 {
@@ -299,6 +350,17 @@ int DInput_SkipToPendingKeyPress(void)
 	}
 }
 
+/* Takes the next key press from the keyboard's buffer and returns its game key
+ * code. First refreshes the modifier flags with
+ * DInput_UpdateKeyboardModifierState; modifier events on the way set them as
+ * DInput_SkipToPendingKeyPress does, and other releases are dropped. The code
+ * comes from g_dinputShiftKeyCodeTable while shift is held, else
+ * g_dinputCtrlKeyCodeTable for control, else g_dinputAltKeyCodeTable for alt,
+ * else g_dinputKeyCodeTable; a key the table maps to 0 returns 0. Returns 0
+ * when the read fails or when the input is lost and DInput_ReacquireKeyboard
+ * returns 0. With the buffer empty the modern build returns 0, while the
+ * original build keeps reading until a press arrives. The modern build also
+ * returns 0 when g_dinputKeyboardDevice is NULL. */
 // FUNCTION: XVT 0x443630
 uint8_t DInput_GetKey(void)
 {
@@ -372,6 +434,10 @@ uint8_t DInput_GetKey(void)
 	}
 }
 
+/* Reads the whole keyboard state and sets g_dinputShiftDown, g_dinputCtrlDown
+ * and g_dinputAltDown to 1 when either key of the pair is down (DIK codes 42 or
+ * 54, 29 or 157, 56 or 184), else 0. Leaves them as they were when the read
+ * fails. Only DInput_GetKey calls it. */
 // FUNCTION: XVT 0x443740
 void DInput_UpdateKeyboardModifierState(void)
 {
@@ -389,6 +455,8 @@ void DInput_UpdateKeyboardModifierState(void)
 	}
 }
 
+/* Reads the whole keyboard state into a local buffer, discards it and returns
+ * GetDeviceState's result. Nothing calls this. */
 // FUNCTION: XVT 0x4437F0
 HRESULT DInput_ProbeKeyboardState(void)
 {
@@ -398,6 +466,11 @@ HRESULT DInput_ProbeKeyboardState(void)
 		g_dinputKeyboardDevice, sizeof(keyboardState), keyboardState);
 }
 
+/* Unacquires the keyboard and sets g_dinputKeyboardAcquired to 0 when that flag
+ * is set, then releases g_dinputKeyboardDevice and g_directInput when they are
+ * not NULL. The modern build also sets both to NULL; the original build leaves
+ * them pointing at the released objects. Flight_Main calls it in the original
+ * build, XvtFlightEntry_Cleanup in the modern one. */
 // FUNCTION: XVT 0x443820
 void DInput_Shutdown(void)
 {
@@ -420,6 +493,14 @@ void DInput_Shutdown(void)
 	}
 }
 
+/* Acquires the keyboard device again; DInput_SkipToPendingKeyPress and
+ * DInput_GetKey call it when DirectInput reports the input lost. The original
+ * build calls Acquire when the device exists, ignores its result, sets
+ * g_dinputKeyboardAcquired to 1 and returns 1, and returns 0 without a device.
+ * The modern build returns 0 without a device or when
+ * XvtInput_ConsumeKeyboardReacquire returns 0; otherwise it sets
+ * g_dinputKeyboardAcquired to 1 when Acquire returns 0 or more, else 0, and
+ * returns that. */
 // FUNCTION: XVT 0x443860
 int DInput_ReacquireKeyboard(void)
 {

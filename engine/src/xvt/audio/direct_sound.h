@@ -9,10 +9,16 @@ extern "C" {
 #endif
 
 struct DirectSoundBufferSet {
+	/* Samples of the file, inside its first read's file data; copied back
+	 * into a lost buffer. */
 	uint8_t *waveData;
-	unsigned int waveDataSize;
-	int bufferCount;
+	unsigned int waveDataSize; /* Bytes at waveData. */
+	int bufferCount;	   /* Buffers in buffers[], at least 1. */
+	/* Buffer DirectSound_AcquireWaveBufferSetBuffer tries first; 0 in a new
+	 * set. */
 	int nextBufferIndex;
+	/* The bufferCount buffers; the allocation runs the array past its one
+	 * declared entry. */
 	IDirectSoundBuffer *buffers[1];
 };
 

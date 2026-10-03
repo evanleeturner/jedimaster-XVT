@@ -11,26 +11,35 @@ extern "C" {
 #pragma pack(push, 1)
 
 struct ImageQuantizerPaletteEntry {
-	uint8_t red;
-	uint8_t green;
-	uint8_t blue;
-	uint8_t reserved[6];
+	uint8_t red;	     /* Red, the rounded mean of a node's pixels. */
+	uint8_t green;	     /* Green, the same way. */
+	uint8_t blue;	     /* Blue, the same way. */
+	uint8_t reserved[6]; /* Nothing reads or writes it by name. */
 };
 
 struct ImageQuantizerNode {
+	/* Which child of its parent it is: the color's red, green and blue bits
+	 * at its level as 4, 2 and 1. */
 	uint8_t childIndex;
-	uint8_t level;
+	uint8_t level; /* Depth in the tree, 0 for the root. */
+	/* The (1 << i) bit is set while child i is in the tree. */
 	uint8_t childrenMask;
+	/* Middle of the node's red range; 0x80 at the root. */
 	uint8_t midpointRed;
-	uint8_t midpointGreen;
-	uint8_t midpointBlue;
-	unsigned int paletteIndex;
+	uint8_t midpointGreen;	   /* Middle of the node's green range. */
+	uint8_t midpointBlue;	   /* Middle of the node's blue range. */
+	unsigned int paletteIndex; /* Palette entry built from this node. */
+	/* Pixels classified to this node, merged children's included. */
 	unsigned int pixelCount;
+	/* Sum, over the pixels passing through the node, of their squared
+	 * distance to its midpoint; the root gets 196608 per pixel instead. */
 	double quantizationError;
-	double redSum;
-	double greenSum;
-	double blueSum;
+	double redSum;	 /* Sum of the red of the node's pixels. */
+	double greenSum; /* Sum of the green of the node's pixels. */
+	double blueSum;	 /* Sum of the blue of the node's pixels. */
+	/* Parent node; the root's parent is itself. */
 	struct ImageQuantizerNode *parent;
+	/* Children by childIndex, NULL where none was made. */
 	struct ImageQuantizerNode *children[8];
 };
 

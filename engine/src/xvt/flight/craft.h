@@ -162,8 +162,8 @@ struct CraftData {
 	 * 65,536 units a circle; player input (USER_calcdeltapitch) and the AI
 	 * turn it. */
 	uint16_t pitch;
-	/* The object's yaw, copied at spawn and after each steering update;
-	 * nothing reads it. */
+	/* The object's yaw, copied at spawn and after each steering update; no
+	 * game code reads it, only the modern build's snapshot copies it. */
 	uint16_t yaw;
 	/* No game code reads or writes it; only the modern build's snapshot
 	 * copies it. */
@@ -255,7 +255,9 @@ struct CraftData {
 	 * as unsigned and held at 0xFFFF; collide_laserhitcraft adds to it and
 	 * Flight_UpdateTimers counts it down. */
 	int16_t weaponFireInhibitTimer;
-	uint8_t unusedMissionFlag; /* Set to 0 at spawn; nothing reads it. */
+	/* Set to 0 at spawn; no game code reads it, only the modern build's
+	 * snapshot copies it. */
+	uint8_t unusedMissionFlag;
 	/* While 0, Mission_RecordCraftOutcome counts the craft as not disabled;
 	 * only spawn and ProvingGrounds_InitCourseObjects write it, both with
 	 * 0. */
@@ -351,7 +353,9 @@ struct CraftData {
 	/* No game code reads or writes it; only the modern build's snapshot
 	 * copies it. */
 	uint8_t field_256[73];
-	uint16_t field_29F; /* Set to 0 at spawn; nothing reads it. */
+	/* Set to 0 at spawn; no game code reads it, only the modern build's
+	 * snapshot copies it. */
+	uint16_t field_29F;
 	/* Per subsystem, its row on the damage display, the identity at spawn;
 	 * on a player's craft the knocked-out system with the lowest row is
 	 * repaired first, and Damage_DisplayMfdPage lets a solo player reorder

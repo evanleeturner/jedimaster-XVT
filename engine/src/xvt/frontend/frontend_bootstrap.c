@@ -17,6 +17,10 @@
 
 #include <stdio.h>
 
+/* Exit function of the first screen when the intro plays: runs once
+ * FrontendBootstrap_PlayOpeningAndEnterCredits has switched to the credits,
+ * and loads the credits screen through Credits_LoadScreenResources. Returns
+ * 0. */
 // FUNCTION: XVT 0x4F0860
 int FrontendBootstrap_ExitIntroAndLoadCredits(int frameCounter)
 {
@@ -25,6 +29,15 @@ int FrontendBootstrap_ExitIntroAndLoadCredits(int frameCounter)
 	return 0;
 }
 
+/* Update function of the first screen when the intro plays. Unlocks the back
+ * buffer, plays the "Opening" movie, clears the back buffer, makes
+ * Credits_UpdateScreen and FrontendBootstrap_ExitCreditsAndLoadFrontend the
+ * screen's callbacks and locks the back buffer again into g_drawSurfacePtr.
+ * The original build plays the whole movie inside Movie_Play. In the modern
+ * build Movie_Play starts it and answers XVT_MOVIE_PENDING, and this returns
+ * at once with the back buffer unlocked; no frontend frame runs while the
+ * movie plays, and the next call takes its result and goes on. Returns 0 on
+ * every path and ignores the movie's result. */
 // FUNCTION: XVT 0x4F0870
 int FrontendBootstrap_PlayOpeningAndEnterCredits(int frameCounter)
 {
@@ -46,6 +59,13 @@ int FrontendBootstrap_PlayOpeningAndEnterCredits(int frameCounter)
 	return 0;
 }
 
+/* Start function of the frontend when the intro plays, run once before the
+ * first frame: by the main loop through modeInitFn in the original build, by
+ * XvtFrontendTask_Update in the modern one. Turns off quitting on Esc, sets
+ * the surface clear color to 0, hides the cursor, turns off clearing the back
+ * buffer after each present and refilling it from the offscreen surface, and
+ * loads font size 12. Closes g_movieSubtitleFile and sets it NULL when it is
+ * open. Returns 0, which in the original build lets the main loop start. */
 // FUNCTION: XVT 0x4F08B0
 int FrontendBootstrap_InitMode(void)
 {
@@ -62,6 +82,12 @@ int FrontendBootstrap_InitMode(void)
 	return 0;
 }
 
+/* Exit function of the credits screen, run once the credits have switched to
+ * the concourse. Closes g_frontendCreditsFile and sets it NULL when it is
+ * open, frees the seven credits images, stops the text fade, loads the
+ * frontend through Frontend_LoadResources and turns on looping of the
+ * current CD track. Returns 0 and ignores what Frontend_LoadResources
+ * returns. */
 // FUNCTION: XVT 0x4FB5E0
 int FrontendBootstrap_ExitCreditsAndLoadFrontend(int frameCounter)
 {

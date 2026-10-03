@@ -22,6 +22,11 @@
 #include <stdio.h>
 #include <string.h>
 
+/* Falloff distance, in world units, of flight sound ids 0 to 95, one entry per
+ * id; fsfx_ComputeSourceVolume reads entries 0 to 94 (ids from 95 use 8192).
+ * Closer than it, the volume rises from base >> 2 toward the base; from it to
+ * twice it the sound plays at base >> 2, from twice to four times it at
+ * base >> 3, and from four times it not at all. Ids 0 to 3 hold 0. */
 // GLOBAL: XVT 0x520F18
 uint16_t g_fsfxFalloffDistanceBySfxSlot[96] = {
 	0,     0,     0,     0,	    8192,  8192,  8192,	 10240, 10240, 10240,
@@ -35,6 +40,10 @@ uint16_t g_fsfxFalloffDistanceBySfxSlot[96] = {
 	8192,  8192,  8192,  8192,  8192,  8192,  8192,	 8192,	8192,  8192,
 	8192,  8192,  8192,  8192,  8192,  8192,
 };
+/* Base volume, 0 to 127, of flight sound ids 0 to 95, one entry per id.
+ * fsfx_ComputeSourceVolume scales it by distance for ids under 95 (ids from 95
+ * use 112) and by the interior volume setting for an interior sound of any
+ * id. */
 // GLOBAL: XVT 0x520FD8
 uint8_t g_fsfxBaseVolumeBySfxSlot[96] = {
 	0,   0,	  0,   0,   72,	 72,  96,  112, 80,  80,  80,  80,  96,	 96,
@@ -45,67 +54,134 @@ uint8_t g_fsfxBaseVolumeBySfxSlot[96] = {
 	112, 112, 112, 112, 112, 112, 112, 112, 127, 127, 112, 112, 112, 112,
 	112, 112, 96,  96,  112, 112, 127, 127, 64,  127, 127, 112,
 };
+/* First line of each wingman voice category, 0 to 23, as an offset within a
+ * pilot's 97-line voice list. */
 // GLOBAL: XVT 0x521038
 static const uint8_t g_fsfxVoiceCategoryBaseOffset[24] = {
 	0x00, 0x06, 0x0E, 0x14, 0x18, 0x19, 0x1B, 0x1D, 0x1F, 0x20, 0x28, 0x2D,
 	0x2E, 0x38, 0x39, 0x3A, 0x3C, 0x40, 0x46, 0x47, 0x4C, 0x52, 0x5A, 0x5C};
+/* Number of lines in each wingman voice category, 0 to 23. */
 // GLOBAL: XVT 0x521050
 static const uint8_t g_fsfxVoiceCategoryVariantCount[24] = {
 	0x06, 0x08, 0x06, 0x04, 0x01, 0x02, 0x02, 0x01, 0x01, 0x08, 0x05, 0x01,
 	0x05, 0x01, 0x01, 0x02, 0x04, 0x06, 0x01, 0x05, 0x06, 0x08, 0x02, 0x05};
+/* Plays of one line, per wingman voice category, after which
+ * fsfx_SelectAvailableVoiceVariant passes it over; 0 never passes a line
+ * over. */
 // GLOBAL: XVT 0x521068
 static const uint8_t g_fsfxVoiceCategoryRepeatThreshold[24] = {
 	0x00, 0x00, 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x02, 0x02, 0x01,
 	0x01, 0x02, 0x01, 0x01, 0x02, 0x00, 0x01, 0x01, 0x00, 0x02, 0x01, 0x01};
+/* Tactical officer line, as an offset from voice slot 696, that names a flight
+ * group, indexed by the group's designation code; 0xFF for codes with no
+ * line. */
 // GLOBAL: XVT 0x521080
 static const uint8_t g_fsfxDesignationToTacticalMessageId[24] = {
 	0xFF, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0D,
 	0x0E, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00};
+/* First line of each commander voice category, 0 to 9, as an offset from voice
+ * slot 804. */
 // GLOBAL: XVT 0x521098
 static const uint8_t g_commanderVoiceSfxOffsetByCategory[10] = {
 	0x00, 0x02, 0x0A, 0x0C, 0x0D, 0x0E, 0x12, 0x14, 0x1A, 0x1E};
+/* Number of lines in each commander voice category, 0 to 9; a 0 count plays the
+ * category's first line. */
 // GLOBAL: XVT 0x5210A8
 static const uint8_t g_commanderVoiceVariantCountByCategory[10] = {
 	0x02, 0x08, 0x02, 0x00, 0x00, 0x04, 0x02, 0x06, 0x04, 0x04};
+/* 1 once fsfx_LoadSfxList has passed a list line to Sound_LoadEffect; only that
+ * function writes it, and nothing sets it back to 0. The voice queue runs only
+ * while it is set. */
 // GLOBAL: XVT 0x9ECC52
 uint8_t g_fsfxLoaded = 0;
+/* Entries in the voice queue, the five g_fsfxVoiceQueue arrays, 0 to 128. Four
+ * functions write it: fsfx_QueueVoiceSfx adds one, fsfx_UpdateVoiceQueue takes
+ * one off, fsfx_RemoveVoiceQueueEntryChain takes off a chain and
+ * fsfx_ResetFlightSfxState sets 0. */
 // GLOBAL: XVT 0x9A20A4
 uint8_t g_fsfxVoiceQueueCount = 0;
+/* Speaker type of the line fsfx_UpdateVoiceQueue last took from the queue; only
+ * it writes it, and nothing reads it. */
 // GLOBAL: XVT 0xA0A870
 static uint8_t g_fsfxCurrentVoiceSpeakerType = 0;
+/* Chain flag of each queued voice line: 0 starts a message, nonzero continues
+ * the one before it, so the lines are pruned together. */
 // GLOBAL: XVT 0xA0A880
 uint8_t g_fsfxVoiceQueueChainFlag[128] = {0};
+/* Voice category of the line fsfx_UpdateVoiceQueue last took from the queue;
+ * only it writes it, and nothing reads it. */
 // GLOBAL: XVT 0xA0A900
 static uint8_t g_fsfxCurrentVoiceCategory = 0;
+/* Object signature each queued voice line is about, 0xFFFF for none;
+ * fsfx_PruneStaleVoiceQueueEntries drops a tactical status message whose object
+ * is gone. */
 // GLOBAL: XVT 0xA0A910
 uint16_t g_fsfxVoiceQueueObjectSignature[128] = {0};
+/* Mission time, in seconds, at which the tactical officer last reported each
+ * craft slot, 0 for never; fsfx_SpeakTacticalOfficerEvent holds a report back
+ * within 10 seconds of the last. fsfx_ResetFlightSfxState clears the slots
+ * below g_activeRegionCraftObjectSlotEnd. */
 // GLOBAL: XVT 0xA0A7F0
 static int g_fsfxTacOfficerLastSpeakSecondsByObj[136] = {0};
+/* Path fsfx_LoadSfxList builds for each effect it loads: the list line prefixed
+ * with the wave folder. */
 // GLOBAL: XVT 0xA0AB20
 char g_fsfxSfxLoadPath[720] = {0};
+/* Path of the mission file being flown: "DEMO.TIE" until Flight_Main (original
+ * build) or XvtFlightEntry_CreateDevices (modern) copies in the mission path
+ * from the launch arguments. FeDiskIo_InitResources, Flight_MainLoop and
+ * XvtFlightLoading_Palette change its last three letters while they open the
+ * mission's other files, then put them back. */
 // GLOBAL: XVT 0x523448
 char g_currentMissionFile[128] = "DEMO.TIE";
+/* Speaker type of each queued voice line: 0 special, 1 wingman pilot, 2
+ * tactical officer, 3 commander. */
 // GLOBAL: XVT 0xA0AA20
 uint8_t g_fsfxVoiceQueueSpeakerType[128] = {0};
+/* Voice category of each queued voice line. */
 // GLOBAL: XVT 0xA0AAA0
 uint8_t g_fsfxVoiceQueueCategory[128] = {0};
+/* Flight sound id of the voice line fsfx_UpdateVoiceQueue last started, 0 when
+ * none; it starts no other line while this one plays. fsfx_ResetFlightSfxState
+ * sets 0. */
 // GLOBAL: XVT 0xA0AA10
 static int g_fsfxCurrentVoiceSfxSlot = 0;
+/* Counted plays of each wingman voice line, in six lists of 97 entries indexed
+ * by craft ordinal: fsfx_SpeakWingmanEvent adds to it as it queues most lines,
+ * and fsfx_SelectAvailableVoiceVariant compares it with the repeat thresholds.
+ * fsfx_ResetFlightSfxState clears it. */
 // GLOBAL: XVT 0xA0ABA0
 static uint8_t g_fsfxVoiceLinePlayCounts[6 * 97] = {0};
+/* Effect name of each flight sound id, the list line it was loaded from and the
+ * name the Sound_ functions find the effect by; empty for an id never loaded.
+ * fsfx_LoadSfxList fills it, fsfx_ClearSfxNameTable empties it. */
 // GLOBAL: XVT 0xA0ADF0
 char g_fsfxSfxNameTable[838][24] = {{0}};
+/* What Sound_LoadEffect returned for each flight sound id: 1 when the effect
+ * loaded, 0 when not. fsfx_LoadSfxList writes it and fsfx_ResetFlightSfxState
+ * clears it; fsfx_PlaySound and the voice queue play nothing from an id holding
+ * 0. */
 // GLOBAL: XVT 0xA0FE80
 uint16_t g_fsfxLoadedBySlot[838] = {0};
+/* Flight sound id of each queued voice line. */
 // GLOBAL: XVT 0xA0FC80
 int g_fsfxVoiceQueueSfxSlot[128] = {0};
+/* Object signature of the line fsfx_UpdateVoiceQueue last took from the queue;
+ * only it writes it, and nothing reads it. */
 // GLOBAL: XVT 0xA1050C
 static uint16_t g_fsfxCurrentVoiceObjectSignature = 0;
+/* Chain flag of the line fsfx_UpdateVoiceQueue last took from the queue; only
+ * it writes it, and nothing reads it. */
 // GLOBAL: XVT 0xA1050E
 static uint8_t g_fsfxCurrentVoiceChainFlag = 0;
+/* Object type of the local player's craft when fsfx_UpdatePlayerEngineLoop last
+ * found one with an engine sound; it uses it to stop that sound once the craft
+ * is gone. Only that function writes it, and nothing resets it. */
 // GLOBAL: XVT 0x556350
 uint8_t g_playerEngineLoopObjectType = 0;
 
+/* Empties every name in g_fsfxSfxNameTable. Returns 0. Flight_MainLoop calls it
+ * in the original build, XvtFlightLoading_Globals in the modern one. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x42DE40
 int fsfx_ClearSfxNameTable(void)
@@ -114,9 +190,16 @@ int fsfx_ClearSfxNameTable(void)
 	return 0;
 }
 
+/* Calls Sound_UnloadAllEffects. FeDiskIo_FreeFlightResources is its only
+ * caller. */
 // FUNCTION: XVT 0x42DE70
 void fsfx_UnloadAllEffects_Thunk(void) { Sound_UnloadAllEffects(); }
 
+/* Clears the flight sound state for a new flight: g_fsfxLoadedBySlot,
+ * g_fsfxVoiceLinePlayCounts, the entries of
+ * g_fsfxTacOfficerLastSpeakSecondsByObj below g_activeRegionCraftObjectSlotEnd,
+ * g_fsfxVoiceQueueCount and g_fsfxCurrentVoiceSfxSlot. Leaves g_fsfxLoaded.
+ * FeDiskIo_InitGlobalBuffers is its only caller. */
 // FUNCTION: XVT 0x42DE80
 void fsfx_ResetFlightSfxState(void)
 {
@@ -137,6 +220,16 @@ void fsfx_ResetFlightSfxState(void)
 	g_fsfxCurrentVoiceSfxSlot = 0;
 }
 
+/* Loads the effects a list file names, one per line, into consecutive flight
+ * sound ids from firstSoundId. Each line that is not empty, cut at its first CR
+ * or LF, becomes the id's name in g_fsfxSfxNameTable, and the file it names in
+ * the wave folder, its path built in g_fsfxSfxLoadPath, loads with
+ * Sound_LoadEffect, whose result goes in g_fsfxLoadedBySlot; after each load it
+ * calls FlightLoading_PulseAndDrawProgressScreen and sets g_fsfxLoaded to 1.
+ * With g_flightConfVoiceEnabled 0, ids over 0x5F are skipped without loading.
+ * Returns the number of lines it passed to Sound_LoadEffect, or 0 when the list
+ * does not open. Does not check that the ids stay under 838 or that a line fits
+ * the 24-byte name. */
 // FUNCTION: XVT 0x42DED0
 int fsfx_LoadSfxList(char *fileNameBuffer, uint16_t firstSoundId)
 {
@@ -178,6 +271,20 @@ int fsfx_LoadSfxList(char *fileNameBuffer, uint16_t firstSoundId)
 	return loadedCount;
 }
 
+/* Loads the mission's voice lists from the wave folder with fsfx_LoadSfxList;
+ * does nothing when g_flightConfVoiceEnabled or the voice volume is 0. With the
+ * tactical officer on it loads RTO1.LST or RTO2.LST for a player on IFF 0, else
+ * ITO1.LST or ITO2.LST, chosen by GameRand2() & 1, at id 0x2B8 (696). With the
+ * commander on it loads RCMD.LST for IFF 0, ICMD.LST for IFF 1, else PCMD.LST,
+ * at 0x324 (804). With wingman voices on, when the player's flight group (the
+ * first whose playerOwnerIdx is g_localPlayer) has more than one craft or more
+ * than one group has a playerNumber, it loads one pilot list per craft of that
+ * group, RSP1.LST to RSP6.LST (ISP for IFF 1) starting at a random one and
+ * cycling, at ids 114, 211 and on, 97 apart, with no limit on the count. With
+ * special voices on it loads the mission file's name, less anything up to and
+ * including its first backslash, with its last three letters changed to "lst",
+ * at 0x5F. Does not check that the mission name fits its 64-byte buffers; the
+ * modern build changes the letters only for a name of 3 or more characters. */
 // FUNCTION: XVT 0x42E070
 void fsfx_LoadMissionVoiceSfx(void)
 {
@@ -306,6 +413,9 @@ void fsfx_LoadMissionVoiceSfx(void)
 	}
 }
 
+/* Stops the hyperspace exit sounds, ids 81 and 84, when they play. Does nothing
+ * when g_flightSimSideEffectsSuppressed is set, playerIdx is not g_localPlayer,
+ * g_flightConfSfxEnabled is 0, or interior sounds are off or at volume 0. */
 // FUNCTION: XVT 0x42E460
 void fsfx_StopHyperspaceExitSounds(int playerIdx)
 {
@@ -334,6 +444,23 @@ void fsfx_StopHyperspaceExitSounds(int playerIdx)
 	}
 }
 
+/* Queues a flight sound for the local player with Sound_QueueEffect, restart
+ * allowed, played once. Returns 0, queuing nothing, when the side-effect gate
+ * shuts it out (g_flightSfxSideEffectGate 0 needs
+ * g_flightSimSideEffectsSuppressed 0, 1 needs it 1, 2 never plays), playerIdx
+ * is not g_localPlayer, g_flightConfSfxEnabled is 0, the id holds 0 in
+ * g_fsfxLoadedBySlot, interior sounds (emitterObjIdx -1) or exterior ones (any
+ * other) are off or at volume 0, an R2 sound (ids 86 to 89) comes while the
+ * player has no craft or one of an object type other than 1 or 2, or, with a
+ * nonzero volume, a flyby or engine-wash sound (ids 72 to 79) already plays. A
+ * hyperspace exit sound (81, 84) first stops the matching entry sound (80, 83).
+ * The volume comes from fsfx_ComputeSourceVolume and, when it is not 0, the pan
+ * from fsfx_ComputeSourcePan, which may lower the volume. The priority is 127
+ * for the danger warning (37) and 125 for another sound the local player makes
+ * (no emitter, an emitter the player owns, or one whose mobile object's source
+ * the player owns); for any other, the volume when under 125, else 124. Returns
+ * 1 otherwise, also when the volume was 0 and nothing was queued. Does not
+ * check soundId against 838. */
 // FUNCTION: XVT 0x42E4D0
 int fsfx_PlaySound(unsigned int soundId, int emitterObjIdx, int playerIdx)
 {
@@ -436,6 +563,12 @@ int fsfx_PlaySound(unsigned int soundId, int emitterObjIdx, int playerIdx)
 	return 1;
 }
 
+/* Plays the firing sound of a projectile through fsfx_PlaySound, with the
+ * projectile as the emitter: object types 0x89 to 0x93 play id type - 133 (4 to
+ * 14), 0x94 and 0x95 play type - 138 (10, 11), 0x96 and 0x97 play type - 135
+ * (15, 16), and 0x98 to 0x9B play FLIGHT_SOUND_MAGNETIC_PULSE (17), returning
+ * fsfx_PlaySound's result. Returns 0 when playerIdx is not g_localPlayer,
+ * g_flightConfSfxEnabled is 0 or exterior sounds are off or at volume 0. */
 // FUNCTION: XVT 0x42E720
 int fsfx_triggerweaponsfx(unsigned int projectileObjectIndex, int playerIdx)
 {
@@ -493,6 +626,19 @@ int fsfx_triggerweaponsfx(unsigned int projectileObjectIndex, int playerIdx)
 	return result;
 }
 
+/* Volume, 0 to 127, of a sound as the local player hears it. An interior sound
+ * (emitterObjIdx -1) gets s * g_fsfxBaseVolumeBySfxSlot[soundId] / 127, s being
+ * the interior volume setting times 13, or 127 for a setting of 10 or more;
+ * that path does not check soundId against the table's 96 entries. For any
+ * other, f and b are the falloff distance and base volume from the two tables
+ * (8192 and 112 for ids from 95), and d is the rough distance
+ * (collide_roughdistance3d) from the local player's camera to the emitter, at
+ * its previous-step position when it has a mobile object, else where
+ * Mission_ResolveObjectOrMissionPointWorldLoc puts it. It returns 0 when d >> 2
+ * is at least f, b >> 3 when d >> 1 is, and b >> 2 when d is. Otherwise it
+ * returns v = (b >> 2) + (f - d) * (b - (b >> 2)) / (f - (f >> 5)), times
+ * e / 10 when the exterior volume setting e is not 10, capped at 127; e does
+ * not scale the three far cases. */
 // FUNCTION: XVT 0x42E810
 unsigned int fsfx_ComputeSourceVolume(int emitterObjIdx, unsigned int soundId)
 {
@@ -570,6 +716,19 @@ unsigned int fsfx_ComputeSourceVolume(int emitterObjIdx, unsigned int soundId)
 	return volume;
 }
 
+/* Pan, 0 to 127 with 64 centered, of a sound from an object as the local
+ * player hears it; 64 for emitterObjIdx -1. It takes the emitter's offset
+ * from the local player's camera (placed as in fsfx_ComputeSourceVolume),
+ * each axis cut to 16 bits, projects it with Math_Dot3Q15Wrapped on the
+ * camera matrix's side row (g_camMatR0) and forward row (g_camMatR2), and
+ * takes the angle trig2_arctan(side, forward). For an angle of 0x4000 or
+ * more either way, a source behind, it mirrors the angle front to back,
+ * keeping its side, and lowers *volume by (int16_t)(*volume * r) / 128,
+ * where r = ((0x4000 - v) >> 8) * ((0x4000 - a) >> 8) / 64, a being the size
+ * of the mirrored angle and v the size of 0x8000 minus the angle of the
+ * offset along the camera's up row (g_camMatR1) against the forward one: up
+ * to half the volume for a source straight behind, none for one level at the
+ * side. Returns the angle >> 7, clamped to -64 to 63, plus 64. */
 // FUNCTION: XVT 0x42E9A0
 int fsfx_ComputeSourcePan(int emitterObjIdx, int *volume)
 {
@@ -652,6 +811,12 @@ int fsfx_ComputeSourcePan(int emitterObjIdx, int *volume)
 	return (int16_t)(panAngle + 64);
 }
 
+/* Plays or stops the targeting tone loops, ids 50 and 51. State 0 or 1 stops 51
+ * when it plays and returns, else stops 50 when it plays. State 3 stops 50 and
+ * queues 51 unless it plays; any other state stops 51 and queues 50 unless it
+ * plays. Loops are queued looping, centered, at priority 125 and the interior
+ * volume setting times 13, 127 from 10 up. Returns 1, or 0 when
+ * g_flightConfSfxEnabled is 0 or interior sounds are off or at volume 0. */
 // FUNCTION: XVT 0x42EC80
 int fsfx_UpdateTargetingTone(unsigned int toneState)
 {
@@ -704,6 +869,17 @@ int fsfx_UpdateTargetingTone(unsigned int toneState)
 	return 1;
 }
 
+/* Keeps the beam weapon's loop sounds in step with the local player's beam.
+ * With active set and the beam subsystem working: a tractor beam (while its
+ * fire sound, 52, is not playing) or a jamming beam (while 55 is not) plays 53
+ * or 56 while g_localBeamTargetObjIdx is 0xFFFF and the next id, 54 or 57, once
+ * the beam holds a target, stopping the other of the pair; a decoy beam queues
+ * 59 unless 58 or 59 plays; any other beam type queues 61 unless 60 or 61
+ * plays. Otherwise it stops every playing id from 52 to 61. Loops are queued
+ * looping, centered, at priority 125 with fsfx_ComputeSourceVolume(-1, id).
+ * Does nothing when g_flightSimSideEffectsSuppressed is set, playerIdx is not
+ * g_localPlayer, g_flightConfSfxEnabled is 0 or interior sounds are off or at
+ * volume 0. Does not check that the local player has a craft. */
 // FUNCTION: XVT 0x42EDC0
 void fsfx_UpdateBeamSystemLoop(int active, int playerIdx)
 {
@@ -796,6 +972,12 @@ void fsfx_UpdateBeamSystemLoop(int active, int playerIdx)
 	}
 }
 
+/* State 0 stops the incoming-missile warning loops, ids 39 and 40. State 1
+ * queues 40 at the interior volume / 3, any other state 39 at the interior
+ * volume / 2, looping, centered, at priority 125, unless that id plays; it does
+ * not stop the other loop. The interior volume is the setting times 13, 127
+ * from 10 up. Does nothing when g_flightConfSfxEnabled is 0 or interior sounds
+ * are off or at volume 0. */
 // FUNCTION: XVT 0x42F030
 void fsfx_UpdateIncomingMissileWarning(int warningState)
 {
@@ -834,6 +1016,14 @@ void fsfx_UpdateIncomingMissileWarning(int warningState)
 	}
 }
 
+/* Keeps the chaff loop, id 19, playing while the local player's chaff runs.
+ * Stops 19 when the player has no craft or awaitingNewCraft is 1; does nothing
+ * more for a craft whose countermeasure is not chaff. Otherwise, while the
+ * craft's chaffActiveSeconds is nonzero, queues 19 looping, centered, at
+ * priority 125 and a quarter of the interior volume (the setting times 13, 127
+ * from 10 up) unless it plays, and stops it once that count is 0. Does nothing
+ * when g_flightSimSideEffectsSuppressed is set, g_flightConfSfxEnabled is 0 or
+ * interior sounds are off or at volume 0. */
 // FUNCTION: XVT 0x42F110
 void fsfx_UpdateChaffLoop(void)
 {
@@ -896,6 +1086,21 @@ void fsfx_UpdateChaffLoop(void)
 	}
 }
 
+/* Keeps the local player's engine loop in step with the throttle. The craft's
+ * object type picks the sound and base frequency in hertz: types 1, 4, 14 and
+ * 15 give 67 at 11000, 2 gives 68, 3 and 13 give 69, 5 to 9 give 70, each at
+ * 5500, and 12 and 16 give 71 at 11000. For such a craft it stores the type in
+ * g_playerEngineLoopObjectType; when the player is not awaiting a new craft and
+ * the engines work, it sets the frequency of the effect's newest instance
+ * (Sound_SetParam code 0x777) to 55 * (MATH2_ratioQ16(throttleSpeed,
+ * 0xFFFF) / 655) + base, at most base + 5500, and then, when the sound is not
+ * playing, queues it looping, centered, at priority 125 and volume
+ * MATH2_fraction(e, throttleSpeed) >> 1, e being the engine volume setting
+ * times 13, 127 from 10 up. Otherwise it stops the engine sound and the
+ * engine-wash sounds 78 and 79. With no craft or one of another type, and
+ * mapCameraState nonzero, it stops the sound for g_playerEngineLoopObjectType's
+ * type and 78 and 79. Does nothing when g_flightSimSideEffectsSuppressed is
+ * set, g_flightConfSfxEnabled is 0 or engine sounds are off or at volume 0. */
 // FUNCTION: XVT 0x42F270
 void fsfx_UpdatePlayerEngineLoop(void)
 {
@@ -1036,6 +1241,17 @@ void fsfx_UpdatePlayerEngineLoop(void)
 	}
 }
 
+/* Keeps the loops for the beam effects on the local player's craft in step.
+ * While beamEffectAccum[1] is nonzero it queues 63 unless it plays and,
+ * when neither 64 nor 65 plays and GameRand2() < 0x1000 (in the modern
+ * build only while XvtFlightTiming_ReferenceDue is true), queues id
+ * (GameRand2() & 1) + 63, so 63 or 64; once it is 0 it stops 63, 64 and 65.
+ * While beamEffectAccum[2] is nonzero it queues 66 at half volume unless it
+ * plays, and stops it once that is 0. With no craft it stops 63 to 66.
+ * Loops are queued looping, centered, at priority 125 and the interior
+ * volume setting times 13, 127 from 10 up. Does nothing when
+ * g_flightSimSideEffectsSuppressed is set, g_flightConfSfxEnabled is 0 or
+ * interior sounds are off or at volume 0. */
 // FUNCTION: XVT 0x42F5D0
 void fsfx_UpdateBeamEffectLoops(void)
 {
@@ -1117,6 +1333,23 @@ void fsfx_UpdateBeamEffectLoops(void)
 	}
 }
 
+/* Runs the per-step flight sounds of the local player; returns at once when
+ * the player has no craft. Calls fsfx_UpdateChaffLoop,
+ * fsfx_UpdatePlayerEngineLoop and fsfx_UpdateBeamEffectLoops, then stops
+ * there when g_flightSimSideEffectsSuppressed is set,
+ * g_flightConfSfxEnabled is 0 or engine sounds are off or at volume 0.
+ * Engine wash: while engineWashSourceObjIdx is not -1 it picks id 78 for a
+ * source of object type 51 to 54, else 79, and a volume of 4 * the exterior
+ * volume setting * engineWashStrength / 10, capped at 127. When that id is
+ * not playing it emits in-flight message IFMSG_221 and queues the id
+ * looping, centered, with that volume passed as the priority and 65 as the
+ * volume; while it plays it sets its volume to that value (Sound_SetParam
+ * code 0x600). With no wash source it stops 78 and 79. Flybys: for every
+ * other craft slot below g_activeRegionCraftObjectSlotEnd holding an active
+ * craft with working subsystems and nonzero speed whose object type has a
+ * flyby sound (ids 72 to 77), it plays that sound through fsfx_PlaySound
+ * when the craft's rough distance to the player is under its type's
+ * maxBoundsExtent + 1024 and its distance at the previous step was not. */
 // FUNCTION: XVT 0x42F810
 void fsfx_UpdateFlightSfx(void)
 {
@@ -1303,6 +1536,37 @@ void fsfx_UpdateFlightSfx(void)
 	}
 }
 
+/* Queues a wingman's radio line, speaker type 1, about targetObjIdx. Returns 0
+ * when wingman voices are off, playerIdx is -1 or not g_localPlayer, or the
+ * player has no craft; unless probability is 0xFFFF it is halved at wingman
+ * voice level 1 and the call returns 0 unless GameRand2() is under it. With
+ * speakerObjIdx -1 it picks the speaker with fsfx_RandomIndex among the craft
+ * slots from g_activeRegionObjectSlotStart below
+ * g_activeRegionCraftObjectSlotEnd that hold a craft of mobile family 0 in the
+ * player's flight group not owned by playerIdx, kept in a 6-entry array it does
+ * not bound; with none, category 12 queues voice slot 37 twice, and it returns
+ * 0. When the pick is the target it returns 0 if it is the only one, else keeps
+ * it as the speaker: the next candidate it computes is not used. A given
+ * speaker returns 0 unless its slot is below g_activeRegionCraftObjectSlotEnd
+ * and, for a category other than 1, it flies in the player's group. The line
+ * comes from the speaker's voice list at slot 97 * craftOrdinal + 114;
+ * craftIndexInGroup over 6 counts as 0. With responseIndex -1 the category
+ * picks the line: 3 and 5, which return 0 unless the voice queue is empty, take
+ * fsfx_SelectAvailableVoiceVariant(category, the target's craftOrdinal) and,
+ * when craftIndexInGroup is nonzero, count the play and queue the call sign
+ * line (category 2) first, then the line chained; 6, which also needs the queue
+ * empty, and 9, 10 and 21 take and count a variant; 12 takes
+ * fsfx_RandomIndex(4); 16 takes and counts a variant, then chains category 17's
+ * line for the target's craftOrdinal; a missing variant returns 0, and other
+ * categories queue nothing. With a responseIndex, category 1 queues the call
+ * sign (category 0) when craftIndexInGroup is nonzero, category 1's first line
+ * when GameRand2() < 0x5555, then the response; 23 queues a random line of
+ * category 21 (among the first 5) when GameRand2() < 0x8000, then the response,
+ * counted under the speaker's craftOrdinal; other categories queue the
+ * response. A response not under its category's variant count returns 0, after
+ * the lines queued before it. Counts go to g_fsfxVoiceLinePlayCounts, under the
+ * target's craftOrdinal (0 without a target) except for category 23. Returns 1
+ * otherwise. */
 // FUNCTION: XVT 0x42FB70
 int fsfx_SpeakWingmanEvent(int playerIdx, int speakerObjIdx, int voiceCategory,
 			   int responseIndex, int targetObjIdx,
@@ -1576,6 +1840,20 @@ int fsfx_SpeakWingmanEvent(int playerIdx, int speakerObjIdx, int voiceCategory,
 	return 1;
 }
 
+/* Queues a tactical officer line, speaker type 2, at voice slot 696 plus the
+ * id. Returns 0 when the tactical officer is off, the local player has no
+ * craft, or probability is not 0xFFFF and GameRand2() is not under it. Category
+ * 1 (status) also returns 0 when objIdx is -1 or not below
+ * g_activeRegionCraftObjectSlotEnd, or when
+ * g_fsfxDesignationToTacticalMessageId gives 0xFF for the object's flight
+ * group's designation code on the player's team; except for messages 27 and 28
+ * (destroyed, disabled) it returns 0 when the officer spoke of that object at
+ * most 10 mission seconds ago, and otherwise stores the time in
+ * g_fsfxTacOfficerLastSpeakSecondsByObj. Designation lines 4 and 5 become 10
+ * and 11 for a group of another team. It queues the designation line, then
+ * messageId's line chained, both with the object's signature. Categories 2 to 6
+ * queue messageId's line alone with signature 0xFFFF; any other category queues
+ * nothing. Returns 1 in those cases. */
 // FUNCTION: XVT 0x430200
 int fsfx_SpeakTacticalOfficerEvent(int voiceCategory, int messageId, int objIdx,
 				   uint16_t probability)
@@ -1659,6 +1937,11 @@ int fsfx_SpeakTacticalOfficerEvent(int voiceCategory, int messageId, int objIdx,
 	return 1;
 }
 
+/* Queues a random line of commander voice category voiceCategory, speaker type
+ * 3, signature 0xFFFF: voice slot 804 plus the category's offset plus an index
+ * below its count (0 when the count is 0). Returns 1, or 0 when the commander
+ * voice is off. A category over 9 queues nothing and still returns 1, after
+ * reading the offset table past its 10 entries. objectSignature is ignored. */
 // FUNCTION: XVT 0x430420
 int fsfx_QueueCommanderVoiceCategory(int voiceCategory, int objectSignature)
 {
@@ -1718,6 +2001,12 @@ int fsfx_QueueCommanderVoiceCategory(int voiceCategory, int objectSignature)
 	return 1;
 }
 
+/* Picks a line of a wingman voice category for a craft ordinal: a random index
+ * below the category's variant count from fsfx_RandomIndex. With a repeat
+ * threshold of 0 it returns that index. Otherwise, when the line's count in
+ * g_fsfxVoiceLinePlayCounts (list 97 * craftOrdinal) has reached the threshold,
+ * it steps on through the indexes, wrapping, and returns the first under it, or
+ * -1 when every line has reached it. Writes nothing. */
 // FUNCTION: XVT 0x430540
 int fsfx_SelectAvailableVoiceVariant(int voiceCategory, int craftOrdinal)
 {
@@ -1756,6 +2045,9 @@ int fsfx_SelectAvailableVoiceVariant(int voiceCategory, int craftOrdinal)
 	return variantIndex;
 }
 
+/* Returns an index below count: r % q, where r is a GameRand2() value modulo
+ * count and q that value divided by count, so r itself whenever q exceeds r; 0
+ * when q is 0. Divides by count without checking it for 0. */
 // FUNCTION: XVT 0x4305D0
 uint16_t fsfx_RandomIndex(uint16_t count)
 {
@@ -1771,9 +2063,17 @@ uint16_t fsfx_RandomIndex(uint16_t count)
 	return randomValue % quotient;
 }
 
+/* Returns 1 when g_fsfxVoiceQueueCount is 0, else 0. */
 // FUNCTION: XVT 0x430600
 int fsfx_IsVoiceQueueEmpty(void) { return g_fsfxVoiceQueueCount == 0; }
 
+/* Appends a voice line to the voice queue, the five g_fsfxVoiceQueue arrays,
+ * and returns 1. Returns 0, queuing nothing, when
+ * g_flightSimSideEffectsSuppressed is set, g_flightConfVoiceEnabled or the
+ * voice volume is 0, the slot holds 0 in g_fsfxLoadedBySlot, the queue holds
+ * 128, or the line starts a tactical status message (speaker 2, category 1,
+ * chainFlag 0) about the same object signature as the last queued line, itself
+ * a tactical status line. Does not check sfxSlot against 838. */
 // FUNCTION: XVT 0x430610
 int fsfx_QueueVoiceSfx(int sfxSlot, char speakerType, char voiceCategory,
 		       char chainFlag, uint16_t objectSignature)
@@ -1817,6 +2117,16 @@ int fsfx_QueueVoiceSfx(int sfxSlot, char speakerType, char voiceCategory,
 	return 1;
 }
 
+/* Starts the next voice line once the last one ends. Does nothing when
+ * g_fsfxLoaded is 0. Prunes the queue with fsfx_PruneStaleVoiceQueueEntries,
+ * then returns while the line in g_fsfxCurrentVoiceSfxSlot still plays.
+ * Otherwise it sets g_fsfxCurrentVoiceSfxSlot to 0 and, with a line queued,
+ * takes the first, copying its speaker type, category, chain flag and signature
+ * into the g_fsfxCurrentVoice globals, moves the rest up one and lowers
+ * g_fsfxVoiceQueueCount; when that line's sound loaded and the voice volume is
+ * not 0, it plays it at once with Sound_PlayEffectNow (restart allowed, once,
+ * priority 126, centered) at the voice volume setting times 13, 127 from 10 up,
+ * and stores its id in g_fsfxCurrentVoiceSfxSlot. */
 // FUNCTION: XVT 0x430700
 void fsfx_UpdateVoiceQueue(void)
 {
@@ -1874,6 +2184,15 @@ void fsfx_UpdateVoiceQueue(void)
 	g_fsfxCurrentVoiceSfxSlot = sfxSlot;
 }
 
+/* Drops queued tactical status messages about objects that are gone. Each
+ * queued line that starts one (chainFlag 0, speaker 2, category 1) and whose
+ * next line's id is not 723 or 732 is kept only while a craft slot from
+ * g_activeRegionObjectSlotStart below g_activeRegionCraftObjectSlotEnd holds an
+ * object with its signature that has a mobile object and craft and is not
+ * breaking up or exploding; otherwise fsfx_RemoveVoiceQueueEntryChain removes
+ * it with its chained lines and the same index is looked at again. When the
+ * 128th queued line starts such a message it reads one entry past the end of
+ * g_fsfxVoiceQueueSfxSlot. */
 // FUNCTION: XVT 0x430830
 void fsfx_PruneStaleVoiceQueueEntries(void)
 {
@@ -1934,6 +2253,10 @@ void fsfx_PruneStaleVoiceQueueEntries(void)
 	}
 }
 
+/* Removes queued voice line queueIndex and the lines chained after it (each
+ * following line with a nonzero chain flag, up to the first with 0), moves the
+ * later lines up and lowers g_fsfxVoiceQueueCount by the number removed. Does
+ * not check that queueIndex is queued. */
 // FUNCTION: XVT 0x430930
 void fsfx_RemoveVoiceQueueEntryChain(unsigned int queueIndex)
 {

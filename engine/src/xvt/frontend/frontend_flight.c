@@ -32,17 +32,41 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* GetTickCount, in milliseconds, when the "Prepare for launch" screen
+ * opened; only FlightLoading_UpdateReadyScreen writes it. */
 // GLOBAL: XVT 0x669798
 int g_flightLoadingReadyScreenStartMs = 0;
+/* GetTickCount at the launch screen's last time check; only
+ * FlightLoading_UpdateReadyScreen uses it. */
 // GLOBAL: XVT 0x669794
 int g_flightLoadingReadyScreenNowMs = 0;
+/* Set to 1 by FlightLoading_UpdateReadyScreen; nothing reads it. */
 // GLOBAL: XVT 0xB69CDC
 int g_unusedFlightLoadingReadyScreenFlag = 0;
+/* Human players in the mission being launched: 1 in single player, else
+ * Net_CountReadyPlayers, set on the launch screen's first frame. It is the
+ * last number on the flight's command line. */
 // GLOBAL: XVT 0xB6A2C8
 int g_frontendLaunchHumanPlayerCount = 0;
+/* The flight's command line: "~folder\file~ ~formal name~ ~pilot name~ host
+ * ~game name~ 0 players" and then "nopageflip nofullscreen" or "pageflip
+ * fullscreen". The original build builds it in FrontendFlight_LaunchSession
+ * and passes it to Flight_Main; the modern build's XvtLaunchTask_Queue copies
+ * here the line it passes. */
 // GLOBAL: XVT 0x66DA78
 char g_frontendFlightCommandLine[256] = {0};
 
+/* Update function of the "Prepare for launch" screen shown before a flight.
+ * On frame 0 it hides the cursor, sets g_missionSetupIsHost (1 in single
+ * player, else Net_IsHost), stores the human player count in
+ * g_frontendLaunchHumanPlayerCount and g_pilotData.numHumanPlayersLastMission,
+ * notes the start time, draws frontres\wait.bmp with the "frame" and
+ * "alloff" images into the offscreen surface and stops the text fade. Every
+ * frame it draws FRONTSTR_205_PREPARE_FOR_LAUNCH centered in font 15. The
+ * host, more than 2000 ms after the start, sends the lobby state with
+ * MissionSetup_SendLobbyState(0) and switches to FrontendFlight_LaunchSession;
+ * every player switches more than 4000 ms after it. Switching frees the
+ * "background" image. Returns 0. */
 // FUNCTION: XVT 0x4FB350
 int FlightLoading_UpdateReadyScreen(int frameCounter)
 {
@@ -102,6 +126,7 @@ int FlightLoading_UpdateReadyScreen(int frameCounter)
 	return 0;
 }
 
+/* Exit function of the launch screen: does nothing and returns 0. */
 // FUNCTION: XVT 0x506690
 int FrontendFlight_NoOpExit(int frameCounter)
 {
@@ -110,6 +135,22 @@ int FrontendFlight_NoOpExit(int frameCounter)
 	return 0;
 }
 
+/* Update function that flies the mission. The modern build hands the work to
+ * XvtLaunchTask_Queue and returns what it returns. The original build, on
+ * frame 0: writes the config and saves the pilot; asks for the game CD until
+ * it is found, returning 1, which closes the game, on Cancel; without the
+ * host CD and outside a network client it says so, cancels a network game,
+ * and returns to the concourse. Otherwise, with datapad music on and the CD
+ * track still playing, it fades the music to an eighth of its volume over
+ * 1000 ms; then hands the display to the flight, builds
+ * g_frontendFlightCommandLine for the pilot's mission and runs Flight_Main,
+ * whose result decides the next screen. Then it takes the display back,
+ * reloads the sound list, writes the config, refreshes the pilot's rating
+ * name, saves the pilot and restarts CD track 7 when datapad music is on. A
+ * zero result returns to the concourse, shutting the network session; any
+ * other goes to the debriefing. Returns 0 on every path but Cancel. Does not
+ * check that the pilot's mission is in the list; the note inside covers the
+ * case with no list. */
 // FUNCTION: XVT 0x5066A0
 int FrontendFlight_LaunchSession(int frameCounter)
 {

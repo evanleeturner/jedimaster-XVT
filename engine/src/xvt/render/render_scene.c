@@ -42,85 +42,190 @@ enum {
 	COMPONENT_OBJECT_TYPE = 89,
 };
 
+/* 1 while FlightView_Render calls sw3d_DrawVisibleFacesToSurface, so that
+ * RenderScene_FlushGeometry, which that calls in the hardware path, also draws
+ * the queued target markers and target boxes; else 0. Only FlightView_Render
+ * writes it. */
 // GLOBAL: XVT 0x51A520
 int g_sceneFlushDrawTargetMarkers = 0;
 
+/* Index of the B-wing model's bridge mesh, which RenderScene_DrawObjectModel
+ * looks up with ModelMesh_FindBridgeIndex when it draws a craft of object type
+ * 4, and keeps once found; -1 until then. Only that function writes it. */
 // GLOBAL: XVT 0x5272A0
 int g_bwingBridgeMeshIndexCache = -1;
+/* 1 when RenderScene_ComputeVertexLighting asks whether the object's own model
+ * blocks a light from a vertex. Starts at 0; only
+ * RenderScene_ToggleVertexLightOcclusion changes it, and nothing calls that, so
+ * the test never runs. */
 // GLOBAL: XVT 0x5272A4
 static int g_vertexLightOcclusionEnabled;
+/* Radians per unit of a craft's meshRotation byte: 2 pi over 256, to float
+ * precision. */
 // GLOBAL: XVT 0x5181D0
 const float g_meshRotationByteToRadiansScale = 0.024543673f;
+/* 1 over 32767: turns the Q15 camera and object matrices into floats. */
 // GLOBAL: XVT 0x5181D8
 const float g_renderMatrixQ15ToFloatScale = 0.000030518509f;
+/* 1 over 32768: turns a rotate-and-scale node's axis into floats. */
 // GLOBAL: XVT 0x5181DC
 const float g_optAxisQ15ToFloatScale = 0.000030517578125f;
+/* 100000: RenderScene_ProjectDistantMeshVertices adds it to every vertex's
+ * depth and multiplies the projection by it. */
 // GLOBAL: XVT 0x51807C
 const float g_renderDistantDepth = 100000.0f;
+/* 0.0; RenderScene_ProjectMeshVertices compares a face's texture area with it
+ * to take its magnitude. */
 // GLOBAL: XVT 0x518054
 const float g_renderProjectionZeroFloat = 0.0f;
+/* 1.0: the view depth of the near plane in RenderScene_ProjectMeshVertices and
+ * RenderClip_ClipPolyNear, and a constant 1 elsewhere. */
 // GLOBAL: XVT 0x518060
 const float g_renderUnitFloat = 1.0f;
+/* 0.5: RenderScene_DrawMeshFaces scales a texture coordinate by it once for
+ * each doubling that makes a texture square. */
 // GLOBAL: XVT 0x518070
 const float g_renderTextureUvHalfScale = 0.5f;
+/* 3.0, divided by the sum of a triangle's corner scaledInverseDepth values to
+ * give the reciprocal of their mean. */
 // GLOBAL: XVT 0x518074
 const float g_renderTriangleCornerCount = 3.0f;
+/* 4.0, divided by the sum of a quad's corner scaledInverseDepth values to give
+ * the reciprocal of their mean. */
 // GLOBAL: XVT 0x518078
 const float g_renderQuadCornerCount = 4.0f;
+/* 1 over 2048: RenderScene_EmitFlightVertex writes 1 / (depth * this + 1) as a
+ * vertex's z-buffer value. */
 // GLOBAL: XVT 0x518080
 const float g_invDepthProjScale = 0.00048828125f;
+/* 1 over 32768: turns the Q15 light direction in g_objectLightDirectionX, Y and
+ * Z into floats. */
 // GLOBAL: XVT 0x518098
 const float g_renderLightDirectionUnitScale = 0.000030517578125f;
+/* 0.8: RenderScene_ComputeVertexLighting multiplies the directional light's dot
+ * product with the normal by it. */
 // GLOBAL: XVT 0x51809C
 const float g_renderDirectionalLightIntensityScale = 0.80000001f;
+/* 0.0 for the lighting code: in RenderScene_ComputeVertexLighting a point light
+ * adds to a vertex only when its contribution is over it. */
 // GLOBAL: XVT 0x5180A0
 const float g_renderZeroFloat = 0.0f;
+/* 0.4. Nothing reads it: RenderScene_ComputeVertexLighting writes the same 0.4
+ * as a literal when directional light is off. */
 // GLOBAL: XVT 0x5180A4
 const float g_renderAmbientLightIntensity = 0.40000001f;
+/* 0.2941: the lighting code's rough distance is the largest component of the
+ * offset plus the other two times this, in place of a square root. */
 // GLOBAL: XVT 0x5180A8
 const float g_renderRoughDistanceScale = 0.29409999f;
+/* -0.3: in the hardware path a point light lights a vertex only when the dot
+ * product of the normal and the offset to the light, over the rough distance,
+ * is not under this. */
 // GLOBAL: XVT 0x5180AC
 const float g_renderPointLightFacingThreshold = -0.30000001f;
+/* 0.5: in the hardware path RenderScene_ComputeVertexLighting puts half the
+ * rough distance in place of the normal's dot product with the offset to a
+ * light. */
 // GLOBAL: XVT 0x5180B0
 const double g_renderHalfDouble = 0.5;
+/* 0.5 for the lighting code: RenderScene_ComputeVertexLighting halves the
+ * normal's dot product with the specular half vector by it, and adds no
+ * specular light when the resulting cosine is under it. */
 // GLOBAL: XVT 0x5180B8
 const float g_renderHalfFloat = 0.5f;
+/* 0.1936: weight of the two smaller components in the rough length of the
+ * specular half vector. */
 // GLOBAL: XVT 0x5180BC
 const float g_renderSpecularApproxOtherComponentsScale = 0.1936f;
+/* 0.4632: weight of the largest component in the rough length of the specular
+ * half vector. */
 // GLOBAL: XVT 0x5180C0
 const float g_renderSpecularApproxMaxComponentScale = 0.4632f;
+/* The z-buffer surface attached to g_flightBackBuffer: Renderer_InitD3DDevice
+ * gets it; std3D_DetachAndReleaseZBufferSurface releases it and sets it to
+ * NULL. */
 // GLOBAL: XVT 0xA68748
 IDirectDrawSurface *g_std3DZBufferSurface;
+/* 1 from RenderScene_InitHardwareFrame until the first mesh face or rotated
+ * sprite of the frame is queued. While it is 1, RenderScene_EmitFlightVertex
+ * gives vertices alpha 0xFE instead of 0xFF, RenderQuad_DrawRotatedSprite gives
+ * its sprite the color 0xFEFFFFFF, and RenderScene_DrawMeshFaces adds the
+ * alpha-blend flag to its first triangle; those two then set it to 0. */
 // GLOBAL: XVT 0x51A54C
 int g_capVertexAlpha = 1;
+/* Set to 0 by RenderScene_InitHardwareFrame; nothing reads it. */
 // GLOBAL: XVT 0x51A550
 int g_d3dVertexAlphaStateResetSlot = 0;
+/* Triangles g_triBuffer may hold before a batch is drawn, at most 256;
+ * RenderScene_InitHardwareFrame sets it from the span buffer's size and the
+ * device's buffer size. */
 // GLOBAL: XVT 0x52F868
 int g_maxBatchTris = 0;
+/* Vertices of the hardware path's current batch; RenderScene_InitHardwareFrame
+ * points it at the start of the span buffer, g_sceneSpanDataBase. */
 // GLOBAL: XVT 0x53F970
 D3DTLVERTEX *g_flightVertexBuffer = NULL;
+/* Screen y of the viewport's top in the display mode: g_flightVpY plus half of
+ * g_displayModeHeight minus g_surfaceHeight; added to every emitted vertex.
+ * Only RenderScene_InitHardwareFrame writes it. */
 // GLOBAL: XVT 0x53F974
 float g_flightVpOriginY = 0.0f;
+/* Triangles of the hardware path's current batch; RenderScene_InitHardwareFrame
+ * points it at the second half of the span buffer. */
 // GLOBAL: XVT 0x54F988
 Std3DRenderTri *g_triBuffer = NULL;
+/* The mesh's vertBaseIndex (0 in the hardware path) plus its projected vertex
+ * count: RenderScene_DrawMeshFaces starts g_clipVertCursor here, and emits a
+ * vertex below it once per mesh but a clip vertex once per use. Only that
+ * function writes it. */
 // GLOBAL: XVT 0x54F98C
 int g_clipInputProjVertEndIndex = 0;
+/* Vertices g_flightVertexBuffer may hold before a batch is drawn: at most 256
+ * and the device's maxVertexCount; RenderScene_InitHardwareFrame sets it from
+ * the span buffer's size. */
 // GLOBAL: XVT 0x54F990
 int g_maxBatchVerts = 0;
+/* Vertices in g_flightVertexBuffer for the current batch. Many functions write
+ * it, chiefly RenderScene_EmitFlightVertex, which adds one;
+ * RenderScene_InitHardwareFrame and a batch drawn early in
+ * RenderScene_DrawMeshHardware set it to 0. */
 // GLOBAL: XVT 0x54F994
 int g_d3dVertexCount = 0;
+/* Triangles in g_triBuffer for the current batch. Many functions write it,
+ * chiefly RenderScene_DrawMeshFaces; RenderScene_InitHardwareFrame and a batch
+ * drawn early in RenderScene_DrawMeshHardware set it to 0. */
 // GLOBAL: XVT 0x54F9A0
 int g_d3dTriangleCount = 0;
+/* Screen x of the viewport's left in the display mode: g_flightVpX plus half of
+ * g_displayModeWidth minus g_surfaceWidth; added to every emitted vertex. Only
+ * RenderScene_InitHardwareFrame writes it. */
 // GLOBAL: XVT 0x54F9A4
 float g_flightVpOriginX = 0.0f;
+/* Locked memory of g_sceneSpanDataHandle, g_sceneSpanDataCapacity spans; the
+ * hardware path also keeps its vertex and triangle buffers there.
+ * RenderScene_Initialize locks it; RenderScene_UnlockBuffers sets it to
+ * NULL. */
 // GLOBAL: XVT 0x999420
 static SceneSpan *g_sceneSpanDataBase = NULL;
+/* Nothing writes it, so it stays 0 and the distant-mesh paths that test it
+ * (RenderScene_ProjectDistantMeshVertices, sw3d_ProjectMeshVerticesDistant and
+ * the far eye in RenderScene_CullMeshFacesFromView) never run. */
 // GLOBAL: XVT 0x5270B4
 static uint8_t g_bBackdropMeshMode = 0;
+/* Counter raised before each node the model walk visits;
+ * RenderScene_CullMeshFacesFromView puts it in faceAndLayerId, which nothing
+ * reads. Nothing resets it. */
 // GLOBAL: XVT 0x5271D4
 int g_curLayerId = 0;
+/* Header of the built-in white texture a mesh with no texture node uses: NULL
+ * until the first RenderScene_DrawObjectModel or
+ * RenderScene_DrawSelectedRootNode fills g_defaultWhiteTexture and points it
+ * there. */
 // GLOBAL: XVT 0x5271D8
 OptTextureData *g_defaultWhiteTextureDescPtr = NULL;
+/* The built-in 8x8 white texture as 24-bit color, every byte 0xFF.
+ * g_defaultWhiteTexture's texels are built from it, and
+ * ModelTexture_LoadRgbOrTexFile uses it when a texture file does not open. */
 // GLOBAL: XVT 0x5271E0
 uint8_t g_defaultWhiteTextureRgb24[DEFAULT_WHITE_TEXTURE_RGB_SIZE] = {
 	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -140,95 +245,214 @@ uint8_t g_defaultWhiteTextureRgb24[DEFAULT_WHITE_TEXTURE_RGB_SIZE] = {
 	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
 	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
 };
+/* The texture of the last texture node the model walk met, given to a mesh with
+ * none of its own; each model's draw starts it at
+ * g_defaultWhiteTextureDescPtr. */
 // GLOBAL: XVT 0x60F1EC
 OptTextureData *g_curTextureDesc = NULL;
+/* The built-in white texture: an 8x8 header with 16 inline palette entries and
+ * texels built from g_defaultWhiteTextureRgb24 on first use. */
 // GLOBAL: XVT 0x60F210
 ModelTextureDefaultTexture g_defaultWhiteTexture = {0};
+/* Next row of g_sceneLightSampleData that RenderScene_CullMeshFacesFromView
+ * gives a face, 0 to 199; it stops rising at 199, so later faces share that
+ * row. RenderScene_Initialize sets it to 0 on a reset. */
 // GLOBAL: XVT 0x999446
 static int g_lightSampleSlotIndex = 0;
+/* Light samples per row: g_flightVpWidth over g_sw3dLightSampleBlockSize,
+ * rounded up; set by RenderScene_Initialize. */
 // GLOBAL: XVT 0x999410
 static int g_lightSampleSlotStride = 0;
+/* Memory handle of the span buffer; RenderScene_AllocateBuffers allocates it,
+ * RenderScene_FreeBuffers frees it and sets it to 0. */
 // GLOBAL: XVT 0x999424
 uint16_t g_sceneSpanDataHandle = 0;
+/* Spans the span buffer holds: 20000, set by RenderScene_AllocateBuffers. */
 // GLOBAL: XVT 0x999426
 int g_sceneSpanDataCapacity = 0;
+/* Next free span in g_sceneSpanDataBase. On a reset RenderScene_Initialize
+ * starts it at the buffer's start and takes the cockpit's spans;
+ * sw3d_InsertSpan takes one per span and, once it reaches g_pSceneSpanDataEnd,
+ * keeps handing out the span just before it. */
 // GLOBAL: XVT 0x99942A
 SceneSpan *g_pSceneSpanDataCur = NULL;
+/* The buffer's last span, g_sceneSpanDataCapacity - 1; set by
+ * RenderScene_Initialize on a reset. */
 // GLOBAL: XVT 0x99942E
 SceneSpan *g_pSceneSpanDataEnd = NULL;
+/* Locked memory of g_sceneSpanPtrListHandle, 20000 span pointers;
+ * sw3d_ScanConvertFace gives each face one per row from the end, through
+ * g_sceneSpanPtrAvail. */
 // GLOBAL: XVT 0x999432
 SceneSpan **g_sceneSpanPtrList = NULL;
+/* Memory handle of g_sceneSpanPtrList; allocated by
+ * RenderScene_AllocateBuffers, freed by RenderScene_FreeBuffers. */
 // GLOBAL: XVT 0x999436
 uint16_t g_sceneSpanPtrListHandle = 0;
+/* Pointers g_sceneSpanPtrList holds: 20000, set by
+ * RenderScene_AllocateBuffers. */
 // GLOBAL: XVT 0x999438
 static int g_sceneSpanPtrCapacity = 0;
+/* Pointers still free at the front of g_sceneSpanPtrList; sw3d_ScanConvertFace
+ * lowers it by a face's row count when the count is under it.
+ * RenderScene_Initialize sets it to the capacity on a reset. */
 // GLOBAL: XVT 0x99943C
 int g_sceneSpanPtrAvail = 0;
+/* Locked memory of g_sceneLightSampleDataHandle: 0x25800 bytes of 12-byte light
+ * samples, one row per face slot. */
 // GLOBAL: XVT 0x999440
 static uint8_t *g_sceneLightSampleData = NULL;
+/* Memory handle of g_sceneLightSampleData; allocated by
+ * RenderScene_AllocateBuffers, freed by RenderScene_FreeBuffers. */
 // GLOBAL: XVT 0x999444
 uint16_t g_sceneLightSampleDataHandle = 0;
+/* Locked memory of g_visFaceListHandle: up to 5000 faces that passed the cull,
+ * appended by RenderScene_CullMeshFacesFromView. */
 // GLOBAL: XVT 0x99944A
 SceneFace *g_visFaceList = NULL;
+/* 1 when the next RenderScene_Initialize from FlightMap_DrawObjectPass should
+ * reset the scene: FlightMap_RenderView sets it, and FlightMap_DrawObjectPass
+ * clears it after that call. */
 // GLOBAL: XVT 0x55635C
 int g_renderSceneResetPending = 0;
+/* Faces in g_visFaceList. RenderScene_CullMeshFacesFromView adds each that
+ * passes; RenderScene_DrawMeshHardware puts it back after each mesh, as that
+ * path draws at once; RenderScene_Initialize sets it to 0 on a reset. */
 // GLOBAL: XVT 0x999450
 int g_visFaceCount = 0;
+/* First face of the current pass in g_visFaceList, where
+ * sw3d_DrawVisibleFacesToSurface starts: RenderScene_Initialize sets it to 0 on
+ * a reset, else to g_visFaceCount. */
 // GLOBAL: XVT 0x999454
 int g_visFacePassStart = 0;
+/* Faces g_visFaceList holds: 5000, set by RenderScene_AllocateBuffers; a mesh
+ * that would pass it is not drawn. */
 // GLOBAL: XVT 0x999458
 static int g_sceneFaceMax = 0;
+/* Memory handle of g_visFaceList; allocated by RenderScene_AllocateBuffers,
+ * freed by RenderScene_FreeBuffers. */
 // GLOBAL: XVT 0x99944E
 uint16_t g_visFaceListHandle = 0;
+/* Locked memory of g_projVertListHandle: the meshes' projected vertices,
+ * g_projVertMax of them. */
 // GLOBAL: XVT 0x99945C
 ProjVertex *g_projVertList = NULL;
+/* Vertices in use in g_projVertList. Many functions write it, chiefly the
+ * projection functions, which add each mesh's count; RenderScene_DrawSceneMesh
+ * and RenderScene_DrawMeshHardware set it to 0 before each mesh. */
 // GLOBAL: XVT 0x999462
 int g_projVertCount = 0;
+/* Vertices g_projVertList holds: twice g_vertexRemapCapacity, set by
+ * RenderScene_AllocateBuffers; a mesh with more vertices is not drawn. */
 // GLOBAL: XVT 0x999466
 static int g_projVertMax = 0;
+/* Memory handle of g_projVertList; allocated by RenderScene_AllocateBuffers,
+ * freed by RenderScene_FreeBuffers. */
 // GLOBAL: XVT 0x999460
 uint16_t g_projVertListHandle = 0;
+/* Locked memory of g_sceneEdgeListHandle: g_sceneEdgeMax edges the software
+ * renderer writes. RenderScene_DrawMeshFaces borrows it as a table of the
+ * emitted index of each projected vertex. */
 // GLOBAL: XVT 0x99946A
 SceneEdge *g_sceneEdgeList = NULL;
+/* Memory handle of g_sceneEdgeList, allocated for g_sceneEdgeMax edges by
+ * RenderScene_AllocateBuffers; freed by RenderScene_FreeBuffers. */
 // GLOBAL: XVT 0x99946E
 uint16_t g_sceneEdgeListHandle = 0;
+/* Edges in use in g_sceneEdgeList: sw3d_RasterizeMeshFaces adds each mesh's,
+ * and RenderScene_DrawSceneMesh and RenderScene_DrawMeshHardware set it to 0
+ * before each mesh. */
 // GLOBAL: XVT 0x999470
 int g_sceneEdgeCursor = 0;
+/* Edges g_sceneEdgeList holds: twice g_sceneEdgeFlagsCapacity, set by
+ * RenderScene_AllocateBuffers; a mesh with more edges is not drawn. */
 // GLOBAL: XVT 0x999474
 static int g_sceneEdgeMax = 0;
+/* Locked memory of g_vertexRemapHandle: for each model vertex of the mesh being
+ * projected, its index among the mesh's projected vertices, -1 until
+ * projected. */
 // GLOBAL: XVT 0x999478
 int *g_vertexRemap = NULL;
+/* Memory handle of g_vertexRemap; allocated by RenderScene_AllocateBuffers,
+ * freed by RenderScene_FreeBuffers. */
 // GLOBAL: XVT 0x99947C
 uint16_t g_vertexRemapHandle = 0;
+/* Entries g_vertexRemap is allocated with: the most vertices of any mesh the
+ * model loading code (opt_model.c) has measured; FeDiskIo_LoadResources sets it
+ * to 0 before loading. */
 // GLOBAL: XVT 0x99947E
 int g_vertexRemapCapacity = 0;
+/* Locked memory of g_sceneEdgeFlagsHandle: for each model edge, the index of
+ * the scene edge sw3d_RasterizeMeshFaces made for it, -1 before it is set up
+ * and -2 when it was rejected. */
 // GLOBAL: XVT 0x999482
 int *g_sceneEdgeFlags = NULL;
+/* Memory handle of g_sceneEdgeFlags; allocated by RenderScene_AllocateBuffers,
+ * freed by RenderScene_FreeBuffers. */
 // GLOBAL: XVT 0x999486
 uint16_t g_sceneEdgeFlagsHandle = 0;
+/* Entries g_sceneEdgeFlags is allocated with: the most edges of any mesh the
+ * model loading code has measured; FeDiskIo_LoadResources sets it to 0 before
+ * loading. */
 // GLOBAL: XVT 0x999488
 int g_sceneEdgeFlagsCapacity = 0;
+/* Locked memory of g_sceneSclEdgeListHandle, 768 edge pointers; nothing reads
+ * it. */
 // GLOBAL: XVT 0x99948C
 static SceneEdge **g_sceneSclEdgeList = NULL;
+/* Memory handle of g_sceneSclEdgeList; allocated by
+ * RenderScene_AllocateBuffers, freed by RenderScene_FreeBuffers. */
 // GLOBAL: XVT 0x999490
 uint16_t g_sceneSclEdgeListHandle = 0;
+/* Locked memory of g_scanlineSpanHeadsHandle: for each viewport row, up to 768,
+ * the first span of the software renderer's list. RenderScene_Initialize fills
+ * it on a reset with the spans the cockpit covers. */
 // GLOBAL: XVT 0x999492
 SceneSpan **g_scanlineSpanHeads = NULL;
+/* Memory handle of g_scanlineSpanHeads; allocated by
+ * RenderScene_AllocateBuffers, freed by RenderScene_FreeBuffers. */
 // GLOBAL: XVT 0x999496
 uint16_t g_scanlineSpanHeadsHandle = 0;
+/* Locked memory of g_meshQueueHandle: 500 SceneMesh copies, where the draw
+ * functions keep each mesh while its faces sit in g_visFaceList. */
 // GLOBAL: XVT 0x999498
 static SceneMesh *g_meshQueue = NULL;
+/* Memory handle of g_meshQueue; allocated by RenderScene_AllocateBuffers, freed
+ * by RenderScene_FreeBuffers. */
 // GLOBAL: XVT 0x99949C
 uint16_t g_meshQueueHandle = 0;
+/* Entries g_meshQueue holds: 500, set by RenderScene_AllocateBuffers. */
 // GLOBAL: XVT 0x99949E
 static int g_meshQueueMax = 0;
+/* Next free entry in g_meshQueue: RenderScene_DrawSceneMesh's software path
+ * advances it, the hardware path reuses the entry, and RenderScene_Initialize
+ * sets it to 0 on a reset. At g_meshQueueMax no mesh is drawn. */
 // GLOBAL: XVT 0x9994A2
 static int g_meshQueueIndex = 0;
+/* Eye position in the current mesh's model space, set by
+ * RenderScene_CullMeshFacesFromView from the mesh; the cull and the specular
+ * lighting read it. */
 // GLOBAL: XVT 0x9994B0
 OptVector g_meshEyePos = {0.0f, 0.0f, 0.0f};
+/* Table from a 16-bit color to a palette index that model loading maps texture
+ * palettes through; FeDiskIo_InitResources points it at
+ * g_rgb565ToPaletteIndexLut. */
 // GLOBAL: XVT 0x9994BC
 uint8_t *g_activeRgb565ToPaletteIndexLut = NULL;
 
+/* Projects the corners of the mesh's visible faces for the hardware path. Sets
+ * vertBaseIndex to g_projVertCount and g_vertexRemap to -1 for the mesh's
+ * vertices, and appends each corner not yet projected to g_projVertList:
+ * viewport x and y with g_projScaleInt over depth, or, for a corner closer than
+ * view depth 1, its view-space x and y with depth minus 1, which also sets the
+ * face's nearClipState to -1; then its light from
+ * RenderScene_ComputeVertexLighting and its texture coordinates. Sets each
+ * face's largest and smallest scaledInverseDepth (a corner closer than 1
+ * counting as g_projScaleInt) and its texture gradients; when the mesh has
+ * texture coordinates, also turns them into the planes in viewport x and y and
+ * sets texelsPerPixelQ8 from the texture's size, the planes' area and the
+ * corners' depths (the reciprocal of their mean scaledInverseDepth, times
+ * g_projScaleInt). Adds the new vertices to g_projVertCount. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4084E0
 void RenderScene_ProjectMeshVertices(SceneMesh *mesh)
@@ -471,6 +695,11 @@ void RenderScene_ProjectMeshVertices(SceneMesh *mesh)
 	g_projVertCount += mesh->projVertCursor;
 }
 
+/* The distant form of RenderScene_ProjectMeshVertices: adds
+ * g_renderDistantDepth to every corner's depth and scales the projection by
+ * g_projScaleInt / viewPosZ * g_renderDistantDepth, with no near test and no
+ * texture planes. Only RenderScene_DrawMeshHardware calls it, while
+ * g_bBackdropMeshMode is set, and nothing sets that. */
 // FUNCTION: XVT 0x408BC0
 void RenderScene_ProjectDistantMeshVertices(SceneMesh *mesh)
 {
@@ -568,6 +797,25 @@ void RenderScene_ProjectDistantMeshVertices(SceneMesh *mesh)
 	g_projVertCount += mesh->projVertCursor;
 }
 
+/* Clips and queues the mesh's visible faces for the hardware path. For each
+ * face it lists the 3 or 4 corners in g_clipIdxA, adding a copy at
+ * g_clipVertCursor of any corner whose stored texture coordinates differ from
+ * this face's (scaled for a square texture when the device takes only square
+ * ones); runs RenderClip_ClipPolyNear when nearClipState is -1, then the top,
+ * bottom, left and right clips; and emits the result with
+ * RenderScene_EmitFlightVertex, once per mesh for a projected vertex and on
+ * every use for a clip vertex. With 3 or more corners left it picks a mip level
+ * when the texture's textureSize is width times height: from texelsPerPixelQ8 *
+ * g_mipLodScale, it shifts the value down 2 bits and takes the next level while
+ * the value is over 256 and neither side is 8. When the texels changed it gets
+ * the opaque texture, and a color-key texture when the palette marks a
+ * transparent entry: for a projectile it clears that mark instead, and when
+ * none can be made at full size it puts '_' at the start of the texture's name.
+ * Then queues a fan of triangles into g_triBuffer: first, with a color-key
+ * texture, copies of the corners in white with that texture and alpha blending,
+ * then the opaque ones. Returns at once when the modern build suppresses
+ * classic flight rendering. Does not check the batch limits;
+ * RenderScene_DrawMeshHardware does. */
 // FUNCTION: XVT 0x408E70
 void RenderScene_DrawMeshFaces(const SceneMesh *mesh)
 {
@@ -976,6 +1224,14 @@ void RenderScene_DrawMeshFaces(const SceneMesh *mesh)
 	} while (faceIndex < mesh->visFaceCount);
 }
 
+/* Draws one mesh through the hardware path. Sets g_projVertCount and
+ * g_sceneEdgeCursor to 0; does nothing more when g_meshQueue is full or the
+ * mesh has more faces, vertices or edges than the buffers hold. Otherwise
+ * copies it into g_meshQueue at g_meshQueueIndex, without advancing it, and
+ * culls it; when faces are left, first draws the batch so far if 8 vertices and
+ * 2 triangles per face would not fit, then projects the mesh (distant while
+ * g_bBackdropMeshMode is set), queues its faces and puts g_visFaceCount back as
+ * it was. */
 // FUNCTION: XVT 0x40B010
 void RenderScene_DrawMeshHardware(const SceneMesh *mesh)
 {
@@ -1022,6 +1278,14 @@ void RenderScene_DrawMeshHardware(const SceneMesh *mesh)
 	g_visFaceCount = previousVisibleFaceCount;
 }
 
+/* Starts a frame of the hardware path: sets g_flightVpOriginX and
+ * g_flightVpOriginY, sets g_d3dVertexCount, g_d3dTriangleCount and
+ * g_d3dVertexAlphaStateResetSlot to 0 and g_capVertexAlpha to 1, and points
+ * g_flightVertexBuffer at the start of the span buffer and g_triBuffer at its
+ * middle. The batch limits come from the span buffer's bytes: g_maxBatchVerts
+ * is bytes >> 7, then no more than the device's maxVertexCount and 256;
+ * g_maxBatchTris is bytes / sizeof(Std3DRenderTri) >> 2, no more than 256, then
+ * no more than (maxBufferSize - 64 * g_maxBatchVerts) / sizeof(SceneSpan). */
 // FUNCTION: XVT 0x40B180
 void RenderScene_InitHardwareFrame(void)
 {
@@ -1066,6 +1330,12 @@ void RenderScene_InitHardwareFrame(void)
 			 *)&g_sceneSpanDataBase[g_sceneSpanDataCapacity / 2];
 }
 
+/* Draws the queued billboards with SceneBillboard_RenderQueuedTextured, with
+ * target markers and Targeting_DrawSceneObjectBoxes while
+ * g_sceneFlushDrawTargetMarkers is set, and sets g_sceneBillboardQueueCount to
+ * 0. Then, when g_d3dVertexCount and g_d3dTriangleCount are both nonzero, draws
+ * the hardware batch in one execute buffer in extended x87 precision, returning
+ * to single after. Leaves both counts as they are. */
 // FUNCTION: XVT 0x40B2C0
 void RenderScene_FlushGeometry(void)
 {
@@ -1096,6 +1366,14 @@ void RenderScene_FlushGeometry(void)
 	Math_SetFpuSinglePrecisionMode();
 }
 
+/* Appends vertex vertexIndex of vertices to g_flightVertexBuffer and returns
+ * its index there, adding 1 to g_d3dVertexCount. Adds g_flightVpOriginX and
+ * g_flightVpOriginY to x and y, takes a negative scaledInverseDepth as
+ * g_projScaleInt, writes that as rhw and 1 / (depth * g_invDepthProjScale + 1)
+ * as z, or 1 minus that when g_std3DZCompareCap is 2. The color is a gray of
+ * (int)(light * 320) + 48, at most 255, with alpha 0xFE while g_capVertexAlpha
+ * is set and 0xFF otherwise; no specular. Ignores face. Does not check
+ * g_maxBatchVerts. */
 // FUNCTION: XVT 0x40B350
 int RenderScene_EmitFlightVertex(int vertexIndex,
 				 const RenderClipVertex *vertices,
@@ -1151,9 +1429,19 @@ int RenderScene_EmitFlightVertex(int vertexIndex,
 	return g_d3dVertexCount++;
 }
 
+/* Does nothing. FlightSw_CopyViewportSpanMaskRle and
+ * FlightSw_BuildFullViewportSpanMaskRle call it. */
 // FUNCTION: XVT 0x40B520
 void nullsub_2(void) {}
 
+/* Copies the viewport span mask into the hardware z-buffer. Locks
+ * g_std3DZBufferSurface, trying again while it is still drawing and returning
+ * on any other failure, then decodes the mask at g_viewportSpanMaskOffset in
+ * g_flightAuxBuffer for g_flightVpHeight rows, writing 2 bytes per pixel: one
+ * value for the runs the mask marks (a negative run type) and the other for the
+ * rest, 0xFF and 0 when g_std3DZCompareCap is 16, else 0 and 0xFF. The viewport
+ * starts g_flightVpX pixels and g_flightVpY rows past half the margin between
+ * display mode and surface. Only Hud_Update3DCrt calls it. */
 // FUNCTION: XVT 0x40B530
 void std3D_FillZBufferFromViewportMask(void)
 {
@@ -1238,6 +1526,9 @@ void std3D_FillZBufferFromViewportMask(void)
 					      lockedSurface);
 }
 
+/* Fills g_flightBackBuffer with
+ * g_flightPalette16Bpp[g_flightTransparentColorIndex] by a color-fill blit and
+ * returns what std3D_ClearZBuffer returns. */
 // FUNCTION: XVT 0x40B750
 int RenderScene_ClearFrameBuffers(void)
 {
@@ -1253,6 +1544,8 @@ int RenderScene_ClearFrameBuffers(void)
 	return std3D_ClearZBuffer();
 }
 
+/* When g_std3DZBufferSurface is set, detaches it from g_flightBackBuffer,
+ * releases it and sets it to NULL. */
 // FUNCTION: XVT 0x40BBC0
 void std3D_DetachAndReleaseZBufferSurface(void)
 {
@@ -1264,6 +1557,21 @@ void std3D_DetachAndReleaseZBufferSurface(void)
 	}
 }
 
+/* Sets outVert's light level, 0 to 1. A projectile
+ * (CRAFT_GENUS_OTHER_PROJECTILE or CRAFT_GENUS_PLAYER_PROJECTILE) gets 1.
+ * Otherwise it starts, with g_dirLightingEnabled, at 0.8 times the normal's dot
+ * product with the light direction, 0 when that is negative or the model blocks
+ * the light; without it, at 0.4. Each point light in g_objectPointLights the
+ * model does not block then adds its intensity times diffuse plus specular,
+ * when that sum is over 0. Diffuse is the normal's dot product with the offset
+ * to the light over the rough distance squared. Specular, with
+ * g_specularEnabled, is c to the 48th power when c is 0.5 or more, else 0,
+ * where c is half the normal's dot product with the half vector (eye offset
+ * plus light offset) over that vector's rough length. Stops at 1. In the
+ * software path a light behind the vertex is skipped; in the hardware path one
+ * is skipped when that first dot product over the rough distance is under -0.3,
+ * and diffuse is 0.5 over the rough distance instead. The blocking test,
+ * RenderScene_IsSegmentOccludedByObjectModel, always says no. */
 // FUNCTION: XVT 0x4201F0
 void RenderScene_ComputeVertexLighting(SceneMesh *mesh, ProjVertex *outVert,
 				       const OptVector *normal,
@@ -1458,6 +1766,9 @@ void RenderScene_ComputeVertexLighting(SceneMesh *mesh, ProjVertex *outVert,
 	}
 }
 
+/* Copies the face's u and v axes from faceTexGradients into gradients[0] to [2]
+ * and [3] to [5], each turned by the orientation at viewPosAndOrient + 3 with
+ * Math3D_RotateVec3. */
 // FUNCTION: XVT 0x420DB0
 void RenderScene_TransformFaceTextureGradients(
 	SceneFace *face, const FaceTextureGradients *faceTexGradients,
@@ -1474,6 +1785,10 @@ void RenderScene_TransformFaceTextureGradients(
 	Math3D_RotateVec3(&face->gradients[3], viewPosAndOrient + 3);
 }
 
+/* Carries a model point into view space (the orientation at viewPosAndOrient +
+ * 3, then the position at viewPosAndOrient) and projects it: outProjected[2] is
+ * g_projScaleInt over depth, [0] and [1] viewport x and y. Does not check for a
+ * depth of 0 or less. Nothing calls this. */
 // FUNCTION: XVT 0x420E10
 void RenderScene_TransformProjectLegacyPoint(float outProjected[3],
 					     const float point[3],
@@ -1496,6 +1811,9 @@ void RenderScene_TransformProjectLegacyPoint(float outProjected[3],
 	outProjected[1] += g_projOffsetY + (int)(g_flightVpHeight >> 1);
 }
 
+/* The distant form of RenderScene_TransformProjectLegacyPoint: adds 100000 to
+ * the depth and scales the projection by g_projScaleInt / viewPosAndOrient[2] *
+ * 100000. Nothing calls this. */
 // FUNCTION: XVT 0x420EE0
 void RenderScene_TransformProjectLegacyDistantPoint(
 	float outProjected[3], const float point[3],
@@ -1522,6 +1840,13 @@ void RenderScene_TransformProjectLegacyDistantPoint(
 	outProjected[1] += g_projOffsetY + (int)(g_flightVpHeight >> 1);
 }
 
+/* Appends to g_visFaceList each face of the mesh whose normal's dot product
+ * with the offset from its first corner to the eye is 0 or more, setting its
+ * faceIndex, pMesh, light-sample row, faceAndLayerId and a NULL pScanEdge, and
+ * raising g_lightSampleSlotIndex up to 199. Sets the mesh's faceBaseIndex and
+ * visFaceCount, g_visFaceCount, and g_meshEyePos: the mesh's eye, or, while
+ * g_bBackdropMeshMode is set, that eye 100000 back along view z. Does not check
+ * g_sceneFaceMax; the callers do. */
 // FUNCTION: XVT 0x470140
 void RenderScene_CullMeshFacesFromView(SceneMesh *mesh)
 {
@@ -1588,6 +1913,12 @@ void RenderScene_CullMeshFacesFromView(SceneMesh *mesh)
 	mesh->visFaceCount = g_visFaceCount - mesh->faceBaseIndex;
 }
 
+/* Draws one mesh: in the hardware path through RenderScene_DrawMeshHardware.
+ * Otherwise sets g_projVertCount and g_sceneEdgeCursor to 0 and, when
+ * g_meshQueue has room and the mesh's faces, vertices and edges fit, copies it
+ * into g_meshQueue and culls it; when faces are left, projects it with sw3d
+ * (distant while g_bBackdropMeshMode is set), turns its faces into spans with
+ * sw3d_RasterizeMeshFaces and advances g_meshQueueIndex. */
 // FUNCTION: XVT 0x471E00
 void RenderScene_DrawSceneMesh(SceneMesh *mesh)
 {
@@ -1618,6 +1949,10 @@ void RenderScene_DrawSceneMesh(SceneMesh *mesh)
 	}
 }
 
+/* Turns the mesh by the B-wing bridge's meshRotation byte, times
+ * g_meshRotationByteToRadiansScale, about the axis (0, -1, 0): multiplies
+ * viewToModelOrient by that rotation, turns eyeModelSpace by it, and multiplies
+ * viewOrient by its transpose from the left. Ignores unusedModel. */
 // FUNCTION: XVT 0x472360
 void RenderScene_ApplyBwingBridgeRotation(OptimizedPolyObject *unusedModel,
 					  ObjectRecord *obj, SceneMesh *mesh,
@@ -1640,6 +1975,18 @@ void RenderScene_ApplyBwingBridgeRotation(OptimizedPolyObject *unusedModel,
 	Math3D_PreMulTransposedMatrix3x3(mesh->viewOrient, rotationMatrix);
 }
 
+/* Draws an object's whole model. Locks g_loadedModels[objectType], fixing its
+ * pointers when the model has moved, and sets g_nodeSwitchIndex from the object
+ * (0 without a mobile record). The mesh starts at the object's offset from the
+ * camera turned by the Q15 camera matrix, with orientations from the
+ * g_objViewMat matrix and the eye in model space; the built-in white texture is
+ * made on first use. Each root node is walked with RenderScene_DrawModelNode,
+ * raising g_curLayerId. For a craft, each root other than a texture is one
+ * component: a component whose componentState is set is skipped, and its
+ * meshRotation byte gives rotAngle; for a B-wing whose bridge meshRotation is
+ * nonzero, the bridge rotation is applied to the mesh for that root and taken
+ * back after. Clears the model walk's g_cur globals first and unlocks the model
+ * at the end. */
 // FUNCTION: XVT 0x472400
 void RenderScene_DrawObjectModel(ObjectRecord *obj)
 {
@@ -1818,6 +2165,11 @@ void RenderScene_DrawObjectModel(ObjectRecord *obj)
 	Memory_UnlockHandle(modelHandle);
 }
 
+/* Draws one root node of an object's model, set up as
+ * RenderScene_DrawObjectModel sets up the whole; a component object (type 89)
+ * uses its source object's model. Texture roots are walked as well, and each
+ * one met raises rootNodeIndex by 1, so texture roots ahead of the wanted one
+ * do not count. No component is skipped and no rotation is applied. */
 // FUNCTION: XVT 0x4728D0
 void RenderScene_DrawSelectedRootNode(ObjectRecord *obj, int rootNodeIndex)
 {
@@ -1964,6 +2316,24 @@ void RenderScene_DrawSelectedRootNode(ObjectRecord *obj, int rootNodeIndex)
 	Memory_UnlockHandle(modelHandle);
 }
 
+/* Walks one model node and those below it, updating mesh and drawing face data.
+ * Follows node references first (in the modern build through the cached
+ * resolver; in the original, while g_cacheResolvedOptNodeRefs is set, through a
+ * pointer cached in the node) and returns when one resolves to nothing. By
+ * type: face data sets the mesh's faces, normals and texture axes, takes
+ * g_curTextureDesc when the mesh has no texture, and calls
+ * RenderScene_DrawSceneMesh, with the generated vertex normals when the mesh
+ * has none; transform, translation, rotation and scale nodes update viewPos,
+ * viewOrient, viewToModelOrient and eyeModelSpace; vertex, normal and
+ * texture-coordinate nodes set those arrays; a texture node sets the texture,
+ * palettes and g_curTextureDesc; a material binding copies g_curMeshMaterials
+ * into the field its payload count picks; a rotate-and-scale node turns the
+ * mesh by rotAngle about its axis through its pivot; a face group picks a child
+ * by distance, or by g_forcedLodLevel, and a node switch picks child
+ * g_nodeSwitchIndex + 1, at most the last. Then walks the picked child, or none
+ * when a face group's thresholds all fail, or with no pick every child with a
+ * copy of the mesh after clearing the walk's g_cur globals. Raises g_curLayerId
+ * before each child. */
 // FUNCTION: XVT 0x472C90
 void RenderScene_DrawModelNode(OptimizedPolyObject *model, OptNode *node,
 			       SceneMesh *mesh)
@@ -2435,18 +2805,25 @@ void RenderScene_DrawModelNode(OptimizedPolyObject *model, OptNode *node,
 	}
 }
 
+/* Flips g_vertexLightOcclusionEnabled between 0 and 1. Nothing calls this. */
 // FUNCTION: XVT 0x473550
 void RenderScene_ToggleVertexLightOcclusion(void)
 {
 	g_vertexLightOcclusionEnabled = !g_vertexLightOcclusionEnabled;
 }
 
+/* Returns g_vertexLightOcclusionEnabled. Nothing calls this. */
 // FUNCTION: XVT 0x473570
 int RenderScene_GetVertexLightOcclusionEnabled(void)
 {
 	return g_vertexLightOcclusionEnabled;
 }
 
+/* Returns 1 when the segment from segmentStart to segmentEnd crosses a face of
+ * the object's model (RenderScene_TestSegmentAgainstModelNode on each root),
+ * else 0. Returns 0 at once while g_vertexLightOcclusionEnabled is 0, which it
+ * always is. Otherwise unlocks the model's handle and locks it again, and
+ * clears the model walk's g_cur globals. */
 // FUNCTION: XVT 0x473580
 int RenderScene_IsSegmentOccludedByObjectModel(ObjectRecord *object,
 					       const OptVector *segmentStart,
@@ -2502,6 +2879,14 @@ int RenderScene_IsSegmentOccludedByObjectModel(ObjectRecord *object,
 	return 0;
 }
 
+/* Returns 1 when the segment crosses a face at this node or below it, else 0.
+ * Follows node references, returning 0 when one resolves to nothing; applies
+ * transform, translation, rotation and scale nodes to mesh as
+ * RenderScene_DrawModelNode does and sets vertices and normals; tests face data
+ * with RenderScene_TestSegmentAgainstMeshFaces; then tests every child with a
+ * copy of the mesh. It makes no face-group or node-switch choice, so every
+ * child is tested, and the test reads the stored vertices, so the transforms it
+ * applies do not move them. */
 // FUNCTION: XVT 0x4736B0
 int RenderScene_TestSegmentAgainstModelNode(OptimizedPolyObject *model,
 					    OptNode *node, SceneMesh *mesh,
@@ -2683,6 +3068,16 @@ int RenderScene_TestSegmentAgainstModelNode(OptimizedPolyObject *model,
 	return 0;
 }
 
+/* Returns 1 when the segment crosses one of the mesh's faces, else 0. Skips a
+ * face whose corners all lie at or beyond both ends on one side on x, y or z.
+ * Then needs the start 40 or more from the face's plane, measured along its
+ * normal, and the end strictly on the other side. Puts the crossing at start +
+ * (end - start) * (-ds / de), ds and de being the ends' distances from the
+ * plane; drops one axis, picked by comparing the normal's components as signed
+ * values (z when x and y are both under z, else y when x is under y and y is
+ * over z, else x); and counts the point inside when the cross products with all
+ * the edges have the same sign, 0 counting as positive. A face whose
+ * vertexIdx[3] is -1 is a triangle. */
 // FUNCTION: XVT 0x473AD0
 int RenderScene_TestSegmentAgainstMeshFaces(const SceneMesh *mesh,
 					    const OptVector *segmentStart,
@@ -2902,6 +3297,16 @@ int RenderScene_TestSegmentAgainstMeshFaces(const SceneMesh *mesh,
 	return 0;
 }
 
+/* Allocates the scene's memory handles, calling
+ * FeDiskIo_FatalError(FILE_ERROR_STR_NOT_ENOUGH_MEMORY) when one fails: 20000
+ * spans, 20000 span pointers, 5000 faces, twice g_vertexRemapCapacity projected
+ * vertices, twice g_sceneEdgeFlagsCapacity edges, g_vertexRemapCapacity remap
+ * entries, g_sceneEdgeFlagsCapacity edge flags, 768 edge pointers, 768 row
+ * heads, 0x25800 bytes of light samples and 500 queued meshes. Sets those
+ * capacities and the sw3d light-sample block, 16 pixels. In the original build
+ * it then makes 0x80000 bytes from 0x217 bytes past its own start readable,
+ * writable and executable; the modern build's Memory_SetRegionExecuteReadWrite
+ * does nothing. */
 // FUNCTION: XVT 0x485CD0
 void RenderScene_AllocateBuffers(void)
 {
@@ -3006,6 +3411,17 @@ void RenderScene_AllocateBuffers(void)
 	Memory_SetRegionExecuteReadWrite(codeAddress[0], 0x80000);
 }
 
+/* Starts a pass of scene drawing. The original build saves the x87 control word
+ * in g_sw3dInitializeSceneSavedFpuControl and sets extended precision; the
+ * modern build clears the 0x300 bits of g_sw3dFpuControlWordScratch. Gives
+ * g_sw3dCockpitMaskSentinelFace a scaledInverseDepth and a 1-over-depth plane
+ * of 1e32, and locks every scene buffer. With resetSceneState nonzero it
+ * empties the face list, span pointers, light-sample rows and mesh queue, and
+ * rebuilds g_scanlineSpanHeads from the viewport span mask: one span with the
+ * sentinel face for each run the mask marks. With 0 it starts the new pass at
+ * g_visFaceCount. Then sets g_lightSampleSlotStride, adds g_flightVpHeight to
+ * g_sw3dLightSampleCacheSceneStampBase, sets g_invProjScale, and in the
+ * hardware path calls RenderScene_InitHardwareFrame. */
 // FUNCTION: XVT 0x485F00
 void RenderScene_Initialize(int resetSceneState)
 {
@@ -3115,6 +3531,8 @@ void RenderScene_Initialize(int resetSceneState)
 	}
 }
 
+/* Unlocks the eleven scene buffers and sets their pointers to NULL. Returns
+ * 0. */
 // FUNCTION: XVT 0x486200
 int RenderScene_UnlockBuffers(void)
 {
@@ -3143,6 +3561,8 @@ int RenderScene_UnlockBuffers(void)
 	return 0;
 }
 
+/* Frees each of the eleven scene memory handles that is nonzero and sets all
+ * eleven to 0. */
 // FUNCTION: XVT 0x4862E0
 void RenderScene_FreeBuffers(void)
 {

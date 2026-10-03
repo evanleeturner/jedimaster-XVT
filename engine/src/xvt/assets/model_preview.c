@@ -24,101 +24,220 @@
 #include <math.h>
 #include <string.h>
 
+/* 1 / 32767, which turns a 1.15 fixed point matrix entry into a float in
+ * ModelPreview_RenderViewport. */
 // GLOBAL: XVT 0x518100
 const float g_modelPreviewMatrixQ15ToFloatScale = 0.000030518509f;
+/* The 1.0 ModelPreview_SetLightDirection divides by the vector's length. */
 // GLOBAL: XVT 0x518110
 static const double g_modelPreviewInvLengthNumerator = 1.0;
+/* Size, in model units, that ModelPreview_LoadModel scales a model's largest
+ * extent to: 500. */
 // GLOBAL: XVT 0x5180F8
 const double g_modelPreviewTargetBoundsExtent = 500.0;
+/* 32767, which turns a unit light direction into 1.15 fixed point in
+ * ModelPreview_SetLightDirection. */
 // GLOBAL: XVT 0x518118
 static const double g_modelPreviewLightDirectionQ15Scale = 32767.0;
+/* 65,536 / 360: degrees to angle units. */
 // GLOBAL: XVT 0x518120
 static const double g_degreesToQ16AngleScale = 182.04444444444445;
+/* 1600, which ModelPreview_GetDisplayedSizeMeters multiplies the extent by. */
 // GLOBAL: XVT 0x518128
 static const double g_modelPreviewMetersScale = 1600.0;
+/* 1 / 65,536, which ModelPreview_GetDisplayedSizeMeters multiplies the extent
+ * by. */
 // GLOBAL: XVT 0x518130
 static const double g_modelPreviewQ16Scale = 0.0000152587890625;
+/* Angle about the up axis, 65,536 a full circle, that
+ * ModelPreview_RenderViewport passes to FVIEW_SetObjectTransform. Set by
+ * ModelPreview_SetObjectUpAxisAngleDegrees and ModelPreview_RestoreState; 0
+ * after each successful load. */
 // GLOBAL: XVT 0x520EC0
 int16_t g_modelPreviewUpAxisAngle;
+/* The preview model's block, locked by ModelPreview_LoadModel; NULL until the
+ * first load. The modern XvtFrontendTask_Shutdown sets it back to NULL. */
 // GLOBAL: XVT 0x520EC4
 OptimizedPolyObject *g_modelPreviewModelData = NULL;
 /* Nothing sets this flag, and ModelPreview_LoadModel clears it through ModelPreview_FreeResources before
  * testing it, so every load resets the preview object, view and light. */
+/* Only ModelPreview_FreeResources writes it, and it writes 0. */
 // GLOBAL: XVT 0x520EC8
 int g_modelPreviewSkipSceneReset = 0;
+/* 1 once ModelPreview_RenderViewport has allocated the render buffers and the
+ * span mask; ModelPreview_FreeResources frees the buffers and sets it to 0. */
 // GLOBAL: XVT 0x520ECC
 int g_modelPreviewRenderResourcesInitialized = 0;
+/* Memory handle of the preview's span mask buffer: ModelPreview_RenderViewport
+ * allocates it, regrows it when too small and points g_flightAuxBuffer at it.
+ * The modern XvtFrontendTask_Shutdown sets it to 0. */
 // GLOBAL: XVT 0x520ED0
 uint16_t g_modelPreviewAuxBufferHandle = 0;
+/* Bytes allocated for g_modelPreviewAuxBufferHandle; written by the same two
+ * functions. */
 // GLOBAL: XVT 0x520ED4
 unsigned int g_modelPreviewAuxBufferCapacityBytes = 0;
+/* The preview model's largest extent, in model units before scaling, from
+ * ModelPreview_ComputeOptBoundsExtent; set by each load. */
 // GLOBAL: XVT 0x520ED8
 double g_modelPreviewBoundsExtent;
+/* Which child of an OPT_NODESWITCH node is drawn: RenderScene_DrawModelNode
+ * takes g_nodeSwitchIndex + 1, cut to the node's child count, as its selection.
+ * RenderScene_DrawObjectModel and RenderScene_DrawSelectedRootNode set it from
+ * the drawn object's mobj->nodeSwitchIndex (0 without a mobj);
+ * ModelPreview_SetNodeSwitchIndex and ModelPreview_RestoreState set it for the
+ * preview, which ModelPreview_RenderViewport copies into the preview object. */
 // GLOBAL: XVT 0x5233A0
 int g_nodeSwitchIndex;
+/* The object the preview draws. Its objectType is 0, so it draws
+ * g_loadedModels[0]; its mobj is g_modelPreviewMobileObject. Each successful
+ * load resets its position and angles to 0. */
 // GLOBAL: XVT 0x5561E8
 ObjectRecord g_modelPreviewObject;
+/* Factor ModelPreview_LoadModel scaled the preview model by:
+ * g_modelPreviewTargetBoundsExtent over g_modelPreviewBoundsExtent. */
 // GLOBAL: XVT 0x5561E0
 double g_modelPreviewScale = 0.0;
+/* The preview object's mobile part, cleared by each successful load, with
+ * g_modelPreviewCraftScratch as its craft. */
 // GLOBAL: XVT 0x556218
 MobileObject g_modelPreviewMobileObject = {0};
+/* Name of the preview's OPT file, set by ModelPreview_LoadModel once the file
+ * is loaded; ModelPreview_SaveState copies it. */
 // GLOBAL: XVT 0x555CC8
 char g_modelPreviewOptFileName[128];
+/* Preview pitch saved by ModelPreview_SaveState, put back by
+ * ModelPreview_RestoreState. */
 // GLOBAL: XVT 0x555CC0
 int16_t g_savedModelPreviewPitch;
+/* Preview yaw saved by ModelPreview_SaveState, put back by
+ * ModelPreview_RestoreState. */
 // GLOBAL: XVT 0x555CC4
 int16_t g_savedModelPreviewYaw;
+/* Largest z over the model's vertices, starting from 0, while
+ * ModelPreview_ComputeOptBoundsExtent runs; afterwards the z extent. */
 // GLOBAL: XVT 0x555D48
 static float g_modelPreviewBoundsMaxZ = 0.0f;
+/* Smallest z over the model's vertices, starting from 0, for
+ * ModelPreview_ComputeOptBoundsExtent. */
 // GLOBAL: XVT 0x555D4C
 static float g_modelPreviewBoundsMinZ = 0.0f;
+/* Largest x over the model's vertices, starting from 0, while
+ * ModelPreview_ComputeOptBoundsExtent runs; afterwards the x extent. */
 // GLOBAL: XVT 0x555D50
 static float g_modelPreviewBoundsMaxX = 0.0f;
+/* Smallest x over the model's vertices, starting from 0, for
+ * ModelPreview_ComputeOptBoundsExtent. */
 // GLOBAL: XVT 0x555D54
 static float g_modelPreviewBoundsMinX = 0.0f;
+/* Light direction z saved by ModelPreview_SaveState, put back by
+ * ModelPreview_RestoreState. */
 // GLOBAL: XVT 0x555D58
 int16_t g_savedModelPreviewLightDirectionZ;
+/* Preview world y saved by ModelPreview_SaveState, put back by
+ * ModelPreview_RestoreState. */
 // GLOBAL: XVT 0x555D5C
 int g_savedModelPreviewWorldY;
+/* Preview world z saved by ModelPreview_SaveState, put back by
+ * ModelPreview_RestoreState. */
 // GLOBAL: XVT 0x555D60
 int g_savedModelPreviewWorldZ;
+/* Preview world x saved by ModelPreview_SaveState, put back by
+ * ModelPreview_RestoreState. */
 // GLOBAL: XVT 0x555D64
 int g_savedModelPreviewWorldX;
+/* Largest y over the model's vertices, starting from 0, while
+ * ModelPreview_ComputeOptBoundsExtent runs; afterwards the y extent. */
 // GLOBAL: XVT 0x555D68
 static float g_modelPreviewBoundsMaxY = 0.0f;
+/* Smallest y over the model's vertices, starting from 0, for
+ * ModelPreview_ComputeOptBoundsExtent. */
 // GLOBAL: XVT 0x555D6C
 static float g_modelPreviewBoundsMinY = 0.0f;
+/* Craft record the preview's mobile object points at, cleared by each
+ * successful load. */
 // GLOBAL: XVT 0x555D78
 CraftData g_modelPreviewCraftScratch = {0};
+/* Light direction y saved by ModelPreview_SaveState, put back by
+ * ModelPreview_RestoreState. */
 // GLOBAL: XVT 0x555D70
 int16_t g_savedModelPreviewLightDirectionY;
+/* Light direction x saved by ModelPreview_SaveState, put back by
+ * ModelPreview_RestoreState. */
 // GLOBAL: XVT 0x555D74
 int16_t g_savedModelPreviewLightDirectionX;
+/* g_nodeSwitchIndex saved by ModelPreview_SaveState, put back by
+ * ModelPreview_RestoreState. */
 // GLOBAL: XVT 0x5561DC
 int g_savedModelPreviewNodeSwitchIndex;
+/* g_modelPreviewUpAxisAngle saved by ModelPreview_SaveState, put back by
+ * ModelPreview_RestoreState. */
 // GLOBAL: XVT 0x55620C
 int16_t g_savedModelPreviewUpAxisAngle;
+/* Preview roll saved by ModelPreview_SaveState, put back by
+ * ModelPreview_RestoreState. */
 // GLOBAL: XVT 0x556210
 int16_t g_savedModelPreviewRoll;
+/* Preview file name saved by ModelPreview_SaveState; ModelPreview_RestoreState
+ * loads it again. */
 // GLOBAL: XVT 0x5562D0
 char g_savedModelPreviewModelFileName[128];
+/* X of the light direction in world axes, 1.15 fixed point. Flight start sets
+ * all three to DEFAULT_MODEL_LIGHT_DIRECTION (Flight_MainLoop in the original
+ * build, XvtFlightLoading_MissionSetup in the modern one);
+ * ModelPreview_SetLightDirection and ModelPreview_RestoreState set them for the
+ * preview. FVIEW_ComputeObjectViewMatrix turns them into the object's light
+ * direction. */
 // GLOBAL: XVT 0x9D12EC
 int g_worldLightDirectionX;
+/* Y of the light direction in world axes; written and read like
+ * g_worldLightDirectionX. */
 // GLOBAL: XVT 0x9D12F0
 int g_worldLightDirectionY;
+/* Z of the light direction in world axes; written and read like
+ * g_worldLightDirectionX. */
 // GLOBAL: XVT 0x9D1304
 int g_worldLightDirectionZ;
+/* The preview object's position less the camera's, turned into camera axes;
+ * ModelPreview_RenderViewport sets it each draw and makes its z
+ * g_viewSpaceDepth. The modern build passes it to
+ * XvtRenderCapture_FrontendPreview. */
 // GLOBAL: XVT 0xA60710
 OptVector g_modelPreviewViewDelta = {0.0f, 0.0f, 0.0f};
+/* ModelPreview_RenderViewport's float copy of a 1.15 matrix: first the camera
+ * rotation, used to turn g_modelPreviewViewDelta, then the object-to-view
+ * rotation, which the modern build passes to
+ * XvtRenderCapture_FrontendPreview. */
 // GLOBAL: XVT 0xA6071C
 float g_modelPreviewMatrix[9] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
 				 0.0f, 0.0f, 0.0f, 0.0f};
+/* Minus g_modelPreviewViewDelta turned by g_modelPreviewObjectViewMatrix, set
+ * each draw by ModelPreview_RenderViewport; nothing reads it. */
 // GLOBAL: XVT 0xA60740
 OptVector g_modelPreviewNegViewDelta = {0.0f, 0.0f, 0.0f};
+/* The object-to-view rotation transposed, set each draw by
+ * ModelPreview_RenderViewport only to turn g_modelPreviewNegViewDelta. */
 // GLOBAL: XVT 0xA6074C
 float g_modelPreviewObjectViewMatrix[9] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
 					   0.0f, 0.0f, 0.0f, 0.0f};
 
+/* Loads a model for the frontend preview into g_loadedModels[0] and returns 1,
+ * or 0. It frees the preview's render buffers, resets the view and render
+ * settings, turns g_mipmappingEnabled on, sets g_loadedModels[0] to 0 when
+ * g_modelPreviewModelData is NULL, and opens the name with ".opt" in place of
+ * its extension. The modern build returns 0 for a NULL name, one of 256 or more
+ * characters, an extension other than ".opt", a file that does not open or a
+ * load that fails. The original build cuts the name at its first '.' and, when
+ * the OPT file does not open, imports the ".iv" file as OptModel_LoadHandle
+ * does, saving it as the OPT file. An OPT file is loaded with
+ * OptModel_LoadFileToHandle after the old slot's handle is freed, as an import
+ * frees it too, and a runtime copy built with g_flightBytesPerPixel set to 2,
+ * which it stays, takes the slot. It locks the copy into
+ * g_modelPreviewModelData, scales it so its largest extent is
+ * g_modelPreviewTargetBoundsExtent (g_modelPreviewBoundsExtent,
+ * g_modelPreviewScale), sets g_transformLightDirectionToObjectSpace, and resets
+ * the preview object and the view, and the light to (1, 1, 1). The modern build
+ * also registers the copy for its renderer. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x429E70
 int ModelPreview_LoadModel(const char *modelFileName)
@@ -314,6 +433,8 @@ int ModelPreview_LoadModel(const char *modelFileName)
 	return 1;
 }
 
+/* Frees the render buffers when g_modelPreviewRenderResourcesInitialized is set
+ * and clears it; also clears g_modelPreviewSkipSceneReset. */
 // FUNCTION: XVT 0x42A350
 void ModelPreview_FreeResources(void)
 {
@@ -324,6 +445,22 @@ void ModelPreview_FreeResources(void)
 	g_modelPreviewSkipSceneReset = 0;
 }
 
+/* Draws the preview model into the viewport at x, y, width by height and
+ * returns 1; returns 0 when g_loadedModels[0] is 0, x is 1024 or more, or y is
+ * 768 or more. A negative x moves the viewport's left edge to 0 and takes it
+ * off the width; a negative y is taken off the height but kept. The right and
+ * bottom edges are cut to 1024 by 768. It sets the flight viewport and
+ * projection globals (scale 512, perspective shift 9), builds the camera from
+ * the local player's view state and the object's transform with
+ * g_modelPreviewUpAxisAngle, and sets g_modelPreviewViewDelta and the preview
+ * matrices. The first draw after a load allocates the render buffers and the
+ * span mask in g_modelPreviewAuxBufferHandle: per row the byte 1, then a 0
+ * while the width left is 256 or more, taking 255 the first time and 256 the
+ * second (twice at most), then the width left. It draws with local lights off,
+ * the object's nodeSwitchIndex from g_nodeSwitchIndex, through
+ * RenderScene_DrawObjectModel and sw3d_DrawVisibleFacesToSurface. The modern
+ * build also records the draw for its renderer. The arguments after height are
+ * ignored. */
 // FUNCTION: XVT 0x42A380
 int ModelPreview_RenderViewport(int x, int y, int width, int height, ...)
 {
@@ -530,6 +667,12 @@ int ModelPreview_RenderViewport(int x, int y, int width, int height, ...)
 	return 1;
 }
 
+/* Multiplies by scale every vertex of each OPT_MESHVERTS node at or below node
+ * and the two texture gradient vectors of each face of each OPT_FACEDATA node,
+ * and divides by scale the first childCount floats of each OPT_FACEGROUP node.
+ * Follows OPT_NODEREF links and stops at one that does not resolve; a node
+ * reached through two links is scaled twice. Other face node types keep their
+ * gradients. */
 // FUNCTION: XVT 0x42A920
 void ModelPreview_ScaleOptNodeTree(OptNode *node, OptimizedPolyObject *opt,
 				   double scale)
@@ -621,6 +764,9 @@ void ModelPreview_ScaleOptNodeTree(OptNode *node, OptimizedPolyObject *opt,
 	}
 }
 
+/* Undoes ModelPreview_ScaleOptNodeTree: divides where it multiplies and
+ * multiplies where it divides. Only ModelPreview_UnscaleOptRootNodes calls
+ * this, and nothing calls that. */
 // FUNCTION: XVT 0x42AA60
 void ModelPreview_UnscaleOptNodeTree(OptNode *node, OptimizedPolyObject *opt,
 				     double scale)
@@ -712,6 +858,7 @@ void ModelPreview_UnscaleOptNodeTree(OptNode *node, OptimizedPolyObject *opt,
 	}
 }
 
+/* Runs ModelPreview_ScaleOptNodeTree on each root of opt. */
 // FUNCTION: XVT 0x42AC50
 void ModelPreview_ScaleOptRootNodes(OptimizedPolyObject *opt, double scale)
 {
@@ -723,6 +870,8 @@ void ModelPreview_ScaleOptRootNodes(OptimizedPolyObject *opt, double scale)
 	}
 }
 
+/* Runs ModelPreview_UnscaleOptNodeTree on each root of opt. Nothing calls
+ * this. */
 // FUNCTION: XVT 0x42AC90
 void ModelPreview_UnscaleOptRootNodes(OptimizedPolyObject *opt, double scale)
 {
@@ -734,6 +883,10 @@ void ModelPreview_UnscaleOptRootNodes(OptimizedPolyObject *opt, double scale)
 	}
 }
 
+/* Widens the preview bounds globals (g_modelPreviewBoundsMinX to
+ * g_modelPreviewBoundsMaxZ) to hold every vertex of each OPT_MESHVERTS node at
+ * or below node. Follows OPT_NODEREF links and stops at one that does not
+ * resolve. */
 // FUNCTION: XVT 0x42AD10
 void ModelPreview_AccumulateOptNodeBounds(OptNode *node,
 					  OptimizedPolyObject *object)
@@ -805,6 +958,9 @@ void ModelPreview_AccumulateOptNodeBounds(OptNode *node,
 
 /* Returns the extent (max - min) of the object's vertices and the origin on one axis: axis 1 is X,
  * 2 is Y and 3 is Z, while axis 0 returns the largest of the three extents. */
+/* Writes the six preview bounds globals, starting each at 0. For axis 0, when
+ * the x and y extents are equal and both larger than the z extent, it returns
+ * the z extent. Any axis other than 0 to 3 returns an uninitialized value. */
 // FUNCTION: XVT 0x42AE30
 double ModelPreview_ComputeOptBoundsExtent(OptimizedPolyObject *object,
 					   int axis)
@@ -856,6 +1012,10 @@ double ModelPreview_ComputeOptBoundsExtent(OptimizedPolyObject *object,
 	return result;
 }
 
+/* Points the local player's camera at the preview: position (0, -1280, 0),
+ * pitch 0x4000, roll and yaw 0, g_projOffsetY 0. Sets g_lodDistanceScale and
+ * g_mipLodScale to 1.0, g_textureResolutionLevel to 1, and turns on local
+ * lights, specular, directional lighting and dithering. Returns 1. */
 // FUNCTION: XVT 0x42AF90
 int ModelPreview_ResetViewAndRenderState(void)
 {
@@ -878,6 +1038,8 @@ int ModelPreview_ResetViewAndRenderState(void)
 	return 1;
 }
 
+/* Sets g_worldLightDirectionX, Y and Z to the direction (x, -y, z) scaled to
+ * length 32767, each cut to an int16_t. Does not check for a zero vector. */
 // FUNCTION: XVT 0x42B010
 void ModelPreview_SetLightDirection(int x, int y, int z)
 {
@@ -903,6 +1065,8 @@ void ModelPreview_SetLightDirection(int x, int y, int z)
 		(int16_t)(int)(lightZ * g_modelPreviewLightDirectionQ15Scale);
 }
 
+/* Sets the preview object's pitch, yaw and roll from degrees, times 65,536 /
+ * 360, each cut to an int16_t. */
 // FUNCTION: XVT 0x42B090
 void ModelPreview_SetObjectEulerDegrees(float pitchDeg, float yawDeg,
 					float rollDeg)
@@ -920,12 +1084,14 @@ void ModelPreview_SetObjectEulerDegrees(float pitchDeg, float yawDeg,
 		(int16_t)(int)(angle * g_degreesToQ16AngleScale);
 }
 
+/* Sets g_nodeSwitchIndex. */
 // FUNCTION: XVT 0x42B0D0
 void ModelPreview_SetNodeSwitchIndex(int nodeSwitchIndex)
 {
 	g_nodeSwitchIndex = nodeSwitchIndex;
 }
 
+/* Sets the preview object's world position. */
 // FUNCTION: XVT 0x42B0E0
 void ModelPreview_SetObjectWorldPosition(int x, int y, int z)
 {
@@ -934,6 +1100,9 @@ void ModelPreview_SetObjectWorldPosition(int x, int y, int z)
 	g_modelPreviewObject.world_z = z;
 }
 
+/* Saves the preview's file name, position, angles, light direction,
+ * g_nodeSwitchIndex and g_modelPreviewUpAxisAngle in the g_savedModelPreview
+ * globals. */
 // FUNCTION: XVT 0x42B100
 void ModelPreview_SaveState(void)
 {
@@ -951,6 +1120,8 @@ void ModelPreview_SaveState(void)
 	g_savedModelPreviewUpAxisAngle = g_modelPreviewUpAxisAngle;
 }
 
+/* Loads the saved file name again with ModelPreview_LoadModel, ignoring a
+ * failure, then puts back what ModelPreview_SaveState saved. */
 // FUNCTION: XVT 0x42B1B0
 void ModelPreview_RestoreState(void)
 {
@@ -968,6 +1139,8 @@ void ModelPreview_RestoreState(void)
 	g_modelPreviewUpAxisAngle = g_savedModelPreviewUpAxisAngle;
 }
 
+/* Sets g_modelPreviewUpAxisAngle from degrees, times 65,536 / 360, cut to an
+ * int16_t. */
 // FUNCTION: XVT 0x42B250
 void ModelPreview_SetObjectUpAxisAngleDegrees(float angleDeg)
 {
@@ -977,6 +1150,8 @@ void ModelPreview_SetObjectUpAxisAngleDegrees(float angleDeg)
 		(int16_t)(int)(angle * g_degreesToQ16AngleScale);
 }
 
+/* Returns g_modelPreviewBoundsExtent times 1600 times 1 / 65,536, cut to an
+ * int. */
 // FUNCTION: XVT 0x42B270
 int ModelPreview_GetDisplayedSizeMeters(void)
 {

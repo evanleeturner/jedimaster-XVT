@@ -3,13 +3,30 @@
 #include "xvt/assets/object_type.h"
 #include "xvt/util/memory.h"
 
+/* Per object type, the smallest corner of its model's box, which
+ * ModelBounds_EnsureCached fills; only that function writes it. */
 // GLOBAL: XVT 0x662CE8
 OptVector g_modelBoundsMin[201] = {{0}};
+/* Per object type, 1 once ModelBounds_EnsureCached has filled its bounds, so
+ * the getters stop calling it. Only that function writes it and nothing sets it
+ * back to 0, so a model loaded later for the same type keeps the first bounds.
+ * The table has one entry more than there are types. */
 // GLOBAL: XVT 0x663658
 int g_modelBoundsCached[202] = {0};
+/* Per object type, the largest corner of its model's box, which
+ * ModelBounds_EnsureCached fills; only that function writes it. */
 // GLOBAL: XVT 0x663980
 OptVector g_modelBoundsMax[201] = {{0}};
 
+/* Fills g_modelBoundsMin and g_modelBoundsMax for the object type and sets its
+ * g_modelBoundsCached entry to 1. From the first OPT_MESHVERTS node of each
+ * root other than an OPT_TEXTURE, when it has at least two vertices, it takes
+ * the last two, which the converter makes the box's smallest and largest
+ * corners: the smallest components of the second-to-last vertices and the
+ * largest of the last ones are kept. A model with none gives 1073741800.0 for
+ * every smallest and -1073741800.0 for every largest component. Does nothing
+ * when the type's assetFlags lacks the 0x1 bit, and does not check that
+ * g_loadedModels holds a handle. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4ADD60
 void ModelBounds_EnsureCached(int objectType)
@@ -82,6 +99,8 @@ void ModelBounds_EnsureCached(int objectType)
 	}
 }
 
+/* Returns the largest of the object type's three box sizes, cut to an int,
+ * filling the cache first when needed (ModelBounds_EnsureCached). */
 // FUNCTION: XVT 0x4ADF10
 int ModelBounds_GetMaxExtent(int objectType)
 {
@@ -106,6 +125,8 @@ int ModelBounds_GetMaxExtent(int objectType)
 	return (int)size[0];
 }
 
+/* Returns the y of the object type's smallest box corner, cut to an int,
+ * filling the cache first when needed. */
 // FUNCTION: XVT 0x4ADFF0
 int ModelBounds_GetMinY(int objectType)
 {
@@ -115,6 +136,8 @@ int ModelBounds_GetMinY(int objectType)
 	return (int)g_modelBoundsMin[objectType].y;
 }
 
+/* Returns the z of the object type's smallest box corner, cut to an int,
+ * filling the cache first when needed. */
 // FUNCTION: XVT 0x4AE020
 int ModelBounds_GetMinZ(int objectType)
 {
@@ -124,6 +147,8 @@ int ModelBounds_GetMinZ(int objectType)
 	return (int)g_modelBoundsMin[objectType].z;
 }
 
+/* Returns the y of the object type's largest box corner, cut to an int, filling
+ * the cache first when needed. */
 // FUNCTION: XVT 0x4AE080
 int ModelBounds_GetMaxY(int objectType)
 {
@@ -133,6 +158,8 @@ int ModelBounds_GetMaxY(int objectType)
 	return (int)g_modelBoundsMax[objectType].y;
 }
 
+/* Returns the z of the object type's largest box corner, cut to an int, filling
+ * the cache first when needed. */
 // FUNCTION: XVT 0x4AE0B0
 int ModelBounds_GetMaxZ(int objectType)
 {
@@ -142,6 +169,8 @@ int ModelBounds_GetMaxZ(int objectType)
 	return (int)g_modelBoundsMax[objectType].z;
 }
 
+/* Returns the object type's box size along x, largest minus smallest corner,
+ * cut to an int, filling the cache first when needed. */
 // FUNCTION: XVT 0x4AE0E0
 int ModelBounds_GetSizeX(int objectType)
 {
@@ -152,6 +181,8 @@ int ModelBounds_GetSizeX(int objectType)
 		     g_modelBoundsMin[objectType].x);
 }
 
+/* Returns the object type's box size along y, largest minus smallest corner,
+ * cut to an int, filling the cache first when needed. */
 // FUNCTION: XVT 0x4AE120
 int ModelBounds_GetSizeY(int objectType)
 {
@@ -163,6 +194,8 @@ int ModelBounds_GetSizeY(int objectType)
 		     g_modelBoundsMin[objectType].y);
 }
 
+/* Returns the object type's box size along z, largest minus smallest corner,
+ * cut to an int, filling the cache first when needed. */
 // FUNCTION: XVT 0x4AE160
 int ModelBounds_GetSizeZ(int objectType)
 {

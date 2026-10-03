@@ -2,9 +2,13 @@
 #include "xvt/assets/file.h"
 
 #ifndef XVT_MODERN
+/* The fscanf format " %c": skip blanks, then read one character. Every function
+ * in this file reads with it. */
 // GLOBAL: XVT 0x51BE2C
 static const char g_inventorAsciiCharScanFormat[] = " %c";
 
+/* Consumes the stream up to and including the next '{', or to the end of the
+ * file. Only the original build calls this. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4138A0
 void InventorAscii_SkipPastOpenBrace(XvtFile *stream)
@@ -17,6 +21,8 @@ void InventorAscii_SkipPastOpenBrace(XvtFile *stream)
 	}
 }
 
+/* Consumes the stream up to and including the next '[', or to the end of the
+ * file. Only the original build calls this. */
 // FUNCTION: XVT 0x4138E0
 void InventorAscii_SkipPastOpenBracket(XvtFile *stream)
 {
@@ -28,6 +34,9 @@ void InventorAscii_SkipPastOpenBracket(XvtFile *stream)
 	}
 }
 
+/* Unless the next non-blank character is ']', consumes the stream up to and
+ * including the next ',', or to the end of the file, so items with no comma
+ * between them are consumed too. Only the original build calls this. */
 // FUNCTION: XVT 0x413920
 void InventorAscii_SkipListSeparator(XvtFile *stream)
 {
@@ -41,6 +50,8 @@ void InventorAscii_SkipListSeparator(XvtFile *stream)
 	}
 }
 
+/* Consumes the stream up to and including the next '"', or to the end of the
+ * file. Only the original build calls this. */
 // FUNCTION: XVT 0x413970
 void InventorAscii_SkipPastQuote(XvtFile *stream)
 {
@@ -52,6 +63,8 @@ void InventorAscii_SkipPastQuote(XvtFile *stream)
 	}
 }
 
+/* Consumes the stream up to and including the next '}', or to the end of the
+ * file. Only the original build calls this. */
 // FUNCTION: XVT 0x4139B0
 void InventorAscii_SkipPastCloseBrace(XvtFile *stream)
 {
@@ -63,6 +76,8 @@ void InventorAscii_SkipPastCloseBrace(XvtFile *stream)
 	}
 }
 
+/* Consumes the stream up to and including the next ']', or to the end of the
+ * file. Only the original build calls this. */
 // FUNCTION: XVT 0x4139F0
 void InventorAscii_SkipPastCloseBracket(XvtFile *stream)
 {
@@ -74,6 +89,9 @@ void InventorAscii_SkipPastCloseBracket(XvtFile *stream)
 	}
 }
 
+/* Returns 1 when the next non-blank character is '"', else 0, also at the end
+ * of the file; seeks back, so the stream does not move. Only the original build
+ * calls this. */
 // FUNCTION: XVT 0x413A30
 int InventorAscii_PeekNextIsQuote(XvtFile *stream)
 {
@@ -96,6 +114,9 @@ int InventorAscii_PeekNextIsQuote(XvtFile *stream)
 	return 0;
 }
 
+/* Returns 1 when the next non-blank character is '}', else 0, also at the end
+ * of the file; seeks back, so the stream does not move. Only the original build
+ * calls this. */
 // FUNCTION: XVT 0x413AA0
 int InventorAscii_PeekNextIsCloseBrace(XvtFile *stream)
 {
@@ -118,6 +139,9 @@ int InventorAscii_PeekNextIsCloseBrace(XvtFile *stream)
 	return 0;
 }
 
+/* Returns 1 when the next non-blank character is '{', else 0, also at the end
+ * of the file; seeks back, so the stream does not move. Only the original build
+ * calls this. */
 // FUNCTION: XVT 0x413B10
 int InventorAscii_PeekNextIsOpenBrace(XvtFile *stream)
 {
@@ -140,6 +164,9 @@ int InventorAscii_PeekNextIsOpenBrace(XvtFile *stream)
 	return 0;
 }
 
+/* Returns 1 when the next non-blank character is ']', else 0, also at the end
+ * of the file; seeks back, so the stream does not move. Only the original build
+ * calls this. */
 // FUNCTION: XVT 0x413B80
 int InventorAscii_PeekNextIsCloseBracket(XvtFile *stream)
 {
@@ -162,6 +189,9 @@ int InventorAscii_PeekNextIsCloseBracket(XvtFile *stream)
 	return 0;
 }
 
+/* Returns 1 when the next non-blank character is '[', else 0, also at the end
+ * of the file; seeks back, so the stream does not move. Only the original build
+ * calls this. */
 // FUNCTION: XVT 0x413BF0
 int InventorAscii_PeekNextIsOpenBracket(XvtFile *stream)
 {
@@ -184,6 +214,9 @@ int InventorAscii_PeekNextIsOpenBracket(XvtFile *stream)
 	return 0;
 }
 
+/* Reads characters up to and including the next '\n'. Never stops at the end of
+ * the file: EOF cast to a byte is 0xFF, not '\n', so it loops forever there.
+ * Only the original build calls this, for a '#' comment line. */
 // FUNCTION: XVT 0x413C60
 void InventorAscii_SkipToEndOfLine(XvtFile *stream)
 {

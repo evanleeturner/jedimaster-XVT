@@ -19,9 +19,11 @@ extern uint16_t g_modelPreviewAuxBufferHandle;
 extern unsigned int g_modelPreviewAuxBufferCapacityBytes;
 
 struct ModelPreviewCraftPosition {
+	/* Preview world x MissionSetup_DrawCraftLoadout gives a craft type,
+	 * from its row of g_modelPreviewCraftPositions. */
 	int x;
-	int y;
-	int z;
+	int y; /* Preview world y for the craft type. */
+	int z; /* Preview world z for the craft type. */
 };
 
 int ModelPreview_LoadModel(const char *modelFileName);

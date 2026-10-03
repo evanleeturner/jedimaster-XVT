@@ -9,13 +9,19 @@ extern "C" {
 #endif
 
 struct SceneBillboardQueueEntry {
+	/* Object or type index RenderQuad_DrawModelTexture draws for. */
 	uint16_t objectOrTypeIndex;
+	/* Texture frame, 0x8000 to 0xFEFF from
+	 * SceneBillboard_DrawOrQueueObject. */
 	int16_t frame;
+	/* Size, before RenderQuad_DrawModelTexture scales it by depth. */
 	int16_t screenSize;
-	int16_t screenX;
+	int16_t screenX; /* Projected X on the viewport. */
+	/* Projected Y, from SceneBillboard_DrawOrQueueObject counted up from
+	 * the viewport's bottom. */
 	int16_t screenY;
-	int depthZ;
-	int16_t rotationAngle;
+	int depthZ; /* View depth; the queue is drawn largest first. */
+	int16_t rotationAngle; /* Roll on screen, in angle units. */
 };
 
 extern uint16_t g_billboardModelNodeSwitchIndex;

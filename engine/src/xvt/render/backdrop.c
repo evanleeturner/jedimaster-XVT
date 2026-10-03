@@ -12,41 +12,73 @@
 #include "xvt/util/game_rand.h"
 #include "xvt/util/memory.h"
 
+/* Object type of each backdrop record, whose texture block holds its image:
+ * Backdrop_GenerateDefaultRecords fills the first 22 at random and Mission_Init
+ * puts a mission's backdrop flight groups over them. */
 // GLOBAL: XVT 0x5234F0
 uint8_t g_backdropModelTypes[64] = {0};
+/* Direction of each backdrop record on its cube face: low bits 0x07 and high
+ * bits 0x70 index the camera step tables on the face's two other axes, and 0x08
+ * and 0x80 negate them. Written by Backdrop_GenerateDefaultRecords and
+ * Mission_Init. */
 // GLOBAL: XVT 0x523530
 uint8_t g_backdropPackedDirections[64] = {0};
+/* Records on the positive Y face, first in the record arrays;
+ * Backdrop_GenerateDefaultRecords sets 4. The six face counts order the
+ * records: +Y, -Y, +X, -X, +Z, -Z. */
 // GLOBAL: XVT 0x523570
 uint16_t g_backdropPositiveYCount = 0;
+/* Records on the negative Y face; Backdrop_GenerateDefaultRecords sets 4. */
 // GLOBAL: XVT 0x523574
 uint16_t g_backdropNegativeYCount = 0;
+/* Records on the positive Z face; Backdrop_GenerateDefaultRecords sets 3. */
 // GLOBAL: XVT 0x523578
 uint16_t g_backdropPositiveZCount = 0;
+/* Records on the negative Z face; Backdrop_GenerateDefaultRecords sets 3. */
 // GLOBAL: XVT 0x52357C
 uint16_t g_backdropNegativeZCount = 0;
+/* Records on the positive X face; Backdrop_GenerateDefaultRecords sets 4. */
 // GLOBAL: XVT 0x523580
 uint16_t g_backdropPositiveXCount = 0;
+/* Records on the negative X face; Backdrop_GenerateDefaultRecords sets 4. */
 // GLOBAL: XVT 0x523584
 uint16_t g_backdropNegativeXCount = 0;
+/* Entry i holds (i * g_camMatR1_X) >> 5, i from 0 to 15; the nine step tables
+ * are rebuilt each frame by Backdrop_BuildStarOffsetsAndRender, their only
+ * writer and reader. */
 // GLOBAL: XVT 0x9A8DD0
 int32_t g_backdropCamR1XSteps[16] = {0};
+/* Entry i holds (i * g_camMatR2_X) >> 5; see g_backdropCamR1XSteps. */
 // GLOBAL: XVT 0x9D1270
 int32_t g_backdropCamR2XSteps[16] = {0};
+/* Entry i holds (i * g_camMatR0_X) >> 5; see g_backdropCamR1XSteps. */
 // GLOBAL: XVT 0x9D80D0
 int32_t g_backdropCamR0XSteps[16] = {0};
+/* Entry i holds (i * g_camMatR1_Y) >> 5; see g_backdropCamR1XSteps. */
 // GLOBAL: XVT 0x9E9600
 int32_t g_backdropCamR1YSteps[16] = {0};
+/* Entry i holds (i * g_camMatR2_Y) >> 5; see g_backdropCamR1XSteps. */
 // GLOBAL: XVT 0x9EC480
 int32_t g_backdropCamR2YSteps[16] = {0};
+/* Entry i holds (i * g_camMatR0_Y) >> 5; see g_backdropCamR1XSteps. */
 // GLOBAL: XVT 0x9FE740
 int32_t g_backdropCamR0YSteps[16] = {0};
+/* Entry i holds (i * g_camMatR1_Z) >> 5; see g_backdropCamR1XSteps. */
 // GLOBAL: XVT 0xA004E0
 int32_t g_backdropCamR1ZSteps[16] = {0};
+/* Entry i holds (i * g_camMatR2_Z) >> 5; see g_backdropCamR1XSteps. */
 // GLOBAL: XVT 0xA07C80
 int32_t g_backdropCamR2ZSteps[16] = {0};
+/* Entry i holds (i * g_camMatR0_Z) >> 5; see g_backdropCamR1XSteps. */
 // GLOBAL: XVT 0xA08250
 int32_t g_backdropCamR0ZSteps[16] = {0};
 
+/* Draws image 0 of a model type's texture block at a screen point, rolled by
+ * angle, at size 256: through RenderQuad_DrawRotatedSprite with
+ * g_useHardware3D, else with the software rotated-sprite functions. Sets
+ * g_flightSwRotSpriteSpanRunsEnabled to 1, g_camRelWorldZ to 0x100000 and
+ * g_viewSpaceDepth to 0x7FFFFFFF first. It reads the image after unlocking the
+ * type's resource handle. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x420110
 void Backdrop_DrawModelTexQuadAtScreen(int modelType, int screenX, int screenY,
@@ -83,6 +115,20 @@ void Backdrop_DrawModelTexQuadAtScreen(int modelType, int screenX, int screenY,
 	}
 }
 
+/* Rebuilds the backdrop step tables and the starfield jitter, then draws the
+ * backdrops. Each step table entry i is (i * camera matrix term) >> 5. The 125
+ * entries of g_starfieldJitterX, Y and Z get rows 0, 1 and 2 of the camera
+ * matrix dotted with the grid point (x - 2, y - 2, z - 2), x, y and z each 0 to
+ * 4, then >> 7. Unless g_backdropsEnabled is 0 it draws the records of one face
+ * per axis, Y, then X, then Z: the positive face's when the camera matrix's row
+ * 2 term for that axis is not negative, else the negative face's. A record's
+ * view position adds the steps its packed direction names on the face's other
+ * two axes (X then Z for a Y face, Y then Z for X, Y then X for Z) and the
+ * camera column of the face's axis >> 2, added or taken away by the face's
+ * sign; a record with a negative view depth is skipped. Each goes to
+ * Backdrop_ProjectAndDrawScreenQuad with its 1-based record number and a roll
+ * of -trig2_arctan(g_camMatR1_X, g_camMatR0_X), or of the Y terms for the X
+ * faces. */
 // FUNCTION: XVT 0x426080
 void Backdrop_BuildStarOffsetsAndRender(void)
 {
@@ -512,6 +558,16 @@ void Backdrop_BuildStarOffsetsAndRender(void)
 	}
 }
 
+/* Projects a backdrop's view position and draws it; draws nothing when the
+ * size of viewX or of viewY is greater than viewZ. Each offset is
+ * (size * (1 << g_perspectiveShift) + g_projScaleHalfInt) / viewZ, worked
+ * in 64 bits, with the coordinate's sign, or 0x7FFFFF00 when the quotient
+ * would not fit in 32 bits. It adds g_flightVpCenterX to X and
+ * g_flightVpCenterY and g_projOffsetY to Y, and draws
+ * g_backdropModelTypes[backdropNumber - 1] with
+ * Backdrop_DrawModelTexQuadAtScreen at that X and g_flightVpHeight less
+ * that Y. The modern build masks the shift to 5 bits and negates without
+ * signed overflow. */
 // FUNCTION: XVT 0x426860
 void Backdrop_ProjectAndDrawScreenQuad(int viewX, int viewY, int viewZ,
 				       int angle, int backdropNumber)
@@ -648,6 +704,14 @@ void Backdrop_ProjectAndDrawScreenQuad(int viewX, int viewY, int viewZ,
 		(int)g_flightVpHeight - projectedY, angle);
 }
 
+/* Fills the first 22 backdrop records at random with GameRand: 4 each on
+ * the Y and X faces and 3 on each Z face. Each packed direction is
+ * low + (high << 4), low and high each one of 4, 6, 8, 10 and 12, so a
+ * value of 8 or more reads back as the negate bit with index value - 8.
+ * Each model type comes from r = GameRand() & 31: 117 for r under 3,
+ * 117 + r / 3 for r under 12, else 125 + (r & 1). Mission_Init is its only
+ * caller, with the random state seeded from the mission's backdrop
+ * value. */
 // FUNCTION: XVT 0x458ED0
 void Backdrop_GenerateDefaultRecords(void)
 {

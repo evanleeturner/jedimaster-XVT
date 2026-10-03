@@ -8,12 +8,20 @@
 extern "C" {
 #endif
 
+/* One briefing's script, read whole from the mission file;
+ * BriefingScript_ResetState then sets currentFrame and cursorWordIndex. */
 struct FrontendBriefingScript {
+	/* Frames played before the briefing starts over. */
 	int16_t durationFrames;
-	int16_t currentFrame;
-	int16_t cursorWordIndex;
+	int16_t currentFrame;	 /* Next frame to play, counted from 0. */
+	int16_t cursorWordIndex; /* Index in words of the next entry to read. */
+	/* Read with the script, set to 2 by BriefingScript_InitDefaultScript;
+	 * nothing reads it. */
 	int16_t headerWord06;
+	/* Read with the script, set to 0 by BriefingScript_InitDefaultScript;
+	 * nothing reads it. */
 	int16_t headerWord08;
+	/* Entries: a time in frames, an opcode, then the opcode's arguments. */
 	int16_t words[400];
 };
 

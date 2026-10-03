@@ -5,6 +5,17 @@
 #include "xvt/render/flight_palette.h"
 #include "xvt/render/image_quantizer.h"
 
+/* Builds the 16-bit palettes of a loaded texture block (a TexLevelHeader, its
+ * images after it) in the space after its data, at header->dataSize, with
+ * FlightPalette_Build16BppRange. Each 24-bit palette, 4 bytes per color of
+ * which the first three are red, green and blue, each >> 2 to the 0 to 63
+ * scale, is converted when it holds under 1024 colors. When the block's own
+ * palette is 24-bit it sets header->convertedPaletteOffset to the output first.
+ * For every image, found through the offset table, it sets
+ * convertedPaletteOffset, counted from the image header, to the next output
+ * position and converts a 24-bit image's palette there. Returns
+ * header->imageCount. FeDiskIo_LoadResources calls it when
+ * g_flightBytesPerPixel is 2. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x40E6C0
 unsigned int TexLevel_Convert24BppPalettesTo16Bpp(unsigned int *texLevel)
@@ -105,6 +116,15 @@ unsigned int TexLevel_Convert24BppPalettesTo16Bpp(unsigned int *texLevel)
 
 /* While a mission palette is being collected (g_generateMissionPalette), this also hands each 24-bit image
  * to ImageQuantizer_ClassifyEncodedTexLevelImage, which counts its colors into the palette being built. */
+/* Builds the 8-bit palettes of a loaded texture block in the space after its
+ * data, at header->dataSize: each color of a 24-bit palette, read as in
+ * TexLevel_Convert24BppPalettesTo16Bpp, becomes the index of the nearest
+ * g_swPalette color from 0x40 to 0xFF (Color_FindNearestRgbTripletIndex). Sets
+ * header->convertedPaletteOffset when the block's palette is 24-bit and every
+ * image's convertedPaletteOffset to the next output position, converting each
+ * 24-bit image's palette; there is no limit on the count. Returns the number of
+ * images. FeDiskIo_LoadResources calls it when g_flightBytesPerPixel is not
+ * 2. */
 // FUNCTION: XVT 0x40E7F0
 unsigned int TexLevel_Convert24BppPalettesTo8Bpp(unsigned int *texLevel)
 {

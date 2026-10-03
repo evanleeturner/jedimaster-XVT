@@ -22,12 +22,24 @@ __declspec(dllimport) int __stdcall RegCloseKey(void *key);
 #endif
 
 #ifndef XVT_MODERN
+/* Raised by each File_Open that succeeds and lowered by each File_Close of a
+ * non-NULL stream; nothing reads it. The original build only. */
 // GLOBAL: XVT 0x52B6B8
 static int16_t g_openFileCount;
 #endif
+/* The mode string "rb" that many of the game's file opens pass; never
+ * written. */
 // GLOBAL: XVT 0x51A854
 const char g_fileModeReadBinary[3] = "rb";
 
+/* Opens fileName with mode and returns the stream, or NULL when every try
+ * fails. The modern build returns XvtStorage_Open's result. The original build
+ * tries the current folder, then the base game's install folder (changing to it
+ * and back to g_frontState.installPath). Then, when mode starts with neither
+ * 'w' nor 'a' and g_frontState.cdDriveLetter is nonzero, it suspends CD audio,
+ * tries "<letter>:\BalanceOfPower\<fileName>" and then "<letter>\<fileName>",
+ * with no colon, and resumes the audio; with the '.' File_FindCdDriveLetter
+ * gives, the last is ".\<fileName>". Each success adds 1 to g_openFileCount. */
 // FUNCTION: XVT 0x4CC4A0
 XvtFile *File_Open(const char *fileName, const char *mode)
 {
@@ -70,6 +82,9 @@ XvtFile *File_Open(const char *fileName, const char *mode)
 #endif
 }
 
+/* Closes stream. Returns 0 on success and EOF on failure. The modern build also
+ * returns 0 for NULL; the original build lowers g_openFileCount for a non-NULL
+ * stream and, for NULL, returns its uninitialized local result. */
 // FUNCTION: XVT 0x4CC590
 int16_t File_Close(XvtFile *stream)
 {
@@ -88,12 +103,16 @@ int16_t File_Close(XvtFile *stream)
 #endif
 }
 
+/* Moves stream's position to offset from origin (SEEK_SET, SEEK_CUR or
+ * SEEK_END); returns 0 on success, nonzero on failure. */
 // FUNCTION: XVT 0x4CC5C0
 int File_Seek(XvtFile *stream, int offset, int16_t origin)
 {
 	return File_RawSeek(stream, offset, origin);
 }
 
+/* Returns stream's position in bytes, or -1 on failure; the modern build also
+ * returns -1 when the position is negative or over INT_MAX. */
 // FUNCTION: XVT 0x4CC5E0
 int File_Tell(XvtFile *stream)
 {
@@ -105,6 +124,10 @@ int File_Tell(XvtFile *stream)
 #endif
 }
 
+/* Returns stream's size in bytes. The original build seeks to the end, takes
+ * the position and seeks back to where it was, without checking either seek;
+ * the modern build asks AeronVfs_GetSize and returns -1 when that is negative
+ * or over INT_MAX. */
 // FUNCTION: XVT 0x4CC5F0
 int File_GetSize(XvtFile *stream)
 {
@@ -125,54 +148,72 @@ int File_GetSize(XvtFile *stream)
 #endif
 }
 
+/* Reads one byte into *value; returns 1 when it was read, else 0. */
 // FUNCTION: XVT 0x4CC630
 int16_t File_ReadByte(XvtFile *stream, uint8_t *value)
 {
 	return !((int16_t)(File_RawRead(value, 1, 1, stream) != 1));
 }
 
+/* Reads two bytes into *value as they lie in the file; returns 1 when both were
+ * read, else 0. */
 // FUNCTION: XVT 0x4CC660
 int16_t File_ReadWord(XvtFile *stream, uint16_t *value)
 {
 	return !((int16_t)(File_RawRead(value, 1, 2, stream) != 2));
 }
 
+/* Reads four bytes into *value as they lie in the file; returns 1 when all four
+ * were read, else 0. Nothing calls this. */
 // FUNCTION: XVT 0x4CC690
 int16_t File_ReadDword(XvtFile *stream, unsigned int *value)
 {
 	return !((int16_t)(File_RawRead(value, 1, 4, stream) != 4));
 }
 
+/* Reads count bytes into buffer; returns 1 when all were read, else 0. */
 // FUNCTION: XVT 0x4CC6C0
 int16_t File_ReadBytes(XvtFile *stream, void *buffer, size_t count)
 {
 	return !((int16_t)(File_RawRead(buffer, 1, count, stream) != count));
 }
 
+/* Writes value as one byte; returns 1 when it was written, else 0. */
 // FUNCTION: XVT 0x4CC700
 int16_t File_WriteByte(XvtFile *stream, char value)
 {
 	return !((int16_t)(File_RawWrite(&value, 1, 1, stream) != 1));
 }
 
+/* Writes the first 2 bytes of value as stored in memory: on a little-endian
+ * machine its low 16 bits, low byte first. Returns 1 when both were written,
+ * else 0. Nothing calls this. */
 // FUNCTION: XVT 0x4CC730
 int16_t File_WriteWord(XvtFile *stream, int value)
 {
 	return !((int16_t)(File_RawWrite(&value, 1, 2, stream) != 2));
 }
 
+/* Writes value's 4 bytes as stored in memory; returns 1 when all four were
+ * written, else 0. Nothing calls this. */
 // FUNCTION: XVT 0x4CC760
 int16_t File_WriteDword(XvtFile *stream, int value)
 {
 	return !((int16_t)(File_RawWrite(&value, 1, 4, stream) != 4));
 }
 
+/* Writes count bytes from buffer; returns 1 when all were written, else 0. */
 // FUNCTION: XVT 0x4CC790
 int16_t File_WriteBytes(XvtFile *stream, const void *buffer, size_t count)
 {
 	return !((int16_t)(File_RawWrite(buffer, 1, count, stream) != count));
 }
 
+/* Returns 1 when wave\PBC\Pb1los07.wav and movies\imp1snd.smk can both be
+ * opened, else 0. The original build looks for them at the root of
+ * g_frontState.cdDriveLetter's drive, with CD audio suspended meanwhile, and
+ * returns 0 when that letter is 0; the modern build asks
+ * XvtStorage_ResolveAsset. Only the original build calls this. */
 // FUNCTION: XVT 0x4CC930
 int File_CheckRequiredCdMovieAssetsPresent(void)
 {
@@ -213,6 +254,12 @@ int File_CheckRequiredCdMovieAssetsPresent(void)
 #endif
 }
 
+/* Returns 1 when wave\PBC\Pb1los07.wav and ivfiles\cal.opt can both be opened,
+ * else 0. The original build looks for them at the root of
+ * g_frontState.cdDriveLetter's drive, returns 0 when that letter is 0, and
+ * unless skipMovieChecks is nonzero also needs amovie\a.wrk and bmovie\a.wrk
+ * there. The modern build ignores skipMovieChecks and asks
+ * XvtStorage_ResolveAsset. */
 // FUNCTION: XVT 0x4CC9F0
 int File_CheckGameCdPresent(int skipMovieChecks)
 {
@@ -271,20 +318,24 @@ int File_CheckGameCdPresent(int skipMovieChecks)
 #endif
 }
 
+/* Returns g_frontState.cdDriveLetter. Only the original build calls this. */
 // FUNCTION: XVT 0x4CCB90
 char File_GetCdDriveLetter(void) { return g_frontState.cdDriveLetter; }
 
+/* Returns g_frontState.installDriveLetter. Nothing calls this. */
 // FUNCTION: XVT 0x4CCBA0
 char File_GetInstallDriveLetter(void)
 {
 	return g_frontState.installDriveLetter;
 }
 
+/* Returns g_frontState.installPath. Nothing calls this. */
 // FUNCTION: XVT 0x4CCBB0
 const char *File_GetInstallPath(void) { return g_frontState.installPath; }
 
 /* The original's CD drive search is not reconstructed: this ignores relativeCdFilePath and always
  * returns '.', which File_DetectGameAndCdPaths, outside XVT_MODERN, stores as the CD drive letter. */
+/* Only the original build calls this. */
 // FUNCTION: XVT 0x4CCBC0
 int File_FindCdDriveLetter(const char *relativeCdFilePath)
 {
@@ -293,6 +344,19 @@ int File_FindCdDriveLetter(const char *relativeCdFilePath)
 	return '.';
 }
 
+/* Fills g_frontState's cdDriveLetter, installDriveLetter, installPath and
+ * baseGameInstallPath. The modern build sets the letters to 0, installPath to
+ * "BalanceOfPower" and baseGameInstallPath to "". The original build sets
+ * cdDriveLetter from File_FindCdDriveLetter when requiredCdFilePath is not
+ * NULL, and creates the registry key of version 2.0 under HKEY_LOCAL_MACHINE
+ * (SOFTWARE\LucasArts Entertainment Company\X-Wing vs. TIE Fighter) when
+ * missing. When that key's "Install Path" value cannot be read, it takes the
+ * current folder as installPath, the current drive's letter, lowercase, as
+ * installDriveLetter and the folder above as baseGameInstallPath, and stops.
+ * Otherwise it drops a final backslash from installPath, takes its first
+ * letter, lowercase, as installDriveLetter, and reads baseGameInstallPath from
+ * the 1.0 key's "Install Path", falling back to the folder above installPath.
+ * Either way it leaves installPath the current folder. */
 // FUNCTION: XVT 0x4CCCC0
 void File_DetectGameAndCdPaths(const char *requiredCdFilePath)
 {
@@ -384,12 +448,17 @@ void File_DetectGameAndCdPaths(const char *requiredCdFilePath)
 #endif
 }
 
+/* Returns g_frontState.baseGameInstallPath. Only the original build calls
+ * this. */
 // FUNCTION: XVT 0x4CCF40
 const char *File_GetBaseGameInstallPath(void)
 {
 	return g_frontState.baseGameInstallPath;
 }
 
+/* In the original build, makes g_frontState.baseGameInstallPath the current
+ * folder; the modern build does nothing. Returns 1 either way, even when the
+ * change fails. */
 // FUNCTION: XVT 0x4CCF50
 int File_ChangeToBaseGameInstallPath(void)
 {
@@ -399,6 +468,9 @@ int File_ChangeToBaseGameInstallPath(void)
 	return 1;
 }
 
+/* In the original build, makes g_frontState.installPath the current folder; the
+ * modern build does nothing. Returns 1 either way, even when the change
+ * fails. */
 // FUNCTION: XVT 0x4CCF70
 int File_ChangeToInstallPath(void)
 {

@@ -9,16 +9,22 @@ extern "C" {
 #endif
 
 struct JoystickCalibration {
-	int axisRangeX;
-	int axisRangeY;
-	int axisRangeZ;
+	int axisRangeX; /* wXmax - wXmin; 1 with no device. */
+	int axisRangeY; /* wYmax - wYmin; 1 with no device. */
+	int axisRangeZ; /* wZmax - wZmin; 1 with no device. */
+	/* (axisRangeX >> 1) - wXmax, added to a raw X before scaling; 0 with no
+	 * device. */
 	int axisNormalizeOffsetX;
+	/* (axisRangeY >> 1) - wYmax; 0 with no device. */
 	int axisNormalizeOffsetY;
+	/* (axisRangeZ >> 1) - wZmax; 0 with no device. */
 	int axisNormalizeOffsetZ;
+	/* axisRangeX / 20: a raw X no further than this from g_joyAxisCenterX
+	 * reads 0. */
 	int axisDeadzoneX;
-	int axisDeadzoneY;
-	int axisDeadzoneZ;
-	int hasPov;
+	int axisDeadzoneY; /* axisRangeY / 20, the same for Y. */
+	int axisDeadzoneZ; /* axisRangeZ / 20, the same for Z. */
+	int hasPov; /* 1 when the capabilities carry JOYCAPS_HASPOV, else 0. */
 };
 
 extern int g_joystickCalibrationInitialized[2];

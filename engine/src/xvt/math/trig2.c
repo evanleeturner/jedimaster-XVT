@@ -2,12 +2,19 @@
 
 #include <math.h>
 
+/* Radians per angle unit: 2 pi over 65536, to float precision. Read by
+ * trig2_getsignedsin and trig2_getsignedcos. */
 // GLOBAL: XVT 0x51815C
 const float g_q16AngleToRadiansScale = 0.000095873722f;
 
+/* 32767, the scale trig2_getsignedsin and trig2_getsignedcos multiply their
+ * result by. */
 // GLOBAL: XVT 0x518160
 const float g_trigQ15OutputScale = 32767.0f;
 
+/* The sine over a half circle in 512 steps of 64 angle units: entry i is
+ * within 1 of sin(i * pi / 512) * 65535, rising to 65534 at entry 256 and back
+ * to 0 at 512. Nothing writes it. */
 // GLOBAL: XVT 0x524520
 uint16_t g_sinTable[513] = {
 	0,     402,   804,   1206,  1608,  2010,  2412,	 2814,	3216,  3617,
@@ -64,6 +71,10 @@ uint16_t g_sinTable[513] = {
 	804,   402,   0,
 };
 
+/* Entry i is within 1 of atan(i / 256) in angle units, rising to 8192, an
+ * eighth of a circle, at entry 256; entry 257 repeats 8192 so that
+ * interpolating at 256 adds nothing, and the last two are 0. Nothing writes
+ * it. */
 // GLOBAL: XVT 0x524C28
 int16_t g_arctantable[260] = {
 	0,    41,   81,	  122,	163,  204,  244,  285,	326,  367,  407,  448,
@@ -90,6 +101,9 @@ int16_t g_arctantable[260] = {
 	8110, 8130, 8151, 8172, 8192, 8192, 0,	  0,
 };
 
+/* Entry i is within 1 of (sqrt(1 + (i / 256)^2) - 1) * 65536: what the
+ * hypotenuse adds to the longer leg when the shorter is i / 256 of it, as a
+ * fraction of 65536. Nothing writes it. */
 // GLOBAL: XVT 0x524E30
 uint16_t g_hypotExcessQ16Table[257] = {
 	0,     0,     2,     4,	    8,	   12,	  18,	 24,	32,    40,
@@ -120,60 +134,113 @@ uint16_t g_hypotExcessQ16Table[257] = {
 	26066, 26245, 26424, 26604, 26784, 26964, 27146,
 };
 
+/* World units an object moves along x this step;
+ * Object_AddTrigMoveDeltaAndClampWorldPosition adds it to the object's
+ * position. Many functions write it, chiefly trig2_movexyz and
+ * Object_UpdateLifetimeAndMovement, and XvtFlightIntegration_Move in the
+ * modern build. */
 // GLOBAL: XVT 0x9A20B0
 int trig2_xmovedist = 0;
 
+/* x of the last conversion in this file: trig2_ctop stores the magnitude of
+ * dx; trig2_UpdateCartesianOffsets stores its x. Only this file reads it. */
 // GLOBAL: XVT 0x9A8E14
 int trig2_xoffset = 0;
 
+/* The hypotenuse trig2_calcangleplanedistance last computed: after trig2_ctop
+ * the 3D distance, after trig2_ctop2dim the distance in the x-y plane. Read
+ * widely after trig2_ctop. Many functions write it, chiefly
+ * trig2_calcangleplanedistance; callers such as Flight_UpdateTimers,
+ * laser_fireturretslot and Hud_DrawCmdTargetDetails scale it in place. */
 // GLOBAL: XVT 0x9A8C00
 int trig2_polardistance = 0;
 
+/* Heading of the last trig2_ctop or trig2_ctop2dim: 0x4000 minus the angle
+ * from +x toward +y, so 0 along +y and 0x4000 along +x. Those two write it,
+ * and Mission_SpawnFlightGroupWaveCraft sets or turns it before calling
+ * trig2_movexyz. */
 // GLOBAL: XVT 0x9A8070
 uint16_t trig2_xyangle = 0;
 
+/* World units an object moves along y this step; written and read as
+ * trig2_xmovedist is. */
 // GLOBAL: XVT 0x9CD26C
 int trig2_ymovedist = 0;
 
+/* Angle from +z that trig2_UpdateCartesianOffsets converts. Only
+ * trig2_movexyz writes it, from its pitch. */
 // GLOBAL: XVT 0x9D12B0
 uint16_t trig2_phi = 0;
 
+/* Distance trig2_UpdateCartesianOffsets converts. Only trig2_movexyz writes
+ * it, from its distance. */
 // GLOBAL: XVT 0x9D6824
 int trig2_rho = 0;
 
+/* y of the last conversion in this file: trig2_ctop stores the magnitude of
+ * dy; trig2_UpdateCartesianOffsets stores its y. Only this file reads it. */
 // GLOBAL: XVT 0x9E9648
 int trig2_yoffset = 0;
 
+/* 1 when the last trig2_calcarctan_core swapped its legs because opposite
+ * was over adjacent, compared as signed numbers; else 0. Only that function
+ * writes and reads it. */
 // GLOBAL: XVT 0x9EC460
 int16_t trig2_signswap = 0;
 
+/* 1 when the x given to the last trig2_ctop, trig2_ctop2dim or trig2_arctan
+ * was negative, else 0; 0xFFFF until the first. Only those write and read
+ * it. */
 // GLOBAL: XVT 0x9ECC46
 uint16_t trig2_signx = UINT16_MAX;
 
+/* 1 when the y given to the last trig2_ctop, trig2_ctop2dim or trig2_arctan
+ * was negative, else 0; 0xFFFF until the first. Only those write and read
+ * it. */
 // GLOBAL: XVT 0x9ECC48
 uint16_t trig2_signy = UINT16_MAX;
 
+/* 1 when the dz given to the last trig2_ctop was negative, else 0. Only
+ * trig2_ctop writes and reads it. */
 // GLOBAL: XVT 0x9ECC50
 uint16_t trig2_signz = 0;
 
+/* World units an object moves along z this step; written and read as
+ * trig2_xmovedist is. */
 // GLOBAL: XVT 0x9FD438
 int trig2_zmovedist = 0;
 
+/* z of the last conversion in this file: trig2_ctop stores the magnitude of
+ * dz; trig2_UpdateCartesianOffsets stores its z, after using it to hold the
+ * distance in the x-y plane. Only this file reads it. */
 // GLOBAL: XVT 0xA00520
 int trig2_zoffset = 0;
 
+/* The larger of the two legs given to the last trig2_calcarctan_core,
+ * compared as signed numbers; adjacent when they are equal. Only that
+ * function writes it; trig2_calcangleplanedistance scales it into the
+ * hypotenuse. */
 // GLOBAL: XVT 0xA00740
 int trig2_largerLeg = 0;
 
+/* Angle from +x toward +y that trig2_UpdateCartesianOffsets converts. Only
+ * trig2_movexyz writes it, as 0x4000 minus its yaw. */
 // GLOBAL: XVT 0xA07C5C
 uint16_t trig2_theta = 0;
 
+/* Pitch of the last trig2_ctop: the angle from +z, 0 straight along +z,
+ * 0x4000 level and 0x8000 along -z. Written by trig2_ctop and by
+ * Mission_SpawnFlightGroupWaveCraft. */
 // GLOBAL: XVT 0xA080F0
 uint16_t trig2_pitch = 0;
 
+/* The angle, 0 to 0x4000, that trig2_calcangleplanedistance last took from
+ * trig2_calcarctan_core; only that function writes it. */
 // GLOBAL: XVT 0xA080FE
 int16_t trig2_angleplane = 0;
 
+/* Returns the sine of an angle of 65,536 units to the circle, times 32767,
+ * truncated toward zero; computed in floating point. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x46A3C0
 int16_t trig2_getsignedsin(int16_t angleQ16)
@@ -182,6 +249,10 @@ int16_t trig2_getsignedsin(int16_t angleQ16)
 			 g_trigQ15OutputScale);
 }
 
+/* Despite the name, returns only the sine's magnitude: g_sinTable interpolated
+ * between its entries, 0 to 65534 where 65536 would be 1, as a 16-bit pattern
+ * to read unsigned. An angle from 0x8000 up gives the same as one 0x8000
+ * less. */
 // FUNCTION: XVT 0x46A3F0
 int16_t trig2_calcsineofangle(int16_t angle)
 {
@@ -209,12 +280,21 @@ int16_t trig2_calcsineofangle(int16_t angle)
 	return (int16_t)(base + interpolation);
 }
 
+/* Returns trig2_arcsin(sinQ15). Nothing calls this. */
 // FUNCTION: XVT 0x46A450
 int16_t trig2_w_arcsin(int16_t sinQ15) { return trig2_arcsin(sinQ15); }
 
+/* Returns trig2_arccos(cosQ15). */
 // FUNCTION: XVT 0x46A460
 int16_t trig2_w_arccos(int16_t cosQ15) { return trig2_arccos(cosQ15); }
 
+/* Returns the arccosine of cosQ15 (32768 standing for 1) in angle units, 0 to
+ * 0x8000. Searches the falling half of g_sinTable from entry 256 for the
+ * first entry at or under twice the magnitude and interpolates; when twice
+ * the magnitude is under every entry searched (a magnitude under 201), it
+ * divides by entry 511 instead. A
+ * negative input returns 0x8000 minus the result for its magnitude. Only
+ * trig2_w_arccos calls this. */
 // FUNCTION: XVT 0x46A470
 int16_t trig2_arccos(int16_t cosQ15)
 {
@@ -285,6 +365,14 @@ int16_t trig2_arccos(int16_t cosQ15)
 	return angle;
 }
 
+/* Returns an arcsine of sinQ15 (32768 standing for 1) in angle units that
+ * runs one g_sinTable step high: it finds the first entry at or over twice
+ * the magnitude, at index i, where the arcsine lies between (i - 1) * 64 and
+ * i * 64, and returns i * 64 plus a fraction of 64 taken from the entries at
+ * i - 2 and i - 1. 16384 gives 5525 where the arcsine is 5461; 32767 gives 32,
+ * the index having wrapped. A magnitude from 1 to 201 divides by 0. Negates
+ * the result for a negative input. Only trig2_w_arcsin calls this, and
+ * nothing calls that. */
 // FUNCTION: XVT 0x46A550
 int16_t trig2_arcsin(int16_t sinQ15)
 {
@@ -344,6 +432,11 @@ int16_t trig2_arcsin(int16_t sinQ15)
 	return angle;
 }
 
+/* Returns (magnitude of value * sine + 0x8000) >> 16, sine being the
+ * g_sinTable entry for angle without interpolation. When the sign of value
+ * and the 0x8000 bit of angle differ, the sum is negated before the shift: the
+ * low 16 bits then hold a negative value, rounded down, and the high 16 bits
+ * are 0, so 1000 at 0xC000 gives 0xFC17, -1001 read as 16 bits. */
 // FUNCTION: XVT 0x46A5F0
 unsigned int trig2_sinewordmult(int16_t value, int16_t angle)
 {
@@ -366,6 +459,11 @@ unsigned int trig2_sinewordmult(int16_t value, int16_t angle)
 	return product >> 16;
 }
 
+/* Returns value times the g_sinTable entry for angle (no interpolation) over
+ * 65536, computed on the magnitude as (high 16 bits) * entry plus
+ * ((low 16 bits) * entry + 0x8000) >> 16, and negated when the sign of value
+ * and the 0x8000 bit of angle differ. Does not check that the sum fits in 32
+ * bits. */
 // FUNCTION: XVT 0x46A650
 int trig2_sinedwordmult(int value, uint16_t angle)
 {
@@ -389,6 +487,8 @@ int trig2_sinedwordmult(int value, uint16_t angle)
 	return value;
 }
 
+/* Returns the cosine of an angle of 65,536 units to the circle, times 32767,
+ * truncated toward zero; computed in floating point. */
 // FUNCTION: XVT 0x46A6D0
 int16_t trig2_getsignedcos(int16_t angleQ16)
 {
@@ -396,6 +496,8 @@ int16_t trig2_getsignedcos(int16_t angleQ16)
 			 g_trigQ15OutputScale);
 }
 
+/* trig2_sinewordmult for the angle plus 0x4000: value times the cosine, in
+ * the same form. */
 // FUNCTION: XVT 0x46A700
 unsigned int trig2_cosinewordmult(uint16_t value, int16_t angle)
 {
@@ -419,6 +521,8 @@ unsigned int trig2_cosinewordmult(uint16_t value, int16_t angle)
 	return product >> 16;
 }
 
+/* trig2_sinedwordmult for the angle plus 0x4000: value times the cosine, in
+ * the same form. */
 // FUNCTION: XVT 0x46A760
 int trig2_cosinedwordmult(int value, uint16_t angle)
 {
@@ -454,6 +558,11 @@ int trig2_cosinedwordmult(int value, uint16_t angle)
 	return result;
 }
 
+/* Converts trig2_rho, trig2_phi and trig2_theta to x, y and z: sets
+ * trig2_zoffset to trig2_rho * cos(trig2_phi), and trig2_xoffset and
+ * trig2_yoffset to trig2_rho * sin(trig2_phi) times the cosine and sine of
+ * trig2_theta, through trig2_sinedwordmult and trig2_cosinedwordmult. Only
+ * trig2_movexyz calls this. */
 // FUNCTION: XVT 0x46A7C0
 void trig2_UpdateCartesianOffsets(void)
 {
@@ -463,6 +572,10 @@ void trig2_UpdateCartesianOffsets(void)
 	trig2_zoffset = trig2_cosinedwordmult(trig2_rho, trig2_phi);
 }
 
+/* Sets trig2_xmovedist, trig2_ymovedist and trig2_zmovedist to the offset of
+ * distance along yaw and pitch, the inverse of trig2_ctop: trig2_theta is
+ * 0x4000 minus yaw, trig2_phi is pitch (0 along +z, 0x4000 level). Also
+ * sets trig2_rho and the three offsets of trig2_UpdateCartesianOffsets. */
 // FUNCTION: XVT 0x46A870
 void trig2_movexyz(uint16_t distance, int16_t yaw, uint16_t pitch)
 {
@@ -475,6 +588,12 @@ void trig2_movexyz(uint16_t distance, int16_t yaw, uint16_t pitch)
 	trig2_zmovedist = trig2_zoffset;
 }
 
+/* Converts an offset to heading, pitch and distance: trig2_xyangle (0 along
+ * +y, 0x4000 along +x), trig2_pitch (0 along +z, 0x4000 level, 0x8000 along
+ * -z) and trig2_polardistance. Also stores the magnitudes in trig2_xoffset,
+ * trig2_yoffset and trig2_zoffset and the signs in trig2_signx, trig2_signy
+ * and trig2_signz, and leaves trig2_angleplane, trig2_largerLeg and
+ * trig2_signswap from its second trig2_calcangleplanedistance. */
 // FUNCTION: XVT 0x46A8D0
 void trig2_ctop(int dx, int dy, int dz)
 {
@@ -530,6 +649,10 @@ void trig2_ctop(int dx, int dy, int dz)
 	trig2_pitch = (int16_t)(0x4000 - angle);
 }
 
+/* The x-y half of trig2_ctop: sets trig2_xyangle and trig2_polardistance (the
+ * distance in the x-y plane), trig2_signx, trig2_signy, trig2_angleplane,
+ * trig2_largerLeg and trig2_signswap; leaves the offsets alone. Nothing calls
+ * this. */
 // FUNCTION: XVT 0x46A9E0
 void trig2_ctop2dim(int dx, int dy)
 {
@@ -561,6 +684,12 @@ void trig2_ctop2dim(int dx, int dy)
 	trig2_xyangle = (uint16_t)(0x4000u - trig2_xyangle);
 }
 
+/* Returns the hypotenuse of two non-negative legs and stores it in
+ * trig2_polardistance: the larger leg plus the larger leg times the
+ * g_hypotExcessQ16Table entry for their ratio in 256ths (the fraction left
+ * out), over 65536, with the low 16 bits rounded. Stores the angle of
+ * magnitudeB over magnitudeA, 0 to 0x4000, in trig2_angleplane; through
+ * trig2_calcarctan_core also sets trig2_largerLeg and trig2_signswap. */
 // FUNCTION: XVT 0x46AA70
 int trig2_calcangleplanedistance(int magnitudeA, int magnitudeB)
 {
@@ -585,6 +714,14 @@ int trig2_calcangleplanedistance(int magnitudeA, int magnitudeB)
 	return trig2_polardistance;
 }
 
+/* Returns the angle whose tangent is opposite over adjacent, 0 to 0x4000, for
+ * non-negative legs, and stores it in *outAngle. Divides the smaller leg by
+ * the larger to 16 bits (after shifting both up 8 bits once or twice while
+ * the larger is under 0x1000000) and interpolates g_arctantable between
+ * entries at the ratio's high byte, which it stores in *outRatioIndex (256
+ * for equal legs); when opposite is the larger it returns 0x4000 minus that
+ * angle. Sets trig2_signswap and trig2_largerLeg. Two zero legs give
+ * 0x2000. */
 // FUNCTION: XVT 0x46AAF0
 int16_t trig2_calcarctan_core(int adjacent, int opposite, int16_t *outAngle,
 			      int16_t *outRatioIndex)
@@ -655,6 +792,11 @@ int16_t trig2_calcarctan_core(int adjacent, int opposite, int16_t *outAngle,
 	return result;
 }
 
+/* Returns the angle from +x toward +y of the point (x, y), as int16 in angle
+ * units (atan2): the first-quadrant angle from trig2_calcarctan_core,
+ * negated when y is negative and taken from 0x8000 when x is. Sets
+ * trig2_signx, trig2_signy, trig2_signswap and trig2_largerLeg. (0, 0) gives
+ * 0x2000. */
 // FUNCTION: XVT 0x46ABF0
 int16_t trig2_arctan(int y, int x)
 {

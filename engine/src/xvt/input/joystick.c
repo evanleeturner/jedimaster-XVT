@@ -4,23 +4,64 @@
 
 #include <string.h>
 
+/* Per joystick index, 0 and 1: 1 once Joystick_PollScaledAxes has calibrated
+ * that index. Only that function writes it, and nothing sets it back to 0. */
 // GLOBAL: XVT 0x527F48
 int g_joystickCalibrationInitialized[2] = {0, 0};
+/* Axis calibration Joystick_PollScaledAxes takes from the device's capabilities
+ * on each index's first poll: ranges 1 and the rest 0 until then, and again
+ * when no device answers. One copy serves both indexes, so calibrating index 1
+ * rewrites what index 0 stored. */
 // GLOBAL: XVT 0x527F50
 JoystickCalibration g_joystickCalibration = {1, 1, 1, 0, 0, 0, 0, 0, 0, 0};
+/* Raw Z position that counts as centered: (range >> 1) + wZmin from the
+ * device's capabilities. Written only by Joystick_PollScaledAxes when it
+ * calibrates and a device answers; 0 before. */
 // GLOBAL: XVT 0x622CA0
 int g_joyAxisCenterZ = 0;
+/* WinMM joystick id each index, 0 and 1, reads: what Joystick_GetDeviceId(0)
+ * returned, or Joystick_GetDeviceId(1) when the first had no capabilities.
+ * Written only by Joystick_PollScaledAxes when it calibrates; stays 0 when
+ * neither answers. */
 // GLOBAL: XVT 0x622CA8
 unsigned int g_joyDeviceId[2] = {0, 0};
+/* Raw X position that counts as centered: (range >> 1) + wXmin. Written like
+ * g_joyAxisCenterZ. */
 // GLOBAL: XVT 0x622CB4
 int g_joyAxisCenterX = 0;
+/* Raw Y position that counts as centered: (range >> 1) + wYmin. Written like
+ * g_joyAxisCenterZ. */
 // GLOBAL: XVT 0x622CB8
 int g_joyAxisCenterY = 0;
+/* 1 when the joystick detection found a joystick, else 0. Written only by
+ * Input_InitializeJoystickBackend and Input_DetectActiveJoystick, the first
+ * time either runs; Joystick_PollScaledAxesIfActive polls only while it is
+ * set. */
 // GLOBAL: XVT 0x5280F8
 int g_joystickActive = 0;
+/* Joystick index, 0 or 1, that Joystick_PollScaledAxesIfActive polls: the first
+ * index Input_ProbeActiveJoystickDevices found answering. Only that function
+ * writes it. */
 // GLOBAL: XVT 0x5280FC
 int g_joyDeviceIndex = 0;
 
+/* Reads joystick index 0 or 1 (any nonzero deviceIndex counts as 1) through
+ * WinMM. On an index's first call it calibrates: it asks joyGetDevCapsA for the
+ * device Joystick_GetDeviceId(0) names, then for Joystick_GetDeviceId(1),
+ * whatever the index, and from the first that answers stores the device in
+ * g_joyDeviceId and the ranges (max - min), deadzones (range / 20), normalize
+ * offsets ((range >> 1) - max) and hat flag in g_joystickCalibration, and the
+ * centers in g_joyAxisCenterX, Y and Z; with neither answering it sets the
+ * ranges to 1 and the rest of g_joystickCalibration to 0. Then it reads
+ * joyGetPosEx. An axis whose distance from its center is over its deadzone
+ * gives (int)(255u * (offset + position) / range), worked in unsigned
+ * arithmetic; any other gives 0, and Z also needs a range over 0. A position
+ * under max - (range >> 1) wraps in that arithmetic and gives a large positive
+ * value, not a negative one: for a device reporting 0 to 65535, as Aeron's
+ * joyGetDevCapsA does, positions under 32768 give 65409 to 65536 and the rest
+ * 0 to 127. *pButtons gets the low 16 button bits, plus
+ * 0x10000 << (dwPOV / 9000) when the device has a hat that is not centered.
+ * When joyGetPosEx fails, the three axes are 32000 and *pButtons is 0. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4AABA0
 void Joystick_PollScaledAxes(int deviceIndex, int *pAxisX, int *pAxisY,
@@ -182,9 +223,14 @@ void Joystick_PollScaledAxes(int deviceIndex, int *pAxisX, int *pAxisY,
 	}
 }
 
+/* Returns 1 and does nothing else. */
 // FUNCTION: XVT 0x4AC830
 int16_t Joystick_InitializeBackendStub(void) { return 1; }
 
+/* When g_joystickActive is 0, sets the three axes to 0 and returns 0 without
+ * polling. Otherwise polls index g_joyDeviceIndex with Joystick_PollScaledAxes
+ * and returns its buttons. pAxisR is ignored. Only the original build reaches
+ * its one call, in FlightInput_Read; the modern build returns before it. */
 // FUNCTION: XVT 0x4ACB90
 int Joystick_PollScaledAxesIfActive(int *pAxisX, int *pAxisY, int *pAxisZ,
 				    int *pAxisR)

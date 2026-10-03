@@ -40,68 +40,196 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* 1 asks MissionDebrief_DrawPlayerStatisticsPage to recount its rows and
+ * totals and scroll back to the top; that page sets it to 0 when it does.
+ * MissionDebrief_Update sets it on its first frame and
+ * MissionDebrief_DrawTabBar on every tab change. */
 // GLOBAL: XVT 0x66D918
 int g_debriefStatsPageNeedsRebuild = 0;
+/* 1 when the debriefing finds the local player among the network players
+ * that left the game (hasLeft set in g_pilotData.networkPlayers). Set to 0
+ * and then worked out on the debriefing's first frame, by
+ * MissionDebrief_Update in the original build and XvtCampaignTask_EnterDebrief
+ * in the modern one. While it is 1, MissionDebrief_Update draws a
+ * "disconnecting" notice on frames 0 and 1, shuts the session down and says
+ * so on frame 1, and offers Done instead of Disconnect. */
 // GLOBAL: XVT 0x52D1C8
 int g_debriefDisconnectedFromNetGame = 0;
 /* Nothing in this build reads this flag. */
+/* -1 at start; MissionDebrief_Update sets it to 0 on its first frame and to
+ * 1 when NET_PACKET_SESSION_CANCELLED or NET_PACKET_TEAM_ASSIGNMENTS_READY
+ * arrives. */
 // GLOBAL: XVT 0x66D9B8
 int g_debriefSessionCancelOrTeamsReadyReceived = -1;
+/* The debriefing page shown: 0 the mission overview, 1 the player
+ * statistics, 2 the sequence's page (the campaign text, the tournament
+ * summary or the battle summary), drawn only while
+ * g_pilotData.missionSequenceActive is 1. MissionDebrief_Update picks it on
+ * its first frame from the mission type and sequence; MissionDebrief_DrawTabBar
+ * changes it when a tab is clicked. */
 // GLOBAL: XVT 0x66D9E0
 int g_debriefTab = 0;
+/* Mission list description of the tournament, battle or campaign being
+ * played, shown by the tournament and battle summary pages and by
+ * MissionSetup_BattleChoice_Update. MissionDebrief_Update empties it on its
+ * first frame and, in a sequence, copies the entry it finds in the
+ * sequence's mission list; MissionSetup_BattleChoice_BuildList copies the
+ * chosen battle's. */
 // GLOBAL: XVT 0xA91B90
 char g_missionSequenceDescription[256] = {0};
+/* Per team id 0 to 7, 1 when the tournament standings entry's
+ * aiOpponentSourceTeamAndTypeFlag is not -1. Only MissionDebrief_Prepare
+ * writes it, for melees and tournaments; it clears all 10 entries first, so
+ * entries 8 and 9 stay 0. */
 // GLOBAL: XVT 0x66D8A0
 int g_debriefTeamInStandings[10] = {0};
+/* Per team id, 1 when no network player flies for the team but a player
+ * flight group of a melee or tournament does, counted when AI opponents are
+ * on, in single player, or with one human. Only MissionDebrief_Prepare writes
+ * it; the overview and tournament summary list such a team's flight groups
+ * by their rating. */
 // GLOBAL: XVT 0x66D8D8
 int g_debriefTeamHasOnlyAiPilots[10] = {0};
+/* Position of the local pilot's team (g_pilotData.team) in
+ * g_debriefSortedTeamIds, found by a search that also needs
+ * g_debriefTeamHasPlayer set at that position, though that array is indexed
+ * by team id; 0 when the search finds none. Only MissionDebrief_Prepare
+ * writes it. The player statistics page shows it as the place, 1st on, in a
+ * network melee. */
 // GLOBAL: XVT 0x66D900
 int g_debriefLocalTeamRankIndex = 0;
+/* Teams with a network player, plus, in a melee or tournament with AI
+ * opponents, in single player or with one human, the teams with only AI
+ * player flight groups. Only MissionDebrief_Prepare writes it; the player
+ * statistics page shows it as the count of teams or pilots in a network
+ * melee. */
 // GLOBAL: XVT 0x66D904
 int g_debriefActiveTeamCount = 0;
+/* Team ids with g_debriefTeamHasPlayer set, in the overview's order, then -1.
+ * MissionDebrief_Prepare fills it by insertion: a team moves ahead of one
+ * with a lower teams[].missionScore and, outside melees and tournaments,
+ * also ahead of one that did not complete the mission when it did. */
 // GLOBAL: XVT 0x66D920
 int g_debriefSortedTeamIds[10] = {0};
+/* Per team id, 1 when a network player flies for the team or, in a melee or
+ * tournament with AI opponents, in single player or with one human, when a
+ * player flight group is on it. Only MissionDebrief_Prepare writes it. */
 // GLOBAL: XVT 0x66D968
 int g_debriefTeamHasPlayer[10] = {0};
+/* Slots of g_pilotData.networkPlayers with a directPlayId, in the
+ * overview's order, then -1. MissionDebrief_Prepare fills it by insertion: a
+ * player moves ahead of one whose team did not complete the mission when its
+ * team did, or ahead of one with a lower totalScore unless its team did not
+ * complete and the other's did. */
 // GLOBAL: XVT 0x66D990
 int g_debriefSortedPlayerIds[8] = {0};
+/* 1 when, in network play, the last mission's killsFullOnPlayer or
+ * killsSharedOnPlayer has a nonzero entry, so the player statistics page
+ * shows its player-kills-by-rank section. That page sets it when it rebuilds;
+ * nothing else writes it. */
 // GLOBAL: XVT 0x66D9B0
 int g_debriefHasPlayerKillsByRating = 0;
+/* The overview's "killed" list: whom the local player killed, then -1.
+ * Entries under 8 are slots of g_pilotData.networkPlayers, in order of
+ * killsFullOnPlayer, highest first. In a melee or tournament each player
+ * flight group no network player flies is then inserted as 8 plus its
+ * index, ahead of any entry with fewer full kills, or as many full kills and
+ * fewer shared ones. MissionDebrief_Prepare fills it by insertion and drops
+ * whatever is pushed past the 8th entry. */
 // GLOBAL: XVT 0x66D9C0
 int g_debriefKillsOnCombatantIds[8] = {0};
+/* The overview's "killed by" list: who killed the local player, built like
+ * g_debriefKillsOnCombatantIds from killsFullFromPlayer and, in a melee or
+ * tournament, the flight groups' killsFullFromFlightGroup and
+ * killsSharedFromFlightGroup. Only MissionDebrief_Prepare writes it. */
 // GLOBAL: XVT 0x66D9F8
 int g_debriefKillsFromCombatantIds[8] = {0};
+/* Team ids in tournament standings order, then -1: in a melee or tournament
+ * MissionDebrief_Prepare inserts each team with g_debriefTeamInStandings set
+ * ahead of any with a lower meleeTournamentSequenceState.teamStandings[]
+ * totalScore, filling at most 8 entries; otherwise all stay -1. The
+ * tournament summary and MissionDebrief_Update's choice of background read
+ * it. */
 // GLOBAL: XVT 0x66DA18
 int g_debriefStandingsTeamIds[10] = {0};
+/* Shared kills on human pilots in the last mission, summed over the victims'
+ * ratings in lastMissionStats; only entry 0 is used. Reset and summed by
+ * MissionDebrief_DrawPlayerStatisticsPage when it rebuilds. */
 // GLOBAL: XVT 0x66DA40
 int g_debriefPlayerKillsSharedTotal[3] = {0};
+/* 1 when the mission is a melee in which no team has more than one player
+ * flight group, so the overview and the tournament summary rank pilots
+ * rather than teams and the player statistics page says pilots. Only
+ * MissionDebrief_Prepare writes it. */
 // GLOBAL: XVT 0x66DA4C
 int g_debriefRankByPilot = 0;
+/* Despite the name, only entry 0 is used: the last mission's shared kills,
+ * summed over craft types from lastMissionStats, which keeps that mission
+ * in row 0 whatever its type. Reset and summed by
+ * MissionDebrief_DrawPlayerStatisticsPage when it rebuilds. */
 // GLOBAL: XVT 0x66D8C8
 int g_debriefTotalKillsSharedByMissionType[4] = {0};
+/* Despite the name, only entry 0 is used: the last mission's kill assists,
+ * summed over craft types from lastMissionStats. Reset and summed by
+ * MissionDebrief_DrawPlayerStatisticsPage when it rebuilds;
+ * MissionDebrief_Update sets entry 3 to 0. */
 // GLOBAL: XVT 0x66D908
 int g_debriefAssistTotalByMissionType[4] = {0};
+/* Despite the name, only entry 0 is used: the last mission's full kills on
+ * human pilots, summed over their ratings from lastMissionStats. Reset and
+ * summed by MissionDebrief_DrawPlayerStatisticsPage when it rebuilds. */
 // GLOBAL: XVT 0x66D948
 int g_debriefPlayerKillsByMissionType[4] = {0};
+/* Despite the name, only entry 0 is used: the last mission's full kills on
+ * AI pilots, summed over their 6 ratings from lastMissionStats. Reset and
+ * summed by MissionDebrief_DrawPlayerStatisticsPage when it rebuilds. */
 // GLOBAL: XVT 0x66D958
 int g_debriefNonPlayerKillsByMissionType[4] = {0};
+/* 1 when the last mission has a full or shared kill of any craft type, so
+ * the player statistics page shows its craft-kills-by-type section. Only
+ * that page writes it, when it rebuilds. */
 // GLOBAL: XVT 0x66D9B4
 int g_debriefHasCraftKillsByTypeSection = 0;
+/* 1 when, in network play, the last mission's killsFullFromPlayer or
+ * killsSharedFromPlayer has a nonzero entry, so the player statistics page
+ * shows its losses-to-players section. Only that page writes it, when it
+ * rebuilds. */
 // GLOBAL: XVT 0x66D9E4
 int g_debriefHasLossesFromPlayersSection = 0;
+/* Shared kills on AI pilots in the last mission, summed over their 6
+ * ratings in lastMissionStats; only entry 0 is used. Reset and summed by
+ * MissionDebrief_DrawPlayerStatisticsPage when it rebuilds. */
 // GLOBAL: XVT 0x66D9E8
 int g_debriefNonPlayerKillsSharedTotal[3] = {0};
+/* Scratch flag of MissionDebrief_DrawPlayerStatisticsPage, its only user:
+ * 1 when the craft type being looked at has a kill, and while drawing the
+ * awards, 1 once the "Award" label is drawn. */
 // GLOBAL: XVT 0x66D9F4
 int g_debriefCraftKillRowHasData = 0;
+/* Times AI pilots killed the local player in the last mission, summed over
+ * their 6 ratings from lastMissionStats.killedByAIRatingPerMT. Reset and
+ * summed by MissionDebrief_DrawPlayerStatisticsPage when it rebuilds. */
 // GLOBAL: XVT 0x66DA50
 int g_debriefLossesToNonPlayerPilotsTotal[1] = {0};
+/* Times human pilots killed the local player in the last mission, summed
+ * over their 25 ratings from lastMissionStats.killedByPlayerRatingPerMT. Reset
+ * and summed by MissionDebrief_DrawPlayerStatisticsPage when it rebuilds. */
 // GLOBAL: XVT 0x66DA60
 int g_debriefLossesToPlayerPilotsTotal[1] = {0};
+/* First row shown on the player statistics page, which shows 21 rows. Only
+ * MissionDebrief_DrawPlayerStatisticsPage writes it: 0 when it rebuilds,
+ * then the scroll bar's position when the page has more than 21 rows. */
 // GLOBAL: XVT 0x66DA6C
 int g_debriefPlayerStatsScrollRow = 0;
+/* Rows of the player statistics page, counted when it rebuilds; the scroll
+ * bar appears above 21. Only MissionDebrief_DrawPlayerStatisticsPage writes
+ * it. */
 // GLOBAL: XVT 0x66DA70
 int g_debriefPlayerStatsRowCount = 0;
 
+/* Leaves the debriefing: frees g_missionList and g_missionText and sets
+ * each to NULL, frees the "background" image, resets the scrollable controls
+ * and clears the mouse input gate. Returns 0; frameCounter is ignored. */
 // FUNCTION: XVT 0x4FE100
 int MissionDebrief_Exit(int frameCounter)
 {
@@ -121,6 +249,53 @@ int MissionDebrief_Exit(int frameCounter)
 	return 0;
 }
 
+/* Runs one frame of the debriefing screen shown after a mission. On its first
+ * frame (frameCounter 0) it shows the cursor and, after a completed campaign
+ * mission, plays its cutscene; a network player for whom
+ * Cutscene_PlayForCurrentMissionPhase returns 0 then tells the host it left and
+ * goes to the concourse. It allocates the 4096-byte g_missionText for a
+ * campaign, zeroes g_frontendChatTeamOnly and g_frontendFirstVisibleLine, sets
+ * g_debriefDisconnectedFromNetGame, clears the session ready flags of network
+ * players who left, refreshes the session roster and, in network play after a
+ * promotion or demotion, sets the local player's DirectPlay long name to one
+ * character, the new rating plus 1. The modern build does that part through
+ * XvtCampaignTask_EnterDebrief and returns 0 until it returns 1. It places
+ * the cursor, calls
+ * MissionDebrief_Prepare, picks g_debriefTab, clears g_mpRosterReadyFlags,
+ * g_missionSequenceDescription and g_debriefSessionCancelOrTeamsReadyReceived
+ * and sets g_debriefStatsPageNeedsRebuild. In a sequence it fills
+ * g_missionSequenceDescription and saves the sequence state in the battle or
+ * campaign continuation slot of g_pilotData for a later resume (active for a
+ * single player or the host; a client's campaign state goes in slot index + 12,
+ * inactive), or marks the slot inactive when the sequence ended. It loads
+ * g_missionList, sets g_selectedMissionListIndex, reads a campaign mission's
+ * text with MissionDebrief_BuildText, marks the network players ready, picks
+ * the background by mission type and outcome, sends the lobby state in network
+ * play and draws the frame. Every frame, except frames 0 and 1 for a
+ * disconnected player, it draws the mission title, acts on network packets,
+ * draws the g_debriefTab page, the pilot's rating and name, the tab bar, the
+ * shared controls and two buttons. A next-mission or replay packet advances the
+ * sequence's currentMissionIndex where it applies, records the session in
+ * g_pilotData (launchSessionMarker 1, localPlayerId, isHost,
+ * numHumanPlayersLastMission, sessionMode) and goes to
+ * MissionSetup_EnterNextMission or MissionSetup_EnterCurrentMission;
+ * NET_PACKET_REPLAY_MISSION clears the last mission's results and goes to
+ * flight loading; a host cancel or a return to mission selection leaves for the
+ * concourse or mission setup; a NET_PACKET_PLAYER_READY clears its sender's
+ * g_mpRosterReadyFlags entry. The left button lets a client disconnect, after a
+ * confirm dialog unless it was disconnected already, and lets a single player
+ * or the host abort a sequence, after a confirm dialog, or pick a new mission;
+ * for them, the debriefing of a won campaign's last mission also sets
+ * isFinished in the faction's spCampaigns entry. The right button continues or
+ * reflies a sequence, and outside one flies the mission again: directly in
+ * single player, by a packet to everyone from the host. Returns 1 when
+ * Frontend_HandleCommonScreenControls(4) returns 1 (the player confirmed
+ * quitting the game); otherwise 0, except that the modern build returns
+ * XvtDialog_ContinueWith's result once it opens a dialog. Does not check that
+ * the local player is among g_pilotData.networkPlayers, or g_missionList and
+ * g_selectedMissionListIndex, before using them; a network client's battle
+ * check reads battleResultCounts, which only the host and a single player
+ * fill. */
 // FUNCTION: XVT 0x4FE160
 int MissionDebrief_Update(int frameCounter)
 {
@@ -2448,6 +2623,19 @@ int MissionDebrief_Update(int frameCounter)
 	return 0;
 }
 
+/* Draws the mission overview page: a title (the mission overview, or the
+ * tournament's, battle's or campaign's progress, or done), then score, kills
+ * (full and shared) and deaths for the teams in g_debriefSortedTeamIds. Teams
+ * with equal missionScore share a place, and places 1 to 3 get another text
+ * color. Under each team come its network players in g_debriefSortedPlayerIds
+ * order, gray and bracketed once they left, the local player in pulsing
+ * colors; with g_debriefRankByPilot set, each pilot's row carries the place
+ * and no team row is drawn. A team of only AI pilots lists its player flight
+ * groups by rating, as do a melee's or tournament's player flight groups no
+ * human flies. Then the "killed" and "killed by" lists from
+ * g_debriefKillsOnCombatantIds and g_debriefKillsFromCombatantIds, full kills
+ * with shared ones in parentheses. Holding Alt, Shift and Ctrl draws the
+ * "lh2" sprite. Returns 1. */
 // FUNCTION: XVT 0x500650
 int MissionDebrief_DrawMissionOverviewPage(int frameCounter)
 {
@@ -3398,6 +3586,16 @@ int MissionDebrief_DrawMissionOverviewPage(int frameCounter)
 	return 1;
 }
 
+/* Draws the player statistics page: 21 rows from
+ * g_debriefPlayerStatsScrollRow, with a scroll bar when there are more,
+ * covering the place in a network melee, the mission result and time, score,
+ * promotion, awards, kills, assists, hidden cargo found, laser and warhead
+ * accuracy, kills by victim rank and by craft type, and losses, from the last
+ * mission's fields of g_pilotData. When g_debriefStatsPageNeedsRebuild is set
+ * it first clears it, scrolls to row 0, counts the rows into
+ * g_debriefPlayerStatsRowCount, sets the section flags and sums the
+ * g_debrief totals. Returns 0, having drawn only the title, when in network
+ * play the local player is not among g_pilotData.networkPlayers; else 1. */
 // FUNCTION: XVT 0x501710
 int MissionDebrief_DrawPlayerStatisticsPage(void)
 {
@@ -4325,6 +4523,11 @@ int MissionDebrief_DrawPlayerStatisticsPage(void)
 	return 1;
 }
 
+/* Nothing calls this. Draws a team statistics page: for each network player
+ * on the local pilot's team, name, score, kills (full and shared) and craft
+ * inspected, then the team's totals of kills, shared kills, assists (labeled
+ * total damaged), inspections and craft lost. A network player on another
+ * team still takes a 20-pixel row, left empty. Returns 1. */
 // FUNCTION: XVT 0x502A50
 int MissionDebrief_DrawTeamStatisticsPage(void)
 {
@@ -4417,6 +4620,13 @@ int MissionDebrief_DrawTeamStatisticsPage(void)
 	return 1;
 }
 
+/* Draws the battle summary page: the battle's description
+ * (g_missionSequenceDescription); when a side has victoriesNeeded wins, that
+ * side's victory and the faction's battle medallion award, if any, else the
+ * victories needed; the Imperial and Rebel win counts; and each mission
+ * played, at most 10, with its description and result. Holding Alt, Shift and
+ * F9 draws the "pl2" sprite. Returns 1. Does not check g_missionList for
+ * NULL or the stored mission list indices against g_missionCount. */
 // FUNCTION: XVT 0x502E20
 int MissionDebrief_DrawBattleSummaryPage(void)
 {
@@ -4605,6 +4815,13 @@ int MissionDebrief_DrawBattleSummaryPage(void)
 	return 1;
 }
 
+/* Draws the tournament summary page: the tournament's description; after its
+ * last mission, the winners, every team or pilot tied at the top total score
+ * (at most 9 rows), the local one in pulsing colors with its tournament trophy
+ * award; then the score totals after currentMissionIndex + 1 of missionCount
+ * missions, for each team in g_debriefStandingsTeamIds order, with its total
+ * score and its first, second and third place counts, and its pilots or AI
+ * flight groups. Returns 1. */
 // FUNCTION: XVT 0x503400
 int MissionDebrief_DrawTournamentSummaryPage(int frameCounter)
 {
@@ -5528,6 +5745,12 @@ int MissionDebrief_DrawTournamentSummaryPage(int frameCounter)
 	return 1;
 }
 
+/* Draws the debriefing's tabs and switches g_debriefTab when one is clicked,
+ * also setting g_debriefStatsPageNeedsRebuild. Tab 1, player statistics, is
+ * always there; tab 0, the overview, in network play or a melee or
+ * tournament; tab 2 while g_pilotData.missionSequenceActive is 1 in a
+ * campaign (training directory), tournament (melee directory) or battle
+ * (combat engagement directory). Returns 1. */
 // FUNCTION: XVT 0x504360
 int MissionDebrief_DrawTabBar(void)
 {
@@ -5645,6 +5868,9 @@ int MissionDebrief_DrawTabBar(void)
 	return 1;
 }
 
+/* Marks every network player of g_pilotData.networkPlayers with a
+ * directPlayId ready in the session roster (Net_MarkPlayerReadyNoLock).
+ * Returns 1. */
 // FUNCTION: XVT 0x5046D0
 int MissionDebrief_MarkNetworkPlayersReady(void)
 {
@@ -5660,6 +5886,15 @@ int MissionDebrief_MarkNetworkPlayersReady(void)
 	return 1;
 }
 
+/* Works out the debriefing's standings and lists from g_pilotData and
+ * g_frontendMission: g_debriefTeamHasPlayer, g_debriefTeamHasOnlyAiPilots,
+ * g_debriefActiveTeamCount, g_debriefTeamInStandings,
+ * g_debriefSortedTeamIds, g_debriefLocalTeamRankIndex,
+ * g_debriefStandingsTeamIds, g_debriefSortedPlayerIds,
+ * g_debriefKillsOnCombatantIds, g_debriefKillsFromCombatantIds and
+ * g_debriefRankByPilot; each global's comment says how. Returns 1. Does not
+ * check a network player's flightGroupId before indexing the flight
+ * groups. */
 // FUNCTION: XVT 0x504700
 int MissionDebrief_Prepare(void)
 {
@@ -6111,6 +6346,16 @@ int MissionDebrief_Prepare(void)
 	return 1;
 }
 
+/* Despite the name, composes nothing: it fills outResults, 4096 bytes, with
+ * text read from the pilot's current mission file. Returns at once when
+ * outResults is NULL. Otherwise it clears outResults, finds the mission of
+ * g_pilotData.missionDescriptionIds in g_missionList and opens its file;
+ * unless the directory is tournaments, battles or campaigns, a file whose
+ * first word is 14 gives the 4096 bytes starting 12288 bytes before its end
+ * when useWinText is nonzero, else 8192 bytes before it, the last byte set
+ * to 0. outResults stays empty when the mission is not in the list, the file
+ * does not open, or the directory or the word rules the read out. Does not
+ * check g_missionList for NULL or the read's result. */
 // FUNCTION: XVT 0x504E30
 void MissionDebrief_BuildText(char *outResults, int useWinText)
 {
@@ -6165,6 +6410,12 @@ void MissionDebrief_BuildText(char *outResults, int useWinText)
 	File_Close(stream);
 }
 
+/* Draws the debriefing text page: a title (tournament, battle or campaign
+ * debriefing in a sequence, else mission debriefing) and g_missionText
+ * wrapped below it. A first FrontendText_DrawWrapped pass from line 4096,
+ * plus 1, gives the line count; above 20, a scroll bar sets
+ * g_frontendFirstVisibleLine. Returns 0 without drawing when g_missionText is
+ * NULL, else 1. */
 // FUNCTION: XVT 0x504F50
 int MissionDebrief_DrawNarrativeTextPage(void)
 {

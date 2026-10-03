@@ -11,13 +11,20 @@
 extern "C" {
 #endif
 
+/* One polygon edge as the software renderer scans it, set up by
+ * sw3d_SetupClippedEdge; rows are viewport rows. */
 struct SceneEdge {
+	/* Row after the edge's last, capped at g_flightVpHeight. */
 	int yEnd;
+	/* First row the edge covers: its top y rounded up, 0 when above the
+	 * viewport. */
 	int yStart;
-	float x;
-	float lightIntensity;
-	float dxdy;
-	float dLightIntensityDy;
+	float x;		 /* Edge's x on row yStart. */
+	float lightIntensity;	 /* Light level on row yStart. */
+	float dxdy;		 /* Change in x per row. */
+	float dLightIntensityDy; /* Change in light level per row. */
+	/* The vertex sw3d_SetupClippedEdge made where the edge crosses view
+	 * depth 1, set by sw3d_RasterizeMeshFaces; NULL when it made none. */
 	ProjVertex *pClipVert;
 };
 
@@ -88,80 +95,135 @@ static inline unsigned int RenderScene_GetMemoryHandle(const uint16_t *handle)
 	return *handle;
 }
 
+/* One mesh vertex carried into the viewport, as the projection functions
+ * write it to g_projVertList; RenderClipVertex has the same layout. */
 struct ProjVertex {
+	/* Viewport x in pixels; view-space x while scaledInverseDepth is
+	 * negative. */
 	float sx;
+	/* Viewport y in pixels; view-space y while that is negative. */
 	float sy;
+	/* g_projScaleInt over the view depth; for a vertex closer than depth 1,
+	 * the depth minus 1, which is negative. */
 	float scaledInverseDepth;
+	/* Light level, 0 to 1, from RenderScene_ComputeVertexLighting. */
 	float lightIntensity;
-	float tu;
-	float tv;
+	float tu; /* Horizontal texture coordinate. */
+	float tv; /* Vertical texture coordinate. */
 };
 
+/* One mesh of an object's model on its way to the screen: the walk of the
+ * model's nodes fills it, and the draw functions queue a copy. */
 struct SceneMesh {
-	ObjectRecord *pObject;
+	ObjectRecord *pObject; /* Object the model belongs to. */
+	/* Radians the next rotate-and-scale node turns this part by, from the
+	 * craft's meshRotation byte; 0 for none. */
 	float rotAngle;
+	/* Position of the model's origin in view space; with viewOrient,
+	 * Math3D_RotateVec3 then adding this carries a model point to view
+	 * space. */
 	float viewPosX;
-	float viewPosY;
-	float viewPosZ;
+	float viewPosY; /* y of that position. */
+	float viewPosZ; /* z of that position: depth ahead of the eye. */
+	/* Model-to-view rotation, scaled by scale nodes. */
 	float viewOrient[9];
+	/* Eye position in model space, used to cull faces turned away. */
 	float eyeModelSpaceX;
-	float eyeModelSpaceY;
-	float eyeModelSpaceZ;
+	float eyeModelSpaceY; /* y of that position. */
+	float eyeModelSpaceZ; /* z of that position. */
+	/* View-to-model rotation, the inverse of viewOrient. */
 	float viewToModelOrient[9];
+	/* Nothing reads it. */
 	int baseColorAndMaterials
 		[4]; ///< Elements 0-2 come from the OPT_BASE_COLOR payload; element 3 receives
 	///< g_curMeshMaterials from OPT_MATERIAL_BINDING for selectors outside 5-8.
-	int vertexCount;
-	OptVector *pModelVerts;
-	OptTexCoord *pUVs;
+	int vertexCount;	/* Vertices in pModelVerts. */
+	OptVector *pModelVerts; /* Vertex positions in model space. */
+	OptTexCoord *pUVs;	/* Texture coordinates, by face uv index. */
+	/* Vertex normals: the model's own, else those that follow the face
+	 * data. */
 	OptVector *pVertNormals;
+	/* Nothing reads it. */
 	int perVertexMaterials; ///< Receives g_curMeshMaterials when OPT_MATERIAL_BINDING payloadCount is 7 or 8;
 				///< no downstream consumer is identified.
-	int faceCount;
-	int edgeCount;
-	OptVector *pFaceNormals;
-	FaceTextureGradients *pFaceTexturing;
+	int faceCount;		/* Faces in pFaceGeom. */
+	int edgeCount;		/* Edges the faces share. */
+	OptVector *pFaceNormals;	      /* One normal per face. */
+	FaceTextureGradients *pFaceTexturing; /* Texture axes per face. */
+	/* Nothing reads it. */
 	int perFaceMaterials; ///< Receives g_curMeshMaterials when OPT_MATERIAL_BINDING payloadCount is 5 or 6;
 			      ///< no downstream consumer is identified.
+	/* Corner, uv, normal and edge indices per face. */
 	FaceRecord *pFaceGeom;
+	/* Name of the texture node; RenderScene_DrawMeshFaces sets its first
+	 * character to '_' when no color-key texture could be made for it. */
 	char *pTextureName;
-	void *pMaterial;
-	void *pTexels;
-	void *pPalette;
+	void *pMaterial; /* The texture's OptTextureData header. */
+	void *pTexels;	 /* Texels, just after that header. */
+	void *pPalette;	 /* The texture's palette and shade tables. */
+	/* pPalette plus 4096 bytes, read as 16-bit colors. */
 	uint16_t *pColorKeyPalette;
+	/* Index of the mesh's first face in g_visFaceList. */
 	int faceBaseIndex;
+	/* Index of its first vertex in g_projVertList. */
 	int vertBaseIndex;
+	/* g_sceneEdgeCursor when sw3d_RasterizeMeshFaces began; nothing reads
+	 * it. */
 	int edgeBaseIndex;
-	int visFaceCount;
+	int visFaceCount; /* Faces that passed the cull, from faceBaseIndex. */
+	/* Vertices projected so far, from vertBaseIndex, near-clip vertices
+	 * of the software renderer included. */
 	int projVertCursor;
+	/* Edges sw3d_RasterizeMeshFaces has written for the mesh. */
 	int emittedEdgeCount;
 };
 
+/* One face that passed the cull, in g_visFaceList. */
 struct SceneFace {
-	int faceIndex;
-	SceneMesh *pMesh;
+	int faceIndex;	  /* Index of the face in its mesh. */
+	SceneMesh *pMesh; /* The queued mesh it belongs to. */
+	/* faceIndex plus g_curLayerId << 16; nothing reads it. */
 	int faceAndLayerId;
+	/* -1 when a corner is closer than view depth 1 and the face needs the
+	 * near clip; the draw then sets it to g_flightVpHeight. */
 	int nearClipState;
+	/* After projection, three planes in viewport x and y, each as the x
+	 * factor, the y factor and the constant: u over view depth, v over
+	 * view depth, and 1 over view depth. Before that, the face's u and v
+	 * axes in view space and its texture origin. */
 	float gradients[9];
-	float spanLightIntensityDx;
+	float spanLightIntensityDx; /* Change in light level per pixel. */
+	/* The left edge sw3d_ScanConvertFace is filling spans from; NULL from
+	 * the cull until then. */
 	SceneEdge *pScanEdge;
+	/* The face's row of 12-byte light samples in g_sceneLightSampleData. */
 	void *pLightSamples;
-	int yTop;
-	int yBot;
+	int yTop; /* First row of the face's spans. */
+	int yBot; /* Row after its last. */
+	/* Largest scaledInverseDepth of its corners; a corner closer than depth
+	 * 1 counts as g_projScaleInt. */
 	float maxScaledInverseDepth;
-	float minScaledInverseDepth;
+	float minScaledInverseDepth; /* Smallest, counted the same way. */
+	/* Its edges as sw3d_RasterizeMeshFaces set them. */
 	SceneEdge *edges[5];
-	int edgeCount;
+	int edgeCount; /* Edges in edges. */
+	/* One span pointer per row from yTop, taken from g_sceneSpanPtrList. */
 	SceneSpan **pSpans;
+	/* Estimated texels per viewport pixel, times 256, for choosing a mip
+	 * level. */
 	int texelsPerPixelQ8;
 };
 
+/* One run of pixels on a viewport row that a single face covers, in the
+ * software renderer's per-row lists. */
 struct SceneSpan {
-	SceneSpan *next;
-	int xStart;
-	int xEnd;
-	float lightIntensity;
-	float dLightIntensityDx;
+	SceneSpan *next;	 /* Next span on the row; NULL at the end. */
+	int xStart;		 /* First pixel. */
+	int xEnd;		 /* Pixel after the last. */
+	float lightIntensity;	 /* Light level at xStart. */
+	float dLightIntensityDx; /* Change in light level per pixel. */
+	/* The face drawn there; g_sw3dCockpitMaskSentinelFace for a run the
+	 * cockpit covers. */
 	SceneFace *face;
 };
 

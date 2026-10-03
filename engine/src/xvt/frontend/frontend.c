@@ -44,69 +44,145 @@ enum {
 	AUX_VOLUME_MAX = 65535,
 };
 
+/* Controls in g_scrollableControlIds, 0 to 32. Written by
+ * Frontend_RegisterScrollableControl, Frontend_UnregisterScrollableControl,
+ * Frontend_ResetScrollableControls and FrontendScrollbar_RestoreState. */
 // GLOBAL: XVT 0x52C004
 int g_scrollableControlCount;
+/* Copy of g_scrollableControlCount that FrontendScrollbar_SaveState keeps for
+ * FrontendScrollbar_RestoreState. */
 // GLOBAL: XVT 0x52C008
 int g_scrollableControlCountSaved;
+/* Ids of the scrollbars that Tab moves the keyboard focus through, in focus
+ * order: entry 0 has the focus and takes Page Up, Page Down and the up and down
+ * arrows. */
 // GLOBAL: XVT 0x665470
 int g_scrollableControlIds[32];
+/* Copy of g_scrollableControlIds that FrontendScrollbar_SaveState keeps for
+ * FrontendScrollbar_RestoreState. */
 // GLOBAL: XVT 0x6654F0
 int g_scrollableControlIdsSaved[32];
+/* Background color of editable text fields, FrontendDisplay_PackRGB(64, 128,
+ * 64); set by Frontend_LoadResources and read by the config screens. */
 // GLOBAL: XVT 0xB69CC4
 int g_editableFieldBackgroundColor = 0;
+/* Gray, FrontendDisplay_PackRGB(96, 96, 96), set by Frontend_LoadResources;
+ * mission lists draw unavailable entries in it. */
 // GLOBAL: XVT 0xB69CCC
 int g_colorGray = 0;
+/* Navy, FrontendDisplay_PackRGB(0, 0, 128), set by Frontend_LoadResources;
+ * scrollbars are drawn in it. */
 // GLOBAL: XVT 0xBB2810
 int g_colorNavy = 0;
+/* Shared 256-byte text buffer of the frontend: most screens format a line here
+ * just before drawing it, and file readers use it for the line being read. */
 // GLOBAL: XVT 0xB69D20
 char g_frontendScratchBuffer[256] = {0};
+/* Pale cyan, FrontendDisplay_PackRGB(196, 252, 252), set by
+ * Frontend_LoadResources; read by the button and scrollbar drawing. */
 // GLOBAL: XVT 0xB69E24
 int g_colorPaleCyan = 0;
+/* Green, FrontendDisplay_PackRGB(0, 255, 0), set by Frontend_LoadResources. */
 // GLOBAL: XVT 0xB6A2A0
 int g_colorGreen = 0;
+/* Blue, FrontendDisplay_PackRGB(0, 0, 255), set by Frontend_LoadResources. */
 // GLOBAL: XVT 0xB6A2A4
 int g_colorBlue = 0;
+/* Red, FrontendDisplay_PackRGB(255, 0, 0), set by Frontend_LoadResources. */
 // GLOBAL: XVT 0xB69E38
 int g_colorRed = 0;
+/* Yellow, FrontendDisplay_PackRGB(255, 255, 0), set by Frontend_LoadResources;
+ * the most used text color. */
 // GLOBAL: XVT 0xB6A2C0
 int g_colorYellow = 0;
+/* Green, FrontendDisplay_PackRGB(0, 255, 0), the same as g_colorGreen; set by
+ * Frontend_LoadResources and read by the network game lists. */
 // GLOBAL: XVT 0xB6A2D8
 int g_colorGreen2 = 0;
+/* First line shown of the mission text in its scrolling box; the box's
+ * scrollbar sets it, and screens set 0 when they load a new text. Many
+ * functions write it, chiefly in mission_setup.c. */
 // GLOBAL: XVT 0x52C208
 int g_frontendFirstVisibleLine = 0;
+/* 1 when the host CD's first training mission is found, else 0; only
+ * Frontend_CheckHostCdPresent writes it. Hosting a game needs it. */
 // GLOBAL: XVT 0xB6A250
 int g_hostCdAvailable = 0;
+/* Teal, FrontendDisplay_PackRGB(48, 111, 123), set by Frontend_LoadResources;
+ * read by the button and scrollbar drawing. */
 // GLOBAL: XVT 0xB6A264
 int g_colorTeal = 0;
+/* Copy of g_colorRed, set by Frontend_LoadResources; nothing reads it. */
 // GLOBAL: XVT 0xB69CF0
 int g_colorRed2 = 0;
+/* Copy of g_colorNavy, set by Frontend_LoadResources; nothing reads it. */
 // GLOBAL: XVT 0xB69CF4
 int g_colorNavy2 = 0;
+/* Copy of g_colorBlue, set by Frontend_LoadResources; nothing reads it. */
 // GLOBAL: XVT 0xB69CF8
 int g_colorBlue2 = 0;
+/* Copy of g_colorYellow, set by Frontend_LoadResources; nothing reads it. */
 // GLOBAL: XVT 0xB69CFC
 int g_colorYellow2 = 0;
+/* Violet, FrontendDisplay_PackRGB(128, 0, 255), set by Frontend_LoadResources;
+ * nothing reads it. */
 // GLOBAL: XVT 0xB69D00
 int g_colorViolet = 0;
+/* Spring green, FrontendDisplay_PackRGB(0, 255, 128), set by
+ * Frontend_LoadResources; nothing reads it. */
 // GLOBAL: XVT 0xB69D04
 int g_colorSpringGreen = 0;
+/* Copy of g_editableFieldBackgroundColor, set by Frontend_LoadResources;
+ * nothing reads it. */
 // GLOBAL: XVT 0xB69D08
 int g_colorMutedGreen2 = 0;
+/* Cyan, FrontendDisplay_PackRGB(0, 255, 255), set by Frontend_LoadResources;
+ * nothing reads it. */
 // GLOBAL: XVT 0xB69D0C
 int g_colorCyan = 0;
+/* Azure, FrontendDisplay_PackRGB(0, 128, 255), set by Frontend_LoadResources;
+ * nothing reads it. */
 // GLOBAL: XVT 0xB69D10
 int g_colorAzure = 0;
+/* Orange, FrontendDisplay_PackRGB(255, 128, 0), set by Frontend_LoadResources;
+ * nothing reads it. */
 // GLOBAL: XVT 0xB69D14
 int g_colorOrange = 0;
+/* Twelve shades of yellow for pulsing text, from FrontendDisplay_PackRGB(128,
+ * 128, 0) up to (255, 255, 0) at entry 6 and back down to (149, 149, 0); set by
+ * Frontend_LoadResources. */
 // GLOBAL: XVT 0xB6A270
 int g_pulseColorRamp[12] = {0};
+/* 1 when the pilot record pages must reload their mission lists and totals
+ * before drawing; the concourse and pilot changes set it, and the pages set 0
+ * once rebuilt. Many functions write it, chiefly in pilot_record.c. */
 // GLOBAL: XVT 0x664F2C
 int g_pilotRecordPagesNeedRebuild = 0;
+/* 1 when the CD music could not be started and the concourse has not yet said
+ * so. Frontend_LoadResources sets it when CDAudio_Initialize fails, the
+ * concourse's CD retry loop updates it, and the concourse sets 0 once it has
+ * shown the warning. */
 // GLOBAL: XVT 0x664EC4
 int g_cdAudioWarningPending = 0;
+/* Passed to File_CheckGameCdPresent, whose original build checks the CD's movie
+ * files only while this is 0. Frontend_LoadResources sets 0 and the concourse's
+ * first frame sets 1 after its CD checks; while it is set, the original
+ * concourse also skips its movie CD check. */
 // GLOBAL: XVT 0xBB2818
 int g_skipMovieChecks = 0;
 
+/* Loads the frontend: the mode start function when the intro is skipped, and
+ * the last step of the credits otherwise. Sets g_gameMainSkipIntroRelaunchGate
+ * to 1 and g_skipMovieChecks to 0, checks for the host CD, sets the display
+ * options (Esc does not quit, clear color 0, cursor shown, no clearing after a
+ * present, the back buffer refilled from the offscreen surface), loads fonts
+ * 15, 12 and 10, the five image lists, the sound list and the cursor image,
+ * clears g_pilotData, and loads the string table, the cutscene table and the
+ * campaign award images. Allocates and zeroes the 1024-byte chat log, sets the
+ * frontend colors, loads the config, takes a pilot name from the command line,
+ * loads the last pilot, and starts the CD music: track 7 at the music volume
+ * with datapad music on, else stops the track. Returns 0, which lets the
+ * frontend start; checks no load result. */
 // FUNCTION: XVT 0x4BDB90
 int Frontend_LoadResources(void)
 {
@@ -201,6 +277,23 @@ int Frontend_LoadResources(void)
 	return 0;
 }
 
+/* Handles the buttons along the top of the frontend screens and the help
+ * toggle, and returns 1 only when the player quits the game. screenContext is 0
+ * for the concourse and the join and host screens, 1 for the mission setup
+ * screens (mission, teams, flights, battle choice and craft selection), 2 for
+ * the config screen, 3 for the craft database and 4 for the debriefing; most
+ * buttons show only in some contexts. Exit, or Esc, asks first (differently
+ * in a network game, during a mission sequence, or plainly), then tells the
+ * other players when needed,
+ * writes the config and shuts DirectPlay down. Config opens the config screen,
+ * or closes it from the config context, then sending the game options to the
+ * players when hosting. Join, Host (with the host CD only), Fly solo and Pilots
+ * ask first while a game session is in progress, need a selected pilot (except
+ * Pilots), set g_frontendMissionSessionMode and switch to the join, host,
+ * mission setup or concourse screen; leaving mission setup this way tells the
+ * other players and shuts the session down. The craft database button pushes
+ * the craft database, or closes it from that context. Returns 0 otherwise; the
+ * modern build also returns 0 while one of its dialogs is up. */
 // FUNCTION: XVT 0x4BF9B0
 int Frontend_HandleCommonScreenControls(int screenContext)
 {
@@ -1328,6 +1421,9 @@ int Frontend_HandleCommonScreenControls(int screenContext)
 	return 0;
 }
 
+/* Writes seconds as "MM:SS", or as "HH:MM:SS" from one hour up, each part at
+ * least two digits, into g_frontendScratchBuffer, and returns sprintf's
+ * result. */
 // FUNCTION: XVT 0x4C9BF0
 int Frontend_FormatSecondsToClockString(unsigned int seconds)
 {
@@ -1346,6 +1442,14 @@ int Frontend_FormatSecondsToClockString(unsigned int seconds)
 		       minutes, secondsRemainder);
 }
 
+/* Copies line lineIndex (0 for the first) of xvterr.txt into outText, turning
+ * each two-character \n into a newline, and returns 1. Returns 0 when the file
+ * does not open or that line is missing. A negative lineIndex returns 0 in the
+ * modern build; the original build then reads a pointer from the unset line
+ * buffer. It always copies the first 255 bytes of the line buffer, newline and
+ * whatever follows the line included, adding no terminator of its own. The
+ * original build reads each line with a 512-byte limit into a 256-byte
+ * buffer. */
 // FUNCTION: XVT 0x4C9E30
 int ErrorText_LoadLine(int lineIndex, char *outText)
 {
@@ -1401,6 +1505,11 @@ int ErrorText_LoadLine(int lineIndex, char *outText)
 	return 1;
 }
 
+/* Sets g_hostCdAvailable to whether the host CD's first training mission is
+ * there, and returns it. The modern build looks for train/1ta01bf.tie among the
+ * assets. The original build opens the drive letter followed by
+ * \train\1TA01BF.TIE, with no colon after the letter; with no CD drive it
+ * returns 0 and leaves g_hostCdAvailable as it was. */
 // FUNCTION: XVT 0x4C9EE0
 int Frontend_CheckHostCdPresent(void)
 {
@@ -1434,6 +1543,8 @@ int Frontend_CheckHostCdPresent(void)
 #endif
 }
 
+/* Saves the pilot with Pilot_Save(0) and writes the config; returns 1. The
+ * network code calls it. */
 // FUNCTION: XVT 0x4C9F60
 int Frontend_SavePersistentState(void)
 {
@@ -1442,6 +1553,8 @@ int Frontend_SavePersistentState(void)
 	return 1;
 }
 
+/* Returns 1 when controlId is entry 0 of g_scrollableControlIds, the focused
+ * control, else 0. Does not check that any control is registered. */
 // FUNCTION: XVT 0x4D9B80
 int Frontend_IsScrollableControlFocused(int controlId)
 {
@@ -1449,6 +1562,8 @@ int Frontend_IsScrollableControlFocused(int controlId)
 	return !controlId;
 }
 
+/* Adds controlId at the end of g_scrollableControlIds unless it is there
+ * already. Returns 1, or 0 when 32 are registered. */
 // FUNCTION: XVT 0x4D9BA0
 int Frontend_RegisterScrollableControl(int controlId)
 {
@@ -1476,6 +1591,10 @@ int Frontend_RegisterScrollableControl(int controlId)
 #ifndef XVT_MODERN
 #pragma function(memcpy)
 #endif
+/* Removes the first entry equal to controlId from g_scrollableControlIds,
+ * moving later entries down one, and returns 1; returns 0 when it is not there.
+ * The original build moves them with memcpy over overlapping memory; the modern
+ * build uses memmove. */
 // FUNCTION: XVT 0x4D9BF0
 int Frontend_UnregisterScrollableControl(int controlId)
 {
@@ -1509,6 +1628,10 @@ int Frontend_UnregisterScrollableControl(int controlId)
 	return 0;
 }
 
+/* Moves keyboard focus to the next scrollbar: entry 0 of g_scrollableControlIds
+ * goes to the end and the rest move down one. Returns 0 when none is
+ * registered, else 1. The original build moves them with memcpy over
+ * overlapping memory. */
 // FUNCTION: XVT 0x4D9C50
 int Frontend_CycleScrollableFocus(void)
 {
@@ -1536,6 +1659,8 @@ int Frontend_CycleScrollableFocus(void)
 #pragma intrinsic(memcpy)
 #endif
 
+/* Forgets every registered scrollbar: sets g_scrollableControlCount to 0.
+ * Returns 1. */
 // FUNCTION: XVT 0x4D9CA0
 int Frontend_ResetScrollableControls(void)
 {

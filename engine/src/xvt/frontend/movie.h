@@ -19,32 +19,57 @@ typedef int (*MovieInputCallback)(void *hWnd, unsigned int message,
 typedef int (*MovieProgressCallback)(unsigned int currentFrame,
 				     unsigned int finalFrame, void *context);
 
+/* What the original build's Movie_Play passes to Movie_RunSmackerPlayback. */
 struct MoviePlaybackParams {
+	/* Movie name, without folder or extension. */
 	const char *movieName;
+	/* Display width the movie is centered in; Movie_Play passes 640. */
 	int displayWidth;
+	/* Display height the movie is centered in; Movie_Play passes 480. */
 	int displayHeight;
+	/* The display's primary surface, flipped in page-flip full screen. */
 	IDirectDrawSurface *primarySurface;
+	/* Surface frames are decoded into and copied from. */
 	IDirectDrawSurface *decodeSurface;
+	/* Display palette the movie's colors are written to. */
 	IDirectDrawPalette *palette;
+	/* DirectSound object handed to Smacker for the sound. */
 	IDirectSound *directSound;
+	/* Never read or written by name. */
 	void *unused1C; ///< Unused playback-parameter slot; the sole caller leaves it uninitialized and all movie
 			///< consumers skip offset 0x1C.
+	/* The game window: blits land in its client area, and decoding waits
+	 * while another window has focus. */
 	void *window;
+	/* Gets every window message first; a 0 from it skips the default
+	 * handling. */
 	MovieInputCallback inputCallback;
+	/* Passed to inputCallback; Movie_Play leaves it unset and both
+	 * callbacks ignore it. */
 	void *inputCallbackContext;
+	/* Called with the current and last frame numbers; 1 ends playback.
+	 * NULL ends playback at the last frame. */
 	MovieProgressCallback progressCallback;
+	/* Passed to progressCallback; Movie_Play leaves it unset and the
+	 * callback ignores it. */
 	void *progressCallbackContext;
 };
 
+/* A changed area of a movie frame, in decode surface pixels. */
 struct MovieDirtyRect {
-	int x;
-	int y;
+	int x; /* Left edge. */
+	int y; /* Top edge. */
+	/* Width; Movie_MergeDirtyRectLists negates it to mark a rectangle
+	 * used. */
 	int width;
-	int height;
+	int height; /* Height. */
 };
 
+/* One player of a network game's movie. */
 struct MovieMultiplayerSyncPlayer {
-	int playerId;
+	int playerId; /* DirectPlay id; 0 for an empty entry. */
+	/* 1 once the player has finished or stopped the movie and waits for
+	 * the others, 0 while watching. */
 	int isWaiting;
 };
 

@@ -20,11 +20,20 @@ enum {
 	MISSION_DIRECTORY_CAMPAIGNS = 0x5,
 };
 
+/* One mission of a mission list file, as MissionSetup_LoadMissionList reads
+ * it: an id line, a file name line and a description line, under the last
+ * "[section]" line. */
 struct MissionListEntry {
+	/* Mission file name, lowercased, without a leading '*' or '&' entry
+	 * marker. Some screens read its first character as a player count. */
 	char fileName[64];
-	char description[128];
+	char description[128]; /* The mission's title line. */
+	/* Name of the section the entry sits in, without the brackets; empty
+	 * before the first section. */
 	char sectionName[128];
-	int missionIdx;
+	int missionIdx; /* Mission id: the number on the entry's first line. */
+	/* 1 when the entry is marked '&', or marked '*' and its campaign
+	 * mission has not been flown; such entries are left out of lists. */
 	int isUnavailable;
 };
 

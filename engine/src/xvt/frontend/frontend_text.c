@@ -48,19 +48,53 @@ typedef HRESULT(AERON_DXAPI *FrontendTextSurfaceReleaseDcFunc)(
 	IDirectDrawSurface *surface, void *dc);
 #endif
 
+/* g_frontState.textFadeFramesLeft as FrontendText_SuspendTextFade saved it, for
+ * FrontendText_ResumeTextFade to put back. Only the suspend writes it. */
 // GLOBAL: XVT 0x665684
 static int g_savedTextFadeFramesLeft;
+/* The fieldId of the edit field that takes typed keys and shows a caret.
+ * FrontendText_HandleEditableField sets it when a field is clicked; screens
+ * also set it directly, chiefly in config.c and frontend.c. 0 at start, so a
+ * field with id 0 is active until another is clicked. The modern build's
+ * renderer reads it. */
 // GLOBAL: XVT 0x52C000
 int g_activeTextFieldId = 0;
+/* The edit fields' text and caret color, FrontendDisplay_PackRGB(0xFF, 0xFF,
+ * 0xFF), computed on the first FrontendText_HandleEditableField call. */
 // GLOBAL: XVT 0x52C014
 static int g_textFieldColor = 0;
+/* 1 once FrontendText_HandleEditableField has computed g_textFieldColor;
+ * nothing sets it back to 0. */
 // GLOBAL: XVT 0x52C018
 static int g_textFieldColorInitialized = 0;
+/* The character index FrontendText_HandleEditableField draws the caret at. Only
+ * that function writes it: it sets it to the text's length on each call and
+ * moves it with each character typed or erased, so it always equals
+ * g_textFieldLength. */
 // GLOBAL: XVT 0x665464
 static int g_textFieldCursorCharIndex = 0;
+/* The length of the text FrontendText_HandleEditableField is editing, set from
+ * strlen on each call and kept in step as characters are typed or erased. Only
+ * that function writes it. */
 // GLOBAL: XVT 0x665680
 static int g_textFieldLength = 0;
 
+/* Draws and runs a one-line edit field over text for one frame. A release of
+ * either mouse button in rect makes fieldId the active field,
+ * g_activeTextFieldId. While it is active the field takes the next character in
+ * the keyboard buffer, discarding it when it is one of ignoredChars: a
+ * printable character or a space is appended while the text is shorter than
+ * maxChars - 1; Backspace erases the last character; Enter or Tab makes the
+ * call return 1; Esc is left in the buffer; other characters are discarded.
+ * Draws the text in g_textFieldColor in the font of size fontSize from
+ * (rect->left + 2, rect->top + 2), clipped to that point and rect's
+ * bottom-right corner; when the text's width is over (rect->right - rect->left)
+ * + 1 it is shifted left by its width + fontSize - (rect->right - rect->left) -
+ * 1, keeping its end in view. While active it also draws a caret 2 pixels wide
+ * and fontSize + 1 tall after the last character, on frames whose counter
+ * modulo 10 is under 5. Returns 0 when Enter or Tab was not taken. The modern
+ * build treats every byte from 32 but 127 as printable and records the field
+ * for its renderer. */
 // FUNCTION: XVT 0x4DA380
 int FrontendText_HandleEditableField(RECT *rect, char *text, int maxChars,
 				     int fieldId, unsigned int fontSize,
@@ -175,6 +209,19 @@ int FrontendText_HandleEditableField(RECT *rect, char *text, int maxChars,
 	return completed;
 }
 
+/* Makes the font of size pointSize, clamped to 1 to 255, ready for the text
+ * functions. Returns 1 when it is already loaded. Otherwise it takes the first
+ * free of the 10 slots in g_frontState.fontSlots, returning 0 when none is
+ * free, and returns 1 when FrontendText_LoadFontAtlasFile loads
+ * "times<size>.abp" into it. When that fails the modern build returns 0, and
+ * the original build builds the font from Times New Roman through GDI: it
+ * measures characters 1 to 255, copies the offscreen surface to the back
+ * buffer, draws each white on black on the offscreen surface through a GDI
+ * device context, reads its rows from the locked back buffer and encodes them
+ * with FrontImage_EncodeGlyphRow, then copies the back buffer to the offscreen
+ * surface. With all 255 done it registers the font in g_frontState.fontBySize,
+ * saves it as "times<size>.abp" and returns 1; when a step fails it frees the
+ * glyph memory and returns 0. */
 // FUNCTION: XVT 0x4DADA0
 int FrontendText_LoadFont(int pointSize)
 {
@@ -454,6 +501,9 @@ int FrontendText_LoadFont(int pointSize)
 #endif
 }
 
+/* Frees every loaded font: the glyph memory of each slot whose inUse is 1,
+ * which it then marks free, and clears g_frontState.fontBySize. The modern
+ * build also drops each font from its renderer. */
 // FUNCTION: XVT 0x4DB420
 void FrontendText_FreeAllFonts(void)
 {
@@ -475,6 +525,10 @@ void FrontendText_FreeAllFonts(void)
 	memset(g_frontState.fontBySize, 0, sizeof(g_frontState.fontBySize));
 }
 
+/* Nothing calls this. Frees the first loaded font whose pointSize equals
+ * pointSize truncated to 8 bits, marks its slot free and clears
+ * g_frontState.fontBySize[pointSize], not checking that pointSize is under 256.
+ * The modern build also drops the font from its renderer. */
 // FUNCTION: XVT 0x4DB470
 void FrontendText_FreeFont(unsigned int pointSize)
 {
@@ -497,6 +551,13 @@ void FrontendText_FreeFont(unsigned int pointSize)
 	}
 }
 
+/* Draws str from (x, y), the first glyph's top-left corner, in the font of size
+ * fontSize, through FrontImage_DrawGlyph with the text fade applied. A byte 1
+ * goes back to color; bytes 2 to 6 switch to g_frontState.textColorCodes[1] to
+ * [5]; every other byte is drawn as a glyph and advances x by its width plus
+ * the font's charSpacing. Stops when x reaches 640. Returns the glyphs'
+ * clip-edge bits ORed together (0x1 left, 0x2 top, 0x4 right, 0x8 bottom); 0
+ * when str is NULL, fontSize is outside 0 to 255 or that font is not loaded. */
 // FUNCTION: XVT 0x4DB4E0
 int FrontendText_Draw(int fontSize, const char *str, int x, int y, int color)
 {
@@ -553,6 +614,10 @@ int FrontendText_Draw(int fontSize, const char *str, int x, int y, int color)
 	return result;
 }
 
+/* Draws str like FrontendText_Draw, centered in rect: from x rect->left +
+ * ((rect->right - rect->left) >> 1) - (text width >> 1) and y rect->top +
+ * ((rect->bottom - rect->top) >> 1) - (font height >> 1). Returns what
+ * FrontendText_Draw would. */
 // FUNCTION: XVT 0x4DB640
 int FrontendText_DrawCentered(int fontSize, const char *str, RECT *rect,
 			      int color)
@@ -616,6 +681,10 @@ int FrontendText_DrawCentered(int fontSize, const char *str, RECT *rect,
 	return result;
 }
 
+/* Draws str like FrontendText_Draw in rect: centered across it the way
+ * FrontendText_DrawCentered does when centerH is nonzero, else from rect->left,
+ * and centered down it when centerV is nonzero, else from rect->top. Returns
+ * what FrontendText_Draw would. */
 // FUNCTION: XVT 0x4DB7D0
 int FrontendText_DrawAlignedInRect(int fontSize, const char *str, RECT *rect,
 				   int centerH, int centerV, int color)
@@ -689,6 +758,14 @@ int FrontendText_DrawAlignedInRect(int fontSize, const char *str, RECT *rect,
 	return result;
 }
 
+/* Nothing calls this. Draws lineCount strings from lines, one under another,
+ * font height + lineSpacing apart, each like FrontendText_Draw, centered across
+ * rect when centerHorizontally is nonzero and the block centered down it when
+ * centerVertically is nonzero. Here bytes 2 to 7 are color codes, and 7 reads
+ * g_frontState.textColorCodes[6], one past the array's end; the color carries
+ * from one line to the next. Returns the glyphs' clip-edge bits ORed together,
+ * with 0x4 also set for a line that reached x 640; 0 when lines is NULL,
+ * fontSize is outside 0 to 255 or that font is not loaded. */
 // FUNCTION: XVT 0x4DB980
 int FrontendText_DrawLineArrayInRect(int fontSize, const char **lines,
 				     int lineCount, const RECT *rect, int color,
@@ -800,6 +877,17 @@ int FrontendText_DrawLineArrayInRect(int fontSize, const char **lines,
 	return drawStatus;
 }
 
+/* Draws str in rect with word wrap, clipping to rect meanwhile, and returns the
+ * number of line breaks it made, wrapped or forced, which is the index of the
+ * last line. Words end at a space, a line feed, a '$' or the string's last
+ * byte; a line feed or a '$' also breaks the line, and spaces at a line's start
+ * are skipped. A word that would end past rect->right - fontSize starts a new
+ * line, and a word still too long breaks inside. Lines are fontSize +
+ * lineSpacing apart; lines before firstVisibleLine are laid out but not drawn
+ * and take no height, which is how callers scroll. Bytes 1 to 7 change the
+ * color as in FrontendText_Draw, 7 reading g_frontState.textColorCodes[6], one
+ * past the array's end. Returns 0 when str is NULL or empty, fontSize is
+ * outside 0 to 255 or that font is not loaded. */
 // FUNCTION: XVT 0x4DBBD0
 int FrontendText_DrawWrapped(int fontSize, const char *str, RECT *rect,
 			     int color, int lineSpacing, int firstVisibleLine)
@@ -937,6 +1025,8 @@ int FrontendText_DrawWrapped(int fontSize, const char *str, RECT *rect,
 	return lineIndex;
 }
 
+/* Returns the font of size fontSize's height, its glyphHeight[0], or 0 when
+ * fontSize is outside 0 to 255 or that font is not loaded. */
 // FUNCTION: XVT 0x4DBF70
 int FrontendText_GetFontHeight(int fontSize)
 {
@@ -952,6 +1042,10 @@ int FrontendText_GetFontHeight(int fontSize)
 	return font->glyphHeight[0];
 }
 
+/* Returns str's width in pixels in the font of size fontSize: the widths of all
+ * bytes over 6, each plus the font's charSpacing, less one charSpacing. Returns
+ * 0 when str is NULL, fontSize is outside 0 to 255 or that font is not loaded,
+ * and -charSpacing for an empty string. */
 // FUNCTION: XVT 0x4DBFA0
 int FrontendText_MeasureWidth(const char *str, int fontSize)
 {
@@ -986,6 +1080,12 @@ int FrontendText_MeasureWidth(const char *str, int fontSize)
 	return width - font->charSpacing;
 }
 
+/* Only FrontendText_LoadFont calls this, in the original build. Writes the font
+ * to fileName: the first 0x60B (1,547) bytes of the BitmapFont, with the glyph
+ * pointer at its start replaced by glyphBlobSize, then glyphBlobSize bytes of
+ * glyph rows. Writes nothing when font is NULL or the file does not open; does
+ * not check the writes. The header copy assumes the 32-bit layout, with a
+ * 4-byte pointer. */
 // FUNCTION: XVT 0x4DC020
 void FrontendText_SaveFontAtlasFile(char *fileName, void **font,
 				    unsigned int glyphBlobSize)
@@ -1005,6 +1105,16 @@ void FrontendText_SaveFontAtlasFile(char *fileName, void **font,
 	}
 }
 
+/* Loads a font file written by FrontendText_SaveFontAtlasFile into
+ * g_frontState.fontSlots[slotIndex]: the 0x60B-byte header (the original build
+ * reads it over the slot as it lies in memory, the modern build field by
+ * field), then a glyph block of the size the header's first 4 bytes give.
+ * Registers the slot in g_frontState.fontBySize under the file's pointSize, not
+ * checking that it is under 256, and returns 1. Returns 0 when the file does
+ * not open, when the modern build cannot read the header, or when the glyph
+ * block cannot be allocated, which also sets the slot's inUse to 0. The slot's
+ * inUse comes from the file. The modern build also registers the font with its
+ * renderer. */
 // FUNCTION: XVT 0x4DC0A0
 int FrontendText_LoadFontAtlasFile(const char *fileName, int slotIndex)
 {
@@ -1062,6 +1172,9 @@ int FrontendText_LoadFontAtlasFile(const char *fileName, int slotIndex)
 	return 1;
 }
 
+/* Starts a text fade-in lasting frames frames: clears
+ * g_frontState.textFadeColorCache and sets textFadeFramesLeft and
+ * textFadeFrameCount to frames. Returns 1. */
 // FUNCTION: XVT 0x4DC140
 int FrontendText_StartTextFadeIn(int frames)
 {
@@ -1072,6 +1185,8 @@ int FrontendText_StartTextFadeIn(int frames)
 	return 1;
 }
 
+/* Ends any text fade: sets g_frontState.textFadeFramesLeft and
+ * textFadeFrameCount to 0. Returns 1. */
 // FUNCTION: XVT 0x4DC170
 int FrontendText_StopTextFade(void)
 {
@@ -1080,6 +1195,8 @@ int FrontendText_StopTextFade(void)
 	return 1;
 }
 
+/* Pauses the text fade: saves g_frontState.textFadeFramesLeft in
+ * g_savedTextFadeFramesLeft and sets it to 0. Returns 1. */
 // FUNCTION: XVT 0x4DC190
 int FrontendText_SuspendTextFade(void)
 {
@@ -1088,6 +1205,8 @@ int FrontendText_SuspendTextFade(void)
 	return 1;
 }
 
+/* Puts back the g_frontState.textFadeFramesLeft that
+ * FrontendText_SuspendTextFade saved. Returns 1. */
 // FUNCTION: XVT 0x4DC1B0
 int FrontendText_ResumeTextFade(void)
 {
@@ -1095,6 +1214,17 @@ int FrontendText_ResumeTextFade(void)
 	return 1;
 }
 
+/* Draws text in rect with word wrap in the size-10 font, one line every 14
+ * pixels from rect->top down with no bottom limit, each centered down a rect
+ * from its top to top + 13. A '$' ends a line and the text ends at its NUL. A
+ * line whose measured width reaches rect's width is cut at the last space seen.
+ * '[' and ']' become color bytes 2 and 1, so text between them is drawn in
+ * g_frontState.textColorCodes[1], and a line that starts inside brackets begins
+ * with a 2. Lines are drawn in 0xFFFF from rect->left, centered down their
+ * rect; with suppressCenteredHeadings 0 a line starting with '>' is drawn
+ * without it, centered, in g_colorYellow and 1 pixel lower, and the '$' is
+ * dropped, while with it nonzero the '$' is drawn as a glyph. Does not check
+ * that a line fits its 320-byte buffer. */
 // FUNCTION: XVT 0x4F8620
 void FrontendText_DrawFormattedWrappedText(RECT *rect, const uint8_t *text,
 					   int suppressCenteredHeadings)

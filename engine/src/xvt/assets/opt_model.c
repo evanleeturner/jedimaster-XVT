@@ -30,17 +30,24 @@ int access(const char *filename, int mode);
 
 #ifndef XVT_MODERN
 typedef struct InventorFieldRecord {
-	int fieldType;
+	int fieldType; /* The InventorFieldType of the values in data. */
+	/* Values in data: 1 for one value, the length of a list. */
 	int itemCount;
+	/* The values, stored in the model's block; for a string, its
+	 * characters. */
 	void *data;
 } InventorFieldRecord;
 
 typedef struct OptExternalTexHeader {
+	/* The 8 bytes before the sizes; nothing reads them. */
 	uint8_t prefix[8];
+	/* Compared with width times height: when they are equal,
+	 * storedPayloadSize holds the texel bytes. */
 	int pixelCount;
+	/* Texel bytes, used when pixelCount equals width times height. */
 	int storedPayloadSize;
-	int width;
-	int height;
+	int width;  /* Texture width in texels. */
+	int height; /* Texture height in texels. */
 } OptExternalTexHeader;
 
 typedef enum InventorFieldType {
@@ -67,108 +74,156 @@ typedef enum InventorFieldType {
 } InventorFieldType;
 
 typedef struct InventorEnumDef {
+	/* Entries a lookup scans in valueNames and values. The component and
+	 * hardpoint enums give 41 for tables of 32. */
 	int valueCount;
+	/* Names a value may take in the file, matched ignoring case; a word
+	 * matching none is read as a number. */
 	const char *const *valueNames;
-	const int *values;
+	const int *values; /* The value stored for each name. */
 } InventorEnumDef;
 
 typedef struct InventorFieldDef {
+	/* Name as written in the file. A word matches when, ignoring case, it
+	 * is this name or its start. */
 	const char *fieldName;
-	InventorFieldType fieldType;
+	InventorFieldType fieldType; /* How the parser reads the value. */
+	/* Names and values of an enum field; NULL for others. */
 	const InventorEnumDef *enumDef;
+	/* Type and item count the record takes when the node leaves the field
+	 * out. */
 	const InventorFieldRecord *defaultRecord;
+	/* Values copied into the model when the node leaves the field out. */
 	const void *defaultData;
-	size_t defaultDataSize;
+	size_t defaultDataSize; /* Bytes of defaultData. */
 } InventorFieldDef;
 
+/* Default record of an integer-list field: 4 items. */
 // GLOBAL: XVT 0x51AF28
 static const InventorFieldRecord g_defaultIntegerListRecord = {
 	INVENTOR_FIELD_INTEGER_LIST, 4, NULL};
+/* Default of an integer-list field: 0, 1, 2, -1. */
 // GLOBAL: XVT 0x51AF38
 static const int g_defaultIntegerList[4] = {0, 1, 2, -1};
+/* Default record of an integer field: 1 item. */
 // GLOBAL: XVT 0x51AF58
 static const InventorFieldRecord g_defaultIntegerRecord = {
 	INVENTOR_FIELD_INTEGER, 1, NULL};
+/* Default of an integer field: 0. */
 // GLOBAL: XVT 0x51AF64
 static const int g_defaultInteger = 0;
+/* Default record of a string field: 1 item. */
 // GLOBAL: XVT 0x51AF48
 static const InventorFieldRecord g_defaultStringRecord = {INVENTOR_FIELD_STRING,
 							  1, NULL};
+/* Default of a string field: the empty string. */
 // GLOBAL: XVT 0x51AF54
 static const char g_defaultString[1] = {'\0'};
+/* Default record of a list of 3-vectors: 1 item. */
 // GLOBAL: XVT 0x51AFB8
 static const InventorFieldRecord g_defaultVector3ListRecord = {
 	INVENTOR_FIELD_VECTOR3_LIST, 1, NULL};
+/* Default record of a single 3-vector: 1 item. */
 // GLOBAL: XVT 0x51AFF0
 static const InventorFieldRecord g_defaultVector3Record = {
 	INVENTOR_FIELD_VECTOR3, 1, NULL};
+/* Default of the point and vector lists: one (0, 0, 0). */
 // GLOBAL: XVT 0x51AFC8
 static const OptVector g_defaultZeroVector = {0.0f, 0.0f, 0.0f};
+/* Default of translation, center, size, minvector, maxvector, groupcenter and
+ * the three axes: (0, 0, 0). */
 // GLOBAL: XVT 0x51B000
 static const OptVector g_defaultZeroScalarVector = {0.0f, 0.0f, 0.0f};
+/* Default of scaleFactor: (1, 1, 1). */
 // GLOBAL: XVT 0x51B020
 static const OptVector g_defaultUnitVector = {1.0f, 1.0f, 1.0f};
+/* Default record of a rotation: 1 item. */
 // GLOBAL: XVT 0x51B030
 static const InventorFieldRecord g_defaultRotationRecord = {
 	INVENTOR_FIELD_ROTATION, 1, NULL};
+/* Default of rotation and scaleOrientation: 0, 0, 1, 0. */
 // GLOBAL: XVT 0x51B040
 static const float g_defaultRotation[4] = {0.0f, 0.0f, 1.0f, 0.0f};
+/* Default record of a color list: 1 item. */
 // GLOBAL: XVT 0x51B050
 static const InventorFieldRecord g_defaultColorListRecord = {
 	INVENTOR_FIELD_COLOR_LIST, 1, NULL};
+/* Default record of a single color: 1 item. */
 // GLOBAL: XVT 0x51B090
 static const InventorFieldRecord g_defaultColorRecord = {INVENTOR_FIELD_COLOR,
 							 1, NULL};
+/* Default of ambientColor: (0.2, 0.2, 0.2). */
 // GLOBAL: XVT 0x51B060
 static const OptVector g_defaultAmbientColor = {0.2f, 0.2f, 0.2f};
+/* Default of diffuseColor: (0.8, 0.8, 0.8). */
 // GLOBAL: XVT 0x51B070
 static const OptVector g_defaultDiffuseColor = {0.8f, 0.8f, 0.8f};
+/* Default of specularColor and emissiveColor: (0, 0, 0). */
 // GLOBAL: XVT 0x51B080
 static const OptVector g_defaultBlackColor = {0.0f, 0.0f, 0.0f};
+/* Default of rgb and blendColor: (0.8, 0.8, 0.8). */
 // GLOBAL: XVT 0x51B0A0
 static const OptVector g_defaultRgbColor = {0.8f, 0.8f, 0.8f};
+/* Default record of a float field: 1 item. */
 // GLOBAL: XVT 0x51B0B0
 static const InventorFieldRecord g_defaultFloatRecord = {INVENTOR_FIELD_FLOAT,
 							 1, NULL};
+/* Default of screenArea and transparency: 0. */
 // GLOBAL: XVT 0x51B0BC
 static const float g_defaultZeroFloat = 0.0f;
+/* Default of shininess: 0.2. */
 // GLOBAL: XVT 0x51B0C0
 static const float g_defaultShininess = 0.2f;
+/* Default record of a list of 2-vectors: 1 item. */
 // GLOBAL: XVT 0x51AFD8
 static const InventorFieldRecord g_defaultVector2ListRecord = {
 	INVENTOR_FIELD_VECTOR2_LIST, 1, NULL};
+/* Default of the 2D point list: one (0, 0). */
 // GLOBAL: XVT 0x51AFE8
 static const float g_defaultVector2[2] = {0.0f, 0.0f};
+/* Default record of an enum field: 1 item. */
 // GLOBAL: XVT 0x51AF18
 static const InventorFieldRecord g_defaultEnumRecord = {INVENTOR_FIELD_ENUM, 1,
 							NULL};
+/* Default of an enum field: 0, the value of each enum's first name. */
 // GLOBAL: XVT 0x51AF24
 static const int g_defaultEnum = 0;
 
+/* Names of the binding enum, the value field of materialBinding, normalBinding
+ * and textureCoordinateBinding. */
 // GLOBAL: XVT 0x51B320
 static const char *const g_bindingNames[9] = {
 	"DEFAULT",	     "NONE",	 "OVERALL",	     "PER_PART",
 	"PER_PART_INDEXED",  "PER_FACE", "PER_FACE_INDEXED", "PER_VERTEX",
 	"PER_VERTEX_INDEXED"};
+/* Values of the binding names: 0 to 8 in order. */
 // GLOBAL: XVT 0x51B348
 static const int g_bindingValues[9] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
+/* The binding enum: 9 names. */
 // GLOBAL: XVT 0x51B370
 static const InventorEnumDef g_bindingEnum = {9, g_bindingNames,
 					      g_bindingValues};
+/* Names of the wrapS and wrapT enum. */
 // GLOBAL: XVT 0x51B400
 static const char *const g_wrapNames[2] = {"REPEAT", "CLAMP"};
+/* Values of the wrap names: 0 and 1. */
 // GLOBAL: XVT 0x51B408
 static const int g_wrapValues[2] = {0, 1};
+/* The wrap enum: 2 names. */
 // GLOBAL: XVT 0x51B410
 static const InventorEnumDef g_wrapEnum = {2, g_wrapNames, g_wrapValues};
+/* Names of the texture2 model enum. */
 // GLOBAL: XVT 0x51B460
 static const char *const g_textureModelNames[3] = {"MODULATE", "DECAL",
 						   "BLEND"};
+/* Values of the texture model names: 0 to 2. */
 // GLOBAL: XVT 0x51B470
 static const int g_textureModelValues[3] = {0, 1, 2};
+/* The texture model enum: 3 names. */
 // GLOBAL: XVT 0x51B480
 static const InventorEnumDef g_textureModelEnum = {3, g_textureModelNames,
 						   g_textureModelValues};
+/* Names of the componentInfo type enum; name n stands for value n. */
 // GLOBAL: XVT 0x51B7A0
 static const char *const g_componentTypeNames[32] = {
 	"COMPTYPE_DEFAULT",	"COMPTYPE_MAINHULL",
@@ -188,13 +243,18 @@ static const char *const g_componentTypeNames[32] = {
 	"COMPTYPE_CUSTOM3",	"COMPTYPE_CUSTOM4",
 	"COMPTYPE_CUSTOM5",	"COMPTYPE_CUSTOM6",
 };
+/* Values of the component type names: 0 to 31 in order. */
 // GLOBAL: XVT 0x51B820
 static const int g_componentTypeValues[32] = {
 	0,  1,	2,  3,	4,  5,	6,  7,	8,  9,	10, 11, 12, 13, 14, 15,
 	16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31};
+/* The component type enum. It claims 41 names for a table of 32, so a word that
+ * matches none of the 32 sends the lookup past the end of
+ * g_componentTypeNames. */
 // GLOBAL: XVT 0x51B8A0
 static const InventorEnumDef g_componentTypeEnum = {41, g_componentTypeNames,
 						    g_componentTypeValues};
+/* Names of the hardpoint type enum; name n stands for value n. */
 // GLOBAL: XVT 0x51B958
 static const char *const g_hardpointTypeNames[32] = {
 	"HARDPOINT_NONE",
@@ -230,14 +290,19 @@ static const char *const g_hardpointTypeNames[32] = {
 	"HARDPOINT_DOCKTOSMALL",
 	"HARDPOINT_COCKPIT",
 };
+/* Values of the hardpoint type names: 0 to 31 in order. */
 // GLOBAL: XVT 0x51B9D8
 static const int g_hardpointTypeValues[32] = {
 	0,  1,	2,  3,	4,  5,	6,  7,	8,  9,	10, 11, 12, 13, 14, 15,
 	16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31};
+/* The hardpoint type enum. It claims 41 names for a table of 32, so a word that
+ * matches none of the 32 sends the lookup past the end of
+ * g_hardpointTypeNames. */
 // GLOBAL: XVT 0x51BA58
 static const InventorEnumDef g_hardpointTypeEnum = {41, g_hardpointTypeNames,
 						    g_hardpointTypeValues};
 
+/* Field coordIndex: an integer list; the default is 0, 1, 2, -1. */
 // GLOBAL: XVT 0x51B0C8
 static const InventorFieldDef g_fieldCoordIndex = {
 	"coordIndex",
@@ -246,6 +311,7 @@ static const InventorFieldDef g_fieldCoordIndex = {
 	&g_defaultIntegerListRecord,
 	&g_defaultIntegerList,
 	sizeof(g_defaultIntegerList)};
+/* Field materialIndex: an integer list; the default is 0, 1, 2, -1. */
 // GLOBAL: XVT 0x51B0E0
 static const InventorFieldDef g_fieldMaterialIndex = {
 	"materialIndex",
@@ -254,6 +320,7 @@ static const InventorFieldDef g_fieldMaterialIndex = {
 	&g_defaultIntegerListRecord,
 	&g_defaultIntegerList,
 	sizeof(g_defaultIntegerList)};
+/* Field normalIndex: an integer list; the default is 0, 1, 2, -1. */
 // GLOBAL: XVT 0x51B0F8
 static const InventorFieldDef g_fieldNormalIndex = {
 	"normalIndex",
@@ -262,6 +329,7 @@ static const InventorFieldDef g_fieldNormalIndex = {
 	&g_defaultIntegerListRecord,
 	&g_defaultIntegerList,
 	sizeof(g_defaultIntegerList)};
+/* Field textureCoordIndex: an integer list; the default is 0, 1, 2, -1. */
 // GLOBAL: XVT 0x51B110
 static const InventorFieldDef g_fieldTextureCoordIndex = {
 	"textureCoordIndex",
@@ -270,6 +338,7 @@ static const InventorFieldDef g_fieldTextureCoordIndex = {
 	&g_defaultIntegerListRecord,
 	&g_defaultIntegerList,
 	sizeof(g_defaultIntegerList)};
+/* Field numVertices: an integer list; the default is 0, 1, 2, -1. */
 // GLOBAL: XVT 0x51B128
 static const InventorFieldDef g_fieldNumVertices = {
 	"numVertices",
@@ -278,6 +347,7 @@ static const InventorFieldDef g_fieldNumVertices = {
 	&g_defaultIntegerListRecord,
 	&g_defaultIntegerList,
 	sizeof(g_defaultIntegerList)};
+/* Field startIndex: an integer; the default is 0. */
 // GLOBAL: XVT 0x51B140
 static const InventorFieldDef g_fieldStartIndex = {"startIndex",
 						   INVENTOR_FIELD_INTEGER,
@@ -285,6 +355,7 @@ static const InventorFieldDef g_fieldStartIndex = {"startIndex",
 						   &g_defaultIntegerRecord,
 						   &g_defaultInteger,
 						   sizeof(g_defaultInteger)};
+/* Field verticesPerRow: an integer; the default is 0. */
 // GLOBAL: XVT 0x51B158
 static const InventorFieldDef g_fieldVerticesPerRow = {
 	"verticesPerRow",
@@ -293,6 +364,7 @@ static const InventorFieldDef g_fieldVerticesPerRow = {
 	&g_defaultIntegerRecord,
 	&g_defaultInteger,
 	sizeof(g_defaultInteger)};
+/* Field verticesPerColumn: an integer; the default is 0. */
 // GLOBAL: XVT 0x51B170
 static const InventorFieldDef g_fieldVerticesPerColumn = {
 	"verticesPerColumn",
@@ -301,6 +373,8 @@ static const InventorFieldDef g_fieldVerticesPerColumn = {
 	&g_defaultIntegerRecord,
 	&g_defaultInteger,
 	sizeof(g_defaultInteger)};
+/* Field point of textureCoordinate2: a list of 2-vectors; the default is one
+ * (0, 0). */
 // GLOBAL: XVT 0x51B1A0
 static const InventorFieldDef g_fieldPoint2 = {"point",
 					       INVENTOR_FIELD_VECTOR2_LIST,
@@ -308,6 +382,8 @@ static const InventorFieldDef g_fieldPoint2 = {"point",
 					       &g_defaultVector2ListRecord,
 					       &g_defaultVector2,
 					       sizeof(g_defaultVector2)};
+/* Field point of coordinate3 and hardpoint: a list of 3-vectors; the default is
+ * one (0, 0, 0). */
 // GLOBAL: XVT 0x51B1B8
 static const InventorFieldDef g_fieldPoint3 = {"point",
 					       INVENTOR_FIELD_VECTOR3_LIST,
@@ -315,6 +391,7 @@ static const InventorFieldDef g_fieldPoint3 = {"point",
 					       &g_defaultVector3ListRecord,
 					       &g_defaultZeroVector,
 					       sizeof(g_defaultZeroVector)};
+/* Field vector of normal: a list of 3-vectors; the default is one (0, 0, 0). */
 // GLOBAL: XVT 0x51B1D0
 static const InventorFieldDef g_fieldVector = {"vector",
 					       INVENTOR_FIELD_VECTOR3_LIST,
@@ -322,6 +399,7 @@ static const InventorFieldDef g_fieldVector = {"vector",
 					       &g_defaultVector3ListRecord,
 					       &g_defaultZeroVector,
 					       sizeof(g_defaultZeroVector)};
+/* Field translation: a 3-vector; the default is (0, 0, 0). */
 // GLOBAL: XVT 0x51B1E8
 static const InventorFieldDef g_fieldTranslation = {
 	"translation",
@@ -330,6 +408,7 @@ static const InventorFieldDef g_fieldTranslation = {
 	&g_defaultVector3Record,
 	&g_defaultZeroScalarVector,
 	sizeof(g_defaultZeroScalarVector)};
+/* Field scaleFactor: a 3-vector; the default is (1, 1, 1). */
 // GLOBAL: XVT 0x51B200
 static const InventorFieldDef g_fieldScaleFactor = {
 	"scaleFactor",
@@ -338,6 +417,7 @@ static const InventorFieldDef g_fieldScaleFactor = {
 	&g_defaultVector3Record,
 	&g_defaultUnitVector,
 	sizeof(g_defaultUnitVector)};
+/* Field center: a 3-vector; the default is (0, 0, 0). */
 // GLOBAL: XVT 0x51B218
 static const InventorFieldDef g_fieldCenter = {
 	"center",
@@ -346,6 +426,7 @@ static const InventorFieldDef g_fieldCenter = {
 	&g_defaultVector3Record,
 	&g_defaultZeroScalarVector,
 	sizeof(g_defaultZeroScalarVector)};
+/* Field rotation: four floats; the default is 0, 0, 1, 0. */
 // GLOBAL: XVT 0x51B230
 static const InventorFieldDef g_fieldRotation = {"rotation",
 						 INVENTOR_FIELD_ROTATION,
@@ -353,6 +434,7 @@ static const InventorFieldDef g_fieldRotation = {"rotation",
 						 &g_defaultRotationRecord,
 						 &g_defaultRotation,
 						 sizeof(g_defaultRotation)};
+/* Field scaleOrientation: four floats; the default is 0, 0, 1, 0. */
 // GLOBAL: XVT 0x51B248
 static const InventorFieldDef g_fieldScaleOrientation = {
 	"scaleOrientation",
@@ -361,6 +443,7 @@ static const InventorFieldDef g_fieldScaleOrientation = {
 	&g_defaultRotationRecord,
 	&g_defaultRotation,
 	sizeof(g_defaultRotation)};
+/* Field ambientColor: a color list; the default is one (0.2, 0.2, 0.2). */
 // GLOBAL: XVT 0x51B260
 static const InventorFieldDef g_fieldAmbientColor = {
 	"ambientColor",
@@ -369,6 +452,7 @@ static const InventorFieldDef g_fieldAmbientColor = {
 	&g_defaultColorListRecord,
 	&g_defaultAmbientColor,
 	sizeof(g_defaultAmbientColor)};
+/* Field diffuseColor: a color list; the default is one (0.8, 0.8, 0.8). */
 // GLOBAL: XVT 0x51B278
 static const InventorFieldDef g_fieldDiffuseColor = {
 	"diffuseColor",
@@ -377,6 +461,7 @@ static const InventorFieldDef g_fieldDiffuseColor = {
 	&g_defaultColorListRecord,
 	&g_defaultDiffuseColor,
 	sizeof(g_defaultDiffuseColor)};
+/* Field specularColor: a color list; the default is one (0, 0, 0). */
 // GLOBAL: XVT 0x51B290
 static const InventorFieldDef g_fieldSpecularColor = {
 	"specularColor",
@@ -385,6 +470,7 @@ static const InventorFieldDef g_fieldSpecularColor = {
 	&g_defaultColorListRecord,
 	&g_defaultBlackColor,
 	sizeof(g_defaultBlackColor)};
+/* Field emissiveColor: a color list; the default is one (0, 0, 0). */
 // GLOBAL: XVT 0x51B2A8
 static const InventorFieldDef g_fieldEmissiveColor = {
 	"emissiveColor",
@@ -393,6 +479,7 @@ static const InventorFieldDef g_fieldEmissiveColor = {
 	&g_defaultColorListRecord,
 	&g_defaultBlackColor,
 	sizeof(g_defaultBlackColor)};
+/* Field rgb of baseColor: a color; the default is (0.8, 0.8, 0.8). */
 // GLOBAL: XVT 0x51B2C0
 static const InventorFieldDef g_fieldRgb = {"rgb",
 					    INVENTOR_FIELD_COLOR,
@@ -400,6 +487,8 @@ static const InventorFieldDef g_fieldRgb = {"rgb",
 					    &g_defaultColorRecord,
 					    &g_defaultRgbColor,
 					    sizeof(g_defaultRgbColor)};
+/* Field screenArea of levelofdetail: read as a float, or a list of floats in
+ * brackets; the default is 0. */
 // GLOBAL: XVT 0x51B2D8
 static const InventorFieldDef g_fieldScreenArea = {"screenArea",
 						   INVENTOR_FIELD_FLOAT,
@@ -407,6 +496,8 @@ static const InventorFieldDef g_fieldScreenArea = {"screenArea",
 						   &g_defaultFloatRecord,
 						   &g_defaultZeroFloat,
 						   sizeof(g_defaultZeroFloat)};
+/* Field shininess: read as a float, or a list of floats in brackets; the
+ * default is 0.2. */
 // GLOBAL: XVT 0x51B2F0
 static const InventorFieldDef g_fieldShininess = {"shininess",
 						  INVENTOR_FIELD_FLOAT,
@@ -414,6 +505,8 @@ static const InventorFieldDef g_fieldShininess = {"shininess",
 						  &g_defaultFloatRecord,
 						  &g_defaultShininess,
 						  sizeof(g_defaultShininess)};
+/* Field transparency: read as a float, or a list of floats in brackets; the
+ * default is 0. */
 // GLOBAL: XVT 0x51B308
 static const InventorFieldDef g_fieldTransparency = {
 	"transparency",
@@ -422,23 +515,29 @@ static const InventorFieldDef g_fieldTransparency = {
 	&g_defaultFloatRecord,
 	&g_defaultZeroFloat,
 	sizeof(g_defaultZeroFloat)};
+/* Field value of the three binding nodes: a binding enum; the default is 0,
+ * DEFAULT. */
 // GLOBAL: XVT 0x51B380
 static const InventorFieldDef g_fieldBindingValue = {
 	"value",	INVENTOR_FIELD_ENUM,
 	&g_bindingEnum, &g_defaultEnumRecord,
 	&g_defaultEnum, sizeof(g_defaultEnum)};
+/* Field filename of use and texture2: a string; the default is empty. */
 // GLOBAL: XVT 0x51B3E8
 static const InventorFieldDef g_fieldFilename = {
 	"filename",	  INVENTOR_FIELD_STRING,  NULL, &g_defaultStringRecord,
 	&g_defaultString, sizeof(g_defaultString)};
+/* Field wrapS: a wrap enum; the default is 0, REPEAT. */
 // GLOBAL: XVT 0x51B420
 static const InventorFieldDef g_fieldWrapS = {
 	"wrapS",	INVENTOR_FIELD_ENUM,  &g_wrapEnum, &g_defaultEnumRecord,
 	&g_defaultEnum, sizeof(g_defaultEnum)};
+/* Field wrapT: a wrap enum; the default is 0, REPEAT. */
 // GLOBAL: XVT 0x51B448
 static const InventorFieldDef g_fieldWrapT = {
 	"wrapT",	INVENTOR_FIELD_ENUM,  &g_wrapEnum, &g_defaultEnumRecord,
 	&g_defaultEnum, sizeof(g_defaultEnum)};
+/* Field model of texture2: a texture model enum; the default is 0, MODULATE. */
 // GLOBAL: XVT 0x51B490
 static const InventorFieldDef g_fieldTextureModel = {"model",
 						     INVENTOR_FIELD_ENUM,
@@ -446,10 +545,13 @@ static const InventorFieldDef g_fieldTextureModel = {"model",
 						     &g_defaultEnumRecord,
 						     &g_defaultEnum,
 						     sizeof(g_defaultEnum)};
+/* Field blendColor: a color; the default is (0.8, 0.8, 0.8). */
 // GLOBAL: XVT 0x51B4A8
 static const InventorFieldDef g_fieldBlendColor = {
 	"blendColor",	       INVENTOR_FIELD_COLOR, NULL,
 	&g_defaultColorRecord, &g_defaultRgbColor,   sizeof(g_defaultRgbColor)};
+/* Field type of componentInfo: a component type enum; the default is 0,
+ * COMPTYPE_DEFAULT. */
 // GLOBAL: XVT 0x51B8B0
 static const InventorFieldDef g_fieldComponentType = {"type",
 						      INVENTOR_FIELD_ENUM,
@@ -457,6 +559,7 @@ static const InventorFieldDef g_fieldComponentType = {"type",
 						      &g_defaultEnumRecord,
 						      &g_defaultEnum,
 						      sizeof(g_defaultEnum)};
+/* Field size: a 3-vector; the default is (0, 0, 0). */
 // GLOBAL: XVT 0x51B8C8
 static const InventorFieldDef g_fieldSize = {"size",
 					     INVENTOR_FIELD_VECTOR3,
@@ -464,6 +567,7 @@ static const InventorFieldDef g_fieldSize = {"size",
 					     &g_defaultVector3Record,
 					     &g_defaultZeroScalarVector,
 					     sizeof(g_defaultZeroScalarVector)};
+/* Field minvector: a 3-vector; the default is (0, 0, 0). */
 // GLOBAL: XVT 0x51B8E0
 static const InventorFieldDef g_fieldMinVector = {
 	"minvector",
@@ -472,6 +576,7 @@ static const InventorFieldDef g_fieldMinVector = {
 	&g_defaultVector3Record,
 	&g_defaultZeroScalarVector,
 	sizeof(g_defaultZeroScalarVector)};
+/* Field maxvector: a 3-vector; the default is (0, 0, 0). */
 // GLOBAL: XVT 0x51B8F8
 static const InventorFieldDef g_fieldMaxVector = {
 	"maxvector",
@@ -480,6 +585,7 @@ static const InventorFieldDef g_fieldMaxVector = {
 	&g_defaultVector3Record,
 	&g_defaultZeroScalarVector,
 	sizeof(g_defaultZeroScalarVector)};
+/* Field groupcenter: a 3-vector; the default is (0, 0, 0). */
 // GLOBAL: XVT 0x51B910
 static const InventorFieldDef g_fieldGroupCenter = {
 	"groupcenter",
@@ -488,6 +594,7 @@ static const InventorFieldDef g_fieldGroupCenter = {
 	&g_defaultVector3Record,
 	&g_defaultZeroScalarVector,
 	sizeof(g_defaultZeroScalarVector)};
+/* Field flags: an integer; the default is 0. */
 // GLOBAL: XVT 0x51B928
 static const InventorFieldDef g_fieldFlags = {"flags",
 					      INVENTOR_FIELD_INTEGER,
@@ -495,6 +602,7 @@ static const InventorFieldDef g_fieldFlags = {"flags",
 					      &g_defaultIntegerRecord,
 					      &g_defaultInteger,
 					      sizeof(g_defaultInteger)};
+/* Field groupid: an integer; the default is 0. */
 // GLOBAL: XVT 0x51B940
 static const InventorFieldDef g_fieldGroupId = {"groupid",
 						INVENTOR_FIELD_INTEGER,
@@ -502,6 +610,8 @@ static const InventorFieldDef g_fieldGroupId = {"groupid",
 						&g_defaultIntegerRecord,
 						&g_defaultInteger,
 						sizeof(g_defaultInteger)};
+/* Field type of hardpoint: a hardpoint type enum; the default is 0,
+ * HARDPOINT_NONE. */
 // GLOBAL: XVT 0x51BA68
 static const InventorFieldDef g_fieldHardpointType = {"type",
 						      INVENTOR_FIELD_ENUM,
@@ -509,6 +619,7 @@ static const InventorFieldDef g_fieldHardpointType = {"type",
 						      &g_defaultEnumRecord,
 						      &g_defaultEnum,
 						      sizeof(g_defaultEnum)};
+/* Field axis1: a 3-vector; the default is (0, 0, 0). */
 // GLOBAL: XVT 0x51BA80
 static const InventorFieldDef g_fieldAxis1 = {
 	"axis1",
@@ -517,6 +628,7 @@ static const InventorFieldDef g_fieldAxis1 = {
 	&g_defaultVector3Record,
 	&g_defaultZeroScalarVector,
 	sizeof(g_defaultZeroScalarVector)};
+/* Field axis2: a 3-vector; the default is (0, 0, 0). */
 // GLOBAL: XVT 0x51BA98
 static const InventorFieldDef g_fieldAxis2 = {
 	"axis2",
@@ -525,6 +637,7 @@ static const InventorFieldDef g_fieldAxis2 = {
 	&g_defaultVector3Record,
 	&g_defaultZeroScalarVector,
 	sizeof(g_defaultZeroScalarVector)};
+/* Field axis3: a 3-vector; the default is (0, 0, 0). */
 // GLOBAL: XVT 0x51BAB0
 static const InventorFieldDef g_fieldAxis3 = {
 	"axis3",
@@ -534,56 +647,75 @@ static const InventorFieldDef g_fieldAxis3 = {
 	&g_defaultZeroScalarVector,
 	sizeof(g_defaultZeroScalarVector)};
 
+/* Fields of indexedFaceSet, in record order. */
 // GLOBAL: XVT 0x51BAD8
 static const InventorFieldDef *const g_fieldsIndexedFaceSet[] = {
 	&g_fieldCoordIndex, &g_fieldMaterialIndex, &g_fieldNormalIndex,
 	&g_fieldTextureCoordIndex};
+/* Fields of transform, in record order. */
 // GLOBAL: XVT 0x51BAF8
 static const InventorFieldDef *const g_fieldsTransform[] = {
 	&g_fieldTranslation, &g_fieldRotation, &g_fieldScaleFactor,
 	&g_fieldScaleOrientation, &g_fieldCenter};
+/* Fields of coordinate3. */
 // GLOBAL: XVT 0x51BB1C
 static const InventorFieldDef *const g_fieldsCoordinate3[] = {&g_fieldPoint3};
+/* Fields of translation. */
 // GLOBAL: XVT 0x51BB2C
 static const InventorFieldDef *const g_fieldsTranslation[] = {
 	&g_fieldTranslation};
+/* Fields of rotation. */
 // GLOBAL: XVT 0x51BB3C
 static const InventorFieldDef *const g_fieldsRotation[] = {&g_fieldRotation};
+/* Fields of scale. */
 // GLOBAL: XVT 0x51BB4C
 static const InventorFieldDef *const g_fieldsScale[] = {&g_fieldScaleFactor};
+/* Fields of use. */
 // GLOBAL: XVT 0x51BB5C
 static const InventorFieldDef *const g_fieldsUse[] = {&g_fieldFilename};
+/* Fields of material, in record order. */
 // GLOBAL: XVT 0x51BB80
 static const InventorFieldDef *const g_fieldsMaterial[] = {
 	&g_fieldAmbientColor,  &g_fieldDiffuseColor, &g_fieldSpecularColor,
 	&g_fieldEmissiveColor, &g_fieldShininess,    &g_fieldTransparency};
+/* Fields of the three binding nodes. */
 // GLOBAL: XVT 0x51BBA4
 static const InventorFieldDef *const g_fieldsBinding[] = {&g_fieldBindingValue};
+/* Fields of normal. */
 // GLOBAL: XVT 0x51BBB4
 static const InventorFieldDef *const g_fieldsNormal[] = {&g_fieldVector};
+/* Fields of textureCoordinate2. */
 // GLOBAL: XVT 0x51BBD4
 static const InventorFieldDef *const g_fieldsTextureCoordinate2[] = {
 	&g_fieldPoint2};
+/* Fields of quadMesh, in record order. */
 // GLOBAL: XVT 0x51BBF8
 static const InventorFieldDef *const g_fieldsQuadMesh[] = {
 	&g_fieldStartIndex, &g_fieldVerticesPerRow, &g_fieldVerticesPerColumn};
+/* Fields of faceSet and triangleStripSet. */
 // GLOBAL: XVT 0x51BC14
 static const InventorFieldDef *const g_fieldsFaceSet[] = {&g_fieldNumVertices};
+/* Fields of baseColor. */
 // GLOBAL: XVT 0x51BC44
 static const InventorFieldDef *const g_fieldsBaseColor[] = {&g_fieldRgb};
+/* Fields of texture2, in record order. */
 // GLOBAL: XVT 0x51BC58
 static const InventorFieldDef *const g_fieldsTexture2[] = {
 	&g_fieldFilename, &g_fieldWrapS, &g_fieldWrapT, &g_fieldTextureModel,
 	&g_fieldBlendColor};
+/* Fields of levelofdetail. */
 // GLOBAL: XVT 0x51BC7C
 static const InventorFieldDef *const g_fieldsLevelOfDetail[] = {
 	&g_fieldScreenArea};
+/* Fields of hardpoint, in record order. */
 // GLOBAL: XVT 0x51BC90
 static const InventorFieldDef *const g_fieldsHardpoint[] = {
 	&g_fieldHardpointType, &g_fieldPoint3};
+/* Fields of pivot, in record order. */
 // GLOBAL: XVT 0x51BCA8
 static const InventorFieldDef *const g_fieldsPivot[] = {
 	&g_fieldCenter, &g_fieldAxis1, &g_fieldAxis2, &g_fieldAxis3};
+/* Fields of componentInfo, in record order. */
 // GLOBAL: XVT 0x51BCD8
 static const InventorFieldDef *const g_fieldsComponentInfo[] = {
 	&g_fieldComponentType, &g_fieldFlags,	    &g_fieldSize,
@@ -591,6 +723,8 @@ static const InventorFieldDef *const g_fieldsComponentInfo[] = {
 	&g_fieldGroupId,       &g_fieldGroupCenter,
 };
 
+/* The node types the Inventor importer knows, one row per OptNodeType value in
+ * order: the name in the file, the field count and the fields. */
 // GLOBAL: XVT 0x51BAC8
 static const InventorNodeDef g_inventorNodeDefData[26] = {
 	{"separator", 0, NULL},
@@ -621,6 +755,8 @@ static const InventorNodeDef g_inventorNodeDefData[26] = {
 	{"componentInfo", 8, g_fieldsComponentInfo},
 };
 
+/* Pointers to the rows of g_inventorNodeDefData, the table
+ * OptModel_ParseInventorAsciiNode searches in order. */
 // GLOBAL: XVT 0x51BD08
 const InventorNodeDef *const g_inventorNodeDefs[26] = {
 	&g_inventorNodeDefData[0],  &g_inventorNodeDefData[1],
@@ -638,36 +774,70 @@ const InventorNodeDef *const g_inventorNodeDefs[26] = {
 	&g_inventorNodeDefData[24], &g_inventorNodeDefData[25],
 };
 
+/* Per field of the node OptModel_ParseInventorAsciiNode is reading, 1 once the
+ * file gave it; that function clears the node's entries before its fields and
+ * fills the fields still at 0 from their defaults. Only that function writes
+ * it. */
 // GLOBAL: XVT 0x5505F8
 uint8_t g_inventorFieldSeen[256] = {0};
+/* Scratch for one word read from an Inventor file, up to 256 characters and a
+ * NUL, and for the model file name OptModel_LoadHandle tries. */
 // GLOBAL: XVT 0x5506F8
 char g_optModelLoadScratchBuffer[257] = {0};
 #endif
 
+/* One row per model, indexed by ModelIndex: names, flight and combat figures,
+ * weapon groups and points; the starting values come from model_defs_data.inc.
+ * FeDiskIo_BuildModelDef fills the bound sizes and the dock, hangar, primary
+ * and weapon points from each loaded OPT model, and StringTable_LoadGameStrings
+ * sets each nameLong. */
 // GLOBAL: XVT 0x51C560
 ModelDef g_modelDefs[73] = {
 #include "xvt/assets/model_defs_data.inc"
 };
+/* The float 1.0; the software renderer and this file's normal builders read
+ * it. */
 // GLOBAL: XVT 0x5181C0
 const float g_sw3dUnitFloat = 1.0f;
+/* The float 3.0, the corner count sw3d_ProjectMeshVertices divides by a
+ * triangle's summed corner w values. */
 // GLOBAL: XVT 0x5181C4
 const float g_sw3dTriangleCornerCount = 3.0f;
+/* The float 4.0, the corner count sw3d_ProjectMeshVertices divides by a quad's
+ * summed corner w values. */
 // GLOBAL: XVT 0x5181C8
 const float g_sw3dQuadCornerCount = 4.0f;
+/* The float 0.0; the software renderer, RenderScene_CullMeshFacesFromView and
+ * this file's normal builders compare with it. */
 // GLOBAL: XVT 0x5181B8
 const float g_sw3dZeroFloat = 0.0f;
+/* The float 100000.0: sw3d_ProjectMeshVerticesDistant multiplies its projection
+ * scale by it and adds it to each transformed vertex's z. */
 // GLOBAL: XVT 0x5181CC
 const float g_sw3dDistantDepth = 100000.0f;
+/* 1 while the model walkers keep an OPT_NODEREF node's target in the node after
+ * the first lookup: the original build in its pName, blanking the name, the
+ * modern build through XvtOpt_ResolveCached. Nothing writes it, so it stays
+ * 1. */
 // GLOBAL: XVT 0x5270B0
 int g_cacheResolvedOptNodeRefs = 1;
+/* 1 while the model being loaded came from a version 0 file, whose face records
+ * carry no normal indices: 48 bytes each where version 1 has 64. Only
+ * OptModel_LoadFileToHandle writes it; the legacy converter reads it, and
+ * OptModel_SaveHandleToFile picks its version marker from it. */
 // GLOBAL: XVT 0x5272B0
 int g_optSourceIsVersion0 = 0;
 #ifndef XVT_MODERN
+/* The extension "rgb", compared ignoring case by the texture loaders. */
 // GLOBAL: XVT 0x51AE00
 const char g_extRgb[4] = "rgb";
+/* The extension "tex", compared ignoring case by the texture loaders. */
 // GLOBAL: XVT 0x5272CC
 const char g_extTex[4] = "tex";
 #endif
+/* 1 / n at index n, from 1 to 69, with 1.0 at index 0; read by the software
+ * renderer, FlightStarfield_Render, RenderScene_AllocateBuffers and
+ * OptModel_BuildVertexNormalsFromFaces. */
 // GLOBAL: XVT 0x5270B8
 const float g_sw3dSpanLengthReciprocal[70] = {
 	1.0f,	      1.0f,	    1.0f / 2.0f,  1.0f / 3.0f,	1.0f / 4.0f,
@@ -685,57 +855,134 @@ const float g_sw3dSpanLengthReciprocal[70] = {
 	1.0f / 60.0f, 1.0f / 61.0f, 1.0f / 62.0f, 1.0f / 63.0f, 1.0f / 64.0f,
 	1.0f / 65.0f, 1.0f / 66.0f, 1.0f / 67.0f, 1.0f / 68.0f, 1.0f / 69.0f,
 };
+/* Per object type, the Memory handle of its flight resource, a runtime model
+ * from OptModel_LoadHandle or a texture block; 0 for none.
+ * FeDiskIo_LoadResources fills it, FeDiskIo_FreeFlightResources clears it,
+ * ModelPreview_LoadModel keeps the preview model in slot 0, and the modern
+ * XvtFrontendTask_Shutdown clears it. */
 // GLOBAL: XVT 0x9A7ED0
 uint16_t g_loadedModels[201] = {0};
+/* Where OptModel_RemapVectorIndex starts its next search: the index it last
+ * found, or the list length after a miss. Only that function writes it, and
+ * nothing resets it between models. */
 // GLOBAL: XVT 0x60F1E4
 int g_optConvertVectorSearchCursor = 0;
+/* Where OptModel_RemapTexCoordIndex starts its next search: the index it last
+ * found, or the list length after a miss. Only that function writes it, and
+ * nothing resets it between models. */
 // GLOBAL: XVT 0x60F1FC
 int g_optConvertTexCoordSearchCursor = 0;
+/* Handle of the shared block a model file is loaded and converted in; kept and
+ * regrown from one load to the next, 0 before the first. Only
+ * OptModel_LoadFileToHandle and OptModel_ConvertLegacyModelToOptimized write
+ * it. */
 // GLOBAL: XVT 0x5272A8
 uint16_t g_loadOptBufHandle = 0;
+/* Bytes allocated for g_loadOptBufHandle (the decoded size in the modern
+ * build); written by the same two functions. */
 // GLOBAL: XVT 0x5272AC
 int g_loadOptBufSize = 0;
+/* Handle of the copy OptModel_ConvertLegacyModelToOptimized converts from; it
+ * alone writes it, keeps it between calls, regrows it and never frees it. */
 // GLOBAL: XVT 0x5272B4
 uint16_t g_optConvertSourceHandle = 0;
+/* Bytes allocated for g_optConvertSourceHandle. */
 // GLOBAL: XVT 0x5272B8
 unsigned int g_optConvertSourceBufSize = 0;
+/* Vertex count of the OPT_MESHVERTS node the model walkers last passed. Many
+ * functions write it, chiefly this file's walkers and RenderScene's, which set
+ * it to 0 before a walk. */
 // GLOBAL: XVT 0x60F204
 int g_curVertexCount = 0;
+/* Vertex list of the mesh node the model walkers last passed; the converters
+ * and the normal builders read it. Set to NULL before each walk, here and in
+ * RenderScene's walkers. */
 // GLOBAL: XVT 0x60F1C0
 void *g_curMeshVertices = NULL;
+/* Material records of the OPT_MATERIAL node the model walkers last passed. Set
+ * to NULL before each walk, here and in RenderScene's walkers. */
 // GLOBAL: XVT 0x60F1D8
 void *g_curMeshMaterials = NULL;
+/* Texture coordinates of the OPT_TEXCOORDS node the model walkers last passed.
+ * Set to NULL before each walk, here and in RenderScene's walkers. */
 // GLOBAL: XVT 0x60F1E8
 void *g_curMeshTexCoords = NULL;
+/* Every model walker sets it to NULL before it walks; nothing sets it to
+ * anything else or reads it. */
 // GLOBAL: XVT 0x60F1F0
 void *g_modelNodeWalkUnusedScratch2 = NULL;
+/* Vertex normals of the OPT_VERTNORMALS node the model walkers last passed. Set
+ * to NULL before each walk, here and in RenderScene's walkers. */
 // GLOBAL: XVT 0x60F208
 OptVector *g_curVertNormals = NULL;
 #ifndef XVT_MODERN
+/* Vectors in the scratch block OptModel_ConvertImportedHandleToPacked
+ * allocates; that function sets it to 1 and nothing raises it. */
 // GLOBAL: XVT 0x5272C0
 int g_optImportScratchVectorCount = 0;
+/* The scratch block OptModel_ConvertImportedHandleToPacked allocates and frees
+ * while it packs an import. Nothing reads it, and it keeps pointing at the
+ * block after the block is freed. */
 // GLOBAL: XVT 0x5272C4
 OptVector *g_optImportScratchVectors = NULL;
+/* When nonzero, OptModel_BuildFaceNormalTangentData negates each face normal it
+ * builds. Nothing writes it, so it stays 0. */
 // GLOBAL: XVT 0x5271D0
 int g_optModelInvertFaceNormals = 0;
+/* Vertex normals OptModel_BuildFaceNormalTangentData last built after a face
+ * node's data: the vertex count when the mesh had no OPT_VERTNORMALS node, else
+ * 0. OptModel_AppendPackedFaceDerivedData steps over that many. */
 // GLOBAL: XVT 0x60F1D4
 int g_generatedVertexNormalCount = 0;
 #endif
+/* 1 once OptModel_AppendConvertedFacesForNode has reached the face node it
+ * merges faces into; OptModel_AppendConvertedFacesForCurrentMesh sets it to 0
+ * first. */
 // GLOBAL: XVT 0x5272BC
 static int g_optConvertTargetFaceFound = 0;
+/* The OPT_FACEGROUP node the legacy converter last passed, whose children
+ * OptModel_AppendConvertedFacesForCurrentMesh searches for faces to merge. */
 // GLOBAL: XVT 0x60F1C8
 OptNode *g_optConvertSourceMeshNode = NULL;
+/* The merged OPT_VERTNORMALS node the legacy converter built for the current
+ * root; NULL before it. OptModel_ConvertLegacyModelToOptimized clears it before
+ * each root. */
 // GLOBAL: XVT 0x60F1CC
 OptNode *g_optConvertVertexNormalNode = NULL;
+/* The texture the legacy converter last passed, directly or through an
+ * OPT_NODEREF; faces merge only with faces under the same texture. */
 // GLOBAL: XVT 0x60F1DC
 OptNode *g_optConvertSourceTextureNode = NULL;
+/* The merged OPT_TEXCOORDS node the legacy converter built for the current
+ * root; NULL before it. OptModel_ConvertLegacyModelToOptimized clears it before
+ * each root. */
 // GLOBAL: XVT 0x60F1F4
 OptNode *g_optConvertTexCoordNode = NULL;
+/* The texture OptModel_AppendConvertedFacesForNode last passed while it
+ * searches for faces to merge. */
 // GLOBAL: XVT 0x60F1F8
 OptNode *g_optConvertFaceTextureNode = NULL;
+/* The merged OPT_MESHVERTS node the legacy converter built for the current
+ * root; NULL before it, and while NULL the next node with children builds the
+ * merged nodes. OptModel_ConvertLegacyModelToOptimized clears it before each
+ * root. */
 // GLOBAL: XVT 0x60F200
 OptNode *g_optConvertVertexNode = NULL;
 
+/* Loads a model file and returns the Memory handle of its runtime copy
+ * (OptModel_CreateRuntimeHandle), or 0. The modern build returns 0 for a NULL
+ * name or one of 257 or more characters, and when OptModel_LoadFileToHandle
+ * fails; it registers the copy with XvtRenderAssets_RegisterOpt. The original
+ * build loads the OPT file when it opens. When it does not, it opens the same
+ * name with ".iv" in place of everything from the first '.', checks the
+ * "#Inventor" header and its format word, imports an "ascii" file with
+ * OptModel_LoadInventorAsciiToHandle (a "binary" one with
+ * OptModel_LoadInventorBinaryToHandle, which gives 0, and packing then locks
+ * handle 0), packs it, saves the packed model under the OPT name and returns
+ * its runtime copy. It returns 0 when the .iv file does not open or its header
+ * is wrong; only a wrong format word closes the file first. Both builds pulse
+ * the loading screen before and after building the runtime copy of an OPT
+ * file. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x411E00
 uint16_t OptModel_LoadHandle(const char *modelFilename)
@@ -839,6 +1086,8 @@ uint16_t OptModel_LoadHandle(const char *modelFilename)
 }
 
 #ifndef XVT_MODERN
+/* Returns 0: binary Inventor files are not read. Only the original build calls
+ * this. */
 // FUNCTION: XVT 0x412030
 uint16_t OptModel_LoadInventorBinaryToHandle(XvtFile *stream)
 {
@@ -847,6 +1096,12 @@ uint16_t OptModel_LoadInventorBinaryToHandle(XvtFile *stream)
 	return 0;
 }
 
+/* Imports the rest of an ASCII Inventor file and returns the Memory handle of
+ * the model. It parses every top-level node once with
+ * OptModel_ParseInventorAsciiNode to count the roots and bytes, seeks back,
+ * then parses them again into one block: an OptimizedPolyObject (selfMarker its
+ * address, reserved the handle), the root table, then the nodes. Does not check
+ * the allocation. Only the original build calls this. */
 // FUNCTION: XVT 0x412040
 uint16_t OptModel_LoadInventorAsciiToHandle(XvtFile *stream)
 {
@@ -907,6 +1162,23 @@ uint16_t OptModel_LoadInventorAsciiToHandle(XvtFile *stream)
 	return handle;
 }
 
+/* Reads one node of an ASCII Inventor file and returns its size in bytes, or -1
+ * when no word is left. With nodeStorage NULL it only measures; otherwise it
+ * writes there and stores the node's address in *outNode. A node starts with a
+ * word naming a row of g_inventorNodeDefs (a word matches when it is the row's
+ * name or its start, ignoring case); "DEF name" first stores the name and makes
+ * it the node's pName. The OptNode takes the row index as its nodeType and an
+ * InventorFieldRecord per field as its payload, with payloadCount the field
+ * count. Inside the braces it reads fields in any order, at most the field
+ * count of them, until '}' or a word that names none; fills the fields left out
+ * from their defaults; then reads child nodes up to '}' in two passes, counting
+ * first. A "use" node takes its quoted or bare name as its one string record
+ * and has no braces or children. An unknown node type prints a message, skips a
+ * following block up to its first '}', and returns 0, or the size of a DEF name
+ * before it. A word starting with '#' skips the rest of its line and is then
+ * treated as an unknown type. On a read error it prints a message and returns
+ * the bytes counted so far. Writes g_inventorFieldSeen and
+ * g_optModelLoadScratchBuffer. Only the original build calls this. */
 // FUNCTION: XVT 0x412120
 int OptModel_ParseInventorAsciiNode(XvtFile *stream, char *nodeStorage,
 				    OptNode **outNode)
@@ -2250,6 +2522,10 @@ int OptModel_ParseInventorAsciiNode(XvtFile *stream, char *nodeStorage,
 }
 #endif
 
+/* Adds translation, three floats, to every vertex of each OPT_MESHVERTS node at
+ * or below node, following OPT_NODEREF links and stopping at one that does not
+ * resolve; a node reached through two links moves twice. Only
+ * OptModel_TranslateVertices calls this, and nothing calls that. */
 // FUNCTION: XVT 0x42ABA0
 void OptModel_TranslateNodeVerticesRecursive(OptNode *node,
 					     OptimizedPolyObject *model,
@@ -2298,6 +2574,8 @@ void OptModel_TranslateNodeVerticesRecursive(OptNode *node,
 	}
 }
 
+/* Runs OptModel_TranslateNodeVerticesRecursive on each root of model. Nothing
+ * calls this. */
 // FUNCTION: XVT 0x42ACD0
 void OptModel_TranslateVertices(OptimizedPolyObject *model,
 				const float *translation)
@@ -2316,6 +2594,11 @@ void OptModel_TranslateVertices(OptimizedPolyObject *model,
 }
 
 #ifndef XVT_MODERN
+/* Moves the pointers of an imported Inventor model by the distance its block
+ * moved since selfMarker was set: selfMarker itself, the root table, each root
+ * and, through OptModel_RelocateNodePointersRecursive, everything below. NULL
+ * pointers stay NULL. Only the original build calls this, from
+ * OptModel_ConvertImportedHandleToPacked. */
 // FUNCTION: XVT 0x471F00
 void OptModel_RelocateLoadedPointers(OptimizedPolyObject *model)
 {
@@ -2344,6 +2627,10 @@ void OptModel_RelocateLoadedPointers(OptimizedPolyObject *model)
 	}
 }
 
+/* Adds relocationDelta to node's name, payload and child table pointers, to the
+ * data pointer of each of its payloadCount InventorFieldRecords and to each
+ * child pointer, then does the same below each child. NULL pointers stay NULL.
+ * Only the original build calls this. */
 // FUNCTION: XVT 0x471F60
 void OptModel_RelocateNodePointersRecursive(OptNode *node,
 					    XvtOptValue relocationDelta)
@@ -2389,6 +2676,11 @@ void OptModel_RelocateNodePointersRecursive(OptNode *node,
 }
 #endif
 
+/* Moves every pointer inside a packed model by the distance its block moved
+ * since selfMarker was recorded, and records the new address. The modern build
+ * calls XvtOpt_Relocate. The original build moves selfMarker, the root table
+ * and each root, then runs OptModel_AdjustOptimizedNodePointers on each root.
+ * Most callers call it only when selfMarker is not the block's address. */
 // FUNCTION: XVT 0x471FF0
 void OptModel_AdjustOptimizedPolyObjectPointers(OptimizedPolyObject *model)
 {
@@ -2422,6 +2714,11 @@ void OptModel_AdjustOptimizedPolyObjectPointers(OptimizedPolyObject *model)
 #endif
 }
 
+/* Adds relocationDelta to node's name, payload and child table pointers and to
+ * each child pointer, and to the palette pointer of an OPT_TEXTURE node whose
+ * inlinePaletteCount is 0, then does the same below each child. NULL pointers
+ * stay NULL. The modern arm calls XvtOpt_RelocateNode, but only the original
+ * build calls this. */
 // FUNCTION: XVT 0x472050
 void OptModel_AdjustOptimizedNodePointers(OptNode *node,
 					  XvtOptValue relocationDelta)
@@ -2469,6 +2766,23 @@ void OptModel_AdjustOptimizedNodePointers(OptNode *node,
 #endif
 }
 
+/* Loads an OPT file into g_loadOptBufHandle, converts a version 0 or 1 model to
+ * version 2 with OptModel_ConvertLegacyModelToOptimized, and returns that
+ * handle; it is reused by the next load. Then it measures each root with
+ * OptModel_MeasureNodeAndRaiseCapacities, which raises the renderer's capacity
+ * counts, after setting g_curMeshVertices, g_curMeshTexCoords,
+ * g_curVertNormals, g_modelNodeWalkUnusedScratch2 and g_curMeshMaterials to
+ * NULL and g_curVertexCount to 0. The file starts with a 4-byte word: a
+ * positive one is the body size of version 0; -1 or -2 (versions 1 and 2) is
+ * followed by the size. Sets g_optSourceIsVersion0. The modern build decodes
+ * the file with XvtOpt_Load, keeps the result as g_loadOptBufHandle in place of
+ * the one before, and ends the program through XvtStorage_Fatal when that
+ * fails. The original build returns 0 when the file does not open and regrows
+ * g_loadOptBufHandle when the body is bigger; running out of memory ends the
+ * program through FeDiskIo_FatalError. For a version 0 or 1 file it also writes
+ * the body as read to the name with its last character changed to '0' or '1',
+ * and, when the original name is writable, writes the converted model over it
+ * with the marker -1 (from version 0) or -2 (from version 1). */
 // FUNCTION: XVT 0x4742A0
 uint16_t OptModel_LoadFileToHandle(char *filename)
 {
@@ -2634,6 +2948,17 @@ uint16_t OptModel_LoadFileToHandle(char *filename)
 #endif
 }
 
+/* Converts the version 0 or 1 model of sourceSize bytes in g_loadOptBufHandle
+ * to version 2 in the same handle and returns the new size in bytes. It copies
+ * the source into g_optConvertSourceHandle, regrowing that when smaller, makes
+ * g_loadOptBufHandle hold at least twice sourceSize, and rebuilds each root
+ * there with OptModel_ConvertLegacyNodeToOptimized, setting
+ * g_optConvertVertexNode, g_optConvertTexCoordNode and
+ * g_optConvertVertexNormalNode to NULL before each. Sets g_curMeshVertices,
+ * g_curMeshTexCoords, g_curVertNormals, g_modelNodeWalkUnusedScratch2 and
+ * g_curMeshMaterials to NULL and g_curVertexCount to 0 first. Running out of
+ * memory ends the program through FeDiskIo_FatalError. Does not check that the
+ * result fits in twice the source size. */
 // FUNCTION: XVT 0x474610
 unsigned int OptModel_ConvertLegacyModelToOptimized(unsigned int sourceSize)
 {
@@ -2723,6 +3048,14 @@ unsigned int OptModel_ConvertLegacyModelToOptimized(unsigned int sourceSize)
 	return serializedSize;
 }
 
+/* Searches node and the nodes below it, depth first, for a texture whose own
+ * palette holds the same 8192 bytes of RGB565 colors as textureData does after
+ * its first 4096 bytes, and returns the start of that palette, or NULL. When
+ * stopNode is among a node's children, the search of that node ends there, but
+ * the levels above go on to their later children. A texture with
+ * inlinePaletteCount 0 counts only when its palette pointer is its own embedded
+ * palette. A texture compared without a match passes textureData 4096 bytes on
+ * to its own children. */
 // FUNCTION: XVT 0x474830
 void *OptModel_FindSharedTextureDataInNodeBeforeTarget(const void *textureData,
 						       OptNode *node,
@@ -2794,6 +3127,9 @@ void *OptModel_FindSharedTextureDataInNodeBeforeTarget(const void *textureData,
 	return NULL;
 }
 
+/* Runs OptModel_FindSharedTextureDataInNodeBeforeTarget on each root of model
+ * in order and returns its first match, or NULL; stops, returning NULL, at a
+ * root that is stopNode. */
 // FUNCTION: XVT 0x474910
 void *OptModel_FindEarlierSharedTextureData(const void *textureData,
 					    OptimizedPolyObject *model,
@@ -2829,6 +3165,38 @@ void *OptModel_FindEarlierSharedTextureData(const void *textureData,
 	return NULL;
 }
 
+/* Writes at dst the version 2 form of srcNode and everything below it, and
+ * returns the bytes written: 0 for a NULL node, and for a node the conversion
+ * drops that has no children, whose slot in the parent's child table becomes
+ * NULL. In the modern build every node starts aligned and the size is rounded
+ * up.
+ *
+ * While g_optConvertVertexNode is NULL, as it is at each root, a node with
+ * children gets three new first children: an OPT_MESHVERTS, an OPT_TEXCOORDS
+ * and an OPT_VERTNORMALS node holding each distinct vertex, texture coordinate
+ * and vertex normal found below it. When the merged vertices' last two are not
+ * the bounding box's minimum and maximum corners, those two corners are
+ * appended. These nodes become g_optConvertVertexNode, g_optConvertTexCoordNode
+ * and g_optConvertVertexNormalNode. An OPT_FACEGROUP in that state gets them
+ * through a new OPT_GROUP above it. From then on the source's own vertex,
+ * texture coordinate and normal nodes are dropped, and each face node takes,
+ * through OptModel_AppendConvertedFacesForCurrentMesh, the faces of itself and
+ * of the face nodes after it under the same texture, within the same child of
+ * the last OPT_FACEGROUP passed, renumbered into the merged lists. Face nodes
+ * whose faces were taken this way (edge count -1) are dropped.
+ *
+ * An OPT_FACEGROUP keeps its list of one float per child, padded with zeros or
+ * cut to its child count. A texture with inlinePaletteCount 0 whose palette
+ * lies outside its own data is pointed at an earlier texture with the same
+ * colors (OptModel_FindEarlierSharedTextureData) or given a copy of the
+ * palette. A face node met before any merged lists exist is copied: its edge
+ * count and records, 16 more bytes per face taken again from the start of its
+ * payload, its 36 bytes per face of normal and gradients, and, while meshState
+ * has no vertex normal list, g_curVertexCount vertex normals. A dropped node
+ * that has children becomes an OPT_GROUP. Other nodes are copied with their
+ * payloads. Writes g_curMeshVertices, g_curVertexCount, g_curMeshMaterials,
+ * g_curVertNormals and g_curMeshTexCoords as it passes those nodes, and
+ * g_optConvertSourceTextureNode and g_optConvertSourceMeshNode. */
 // FUNCTION: XVT 0x474960
 unsigned int OptModel_ConvertLegacyNodeToOptimized(
 	uint8_t *dst, OptNode *srcNode, OptimizedPolyObject *srcModel,
@@ -3577,6 +3945,10 @@ unsigned int OptModel_ConvertLegacyNodeToOptimized(
 #endif
 }
 
+/* Appends to dstVertexNode's list each vertex of every OPT_MESHVERTS node at or
+ * below srcNode that is not already in it, comparing the floats exactly, and
+ * raises its payloadCount. Follows OPT_NODEREF links and stops at one that does
+ * not resolve. Does not check the list's room; meshState is unused. */
 // FUNCTION: XVT 0x475740
 void OptModel_CollectUniqueVertices(OptNode *dstVertexNode, OptNode *srcNode,
 				    OptimizedPolyObject *srcModel,
@@ -3637,6 +4009,11 @@ void OptModel_CollectUniqueVertices(OptNode *dstVertexNode, OptNode *srcNode,
 	}
 }
 
+/* Appends to dstTexCoordNode's list each texture coordinate of every
+ * OPT_TEXCOORDS node at or below srcNode that is not already in it, comparing
+ * the floats exactly, and raises its payloadCount. Follows OPT_NODEREF links
+ * and stops at one that does not resolve. Does not check the list's room;
+ * meshState is unused. */
 // FUNCTION: XVT 0x475850
 void OptModel_CollectUniqueTexCoords(OptNode *dstTexCoordNode, OptNode *srcNode,
 				     OptimizedPolyObject *srcModel,
@@ -3702,6 +4079,14 @@ void OptModel_CollectUniqueTexCoords(OptNode *dstTexCoordNode, OptNode *srcNode,
 	}
 }
 
+/* Appends to dstNormalNode's list each vertex normal at or below srcNode that
+ * is not already in it, comparing the floats exactly, and raises its
+ * payloadCount. Normals come from OPT_VERTNORMALS nodes, which also become
+ * meshState->pVertNormals, and, while meshState has none, from the
+ * g_curVertexCount normals stored after each face node's data. Sets
+ * g_curVertexCount at each OPT_MESHVERTS node. For a version 0 source it clears
+ * meshState->pVertNormals after every node. Follows OPT_NODEREF links and stops
+ * at one that does not resolve. Does not check the list's room. */
 // FUNCTION: XVT 0x475940
 void OptModel_CollectUniqueVertexNormals(OptNode *dstNormalNode,
 					 OptNode *srcNode,
@@ -3863,6 +4248,13 @@ void OptModel_CollectUniqueVertexNormals(OptNode *dstNormalNode,
 	}
 }
 
+/* Returns the index in uniqueVectorNode's list of sourceVectors[sourceIndex],
+ * or -1 for a negative sourceIndex. The search starts at
+ * g_optConvertVectorSearchCursor minus (sourceIndex >> 1), or at 0 when that is
+ * negative or over the list length, runs to the end, then runs over the whole
+ * list from 0. Leaves g_optConvertVectorSearchCursor at the index found.
+ * Returns 0 when the vector is not in the list, leaving the cursor at the list
+ * length. */
 // FUNCTION: XVT 0x475B70
 int OptModel_RemapVectorIndex(const OptNode *uniqueVectorNode,
 			      const OptVector *sourceVectors, int sourceIndex)
@@ -3922,6 +4314,13 @@ int OptModel_RemapVectorIndex(const OptNode *uniqueVectorNode,
 	return 0;
 }
 
+/* Returns the index in uniqueTexCoordNode's list of
+ * sourceTexCoords[sourceIndex], or -1 for a negative sourceIndex. The search
+ * starts at g_optConvertTexCoordSearchCursor minus (sourceIndex >> 1), or at 0
+ * when that is negative or over the list length, runs to the end, then runs
+ * over the whole list from 0. Leaves g_optConvertTexCoordSearchCursor at the
+ * index found. Returns 0 when the coordinate is not in the list, leaving the
+ * cursor at the list length. */
 // FUNCTION: XVT 0x475C70
 int OptModel_RemapTexCoordIndex(const OptNode *uniqueTexCoordNode,
 				const OptTexCoord *sourceTexCoords,
@@ -3975,6 +4374,21 @@ int OptModel_RemapTexCoordIndex(const OptNode *uniqueTexCoordNode,
 	return 0;
 }
 
+/* Walks node and the nodes below it, following OPT_NODEREF links, and moves
+ * into dstFaceNode the faces of every face node from targetFaceNode on that has
+ * a positive edge count while the last texture passed
+ * (g_optConvertFaceTextureNode) is g_optConvertSourceTextureNode. Each moved
+ * face's vertex, texture coordinate and normal indices are renumbered into the
+ * merged lists (OptModel_RemapVectorIndex, OptModel_RemapTexCoordIndex) and its
+ * edge numbers raised by dstFaceNode's edge count, a fourth edge of -1 kept.
+ * The new faces go in front of dstFaceNode's faces, in each of its three parts:
+ * the 64-byte records, the face normals and the two texture gradient vectors. A
+ * version 0 source has no normal indices, so its vertex indices serve. Adds the
+ * moved node's face and edge counts to dstFaceNode's and sets the moved node's
+ * edge count to -1. Updates g_optConvertTargetFaceFound,
+ * g_optConvertFaceTextureNode, g_curMeshVertices, g_curMeshTexCoords and
+ * meshState->pVertNormals as it passes those nodes. Does not check
+ * dstFaceNode's room. */
 // FUNCTION: XVT 0x475D50
 void OptModel_AppendConvertedFacesForNode(OptNode *dstFaceNode,
 					  OptNode *targetFaceNode,
@@ -4246,6 +4660,11 @@ void OptModel_AppendConvertedFacesForNode(OptNode *dstFaceNode,
 	}
 }
 
+/* Moves into dstFaceNode, with OptModel_AppendConvertedFacesForNode, the faces
+ * of targetFaceNode and of the later face nodes under the same texture, within
+ * the child of g_optConvertSourceMeshNode that holds targetFaceNode; children
+ * before it are walked but give no faces. Sets g_optConvertFaceTextureNode to
+ * g_optConvertSourceTextureNode and g_optConvertTargetFaceFound to 0 first. */
 // FUNCTION: XVT 0x476280
 void OptModel_AppendConvertedFacesForCurrentMesh(OptNode *dstFaceNode,
 						 OptNode *targetFaceNode,
@@ -4277,6 +4696,14 @@ void OptModel_AppendConvertedFacesForCurrentMesh(OptNode *dstFaceNode,
 	}
 }
 
+/* Builds a runtime copy of the packed model in sourceHandle and returns its new
+ * Memory handle. It measures the copy with OptModel_BuildRuntimeNode, allocates
+ * it, builds it, then fixes its texture palette pointers with
+ * OptModel_FixupRuntimeTexturePointers. Sets g_curMeshVertices,
+ * g_curMeshTexCoords, g_curVertNormals, g_modelNodeWalkUnusedScratch2 and
+ * g_curMeshMaterials to NULL and g_curVertexCount to 0 first. A failed
+ * allocation ends the program through FeDiskIo_FatalError. The modern build
+ * returns 0 for a sourceHandle of 0. */
 // FUNCTION: XVT 0x4762F0
 uint16_t OptModel_CreateRuntimeHandle(unsigned int sourceHandle)
 {
@@ -4357,6 +4784,13 @@ uint16_t OptModel_CreateRuntimeHandle(unsigned int sourceHandle)
 	return runtimeHandle;
 }
 
+/* Fixes the palette pointer of every texture at or below node in a runtime
+ * copy, following OPT_NODEREF links in dstModel. A texture with an inline
+ * palette gets inlinePaletteCount 0 and its pointer set to the palette copied
+ * after its texels. A texture whose palette is not its own is pointed at the
+ * palette copy of the texture that owned that palette in srcModel, when
+ * OptModel_FindCorrespondingTextureNodeInModel finds it. On a 16-bit display
+ * each pointer is set 4096 bytes before the copy. */
 // FUNCTION: XVT 0x476490
 void OptModel_FixupRuntimeTexturePointers(OptNode *node,
 					  OptimizedPolyObject *dstModel,
@@ -4469,6 +4903,11 @@ void OptModel_FixupRuntimeTexturePointers(OptNode *node,
 	}
 }
 
+/* Walks srcNode and dstNode side by side and returns the node of dstNode's tree
+ * that stands where the source texture whose own palette is sourcePalette
+ * stands, or NULL. A pair of nodes counts only when their types match, and
+ * their children are searched only when their child counts match. Does not
+ * follow OPT_NODEREF links. */
 // FUNCTION: XVT 0x4765B0
 OptNode *OptModel_FindCorrespondingTextureNode(OptNode *srcNode,
 					       OptNode *dstNode,
@@ -4536,6 +4975,9 @@ OptNode *OptModel_FindCorrespondingTextureNode(OptNode *srcNode,
 	return NULL;
 }
 
+/* Runs OptModel_FindCorrespondingTextureNode on each pair of roots of srcModel
+ * and dstModel, in order, and returns its first match, or NULL. Uses srcModel's
+ * root count for both. */
 // FUNCTION: XVT 0x476670
 OptNode *
 OptModel_FindCorrespondingTextureNodeInModel(OptimizedPolyObject *dstModel,
@@ -4567,6 +5009,14 @@ OptModel_FindCorrespondingTextureNodeInModel(OptimizedPolyObject *dstModel,
 }
 
 #ifndef XVT_MODERN
+/* Writes a packed model to filename: the marker -1 when g_optSourceIsVersion0
+ * is set, else -2, then the size, then that many bytes of the model's block.
+ * The size is 4 bytes per root plus 14 plus what
+ * OptModel_MeasureNodeAndRaiseCapacities gives for each root, which also raises
+ * the renderer's capacity counts. Sets g_curMeshVertices, g_curMeshTexCoords,
+ * g_curVertNormals, g_modelNodeWalkUnusedScratch2 and g_curMeshMaterials to
+ * NULL and g_curVertexCount to 0 first. Does nothing when the file does not
+ * open. Only the original build calls this. */
 // FUNCTION: XVT 0x4766C0
 void OptModel_SaveHandleToFile(const char *filename, uint16_t handle)
 {
@@ -4624,6 +5074,18 @@ void OptModel_SaveHandleToFile(const char *filename, uint16_t handle)
 }
 #endif
 
+/* Returns the bytes node and everything below it take in a packed model: the
+ * OptNode, its name and the payload of its type. A face node counts its edge
+ * count word, 64 bytes per face for the records and 36 for the normal and
+ * gradients, and room for g_curVertexCount vertex normals when
+ * parentState->pVertNormals is NULL. Raises g_sceneEdgeFlagsCapacity to the
+ * largest face node edge count and g_vertexRemapCapacity to the largest vertex
+ * count. Sets g_curVertexCount, g_curMeshMaterials, g_curVertNormals and
+ * parentState->pVertNormals at those nodes, and sets g_curMeshVertices,
+ * g_curMeshTexCoords, g_curVertNormals, g_modelNodeWalkUnusedScratch2 and
+ * g_curMeshMaterials to NULL before a node's children. Returns 0 for a NULL
+ * node. An OPT_TEXTURE node with a NULL payload is read through that NULL
+ * pointer. */
 // FUNCTION: XVT 0x476810
 unsigned int OptModel_MeasureNodeAndRaiseCapacities(OptNode *node,
 						    SceneMesh *parentState)
@@ -4837,6 +5299,10 @@ unsigned int OptModel_MeasureNodeAndRaiseCapacities(OptNode *node,
 	return serializedSize;
 }
 
+/* Rewrites entryCount RGB565 entries of palette, in place, in the display's
+ * 16-bit format at the current brightness (FlightPalette_Build16BppRange). With
+ * g_useHardware3D set it first runs ModelTexture_FilterHardwarePalette on the
+ * palette. Does not check entryCount against its 4096-entry buffer. */
 // FUNCTION: XVT 0x476B90
 void OptModel_PrepareTexturePalette(uint16_t *palette, int entryCount)
 {
@@ -4874,6 +5340,27 @@ void OptModel_PrepareTexturePalette(uint16_t *palette, int entryCount)
 	FlightPalette_Build16BppRange(srcRgb, palette, 0, entryCount);
 }
 
+/* Returns the bytes srcNode and everything below it take in a runtime model;
+ * with dst NULL it only measures, otherwise it also writes them there. Copies
+ * each node with its name, child table and payload. A texture whose textureSize
+ * equals width times height, its data holding the mip levels, drops the top
+ * level when g_textureResolutionLevel is 0 and both sides are over 8. Any other
+ * texture copies its top level and gets mip levels added until a side is 1.
+ * With g_mipmappingEnabled set each new texel is the 2-by-2 average of the
+ * colors 8192 bytes into the palette, matched back to the nearest of the 256
+ * there; otherwise the levels' bytes are left unwritten. Palettes are converted
+ * for the display: on an 8-bit display the 4096 RGB565 colors map through
+ * g_activeRgb565ToPaletteIndexLut to 4096 bytes, and with
+ * g_generateMissionPalette set the texels feed
+ * ImageQuantizer_ClassifyIndexedRgb565Image once per 256-color sub-palette; on
+ * a 16-bit display the 8192 bytes are copied and repacked by
+ * OptModel_PrepareTexturePalette. A texture that uses another's palette copies
+ * none. Raises g_sceneEdgeFlagsCapacity and g_vertexRemapCapacity, sets
+ * g_curVertexCount, g_curMeshMaterials, g_curVertNormals and
+ * meshState->pVertNormals at those nodes, and sets g_curMeshVertices,
+ * g_curMeshTexCoords, g_curVertNormals, g_modelNodeWalkUnusedScratch2 and
+ * g_curMeshMaterials to NULL before a node's children. A child of size 0 leaves
+ * a NULL slot. The modern build aligns each node. */
 // FUNCTION: XVT 0x476C20
 unsigned int OptModel_BuildRuntimeNode(const OptNode *srcNode,
 				       SceneMesh *meshState, uint8_t *dst)
@@ -5499,6 +5986,18 @@ unsigned int OptModel_BuildRuntimeNode(const OptNode *srcNode,
 }
 
 #ifndef XVT_MODERN
+/* Packs an imported Inventor model into the model layout the game reads and
+ * returns the new handle. It measures each root with
+ * OptModel_CalculatePackedNodeSizeRecursive, allocates the packed block and a
+ * scratch block of g_optImportScratchVectorCount vectors (set to 1), packs each
+ * root with OptModel_ConvertImportedNodeToPackedRecursive, frees sourceHandle
+ * and the scratch block, then copies the packed bytes into a block of the exact
+ * size, fixes its pointers with OptModel_AdjustOptimizedPolyObjectPointers and
+ * frees the first block. The conversion state starts zeroed with identity view
+ * matrices. Sets g_curMeshVertices, g_curMeshTexCoords, g_curVertNormals,
+ * g_modelNodeWalkUnusedScratch2 and g_curMeshMaterials to NULL and
+ * g_curVertexCount to 0 before each pass. Does not check its allocations. Only
+ * the original build calls this. */
 // FUNCTION: XVT 0x477950
 uint16_t OptModel_ConvertImportedHandleToPacked(uint16_t sourceHandle)
 {
@@ -5630,6 +6129,31 @@ uint16_t OptModel_ConvertImportedHandleToPacked(uint16_t sourceHandle)
 	return finalHandle;
 }
 
+/* Packs one imported node and everything below it at destBuffer and returns the
+ * bytes written. Each node gets its name, payloadCount 1 and no payload bytes
+ * unless it has records and the first holds data. A face node's polygons, ended
+ * by -1, split into a fan of quads around their first vertex, the last one a
+ * triangle or a quad; a faceSet splits polygons of consecutive vertices from 0
+ * the same way, skipping a polygon under 3 vertices without stepping past its
+ * vertices; a quadMesh gives a grid of quads and a triangleStripSet triangles
+ * of alternating order, both from startIndex. Texture coordinate and normal
+ * indices copy the vertex indices unless an indexedFaceSet gave lists of the
+ * same length. Edges get numbers, an indexedFaceSet's shared ones found with
+ * OptModel_FindUniqueEdgeIndex; then OptModel_AppendPackedFaceDerivedData adds
+ * the normals and gradients. A transform becomes an offset worked out from its
+ * center, scaleOrientation, scaleFactor, rotation and translation, followed by
+ * the rotation's 3-by-3 matrix (the scaled matrix it built first is
+ * overwritten); a rotation becomes a 3-by-3 matrix. A material pads each of its
+ * six lists to the longest by repeating the last entry. materialBinding and
+ * textureCoordinateBinding store their value in payloadCount. A texture loads
+ * its file with ModelTexture_LoadRgbOrTexFile. A levelofdetail keeps each
+ * screenArea value that differs from the one before and has a child, and
+ * compacts the source node's children to match. Other nodes copy their values.
+ * Writes g_curMeshVertices, g_curVertexCount, g_curVertNormals,
+ * g_curMeshTexCoords, conversionState->pVertNormals, g_sceneEdgeFlagsCapacity
+ * and g_vertexRemapCapacity, and sets g_curVertNormals,
+ * g_modelNodeWalkUnusedScratch2 and g_curMeshMaterials to NULL before a node's
+ * children. Only the original build calls this. */
 // FUNCTION: XVT 0x477C80
 size_t OptModel_ConvertImportedNodeToPackedRecursive(
 	const OptimizedPolyObject *sourceModel, const OptNode *sourceNode,
@@ -6565,6 +7089,16 @@ size_t OptModel_ConvertImportedNodeToPackedRecursive(
 	return (size_t)(dest - destBuffer);
 }
 
+/* Returns the bytes OptModel_ConvertImportedNodeToPackedRecursive will need for
+ * sourceNode and everything below it: a 24-byte node, its name, and its
+ * payload. A face node counts its faces and adds room for g_curVertexCount
+ * vertex normals. A material counts the longest of its first five lists only,
+ * while the packer pads to the longest of all six. A texture asks
+ * OptModel_GetExternalTextureSerializedSize. Writes g_curVertexCount,
+ * g_curVertNormals and conversionState->pVertNormals as it passes those nodes,
+ * and sets g_curVertNormals, g_modelNodeWalkUnusedScratch2 and
+ * g_curMeshMaterials to NULL before a node's children. Only the original build
+ * calls this. */
 // FUNCTION: XVT 0x478F50
 size_t OptModel_CalculatePackedNodeSizeRecursive(
 	const OptimizedPolyObject *sourceModel, const OptNode *sourceNode,
@@ -6823,6 +7357,10 @@ size_t OptModel_CalculatePackedNodeSizeRecursive(
 	return packedSize;
 }
 
+/* Returns the edge number of the one face, among the faceCount already in
+ * faceNode, that has an edge from vertexIndexA to vertexIndexB in either
+ * direction; -1 when no face has it, and also when two or more do. Only the
+ * original build calls this. */
 // FUNCTION: XVT 0x4792F0
 int OptModel_FindUniqueEdgeIndex(const OptPackedFaceNode *faceNode,
 				 int vertexIndexA, int vertexIndexB)
@@ -6946,6 +7484,11 @@ int OptModel_FindUniqueEdgeIndex(const OptPackedFaceNode *faceNode,
 	return result;
 }
 
+/* Writes after faceNode's face records the per-face normals and texture
+ * gradients and, when the mesh has no normal list, the per-vertex normals, with
+ * OptModel_BuildFaceNormalTangentData, and returns the address after them.
+ * Steps 36 bytes per face and 12 per vertex normal counted in
+ * g_generatedVertexNormalCount. Only the original build calls this. */
 // FUNCTION: XVT 0x4794C0
 float *OptModel_AppendPackedFaceDerivedData(OptPackedFaceNode *faceNode,
 					    uint8_t *dest,
@@ -6960,6 +7503,18 @@ float *OptModel_AppendPackedFaceDerivedData(OptPackedFaceNode *faceNode,
 	return (float *)dest;
 }
 
+/* Writes at dest one unit normal per face, (v1 - v0) cross (v1 - v2), using v3
+ * in place of v1 for a quad whose first result is zero length (a zero result
+ * stays zero; g_optModelInvertFaceNormals would negate it); then, when
+ * g_curMeshTexCoords is set, two texture gradient vectors per face from its
+ * positions and texture coordinates, trying other corners for a degenerate
+ * face; then, when the conversion state has no vertex normal list, one averaged
+ * normal per vertex (OptModel_BuildVertexNormalsFromFaces). Sets
+ * g_generatedVertexNormalCount to the vertex count or 0. Returns at once,
+ * writing nothing, when g_curMeshVertices is NULL. Without texture coordinates
+ * it skips 24 floats per face where the packed layout holds 6; the XVT_MODERN
+ * arm that skips 6 sits inside this #ifndef XVT_MODERN block, so no build
+ * compiles it. Only the original build calls this. */
 // FUNCTION: XVT 0x479510
 void OptModel_BuildFaceNormalTangentData(float *dest,
 					 const OptPackedFaceData *faceData,
@@ -7513,6 +8068,10 @@ void OptModel_BuildFaceNormalTangentData(float *dest,
 	}
 }
 
+/* Writes at dest, for each of the g_curVertexCount vertices, the mean of the
+ * normals of the faces that use it, read after faceData's records; leaves the
+ * entry as it was when no face uses it. Does not normalize the mean. Only the
+ * original build calls this. */
 // FUNCTION: XVT 0x479CE0
 void OptModel_BuildVertexNormalsFromFaces(float *dest,
 					  const OptPackedFaceData *faceData,
@@ -7580,6 +8139,8 @@ void OptModel_BuildVertexNormalsFromFaces(float *dest,
 }
 #endif
 
+/* Returns the first node, roots in order and each depth first, whose name is
+ * name ignoring case (OptModel_FindNodeByName), or NULL. */
 // FUNCTION: XVT 0x479DE0
 OptNode *OptModel_ResolveNodeRef(const OptimizedPolyObject *object,
 				 const char *name)
@@ -7598,6 +8159,8 @@ OptNode *OptModel_ResolveNodeRef(const OptimizedPolyObject *object,
 	return NULL;
 }
 
+/* Returns node or the first node below it, depth first, whose name is name
+ * ignoring case, or NULL. Does not follow OPT_NODEREF links. */
 // FUNCTION: XVT 0x479E20
 OptNode *OptModel_FindNodeByName(OptNode *node, const char *name)
 {
@@ -7631,6 +8194,15 @@ OptNode *OptModel_FindNodeByName(OptNode *node, const char *name)
 }
 
 #ifndef XVT_MODERN
+/* Returns the bytes a packed texture for sourceFileName will take. A name
+ * ending in "rgb", ignoring case, is tried first as the same name ending in
+ * "tex", then as the .rgb file; a name ending in "tex" is read directly. For a
+ * .tex file it reads the header and returns 12312 plus the texel bytes:
+ * storedPayloadSize when pixelCount equals width times height, else width times
+ * height. For an .rgb file it reads the big-endian width and height at bytes 6
+ * and 8 and returns 3 times their product plus 13056. Returns 12376, the size
+ * of a ModelTextureDefaultTexture in the original build, when no file opens or
+ * the extension is neither. Only the original build calls this. */
 // FUNCTION: XVT 0x47A430
 int OptModel_GetExternalTextureSerializedSize(const char *sourceFileName)
 {

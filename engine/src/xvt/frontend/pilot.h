@@ -49,20 +49,27 @@ enum {
 	PILOT_RATING_RESERVED_31 = 0x1F,
 };
 
+/* Nothing in the engine uses this type. Its fields match the start of
+ * PilotData, except that missionDescriptionIds has 5 entries where PilotData
+ * has 6. */
 struct PilotDataSelection {
-	char name[14];
-	int totalScore;
-	int localPlayerId;
+	char name[14];	   /* Never read or written by name. */
+	int totalScore;	   /* Never read or written by name. */
+	int localPlayerId; /* Never read or written by name. */
+	/* Never read or written by name. */
 	int launchSessionMarker; ///< Persisted marker set to 1 when launch/debrief session state is captured; no
 	///< XVT reader is identified.
-	int isHost;
+	int isHost; /* Never read or written by name. */
+	/* Never read or written by name. */
 	unsigned int numHumanPlayersLastMission;
-	int sessionMode;
+	int sessionMode; /* Never read or written by name. */
+	/* Never read or written by name. */
 	uint8_t xvtRecordPayload
 		[672]; ///< Opaque 672-byte payload from the XvT-compatible pilot-record prefix.
-	int team;
+	int team;      /* Never read or written by name. */
+	/* Never read or written by name. */
 	MissionDirectoryId missionDirectoryId;
-	int missionDescriptionIds[5];
+	int missionDescriptionIds[5]; /* Never read or written by name. */
 };
 
 /* Stored as int32_t in the binary (IDB enum PilotPromotionDelta). */

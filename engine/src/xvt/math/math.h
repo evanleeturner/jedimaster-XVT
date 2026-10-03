@@ -8,6 +8,8 @@
 extern "C" {
 #endif
 
+/* Returns a * b >> 15, taken from the full 64-bit product and rounded toward
+ * minus infinity; only the low 32 bits of the shifted product are kept. */
 static __inline int Math_MulQ15(int a, int b)
 {
 #ifdef XVT_MODERN
@@ -25,6 +27,8 @@ static __inline int Math_MulQ15(int a, int b)
 #endif
 }
 
+/* Returns the sum of the three products, each shifted down 15 bits as in
+ * Math_MulQ15; the sum is 32-bit and may wrap. */
 static __inline int Math_Dot3Q15(int leftX, int leftY, int leftZ, int rightX,
 				 int rightY, int rightZ)
 {
@@ -131,6 +135,10 @@ static __inline int Math_Dot2Q15Wrapped(int leftX, int leftY, int rightX,
 #endif
 }
 
+/* One term of an axis-angle rotation matrix when the cosine is 0 or more:
+ * ((axisA_Q15 * axisB_Q15) >> 15) * oneMinusCos_Q15 + (crossTerm_Q15 << 15),
+ * in 32-bit arithmetic that may wrap, clamped as in Math_Dot3Q15Wrapped and
+ * shifted down 15 bits. */
 static __inline int Math_RodriguesTermNonnegativeCos(int axisA_Q15,
 						     int axisB_Q15,
 						     int oneMinusCos_Q15,
@@ -173,6 +181,10 @@ static __inline int Math_RodriguesTermNonnegativeCos(int axisA_Q15,
 #endif
 }
 
+/* The same term when the cosine is negative:
+ * ((axisA_Q15 * axisB_Q15) >> 15) * absCos_Q15 + axisA_Q15 * axisB_Q15
+ * + (crossTerm_Q15 << 15), in 32-bit arithmetic that may wrap, clamped as in
+ * Math_Dot3Q15Wrapped and shifted down 15 bits. */
 static __inline int Math_RodriguesTermNegativeCos(int axisA_Q15, int axisB_Q15,
 						  int absCos_Q15,
 						  int crossTerm_Q15)

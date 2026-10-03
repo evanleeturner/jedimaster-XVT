@@ -64,71 +64,138 @@ extern uint16_t g_flightFillRectRight8bpp;
 extern uint16_t g_flightFillRectLeft8bpp;
 extern unsigned int g_flightFillRectRemainingRows8bpp;
 
+/* One point of a rotated sprite's edge, in pixels from the edge's start. */
 struct FlightSwRotSpriteEdgePoint {
-	int16_t x;
-	int16_t y;
+	int16_t x; /* Steps along x. */
+	int16_t y; /* Steps along y. */
 };
 
+/* The tables FlightSw_BuildSpriteRotationCoeffs makes for one rotation angle,
+ * with which the software renderer draws rotated sprites. The first five
+ * fields are also read as an array of five 16-bit values by
+ * FlightSw_RotateSpritePoint. */
 struct FlightSwRotSpriteCoeffState {
+	/* The angle, 65,536 units to the circle. */
 	uint16_t rotationAngle;
+	/* Despite the name, the sine's magnitude for the angle folded into a
+	 * quarter turn, as FlightSw_LookupSpriteSineQ15 returns it: 65536
+	 * would be 1. */
 	int16_t sinQ15;
+	/* The 0x8000 bit of the angle: set when the sine is negative. */
 	uint16_t sinSignMask;
+	/* The cosine's magnitude, in the same form as sinQ15. */
 	int16_t cosQ15;
+	/* The 0x8000 bit of the angle plus 0x4000: set when the cosine is
+	 * negative. */
 	uint16_t cosSignMask;
+	/* The cosine's magnitude for the edge's angle (the folded angle, or a
+	 * quarter turn less it with primaryAxisSwap), in the same form. */
 	uint16_t primaryCosQ15;
+	/* 0x80000000 / primaryCosQ15, rescaled by g_projAspectY / 65536 with
+	 * primaryAxisSwap when pixels are not square; nothing reads it. */
 	uint16_t primaryStepReciprocal;
+	/* Edge points: g_flightSwRotSpriteViewportWidth without
+	 * primaryAxisSwap, g_flightSwRotSpriteViewportHeight with it. */
 	uint16_t scanCount;
-	uint16_t flipY;
+	uint16_t flipY; /* 1 when the angle is 0x8000 or more, else 0. */
+	/* 2 when the angle is from 0x4000 up to 0xC000, else 0. */
 	uint16_t flipX;
-	uint16_t flipCount;
+	uint16_t flipCount; /* (flipX >> 1) + flipY: 0, 1 or 2. */
+	/* primaryAxisSwap | flipY | flipX, 0 to 7: picks the octant functions
+	 * that walk the sprite. */
 	uint16_t octant;
+	/* 4 when the folded angle is g_flightSwRotSpriteAxisSwapThresholdAngle
+	 * or more, so the edge steps along y; else 0. */
 	uint16_t primaryAxisSwap;
+	/* The same test for the angle a quarter turn on. */
 	uint16_t secondaryAxisSwap;
+	/* What FlightSw_AdvanceRotSpriteSecondaryScale adds to
+	 * g_flightSwRotSpriteSecondaryScaleAccum each step. */
 	uint16_t secondaryScaleLow;
+	/* Nonzero: each step moves the span base by 1, or 2 on a carry from
+	 * that sum. 0: only a carry moves it, by 1. */
 	uint16_t secondaryScaleHigh;
-	int16_t firstEdgeX;
-	int16_t lastEdgeX;
+	int16_t firstEdgeX; /* x of the edge's first point. */
+	int16_t lastEdgeX;  /* x of the edge's last point. */
+	/* g_flightSwRotSpriteViewportMaxY less the first point's y. */
 	int16_t firstEdgeScreenY;
+	/* g_flightSwRotSpriteViewportMaxY less the last point's y. */
 	int16_t lastEdgeScreenY;
-	int16_t firstEdgeY;
-	int16_t lastEdgeY;
+	int16_t firstEdgeY; /* y of the edge's first point. */
+	int16_t lastEdgeY;  /* y of the edge's last point. */
+	/* Entry 0: how far the last point lies from the first on x and on y,
+	 * as magnitudes. Entries 1 to scanCount: the edge's points from (0,
+	 * 0), one step along the main axis each and the cross axis following
+	 * the edge's slope. */
 	FlightSwRotSpriteEdgePoint edgePointsWithPredecessor[1601];
+	/* A step factor in 256ths that FlightSw_PrepareRotatedSpriteScaleState
+	 * folds into the vertical step. */
 	uint16_t secondaryStepByte;
-	uint16_t runLengthCount;
+	uint16_t runLengthCount; /* Entries in runLengths. */
+	/* Lengths of the runs of edge points that share a cross-axis
+	 * coordinate. */
 	uint16_t runLengths[1600];
+	/* Where the walk's first line starts in the destination buffer. */
 	void *destLinePtr;
+	/* Byte offset of each edge point from a line's start, flips applied:
+	 * x times bytes per pixel, plus y times
+	 * g_flightSwRotSpriteDestPitchBytes when g_flightSwRotSpriteDestYMode
+	 * is positive, else minus it. */
 	int spanOffsets[1600];
+	/* g_flightSwRotSpriteDestPitchBytes, negated when
+	 * g_flightSwRotSpriteDestYMode is positive. */
 	int destPitchDelta;
 };
 
+/* One pixel of the radar target marker, relative to the marker's point. */
 struct FlightRadarMarkerOffset {
-	int8_t x;
-	int8_t y;
+	int8_t x; /* Columns right. */
+	int8_t y; /* Rows down. */
 };
 
+/* One pixel of the cross marker, relative to its center. */
 struct FlightSwMarkerOffset {
-	int8_t dx;
-	int8_t dy;
+	int8_t dx; /* Columns right. */
+	int8_t dy; /* Rows down. */
 };
 
+/* The scale of a rotated sprite on screen, from
+ * FlightSw_PrepareRotatedSpriteScaleState. Steps are in 256ths of a pixel
+ * per texel, split into bytes. */
 struct FlightSwRotSpriteScaleState {
+	/* The sprite's screen size, 256 for one pixel per texel. */
 	uint16_t screenScale;
+	/* Horizontal step the step tables were last built for, low byte. */
 	uint8_t cachedStepLowByte;
-	uint8_t cachedStepHighByte;
+	uint8_t cachedStepHighByte; /* Its high byte. */
+	/* (screenScale * primaryCosQ15) >> 16, times aspectScaleY >> 8 with
+	 * primaryAxisSwap: low byte. */
 	uint8_t horizontalStepLowByte;
-	uint8_t horizontalStepHighByte;
+	uint8_t horizontalStepHighByte; /* Its high byte. */
+	/* Destination lines per sprite row: the horizontal base step plus its
+	 * secondaryStepByte 256ths, times inverseAspectScaleY >> 8 without
+	 * secondaryAxisSwap; low byte. */
 	uint8_t verticalStepLowByte;
-	uint8_t verticalStepHighByte;
+	uint8_t verticalStepHighByte; /* Its high byte. */
+	/* Entry n: n + 1 horizontal steps, fraction part, in 65536ths of a
+	 * pixel. */
 	uint16_t lowWordStepTable[256];
+	/* Entry n: n + 1 horizontal steps, whole pixels. */
 	uint16_t highWordStepTable[256];
+	/* 256 with square pixels, else 233: y scale in 256ths. */
 	uint16_t aspectScaleY;
+	/* 256 with square pixels, else 282. */
 	uint16_t inverseAspectScaleY;
 };
 
+/* One run of a rotated sprite's row, scaled, ready to draw along the edge. */
 struct FlightSwRotSpriteSpanRun {
+	/* Edge position of its first pixel, before g_flightSwRotSpriteSpanBaseX
+	 * is added. */
 	int startX;
+	/* Sprite color index, drawn through the sprite palette. */
 	int colorIndex;
-	int length;
+	int length; /* Pixels. */
 };
 
 extern FlightSwRotSpriteSpanRun g_flightSwRotSpriteSpanRuns[512];
@@ -148,17 +215,25 @@ extern int g_flightSwRotSpriteSpanRunCountdown;
 /* SpritePayload describes the same 44-byte image header as TexLevelImageHeader, under different field
  * names; some code reads one image through both. */
 typedef struct SpritePayload {
-	uint32_t payloadSize;
+	uint32_t payloadSize; /* Never read or written through this name. */
+	/* Never read or written through this name; TexLevelImageHeader calls
+	 * it paletteOffset. */
 	uint32_t colorTable24Offset;
+	/* Bytes from the header to the encoded image: a
+	 * FlightSwRotSpriteDataHeader, then the rows. */
 	uint32_t rowDataOffset;
+	/* Bytes from the header to the drawing palette: one byte per color for
+	 * 8-bit drawing, a low and a high byte for 16-bit. */
 	uint32_t displayPaletteOffset;
-	uint32_t width;
-	uint32_t height;
-	int32_t anchorX;
-	int32_t anchorY;
+	uint32_t width;	 /* Texels per row. */
+	uint32_t height; /* Rows. */
+	int32_t anchorX; /* Never read or written through this name. */
+	int32_t anchorY; /* Never read or written through this name. */
+	/* Bits of run length in a run byte; the bits above them hold the color
+	 * index. */
 	int32_t packingMode;
-	int32_t bitsPerPixel;
-	int32_t colorCount;
+	int32_t bitsPerPixel; /* Never read or written through this name. */
+	int32_t colorCount;   /* Colors in the drawing palette. */
 } SpritePayload;
 
 void FlightSw_InitFramebuffer(void);

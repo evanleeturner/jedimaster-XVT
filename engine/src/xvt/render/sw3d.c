@@ -11,82 +11,159 @@
 #include <string.h>
 
 typedef struct SoftwareLightSample {
+	/* Lighting block row it was worked out for:
+	 * g_sw3dCurrentLightSampleCacheStamp at the time. */
 	int stamp;
+	/* Light, 0 to 1, at its block corner on that block row's top row. */
 	float intensity;
+	/* Light at the corner one block lower, less intensity. */
 	float rowDelta;
 } SoftwareLightSample;
 
+/* g_sw3dLightSampleBlockSize - 1, 15. RenderScene_AllocateBuffers sets the five
+ * lighting block globals. */
 // GLOBAL: XVT 0x612284
 int g_sw3dLightSampleBlockMask = 0;
+/* Face sw3d_DrawVisibleFacesToSurface is drawing; sw3d_DrawTexturedSpan draws
+ * it. */
 // GLOBAL: XVT 0x612280
 SceneFace *g_sw3dCurrentFace = NULL;
+/* Shade fraction carried from pixel to pixel, the low 8 bits of shade + carry,
+ * which dithers between the 16 shade levels; each span starts it from
+ * g_sw3dShadeDitherInitialByScanlineParity by its row's parity. */
 // GLOBAL: XVT 0x612288
 int g_sw3dSpanShadeDitherAccum = 0;
+/* Side in pixels of a lighting block, 16 (set by RenderScene_AllocateBuffers):
+ * the software renderer works out light at block corners and interpolates
+ * between them. */
 // GLOBAL: XVT 0x61228C
 int g_sw3dLightSampleBlockSize = 0;
+/* Byte offset in g_surfacePixels of the current row's first viewport pixel:
+ * (row + g_flightVpY) * g_surfacePitch + g_flightVpX * g_flightBytesPerPixel.
+ * Set by sw3d_DrawVisibleFacesToSurface for each row and by
+ * sw3d_BlitOccludedSpan. */
 // GLOBAL: XVT 0x612294
 int g_sw3dSpanFramebufferRowOffset = 0;
+/* The current row's place in its lighting block: row within the
+ * block / g_sw3dLightSampleBlockSize, 0 at the block's top row.
+ * sw3d_DrawVisibleFacesToSurface sets it, with the two other row
+ * globals, for each row with a span. */
 // GLOBAL: XVT 0x61229C
 float g_sw3dLightSampleSubrowLerpT = 0.0f;
+/* Only the modern build's RenderScene_Initialize writes it, clearing its 0x300
+ * bits; nothing reads it. */
 // GLOBAL: XVT 0x612298
 uint32_t g_sw3dFpuControlWordScratch = 0;
+/* FPU control word the original build's RenderScene_Initialize saves before it
+ * sets single precision; nothing reads it. */
 // GLOBAL: XVT 0x6122A0
 uint32_t g_sw3dInitializeSceneSavedFpuControl = 0;
+/* Rows from the current one to the next lighting block's top, as a float; set
+ * with g_sw3dLightSampleSubrowLerpT. */
 // GLOBAL: XVT 0x6122B0
 float g_sw3dLightSampleRowsToNextBlockFloat = 0.0f;
+/* The current row's offset within its lighting block, as a float; set with
+ * g_sw3dLightSampleSubrowLerpT. */
 // GLOBAL: XVT 0x6122B4
 float g_sw3dLightSampleSubrowFloat = 0.0f;
+/* Texture v of the next pixel, in texels with 8 fraction bits;
+ * sw3d_DrawTexturedSpan sets it at each lighting block boundary and the pixel
+ * loops step it. */
 // GLOBAL: XVT 0x6122A8
 int g_sw3dSpanVQ8 = 0;
+/* Texture u of the next pixel, in texels with 8 fraction bits; set and stepped
+ * like g_sw3dSpanVQ8. */
 // GLOBAL: XVT 0x6122AC
 int g_sw3dSpanUQ8 = 0;
+/* 1 / g_sw3dLightSampleBlockSize, taken from g_sw3dSpanLengthReciprocal[16]. */
 // GLOBAL: XVT 0x6122B8
 float g_sw3dLightSampleInvBlockSize = 0.0f;
+/* Change in g_sw3dSpanShadeQ8 per pixel. */
 // GLOBAL: XVT 0x6122C4
 int g_sw3dSpanShadeStepQ8 = 0;
+/* Viewport row sw3d_DrawVisibleFacesToSurface is drawing. */
 // GLOBAL: XVT 0x6122C8
 int g_sw3dCurrentScanlineY = 0;
+/* Pixels in the piece of the span being drawn: to the next lighting block
+ * boundary, a whole block, or to the span's end. */
 // GLOBAL: XVT 0x6122CC
 int g_sw3dSpanLength = 0;
+/* Viewport column of the first pixel of the piece being drawn. */
 // GLOBAL: XVT 0x6122D0
 int g_sw3dSpanStartX = 0;
+/* Stamp of the current row's lighting block row,
+ * g_sw3dLightSampleCacheSceneStampBase + (row >> g_sw3dLightSampleBlockShift):
+ * a light sample with this stamp is current, and one stamped 1 less is from the
+ * block row above. */
 // GLOBAL: XVT 0x6122D4
 int g_sw3dCurrentLightSampleCacheStamp = 0;
+/* Mesh of the face being drawn; sw3d_DrawVisibleFacesToSurface writes it and
+ * nothing reads it. */
 // GLOBAL: XVT 0x612B58
 SceneMesh *g_sw3dSpanSceneMesh = NULL;
+/* Width of the texture level being drawn, as a float; nothing reads it. */
 // GLOBAL: XVT 0x612B5C
 float g_sw3dSpanTextureWidthFloat = 0.0f;
+/* Height of the texture level being drawn, as a float; nothing reads it. */
 // GLOBAL: XVT 0x612B60
 float g_sw3dSpanTextureHeightFloat = 0.0f;
+/* Width shift of the texture level being drawn, from
+ * g_sw3dTextureShiftBySizeDiv16: log2 of the width for powers of two from 8 to
+ * 1024. */
 // GLOBAL: XVT 0x612B64
 int g_sw3dSpanTextureWidthShift = 0;
+/* Height shift of the texture level being drawn, found the same way. */
 // GLOBAL: XVT 0x612B68
 int g_sw3dSpanTextureHeightShift = 0;
+/* The face's mesh palette used as shade tables: 16 levels of 256 8-bit pixels,
+ * and from byte 4096 16 levels of 256 16-bit pixels. */
 // GLOBAL: XVT 0x612B6C
 uint8_t *g_sw3dSpanShadeTable = 0;
+/* Texels of the texture level being drawn: the mesh's texels past the larger
+ * levels skipped. */
 // GLOBAL: XVT 0x612B70
 uint8_t *g_sw3dSpanTexels = 0;
+/* width * height - 1 of the texture level being drawn; the general path masks
+ * texel indexes with it. */
 // GLOBAL: XVT 0x612B74
 int g_sw3dSpanTexelMask = 0;
+/* Shade of the next pixel with 8 fraction bits, kept to 0 to 0xEFF at each
+ * block boundary: the level drawn is ((shade + carry) >> 8) & 15. */
 // GLOBAL: XVT 0x612B80
 int g_sw3dSpanShadeQ8 = 0;
+/* Change in g_sw3dSpanVQ8 per pixel. */
 // GLOBAL: XVT 0x612B84
 int g_sw3dSpanStepVQ8 = 0;
+/* Change in g_sw3dSpanUQ8 per pixel. */
 // GLOBAL: XVT 0x612B88
 int g_sw3dSpanStepUQ8 = 0;
+/* Base of the light sample stamps: RenderScene_Initialize adds g_flightVpHeight
+ * to it each frame, so samples from earlier frames no longer match. */
 // GLOBAL: XVT 0x612ADC
 int g_sw3dLightSampleCacheSceneStampBase = 0;
+/* 16.0, g_sw3dLightSampleBlockSize as a float. */
 // GLOBAL: XVT 0x612B50
 float g_sw3dLightSampleBlockSizeFloat = 0.0f;
+/* 4, log2 of g_sw3dLightSampleBlockSize. */
 // GLOBAL: XVT 0x612B7C
 int g_sw3dLightSampleBlockShift = 0;
+/* Stand-in face for the spans RenderScene_Initialize puts where the cockpit
+ * covers the view: its depth range is 1.0e32 and its w row (0, 0, 1.0e32), so
+ * no real face draws over them. */
 // GLOBAL: XVT 0x612AE0
 SceneFace g_sw3dCockpitMaskSentinelFace = {0};
+/* 1 makes sw3d_InsertSpan leave out odd rows, so the software renderer draws
+ * every other row. The Alt+I key flips it (Flight_UpdatePlayerStep in the
+ * original build, XvtFlightSim_UpdatePlayerStep in the modern one); flight
+ * start and end set 0. */
 // GLOBAL: XVT 0x523404
 int g_sw3dSkipOddScanlines = 0;
+/* Dither carry each span starts with: 0 on even rows, 128 on odd rows. */
 // GLOBAL: XVT 0x527370
 int g_sw3dShadeDitherInitialByScanlineParity[2] = {0, 128};
 
+/* Shift for a texture side, indexed by (side & ~12) >> 4: log2 of the side for
+ * the powers of two from 8 to 1024. */
 // GLOBAL: XVT 0x527378
 const int g_sw3dTextureShiftBySizeDiv16[65] = {
 	3, 4, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8,	8,
@@ -94,25 +171,60 @@ const int g_sw3dTextureShiftBySizeDiv16[65] = {
 	9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 10,
 };
 
+/* 1.0, the numerator of the 1 / w divisions. */
 // GLOBAL: XVT 0x527480
 const float g_sw3dSpanOneFloat = 1.0f;
+/* 15.0: light times this gives the shade level. */
 // GLOBAL: XVT 0x527484
 const float g_sw3dLightIntensityToShadeScale = 15.0f;
+/* 12582912.0, 1.5 * 2^23: added to a float, the sum's bits less these bits give
+ * the float rounded to an integer. */
 // GLOBAL: XVT 0x527488
 const float g_sw3dFloatToIntRoundBias = 12582912.0f;
+/* By shift 0 to 11, 1.5 * 2^(15 - shift): added to a value, the sum's bits less
+ * these bits give the value times 2^(8 + shift), which turns a texture
+ * coordinate of 0 to 1 into texels of a side of 2^shift with 8 fraction bits,
+ * and with shift 0 a shade into 8 fraction bits. */
 // GLOBAL: XVT 0x5274A8
 const float g_sw3dTexCoordBiasByShift[12] = {
 	49152.0f, 24576.0f, 12288.0f, 6144.0f, 3072.0f, 1536.0f,
 	768.0f,	  384.0f,   192.0f,   96.0f,   48.0f,	24.0f,
 };
 
+/* Near-plane vertex sw3d_SetupClippedEdge made for the edge it set up last,
+ * NULL when it made none; sw3d_RasterizeMeshFaces clears it before each edge
+ * and stores it in the edge's pClipVert. */
 // GLOBAL: XVT 0x60F1C4
 ProjVertex *g_sw3dGeneratedClipVertex = NULL;
+/* Newest near-plane vertex of the face being clipped, made by
+ * sw3d_SetupClippedEdge or taken from a shared edge's pClipVert;
+ * sw3d_RasterizeMeshFaces clears it for each clipped face. */
 // GLOBAL: XVT 0x60F1D0
 ProjVertex *g_sw3dLatestClipVertex = NULL;
+/* The near-plane vertex before g_sw3dLatestClipVertex; when both are set,
+ * sw3d_RasterizeMeshFaces closes the face with an edge between them. */
 // GLOBAL: XVT 0x60F1E0
 ProjVertex *g_sw3dPreviousClipVertex = NULL;
 
+/* Projects a mesh's visible faces for the software renderer. For each face in
+ * g_visFaceList from the mesh's faceBaseIndex it sets the face's texture rows
+ * with RenderScene_TransformFaceTextureGradients, then projects each corner's
+ * vertex the first time a face uses it, into g_projVertList from
+ * g_projVertCount, its slot kept in g_vertexRemap, lit with
+ * RenderScene_ComputeVertexLighting. A vertex is turned by viewOrient and
+ * moved by viewPos; nearer than g_sw3dUnitFloat it keeps its view x and y with
+ * scaledInverseDepth z - g_sw3dUnitFloat, a negative marker, and marks the
+ * face's nearClipState -1; otherwise scaledInverseDepth is g_projScaleInt / z
+ * and sx and sy that times x and y plus the viewport middle, plus
+ * g_projOffsetY for y. Each face's minScaledInverseDepth and
+ * maxScaledInverseDepth cover its corners, a near corner counting as
+ * g_projScaleInt. For a textured mesh it turns the face's rows into the
+ * screen-space rows of u, v and their divisor w (the inverse of the texture
+ * frame, scaled by g_invProjScale and moved to the viewport middle) and sets
+ * texelsPerPixelQ8 to t * a * s^2, with t = width * height << 8,
+ * a = |gradients[0] * gradients[4] - gradients[3] * gradients[1]| and
+ * s = g_projScaleInt * n / the sum of the n corners' scaledInverseDepth. Adds
+ * the vertices made to g_projVertCount. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x470300
 void sw3d_ProjectMeshVertices(SceneMesh *mesh)
@@ -340,6 +452,14 @@ void sw3d_ProjectMeshVertices(SceneMesh *mesh)
 	g_projVertCount += mesh->projVertCursor;
 }
 
+/* Projects a distant mesh's visible faces the way
+ * sw3d_ProjectMeshVertices does, but every vertex is pushed
+ * g_sw3dDistantDepth further away and projected with
+ * g_projScaleInt / viewPosZ * g_sw3dDistantDepth as its
+ * scale, with no near test, and texelsPerPixelQ8 is
+ * (width * height << 8) * |gradients[4] * gradients[0]| * z^2
+ * plus the same with gradients[1] * gradients[3], each cut to
+ * an integer, z being the first corner's pushed depth. */
 // FUNCTION: XVT 0x4709C0
 void sw3d_ProjectMeshVerticesDistant(SceneMesh *mesh)
 {
@@ -546,6 +666,17 @@ void sw3d_ProjectMeshVerticesDistant(SceneMesh *mesh)
 	g_projVertCount += mesh->projVertCursor;
 }
 
+/* Builds the screen edges of a mesh's visible faces in g_sceneEdgeList from
+ * g_sceneEdgeCursor and scan-converts each face. A model edge is set up once
+ * and shared: g_sceneEdgeFlags maps it to the edge made for it, -1 before and
+ * -2 when rejected. A face has 4 corners, or 3 when its last edge index is -1.
+ * A face marked for near clipping (nearClipState -1) goes through
+ * sw3d_SetupClippedEdge and gets a closing edge between its last two near-plane
+ * vertices; any other face goes through sw3d_SetupEdge. Sets each face's
+ * nearClipState to g_flightVpHeight, its edges and edgeCount, and calls
+ * sw3d_ScanConvertFace, or sets yTop and yBot to 0 for a face left with no
+ * edge. Records the mesh's edgeBaseIndex and emittedEdgeCount and advances
+ * g_sceneEdgeCursor by the edges made. */
 // FUNCTION: XVT 0x471020
 void sw3d_RasterizeMeshFaces(SceneMesh *mesh)
 {
@@ -724,6 +855,16 @@ void sw3d_RasterizeMeshFaces(SceneMesh *mesh)
 	g_sceneEdgeCursor += mesh->emittedEdgeCount;
 }
 
+/* Turns a face's edges into spans, row by row, with sw3d_InsertSpan. Sets yTop
+ * to the smallest yStart and yBot to the largest yEnd, and takes yBot - yTop
+ * span pointers from the end of g_sceneSpanPtrList for pSpans; when that many
+ * are not left it sets yBot to yTop and adds nothing. It walks a left and a
+ * right edge down from the top, moving to the edge that starts where one ends,
+ * and for each row inserts the span between them with spanLightIntensityDx, the
+ * light change per pixel across it; a face with no second edge starting at its
+ * top row, or with no edge starting where one ends, stops there with yBot at
+ * that row. pScanEdge points at the left edge. The edges' x and light are put
+ * back at the end. */
 // FUNCTION: XVT 0x471410
 void sw3d_ScanConvertFace(SceneFace *face)
 {
@@ -1041,6 +1182,14 @@ void sw3d_ScanConvertFace(SceneFace *face)
 	}
 }
 
+/* sw3d_SetupEdge for an edge whose ends may lie in front of the near plane,
+ * marked by a negative scaledInverseDepth. Returns -1 when both ends do. When
+ * one does, it makes a vertex where the edge crosses the near plane, taken from
+ * the mesh's projected vertices (its projVertCursor and g_projVertCount grow by
+ * 1), with scaledInverseDepth g_projScaleInt and its light interpolated, makes
+ * it g_sw3dLatestClipVertex and g_sw3dGeneratedClipVertex, the old latest
+ * becoming g_sw3dPreviousClipVertex, and sets the edge up from it to the other
+ * end. The rest is as sw3d_SetupEdge, a negative sy counting as row 0. */
 // FUNCTION: XVT 0x471A10
 int sw3d_SetupClippedEdge(SceneMesh *mesh, SceneEdge *edge,
 			  const ProjVertex *first, const ProjVertex *second)
@@ -1191,6 +1340,12 @@ int sw3d_SetupClippedEdge(SceneMesh *mesh, SceneEdge *edge,
 	return firstY;
 }
 
+/* Sets up a screen edge between two projected vertices for scan conversion. Its
+ * rows run from the upper end's sy rounded up (0 when negative) to the lower
+ * end's, cut at g_flightVpHeight; it stores yStart, yEnd, the x and light at
+ * yStart, and their changes per row (dxdy, dLightIntensityDy), and clears
+ * pClipVert. Returns yStart, or -1 when the edge covers no row, ends at row 0
+ * or above, or starts at g_flightVpHeight or below. */
 // FUNCTION: XVT 0x471CE0
 int sw3d_SetupEdge(SceneEdge *edge, const ProjVertex *first,
 		   const ProjVertex *second)
@@ -1256,6 +1411,17 @@ int sw3d_SetupEdge(SceneEdge *edge, const ProjVertex *first,
 	return firstY;
 }
 
+/* Draws the frame's visible faces from the span buffer onto the flight surface,
+ * from g_visFacePassStart to g_visFaceCount; with g_useHardware3D it calls
+ * RenderScene_FlushGeometry instead. Clears the face lighting cache first, and
+ * locks the surface around the drawing unless g_flightSurfaceAlreadyLocked is
+ * set. For each face it picks the texture level: with g_mipmappingEnabled and a
+ * texture whose textureSize is width * height, it halves both sides while
+ * texelsPerPixelQ8 * g_mipLodScale, quartered at each level, is over 256 and
+ * neither side is 8. It sets the span globals for that level and the mesh, then
+ * for each of the face's rows with a span sets the lighting block row globals
+ * and draws the span with sw3d_DrawTexturedSpan, leaving out the columns of
+ * later spans in the row's list that overlap it. */
 // FUNCTION: XVT 0x4865E0
 void sw3d_DrawVisibleFacesToSurface(void)
 {
@@ -1461,6 +1627,23 @@ void sw3d_DrawVisibleFacesToSurface(void)
 	}
 }
 
+/* Adds a face's span on row scanY to the row's span list,
+ * g_scanlineSpanHeads[scanY], kept in column order, so that each pixel
+ * ends with the nearest face. The span runs from xLeft to xRight, each
+ * rounded up and negative ones taken as 0, its end cut at g_flightVpWidth;
+ * nothing is added when it is empty, starts at g_flightVpWidth or past it,
+ * or lies on an odd row while g_sw3dSkipOddScanlines is set. Against each
+ * span it overlaps it settles depth by the two faces' depth ranges
+ * (minScaledInverseDepth to maxScaledInverseDepth, larger nearer) when
+ * those do not overlap, else by their w along the overlap,
+ * gradients[6] * x + gradients[7] * y + gradients[8], splitting at the
+ * column where those cross. It cuts the new span short, or trims, moves or
+ * removes the spans it hides, moving a span's light with its start and
+ * clearing the pSpans entry of a span removed. The new span is the next
+ * entry at g_pSceneSpanDataCur, the pool's last entry again once it runs
+ * out; its light at its start comes from the face's pScanEdge and
+ * spanLightIntensityDx, 0 without a scan edge. It is stored in the face's
+ * pSpans[scanY - yTop], which the call first clears. */
 // FUNCTION: XVT 0x486980
 void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace *face)
 {
@@ -2317,6 +2500,24 @@ void sw3d_InsertSpan(float xLeft, float xRight, int scanY, SceneFace *face)
 	}
 }
 
+/* Draws pixels startX to endX - 1 of the current row of g_sw3dCurrentFace,
+ * textured and shaded; spanStartW is the face's w at startX. Texture u and v
+ * are worked out with perspective at each lighting block boundary (every
+ * g_sw3dLightSampleBlockSize columns) and stepped evenly between, in texels
+ * with 8 fraction bits. The light at each boundary comes from the face's light
+ * samples, one per block column, kept by stamp: a sample stamped
+ * g_sw3dCurrentLightSampleCacheStamp is used as it is, one stamped 1 less is
+ * moved on by its rowDelta, any other is worked out with
+ * FlightLight_ComputeSoftwareFaceSampleIntensity at the block's top and the
+ * next block's top; the row takes it at g_sw3dLightSampleSubrowLerpT. That
+ * light plus the span's interpolated vertex light, times 15, is the shade with
+ * 8 fraction bits, kept to 0 to 0xEFF at each boundary and stepped across the
+ * block; a negative change gets g_sw3dLightSampleBlockSize added. Each pixel is
+ * the shade table entry for level ((shade + carry) >> 8) & 15 and its texel,
+ * written at 8 or 16 bits. With both texture shifts 3 to 8 each coordinate
+ * wraps on its own; otherwise the texel index is masked with
+ * g_sw3dSpanTexelMask, through sw3d_DrawTexturedShadeSpanGeneric16bpp in 16-bit
+ * color. */
 // FUNCTION: XVT 0x4879D0
 void sw3d_DrawTexturedSpan(int startX, int endX, float spanStartW)
 {
@@ -2755,6 +2956,13 @@ void sw3d_DrawTexturedSpan(int startX, int endX, float spanStartW)
 	}
 }
 
+/* Draws the current piece of a span in 16-bit color for the texture sizes the
+ * main loop leaves out: g_sw3dSpanLength pixels from g_sw3dSpanStartX, each the
+ * 16-bit shade table entry for level ((shade + carry) >> 8) & 15 and the texel
+ * at index i = ((v >> 8) << g_sw3dSpanTextureWidthShift) + (u >> 8), masked
+ * with g_sw3dSpanTexelMask, stepping the shade, v and u. Returns the last v, or
+ * g_sw3dSpanStartX + g_sw3dSpanLength when it draws nothing; its only caller,
+ * sw3d_DrawTexturedSpan, ignores it. */
 // FUNCTION: XVT 0x497850
 int sw3d_DrawTexturedShadeSpanGeneric16bpp(void)
 {
@@ -2795,6 +3003,14 @@ int sw3d_DrawTexturedShadeSpanGeneric16bpp(void)
 	return result;
 }
 
+/* Copies columns startX to endX - 1 of a row from pSrcRaster, which holds that
+ * row from column startX at g_flightBytesPerPixel bytes a pixel, onto row scanY
+ * of the flight surface, only where depth spriteW is nearer than the faces in
+ * the row's span list (larger is nearer). A span whose face's
+ * minScaledInverseDepth is at least spriteW hides its columns, a face whose
+ * maxScaledInverseDepth is at most spriteW hides none, and otherwise the column
+ * where the face's w crosses spriteW splits the span. Sets
+ * g_sw3dSpanFramebufferRowOffset for the row. */
 // FUNCTION: XVT 0x497940
 void sw3d_BlitOccludedSpan(const uint8_t *pSrcRaster, int startX, int endX,
 			   int scanY, float spriteW)
@@ -3012,6 +3228,10 @@ void sw3d_BlitOccludedSpan(const uint8_t *pSrcRaster, int startX, int endX,
 	sw3d_CopySpanToFramebuffer(pSrcRaster, drawX, endX - drawX);
 }
 
+/* Copies pixelCount pixels from pSrcRasterBase, from its pixel startX, to
+ * column startX of the row at g_sw3dSpanFramebufferRowOffset in
+ * g_surfacePixels, at g_flightBytesPerPixel bytes a pixel. Does nothing for a
+ * count of 0 or less. Only sw3d_BlitOccludedSpan calls it. */
 // FUNCTION: XVT 0x497D80
 void sw3d_CopySpanToFramebuffer(const uint8_t *pSrcRasterBase, int startX,
 				int pixelCount)

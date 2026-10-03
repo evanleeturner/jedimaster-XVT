@@ -7,30 +7,69 @@
 
 #include <string.h>
 
+/* Argument words that follow each briefing script opcode, by opcode 0 to
+ * 34. */
 // GLOBAL: XVT 0x52CF10
 const int16_t g_briefingScriptOpcodeArgCounts[35] = {
 	0, 0, 1, 0, 1, 1, 2, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0,
 	4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 };
 
+/* 1 while the briefing map plays: only then does
+ * BriefingScript_AdvanceOrResetAtEnd move the view and step the script.
+ * FrontendMission_InitForBriefing sets 1; the mission setup screen's Stop
+ * and Play buttons set 0 and 1. */
 // GLOBAL: XVT 0x6691E6
 int16_t g_briefingPlaybackActive = 0;
+/* Text block last counted as a page of narration:
+ * BriefingMap_DrawViewportAndSelection stores slot 1's block here whenever it
+ * differs, raising g_briefingTextPageNumber. Set to 0, with the page number,
+ * whenever the briefing starts over: by FrontendMission_InitForBriefing,
+ * BriefingMap_UpdateScriptPlaybackAfterAnimation,
+ * BriefingScript_AdvanceToNextVisibleLine, and the mission setup screen's
+ * Rewind button and its Forward button when that brings no new block. */
 // GLOBAL: XVT 0x669218
 int g_briefingLastNarratedTextBlockIdx = 0;
+/* Page number drawn under the briefing map after the FRONTSTR_640_PAGE
+ * string: narration blocks shown since the briefing last started over.
+ * Raised by BriefingMap_DrawViewportAndSelection; set to 0 together with
+ * g_briefingLastNarratedTextBlockIdx. */
 // GLOBAL: XVT 0x66921C
 int g_briefingTextPageNumber = 0;
+/* Per text slot, 1 while it shows a text block: script opcodes 4 and 5 set
+ * slot 0 and 1, opcode 3 clears both, and so do BriefingScript_ResetState and
+ * FrontendMission_InitForBriefing. Only slot 1 is drawn, under the map;
+ * BriefingScript_AdvanceToNextVisibleLine reads both. */
 // GLOBAL: XVT 0x6696DA
 int16_t g_briefingTextSlotActive[2] = {0};
+/* Per text slot, the index in g_briefingTextBlocks of the block it shows: the
+ * argument of opcode 4 or 5. Only BriefingScript_AdvanceFrame writes it. */
 // GLOBAL: XVT 0x6696DE
 int16_t g_briefingTextSlotBlockIdx[2] = {0};
+/* 1 when the script frame just played held opcode 3, which cleared the text
+ * slots; BriefingScript_AdvanceFrame sets 0 at the start of every frame. Read
+ * by BriefingScript_AdvanceToNextVisibleLine. */
 // GLOBAL: XVT 0x6696E2
 int16_t g_briefingTextSlotsChanged = 0;
+/* 1 when the script frame just played held opcode 1, a stopping point for
+ * BriefingScript_AdvanceToNextVisibleLine, its one reader;
+ * BriefingScript_AdvanceFrame sets 0 at the start of every frame. */
 // GLOBAL: XVT 0x669778
 int16_t g_briefingScriptPauseMarkerReached = 0;
 
+/* The active briefing's script. FrontendMission_InitForBriefing puts in the
+ * default from BriefingScript_InitDefaultScript, and
+ * FrontendMission_LoadCurrentWithBriefing copies in the briefing of the
+ * pilot's team from the mission file. BriefingScript_AdvanceFrame and
+ * BriefingScript_ResetState move its play position. */
 // GLOBAL: XVT 0x669258
 struct FrontendBriefingScript g_briefingScript;
 
+/* While g_briefingPlaybackActive is nonzero, moves the map view one step
+ * toward its targets and plays one script frame with its sounds, or starts
+ * the briefing over once its duration has passed
+ * (BriefingMap_UpdateScriptPlaybackAfterAnimation). Ignores frameCounter. The
+ * mission setup screen calls it every frame it shows the briefing map. */
 // FUNCTION: XVT 0x4F6950
 void BriefingScript_AdvanceOrResetAtEnd(int frameCounter)
 {
@@ -42,6 +81,11 @@ void BriefingScript_AdvanceOrResetAtEnd(int frameCounter)
 	}
 }
 
+/* Makes g_briefingScript the default script: 200 frames long, headerWord06 2,
+ * headerWord08 0, and one entry, opcode 34 at time 9999, which ends the
+ * script. Only words 0 and 1 are written; the rest keep what they held. Then
+ * starts it over through BriefingScript_ResetState and returns that
+ * function's result. */
 // FUNCTION: XVT 0x4F7340
 int16_t BriefingScript_InitDefaultScript(void)
 {
@@ -55,6 +99,12 @@ int16_t BriefingScript_InitDefaultScript(void)
 	return BriefingScript_ResetState();
 }
 
+/* Starts the briefing over: map center and target center (0, 0), scale and
+ * target scale 32 on both axes, both text slots, the 8 flight group markers
+ * and the 8 labels off, and the script at frame 0 and word 0. Then plays
+ * frame 0 through BriefingScript_AdvanceFrame(1), without sounds and with
+ * markers and labels shown in full, and returns its word index. Leaves
+ * g_briefingLastNarratedTextBlockIdx and g_briefingTextPageNumber alone. */
 // FUNCTION: XVT 0x4F7380
 int16_t BriefingScript_ResetState(void)
 {
@@ -82,6 +132,12 @@ int16_t BriefingScript_ResetState(void)
 	return BriefingScript_AdvanceFrame(1);
 }
 
+/* Plays the script through frame targetTime, passing initializeState to
+ * BriefingScript_AdvanceFrame as its applyInstantly flag. Returns 0 and does
+ * nothing when the current frame is targetTime + 1, so targetTime was the
+ * last frame played. Otherwise starts over first when targetTime is behind
+ * the current frame, plays frames until the current frame passes targetTime,
+ * and returns 1. */
 // FUNCTION: XVT 0x4F7420
 int16_t BriefingScript_AdvanceUntilTime(int16_t targetTime,
 					int16_t initializeState)
@@ -98,6 +154,14 @@ int16_t BriefingScript_AdvanceUntilTime(int16_t targetTime,
 	return 0;
 }
 
+/* The briefing map's Forward button. Starts over and replays at once,
+ * without sounds; once it is back at or past the frame it started from, it
+ * stops after a frame that held a pause marker (opcode 1) or that first
+ * showed a text slot since the slots last changed, plays the next frame with
+ * sounds through BriefingScript_AdvanceUntilTime, and returns 1. When it
+ * reaches the end entry (opcode 34) first, it sets
+ * g_briefingLastNarratedTextBlockIdx and g_briefingTextPageNumber to 0,
+ * starts over, and returns BriefingScript_ResetState's result. */
 // FUNCTION: XVT 0x4F7480
 int16_t BriefingScript_AdvanceToNextVisibleLine(void)
 {
@@ -161,6 +225,27 @@ int16_t BriefingScript_AdvanceToNextVisibleLine(void)
 	return BriefingScript_AdvanceUntilTime(targetTime, 0);
 }
 
+/* Plays the script frame at g_briefingScript.currentFrame, raises
+ * currentFrame by one, and returns the cursor's new word index. First sets
+ * g_briefingTextSlotsChanged, g_briefingMapFgMarkersChanged,
+ * g_briefingMapLabelsChanged, g_briefingMapCenterDirty,
+ * g_briefingMapScaleDirty and g_briefingScriptPauseMarkerReached to 0. An
+ * entry is a time word, an opcode word and the opcode's argument words, as
+ * g_briefingScriptOpcodeArgCounts gives them. It reads entries from the cursor
+ * while their time is not past the current frame, applies those whose time
+ * equals it and skips earlier ones, and leaves the cursor on the first later
+ * entry. Opcodes: 1 pause marker; 3 clears both text slots; 4 and 5 show text
+ * block args[0] in slot 0 or 1; 6 and 7 set the map center or scale target to
+ * (args[0], args[1]), and the current value too when the entry's time is 0 or
+ * applyInstantly is set; 8 clears the flight group markers; 9 to 16 show
+ * marker opcode - 9 on flight group args[0]; 17 clears the labels; 18 to 25
+ * show label opcode - 18 with text args[0] at map point (args[1], args[2])
+ * in shade ramp args[3]; any other opcode does nothing. A new marker or
+ * label starts at age 0, or 80 with applyInstantly set. Without
+ * applyInstantly, a marker plays "sfxTarget2" for an IFF 1 flight group and
+ * "sfxTarget1" for others, and a label with text plays "sfxText", each only
+ * with datapad sounds on, at 12 times the datapad volume. Checks no opcode,
+ * argument or index range. */
 // FUNCTION: XVT 0x4F7590
 int16_t BriefingScript_AdvanceFrame(int16_t applyInstantly)
 {

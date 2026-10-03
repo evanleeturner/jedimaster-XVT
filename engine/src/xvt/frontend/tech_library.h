@@ -8,11 +8,15 @@
 extern "C" {
 #endif
 
+/* One craft's entry in specdesc.txt, the text of the craft database. */
 struct TechLibrarySpecText {
-	char craftName[64];
-	char manufacturer[64];
-	char inUseBy[64];
+	char craftName[64];    /* Craft name, the entry's first line. */
+	char manufacturer[64]; /* Shown after FRONTSTR_484_MANUFACTURER. */
+	char inUseBy[64];      /* Shown after FRONTSTR_485_IN_USE_BY. */
+	/* Description, drawn wrapped under the special characteristics
+	 * heading. */
 	char description[256];
+	/* Crew, shown for every genus but starfighter, mine and satellite. */
 	char crew[64];
 };
 

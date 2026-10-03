@@ -9,23 +9,50 @@
 #include <stdint.h>
 #include <string.h>
 
+/* Key of each entry of g_renderTextureCache, the address of the image data it
+ * was made from; NULL for an unclaimed entry.
+ * RenderTexture_FindOrAllocateCacheEntry writes it and clears it all when
+ * g_renderTextureCacheCursor is -1. */
 // GLOBAL: XVT 0xA68750
 const void *g_renderTextureCacheKeys[1024] = {0};
+/* The hardware texture cache, 1024 entries found through
+ * g_renderTextureCacheKeys by open addressing; std3D fills an entry when it
+ * uploads a texture. */
 // GLOBAL: XVT 0xA69750
 Std3DTexCacheNode g_renderTextureCache[1024] = {0};
+/* Index of the cache entry RenderTexture_FindOrAllocateCacheEntry last
+ * returned, 0 to 1023; -1, set by Renderer_InitD3DDevice, makes the next lookup
+ * clear the cache. */
 // GLOBAL: XVT 0x52F864
 int g_renderTextureCacheCursor = 0;
+/* Buffer RenderTexture_GetOrCreateBitmap decodes a run-length image into, 8
+ * bits per pixel, up to 65536 pixels, before the upload. */
 // GLOBAL: XVT 0x52F8F0
 uint8_t g_renderTextureDecodeScratch[65536] = {0};
+/* Buffer RenderTexture_GetOrCreateColorKey copies an image into with its
+ * transparent pixels set to index 0, up to 65536 pixels, before the upload. */
 // GLOBAL: XVT 0x53F978
 uint8_t g_renderTextureColorKeyScratch[65536] = {0};
+/* Mask of the run-length bits in a run byte, by run-length format 0 to 8:
+ * (1 << format) - 1. */
 // GLOBAL: XVT 0x51A530
 const uint8_t g_bitmapRleRunLengthMaskByFormat[9] = {0,	 1,  3,	  7,  15,
 						     31, 63, 127, 255};
+/* Shift that takes the color offset out of a run byte, by run-length format 0
+ * to 8: the format itself. */
 // GLOBAL: XVT 0x51A540
 const uint8_t g_bitmapRleColorIndexShiftByFormat[9] = {0, 1, 2, 3, 4,
 						       5, 6, 7, 8};
 
+/* Finds the texture cache entry keyed by cacheKey, an image's address, or
+ * claims a free one for it. When g_renderTextureCacheCursor is -1 it first
+ * clears the 1024 keys and every entry's bCached. It looks from slot
+ * XvtPointerKey_LowBits(cacheKey) & 1023 onward, wrapping, for the key, then
+ * from the same slot for an entry with bCached 0, records the key there and
+ * returns that entry, leaving its index in g_renderTextureCacheCursor. When all
+ * 1024 are cached it writes a line to the debug console with
+ * DebugConsole_WriteText and returns the start slot's entry with its key
+ * unchanged. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4079F0
 Std3DTexCacheNode *RenderTexture_FindOrAllocateCacheEntry(const void *cacheKey)
@@ -79,6 +106,23 @@ Std3DTexCacheNode *RenderTexture_FindOrAllocateCacheEntry(const void *cacheKey)
 	return &g_renderTextureCache[g_renderTextureCacheCursor];
 }
 
+/* Returns the hardware texture for a run-length image, decoding and uploading
+ * it the first time. Returns NULL when width * height is over 65536 or
+ * std3D_AddToTextureCache fails. An entry already cached for pixels is
+ * refreshed with std3D_CacheTextureSurface and returned. Otherwise it decodes
+ * into g_renderTextureDecodeScratch, 8 bits per pixel: each row runs to a 0xFE
+ * byte; 0xFB sets the color base from the next two bytes, low byte first; 0xFC
+ * writes input[1] + 1 pixels of 0; 0xFD writes input[1] + 1 pixels of color
+ * input[2]; any other byte writes (byte & mask) + 1 pixels of color
+ * base + (byte >> shift), mask and shift taken by rleFormat from the two
+ * tables. Runs are cut at the row's width, short rows are filled with 0, and a
+ * 0xFF at a row's start ends the image, the rest filled with 0. It sets
+ * palette[0] to the 16-bit pixel of g_flightTransparentColorIndex and converts
+ * colors 0 to the highest one used (std3D_ConvertPaletteTo1555 when the device
+ * takes alpha textures and not color-key ones, else
+ * std3D_CopyPaletteToScratch16) and uploads with color keying. While the device
+ * has color-key textures it turns its alpha-texture flag off for the call.
+ * RenderQuad_DrawRotatedSprite is its only caller. */
 // FUNCTION: XVT 0x407AF0
 Std3DTexCacheNode *RenderTexture_GetOrCreateBitmap(int width, int height,
 						   uint16_t *palette,
@@ -227,6 +271,10 @@ Std3DTexCacheNode *RenderTexture_GetOrCreateBitmap(int width, int height,
 	return node;
 }
 
+/* Returns the hardware texture for an 8-bit image drawn without transparency:
+ * the cached entry for pixels, refreshed with std3D_CacheTextureSurface, or a
+ * new upload of pixels with its 256 palette colors copied by
+ * std3D_CopyPaletteToScratch16. Returns NULL when the upload fails. */
 // FUNCTION: XVT 0x407E40
 Std3DTexCacheNode *RenderTexture_GetOrCreateOpaque(int width, int height,
 						   const uint16_t *palette,
@@ -260,6 +308,16 @@ Std3DTexCacheNode *RenderTexture_GetOrCreateOpaque(int width, int height,
 	return node;
 }
 
+/* Returns the color-keyed hardware texture for an 8-bit image, cached under
+ * pixels + 1 so it does not share the opaque texture's entry. It copies the
+ * image into g_renderTextureColorKeyScratch, every pixel whose palette color is
+ * 0 becoming index 0 and every other pixel of index 0 becoming the index
+ * palette[256] holds; returns NULL when no pixel is visible. For the upload
+ * palette entry 0 is the 16-bit pixel of g_flightTransparentColorIndex and that
+ * index holds the old color 0; the 256 colors are converted as in
+ * RenderTexture_GetOrCreateBitmap. Afterwards palette[0] is put back and the
+ * moved entry set to 0. Returns NULL when the upload fails. Reads palette[256],
+ * past the 256 colors. */
 // FUNCTION: XVT 0x407F10
 Std3DTexCacheNode *RenderTexture_GetOrCreateColorKey(int width, int height,
 						     uint16_t *palette,

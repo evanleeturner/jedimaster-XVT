@@ -4,17 +4,44 @@
 #include "xvt/render/color.h"
 #include "xvt/render/renderer.h"
 
+/* Bytes per pixel of the flight frame buffer: 1 in the 8-bit paletted modes, 2
+ * in 16-bit color; 1 at start. Four functions write it: Flight_Main in the
+ * original build, XvtFlightEntry_Configure in the modern one,
+ * FlightDisplay_Init and ModelPreview_LoadModel. */
 // GLOBAL: XVT 0x5233D8
 int g_flightBytesPerPixel = 1;
+/* Flight palette brightness, 256 for 1.0 (eight fraction bits).
+ * FlightPalette_BuildRgbRange and FlightPalette_Build16BppRange scale each
+ * color's brightest channel by it, and copy colors unchanged at exactly 256. At
+ * flight start Flight_Main (original build) or XvtFlightEntry_Configure
+ * (modern) sets it to (setting + 4) << 6 from the solo or multiplayer
+ * brightness setting, clamped to 256 to 704; in the 8-bit modes the Alt+B key
+ * raises it by 0x40, going from 0x300 back to 0x100 (Flight_UpdatePlayerStep,
+ * XvtFlightSim_UpdatePlayerStep). */
 // GLOBAL: XVT 0x523400
 int g_flightBrightnessScaleQ8 = 0x100;
+/* The flight palette before the brightness adjustment: 256 colors with channels
+ * 0 to 63. FlightPalette_SetRange writes it, FlightPalette_ApplyToDisplay sends
+ * an adjusted copy to the display, and the color matching code reads it. */
 // GLOBAL: XVT 0x9A7BC0
 RgbTriplet g_swPalette[256] = {{0}};
+/* The flight palette as 16-bit pixels, one per palette index, for the 16-bit
+ * drawing code; FlightPalette_SetRange rebuilds the entries it sets while
+ * g_flightPixelMode is 2, brightness included. */
 // GLOBAL: XVT 0xA00530
 uint16_t g_flightPalette16Bpp[256] = {0};
+/* FlightPalette_ApplyToDisplay clears its 0x1 bit; nothing else reads or writes
+ * it. */
 // GLOBAL: XVT 0xA081F4
 uint8_t g_paletteDirtyFlags = 0;
 
+/* Writes entries startIndex to startIndex + count - 1 of srcRgb, channels 0 to
+ * 63, into the same entries of dstRgb, adjusted for g_flightBrightnessScaleQ8.
+ * At 256 it copies them unchanged. Otherwise it splits each color into a
+ * saturation, 63 * (max - min) / max, a hue sector and offset, and a value,
+ * g_flightBrightnessScaleQ8 * max >> 8 capped at 63, and rebuilds the three
+ * channels from them; a gray gets the value in all three. Does nothing for
+ * count 0. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x40E1B0
 void FlightPalette_BuildRgbRange(const RgbTriplet *srcRgb, RgbTriplet *dstRgb,
@@ -208,6 +235,11 @@ void FlightPalette_BuildRgbRange(const RgbTriplet *srcRgb, RgbTriplet *dstRgb,
 	}
 }
 
+/* Sends g_swPalette, adjusted by FlightPalette_BuildRgbRange, to the display
+ * with FlightDisplay_SetPaletteEntries when g_flightBytesPerPixel is 1, and
+ * clears the 0x1 bit of g_paletteDirtyFlags. FlightRender_InstallCallbacks
+ * installs it as g_flightResetPaletteFn; Flight_MainLoop in the original build
+ * and XvtFlightLoading_Palette in the modern one also call it. */
 // FUNCTION: XVT 0x40E590
 void FlightPalette_ApplyToDisplay(void)
 {
@@ -221,6 +253,11 @@ void FlightPalette_ApplyToDisplay(void)
 	g_paletteDirtyFlags &= ~1;
 }
 
+/* Copies count colors from rgbTriples into g_swPalette from entry startIdx,
+ * read as unsigned 16 bits; while g_flightPixelMode is 2 it also rebuilds those
+ * entries of g_flightPalette16Bpp with FlightPalette_Build16BppRange. Does not
+ * send the colors to the display or check that they stay under 256. Installed
+ * as g_flightSetPaletteRangeFn. */
 // FUNCTION: XVT 0x40E5E0
 void FlightPalette_SetRange(RgbTriplet *rgbTriples, int16_t startIdx,
 			    uint16_t count)
@@ -244,6 +281,8 @@ void FlightPalette_SetRange(RgbTriplet *rgbTriples, int16_t startIdx,
 	}
 }
 
+/* Copies the 256 colors of g_swPalette to dstPalette. Installed as
+ * g_flightGetPaletteFn. */
 // FUNCTION: XVT 0x40E660
 void FlightPalette_GetFull(RgbTriplet *dstPalette)
 {
@@ -259,12 +298,18 @@ void FlightPalette_GetFull(RgbTriplet *dstPalette)
 	} while (index < 256);
 }
 
+/* Calls FlightPalette_SetRange for all 256 colors. Installed as
+ * g_flightSetPaletteFn. */
 // FUNCTION: XVT 0x40E6A0
 void FlightPalette_SetFull(RgbTriplet *rgbTriples)
 {
 	FlightPalette_SetRange(rgbTriples, 0, 256);
 }
 
+/* Calls FlightPalette_ApplyToDisplay when g_flightBytesPerPixel is 1.
+ * Flight_WndProc calls it on message 0x311; in the original build
+ * Flight_PumpWindowMessages calls it after bringing the flight window back to
+ * the foreground. */
 // FUNCTION: XVT 0x449100
 void FlightPalette_ResetIf8Bit(void)
 {
@@ -273,6 +318,13 @@ void FlightPalette_ResetIf8Bit(void)
 	}
 }
 
+/* Packs entries startIndex to startIndex + count - 1 of srcRgb, channels 0 to
+ * 63, into 16-bit pixels in the same entries of dst16: 5-6-5 as (r >> 1, g,
+ * b >> 1), or 5-5-5 with each channel >> 1 when Display_IsPixelFormat555 is
+ * true. At brightness 256 the colors go in unchanged and it returns the last
+ * pixel packed, or startIndex + count cut to 16 bits when it packed none.
+ * Otherwise each color first gets the adjustment FlightPalette_BuildRgbRange
+ * makes, and it returns 0, packing nothing for count 0. */
 // FUNCTION: XVT 0x449410
 int16_t FlightPalette_Build16BppRange(RgbTriplet *srcRgb, uint16_t *dst16,
 				      int startIndex, int count)

@@ -6,25 +6,60 @@
 
 #include <string.h>
 
+/* The DirectSound object Sound_Init_Sound_Engine creates; NULL before that and
+ * after Sound_Shutdown_Sound_Engine releases it. Most Sound_ functions return 0
+ * at once while it is NULL. */
 // GLOBAL: XVT 0xA10514
 IDirectSound *g_directSound = 0;
+/* The primary buffer Sound_Init_Sound_Engine creates. Only
+ * Sound_GetPrimaryBufferVolume reads it, and nothing calls that;
+ * Sound_Shutdown_Sound_Engine sets it to NULL without releasing it. */
 // GLOBAL: XVT 0xA10518
 IDirectSoundBuffer *g_soundPrimaryBuffer = 0;
+/* The loaded effects: entries 0 to g_soundCount - 1, sorted by name for the
+ * binary search in Sound_FindEffectByName. Entries past that are empty or stale
+ * copies left by Sound_RemoveEffectDef. */
 // GLOBAL: XVT 0xA1051C
 SoundEffectDef g_soundDefs[1000] = {{0}};
+/* The 8 slots for playing sounds, each a duplicate buffer of one effect; a free
+ * slot has effectIndex -1. */
 // GLOBAL: XVT 0xA604CC
 ActiveSoundInstance g_activeSoundInstances[8] = {{0}};
+/* Effects waiting for Sound_FlushQueuedEffects: entries 0 to
+ * g_soundQueueCount - 1, highest priority first. Sound_QueueEffect keeps at
+ * most 4; the fifth entry only takes the one an insert pushes out, which is
+ * dropped. */
 // GLOBAL: XVT 0xA6052C
 SoundQueueEntry g_soundQueue[5] = {{0}};
+/* Entries in g_soundQueue, 0 to 4. Sound_QueueEffect adds one, stopping at 4,
+ * and Sound_FlushQueuedEffects sets 0. */
 // GLOBAL: XVT 0xA606D0
 int g_soundQueueCount = 0;
+/* Effects loaded in g_soundDefs, 0 to 1000. Sound_InsertEffectDefSorted adds
+ * one, Sound_RemoveEffectDef takes one off and Sound_Init_Sound_Engine sets 0;
+ * Sound_Shutdown_Sound_Engine leaves it. */
 // GLOBAL: XVT 0xA606D4
 int g_soundCount = 0;
+/* Slots in use in g_activeSoundInstances, 0 to 8. Sound_PlayEffectNow adds and
+ * frees slots, Sound_StopOldestInstance frees them and Sound_Init_Sound_Engine
+ * sets 0; Sound_Shutdown_Sound_Engine clears the slots but leaves the count. */
 // GLOBAL: XVT 0xA606D8
 int g_activeSoundCount = 0;
+/* Sequence number the next started or restarted sound takes; each one adds 1.
+ * The lowest sequence in a slot is the oldest sound. Sound_Init_Sound_Engine
+ * and Sound_Shutdown_Sound_Engine set 0. */
 // GLOBAL: XVT 0xA606DC
 unsigned int g_nextSoundInstanceSeq = 0;
 
+/* Starts DirectSound for flight. Returns 1 at once when g_directSound is
+ * already set. Otherwise it clears the 8 slots of g_activeSoundInstances,
+ * g_activeSoundCount, g_soundCount, g_nextSoundInstanceSeq and the buffer and
+ * name of every g_soundDefs entry, creates g_directSound with DirectSoundCreate
+ * on the default device, sets cooperative level 2 (DSSCL_PRIORITY) for hwnd and
+ * creates g_soundPrimaryBuffer. Returns 1, or 0 when a step fails, after
+ * calling Sound_Shutdown_Sound_Engine when the object exists. It sets no format
+ * on the primary buffer: the format it clears is never used. Flight_Main calls
+ * it in the original build, XvtFlightEntry_CreateDevices in the modern one. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x42CD50
 int Sound_Init_Sound_Engine(void *hwnd)
@@ -73,6 +108,13 @@ int Sound_Init_Sound_Engine(void *hwnd)
 	return 1;
 }
 
+/* Returns 1 at once when g_directSound is NULL. Otherwise it unloads the
+ * effects with Sound_UnloadAllEffects, releases g_directSound and sets it to
+ * NULL, clears the buffer and name of every g_soundDefs entry and the 8
+ * instance slots, sets g_soundPrimaryBuffer to NULL without releasing it and
+ * g_nextSoundInstanceSeq to 0, and returns 1. It does not set g_soundCount or
+ * g_activeSoundCount back to 0. Flight_Main calls it in the original build,
+ * XvtFlightEntry_Cleanup in the modern one. */
 // FUNCTION: XVT 0x42CE60
 int Sound_Shutdown_Sound_Engine(void)
 {
@@ -99,12 +141,21 @@ int Sound_Shutdown_Sound_Engine(void)
 	return 1;
 }
 
+/* Calls Sound_LoadEffectEx with omitSoftwareAndFrequencyCaps 0, so the buffer
+ * gets frequency control, and returns its result. fsfx_LoadSfxList is its only
+ * caller. */
 // FUNCTION: XVT 0x42CEE0
 int Sound_LoadEffect(const char *fileName, const char *name)
 {
 	return Sound_LoadEffectEx(fileName, name, 0);
 }
 
+/* Loads a WAV file as a named effect: DirectSound_LoadWaveBuffer makes its
+ * buffer, which it rewinds to 0, and Sound_InsertEffectDefSorted adds the entry
+ * with the name (up to 63 characters), the file name (up to 191) and
+ * currentPriority 0. Returns 1, or 0 when either string is empty, 1000 effects
+ * are loaded, g_directSound is NULL, the name is already loaded or the buffer
+ * fails to load. Only Sound_LoadEffect calls it, passing 0. */
 // FUNCTION: XVT 0x42CF00
 int Sound_LoadEffectEx(const char *fileName, const char *name,
 		       int omitSoftwareAndFrequencyCaps)
@@ -141,6 +192,11 @@ int Sound_LoadEffectEx(const char *fileName, const char *name,
 	return 0;
 }
 
+/* Calls Sound_UnloadEffectByName with the name in each of the 1000 g_soundDefs
+ * entries in index order. Each unload moves the later entries up one, so the
+ * loop skips names: with n effects loaded it leaves (n - 1) / 2 of them loaded,
+ * rounded down, buffers included. Sound_Shutdown_Sound_Engine and
+ * fsfx_UnloadAllEffects_Thunk call it. */
 // FUNCTION: XVT 0x42D020
 void Sound_UnloadAllEffects(void)
 {
@@ -153,6 +209,10 @@ void Sound_UnloadAllEffects(void)
 	} while (effectIndex < 1000);
 }
 
+/* Stops the named effect's sounds with Sound_StopOldestInstance until it
+ * returns other than 1, releases the effect's buffer and removes its entry with
+ * Sound_RemoveEffectDef. Returns 1, or 0 when the name is empty or not
+ * loaded. */
 // FUNCTION: XVT 0x42D040
 int Sound_UnloadEffectByName(const char *name)
 {
@@ -173,6 +233,11 @@ int Sound_UnloadEffectByName(const char *name)
 	return 1;
 }
 
+/* Plays every queued effect with Sound_PlayEffectNow in queue order, highest
+ * priority first, and sets g_soundQueueCount to 0. The original build calls it
+ * from Flight_RunMissionLoop and FlightSync_ApplyWorldMessagePacket, the modern
+ * one from XvtFlightFrame_Render, XvtFlightFrame_Advance and
+ * XvtFlightFrame_Confirm. */
 // FUNCTION: XVT 0x42D0D0
 void Sound_FlushQueuedEffects(void)
 {
@@ -197,6 +262,15 @@ void Sound_FlushQueuedEffects(void)
 #ifndef XVT_MODERN
 #pragma function(memcpy)
 #endif
+/* Queues a loaded effect for the next Sound_FlushQueuedEffects, keeping
+ * g_soundQueue ordered by priority, highest first, the new entry after those of
+ * equal or higher priority. Returns 0 when g_directSound is NULL, the name is
+ * empty or not loaded, or 4 entries wait, none of lower priority. Otherwise it
+ * moves the later entries down one, writes the entry (the name by strncpy of 64
+ * characters, not terminated for a name of 64 or more) and returns 1;
+ * g_soundQueueCount grows by 1 but stops at 4, so an insert among 4 entries
+ * drops the last. The modern build moves the entries with memmove, the original
+ * with memcpy. */
 // FUNCTION: XVT 0x42D120
 int Sound_QueueEffect(const char *soundName, int allowRestartExisting, int loop,
 		      int priority, int volume, int pan)
@@ -258,6 +332,29 @@ int Sound_QueueEffect(const char *soundName, int allowRestartExisting, int loop,
 	return 1;
 }
 
+/* Plays a loaded effect on a new duplicate of its buffer and records it in a
+ * slot of g_activeSoundInstances. Returns 0 when g_directSound is NULL or the
+ * name is empty or not loaded. With all 8 slots in use it frees the first
+ * slot whose buffer is neither playing nor looping, or whose GetStatus fails,
+ * releasing the buffer. With all 8 still playing it takes the first slot
+ * whose effect has the lowest currentPriority under priority: when that slot
+ * plays this effect it rewinds it to 0, gives it the next sequence and
+ * returns 1, else it stops and releases its buffer and uses that slot. With
+ * no slot under priority it returns 0, unless allowRestartExisting is set and
+ * a slot plays this effect: then it rewinds the first such and gives it the
+ * next sequence, returning 1. With fewer than 8 slots in use it takes the
+ * first free one. It duplicates the effect's buffer, returning 0 when the
+ * duplicate is NULL (the pointer is not cleared before the call), rewinds it,
+ * sets its volume to 400 * (5 * v - 635) / 127 hundredths of a decibel and
+ * its pan to 400 * (5 * p - 315) / 63, v and p being volume and pan clamped
+ * to 0 to 127, and plays it, looping when loop is 1. When Play succeeds it
+ * fills the slot (effect, buffer, the next sequence from
+ * g_nextSoundInstanceSeq), adds 1 to g_activeSoundCount and returns 1. When
+ * Play returns DSERR_BUFFERLOST (0x88780096) it refills the effect's buffer
+ * from its file with DirectSound_ReloadWaveBuffer and plays again, filling
+ * the slot the same way on success; that path returns 0 whatever happens. Any
+ * other failure of Play returns the HRESULT, a nonzero value. A duplicate
+ * that fails to play is never released. */
 // FUNCTION: XVT 0x42D230
 int Sound_PlayEffectNow(const char *soundName, int allowRestartExisting,
 			int loop, int priority, int volume, int pan)
@@ -447,6 +544,11 @@ int Sound_PlayEffectNow(const char *soundName, int allowRestartExisting,
 	return result;
 }
 
+/* Stops the oldest sound of the named effect, the one with the lowest sequence:
+ * stops and releases its buffer, frees the slot and lowers g_activeSoundCount.
+ * Returns 1 when Stop succeeded, else 0. Returns 0 with nothing stopped when
+ * g_directSound is NULL, the name is empty or not loaded, no slot holds the
+ * effect, or the slot's buffer is NULL. */
 // FUNCTION: XVT 0x42D600
 int Sound_StopOldestInstance(const char *name)
 {
@@ -497,6 +599,11 @@ int Sound_StopOldestInstance(const char *name)
 	return stopResult >= 0;
 }
 
+/* Calls Sound_StopOldestInstance for the effect of each slot in use, in slot
+ * order, and returns 1 when every call returned 1, else 0. Each call stops that
+ * effect's oldest sound, not necessarily that slot's, and a slot is never
+ * looked at twice, so when an effect's older sound sits in a later slot, the
+ * earlier slot keeps playing. */
 // FUNCTION: XVT 0x42D6D0
 int Sound_StopAllInstances(void)
 {
@@ -516,6 +623,9 @@ int Sound_StopAllInstances(void)
 	return result;
 }
 
+/* Returns the primary buffer's volume on the game's scale,
+ * 127 * millibels / 2000 + 127, or 0 when g_directSound is
+ * NULL or GetVolume fails. Nothing calls this. */
 // FUNCTION: XVT 0x42D770
 int Sound_GetPrimaryBufferVolume(void)
 {
@@ -533,6 +643,11 @@ int Sound_GetPrimaryBufferVolume(void)
 	return volumeMillibels;
 }
 
+/* Sets the volume of the named effect's newest sound, the slot with the highest
+ * sequence, to 400 * (5 * v - 635) / 127 hundredths of a decibel, v being
+ * volume clamped to 0 to 127. Returns 1 when SetVolume succeeds, else 0; 0 also
+ * when g_directSound is NULL, the name is empty or not loaded, or no slot holds
+ * the effect. Only Sound_SetParam calls it, for code 0x600. */
 // FUNCTION: XVT 0x42D7C0
 int Sound_SetLatestInstanceVolume(const char *name, int volume)
 {
@@ -587,6 +702,10 @@ int Sound_SetLatestInstanceVolume(const char *name, int volume)
 		       clampedVolume) == 0;
 }
 
+/* Returns the volume of the named effect's newest sound on the game's scale,
+ * 127 * millibels / 2000 + 127, or 0 when g_directSound is NULL, the name is
+ * empty or not loaded, no slot holds it, or GetVolume fails. Nothing calls
+ * this. */
 // FUNCTION: XVT 0x42D880
 int Sound_GetLatestInstanceVolume(const char *name)
 {
@@ -633,6 +752,11 @@ int Sound_GetLatestInstanceVolume(const char *name)
 	return volumeMillibels;
 }
 
+/* Sets the pan of the named effect's newest sound to 400 * (5 * p - 315) / 63
+ * hundredths of a decibel, p being pan clamped to 0 to 127: -2000 at 0, 0 at
+ * 63. Returns 1 when SetPan succeeds, else 0; 0 also when g_directSound is
+ * NULL, the name is empty or not loaded, or no slot holds the effect. Only
+ * Sound_SetParam calls it, for code 0x700, which none of its callers passes. */
 // FUNCTION: XVT 0x42D940
 int Sound_SetLatestInstancePan(const char *name, int pan)
 {
@@ -688,6 +812,9 @@ int Sound_SetLatestInstancePan(const char *name, int pan)
 		       clampedPan) == 0;
 }
 
+/* Returns the pan of the named effect's newest sound on the game's scale,
+ * 63 * pan / 10000 + 63, or 0 when g_directSound is NULL, the name is empty or
+ * not loaded, no slot holds it, or GetPan fails. Nothing calls this. */
 // FUNCTION: XVT 0x42DA00
 int Sound_GetLatestInstancePan(const char *name)
 {
@@ -734,6 +861,10 @@ int Sound_GetLatestInstancePan(const char *name)
 	return panMillibels;
 }
 
+/* Sets the playback frequency, in samples per second, of the named effect's
+ * newest sound. Returns 1 when SetFrequency succeeds, else 0; 0 also when
+ * g_directSound is NULL, the name is empty or not loaded, or no slot holds the
+ * effect. Only Sound_SetParam calls it, for code 0x777. */
 // FUNCTION: XVT 0x42DAC0
 int Sound_SetLatestInstanceFrequency(const char *name, uint32_t frequency)
 {
@@ -778,6 +909,10 @@ int Sound_SetLatestInstanceFrequency(const char *name, uint32_t frequency)
 	       0;
 }
 
+/* Sets the named effect's currentPriority to priority clamped to 0 to 255 and
+ * returns 1; returns 0 when the name is not loaded. Does not check
+ * g_directSound. Only Sound_SetParam calls it, for code 0x500, which none of
+ * its callers passes, so every effect keeps currentPriority 0. */
 // FUNCTION: XVT 0x42DB50
 int Sound_SetEffectCurrentPriority(const char *name, int priority)
 {
@@ -800,6 +935,9 @@ int Sound_SetEffectCurrentPriority(const char *name, int priority)
 	return 1;
 }
 
+/* Returns the named effect's currentPriority, or 0 when the name is not loaded.
+ * Only Sound_GetParam calls it, for code 0x500, which none of its callers
+ * passes. */
 // FUNCTION: XVT 0x42DBA0
 int Sound_GetEffectCurrentPriority(const char *name)
 {
@@ -813,6 +951,10 @@ int Sound_GetEffectCurrentPriority(const char *name)
 	return g_soundDefs[effectIndex].currentPriority;
 }
 
+/* Counts the slots holding the named effect whose buffer reports the 0x1
+ * (playing) or 0x4 (looping) status bit; returns the count, 0 to 8. Returns 0
+ * when g_directSound is NULL or the name is empty or not loaded. Only
+ * Sound_GetParam calls it, for code 0x100. */
 // FUNCTION: XVT 0x42DBD0
 int Sound_CountPlayingInstances(const char *name)
 {
@@ -853,6 +995,11 @@ int Sound_CountPlayingInstances(const char *name)
 	return playingCount;
 }
 
+/* Inserts a copy of *effect into g_soundDefs, keeping it sorted by name
+ * (strncmp over 64 characters) with the new entry after equal names, adds 1 to
+ * g_soundCount and adds 1 to each instance slot's effectIndex at or after the
+ * insertion point. Does not check that the table has room; Sound_LoadEffectEx
+ * checks g_soundCount under 1000 first. */
 // FUNCTION: XVT 0x42DC60
 void Sound_InsertEffectDefSorted(const SoundEffectDef *effect)
 {
@@ -900,6 +1047,11 @@ void Sound_InsertEffectDefSorted(const SoundEffectDef *effect)
 	} while (instanceIndex < 8);
 }
 
+/* Removes entry effectIndex from g_soundDefs, moving the later entries up one,
+ * lowers g_soundCount and lowers by 1 each instance slot's effectIndex above
+ * it. Does nothing for an index outside 0 to g_soundCount - 1. Leaves the old
+ * last entry in place, does not release the buffer and does not free slots that
+ * play the entry; Sound_UnloadEffectByName stops them first. */
 // FUNCTION: XVT 0x42DD20
 void Sound_RemoveEffectDef(int effectIndex)
 {
@@ -935,12 +1087,17 @@ void Sound_RemoveEffectDef(int effectIndex)
 	}
 }
 
+/* Returns the index of the named effect among the g_soundCount loaded entries
+ * of g_soundDefs, or -1, by Sound_FindEffectByName. */
 // FUNCTION: XVT 0x42DDA0
 int Sound_FindLoadedEffectByName(const char *name)
 {
 	return Sound_FindEffectByName(g_soundDefs, g_soundCount - 1, name);
 }
 
+/* Binary search for name in records[0] to records[lastIndex], which must be
+ * sorted by name, comparing up to 64 characters with strncmp. Returns the index
+ * found, or -1. Sound_FindLoadedEffectByName is its only caller. */
 // FUNCTION: XVT 0x42DDC0
 int Sound_FindEffectByName(const SoundEffectDef *records, int lastIndex,
 			   const char *name)
@@ -981,6 +1138,9 @@ int Sound_FindEffectByName(const SoundEffectDef *records, int lastIndex,
 
 /* paramCode selects what to set: 0x500 the effect's priority, 0x600 the latest instance's volume,
  * 0x700 its pan and 0x777 its frequency. Any other code, or a sound id outside 4..837, returns 0. */
+/* Returns what the chosen function returns. The name comes from
+ * g_fsfxSfxNameTable[flightSoundId]. Its callers pass only codes 0x600 (1536)
+ * and 0x777 (1911). */
 // FUNCTION: XVT 0x4A9180
 int Sound_SetParam(int flightSoundId, int paramCode, int value)
 {
@@ -1007,6 +1167,8 @@ int Sound_SetParam(int flightSoundId, int paramCode, int value)
 
 /* paramCode selects what to read: 0x100 the number of playing instances, 0x500 the effect's
  * priority. Any other code, or a sound id outside 4..837, returns 0. */
+/* Returns what the chosen function returns. The name comes from
+ * g_fsfxSfxNameTable[flightSoundId]. Its callers pass only code 0x100 (256). */
 // FUNCTION: XVT 0x4A9300
 int Sound_GetParam(int flightSoundId, int paramCode)
 {
@@ -1025,6 +1187,8 @@ int Sound_GetParam(int flightSoundId, int paramCode)
 	}
 }
 
+/* Returns 0 and ignores its arguments. Only FlightSync_UnusedFourArgForwarder
+ * calls it, and nothing calls that. */
 // FUNCTION: XVT 0x4A9370
 int Sound_UnusedFourArgStub(int arg1, int arg2, int arg3, int arg4)
 {
@@ -1036,6 +1200,9 @@ int Sound_UnusedFourArgStub(int arg1, int arg2, int arg3, int arg4)
 	return 0;
 }
 
+/* Stops the oldest sound of flight sound id flightSoundId, named by
+ * g_fsfxSfxNameTable, with Sound_StopOldestInstance and returns its result;
+ * returns 0 for an id outside 4 to 837. */
 // FUNCTION: XVT 0x4A9380
 int Sound_StopOldestInstanceById(int flightSoundId)
 {
@@ -1045,5 +1212,8 @@ int Sound_StopOldestInstanceById(int flightSoundId)
 	return Sound_StopOldestInstance(g_fsfxSfxNameTable[flightSoundId]);
 }
 
+/* Does nothing. Flight_MainLoop calls it in the original build and
+ * XvtFlightTask_ReleaseMission in the modern one, each after
+ * Sound_StopAllInstances. */
 // FUNCTION: XVT 0x4A93B0
 void Sound_EmptyStub(void) {}

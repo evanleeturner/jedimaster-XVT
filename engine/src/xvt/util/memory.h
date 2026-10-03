@@ -10,8 +10,9 @@ extern "C" {
 #endif
 
 struct MemoryHandleTableState {
+	/* Bytes in each handle's block; 0 when free. */
 	size_t sizeTable[32768];
-	void *ptrTable[32768];
+	void *ptrTable[32768]; /* Each handle's block; NULL when free. */
 };
 
 extern uint8_t g_handleAllocatorInitialized;

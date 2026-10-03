@@ -2,6 +2,10 @@
 
 #include "xvt/render/flight_palette.h"
 
+/* Returns the index, from startIndex up to endIndex - 1, of the color in
+ * palette (three bytes per entry, counted from entry 0) nearest targetRgb by
+ * the sum of the squared channel differences; the first one on a tie. Returns
+ * startIndex when endIndex is not above it. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x40E940
 unsigned int Color_FindNearestRgbTripletIndex(const uint8_t *targetRgb,
@@ -46,6 +50,11 @@ unsigned int Color_FindNearestRgbTripletIndex(const uint8_t *targetRgb,
 	return nearestIndex;
 }
 
+/* Fills the 65536 entries of outTable: entry v gets the index, from startIndex
+ * up to endIndex - 1, of the g_swPalette color nearest the 5-6-5 color v, its
+ * 5-bit red and blue doubled to the palette's 0 to 63 scale, by
+ * Color_FindNearestRgbTripletIndex. FeDiskIo_InitResources is its only
+ * caller. */
 // FUNCTION: XVT 0x40E9E0
 void Color_BuildRgb565ToPaletteIndexLut(uint8_t *outTable,
 					unsigned int startIndex,
@@ -75,6 +84,11 @@ void Color_BuildRgb565ToPaletteIndexLut(uint8_t *outTable,
 	} while (rgb565Value < 0x10000);
 }
 
+/* Returns, cut to 8 bits, the index from startIndex up to endIndex - 1 of the
+ * 5-6-5 color in palette nearest targetRed, targetGreen and targetBlue (on the
+ * 5-, 6- and 5-bit scales) by the sum of the squared differences: the first
+ * exact match at once, else the first nearest. With an empty range it returns
+ * an index it never set. OptModel_BuildRuntimeNode is its only caller. */
 // FUNCTION: XVT 0x476B00
 uint8_t Color_FindNearestRgb565Index(const uint16_t *palette, int targetRed,
 				     int targetGreen, int targetBlue,

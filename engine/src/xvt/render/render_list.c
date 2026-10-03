@@ -5,13 +5,25 @@
 #include "xvt/flight/player/player.h"
 #include "xvt/flight/transfm2.h"
 
+/* Entries queued in g_renderObjectListEntries since the last RenderList_Reset,
+ * 0 to 296; only RenderList_QueueObject and RenderList_Reset write it. */
 // GLOBAL: XVT 0x9A7B5C
 static int g_renderObjectListCount;
+/* First entry of the render list, linked through each entry's next; NULL when
+ * the list is empty. RenderList_QueueObject puts each new entry first, the two
+ * sorts reorder the list and RenderList_Reset sets NULL;
+ * FlightMap_DrawObjectPass walks the list by moving it on and puts it back
+ * after. */
 // GLOBAL: XVT 0x9A8C1C
 RenderObjectListEntry *g_renderListHead;
+/* Storage for the render list, 296 entries (RENDER_OBJECT_LIST_CAPACITY) used
+ * in the order they are queued; FeDiskIo_InitGlobalBuffers and
+ * FeDiskIo_LockGlobalBuffers lock it from its memory handle. */
 // GLOBAL: XVT 0x9EC5F8
 RenderObjectListEntry *g_renderObjectListEntries = 0;
 
+/* Adds an object to the front of the render list with its sort depth, taking
+ * the next of the 296 entries. Does nothing when all 296 are used. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4362A0
 void RenderList_QueueObject(int objectIdx, int sortDepth)
@@ -29,6 +41,8 @@ void RenderList_QueueObject(int objectIdx, int sortDepth)
 	}
 }
 
+/* Empties the render list: g_renderObjectListCount to 0 and g_renderListHead to
+ * NULL. */
 // FUNCTION: XVT 0x436310
 void RenderList_Reset(void)
 {
@@ -36,6 +50,13 @@ void RenderList_Reset(void)
 	g_renderListHead = 0;
 }
 
+/* Tells whether an object's bounds can be in the view of player
+ * playerIdx's camera. Stores the object's offset from the camera in
+ * g_camRelWorldX, Y and Z, its view depth in g_viewSpaceDepth and its view
+ * X in g_viewSpaceX, and its view Y in g_viewSpaceY once the X test
+ * passes. With far = depth + boundsRadius and r the larger of boundsRadius
+ * and far >> 4, it returns 0 when far is negative, when the size of view X
+ * less r exceeds far, or when the size of view Y less r does; else 1. */
 // FUNCTION: XVT 0x436470
 int RenderList_ProjectObjectBoundsForCulling(int objectIdx,
 					     unsigned int boundsRadius,
@@ -89,6 +110,9 @@ int RenderList_ProjectObjectBoundsForCulling(int objectIdx,
 	return farZ >= absViewCoord;
 }
 
+/* Sorts the render list by sortDepth, largest first, merging runs of 1, 2, 4
+ * and so on in place; entries of equal depth keep their order. Only
+ * FlightMap_RenderView calls it. */
 // FUNCTION: XVT 0x436580
 void RenderList_SortDepthDescending(void)
 {
@@ -177,6 +201,8 @@ void RenderList_SortDepthDescending(void)
 	}
 }
 
+/* Sorts the render list by sortDepth, smallest first, the same way as
+ * RenderList_SortDepthDescending. Only FlightView_Render calls it. */
 // FUNCTION: XVT 0x436680
 void RenderList_SortDepthAscending(void)
 {

@@ -9,9 +9,10 @@
 extern "C" {
 #endif
 
+/* A briefing map point or zoom, one value per axis. */
 struct BriefingMapS16Pair {
-	int16_t x;
-	int16_t y;
+	int16_t x; /* Across: a map x, or the zoom across. */
+	int16_t y; /* Down: a map y, or the zoom down. */
 };
 
 extern int16_t g_briefingSelectedMissionPoint14FlightGroupIdx;

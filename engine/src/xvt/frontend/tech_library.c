@@ -26,32 +26,71 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Heap table of 93 craft descriptions from specdesc.txt, by CraftSpecies
+ * value minus 1. TechLibrary_LoadSpecTextTable loads it on the craft
+ * database's first frame; closing the database, by its Done button or its
+ * own button among the common screen controls, frees it and sets NULL, as
+ * does XvtFrontendTask_Shutdown in the modern build. */
 // GLOBAL: XVT 0xAA6110
 TechLibrarySpecText *g_techLibrarySpecTextTable = NULL;
 
+/* Ratings of the craft shown, from BuildCraftTechStats; zeroed and rebuilt on
+ * the craft database's first frame and at each change of craft. */
 // GLOBAL: XVT 0x665D38
 CraftTechStats g_techLibraryCraftStats = {0};
+/* Degrees the model turns each frame a rotate button is held: 5. */
 // GLOBAL: XVT 0x5182EC
 const float g_techLibraryRotationStepDegrees = 5.0f;
+/* A full turn, 360 degrees: a rising angle that reaches it wraps to 0. */
 // GLOBAL: XVT 0x518300
 const double g_techLibraryRotationFullTurnDegrees = 360.0;
+/* Index in g_shipList of the craft shown: 0 on the first frame, stepped with
+ * wraparound by the Previous craft and Next craft buttons. */
 // GLOBAL: XVT 0x665D28
 int g_techLibrarySelectedShipListIdx = 0;
+/* Light direction x for the model preview, -1, 0 or 1. Set to 1 on the first
+ * frame; each press of Change lighting lowers x, and past -1 sets it back to
+ * 1 and lowers y the same way, then z. */
 // GLOBAL: XVT 0x665D2C
 int g_techLibraryLightX = 0;
+/* Up-axis angle of the model preview in degrees; set to 0 on the first frame
+ * and never changed. */
 // GLOBAL: XVT 0x665D30
 float g_techLibraryPreviewAngleD = 0.0f;
+/* Model yaw in degrees, 225 on the first frame. Holding a mouse button on
+ * Rotate X lowers it (left) or raises it (right) by 5 a frame; a value at or
+ * under 0 becomes 360, one at or over 360 becomes 0. */
 // GLOBAL: XVT 0x665D64
 float g_techLibraryPreviewYawDeg = 0.0f;
+/* Light direction y, stepped with g_techLibraryLightX. */
 // GLOBAL: XVT 0x665D68
 int g_techLibraryLightY = 0;
+/* Light direction z, stepped with g_techLibraryLightX. */
 // GLOBAL: XVT 0x665D6C
 int g_techLibraryLightZ = 0;
+/* Model roll in degrees; set to 0 on the first frame and never changed. */
 // GLOBAL: XVT 0x665D70
 float g_techLibraryPreviewRollDeg = 0.0f;
+/* Model pitch in degrees, 110 on the first frame; Rotate Y changes it the way
+ * Rotate X changes g_techLibraryPreviewYawDeg. */
 // GLOBAL: XVT 0x665D74
 float g_techLibraryPreviewPitchDeg = 0.0f;
 
+/* Update function of the craft database, a screen the common screen controls
+ * push. On frame 0 it sets the cursor, selection, light and angles to their
+ * starting values, loads the ship list and the spec text table, saves the
+ * model preview's state while a briefing is active, builds the first craft's
+ * ratings and loads its model, raised to world y 100 for a TIE Interceptor or
+ * TIE Bomber, and draws frontres\review.bmp with its frame and overlays into
+ * the offscreen surface. Every frame it renders the model at the current
+ * angles in (280, 107) to (606, 433), draws the title, the spec panel and
+ * the pilot banner, and returns 1 when Frontend_HandleCommonScreenControls(3)
+ * returns 1. Then it handles the model controls and the Done button. Done, a
+ * network dismiss packet, or as network host a nonzero
+ * Net_PollForPlayerCreatedOrBacklog closes the screen: it frees the
+ * background and spec table, pops the screen, and frees g_shipList, or with
+ * a briefing active restores the preview state instead. Returns 0 on every
+ * other path; the modern build stops there while a dialog is up. */
 // FUNCTION: XVT 0x4E96B0
 int TechLibrary_Update(int frameCounter)
 {
@@ -227,6 +266,15 @@ int TechLibrary_Update(int frameCounter)
 	return 0;
 }
 
+/* Handles the craft database's left-hand buttons. Marks navigation slots 0
+ * to 2 and 5 to 6 as selected while the mouse is on them with a button down
+ * or clicked, and draws the eight slots. Change lighting steps the light
+ * direction (g_techLibraryLightX); holding a mouse button on Rotate X or
+ * Rotate Y turns the model's yaw or pitch; Previous craft and Next craft
+ * step g_techLibrarySelectedShipListIdx with wraparound, rebuild
+ * g_techLibraryCraftStats and load the model, raised to world y 100 for a TIE
+ * Interceptor or TIE Bomber. Returns 1. The light steps reach (0, 0, 0), a
+ * direction with no length, which ModelPreview_SetLightDirection divides by. */
 // FUNCTION: XVT 0x4E9AF0
 int TechLibrary_UpdateModelControls(void)
 {
@@ -422,6 +470,15 @@ int TechLibrary_UpdateModelControls(void)
 	return 1;
 }
 
+/* Draws the spec panel for the craft in g_techLibraryCraftStats, from its entry
+ * in g_techLibrarySpecTextTable (craft type minus 1, at least 0), in font 12:
+ * the name at (88, 111), then from 30 pixels lower, in rows 15 apart, the
+ * designation by genus, manufacturer, users, and the description under a yellow
+ * heading. Then, for a starfighter, speed, acceleration, maneuverability, guns
+ * and warhead load; for any genus but mine and satellite, the model's size in
+ * meters, or kilometers at 1000 meters and over, and the crew; and for all,
+ * shield and hull ratings. Returns 1. Checks neither that the table is loaded
+ * nor that the entry is under 93. */
 // FUNCTION: XVT 0x4EA090
 int TechLibrary_DrawCraftSpecPanel(void)
 {
@@ -579,6 +636,16 @@ int TechLibrary_DrawCraftSpecPanel(void)
 	return 1;
 }
 
+/* Loads specdesc.txt into a new 93-entry g_techLibrarySpecTextTable, freeing
+ * the old one. Each entry is five lines, skipping lines that start with "//":
+ * name, manufacturer, users, description and crew, each cut to 255
+ * characters, without its newline, and copied with strncpy, which leaves no
+ * terminator when a line fills its field. Returns 0, keeping the old table,
+ * when the file does not open, and 0 when the allocation fails; 1 when the
+ * file ends before 93 entries. After all 93, the modern build returns what
+ * File_Close returns and the original build returns no value. The original
+ * build zeroes the table before checking the allocation, and reads each line
+ * with a 1024-byte limit into the 256-byte g_frontendScratchBuffer. */
 // FUNCTION: XVT 0x4EA8C0
 int TechLibrary_LoadSpecTextTable(void)
 {

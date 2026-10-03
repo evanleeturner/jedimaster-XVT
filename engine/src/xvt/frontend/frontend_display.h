@@ -12,10 +12,15 @@
 extern "C" {
 #endif
 
+/* One palette color in DirectDraw's entry layout; g_frontState.displayPalette
+ * holds 256 of them. */
 typedef struct FrontendPaletteEntry {
-	uint8_t red;
-	uint8_t green;
-	uint8_t blue;
+	uint8_t red;   /* Red, 0 to 255. */
+	uint8_t green; /* Green, 0 to 255. */
+	uint8_t blue;  /* Blue, 0 to 255. */
+	/* DirectDraw's entry flags; 0 in every entry
+	 * FrontendDisplay_LoadPalette builds. No code reads the field itself;
+	 * DirectDraw gets it with the entries. */
 	uint8_t flags;
 } FrontendPaletteEntry;
 

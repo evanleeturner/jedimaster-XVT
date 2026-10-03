@@ -2,6 +2,9 @@
 
 #include <stddef.h>
 
+/* By OPT hardpoint type 0 to 31, how FeDiskIo_BuildModelDef groups a weapon
+ * hardpoint: 1 into a laser group (types 1 to 6 and 9 to 11), 2 into a warhead
+ * launcher (7, 8 and 12 to 18), 0 not at all. */
 // GLOBAL: XVT 0x527640
 uint8_t g_optHardpointWeaponGroupKindByType[32] = {
 	0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x02, 0x02, 0x01, 0x01,
@@ -9,6 +12,10 @@ uint8_t g_optHardpointWeaponGroupKindByType[32] = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 };
 
+/* Object type (g_objectTypeTable index) of each mission craft type
+ * (CraftSpecies). Most map to the same number; 10 and 11 map to 8, 31 to 26, 39
+ * to 38, 86 to 100, 88 to 236, past the 201 object types, and 89 and 93 to 95
+ * to 0. */
 // GLOBAL: XVT 0x524170
 uint8_t g_craftTypeToObjectType[96] = {
 	0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x08, 0x08,
@@ -21,6 +28,15 @@ uint8_t g_craftTypeToObjectType[96] = {
 	0x54, 0x55, 0x64, 0x57, 0xEC, 0x00, 0x5A, 0x5B, 0x5C, 0x00, 0x00, 0x00,
 };
 
+/* Billboard frames of object type 127, read through its textureFrameSequence.
+ * An object's typeSpecificByte[0] indexes it; each step of
+ * FlightObject_AdvanceTextureFrameSequence moves one entry on and acts on the
+ * entry reached: 0xFFFF frees the object, 0xFFFD goes back to entry 0, 0xFFFE
+ * holds, and another value of 0xFF00 or more, 0xFF00 + n, goes to entry n.
+ * RenderNonCraftSceneObject draws an entry under 0x8000 as the model, one from
+ * 0x8000 to 0xFEFF as that billboard frame, and nothing for the rest. Here:
+ * 0xFFFE, then 0xFF00 back to entry 0, then frames 0xBF80 to 0xBF88 (0xBF86
+ * twice), then 0xFFFF. */
 // GLOBAL: XVT 0x51A030
 int16_t g_objectType127TextureFrameSequence[13] = {
 	(int16_t)0xFFFE, (int16_t)0xFF00, (int16_t)0xBF80, (int16_t)0xBF81,
@@ -29,30 +45,43 @@ int16_t g_objectType127TextureFrameSequence[13] = {
 	(int16_t)0xFFFF,
 };
 
+/* Billboard frames of object type 131, coded as in
+ * g_objectType127TextureFrameSequence: 0xFFFE, 0xFF00, frames 0xC180 to 0xC183,
+ * then 0xFFFF. */
 // GLOBAL: XVT 0x51A050
 int16_t g_objectType131TextureFrameSequence[7] = {
 	(int16_t)0xFFFE, (int16_t)0xFF00, (int16_t)0xC180, (int16_t)0xC181,
 	(int16_t)0xC182, (int16_t)0xC183, (int16_t)0xFFFF,
 };
 
+/* Billboard frames of object type 132, coded as in
+ * g_objectType127TextureFrameSequence: 0xFFFE, 0xFF00, frames 0xC200 to 0xC204,
+ * then 0xFFFF. */
 // GLOBAL: XVT 0x51A060
 int16_t g_objectType132TextureFrameSequence[8] = {
 	(int16_t)0xFFFE, (int16_t)0xFF00, (int16_t)0xC200, (int16_t)0xC201,
 	(int16_t)0xC202, (int16_t)0xC203, (int16_t)0xC204, (int16_t)0xFFFF,
 };
 
+/* Billboard frames of object types 133 and 156, coded as in
+ * g_objectType127TextureFrameSequence: frame 0xC280, then 0xFF00 back to it. */
 // GLOBAL: XVT 0x51A070
 int16_t g_objectType133TextureFrameSequence[2] = {
 	(int16_t)0xC280,
 	(int16_t)0xFF00,
 };
 
+/* Billboard frames of object type 134, coded as in
+ * g_objectType127TextureFrameSequence: frame 0xC300, then 0xFF00 back to it. */
 // GLOBAL: XVT 0x51A074
 int16_t g_objectType134TextureFrameSequence[2] = {
 	(int16_t)0xC300,
 	(int16_t)0xFF00,
 };
 
+/* Billboard frames of object type 157, coded as in
+ * g_objectType127TextureFrameSequence: 0xFFFE, 0xFF00, frames 0xCE80 to 0xCE87,
+ * then 0xFF02 back to the first frame. */
 // GLOBAL: XVT 0x51A078
 int16_t g_objectType157TextureFrameSequence[11] = {
 	(int16_t)0xFFFE, (int16_t)0xFF00, (int16_t)0xCE80, (int16_t)0xCE81,
@@ -60,6 +89,10 @@ int16_t g_objectType157TextureFrameSequence[11] = {
 	(int16_t)0xCE86, (int16_t)0xCE87, (int16_t)0xFF02,
 };
 
+/* Billboard frames of object type 136 and of a craft's fuselage damage, coded
+ * as in g_objectType127TextureFrameSequence: 0xFFFE, 0xFF00, frames 0xC380 to
+ * 0xC389, then 0xC400 to 0xC405 each twice, then 0xFF0C back to the first
+ * 0xC400. */
 // GLOBAL: XVT 0x51A0B0
 int16_t g_fuselageDamageTextureFrameSequence[25] = {
 	(int16_t)0xFFFE, (int16_t)0xFF00, (int16_t)0xC380, (int16_t)0xC381,
@@ -71,6 +104,9 @@ int16_t g_fuselageDamageTextureFrameSequence[25] = {
 	(int16_t)0xFF0C,
 };
 
+/* Billboard frames of object type 110, coded as in
+ * g_objectType127TextureFrameSequence: 0xFFFE, 0xFF00, frames 0xB700 to 0xB705,
+ * then 0xFF02 back to the first frame. */
 // GLOBAL: XVT 0x51A0E8
 int16_t g_objectType110TextureFrameSequence[9] = {
 	(int16_t)0xFFFE, (int16_t)0xFF00, (int16_t)0xB700,
@@ -78,6 +114,9 @@ int16_t g_objectType110TextureFrameSequence[9] = {
 	(int16_t)0xB704, (int16_t)0xB705, (int16_t)0xFF02,
 };
 
+/* Billboard frames of object type 111, coded as in
+ * g_objectType127TextureFrameSequence: 0xFFFE, 0xFF00, frames 0xB780 to 0xB787,
+ * then 0xFF02 back to the first frame. */
 // GLOBAL: XVT 0x51A100
 int16_t g_objectType111TextureFrameSequence[11] = {
 	(int16_t)0xFFFE, (int16_t)0xFF00, (int16_t)0xB780, (int16_t)0xB781,
@@ -85,6 +124,9 @@ int16_t g_objectType111TextureFrameSequence[11] = {
 	(int16_t)0xB786, (int16_t)0xB787, (int16_t)0xFF02,
 };
 
+/* Billboard frames of object type 112, coded as in
+ * g_objectType127TextureFrameSequence: 0xFFFE, 0xFF00, frames 0xB800 to 0xB807,
+ * then 0xFF02 back to the first frame. */
 // GLOBAL: XVT 0x51A118
 int16_t g_objectType112TextureFrameSequence[11] = {
 	(int16_t)0xFFFE, (int16_t)0xFF00, (int16_t)0xB800, (int16_t)0xB801,
@@ -92,6 +134,9 @@ int16_t g_objectType112TextureFrameSequence[11] = {
 	(int16_t)0xB806, (int16_t)0xB807, (int16_t)0xFF02,
 };
 
+/* Billboard frames of object type 113, coded as in
+ * g_objectType127TextureFrameSequence: 0xFFFE, 0xFF00, frames 0xB880 to 0xB885,
+ * then 0xFF02 back to the first frame. */
 // GLOBAL: XVT 0x51A130
 int16_t g_objectType113TextureFrameSequence[9] = {
 	(int16_t)0xFFFE, (int16_t)0xFF00, (int16_t)0xB880,
@@ -99,6 +144,9 @@ int16_t g_objectType113TextureFrameSequence[9] = {
 	(int16_t)0xB884, (int16_t)0xB885, (int16_t)0xFF02,
 };
 
+/* Billboard frames of object type 128, coded as in
+ * g_objectType127TextureFrameSequence: 0xFFFE, 0xFF00, frames 0xC000 to 0xC009,
+ * then 0xFFFF. */
 // GLOBAL: XVT 0x51A148
 int16_t g_objectType128TextureFrameSequence[13] = {
 	(int16_t)0xFFFE, (int16_t)0xFF00, (int16_t)0xC000, (int16_t)0xC001,
@@ -107,6 +155,9 @@ int16_t g_objectType128TextureFrameSequence[13] = {
 	(int16_t)0xFFFF,
 };
 
+/* Billboard frames of object type 129, coded as in
+ * g_objectType127TextureFrameSequence: 0xFFFE, 0xFF00, frames 0xC080 to 0xC08C,
+ * then 0xFFFF. */
 // GLOBAL: XVT 0x51A168
 int16_t g_objectType129TextureFrameSequence[16] = {
 	(int16_t)0xFFFE, (int16_t)0xFF00, (int16_t)0xC080, (int16_t)0xC081,
@@ -115,6 +166,9 @@ int16_t g_objectType129TextureFrameSequence[16] = {
 	(int16_t)0xC08A, (int16_t)0xC08B, (int16_t)0xC08C, (int16_t)0xFFFF,
 };
 
+/* Billboard frames of object type 130, coded as in
+ * g_objectType127TextureFrameSequence: 0xFFFE, 0xFF00, frames 0xC100 to 0xC10B,
+ * then 0xFFFF. */
 // GLOBAL: XVT 0x51A188
 int16_t g_objectType130TextureFrameSequence[15] = {
 	(int16_t)0xFFFE, (int16_t)0xFF00, (int16_t)0xC100, (int16_t)0xC101,
@@ -123,6 +177,10 @@ int16_t g_objectType130TextureFrameSequence[15] = {
 	(int16_t)0xC10A, (int16_t)0xC10B, (int16_t)0xFFFF,
 };
 
+/* Seventeen remaps of 16 palette indices, which object types and
+ * g_backdropPaletteRemapByFlightGroupStatus point at through
+ * ObjectTypeInfo.palette. The game code never reads them; the modern build's
+ * capture copies them for its renderer. */
 // GLOBAL: XVT 0x521D78
 uint8_t g_objectTypePaletteRemaps[17][16] = {
 	{0xD6, 0xD7, 0xD8, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD, 0xDE, 0xDF, 0xE0, 0xE1,
@@ -161,6 +219,9 @@ uint8_t g_objectTypePaletteRemaps[17][16] = {
 	 0xB8, 0xB9, 0xF0, 0xEF},
 };
 
+/* By a backdrop flight group's status1, the g_objectTypePaletteRemaps row
+ * Mission_Init gives the backdrop's type as its palette: rows 9 to 16, then 13
+ * to 16 twice, then 16. */
 // GLOBAL: XVT 0x521E88
 uint8_t *g_backdropPaletteRemapByFlightGroupStatus[17] = {
 	g_objectTypePaletteRemaps[9],  g_objectTypePaletteRemaps[10],
@@ -174,30 +235,44 @@ uint8_t *g_backdropPaletteRemapByFlightGroupStatus[17] = {
 	g_objectTypePaletteRemaps[16],
 };
 
+/* Palette remap of object type 110; like g_objectTypePaletteRemaps, only the
+ * modern build's capture reads it. */
 // GLOBAL: XVT 0x521ED0
 uint8_t g_objectType110Palette[16] = {
 	0x00, 0x5C, 0x4C, 0xB5, 0x8F, 0x8C, 0xB8, 0xFB,
 	0xE5, 0x63, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 };
 
+/* Palette remap of object type 111; like g_objectTypePaletteRemaps, only the
+ * modern build's capture reads it. */
 // GLOBAL: XVT 0x521EE0
 uint8_t g_objectType111Palette[16] = {
 	0x00, 0x8E, 0x89, 0x8B, 0x88, 0xB8, 0x5A, 0x5B,
 	0x64, 0x86, 0x5D, 0xFB, 0x00, 0x00, 0x00, 0x00,
 };
 
+/* Palette remap of object type 112; like g_objectTypePaletteRemaps, only the
+ * modern build's capture reads it. */
 // GLOBAL: XVT 0x521EF0
 uint8_t g_objectType112Palette[16] = {
 	0x00, 0x8E, 0xAE, 0x62, 0xB8, 0x77, 0x71, 0xFB,
 	0x5A, 0x6A, 0x66, 0x5C, 0xB1, 0x59, 0x00, 0x00,
 };
 
+/* Palette remap of object type 113; like g_objectTypePaletteRemaps, only the
+ * modern build's capture reads it. */
 // GLOBAL: XVT 0x521F00
 uint8_t g_objectType113Palette[16] = {
 	0x00, 0xB8, 0x7B, 0x60, 0x5A, 0x5C, 0x5E, 0x53,
 	0x8C, 0x89, 0x64, 0xFB, 0xB1, 0x00, 0x00, 0x00,
 };
 
+/* One ObjectTypeInfo row per object type 0 to 200: flags, family, genus, bound
+ * extents, frame sequence, palette remap, model index and resource list place.
+ * FeDiskIo_LoadResources fills resourceHandle and FeDiskIo_FreeFlightResources
+ * clears it; FeDiskIo_BuildModelDef sets the extents of loaded models;
+ * Mission_Init sets the required-asset bit and backdrop resource indices and
+ * palettes. */
 // GLOBAL: XVT 0x521F18
 ObjectTypeInfo g_objectTypeTable[201] = {
 	/* 000 */ {0x00, 0x00, 0, 0, 0, 0, 0, NULL, NULL, 0x00,

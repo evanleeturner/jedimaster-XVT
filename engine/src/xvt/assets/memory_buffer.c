@@ -3,6 +3,8 @@
 #include <string.h>
 #endif
 
+/* Returns the byte at buffer + *offset and adds 1 to *offset. Nothing calls
+ * this. */
 // FUNCTION: XVT 0x4CC7D0
 uint8_t MemoryBuffer_ReadByte(const uint8_t *buffer, unsigned int *offset)
 {
@@ -13,6 +15,8 @@ uint8_t MemoryBuffer_ReadByte(const uint8_t *buffer, unsigned int *offset)
 	return value;
 }
 
+/* Returns the 16-bit value at buffer + *offset, in the machine's byte order,
+ * and adds 2 to *offset. Nothing calls this. */
 // FUNCTION: XVT 0x4CC7F0
 uint16_t MemoryBuffer_ReadWord(const uint8_t *buffer, unsigned int *offset)
 {
@@ -31,6 +35,8 @@ uint16_t MemoryBuffer_ReadWord(const uint8_t *buffer, unsigned int *offset)
 #endif
 }
 
+/* Returns the 32-bit value at buffer + *offset, in the machine's byte order,
+ * and adds 4 to *offset. Nothing calls this. */
 // FUNCTION: XVT 0x4CC810
 unsigned int MemoryBuffer_ReadDword(const uint8_t *buffer, unsigned int *offset)
 {
@@ -49,6 +55,8 @@ unsigned int MemoryBuffer_ReadDword(const uint8_t *buffer, unsigned int *offset)
 #endif
 }
 
+/* Copies count bytes from buffer + *offset to destination and adds count to
+ * *offset. Nothing calls this. */
 // FUNCTION: XVT 0x4CC830
 void MemoryBuffer_ReadBytes(const uint8_t *buffer, void *destination,
 			    unsigned int *offset, unsigned int count)
@@ -57,6 +65,8 @@ void MemoryBuffer_ReadBytes(const uint8_t *buffer, void *destination,
 	*offset += count;
 }
 
+/* Stores value at buffer + *offset and adds 1 to *offset. Nothing calls
+ * this. */
 // FUNCTION: XVT 0x4CC860
 void MemoryBuffer_WriteByte(uint8_t *buffer, unsigned int *offset,
 			    uint8_t value)
@@ -64,6 +74,8 @@ void MemoryBuffer_WriteByte(uint8_t *buffer, unsigned int *offset,
 	buffer[(*offset)++] = value;
 }
 
+/* Stores value at buffer + *offset, in the machine's byte order, and adds 2 to
+ * *offset. Nothing calls this. */
 // FUNCTION: XVT 0x4CC880
 void MemoryBuffer_WriteWord(uint8_t *buffer, unsigned int *offset,
 			    uint16_t value)
@@ -79,6 +91,8 @@ void MemoryBuffer_WriteWord(uint8_t *buffer, unsigned int *offset,
 #endif
 }
 
+/* Stores value at buffer + *offset, in the machine's byte order, and adds 4 to
+ * *offset. Nothing calls this. */
 // FUNCTION: XVT 0x4CC8A0
 void MemoryBuffer_WriteDword(uint8_t *buffer, unsigned int *offset,
 			     unsigned int value)
@@ -94,6 +108,8 @@ void MemoryBuffer_WriteDword(uint8_t *buffer, unsigned int *offset,
 #endif
 }
 
+/* Copies count bytes from source to buffer + *offset and adds count to *offset.
+ * Nothing calls this. */
 // FUNCTION: XVT 0x4CC8C0
 void MemoryBuffer_WriteBytes(uint8_t *buffer, const void *source,
 			     unsigned int *offset, unsigned int count)

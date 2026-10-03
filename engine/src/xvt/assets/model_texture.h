@@ -11,13 +11,19 @@ extern "C" {
 #endif
 
 struct ModelTextureDefaultTextureData {
-	uint8_t baseTexels[64];
+	uint8_t baseTexels[64]; /* The 8 by 8 texels. */
+	/* 16 shades of the 256 colors as g_swPalette indices, shade by
+	 * shade. */
 	uint8_t indexedShadeTable[4096];
+	/* The same 16 shades as RGB565 colors. */
 	uint16_t rgb565ShadeTable[4096];
 };
 
 struct ModelTextureDefaultTexture {
+	/* Its header, 8 by 8 with palette 256 and inlinePaletteCount 16, which
+	 * RenderScene sets the first time it draws a model. */
 	OptTextureData header;
+	/* The texels and shades ModelTexture_BuildPalettedShadeTable writes. */
 	ModelTextureDefaultTextureData data;
 };
 

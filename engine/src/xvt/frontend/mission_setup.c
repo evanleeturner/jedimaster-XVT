@@ -47,16 +47,34 @@
 #include <strings.h>
 #endif
 
+/* Folder of each mission type, by MissionDirectoryId: training, melee,
+ * tournament, combat engagement, battle, campaign. Mission lists and files are
+ * read as "<folder>\<file>". Constant. */
 // GLOBAL: XVT 0x52C1E8
 const char *g_missionDirectoryNames[6] = {"train",  "melee",  "tourn",
 					  "combat", "battle", "campaign"};
+/* Offset from FRONTSTR_273_NONE of the name of each flight group warhead code,
+ * 0 to 10: code 10 gives 2, and codes 2 to 9 give 3 to 10. Constant; only
+ * MissionSetup_GetWarheadType reads it. */
 // GLOBAL: XVT 0x52C6A8
 const int g_warheadTypeMap[11] = {0, 1, 3, 4, 5, 6, 7, 8, 9, 10, 2};
+/* Craft species of each preset craft choice: index 0 holds 0, preset option 0
+ * being the flight group's own craft; 1 to 5 are the Rebel craft (Z-95, X-wing,
+ * Y-wing, A-wing, B-wing) and 6 to 10 the Imperial ones (TIE fighter,
+ * interceptor, bomber, advanced, assault gunboat). Flight groups of preset
+ * category 3 index it at their option plus 5. Constant. */
 // GLOBAL: XVT 0x52C564
 const int g_presetCraftTypes[11] = {0, 14, 1, 2, 3, 4, 5, 6, 7, 8, 16};
+/* For each craft species 0 to 19, the craft of the other side that
+ * MissionSetup_InitCraftLoadout, its only reader, switches to when a melee or
+ * tournament sequence past its first mission gives the pilot a craft of the
+ * wrong side; 0 for none. Constant. */
 // GLOBAL: XVT 0x52C550
 const uint8_t g_craftIffCounterpart[20] = {0, 6, 16, 8, 16, 14, 1, 14, 3, 3,
 					   3, 3, 3,  3, 5,  5,	2, 0,  0, 0};
+/* World position (x, y, z) of the craft model in the briefing craft screen's
+ * preview, by craft species 0 to 16; only MissionSetup_DrawCraftLoadout reads
+ * it, without checking that the species is under 17. Constant. */
 // GLOBAL: XVT 0x52C5D8
 const ModelPreviewCraftPosition g_modelPreviewCraftPositions[17] = {
 	{0, 0, 0},	 {25, -30, 20}, {0, -120, 20}, {10, -55, 20},
@@ -65,135 +83,383 @@ const ModelPreviewCraftPosition g_modelPreviewCraftPositions[17] = {
 	{0, 0, 0},	 {0, 0, 0},	{40, 10, 40},  {0, 0, 0},
 	{-10, -200, 10},
 };
+/* Flight group given to each team slot: entry team * 8 + slot, beside
+ * g_missionSetupPlayerAssignments.teamPlayerIds[team][slot]; -1 for none. Many
+ * functions write it, chiefly MissionSetup_FlightAssignmentUpdate, which sets
+ * all 80 entries to -1 on its frame 0 unless g_frontendSkipScreenEntrySetup is
+ * set, the other flight assignment functions, and
+ * FrontendNet_ProcessNetworkPackets from the flight assignment packets. */
 // GLOBAL: XVT 0xAA5AC0
 int g_missionSetupPlayerFlightGroupIndices[80] = {0};
+/* Five ramps of eight colors, dark to bright, from 0x48 to 0xFC in each lit
+ * channel: green, red, yellow, blue and magenta. The briefing map's label and
+ * craft icon highlights read it. Only MissionSetup_FlightAssignmentUpdate
+ * writes it, on its frame 0; until then every entry is 0. */
 // GLOBAL: XVT 0xAA5C10
 int g_textShadeRamps[5][8] = {{0}};
+/* The team assignment: teamPlayerIds holds the player id in each of the 8 slots
+ * of the 10 teams, slot 0 being the team's captain, 0 for an empty slot, and
+ * assignedPlayerIds the ids of the players who have a team slot. Many functions
+ * write it, chiefly the team assignment screen and the functions it calls, the
+ * prune functions, and FrontendNet_ProcessNetworkPackets from the team
+ * assignment packets. */
 // GLOBAL: XVT 0xAA5CB0
 MissionSetupPlayerAssignments g_missionSetupPlayerAssignments = {{0}, {0}};
+/* Player flight groups of each team in the loaded mission, which is the team's
+ * number of player slots. Only MissionSetup_UpdateTeamCounts writes it. */
 // GLOBAL: XVT 0xAA5E10
 int g_teamPlayerFlightGroupCount[10] = {0};
+/* Id of the player being dragged on the team or flight assignment screen; 0 for
+ * none. 5 functions write it: MissionSetup_TeamAssignmentUpdate,
+ * MissionSetup_DrawUnassignedPlayers, MissionSetup_DrawTeamAssignments,
+ * MissionSetup_FlightAssignmentUpdate and
+ * MissionSetup_DrawFlightAssignments. */
 // GLOBAL: XVT 0xAA5E38
 int g_missionSetupDraggedPlayerId = 0;
+/* Ids of the players someone has started to drag on the team or flight
+ * assignment screen, which no one else may drag; the first
+ * g_missionSetupReservedPlayerCount entries count. Written by the team and
+ * flight assignment screens and their draw functions when a drag starts or a
+ * reservation packet arrives, and by MissionBriefing_Update from the
+ * reservation packets; cleared when those screens start. */
 // GLOBAL: XVT 0xAA5E40
 int g_missionSetupReservedPlayerIds[8] = {0};
+/* Entries in use in g_missionSetupReservedPlayerIds, 0 to 8; written beside
+ * it. */
 // GLOBAL: XVT 0xAA5E60
 int g_missionSetupReservedPlayerCount = 0;
+/* 1 when the team assignment screen went on without showing its teams (one team
+ * with one player, single-slot melee teams, a solo Quick Start, a single 8-slot
+ * training team, a solo combat engagement or battle, or a debriefing return); 0
+ * once it shows them. The flight assignment and briefing screens read it to
+ * offer their way back as a return to mission selection. Only
+ * MissionSetup_TeamAssignmentUpdate writes it. */
 // GLOBAL: XVT 0xAA5E64
 int g_missionSetupTeamAssignmentSkipped = 0;
+/* Teams with at least one player flight group in the loaded mission, 0 to 10;
+ * the team loops take teams 0 to g_teamCount - 1. Only
+ * MissionSetup_UpdateTeamCounts writes it. */
 // GLOBAL: XVT 0xAA5E68
 int g_teamCount = 0;
+/* Heap array of 100 ship list entries that ShipList_Load fills from
+ * frontres\frntspec.lst for the tech library and the briefing's craft screen;
+ * NULL until loaded. ShipList_Load allocates it; MissionBriefing_Exit,
+ * TechLibrary_Update, Frontend_HandleCommonScreenControls and, in the modern
+ * build, XvtFrontendTask_Shutdown free it and set it to NULL. */
 // GLOBAL: XVT 0xAA60F4
 ShipListEntry *g_shipList = NULL;
+/* Index in g_shipList of each craft species' model. It starts with species 2 to
+ * 8 at 1 to 7, 14 at 8, 16 at 9 and the rest at 0; ShipList_Load, its only
+ * writer, sets the entry of each species under 17 that the list names. */
 // GLOBAL: XVT 0x52C590
 int g_shipTypeToShipListIndex[18] = {0, 0, 1, 2, 3, 4, 5, 6, 7,
 				     0, 0, 0, 0, 0, 8, 0, 9, 0};
+/* Entries ShipList_Load kept in g_shipList; the tech library steps through that
+ * many. Written by ShipList_Load when the list opens and, set to 0, by
+ * XvtFrontendTask_Shutdown in the modern build. */
 // GLOBAL: XVT 0xAA60FC
 int g_shipCount = 0;
+/* Index in g_frontendMission.flightGroups of the local player's flight group on
+ * the briefing's craft screen. Only MissionSetup_InitCraftLoadout writes it. */
 // GLOBAL: XVT 0xAA6104
 int g_missionSetupSelectedFlightGroupIndex = 0;
+/* The local player's craft choice among its flight group's own craft: 0 the
+ * group's craft, n its optional craft n - 1. Written by
+ * MissionSetup_InitCraftLoadout (0, then any stepping to the right side),
+ * MissionSetup_UpdateCraftLoadout, and FrontendNet_ProcessNetworkPackets from
+ * the host's CRAFT_LOADOUT when craft selection is host only. */
 // GLOBAL: XVT 0xAA60F8
 int g_missionSetupSelectedFlightGroupCraftOptionIndex = 0;
+/* The local player's choice among the preset craft, an index into
+ * g_presetCraftTypes (the option plus 5 for category 3); 0 for the flight
+ * group's own craft. Written as
+ * g_missionSetupSelectedFlightGroupCraftOptionIndex is. */
 // GLOBAL: XVT 0xAA6100
 int g_missionSetupSelectedPresetCraftOptionIndex = 0;
+/* Preset craft choices the local player's flight group offers: 11 for preset
+ * category 1, 6 for categories 2 and 3, 0 for categories 0 and 4. Only
+ * MissionSetup_InitCraftLoadout writes it. */
 // GLOBAL: XVT 0xAA6108
 int g_missionSetupPresetCraftOptionCount = 0;
+/* The local player's warhead choice: 0 the flight group's default, n its
+ * optional warhead n - 1. Written by MissionSetup_InitCraftLoadout (0),
+ * MissionSetup_UpdateCraftLoadout, and FrontendNet_ProcessNetworkPackets from
+ * the host's CRAFT_LOADOUT when craft selection is host only. */
 // GLOBAL: XVT 0xAA60D8
 int g_missionSetupSelectedWarheadOptionIndex = 0;
+/* The local player's beam weapon choice: 0 the flight group's default, n its
+ * optional beam n - 1. Written as g_missionSetupSelectedWarheadOptionIndex
+ * is. */
 // GLOBAL: XVT 0xAA60E4
 int g_missionSetupSelectedBeamOptionIndex = 0;
+/* The local player's countermeasure choice: 0 the flight group's default, n its
+ * optional countermeasure n - 1. Written as
+ * g_missionSetupSelectedWarheadOptionIndex is. */
 // GLOBAL: XVT 0xAA610C
 int g_missionSetupSelectedCountermeasureOptionIndex = 0;
+/* Waves of the local player's flight group, or of its chosen optional craft,
+ * less one as the mission stores them; the craft screen shows it plus 1 when
+ * craft waves are on their default. Written by MissionSetup_InitCraftLoadout,
+ * MissionSetup_UpdateCraftLoadout, and FrontendNet_ProcessNetworkPackets from
+ * the host's CRAFT_LOADOUT when craft selection is host only. */
 // GLOBAL: XVT 0xAA60E8
 int g_missionSetupSelectedWaveCountMinusOne = 0;
+/* Craft in the local player's flight group, or of its chosen optional craft,
+ * from the mission. Written as g_missionSetupSelectedWaveCountMinusOne is. */
 // GLOBAL: XVT 0xAA60EC
 int g_missionSetupSelectedCraftCount = 0;
+/* Craft choices the local player's flight group offers from its own list: 1 for
+ * preset category 0, 1 plus its optional craft for category 4, 0 for the preset
+ * categories 1 to 3. Only MissionSetup_InitCraftLoadout writes it. */
 // GLOBAL: XVT 0xAA60F0
 int g_missionSetupFlightGroupCraftOptionCount = 0;
+/* Warhead choices the local player's flight group offers: its nonzero optional
+ * warheads, plus 1 when it has any or a default warhead. Only
+ * MissionSetup_InitCraftLoadout writes it. */
 // GLOBAL: XVT 0xAA60D4
 int g_missionSetupWarheadOptionCount = 0;
+/* Beam weapon choices the local player's flight group offers: its nonzero
+ * optional beams, plus 1 when it has any or a default beam. Only
+ * MissionSetup_InitCraftLoadout writes it. */
 // GLOBAL: XVT 0xAA60DC
 int g_missionSetupBeamOptionCount = 0;
+/* Countermeasure choices the local player's flight group offers: its nonzero
+ * optional countermeasures, plus 1 when it has any or a default one. Only
+ * MissionSetup_InitCraftLoadout writes it. */
 // GLOBAL: XVT 0xAA60E0
 int g_missionSetupCountermeasureOptionCount = 0;
+/* Heap array of the current mission type's list entries, g_missionCount of
+ * them; NULL when none is loaded. MissionSetup_LoadMissionList frees and
+ * reloads it, and many screens' exit functions free it and set it to NULL.
+ * MissionSetup_BattleChoice_BuildList swaps it out for a moment, and the pilot
+ * record takes a loaded list over as g_battleMissionList. */
 // GLOBAL: XVT 0xAA6114
 MissionListEntry *g_missionList = NULL;
+/* Index in g_missionList of the selected mission, the entry whose missionIdx is
+ * the current type's selected description id, or g_missionCount when none is.
+ * Many functions write it, chiefly FrontendMission_LoadCurrent and the mission
+ * pickers of the mission setup screens. */
 // GLOBAL: XVT 0xAA6134
 int g_selectedMissionListIndex = 0;
+/* 1 while a game is under way that leaving would abort: the mission setup and
+ * common screen controls then ask before leaving. MissionSetup_DrawPlayerRoster
+ * sets it to 1 when more than one player is ready and to 0 otherwise, and
+ * MissionSetup_FlightAssignmentUpdate to 1 in a solo game; screens such as the
+ * concourse, debriefing, join and host screens set it to 0. */
 // GLOBAL: XVT 0xAA613C
 int g_frontendGameSessionInProgress = 0;
+/* 1 on the host of a network game and in a solo game, 0 on a client. Many
+ * functions write it, chiefly the host and join screens, the concourse, the
+ * flight loading screen, and MissionSetup_EnterNextMission and
+ * MissionSetup_EnterCurrentMission, which set 1 in a solo game. */
 // GLOBAL: XVT 0xAA6144
 int g_missionSetupIsHost = 0;
+/* 1 once a mission is starting: while it is set the lobby packets send the
+ * eight g_mpRoster entries as they are, after clearing departed players,
+ * instead of the network roster's ready players. MissionSetup_Update sets it to
+ * 1 on the host's Begin and when the host's mission start arrives, and
+ * MissionSetup_EnterNextMission and MissionSetup_EnterCurrentMission outside a
+ * solo game. MissionSetup_Update's frame 0 and many other screens set it to
+ * 0. */
 // GLOBAL: XVT 0xB6A2A8
 int g_missionSetupRosterAuthoritative = 0;
+/* Entries in g_missionList. Only MissionSetup_LoadMissionList, which sets it to
+ * 0 before loading, and MissionSetup_BattleChoice_BuildList, which puts it back
+ * after loading the battle list, write it. */
 // GLOBAL: XVT 0xAA6138
 unsigned int g_missionCount = 0;
+/* The game's players as the mission setup screens show them: up to 8 entries,
+ * each a name, an id (0 for an empty entry), a rating and the loadout choices.
+ * Many functions write it, chiefly FrontendNet_ProcessNetworkPackets from the
+ * host's lobby and loadout packets, the lobby senders, which clear departed
+ * players, and in a solo game MissionSetup_Update and the Enter functions,
+ * which put the pilot in entry 0. */
 // GLOBAL: XVT 0xAA6150
 MpRosterEntry g_mpRoster[8] = {{0}};
+/* Entries in g_battleMissionList. Set by MissionSetup_BattleChoice_BuildList
+ * and PilotRecord_DrawMissionAchievementsPage, and to 0 by
+ * MissionSetup_BattleChoice_Exit. */
 // GLOBAL: XVT 0xB6A244
 int g_battleMissionListCount = 0;
+/* Index in g_pilotData.networkPlayers of the local player's entry. Written by
+ * FrontendMission_InitPlayerState and MissionSetup_PruneDisconnectedPlayers,
+ * which leaves it as it was when no entry holds the local id. */
 // GLOBAL: XVT 0xB6A24C
 int g_localPilotNetworkPlayerIndex = 0;
+/* Heap array of mission list entries: on the battle choice screen, the missions
+ * of the current battle (MissionSetup_BattleChoice_BuildList); on the pilot
+ * record's achievements page, the battle list. NULL when none.
+ * MissionSetup_BattleChoice_Exit, Concourse_Exit and
+ * PilotRecord_DrawMissionAchievementsPage free it and set it to NULL. */
 // GLOBAL: XVT 0xB6A2B4
 MissionListEntry *g_battleMissionList = NULL;
+/* GetTickCount() at the battle choice countdown's latest frame, in ms. Only
+ * MissionSetup_BattleChoice_Update writes it. */
 // GLOBAL: XVT 0x66D880
 int g_battleChoiceClockMs = 0;
+/* First row the battle choice screen's mission list shows. Only
+ * MissionSetup_BattleChoice_DrawList writes it: on its frame 0, and from its
+ * scrollbar. */
 // GLOBAL: XVT 0x66D884
 int g_battleChoiceScrollOffset = 0;
+/* Milliseconds left to choose the next battle mission: 120000 on the battle
+ * choice screen's frame 0, lowered each frame by the time elapsed and to a
+ * host's BRIEFING_COUNTDOWN value when that is lower, and held at 0 once under
+ * 0. Only MissionSetup_BattleChoice_Update writes it. */
 // GLOBAL: XVT 0x66D888
 int g_battleChoiceRemainingMs = 0;
+/* GetTickCount() at the battle choice countdown's previous frame, in ms; the
+ * difference to g_battleChoiceClockMs is the time elapsed. Only
+ * MissionSetup_BattleChoice_Update writes it. */
 // GLOBAL: XVT 0x66D88C
 int g_battleChoicePreviousClockMs = 0;
+/* Rows of the battle choice screen's mission list: available entries plus
+ * section headings. Only MissionSetup_BattleChoice_DrawList writes it, on its
+ * frame 0. */
 // GLOBAL: XVT 0x66D890
 int g_battleChoiceRowCount = 0;
+/* Whole seconds left when the host last sent BRIEFING_COUNTDOWN; 120 on the
+ * battle choice screen's frame 0. Only MissionSetup_BattleChoice_Update writes
+ * it. */
 // GLOBAL: XVT 0x66D894
 int g_battleChoiceLastSentSecond = 0;
+/* 1 once the battle choice countdown has run out and been handled, so the
+ * captain's choice is sent once; 0 on the screen's frame 0. Only
+ * MissionSetup_BattleChoice_Update writes it. */
 // GLOBAL: XVT 0x66D898
 int g_battleChoiceTimeoutHandled = 0;
+/* 1 while the mission setup screens use g_pilotData.factionStatistics[2], the
+ * mission state of games outside solo play, rather than the current faction's
+ * entry. MissionSetup_Update, its only writer, sets it on frame 0: 1 outside a
+ * solo game, 0 in one. MissionSetup_Exit saves the state back to the entry it
+ * names. */
 // GLOBAL: XVT 0x665D24
 int g_missionSetupUseCombatSimPilotState = 0;
+/* Panel the network mission setup screen shows below the description: the
+ * player roster or the game settings. MissionSetup_Update sets the roster on
+ * frame 0, and MissionSetup_DrawMissionTypeControls's Players and Settings
+ * buttons switch it. */
 // GLOBAL: XVT 0x665D10
 MissionSetupActivePanel g_missionSetupActivePanel = MISSION_SETUP_PANEL_PLAYERS;
+/* GetTickCount() when the host last sent the ready roster and lobby selection,
+ * in ms. MissionSetup_Update, its only writer, sets it on frame 0 and after
+ * each send. */
 // GLOBAL: XVT 0x665D14
 int g_missionSetupLastHostBroadcastMs = 0;
+/* Rows of the mission setup screen's mission list: available missions plus
+ * section headings. Only MissionSetup_DrawMissionList writes it, on its frame
+ * 0. */
 // GLOBAL: XVT 0x665D1C
 int g_missionSetupMissionListRowCount = 0;
+/* First row the mission setup screen's mission list shows. Only
+ * MissionSetup_DrawMissionList writes it: on its frame 0, and from its
+ * scrollbar. */
 // GLOBAL: XVT 0x665D20
 int g_missionSetupMissionListScrollOffset = 0;
+/* Index in g_mpRoster of the player the host selected in the roster, whom the
+ * boot button removes; -1 for none. MissionSetup_Update sets -1 on frame 0 and
+ * on a lobby state, MissionSetup_DrawMissionList on a lobby state, and
+ * MissionSetup_DrawPlayerRoster sets or clears it on a click. */
 // GLOBAL: XVT 0x665D18
 int g_missionSetupSelectedPlayerRosterIndex = 0;
+/* On a network client, whether the host's selected battle has an active saved
+ * continuation, from the host's BATTLE_PROGRESS packet
+ * (FrontendNet_ProcessNetworkPackets). Set to 0 by MissionSetup_Update on frame
+ * 0, and when a sequence starts without continuing by
+ * MissionSetup_TeamAssignmentUpdate in the original build and
+ * XvtCampaignTask_EnterTeams in the modern one. */
 // GLOBAL: XVT 0xAA6120
 int g_remoteBattleContinuationActive = 0;
+/* On a network client, the host's continue choice from BATTLE_PROGRESS
+ * (SEQUENCE_RESTART or SEQUENCE_CONTINUE); written and cleared as
+ * g_remoteBattleContinuationActive is. */
 // GLOBAL: XVT 0xAA6124
 int g_remoteBattleSequenceContinuationChoice = 0;
+/* On a network client, the current mission index of the host's saved battle,
+ * from BATTLE_PROGRESS; written and cleared as g_remoteBattleContinuationActive
+ * is. Nothing reads it. */
 // GLOBAL: XVT 0xAA6128
 int g_remoteBattleLastCompletedMissionIndex = 0;
+/* On a network client, the Rebel victories of the host's saved battle, from
+ * BATTLE_PROGRESS; written and cleared as g_remoteBattleContinuationActive
+ * is. */
 // GLOBAL: XVT 0xAA612C
 int g_remoteBattleRebelVictoryCount = 0;
+/* On a network client, the Imperial victories of the host's saved battle, from
+ * BATTLE_PROGRESS; written and cleared as g_remoteBattleContinuationActive
+ * is. */
 // GLOBAL: XVT 0xAA6130
 int g_remoteBattleImperialVictoryCount = 0;
+/* 1 when a screen hands back to an earlier one that should keep its state
+ * rather than start over: the team assignment screen then keeps and prunes its
+ * assignments, the flight assignment screen keeps its flight groups, and the
+ * join screen keeps its game list or, for a transport other than IPX, returns
+ * to the concourse. Many functions write it, chiefly the mission setup,
+ * briefing and debriefing screens when they go back (1), the team assignment
+ * and join screens once they have read it (0), and the flight assignment
+ * screen, which sets 1 after its own setup. */
 // GLOBAL: XVT 0x52C184
 int g_frontendSkipScreenEntrySetup = 0;
+/* Frames before the host's Begin button on the mission setup screen shows
+ * again: 240 after a Begin press, 24 when FrontendNet_ProcessNetworkPackets
+ * admits a joining player. MissionSetup_Update sets it to 0 on frame 0 and
+ * lowers it by 1 each frame. */
 // GLOBAL: XVT 0xAA6140
 int g_missionSetupBeginButtonLockoutFrames = 0;
+/* 1 while the team assignment screen shows the mission description in place of
+ * the team slots, a choice offered in combat engagement sequences. Set by
+ * MissionSetup_UpdateTeamControls's buttons, and to 0 on the screen's frame 0
+ * by MissionSetup_TeamAssignmentUpdate in the original build and
+ * XvtCampaignTask_EnterTeams in the modern one. */
 // GLOBAL: XVT 0x6691D0
 int g_missionSetupShowDescriptionPanel = 0;
+/* GetTickCount() at the flight assignment countdown's latest frame, in ms. Only
+ * MissionSetup_FlightAssignmentUpdate writes it. */
 // GLOBAL: XVT 0x6691D8
 int g_missionSetupCountdownClockMs = 0;
+/* Milliseconds left before the flight assignments are final: 120000 on the
+ * flight assignment screen's frame 0, lowered each frame by the time elapsed
+ * and to a countdown packet's value when that is lower, and held at 0 once
+ * under 0. Only MissionSetup_FlightAssignmentUpdate writes it. */
 // GLOBAL: XVT 0x669250
 int g_missionSetupLaunchCountdownMs = 0;
+/* GetTickCount() at the flight assignment countdown's previous frame, in ms;
+ * the difference to g_missionSetupCountdownClockMs is the time elapsed. Only
+ * MissionSetup_FlightAssignmentUpdate writes it. */
 // GLOBAL: XVT 0x669254
 int g_missionSetupCountdownPreviousClockMs = 0;
+/* 1 once this player, as its team's captain, sent FLIGHT_ASSIGNMENTS_READY when
+ * the flight assignment countdown ran out; 0 on the screen's frame 0. Only
+ * MissionSetup_FlightAssignmentUpdate writes it. */
 // GLOBAL: XVT 0x669788
 int g_missionSetupLaunchSignalSent = 0;
+/* Whole seconds left when the host last sent the flight assignment countdown;
+ * 120 on the screen's frame 0. Only MissionSetup_FlightAssignmentUpdate writes
+ * it. */
 // GLOBAL: XVT 0x66978C
 int g_missionSetupLastBroadcastCountdownSecond = 0;
+/* 1 while the flight assignment screen shows the mission description and the
+ * full flight slot list in place of the briefing map, for a team with more than
+ * 4 player flight groups. Written by MissionSetup_FlightAssignmentUpdate on
+ * frame 0 and by MissionSetup_DrawAssignmentControls's buttons. */
 // GLOBAL: XVT 0x669790
 int g_missionSetupUseExpandedAssignmentLayout = 0;
+/* How the debriefing hands back to the mission setup screens: replaying the
+ * current mission or going on to the next. MissionSetup_TeamAssignmentUpdate,
+ * finding it set, clears it and goes straight to flight assignment; while it is
+ * ENTER_CURRENT_MISSION no saved campaign or battle is offered on entry.
+ * Written by MissionDebrief_Update and MissionSetup_TeamAssignmentUpdate. */
 // GLOBAL: XVT 0xA91B8C
 MissionSetupDebriefTransition g_missionSetupDebriefTransition =
 	MISSION_SETUP_DEBRIEF_TRANSITION_NONE;
 
+/* The mission setup screen's exit callback. Frees g_missionList and
+ * g_missionText and sets both to NULL, frees the "background" image, and saves
+ * the pilot's team, mission type, selected mission per type and sequence fields
+ * back into g_pilotData.factionStatistics: entry 2 while
+ * g_missionSetupUseCombatSimPilotState is set, else the current faction's
+ * entry. Then resets the scrollable controls and clears the mouse input gate.
+ * Ignores frameCounter and returns 0. */
 // FUNCTION: XVT 0x4E1470
 int MissionSetup_Exit(int frameCounter)
 {
@@ -245,6 +511,51 @@ int MissionSetup_Exit(int frameCounter)
 	return 0;
 }
 
+/* The mission setup screen, run once per frame: the player picks a mission type
+ * and a mission, a network game's players gather, and Begin moves on to
+ * MissionSetup_TeamAssignmentUpdate. Below, "outside a solo game" means
+ * g_frontendMissionSessionMode is not FRONTEND_MISSION_SESSION_SINGLEPLAYER. On
+ * frame 0 it resets the screen: it compacts g_mpRoster; clears
+ * g_frontendBriefingEnteredCount, g_missionSetupBeginButtonLockoutFrames and
+ * the five g_remoteBattle globals; loads the pilot's mission state from
+ * g_pilotData.factionStatistics, entry 2 outside a solo game (setting
+ * g_missionSetupUseCombatSimPilotState to 1), else the current faction's entry
+ * (setting it to 0); allocates the 4096-byte g_missionText; and clears the
+ * three sequence states. A sequence left active (missionSequenceActive 1) puts
+ * missionSequenceDescriptionId back as the current type's selected mission and
+ * moves the mission type from melee to tournament, from combat engagement to
+ * battle, and from any other type to campaign; missionSequenceActive is then
+ * cleared. It loads the mission, its text and team counts, clamps the
+ * g_gameConfig settings the mission type does not allow, takes a saved battle's
+ * length and setup choice or a saved campaign's setup choice, and clears the
+ * eight network player slots and g_mpRosterReadyFlags; a solo game fills roster
+ * entry 0 from the pilot. Every frame outside a solo game, the host sends the
+ * ready roster and lobby selection when more than 5000 ms have passed since
+ * g_missionSetupLastHostBroadcastMs, and the packet type
+ * FrontendNet_ProcessNetworkPackets returns is handled: a lobby state loads the
+ * host's mission; a host cancel shuts the session down and leaves for the
+ * concourse or the join screen; a mission start sets
+ * g_missionSetupRosterAuthoritative and moves to team assignment; a kick sends
+ * a leave packet, shuts the session down and leaves; a pilot rating updates its
+ * sender's roster entry. Its branch for a PLAYER_UNAVAILABLE packet never runs:
+ * FrontendNet_ProcessNetworkPackets returns NET_PACKET_NONE for one. Then it
+ * draws the game name (outside a solo game), title, mission name, description,
+ * chat panel, version and pilot, and the settings panel (always in a solo game)
+ * or the player roster, and handles the Quick Start or Previous button, the
+ * Begin button, the mission list button, the mission type controls and, for a
+ * network host on the players panel, the button that boots the selected player.
+ * In a solo game Begin and Quick Start move to team assignment, first picking a
+ * tournament, battle or campaign's first mission and staying when
+ * MissionSetup_SelectFirstSequenceMission returns 0; Begin sets
+ * g_gameConfig.randomSeed before that pick, and Quick Start sets
+ * g_frontendQuickStartLaunchFlag. A host's Begin is refused when the first
+ * character of the mission's file name, read as a digit, is under the ready
+ * player count; otherwise it picks a sequence's first mission likewise and
+ * sends the lobby state and a mission start packet; either way it locks the
+ * button for 240 frames. In the modern build each dialog returns 0 at once and
+ * the action after it runs when the dialog closes. Returns 1 when
+ * Frontend_HandleCommonScreenControls returns 1, the player having quit the
+ * game; else 0. */
 // FUNCTION: XVT 0x4E15D0
 int MissionSetup_Update(int frameCounter)
 {
@@ -1207,6 +1518,34 @@ int MissionSetup_Update(int frameCounter)
 	return 0;
 }
 
+/* Draws the mission type buttons on the mission setup screen and handles clicks
+ * on them; called each frame by MissionSetup_Update. The eight navigation
+ * lights show the selected mission type and, in a network game, the Players or
+ * Settings panel, or in a solo game the pilot's faction. In a solo game the
+ * Rebel and Imperial pilot buttons save the current faction's mission state
+ * into g_pilotData.factionStatistics and load the other faction's, keeping the
+ * mission type and, when the new list holds it, the selected mission. In a
+ * network game the Players and Settings buttons set g_missionSetupActivePanel.
+ * For the host or a solo player, a click on an unselected mission type button
+ * sets g_pilotData.missionDirectoryId, loads that type's mission and its text,
+ * and selects the first available mission when the stored one is marked
+ * unavailable (for campaigns, also when it is missing); a right click on the
+ * selected button steps g_selectedMissionListIndex back to the previous
+ * available mission and a left click forward to the next, wrapping, and a
+ * network host then calls MissionSetup_SendLobbyState. A new type also sets
+ * g_gameConfig.continueBattleOrCampaign to SEQUENCE_CONTINUE and clears the
+ * settings it does not allow: easy cheat difficulty (all types but campaign),
+ * player choice setup (all but battle; campaign sets sequential setup outright)
+ * and, outside a solo game, unlimited waves (battle and combat engagement).
+ * Outside a solo game it also sets g_gameConfig.missionTimeLimit to 255
+ * (written as -1), which the settings show as Default, when it moves to
+ * training, and when it moves between groups (melee and tournament; combat
+ * engagement and battle; campaign), except from training to campaign. A battle
+ * then takes its saved length and setup choice, a campaign its setup choice.
+ * Returns 1 when the faction, the panel or the mission type changed, or when a
+ * step through the training missions changed the IFF of the mission's first
+ * flight group with a player; else 0. Does not check that any mission is
+ * available: a step loops forever when every entry is unavailable. */
 // FUNCTION: XVT 0x4E2970
 int MissionSetup_DrawMissionTypeControls(void)
 {
@@ -3292,6 +3631,24 @@ int MissionSetup_DrawMissionTypeControls(void)
 	return changed;
 }
 
+/* Loads the mission list of a mission type into g_missionList and
+ * g_missionCount, freeing the old list first. The file is "<type>\mission.lst"
+ * in a network game; in a solo game or with no session, training, combat
+ * engagements and campaigns read rebel.lst or imperial.lst by the pilot's
+ * faction, and melees, tournaments and battles read mission.lst. In the modern
+ * build a list that cannot be opened ends the program; the original build asks
+ * for the game's CD until it opens, and Cancel returns with an empty list.
+ * Lines starting with "//" are skipped and a "[name]" line names the section of
+ * the entries after it. Each entry is three lines: the mission id, the file
+ * name (lowercased) and the description. A file name starting with "&" marks
+ * the entry unavailable; one starting with "*" carries two numbers, from its
+ * third character, that are read and dropped, and marks the entry unavailable
+ * while the campaign mission with the entry's id has never been flown: by the
+ * current faction in a solo game, else by either faction. A list that ends
+ * early keeps the entries completed. Does not check the type id: outside 0 to 5
+ * a solo game opens whatever name g_frontendScratchBuffer held and a network
+ * game reads past g_missionDirectoryNames. A failed allocation returns with
+ * g_missionList NULL and g_missionCount still holding the count. */
 // FUNCTION: XVT 0x4E5000
 void MissionSetup_LoadMissionList(int missionDirectoryId)
 {
@@ -3503,6 +3860,16 @@ void MissionSetup_LoadMissionList(int missionDirectoryId)
 	File_Close(stream);
 }
 
+/* Fills the 4096-byte outText4096 with the description of the selected mission
+ * (the entry of g_missionList matching g_pilotData's description id for the
+ * current mission type), zeroing it first. For a tournament, battle or campaign
+ * it reads the sequence file as text: the first line gives a count of lines to
+ * skip, and the printable characters and newlines of the rest are copied, at
+ * most 4095 of them. Any other mission file is read by its format word: 14 or
+ * 13 takes the file's last 4096 bytes, 12 its last 1024, each ended with a NUL
+ * in its last byte; another version leaves the text empty. Returns at once, the
+ * text empty, when outText4096 is NULL, no entry matches or the file does not
+ * open. */
 // FUNCTION: XVT 0x4E5590
 void MissionSetup_LoadMissionDescText(char *outText4096)
 {
@@ -3597,6 +3964,19 @@ void MissionSetup_LoadMissionDescText(char *outText4096)
 	File_Close(stream);
 }
 
+/* Draws the mission description box of the mission setup screen: a heading for
+ * a tournament, battle, campaign or other mission, then g_missionText wrapped,
+ * with a scrollbar that sets g_frontendFirstVisibleLine when the text's wrapped
+ * line count (from a draw starting at line 4096) plus one is over 9. For a
+ * battle whose saved continuation is in use the heading is followed by the
+ * Imperial and Rebel victory counts: in a solo game or for a network host,
+ * counted over the saved results up to the current mission index, at most 10;
+ * for a network client, g_remoteBattleImperialVictoryCount and
+ * g_remoteBattleRebelVictoryCount. In use means the continuation is active and
+ * g_gameConfig.continueBattleOrCampaign is not SEQUENCE_RESTART, or for a
+ * client, g_remoteBattleContinuationActive and
+ * g_remoteBattleSequenceContinuationChoice both nonzero. Returns 1. Does not
+ * check g_missionList for a battle. */
 // FUNCTION: XVT 0x4E5810
 int MissionSetup_DrawMissionDescription(void)
 {
@@ -3773,6 +4153,23 @@ int MissionSetup_DrawMissionDescription(void)
 	return 1;
 }
 
+/* Draws the Players in Game panel of the mission setup screen: each g_mpRoster
+ * entry with a nonzero playerId, four to a column, as its rating and name, or
+ * the join in progress text when it has neither; the local player's entry
+ * pulses, as does every entry in a solo game. Sets
+ * g_frontendGameSessionInProgress to 1 when Net_CountReadyPlayers returns more
+ * than 1, else 0. Outside a solo game, over TCP/IP with internet play or over a
+ * modem, each player but the host gets a latency light, light1 to light6 for
+ * the average latency (capped at 749 ms) divided by 125, plus 1, and a
+ * dropped-packet light, drop1 to drop6; a second pass gives each light a
+ * tooltip with the latency, the dropped-packet percent and a quality rating,
+ * 100 - latencyPenalty - 10 * dropPenalty / 100, where latencyPenalty is the
+ * latency less 100, divided by 25, and dropPenalty is the drop rate in
+ * hundredths of a percent less 100, each penalty kept from going under 0 and
+ * the rating too. A network host that clicks another player's entry, left or
+ * right, stores its index in g_missionSetupSelectedPlayerRosterIndex, or -1
+ * when it was already selected; the selected entry is drawn on navy. Returns
+ * 1. */
 // FUNCTION: XVT 0x4E5B90
 int MissionSetup_DrawPlayerRoster(int frameCounter)
 {
@@ -3973,6 +4370,17 @@ int MissionSetup_DrawPlayerRoster(int frameCounter)
 	return 1;
 }
 
+/* Sends a lobby selection packet to every player; MissionSetup_Update calls it
+ * on the host when more than 5000 ms have passed since the last. Counting the
+ * packet type as word 0, words 1 to 8 carry the game name, 10 and 11 the
+ * mission type and its selected description id, 12 the value 8, and from word
+ * 14 six words per player: id, pilot rating, average latency in ms, and its
+ * packet, dropped packet and retry counts. While
+ * g_missionSetupRosterAuthoritative is set it first clears the playerId of each
+ * g_mpRoster entry with no ready network player of that id, then sends all
+ * eight entries and 8 in word 13; otherwise it sends each ready network player,
+ * its rating being the first byte of its player info minus 1, and the ready
+ * count in word 13. Word 9 is not set. Returns 1. */
 // FUNCTION: XVT 0x4E6120
 int MissionSetup_BroadcastLobbySelection(void)
 {
@@ -4084,6 +4492,23 @@ int MissionSetup_BroadcastLobbySelection(void)
 	return 1;
 }
 
+/* Sends the host's lobby state to toPlayerId, 0 meaning every player. First a
+ * STATE packet: counting the type as word 0, words 1 to 8 carry the game name,
+ * 10 and 11 the mission type and its selected description id, 12 the value 8,
+ * and from word 14 three words per player: id, pilot rating and average latency
+ * in ms. While g_missionSetupRosterAuthoritative is set it first refreshes each
+ * g_mpRoster entry's rating from its ready network player, or clears its
+ * playerId when there is none, sends all eight entries with 8 in word 13, and
+ * then a LOADOUT_ROSTER packet with each entry's five loadout fields. Otherwise
+ * it sends each ready network player, its rating being the first byte of its
+ * player info minus 1, with Net_CountReadyPlayers() in word 13, and for a
+ * battle a BATTLE_PROGRESS packet: whether the selected mission's saved
+ * continuation is active (the solo one in a solo game, else the network one),
+ * the continue choice, its current mission index, and the Rebel and Imperial
+ * victories over its results up to that index, at most 10. Last a GAME_OPTIONS
+ * packet of 19 words: the type, g_gameConfig settings, and in word 13 a rand()
+ * value. Word 9 of the STATE packet is not set. Returns what
+ * Net_SendPacketAndFlush returns for the options packet. */
 // FUNCTION: XVT 0x4E6310
 int MissionSetup_SendLobbyState(int toPlayerId)
 {
@@ -4364,6 +4789,11 @@ int MissionSetup_SendLobbyState(int toPlayerId)
 				      19 * sizeof(packetWords[0]));
 }
 
+/* Sends a READY_ROSTER packet to toPlayerId, 0 meaning every player (its one
+ * caller, MissionSetup_Update, passes 0): 8, the ready player count, then for
+ * each ready network player its id, its rating (the first byte of its player
+ * info minus 1) and its average latency in ms. Returns what
+ * Net_SendPacketAndFlush returns. */
 // FUNCTION: XVT 0x4E6750
 int MissionSetup_BroadcastReadyRoster(int toPlayerId)
 {
@@ -4399,6 +4829,28 @@ int MissionSetup_BroadcastReadyRoster(int toPlayerId)
 		(unsigned int)(packetWordCount * sizeof(int)));
 }
 
+/* The mission list that drops down on the mission setup screen, a pushed screen
+ * run each frame. On frame 0 it counts the rows in
+ * g_missionSetupMissionListRowCount, one per available mission and one per
+ * section heading, and sets g_missionSetupMissionListScrollOffset to the
+ * selected mission's index in g_missionList, or 0 when the count is under 20.
+ * Outside a solo game a lobby state from the host loads the host's mission, as
+ * MissionSetup_Update does. It draws up to 19 rows, section headings red and
+ * missions white, the selected one yellow and, outside a solo game, a
+ * single-player mission (file name starting with "1") gray, with a scrollbar
+ * when there are more rows; then each mission's award beside it: a medal
+ * (medlvl) or, for training and combat engagements, a citation (citlvl for the
+ * Imperial faction, rcitlvl for the Rebel), with a tooltip naming it. A solo
+ * game shows the current faction's award; otherwise the lower nonzero award
+ * level of the two factions, the tooltip naming each faction's. A click on a
+ * mission selects it (outside a solo game only when its file name does not
+ * start with "1"), takes a saved battle's length and setup or a saved
+ * campaign's setup, loads the mission and its text and, outside a solo game,
+ * sends the lobby state; a click on a mission row, or a click outside the list,
+ * closes the list. Returns 0. When g_missionList is NULL it pops the screen and
+ * goes on drawing. In a solo game a campaign picked here takes its setup from
+ * spCampaignContinuations at the mission id plus 12 unless Net_IsHost returns
+ * nonzero. */
 // FUNCTION: XVT 0x4E67F0
 int MissionSetup_DrawMissionList(int frameCounter)
 {
@@ -5271,6 +5723,26 @@ int MissionSetup_DrawMissionList(int frameCounter)
 	return 0;
 }
 
+/* Starts the tournament, battle or campaign selected on the mission setup
+ * screen at its first mission. Opens the sequence file of the g_missionList
+ * entry matching the selected description id; its first line is the mission
+ * count, stored in meleeTournamentSequenceState.missionCount for a tournament
+ * and campaignSequenceState.missionCount for a campaign. For a battle it sets
+ * battleSequenceState.victoriesNeeded to g_gameConfig.battleLengthIndex + 2,
+ * seeds rand with GetTickCount, and stores the first mission's ordinal in
+ * missionOrdinals[0]: rand() % count when g_gameConfig.randomSetup is nonzero,
+ * else 0. The mission file is named on line ordinal + 1 after the count line.
+ * It then sets missionSequenceActive to 1, moves the mission type to the one
+ * the sequence plays (tournament to melee, battle to combat engagement,
+ * campaign to training), saves that type's selected mission in
+ * missionSequenceDescriptionId, loads its list, selects the mission whose file
+ * name matches the line lowercased (for a combat engagement also storing its id
+ * in battleSequenceState.currentMissionId), and stores its list index in
+ * battleSequenceState.missionListIndices[0] whatever the type. Returns 1.
+ * Returns 0 when the file does not open or is empty, or the mission's line is
+ * empty; by then the count, and for a battle the victories and first ordinal,
+ * may already be stored. Does not check a count of 0, which divides by zero
+ * with random setup, or a selected mission missing from the list. */
 // FUNCTION: XVT 0x4E79A0
 int MissionSetup_SelectFirstSequenceMission(void)
 {
@@ -5420,6 +5892,30 @@ int MissionSetup_SelectFirstSequenceMission(void)
 	return 1;
 }
 
+/* Draws the Mission Settings panel of the mission setup screen in two columns
+ * of 6 rows. The host or a solo player clicks a value to change it, a right
+ * click stepping the time limits back; other players see each value in yellow.
+ * The rows: for a battle or campaign with a saved continuation, its status,
+ * Restart or Continue, which toggles g_gameConfig.continueBattleOrCampaign and
+ * on Continue takes back the saved length and setup choice (a client sees
+ * g_remoteBattleSequenceContinuationChoice while
+ * g_remoteBattleContinuationActive is set); for the host outside a solo game,
+ * whether joining needs a password; outside a solo game, combat balance for a
+ * combat engagement or battle, else difficulty (Easy to Hard, and for a
+ * campaign also the easy cheat level); outside a solo game the mission time
+ * limit (none, default, 1 to 20 minutes) and the last team's time limit (none,
+ * 1 to 10 minutes); for a battle its length (2 to 4 wins); but for a campaign
+ * the random setup (off or on, and for a battle also the player's choice);
+ * outside a solo game AI opponents for a melee or tournament, craft selection
+ * but for a campaign (off, on, host only; host only becomes off outside a melee
+ * or tournament, for every player, each frame), and locate players; and for
+ * everyone craft waves (none, default, unlimited; unlimited is skipped outside
+ * a solo game for a combat engagement or battle) and starfighter collisions. A
+ * battle's length and random setup stay fixed while its saved continuation is
+ * active and Continue is chosen; the random setup row also tests a campaign's
+ * continuation, but campaigns never show that row. When a value changed outside
+ * a solo game it sends the 19-word GAME_OPTIONS packet to every player, laid
+ * out as MissionSetup_SendLobbyState lays it out. Returns 1. */
 // FUNCTION: XVT 0x4E7CE0
 int MissionSetup_DrawGameSettings(void)
 {
@@ -6411,6 +6907,11 @@ int MissionSetup_DrawGameSettings(void)
 	return 1;
 }
 
+/* Counts the entries of a mission list file from the stream's position, as
+ * MissionSetup_LoadMissionList reads them: lines starting with "//" and
+ * "[section]" lines are skipped, and each entry is three lines; an entry the
+ * file ends inside is not counted. Returns the count and leaves the stream at
+ * its end. The section name it copies into a local is never used. */
 // FUNCTION: XVT 0x4E9230
 int MissionSetup_CountMissionListEntries(XvtFile *stream)
 {
@@ -6453,6 +6954,17 @@ int MissionSetup_CountMissionListEntries(XvtFile *stream)
 	}
 }
 
+/* Loads the background for the current mission type into the "background" image
+ * and draws the mission setup screen's base into the offscreen surface:
+ * background, frame, "allactive" while g_hostCdAvailable is set, else
+ * "clientactive", the chat box outside a solo game, and the overlay. In a solo
+ * game the background is chosen by mission type and, for training, combat
+ * engagements, battles and campaigns, by the pilot's faction (0 for Rebel);
+ * outside a solo game a training mission's comes from the IFF of its first
+ * flight group with a player (0 for Rebel), a campaign's from
+ * MissionSetup_UseRebelBackground, and the rest by type alone. Tournaments, and
+ * any type id not listed, take gametrn. Returns 1. Does not check that a
+ * network training mission has a flight group with a player. */
 // FUNCTION: XVT 0x4E9330
 int MissionSetup_DrawBackground(void)
 {
@@ -6577,6 +7089,13 @@ int MissionSetup_DrawBackground(void)
 	return 1;
 }
 
+/* Tells which background a network campaign gets: opens the selected campaign's
+ * sequence file, takes its second line as the first mission's file name in the
+ * training directory, loads that mission into a local copy, and returns 1 when
+ * the IFF of its first flight group with a player is 0 (Rebel), else 0. Returns
+ * 1 when the campaign file does not open or has no second line. Does not check
+ * that the mission file opened: when it did not, the result comes from an unset
+ * local copy. */
 // FUNCTION: XVT 0x4E9560
 int MissionSetup_UseRebelBackground(void)
 {
@@ -6638,6 +7157,26 @@ int MissionSetup_UseRebelBackground(void)
 	return 1;
 }
 
+/* Draws the local player's craft on the mission briefing's craft screen; called
+ * by mission_briefing.c. First the model preview of the chosen craft, in a
+ * larger box in a solo game, turned to fixed angles and placed at
+ * g_modelPreviewCraftPositions for its type; in a melee or tournament it shows
+ * the flight group's markings, plus 1 (past 3 back to 0) for craft other than
+ * types 1 to 4, 14 and 16. Then the craft type, craft count and wave count on
+ * the left (a wave count of none shows 1, unlimited shows its name, otherwise
+ * g_missionSetupSelectedWaveCountMinusOne + 1) and the warhead, beam weapon and
+ * countermeasure on the right. Once the local player is marked ready in
+ * g_mpRosterReadyFlags outside a solo game, everything is gray. Otherwise the
+ * craft values are drawn in color code 1 when there is more than one craft
+ * choice and craft selection is allowed (in a training sequence only at the
+ * easy cheat difficulty, outside a solo game as g_gameConfig.craftSelection
+ * says), else in code 4; the warhead and countermeasure values in code 1 when
+ * there is more than one choice and the loadout is not locked, which happens
+ * only in a training sequence below the easy cheat difficulty, else in code 4;
+ * and the beam value in yellow when there is one choice or the loadout is
+ * locked. The beam line is left out for craft types 1 to 5 and 14. Does not
+ * check that the local player has a g_mpRoster entry: without one it reads
+ * g_mpRosterReadyFlags[8], past the array's end. */
 // FUNCTION: XVT 0x4EC0B0
 void MissionSetup_DrawCraftLoadout(void)
 {
@@ -7048,6 +7587,18 @@ void MissionSetup_DrawCraftLoadout(void)
 				       &rect, 0, 1, 0xFFFF);
 }
 
+/* Draws the table of the players' craft and loadouts on the mission briefing's
+ * craft screen; called by mission_briefing.c. Its headings sit at y
+ * 341 - (15 * readyCount >> 1), readyCount being Net_CountReadyPlayers(). The
+ * local player's row comes first, then the others: rating and name, craft,
+ * warhead, beam and countermeasure, gray once the player is marked ready in
+ * g_mpRosterReadyFlags, else yellow, the local name (every name in a solo game)
+ * pulsing until then. For training, combat engagements and battles the other
+ * players on the pilot's team (g_pilotData.team) follow, then the rest with the
+ * not on your team text in place of a loadout. For any other mission type every
+ * other player follows, with "----" in place of the loadout when the flight
+ * group assigned to the player's slot, found among the first g_teamCount teams,
+ * is -1. */
 // FUNCTION: XVT 0x4ECB90
 void MissionSetup_DrawPlayerLoadouts(int frameCounter)
 {
@@ -7537,6 +8088,32 @@ void MissionSetup_DrawPlayerLoadouts(int frameCounter)
 	}
 }
 
+/* Handles the loadout buttons of the mission briefing's craft screen; called by
+ * mission_briefing.c each frame. Next and previous craft, warhead, beam weapon
+ * and countermeasure are each lit when there is more than one choice and the
+ * player may change the loadout: a solo player may; in a training sequence
+ * (training type with missionSequenceActive 1), in either kind of game, only at
+ * the easy cheat difficulty; outside a solo game otherwise as
+ * g_gameConfig.craftSelection says: on for everyone, host only for the host,
+ * off for no one. The beam button is also unlit for craft types 1 to 5 and 14.
+ * The warhead, beam and countermeasure buttons step their
+ * g_missionSetupSelected option forward on a left click and back otherwise,
+ * wrapping. The craft buttons step
+ * g_missionSetupSelectedPresetCraftOptionIndex, skipping the preset that is the
+ * flight group's own craft, or else
+ * g_missionSetupSelectedFlightGroupCraftOptionIndex, which also sets
+ * g_missionSetupSelectedCraftCount and g_missionSetupSelectedWaveCountMinusOne
+ * from the option; in a melee or tournament sequence past its first mission
+ * they also step past craft of the other faction (types 1 to 4 and 14 are
+ * Rebel). A new craft loads its model into the preview and, in a melee or
+ * tournament, swaps the background between the Rebel and Imperial craft screens
+ * by the craft's faction, setting g_missionBriefingCraftScreenFaction and
+ * redrawing the screen's base. When a choice changed outside a solo game it
+ * sends a 9-word CRAFT_LOADOUT packet to every player: counting the type as
+ * word 0, the flight group's optional craft category, the preset and flight
+ * group craft options, the warhead, beam and countermeasure options, the wave
+ * count minus one and the craft count. Returns 0. Does not check that some
+ * craft option fits the faction: the stepping then never ends. */
 // FUNCTION: XVT 0x4ED700
 int MissionSetup_UpdateCraftLoadout(void)
 {
@@ -8225,6 +8802,25 @@ int MissionSetup_UpdateCraftLoadout(void)
 	return 0;
 }
 
+/* Sets up the local player's craft and loadout choices for the mission
+ * briefing's craft screen; called by mission_briefing.c. Picks the flight
+ * group: in a solo game
+ * g_missionSetupPlayerFlightGroupIndices[g_pilotData.team * 8]; otherwise the
+ * one assigned to the slot of g_pilotData.team holding the local player's id,
+ * or g_missionSetupSelectedFlightGroupIndex as it was when no slot does. Stores
+ * it in g_missionSetupSelectedFlightGroupIndex, sets the five option indices to
+ * 0 and the wave and craft counts from the flight group, and sets the option
+ * counts: by the group's optional craft category, 0 gives one flight group
+ * choice, 1 the 11 presets, 2 and 3 six presets, and 4 the group's own optional
+ * craft plus 1 (unchanged for another category); warheads, beams and
+ * countermeasures each count the group's nonzero optional entries, plus 1 when
+ * there are any or the group has a default. In a melee or tournament sequence
+ * past its first mission, when the craft does not suit the pilot's faction (a
+ * Rebel craft, types 1 to 4 and 14, for an Imperial pilot, or any other craft
+ * for a Rebel pilot), it steps through the craft options until it reaches
+ * g_craftIffCounterpart of that craft; nothing changes when the counterpart is
+ * 0. Does not check that an option gives the counterpart: the stepping then
+ * never ends. */
 // FUNCTION: XVT 0x4EE1A0
 void MissionSetup_InitCraftLoadout(void)
 {
@@ -8479,6 +9075,15 @@ void MissionSetup_InitCraftLoadout(void)
 	}
 }
 
+/* Returns a player's warhead as the offset of its name from FRONTSTR_273_NONE
+ * (0 for none), through g_warheadTypeMap. With playerRosterIndex -1 it is the
+ * local choice: the selected flight group's default warhead when
+ * g_missionSetupSelectedWarheadOptionIndex is 0 or below, else its optional
+ * warhead at that index minus 1. For a g_mpRoster index it is that player's
+ * assigned flight group, searched over every team's first
+ * g_teamPlayerFlightGroupCount slots (a later match replacing an earlier one),
+ * and the entry's warheadOptionIndex the same way. Does not check that the
+ * player has a slot: the flight group index is then unset. */
 // FUNCTION: XVT 0x4EE510
 int MissionSetup_GetWarheadType(int playerRosterIndex)
 {
@@ -8541,6 +9146,14 @@ int MissionSetup_GetWarheadType(int playerRosterIndex)
 	return g_warheadTypeMap[warheadType];
 }
 
+/* Returns a player's beam weapon as the mission's beam code, 0 for none: always
+ * 0 for craft types 1 to 4 and 14, else the flight group's default beam when
+ * the option index is 0, or its optional beam at the index minus 1. With
+ * playerRosterIndex -1 it uses the local choice
+ * (g_missionSetupSelectedBeamOptionIndex and the selected flight group); for a
+ * g_mpRoster index, that entry's beamOptionIndex and the player's assigned
+ * flight group, found as MissionSetup_GetWarheadType finds it, unset when the
+ * player has no slot. */
 // FUNCTION: XVT 0x4EE650
 int MissionSetup_GetBeamType(int playerRosterIndex)
 {
@@ -8618,6 +9231,13 @@ int MissionSetup_GetBeamType(int playerRosterIndex)
 	}
 }
 
+/* Returns a player's countermeasure as the mission's countermeasure code, 0 for
+ * none: the flight group's default when the option index is 0, else its
+ * optional countermeasure at the index minus 1. With playerRosterIndex -1 it
+ * uses the local choice (g_missionSetupSelectedCountermeasureOptionIndex and
+ * the selected flight group); for a g_mpRoster index, that entry's
+ * countermeasureOptionIndex and the player's assigned flight group, found as
+ * MissionSetup_GetWarheadType finds it, unset when the player has no slot. */
 // FUNCTION: XVT 0x4EE7C0
 int MissionSetup_GetCountermeasureType(int playerRosterIndex)
 {
@@ -8685,6 +9305,16 @@ int MissionSetup_GetCountermeasureType(int playerRosterIndex)
 		.optionalCountermeasures[countermeasureOptionIndex - 1];
 }
 
+/* Returns the craft species a player flies. With playerRosterIndex -1, the
+ * local choice: when the selected flight group offers presets, its own craft
+ * for option 0, else g_presetCraftTypes at the option for categories 1 and 2
+ * and at the option plus 5 for category 3, and the option index itself for any
+ * other category; otherwise its own craft for flight group option 0, else its
+ * optional craft at the option minus 1. For a g_mpRoster index: the entry's
+ * craftTypeOverride when nonzero, else the assigned flight group's optional
+ * craft at craftOptionIndex itself when that, read as unsigned, is under 10 (so
+ * not for -1), else the group's own craft. The flight group is found as
+ * MissionSetup_GetWarheadType finds it, unset when the player has no slot. */
 // FUNCTION: XVT 0x4EE8E0
 int MissionSetup_GetCraftType(int playerRosterIndex)
 {
@@ -8767,6 +9397,14 @@ int MissionSetup_GetCraftType(int playerRosterIndex)
 	return g_frontendMission.flightGroups[flightGroupIndex].craftType;
 }
 
+/* Loads the ship list that the tech library and the briefing's craft screen
+ * draw models from, once: it does nothing while g_shipList is set. Allocates
+ * 100 entries in g_shipList, then reads frontres\frntspec.lst, a file name and
+ * a craft type per line, keeping only names whose last three characters,
+ * lowercased, are "opt"; sets g_shipTypeToShipListIndex[type] to the entry's
+ * index for types under 17 and g_shipCount to the count kept. When the file
+ * does not open it returns with g_shipList allocated and g_shipCount unchanged.
+ * Does not check for more than 100 entries, or for names under 3 characters. */
 // FUNCTION: XVT 0x4EEA80
 void ShipList_Load(void)
 {
@@ -8832,6 +9470,9 @@ void ShipList_Load(void)
 	g_shipCount = shipCount;
 }
 
+/* Exit callback of the MissionSetup_EnterNextMission screen: frees
+ * g_missionList and g_missionText, setting both to NULL, and the "background"
+ * image. Returns 0. */
 // FUNCTION: XVT 0x4F1190
 int MissionSetup_ExitNextMission(void)
 {
@@ -8847,6 +9488,23 @@ int MissionSetup_ExitNextMission(void)
 	return 0;
 }
 
+/* A one-frame screen the mission debriefing sets to go on to a tournament,
+ * battle or campaign's next mission. Clears g_frontendSkipScreenEntrySetup,
+ * puts missionSequenceDescriptionId back as the played mission type's selected
+ * mission, moves the mission type back to the sequence's own (training to
+ * campaign, else up by one), loads its list and selects its entry, resets the
+ * eight g_pilotData.networkPlayers results and choices, and calls
+ * MissionSetup_SelectNextSequenceMission, ignoring its result. Then sends a
+ * PILOT_RATING packet with the pilot's rating to every player and moves on. In
+ * a solo game it sets g_missionSetupIsHost and refills g_mpRoster with the
+ * pilot alone; outside one it sets g_missionSetupRosterAuthoritative and prunes
+ * the departed players and the team assignments. A training sequence (a
+ * campaign) goes to team assignment. A combat engagement sequence with the
+ * player's choice setup (g_gameConfig.randomSetup 2) past its first mission
+ * goes to MissionSetup_BattleChoice_Update when the previous mission's result
+ * is not equal to g_pilotData.team, or, outside a solo game, when the ready
+ * player count is not 1. Anything else goes to flight assignment. Ignores
+ * frameCounter and returns 0. */
 // FUNCTION: XVT 0x4F11E0
 int MissionSetup_EnterNextMission(int frameCounter)
 {
@@ -9007,6 +9665,20 @@ int MissionSetup_EnterNextMission(int frameCounter)
 	return 0;
 }
 
+/* Drops the players who left the lobby from the mission's assignments, using
+ * the lobby roster from Net_GetPlayerRoster. Clears each
+ * g_missionSetupPlayerAssignments.teamPlayerIds slot and each
+ * g_pilotData.networkPlayers directPlayId whose player is not a ready roster
+ * member; sets g_localPilotNetworkPlayerIndex to the networkPlayers entry
+ * holding the local player's id, when one does; and for each assignedPlayerIds
+ * slot holding 0, shifts the players of each of the first g_teamCount teams,
+ * with their g_missionSetupPlayerFlightGroupIndices, down over the team's slots
+ * holding 0, setting slot 7 to 0 and its flight group to -1. The shifting uses
+ * a player count of 1 in a solo game, else Net_CountReadyPlayers(), and does
+ * nothing when that count is 0. It clears an assignedPlayerIds slot that has no
+ * ready roster member, with the g_mpRoster entry of the same index, only when
+ * its search stops at index 8; with fewer than 8 players in the lobby roster no
+ * slot is cleared. Returns 1. */
 // FUNCTION: XVT 0x4F14A0
 int MissionSetup_PruneDisconnectedPlayers(void)
 {
@@ -9172,6 +9844,8 @@ int MissionSetup_PruneDisconnectedPlayers(void)
 	return 1;
 }
 
+/* Moves the g_mpRoster entries with a nonzero playerId to the front, keeping
+ * their order, and zeroes the entries they leave. Returns 1. */
 // FUNCTION: XVT 0x4F1680
 int MpRoster_CompactActiveEntries(void)
 {
@@ -9196,6 +9870,32 @@ int MpRoster_CompactActiveEntries(void)
 	return 1;
 }
 
+/* Moves an active tournament, battle or campaign on to its next mission; the
+ * mission type must be the sequence's own, as MissionSetup_EnterNextMission
+ * leaves it. Opens the sequence file of the g_missionList entry matching the
+ * selected description id and picks the next mission's ordinal: a tournament's
+ * meleeTournamentSequenceState.currentMissionIndex; a campaign's
+ * campaignSequenceState.currentMissionIndex, first lowered by 1 when
+ * lastMissionCompleted is 0, so the mission is flown again; for a battle, when
+ * the previous mission was a draw, battleSequenceState.currentMissionIndex is
+ * lowered by 1 and its stored ordinal reused; otherwise, with
+ * g_gameConfig.randomSetup nonzero, a rand() % count ordinal not yet used in
+ * this battle, rand being seeded with g_gameConfig.randomSeed; otherwise the
+ * current index. A battle stores the ordinal in
+ * missionOrdinals[currentMissionIndex]. The mission file is named on line
+ * ordinal + 1 after the count line; an ordinal below 0 reads no line, so the
+ * count line itself is taken as the name. Then, as
+ * MissionSetup_SelectFirstSequenceMission does, it sets missionSequenceActive
+ * to 1, moves to the played mission type, saves that type's selected mission in
+ * missionSequenceDescriptionId, loads its list, selects the named mission (for
+ * a combat engagement also storing its id in
+ * battleSequenceState.currentMissionId) and stores its list index in
+ * battleSequenceState.missionListIndices[currentMissionIndex] whatever the
+ * type; last it loads the mission and its team counts. Returns 1, or 0 when the
+ * file does not open or is empty, or the mission's line is empty. Does not
+ * check that a random draw can find an unused ordinal (it then never ends), or
+ * that a battle's currentMissionIndex is above 0 before it reads the previous
+ * result. */
 // FUNCTION: XVT 0x4F1700
 int MissionSetup_SelectNextSequenceMission(void)
 {
@@ -9372,6 +10072,9 @@ int MissionSetup_SelectNextSequenceMission(void)
 	return 1;
 }
 
+/* Exit callback of the MissionSetup_EnterCurrentMission screen: frees
+ * g_missionList and g_missionText, setting both to NULL, and the "background"
+ * image. Returns 0. */
 // FUNCTION: XVT 0x4F1AB0
 int MissionSetup_ExitCurrentMission(void)
 {
@@ -9387,6 +10090,16 @@ int MissionSetup_ExitCurrentMission(void)
 	return 0;
 }
 
+/* A one-frame screen the mission debriefing sets to fly the current mission
+ * again. Clears g_frontendSkipScreenEntrySetup, resets the eight
+ * g_pilotData.networkPlayers results and choices (craftId and the counts 0, the
+ * four options -1, hasLeft 0), and sends a PILOT_RATING packet with the pilot's
+ * rating to every player. In a solo game it sets g_missionSetupIsHost and
+ * refills g_mpRoster with the pilot alone; outside one it sets
+ * g_missionSetupRosterAuthoritative and prunes the departed players and the
+ * team assignments. Then a training sequence (a campaign) goes to team
+ * assignment and anything else to flight assignment. Ignores frameCounter and
+ * returns 0. */
 // FUNCTION: XVT 0x4F1B00
 int MissionSetup_EnterCurrentMission(int frameCounter)
 {
@@ -9468,6 +10181,57 @@ int MissionSetup_EnterCurrentMission(int frameCounter)
 	}
 }
 
+/* The team assignment screen, run once per frame: players are dragged into the
+ * mission's team slots, and Next moves on to flight assignment. On frame 0 the
+ * original build clears g_frontendChatTeamOnly,
+ * g_missionSetupShowDescriptionPanel and g_frontendFirstVisibleLine; asks for
+ * the game CD until it is found, Cancel returning 1 after, outside a solo game,
+ * telling the host or the players and shutting the session down; and leaves for
+ * the concourse when a client CD tries to host or fly solo. Then, entering a
+ * campaign or combat engagement sequence (g_frontendSkipScreenEntrySetup 0, not
+ * replaying the current mission), it continues a saved campaign or battle when
+ * there is one (MissionSetup_TryContinueCampaign or
+ * MissionSetup_TryContinueBattle), clearing the five g_remoteBattle globals
+ * when it does not, and plays a campaign's cutscenes through
+ * Cutscene_PlayForCurrentMissionPhase(0); a network player whose cutscene
+ * result is 0 leaves for the join screen. The modern build does all this in
+ * XvtCampaignTask_EnterTeams, which ends the program in place of the CD
+ * dialogs, and returns 0 until that returns 1. A pending debriefing transition
+ * then is cleared and goes straight to flight assignment. Otherwise it clears
+ * the drag and the reservations, loads the mission, and either clears the
+ * assignments and recounts the teams or, with g_frontendSkipScreenEntrySetup
+ * set, keeps them and prunes them. One team with one ready player puts roster
+ * entry 0 alone on team 0 and goes to flight assignment (back to
+ * MissionSetup_Update instead when skipping the entry setup). A solo combat
+ * engagement or battle puts the pilot on team currentFactionId ^ 1 and goes to
+ * the battle choice or flight assignment; a solo game with more teams,
+ * g_frontendSkipScreenEntrySetup and g_missionSetupTeamAssignmentSkipped set
+ * goes back to MissionSetup_Update. In other cases the ready players are dealt
+ * into the teams' free slots, one per team per round, in g_mpRoster order. A
+ * melee whose teams have one slot each, a solo Quick Start, and a training
+ * mission with one team of 8 slots also go straight to flight assignment. Every
+ * one of these skips past the teams, the debriefing one included, sets
+ * g_missionSetupTeamAssignmentSkipped. Else it draws the screen's base with a
+ * captain and slot overlay per team slot and allocates and loads g_missionText.
+ * Every frame it draws the mission name, title, help text, unassigned players,
+ * the team slots or the mission description, the chat panel and the pilot
+ * banner. Outside a solo game it handles one packet: a host cancel leaves for
+ * the join screen; a lobby state compacts g_mpRoster and prunes the teams; the
+ * final team assignments set g_pilotData.team and go to the battle choice or
+ * flight assignment; a return to setup goes back to MissionSetup_Update; the
+ * reservation packets update g_missionSetupReservedPlayerIds; and new or
+ * cleared assignments clear the reservations and end any drag. Previous, for
+ * the host or a solo player, returns a solo game to MissionSetup_Update and has
+ * a host send every player RETURN_TO_SETUP; for a campaign it first shows a
+ * confirm dialog whose answer neither build reads. A client's Leave asks, then
+ * tells the host and returns to the join screen. When the teams are valid, Next
+ * sets the solo pilot's team and goes to the battle choice or flight
+ * assignment, or for a host sends the final team assignments. Last it handles
+ * the team controls, draws a dragged name at the cursor and, when a click ends
+ * the drag, outside a solo game sends a RELEASE_TEAM_RESERVATION. Returns 1
+ * when Frontend_HandleCommonScreenControls returns 1 or the original build's CD
+ * dialog is cancelled; else 0. Does not check that the teams have a free slot
+ * for each ready player: the dealing then never ends. */
 // FUNCTION: XVT 0x4F1CC0
 int MissionSetup_TeamAssignmentUpdate(int frameCounter)
 {
@@ -10594,6 +11358,19 @@ int MissionSetup_TeamAssignmentUpdate(int frameCounter)
 	return 0;
 }
 
+/* Draws the Unassigned Players list of the team assignment screen: each of the
+ * first readyCount g_mpRoster entries (1 in a solo game, else
+ * Net_CountReadyPlayers()) whose player is in no assignedPlayerIds slot and is
+ * not being dragged, four to a column. A player in
+ * g_missionSetupReservedPlayerIds is gray, the local player (every player in a
+ * solo game) pulses, others are yellow. The host or a solo player starts a drag
+ * by pressing a mouse button on a name while the drag gate (2) is free: a solo
+ * game sets g_missionSetupDraggedPlayerId and takes the gate; a host does so
+ * only for a player not reserved, also adding it to
+ * g_missionSetupReservedPlayerIds, sending every player a TEAM_RESERVATION
+ * (player and host ids) and a TEAM_ASSIGNMENT to team 10, and taking the player
+ * out of assignedPlayerIds and out of every team, shifting the later slots
+ * down. Returns 1. */
 // FUNCTION: XVT 0x4F32B0
 int MissionSetup_DrawUnassignedPlayers(int frameCounter)
 {
@@ -10847,6 +11624,10 @@ int MissionSetup_DrawUnassignedPlayers(int frameCounter)
 	return 1;
 }
 
+/* Counts the player flight groups of the loaded mission (g_frontendMission) by
+ * team into g_teamPlayerFlightGroupCount, a flight group counting when its
+ * playerNumber is nonzero, and sets g_teamCount to the number of teams with at
+ * least one. Does not check that a flight group's team is under 10. */
 // FUNCTION: XVT 0x4F36D0
 void MissionSetup_UpdateTeamCounts(void)
 {
@@ -10877,6 +11658,27 @@ void MissionSetup_UpdateTeamCounts(void)
 	}
 }
 
+/* Draws the team slots of the team assignment screen and handles drops and
+ * drags on them, in two columns when there are 7 or 8 teams. Each heading is
+ * "Team n:" and the team's name, or for a combat engagement the name alone,
+ * with the side's wins while a continued battle sequence is shown
+ * (g_remoteBattleContinuationActive, g_remoteBattleSequenceContinuationChoice
+ * and missionSequenceActive 1): g_remoteBattleImperialVictoryCount for team 0,
+ * g_remoteBattleRebelVictoryCount for the others. A click on a slot while
+ * dragging (gate 2) drops g_missionSetupDraggedPlayerId: a player already in
+ * that slot loses its assignedPlayerIds slot (outside a solo game a
+ * TEAM_ASSIGNMENT to team 10 is sent for it) and is replaced; on an empty slot
+ * the player goes to the team's first empty slot up to it. The dropped player
+ * gets an assignedPlayerIds slot when it has none; outside a solo game a
+ * TEAM_ASSIGNMENT (player, team, slot) and a RELEASE_TEAM_RESERVATION go to
+ * every player; the drag ends. Each filled slot whose player is among the first
+ * readyCount g_mpRoster entries shows its rating and name, pulsing for the
+ * local player and in a solo game, else yellow. The host or a solo player
+ * pressing a mouse button on a filled slot starts a drag of its player: a host
+ * only for a player not reserved, reserving it, sending a TEAM_RESERVATION and
+ * a TEAM_ASSIGNMENT to team 10, and taking it out of assignedPlayerIds and its
+ * team, shifting the later slots down; a solo game takes it out of its team
+ * only when it holds an assignedPlayerIds slot. */
 // FUNCTION: XVT 0x4F3740
 void MissionSetup_DrawTeamAssignments(int frameCounter)
 {
@@ -11300,6 +12102,12 @@ void MissionSetup_DrawTeamAssignments(int frameCounter)
 	}
 }
 
+/* Takes out of the team assignments every assignedPlayerIds entry that is not
+ * the nonzero playerId of a g_mpRoster entry, a 0 entry included: the id is
+ * removed from each slot of the first g_teamCount teams that holds it, the
+ * later slots shifting down and slot 7 becoming 0, and the entry is set to 0.
+ * g_missionSetupPlayerFlightGroupIndices is not shifted with them. Outside a
+ * solo game it also calls Net_CountReadyPlayers and drops the result. */
 // FUNCTION: XVT 0x4F3EA0
 void MissionSetup_PruneTeamAssignments(void)
 {
@@ -11391,6 +12199,11 @@ void MissionSetup_PruneTeamAssignments(void)
 	} while (activePlayerIndex < 8);
 }
 
+/* Tells whether the teams are ready for flight assignment. Returns 0 when one
+ * of the first readyCount g_mpRoster entries (1 in a solo game, else
+ * Net_CountReadyPlayers()) has a playerId of 0 or one in no assignedPlayerIds
+ * slot, or when one of the first g_teamCount teams has a player in slots 1 to 7
+ * but none in slot 0, its captain's slot; else 1. */
 // FUNCTION: XVT 0x4F3F70
 int MissionSetup_IsTeamAssignmentValid(void)
 {
@@ -11453,6 +12266,14 @@ int MissionSetup_IsTeamAssignmentValid(void)
 	return 1;
 }
 
+/* Draws the side buttons of the team assignment screen and handles them. For a
+ * combat engagement sequence (missionSequenceActive 1) the Assign Teams and
+ * Mission Description buttons set g_missionSetupShowDescriptionPanel to 0 or 1
+ * and redraw the screen's base, with the team slot overlays when the teams come
+ * back; Mission Description also resets g_frontendFirstVisibleLine. For the
+ * host or a solo player while the teams show, a left or right click inside
+ * Clear List calls MissionSetup_ClearTeamAssignments and inside Auto Assign
+ * MissionSetup_RandomizeTeamAssignments. Returns 1. */
 // FUNCTION: XVT 0x4F4010
 int MissionSetup_UpdateTeamControls(void)
 {
@@ -11641,6 +12462,16 @@ int MissionSetup_UpdateTeamControls(void)
 	return 1;
 }
 
+/* Clears the team assignments and places each of the readyCount players (1 in a
+ * solo game, else Net_CountReadyPlayers()) at random: a g_mpRoster entry drawn
+ * by rand() % 8 among those with a nonzero playerId not yet placed, on a team
+ * drawn by rand() % g_teamCount among those with fewer placed players than
+ * their g_teamPlayerFlightGroupCount, in that team's first empty slot; the
+ * player's id also goes in assignedPlayerIds at the roster entry's index.
+ * Outside a solo game it then sends every player a TEAM_ASSIGNMENTS packet with
+ * teamPlayerIds and assignedPlayerIds. Returns 1. Does not check that there are
+ * enough roster entries and team slots for the players, or that g_teamCount is
+ * nonzero: the draws then never end, or divide by zero. */
 // FUNCTION: XVT 0x4F4580
 int MissionSetup_RandomizeTeamAssignments(void)
 {
@@ -11722,6 +12553,8 @@ int MissionSetup_RandomizeTeamAssignments(void)
 	return 1;
 }
 
+/* Clears teamPlayerIds and assignedPlayerIds and, outside a solo game, sends
+ * every player a CLEAR_TEAM_ASSIGNMENTS packet. Returns 1. */
 // FUNCTION: XVT 0x4F46C0
 int MissionSetup_ClearTeamAssignments(void)
 {
@@ -11740,6 +12573,9 @@ int MissionSetup_ClearTeamAssignments(void)
 	return 1;
 }
 
+/* Sends every player the host's final team assignments, a
+ * TEAM_ASSIGNMENTS_READY packet carrying teamPlayerIds (not assignedPlayerIds).
+ * Returns 1. */
 // FUNCTION: XVT 0x4F4710
 int MissionSetup_BroadcastTeamAssignments(void)
 {
@@ -11755,6 +12591,25 @@ int MissionSetup_BroadcastTeamAssignments(void)
 	return 1;
 }
 
+/* Continues a saved battle when a combat engagement sequence starts, the
+ * mission type being combat engagement; MissionSetup_TeamAssignmentUpdate calls
+ * it on frame 0, the modern build through its campaign task. It moves the
+ * mission type up to battle, loads the list and selects the stored battle. A
+ * solo game continues when g_gameConfig.continueBattleOrCampaign is not
+ * SEQUENCE_RESTART and the battle's spBattleContinuations entry is active,
+ * copying the saved sequence state into g_pilotData.battleSequenceState. A
+ * network host does the same with mpBattleContinuations, first sending every
+ * player a BATTLE_CONTINUATION packet: 1, the saved randomSeed and the saved
+ * state, or 0 alone when it does not continue. A client waits for that packet
+ * until more than 30000 ms have passed; the original build drops any other
+ * packet it reads meanwhile. On 1 it takes the host's state, keeping its own
+ * saved cumulativeScore when the host's seed equals its own saved seed and
+ * setting it to 0 when not. Continuing sets launchSessionMarker to 1, raises
+ * currentMissionIndex by 1, calls MissionSetup_SelectNextSequenceMission and
+ * returns 1. Otherwise it lowers the mission type by 1, clears the entry's
+ * isActive and returns 0. On a client's timeout it returns 0 having lowered the
+ * mission type by 1 without raising it first, which leaves it at tournament. In
+ * the modern build a client returns XVT_CAMPAIGN_PENDING while it waits. */
 // FUNCTION: XVT 0x4F4750
 int MissionSetup_TryContinueBattle(void)
 {
@@ -11987,6 +12842,25 @@ int MissionSetup_TryContinueBattle(void)
 	return 1;
 }
 
+/* Continues a saved campaign when a campaign sequence starts, the mission type
+ * being training; MissionSetup_TeamAssignmentUpdate calls it on frame 0, the
+ * modern build through its campaign task. It sets the mission type to campaign,
+ * loads the list and selects the stored campaign. A solo game continues when
+ * g_gameConfig.continueBattleOrCampaign is not SEQUENCE_RESTART and the
+ * campaign's spCampaignContinuations entry is active, copying the saved
+ * sequence state into g_pilotData.campaignSequenceState. A network host does
+ * the same with mpCampaignContinuations, first sending every player a
+ * CAMPAIGN_CONTINUATION packet: 1, the saved randomSeed and the saved state, or
+ * 0 alone when it does not continue. A client waits for that packet until more
+ * than 30000 ms have passed; the original build drops any other packet it reads
+ * meanwhile. On 1 it takes the host's state, keeping the cumulativeScore of its
+ * own saved entry (mpCampaignContinuations at the campaign id plus 12) when the
+ * host's seed equals that entry's seed and setting it to 0 when not. Continuing
+ * sets launchSessionMarker to 1, raises currentMissionIndex by 1, calls
+ * MissionSetup_SelectNextSequenceMission and returns 1. Otherwise it sets the
+ * mission type back to training, clears the entry's isActive (a client's at the
+ * id plus 12) unless the wait timed out, and returns 0. In the modern build a
+ * client returns XVT_CAMPAIGN_PENDING while it waits. */
 // FUNCTION: XVT 0x4F4B80
 int MissionSetup_TryContinueCampaign(void)
 {
@@ -12232,6 +13106,11 @@ int MissionSetup_TryContinueCampaign(void)
 	return 1;
 }
 
+/* Draws the mission description on the team assignment screen in place of the
+ * team slots: a heading for a tournament, battle, campaign or other mission,
+ * then g_missionText wrapped, with a scrollbar that sets
+ * g_frontendFirstVisibleLine when the text's wrapped line count (from a draw
+ * starting at line 4096) plus one is over 13. Returns 1. */
 // FUNCTION: XVT 0x4F4F80
 int MissionSetup_DrawTeamMissionDescription(void)
 {
@@ -12279,6 +13158,11 @@ int MissionSetup_DrawTeamMissionDescription(void)
 	return 1;
 }
 
+/* Exit callback of the flight assignment screen: frees the briefing text
+ * buffers, unloads the frontres\mapicons.lst images, frees g_missionList and
+ * g_missionText, setting both to NULL, frees the "background" image, resets the
+ * scrollable controls and clears the mouse input gate. Ignores frameCounter and
+ * returns 0. */
 // FUNCTION: XVT 0x4F5100
 int MissionSetup_FreeScreenResources(int frameCounter)
 {
@@ -12300,6 +13184,53 @@ int MissionSetup_FreeScreenResources(int frameCounter)
 	return 0;
 }
 
+/* The flight assignment screen, run once per frame: each team's players are
+ * placed in the team's player flight groups beside the briefing map, and Next
+ * moves on to MissionBriefing_Update. On frame 0 it clears
+ * g_missionSetupLaunchSignalSent, the reservations,
+ * g_frontendBriefingEnteredCount and g_missionSetupUseExpandedAssignmentLayout;
+ * sets g_frontendChatTeamOnly when the pilot's team has more than one player
+ * flight group; sets g_frontendGameSessionInProgress in a solo game; loads the
+ * mission for the briefing and the map icons; fills g_textShadeRamps with five
+ * ramps of eight shades from 0x48 to 0xFC (green, red, yellow, blue, magenta);
+ * sets every g_missionSetupPlayerFlightGroupIndices entry to -1 unless
+ * g_frontendSkipScreenEntrySetup is set; prunes the assignments; for each team
+ * gives its player flight groups, in mission order, each to the next slot that
+ * holds a player and has no flight group; and sets
+ * g_frontendSkipScreenEntrySetup. A melee whose teams have one slot each, or a
+ * Quick Start, goes straight to the briefing. Otherwise it picks the background
+ * by mission type and side (the pilot's team, or for other types the IFF of the
+ * first player flight group), draws the screen's base with a slot overlay per
+ * player flight group of the pilot's team (the expanded layout, setting
+ * g_missionSetupUseExpandedAssignmentLayout, when there are more than 4, else
+ * at most 4 under the map), starts the 120000 ms launch countdown, and
+ * allocates and loads g_missionText. Every frame it draws the mission name and,
+ * outside a solo game, handles one packet: a host cancel leaves for the join
+ * screen; a lobby state prunes the assignments; FLIGHT_ASSIGNMENTS_READY fills
+ * the slots still empty and goes to the briefing; a return to setup goes back
+ * to MissionSetup_Update; a countdown packet (type 'e') lowers
+ * g_missionSetupLaunchCountdownMs to its value; reservations update
+ * g_missionSetupReservedPlayerIds; a pilot rating updates its sender's roster
+ * entry. With more than 4 player flight groups it shows, by
+ * g_missionSetupUseExpandedAssignmentLayout, the mission description and the
+ * flight slots (1) or the briefing map and the assigned players (0); with 4 or
+ * fewer, the briefing map and the flight slots. Then the pilot banner and,
+ * outside a solo game with more than one team, the countdown: the ms elapsed
+ * since the last frame come off g_missionSetupLaunchCountdownMs, and the host
+ * sends every player a countdown packet whenever the whole seconds change; once
+ * it is under 0 it stays at 0, the captain of the pilot's team (slot 0) sends
+ * FLIGHT_ASSIGNMENTS_READY to each player of the team once, and the function
+ * returns 0 each frame before its buttons. Previous returns a solo game to team
+ * assignment, asking first in a tournament or battle sequence (mission type
+ * melee or combat engagement); a host's Restart asks, then sends every player
+ * RETURN_TO_SETUP; a client's Leave asks, then leaves for the join screen.
+ * Next, once MissionSetup_AreFlightAssignmentsComplete returns nonzero, goes to
+ * the briefing in a solo game, or for the team's captain sends
+ * FLIGHT_ASSIGNMENTS_READY to each player of the team. Last it handles the
+ * assignment controls and the drag: a left click ends it, outside a solo game
+ * sending RELEASE_FLIGHT_RESERVATION (the code tests the left click twice and
+ * never the right); else the dragged name is drawn at the cursor. Returns 1
+ * when Frontend_HandleCommonScreenControls returns 1, else 0. */
 // FUNCTION: XVT 0x4F5170
 int MissionSetup_FlightAssignmentUpdate(int frameCounter)
 {
@@ -13227,6 +14158,22 @@ int MissionSetup_FlightAssignmentUpdate(int frameCounter)
 	return 0;
 }
 
+/* Draws the side buttons of the flight assignment screen and handles them. The
+ * captain's buttons belong to the local player when it holds slot 0 of
+ * g_pilotData.team, and to every solo player. While the briefing map shows
+ * (g_missionSetupUseExpandedAssignmentLayout 0) there are the map's buttons:
+ * Play sets g_briefingPlaybackActive and Stop clears it; a click on Forward
+ * while playing advances the briefing a line and restarts it when
+ * g_briefingTextSlotBlockIdx[1] then equals g_briefingLastNarratedTextBlockIdx;
+ * Rewind restarts it. When the pilot's team has more than 4 player flight
+ * groups, Assign Players and View Briefing Map set
+ * g_missionSetupUseExpandedAssignmentLayout to 1 or 0 and redraw the screen's
+ * base (Assign Players also resets g_frontendFirstVisibleLine, View Briefing
+ * Map puts the cursor at 37, 445), and the captain gets Clear List and Auto
+ * Assign in the expanded layout. With 2 to 4 player flight groups the captain
+ * gets Clear List and Auto Assign under the map. Clear List calls
+ * MissionSetup_ClearFlightAssignments, Auto Assign
+ * MissionSetup_RandomizeFlightAssignments. Returns 0. */
 // FUNCTION: XVT 0x4F8E40
 int MissionSetup_DrawAssignmentControls(void)
 {
@@ -13616,6 +14563,28 @@ int MissionSetup_DrawAssignmentControls(void)
 	return 0;
 }
 
+/* Draws the flight assignment table of the pilot's team and handles drags and
+ * drops on it: the duty roster of the team's player flight groups (number,
+ * craft and name in a color by IFF, and the first order's designation or the
+ * General text), each with its assigned pilot, and up to 4 of the team's
+ * players who have no flight group, gray when reserved. With more than 4 player
+ * flight groups the table sits 68 pixels higher. With more than one, a help
+ * line tells the team's captain (the local player in slot 0 of
+ * g_pilotData.team) or a solo player to drag names into pilot slots, and others
+ * to wait. The captain or a solo player pressing a mouse button on an
+ * unassigned player starts a drag (input gate 3); with more than one player
+ * flight group, so does a press on a flight group's pilot, and a solo game then
+ * takes that pilot's flight group away (-1). A captain drags only a player not
+ * reserved, reserving it and sending every player a FLIGHT_RESERVATION (the
+ * player and the local id) and a FLIGHT_ASSIGNMENT_NOTIFY clearing each of the
+ * team's slots that holds the player with a flight group. With more than one
+ * player flight group, a click while dragging on a flight group's pilot cell
+ * drops the player there: a solo game sets the dragged player's
+ * g_missionSetupPlayerFlightGroupIndices entry to that flight group, clearing
+ * the pilot it replaces; a captain instead sends FLIGHT_ASSIGNMENT_NOTIFY
+ * packets, clearing the replaced pilot and then assigning the dragged player's
+ * slot, and a RELEASE_FLIGHT_RESERVATION. Either way the drag ends. Returns
+ * 1. */
 // FUNCTION: XVT 0x4F9750
 int MissionSetup_DrawFlightAssignments(int frameCounter)
 {
@@ -14367,6 +15336,13 @@ int MissionSetup_DrawFlightAssignments(int frameCounter)
 	return 1;
 }
 
+/* Takes out of the team and flight assignments every assignedPlayerIds entry
+ * that is not the playerId of a g_mpRoster entry (a 0 entry stays while some
+ * roster entry is empty): the id is removed from each slot of the first
+ * g_teamCount teams that holds it, the later slots and their
+ * g_missionSetupPlayerFlightGroupIndices entries shifting down and slot 7
+ * becoming 0 with flight group -1, and the entry is set to 0. Outside a solo
+ * game it also calls Net_CountReadyPlayers and drops the result. */
 // FUNCTION: XVT 0x4FA420
 void MissionSetup_PruneFlightAssignments(void)
 {
@@ -14473,6 +15449,11 @@ void MissionSetup_PruneFlightAssignments(void)
 	} while (activePlayerIndex < 8);
 }
 
+/* Tells whether every player of the pilot's team has a flight group: returns 0
+ * when one of the team's first g_teamPlayerFlightGroupCount slots holds a
+ * player whose g_missionSetupPlayerFlightGroupIndices entry is -1, else 1. It
+ * runs the same test of the pilot's team once per team, g_teamCount times, and
+ * checks no other team. */
 // FUNCTION: XVT 0x4FA500
 int MissionSetup_AreFlightAssignmentsComplete(void)
 {
@@ -14506,6 +15487,16 @@ int MissionSetup_AreFlightAssignmentsComplete(void)
 	return 1;
 }
 
+/* Gives each player of the pilot's team a random player flight group of the
+ * team, when slot 0 holds a player. For each slot in turn, until one holds 0,
+ * it draws rand() % 9 + 1 and steps that many times through the team's player
+ * flight groups not given to an earlier slot, in mission order and cycling, and
+ * gives the slot the one it stops on. Outside a solo game it then sends every
+ * player a FLIGHT_ASSIGNMENTS packet with the team and its eight
+ * g_missionSetupPlayerFlightGroupIndices entries. Returns 1. Does not check
+ * that the team has a free flight group for each player (the stepping then
+ * never ends), or stop after slot 7 when all 8 slots hold players: it then goes
+ * on into the next team's row. */
 // FUNCTION: XVT 0x4FA570
 int MissionSetup_RandomizeFlightAssignments(void)
 {
@@ -14605,6 +15596,9 @@ int MissionSetup_RandomizeFlightAssignments(void)
 	return 1;
 }
 
+/* Sets the pilot's team's eight g_missionSetupPlayerFlightGroupIndices entries
+ * to -1 and, outside a solo game, sends every player a CLEAR_FLIGHT_ASSIGNMENTS
+ * packet with the team. Returns 1. */
 // FUNCTION: XVT 0x4FA690
 int MissionSetup_ClearFlightAssignments(void)
 {
@@ -14633,6 +15627,12 @@ int MissionSetup_ClearFlightAssignments(void)
 	return 1;
 }
 
+/* Gives each player of the pilot's team who has no flight group the first of
+ * the team's player flight groups no slot holds, and sends every player a
+ * FLIGHT_ASSIGNMENT packet (team, slot, flight group) for it; when every one is
+ * taken the slot keeps the team's last player flight group and nothing is sent.
+ * Only MissionSetup_FlightAssignmentUpdate calls it, when the captain's
+ * FLIGHT_ASSIGNMENTS_READY arrives. Returns 1. */
 // FUNCTION: XVT 0x4FA6F0
 int MissionSetup_FillFlightAssignments(void)
 {
@@ -14715,6 +15715,12 @@ int MissionSetup_FillFlightAssignments(void)
 	return 1;
 }
 
+/* Draws the duty roster under the briefing map on the flight assignment screen
+ * when the pilot's team has more than 4 player flight groups and the map shows:
+ * the team's player flight groups, numbered, four to a column, each with its
+ * pilot's rating and name (pulsing for the local player and in a solo game,
+ * else yellow) or the unassigned text. The team's captain, or a solo player,
+ * also sees the team captain line. Returns 1. */
 // FUNCTION: XVT 0x4FA810
 int MissionSetup_DrawAssignedPlayers(int frameCounter)
 {
@@ -14860,6 +15866,11 @@ int MissionSetup_DrawAssignedPlayers(int frameCounter)
 	return 1;
 }
 
+/* Draws the mission description on the flight assignment screen's expanded
+ * layout: a heading for a tournament, battle, campaign or other mission, then
+ * g_missionText wrapped, with a scrollbar that sets g_frontendFirstVisibleLine
+ * when the text's wrapped line count (from a draw starting at line 4096) plus
+ * one is over 9. Returns 1. */
 // FUNCTION: XVT 0x4FAB50
 int MissionSetup_DrawAssignmentMissionDescription(void)
 {
@@ -14907,6 +15918,10 @@ int MissionSetup_DrawAssignmentMissionDescription(void)
 	return 1;
 }
 
+/* Exit callback of the battle choice screen: frees g_missionList,
+ * g_battleMissionList (setting g_battleMissionListCount to 0) and
+ * g_missionText, setting each to NULL, frees the "background" image, resets the
+ * scrollable controls and clears the mouse input gate. Returns 0. */
 // FUNCTION: XVT 0x4FBE10
 int MissionSetup_BattleChoice_Exit(void)
 {
@@ -14929,6 +15944,38 @@ int MissionSetup_BattleChoice_Exit(void)
 	return 0;
 }
 
+/* The battle choice screen, run once per frame: in a combat engagement sequence
+ * with the players' choice setup, the team whose index is not the previous
+ * mission's result, which the screen's text calls the losing team, picks the
+ * next mission from the battle's list. On frame 0 it clears
+ * g_battleChoiceTimeoutHandled, draws the screen's base, reloads the list and
+ * selects the stored mission, starts the 120000 ms countdown in
+ * g_battleChoiceRemainingMs, allocates and loads g_missionText and builds the
+ * choice list. Outside a solo game it handles one packet: a host cancel leaves
+ * for the join screen; a lobby state prunes the flight assignments;
+ * MISSION_CHOICE stores the chosen mission id as
+ * battleSequenceState.currentMissionId and in missionOrdinals at
+ * currentMissionIndex, stores its list index in missionListIndices, loads the
+ * mission and moves to flight assignment; a return to setup goes back to
+ * MissionSetup_Update; a BRIEFING_COUNTDOWN lowers g_battleChoiceRemainingMs to
+ * its value; a pilot rating updates its sender's roster entry. It draws the
+ * battle's name, the title, the selected mission, the description, the chat
+ * panel, the pilot banner and, outside a solo game, the countdown: the ms
+ * elapsed since the last frame come off g_battleChoiceRemainingMs and the host
+ * sends every player a BRIEFING_COUNTDOWN whenever the whole seconds change;
+ * once it is under 0 it stays at 0, the losing team's captain (slot 0) sends
+ * the host SUBMIT_MISSION_CHOICE once, and the function returns 0 each frame
+ * before the rest. Then the help text, the roster, and Previous (solo: ask,
+ * then mission setup), Restart (host: ask, then RETURN_TO_SETUP to every
+ * player) or Leave (client: ask, then the join screen), and Next: a solo player
+ * moves to flight assignment, the losing team's captain sends the host
+ * SUBMIT_MISSION_CHOICE. A solo player or that captain also gets the mission
+ * list button, which pushes MissionSetup_BattleChoice_DrawList. Both
+ * SUBMIT_MISSION_CHOICE sends give a size of one word, so the description id
+ * written into the payload is not sent and the host relays a word that was not
+ * received. Returns 1 when Frontend_HandleCommonScreenControls returns 1, else
+ * 0. Does not check that currentMissionIndex is above 0 before reading the
+ * previous result. */
 // FUNCTION: XVT 0x4FBE90
 int MissionSetup_BattleChoice_Update(int frameCounter)
 {
@@ -15504,6 +16551,11 @@ int MissionSetup_BattleChoice_Update(int frameCounter)
 	return Frontend_HandleCommonScreenControls(1) == 1;
 }
 
+/* Draws the description box of the battle choice screen: a heading for a
+ * tournament, battle, campaign or other mission, then g_missionText wrapped,
+ * with a scrollbar that sets g_frontendFirstVisibleLine when the text's wrapped
+ * line count (from a draw starting at line 4096) plus one is over 9. Returns
+ * 1. */
 // FUNCTION: XVT 0x4FCBF0
 int MissionSetup_BattleChoice_DrawDescription(void)
 {
@@ -15551,6 +16603,11 @@ int MissionSetup_BattleChoice_DrawDescription(void)
 	return 1;
 }
 
+/* Draws the Players in Game panel of the battle choice screen: each g_mpRoster
+ * entry with a nonzero playerId, four to a column, as its rating and name, or
+ * the join in progress text when it has neither; the local player's entry
+ * pulses, as does every entry in a solo game, and the others are yellow.
+ * Returns 1. */
 // FUNCTION: XVT 0x4FCD70
 int MissionSetup_BattleChoice_DrawRoster(int frameCounter)
 {
@@ -15615,6 +16672,18 @@ int MissionSetup_BattleChoice_DrawRoster(int frameCounter)
 	return 1;
 }
 
+/* Builds g_battleMissionList, the battle's missions the choosing team may pick,
+ * freeing the old one first. It loads the battle list for a moment to find the
+ * selected battle's sequence file and copy the battle's description into
+ * g_missionSequenceDescription, then puts g_missionList and g_missionCount
+ * back. The file's first line gives the count, stored in
+ * g_battleMissionListCount; each line after it names a mission, matched without
+ * regard to case against g_missionList's file names. A match is copied in with
+ * its section name cleared, and marked unavailable when its line's index is
+ * among the missionOrdinals before currentMissionIndex. Returns 1, or 0 when
+ * the file does not open or is empty, or ends early, the count then cut to the
+ * lines read. Does not check the allocation, and leaves an entry unset when its
+ * file name is not in the list. */
 // FUNCTION: XVT 0x4FCF30
 int MissionSetup_BattleChoice_BuildList(void)
 {
@@ -15738,6 +16807,23 @@ int MissionSetup_BattleChoice_BuildList(void)
 	return 1;
 }
 
+/* The battle choice screen's drop-down list of the battle's missions, a pushed
+ * screen run each frame. On frame 0 it counts the rows in
+ * g_battleChoiceRowCount, one per available entry of g_battleMissionList and
+ * one per change of section among them, and sets g_battleChoiceScrollOffset to
+ * the index of the entry matching the selected mission, or to 0 when the count
+ * is under 20. Outside a solo game a lobby state from the host loads the host's
+ * mission. It draws up to 19 rows, skipping unavailable entries, with a
+ * scrollbar when there are more, then each entry's award beside it, chosen as
+ * MissionSetup_DrawMissionList chooses it. A click on a row takes that entry as
+ * the selected mission, unless outside a solo game its file name starts with
+ * "1": it stores the entry's ordinal and list index at battleSequenceState's
+ * currentMissionIndex (the ordinal being the entry's index in
+ * g_battleMissionList in a solo game and its mission id outside one), loads the
+ * mission and its text, and outside a solo game sends the lobby state. A click
+ * on a row, or outside the list, closes the list. Each row's text and color
+ * come from g_missionList at the entry's index, not from the entry. Returns 0.
+ * When g_battleMissionList is NULL it pops the screen and goes on drawing. */
 // FUNCTION: XVT 0x4FD1F0
 int MissionSetup_BattleChoice_DrawList(int frameCounter)
 {

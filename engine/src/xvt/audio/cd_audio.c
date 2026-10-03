@@ -10,6 +10,19 @@
 #include "xvt/util/time.h"
 #include <string.h>
 
+/* Opens the CD audio device through MCI for the front end's music. Returns 0 at
+ * once when the window is not up: g_frontState.hWnd NULL in the original build,
+ * XvtPort_IsInitialized false in the modern one. Closes a device already open
+ * with CDAudio_CloseDevice. Takes the first auxiliary device that is a CD audio
+ * device with volume control and whose volume reads, and stores the low 16 bits
+ * of that volume in g_frontState.cdAudioSavedAuxVolume. Opens "cdaudio" into
+ * cdAudioMciDeviceId, sets the time format to tracks, minutes, seconds and
+ * frames (MCI_FORMAT_TMSF), and reads the track count into cdAudioTrackCount
+ * and each track's length, in minutes, seconds and frames, into
+ * cdAudioTrackCache.trackLengthMsfByTrack. Returns 1; 0 when the open fails, or
+ * when a later step fails, after closing the device and setting
+ * cdAudioMciDeviceId to 0. Does not check the track count against the cache's
+ * 40 entries. */
 // FUNCTION: XVT 0x4D2E50
 int CDAudio_Initialize(void)
 {
@@ -105,14 +118,22 @@ int CDAudio_Initialize(void)
 	return 0;
 }
 
+/* Plays track trackNumber through MCI from startMinute and startSecond to the
+ * track's end, with MCI_NOTIFY to the front end's window. Returns 0 when the
+ * track is not 1 to g_frontState.cdAudioTrackCount, no device is open, or
+ * MCI_PLAY fails. Otherwise it sets cdAudioCurrentTrack, cdAudioTrackEndMs to
+ * the track's whole length plus GetTickCount() plus 2000 whatever the start,
+ * cdAudioPlaybackComplete to 0 and cdAudioSuspendState to CDAudio_NotSuspended,
+ * and returns 1. Does not check startMinute against the 8 bits it fills in the
+ * position. */
 // FUNCTION: XVT 0x4D3020
 int CDAudio_PlayTrackFromTime(int trackNumber, uint16_t startMinute,
 			      uint8_t startSecond)
 {
 	struct {
-		void *callback;
-		uint32_t from;
-		uint32_t to;
+		void *callback; /* Window MCI notifies when the play ends. */
+		uint32_t from;	/* Start: track, minute, second, frame. */
+		uint32_t to;	/* End, the track's length, the same way. */
 	} parameters;
 
 	unsigned int trackEndMsf;
@@ -150,6 +171,10 @@ int CDAudio_PlayTrackFromTime(int trackNumber, uint16_t startMinute,
 	return 1;
 }
 
+/* Stops the current track with MCI_STOP, sets g_frontState.cdAudioCurrentTrack
+ * and cdAudioPlaybackComplete to 0 and cdAudioSuspendState to
+ * CDAudio_NotSuspended, and returns 1. Returns 0 when no device is open or no
+ * track is current. */
 // FUNCTION: XVT 0x4D3140
 int CDAudio_StopCurrentTrack(void)
 {
@@ -169,6 +194,13 @@ int CDAudio_StopCurrentTrack(void)
 	return 1;
 }
 
+/* Closes the CD audio device: stops a current track, closes the device and sets
+ * g_frontState.cdAudioMciDeviceId to 0, and clears the cached track lengths,
+ * cdAudioCurrentTrack, cdAudioPlaybackComplete and cdAudioSuspendState. When
+ * cdAudioSavedAuxVolume is not -1 it puts that volume back on both channels of
+ * every CD audio auxiliary device with volume control; then it sets
+ * cdAudioSavedAuxVolume to -1. Does nothing when no device is open, but the
+ * modern build first cancels a volume fade with XvtCdTask_CancelFade. */
 // FUNCTION: XVT 0x4D31A0
 void CDAudio_CloseDevice(void)
 {
@@ -221,6 +253,8 @@ void CDAudio_CloseDevice(void)
 	*savedAuxVolume = -1;
 }
 
+/* Returns g_frontState.cdAudioPlaybackComplete, 1 once the current track ran
+ * out with looping off; 0 when no device is open or no track is current. */
 // FUNCTION: XVT 0x4D32A0
 int CDAudio_IsPlaybackComplete(void)
 {
@@ -233,6 +267,10 @@ int CDAudio_IsPlaybackComplete(void)
 	return g_frontState.cdAudioPlaybackComplete;
 }
 
+/* Returns the cached length of track trackNumber in milliseconds,
+ * (minutes * 60 + seconds) * 1000 + frames * 1000 / 75, or 0 when no
+ * device is open or the track is not 1 to g_frontState.cdAudioTrackCount.
+ * Only CDAudio_PlayTrackFromTime and CDAudio_SuspendPlayback call it. */
 // FUNCTION: XVT 0x4D32C0
 int CDAudio_GetTrackLengthMs(int trackNumber)
 {
@@ -253,6 +291,8 @@ int CDAudio_GetTrackLengthMs(int trackNumber)
 	       MCI_MSF_FRAME(trackEndMsf) * 1000 / 75;
 }
 
+/* Sets g_frontState.cdAudioLoopCurrentTrack to 1, so the front end's frame loop
+ * plays the current track again from its start when it ends. Returns 1. */
 // FUNCTION: XVT 0x4D3330
 int CDAudio_EnableLoopCurrentTrack(void)
 {
@@ -260,6 +300,9 @@ int CDAudio_EnableLoopCurrentTrack(void)
 	return 1;
 }
 
+/* Sets g_frontState.cdAudioLoopCurrentTrack to 0, so the frame loop marks the
+ * track complete when it ends. Returns 1. Credits_UpdateScreen is its only
+ * caller. */
 // FUNCTION: XVT 0x4D3340
 int CDAudio_DisableLoopCurrentTrack(void)
 {
@@ -267,6 +310,15 @@ int CDAudio_DisableLoopCurrentTrack(void)
 	return 1;
 }
 
+/* Stops the current track and remembers where it was, for
+ * CDAudio_ResumeSuspendedPlayback. While not suspended, with a track
+ * current and not complete, it stores the time left,
+ * cdAudioTrackEndMs - GetTickCount() - 2000, in
+ * g_frontState.cdAudioSuspendRemainingMs and the track length less
+ * that in cdAudioSuspendElapsedMs, both in milliseconds, sends
+ * MCI_STOP and sets cdAudioSuspendState to CDAudio_Suspended. A
+ * pending resume (CDAudio_ResumePending) goes back to
+ * CDAudio_Suspended. Returns 1, or 0 when no device is open. */
 // FUNCTION: XVT 0x4D3350
 int CDAudio_SuspendPlayback(void)
 {
@@ -299,6 +351,9 @@ int CDAudio_SuspendPlayback(void)
 	return 1;
 }
 
+/* When playback is suspended, sets g_frontState.cdAudioSuspendState to
+ * CDAudio_ResumePending and cdAudioResumeDueMs to GetTickCount() + 1000; the
+ * front end's frame loop resumes the track once that time passes. Returns 1. */
 // FUNCTION: XVT 0x4D3400
 int CDAudio_RequestResumePlayback(void)
 {
@@ -309,6 +364,13 @@ int CDAudio_RequestResumePlayback(void)
 	return 1;
 }
 
+/* Plays the current track on from g_frontState.cdAudioSuspendElapsedMs, cut to
+ * whole minutes and seconds, with CDAudio_PlayTrackFromTime, then sets
+ * cdAudioTrackEndMs to GetTickCount() + cdAudioSuspendRemainingMs + 2000 and
+ * cdAudioSuspendState to CDAudio_NotSuspended. Returns 1, also when the play
+ * fails. Does not check that playback was suspended. The front end's frame loop
+ * calls it: FrontendDisplay_RunMainLoop in the original build, XvtCdTask_Update
+ * in the modern one. */
 // FUNCTION: XVT 0x4D3430
 int CDAudio_ResumeSuspendedPlayback(void)
 {
@@ -327,6 +389,10 @@ int CDAudio_ResumeSuspendedPlayback(void)
 	return 1;
 }
 
+/* Sets every CD audio auxiliary device with volume control to volume0To65535,
+ * capped at 65535, on both channels, and stores the capped value in
+ * g_frontState.cdAudioTrackCache.currentAuxVolume. Returns 1. Needs no open MCI
+ * device. */
 // FUNCTION: XVT 0x4D34A0
 int CDAudio_SetAuxVolume(unsigned int volume0To65535)
 {
@@ -354,6 +420,14 @@ int CDAudio_SetAuxVolume(unsigned int volume0To65535)
 	return 1;
 }
 
+/* Moves the CD volume from fromVolume to toVolume over about fadeDurationMs
+ * milliseconds. The modern build hands the fade to XvtCdTask_BeginFade and
+ * returns its result. The original build returns 0 when no device is open and 1
+ * at once when the two volumes are equal; otherwise it waits in a loop, moving
+ * the volume 256 toward toVolume with CDAudio_SetAuxVolume, kept within 0 to
+ * 65535, each time more than (fadeDurationMs << 8) / the difference
+ * milliseconds have passed, until it reaches or passes toVolume, and returns
+ * 1. */
 // FUNCTION: XVT 0x4D3520
 int CDAudio_FadeAuxVolume(unsigned int fromVolume, unsigned int toVolume,
 			  int fadeDurationMs)
