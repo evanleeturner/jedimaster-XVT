@@ -40,8 +40,9 @@ if(XVT_BUILD_TOOLS)
     endif()
 endif()
 
-# Recovered original code. Every file here carries DecompMatch address tags
-# and is byte-matched against z_bop__.exe.
+# Recovered original code. Each function and global carries a comment with
+# the address it was recovered from. The files are no longer checked against
+# z_bop__.exe: names and layout have changed since.
 set(XVT_RECOVERED_SOURCES
     src/xvt/assets/endian.c
     src/xvt/assets/file.c
